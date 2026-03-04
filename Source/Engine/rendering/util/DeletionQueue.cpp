@@ -265,7 +265,7 @@ int DeletionQueue::Iterate(int maxIter)
     {
         const uint32 firstOffset = headers[0].offset; // so we can subtract it from all offsets after resizing
 
-        for (SizeType headerIdx = 0; headerIdx < headers.Size(); headerIdx++)
+        for (size_t headerIdx = 0; headerIdx < headers.Size(); headerIdx++)
         {
             EntryHeader& header = headers[headerIdx];
 

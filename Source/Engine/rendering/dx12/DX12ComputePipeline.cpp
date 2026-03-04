@@ -53,12 +53,12 @@ void DX12ComputePipeline::Dispatch(CommandBuffer* commandBuffer, const Vec3u& gr
 void DX12ComputePipeline::DispatchIndirect(
     CommandBuffer* commandBuffer,
     const DX12GpuBufferRef& indirectBuffer,
-    SizeType offset) const
+    size_t offset) const
 {
     // @TODO
 }
 
-void DX12ComputePipeline::SetPushConstants(const void* data, SizeType size)
+void DX12ComputePipeline::SetPushConstants(const void* data, size_t size)
 {
     // @TODO
 }

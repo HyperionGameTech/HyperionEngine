@@ -154,7 +154,7 @@ public:
     {
         m_vertices.Resize(vertices.Size() * 3);
 
-        for (SizeType index = 0; index < vertices.Size(); index++)
+        for (size_t index = 0; index < vertices.Size(); index++)
         {
             m_vertices[index * 3] = vertices[index].x;
             m_vertices[index * 3 + 1] = vertices[index].y;
@@ -169,7 +169,7 @@ public:
         return m_vertices.Data();
     }
 
-    HYP_FORCE_INLINE SizeType NumVertices() const
+    HYP_FORCE_INLINE size_t NumVertices() const
     {
         return m_vertices.Size() / 3;
     }

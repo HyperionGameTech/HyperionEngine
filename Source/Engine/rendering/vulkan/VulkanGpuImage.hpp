@@ -106,7 +106,7 @@ private:
     // true if we created the VkImage, false otherwise (e.g retrieved from swapchain)
     bool m_isHandleOwned = true;
 
-    SizeType m_size;
+    size_t m_size;
 };
 
 } // namespace Hyperion

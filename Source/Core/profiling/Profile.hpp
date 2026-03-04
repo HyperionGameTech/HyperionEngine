@@ -16,7 +16,7 @@ class Profile
 public:
     using ProfileFunction = void (*)(void);
 
-    static Array<double> RunInterleved(Array<Profile*>&&, SizeType runsPer = 5, SizeType numIterations = 100, SizeType runsPerIteration = 100);
+    static Array<double> RunInterleved(Array<Profile*>&&, size_t runsPer = 5, size_t numIterations = 100, size_t runsPerIteration = 100);
 
     Profile(ProfileFunction profileFunction)
         : m_profileFunction(profileFunction),
@@ -32,7 +32,7 @@ public:
 
     ~Profile() = default;
 
-    Profile& Run(SizeType numIterations = 100, SizeType runsPerIteration = 100);
+    Profile& Run(size_t numIterations = 100, size_t runsPerIteration = 100);
 
     double GetResult() const
     {
@@ -50,7 +50,7 @@ public:
 private:
     ProfileFunction m_profileFunction;
     double m_result;
-    SizeType m_iteration;
+    size_t m_iteration;
 };
 
 } // namespace profiling

@@ -14,7 +14,7 @@ namespace memory {
 class MemoryPoolManager
 {
 public:
-    void RegisterPool(MemoryPoolBase* pool, SizeType (*getNumAllocatedBytes)(MemoryPoolBase*))
+    void RegisterPool(MemoryPoolBase* pool, size_t (*getNumAllocatedBytes)(MemoryPoolBase*))
     {
         HYP_CORE_ASSERT(pool != nullptr);
         HYP_CORE_ASSERT(getNumAllocatedBytes != nullptr);
@@ -64,13 +64,13 @@ public:
         }
     }
 
-    void CalculateMemoryUsage(Array<Pair<MemoryPoolBase*, SizeType>>& outBytesPerPool)
+    void CalculateMemoryUsage(Array<Pair<MemoryPoolBase*, size_t>>& outBytesPerPool)
     {
         Mutex::Guard guard(m_mutex);
 
         outBytesPerPool.Reserve(m_registeredPools.Size());
 
-        for (SizeType i = 0; i < m_registeredPools.Size(); i++)
+        for (size_t i = 0; i < m_registeredPools.Size(); i++)
         {
             if (!m_registeredPools[i].first)
             {
@@ -83,7 +83,7 @@ public:
 
 private:
     Mutex m_mutex;
-    Array<Pair<MemoryPoolBase*, SizeType (*)(MemoryPoolBase*)>> m_registeredPools;
+    Array<Pair<MemoryPoolBase*, size_t (*)(MemoryPoolBase*)>> m_registeredPools;
 };
 
 HYP_API MemoryPoolManager& GetMemoryPoolManager()
@@ -93,7 +93,7 @@ HYP_API MemoryPoolManager& GetMemoryPoolManager()
     return memoryPoolManager;
 }
 
-HYP_API void CalculateMemoryUsagePerPool(Array<Pair<MemoryPoolBase*, SizeType>>& outBytesPerPool)
+HYP_API void CalculateMemoryUsagePerPool(Array<Pair<MemoryPoolBase*, size_t>>& outBytesPerPool)
 {
     GetMemoryPoolManager().CalculateMemoryUsage(outBytesPerPool);
 }
@@ -102,7 +102,7 @@ HYP_API void CalculateMemoryUsagePerPool(Array<Pair<MemoryPoolBase*, SizeType>>&
 
 #pragma region MemoryPoolBase
 
-MemoryPoolBase::MemoryPoolBase(Name poolName, ThreadId ownerThreadId, SizeType (*getNumAllocatedBytes)(MemoryPoolBase*))
+MemoryPoolBase::MemoryPoolBase(Name poolName, ThreadId ownerThreadId, size_t (*getNumAllocatedBytes)(MemoryPoolBase*))
     : m_poolName(poolName),
       m_ownerThreadId(ownerThreadId)
 {

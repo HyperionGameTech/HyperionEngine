@@ -369,7 +369,7 @@ bool SymbolType::TypeEqual(const SymbolType& other) const
         }
 
         // check each substituted parameter
-        for (SizeType i = 0; i < m_genericInstanceInfo.m_genericArgs.Size(); i++)
+        for (size_t i = 0; i < m_genericInstanceInfo.m_genericArgs.Size(); i++)
         {
             SymbolType* instanceArgType = m_genericInstanceInfo.m_genericArgs[i].m_type;
             SymbolType* otherArgType = other.m_genericInstanceInfo.m_genericArgs[i].m_type;
@@ -677,7 +677,7 @@ bool SymbolType::TypeCompatible(
         }
 
         // check each substituted parameter
-        for (SizeType i = 0; i < m_genericInstanceInfo.m_genericArgs.Size(); i++)
+        for (size_t i = 0; i < m_genericInstanceInfo.m_genericArgs.Size(); i++)
         {
             const SymbolType* paramType = m_genericInstanceInfo.m_genericArgs[i].m_type;
             Assert(paramType != nullptr);
@@ -833,7 +833,7 @@ bool SymbolType::FindMember(UTF8StringView name, SymbolTypeMember& out) const
 bool SymbolType::FindMember(UTF8StringView name, SymbolTypeMember& out, uint32& outIndex) const
 {
     // get member index from name
-    for (SizeType i = 0; i < m_members.Size(); i++)
+    for (size_t i = 0; i < m_members.Size(); i++)
     {
         const SymbolTypeMember& member = m_members[i];
 
@@ -939,7 +939,7 @@ bool SymbolType::FindStaticMember(UTF8StringView name, SymbolTypeMember& out) co
 bool SymbolType::FindStaticMember(UTF8StringView name, SymbolTypeMember& out, uint32& outIndex) const
 {
     // get member index from name
-    for (SizeType i = 0; i < m_staticMembers.Size(); i++)
+    for (size_t i = 0; i < m_staticMembers.Size(); i++)
     {
         const SymbolTypeMember& member = m_staticMembers[i];
 
@@ -1268,7 +1268,7 @@ String SymbolType::ToString(bool includeParameterNames) const
                 bool hasReturnType = false;
                 String returnTypeName;
 
-                for (SizeType i = 0; i < info.m_genericArgs.Size(); i++)
+                for (size_t i = 0; i < info.m_genericArgs.Size(); i++)
                 {
                     const String& genericArgName = info.m_genericArgs[i].m_name;
                     const SymbolType* genericArgType = info.m_genericArgs[i].m_type;

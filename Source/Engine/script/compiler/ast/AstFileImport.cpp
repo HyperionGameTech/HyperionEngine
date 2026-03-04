@@ -29,7 +29,7 @@ void AstFileImport::Visit(AstVisitor* visitor, Module* mod)
     // find the folder which the current file is in
     String dir = m_location.GetFileName();
 
-    SizeType slashIndex = dir.FindLastIndex('/');
+    size_t slashIndex = dir.FindLastIndex('/');
     slashIndex = (slashIndex == String::NotFound)
         ? dir.FindLastIndex('\\')
         : MathUtil::Max(slashIndex, dir.FindLastIndex('\\'));

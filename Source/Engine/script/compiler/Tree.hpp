@@ -36,7 +36,7 @@ struct alignas(T) TreeNode
     {
         m_value.Destruct();
 
-        for (SizeType i = 0; i < m_siblings.Size(); i++)
+        for (size_t i = 0; i < m_siblings.Size(); i++)
         {
             if (m_siblings[i])
             {
@@ -138,7 +138,7 @@ public:
         Close();
 
         // LIFO
-        for (SizeType index = m_nodes.Size(); index != 0; --index)
+        for (size_t index = m_nodes.Size(); index != 0; --index)
         {
             delete m_nodes[index - 1];
         }

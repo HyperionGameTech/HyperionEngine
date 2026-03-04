@@ -1680,13 +1680,13 @@ void DecompilationUnit::DecodeNext(
 
 InstructionStream* DecompilationUnit::Decompile(Hyperion::BytecodeStream& bs, std::ostream* os)
 {
-    const SizeType prevPosition = bs.Position();
+    const size_t prevPosition = bs.Position();
 
     InstructionStream* is = new InstructionStream();
 
     while (!bs.Eof())
     {
-        const SizeType pos = bs.Position();
+        const size_t pos = bs.Position();
 
         if (os != nullptr)
         {

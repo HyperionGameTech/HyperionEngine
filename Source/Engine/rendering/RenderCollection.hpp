@@ -50,8 +50,8 @@ enum EnvProbeType : uint32;
 
 struct DrawCallRange
 {
-    SizeType start;
-    SizeType count;
+    size_t start;
+    size_t count;
 };
 
 struct ParallelRenderingState_Shared;
@@ -176,7 +176,7 @@ public:
     ~RenderCollector();
 
 #if HYP_DEBUG_MODE
-    SizeType NumDrawCallsCollected() const;
+    size_t NumDrawCallsCollected() const;
 #endif
 
     void Clear(bool freeMemory = true);

@@ -18,7 +18,7 @@ SourceStream::SourceStream(const SourceStream& other)
 
 utf::Char32 SourceStream::Peek() const
 {
-    SizeType pos = m_position;
+    size_t pos = m_position;
     if (pos >= m_file->GetSize())
     {
         return '\0';
@@ -150,9 +150,9 @@ void SourceStream::GoBack(int n)
     m_position -= n;
 }
 
-void SourceStream::Read(char* ptr, SizeType numBytes)
+void SourceStream::Read(char* ptr, size_t numBytes)
 {
-    for (SizeType i = 0; i < numBytes; i++)
+    for (size_t i = 0; i < numBytes; i++)
     {
         if (m_position >= m_file->GetSize())
         {

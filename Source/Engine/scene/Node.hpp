@@ -395,7 +395,7 @@ public:
         struct StackEntry
         {
             const Node* node;
-            SizeType index;
+            size_t index;
         };
 
         Node* m_current;
@@ -432,9 +432,9 @@ public:
         /*! \brief Get the number of descendant nodes.
          *  \note This method traverses the entire tree to count descendants, so it has O(n) complexity.
          *  \returns The total count of descendant nodes. */
-        SizeType Size() const
+        size_t Size() const
         {
-            SizeType count = 0;
+            size_t count = 0;
 
             for (auto it = Begin(); it != End(); ++it)
             {
@@ -449,9 +449,9 @@ public:
          *  \note This method traverses the tree up to the specified index, so it has O(index) complexity.
          *        For sequential access, prefer using iterators directly.
          *  \returns A pointer to the node at the specified index, or nullptr if the index is out of bounds. */
-        Node* operator[](SizeType index) const
+        Node* operator[](size_t index) const
         {
-            SizeType currentIndex = 0;
+            size_t currentIndex = 0;
 
             for (auto it = Begin(); it != End(); ++it)
             {

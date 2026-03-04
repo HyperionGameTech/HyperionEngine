@@ -38,7 +38,7 @@ public:
     void Clear();
 
     /*! \brief Get the number of objects waiting for updates */
-    SizeType GetPendingUpdateCount() const
+    size_t GetPendingUpdateCount() const
     {
         return m_pendingObjects.Size();
     }

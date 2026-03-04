@@ -96,7 +96,7 @@ struct HYP_API FBOMStruct : FBOMType
     static constexpr bool isValidStructType = !std::is_pointer_v<T> && !std::is_reference_v<T> && !std::is_const_v<T> && !std::is_volatile_v<T> && IsPodTypeV<T>;
 
     FBOMStruct();
-    FBOMStruct(const ANSIStringView& typeName, SizeType sz, const TypeId& typeId);
+    FBOMStruct(const ANSIStringView& typeName, size_t sz, const TypeId& typeId);
 
     template <class T, bool CompileTimeChecked = true>
     FBOMStruct(TypeWrapper<T>, std::bool_constant<CompileTimeChecked> = {})
@@ -116,13 +116,13 @@ struct HYP_API FBOMSequence : FBOMType
 {
     FBOMSequence();
     FBOMSequence(const FBOMType& heldType);
-    FBOMSequence(const FBOMType& heldType, SizeType count);
+    FBOMSequence(const FBOMType& heldType, size_t count);
 };
 
 struct HYP_API FBOMByteBuffer : FBOMType
 {
     FBOMByteBuffer();
-    explicit FBOMByteBuffer(SizeType count);
+    explicit FBOMByteBuffer(size_t count);
 };
 
 struct HYP_API FBOMVec2f : FBOMType
@@ -188,13 +188,13 @@ struct HYP_API FBOMQuat4f : FBOMType
 struct HYP_API FBOMString : FBOMType
 {
     FBOMString();
-    explicit FBOMString(SizeType length);
+    explicit FBOMString(size_t length);
 };
 
 struct HYP_API FBOMName : FBOMType
 {
     FBOMName();
-    explicit FBOMName(SizeType length);
+    explicit FBOMName(size_t length);
 };
 
 struct HYP_API FBOMBaseObjectType : FBOMType

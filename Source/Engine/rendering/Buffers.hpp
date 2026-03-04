@@ -125,7 +125,7 @@ public:
         return m_structTypeInfo;
     }
 
-    virtual SizeType Count() const = 0;
+    virtual size_t Count() const = 0;
 
     virtual uint32 NumElementsPerBlock() const = 0;
 
@@ -149,14 +149,14 @@ public:
     // Ensures capacity for the given index.
     virtual void EnsureCapacity(uint32 index) = 0;
 
-    void WriteBufferData(uint32 index, const void* ptr, SizeType size)
+    void WriteBufferData(uint32 index, const void* ptr, size_t size)
     {
         AssertDebug(size == TypeInfo_GetSize(*m_structTypeInfo), "Size does not match the expected size! Size = {}, Expected = {}", size, TypeInfo_GetSize(*m_structTypeInfo));
 
         WriteBufferData_Internal(index, ptr);
     }
 
-    static void WriteBufferData_Static(GpuBufferHolderBase* gpuBufferHolder, uint32 index, void* bufferDataPtr, SizeType bufferSize)
+    static void WriteBufferData_Static(GpuBufferHolderBase* gpuBufferHolder, uint32 index, void* bufferDataPtr, size_t bufferSize)
     {
         AssertDebug(gpuBufferHolder != nullptr);
         AssertDebug(bufferSize == TypeInfo_GetSize(*gpuBufferHolder->m_structTypeInfo),
@@ -175,7 +175,7 @@ public:
     }
 
 protected:
-    void CreateBuffers(GpuBufferType bufferType, SizeType count, SizeType size);
+    void CreateBuffers(GpuBufferType bufferType, size_t count, size_t size);
     void CopyStagingToGpu(
         uint32 frameIndex, RenderQueue& renderQueue,
         Span<GpuBuffer* const> stagingBuffers,
@@ -360,7 +360,7 @@ public:
 
     virtual ~GpuBufferHolder() override = default;
 
-    virtual SizeType Count() const override
+    virtual size_t Count() const override
     {
         return m_pool.NumAllocatedElements();
     }
@@ -400,15 +400,15 @@ public:
         }
 
         // sanity check, ensure that the chunks are in ascending order
-        for (SizeType i = 1; i < chunkStarts.Size(); ++i)
+        for (size_t i = 1; i < chunkStarts.Size(); ++i)
         {
             AssertDebug(chunkStarts[i] >= chunkEnds[i - 1]);
         }
 
         // sanity check, ensure that the chunks are within bounds of our main gpu buffer
-        const SizeType gpuBufferSize = m_gpuBuffer->Size();
+        const size_t gpuBufferSize = m_gpuBuffer->Size();
 
-        for (SizeType i = 0; i < chunkStarts.Size(); ++i)
+        for (size_t i = 0; i < chunkStarts.Size(); ++i)
         {
             AssertDebug(chunkStarts[i] < gpuBufferSize);
             AssertDebug(chunkEnds[i] <= gpuBufferSize);

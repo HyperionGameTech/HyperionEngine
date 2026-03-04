@@ -155,7 +155,7 @@ void AstModuleImport::Visit(AstVisitor* visitor, Module* mod)
     if (first->GetParts().Empty() || !opened)
     {
         // find the folder which the current file is in
-        SizeType slashIndex = m_location.GetFileName().FindLastIndex('/');
+        size_t slashIndex = m_location.GetFileName().FindLastIndex('/');
         slashIndex = (slashIndex == String::NotFound)
             ? m_location.GetFileName().FindLastIndex('\\')
             : MathUtil::Max(slashIndex, m_location.GetFileName().FindLastIndex('\\'));
@@ -284,7 +284,7 @@ void AstModuleImport::Visit(AstVisitor* visitor, Module* mod)
         String triedPathsString;
         triedPathsString += "[";
 
-        for (SizeType i = 0; i < triedPaths.Size(); i++)
+        for (size_t i = 0; i < triedPaths.Size(); i++)
         {
             triedPathsString += "\"" + triedPaths[i] + "\"";
 

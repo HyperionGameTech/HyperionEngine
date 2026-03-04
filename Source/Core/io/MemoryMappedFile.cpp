@@ -25,7 +25,7 @@ struct MemoryMappedFileImpl
 {
     FilePath filepath;
     MemoryMappedFile::Mode mode;
-    SizeType fileSize;
+    size_t fileSize;
 
 #ifdef HYP_WINDOWS
     HANDLE fileHandle;
@@ -116,7 +116,7 @@ bool MemoryMappedFileView::IsOpen() const
     return m_isOpen;
 }
 
-bool MemoryMappedFileView::Reopen(const MemoryMappedFile& file, SizeType offset, SizeType size)
+bool MemoryMappedFileView::Reopen(const MemoryMappedFile& file, size_t offset, size_t size)
 {
     if (IsOpen())
     {
@@ -154,12 +154,12 @@ void MemoryMappedFileView::Close()
     m_isOpen = false;
 }
 
-SizeType MemoryMappedFileView::Size() const
+size_t MemoryMappedFileView::Size() const
 {
     return m_viewSize;
 }
 
-SizeType MemoryMappedFileView::FileOffset() const
+size_t MemoryMappedFileView::FileOffset() const
 {
     return m_fileOffset;
 }
@@ -255,7 +255,7 @@ bool MemoryMappedFile::Open()
         return false;
     }
 
-    m_impl->fileSize = static_cast<SizeType>(fileSize.QuadPart);
+    m_impl->fileSize = static_cast<size_t>(fileSize.QuadPart);
     m_impl->fileHandle = fileHandle;
 
     if (m_impl->fileSize == 0)
@@ -334,7 +334,7 @@ bool MemoryMappedFile::Open(const FilePath& filepath, Mode mode)
     return Open();
 }
 
-bool MemoryMappedFile::MapRange(SizeType offset, SizeType size, MemoryMappedFileView& outView) const
+bool MemoryMappedFile::MapRange(size_t offset, size_t size, MemoryMappedFileView& outView) const
 {
     if (!m_impl || !IsOpen())
     {
@@ -345,7 +345,7 @@ bool MemoryMappedFile::MapRange(SizeType offset, SizeType size, MemoryMappedFile
 
     if (m_impl->mode == Mode::READ_WRITE && size > 0)
     {
-        const SizeType endOffset = offset + size;
+        const size_t endOffset = offset + size;
 
         if (endOffset < offset)
         {
@@ -402,10 +402,10 @@ bool MemoryMappedFile::MapRange(SizeType offset, SizeType size, MemoryMappedFile
     SYSTEM_INFO systemInfo = {};
     GetSystemInfo(&systemInfo);
 
-    const SizeType granularity = static_cast<SizeType>(systemInfo.dwAllocationGranularity);
-    const SizeType alignedOffset = (offset / granularity) * granularity;
-    const SizeType viewDelta = offset - alignedOffset;
-    const SizeType mapSize = viewDelta + outView.m_viewSize;
+    const size_t granularity = static_cast<size_t>(systemInfo.dwAllocationGranularity);
+    const size_t alignedOffset = (offset / granularity) * granularity;
+    const size_t viewDelta = offset - alignedOffset;
+    const size_t mapSize = viewDelta + outView.m_viewSize;
 
     const DWORD mapAccess = m_impl->mode == Mode::READ_WRITE
         ? (FILE_MAP_READ | FILE_MAP_WRITE)
@@ -436,10 +436,10 @@ bool MemoryMappedFile::MapRange(SizeType offset, SizeType size, MemoryMappedFile
     return true;
 #elif defined(HYP_LINUX) || defined(HYP_MACOS)
     const long pageSize = sysconf(_SC_PAGE_SIZE);
-    const SizeType granularity = pageSize > 0 ? static_cast<SizeType>(pageSize) : 4096;
-    const SizeType alignedOffset = (offset / granularity) * granularity;
-    const SizeType viewDelta = offset - alignedOffset;
-    const SizeType mapSize = viewDelta + outView.m_viewSize;
+    const size_t granularity = pageSize > 0 ? static_cast<size_t>(pageSize) : 4096;
+    const size_t alignedOffset = (offset / granularity) * granularity;
+    const size_t viewDelta = offset - alignedOffset;
+    const size_t mapSize = viewDelta + outView.m_viewSize;
 
     const int prot = PROT_READ | (m_impl->mode == Mode::READ_WRITE ? PROT_WRITE : 0);
 
@@ -512,7 +512,7 @@ bool MemoryMappedFile::IsOpen() const
 #endif
 }
 
-SizeType MemoryMappedFile::FileSize() const
+size_t MemoryMappedFile::FileSize() const
 {
     return m_impl ? m_impl->fileSize : 0;
 }
@@ -540,7 +540,7 @@ void MemoryMappedFile::SetMode(Mode mode)
     m_impl->mode = mode;
 }
 
-bool MemoryMappedFile::EnsureCapacity(SizeType capacity)
+bool MemoryMappedFile::EnsureCapacity(size_t capacity)
 {
     if (!m_impl || !IsOpen())
     {
@@ -555,7 +555,7 @@ bool MemoryMappedFile::EnsureCapacity(SizeType capacity)
     return Resize(capacity);
 }
 
-bool MemoryMappedFile::Resize(SizeType newSize)
+bool MemoryMappedFile::Resize(size_t newSize)
 {
     if (!m_impl || !IsOpen())
     {

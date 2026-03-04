@@ -62,7 +62,7 @@ Array<String> AudioManager::ListDevices() const
 
     const ALCchar* device = alcGetString(NULL, ALC_DEVICE_SPECIFIER);
     const ALCchar* next = device + 1;
-    SizeType len = 0;
+    size_t len = 0;
 
     while (device && *device != '\0' && next && *next != '\0')
     {

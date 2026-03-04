@@ -26,8 +26,8 @@ public:
     virtual ~BufferedReaderSource() = default;
 
     virtual bool IsOK() const = 0;
-    virtual SizeType Size() const = 0;
-    virtual SizeType Read(ubyte* ptr, SizeType count, SizeType offset) = 0;
+    virtual size_t Size() const = 0;
+    virtual size_t Read(ubyte* ptr, size_t count, size_t offset) = 0;
 };
 
 class FileBufferedReaderSource : public BufferedReaderSource
@@ -75,12 +75,12 @@ public:
         return m_file != nullptr && !std::feof(m_file);
     }
 
-    virtual SizeType Size() const override
+    virtual size_t Size() const override
     {
         return m_size;
     }
 
-    virtual SizeType Read(ubyte* ptr, SizeType count, SizeType offset) override
+    virtual size_t Read(ubyte* ptr, size_t count, size_t offset) override
     {
         if (!m_file)
         {
@@ -92,7 +92,7 @@ public:
     }
 
 private:
-    SizeType m_size;
+    size_t m_size;
     FILE* m_file;
     int (*m_closeFunc)(FILE*);
 };
@@ -155,19 +155,19 @@ public:
         return m_byteView.Size() != 0;
     }
 
-    virtual SizeType Size() const override
+    virtual size_t Size() const override
     {
         return m_byteView.Size();
     }
 
-    virtual SizeType Read(ubyte* ptr, SizeType count, SizeType offset) override
+    virtual size_t Read(ubyte* ptr, size_t count, size_t offset) override
     {
         if (offset >= m_byteView.Size())
         {
             return 0;
         }
 
-        const SizeType numBytes = MathUtil::Min(count, m_byteView.Size() - offset);
+        const size_t numBytes = MathUtil::Min(count, m_byteView.Size() - offset);
         Memory::Copy(ptr, m_byteView.Data() + offset, numBytes);
         return numBytes;
     }
@@ -179,8 +179,8 @@ private:
 class BufferedReader
 {
 public:
-    static constexpr SizeType bufferSize = 2048;
-    static constexpr SizeType eofPos = ~0u;
+    static constexpr size_t bufferSize = 2048;
+    static constexpr size_t eofPos = ~0u;
 
     BufferedReader()
         : m_pos(eofPos),
@@ -265,12 +265,12 @@ public:
         return m_source != nullptr && m_source->IsOK();
     }
 
-    HYP_FORCE_INLINE SizeType Position() const
+    HYP_FORCE_INLINE size_t Position() const
     {
         return m_pos;
     }
 
-    HYP_FORCE_INLINE SizeType Max() const
+    HYP_FORCE_INLINE size_t Max() const
     {
         return m_source != nullptr ? m_source->Size() : 0;
     }
@@ -315,15 +315,15 @@ public:
 
     /*! \brief Reads the next \p count bytes from the file and returns a ByteBuffer.
         If position + count is greater than the number of remaining bytes, the ByteBuffer is truncated. */
-    ByteBuffer ReadBytes(SizeType count)
+    ByteBuffer ReadBytes(size_t count)
     {
         if (Eof())
         {
             return {};
         }
 
-        const SizeType remaining = m_source->Size() - m_pos;
-        const SizeType toRead = MathUtil::Min(remaining, count);
+        const size_t remaining = m_source->Size() - m_pos;
+        const size_t toRead = MathUtil::Min(remaining, count);
 
         ByteBuffer byteBuffer(toRead);
         m_source->Read(byteBuffer.Data(), toRead, m_pos);
@@ -342,7 +342,7 @@ public:
             return {};
         }
 
-        const SizeType remaining = m_source->Size() - m_pos;
+        const size_t remaining = m_source->Size() - m_pos;
 
         ByteBuffer byteBuffer(remaining);
         m_source->Read(byteBuffer.Data(), remaining, m_pos);
@@ -355,15 +355,15 @@ public:
         \p ptr. If size is greater than the number of remaining bytes,
         it is capped to (num remaining bytes).
         @returns The number of bytes read */
-    SizeType ReadBytes(ubyte* ptr, SizeType count)
+    size_t ReadBytes(ubyte* ptr, size_t count)
     {
         if (Eof())
         {
             return 0;
         }
 
-        const SizeType remaining = m_source->Size() - m_pos;
-        const SizeType toRead = MathUtil::Min(remaining, count);
+        const size_t remaining = m_source->Size() - m_pos;
+        const size_t toRead = MathUtil::Min(remaining, count);
 
         m_source->Read(ptr, toRead, m_pos);
         m_pos += toRead;
@@ -391,38 +391,38 @@ public:
         return lines;
     }
 
-    SizeType Read(ByteBuffer& byteBuffer)
+    size_t Read(ByteBuffer& byteBuffer)
     {
-        return Read(byteBuffer.Data(), byteBuffer.Size(), [](void* ptr, const ubyte* buffer, SizeType chunkSize)
+        return Read(byteBuffer.Data(), byteBuffer.Size(), [](void* ptr, const ubyte* buffer, size_t chunkSize)
             {
                 Memory::Copy(ptr, buffer, chunkSize);
             });
     }
 
-    SizeType Read(void* ptr, SizeType count)
+    size_t Read(void* ptr, size_t count)
     {
-        return Read(ptr, count, [](void* ptr, const ubyte* buffer, SizeType chunkSize)
+        return Read(ptr, count, [](void* ptr, const ubyte* buffer, size_t chunkSize)
             {
                 Memory::Copy(ptr, buffer, chunkSize);
             });
     }
 
     /*! \returns The total number of bytes read */
-    template <class Lambda = std::add_pointer_t<void(void*, const ubyte*, SizeType)>>
-    SizeType Read(void* ptr, SizeType count, Lambda&& func)
+    template <class Lambda = std::add_pointer_t<void(void*, const ubyte*, size_t)>>
+    size_t Read(void* ptr, size_t count, Lambda&& func)
     {
         if (Eof())
         {
             return 0;
         }
 
-        SizeType totalRead = 0;
+        size_t totalRead = 0;
 
         while (count)
         {
-            const SizeType chunkRequested = MathUtil::Min(count, bufferSize);
-            const SizeType chunkReturned = Read(chunkRequested);
-            const SizeType offset = totalRead;
+            const size_t chunkRequested = MathUtil::Min(count, bufferSize);
+            const size_t chunkReturned = Read(chunkRequested);
+            const size_t offset = totalRead;
 
             func(static_cast<ubyte*>(ptr) + offset, &m_buffer[0], chunkReturned);
 
@@ -444,13 +444,13 @@ public:
      *  \param ptr The pointer to T, where the read memory will be written.
      *  \returns The number of bytes read */
     template <class T>
-    SizeType Read(T* ptr)
+    size_t Read(T* ptr)
     {
         return Read(static_cast<void*>(ptr), sizeof(T));
     }
 
     template <class T>
-    SizeType Peek(T* ptr) const
+    size_t Peek(T* ptr) const
     {
         return Peek(static_cast<void*>(ptr), sizeof(T));
     }
@@ -464,8 +464,8 @@ public:
         }
 
         bool stop = false;
-        SizeType totalRead = 0;
-        SizeType totalProcessed = 0;
+        size_t totalRead = 0;
+        size_t totalProcessed = 0;
 
         if (!buffered)
         { // not buffered, do it in one pass
@@ -475,7 +475,7 @@ public:
             String accum;
             accum.Reserve(bufferSize);
 
-            for (SizeType i = 0; i < allBytes.Size(); i++)
+            for (size_t i = 0; i < allBytes.Size(); i++)
             {
                 if (allBytes[i] == '\n')
                 {
@@ -484,7 +484,7 @@ public:
 
                     if (stop)
                     {
-                        const SizeType amountRemaining = totalRead - totalProcessed;
+                        const size_t amountRemaining = totalRead - totalProcessed;
 
                         if (amountRemaining != 0)
                         {
@@ -527,7 +527,7 @@ public:
         {
             totalRead += byteBuffer.Size();
 
-            for (SizeType i = 0; i < byteBuffer.Size(); i++)
+            for (size_t i = 0; i < byteBuffer.Size(); i++)
             {
                 if (byteBuffer[i] == '\n')
                 {
@@ -536,7 +536,7 @@ public:
 
                     if (stop)
                     {
-                        const SizeType amountRemaining = totalRead - totalProcessed;
+                        const size_t amountRemaining = totalRead - totalProcessed;
 
                         if (amountRemaining != 0)
                         {
@@ -565,9 +565,9 @@ public:
     template <class LambdaFunction>
     void ReadChars(LambdaFunction func)
     {
-        while (SizeType count = Read())
+        while (size_t count = Read())
         {
-            for (SizeType i = 0; i < count; i++)
+            for (size_t i = 0; i < count; i++)
             {
                 func(char(m_buffer[i]));
             }
@@ -577,24 +577,24 @@ public:
 private:
     FilePath m_filepath;
     BufferedReaderSource* m_source;
-    SizeType m_pos;
+    size_t m_pos;
     FixedArray<ubyte, bufferSize> m_buffer;
 
-    SizeType Read()
+    size_t Read()
     {
         if (Eof())
         {
             return 0;
         }
 
-        const SizeType count = m_source->Read(&m_buffer[0], bufferSize, m_pos);
+        const size_t count = m_source->Read(&m_buffer[0], bufferSize, m_pos);
 
         m_pos += count;
 
         return count;
     }
 
-    SizeType Read(SizeType sz)
+    size_t Read(size_t sz)
     {
         HYP_CORE_ASSERT(sz <= bufferSize);
 
@@ -603,13 +603,13 @@ private:
             return 0;
         }
 
-        const SizeType count = m_source->Read(&m_buffer[0], sz, m_pos);
+        const size_t count = m_source->Read(&m_buffer[0], sz, m_pos);
         m_pos += count;
 
         return count;
     }
 
-    SizeType Peek(void* dest, SizeType sz) const
+    size_t Peek(void* dest, size_t sz) const
     {
         if (Eof())
         {

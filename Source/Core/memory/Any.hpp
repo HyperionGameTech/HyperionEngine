@@ -54,11 +54,11 @@ class Any final : public AnyBase
         const Block* src = static_cast<const Block*>(block);
         const T& val = *static_cast<const T*>(src->objectPtr);
 
-        constexpr SizeType align = (alignof(Block) > alignof(T) ? alignof(Block) : alignof(T));
-        constexpr SizeType headerSize = sizeof(Block);
-        constexpr SizeType objAlign = alignof(T);
-        constexpr SizeType objOffset = ByteUtil::AlignAs(headerSize, objAlign);
-        constexpr SizeType totalSize = objOffset + sizeof(T);
+        constexpr size_t align = (alignof(Block) > alignof(T) ? alignof(Block) : alignof(T));
+        constexpr size_t headerSize = sizeof(Block);
+        constexpr size_t objAlign = alignof(T);
+        constexpr size_t objOffset = ByteUtil::AlignAs(headerSize, objAlign);
+        constexpr size_t totalSize = objOffset + sizeof(T);
 
         void* raw = ::operator new(totalSize, std::align_val_t(align));
         char* base = static_cast<char*>(raw);
@@ -71,7 +71,7 @@ class Any final : public AnyBase
     template <class T>
     static void BlockDeleter(void* block)
     {
-        constexpr SizeType kAlign = (alignof(Block) > alignof(T) ? alignof(Block) : alignof(T));
+        constexpr size_t kAlign = (alignof(Block) > alignof(T) ? alignof(Block) : alignof(T));
         Block* hdr = static_cast<Block*>(block);
         static_cast<T*>(hdr->objectPtr)->~T();
         ::operator delete(block, std::align_val_t(kAlign));
@@ -365,11 +365,11 @@ public:
             reinterpret_cast<Block*>(m_block)->dtor(m_block);
         }
 
-        constexpr SizeType align = (alignof(Block) > alignof(U) ? alignof(Block) : alignof(U));
-        constexpr SizeType headerSize = sizeof(Block);
-        constexpr SizeType objAlign = alignof(U);
-        constexpr SizeType objOffset = ByteUtil::AlignAs(headerSize, objAlign);
-        constexpr SizeType totalSize = objOffset + sizeof(U);
+        constexpr size_t align = (alignof(Block) > alignof(U) ? alignof(Block) : alignof(U));
+        constexpr size_t headerSize = sizeof(Block);
+        constexpr size_t objAlign = alignof(U);
+        constexpr size_t objOffset = ByteUtil::AlignAs(headerSize, objAlign);
+        constexpr size_t totalSize = objOffset + sizeof(U);
 
         void* raw = ::operator new(totalSize, std::align_val_t(align));
         char* base = static_cast<char*>(raw);

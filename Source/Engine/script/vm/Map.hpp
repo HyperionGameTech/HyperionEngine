@@ -48,7 +48,7 @@ public:
     ScriptMap& operator=(ScriptMap&& other) noexcept;
     ~ScriptMap();
 
-    SizeType GetSize() const
+    size_t GetSize() const
     {
         return m_map.Size();
     }

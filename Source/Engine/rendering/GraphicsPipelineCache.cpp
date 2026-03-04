@@ -42,7 +42,7 @@ public:
     using RefCountMap = SparsePagedArray<int, 1024, RenderAllocator>;
 
     using Map = HashMap<PSOCacheKey, Array<GraphicsPipelineRef*, InlineAllocator<1, RenderAllocator>>, NodeAllocator<RenderAllocator>>;
-    using ReverseMap = HashMap<SizeType, PSOCacheKey, NodeAllocator<RenderAllocator>>;
+    using ReverseMap = HashMap<size_t, PSOCacheKey, NodeAllocator<RenderAllocator>>;
 
     CachedPipelinesMap()
         : Base()
@@ -62,7 +62,7 @@ public:
         reverseAttrMap.Clear();
     }
 
-    void Add(const PSOCacheKey& key, SizeType index)
+    void Add(const PSOCacheKey& key, size_t index)
     {
         Assert(Base::HasIndex(index));
 
@@ -73,7 +73,7 @@ public:
         reverseAttrMap[index] = key;
     }
 
-    void Remove(SizeType index)
+    void Remove(size_t index)
     {
         Assert(Base::HasIndex(index));
 
@@ -103,7 +103,7 @@ public:
         EnqueueDeletion(std::move(*graphicsPipelinePtr));
     }
 
-    GraphicsPipelineCacheHandle Alloc(SizeType& outIndex)
+    GraphicsPipelineCacheHandle Alloc(size_t& outIndex)
     {
         outIndex = idGenerator.Next();
 
@@ -114,7 +114,7 @@ public:
         return GraphicsPipelineCacheHandle(&*Base::Set(outIndex, GraphicsPipelineRef::Null()));
     }
 
-    void RemoveSlotIfUnused(SizeType index)
+    void RemoveSlotIfUnused(size_t index)
     {
         if (Base::HasIndex(index))
         {
@@ -150,20 +150,20 @@ public:
         return attrMapIt->second;
     }
 
-    SizeType IndexOf(typename Base::ConstIterator iter) const
+    size_t IndexOf(typename Base::ConstIterator iter) const
     {
         return Base::IndexOf(iter);
     }
 
-    SizeType IndexOf(const GraphicsPipelineRef* graphicsPipelinePtr) const
+    size_t IndexOf(const GraphicsPipelineRef* graphicsPipelinePtr) const
     {
         if (!graphicsPipelinePtr)
         {
-            return SizeType(-1);
+            return size_t(-1);
         }
 
         // <page size> * sizeof(GraphicsPipelineRef)
-        constexpr SizeType pageStorageSizeBytes = (1u << Base::PageSizeBits) * sizeof(GraphicsPipelineRef);
+        constexpr size_t pageStorageSizeBytes = (1u << Base::PageSizeBits) * sizeof(GraphicsPipelineRef);
 
         //  - the underlying reference may be null if it has been destroyed,
         //    but the pointer itself is still valid as long as the cache handle exists.
@@ -185,7 +185,7 @@ public:
             return (pageIdx << Base::PageSizeBits) + ((UIntPtr(graphicsPipelinePtr) - UIntPtr(&page->storage)) / sizeof(GraphicsPipelineRef));
         }
 
-        return SizeType(-1);
+        return size_t(-1);
     }
 
     IdGenerator idGenerator;
@@ -216,8 +216,8 @@ void GraphicsPipelineCacheHandle::UpdateRefCount(GraphicsPipelineCacheHandle& ca
         lockStorage.Construct(g_renderInterface->graphicsPipelineCache->m_mutex);
     }
 
-    const SizeType index = g_renderInterface->graphicsPipelineCache->m_cachedPipelines->IndexOf(cacheHandle.m_ptr);
-    AssertDebug(index != SizeType(-1));
+    const size_t index = g_renderInterface->graphicsPipelineCache->m_cachedPipelines->IndexOf(cacheHandle.m_ptr);
+    AssertDebug(index != size_t(-1));
 
     int& refCount = cachedPipelines->refCountMap.Get(index);
     refCount += delta;
@@ -318,7 +318,7 @@ void GraphicsPipelineCache::GetOrCreate(
         return;
     }
 
-    Proc<void(GraphicsPipeline*, SizeType)> newCallback([this, key = PSOCacheKey(attributes, renderTargetDesc)](GraphicsPipeline* graphicsPipeline, SizeType slot)
+    Proc<void(GraphicsPipeline*, size_t)> newCallback([this, key = PSOCacheKey(attributes, renderTargetDesc)](GraphicsPipeline* graphicsPipeline, size_t slot)
         {
             TUniqueLock guard(m_mutex);
 
@@ -347,10 +347,10 @@ void GraphicsPipelineCache::GetOrCreate(
     // sanity check: newly created pipeline must match or caching will fail.
     AssertDebug(graphicsPipeline->MatchesSignature(attributes, renderTargetDesc));
 
-    SizeType slot = SizeType(-1);
+    size_t slot = size_t(-1);
 
     cacheHandle = m_cachedPipelines->Alloc(slot);
-    Assert(cacheHandle.m_ptr != nullptr && slot != SizeType(-1));
+    Assert(cacheHandle.m_ptr != nullptr && slot != size_t(-1));
 
     // set new allocated slot to the graphics pipeline we just created
     *cacheHandle.m_ptr = std::move(graphicsPipeline);
@@ -358,18 +358,18 @@ void GraphicsPipelineCache::GetOrCreate(
     struct CreateGraphicsPipelineAndAddToCache : RenderCommand
     {
         GraphicsPipeline* graphicsPipeline;
-        SizeType slot;
-        Proc<void(GraphicsPipeline*, SizeType)> callback;
+        size_t slot;
+        Proc<void(GraphicsPipeline*, size_t)> callback;
 
         CreateGraphicsPipelineAndAddToCache(
             GraphicsPipeline* graphicsPipeline,
-            SizeType slot,
-            Proc<void(GraphicsPipeline*, SizeType)>&& callback)
+            size_t slot,
+            Proc<void(GraphicsPipeline*, size_t)>&& callback)
             : graphicsPipeline(graphicsPipeline),
               slot(slot),
               callback(std::move(callback))
         {
-            Assert(graphicsPipeline != nullptr && slot != SizeType(-1));
+            Assert(graphicsPipeline != nullptr && slot != size_t(-1));
         }
 
         virtual ~CreateGraphicsPipelineAndAddToCache() override = default;
@@ -479,8 +479,8 @@ int GraphicsPipelineCache::RunCleanupCycle(int maxIter)
         if (!graphicsPipeline)
         {
             // empty slot, remove if unused
-            const SizeType index = m_cachedPipelines->IndexOf(m_cachedPipelines->cleanupIterator);
-            Assert(index != SizeType(-1));
+            const size_t index = m_cachedPipelines->IndexOf(m_cachedPipelines->cleanupIterator);
+            Assert(index != size_t(-1));
 
             // skip to next iterator before potentially removing the current slot
             ++m_cachedPipelines->cleanupIterator;
@@ -502,8 +502,8 @@ int GraphicsPipelineCache::RunCleanupCycle(int maxIter)
                 frameDiff);
 #endif
 
-            const SizeType index = m_cachedPipelines->IndexOf(m_cachedPipelines->cleanupIterator);
-            Assert(index != SizeType(-1));
+            const size_t index = m_cachedPipelines->IndexOf(m_cachedPipelines->cleanupIterator);
+            Assert(index != size_t(-1));
 
             m_cachedPipelines->Remove(index);
         }

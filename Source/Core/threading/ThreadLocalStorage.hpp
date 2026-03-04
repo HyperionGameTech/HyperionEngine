@@ -11,7 +11,7 @@
 namespace Hyperion {
 namespace threading {
 
-static constexpr SizeType TlsPoolBlockSize = 4 * 1024 * 1024; // 4 MiB
+static constexpr size_t TlsPoolBlockSize = 4 * 1024 * 1024; // 4 MiB
 
 class ThreadLocalStorage : public Pool
 {

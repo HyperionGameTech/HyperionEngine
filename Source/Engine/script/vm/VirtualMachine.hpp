@@ -79,7 +79,7 @@ public:
     Script_StaticMemory& operator=(Script_StaticMemory&& other) noexcept = delete;
     ~Script_StaticMemory();
 
-    HYP_FORCE_INLINE BoxedValue& operator[](SizeType index)
+    HYP_FORCE_INLINE BoxedValue& operator[](size_t index)
     {
         AssertDebug(index < staticSize, "out of bounds");
         return m_data[index];
@@ -115,17 +115,17 @@ public:
         return m_data;
     }
 
-    HYP_FORCE_INLINE SizeType GetStackPointer() const
+    HYP_FORCE_INLINE size_t GetStackPointer() const
     {
         return m_sp;
     }
 
-    HYP_FORCE_INLINE BoxedValue& operator[](SizeType index)
+    HYP_FORCE_INLINE BoxedValue& operator[](size_t index)
     {
         return m_data[index];
     }
 
-    HYP_FORCE_INLINE const BoxedValue& operator[](SizeType index) const
+    HYP_FORCE_INLINE const BoxedValue& operator[](size_t index) const
     {
         return m_data[index];
     }
@@ -157,16 +157,16 @@ public:
     }
 
     // pop top n value(s) from the stack
-    HYP_FORCE_INLINE void Pop(SizeType count)
+    HYP_FORCE_INLINE void Pop(size_t count)
     {
-        for (SizeType i = 0; i < count; i++)
+        for (size_t i = 0; i < count; i++)
         {
             m_data[--m_sp].~BoxedValue();
         }
     }
 
     BoxedValue* m_data;
-    SizeType m_sp;
+    size_t m_sp;
 };
 
 struct Script_ExceptionState

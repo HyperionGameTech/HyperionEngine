@@ -425,7 +425,7 @@ DX12RayTracingPipelineRef DX12RenderInterface::MakeRayTracingPipeline(const DX12
     return RayTracingPipelineRef();
 }
 
-DX12GpuBufferRef DX12RenderInterface::MakeGpuBuffer(GpuBufferType bufferType, SizeType size, SizeType alignment)
+DX12GpuBufferRef DX12RenderInterface::MakeGpuBuffer(GpuBufferType bufferType, size_t size, size_t alignment)
 {
     return MakeHandle<DX12GpuBuffer>(bufferType, size, alignment);
 }

@@ -13,7 +13,7 @@ class SourceFile
 {
 public:
     SourceFile();
-    SourceFile(const String& filepath, SizeType size);
+    SourceFile(const String& filepath, size_t size);
     SourceFile(const SourceFile& other);
     SourceFile& operator=(const SourceFile& other);
     ~SourceFile();
@@ -33,23 +33,23 @@ public:
         return m_buffer;
     }
 
-    SizeType GetSize() const
+    size_t GetSize() const
     {
         return m_buffer.Size();
     }
 
-    void SetSize(SizeType size)
+    void SetSize(size_t size)
     {
         m_buffer.SetSize(size);
     }
 
     void ReadIntoBuffer(const ByteBuffer& inputBuffer);
-    void ReadIntoBuffer(const ubyte* data, SizeType size);
+    void ReadIntoBuffer(const ubyte* data, size_t size);
 
 private:
     String m_filepath;
     ByteBuffer m_buffer;
-    SizeType m_position;
+    size_t m_position;
 };
 
 } // namespace Hyperion::CodeGen

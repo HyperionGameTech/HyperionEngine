@@ -21,7 +21,7 @@ namespace Hyperion {
 */
 class TypeInstanceCache
 {
-    static constexpr SizeType s_maxCacheSize = 65536;
+    static constexpr size_t s_maxCacheSize = 65536;
 
 public:
     class Key

@@ -67,7 +67,7 @@ public:
         m_requireCpuAccessible = requireCpuAccessible;
     }
 
-    virtual void Flush(SizeType offset, SizeType count)
+    virtual void Flush(size_t offset, size_t count)
     {
     }
 
@@ -86,27 +86,27 @@ public:
         uint32 count) = 0;
 
     virtual RendererResult EnsureCapacity(
-        SizeType minimumSize,
+        size_t minimumSize,
         bool* outSizeChanged = nullptr) = 0;
 
     virtual RendererResult EnsureCapacity(
-        SizeType minimumSize,
-        SizeType alignment,
+        size_t minimumSize,
+        size_t alignment,
         bool* outSizeChanged = nullptr) = 0;
 
-    virtual void Memset(SizeType count, ubyte value) = 0;
+    virtual void Memset(size_t count, ubyte value) = 0;
 
-    virtual void Copy(SizeType count, const void* ptr) = 0;
-    virtual void Copy(SizeType offset, SizeType count, const void* ptr) = 0;
+    virtual void Copy(size_t count, const void* ptr) = 0;
+    virtual void Copy(size_t offset, size_t count, const void* ptr) = 0;
 
-    virtual void Read(SizeType count, void* outPtr) const = 0;
-    virtual void Read(SizeType offset, SizeType count, void* outPtr) const = 0;
+    virtual void Read(size_t count, void* outPtr) const = 0;
+    virtual void Read(size_t offset, size_t count, void* outPtr) const = 0;
 
     virtual void* Map() const = 0;
     virtual void Unmap() const = 0;
 
 protected:
-    GpuBufferBase(GpuBufferType type, SizeType size, SizeType alignment = 0)
+    GpuBufferBase(GpuBufferType type, size_t size, size_t alignment = 0)
         : m_type(type),
           m_size(size),
           m_alignment(alignment),
@@ -116,8 +116,8 @@ protected:
     }
 
     GpuBufferType m_type;
-    SizeType m_size;
-    SizeType m_alignment;
+    size_t m_size;
+    size_t m_alignment;
 
     mutable ResourceState m_resourceState;
     

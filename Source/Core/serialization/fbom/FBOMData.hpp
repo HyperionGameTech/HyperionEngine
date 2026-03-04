@@ -212,7 +212,7 @@ public:
         return m_bytes;
     }
 
-    HYP_FORCE_INLINE SizeType TotalSize() const
+    HYP_FORCE_INLINE size_t TotalSize() const
     {
         return m_bytes.Size();
     }
@@ -233,12 +233,12 @@ public:
     }
 
     /*! \returns The number of bytes read */
-    SizeType ReadBytes(SizeType n, void* out) const;
+    size_t ReadBytes(size_t n, void* out) const;
     ByteBuffer ReadBytes() const;
-    ByteBuffer ReadBytes(SizeType n) const;
+    ByteBuffer ReadBytes(size_t n) const;
 
     void SetBytes(const ByteBuffer& byteBuffer);
-    void SetBytes(SizeType count, const void* data);
+    void SetBytes(size_t count, const void* data);
 
 #define FBOM_TYPE_FUNCTIONS(typeName, cType)                                                                          \
     bool Is##typeName() const                                                                                         \
@@ -313,7 +313,7 @@ public:
 
         FBOM_ASSERT(IsString(), "Type mismatch (expected String)");
 
-        const SizeType totalSize = TotalSize();
+        const size_t totalSize = TotalSize();
 
         Array<char, InlineAllocator<256>> tempBuffer;
         tempBuffer.ResizeUninitialized(totalSize + 1);
@@ -401,12 +401,12 @@ public:
         return m_type.IsOrExtends(FBOMStruct(typeName, -1, typeId), /* allowUnbounded */ true, /* allowVoidTypeId */ true);
     }
 
-    HYP_FORCE_INLINE bool IsStruct(const char* typeName, SizeType size, TypeId typeId) const
+    HYP_FORCE_INLINE bool IsStruct(const char* typeName, size_t size, TypeId typeId) const
     {
         return m_type.IsOrExtends(FBOMStruct(typeName, size, typeId), /* allowUnbounded */ true, /* allowVoidTypeId */ true);
     }
 
-    HYP_FORCE_INLINE FBOMResult ReadStruct(const char* typeName, SizeType size, TypeId typeId, void* out) const
+    HYP_FORCE_INLINE FBOMResult ReadStruct(const char* typeName, size_t size, TypeId typeId, void* out) const
     {
         HYP_CORE_ASSERT(out != nullptr);
 
@@ -469,7 +469,7 @@ public:
 
         HYP_CORE_ASSERT(out != nullptr);
 
-        const SizeType totalSize = TotalSize();
+        const size_t totalSize = TotalSize();
 
         Array<char, InlineAllocator<256>> tempBuffer;
         tempBuffer.ResizeUninitialized(totalSize + 1);
@@ -485,7 +485,7 @@ public:
     HYP_FORCE_INLINE static FBOMData FromName(Name name)
     {
         const char* str = name.LookupString();
-        const SizeType len = str ? Memory::StrLen(str) : 0;
+        const size_t len = str ? Memory::StrLen(str) : 0;
 
         return FBOMData(FBOMName(), ByteBuffer(len, str));
     }
@@ -499,13 +499,13 @@ public:
     }
 
     // does NOT check that the types are exact, just that the size is a match
-    HYP_FORCE_INLINE bool IsSequenceMatching(const FBOMType& heldType, SizeType numItems) const
+    HYP_FORCE_INLINE bool IsSequenceMatching(const FBOMType& heldType, size_t numItems) const
     {
         return m_type.IsOrExtends(FBOMSequence(heldType, numItems));
     }
 
     // does the array size equal byteSize bytes?
-    HYP_FORCE_INLINE bool IsSequenceOfByteSize(SizeType byteSize) const
+    HYP_FORCE_INLINE bool IsSequenceOfByteSize(size_t byteSize) const
     {
         return m_type.IsOrExtends(FBOMSequence(FBOMUInt8(), byteSize));
     }
@@ -515,14 +515,14 @@ public:
         contain another type, and still a result will be returned.
 
         If type is /not/ an sequence, return zero. */
-    HYP_FORCE_INLINE SizeType NumElements(const FBOMType& heldType) const
+    HYP_FORCE_INLINE size_t NumElements(const FBOMType& heldType) const
     {
         if (!IsSequence())
         {
             return 0;
         }
 
-        const SizeType heldTypeSize = heldType.size;
+        const size_t heldTypeSize = heldType.size;
 
         if (heldTypeSize == 0)
         {
@@ -533,7 +533,7 @@ public:
     }
 
     // count is number of ELEMENTS
-    HYP_FORCE_INLINE FBOMResult ReadElements(const FBOMType& heldType, SizeType numItems, void* out) const
+    HYP_FORCE_INLINE FBOMResult ReadElements(const FBOMType& heldType, size_t numItems, void* out) const
     {
         HYP_CORE_ASSERT(out != nullptr);
 
@@ -570,7 +570,7 @@ public:
     static FBOMData FromArray(const FBOMArray& array);
 #pragma endregion Array
 
-    HYP_FORCE_INLINE FBOMResult ReadBytes(SizeType count, ByteBuffer& out) const
+    HYP_FORCE_INLINE FBOMResult ReadBytes(size_t count, ByteBuffer& out) const
     {
         FBOM_ASSERT(count <= m_bytes.Size(), "Attempt to read past max size of object");
 

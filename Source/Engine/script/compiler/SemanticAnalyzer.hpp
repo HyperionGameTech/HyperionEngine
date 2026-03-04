@@ -18,7 +18,7 @@ class Module;
 struct SubstitutionResult
 {
     Variant<const SymbolType*, RC<AstArgument>> value;
-    SizeType index = SizeType(-1);
+    size_t index = size_t(-1);
 };
 
 struct ArgInfo
@@ -34,20 +34,20 @@ public:
     struct Helpers
     {
     private:
-        static SizeType FindFreeSlot(
-            SizeType currentIndex,
-            const FlatSet<SizeType>& usedIndices,
+        static size_t FindFreeSlot(
+            size_t currentIndex,
+            const FlatSet<size_t>& usedIndices,
             const Array<GenericInstanceTypeInfo::Arg>& genericArgs,
             bool isVariadic,
-            SizeType numSuppliedArgs);
+            size_t numSuppliedArgs);
 
-        static SizeType ArgIndex(
-            SizeType currentIndex,
+        static size_t ArgIndex(
+            size_t currentIndex,
             const ArgInfo& argInfo,
-            const FlatSet<SizeType>& usedIndices,
+            const FlatSet<size_t>& usedIndices,
             const Array<GenericInstanceTypeInfo::Arg>& genericArgs,
             bool isVariadic = false,
-            SizeType numSuppliedArgs = -1);
+            size_t numSuppliedArgs = -1);
 
     public:
         static const SymbolType* GetVarArgType(

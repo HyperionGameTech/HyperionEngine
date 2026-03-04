@@ -154,7 +154,7 @@ struct StringHash
     {
     }
 
-    template <SizeType Sz>
+    template <size_t Sz>
     consteval explicit StringHash(const char (&str)[Sz])
         : hashCode(HashCode::GetHashCode(str).Value())
     {

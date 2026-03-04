@@ -14,12 +14,12 @@ namespace Hyperion {
 
 #pragma region Struct
 
-bool Struct::CreateStructInstance(dotnet::ObjectReference& outObjectReference, const void* objectPtr, SizeType size) const
+bool Struct::CreateStructInstance(dotnet::ObjectReference& outObjectReference, const void* objectPtr, size_t size) const
 {
     struct ManagedStructInitializerContext
     {
         const void* ptr;
-        SizeType size;
+        size_t size;
     };
 
     AssertDebug(objectPtr != nullptr);

@@ -28,7 +28,7 @@ public:
         m_list.PopBack();
     }
 
-    HYP_FORCE_INLINE SizeType GetPosition() const
+    HYP_FORCE_INLINE size_t GetPosition() const
     {
         return m_position;
     }
@@ -38,12 +38,12 @@ public:
         m_position = 0;
     }
 
-    HYP_FORCE_INLINE void SetPosition(SizeType position)
+    HYP_FORCE_INLINE void SetPosition(size_t position)
     {
         m_position = position;
     }
 
-    HYP_FORCE_INLINE SizeType GetSize() const
+    HYP_FORCE_INLINE size_t GetSize() const
     {
         return m_list.Size();
     }
@@ -79,7 +79,7 @@ public:
     }
 
 private:
-    SizeType m_position;
+    size_t m_position;
     Array<RC<AstStatement>> m_list;
 };
 

@@ -54,7 +54,7 @@ int FileSystem::MkDir(const std::string& path)
     struct stat st;
 
     int status = 0;
-    for (SizeType pos = 0; pos < path.length(); ++pos)
+    for (size_t pos = 0; pos < path.length(); ++pos)
     {
         if (path[pos] == '/' || pos == path.length() - 1)
         {

@@ -432,7 +432,7 @@ void LightmapRenderer_GpuPathTracing::Render(Frame* frame, const RenderSetup& re
         Array<Vec4f, DynamicAllocator> rayData;
         rayData.Resize(rays.Size() * 2);
 
-        for (SizeType i = 0; i < rays.Size(); i++)
+        for (size_t i = 0; i < rays.Size(); i++)
         {
             rayData[i * 2] = Vec4f(rays[i].ray.position, 1.0f);
             rayData[i * 2 + 1] = Vec4f(rays[i].ray.direction, 0.0f);

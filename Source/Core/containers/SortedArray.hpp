@@ -58,7 +58,7 @@ public:
         and if the item was found, it will be erased (and iterators will be invalidated) */
     Iterator Erase(const T& value);
 
-    SizeType Size() const
+    size_t Size() const
     {
         return Base::Size();
     }

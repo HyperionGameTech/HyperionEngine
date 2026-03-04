@@ -18,7 +18,7 @@ TlsfAllocator::TlsfAllocator()
     : m_tlsf(nullptr),
       m_mem(nullptr)
 {
-    const SizeType poolSize = tlsf_size();
+    const size_t poolSize = tlsf_size();
 
     m_mem = std::malloc(tlsf_size());
     HYP_CORE_ASSERT(m_mem != nullptr, "Failed to allocate memory for TLSF allocator");
@@ -42,7 +42,7 @@ TlsfAllocator::~TlsfAllocator()
     }
 }
 
-void TlsfAllocator::AddPool(void* memory, SizeType bytes)
+void TlsfAllocator::AddPool(void* memory, size_t bytes)
 {
     AssertDebug(m_tlsf != nullptr);
     AssertDebug(bytes >= tlsf_pool_overhead() + tlsf_block_size_min());
@@ -62,7 +62,7 @@ void TlsfAllocator::AddPool(void* memory, SizeType bytes)
 void TlsfAllocator::RemovePool(void* memory)
 {
     // Find and remove the pool from tracking
-    for (SizeType i = 0; i < m_pools.Size(); ++i)
+    for (size_t i = 0; i < m_pools.Size(); ++i)
     {
         if (m_pools[i].memory == memory)
         {
@@ -73,7 +73,7 @@ void TlsfAllocator::RemovePool(void* memory)
     }
 }
 
-void* TlsfAllocator::Allocate(SizeType bytes, SizeType alignment)
+void* TlsfAllocator::Allocate(size_t bytes, size_t alignment)
 {
     if (HYP_UNLIKELY(m_tlsf == nullptr))
     {
@@ -86,7 +86,7 @@ void* TlsfAllocator::Allocate(SizeType bytes, SizeType alignment)
     return tlsf_memalign((tlsf_t)m_tlsf, alignment, bytes);
 }
 
-void* TlsfAllocator::Reallocate(void* ptr, SizeType newSize, SizeType alignment)
+void* TlsfAllocator::Reallocate(void* ptr, size_t newSize, size_t alignment)
 {
     if (HYP_UNLIKELY(m_tlsf == nullptr))
     {
@@ -176,7 +176,7 @@ TlsfAllocator::~TlsfAllocator()
 {
 }
 
-void TlsfAllocator::AddPool(void* memory, SizeType bytes)
+void TlsfAllocator::AddPool(void* memory, size_t bytes)
 {
     if (bytes < MinBlockSize + sizeof(Block))
     {
@@ -185,14 +185,14 @@ void TlsfAllocator::AddPool(void* memory, SizeType bytes)
 
     uintptr_t rawBase = reinterpret_cast<uintptr_t>(memory);
     uintptr_t baseAligned = ByteUtil::AlignAs(rawBase, DefaultAlign);
-    SizeType headLoss = static_cast<SizeType>(baseAligned - rawBase);
+    size_t headLoss = static_cast<size_t>(baseAligned - rawBase);
 
     if (bytes <= headLoss + sizeof(Block))
     {
         return;
     }
 
-    SizeType usable = bytes - headLoss;
+    size_t usable = bytes - headLoss;
     usable -= (usable % DefaultAlign); // align down
 
     ubyte* base = reinterpret_cast<ubyte*>(baseAligned);
@@ -202,7 +202,7 @@ void TlsfAllocator::AddPool(void* memory, SizeType bytes)
     p.size = usable;
 
     Block* first = reinterpret_cast<Block*>(base);
-    SizeType firstSize = usable - sizeof(Block); // sentinel at end
+    size_t firstSize = usable - sizeof(Block); // sentinel at end
 
     first->sizeAndFlags = 0;
     first->SetSize(firstSize);
@@ -228,7 +228,7 @@ void TlsfAllocator::AddPool(void* memory, SizeType bytes)
 
 void TlsfAllocator::RemovePool(void* memory)
 {
-    for (SizeType i = 0; i < m_pools.Size(); ++i)
+    for (size_t i = 0; i < m_pools.Size(); ++i)
     {
         if (m_pools[i].base == memory)
         {
@@ -247,7 +247,7 @@ void TlsfAllocator::RemovePool(void* memory)
     }
 }
 
-TlsfAllocator::Block* TlsfAllocator::FindSuitable(SizeType size, uint32& outFli, uint32& outSli)
+TlsfAllocator::Block* TlsfAllocator::FindSuitable(size_t size, uint32& outFli, uint32& outSli)
 {
     uint32 fli, sli;
     Mapping(size, fli, sli);
@@ -348,9 +348,9 @@ void TlsfAllocator::RemoveFree(Block* b)
     RemoveFree(b, fli, sli);
 }
 
-TlsfAllocator::Block* TlsfAllocator::Split(Block* b, SizeType size)
+TlsfAllocator::Block* TlsfAllocator::Split(Block* b, size_t size)
 {
-    const SizeType total = b->Size();
+    const size_t total = b->Size();
     if (total < size + MinBlockSize)
     {
         return b;
@@ -418,7 +418,7 @@ TlsfAllocator::Pool* TlsfAllocator::FindOwningPool(const Block* b)
 {
     UIntPtr addr = reinterpret_cast<UIntPtr>(b);
 
-    for (SizeType i = 0; i < m_pools.Size(); ++i)
+    for (size_t i = 0; i < m_pools.Size(); ++i)
     {
         const Pool& p = m_pools[i];
         if (addr >= reinterpret_cast<UIntPtr>(p.base) && addr < reinterpret_cast<UIntPtr>(p.base) + p.size)
@@ -430,21 +430,21 @@ TlsfAllocator::Pool* TlsfAllocator::FindOwningPool(const Block* b)
     return nullptr;
 }
 
-SizeType TlsfAllocator::AdjustRequest(SizeType bytes, SizeType alignment)
+size_t TlsfAllocator::AdjustRequest(size_t bytes, size_t alignment)
 {
-    const SizeType aligned = ByteUtil::AlignAs(bytes, alignment);
-    const SizeType withHeader = aligned + sizeof(Block);
+    const size_t aligned = ByteUtil::AlignAs(bytes, alignment);
+    const size_t withHeader = aligned + sizeof(Block);
     return withHeader < MinBlockSize ? MinBlockSize : ByteUtil::AlignAs(withHeader, DefaultAlign);
 }
 
-void* TlsfAllocator::Allocate(SizeType bytes, SizeType alignment)
+void* TlsfAllocator::Allocate(size_t bytes, size_t alignment)
 {
     if (bytes == 0)
     {
         return nullptr;
     }
 
-    const SizeType needed = AdjustRequest(bytes, alignment);
+    const size_t needed = AdjustRequest(bytes, alignment);
 
     uint32 fli = 0, sli = 0;
     Block* b = FindSuitable(needed, fli, sli);
@@ -459,7 +459,7 @@ void* TlsfAllocator::Allocate(SizeType bytes, SizeType alignment)
     {
         uintptr_t payloadAddr = reinterpret_cast<uintptr_t>(b) + sizeof(Block);
         uintptr_t alignedPayload = ByteUtil::AlignAs(payloadAddr, alignment);
-        SizeType frontSize = static_cast<SizeType>((alignedPayload - sizeof(Block)) - reinterpret_cast<uintptr_t>(b));
+        size_t frontSize = static_cast<size_t>((alignedPayload - sizeof(Block)) - reinterpret_cast<uintptr_t>(b));
 
         if (frontSize >= MinBlockSize)
         {
@@ -497,7 +497,7 @@ void TlsfAllocator::Free(void* ptr)
     InsertFree(m);
 }
 
-void* TlsfAllocator::Reallocate(void* ptr, SizeType newSize, SizeType alignment)
+void* TlsfAllocator::Reallocate(void* ptr, size_t newSize, size_t alignment)
 {
     if (!ptr)
     {
@@ -511,16 +511,16 @@ void* TlsfAllocator::Reallocate(void* ptr, SizeType newSize, SizeType alignment)
     }
 
     Block* b = Block::FromPtr(ptr);
-    const SizeType current = b->Size() - sizeof(Block);
+    const size_t current = b->Size() - sizeof(Block);
 
     if (newSize <= current)
     {
         // shrink in place
-        const SizeType needed = AdjustRequest(newSize, alignment);
+        const size_t needed = AdjustRequest(newSize, alignment);
 
         if (b->Size() >= needed + MinBlockSize)
         {
-            SizeType remain = b->Size() - needed;
+            size_t remain = b->Size() - needed;
             b->SetSize(needed);
             Block* rem = reinterpret_cast<Block*>(reinterpret_cast<uint8*>(b) + needed);
             rem->sizeAndFlags = 0;
@@ -543,8 +543,8 @@ void* TlsfAllocator::Reallocate(void* ptr, SizeType newSize, SizeType alignment)
 
     if (next && !next->IsUsed())
     {
-        SizeType total = b->Size() + next->Size();
-        const SizeType needed = AdjustRequest(newSize, alignment);
+        size_t total = b->Size() + next->Size();
+        const size_t needed = AdjustRequest(newSize, alignment);
 
         if (total >= needed)
         {
@@ -566,7 +566,7 @@ void* TlsfAllocator::Reallocate(void* ptr, SizeType newSize, SizeType alignment)
     }
 
     /// \todo : Review
-    SizeType toCopy = current < newSize ? current : newSize;
+    size_t toCopy = current < newSize ? current : newSize;
     Memory::Copy(np, ptr, toCopy);
 
     Free(ptr);
@@ -574,7 +574,7 @@ void* TlsfAllocator::Reallocate(void* ptr, SizeType newSize, SizeType alignment)
     return np;
 }
 
-SizeType TlsfAllocator::GetUsableSize(void* ptr) const
+size_t TlsfAllocator::GetUsableSize(void* ptr) const
 {
     if (!ptr)
     {
@@ -585,9 +585,9 @@ SizeType TlsfAllocator::GetUsableSize(void* ptr) const
     return b->Size() - sizeof(Block);
 }
 
-TlsfAllocator::Block* TlsfAllocator::CarveFront(Block* b, SizeType frontSize)
+TlsfAllocator::Block* TlsfAllocator::CarveFront(Block* b, size_t frontSize)
 {
-    const SizeType total = b->Size();
+    const size_t total = b->Size();
     Block* rest = reinterpret_cast<Block*>((uint8*)b + frontSize);
 
     // front stays free
@@ -623,12 +623,12 @@ MemoryMetrics TlsfAllocator::GetMemoryMetrics() const
 
         while (current != sentinel)
         {
-            const SizeType blockSize = current->Size();
+            const size_t blockSize = current->Size();
 
             if (current->IsUsed())
             {
                 // Subtract header size to get actual usable bytes
-                const SizeType usableSize = blockSize - sizeof(Block);
+                const size_t usableSize = blockSize - sizeof(Block);
                 metrics[MemoryMetrics::MM_BYTES_USED] += usableSize;
                 ++metrics[MemoryMetrics::MM_ALLOCATIONS_ACTIVE];
             }

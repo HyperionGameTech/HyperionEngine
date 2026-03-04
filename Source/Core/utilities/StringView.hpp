@@ -32,7 +32,7 @@ public:
     friend constexpr bool operator<(const StringView<FirstStringType>& lhs, const StringView<SecondStringType>& rhs);
 
     static constexpr bool isContiguous = true;
-    static constexpr SizeType NotFound = SizeType(-1);
+    static constexpr size_t NotFound = size_t(-1);
     static constexpr int stringType = TStringType;
 
     static constexpr bool isAnsi = TStringType == StringType::ANSI;
@@ -83,7 +83,7 @@ private:
 
             if constexpr (isUtf8)
             {
-                SizeType codepoints;
+                size_t codepoints;
                 utf::Char8to32(ptr, sizeof(utf::Char32), codepoints);
 
                 ptr += codepoints;
@@ -105,7 +105,7 @@ private:
 
             if constexpr (isUtf8)
             {
-                SizeType codepoints;
+                size_t codepoints;
                 utf::Char8to32(ptr, sizeof(utf::Char32), codepoints);
 
                 return { ptr + codepoints, end };
@@ -116,20 +116,20 @@ private:
             }
         }
 
-        HYP_FORCE_INLINE IteratorBase operator+(SizeType n) const
+        HYP_FORCE_INLINE IteratorBase operator+(size_t n) const
         {
             if constexpr (isUtf8)
             {
                 auto it = *this;
 
-                for (SizeType i = 0; i < n; i++)
+                for (size_t i = 0; i < n; i++)
                 {
                     if (end && it.ptr >= it.end)
                     {
                         break;
                     }
 
-                    SizeType codepoints;
+                    size_t codepoints;
                     utf::Char8to32(it.ptr, sizeof(utf::Char32), codepoints);
 
                     it.ptr += codepoints;
@@ -148,18 +148,18 @@ private:
             }
         }
 
-        HYP_FORCE_INLINE IteratorBase& operator+=(SizeType n)
+        HYP_FORCE_INLINE IteratorBase& operator+=(size_t n)
         {
             if constexpr (isUtf8)
             {
-                for (SizeType i = 0; i < n; i++)
+                for (size_t i = 0; i < n; i++)
                 {
                     if (end && ptr >= end)
                     {
                         break;
                     }
 
-                    SizeType codepoints;
+                    size_t codepoints;
                     utf::Char8to32(ptr, sizeof(utf::Char32), codepoints);
 
                     ptr += codepoints;
@@ -214,7 +214,7 @@ public:
     using ConstIterator = Iterator;
 
 private:
-    constexpr StringView(const CharType* _begin, const CharType* _end, SizeType length)
+    constexpr StringView(const CharType* _begin, const CharType* _end, size_t length)
         : m_begin(_begin),
           m_end(_end),
           m_length(length)
@@ -236,7 +236,7 @@ public:
     // {
     // }
 
-    template <SizeType Sz>
+    template <size_t Sz>
     constexpr StringView(const CharType (&str)[Sz])
         : m_begin(&str[0]),
           m_end(&str[0] + Sz),
@@ -249,7 +249,7 @@ public:
           m_end(nullptr),
           m_length(0)
     {
-        SizeType codepoints = 0;
+        size_t codepoints = 0;
         m_length = utf::StringLength<CharType, isUtf8>(str, codepoints);
         m_end = m_begin + codepoints;
     }
@@ -265,11 +265,11 @@ public:
         }
         else
         {
-            m_length = SizeType(_end - _begin);
+            m_length = size_t(_end - _begin);
         }
     }
 
-    // template <SizeType Sz, std::enable_if_t<std::is_same_v<CharType, typename StaticString<Sz>::CharType>, int> = 0>
+    // template <size_t Sz, std::enable_if_t<std::is_same_v<CharType, typename StaticString<Sz>::CharType>, int> = 0>
     // constexpr StringView(const StaticString<Sz> &str)
     //     : m_begin(str.Begin()),
     //       m_end(str.Begin() + Sz),
@@ -361,15 +361,15 @@ public:
      *  For other types, this is the number of characters.
      *  \note For UTF-8 strings, use the \ref Length function to get the number of characters.
      *  \returns The size of the string. */
-    HYP_FORCE_INLINE constexpr SizeType Size() const
+    HYP_FORCE_INLINE constexpr size_t Size() const
     {
-        return m_end ? (SizeType(m_end - m_begin)) : 0;
+        return m_end ? (size_t(m_end - m_begin)) : 0;
     }
 
     /*! \brief Return the length of the string. For UTF-8 strings, this is the number of characters.
      *  For other types, this is the same as the \ref Size function.
      *  \returns The length of the string in characters. */
-    HYP_FORCE_INLINE constexpr SizeType Length() const
+    HYP_FORCE_INLINE constexpr size_t Length() const
     {
         return m_length;
     }
@@ -387,9 +387,9 @@ public:
      *  \p index must be less than \ref{Length()}.
      *
      *  \returns The character at the given index. If the index is out of bounds, it returns a null character. */
-    WidestCharType GetChar(SizeType index) const
+    WidestCharType GetChar(size_t index) const
     {
-        const SizeType size = Size();
+        const size_t size = Size();
 
         if constexpr (isUtf8)
         {
@@ -423,14 +423,14 @@ public:
     /*! \brief Find the first occurrence of the character
      *  \param ch The character to search for.
      *  \returns The index of the first occurrence of the character or NotFound if it is not in the string. */
-    HYP_FORCE_INLINE constexpr SizeType FindFirstIndex(WidestCharType ch) const
+    HYP_FORCE_INLINE constexpr size_t FindFirstIndex(WidestCharType ch) const
     {
         if (ch == 0)
         {
             return NotFound;
         }
 
-        SizeType chars = 0;
+        size_t chars = 0;
 
         for (auto it = Begin(); it != End(); ++it, ++chars)
         {
@@ -446,15 +446,15 @@ public:
     /*! \brief Find the last occurrence of the character
      *  \param ch The character to search for.
      *  \returns The index of the last occurrence of the character or NotFound if it is not in the string. */
-    HYP_FORCE_INLINE constexpr SizeType FindLastIndex(WidestCharType ch) const
+    HYP_FORCE_INLINE constexpr size_t FindLastIndex(WidestCharType ch) const
     {
         if (ch == 0)
         {
             return NotFound;
         }
 
-        SizeType chars = 0;
-        SizeType lastIndex = NotFound;
+        size_t chars = 0;
+        size_t lastIndex = NotFound;
 
         for (auto it = Begin(); it != End(); ++it, ++chars)
         {
@@ -470,7 +470,7 @@ public:
     /*! \brief Find the first occurrence of the substring.
      *  \param substr The substring to search for.
      *  \returns The index of the first occurrence of the substring. */
-    HYP_FORCE_INLINE constexpr SizeType FindFirstIndex(const StringView& substr) const
+    HYP_FORCE_INLINE constexpr size_t FindFirstIndex(const StringView& substr) const
     {
         const StringView str = StrStr(substr);
 
@@ -482,25 +482,25 @@ public:
             }
             else
             {
-                return SizeType(str.m_begin - m_begin);
+                return size_t(str.m_begin - m_begin);
             }
         }
 
         return NotFound;
     }
 
-    constexpr StringView Substr(SizeType first, SizeType last) const
+    constexpr StringView Substr(size_t first, size_t last) const
     {
         first = MathUtil::Min(first, m_length);
         last = MathUtil::Min(MathUtil::Max(last, first), m_length);
 
-        SizeType firstByteIndex = 0;
-        SizeType lastByteIndex = 0;
-        SizeType newLength = 0;
+        size_t firstByteIndex = 0;
+        size_t lastByteIndex = 0;
+        size_t newLength = 0;
 
         if constexpr (isUtf8)
         {
-            SizeType charIndex = 0;
+            size_t charIndex = 0;
 
             while (charIndex < first)
             {
@@ -570,7 +570,7 @@ public:
             return StringView();
         }
 
-        SizeType newLength = 0;
+        size_t newLength = 0;
 
         if constexpr (isUtf8)
         {
@@ -578,7 +578,7 @@ public:
         }
         else
         {
-            newLength = SizeType(last.ptr - first.ptr);
+            newLength = size_t(last.ptr - first.ptr);
         }
 
         return StringView(first.ptr, last.ptr, newLength);
@@ -612,15 +612,15 @@ public:
 protected:
     constexpr StringView StrStr(const StringView& other) const
     {
-        const SizeType thisSize = Size();
-        const SizeType otherSize = other.Size();
+        const size_t thisSize = Size();
+        const size_t otherSize = other.Size();
 
         if (thisSize < otherSize)
         {
             return StringView();
         }
 
-        for (SizeType offset = 0, otherOffset = 0, tempOffset = 0; offset < thisSize && m_begin[offset] != '\0'; offset++)
+        for (size_t offset = 0, otherOffset = 0, tempOffset = 0; offset < thisSize && m_begin[offset] != '\0'; offset++)
         {
             if (m_begin[offset] != other.m_begin[otherOffset])
             {
@@ -656,7 +656,7 @@ protected:
 private:
     const CharType* m_begin;
     const CharType* m_end;
-    SizeType m_length;
+    size_t m_length;
 };
 
 template <int TStringType>

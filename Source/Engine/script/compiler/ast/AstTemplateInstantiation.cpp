@@ -87,7 +87,7 @@ void AstTemplateInstantiation::Visit(AstVisitor* visitor, Module* mod)
         genericParamTypes.EmplaceBack("@return", returnType, nullptr, false, false);
     }
 
-    for (SizeType i = 0; i < m_genericArgs.Size(); i++)
+    for (size_t i = 0; i < m_genericArgs.Size(); i++)
     {
         const SymbolType* argType = m_genericArgs[i]->GetHeldType();
         Assert(argType != nullptr);

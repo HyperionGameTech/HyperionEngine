@@ -34,7 +34,7 @@ public:
     {
         HashCode hc = AstExpression::GetHashCode().Add(TypeName<AstHashMap>());
 
-        for (SizeType index = 0; index < m_keys.Size(); ++index)
+        for (size_t index = 0; index < m_keys.Size(); ++index)
         {
             hc.Add(m_keys[index] ? m_keys[index]->GetHashCode() : HashCode());
 

@@ -12,20 +12,20 @@
 namespace Hyperion {
 namespace containers {
 
-template <class T, SizeType Sz>
-class HeapArray : public ContainerBase<HeapArray<T, Sz>, SizeType>
+template <class T, size_t Sz>
+class HeapArray : public ContainerBase<HeapArray<T, Sz>, size_t>
 {
     T* m_values;
 
 public:
     static constexpr bool isContiguous = true;
 
-    using Base = ContainerBase<HeapArray<T, Sz>, SizeType>;
+    using Base = ContainerBase<HeapArray<T, Sz>, size_t>;
 
     using Iterator = T*;
     using ConstIterator = const T*;
 
-    static constexpr SizeType size = Sz;
+    static constexpr size_t size = Sz;
 
     HeapArray();
     HeapArray(const HeapArray& other);
@@ -45,7 +45,7 @@ public:
         return m_values[index];
     }
 
-    HYP_FORCE_INLINE constexpr SizeType Size() const
+    HYP_FORCE_INLINE constexpr size_t Size() const
     {
         return Sz;
     }
@@ -101,26 +101,26 @@ public:
     HYP_DEF_STL_BEGIN_END(&m_values[0], &m_values[Sz])
 };
 
-template <class T, SizeType Sz>
+template <class T, size_t Sz>
 HeapArray<T, Sz>::HeapArray()
     : m_values(new T[Sz])
 {
 }
 
-template <class T, SizeType Sz>
+template <class T, size_t Sz>
 HeapArray<T, Sz>::HeapArray(const HeapArray& other)
     : m_values(new T[Sz])
 {
-    for (SizeType index = 0; index < other.Size(); index++)
+    for (size_t index = 0; index < other.Size(); index++)
     {
         m_values[index] = other.m_values[index];
     }
 }
 
-template <class T, SizeType Sz>
+template <class T, size_t Sz>
 auto HeapArray<T, Sz>::operator=(const HeapArray& other) -> HeapArray&
 {
-    for (SizeType index = 0; index < other.Size(); index++)
+    for (size_t index = 0; index < other.Size(); index++)
     {
         m_values[index] = other.m_values[index];
     }
@@ -128,20 +128,20 @@ auto HeapArray<T, Sz>::operator=(const HeapArray& other) -> HeapArray&
     return *this;
 }
 
-template <class T, SizeType Sz>
+template <class T, size_t Sz>
 HeapArray<T, Sz>::HeapArray(HeapArray&& other) noexcept
     : m_values(new T[Sz])
 {
-    for (SizeType index = 0; index < other.Size(); index++)
+    for (size_t index = 0; index < other.Size(); index++)
     {
         m_values[index] = std::move(other.m_values[index]);
     }
 }
 
-template <class T, SizeType Sz>
+template <class T, size_t Sz>
 auto HeapArray<T, Sz>::operator=(HeapArray&& other) noexcept -> HeapArray&
 {
-    for (SizeType index = 0; index < other.Size(); index++)
+    for (size_t index = 0; index < other.Size(); index++)
     {
         m_values[index] = std::move(other.m_values[index]);
     }
@@ -149,7 +149,7 @@ auto HeapArray<T, Sz>::operator=(HeapArray&& other) noexcept -> HeapArray&
     return *this;
 }
 
-template <class T, SizeType Sz>
+template <class T, size_t Sz>
 HeapArray<T, Sz>::~HeapArray()
 {
     delete[] m_values;

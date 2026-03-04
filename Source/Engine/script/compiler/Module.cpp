@@ -47,7 +47,7 @@ String Module::GenerateFullModuleName() const
     if (top != nullptr)
     {
         Array<String> parts;
-        SizeType size = 0;
+        size_t size = 0;
 
         do
         {

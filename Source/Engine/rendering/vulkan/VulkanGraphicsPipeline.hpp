@@ -63,7 +63,7 @@ public:
     void Bind(VulkanCommandBuffer* cmd) override;
     void Bind(VulkanCommandBuffer* cmd, Vec2i viewportOffset, Vec2u viewportExtent) override;
 
-    void SetPushConstants(const void* data, SizeType size) override;
+    void SetPushConstants(const void* data, size_t size) override;
 
 #if HYP_DEBUG_MODE
     void SetDebugName(Name name) override;

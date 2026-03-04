@@ -198,7 +198,7 @@ void UIRenderCollector::ExecuteDrawCalls(Frame* frame, const RenderSetup& render
             });
     }
 
-    for (SizeType index = 0; index < iterators.Size(); index++)
+    for (size_t index = 0; index < iterators.Size(); index++)
     {
         auto& it = *iterators[index];
 

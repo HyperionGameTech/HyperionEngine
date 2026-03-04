@@ -213,7 +213,7 @@ void EntityScripting::InitEntityScriptComponent(Entity* entity, ScriptComponent&
                     if (scriptDesc.hotReloadVersion > 0)
                     {
                         // @FIXME Implement FindLastIndex
-                        const SizeType extensionIndex = assemblyPath.FindFirstIndex(".dll");
+                        const size_t extensionIndex = assemblyPath.FindFirstIndex(".dll");
 
                         if (extensionIndex != ANSIString::NotFound)
                         {

@@ -31,7 +31,7 @@ struct TThreadAllocator : Allocator<TThreadAllocator<InnerAllocator, InitInnerAl
     {
     };
 
-    HYP_FORCE_INLINE void* Allocate(SizeType size, SizeType alignment)
+    HYP_FORCE_INLINE void* Allocate(size_t size, size_t alignment)
     {
         if (HYP_UNLIKELY(!s_innerAllocator))
         {

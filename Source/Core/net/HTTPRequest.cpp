@@ -53,7 +53,7 @@ void HTTPResponse::OnDataReceived(Span<char> data)
     { // lock mutex
         Mutex::Guard guard(m_mutex);
 
-        const SizeType offset = m_body.Size();
+        const size_t offset = m_body.Size();
         m_body.SetSize(m_body.Size() + data.Size());
         m_body.Write(data.Size(), offset, data.Data());
     }

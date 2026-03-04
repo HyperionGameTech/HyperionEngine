@@ -12,7 +12,7 @@ static inline Exception FormattedException(FormatStringType formatString, Args&&
     if (n >= HYP_ARRAY_SIZE(buffer))
     {
         // recreate buffer using dynamic allocation
-        const SizeType size = SizeType(n) + 1;
+        const size_t size = size_t(n) + 1;
 
         char* dynamicBuffer = (char*)std::malloc(size);
         std::snprintf(dynamicBuffer, size, formatString.Data(), std::forward<Args>(args)...);
@@ -29,14 +29,14 @@ static inline Exception FormattedException(FormatStringType formatString, Args&&
 
 Exception::Exception(const char* str)
 {
-    const SizeType len = std::strlen(str);
+    const size_t len = std::strlen(str);
     m_str = new char[len + 1];
     std::strcpy(m_str, str);
 }
 
 Exception::Exception(const Exception& other)
 {
-    const SizeType len = std::strlen(other.m_str);
+    const size_t len = std::strlen(other.m_str);
     m_str = new char[len + 1];
     std::strcpy(m_str, other.m_str);
 }
@@ -52,7 +52,7 @@ Exception& Exception::operator=(const Exception& other)
     if (this != &other)
     {
         delete[] m_str;
-        const SizeType len = std::strlen(other.m_str);
+        const size_t len = std::strlen(other.m_str);
         m_str = new char[len + 1];
         std::strcpy(m_str, other.m_str);
     }
@@ -170,7 +170,7 @@ Exception Exception::DivisionByZeroException()
     return Exception("Division by zero");
 }
 
-Exception Exception::OutOfBoundsException(SizeType index, SizeType size)
+Exception Exception::OutOfBoundsException(size_t index, size_t size)
 {
     char buffer[256];
     std::snprintf(buffer, 256, "Index out of array bounds! Index: %llu, size: %llu", index, size);

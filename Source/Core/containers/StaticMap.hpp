@@ -9,10 +9,10 @@
 namespace Hyperion {
 namespace containers {
 
-template <class Key, class Value, SizeType Size>
+template <class Key, class Value, size_t Size>
 struct StaticMap
 {
-    static constexpr SizeType size = Size;
+    static constexpr size_t size = Size;
 
     using KeyType = Key;
     using ValueType = Value;
@@ -98,7 +98,7 @@ struct StaticMap
     }
 
     /// impl
-    template <auto OtherStaticMap, SizeType... Indices>
+    template <auto OtherStaticMap, size_t... Indices>
     constexpr auto ConcatImpl(std::index_sequence<Indices...>) const -> StaticMap<Key, Value, Size + decltype(OtherStaticMap)::size>
     {
         return {
@@ -126,7 +126,7 @@ struct ConcatStaticMaps<First, Rest...>
 
 } // namespace containers
 
-template <class Key, class Value, SizeType Size>
+template <class Key, class Value, size_t Size>
 using StaticMap = containers::StaticMap<Key, Value, Size>;
 
 using containers::ConcatStaticMaps;

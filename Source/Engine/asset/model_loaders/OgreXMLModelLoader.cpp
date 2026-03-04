@@ -226,7 +226,7 @@ void BuildVertices(OgreXMLModel& model)
         {
             auto& boneAssignments = boneIt->second;
 
-            for (SizeType j = 0; j < boneAssignments.Size(); j++)
+            for (size_t j = 0; j < boneAssignments.Size(); j++)
             {
                 if (j == 4)
                 {

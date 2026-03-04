@@ -16,17 +16,17 @@
 namespace Hyperion {
 
 namespace containers {
-template <class T, SizeType Sz>
+template <class T, size_t Sz>
 class FixedArray;
 
-template <class T, SizeType Sz>
+template <class T, size_t Sz>
 class FixedArrayImpl;
 
 /*! \brief FixedArray is a fixed-size array container that provides a contiguous block of memory for storing elements.
  *  It is useful for scenarios where the size of the array is known at compile time and does not change.
  *  \tparam T The type of elements stored in the fixed array.
  *  \tparam Sz The size of the fixed array. */
-template <class T, SizeType Sz>
+template <class T, size_t Sz>
 class FixedArray
 {
 public:
@@ -37,12 +37,12 @@ public:
     using Iterator = T*;
     using ConstIterator = const T*;
 
-    using KeyType = SizeType;
+    using KeyType = size_t;
     using ValueType = T;
 
-    static constexpr SizeType size = Sz;
+    static constexpr size_t size = Sz;
 
-    template <class OtherType, SizeType OtherSize>
+    template <class OtherType, size_t OtherSize>
     HYP_FORCE_INLINE constexpr bool operator==(const FixedArray<OtherType, OtherSize>& other) const
     {
         if constexpr (Sz != OtherSize)
@@ -70,7 +70,7 @@ public:
         return true;
     }
 
-    template <class OtherType, SizeType OtherSize>
+    template <class OtherType, size_t OtherSize>
     HYP_FORCE_INLINE constexpr bool operator!=(const FixedArray<OtherType, OtherSize>& other) const
     {
         if constexpr (Sz != OtherSize)
@@ -114,12 +114,12 @@ public:
         return m_values[index];
     }
 
-    HYP_FORCE_INLINE constexpr SizeType Size() const
+    HYP_FORCE_INLINE constexpr size_t Size() const
     {
         return Sz;
     }
 
-    HYP_FORCE_INLINE constexpr SizeType ByteSize() const
+    HYP_FORCE_INLINE constexpr size_t ByteSize() const
     {
         return sizeof(m_values);
     }
@@ -256,52 +256,52 @@ public:
     HYP_DEF_STL_BEGIN_END_CONSTEXPR(m_values, m_values + Sz)
 };
 
-// template <class T, SizeType Sz>
+// template <class T, size_t Sz>
 // FixedArray<T, Sz>::FixedArray()
 //     : m_values{}
 // {
 // }
 
-// template <class T, SizeType Sz>
+// template <class T, size_t Sz>
 // FixedArray<T, Sz>::FixedArray(const FixedArray &other)
 // {
-//     for (SizeType i = 0; i < Sz; i++) {
+//     for (size_t i = 0; i < Sz; i++) {
 //         m_values[i] = other.m_values[i];
 //     }
 // }
 
-// template <class T, SizeType Sz>
+// template <class T, size_t Sz>
 // auto FixedArray<T, Sz>::operator=(const FixedArray &other) -> FixedArray&
 // {
-//     for (SizeType i = 0; i < Sz; i++) {
+//     for (size_t i = 0; i < Sz; i++) {
 //         m_values[i] = other.m_values[i];
 //     }
 
 //     return *this;
 // }
 
-// template <class T, SizeType Sz>
+// template <class T, size_t Sz>
 // FixedArray<T, Sz>::FixedArray(FixedArray &&other) noexcept
 // {
-//     for (SizeType i = 0; i < Sz; i++) {
+//     for (size_t i = 0; i < Sz; i++) {
 //         m_values[i] = std::move(other.m_values[i]);
 //     }
 // }
 
-// template <class T, SizeType Sz>
+// template <class T, size_t Sz>
 // auto FixedArray<T, Sz>::operator=(FixedArray &&other) noexcept -> FixedArray&
 // {
-//     for (SizeType i = 0; i < Sz; i++) {
+//     for (size_t i = 0; i < Sz; i++) {
 //         m_values[i] = std::move(other.m_values[i]);
 //     }
 
 //     return *this;
 // }
 
-// template <class T, SizeType Sz>
+// template <class T, size_t Sz>
 // FixedArray<T, Sz>::~FixedArray() = default;
 
-template <class T, SizeType Sz>
+template <class T, size_t Sz>
 class FixedArrayImpl : public ContainerBase<FixedArrayImpl<T, Sz>, uint32>
 {
 public:
@@ -317,7 +317,7 @@ public:
     {
     }
 
-    HYP_NODISCARD HYP_FORCE_INLINE constexpr SizeType Size() const
+    HYP_NODISCARD HYP_FORCE_INLINE constexpr size_t Size() const
     {
         return Sz;
     }
@@ -331,21 +331,21 @@ FixedArray(Tp, Args...) -> FixedArray<std::enable_if_t<(std::is_same_v<Tp, Args>
 
 } // namespace containers
 
-template <class T, SizeType N>
+template <class T, size_t N>
 using FixedArray = containers::FixedArray<T, N>;
 
-template <class T, SizeType N>
+template <class T, size_t N>
 constexpr uint32 ArraySize(const FixedArray<T, N>&)
 {
     return N;
 }
 
-template <class T, SizeType N>
+template <class T, size_t N>
 constexpr inline FixedArray<T, N> MakeFixedArray(const T (&values)[N])
 {
     FixedArray<T, N> result;
 
-    for (SizeType i = 0; i < N; i++)
+    for (size_t i = 0; i < N; i++)
     {
         result[i] = values[i];
     }
@@ -359,7 +359,7 @@ constexpr inline auto MakeFixedArray(Ts&&... values)
     return FixedArray<std::common_type_t<Ts...>, sizeof...(Ts)> { std::forward<Ts>(values)... };
 }
 
-template <class T, SizeType Sz>
+template <class T, size_t Sz>
 struct IsFixedArray<Hyperion::containers::FixedArray<T, Sz>> : std::true_type
 {
 };

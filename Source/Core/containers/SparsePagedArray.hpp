@@ -21,7 +21,7 @@ namespace containers {
  *  Another useful feature of this container: pointers to elements will not be invalidated as the container grows and shrinks.
  *  (as long as the elements themselves being pointed to are not removed from the container) */
 template <class T, uint32 PageSize, class AllocatorType = DynamicAllocator>
-class SparsePagedArray : public ContainerBase<SparsePagedArray<T, PageSize, AllocatorType>, SizeType>
+class SparsePagedArray : public ContainerBase<SparsePagedArray<T, PageSize, AllocatorType>, size_t>
 {
     static_assert(MathUtil::IsPowerOfTwo(PageSize), "PageSize must be power of two!");
 
@@ -59,7 +59,7 @@ protected:
 public:
     static constexpr bool isContiguous = false;
 
-    using KeyType = SizeType;
+    using KeyType = size_t;
     using ValueType = T;
 
     template <class Derived, bool IsConst>
@@ -206,7 +206,7 @@ public:
             return tmp;
         }
 
-        Derived operator+(SizeType offset) const
+        Derived operator+(size_t offset) const
         {
             if (offset == 0)
             {
@@ -224,7 +224,7 @@ public:
             result.elem = elem;
             result.lazyInit = false;
 
-            SizeType remaining = offset;
+            size_t remaining = offset;
 
             while (remaining > 0)
             {
@@ -522,9 +522,9 @@ public:
      *  \note This is different than Array::Size(). Don't use this method to check if an index is valid the same way you would with a standard array.
      *  Because this is a sparse array type, indices that are still < Count() may be invalid! Additionally, you may have indices that are far >= Count().
      *  Only use this as a means of tracking the number of elements set! */
-    HYP_FORCE_INLINE SizeType Count() const
+    HYP_FORCE_INLINE size_t Count() const
     {
-        SizeType size = 0;
+        size_t size = 0;
 
         for (Bitset::BitIndex bit : m_validPages)
         {
@@ -557,7 +557,7 @@ public:
         HYP_CORE_ASSERT(lastPage != nullptr);
         HYP_CORE_ASSERT(lastPage->initializedBits.Count() > 0);
 
-        SizeType lastIndex = lastPage->initializedBits.LastSetBitIndex();
+        size_t lastIndex = lastPage->initializedBits.LastSetBitIndex();
         HYP_CORE_ASSERT(lastIndex < PageSize);
 
         return lastPage->storage.GetPointer()[lastIndex];
@@ -572,15 +572,15 @@ public:
         HYP_CORE_ASSERT(lastPage != nullptr);
         HYP_CORE_ASSERT(lastPage->initializedBits.Count() > 0);
 
-        SizeType lastIndex = lastPage->initializedBits.LastSetBitIndex();
+        size_t lastIndex = lastPage->initializedBits.LastSetBitIndex();
         HYP_CORE_ASSERT(lastIndex < PageSize);
 
         return lastPage->storage.GetPointer()[lastIndex];
     }
 
-    HYP_FORCE_INLINE bool HasIndex(SizeType index) const
+    HYP_FORCE_INLINE bool HasIndex(size_t index) const
     {
-        const SizeType pageIndex = PageIndex(index);
+        const size_t pageIndex = PageIndex(index);
 
         if (!m_validPages.Test(pageIndex))
         {
@@ -590,13 +590,13 @@ public:
         return m_pages[pageIndex]->initializedBits.Test(ElementIndex(index));
     }
 
-    T& operator[](SizeType index)
+    T& operator[](size_t index)
     {
-        const SizeType pageIndex = PageIndex(index);
+        const size_t pageIndex = PageIndex(index);
 
         Page* page = GetOrAllocatePage(pageIndex);
 
-        const SizeType elementIndex = ElementIndex(index);
+        const size_t elementIndex = ElementIndex(index);
 
         if (!page->initializedBits.Test(elementIndex))
         {
@@ -607,31 +607,31 @@ public:
         return page->storage.GetPointer()[elementIndex];
     }
 
-    HYP_FORCE_INLINE T& Get(SizeType index)
+    HYP_FORCE_INLINE T& Get(size_t index)
     {
         HYP_CORE_ASSERT(HasIndex(index), "Index %zu is not initialized in SparsePagedArray!", index);
 
-        const SizeType pageIndex = PageIndex(index);
+        const size_t pageIndex = PageIndex(index);
 
         Page* page = m_pages[pageIndex];
 
         return *(page->storage.GetPointer() + ElementIndex(index));
     }
 
-    HYP_FORCE_INLINE const T& Get(SizeType index) const
+    HYP_FORCE_INLINE const T& Get(size_t index) const
     {
         HYP_CORE_ASSERT(HasIndex(index), "Index %zu is not initialized in SparsePagedArray!", index);
 
-        const SizeType pageIndex = PageIndex(index);
+        const size_t pageIndex = PageIndex(index);
 
         Page* page = m_pages[pageIndex];
 
         return *(page->storage.GetPointer() + ElementIndex(index));
     }
 
-    HYP_FORCE_INLINE T* TryGet(SizeType index)
+    HYP_FORCE_INLINE T* TryGet(size_t index)
     {
-        const SizeType pageIndex = PageIndex(index);
+        const size_t pageIndex = PageIndex(index);
 
         if (!m_validPages.Test(pageIndex))
         {
@@ -640,7 +640,7 @@ public:
 
         Page* page = m_pages[pageIndex];
 
-        const SizeType elementIndex = ElementIndex(index);
+        const size_t elementIndex = ElementIndex(index);
 
         if (!page->initializedBits.Test(elementIndex))
         {
@@ -650,15 +650,15 @@ public:
         return page->storage.GetPointer() + elementIndex;
     }
 
-    HYP_FORCE_INLINE const T* TryGet(SizeType index) const
+    HYP_FORCE_INLINE const T* TryGet(size_t index) const
     {
         return const_cast<SparsePagedArray&>(*this).TryGet(index);
     }
 
-    Iterator Set(SizeType index, const T& value)
+    Iterator Set(size_t index, const T& value)
     {
-        SizeType pageIndex = PageIndex(index);
-        SizeType elementIndex = ElementIndex(index);
+        size_t pageIndex = PageIndex(index);
+        size_t elementIndex = ElementIndex(index);
 
         Page* page = GetOrAllocatePage(pageIndex);
         HYP_CORE_ASSERT(page != nullptr);
@@ -683,10 +683,10 @@ public:
         return Iterator(this, pageIndex, elementIndex);
     }
 
-    Iterator Set(SizeType index, T&& value)
+    Iterator Set(size_t index, T&& value)
     {
-        SizeType pageIndex = PageIndex(index);
-        SizeType elementIndex = ElementIndex(index);
+        size_t pageIndex = PageIndex(index);
+        size_t elementIndex = ElementIndex(index);
 
         Page* page = GetOrAllocatePage(pageIndex);
         HYP_CORE_ASSERT(page != nullptr);
@@ -712,10 +712,10 @@ public:
     }
 
     template <class... Args>
-    Iterator Emplace(SizeType index, Args&&... args)
+    Iterator Emplace(size_t index, Args&&... args)
     {
-        SizeType pageIndex = PageIndex(index);
-        SizeType elementIndex = ElementIndex(index);
+        size_t pageIndex = PageIndex(index);
+        size_t elementIndex = ElementIndex(index);
 
         Page* page = GetOrAllocatePage(pageIndex);
         HYP_CORE_ASSERT(page != nullptr);
@@ -738,13 +738,13 @@ public:
             return End();
         }
 
-        return EraseAt(SizeType(iter.page * PageSize + iter.elem), freeMemory);
+        return EraseAt(size_t(iter.page * PageSize + iter.elem), freeMemory);
     }
 
-    Iterator EraseAt(SizeType index, bool freeMemory = true)
+    Iterator EraseAt(size_t index, bool freeMemory = true)
     {
-        SizeType pageIndex = PageIndex(index);
-        SizeType elementIndex = ElementIndex(index);
+        size_t pageIndex = PageIndex(index);
+        size_t elementIndex = ElementIndex(index);
 
         if (!m_validPages.Test(pageIndex) || !m_pages[pageIndex]->initializedBits.Test(elementIndex))
         {
@@ -804,16 +804,16 @@ public:
         return End();
     }
 
-    SizeType IndexOf(ConstIterator iter) const
+    size_t IndexOf(ConstIterator iter) const
     {
         AssertDebug(iter.array == this, "Iterator does not belong to this SparsePagedArray!");
 
         if (iter.elem >= PageSize || iter.page >= m_pages.Size())
         {
-            return SizeType(-1);
+            return size_t(-1);
         }
 
-        return SizeType(iter.page * PageSize + iter.elem);
+        return size_t(iter.page * PageSize + iter.elem);
     }
 
     template <class Predicate>
@@ -866,17 +866,17 @@ public:
 protected:
     static constexpr uint64 PageSizeBits = MathUtil::FastLog2_Pow2(PageSize);
 
-    HYP_FORCE_INLINE static constexpr SizeType PageIndex(SizeType index)
+    HYP_FORCE_INLINE static constexpr size_t PageIndex(size_t index)
     {
         return index >> PageSizeBits;
     }
 
-    HYP_FORCE_INLINE static constexpr SizeType ElementIndex(SizeType index)
+    HYP_FORCE_INLINE static constexpr size_t ElementIndex(size_t index)
     {
         return index & (PageSize - 1);
     }
 
-    Page* GetOrAllocatePage(SizeType pageIndex)
+    Page* GetOrAllocatePage(size_t pageIndex)
     {
         if (!m_validPages.Test(pageIndex))
         {

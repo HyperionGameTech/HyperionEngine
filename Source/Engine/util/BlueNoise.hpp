@@ -11,7 +11,7 @@ namespace Hyperion {
 
 struct BlueNoise
 {
-    static const SizeType totalBufferSize;
+    static const size_t totalBufferSize;
 
     static const int32 sobol256spp256d[256 * 256];
     static const int32 scramblingTile[128 * 128 * 8];

@@ -437,7 +437,7 @@ RendererResult VulkanGraphicsPipeline::Rebuild()
     return {};
 }
 
-void VulkanGraphicsPipeline::SetPushConstants(const void* data, SizeType size)
+void VulkanGraphicsPipeline::SetPushConstants(const void* data, size_t size)
 {
     VulkanPipelineBase::SetPushConstants(data, size);
 }

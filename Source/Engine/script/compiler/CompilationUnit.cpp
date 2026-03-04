@@ -35,7 +35,7 @@ public:
 
     ~SymbolTypeCache()
     {
-        for (SizeType i = ptrs.Size(); i > 0; i--)
+        for (size_t i = ptrs.Size(); i > 0; i--)
         {
             ptrs[i - 1]->~SymbolTypeRegistration();
             allocator.Free(ptrs[i - 1]);

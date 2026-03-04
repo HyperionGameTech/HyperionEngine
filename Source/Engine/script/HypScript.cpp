@@ -42,7 +42,7 @@ namespace Hyperion {
 
 HYP_DEFINE_LOG_CHANNEL(HypScript);
 
-static constexpr SizeType ScriptPoolBlockSize = 8 * 1024 * 1024;
+static constexpr size_t ScriptPoolBlockSize = 8 * 1024 * 1024;
 
 static Pool s_scriptPoolInstance { ScriptPoolBlockSize };
 Pool* g_scriptPool = &s_scriptPoolInstance;

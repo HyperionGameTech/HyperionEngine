@@ -373,7 +373,7 @@ void PlaceholderData::Shutdown()
     m_buffers.Clear();
 }
 
-GpuBufferRef PlaceholderData::CreateGpuBuffer(GpuBufferType bufferType, SizeType size)
+GpuBufferRef PlaceholderData::CreateGpuBuffer(GpuBufferType bufferType, size_t size)
 {
     GpuBufferRef gpuBuffer = g_renderInterface->MakeGpuBuffer(bufferType, size);
 #if HYP_DEBUG_MODE

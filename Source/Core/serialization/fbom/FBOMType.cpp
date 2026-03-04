@@ -19,7 +19,7 @@ FBOMType::FBOMType()
 {
 }
 
-FBOMType::FBOMType(const ANSIStringView& name, SizeType size, TypeId typeId)
+FBOMType::FBOMType(const ANSIStringView& name, size_t size, TypeId typeId)
     : name(name),
       size(size),
       typeId(typeId),
@@ -28,7 +28,7 @@ FBOMType::FBOMType(const ANSIStringView& name, SizeType size, TypeId typeId)
 {
 }
 
-FBOMType::FBOMType(const ANSIStringView& name, SizeType size, TypeId typeId, const FBOMType& extends)
+FBOMType::FBOMType(const ANSIStringView& name, size_t size, TypeId typeId, const FBOMType& extends)
     : name(name),
       size(size),
       typeId(typeId),
@@ -37,7 +37,7 @@ FBOMType::FBOMType(const ANSIStringView& name, SizeType size, TypeId typeId, con
 {
 }
 
-FBOMType::FBOMType(const ANSIStringView& name, SizeType size, TypeId typeId, EnumFlags<FBOMTypeFlags> flags)
+FBOMType::FBOMType(const ANSIStringView& name, size_t size, TypeId typeId, EnumFlags<FBOMTypeFlags> flags)
     : name(name),
       size(size),
       typeId(typeId),
@@ -46,7 +46,7 @@ FBOMType::FBOMType(const ANSIStringView& name, SizeType size, TypeId typeId, Enu
 {
 }
 
-FBOMType::FBOMType(const ANSIStringView& name, SizeType size, TypeId typeId, EnumFlags<FBOMTypeFlags> flags, const FBOMType& extends)
+FBOMType::FBOMType(const ANSIStringView& name, size_t size, TypeId typeId, EnumFlags<FBOMTypeFlags> flags, const FBOMType& extends)
     : name(name),
       size(size),
       typeId(typeId),

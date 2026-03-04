@@ -28,9 +28,9 @@ HYP_BEGIN_STRUCT(String, -1, 0, {})
         {
             String result;
 
-            const SizeType size = elems.Size();
+            const size_t size = elems.Size();
 
-            for (SizeType i = 0; i < size; ++i)
+            for (size_t i = 0; i < size; ++i)
             {
                 AnyRef elem = const_cast<GenericArrayWrapper&>(elems).GetElementAt(i);
 

@@ -79,7 +79,7 @@ Triangle operator*(const Mat4f& transform, const Triangle& triangle)
 {
     Triangle result;
 
-    for (SizeType i = 0; i < 3; i++)
+    for (size_t i = 0; i < 3; i++)
     {
         result.points[i] = transform * triangle.points[i];
     }

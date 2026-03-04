@@ -27,7 +27,7 @@ BakeData<LightmapVolume>::BakeData(Span<const BakeEntity> bakeEntities, Lightmap
     // Output mesh data - this will be where we output the computed UVs to be used for tracing
     m_meshData.Resize(bakeEntities.Size());
 
-    for (SizeType i = 0; i < bakeEntities.Size(); i++)
+    for (size_t i = 0; i < bakeEntities.Size(); i++)
     {
         const BakeEntity& bakeEntity = bakeEntities[i];
 
@@ -61,8 +61,8 @@ BakeData<LightmapVolume>::BakeData(Span<const BakeEntity> bakeEntities, Lightmap
         m_meshVertexNormals[i].Resize(vertexData.Size() * 3);
         m_meshVertexUvs[i].Resize(vertexData.Size() * 2);
 
-        const SizeType indexSize = GpuElemTypeSize(meshDesc.meshAttributes.indexBufferElemType);
-        const SizeType numIndices = indexData.Size() / indexSize;
+        const size_t indexSize = GpuElemTypeSize(meshDesc.meshAttributes.indexBufferElemType);
+        const size_t numIndices = indexData.Size() / indexSize;
 
         m_meshIndices[i].Resize(numIndices);
 
@@ -72,7 +72,7 @@ BakeData<LightmapVolume>::BakeData(Span<const BakeEntity> bakeEntities, Lightmap
         }
         else
         {
-            for (SizeType j = 0; j < numIndices * indexSize; j += indexSize)
+            for (size_t j = 0; j < numIndices * indexSize; j += indexSize)
             {
                 Memory::Copy(&m_meshIndices[i][j / indexSize], indexData.Data() + j, MathUtil::Min(indexSize, sizeof(uint32)));
             }
@@ -81,7 +81,7 @@ BakeData<LightmapVolume>::BakeData(Span<const BakeEntity> bakeEntities, Lightmap
         const Mat4f modelMatrix = bakeEntity.transformMatrix;
         const Mat4f normalMatrix = modelMatrix.Inverse().Transpose();
 
-        for (SizeType vertexIndex = 0; vertexIndex < vertexData.Size(); vertexIndex++)
+        for (size_t vertexIndex = 0; vertexIndex < vertexData.Size(); vertexIndex++)
         {
             const Vec3f position = modelMatrix * vertexData[vertexIndex].GetPosition();
             const Vec3f normal = (normalMatrix * Vec4f(vertexData[vertexIndex].GetNormal(), 0.0f)).GetXYZ().Normalize();
@@ -111,7 +111,7 @@ Result BakeData<LightmapVolume>::Build()
 #ifdef HYP_XATLAS
     xatlas::Atlas* atlas = xatlas::Create();
 
-    for (SizeType meshIndex = 0; meshIndex < m_meshData.Size(); meshIndex++)
+    for (size_t meshIndex = 0; meshIndex < m_meshData.Size(); meshIndex++)
     {
         Assert(meshIndex < m_meshIndices.Size());
 
@@ -277,7 +277,7 @@ Result BakeData<LightmapVolume>::Build()
         }
     }
 
-    for (SizeType meshIndex = 0; meshIndex < m_meshData.Size(); meshIndex++)
+    for (size_t meshIndex = 0; meshIndex < m_meshData.Size(); meshIndex++)
     {
         BakeMesh& bakeMesh = m_meshData[meshIndex];
         bakeMesh.vertices.Resize(atlas->meshes[meshIndex].vertexCount);

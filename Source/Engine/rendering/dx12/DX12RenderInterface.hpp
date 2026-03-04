@@ -87,7 +87,7 @@ public:
 
     DX12RayTracingPipelineRef MakeRayTracingPipeline(const DX12ShaderInstanceRef& shaderInstance) override;
 
-    DX12GpuBufferRef MakeGpuBuffer(GpuBufferType bufferType, SizeType size, SizeType alignment = 0) override;
+    DX12GpuBufferRef MakeGpuBuffer(GpuBufferType bufferType, size_t size, size_t alignment = 0) override;
 
     DX12GpuImageRef MakeImage(const TextureDesc& textureDesc) override;
 

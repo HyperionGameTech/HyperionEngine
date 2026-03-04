@@ -63,7 +63,7 @@ struct ParallelRenderingState_Shared
     HYP_DEF_POOL_NEW_DELETE(g_renderPool);
 
     static constexpr uint32 MaxBatches = ParallelRenderingState::MaxBatches;
-    static constexpr SizeType MaxLocalQueueSizeBytes = 64 * 1024 * 1024;
+    static constexpr size_t MaxLocalQueueSizeBytes = 64 * 1024 * 1024;
 
     using LocalQueue = ParallelRenderingState::LocalQueue;
 
@@ -352,7 +352,7 @@ static RenderGroup* CreateRenderGroup(
     return rg;
 }
 
-template <class AllocatorType, class Functor, SizeType... Indices>
+template <class AllocatorType, class Functor, size_t... Indices>
 static inline void ForEachResourceTrackerType_Impl(Span<ResourceTrackerBase<AllocatorType>*> resourceTrackers, const Functor& functor, std::index_sequence<Indices...>)
 {
     (functor(TypeWrapper<typename TupleElement_Tuple<Indices, RenderProxyList::ResourceTrackerTypes>::Type>(), resourceTrackers[Indices], Indices), ...);
@@ -365,12 +365,12 @@ static inline void ForEachResourceTrackerType(Span<ResourceTrackerBase<Allocator
 }
 
 template <class T>
-static constexpr SizeType GetTrackedResourceTypeIndex()
+static constexpr size_t GetTrackedResourceTypeIndex()
 {
     return FindTypeElementIndex<T, RenderProxyList::TrackedResourceTypes>::value;
 }
 
-template <class AllocatorType, class Functor, SizeType... Indices>
+template <class AllocatorType, class Functor, size_t... Indices>
 static inline void ForEachResourceTracker_Impl(Span<ResourceTrackerBase<AllocatorType>*> resourceTrackers, const Functor& functor, std::index_sequence<Indices...>)
 {
     (functor(static_cast<typename TupleElement_Tuple<Indices, RenderProxyList::ResourceTrackerTypes>::Type&>(*resourceTrackers[Indices])), ...);
@@ -472,7 +472,7 @@ RenderProxyList::RenderProxyList(AllocatorType* pAllocator, bool isShared, bool 
     AssertDebug(pAllocator != nullptr);
 
     // initialize the resource trackers
-    ForEachResourceTrackerType(resourceTrackers.ToSpan(), [this, pAllocator]<class ResourceTrackerType>(TypeWrapper<ResourceTrackerType>, ResourceTrackerBase<AllocatorType>*& pResourceTracker, SizeType idx)
+    ForEachResourceTrackerType(resourceTrackers.ToSpan(), [this, pAllocator]<class ResourceTrackerType>(TypeWrapper<ResourceTrackerType>, ResourceTrackerBase<AllocatorType>*& pResourceTracker, size_t idx)
         {
             AssertDebug(!pResourceTracker);
 
@@ -498,7 +498,7 @@ RenderProxyList::~RenderProxyList()
         HYP_LOG(Rendering, Verbose, "RenderProxyList destroyed with {} render proxies still in it", numRenderProxies);
 #endif
 
-    for (SizeType i = 0; i < resourceTrackers.Size(); i++)
+    for (size_t i = 0; i < resourceTrackers.Size(); i++)
     {
         ResourceTrackerBase<AllocatorType>* resourceTracker = resourceTrackers[i];
 
@@ -772,9 +772,9 @@ RenderCollector::~RenderCollector()
 }
 
 #if HYP_DEBUG_MODE
-SizeType RenderCollector::NumDrawCallsCollected() const
+size_t RenderCollector::NumDrawCallsCollected() const
 {
-    SizeType numDrawCalls = 0;
+    size_t numDrawCalls = 0;
 
     for (const auto& mappings : mappingsByBucket)
     {

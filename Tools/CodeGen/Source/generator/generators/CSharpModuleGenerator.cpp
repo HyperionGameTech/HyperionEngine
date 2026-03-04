@@ -89,7 +89,7 @@ Result CSharpModuleGenerator::Generate(const Analyzer& analyzer, const Module& m
         }
     }
 
-    SizeType positionBeforeGlobal = writer.Position();
+    size_t positionBeforeGlobal = writer.Position();
     int numClassesWritten = 0;
 
     HYP_DEFER({
@@ -108,7 +108,7 @@ Result CSharpModuleGenerator::Generate(const Analyzer& analyzer, const Module& m
     {
         const ClassDefinition& cls = pair.second;
 
-        SizeType positionBeforeLocal = writer.Position();
+        size_t positionBeforeLocal = writer.Position();
         int numMembersWritten = 0;
 
         HYP_DEFER({
@@ -144,7 +144,7 @@ Result CSharpModuleGenerator::Generate(const Analyzer& analyzer, const Module& m
         writer.WriteString(HYP_FORMAT("    public static class {}Extensions\n", cls.name));
         writer.WriteString("    {\n");
 
-        for (SizeType i = 0; i < cls.members.Size(); ++i)
+        for (size_t i = 0; i < cls.members.Size(); ++i)
         {
             const MemberDef& member = cls.members[i];
 
@@ -213,7 +213,7 @@ Result CSharpModuleGenerator::Generate(const Analyzer& analyzer, const Module& m
                     return paramName;
                 };
 
-                for (SizeType i = 0; i < functionType->parameters.Size(); ++i)
+                for (size_t i = 0; i < functionType->parameters.Size(); ++i)
                 {
                     const ASTMemberDecl* parameter = functionType->parameters[i];
 

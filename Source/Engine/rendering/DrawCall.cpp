@@ -114,7 +114,7 @@ void DrawCallCollection::PushRenderProxyInstanced(EntityInstanceBatch* batch, Dr
 
     while (numInstances != 0)
     {
-        SizeType drawCallIndex;
+        size_t drawCallIndex;
 
         if (indexMapIndex < initialIndexMapSize)
         {
@@ -175,7 +175,7 @@ EntityInstanceBatch* DrawCallCollection::RecycleDrawBatch(DrawCallID id)
 
     if (it != indexMap.End())
     {
-        for (SizeType drawCallIndex : it->second)
+        for (size_t drawCallIndex : it->second)
         {
             EntityInstanceBatch* batch = instancedDrawCalls.batches[drawCallIndex];
 
@@ -203,7 +203,7 @@ void DrawCallCollection::ResetDrawCalls()
     GpuBufferHolderBase* entityInstanceBatches = batchAllocator->GetGpuBufferHolder();
     AssertDebug(entityInstanceBatches != nullptr);
 
-    for (SizeType i = 0; i < instancedDrawCalls.Size(); i++)
+    for (size_t i = 0; i < instancedDrawCalls.Size(); i++)
     {
         EntityInstanceBatch* batch = instancedDrawCalls.batches[i];
 
@@ -226,7 +226,7 @@ void DrawCallCollection::ResetDrawCalls()
 }
 
 uint32 DrawCallCollection::PushEntityToBatch(
-    SizeType drawCallIndex,
+    size_t drawCallIndex,
     Entity* entity,
     const InstanceData& instanceData,
     uint32 numInstances,
@@ -246,7 +246,7 @@ uint32 DrawCallCollection::PushEntityToBatch(
 //    }
 //#endif
 
-    const SizeType batchStructSize = batchAllocator->GetStructSize();
+    const size_t batchStructSize = batchAllocator->GetStructSize();
 
     EntityInstanceBatch* batch = instancedDrawCalls.batches[drawCallIndex];
     uint32& count = instancedDrawCalls.counts[drawCallIndex];

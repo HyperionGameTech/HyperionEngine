@@ -116,7 +116,7 @@ FBOMResult FBOMReader::FBOMStaticDataIndexMap::Element::Initialize(FBOMLoadConte
     return { FBOMResult::FBOM_OK };
 }
 
-FBOMSerializableBase* FBOMReader::FBOMStaticDataIndexMap::GetOrInitializeElement(FBOMLoadContext& context, FBOMReader* reader, SizeType index)
+FBOMSerializableBase* FBOMReader::FBOMStaticDataIndexMap::GetOrInitializeElement(FBOMLoadContext& context, FBOMReader* reader, size_t index)
 {
     if (index >= elements.Size())
     {
@@ -143,7 +143,7 @@ FBOMSerializableBase* FBOMReader::FBOMStaticDataIndexMap::GetOrInitializeElement
     return element.ptr.Get();
 }
 
-void FBOMReader::FBOMStaticDataIndexMap::SetElementDesc(SizeType index, FBOMStaticData::Type type, SizeType offset, SizeType size)
+void FBOMReader::FBOMStaticDataIndexMap::SetElementDesc(size_t index, FBOMStaticData::Type type, size_t offset, size_t size)
 {
     if (index >= elements.Size())
     {
@@ -830,7 +830,7 @@ FBOMResult FBOMReader::ReadArray(FBOMLoadContext& context, BufferedReader* reade
         outArray = FBOMArray();
 
         // Read until we've read totalArraySize elements
-        SizeType elementsRead = 0;
+        size_t elementsRead = 0;
 
         while (elementsRead < totalArraySize)
         {
@@ -1175,7 +1175,7 @@ FBOMResult FBOMReader::ReadArchive(const ByteBuffer& inBuffer, ByteBuffer& outBu
     return FBOMResult::FBOM_OK;
 }
 
-FBOMResult FBOMReader::ReadRawData(BufferedReader* reader, SizeType count, ByteBuffer& outBuffer)
+FBOMResult FBOMReader::ReadRawData(BufferedReader* reader, size_t count, ByteBuffer& outBuffer)
 {
     if (reader->Position() + count > reader->Max())
     {

@@ -583,12 +583,12 @@ struct BoxedValueHelper<T, std::enable_if_t<std::is_fundamental_v<T>>>
 #ifndef HYP_WINDOWS
 
 template <>
-struct BoxedValueHelperDecl<SizeType, std::enable_if_t<!std::is_same_v<SizeType, uint64>>>
+struct BoxedValueHelperDecl<size_t, std::enable_if_t<!std::is_same_v<size_t, uint64>>>
 {
 };
 
 template <>
-struct BoxedValueHelper<SizeType, std::enable_if_t<!std::is_same_v<SizeType, uint64>>> : BoxedValueHelper<uint64>
+struct BoxedValueHelper<size_t, std::enable_if_t<!std::is_same_v<size_t, uint64>>> : BoxedValueHelper<uint64>
 {
     using StorageType = uint64;
     using ConvertibleFrom = Tuple<
@@ -605,35 +605,35 @@ struct BoxedValueHelper<SizeType, std::enable_if_t<!std::is_same_v<SizeType, uin
         double,
         bool>;
 
-    HYP_FORCE_INLINE bool Is(SizeType value) const
+    HYP_FORCE_INLINE bool Is(size_t value) const
     {
         // should never be hit
         HYP_NOT_IMPLEMENTED();
     }
 
-    template <class OtherT, typename = std::enable_if_t<!std::is_same_v<OtherT, SizeType>>>
+    template <class OtherT, typename = std::enable_if_t<!std::is_same_v<OtherT, size_t>>>
     HYP_FORCE_INLINE bool Is(OtherT value) const
     {
         return std::is_fundamental_v<OtherT>;
     }
 
-    HYP_FORCE_INLINE constexpr SizeType Get(SizeType value) const
+    HYP_FORCE_INLINE constexpr size_t Get(size_t value) const
     {
         return value;
     }
 
-    template <class OtherT, typename = std::enable_if_t<!std::is_same_v<OtherT, SizeType>>>
-    HYP_FORCE_INLINE constexpr SizeType Get(OtherT value) const
+    template <class OtherT, typename = std::enable_if_t<!std::is_same_v<OtherT, size_t>>>
+    HYP_FORCE_INLINE constexpr size_t Get(OtherT value) const
     {
-        return static_cast<SizeType>(value);
+        return static_cast<size_t>(value);
     }
 
-    HYP_FORCE_INLINE void Set(BoxedValue& boxed, SizeType value) const
+    HYP_FORCE_INLINE void Set(BoxedValue& boxed, size_t value) const
     {
         boxed.Set_Internal(static_cast<uint64>(value));
     }
 
-    HYP_FORCE_INLINE static FBOMResult Serialize(SizeType value, FBOMData& out, EnumFlags<FBOMDataFlags> flags = FBOMDataFlags::NONE)
+    HYP_FORCE_INLINE static FBOMResult Serialize(size_t value, FBOMData& out, EnumFlags<FBOMDataFlags> flags = FBOMDataFlags::NONE)
     {
         out = FBOMData(static_cast<uint64>(value), flags);
 
@@ -649,7 +649,7 @@ struct BoxedValueHelper<SizeType, std::enable_if_t<!std::is_same_v<SizeType, uin
             return err;
         }
 
-        out = BoxedValue(static_cast<SizeType>(value));
+        out = BoxedValue(static_cast<size_t>(value));
 
         return FBOMResult::FBOM_OK;
     }
@@ -2081,7 +2081,7 @@ struct BoxedValueHelper<Array<T, AllocatorType>, std::enable_if_t<!std::is_const
     {
         HYP_SCOPE;
 
-        const SizeType size = value.Size();
+        const size_t size = value.Size();
 
         if (size == 0)
         {
@@ -2094,7 +2094,7 @@ struct BoxedValueHelper<Array<T, AllocatorType>, std::enable_if_t<!std::is_const
         Array<FBOMData> elements;
         elements.Resize(size);
 
-        for (SizeType i = 0; i < size; i++)
+        for (size_t i = 0; i < size; i++)
         {
             if constexpr (IsBoxedValueV<T>)
             {
@@ -2128,12 +2128,12 @@ struct BoxedValueHelper<Array<T, AllocatorType>, std::enable_if_t<!std::is_const
             return err;
         }
 
-        const SizeType size = array.Size();
+        const size_t size = array.Size();
 
         Array<T, AllocatorType> result;
         result.Reserve(size);
 
-        for (SizeType i = 0; i < size; i++)
+        for (size_t i = 0; i < size; i++)
         {
             BoxedValue element;
 
@@ -2153,12 +2153,12 @@ struct BoxedValueHelper<Array<T, AllocatorType>, std::enable_if_t<!std::is_const
 
 /// FixedArray
 
-template <class T, SizeType Size>
+template <class T, size_t Size>
 struct BoxedValueHelperDecl<FixedArray<T, Size>>
 {
 };
 
-template <class T, SizeType Size>
+template <class T, size_t Size>
 struct BoxedValueHelper<FixedArray<T, Size>, std::enable_if_t<!std::is_const_v<T>>> : BoxedValueHelper<GenericArrayWrapper>
 {
     using ConvertibleFrom = Tuple<>;
@@ -2225,7 +2225,7 @@ struct BoxedValueHelper<FixedArray<T, Size>, std::enable_if_t<!std::is_const_v<T
         Array<FBOMData> elements;
         elements.Resize(Size);
 
-        for (SizeType i = 0; i < Size; i++)
+        for (size_t i = 0; i < Size; i++)
         {
             if constexpr (IsBoxedValueV<T>)
             {
@@ -2266,7 +2266,7 @@ struct BoxedValueHelper<FixedArray<T, Size>, std::enable_if_t<!std::is_const_v<T
 
         FixedArray<T, Size> result;
 
-        for (SizeType i = 0; i < Size; i++)
+        for (size_t i = 0; i < Size; i++)
         {
             BoxedValue element;
 
@@ -2285,12 +2285,12 @@ struct BoxedValueHelper<FixedArray<T, Size>, std::enable_if_t<!std::is_const_v<T
 };
 
 #if 0
-template <class T, SizeType Size>
+template <class T, size_t Size>
 struct BoxedValueHelperDecl<T[Size]>
 {
 };
 
-template <class T, SizeType Size>
+template <class T, size_t Size>
 struct BoxedValueHelper<T[Size], std::enable_if_t<!std::is_const_v<T>>> : BoxedValueHelper<FixedArray<T, Size>>
 {
     using ConvertibleFrom = Tuple<FixedArray<T, Size>>;
@@ -2335,7 +2335,7 @@ struct BoxedValueHelper<T[Size], std::enable_if_t<!std::is_const_v<T>>> : BoxedV
         Array<FBOMData> elements;
         elements.Resize(Size);
 
-        for (SizeType i = 0; i < Size; i++)
+        for (size_t i = 0; i < Size; i++)
         {
             if constexpr (IsBoxedValueV<T>)
             {
@@ -2376,7 +2376,7 @@ struct BoxedValueHelper<T[Size], std::enable_if_t<!std::is_const_v<T>>> : BoxedV
 
         FixedArray<T, Size> result;
 
-        for (SizeType i = 0; i < Size; i++)
+        for (size_t i = 0; i < Size; i++)
         {
             BoxedValue element;
 
@@ -2546,7 +2546,7 @@ struct BoxedValueHelper<HashMap<K, V>> : BoxedValueHelper<GenericArrayWrapper>
     {
         HYP_SCOPE;
 
-        const SizeType size = value.Size();
+        const size_t size = value.Size();
 
         if (size == 0)
         {
@@ -2587,11 +2587,11 @@ struct BoxedValueHelper<HashMap<K, V>> : BoxedValueHelper<GenericArrayWrapper>
             return err;
         }
 
-        const SizeType size = array.Size();
+        const size_t size = array.Size();
 
         HashMap<K, V> result;
 
-        for (SizeType i = 0; i < size; i++)
+        for (size_t i = 0; i < size; i++)
         {
             BoxedValue element;
 
@@ -2672,7 +2672,7 @@ struct BoxedValueHelper<FlatMap<K, V>> : BoxedValueHelper<GenericArrayWrapper>
     {
         HYP_SCOPE;
 
-        const SizeType size = value.Size();
+        const size_t size = value.Size();
 
         if (size == 0)
         {
@@ -2713,11 +2713,11 @@ struct BoxedValueHelper<FlatMap<K, V>> : BoxedValueHelper<GenericArrayWrapper>
             return err;
         }
 
-        const SizeType size = array.Size();
+        const size_t size = array.Size();
 
         FlatMap<K, V> result;
 
-        for (SizeType i = 0; i < size; i++)
+        for (size_t i = 0; i < size; i++)
         {
             BoxedValue element;
 
@@ -2798,7 +2798,7 @@ struct BoxedValueHelper<HashSet<ValueType, KeyByFunction>> : BoxedValueHelper<Ge
     {
         HYP_SCOPE;
 
-        const SizeType size = value.Size();
+        const size_t size = value.Size();
 
         if (size == 0)
         {
@@ -2839,11 +2839,11 @@ struct BoxedValueHelper<HashSet<ValueType, KeyByFunction>> : BoxedValueHelper<Ge
             return err;
         }
 
-        const SizeType size = array.Size();
+        const size_t size = array.Size();
 
         HashSet<ValueType, KeyByFunction> result;
 
-        for (SizeType i = 0; i < size; i++)
+        for (size_t i = 0; i < size; i++)
         {
             BoxedValue element;
 
@@ -2924,7 +2924,7 @@ struct BoxedValueHelper<FlatSet<T>> : BoxedValueHelper<GenericArrayWrapper>
     {
         HYP_SCOPE;
 
-        const SizeType size = value.Size();
+        const size_t size = value.Size();
 
         if (size == 0)
         {
@@ -2965,11 +2965,11 @@ struct BoxedValueHelper<FlatSet<T>> : BoxedValueHelper<GenericArrayWrapper>
             return err;
         }
 
-        const SizeType size = array.Size();
+        const size_t size = array.Size();
 
         FlatSet<T> result;
 
-        for (SizeType i = 0; i < size; i++)
+        for (size_t i = 0; i < size; i++)
         {
             BoxedValue element;
 
@@ -3050,7 +3050,7 @@ struct BoxedValueHelper<LinkedList<T>> : BoxedValueHelper<GenericArrayWrapper>
     {
         HYP_SCOPE;
 
-        const SizeType size = value.Size();
+        const size_t size = value.Size();
 
         if (size == 0)
         {
@@ -3101,11 +3101,11 @@ struct BoxedValueHelper<LinkedList<T>> : BoxedValueHelper<GenericArrayWrapper>
             return err;
         }
 
-        const SizeType size = array.Size();
+        const size_t size = array.Size();
 
         LinkedList<T> result;
 
-        for (SizeType i = 0; i < size; i++)
+        for (size_t i = 0; i < size; i++)
         {
             BoxedValue element;
 
@@ -3888,10 +3888,10 @@ struct BoxedValue_Is<T, Tuple<ConvertibleFrom...>>
 
 #pragma region BoxedValue_Get implementation
 
-template <class VariantType, class ReturnType, class... Types, SizeType... Indices>
+template <class VariantType, class ReturnType, class... Types, size_t... Indices>
 bool BoxedValue_Get_Impl(VariantType&& value, Optional<ReturnType>& outValue, std::index_sequence<Indices...>)
 {
-    const auto getForTypeIndex = [&value]<SizeType SelectedTypeIndex>(Optional<ReturnType>& outValue, std::integral_constant<SizeType, SelectedTypeIndex>) -> bool
+    const auto getForTypeIndex = [&value]<size_t SelectedTypeIndex>(Optional<ReturnType>& outValue, std::integral_constant<size_t, SelectedTypeIndex>) -> bool
     {
         using SelectedType = typename TupleElement<SelectedTypeIndex, Types...>::Type;
         using StorageType = typename BoxedValueHelper<SelectedType>::StorageType;
@@ -3924,7 +3924,7 @@ bool BoxedValue_Get_Impl(VariantType&& value, Optional<ReturnType>& outValue, st
 
     using FirstType = typename TupleElement<0, Types...>::Type;
 
-    return (getForTypeIndex(outValue, std::integral_constant<SizeType, Indices> {}) || ...)
+    return (getForTypeIndex(outValue, std::integral_constant<size_t, Indices> {}) || ...)
         || (value.template Is<AnyRef>() && ((value.template GetUnchecked<AnyRef>().template Is<FirstType>() && (outValue.Set(value.template GetUnchecked<AnyRef>().template GetUnchecked<FirstType>()), true))));
 }
 

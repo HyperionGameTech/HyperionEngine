@@ -17,7 +17,7 @@ namespace Hyperion {
 
 struct Config
 {
-    static const SizeType maxDataMembers;
+    static const size_t maxDataMembers;
     static const char* globalModuleName;
     /** Optimize by removing unused variables */
     static bool cullUnusedObjects;

@@ -107,7 +107,7 @@ RendererResult VulkanShaderInstance::AttachShaderModules()
 
     auto resGuard = m_shader->GetReadScope();
 
-    for (SizeType index = 0; index < m_shader->moduleTypes.Size(); index++)
+    for (size_t index = 0; index < m_shader->moduleTypes.Size(); index++)
     {
         ShaderModuleType moduleType;
         String moduleName;
@@ -131,7 +131,7 @@ RendererResult VulkanShaderInstance::CreateShaderGroups()
 {
     m_shaderGroups.Clear();
 
-    for (SizeType i = 0; i < m_shaderModules.Size(); i++)
+    for (size_t i = 0; i < m_shaderModules.Size(); i++)
     {
         const VulkanShaderModule& shaderModule = m_shaderModules[i];
 

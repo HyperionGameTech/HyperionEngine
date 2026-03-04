@@ -397,9 +397,9 @@ struct RawOperation final : public Instruction
     void Accept(const char* str)
     {
         // do not copy NUL byte
-        SizeType length = std::strlen(str);
+        size_t length = std::strlen(str);
 
-        const SizeType previousSize = data.Size();
+        const size_t previousSize = data.Size();
         data.Resize(previousSize + length);
         Memory::Copy(data.Data() + previousSize, str, length);
     }
@@ -415,7 +415,7 @@ struct RawOperation final : public Instruction
 
     void Accept(ConstByteView byteView)
     {
-        const SizeType previousSize = data.Size();
+        const size_t previousSize = data.Size();
         data.Resize(previousSize + byteView.Size());
         Memory::Copy(data.Data() + previousSize, byteView.Data(), byteView.Size());
     }
@@ -423,7 +423,7 @@ struct RawOperation final : public Instruction
     template <typename T, typename = std::enable_if_t<std::is_fundamental_v<T> || std::is_enum_v<T>>>
     void Accept(T value)
     {
-        const SizeType previousSize = data.Size();
+        const size_t previousSize = data.Size();
         data.Resize(previousSize + sizeof(T));
         Memory::Copy(data.Data() + previousSize, &value, sizeof(T));
     }

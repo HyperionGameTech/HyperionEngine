@@ -228,7 +228,7 @@ public:
         const RenderTargetDesc& renderTargetDesc) const;
 
     // Deprecated - will be removed to decouple from vulkan
-    HYP_DEPRECATED virtual void SetPushConstants(const void* data, SizeType size) = 0;
+    HYP_DEPRECATED virtual void SetPushConstants(const void* data, size_t size) = 0;
 
     uint32 lastFrame = uint32(-1);
 

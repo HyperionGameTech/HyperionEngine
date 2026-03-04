@@ -414,9 +414,9 @@ void BackgroundTaskThreadPool::CleanupIdleThreads()
 {
     Mutex::Guard guard(m_threadCreationMutex);
 
-    Array<SizeType> threadsToRemove;
+    Array<size_t> threadsToRemove;
 
-    for (SizeType i = 0; i < m_threads.Size(); ++i)
+    for (size_t i = 0; i < m_threads.Size(); ++i)
     {
         if (m_threads[i] == nullptr)
         {
@@ -433,9 +433,9 @@ void BackgroundTaskThreadPool::CleanupIdleThreads()
     }
 
     // Remove threads in reverse order to maintain array indices
-    for (SizeType i = threadsToRemove.Size(); i > 0; --i)
+    for (size_t i = threadsToRemove.Size(); i > 0; --i)
     {
-        const SizeType index = threadsToRemove[i - 1];
+        const size_t index = threadsToRemove[i - 1];
 
         ThreadBase* thread = m_threads[index].Get();
 

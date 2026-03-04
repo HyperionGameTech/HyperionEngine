@@ -2913,7 +2913,7 @@ void EditorSubsystem::SetActiveViewport(EditorViewport* viewport)
         return;
     }
 
-    const SizeType idx = m_editorViewports.IndexOf(it);
+    const size_t idx = m_editorViewports.IndexOf(it);
     AssertDebug(idx != -1);
 
     if (idx == 0)
@@ -3001,7 +3001,7 @@ void EditorSubsystem::RemoveViewport(EditorViewport* viewport)
         {
             Handle<EditorViewport> viewportStrong;
 
-            const SizeType idx = strongThis->m_editorViewports.IndexOf(it);
+            const size_t idx = strongThis->m_editorViewports.IndexOf(it);
 
             if (idx == 0)
             {

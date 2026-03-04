@@ -248,7 +248,7 @@ void RayTracingReflections::Render(Frame* frame, const RenderSetup& renderSetup)
     }
 
     const Vec3u imageExtent = m_texture->GetGpuImage()->GetExtent();
-    const SizeType numPixels = imageExtent.Volume();
+    const size_t numPixels = imageExtent.Volume();
 
     frame->renderQueue << TraceRays(Vec3u { uint32(numPixels), 1, 1 });
     frame->renderQueue << InsertBarrier(m_texture->GetGpuImage(), RS_SHADER_RESOURCE);

@@ -48,7 +48,7 @@ RendererResult DX12ShaderInstance::Create()
 
     m_shaderBlobs.Clear();
 
-    for (SizeType i = 0; i < m_shader->moduleNames.Size(); i++)
+    for (size_t i = 0; i < m_shader->moduleNames.Size(); i++)
     {
         const ByteBuffer& buffer = m_shader->shaderBlobs[i];
 

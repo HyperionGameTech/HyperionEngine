@@ -41,9 +41,9 @@ class BinaryDictionary
     static constexpr uint16 FormatVersion = 1;
 
     // Entry layout (fixed 16 bytes): HashCode value (uint64, 8 bytes) + id stored as uint32 (4 bytes) + 4 bytes padding
-    static constexpr SizeType EntryDataSize = sizeof(HashCode::ValueType) + sizeof(uint32);
-    static constexpr SizeType EntryPaddingSize = (16 - (EntryDataSize % 16)) % 16;
-    static constexpr SizeType SizeOfEntry = EntryDataSize + EntryPaddingSize;
+    static constexpr size_t EntryDataSize = sizeof(HashCode::ValueType) + sizeof(uint32);
+    static constexpr size_t EntryPaddingSize = (16 - (EntryDataSize % 16)) % 16;
+    static constexpr size_t SizeOfEntry = EntryDataSize + EntryPaddingSize;
 
 public:
     BinaryDictionary() = default;
@@ -143,7 +143,7 @@ public:
         // reserve 64 bytes for header at start
         stream.Seek(headerOffset + 64);
 
-        const SizeType entryMapOffset = stream.Position();
+        const size_t entryMapOffset = stream.Position();
 
         uint32 maxIdValue = 0;
 
@@ -194,7 +194,7 @@ public:
      *  \return True on success. Returns false and rolls back the stream on version or hash mismatch. */
     bool Read(BufferedByteReader& stream)
     {
-        const SizeType readOffset = stream.Position();
+        const size_t readOffset = stream.Position();
 
         uint16 version;
         stream.Read<uint16>(&version);
@@ -233,7 +233,7 @@ public:
         m_forwardMap.Reserve(entryCount);
 
         ubyte* bytes = (ubyte*)Memory::Allocate(entryCount * SizeOfEntry);
-        SizeType readBytes = 0;
+        size_t readBytes = 0;
 
         if ((readBytes = stream.ReadBytes(bytes, entryCount * SizeOfEntry)) != entryCount * SizeOfEntry)
         {

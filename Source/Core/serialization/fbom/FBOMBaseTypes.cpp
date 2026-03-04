@@ -72,7 +72,7 @@ FBOMStruct::FBOMStruct()
 {
 }
 
-FBOMStruct::FBOMStruct(const ANSIStringView& typeName, SizeType sz, const TypeId& typeId)
+FBOMStruct::FBOMStruct(const ANSIStringView& typeName, size_t sz, const TypeId& typeId)
     : FBOMType(typeName, sz, typeId, FBOMType("struct", sz, typeId))
 {
 }
@@ -88,7 +88,7 @@ FBOMSequence::FBOMSequence(const FBOMType& heldType)
     HYP_CORE_ASSERT(!heldType.IsUnbounded(), "Cannot create sequence of unbounded type");
 }
 
-FBOMSequence::FBOMSequence(const FBOMType& heldType, SizeType count)
+FBOMSequence::FBOMSequence(const FBOMType& heldType, size_t count)
     : FBOMType("seq", heldType.size * count, /* no valid TypeId */ TypeId::Void())
 {
     HYP_CORE_ASSERT(!heldType.IsUnbounded(), "Cannot create sequence of unbounded type");
@@ -99,7 +99,7 @@ FBOMByteBuffer::FBOMByteBuffer()
 {
 }
 
-FBOMByteBuffer::FBOMByteBuffer(SizeType count)
+FBOMByteBuffer::FBOMByteBuffer(size_t count)
     : FBOMType("buf", count, TypeId::ForType<ByteBuffer>())
 {
 }
@@ -169,7 +169,7 @@ FBOMString::FBOMString()
 {
 }
 
-FBOMString::FBOMString(SizeType length)
+FBOMString::FBOMString(size_t length)
     : FBOMType("string", length, TypeId::ForType<String>())
 {
 }
@@ -179,7 +179,7 @@ FBOMName::FBOMName()
 {
 }
 
-FBOMName::FBOMName(SizeType length)
+FBOMName::FBOMName(size_t length)
     : FBOMType("name", length, TypeId::ForType<Name>())
 {
 }
@@ -197,7 +197,7 @@ FBOMBaseObjectType::FBOMBaseObjectType(const FBOMType& extends)
 FBOMObjectType::FBOMObjectType(const Class* cls)
     : FBOMType(
           cls->GetName().LookupString(),
-          SizeType(-1),
+          size_t(-1),
           cls->GetTypeId(),
           FBOMTypeFlags::CONTAINER,
           cls->GetParent() ? FBOMType(FBOMObjectType(cls->GetParent())) : FBOMType(FBOMBaseObjectType()))

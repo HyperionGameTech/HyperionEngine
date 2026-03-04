@@ -143,20 +143,20 @@ void UIGridRow::SetNumColumns(int numColumns)
     m_numColumns = numColumns;
 
     // if (m_numColumns >= 0) {
-    //     if (m_columns.Size() < SizeType(m_numColumns)) {
-    //         const SizeType numColumnsToAdd = SizeType(m_numColumns) - m_columns.Size();
+    //     if (m_columns.Size() < size_t(m_numColumns)) {
+    //         const size_t numColumnsToAdd = size_t(m_numColumns) - m_columns.Size();
 
-    //         for (SizeType i = 0; i < numColumnsToAdd; i++) {
+    //         for (size_t i = 0; i < numColumnsToAdd; i++) {
     //             AddColumn();
     //         }
-    //     } else if (m_columns.Size() > SizeType(m_numColumns)) {
-    //         const SizeType numColumnsToRemove = m_columns.Size() - SizeType(m_numColumns);
+    //     } else if (m_columns.Size() > size_t(m_numColumns)) {
+    //         const size_t numColumnsToRemove = m_columns.Size() - size_t(m_numColumns);
 
-    //         for (SizeType i = 0; i < numColumnsToRemove; i++) {
+    //         for (size_t i = 0; i < numColumnsToRemove; i++) {
     //             UIObject::RemoveChildUIObject(m_columns[m_columns.Size() - 1]);
     //         }
 
-    //         m_columns.Resize(SizeType(m_numColumns));
+    //         m_columns.Resize(size_t(m_numColumns));
     //     }
     // }
 
@@ -175,7 +175,7 @@ Handle<UIGridColumn> UIGridRow::AddColumn()
 
     if (m_numColumns >= 0)
     {
-        m_numColumns = SizeType(m_columns.Size());
+        m_numColumns = size_t(m_columns.Size());
     }
 
     UpdateColumnSizes();
@@ -192,7 +192,7 @@ void UIGridRow::UpdateColumnSizes()
 
     Vec2i offset { 0, 0 };
 
-    for (SizeType i = 0; i < m_columns.Size(); i++)
+    for (size_t i = 0; i < m_columns.Size(); i++)
     {
         UIGridColumn* column = m_columns[i];
 
@@ -213,7 +213,7 @@ void UIGridRow::UpdateColumnOffsets()
 
     Vec2i offset { 0, 0 };
 
-    for (SizeType i = 0; i < m_columns.Size(); i++)
+    for (size_t i = 0; i < m_columns.Size(); i++)
     {
         UIGridColumn* column = m_columns[i];
 
@@ -270,7 +270,7 @@ void UIGrid::SetNumColumns(int numColumns)
 
 void UIGrid::SetNumRows(uint32 numRows)
 {
-    const SizeType currentNumRows = m_rows.Size();
+    const size_t currentNumRows = m_rows.Size();
 
     if (numRows == currentNumRows)
     {
@@ -279,7 +279,7 @@ void UIGrid::SetNumRows(uint32 numRows)
 
     if (numRows < currentNumRows)
     {
-        for (SizeType i = numRows; i < currentNumRows; i++)
+        for (size_t i = numRows; i < currentNumRows; i++)
         {
             UIObject::RemoveChildUIObject(m_rows[i]);
         }
@@ -288,9 +288,9 @@ void UIGrid::SetNumRows(uint32 numRows)
     }
     else
     {
-        const SizeType numRowsToAdd = numRows - currentNumRows;
+        const size_t numRowsToAdd = numRows - currentNumRows;
 
-        for (SizeType i = 0; i < numRowsToAdd; i++)
+        for (size_t i = 0; i < numRowsToAdd; i++)
         {
             Handle<UIGridRow> row = CreateUIObject<UIGridRow>(Vec2i { 0, 0 }, UIObjectSize({ 100, UIObjectSize::PERCENT }, { 0, UIObjectSize::AUTO }));
             UIObject::AddChildUIObject(row);
@@ -309,7 +309,7 @@ Handle<UIGridRow> UIGrid::AddRow()
 
     if (m_numColumns >= 0)
     {
-        for (SizeType i = 0; i < SizeType(m_numColumns); i++)
+        for (size_t i = 0; i < size_t(m_numColumns); i++)
         {
             row->AddColumn();
         }
@@ -443,7 +443,7 @@ void UIGrid::UpdateLayout()
 
     int yOffset = 0;
 
-    for (SizeType i = 0; i < m_rows.Size(); i++)
+    for (size_t i = 0; i < m_rows.Size(); i++)
     {
         UIGridRow* row = m_rows[i];
 

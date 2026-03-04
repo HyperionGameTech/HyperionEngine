@@ -115,7 +115,7 @@ std::ostream& ErrorList::WriteOutput(std::ostream& os) const
             os << "\n\t" << *currentFileLines[error.GetLocation().GetLine()];
             os << "\n\t";
 
-            for (SizeType i = 0; i < error.GetLocation().GetColumn(); i++)
+            for (size_t i = 0; i < error.GetLocation().GetColumn(); i++)
             {
                 os << ' ';
             }

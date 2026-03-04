@@ -167,7 +167,7 @@ void AstImport::PerformImport(
             return;
         }
 
-        SizeType max = reader.Max();
+        size_t max = reader.Max();
         reader.Seek(0);
 
         SourceFile sourceFile(filepath, max);

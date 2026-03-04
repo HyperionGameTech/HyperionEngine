@@ -25,7 +25,7 @@ struct OctantId
 
     //! This bit is reserved for invalid octants -- We use 3 bits for each index, leaving 1 bit left on a 64-bit integer
     static constexpr uint64 InvalidBits = 1ull << 63;
-    static constexpr SizeType MaxDepth = 64 / 3;
+    static constexpr size_t MaxDepth = 64 / 3;
 
     uint64 indexBits { 0 };
     uint8 depth { 0 };

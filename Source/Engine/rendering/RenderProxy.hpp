@@ -311,7 +311,7 @@ public:
 
 struct alignas(16) SkeletonShaderData
 {
-    static constexpr SizeType maxBones = 256;
+    static constexpr size_t maxBones = 256;
 
     Mat4f bones[maxBones];
 };
@@ -321,7 +321,7 @@ class RenderProxySkeleton final : public IRenderProxy
 public:
     RenderProxySkeleton()
     {
-        for (SizeType i = 0; i < SkeletonShaderData::maxBones; ++i)
+        for (size_t i = 0; i < SkeletonShaderData::maxBones; ++i)
         {
             bufferData.bones[i] = Mat4f::Identity();
         }

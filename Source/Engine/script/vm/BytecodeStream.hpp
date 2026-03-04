@@ -15,8 +15,8 @@ public:
 
 public:
     BytecodeStream();
-    BytecodeStream(const ubyte* buffer, SizeType size, SizeType position = 0);
-    BytecodeStream(const ByteBuffer& byteBuffer, SizeType position = 0);
+    BytecodeStream(const ubyte* buffer, size_t size, size_t position = 0);
+    BytecodeStream(const ByteBuffer& byteBuffer, size_t position = 0);
     BytecodeStream(const BytecodeStream& other);
     ~BytecodeStream() = default;
 
@@ -27,39 +27,39 @@ public:
         return m_byteBuffer.Data();
     }
 
-    HYP_FORCE_INLINE void ReadBytes(ubyte* ptr, SizeType numBytes)
+    HYP_FORCE_INLINE void ReadBytes(ubyte* ptr, size_t numBytes)
     {
         Memory::Copy(ptr, m_byteBuffer.Data() + m_position, numBytes);
         m_position += numBytes;
     }
 
     template <class T>
-    HYP_FORCE_INLINE void Read(T* ptr, SizeType numBytes = sizeof(T))
+    HYP_FORCE_INLINE void Read(T* ptr, size_t numBytes = sizeof(T))
     {
         ReadBytes(reinterpret_cast<ubyte*>(ptr), numBytes);
     }
 
-    HYP_FORCE_INLINE SizeType Position() const
+    HYP_FORCE_INLINE size_t Position() const
     {
         return m_position;
     }
 
-    HYP_FORCE_INLINE void SetPosition(SizeType position)
+    HYP_FORCE_INLINE void SetPosition(size_t position)
     {
         m_position = position;
     }
 
-    HYP_FORCE_INLINE SizeType Size() const
+    HYP_FORCE_INLINE size_t Size() const
     {
         return m_byteBuffer.Size();
     }
 
-    HYP_FORCE_INLINE void Seek(SizeType address)
+    HYP_FORCE_INLINE void Seek(size_t address)
     {
         m_position = address;
     }
 
-    HYP_FORCE_INLINE void Skip(SizeType amount)
+    HYP_FORCE_INLINE void Skip(size_t amount)
     {
         m_position += amount;
     }
@@ -73,7 +73,7 @@ public:
 
 private:
     ByteBuffer m_byteBuffer;
-    SizeType m_position;
+    size_t m_position;
 };
 
 } // namespace Hyperion

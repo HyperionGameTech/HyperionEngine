@@ -270,7 +270,7 @@ Array<Vertex> TerrainMeshBuilder::BuildVertices() const
 Array<uint32> TerrainMeshBuilder::BuildIndices() const
 {
     Array<uint32> indices;
-    indices.Resize(SizeType(6 * (m_heightData.cellInfo.extent.x - 1) * (m_heightData.cellInfo.extent.z - 1)));
+    indices.Resize(size_t(6 * (m_heightData.cellInfo.extent.x - 1) * (m_heightData.cellInfo.extent.z - 1)));
 
     uint32 pitch = uint32(m_heightData.cellInfo.extent.x);
     uint32 row = 0;

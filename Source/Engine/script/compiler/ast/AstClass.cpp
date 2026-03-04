@@ -391,7 +391,7 @@ void AstClass::Visit(AstVisitor* visitor, Module* mod)
         {
             // Do data members first so we can use them all in functions.
 
-            for (SizeType i = 0; i < m_dataMembers.Size(); i++)
+            for (size_t i = 0; i < m_dataMembers.Size(); i++)
             {
                 const RC<AstVariableDeclaration>& decl = m_dataMembers[i];
                 Assert(decl != nullptr);
@@ -418,7 +418,7 @@ void AstClass::Visit(AstVisitor* visitor, Module* mod)
                     decl->GetRealAssignment() });
             }
 
-            for (SizeType i = 0; i < m_functionMembers.Size(); i++)
+            for (size_t i = 0; i < m_functionMembers.Size(); i++)
             {
                 const RC<AstVariableDeclaration>& decl = m_functionMembers[i];
                 Assert(decl != nullptr);
@@ -521,7 +521,7 @@ void AstClass::Visit(AstVisitor* visitor, Module* mod)
                     constructorArgs.Reserve(constructorParams.Size());
 
                     // Pass each parameter as an argument to the constructor
-                    for (SizeType i = 0; i < constructorParams.Size(); i++)
+                    for (size_t i = 0; i < constructorParams.Size(); i++)
                     {
                         const RC<AstParameter>& param = constructorParams[i];
                         Assert(param != nullptr);
@@ -644,7 +644,7 @@ UniquePtr<Buildable> AstClass::Build(AstVisitor* visitor, Module* mod)
     Array<ClassTable::MethodInfo> methods;
 
     // Add all fields from our class
-    for (SizeType functionMemberIndex = 0; functionMemberIndex < m_functionMembers.Size(); functionMemberIndex++)
+    for (size_t functionMemberIndex = 0; functionMemberIndex < m_functionMembers.Size(); functionMemberIndex++)
     {
         const RC<AstVariableDeclaration>& decl = m_functionMembers[functionMemberIndex];
         Assert(decl != nullptr);
@@ -676,7 +676,7 @@ UniquePtr<Buildable> AstClass::Build(AstVisitor* visitor, Module* mod)
 
     Array<ClassTable::FieldInfo> fields;
 
-    SizeType fieldOffset = sizeof(ObjectBase); // start after base object
+    size_t fieldOffset = sizeof(ObjectBase); // start after base object
 
     // reserve space for `class` field to hold reference to the class this object is an instance of
     fieldOffset = ByteUtil::AlignAs(fieldOffset, alignof(ClassRef));
@@ -828,7 +828,7 @@ UniquePtr<Buildable> AstClass::Build(AstVisitor* visitor, Module* mod)
         // increment stack size for class
         visitor->GetCompilationUnit()->GetInstructionStream().IncStackSize();
 
-        for (SizeType index = 0; index < m_memberExpressions.Size(); index++)
+        for (size_t index = 0; index < m_memberExpressions.Size(); index++)
         {
             Assert(index < MathUtil::MaxSafeValue<uint8>(), "Argument out of bouds of max arguments");
 

@@ -230,7 +230,7 @@ void Shutdown()
     {
         Mutex::Guard guard(s_globalsMutex);
 
-        for (SizeType i = s_onShutdownFuncs.Size(); i > 0; --i)
+        for (size_t i = s_onShutdownFuncs.Size(); i > 0; --i)
         {
             s_onShutdownFuncs[i - 1]();
         }

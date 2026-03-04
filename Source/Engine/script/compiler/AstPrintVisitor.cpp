@@ -42,7 +42,7 @@ static const WideString s_colorComment = L"\033[38;5;245m";
 AstPrintVisitor::AstPrintVisitor(
     AstIterator* astIterator,
     CompilationUnit* compilationUnit,
-    SizeType indentSize)
+    size_t indentSize)
     : AstVisitor(astIterator, compilationUnit),
       m_indentSize(indentSize),
       m_showTypes(true),
@@ -52,7 +52,7 @@ AstPrintVisitor::AstPrintVisitor(
 {
 }
 
-WideString AstPrintVisitor::PrintNode(AstStatement* node, SizeType depth) const
+WideString AstPrintVisitor::PrintNode(AstStatement* node, size_t depth) const
 {
     if (!node)
     {
@@ -123,11 +123,11 @@ WideString AstPrintVisitor::PrintTree(AstStatement* root) const
     return result;
 }
 
-WideString AstPrintVisitor::GetIndentation(SizeType depth) const
+WideString AstPrintVisitor::GetIndentation(size_t depth) const
 {
     WideString result;
 
-    for (SizeType i = 0; i < depth * m_indentSize; ++i)
+    for (size_t i = 0; i < depth * m_indentSize; ++i)
     {
         result += L" ";
     }
@@ -351,7 +351,7 @@ WideString AstPrintVisitor::GetTypeInfo(AstStatement* node) const
     return WideString::empty;
 }
 
-WideString AstPrintVisitor::GetDetailedInfo(AstStatement* node, SizeType depth) const
+WideString AstPrintVisitor::GetDetailedInfo(AstStatement* node, size_t depth) const
 {
     WideString result;
     const WideString indentation = GetIndentation(depth + 1);
@@ -381,12 +381,12 @@ WideString AstPrintVisitor::GetDetailedInfo(AstStatement* node, SizeType depth) 
     return result;
 }
 
-WideString AstPrintVisitor::PrintChildren(AstStatement* node, SizeType depth) const
+WideString AstPrintVisitor::PrintChildren(AstStatement* node, size_t depth) const
 {
     WideString result;
     Array<AstStatement*> children = GetChildNodes(node);
 
-    for (SizeType i = 0; i < children.Size(); ++i)
+    for (size_t i = 0; i < children.Size(); ++i)
     {
         AstStatement* child = children[i];
         const bool isLast = (i == children.Size() - 1);
@@ -397,7 +397,7 @@ WideString AstPrintVisitor::PrintChildren(AstStatement* node, SizeType depth) co
 
             if (isLast && depth > 0)
             {
-                SizeType pos = childResult.FindFirstIndex(L"├─");
+                size_t pos = childResult.FindFirstIndex(L"├─");
 
                 if (pos != WideString::NotFound)
                 {

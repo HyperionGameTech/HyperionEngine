@@ -7,19 +7,19 @@
 namespace Hyperion {
 namespace profiling {
 
-Array<double> Profile::RunInterleved(Array<Profile*>&& profiles, SizeType runsPer, SizeType numIterations, SizeType runsPerIteration)
+Array<double> Profile::RunInterleved(Array<Profile*>&& profiles, size_t runsPer, size_t numIterations, size_t runsPerIteration)
 {
     Array<double> results;
     results.Resize(profiles.Size());
 
-    SizeType runIndex = 0;
+    size_t runIndex = 0;
 
-    for (SizeType i = 0; i < runsPer; i++)
+    for (size_t i = 0; i < runsPer; i++)
     {
 
         // size_t index = 0;
-        SizeType index = runIndex++ % profiles.Size();
-        SizeType counter = 0;
+        size_t index = runIndex++ % profiles.Size();
+        size_t counter = 0;
 
         while (counter < profiles.Size())
         {
@@ -31,7 +31,7 @@ Array<double> Profile::RunInterleved(Array<Profile*>&& profiles, SizeType runsPe
         }
     }
 
-    for (SizeType i = 0; i < profiles.Size(); i++)
+    for (size_t i = 0; i < profiles.Size(); i++)
     {
         results[i] = profiles[i]->GetResult();
     }
@@ -39,11 +39,11 @@ Array<double> Profile::RunInterleved(Array<Profile*>&& profiles, SizeType runsPe
     return results;
 }
 
-Profile& Profile::Run(SizeType numIterations, SizeType runsPerIteration)
+Profile& Profile::Run(size_t numIterations, size_t runsPerIteration)
 {
     double* times = new double[numIterations];
 
-    for (SizeType i = 0; i < numIterations; i++)
+    for (size_t i = 0; i < numIterations; i++)
     {
         auto start = std::chrono::high_resolution_clock::now();
 
@@ -59,7 +59,7 @@ Profile& Profile::Run(SizeType numIterations, SizeType runsPerIteration)
 
     double result = 0.0;
 
-    for (SizeType i = 0; i < numIterations; i++)
+    for (size_t i = 0; i < numIterations; i++)
     {
         result += times[i];
     }

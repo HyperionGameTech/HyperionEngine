@@ -29,7 +29,7 @@ static D3D12_HEAP_TYPE GetHeapType(GpuBufferType bufferType, bool requireCpuAcce
     return D3D12_HEAP_TYPE_DEFAULT;
 }
 
-DX12GpuBuffer::DX12GpuBuffer(GpuBufferType type, SizeType size, SizeType alignment)
+DX12GpuBuffer::DX12GpuBuffer(GpuBufferType type, size_t size, size_t alignment)
     : GpuBufferBase(type, size, alignment)
 {
 }
@@ -162,7 +162,7 @@ void DX12GpuBuffer::CopyFrom(
 }
 
 RendererResult DX12GpuBuffer::EnsureCapacity(
-    SizeType minimumSize,
+    size_t minimumSize,
     bool* outSizeChanged)
 {
     if (m_type == GpuBufferType::CONSTANT_BUFFER)
@@ -176,8 +176,8 @@ RendererResult DX12GpuBuffer::EnsureCapacity(
 }
 
 RendererResult DX12GpuBuffer::EnsureCapacity(
-    SizeType minimumSize,
-    SizeType alignment,
+    size_t minimumSize,
+    size_t alignment,
     bool* outSizeChanged)
 {
     if (m_type == GpuBufferType::CONSTANT_BUFFER)
@@ -190,31 +190,31 @@ RendererResult DX12GpuBuffer::EnsureCapacity(
     return {};
 }
 
-void DX12GpuBuffer::Memset(SizeType count, ubyte value)
+void DX12GpuBuffer::Memset(size_t count, ubyte value)
 {
     // @TODO
     HYP_LOG(RenderingBackend, Warning, "DX12GpuBuffer::Memset() not implemented");
 }
 
-void DX12GpuBuffer::Copy(SizeType count, const void* ptr)
+void DX12GpuBuffer::Copy(size_t count, const void* ptr)
 {
     // @TODO
     HYP_LOG(RenderingBackend, Warning, "DX12GpuBuffer::Copy() not implemented");
 }
 
-void DX12GpuBuffer::Copy(SizeType offset, SizeType count, const void* ptr)
+void DX12GpuBuffer::Copy(size_t offset, size_t count, const void* ptr)
 {
     // @TODO
     HYP_LOG(RenderingBackend, Warning, "DX12GpuBuffer::Copy() not implemented");
 }
 
-void DX12GpuBuffer::Read(SizeType count, void* outPtr) const
+void DX12GpuBuffer::Read(size_t count, void* outPtr) const
 {
     // @TODO
     HYP_LOG(RenderingBackend, Warning, "DX12GpuBuffer::Read() not implemented");
 }
 
-void DX12GpuBuffer::Read(SizeType offset, SizeType count, void* outPtr) const
+void DX12GpuBuffer::Read(size_t offset, size_t count, void* outPtr) const
 {
     // @TODO
     HYP_LOG(RenderingBackend, Warning, "DX12GpuBuffer::Read() not implemented");
@@ -234,7 +234,7 @@ void DX12GpuBuffer::Unmap() const
     HYP_LOG(RenderingBackend, Warning, "DX12GpuBuffer::Unmap() not implemented");
 }
 
-void DX12GpuBuffer::Flush(SizeType offset, SizeType count)
+void DX12GpuBuffer::Flush(size_t offset, size_t count)
 {
     // @TODO
     HYP_LOG(RenderingBackend, Warning, "DX12GpuBuffer::Flush() not implemented");

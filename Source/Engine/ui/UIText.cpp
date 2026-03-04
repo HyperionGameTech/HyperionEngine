@@ -62,7 +62,7 @@ static void ForEachCharacter(
 
     Vec2f placement = Vec2f::Zero();
 
-    const SizeType length = text.Length();
+    const size_t length = text.Length();
 
     if (outCharacterPlacements)
     {
@@ -94,7 +94,7 @@ static void ForEachCharacter(
         currentWordChars.Clear();
     };
 
-    for (SizeType i = 0; i < length; i++)
+    for (size_t i = 0; i < length; i++)
     {
         const utf::Char32 ch = text.GetChar(i);
 

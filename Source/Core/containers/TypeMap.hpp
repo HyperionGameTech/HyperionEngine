@@ -51,7 +51,7 @@ public:
 
     ~TypeMap() = default;
 
-    HYP_FORCE_INLINE SizeType Size() const
+    HYP_FORCE_INLINE size_t Size() const
     {
         return m_map.Size();
     }
@@ -180,12 +180,12 @@ public:
         return it->second;
     }
 
-    HYP_FORCE_INLINE Value& AtIndex(SizeType index)
+    HYP_FORCE_INLINE Value& AtIndex(size_t index)
     {
         return m_map.AtIndex(index).second;
     }
 
-    HYP_FORCE_INLINE const Value& AtIndex(SizeType index) const
+    HYP_FORCE_INLINE const Value& AtIndex(size_t index) const
     {
         return m_map.AtIndex(index).second;
     }

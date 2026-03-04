@@ -73,7 +73,7 @@ static void ZeroizeBuffer(Frame* frame, GpuBuffer* stagingBuffer, GpuBuffer* dst
 static inline bool CreateOrResizeBuffer(
     Frame* frame,
     GpuBufferRef& buffer,
-    SizeType newBufferSize)
+    size_t newBufferSize)
 {
     if constexpr (IndirectDrawState::UseNextPow2Size)
     {
@@ -225,7 +225,7 @@ void IndirectDrawState::Create()
     }
 }
 
-void IndirectDrawState::PushDrawCall(SizeType drawCallIndex, const DrawCallStorage& drawCalls, DrawCommandData& out)
+void IndirectDrawState::PushDrawCall(size_t drawCallIndex, const DrawCallStorage& drawCalls, DrawCommandData& out)
 {
     HYP_SCOPE;
 
@@ -249,7 +249,7 @@ void IndirectDrawState::PushDrawCall(SizeType drawCallIndex, const DrawCallStora
     m_dirtyBits = AllBitsDirty;
 }
 
-void IndirectDrawState::PushInstancedDrawCall(SizeType drawCallIndex, const InstancedDrawCallStorage& drawCalls, DrawCommandData& out)
+void IndirectDrawState::PushInstancedDrawCall(size_t drawCallIndex, const InstancedDrawCallStorage& drawCalls, DrawCommandData& out)
 {
     out = {};
 
@@ -384,7 +384,7 @@ void IndirectRenderer::PushDrawCallsToIndirectState(DrawCallCollection& drawCall
     HYP_SCOPE;
     AssertOnThread(g_renderThread);
 
-    for (SizeType i = 0; i < drawCallCollection.drawCalls.Size(); i++)
+    for (size_t i = 0; i < drawCallCollection.drawCalls.Size(); i++)
     {
         DrawCommandData drawCommandData;
         m_indirectDrawState.PushDrawCall(i, drawCallCollection.drawCalls, drawCommandData);
@@ -392,7 +392,7 @@ void IndirectRenderer::PushDrawCallsToIndirectState(DrawCallCollection& drawCall
         drawCallCollection.drawCalls.drawCommandIndices[i] = drawCommandData.drawCommandIndex;
     }
 
-    for (SizeType i = 0; i < drawCallCollection.instancedDrawCalls.Size(); i++)
+    for (size_t i = 0; i < drawCallCollection.instancedDrawCalls.Size(); i++)
     {
         DrawCommandData drawCommandData;
         m_indirectDrawState.PushInstancedDrawCall(i, drawCallCollection.instancedDrawCalls, drawCommandData);
@@ -420,7 +420,7 @@ void IndirectRenderer::ExecuteCullShaderInBatches(Frame* frame, const RenderSetu
     AssertDebug(m_indirectDrawState.GetIndirectBuffer(frameIndex).IsValid());
     AssertDebug(m_indirectDrawState.GetIndirectBuffer(frameIndex)->Size() != 0);
 
-    const SizeType numInstances = m_indirectDrawState.GetInstances().Size();
+    const size_t numInstances = m_indirectDrawState.GetInstances().Size();
     const uint32 numBatches = (uint32(numInstances) / IndirectDrawState::BatchSize) + 1;
 
     if (numInstances == 0)

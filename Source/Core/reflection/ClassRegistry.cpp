@@ -238,7 +238,7 @@ void ClassRegistry::RegisterClass(TypeId typeId, Class* cls)
     {
         if (cls->GetStaticIndex() >= m_classesByStaticIndex.Size())
         {
-            const SizeType minSize = cls->GetStaticIndex() + 1;
+            const size_t minSize = cls->GetStaticIndex() + 1;
             m_classesByStaticIndex.Resize((minSize + 15) & ~15); // grow by chunks of 16
         }
 

@@ -41,10 +41,10 @@ struct MethodParameter
 
 #pragma region CallMethod
 
-template <class FunctionType, class ReturnType, class... ArgTypes, SizeType... Indices>
+template <class FunctionType, class ReturnType, class... ArgTypes, size_t... Indices>
 static inline decltype(auto) CallMethod_Impl(FunctionType fn, BoxedValue** args, std::index_sequence<Indices...>)
 {
-    auto assertArgType = [args]<SizeType Index>(std::integral_constant<SizeType, Index>) -> bool
+    auto assertArgType = [args]<size_t Index>(std::integral_constant<size_t, Index>) -> bool
     {
         BoxedValue& arg = *args[Index];
 
@@ -61,7 +61,7 @@ static inline decltype(auto) CallMethod_Impl(FunctionType fn, BoxedValue** args,
         return condition;
     };
 
-    (void)(assertArgType(std::integral_constant<SizeType, Indices> {}) && ...);
+    (void)(assertArgType(std::integral_constant<size_t, Indices> {}) && ...);
 
     return fn(args[Indices]->template Get<NormalizedType<ArgTypes>>()...);
 }
@@ -76,17 +76,17 @@ static inline decltype(auto) CallMethod(FunctionType fn, BoxedValue** args)
 
 #pragma region InitMethodParams
 
-template <class ReturnType, class ThisType, class... ArgTypes, SizeType... Indices>
+template <class ReturnType, class ThisType, class... ArgTypes, size_t... Indices>
 void InitMethodParams_Impl(Array<MethodParameter>& outParams, std::index_sequence<Indices...>)
 {
-    auto addParameter = [&outParams]<SizeType Index>(std::integral_constant<SizeType, Index>) -> bool
+    auto addParameter = [&outParams]<size_t Index>(std::integral_constant<size_t, Index>) -> bool
     {
         outParams.PushBack(MethodParameter { &TypeOf<NormalizedType<typename TupleElement<Index, ArgTypes...>::Type>>() });
 
         return true;
     };
 
-    (void)(addParameter(std::integral_constant<SizeType, Indices> {}) && ...);
+    (void)(addParameter(std::integral_constant<size_t, Indices> {}) && ...);
 
     if constexpr (!std::is_void_v<ThisType>)
     {
@@ -189,7 +189,7 @@ public:
         : m_name(name),
           m_flags(MethodFlags::MEMBER),
           m_attributes(attributes),
-          m_proc([memFn](BoxedValue** args, SizeType numArgs) -> BoxedValue
+          m_proc([memFn](BoxedValue** args, size_t numArgs) -> BoxedValue
               {
                   HYP_CORE_ASSERT(numArgs == sizeof...(ArgTypes) + 1);
 
@@ -227,7 +227,7 @@ public:
             const auto fn = HYP_METHOD_MEMBER_FN_WRAPPER(memFn);
 
             BoxedValue** argPtrs = (BoxedValue**)StackAlloc(args.Size() * sizeof(BoxedValue*));
-            for (SizeType i = 0; i < args.Size(); ++i)
+            for (size_t i = 0; i < args.Size(); ++i)
             {
                 argPtrs[i] = &args[i];
             }
@@ -266,7 +266,7 @@ public:
                 }
 
                 BoxedValue** argPtrs = (BoxedValue**)StackAlloc((args.Size() + 1) * sizeof(BoxedValue*));
-                for (SizeType i = 0; i < args.Size(); ++i)
+                for (size_t i = 0; i < args.Size(); ++i)
                 {
                     argPtrs[i] = &args[i];
                 }
@@ -289,7 +289,7 @@ public:
         : m_name(name),
           m_flags(MethodFlags::MEMBER),
           m_attributes(attributes),
-          m_proc([memFn](BoxedValue** args, SizeType numArgs) -> BoxedValue
+          m_proc([memFn](BoxedValue** args, size_t numArgs) -> BoxedValue
               {
                   HYP_CORE_ASSERT(numArgs == sizeof...(ArgTypes) + 1);
 
@@ -328,7 +328,7 @@ public:
             const auto fn = HYP_METHOD_MEMBER_FN_WRAPPER(memFn);
 
             BoxedValue** argPtrs = (BoxedValue**)StackAlloc(args.Size() * sizeof(BoxedValue*));
-            for (SizeType i = 0; i < args.Size(); ++i)
+            for (size_t i = 0; i < args.Size(); ++i)
             {
                 argPtrs[i] = &args[i];
             }
@@ -367,7 +367,7 @@ public:
                 }
 
                 BoxedValue** argPtrs = (BoxedValue**)StackAlloc((args.Size() + 1) * sizeof(BoxedValue*));
-                for (SizeType i = 0; i < args.Size(); ++i)
+                for (size_t i = 0; i < args.Size(); ++i)
                 {
                     argPtrs[i] = &args[i];
                 }
@@ -391,7 +391,7 @@ public:
         : m_name(name),
           m_flags(MethodFlags::STATIC),
           m_attributes(attributes),
-          m_proc([fn](BoxedValue** args, SizeType numArgs) -> BoxedValue
+          m_proc([fn](BoxedValue** args, size_t numArgs) -> BoxedValue
               {
                   HYP_CORE_ASSERT(numArgs == sizeof...(ArgTypes));
 
@@ -509,7 +509,7 @@ public:
     HYP_FORCE_INLINE BoxedValue Invoke(Span<BoxedValue> args) const
     {
         BoxedValue** argPtrs = (BoxedValue**)StackAlloc(args.Size() * sizeof(BoxedValue*));
-        for (SizeType i = 0; i < args.Size(); ++i)
+        for (size_t i = 0; i < args.Size(); ++i)
         {
             argPtrs[i] = &args[i];
         }
@@ -547,7 +547,7 @@ private:
     EnumFlags<MethodFlags> m_flags;
     ClassAttributeSet m_attributes;
 
-    Proc<BoxedValue(BoxedValue**, SizeType)> m_proc;
+    Proc<BoxedValue(BoxedValue**, size_t)> m_proc;
 
     Proc<Result(Span<BoxedValue>, FBOMData& out, EnumFlags<FBOMDataFlags> flags)> m_serializeProc;
     Proc<Result(FBOMLoadContext&, Span<BoxedValue>, const FBOMData&)> m_deserializeProc;

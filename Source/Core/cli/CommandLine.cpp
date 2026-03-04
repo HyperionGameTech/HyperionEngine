@@ -409,7 +409,7 @@ TResult<CommandLineArguments> CommandLineParser::Parse(const String& commandLine
         }
     };
 
-    for (SizeType charIndex = 0; charIndex < commandLine.Length(); charIndex++)
+    for (size_t charIndex = 0; charIndex < commandLine.Length(); charIndex++)
     {
         uint32 currentChar = commandLine.GetChar(charIndex);
 
@@ -477,7 +477,7 @@ TResult<CommandLineArguments> CommandLineParser::Parse(const String& command, co
 
     HashSet<String> usedArguments;
 
-    for (SizeType i = 0; i < args.Size(); i++)
+    for (size_t i = 0; i < args.Size(); i++)
     {
         String arg = args[i];
 

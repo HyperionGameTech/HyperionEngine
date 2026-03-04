@@ -65,14 +65,14 @@ PLYModelLoader::PLYType PLYModelLoader::StringToPLYType(const String& str)
     }
 }
 
-SizeType PLYModelLoader::PLYTypeSize(PLYType type)
+size_t PLYModelLoader::PLYTypeSize(PLYType type)
 {
     if (type == PLYType::PLY_TYPE_UNKNOWN)
     {
         return 0;
     }
 
-    static constexpr SizeType TypeSizeMap[PLYType::PLY_TYPE_MAX] = {
+    static constexpr size_t TypeSizeMap[PLYType::PLY_TYPE_MAX] = {
         8, // PLY_TYPE_DOUBLE
         4, // PLY_TYPE_FLOAT
         4, // PLY_TYPE_INT
@@ -86,21 +86,21 @@ SizeType PLYModelLoader::PLYTypeSize(PLYType type)
     return TypeSizeMap[type];
 }
 
-static void ReadPropertyValue(ByteBuffer& buffer, PLYModelLoader::PLYModel& model, SizeType rowOffset, const String& propertyName, SizeType count, void* outPtr);
+static void ReadPropertyValue(ByteBuffer& buffer, PLYModelLoader::PLYModel& model, size_t rowOffset, const String& propertyName, size_t count, void* outPtr);
 
 template <class T>
-static void ReadPropertyValue(ByteBuffer& buffer, PLYModelLoader::PLYModel& model, SizeType rowOffset, const String& propertyName, void* outPtr)
+static void ReadPropertyValue(ByteBuffer& buffer, PLYModelLoader::PLYModel& model, size_t rowOffset, const String& propertyName, void* outPtr)
 {
     ReadPropertyValue(buffer, model, rowOffset, propertyName, sizeof(T), outPtr);
 }
 
-static void ReadPropertyValue(ByteBuffer& buffer, PLYModelLoader::PLYModel& model, SizeType rowOffset, const String& propertyName, SizeType count, void* outPtr)
+static void ReadPropertyValue(ByteBuffer& buffer, PLYModelLoader::PLYModel& model, size_t rowOffset, const String& propertyName, size_t count, void* outPtr)
 {
     const auto it = model.propertyTypes.Find(propertyName);
 
     Assert(it != model.propertyTypes.End(), "Property with name %s not found", propertyName.Data());
 
-    const SizeType offset = it->second.offset + rowOffset;
+    const size_t offset = it->second.offset + rowOffset;
     Assert(offset < buffer.Size(), "Offset out of bounds (%u > %u)", offset, buffer.Size());
     Assert(offset + count <= buffer.Size(), "Offset + Size out of bounds (%u + %llu > %u)", offset, count, buffer.Size());
 
@@ -111,7 +111,7 @@ PLYModel PLYModelLoader::LoadModel(LoaderState& state)
 {
     PLYModel model;
 
-    SizeType rowLength = 0;
+    size_t rowLength = 0;
 
     state.stream.ReadLines([&](const String& line, bool* stopPtr)
         {
@@ -157,7 +157,7 @@ PLYModel PLYModelLoader::LoadModel(LoaderState& state)
 
     model.headerLength = state.stream.Position();
 
-    const SizeType numVertices = model.vertices.Size();
+    const size_t numVertices = model.vertices.Size();
 
     ByteBuffer buffer = state.stream.ReadBytes();
 
@@ -197,9 +197,9 @@ PLYModel PLYModelLoader::LoadModel(LoaderState& state)
 
     Assert(buffer.Size() + model.headerLength == state.stream.Position());
 
-    for (SizeType index = 0; index < numVertices; index++)
+    for (size_t index = 0; index < numVertices; index++)
     {
-        const SizeType rowOffset = index * rowLength;
+        const size_t rowOffset = index * rowLength;
 
         Vector3 position(NAN, NAN, NAN);
 
@@ -221,8 +221,8 @@ PLYModel PLYModelLoader::LoadModel(LoaderState& state)
             const auto customDataIt = model.customData.Find(it.first);
             Assert(customDataIt != model.customData.End());
 
-            const SizeType dataTypeSize = PLYTypeSize(it.second.type);
-            const SizeType offset = index * dataTypeSize;
+            const size_t dataTypeSize = PLYTypeSize(it.second.type);
+            const size_t offset = index * dataTypeSize;
 
             ReadPropertyValue(
                 buffer,

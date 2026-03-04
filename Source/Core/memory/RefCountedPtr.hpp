@@ -98,11 +98,11 @@ ControlBlock<CountType>* NewExternalOwnedBlock(T* ptr)
 template <class CountType, class T, class... Args>
 HYP_NODISCARD static inline ControlBlock<CountType>* NewInlineBlock(Args&&... args)
 {
-    constexpr SizeType headerSize = sizeof(ControlBlock<CountType>);
-    constexpr SizeType objAlign = alignof(T);
-    constexpr SizeType objOffset = ByteUtil::AlignAs(headerSize, objAlign);
-    constexpr SizeType alignment = (alignof(ControlBlock<CountType>) > objAlign ? alignof(ControlBlock<CountType>) : objAlign);
-    constexpr SizeType totalSize = ByteUtil::AlignAs(objOffset + sizeof(T), alignment);
+    constexpr size_t headerSize = sizeof(ControlBlock<CountType>);
+    constexpr size_t objAlign = alignof(T);
+    constexpr size_t objOffset = ByteUtil::AlignAs(headerSize, objAlign);
+    constexpr size_t alignment = (alignof(ControlBlock<CountType>) > objAlign ? alignof(ControlBlock<CountType>) : objAlign);
+    constexpr size_t totalSize = ByteUtil::AlignAs(objOffset + sizeof(T), alignment);
 
     void* pBlock = HYP_ALLOC_ALIGNED(totalSize, alignment);
 

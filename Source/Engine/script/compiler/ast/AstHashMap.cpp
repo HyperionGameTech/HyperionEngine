@@ -56,7 +56,7 @@ void AstHashMap::Visit(AstVisitor* visitor, Module* mod)
     Array<Pair<RC<AstExpression>, RC<AstExpression>>> keyValuePairs;
     keyValuePairs.Reserve(m_keys.Size());
 
-    for (SizeType i = 0; i < m_keys.Size(); ++i)
+    for (size_t i = 0; i < m_keys.Size(); ++i)
     {
         Assert(m_keys[i] != nullptr);
         Assert(m_values[i] != nullptr);
@@ -126,7 +126,7 @@ void AstHashMap::Visit(AstVisitor* visitor, Module* mod)
             m_location));
     }
 
-    for (SizeType i = 0; i < m_replacedKeys.Size(); ++i)
+    for (size_t i = 0; i < m_replacedKeys.Size(); ++i)
     {
         auto& key = m_replacedKeys[i];
         Assert(key != nullptr);
@@ -199,7 +199,7 @@ void AstHashMap::Visit(AstVisitor* visitor, Module* mod)
     Array<RC<AstExpression>> keyValueArrayExpressions;
     keyValueArrayExpressions.Reserve(m_replacedKeys.Size());
 
-    for (SizeType i = 0; i < m_replacedKeys.Size(); ++i)
+    for (size_t i = 0; i < m_replacedKeys.Size(); ++i)
     {
         auto& key = m_replacedKeys[i];
         Assert(key != nullptr);

@@ -42,7 +42,7 @@ void CodeGenerator::Visit(BytecodeChunk* chunk)
     const ByteBuffer& byteBuffer = codeGenerator.GetInternalByteStream().GetData();
     const Array<Fixup>& fixups = codeGenerator.GetInternalByteStream().GetFixups();
 
-    const SizeType fixupOffset = m_ibs.GetPosition();
+    const size_t fixupOffset = m_ibs.GetPosition();
 
     // append bytes to this chunk's InternalByteStream
     m_ibs.Put(byteBuffer.Data(), byteBuffer.Size());
@@ -664,7 +664,7 @@ void CodeGenerator::Visit(StorageOperation* node)
 
 void CodeGenerator::Visit(Comment* node)
 {
-    const SizeType size = node->value.Size();
+    const size_t size = node->value.Size();
     uint32 len = uint32(size);
 
     m_ibs.Put(Instructions::REM);

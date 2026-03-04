@@ -39,7 +39,7 @@ public:
     struct PLYPropertyDefinition
     {
         PLYType type;
-        SizeType offset;
+        size_t offset;
     };
 
     struct PLYModel
@@ -47,12 +47,12 @@ public:
         HashMap<String, PLYPropertyDefinition> propertyTypes;
         HashMap<String, ByteBuffer> customData;
         Array<Vertex> vertices;
-        SizeType headerLength = 0;
+        size_t headerLength = 0;
     };
 
     static PLYType StringToPLYType(const String& str);
 
-    static SizeType PLYTypeSize(PLYType);
+    static size_t PLYTypeSize(PLYType);
 
     virtual ~PLYModelLoader() = default;
 

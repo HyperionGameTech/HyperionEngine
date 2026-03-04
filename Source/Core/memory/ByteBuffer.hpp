@@ -13,10 +13,10 @@
 namespace Hyperion {
 namespace memory {
 
-template <class Allocator, SizeType BufferAlignment = 16>
+template <class Allocator, size_t BufferAlignment = 16>
 class TByteBuffer
 {
-    template <class OtherAllocator, SizeType OtherBufferAlignment>
+    template <class OtherAllocator, size_t OtherBufferAlignment>
     friend class TByteBuffer;
 
 public:
@@ -44,7 +44,7 @@ public:
     /*! \brief Constructs a ByteBuffer with the given size, allocating memory on the heap if \p count != 0.
      *  \param count The size of the ByteBuffer in bytes. If count is zero, no memory is allocated and the ByteBuffer is set to an empty state.
      *  \param zeroize If true, the memory is initialized to zero. */
-    explicit TByteBuffer(SizeType count, bool zeroize = true)
+    explicit TByteBuffer(size_t count, bool zeroize = true)
         : m_pAllocator(GetDefaultAllocatorInstance<AllocatorType>()),
           m_size(count)
     {
@@ -66,7 +66,7 @@ public:
     }
 
     /*! \brief Constructs a ByteBuffer with the given size and data, allocating memory on the heap if \p count != 0 and copies the data into the buffer. */
-    explicit TByteBuffer(SizeType count, const void* data)
+    explicit TByteBuffer(size_t count, const void* data)
         : m_pAllocator(GetDefaultAllocatorInstance<AllocatorType>()),
           m_size(count)
     {
@@ -163,8 +163,8 @@ public:
             return *this;
         }
 
-        const SizeType previousSize = m_size;
-        const SizeType newSize = other.m_size;
+        const size_t previousSize = m_size;
+        const size_t newSize = other.m_size;
 
         m_allocation.Free(m_pAllocator);
 
@@ -187,8 +187,8 @@ public:
             return *this;
         }
 
-        const SizeType previousSize = m_size;
-        const SizeType newSize = other.m_size;
+        const size_t previousSize = m_size;
+        const size_t newSize = other.m_size;
 
         m_allocation.Free(m_pAllocator);
 
@@ -238,8 +238,8 @@ public:
             return *this;
         }
 
-        const SizeType previousSize = m_size;
-        const SizeType newSize = other.m_size;
+        const size_t previousSize = m_size;
+        const size_t newSize = other.m_size;
 
         m_allocation.Free(m_pAllocator);
 
@@ -277,7 +277,7 @@ public:
      *  \param count The number of bytes to write to the ByteBuffer.
      *  \param offset The offset in the ByteBuffer to write to.
      *  \param data A pointer to the data to write to the ByteBuffer. It must be a pointer to a valid memory location with at least \p count bytes of data. */
-    HYP_FORCE_INLINE void Write(SizeType count, SizeType offset, const void* data)
+    HYP_FORCE_INLINE void Write(size_t count, size_t offset, const void* data)
     {
         if (count == 0)
         {
@@ -308,7 +308,7 @@ public:
      *  \param offset The offset in the ByteBuffer to start the view from.
      *  \param size The size of the view. If size is larger than the ByteBuffer's size, it will be clamped to the ByteBuffer's size.
      *  \return A ByteView of the ByteBuffer's data. */
-    HYP_FORCE_INLINE ByteView ToByteView(SizeType offset = 0, SizeType size = ~0ull)
+    HYP_FORCE_INLINE ByteView ToByteView(size_t offset = 0, size_t size = ~0ull)
     {
         if (size > m_size)
         {
@@ -322,7 +322,7 @@ public:
      *  \param offset The offset in the ByteBuffer to start the view from.
      *  \param size The size of the view. If size is larger than the ByteBuffer's size, it will be clamped to the ByteBuffer's size.
      *  \return A ConstByteView of the ByteBuffer's data. */
-    HYP_FORCE_INLINE ConstByteView ToByteView(SizeType offset = 0, SizeType size = ~0ull) const
+    HYP_FORCE_INLINE ConstByteView ToByteView(size_t offset = 0, size_t size = ~0ull) const
     {
         if (size > m_size)
         {
@@ -347,7 +347,7 @@ public:
     /*! \brief Updates the ByteBuffer's data with the given data. The current data is freed and the new data is copied into the ByteBuffer, allocating memory on the heap if necessary.
      *  \param count The number of bytes to copy into the ByteBuffer.
      *  \param data A pointer to the data to copy into the ByteBuffer. If count is zero, no memory is allocated and the ByteBuffer is set to an empty state. */
-    void SetData(SizeType count, const void* data)
+    void SetData(size_t count, const void* data)
     {
         m_allocation.Free(m_pAllocator);
 
@@ -364,7 +364,7 @@ public:
 
     /*! \brief Gets the current size of the ByteBuffer in bytes.
      *  \return The current size of the ByteBuffer. */
-    HYP_FORCE_INLINE SizeType Size() const
+    HYP_FORCE_INLINE size_t Size() const
     {
         return m_size;
     }
@@ -374,7 +374,7 @@ public:
      *  The current data will be copied into the newly allocated memory if the size is changed.
      * \param newSize The new size of the ByteBuffer in bytes.
      * \param zeroize If true, the new bytes are zeroed out. */
-    HYP_FORCE_INLINE void SetSize(SizeType newSize, bool zeroize = true)
+    HYP_FORCE_INLINE void SetSize(size_t newSize, bool zeroize = true)
     {
         if (newSize == m_size)
         {
@@ -398,16 +398,16 @@ public:
 
     /*! \brief Returns the current capacity of the ByteBuffer. The capacity is the amount of memory allocated for the ByteBuffer, which may be larger than the current size.
      *  \return The current capacity of the ByteBuffer. */
-    HYP_FORCE_INLINE SizeType GetCapacity() const
+    HYP_FORCE_INLINE size_t GetCapacity() const
     {
         return m_allocation.GetCapacity();
     }
 
     /*! \brief Sets the capacity of the ByteBuffer to the given size. If the new capacity is larger than the current capacity, the buffer is extended and the current data is copied into the newly allocated memory.
      *  If the new capacity is smaller than the current size, the excess bytes are freed and the size is adjusted accordingly. */
-    HYP_FORCE_INLINE void SetCapacity(SizeType newCapacity)
+    HYP_FORCE_INLINE void SetCapacity(size_t newCapacity)
     {
-        const SizeType currentCapacity = m_allocation.GetCapacity();
+        const size_t currentCapacity = m_allocation.GetCapacity();
 
         if (newCapacity == currentCapacity)
         {
@@ -421,7 +421,7 @@ public:
         {
             newAllocation.Allocate(m_pAllocator, newCapacity, /* alignment */ BufferAlignment);
 
-            const SizeType minCapacity = currentCapacity <= newCapacity ? currentCapacity : newCapacity;
+            const size_t minCapacity = currentCapacity <= newCapacity ? currentCapacity : newCapacity;
 
             newAllocation.InitFromRangeMove(Data(), Data() + minCapacity);
         }
@@ -443,11 +443,11 @@ public:
      *  \param count The number of bytes to read from the ByteBuffer.
      *  \param outValues The output buffer to write the read values to.
      *  \return Returns true if the read was successful, false if the offset is out of bounds. */
-    HYP_FORCE_INLINE bool Read(SizeType offset, SizeType count, ubyte* outValues) const
+    HYP_FORCE_INLINE bool Read(size_t offset, size_t count, ubyte* outValues) const
     {
         HYP_CORE_ASSERT(outValues != nullptr);
 
-        const SizeType size = m_size;
+        const size_t size = m_size;
 
         if (offset >= size || offset + count > size)
         {
@@ -469,14 +469,14 @@ public:
      *  \param out The output buffer to write the read value to.
      *  \return Returns true if the read was successful, false if the offset is out of bounds. */
     template <class T>
-    HYP_FORCE_INLINE bool Read(SizeType offset, T* out) const
+    HYP_FORCE_INLINE bool Read(size_t offset, T* out) const
     {
         static_assert(IsPodTypeV<T>, "Must be POD type");
 
         HYP_CORE_ASSERT(out != nullptr);
 
-        constexpr SizeType count = sizeof(T);
-        const SizeType size = m_size;
+        constexpr size_t count = sizeof(T);
+        const size_t size = m_size;
 
         if (offset >= size || offset + count > size)
         {
@@ -509,7 +509,7 @@ public:
      *  \warning The index must be within the bounds of the ByteBuffer or undefined behavior will occur.
      *  \param index The index of the byte to return.
      *  \return A reference to the byte at the given index. */
-    HYP_DEPRECATED HYP_FORCE_INLINE ubyte& operator[](SizeType index)
+    HYP_DEPRECATED HYP_FORCE_INLINE ubyte& operator[](size_t index)
     {
         return *(m_allocation.GetBuffer() + index);
     }
@@ -519,7 +519,7 @@ public:
      *  \warning The index must be within the bounds of the ByteBuffer or undefined behavior will occur.
      *  \param index The index of the byte to return.
      *  \return The byte at the given index. */
-    HYP_DEPRECATED HYP_FORCE_INLINE ubyte operator[](SizeType index) const
+    HYP_DEPRECATED HYP_FORCE_INLINE ubyte operator[](size_t index) const
     {
         return *(m_allocation.GetBuffer() + index);
     }
@@ -584,12 +584,12 @@ public:
 private:
     AllocatorType* const m_pAllocator;
     Allocation<ubyte, AllocatorType> m_allocation;
-    SizeType m_size;
+    size_t m_size;
 };
 
 using ByteBuffer = TByteBuffer<DynamicAllocator>;
 
-template <SizeType Size>
+template <size_t Size>
 using FixedByteBuffer = TByteBuffer<FixedAllocator<Size>>;
 
 } // namespace memory

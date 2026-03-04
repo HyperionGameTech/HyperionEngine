@@ -149,7 +149,7 @@ public:
 
     HYP_API Time LastModifiedTimestamp() const;
 
-    HYP_API SizeType FileSizeOnDisk() const;
+    HYP_API size_t FileSizeOnDisk() const;
 
     HYP_API String Basename() const;
 
@@ -211,8 +211,8 @@ public:
     HYP_API Hyperion::containers::Array<FilePath, DynamicAllocator> GetAllFilesInDirectory() const;
     HYP_API Hyperion::containers::Array<FilePath, DynamicAllocator> GetSubdirectories() const;
 
-    HYP_API SizeType DirectorySize() const;
-    HYP_API SizeType FileSize() const;
+    HYP_API size_t DirectorySize() const;
+    HYP_API size_t FileSize() const;
 };
 } // namespace filesystem
 

@@ -9,7 +9,7 @@
 
 namespace Hyperion {
 
-HYP_API extern SizeType GetNumDescendants(TypeId typeId);
+HYP_API extern size_t GetNumDescendants(TypeId typeId);
 HYP_API extern int GetSubclassIndex(TypeId baseTypeId, TypeId subclassTypeId);
 
 class RenderGlobalState;
@@ -325,14 +325,14 @@ class ResourceBinder : public ResourceBinderBase
 
         HYP_FORCE_INLINE BitsetType GetNewlyAdded() const
         {
-            const SizeType count = MathUtil::Max(lastFrameIds.NumBits(), currentFrameIds.NumBits());
+            const size_t count = MathUtil::Max(lastFrameIds.NumBits(), currentFrameIds.NumBits());
 
             return BitsetType(currentFrameIds).SetNumBits(count) & ~BitsetType(lastFrameIds).SetNumBits(count);
         }
 
         HYP_FORCE_INLINE BitsetType GetRemoved() const
         {
-            const SizeType count = MathUtil::Max(lastFrameIds.NumBits(), currentFrameIds.NumBits());
+            const size_t count = MathUtil::Max(lastFrameIds.NumBits(), currentFrameIds.NumBits());
 
             return BitsetType(lastFrameIds).SetNumBits(count) & ~BitsetType(currentFrameIds).SetNumBits(count);
         }
@@ -378,7 +378,7 @@ public:
         AssertDebug(m_baseImpl == nullptr);
         m_baseImpl = new Impl(&TypeOf<T>());
 
-        const SizeType numDescendants = GetNumDescendants(TypeId::ForType<T>());
+        const size_t numDescendants = GetNumDescendants(TypeId::ForType<T>());
 
         // Create storage for subclass implementations
         // subclasses use a bitset (indexing by the subclass' StaticIndex) to determine which implementations are initialized

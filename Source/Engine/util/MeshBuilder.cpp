@@ -315,22 +315,22 @@ Handle<Mesh> MeshBuilder::Merge(const Mesh* a, const Mesh* b, const Transform& a
     Array<uint32> allIndices;
     allIndices.Resize(meshDescs[0]->numIndices + meshDescs[1]->numIndices);
 
-    SizeType vertexOffset = 0;
-    SizeType indexOffset = 0;
+    size_t vertexOffset = 0;
+    size_t indexOffset = 0;
 
     for (int meshIndex = 0; meshIndex < 2; meshIndex++)
     {
-        const SizeType vertexOffsetBefore = vertexOffset;
+        const size_t vertexOffsetBefore = vertexOffset;
 
-        for (SizeType i = 0; i < meshVertices[meshIndex].Size(); i++)
+        for (size_t i = 0; i < meshVertices[meshIndex].Size(); i++)
         {
             allVertices[vertexOffset++] = meshVertices[meshIndex][i];
         }
 
         const uint32 stride = GpuElemTypeSize(meshDescs[meshIndex]->meshAttributes.indexBufferElemType);
-        const SizeType meshIndexCount = meshIndices[meshIndex].Size() / stride;
+        const size_t meshIndexCount = meshIndices[meshIndex].Size() / stride;
 
-        for (SizeType i = 0; i < meshIndexCount; i++)
+        for (size_t i = 0; i < meshIndexCount; i++)
         {
             switch (stride)
             {

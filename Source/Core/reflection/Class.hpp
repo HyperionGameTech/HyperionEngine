@@ -84,10 +84,10 @@ HYP_API const Class* GetClass(StringHash typeName);
 HYP_API const Class* GetEnum(const TypeId& typeId);
 HYP_API const Class* GetEnum(StringHash typeName);
 
-HYP_API SizeType GetNumDescendants(TypeId typeId);
+HYP_API size_t GetNumDescendants(TypeId typeId);
 
 template <class T>
-static inline SizeType GetNumDescendants()
+static inline size_t GetNumDescendants()
 {
     return GetNumDescendants(TypeId::ForType<T>());
 }
@@ -215,7 +215,7 @@ private:
     const Class* m_target;
     bool m_deep;
 
-    SizeType m_currentIndex;
+    size_t m_currentIndex;
     mutable IMember* m_currentValue;
 };
 
@@ -359,12 +359,12 @@ public:
         return m_objectContainer;
     }
 
-    HYP_FORCE_INLINE SizeType GetSize() const
+    HYP_FORCE_INLINE size_t GetSize() const
     {
         return m_size;
     }
 
-    HYP_FORCE_INLINE SizeType GetAlignment() const
+    HYP_FORCE_INLINE size_t GetAlignment() const
     {
         return m_alignment;
     }
@@ -674,8 +674,8 @@ protected:
     ClassAttributeSet m_attributes;
     EnumFlags<ClassFlags> m_flags;
 
-    SizeType m_size;
-    SizeType m_alignment;
+    size_t m_size;
+    size_t m_alignment;
 
     Array<Property*> m_properties;
     HashMap<Name, Property*> m_propertiesByName;
@@ -862,7 +862,7 @@ protected:
             Array<Handle<T>> array;
             array.Reserve(elements.Size());
 
-            for (SizeType i = 0; i < elements.Size(); i++)
+            for (size_t i = 0; i < elements.Size(); i++)
             {
                 if (!elements[i].Is<Handle<T>>())
                 {
@@ -881,7 +881,7 @@ protected:
             Array<RC<T>> array;
             array.Reserve(elements.Size());
 
-            for (SizeType i = 0; i < elements.Size(); i++)
+            for (size_t i = 0; i < elements.Size(); i++)
             {
                 if (!elements[i].Is<RC<T>>())
                 {
@@ -900,7 +900,7 @@ protected:
             Array<T> array;
             array.Reserve(elements.Size());
 
-            for (SizeType i = 0; i < elements.Size(); i++)
+            for (size_t i = 0; i < elements.Size(); i++)
             {
                 if (!elements[i].Is<T>())
                 {

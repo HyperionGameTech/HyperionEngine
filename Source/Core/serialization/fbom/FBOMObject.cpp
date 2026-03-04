@@ -132,7 +132,7 @@ FBOMObject& FBOMObject::SetProperty(ANSIStringView key, FBOMData&& data)
     return *this;
 }
 
-FBOMObject& FBOMObject::SetProperty(ANSIStringView key, const FBOMType& type, SizeType size, const void* bytes)
+FBOMObject& FBOMObject::SetProperty(ANSIStringView key, const FBOMType& type, size_t size, const void* bytes)
 {
     FBOMData data(type);
     data.SetBytes(size, bytes);

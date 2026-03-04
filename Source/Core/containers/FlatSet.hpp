@@ -103,7 +103,7 @@ public:
     Iterator Erase(ConstIterator it);
     Iterator Erase(const T& value);
 
-    HYP_FORCE_INLINE SizeType Size() const
+    HYP_FORCE_INLINE size_t Size() const
     {
         return Base::Size();
     }
@@ -133,7 +133,7 @@ public:
         Base::Clear();
     }
 
-    HYP_FORCE_INLINE void Reserve(SizeType size)
+    HYP_FORCE_INLINE void Reserve(size_t size)
     {
         Base::Reserve(size);
     }

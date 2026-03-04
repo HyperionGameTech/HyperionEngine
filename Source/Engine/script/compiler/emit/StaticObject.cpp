@@ -126,7 +126,7 @@ bool StaticObject::operator==(const StaticObject& other) const
             return false;
         }
 
-        for (SizeType i = 0; i < m_value.typeInfo.m_size; i++)
+        for (size_t i = 0; i < m_value.typeInfo.m_size; i++)
         {
             const NamesPair_t& a = m_value.typeInfo.m_names[i];
             const NamesPair_t& b = other.m_value.typeInfo.m_names[i];

@@ -122,7 +122,7 @@ RendererResult VulkanRayTracingPipeline::Create()
     Array<VkRayTracingShaderGroupCreateInfoKHR> shaderGroupCreateInfos;
     shaderGroupCreateInfos.Resize(shaderGroups.Size());
 
-    for (SizeType i = 0; i < shaderGroups.Size(); i++)
+    for (size_t i = 0; i < shaderGroups.Size(); i++)
     {
         shaderGroupCreateInfos[i] = shaderGroups[i].rayTracingGroupCreateInfo;
     }
@@ -295,7 +295,7 @@ RendererResult VulkanRayTracingPipeline::CreateShaderBindingTableEntry(
     return {};
 }
 
-void VulkanRayTracingPipeline::SetPushConstants(const void* data, SizeType size)
+void VulkanRayTracingPipeline::SetPushConstants(const void* data, size_t size)
 {
     VulkanPipelineBase::SetPushConstants(data, size);
 }

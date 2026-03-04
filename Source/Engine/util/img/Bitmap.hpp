@@ -1152,11 +1152,11 @@ public:
     {
         m_buffer.SetSize(GetByteSize());
 
-        const SizeType numPixels = m_width * m_height;
+        const size_t numPixels = m_width * m_height;
 
         HYP_CORE_ASSERT((pixelData.Size() * sizeof(PixelComponentType) == GetByteSize()), "Bad pixel data!");
 
-        for (SizeType i = 0, j = 0; i < pixelData.Size() && j < numPixels; i += NumComponents, j++)
+        for (size_t i = 0, j = 0; i < pixelData.Size() && j < numPixels; i += NumComponents, j++)
         {
             for (uint32 k = 0; k < NumComponents; k++)
             {
@@ -1236,11 +1236,11 @@ public:
         return m_height;
     }
 
-    HYP_FORCE_INLINE SizeType GetByteSize() const
+    HYP_FORCE_INLINE size_t GetByteSize() const
     {
-        return SizeType(m_width)
-            * SizeType(m_height)
-            * SizeType(NumComponents)
+        return size_t(m_width)
+            * size_t(m_height)
+            * size_t(NumComponents)
             * sizeof(PixelComponentType);
     }
 
@@ -1252,7 +1252,7 @@ public:
             return PixelReferenceType(nullptr);
         }
 
-        const SizeType byteIndex = (SizeType(idx) % (m_width * m_height)) * NumComponents * sizeof(PixelComponentType);
+        const size_t byteIndex = (size_t(idx) % (m_width * m_height)) * NumComponents * sizeof(PixelComponentType);
 
         PixelReferenceType pixelReference { m_buffer.Data() + byteIndex };
 
@@ -1262,8 +1262,8 @@ public:
     // Get reference to pixel at x,y
     HYP_FORCE_INLINE PixelReferenceType GetPixelReference(uint32 x, uint32 y)
     {
-        const SizeType index = ((SizeType(y) + m_height) % m_height) * m_width
-            + ((SizeType(x) + m_width) % m_width);
+        const size_t index = ((size_t(y) + m_height) % m_height) * m_width
+            + ((size_t(x) + m_width) % m_width);
 
         PixelReferenceType pixelReference { m_buffer.Data() + index * NumComponents * sizeof(PixelComponentType) };
 
@@ -1384,7 +1384,7 @@ public:
         ByteBuffer unpackedBytes = GetUnpackedBytes(3);
 
         // BMP stores in BGR format, so swap R and B
-        for (SizeType i = 0; i < unpackedBytes.Size(); i += 3)
+        for (size_t i = 0; i < unpackedBytes.Size(); i += 3)
         {
             Swap(unpackedBytes.Data()[i], unpackedBytes.Data()[i + 2]);
         }
@@ -1590,20 +1590,20 @@ public:
         return m_depth;
     }
 
-    HYP_FORCE_INLINE SizeType GetByteSize() const
+    HYP_FORCE_INLINE size_t GetByteSize() const
     {
-        return SizeType(m_width)
-            * SizeType(m_height)
-            * SizeType(m_depth)
-            * SizeType(NumComponents)
+        return size_t(m_width)
+            * size_t(m_height)
+            * size_t(m_depth)
+            * size_t(NumComponents)
             * sizeof(PixelComponentType);
     }
 
     // Get reference to pixel at x,y,z
     HYP_FORCE_INLINE PixelReferenceType GetPixelReference(uint32 x, uint32 y, uint32 z)
     {
-        const SizeType index = ((SizeType(z) % m_depth) * m_height + (SizeType(y) % m_height)) * m_width
-            + (SizeType(x) % m_width);
+        const size_t index = ((size_t(z) % m_depth) * m_height + (size_t(y) % m_height)) * m_width
+            + (size_t(x) % m_width);
 
         PixelReferenceType pixelReference { m_buffer.Data() + index * NumComponents * sizeof(PixelComponentType) };
 
@@ -1662,7 +1662,7 @@ public:
                         const Color color { rgba };
 
                         // keep vertical flip consistent with 2D version; slices are laid out in Z-major order
-                        const SizeType idx = ((SizeType(z) * m_height + (m_height - y - 1u)) * m_width + x) * bytesPerPixel;
+                        const size_t idx = ((size_t(z) * m_height + (m_height - y - 1u)) * m_width + x) * bytesPerPixel;
 
                         for (uint32 j = 0; j < MathUtil::Min(NumComponents, bytesPerPixel); j++)
                         {
@@ -1682,7 +1682,7 @@ public:
                     {
                         ConstPixelReferenceType pixelReference = GetPixelReference(x, y, z);
 
-                        const SizeType idx = ((SizeType(z) * m_height + (m_height - y - 1u)) * m_width + x) * bytesPerPixel;
+                        const size_t idx = ((size_t(z) * m_height + (m_height - y - 1u)) * m_width + x) * bytesPerPixel;
 
                         for (uint32 j = 0; j < MathUtil::Min(NumComponents, bytesPerPixel); j++)
                         {

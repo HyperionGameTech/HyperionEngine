@@ -137,7 +137,7 @@ void PostProcessing::PerformUpdates()
 
     std::lock_guard guard(m_effectsMutex);
 
-    for (SizeType stageIndex = 0; stageIndex < 2; stageIndex++)
+    for (size_t stageIndex = 0; stageIndex < 2; stageIndex++)
     {
         for (auto& it : m_effectsPendingAddition[stageIndex])
         {

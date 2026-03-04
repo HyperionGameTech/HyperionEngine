@@ -593,7 +593,7 @@ void DebugDrawer::Update()
             if (buffer.Size() < newAlignedOffset + header.size)
             {
                 ByteBuffer newBuffer;
-                newBuffer.SetSize(MathUtil::Ceil<double, SizeType>((newAlignedOffset + header.size) * 1.5));
+                newBuffer.SetSize(MathUtil::Ceil<double, size_t>((newAlignedOffset + header.size) * 1.5));
 
                 // have to move all current commands since the buffer will realloc
                 for (DebugDrawCommandHeader& currHeader : m_headers[idx])
@@ -700,7 +700,7 @@ void DebugDrawer::Render(Frame* frame, const RenderSetup& renderSetup)
     // if we want to use more stuff on each shape, we'll need to devise a different solutoin.
     IDebugDrawShape* currShapes[MaxDebugDrawShapeTypes] { nullptr };
 
-    for (SizeType drawCommandIdx = 0; drawCommandIdx < m_headers[idx].Size(); drawCommandIdx++)
+    for (size_t drawCommandIdx = 0; drawCommandIdx < m_headers[idx].Size(); drawCommandIdx++)
     {
         uint32 offset = m_headers[idx][drawCommandIdx].offset;
         uint32 size = m_headers[idx][drawCommandIdx].size;
@@ -732,9 +732,9 @@ void DebugDrawer::Render(Frame* frame, const RenderSetup& renderSetup)
 
     RenderableAttributeSet attributes;
 
-    SizeType shaderDataOffset = 0;
-    SizeType totalDrawCalls = 0;
-    SizeType totalInstancedDraws = 0;
+    size_t shaderDataOffset = 0;
+    size_t totalDrawCalls = 0;
+    size_t totalInstancedDraws = 0;
 
     ShaderDesc shaderDesc;
     shaderDesc.name = NAME("DebugVis");
@@ -780,7 +780,7 @@ void DebugDrawer::Render(Frame* frame, const RenderSetup& renderSetup)
         Assert(instanceBuffer->Size() >= (shaderData.Size() + shaderDataOffset) * sizeof(ImmediateDrawShaderData));
         instanceBuffer->Copy(shaderDataOffset * sizeof(ImmediateDrawShaderData), shaderData.Size() * sizeof(ImmediateDrawShaderData), shaderData.Data());
 
-        SizeType numToDraw = 0;
+        size_t numToDraw = 0;
 
         auto CommitCurrentDraws = [&]()
         {
@@ -833,7 +833,7 @@ void DebugDrawer::Render(Frame* frame, const RenderSetup& renderSetup)
             }
         };
 
-        for (SizeType i = 0; i < shaderData.Size(); i++)
+        for (size_t i = 0; i < shaderData.Size(); i++)
         {
             AssertDebug(shaderData[i].idx != ~0u, "culled element should not be in array");
 
@@ -884,7 +884,7 @@ void DebugDrawer::ClearCommands(uint32 idx)
     }
 
     // update buffer capacity based on history so we don't keep memory around longer than we need to.
-    SizeType maxHistorySize = 0;
+    size_t maxHistorySize = 0;
 
     for (int i = int(m_bufferSizeHistory.Size()) - 1; i >= 0; i--)
     {
@@ -962,7 +962,7 @@ void* DebugDrawCommandList::Alloc(uint32 size, uint32 alignment, DebugDrawComman
     if (m_buffer.Size() < alignedOffset + size)
     {
         ByteBuffer newBuffer;
-        newBuffer.SetSize(MathUtil::Ceil<double, SizeType>((alignedOffset + size) * 1.5));
+        newBuffer.SetSize(MathUtil::Ceil<double, size_t>((alignedOffset + size) * 1.5));
 
         // move after realloc
         for (DebugDrawCommandHeader& currHeader : m_headers)

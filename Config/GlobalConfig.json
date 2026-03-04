@@ -19,9 +19,9 @@
         "Enabled": false
       },
       "GI": {
-        "Enabled": false
+        "Enabled": true
       },
-      "Enabled": false
+      "Enabled": true
     },
     "SSAO": {
       "Enabled": false

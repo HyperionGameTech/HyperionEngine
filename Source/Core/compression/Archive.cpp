@@ -23,7 +23,7 @@ ArchiveBuilder& ArchiveBuilder::Append(ByteBuffer&& buffer)
         return *this;
     }
 
-    const SizeType offset = m_uncompressedBuffer.Size();
+    const size_t offset = m_uncompressedBuffer.Size();
     m_uncompressedBuffer.SetSize(m_uncompressedBuffer.Size() + buffer.Size());
     m_uncompressedBuffer.Write(buffer.Size(), offset, buffer.Data());
 
@@ -39,7 +39,7 @@ ArchiveBuilder& ArchiveBuilder::Append(const ByteBuffer& buffer)
         return *this;
     }
 
-    const SizeType offset = m_uncompressedBuffer.Size();
+    const size_t offset = m_uncompressedBuffer.Size();
     m_uncompressedBuffer.SetSize(m_uncompressedBuffer.Size() + buffer.Size());
     m_uncompressedBuffer.Write(buffer.Size(), offset, buffer.Data());
 
@@ -90,7 +90,7 @@ Archive::Archive()
 {
 }
 
-Archive::Archive(ByteBuffer&& compressedBuffer, SizeType uncompressedSize)
+Archive::Archive(ByteBuffer&& compressedBuffer, size_t uncompressedSize)
     : m_compressedBuffer(std::move(compressedBuffer)),
       m_uncompressedSize(uncompressedSize)
 {

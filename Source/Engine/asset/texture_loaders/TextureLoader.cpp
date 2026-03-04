@@ -31,7 +31,7 @@ static const stbi_io_callbacks s_callbacks {
     {
         LoaderState* state = static_cast<LoaderState*>(user);
 
-        return int(state->stream.Read(data, SizeType(size), [](void* ptr, const unsigned char* buffer, SizeType chunkSize)
+        return int(state->stream.Read(data, size_t(size), [](void* ptr, const unsigned char* buffer, size_t chunkSize)
             {
                 Memory::Copy(ptr, buffer, chunkSize);
             }));
@@ -92,9 +92,9 @@ AssetLoadResult TextureLoader::LoadAsset(LoaderState& state) const
 
     Name assetName = CreateNameFromDynamicString(StringUtil::StripExtension(state.filepath.Basename()));
 
-    const SizeType imageBytesCount = SizeType(data.width)
-        * SizeType(data.height)
-        * SizeType(data.numComponents);
+    const size_t imageBytesCount = size_t(data.width)
+        * size_t(data.height)
+        * size_t(data.numComponents);
 
     TextureDesc textureDesc {
         TextureType::Texture2D,

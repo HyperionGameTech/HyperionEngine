@@ -448,7 +448,7 @@ void ReflectionProbeRenderer::ComputeSH(Frame* frame, const RenderSetup& renderS
 
     for (uint32 i = 0; i < ShNumLevels; i++)
     {
-        const SizeType size = sizeof(SHTile) * (ShNumTiles.x >> i) * (ShNumTiles.y >> i);
+        const size_t size = sizeof(SHTile) * (ShNumTiles.x >> i) * (ShNumTiles.y >> i);
 
         shTilesBuffers[i] = g_renderInterface->MakeGpuBuffer(GpuBufferType::STORAGE_BUFFER, size);
         shTilesBuffers[i]->SetRequireCpuAccessible(true);

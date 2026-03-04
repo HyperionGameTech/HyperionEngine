@@ -99,7 +99,7 @@ protected:
         Array<T> array;
         array.ResizeUninitialized(elements.Size());
 
-        for (SizeType i = 0; i < elements.Size(); i++)
+        for (size_t i = 0; i < elements.Size(); i++)
         {
             // strict = false to allow any numeric type.
             if (!elements[i].Is<std::underlying_type_t<T>>(/* strict */ false))

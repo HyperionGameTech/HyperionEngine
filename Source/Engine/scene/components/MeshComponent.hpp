@@ -42,7 +42,7 @@ struct MeshComponent
     uint32 numInstances = 1;
 
     HYP_FIELD(Property = "EnableAutoInstancing", Serialize = true)
-    bool enableAutoInstancing = true;
+    bool enableAutoInstancing = false;
 
     HYP_FIELD(Property = "InstanceData", NoScriptBindings)
     AssetReference instanceData;

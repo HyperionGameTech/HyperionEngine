@@ -43,7 +43,7 @@ public:
     void Bind(VulkanCommandBuffer* commandBuffer) override;
     void TraceRays(VulkanCommandBuffer* commandBuffer, const Vec3u& extent) const override;
 
-    void SetPushConstants(const void* data, SizeType size) override;
+    void SetPushConstants(const void* data, size_t size) override;
 
 #if HYP_DEBUG_MODE
     void SetDebugName(Name name) override

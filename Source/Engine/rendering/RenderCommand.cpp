@@ -63,9 +63,9 @@ void RenderCommands::Flush()
 
     buffer.scheduler.AcceptAll(commands);
 
-    const SizeType numCommands = commands.Size();
+    const size_t numCommands = commands.Size();
 
-    for (SizeType index = 0; index < numCommands; index++)
+    for (size_t index = 0; index < numCommands; index++)
     {
         RenderCommand* front = commands[index];
 
@@ -93,9 +93,9 @@ void RenderCommands::Flush()
 
     buffer.scheduler.AcceptAll(commands);
 
-    const SizeType numCommands = commands.Size();
+    const size_t numCommands = commands.Size();
 
-    for (SizeType index = 0; index < numCommands; index++)
+    for (size_t index = 0; index < numCommands; index++)
     {
         RenderCommand* front = commands[index];
 

@@ -287,7 +287,7 @@ protected:
 struct NoiseGeneratorRefCounter
 {
     NoiseGenerator* noise;
-    SizeType uses;
+    size_t uses;
 };
 
 class HYP_API NoiseFactory

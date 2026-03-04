@@ -460,7 +460,7 @@ private:
 
                 Array<uint32> roots;
 
-                for (SizeType i = 0; i < indeg.Size(); i++)
+                for (size_t i = 0; i < indeg.Size(); i++)
                 {
                     if (indeg[i] == 0)
                     {
@@ -814,10 +814,10 @@ private:
 
         FileByteWriter* cxxModuleWriter = nullptr;
 
-        auto toLetters = [](uint32 idx, char* dst, SizeType cap)
+        auto toLetters = [](uint32 idx, char* dst, size_t cap)
         {
             char buf[32];
-            SizeType n = 0;
+            size_t n = 0;
 
             ++idx;
             while (idx)
@@ -832,7 +832,7 @@ private:
                 return false;
             }
 
-            for (SizeType i = 0; i < n; ++i)
+            for (size_t i = 0; i < n; ++i)
             {
                 dst[i] = buf[n - 1 - i];
             }
@@ -1059,16 +1059,16 @@ private:
         //   (first top-level brace/namespace/other code) that occurs AFTER that include.
         //   Otherwise: insert before the first top-level brace, else namespace, else first code; fallback to end.
 
-        SizeType lastTopInclude = SizeType(-1);
-        SizeType firstTopNamespace = SizeType(-1);
-        SizeType firstTopBraceLine = SizeType(-1);
-        SizeType firstTopNonPPCode = SizeType(-1);
+        size_t lastTopInclude = size_t(-1);
+        size_t firstTopNamespace = size_t(-1);
+        size_t firstTopBraceLine = size_t(-1);
+        size_t firstTopNonPPCode = size_t(-1);
 
         int preprocessorDepth = 0;
         int braceDepth = 0;
         bool inBlockComment = false;
 
-        for (SizeType i = 0; i < lines.Size(); ++i)
+        for (size_t i = 0; i < lines.Size(); ++i)
         {
             const String& raw = lines[i];
             const String line = raw.Trimmed();
@@ -1106,7 +1106,7 @@ private:
                 bool lineHasCode = false;
                 bool inLineComment = false;
 
-                for (SizeType k = 0; k < raw.Size(); ++k)
+                for (size_t k = 0; k < raw.Size(); ++k)
                 {
                     const char c = raw[k];
 
@@ -1143,7 +1143,7 @@ private:
                     }
 
                     // Detect first top-level namespace token
-                    if (braceDepth == 0 && firstTopNamespace == SizeType(-1))
+                    if (braceDepth == 0 && firstTopNamespace == size_t(-1))
                     {
                         // Cheap check: use trimmed line to determine namespace start
                         if (line.StartsWith("namespace"))
@@ -1155,7 +1155,7 @@ private:
                     // Update brace depth, recording first top-level '{' location
                     if (raw[k] == '{')
                     {
-                        if (braceDepth == 0 && firstTopBraceLine == SizeType(-1))
+                        if (braceDepth == 0 && firstTopBraceLine == size_t(-1))
                         {
                             firstTopBraceLine = i;
                         }
@@ -1175,14 +1175,14 @@ private:
                     }
 
                     // Non-PP, non-comment, non-whitespace code at top-level
-                    if (braceDepth == 0 && firstTopNonPPCode == SizeType(-1) && c != ' ' && c != '\t' && line[0] != '#')
+                    if (braceDepth == 0 && firstTopNonPPCode == size_t(-1) && c != ' ' && c != '\t' && line[0] != '#')
                     {
                         lineHasCode = true;
                         // don't break; continue scanning to keep braceDepth correct
                     }
                 }
 
-                if (braceDepth == 0 && firstTopNonPPCode == SizeType(-1) && lineHasCode)
+                if (braceDepth == 0 && firstTopNonPPCode == size_t(-1) && lineHasCode)
                 {
                     firstTopNonPPCode = i;
                 }
@@ -1192,7 +1192,7 @@ private:
                 // Even inside PP blocks, keep braceDepth roughly in sync to avoid drift
                 bool inLineComment = false;
 
-                for (SizeType k = 0; k < raw.Size(); ++k)
+                for (size_t k = 0; k < raw.Size(); ++k)
                 {
                     // basic comment skipping
                     if (!inBlockComment && !inLineComment && k + 1 < raw.Size() && raw[k] == '/' && raw[k + 1] == '/')
@@ -1237,20 +1237,20 @@ private:
         }
 
         // Only insert if we have at least one top-level include; otherwise, do not inject into the source file.
-        if (lastTopInclude == SizeType(-1))
+        if (lastTopInclude == size_t(-1))
         {
             return {}; // respect "after last include" rule; do nothing if no includes
         }
 
-        SizeType insertIndex = SizeType(-1);
+        size_t insertIndex = size_t(-1);
 
-        if (lastTopInclude != SizeType(-1))
+        if (lastTopInclude != size_t(-1))
         {
-            auto checkGuardIndex = [lastTopInclude](SizeType idx, SizeType& outIdx) -> bool
+            auto checkGuardIndex = [lastTopInclude](size_t idx, size_t& outIdx) -> bool
             {
-                if (idx != SizeType(-1) && idx > lastTopInclude)
+                if (idx != size_t(-1) && idx > lastTopInclude)
                 {
-                    if (outIdx == SizeType(-1) || idx < outIdx)
+                    if (outIdx == size_t(-1) || idx < outIdx)
                     {
                         outIdx = idx;
 
@@ -1262,23 +1262,23 @@ private:
             };
 
             // Choose the earliest top-level construct AFTER the last include
-            SizeType guardIndex = SizeType(-1);
+            size_t guardIndex = size_t(-1);
 
             (void)(checkGuardIndex(firstTopBraceLine, guardIndex)
                 || checkGuardIndex(firstTopNamespace, guardIndex)
                 || checkGuardIndex(firstTopNonPPCode, guardIndex));
 
-            insertIndex = (guardIndex != SizeType(-1)) ? guardIndex : (lastTopInclude + 1);
+            insertIndex = (guardIndex != size_t(-1)) ? guardIndex : (lastTopInclude + 1);
         }
-        else if (firstTopBraceLine != SizeType(-1))
+        else if (firstTopBraceLine != size_t(-1))
         {
             insertIndex = firstTopBraceLine; // before first top-level brace
         }
-        else if (firstTopNamespace != SizeType(-1))
+        else if (firstTopNamespace != size_t(-1))
         {
             insertIndex = firstTopNamespace; // before first top-level namespace
         }
-        else if (firstTopNonPPCode != SizeType(-1))
+        else if (firstTopNonPPCode != size_t(-1))
         {
             insertIndex = firstTopNonPPCode; // before first top-level code
         }
@@ -1290,7 +1290,7 @@ private:
 
         // Normalize spacing: exactly one blank line above and below the inserted include line.
         // First, ensure the insertIndex is within [0, lines.Size()].
-        if (insertIndex == SizeType(-1))
+        if (insertIndex == size_t(-1))
         {
             insertIndex = 0;
         }
@@ -1301,10 +1301,10 @@ private:
         }
 
         // Collapse/ensure one blank line above
-        SizeType aboveCount = 0;
-        for (SizeType i = insertIndex; i > 0;)
+        size_t aboveCount = 0;
+        for (size_t i = insertIndex; i > 0;)
         {
-            const SizeType j = i - 1;
+            const size_t j = i - 1;
 
             if (lines[j].Trimmed().Empty())
             {
@@ -1324,7 +1324,7 @@ private:
         else if (aboveCount > 1)
         {
             // remove extra blanks leaving exactly one
-            SizeType toRemove = aboveCount - 1;
+            size_t toRemove = aboveCount - 1;
 
             while (toRemove-- > 0)
             {
@@ -1337,9 +1337,9 @@ private:
         lines.Insert(lines.Begin() + insertIndex, includeLine);
 
         // Ensure exactly one blank line below
-        SizeType belowIdx = insertIndex + 1;
-        SizeType belowCount = 0;
-        for (SizeType i = belowIdx; i < lines.Size(); ++i)
+        size_t belowIdx = insertIndex + 1;
+        size_t belowCount = 0;
+        for (size_t i = belowIdx; i < lines.Size(); ++i)
         {
             if (lines[i].Trimmed().Empty())
             {
@@ -1357,8 +1357,8 @@ private:
         else if (belowCount > 1)
         {
             // remove extras beyond one
-            SizeType removeFrom = insertIndex + 2; // keep the first blank directly after include
-            SizeType removeEnd = removeFrom + (belowCount - 1);
+            size_t removeFrom = insertIndex + 2; // keep the first blank directly after include
+            size_t removeEnd = removeFrom + (belowCount - 1);
 
             if (removeEnd > lines.Size())
             {
@@ -1426,8 +1426,8 @@ private:
             for (;;)
             {
                 // Find next include match (exact line)
-                SizeType matchIndex = SizeType(-1);
-                for (SizeType i = 0; i < lines.Size(); ++i)
+                size_t matchIndex = size_t(-1);
+                for (size_t i = 0; i < lines.Size(); ++i)
                 {
                     if (lines[i] == includeLine)
                     {
@@ -1436,7 +1436,7 @@ private:
                     }
                 }
 
-                if (matchIndex == SizeType(-1))
+                if (matchIndex == size_t(-1))
                 {
                     break; // nothing more to remove
                 }
@@ -1448,8 +1448,8 @@ private:
                 // If so, remove the entire block.
 
                 // Build stack of #if.../#endif pairs for this snapshot of lines
-                Array<Pair<SizeType, SizeType>> ifPairs; // (ifIndex, endifIndex)
-                Array<SizeType> ifStack;
+                Array<Pair<size_t, size_t>> ifPairs; // (ifIndex, endifIndex)
+                Array<size_t> ifStack;
 
                 auto isPPIf = [](const String& s)
                 {
@@ -1464,7 +1464,7 @@ private:
                     return s.StartsWith("#else") || s.StartsWith("#elif");
                 };
 
-                for (SizeType i = 0; i < lines.Size(); ++i)
+                for (size_t i = 0; i < lines.Size(); ++i)
                 {
                     const String t = lines[i].Trimmed();
                     if (isPPIf(t))
@@ -1475,20 +1475,20 @@ private:
                     {
                         if (!ifStack.Empty())
                         {
-                            const SizeType ifIdx = ifStack.PopBack();
+                            const size_t ifIdx = ifStack.PopBack();
                             ifPairs.PushBack({ ifIdx, i });
                         }
                     }
                 }
 
                 // Select innermost enclosing pair (if any)
-                SizeType selIfStart = SizeType(-1);
-                SizeType selIfEnd = SizeType(-1);
+                size_t selIfStart = size_t(-1);
+                size_t selIfEnd = size_t(-1);
                 for (const auto& pr : ifPairs)
                 {
                     if (pr.first < matchIndex && matchIndex < pr.second)
                     {
-                        if (selIfStart == SizeType(-1) || pr.first > selIfStart)
+                        if (selIfStart == size_t(-1) || pr.first > selIfStart)
                         {
                             selIfStart = pr.first;
                             selIfEnd = pr.second;
@@ -1496,18 +1496,18 @@ private:
                     }
                 }
 
-                auto collapseBoundaryToSingleBlank = [&](SizeType boundaryIndex)
+                auto collapseBoundaryToSingleBlank = [&](size_t boundaryIndex)
                 {
                     // After a removal, maintain at most one blank line between the previous and next non-empty lines,
                     // and ensure at least one blank if both sides are non-empty.
                     if (lines.Empty())
                         return;
 
-                    const SizeType prevIdx = boundaryIndex > 0 ? boundaryIndex - 1 : SizeType(-1);
-                    const SizeType nextIdx = boundaryIndex < lines.Size() ? boundaryIndex : SizeType(-1);
+                    const size_t prevIdx = boundaryIndex > 0 ? boundaryIndex - 1 : size_t(-1);
+                    const size_t nextIdx = boundaryIndex < lines.Size() ? boundaryIndex : size_t(-1);
 
-                    const bool prevExists = prevIdx != SizeType(-1);
-                    const bool nextExists = nextIdx != SizeType(-1);
+                    const bool prevExists = prevIdx != size_t(-1);
+                    const bool nextExists = nextIdx != size_t(-1);
 
                     const bool prevNonEmpty = prevExists && !lines[prevIdx].Trimmed().Empty();
                     const bool nextNonEmpty = nextExists && !lines[nextIdx].Trimmed().Empty();
@@ -1515,7 +1515,7 @@ private:
                     // Compress multiple blank lines above to at most one
                     if (prevExists && lines[prevIdx].Trimmed().Empty())
                     {
-                        SizeType scan = prevIdx;
+                        size_t scan = prevIdx;
                         while (scan > 0 && lines[scan - 1].Trimmed().Empty())
                         {
                             lines.Erase(lines.Begin() + (scan - 1));
@@ -1525,11 +1525,11 @@ private:
                     }
 
                     // Recompute indices if array changed size
-                    const SizeType pIdx = boundaryIndex > 0 ? boundaryIndex - 1 : SizeType(-1);
-                    SizeType nIdx = boundaryIndex < lines.Size() ? boundaryIndex : SizeType(-1);
+                    const size_t pIdx = boundaryIndex > 0 ? boundaryIndex - 1 : size_t(-1);
+                    size_t nIdx = boundaryIndex < lines.Size() ? boundaryIndex : size_t(-1);
 
-                    bool blankAbove = pIdx != SizeType(-1) && lines[pIdx].Trimmed().Empty();
-                    bool blankBelow = nIdx != SizeType(-1) && lines[nIdx].Trimmed().Empty();
+                    bool blankAbove = pIdx != size_t(-1) && lines[pIdx].Trimmed().Empty();
+                    bool blankBelow = nIdx != size_t(-1) && lines[nIdx].Trimmed().Empty();
 
                     // If both sides have a blank, drop one (prefer dropping below)
                     if (blankAbove && blankBelow)
@@ -1548,8 +1548,8 @@ private:
                     }
 
                     // Ensure at least one blank line if both neighbors are non-empty and no blank exists
-                    const bool pNonEmpty = (pIdx != SizeType(-1)) && !lines[pIdx].Trimmed().Empty();
-                    const bool nNonEmpty = (nIdx != SizeType(-1)) && !lines[nIdx].Trimmed().Empty();
+                    const bool pNonEmpty = (pIdx != size_t(-1)) && !lines[pIdx].Trimmed().Empty();
+                    const bool nNonEmpty = (nIdx != size_t(-1)) && !lines[nIdx].Trimmed().Empty();
                     if (pNonEmpty && nNonEmpty && !blankAbove && !blankBelow)
                     {
                         lines.Insert(lines.Begin() + nIdx, String::empty);
@@ -1557,12 +1557,12 @@ private:
                 };
 
                 bool removedBlock = false;
-                if (selIfStart != SizeType(-1))
+                if (selIfStart != size_t(-1))
                 {
                     // Verify there are no #else/#elif in the block and the include is the only non-empty content
                     bool anyElseOrElif = false;
                     bool onlyInclude = true;
-                    for (SizeType i = selIfStart + 1; i < selIfEnd; ++i)
+                    for (size_t i = selIfStart + 1; i < selIfEnd; ++i)
                     {
                         const String t = lines[i].Trimmed();
                         if (isPPElseElif(t))
@@ -1584,8 +1584,8 @@ private:
                     if (!anyElseOrElif && onlyInclude)
                     {
                         // Remove entire block [selIfStart, selIfEnd]
-                        const SizeType removeCount = selIfEnd - selIfStart + 1;
-                        for (SizeType c = 0; c < removeCount && selIfStart < lines.Size(); ++c)
+                        const size_t removeCount = selIfEnd - selIfStart + 1;
+                        for (size_t c = 0; c < removeCount && selIfStart < lines.Size(); ++c)
                         {
                             lines.Erase(lines.Begin() + selIfStart);
                         }
@@ -1663,18 +1663,18 @@ private:
         }
 
         // Build dependency graph between modules
-        const SizeType numModules = moduleArray.Size();
+        const size_t numModules = moduleArray.Size();
         Array<Array<uint32>> dependents(numModules); // dependents[i] contains modules that depend on module i
         Array<uint32> inDegree;                      // number of modules that this module depends on
         inDegree.Resize(numModules);
 
         // Initialize inDegree to 0
-        for (SizeType i = 0; i < numModules; i++)
+        for (size_t i = 0; i < numModules; i++)
         {
             inDegree[i] = 0;
         }
 
-        for (SizeType i = 0; i < numModules; i++)
+        for (size_t i = 0; i < numModules; i++)
         {
             Module* currentModule = moduleArray[i];
 
@@ -1709,7 +1709,7 @@ private:
         Array<uint32> queue;
 
         // Find all modules with no dependencies
-        for (SizeType i = 0; i < numModules; i++)
+        for (size_t i = 0; i < numModules; i++)
         {
             if (inDegree[i] == 0)
             {
@@ -1739,7 +1739,7 @@ private:
             HYP_LOG(Tool, Warning, "Circular dependency detected in modules! Some modules may be in incorrect order.");
 
             // Add remaining modules to avoid missing any
-            for (SizeType i = 0; i < numModules; i++)
+            for (size_t i = 0; i < numModules; i++)
             {
                 if (inDegree[i] > 0)
                 {

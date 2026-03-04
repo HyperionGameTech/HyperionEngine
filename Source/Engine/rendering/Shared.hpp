@@ -401,7 +401,7 @@ static inline constexpr bool FormatSupportsBlending(TextureFormat fmt)
 
 } // namespace TextureUtils
 
-template <SizeType Size>
+template <size_t Size>
 struct SizedUInt;
 
 template <>
@@ -425,7 +425,7 @@ struct SizedUInt<8>
     using Type = uint64;
 };
 
-template <SizeType Size>
+template <size_t Size>
 using SizedUIntT = typename SizedUInt<Size>::Type;
 
 template <TextureFormat Format>
@@ -1189,7 +1189,7 @@ struct DescriptorSetOffsetMap
         }
     }
 
-    template <SizeType Count>
+    template <size_t Count>
     DescriptorSetOffsetMap(Pair<StringHash, uint32> const (&kv)[Count])
         : keys(),
           values(),
@@ -1246,7 +1246,7 @@ struct DescriptorTableOffsetMap
         }
     }
 
-    template <SizeType Count>
+    template <size_t Count>
     DescriptorTableOffsetMap(Pair<StringHash, DescriptorSetOffsetMap> const (&v)[Count])
         : setNames(),
           setOffsets(),
@@ -1591,7 +1591,7 @@ struct VertexAttributeSet
     }
 
     HYP_API Array<const VertexAttribute*> BuildAttributes() const;
-    HYP_API SizeType CalculateVertexSize() const;
+    HYP_API size_t CalculateVertexSize() const;
 
     HYP_API String ToString() const;
 
@@ -1861,7 +1861,7 @@ public:
         }
     }
 
-    template <SizeType Sz>
+    template <size_t Sz>
     ShaderVariantPerms(Name const (&props)[Sz])
         : m_needsHashCodeRecalculation(true)
     {
@@ -1871,7 +1871,7 @@ public:
         }
     }
 
-    template <SizeType Sz>
+    template <size_t Sz>
     ShaderVariantPerms(ShaderProperty const (&props)[Sz])
         : m_needsHashCodeRecalculation(true)
     {
@@ -1881,7 +1881,7 @@ public:
         }
     }
 
-    template <SizeType Sz>
+    template <size_t Sz>
     ShaderVariantPerms(const VertexAttributeSet& vertexAttributes, Name const (&props)[Sz])
         : m_requiredVertexAttributes(vertexAttributes),
           m_needsHashCodeRecalculation(true)
@@ -2123,7 +2123,7 @@ public:
         m_optionalVertexAttributes = vertexAttributes & ~m_requiredVertexAttributes;
     }
 
-    HYP_FORCE_INLINE SizeType Size() const
+    HYP_FORCE_INLINE size_t Size() const
     {
         return m_props.Size();
     }
@@ -2233,7 +2233,7 @@ struct ShaderPropertySet
     {
     }
 
-    template <SizeType N>
+    template <size_t N>
     constexpr ShaderPropertySet(const ShaderPropertyId(&properties)[N])
     {
         for (auto it = std::begin(properties); it != std::end(properties); ++it)
@@ -2447,7 +2447,7 @@ struct ShaderDesc
     {
     }
 
-    template <SizeType N>
+    template <size_t N>
     constexpr ShaderDesc(Name name, const ShaderPropertyId(&propertyIds)[N])
         : name(name)
     {

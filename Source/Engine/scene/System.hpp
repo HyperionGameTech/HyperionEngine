@@ -187,8 +187,8 @@ public:
         const auto it = m_componentTypeIds.Find(componentTypeId);
         Assert(it != m_componentTypeIds.End(), "Component type Id not found");
 
-        const SizeType index = m_componentTypeIds.IndexOf(it);
-        Assert(index != SizeType(-1), "Component type Id not found");
+        const size_t index = m_componentTypeIds.IndexOf(it);
+        Assert(index != size_t(-1), "Component type Id not found");
 
         return m_componentInfos[index];
     }

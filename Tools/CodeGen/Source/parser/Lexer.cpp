@@ -776,13 +776,13 @@ Token Lexer::ReadIdentifier()
         {
             // check if next tokens are the operator
 
-            const SizeType len = op.Length();
+            const size_t len = op.Length();
 
             int posChange = 0;
 
             bool isOperator = true;
 
-            for (SizeType i = 0; i < len; i++)
+            for (size_t i = 0; i < len; i++)
             {
                 if (m_sourceStream.Peek() != op.GetChar(i))
                 {

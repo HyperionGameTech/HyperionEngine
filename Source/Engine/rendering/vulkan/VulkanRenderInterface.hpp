@@ -137,7 +137,7 @@ public:
 
     VulkanRayTracingPipelineRef MakeRayTracingPipeline(const VulkanShaderInstanceRef& shaderInstance) override;
 
-    VulkanGpuBufferRef MakeGpuBuffer(GpuBufferType bufferType, SizeType size, SizeType alignment = 0) override;
+    VulkanGpuBufferRef MakeGpuBuffer(GpuBufferType bufferType, size_t size, size_t alignment = 0) override;
 
     VulkanGpuImageRef MakeImage(const TextureDesc& textureDesc) override;
 

@@ -88,14 +88,14 @@ public:
             return m_parent;
         }
 
-        SizeType Size(int depth = -1) const
+        size_t Size(int depth = -1) const
         {
             if (depth == 0)
             {
                 return 0;
             }
 
-            SizeType size = 0;
+            size_t size = 0;
 
             Node* child = m_child.Get();
 
@@ -432,14 +432,14 @@ public:
         m_root.Reset();
     }
 
-    SizeType Size(int depth = -1) const
+    size_t Size(int depth = -1) const
     {
         if (depth == 0)
         {
             return 0;
         }
 
-        SizeType size = 0;
+        size_t size = 0;
 
         Node* sibling = m_root.Get();
 

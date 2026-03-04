@@ -29,9 +29,9 @@ template <class... Components>
 struct EntitySetIterator
 {
     EntitySet<Components...>& set;
-    SizeType index;
+    size_t index;
 
-    EntitySetIterator(EntitySet<Components...>& set, SizeType index)
+    EntitySetIterator(EntitySet<Components...>& set, size_t index)
         : set(set),
           index(index)
     {
@@ -91,7 +91,7 @@ struct EntitySetIterator
     }
 
 private:
-    template <SizeType... Indices>
+    template <size_t... Indices>
     Tuple<Components&...> GetComponents(const FixedArray<ComponentId, sizeof...(Components)>& componentIds, std::index_sequence<Indices...>)
     {
         return Tuple<Components&...>(
@@ -112,7 +112,7 @@ public:
     EntitySetBase& operator=(EntitySetBase&& other) noexcept = delete;
     virtual ~EntitySetBase() = default;
 
-    virtual SizeType Size() const = 0;
+    virtual size_t Size() const = 0;
 
     virtual Array<TypeId> GetComponentTypeIds() const = 0;
 
@@ -180,7 +180,7 @@ public:
     EntitySet& operator=(EntitySet&& other) noexcept = delete;
     virtual ~EntitySet() override = default;
 
-    virtual SizeType Size() const override
+    virtual size_t Size() const override
     {
         return m_elements.Size();
     }
@@ -354,7 +354,7 @@ struct EntitySetView
         {
             static const FixedArray<ANSIString, sizeof...(Components)> componentNames = { TypeNameWithoutNamespace<Components>().Data()... };
 
-            for (SizeType i = 0; i < m_componentDataRaceDetectors.Size(); i++)
+            for (size_t i = 0; i < m_componentDataRaceDetectors.Size(); i++)
             {
                 new (m_componentDataAccessScopes.GetPointer() + i) DataRaceDetector::DataAccessScope(dataAccessFlags, *m_componentDataRaceDetectors[i], DataRaceDetector::DataAccessState { currentFunction, message.Length() != 0 ? message : ANSIStringView(componentNames[i]) });
             }
@@ -371,7 +371,7 @@ struct EntitySetView
             static const FixedArray<TypeId, sizeof...(Components)> componentTypeIds = { TypeId::ForType<Components>()... };
             static const FixedArray<ANSIString, sizeof...(Components)> componentNames = { TypeNameWithoutNamespace<Components>().Data()... };
 
-            for (SizeType i = 0; i < m_componentDataRaceDetectors.Size(); i++)
+            for (size_t i = 0; i < m_componentDataRaceDetectors.Size(); i++)
             {
                 auto componentInfosIt = componentInfos.FindIf([typeId = componentTypeIds[i]](const ComponentInfo& info)
                     {
@@ -413,7 +413,7 @@ struct EntitySetView
 #ifdef HYP_ENABLE_MT_CHECK
         if constexpr (sizeof...(Components) != 0)
         {
-            for (SizeType i = 0; i < m_componentDataAccessScopes.Size(); i++)
+            for (size_t i = 0; i < m_componentDataAccessScopes.Size(); i++)
             {
                 (m_componentDataAccessScopes.GetPointer() + i)->~DataAccessScope();
             }

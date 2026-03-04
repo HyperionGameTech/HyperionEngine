@@ -39,7 +39,7 @@ void DescriptorSetCache::OnFrameStart()
 
     const uint32 frameCounter = GetFrameCounter();
 
-    SizeType chompIndexStart = SizeType(-1);
+    size_t chompIndexStart = size_t(-1);
 
     // recycle descriptor sets no longer in use
     for (auto it = m_descriptorSetsInUse.Begin(); it != m_descriptorSetsInUse.End(); ++it)
@@ -59,7 +59,7 @@ void DescriptorSetCache::OnFrameStart()
         chompIndexStart = m_descriptorSetsInUse.IndexOf(it) + 1;
     }
 
-    if (chompIndexStart != SizeType(-1))
+    if (chompIndexStart != size_t(-1))
     {
         auto tmp = std::move(m_descriptorSetsInUse);
         m_descriptorSetsInUse.Clear();

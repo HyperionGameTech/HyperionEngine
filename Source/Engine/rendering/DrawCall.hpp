@@ -122,7 +122,7 @@ struct DrawCallStorage
     Array<uint32, AllocatorType> numIndices;
     Array<ObjId<Entity>, AllocatorType> entityIds;
 
-    HYP_FORCE_INLINE SizeType Size() const
+    HYP_FORCE_INLINE size_t Size() const
     {
         return ids.Size();
     }
@@ -148,9 +148,9 @@ struct DrawCallStorage
         entityIds.Clear();
     }
 
-    SizeType Push(DrawCallID id, Mesh* mesh, Material* material, Skeleton* skeleton, ObjId<Entity> entityId, uint32 numIndicesValue)
+    size_t Push(DrawCallID id, Mesh* mesh, Material* material, Skeleton* skeleton, ObjId<Entity> entityId, uint32 numIndicesValue)
     {
-        const SizeType index = ids.Size();
+        const size_t index = ids.Size();
 
         ids.PushBack(id);
         meshes.PushBack(mesh);
@@ -179,7 +179,7 @@ struct InstancedDrawCallStorage
     Array<uint32, AllocatorType> counts;
     Array<FixedArray<ObjId<Entity>, MaxEntitiesPerBatch>, AllocatorType> entityIds;
 
-    HYP_FORCE_INLINE SizeType Size() const
+    HYP_FORCE_INLINE size_t Size() const
     {
         return ids.Size();
     }
@@ -207,9 +207,9 @@ struct InstancedDrawCallStorage
         entityIds.Clear();
     }
 
-    SizeType Push(DrawCallID id, Mesh* mesh, Material* material, Skeleton* skeleton, EntityInstanceBatch* batch, uint32 numIndicesValue)
+    size_t Push(DrawCallID id, Mesh* mesh, Material* material, Skeleton* skeleton, EntityInstanceBatch* batch, uint32 numIndicesValue)
     {
-        const SizeType index = ids.Size();
+        const size_t index = ids.Size();
 
         ids.PushBack(id);
         meshes.PushBack(mesh);
@@ -247,12 +247,12 @@ public:
         other.m_structAlignment = 0;
     }
 
-    HYP_FORCE_INLINE SizeType GetStructSize() const
+    HYP_FORCE_INLINE size_t GetStructSize() const
     {
         return m_structSize;
     }
 
-    HYP_FORCE_INLINE SizeType GetStructAlignment() const
+    HYP_FORCE_INLINE size_t GetStructAlignment() const
     {
         return m_structAlignment;
     }
@@ -270,8 +270,8 @@ protected:
     explicit EntityBatchAllocatorBase(GpuBufferHolderBase* bufferHolder);
 
     GpuBufferHolderBase* m_bufferHolder;
-    SizeType m_structSize;
-    SizeType m_structAlignment;
+    size_t m_structSize;
+    size_t m_structAlignment;
 };
 
 struct DrawCallCollection
@@ -312,7 +312,7 @@ struct DrawCallCollection
      *  If not all instances could be pushed to the given draw call's batch, a positive number will be returned.
      *  Otherwise, zero will be returned. */
     uint32 PushEntityToBatch(
-        SizeType drawCallIndex,
+        size_t drawCallIndex,
         Entity* entity,
         const InstanceData& instanceData,
         uint32 numInstances,
@@ -326,7 +326,7 @@ struct DrawCallCollection
     InstancedDrawCallStorage instancedDrawCalls;
 
     // Map from draw call id to the index in instancedDrawCalls
-    using InstancedDrawCallIndexMap = HashMap<uint64, Array<SizeType, InlineAllocator<3, RenderAllocator>>, NodeAllocator<RenderAllocator>>;
+    using InstancedDrawCallIndexMap = HashMap<uint64, Array<size_t, InlineAllocator<3, RenderAllocator>>, NodeAllocator<RenderAllocator>>;
     InstancedDrawCallIndexMap indexMap;
 };
 

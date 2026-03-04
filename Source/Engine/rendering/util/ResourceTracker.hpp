@@ -18,7 +18,7 @@
 namespace Hyperion {
 
 HYP_API extern const Class* GetClass(const TypeId& typeId);
-HYP_API extern SizeType GetNumDescendants(TypeId typeId);
+HYP_API extern size_t GetNumDescendants(TypeId typeId);
 HYP_API extern int GetSubclassIndex(TypeId baseTypeId, TypeId subclassTypeId);
 
 HYP_API extern const TypeInfo& Class_GetTypeInfo(const Class& cls);
@@ -62,10 +62,10 @@ public:
         ResourceTrackerType* tracker;
 
         // index into subclassImpls (and subclassIndices)
-        SizeType subclassImplIndex;
-        SizeType elementIndex;
+        size_t subclassImplIndex;
+        size_t elementIndex;
 
-        IteratorBase(ResourceTrackerType* tracker, SizeType subclassIdx, SizeType elemIdx)
+        IteratorBase(ResourceTrackerType* tracker, size_t subclassIdx, size_t elemIdx)
             : tracker(tracker),
               subclassImplIndex(subclassIdx),
               elementIndex(elemIdx)
@@ -238,7 +238,7 @@ public:
 
         Iterator() = delete;
 
-        Iterator(ResourceTracker* tracker, SizeType subclassImplIndex, SizeType elementIndex)
+        Iterator(ResourceTracker* tracker, size_t subclassImplIndex, size_t elementIndex)
             : IteratorBase<Iterator, false>(tracker, subclassImplIndex, elementIndex)
         {
         }
@@ -259,7 +259,7 @@ public:
 
         ConstIterator() = delete;
 
-        ConstIterator(const ResourceTracker* tracker, SizeType subclassImplIndex, SizeType elementIndex)
+        ConstIterator(const ResourceTracker* tracker, size_t subclassImplIndex, size_t elementIndex)
             : IteratorBase<ConstIterator, true>(tracker, subclassImplIndex, elementIndex)
         {
         }
@@ -292,7 +292,7 @@ public:
           cachedDiffNeedsUpdate(false)
     {
         // Setup the subclass implementations array, we initialize them as they get used
-        const SizeType numDescendants = GetNumDescendants(TypeIdOf<typename IdType::ObjectType>());
+        const size_t numDescendants = GetNumDescendants(TypeIdOf<typename IdType::ObjectType>());
         subclassImpls.Resize(numDescendants);
     }
 
@@ -816,14 +816,14 @@ public:
 
         HYP_FORCE_INLINE Bitset GetAdded() const
         {
-            const SizeType newNumBits = MathUtil::Max(previous.NumBits(), next.NumBits());
+            const size_t newNumBits = MathUtil::Max(previous.NumBits(), next.NumBits());
 
             return Bitset(next).SetNumBits(newNumBits) & ~Bitset(previous).SetNumBits(newNumBits);
         }
 
         HYP_FORCE_INLINE Bitset GetRemoved() const
         {
-            const SizeType newNumBits = MathUtil::Max(previous.NumBits(), next.NumBits());
+            const size_t newNumBits = MathUtil::Max(previous.NumBits(), next.NumBits());
 
             return Bitset(previous).SetNumBits(newNumBits) & ~Bitset(next).SetNumBits(newNumBits);
         }
@@ -833,7 +833,7 @@ public:
             Bitset bits = previous | next;
             Bitset removed = GetRemoved();
 
-            const SizeType newNumBits = MathUtil::Max(bits.NumBits(), removed.NumBits());
+            const size_t newNumBits = MathUtil::Max(bits.NumBits(), removed.NumBits());
 
             return bits.SetNumBits(newNumBits) & ~removed.SetNumBits(newNumBits);
         }
@@ -1321,7 +1321,7 @@ static inline void GetAddedElements(ResourceTracker<IdType, ElementType, ProxyTy
         const Bitset& lhsElements = lhsImpl.next;
         const Bitset& rhsElements = rhsImpl.next;
 
-        const SizeType newNumBits = MathUtil::Max(lhsElements.NumBits(), rhsElements.NumBits());
+        const size_t newNumBits = MathUtil::Max(lhsElements.NumBits(), rhsElements.NumBits());
         Bitset addedBits = Bitset(rhsElements).SetNumBits(newNumBits) & ~Bitset(lhsElements).SetNumBits(newNumBits);
 
         if (!addedBits.AnyBitsSet())
@@ -1364,7 +1364,7 @@ static inline void GetRemovedElements(ResourceTracker<IdType, ElementType, Proxy
         const Bitset& lhsElements = lhsImpl.next;
         const Bitset& rhsElements = rhsImpl.next;
 
-        const SizeType newNumBits = MathUtil::Max(lhsElements.NumBits(), rhsElements.NumBits());
+        const size_t newNumBits = MathUtil::Max(lhsElements.NumBits(), rhsElements.NumBits());
         Bitset removedBits = Bitset(lhsElements).SetNumBits(newNumBits) & ~Bitset(rhsElements).SetNumBits(newNumBits);
 
         if (!removedBits.AnyBitsSet())

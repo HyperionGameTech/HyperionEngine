@@ -50,7 +50,7 @@ using ScriptAllocator = AllocatorInstance<Pool, &g_scriptPool>;
 
 using ScriptArray = Array<BoxedValue, ScriptAllocator>;
 
-static inline void* ScriptAlloc(SizeType size, SizeType alignment = 1)
+static inline void* ScriptAlloc(size_t size, size_t alignment = 1)
 {
     return g_scriptPool->Allocate(size, alignment);
 }
@@ -306,7 +306,7 @@ bool StringifyData(const BoxedValue& value, ScriptString& outString, int maxDept
         return true;
     }
 
-    constexpr SizeType StringBufferSize = 256;
+    constexpr size_t StringBufferSize = 256;
 
     char buf[StringBufferSize] = { 0 };
 
@@ -327,13 +327,13 @@ bool StringifyData(const BoxedValue& value, ScriptString& outString, int maxDept
 
     if (GenericArrayWrapper* arrayWrapper = value.TryGet<GenericArrayWrapper>().TryGet())
     {
-        const SizeType arraySize = arrayWrapper->Size();
+        const size_t arraySize = arrayWrapper->Size();
 
         if (arrayWrapper->CanGetElementByIndex())
         {
             outString = "[";
 
-            for (SizeType i = 0; i < arraySize; i++)
+            for (size_t i = 0; i < arraySize; i++)
             {
                 if (i > 0)
                 {
@@ -442,9 +442,9 @@ bool StringifyData(const BoxedValue& value, ScriptString& outString, int maxDept
             return true;
         }
 
-        if (SizeType(n) >= StringBufferSize)
+        if (size_t(n) >= StringBufferSize)
         {
-            const SizeType newBufSize = SizeType(n) + 1;
+            const size_t newBufSize = size_t(n) + 1;
 
             char* newBuf = (char*)ScriptAlloc(newBufSize);
             Assert(newBuf != nullptr);
@@ -456,7 +456,7 @@ bool StringifyData(const BoxedValue& value, ScriptString& outString, int maxDept
                 cls->GetName().LookupString(),
                 value.ToRef().GetPointer());
 
-            if (n < 0 || SizeType(n) >= newBufSize)
+            if (n < 0 || size_t(n) >= newBufSize)
             {
                 ScriptFree(newBuf);
 
@@ -494,7 +494,7 @@ String ValueToString(const BoxedValue& value, int currDepth)
     // internal data
     if (const ScriptObjectData* data = reinterpret_cast<const ScriptObjectData*>(value.TryGet<BoxedValue::InlineData>().TryGet()))
     {
-        constexpr SizeType bufSize = 256;
+        constexpr size_t bufSize = 256;
         char buf[bufSize] = { 0 };
 
         switch (data->type)
@@ -560,7 +560,7 @@ Script_StaticMemory::~Script_StaticMemory()
 #pragma region Script_StackMemory
 
 // 64 KiB stack size
-static constexpr SizeType stackSize = ((64 * 1024) + (sizeof(BoxedValue) - 1)) / sizeof(BoxedValue);
+static constexpr size_t stackSize = ((64 * 1024) + (sizeof(BoxedValue) - 1)) / sizeof(BoxedValue);
 
 Script_StackMemory::Script_StackMemory()
     : m_data((BoxedValue*)ScriptAlloc(stackSize * sizeof(BoxedValue), alignof(BoxedValue))),
@@ -577,7 +577,7 @@ Script_StackMemory::~Script_StackMemory()
 
 void Script_StackMemory::Purge()
 {
-    for (SizeType i = m_sp; i > 0; i--)
+    for (size_t i = m_sp; i > 0; i--)
     {
         m_data[i - 1].~BoxedValue();
     }
@@ -873,7 +873,7 @@ public:
 
         if (index >= array.Size())
         {
-            vm->ThrowException(instance, Exception::OutOfBoundsException(SizeType(index), array.Size()));
+            vm->ThrowException(instance, Exception::OutOfBoundsException(size_t(index), array.Size()));
 
             return;
         }
@@ -3636,9 +3636,9 @@ void VirtualMachine::InvokeNow(ScriptInstance* instance, BoxedValue&& value, uin
     Script_ExecutionThread* thread = &instance->thread;
     BytecodeStream* bs = &instance->stream;
 
-    const SizeType positionBefore = bs->Position();
+    const size_t positionBefore = bs->Position();
     const uint32 originalFunctionDepth = instance->thread.m_funcDepth;
-    const SizeType stackSizeBefore = instance->thread.GetStack().GetStackPointer();
+    const size_t stackSizeBefore = instance->thread.GetStack().GetStackPointer();
 
     InstructionHandler handler(this, instance);
 
@@ -3687,16 +3687,16 @@ void VirtualMachine::InvokeNow(ScriptInstance* instance, BoxedValue&& value, uin
 
 void VirtualMachine::CreateTrace(ScriptInstance* instance, Script_Trace* outTrace)
 {
-    const SizeType maxStackTraceSize = std::size(outTrace->callAddresses);
+    const size_t maxStackTraceSize = std::size(outTrace->callAddresses);
 
     for (int& callAddress : outTrace->callAddresses)
     {
         callAddress = -1;
     }
 
-    SizeType numRecordedCallAddresses = 0;
+    size_t numRecordedCallAddresses = 0;
 
-    for (SizeType sp = instance->thread.m_stack.GetStackPointer(); sp != 0; sp--)
+    for (size_t sp = instance->thread.m_stack.GetStackPointer(); sp != 0; sp--)
     {
         if (numRecordedCallAddresses >= maxStackTraceSize)
         {

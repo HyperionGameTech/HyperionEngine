@@ -310,7 +310,7 @@ static Optional<Pair<int32, uint32>> ParseUIObjectSizeElement(String str)
         return Pair<int32, uint32> { 100, UIObjectSize::FILL };
     }
 
-    const SizeType percentIndex = str.FindFirstIndex("%");
+    const size_t percentIndex = str.FindFirstIndex("%");
 
     int32 parsedInt;
 

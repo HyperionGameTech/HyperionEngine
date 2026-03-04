@@ -84,7 +84,7 @@ const VulkanGpuImageViewRef& VulkanTextureViewCache::GetOrCreate(
 
     Assert(texture != nullptr);
 
-    const SizeType idx = texture->Id().ToIndex();
+    const size_t idx = texture->Id().ToIndex();
 
     TSharedLock sharedLock(mutex);
 
@@ -138,7 +138,7 @@ void VulkanTextureViewCache::RemoveTexture(const Texture* texture)
         return;
     }
 
-    const SizeType idx = texture->Id().ToIndex();
+    const size_t idx = texture->Id().ToIndex();
 
     TUniqueLock lock(mutex);
 
@@ -181,7 +181,7 @@ void VulkanTextureViewCache::CleanupUnusedTextures()
 
         if (entry.Expired())
         {
-            const SizeType idx = weakTextureHandles.IndexOf(cleanupIterator);
+            const size_t idx = weakTextureHandles.IndexOf(cleanupIterator);
 
             Assert(imageViews.HasIndex(idx));
             Assert(weakTextureHandles.HasIndex(idx));

@@ -28,21 +28,21 @@ public:
 
     bool IsOpen() const;
     void Close();
-    bool Reopen(const MemoryMappedFile& file, SizeType offset, SizeType size);
+    bool Reopen(const MemoryMappedFile& file, size_t offset, size_t size);
 
-    SizeType Size() const;
-    SizeType FileOffset() const;
+    size_t Size() const;
+    size_t FileOffset() const;
     void* Data();
     const void* Data() const;
 
 private:
     friend class MemoryMappedFile;
 
-    SizeType m_mapOffset;
-    SizeType m_mapSize;
-    SizeType m_viewOffset;
-    SizeType m_viewSize;
-    SizeType m_fileOffset;
+    size_t m_mapOffset;
+    size_t m_mapSize;
+    size_t m_viewOffset;
+    size_t m_viewSize;
+    size_t m_fileOffset;
     void* m_address;
     bool m_isOpen;
 };
@@ -74,15 +74,15 @@ public:
     void Close();
 
     bool IsOpen() const;
-    SizeType FileSize() const;
+    size_t FileSize() const;
 
     Mode GetMode() const;
     void SetMode(Mode mode);
 
-    bool Resize(SizeType newSize);
-    bool EnsureCapacity(SizeType capacity);
+    bool Resize(size_t newSize);
+    bool EnsureCapacity(size_t capacity);
 
-    bool MapRange(SizeType offset, SizeType size, MemoryMappedFileView& outView) const;
+    bool MapRange(size_t offset, size_t size, MemoryMappedFileView& outView) const;
 
 private:
     Pimpl<struct MemoryMappedFileImpl> m_impl;

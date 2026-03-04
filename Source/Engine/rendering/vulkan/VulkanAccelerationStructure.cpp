@@ -215,10 +215,10 @@ RendererResult VulkanAccelerationStructureBase::CreateAccelerationStructure(
         primitiveCounts.Data(),
         &buildSizesInfo);
 
-    const SizeType scratchBufferAlignment = g_renderInterface->GetDevice()->GetFeatures().GetAccelerationStructureProperties().minAccelerationStructureScratchOffsetAlignment;
-    SizeType accelerationStructureSize = MathUtil::NextMultiple(buildSizesInfo.accelerationStructureSize, 256ull);
-    SizeType buildScratchSize = MathUtil::NextMultiple(buildSizesInfo.buildScratchSize, scratchBufferAlignment);
-    SizeType updateScratchSize = MathUtil::NextMultiple(buildSizesInfo.updateScratchSize, scratchBufferAlignment);
+    const size_t scratchBufferAlignment = g_renderInterface->GetDevice()->GetFeatures().GetAccelerationStructureProperties().minAccelerationStructureScratchOffsetAlignment;
+    size_t accelerationStructureSize = MathUtil::NextMultiple(buildSizesInfo.accelerationStructureSize, 256ull);
+    size_t buildScratchSize = MathUtil::NextMultiple(buildSizesInfo.buildScratchSize, scratchBufferAlignment);
+    size_t updateScratchSize = MathUtil::NextMultiple(buildSizesInfo.updateScratchSize, scratchBufferAlignment);
 
     bool wasRebuilt = false;
 
@@ -301,7 +301,7 @@ RendererResult VulkanAccelerationStructureBase::CreateAccelerationStructure(
         g_renderInterface->GetDevice()->GetDevice(),
         &addressInfo);
 
-    const SizeType scratchSize = (update && !wasRebuilt) ? updateScratchSize : buildScratchSize;
+    const size_t scratchSize = (update && !wasRebuilt) ? updateScratchSize : buildScratchSize;
 
     if (m_scratchBuffer && m_scratchBuffer->Size() < scratchSize)
     {
@@ -332,7 +332,7 @@ RendererResult VulkanAccelerationStructureBase::CreateAccelerationStructure(
     Array<VkAccelerationStructureBuildRangeInfoKHR*, VulkanTempAllocator> rangeInfoPtrs;
     rangeInfoPtrs.Resize(geometries.Size());
 
-    for (SizeType i = 0; i < geometries.Size(); i++)
+    for (size_t i = 0; i < geometries.Size(); i++)
     {
         rangeInfos[i] = VkAccelerationStructureBuildRangeInfoKHR {
             .primitiveCount = primitiveCounts[i],
@@ -639,8 +639,8 @@ RendererResult VulkanGpuTlas::BuildInstancesBuffer(uint32 first, uint32 last)
     //     return RendererResult();
     // }
 
-    constexpr SizeType minInstancesBufferSize = sizeof(VkAccelerationStructureInstanceKHR);
-    const SizeType instancesBufferSize = MathUtil::Max(minInstancesBufferSize, m_blases.Size() * sizeof(VkAccelerationStructureInstanceKHR));
+    constexpr size_t minInstancesBufferSize = sizeof(VkAccelerationStructureInstanceKHR);
+    const size_t instancesBufferSize = MathUtil::Max(minInstancesBufferSize, m_blases.Size() * sizeof(VkAccelerationStructureInstanceKHR));
 
     bool instancesBufferRecreated = false;
 
@@ -717,8 +717,8 @@ RendererResult VulkanGpuTlas::BuildMeshDescriptionsBuffer(uint32 first, uint32 l
 
     last = MathUtil::Min(m_blases.Size(), last);
 
-    constexpr SizeType minMeshDescriptionsBufferSize = sizeof(MeshDescription);
-    const SizeType meshDescriptionsBufferSize = MathUtil::Max(minMeshDescriptionsBufferSize, sizeof(MeshDescription) * m_blases.Size());
+    constexpr size_t minMeshDescriptionsBufferSize = sizeof(MeshDescription);
+    const size_t meshDescriptionsBufferSize = MathUtil::Max(minMeshDescriptionsBufferSize, sizeof(MeshDescription) * m_blases.Size());
 
     bool meshDescriptionsBufferRecreated = false;
     
@@ -945,7 +945,7 @@ RendererResult VulkanGpuBlas::Create()
         return HYP_MAKE_ERROR(RendererError, "Cannot create GpuBlas with zero geometries");
     }
 
-    for (SizeType i = 0; i < m_geometries.Size(); i++)
+    for (size_t i = 0; i < m_geometries.Size(); i++)
     {
         const VulkanAccelerationGeometryRef& geometry = m_geometries[i];
 
@@ -1005,7 +1005,7 @@ RendererResult VulkanGpuBlas::Rebuild(RTUpdateStateFlags& outUpdateStateFlags)
     Array<VkAccelerationStructureGeometryKHR> geometries(m_geometries.Size());
     Array<uint32> primitiveCounts(m_geometries.Size());
 
-    for (SizeType i = 0; i < m_geometries.Size(); i++)
+    for (size_t i = 0; i < m_geometries.Size(); i++)
     {
         const VulkanAccelerationGeometryRef& geometry = m_geometries[i];
         Assert(geometry != nullptr);

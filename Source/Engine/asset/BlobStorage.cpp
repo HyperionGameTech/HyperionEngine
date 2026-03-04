@@ -113,7 +113,7 @@ private:
     }
 
 public:
-    explicit BlobTableOfContents(SizeType capacity = 1024)
+    explicit BlobTableOfContents(size_t capacity = 1024)
         : dirty(false)
     {
         AllocateNew(capacity);
@@ -136,8 +136,8 @@ public:
         const MapHeader* header = GetHeader();
         const Entry* entries = reinterpret_cast<const Entry*>(mem.Data() + sizeof(MapHeader));
 
-        SizeType idx = key.GetHashCode().Value() % header->capacity;
-        SizeType startIdx = idx;
+        size_t idx = key.GetHashCode().Value() % header->capacity;
+        size_t startIdx = idx;
 
         while (entries[idx].state != SlotState::Empty)
         {
@@ -162,7 +162,7 @@ public:
         MapHeader* header = GetHeader();
 
         // resize if (occupied + deleted) > 70% of Capacity
-        SizeType totalLoad = header->size + header->deleted;
+        size_t totalLoad = header->size + header->deleted;
         if (totalLoad * 10 >= header->capacity * 7)
         {
             Resize(header->capacity * 2);
@@ -172,7 +172,7 @@ public:
 
         Entry* entries = GetBuckets();
 
-        SizeType idx = key.GetHashCode().Value() % header->capacity;
+        size_t idx = key.GetHashCode().Value() % header->capacity;
         
         int64 firstDeleted = -1; 
 
@@ -204,7 +204,7 @@ public:
 
         // key not found. insert new.
         // if we passed a deleted element, recycle it. otherwise use the current EMPTY slot.
-        SizeType insertIdx = (firstDeleted != -1) ? SizeType(firstDeleted) : idx;
+        size_t insertIdx = (firstDeleted != -1) ? size_t(firstDeleted) : idx;
 
         if (entries[insertIdx].state == SlotState::Deleted)
         {
@@ -225,8 +225,8 @@ public:
         MapHeader* header = GetHeader();
         Entry* entries = GetBuckets();
 
-        SizeType idx = key.GetHashCode().Value() % header->capacity;
-        SizeType startIdx = idx;
+        size_t idx = key.GetHashCode().Value() % header->capacity;
+        size_t startIdx = idx;
 
         while (entries[idx].state != SlotState::Empty)
         {
@@ -275,11 +275,11 @@ public:
             return HYP_MAKE_ERROR(Error, "Unexpected end of file");
         }
 
-        const SizeType numToRead = stream.Max() - stream.Position();
+        const size_t numToRead = stream.Max() - stream.Position();
 
         outToc.mem.SetSize(numToRead);
 
-        SizeType numRead = stream.Read((void*)outToc.mem.Data(), numToRead);
+        size_t numRead = stream.Read((void*)outToc.mem.Data(), numToRead);
 
         outToc.dirty = false;
 
@@ -294,8 +294,8 @@ public:
 private:
     bool Insert_Internal(MapHeader* header, Entry* entry, StringHash key, const Value& value)
     {
-        SizeType idx = key.GetHashCode().Value() % header->capacity;
-        SizeType startIdx = idx;
+        size_t idx = key.GetHashCode().Value() % header->capacity;
+        size_t startIdx = idx;
 
         while (entry[idx].state == SlotState::Occupied)
         {
@@ -325,9 +325,9 @@ private:
         return true;
     }
 
-    void AllocateNew(SizeType capacity)
+    void AllocateNew(size_t capacity)
     {
-        SizeType totalBytes = sizeof(MapHeader) + (capacity * sizeof(Entry));
+        size_t totalBytes = sizeof(MapHeader) + (capacity * sizeof(Entry));
         mem.SetSize(totalBytes, /* zeroize */ true);
 
         MapHeader* header = GetHeader();
@@ -337,10 +337,10 @@ private:
         header->deleted = 0;
     }
 
-    void Resize(SizeType newCapacity)
+    void Resize(size_t newCapacity)
     {
         ByteBuffer newMem;
-        SizeType totalBytes = sizeof(MapHeader) + (newCapacity * sizeof(Entry));
+        size_t totalBytes = sizeof(MapHeader) + (newCapacity * sizeof(Entry));
         newMem.SetSize(totalBytes, /* zeroize */ true);
 
         Entry* newBuckets = reinterpret_cast<Entry*>(newMem.Data() + sizeof(MapHeader));
@@ -354,7 +354,7 @@ private:
         MapHeader* oldHeader = GetHeader();
         Entry* oldBuckets = GetBuckets();
         
-        for (SizeType i = 0; i < oldHeader->capacity; ++i) 
+        for (size_t i = 0; i < oldHeader->capacity; ++i) 
         {
             // Only copy OCCUPIED
             if (oldBuckets[i].state == SlotState::Occupied)
@@ -532,7 +532,7 @@ bool BlobStorage::InitMappedFile(MemoryMappedFile*& outMappedFile, uint32 page)
         return true;
     }
 
-    const SizeType previousFileSize = pd.file ? pd.file->FileSize() : 0;
+    const size_t previousFileSize = pd.file ? pd.file->FileSize() : 0;
 
     ClosePage(page);
 
@@ -563,7 +563,7 @@ bool BlobStorage::InitMappedFile(MemoryMappedFile*& outMappedFile, uint32 page)
     return false;
 }
 
-bool BlobStorage::GetData(StringHash key, SizeType size, void*& outRawData)
+bool BlobStorage::GetData(StringHash key, size_t size, void*& outRawData)
 {
     Mutex::Guard guard(m_mutex);
 
@@ -616,8 +616,8 @@ bool BlobStorage::PutData(StringHash key, const BlobHeader& header, const void* 
         m_toc = new BlobTableOfContents;
     }
     
-    const SizeType totalBlobSize = header.payloadOffset + header.payloadSize;
-    const SizeType totalBlobSizePlusHeader = sizeof(BlobHeader) + totalBlobSize;
+    const size_t totalBlobSize = header.payloadOffset + header.payloadSize;
+    const size_t totalBlobSizePlusHeader = sizeof(BlobHeader) + totalBlobSize;
 
     BlobTableOfContents::Value existingValue;
     if (m_toc->Get(key, existingValue))
@@ -648,8 +648,8 @@ bool BlobStorage::PutData(StringHash key, const BlobHeader& header, const void* 
 
         BlobPageData& pd = m_pageData[page];
 
-        const SizeType headerOffset = ByteUtil::AlignAs(pd.cursor, alignof(BlobHeader));
-        const SizeType requiredSize = headerOffset + totalBlobSizePlusHeader;
+        const size_t headerOffset = ByteUtil::AlignAs(pd.cursor, alignof(BlobHeader));
+        const size_t requiredSize = headerOffset + totalBlobSizePlusHeader;
 
         if (requiredSize > m_pageSize)
         {
@@ -677,7 +677,7 @@ bool BlobStorage::PutData(StringHash key, const BlobHeader& header, const void* 
 
         writeStream->Seek(writeStream->Position() + header.payloadOffset);
         
-        const SizeType offset = writeStream->Position();
+        const size_t offset = writeStream->Position();
 
         // fill data
         writeStream->Write(rawData, header.payloadSize);

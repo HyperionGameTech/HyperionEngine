@@ -74,7 +74,7 @@ const SymbolType* SemanticAnalyzer::Helpers::ResolvePlaceholderType(
             Array<SymbolTypeMember> newStaticMembers;
             GenericInstanceTypeInfo newGenericInstanceInfo;
 
-            for (SizeType memberIndex = 0; memberIndex < inputType->GetMembers().Size(); memberIndex++)
+            for (size_t memberIndex = 0; memberIndex < inputType->GetMembers().Size(); memberIndex++)
             {
                 const SymbolTypeMember& srcMember = inputType->GetMembers()[memberIndex];
                 Assert(srcMember.GetType() != nullptr);
@@ -100,7 +100,7 @@ const SymbolType* SemanticAnalyzer::Helpers::ResolvePlaceholderType(
                 }
             }
 
-            for (SizeType memberIndex = 0; memberIndex < inputType->GetStaticMembers().Size(); memberIndex++)
+            for (size_t memberIndex = 0; memberIndex < inputType->GetStaticMembers().Size(); memberIndex++)
             {
                 const SymbolTypeMember& srcMember = inputType->GetStaticMembers()[memberIndex];
                 Assert(srcMember.GetType() != nullptr);
@@ -132,7 +132,7 @@ const SymbolType* SemanticAnalyzer::Helpers::ResolvePlaceholderType(
 
                 newGenericInstanceInfo = inputType->GetGenericInstanceInfo();
 
-                for (SizeType i = 0; i < newGenericInstanceInfo.m_genericArgs.Size(); i++)
+                for (size_t i = 0; i < newGenericInstanceInfo.m_genericArgs.Size(); i++)
                 {
                     const SymbolType*& argType = newGenericInstanceInfo.m_genericArgs[i].m_type;
                     Assert(argType != nullptr);
@@ -262,16 +262,16 @@ void SemanticAnalyzer::Helpers::CheckArgTypeCompatible(
     }
 }
 
-SizeType SemanticAnalyzer::Helpers::FindFreeSlot(
-    SizeType currentIndex,
-    const FlatSet<SizeType>& usedIndices,
+size_t SemanticAnalyzer::Helpers::FindFreeSlot(
+    size_t currentIndex,
+    const FlatSet<size_t>& usedIndices,
     const Array<GenericInstanceTypeInfo::Arg>& genericArgs,
     bool isVariadic,
-    SizeType numSuppliedArgs)
+    size_t numSuppliedArgs)
 {
-    const SizeType numParams = genericArgs.Size();
+    const size_t numParams = genericArgs.Size();
 
-    for (SizeType counter = 0; counter < numParams; counter++)
+    for (size_t counter = 0; counter < numParams; counter++)
     {
         // variadic keeps counting
         if (!isVariadic && currentIndex == numParams)
@@ -290,20 +290,20 @@ SizeType SemanticAnalyzer::Helpers::FindFreeSlot(
     }
 
     // no slot available
-    return SizeType(-1);
+    return size_t(-1);
 }
 
-SizeType SemanticAnalyzer::Helpers::ArgIndex(
-    SizeType currentIndex,
+size_t SemanticAnalyzer::Helpers::ArgIndex(
+    size_t currentIndex,
     const ArgInfo& argInfo,
-    const FlatSet<SizeType>& usedIndices,
+    const FlatSet<size_t>& usedIndices,
     const Array<GenericInstanceTypeInfo::Arg>& genericArgs,
     bool isVariadic,
-    SizeType numSuppliedArgs)
+    size_t numSuppliedArgs)
 {
     if (argInfo.isNamed)
     {
-        for (SizeType i = 0; i < genericArgs.Size(); i++)
+        for (size_t i = 0; i < genericArgs.Size(); i++)
         {
             const String& genericArgName = genericArgs[i].m_name;
 
@@ -313,7 +313,7 @@ SizeType SemanticAnalyzer::Helpers::ArgIndex(
             }
         }
 
-        return SizeType(-1);
+        return size_t(-1);
     }
 
     return FindFreeSlot(
@@ -386,12 +386,12 @@ SymbolType* SemanticAnalyzer::Helpers::SubstituteGenericParameters(
         const GenericInstanceTypeInfo& gi = inputType->GetGenericInstanceInfo();
 
         const SymbolType* varargElemType = GetVarArgType(gi.m_genericArgs);
-        const SizeType fixedCount = varargElemType != nullptr
+        const size_t fixedCount = varargElemType != nullptr
             ? gi.m_genericArgs.Size() - 1
             : gi.m_genericArgs.Size();
 
-        const SizeType aliasCount = MathUtil::Min(fixedCount, inArgs.Size());
-        for (SizeType i = 0; i < aliasCount; ++i)
+        const size_t aliasCount = MathUtil::Min(fixedCount, inArgs.Size());
+        for (size_t i = 0; i < aliasCount; ++i)
         {
             const GenericInstanceTypeInfo::Arg& srcArg = gi.m_genericArgs[i];
 
@@ -407,7 +407,7 @@ SymbolType* SemanticAnalyzer::Helpers::SubstituteGenericParameters(
         resolvedArgs.Reserve(MathUtil::Max(gi.m_genericArgs.Size(), inArgs.Size()));
 
         // fixed parameters (by index)
-        for (SizeType i = 0; i < fixedCount; ++i)
+        for (size_t i = 0; i < fixedCount; ++i)
         {
             const bool hasProvided = i < inArgs.Size();
             const GenericInstanceTypeInfo::Arg& src = gi.m_genericArgs[i];
@@ -429,7 +429,7 @@ SymbolType* SemanticAnalyzer::Helpers::SubstituteGenericParameters(
         // variadic parameters (append any remaining supplied args)
         if (varargElemType != nullptr)
         {
-            for (SizeType i = fixedCount; i < inArgs.Size(); ++i)
+            for (size_t i = fixedCount; i < inArgs.Size(); ++i)
             {
                 const GenericInstanceTypeInfo::Arg& src = inArgs[i];
 
@@ -462,7 +462,7 @@ SymbolType* SemanticAnalyzer::Helpers::SubstituteGenericParameters(
             GenericInstanceTypeInfo { resolvedArgs });
 
         // Non-static members
-        for (SizeType i = 0; i < genericInstanceType->GetMembers().Size(); ++i)
+        for (size_t i = 0; i < genericInstanceType->GetMembers().Size(); ++i)
         {
             const SymbolTypeMember& srcMember = genericInstanceType->GetMembers()[i];
             Assert(srcMember.GetType() != nullptr);
@@ -478,7 +478,7 @@ SymbolType* SemanticAnalyzer::Helpers::SubstituteGenericParameters(
         }
 
         // Static members
-        for (SizeType i = 0; i < genericInstanceType->GetStaticMembers().Size(); ++i)
+        for (size_t i = 0; i < genericInstanceType->GetStaticMembers().Size(); ++i)
         {
             const SymbolTypeMember& srcMember = genericInstanceType->GetStaticMembers()[i];
             Assert(srcMember.GetType() != nullptr);
@@ -617,11 +617,11 @@ void SemanticAnalyzer::Helpers::EnsureFunctionArgCompatibility(
 
     const SymbolType* varargType = GetVarArgType(genericArgsWithoutReturn);
 
-    const SizeType numGenericArgs = varargType != nullptr
+    const size_t numGenericArgs = varargType != nullptr
         ? genericArgsWithoutReturn.Size() - 1
         : genericArgsWithoutReturn.Size();
 
-    for (SizeType index = 0; index < args.Size(); index++)
+    for (size_t index = 0; index < args.Size(); index++)
     {
         const RC<AstArgument>& arg = args[index];
 
@@ -685,13 +685,13 @@ bool SemanticAnalyzer::Helpers::SubstituteFunctionArgs(
 
     const SymbolType* varargType = GetVarArgType(argTypesWithoutReturn);
 
-    const SizeType numArgs = varargType != nullptr
+    const size_t numArgs = varargType != nullptr
         ? argTypesWithoutReturn.Size() - 1
         : argTypesWithoutReturn.Size();
 
-    SizeType numArgsNoDefaults = numArgs;
+    size_t numArgsNoDefaults = numArgs;
 
-    for (SizeType index = 0; index < numArgs; ++index)
+    for (size_t index = 0; index < numArgs; ++index)
     {
         if (argTypesWithoutReturn[index].m_defaultValue != nullptr)
         {
@@ -699,7 +699,7 @@ bool SemanticAnalyzer::Helpers::SubstituteFunctionArgs(
         }
     }
 
-    FlatSet<SizeType> usedIndices;
+    FlatSet<size_t> usedIndices;
 
     Array<SubstitutionResult> substitutionResults;
     substitutionResults.Resize(numArgs);
@@ -716,7 +716,7 @@ bool SemanticAnalyzer::Helpers::SubstituteFunctionArgs(
         Array<ArgDataPair> unnamedArgs;
 
         // sort into two separate buckets
-        for (SizeType i = 0; i < args.Size(); i++)
+        for (size_t i = 0; i < args.Size(); i++)
         {
             Assert(args[i] != nullptr);
 
@@ -730,18 +730,18 @@ bool SemanticAnalyzer::Helpers::SubstituteFunctionArgs(
         }
 
         // handle named arguments first
-        for (SizeType i = 0; i < namedArgs.Size(); i++)
+        for (size_t i = 0; i < namedArgs.Size(); i++)
         {
             const ArgDataPair& arg = namedArgs[i];
             Assert(arg.argument != nullptr);
 
-            const SizeType foundIndex = ArgIndex(
+            const size_t foundIndex = ArgIndex(
                 i,
                 arg.argInfo,
                 usedIndices,
                 argTypesWithoutReturn);
 
-            if (foundIndex != SizeType(-1))
+            if (foundIndex != size_t(-1))
             {
                 usedIndices.Insert(foundIndex);
 
@@ -756,7 +756,7 @@ bool SemanticAnalyzer::Helpers::SubstituteFunctionArgs(
                 // );
 
                 Assert(
-                    SizeType(foundIndex) < substitutionResults.Size(),
+                    size_t(foundIndex) < substitutionResults.Size(),
                     "Index out of bounds: {} >= {}",
                     foundIndex,
                     substitutionResults.Size());
@@ -779,12 +779,12 @@ bool SemanticAnalyzer::Helpers::SubstituteFunctionArgs(
         }
 
         // handle unnamed arguments
-        for (SizeType i = 0; i < unnamedArgs.Size(); i++)
+        for (size_t i = 0; i < unnamedArgs.Size(); i++)
         {
             const ArgDataPair& arg = unnamedArgs[i];
             Assert(arg.argument != nullptr);
 
-            SizeType foundIndex = ArgIndex(
+            size_t foundIndex = ArgIndex(
                 i,
                 arg.argInfo,
                 usedIndices,
@@ -807,7 +807,7 @@ bool SemanticAnalyzer::Helpers::SubstituteFunctionArgs(
                 arg.argument->SetIsPassByRef(isRef);
                 arg.argument->SetIsPassConst(isConst);
 
-                if (foundIndex == SizeType(-1) || foundIndex >= substitutionResults.Size())
+                if (foundIndex == size_t(-1) || foundIndex >= substitutionResults.Size())
                 {
                     foundIndex = substitutionResults.Size();
 
@@ -816,7 +816,7 @@ bool SemanticAnalyzer::Helpers::SubstituteFunctionArgs(
                 }
 
                 Assert(
-                    SizeType(foundIndex) < substitutionResults.Size(),
+                    size_t(foundIndex) < substitutionResults.Size(),
                     "Index out of bounds: {} >= {}",
                     foundIndex,
                     substitutionResults.Size());
@@ -828,10 +828,10 @@ bool SemanticAnalyzer::Helpers::SubstituteFunctionArgs(
                     foundIndex
                 };
             }
-            else if (foundIndex != SizeType(-1))
+            else if (foundIndex != size_t(-1))
             {
                 Assert(
-                    SizeType(foundIndex) < substitutionResults.Size(),
+                    size_t(foundIndex) < substitutionResults.Size(),
                     "Index out of bounds: {} >= {}",
                     foundIndex,
                     substitutionResults.Size());
@@ -864,9 +864,9 @@ bool SemanticAnalyzer::Helpers::SubstituteFunctionArgs(
         }
 
         // handle arguments that weren't passed in, but have default assignments.
-        Array<SizeType> unusedIndices;
+        Array<size_t> unusedIndices;
 
-        for (SizeType index = 0; index < numArgs; ++index)
+        for (size_t index = 0; index < numArgs; ++index)
         {
             if (!unusedIndices.Contains(index) && !usedIndices.Contains(index))
             {
@@ -874,11 +874,11 @@ bool SemanticAnalyzer::Helpers::SubstituteFunctionArgs(
             }
         }
 
-        SizeType unusedIndexCounter = 0;
+        size_t unusedIndexCounter = 0;
 
         for (auto it = unusedIndices.Begin(); it != unusedIndices.End();)
         {
-            const SizeType unusedIndex = *it;
+            const size_t unusedIndex = *it;
 
             Assert(unusedIndex < argTypesWithoutReturn.Size());
 
@@ -920,19 +920,19 @@ bool SemanticAnalyzer::Helpers::SubstituteFunctionArgs(
             argInfo.name = substitutedArg->GetName();
             argInfo.type = substitutedArg->GetExprType();
 
-            SizeType foundIndex = ArgIndex(
+            size_t foundIndex = ArgIndex(
                 unusedIndexCounter,
                 argInfo,
                 usedIndices,
                 argTypesWithoutReturn);
 
-            if (foundIndex == SizeType(-1))
+            if (foundIndex == size_t(-1))
             {
                 foundIndex = substitutionResults.Size();
                 substitutionResults.Resize(substitutionResults.Size() + 1);
             }
 
-            Assert(SizeType(foundIndex) < substitutionResults.Size());
+            Assert(size_t(foundIndex) < substitutionResults.Size());
             substitutionResults[foundIndex] = {
                 std::move(substitutedArg),
                 foundIndex
@@ -978,7 +978,7 @@ bool SemanticAnalyzer::Helpers::SubstituteFunctionArgs(
 
     for (const auto& substitutionResult : substitutionResults)
     {
-        if (substitutionResult.index == SizeType(-1))
+        if (substitutionResult.index == size_t(-1))
         {
             // error occurred during substitution
             continue;

@@ -15,7 +15,7 @@
 
 namespace Hyperion {
 
-SharedMemory::SharedMemory(const String& id, SizeType size, Mode mode)
+SharedMemory::SharedMemory(const String& id, size_t size, Mode mode)
     : m_id(id),
       m_size(size),
       m_mode(mode),
@@ -117,7 +117,7 @@ bool SharedMemory::Open()
 #endif
 }
 
-void SharedMemory::Write(const void* data, SizeType count)
+void SharedMemory::Write(const void* data, size_t count)
 {
     Assert(m_mode == Mode::READ_WRITE, "SharedMemory was not constructed with READ_WRITE mode enabled");
     Assert(IsOpened(), "SharedMemory not opened!\n");

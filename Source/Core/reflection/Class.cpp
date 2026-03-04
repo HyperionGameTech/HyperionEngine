@@ -220,7 +220,7 @@ HYP_API int GetSubclassIndex(TypeId baseTypeId, TypeId subclassTypeId)
     return -2;
 }
 
-HYP_API SizeType GetNumDescendants(TypeId typeId)
+HYP_API size_t GetNumDescendants(TypeId typeId)
 {
     const Class* base = GetClass(typeId);
     if (!base)
@@ -1382,18 +1382,18 @@ DynamicClassInstance::DynamicClassInstance(
 
     m_parent = parentClass != nullptr ? parentClass : g_clsObjectBase;
 
-    SizeType dynamicSize = sizeof(ObjectBase);
-    SizeType dynamicAlignment = alignof(ObjectBase);
+    size_t dynamicSize = sizeof(ObjectBase);
+    size_t dynamicAlignment = alignof(ObjectBase);
 
-    auto CalculateDynamicClassSize = [](const Class* cls, SizeType& dynamicSize, SizeType& dynamicAlignment)
+    auto CalculateDynamicClassSize = [](const Class* cls, size_t& dynamicSize, size_t& dynamicAlignment)
     {
         AssertDebug(cls->IsDynamic());
 
         for (const Field* field : cls->GetFields())
         {
             // In dynamic classes for scripts, all fields are stored as BoxedValue
-            const SizeType fieldSize = sizeof(BoxedValue);
-            const SizeType fieldAlignment = alignof(BoxedValue);
+            const size_t fieldSize = sizeof(BoxedValue);
+            const size_t fieldAlignment = alignof(BoxedValue);
 
             dynamicSize = ByteUtil::AlignAs(dynamicSize, fieldAlignment);
 
@@ -1431,7 +1431,7 @@ DynamicClassInstance::DynamicClassInstance(
     dynamicSize = ByteUtil::AlignAs(dynamicSize, alignof(ClassRef));
     dynamicSize += sizeof(ClassRef);
 
-    for (SizeType i = dynamicParents.Size(); i > 0; --i)
+    for (size_t i = dynamicParents.Size(); i > 0; --i)
     {
         CalculateDynamicClassSize(dynamicParents[i - 1], dynamicSize, dynamicAlignment);
     }
@@ -1677,7 +1677,7 @@ bool DynamicClassInstance::CreateInstance_Internal(BoxedValue& out) const
     new (target) ObjectBase();
 
     // where to start writing fields
-    SizeType fieldOffset = (topParent != nullptr && !topParent->IsDynamic() && topParent != g_clsObjectBase ? topParent->GetSize() : 0)
+    size_t fieldOffset = (topParent != nullptr && !topParent->IsDynamic() && topParent != g_clsObjectBase ? topParent->GetSize() : 0)
         + sizeof(ObjectBase);
 
     // add 'class' field
@@ -1689,7 +1689,7 @@ bool DynamicClassInstance::CreateInstance_Internal(BoxedValue& out) const
     new (classFieldPtr) ClassRef(this);
     fieldOffset += sizeof(ClassRef);
 
-    for (SizeType i = dynamicParents.Size(); i > 0; i--)
+    for (size_t i = dynamicParents.Size(); i > 0; i--)
     {
         const Class* dynamicParent = dynamicParents[i - 1];
         AssertDebug(dynamicParent->IsDynamic(), "Expected dynamic parent class");

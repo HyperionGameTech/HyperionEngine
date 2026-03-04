@@ -22,7 +22,7 @@ HYP_NODISCARD RayTestResults BVHNode::TestRay(
 
     if (IsLeafNode())
     {
-        for (SizeType t = 0; t < triangleIds.Size(); ++t)
+        for (size_t t = 0; t < triangleIds.Size(); ++t)
         {
             const uint32 triangleId = triangleIds[t];
             const uint32 i0 = indices[triangleId * 3 + 0];
@@ -65,7 +65,7 @@ HYP_NODISCARD RayTestResults BVHNode::TestRay(
 
     if (IsLeafNode())
     {
-        for (SizeType t = 0; t < triangleIds.Size(); ++t)
+        for (size_t t = 0; t < triangleIds.Size(); ++t)
         {
             const uint32 triangleId = triangleIds[t];
             const uint32 i0 = indices[triangleId * 3 + 0];
@@ -102,21 +102,21 @@ void BVHNode::QuantizeTriangleData(
 {
     HYP_SCOPE;
 
-    const SizeType numVertices = vertexData.Size();
-    const SizeType quantizedVertexSize = numVertices * sizeof(Vec3f);
+    const size_t numVertices = vertexData.Size();
+    const size_t quantizedVertexSize = numVertices * sizeof(Vec3f);
 
     outQuantizedVertexData.SetSize(quantizedVertexSize);
 
     Vec3f* quantizedVertices = reinterpret_cast<Vec3f*>(outQuantizedVertexData.Data());
 
-    for (SizeType i = 0; i < numVertices; i++)
+    for (size_t i = 0; i < numVertices; i++)
     {
         quantizedVertices[i] = vertexData[i].GetPosition();
     }
 
     // Copy index data directly as uint32
-    const SizeType numIndices = indexData.Size();
-    const SizeType indexBufferSize = numIndices * sizeof(uint32);
+    const size_t numIndices = indexData.Size();
+    const size_t indexBufferSize = numIndices * sizeof(uint32);
 
     outQuantizedIndexData.SetSize(indexBufferSize);
     outQuantizedIndexData.Write(indexBufferSize, 0, indexData.Data());

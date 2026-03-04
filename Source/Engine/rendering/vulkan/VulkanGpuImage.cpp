@@ -29,7 +29,7 @@
 
 namespace Hyperion {
 
-static constexpr SizeType MaxImageBytes = 256 * 1024 * 1024; // 256 MiB - cannot be larger than a block in our blob storage system
+static constexpr size_t MaxImageBytes = 256 * 1024 * 1024; // 256 MiB - cannot be larger than a block in our blob storage system
 
 extern VulkanRenderInterface* g_renderInterface;
 

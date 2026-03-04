@@ -483,7 +483,7 @@ void Texture::GenerateMipmaps(TextureDesc& desc, ByteBuffer& imageData)
 
         if (!intermediateBuffer)
         {
-            SizeType intermediateBufferSize = dstMipSize;
+            size_t intermediateBufferSize = dstMipSize;
 
             if (desc.format >= TextureFormat::R16F && desc.format <= TextureFormat::RGBA16F)
             {
@@ -530,7 +530,7 @@ void Texture::GenerateMipmaps(TextureDesc& desc, ByteBuffer& imageData)
                 const Float16* float16Data = reinterpret_cast<const Float16*>(srcView.Data());
 
                 // initialize f32 data from f16
-                for (SizeType byteIndex = 0; byteIndex < srcMipSize; byteIndex += sizeof(Float16))
+                for (size_t byteIndex = 0; byteIndex < srcMipSize; byteIndex += sizeof(Float16))
                 {
                     *(reinterpret_cast<float32*>(scratchBuffer + (byteIndex * 2))) = *(float16Data + (byteIndex / sizeof(Float16)));
                 }
@@ -543,7 +543,7 @@ void Texture::GenerateMipmaps(TextureDesc& desc, ByteBuffer& imageData)
                     numChannels);
 
                 // scratchData now used to store result converted to f16
-                for (SizeType byteIndex = 0; byteIndex < dstMipSize * 2; byteIndex += sizeof(float32))
+                for (size_t byteIndex = 0; byteIndex < dstMipSize * 2; byteIndex += sizeof(float32))
                 {
                     *reinterpret_cast<Float16*>(scratchBuffer + (byteIndex / 2)) = *(reinterpret_cast<const float32*>(intermediateBuffer + byteIndex));
                 }

@@ -288,7 +288,7 @@ public:
 
     virtual RayTracingPipelineRef MakeRayTracingPipeline(const ShaderInstanceRef& shader) = 0;
 
-    virtual GpuBufferRef MakeGpuBuffer(GpuBufferType bufferType, SizeType size, SizeType alignment = 0) = 0;
+    virtual GpuBufferRef MakeGpuBuffer(GpuBufferType bufferType, size_t size, size_t alignment = 0) = 0;
 
     virtual GpuImageRef MakeImage(const TextureDesc& textureDesc) = 0;
 

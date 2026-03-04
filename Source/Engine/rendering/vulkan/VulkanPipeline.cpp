@@ -47,7 +47,7 @@ bool VulkanPipelineBase::IsCreated() const
     return m_handle != VK_NULL_HANDLE;
 }
 
-void VulkanPipelineBase::SetPushConstants(const void* data, SizeType size)
+void VulkanPipelineBase::SetPushConstants(const void* data, size_t size)
 {
     Assert(size <= 128, "Push constant data size exceeds 128 bytes");
 

@@ -107,7 +107,7 @@ void VulkanComputePipeline::Dispatch(
 void VulkanComputePipeline::DispatchIndirect(
     VulkanCommandBuffer* commandBuffer,
     const VulkanGpuBufferRef& indirectBuffer,
-    SizeType offset) const
+    size_t offset) const
 {
     vkCmdDispatchIndirect(
         commandBuffer->GetVulkanHandle(),
@@ -183,7 +183,7 @@ RendererResult VulkanComputePipeline::Create()
     return {};
 }
 
-void VulkanComputePipeline::SetPushConstants(const void* data, SizeType size)
+void VulkanComputePipeline::SetPushConstants(const void* data, size_t size)
 {
     VulkanPipelineBase::SetPushConstants(data, size);
 }

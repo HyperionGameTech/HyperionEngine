@@ -134,9 +134,9 @@ bool BoxedToJSON(
     DO_NUMERIC_TYPE(double);
 
 #ifdef HYP_WINDOWS
-    if constexpr (!std::is_same_v<SizeType, uint64> && !std::is_same_v<SizeType, uint32>)
+    if constexpr (!std::is_same_v<size_t, uint64> && !std::is_same_v<size_t, uint32>)
     {
-        DO_NUMERIC_TYPE(SizeType);
+        DO_NUMERIC_TYPE(size_t);
     }
 #endif
 
@@ -249,12 +249,12 @@ bool BoxedToJSON(
 
         ITypeInfoArrayHandler* handler = static_cast<ITypeInfoArrayHandler*>(typeInfo.extendedInfo.handler);
 
-        const SizeType size = handler->GetSize(value);
+        const size_t size = handler->GetSize(value);
 
         JSON::JArray jsonArray;
         jsonArray.Reserve(size);
 
-        for (SizeType i = 0; i < size; i++)
+        for (size_t i = 0; i < size; i++)
         {
             BoxedValue element;
 
@@ -303,7 +303,7 @@ bool BoxedToJSON(
 
         ITypeInfoSetHandler* handler = static_cast<ITypeInfoSetHandler*>(typeInfo.extendedInfo.handler);
 
-        const SizeType size = handler->GetSize(value);
+        const size_t size = handler->GetSize(value);
 
         JSON::JArray jsonArray;
         jsonArray.Reserve(size);
@@ -1110,16 +1110,16 @@ bool BoxedFromJSON(const JSON::Value& jsonValue, const TypeInfo& typeInfo, Boxed
         }
 
 #ifdef HYP_WINDOWS
-        if constexpr (!std::is_same_v<SizeType, uint64> && !std::is_same_v<SizeType, uint32>)
+        if constexpr (!std::is_same_v<size_t, uint64> && !std::is_same_v<size_t, uint32>)
         {
-            if (typeInfo.id == TypeId::ForType<SizeType>())
+            if (typeInfo.id == TypeId::ForType<size_t>())
             {
                 if (number < 0 || number > SIZE_MAX)
                 {
                     return false;
                 }
 
-                outBoxed = BoxedValue(SizeType(number));
+                outBoxed = BoxedValue(size_t(number));
                 return true;
             }
         }
@@ -1396,7 +1396,7 @@ bool BoxedFromJSON(const JSON::Value& jsonValue, const TypeInfo& typeInfo, Boxed
             return false;
         }
 
-        for (SizeType i = 0; i < jsonArray.Size(); i++)
+        for (size_t i = 0; i < jsonArray.Size(); i++)
         {
             BoxedValue elementData;
 
@@ -1450,7 +1450,7 @@ bool BoxedFromJSON(const JSON::Value& jsonValue, const TypeInfo& typeInfo, Boxed
 
         arrayHandler->Resize(arrayInstance, jsonArray.Size());
 
-        for (SizeType i = 0; i < jsonArray.Size(); i++)
+        for (size_t i = 0; i < jsonArray.Size(); i++)
         {
             if (jsonArray[i].IsNull())
             {
@@ -1513,7 +1513,7 @@ bool BoxedFromJSON(const JSON::Value& jsonValue, const TypeInfo& typeInfo, Boxed
             return false;
         }
 
-        for (SizeType i = 0; i < jsonArray.Size(); i++)
+        for (size_t i = 0; i < jsonArray.Size(); i++)
         {
             if (jsonArray[i].IsNull())
             {

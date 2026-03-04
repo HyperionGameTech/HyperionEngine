@@ -187,7 +187,7 @@ protected:
 
 public:
     static constexpr int invalidTypeIndex = -1;
-    static constexpr SizeType typeCount = sizeof...(Types);
+    static constexpr size_t typeCount = sizeof...(Types);
 
     static const TypeId typeIds[sizeof...(Types) + 1];
     static const TypeInfo* typeInfos[sizeof...(Types) + 1];
@@ -577,8 +577,8 @@ public:
     }
 
 protected:
-    static constexpr SizeType maxSize = MathUtil::Max(sizeof(Types)...);
-    static constexpr SizeType maxAlign = MathUtil::Max(alignof(Types)...);
+    static constexpr size_t maxSize = MathUtil::Max(sizeof(Types)...);
+    static constexpr size_t maxAlign = MathUtil::Max(alignof(Types)...);
 
     struct alignas(maxAlign) Storage
     {
@@ -768,7 +768,7 @@ struct Variant : private ConstructAssignmentTraits<true, utilities::VariantHelpe
     // we do sizeof...(Types) + 1 so getting type id from index is just accessing the element at type index + 1.
     static const TypeId typeIds[sizeof...(Types) + 1];
     static const TypeInfo* typeInfos[sizeof...(Types) + 1];
-    static constexpr SizeType typeCount = sizeof...(Types);
+    static constexpr size_t typeCount = sizeof...(Types);
 
     constexpr Variant() = default;
 
@@ -1199,10 +1199,10 @@ struct IsVariant<utilities::Variant<Types...>> : std::true_type
 {
     using VariantType = utilities::Variant<Types...>;
 
-    template <SizeType Index>
+    template <size_t Index>
     using TypeAtIndex = typename std::tuple_element<Index, std::tuple<Types...>>::type;
 
-    static constexpr SizeType size = sizeof...(Types);
+    static constexpr size_t size = sizeof...(Types);
 };
 
 } // namespace Hyperion

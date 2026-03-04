@@ -415,7 +415,7 @@ struct PooledNodeAllocator
             }
         }
 
-        void Reserve(SizeType capacity, Span<Bucket> buckets)
+        void Reserve(size_t capacity, Span<Bucket> buckets)
         {
             if (capacity <= m_pool.Capacity())
             {
@@ -495,7 +495,7 @@ struct NodeAllocator
             m_pAllocator->Free(node);
         }
 
-        HYP_FORCE_INLINE void Reserve(SizeType /*capacity*/, Span<Bucket> /*buckets*/)
+        HYP_FORCE_INLINE void Reserve(size_t /*capacity*/, Span<Bucket> /*buckets*/)
         {
             // No-op for dynamic allocation
         }
@@ -532,7 +532,7 @@ class HashSet : public ContainerBase<HashSet<Value, KeyBy, NodeAllocatorType>, d
 public:
     static constexpr bool isContiguous = false;
 
-    static constexpr SizeType InitialBucketSize = 16;
+    static constexpr size_t InitialBucketSize = 16;
     static constexpr double DesiredLoadFactor = 0.75;
 
     using Node = HashSetElement<Value>;
@@ -768,12 +768,12 @@ public:
     HYP_FORCE_INLINE bool operator==(const HashSet& other) const = delete;
     HYP_FORCE_INLINE bool operator!=(const HashSet& other) const = delete;
 
-    HYP_FORCE_INLINE SizeType Size() const
+    HYP_FORCE_INLINE size_t Size() const
     {
         return m_size;
     }
 
-    HYP_FORCE_INLINE SizeType Capacity() const
+    HYP_FORCE_INLINE size_t Capacity() const
     {
         if constexpr (IsPooledNodeAllocator<NodeAllocatorType>::value)
         {
@@ -781,16 +781,16 @@ public:
         }
         else
         {
-            return SizeType(-1); // Dynamic allocators do not have a capacity
+            return size_t(-1); // Dynamic allocators do not have a capacity
         }
     }
 
-    HYP_FORCE_INLINE SizeType BucketCount() const
+    HYP_FORCE_INLINE size_t BucketCount() const
     {
         return m_buckets.Size();
     }
 
-    HYP_FORCE_INLINE double LoadFactor(SizeType size) const
+    HYP_FORCE_INLINE double LoadFactor(size_t size) const
     {
         return double(size) / double(BucketCount());
     }
@@ -800,7 +800,7 @@ public:
         return DesiredLoadFactor;
     }
 
-    void Reserve(SizeType capacity);
+    void Reserve(size_t capacity);
 
     Iterator Find(const KeyType& value);
     ConstIterator Find(const KeyType& value) const;
@@ -880,7 +880,7 @@ public:
     }
 
     template <class TFindAsType>
-    HYP_FORCE_INLINE SizeType Count(const TFindAsType& value) const
+    HYP_FORCE_INLINE size_t Count(const TFindAsType& value) const
     {
         auto it = FindAs(value);
 
@@ -889,7 +889,7 @@ public:
             return 0;
         }
 
-        SizeType count = 0;
+        size_t count = 0;
 
         for (; it != End() && keyByFn(*it) == value; ++it)
         {
@@ -973,7 +973,7 @@ public:
         Array<Value> result;
         result.ResizeUninitialized(m_size);
 
-        SizeType index = 0;
+        size_t index = 0;
 
         for (const auto& item : *this)
         {
@@ -988,7 +988,7 @@ public:
         Array<Value> result;
         result.ResizeUninitialized(m_size);
 
-        SizeType index = 0;
+        size_t index = 0;
 
         for (auto&& item : std::move(*this))
         {
@@ -1056,7 +1056,7 @@ protected:
         return HashCode::GetHashCode(keyByFn(value));
     }
 
-    void CheckAndRebuildBuckets(SizeType neededCapacity);
+    void CheckAndRebuildBuckets(size_t neededCapacity);
 
     HYP_FORCE_INLINE Bucket* GetBucketForHash(HashCode::ValueType hash)
     {
@@ -1070,7 +1070,7 @@ protected:
 
     BucketArray m_buckets;
     typename NodeAllocatorType::template Impl<Value> m_nodeAllocator;
-    SizeType m_size;
+    size_t m_size;
 };
 
 template <class Value, auto KeyBy, class NodeAllocatorType>
@@ -1118,7 +1118,7 @@ HashSet<Value, KeyBy, NodeAllocatorType>::HashSet(const HashSet& other)
 
     if (m_size != 0)
     {
-        for (SizeType bucketIndex = 0; bucketIndex < other.m_buckets.Size(); bucketIndex++)
+        for (size_t bucketIndex = 0; bucketIndex < other.m_buckets.Size(); bucketIndex++)
         {
             const auto& bucket = other.m_buckets[bucketIndex];
 
@@ -1160,7 +1160,7 @@ auto HashSet<Value, KeyBy, NodeAllocatorType>::operator=(const HashSet& other) -
 
     m_buckets.ResizeZeroed(other.m_buckets.Size());
 
-    for (SizeType bucketIndex = 0; bucketIndex < other.m_buckets.Size(); bucketIndex++)
+    for (size_t bucketIndex = 0; bucketIndex < other.m_buckets.Size(); bucketIndex++)
     {
         const auto& bucket = other.m_buckets[bucketIndex];
 
@@ -1236,11 +1236,11 @@ HashSet<Value, KeyBy, NodeAllocatorType>::~HashSet()
 }
 
 template <class Value, auto KeyBy, class NodeAllocatorType>
-void HashSet<Value, KeyBy, NodeAllocatorType>::Reserve(SizeType capacity)
+void HashSet<Value, KeyBy, NodeAllocatorType>::Reserve(size_t capacity)
 {
     m_nodeAllocator.Reserve(capacity, m_buckets);
 
-    const SizeType newBucketCount = SizeType(MathUtil::Ceil(double(capacity) / MaxLoadFactor()));
+    const size_t newBucketCount = size_t(MathUtil::Ceil(double(capacity) / MaxLoadFactor()));
 
     if (newBucketCount <= m_buckets.Size())
     {
@@ -1271,7 +1271,7 @@ void HashSet<Value, KeyBy, NodeAllocatorType>::Reserve(SizeType capacity)
 }
 
 template <class Value, auto KeyBy, class NodeAllocatorType>
-void HashSet<Value, KeyBy, NodeAllocatorType>::CheckAndRebuildBuckets(SizeType neededCapacity)
+void HashSet<Value, KeyBy, NodeAllocatorType>::CheckAndRebuildBuckets(size_t neededCapacity)
 {
     // Check load factor, if currently load factor is greater than `loadFactor`, then rehash so that the load factor becomes <= `loadFactor` constant.
 

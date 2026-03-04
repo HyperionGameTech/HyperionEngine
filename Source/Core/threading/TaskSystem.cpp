@@ -219,7 +219,7 @@ Array<bool> TaskSystem::DequeueBatch(TaskBatch* batch)
     Array<bool> results;
     results.Resize(batch->taskRefs.Size());
 
-    for (SizeType i = 0; i < batch->taskRefs.Size(); i++)
+    for (size_t i = 0; i < batch->taskRefs.Size(); i++)
     {
         const TaskRef& taskRef = batch->taskRefs[i];
 

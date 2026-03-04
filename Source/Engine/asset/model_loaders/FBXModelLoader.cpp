@@ -671,7 +671,7 @@ static Result ReadBinaryArray(const FBXObject& object, Array<T>& ary)
     {
         ary.Resize(property.arrayElements.Size());
 
-        for (SizeType index = 0; index < property.arrayElements.Size(); ++index)
+        for (size_t index = 0; index < property.arrayElements.Size(); ++index)
         {
             const auto& item = property.arrayElements[index];
 
@@ -853,7 +853,7 @@ AssetLoadResult FBXModelLoader::LoadAsset(LoaderState& state) const
         {
             if (matrixProperty.arrayElements.Size() == 16)
             {
-                for (SizeType index = 0; index < matrixProperty.arrayElements.Size(); ++index)
+                for (size_t index = 0; index < matrixProperty.arrayElements.Size(); ++index)
                 {
                     const auto& item = matrixProperty.arrayElements[index];
 
@@ -971,7 +971,7 @@ AssetLoadResult FBXModelLoader::LoadAsset(LoaderState& state) const
                     continue;
                 }
 
-                for (SizeType index = 0; index < cluster->vertexIndices.Size(); ++index)
+                for (size_t index = 0; index < cluster->vertexIndices.Size(); ++index)
                 {
                     int32 positionIndex = cluster->vertexIndices[index];
 
@@ -980,7 +980,7 @@ AssetLoadResult FBXModelLoader::LoadAsset(LoaderState& state) const
                         positionIndex = (positionIndex * -1) - 1;
                     }
 
-                    if (SizeType(positionIndex) >= mesh.vertices.Size())
+                    if (size_t(positionIndex) >= mesh.vertices.Size())
                     {
                         HYP_LOG(Assets, Warning, "Position index {} out of range of vertex count {}",
                             positionIndex, mesh.vertices.Size());
@@ -1067,7 +1067,7 @@ AssetLoadResult FBXModelLoader::LoadAsset(LoaderState& state) const
                 {
                     FBXBindPose bindPose;
 
-                    const SizeType substrIndex = nodeName.FindFirstIndex("Pose::");
+                    const size_t substrIndex = nodeName.FindFirstIndex("Pose::");
 
                     if (substrIndex != String::NotFound)
                     {
@@ -1195,7 +1195,7 @@ AssetLoadResult FBXModelLoader::LoadAsset(LoaderState& state) const
                 if (const FBXObject& verticesNode = (*childObject)["Vertices"])
                 {
                     const FBXProperty& verticesProperty = verticesNode.GetProperty(0);
-                    const SizeType count = verticesProperty.arrayElements.Size();
+                    const size_t count = verticesProperty.arrayElements.Size();
 
                     if (count == 0)
                     {
@@ -1207,18 +1207,18 @@ AssetLoadResult FBXModelLoader::LoadAsset(LoaderState& state) const
                         return HYP_MAKE_ERROR(AssetLoadError, "Not a valid triangle mesh");
                     }
 
-                    const SizeType numVertices = count / 3;
+                    const size_t numVertices = count / 3;
 
                     modelVertices.Resize(numVertices);
 
                     //// \todo Optimize me - dont use variant for vertex data + check each time... should use memcpy or similar
-                    for (SizeType index = 0; index < numVertices; ++index)
+                    for (size_t index = 0; index < numVertices; ++index)
                     {
                         Vec3f position;
 
                         for (uint32 subIndex = 0; subIndex < 3; ++subIndex)
                         {
-                            const FBXPropertyValue& elem = verticesProperty.arrayElements[(index * 3) + SizeType(subIndex)];
+                            const FBXPropertyValue& elem = verticesProperty.arrayElements[(index * 3) + size_t(subIndex)];
 
                             union
                             {
@@ -1247,7 +1247,7 @@ AssetLoadResult FBXModelLoader::LoadAsset(LoaderState& state) const
                 if (const FBXObject& indicesNode = (*childObject)["PolygonVertexIndex"])
                 {
                     const FBXProperty& indicesProperty = indicesNode.GetProperty(0);
-                    const SizeType count = indicesProperty.arrayElements.Size();
+                    const size_t count = indicesProperty.arrayElements.Size();
 
                     if (count == 0)
                     {
@@ -1261,7 +1261,7 @@ AssetLoadResult FBXModelLoader::LoadAsset(LoaderState& state) const
 
                     modelIndices.Resize(count);
 
-                    for (SizeType index = 0; index < count; ++index)
+                    for (size_t index = 0; index < count; ++index)
                     {
                         int32 i = 0;
 
@@ -1275,7 +1275,7 @@ AssetLoadResult FBXModelLoader::LoadAsset(LoaderState& state) const
                             i = (i * -1) - 1;
                         }
 
-                        if (SizeType(i) >= modelVertices.Size())
+                        if (size_t(i) >= modelVertices.Size())
                         {
                             return HYP_MAKE_ERROR(AssetLoadError, "Index out of range");
                         }
@@ -1287,7 +1287,7 @@ AssetLoadResult FBXModelLoader::LoadAsset(LoaderState& state) const
                 Array<Vertex> verticesUnpacked;
                 verticesUnpacked.Resize(modelIndices.Size());
 
-                for (SizeType index = 0; index < modelIndices.Size(); ++index)
+                for (size_t index = 0; index < modelIndices.Size(); ++index)
                 {
                     verticesUnpacked[index].SetPosition(modelVertices[modelIndices[index]]);
                 }
@@ -1300,7 +1300,7 @@ AssetLoadResult FBXModelLoader::LoadAsset(LoaderState& state) const
                         {
                             attributes |= VertexAttribute::TexCoord0;
 
-                            const SizeType count = uvNode.GetProperty(0).arrayElements.Size();
+                            const size_t count = uvNode.GetProperty(0).arrayElements.Size();
                         }
                     }
                     else if (name == "LayerElementNormal")

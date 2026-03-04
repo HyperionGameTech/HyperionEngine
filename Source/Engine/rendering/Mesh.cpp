@@ -61,9 +61,9 @@ Array<const VertexAttribute*> VertexAttributeSet::BuildAttributes() const
     return attributes;
 }
 
-SizeType VertexAttributeSet::CalculateVertexSize() const
+size_t VertexAttributeSet::CalculateVertexSize() const
 {
-    SizeType size = 0;
+    size_t size = 0;
 
     FOR_EACH_BIT(flagMask, i)
     {
@@ -346,8 +346,8 @@ void Mesh::UploadGpuData()
         indices.Resize(indices.Size() + (3 - (indices.Size() % 3)));
     }
 
-    const SizeType packedBufferSize = vertices.ByteSize();
-    const SizeType packedIndicesSize = indices.ByteSize();
+    const size_t packedBufferSize = vertices.ByteSize();
+    const size_t packedIndicesSize = indices.ByteSize();
 
     GpuBufferRef vertexBuffer;
     GpuBufferRef indexBuffer;
@@ -431,12 +431,12 @@ void Mesh::UploadGpuData()
                 return {};
             }
 
-            constexpr SizeType StagingBufferAlignment = 16;
+            constexpr size_t StagingBufferAlignment = 16;
 
-            const SizeType packedVerticesSize = vertices.ByteSize();
-            const SizeType packedIndicesSize = indices.ByteSize();
+            const size_t packedVerticesSize = vertices.ByteSize();
+            const size_t packedIndicesSize = indices.ByteSize();
 
-            const SizeType bufferSizeCombined = ByteUtil::AlignAs(packedVerticesSize, StagingBufferAlignment) + packedIndicesSize;
+            const size_t bufferSizeCombined = ByteUtil::AlignAs(packedVerticesSize, StagingBufferAlignment) + packedIndicesSize;
 
             Frame* frame = g_renderInterface->GetCurrentFrame();
 
@@ -571,7 +571,7 @@ bool Mesh::BuildBVH(BVHNode& bvhNode, int maxDepth) const
 
     const BoundingBox meshAabb = CalculateAABB();
 
-    const SizeType numTriangles = numIndices / 3;
+    const size_t numTriangles = numIndices / 3;
 
     // @TODO Fix for non uint32 indices
 
@@ -625,15 +625,15 @@ BoundingBox Mesh::CalculateAABB() const
 Array<float> Mesh::BuildVertexBuffer(const VertexAttributeSet& vertexAttributes) const
 {
     const Span<const Vertex> vertices = GetVertexData();
-    const SizeType vertexSize = vertexAttributes.CalculateVertexSize();
+    const size_t vertexSize = vertexAttributes.CalculateVertexSize();
 
     Array<float> packedBuffer;
     packedBuffer.Resize(vertexSize * vertices.Size());
 
     float* floatBuffer = packedBuffer.Data();
-    SizeType currentOffset = 0;
+    size_t currentOffset = 0;
 
-    for (SizeType i = 0; i < vertices.Size(); i++)
+    for (size_t i = 0; i < vertices.Size(); i++)
     {
         const Vertex& vertex = vertices[i];
         /* Offset aligned to the current vertex */
@@ -688,7 +688,7 @@ Array<PackedVertex> Mesh::BuildPackedVertices() const
     Array<PackedVertex> packedVertices;
     packedVertices.Resize(vertices.Size());
 
-    for (SizeType i = 0; i < vertices.Size(); i++)
+    for (size_t i = 0; i < vertices.Size(); i++)
     {
         PackedVertex& packed = packedVertices[i];
         packed.position[0] = vertices[i].position.x;
@@ -736,7 +736,7 @@ Array<uint32> Mesh::BuildPackedIndices() const
     }
 
 #if HYP_DEBUG_MODE
-    for (SizeType i = 0; i < packedIndices.Size(); i++)
+    for (size_t i = 0; i < packedIndices.Size(); i++)
     {
         uint32 idx = packedIndices[i];
         AssertDebug(idx < GetMeshDesc().numVertices);
@@ -752,7 +752,7 @@ void Mesh::InvertNormals()
 
     Span<Vertex> vertices = GetVertexData();
 
-    for (SizeType i = 0; i < vertices.Size(); i++)
+    for (size_t i = 0; i < vertices.Size(); i++)
     {
         vertices[i].SetNormal(vertices[i].GetNormal() * -1.0f);
     }
@@ -786,7 +786,7 @@ void Mesh::CalculateNormals(bool weighted)
     SparsePagedArray<Array<Vec3f, InlineAllocator<3>>, 1 << 6> normals;
 
     // compute per-face normals (facet normals)
-    for (SizeType i = 0; i < numIndices; i += 3)
+    for (size_t i = 0; i < numIndices; i += 3)
     {
         const uint32 i0 = uIndexData[i];
         const uint32 i1 = uIndexData[i + 1];
@@ -805,7 +805,7 @@ void Mesh::CalculateNormals(bool weighted)
         ADD_NORMAL(normals, i2, n);
     }
 
-    for (SizeType i = 0; i < numVertices; i++)
+    for (size_t i = 0; i < numVertices; i++)
     {
         AssertDebug(normals.HasIndex(uint32(i)));
 
@@ -828,7 +828,7 @@ void Mesh::CalculateNormals(bool weighted)
 
     // weighted (smooth) normals
 
-    for (SizeType i = 0; i < numIndices; i += 3)
+    for (size_t i = 0; i < numIndices; i += 3)
     {
         const uint32 i0 = uIndexData[i];
         const uint32 i1 = uIndexData[i + 1];
@@ -849,7 +849,7 @@ void Mesh::CalculateNormals(bool weighted)
         // nested loop through faces to get weighted neighbours
         // any code that uses this really should bake the normals in
         // especially for any production code. this is an expensive process
-        for (SizeType j = 0; j < numIndices; j += 3)
+        for (size_t j = 0; j < numIndices; j += 3)
         {
             if (j == i)
             {
@@ -914,7 +914,7 @@ void Mesh::CalculateNormals(bool weighted)
         ADD_NORMAL(normals, i2, weightedNormals[2].Normalized());
     }
 
-    for (SizeType i = 0; i < numVertices; i++)
+    for (size_t i = 0; i < numVertices; i++)
     {
         AssertDebug(normals.HasIndex(i));
 
@@ -961,9 +961,9 @@ void Mesh::CalculateTangents()
 
     SparsePagedArray<Array<TangentBitangentPair, InlineAllocator<1>>, 1 << 6> data;
 
-    for (SizeType i = 0; i < numIndices;)
+    for (size_t i = 0; i < numIndices;)
     {
-        const SizeType count = MathUtil::Min(3, numIndices - i);
+        const size_t count = MathUtil::Min(3, numIndices - i);
 
         Vertex v[3];
         Vec2f uv[3];
@@ -1002,7 +1002,7 @@ void Mesh::CalculateTangents()
         i += count;
     }
 
-    for (SizeType i = 0; i < numVertices; i++)
+    for (size_t i = 0; i < numVertices; i++)
     {
         const Array<TangentBitangentPair, InlineAllocator<1>>* tangentBitangents = data.TryGet(i);
 

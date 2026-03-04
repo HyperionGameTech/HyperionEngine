@@ -431,7 +431,7 @@ Optional<ByteBuffer> GStreamerRTCStreamVideoEncoder::PullData()
         ByteBuffer& byteBuffer = pullResult.Get();
         Assert(byteBuffer.Size() >= 4);
 
-        SizeType i = 0;
+        size_t i = 0;
 
         uint8 startCodeLength = 0;
 

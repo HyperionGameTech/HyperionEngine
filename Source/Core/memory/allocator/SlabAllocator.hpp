@@ -39,8 +39,8 @@ public:
     };
 
     explicit TSlabAllocator(
-        SizeType blockSize,
-        SizeType alignment = 16,
+        size_t blockSize,
+        size_t alignment = 16,
         uint32 blocksPerSlab = 256,
         EnumFlags<AllocatorFlags> flags = AF_NONE,
         const ThreadId& ownerThreadId = ThreadId::Invalid())
@@ -50,8 +50,8 @@ public:
 
     TSlabAllocator(
         AllocatorType* pAllocator,
-        SizeType blockSize,
-        SizeType alignment = 16,
+        size_t blockSize,
+        size_t alignment = 16,
         uint32 blocksPerSlab = 256,
         EnumFlags<AllocatorFlags> flags = AF_NONE,
         const ThreadId& ownerThreadId = ThreadId::Invalid())
@@ -67,8 +67,8 @@ public:
         HYP_CORE_ASSERT(m_blocksPerSlab != 0);
         HYP_CORE_ASSERT(IsPowerOfTwo(alignment));
 
-        const SizeType minBlock = sizeof(uint32) > sizeof(void*) ? sizeof(uint32) : sizeof(void*);
-        const SizeType reqBlock = blockSize < minBlock ? minBlock : blockSize;
+        const size_t minBlock = sizeof(uint32) > sizeof(void*) ? sizeof(uint32) : sizeof(void*);
+        const size_t reqBlock = blockSize < minBlock ? minBlock : blockSize;
 
         m_alignment = alignment < alignof(void*) ? alignof(void*) : alignment;
         HYP_CORE_ASSERT(IsPowerOfTwo(m_alignment));
@@ -150,7 +150,7 @@ public:
     }
 
     // To match Allocator interface:
-    void* Allocate(SizeType size, SizeType alignment)
+    void* Allocate(size_t size, size_t alignment)
     {
         if (size == 0)
         {
@@ -210,7 +210,7 @@ public:
 
         const ubyte* base = static_cast<const ubyte*>(slab->base);
         const ubyte* p = static_cast<const ubyte*>(ptr);
-        const SizeType slabBytes = TotalSlabBytes();
+        const size_t slabBytes = TotalSlabBytes();
 
         HYP_CORE_ASSERT(p >= base && p < base + slabBytes);
         if (HYP_UNLIKELY(!(p >= base && p < base + slabBytes)))
@@ -223,7 +223,7 @@ public:
             return;
         }
 
-        const SizeType offset = static_cast<SizeType>(p - base);
+        const size_t offset = static_cast<size_t>(p - base);
         HYP_CORE_ASSERT((offset % m_blockSize) == 0);
         if (HYP_UNLIKELY((offset % m_blockSize) != 0))
         {
@@ -322,16 +322,16 @@ public:
 
         MemoryMetrics metrics;
 
-        const SizeType slabsCount = m_slabs.Size();
-        const SizeType blocksTotal = slabsCount * static_cast<SizeType>(m_blocksPerSlab);
-        const SizeType bytesCommitted = slabsCount * TotalSlabBytes();
-        const SizeType bytesUsed = static_cast<SizeType>(m_activeAllocations) * m_blockSize;
-        const SizeType bytesFree = bytesCommitted - bytesUsed;
+        const size_t slabsCount = m_slabs.Size();
+        const size_t blocksTotal = slabsCount * static_cast<size_t>(m_blocksPerSlab);
+        const size_t bytesCommitted = slabsCount * TotalSlabBytes();
+        const size_t bytesUsed = static_cast<size_t>(m_activeAllocations) * m_blockSize;
+        const size_t bytesFree = bytesCommitted - bytesUsed;
 
         metrics[MemoryMetrics::MM_BYTES_COMMITTED] = bytesCommitted;
         metrics[MemoryMetrics::MM_BYTES_USED] = bytesUsed;
         metrics[MemoryMetrics::MM_BYTES_FREE] = bytesFree;
-        metrics[MemoryMetrics::MM_ALLOCATIONS_ACTIVE] = static_cast<SizeType>(m_activeAllocations);
+        metrics[MemoryMetrics::MM_ALLOCATIONS_ACTIVE] = static_cast<size_t>(m_activeAllocations);
         metrics[MemoryMetrics::MM_BLOCKS_TOTAL] = blocksTotal;
 
         if (m_flags & AF_THREAD_SAFE)
@@ -355,25 +355,25 @@ private:
         return UINT32_MAX;
     }
 
-    static HYP_FORCE_INLINE bool IsPowerOfTwo(SizeType v)
+    static HYP_FORCE_INLINE bool IsPowerOfTwo(size_t v)
     {
         return v && ((v & (v - 1)) == 0);
     }
 
-    static HYP_FORCE_INLINE SizeType AlignUp(SizeType value, SizeType alignment)
+    static HYP_FORCE_INLINE size_t AlignUp(size_t value, size_t alignment)
     {
-        const SizeType mask = alignment - 1;
+        const size_t mask = alignment - 1;
         return (value + mask) & ~mask;
     }
 
-    HYP_FORCE_INLINE SizeType TotalSlabBytes() const
+    HYP_FORCE_INLINE size_t TotalSlabBytes() const
     {
-        return SizeType(m_blocksPerSlab) * m_blockSize;
+        return size_t(m_blocksPerSlab) * m_blockSize;
     }
 
     HYP_FORCE_INLINE void* BlockPtr(const Slab& slab, uint32 index) const
     {
-        return static_cast<ubyte*>(slab.base) + SizeType(index) * m_blockSize;
+        return static_cast<ubyte*>(slab.base) + size_t(index) * m_blockSize;
     }
 
     static HYP_FORCE_INLINE uint32 ReadNextIndex(const void* block)
@@ -429,7 +429,7 @@ private:
     Slab* FindOwningSlab(void* ptr)
     {
         const ubyte* p = static_cast<const ubyte*>(ptr);
-        const SizeType slabBytes = TotalSlabBytes();
+        const size_t slabBytes = TotalSlabBytes();
 
         for (uint32 i = 0; i < m_slabs.Size(); ++i)
         {
@@ -446,8 +446,8 @@ private:
 
 private:
     AllocatorType* m_pAllocator;
-    SizeType m_blockSize;
-    SizeType m_alignment;
+    size_t m_blockSize;
+    size_t m_alignment;
     uint32 m_blocksPerSlab;
     Array<Slab> m_slabs;
     uint64 m_activeAllocations;
