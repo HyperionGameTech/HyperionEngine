@@ -847,13 +847,16 @@ void View::CollectMeshEntities(RenderProxyList& rpl)
             if ((meshComponent->enableAutoInstancing || meshComponent->numInstances > 1)
                 && meshComponent->instanceData.IsLoaded())
             {
+                AssertDebug(m_viewDesc.entityBatchClass == nullptr || m_viewDesc.entityBatchClass == MeshEntityInstanceBatch::StaticClass());
+
                 const Handle<InstancedMeshProxy>& imp = ObjCast<InstancedMeshProxy>(meshComponent->instanceData.Resolve());
                 AssertDebug(imp.IsValid());
 
                 auto writeScope = imp->GetWriteScope();
 
-                // set transform matrix
+                // set current transform and previous transform data for MeshEntityInstanceBatch
                 imp->SetBufferData(0, &transformMatrix, 1);
+                imp->SetBufferData(1, &meshComponent->previousModelMatrix, 1);
 
                 for (uint32 i = 0; i < uint32(imp->buffers.Size()); i++)
                 {

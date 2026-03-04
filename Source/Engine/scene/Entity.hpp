@@ -55,11 +55,6 @@ public:
         return m_world;
     }
 
-    HYP_FORCE_INLINE const Mat4f& GetPrevModelMatrix() const
-    {
-        return m_prevModelMatrix;
-    }
-
     HYP_METHOD()
     HYP_FORCE_INLINE EntityManager* GetEntityManager() const
     {
@@ -154,8 +149,6 @@ private:
 
     World* m_world;
     EntityManager* m_entityManager;
-
-    Mat4f m_prevModelMatrix;
 
     int m_renderProxyVersion;
 

@@ -8,6 +8,8 @@
 
 #include <scene/systems/AnimationSystem.hpp>
 
+#include <scene/components/MeshComponent.hpp>
+
 #include <scene/animation/Animation.hpp>
 #include <scene/animation/Skeleton.hpp>
 

@@ -37,10 +37,10 @@ struct EntityInstanceBatch
     HYP_STRUCT_BODY(EntityInstanceBatch);
 
     HYP_FIELD()
-    uint32 batchIndex;
+    uint32 batchIndex = ~0u;
 
     HYP_FIELD()
-    uint32 numEntities;
+    uint32 numEntities = 0;
 
     uint32 _pad0;
     uint32 _pad1;
@@ -52,7 +52,14 @@ struct EntityInstanceBatch
     FixedArray<Mat4f, MaxEntitiesPerBatch> transforms;
 };
 
-static_assert(sizeof(EntityInstanceBatch) == 4096);
+HYP_STRUCT(NoScriptBindings)
+struct MeshEntityInstanceBatch : EntityInstanceBatch
+{
+    HYP_STRUCT_BODY(MeshEntityInstanceBatch);
+
+    HYP_FIELD()
+    FixedArray<Mat4f, MaxEntitiesPerBatch> previousTransforms;
+};
 
 /*! \brief Unique identifier for a draw call based on Mesh Id and Material Id.
  *  \details This struct is used to uniquely identify a draw call in the rendering system.

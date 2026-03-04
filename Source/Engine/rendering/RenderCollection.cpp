@@ -1146,7 +1146,7 @@ void RenderCollector::BuildDrawCalls(uint32 bucketBits)
 
     if (!batchAllocator)
     {
-        batchAllocator = GetOrCreateEntityBatchAllocator<EntityInstanceBatch>();
+        batchAllocator = GetOrCreateEntityBatchAllocator<MeshEntityInstanceBatch>();
     }
 
     if (bucketBits == 0)

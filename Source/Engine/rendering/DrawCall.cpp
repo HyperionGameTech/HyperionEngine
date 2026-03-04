@@ -31,6 +31,7 @@ HYP_API GpuBufferHolderMap* GetGpuBufferHolderMap()
 
 // Register allocator for the batch type used if none other is specified
 HYP_REGISTER_DRAW_BATCH_TYPE(EntityInstanceBatch);
+HYP_REGISTER_DRAW_BATCH_TYPE(MeshEntityInstanceBatch);
 
 #pragma region DrawCallCollection
 

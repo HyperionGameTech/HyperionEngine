@@ -175,7 +175,7 @@
   "ShaderBlobs": [{
       "$Class": "BlobDataReference",
       "Key": "Engine/Shaders/RenderSky/RenderSky_17325309730764028782.VS",
-      "Size": 7948
+      "Size": 8072
     }, {
       "$Class": "BlobDataReference",
       "Key": "Engine/Shaders/RenderSky/RenderSky_17325309730764028782.PS",

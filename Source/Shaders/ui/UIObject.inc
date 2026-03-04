@@ -28,7 +28,14 @@ struct UIObjectProperties
 
 struct UIEntityInstanceBatch
 {
-    EntityInstanceBatch batch;
+    uint batchIndex;
+    uint numEntities;
+    uint _pad0;
+    uint _pad1;
+
+    uint4 indices[MAX_ENTITIES_PER_INSTANCE_BATCH / 4];
+    
+    float4x4 transforms[MAX_ENTITIES_PER_INSTANCE_BATCH];
     vec4 texcoords[MAX_ENTITIES_PER_INSTANCE_BATCH];
     vec4 offsets[MAX_ENTITIES_PER_INSTANCE_BATCH];
     vec4 sizes[MAX_ENTITIES_PER_INSTANCE_BATCH];

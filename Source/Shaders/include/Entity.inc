@@ -27,17 +27,30 @@ struct Entity
     uint _pad1;
 };
 
-#define MAX_ENTITIES_PER_INSTANCE_BATCH 60
+#define MAX_ENTITIES_PER_INSTANCE_BATCH 16
 
 struct EntityInstanceBatch
 {
-    uint batch_index;
-    uint num_entities;
+    uint batchIndex;
+    uint numEntities;
     uint _pad0;
     uint _pad1;
 
     uint4 indices[MAX_ENTITIES_PER_INSTANCE_BATCH / 4];
     float4x4 transforms[MAX_ENTITIES_PER_INSTANCE_BATCH];
+};
+
+struct MeshEntityInstanceBatch
+{
+    uint batchIndex;
+    uint numEntities;
+    uint _pad0;
+    uint _pad1;
+
+    uint4 indices[MAX_ENTITIES_PER_INSTANCE_BATCH / 4];
+    
+    float4x4 transforms[MAX_ENTITIES_PER_INSTANCE_BATCH];
+    float4x4 previousTransforms[MAX_ENTITIES_PER_INSTANCE_BATCH];
 };
 
 // can use up to 10 bits.
