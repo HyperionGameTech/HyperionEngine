@@ -23,7 +23,7 @@
 #include <rendering/Mesh.hpp>
 #include <rendering/Material.hpp>
 #include <rendering/RenderProxy.hpp>
-#include <rendering/InstancedMeshProxy.hpp>
+#include <rendering/InstancedMeshData.hpp>
 
 #include <engine/EngineDriver.hpp>
 
@@ -50,21 +50,21 @@ static void InitInstancedMeshData(Entity& entity, MeshComponent& meshComponent)
 
     if (!meshComponent.instanceData.IsValid())
     {
-        Handle<InstancedMeshProxy> imp = MakeHandle<InstancedMeshProxy>(NAME_FMT("IMP_{}", entity.GetName()));
+        Handle<InstancedMeshData> instancedMesh = MakeHandle<InstancedMeshData>(NAME_FMT("IMD_{}", entity.GetName()));
 
-        Result registerResult = imp->Register("$Memory/Objects/Types/InstancedMeshProxy", AddAssetConflictMode::GenerateNewName);
+        Result registerResult = instancedMesh->Register("$Memory/Objects/Types/InstancedMeshData", AddAssetConflictMode::GenerateNewName);
 
         if (registerResult.HasError())
         {
-            HYP_LOG(Scene, Error, "Failed to register InstancedMeshProxy: {}", registerResult.GetError().GetMessage());
+            HYP_LOG(Scene, Error, "Failed to register InstancedMeshData: {}", registerResult.GetError().GetMessage());
         }
 
-        meshComponent.instanceData = AssetReference(imp);
+        meshComponent.instanceData = AssetReference(instancedMesh);
     }
     
-    const Handle<InstancedMeshProxy>& imp = ObjCast<InstancedMeshProxy>(meshComponent.instanceData.Resolve());
+    const Handle<InstancedMeshData>& instancedMesh = ObjCast<InstancedMeshData>(meshComponent.instanceData.Resolve());
 
-    if (!imp.IsValid())
+    if (!instancedMesh.IsValid())
     {
         HYP_LOG(Scene, Error, "Failed to load instanced mesh data for Entity {}", entity.GetName());
 
@@ -98,7 +98,7 @@ static void DestroyInstancedMeshData(Entity& entity, MeshComponent& meshComponen
 
                 if (removeAssetResult.HasError())
                 {
-                    HYP_LOG(Scene, Error, "Failed to remove InstancedMeshProxy asset from package. Error was: {}",
+                    HYP_LOG(Scene, Error, "Failed to remove InstancedMeshData asset from package. Error was: {}",
                         removeAssetResult.GetError().GetMessage());
                 }
             }

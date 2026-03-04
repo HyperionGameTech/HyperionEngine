@@ -21,7 +21,7 @@
 #include <scene/components/UIComponent.hpp>
 
 #include <rendering/Mesh.hpp>
-#include <rendering/InstancedMeshProxy.hpp>
+#include <rendering/InstancedMeshData.hpp>
 
 #include <rendering/util/DeletionQueue.hpp>
 
@@ -2432,28 +2432,28 @@ void UIObject::UpdateMeshData_Internal()
 
     meshComponent->numInstances = 1;
 
-    Handle<InstancedMeshProxy> imp = ObjCast<InstancedMeshProxy>(meshComponent->instanceData.Resolve());
+    Handle<InstancedMeshData> instancedMesh = ObjCast<InstancedMeshData>(meshComponent->instanceData.Resolve());
 
-    if (!imp)
+    if (!instancedMesh)
     {
-        imp = MakeHandle<InstancedMeshProxy>(NAME_FMT("IMP_{}_{}", InstanceClass()->GetName(), GetName()));
+        instancedMesh = MakeHandle<InstancedMeshData>(NAME_FMT("IMD_{}_{}", InstanceClass()->GetName(), GetName()));
 
-        Result registerResult = imp->Register("$Memory/Objects/Types/InstancedMeshProxy", AddAssetConflictMode::GenerateNewName);
+        Result registerResult = instancedMesh->Register("$Memory/Objects/Types/InstancedMeshData", AddAssetConflictMode::GenerateNewName);
         if (registerResult.HasError())
         {
-            HYP_LOG(UI, Error, "Failed to register UIObject InstancedMeshProxy: {}", registerResult.GetError().GetMessage());
+            HYP_LOG(UI, Error, "Failed to register UIObject InstancedMeshData: {}", registerResult.GetError().GetMessage());
         }
 
-        meshComponent->instanceData = AssetReference(imp);
+        meshComponent->instanceData = AssetReference(instancedMesh);
     }
 
-    auto writeScope = imp->GetWriteScope();
+    auto writeScope = instancedMesh->GetWriteScope();
 
-    imp->SetBufferData(0, &instanceTransform, 1);
-    imp->SetBufferData(1, &instanceTexcoords, 1);
-    imp->SetBufferData(2, &instanceOffsets, 1);
-    imp->SetBufferData(3, &instanceSizes, 1);
-    imp->SetBufferData(4, &instanceProperties, 1);
+    instancedMesh->SetBufferData(0, &instanceTransform, 1);
+    instancedMesh->SetBufferData(1, &instanceTexcoords, 1);
+    instancedMesh->SetBufferData(2, &instanceOffsets, 1);
+    instancedMesh->SetBufferData(3, &instanceSizes, 1);
+    instancedMesh->SetBufferData(4, &instanceProperties, 1);
 
     GetEntity()->SetNeedsRenderProxyUpdate();
 }

@@ -29,7 +29,7 @@ class Skeleton;
 class EnvProbe;
 class EnvGrid;
 class ShadowMap;
-class InstancedMeshProxy;
+class InstancedMeshData;
 
 enum LightmapTextureType : uint32;
 

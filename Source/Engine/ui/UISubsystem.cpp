@@ -32,7 +32,7 @@
 #include <rendering/TextureViewCache.hpp>
 #include <rendering/Mesh.hpp>
 #include <rendering/Buffers.hpp>
-#include <rendering/InstancedMeshProxy.hpp>
+#include <rendering/InstancedMeshData.hpp>
 
 #include <rendering/renderers/UIRenderer.hpp>
 
@@ -328,21 +328,21 @@ void UISubsystem::Update(float delta)
             if ((meshComponent->enableAutoInstancing || meshComponent->numInstances > 1)
                 && meshComponent->instanceData.IsLoaded())
             {
-                const Handle<InstancedMeshProxy>& imp = ObjCast<InstancedMeshProxy>(meshComponent->instanceData.Resolve());
-                Assert(imp.IsValid());
+                const Handle<InstancedMeshData>& instancedMesh = ObjCast<InstancedMeshData>(meshComponent->instanceData.Resolve());
+                Assert(instancedMesh.IsValid());
 
-                for (uint32 i = 0; i < uint32(imp->buffers.Size()); i++)
+                for (uint32 i = 0; i < uint32(instancedMesh->buffers.Size()); i++)
                 {
-                    if (imp->buffers[i].size == 0)
+                    if (instancedMesh->buffers[i].size == 0)
                         continue;
 
-                    meshProxy.instanceData.buffers[i].SetSize(imp->buffers[i].size, false);
+                    meshProxy.instanceData.buffers[i].SetSize(instancedMesh->buffers[i].size, false);
 
-                    AssertDebug(imp->buffers[i].raw != nullptr);
-                    Memory::Copy(meshProxy.instanceData.buffers[i].Data(), imp->buffers[i].raw, imp->buffers[i].size);
+                    AssertDebug(instancedMesh->buffers[i].raw != nullptr);
+                    Memory::Copy(meshProxy.instanceData.buffers[i].Data(), instancedMesh->buffers[i].raw, instancedMesh->buffers[i].size);
 
-                    meshProxy.instanceData.bufferStructSizes[i] = imp->bufferStructSizes[i];
-                    meshProxy.instanceData.bufferStructAlignments[i] = imp->bufferStructAlignments[i];
+                    meshProxy.instanceData.bufferStructSizes[i] = instancedMesh->bufferStructSizes[i];
+                    meshProxy.instanceData.bufferStructAlignments[i] = instancedMesh->bufferStructAlignments[i];
                 }
             }
             else

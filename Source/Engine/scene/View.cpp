@@ -26,7 +26,7 @@
 #include <rendering/RenderCollection.hpp>
 #include <rendering/RenderProxyList.hpp>
 #include <rendering/RenderProxy.hpp>
-#include <rendering/InstancedMeshProxy.hpp>
+#include <rendering/InstancedMeshData.hpp>
 #include <rendering/GBuffer.hpp>
 #include <rendering/Texture.hpp>
 #include <rendering/Mesh.hpp>
@@ -849,27 +849,27 @@ void View::CollectMeshEntities(RenderProxyList& rpl)
             {
                 AssertDebug(m_viewDesc.entityBatchClass == nullptr || m_viewDesc.entityBatchClass == MeshEntityInstanceBatch::StaticClass());
 
-                const Handle<InstancedMeshProxy>& imp = ObjCast<InstancedMeshProxy>(meshComponent->instanceData.Resolve());
-                AssertDebug(imp.IsValid());
+                const Handle<InstancedMeshData>& instancedMesh = ObjCast<InstancedMeshData>(meshComponent->instanceData.Resolve());
+                AssertDebug(instancedMesh.IsValid());
 
-                auto writeScope = imp->GetWriteScope();
+                auto writeScope = instancedMesh->GetWriteScope();
 
                 // set current transform and previous transform data for MeshEntityInstanceBatch
-                imp->SetBufferData(0, &transformMatrix, 1);
-                imp->SetBufferData(1, &meshComponent->previousModelMatrix, 1);
+                instancedMesh->SetBufferData(0, &transformMatrix, 1);
+                instancedMesh->SetBufferData(1, &meshComponent->previousModelMatrix, 1);
 
-                for (uint32 i = 0; i < uint32(imp->buffers.Size()); i++)
+                for (uint32 i = 0; i < uint32(instancedMesh->buffers.Size()); i++)
                 {
-                    if (imp->buffers[i].size == 0)
+                    if (instancedMesh->buffers[i].size == 0)
                         continue;
 
-                    meshProxy.instanceData.buffers[i].SetSize(imp->buffers[i].size, false);
+                    meshProxy.instanceData.buffers[i].SetSize(instancedMesh->buffers[i].size, false);
 
-                    AssertDebug(imp->buffers[i].raw != nullptr);
-                    Memory::Copy(meshProxy.instanceData.buffers[i].Data(), imp->buffers[i].raw, imp->buffers[i].size);
+                    AssertDebug(instancedMesh->buffers[i].raw != nullptr);
+                    Memory::Copy(meshProxy.instanceData.buffers[i].Data(), instancedMesh->buffers[i].raw, instancedMesh->buffers[i].size);
 
-                    meshProxy.instanceData.bufferStructSizes[i] = imp->bufferStructSizes[i];
-                    meshProxy.instanceData.bufferStructAlignments[i] = imp->bufferStructAlignments[i];
+                    meshProxy.instanceData.bufferStructSizes[i] = instancedMesh->bufferStructSizes[i];
+                    meshProxy.instanceData.bufferStructAlignments[i] = instancedMesh->bufferStructAlignments[i];
                 }
             }
             else
