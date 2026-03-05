@@ -21,6 +21,8 @@ class World;
 class UIStage;
 class UIRenderer;
 
+class RenderProxyList;
+
 HYP_STRUCT(NoScriptBindings)
 struct UIEntityInstanceBatch : EntityInstanceBatch
 {
@@ -74,6 +76,8 @@ private:
     virtual void OnRemovedFromWorld() override;
 
     void CreateFramebuffer();
+
+    void RenderCollect(RenderProxyList& rpl);
 
     Handle<UIStage> m_uiStage;
 

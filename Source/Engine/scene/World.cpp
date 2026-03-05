@@ -453,9 +453,6 @@ const GameState& World::GetGameState() const
 
 void World::ProcessViewAsync(View* view)
 {
-    HYP_SCOPE;
-    AssertReady();
-
     if (!view)
     {
         return;

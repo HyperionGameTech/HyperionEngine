@@ -349,6 +349,8 @@ void ShadowRendererBase::RenderFrame(Frame* frame, const RenderSetup& renderSetu
                 pd->prevCameraMatrices.Resize(cascadeIndex + 1);
             }
 
+            HYP_LOG(Rendering, Verbose, "Rendering shadows for shadow view {} at frame {}", shadowView->Id(), GetFrameCounter());
+
             const bool isMatrixDirty = pd->prevCameraMatrices[cascadeIndex] != cascadeBufferData.viewProjMat;
 
             if (!isMatrixDirty

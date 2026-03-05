@@ -258,12 +258,13 @@ void UISubsystem::Update(float delta)
 
     m_uiStage->Update(delta);
 
-    m_view->UpdateViewport();
-    m_view->UpdateVisibility();
+    m_view->SetOverrideCollectFunctor(ProcRef<void(RenderProxyList&)>(*this, ValueWrapper<&UISubsystem::RenderCollect>()));
 
-    RenderProxyList& rpl = GetProducerProxyList(m_view);
-    rpl.BeginWrite();
+    GetWorld()->ProcessViewAsync(m_view);
+}
 
+void UISubsystem::RenderCollect(RenderProxyList& rpl)
+{
     rpl.disableBuildRenderCollection = true;
     rpl.useOrdering = true;
     rpl.priority = m_view->GetPriority();
@@ -364,8 +365,6 @@ void UISubsystem::Update(float delta)
             meshProxy.bufferData.worldAabbMin = boundingBoxComponent ? boundingBoxComponent->worldAabb.min : MathUtil::MaxSafeValue<Vec3f>();
         }
     }
-
-    rpl.EndWrite();
 }
 
 void UISubsystem::CreateFramebuffer()
