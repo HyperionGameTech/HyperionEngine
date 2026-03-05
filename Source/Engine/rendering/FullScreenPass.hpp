@@ -21,7 +21,6 @@ namespace Hyperion {
 
 class Mesh;
 class Texture;
-class RenderGroup;
 class TemporalBlending;
 class GBuffer;
 struct RenderSetup;

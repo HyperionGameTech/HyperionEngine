@@ -38,7 +38,6 @@ class Texture;
 class RayTracingReflections;
 class DDGI;
 struct RenderSetup;
-class RenderGroup;
 class EntityBatchAllocatorBase;
 class RenderProxyList;
 class RenderCollector;

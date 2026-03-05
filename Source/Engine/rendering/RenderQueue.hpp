@@ -27,7 +27,6 @@ namespace Hyperion {
 
 class CmdBase;
 class View;
-class RenderGroup;
 
 class CmdBase
 {

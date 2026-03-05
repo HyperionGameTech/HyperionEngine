@@ -28,7 +28,6 @@ class ParticleVolume;
 struct CullData;
 class PassData;
 class RendererBase;
-class RenderGroup;
 class View;
 class VolumeBase;
 class EntityBatchAllocatorBase;
@@ -246,14 +245,6 @@ class HYP_API PassData : public ObjectBase
 {
     HYP_OBJECT_BODY(PassData);
 
-    struct RenderGroupCacheEntry
-    {
-        WeakHandle<RenderGroup> renderGroup;
-        GraphicsPipelineCacheHandle cacheHandle;
-    };
-
-    using RenderGroupCache = SparsePagedArray<RenderGroupCacheEntry, 32, RenderAllocator>;
-
 public:
     static Pool* GetAllocator() { return g_renderPool; }
 
@@ -268,18 +259,7 @@ public:
 
     CullData cullData;
 
-    // cached by ObjId<RenderGroup>
-    RenderGroupCache renderGroupCache;
-    // iterator for removing cache data over frames
-    typename RenderGroupCache::Iterator renderGroupCacheIterator;
-
     PassDataExt* next = nullptr;
-
-    /*! \brief Safely remove unused graphics pipelines that are no longer used from the cache.
-     *  A graphics pipeline is considered unused if the RenderGroup it is associated with has no more references remaining
-     *  \param maxIter The maximum number of graphics pipelines to iterate over for this frame.
-     *  \returns The number of graphics pipelines that were culled */
-    int CullUnusedGraphicsPipelines(int maxIter = 10);
 };
 
 class RendererBase

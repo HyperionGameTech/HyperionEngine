@@ -5,28 +5,16 @@
 #include <Core/Defines.hpp>
 #include <Core/Constants.hpp>
 
-#include <Core/reflection/ObjectBase.hpp>
-#include <Core/reflection/Handle.hpp>
-
 #include <Core/utilities/EnumFlags.hpp>
 
-#include <rendering/RenderObject.hpp>
 #include <rendering/RenderableAttributes.hpp>
-#include <rendering/GraphicsPipelineCache.hpp>
+#include <rendering/RenderObject.hpp>
 
 namespace Hyperion {
 
-class Mesh;
-class Material;
-class Skeleton;
-class Entity;
-class RenderCollector;
-class GpuBufferHolderBase;
 class IndirectRenderer;
 struct RenderSetup;
-class PassData;
 struct DrawCallCollection;
-class EntityBatchAllocatorBase;
 struct ParallelRenderingState;
 
 enum class RenderGroupFlags : uint32
@@ -39,54 +27,21 @@ enum class RenderGroupFlags : uint32
     DEFAULT = OCCLUSION_CULLING | INDIRECT_RENDERING | PARALLEL_RENDERING
 };
 
-HYP_MAKE_ENUM_FLAGS(RenderGroupFlags)
+HYP_MAKE_ENUM_FLAGS(RenderGroupFlags);
 
-struct ParallelRenderingState;
-
-HYP_CLASS(NoScriptBindings)
-class HYP_API RenderGroup final : public ObjectBase
+class RenderGroup
 {
-    HYP_OBJECT_BODY(RenderGroup);
-
 public:
-    static Pool* GetAllocator() { return g_renderPool; }
-
-    RenderGroup();
-
-    explicit RenderGroup(
-        const RenderableAttributeSet& renderableAttributes,
-        EnumFlags<RenderGroupFlags> flags = RenderGroupFlags::DEFAULT);
-
-    RenderGroup(
-        const RenderableAttributeSet& renderableAttributes,
-        const DescriptorTableRef& descriptorTable,
-        EnumFlags<RenderGroupFlags> flags = RenderGroupFlags::DEFAULT);
-
-    RenderGroup(const RenderGroup& other) = delete;
-    RenderGroup& operator=(const RenderGroup& other) = delete;
-    ~RenderGroup();
-
-    HYP_FORCE_INLINE const RenderableAttributeSet& GetRenderableAttributes() const
-    {
-        return renderableAttributes;
-    }
-
-    void SetRenderableAttributes(const RenderableAttributeSet& renderableAttributes);
-
-    HYP_FORCE_INLINE EnumFlags<RenderGroupFlags> GetFlags() const
-    {
-        return flags;
-    }
+    bool valid = false;
+    RenderableAttributeSet renderableAttributes;
+    EnumFlags<RenderGroupFlags> flags;
 
     void PerformRendering(
         Frame* frame,
         const RenderSetup& renderSetup,
         DrawCallCollection& drawCallCollection,
         IndirectRenderer* indirectRenderer,
-        ParallelRenderingState* parallelRenderingState);
-        
-    RenderableAttributeSet renderableAttributes;
-    EnumFlags<RenderGroupFlags> flags;
+        ParallelRenderingState* parallelRenderingState) const;
 };
 
 } // namespace Hyperion

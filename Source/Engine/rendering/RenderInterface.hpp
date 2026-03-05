@@ -45,7 +45,6 @@ class FinalPass;
 class ResourceBinderBase;
 class World;
 class ConstantsAllocator;
-class RenderGroup;
 class DescriptorSetCache;
 struct ShaderInputGroup;
 class Texture;

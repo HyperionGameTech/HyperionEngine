@@ -127,35 +127,19 @@ static void BuildRenderGroupsOrdered(
 
         attributes.SetLayerIndex(pair.second);
 
-        DrawCallCollectionMapping& mapping = renderCollector.mappingsByBucket[uint32(bucket)][attributes];
-        RenderGroup*& rg = mapping.renderGroup;
+        DrawCallCollection& drawCallCollection = renderCollector.mappingsByBucket[uint32(bucket)][attributes];
+        RenderGroup& rg = drawCallCollection.renderGroup;
 
-        if (!rg)
+        if (!rg.valid)
         {
-            rg = new RenderGroup(attributes, RenderGroupFlags::NONE);
+            rg.valid = true;
+            rg.renderableAttributes = attributes;
+            rg.flags = RenderGroupFlags::NONE;
 
-#if HYP_DEBUG_MODE
-            if (!rg)
-            {
-                HYP_LOG(UI, Error, "Render group not valid for attribute set {}!", attributes.GetHashCode().Value());
-
-                continue;
-            }
-#endif
-
-            // If parallel rendering is globally disabled, disable it for this RenderGroup
-            if (!g_renderInterface->GetRenderConfig().parallelRendering)
-            {
-                rg->flags &= ~RenderGroupFlags::PARALLEL_RENDERING;
-            }
-
-            if (!g_renderInterface->GetRenderConfig().indirectRendering)
-            {
-                rg->flags &= ~RenderGroupFlags::INDIRECT_RENDERING;
-            }
+            drawCallCollection.batchAllocator = renderCollector.batchAllocator;
         }
 
-        mapping.meshProxies.Set(meshProxy->entity.Id().ToIndex(), meshProxy);
+        drawCallCollection.meshProxies.Set(meshProxy->entity.Id().ToIndex(), meshProxy);
     }
 }
 
@@ -178,7 +162,7 @@ void UIRenderCollector::ExecuteDrawCalls(Frame* frame, const RenderSetup& render
         frame->renderQueue << SetCurrentFramebuffer(framebuffer);
     }
 
-    using IteratorType = FlatMap<RenderableAttributeSet, DrawCallCollectionMapping>::Iterator;
+    using IteratorType = FlatMap<RenderableAttributeSet, DrawCallCollection>::Iterator;
     Array<IteratorType> iterators;
 
     for (auto& mappings : mappingsByBucket)
@@ -204,22 +188,20 @@ void UIRenderCollector::ExecuteDrawCalls(Frame* frame, const RenderSetup& render
 
         const RenderableAttributeSet& attributes = it.first;
 
-        DrawCallCollectionMapping& mapping = it.second;
-        Assert(mapping.IsValid());
+        DrawCallCollection& drawCallCollection = it.second;
+        Assert(drawCallCollection.IsValid());
 
-        RenderGroup* renderGroup = mapping.renderGroup;
-        Assert(renderGroup != nullptr);
-
-        DrawCallCollection& drawCallCollection = mapping.drawCallCollection;
+        RenderGroup& renderGroup = drawCallCollection.renderGroup;
+        Assert(renderGroup.valid);
 
         ParallelRenderingState* parallelRenderingState = nullptr;
 
-        if (renderGroup->GetFlags() & RenderGroupFlags::PARALLEL_RENDERING)
+        if (renderGroup.flags & RenderGroupFlags::PARALLEL_RENDERING)
         {
             parallelRenderingState = AcquireNextParallelRenderingState();
         }
 
-        renderGroup->PerformRendering(frame, renderSetup, drawCallCollection, nullptr, parallelRenderingState);
+        renderGroup.PerformRendering(frame, renderSetup, drawCallCollection, nullptr, parallelRenderingState);
 
         if (parallelRenderingState != nullptr)
         {

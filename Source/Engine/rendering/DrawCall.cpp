@@ -35,33 +35,6 @@ HYP_REGISTER_DRAW_BATCH_TYPE(MeshEntityInstanceBatch);
 
 #pragma region DrawCallCollection
 
-DrawCallCollection::DrawCallCollection(DrawCallCollection&& other) noexcept
-    : batchAllocator(other.batchAllocator),
-      renderGroup(other.renderGroup),
-      drawCalls(std::move(other.drawCalls)),
-      instancedDrawCalls(std::move(other.instancedDrawCalls)),
-      indexMap(std::move(other.indexMap))
-{
-}
-
-DrawCallCollection& DrawCallCollection::operator=(DrawCallCollection&& other) noexcept
-{
-    if (this == &other)
-    {
-        return *this;
-    }
-
-    ResetDrawCalls();
-
-    batchAllocator = other.batchAllocator;
-    renderGroup = other.renderGroup;
-    drawCalls = std::move(other.drawCalls);
-    instancedDrawCalls = std::move(other.instancedDrawCalls);
-    indexMap = std::move(other.indexMap);
-
-    return *this;
-}
-
 DrawCallCollection::~DrawCallCollection()
 {
     if (batchAllocator != nullptr)
