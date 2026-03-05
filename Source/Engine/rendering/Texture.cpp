@@ -655,8 +655,6 @@ void Texture::EnqueueReadback(Proc<void(ByteBuffer&& byteBuffer)>&& callback)
         return;
     }
 
-    RenderQueue& renderQueue = currentFrame->postRenderQueue;
-
     const ResourceState previousResourceState = m_gpuImage->GetResourceState();
 
     GpuBufferRef stagingBuffer = g_renderInterface->MakeGpuBuffer(GpuBufferType::STAGING_BUFFER, m_gpuImage->GetByteSize());
@@ -666,6 +664,8 @@ void Texture::EnqueueReadback(Proc<void(ByteBuffer&& byteBuffer)>&& callback)
 
     CheckResult(stagingBuffer->Create());
     stagingBuffer->Map();
+    
+    RenderQueue& renderQueue = currentFrame->postRenderQueue;
 
     renderQueue << InsertBarrier(m_gpuImage, RS_COPY_SRC);
     renderQueue << InsertBarrier(stagingBuffer, RS_COPY_DST);

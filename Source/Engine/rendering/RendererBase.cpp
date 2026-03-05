@@ -38,53 +38,6 @@ PassData::~PassData()
     }
 }
 
-int PassData::CullUnusedGraphicsPipelines(int maxIter)
-{
-    HYP_SCOPE;
-    AssertOnThread(g_renderThread);
-
-    // Ensures the iterator is valid: the Iterator type for SparsePagedArray will find the next available slot in the constructor
-    // elements may have been added in the middle or removed in the meantime.
-    // elements that were added will be handled after the next time this loops around; elements that were removed will be skipped over to find the next valid entry.
-    renderGroupCacheIterator = typename RenderGroupCache::Iterator(
-        &renderGroupCache,
-        renderGroupCacheIterator.page,
-        renderGroupCacheIterator.elem);
-
-    int numCycles = 0;
-
-    for (; numCycles < maxIter; numCycles++)
-    {
-        // Loop around to the beginning of the container when the end is reached.
-        if (renderGroupCacheIterator == renderGroupCache.End())
-        {
-            renderGroupCacheIterator = renderGroupCache.Begin();
-
-            // no elements if still at end
-            if (renderGroupCacheIterator == renderGroupCache.End())
-            {
-                break;
-            }
-        }
-
-        RenderGroupCacheEntry& entry = *renderGroupCacheIterator;
-
-        // check refcount is zero without lock
-        if (entry.renderGroup.GetUnsafe()->GetObjectHeader_Internal()->GetRefCountStrong() == 0)
-        {
-            HYP_LOG(Rendering, Verbose, "Removing graphics pipeline for RenderGroup '{}' as it is no longer valid.", entry.renderGroup.Id());
-
-            renderGroupCacheIterator = renderGroupCache.Erase(renderGroupCacheIterator);
-
-            continue;
-        }
-
-        ++renderGroupCacheIterator;
-    }
-
-    return numCycles;
-}
-
 #pragma endregion PassData
 
 #pragma region RendererBase
@@ -159,8 +112,6 @@ int RendererBase::RunCleanupCycle(PassDataMap& passData, int maxIter, typename P
         }
         else
         {
-            pd->CullUnusedGraphicsPipelines(1000);
-
             ++iter;
         }
 

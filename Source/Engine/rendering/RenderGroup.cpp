@@ -49,8 +49,6 @@
 #include <rendering/dx12/DX12Structs.hpp>
 #endif
 
-#include <RenderGroup.generated.inl>
-
 namespace Hyperion {
 
 // #define HYP_MATERIAL_DEBUG 1
@@ -62,26 +60,6 @@ extern EngineStatCounter<uint32> g_statTriangles;
 extern EngineStatCounter<uint32> g_statRenderGroups;
 
 #pragma region RenderGroup
-
-RenderGroup::RenderGroup()
-    : ObjectBase(),
-      flags(RenderGroupFlags::NONE)
-{
-}
-
-RenderGroup::RenderGroup(const RenderableAttributeSet& renderableAttributes, EnumFlags<RenderGroupFlags> flags)
-    : ObjectBase(),
-      flags(flags),
-      renderableAttributes(renderableAttributes)
-{
-}
-
-RenderGroup::~RenderGroup() = default;
-
-void RenderGroup::SetRenderableAttributes(const RenderableAttributeSet& renderableAttributes)
-{
-    this->renderableAttributes = renderableAttributes;
-}
 
 template <class OutArray>
 static void DivideDrawCalls(size_t numDrawCalls, uint32 numBatches, OutArray& outDividedDrawCalls)
@@ -143,8 +121,8 @@ static void RenderAll(
 
     const uint32 frameIndex = frame->GetFrameIndex();
 
-    RenderGroup* renderGroup = drawCallCollection.renderGroup;
-    const RenderableAttributeSet& renderableAttributes = renderGroup->GetRenderableAttributes();
+    const RenderGroup& renderGroup = drawCallCollection.renderGroup;
+    const RenderableAttributeSet& renderableAttributes = renderGroup.renderableAttributes;
 
     const MeshAttributes& meshAttributes = renderableAttributes.GetMeshAttributes();
     const MaterialAttributes& materialAttributes = renderableAttributes.GetMaterialAttributes();
@@ -213,7 +191,7 @@ static void RenderAll(
         
         if (!s_useBindlessTextures)
         {
-            const uint32 textureMask = drawCallCollection.renderGroup->GetRenderableAttributes().GetMaterialAttributes().textureMask;
+            const uint32 textureMask = drawCallCollection.renderGroup.renderableAttributes.GetMaterialAttributes().textureMask;
 
             if (textureMask != 0)
             {
@@ -298,7 +276,7 @@ static void RenderAll(
         
         if (!s_useBindlessTextures)
         {
-            const uint32 textureMask = drawCallCollection.renderGroup->GetRenderableAttributes().GetMaterialAttributes().textureMask;
+            const uint32 textureMask = drawCallCollection.renderGroup.renderableAttributes.GetMaterialAttributes().textureMask;
 
             if (textureMask != 0)
             {
@@ -381,8 +359,8 @@ static void RenderAll_Parallel(
 
     const uint32 frameIndex = frame->GetFrameIndex();
 
-    RenderGroup* renderGroup = drawCallCollection.renderGroup;
-    const RenderableAttributeSet& renderableAttributes = renderGroup->GetRenderableAttributes();
+    const RenderGroup& renderGroup = drawCallCollection.renderGroup;
+    const RenderableAttributeSet& renderableAttributes = renderGroup.renderableAttributes;
 
     const MeshAttributes& meshAttributes = renderableAttributes.GetMeshAttributes();
     const MaterialAttributes& materialAttributes = renderableAttributes.GetMaterialAttributes();
@@ -466,7 +444,7 @@ static void RenderAll_Parallel(
 
                     if (!s_useBindlessTextures)
                     {
-                        const uint32 textureMask = drawCallCollection.renderGroup->GetRenderableAttributes().GetMaterialAttributes().textureMask;
+                        const uint32 textureMask = drawCallCollection.renderGroup.renderableAttributes.GetMaterialAttributes().textureMask;
 
                         if (textureMask != 0)
                         {
@@ -574,7 +552,7 @@ static void RenderAll_Parallel(
                     
                     if (!s_useBindlessTextures)
                     {
-                        const uint32 textureMask = drawCallCollection.renderGroup->GetRenderableAttributes().GetMaterialAttributes().textureMask;
+                        const uint32 textureMask = drawCallCollection.renderGroup.renderableAttributes.GetMaterialAttributes().textureMask;
 
                         if (textureMask != 0)
                         {
@@ -643,7 +621,7 @@ void RenderGroup::PerformRendering(
     const RenderSetup& renderSetup,
     DrawCallCollection& drawCallCollection,
     IndirectRenderer* indirectRenderer,
-    ParallelRenderingState* parallelRenderingState)
+    ParallelRenderingState* parallelRenderingState) const
 {
     HYP_SCOPE;
     AssertOnThread(g_renderThread);

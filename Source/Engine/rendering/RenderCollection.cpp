@@ -310,12 +310,14 @@ static void BuildAttributes(const RenderProxyMesh& proxy, RenderableAttributeSet
 
 #pragma endregion GeometryPass
 
-static RenderGroup* CreateRenderGroup(
+static RenderGroup CreateRenderGroup(
     RenderCollector* renderCollector,
-    DrawCallCollectionMapping& mapping,
+    DrawCallCollection& drawCallCollection,
     const RenderableAttributeSet& attributes)
 {
-    EnumFlags<RenderGroupFlags> renderGroupFlags = RenderGroupFlags::DEFAULT;
+    AssertDebug(renderCollector->batchAllocator != nullptr);
+
+    EnumFlags<RenderGroupFlags> renderGroupFlags = renderCollector->renderGroupFlags;
 
     // Disable occlusion culling for translucent objects
     const RenderBucket rb = attributes.GetMaterialAttributes().bucket;
@@ -326,27 +328,29 @@ static RenderGroup* CreateRenderGroup(
     }
 
     // Create RenderGroup
-    RenderGroup* rg = new RenderGroup(attributes, renderGroupFlags);
+    RenderGroup rg {};
+    rg.renderableAttributes = attributes;
+    rg.flags = renderGroupFlags;
 
     if (renderGroupFlags & RenderGroupFlags::INDIRECT_RENDERING)
     {
-        AssertDebug(mapping.indirectRenderer == nullptr, "Indirect renderer already exists on mapping");
+        AssertDebug(drawCallCollection.indirectRenderer == nullptr, "Indirect renderer already exists on mapping");
 
-        mapping.indirectRenderer = PoolNew<IndirectRenderer>(*g_renderPool);
-        mapping.indirectRenderer->Create(renderCollector->batchAllocator);
+        drawCallCollection.indirectRenderer = PoolNew<IndirectRenderer>(*g_renderPool);
+        drawCallCollection.indirectRenderer->Create(renderCollector->batchAllocator);
     }
 
-    mapping.drawCallCollection.batchAllocator = renderCollector->batchAllocator;
+    drawCallCollection.batchAllocator = renderCollector->batchAllocator;
     
     // If parallel rendering is globally disabled, disable it for this RenderGroup
     if (!g_renderInterface->GetRenderConfig().parallelRendering)
     {
-        rg->flags &= ~RenderGroupFlags::PARALLEL_RENDERING;
+        rg.flags &= ~RenderGroupFlags::PARALLEL_RENDERING;
     }
 
     if (!g_renderInterface->GetRenderConfig().indirectRendering)
     {
-        rg->flags &= ~RenderGroupFlags::INDIRECT_RENDERING;
+        rg.flags &= ~RenderGroupFlags::INDIRECT_RENDERING;
     }
 
     return rg;
@@ -670,9 +674,7 @@ RenderCollector::~RenderCollector()
 {
     HYP_SCOPE;
 
-    DeleteOnRenderThread([attrs = std::move(previousAttributes),
-                             m = std::move(mappingsByBucket),
-                             prsHead = parallelRenderingStateHead]() mutable
+    DeleteOnRenderThread([attrs = std::move(previousAttributes), m = std::move(mappingsByBucket), prsHead = parallelRenderingStateHead]() mutable
         {
             attrs.Clear(/* freeMemory */ true);
 
@@ -750,17 +752,14 @@ RenderCollector::~RenderCollector()
             {
                 for (auto& it : mappings)
                 {
-                    DrawCallCollectionMapping& mapping = it.second;
-                    mapping.meshProxies.Clear(/* freeMemory */ true);
+                    DrawCallCollection& drawCallCollection = it.second;
+                    drawCallCollection.meshProxies.Clear(/* freeMemory */ true);
 
-                    if (mapping.indirectRenderer)
+                    if (drawCallCollection.indirectRenderer)
                     {
-                        PoolDelete(*g_renderPool, mapping.indirectRenderer);
-                        mapping.indirectRenderer = nullptr;
+                        PoolDelete(*g_renderPool, drawCallCollection.indirectRenderer);
+                        drawCallCollection.indirectRenderer = nullptr;
                     }
-
-                    delete mapping.renderGroup;
-                    mapping.renderGroup = nullptr;
                 }
 
                 mappings.Clear();
@@ -778,12 +777,12 @@ size_t RenderCollector::NumDrawCallsCollected() const
 
     for (const auto& mappings : mappingsByBucket)
     {
-        for (const KeyValuePair<RenderableAttributeSet, DrawCallCollectionMapping>& it : mappings)
+        for (const KeyValuePair<RenderableAttributeSet, DrawCallCollection>& it : mappings)
         {
-            const DrawCallCollectionMapping& mapping = it.second;
+            const DrawCallCollection& drawCallCollection = it.second;
 
-            numDrawCalls += mapping.drawCallCollection.drawCalls.Size()
-                + mapping.drawCallCollection.instancedDrawCalls.Size();
+            numDrawCalls += drawCallCollection.drawCalls.Size()
+                + drawCallCollection.instancedDrawCalls.Size();
         }
     }
 
@@ -800,19 +799,16 @@ void RenderCollector::Clear(bool freeMemory)
     {
         for (auto& it : mappings)
         {
-            DrawCallCollectionMapping& mapping = it.second;
-            mapping.meshProxies.Clear(/* freeMemory */ freeMemory);
+            DrawCallCollection& drawCallCollection = it.second;
+            drawCallCollection.meshProxies.Clear(/* freeMemory */ freeMemory);
 
             if (freeMemory)
             {
-                if (mapping.indirectRenderer)
+                if (drawCallCollection.indirectRenderer)
                 {
-                    PoolDelete(*g_renderPool, mapping.indirectRenderer);
-                    mapping.indirectRenderer = nullptr;
+                    PoolDelete(*g_renderPool, drawCallCollection.indirectRenderer);
+                    drawCallCollection.indirectRenderer = nullptr;
                 }
-
-                delete mapping.renderGroup;
-                mapping.renderGroup = nullptr;
             }
         }
 
@@ -966,18 +962,17 @@ void RenderCollector::PerformOcclusionCulling(Frame* frame, const RenderSetup& r
 
             for (auto& it : mappings)
             {
-                DrawCallCollectionMapping& mapping = it.second;
-                AssertDebug(mapping.IsValid());
+                DrawCallCollection& drawCallCollection = it.second;
+                AssertDebug(drawCallCollection.IsValid());
 
-                RenderGroup* renderGroup = mapping.renderGroup;
-                AssertDebug(renderGroup != nullptr);
+                RenderGroup& renderGroup = drawCallCollection.renderGroup;
+                AssertDebug(renderGroup.valid);
 
-                DrawCallCollection& drawCallCollection = mapping.drawCallCollection;
-                IndirectRenderer* indirectRenderer = mapping.indirectRenderer;
+                IndirectRenderer* indirectRenderer = drawCallCollection.indirectRenderer;
 
-                if (renderGroup->flags & RenderGroupFlags::OCCLUSION_CULLING)
+                if (renderGroup.flags & RenderGroupFlags::OCCLUSION_CULLING)
                 {
-                    AssertDebug((renderGroup->flags & (RenderGroupFlags::INDIRECT_RENDERING | RenderGroupFlags::OCCLUSION_CULLING)) == (RenderGroupFlags::INDIRECT_RENDERING | RenderGroupFlags::OCCLUSION_CULLING));
+                    AssertDebug((renderGroup.flags & (RenderGroupFlags::INDIRECT_RENDERING | RenderGroupFlags::OCCLUSION_CULLING)) == (RenderGroupFlags::INDIRECT_RENDERING | RenderGroupFlags::OCCLUSION_CULLING));
                     AssertDebug(indirectRenderer != nullptr);
 
                     indirectRenderer->GetDrawState().ResetDrawState();
@@ -1031,7 +1026,7 @@ void RenderCollector::ExecuteDrawCalls(
 
     const uint32 frameIndex = frame->GetFrameIndex();
 
-    Span<HashMap<RenderableAttributeSet, DrawCallCollectionMapping, NodeAllocator<RenderAllocator>>> groupsView;
+    Span<HashMap<RenderableAttributeSet, DrawCallCollection, NodeAllocator<RenderAllocator>>> groupsView;
 
     if (bucketBits == 0)
     {
@@ -1091,8 +1086,8 @@ void RenderCollector::ExecuteDrawCalls(
         {
             const RenderableAttributeSet& attributes = it.first;
 
-            DrawCallCollectionMapping& mapping = it.second;
-            AssertDebug(mapping.IsValid());
+            DrawCallCollection& drawCallCollection = it.second;
+            AssertDebug(drawCallCollection.IsValid());
 
             const RenderBucket rb = attributes.GetMaterialAttributes().bucket;
 
@@ -1101,21 +1096,19 @@ void RenderCollector::ExecuteDrawCalls(
                 continue;
             }
 
-            RenderGroup* renderGroup = mapping.renderGroup;
-            AssertDebug(renderGroup != nullptr);
+            const RenderGroup& renderGroup = drawCallCollection.renderGroup;
+            AssertDebug(renderGroup.valid);
 
-            DrawCallCollection& drawCallCollection = mapping.drawCallCollection;
-
-            IndirectRenderer* indirectRenderer = mapping.indirectRenderer;
+            IndirectRenderer* indirectRenderer = drawCallCollection.indirectRenderer;
 
             ParallelRenderingState* parallelRenderingState = nullptr;
 
-            if (renderGroup->flags & RenderGroupFlags::PARALLEL_RENDERING)
+            if (renderGroup.flags & RenderGroupFlags::PARALLEL_RENDERING)
             {
                 parallelRenderingState = AcquireNextParallelRenderingState();
             }
 
-            renderGroup->PerformRendering(frame, renderSetup, drawCallCollection, indirectRenderer, parallelRenderingState);
+            renderGroup.PerformRendering(frame, renderSetup, drawCallCollection, indirectRenderer, parallelRenderingState);
 
             if (parallelRenderingState != nullptr)
             {
@@ -1154,7 +1147,7 @@ void RenderCollector::BuildDrawCalls(uint32 bucketBits)
         bucketBits = AllBucketsMask;
     }
 
-    using IteratorType = FlatMap<RenderableAttributeSet, DrawCallCollectionMapping>::Iterator;
+    using IteratorType = FlatMap<RenderableAttributeSet, DrawCallCollection>::Iterator;
     Array<IteratorType> iterators;
 
     FOR_EACH_BIT(bucketBits, bitIndex)
@@ -1188,16 +1181,13 @@ void RenderCollector::BuildDrawCalls(uint32 bucketBits)
     {
         const RenderableAttributeSet& attributes = it->first;
 
-        DrawCallCollectionMapping& mapping = it->second;
-        AssertDebug(mapping.IsValid());
+        DrawCallCollection& drawCallCollection = it->second;
+        AssertDebug(drawCallCollection.IsValid());
 
-        DrawCallCollection prevDrawCallCollection = std::move(mapping.drawCallCollection);
+        DrawCallCollection prevDrawCallCollection;
+        drawCallCollection.TakeDrawCalls(prevDrawCallCollection);
 
-        DrawCallCollection& drawCallCollection = mapping.drawCallCollection;
-        drawCallCollection.batchAllocator = batchAllocator;
-        drawCallCollection.renderGroup = mapping.renderGroup;
-
-        for (RenderProxyMesh* meshProxy : mapping.meshProxies)
+        for (RenderProxyMesh* meshProxy : drawCallCollection.meshProxies)
         {
             AssertDebug(meshProxy->mesh != nullptr
                         && meshProxy->mesh->GetVertexBuffer() != nullptr
@@ -1253,24 +1243,21 @@ void RenderCollector::RemoveEmptyRenderGroups()
     {
         for (auto it = mappings.Begin(); it != mappings.End();)
         {
-            DrawCallCollectionMapping& mapping = it->second;
-            AssertDebug(mapping.IsValid());
+            DrawCallCollection& drawCallCollection = it->second;
+            AssertDebug(drawCallCollection.IsValid());
 
-            if (mapping.meshProxies.Any())
+            if (drawCallCollection.meshProxies.Any())
             {
                 ++it; // skip non-empty
 
                 continue;
             }
 
-            if (mapping.indirectRenderer)
+            if (drawCallCollection.indirectRenderer)
             {
-                PoolDelete(*g_renderPool, mapping.indirectRenderer);
-                mapping.indirectRenderer = nullptr;
+                PoolDelete(*g_renderPool, drawCallCollection.indirectRenderer);
+                drawCallCollection.indirectRenderer = nullptr;
             }
-
-            delete mapping.renderGroup;
-            mapping.renderGroup = nullptr;
 
             it = mappings.Erase(it);
         }
@@ -1287,10 +1274,10 @@ uint32 RenderCollector::NumRenderGroups() const
     {
         for (const auto& it : mappings)
         {
-            const DrawCallCollectionMapping& mapping = it.second;
-            AssertDebug(mapping.IsValid());
+            const DrawCallCollection& drawCallCollection = it.second;
+            AssertDebug(drawCallCollection.IsValid());
 
-            if (mapping.IsValid())
+            if (drawCallCollection.IsValid())
             {
                 ++count;
             }
@@ -1340,9 +1327,9 @@ void RenderCollector::BuildRenderGroups(View* view, RenderProxyList& renderProxy
             auto it = prevMappings.Find(*cachedAttributes);
             Assert(it != prevMappings.End());
 
-            DrawCallCollectionMapping* prevMapping = &it->second;
+            DrawCallCollection* prevDrawCallCollection = &it->second;
 
-            RenderProxyMesh* meshProxy = prevMapping->meshProxies.Get(idx);
+            RenderProxyMesh* meshProxy = prevDrawCallCollection->meshProxies.Get(idx);
             AssertDebug(meshProxy != nullptr);
 
             RenderableAttributeSet newAttributes;
@@ -1358,22 +1345,23 @@ void RenderCollector::BuildRenderGroups(View* view, RenderProxyList& renderProxy
                 continue;
             }
             
-            prevMapping->meshProxies.EraseAt(idx);
-            prevMapping = nullptr;
+            prevDrawCallCollection->meshProxies.EraseAt(idx);
+            prevDrawCallCollection = nullptr;
 
             // Add proxy to group
-            DrawCallCollectionMapping& newMapping = mappingsByBucket[uint32(bucket)][newAttributes];
+            DrawCallCollection& newDrawCallCollection = mappingsByBucket[uint32(bucket)][newAttributes];
 
-            RenderGroup*& rg = newMapping.renderGroup;
+            RenderGroup& rg = newDrawCallCollection.renderGroup;
 
-            if (!rg)
+            if (!rg.valid)
             {
-                rg = CreateRenderGroup(this, newMapping, newAttributes);
+                rg = CreateRenderGroup(this, newDrawCallCollection, newAttributes);
+                rg.valid = true;
             }
 
             AssertDebug(meshProxy->mesh != nullptr && meshProxy->material != nullptr);
 
-            newMapping.meshProxies.Set(idx, meshProxy);
+            newDrawCallCollection.meshProxies.Set(idx, meshProxy);
 
             *cachedAttributes = newAttributes;
         }
@@ -1414,11 +1402,11 @@ void RenderCollector::BuildRenderGroups(View* view, RenderProxyList& renderProxy
             auto it = mappings.Find(attributes);
             Assert(it != mappings.End());
 
-            DrawCallCollectionMapping& mapping = it->second;
-            Assert(mapping.IsValid());
+            DrawCallCollection& drawCallCollection = it->second;
+            Assert(drawCallCollection.IsValid());
 
-            AssertDebug(mapping.meshProxies.HasIndex(idx));
-            mapping.meshProxies.EraseAt(idx);
+            AssertDebug(drawCallCollection.meshProxies.HasIndex(idx));
+            drawCallCollection.meshProxies.EraseAt(idx);
 
             previousAttributes.EraseAt(idx);
         }
@@ -1443,17 +1431,18 @@ void RenderCollector::BuildRenderGroups(View* view, RenderProxyList& renderProxy
             const RenderBucket bucket = attributes.GetMaterialAttributes().bucket;
 
             // Add proxy to group
-            DrawCallCollectionMapping& mapping = mappingsByBucket[uint32(bucket)][attributes];
-            RenderGroup*& rg = mapping.renderGroup;
+            DrawCallCollection& drawCallCollection = mappingsByBucket[uint32(bucket)][attributes];
+            RenderGroup& rg = drawCallCollection.renderGroup;
 
-            if (!rg)
+            if (!rg.valid)
             {
-                rg = CreateRenderGroup(this, mapping, attributes);
+                rg = CreateRenderGroup(this, drawCallCollection, attributes);
+                rg.valid = true;
             }
 
             const uint32 idx = id.ToIndex();
 
-            mapping.meshProxies.Set(idx, const_cast<RenderProxyMesh*>(meshProxy));
+            drawCallCollection.meshProxies.Set(idx, const_cast<RenderProxyMesh*>(meshProxy));
             previousAttributes.Set(idx, attributes);
         }
     }

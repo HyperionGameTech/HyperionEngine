@@ -25,7 +25,6 @@
 
 namespace Hyperion {
 
-class RenderGroup;
 class Mesh;
 class EnvProbe;
 class DebugDrawer;

@@ -11,6 +11,7 @@
 #include <rendering/GlobalBuffers.hpp>
 #include <rendering/RenderMemory.hpp>
 #include <rendering/RenderObject.hpp>
+#include <rendering/RenderGroup.hpp>
 
 #include <Core/Types.hpp>
 
@@ -20,7 +21,6 @@ class Mesh;
 class Material;
 class Skeleton;
 class Entity;
-class RenderGroup;
 class RenderProxyMesh;
 struct DrawCommandData;
 class IndirectDrawState;
@@ -275,28 +275,21 @@ protected:
 struct DrawCallCollection
 {
     DrawCallCollection()
-        : batchAllocator(nullptr),
-          renderGroup(nullptr)
-    {
-    }
-
-    DrawCallCollection(EntityBatchAllocatorBase* batchAllocator, RenderGroup* renderGroup)
-        : batchAllocator(batchAllocator),
-          renderGroup(renderGroup)
+        : batchAllocator(nullptr)
     {
     }
 
     DrawCallCollection(const DrawCallCollection& other) = delete;
     DrawCallCollection& operator=(const DrawCallCollection& other) = delete;
 
-    DrawCallCollection(DrawCallCollection&& other) noexcept;
-    DrawCallCollection& operator=(DrawCallCollection&& other) noexcept;
+    DrawCallCollection(DrawCallCollection&& other) noexcept = default;
+    DrawCallCollection& operator=(DrawCallCollection&& other) noexcept = delete;
 
     ~DrawCallCollection();
 
     HYP_FORCE_INLINE bool IsValid() const
     {
-        return batchAllocator != nullptr;
+        return batchAllocator != nullptr && renderGroup.valid;
     }
 
     void PushRenderProxy(DrawCallID id, const RenderProxyMesh& renderProxy);
@@ -316,9 +309,23 @@ struct DrawCallCollection
         uint32 numInstances,
         uint32 instanceOffset);
 
+    void TakeDrawCalls(DrawCallCollection& out)
+    {
+        out.batchAllocator = batchAllocator;
+        out.renderGroup = renderGroup;
+        out.indirectRenderer = indirectRenderer;
+        out.drawCalls = std::move(drawCalls);
+        out.instancedDrawCalls = std::move(instancedDrawCalls);
+        out.indexMap = std::move(indexMap);
+    }
+
     EntityBatchAllocatorBase* batchAllocator;
 
-    RenderGroup* renderGroup;
+    RenderGroup renderGroup;
+
+    // map entity id to mesh proxy
+    IndirectRenderer* indirectRenderer = nullptr;
+    SparsePagedArray<RenderProxyMesh*, 128, RenderAllocator> meshProxies;
 
     DrawCallStorage drawCalls;
     InstancedDrawCallStorage instancedDrawCalls;

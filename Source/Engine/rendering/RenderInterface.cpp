@@ -99,7 +99,7 @@ namespace Hyperion {
 static_assert(RingBufferDepth <= MinSafeDeleteCycles,
     "RingBufferDepth must be less than or equal to MinSafeDeleteCycles to ensure safe deletion of resources.");
 
-static constexpr uint32 MaxFramesBeforeDiscard = 10; // number of frames before ViewData is discarded if not written to
+static constexpr uint32 MaxFramesBeforeDiscard = 100; // number of frames before ViewData is discarded if not written to
 
 // must be greater than or equal to MinSafeDeleteCycles so that
 // we can ensure no active views hold pointers to deleted objects.
@@ -331,15 +331,14 @@ public:
 struct ViewData
 {
     View* view = nullptr;
-    RenderProxyList* rplRender = nullptr;
+    RenderProxyList rplRender;
     RenderCollector renderCollector;
-    uint32 framesSinceUsed = 0;
-    uint32 numRefs = 0; // number of ViewFrameData holding refs to this
+    uint32 lastUsedFrame = ~0u;
+    uint32 numRefs = 0; // number of BufferedViewData holding refs to this
 
     ViewData()
+        : rplRender(g_renderPool, /* isShared */ false, /* useRefCounting */ false)
     {
-        rplRender = PoolNew<RenderProxyList>(*g_renderPool,
-            g_renderPool, /* isShared */ false, /* useRefCounting */ false);
     }
 
     ViewData(const ViewData& other) = delete;
@@ -383,7 +382,7 @@ struct ViewData
 };
 
 // Data for views that is buffered over multiple frames
-struct ViewFrameData
+struct BufferedViewData
 {
     View* view = nullptr;
     Viewport viewport {};
@@ -393,9 +392,9 @@ struct ViewFrameData
     ViewData* viewData = nullptr;
 };
 
-struct FrameData
+struct BufferedData
 {
-    HashMap<View*, ViewFrameData*> viewFrameData;
+    HashMap<View*, BufferedViewData*> perViewData;
     SharedMutex viewFrameDataMutex;
 
     Array<World*> activeWorlds;
@@ -406,7 +405,7 @@ struct FrameData
     WorldShaderData worldBufferData {};
 };
 
-static FrameData s_frameData[RingBufferDepth];
+static BufferedData s_bufferedData[RingBufferDepth];
 static HashMap<View*, ViewData*> s_viewData;
 
 static ViewData* GetViewData(View* view)
@@ -423,7 +422,7 @@ static ViewData* GetViewData(View* view)
         HYP_LOG(Rendering, Verbose, "Allocating new ViewData for View {}\t(Camera : {})", view->Id(),
             view->GetCamera() ? *view->GetCamera()->GetName() : "null");
 
-        ViewData* vd = PoolNew<ViewData>(*g_renderPool);
+        ViewData* vd = HYP_POOL_NEW(g_renderPool, ViewData);
         vd->view = view;
 
         if (view->GetViewDesc().entityBatchClass != nullptr)
@@ -445,18 +444,18 @@ static ViewData* GetViewData(View* view)
 
     AssertDebug(viewDataIt->second != nullptr);
 
-    viewDataIt->second->framesSinceUsed = 0;
+    viewDataIt->second->lastUsedFrame = GetFrameCounter();
 
     return viewDataIt->second;
 }
 
-static ViewFrameData* GetViewFrameData(View* view, uint32 slot)
+static BufferedViewData* GetBufferedViewData(View* view, uint32 slot)
 {
     HYP_SCOPE;
 
     AssertDebug(view != nullptr);
 
-    FrameData& frameData = s_frameData[slot];
+    BufferedData& bufferedData = s_bufferedData[slot];
 
     TSharedLock<SharedMutex> sharedLock;
     TUniqueLock<SharedMutex> uniqueLock;
@@ -464,11 +463,11 @@ static ViewFrameData* GetViewFrameData(View* view, uint32 slot)
     // need to lock IFF on task thread
     if (s_threadFrameIndex == nullptr)
     {
-        sharedLock.Reset(frameData.viewFrameDataMutex);
+        sharedLock.Reset(bufferedData.viewFrameDataMutex);
     }
 
-    auto it = frameData.viewFrameData.Find(view);
-    if (it != frameData.viewFrameData.End())
+    auto it = bufferedData.perViewData.Find(view);
+    if (it != bufferedData.perViewData.End())
     {
         return it->second;
     }
@@ -476,26 +475,26 @@ static ViewFrameData* GetViewFrameData(View* view, uint32 slot)
     if (sharedLock)
     {
         sharedLock.Reset();
-        uniqueLock.Reset(frameData.viewFrameDataMutex);
+        uniqueLock.Reset(bufferedData.viewFrameDataMutex);
 
-        it = frameData.viewFrameData.Find(view);
+        it = bufferedData.perViewData.Find(view);
 
-        if (it != frameData.viewFrameData.End())
+        if (it != bufferedData.perViewData.End())
         {
             return it->second;
         }
     }
 
-    ViewFrameData* vfd = new ViewFrameData;
-    vfd->view = view;
+    BufferedViewData* bufferedViewData = new BufferedViewData;
+    bufferedViewData->view = view;
 
-    vfd->rplShared = view->GetRenderProxyList(slot);
-    AssertDebug(vfd->rplShared != nullptr);
-    AssertDebug(vfd->rplShared->isShared, "Expected isShared to be true to ensure multiple threads don't access the list concurrently");
+    bufferedViewData->rplShared = view->GetRenderProxyList(slot);
+    AssertDebug(bufferedViewData->rplShared != nullptr);
+    AssertDebug(bufferedViewData->rplShared->isShared, "Expected isShared to be true to ensure multiple threads don't access the list concurrently");
 
-    frameData.viewFrameData[view] = vfd;
+    bufferedData.perViewData[view] = bufferedViewData;
 
-    return vfd;
+    return bufferedViewData;
 }
 
 template <class ElementType, class ProxyType>
@@ -725,7 +724,7 @@ RenderProxyList& GetProducerProxyList(View* view)
     // can be called on sim thread or on task thread for tasks enqueued and awaited by sim thread, **exclusively**
     AssertOnThread(g_simThread | ThreadCategory::THREAD_CATEGORY_TASK);
 
-    ViewFrameData* vd = GetViewFrameData(view, s_frameIndex[PRODUCER]);
+    BufferedViewData* vd = GetBufferedViewData(view, s_frameIndex[PRODUCER]);
     Assert(vd != nullptr);
 
     return *vd->rplShared;
@@ -741,7 +740,7 @@ RenderProxyList& GetConsumerProxyList(View* view)
     ViewData* vd = GetViewData(view);
     AssertDebug(vd != nullptr);
 
-    return *vd->rplRender;
+    return vd->rplRender;
 }
 
 RenderCollector& GetRenderCollector(View* view)
@@ -850,7 +849,7 @@ WorldShaderData* GetWorldBufferData()
     HYP_SCOPE;
     AssertOnThread(g_simThread | g_renderThread);
 
-    return &s_frameData[*s_threadFrameIndex].worldBufferData;
+    return &s_bufferedData[*s_threadFrameIndex].worldBufferData;
 }
 
 void CommitActiveWorlds(Span<World*> activeWorlds)
@@ -858,8 +857,8 @@ void CommitActiveWorlds(Span<World*> activeWorlds)
     HYP_SCOPE;
     AssertOnThread(g_simThread);
 
-    FrameData& frameData = s_frameData[s_frameIndex[PRODUCER]];
-    frameData.activeWorlds = Array<World*>(activeWorlds);
+    BufferedData& bufferedData = s_bufferedData[s_frameIndex[PRODUCER]];
+    bufferedData.activeWorlds = Array<World*>(activeWorlds);
 }
 
 Span<World*> GetActiveWorlds()
@@ -867,7 +866,7 @@ Span<World*> GetActiveWorlds()
     HYP_SCOPE;
     AssertOnThread(g_simThread | g_renderThread);
 
-    return s_frameData[*s_threadFrameIndex].activeWorlds.ToSpan();
+    return s_bufferedData[*s_threadFrameIndex].activeWorlds.ToSpan();
 }
 
 Viewport& GetViewport(View* view)
@@ -875,7 +874,7 @@ Viewport& GetViewport(View* view)
     HYP_SCOPE;
     AssertOnThread(g_simThread | g_renderThread);
 
-    return GetViewFrameData(view, *s_threadFrameIndex)->viewport;
+    return GetBufferedViewData(view, *s_threadFrameIndex)->viewport;
 }
 
 void BeginFrameSim()
@@ -893,7 +892,7 @@ void EndFrameSim()
     AssertOnThread(g_simThread);
 
     const uint32 slot = s_frameIndex[PRODUCER];
-    FrameData& frameData = s_frameData[slot];
+    BufferedData& bufferedData = s_bufferedData[slot];
 
     g_sceneArena->Reset();
 
@@ -1014,12 +1013,12 @@ void RenderInterface::Shutdown()
 {
     for (uint32 i = 0; i < RingBufferDepth; i++)
     {
-        for (auto& it : s_frameData[i].viewFrameData)
+        for (auto& it : s_bufferedData[i].perViewData)
         {
             delete it.second;
         }
 
-        s_frameData[i].viewFrameData.Clear();
+        s_bufferedData[i].perViewData.Clear();
     }
 
     for (auto& it : s_viewData)
@@ -1140,7 +1139,7 @@ void RenderInterface::BeginFrame(AtomicFlag* pCancelFlag)
     }
 
     const uint32 slot = s_frameIndex[CONSUMER];
-    FrameData& frameData = s_frameData[slot];
+    BufferedData& bufferedData = s_bufferedData[slot];
 
     constantsAllocator->OnFrameStart();
     descriptorSetCache->OnFrameStart();
@@ -1153,40 +1152,40 @@ void RenderInterface::BeginFrame(AtomicFlag* pCancelFlag)
 
     for (View* view : activeViews)
     {
-        // ensure ViewFrameData exists
-        ViewFrameData& vfd = *GetViewFrameData(view, slot);
-        AssertDebug(vfd.rplShared != nullptr);
+        // ensure BufferedViewData exists
+        BufferedViewData& bufferedViewData = *GetBufferedViewData(view, slot);
+        AssertDebug(bufferedViewData.rplShared != nullptr);
     }
 
     // ensure ViewData and render-side owned lists exists
-    for (auto& it : frameData.viewFrameData)
+    for (auto& it : bufferedData.perViewData)
     {
         View* view = it.first;
-        ViewFrameData& vfd = *it.second;
+        BufferedViewData& bufferedViewData = *it.second;
 
-        if (!vfd.viewData)
+        if (!bufferedViewData.viewData)
         {
-            vfd.viewData = GetViewData(view);
-            AssertDebug(vfd.viewData != nullptr);
+            bufferedViewData.viewData = GetViewData(view);
+            AssertDebug(bufferedViewData.viewData != nullptr);
 
-            vfd.viewData->AddRef();
+            bufferedViewData.viewData->AddRef();
 
-            AssertDebug(vfd.rplShared != nullptr);
+            AssertDebug(bufferedViewData.rplShared != nullptr);
 
-            frameData.ownedLists.PushBack(vfd.viewData->rplRender);
-            frameData.sharedLists.PushBack(vfd.rplShared);
+            bufferedData.ownedLists.PushBack(&bufferedViewData.viewData->rplRender);
+            bufferedData.sharedLists.PushBack(bufferedViewData.rplShared);
         }
     }
 
     // copy deps to render side owned lists
-    AssertDebug(frameData.ownedLists.Size() == frameData.sharedLists.Size());
+    AssertDebug(bufferedData.ownedLists.Size() == bufferedData.sharedLists.Size());
 
-    for (size_t i = 0; i < frameData.ownedLists.Size(); i++)
+    for (size_t i = 0; i < bufferedData.ownedLists.Size(); i++)
     {
-        RenderProxyList* rplRender = frameData.ownedLists[i];
+        RenderProxyList* rplRender = bufferedData.ownedLists[i];
         AssertDebug(rplRender != nullptr);
 
-        RenderProxyList* rplShared = frameData.sharedLists[i];
+        RenderProxyList* rplShared = bufferedData.sharedLists[i];
 
         // Advance render side owned lists ResourceTrackers before we copy dependencies over
         int resourceTrackerIndex = 0;
@@ -1320,25 +1319,25 @@ void RenderInterface::BeginFrame(AtomicFlag* pCancelFlag)
     // Build draw call lists
     for (View* view : activeViews)
     {
-        ViewFrameData& vfd = *GetViewFrameData(view, slot);
-        AssertDebug(vfd.rplShared != nullptr);
-        AssertDebug(vfd.viewData != nullptr);
+        BufferedViewData& bufferedViewData = *GetBufferedViewData(view, slot);
+        AssertDebug(bufferedViewData.rplShared != nullptr);
+        AssertDebug(bufferedViewData.viewData != nullptr);
 
-        ViewData& vd = *vfd.viewData;
+        ViewData& vd = *bufferedViewData.viewData;
 
-        if (vfd.rplShared->disableBuildRenderCollection || (vfd.view->GetFlags() & ViewFlags::NO_DRAW_CALLS))
+        if (bufferedViewData.rplShared->disableBuildRenderCollection || (bufferedViewData.view->GetFlags() & ViewFlags::NO_DRAW_CALLS))
         {
             continue;
         }
 
-        vd.rplRender->BeginRead();
+        vd.rplRender.BeginRead();
 
-        vd.renderCollector.BuildRenderGroups(vd.view, *vd.rplRender);
+        vd.renderCollector.BuildRenderGroups(vd.view, vd.rplRender);
 
         /// TODO: Use View's bucket mask property to pass to BuildDrawCalls().
         vd.renderCollector.BuildDrawCalls(0);
 
-        vd.rplRender->EndRead();
+        vd.rplRender.EndRead();
     }
 }
 
@@ -1349,58 +1348,59 @@ void RenderInterface::EndFrame()
 
     const uint32 slot = s_frameIndex[CONSUMER];
 
-    FrameData& frameData = s_frameData[slot];
-    frameData.activeWorlds.Clear();
+    BufferedData& bufferedData = s_bufferedData[slot];
+    bufferedData.activeWorlds.Clear();
+
+    const uint32 currFrame = GetFrameCounter();
 
     // cull ViewData that hasn't been written to for a while, as well as remove unused render groups.
-    for (auto it = frameData.viewFrameData.Begin(); it != frameData.viewFrameData.End();)
+    for (auto it = bufferedData.perViewData.Begin(); it != bufferedData.perViewData.End();)
     {
-        ViewFrameData& vfd = *it->second;
-        if (vfd.viewData != nullptr)
-        {
-            ViewData& vd = *vfd.viewData;
+        BufferedViewData* bufferedViewData = it->second;
 
-            View* view = vd.view;
+        if (bufferedViewData->viewData != nullptr)
+        {
+            ViewData* viewData = bufferedViewData->viewData;
+
+            View* view = viewData->view;
             AssertDebug(view != nullptr);
 
-            vd.renderCollector.RemoveEmptyRenderGroups();
+            viewData->renderCollector.RemoveEmptyRenderGroups();
 
             // Clear out data for views that haven't been written to for a while
-            if (++vd.framesSinceUsed >= MaxFramesBeforeDiscard)
+            if (int64(currFrame) - int64(viewData->lastUsedFrame) >= MaxFramesBeforeDiscard)
             {
                 // Decrement ref count on the ViewData,
-                // if we hit zero there are no more ViewFrameData holding refs to the ViewData so we delete it
-                AssertDebug(vd.numRefs > 0);
+                // if we hit zero there are no more BufferedViewData holding refs to the ViewData so we delete it
+                AssertDebug(viewData->numRefs > 0);
 
-                if (vd.ReleaseRef() == 0)
+                auto rplRenderIt = bufferedData.ownedLists.Find(&viewData->rplRender);
+                AssertDebug(rplRenderIt != bufferedData.ownedLists.End());
+
+                const size_t rplIndex = std::distance(bufferedData.ownedLists.Begin(), rplRenderIt);
+
+                bufferedData.ownedLists.Erase(rplRenderIt);
+
+                AssertDebug(rplIndex < bufferedData.sharedLists.Size());
+                bufferedData.sharedLists.EraseAt(rplIndex);
+
+                if (viewData->ReleaseRef() == 0)
                 {
                     HYP_LOG(Rendering, Verbose, "Discarding ViewData for view {}", view->Id());
 
                     auto viewDataIt = s_viewData.Find(view);
-                    AssertDebug(viewDataIt != s_viewData.End() && viewDataIt->second == &vd);
+                    AssertDebug(viewDataIt != s_viewData.End() && viewDataIt->second == viewData);
 
                     s_viewData.Erase(viewDataIt);
 
-                    PoolDelete(*g_renderPool, &vd);
+                    PoolDelete(*g_renderPool, viewData);
+
+                    bufferedViewData->viewData = nullptr;
                 }
 
-                if (vfd.rplShared != nullptr)
-                {
-                    auto rplSharedIt = frameData.sharedLists.Find(vfd.rplShared);
-                    AssertDebug(rplSharedIt != frameData.sharedLists.End());
+                delete bufferedViewData;
 
-                    if (rplSharedIt != frameData.sharedLists.End())
-                    {
-                        // set to null to preserve indices; don't erase
-                        *rplSharedIt = nullptr;
-                    }
-
-                    vfd.rplShared = nullptr;
-                }
-
-                delete &vfd;
-
-                it = frameData.viewFrameData.Erase(it);
+                it = bufferedData.perViewData.Erase(it);
 
                 continue;
             }
