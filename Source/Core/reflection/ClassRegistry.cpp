@@ -17,7 +17,7 @@
 #include <dotnet/DotNETHost.hpp>
 #endif
 
-//#define HYP_CLASS_REGISTRY_USE_TLS 1
+#define HYP_CLASS_REGISTRY_USE_TLS 1
 
 namespace Hyperion {
 

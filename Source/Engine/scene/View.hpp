@@ -205,6 +205,16 @@ public:
         return m_subFrustum;
     }
 
+    HYP_FORCE_INLINE const ProcRef<void(RenderProxyList&)>& GetOverrideCollectFunctor() const
+    {
+        return m_overrideCollectFunctor;
+    }
+
+    HYP_FORCE_INLINE void SetOverrideCollectFunctor(const ProcRef<void(RenderProxyList&)>& ref)
+    {
+        m_overrideCollectFunctor = ref;
+    }
+
     bool TestRay(const Ray& ray, RayTestResults& outResults, EnumFlags<RayTestFlags> flags = RayTestFlags::TestBVH) const;
 
     /*! \brief Sync changes to the Viewport so the render thread can see updates to it for the next frame */
@@ -253,6 +263,8 @@ protected:
     int m_priority;
 
     Optional<RenderableAttributeSet> m_overrideAttributes;
+
+    ProcRef<void(RenderProxyList&)> m_overrideCollectFunctor;
 
     TaskBatch* m_collectionTaskBatch;
 };

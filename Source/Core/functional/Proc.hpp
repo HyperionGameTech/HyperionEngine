@@ -433,6 +433,18 @@ public:
         }
     }
 
+    // allow binding a member function pointer with an object instance
+    template <class T, auto MemFn, typename = std::enable_if_t<std::is_member_function_pointer_v<decltype(MemFn)> && std::is_invocable_v<decltype(MemFn), T&, Args...>>>
+    ProcRef(T& instance, ValueWrapper<MemFn>)
+        : m_ptr(const_cast<void*>(static_cast<const void*>(&instance)))
+    {
+        m_invokeFn = [](void* ptr, Args... args) -> ReturnType
+        {
+            T& instance = *static_cast<T*>(ptr);
+            return (instance.*MemFn)(std::forward<Args>(args)...);
+        };
+    }
+
     ProcRef(const ProcRef& other) = default;
     ProcRef& operator=(const ProcRef& other) = default;
 

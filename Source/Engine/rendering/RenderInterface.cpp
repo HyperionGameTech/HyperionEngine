@@ -347,34 +347,17 @@ struct ViewData
     ViewData(ViewData&& other) noexcept = delete;
     ViewData& operator=(ViewData&& other) noexcept = delete;
 
-    ~ViewData()
+    HYP_FORCE_INLINE void AddRef()
     {
-        // NOTE: intentionally not deleting rplRender here
-    }
-
-    void AddRef()
-    {
-        AssertDebug(view != nullptr);
-
         ++numRefs;
-        view->GetObjectHeader_Internal()->IncRefStrong();
     }
 
-    uint32 ReleaseRef()
+    HYP_FORCE_INLINE uint32 Release()
     {
-        AssertDebug(view != nullptr && numRefs > 0);
-
         if (--numRefs == 0)
         {
-            Handle<View> viewHandle;
-            viewHandle.ptr = view;
-            EnqueueDeletion(std::move(viewHandle));
-
+            view->Release();
             view = nullptr;
-        }
-        else
-        {
-            view->GetObjectHeader_Internal()->DecRefStrong();
         }
 
         return numRefs;
@@ -408,7 +391,7 @@ struct BufferedData
 static BufferedData s_bufferedData[RingBufferDepth];
 static HashMap<View*, ViewData*> s_viewData;
 
-static ViewData* GetViewData(View* view)
+static ViewData* GetViewData(View* view, bool createIfNotExist)
 {
     HYP_SCOPE;
     AssertOnThread(g_renderThread);
@@ -419,32 +402,39 @@ static ViewData* GetViewData(View* view)
 
     if (viewDataIt == s_viewData.End())
     {
-        HYP_LOG(Rendering, Verbose, "Allocating new ViewData for View {}\t(Camera : {})", view->Id(),
-            view->GetCamera() ? *view->GetCamera()->GetName() : "null");
+        if (!createIfNotExist)
+        {
+            return nullptr;
+        }
 
-        ViewData* vd = HYP_POOL_NEW(g_renderPool, ViewData);
-        vd->view = view;
+        ViewData* viewData = HYP_POOL_NEW(g_renderPool, ViewData);
+        viewData->view = view;
+        viewData->lastUsedFrame = GetFrameCounter();
+
+        view->AddRef();
+
+        HYP_LOG(Rendering, Verbose, "Allocating new ViewData {} for View {} at frame {}\t(Camera : {})",
+            (void*)viewData,
+            view->Id(),
+            GetFrameCounter(),
+            view->GetCamera() ? *view->GetCamera()->GetName() : "null");
 
         if (view->GetViewDesc().entityBatchClass != nullptr)
         {
-            vd->renderCollector.batchAllocator = GetOrCreateEntityBatchAllocator(view->GetViewDesc().entityBatchClass->GetTypeId());
+            viewData->renderCollector.batchAllocator = GetOrCreateEntityBatchAllocator(view->GetViewDesc().entityBatchClass->GetTypeId());
         }
         else
         {
-            vd->renderCollector.batchAllocator = GetOrCreateEntityBatchAllocator<MeshEntityInstanceBatch>();
+            viewData->renderCollector.batchAllocator = GetOrCreateEntityBatchAllocator<MeshEntityInstanceBatch>();
         }
 
-        AssertDebug(vd->renderCollector.batchAllocator != nullptr);
+        AssertDebug(viewData->renderCollector.batchAllocator != nullptr);
 
-        auto insertResult = s_viewData.Insert(view, vd);
+        auto insertResult = s_viewData.Insert(view, viewData);
         AssertDebug(insertResult.second);
 
         viewDataIt = insertResult.first;
     }
-
-    AssertDebug(viewDataIt->second != nullptr);
-
-    viewDataIt->second->lastUsedFrame = GetFrameCounter();
 
     return viewDataIt->second;
 }
@@ -737,8 +727,13 @@ RenderProxyList& GetConsumerProxyList(View* view)
 
     AssertDebug(view != nullptr);
 
-    ViewData* vd = GetViewData(view);
-    AssertDebug(vd != nullptr);
+    ViewData* vd = GetViewData(view, false);
+
+    if (vd == nullptr)
+    {
+        static RenderProxyList s_fallbackRpl { g_renderPool, /* isShared */ false, /* useRefCounting */ false };
+        return s_fallbackRpl;
+    }
 
     return vd->rplRender;
 }
@@ -748,7 +743,15 @@ RenderCollector& GetRenderCollector(View* view)
     HYP_SCOPE;
     AssertOnThread(g_renderThread);
 
-    return GetViewData(view)->renderCollector;
+    ViewData* vd = GetViewData(view, false);
+    
+    if (vd == nullptr)
+    {
+        static RenderCollector s_fallbackRenderCollector;
+        return s_fallbackRenderCollector;
+    }
+    
+    return vd->renderCollector;
 }
 
 Array<Pair<View*, RenderCollector*>> GetAllRenderCollectors()
@@ -1139,6 +1142,8 @@ void RenderInterface::BeginFrame(AtomicFlag* pCancelFlag)
     }
 
     const uint32 slot = s_frameIndex[CONSUMER];
+    const uint32 currFrame = GetFrameCounter();
+
     BufferedData& bufferedData = s_bufferedData[slot];
 
     constantsAllocator->OnFrameStart();
@@ -1149,23 +1154,16 @@ void RenderInterface::BeginFrame(AtomicFlag* pCancelFlag)
     RenderCommands::Flush();
 
     Span<View* const> activeViews = g_engineDriver->GetCurrentFrameViews();
-
+    
     for (View* view : activeViews)
     {
         // ensure BufferedViewData exists
         BufferedViewData& bufferedViewData = *GetBufferedViewData(view, slot);
         AssertDebug(bufferedViewData.rplShared != nullptr);
-    }
-
-    // ensure ViewData and render-side owned lists exists
-    for (auto& it : bufferedData.perViewData)
-    {
-        View* view = it.first;
-        BufferedViewData& bufferedViewData = *it.second;
-
+        
         if (!bufferedViewData.viewData)
         {
-            bufferedViewData.viewData = GetViewData(view);
+            bufferedViewData.viewData = GetViewData(view, /* createIfNotExist */ true);
             AssertDebug(bufferedViewData.viewData != nullptr);
 
             bufferedViewData.viewData->AddRef();
@@ -1175,7 +1173,29 @@ void RenderInterface::BeginFrame(AtomicFlag* pCancelFlag)
             bufferedData.ownedLists.PushBack(&bufferedViewData.viewData->rplRender);
             bufferedData.sharedLists.PushBack(bufferedViewData.rplShared);
         }
+
+        bufferedViewData.viewData->lastUsedFrame = GetFrameCounter();
     }
+
+    // ensure ViewData and render-side owned lists exists
+    //for (auto& it : bufferedData.perViewData)
+    //{
+    //    View* view = it.first;
+    //    BufferedViewData& bufferedViewData = *it.second;
+
+    //    if (!bufferedViewData.viewData)
+    //    {
+    //        bufferedViewData.viewData = GetViewData(view, /* createIfNotExist */ true);
+    //        AssertDebug(bufferedViewData.viewData != nullptr);
+
+    //        bufferedViewData.viewData->AddRef();
+
+    //        AssertDebug(bufferedViewData.rplShared != nullptr);
+
+    //        bufferedData.ownedLists.PushBack(&bufferedViewData.viewData->rplRender);
+    //        bufferedData.sharedLists.PushBack(bufferedViewData.rplShared);
+    //    }
+    //}
 
     // copy deps to render side owned lists
     AssertDebug(bufferedData.ownedLists.Size() == bufferedData.sharedLists.Size());
@@ -1384,9 +1404,9 @@ void RenderInterface::EndFrame()
                 AssertDebug(rplIndex < bufferedData.sharedLists.Size());
                 bufferedData.sharedLists.EraseAt(rplIndex);
 
-                if (viewData->ReleaseRef() == 0)
+                if (viewData->Release() == 0)
                 {
-                    HYP_LOG(Rendering, Verbose, "Discarding ViewData for view {}", view->Id());
+                    HYP_LOG(Rendering, Verbose, "Discarding ViewData {} for view {} at frame {}", (void*)viewData, view->Id(), GetFrameCounter());
 
                     auto viewDataIt = s_viewData.Find(view);
                     AssertDebug(viewDataIt != s_viewData.End() && viewDataIt->second == viewData);
@@ -1394,9 +1414,9 @@ void RenderInterface::EndFrame()
                     s_viewData.Erase(viewDataIt);
 
                     PoolDelete(*g_renderPool, viewData);
-
-                    bufferedViewData->viewData = nullptr;
                 }
+
+                bufferedViewData->viewData = nullptr;
 
                 delete bufferedViewData;
 

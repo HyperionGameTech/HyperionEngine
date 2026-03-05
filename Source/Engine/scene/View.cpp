@@ -44,7 +44,7 @@
 #include <engine/EngineDriver.hpp>
 
 // #define HYP_DISABLE_VISIBILITY_CHECK
-#define HYP_VISIBILITY_CHECK_DEBUG
+// #define HYP_VISIBILITY_CHECK_DEBUG
 
 #include <View.generated.inl>
 
@@ -145,7 +145,8 @@ View::View(const ViewDesc& viewDesc)
       m_camera(MakeStrongRef(viewDesc.camera)),
       m_priority(viewDesc.priority),
       m_overrideAttributes(viewDesc.overrideAttributes),
-      m_collectionTaskBatch(nullptr)
+      m_collectionTaskBatch(nullptr),
+      m_overrideCollectFunctor(nullptr)
 {
     for (Scene* scene : m_viewDesc.scenes)
     {
@@ -408,6 +409,22 @@ void View::BeginAsyncCollection(TaskBatch& batch)
     m_collectionTaskBatch = &batch;
 
     RenderProxyList& rpl = GetProducerProxyList(this);
+
+    if (m_overrideCollectFunctor.IsValid())
+    {
+        batch.AddTask([this, &rpl]()
+            {
+                rpl.BeginWrite();
+
+                rpl.priority = m_priority;
+
+                m_overrideCollectFunctor(rpl);
+
+                rpl.EndWrite();
+            });
+
+        return;
+    }
 
     batch.AddTask([this, &rpl]()
         {
