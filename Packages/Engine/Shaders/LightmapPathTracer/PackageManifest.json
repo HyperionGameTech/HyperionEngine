@@ -1,0 +1,7 @@
+{
+  "Dependencies": [],
+  "Name": "LightmapPathTracer",
+  "FriendlyName": "LightmapPathTracer",
+  "Flags": 0,
+  "Path": "Engine/Shaders/LightmapPathTracer"
+}
