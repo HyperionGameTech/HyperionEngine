@@ -237,18 +237,18 @@ void ReflectionProbeRenderer::RenderProbe(Frame* frame, const RenderSetup& rende
         Assert(dstImage.IsValid());
         Assert(dstImage->IsCreated());
 
-        frame->renderQueue << InsertBarrier(framebufferImage, RS_COPY_SRC);
-        frame->renderQueue << InsertBarrier(dstImage, RS_COPY_DST);
+        frame->cr << InsertBarrier(framebufferImage, RS_COPY_SRC);
+        frame->cr << InsertBarrier(dstImage, RS_COPY_DST);
 
-        frame->renderQueue << Blit(framebufferImage, dstImage);
+        frame->cr << Blit(framebufferImage, dstImage);
 
         if (dstImage->HasMipMaps())
         {
-            frame->renderQueue << GenerateMipmaps(dstImage);
+            frame->cr << GenerateMipmaps(dstImage);
         }
 
-        frame->renderQueue << InsertBarrier(framebufferImage, RS_SHADER_RESOURCE);
-        frame->renderQueue << InsertBarrier(dstImage, RS_SHADER_RESOURCE);
+        frame->cr << InsertBarrier(framebufferImage, RS_SHADER_RESOURCE);
+        frame->cr << InsertBarrier(dstImage, RS_SHADER_RESOURCE);
     }*/
 }
 
@@ -298,7 +298,7 @@ void ReflectionProbeRenderer::ComputePrefilteredEnvMap(Frame* frame, const Rende
     Array<GpuBufferRef> buffers;
     buffers.Resize(numMips);
 
-    frame->renderQueue << InsertBarrier(prefilteredEnvMap->GetGpuImage(), RS_SHADER_RESOURCE);
+    frame->cr << InsertBarrier(prefilteredEnvMap->GetGpuImage(), RS_SHADER_RESOURCE);
 
     for (uint8 mipIndex = 0; mipIndex < numMips; mipIndex++)
     {
@@ -322,7 +322,7 @@ void ReflectionProbeRenderer::ComputePrefilteredEnvMap(Frame* frame, const Rende
 
         uniformBuffer->Copy(sizeof(uniforms), &uniforms);
 
-        frame->renderQueue << SetCurrentShader(ShaderDesc(NAME("ConvolveProbe"), shaderProperties));
+        frame->cr << SetCurrentShader(ShaderDesc(NAME("ConvolveProbe"), shaderProperties));
 
         ImageSubResource subResource {};
         subResource.baseMipLevel = mipIndex;
@@ -336,19 +336,19 @@ void ReflectionProbeRenderer::ComputePrefilteredEnvMap(Frame* frame, const Rende
 
         Assert(imageView != nullptr);
 
-        frame->renderQueue << InsertBarrier(prefilteredEnvMap->GetGpuImage(), RS_UNORDERED_ACCESS, subResource);
+        frame->cr << InsertBarrier(prefilteredEnvMap->GetGpuImage(), RS_UNORDERED_ACCESS, subResource);
 
-        frame->renderQueue << SetShaderUniform(0, "CurrentEnvProbe"_sh, g_renderInterface->gpuBuffers[GRB_ENV_PROBES]->GetBuffer(frame->GetFrameIndex()), TShaderDataOffset<EnvProbeShaderData>(renderSetup.envProbe));
-        frame->renderQueue << SetShaderUniform(1, "SphereSamplesBuffer"_sh, g_renderInterface->sphereSamplesBuffer);
-        frame->renderQueue << SetShaderUniform(2, "ColorTexture"_sh, colorAttachment->GetImageView());
-        frame->renderQueue << SetShaderUniform(3, "SamplerLinear"_sh, g_renderInterface->placeholderData->GetSamplerLinear());
-        frame->renderQueue << SetShaderUniform(4, "SamplerNearest"_sh, g_renderInterface->placeholderData->GetSamplerNearest());
-        frame->renderQueue << SetShaderUniform(5, "OutImage"_sh, imageView);
-        frame->renderQueue << SetShaderUniform(6, "UniformBuffer"_sh, uniformBuffer);
+        frame->cr << SetShaderUniform(0, "CurrentEnvProbe"_sh, g_renderInterface->gpuBuffers[GRB_ENV_PROBES]->GetBuffer(frame->GetFrameIndex()), TShaderDataOffset<EnvProbeShaderData>(renderSetup.envProbe));
+        frame->cr << SetShaderUniform(1, "SphereSamplesBuffer"_sh, g_renderInterface->sphereSamplesBuffer);
+        frame->cr << SetShaderUniform(2, "ColorTexture"_sh, colorAttachment->GetImageView());
+        frame->cr << SetShaderUniform(3, "SamplerLinear"_sh, g_renderInterface->placeholderData->GetSamplerLinear());
+        frame->cr << SetShaderUniform(4, "SamplerNearest"_sh, g_renderInterface->placeholderData->GetSamplerNearest());
+        frame->cr << SetShaderUniform(5, "OutImage"_sh, imageView);
+        frame->cr << SetShaderUniform(6, "UniformBuffer"_sh, uniformBuffer);
 
-        frame->renderQueue << DispatchCompute(Vec3u { (mipExtent.x + 7) / 8, (mipExtent.y + 7) / 8, 6 });
+        frame->cr << DispatchCompute(Vec3u { (mipExtent.x + 7) / 8, (mipExtent.y + 7) / 8, 6 });
 
-        frame->renderQueue << InsertBarrier(prefilteredEnvMap->GetGpuImage(), RS_SHADER_RESOURCE, subResource);
+        frame->cr << InsertBarrier(prefilteredEnvMap->GetGpuImage(), RS_SHADER_RESOURCE, subResource);
     }
 
     // Update in env probes texture array if bound
@@ -365,8 +365,8 @@ void ReflectionProbeRenderer::ComputePrefilteredEnvMap(Frame* frame, const Rende
             const GpuImageRef& dstImage = g_renderInterface->envProbesTexture->GetGpuImage();
             Assert(dstImage.IsValid());
 
-            frame->renderQueue << InsertBarrier(srcImage, RS_COPY_SRC);
-            frame->renderQueue << InsertBarrier(dstImage, RS_COPY_DST);
+            frame->cr << InsertBarrier(srcImage, RS_COPY_SRC);
+            frame->cr << InsertBarrier(dstImage, RS_COPY_DST);
 
             for (uint8 mipIndex = 0; mipIndex < dstImage->NumMips(); mipIndex++)
             {
@@ -390,7 +390,7 @@ void ReflectionProbeRenderer::ComputePrefilteredEnvMap(Frame* frame, const Rende
                 const Vec3u srcMipExtent = srcImage->GetTextureDesc().GetMipExtent(mipIndex);
                 const Vec3u dstMipExtent = dstImage->GetTextureDesc().GetMipExtent(mipIndex);
 
-                frame->renderQueue << Blit(
+                frame->cr << Blit(
                     srcImage,
                     dstImage,
                     Rect<uint32> {
@@ -403,8 +403,8 @@ void ReflectionProbeRenderer::ComputePrefilteredEnvMap(Frame* frame, const Rende
                     dstSubResource);
             }
 
-            frame->renderQueue << InsertBarrier(srcImage, RS_SHADER_RESOURCE);
-            frame->renderQueue << InsertBarrier(dstImage, RS_SHADER_RESOURCE);
+            frame->cr << InsertBarrier(srcImage, RS_SHADER_RESOURCE);
+            frame->cr << InsertBarrier(dstImage, RS_SHADER_RESOURCE);
         }
     }
 
@@ -507,10 +507,10 @@ void ReflectionProbeRenderer::ComputeSH(Frame* frame, const RenderSetup& renderS
 
     AsyncCompute* asyncCompute = g_renderInterface->CreateAsyncCompute();
 
-    RenderQueue& asyncRenderQueue = asyncCompute->renderQueue;
+    CommandRecorder& asyncCmdList = asyncCompute->cr;
 
-    asyncRenderQueue << InsertBarrier(shTilesBuffers[0], RS_UNORDERED_ACCESS, ShaderModuleType::Compute);
-    asyncRenderQueue << InsertBarrier(g_renderInterface->gpuBuffers[GRB_ENV_PROBES]->GetBuffer(frame->GetFrameIndex()), RS_UNORDERED_ACCESS, ShaderModuleType::Compute);
+    asyncCmdList << InsertBarrier(shTilesBuffers[0], RS_UNORDERED_ACCESS, ShaderModuleType::Compute);
+    asyncCmdList << InsertBarrier(g_renderInterface->gpuBuffers[GRB_ENV_PROBES]->GetBuffer(frame->GetFrameIndex()), RS_UNORDERED_ACCESS, ShaderModuleType::Compute);
 
     // Helper to run pass
     auto RunPass = [&](Name mode, const SHUniforms& passUniforms, const Vec3u& dispatchGroupSize, const GpuBufferRef& inputBuffer, const GpuBufferRef& outputBuffer)
@@ -520,45 +520,45 @@ void ReflectionProbeRenderer::ComputeSH(Frame* frame, const RenderSetup& renderS
         passShaderProperties = passShaderProperties | shaderProperties;
 
         ShaderDesc shaderDesc(NAME("ComputeSH"), passShaderProperties);
-        asyncRenderQueue << SetCurrentShader(shaderDesc);
+        asyncCmdList << SetCurrentShader(shaderDesc);
 
         GpuBufferRef ub = g_renderInterface->MakeGpuBuffer(GpuBufferType::CONSTANT_BUFFER, sizeof(SHUniforms));
         ub->Create();
         ub->Copy(sizeof(SHUniforms), &passUniforms);
         uniformBuffers.PushBack(ub);
 
-        asyncRenderQueue << SetShaderUniform(0, "SamplerLinear"_sh, g_renderInterface->placeholderData->GetSamplerLinear());
-        asyncRenderQueue << SetShaderUniform(1, "SamplerNearest"_sh, g_renderInterface->placeholderData->GetSamplerNearest());
-        asyncRenderQueue << SetShaderUniform(2, "EnvProbesTexture"_sh, g_renderInterface->textureViewCache->GetOrCreate(g_renderInterface->envProbesTexture));
-        asyncRenderQueue << SetShaderUniform(3, "EnvProbesBuffer"_sh, g_renderInterface->gpuBuffers[GRB_ENV_PROBES]->GetBuffer(frame->GetFrameIndex()));
+        asyncCmdList << SetShaderUniform(0, "SamplerLinear"_sh, g_renderInterface->placeholderData->GetSamplerLinear());
+        asyncCmdList << SetShaderUniform(1, "SamplerNearest"_sh, g_renderInterface->placeholderData->GetSamplerNearest());
+        asyncCmdList << SetShaderUniform(2, "EnvProbesTexture"_sh, g_renderInterface->textureViewCache->GetOrCreate(g_renderInterface->envProbesTexture));
+        asyncCmdList << SetShaderUniform(3, "EnvProbesBuffer"_sh, g_renderInterface->gpuBuffers[GRB_ENV_PROBES]->GetBuffer(frame->GetFrameIndex()));
 
         if (skyProbe)
-            asyncRenderQueue << SetShaderUniform(4, "CurrentEnvProbe"_sh, g_renderInterface->gpuBuffers[GRB_ENV_PROBES]->GetBuffer(frame->GetFrameIndex()), TShaderDataOffset<EnvProbeShaderData>(skyProbe));
+            asyncCmdList << SetShaderUniform(4, "CurrentEnvProbe"_sh, g_renderInterface->gpuBuffers[GRB_ENV_PROBES]->GetBuffer(frame->GetFrameIndex()), TShaderDataOffset<EnvProbeShaderData>(skyProbe));
         else
-            asyncRenderQueue << SetShaderUniform(4, "CurrentEnvProbe"_sh, g_renderInterface->gpuBuffers[GRB_ENV_PROBES]->GetBuffer(frame->GetFrameIndex()), TShaderDataOffset<EnvProbeShaderData>(0));
+            asyncCmdList << SetShaderUniform(4, "CurrentEnvProbe"_sh, g_renderInterface->gpuBuffers[GRB_ENV_PROBES]->GetBuffer(frame->GetFrameIndex()), TShaderDataOffset<EnvProbeShaderData>(0));
 
-        asyncRenderQueue << SetShaderUniform(5, "ShadowMapsTextureArray"_sh, g_renderInterface->shadowMapAllocator->GetAtlasImageView());
-        asyncRenderQueue << SetShaderUniform(6, "PointLightShadowMapsTextureArray"_sh, g_renderInterface->shadowMapAllocator->GetPointLightShadowMapImageView());
+        asyncCmdList << SetShaderUniform(5, "ShadowMapsTextureArray"_sh, g_renderInterface->shadowMapAllocator->GetAtlasImageView());
+        asyncCmdList << SetShaderUniform(6, "PointLightShadowMapsTextureArray"_sh, g_renderInterface->shadowMapAllocator->GetPointLightShadowMapImageView());
 
         if (directionalLight)
-            asyncRenderQueue << SetShaderUniform(7, "CurrentLight"_sh, g_renderInterface->gpuBuffers[GRB_LIGHTS]->GetBuffer(frame->GetFrameIndex()), TShaderDataOffset<LightShaderData>(directionalLight));
+            asyncCmdList << SetShaderUniform(7, "CurrentLight"_sh, g_renderInterface->gpuBuffers[GRB_LIGHTS]->GetBuffer(frame->GetFrameIndex()), TShaderDataOffset<LightShaderData>(directionalLight));
         else
-            asyncRenderQueue << SetShaderUniform(7, "CurrentLight"_sh, g_renderInterface->gpuBuffers[GRB_LIGHTS]->GetBuffer(frame->GetFrameIndex()), TShaderDataOffset<LightShaderData>(0));
+            asyncCmdList << SetShaderUniform(7, "CurrentLight"_sh, g_renderInterface->gpuBuffers[GRB_LIGHTS]->GetBuffer(frame->GetFrameIndex()), TShaderDataOffset<LightShaderData>(0));
 
-        asyncRenderQueue << SetShaderUniform(8, "InColorCubemap"_sh, colorAttachment->GetImageView());
-        asyncRenderQueue << SetShaderUniform(9, "InNormalsCubemap"_sh, normalsAttachment ? normalsAttachment->GetImageView() : g_renderInterface->placeholderData->GetImageViewCube1x1R8());
-        asyncRenderQueue << SetShaderUniform(10, "InDepthCubemap"_sh, depthAttachment ? depthAttachment->GetImageView() : g_renderInterface->placeholderData->GetImageViewCube1x1R8());
-        asyncRenderQueue << SetShaderUniform(11, "InputSHTilesBuffer"_sh, inputBuffer);
-        asyncRenderQueue << SetShaderUniform(12, "OutputSHTilesBuffer"_sh, outputBuffer);
-        asyncRenderQueue << SetShaderUniform(13, "SHUniforms"_sh, ub);
+        asyncCmdList << SetShaderUniform(8, "InColorCubemap"_sh, colorAttachment->GetImageView());
+        asyncCmdList << SetShaderUniform(9, "InNormalsCubemap"_sh, normalsAttachment ? normalsAttachment->GetImageView() : g_renderInterface->placeholderData->GetImageViewCube1x1R8());
+        asyncCmdList << SetShaderUniform(10, "InDepthCubemap"_sh, depthAttachment ? depthAttachment->GetImageView() : g_renderInterface->placeholderData->GetImageViewCube1x1R8());
+        asyncCmdList << SetShaderUniform(11, "InputSHTilesBuffer"_sh, inputBuffer);
+        asyncCmdList << SetShaderUniform(12, "OutputSHTilesBuffer"_sh, outputBuffer);
+        asyncCmdList << SetShaderUniform(13, "SHUniforms"_sh, ub);
 
-        asyncRenderQueue << DispatchCompute(dispatchGroupSize);
+        asyncCmdList << DispatchCompute(dispatchGroupSize);
     };
 
     // MODE_CLEAR
     RunPass(NAME("CLEAR"), uniforms, Vec3u { 1, 1, 1 }, shTilesBuffers[0], shTilesBuffers[1]);
 
-    asyncRenderQueue << InsertBarrier(shTilesBuffers[0], RS_UNORDERED_ACCESS, ShaderModuleType::Compute);
+    asyncCmdList << InsertBarrier(shTilesBuffers[0], RS_UNORDERED_ACCESS, ShaderModuleType::Compute);
 
     // MODE_BUILD_COEFFICIENTS
     RunPass(NAME("BUILD_COEFFICIENTS"), uniforms, Vec3u { 1, 1, 1 }, shTilesBuffers[0], shTilesBuffers[1]);
@@ -568,7 +568,7 @@ void ReflectionProbeRenderer::ComputeSH(Frame* frame, const RenderSetup& renderS
     {
         for (uint32 i = 1; i < ShNumLevels; i++)
         {
-            asyncRenderQueue << InsertBarrier(
+            asyncCmdList << InsertBarrier(
                 shTilesBuffers[i - 1],
                 RS_UNORDERED_ACCESS,
                 ShaderModuleType::Compute);
@@ -602,13 +602,13 @@ void ReflectionProbeRenderer::ComputeSH(Frame* frame, const RenderSetup& renderS
     const uint32 finalizeShBufferIndex = ShParallelReduce ? ShNumLevels - 1 : 0;
 
     // Finalize - build into final buffer
-    asyncRenderQueue << InsertBarrier(shTilesBuffers[finalizeShBufferIndex], RS_UNORDERED_ACCESS, ShaderModuleType::Compute);
-    asyncRenderQueue << InsertBarrier(g_renderInterface->gpuBuffers[GRB_ENV_PROBES]->GetBuffer(frame->GetFrameIndex()), RS_UNORDERED_ACCESS, ShaderModuleType::Compute);
+    asyncCmdList << InsertBarrier(shTilesBuffers[finalizeShBufferIndex], RS_UNORDERED_ACCESS, ShaderModuleType::Compute);
+    asyncCmdList << InsertBarrier(g_renderInterface->gpuBuffers[GRB_ENV_PROBES]->GetBuffer(frame->GetFrameIndex()), RS_UNORDERED_ACCESS, ShaderModuleType::Compute);
 
     // MODE_FINALIZE
     RunPass(NAME("FINALIZE"), uniforms, Vec3u { 1, 1, 1 }, shTilesBuffers[finalizeShBufferIndex], shTilesBuffers[finalizeShBufferIndex]);
 
-    asyncRenderQueue << InsertBarrier(g_renderInterface->gpuBuffers[GRB_ENV_PROBES]->GetBuffer(frame->GetFrameIndex()), RS_UNORDERED_ACCESS, ShaderModuleType::Compute);
+    asyncCmdList << InsertBarrier(g_renderInterface->gpuBuffers[GRB_ENV_PROBES]->GetBuffer(frame->GetFrameIndex()), RS_UNORDERED_ACCESS, ShaderModuleType::Compute);
 
     asyncCompute->OnCompleted
         .Bind([asyncCompute,

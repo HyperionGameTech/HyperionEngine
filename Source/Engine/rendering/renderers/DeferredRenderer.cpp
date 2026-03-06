@@ -317,52 +317,52 @@ void DeferredPass::RenderToFramebuffer_Internal(Frame* frame, const RenderSetup&
         return; // nothing to do for direct pass if no lights active
     }
 
-    RenderQueue& rq = frame->renderQueue;
+    CommandRecorder& cr = frame->cr;
 
-    rq << SetCurrentViewport(rs.viewport);
+    cr << SetCurrentViewport(rs.viewport);
 
-    rq << SetVertexAttributes(VertexAttribute::Position | VertexAttribute::Normal | VertexAttribute::TexCoord0);
-    rq << SetTopology(TOP_TRIANGLES);
-    rq << SetFillMode(FM_FILL);
-    rq << SetCurrentBlendFunction(m_blendFunction);
-    rq << SetStencilTest(true);
-    rq << SetDepthWrite(false);
-    rq << SetDepthTest(false);
-    rq << SetStencilFunction(StencilFunction {
+    cr << SetVertexAttributes(VertexAttribute::Position | VertexAttribute::Normal | VertexAttribute::TexCoord0);
+    cr << SetTopology(TOP_TRIANGLES);
+    cr << SetFillMode(FM_FILL);
+    cr << SetCurrentBlendFunction(m_blendFunction);
+    cr << SetStencilTest(true);
+    cr << SetDepthWrite(false);
+    cr << SetDepthTest(false);
+    cr << SetStencilFunction(StencilFunction {
         .passOp = SO_KEEP,
         .failOp = SO_KEEP,
         .depthFailOp = SO_KEEP,
         .compareOp = SCO_EQUAL });
 
     // stencil state: only render where stencil == 0 (non-lightmapped geometry)
-    rq << SetStencilState(0, LightmapStencilMask, 0x0);
+    cr << SetStencilState(0, LightmapStencilMask, 0x0);
 
     HYP_DEFER({
         // reset states
-        rq << SetCurrentBlendFunction(BlendFunction::None());
-        rq << SetStencilState(0, 0xFF, 0x0);
-        rq << SetDepthWrite(true);
-        rq << SetDepthTest(true);
-        rq << SetStencilTest(false);
+        cr << SetCurrentBlendFunction(BlendFunction::None());
+        cr << SetStencilState(0, 0xFF, 0x0);
+        cr << SetDepthWrite(true);
+        cr << SetDepthTest(true);
+        cr << SetStencilTest(false);
     });
 
     uint32 numShaderUniforms = 0;
 
-    rq << SetShaderUniform(numShaderUniforms++, "SamplerLinear"_sh, g_renderInterface->placeholderData->GetSamplerLinearMipmap());
-    rq << SetShaderUniform(numShaderUniforms++, "SamplerNearest"_sh, g_renderInterface->placeholderData->GetSamplerNearest());
+    cr << SetShaderUniform(numShaderUniforms++, "SamplerLinear"_sh, g_renderInterface->placeholderData->GetSamplerLinearMipmap());
+    cr << SetShaderUniform(numShaderUniforms++, "SamplerNearest"_sh, g_renderInterface->placeholderData->GetSamplerNearest());
 
-    rq << SetShaderUniform(numShaderUniforms++, "CamerasBuffer"_sh, g_renderInterface->gpuBuffers[GRB_CAMERAS]->GetBuffer(frameIndex), TShaderDataOffset<CameraShaderData>(rs.view->GetCamera()));
-    rq << SetShaderUniform(numShaderUniforms++, "EntitiesBuffer"_sh, g_renderInterface->gpuBuffers[GRB_ENTITIES]->GetBuffer(frameIndex));
-    rq << SetShaderUniform(numShaderUniforms++, "WorldsBuffer"_sh, g_renderInterface->gpuBuffers[GRB_WORLDS]->GetBuffer(frameIndex));
-    rq << SetShaderUniform(numShaderUniforms++, "MaterialsBuffer"_sh, g_renderInterface->gpuBuffers[GRB_MATERIALS]->GetBuffer(frameIndex));
+    cr << SetShaderUniform(numShaderUniforms++, "CamerasBuffer"_sh, g_renderInterface->gpuBuffers[GRB_CAMERAS]->GetBuffer(frameIndex), TShaderDataOffset<CameraShaderData>(rs.view->GetCamera()));
+    cr << SetShaderUniform(numShaderUniforms++, "EntitiesBuffer"_sh, g_renderInterface->gpuBuffers[GRB_ENTITIES]->GetBuffer(frameIndex));
+    cr << SetShaderUniform(numShaderUniforms++, "WorldsBuffer"_sh, g_renderInterface->gpuBuffers[GRB_WORLDS]->GetBuffer(frameIndex));
+    cr << SetShaderUniform(numShaderUniforms++, "MaterialsBuffer"_sh, g_renderInterface->gpuBuffers[GRB_MATERIALS]->GetBuffer(frameIndex));
 
-    rq << SetShaderUniform(numShaderUniforms++, "ShadowMapsTextureArray"_sh, g_renderInterface->shadowMapAllocator->GetAtlasImageView());
-    rq << SetShaderUniform(numShaderUniforms++, "PointLightShadowMapsTextureArray"_sh, g_renderInterface->shadowMapAllocator->GetPointLightShadowMapImageView());
+    cr << SetShaderUniform(numShaderUniforms++, "ShadowMapsTextureArray"_sh, g_renderInterface->shadowMapAllocator->GetAtlasImageView());
+    cr << SetShaderUniform(numShaderUniforms++, "PointLightShadowMapsTextureArray"_sh, g_renderInterface->shadowMapAllocator->GetPointLightShadowMapImageView());
 
     if (rs.envGrid != nullptr)
-        rq << SetShaderUniform(numShaderUniforms++, "EnvGridsBuffer"_sh, g_renderInterface->gpuBuffers[GRB_ENV_GRIDS]->GetBuffer(frameIndex), TShaderDataOffset<EnvGridShaderData>(rs.envGrid));
+        cr << SetShaderUniform(numShaderUniforms++, "EnvGridsBuffer"_sh, g_renderInterface->gpuBuffers[GRB_ENV_GRIDS]->GetBuffer(frameIndex), TShaderDataOffset<EnvGridShaderData>(rs.envGrid));
     else
-        rq << SetShaderUniform(numShaderUniforms++, "EnvGridsBuffer"_sh, g_renderInterface->gpuBuffers[GRB_ENV_GRIDS]->GetBuffer(frameIndex), TShaderDataOffset<EnvGridShaderData>(0));
+        cr << SetShaderUniform(numShaderUniforms++, "EnvGridsBuffer"_sh, g_renderInterface->gpuBuffers[GRB_ENV_GRIDS]->GetBuffer(frameIndex), TShaderDataOffset<EnvGridShaderData>(0));
 
     DeferredRendererPassData* dpd = ObjCast<DeferredRendererPassData>(rs.passData);
     AssertDebug(dpd != nullptr);
@@ -371,30 +371,30 @@ void DeferredPass::RenderToFramebuffer_Internal(Frame* frame, const RenderSetup&
 
     for (uint32 attachmentIndex = 0; attachmentIndex < GTN_MAX; attachmentIndex++)
     {
-        rq << SetShaderUniform(numShaderUniforms++, GBufferTextureNames[attachmentIndex], opaquePassFramebuffer->GetAttachment(attachmentIndex)->GetImageView());
+        cr << SetShaderUniform(numShaderUniforms++, GBufferTextureNames[attachmentIndex], opaquePassFramebuffer->GetAttachment(attachmentIndex)->GetImageView());
     }
 
-    rq << SetShaderUniform(numShaderUniforms++, "GBufferMipChain"_sh, g_renderInterface->textureViewCache->GetOrCreate(dpd->mipChain));
+    cr << SetShaderUniform(numShaderUniforms++, "GBufferMipChain"_sh, g_renderInterface->textureViewCache->GetOrCreate(dpd->mipChain));
 
     if (dpd->hbao != nullptr)
-        rq << SetShaderUniform(numShaderUniforms++, "SSAOResultTexture"_sh, dpd->hbao->GetFinalImageView());
+        cr << SetShaderUniform(numShaderUniforms++, "SSAOResultTexture"_sh, dpd->hbao->GetFinalImageView());
 
     if (dpd->reflectionsPass != nullptr)
-        rq << SetShaderUniform(numShaderUniforms++, "ReflectionProbeResultTexture"_sh, dpd->reflectionsPass->GetFinalImageView());
+        cr << SetShaderUniform(numShaderUniforms++, "ReflectionProbeResultTexture"_sh, dpd->reflectionsPass->GetFinalImageView());
 
     if (m_mode == DPM_INDIRECT_LIGHTING)
     {
         if (dpd->ssgi != nullptr)
-            rq << SetShaderUniform(numShaderUniforms++, "SSGIResultTexture"_sh, g_renderInterface->textureViewCache->GetOrCreate(dpd->ssgi->GetFinalResultTexture()));
+            cr << SetShaderUniform(numShaderUniforms++, "SSGIResultTexture"_sh, g_renderInterface->textureViewCache->GetOrCreate(dpd->ssgi->GetFinalResultTexture()));
 
         if (dpd->rayTracingReflections != nullptr)
-            rq << SetShaderUniform(numShaderUniforms++, "RTRadianceResultTexture"_sh, dpd->rayTracingReflections->GetFinalImageView());
+            cr << SetShaderUniform(numShaderUniforms++, "RTRadianceResultTexture"_sh, dpd->rayTracingReflections->GetFinalImageView());
 
         if (dpd->ddgi)
         {
-            rq << SetShaderUniform(numShaderUniforms++, "DDGIConstants"_sh, dpd->ddgi->GetConstantBuffer(frameIndex));
-            rq << SetShaderUniform(numShaderUniforms++, "DDGIIrradianceTexture"_sh, dpd->ddgi->GetIrradianceImageView());
-            rq << SetShaderUniform(numShaderUniforms++, "DDGIDepthTexture"_sh, dpd->ddgi->GetDepthImageView());
+            cr << SetShaderUniform(numShaderUniforms++, "DDGIConstants"_sh, dpd->ddgi->GetConstantBuffer(frameIndex));
+            cr << SetShaderUniform(numShaderUniforms++, "DDGIIrradianceTexture"_sh, dpd->ddgi->GetIrradianceImageView());
+            cr << SetShaderUniform(numShaderUniforms++, "DDGIDepthTexture"_sh, dpd->ddgi->GetDepthImageView());
         }
     }
 
@@ -403,7 +403,7 @@ void DeferredPass::RenderToFramebuffer_Internal(Frame* frame, const RenderSetup&
         ShaderPropertySet shaderProperties;
         GetDeferredShaderProperties(DPM_INDIRECT_LIGHTING, shaderProperties, &rpl);
 
-        rq << SetCurrentShader(ShaderDesc(NAME("DeferredIndirect"), shaderProperties));
+        cr << SetCurrentShader(ShaderDesc(NAME("DeferredIndirect"), shaderProperties));
 
         RenderFullScreenQuad(frame, rs);
 
@@ -433,11 +433,11 @@ void DeferredPass::RenderToFramebuffer_Internal(Frame* frame, const RenderSetup&
                 ShaderPropertySet shaderProperties;
                 GetDeferredShaderProperties(DPM_DIRECT_LIGHTING, shaderProperties, &rpl, lightType);
 
-                rq << SetCurrentShader(ShaderDesc(NAME("DeferredDirect"), shaderProperties));
+                cr << SetCurrentShader(ShaderDesc(NAME("DeferredDirect"), shaderProperties));
             }
 
             uint32 localNumShaderUniforms = numShaderUniforms;
-            rq << SetShaderUniform(localNumShaderUniforms++, "CurrentLight"_sh, g_renderInterface->gpuBuffers[GRB_LIGHTS]->GetBuffer(frameIndex), TShaderDataOffset<LightShaderData>(light));
+            cr << SetShaderUniform(localNumShaderUniforms++, "CurrentLight"_sh, g_renderInterface->gpuBuffers[GRB_LIGHTS]->GetBuffer(frameIndex), TShaderDataOffset<LightShaderData>(light));
 
             if (lightType == LightType::AreaRect)
             {
@@ -454,23 +454,23 @@ void DeferredPass::RenderToFramebuffer_Internal(Frame* frame, const RenderSetup&
                         Span<const GpuImageViewRef> imageViews = g_renderInterface->materialTextureCache->imageViews.Get(materialBoundIndex);
                         AssertDebug(imageViews.Size() >= materialProxy->boundTextures.Size());
 
-                        rq << SetShaderUniform(localNumShaderUniforms++, "DiffuseMap"_sh, imageViews[materialProxy->boundTextureIndices[0]]);
+                        cr << SetShaderUniform(localNumShaderUniforms++, "DiffuseMap"_sh, imageViews[materialProxy->boundTextureIndices[0]]);
                     }
 
-                    rq << SetShaderUniform(localNumShaderUniforms++, "CurrentMaterial"_sh, g_renderInterface->gpuBuffers[GRB_MATERIALS]->GetBuffer(frameIndex), TShaderDataOffset<MaterialShaderData>(lightProxy->lightMaterial));
+                    cr << SetShaderUniform(localNumShaderUniforms++, "CurrentMaterial"_sh, g_renderInterface->gpuBuffers[GRB_MATERIALS]->GetBuffer(frameIndex), TShaderDataOffset<MaterialShaderData>(lightProxy->lightMaterial));
                 }
                 else
                 {
-                    rq << SetShaderUniform(localNumShaderUniforms++, "CurrentMaterial"_sh, g_renderInterface->gpuBuffers[GRB_MATERIALS]->GetBuffer(frameIndex), TShaderDataOffset<MaterialShaderData>(0));
+                    cr << SetShaderUniform(localNumShaderUniforms++, "CurrentMaterial"_sh, g_renderInterface->gpuBuffers[GRB_MATERIALS]->GetBuffer(frameIndex), TShaderDataOffset<MaterialShaderData>(0));
                 }
 
-                rq << SetShaderUniform(localNumShaderUniforms++, "LTCSampler"_sh, m_ltcSampler);
+                cr << SetShaderUniform(localNumShaderUniforms++, "LTCSampler"_sh, m_ltcSampler);
 
                 if (m_ltcMatrixTexture != nullptr)
-                    rq << SetShaderUniform(localNumShaderUniforms++, "LTCMatrixTexture"_sh, g_renderInterface->textureViewCache->GetOrCreate(m_ltcMatrixTexture));
+                    cr << SetShaderUniform(localNumShaderUniforms++, "LTCMatrixTexture"_sh, g_renderInterface->textureViewCache->GetOrCreate(m_ltcMatrixTexture));
 
                 if (m_ltcBrdfTexture != nullptr)
-                    rq << SetShaderUniform(localNumShaderUniforms++, "LTCBRDFTexture"_sh, g_renderInterface->textureViewCache->GetOrCreate(m_ltcBrdfTexture));
+                    cr << SetShaderUniform(localNumShaderUniforms++, "LTCBRDFTexture"_sh, g_renderInterface->textureViewCache->GetOrCreate(m_ltcBrdfTexture));
             }
 
             RenderFullScreenQuad(frame, rs);
@@ -482,7 +482,7 @@ void DeferredPass::RenderToFramebuffer_Internal(Frame* frame, const RenderSetup&
             //{
             //     const DescriptorSetRef& materialDescriptorSet = g_renderInterface->materialDescriptorSetManager->ForBoundMaterial(light->GetMaterial(), frame->GetFrameIndex());
 
-            //    frame->renderQueue << BindDescriptorSet(
+            //    frame->cr << BindDescriptorSet(
             //        materialDescriptorSet,
             //        pipeline,
             //        {},
@@ -522,7 +522,7 @@ void TonemapPass::Render(Frame* frame, const RenderSetup& rs)
 {
     Begin(frame, rs);
 
-    RenderQueue& rq = frame->renderQueue;
+    CommandRecorder& cr = frame->cr;
 
     DeferredRendererPassData* dpd = ObjCast<DeferredRendererPassData>(rs.passData);
     AssertDebug(dpd != nullptr);
@@ -532,49 +532,49 @@ void TonemapPass::Render(Frame* frame, const RenderSetup& rs)
 
     uint32 numShaderUniforms = 0;
 
-    rq << SetShaderUniform(numShaderUniforms++, "GBufferAlbedoTexture"_sh, inputsFramebuffer->GetAttachment(GTN_ALBEDO)->GetImageView());
-    rq << SetShaderUniform(numShaderUniforms++, "GBufferNormalsTexture"_sh, inputsFramebuffer->GetAttachment(GTN_NORMALS)->GetImageView());
-    rq << SetShaderUniform(numShaderUniforms++, "GBufferMaterialTexture"_sh, inputsFramebuffer->GetAttachment(GTN_MATERIAL)->GetImageView());
-    rq << SetShaderUniform(numShaderUniforms++, "GBufferVelocityTexture"_sh, inputsFramebuffer->GetAttachment(GTN_VELOCITY)->GetImageView());
-    rq << SetShaderUniform(numShaderUniforms++, "GBufferDepthTexture"_sh, inputsFramebuffer->GetAttachment(GTN_DEPTH)->GetImageView());
+    cr << SetShaderUniform(numShaderUniforms++, "GBufferAlbedoTexture"_sh, inputsFramebuffer->GetAttachment(GTN_ALBEDO)->GetImageView());
+    cr << SetShaderUniform(numShaderUniforms++, "GBufferNormalsTexture"_sh, inputsFramebuffer->GetAttachment(GTN_NORMALS)->GetImageView());
+    cr << SetShaderUniform(numShaderUniforms++, "GBufferMaterialTexture"_sh, inputsFramebuffer->GetAttachment(GTN_MATERIAL)->GetImageView());
+    cr << SetShaderUniform(numShaderUniforms++, "GBufferVelocityTexture"_sh, inputsFramebuffer->GetAttachment(GTN_VELOCITY)->GetImageView());
+    cr << SetShaderUniform(numShaderUniforms++, "GBufferDepthTexture"_sh, inputsFramebuffer->GetAttachment(GTN_DEPTH)->GetImageView());
 
     Framebuffer* translucentPassFramebuffer = dpd->view.GetUnsafe()->GetOutputTarget().GetFramebuffer(RenderBucket::Translucent);
     AssertDebug(translucentPassFramebuffer != nullptr);
 
-    rq << SetShaderUniform(numShaderUniforms++, "DeferredResult"_sh, translucentPassFramebuffer->GetAttachment(GTN_ALBEDO)->GetImageView());
+    cr << SetShaderUniform(numShaderUniforms++, "DeferredResult"_sh, translucentPassFramebuffer->GetAttachment(GTN_ALBEDO)->GetImageView());
 
-    rq << SetShaderUniform(numShaderUniforms++, "ShadowMapsTextureArray"_sh, g_renderInterface->shadowMapAllocator->GetAtlasImageView());
+    cr << SetShaderUniform(numShaderUniforms++, "ShadowMapsTextureArray"_sh, g_renderInterface->shadowMapAllocator->GetAtlasImageView());
 
-    rq << SetShaderUniform(numShaderUniforms++, "GBufferMipChain"_sh, g_renderInterface->textureViewCache->GetOrCreate(dpd->mipChain));
+    cr << SetShaderUniform(numShaderUniforms++, "GBufferMipChain"_sh, g_renderInterface->textureViewCache->GetOrCreate(dpd->mipChain));
 
-    rq << SetShaderUniform(numShaderUniforms++, "SamplerNearest"_sh, g_renderInterface->placeholderData->GetSamplerNearest());
-    rq << SetShaderUniform(numShaderUniforms++, "SamplerLinear"_sh, g_renderInterface->placeholderData->GetSamplerLinear());
+    cr << SetShaderUniform(numShaderUniforms++, "SamplerNearest"_sh, g_renderInterface->placeholderData->GetSamplerNearest());
+    cr << SetShaderUniform(numShaderUniforms++, "SamplerLinear"_sh, g_renderInterface->placeholderData->GetSamplerLinear());
 
     if (dpd->rayTracingReflections)
     {
-        rq << SetShaderUniform(numShaderUniforms++, "RTRadianceResultTexture"_sh, dpd->rayTracingReflections->GetFinalImageView());
+        cr << SetShaderUniform(numShaderUniforms++, "RTRadianceResultTexture"_sh, dpd->rayTracingReflections->GetFinalImageView());
     }
     else
     {
-        rq << SetShaderUniform(numShaderUniforms++, "RTRadianceResultTexture"_sh, g_renderInterface->placeholderData->GetImageView2D1x1R8());
+        cr << SetShaderUniform(numShaderUniforms++, "RTRadianceResultTexture"_sh, g_renderInterface->placeholderData->GetImageView2D1x1R8());
     }
 
     if (dpd->ssgi)
     {
-        rq << SetShaderUniform(numShaderUniforms++, "SSGIResultTexture"_sh, g_renderInterface->textureViewCache->GetOrCreate(dpd->ssgi->GetFinalResultTexture()));
+        cr << SetShaderUniform(numShaderUniforms++, "SSGIResultTexture"_sh, g_renderInterface->textureViewCache->GetOrCreate(dpd->ssgi->GetFinalResultTexture()));
     }
     else
     {
-        rq << SetShaderUniform(numShaderUniforms++, "SSGIResultTexture"_sh, g_renderInterface->placeholderData->GetImageView2D1x1R8());
+        cr << SetShaderUniform(numShaderUniforms++, "SSGIResultTexture"_sh, g_renderInterface->placeholderData->GetImageView2D1x1R8());
     }
 
     if (dpd->taaPass)
     {
-        rq << SetShaderUniform(numShaderUniforms++, "TAAResultTexture"_sh, g_renderInterface->textureViewCache->GetOrCreate(dpd->taaPass->GetResultTexture()));
+        cr << SetShaderUniform(numShaderUniforms++, "TAAResultTexture"_sh, g_renderInterface->textureViewCache->GetOrCreate(dpd->taaPass->GetResultTexture()));
     }
     else
     {
-        rq << SetShaderUniform(numShaderUniforms++, "TAAResultTexture"_sh, g_renderInterface->placeholderData->GetImageView2D1x1R8());
+        cr << SetShaderUniform(numShaderUniforms++, "TAAResultTexture"_sh, g_renderInterface->placeholderData->GetImageView2D1x1R8());
     }
 
     Texture* ssrTexture = dpd->reflectionsPass->ShouldRenderSSR()
@@ -583,28 +583,28 @@ void TonemapPass::Render(Frame* frame, const RenderSetup& rs)
 
     if (ssrTexture)
     {
-        rq << SetShaderUniform(numShaderUniforms++, "SSRResultTexture"_sh, g_renderInterface->textureViewCache->GetOrCreate(ssrTexture));
+        cr << SetShaderUniform(numShaderUniforms++, "SSRResultTexture"_sh, g_renderInterface->textureViewCache->GetOrCreate(ssrTexture));
     }
     else
     {
-        rq << SetShaderUniform(numShaderUniforms++, "SSRResultTexture"_sh, g_renderInterface->placeholderData->GetImageView2D1x1R8());
+        cr << SetShaderUniform(numShaderUniforms++, "SSRResultTexture"_sh, g_renderInterface->placeholderData->GetImageView2D1x1R8());
     }
 
     if (dpd->hbao)
     {
-        rq << SetShaderUniform(numShaderUniforms++, "SSAOResultTexture"_sh, dpd->hbao->GetFinalImageView());
+        cr << SetShaderUniform(numShaderUniforms++, "SSAOResultTexture"_sh, dpd->hbao->GetFinalImageView());
     }
     else
     {
-        rq << SetShaderUniform(numShaderUniforms++, "SSAOResultTexture"_sh, g_renderInterface->placeholderData->GetImageView2D1x1R8());
+        cr << SetShaderUniform(numShaderUniforms++, "SSAOResultTexture"_sh, g_renderInterface->placeholderData->GetImageView2D1x1R8());
     }
 
-    rq << SetShaderUniform(numShaderUniforms++, "DeferredIndirectResultTexture"_sh, dpd->deferredShadingFramebuffer->GetAttachment(0)->GetImageView());
+    cr << SetShaderUniform(numShaderUniforms++, "DeferredIndirectResultTexture"_sh, dpd->deferredShadingFramebuffer->GetAttachment(0)->GetImageView());
 
-    rq << SetShaderUniform(numShaderUniforms++, "PostProcessingUniforms"_sh, dpd->postProcessing->GetUniformBuffer());
+    cr << SetShaderUniform(numShaderUniforms++, "PostProcessingUniforms"_sh, dpd->postProcessing->GetUniformBuffer());
 
-    rq << SetShaderUniform(numShaderUniforms++, "CamerasBuffer"_sh, g_renderInterface->gpuBuffers[GRB_CAMERAS]->GetBuffer(frameIndex), TShaderDataOffset<CameraShaderData>(rs.view->GetCamera()));
-    rq << SetShaderUniform(numShaderUniforms++, "WorldsBuffer"_sh, g_renderInterface->gpuBuffers[GRB_WORLDS]->GetBuffer(frameIndex));
+    cr << SetShaderUniform(numShaderUniforms++, "CamerasBuffer"_sh, g_renderInterface->gpuBuffers[GRB_CAMERAS]->GetBuffer(frameIndex), TShaderDataOffset<CameraShaderData>(rs.view->GetCamera()));
+    cr << SetShaderUniform(numShaderUniforms++, "WorldsBuffer"_sh, g_renderInterface->gpuBuffers[GRB_WORLDS]->GetBuffer(frameIndex));
 
     RenderFullScreenQuad(frame, rs);
 
@@ -677,23 +677,23 @@ void LightmapPass::RenderToFramebuffer_Internal(Frame* frame, const RenderSetup&
 
     const VertexAttributeSet vertexAttributes = VertexAttribute::Position | VertexAttribute::Normal | VertexAttribute::TexCoord0;
 
-    RenderQueue& rq = frame->renderQueue;
+    CommandRecorder& cr = frame->cr;
 
-    rq << SetCurrentShader(m_shaderDesc);
+    cr << SetCurrentShader(m_shaderDesc);
 
-    rq << SetCurrentViewport(renderSetup.viewport);
+    cr << SetCurrentViewport(renderSetup.viewport);
 
-    rq << SetVertexAttributes(vertexAttributes);
+    cr << SetVertexAttributes(vertexAttributes);
 
-    rq << SetFaceCullMode(FCM_BACK);
-    rq << SetFillMode(FM_FILL);
-    rq << SetTopology(TOP_TRIANGLES);
+    cr << SetFaceCullMode(FCM_BACK);
+    cr << SetFillMode(FM_FILL);
+    cr << SetTopology(TOP_TRIANGLES);
 
-    rq << SetDepthTest(false);
-    rq << SetDepthWrite(false);
+    cr << SetDepthTest(false);
+    cr << SetDepthWrite(false);
 
-    rq << SetStencilTest(true);
-    rq << SetStencilFunction(StencilFunction {
+    cr << SetStencilTest(true);
+    cr << SetStencilFunction(StencilFunction {
         .passOp = SO_KEEP,
         .failOp = SO_KEEP,
         .depthFailOp = SO_KEEP,
@@ -702,11 +702,11 @@ void LightmapPass::RenderToFramebuffer_Internal(Frame* frame, const RenderSetup&
 
     HYP_DEFER({
         // reset states
-        rq << SetCurrentBlendFunction(BlendFunction::None());
-        rq << SetStencilState(0, 0xFF, 0x0);
-        rq << SetDepthWrite(true);
-        rq << SetDepthTest(true);
-        rq << SetStencilTest(false);
+        cr << SetCurrentBlendFunction(BlendFunction::None());
+        cr << SetStencilState(0, 0xFF, 0x0);
+        cr << SetDepthWrite(true);
+        cr << SetDepthTest(true);
+        cr << SetStencilTest(false);
     });
 
     LightmapVolumePassData& data = GetLightmapVolumePassData(volume);
@@ -714,50 +714,50 @@ void LightmapPass::RenderToFramebuffer_Internal(Frame* frame, const RenderSetup&
     uint32 numShaderUniforms = 0;
 
     // GBuffer textures
-    rq << SetShaderUniform(numShaderUniforms++, "GBufferAlbedoTexture"_sh, viewFramebuffer->GetAttachment(GTN_ALBEDO)->GetImageView());
-    rq << SetShaderUniform(numShaderUniforms++, "GBufferNormalsTexture"_sh, viewFramebuffer->GetAttachment(GTN_NORMALS)->GetImageView());
-    rq << SetShaderUniform(numShaderUniforms++, "GBufferMaterialTexture"_sh, viewFramebuffer->GetAttachment(GTN_MATERIAL)->GetImageView());
-    rq << SetShaderUniform(numShaderUniforms++, "GBufferDepthTexture"_sh, viewFramebuffer->GetAttachment(GTN_DEPTH)->GetImageView());
-    rq << SetShaderUniform(numShaderUniforms++, "GBufferVelocityTexture"_sh, viewFramebuffer->GetAttachment(GTN_VELOCITY)->GetImageView());
-    rq << SetShaderUniform(numShaderUniforms++, "GBufferMipChain"_sh, g_renderInterface->textureViewCache->GetOrCreate(dpd->mipChain));
+    cr << SetShaderUniform(numShaderUniforms++, "GBufferAlbedoTexture"_sh, viewFramebuffer->GetAttachment(GTN_ALBEDO)->GetImageView());
+    cr << SetShaderUniform(numShaderUniforms++, "GBufferNormalsTexture"_sh, viewFramebuffer->GetAttachment(GTN_NORMALS)->GetImageView());
+    cr << SetShaderUniform(numShaderUniforms++, "GBufferMaterialTexture"_sh, viewFramebuffer->GetAttachment(GTN_MATERIAL)->GetImageView());
+    cr << SetShaderUniform(numShaderUniforms++, "GBufferDepthTexture"_sh, viewFramebuffer->GetAttachment(GTN_DEPTH)->GetImageView());
+    cr << SetShaderUniform(numShaderUniforms++, "GBufferVelocityTexture"_sh, viewFramebuffer->GetAttachment(GTN_VELOCITY)->GetImageView());
+    cr << SetShaderUniform(numShaderUniforms++, "GBufferMipChain"_sh, g_renderInterface->textureViewCache->GetOrCreate(dpd->mipChain));
 
     // Samplers
-    rq << SetShaderUniform(numShaderUniforms++, "SamplerNearest"_sh, g_renderInterface->placeholderData->GetSamplerNearest());
-    rq << SetShaderUniform(numShaderUniforms++, "SamplerLinear"_sh, g_renderInterface->placeholderData->GetSamplerLinear());
+    cr << SetShaderUniform(numShaderUniforms++, "SamplerNearest"_sh, g_renderInterface->placeholderData->GetSamplerNearest());
+    cr << SetShaderUniform(numShaderUniforms++, "SamplerLinear"_sh, g_renderInterface->placeholderData->GetSamplerLinear());
 
     // Shadows
-    rq << SetShaderUniform(numShaderUniforms++, "ShadowMapsTextureArray"_sh, g_renderInterface->shadowMapAllocator->GetAtlasImageView());
-    rq << SetShaderUniform(numShaderUniforms++, "PointLightShadowMapsTextureArray"_sh, g_renderInterface->shadowMapAllocator->GetPointLightShadowMapImageView());
+    cr << SetShaderUniform(numShaderUniforms++, "ShadowMapsTextureArray"_sh, g_renderInterface->shadowMapAllocator->GetAtlasImageView());
+    cr << SetShaderUniform(numShaderUniforms++, "PointLightShadowMapsTextureArray"_sh, g_renderInterface->shadowMapAllocator->GetPointLightShadowMapImageView());
 
     // Cameras and Worlds buffers
-    rq << SetShaderUniform(numShaderUniforms++, "CamerasBuffer"_sh, g_renderInterface->gpuBuffers[GRB_CAMERAS]->GetBuffer(frameIndex), TShaderDataOffset<CameraShaderData>(renderSetup.view->GetCamera()));
-    rq << SetShaderUniform(numShaderUniforms++, "WorldsBuffer"_sh, g_renderInterface->gpuBuffers[GRB_WORLDS]->GetBuffer(frameIndex));
+    cr << SetShaderUniform(numShaderUniforms++, "CamerasBuffer"_sh, g_renderInterface->gpuBuffers[GRB_CAMERAS]->GetBuffer(frameIndex), TShaderDataOffset<CameraShaderData>(renderSetup.view->GetCamera()));
+    cr << SetShaderUniform(numShaderUniforms++, "WorldsBuffer"_sh, g_renderInterface->gpuBuffers[GRB_WORLDS]->GetBuffer(frameIndex));
 
     // Env probes
-    rq << SetShaderUniform(numShaderUniforms++, "EnvProbesTexture"_sh, g_renderInterface->textureViewCache->GetOrCreate(g_renderInterface->envProbesTexture));
-    rq << SetShaderUniform(numShaderUniforms++, "EnvProbesBuffer"_sh, g_renderInterface->gpuBuffers[GRB_ENV_PROBES]->GetBuffer(frameIndex));
+    cr << SetShaderUniform(numShaderUniforms++, "EnvProbesTexture"_sh, g_renderInterface->textureViewCache->GetOrCreate(g_renderInterface->envProbesTexture));
+    cr << SetShaderUniform(numShaderUniforms++, "EnvProbesBuffer"_sh, g_renderInterface->gpuBuffers[GRB_ENV_PROBES]->GetBuffer(frameIndex));
 
     if (renderSetup.envProbe != nullptr)
-        rq << SetShaderUniform(numShaderUniforms++, "CurrentEnvProbe"_sh, g_renderInterface->gpuBuffers[GRB_ENV_PROBES]->GetBuffer(frameIndex), TShaderDataOffset<EnvProbeShaderData>(renderSetup.envProbe));
+        cr << SetShaderUniform(numShaderUniforms++, "CurrentEnvProbe"_sh, g_renderInterface->gpuBuffers[GRB_ENV_PROBES]->GetBuffer(frameIndex), TShaderDataOffset<EnvProbeShaderData>(renderSetup.envProbe));
     else
-        rq << SetShaderUniform(numShaderUniforms++, "CurrentEnvProbe"_sh, g_renderInterface->gpuBuffers[GRB_ENV_PROBES]->GetBuffer(frameIndex), TShaderDataOffset<EnvProbeShaderData>(0));
+        cr << SetShaderUniform(numShaderUniforms++, "CurrentEnvProbe"_sh, g_renderInterface->gpuBuffers[GRB_ENV_PROBES]->GetBuffer(frameIndex), TShaderDataOffset<EnvProbeShaderData>(0));
 
     if (renderSetup.envGrid != nullptr)
-        rq << SetShaderUniform(numShaderUniforms++, "EnvGridsBuffer"_sh, g_renderInterface->gpuBuffers[GRB_ENV_GRIDS]->GetBuffer(frameIndex), TShaderDataOffset<EnvGridShaderData>(renderSetup.envGrid));
+        cr << SetShaderUniform(numShaderUniforms++, "EnvGridsBuffer"_sh, g_renderInterface->gpuBuffers[GRB_ENV_GRIDS]->GetBuffer(frameIndex), TShaderDataOffset<EnvGridShaderData>(renderSetup.envGrid));
     else
-        rq << SetShaderUniform(numShaderUniforms++, "EnvGridsBuffer"_sh, g_renderInterface->gpuBuffers[GRB_ENV_GRIDS]->GetBuffer(frameIndex), TShaderDataOffset<EnvProbeShaderData>(0));
+        cr << SetShaderUniform(numShaderUniforms++, "EnvGridsBuffer"_sh, g_renderInterface->gpuBuffers[GRB_ENV_GRIDS]->GetBuffer(frameIndex), TShaderDataOffset<EnvProbeShaderData>(0));
 
     if (dpd->reflectionsPass != nullptr)
-        rq << SetShaderUniform(numShaderUniforms++, "ReflectionProbeResultTexture"_sh, dpd->reflectionsPass->GetFinalImageView());
+        cr << SetShaderUniform(numShaderUniforms++, "ReflectionProbeResultTexture"_sh, dpd->reflectionsPass->GetFinalImageView());
 
     if (dpd->ssgi != nullptr)
-        rq << SetShaderUniform(numShaderUniforms++, "SSGIResultTexture"_sh, g_renderInterface->textureViewCache->GetOrCreate(dpd->ssgi->GetFinalResultTexture()));
+        cr << SetShaderUniform(numShaderUniforms++, "SSGIResultTexture"_sh, g_renderInterface->textureViewCache->GetOrCreate(dpd->ssgi->GetFinalResultTexture()));
 
     if (dpd->hbao != nullptr)
-        rq << SetShaderUniform(numShaderUniforms++, "SSAOResultTexture"_sh, dpd->hbao->GetFinalImageView());
+        cr << SetShaderUniform(numShaderUniforms++, "SSAOResultTexture"_sh, dpd->hbao->GetFinalImageView());
 
     if (dpd->rayTracingReflections != nullptr)
-        rq << SetShaderUniform(numShaderUniforms++, "RTRadianceResultTexture"_sh, dpd->rayTracingReflections->GetFinalImageView());
+        cr << SetShaderUniform(numShaderUniforms++, "RTRadianceResultTexture"_sh, dpd->rayTracingReflections->GetFinalImageView());
 
     if (data.uniformBuffers.Size() < proxy->numAtlases)
     {
@@ -785,20 +785,20 @@ void LightmapPass::RenderToFramebuffer_Internal(Frame* frame, const RenderSetup&
         uniformBuffer->Copy(sizeof(uniforms), &uniforms);
 
         // only draw elems in the volume with a stencil reference of the atlas index (+1)
-        rq << SetStencilState(atlasIndex + 1, LightmapStencilMask, 0x0);
+        cr << SetStencilState(atlasIndex + 1, LightmapStencilMask, 0x0);
 
         uint32 localNumShaderUniforms = numShaderUniforms;
 
-        rq << SetShaderUniform(localNumShaderUniforms++, "IrradianceTexture"_sh, g_renderInterface->textureViewCache->GetOrCreate(irradianceTexture != nullptr ? irradianceTexture : g_renderInterface->placeholderData->defaultTexture2d));
-        rq << SetShaderUniform(localNumShaderUniforms++, "RadianceTexture"_sh, g_renderInterface->textureViewCache->GetOrCreate(radianceTexture != nullptr ? radianceTexture : g_renderInterface->placeholderData->defaultTexture2d));
-        rq << SetShaderUniform(localNumShaderUniforms++, "LightmapSampler"_sh, g_renderInterface->placeholderData->GetSamplerLinear());
-        rq << SetShaderUniform(localNumShaderUniforms++, "LightmapVolumeUniforms"_sh, uniformBuffer);
+        cr << SetShaderUniform(localNumShaderUniforms++, "IrradianceTexture"_sh, g_renderInterface->textureViewCache->GetOrCreate(irradianceTexture != nullptr ? irradianceTexture : g_renderInterface->placeholderData->defaultTexture2d));
+        cr << SetShaderUniform(localNumShaderUniforms++, "RadianceTexture"_sh, g_renderInterface->textureViewCache->GetOrCreate(radianceTexture != nullptr ? radianceTexture : g_renderInterface->placeholderData->defaultTexture2d));
+        cr << SetShaderUniform(localNumShaderUniforms++, "LightmapSampler"_sh, g_renderInterface->placeholderData->GetSamplerLinear());
+        cr << SetShaderUniform(localNumShaderUniforms++, "LightmapVolumeUniforms"_sh, uniformBuffer);
 
         RenderFullScreenQuad(frame, renderSetup);
     }
 
     // reset stencil state back to default
-    rq << SetStencilState(0, 0xFF, 0x0);
+    cr << SetStencilState(0, 0xFF, 0x0);
 
     m_isFirstFrame = false;
 }
@@ -863,26 +863,26 @@ void FogVolumePass::RenderToFramebuffer_Internal(Frame* frame, const RenderSetup
 
     UpdateUniforms(frame, renderSetup, data);
 
-    RenderQueue& rq = frame->renderQueue;
+    CommandRecorder& cr = frame->cr;
 
-    rq << SetCurrentViewport(renderSetup.viewport);
+    cr << SetCurrentViewport(renderSetup.viewport);
 
-    rq << SetTopology(m_volumeMesh->GetTopology());
-    rq << SetVertexAttributes(m_volumeMesh->GetVertexAttributes());
+    cr << SetTopology(m_volumeMesh->GetTopology());
+    cr << SetVertexAttributes(m_volumeMesh->GetVertexAttributes());
 
-    rq << SetFillMode(FM_FILL);
-    rq << SetDepthWrite(false);
-    rq << SetDepthTest(false);
-    rq << SetStencilTest(false);
-    rq << SetFaceCullMode(FCM_FRONT); // cull front faces to render inside of the volume
-    rq << SetCurrentBlendFunction(BlendFunction(
+    cr << SetFillMode(FM_FILL);
+    cr << SetDepthWrite(false);
+    cr << SetDepthTest(false);
+    cr << SetStencilTest(false);
+    cr << SetFaceCullMode(FCM_FRONT); // cull front faces to render inside of the volume
+    cr << SetCurrentBlendFunction(BlendFunction(
         BMF_SRC_ALPHA, BMF_ONE_MINUS_SRC_ALPHA,
         BMF_ONE, BMF_ONE_MINUS_SRC_ALPHA));
 
-    rq << SetCurrentShader(m_shaderDesc);
+    cr << SetCurrentShader(m_shaderDesc);
 
-    rq << SetShaderUniform(0, "SamplerLinear"_sh, g_renderInterface->placeholderData->GetSamplerLinearMipmap());
-    rq << SetShaderUniform(1, "SamplerNearest"_sh, g_renderInterface->placeholderData->GetSamplerNearest());
+    cr << SetShaderUniform(0, "SamplerLinear"_sh, g_renderInterface->placeholderData->GetSamplerLinearMipmap());
+    cr << SetShaderUniform(1, "SamplerNearest"_sh, g_renderInterface->placeholderData->GetSamplerNearest());
 
     DeferredRendererPassData* dpd = ObjCast<DeferredRendererPassData>(renderSetup.passData);
     AssertDebug(dpd != nullptr);
@@ -891,32 +891,32 @@ void FogVolumePass::RenderToFramebuffer_Internal(Frame* frame, const RenderSetup
 
     for (uint32 attachmentIndex = 0; attachmentIndex < GTN_MAX; attachmentIndex++)
     {
-        rq << SetShaderUniform(2 + attachmentIndex, GBufferTextureNames[attachmentIndex], opaquePassFramebuffer->GetAttachment(attachmentIndex)->GetImageView());
+        cr << SetShaderUniform(2 + attachmentIndex, GBufferTextureNames[attachmentIndex], opaquePassFramebuffer->GetAttachment(attachmentIndex)->GetImageView());
     }
 
-    rq << SetShaderUniform(2 + GTN_MAX, "CamerasBuffer"_sh, g_renderInterface->gpuBuffers[GRB_CAMERAS]->GetBuffer(frame->GetFrameIndex()), TShaderDataOffset<CameraShaderData>(renderSetup.view->GetCamera()));
+    cr << SetShaderUniform(2 + GTN_MAX, "CamerasBuffer"_sh, g_renderInterface->gpuBuffers[GRB_CAMERAS]->GetBuffer(frame->GetFrameIndex()), TShaderDataOffset<CameraShaderData>(renderSetup.view->GetCamera()));
 
-    rq << SetShaderUniform(3 + GTN_MAX, "ShadowMapsTextureArray"_sh, g_renderInterface->shadowMapAllocator->GetAtlasImageView());
-    rq << SetShaderUniform(4 + GTN_MAX, "PointLightShadowMapsTextureArray"_sh, g_renderInterface->shadowMapAllocator->GetPointLightShadowMapImageView());
+    cr << SetShaderUniform(3 + GTN_MAX, "ShadowMapsTextureArray"_sh, g_renderInterface->shadowMapAllocator->GetAtlasImageView());
+    cr << SetShaderUniform(4 + GTN_MAX, "PointLightShadowMapsTextureArray"_sh, g_renderInterface->shadowMapAllocator->GetPointLightShadowMapImageView());
 
     if (data.volumeTexture)
-        rq << SetShaderUniform(5 + GTN_MAX, "DataMap"_sh, g_renderInterface->textureViewCache->GetOrCreate(data.volumeTexture));
+        cr << SetShaderUniform(5 + GTN_MAX, "DataMap"_sh, g_renderInterface->textureViewCache->GetOrCreate(data.volumeTexture));
 
     if (data.noiseTexture)
-        rq << SetShaderUniform(6 + GTN_MAX, "NoiseMap"_sh, g_renderInterface->textureViewCache->GetOrCreate(data.noiseTexture));
+        cr << SetShaderUniform(6 + GTN_MAX, "NoiseMap"_sh, g_renderInterface->textureViewCache->GetOrCreate(data.noiseTexture));
 
-    rq << SetShaderUniform(7 + GTN_MAX, "FogVolumeUniforms"_sh, data.cBuffer);
+    cr << SetShaderUniform(7 + GTN_MAX, "FogVolumeUniforms"_sh, data.cBuffer);
 
-    rq << CommitDrawState();
+    cr << CommitDrawState();
 
-    rq << BindVertexBuffer(m_volumeMesh->GetVertexBuffer());
-    rq << BindIndexBuffer(m_volumeMesh->GetIndexBuffer());
-    rq << DrawIndexed(36); // draw cube
+    cr << BindVertexBuffer(m_volumeMesh->GetVertexBuffer());
+    cr << BindIndexBuffer(m_volumeMesh->GetIndexBuffer());
+    cr << DrawIndexed(36); // draw cube
 
     // reset states
-    rq << SetCurrentBlendFunction(BlendFunction::None());
-    rq << SetDepthTest(true);
-    rq << SetDepthWrite(true);
+    cr << SetCurrentBlendFunction(BlendFunction::None());
+    cr << SetDepthTest(true);
+    cr << SetDepthWrite(true);
 
     m_isFirstFrame = false;
 }
@@ -1068,33 +1068,33 @@ void ReflectionsPass::Render(Frame* frame, const RenderSetup& rs)
         viewport = Viewport { viewportExtent, viewportOffset };
     }
 
-    RenderQueue& rq = frame->renderQueue;
+    CommandRecorder& cr = frame->cr;
 
     if (ShouldRenderSSR())
     {
         m_ssrPass->Render(frame, rs);
     }
 
-    rq << SetTopology(TOP_TRIANGLES);
-    rq << SetVertexAttributes(VertexAttribute::Position | VertexAttribute::Normal | VertexAttribute::TexCoord0);
+    cr << SetTopology(TOP_TRIANGLES);
+    cr << SetVertexAttributes(VertexAttribute::Position | VertexAttribute::Normal | VertexAttribute::TexCoord0);
 
-    rq << SetCurrentViewport(viewport);
+    cr << SetCurrentViewport(viewport);
 
-    rq << SetCurrentShader(m_shaderDesc);
+    cr << SetCurrentShader(m_shaderDesc);
 
-    rq << SetDepthTest(false);
-    rq << SetDepthWrite(false);
-    rq << SetStencilTest(false);
-    rq << SetCurrentBlendFunction(BlendFunction(
+    cr << SetDepthTest(false);
+    cr << SetDepthWrite(false);
+    cr << SetStencilTest(false);
+    cr << SetCurrentBlendFunction(BlendFunction(
         BMF_SRC_ALPHA, BMF_ONE_MINUS_SRC_ALPHA,
         BMF_ONE, BMF_ONE_MINUS_SRC_ALPHA));
-    rq << SetFillMode(FM_FILL);
-    rq << SetFaceCullMode(FCM_BACK);
+    cr << SetFillMode(FM_FILL);
+    cr << SetFaceCullMode(FCM_BACK);
 
     HYP_DEFER({
-        rq << SetCurrentBlendFunction(BlendFunction::None());
-        rq << SetDepthTest(true);
-        rq << SetDepthWrite(true);
+        cr << SetCurrentBlendFunction(BlendFunction::None());
+        cr << SetDepthTest(true);
+        cr << SetDepthWrite(true);
     });
 
     FixedArray<Array<EnvProbe*, RenderTempAllocator>, CMT_MAX> probesPerCubemapType;
@@ -1109,7 +1109,7 @@ void ReflectionsPass::Render(Frame* frame, const RenderSetup& rs)
         }
     }
 
-    rq << SetCurrentFramebuffer(GetFramebuffer());
+    cr << SetCurrentFramebuffer(GetFramebuffer());
 
     // render previous frame's result to screen if doing temporal blending (and not checkerboarded)
     if (!m_isFirstFrame && UsesTemporalBlending() && !ShouldRenderCheckerboarded())
@@ -1117,8 +1117,8 @@ void ReflectionsPass::Render(Frame* frame, const RenderSetup& rs)
         DrawHistoryTexture(frame, rs);
     }
 
-    rq << SetShaderUniform(0, "SamplerLinear"_sh, g_renderInterface->placeholderData->GetSamplerLinearMipmap());
-    rq << SetShaderUniform(1, "SamplerNearest"_sh, g_renderInterface->placeholderData->GetSamplerNearest());
+    cr << SetShaderUniform(0, "SamplerLinear"_sh, g_renderInterface->placeholderData->GetSamplerLinearMipmap());
+    cr << SetShaderUniform(1, "SamplerNearest"_sh, g_renderInterface->placeholderData->GetSamplerNearest());
 
     DeferredRendererPassData* dpd = ObjCast<DeferredRendererPassData>(rs.passData);
     AssertDebug(dpd != nullptr);
@@ -1127,19 +1127,19 @@ void ReflectionsPass::Render(Frame* frame, const RenderSetup& rs)
 
     for (uint32 attachmentIndex = 0; attachmentIndex < GTN_MAX; attachmentIndex++)
     {
-        rq << SetShaderUniform(2 + attachmentIndex, GBufferTextureNames[attachmentIndex], opaquePassFramebuffer->GetAttachment(attachmentIndex)->GetImageView());
+        cr << SetShaderUniform(2 + attachmentIndex, GBufferTextureNames[attachmentIndex], opaquePassFramebuffer->GetAttachment(attachmentIndex)->GetImageView());
     }
 
-    rq << SetShaderUniform(2 + GTN_MAX, "CamerasBuffer"_sh, g_renderInterface->gpuBuffers[GRB_CAMERAS]->GetBuffer(frame->GetFrameIndex()), TShaderDataOffset<CameraShaderData>(rs.view->GetCamera()));
-    rq << SetShaderUniform(3 + GTN_MAX, "WorldsBuffer"_sh, g_renderInterface->gpuBuffers[GRB_WORLDS]->GetBuffer(frame->GetFrameIndex()));
-    rq << SetShaderUniform(4 + GTN_MAX, "EnvProbesBuffer"_sh, g_renderInterface->gpuBuffers[GRB_ENV_PROBES]->GetBuffer(frame->GetFrameIndex()));
+    cr << SetShaderUniform(2 + GTN_MAX, "CamerasBuffer"_sh, g_renderInterface->gpuBuffers[GRB_CAMERAS]->GetBuffer(frame->GetFrameIndex()), TShaderDataOffset<CameraShaderData>(rs.view->GetCamera()));
+    cr << SetShaderUniform(3 + GTN_MAX, "WorldsBuffer"_sh, g_renderInterface->gpuBuffers[GRB_WORLDS]->GetBuffer(frame->GetFrameIndex()));
+    cr << SetShaderUniform(4 + GTN_MAX, "EnvProbesBuffer"_sh, g_renderInterface->gpuBuffers[GRB_ENV_PROBES]->GetBuffer(frame->GetFrameIndex()));
 
-    rq << SetShaderUniform(10 + GTN_MAX, "BlueNoiseBuffer"_sh, g_renderInterface->blueNoiseBuffer);
-    rq << SetShaderUniform(11 + GTN_MAX, "SphereSamplesBuffer"_sh, g_renderInterface->sphereSamplesBuffer);
+    cr << SetShaderUniform(10 + GTN_MAX, "BlueNoiseBuffer"_sh, g_renderInterface->blueNoiseBuffer);
+    cr << SetShaderUniform(11 + GTN_MAX, "SphereSamplesBuffer"_sh, g_renderInterface->sphereSamplesBuffer);
 
-    rq << SetShaderUniform(12 + GTN_MAX, "GBufferMipChain"_sh, g_renderInterface->textureViewCache->GetOrCreate(dpd->mipChain));
+    cr << SetShaderUniform(12 + GTN_MAX, "GBufferMipChain"_sh, g_renderInterface->textureViewCache->GetOrCreate(dpd->mipChain));
 
-    rq << SetShaderUniform(13 + GTN_MAX, "EnvProbesTexture"_sh, g_renderInterface->textureViewCache->GetOrCreate(g_renderInterface->envProbesTexture));
+    cr << SetShaderUniform(13 + GTN_MAX, "EnvProbesTexture"_sh, g_renderInterface->textureViewCache->GetOrCreate(g_renderInterface->envProbesTexture));
 
     uint32 numRenderedEnvProbes = 0;
 
@@ -1164,7 +1164,7 @@ void ReflectionsPass::Render(Frame* frame, const RenderSetup& rs)
                 break;
             }
 
-            rq << SetShaderUniform(5 + GTN_MAX, "CurrentEnvProbe"_sh, g_renderInterface->gpuBuffers[GRB_ENV_PROBES]->GetBuffer(frame->GetFrameIndex()), TShaderDataOffset<EnvProbeShaderData>(envProbe));
+            cr << SetShaderUniform(5 + GTN_MAX, "CurrentEnvProbe"_sh, g_renderInterface->gpuBuffers[GRB_ENV_PROBES]->GetBuffer(frame->GetFrameIndex()), TShaderDataOffset<EnvProbeShaderData>(envProbe));
 
             RenderFullScreenQuad(frame, rs);
 
@@ -1181,27 +1181,27 @@ void ReflectionsPass::Render(Frame* frame, const RenderSetup& rs)
         renderTargetDesc.attachments[0].loadOp = LoadOperation::LOAD;
         renderTargetDesc.attachments[0].blendFunction = BlendFunction(BMF_SRC_ALPHA, BMF_ONE_MINUS_SRC_ALPHA, BMF_ONE, BMF_ONE_MINUS_SRC_ALPHA);
 
-        rq << SetCurrentViewport(rs.viewport);
+        cr << SetCurrentViewport(rs.viewport);
 
-        rq << SetCurrentShader(ShaderDesc(NAME("BlitTexture")));
+        cr << SetCurrentShader(ShaderDesc(NAME("BlitTexture")));
 
         // reset
-        rq << SetDepthTest(false);
-        rq << SetDepthWrite(false);
-        rq << SetCurrentBlendFunction(BlendFunction(BMF_SRC_ALPHA, BMF_ONE_MINUS_SRC_ALPHA, BMF_ONE, BMF_ONE_MINUS_SRC_ALPHA));
+        cr << SetDepthTest(false);
+        cr << SetDepthWrite(false);
+        cr << SetCurrentBlendFunction(BlendFunction(BMF_SRC_ALPHA, BMF_ONE_MINUS_SRC_ALPHA, BMF_ONE, BMF_ONE_MINUS_SRC_ALPHA));
 
-        rq << SetShaderUniform(0, "SamplerLinear"_sh, g_renderInterface->placeholderData->GetSamplerLinear());
-        rq << SetShaderUniform(1, "WorldsBuffer"_sh, g_renderInterface->gpuBuffers[GRB_WORLDS]->GetBuffer(frame->GetFrameIndex()));
-        rq << SetShaderUniform(2, "InTexture"_sh, g_renderInterface->textureViewCache->GetOrCreate(ssrTexture));
+        cr << SetShaderUniform(0, "SamplerLinear"_sh, g_renderInterface->placeholderData->GetSamplerLinear());
+        cr << SetShaderUniform(1, "WorldsBuffer"_sh, g_renderInterface->gpuBuffers[GRB_WORLDS]->GetBuffer(frame->GetFrameIndex()));
+        cr << SetShaderUniform(2, "InTexture"_sh, g_renderInterface->textureViewCache->GetOrCreate(ssrTexture));
 
         RenderFullScreenQuad(frame, rs);
 
-        rq << SetDepthTest(true);
-        rq << SetDepthWrite(true);
-        rq << SetCurrentBlendFunction(BlendFunction::None());
+        cr << SetDepthTest(true);
+        cr << SetDepthWrite(true);
+        cr << SetCurrentBlendFunction(BlendFunction::None());
     }
 
-    frame->renderQueue << SetCurrentFramebuffer(nullptr);
+    frame->cr << SetCurrentFramebuffer(nullptr);
 
     if (ShouldRenderCheckerboarded())
     {
@@ -1887,11 +1887,11 @@ void DeferredRenderer::RenderFrameForView(Frame* frame, const RenderSetup& rs)
     PerformOcclusionCulling(frame, rs, renderCollector);
 
     { // render opaque objects into separate framebuffer
-        frame->renderQueue << SetCurrentFramebuffer(opaquePassFramebuffer);
+        frame->cr << SetCurrentFramebuffer(opaquePassFramebuffer);
 
         ExecuteDrawCalls(frame, rs, renderCollector, RenderBucketMask<RenderBucket::Opaque>);
 
-        frame->renderQueue << SetCurrentFramebuffer(nullptr);
+        frame->cr << SetCurrentFramebuffer(nullptr);
     }
     
     // render objects to be lightmapped, separate from the opaque objects.
@@ -1902,14 +1902,14 @@ void DeferredRenderer::RenderFrameForView(Frame* frame, const RenderSetup& rs)
         // otherwise, we'll be using a LOAD operation on a potentially undefined/garbage target.
         if (renderCollector.mappingsByBucket[uint32(RenderBucket::Opaque)].Empty())
         {
-            frame->renderQueue << ClearFramebuffer(opaquePassFramebuffer, 0x1);
+            frame->cr << ClearFramebuffer(opaquePassFramebuffer, 0x1);
         }
 
-        frame->renderQueue << SetCurrentFramebuffer(lightmapPassFramebuffer);
+        frame->cr << SetCurrentFramebuffer(lightmapPassFramebuffer);
 
         ExecuteDrawCalls(frame, rs, renderCollector, RenderBucketMask<RenderBucket::Lightmapped>);
 
-        frame->renderQueue << SetCurrentFramebuffer(nullptr);
+        frame->cr << SetCurrentFramebuffer(nullptr);
     }
 
     passData.reflectionsPass->Render(frame, rs);
@@ -1981,14 +1981,14 @@ void DeferredRenderer::RenderFrameForView(Frame* frame, const RenderSetup& rs)
     passData.postProcessing->RenderPre(frame, rs);
 
     { // deferred lighting on opaque objects
-        frame->renderQueue << InsertBarrier(
+        frame->cr << InsertBarrier(
             passData.deferredShadingFramebuffer->GetAttachment(1)->GetGpuImage(),
             RS_RENDER_TARGET,
             ShaderModuleType::Pixel,
             /* onlyDepth */ false,
             /* onlyStencil */ true);
 
-        frame->renderQueue << SetCurrentFramebuffer(passData.deferredShadingFramebuffer);
+        frame->cr << SetCurrentFramebuffer(passData.deferredShadingFramebuffer);
 
         passData.indirectPass->RenderToFramebuffer(frame, rs, passData.deferredShadingFramebuffer);
         passData.directPass->RenderToFramebuffer(frame, rs, passData.deferredShadingFramebuffer);
@@ -2004,7 +2004,7 @@ void DeferredRenderer::RenderFrameForView(Frame* frame, const RenderSetup& rs)
             passData.lightmapPass->RenderToFramebuffer(frame, lightmapPassRS, passData.deferredShadingFramebuffer);
         }
 
-        frame->renderQueue << SetCurrentFramebuffer(nullptr);
+        frame->cr << SetCurrentFramebuffer(nullptr);
     }
 
     { // generate mipchain after rendering opaque objects' lighting, now we can use it for transmission
@@ -2013,36 +2013,36 @@ void DeferredRenderer::RenderFrameForView(Frame* frame, const RenderSetup& rs)
     }
 
     { // combined + translucent (forward pass)
-        frame->renderQueue << SetCurrentFramebuffer(translucentPassFramebuffer);
+        frame->cr << SetCurrentFramebuffer(translucentPassFramebuffer);
 
         { // Render the deferred lighting into the translucent pass framebuffer with a full screen quad.
 
-            frame->renderQueue << SetCurrentViewport(rs.viewport);
+            frame->cr << SetCurrentViewport(rs.viewport);
 
-            frame->renderQueue << SetVertexAttributes(VertexAttribute::Position | VertexAttribute::Normal | VertexAttribute::TexCoord0);
-            frame->renderQueue << SetFaceCullMode(FCM_BACK);
-            frame->renderQueue << SetFillMode(FM_FILL);
-            frame->renderQueue << SetTopology(TOP_TRIANGLES);
-            frame->renderQueue << SetDepthTest(false);
-            frame->renderQueue << SetDepthWrite(false);
-            frame->renderQueue << SetStencilTest(false);
+            frame->cr << SetVertexAttributes(VertexAttribute::Position | VertexAttribute::Normal | VertexAttribute::TexCoord0);
+            frame->cr << SetFaceCullMode(FCM_BACK);
+            frame->cr << SetFillMode(FM_FILL);
+            frame->cr << SetTopology(TOP_TRIANGLES);
+            frame->cr << SetDepthTest(false);
+            frame->cr << SetDepthWrite(false);
+            frame->cr << SetStencilTest(false);
 
-            frame->renderQueue << SetCurrentShader(ShaderDesc(NAME("BlitTexture")));
+            frame->cr << SetCurrentShader(ShaderDesc(NAME("BlitTexture")));
 
-            frame->renderQueue << SetShaderUniform(0, "SamplerLinear"_sh, g_renderInterface->placeholderData->GetSamplerLinear());
-            frame->renderQueue << SetShaderUniform(1, "WorldsBuffer"_sh, g_renderInterface->gpuBuffers[GRB_WORLDS]->GetBuffer(frame->GetFrameIndex()));
-            frame->renderQueue << SetShaderUniform(2, "InTexture"_sh, passData.deferredShadingFramebuffer->GetAttachment(0)->GetImageView());
+            frame->cr << SetShaderUniform(0, "SamplerLinear"_sh, g_renderInterface->placeholderData->GetSamplerLinear());
+            frame->cr << SetShaderUniform(1, "WorldsBuffer"_sh, g_renderInterface->gpuBuffers[GRB_WORLDS]->GetBuffer(frame->GetFrameIndex()));
+            frame->cr << SetShaderUniform(2, "InTexture"_sh, passData.deferredShadingFramebuffer->GetAttachment(0)->GetImageView());
 
-            frame->renderQueue << CommitDrawState();
+            frame->cr << CommitDrawState();
 
-            frame->renderQueue << BindVertexBuffer(m_quadMesh->GetVertexBuffer());
-            frame->renderQueue << BindIndexBuffer(m_quadMesh->GetIndexBuffer());
+            frame->cr << BindVertexBuffer(m_quadMesh->GetVertexBuffer());
+            frame->cr << BindIndexBuffer(m_quadMesh->GetIndexBuffer());
 
-            frame->renderQueue << DrawIndexed(6);
+            frame->cr << DrawIndexed(6);
 
             // reset
-            frame->renderQueue << SetDepthTest(true);
-            frame->renderQueue << SetDepthWrite(true);
+            frame->cr << SetDepthTest(true);
+            frame->cr << SetDepthWrite(true);
         }
 
         // begin translucent with forward rendering
@@ -2070,7 +2070,7 @@ void DeferredRenderer::RenderFrameForView(Frame* frame, const RenderSetup& rs)
             }
         }
 
-        frame->renderQueue << SetCurrentFramebuffer(nullptr);
+        frame->cr << SetCurrentFramebuffer(nullptr);
     }
 
     { // render depth pyramid
@@ -2084,13 +2084,13 @@ void DeferredRenderer::RenderFrameForView(Frame* frame, const RenderSetup& rs)
     if (renderCollector.mappingsByBucket[uint32(RenderBucket::Debug)].Any()
         || DebugDrawer::GetInstance().NumEnqueuedDrawCommands() > 0)
     {
-        frame->renderQueue << SetCurrentFramebuffer(debugPassFramebuffer);
+        frame->cr << SetCurrentFramebuffer(debugPassFramebuffer);
 
         ExecuteDrawCalls(frame, rs, renderCollector, RenderBucketMask<RenderBucket::Debug>);
 
         DebugDrawer::GetInstance().Render(frame, rs);
 
-        frame->renderQueue << SetCurrentFramebuffer(nullptr);
+        frame->cr << SetCurrentFramebuffer(nullptr);
     }
 
     passData.postProcessing->RenderPost(frame, rs);
@@ -2264,19 +2264,19 @@ void DeferredRenderer::GenerateMipChain(Frame* frame, const RenderSetup& rs, Ren
     const GpuImageRef& mipmappedResult = pd->mipChain->GetGpuImage();
     Assert(mipmappedResult.IsValid());
 
-    frame->renderQueue << InsertBarrier(srcImage, RS_COPY_SRC);
-    frame->renderQueue << InsertBarrier(mipmappedResult, RS_COPY_DST);
+    frame->cr << InsertBarrier(srcImage, RS_COPY_SRC);
+    frame->cr << InsertBarrier(mipmappedResult, RS_COPY_DST);
 
     // Blit into the mipmap chain img
-    frame->renderQueue << BlitRect(
+    frame->cr << BlitRect(
         srcImage,
         mipmappedResult,
         Rect<uint32> { 0, 0, srcImage->GetExtent().x, srcImage->GetExtent().y },
         Rect<uint32> { 0, 0, mipmappedResult->GetExtent().x, mipmappedResult->GetExtent().y });
 
-    frame->renderQueue << GenerateMipmaps(mipmappedResult);
+    frame->cr << GenerateMipmaps(mipmappedResult);
 
-    frame->renderQueue << InsertBarrier(srcImage, RS_SHADER_RESOURCE);
+    frame->cr << InsertBarrier(srcImage, RS_SHADER_RESOURCE);
 }
 
 #pragma endregion DeferredRenderer

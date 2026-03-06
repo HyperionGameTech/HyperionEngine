@@ -60,14 +60,14 @@ static void ZeroizeBuffer(Frame* frame, GpuBuffer* stagingBuffer, GpuBuffer* dst
     // set all to zero
     stagingBuffer->Memset(stagingBuffer->Size(), 0);
 
-    RenderQueue& rq = frame->renderQueue;
+    CommandRecorder& cr = frame->cr;
 
-    rq << InsertBarrier(stagingBuffer, RS_COPY_SRC);
-    rq << InsertBarrier(dstBuffer, RS_COPY_DST);
+    cr << InsertBarrier(stagingBuffer, RS_COPY_SRC);
+    cr << InsertBarrier(dstBuffer, RS_COPY_DST);
 
-    rq << CopyBuffer(stagingBuffer, dstBuffer, dstBuffer->Size());
+    cr << CopyBuffer(stagingBuffer, dstBuffer, dstBuffer->Size());
 
-    rq << InsertBarrier(dstBuffer, RS_INDIRECT_ARG);
+    cr << InsertBarrier(dstBuffer, RS_INDIRECT_ARG);
 }
 
 static inline bool CreateOrResizeBuffer(
@@ -114,7 +114,7 @@ static bool ResizeIndirectDrawCommandsBuffer(
     GpuBufferRef& indirectBuffer,
     GpuBuffer* stagingBuffer)
 {
-    RenderQueue& rq = frame->renderQueue;
+    CommandRecorder& cr = frame->cr;
 
     const bool wasCreatedOrResized = CreateOrResizeBuffer(frame, indirectBuffer, drawCommandsBuffer.Size());
 
@@ -300,7 +300,7 @@ void IndirectDrawState::UpdateBufferData(Frame* frame, bool* outWasResized)
 
     const uint32 frameIndex = frame->GetFrameIndex();
 
-    RenderQueue& rq = frame->renderQueue;
+    CommandRecorder& cr = frame->cr;
 
     if ((*outWasResized = ResizeIfNeeded(
              frame,
@@ -330,12 +330,12 @@ void IndirectDrawState::UpdateBufferData(Frame* frame, bool* outWasResized)
 
         stagingBuffer->Copy(m_drawCommandsBuffer.Size(), m_drawCommandsBuffer.Data());
 
-        rq << InsertBarrier(stagingBuffer, RS_COPY_SRC);
-        rq << InsertBarrier(indirectBuffer, RS_COPY_DST);
+        cr << InsertBarrier(stagingBuffer, RS_COPY_SRC);
+        cr << InsertBarrier(indirectBuffer, RS_COPY_DST);
 
-        rq << CopyBuffer(stagingBuffer, indirectBuffer, stagingBuffer->Size());
+        cr << CopyBuffer(stagingBuffer, indirectBuffer, stagingBuffer->Size());
 
-        rq << InsertBarrier(indirectBuffer, RS_INDIRECT_ARG);
+        cr << InsertBarrier(indirectBuffer, RS_INDIRECT_ARG);
     }
 
     Assert(instanceBuffer->Size() >= m_objectInstances.Size() * sizeof(ObjectInstance));
@@ -415,7 +415,7 @@ void IndirectRenderer::ExecuteCullShaderInBatches(Frame* frame, const RenderSetu
 
     const uint32 frameIndex = frame->GetFrameIndex();
 
-    RenderQueue& rq = frame->renderQueue;
+    CommandRecorder& cr = frame->cr;
 
     AssertDebug(m_indirectDrawState.GetIndirectBuffer(frameIndex).IsValid());
     AssertDebug(m_indirectDrawState.GetIndirectBuffer(frameIndex)->Size() != 0);
@@ -449,18 +449,18 @@ void IndirectRenderer::ExecuteCullShaderInBatches(Frame* frame, const RenderSetu
 
     uint32 numShaderUniforms = 0;
 
-    rq << SetCurrentShader(ShaderDesc(NAME("ComputeVisibility")));
+    cr << SetCurrentShader(ShaderDesc(NAME("ComputeVisibility")));
 
-    rq << SetShaderUniform(numShaderUniforms++, "CamerasBuffer"_sh, g_renderInterface->gpuBuffers[GRB_CAMERAS]->GetBuffer(frameIndex), TShaderDataOffset<CameraShaderData>(renderSetup.view->GetCamera()));
-    rq << SetShaderUniform(numShaderUniforms++, "EntitiesBuffer"_sh, g_renderInterface->gpuBuffers[GRB_ENTITIES]->GetBuffer(frameIndex));
-    rq << SetShaderUniform(numShaderUniforms++, "WorldsBuffer"_sh, g_renderInterface->gpuBuffers[GRB_WORLDS]->GetBuffer(frameIndex));
+    cr << SetShaderUniform(numShaderUniforms++, "CamerasBuffer"_sh, g_renderInterface->gpuBuffers[GRB_CAMERAS]->GetBuffer(frameIndex), TShaderDataOffset<CameraShaderData>(renderSetup.view->GetCamera()));
+    cr << SetShaderUniform(numShaderUniforms++, "EntitiesBuffer"_sh, g_renderInterface->gpuBuffers[GRB_ENTITIES]->GetBuffer(frameIndex));
+    cr << SetShaderUniform(numShaderUniforms++, "WorldsBuffer"_sh, g_renderInterface->gpuBuffers[GRB_WORLDS]->GetBuffer(frameIndex));
     
-    rq << SetShaderUniform(numShaderUniforms++, "SamplerNearest"_sh, g_renderInterface->placeholderData->GetSamplerNearest());
-    rq << SetShaderUniform(numShaderUniforms++, "DepthPyramidResult"_sh, renderSetup.passData->cullData.depthPyramidImageView);
+    cr << SetShaderUniform(numShaderUniforms++, "SamplerNearest"_sh, g_renderInterface->placeholderData->GetSamplerNearest());
+    cr << SetShaderUniform(numShaderUniforms++, "DepthPyramidResult"_sh, renderSetup.passData->cullData.depthPyramidImageView);
 
-    rq << SetShaderUniform(numShaderUniforms++, "ObjectInstancesBuffer"_sh, m_indirectDrawState.GetInstanceBuffer(frameIndex));
-    rq << SetShaderUniform(numShaderUniforms++, "IndirectDrawCommandsBuffer"_sh, m_indirectDrawState.GetIndirectBuffer(frameIndex));
-    rq << SetShaderUniform(numShaderUniforms++, "EntityInstanceBatchesBuffer"_sh, m_batchAllocator->GetGpuBufferHolder()->GetBuffer(frameIndex));
+    cr << SetShaderUniform(numShaderUniforms++, "ObjectInstancesBuffer"_sh, m_indirectDrawState.GetInstanceBuffer(frameIndex));
+    cr << SetShaderUniform(numShaderUniforms++, "IndirectDrawCommandsBuffer"_sh, m_indirectDrawState.GetIndirectBuffer(frameIndex));
+    cr << SetShaderUniform(numShaderUniforms++, "EntityInstanceBatchesBuffer"_sh, m_batchAllocator->GetGpuBufferHolder()->GetBuffer(frameIndex));
 
     ComputeVisibilityConstants constants {};
     constants.depthPyramidDimensions = pd->depthPyramidRenderer->GetExtent();
@@ -470,13 +470,13 @@ void IndirectRenderer::ExecuteCullShaderInBatches(Frame* frame, const RenderSetu
 
     m_cBuffers[frameIndex]->Copy(sizeof(constants), &constants);
 
-    rq << SetShaderUniform(numShaderUniforms++, "ComputeVisibilityConstants"_sh, m_cBuffers[frameIndex]);
+    cr << SetShaderUniform(numShaderUniforms++, "ComputeVisibilityConstants"_sh, m_cBuffers[frameIndex]);
 
-    rq << InsertBarrier(m_indirectDrawState.GetIndirectBuffer(frameIndex), RS_INDIRECT_ARG);
+    cr << InsertBarrier(m_indirectDrawState.GetIndirectBuffer(frameIndex), RS_INDIRECT_ARG);
 
-    rq << DispatchCompute(Vec3u { numBatches, 1, 1 });
+    cr << DispatchCompute(Vec3u { numBatches, 1, 1 });
     
-    rq << InsertBarrier(m_indirectDrawState.GetIndirectBuffer(frameIndex), RS_INDIRECT_ARG);
+    cr << InsertBarrier(m_indirectDrawState.GetIndirectBuffer(frameIndex), RS_INDIRECT_ARG);
 }
 
 void IndirectRenderer::RebuildDescriptors(Frame* frame)

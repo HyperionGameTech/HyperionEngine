@@ -114,10 +114,10 @@ void OnBindingChanged_ReflectionProbe(EnvProbe* envProbe, uint32 prev, uint32 ne
         Frame* currentFrame = g_renderInterface->GetCurrentFrame();
         Assert(currentFrame != nullptr);
 
-        RenderQueue& rq = currentFrame->preRenderQueue;
+        CommandRecorder& cr = currentFrame->preRenderCommands;
 
-        rq << InsertBarrier(srcImage, RS_COPY_SRC);
-        rq << InsertBarrier(dstImage, RS_COPY_DST);
+        cr << InsertBarrier(srcImage, RS_COPY_SRC);
+        cr << InsertBarrier(dstImage, RS_COPY_DST);
 
         for (uint8 mipIndex = 0; mipIndex < dstImage->NumMips(); mipIndex++)
         {
@@ -139,7 +139,7 @@ void OnBindingChanged_ReflectionProbe(EnvProbe* envProbe, uint32 prev, uint32 ne
             const Vec3u srcMipExtent = srcImage->GetTextureDesc().GetMipExtent(mipIndex);
             const Vec3u dstMipExtent = dstImage->GetTextureDesc().GetMipExtent(mipIndex);
 
-            rq << Blit(
+            cr << Blit(
                 srcImage,
                 dstImage,
                 Rect<uint32> {
@@ -154,8 +154,8 @@ void OnBindingChanged_ReflectionProbe(EnvProbe* envProbe, uint32 prev, uint32 ne
                 dstSubResource);
         }
 
-        rq << InsertBarrier(srcImage, RS_SHADER_RESOURCE);
-        rq << InsertBarrier(dstImage, RS_SHADER_RESOURCE);
+        cr << InsertBarrier(srcImage, RS_SHADER_RESOURCE);
+        cr << InsertBarrier(dstImage, RS_SHADER_RESOURCE);
     }
 }
 

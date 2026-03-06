@@ -14,9 +14,9 @@
 namespace Hyperion {
 
 template <class AllocatorType>
-class TRenderQueue;
+class TCommandRecorder;
 
-using RenderQueue = TRenderQueue<RenderAllocator>;
+using CommandRecorder = TCommandRecorder<RenderAllocator>;
 
 namespace helpers {
 
@@ -31,7 +31,7 @@ public:
 
     virtual ~SingleTimeCommands() = default;
 
-    void Push(Proc<void(RenderQueue&)>&& fn)
+    void Push(Proc<void(CommandRecorder&)>&& fn)
     {
         m_functions.PushBack(std::move(fn));
     }
@@ -39,7 +39,7 @@ public:
     virtual RendererResult Execute() = 0;
 
 protected:
-    Array<Proc<void(RenderQueue&)>, RenderAllocator> m_functions;
+    Array<Proc<void(CommandRecorder&)>, RenderAllocator> m_functions;
 };
 
 } // namespace Hyperion

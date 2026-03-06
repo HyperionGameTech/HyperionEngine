@@ -237,7 +237,7 @@ void TemporalBlending::Render(Frame* frame, const RenderSetup& renderSetup)
         ? m_historyTexture
         : m_resultTexture;
 
-    frame->renderQueue << InsertBarrier(activeTexture->GetGpuImage(), RS_UNORDERED_ACCESS);
+    frame->cr << InsertBarrier(activeTexture->GetGpuImage(), RS_UNORDERED_ACCESS);
 
     const Vec3u& extent = activeTexture->GetExtent();
 
@@ -264,27 +264,27 @@ void TemporalBlending::Render(Frame* frame, const RenderSetup& renderSetup)
     ShaderPropertySet shaderProperties;
     GetShaderProperties(shaderProperties);
 
-    frame->renderQueue << SetCurrentShader(ShaderDesc(NAME("TemporalBlending"), shaderProperties));
+    frame->cr << SetCurrentShader(ShaderDesc(NAME("TemporalBlending"), shaderProperties));
 
     const GpuImageViewRef& inputImageView = m_inputFramebuffer.IsValid()
             ? m_inputFramebuffer->GetAttachment(0)->GetImageView()
             : m_inputImageView;
 
-    frame->renderQueue << SetShaderUniform(0, "InImage"_sh, inputImageView);
-    frame->renderQueue << SetShaderUniform(1, "PrevImage"_sh, g_renderInterface->textureViewCache->GetOrCreate(prevTexture));
-    frame->renderQueue << SetShaderUniform(2, "VelocityImage"_sh, m_gbuffer->GetBucket(RenderBucket::Opaque).GetGBufferAttachment(GTN_VELOCITY)->GetImageView());
-    frame->renderQueue << SetShaderUniform(3, "SamplerLinear"_sh, g_renderInterface->placeholderData->GetSamplerLinear());
-    frame->renderQueue << SetShaderUniform(4, "SamplerNearest"_sh, g_renderInterface->placeholderData->GetSamplerNearest());
-    frame->renderQueue << SetShaderUniform(5, "OutImage"_sh, g_renderInterface->textureViewCache->GetOrCreate(activeTexture));
-    frame->renderQueue << SetShaderUniform(6, "TemporalBlendingUniforms"_sh, cBuffer);
+    frame->cr << SetShaderUniform(0, "InImage"_sh, inputImageView);
+    frame->cr << SetShaderUniform(1, "PrevImage"_sh, g_renderInterface->textureViewCache->GetOrCreate(prevTexture));
+    frame->cr << SetShaderUniform(2, "VelocityImage"_sh, m_gbuffer->GetBucket(RenderBucket::Opaque).GetGBufferAttachment(GTN_VELOCITY)->GetImageView());
+    frame->cr << SetShaderUniform(3, "SamplerLinear"_sh, g_renderInterface->placeholderData->GetSamplerLinear());
+    frame->cr << SetShaderUniform(4, "SamplerNearest"_sh, g_renderInterface->placeholderData->GetSamplerNearest());
+    frame->cr << SetShaderUniform(5, "OutImage"_sh, g_renderInterface->textureViewCache->GetOrCreate(activeTexture));
+    frame->cr << SetShaderUniform(6, "TemporalBlendingUniforms"_sh, cBuffer);
     
-    frame->renderQueue << SetShaderUniform(7, "GBufferDepthTexture"_sh, m_gbuffer->GetBucket(RenderBucket::Opaque).GetGBufferAttachment(GTN_DEPTH)->GetImageView());
+    frame->cr << SetShaderUniform(7, "GBufferDepthTexture"_sh, m_gbuffer->GetBucket(RenderBucket::Opaque).GetGBufferAttachment(GTN_DEPTH)->GetImageView());
 
-    frame->renderQueue << SetShaderUniform(8, "WorldsBuffer"_sh, g_renderInterface->gpuBuffers[GRB_WORLDS]->GetBuffer(frame->GetFrameIndex()));
-    frame->renderQueue << SetShaderUniform(9, "CamerasBuffer"_sh, g_renderInterface->gpuBuffers[GRB_CAMERAS]->GetBuffer(frame->GetFrameIndex()), TShaderDataOffset<CameraShaderData>(renderSetup.view->GetCamera()));
+    frame->cr << SetShaderUniform(8, "WorldsBuffer"_sh, g_renderInterface->gpuBuffers[GRB_WORLDS]->GetBuffer(frame->GetFrameIndex()));
+    frame->cr << SetShaderUniform(9, "CamerasBuffer"_sh, g_renderInterface->gpuBuffers[GRB_CAMERAS]->GetBuffer(frame->GetFrameIndex()), TShaderDataOffset<CameraShaderData>(renderSetup.view->GetCamera()));
 
-    frame->renderQueue << DispatchCompute(Vec3u { (extent.x + 7) / 8, (extent.y + 7) / 8, 1 });
-    frame->renderQueue << InsertBarrier(activeTexture->GetGpuImage(), RS_SHADER_RESOURCE);
+    frame->cr << DispatchCompute(Vec3u { (extent.x + 7) / 8, (extent.y + 7) / 8, 1 });
+    frame->cr << InsertBarrier(activeTexture->GetGpuImage(), RS_SHADER_RESOURCE);
 
     m_blendingFrameCounter = m_technique == TemporalBlendTechnique::TECHNIQUE_4
         ? m_blendingFrameCounter + 1

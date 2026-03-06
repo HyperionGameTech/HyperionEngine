@@ -106,7 +106,7 @@ void DX12AsyncCompute::Submit()
     Assert(SUCCEEDED(m_commandAllocator->Reset()));
     Assert(SUCCEEDED(commandList->Reset(m_commandAllocator.Get(), nullptr)));
 
-    renderQueue.Execute(m_commandBuffer);
+    cr.Execute(m_commandBuffer);
 
     Assert(SUCCEEDED(commandList->Close()));
 

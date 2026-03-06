@@ -3,7 +3,7 @@
 #include <RenderingPch.hpp>
 
 #include <rendering/RenderInterface.hpp>
-#include <rendering/RenderQueue.hpp>
+#include <rendering/CommandRecorder.hpp>
 #include <rendering/Texture.hpp>
 #include <rendering/RenderObject.hpp>
 #include <rendering/GpuImage.hpp>
@@ -172,9 +172,9 @@ static RendererResult CreateGpuImage(Texture& texture, GpuImage& image, Resource
         Frame* frame = g_renderInterface->GetCurrentFrame();
 
         // @FIXME : Not thread-safe. Need thread local render queues and submit them to a ring buffer.
-        RenderQueue& renderQueue = frame->preRenderQueue;
+        CommandRecorder& cr = frame->preRenderCommands;
 
-        renderQueue << InsertBarrier(&image, RS_COPY_DST);
+        cr << InsertBarrier(&image, RS_COPY_DST);
 
         if (textureDesc.HasMipMaps() && !placeholderBuffer.HasValue())
         {
@@ -203,7 +203,7 @@ static RendererResult CreateGpuImage(Texture& texture, GpuImage& image, Resource
 
                         AssertDebug(finalOffset + mipSize <= stagingBuffer->Size());
 
-                        renderQueue << CopyBufferToImage(
+                        cr << CopyBufferToImage(
                             stagingBuffer,
                             &image,
                             /* byteOffset */ finalOffset,
@@ -220,7 +220,7 @@ static RendererResult CreateGpuImage(Texture& texture, GpuImage& image, Resource
 
             //    for (uint16 layerIndex = 0; layerIndex < uint16(numArrayLayers); layerIndex++)
             //    {
-            //        renderQueue << CopyBufferToImage(
+            //        cr << CopyBufferToImage(
             //            stagingBuffer,
             //            image,
             //            layerIndex * mipSize, // Offset assumes simple Layer packing for Mip 0
@@ -228,24 +228,24 @@ static RendererResult CreateGpuImage(Texture& texture, GpuImage& image, Resource
             //            layerIndex);
             //    }
 
-            //    renderQueue << GenerateMipmaps(image);
+            //    cr << GenerateMipmaps(image);
             //}
         }
         else
         {
             // No mips, just base level
-            renderQueue << CopyBufferToImage(stagingBuffer, &image);
+            cr << CopyBufferToImage(stagingBuffer, &image);
         }
 
-        renderQueue << InsertBarrier(&image, initialState);
+        cr << InsertBarrier(&image, initialState);
     }
     else if (initialState != RS_UNDEFINED)
     {
         Frame* frame = g_renderInterface->GetCurrentFrame();
-        RenderQueue& renderQueue = frame->preRenderQueue;
+        CommandRecorder& cr = frame->preRenderCommands;
 
         // Transition to initial state
-        renderQueue << InsertBarrier(&image, initialState);
+        cr << InsertBarrier(&image, initialState);
     }
 
     return {};
@@ -591,22 +591,22 @@ void Texture::Readback(ByteBuffer& outByteBuffer)
 
     UniquePtr<SingleTimeCommands> singleTimeCommands = g_renderInterface->GetSingleTimeCommands();
 
-    singleTimeCommands->Push([this, &gpuBuffer](RenderQueue& renderQueue)
+    singleTimeCommands->Push([this, &gpuBuffer](CommandRecorder& cr)
         {
             const ResourceState previousResourceState = m_gpuImage->GetResourceState();
 
-            renderQueue << InsertBarrier(m_gpuImage, RS_COPY_SRC);
-            renderQueue << InsertBarrier(gpuBuffer, RS_COPY_DST);
+            cr << InsertBarrier(m_gpuImage, RS_COPY_SRC);
+            cr << InsertBarrier(gpuBuffer, RS_COPY_DST);
 
-            renderQueue << CopyImageToBuffer(m_gpuImage, gpuBuffer);
+            cr << CopyImageToBuffer(m_gpuImage, gpuBuffer);
 
             if (previousResourceState != RS_UNDEFINED && previousResourceState != RS_PRE_INITIALIZED)
             {
-                renderQueue << InsertBarrier(m_gpuImage, previousResourceState);
+                cr << InsertBarrier(m_gpuImage, previousResourceState);
             }
             else
             {
-                renderQueue << InsertBarrier(m_gpuImage, RS_SHADER_RESOURCE);
+                cr << InsertBarrier(m_gpuImage, RS_SHADER_RESOURCE);
             }
         });
 
@@ -654,20 +654,20 @@ void Texture::EnqueueReadback(Proc<void(ByteBuffer&& byteBuffer)>&& callback)
     CheckResult(stagingBuffer->Create());
     stagingBuffer->Map();
     
-    RenderQueue& renderQueue = currentFrame->postRenderQueue;
+    CommandRecorder& cr = currentFrame->postRenderCommands;
 
-    renderQueue << InsertBarrier(m_gpuImage, RS_COPY_SRC);
-    renderQueue << InsertBarrier(stagingBuffer, RS_COPY_DST);
+    cr << InsertBarrier(m_gpuImage, RS_COPY_SRC);
+    cr << InsertBarrier(stagingBuffer, RS_COPY_DST);
 
-    renderQueue << CopyImageToBuffer(m_gpuImage, stagingBuffer);
+    cr << CopyImageToBuffer(m_gpuImage, stagingBuffer);
 
     if (previousResourceState != RS_UNDEFINED && previousResourceState != RS_PRE_INITIALIZED)
     {
-        renderQueue << InsertBarrier(m_gpuImage, previousResourceState);
+        cr << InsertBarrier(m_gpuImage, previousResourceState);
     }
     else
     {
-        renderQueue << InsertBarrier(m_gpuImage, RS_SHADER_RESOURCE);
+        cr << InsertBarrier(m_gpuImage, RS_SHADER_RESOURCE);
     }
 
     DelegateHandler* delegateHandle = new DelegateHandler();

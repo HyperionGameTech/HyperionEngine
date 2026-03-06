@@ -490,13 +490,13 @@ RendererResult VulkanSwapchain::RetrieveImageHandles()
     // Transition each image to PRESENT state immediately
     UniquePtr<SingleTimeCommands> singleTimeCommands = g_renderInterface->GetSingleTimeCommands();
 
-    singleTimeCommands->Push([&](RenderQueue& renderQueue)
+    singleTimeCommands->Push([&](CommandRecorder& cr)
         {
             for (const VulkanGpuImageRef& image : m_images)
             {
                 Assert(image.IsValid());
 
-                renderQueue << InsertBarrier(image, RS_PRESENT);
+                cr << InsertBarrier(image, RS_PRESENT);
             }
         });
 

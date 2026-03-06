@@ -448,41 +448,41 @@ void FullScreenPass::DrawHistoryTexture(Frame* frame, const RenderSetup& renderS
 
     const uint32 frameIndex = frame->GetFrameIndex();
 
-    RenderQueue& rq = frame->renderQueue;
+    CommandRecorder& cr = frame->cr;
     
     ShaderDesc shaderDesc;
     shaderDesc.name = NAME("BlitTexture");
     shaderDesc.properties.Set(s_propCheckerboarded, ShouldRenderCheckerboarded());
 
-    rq << SetCurrentShader(shaderDesc);
+    cr << SetCurrentShader(shaderDesc);
 
-    rq << SetVertexAttributes(VertexAttribute::Position | VertexAttribute::Normal | VertexAttribute::TexCoord0);
+    cr << SetVertexAttributes(VertexAttribute::Position | VertexAttribute::Normal | VertexAttribute::TexCoord0);
 
     if (ShouldRenderCheckerboarded())
     {
         const Vec2i viewportOffset = (Vec2i(m_framebuffer->GetExtent().x, 0) / 2) * (GetWorldBufferData()->frameCounter & 1);
         const Vec2u viewportExtent = Vec2u(m_framebuffer->GetExtent().x / 2, m_framebuffer->GetExtent().y);
 
-        rq << SetCurrentViewport(Viewport { viewportExtent, viewportOffset });
+        cr << SetCurrentViewport(Viewport { viewportExtent, viewportOffset });
     }
     else
     {
         // render previous frame's result to screen
-        rq << SetCurrentViewport(Viewport { m_framebuffer->GetExtent() });
+        cr << SetCurrentViewport(Viewport { m_framebuffer->GetExtent() });
     }
 
-    rq << SetDepthTest(false);
-    rq << SetDepthWrite(false);
+    cr << SetDepthTest(false);
+    cr << SetDepthWrite(false);
     
-    rq << SetShaderUniform(0, "SamplerLinear"_sh, g_renderInterface->placeholderData->GetSamplerLinear());
-    rq << SetShaderUniform(1, "SamplerNearest"_sh, g_renderInterface->placeholderData->GetSamplerNearest());
-    rq << SetShaderUniform(2, "WorldsBuffer"_sh, g_renderInterface->gpuBuffers[GRB_WORLDS]->GetBuffer(frameIndex));
-    rq << SetShaderUniform(3, "InTexture"_sh, GetPreviousFrameColorImageView());
+    cr << SetShaderUniform(0, "SamplerLinear"_sh, g_renderInterface->placeholderData->GetSamplerLinear());
+    cr << SetShaderUniform(1, "SamplerNearest"_sh, g_renderInterface->placeholderData->GetSamplerNearest());
+    cr << SetShaderUniform(2, "WorldsBuffer"_sh, g_renderInterface->gpuBuffers[GRB_WORLDS]->GetBuffer(frameIndex));
+    cr << SetShaderUniform(3, "InTexture"_sh, GetPreviousFrameColorImageView());
 
     RenderFullScreenQuad(frame, renderSetup);
 
-    rq << SetDepthTest(true);
-    rq << SetDepthWrite(true);
+    cr << SetDepthTest(true);
+    cr << SetDepthWrite(true);
 }
 
 void FullScreenPass::CopyResultToPreviousTexture(Frame* frame, const RenderSetup& renderSetup)
@@ -492,20 +492,20 @@ void FullScreenPass::CopyResultToPreviousTexture(Frame* frame, const RenderSetup
 
     const uint32 frameIndex = frame->GetFrameIndex();
 
-    RenderQueue& rq = frame->renderQueue;
+    CommandRecorder& cr = frame->cr;
 
     Assert(m_historyTexture.IsValid());
 
     const GpuImageRef& srcImage = m_framebuffer->GetAttachment(0)->GetGpuImage();
     const GpuImageRef& dstImage = m_historyTexture->GetGpuImage();
 
-    rq << InsertBarrier(srcImage, RS_COPY_SRC);
-    rq << InsertBarrier(dstImage, RS_COPY_DST);
+    cr << InsertBarrier(srcImage, RS_COPY_SRC);
+    cr << InsertBarrier(dstImage, RS_COPY_DST);
 
-    rq << Blit(srcImage, dstImage);
+    cr << Blit(srcImage, dstImage);
 
-    rq << InsertBarrier(srcImage, RS_SHADER_RESOURCE);
-    rq << InsertBarrier(dstImage, RS_SHADER_RESOURCE);
+    cr << InsertBarrier(srcImage, RS_SHADER_RESOURCE);
+    cr << InsertBarrier(dstImage, RS_SHADER_RESOURCE);
 }
 
 void FullScreenPass::MergeCheckerboard(Frame* frame, const RenderSetup& renderSetup)
@@ -515,17 +515,17 @@ void FullScreenPass::MergeCheckerboard(Frame* frame, const RenderSetup& renderSe
 
     const uint32 frameIndex = frame->GetFrameIndex();
 
-    RenderQueue& rq = frame->renderQueue;
+    CommandRecorder& cr = frame->cr;
 
     Assert(m_mergeCheckerboardPass != nullptr);
 
     m_mergeCheckerboardPass->Begin(frame, renderSetup);
 
-    rq << SetShaderUniform(0, "SamplerLinear"_sh, g_renderInterface->placeholderData->GetSamplerLinear());
-    rq << SetShaderUniform(1, "SamplerNearest"_sh, g_renderInterface->placeholderData->GetSamplerNearest());
-    rq << SetShaderUniform(2, "WorldsBuffer"_sh, g_renderInterface->gpuBuffers[GRB_WORLDS]->GetBuffer(frameIndex));
-    rq << SetShaderUniform(3, "InTexture"_sh, GetAttachment(0)->GetImageView());
-    rq << SetShaderUniform(4, "UniformBuffer"_sh, m_mergeCheckerboardUniformBuffer);
+    cr << SetShaderUniform(0, "SamplerLinear"_sh, g_renderInterface->placeholderData->GetSamplerLinear());
+    cr << SetShaderUniform(1, "SamplerNearest"_sh, g_renderInterface->placeholderData->GetSamplerNearest());
+    cr << SetShaderUniform(2, "WorldsBuffer"_sh, g_renderInterface->gpuBuffers[GRB_WORLDS]->GetBuffer(frameIndex));
+    cr << SetShaderUniform(3, "InTexture"_sh, GetAttachment(0)->GetImageView());
+    cr << SetShaderUniform(4, "UniformBuffer"_sh, m_mergeCheckerboardUniformBuffer);
 
     m_mergeCheckerboardPass->RenderFullScreenQuad(frame, renderSetup);
 
@@ -570,7 +570,7 @@ void FullScreenPass::RenderToFramebuffer(Frame* frame, const RenderSetup& render
     AssertDebug(renderSetup.world);
     AssertDebug(framebuffer != nullptr);
 
-    RenderQueue& rq = frame->renderQueue;
+    CommandRecorder& cr = frame->cr;
 
     // are we responsible for starting/ending framebuffer recording?
     bool shouldStartRecording = !framebuffer->IsDeferredRecording();
@@ -596,20 +596,20 @@ void FullScreenPass::RenderToFramebuffer(Frame* frame, const RenderSetup& render
     {
         for (InsertBarrier& ib : preRenderBarriers)
         {
-            rq << ib;
+            cr << ib;
         }
     }
 
     if (shouldStartRecording)
     {
-        rq << SetCurrentFramebuffer(framebuffer);
+        cr << SetCurrentFramebuffer(framebuffer);
     }
 
     RenderToFramebuffer_Internal(frame, renderSetup, framebuffer);
 
     if (shouldEndRecording)
     {
-        rq << SetCurrentFramebuffer(nullptr);
+        cr << SetCurrentFramebuffer(nullptr);
     }
 
     m_isFirstFrame = false;
@@ -620,7 +620,7 @@ void FullScreenPass::RenderToFramebuffer_Internal(Frame* frame, const RenderSetu
     HYP_SCOPE;
     AssertOnThread(g_renderThread);
 
-    RenderQueue& rq = frame->renderQueue;
+    CommandRecorder& cr = frame->cr;
 
     // render previous frame's result to screen
     if (!m_isFirstFrame && m_historyTexture.IsValid())
@@ -635,39 +635,39 @@ void FullScreenPass::RenderToFramebuffer_Internal(Frame* frame, const RenderSetu
         const Vec2i viewportOffset = (Vec2i(framebuffer->GetExtent().x, 0) / 2) * (GetWorldBufferData()->frameCounter & 1);
         const Vec2u viewportExtent = Vec2u(framebuffer->GetExtent().x / 2, framebuffer->GetExtent().y);
 
-        rq << SetCurrentViewport(Viewport { viewportExtent, viewportOffset });
+        cr << SetCurrentViewport(Viewport { viewportExtent, viewportOffset });
     }
     else
     {
         // render previous frame's result to screen
-        rq << SetCurrentViewport(Viewport { framebuffer->GetExtent() });
+        cr << SetCurrentViewport(Viewport { framebuffer->GetExtent() });
     }
 
-    rq << SetVertexAttributes(VertexAttribute::Position | VertexAttribute::Normal | VertexAttribute::TexCoord0);
+    cr << SetVertexAttributes(VertexAttribute::Position | VertexAttribute::Normal | VertexAttribute::TexCoord0);
     
-    rq << SetCurrentShader(m_shaderDesc);
+    cr << SetCurrentShader(m_shaderDesc);
 
-    rq << SetDepthTest(false);
-    rq << SetDepthWrite(false);
-    rq << SetFaceCullMode(FCM_BACK);
-    rq << SetFillMode(FM_FILL);
-    rq << SetTopology(TOP_TRIANGLES);
-    rq << SetCurrentBlendFunction(m_blendFunction);
+    cr << SetDepthTest(false);
+    cr << SetDepthWrite(false);
+    cr << SetFaceCullMode(FCM_BACK);
+    cr << SetFillMode(FM_FILL);
+    cr << SetTopology(TOP_TRIANGLES);
+    cr << SetCurrentBlendFunction(m_blendFunction);
 
     RenderFullScreenQuad(frame, renderSetup);
 
-    rq << SetDepthTest(true);
-    rq << SetDepthWrite(true);
-    rq << SetCurrentBlendFunction(BlendFunction::None());
+    cr << SetDepthTest(true);
+    cr << SetDepthWrite(true);
+    cr << SetCurrentBlendFunction(BlendFunction::None());
 }
 
 void FullScreenPass::RenderFullScreenQuad(Frame* frame, const RenderSetup& renderSetup)
 {
-    frame->renderQueue << CommitDrawState();
+    frame->cr << CommitDrawState();
 
-    frame->renderQueue << BindVertexBuffer(m_fullScreenQuad->GetVertexBuffer());
-    frame->renderQueue << BindIndexBuffer(m_fullScreenQuad->GetIndexBuffer());
-    frame->renderQueue << DrawIndexed(6);
+    frame->cr << BindVertexBuffer(m_fullScreenQuad->GetVertexBuffer());
+    frame->cr << BindIndexBuffer(m_fullScreenQuad->GetIndexBuffer());
+    frame->cr << DrawIndexed(6);
 }
 
 void FullScreenPass::Begin(Frame* frame, const RenderSetup& renderSetup)
@@ -681,9 +681,9 @@ void FullScreenPass::Begin(Frame* frame, const RenderSetup& renderSetup)
     AssertDebug(m_framebuffer != nullptr);
 
     const uint32 frameIndex = frame->GetFrameIndex();
-    RenderQueue& rq = frame->renderQueue;
+    CommandRecorder& cr = frame->cr;
 
-    rq << SetCurrentFramebuffer(m_framebuffer);
+    cr << SetCurrentFramebuffer(m_framebuffer);
 
     // render previous frame's result to screen
     if (!m_isFirstFrame && m_historyTexture.IsValid())
@@ -696,24 +696,24 @@ void FullScreenPass::Begin(Frame* frame, const RenderSetup& renderSetup)
         const Vec2i viewportOffset = (Vec2i(m_framebuffer->GetExtent().x, 0) / 2) * (GetWorldBufferData()->frameCounter & 1);
         const Vec2u viewportExtent = Vec2u(m_framebuffer->GetExtent().x / 2, m_framebuffer->GetExtent().y);
 
-        rq << SetCurrentViewport(Viewport { viewportExtent, viewportOffset });
+        cr << SetCurrentViewport(Viewport { viewportExtent, viewportOffset });
     }
     else
     {
         // render previous frame's result to screen
-        rq << SetCurrentViewport(Viewport { m_framebuffer->GetExtent() });
+        cr << SetCurrentViewport(Viewport { m_framebuffer->GetExtent() });
     }
 
-    rq << SetVertexAttributes(VertexAttribute::Position | VertexAttribute::Normal | VertexAttribute::TexCoord0);
+    cr << SetVertexAttributes(VertexAttribute::Position | VertexAttribute::Normal | VertexAttribute::TexCoord0);
     
-    rq << SetCurrentShader(m_shaderDesc);
+    cr << SetCurrentShader(m_shaderDesc);
 
-    rq << SetDepthTest(false);
-    rq << SetDepthWrite(false);
-    rq << SetFaceCullMode(FCM_BACK);
-    rq << SetFillMode(FM_FILL);
-    rq << SetTopology(TOP_TRIANGLES);
-    rq << SetCurrentBlendFunction(m_blendFunction);
+    cr << SetDepthTest(false);
+    cr << SetDepthWrite(false);
+    cr << SetFaceCullMode(FCM_BACK);
+    cr << SetFillMode(FM_FILL);
+    cr << SetTopology(TOP_TRIANGLES);
+    cr << SetCurrentBlendFunction(m_blendFunction);
 }
 
 void FullScreenPass::End(Frame* frame, const RenderSetup& renderSetup)
@@ -728,13 +728,13 @@ void FullScreenPass::End(Frame* frame, const RenderSetup& renderSetup)
 
     const uint32 frameIndex = frame->GetFrameIndex();
 
-    RenderQueue& rq = frame->renderQueue;
+    CommandRecorder& cr = frame->cr;
 
-    rq << SetDepthTest(true);
-    rq << SetDepthWrite(true);
-    rq << SetCurrentBlendFunction(BlendFunction::None());
+    cr << SetDepthTest(true);
+    cr << SetDepthWrite(true);
+    cr << SetCurrentBlendFunction(BlendFunction::None());
 
-    rq << SetCurrentFramebuffer(nullptr);
+    cr << SetCurrentFramebuffer(nullptr);
 
     if (ShouldRenderCheckerboarded())
     {

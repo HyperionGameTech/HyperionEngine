@@ -13,7 +13,7 @@
 #include <rendering/vulkan/VulkanHelpers.hpp>
 #include <rendering/vulkan/VulkanResult.hpp>
 
-#include <rendering/RenderQueue.hpp>
+#include <rendering/CommandRecorder.hpp>
 
 #include <util/img/ImageUtil.hpp>
 
@@ -443,8 +443,8 @@ RendererResult VulkanGpuImage::Resize(const Vec3u& extent)
             SetResourceState(RS_UNDEFINED);
 
             VulkanFrame* frame = g_renderInterface->GetCurrentFrame();
-            RenderQueue& renderQueue = frame->renderQueue;
-            renderQueue << ::Hyperion::InsertBarrier(this, previousResourceState);
+            CommandRecorder& cr = frame->cr;
+            cr << ::Hyperion::InsertBarrier(this, previousResourceState);
         }
     }
 

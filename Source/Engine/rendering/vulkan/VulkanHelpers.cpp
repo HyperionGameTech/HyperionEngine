@@ -10,7 +10,7 @@
 #include <rendering/vulkan/VulkanRenderInterface.hpp>
 #include <rendering/vulkan/VulkanFeatures.hpp>
 
-#include <rendering/RenderQueue.hpp>
+#include <rendering/CommandRecorder.hpp>
 
 #include <Core/reflection/Enum.hpp>
 
@@ -696,11 +696,11 @@ RendererResult VulkanSingleTimeCommands::Execute()
     VulkanCommandBufferRef commandBuffer;
     VulkanFenceRef fence;
 
-    RenderQueue renderQueue;
+    CommandRecorder cr;
 
     for (auto& fn : m_functions)
     {
-        fn(renderQueue);
+        fn(cr);
     }
 
     m_functions.Clear();
@@ -708,7 +708,7 @@ RendererResult VulkanSingleTimeCommands::Execute()
     tempFrame = g_renderInterface->MakeFrame(0);
     CheckResultOrReturn(tempFrame->Create());
 
-    renderQueue.Prepare(tempFrame);
+    cr.Prepare(tempFrame);
 
     commandBuffer = MakeHandle<VulkanCommandBuffer>(VK_COMMAND_BUFFER_LEVEL_PRIMARY);
     CheckResultOrReturn(commandBuffer->Create(g_renderInterface->GetDevice()->GetGraphicsQueue()->commandPools[0]));
@@ -716,7 +716,7 @@ RendererResult VulkanSingleTimeCommands::Execute()
     CheckResultOrReturn(commandBuffer->Begin());
 
     // Execute the command list
-    renderQueue.Execute(commandBuffer);
+    cr.Execute(commandBuffer);
 
     CheckResultOrReturn(commandBuffer->End());
 

@@ -6,7 +6,7 @@
 
 #include <rendering/RenderInterface.hpp>
 #include <rendering/Frame.hpp>
-#include <rendering/RenderQueue.hpp>
+#include <rendering/CommandRecorder.hpp>
 #include <rendering/RenderObject.hpp>
 #include <rendering/DescriptorSet.hpp>
 #include <rendering/GraphicsPipeline.hpp>
@@ -198,7 +198,7 @@ void ParticleVolumeRenderer::RenderFrame(Frame* frame, const RenderSetup& render
     HYP_DEFER({ rpl.EndRead(); });
 
     // Reset zero staging buffer state
-    frame->preRenderQueue << InsertBarrier(m_staging.zeroIndirectArgs, RS_COPY_SRC);
+    frame->preRenderCommands << InsertBarrier(m_staging.zeroIndirectArgs, RS_COPY_SRC);
 
     RenderProxyParticleVolume* proxy = static_cast<RenderProxyParticleVolume*>(GetRenderProxy(particleVolume));
     AssertDebug(proxy != nullptr);
@@ -209,11 +209,11 @@ void ParticleVolumeRenderer::RenderFrame(Frame* frame, const RenderSetup& render
     Assert(state.indirectBuffer->Size() == sizeof(IndirectDrawCommand));
 
     { // zero out indirect buffer (ahead of frame compute + rendering)
-        RenderQueue& rq = frame->preRenderQueue;
+        CommandRecorder& cr = frame->preRenderCommands;
 
-        rq << InsertBarrier(state.indirectBuffer, RS_COPY_DST);
-        rq << CopyBuffer(m_staging.zeroIndirectArgs, state.indirectBuffer, sizeof(IndirectDrawCommand));
-        rq << InsertBarrier(state.indirectBuffer, RS_INDIRECT_ARG);
+        cr << InsertBarrier(state.indirectBuffer, RS_COPY_DST);
+        cr << CopyBuffer(m_staging.zeroIndirectArgs, state.indirectBuffer, sizeof(IndirectDrawCommand));
+        cr << InsertBarrier(state.indirectBuffer, RS_INDIRECT_ARG);
     }
 
     // bind and dispatch compute
@@ -253,87 +253,87 @@ void ParticleVolumeRenderer::RenderFrame(Frame* frame, const RenderSetup& render
     Assert(framebuffer != nullptr);
 
     { // update gpu particles pass (compute, done before frame is rendered)
-        RenderQueue& rq = frame->preRenderQueue;
+        CommandRecorder& cr = frame->preRenderCommands;
 
         ShaderPropertySet properties;
         properties.Add(InternShaderProperty(ShaderProperty(NAME("MAX_PARTICLES"), int(state.maxParticles))));
         properties.Set(s_propHasPhysics, state.hasPhysics);
 
-        rq << SetCurrentShader(ShaderDesc(NAME("UpdateParticles"), properties));
+        cr << SetCurrentShader(ShaderDesc(NAME("UpdateParticles"), properties));
 
-        rq << SetShaderUniform(0, "ParticlesBuffer"_sh, state.particleBuffer); 
-        rq << SetShaderUniform(1, "IndirectDrawCommandsBuffer"_sh, state.indirectBuffer);
-        rq << SetShaderUniform(2, "NoiseMap"_sh, g_renderInterface->textureViewCache->GetOrCreate(state.noiseMap));
+        cr << SetShaderUniform(0, "ParticlesBuffer"_sh, state.particleBuffer); 
+        cr << SetShaderUniform(1, "IndirectDrawCommandsBuffer"_sh, state.indirectBuffer);
+        cr << SetShaderUniform(2, "NoiseMap"_sh, g_renderInterface->textureViewCache->GetOrCreate(state.noiseMap));
 
-        rq << SetShaderUniform(3, "SamplerNearest"_sh, g_renderInterface->placeholderData->GetSamplerNearest());
-        rq << SetShaderUniform(4, "SamplerLinear"_sh, g_renderInterface->placeholderData->GetSamplerLinear());
+        cr << SetShaderUniform(3, "SamplerNearest"_sh, g_renderInterface->placeholderData->GetSamplerNearest());
+        cr << SetShaderUniform(4, "SamplerLinear"_sh, g_renderInterface->placeholderData->GetSamplerLinear());
 
-        rq << SetShaderUniform(5, "GBufferAlbedoTexture"_sh, framebuffer->GetAttachment(GTN_ALBEDO)->GetImageView());
-        rq << SetShaderUniform(6, "GBufferNormalsTexture"_sh, framebuffer->GetAttachment(GTN_NORMALS)->GetImageView());
-        rq << SetShaderUniform(7, "GBufferMaterialTexture"_sh, framebuffer->GetAttachment(GTN_MATERIAL)->GetImageView());
-        rq << SetShaderUniform(8, "GBufferVelocityTexture"_sh, framebuffer->GetAttachment(GTN_VELOCITY)->GetImageView());
-        rq << SetShaderUniform(9, "GBufferDepthTexture"_sh, framebuffer->GetAttachment(GTN_DEPTH)->GetImageView());
+        cr << SetShaderUniform(5, "GBufferAlbedoTexture"_sh, framebuffer->GetAttachment(GTN_ALBEDO)->GetImageView());
+        cr << SetShaderUniform(6, "GBufferNormalsTexture"_sh, framebuffer->GetAttachment(GTN_NORMALS)->GetImageView());
+        cr << SetShaderUniform(7, "GBufferMaterialTexture"_sh, framebuffer->GetAttachment(GTN_MATERIAL)->GetImageView());
+        cr << SetShaderUniform(8, "GBufferVelocityTexture"_sh, framebuffer->GetAttachment(GTN_VELOCITY)->GetImageView());
+        cr << SetShaderUniform(9, "GBufferDepthTexture"_sh, framebuffer->GetAttachment(GTN_DEPTH)->GetImageView());
         
-        rq << SetShaderUniform(10, "WorldsBuffer"_sh, g_renderInterface->gpuBuffers[GRB_WORLDS]->GetBuffer(frame->GetFrameIndex()));
+        cr << SetShaderUniform(10, "WorldsBuffer"_sh, g_renderInterface->gpuBuffers[GRB_WORLDS]->GetBuffer(frame->GetFrameIndex()));
         
-        rq << SetShaderUniform(11, "CamerasBuffer"_sh, g_renderInterface->gpuBuffers[GRB_CAMERAS]->GetBuffer(frame->GetFrameIndex()), TShaderDataOffset<CameraShaderData>(view->GetCamera()));
+        cr << SetShaderUniform(11, "CamerasBuffer"_sh, g_renderInterface->gpuBuffers[GRB_CAMERAS]->GetBuffer(frame->GetFrameIndex()), TShaderDataOffset<CameraShaderData>(view->GetCamera()));
         
-        rq << SetShaderUniform(12, "ParticleSpawnerData"_sh, cBuffer);
+        cr << SetShaderUniform(12, "ParticleSpawnerData"_sh, cBuffer);
 
         const size_t maxParticles = proxy->bufferData.maxParticles;
-        rq << DispatchCompute(Vec3u { uint32((maxParticles + 255) / 256), 1, 1 });
+        cr << DispatchCompute(Vec3u { uint32((maxParticles + 255) / 256), 1, 1 });
 
-        rq << InsertBarrier(state.indirectBuffer, RS_INDIRECT_ARG);
+        cr << InsertBarrier(state.indirectBuffer, RS_INDIRECT_ARG);
     }
 
     state.fc = GetFrameCounter();
 
     { // draw particles pass
-        RenderQueue& rq = frame->renderQueue;
+        CommandRecorder& cr = frame->cr;
 
-        rq << SetVertexAttributes(state.renderableAttributes.GetMeshAttributes().vertexAttributes);
-        rq << SetTopology(state.renderableAttributes.GetMeshAttributes().topology);
+        cr << SetVertexAttributes(state.renderableAttributes.GetMeshAttributes().vertexAttributes);
+        cr << SetTopology(state.renderableAttributes.GetMeshAttributes().topology);
 
-        rq << SetCurrentShader(ShaderDesc(
+        cr << SetCurrentShader(ShaderDesc(
             state.renderableAttributes.GetMaterialAttributes().shaderName,
             state.renderableAttributes.GetMaterialAttributes().shaderProperties));
 
-        rq << SetCurrentBlendFunction(state.renderableAttributes.GetMaterialAttributes().blendFunction);
-        rq << SetFaceCullMode(state.renderableAttributes.GetMaterialAttributes().cullFaces);
-        rq << SetFillMode(state.renderableAttributes.GetMaterialAttributes().fillMode);
-        rq << SetDepthTest(bool(state.renderableAttributes.GetMaterialAttributes().flags & MAF_DEPTH_TEST));
-        rq << SetDepthWrite(bool(state.renderableAttributes.GetMaterialAttributes().flags & MAF_DEPTH_WRITE));
-        rq << SetStencilTest(bool(state.renderableAttributes.GetMaterialAttributes().flags & MAF_STENCIL_TEST));
-        rq << SetStencilFunction(state.renderableAttributes.GetMaterialAttributes().stencilFunction);
+        cr << SetCurrentBlendFunction(state.renderableAttributes.GetMaterialAttributes().blendFunction);
+        cr << SetFaceCullMode(state.renderableAttributes.GetMaterialAttributes().cullFaces);
+        cr << SetFillMode(state.renderableAttributes.GetMaterialAttributes().fillMode);
+        cr << SetDepthTest(bool(state.renderableAttributes.GetMaterialAttributes().flags & MAF_DEPTH_TEST));
+        cr << SetDepthWrite(bool(state.renderableAttributes.GetMaterialAttributes().flags & MAF_DEPTH_WRITE));
+        cr << SetStencilTest(bool(state.renderableAttributes.GetMaterialAttributes().flags & MAF_STENCIL_TEST));
+        cr << SetStencilFunction(state.renderableAttributes.GetMaterialAttributes().stencilFunction);
 
-        rq << SetShaderUniform(0, "ParticlesBuffer"_sh, state.particleBuffer);
+        cr << SetShaderUniform(0, "ParticlesBuffer"_sh, state.particleBuffer);
 
         if (proxy->particleTexture)
         {
-            rq << SetShaderUniform(1, "ParticleTexture"_sh, g_renderInterface->textureViewCache->GetOrCreate(proxy->particleTexture));
+            cr << SetShaderUniform(1, "ParticleTexture"_sh, g_renderInterface->textureViewCache->GetOrCreate(proxy->particleTexture));
         }
         else
         {
-            rq << SetShaderUniform(1, "ParticleTexture"_sh, g_renderInterface->placeholderData->GetImageView2D1x1R8());
+            cr << SetShaderUniform(1, "ParticleTexture"_sh, g_renderInterface->placeholderData->GetImageView2D1x1R8());
         }
 
-        rq << SetShaderUniform(2, "SamplerLinear"_sh, g_renderInterface->placeholderData->GetSamplerLinearMipmap());
-        rq << SetShaderUniform(3, "WorldsBuffer"_sh, g_renderInterface->gpuBuffers[GRB_WORLDS]->GetBuffer(frame->GetFrameIndex()));
-        rq << SetShaderUniform(4, "CamerasBuffer"_sh, g_renderInterface->gpuBuffers[GRB_CAMERAS]->GetBuffer(frame->GetFrameIndex()), TShaderDataOffset<CameraShaderData>(view->GetCamera()));
+        cr << SetShaderUniform(2, "SamplerLinear"_sh, g_renderInterface->placeholderData->GetSamplerLinearMipmap());
+        cr << SetShaderUniform(3, "WorldsBuffer"_sh, g_renderInterface->gpuBuffers[GRB_WORLDS]->GetBuffer(frame->GetFrameIndex()));
+        cr << SetShaderUniform(4, "CamerasBuffer"_sh, g_renderInterface->gpuBuffers[GRB_CAMERAS]->GetBuffer(frame->GetFrameIndex()), TShaderDataOffset<CameraShaderData>(view->GetCamera()));
 
-        rq << CommitDrawState();
+        cr << CommitDrawState();
 
-        rq << BindVertexBuffer(m_staging.quadMesh->GetVertexBuffer());
-        rq << BindIndexBuffer(m_staging.quadMesh->GetIndexBuffer());
-        rq << DrawIndexedIndirect(state.indirectBuffer, 0);
+        cr << BindVertexBuffer(m_staging.quadMesh->GetVertexBuffer());
+        cr << BindIndexBuffer(m_staging.quadMesh->GetIndexBuffer());
+        cr << DrawIndexedIndirect(state.indirectBuffer, 0);
 
         // reset states
-        rq << SetCurrentBlendFunction(BlendFunction::None());
-        rq << SetDepthTest(true);
-        rq << SetDepthWrite(true);
-        rq << SetStencilTest(false);
-        rq << SetFillMode(FM_FILL);
-        rq << SetFaceCullMode(FCM_BACK);
+        cr << SetCurrentBlendFunction(BlendFunction::None());
+        cr << SetDepthTest(true);
+        cr << SetDepthWrite(true);
+        cr << SetStencilTest(false);
+        cr << SetFillMode(FM_FILL);
+        cr << SetFaceCullMode(FCM_BACK);
     }
 }
 

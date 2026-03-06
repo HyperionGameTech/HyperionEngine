@@ -14,7 +14,7 @@
 #include <rendering/RenderCommand.hpp>
 #include <rendering/RenderInterface.hpp>
 #include <rendering/Frame.hpp>
-#include <rendering/RenderQueue.hpp>
+#include <rendering/CommandRecorder.hpp>
 
 #include <rendering/util/DeletionQueue.hpp>
 
@@ -78,7 +78,7 @@ struct BlitAtlasElements : RenderCommand
         Frame* currentFrame = g_renderInterface->GetCurrentFrame();
         Assert(currentFrame != nullptr);
 
-        RenderQueue& renderQueue = currentFrame->postRenderQueue;
+        CommandRecorder& cr = currentFrame->postRenderCommands;
 
         for (uint32 textureTypeIndex = 0; textureTypeIndex < uint32(LTT_MAX); textureTypeIndex++)
         {
@@ -116,10 +116,10 @@ struct BlitAtlasElements : RenderCommand
                 Assert(element.offsetCoords.x + element.dimensions.x <= atlasTexture->GetExtent().x);
                 Assert(element.offsetCoords.y + element.dimensions.y <= atlasTexture->GetExtent().y);
 
-                renderQueue << InsertBarrier(atlasTexture->GetGpuImage(), RS_COPY_DST);
-                renderQueue << InsertBarrier(elementTexture->GetGpuImage(), RS_COPY_SRC);
+                cr << InsertBarrier(atlasTexture->GetGpuImage(), RS_COPY_DST);
+                cr << InsertBarrier(elementTexture->GetGpuImage(), RS_COPY_SRC);
 
-                renderQueue << Blit(
+                cr << Blit(
                     elementTexture->GetGpuImage(),
                     atlasTexture->GetGpuImage(),
                     Rect<uint32> {
@@ -129,8 +129,8 @@ struct BlitAtlasElements : RenderCommand
                         element.offsetCoords.x, element.offsetCoords.y,
                         element.offsetCoords.x + element.dimensions.x, element.offsetCoords.y + element.dimensions.y });
 
-                renderQueue << InsertBarrier(elementTexture->GetGpuImage(), RS_SHADER_RESOURCE);
-                renderQueue << InsertBarrier(atlasTexture->GetGpuImage(), RS_SHADER_RESOURCE);
+                cr << InsertBarrier(elementTexture->GetGpuImage(), RS_SHADER_RESOURCE);
+                cr << InsertBarrier(atlasTexture->GetGpuImage(), RS_SHADER_RESOURCE);
             }
         }
 

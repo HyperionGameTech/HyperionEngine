@@ -270,7 +270,7 @@ void DDGI::Render(Frame* frame, const RenderSetup& renderSetup)
     const GpuBufferRef& meshDescriptionsBuffer = tlas->GetMeshDescriptionsBuffer();
     Assert(meshDescriptionsBuffer != nullptr && meshDescriptionsBuffer->IsCreated());
 
-    frame->renderQueue << InsertBarrier(m_radianceBuffer, RS_UNORDERED_ACCESS);
+    frame->cr << InsertBarrier(m_radianceBuffer, RS_UNORDERED_ACCESS);
 
     ShaderPropertySet shaderProperties;
     shaderProperties.Add(InternShaderProperty(ShaderProperty(NAME("MAX_LIGHTS"), int(MaxBoundLights))));
@@ -278,39 +278,39 @@ void DDGI::Render(Frame* frame, const RenderSetup& renderSetup)
     if (renderSetup.envProbe != nullptr)
         shaderProperties.Add(s_propHasEnvProbe);
 
-    frame->renderQueue << SetCurrentShader(ShaderDesc(NAME("DDGI"), shaderProperties));
+    frame->cr << SetCurrentShader(ShaderDesc(NAME("DDGI"), shaderProperties));
     
-    frame->renderQueue << SetShaderUniform(0, "SamplerNearest"_sh, g_renderInterface->placeholderData->GetSamplerNearest());
-    frame->renderQueue << SetShaderUniform(1, "SamplerLinear"_sh, g_renderInterface->placeholderData->GetSamplerLinearMipmap());
-    frame->renderQueue << SetShaderUniform(2, "TLAS"_sh, tlas);
-    frame->renderQueue << SetShaderUniform(3, "MeshDescriptionsBuffer"_sh, meshDescriptionsBuffer);
-    frame->renderQueue << SetShaderUniform(4, "DDGIConstants"_sh, m_cBuffers[frameIndex]);
-    frame->renderQueue << SetShaderUniform(5, "Lights"_sh, m_lightsBuffers[frameIndex]);
-    frame->renderQueue << SetShaderUniform(6, "ProbeRayData"_sh, m_radianceBuffer);
+    frame->cr << SetShaderUniform(0, "SamplerNearest"_sh, g_renderInterface->placeholderData->GetSamplerNearest());
+    frame->cr << SetShaderUniform(1, "SamplerLinear"_sh, g_renderInterface->placeholderData->GetSamplerLinearMipmap());
+    frame->cr << SetShaderUniform(2, "TLAS"_sh, tlas);
+    frame->cr << SetShaderUniform(3, "MeshDescriptionsBuffer"_sh, meshDescriptionsBuffer);
+    frame->cr << SetShaderUniform(4, "DDGIConstants"_sh, m_cBuffers[frameIndex]);
+    frame->cr << SetShaderUniform(5, "Lights"_sh, m_lightsBuffers[frameIndex]);
+    frame->cr << SetShaderUniform(6, "ProbeRayData"_sh, m_radianceBuffer);
     
-    frame->renderQueue << SetShaderUniform(7, "ShadowMapsTextureArray"_sh, g_renderInterface->shadowMapAllocator->GetAtlasImageView());
-    frame->renderQueue << SetShaderUniform(8, "PointLightShadowMapsTextureArray"_sh, g_renderInterface->shadowMapAllocator->GetPointLightShadowMapImageView());
+    frame->cr << SetShaderUniform(7, "ShadowMapsTextureArray"_sh, g_renderInterface->shadowMapAllocator->GetAtlasImageView());
+    frame->cr << SetShaderUniform(8, "PointLightShadowMapsTextureArray"_sh, g_renderInterface->shadowMapAllocator->GetPointLightShadowMapImageView());
 
-    frame->renderQueue << SetShaderUniform(9, "MaterialsBuffer"_sh, g_renderInterface->gpuBuffers[GRB_MATERIALS]->GetBuffer(frameIndex));
-    frame->renderQueue << SetShaderUniform(10, "EntitiesBuffer"_sh, g_renderInterface->gpuBuffers[GRB_ENTITIES]->GetBuffer(frameIndex));
-    frame->renderQueue << SetShaderUniform(11, "WorldsBuffer"_sh, g_renderInterface->gpuBuffers[GRB_WORLDS]->GetBuffer(frameIndex));
+    frame->cr << SetShaderUniform(9, "MaterialsBuffer"_sh, g_renderInterface->gpuBuffers[GRB_MATERIALS]->GetBuffer(frameIndex));
+    frame->cr << SetShaderUniform(10, "EntitiesBuffer"_sh, g_renderInterface->gpuBuffers[GRB_ENTITIES]->GetBuffer(frameIndex));
+    frame->cr << SetShaderUniform(11, "WorldsBuffer"_sh, g_renderInterface->gpuBuffers[GRB_WORLDS]->GetBuffer(frameIndex));
     
     if (renderSetup.envProbe != nullptr)
     {
-        frame->renderQueue << SetShaderUniform(12, "EnvProbesTexture"_sh, g_renderInterface->textureViewCache->GetOrCreate(g_renderInterface->envProbesTexture));
-        frame->renderQueue << SetShaderUniform(13, "EnvProbesBuffer"_sh, g_renderInterface->gpuBuffers[GRB_ENV_PROBES]->GetBuffer(frameIndex));
-        frame->renderQueue << SetShaderUniform(14, "CurrentEnvProbe"_sh, g_renderInterface->gpuBuffers[GRB_ENV_PROBES]->GetBuffer(frameIndex), TShaderDataOffset<EnvProbeShaderData>(renderSetup.envProbe));
+        frame->cr << SetShaderUniform(12, "EnvProbesTexture"_sh, g_renderInterface->textureViewCache->GetOrCreate(g_renderInterface->envProbesTexture));
+        frame->cr << SetShaderUniform(13, "EnvProbesBuffer"_sh, g_renderInterface->gpuBuffers[GRB_ENV_PROBES]->GetBuffer(frameIndex));
+        frame->cr << SetShaderUniform(14, "CurrentEnvProbe"_sh, g_renderInterface->gpuBuffers[GRB_ENV_PROBES]->GetBuffer(frameIndex), TShaderDataOffset<EnvProbeShaderData>(renderSetup.envProbe));
     }
 
-    frame->renderQueue << TraceRays(Vec3u { NumProbes(m_gridInfo), m_gridInfo.numRaysPerProbe, 1u });
+    frame->cr << TraceRays(Vec3u { NumProbes(m_gridInfo), m_gridInfo.numRaysPerProbe, 1u });
 
-    frame->renderQueue << InsertBarrier(m_radianceBuffer, RS_UNORDERED_ACCESS);
+    frame->cr << InsertBarrier(m_radianceBuffer, RS_UNORDERED_ACCESS);
 
     // Compute irradiance for ray traced probes
     const Vec3u probeCounts = NumProbesPerDimension(m_gridInfo);
 
-    frame->renderQueue << InsertBarrier(m_irradianceImage, RS_UNORDERED_ACCESS);
-    frame->renderQueue << InsertBarrier(m_depthImage, RS_UNORDERED_ACCESS);
+    frame->cr << InsertBarrier(m_irradianceImage, RS_UNORDERED_ACCESS);
+    frame->cr << InsertBarrier(m_depthImage, RS_UNORDERED_ACCESS);
 
     static const ShaderPropertyId s_propHysteresis = InternShaderProperty(ShaderProperty(NAME("HYSTERESIS"), float(0.98f)));
 
@@ -320,13 +320,13 @@ void DDGI::Render(Frame* frame, const RenderSetup& renderSetup)
     shaderProperties.Add(s_propUpdateProbeDataModeIrradiance);
     shaderProperties.Add(s_propProbeSideLengthIrradiance);
 
-    frame->renderQueue << SetCurrentShader(ShaderDesc(NAME("UpdateProbeData"), shaderProperties));
+    frame->cr << SetCurrentShader(ShaderDesc(NAME("UpdateProbeData"), shaderProperties));
 
-    frame->renderQueue << SetShaderUniform(0, "CBuffer"_sh, m_cBuffers[frameIndex]);
-    frame->renderQueue << SetShaderUniform(1, "ProbeRayData"_sh, m_radianceBuffer);
-    frame->renderQueue << SetShaderUniform(2, "OutputImage"_sh, m_irradianceImageView);
+    frame->cr << SetShaderUniform(0, "CBuffer"_sh, m_cBuffers[frameIndex]);
+    frame->cr << SetShaderUniform(1, "ProbeRayData"_sh, m_radianceBuffer);
+    frame->cr << SetShaderUniform(2, "OutputImage"_sh, m_irradianceImageView);
 
-    frame->renderQueue << DispatchCompute(Vec3u { probeCounts.x * probeCounts.y, probeCounts.z, 1u });
+    frame->cr << DispatchCompute(Vec3u { probeCounts.x * probeCounts.y, probeCounts.z, 1u });
 
     // Update depth
     shaderProperties = ShaderPropertySet();
@@ -334,46 +334,46 @@ void DDGI::Render(Frame* frame, const RenderSetup& renderSetup)
     shaderProperties.Add(s_propUpdateProbeDataModeDepth);
     shaderProperties.Add(s_propProbeSideLengthDepth);
 
-    frame->renderQueue << SetCurrentShader(ShaderDesc(NAME("UpdateProbeData"), shaderProperties));
+    frame->cr << SetCurrentShader(ShaderDesc(NAME("UpdateProbeData"), shaderProperties));
 
-    frame->renderQueue << SetShaderUniform(0, "CBuffer"_sh, m_cBuffers[frameIndex]);
-    frame->renderQueue << SetShaderUniform(1, "ProbeRayData"_sh, m_radianceBuffer);
-    frame->renderQueue << SetShaderUniform(3, "OutputImage"_sh, m_depthImageView);
+    frame->cr << SetShaderUniform(0, "CBuffer"_sh, m_cBuffers[frameIndex]);
+    frame->cr << SetShaderUniform(1, "ProbeRayData"_sh, m_radianceBuffer);
+    frame->cr << SetShaderUniform(3, "OutputImage"_sh, m_depthImageView);
 
-    frame->renderQueue << DispatchCompute(Vec3u { probeCounts.x * probeCounts.y, probeCounts.z, 1u });
+    frame->cr << DispatchCompute(Vec3u { probeCounts.x * probeCounts.y, probeCounts.z, 1u });
 
 #if 0 // @FIXME: Properly implement an optimized way to copy border texels without invoking for each pixel in the images.
-    frame->renderQueue << InsertBarrier(m_irradianceImage, RS_UNORDERED_ACCESS);
-    frame->renderQueue << InsertBarrier(m_depthImage, RS_UNORDERED_ACCESS);
+    frame->cr << InsertBarrier(m_irradianceImage, RS_UNORDERED_ACCESS);
+    frame->cr << InsertBarrier(m_depthImage, RS_UNORDERED_ACCESS);
 
     // Copy border texels irradiance
-    frame->renderQueue << SetCurrentShader(ShaderDesc(NAME("RTCopyBorderTexelsIrradiance")));
-    frame->renderQueue << SetShaderUniform(0, "DDGIConstants"_sh, m_cBuffers[frameIndex]);
-    frame->renderQueue << SetShaderUniform(1, "ProbeRayData"_sh, m_radianceBuffer);
-    frame->renderQueue << SetShaderUniform(2, "OutputIrradianceImage"_sh, m_irradianceImageView);
-    frame->renderQueue << SetShaderUniform(3, "OutputDepthImage"_sh, m_depthImageView);
+    frame->cr << SetCurrentShader(ShaderDesc(NAME("RTCopyBorderTexelsIrradiance")));
+    frame->cr << SetShaderUniform(0, "DDGIConstants"_sh, m_cBuffers[frameIndex]);
+    frame->cr << SetShaderUniform(1, "ProbeRayData"_sh, m_radianceBuffer);
+    frame->cr << SetShaderUniform(2, "OutputIrradianceImage"_sh, m_irradianceImageView);
+    frame->cr << SetShaderUniform(3, "OutputDepthImage"_sh, m_depthImageView);
 
-    frame->renderQueue << DispatchCompute(Vec3u {
+    frame->cr << DispatchCompute(Vec3u {
         (probeCounts.x * probeCounts.y * (m_gridInfo.irradianceOctahedronSize + m_gridInfo.probeBorder.x)) + 7 / 8,
         (probeCounts.z * (m_gridInfo.irradianceOctahedronSize + m_gridInfo.probeBorder.z)) + 7 / 8,
         1u
     });
 
     // Copy border texels depth
-    frame->renderQueue << SetCurrentShader(ShaderDesc(NAME("RTCopyBorderTexelsDepth")));
-    frame->renderQueue << SetShaderUniform(0, "DDGIConstants"_sh, m_cBuffers[frameIndex]);
-    frame->renderQueue << SetShaderUniform(1, "ProbeRayData"_sh, m_radianceBuffer);
-    frame->renderQueue << SetShaderUniform(2, "OutputIrradianceImage"_sh, m_irradianceImageView);
-    frame->renderQueue << SetShaderUniform(3, "OutputDepthImage"_sh, m_depthImageView);
+    frame->cr << SetCurrentShader(ShaderDesc(NAME("RTCopyBorderTexelsDepth")));
+    frame->cr << SetShaderUniform(0, "DDGIConstants"_sh, m_cBuffers[frameIndex]);
+    frame->cr << SetShaderUniform(1, "ProbeRayData"_sh, m_radianceBuffer);
+    frame->cr << SetShaderUniform(2, "OutputIrradianceImage"_sh, m_irradianceImageView);
+    frame->cr << SetShaderUniform(3, "OutputDepthImage"_sh, m_depthImageView);
 
-    frame->renderQueue << DispatchCompute(Vec3u {
+    frame->cr << DispatchCompute(Vec3u {
         (probeCounts.x * probeCounts.y * (m_gridInfo.depthOctahedronSize + m_gridInfo.probeBorder.x)) + 15 / 16,
         (probeCounts.z * (m_gridInfo.depthOctahedronSize + m_gridInfo.probeBorder.z)) + 15 / 16,
         1u
     });
 
-    frame->renderQueue << InsertBarrier(m_irradianceImage, RS_SHADER_RESOURCE);
-    frame->renderQueue << InsertBarrier(m_depthImage, RS_SHADER_RESOURCE);
+    frame->cr << InsertBarrier(m_irradianceImage, RS_SHADER_RESOURCE);
+    frame->cr << InsertBarrier(m_depthImage, RS_SHADER_RESOURCE);
 #endif
 }
 

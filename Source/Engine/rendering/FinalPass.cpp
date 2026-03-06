@@ -78,7 +78,7 @@ void FinalPass::Render(Frame* frame, const RenderSetup& rs)
 
     uint32 frameIndex = frame->GetFrameIndex();
 
-    RenderQueue& rq = frame->renderQueue;
+    CommandRecorder& cr = frame->cr;
 
     const uint32 acquiredImageIndex = rs.swapchain->GetAcquiredImageIndex();
 
@@ -93,35 +93,35 @@ void FinalPass::Render(Frame* frame, const RenderSetup& rs)
         // transition ui image before we do any rendering, so we don't
         // need to end/begin the renderpass in between rendering view texture
         // (better for performance this way, plus, would break blending and leave us with a blank screen due to CLEAR load op)
-        rq << InsertBarrier(m_uiLayerImageView->GetImage(), RS_SHADER_RESOURCE);
+        cr << InsertBarrier(m_uiLayerImageView->GetImage(), RS_SHADER_RESOURCE);
     }
 
     const FramebufferRef& framebuffer = rs.swapchain->GetFramebuffers()[acquiredImageIndex];
     AssertDebug(framebuffer != nullptr);
 
-    rq << SetCurrentFramebuffer(framebuffer);
+    cr << SetCurrentFramebuffer(framebuffer);
 
-    rq << SetCurrentViewport(Viewport { rs.swapchain->GetExtent() });
+    cr << SetCurrentViewport(Viewport { rs.swapchain->GetExtent() });
 
-    rq << SetVertexAttributes(VertexAttribute::Position | VertexAttribute::Normal | VertexAttribute::TexCoord0);
+    cr << SetVertexAttributes(VertexAttribute::Position | VertexAttribute::Normal | VertexAttribute::TexCoord0);
 
-    rq << SetCurrentShader(ShaderDesc(NAME("BlitTexture")));
+    cr << SetCurrentShader(ShaderDesc(NAME("BlitTexture")));
 
     // Need blending to composite passes and ui
-    rq << SetCurrentBlendFunction(BlendFunction(
+    cr << SetCurrentBlendFunction(BlendFunction(
         BMF_SRC_ALPHA, BMF_ONE_MINUS_SRC_ALPHA,
         BMF_ONE, BMF_ONE_MINUS_SRC_ALPHA));
 
-    rq << SetDepthTest(false);
-    rq << SetDepthWrite(false);
-    rq << SetStencilTest(false);
+    cr << SetDepthTest(false);
+    cr << SetDepthWrite(false);
+    cr << SetStencilTest(false);
 
-    rq << SetFaceCullMode(FCM_BACK);
-    rq << SetFillMode(FM_FILL);
-    rq << SetTopology(TOP_TRIANGLES);
+    cr << SetFaceCullMode(FCM_BACK);
+    cr << SetFillMode(FM_FILL);
+    cr << SetTopology(TOP_TRIANGLES);
     
-    rq << SetShaderUniform(0, "SamplerLinear"_sh, g_renderInterface->placeholderData->GetSamplerLinear());
-    rq << SetShaderUniform(1, "WorldsBuffer"_sh, g_renderInterface->gpuBuffers[GRB_WORLDS]->GetBuffer(frameIndex));
+    cr << SetShaderUniform(0, "SamplerLinear"_sh, g_renderInterface->placeholderData->GetSamplerLinear());
+    cr << SetShaderUniform(1, "WorldsBuffer"_sh, g_renderInterface->gpuBuffers[GRB_WORLDS]->GetBuffer(frameIndex));
 
     // Render each sub-view
     DeferredRenderer* dr = static_cast<DeferredRenderer*>(g_renderInterface->globalRenderers[GRT_MAIN][0]);
@@ -140,43 +140,43 @@ void FinalPass::Render(Frame* frame, const RenderSetup& rs)
             ? g_renderInterface->textureViewCache->GetOrCreate(pd->taaPass->GetResultTexture())
             : pd->tonemapPass->GetFinalImageView();
 
-        rq << SetShaderUniform(2, "InTexture"_sh, inputImageView);
+        cr << SetShaderUniform(2, "InTexture"_sh, inputImageView);
 
-        rq << CommitDrawState();
+        cr << CommitDrawState();
 
-        rq << BindVertexBuffer(m_quadMesh->GetVertexBuffer());
-        rq << BindIndexBuffer(m_quadMesh->GetIndexBuffer());
+        cr << BindVertexBuffer(m_quadMesh->GetVertexBuffer());
+        cr << BindIndexBuffer(m_quadMesh->GetIndexBuffer());
 
-        rq << DrawIndexed(6);
+        cr << DrawIndexed(6);
     }
 
 #ifdef HYP_RENDER_UI_IN_FINAL_PASS
     // Render UI onto screen, blending with the scene render pass
     if (m_uiLayerImageView != nullptr)
     {
-        rq << SetShaderUniform(2, "InTexture"_sh, m_uiLayerImageView);
+        cr << SetShaderUniform(2, "InTexture"_sh, m_uiLayerImageView);
 
-        rq << CommitDrawState();
+        cr << CommitDrawState();
 
-        rq << BindVertexBuffer(m_quadMesh->GetVertexBuffer());
-        rq << BindIndexBuffer(m_quadMesh->GetIndexBuffer());
+        cr << BindVertexBuffer(m_quadMesh->GetVertexBuffer());
+        cr << BindIndexBuffer(m_quadMesh->GetIndexBuffer());
 
-        rq << DrawIndexed(6);
+        cr << DrawIndexed(6);
     }
 #endif
 
-    rq << SetCurrentFramebuffer(nullptr);
+    cr << SetCurrentFramebuffer(nullptr);
 
     // reset
-    rq << SetCurrentBlendFunction(BlendFunction::None());
-    rq << SetDepthTest(true);
-    rq << SetDepthWrite(true);
+    cr << SetCurrentBlendFunction(BlendFunction::None());
+    cr << SetDepthTest(true);
+    cr << SetDepthWrite(true);
 
     
     if (m_uiLayerImageView != nullptr)
     {
         // @TODO: check if we can remove this transition.
-        rq << InsertBarrier(m_uiLayerImageView->GetImage(), RS_RENDER_TARGET);
+        cr << InsertBarrier(m_uiLayerImageView->GetImage(), RS_RENDER_TARGET);
     }
 }
 

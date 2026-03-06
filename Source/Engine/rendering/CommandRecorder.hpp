@@ -945,7 +945,7 @@ public:
     static void InvokeStatic(CmdBase* cmd, CommandBuffer* commandBuffer);
 };
 
-class RenderQueueBase
+class CommandRecorderBase
 {
 protected:
     using InvokeCmdFnPtr = void (*)(CmdBase*, CommandBuffer*);
@@ -960,29 +960,29 @@ protected:
         PrepareCmdFnPtr prepareFnPtr;
     };
 
-    RenderQueueBase() = default;
+    CommandRecorderBase() = default;
 };
 
 template <class AllocatorType>
-class TRenderQueue : public RenderQueueBase
+class TCommandRecorder : public CommandRecorderBase
 {
     template <class OtherAllocatorType>
-    friend class TRenderQueue;
+    friend class TCommandRecorder;
 
 public:
-    using Base = RenderQueueBase;
+    using Base = CommandRecorderBase;
 
     using Base::CmdHeader;
     using Base::InvokeCmdFnPtr;
     using Base::MoveCmdFnPtr;
     using Base::PrepareCmdFnPtr;
 
-    TRenderQueue()
+    TCommandRecorder()
         : m_offset(0)
     {
     }
 
-    explicit TRenderQueue(AllocatorType* pAllocator)
+    explicit TCommandRecorder(AllocatorType* pAllocator)
         : m_cmdHeaders(pAllocator),
           m_buffer(pAllocator),
           m_offset(0)
@@ -990,13 +990,13 @@ public:
         AssertDebug(pAllocator != nullptr);
     }
 
-    TRenderQueue(const TRenderQueue& other) = delete;
-    TRenderQueue& operator=(const TRenderQueue& other) = delete;
+    TCommandRecorder(const TCommandRecorder& other) = delete;
+    TCommandRecorder& operator=(const TCommandRecorder& other) = delete;
 
-    TRenderQueue(TRenderQueue&& other) noexcept = delete;
-    TRenderQueue& operator=(TRenderQueue&& other) noexcept = delete;
+    TCommandRecorder(TCommandRecorder&& other) noexcept = delete;
+    TCommandRecorder& operator=(TCommandRecorder&& other) noexcept = delete;
 
-    ~TRenderQueue();
+    ~TCommandRecorder();
 
     HYP_FORCE_INLINE bool IsEmpty() const
     {
@@ -1034,7 +1034,7 @@ public:
     }
 
     template <class CmdType>
-    TRenderQueue& operator<<(CmdType&& cmd)
+    TCommandRecorder& operator<<(CmdType&& cmd)
     {
         Add(std::forward<CmdType>(cmd));
 
@@ -1042,7 +1042,7 @@ public:
     }
 
     template <class OtherAllocatorType>
-    void Concat(TRenderQueue<OtherAllocatorType>& other)
+    void Concat(TCommandRecorder<OtherAllocatorType>& other)
     {
         m_cmdHeaders.Reserve(m_cmdHeaders.Size() + other.m_cmdHeaders.Size());
 
@@ -1115,11 +1115,11 @@ private:
 };
 
 template <class AllocatorType>
-TRenderQueue<AllocatorType>::~TRenderQueue()
+TCommandRecorder<AllocatorType>::~TCommandRecorder()
 {
-    Assert(m_cmdHeaders.Empty(), "RenderQueue destroyed with pending commands!");
+    Assert(m_cmdHeaders.Empty(), "CommandRecorder destroyed with pending commands!");
 }
 
-using RenderQueue = TRenderQueue<RenderAllocator>;
+using CommandRecorder = TCommandRecorder<RenderAllocator>;
 
 } // namespace Hyperion

@@ -377,17 +377,17 @@ void LightmapRenderer_GpuPathTracing::ReadHitsBuffer(Frame* frame, BakeJobBase* 
 
     UniquePtr<SingleTimeCommands> singleTimeCommands = g_renderInterface->GetSingleTimeCommands();
 
-    singleTimeCommands->Push([&](RenderQueue& renderQueue)
+    singleTimeCommands->Push([&](CommandRecorder& cr)
         {
             const ResourceState previousResourceState = hitsBuffer->GetResourceState();
 
-            renderQueue << InsertBarrier(hitsBuffer, RS_COPY_SRC);
-            renderQueue << InsertBarrier(stagingBuffer, RS_COPY_DST);
+            cr << InsertBarrier(hitsBuffer, RS_COPY_SRC);
+            cr << InsertBarrier(stagingBuffer, RS_COPY_DST);
 
-            renderQueue << CopyBuffer(hitsBuffer, stagingBuffer, uint32(outHits.Size() * sizeof(LightmapHit)));
+            cr << CopyBuffer(hitsBuffer, stagingBuffer, uint32(outHits.Size() * sizeof(LightmapHit)));
 
-            renderQueue << InsertBarrier(stagingBuffer, RS_COPY_SRC);
-            renderQueue << InsertBarrier(hitsBuffer, previousResourceState);
+            cr << InsertBarrier(stagingBuffer, RS_COPY_SRC);
+            cr << InsertBarrier(hitsBuffer, previousResourceState);
         });
 
     Assert(singleTimeCommands->Execute());
@@ -456,37 +456,37 @@ void LightmapRenderer_GpuPathTracing::Render(Frame* frame, const RenderSetup& re
         frame->OnFrameEnd.Bind(UpdateRaysBuffer { raysBuffer, std::move(rayData) }).Detach();
     }
 
-    RenderQueue& rq = frame->renderQueue;
+    CommandRecorder& cr = frame->cr;
 
-    rq << SetCurrentShader(GetShaderDesc(m_shadingType));
+    cr << SetCurrentShader(GetShaderDesc(m_shadingType));
 
-    rq << SetShaderUniform(0, "TLAS"_sh, m_tlas);
-    rq << SetShaderUniform(1, "MeshDescriptionsBuffer"_sh, m_tlas->GetMeshDescriptionsBuffer());
-    rq << SetShaderUniform(2, "HitsBuffer"_sh, jd.hitsBufferGpu);
-    rq << SetShaderUniform(3, "RaysBuffer"_sh, jd.raysBuffer);
-    rq << SetShaderUniform(4, "Lights"_sh, jd.lightsBuffer);
-    rq << SetShaderUniform(5, "MaterialsBuffer"_sh, g_renderInterface->gpuBuffers[GRB_MATERIALS]->GetBuffer(frameIndex));
-    rq << SetShaderUniform(6, "RayTracingConstants"_sh, jd.cBuffer);
+    cr << SetShaderUniform(0, "TLAS"_sh, m_tlas);
+    cr << SetShaderUniform(1, "MeshDescriptionsBuffer"_sh, m_tlas->GetMeshDescriptionsBuffer());
+    cr << SetShaderUniform(2, "HitsBuffer"_sh, jd.hitsBufferGpu);
+    cr << SetShaderUniform(3, "RaysBuffer"_sh, jd.raysBuffer);
+    cr << SetShaderUniform(4, "Lights"_sh, jd.lightsBuffer);
+    cr << SetShaderUniform(5, "MaterialsBuffer"_sh, g_renderInterface->gpuBuffers[GRB_MATERIALS]->GetBuffer(frameIndex));
+    cr << SetShaderUniform(6, "RayTracingConstants"_sh, jd.cBuffer);
     
-    rq << SetShaderUniform(7, "SamplerNearest"_sh, g_renderInterface->placeholderData->GetSamplerNearest());
-    rq << SetShaderUniform(8, "SamplerLinear"_sh, g_renderInterface->placeholderData->GetSamplerLinear());
+    cr << SetShaderUniform(7, "SamplerNearest"_sh, g_renderInterface->placeholderData->GetSamplerNearest());
+    cr << SetShaderUniform(8, "SamplerLinear"_sh, g_renderInterface->placeholderData->GetSamplerLinear());
 
-    rq << SetShaderUniform(9, "BlueNoiseBuffer"_sh, g_renderInterface->blueNoiseBuffer);
+    cr << SetShaderUniform(9, "BlueNoiseBuffer"_sh, g_renderInterface->blueNoiseBuffer);
 
-    rq << SetShaderUniform(10, "WorldsBuffer"_sh, g_renderInterface->gpuBuffers[GRB_WORLDS]->GetBuffer(frameIndex));
-    rq << SetShaderUniform(11, "EntitiesBuffer"_sh, g_renderInterface->gpuBuffers[GRB_ENTITIES]->GetBuffer(frameIndex));
+    cr << SetShaderUniform(10, "WorldsBuffer"_sh, g_renderInterface->gpuBuffers[GRB_WORLDS]->GetBuffer(frameIndex));
+    cr << SetShaderUniform(11, "EntitiesBuffer"_sh, g_renderInterface->gpuBuffers[GRB_ENTITIES]->GetBuffer(frameIndex));
     
-    rq << SetShaderUniform(12, "EnvProbesTexture"_sh, g_renderInterface->textureViewCache->GetOrCreate(g_renderInterface->envProbesTexture));
-    rq << SetShaderUniform(13, "EnvProbesBuffer"_sh, g_renderInterface->gpuBuffers[GRB_ENV_PROBES]->GetBuffer(frameIndex));
+    cr << SetShaderUniform(12, "EnvProbesTexture"_sh, g_renderInterface->textureViewCache->GetOrCreate(g_renderInterface->envProbesTexture));
+    cr << SetShaderUniform(13, "EnvProbesBuffer"_sh, g_renderInterface->gpuBuffers[GRB_ENV_PROBES]->GetBuffer(frameIndex));
 
     if (renderSetup.envProbe)
-        rq << SetShaderUniform(14, "CurrentEnvProbe"_sh, g_renderInterface->gpuBuffers[GRB_ENV_PROBES]->GetBuffer(frameIndex), TShaderDataOffset<EnvProbeShaderData>(renderSetup.envProbe));
+        cr << SetShaderUniform(14, "CurrentEnvProbe"_sh, g_renderInterface->gpuBuffers[GRB_ENV_PROBES]->GetBuffer(frameIndex), TShaderDataOffset<EnvProbeShaderData>(renderSetup.envProbe));
     else
-        rq << SetShaderUniform(14, "CurrentEnvProbe"_sh, g_renderInterface->gpuBuffers[GRB_ENV_PROBES]->GetBuffer(frameIndex), TShaderDataOffset<EnvProbeShaderData>(0));
+        cr << SetShaderUniform(14, "CurrentEnvProbe"_sh, g_renderInterface->gpuBuffers[GRB_ENV_PROBES]->GetBuffer(frameIndex), TShaderDataOffset<EnvProbeShaderData>(0));
 
-    frame->renderQueue << InsertBarrier(jd.hitsBufferGpu, RS_UNORDERED_ACCESS);
-    frame->renderQueue << TraceRays(Vec3u { uint32(rays.Size()), 1, 1 });
-    frame->renderQueue << InsertBarrier(jd.hitsBufferGpu, RS_UNORDERED_ACCESS);
+    frame->cr << InsertBarrier(jd.hitsBufferGpu, RS_UNORDERED_ACCESS);
+    frame->cr << TraceRays(Vec3u { uint32(rays.Size()), 1, 1 });
+    frame->cr << InsertBarrier(jd.hitsBufferGpu, RS_UNORDERED_ACCESS);
 }
 
 #pragma endregion LightmapRenderer_GpuPathTracing

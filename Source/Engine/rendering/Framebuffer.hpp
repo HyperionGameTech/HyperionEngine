@@ -43,14 +43,14 @@ public:
 
     virtual bool IsCreated() const = 0;
 
-    /*! \brief Check if this framebuffer is currently capturing (deferred, see RenderQueue).
+    /*! \brief Check if this framebuffer is currently capturing (deferred, see CommandRecorder).
      */
     HYP_FORCE_INLINE bool IsDeferredRecording() const
     {
         return m_isRecordingCount > 0;
     }
 
-    /*! \brief Mark this framebuffer as being used for capturing via deferred commands (see RenderQueue).
+    /*! \brief Mark this framebuffer as being used for capturing via deferred commands (see CommandRecorder).
      *  Since commands are deferred and dont actually build GPU command buffers until the end of the frame, we need to track whether or not we're recording
      *  to avoid nested framebuffer begin/end calls.
      */

@@ -67,16 +67,16 @@ struct ParallelRenderingState_Shared
 
     using LocalQueue = ParallelRenderingState::LocalQueue;
 
-    FixedArray<LocalQueue*, MaxBatches> localQueues;
+    FixedArray<LocalQueue*, MaxBatches> threadLocalRecorders;
 
     ParallelRenderingState_Shared()
-        : localQueues {}
+        : threadLocalRecorders {}
     {
         AssertOnThread(g_renderThread);
 
         for (uint32 i = 0; i < MaxBatches; i++)
         {
-            localQueues[i] = PoolNew<LocalQueue>(*g_renderPool);
+            threadLocalRecorders[i] = PoolNew<LocalQueue>(*g_renderPool);
         }
     }
 
@@ -86,9 +86,9 @@ struct ParallelRenderingState_Shared
 
         for (uint32 i = 0; i < MaxBatches; i++)
         {
-            if (localQueues[i])
+            if (threadLocalRecorders[i])
             {
-                PoolDelete(*g_renderPool, localQueues[i]);
+                PoolDelete(*g_renderPool, threadLocalRecorders[i]);
             }
         }
     }
@@ -98,7 +98,7 @@ struct ParallelRenderingState_Shared
         for (uint32 i = 0; i < ParallelRenderingState::MaxBatches; i++)
         {
             // don't free memory; each queue uses thread-local memory allocators
-            localQueues[i]->Clear(/* freeMemory */ false);
+            threadLocalRecorders[i]->Clear(/* freeMemory */ false);
         }
     }
 };
@@ -111,7 +111,7 @@ ParallelRenderingState::ParallelRenderingState(ParallelRenderingState_Shared* sh
 
     for (uint32 i = 0; i < MaxBatches; i++)
     {
-        localQueues[i] = sharedData->localQueues[i];
+        threadLocalRecorders[i] = sharedData->threadLocalRecorders[i];
     }
 }
 
@@ -696,9 +696,9 @@ RenderCollector::~RenderCollector()
                     if (state->ownsSharedData && state->sharedData != nullptr)
                     {
                         // take the local queues to free for ourselves - we need to free up their memory on a per-thread basis
-                        allLocalQueues.PushBack(state->sharedData->localQueues);
+                        allLocalQueues.PushBack(state->sharedData->threadLocalRecorders);
 
-                        state->sharedData->localQueues = {};
+                        state->sharedData->threadLocalRecorders = {};
                     }
 
                     ParallelRenderingState* nextState = state->next;
@@ -730,7 +730,7 @@ RenderCollector::~RenderCollector()
 
                                 if (currQueue != nullptr)
                                 {
-                                    currQueue->~TRenderQueue();
+                                    currQueue->~TCommandRecorder();
                                 }
                             }
                         }));
@@ -878,7 +878,7 @@ ParallelRenderingState* RenderCollector::AcquireNextParallelRenderingState()
     return curr;
 }
 
-void RenderCollector::CommitParallelRenderingState(RenderQueue& renderQueue)
+void RenderCollector::CommitParallelRenderingState(CommandRecorder& cr)
 {
     HYP_SCOPE;
 
@@ -890,16 +890,16 @@ void RenderCollector::CommitParallelRenderingState(RenderQueue& renderQueue)
 
         state->taskBatch->AwaitCompletion();
 
-        renderQueue.Concat(state->rootQueue);
-        state->rootQueue.Clear(/* freeMemory */ false);
+        cr.Concat(state->cr);
+        state->cr.Clear(/* freeMemory */ false);
 
         for (uint32 i = 0; i < ParallelRenderingState::MaxBatches; i++)
         {
-            renderQueue.Concat(*state->localQueues[i]);
-            state->localQueues[i]->Clear(/* freeMemory */ false);
+            cr.Concat(*state->threadLocalRecorders[i]);
+            state->threadLocalRecorders[i]->Clear(/* freeMemory */ false);
         }
 
-        renderQueue << SetStencilState(0, 0xFF, 0x0); // reset stencil
+        cr << SetStencilState(0, 0xFF, 0x0); // reset stencil
 
         // Add render stats counts to the engine's render stats
         for (EngineStatsValueSet& valueSet : state->statValues)
@@ -922,16 +922,16 @@ void RenderCollector::CommitParallelRenderingState(RenderQueue& renderQueue)
     }
 
     // Reset draw states
-    renderQueue << SetVertexAttributes(VertexAttributeSet::StaticMeshVertexAttributes);
-    renderQueue << SetTopology(TOP_TRIANGLES);
-    renderQueue << SetFillMode(FM_FILL);
-    renderQueue << SetFaceCullMode(FCM_BACK);
-    renderQueue << SetCurrentBlendFunction(BlendFunction::None());
-    renderQueue << SetDepthWrite(true);
-    renderQueue << SetDepthTest(true);
-    renderQueue << SetDepthBias(0, 0.0f);
-    renderQueue << SetDepthClamp(false);
-    renderQueue << SetStencilTest(false);
+    cr << SetVertexAttributes(VertexAttributeSet::StaticMeshVertexAttributes);
+    cr << SetTopology(TOP_TRIANGLES);
+    cr << SetFillMode(FM_FILL);
+    cr << SetFaceCullMode(FCM_BACK);
+    cr << SetCurrentBlendFunction(BlendFunction::None());
+    cr << SetDepthWrite(true);
+    cr << SetDepthTest(true);
+    cr << SetDepthBias(0, 0.0f);
+    cr << SetDepthClamp(false);
+    cr << SetStencilTest(false);
 
     parallelRenderingStateTail = nullptr;
 }
@@ -1077,7 +1077,7 @@ void RenderCollector::ExecuteDrawCalls(
 
     if (framebuffer)
     {
-        frame->renderQueue << SetCurrentFramebuffer(framebuffer);
+        frame->cr << SetCurrentFramebuffer(framebuffer);
     }
 
     for (auto& mappings : groupsView)
@@ -1122,12 +1122,12 @@ void RenderCollector::ExecuteDrawCalls(
     if (commit)
     {
         // Wait for all parallel rendering tasks to finish
-        CommitParallelRenderingState(frame->renderQueue);
+        CommitParallelRenderingState(frame->cr);
     }
 
     if (framebuffer)
     {
-        frame->renderQueue << SetCurrentFramebuffer(nullptr);
+        frame->cr << SetCurrentFramebuffer(nullptr);
     }
 }
 

@@ -9,7 +9,7 @@
 
 #include <Core/functional/Delegate.hpp>
 
-#include <rendering/RenderQueue.hpp>
+#include <rendering/CommandRecorder.hpp>
 #include <rendering/RenderMemory.hpp>
 #include <rendering/RenderObject.hpp>
 #include <rendering/RenderResult.hpp>
@@ -35,7 +35,7 @@ public:
 
     virtual void Create() = 0;
 
-    RenderQueue renderQueue;
+    CommandRecorder cr;
     uint32 lastFrame = uint32(-1);
 
     Delegate<void> OnCompleted;

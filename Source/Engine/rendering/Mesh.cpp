@@ -446,10 +446,10 @@ void Mesh::UploadGpuData()
             stagingBuffer->Copy(ByteUtil::AlignAs(packedVerticesSize, StagingBufferAlignment), packedIndicesSize, indices.Data());
 
             // use prerender queue to copy from staging buffers to gpu buffers
-            RenderQueue& renderQueue = frame->preRenderQueue;
+            CommandRecorder& cr = frame->preRenderCommands;
 
-            renderQueue << CopyBuffer(stagingBuffer, vertexBuffer, packedVerticesSize);
-            renderQueue << CopyBuffer(stagingBuffer, indexBuffer, ByteUtil::AlignAs(packedVerticesSize, StagingBufferAlignment), 0, packedIndicesSize);
+            cr << CopyBuffer(stagingBuffer, vertexBuffer, packedVerticesSize);
+            cr << CopyBuffer(stagingBuffer, indexBuffer, ByteUtil::AlignAs(packedVerticesSize, StagingBufferAlignment), 0, packedIndicesSize);
 
             if (mesh->m_vertexBuffer != vertexBuffer)
             {
@@ -679,73 +679,6 @@ Array<float> Mesh::BuildVertexBuffer(const VertexAttributeSet& vertexAttributes)
 }
 
 #undef PACKED_SET_ATTR
-
-Array<PackedVertex> Mesh::BuildPackedVertices() const
-{
-    HYP_SCOPE;
-
-    const Span<const Vertex> vertices = GetVertexData();
-
-    Array<PackedVertex> packedVertices;
-    packedVertices.Resize(vertices.Size());
-
-    for (size_t i = 0; i < vertices.Size(); i++)
-    {
-        PackedVertex& packed = packedVertices[i];
-        packed.position[0] = vertices[i].position.x;
-        packed.position[1] = vertices[i].position.y;
-        packed.position[2] = vertices[i].position.z;
-        packed.normal[0] = vertices[i].normal.x;
-        packed.normal[1] = vertices[i].normal.y;
-        packed.normal[2] = vertices[i].normal.z;
-        packed.uv[0] = vertices[i].texcoord0.x;
-        packed.uv[1] = vertices[i].texcoord0.y;
-    }
-
-    return packedVertices;
-}
-
-Array<uint32> Mesh::BuildPackedIndices() const
-{
-    HYP_SCOPE;
-
-    const Span<const ubyte> indices = GetIndexData();
-    const uint32 numIndices = GetMeshDesc().numIndices;
-
-    Assert(numIndices % 3 == 0);
-
-    // @TODO Fix for non-uint32 index size
-
-    Array<uint32> packedIndices;
-    packedIndices.Resize(numIndices);
-
-    Memory::Copy(packedIndices.Data(), indices.Data(), numIndices * sizeof(uint32));
-
-    // Ensure indices are a multiple of 3
-    if (packedIndices.Size() % 3 != 0)
-    {
-        packedIndices.Resize(packedIndices.Size() + (3 - (packedIndices.Size() % 3)));
-    }
-
-    // Ensure indices are not empty
-    if (packedIndices.Empty())
-    {
-        packedIndices.Resize(3);
-        packedIndices[0] = 0;
-        packedIndices[1] = 1;
-        packedIndices[2] = 2;
-    }
-
-#if HYP_DEBUG_MODE
-    for (size_t i = 0; i < packedIndices.Size(); i++)
-    {
-        uint32 idx = packedIndices[i];
-        AssertDebug(idx < GetMeshDesc().numVertices);
-    }
-#endif
-
-    return packedIndices;
-}
 
 void Mesh::InvertNormals()
 {

@@ -366,7 +366,7 @@ void ShadowRendererBase::RenderFrame(Frame* frame, const RenderSetup& renderSetu
             Assert(resultImage != nullptr);
 
             // transition to render target before rendering
-            /*frame->renderQueue << InsertBarrier(
+            /*frame->cr << InsertBarrier(
                 resultImage,
                 RS_RENDER_TARGET,
                 attachment->GetImageView()->GetImageSubResource());*/
@@ -376,7 +376,7 @@ void ShadowRendererBase::RenderFrame(Frame* frame, const RenderSetup& renderSetu
             GetRenderCollector(shadowView).ExecuteDrawCalls(frame, rs, BucketMask);
 
             // back to shader read
-            frame->renderQueue << InsertBarrier(
+            frame->cr << InsertBarrier(
                 resultImage,
                 RS_SHADER_RESOURCE);
 
@@ -401,12 +401,12 @@ void ShadowRendererBase::RenderFrame(Frame* frame, const RenderSetup& renderSetu
                 baseSubResource.baseArrayLayer = (atlasElement.layerIndex * numLayers);
                 baseSubResource.numLayers = numLayers;
 
-                frame->renderQueue << InsertBarrier(srcImage, RS_COPY_SRC);
-                frame->renderQueue << InsertBarrier(shadowMapImage, RS_COPY_DST, baseSubResource);
+                frame->cr << InsertBarrier(srcImage, RS_COPY_SRC);
+                frame->cr << InsertBarrier(shadowMapImage, RS_COPY_DST, baseSubResource);
 
                 for (uint16 layerIndex = 0; layerIndex < numLayers; layerIndex++)
                 {
-                    frame->renderQueue << Blit(
+                    frame->cr << Blit(
                         srcImage,
                         shadowMapImage,
                         Rect<uint32> {
@@ -434,8 +434,8 @@ void ShadowRendererBase::RenderFrame(Frame* frame, const RenderSetup& renderSetu
                         });
                 }
 
-                frame->renderQueue << InsertBarrier(shadowMapImage, RS_SHADER_RESOURCE, baseSubResource);
-                frame->renderQueue << InsertBarrier(srcImage, RS_SHADER_RESOURCE);
+                frame->cr << InsertBarrier(shadowMapImage, RS_SHADER_RESOURCE, baseSubResource);
+                frame->cr << InsertBarrier(srcImage, RS_SHADER_RESOURCE);
             }
 #endif
         }
@@ -459,9 +459,9 @@ void ShadowRendererBase::RenderFrame(Frame* frame, const RenderSetup& renderSetu
                 Framebuffer* srcFramebuffer1 = cachedData->shadowViewsDynamic[cascadeIndex]->GetOutputTarget().GetFramebuffer();
                 Attachment* srcAttachment1 = srcFramebuffer1->GetAttachment(srcFramebuffer1->NumAttachments() - 1);
 
-                frame->renderQueue << SetShaderUniform(4, "SamplerNearest"_sh, g_renderInterface->placeholderData->GetSamplerNearest());
-                frame->renderQueue << SetShaderUniform(5, "Src0"_sh, srcAttachment0->GetImageView());
-                frame->renderQueue << SetShaderUniform(6, "Src1"_sh, srcAttachment1->GetImageView());
+                frame->cr << SetShaderUniform(4, "SamplerNearest"_sh, g_renderInterface->placeholderData->GetSamplerNearest());
+                frame->cr << SetShaderUniform(5, "Src0"_sh, srcAttachment0->GetImageView());
+                frame->cr << SetShaderUniform(6, "Src1"_sh, srcAttachment1->GetImageView());
 
                 combineShadowMapsPass->RenderFullScreenQuad(frame, rs);
                 combineShadowMapsPass->End(frame, rs);
@@ -474,8 +474,8 @@ void ShadowRendererBase::RenderFrame(Frame* frame, const RenderSetup& renderSetu
             Assert(combineResultImage != nullptr);
 
             // Copy combined shadow map to the final shadow map
-            frame->renderQueue << InsertBarrier(combineResultImage, RS_COPY_SRC);
-            frame->renderQueue << InsertBarrier(
+            frame->cr << InsertBarrier(combineResultImage, RS_COPY_SRC);
+            frame->cr << InsertBarrier(
                 shadowMapImage,
                 RS_COPY_DST,
                 ImageSubResource {
@@ -486,7 +486,7 @@ void ShadowRendererBase::RenderFrame(Frame* frame, const RenderSetup& renderSetu
                 });
 
             // copy the image
-            frame->renderQueue << Blit(
+            frame->cr << Blit(
                 combineResultImage,
                 shadowMapImage,
                 Rect<uint32> { 0, 0, combineResultImage->GetExtent().x, combineResultImage->GetExtent().y },
@@ -511,8 +511,8 @@ void ShadowRendererBase::RenderFrame(Frame* frame, const RenderSetup& renderSetu
             );
 
             // put the images back into a state for reading
-            frame->renderQueue << InsertBarrier(combineResultImage, RS_SHADER_RESOURCE);
-            frame->renderQueue << InsertBarrier(
+            frame->cr << InsertBarrier(combineResultImage, RS_SHADER_RESOURCE);
+            frame->cr << InsertBarrier(
                 shadowMapImage,
                 RS_SHADER_RESOURCE,
                 ImageSubResource {
@@ -554,19 +554,19 @@ void ShadowRendererBase::RenderFrame(Frame* frame, const RenderSetup& renderSetu
             const uint32 frameIndex = frame->GetFrameIndex();
             cachedData->blurUniformBuffers[frameIndex]->Copy(sizeof(uniformData), &uniformData);
 
-            RenderQueue& rq = frame->renderQueue;
+            CommandRecorder& cr = frame->cr;
 
-            rq << SetCurrentShader(ShaderDesc(NAME("BlurShadowMap")));
+            cr << SetCurrentShader(ShaderDesc(NAME("BlurShadowMap")));
 
             uint32 numShaderUniforms = 0;
 
-            rq << SetShaderUniform(numShaderUniforms++, "SamplerLinear"_sh, g_renderInterface->placeholderData->GetSamplerLinear());
-            rq << SetShaderUniform(numShaderUniforms++, "InputTexture"_sh, inputImageView);
-            rq << SetShaderUniform(numShaderUniforms++, "OutputTexture"_sh, outputImageView);
-            rq << SetShaderUniform(numShaderUniforms++, "BlurShadowMapUniforms"_sh, cachedData->blurUniformBuffers[frameIndex]);
+            cr << SetShaderUniform(numShaderUniforms++, "SamplerLinear"_sh, g_renderInterface->placeholderData->GetSamplerLinear());
+            cr << SetShaderUniform(numShaderUniforms++, "InputTexture"_sh, inputImageView);
+            cr << SetShaderUniform(numShaderUniforms++, "OutputTexture"_sh, outputImageView);
+            cr << SetShaderUniform(numShaderUniforms++, "BlurShadowMapUniforms"_sh, cachedData->blurUniformBuffers[frameIndex]);
 
             // put our shadow map in a state for writing
-            rq << InsertBarrier(
+            cr << InsertBarrier(
                 shadowMapImage,
                 RS_UNORDERED_ACCESS,
                 ImageSubResource {
@@ -576,10 +576,10 @@ void ShadowRendererBase::RenderFrame(Frame* frame, const RenderSetup& renderSetu
                     .numLayers = 1
                 });
 
-            rq << DispatchCompute(Vec3u { (atlasElement.dimensions.x + 7) / 8, (atlasElement.dimensions.y + 7) / 8, 1 });
+            cr << DispatchCompute(Vec3u { (atlasElement.dimensions.x + 7) / 8, (atlasElement.dimensions.y + 7) / 8, 1 });
 
             // put shadow map back into readable state
-            rq << InsertBarrier(
+            cr << InsertBarrier(
                 shadowMapImage, 
                 RS_SHADER_RESOURCE,
                 ImageSubResource {

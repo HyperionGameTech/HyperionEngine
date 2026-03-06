@@ -13,7 +13,7 @@
 #include <rendering/GraphicsPipeline.hpp>
 #include <rendering/ComputePipeline.hpp>
 #include <rendering/RayTracingPipeline.hpp>
-#include <rendering/RenderQueue.hpp>
+#include <rendering/CommandRecorder.hpp>
 #include <rendering/RenderProxyList.hpp>
 #include <rendering/RenderProxy.hpp>
 #include <rendering/RenderGroup.hpp>
@@ -2123,7 +2123,7 @@ void RenderInterface::UpdateBuffers(Frame* frame)
     for (auto& it : gpuBufferHolders->GetItems())
     {
         it.second->UpdateBufferSize(frameIndex);
-        it.second->UpdateBufferData(frameIndex, *stagingBufferPool, frame->preRenderQueue);
+        it.second->UpdateBufferData(frameIndex, *stagingBufferPool, frame->preRenderCommands);
     }
 
     stagingBufferPool->Cleanup(frameIndex);

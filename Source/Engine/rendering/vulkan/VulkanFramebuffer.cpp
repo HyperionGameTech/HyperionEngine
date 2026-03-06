@@ -13,7 +13,7 @@
 
 #include <rendering/util/DeletionQueue.hpp>
 
-#include <rendering/RenderQueue.hpp>
+#include <rendering/CommandRecorder.hpp>
 
 #include <Core/math/MathUtil.hpp>
 
@@ -25,7 +25,7 @@ namespace Hyperion {
 
 extern VulkanRenderInterface* g_renderInterface;
 
-static void TransitionFramebufferAttachments(RenderQueue& renderQueue, VulkanFramebuffer* framebuffer, Span<VulkanAttachment*> attachments)
+static void TransitionFramebufferAttachments(CommandRecorder& cr, VulkanFramebuffer* framebuffer, Span<VulkanAttachment*> attachments)
 {
     Assert(framebuffer != nullptr);
 
@@ -37,10 +37,10 @@ static void TransitionFramebufferAttachments(RenderQueue& renderQueue, VulkanFra
         switch (framebuffer->GetRenderTargetDesc().renderPassMode)
         {
         case RenderPassMode::Present:
-            // renderQueue << InsertBarrier(image, RS_PRESENT);
+            // cr << InsertBarrier(image, RS_PRESENT);
             break;
         case RenderPassMode::RenderTarget:
-            renderQueue << InsertBarrier(image, RS_SHADER_RESOURCE);
+            cr << InsertBarrier(image, RS_SHADER_RESOURCE);
             break;
         default:
             HYP_NOT_IMPLEMENTED();
@@ -97,9 +97,9 @@ RendererResult VulkanAttachmentMap::Create()
 
     UniquePtr<SingleTimeCommands> singleTimeCommands = g_renderInterface->GetSingleTimeCommands();
 
-    singleTimeCommands->Push([&](RenderQueue& renderQueue) -> RendererResult
+    singleTimeCommands->Push([&](CommandRecorder& cr) -> RendererResult
         {
-            TransitionFramebufferAttachments(renderQueue, framebuffer, attachments.ToSpan());
+            TransitionFramebufferAttachments(cr, framebuffer, attachments.ToSpan());
 
             return {};
         });
@@ -201,9 +201,9 @@ RendererResult VulkanFramebuffer::Create()
     {
         UniquePtr<SingleTimeCommands> singleTimeCommands = g_renderInterface->GetSingleTimeCommands();
 
-        singleTimeCommands->Push([this](RenderQueue& renderQueue) -> RendererResult
+        singleTimeCommands->Push([this](CommandRecorder& cr) -> RendererResult
             {
-                renderQueue << ClearFramebuffer(this);
+                cr << ClearFramebuffer(this);
 
                 return {};
             });

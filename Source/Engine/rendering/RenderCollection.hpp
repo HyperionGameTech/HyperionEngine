@@ -18,7 +18,7 @@
 
 #include <rendering/RenderableAttributes.hpp>
 #include <rendering/DrawCall.hpp>
-#include <rendering/RenderQueue.hpp>
+#include <rendering/CommandRecorder.hpp>
 #include <rendering/RenderObject.hpp>
 #include <rendering/RenderGroup.hpp>
 #include <rendering/Shared.hpp>
@@ -61,7 +61,7 @@ struct ParallelRenderingState
 
     static constexpr uint32 MaxBatches = NumAsyncCommandBuffers;
 
-    using LocalQueue = TRenderQueue<ThreadAllocator>;
+    using LocalQueue = TCommandRecorder<ThreadAllocator>;
 
     TaskBatch* taskBatch = nullptr;
 
@@ -71,10 +71,10 @@ struct ParallelRenderingState
     bool ownsSharedData = false;
 
     // Non-async rendering command list - used for binding state at the start of the pass before async stuff (can only be written to from render thread)
-    RenderQueue rootQueue;
+    CommandRecorder cr;
 
-    // per-thread RenderQueue
-    FixedArray<LocalQueue*, MaxBatches> localQueues {};
+    // per-thread CommandRecorder
+    FixedArray<LocalQueue*, MaxBatches> threadLocalRecorders {};
 
     FixedArray<EngineStatsValueSet, MaxBatches> statValues {};
 
@@ -129,7 +129,7 @@ public:
     EnumFlags<RenderGroupFlags> renderGroupFlags;
 
     ParallelRenderingState* AcquireNextParallelRenderingState();
-    void CommitParallelRenderingState(RenderQueue& renderQueue);
+    void CommitParallelRenderingState(CommandRecorder& cr);
 
     void PerformOcclusionCulling(Frame* frame, const RenderSetup& renderSetup, uint32 bucketBits);
 

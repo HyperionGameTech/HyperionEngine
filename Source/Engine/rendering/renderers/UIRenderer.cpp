@@ -159,7 +159,7 @@ void UIRenderCollector::ExecuteDrawCalls(Frame* frame, const RenderSetup& render
 
     if (framebuffer != nullptr)
     {
-        frame->renderQueue << SetCurrentFramebuffer(framebuffer);
+        frame->cr << SetCurrentFramebuffer(framebuffer);
     }
 
     using IteratorType = FlatMap<RenderableAttributeSet, DrawCallCollection>::Iterator;
@@ -212,11 +212,11 @@ void UIRenderCollector::ExecuteDrawCalls(Frame* frame, const RenderSetup& render
     }
 
     // Wait for all parallel rendering tasks to finish
-    CommitParallelRenderingState(frame->renderQueue);
+    CommitParallelRenderingState(frame->cr);
 
     if (framebuffer != nullptr)
     {
-        frame->renderQueue << SetCurrentFramebuffer(nullptr);
+        frame->cr << SetCurrentFramebuffer(nullptr);
     }
 }
 

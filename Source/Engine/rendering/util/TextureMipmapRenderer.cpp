@@ -4,7 +4,7 @@
 #include <rendering/util/DeletionQueue.hpp>
 
 #include <rendering/RenderCommand.hpp>
-#include <rendering/RenderQueue.hpp>
+#include <rendering/CommandRecorder.hpp>
 #include <rendering/Frame.hpp>
 #include <rendering/ShaderManager.hpp>
 #include <rendering/FullScreenPass.hpp>
@@ -66,7 +66,7 @@ struct RenderTextureMipmapLevelsTask
     {
         // draw a quad for each level
         Frame* frame = g_renderInterface->GetCurrentFrame();
-        RenderQueue& rq = frame->renderQueue;
+        CommandRecorder& cr = frame->cr;
 
         const Vec3u extent = image->GetExtent();
 
@@ -89,8 +89,8 @@ struct RenderTextureMipmapLevelsTask
             {
                 pass->Begin(frame, NullRenderSetup());
 
-                rq << SetShaderUniform(0, "SamplerLinear"_sh, g_renderInterface->placeholderData->GetSamplerLinear());
-                rq << SetShaderUniform(1, "InTexture"_sh, mipLevel == 0 ? imageView : mipImageViews[mipLevel - 1]);
+                cr << SetShaderUniform(0, "SamplerLinear"_sh, g_renderInterface->placeholderData->GetSamplerLinear());
+                cr << SetShaderUniform(1, "InTexture"_sh, mipLevel == 0 ? imageView : mipImageViews[mipLevel - 1]);
 
                 pass->RenderFullScreenQuad(frame, NullRenderSetup());
 
@@ -100,21 +100,21 @@ struct RenderTextureMipmapLevelsTask
             GpuImage* srcImage = pass->GetAttachment(0)->GetGpuImage();
 
             // Blit into mip level
-            rq << InsertBarrier(dstImage, RS_COPY_DST, ImageSubResource { .baseMipLevel = mipLevel });
-            rq << InsertBarrier(srcImage, RS_COPY_SRC, ImageSubResource { .baseMipLevel = mipLevel });
+            cr << InsertBarrier(dstImage, RS_COPY_DST, ImageSubResource { .baseMipLevel = mipLevel });
+            cr << InsertBarrier(srcImage, RS_COPY_SRC, ImageSubResource { .baseMipLevel = mipLevel });
 
-            rq << BlitRect(
+            cr << BlitRect(
                 srcImage,
                 dstImage,
                 Rect<uint32> { 0, 0, srcImage->GetExtent().x, srcImage->GetExtent().y },
                 Rect<uint32> { 0, 0, dstImage->GetExtent().x, dstImage->GetExtent().y });
 
-            rq << InsertBarrier(srcImage, RS_SHADER_RESOURCE, ImageSubResource { .baseMipLevel = mipLevel });
-            rq << InsertBarrier(dstImage, RS_SHADER_RESOURCE, ImageSubResource { .baseMipLevel = mipLevel });
+            cr << InsertBarrier(srcImage, RS_SHADER_RESOURCE, ImageSubResource { .baseMipLevel = mipLevel });
+            cr << InsertBarrier(dstImage, RS_SHADER_RESOURCE, ImageSubResource { .baseMipLevel = mipLevel });
         }
 
         // all mip levels have been transitioned into this state
-        rq << InsertBarrier(dstImage, RS_SHADER_RESOURCE);
+        cr << InsertBarrier(dstImage, RS_SHADER_RESOURCE);
     }
 };
 

@@ -200,7 +200,7 @@ void RayTracingReflections::Render(Frame* frame, const RenderSetup& renderSetup)
         }
     }
 
-    frame->renderQueue << InsertBarrier(m_texture->GetGpuImage(), RS_UNORDERED_ACCESS);
+    frame->cr << InsertBarrier(m_texture->GetGpuImage(), RS_UNORDERED_ACCESS);
 
     // Set shader and uniforms
     ShaderPropertySet shaderProperties;
@@ -209,7 +209,7 @@ void RayTracingReflections::Render(Frame* frame, const RenderSetup& renderSetup)
     if (renderSetup.envProbe != nullptr)
         shaderProperties.Add(InternShaderProperty(ShaderProperty(NAME("HAS_ENV_PROBE"))));
 
-    frame->renderQueue << SetCurrentShader(ShaderDesc(s_shaderNames[IsPathTracer()], shaderProperties));
+    frame->cr << SetCurrentShader(ShaderDesc(s_shaderNames[IsPathTracer()], shaderProperties));
 
     AssertDebug(parentPass->view.IsValid());
 
@@ -218,40 +218,40 @@ void RayTracingReflections::Render(Frame* frame, const RenderSetup& renderSetup)
 
     AssertDebug(pd->cBuffer != nullptr);
     
-    frame->renderQueue << SetShaderUniform(0, "GBufferAlbedoTexture"_sh, viewFramebuffer->GetAttachment(0)->GetImageView());
-    frame->renderQueue << SetShaderUniform(1, "GBufferNormalsTexture"_sh, viewFramebuffer->GetAttachment(1)->GetImageView());
-    frame->renderQueue << SetShaderUniform(2, "GBufferMaterialTexture"_sh, viewFramebuffer->GetAttachment(2)->GetImageView());
-    frame->renderQueue << SetShaderUniform(3, "GBufferDepthTexture"_sh, viewFramebuffer->GetAttachment(viewFramebuffer->NumAttachments() - 1)->GetImageView());
+    frame->cr << SetShaderUniform(0, "GBufferAlbedoTexture"_sh, viewFramebuffer->GetAttachment(0)->GetImageView());
+    frame->cr << SetShaderUniform(1, "GBufferNormalsTexture"_sh, viewFramebuffer->GetAttachment(1)->GetImageView());
+    frame->cr << SetShaderUniform(2, "GBufferMaterialTexture"_sh, viewFramebuffer->GetAttachment(2)->GetImageView());
+    frame->cr << SetShaderUniform(3, "GBufferDepthTexture"_sh, viewFramebuffer->GetAttachment(viewFramebuffer->NumAttachments() - 1)->GetImageView());
 
-    frame->renderQueue << SetShaderUniform(4, "SamplerNearest"_sh, g_renderInterface->placeholderData->GetSamplerNearest());
-    frame->renderQueue << SetShaderUniform(5, "SamplerLinear"_sh, g_renderInterface->placeholderData->GetSamplerLinearMipmap());
-    frame->renderQueue << SetShaderUniform(6, "TLAS"_sh, tlas);
-    frame->renderQueue << SetShaderUniform(7, "MeshDescriptionsBuffer"_sh, meshDescriptionsBuffer);
-    frame->renderQueue << SetShaderUniform(8, "OutputImage"_sh, g_renderInterface->textureViewCache->GetOrCreate(m_texture));
-    frame->renderQueue << SetShaderUniform(9, "RayTracingConstants"_sh, pd->cBuffer);
-    frame->renderQueue << SetShaderUniform(10, "Lights"_sh, pd->lightsBuffer);
-    frame->renderQueue << SetShaderUniform(11, "BlueNoiseBuffer"_sh, g_renderInterface->blueNoiseBuffer);
+    frame->cr << SetShaderUniform(4, "SamplerNearest"_sh, g_renderInterface->placeholderData->GetSamplerNearest());
+    frame->cr << SetShaderUniform(5, "SamplerLinear"_sh, g_renderInterface->placeholderData->GetSamplerLinearMipmap());
+    frame->cr << SetShaderUniform(6, "TLAS"_sh, tlas);
+    frame->cr << SetShaderUniform(7, "MeshDescriptionsBuffer"_sh, meshDescriptionsBuffer);
+    frame->cr << SetShaderUniform(8, "OutputImage"_sh, g_renderInterface->textureViewCache->GetOrCreate(m_texture));
+    frame->cr << SetShaderUniform(9, "RayTracingConstants"_sh, pd->cBuffer);
+    frame->cr << SetShaderUniform(10, "Lights"_sh, pd->lightsBuffer);
+    frame->cr << SetShaderUniform(11, "BlueNoiseBuffer"_sh, g_renderInterface->blueNoiseBuffer);
 
-    frame->renderQueue << SetShaderUniform(12, "ShadowMapsTextureArray"_sh, g_renderInterface->shadowMapAllocator->GetAtlasImageView());
-    frame->renderQueue << SetShaderUniform(13, "PointLightShadowMapsTextureArray"_sh, g_renderInterface->shadowMapAllocator->GetPointLightShadowMapImageView());
+    frame->cr << SetShaderUniform(12, "ShadowMapsTextureArray"_sh, g_renderInterface->shadowMapAllocator->GetAtlasImageView());
+    frame->cr << SetShaderUniform(13, "PointLightShadowMapsTextureArray"_sh, g_renderInterface->shadowMapAllocator->GetPointLightShadowMapImageView());
 
-    frame->renderQueue << SetShaderUniform(14, "MaterialsBuffer"_sh, g_renderInterface->gpuBuffers[GRB_MATERIALS]->GetBuffer(frameIndex));
-    frame->renderQueue << SetShaderUniform(15, "EntitiesBuffer"_sh, g_renderInterface->gpuBuffers[GRB_ENTITIES]->GetBuffer(frameIndex));
-    frame->renderQueue << SetShaderUniform(16, "WorldsBuffer"_sh, g_renderInterface->gpuBuffers[GRB_WORLDS]->GetBuffer(frameIndex));
-    frame->renderQueue << SetShaderUniform(17, "CamerasBuffer"_sh, g_renderInterface->gpuBuffers[GRB_CAMERAS]->GetBuffer(frameIndex), TShaderDataOffset<CameraShaderData>(parentPass->view.GetUnsafe()->GetCamera()));
+    frame->cr << SetShaderUniform(14, "MaterialsBuffer"_sh, g_renderInterface->gpuBuffers[GRB_MATERIALS]->GetBuffer(frameIndex));
+    frame->cr << SetShaderUniform(15, "EntitiesBuffer"_sh, g_renderInterface->gpuBuffers[GRB_ENTITIES]->GetBuffer(frameIndex));
+    frame->cr << SetShaderUniform(16, "WorldsBuffer"_sh, g_renderInterface->gpuBuffers[GRB_WORLDS]->GetBuffer(frameIndex));
+    frame->cr << SetShaderUniform(17, "CamerasBuffer"_sh, g_renderInterface->gpuBuffers[GRB_CAMERAS]->GetBuffer(frameIndex), TShaderDataOffset<CameraShaderData>(parentPass->view.GetUnsafe()->GetCamera()));
 
     if (renderSetup.envProbe != nullptr)
     {
-        frame->renderQueue << SetShaderUniform(18, "EnvProbesTexture"_sh, g_renderInterface->textureViewCache->GetOrCreate(g_renderInterface->envProbesTexture));
-        frame->renderQueue << SetShaderUniform(19, "EnvProbesBuffer"_sh, g_renderInterface->gpuBuffers[GRB_ENV_PROBES]->GetBuffer(frameIndex));
-        frame->renderQueue << SetShaderUniform(20, "CurrentEnvProbe"_sh, g_renderInterface->gpuBuffers[GRB_ENV_PROBES]->GetBuffer(frameIndex), TShaderDataOffset<EnvProbeShaderData>(renderSetup.envProbe));
+        frame->cr << SetShaderUniform(18, "EnvProbesTexture"_sh, g_renderInterface->textureViewCache->GetOrCreate(g_renderInterface->envProbesTexture));
+        frame->cr << SetShaderUniform(19, "EnvProbesBuffer"_sh, g_renderInterface->gpuBuffers[GRB_ENV_PROBES]->GetBuffer(frameIndex));
+        frame->cr << SetShaderUniform(20, "CurrentEnvProbe"_sh, g_renderInterface->gpuBuffers[GRB_ENV_PROBES]->GetBuffer(frameIndex), TShaderDataOffset<EnvProbeShaderData>(renderSetup.envProbe));
     }
 
     const Vec3u imageExtent = m_texture->GetGpuImage()->GetExtent();
     const size_t numPixels = imageExtent.Volume();
 
-    frame->renderQueue << TraceRays(Vec3u { uint32(numPixels), 1, 1 });
-    frame->renderQueue << InsertBarrier(m_texture->GetGpuImage(), RS_SHADER_RESOURCE);
+    frame->cr << TraceRays(Vec3u { uint32(numPixels), 1, 1 });
+    frame->cr << InsertBarrier(m_texture->GetGpuImage(), RS_SHADER_RESOURCE);
 
     // Create a new RenderSetup for temporal blending as it will need to bind View descriptors,
     // which we don't have on RayTracingPassData

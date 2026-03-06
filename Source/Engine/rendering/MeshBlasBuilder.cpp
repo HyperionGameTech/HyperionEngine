@@ -25,8 +25,8 @@ namespace Hyperion {
 struct BuildMeshBlas : public RenderCommand
 {
     GpuBlasRef blas;
-    Array<PackedVertex> packedVertices;
-    Array<uint32> packedIndices;
+    Array<float> packedVertices;
+    Array<ubyte> packedIndices;
     Handle<Material> material;
 
     GpuBufferRef packedVerticesBuffer;
@@ -34,13 +34,13 @@ struct BuildMeshBlas : public RenderCommand
     GpuBufferRef verticesStagingBuffer;
     GpuBufferRef indicesStagingBuffer;
 
-    BuildMeshBlas(GpuBlasRef& blas, Array<PackedVertex>&& packedVertices, Array<uint32>&& packedIndices, const Handle<Material>& material)
+    BuildMeshBlas(GpuBlasRef& blas, Array<float>&& packedVertices, Array<ubyte>&& packedIndices, const Handle<Material>& material)
         : packedVertices(std::move(packedVertices)),
           packedIndices(std::move(packedIndices)),
           material(material)
     {
-        const size_t packedVerticesSize = this->packedVertices.Size() * sizeof(PackedVertex);
-        const size_t packedIndicesSize = this->packedIndices.Size() * sizeof(uint32);
+        const size_t packedVerticesSize = this->packedVertices.ByteSize();
+        const size_t packedIndicesSize = this->packedIndices.ByteSize();
 
         packedVerticesBuffer = g_renderInterface->MakeGpuBuffer(GpuBufferType::RT_MESH_VERTEX_BUFFER, packedVerticesSize);
         packedIndicesBuffer = g_renderInterface->MakeGpuBuffer(GpuBufferType::RT_MESH_INDEX_BUFFER, packedIndicesSize);
@@ -48,8 +48,8 @@ struct BuildMeshBlas : public RenderCommand
         blas = g_renderInterface->MakeGpuBlas(
             packedVerticesBuffer,
             packedIndicesBuffer,
-            uint32(this->packedVertices.Size()),
-            uint32(this->packedIndices.Size()),
+            uint32(packedVerticesSize),
+            uint32(packedIndicesSize),
             material,
             Mat4f::identity);
 
@@ -71,8 +71,8 @@ struct BuildMeshBlas : public RenderCommand
 
     virtual RendererResult operator()() override
     {
-        const size_t packedVerticesSize = packedVertices.Size() * sizeof(PackedVertex);
-        const size_t packedIndicesSize = packedIndices.Size() * sizeof(uint32);
+        const size_t packedVerticesSize = this->packedVertices.ByteSize();
+        const size_t packedIndicesSize = this->packedIndices.ByteSize();
 
         CheckResultOrReturn(packedVerticesBuffer->Create());
         CheckResultOrReturn(packedIndicesBuffer->Create());
@@ -83,7 +83,7 @@ struct BuildMeshBlas : public RenderCommand
 #endif
         CheckResultOrReturn(verticesStagingBuffer->Create());
         verticesStagingBuffer->Memset(packedVerticesSize, 0); // zero out
-        verticesStagingBuffer->Copy(packedVertices.Size() * sizeof(PackedVertex), packedVertices.Data());
+        verticesStagingBuffer->Copy(packedVerticesSize, packedVertices.Data());
 
         indicesStagingBuffer = g_renderInterface->MakeGpuBuffer(GpuBufferType::STAGING_BUFFER, packedIndicesSize);
 #if HYP_DEBUG_MODE
@@ -91,23 +91,23 @@ struct BuildMeshBlas : public RenderCommand
 #endif
         CheckResultOrReturn(indicesStagingBuffer->Create());
         indicesStagingBuffer->Memset(packedIndicesSize, 0); // zero out
-        indicesStagingBuffer->Copy(packedIndices.Size() * sizeof(uint32), packedIndices.Data());
+        indicesStagingBuffer->Copy(packedIndicesSize, packedIndices.Data());
 
         UniquePtr<SingleTimeCommands> singleTimeCommands = g_renderInterface->GetSingleTimeCommands();
 
-        singleTimeCommands->Push([this, packedVerticesSize, packedIndicesSize](RenderQueue& renderQueue)
+        singleTimeCommands->Push([this, packedVerticesSize, packedIndicesSize](CommandRecorder& cr)
             {
-                renderQueue << CopyBuffer(verticesStagingBuffer, packedVerticesBuffer, packedVerticesSize);
-                renderQueue << CopyBuffer(indicesStagingBuffer, packedIndicesBuffer, packedIndicesSize);
+                cr << CopyBuffer(verticesStagingBuffer, packedVerticesBuffer, packedVerticesSize);
+                cr << CopyBuffer(indicesStagingBuffer, packedIndicesBuffer, packedIndicesSize);
             });
 
         CheckResultOrReturn(singleTimeCommands->Execute());
 
         /*Frame* frame = g_renderInterface->GetCurrentFrame();
-        RenderQueue& renderQueue = frame->renderQueue;
+        CommandRecorder& cr = frame->cr;
 
-        renderQueue << CopyBuffer(verticesStagingBuffer, packedVerticesBuffer, packedVerticesSize);
-        renderQueue << CopyBuffer(indicesStagingBuffer, packedIndicesBuffer, packedIndicesSize);*/
+        cr << CopyBuffer(verticesStagingBuffer, packedVerticesBuffer, packedVerticesSize);
+        cr << CopyBuffer(indicesStagingBuffer, packedIndicesBuffer, packedIndicesSize);*/
 
         return {};
     }
@@ -122,10 +122,10 @@ GpuBlasRef MeshBlasBuilder::Build(Mesh* mesh, Material* material)
 
     auto resGuard = mesh->GetReadScope();
 
-    Array<PackedVertex> packedVertices = mesh->BuildPackedVertices();
-    Array<uint32> packedIndices = mesh->BuildPackedIndices();
+    Array<float> packedVertices = mesh->BuildVertexBuffer(VertexAttribute::Position | VertexAttribute::Normal | VertexAttribute::TexCoord0);
+    Array<ubyte> packedIndices = mesh->GetIndexData();
 
-    if (packedVertices.Empty() || packedIndices.Empty())
+    if (packedVertices.Size() == 0 || packedIndices.Size() == 0)
     {
         return nullptr;
     }

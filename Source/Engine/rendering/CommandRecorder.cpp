@@ -2,7 +2,7 @@
 
 #include <RenderingPch.hpp>
 
-#include <rendering/RenderQueue.hpp>
+#include <rendering/CommandRecorder.hpp>
 #include <rendering/Frame.hpp>
 #include <rendering/RenderInterface.hpp>
 #include <rendering/GraphicsPipelineCache.hpp>
@@ -26,10 +26,10 @@
 
 namespace Hyperion {
 
-#pragma region RenderQueue
+#pragma region CommandRecorder
 
 template <>
-void RenderQueue::Prepare(Frame* frame)
+void CommandRecorder::Prepare(Frame* frame)
 {
     Assert(frame != nullptr);
 
@@ -46,7 +46,7 @@ void RenderQueue::Prepare(Frame* frame)
 }
 
 template <>
-void RenderQueue::Execute(CommandBuffer* commandBuffer)
+void CommandRecorder::Execute(CommandBuffer* commandBuffer)
 {
     AssertDebug(commandBuffer != nullptr);
 
@@ -62,7 +62,7 @@ void RenderQueue::Execute(CommandBuffer* commandBuffer)
     m_offset = 0;
 }
 
-#pragma endregion RenderQueue
+#pragma endregion CommandRecorder
 
 #pragma region BindDescriptorSet
 

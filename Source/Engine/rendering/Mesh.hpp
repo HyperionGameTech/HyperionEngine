@@ -218,8 +218,6 @@ public:
 
     BoundingBox CalculateAABB() const;
     Array<float> BuildVertexBuffer(const VertexAttributeSet& vertexAttributes) const;
-    Array<PackedVertex> BuildPackedVertices() const;
-    Array<uint32> BuildPackedIndices() const;
     void InvertNormals();
     void CalculateNormals(bool weighted = false);
     void CalculateTangents();

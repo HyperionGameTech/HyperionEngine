@@ -141,7 +141,7 @@ public:
     virtual void UpdateBufferData(
         uint32 frameIndex,
         StagingBufferPool& stagingBufferPool,
-        RenderQueue& renderQueue) = 0;
+        CommandRecorder& cr) = 0;
 
     virtual uint32 AcquireIndex(void** outElementPtr = nullptr) = 0;
     virtual void ReleaseIndex(uint32 index) = 0;
@@ -177,7 +177,7 @@ public:
 protected:
     void CreateBuffers(GpuBufferType bufferType, size_t count, size_t size);
     void CopyStagingToGpu(
-        uint32 frameIndex, RenderQueue& renderQueue,
+        uint32 frameIndex, CommandRecorder& cr,
         Span<GpuBuffer* const> stagingBuffers,
         Span<const uint32> chunkStarts,
         Span<const uint32> chunkEnds);
@@ -380,7 +380,7 @@ public:
     virtual void UpdateBufferData(
         uint32 frameIndex,
         StagingBufferPool& stagingBufferPool,
-        RenderQueue& renderQueue) override
+        CommandRecorder& cr) override
     {
         Array<uint32, RenderAllocator> chunkStarts;
         Array<uint32, RenderAllocator> chunkEnds;
@@ -415,7 +415,7 @@ public:
         }
 
         GpuBufferHolderBase::CopyStagingToGpu(
-            frameIndex, renderQueue,
+            frameIndex, cr,
             stagingBuffers.ToSpan(),
             chunkStarts.ToSpan(),
             chunkEnds.ToSpan());

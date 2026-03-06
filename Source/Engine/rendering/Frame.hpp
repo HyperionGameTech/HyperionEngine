@@ -5,7 +5,7 @@
 #include <rendering/RenderResult.hpp>
 #include <rendering/RenderObject.hpp>
 
-#include <rendering/RenderQueue.hpp>
+#include <rendering/CommandRecorder.hpp>
 
 #include <Core/Defines.hpp>
 
@@ -42,9 +42,9 @@ public:
     Delegate<void, Frame*> OnPresent;
     Delegate<void, Frame*> OnFrameEnd;
 
-    RenderQueue renderQueue;
-    RenderQueue preRenderQueue;
-    RenderQueue postRenderQueue;
+    CommandRecorder cr;
+    CommandRecorder preRenderCommands;
+    CommandRecorder postRenderCommands;
 
 protected:
     explicit FrameBase(uint32 frameIndex)

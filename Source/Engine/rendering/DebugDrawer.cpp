@@ -665,7 +665,7 @@ void DebugDrawer::Render(Frame* frame, const RenderSetup& renderSetup)
     RenderProxyCamera* cameraProxy = static_cast<RenderProxyCamera*>(GetRenderProxy(renderSetup.view->GetCamera()));
     Assert(cameraProxy != nullptr);
 
-    RenderQueue& rq = frame->renderQueue;
+    CommandRecorder& cr = frame->cr;
 
     const uint32 frameIndex = frame->GetFrameIndex();
 
@@ -740,33 +740,33 @@ void DebugDrawer::Render(Frame* frame, const RenderSetup& renderSetup)
     shaderDesc.name = NAME("DebugVis");
     shaderDesc.properties.Add(s_propImmediateMode);
     
-    rq << SetCurrentShader(shaderDesc);
-    rq << SetCurrentViewport(viewport);
+    cr << SetCurrentShader(shaderDesc);
+    cr << SetCurrentViewport(viewport);
 
     HYP_DEFER({
         // reset states
-        rq << SetVertexAttributes(VertexAttributeSet::StaticMeshVertexAttributes);
-        rq << SetTopology(TOP_TRIANGLES);
-        rq << SetCurrentBlendFunction(BlendFunction::None());
-        rq << SetDepthTest(true);
-        rq << SetDepthWrite(true);
-        rq << SetStencilTest(false);
-        rq << SetFillMode(FM_FILL);
-        rq << SetFaceCullMode(FCM_BACK);    
+        cr << SetVertexAttributes(VertexAttributeSet::StaticMeshVertexAttributes);
+        cr << SetTopology(TOP_TRIANGLES);
+        cr << SetCurrentBlendFunction(BlendFunction::None());
+        cr << SetDepthTest(true);
+        cr << SetDepthWrite(true);
+        cr << SetStencilTest(false);
+        cr << SetFillMode(FM_FILL);
+        cr << SetFaceCullMode(FCM_BACK);    
     });
     
     DeferredRendererPassData* dpd = ObjCast<DeferredRendererPassData>(renderSetup.passData);
     AssertDebug(dpd != nullptr);
     
-    rq << SetShaderUniform(0, "SamplerNearest"_sh, g_renderInterface->placeholderData->GetSamplerNearest());
-    rq << SetShaderUniform(1, "SamplerLinear"_sh, g_renderInterface->placeholderData->GetSamplerLinearMipmap());
-    rq << SetShaderUniform(2, "GBufferMipChain"_sh, g_renderInterface->textureViewCache->GetOrCreate(dpd->mipChain));
-    rq << SetShaderUniform(3, "EnvProbesTexture"_sh, g_renderInterface->textureViewCache->GetOrCreate(g_renderInterface->envProbesTexture));
+    cr << SetShaderUniform(0, "SamplerNearest"_sh, g_renderInterface->placeholderData->GetSamplerNearest());
+    cr << SetShaderUniform(1, "SamplerLinear"_sh, g_renderInterface->placeholderData->GetSamplerLinearMipmap());
+    cr << SetShaderUniform(2, "GBufferMipChain"_sh, g_renderInterface->textureViewCache->GetOrCreate(dpd->mipChain));
+    cr << SetShaderUniform(3, "EnvProbesTexture"_sh, g_renderInterface->textureViewCache->GetOrCreate(g_renderInterface->envProbesTexture));
 
-    rq << SetShaderUniform(10, "CamerasBuffer"_sh, g_renderInterface->gpuBuffers[GRB_CAMERAS]->GetBuffer(frameIndex), TShaderDataOffset<CameraShaderData>(renderSetup.view->GetCamera()));
-    rq << SetShaderUniform(11, "EntitiesBuffer"_sh, g_renderInterface->gpuBuffers[GRB_ENTITIES]->GetBuffer(frameIndex));
-    rq << SetShaderUniform(12, "WorldsBuffer"_sh, g_renderInterface->gpuBuffers[GRB_WORLDS]->GetBuffer(frameIndex));
-    rq << SetShaderUniform(13, "EnvProbesBuffer"_sh, g_renderInterface->gpuBuffers[GRB_ENV_PROBES]->GetBuffer(frameIndex));
+    cr << SetShaderUniform(10, "CamerasBuffer"_sh, g_renderInterface->gpuBuffers[GRB_CAMERAS]->GetBuffer(frameIndex), TShaderDataOffset<CameraShaderData>(renderSetup.view->GetCamera()));
+    cr << SetShaderUniform(11, "EntitiesBuffer"_sh, g_renderInterface->gpuBuffers[GRB_ENTITIES]->GetBuffer(frameIndex));
+    cr << SetShaderUniform(12, "WorldsBuffer"_sh, g_renderInterface->gpuBuffers[GRB_WORLDS]->GetBuffer(frameIndex));
+    cr << SetShaderUniform(13, "EnvProbesBuffer"_sh, g_renderInterface->gpuBuffers[GRB_ENV_PROBES]->GetBuffer(frameIndex));
 
     for (uint32 shapeIdx = 0; shapeIdx < HYP_ARRAY_SIZE(partitionedShaderData); shapeIdx++)
     {
@@ -795,29 +795,29 @@ void DebugDrawer::Render(Frame* frame, const RenderSetup& renderSetup)
                 {
                 case DebugDrawType::MESH:
                 {
-                    rq << SetTopology(attributes.GetMeshAttributes().topology);
-                    rq << SetVertexAttributes(attributes.GetMeshAttributes().vertexAttributes);
+                    cr << SetTopology(attributes.GetMeshAttributes().topology);
+                    cr << SetVertexAttributes(attributes.GetMeshAttributes().vertexAttributes);
 
-                    rq << SetCurrentBlendFunction(attributes.GetMaterialAttributes().blendFunction);
-                    rq << SetFaceCullMode(attributes.GetMaterialAttributes().cullFaces);
-                    rq << SetFillMode(attributes.GetMaterialAttributes().fillMode);
-                    rq << SetDepthTest(bool(attributes.GetMaterialAttributes().flags & MAF_DEPTH_TEST));
-                    rq << SetDepthWrite(bool(attributes.GetMaterialAttributes().flags & MAF_DEPTH_WRITE));
-                    rq << SetStencilTest(bool(attributes.GetMaterialAttributes().flags & MAF_STENCIL_TEST));
-                    rq << SetStencilFunction(attributes.GetMaterialAttributes().stencilFunction);
+                    cr << SetCurrentBlendFunction(attributes.GetMaterialAttributes().blendFunction);
+                    cr << SetFaceCullMode(attributes.GetMaterialAttributes().cullFaces);
+                    cr << SetFillMode(attributes.GetMaterialAttributes().fillMode);
+                    cr << SetDepthTest(bool(attributes.GetMaterialAttributes().flags & MAF_DEPTH_TEST));
+                    cr << SetDepthWrite(bool(attributes.GetMaterialAttributes().flags & MAF_DEPTH_WRITE));
+                    cr << SetStencilTest(bool(attributes.GetMaterialAttributes().flags & MAF_STENCIL_TEST));
+                    cr << SetStencilFunction(attributes.GetMaterialAttributes().stencilFunction);
     
-                    rq << SetShaderUniform(15, "ImmediateDrawsBuffer"_sh, instanceBuffer, TShaderDataOffset<ImmediateDrawShaderData>(uint32(shaderDataOffset)));
+                    cr << SetShaderUniform(15, "ImmediateDrawsBuffer"_sh, instanceBuffer, TShaderDataOffset<ImmediateDrawShaderData>(uint32(shaderDataOffset)));
 
-                    rq << CommitDrawState();
+                    cr << CommitDrawState();
                     
                     MeshDebugDrawShapeBase* meshShape = static_cast<MeshDebugDrawShapeBase*>(shape);
 
                     Mesh* mesh = meshShape->GetMesh();
                     AssertDebug(mesh && mesh->IsReady());
 
-                    rq << BindVertexBuffer(mesh->GetVertexBuffer());
-                    rq << BindIndexBuffer(mesh->GetIndexBuffer());
-                    rq << DrawIndexed(mesh->NumIndices(), uint32(numToDraw));
+                    cr << BindVertexBuffer(mesh->GetVertexBuffer());
+                    cr << BindIndexBuffer(mesh->GetIndexBuffer());
+                    cr << DrawIndexed(mesh->NumIndices(), uint32(numToDraw));
 
                     ++totalDrawCalls;
                     totalInstancedDraws += numToDraw;

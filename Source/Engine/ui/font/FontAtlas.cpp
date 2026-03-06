@@ -6,7 +6,7 @@
 
 #include <rendering/RenderInterface.hpp>
 #include <rendering/PlaceholderData.hpp>
-#include <rendering/RenderQueue.hpp>
+#include <rendering/CommandRecorder.hpp>
 #include <rendering/RenderCommand.hpp>
 #include <rendering/RenderHelpers.hpp>
 #include <rendering/Texture.hpp>

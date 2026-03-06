@@ -89,9 +89,9 @@ RendererResult VulkanFrame::Submit(
 {
     AssertOnThread(g_renderThread);
 
-    preRenderQueue.Prepare(this);
-    renderQueue.Prepare(this);
-    postRenderQueue.Prepare(this);
+    preRenderCommands.Prepare(this);
+    cr.Prepare(this);
+    postRenderCommands.Prepare(this);
 
     if (OnPresent.AnyBound())
     {
@@ -100,9 +100,9 @@ RendererResult VulkanFrame::Submit(
     }
 
     commandBuffer->Begin();
-    preRenderQueue.Execute(commandBuffer);
-    renderQueue.Execute(commandBuffer);
-    postRenderQueue.Execute(commandBuffer);
+    preRenderCommands.Execute(commandBuffer);
+    cr.Execute(commandBuffer);
+    postRenderCommands.Execute(commandBuffer);
     commandBuffer->End();
 
     VulkanSemaphore* waitSemaphore = nullptr;

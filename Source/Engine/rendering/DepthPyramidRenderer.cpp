@@ -177,7 +177,7 @@ void DepthPyramidRenderer::Render(Frame* frame)
         // level 0 == write just-rendered depth image into mip 0
 
         // put the mip into writeable state
-        /*frame->renderQueue << InsertBarrier(
+        /*frame->cr << InsertBarrier(
             m_depthPyramid,
             RS_UNORDERED_ACCESS,
             ImageSubResource {
@@ -190,7 +190,7 @@ void DepthPyramidRenderer::Render(Frame* frame)
         //if (mipLevel != 0)
         //{
         //    // put prev mip into readable state
-        //    frame->renderQueue << InsertBarrier(
+        //    frame->cr << InsertBarrier(
         //        m_depthPyramid,
         //        RS_SHADER_RESOURCE,
         //        ImageSubResource {
@@ -208,29 +208,29 @@ void DepthPyramidRenderer::Render(Frame* frame)
         mipHeight = MathUtil::Max(1u, depthPyramidExtent.y >> (mipLevel));
 
         // Set the compute shader
-        frame->renderQueue << SetCurrentShader(ShaderDesc(NAME("GenerateDepthPyramid")));
+        frame->cr << SetCurrentShader(ShaderDesc(NAME("GenerateDepthPyramid")));
 
         if (mipLevel == 0)
         {
             // first mip level -- input is the actual depth image
-            frame->renderQueue << SetShaderUniform(0, "InImage"_sh, m_depthImageView);
+            frame->cr << SetShaderUniform(0, "InImage"_sh, m_depthImageView);
         }
         else
         {
-            frame->renderQueue << SetShaderUniform(0, "InImage"_sh, m_mipImageViews[mipLevel - 1]);
+            frame->cr << SetShaderUniform(0, "InImage"_sh, m_mipImageViews[mipLevel - 1]);
         }
 
-        frame->renderQueue << SetShaderUniform(1, "OutImage"_sh, m_mipImageViews[mipLevel]);
-        frame->renderQueue << SetShaderUniform(2, "UniformBuffer"_sh, m_mipUniformBuffers[mipLevel]);
-        frame->renderQueue << SetShaderUniform(3, "DepthPyramidSampler"_sh, m_depthPyramidSampler);
+        frame->cr << SetShaderUniform(1, "OutImage"_sh, m_mipImageViews[mipLevel]);
+        frame->cr << SetShaderUniform(2, "UniformBuffer"_sh, m_mipUniformBuffers[mipLevel]);
+        frame->cr << SetShaderUniform(3, "DepthPyramidSampler"_sh, m_depthPyramidSampler);
         
-        frame->renderQueue << DispatchCompute(Vec3u {
+        frame->cr << DispatchCompute(Vec3u {
             (mipWidth + 31) / 32,
             (mipHeight + 31) / 32,
             1 });
     }
 
-    frame->renderQueue << InsertBarrier(
+    frame->cr << InsertBarrier(
         m_depthPyramid, RS_SHADER_RESOURCE);
 
     m_isRendered = true;

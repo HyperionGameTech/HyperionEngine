@@ -3,7 +3,7 @@
 #include <RenderingPch.hpp>
 
 #include <rendering/RenderInterface.hpp>
-#include <rendering/RenderQueue.hpp>
+#include <rendering/CommandRecorder.hpp>
 #include <rendering/Buffers.hpp>
 #include <rendering/Frame.hpp>
 
@@ -180,7 +180,7 @@ void GpuBufferHolderBase::CreateBuffers(GpuBufferType bufferType, size_t initial
 }
 
 void GpuBufferHolderBase::CopyStagingToGpu(
-    uint32 frameIndex, RenderQueue& renderQueue,
+    uint32 frameIndex, CommandRecorder& cr,
     Span<GpuBuffer* const> stagingBuffers,
     Span<const uint32> chunkStarts,
     Span<const uint32> chunkEnds)
@@ -206,7 +206,7 @@ void GpuBufferHolderBase::CopyStagingToGpu(
 
     AssertDebug(m_gpuBuffer->Size() >= requiredBufferSize);
 
-    renderQueue << InsertBarrier(m_gpuBuffer, RS_COPY_DST);
+    cr << InsertBarrier(m_gpuBuffer, RS_COPY_DST);
 
     for (size_t i = 0; i < stagingBuffers.Size(); i++)
     {
@@ -221,12 +221,12 @@ void GpuBufferHolderBase::CopyStagingToGpu(
             "Staging buffer size is too small! Staging buffer size = {}, required size = {}",
             stagingBuffer->Size(), chunkEnd - chunkStart);
 
-        renderQueue << InsertBarrier(stagingBuffer, RS_COPY_SRC);
+        cr << InsertBarrier(stagingBuffer, RS_COPY_SRC);
 
-        renderQueue << CopyBuffer(stagingBuffer, m_gpuBuffer, 0, chunkStart, (chunkEnd - chunkStart));
+        cr << CopyBuffer(stagingBuffer, m_gpuBuffer, 0, chunkStart, (chunkEnd - chunkStart));
     }
 
-    renderQueue << InsertBarrier(m_gpuBuffer, m_gpuBuffer->GetBufferType() == GpuBufferType::STORAGE_BUFFER ? RS_UNORDERED_ACCESS : RS_SHADER_RESOURCE);
+    cr << InsertBarrier(m_gpuBuffer, m_gpuBuffer->GetBufferType() == GpuBufferType::STORAGE_BUFFER ? RS_UNORDERED_ACCESS : RS_SHADER_RESOURCE);
 }
 
 #pragma endregion GpuBufferHolderBase
