@@ -89,9 +89,18 @@ RendererResult VulkanFrame::Submit(
 {
     AssertOnThread(g_renderThread);
 
-    preRenderCommands.Prepare(this);
-    cr.Prepare(this);
-    postRenderCommands.Prepare(this);
+    Array<CommandRecorder*, VulkanTempAllocator> commandRecorders;
+    commandRecorders.Reserve(4);
+
+    commandRecorders.PushBack(&preRenderCommands);
+    commandRecorders.PushBack(&cr);
+    commandRecorders.PushBack(&g_renderInterface->commandRecorderAllocator.GetCommandRecorder());
+    commandRecorders.PushBack(&postRenderCommands);
+    
+    for (CommandRecorder* commandRecorder : commandRecorders)
+    {
+        commandRecorder->Prepare(this);
+    }
 
     if (OnPresent.AnyBound())
     {
@@ -99,11 +108,17 @@ RendererResult VulkanFrame::Submit(
         OnPresent.RemoveAllDetached();
     }
 
-    commandBuffer->Begin();
-    preRenderCommands.Execute(commandBuffer);
-    cr.Execute(commandBuffer);
-    postRenderCommands.Execute(commandBuffer);
-    commandBuffer->End();
+    {
+        commandBuffer->Begin();
+    
+        for (CommandRecorder* commandRecorder : commandRecorders)
+        {
+            commandRecorder->Execute(commandBuffer);
+            commandRecorder->Reset(/* freeMemory */ false);
+        }
+
+        commandBuffer->End();
+    }
 
     VulkanSemaphore* waitSemaphore = nullptr;
     VulkanSemaphore* signalSemaphore = nullptr;

@@ -208,6 +208,8 @@ void RenderThread::Update()
             ds->Update();
     }
 
+    g_renderInterface->commandRecorderAllocator.UpdateQueue();
+
     g_renderInterface->UpdateBuffers(frame);
 
     g_renderInterface->SubmitCommandBuffers(swapchain);

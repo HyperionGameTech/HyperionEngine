@@ -365,7 +365,7 @@ static void RenderAll_Parallel(
     const MeshAttributes& meshAttributes = renderableAttributes.GetMeshAttributes();
     const MaterialAttributes& materialAttributes = renderableAttributes.GetMaterialAttributes();
 
-    CommandRecorder& cr = parallelRenderingState->cr;
+    CommandRecorder& cr = parallelRenderingState->renderThreadRecorder;
     
     uint32 numShaderUniforms = 0;
     
@@ -658,7 +658,7 @@ void RenderGroup::PerformRendering(
     {
         AssertDebug(parallelRenderingState != nullptr);
 
-        pRecorder = &parallelRenderingState->cr;
+        pRecorder = &parallelRenderingState->renderThreadRecorder;
     }
 
     CommandRecorder& cr = *pRecorder;

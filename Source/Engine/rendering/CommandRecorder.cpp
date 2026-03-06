@@ -60,6 +60,7 @@ void CommandRecorder::Execute(CommandBuffer* commandBuffer)
 
     m_cmdHeaders.Clear();
     m_offset = 0;
+    m_writableState.Release();
 }
 
 #pragma endregion CommandRecorder
@@ -292,13 +293,13 @@ void SetCurrentFramebuffer::InvokeStatic(CmdBase* cmd, CommandBuffer* commandBuf
 
     RenderInterface::State& state = g_renderInterface->state;
 
-    if (cmdCasted->m_framebuffer == nullptr && state.prevFramebuffer != nullptr)
+    if (cmdCasted->m_framebuffer == nullptr && state.boundFramebuffer != nullptr)
     {
         // end render pass if we are in one.
         // otherwise, we don't call BeginCapture() until CommitDrawState...
         // this lets us transition textures before we actually begin the pass
-        state.prevFramebuffer->EndCapture(commandBuffer);
-        state.prevFramebuffer = nullptr;
+        state.boundFramebuffer->EndCapture(commandBuffer);
+        state.boundFramebuffer = nullptr;
     }
 
     state.framebuffer = cmdCasted->m_framebuffer;

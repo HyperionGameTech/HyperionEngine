@@ -24,6 +24,9 @@
 
 namespace Hyperion {
 
+/// NOTE: This is part of the older render command system, no relation to CommandRecorder. This is still used for some functionality that needs to be executed on the render thread.
+/// for new code that needs to be executed on the render thread, use g_renderThreadInstance->GetScheduler().Enqueue() instead of pushing a RenderCommand
+
 /*! \brief Pushes a render command to the render command queue. This is a wrapper around RenderCommands::Push.
  *  If called from the render thread, the command is executed immediately. */
 #define PUSH_RENDER_COMMAND(name, ...)                                                                                                           \

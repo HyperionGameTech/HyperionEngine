@@ -10,6 +10,7 @@
 #include <rendering/RenderObject.hpp>
 #include <rendering/GpuBuffer.hpp>
 #include <rendering/RenderConfig.hpp>
+#include <rendering/CommandRecorderAllocator.hpp>
 
 namespace Hyperion {
 
@@ -209,13 +210,13 @@ public:
         };
 
         Framebuffer* framebuffer = nullptr;
-        Framebuffer* prevFramebuffer = nullptr;
+        Framebuffer* boundFramebuffer = nullptr;
 
         PSOType prevPsoType = PSO_Graphics;
 
         void Reset()
         {
-            AssertDebug(prevFramebuffer == nullptr);
+            AssertDebug(boundFramebuffer == nullptr);
 
             attributes = {};
             validUniforms = 0;
@@ -229,7 +230,7 @@ public:
             stencilWriteMask = 0x0;
 
             framebuffer = nullptr;
-            prevFramebuffer = nullptr;
+            boundFramebuffer = nullptr;
 
             prevPsoType = PSO_Graphics;
             prevGraphicsPipeline = nullptr;
@@ -378,6 +379,8 @@ public:
     ShadowViewCache* shadowViewCache;
     
     CrashHandler* crashHandler;
+
+    CommandRecorderAllocator commandRecorderAllocator;
 
     struct ResourceContainer* resources;
 

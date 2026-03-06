@@ -1049,6 +1049,8 @@ void RenderInterface::Shutdown()
 
     ClearSubtypeBindings();
 
+    commandRecorderAllocator.Shutdown();
+
     PoolDelete(*g_renderPool, resources);
     resources = nullptr;
 
@@ -1819,12 +1821,12 @@ void RenderInterface::CommitPipelineState(PSOType psoType, CommandBuffer* comman
         }
     }
 
-    if (psoType == PSO_Graphics && state.framebuffer != state.prevFramebuffer)
+    if (psoType == PSO_Graphics && state.framebuffer != state.boundFramebuffer)
     {
-        if (state.prevFramebuffer != nullptr)
+        if (state.boundFramebuffer != nullptr)
         {
-            state.prevFramebuffer->EndCapture(commandBuffer);
-            state.prevFramebuffer = nullptr;
+            state.boundFramebuffer->EndCapture(commandBuffer);
+            state.boundFramebuffer = nullptr;
         }
     }
 
@@ -1860,11 +1862,11 @@ void RenderInterface::CommitPipelineState(PSOType psoType, CommandBuffer* comman
         {
             if (image->IsFullSubResource(subResource))
             {
-                if (psoType == PSO_Graphics && state.prevFramebuffer != nullptr)
+                if (psoType == PSO_Graphics && state.boundFramebuffer != nullptr)
                 {
                     // have to end render pass if we are going to insert a barrier
-                    state.prevFramebuffer->EndCapture(commandBuffer);
-                    state.prevFramebuffer = nullptr;
+                    state.boundFramebuffer->EndCapture(commandBuffer);
+                    state.boundFramebuffer = nullptr;
                 }
 
                 image->InsertBarrier(commandBuffer, desiredResourceState, ShaderModuleType::None);
@@ -1889,11 +1891,11 @@ void RenderInterface::CommitPipelineState(PSOType psoType, CommandBuffer* comman
                         {
                             needsTransition = true;
 
-                            if (psoType == PSO_Graphics && state.prevFramebuffer != nullptr)
+                            if (psoType == PSO_Graphics && state.boundFramebuffer != nullptr)
                             {
                                 // have to end render pass if we are going to insert a barrier
-                                state.prevFramebuffer->EndCapture(commandBuffer);
-                                state.prevFramebuffer = nullptr;
+                                state.boundFramebuffer->EndCapture(commandBuffer);
+                                state.boundFramebuffer = nullptr;
                             }
 
                             break;
@@ -1916,13 +1918,13 @@ void RenderInterface::CommitPipelineState(PSOType psoType, CommandBuffer* comman
 
     if (psoType == PSO_Graphics)
     {
-        if (state.prevFramebuffer == nullptr)
+        if (state.boundFramebuffer == nullptr)
         {
             AssertDebug(state.framebuffer != nullptr, "No framebuffer bound at the time of CommitDrawState!");
 
             state.framebuffer->BeginCapture(commandBuffer);
 
-            state.prevFramebuffer = state.framebuffer;
+            state.boundFramebuffer = state.framebuffer;
         }
     }
 

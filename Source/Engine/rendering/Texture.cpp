@@ -91,6 +91,11 @@ static RendererResult CreateGpuImage(Texture& texture, GpuImage& image, Resource
 {
     CheckResultOrReturn(image.Create());
 
+    CommandRecorder& cr = g_renderInterface->commandRecorderAllocator.GetCommandRecorder();
+
+    // Cannot be in a render pass while transitioning images
+    cr << SetCurrentFramebuffer(nullptr);
+
     if (uploadTextureData)
     {
         ConstByteView imageData = texture.GetImageData();
@@ -169,11 +174,6 @@ static RendererResult CreateGpuImage(Texture& texture, GpuImage& image, Resource
 
         HYP_DEFER({ EnqueueDeletion(std::move(stagingBuffer)); });
 
-        Frame* frame = g_renderInterface->GetCurrentFrame();
-
-        // @FIXME : Not thread-safe. Need thread local render queues and submit them to a ring buffer.
-        CommandRecorder& cr = frame->preRenderCommands;
-
         cr << InsertBarrier(&image, RS_COPY_DST);
 
         if (textureDesc.HasMipMaps() && !placeholderBuffer.HasValue())
@@ -241,12 +241,11 @@ static RendererResult CreateGpuImage(Texture& texture, GpuImage& image, Resource
     }
     else if (initialState != RS_UNDEFINED)
     {
-        Frame* frame = g_renderInterface->GetCurrentFrame();
-        CommandRecorder& cr = frame->preRenderCommands;
-
         // Transition to initial state
         cr << InsertBarrier(&image, initialState);
     }
+
+    cr.Done();
 
     return {};
 }

@@ -22,8 +22,13 @@ class AtomicFlag final
 public:
     using Guard = TLockGuard<AtomicFlag>;
 
-    AtomicFlag()
+    HYP_FORCE_INLINE AtomicFlag()
         : m_value(0)
+    {
+    }
+
+    HYP_FORCE_INLINE explicit AtomicFlag(bool initialValue)
+        : m_value(initialValue ? 1 : 0)
     {
     }
 
@@ -35,14 +40,24 @@ public:
 
     ~AtomicFlag() = default;
 
-    bool Load() const
+    HYP_FORCE_INLINE bool Load() const
     {
         return AtomicAdd(&m_value, 0) != 0;
     }
 
-    void Store(bool value)
+    HYP_FORCE_INLINE void Store(bool value)
     {
         AtomicExchange(&m_value, value ? 1 : 0);
+    }
+
+    HYP_FORCE_INLINE bool LoadVolatile() const
+    {
+        return m_value != 0;
+    }
+
+    HYP_FORCE_INLINE void StoreVolatile(bool value)
+    {
+        m_value = value ? 1 : 0;
     }
 
     void Acquire() const

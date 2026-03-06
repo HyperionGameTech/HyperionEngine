@@ -95,7 +95,7 @@ using StreamingTempAllocator = AllocatorInstance<Arena, &g_streamingArena>;
 static void InitMemoryPools()
 {
     g_objectPool = new Pool(ObjectPoolBlockSize);
-    g_renderPool = new Pool(RenderPoolBlockSize, PF_NONE, g_renderThread);
+    g_renderPool = new Pool(RenderPoolBlockSize);
     g_scenePool = new Pool(ScenePoolBlockSize);
     g_taskPool = new Pool(TaskPoolBlockSize);
     g_resourcePool = new Pool(ResourcePoolBlockSize);

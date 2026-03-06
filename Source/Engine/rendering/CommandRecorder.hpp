@@ -23,6 +23,8 @@
 #include <Core/debug/StackDump.hpp>
 #endif
 
+#include <Core/threading/AtomicFlag.hpp>
+
 namespace Hyperion {
 
 class CmdBase;
@@ -964,7 +966,7 @@ protected:
 };
 
 template <class AllocatorType>
-class TCommandRecorder : public CommandRecorderBase
+class TCommandRecorder final : public CommandRecorderBase
 {
     template <class OtherAllocatorType>
     friend class TCommandRecorder;
@@ -978,14 +980,16 @@ public:
     using Base::PrepareCmdFnPtr;
 
     TCommandRecorder()
-        : m_offset(0)
+        : m_offset(0),
+          m_writableState(true)
     {
     }
 
     explicit TCommandRecorder(AllocatorType* pAllocator)
         : m_cmdHeaders(pAllocator),
           m_buffer(pAllocator),
-          m_offset(0)
+          m_offset(0),
+          m_writableState(true)
     {
         AssertDebug(pAllocator != nullptr);
     }
@@ -1044,6 +1048,8 @@ public:
     template <class OtherAllocatorType>
     void Concat(TCommandRecorder<OtherAllocatorType>& other)
     {
+        other.m_writableState.Acquire();
+
         m_cmdHeaders.Reserve(m_cmdHeaders.Size() + other.m_cmdHeaders.Size());
 
         // since we guarantee <= 16 byte alignment, we should just align our offset to 16 to make sure everything fits
@@ -1080,12 +1086,17 @@ public:
         //        m_buffer.Write(other.m_offset, newStartOffset, other.m_buffer.Data());
 
         m_offset = newStartOffset + other.m_offset;
+
+        other.m_cmdHeaders.Clear();
+        other.m_offset = 0;
+
+        // @NOTE: Keep it in write state
     }
 
     void Prepare(Frame* frame);
     void Execute(CommandBuffer* commandBuffer);
 
-    void Clear(bool freeMemory)
+    void Reset(bool freeMemory)
     {
         m_cmdHeaders.Clear();
 
@@ -1108,10 +1119,17 @@ public:
         }
     }
 
+    void Done()
+    {
+        m_writableState.Release();
+    }
+
 private:
     Array<CmdHeader, AllocatorType> m_cmdHeaders;
     TByteBuffer<AllocatorType> m_buffer;
     uint32 m_offset;
+
+    AtomicFlag m_writableState;
 };
 
 template <class AllocatorType>

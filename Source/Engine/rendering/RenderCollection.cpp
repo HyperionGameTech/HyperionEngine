@@ -98,7 +98,7 @@ struct ParallelRenderingState_Shared
         for (uint32 i = 0; i < ParallelRenderingState::MaxBatches; i++)
         {
             // don't free memory; each queue uses thread-local memory allocators
-            threadLocalRecorders[i]->Clear(/* freeMemory */ false);
+            threadLocalRecorders[i]->Reset(/* freeMemory */ false);
         }
     }
 };
@@ -890,13 +890,15 @@ void RenderCollector::CommitParallelRenderingState(CommandRecorder& cr)
 
         state->taskBatch->AwaitCompletion();
 
-        cr.Concat(state->cr);
-        state->cr.Clear(/* freeMemory */ false);
+        state->renderThreadRecorder.Done();
+        cr.Concat(state->renderThreadRecorder);
+        state->renderThreadRecorder.Reset(/* freeMemory */ false);
 
         for (uint32 i = 0; i < ParallelRenderingState::MaxBatches; i++)
         {
+            state->threadLocalRecorders[i]->Done();
             cr.Concat(*state->threadLocalRecorders[i]);
-            state->threadLocalRecorders[i]->Clear(/* freeMemory */ false);
+            state->threadLocalRecorders[i]->Reset(/* freeMemory */ false);
         }
 
         cr << SetStencilState(0, 0xFF, 0x0); // reset stencil
