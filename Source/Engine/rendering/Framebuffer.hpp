@@ -66,6 +66,18 @@ public:
             m_isRecordingCount--;
         }
     }
+    
+#if HYP_DEBUG_MODE
+    Name GetDebugName() const
+    {
+        return m_debugName;
+    }
+
+    virtual void SetDebugName(Name name)
+    {
+        m_debugName = name;
+    }
+#endif
 
     virtual RendererResult Create() = 0;
 
@@ -81,7 +93,7 @@ public:
     virtual void BeginCapture(CommandBuffer* commandBuffer) = 0;
     virtual void EndCapture(CommandBuffer* commandBuffer) = 0;
 
-    virtual void Clear(CommandBuffer* commandBuffer) = 0;
+    virtual void Clear(CommandBuffer* commandBuffer, uint8 attachmentsMask = uint8(-1)) = 0;
 
 protected:
     FramebufferBase(const RenderTargetDesc& renderTargetDesc)
@@ -92,6 +104,10 @@ protected:
 
     RenderTargetDesc m_renderTargetDesc;
     int m_isRecordingCount;
+
+#if HYP_DEBUG_MODE
+    Name m_debugName;
+#endif
 };
 
 } // namespace Hyperion

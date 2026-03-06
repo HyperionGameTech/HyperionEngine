@@ -214,8 +214,7 @@ void UISubsystem::Init()
 
     RenderTargetDesc renderTargetDesc;
     renderTargetDesc.extent = windowSize2;
-    renderTargetDesc.AddAttachment({ TextureType::Texture2D, TextureFormat::RGBA16F });
-    renderTargetDesc.AddAttachment({ TextureType::Texture2D, TextureFormat::D16 });
+    renderTargetDesc.AddAttachment({ TextureType::Texture2D, TextureFormat::RGBA8 });
 
     ViewDesc viewDesc {};
     viewDesc.flags = (ViewFlags::DEFAULT & ~(ViewFlags::ALL_WORLD_SCENES | ViewFlags::MATCH_CAMERA_DIMENSIONS));
@@ -225,6 +224,7 @@ void UISubsystem::Init()
     viewDesc.entityBatchClass = UIEntityInstanceBatch::StaticClass();
 
     m_view = MakeHandle<View>(viewDesc);
+    m_view->SetName(NAME("UISubsystem_View"));
     InitObject(m_view);
 
     CreateFramebuffer();

@@ -36,6 +36,7 @@
 #include <rendering/DebugDrawer.hpp>
 #include <rendering/Shader.hpp>
 #include <rendering/BLASCache.hpp>
+#include <rendering/CrashHandler.hpp>
 
 #include <rendering/util/ResourceTracker.hpp>
 #include <rendering/util/DeletionQueue.hpp>
@@ -922,7 +923,8 @@ RenderInterface::RenderInterface()
       textureViewCache(PoolNew<TextureViewCache>(*g_renderPool)),
       stagingBufferPool(PoolNew<StagingBufferPool>(*g_renderPool)),
       blasCache(PoolNew<BLASCache>(*g_renderPool)),
-      shadowViewCache(PoolNew<ShadowViewCache>(*g_renderPool))
+      shadowViewCache(PoolNew<ShadowViewCache>(*g_renderPool)),
+      crashHandler(PoolNew<CrashHandler>(*g_renderPool))
 {
 }
 
@@ -945,6 +947,8 @@ RendererResult RenderInterface::Initialize()
     gpuBuffers.buffers[GRB_ENV_PROBES] = gpuBufferHolders->GetOrCreate<EnvProbeShaderData, GpuBufferType::STORAGE_BUFFER>(1 << 3, /* cpuAccessible */ false);
     gpuBuffers.buffers[GRB_ENV_GRIDS] = gpuBufferHolders->GetOrCreate<EnvGridShaderData, GpuBufferType::CONSTANT_BUFFER>(1 << 3, /* cpuAccessible */ true);
     gpuBuffers.buffers[GRB_LIGHTMAP_VOLUMES] = gpuBufferHolders->GetOrCreate<LightmapVolumeShaderData, GpuBufferType::STORAGE_BUFFER>(1 << 3, /* cpuAccessible */ false);
+
+    crashHandler->Initialize();
 
     resources = PoolNew<ResourceContainer>(*g_renderPool);
 
@@ -1119,6 +1123,9 @@ void RenderInterface::Shutdown()
     PoolDelete(*g_renderPool, rayTracingPipelineCache);
     rayTracingPipelineCache = nullptr;
     
+    PoolDelete(*g_renderPool, crashHandler);
+    crashHandler = nullptr;
+
     DeletionQueue::GetInstance().Flush();
 }
 
@@ -1176,26 +1183,6 @@ void RenderInterface::BeginFrame(AtomicFlag* pCancelFlag)
 
         bufferedViewData.viewData->lastUsedFrame = GetFrameCounter();
     }
-
-    // ensure ViewData and render-side owned lists exists
-    //for (auto& it : bufferedData.perViewData)
-    //{
-    //    View* view = it.first;
-    //    BufferedViewData& bufferedViewData = *it.second;
-
-    //    if (!bufferedViewData.viewData)
-    //    {
-    //        bufferedViewData.viewData = GetViewData(view, /* createIfNotExist */ true);
-    //        AssertDebug(bufferedViewData.viewData != nullptr);
-
-    //        bufferedViewData.viewData->AddRef();
-
-    //        AssertDebug(bufferedViewData.rplShared != nullptr);
-
-    //        bufferedData.ownedLists.PushBack(&bufferedViewData.viewData->rplRender);
-    //        bufferedData.sharedLists.PushBack(bufferedViewData.rplShared);
-    //    }
-    //}
 
     // copy deps to render side owned lists
     AssertDebug(bufferedData.ownedLists.Size() == bufferedData.sharedLists.Size());

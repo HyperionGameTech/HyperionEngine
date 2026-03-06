@@ -25,6 +25,7 @@
 #include <rendering/RenderInterface.hpp>
 #include <rendering/FinalPass.hpp>
 #include <rendering/Bindless.hpp>
+#include <rendering/CrashHandler.hpp>
 
 #include <Core/containers/SparsePagedArray.hpp>
 
@@ -41,7 +42,7 @@
                                                     \
         if (!(_result))                             \
         {                                           \
-            m_crashHandler.HandleGPUCrash(_result); \
+            crashHandler->Dump();                   \
                                                     \
             HYP_UNREACHABLE();                      \
         }                                           \
@@ -666,8 +667,6 @@ RendererResult VulkanRenderInterface::Initialize()
     VulkanDynamicFunctions::Load(m_instance->GetDevice());
 
     m_renderConfig->Initialize(this);
-
-    m_crashHandler.Initialize();
 
     CheckResultOrReturn(m_descriptorSetManager->Create(m_instance->GetDevice()));
 

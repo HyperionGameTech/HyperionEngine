@@ -440,7 +440,10 @@ void Baker<LightmapVolume>::Build()
     m_lightmapElementId = lightmapElement.id;
     AssertDebug(m_lightmapElementId != InvalidLightmapElementId);
 
-    BakerBase::DispatchJobs();
+    if (!m_config.onlyGenerateUVs)
+    {
+        BakerBase::DispatchJobs();
+    }
 }
 
 void Baker<LightmapVolume>::OnCompleted_Internal()

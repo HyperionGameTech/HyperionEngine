@@ -133,7 +133,7 @@ class HYP_API View final : public ObjectBase
 public:
     View();
 
-    explicit View(const ViewDesc& viewDesc);
+    explicit View(const ViewDesc& viewDesc, Name name = Name::Invalid());
 
     View(const View& other) = delete;
     View& operator=(const View& other) = delete;
@@ -146,6 +146,16 @@ public:
     HYP_FORCE_INLINE const ViewDesc& GetViewDesc() const
     {
         return m_viewDesc;
+    }
+
+    HYP_FORCE_INLINE Name GetName() const
+    {
+        return m_name;
+    }
+
+    HYP_FORCE_INLINE void SetName(Name name)
+    {
+        m_name = name;
     }
 
     HYP_FORCE_INLINE EnumFlags<ViewFlags> GetFlags() const
@@ -246,6 +256,8 @@ protected:
     void CollectMeshEntities(RenderProxyList& rpl);
 
     ViewDesc m_viewDesc;
+
+    Name m_name;
 
     EnumFlags<ViewFlags> m_flags;
 

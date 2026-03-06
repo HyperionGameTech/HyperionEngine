@@ -8,7 +8,7 @@
     }
   },
   "Logging": {
-    "Verbose": true
+    "Verbose": false
   },
   "Rendering": {
     "RayTracing": {
@@ -84,12 +84,12 @@
     }
   },
   "Lightmapper": {
+    "OnlyGenerateUVs": false,
     "Radiance": true,
     "Irradiance": true,
     "NumSamples": 8,
     "MaxTexelsPerFrame": 100000,
     "IdealTrianglesPerJob": 16000,
-    "TraceMode": 0,
     "NumThreadsPerJob": 4
   },
   "System": {

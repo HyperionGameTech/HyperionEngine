@@ -162,6 +162,10 @@ public:
         return m_attachmentMap;
     }
 
+#if HYP_DEBUG_MODE
+    void SetDebugName(Name name) override;
+#endif
+
     VulkanAttachment* AddAttachment(VulkanAttachment* attachment) override;
 
     VulkanAttachment* AddAttachment(uint32 binding, const AttachmentDesc& desc) override;
@@ -175,7 +179,7 @@ public:
     {
         return int(m_attachmentMap.Size());
     }
-
+    
     bool IsCreated() const override;
 
     RendererResult Create() override;
@@ -183,7 +187,7 @@ public:
     void BeginCapture(VulkanCommandBuffer* commandBuffer) override;
     void EndCapture(VulkanCommandBuffer* commandBuffer) override;
 
-    void Clear(VulkanCommandBuffer* commandBuffer) override;
+    void Clear(VulkanCommandBuffer* commandBuffer, uint8 attachmentsMask = uint8(-1)) override;
 
 private:
     VkFramebuffer m_handle;

@@ -278,7 +278,7 @@ void DX12Framebuffer::EndCapture(DX12CommandBuffer* commandBuffer)
     // @TODO: Remember the transition is not implicit like vulkan with renderpass
 }
 
-void DX12Framebuffer::Clear(DX12CommandBuffer* commandBuffer)
+void DX12Framebuffer::Clear(DX12CommandBuffer* commandBuffer, uint8 attachmentsMask)
 {
     // @TODO
 }

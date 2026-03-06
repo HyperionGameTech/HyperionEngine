@@ -89,7 +89,7 @@ static inline void ValidateDynamicOffset(
 
 static inline void PopulateDynamicOffsets(
     const DescriptorSetLayout& layout,
-    const HashMap<Name, DescriptorSetElement>& elements,
+    const DescriptorSet::ElementsMap& elements,
     const DescriptorSetOffsetMap& offsets,
     uint32* outDynamicOffsets,
     uint32& outNumDynamicOffsets)

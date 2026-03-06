@@ -15,7 +15,7 @@ public:
     ~CrashHandler();
 
     void Initialize();
-    void HandleGPUCrash(RendererResult result);
+    void Dump();
 
 private:
     bool m_isInitialized;

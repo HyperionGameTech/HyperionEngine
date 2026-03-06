@@ -248,6 +248,7 @@ void UIRenderer::RenderFrame(Frame* frame, const RenderSetup& renderSetup)
 
     RenderSetup rs = renderSetup.Fork();
     rs.view = m_view.Get();
+    rs.viewport = Viewport { m_view->GetViewDesc().renderTargetDesc.extent };
     rs.passData = pd;
     
     Framebuffer* framebuffer = rs.framebuffer;
