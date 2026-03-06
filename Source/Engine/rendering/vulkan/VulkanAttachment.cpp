@@ -47,7 +47,7 @@ VulkanAttachment::~VulkanAttachment()
 
 bool VulkanAttachment::IsCreated() const
 {
-    return m_imageView != nullptr && m_imageView->IsCreated();
+    return Texture::IsCreated() && m_imageView != nullptr && m_imageView->IsCreated();
 }
 
 RendererResult VulkanAttachment::Create()

@@ -41,8 +41,6 @@ public:
     Texture& operator=(Texture&& other) noexcept = delete;
 
     ~Texture() override;
-    
-    RendererResult void Create();
 
     HYP_METHOD()
     virtual Result Rename(Name name) override;
@@ -123,6 +121,9 @@ public:
     }
 
     void SetImageData(ConstByteView imageData);
+    
+    virtual RendererResult Create();
+    virtual bool IsCreated() const;
 
     static void GenerateMipmaps(TextureDesc& desc, ByteBuffer& imageData);
 
@@ -140,6 +141,11 @@ public:
     Vec4f SampleCube(Vec3f direction);
 
 protected:
+    void OnLoaded() override
+    {
+        CheckResult(Create());
+    }
+
     void PageBlobData() override;
     void UnpageBlobData() override;
 
@@ -158,7 +164,10 @@ protected:
     GpuImageRef m_gpuImage;
 
 private:
-    void Init() override = delete;
+    void Init() override
+    {
+        AssetObject::Init();
+    };
 };
 
 } // namespace Hyperion

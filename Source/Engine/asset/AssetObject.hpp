@@ -192,7 +192,7 @@ public:
         const UTF8StringView& path,
         AddAssetConflictMode conflictMode = AddAssetConflictMode::Default);
         
-    virtual void Init()
+    virtual void Init() override
     {
         SetReady(true);
     }

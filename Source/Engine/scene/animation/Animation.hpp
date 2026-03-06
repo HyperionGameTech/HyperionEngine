@@ -69,8 +69,6 @@ public:
 
     HYP_METHOD()
     Keyframe GetKeyframe(float time) const;
-    
-    void Init() override;
 
 protected:
     void PageBlobData() override;

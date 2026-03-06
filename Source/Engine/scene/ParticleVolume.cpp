@@ -40,7 +40,10 @@ void ParticleVolume::Init()
 {
     VolumeBase::Init();
 
-    InitObject(m_params.texture);
+    if (m_params.texture.IsValid())
+    {
+        CheckResult(m_params.texture->Create());
+    }
 
     SetReady(true);
 }

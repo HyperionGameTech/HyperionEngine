@@ -249,7 +249,7 @@ void SSRPass::UpdatePipelineState(Frame* frame, const RenderSetup& renderSetup)
             IU_ATTACHMENT | IU_SAMPLED });
 
         m_uvsTexture->SetName(NAME("SSRTexture_UVs"));
-        InitObject(m_uvsTexture);
+        CheckResult(m_uvsTexture->Create());
 
         m_sampledResultTexture = MakeHandle<Texture>(TextureDesc {
             TextureType::Texture2D,
@@ -263,7 +263,7 @@ void SSRPass::UpdatePipelineState(Frame* frame, const RenderSetup& renderSetup)
         });
 
         m_sampledResultTexture->SetName(NAME("SSRTexture_SampledResult"));
-        InitObject(m_sampledResultTexture);
+        CheckResult(m_sampledResultTexture->Create());
 
         // Create temporal blending
         if (UseTemporalBlending)

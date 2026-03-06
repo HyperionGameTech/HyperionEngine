@@ -98,9 +98,8 @@ public:
         return m_framebuffer;
     }
 
-    virtual bool IsCreated() const = 0;
-
-    RendererResult Create() override;
+    virtual bool IsCreated() const override = 0;
+    RendererResult Create() override = 0;
 
 protected:
     AttachmentBase(

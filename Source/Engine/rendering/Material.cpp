@@ -224,6 +224,13 @@ void Material::Init()
     {
         Pair<MaterialTextureKey, Handle<Texture>&> keyValue = m_textures.KeyValueAt(i);
 
+        const Handle<Texture>& texture = keyValue.second;
+
+        if (!texture.IsValid())
+        {
+            continue;
+        }
+
         CheckResult(keyValue.second->Create());
     }
 

@@ -352,8 +352,6 @@ void VulkanGpuBuffer::CopyFrom(
 
 RendererResult VulkanGpuBuffer::Create()
 {
-    AssertOnThread(g_renderThread);
-
     if (IsCreated())
     {
         // already created
@@ -425,8 +423,6 @@ RendererResult VulkanGpuBuffer::EnsureCapacity(
     size_t alignment,
     bool* outSizeChanged)
 {
-    AssertOnThread(g_renderThread);
-
     if (minimumSize == 0)
     {
         return {};

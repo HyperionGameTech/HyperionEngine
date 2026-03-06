@@ -52,13 +52,11 @@ const FixedArray<Pair<Vec3f, Vec3f>, 6> Texture::s_cubemapDirections = {
 
 static const Name s_nameTextureDefault = NAME("<unnamed texture>");
 
-
-
 static bool CheckImageData(Texture& texture, GpuImage& image)
 {
     ConstByteView imageData = texture.GetImageData();
 
-    if (!imageData)
+    if (!imageData.Data())
     {
         HYP_LOG(Streaming, Error, "No image data for texture");
 
@@ -91,7 +89,7 @@ static bool CheckImageData(Texture& texture, GpuImage& image)
 
 static RendererResult CreateGpuImage(Texture& texture, GpuImage& image, ResourceState initialState, bool uploadTextureData)
 {
-    Assert(image.Create());
+    CheckResultOrReturn(image.Create());
 
     if (uploadTextureData)
     {
@@ -159,6 +157,8 @@ static RendererResult CreateGpuImage(Texture& texture, GpuImage& image, Resource
             }
         }
 
+        // @TODO use staging buffer pool. change staging buffer pool to use GetFrameCounter(), make it thread-safe.
+        // should recycle same way constants allocator recycles blocks etc.
         GpuBufferRef stagingBuffer = g_renderInterface->MakeGpuBuffer(GpuBufferType::STAGING_BUFFER, imageData.Size());
 #if HYP_DEBUG_MODE
         stagingBuffer->SetDebugName(NAME_FMT("Texture_StagingBuffer_{}", texture.GetName().IsValid() ? texture.GetName() : NAME("Invalid")));
@@ -171,6 +171,7 @@ static RendererResult CreateGpuImage(Texture& texture, GpuImage& image, Resource
 
         Frame* frame = g_renderInterface->GetCurrentFrame();
 
+        // @FIXME : Not thread-safe. Need thread local render queues and submit them to a ring buffer.
         RenderQueue& renderQueue = frame->preRenderQueue;
 
         renderQueue << InsertBarrier(&image, RS_COPY_DST);
@@ -289,30 +290,56 @@ Texture::~Texture()
 
 RendererResult Texture::Create()
 {
-    auto writeLock = GetWriteScope();
+    auto readScope = GetReadScope();
+
     const bool uploadTextureData = GetImageData().Size() > 0;
     
     if (!m_gpuImage.IsValid())
     {
-        m_gpuImage = g_renderInterface->MakeImage(GetTextureDesc());
+        GpuImageRef gpuImage = g_renderInterface->MakeImage(GetTextureDesc());
     
 #if HYP_DEBUG_MODE
         if (m_name.IsValid())
         {
-            m_gpuImage->SetDebugName(m_name);
+            gpuImage->SetDebugName(m_name);
         }
 #endif
 
-        CheckResultOrReturn(CreateGpuImage(*this, *m_gpuImage, RS_SHADER_RESOURCE, uploadTextureData));
+        CheckResultOrReturn(CreateGpuImage(*this, *gpuImage, RS_SHADER_RESOURCE, uploadTextureData));
+
+        // done with image data
+        readScope.Reset();
+
+        auto writeScope = GetWriteScope();
+
+        if (m_gpuImage.IsValid())
+        {
+            // another thread set the gpu image
+            gpuImage.Reset();
+            return {};
+        }
+
+        m_gpuImage = std::move(gpuImage);
+
+        return {};
     }
-    else if (!m_gpuImage->IsCreated())
+
+    readScope.Reset();
+    
+    auto writeScope = GetWriteScope();
+    
+    if (!m_gpuImage->IsCreated())
     {
         CheckResultOrReturn(m_gpuImage->Create());
     }
 
-    SetReady(true);
-
     return {};
+}
+
+bool Texture::IsCreated() const
+{
+    return m_gpuImage.IsValid()
+        && m_gpuImage->IsCreated();
 }
 
 Result Texture::Rename(Name name)

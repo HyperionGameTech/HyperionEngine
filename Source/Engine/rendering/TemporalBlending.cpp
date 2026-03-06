@@ -204,7 +204,7 @@ void TemporalBlending::CreateImages()
     });
 
     m_resultTexture->SetName(NAME("TemporalBlendingResult"));
-    InitObject(m_resultTexture);
+    CheckResult(m_resultTexture->Create());
 
     m_historyTexture = MakeHandle<Texture>(TextureDesc {
         TextureType::Texture2D,
@@ -218,7 +218,7 @@ void TemporalBlending::CreateImages()
     });
 
     m_historyTexture->SetName(NAME("TemporalBlendingHistory"));
-    InitObject(m_historyTexture);
+    CheckResult(m_historyTexture->Create());
 }
 
 void TemporalBlending::Render(Frame* frame, const RenderSetup& renderSetup)

@@ -268,7 +268,7 @@ void DeferredPass::Create()
             ltcMatrixData.ToByteView());
 
         m_ltcMatrixTexture->SetName(NAME("LTC_Matrix"));
-        InitObject(m_ltcMatrixTexture);
+        CheckResult(m_ltcMatrixTexture->Create());
 
         ByteBuffer ltcBrdfData(sizeof(s_ltcBrdf), s_ltcBrdf);
 
@@ -284,7 +284,7 @@ void DeferredPass::Create()
             ltcBrdfData.ToByteView());
 
         m_ltcBrdfTexture->SetName(NAME("LTC_BRDF"));
-        InitObject(m_ltcBrdfTexture);
+        CheckResult(m_ltcBrdfTexture->Create());
     }
 }
 
@@ -1390,7 +1390,7 @@ PassData* DeferredRenderer::CreateViewPassData(View* view, PassDataExt&)
             TWM_CLAMP_TO_EDGE
         });
 
-        InitObject(passData.mipChain);
+        CheckResult(passData.mipChain->Create());
 
         if (!m_rendererConfig.ssaoEnabled && (m_rendererConfig.hbaoEnabled || m_rendererConfig.hbilEnabled))
         {

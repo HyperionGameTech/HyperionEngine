@@ -78,7 +78,7 @@ void TAAPass::CreateTextures()
     });
 
     m_resultTexture->SetName(NAME("TAA_ResultTexture"));
-    InitObject(m_resultTexture);
+    CheckResult(m_resultTexture->Create());
 
     m_historyTexture = MakeHandle<Texture>(TextureDesc {
         TextureType::Texture2D,
@@ -92,7 +92,7 @@ void TAAPass::CreateTextures()
     });
 
     m_historyTexture->SetName(NAME("TAA_HistoryTexture"));
-    InitObject(m_historyTexture);
+    CheckResult(m_historyTexture->Create());
 }
 
 void TAAPass::Render(Frame* frame, const RenderSetup& renderSetup)
