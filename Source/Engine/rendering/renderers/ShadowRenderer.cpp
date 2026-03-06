@@ -362,7 +362,7 @@ void ShadowRendererBase::RenderFrame(Frame* frame, const RenderSetup& renderSetu
 
             Attachment* attachment = framebuffer->GetAttachment(0);
 
-            GpuImage* resultImage = attachment->GetImage();
+            GpuImage* resultImage = attachment->GetGpuImage();
             Assert(resultImage != nullptr);
 
             // transition to render target before rendering
@@ -384,7 +384,7 @@ void ShadowRendererBase::RenderFrame(Frame* frame, const RenderSetup& renderSetu
             if (!shouldCombineShadowMaps)
             {
                 // blit directly into final result
-                GpuImage* srcImage = framebuffer->GetAttachment(0)->GetImage();
+                GpuImage* srcImage = framebuffer->GetAttachment(0)->GetGpuImage();
                 Assert(srcImage != nullptr);
 
                 const uint16 numLayers = srcImage->NumArrayLayers();
@@ -470,7 +470,7 @@ void ShadowRendererBase::RenderFrame(Frame* frame, const RenderSetup& renderSetu
             AttachmentBase* attachment = combineShadowMapsPass->GetFramebuffer()->GetAttachment(0);
             Assert(attachment != nullptr);
 
-            GpuImage* combineResultImage = attachment->GetImage();
+            GpuImage* combineResultImage = attachment->GetGpuImage();
             Assert(combineResultImage != nullptr);
 
             // Copy combined shadow map to the final shadow map

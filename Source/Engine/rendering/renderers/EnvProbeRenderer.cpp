@@ -217,7 +217,7 @@ void ReflectionProbeRenderer::RenderProbe(Frame* frame, const RenderSetup& rende
     const FramebufferRef& framebuffer = outputTarget.GetFramebuffer();
     AssertDebug(framebuffer.IsValid());
 
-    const GpuImageRef& framebufferImage = framebuffer->GetAttachment(0)->GetImage();
+    const GpuImageRef& framebufferImage = framebuffer->GetAttachment(0)->GetGpuImage();
 
     if (envProbe->ShouldComputePrefilteredEnvMap())
     {
@@ -289,7 +289,7 @@ void ReflectionProbeRenderer::ComputePrefilteredEnvMap(Frame* frame, const Rende
 
     ConvolveProbeUniforms uniforms {};
     uniforms.outImageDimensions = Vec2u::Zero(); // set for each mip pass
-    uniforms.inImageDimensions = colorAttachment->GetImage()->GetExtent().GetXY();
+    uniforms.inImageDimensions = colorAttachment->GetExtent().GetXY();
     uniforms.worldPosition = envProbeProxy->bufferData.worldPosition;
 
     const Vec2u extent = prefilteredEnvMap->GetExtent().GetXY();
@@ -485,7 +485,7 @@ void ReflectionProbeRenderer::ComputeSH(Frame* frame, const RenderSetup& renderS
         AssertDebug(skyProbe->IsA<SkyProbe>());
     }
 
-    const Vec2u cubemapDimensions = colorAttachment->GetImage()->GetExtent().GetXY();
+    const Vec2u cubemapDimensions = colorAttachment->GetExtent().GetXY();
 
     struct SHUniforms
     {

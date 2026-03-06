@@ -25,13 +25,13 @@ namespace Hyperion {
 
 extern VulkanRenderInterface* g_renderInterface;
 
-static void TransitionFramebufferAttachments(RenderQueue& renderQueue, VulkanFramebuffer* framebuffer, Span<VulkanAttachmentDef*> attachmentDefs)
+static void TransitionFramebufferAttachments(RenderQueue& renderQueue, VulkanFramebuffer* framebuffer, Span<VulkanAttachment*> attachments)
 {
     Assert(framebuffer != nullptr);
 
-    for (const VulkanAttachmentDef* attachmentDef : attachmentDefs)
+    for (VulkanAttachment* attachment : attachments)
     {
-        const VulkanGpuImageRef& image = attachmentDef->image;
+        const VulkanGpuImageRef& image = attachment->GetGpuImage();
         Assert(image.IsValid());
 
         switch (framebuffer->GetRenderTargetDesc().renderPassMode)
@@ -59,40 +59,39 @@ RendererResult VulkanAttachmentMap::Create()
         return HYP_MAKE_ERROR(RendererError, "Framebuffer is not valid");
     }
 
-    Array<VulkanAttachmentDef*> attachmentDefs;
+    Array<VulkanAttachment*, VulkanTempAllocator> attachments;
+    attachments.Reserve(this->attachments.Size());
 
-    for (KeyValuePair<uint32, VulkanAttachmentDef>& it : attachments)
+    for (KeyValuePair<uint32, VulkanAttachment*>& pair : this->attachments)
     {
-        VulkanAttachmentDef& def = it.second;
+        VulkanAttachment* attachment = pair.second;
 
-        Assert(def.image.IsValid());
+        Assert(attachment->GetGpuImage().IsValid());
 
-        if (!def.image->IsCreated())
+        if (!attachment->GetGpuImage()->IsCreated())
         {
 #if HYP_DEBUG_MODE
-            if (!def.image->GetDebugName().IsValid())
+            if (!attachment->GetGpuImage()->GetDebugName().IsValid())
             {
                 if (framebuffer->GetDebugName().IsValid())
                 {
-                    def.image->SetDebugName(NAME_FMT("{}_Target{}", framebuffer->GetDebugName(), it.first));
+                    attachment->GetGpuImage()->SetDebugName(NAME_FMT("{}_Target{}", framebuffer->GetDebugName(), pair.first));
                 }
                 else
                 {
-                    def.image->SetDebugName(NAME_FMT("{}_Target{}", framebuffer->Id(), it.first));
+                    attachment->GetGpuImage()->SetDebugName(NAME_FMT("{}_Target{}", framebuffer->Id(), pair.first));
                 }
             }
 #endif
 
-            CheckResultOrReturn(def.image->Create());
+            CheckResultOrReturn(attachment->GetGpuImage()->Create());
         }
 
-        attachmentDefs.PushBack(&def);
+        attachments.PushBack(attachment);
 
-        Assert(def.attachment != nullptr);
-
-        if (!def.attachment->IsCreated())
+        if (!attachment->IsCreated())
         {
-            CheckResultOrReturn(def.attachment->Create());
+            CheckResultOrReturn(attachment->Create());
         }
     }
 
@@ -100,7 +99,7 @@ RendererResult VulkanAttachmentMap::Create()
 
     singleTimeCommands->Push([&](RenderQueue& renderQueue) -> RendererResult
         {
-            TransitionFramebufferAttachments(renderQueue, framebuffer, attachmentDefs.ToSpan());
+            TransitionFramebufferAttachments(renderQueue, framebuffer, attachments.ToSpan());
 
             return {};
         });
@@ -157,10 +156,10 @@ RendererResult VulkanFramebuffer::Create()
 
     for (const auto& it : m_attachmentMap.attachments)
     {
-        const VulkanAttachmentDef& def = it.second;
+        VulkanAttachment* attachment = it.second;
+        Assert(attachment != nullptr);
 
-        Assert(def.attachment != nullptr);
-        m_renderTargetDesc.AddAttachment(def.attachment->GetAttachmentDesc());
+        m_renderTargetDesc.AddAttachment(attachment->GetAttachmentDesc());
     }
 
     m_renderPass = VulkanRenderPass(m_renderTargetDesc);
@@ -174,7 +173,7 @@ RendererResult VulkanFramebuffer::Create()
 
     for (const auto& it : m_attachmentMap.attachments)
     {
-        VulkanAttachment* attachment = it.second.attachment;
+        VulkanAttachment* attachment = it.second;
         Assert(attachment != nullptr);
 
         if (attachment->GetLoadOperation() == LoadOperation::LOAD)
@@ -282,7 +281,7 @@ bool VulkanFramebuffer::RemoveAttachment(uint32 binding)
         return false;
     }
 
-    Attachment* attachment = it->second.attachment;
+    VulkanAttachment* attachment = it->second;
     AssertDebug(attachment != nullptr);
 
     attachment->Release();
@@ -340,12 +339,12 @@ void VulkanFramebuffer::Clear(VulkanCommandBuffer* commandBuffer, uint8 attachme
         if (attachmentsMask != uint8(-1) && !(attachmentsMask & (1u << binding)))
             continue; // skip target
 
-        VulkanAttachment* attachment = it.second.attachment;
+        VulkanAttachment* attachment = it.second;
         Assert(attachment != nullptr && attachment->IsCreated());
 
-        Assert(attachment->GetImage().IsValid());
+        Assert(attachment->GetGpuImage().IsValid());
 
-        VkClearAttachment clearAttachment = {};
+        VkClearAttachment clearAttachment {};
 
         VkClearRect clearRect = {};
         clearRect.rect.offset.x = 0;

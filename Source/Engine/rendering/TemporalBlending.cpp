@@ -241,7 +241,7 @@ void TemporalBlending::Render(Frame* frame, const RenderSetup& renderSetup)
 
     const Vec3u& extent = activeTexture->GetExtent();
 
-    const Vec3u depthTextureDimensions = m_gbuffer->GetBucket(RenderBucket::Opaque).GetGBufferAttachment(GTN_DEPTH)->GetImage()->GetExtent();
+    const Vec3u depthTextureDimensions = m_gbuffer->GetBucket(RenderBucket::Opaque).GetGBufferAttachment(GTN_DEPTH)->GetGpuImage()->GetExtent();
 
     GpuBufferRef& cBuffer = m_cBuffers[frame->GetFrameIndex()];
 

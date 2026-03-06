@@ -195,7 +195,7 @@ void VulkanFrame::ResetTransientStates()
                 continue;
             }
 
-            const ResourceState currentState = attachment->GetImage()->GetResourceState();
+            const ResourceState currentState = attachment->GetGpuImage()->GetResourceState();
         }
     }
 #endif

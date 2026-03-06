@@ -3,7 +3,6 @@
 #include <RenderingPch.hpp>
 
 #include <rendering/Attachment.hpp>
-#include <rendering/Texture.hpp>
 
 #include <Attachment.generated.inl>
 

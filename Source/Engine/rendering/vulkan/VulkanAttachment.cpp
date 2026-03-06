@@ -29,7 +29,7 @@ VulkanAttachment::VulkanAttachment(
       m_vkAttachmentReference {},
       m_vkAttachmentDescription {}
 {
-    Assert(m_image.IsValid());
+    Assert(m_gpuImage.IsValid());
 
     if (!m_imageView.IsValid())
     {
@@ -42,7 +42,6 @@ VulkanAttachment::VulkanAttachment(
 
 VulkanAttachment::~VulkanAttachment()
 {
-    m_image.Reset();
     m_imageView.Reset();
 }
 
@@ -53,7 +52,7 @@ bool VulkanAttachment::IsCreated() const
 
 RendererResult VulkanAttachment::Create()
 {
-    Assert(m_image != nullptr && m_imageView != nullptr);
+    Assert(m_gpuImage != nullptr && m_imageView != nullptr);
 
     m_vkAttachmentDescription = ToVkAttachmentDescription(m_attachmentDesc, m_renderPassMode);
 
@@ -67,9 +66,9 @@ RendererResult VulkanAttachment::Create()
         m_attachmentDesc.onlyDepth,
         m_attachmentDesc.onlyStencil);
 
-    if (!m_image->IsCreated())
+    if (!m_gpuImage->IsCreated())
     {
-        CheckResultOrReturn(m_image->Create());
+        CheckResultOrReturn(m_gpuImage->Create());
     }
 
     return m_imageView->Create();

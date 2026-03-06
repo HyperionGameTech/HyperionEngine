@@ -207,7 +207,7 @@ FramebufferRef GBuffer::CreateFramebuffer(const FramebufferRef& parentFramebuffe
         return framebuffer->AddAttachment(
             binding,
             newDesc,
-            g_renderInterface->MakeImageView(parentAttachment->GetImage()));
+            g_renderInterface->MakeImageView(parentAttachment->GetGpuImage()));
     };
 
     // add gbuffer attachments

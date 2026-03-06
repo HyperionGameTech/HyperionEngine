@@ -11,13 +11,13 @@
 #include <Core/reflection/Handle.hpp>
 
 #include <rendering/RenderObject.hpp>
+#include <rendering/Texture.hpp>
 #include <rendering/Shared.hpp>
-#include <rendering/GpuImage.hpp>
 
 namespace Hyperion {
 
 HYP_CLASS(Abstract, NoScriptBindings)
-class AttachmentBase : public ObjectBase
+class AttachmentBase : public Texture
 {
     HYP_OBJECT_BODY(AttachmentBase);
 
@@ -26,24 +26,14 @@ public:
     
     static Pool* GetAllocator() { return g_rhiPool; }
 
-    HYP_FORCE_INLINE const GpuImageRef& GetImage() const
-    {
-        return m_image;
-    }
-
     HYP_FORCE_INLINE const GpuImageViewRef& GetImageView() const
     {
         return m_imageView;
     }
 
-    HYP_FORCE_INLINE TextureFormat GetFormat() const
-    {
-        return m_image ? GetImageBase()->GetTextureFormat() : InvalidTextureFormat;
-    }
-
     HYP_FORCE_INLINE bool IsDepthAttachment() const
     {
-        return m_image && GetImageBase()->GetTextureDesc().IsDepthStencil();
+        return GetTextureDesc().IsDepthStencil();
     }
 
     HYP_FORCE_INLINE const AttachmentDesc& GetAttachmentDesc() const
@@ -118,19 +108,14 @@ protected:
         const GpuImageViewRef& imageView, // May be null
         const FramebufferWeakRef& framebuffer,
         const AttachmentDesc& attachmentDesc)
-        : m_image(image),
+        : Texture(),
           m_imageView(imageView),
           m_framebuffer(framebuffer),
           m_attachmentDesc(attachmentDesc)
     {
+        m_gpuImage = image;
     }
 
-    HYP_FORCE_INLINE GpuImageBase* GetImageBase() const
-    {
-        return static_cast<GpuImageBase*>(m_image.ptr);
-    }
-
-    GpuImageRef m_image;
     GpuImageViewRef m_imageView;
 
     FramebufferWeakRef m_framebuffer;

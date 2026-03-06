@@ -496,7 +496,7 @@ void FullScreenPass::CopyResultToPreviousTexture(Frame* frame, const RenderSetup
 
     Assert(m_historyTexture.IsValid());
 
-    const GpuImageRef& srcImage = m_framebuffer->GetAttachment(0)->GetImage();
+    const GpuImageRef& srcImage = m_framebuffer->GetAttachment(0)->GetGpuImage();
     const GpuImageRef& dstImage = m_historyTexture->GetGpuImage();
 
     rq << InsertBarrier(srcImage, RS_COPY_SRC);
@@ -587,7 +587,7 @@ void FullScreenPass::RenderToFramebuffer(Frame* frame, const RenderSetup& render
 
             if (attachment->GetLoadOperation() == LoadOperation::LOAD)
             {
-                preRenderBarriers.PushBack(InsertBarrier(attachment->GetImage(), attachment->IsDepthAttachment() ? RS_DEPTH_STENCIL : RS_RENDER_TARGET));
+                preRenderBarriers.PushBack(InsertBarrier(attachment->GetGpuImage(), attachment->IsDepthAttachment() ? RS_DEPTH_STENCIL : RS_RENDER_TARGET));
             }
         }
     }*/

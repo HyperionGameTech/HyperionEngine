@@ -1308,7 +1308,7 @@ static FramebufferRef CreateDeferredShadingFramebuffer(GBuffer* gbuffer)
     CheckResult(framebuffer->Create());
 
 #if HYP_DEBUG_MODE
-    colorAttachment->GetImage()->SetDebugName(NAME("DeferredShadingTarget_Color"));
+    colorAttachment->GetGpuImage()->SetDebugName(NAME("DeferredShadingTarget_Color"));
 #endif
 
     return framebuffer;
@@ -1982,7 +1982,7 @@ void DeferredRenderer::RenderFrameForView(Frame* frame, const RenderSetup& rs)
 
     { // deferred lighting on opaque objects
         frame->renderQueue << InsertBarrier(
-            passData.deferredShadingFramebuffer->GetAttachment(1)->GetImage(),
+            passData.deferredShadingFramebuffer->GetAttachment(1)->GetGpuImage(),
             RS_RENDER_TARGET,
             ShaderModuleType::Pixel,
             /* onlyDepth */ false,
@@ -2008,7 +2008,7 @@ void DeferredRenderer::RenderFrameForView(Frame* frame, const RenderSetup& rs)
     }
 
     { // generate mipchain after rendering opaque objects' lighting, now we can use it for transmission
-        const GpuImageRef& srcImage = passData.deferredShadingFramebuffer->GetAttachment(0)->GetImage();
+        const GpuImageRef& srcImage = passData.deferredShadingFramebuffer->GetAttachment(0)->GetGpuImage();
         GenerateMipChain(frame, rs, renderCollector, srcImage);
     }
 

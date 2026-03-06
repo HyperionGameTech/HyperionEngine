@@ -29,19 +29,13 @@ enum class RenderPassMode : uint8;
 
 extern Pool* g_vulkanPool;
 
-struct VulkanAttachmentDef
-{
-    VulkanGpuImageRef image;
-    VulkanAttachment* attachment = nullptr;
-};
-
 struct VulkanAttachmentMap
 {
-    using Iterator = typename FlatMap<uint32, VulkanAttachmentDef>::Iterator;
-    using ConstIterator = typename FlatMap<uint32, VulkanAttachmentDef>::ConstIterator;
+    using Iterator = typename FlatMap<uint32, VulkanAttachment*>::Iterator;
+    using ConstIterator = typename FlatMap<uint32, VulkanAttachment*>::ConstIterator;
 
     VulkanFramebufferWeakRef framebufferWeak;
-    FlatMap<uint32, VulkanAttachmentDef> attachments;
+    FlatMap<uint32, VulkanAttachment*> attachments;
 
     ~VulkanAttachmentMap()
     {
@@ -54,7 +48,7 @@ struct VulkanAttachmentMap
     {
         for (auto& it : attachments)
         {
-            Attachment* attachment = it.second.attachment;
+            VulkanAttachment* attachment = it.second;
             if (!attachment)
                 continue;
 
@@ -78,25 +72,20 @@ struct VulkanAttachmentMap
             return nullptr;
         }
 
-        return it->second.attachment;
+        return it->second;
     }
 
     VulkanAttachment* AddAttachment(VulkanAttachment* attachment)
     {
         Assert(attachment != nullptr);
-        Assert(attachment->GetImage().IsValid());
+        Assert(attachment->GetGpuImage() != nullptr);
 
         Assert(attachment->HasBinding(), "Attachment must have a binding");
 
         const uint32 binding = attachment->GetBinding();
         Assert(!attachments.Contains(binding), "Attachment already exists at binding: {}", binding);
 
-        attachments.Set(
-            binding,
-            VulkanAttachmentDef {
-                attachment->GetImage(),
-                attachment
-            });
+        attachments[binding] = attachment;
 
         return attachment;
     }
@@ -125,12 +114,7 @@ struct VulkanAttachmentMap
 
         attachment->SetBinding(binding);
 
-        attachments.Set(
-            binding,
-            VulkanAttachmentDef {
-                image,
-                attachment
-            });
+        attachments[binding] = attachment;
 
         return attachment;
     }

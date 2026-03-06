@@ -320,7 +320,7 @@ void VulkanRenderPass::Begin(VulkanCommandBuffer* cmd, VulkanFramebuffer* frameb
 
         const AttachmentDesc& attachmentDesc = attachment->GetAttachmentDesc();
 
-        VulkanGpuImage* image = attachment->GetImage();
+        VulkanGpuImage* image = attachment->GetGpuImage();
         
         const ImageSubResource& subResource = attachment->GetImageView()->GetImageSubResource();
 
@@ -396,7 +396,7 @@ void VulkanRenderPass::End(VulkanCommandBuffer* cmd)
 
         const ImageSubResource& subResource = attachment->GetImageView()->GetImageSubResource();
 
-        const bool fullSubResource = attachment->GetImage()->IsFullSubResource(subResource);
+        const bool fullSubResource = attachment->GetGpuImage()->IsFullSubResource(subResource);
 
         if (attachment->IsDepthAttachment())
         {
@@ -404,7 +404,7 @@ void VulkanRenderPass::End(VulkanCommandBuffer* cmd)
             {
                 AssertDebug(fullSubResource);
 
-                attachment->GetImage()->SetStencilState(newState);
+                attachment->GetGpuImage()->SetStencilState(newState);
 
                 continue;
             }
@@ -413,10 +413,10 @@ void VulkanRenderPass::End(VulkanCommandBuffer* cmd)
             {
                 AssertDebug(fullSubResource);
 
-                const ResourceState stencilState = attachment->GetImage()->GetStencilState();
+                const ResourceState stencilState = attachment->GetGpuImage()->GetStencilState();
 
-                attachment->GetImage()->SetResourceState(newState);
-                attachment->GetImage()->SetStencilState(stencilState);
+                attachment->GetGpuImage()->SetResourceState(newState);
+                attachment->GetGpuImage()->SetStencilState(stencilState);
 
                 continue;
             }
@@ -424,11 +424,11 @@ void VulkanRenderPass::End(VulkanCommandBuffer* cmd)
 
         if (fullSubResource)
         {
-            attachment->GetImage()->SetResourceState(newState);
+            attachment->GetGpuImage()->SetResourceState(newState);
         }
         else
         {
-            attachment->GetImage()->SetSubResourceState(subResource, newState);
+            attachment->GetGpuImage()->SetSubResourceState(subResource, newState);
         }
     }
 

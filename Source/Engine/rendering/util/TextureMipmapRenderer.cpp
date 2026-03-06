@@ -97,7 +97,7 @@ struct RenderTextureMipmapLevelsTask
                 pass->End(frame, NullRenderSetup());
             }
 
-            const GpuImageRef& srcImage = pass->GetAttachment(0)->GetImage();
+            GpuImage* srcImage = pass->GetAttachment(0)->GetGpuImage();
 
             // Blit into mip level
             rq << InsertBarrier(dstImage, RS_COPY_DST, ImageSubResource { .baseMipLevel = mipLevel });

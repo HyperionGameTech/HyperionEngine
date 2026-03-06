@@ -22,7 +22,7 @@
 namespace Hyperion {
 
 HYP_CLASS()
-class HYP_API Texture final : public AssetObject
+class HYP_API Texture : public AssetObject
 {
     HYP_OBJECT_BODY(Texture);
 

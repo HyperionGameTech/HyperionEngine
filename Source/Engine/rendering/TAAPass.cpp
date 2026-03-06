@@ -116,7 +116,7 @@ void TAAPass::Render(Frame* frame, const RenderSetup& renderSetup)
     RenderProxyCamera* cameraProxy = static_cast<RenderProxyCamera*>(GetRenderProxy(renderSetup.view->GetCamera()));
     Assert(cameraProxy != nullptr);
 
-    const Vec3u depthTextureDimensions = m_gbuffer->GetBucket(RenderBucket::Opaque).GetGBufferAttachment(GTN_DEPTH)->GetImage()->GetExtent();
+    const Vec3u depthTextureDimensions = m_gbuffer->GetBucket(RenderBucket::Opaque).GetGBufferAttachment(GTN_DEPTH)->GetGpuImage()->GetExtent();
 
     TAAConstants constants {};
     constants.dimensions = m_extent;
