@@ -83,6 +83,9 @@ struct LightmapperConfig : public ConfigBase<LightmapperConfig>
     HYP_FIELD()
     uint32 idealTrianglesPerJob = 8192;
 
+    HYP_FIELD(Property = "OnlyGenerateUVs", Description = "Skip tracing rays when baking lightmap volumes, only generate atlas UVs and assign to meshes.")
+    bool onlyGenerateUVs = false;
+
     virtual ~LightmapperConfig() override = default;
 
     bool Validate()

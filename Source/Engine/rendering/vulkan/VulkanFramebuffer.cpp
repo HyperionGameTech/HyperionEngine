@@ -72,7 +72,14 @@ RendererResult VulkanAttachmentMap::Create()
 #if HYP_DEBUG_MODE
             if (!def.image->GetDebugName().IsValid())
             {
-                def.image->SetDebugName(NAME_FMT("{}_RT_{}", framebuffer->Id(), it.first));
+                if (framebuffer->GetDebugName().IsValid())
+                {
+                    def.image->SetDebugName(NAME_FMT("{}_Target{}", framebuffer->GetDebugName(), it.first));
+                }
+                else
+                {
+                    def.image->SetDebugName(NAME_FMT("{}_Target{}", framebuffer->Id(), it.first));
+                }
             }
 #endif
 
@@ -209,6 +216,13 @@ RendererResult VulkanFramebuffer::Create()
         }
     }
 
+#if HYP_DEBUG_MODE
+    if (Name debugName = GetDebugName())
+    {
+        SetDebugName(debugName);
+    }
+#endif
+
     // ok
     return {};
 }
@@ -303,9 +317,9 @@ void VulkanFramebuffer::EndCapture(VulkanCommandBuffer* commandBuffer)
     commandBuffer->m_isInRenderPass = false;
 }
 
-void VulkanFramebuffer::Clear(VulkanCommandBuffer* commandBuffer)
+void VulkanFramebuffer::Clear(VulkanCommandBuffer* commandBuffer, uint8 attachmentsMask)
 {
-    if (m_attachmentMap.Size() == 0)
+    if (m_attachmentMap.Size() == 0 || attachmentsMask == 0)
     {
         return; // nothing to clear
     }
@@ -321,6 +335,11 @@ void VulkanFramebuffer::Clear(VulkanCommandBuffer* commandBuffer)
 
     for (const auto& it : m_attachmentMap.attachments)
     {
+        const uint32 binding = it.first;
+
+        if (attachmentsMask != uint8(-1) && !(attachmentsMask & (1u << binding)))
+            continue; // skip target
+
         VulkanAttachment* attachment = it.second.attachment;
         Assert(attachment != nullptr && attachment->IsCreated());
 
@@ -365,6 +384,27 @@ void VulkanFramebuffer::Clear(VulkanCommandBuffer* commandBuffer)
         EndCapture(commandBuffer);
     }
 }
+
+#if HYP_DEBUG_MODE
+void VulkanFramebuffer::SetDebugName(Name name)
+{
+    FramebufferBase::SetDebugName(name);
+
+    if (!IsCreated())
+    {
+        return;
+    }
+
+    const char* strName = name.LookupString();
+
+    VkDebugUtilsObjectNameInfoEXT objectNameInfo { VK_STRUCTURE_TYPE_DEBUG_UTILS_OBJECT_NAME_INFO_EXT };
+    objectNameInfo.objectType = VK_OBJECT_TYPE_FRAMEBUFFER;
+    objectNameInfo.objectHandle = (uint64)m_handle;
+    objectNameInfo.pObjectName = strName;
+
+    g_vulkanDynamicFunctions->vkSetDebugUtilsObjectNameEXT(g_renderInterface->GetDevice()->GetDevice(), &objectNameInfo);
+}
+#endif
 
 #pragma endregion VulkanFramebuffer
 

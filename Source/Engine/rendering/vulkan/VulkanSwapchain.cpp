@@ -13,6 +13,8 @@
 
 #include <rendering/util/DeletionQueue.hpp>
 
+#include <rendering/CrashHandler.hpp>
+
 #include <Core/debug/Debug.hpp>
 
 // for EnumToString
@@ -154,9 +156,11 @@ void VulkanSwapchain::PresentFrame(VulkanFrame* frame, VulkanDeviceQueue* queue)
     {
         Recreate();
     }
-    else
+    else if (result != VK_SUCCESS)
     {
-        Assert(result == VK_SUCCESS, "Failed to present swapchain image: {}", int(result));
+        g_renderInterface->crashHandler->Dump();
+
+        HYP_FAIL("Failed to present swapchain image: {}", int(result));
     }
 }
 

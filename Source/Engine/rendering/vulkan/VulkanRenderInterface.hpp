@@ -13,8 +13,6 @@
 #include <rendering/vulkan/VulkanGpuBuffer.hpp>
 #include <rendering/vulkan/VulkanGpuImage.hpp>
 
-#include <rendering/CrashHandler.hpp>
-
 #include <Core/containers/HashMap.hpp>
 
 #include <Core/memory/RefCountedPtr.hpp>
@@ -199,8 +197,6 @@ private:
     VulkanInstance* m_instance;
 
     Pimpl<VulkanRenderConfig> m_renderConfig;
-
-    CrashHandler m_crashHandler;
 
     Pimpl<VulkanDescriptorSetManager> m_descriptorSetManager;
 

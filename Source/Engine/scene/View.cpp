@@ -139,8 +139,9 @@ View::View()
 {
 }
 
-View::View(const ViewDesc& viewDesc)
+View::View(const ViewDesc& viewDesc, Name name)
     : m_viewDesc(viewDesc),
+      m_name(name),
       m_flags(viewDesc.flags),
       m_camera(MakeStrongRef(viewDesc.camera)),
       m_priority(viewDesc.priority),
@@ -214,6 +215,17 @@ void View::Init()
         else if (m_viewDesc.renderTargetDesc.numAttachments > 0)
         {
             FramebufferRef framebuffer = g_renderInterface->MakeFramebuffer(m_viewDesc.renderTargetDesc);
+
+#if HYP_DEBUG_MODE
+            if (m_name.IsValid())
+            {
+                framebuffer->SetDebugName(NAME_FMT("{}Framebuffer", m_name));
+            }
+            else
+            {
+                framebuffer->SetDebugName(NAME_FMT("{}Framebuffer", Id()));
+            }
+#endif
 
             for (uint32 attachmentIndex = 0; attachmentIndex < m_viewDesc.renderTargetDesc.numAttachments; attachmentIndex++)
             {

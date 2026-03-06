@@ -14,6 +14,8 @@
 #include <scene/EnvProbe.hpp>
 #include <scene/FogVolume.hpp>
 #include <scene/LightmapVolume.hpp>
+#include <scene/World.hpp>
+#include <scene/View.hpp>
 
 #include <Core/threading/TaskSystem.hpp>
 
@@ -55,10 +57,15 @@ void BakerSubsystem::Update(float delta)
 
     for (auto& it : m_bakers)
     {
-        it.second->Update(delta);
+        const ObjectBase* key = it.first;
+        BakerBase* baker = it.second;
 
-        if (it.second->IsComplete())
+        baker->Update(delta);
+
+        if (baker->IsComplete())
         {
+            GetWorld()->RemoveView(baker->GetView());
+
             keysToRemove.PushBack(it.first);
         }
     }
@@ -105,21 +112,23 @@ Task<void> BakerSubsystem::EnqueueBake_Internal(const Handle<T>& source, Args&&.
         return Task<void>();
     }
 
-    Handle<BakerBase> lightmapper = MakeHandle<Baker<T>>(LightmapperConfig::FromConfig(), source, std::forward<Args>(args)...);
-    InitObject(lightmapper);
+    Handle<BakerBase> baker = MakeHandle<Baker<T>>(LightmapperConfig::FromConfig(), source, std::forward<Args>(args)...);
+    InitObject(baker);
 
     Task<void> task;
 
-    lightmapper->OnComplete
+    baker->OnComplete
         .Bind([promise = task.Promise()]()
             {
                 promise->Fulfill();
             })
         .Detach();
 
-    lightmapper->Initialize();
+    baker->Initialize();
 
-    m_bakers.Insert(source.Get(), std::move(lightmapper));
+    GetWorld()->AddView(baker->GetView());
+
+    m_bakers.Insert(source.Get(), std::move(baker));
 
     return task;
 }

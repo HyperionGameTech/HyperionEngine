@@ -230,13 +230,8 @@ void CrashHandler::Initialize()
 #endif
 }
 
-void CrashHandler::HandleGPUCrash(RendererResult result)
+void CrashHandler::Dump()
 {
-    if (result)
-    {
-        return;
-    }
-
 #if defined(HYP_AFTERMATH) && HYP_AFTERMATH
 
     GFSDK_Aftermath_CrashDump_Status status = GFSDK_Aftermath_CrashDump_Status_Unknown;

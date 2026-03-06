@@ -283,7 +283,7 @@ private:
 struct DescriptorSetElement
 {
     Range<uint32> dirtyRange;
-    Array<ObjectBase*> values;
+    Array<ObjectBase*, RHIAllocator> values;
     Bitset occupiedArrayElems;
     uint32 bufferStride = ~0u;
 
@@ -299,6 +299,8 @@ class DescriptorSetBase : public ObjectBase
     HYP_OBJECT_BODY(DescriptorSetBase);
 
 public:
+    using ElementsMap = HashMap<Name, DescriptorSetElement, PooledNodeAllocator<RHIAllocator>>;
+
     virtual ~DescriptorSetBase() override;
     
     static Pool* GetAllocator() { return g_rhiPool; }
@@ -423,7 +425,7 @@ protected:
     }
 
     DescriptorSetLayout m_layout;
-    HashMap<Name, DescriptorSetElement> m_elements;
+    ElementsMap m_elements;
     
 #if HYP_DEBUG_MODE
     Name m_debugName;

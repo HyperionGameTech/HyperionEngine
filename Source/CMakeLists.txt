@@ -533,6 +533,21 @@ else()
     message(STATUS "DXC headers not found, skipping DXC setup")
 endif()
 
+# if aftermath lib exists on windows, link to it
+if(WIN32)
+    if(EXISTS "${CMAKE_THIRD_PARTY_LIBRARY_DIRECTORY}/${HYP_PLATFORM_NAME}/${HYP_BUILD_TYPE}/GFSDK_Aftermath_Lib.x64.lib")
+        set(COMMON_LIBRARIES ${COMMON_LIBRARIES} "${CMAKE_THIRD_PARTY_LIBRARY_DIRECTORY}/${HYP_PLATFORM_NAME}/${HYP_BUILD_TYPE}/GFSDK_Aftermath_Lib.x64.lib")
+        set(HYP_AFTERMATH 1)
+
+        # copy the dll to the build directory
+        file(COPY "${CMAKE_THIRD_PARTY_LIBRARY_DIRECTORY}/${HYP_PLATFORM_NAME}/${HYP_BUILD_TYPE}/GFSDK_Aftermath_Lib.x64.dll" DESTINATION ${CMAKE_LIBRARY_OUTPUT_DIRECTORY})
+
+        message(STATUS "Aftermath found, linking to it")
+    else()
+        message(WARNING "Aftermath lib not found at ${CMAKE_THIRD_PARTY_LIBRARY_DIRECTORY}/${HYP_PLATFORM_NAME}/${HYP_BUILD_TYPE}/GFSDK_Aftermath_Lib.x64.lib")
+    endif()
+endif()
+
 # setup SPIRV-Reflect
 if(EXISTS "${SUBMODULES_DIR}/SPIRV-Reflect/spirv_reflect.h")
     message(STATUS "SPIRV-Reflect found, setting up SPIRV-Reflect")
@@ -839,21 +854,6 @@ endif()
 # if Win32, link with DbgHelp
 if(WIN32)
     set(COMMON_LIBRARIES ${COMMON_LIBRARIES} DbgHelp)
-endif()
-
-# if aftermath lib exists on windows, link to it
-if(WIN32)
-    if(EXISTS "${CMAKE_THIRD_PARTY_LIBRARY_DIRECTORY}/${HYP_PLATFORM_NAME}/${HYP_BUILD_TYPE}/GFSDK_Aftermath_Lib.x64.lib")
-        set(COMMON_LIBRARIES ${COMMON_LIBRARIES} "${CMAKE_THIRD_PARTY_LIBRARY_DIRECTORY}/${HYP_PLATFORM_NAME}/${HYP_BUILD_TYPE}/GFSDK_Aftermath_Lib.x64.lib")
-        add_definitions(-DHYP_AFTERMATH=1)
-
-        # copy the dll to the build directory
-        file(COPY "${CMAKE_THIRD_PARTY_LIBRARY_DIRECTORY}/${HYP_PLATFORM_NAME}/${HYP_BUILD_TYPE}/GFSDK_Aftermath_Lib.x64.dll" DESTINATION ${CMAKE_LIBRARY_OUTPUT_DIRECTORY})
-
-        message(STATUS "Aftermath found, linking to it")
-    else()
-        message(WARNING "Aftermath lib not found at ${CMAKE_THIRD_PARTY_LIBRARY_DIRECTORY}/${HYP_PLATFORM_NAME}/${HYP_BUILD_TYPE}/GFSDK_Aftermath_Lib.x64.lib")
-    endif()
 endif()
 
 if(NOT IOS)

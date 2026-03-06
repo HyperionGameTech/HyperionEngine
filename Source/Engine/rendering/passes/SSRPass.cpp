@@ -113,7 +113,11 @@ void SSRPass::CreatePasses()
         renderTargetDesc.extent = m_uvsTexture->GetExtent().GetXY();
         renderTargetDesc.numLayers = 1;
 
-        FramebufferRef writeUvsFramebuffer = g_renderInterface->MakeFramebuffer(renderTargetDesc);
+        FramebufferRef writeUVsFramebuffer = g_renderInterface->MakeFramebuffer(renderTargetDesc);
+
+#if HYP_DEBUG_MODE
+        writeUVsFramebuffer->SetDebugName(NAME("SSRWriteUVsFramebuffer"));
+#endif
 
         AttachmentDesc attachmentDesc {};
         attachmentDesc.imageType = TextureType::Texture2D;
@@ -121,18 +125,18 @@ void SSRPass::CreatePasses()
         attachmentDesc.loadOp = LoadOperation::CLEAR;
         attachmentDesc.storeOp = StoreOperation::STORE;
 
-        Attachment* attachment = writeUvsFramebuffer->AddAttachment(
+        Attachment* attachment = writeUVsFramebuffer->AddAttachment(
             0,
             attachmentDesc,
             g_renderInterface->MakeImageView(m_uvsTexture->GetGpuImage()));
 
-        CheckResult(writeUvsFramebuffer->Create());
+        CheckResult(writeUVsFramebuffer->Create());
 
         delete m_writeUvs;
 
         m_writeUvs = new FullScreenPass(
             ShaderDesc(NAME("SSRWriteUVs"), shaderProperties),
-            writeUvsFramebuffer,
+            writeUVsFramebuffer,
             m_uvsTexture->GetFormat(),
             m_uvsTexture->GetExtent().GetXY(),
             nullptr);
@@ -147,7 +151,11 @@ void SSRPass::CreatePasses()
         renderTargetDesc.extent = m_sampledResultTexture->GetExtent().GetXY();
         renderTargetDesc.numLayers = 1;
 
-        FramebufferRef sampleGbufferFramebuffer = g_renderInterface->MakeFramebuffer(renderTargetDesc);
+        FramebufferRef sampleGBufferFramebuffer = g_renderInterface->MakeFramebuffer(renderTargetDesc);
+
+#if HYP_DEBUG_MODE
+        sampleGBufferFramebuffer->SetDebugName(NAME("SSRSampleGBufferFramebuffer"));
+#endif
         
         AttachmentDesc attachmentDesc {};
         attachmentDesc.imageType = TextureType::Texture2D;
@@ -155,18 +163,18 @@ void SSRPass::CreatePasses()
         attachmentDesc.loadOp = LoadOperation::CLEAR;
         attachmentDesc.storeOp = StoreOperation::STORE;
 
-        sampleGbufferFramebuffer->AddAttachment(
+        sampleGBufferFramebuffer->AddAttachment(
             0,
             attachmentDesc,
             g_renderInterface->MakeImageView(m_sampledResultTexture->GetGpuImage()));
 
-        CheckResult(sampleGbufferFramebuffer->Create());
+        CheckResult(sampleGBufferFramebuffer->Create());
 
         delete m_sampleGbuffer;
 
         m_sampleGbuffer = new FullScreenPass(
             ShaderDesc(NAME("SSRSampleGBuffer"), shaderProperties),
-            sampleGbufferFramebuffer,
+            sampleGBufferFramebuffer,
             SSRColorFormat,
             m_sampledResultTexture->GetExtent().GetXY(),
             nullptr);

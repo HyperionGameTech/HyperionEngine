@@ -1276,6 +1276,10 @@ static FramebufferRef CreateDeferredShadingFramebuffer(GBuffer* gbuffer)
 
     FramebufferRef framebuffer = g_renderInterface->MakeFramebuffer(renderTargetDesc);
 
+#if HYP_DEBUG_MODE
+    framebuffer->SetDebugName(NAME("DeferredShadingFramebuffer"));
+#endif
+
     Attachment* colorAttachment = framebuffer->AddAttachment(
         0,
         AttachmentDesc {
@@ -1889,12 +1893,18 @@ void DeferredRenderer::RenderFrameForView(Frame* frame, const RenderSetup& rs)
 
         frame->renderQueue << SetCurrentFramebuffer(nullptr);
     }
-
-    // render lightmap volume objects
+    
+    // render objects to be lightmapped, separate from the opaque objects.
+    // The lightmap bucket's framebuffer has a color attachment that will write into the opaque framebuffer's color attachment.
     if (rpl.GetLightmapVolumes().NumCurrent())
     {
-        // render objects to be lightmapped, separate from the opaque objects.
-        // The lightmap bucket's framebuffer has a color attachment that will write into the opaque framebuffer's color attachment.
+        // if no opaque has been rendered, we need to clear the color target.
+        // otherwise, we'll be using a LOAD operation on a potentially undefined/garbage target.
+        if (renderCollector.mappingsByBucket[uint32(RenderBucket::Opaque)].Empty())
+        {
+            frame->renderQueue << ClearFramebuffer(opaquePassFramebuffer, 0x1);
+        }
+
         frame->renderQueue << SetCurrentFramebuffer(lightmapPassFramebuffer);
 
         ExecuteDrawCalls(frame, rs, renderCollector, RenderBucketMask<RenderBucket::Lightmapped>);

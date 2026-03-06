@@ -348,6 +348,10 @@ void FullScreenPass::CreateFramebuffer()
 
     m_framebuffer = g_renderInterface->MakeFramebuffer(renderTargetDesc);
 
+#if HYP_DEBUG_MODE
+    m_framebuffer->SetDebugName(NAME_FMT("{}Framebuffer", GetName()));
+#endif
+
     Attachment* attachment = m_framebuffer->AddAttachment(
         0,
         AttachmentDesc {

@@ -99,6 +99,10 @@ static inline double GetEstimatedGPUMemUsageForJob(const LightmapperConfig& conf
     return usage;
 }
 
+static void EmptyViewCollectFunction(RenderProxyList&)
+{
+}
+
 #pragma region BakerBase
 
 BakerBase::BakerBase(LightmapperConfig&& config, ObjectBase* source, const Handle<Scene>& scene, const BoundingBox& aabb)
@@ -186,11 +190,15 @@ void BakerBase::Initialize()
         };
 
         m_view = MakeHandle<View>(viewDesc);
+        m_view->SetName(NAME_FMT("{}_View", InstanceClass()->GetName()));
         InitObject(m_view);
 
         m_view->UpdateViewport();
         m_view->UpdateVisibility();
         m_view->CollectSync();
+
+        // don't want to collect again, just keep the view data around until we're done with it.
+        m_view->SetOverrideCollectFunctor(&EmptyViewCollectFunction);
     }
 
     Initialize_Internal();

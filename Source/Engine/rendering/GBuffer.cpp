@@ -178,6 +178,10 @@ FramebufferRef GBuffer::CreateFramebuffer(const FramebufferRef& parentFramebuffe
 
     FramebufferRef framebuffer = g_renderInterface->MakeFramebuffer(renderTargetDesc);
 
+#if HYP_DEBUG_MODE
+    framebuffer->SetDebugName(NAME_FMT("{}Framebuffer", EnumToString(rb)));
+#endif
+
     auto AddOwnedAttachment = [&](uint32 binding, TextureFormat format) -> Attachment*
     {
         return framebuffer->AddAttachment(

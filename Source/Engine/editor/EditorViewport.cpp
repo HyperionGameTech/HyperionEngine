@@ -61,6 +61,7 @@ void EditorViewport::Init()
     viewDesc.camera = m_camera;
 
     m_view = MakeHandle<View>(viewDesc);
+    m_view->SetName(NAME("EditorViewportView"));
     InitObject(m_view);
 
     SetReady(true);

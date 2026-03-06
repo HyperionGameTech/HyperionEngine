@@ -317,7 +317,7 @@ void ClearFramebuffer::InvokeStatic(CmdBase* cmd, CommandBuffer* commandBuffer)
 {
     ClearFramebuffer* cmdCasted = static_cast<ClearFramebuffer*>(cmd);
 
-    cmdCasted->m_framebuffer->Clear(commandBuffer);
+    cmdCasted->framebuffer->Clear(commandBuffer, cmdCasted->attachmentsMask);
 
     static_assert(std::is_trivially_destructible_v<ClearFramebuffer>);
     // cmdCasted->~ClearFramebuffer();

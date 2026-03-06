@@ -163,15 +163,17 @@ private:
 class ClearFramebuffer final : public CmdBase
 {
 public:
-    HYP_API ClearFramebuffer(Framebuffer* framebuffer)
-        : m_framebuffer(framebuffer)
+    explicit ClearFramebuffer(Framebuffer* framebuffer, uint8 attachmentsMask = uint8(-1))
+        : framebuffer(framebuffer),
+          attachmentsMask(attachmentsMask)
     {
     }
 
     static void InvokeStatic(CmdBase* cmd, CommandBuffer* commandBuffer);
 
 private:
-    Framebuffer* m_framebuffer;
+    Framebuffer* framebuffer;
+    uint8 attachmentsMask;
 };
 
 class BindGraphicsPipeline final : public CmdBase
