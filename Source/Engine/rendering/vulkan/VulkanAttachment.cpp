@@ -71,7 +71,9 @@ RendererResult VulkanAttachment::Create()
         CheckResultOrReturn(m_gpuImage->Create());
     }
 
-    return m_imageView->Create();
+    CheckResultOrReturn(m_imageView->Create());
+
+    return Texture::Create();
 }
 
 #pragma endregion VulkanAttachment

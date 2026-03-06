@@ -98,7 +98,7 @@ FontAtlas::FontAtlas(
             continue;
         }
 
-        InitObject(it.second);
+        CheckResult(it.second->Create());
     }
 }
 
@@ -220,7 +220,7 @@ Result FontAtlas::RenderAtlasTextures(float mainAtlasScale, float maxScale, floa
 
         Handle<Texture> atlasTexture = MakeHandle<Texture>(atlasTextureDesc, imageData.ToByteView());
         atlasTexture->SetName(NAME_FMT("FontAtlas_{}", scale));
-        InitObject(atlasTexture);
+        CheckResult(atlasTexture->Create());
 
         // Add initial atlas
         m_atlasTextures.AddAtlas(scaledExtent.y, std::move(atlasTexture), isMainAtlas);

@@ -184,7 +184,10 @@ void EnvProbe::Init()
         }
     }
 
-    InitObject(m_texture);
+    if (m_texture.IsValid())
+    {
+        CheckResult(m_texture->Create());
+    }
 
     SetReady(true);
 }
@@ -527,7 +530,11 @@ void EnvProbe::SetBakedTexture(const Handle<Texture>& texture)
     }
 
     m_texture = texture;
-    InitObject(m_texture);
+    
+    if (m_texture.IsValid())
+    {
+        CheckResult(m_texture->Create());
+    }
 
     SetNeedsRenderProxyUpdate();
 }

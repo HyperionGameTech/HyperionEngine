@@ -224,7 +224,7 @@ void Material::Init()
     {
         Pair<MaterialTextureKey, Handle<Texture>&> keyValue = m_textures.KeyValueAt(i);
 
-        InitObject(keyValue.second);
+        CheckResult(keyValue.second->Create());
     }
 
     m_mutationState |= DataMutationState::DIRTY;
@@ -344,7 +344,7 @@ void Material::SetTexture(MaterialTextureKey key, const Handle<Texture>& texture
 
     if (IsInitCalled())
     {
-        InitObject(texture);
+        CheckResult(texture->Create());
 
         SetNeedsRenderProxyUpdate();
 
@@ -395,7 +395,7 @@ void Material::SetTextures(const MaterialTextures& textures)
                 continue;
             }
 
-            InitObject(m_textures.AtIndex(i));
+            CheckResult(m_textures.AtIndex(i)->Create());
         }
 
         SetNeedsRenderProxyUpdate();

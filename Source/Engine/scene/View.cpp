@@ -194,8 +194,6 @@ View::~View()
 
 void View::Init()
 {
-    ObjectBase::Init();
-
     if (m_camera.IsValid())
     {
         InitObject(m_camera);

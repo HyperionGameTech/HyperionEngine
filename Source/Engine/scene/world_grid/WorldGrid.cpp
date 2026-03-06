@@ -66,8 +66,6 @@ void WorldGrid::Init()
     HYP_SCOPE;
     AssertOnThread(g_simThread);
 
-    ObjectBase::Init();
-
     for (const Handle<WorldGridLayer>& layer : m_layers)
     {
         InitObject(layer);

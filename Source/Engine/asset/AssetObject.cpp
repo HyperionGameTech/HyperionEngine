@@ -79,17 +79,12 @@ AssetObject::AssetObject(Name name)
 
 AssetObject::~AssetObject()
 {
-    // add writer here to wait for all reads to complete and
-    // block new readers/writers from acquiring the resource while we're destroying it.
-    LockWriter(/* doInitialize */ false);
-}
-
-void AssetObject::Init()
-{
-    HYP_SCOPE;
-    ObjectBase::Init();
-
-    SetReady(true);
+    if (!(m_rwState & 0x1)) // check not locked from derived dtor
+    {
+        // add writer here to wait for all reads to complete and
+        // block new readers/writers from acquiring the resource while we're destroying it.
+        LockWriter(/* doInitialize */ false);
+    }
 }
 
 void AssetObject::SetAssetFlags(EnumFlags<AssetObjectFlags> flags)

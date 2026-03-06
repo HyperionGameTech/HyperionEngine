@@ -74,8 +74,6 @@ void EditorProject::Init()
 {
     HYP_SCOPE;
 
-    ObjectBase::Init();
-
     if (Result createPackageResult = CreatePackage(); createPackageResult.HasError())
     {
         HYP_LOG(Editor, Error, "Failed to create asset package for project '{}': {}", m_name.IsValid() ? *m_name : "<unnamed project>", createPackageResult.GetError().GetMessage());

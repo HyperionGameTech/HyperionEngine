@@ -407,7 +407,7 @@ void FullScreenPass::CreateHistoryTexture()
 
     m_historyTexture->SetName(NAME_FMT("{}_FrameHistory", GetName()));
 
-    InitObject(m_historyTexture);
+    CheckResult(m_historyTexture->Create());
 }
 
 void FullScreenPass::CreateMergeCheckerboardPass()

@@ -42,11 +42,6 @@ public:
         return m_rigidBodies;
     }
 
-    virtual void Init() override
-    {
-        ObjectBase::Init();
-    }
-
     virtual void Teardown() = 0;
     virtual void Tick(double delta) = 0;
 

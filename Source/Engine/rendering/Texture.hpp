@@ -41,6 +41,8 @@ public:
     Texture& operator=(Texture&& other) noexcept = delete;
 
     ~Texture() override;
+    
+    RendererResult void Create();
 
     HYP_METHOD()
     virtual Result Rename(Name name) override;
@@ -138,8 +140,6 @@ public:
     Vec4f SampleCube(Vec3f direction);
 
 protected:
-    void Init() override;
-
     void PageBlobData() override;
     void UnpageBlobData() override;
 
@@ -156,6 +156,9 @@ protected:
 
     HYP_FIELD(Transient)
     GpuImageRef m_gpuImage;
+
+private:
+    void Init() override = delete;
 };
 
 } // namespace Hyperion

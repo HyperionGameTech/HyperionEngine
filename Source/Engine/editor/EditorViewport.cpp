@@ -34,8 +34,6 @@ EditorViewport::~EditorViewport()
 
 void EditorViewport::Init()
 {
-    ObjectBase::Init();
-
     if (!m_camera)
     {
         m_camera = MakeHandle<Camera>();

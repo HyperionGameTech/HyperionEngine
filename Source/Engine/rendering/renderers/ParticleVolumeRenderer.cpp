@@ -128,7 +128,7 @@ static void CreateNoiseMap(Handle<Texture>& tex)
     }
 
     tex = MakeHandle<Texture>(textureDesc, noiseMap.ToByteView());
-    InitObject(tex);
+    CheckResult(tex->Create());
 }
 
 ParticleVolumeRenderer::VolumeState& ParticleVolumeRenderer::EnsureVolumeState(RenderProxyParticleVolume* proxy)

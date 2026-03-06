@@ -278,7 +278,7 @@ void RayTracingReflections::CreateImages()
 
     m_texture->SetName(NAME("RayTracingReflectionsTexture"));
 
-    InitObject(m_texture);
+    CheckResult(m_texture->Create());
 }
 
 void RayTracingReflections::CreateTemporalBlending()

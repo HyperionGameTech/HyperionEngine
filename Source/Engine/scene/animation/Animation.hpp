@@ -69,6 +69,8 @@ public:
 
     HYP_METHOD()
     Keyframe GetKeyframe(float time) const;
+    
+    void Init() override;
 
 protected:
     void PageBlobData() override;
@@ -80,8 +82,6 @@ protected:
     }
 
 private:
-    void Init() override;
-
     HYP_FIELD()
     Name m_boneName;
 
@@ -148,10 +148,10 @@ public:
 
     HYP_METHOD()
     void ApplyBlended(Skeleton* skeleton, float time, float blend);
-
-private:
+    
     void Init() override;
 
+private:
     HYP_FIELD(Property = "Name")
     Name m_name;
 

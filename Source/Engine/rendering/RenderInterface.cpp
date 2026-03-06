@@ -2208,7 +2208,7 @@ void RenderInterface::CreateEnvProbesTexture()
     envProbesTexture = MakeHandle<Texture>(textureDesc);
     envProbesTexture->SetName(NAME("EnvProbesTexture"));
     envProbesTexture->SetIsTransient(true);
-    InitObject(envProbesTexture);
+    CheckResult(envProbesTexture->Create());
 }
 
 #pragma endregion RenderInterface

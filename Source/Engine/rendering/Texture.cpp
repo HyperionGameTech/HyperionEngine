@@ -52,246 +52,203 @@ const FixedArray<Pair<Vec3f, Vec3f>, 6> Texture::s_cubemapDirections = {
 
 static const Name s_nameTextureDefault = NAME("<unnamed texture>");
 
-#pragma region Render commands
 
-struct CreateTextureGpuImage : RenderCommand
+
+static bool CheckImageData(Texture& texture, GpuImage& image)
 {
-    Handle<Texture> texture;
-    TSharedLock<AssetObject> resGuard;
-    ResourceState initialState;
-    GpuImageRef image;
-    bool uploadTextureData;
+    ConstByteView imageData = texture.GetImageData();
 
-    CreateTextureGpuImage(
-        Handle<Texture>&& texture,
-        TSharedLock<AssetObject>&& resGuard,
-        ResourceState initialState,
-        GpuImageRef image,
-        bool uploadTextureData)
-        : texture(std::move(texture)),
-          resGuard(std::move(resGuard)),
-          initialState(initialState),
-          image(std::move(image)),
-          uploadTextureData(uploadTextureData)
+    if (!imageData)
     {
-        Assert(this->image.IsValid());
+        HYP_LOG(Streaming, Error, "No image data for texture");
 
-        if (uploadTextureData)
-        {
-            AssertDebug(CheckImageData());
-        }
+        return false;
     }
 
-    virtual ~CreateTextureGpuImage() override = default;
+    const TextureDesc& textureDesc = texture.GetTextureDesc();
 
-    bool CheckImageData() const
+    const uint32 largestMipSize = textureDesc.HasStoredMips()
+        ? textureDesc.mipOffsets[0]
+        : uint32(textureDesc.GetByteSize());
+
+    ConstByteView largestMipData = ConstByteView(imageData.Data(), largestMipSize);
+
+    if (textureDesc != image.GetTextureDesc())
     {
-        if (!texture || !image)
-        {
-            HYP_LOG(Streaming, Error, "Image or texture data is null");
-
-            return false;
-        }
-
-        ConstByteView imageData = texture->GetImageData();
-
-        if (!imageData)
-        {
-            HYP_LOG(Streaming, Error, "No image data for texture");
-
-            return false;
-        }
-
-        const TextureDesc& textureDesc = texture->GetTextureDesc();
-
-        const uint32 largestMipSize = textureDesc.HasStoredMips()
-            ? textureDesc.mipOffsets[0]
-            : uint32(textureDesc.GetByteSize());
-
-        ConstByteView largestMipData = ConstByteView(imageData.Data(), largestMipSize);
-
-        if (textureDesc != image->GetTextureDesc())
-        {
-            HYP_LOG(Streaming, Warning, "Streamed texture data TextureDesc not equal to Image's TextureDesc!");
-        }
-
-        if (largestMipData.Size() != image->GetByteSize())
-        {
-            HYP_LOG(Streaming, Warning, "Streamed texture data buffer size mismatch for texture asset {}! Expected: {}, Got: {}",
-                texture->GetName(), image->GetByteSize(), largestMipData.Size());
-
-            return false;
-        }
-
-        return true;
+        HYP_LOG(Streaming, Warning, "Streamed texture data TextureDesc not equal to Image's TextureDesc!");
     }
 
-    virtual RendererResult operator()() override
+    if (largestMipData.Size() != image.GetByteSize())
     {
-        AssertDebug(!image->IsCreated());
-        Assert(image->Create());
+        HYP_LOG(Streaming, Warning, "Streamed texture data buffer size mismatch for texture asset {}! Expected: {}, Got: {}",
+            texture.GetName(), image.GetByteSize(), largestMipData.Size());
 
-        if (uploadTextureData)
+        return false;
+    }
+
+    return true;
+}
+
+static RendererResult CreateGpuImage(Texture& texture, GpuImage& image, ResourceState initialState, bool uploadTextureData)
+{
+    Assert(image.Create());
+
+    if (uploadTextureData)
+    {
+        ConstByteView imageData = texture.GetImageData();
+
+        const TextureDesc& textureDesc = texture.GetTextureDesc();
+
+        Span<const uint32> mipOffsets = textureDesc.mipOffsets.ToSpan();
+
+        Optional<ByteBuffer> placeholderBuffer;
+
+        if (!CheckImageData(texture, image))
         {
-            ConstByteView imageData = texture->GetImageData();
+            // throw an error in debug mode
+            AssertDebug(false, "Image contains invalid data!");
 
-            const TextureDesc& textureDesc = texture->GetTextureDesc();
+            static const uint32 s_placeholderMipOffsets[TextureDesc::MaxMips] { 0 };
+            mipOffsets = { s_placeholderMipOffsets, TextureDesc::MaxMips };
 
-            Span<const uint32> mipOffsets = textureDesc.mipOffsets.ToSpan();
+            // fill some placeholder data with zeros so we don't crash
+            imageData = placeholderBuffer.Emplace().ToByteView();
+            placeholderBuffer->SetSize(image.GetByteSize());
 
-            Optional<ByteBuffer> placeholderBuffer;
+            const TextureFormat nonSrgbFormat = TextureUtils::ChangeFormatSRGB(image.GetTextureFormat(), false);
 
-            if (!CheckImageData())
+            switch (texture.GetTextureDesc().type)
             {
-                // throw an error in debug mode
-                AssertDebug(false, "Image contains invalid data!");
-
-                static const uint32 s_placeholderMipOffsets[TextureDesc::MaxMips] { 0 };
-                mipOffsets = { s_placeholderMipOffsets, TextureDesc::MaxMips };
-
-                // fill some placeholder data with zeros so we don't crash
-                imageData = placeholderBuffer.Emplace().ToByteView();
-                placeholderBuffer->SetSize(image->GetByteSize());
-
-                const TextureFormat nonSrgbFormat = TextureUtils::ChangeFormatSRGB(image->GetTextureFormat(), false);
-
-                switch (texture->GetTextureDesc().type)
+            case TextureType::Texture2D:
+                switch (nonSrgbFormat)
                 {
-                case TextureType::Texture2D:
-                    switch (nonSrgbFormat)
-                    {
-                    case TextureFormat::R8:
-                        FillPlaceholderBuffer_Tex2D<TextureFormat::R8>(image->GetExtent().GetXY(), *placeholderBuffer);
-                        break;
-                    case TextureFormat::RGBA8:
-                        FillPlaceholderBuffer_Tex2D<TextureFormat::RGBA8>(image->GetExtent().GetXY(), *placeholderBuffer);
-                        break;
-                    case TextureFormat::RGBA16F:
-                        FillPlaceholderBuffer_Tex2D<TextureFormat::RGBA16F>(image->GetExtent().GetXY(), *placeholderBuffer);
-                        break;
-                    case TextureFormat::RGBA32F:
-                        FillPlaceholderBuffer_Tex2D<TextureFormat::RGBA32F>(image->GetExtent().GetXY(), *placeholderBuffer);
-                        break;
-                    default:
-                        // no FillPlaceholderBuffer method defined
-                        break;
-                    }
+                case TextureFormat::R8:
+                    FillPlaceholderBuffer_Tex2D<TextureFormat::R8>(image.GetExtent().GetXY(), *placeholderBuffer);
                     break;
-                case TextureType::Cubemap:
-                    switch (nonSrgbFormat)
-                    {
-                    case TextureFormat::R8:
-                        FillPlaceholderBuffer_Cubemap<TextureFormat::R8>(image->GetExtent().GetXY(), *placeholderBuffer);
-                        break;
-                    case TextureFormat::RGBA8:
-                        FillPlaceholderBuffer_Cubemap<TextureFormat::RGBA8>(image->GetExtent().GetXY(), *placeholderBuffer);
-                        break;
-                    default:
-                        // no FillPlaceholderBuffer method defined
-                        break;
-                    }
+                case TextureFormat::RGBA8:
+                    FillPlaceholderBuffer_Tex2D<TextureFormat::RGBA8>(image.GetExtent().GetXY(), *placeholderBuffer);
+                    break;
+                case TextureFormat::RGBA16F:
+                    FillPlaceholderBuffer_Tex2D<TextureFormat::RGBA16F>(image.GetExtent().GetXY(), *placeholderBuffer);
+                    break;
+                case TextureFormat::RGBA32F:
+                    FillPlaceholderBuffer_Tex2D<TextureFormat::RGBA32F>(image.GetExtent().GetXY(), *placeholderBuffer);
                     break;
                 default:
                     // no FillPlaceholderBuffer method defined
                     break;
                 }
+                break;
+            case TextureType::Cubemap:
+                switch (nonSrgbFormat)
+                {
+                case TextureFormat::R8:
+                    FillPlaceholderBuffer_Cubemap<TextureFormat::R8>(image.GetExtent().GetXY(), *placeholderBuffer);
+                    break;
+                case TextureFormat::RGBA8:
+                    FillPlaceholderBuffer_Cubemap<TextureFormat::RGBA8>(image.GetExtent().GetXY(), *placeholderBuffer);
+                    break;
+                default:
+                    // no FillPlaceholderBuffer method defined
+                    break;
+                }
+                break;
+            default:
+                // no FillPlaceholderBuffer method defined
+                break;
             }
+        }
 
-            GpuBufferRef stagingBuffer = g_renderInterface->MakeGpuBuffer(GpuBufferType::STAGING_BUFFER, imageData.Size());
+        GpuBufferRef stagingBuffer = g_renderInterface->MakeGpuBuffer(GpuBufferType::STAGING_BUFFER, imageData.Size());
 #if HYP_DEBUG_MODE
-            stagingBuffer->SetDebugName(NAME_FMT("Texture_StagingBuffer_{}", texture->GetName().IsValid() ? texture->GetName() : NAME("Invalid")));
+        stagingBuffer->SetDebugName(NAME_FMT("Texture_StagingBuffer_{}", texture.GetName().IsValid() ? texture.GetName() : NAME("Invalid")));
 #endif
 
-            CheckResultOrReturn(stagingBuffer->Create());
-            stagingBuffer->Copy(imageData.Size(), imageData.Data());
+        CheckResultOrReturn(stagingBuffer->Create());
+        stagingBuffer->Copy(imageData.Size(), imageData.Data());
 
-            HYP_DEFER({ EnqueueDeletion(std::move(stagingBuffer)); });
+        HYP_DEFER({ EnqueueDeletion(std::move(stagingBuffer)); });
 
-            Frame* frame = g_renderInterface->GetCurrentFrame();
+        Frame* frame = g_renderInterface->GetCurrentFrame();
 
-            RenderQueue& renderQueue = frame->preRenderQueue;
+        RenderQueue& renderQueue = frame->preRenderQueue;
 
-            renderQueue << InsertBarrier(image, RS_COPY_DST);
+        renderQueue << InsertBarrier(&image, RS_COPY_DST);
 
-            if (textureDesc.HasMipMaps() && !placeholderBuffer.HasValue())
+        if (textureDesc.HasMipMaps() && !placeholderBuffer.HasValue())
+        {
+            const bool hasPreGeneratedMips = textureDesc.mipOffsets[0] != 0;
+
+            if (hasPreGeneratedMips)
             {
-                const bool hasPreGeneratedMips = textureDesc.mipOffsets[0] != 0;
+                const uint32 numMips = textureDesc.NumMips();
+                const uint32 numArrayLayers = textureDesc.NumArrayLayers();
 
-                if (hasPreGeneratedMips)
+                for (uint8 mipIndex = 0; mipIndex < uint8(numMips); mipIndex++)
                 {
-                    const uint32 numMips = textureDesc.NumMips();
-                    const uint32 numArrayLayers = textureDesc.NumArrayLayers();
+                    const uint32 mipSize = textureDesc.GetMipByteSize(mipIndex);
 
-                    for (uint8 mipIndex = 0; mipIndex < uint8(numMips); mipIndex++)
+                    uint32 mipBlockStart = 0;
+                    if (mipIndex != 0)
                     {
-                        const uint32 mipSize = textureDesc.GetMipByteSize(mipIndex);
+                        mipBlockStart = mipOffsets[mipIndex - 1];
 
-                        uint32 mipBlockStart = 0;
-                        if (mipIndex != 0)
-                        {
-                            mipBlockStart = mipOffsets[mipIndex - 1];
+                        AssertDebug(mipBlockStart != 0);
+                    }
 
-                            AssertDebug(mipBlockStart != 0);
-                        }
+                    for (uint32 layerIndex = 0; layerIndex < numArrayLayers; layerIndex++)
+                    {
+                        uint32 finalOffset = mipBlockStart + (mipSize * layerIndex);
 
-                        for (uint32 layerIndex = 0; layerIndex < numArrayLayers; layerIndex++)
-                        {
-                            uint32 finalOffset = mipBlockStart + (mipSize * layerIndex);
+                        AssertDebug(finalOffset + mipSize <= stagingBuffer->Size());
 
-                            AssertDebug(finalOffset + mipSize <= stagingBuffer->Size());
-
-                            renderQueue << CopyBufferToImage(
-                                stagingBuffer,
-                                image,
-                                /* byteOffset */ finalOffset,
-                                /* dstMipIndex */ mipIndex,
-                                /* dstArrayLayer */ layerIndex);
-                        }
+                        renderQueue << CopyBufferToImage(
+                            stagingBuffer,
+                            &image,
+                            /* byteOffset */ finalOffset,
+                            /* dstMipIndex */ mipIndex,
+                            /* dstArrayLayer */ layerIndex);
                     }
                 }
-                // else
-                //{
-                //     // runtime mip generation fallback
-                //     const uint32 numArrayLayers = textureDesc.NumArrayLayers();
-                //     const uint32 mipSize = textureDesc.GetMipByteSize(0);
-
-                //    for (uint16 layerIndex = 0; layerIndex < uint16(numArrayLayers); layerIndex++)
-                //    {
-                //        renderQueue << CopyBufferToImage(
-                //            stagingBuffer,
-                //            image,
-                //            layerIndex * mipSize, // Offset assumes simple Layer packing for Mip 0
-                //            0,
-                //            layerIndex);
-                //    }
-
-                //    renderQueue << GenerateMipmaps(image);
-                //}
             }
-            else
-            {
-                // No mips, just base level
-                renderQueue << CopyBufferToImage(stagingBuffer, image);
-            }
+            // else
+            //{
+            //     // runtime mip generation fallback
+            //     const uint32 numArrayLayers = textureDesc.NumArrayLayers();
+            //     const uint32 mipSize = textureDesc.GetMipByteSize(0);
 
-            renderQueue << InsertBarrier(image, initialState);
+            //    for (uint16 layerIndex = 0; layerIndex < uint16(numArrayLayers); layerIndex++)
+            //    {
+            //        renderQueue << CopyBufferToImage(
+            //            stagingBuffer,
+            //            image,
+            //            layerIndex * mipSize, // Offset assumes simple Layer packing for Mip 0
+            //            0,
+            //            layerIndex);
+            //    }
+
+            //    renderQueue << GenerateMipmaps(image);
+            //}
         }
-        else if (initialState != RS_UNDEFINED)
+        else
         {
-            Frame* frame = g_renderInterface->GetCurrentFrame();
-            RenderQueue& renderQueue = frame->preRenderQueue;
-
-            // Transition to initial state
-            renderQueue << InsertBarrier(image, initialState);
+            // No mips, just base level
+            renderQueue << CopyBufferToImage(stagingBuffer, &image);
         }
 
-        resGuard.Reset();
-
-        return {};
+        renderQueue << InsertBarrier(&image, initialState);
     }
-};
+    else if (initialState != RS_UNDEFINED)
+    {
+        Frame* frame = g_renderInterface->GetCurrentFrame();
+        RenderQueue& renderQueue = frame->preRenderQueue;
 
-#pragma endregion Render commands
+        // Transition to initial state
+        renderQueue << InsertBarrier(&image, initialState);
+    }
+
+    return {};
+}
 
 #pragma region Texture
 
@@ -322,35 +279,40 @@ Texture::Texture(const TextureDesc& textureDesc, ConstByteView imageData)
 
 Texture::~Texture()
 {
+    LockWriter(/* doInitialize */ false);
+
     if (m_gpuImage.IsValid())
         EnqueueDeletion(std::move(m_gpuImage));
 
     FreeBlobData(m_imageData);
 }
 
-void Texture::Init()
+RendererResult Texture::Create()
 {
-    m_gpuImage = g_renderInterface->MakeImage(GetTextureDesc());
+    auto writeLock = GetWriteScope();
+    const bool uploadTextureData = GetImageData().Size() > 0;
+    
+    if (!m_gpuImage.IsValid())
+    {
+        m_gpuImage = g_renderInterface->MakeImage(GetTextureDesc());
     
 #if HYP_DEBUG_MODE
-    if (m_name.IsValid())
-        m_gpuImage->SetDebugName(m_name);
+        if (m_name.IsValid())
+        {
+            m_gpuImage->SetDebugName(m_name);
+        }
 #endif
 
-    TSharedLock<AssetObject> resGuard(*this);
-    const bool uploadTextureData = GetImageData().Size() > 0;
-
-    PUSH_RENDER_COMMAND(
-        CreateTextureGpuImage,
-        MakeStrongRef(this),
-        std::move(resGuard),
-        RS_SHADER_RESOURCE,
-        m_gpuImage,
-        uploadTextureData);
-
-    AssetObject::Init();
+        CheckResultOrReturn(CreateGpuImage(*this, *m_gpuImage, RS_SHADER_RESOURCE, uploadTextureData));
+    }
+    else if (!m_gpuImage->IsCreated())
+    {
+        CheckResultOrReturn(m_gpuImage->Create());
+    }
 
     SetReady(true);
+
+    return {};
 }
 
 Result Texture::Rename(Name name)

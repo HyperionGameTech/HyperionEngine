@@ -332,8 +332,6 @@ void World::Init()
         InitObject(m_physicsWorld);
     }
 
-    ObjectBase::Init();
-
     SetReady(true);
 }
 

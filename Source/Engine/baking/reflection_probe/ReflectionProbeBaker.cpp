@@ -89,7 +89,7 @@ void Baker<ReflectionProbe>::OnCompleted_Internal()
             cubemap->GetName(), registerAssetResult.GetError().GetMessage());
     }
 
-    InitObject(cubemap);
+    CheckResult(cubemap->Create());
 
     // Set the baked texture on the EnvProbe
     m_envProbe->SetBakedTexture(cubemap);

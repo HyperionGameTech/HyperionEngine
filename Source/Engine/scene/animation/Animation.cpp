@@ -32,15 +32,6 @@ AnimationTrack::~AnimationTrack()
     FreeBlobData(m_keyframeData);
 }
 
-void AnimationTrack::Init()
-{
-    HYP_SCOPE;
-
-    ObjectBase::Init();
-
-    SetReady(true);
-}
-
 void AnimationTrack::PageBlobData()
 {
     if (m_keyframeData.raw == nullptr
@@ -160,8 +151,6 @@ Animation::Animation(Name name)
 void Animation::Init()
 {
     HYP_SCOPE;
-
-    ObjectBase::Init();
 
     for (const Handle<AnimationTrack>& track : m_tracks)
     {

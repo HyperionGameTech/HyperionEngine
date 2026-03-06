@@ -194,7 +194,7 @@ static void UpdateAtlasTextures(
         {
             AssertDebug(it.second[i] != nullptr, "Element texture for type {} is null!", uint32(LightmapTextureType(i)));
 
-            InitObject(it.second[i]);
+            CheckResult(it.second[i]->Create());
         }
     }
 
@@ -222,7 +222,7 @@ static void UpdateAtlasTextures(
             HYP_LOG(Lightmap, Error, "Failed to register atlas texture '{}' with asset registry: {}", radianceTexture->GetName(), result.GetError().GetMessage());
         }
 
-        InitObject(radianceTexture);
+        CheckResult(radianceTexture->Create());
 
         lmv->SetAtlasTexture(atlasIndex, LightmapTextureType::LTT_RADIANCE, radianceTexture);
     }
@@ -247,7 +247,7 @@ static void UpdateAtlasTextures(
             HYP_LOG(Lightmap, Error, "Failed to register atlas texture '{}' with asset registry: {}", irradianceTexture->GetName(), result.GetError().GetMessage());
         }
 
-        InitObject(irradianceTexture);
+        CheckResult(irradianceTexture->Create());
 
         lmv->SetAtlasTexture(atlasIndex, LightmapTextureType::LTT_IRRADIANCE, irradianceTexture);
     }
@@ -347,7 +347,7 @@ static bool BuildElementTextures(
             texture->GetTextureDesc().GetByteSize());
 
         texture->SetName(GenerateElementTextureName(lmv, elementIndex, LightmapTextureType(i)));
-        InitObject(texture);
+        CheckResult(texture->Create());
     }
 
     UpdateAtlasTextures(lmv, atlasIndex, { { elementId, std::move(elementTextures) } });

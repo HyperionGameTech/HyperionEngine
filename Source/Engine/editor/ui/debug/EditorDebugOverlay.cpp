@@ -61,7 +61,7 @@ TextureOverlay::~TextureOverlay()
 
 Handle<UIObject> TextureOverlay::CreateUIObject_Impl(UIObject* spawnParent)
 {
-    InitObject(m_texture);
+    CheckResult(m_texture->Create());
 
     Handle<UIImage> image = spawnParent->CreateUIObject<UIImage>(InstanceClass()->GetName(), Vec2i::Zero(), UIObjectSize({ 100, UIObjectSize::PIXEL }, { 75, UIObjectSize::PIXEL }));
     image->SetTexture(m_texture);

@@ -215,7 +215,7 @@ void PlaceholderData::Initialize()
 
             textureAsset->SetPersistentRequested(true, /* setFlag */ true);
 
-            InitObject(textureAsset);
+            CheckResult(textureAsset->Create());
 
             outTexture = textureAsset;
 
@@ -230,7 +230,7 @@ void PlaceholderData::Initialize()
         
         g_assetManager->GetAssetRegistry()->RegisterAsset(path, outTexture);
 
-        InitObject(outTexture);
+        CheckResult(outTexture->Create());
     };
 
     PlaceholderBufferData placeholderBufferTex2d {};

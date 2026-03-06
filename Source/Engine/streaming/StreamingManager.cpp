@@ -833,8 +833,6 @@ void StreamingManager::Stop()
 
 void StreamingManager::Init()
 {
-    ObjectBase::Init();
-
     SetReady(true);
 }
 

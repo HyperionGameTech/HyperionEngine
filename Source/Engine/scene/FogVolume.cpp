@@ -51,12 +51,12 @@ void FogVolume::Init()
 
     if (m_volumeTexture)
     {
-        InitObject(m_volumeTexture);
+        CheckResult(m_volumeTexture->Create());
     }
 
     if (m_noiseTexture)
     {
-        InitObject(m_noiseTexture);
+        CheckResult(m_noiseTexture->Create());
     }
 
     SetNeedsRenderProxyUpdate();
@@ -90,7 +90,10 @@ void FogVolume::SetTextures(
 
     if (IsInitCalled())
     {
-        InitObject(m_volumeTexture);
+        if (m_volumeTexture.IsValid())
+        {
+            CheckResult(m_volumeTexture->Create());
+        }
 
         SetNeedsRenderProxyUpdate();
     }

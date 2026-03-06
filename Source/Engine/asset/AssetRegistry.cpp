@@ -398,8 +398,6 @@ void AssetPackage::Init()
 {
     HYP_SCOPE;
 
-    ObjectBase::Init();
-
     Handle<AssetRegistry> registry = m_registry.Lock();
     Assert(registry.IsValid());
 

@@ -91,7 +91,7 @@ void SSGI::Create()
 
     m_resultTexture->SetName(NAME("SSGITexture"));
 
-    InitObject(m_resultTexture);
+    CheckResult(m_resultTexture->Create());
 
     CreateUniformBuffers();
 

@@ -191,13 +191,17 @@ public:
     Result Register(
         const UTF8StringView& path,
         AddAssetConflictMode conflictMode = AddAssetConflictMode::Default);
+        
+    virtual void Init()
+    {
+        SetReady(true);
+    }
 
     static Result Load(
         JSON::Object& manifestData,
         Handle<AssetObject>& outAssetObject);
 
 protected:
-    void Init() override;
 
     virtual void OnDirtyStateChanged(bool isDirty)
     {

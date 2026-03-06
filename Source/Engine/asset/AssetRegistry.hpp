@@ -273,7 +273,7 @@ public:
     ScriptableDelegate<void, Handle<AssetPackage>> OnSubpackageRemoved;
 
 private:
-    void Init() override;
+    void Init();
 
     Handle<AssetObject> GetAssetObject(UTF8StringView assetName, bool attemptLoading);
 

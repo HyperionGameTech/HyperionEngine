@@ -100,7 +100,7 @@ public:
 
     virtual bool IsCreated() const = 0;
 
-    virtual RendererResult Create() = 0;
+    RendererResult Create() override;
 
 protected:
     AttachmentBase(

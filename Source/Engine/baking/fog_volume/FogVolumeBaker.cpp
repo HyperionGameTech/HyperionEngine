@@ -80,7 +80,7 @@ void Baker<FogVolume>::HandleCompletedJob_Internal(BakeJobBase* job)
 
     g_assetManager->GetAssetRegistry()->RegisterAsset("$Import/Media/Lightmaps", volumeTexture, AddAssetConflictMode::ReplaceExisting);
 
-    InitObject(volumeTexture);
+    CheckResult(volumeTexture->Create());
 
     TextureDesc noiseTextureDesc {
         TextureType::Texture3D,
@@ -94,7 +94,8 @@ void Baker<FogVolume>::HandleCompletedJob_Internal(BakeJobBase* job)
     Handle<Texture> noiseTexture = MakeHandle<Texture>(noiseTextureDesc, noiseBitmap.ToByteView());
     noiseTexture->SetName(NAME_FMT("FogVolume_{}_NoiseMap", m_fogVolume->GetName()));
     g_assetManager->GetAssetRegistry()->RegisterAsset("$Import/Media/Lightmaps", noiseTexture, AddAssetConflictMode::ReplaceExisting);
-    InitObject(noiseTexture);
+    
+    CheckResult(noiseTexture->Create());
 
     m_fogVolume->SetTextures(volumeTexture, noiseTexture);
 }

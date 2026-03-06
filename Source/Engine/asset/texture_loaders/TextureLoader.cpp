@@ -149,8 +149,8 @@ AssetLoadResult TextureLoader::LoadAsset(LoaderState& state) const
     texture->SetOriginalFilepath(FilePath::Relative(state.filepath, state.assetManager->GetBasePath()));
     
     state.assetManager->GetAssetRegistry()->RegisterAsset("$Import/Media/Textures", texture);
-
-    InitObject(texture);
+    
+    CheckResult(texture->Create());
 
     AssetLoadResult result = LoadedAsset { std::move(texture) };
 

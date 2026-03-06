@@ -141,8 +141,6 @@ private:
     HYP_METHOD()
     virtual void Init_Impl()
     {
-        ObjectBase::Init();
-
         SetReady(true);
     }
 };

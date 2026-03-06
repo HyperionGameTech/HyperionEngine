@@ -347,8 +347,6 @@ void AssetManager::Init()
 {
     HYP_SCOPE;
 
-    ObjectBase::Init();
-
     RegisterDefaultLoaders();
 
     m_assetRegistry = MakeHandle<AssetRegistry>();
