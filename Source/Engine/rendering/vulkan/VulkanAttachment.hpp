@@ -37,6 +37,12 @@ public:
         const VulkanFramebufferWeakRef& framebuffer,
         RenderPassMode renderPassMode,
         const AttachmentDesc& attachmentDesc);
+    
+    VulkanAttachment(
+        const TextureDesc& textureDesc,
+        const VulkanFramebufferWeakRef& framebuffer,
+        RenderPassMode renderPassMode,
+        const AttachmentDesc& attachmentDesc);
 
     ~VulkanAttachment() override;
 

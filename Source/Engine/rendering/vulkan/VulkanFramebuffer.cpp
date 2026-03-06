@@ -332,6 +332,24 @@ void VulkanFramebuffer::Clear(VulkanCommandBuffer* commandBuffer, uint8 attachme
 
     VkCommandBuffer vkCommandBuffer = commandBuffer->GetVulkanHandle();
 
+    AssertDebug(m_attachmentMap.attachments.Size() == m_renderPass.GetRenderTargetDesc().numAttachments);
+
+    Array<const AttachmentDesc*, VulkanTempAllocator> colorAttachments;
+    colorAttachments.Reserve(m_renderTargetDesc.numAttachments);
+    
+    for (uint32 attachmentIndex = 0; attachmentIndex < m_renderTargetDesc.numAttachments; attachmentIndex++)
+    {
+        if (!TextureUtils::IsDepthFormat(m_renderTargetDesc.attachments[attachmentIndex].format))
+        {
+            colorAttachments.PushBack(&m_renderTargetDesc.attachments[attachmentIndex]);
+        }
+    }
+
+    Array<VkClearAttachment, VulkanTempAllocator> clearAttachments;
+    clearAttachments.Reserve(m_attachmentMap.attachments.Size());
+
+    Array<VkClearRect, VulkanTempAllocator> clearRects;
+    clearRects.Resize(m_attachmentMap.attachments.Size());
     for (const auto& it : m_attachmentMap.attachments)
     {
         const uint32 binding = it.first;
@@ -340,20 +358,23 @@ void VulkanFramebuffer::Clear(VulkanCommandBuffer* commandBuffer, uint8 attachme
             continue; // skip target
 
         VulkanAttachment* attachment = it.second;
-        Assert(attachment != nullptr && attachment->IsCreated());
+        AssertDebug(attachment != nullptr && attachment->IsCreated());
+        AssertDebug(binding < m_renderTargetDesc.numAttachments);
 
-        Assert(attachment->GetGpuImage().IsValid());
+        const AttachmentDesc& attachmentDesc = m_renderTargetDesc.attachments[binding];
 
-        VkClearAttachment clearAttachment {};
-
-        VkClearRect clearRect = {};
+        VkClearRect& clearRect = clearRects[clearAttachments.Size()];
+        clearRect = {};
         clearRect.rect.offset.x = 0;
         clearRect.rect.offset.y = 0;
         clearRect.rect.extent.width = m_renderTargetDesc.extent.x;
         clearRect.rect.extent.height = m_renderTargetDesc.extent.y;
         clearRect.layerCount = 1;
 
-        if (attachment->IsDepthAttachment())
+        VkClearAttachment& clearAttachment = clearAttachments.EmplaceBack();
+        clearAttachment = {};
+
+        if (TextureUtils::IsDepthFormat(attachment->GetFormat()))
         {
             clearAttachment.aspectMask = VK_IMAGE_ASPECT_DEPTH_BIT;
 
@@ -367,15 +388,29 @@ void VulkanFramebuffer::Clear(VulkanCommandBuffer* commandBuffer, uint8 attachme
         }
         else
         {
+            auto colorAttachmentIt = colorAttachments.Find(&attachmentDesc);
+            AssertDebug(colorAttachmentIt != colorAttachments.End());
+
+            const size_t colorAttachmentIndex = std::distance(colorAttachments.Begin(), colorAttachmentIt);
+
             clearAttachment.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
-            clearAttachment.colorAttachment = attachment->GetBinding();
+            clearAttachment.colorAttachment = uint32(colorAttachmentIndex);
             clearAttachment.clearValue.color.float32[0] = attachment->GetClearColor().x;
             clearAttachment.clearValue.color.float32[1] = attachment->GetClearColor().y;
             clearAttachment.clearValue.color.float32[2] = attachment->GetClearColor().z;
             clearAttachment.clearValue.color.float32[3] = attachment->GetClearColor().w;
         }
+    }
+    
 
-        vkCmdClearAttachments(vkCommandBuffer, 1, &clearAttachment, 1, &clearRect);
+    if (clearAttachments.Any())
+    {
+        vkCmdClearAttachments(
+            vkCommandBuffer,
+            uint32(clearAttachments.Size()),
+            clearAttachments.Data(),
+            uint32(clearAttachments.Size()),
+            clearRects.Data());
     }
 
     if (shouldCapture)

@@ -33,7 +33,7 @@ public:
 
     HYP_FORCE_INLINE bool IsDepthAttachment() const
     {
-        return GetTextureDesc().IsDepthStencil();
+        return m_textureDesc.IsDepthStencil();
     }
 
     HYP_FORCE_INLINE const AttachmentDesc& GetAttachmentDesc() const
@@ -106,14 +106,12 @@ protected:
         const GpuImageRef& image,
         const GpuImageViewRef& imageView, // May be null
         const FramebufferWeakRef& framebuffer,
-        const AttachmentDesc& attachmentDesc)
-        : Texture(),
-          m_imageView(imageView),
-          m_framebuffer(framebuffer),
-          m_attachmentDesc(attachmentDesc)
-    {
-        m_gpuImage = image;
-    }
+        const AttachmentDesc& attachmentDesc);
+    
+    AttachmentBase(
+        const TextureDesc& textureDesc,
+        const FramebufferWeakRef& framebuffer,
+        const AttachmentDesc& attachmentDesc);
 
     GpuImageViewRef m_imageView;
 

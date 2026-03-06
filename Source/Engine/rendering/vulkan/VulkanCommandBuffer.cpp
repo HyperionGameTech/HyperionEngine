@@ -244,7 +244,7 @@ void VulkanCommandBuffer::DrawIndexed(
     uint32 numInstances,
     uint32 instanceIndex) const
 {
-    AssertDebug(IsInRenderPass());
+    AssertDebug(m_isInRenderPass && g_renderInterface->state.prevGraphicsPipeline != nullptr);
 
     vkCmdDrawIndexed(
         m_handle,
@@ -259,7 +259,7 @@ void VulkanCommandBuffer::DrawIndexedIndirect(
     const VulkanGpuBuffer* buffer,
     uint32 bufferOffset) const
 {
-    AssertDebug(IsInRenderPass());
+    AssertDebug(m_isInRenderPass && g_renderInterface->state.prevGraphicsPipeline != nullptr);
 
     vkCmdDrawIndexedIndirect(
         m_handle,

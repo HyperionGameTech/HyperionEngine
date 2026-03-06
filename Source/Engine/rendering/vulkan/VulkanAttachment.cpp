@@ -33,9 +33,30 @@ VulkanAttachment::VulkanAttachment(
 
     if (!m_imageView.IsValid())
     {
-        m_imageView = MakeHandle<VulkanGpuImageView>(image);
+        m_imageView = MakeHandle<VulkanGpuImageView>(m_gpuImage);
 #if HYP_DEBUG_MODE
-        m_imageView->SetDebugName(NAME_FMT("{}_IV", image->GetDebugName()));
+        m_imageView->SetDebugName(NAME_FMT("{}_IV", m_gpuImage->GetDebugName()));
+#endif
+    }
+}
+
+VulkanAttachment::VulkanAttachment(
+    const TextureDesc& textureDesc,
+    const VulkanFramebufferWeakRef& framebuffer,
+    RenderPassMode renderPassMode,
+    const AttachmentDesc& attachmentDesc)
+    : AttachmentBase(textureDesc, framebuffer, attachmentDesc),
+      m_renderPassMode(renderPassMode),
+      m_vkAttachmentReference {},
+      m_vkAttachmentDescription {}
+{
+    Assert(m_gpuImage.IsValid());
+
+    if (!m_imageView.IsValid())
+    {
+        m_imageView = MakeHandle<VulkanGpuImageView>(m_gpuImage);
+#if HYP_DEBUG_MODE
+        m_imageView->SetDebugName(NAME_FMT("{}_IV", m_gpuImage->GetDebugName()));
 #endif
     }
 }

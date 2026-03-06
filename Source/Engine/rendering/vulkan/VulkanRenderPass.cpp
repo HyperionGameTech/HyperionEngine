@@ -212,7 +212,9 @@ RendererResult VulkanRenderPass::Create()
     vkAttachmentDescriptions.Reserve(m_renderTargetDesc.numAttachments);
 
     VkAttachmentReference depthAttachmentReference {};
+
     Array<VkAttachmentReference, VulkanTempAllocator> colorAttachmentReferences;
+    colorAttachmentReferences.Reserve(4);
 
     VkSubpassDescription subpassDescription {};
     subpassDescription.pipelineBindPoint = VK_PIPELINE_BIND_POINT_GRAPHICS;

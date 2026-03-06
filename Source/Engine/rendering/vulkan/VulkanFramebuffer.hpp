@@ -96,18 +96,14 @@ struct VulkanAttachmentMap
         const AttachmentDesc& attachmentDesc,
         RenderPassMode renderPassMode)
     {
-        TextureDesc textureDesc;
+        TextureDesc textureDesc {};
         textureDesc.type = attachmentDesc.imageType;
         textureDesc.format = attachmentDesc.format;
         textureDesc.extent = Vec3u { extent.x, extent.y, 1 };
         textureDesc.imageUsage = IU_SAMPLED | IU_ATTACHMENT;
 
-        VulkanGpuImageRef image = MakeHandle<VulkanGpuImage>(textureDesc);
-        VulkanGpuImageViewRef imageView = MakeHandle<VulkanGpuImageView>(image);
-
         VulkanAttachment* attachment = new VulkanAttachment(
-            image,
-            imageView,
+            textureDesc,
             framebufferWeak,
             renderPassMode,
             attachmentDesc);
