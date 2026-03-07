@@ -11,17 +11,59 @@ namespace Hyperion {
 
 static constexpr size_t ConstantBufferSize = 65536;
 
-
-struct ConstantAllocatorBlock
+struct ConstantsAllocatorBlock
 {
     HYP_DEF_POOL_NEW_DELETE(g_renderPool);
 
-    GpuBuffer buffer { GpuBufferType::CONSTANT_BUFFER, ConstantBufferSize, 256 };
-    uint32 frameCounter = uint32(-1); // last used frame
-    uint32 offset = 0;
+    GpuBuffer* buffer;
+    size_t offset;
+    uint32 lastUsedFrame;
+
+    ConstantsAllocatorBlock()
+        : buffer(new GpuBuffer{ GpuBufferType::CONSTANT_BUFFER, ConstantBufferSize, 256 }),
+          offset(0),
+          lastUsedFrame(size_t(-1))
+    {
+    }
+
+    ConstantsAllocatorBlock(const ConstantsAllocatorBlock&) = delete;
+    ConstantsAllocatorBlock& operator=(const ConstantsAllocatorBlock&) = delete;
+    
+    ConstantsAllocatorBlock(ConstantsAllocatorBlock&& other) noexcept
+        : buffer(other.buffer),
+          offset(0),
+          lastUsedFrame(other.lastUsedFrame)
+    {
+        other.buffer = nullptr;
+        other.lastUsedFrame = size_t(-1);
+        other.offset = 0;
+    }
+
+    ConstantsAllocatorBlock& operator=(ConstantsAllocatorBlock&& other) noexcept
+    {
+        delete buffer;
+
+        buffer = other.buffer;
+        other.buffer = nullptr;
+
+        offset = other.offset;
+        other.offset = 0;
+
+        lastUsedFrame = other.lastUsedFrame;
+        other.lastUsedFrame = size_t(-1);
+
+        return *this;
+    }
+
+    ~ConstantsAllocatorBlock()
+    {
+        delete buffer;
+    }
 };
 
 ConstantsAllocator::ConstantsAllocator()
+    : m_minAllocationAlignment(0),
+      m_scratchAlignment(0)
 {
 }
 
@@ -29,19 +71,24 @@ ConstantsAllocator::~ConstantsAllocator()
 {
     m_scratch.Clear();
     
-    for (Block* block : m_blocks)
+    for (Block& block : m_blocks)
     {
-        delete block;
+        delete block.buffer;
     }
 
     m_blocks.Clear();
 
-    for (Block* block : m_currentFrameBlocks)
+    for (Block& block : m_currentFrameBlocks)
     {
-        delete block;
+        delete block.buffer;
     }
 
     m_currentFrameBlocks.Clear();
+}
+
+void ConstantsAllocator::Initialize(size_t minAllocationAlignment)
+{
+    m_minAllocationAlignment = minAllocationAlignment;
 }
 
 void ConstantsAllocator::OnFrameStart()
@@ -53,31 +100,34 @@ void ConstantsAllocator::OnFrameEnd()
 {
     m_scratch.Clear();
 
-    for (Block* block : m_currentFrameBlocks)
+    for (Block& block : m_currentFrameBlocks)
     {
-        block->offset = 0;
+        block.offset = 0;
 
-        m_blocks.PushBack(block);
+        m_blocks.PushBack(std::move(block));
     }
 
     m_currentFrameBlocks.Clear();
 }
 
-void ConstantsAllocator::Write(const void* src, uint32 size)
+void ConstantsAllocator::Write(const void* src, size_t count, size_t alignment)
 {
-    if (size == 0)
+    if (count == 0)
         return;
 
     AssertDebug(src != nullptr);
 
-    const uint32 scratchOffset = uint32(m_scratch.Size());
+    const size_t alignedCount = alignment > 0 ? ByteUtil::AlignAs(count, alignment) : count;
+    const size_t scratchOffset = ByteUtil::AlignAs(m_scratch.Size(), alignment);
 
-    m_scratch.SetSize(scratchOffset + size);
+    m_scratch.SetSize(scratchOffset + alignedCount);
 
-    Memory::Copy(m_scratch.Data() + scratchOffset, reinterpret_cast<const ubyte*>(src), size);
+    m_scratchAlignment = MathUtil::Max(m_scratchAlignment, alignment);
+
+    Memory::Copy(m_scratch.Data() + scratchOffset, reinterpret_cast<const ubyte*>(src), count);
 }
 
-void ConstantsAllocator::Commit(GpuBuffer*& outBuffer, uint32& outOffset, uint32& outSize)
+void ConstantsAllocator::Commit(GpuBuffer*& outBuffer, size_t& outOffset, size_t& outSize)
 {
     if (m_scratch.Empty())
     {
@@ -87,19 +137,25 @@ void ConstantsAllocator::Commit(GpuBuffer*& outBuffer, uint32& outOffset, uint32
         return;
     }
 
-    void* ptr = Allocate(m_scratch.Size(), outBuffer, outOffset);
-    AssertDebug(ptr != nullptr);
+    void* ptr = Allocate(m_scratch.Size(), m_scratchAlignment, outBuffer, outOffset);
+    AssertDebug(ptr != nullptr && outBuffer != nullptr);
 
     Memory::Copy(ptr, m_scratch.Data(), m_scratch.Size());
 
-    outSize = uint32(m_scratch.Size());
+    outSize = m_scratch.Size();
 
     // keep memory around
     m_scratch.SetSize(0);
+    m_scratchAlignment = 0;
 }
 
-void* ConstantsAllocator::Allocate(uint32 size, GpuBuffer*& outBuffer, uint32& outStartOffset)
+void* ConstantsAllocator::Allocate(size_t count, size_t alignment, GpuBuffer*& outBuffer, size_t& outStartOffset)
 {
+    if (alignment < m_minAllocationAlignment)
+        alignment = m_minAllocationAlignment;
+
+    const size_t alignedCount = ByteUtil::AlignAs(count, alignment);
+
     const uint32 currentFrameCounter = GetFrameCounter();
     
     outBuffer = nullptr;
@@ -107,18 +163,18 @@ void* ConstantsAllocator::Allocate(uint32 size, GpuBuffer*& outBuffer, uint32& o
 
     if (m_currentFrameBlocks.Any())
     {
-        Block* lastBlock = m_currentFrameBlocks.Back();
+        Block& lastBlock = m_currentFrameBlocks.Back();
 
-        const size_t offset = lastBlock->offset;
+        const size_t offset = ByteUtil::AlignAs(lastBlock.offset, alignment);
 
-        if (offset + size <= ConstantBufferSize)
+        if (offset + alignedCount <= ConstantBufferSize)
         {
-            void* ptr = (void*)(reinterpret_cast<UIntPtr>(lastBlock->buffer.Map()) + offset);
+            void* ptr = (void*)(reinterpret_cast<UIntPtr>(lastBlock.buffer->Map()) + offset);
 
-            outBuffer = &lastBlock->buffer;
-            outStartOffset = lastBlock->offset;
+            outBuffer = lastBlock.buffer;
+            outStartOffset = lastBlock.offset;
 
-            lastBlock->offset = offset + size;
+            lastBlock.offset = offset + alignedCount;
 
             return ptr;
         }
@@ -130,29 +186,27 @@ void* ConstantsAllocator::Allocate(uint32 size, GpuBuffer*& outBuffer, uint32& o
     if (!newBlock)
         newBlock = NewBlock(currentFrameCounter);
 
-    Assert(size <= ConstantBufferSize);
+    Assert(alignedCount <= ConstantBufferSize);
     
-    outBuffer = &newBlock->buffer;
+    outBuffer = newBlock->buffer;
     outStartOffset = newBlock->offset;
 
-    void* ptr = newBlock->buffer.Map();
+    void* ptr = newBlock->buffer->Map();
 
-    newBlock->offset += size;
+    newBlock->offset += alignedCount;
 
     return ptr;
 }
 
 ConstantsAllocator::Block* ConstantsAllocator::NewBlock(uint32 currentFrameCounter)
 {
-    Block* newBlock = new Block;
-    Assert(newBlock->buffer.Create());
+    Block& newBlock = m_currentFrameBlocks.EmplaceBack();
+    newBlock.lastUsedFrame = currentFrameCounter;
+    newBlock.offset = 0;
 
-    newBlock->frameCounter = currentFrameCounter;
-    newBlock->offset = 0;
+    CheckResult(newBlock.buffer->Create());
 
-    m_currentFrameBlocks.PushBack(newBlock);
-
-    return newBlock;
+    return &newBlock;
 }
 
 ConstantsAllocator::Block* ConstantsAllocator::TryGetRecycledBlock(uint32 currentFrameCounter)
@@ -161,18 +215,18 @@ ConstantsAllocator::Block* ConstantsAllocator::TryGetRecycledBlock(uint32 curren
 
     for (auto it = m_blocks.Begin(); it != m_blocks.End();)
     {
-        Block* block = *it;
+        Block& block = *it;
 
-        if (currentFrameCounter - block->frameCounter >= MinDiff)
+        if (currentFrameCounter - block.lastUsedFrame >= MinDiff)
         {
-            block->offset = 0;
-            block->frameCounter = currentFrameCounter;
+            block.offset = 0;
+            block.lastUsedFrame = currentFrameCounter;
 
-            m_currentFrameBlocks.PushBack(block);
+            Block& newBlock = m_currentFrameBlocks.PushBack(std::move(block));
 
             it = m_blocks.Erase(it);
 
-            continue;
+            return &newBlock;
         }
 
         ++it;

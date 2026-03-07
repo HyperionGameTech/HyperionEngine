@@ -54,7 +54,7 @@ struct IsFunctor
 };
 
 template <class T>
-struct IsFunctor<T, std::enable_if_t<ImplementationExistsV<decltype(&T::operator())>>>
+struct IsFunctor<T, std::enable_if_t<implementation_exists_v<decltype(&T::operator())>>>
 {
     static constexpr bool value = true;
 };

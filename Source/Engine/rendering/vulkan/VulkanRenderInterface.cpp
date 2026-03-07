@@ -26,6 +26,7 @@
 #include <rendering/FinalPass.hpp>
 #include <rendering/Bindless.hpp>
 #include <rendering/CrashHandler.hpp>
+#include <rendering/ConstantsAllocator.hpp>
 
 #include <Core/containers/SparsePagedArray.hpp>
 
@@ -669,6 +670,11 @@ RendererResult VulkanRenderInterface::Initialize()
     m_renderConfig->Initialize(this);
 
     CheckResultOrReturn(m_descriptorSetManager->Create(m_instance->GetDevice()));
+
+    const VkDeviceSize minUniformBufferOffsetAlignment = g_renderInterface->GetDevice()->GetFeatures()
+        .GetPhysicalDeviceProperties().limits.minUniformBufferOffsetAlignment;
+
+    constantsAllocator->Initialize(minUniformBufferOffsetAlignment);
 
     return RenderInterface::Initialize();
 }

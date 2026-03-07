@@ -193,6 +193,34 @@ struct IsString : std::false_type
 {
 };
 
+template <class T>
+using NormalizedType = std::conditional_t<std::is_function_v<T>, std::add_pointer_t<T>, std::remove_cvref_t<T>>;
+
+template <class T>
+constexpr bool is_pod_type_v = std::is_standard_layout_v<T>
+    && std::is_trivially_copyable_v<T>
+    && std::is_trivially_copy_assignable_v<T>
+    && std::is_trivially_move_constructible_v<T>
+    && std::is_trivially_move_assignable_v<T>
+    && std::is_trivially_destructible_v<T>;
+
+template <class T, size_t = sizeof(T)>
+std::true_type ImplementationExistsImpl(T*);
+
+std::false_type ImplementationExistsImpl(...);
+
+template <class T>
+constexpr bool implementation_exists_v = decltype(ImplementationExistsImpl(std::declval<T*>()))::value;
+
+template <class T>
+constexpr bool is_const_pointer_v = std::is_pointer_v<T> && std::is_const_v<std::remove_pointer_t<T>>;
+
+template <class T>
+using remove_const_pointer_t = std::add_pointer_t<std::remove_const_t<std::remove_pointer_t<T>>>;
+
+template <class... T>
+constexpr bool always_fail_v = false;
+
 /*! \brief Concept that checks if a type is bitwise comparable (e.g memcmp safe)
  *  We consider a type to be bitwise comparable for our needs if
  *    - it has unique object representations (non-padding bits)
@@ -205,5 +233,8 @@ concept BitwiseComparable = (std::has_unique_object_representations_v<std::remov
 
 template <class T>
 concept BitwiseCopyable = std::is_void_v<std::remove_cv_t<T>> || std::is_trivially_copyable_v<std::remove_cv_t<T>>;
+
+template <class T>
+concept PODType = is_pod_type_v<T>;
 
 } // namespace Hyperion

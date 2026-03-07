@@ -93,7 +93,7 @@ struct HYP_API FBOMBool : FBOMType
 struct HYP_API FBOMStruct : FBOMType
 {
     template <class T>
-    static constexpr bool isValidStructType = !std::is_pointer_v<T> && !std::is_reference_v<T> && !std::is_const_v<T> && !std::is_volatile_v<T> && IsPodTypeV<T>;
+    static constexpr bool isValidStructType = !std::is_pointer_v<T> && !std::is_reference_v<T> && !std::is_const_v<T> && !std::is_volatile_v<T> && is_pod_type_v<T>;
 
     FBOMStruct();
     FBOMStruct(const ANSIStringView& typeName, size_t sz, const TypeId& typeId);

@@ -54,13 +54,13 @@ struct IsObject;
 template <class T, class T2>
 struct IsObject
 {
-    static_assert(ImplementationExistsV<T>, "Cannot use IsObject with undefined type!");
+    static_assert(implementation_exists_v<T>, "Cannot use IsObject with undefined type!");
 
     static constexpr bool value = false;
 };
 
 template <class T>
-struct IsObject<T, std::enable_if_t<ImplementationExistsV<typename T::ClassInfo::Type>>>
+struct IsObject<T, std::enable_if_t<implementation_exists_v<typename T::ClassInfo::Type>>>
 {
     static constexpr bool value = true;
 
@@ -386,8 +386,8 @@ HYP_API extern bool IsA(const Class* cls, const Class* instanceClass);
 template <class ExpectedType, class InstanceType>
 static inline bool IsA()
 {
-    static_assert(ImplementationExistsV<ExpectedType>, "Implementation does not exist for the expected type! Ensure proper headers are included.");
-    static_assert(ImplementationExistsV<InstanceType>, "Implementation does not exist for the instance type! Ensure proper headers are included.");
+    static_assert(implementation_exists_v<ExpectedType>, "Implementation does not exist for the expected type! Ensure proper headers are included.");
+    static_assert(implementation_exists_v<InstanceType>, "Implementation does not exist for the instance type! Ensure proper headers are included.");
 
     static const Class* s_instanceClass = InstanceType::StaticClass();
 

@@ -366,7 +366,7 @@ public:
     template <class T>
     T* AllocCustom(void (*destructFn)(void*), Mutex::Guard** ppGuard, uint32 desiredIdx = ~0u)
     {
-        static_assert(IsPodTypeV<T>, "T must be a POD type");
+        static_assert(is_pod_type_v<T>, "T must be a POD type");
 
         EntryHeader header;
 

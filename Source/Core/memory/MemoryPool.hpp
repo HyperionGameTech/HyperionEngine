@@ -60,7 +60,7 @@ struct MemoryPoolBlock final
         }
         else
         {
-            if constexpr (!IsPodTypeV<ElementType>)
+            if constexpr (!is_pod_type_v<ElementType>)
             {
                 // For non-POD types, default assign each element
                 for (uint32 i = 0; i < numElementsPerBlock; i++)
@@ -85,7 +85,7 @@ struct MemoryPoolBlock final
     ~MemoryPoolBlock()
     {
         // Call destructors for each element in the block
-        if constexpr (!IsPodTypeV<ElementType>)
+        if constexpr (!is_pod_type_v<ElementType>)
         {
             for (uint32 i = 0; i < numElementsPerBlock; i++)
             {

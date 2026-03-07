@@ -31,7 +31,7 @@ class ClassRegistration final : public ClassRegistrationBase
 {
 public:
     static constexpr EnumFlags<ClassFlags> flags = ClassFlags::CLASS_TYPE
-        | (IsPodTypeV<T> ? ClassFlags::POD_TYPE : ClassFlags::NONE)
+        | (is_pod_type_v<T> ? ClassFlags::POD_TYPE : ClassFlags::NONE)
         | (std::is_abstract_v<T> ? ClassFlags::ABSTRACT : ClassFlags::NONE);
 
     ClassRegistration(const Class** pGlobal, Name name, int staticIndex, uint32 numDescendants, Name parentName, Span<const ClassAttribute> attributes, Span<MemberVariant> members)
@@ -48,7 +48,7 @@ class StructRegistration final : public ClassRegistrationBase
 {
 public:
     static constexpr EnumFlags<ClassFlags> flags = ClassFlags::STRUCT_TYPE
-        | (IsPodTypeV<T> ? ClassFlags::POD_TYPE : ClassFlags::NONE)
+        | (is_pod_type_v<T> ? ClassFlags::POD_TYPE : ClassFlags::NONE)
         | (std::is_abstract_v<T> ? ClassFlags::ABSTRACT : ClassFlags::NONE);
 
     StructRegistration(const Class** pGlobal, Name name, int staticIndex, uint32 numDescendants, Name parentName, Span<const ClassAttribute> attributes, Span<MemberVariant> members)

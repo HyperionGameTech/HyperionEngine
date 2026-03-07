@@ -18,6 +18,7 @@
 #include <rendering/RenderConfig.hpp>
 #include <rendering/DescriptorSet.hpp>
 #include <rendering/PlaceholderData.hpp>
+#include <rendering/ConstantsAllocator.hpp>
 
 #include <rendering/shadows/ShadowMapAllocator.hpp>
 
@@ -146,8 +147,20 @@ static void RenderAll(
     cr << SetShaderUniform(numShaderUniforms++, "EnvProbesTexture"_sh, g_renderInterface->textureViewCache->GetOrCreate(g_renderInterface->envProbesTexture));
     cr << SetShaderUniform(numShaderUniforms++, "EnvProbesBuffer"_sh, g_renderInterface->gpuBuffers[GRB_ENV_PROBES]->GetBuffer(frameIndex));
     
+    ShadowMapData shadowMapData {};
+
     if (renderSetup.light != nullptr)
+    {
+        RenderProxyLight* lightProxy = static_cast<RenderProxyLight*>(GetRenderProxy(renderSetup.light));
+        AssertDebug(lightProxy != nullptr);
+
+        shadowMapData.flags = lightProxy->bufferData.flags;
+        Memory::Copy(shadowMapData.layerIndices, lightProxy->bufferData.layerIndices, sizeof(shadowMapData.layerIndices));
+        Memory::Copy(shadowMapData.cascades, lightProxy->bufferData.cascades, sizeof(shadowMapData.cascades));
+        Memory::Copy(shadowMapData.splitDistances, lightProxy->bufferData.splitDistances, sizeof(shadowMapData.splitDistances));
+
         cr << SetShaderUniform(numShaderUniforms++, "CurrentLight"_sh, g_renderInterface->gpuBuffers[GRB_LIGHTS]->GetBuffer(frameIndex), TShaderDataOffset<LightShaderData>(renderSetup.light));
+    }
     else
         cr << SetShaderUniform(numShaderUniforms++, "CurrentLight"_sh, g_renderInterface->gpuBuffers[GRB_LIGHTS]->GetBuffer(frameIndex), TShaderDataOffset<LightShaderData>(0));
     
@@ -155,6 +168,13 @@ static void RenderAll(
         cr << SetShaderUniform(numShaderUniforms++, "CurrentEnvProbe"_sh, g_renderInterface->gpuBuffers[GRB_ENV_PROBES]->GetBuffer(frameIndex), TShaderDataOffset<EnvProbeShaderData>(renderSetup.envProbe));
     else
         cr << SetShaderUniform(numShaderUniforms++, "CurrentEnvProbe"_sh, g_renderInterface->gpuBuffers[GRB_ENV_PROBES]->GetBuffer(frameIndex), TShaderDataOffset<EnvProbeShaderData>(0));
+    
+    GpuBuffer* shadowMapCBuffer = nullptr;
+    size_t cBufferOffset = 0;
+    size_t cBufferSize = 0;
+    g_renderInterface->constantsAllocator->Write(&shadowMapData);
+    g_renderInterface->constantsAllocator->Commit(shadowMapCBuffer, cBufferOffset, cBufferSize);
+    cr << SetShaderUniform(numShaderUniforms++, "ShadowMapCBuffer"_sh, shadowMapCBuffer, ShaderDataOffset(cBufferOffset, cBufferSize));
 
     DeferredRendererPassData* dpd = ObjCast<DeferredRendererPassData>(renderSetup.passData);
     if (dpd != nullptr)
@@ -383,9 +403,21 @@ static void RenderAll_Parallel(
 
     cr << SetShaderUniform(numShaderUniforms++, "EnvProbesTexture"_sh, g_renderInterface->textureViewCache->GetOrCreate(g_renderInterface->envProbesTexture));
     cr << SetShaderUniform(numShaderUniforms++, "EnvProbesBuffer"_sh, g_renderInterface->gpuBuffers[GRB_ENV_PROBES]->GetBuffer(frameIndex));
+    
+    ShadowMapData shadowMapData {};
 
     if (renderSetup.light != nullptr)
+    {
+        RenderProxyLight* lightProxy = static_cast<RenderProxyLight*>(GetRenderProxy(renderSetup.light));
+        AssertDebug(lightProxy != nullptr);
+
+        shadowMapData.flags = lightProxy->bufferData.flags;
+        Memory::Copy(shadowMapData.layerIndices, lightProxy->bufferData.layerIndices, sizeof(shadowMapData.layerIndices));
+        Memory::Copy(shadowMapData.cascades, lightProxy->bufferData.cascades, sizeof(shadowMapData.cascades));
+        Memory::Copy(shadowMapData.splitDistances, lightProxy->bufferData.splitDistances, sizeof(shadowMapData.splitDistances));
+
         cr << SetShaderUniform(numShaderUniforms++, "CurrentLight"_sh, g_renderInterface->gpuBuffers[GRB_LIGHTS]->GetBuffer(frameIndex), TShaderDataOffset<LightShaderData>(renderSetup.light));
+    }
     else
         cr << SetShaderUniform(numShaderUniforms++, "CurrentLight"_sh, g_renderInterface->gpuBuffers[GRB_LIGHTS]->GetBuffer(frameIndex), TShaderDataOffset<LightShaderData>(0));
     
@@ -393,6 +425,13 @@ static void RenderAll_Parallel(
         cr << SetShaderUniform(numShaderUniforms++, "CurrentEnvProbe"_sh, g_renderInterface->gpuBuffers[GRB_ENV_PROBES]->GetBuffer(frameIndex), TShaderDataOffset<EnvProbeShaderData>(renderSetup.envProbe));
     else
         cr << SetShaderUniform(numShaderUniforms++, "CurrentEnvProbe"_sh, g_renderInterface->gpuBuffers[GRB_ENV_PROBES]->GetBuffer(frameIndex), TShaderDataOffset<EnvProbeShaderData>(0));
+
+    GpuBuffer* shadowMapCBuffer = nullptr;
+    size_t cBufferOffset = 0;
+    size_t cBufferSize = 0;
+    g_renderInterface->constantsAllocator->Write(&shadowMapData);
+    g_renderInterface->constantsAllocator->Commit(shadowMapCBuffer, cBufferOffset, cBufferSize);
+    cr << SetShaderUniform(numShaderUniforms++, "ShadowMapCBuffer"_sh, shadowMapCBuffer, ShaderDataOffset(cBufferOffset, cBufferSize));
 
     DeferredRendererPassData* dpd = ObjCast<DeferredRendererPassData>(renderSetup.passData);
     if (dpd != nullptr)

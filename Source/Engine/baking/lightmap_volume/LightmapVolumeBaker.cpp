@@ -418,7 +418,8 @@ void Baker<LightmapVolume>::Build()
             meshComponent.mesh,
             meshComponent.material,
             Transform(transformComponent.translation, transformComponent.scale, transformComponent.rotation).GetMatrix(),
-            boundingBoxComponent.worldAabb });
+            boundingBoxComponent.worldAabb
+        });
     }
 
     // Build global data

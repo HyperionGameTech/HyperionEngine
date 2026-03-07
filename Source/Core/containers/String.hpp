@@ -468,7 +468,7 @@ public:
             }
             else
             {
-                static_assert(ResolutionFailureV<OtherCharType>, "Invalid character type to append to UTF-8 encoded string");
+                static_assert(always_fail_v<OtherCharType>, "Invalid character type to append to UTF-8 encoded string");
             }
         }
         else if constexpr (isWide)
@@ -521,7 +521,7 @@ public:
             }
             else
             {
-                static_assert(ResolutionFailureV<OtherCharType>, "Invalid character type to append to Wide string");
+                static_assert(always_fail_v<OtherCharType>, "Invalid character type to append to Wide string");
             }
         }
         else if constexpr (isUtf32)
@@ -587,7 +587,7 @@ public:
             }
             else
             {
-                static_assert(ResolutionFailureV<OtherCharType>, "Invalid character type to append to UTF-32 encoded string");
+                static_assert(always_fail_v<OtherCharType>, "Invalid character type to append to UTF-32 encoded string");
             }
         }
         else if constexpr (isUtf16)
@@ -679,12 +679,12 @@ public:
             }
             else
             {
-                static_assert(ResolutionFailureV<OtherCharType>, "Invalid character type to append to UTF-16 encoded string");
+                static_assert(always_fail_v<OtherCharType>, "Invalid character type to append to UTF-16 encoded string");
             }
         }
         else
         {
-            static_assert(ResolutionFailureV<CharType>, "Invalid string type for append");
+            static_assert(always_fail_v<CharType>, "Invalid string type for append");
         }
     }
 
@@ -801,7 +801,7 @@ public:
                 }
                 else
                 {
-                    static_assert(ResolutionFailureV<CharType>, "Invalid string type for Split");
+                    static_assert(always_fail_v<CharType>, "Invalid string type for Split");
                 }
 
                 i += codepoints;

@@ -48,6 +48,15 @@ struct ShadowCascade
     float4 dimensionsScale; // xy = slice dimensions in pixels, zw = slice dimensions relative to the atlas dimensions
 };
 
+struct ShadowMap
+{
+    uint flags;
+    // layer indices per cascade for shadow maps. Each cascade is 1 byte.
+    uint layerIndex;
+    uint2 splitDistances;       // 4 x half
+    ShadowCascade cascades[HYP_MAX_SHADOW_CASCADES];
+};
+
 struct Light
 {
     uint type;
@@ -84,6 +93,8 @@ struct Light
 
 // each cascade takes up 1 byte in normal.w
 #define LIGHT_LAYER_INDEX(light, cascadeIndex) ((FLOAT_BITS_TO_UINT(light.normal.w) >> (cascadeIndex * 8)) & 0xFF)
+
+#define SHADOW_MAP_LAYER_INDEX(shadowMap, cascadeIndex) ((FLOAT_BITS_TO_UINT(shadowMap.layerIndex) >> (cascadeIndex * 8)) & 0xFF)
 
 struct LightmapVolume
 {

@@ -782,7 +782,7 @@ struct Formatter<StringType, math::Vec4<T>>
         }
         else
         {
-            static_assert(ResolutionFailureV<T>, "Cannot format Vec4 type: unknown inner type");
+            static_assert(always_fail_v<T>, "Cannot format Vec4 type: unknown inner type");
         }
     }
 

@@ -11,10 +11,10 @@
 
 
 
-float LightRayAttenuation(in Light light, vec3 P, float NdotL)
+float LightRayAttenuation(in ShadowMap shadowMap, vec3 P, float NdotL)
 {
     // Get shadow
-    return GetShadowStandard(light, P, vec2(0.0, 0.0), NdotL);
+    return GetShadowStandard(shadowMap, P, vec2(0.0, 0.0), NdotL);
 }
 
 float LightRayDensity(vec3 position)
@@ -29,7 +29,7 @@ float LightRayScattering(float f_cos, float f_cos2, float g, float g2)
     return 1.5 * ((1.0 - g2) / (2.0 + g2)) * (1.0 + f_cos2) / pow(1.0 + g2 - 2.0 * g * f_cos, 1.5);
 }
 
-float LightRayMarch(in Light light, vec2 uv, vec3 L, vec3 ray_origin, vec3 ray_dir, float ray_len)
+float LightRayMarch(in ShadowMap shadowMap, vec2 uv, vec3 L, vec3 ray_origin, vec3 ray_dir, float ray_len)
 {
     float step_size = ray_len / float(VOLUMETRIC_LIGHTING_STEPS);
     vec3 ray_delta_step = ray_dir * step_size;
@@ -47,7 +47,7 @@ float LightRayMarch(in Light light, vec2 uv, vec3 L, vec3 ray_origin, vec3 ray_d
 
     for (int i = 0; i < VOLUMETRIC_LIGHTING_STEPS; i++)
     {
-        float attenuation = LightRayAttenuation(light, marching_position, cos_angle);
+        float attenuation = LightRayAttenuation(shadowMap, marching_position, cos_angle);
 
         float density = LightRayDensity(marching_position);
         float scattering = scattering_value * step_size * density;
@@ -65,7 +65,7 @@ float LightRayMarch(in Light light, vec2 uv, vec3 L, vec3 ray_origin, vec3 ray_d
     return volumetric;
 }
 
-float LightRays(in Light light, vec2 uv, vec3 L, vec3 P, vec3 camera_position, float depth)
+float LightRays(in ShadowMap shadowMap, vec2 uv, vec3 L, vec3 P, vec3 camera_position, float depth)
 {
     float linear_depth = Linear01Depth(depth, camera.near, camera.far);
 
@@ -79,7 +79,7 @@ float LightRays(in Light light, vec2 uv, vec3 L, vec3 P, vec3 camera_position, f
 
     ray_len = min(ray_len, 120.0);
 
-    return LightRayMarch(light, uv, L, ray_start, ray_dir, ray_len);
+    return LightRayMarch(shadowMap, uv, L, ray_start, ray_dir, ray_len);
 }
 
 float LightRays2(vec2 uv, vec2 ss_L, vec3 P, vec3 camera_position)

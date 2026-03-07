@@ -49,7 +49,7 @@ public:
     template <class StructType>
     void SetBufferData(int bufferIndex, const StructType* ptr, size_t count)
     {
-        static_assert(IsPodTypeV<StructType>, "Struct type must a POD type");
+        static_assert(is_pod_type_v<StructType>, "Struct type must a POD type");
         static_assert(alignof(StructType) <= 16);
 
         AssertDebug(bufferIndex < MaxBuffers, "Buffer index {} must be less than maximum number of buffers ({})", bufferIndex, MaxBuffers);

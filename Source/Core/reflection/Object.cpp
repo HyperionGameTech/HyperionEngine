@@ -49,8 +49,8 @@ ObjectInitializerGuardBase::ObjectInitializerGuardBase(TypedObjPtr ptr)
 
     // Push NONE to prevent our current flags from polluting allocations that happen in the constructor
     PushGlobalContext(ObjectInitializerContext {
-        .cls = ptr.GetClass(),
-        .flags = ObjectInitializerFlags::NONE
+        ptr.GetClass(),
+        ObjectInitializerFlags::NONE
     });
 }
 
@@ -92,8 +92,9 @@ ObjectInitializerGuardBase::~ObjectInitializerGuardBase()
                 else
                 {
                     scriptObjectResource->SetScriptObjectData_DotNet(ScriptObjectData_DotNet {
-                        .objectPtr = nullptr,
-                        .managedClass = managedClass });
+                        nullptr,
+                        managedClass
+                    });
                 }
 
                 scriptObjectResource->AddReader();
@@ -116,8 +117,8 @@ ObjectInitializerGuardBase::~ObjectInitializerGuardBase()
             else
             {
                 scriptObjectResource->SetScriptObjectData_HypScript(ScriptObjectData_HypScript {
-                    .instance = nullptr,
-                    .obj = std::move(obj)
+                    nullptr,
+                    std::move(obj)
                 });
             }
 #endif

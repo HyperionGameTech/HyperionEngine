@@ -435,8 +435,22 @@ void DeferredPass::RenderToFramebuffer_Internal(Frame* frame, const RenderSetup&
 
                 cr << SetCurrentShader(ShaderDesc(NAME("DeferredDirect"), shaderProperties));
             }
-
+            
             uint32 localNumShaderUniforms = numShaderUniforms;
+
+            ShadowMapData shadowMapData {};
+            shadowMapData.flags = lightProxy->bufferData.flags;
+            Memory::Copy(shadowMapData.layerIndices, lightProxy->bufferData.layerIndices, sizeof(shadowMapData.layerIndices));
+            Memory::Copy(shadowMapData.cascades, lightProxy->bufferData.cascades, sizeof(shadowMapData.cascades));
+            Memory::Copy(shadowMapData.splitDistances, lightProxy->bufferData.splitDistances, sizeof(shadowMapData.splitDistances));
+            g_renderInterface->constantsAllocator->Write(&shadowMapData);
+
+            GpuBuffer* shadowMapCBuffer = nullptr;
+            size_t cBufferOffset = 0;
+            size_t cBufferSize = 0;
+            g_renderInterface->constantsAllocator->Commit(shadowMapCBuffer, cBufferOffset, cBufferSize);
+            cr << SetShaderUniform(localNumShaderUniforms++, "ShadowMapCBuffer"_sh, shadowMapCBuffer, ShaderDataOffset(cBufferOffset, cBufferSize));
+
             cr << SetShaderUniform(localNumShaderUniforms++, "CurrentLight"_sh, g_renderInterface->gpuBuffers[GRB_LIGHTS]->GetBuffer(frameIndex), TShaderDataOffset<LightShaderData>(light));
 
             if (lightType == LightType::AreaRect)

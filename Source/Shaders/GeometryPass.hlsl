@@ -79,6 +79,12 @@ DECLARE_SRV_DYNAMIC(Default, CurrentEnvProbe) StructuredBuffer<EnvProbe> current
 
 DECLARE_SRV_DYNAMIC(Default, CurrentLight) StructuredBuffer<Light> current_light_buffer;
 #define light current_light_buffer[0]
+
+DECLARE_BUFFER_DYNAMIC(Default, ShadowMapCBuffer) cbuffer ShadowMapCBuffer
+{
+    ShadowMap shadowMap;
+};
+
 #endif
 
 DECLARE_SRV_DYNAMIC(Default, MaterialsBuffer) StructuredBuffer<Material> materials_buffer;
@@ -218,7 +224,7 @@ PSOutput PSMain(PSInput input)
 
             if (light.type == HYP_LIGHT_TYPE_DIRECTIONAL && bool(light.flags & LF_SHADOW_CASTER))
             {
-                shadow = GetShadow(light, P, texcoord, camera.dimensions.xy, NdotL);
+                shadow = GetShadow(shadowMap, P, texcoord, camera.dimensions.xy, NdotL);
             }
 
             float3 light_color = light.color.rgb;

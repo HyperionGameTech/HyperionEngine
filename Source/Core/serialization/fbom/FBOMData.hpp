@@ -80,7 +80,7 @@ template <class FBOMData, class T, class FBOMTypeClass, class T2 = void>
 struct FBOMDataTypeOps;
 
 template <class FBOMData, class T, class FBOMTypeClass>
-struct FBOMDataTypeOps<FBOMData, T, FBOMTypeClass, std::enable_if_t<std::is_fundamental_v<T> || IsPodTypeV<T> || std::is_same_v<Mat3f, T>>> // hack for mat3f since it uses padding to stay 16 byte aligned
+struct FBOMDataTypeOps<FBOMData, T, FBOMTypeClass, std::enable_if_t<std::is_fundamental_v<T> || is_pod_type_v<T> || std::is_same_v<Mat3f, T>>> // hack for mat3f since it uses padding to stay 16 byte aligned
 {
     const FBOMData& target;
 
@@ -420,7 +420,7 @@ public:
     template <class T, bool CompileTimeChecked = true>
     HYP_FORCE_INLINE FBOMResult ReadStruct(T* out) const
     {
-        AssertStaticMsgCond(CompileTimeChecked, IsPodTypeV<T>, "T must be POD to use ReadStruct()");
+        AssertStaticMsgCond(CompileTimeChecked, is_pod_type_v<T>, "T must be POD to use ReadStruct()");
 
         return ReadStruct(TypeNameWithoutNamespace<NormalizedType<T>>().Data(), sizeof(NormalizedType<T>), TypeId::ForType<NormalizedType<T>>(), out);
     }
@@ -428,7 +428,7 @@ public:
     template <class T, bool CompileTimeChecked = true>
     HYP_FORCE_INLINE T ReadStruct() const
     {
-        AssertStaticMsgCond(CompileTimeChecked, IsPodTypeV<T>, "T must be POD to use ReadStruct()");
+        AssertStaticMsgCond(CompileTimeChecked, is_pod_type_v<T>, "T must be POD to use ReadStruct()");
 
         ValueStorage<NormalizedType<T>> resultStorage;
 

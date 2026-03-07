@@ -732,9 +732,9 @@ void DebugDrawer::Render(Frame* frame, const RenderSetup& renderSetup)
 
     RenderableAttributeSet attributes;
 
-    size_t shaderDataOffset = 0;
-    size_t totalDrawCalls = 0;
-    size_t totalInstancedDraws = 0;
+    uint32 shaderDataOffset = 0;
+    uint32 totalDrawCalls = 0;
+    uint32 totalInstancedDraws = 0;
 
     ShaderDesc shaderDesc;
     shaderDesc.name = NAME("DebugVis");
@@ -780,13 +780,13 @@ void DebugDrawer::Render(Frame* frame, const RenderSetup& renderSetup)
         Assert(instanceBuffer->Size() >= (shaderData.Size() + shaderDataOffset) * sizeof(ImmediateDrawShaderData));
         instanceBuffer->Copy(shaderDataOffset * sizeof(ImmediateDrawShaderData), shaderData.Size() * sizeof(ImmediateDrawShaderData), shaderData.Data());
 
-        size_t numToDraw = 0;
+        uint32 numToDraw = 0;
 
         auto CommitCurrentDraws = [&]()
         {
             if (numToDraw != 0)
             {
-                g_statDebugDraws += uint32(numToDraw);
+                g_statDebugDraws += numToDraw;
 
                 IDebugDrawShape* shape = currShapes[shapeIdx];
                 AssertDebug(shape != nullptr);
@@ -806,7 +806,7 @@ void DebugDrawer::Render(Frame* frame, const RenderSetup& renderSetup)
                     cr << SetStencilTest(bool(attributes.GetMaterialAttributes().flags & MAF_STENCIL_TEST));
                     cr << SetStencilFunction(attributes.GetMaterialAttributes().stencilFunction);
     
-                    cr << SetShaderUniform(15, "ImmediateDrawsBuffer"_sh, instanceBuffer, TShaderDataOffset<ImmediateDrawShaderData>(uint32(shaderDataOffset)));
+                    cr << SetShaderUniform(15, "ImmediateDrawsBuffer"_sh, instanceBuffer, TShaderDataOffset<ImmediateDrawShaderData>(shaderDataOffset));
 
                     cr << CommitDrawState();
                     
@@ -817,7 +817,7 @@ void DebugDrawer::Render(Frame* frame, const RenderSetup& renderSetup)
 
                     cr << BindVertexBuffer(mesh->GetVertexBuffer());
                     cr << BindIndexBuffer(mesh->GetIndexBuffer());
-                    cr << DrawIndexed(mesh->NumIndices(), uint32(numToDraw));
+                    cr << DrawIndexed(mesh->NumIndices(), numToDraw);
 
                     ++totalDrawCalls;
                     totalInstancedDraws += numToDraw;

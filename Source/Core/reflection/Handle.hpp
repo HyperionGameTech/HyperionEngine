@@ -975,9 +975,9 @@ template <class T>
 inline bool InitObject(T* ptr)
 {
     // provide a better error message for attempting to initialize incomplete types.
-    if constexpr (!ImplementationExistsV<T>)
+    if constexpr (!implementation_exists_v<T>)
     {
-        static_assert(ImplementationExistsV<T>, "Cannot initialize an incomplete type. Make sure the type is fully defined before calling InitObject.");
+        static_assert(implementation_exists_v<T>, "Cannot initialize an incomplete type. Make sure the type is fully defined before calling InitObject.");
     }
     else if constexpr (!std::is_base_of_v<ObjectBase, T>)
     {

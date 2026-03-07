@@ -196,6 +196,7 @@ VulkanDescriptorSet::~VulkanDescriptorSet()
     }
 }
 
+HYP_DISABLE_OPTIMIZATION;
 void VulkanDescriptorSet::UpdateDirtyState(bool* outIsDirty)
 {
     m_pendingDescriptors.Clear();
@@ -395,6 +396,7 @@ void VulkanDescriptorSet::UpdateDirtyState(bool* outIsDirty)
         *outIsDirty = m_pendingDescriptors.Any();
     }
 }
+HYP_ENABLE_OPTIMIZATION;
 
 void VulkanDescriptorSet::Update(bool force)
 {

@@ -80,6 +80,11 @@ DECLARE_BUFFER(DeferredPass, WorldsBuffer) cbuffer WorldsBuffer
 DECLARE_SRV_DYNAMIC(DeferredPass, CurrentLight) StructuredBuffer<Light> current_light_buffer;
 #define currentLight current_light_buffer[0]
 
+DECLARE_BUFFER_DYNAMIC(DeferredPass, ShadowMapCBuffer) cbuffer ShadowMapCBuffer
+{
+    ShadowMap shadowMap;
+};
+
 #ifdef LIGHT_TYPE_AREA_RECT
 
 DECLARE_SRV_DYNAMIC(DeferredPass, CurrentMaterial) StructuredBuffer<Material> light_material_buffer;
@@ -249,12 +254,12 @@ PSOutput PSMain(PSInput input)
         {
             const float3 world_to_light = position.xyz - currentLight.position_intensity.xyz;
 
-            shadow = GetPointShadow(currentLight, world_to_light, NdotL);
+            shadow = GetPointShadow(shadowMap, world_to_light, NdotL);
         }
 #elif defined(LIGHT_TYPE_DIRECTIONAL)
         if ((currentLight.flags & LF_SHADOW_CASTER) != 0)
         {
-            shadow = GetShadow(currentLight, position.xyz, texcoord, camera.dimensions.xy, NdotL, /* cascadeIndex */ 0);
+            shadow = GetShadow(shadowMap, position.xyz, texcoord, camera.dimensions.xy, NdotL, /* cascadeIndex */ 0);
         }
 #endif
 

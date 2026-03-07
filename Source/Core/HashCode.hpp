@@ -188,7 +188,7 @@ struct HashCode
         }
         else
         {
-            static_assert(ResolutionFailureV<T>,
+            static_assert(always_fail_v<T>,
                 "HashCode::GetHashCode: Unsupported type size for arthmetic type. Supported sizes are 8, 16, 32, and 64 bits.");
         }
     }

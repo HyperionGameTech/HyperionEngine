@@ -1068,16 +1068,16 @@ enum class ShaderInputType : uint8
 
 struct ShaderDataOffset
 {
-    uint32 offset;
-    uint32 stride;
+    size_t offset;
+    size_t stride;
 
     constexpr ShaderDataOffset()
-        : offset(uint32(-1)),
-          stride(uint32(-1))
+        : offset(size_t(-1)),
+          stride(size_t(-1))
     {
     }
 
-    constexpr ShaderDataOffset(uint32 offset, uint32 stride)
+    constexpr ShaderDataOffset(size_t offset, size_t stride)
         : offset(offset),
           stride(stride)
     {
@@ -1085,8 +1085,8 @@ struct ShaderDataOffset
 
     HYP_FORCE_INLINE bool IsValid() const
     {
-        return offset != uint32(-1)
-            && stride != uint32(-1);
+        return offset != size_t(-1)
+            && stride != size_t(-1);
     }
 
     HYP_FORCE_INLINE explicit operator bool() const
@@ -1120,7 +1120,7 @@ struct ShaderDataOffset
 template <class T>
 struct TShaderDataOffset : ShaderDataOffset
 {
-    static_assert(IsPodTypeV<T>, "T must be POD to use with ShaderDataOffset");
+    static_assert(is_pod_type_v<T>, "T must be POD to use with ShaderDataOffset");
 
     constexpr explicit TShaderDataOffset(uint32 index)
         : ShaderDataOffset()
@@ -1135,7 +1135,7 @@ struct TShaderDataOffset : ShaderDataOffset
     }
 
     explicit TShaderDataOffset(const ObjectBase* resource)
-        : ShaderDataOffset(uint32(-1), sizeof(T))
+        : ShaderDataOffset(size_t(-1), sizeof(T))
     {
         uint32 idx = RetrieveResourceBinding(resource);
         AssertDebug(idx != ~0u, "Invalid resource binding returned");

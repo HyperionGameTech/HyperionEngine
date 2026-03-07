@@ -633,7 +633,7 @@ struct TypeInfo
                 result.flags |= TypeInfoFlags::CLASS_TYPE;
             }
 
-            if constexpr (IsPodTypeV<NormalizedT>)
+            if constexpr (is_pod_type_v<NormalizedT>)
             {
                 result.flags |= TypeInfoFlags::POD_TYPE;
             }
@@ -687,7 +687,7 @@ struct TypeInfo
                 result.flags |= TypeInfoFlags::FLOAT_TYPE;
             }
 
-            if constexpr (ImplementationExistsV<TypeInfoImpl<NormalizedT, BoxedValue>>)
+            if constexpr (implementation_exists_v<TypeInfoImpl<NormalizedT, BoxedValue>>)
             {
                 TypeInfoImpl<NormalizedT, BoxedValue>()(result);
             }

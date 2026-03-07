@@ -1467,12 +1467,12 @@ struct BoxedValueHelper<AnyRef>
 /// T* - raw pointer (non-owning, non-const) held as AnyRef
 
 template <class T>
-struct BoxedValueHelperDecl<T*, std::enable_if_t<!IsConstPointerV<T*> && !std::is_same_v<T*, void*>>>
+struct BoxedValueHelperDecl<T*, std::enable_if_t<!is_const_pointer_v<T*> && !std::is_same_v<T*, void*>>>
 {
 };
 
 template <class T>
-struct BoxedValueHelper<T*, std::enable_if_t<!IsConstPointerV<T*> && !std::is_same_v<T*, void*>>> : BoxedValueHelper<AnyRef>
+struct BoxedValueHelper<T*, std::enable_if_t<!is_const_pointer_v<T*> && !std::is_same_v<T*, void*>>> : BoxedValueHelper<AnyRef>
 {
     using ConvertibleFrom = Tuple<Handle<ObjectBase>, RC<void>>;
 
@@ -3720,7 +3720,7 @@ struct BoxedValueHelper<Variant<Types...>> : BoxedValueHelper<Any>
 
 #if 1
 template <class T>
-struct BoxedValueHelper<T, std::enable_if_t<!BoxedValue::canStoreDirectly<T> && !ImplementationExistsV<BoxedValueHelperDecl<T>>>> : BoxedValueHelper<Any>
+struct BoxedValueHelper<T, std::enable_if_t<!BoxedValue::canStoreDirectly<T> && !implementation_exists_v<BoxedValueHelperDecl<T>>>> : BoxedValueHelper<Any>
 {
     using ConvertibleFrom = Tuple<T*, AnyRef, Handle<ObjectBase>, RC<void>>;
 

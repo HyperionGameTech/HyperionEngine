@@ -215,6 +215,20 @@
                 "FieldNames": [],
                 "FieldTypes": []
               }
+            }, {
+              "$Class": "ShaderInput",
+              "Register": 3,
+              "ElementType": 2,
+              "Name": "ShadowMapCBuffer",
+              "Count": 1,
+              "Size": 4294967295,
+              "IsDynamic": true,
+              "StructInfo": {
+                "Name": "",
+                "Size": 4294967295,
+                "FieldNames": [],
+                "FieldTypes": []
+              }
             }], [{
               "$Class": "ShaderInput",
               "Register": 4,
@@ -263,7 +277,7 @@
     }, {
       "$Class": "BlobDataReference",
       "Key": "Engine/Shaders/GeometryPass/GeometryPass_7421999988855643229.PS",
-      "Size": 40348
+      "Size": 40732
     }],
   "PropertySetHashCode": {},
   "Name": "GeometryPass_7421999988855643229",

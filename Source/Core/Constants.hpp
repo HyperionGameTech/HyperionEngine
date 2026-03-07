@@ -48,32 +48,4 @@ constexpr uint32 NumGBufferTargets = 5;
 
 constexpr uint32 MaxEntitiesPerBatch = 16;
 
-template <class... T>
-constexpr bool ResolutionFailureV = false;
-
-template <class T>
-using NormalizedType = std::conditional_t<std::is_function_v<T>, std::add_pointer_t<T>, std::remove_cvref_t<T>>;
-
-template <class T>
-constexpr bool IsPodTypeV = std::is_standard_layout_v<T>
-    && std::is_trivially_copyable_v<T>
-    && std::is_trivially_copy_assignable_v<T>
-    && std::is_trivially_move_constructible_v<T>
-    && std::is_trivially_move_assignable_v<T>
-    && std::is_trivially_destructible_v<T>;
-
-template <class T, size_t = sizeof(T)>
-std::true_type ImplementationExistsImpl(T*);
-
-std::false_type ImplementationExistsImpl(...);
-
-template <class T>
-constexpr bool ImplementationExistsV = decltype(ImplementationExistsImpl(std::declval<T*>()))::value;
-
-template <class T>
-constexpr bool IsConstPointerV = std::is_pointer_v<T> && std::is_const_v<std::remove_pointer_t<T>>;
-
-template <class T>
-using RemoveConstPointerT = std::add_pointer_t<std::remove_const_t<std::remove_pointer_t<T>>>;
-
 } // namespace Hyperion

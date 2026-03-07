@@ -226,7 +226,7 @@ DescriptorSetElement& DescriptorSetBase::SetElementT(StringHash name, uint32 ind
     }
     else
     {
-        static_assert(ResolutionFailureV<T>, "Unsupported type for descriptor set element");
+        static_assert(always_fail_v<T>, "Unsupported type for descriptor set element");
     }
 
     DescriptorSetElement* element = nullptr;

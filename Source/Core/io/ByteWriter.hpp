@@ -53,7 +53,7 @@ public:
     void Write(const T& value)
     {
         static_assert(!std::is_pointer_v<NormalizedType<T>>, "Expected to choose other overload");
-        static_assert(IsPodTypeV<NormalizedType<T>>, "T must be a POD type to use this overload");
+        static_assert(is_pod_type_v<NormalizedType<T>>, "T must be a POD type to use this overload");
 
         WriteBytes(reinterpret_cast<const char*>(&value), sizeof(NormalizedType<T>));
     }
