@@ -93,7 +93,14 @@ public:
     virtual void BeginCapture(CommandBuffer* commandBuffer) = 0;
     virtual void EndCapture(CommandBuffer* commandBuffer) = 0;
 
-    virtual void Clear(CommandBuffer* commandBuffer, uint8 attachmentsMask = uint8(-1)) = 0;
+    virtual void Clear(
+        CommandBuffer* commandBuffer,
+        uint8 attachmentsMask = uint8(-1)) = 0;
+
+    virtual void Clear(
+        CommandBuffer* commandBuffer,
+        const Rect<uint32>& rect,
+        uint8 attachmentsMask = uint8(-1)) = 0;
 
 protected:
     FramebufferBase(const RenderTargetDesc& renderTargetDesc)

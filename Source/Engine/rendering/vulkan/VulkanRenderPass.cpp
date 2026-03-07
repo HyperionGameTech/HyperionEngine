@@ -303,8 +303,8 @@ void VulkanRenderPass::Begin(VulkanCommandBuffer* cmd, VulkanFramebuffer* frameb
     VkRenderPassBeginInfo renderPassInfo { VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO };
     renderPassInfo.renderPass = m_handle;
     renderPassInfo.framebuffer = framebuffer->GetVulkanHandle();
-    renderPassInfo.renderArea.offset = { 0, 0 };
-    renderPassInfo.renderArea.extent = VkExtent2D { framebuffer->GetWidth(), framebuffer->GetHeight() };
+    renderPassInfo.renderArea.offset = VkOffset2D { m_renderTargetDesc.offset.x, m_renderTargetDesc.offset.y };
+    renderPassInfo.renderArea.extent = VkExtent2D { m_renderTargetDesc.extent.x, m_renderTargetDesc.extent.y };
     renderPassInfo.clearValueCount = uint32(m_vkClearValues.Size());
     renderPassInfo.pClearValues = m_vkClearValues.Data();
 

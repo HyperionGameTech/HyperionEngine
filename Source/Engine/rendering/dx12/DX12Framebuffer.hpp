@@ -47,7 +47,14 @@ public:
     void BeginCapture(DX12CommandBuffer* commandBuffer) override;
     void EndCapture(DX12CommandBuffer* commandBuffer) override;
 
-    void Clear(DX12CommandBuffer* commandBuffer, uint8 attachmentsMask = uint8(-1)) override;
+    void Clear(
+        DX12CommandBuffer* commandBuffer,
+        uint8 attachmentsMask = uint8(-1)) override;
+
+    void ClearAttachment(
+        DX12CommandBuffer* commandBuffer,
+        const Rect<uint32>& rect,
+        uint8 attachmentsMask = uint8(-1)) override;
 
 private:
     bool m_isCreated;

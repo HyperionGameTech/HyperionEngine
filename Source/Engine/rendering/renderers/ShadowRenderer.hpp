@@ -62,8 +62,6 @@ protected:
 
     virtual PassData* CreateViewPassData(View* view, PassDataExt&) override;
 
-    virtual ShadowMap* AllocateShadowMap(Light* light) = 0;
-
 private:
     // Shadow maps cached per-light.
     // Since Lights can have multiple shadow views that blit into one final shadow map
@@ -90,7 +88,7 @@ private:
         Light* light;
         View* view;
 
-        HYP_FORCE_INLINE bool operator==(const CacheKey& other)
+        HYP_FORCE_INLINE bool operator==(const CacheKey& other) const
         {
             return light == other.light
                 && view == other.view;
@@ -114,7 +112,6 @@ public:
     virtual ~PointShadowRenderer() override = default;
 
 protected:
-    virtual ShadowMap* AllocateShadowMap(Light* light) override;
 };
 
 class DirectionalShadowRenderer : public ShadowRendererBase
@@ -124,7 +121,6 @@ public:
     virtual ~DirectionalShadowRenderer() override = default;
 
 protected:
-    virtual ShadowMap* AllocateShadowMap(Light* light) override;
 };
 
 } // namespace Hyperion

@@ -219,8 +219,9 @@ PSOutput PSMain(PSInput input)
         float3 indirect_lighting = Ft + Fd + Fr;
         float3 direct_lighting = 0;
 
+        float shadow = 1.0;
+
         { // direct lighting
-            float shadow = 1.0;
 
             if (light.type == HYP_LIGHT_TYPE_DIRECTIONAL && bool(light.flags & LF_SHADOW_CASTER))
             {
@@ -263,6 +264,8 @@ PSOutput PSMain(PSInput input)
 
         // overwrite gbuffer_albedo with lit result
         output.gbuffer_albedo.rgb = lighting;
+
+        output.gbuffer_albedo.rgb = float3(shadow, shadow, shadow);
     }
 #endif
 

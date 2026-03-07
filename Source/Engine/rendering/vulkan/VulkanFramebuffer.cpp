@@ -152,12 +152,22 @@ RendererResult VulkanFramebuffer::Create()
 
     CheckResultOrReturn(m_attachmentMap.Create());
 
+    Vec2u imageExtent;
+
     m_renderTargetDesc.numAttachments = 0;
 
     for (const auto& it : m_attachmentMap.attachments)
     {
         VulkanAttachment* attachment = it.second;
         Assert(attachment != nullptr);
+
+        VulkanGpuImage* image = attachment->GetGpuImage();
+        Assert(image != nullptr);
+
+        Assert(imageExtent == Vec2u::Zero() || imageExtent == image->GetExtent().GetXY(),
+            "Attachment dimensions do not match!");
+
+        imageExtent = image->GetExtent().GetXY();
 
         m_renderTargetDesc.AddAttachment(attachment->GetAttachmentDesc());
     }
@@ -191,8 +201,8 @@ RendererResult VulkanFramebuffer::Create()
     framebufferCreateInfo.renderPass = m_renderPass.GetVulkanHandle();
     framebufferCreateInfo.attachmentCount = uint32(attachmentImageViews.Size());
     framebufferCreateInfo.pAttachments = attachmentImageViews.Data();
-    framebufferCreateInfo.width = m_renderTargetDesc.extent.x;
-    framebufferCreateInfo.height = m_renderTargetDesc.extent.y;
+    framebufferCreateInfo.width = imageExtent.x;
+    framebufferCreateInfo.height = imageExtent.y;
     framebufferCreateInfo.layers = numLayers;
 
     VULKAN_CHECK(vkCreateFramebuffer(g_renderInterface->GetDevice()->GetDevice(), &framebufferCreateInfo, nullptr, &m_handle));
@@ -316,7 +326,23 @@ void VulkanFramebuffer::EndCapture(VulkanCommandBuffer* commandBuffer)
     commandBuffer->m_isInRenderPass = false;
 }
 
-void VulkanFramebuffer::Clear(VulkanCommandBuffer* commandBuffer, uint8 attachmentsMask)
+void VulkanFramebuffer::Clear(
+    VulkanCommandBuffer* commandBuffer,
+    uint8 attachmentsMask)
+{
+    Rect<uint32> rect {};
+    rect.x0 = m_renderTargetDesc.offset.x;
+    rect.y0 = m_renderTargetDesc.offset.y;
+    rect.x1 = m_renderTargetDesc.offset.x + m_renderTargetDesc.extent.x;
+    rect.y1 = m_renderTargetDesc.offset.y + m_renderTargetDesc.extent.y;
+
+    Clear(commandBuffer, rect, attachmentsMask);
+}
+
+void VulkanFramebuffer::Clear(
+    VulkanCommandBuffer* commandBuffer,
+    const Rect<uint32>& rect,
+    uint8 attachmentsMask)
 {
     if (m_attachmentMap.Size() == 0 || attachmentsMask == 0)
     {
@@ -350,6 +376,7 @@ void VulkanFramebuffer::Clear(VulkanCommandBuffer* commandBuffer, uint8 attachme
 
     Array<VkClearRect, VulkanTempAllocator> clearRects;
     clearRects.Resize(m_attachmentMap.attachments.Size());
+
     for (const auto& it : m_attachmentMap.attachments)
     {
         const uint32 binding = it.first;
@@ -365,10 +392,10 @@ void VulkanFramebuffer::Clear(VulkanCommandBuffer* commandBuffer, uint8 attachme
 
         VkClearRect& clearRect = clearRects[clearAttachments.Size()];
         clearRect = {};
-        clearRect.rect.offset.x = 0;
-        clearRect.rect.offset.y = 0;
-        clearRect.rect.extent.width = m_renderTargetDesc.extent.x;
-        clearRect.rect.extent.height = m_renderTargetDesc.extent.y;
+        clearRect.rect.offset.x = rect.x0;
+        clearRect.rect.offset.y = rect.y0;
+        clearRect.rect.extent.width = rect.x1 - rect.x0;
+        clearRect.rect.extent.height = rect.y1 - rect.y0;
         clearRect.layerCount = 1;
 
         VkClearAttachment& clearAttachment = clearAttachments.EmplaceBack();

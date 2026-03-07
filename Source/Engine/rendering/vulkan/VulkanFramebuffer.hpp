@@ -167,7 +167,14 @@ public:
     void BeginCapture(VulkanCommandBuffer* commandBuffer) override;
     void EndCapture(VulkanCommandBuffer* commandBuffer) override;
 
-    void Clear(VulkanCommandBuffer* commandBuffer, uint8 attachmentsMask = uint8(-1)) override;
+    void Clear(
+        VulkanCommandBuffer* commandBuffer,
+        uint8 attachmentsMask = uint8(-1)) override;
+
+    void Clear(
+        VulkanCommandBuffer* commandBuffer,
+        const Rect<uint32>& rect,
+        uint8 attachmentsMask = uint8(-1)) override;
 
 private:
     VkFramebuffer m_handle;

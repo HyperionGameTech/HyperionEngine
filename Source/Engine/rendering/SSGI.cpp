@@ -17,7 +17,8 @@
 #include <rendering/ShaderInstance.hpp>
 #include <rendering/TextureViewCache.hpp>
 #include <rendering/RenderHelpers.hpp>
-#include <rendering/shadows/ShadowMapAllocator.hpp>
+
+#include <rendering/shadows/ShadowMapCache.hpp>
 
 #include <rendering/renderers/DeferredRenderer.hpp>
 
@@ -213,8 +214,8 @@ void SSGI::Render(Frame* frame, const RenderSetup& renderSetup)
     cr << SetShaderUniform(numShaderUniforms++, "LightsBuffer"_sh, g_renderInterface->gpuBuffers[GRB_LIGHTS]->GetBuffer(frameIndex));
 
     // Shadow maps
-    cr << SetShaderUniform(numShaderUniforms++, "ShadowMapsTextureArray"_sh, g_renderInterface->shadowMapAllocator->GetAtlasImageView());
-    cr << SetShaderUniform(numShaderUniforms++, "PointLightShadowMapsTextureArray"_sh, g_renderInterface->shadowMapAllocator->GetPointLightShadowMapImageView());
+    cr << SetShaderUniform(numShaderUniforms++, "ShadowMapsTextureArray"_sh, g_renderInterface->shadowMapCache->GetAtlasImageView());
+    cr << SetShaderUniform(numShaderUniforms++, "PointLightShadowMapsTextureArray"_sh, g_renderInterface->shadowMapCache->GetPointLightShadowMapImageView());
 
     // Env probes
     cr << SetShaderUniform(numShaderUniforms++, "EnvProbesTexture"_sh, g_renderInterface->textureViewCache->GetOrCreate(g_renderInterface->envProbesTexture));

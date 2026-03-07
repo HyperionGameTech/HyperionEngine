@@ -15,7 +15,6 @@
 namespace Hyperion {
 
 class Entity;
-class ShadowMapAllocator;
 class GpuBufferHolderMap;
 class PlaceholderData;
 class RenderProxyList;
@@ -57,7 +56,7 @@ class StagingBufferPool;
 class ShaderManager;
 class DeletionQueue;
 class BLASCache;
-class ShadowViewCache;
+class ShadowMapCache;
 class CrashHandler;
 
 enum class GpuBufferType : uint8;
@@ -339,7 +338,6 @@ public:
 
     BindlessStorage* bindlessStorage;
 
-    ShadowMapAllocator* shadowMapAllocator;
     PlaceholderData* placeholderData;
 
     GpuBufferHolderMap* gpuBufferHolders;
@@ -376,7 +374,7 @@ public:
 
     BLASCache* blasCache;
 
-    ShadowViewCache* shadowViewCache;
+    ShadowMapCache* shadowMapCache;
     
     CrashHandler* crashHandler;
 

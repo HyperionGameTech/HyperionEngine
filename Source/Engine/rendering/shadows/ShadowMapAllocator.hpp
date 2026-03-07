@@ -164,7 +164,11 @@ public:
     void Initialize();
     void Shutdown();
 
-    ShadowMap* AllocateShadowMap(ShadowMapType shadowMapType, ShadowMapFilter filterMode, const Vec2u& dimensions);
+    ShadowMap* AllocateShadowMap(
+        ShadowMapType shadowMapType,
+        ShadowMapFilter filterMode,
+        const Vec2u& dimensions);
+        
     bool FreeShadowMap(ShadowMap* shadowMap);
 
 private:

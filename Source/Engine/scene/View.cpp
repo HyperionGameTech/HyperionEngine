@@ -32,7 +32,7 @@
 #include <rendering/Mesh.hpp>
 #include <rendering/Material.hpp>
 
-#include <rendering/shadows/ShadowViewCache.hpp>
+#include <rendering/shadows/ShadowMapCache.hpp>
 #include <rendering/shadows/ShadowCameraHelper.hpp>
 
 #include <rendering/util/DeletionQueue.hpp>
@@ -344,7 +344,7 @@ void View::PrepareShadowViews(Array<View*, SceneTempAllocator>& outShadowViews)
                     
             for (uint32 cascadeIndex = 0; cascadeIndex < light->GetNumShadowMapCascades(); cascadeIndex++)
             {
-                shadowViewsDynamic[cascadeIndex] = g_renderInterface->shadowViewCache->GetOrCreateShadowView(
+                shadowViewsDynamic[cascadeIndex] = g_renderInterface->shadowMapCache->GetOrCreateShadowView(
                     this,
                     light,
                     cascadeIndex,
@@ -354,7 +354,7 @@ void View::PrepareShadowViews(Array<View*, SceneTempAllocator>& outShadowViews)
 
                 if (cacheStaticObjects)
                 {
-                    shadowViewsStatic[cascadeIndex] = g_renderInterface->shadowViewCache->GetOrCreateShadowView(
+                    shadowViewsStatic[cascadeIndex] = g_renderInterface->shadowMapCache->GetOrCreateShadowView(
                         this,
                         light,
                         cascadeIndex,

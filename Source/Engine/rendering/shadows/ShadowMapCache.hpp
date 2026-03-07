@@ -14,35 +14,24 @@ namespace Hyperion {
 
 class Light;
 class View;
+class ShadowMap;
 
-struct ShadowViewCacheKey
-{
-    View* view;
-    Light* light;
+enum ShadowMapType : uint32;
 
-    HYP_FORCE_INLINE bool operator==(const ShadowViewCacheKey& other) const
-    {
-        return view == other.view
-            && light == other.light;
-    }
-
-    HYP_FORCE_INLINE bool operator!=(const ShadowViewCacheKey& other) const
-    {
-        return !(operator==(other));
-    }
-
-    HYP_FORCE_INLINE HashCode GetHashCode() const
-    {
-        return HashCode::GetHashCode(view)
-            .Combine(light);
-    }
-};
-
-class ShadowViewCache
+class ShadowMapCache
 {
 public:
-    ShadowViewCache();
-    ~ShadowViewCache();
+    ShadowMapCache();
+    ~ShadowMapCache();
+
+    void Initialize();
+    void Shutdown();
+
+    GpuImage* GetAtlasImage() const;
+    GpuImageView* GetAtlasImageView() const;
+
+    GpuImage* GetPointLightShadowMapImage() const;
+    GpuImageView* GetPointLightShadowMapImageView() const;
 
     HYP_NODISCARD View* GetOrCreateShadowView(
         View* view,
@@ -56,8 +45,17 @@ public:
         uint32 cascadeIndex,
         bool isStatic) const;
 
+    ShadowMap* GetShadowMap(
+        Light* light,
+        View* view,
+        uint32 cascadeIndex,
+        View*& outShadowViewDynamic,
+        View*& outShadowViewStatic) const;
+
+    bool Remove(Light* light, View* view);
+
 private:
-    Pimpl<class ShadowViewCacheImpl> m_impl;
+    Pimpl<class ShadowMapCacheImpl> m_impl;
 };
 
 } // namespace Hyperion

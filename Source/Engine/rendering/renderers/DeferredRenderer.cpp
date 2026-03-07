@@ -38,7 +38,7 @@
 #include <rendering/RayTracingReflections.hpp>
 #include <rendering/DDGI.hpp>
 
-#include <rendering/shadows/ShadowMapAllocator.hpp>
+#include <rendering/shadows/ShadowMapCache.hpp>
 
 #include <rendering/util/ShaderCompiler.hpp>
 #include <rendering/util/DeletionQueue.hpp>
@@ -356,8 +356,8 @@ void DeferredPass::RenderToFramebuffer_Internal(Frame* frame, const RenderSetup&
     cr << SetShaderUniform(numShaderUniforms++, "WorldsBuffer"_sh, g_renderInterface->gpuBuffers[GRB_WORLDS]->GetBuffer(frameIndex));
     cr << SetShaderUniform(numShaderUniforms++, "MaterialsBuffer"_sh, g_renderInterface->gpuBuffers[GRB_MATERIALS]->GetBuffer(frameIndex));
 
-    cr << SetShaderUniform(numShaderUniforms++, "ShadowMapsTextureArray"_sh, g_renderInterface->shadowMapAllocator->GetAtlasImageView());
-    cr << SetShaderUniform(numShaderUniforms++, "PointLightShadowMapsTextureArray"_sh, g_renderInterface->shadowMapAllocator->GetPointLightShadowMapImageView());
+    cr << SetShaderUniform(numShaderUniforms++, "ShadowMapsTextureArray"_sh, g_renderInterface->shadowMapCache->GetAtlasImageView());
+    cr << SetShaderUniform(numShaderUniforms++, "PointLightShadowMapsTextureArray"_sh, g_renderInterface->shadowMapCache->GetPointLightShadowMapImageView());
 
     if (rs.envGrid != nullptr)
         cr << SetShaderUniform(numShaderUniforms++, "EnvGridsBuffer"_sh, g_renderInterface->gpuBuffers[GRB_ENV_GRIDS]->GetBuffer(frameIndex), TShaderDataOffset<EnvGridShaderData>(rs.envGrid));
@@ -438,6 +438,8 @@ void DeferredPass::RenderToFramebuffer_Internal(Frame* frame, const RenderSetup&
             
             uint32 localNumShaderUniforms = numShaderUniforms;
 
+            g_renderInterface->constantsAllocator->Write(&lightProxy->bufferData);
+
             ShadowMapData shadowMapData {};
             shadowMapData.flags = lightProxy->bufferData.flags;
             Memory::Copy(shadowMapData.layerIndices, lightProxy->bufferData.layerIndices, sizeof(shadowMapData.layerIndices));
@@ -445,11 +447,13 @@ void DeferredPass::RenderToFramebuffer_Internal(Frame* frame, const RenderSetup&
             Memory::Copy(shadowMapData.splitDistances, lightProxy->bufferData.splitDistances, sizeof(shadowMapData.splitDistances));
             g_renderInterface->constantsAllocator->Write(&shadowMapData);
 
-            GpuBuffer* shadowMapCBuffer = nullptr;
+            GpuBuffer* cBuffer = nullptr;
             size_t cBufferOffset = 0;
             size_t cBufferSize = 0;
-            g_renderInterface->constantsAllocator->Commit(shadowMapCBuffer, cBufferOffset, cBufferSize);
-            cr << SetShaderUniform(localNumShaderUniforms++, "ShadowMapCBuffer"_sh, shadowMapCBuffer, ShaderDataOffset(cBufferOffset, cBufferSize));
+            
+            g_renderInterface->constantsAllocator->Commit(cBuffer, cBufferOffset, cBufferSize);
+
+            cr << SetShaderUniform(localNumShaderUniforms++, "CBuffer"_sh, cBuffer, ShaderDataOffset(cBufferOffset, cBufferSize));
 
             cr << SetShaderUniform(localNumShaderUniforms++, "CurrentLight"_sh, g_renderInterface->gpuBuffers[GRB_LIGHTS]->GetBuffer(frameIndex), TShaderDataOffset<LightShaderData>(light));
 
@@ -488,20 +492,6 @@ void DeferredPass::RenderToFramebuffer_Internal(Frame* frame, const RenderSetup&
             }
 
             RenderFullScreenQuad(frame, rs);
-
-            // Bind material descriptor set (for area lights)
-
-            //// @TOOD FIxme use new way!!!
-            // if (materialDescriptorSetIndex != ~0u)
-            //{
-            //     const DescriptorSetRef& materialDescriptorSet = g_renderInterface->materialDescriptorSetManager->ForBoundMaterial(light->GetMaterial(), frame->GetFrameIndex());
-
-            //    frame->cr << BindDescriptorSet(
-            //        materialDescriptorSet,
-            //        pipeline,
-            //        {},
-            //        materialDescriptorSetIndex);
-            //}
 
             prevLightType = lightType;
         }
@@ -557,7 +547,7 @@ void TonemapPass::Render(Frame* frame, const RenderSetup& rs)
 
     cr << SetShaderUniform(numShaderUniforms++, "DeferredResult"_sh, translucentPassFramebuffer->GetAttachment(GTN_ALBEDO)->GetImageView());
 
-    cr << SetShaderUniform(numShaderUniforms++, "ShadowMapsTextureArray"_sh, g_renderInterface->shadowMapAllocator->GetAtlasImageView());
+    cr << SetShaderUniform(numShaderUniforms++, "ShadowMapsTextureArray"_sh, g_renderInterface->shadowMapCache->GetAtlasImageView());
 
     cr << SetShaderUniform(numShaderUniforms++, "GBufferMipChain"_sh, g_renderInterface->textureViewCache->GetOrCreate(dpd->mipChain));
 
@@ -740,8 +730,8 @@ void LightmapPass::RenderToFramebuffer_Internal(Frame* frame, const RenderSetup&
     cr << SetShaderUniform(numShaderUniforms++, "SamplerLinear"_sh, g_renderInterface->placeholderData->GetSamplerLinear());
 
     // Shadows
-    cr << SetShaderUniform(numShaderUniforms++, "ShadowMapsTextureArray"_sh, g_renderInterface->shadowMapAllocator->GetAtlasImageView());
-    cr << SetShaderUniform(numShaderUniforms++, "PointLightShadowMapsTextureArray"_sh, g_renderInterface->shadowMapAllocator->GetPointLightShadowMapImageView());
+    cr << SetShaderUniform(numShaderUniforms++, "ShadowMapsTextureArray"_sh, g_renderInterface->shadowMapCache->GetAtlasImageView());
+    cr << SetShaderUniform(numShaderUniforms++, "PointLightShadowMapsTextureArray"_sh, g_renderInterface->shadowMapCache->GetPointLightShadowMapImageView());
 
     // Cameras and Worlds buffers
     cr << SetShaderUniform(numShaderUniforms++, "CamerasBuffer"_sh, g_renderInterface->gpuBuffers[GRB_CAMERAS]->GetBuffer(frameIndex), TShaderDataOffset<CameraShaderData>(renderSetup.view->GetCamera()));
@@ -910,8 +900,8 @@ void FogVolumePass::RenderToFramebuffer_Internal(Frame* frame, const RenderSetup
 
     cr << SetShaderUniform(2 + GTN_MAX, "CamerasBuffer"_sh, g_renderInterface->gpuBuffers[GRB_CAMERAS]->GetBuffer(frame->GetFrameIndex()), TShaderDataOffset<CameraShaderData>(renderSetup.view->GetCamera()));
 
-    cr << SetShaderUniform(3 + GTN_MAX, "ShadowMapsTextureArray"_sh, g_renderInterface->shadowMapAllocator->GetAtlasImageView());
-    cr << SetShaderUniform(4 + GTN_MAX, "PointLightShadowMapsTextureArray"_sh, g_renderInterface->shadowMapAllocator->GetPointLightShadowMapImageView());
+    cr << SetShaderUniform(3 + GTN_MAX, "ShadowMapsTextureArray"_sh, g_renderInterface->shadowMapCache->GetAtlasImageView());
+    cr << SetShaderUniform(4 + GTN_MAX, "PointLightShadowMapsTextureArray"_sh, g_renderInterface->shadowMapCache->GetPointLightShadowMapImageView());
 
     if (data.volumeTexture)
         cr << SetShaderUniform(5 + GTN_MAX, "DataMap"_sh, g_renderInterface->textureViewCache->GetOrCreate(data.volumeTexture));

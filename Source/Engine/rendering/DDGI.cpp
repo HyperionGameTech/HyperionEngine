@@ -21,7 +21,7 @@
 #include <rendering/Texture.hpp>
 #include <rendering/TextureViewCache.hpp>
 
-#include <rendering/shadows/ShadowMapAllocator.hpp>
+#include <rendering/shadows/ShadowMapCache.hpp>
 
 #include <rendering/util/DeletionQueue.hpp>
 
@@ -288,8 +288,8 @@ void DDGI::Render(Frame* frame, const RenderSetup& renderSetup)
     frame->cr << SetShaderUniform(5, "Lights"_sh, m_lightsBuffers[frameIndex]);
     frame->cr << SetShaderUniform(6, "ProbeRayData"_sh, m_radianceBuffer);
     
-    frame->cr << SetShaderUniform(7, "ShadowMapsTextureArray"_sh, g_renderInterface->shadowMapAllocator->GetAtlasImageView());
-    frame->cr << SetShaderUniform(8, "PointLightShadowMapsTextureArray"_sh, g_renderInterface->shadowMapAllocator->GetPointLightShadowMapImageView());
+    frame->cr << SetShaderUniform(7, "ShadowMapsTextureArray"_sh, g_renderInterface->shadowMapCache->GetAtlasImageView());
+    frame->cr << SetShaderUniform(8, "PointLightShadowMapsTextureArray"_sh, g_renderInterface->shadowMapCache->GetPointLightShadowMapImageView());
 
     frame->cr << SetShaderUniform(9, "MaterialsBuffer"_sh, g_renderInterface->gpuBuffers[GRB_MATERIALS]->GetBuffer(frameIndex));
     frame->cr << SetShaderUniform(10, "EntitiesBuffer"_sh, g_renderInterface->gpuBuffers[GRB_ENTITIES]->GetBuffer(frameIndex));

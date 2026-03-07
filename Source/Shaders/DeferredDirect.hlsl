@@ -77,11 +77,9 @@ DECLARE_BUFFER(DeferredPass, WorldsBuffer) cbuffer WorldsBuffer
     WorldShaderData world_shader_data;
 };
 
-DECLARE_SRV_DYNAMIC(DeferredPass, CurrentLight) StructuredBuffer<Light> current_light_buffer;
-#define currentLight current_light_buffer[0]
-
-DECLARE_BUFFER_DYNAMIC(DeferredPass, ShadowMapCBuffer) cbuffer ShadowMapCBuffer
+DECLARE_BUFFER_DYNAMIC(DeferredPass, CBuffer) cbuffer CBuffer
 {
+    Light currentLight;
     ShadowMap shadowMap;
 };
 

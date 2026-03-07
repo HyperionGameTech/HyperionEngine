@@ -1330,6 +1330,7 @@ struct RenderTargetDesc
     static constexpr uint32 MaxAttachments = 5;
 
     Vec2u extent = Vec2u::One();
+    Vec2i offset = Vec2i::Zero();
 
     uint32 numAttachments = 0;
     AttachmentDesc attachments[MaxAttachments];
@@ -1341,6 +1342,7 @@ struct RenderTargetDesc
     HYP_FORCE_INLINE bool operator==(const RenderTargetDesc& other) const
     {
         return extent == other.extent
+            && offset == other.offset
             && numAttachments == other.numAttachments
             && std::equal(attachments, attachments + numAttachments, other.attachments)
             && numLayers == other.numLayers
@@ -1363,6 +1365,7 @@ struct RenderTargetDesc
     HYP_FORCE_INLINE constexpr HashCode GetHashCode() const
     {
         return HashCode::GetHashCode(extent)
+            .Combine(offset)
             .Combine(numAttachments)
             .Combine(HashCode::GetHashCode(attachments, attachments + numAttachments))
             .Combine(numLayers)

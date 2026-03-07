@@ -4,6 +4,7 @@
 
 #include <rendering/shadows/ShadowMap.hpp>
 #include <rendering/shadows/ShadowMapAllocator.hpp>
+
 #include <rendering/Buffers.hpp>
 #include <rendering/RenderInterface.hpp>
 #include <rendering/PlaceholderData.hpp>

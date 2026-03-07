@@ -2,8 +2,11 @@
 
 #include <RenderingPch.hpp>
 
-#include <rendering/shadows/ShadowViewCache.hpp>
+#include <rendering/shadows/ShadowMapCache.hpp>
+#include <rendering/shadows/ShadowMapAllocator.hpp>
 #include <rendering/shadows/ShadowMap.hpp>
+
+#include <rendering/RenderInterface.hpp>
 
 #include <Core/containers/HashMap.hpp>
 
@@ -16,9 +19,11 @@
 #include <scene/camera/PerspectiveCamera.hpp>
 #include <scene/camera/OrthoCamera.hpp>
 
+#include <engine/EngineGlobals.hpp>
+
 namespace Hyperion {
 
-#define SHADOW_VIEW_CACHE_MULTITHREADED 1
+#define SHADOW_MAP_CACHE_MULTITHREADED 1
 
 static constexpr TextureFormat PointLightShadowFormat = TextureFormat::RG16F;
 static constexpr TextureFormat DirectionalLightShadowFormats[SMF_MAX] = {
@@ -52,16 +57,18 @@ static const Name s_shadowMapCameraNames[MaxShadowMapCascades] = {
 static RenderTargetDesc GetRenderTargetDesc(
     Light* light,
     ShaderDesc& outShaderDesc,
+    ShadowMap& shadowMap,
     EnumFlags<ViewFlags>& outViewFlags)
 {
-    outViewFlags = DefaultShadowViewFlags;
+    outViewFlags = DefaultShadowViewFlags | ViewFlags::EXTERNAL_RENDERTARGET; // use atlas as target
 
-    outViewFlags |= ViewFlags::EXTERNAL_RENDERTARGET; // use atlas as target
-
-    const ShadowMapFilter shadowMapFilter = light->GetShadowMapFilter();
+    const ShadowMapAtlasElement& atlasElement = *shadowMap.GetAtlasElement();
 
     RenderTargetDesc renderTargetDesc {};
-    renderTargetDesc.extent = light->GetShadowMapDimensions();
+    renderTargetDesc.extent = atlasElement.dimensions;
+    renderTargetDesc.offset = Vec2i(atlasElement.offsetCoords);
+
+    const ShadowMapFilter shadowMapFilter = light->GetShadowMapFilter();
     
     outShaderDesc.name = NAME("DrawShadowMap");
     outShaderDesc.properties.Add(s_shadowMapFilterProperties[shadowMapFilter]);
@@ -80,14 +87,14 @@ static RenderTargetDesc GetRenderTargetDesc(
         AttachmentDesc& moments = renderTargetDesc.attachments[renderTargetDesc.numAttachments++];
         moments.imageType = TextureType::Cubemap;
         moments.format = TextureFormat::RG16F;
-        moments.loadOp = LoadOperation::CLEAR;
+        moments.loadOp = LoadOperation::CLEAR; // LOAD;
         moments.storeOp = StoreOperation::STORE;
         std::fill(std::begin(moments.clearColor), std::end(moments.clearColor), 1000.0f);
 
         AttachmentDesc& depth = renderTargetDesc.attachments[renderTargetDesc.numAttachments++];
         depth.imageType = TextureType::Cubemap;
         depth.format = TextureFormat::D16;
-        depth.loadOp = LoadOperation::CLEAR;
+        depth.loadOp = LoadOperation::CLEAR; // LOAD;
         depth.storeOp = StoreOperation::STORE;
 
         outShaderDesc.name = NAME("DrawCubemap");
@@ -107,7 +114,7 @@ static RenderTargetDesc GetRenderTargetDesc(
         //    AttachmentDesc& moments = renderTargetDesc.attachments[renderTargetDesc.numAttachments++];
         //    moments.format = TextureFormat::RG16F;
         //    moments.imageType = TextureType::Texture2D;
-        //    moments.loadOp = LoadOperation::CLEAR;
+        //    moments.loadOp = LoadOperation::CLEAR; // LOAD;
         //    moments.storeOp = StoreOperation::STORE;
         //    std::fill(std::begin(moments.clearColor), std::end(moments.clearColor), 1000.0f);
         //}
@@ -115,7 +122,7 @@ static RenderTargetDesc GetRenderTargetDesc(
         AttachmentDesc& depth = renderTargetDesc.attachments[renderTargetDesc.numAttachments++];
         depth.format = TextureFormat::D16;
         depth.imageType = TextureType::Texture2D;
-        depth.loadOp = LoadOperation::CLEAR;
+        depth.loadOp = LoadOperation::CLEAR; // LOAD;
         depth.storeOp = StoreOperation::STORE;
 
         break;
@@ -157,20 +164,15 @@ static Camera* CreateShadowCamera(Light* light, uint32 cascadeIndex)
     return shadowMapCamera;
 }
 
-static ViewDesc GetViewDesc(Light* light, bool isStatic, uint32 cascadeIndex, Camera*& inOutCamera)
+static ViewDesc GetViewDesc(Light* light, bool isStatic, uint32 cascadeIndex, ShadowMap& shadowMap, Camera& camera)
 {
-    if (!inOutCamera)
-    {
-        inOutCamera = CreateShadowCamera(light, cascadeIndex);
-    }
-
     ViewDesc viewDesc {};
 
     viewDesc.scenes = {};
-    viewDesc.camera = inOutCamera;
+    viewDesc.camera = &camera;
 
     ShaderDesc shaderDesc;
-    viewDesc.renderTargetDesc = GetRenderTargetDesc(light, shaderDesc, viewDesc.flags);
+    viewDesc.renderTargetDesc = GetRenderTargetDesc(light, shaderDesc, shadowMap, viewDesc.flags);
 
     MaterialAttributes materialAttributes {};
     materialAttributes.shaderName = shaderDesc.name;
@@ -203,43 +205,79 @@ static ViewDesc GetViewDesc(Light* light, bool isStatic, uint32 cascadeIndex, Ca
     return viewDesc;
 }
 
-struct ShadowViewCacheEntry
+// Shadow maps cached per-light.
+// Since Lights can have multiple shadow views that blit into one final shadow map
+// we store the shadow maps here rather than on the per-view PassData
+struct CachedShadowMapData
 {
-    Camera* camera;
+    Array<ShadowMap*, RenderAllocator> shadowMaps;
 
-    Array<View*> staticViews;
-    Array<View*> dynamicViews;
+    Camera* camera = nullptr;
+    
+    Array<View*, FixedAllocator<MaxShadowMapCascades>> shadowViewsDynamic;
+    Array<View*, FixedAllocator<MaxShadowMapCascades>> shadowViewsStatic;
 
     volatile int64 lastFrameUsed;
 };
 
-class ShadowViewCacheImpl
+struct ShadowMapCacheKey
+{
+    Light* light;
+    View* view;
+
+    HYP_FORCE_INLINE bool operator==(const ShadowMapCacheKey& other)
+    {
+        return light == other.light
+            && view == other.view;
+    }
+
+    HYP_FORCE_INLINE HashCode GetHashCode() const
+    {
+        return HashCode::GetHashCode(light)
+            .Combine(view);
+    }
+};
+
+class ShadowMapCacheImpl
 {
 public:
-    ~ShadowViewCacheImpl()
+    ~ShadowMapCacheImpl()
     {
-#if SHADOW_VIEW_CACHE_MULTITHREADED
+#if SHADOW_MAP_CACHE_MULTITHREADED
         TUniqueLock lock(mutex);
 #endif
 
         for (auto& pair : cache)
         {
-            ShadowViewCacheEntry& entry = pair.second;
+            CachedShadowMapData& entry = pair.second;
 
-            for (View* view : entry.staticViews)
+            Array<View*, FixedAllocator<MaxShadowMapCascades * 2>> allViews;
+
+            for (View* view : entry.shadowViewsStatic)
             {
                 if (view)
                 {
-                    view->Release();
+                    allViews.PushBack(view);
                 }
             }
 
-            for (View* view : entry.dynamicViews)
+            for (View* view : entry.shadowViewsDynamic)
             {
                 if (view)
                 {
-                    view->Release();
+                    allViews.PushBack(view);
                 }
+            }
+
+            if (allViews.Any())
+            {
+                EnqueueDeletion(FunctionWrapper<Proc<void()>>([allViews = std::move(allViews)]()
+                    {
+                        for (View* view : allViews)
+                        {
+                            view->Release();
+                        }
+                    }));
             }
 
             if (entry.camera)
@@ -248,22 +286,55 @@ public:
             }
         }
     }
+    
+    ShadowMapAllocator allocator;
 
-    HashMap<ShadowViewCacheKey, ShadowViewCacheEntry> cache;
+    /// Cached (per-light/view combination) shadow map rendering data that is cleaned up when no longer used
+    HashMap<ShadowMapCacheKey, CachedShadowMapData, NodeAllocator<RenderAllocator>> cache;
 
-#if SHADOW_VIEW_CACHE_MULTITHREADED
+#if SHADOW_MAP_CACHE_MULTITHREADED
     SharedMutex mutex;
 #endif
 };
 
-ShadowViewCache::ShadowViewCache()
-    : m_impl(MakePimpl<ShadowViewCacheImpl>())
+ShadowMapCache::ShadowMapCache()
+    : m_impl(MakePimpl<ShadowMapCacheImpl>())
 {
 }
 
-ShadowViewCache::~ShadowViewCache() = default;
+ShadowMapCache::~ShadowMapCache() = default;
 
-HYP_NODISCARD View* ShadowViewCache::GetOrCreateShadowView(
+void ShadowMapCache::Initialize()
+{
+    m_impl->allocator.Initialize();
+}
+
+void ShadowMapCache::Shutdown()
+{
+    m_impl->allocator.Shutdown();
+}
+
+GpuImage* ShadowMapCache::GetAtlasImage() const
+{
+    return m_impl->allocator.GetAtlasImage().Get();
+}
+
+GpuImageView* ShadowMapCache::GetAtlasImageView() const
+{
+    return m_impl->allocator.GetAtlasImageView().Get();
+}
+
+GpuImage* ShadowMapCache::GetPointLightShadowMapImage() const
+{
+    return m_impl->allocator.GetPointLightShadowMapImage().Get();
+}
+
+GpuImageView* ShadowMapCache::GetPointLightShadowMapImageView() const
+{
+    return m_impl->allocator.GetPointLightShadowMapImageView().Get();
+}
+
+HYP_NODISCARD View* ShadowMapCache::GetOrCreateShadowView(
     View* view,
     Light* light,
     uint32 cascadeIndex,
@@ -273,29 +344,44 @@ HYP_NODISCARD View* ShadowViewCache::GetOrCreateShadowView(
 
     View* outView = nullptr;
 
-    ShadowViewCacheKey key {};
+    ShadowMapCacheKey key {};
     key.view = view;
     key.light = light;
 
-#if SHADOW_VIEW_CACHE_MULTITHREADED
+#if SHADOW_MAP_CACHE_MULTITHREADED
     TSharedLock<SharedMutex> sharedLock(m_impl->mutex);
     TUniqueLock<SharedMutex> uniqueLock; // not locked yet
 #else
     AssertOnThread(g_renderThread);
 #endif
 
+    auto InitShadowCascade = [&](CachedShadowMapData& entry)
+    {
+        entry.shadowViewsStatic.Resize(cascadeIndex + 1);
+        entry.shadowViewsDynamic.Resize(cascadeIndex + 1);
+        entry.shadowMaps.Resize(cascadeIndex + 1);
+
+        // create shadow map
+        ShadowMap*& shadowMap = entry.shadowMaps[cascadeIndex];
+        
+        shadowMap = m_impl->allocator.AllocateShadowMap(
+            light->GetLightType() == LightType::Point ? ShadowMapType::SMT_OMNI : ShadowMapType::SMT_DIRECTIONAL,
+            light->GetShadowMapFilter(),
+            light->GetShadowMapDimensions());
+    };
+
     auto it = m_impl->cache.Find(key);
 
     if (it != m_impl->cache.End())
     {
-        ShadowViewCacheEntry* entry = &it->second;
+        CachedShadowMapData* entry = &it->second;
         AtomicExchange(&entry->lastFrameUsed, int64(GetFrameCounter()));
 
-        auto* views = isStatic ? &entry->staticViews : &entry->dynamicViews;
+        auto* views = isStatic ? &entry->shadowViewsStatic : &entry->shadowViewsDynamic;
 
-        if (cascadeIndex >= entry->staticViews.Size() || !entry->camera)
+        if (cascadeIndex >= entry->shadowViewsStatic.Size() || !entry->camera)
         {
-#if SHADOW_VIEW_CACHE_MULTITHREADED
+#if SHADOW_MAP_CACHE_MULTITHREADED
             sharedLock.Reset();
             uniqueLock.Reset(m_impl->mutex);
 #endif
@@ -305,10 +391,9 @@ HYP_NODISCARD View* ShadowViewCache::GetOrCreateShadowView(
                 entry->camera = CreateShadowCamera(light, cascadeIndex);
             }
 
-            if (cascadeIndex >= entry->staticViews.Size())
+            if (cascadeIndex >= entry->shadowViewsStatic.Size())
             {
-                entry->staticViews.Resize(cascadeIndex + 1);
-                entry->dynamicViews.Resize(cascadeIndex + 1);
+                InitShadowCascade(*entry);
             }
         }
 
@@ -319,7 +404,7 @@ HYP_NODISCARD View* ShadowViewCache::GetOrCreateShadowView(
             return outView;
         }
 
-#if SHADOW_VIEW_CACHE_MULTITHREADED
+#if SHADOW_MAP_CACHE_MULTITHREADED
         sharedLock.Reset();
         uniqueLock.Reset(m_impl->mutex);
 #endif
@@ -334,12 +419,15 @@ HYP_NODISCARD View* ShadowViewCache::GetOrCreateShadowView(
             entry->camera = CreateShadowCamera(light, cascadeIndex);
         }
 
-        views = isStatic ? &entry->staticViews : &entry->dynamicViews;
+        views = isStatic ? &entry->shadowViewsStatic : &entry->shadowViewsDynamic;
         outView = (*views)[cascadeIndex];
 
         if (!outView)
         {
-            outView = new View(GetViewDesc(light, isStatic, cascadeIndex, entry->camera));
+            AssertDebug(entry->camera != nullptr);
+            AssertDebug(entry->shadowMaps[cascadeIndex] != nullptr);
+
+            outView = new View(GetViewDesc(light, isStatic, cascadeIndex, *entry->shadowMaps[cascadeIndex], *entry->camera));
             InitObject(outView);
 
             (*views)[cascadeIndex] = outView;
@@ -347,26 +435,33 @@ HYP_NODISCARD View* ShadowViewCache::GetOrCreateShadowView(
     }
     else
     {
-#if SHADOW_VIEW_CACHE_MULTITHREADED
+#if SHADOW_MAP_CACHE_MULTITHREADED
         sharedLock.Reset();
         uniqueLock.Reset(m_impl->mutex);
 #endif
 
-        ShadowViewCacheEntry& entry = m_impl->cache[key];
+        CachedShadowMapData& entry = m_impl->cache[key];
         AtomicExchange(&entry.lastFrameUsed, int64(GetFrameCounter()));
 
-        if (cascadeIndex >= entry.staticViews.Size())
+        if (!entry.camera)
         {
-            entry.staticViews.Resize(cascadeIndex + 1);
-            entry.dynamicViews.Resize(cascadeIndex + 1);
+            entry.camera = CreateShadowCamera(light, cascadeIndex);
         }
 
-        auto& views = isStatic ? entry.staticViews : entry.dynamicViews;
+        if (cascadeIndex >= entry.shadowViewsStatic.Size())
+        {
+            InitShadowCascade(entry);
+        }
+
+        auto& views = isStatic ? entry.shadowViewsStatic : entry.shadowViewsDynamic;
         outView = views[cascadeIndex];
 
         if (!outView)
         {
-            outView = new View(GetViewDesc(light, isStatic, cascadeIndex, entry.camera));
+            AssertDebug(entry.camera != nullptr);
+            AssertDebug(entry.shadowMaps[cascadeIndex] != nullptr);
+
+            outView = new View(GetViewDesc(light, isStatic, cascadeIndex, *entry.shadowMaps[cascadeIndex], *entry.camera));
             InitObject(outView);
 
             views[cascadeIndex] = outView;
@@ -376,17 +471,17 @@ HYP_NODISCARD View* ShadowViewCache::GetOrCreateShadowView(
     return outView;
 }
 
-View* ShadowViewCache::TryGetShadowView(
+View* ShadowMapCache::TryGetShadowView(
     View* view,
     Light* light,
     uint32 cascadeIndex,
     bool isStatic) const
 {
-    ShadowViewCacheKey key {};
+    ShadowMapCacheKey key {};
     key.view = view;
-    key.light = light;;
+    key.light = light;
 
-#if SHADOW_VIEW_CACHE_MULTITHREADED
+#if SHADOW_MAP_CACHE_MULTITHREADED
     TSharedLock<SharedMutex> sharedLock(m_impl->mutex);
     TUniqueLock<SharedMutex> uniqueLock; // not locked yet
 #else
@@ -397,7 +492,7 @@ View* ShadowViewCache::TryGetShadowView(
 
     if (it != m_impl->cache.End())
     {
-        auto& shadowViews = isStatic ? it->second.staticViews : it->second.dynamicViews;
+        auto& shadowViews = isStatic ? it->second.shadowViewsStatic : it->second.shadowViewsDynamic;
 
         if (cascadeIndex < shadowViews.Size())
         {
@@ -406,6 +501,120 @@ View* ShadowViewCache::TryGetShadowView(
     }
 
     return nullptr;
+}
+
+ShadowMap* ShadowMapCache::GetShadowMap(
+    Light* light,
+    View* view,
+    uint32 cascadeIndex,
+    View*& outShadowViewDynamic,
+    View*& outShadowViewStatic) const
+{
+    ShadowMapCacheKey key {};
+    key.view = view;
+    key.light = light;
+
+#if SHADOW_MAP_CACHE_MULTITHREADED
+    TSharedLock<SharedMutex> sharedLock(m_impl->mutex);
+#else
+    AssertOnThread(g_renderThread);
+#endif
+
+    outShadowViewDynamic = nullptr;
+    outShadowViewStatic = nullptr;
+
+    auto it = m_impl->cache.Find(key);
+
+    if (it != m_impl->cache.End())
+    {
+        CachedShadowMapData& entry = it->second;
+
+        if (cascadeIndex < entry.shadowMaps.Size())
+        {
+            outShadowViewDynamic = entry.shadowViewsDynamic[cascadeIndex];
+            outShadowViewStatic = entry.shadowViewsStatic[cascadeIndex];
+            
+            AtomicExchange(&entry.lastFrameUsed, int64(GetFrameCounter()));
+
+            return entry.shadowMaps[cascadeIndex];
+        }
+    }
+
+    return nullptr;
+}
+
+bool ShadowMapCache::Remove(Light* light, View* view)
+{
+    if (!light || !view)
+    {
+        return false;
+    }
+
+    TUniqueLock lock(m_impl->mutex);
+
+    ShadowMapCacheKey key {};
+    key.view = view;
+    key.light = light;
+
+    auto it = m_impl->cache.Find(key);
+
+    if (it == m_impl->cache.End())
+    {
+        return false;
+    }
+
+    CachedShadowMapData& entry = it->second;
+    
+    Array<View*, FixedAllocator<MaxShadowMapCascades * 2>> allViews;
+
+    for (View* view : entry.shadowViewsStatic)
+    {
+        if (view)
+        {
+            allViews.PushBack(view);
+        }
+    }
+
+    for (View* view : entry.shadowViewsDynamic)
+    {
+        if (view)
+        {
+            allViews.PushBack(view);
+        }
+    }
+
+    if (allViews.Any())
+    {
+        EnqueueDeletion(FunctionWrapper<Proc<void()>>([allViews = std::move(allViews)]()
+            {
+                for (View* view : allViews)
+                {
+                    view->Release();
+                }
+            }));
+    }
+
+    if (entry.camera)
+    {
+        entry.camera->Release();
+    }
+
+    for (ShadowMap* shadowMap : entry.shadowMaps)
+    {
+        if (shadowMap)
+        {
+            bool success = m_impl->allocator.FreeShadowMap(shadowMap);
+
+            if (!success)
+            {
+                HYP_LOG(Rendering, Warning, "Failed to remove shadow map from atlas for Light {} + View {}", light->Id(), view->Id());
+            }
+        }
+    }
+
+    m_impl->cache.Erase(it);
+
+    return true;
 }
 
 } // namespace Hyperion

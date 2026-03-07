@@ -167,6 +167,14 @@ class ClearFramebuffer final : public CmdBase
 public:
     explicit ClearFramebuffer(Framebuffer* framebuffer, uint8 attachmentsMask = uint8(-1))
         : framebuffer(framebuffer),
+          rect {},
+          attachmentsMask(attachmentsMask)
+    {
+    }
+
+    ClearFramebuffer(Framebuffer* framebuffer, const Rect<uint32>& rect, uint8 attachmentsMask = uint8(-1))
+        : framebuffer(framebuffer),
+          rect(rect),
           attachmentsMask(attachmentsMask)
     {
     }
@@ -175,6 +183,7 @@ public:
 
 private:
     Framebuffer* framebuffer;
+    Rect<uint32> rect;
     uint8 attachmentsMask;
 };
 

@@ -50,20 +50,6 @@
         "Slots": [[{
               "$Class": "ShaderInput",
               "Register": 1,
-              "ElementType": 4,
-              "Name": "CurrentLight",
-              "Count": 1,
-              "Size": 4294967295,
-              "IsDynamic": true,
-              "StructInfo": {
-                "Name": "",
-                "Size": 4294967295,
-                "FieldNames": [],
-                "FieldTypes": []
-              }
-            }, {
-              "$Class": "ShaderInput",
-              "Register": 1,
               "ElementType": 5,
               "Name": "GBufferDepthTexture",
               "Count": 1,
@@ -219,7 +205,7 @@
               "$Class": "ShaderInput",
               "Register": 3,
               "ElementType": 2,
-              "Name": "CamerasBuffer",
+              "Name": "CBuffer",
               "Count": 1,
               "Size": 4294967295,
               "IsDynamic": true,
@@ -233,7 +219,7 @@
               "$Class": "ShaderInput",
               "Register": 3,
               "ElementType": 2,
-              "Name": "ShadowMapCBuffer",
+              "Name": "CamerasBuffer",
               "Count": 1,
               "Size": 4294967295,
               "IsDynamic": true,
@@ -285,7 +271,7 @@
     }, {
       "$Class": "BlobDataReference",
       "Key": "Engine/Shaders/DeferredDirect/DeferredDirect_8459934784655705821.PS",
-      "Size": 35636
+      "Size": 35352
     }],
   "PropertySetHashCode": {},
   "Name": "DeferredDirect_8459934784655705821",

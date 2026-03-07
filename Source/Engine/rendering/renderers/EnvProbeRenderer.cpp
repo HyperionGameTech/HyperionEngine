@@ -23,7 +23,8 @@
 #include <rendering/ShaderInstance.hpp>
 #include <rendering/RenderCollection.hpp>
 #include <rendering/RenderHelpers.hpp>
-#include <rendering/shadows/ShadowMapAllocator.hpp>
+
+#include <rendering/shadows/ShadowMapCache.hpp>
 
 #include <rendering/util/DeletionQueue.hpp>
 
@@ -537,8 +538,8 @@ void ReflectionProbeRenderer::ComputeSH(Frame* frame, const RenderSetup& renderS
         else
             asyncCmdList << SetShaderUniform(4, "CurrentEnvProbe"_sh, g_renderInterface->gpuBuffers[GRB_ENV_PROBES]->GetBuffer(frame->GetFrameIndex()), TShaderDataOffset<EnvProbeShaderData>(0));
 
-        asyncCmdList << SetShaderUniform(5, "ShadowMapsTextureArray"_sh, g_renderInterface->shadowMapAllocator->GetAtlasImageView());
-        asyncCmdList << SetShaderUniform(6, "PointLightShadowMapsTextureArray"_sh, g_renderInterface->shadowMapAllocator->GetPointLightShadowMapImageView());
+        asyncCmdList << SetShaderUniform(5, "ShadowMapsTextureArray"_sh, g_renderInterface->shadowMapCache->GetAtlasImageView());
+        asyncCmdList << SetShaderUniform(6, "PointLightShadowMapsTextureArray"_sh, g_renderInterface->shadowMapCache->GetPointLightShadowMapImageView());
 
         if (directionalLight)
             asyncCmdList << SetShaderUniform(7, "CurrentLight"_sh, g_renderInterface->gpuBuffers[GRB_LIGHTS]->GetBuffer(frame->GetFrameIndex()), TShaderDataOffset<LightShaderData>(directionalLight));

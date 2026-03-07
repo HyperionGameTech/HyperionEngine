@@ -4,9 +4,9 @@
 
 #include <rendering/renderers/ShadowRenderer.hpp>
 
+#include <rendering/shadows/ShadowMapCache.hpp>
 #include <rendering/shadows/ShadowMapAllocator.hpp>
 #include <rendering/shadows/ShadowMap.hpp>
-#include <rendering/shadows/ShadowViewCache.hpp>
 
 #include <rendering/RenderInterface.hpp>
 #include <rendering/ShaderManager.hpp>
@@ -76,33 +76,28 @@ void ShadowRendererBase::Initialize()
 
 void ShadowRendererBase::Shutdown()
 {
-    HashSet<ShadowMap*> shadowMaps;
+    HashSet<CacheKey> cacheKeys;
 
     for (KeyValuePair<CacheKey, CachedShadowMapData>& pair : m_cachedShadowMapData)
     {
-        CachedShadowMapData& value = pair.second;
-
-        for (ShadowMap* shadowMap : value.shadowMaps)
-        {
-            shadowMaps.Insert(shadowMap);
-        }
+        cacheKeys.Add(pair.first);
     }
 
     m_cachedShadowMapData.Clear();
 
-    if (shadowMaps.Any())
+    if (cacheKeys.Any())
     {
-        for (ShadowMap* shadowMap : shadowMaps)
+        for (CacheKey& cacheKey : cacheKeys)
         {
-            bool removedFromAtlas = g_renderInterface->shadowMapAllocator->FreeShadowMap(shadowMap);
+            bool removed = g_renderInterface->shadowMapCache->Remove(cacheKey.light, cacheKey.view);
 
-            if (!removedFromAtlas)
+            if (!removed)
             {
-                HYP_LOG(Rendering, Warning, "Failed to remove shadow map from atlas.");
+                HYP_LOG(Rendering, Warning, "Failed to remove shadow map from cache.");
             }
         }
 
-        shadowMaps.Clear();
+        cacheKeys.Clear();
     }
 }
 
@@ -122,10 +117,11 @@ int ShadowRendererBase::RunCleanupCycle(int maxIter)
         {
             HYP_LOG(Rendering, Verbose, "Removing cached shadow map for Light {} + View {} as it has not been used in over {} frames", it->first.light->Id(), it->first.view->Id(), MaxFramesBeforeDiscard);
 
-            for (ShadowMap* shadowMap : it->second.shadowMaps)
+            bool removed = g_renderInterface->shadowMapCache->Remove(it->first.light, it->first.view);
+
+            if (!removed)
             {
-                bool shadowMapFreed = g_renderInterface->shadowMapAllocator->FreeShadowMap(shadowMap);
-                AssertDebug(shadowMapFreed, "Failed to free shadow map for Light {} + View {}", it->first.light->Id(), it->first.view->Id());
+                HYP_LOG(Rendering, Warning, "Failed to remove shadow map from cache.");
             }
 
             it = m_cachedShadowMapData.Erase(it);
@@ -168,27 +164,6 @@ void ShadowRendererBase::RenderFrame(Frame* frame, const RenderSetup& renderSetu
         cachedData = &m_cachedShadowMapData[cacheKey];
         cachedData->shadowMaps.Resize(lightProxy->numCascades);
 
-        Vec2u maxDimensions;
-
-        for (uint32 cascadeIndex = 0; cascadeIndex < lightProxy->numCascades; cascadeIndex++)
-        {
-            ShadowMap* shadowMap = AllocateShadowMap(light);
-            Assert(shadowMap != nullptr, "Failed to allocate shadow map for Light {} (cascade: {})!", light->Id(), cascadeIndex);
-            Assert(shadowMap->GetAtlasElement() != nullptr);
-            
-            cachedData->shadowMaps[cascadeIndex] = shadowMap;
-
-            maxDimensions = MathUtil::Max(maxDimensions, shadowMap->GetAtlasElement()->dimensions);
-        }
-
-        if (shouldCombineShadowMaps)
-        {
-            cachedData->combineShadowMapsPass = CreateCombineShadowMapsPass(
-                isVarianceShadowMap ? ShadowMapFilter::SMF_VSM : ShadowMapFilter::SMF_STANDARD,
-                TextureFormat::RG16F,
-                maxDimensions);
-        }
-
         if (isVarianceShadowMap)
         {
             for (uint32 frameIndex = 0; frameIndex < NumFramesInFlight; frameIndex++)
@@ -217,32 +192,27 @@ void ShadowRendererBase::RenderFrame(Frame* frame, const RenderSetup& renderSetu
 
     for (uint32 cascadeIndex = 0; cascadeIndex < lightProxy->numCascades; cascadeIndex++)
     {
-        cachedData->shadowViewsDynamic[cascadeIndex] = g_renderInterface->shadowViewCache->TryGetShadowView(
-            renderSetup.view,
-            renderSetup.light,
-            cascadeIndex,
-            /* isStatic */ false);
+        ShadowMap* shadowMap = g_renderInterface->shadowMapCache->GetShadowMap(
+            light, renderSetup.view, cascadeIndex,
+            cachedData->shadowViewsDynamic[cascadeIndex],
+            cachedData->shadowViewsStatic[cascadeIndex]);
+            
+        cachedData->shadowMaps[cascadeIndex] = shadowMap;
 
-        if (!cachedData->shadowViewsDynamic[cascadeIndex])
+        if (!shadowMap)
         {
             continue;
         }
-            
-        if (shouldCombineShadowMaps)
-        {
-            cachedData->shadowViewsStatic[cascadeIndex] = g_renderInterface->shadowViewCache->TryGetShadowView(
-                renderSetup.view,
-                renderSetup.light,
-                cascadeIndex,
-                /* isStatic */ true);
-        }
-        else
-        {
-            cachedData->shadowViewsStatic[cascadeIndex] = nullptr;
-        }
 
-        ShadowMap* shadowMap = cachedData->shadowMaps[cascadeIndex];
-        Assert(shadowMap != nullptr && shadowMap->GetAtlasElement() != nullptr);
+        AssertDebug(shadowMap->GetAtlasElement() != nullptr);
+
+        if (shouldCombineShadowMaps && !cachedData->combineShadowMapsPass)
+        {
+            cachedData->combineShadowMapsPass = CreateCombineShadowMapsPass(
+                isVarianceShadowMap ? ShadowMapFilter::SMF_VSM : ShadowMapFilter::SMF_STANDARD,
+                TextureFormat::RG16F,
+                shadowMap->GetAtlasElement()->dimensions);
+        }
         
         GpuImage* shadowMapImage = shadowMap->GetImageView()->GetImage();
         AssertDebug(shadowMapImage != nullptr);
@@ -336,6 +306,8 @@ void ShadowRendererBase::RenderFrame(Frame* frame, const RenderSetup& renderSetu
             rs.passData = FetchViewPassData(shadowView);
             rs.framebuffer = framebuffer;
             rs.viewport = Viewport { atlasElement.dimensions, Vec2i(atlasElement.offsetCoords) };
+
+            frame->cr << ClearFramebuffer(framebuffer);
 
             ShadowRendererPassData* pd = ObjCast<ShadowRendererPassData>(rs.passData);
             AssertDebug(pd != nullptr);
@@ -603,29 +575,5 @@ PassData* ShadowRendererBase::CreateViewPassData(View* view, PassDataExt& ext)
 }
 
 #pragma endregion ShadowRendererBase
-
-#pragma region PointShadowRenderer
-
-ShadowMap* PointShadowRenderer::AllocateShadowMap(Light* light)
-{
-    return g_renderInterface->shadowMapAllocator->AllocateShadowMap(
-        ShadowMapType::SMT_OMNI,
-        light->GetShadowMapFilter(),
-        light->GetShadowMapDimensions());
-}
-
-#pragma endregion PointShadowRenderer
-
-#pragma region DirectionalShadowRenderer
-
-ShadowMap* DirectionalShadowRenderer::AllocateShadowMap(Light* light)
-{
-    return g_renderInterface->shadowMapAllocator->AllocateShadowMap(
-        ShadowMapType::SMT_DIRECTIONAL,
-        light->GetShadowMapFilter(),
-        light->GetShadowMapDimensions());
-}
-
-#pragma endregion DirectionalShadowRenderer
 
 } // namespace Hyperion

@@ -49,8 +49,7 @@
 #include <rendering/renderers/ShadowRenderer.hpp>
 #include <rendering/renderers/ParticleVolumeRenderer.hpp>
 
-#include <rendering/shadows/ShadowMapAllocator.hpp>
-#include <rendering/shadows/ShadowViewCache.hpp>
+#include <rendering/shadows/ShadowMapCache.hpp>
 
 #include <rendering/ResourceBindings.hpp>
 
@@ -908,8 +907,7 @@ void EndFrameSim()
 #pragma region RenderInterface
 
 RenderInterface::RenderInterface()
-    : shadowMapAllocator(PoolNew<ShadowMapAllocator>(*g_renderPool)),
-      gpuBufferHolders(PoolNew<GpuBufferHolderMap>(*g_renderPool)),
+    : gpuBufferHolders(PoolNew<GpuBufferHolderMap>(*g_renderPool)),
       constantsAllocator(PoolNew<ConstantsAllocator>(*g_renderPool)),
       descriptorSetCache(PoolNew<DescriptorSetCache>(*g_renderPool)),
       placeholderData(PoolNew<PlaceholderData>(*g_renderPool)),
@@ -923,7 +921,7 @@ RenderInterface::RenderInterface()
       textureViewCache(PoolNew<TextureViewCache>(*g_renderPool)),
       stagingBufferPool(PoolNew<StagingBufferPool>(*g_renderPool)),
       blasCache(PoolNew<BLASCache>(*g_renderPool)),
-      shadowViewCache(PoolNew<ShadowViewCache>(*g_renderPool)),
+      shadowMapCache(PoolNew<ShadowMapCache>(*g_renderPool)),
       crashHandler(PoolNew<CrashHandler>(*g_renderPool))
 {
 }
@@ -983,7 +981,7 @@ RendererResult RenderInterface::Initialize()
     globalDescriptorTable = MakeDescriptorTable(&GetStaticDescriptorTableDeclaration());
 
     placeholderData->Initialize();
-    shadowMapAllocator->Initialize();
+    shadowMapCache->Initialize();
 
     DebugDrawer::GetInstance().Initialize();
 
@@ -1078,7 +1076,7 @@ void RenderInterface::Shutdown()
     sphereSamplesBuffer.Reset();
     envProbesTexture.Reset();
 
-    shadowMapAllocator->Shutdown();
+    shadowMapCache->Shutdown();
     placeholderData->Shutdown();
 
     globalDescriptorTable.Reset();
@@ -1089,8 +1087,8 @@ void RenderInterface::Shutdown()
     PoolDelete(*g_renderPool, blasCache);
     blasCache = nullptr;
 
-    PoolDelete(*g_renderPool, shadowViewCache);
-    shadowViewCache = nullptr;
+    PoolDelete(*g_renderPool, shadowMapCache);
+    shadowMapCache = nullptr;
 
     PoolDelete(*g_renderPool, stagingBufferPool);
     stagingBufferPool = nullptr;
@@ -1100,10 +1098,7 @@ void RenderInterface::Shutdown()
 
     PoolDelete(*g_renderPool, finalPass);
     finalPass = nullptr;
-
-    PoolDelete(*g_renderPool, shadowMapAllocator);
-    shadowMapAllocator = nullptr;
-
+    
     PoolDelete(*g_renderPool, constantsAllocator);
     constantsAllocator = nullptr;
 

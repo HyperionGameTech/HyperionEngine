@@ -23,7 +23,7 @@
 #include <rendering/RayTracingReflections.hpp>
 #include <rendering/DDGI.hpp>
 
-#include <rendering/shadows/ShadowMapAllocator.hpp>
+#include <rendering/shadows/ShadowMapCache.hpp>
 
 #include <rendering/util/DeletionQueue.hpp>
 
@@ -232,8 +232,8 @@ void RayTracingReflections::Render(Frame* frame, const RenderSetup& renderSetup)
     frame->cr << SetShaderUniform(10, "Lights"_sh, pd->lightsBuffer);
     frame->cr << SetShaderUniform(11, "BlueNoiseBuffer"_sh, g_renderInterface->blueNoiseBuffer);
 
-    frame->cr << SetShaderUniform(12, "ShadowMapsTextureArray"_sh, g_renderInterface->shadowMapAllocator->GetAtlasImageView());
-    frame->cr << SetShaderUniform(13, "PointLightShadowMapsTextureArray"_sh, g_renderInterface->shadowMapAllocator->GetPointLightShadowMapImageView());
+    frame->cr << SetShaderUniform(12, "ShadowMapsTextureArray"_sh, g_renderInterface->shadowMapCache->GetAtlasImageView());
+    frame->cr << SetShaderUniform(13, "PointLightShadowMapsTextureArray"_sh, g_renderInterface->shadowMapCache->GetPointLightShadowMapImageView());
 
     frame->cr << SetShaderUniform(14, "MaterialsBuffer"_sh, g_renderInterface->gpuBuffers[GRB_MATERIALS]->GetBuffer(frameIndex));
     frame->cr << SetShaderUniform(15, "EntitiesBuffer"_sh, g_renderInterface->gpuBuffers[GRB_ENTITIES]->GetBuffer(frameIndex));

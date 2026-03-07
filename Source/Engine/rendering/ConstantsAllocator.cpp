@@ -172,7 +172,7 @@ void* ConstantsAllocator::Allocate(size_t count, size_t alignment, GpuBuffer*& o
             void* ptr = (void*)(reinterpret_cast<UIntPtr>(lastBlock.buffer->Map()) + offset);
 
             outBuffer = lastBlock.buffer;
-            outStartOffset = lastBlock.offset;
+            outStartOffset = offset;
 
             lastBlock.offset = offset + alignedCount;
 
@@ -186,10 +186,11 @@ void* ConstantsAllocator::Allocate(size_t count, size_t alignment, GpuBuffer*& o
     if (!newBlock)
         newBlock = NewBlock(currentFrameCounter);
 
-    Assert(alignedCount <= ConstantBufferSize);
+    Assert(alignedCount <= ConstantBufferSize
+        && newBlock->offset == 0);
     
     outBuffer = newBlock->buffer;
-    outStartOffset = newBlock->offset;
+    outStartOffset = 0;
 
     void* ptr = newBlock->buffer->Map();
 
