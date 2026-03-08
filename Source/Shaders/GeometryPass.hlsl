@@ -77,12 +77,11 @@ DECLARE_SRV(Default, PointLightShadowMapsTextureArray) TextureCubeArray point_sh
 DECLARE_SRV_DYNAMIC(Default, CurrentEnvProbe) StructuredBuffer<EnvProbe> current_env_probe_buffer;
 #define current_env_probe current_env_probe_buffer[0]
 
-DECLARE_SRV_DYNAMIC(Default, CurrentLight) StructuredBuffer<Light> current_light_buffer;
-#define light current_light_buffer[0]
-
-DECLARE_BUFFER_DYNAMIC(Default, ShadowMapCBuffer) cbuffer ShadowMapCBuffer
+DECLARE_BUFFER_DYNAMIC(Default, FowardShadingConstants) cbuffer FowardShadingConstants
 {
-    ShadowMap shadowMap;
+    Light lights[MAX_LIGHTS];
+    ShadowMap shadowMaps[MAX_LIGHTS];
+    uint numBoundLights;
 };
 
 #endif
@@ -159,16 +158,6 @@ PSOutput PSMain(PSInput input)
         const float3 F0 = CalculateF0(output.gbuffer_albedo.rgb, metalness);
         float3 F90 = saturate(dot(F0, (50.0 * 0.33).xxx));
 
-        float3 L = light.position_intensity.xyz;
-        L -= input.position.xyz * float(min(light.type, 1));
-        L = normalize(L);
-
-        const float3 H = normalize(L + V);
-        const float NdotL = max(0.0001, dot(N, L));
-        const float NdotH = max(0.0001, dot(N, H));
-        const float LdotH = max(0.0001, dot(L, H));
-        const float HdotV = max(0.0001, dot(H, V));
-
         const float3 R = normalize(reflect(-V, N));
 
         float3 Ft = (float3)0;
@@ -218,14 +207,40 @@ PSOutput PSMain(PSInput input)
 
         float3 indirect_lighting = Ft + Fd + Fr;
         float3 direct_lighting = 0;
+        
+        for (uint lightIndex = 0; lightIndex < numBoundLights; ++lightIndex)
+        {
+            Light light = lights[lightIndex];
+            ShadowMap shadowMap = shadowMaps[lightIndex];
 
-        float shadow = 1.0;
+            float3 L = light.position_intensity.xyz;
+            L -= input.position.xyz * float(min(light.type, 1));
+            
+            float3 worldToLight = L;
+            L = normalize(L);
 
-        { // direct lighting
+            const float3 H = normalize(L + V);
+            const float NdotL = max(0.0001, dot(N, L));
+            const float NdotH = max(0.0001, dot(N, H));
+            const float LdotH = max(0.0001, dot(L, H));
+            const float HdotV = max(0.0001, dot(H, V));
 
-            if (light.type == HYP_LIGHT_TYPE_DIRECTIONAL && bool(light.flags & LF_SHADOW_CASTER))
+            float shadow = 1.0;
+
+            if (bool(light.flags & LF_SHADOW_CASTER))
             {
-                shadow = GetShadow(shadowMap, P, texcoord, camera.dimensions.xy, NdotL);
+                if (light.type == HYP_LIGHT_TYPE_DIRECTIONAL)
+                {
+                    shadow = GetShadow(shadowMap, light.flags, P, texcoord, camera.dimensions.xy, NdotL);
+                }
+                else if (light.type == HYP_LIGHT_TYPE_POINT)
+                {
+                    shadow = GetPointShadow(shadowMap, light.flags, worldToLight, NdotL);
+                }
+                else
+                {
+                    // not implemented yet; treat as unshadowed for now
+                }
             }
 
             float3 light_color = light.color.rgb;
@@ -264,8 +279,6 @@ PSOutput PSMain(PSInput input)
 
         // overwrite gbuffer_albedo with lit result
         output.gbuffer_albedo.rgb = lighting;
-
-        output.gbuffer_albedo.rgb = float3(shadow, shadow, shadow);
     }
 #endif
 

@@ -4,6 +4,7 @@
 
 #include <rendering/RenderGroup.hpp>
 #include <rendering/RenderInterface.hpp>
+#include <rendering/RenderProxyList.hpp>
 #include <rendering/GBuffer.hpp>
 #include <rendering/MaterialTextureCache.hpp>
 #include <rendering/RenderProxy.hpp>
@@ -21,6 +22,8 @@
 #include <rendering/ConstantsAllocator.hpp>
 
 #include <rendering/shadows/ShadowMapCache.hpp>
+#include <rendering/shadows/ShadowMapAllocator.hpp>
+#include <rendering/shadows/ShadowMap.hpp>
 
 #include <rendering/renderers/DeferredRenderer.hpp>
 #include <rendering/renderers/EnvProbeRenderer.hpp>
@@ -60,6 +63,11 @@ extern EngineStatCounter<uint32> g_statInstancedDrawCalls;
 extern EngineStatCounter<uint32> g_statTriangles;
 extern EngineStatCounter<uint32> g_statRenderGroups;
 
+static const Name s_nameShadingType = NAME("SHADING_TYPE");
+static const Name s_nameForward = NAME("FORWARD");
+
+static const ShaderPropertyId s_propShadingTypeForward = InternShaderProperty(ShaderProperty(s_nameShadingType, Name(s_nameForward)));
+
 #pragma region RenderGroup
 
 template <class OutArray>
@@ -96,6 +104,110 @@ static void DivideDrawCalls(size_t numDrawCalls, uint32 numBatches, OutArray& ou
 
         drawCallIndex += diffToNextOrEnd;
     }
+}
+
+static void SetForwardShadingUniforms(const RenderSetup& renderSetup, CommandRecorder& cr, uint32& numShaderUniforms)
+{
+    struct ForwardShadingConstants
+    {
+        LightShaderData lights[MaxBoundLightsForwardShading];
+        ShadowMapData shadowMaps[MaxBoundLightsForwardShading];
+        uint32 numBoundLights;
+    };
+
+    GpuBuffer* cBuffer = nullptr;
+    size_t cBufferOffset = 0;
+    size_t cBufferSize = 0;
+
+    ForwardShadingConstants* forwardShadingConstants = (ForwardShadingConstants*)g_renderInterface->constantsAllocator->Allocate(
+        sizeof(ForwardShadingConstants),
+        alignof(ForwardShadingConstants),
+        cBuffer,
+        cBufferOffset);
+
+    Assert(forwardShadingConstants != nullptr);
+    Memory::Zero(forwardShadingConstants, sizeof(ForwardShadingConstants));
+
+    cBufferSize = sizeof(ForwardShadingConstants);
+        
+    RenderProxyList& rpl = GetConsumerProxyList(renderSetup.view);
+    rpl.BeginRead();
+
+    // @TODO Sort by light dist
+
+    for (Light* light : rpl.GetLights())
+    {
+        const LightType lightType = light->GetLightType();
+
+        if (forwardShadingConstants->numBoundLights >= MaxBoundLightsForwardShading)
+        {
+            break;
+        }
+                
+        RenderProxyLight* lightProxy = static_cast<RenderProxyLight*>(GetRenderProxy(light));
+        Assert(lightProxy != nullptr);
+
+        const uint32 lightIndex = forwardShadingConstants->numBoundLights++;
+
+        forwardShadingConstants->lights[lightIndex] = lightProxy->bufferData;
+
+        // Set shadow map
+        ShadowMapData& currShadowMapData = forwardShadingConstants->shadowMaps[lightIndex];
+                
+        View* shadowMapViewDynamic;
+        View* shadowMapViewStatic;
+
+        ShadowMap* shadowMap = g_renderInterface->shadowMapCache->GetShadowMap(
+            light,
+            renderSetup.view,
+            0,
+            shadowMapViewDynamic,
+            shadowMapViewStatic);
+
+        if (shadowMap != nullptr)
+        {
+            ShadowMapAtlasElement* atlasElement = shadowMap->GetAtlasElement();
+            AssertDebug(atlasElement != nullptr);
+
+            if (!atlasElement)
+                continue;
+
+            AssertDebug(shadowMapViewDynamic != nullptr && shadowMapViewDynamic->GetCamera() != nullptr);
+
+            RenderProxyCamera* shadowCameraProxy = static_cast<RenderProxyCamera*>(GetRenderProxy(shadowMapViewDynamic->GetCamera()));
+            AssertDebug(shadowCameraProxy != nullptr);
+
+            const Mat4f& viewProjMat = shadowCameraProxy->bufferData.viewProjMat;
+
+            BoundingBox shadowBoundsNDC;
+            shadowBoundsNDC.min = Vec3f(-1.0f);
+            shadowBoundsNDC.max = Vec3f(1.0f);
+
+            BoundingBox shadowBoundsWS = viewProjMat.Inverse() * shadowBoundsNDC;
+        
+            currShadowMapData.layerIndex = atlasElement->layerIndex;
+
+            currShadowMapData.viewProjMat = viewProjMat;
+
+            currShadowMapData.aabbMin.x = shadowBoundsWS.min.x;
+            currShadowMapData.aabbMin.y = shadowBoundsWS.min.y;
+            currShadowMapData.aabbMin.z = shadowBoundsWS.min.z;
+            currShadowMapData.aabbMin.w = atlasElement->offsetUV.x;
+
+            currShadowMapData.aabbMax.x = shadowBoundsWS.max.x;
+            currShadowMapData.aabbMax.y = shadowBoundsWS.max.y;
+            currShadowMapData.aabbMax.z = shadowBoundsWS.max.z;
+            currShadowMapData.aabbMax.w = atlasElement->offsetUV.y;
+
+            currShadowMapData.dimensionsScale = Vec4f(Vec2f(atlasElement->dimensions), atlasElement->scale);
+
+            currShadowMapData.splitDistance = 0.0f; // @TODO
+        }
+    }
+
+    rpl.EndRead();
+
+    cr << SetShaderUniform(numShaderUniforms++, "FowardShadingConstants"_sh, cBuffer, ShaderDataOffset(cBufferOffset, cBufferSize));
 }
 
 template <bool UseIndirectRendering>
@@ -147,34 +259,20 @@ static void RenderAll(
     cr << SetShaderUniform(numShaderUniforms++, "EnvProbesTexture"_sh, g_renderInterface->textureViewCache->GetOrCreate(g_renderInterface->envProbesTexture));
     cr << SetShaderUniform(numShaderUniforms++, "EnvProbesBuffer"_sh, g_renderInterface->gpuBuffers[GRB_ENV_PROBES]->GetBuffer(frameIndex));
     
-    ShadowMapData shadowMapData {};
-
     if (renderSetup.light != nullptr)
-    {
-        RenderProxyLight* lightProxy = static_cast<RenderProxyLight*>(GetRenderProxy(renderSetup.light));
-        AssertDebug(lightProxy != nullptr);
-
-        shadowMapData.flags = lightProxy->bufferData.flags;
-        Memory::Copy(shadowMapData.layerIndices, lightProxy->bufferData.layerIndices, sizeof(shadowMapData.layerIndices));
-        Memory::Copy(shadowMapData.cascades, lightProxy->bufferData.cascades, sizeof(shadowMapData.cascades));
-        Memory::Copy(shadowMapData.splitDistances, lightProxy->bufferData.splitDistances, sizeof(shadowMapData.splitDistances));
-
         cr << SetShaderUniform(numShaderUniforms++, "CurrentLight"_sh, g_renderInterface->gpuBuffers[GRB_LIGHTS]->GetBuffer(frameIndex), TShaderDataOffset<LightShaderData>(renderSetup.light));
-    }
     else
         cr << SetShaderUniform(numShaderUniforms++, "CurrentLight"_sh, g_renderInterface->gpuBuffers[GRB_LIGHTS]->GetBuffer(frameIndex), TShaderDataOffset<LightShaderData>(0));
-    
+
     if (renderSetup.envProbe != nullptr)
         cr << SetShaderUniform(numShaderUniforms++, "CurrentEnvProbe"_sh, g_renderInterface->gpuBuffers[GRB_ENV_PROBES]->GetBuffer(frameIndex), TShaderDataOffset<EnvProbeShaderData>(renderSetup.envProbe));
     else
         cr << SetShaderUniform(numShaderUniforms++, "CurrentEnvProbe"_sh, g_renderInterface->gpuBuffers[GRB_ENV_PROBES]->GetBuffer(frameIndex), TShaderDataOffset<EnvProbeShaderData>(0));
     
-    GpuBuffer* cBuffer = nullptr;
-    size_t cBufferOffset = 0;
-    size_t cBufferSize = 0;
-    g_renderInterface->constantsAllocator->Write(&shadowMapData);
-    g_renderInterface->constantsAllocator->Commit(cBuffer, cBufferOffset, cBufferSize);
-    cr << SetShaderUniform(numShaderUniforms++, "ShadowMapCBuffer"_sh, cBuffer, ShaderDataOffset(cBufferOffset, cBufferSize));
+    if (renderableAttributes.GetMaterialAttributes().shaderProperties.Test(s_propShadingTypeForward))
+    {
+        SetForwardShadingUniforms(renderSetup, cr, numShaderUniforms);
+    }
 
     DeferredRendererPassData* dpd = ObjCast<DeferredRendererPassData>(renderSetup.passData);
     if (dpd != nullptr)
@@ -404,34 +502,20 @@ static void RenderAll_Parallel(
     cr << SetShaderUniform(numShaderUniforms++, "EnvProbesTexture"_sh, g_renderInterface->textureViewCache->GetOrCreate(g_renderInterface->envProbesTexture));
     cr << SetShaderUniform(numShaderUniforms++, "EnvProbesBuffer"_sh, g_renderInterface->gpuBuffers[GRB_ENV_PROBES]->GetBuffer(frameIndex));
     
-    ShadowMapData shadowMapData {};
-
     if (renderSetup.light != nullptr)
-    {
-        RenderProxyLight* lightProxy = static_cast<RenderProxyLight*>(GetRenderProxy(renderSetup.light));
-        AssertDebug(lightProxy != nullptr);
-
-        shadowMapData.flags = lightProxy->bufferData.flags;
-        Memory::Copy(shadowMapData.layerIndices, lightProxy->bufferData.layerIndices, sizeof(shadowMapData.layerIndices));
-        Memory::Copy(shadowMapData.cascades, lightProxy->bufferData.cascades, sizeof(shadowMapData.cascades));
-        Memory::Copy(shadowMapData.splitDistances, lightProxy->bufferData.splitDistances, sizeof(shadowMapData.splitDistances));
-
         cr << SetShaderUniform(numShaderUniforms++, "CurrentLight"_sh, g_renderInterface->gpuBuffers[GRB_LIGHTS]->GetBuffer(frameIndex), TShaderDataOffset<LightShaderData>(renderSetup.light));
-    }
     else
         cr << SetShaderUniform(numShaderUniforms++, "CurrentLight"_sh, g_renderInterface->gpuBuffers[GRB_LIGHTS]->GetBuffer(frameIndex), TShaderDataOffset<LightShaderData>(0));
-    
+        
     if (renderSetup.envProbe != nullptr)
         cr << SetShaderUniform(numShaderUniforms++, "CurrentEnvProbe"_sh, g_renderInterface->gpuBuffers[GRB_ENV_PROBES]->GetBuffer(frameIndex), TShaderDataOffset<EnvProbeShaderData>(renderSetup.envProbe));
     else
         cr << SetShaderUniform(numShaderUniforms++, "CurrentEnvProbe"_sh, g_renderInterface->gpuBuffers[GRB_ENV_PROBES]->GetBuffer(frameIndex), TShaderDataOffset<EnvProbeShaderData>(0));
-
-    GpuBuffer* cBuffer = nullptr;
-    size_t cBufferOffset = 0;
-    size_t cBufferSize = 0;
-    g_renderInterface->constantsAllocator->Write(&shadowMapData);
-    g_renderInterface->constantsAllocator->Commit(cBuffer, cBufferOffset, cBufferSize);
-    cr << SetShaderUniform(numShaderUniforms++, "ShadowMapCBuffer"_sh, cBuffer, ShaderDataOffset(cBufferOffset, cBufferSize));
+    
+    if (renderableAttributes.GetMaterialAttributes().shaderProperties.Test(s_propShadingTypeForward))
+    {
+        SetForwardShadingUniforms(renderSetup, cr, numShaderUniforms);
+    }
 
     DeferredRendererPassData* dpd = ObjCast<DeferredRendererPassData>(renderSetup.passData);
     if (dpd != nullptr)

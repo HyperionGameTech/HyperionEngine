@@ -115,7 +115,7 @@ World::~World()
 
             if ((scene->GetSceneFlags() & (SceneFlags::FOREGROUND | SceneFlags::UI | SceneFlags::DETACHED)) == SceneFlags::FOREGROUND)
             {
-                for (const Handle<View>& view : m_views)
+                for (View* view : m_views)
                 {
                     if (!(view->GetFlags() & ViewFlags::ALL_WORLD_SCENES))
                     {
@@ -147,7 +147,13 @@ World::~World()
     m_rayTracingView = nullptr;
 
     EnqueueDeletion(std::move(m_scenes));
-    EnqueueDeletion(std::move(m_views));
+
+    for (View* view : m_views)
+    {
+        view->Release();
+    }
+
+    m_views.Clear();
 
     for (Subsystem* subsystem : m_subsystemsArray)
     {
@@ -204,20 +210,27 @@ void World::Init()
         Handle<Camera> camera = MakeHandle<Camera>();
         camera->SetName(NAME("RayTracingViewDummyCamera"));
 
-        const ViewDesc rayTracingViewDesc {
-            .flags = ViewFlags::RAY_TRACING | ViewFlags::NO_DRAW_CALLS
-                | ViewFlags::ALL_WORLD_SCENES | ViewFlags::COLLECT_ALL_ENTITIES
-                | ViewFlags::NO_FRUSTUM_CULLING,
-            .renderTargetDesc = renderTargetDesc,
-            .camera = camera
-        };
+        ViewDesc rayTracingViewDesc {};
+        rayTracingViewDesc.flags = ViewFlags::RAY_TRACING | ViewFlags::NO_DRAW_CALLS
+            | ViewFlags::ALL_WORLD_SCENES | ViewFlags::COLLECT_ALL_ENTITIES
+            | ViewFlags::SKIP_LIGHTS
+            | ViewFlags::SKIP_LIGHTMAP_VOLUMES
+            | ViewFlags::SKIP_ENV_GRIDS
+            | ViewFlags::SKIP_ENV_PROBES
+            | ViewFlags::SKIP_CAMERAS
+            | ViewFlags::SKIP_FOG_VOLUMES
+            | ViewFlags::SKIP_PARTICLE_VOLUMES
+            | ViewFlags::NO_FRUSTUM_CULLING;
+        rayTracingViewDesc.renderTargetDesc = renderTargetDesc;
+        rayTracingViewDesc.camera = camera;
 
-        Handle<View> rayTracingView = MakeHandle<View>(rayTracingViewDesc);
+        View* rayTracingView = new View(rayTracingViewDesc);
+        rayTracingView->SetName(NAME("RayTracingView"));
         InitObject(rayTracingView);
 
         m_rayTracingView = rayTracingView;
 
-        m_views.PushBack(std::move(rayTracingView));
+        m_views.PushBack(rayTracingView);
     }
 
     for (const Handle<Scene>& scene : m_scenes)
@@ -235,7 +248,7 @@ void World::Init()
 
         if ((scene->GetSceneFlags() & (SceneFlags::FOREGROUND | SceneFlags::UI | SceneFlags::DETACHED)) == SceneFlags::FOREGROUND)
         {
-            for (const Handle<View>& view : m_views)
+            for (View* view : m_views)
             {
                 if (!(view->GetFlags() & ViewFlags::ALL_WORLD_SCENES))
                 {
@@ -304,7 +317,7 @@ void World::Init()
     if (!HasSystem<ScriptSystem>())
         AddSystem(MakeHandle<ScriptSystem>());
 
-    for (const Handle<View>& view : m_views)
+    for (View* view : m_views)
     {
         if (view->m_rayTracingView.GetUnsafe() != m_rayTracingView)
         {
@@ -689,7 +702,7 @@ void World::CollectViews(Array<View*, SceneTempAllocator>& outViews)
     { // set buffered Views for current frame index
         for (size_t i = 0; i < m_views.Size(); i++)
         {
-            m_viewsPerFrame[slot][i] = m_views[i].Get();
+            m_viewsPerFrame[slot][i] = m_views[i];
         }
 
         const size_t offset = m_views.Size();
@@ -708,7 +721,7 @@ void World::CollectViews(Array<View*, SceneTempAllocator>& outViews)
             AssertDebug(m_views[i] != nullptr);
             AssertDebug(!m_processViews.Contains(m_views[i]));
 
-            outViews[offset + i] = m_views[i].Get();
+            outViews[offset + i] = m_views[i];
         }
 
         offset += m_views.Size();
@@ -926,7 +939,7 @@ void World::AddScene(const Handle<Scene>& scene, bool addToStreamingLayer)
 
         if ((scene->GetSceneFlags() & (SceneFlags::FOREGROUND | SceneFlags::UI | SceneFlags::DETACHED)) == SceneFlags::FOREGROUND)
         {
-            for (const Handle<View>& view : m_views)
+            for (View* view : m_views)
             {
                 if (!(view->GetFlags() & ViewFlags::ALL_WORLD_SCENES))
                 {
@@ -983,7 +996,7 @@ bool World::RemoveScene(Scene* scene, bool removeFromStreamingLayer)
                 subsystem->OnSceneDetached(scene);
             }
 
-            for (const Handle<View>& view : m_views)
+            for (View* view : m_views)
             {
                 view->RemoveScene(scene);
             }
@@ -1014,7 +1027,7 @@ const Handle<Scene>& World::GetSceneByName(Name name) const
     return it != m_scenes.End() ? *it : Handle<Scene>::empty;
 }
 
-void World::AddView(const Handle<View>& view)
+void World::AddView(View* view)
 {
     HYP_SCOPE;
 
@@ -1030,6 +1043,8 @@ void World::AddView(const Handle<View>& view)
     {
         return;
     }
+
+    view->AddRef();
 
     m_views.PushBack(view);
 
@@ -1107,11 +1122,10 @@ void World::RemoveView(View* view)
     {
         return;
     }
-
-    Handle<View> strongView = std::move(*it);
+    
     m_views.Erase(it);
 
-    EnqueueDeletion(std::move(strongView));
+    view->Release();
 }
 
 Span<View* const> World::GetViews() const
@@ -1150,7 +1164,7 @@ void World::DeserializeNonStreamingScenes(const Array<Handle<Scene>>& scenes)
                 subsystem->OnSceneDetached(scene);
             }
 
-            for (const Handle<View>& view : m_views)
+            for (View* view : m_views)
             {
                 view->RemoveScene(scene);
             }
@@ -1188,7 +1202,7 @@ void World::DeserializeNonStreamingScenes(const Array<Handle<Scene>>& scenes)
 
             if ((scene->GetSceneFlags() & (SceneFlags::FOREGROUND | SceneFlags::UI | SceneFlags::DETACHED)) == SceneFlags::FOREGROUND)
             {
-                for (const Handle<View>& view : m_views)
+                for (View* view : m_views)
                 {
                     if (!(view->GetFlags() & ViewFlags::ALL_WORLD_SCENES))
                     {

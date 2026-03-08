@@ -41,6 +41,7 @@ constexpr uint32 MaxBoundAmbientProbes = 4096;
 constexpr uint32 MaxBoundOmniShadowMaps = 8;
 constexpr uint32 MaxBoundTextures = 16;
 constexpr uint32 MaxBoundLightmapVolumes = 4;
+constexpr uint32 MaxBoundLightsForwardShading = 4;
 
 constexpr uint32 MaxShadowMapCascades = 4;
 

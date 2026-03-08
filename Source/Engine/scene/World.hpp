@@ -254,7 +254,7 @@ public:
     }
 
     HYP_METHOD()
-    void AddView(const Handle<View>& view);
+    void AddView(View* view);
 
     HYP_METHOD()
     void RemoveView(View* view);
@@ -420,7 +420,7 @@ private:
     Array<SystemExecutionGroup*> m_systemExecutionGroups;
     SystemExecutionGroup* m_rootSynchronousExecutionGroup;
 
-    Array<Handle<View>> m_views;
+    Array<View*> m_views;
 
     // Views, buffered so the render thread can safely read from it
     Array<Array<View*>, FixedAllocator<RingBufferDepth>> m_viewsPerFrame;

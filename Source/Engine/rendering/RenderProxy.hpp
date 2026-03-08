@@ -168,17 +168,15 @@ public:
 
 struct alignas(16) ShadowMapData
 {
-    uint32 flags;
-    uint8 layerIndices[MaxShadowMapCascades]; // per cascade
-    Float16 splitDistances[MaxShadowMapCascades];
+    uint32 layerIndex;
+    float splitDistance;
+    float _pad0;
+    float _pad1;
 
-    struct ShadowMapCascade
-    {
-        Mat4f viewProjMat;
-        Vec4f aabbMin;          // w = offsetUV.x
-        Vec4f aabbMax;          // w = offsetUV.y
-        Vec4f dimensionsScale;  // xy = shadow map dimensions in pixels, zw = shadow map dimensions relative to the atlas dimensions
-    } cascades[MaxShadowMapCascades];
+    Mat4f viewProjMat;
+    Vec4f aabbMin;          // w = offsetUV.x
+    Vec4f aabbMax;          // w = offsetUV.y
+    Vec4f dimensionsScale;  // xy = shadow map dimensions in pixels, zw = shadow map dimensions relative to the atlas dimensions
 };
 
 struct alignas(16) LightShaderData
@@ -193,27 +191,11 @@ struct alignas(16) LightShaderData
 
     union
     {
-        float areaNormal[3];
-        float spotLightDir[3];
-
-        struct
-        {
-            float _pad[3];
-            uint8 layerIndices[MaxShadowMapCascades]; // per cascade
-        };
+        Vec3f areaNormal;
+        Vec3f spotLightDir;
     };
 
     Vec2f areaSize; // also angles for spot lights
-
-    Float16 splitDistances[MaxShadowMapCascades];
-
-    struct ShadowMapCascade
-    {
-        Mat4f viewProjMat;
-        Vec4f aabbMin;          // w = offsetUV.x
-        Vec4f aabbMax;          // w = offsetUV.y
-        Vec4f dimensionsScale;  // xy = shadow map dimensions in pixels, zw = shadow map dimensions relative to the atlas dimensions
-    } cascades[MaxShadowMapCascades];
 };
 
 class RenderProxyLight final : public IRenderProxy

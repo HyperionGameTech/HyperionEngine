@@ -57,14 +57,12 @@ float3 GetShadowCoord(in float4x4 shadowMatrix, float3 pos)
     return shadowPosition.xyz;
 }
 
-float GetShadowStandard(in ShadowMap shadowMap, float3 pos, float2 offset, float NdotL, uint cascadeIndex = 0)
+float GetShadowStandard(in ShadowMap shadowMap, float3 pos, float2 offset, float NdotL)
 {
-    ShadowCascade cascade = shadowMap.cascades[cascadeIndex];
+    const float2 offsetUV = float2(shadowMap.aabbMin.w, shadowMap.aabbMax.w);
 
-    const float2 offsetUV = float2(cascade.aabbMin.w, cascade.aabbMax.w);
-
-    const float3 coord = GetShadowCoord(cascade.viewProjMat, pos);
-    const float4 shadow_sample = SAMPLE_TEXTURE_2D_ARRAY_LOD(HYP_SAMPLER_NEAREST, shadow_maps, float3((saturate(coord.xy + offset) * cascade.dimensionsScale.zw) + offsetUV, float(SHADOW_MAP_LAYER_INDEX(shadowMap, cascadeIndex))), 0);
+    const float3 coord = GetShadowCoord(shadowMap.viewProjMat, pos);
+    const float4 shadow_sample = SAMPLE_TEXTURE_2D_ARRAY_LOD(HYP_SAMPLER_NEAREST, shadow_maps, float3((saturate(coord.xy + offset) * shadowMap.dimensionsScale.zw) + offsetUV, float(shadowMap.layerIndex)), 0);
     const float shadow_depth = shadow_sample.r;
 
     float bias = HYP_SHADOW_BIAS;
@@ -77,12 +75,10 @@ float GetShadowStandard(in ShadowMap shadowMap, float3 pos, float2 offset, float
     return max(step(coord.z - bias, shadow_depth), 0.0);
 }
 
-float GetShadowStandard(in ShadowMap shadowMap, float3 pos, uint cascadeIndex = 0)
+float GetShadowStandard(in ShadowMap shadowMap, float3 pos)
 {
-    ShadowCascade cascade = shadowMap.cascades[cascadeIndex];
-
-    const float3 coord = saturate(GetShadowCoord(cascade.viewProjMat, pos));
-    const float4 shadow_sample = SAMPLE_TEXTURE_2D_ARRAY_LOD(HYP_SAMPLER_NEAREST, shadow_maps, float3(coord.xy * cascade.dimensionsScale.zw, float(SHADOW_MAP_LAYER_INDEX(shadowMap, cascadeIndex))), 0);
+    const float3 coord = saturate(GetShadowCoord(shadowMap.viewProjMat, pos));
+    const float4 shadow_sample = SAMPLE_TEXTURE_2D_ARRAY_LOD(HYP_SAMPLER_NEAREST, shadow_maps, float3(coord.xy * shadowMap.dimensionsScale.zw, float(shadowMap.layerIndex)), 0);
     const float shadow_depth = shadow_sample.r;
 
     const float bias = HYP_SHADOW_BIAS;
@@ -104,22 +100,20 @@ float GetShadowStandard(float4 shadow_sample, float3 coord, float NdotL)
     return max(step(coord.z - bias, shadow_depth), 0.0);
 }
 
-float GetShadowPCF(in ShadowMap shadowMap, float3 pos, float2 texcoord, float2 screen_dimensions, float NdotL, uint cascadeIndex = 0)
+float GetShadowPCF(in ShadowMap shadowMap, float3 pos, float2 texcoord, float2 screen_dimensions, float NdotL)
 {
 #define HYP_1_OVER_16 0.0625
 
-    ShadowCascade cascade = shadowMap.cascades[cascadeIndex];
-
     AABB aabb;
-    aabb.min = cascade.aabbMin.xyz;
-    aabb.max = cascade.aabbMax.xyz;
+    aabb.min = shadowMap.aabbMin.xyz;
+    aabb.max = shadowMap.aabbMax.xyz;
 
-    const float4x4 shadowMatrix = cascade.viewProjMat;
+    const float4x4 shadowMatrix = shadowMap.viewProjMat;
     
-    const float2 offsetUV = float2(cascade.aabbMin.w, cascade.aabbMax.w);
+    const float2 offsetUV = float2(shadowMap.aabbMin.w, shadowMap.aabbMax.w);
 
-    const float2 dimensions = cascade.dimensionsScale.xy;
-    const float2 uv_scale = cascade.dimensionsScale.zw;
+    const float2 dimensions = shadowMap.dimensionsScale.xy;
+    const float2 uv_scale = shadowMap.dimensionsScale.zw;
 
     if (!AABBContainsPoint(aabb, pos))
     {
@@ -182,7 +176,7 @@ float GetShadowPCF(in ShadowMap shadowMap, float3 pos, float2 texcoord, float2 s
 #define HYP_FETCH_SHADOW(iter_index)                                                                                                                                                        \
     {                                                                                                                                                                                       \
         shadow_coords[iter_index] = GetShadowCoord(shadowMatrix, pos);                                                                                                                      \
-        shadow_samples[iter_index] = SAMPLE_TEXTURE_2D_ARRAY_LOD(HYP_SAMPLER_NEAREST, shadow_maps, float3((vogel_##iter_index * shadow_filter_size * uv_scale) + offsetUV, float(layer_index)), 0); \
+        shadow_samples[iter_index] = SAMPLE_TEXTURE_2D_ARRAY_LOD(HYP_SAMPLER_NEAREST, shadow_maps, float3((vogel_##iter_index * shadow_filter_size * uv_scale) + offsetUV, float(layerIndex)), 0); \
     }
 
 #define HYP_DO_SHADOW(iter_index)                                                                      \
@@ -279,10 +273,8 @@ float GetShadowPCF(in ShadowMap shadowMap, float3 pos, float2 texcoord, float2 s
 #undef HYP_1_OVER_16
 }
 
-float GetShadowVariance(in ShadowMap shadowMap, float3 pos, float NdotL, uint cascadeIndex = 0)
+float GetShadowVariance(in ShadowMap shadowMap, float3 pos, float NdotL)
 {
-    ShadowCascade cascade = shadowMap.cascades[cascadeIndex];
-
     float bias = HYP_SHADOW_BIAS;
 
 #ifdef HYP_SHADOW_VARIABLE_BIAS
@@ -290,10 +282,10 @@ float GetShadowVariance(in ShadowMap shadowMap, float3 pos, float NdotL, uint ca
     bias = clamp(bias, 0.0, 0.01);
 #endif
 
-    const float2 offsetUV = float2(cascade.aabbMin.w, cascade.aabbMax.w);
+    const float2 offsetUV = float2(shadowMap.aabbMin.w, shadowMap.aabbMax.w);
 
-    const float3 coord = GetShadowCoord(cascade.viewProjMat, pos);
-    float2 moments = SAMPLE_TEXTURE_2D_ARRAY_LOD(HYP_SAMPLER_LINEAR, shadow_maps, float3(coord.xy * cascade.dimensionsScale.zw + offsetUV, float(SHADOW_MAP_LAYER_INDEX(shadowMap, cascadeIndex))), 0).xy;
+    const float3 coord = GetShadowCoord(shadowMap.viewProjMat, pos);
+    float2 moments = SAMPLE_TEXTURE_2D_ARRAY_LOD(HYP_SAMPLER_LINEAR, shadow_maps, float3(coord.xy * shadowMap.dimensionsScale.zw + offsetUV, float(shadowMap.layerIndex)), 0).xy;
 
     float d = coord.z - moments.x;
     float p = step(coord.z, moments.x + bias);
@@ -302,14 +294,14 @@ float GetShadowVariance(in ShadowMap shadowMap, float3 pos, float NdotL, uint ca
     float p_max = variance / (variance + d * d);
 
     AABB aabb;
-    aabb.min = cascade.aabbMin.xyz;
-    aabb.max = cascade.aabbMax.xyz;
+    aabb.min = shadowMap.aabbMin.xyz;
+    aabb.max = shadowMap.aabbMax.xyz;
 
     return AABBContainsPoint(aabb, pos) ? max(p, p_max) : 1.0;
 
 #if 0
-    const float3 coord = GetShadowCoord(cascade.viewProjMat, pos);
-    const float4 shadow_sample = SAMPLE_TEXTURE_2D_ARRAY_LOD(HYP_SAMPLER_LINEAR, shadow_maps, float3(coord.xy * cascade.dimensionsScale.zw + offsetUV, float(SHADOW_MAP_LAYER_INDEX(shadowMap, cascadeIndex))), 0);
+    const float3 coord = GetShadowCoord(shadowMap.viewProjMat, pos);
+    const float4 shadow_sample = SAMPLE_TEXTURE_2D_ARRAY_LOD(HYP_SAMPLER_LINEAR, shadow_maps, float3(coord.xy * shadowMap.dimensionsScale.zw + offsetUV, float(shadowMap.layerIndex)), 0);
     const float moment = shadow_sample.r;
 
     if (coord.z <= moment) {
@@ -338,26 +330,24 @@ float AvgBlockerDepthToPenumbra(float light_size, float avg_blocker_depth, float
     return penumbra;
 }
 
-float GetShadowContactHardened(in ShadowMap shadowMap, float3 pos, float2 texcoord, float2 screen_dimensions, float NdotL, uint cascadeIndex = 0)
+float GetShadowContactHardened(in ShadowMap shadowMap, float3 pos, float2 texcoord, float2 screen_dimensions, float NdotL)
 {
-    ShadowCascade cascade = shadowMap.cascades[cascadeIndex];
-
     AABB aabb;
-    aabb.min = cascade.aabbMin.xyz;
-    aabb.max = cascade.aabbMax.xyz;
+    aabb.min = shadowMap.aabbMin.xyz;
+    aabb.max = shadowMap.aabbMax.xyz;
 
     if (!AABBContainsPoint(aabb, pos))
     {
         return 1.0;
     }
 
-    const float2 uv_scale = cascade.dimensionsScale.zw;
+    const float2 uv_scale = shadowMap.dimensionsScale.zw;
 
-    const float3 coord = GetShadowCoord(cascade.viewProjMat, pos);
+    const float3 coord = GetShadowCoord(shadowMap.viewProjMat, pos);
 
-    const uint layer_index = SHADOW_MAP_LAYER_INDEX(shadowMap, cascadeIndex);
+    const uint layerIndex = shadowMap.layerIndex;
 
-    const float2 offsetUV = float2(cascade.aabbMin.w, cascade.aabbMax.w);
+    const float2 offsetUV = float2(shadowMap.aabbMin.w, shadowMap.aabbMax.w);
 
     const float shadow_map_depth = coord.z;
 
@@ -406,10 +396,10 @@ float GetShadowContactHardened(in ShadowMap shadowMap, float3 pos, float2 texcoo
 #define HYP_DO_SHADOW_PENUMBRA(iter_index0, iter_index1, iter_index2, iter_index3)                                                                                                                                          \
     {                                                                                                                                                                                                                       \
         float4 blocker_samples = float4(                                                                                                                                                                                    \
-            SAMPLE_TEXTURE_2D_ARRAY_LOD(HYP_SAMPLER_NEAREST, shadow_maps, float3(((coord.xy + (vogel_##iter_index0 * s_pcfKernel[iter_index0] * penumbra_filter_size)) * uv_scale) + offsetUV, float(layer_index)), 0).r,   \
-            SAMPLE_TEXTURE_2D_ARRAY_LOD(HYP_SAMPLER_NEAREST, shadow_maps, float3(((coord.xy + (vogel_##iter_index1 * s_pcfKernel[iter_index1] * penumbra_filter_size)) * uv_scale) + offsetUV, float(layer_index)), 0).r,   \
-            SAMPLE_TEXTURE_2D_ARRAY_LOD(HYP_SAMPLER_NEAREST, shadow_maps, float3(((coord.xy + (vogel_##iter_index2 * s_pcfKernel[iter_index2] * penumbra_filter_size)) * uv_scale) + offsetUV, float(layer_index)), 0).r,   \
-            SAMPLE_TEXTURE_2D_ARRAY_LOD(HYP_SAMPLER_NEAREST, shadow_maps, float3(((coord.xy + (vogel_##iter_index3 * s_pcfKernel[iter_index3] * penumbra_filter_size)) * uv_scale) + offsetUV, float(layer_index)), 0).r);  \
+            SAMPLE_TEXTURE_2D_ARRAY_LOD(HYP_SAMPLER_NEAREST, shadow_maps, float3(((coord.xy + (vogel_##iter_index0 * s_pcfKernel[iter_index0] * penumbra_filter_size)) * uv_scale) + offsetUV, float(layerIndex)), 0).r,    \
+            SAMPLE_TEXTURE_2D_ARRAY_LOD(HYP_SAMPLER_NEAREST, shadow_maps, float3(((coord.xy + (vogel_##iter_index1 * s_pcfKernel[iter_index1] * penumbra_filter_size)) * uv_scale) + offsetUV, float(layerIndex)), 0).r,    \
+            SAMPLE_TEXTURE_2D_ARRAY_LOD(HYP_SAMPLER_NEAREST, shadow_maps, float3(((coord.xy + (vogel_##iter_index2 * s_pcfKernel[iter_index2] * penumbra_filter_size)) * uv_scale) + offsetUV, float(layerIndex)), 0).r,    \
+            SAMPLE_TEXTURE_2D_ARRAY_LOD(HYP_SAMPLER_NEAREST, shadow_maps, float3(((coord.xy + (vogel_##iter_index3 * s_pcfKernel[iter_index3] * penumbra_filter_size)) * uv_scale) + offsetUV, float(layerIndex)), 0).r);   \
         float4 are_samples_blocking = float4(lessThan(blocker_samples, shadow_map_depth.xxxx));                                                                                                                             \
         total_blocker_depth += dot(blocker_samples * are_samples_blocking, float4(1.0, 1.0, 1.0, 1.0));                                                                                                                     \
         num_blockers += dot(are_samples_blocking, float4(1.0, 1.0, 1.0, 1.0));                                                                                                                                              \
@@ -502,12 +492,11 @@ float GetPointShadowStandard(uint layerIndex, float3 world_to_light, float NdotL
     return max(step(current_depth - bias, shadow_depth), 0.0);
 }
 
-float GetPointShadow(in ShadowMap shadowMap, float3 world_to_light, float NdotL)
+float GetPointShadow(in ShadowMap shadowMap, uint lightFlags, float3 world_to_light, float NdotL)
 {
-    uint layerIndex = SHADOW_MAP_LAYER_INDEX(shadowMap, 0);
-    uint flags = shadowMap.flags;
+    uint layerIndex = shadowMap.layerIndex;
 
-    switch (flags & LF_SHADOW_FILTER_MASK)
+    switch (lightFlags & LF_SHADOW_FILTER_MASK)
     {
     case LF_SHADOW_VSM:
         return GetPointShadowVariance(layerIndex, world_to_light, NdotL);
@@ -516,18 +505,18 @@ float GetPointShadow(in ShadowMap shadowMap, float3 world_to_light, float NdotL)
     }
 }
 
-float GetShadow(in ShadowMap shadowMap, float3 position, float2 texcoord, float2 screen_dimensions, float NdotL, uint cascadeIndex = 0)
+float GetShadow(in ShadowMap shadowMap, uint lightFlags, float3 position, float2 texcoord, float2 screen_dimensions, float NdotL)
 {
-    switch (shadowMap.flags & LF_SHADOW_FILTER_MASK)
+    switch (lightFlags & LF_SHADOW_FILTER_MASK)
     {
     case LF_SHADOW_VSM:
-        return GetShadowVariance(shadowMap, position, NdotL, cascadeIndex);
+        return GetShadowVariance(shadowMap, position, NdotL);
     case LF_SHADOW_CONTACT_HARDENING:
-        return GetShadowContactHardened(shadowMap, position, texcoord, screen_dimensions, NdotL, cascadeIndex);
+        return GetShadowContactHardened(shadowMap, position, texcoord, screen_dimensions, NdotL);
     case LF_SHADOW_PCF:
-        return GetShadowPCF(shadowMap, position, texcoord, screen_dimensions, NdotL, cascadeIndex);
+        return GetShadowPCF(shadowMap, position, texcoord, screen_dimensions, NdotL);
     default:
-        return GetShadowStandard(shadowMap, position, float2(0.0, 0.0), NdotL, cascadeIndex);
+        return GetShadowStandard(shadowMap, position, float2(0.0, 0.0), NdotL);
     }
 }
 

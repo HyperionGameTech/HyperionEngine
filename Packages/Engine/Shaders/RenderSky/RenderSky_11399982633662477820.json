@@ -153,7 +153,7 @@
     }, {
       "$Class": "BlobDataReference",
       "Key": "Engine/Shaders/RenderSky/RenderSky_11399982633662477820.PS",
-      "Size": 15204
+      "Size": 14860
     }],
   "PropertySetHashCode": {},
   "Name": "RenderSky_11399982633662477820",

@@ -221,35 +221,13 @@ void ShadowRendererBase::RenderFrame(Frame* frame, const RenderSetup& renderSetu
         AssertDebug(atlasElement.layerIndex <= UINT8_MAX);
         AssertDebug(atlasElement.layerIndex < shadowMapImage->NumArrayLayers());
 
-        LightShaderData::ShadowMapCascade& cascadeBufferData = lightProxy->bufferData.cascades[cascadeIndex];
-
-        cascadeBufferData.dimensionsScale = Vec4f(Vec2f(atlasElement.dimensions), atlasElement.scale);
-
         Camera* camera = cachedData->shadowViewsDynamic[cascadeIndex]->GetCamera();
         Assert(camera != nullptr);
 
         RenderProxyCamera* cameraProxy = static_cast<RenderProxyCamera*>(GetRenderProxy(camera));
         Assert(cameraProxy != nullptr);
 
-        cascadeBufferData.viewProjMat = cameraProxy->bufferData.viewProjMat;
-
-        BoundingBox shadowBoundsNDC;
-        shadowBoundsNDC.min = Vec3f(-1.0f);
-        shadowBoundsNDC.max = Vec3f(1.0f);
-
-        BoundingBox shadowBoundsWS = cascadeBufferData.viewProjMat.Inverse() * shadowBoundsNDC;
-
-        cascadeBufferData.aabbMin.x = shadowBoundsWS.min.x;
-        cascadeBufferData.aabbMin.y = shadowBoundsWS.min.y;
-        cascadeBufferData.aabbMin.z = shadowBoundsWS.min.z;
-        cascadeBufferData.aabbMin.w = atlasElement.offsetUV.x;
-
-        cascadeBufferData.aabbMax.x = shadowBoundsWS.max.x;
-        cascadeBufferData.aabbMax.y = shadowBoundsWS.max.y;
-        cascadeBufferData.aabbMax.z = shadowBoundsWS.max.z;
-        cascadeBufferData.aabbMax.w = atlasElement.offsetUV.y;
-        
-        lightProxy->bufferData.layerIndices[cascadeIndex] = (atlasElement.layerIndex & 0xFFu);
+        const Mat4f& viewProjMat = cameraProxy->bufferData.viewProjMat;
         
         FramebufferRef& framebuffer = cachedData->shadowMapFramebuffers[cascadeIndex];
 
@@ -323,7 +301,7 @@ void ShadowRendererBase::RenderFrame(Frame* frame, const RenderSetup& renderSetu
 
             HYP_LOG(Rendering, Verbose, "Rendering shadows for shadow view {} at frame {}", shadowView->Id(), GetFrameCounter());
 
-            const bool isMatrixDirty = pd->prevCameraMatrices[cascadeIndex] != cascadeBufferData.viewProjMat;
+            const bool isMatrixDirty = pd->prevCameraMatrices[cascadeIndex] != viewProjMat;
 
             if (!isMatrixDirty
                 && !rpl.GetMeshEntities().GetDiff().NeedsUpdate()
@@ -343,7 +321,7 @@ void ShadowRendererBase::RenderFrame(Frame* frame, const RenderSetup& renderSetu
                 RS_RENDER_TARGET,
                 attachment->GetImageView()->GetImageSubResource());*/
 
-            pd->prevCameraMatrices[cascadeIndex] = cascadeBufferData.viewProjMat;
+            pd->prevCameraMatrices[cascadeIndex] = viewProjMat;
 
             GetRenderCollector(shadowView).ExecuteDrawCalls(frame, rs, BucketMask);
 

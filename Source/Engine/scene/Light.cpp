@@ -408,15 +408,11 @@ void Light::UpdateRenderProxy(RenderProxyLight* proxy)
     {
     case LightType::AreaRect:
         bufferData.areaSize = m_areaSize;
-        bufferData.areaNormal[0] = m_normal.x;
-        bufferData.areaNormal[1] = m_normal.y;
-        bufferData.areaNormal[2] = m_normal.z;
+        bufferData.areaNormal = m_normal;
         break;
     case LightType::Spot:
         bufferData.areaSize = m_spotAngles;
-        bufferData.spotLightDir[0] = m_normal.x;
-        bufferData.spotLightDir[1] = m_normal.y;
-        bufferData.spotLightDir[2] = m_normal.z;
+        bufferData.spotLightDir = m_normal;
         break;
     case LightType::Point:
         break;
@@ -424,10 +420,10 @@ void Light::UpdateRenderProxy(RenderProxyLight* proxy)
         break;
     }
 
-    for (uint32 cascadeIndex = 0; cascadeIndex < uint32(std::size(bufferData.cascades)); cascadeIndex++)
-    {
-        bufferData.splitDistances[cascadeIndex] = Float16(0.0f); // @TODO
-    }
+    //for (uint32 cascadeIndex = 0; cascadeIndex < uint32(std::size(bufferData.cascades)); cascadeIndex++)
+    //{
+    //    bufferData.splitDistances[cascadeIndex] = Float16(0.0f); // @TODO
+    //}
 }
 
 #pragma endregion Light

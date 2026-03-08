@@ -329,7 +329,7 @@ void EnvProbe::CreateView()
     };
 
     Handle<View> view = MakeHandle<View>(viewDesc);
-    view->SetName(NAME_FMT("{}_View", GetName()));
+    view->SetName(NAME_FMT("EnvProbe_{}_View", GetName()));
     InitObject(view);
     m_view = view;
 }

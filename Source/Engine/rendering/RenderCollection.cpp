@@ -139,6 +139,7 @@ static const Name s_nameShadingType = NAME("SHADING_TYPE");
 static const Name s_nameDeferred = NAME("DEFERRED");
 static const Name s_nameForward = NAME("FORWARD");
 static const Name s_nameLightmapped = NAME("LIGHTMAPPED");
+static const Name s_nameMaxLights = NAME("MAX_LIGHTS");
 
 static const Name s_nameHasDiffuseMap = NAME("HAS_DIFFUSE_MAP");
 static const Name s_nameHasNormalMap = NAME("HAS_NORMAL_MAP");
@@ -152,6 +153,7 @@ static const Name s_nameHasAoMap = NAME("HAS_AO_MAP");
 static const ShaderPropertyId s_propInstancing = InternShaderProperty(ShaderProperty(s_nameInstancing));
 static const ShaderPropertyId s_propAlphaDiscard = InternShaderProperty(ShaderProperty(s_nameAlphaDiscard));
 static const ShaderPropertyId s_propSkinning = InternShaderProperty(ShaderProperty(s_nameSkinning));
+static const ShaderPropertyId s_propMaxLights = InternShaderProperty(ShaderProperty(s_nameMaxLights, int(MaxBoundLightsForwardShading)));
 
 // shading mode
 static const ShaderPropertyId s_propShadingTypeDeferred = InternShaderProperty(ShaderProperty(s_nameShadingType, Name(s_nameDeferred)));
@@ -269,6 +271,8 @@ static void BuildAttributes(const RenderProxyMesh& proxy, RenderableAttributeSet
 
         if (hasForwardLighting != currentShaderProperties.Test(Props::s_propShadingTypeForward))
         {
+            // set 'MAX_LIGHTS' if using forward shading
+            newShaderProperties.Set(Props::s_propMaxLights, hasForwardLighting);
             newShaderProperties.Set(Props::s_propShadingTypeForward, hasForwardLighting);
         }
 

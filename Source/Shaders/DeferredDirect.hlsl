@@ -80,7 +80,14 @@ DECLARE_BUFFER(DeferredPass, WorldsBuffer) cbuffer WorldsBuffer
 DECLARE_BUFFER_DYNAMIC(DeferredPass, CBuffer) cbuffer CBuffer
 {
     Light currentLight;
+#ifdef LIGHT_TYPE_DIRECTIONAL
+    ShadowMap shadowMap0;
+    ShadowMap shadowMap1;
+    ShadowMap shadowMap2;
+    ShadowMap shadowMap3;
+#else
     ShadowMap shadowMap;
+#endif
 };
 
 #ifdef LIGHT_TYPE_AREA_RECT
@@ -151,160 +158,156 @@ PSOutput PSMain(PSInput input)
     const float metalness = materialParams.metalness;
     const uint mask = materialParams.mask;
 
-    bool perform_lighting = !bool(mask & (OBJECT_MASK_LIGHTMAP | OBJECT_MASK_SKY | OBJECT_MASK_TRANSLUCENT));
-    float4 result = float4(0.0, 0.0, 0.0, 0.0);
+    float4 result = (float4)0;
+    
+    const float material_reflectance = 0.5;
+    const float reflectance = 0.16 * material_reflectance * material_reflectance;
+    float4 F0 = float4(albedo.rgb * metalness + (reflectance * (1.0 - metalness)), 1.0);
 
-    if (perform_lighting)
-    {
-        const float material_reflectance = 0.5;
-        const float reflectance = 0.16 * material_reflectance * material_reflectance;
-        float4 F0 = float4(albedo.rgb * metalness + (reflectance * (1.0 - metalness)), 1.0);
+    const float4 diffuseColor = CalculateDiffuseColor(albedo, metalness);
 
-        const float4 diffuseColor = CalculateDiffuseColor(albedo, metalness);
+    float4 F90 = (float4)saturate(dot(F0, (float4)(50.0 * 0.33)));
 
-        float4 F90 = (float4)saturate(dot(F0, (float4)(50.0 * 0.33)));
+    float3 N = normalize(normal);
+    float3 T = normalize(tangent);
+    float3 B = normalize(bitangent);
+    float3 V = normalize(camera.position.xyz - position.xyz);
+    float3 H = (float3)0.0;
 
-        float3 N = normalize(normal);
-        float3 T = normalize(tangent);
-        float3 B = normalize(bitangent);
-        float3 V = normalize(camera.position.xyz - position.xyz);
-        float3 H = (float3)0.0;
+    const float NdotV = max(0.000001, dot(N, V));
 
-        const float NdotV = max(0.000001, dot(N, V));
-
-        float ao = 1.0;
-        float shadow = 1.0;
+    float ao = 1.0;
+    float shadow = 1.0;
 
 #if HBAO_ENABLED || SSAO_ENABLED
-        const float4 ssao_data = SAMPLE_TEXTURE_2D(HYP_SAMPLER_NEAREST, ssao_gi_result, texcoord);
-        ao = ssao_data.a;
+    const float4 ssao_data = SAMPLE_TEXTURE_2D(HYP_SAMPLER_NEAREST, ssao_gi_result, texcoord);
+    ao = ssao_data.a;
 #endif
 
-        float4 area_light_radiance;
+    float4 area_light_radiance;
 
 #if defined(LIGHT_TYPE_DIRECTIONAL) || defined(LIGHT_TYPE_POINT) || defined(LIGHT_TYPE_SPOT)
-        float3 L = currentLight.position_intensity.xyz;
-        L -= position.xyz * float(min(currentLight.type, 1));
-        L = normalize(L);
+    float3 L = currentLight.position_intensity.xyz;
+    L -= position.xyz * float(min(currentLight.type, 1));
+    L = normalize(L);
 
-        H = normalize(L + V);
+    H = normalize(L + V);
 
-        const float NdotL = max(0.000001, dot(N, L));
-        const float LdotH = max(0.000001, dot(L, H));
-        const float NdotH = max(0.000001, dot(N, H));
-        const float HdotV = max(0.000001, dot(H, V));
+    const float NdotL = max(0.000001, dot(N, L));
+    const float LdotH = max(0.000001, dot(L, H));
+    const float NdotH = max(0.000001, dot(N, H));
+    const float HdotV = max(0.000001, dot(H, V));
 #elif defined(LIGHT_TYPE_AREA_RECT)
-        float3 L;
+    float3 L;
 
-        const float3 R = reflect(-V, N);
+    const float3 R = reflect(-V, N);
 
-        float2 lut_uv = (float2(roughness, sqrt(1.0 - NdotV)));
-        lut_uv.y = 1.0 - lut_uv.y;
-        lut_uv = lut_uv * lut_scale + lut_bias;
-        lut_uv = clamp(lut_uv, float2(0.0, 0.0), float2(1.0, 1.0));
+    float2 lut_uv = (float2(roughness, sqrt(1.0 - NdotV)));
+    lut_uv.y = 1.0 - lut_uv.y;
+    lut_uv = lut_uv * lut_scale + lut_bias;
+    lut_uv = clamp(lut_uv, float2(0.0, 0.0), float2(1.0, 1.0));
 
-        const float4 t1 = SAMPLE_TEXTURE_2D(ltc_sampler, ltc_matrix_texture, lut_uv);
-        const float4 t2 = SAMPLE_TEXTURE_2D(ltc_sampler, ltc_brdf_texture, lut_uv);
+    const float4 t1 = SAMPLE_TEXTURE_2D(ltc_sampler, ltc_matrix_texture, lut_uv);
+    const float4 t2 = SAMPLE_TEXTURE_2D(ltc_sampler, ltc_brdf_texture, lut_uv);
 
-        const float3x3 Minv = float3x3(
-            float3(t1.x, 0.0, t1.y),
-            float3(0.0, 1.0, 0.0),
-            float3(t1.z, 0.0, t1.w));
+    const float3x3 Minv = float3x3(
+        float3(t1.x, 0.0, t1.y),
+        float3(0.0, 1.0, 0.0),
+        float3(t1.z, 0.0, t1.w));
 
-        const float half_width = currentLight.area_size.x * 0.5;
-        const float half_height = currentLight.area_size.y * 0.5;
+    const float half_width = currentLight.area_size.x * 0.5;
+    const float half_height = currentLight.area_size.y * 0.5;
 
-        float3 light_tangent;
-        float3 light_bitangent;
-        ComputeOrthonormalBasis(currentLight.normal.xyz, light_tangent, light_bitangent);
+    float3 light_tangent;
+    float3 light_bitangent;
+    ComputeOrthonormalBasis(currentLight.normal.xyz, light_tangent, light_bitangent);
 
-        const float3 p0 = currentLight.position_intensity.xyz - light_tangent * half_width - light_bitangent * half_height;
-        const float3 p1 = currentLight.position_intensity.xyz + light_tangent * half_width - light_bitangent * half_height;
-        const float3 p2 = currentLight.position_intensity.xyz + light_tangent * half_width + light_bitangent * half_height;
-        const float3 p3 = currentLight.position_intensity.xyz - light_tangent * half_width + light_bitangent * half_height;
+    const float3 p0 = currentLight.position_intensity.xyz - light_tangent * half_width - light_bitangent * half_height;
+    const float3 p1 = currentLight.position_intensity.xyz + light_tangent * half_width - light_bitangent * half_height;
+    const float3 p2 = currentLight.position_intensity.xyz + light_tangent * half_width + light_bitangent * half_height;
+    const float3 p3 = currentLight.position_intensity.xyz - light_tangent * half_width + light_bitangent * half_height;
 
-        const float3 pts[4] = { p0, p1, p2, p3 };
+    const float3 pts[4] = { p0, p1, p2, p3 };
 
-        float4 area_light_diffuse = CalculateAreaLightRadiance(currentLight, (float3x3)1.0, pts, position.xyz, N, V);
-        area_light_diffuse *= diffuseColor * (1.0 / HYP_FMATH_PI);
+    float4 area_light_diffuse = CalculateAreaLightRadiance(currentLight, (float3x3)1.0, pts, position.xyz, N, V);
+    area_light_diffuse *= diffuseColor * (1.0 / HYP_FMATH_PI);
 
-        float4 area_light_specular = CalculateAreaLightRadiance(currentLight, Minv, pts, position.xyz, N, V);
+    float4 area_light_specular = CalculateAreaLightRadiance(currentLight, Minv, pts, position.xyz, N, V);
 
-        area_light_specular *= diffuseColor * t2.x + (float4(1.0, 1.0, 1.0, 1.0) - diffuseColor) * t2.y;
-        area_light_radiance = area_light_specular + area_light_diffuse;
+    area_light_specular *= diffuseColor * t2.x + (float4(1.0, 1.0, 1.0, 1.0) - diffuseColor) * t2.y;
+    area_light_radiance = area_light_specular + area_light_diffuse;
 
-        const float NdotL = 0.0;
-        const float LdotH = 0.0;
-        const float NdotH = 0.0;
-        const float HdotV = 0.0;
+    const float NdotL = 0.0;
+    const float LdotH = 0.0;
+    const float NdotH = 0.0;
+    const float HdotV = 0.0;
 #else
-        const float NdotL = 0.0;
-        const float LdotH = 0.0;
-        const float NdotH = 0.0;
-        const float HdotV = 0.0;
+    const float NdotL = 0.0;
+    const float LdotH = 0.0;
+    const float NdotH = 0.0;
+    const float HdotV = 0.0;
 #endif
 
-        float4 light_rays = float4(0.0, 0.0, 0.0, 0.0);
-        float4 light_color = currentLight.color;
+    float4 light_rays = (float4)0;
+    float4 light_color = currentLight.color;
 
 #ifdef LIGHT_TYPE_POINT
-        if ((currentLight.flags & LF_SHADOW_CASTER) != 0)
-        {
-            const float3 world_to_light = position.xyz - currentLight.position_intensity.xyz;
+    if ((currentLight.flags & LF_SHADOW_CASTER) != 0)
+    {
+        const float3 worldToLight = position.xyz - currentLight.position_intensity.xyz;
 
-            shadow = GetPointShadow(shadowMap, world_to_light, NdotL);
-        }
+        shadow = GetPointShadow(shadowMap, currentLight.flags, worldToLight, NdotL);
+    }
 #elif defined(LIGHT_TYPE_DIRECTIONAL)
-        if ((currentLight.flags & LF_SHADOW_CASTER) != 0)
-        {
-            shadow = GetShadow(shadowMap, position.xyz, texcoord, camera.dimensions.xy, NdotL, /* cascadeIndex */ 0);
-        }
+    if ((currentLight.flags & LF_SHADOW_CASTER) != 0)
+    {
+        shadow = GetShadow(shadowMap0, currentLight.flags, position.xyz, texcoord, camera.dimensions.xy, NdotL);
+    }
 #endif
 
-        const float D = CalculateDistributionTerm(roughness, NdotH);
-        const float G = CalculateGeometryTerm(NdotL, NdotV, HdotV, NdotH);
-        const float4 F = CalculateFresnelTerm(F0, roughness, LdotH);
+    const float D = CalculateDistributionTerm(roughness, NdotH);
+    const float G = CalculateGeometryTerm(NdotL, NdotV, HdotV, NdotH);
+    const float4 F = CalculateFresnelTerm(F0, roughness, LdotH);
 
-        const float4 dfg = CalculateDFG(F, roughness, NdotV);
-        const float4 E = CalculateE(F0, dfg);
-        const float3 energy_compensation = CalculateEnergyCompensation(F0.rgb, dfg.rgb);
+    const float4 dfg = CalculateDFG(F, roughness, NdotV);
+    const float4 E = CalculateE(F0, dfg);
+    const float3 energy_compensation = CalculateEnergyCompensation(F0.rgb, dfg.rgb);
 
-        const float4 specular_lobe = D * G * F;
+    const float4 specular_lobe = D * G * F;
 
 #if defined(LIGHT_TYPE_POINT) || defined(LIGHT_TYPE_SPOT)
-        const float2 radiusFalloff = float2(f16tof32(currentLight.radiusFalloffPacked), f16tof32(currentLight.radiusFalloffPacked >> 16));
-        const float radius = radiusFalloff.x;
-        const float falloff = radiusFalloff.y;
+    const float2 radiusFalloff = float2(f16tof32(currentLight.radiusFalloffPacked), f16tof32(currentLight.radiusFalloffPacked >> 16));
+    const float radius = radiusFalloff.x;
+    const float falloff = radiusFalloff.y;
 
-        float attenuation = GetSquareFalloffAttenuation(position.xyz, currentLight.position_intensity.xyz, radius);
+    float attenuation = GetSquareFalloffAttenuation(position.xyz, currentLight.position_intensity.xyz, radius);
 
 #ifdef LIGHT_TYPE_SPOT
-        float theta = max(dot(-L, normalize(currentLight.normal.xyz)), 0.0);
-        float2 spot_angles = currentLight.area_size.xy;
+    float theta = max(dot(-L, normalize(currentLight.normal.xyz)), 0.0);
+    float2 spot_angles = currentLight.area_size.xy;
 
-        attenuation *= saturate((theta - spot_angles[0]) / (spot_angles[1] - spot_angles[0])) * step(spot_angles[0], theta);
+    attenuation *= saturate((theta - spot_angles[0]) / (spot_angles[1] - spot_angles[0])) * step(spot_angles[0], theta);
 #endif
 
 #else
-        const float attenuation = 1.0;
+    const float attenuation = 1.0;
 #endif
 
-        float4 specular = specular_lobe;
+    float4 specular = specular_lobe;
 
-        float4 diffuse_lobe = diffuseColor * (1.0 / HYP_FMATH_PI);
-        float4 diffuse = diffuse_lobe;
+    float4 diffuse_lobe = diffuseColor * (1.0 / HYP_FMATH_PI);
+    float4 diffuse = diffuse_lobe;
 
-        float4 direct_component = diffuse + specular * float4(energy_compensation, 1.0);
+    float4 direct_component = diffuse + specular * float4(energy_compensation, 1.0);
 
-        result += direct_component * (light_color * ao * NdotL * shadow * currentLight.position_intensity.w * attenuation);
-        result.a = attenuation;
+    result += direct_component * (light_color * ao * NdotL * shadow * currentLight.position_intensity.w * attenuation);
+    result.a = attenuation;
 
 #ifdef LIGHT_TYPE_AREA_RECT
-        result = area_light_radiance;
+    result = area_light_radiance;
 #endif
 
-        result = (result * (1.0 - light_rays.a)) + light_rays;
-    }
+    result = (result * (1.0 - light_rays.a)) + light_rays;
 
 #if defined(DEBUG_REFLECTIONS)      \
     || defined(DEBUG_IRRADIANCE)    \

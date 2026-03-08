@@ -203,9 +203,6 @@ DECLARE_SRV(Default, PointLightShadowMapsTextureArray) TextureCubeArray point_sh
     DECLARE_SRV_DYNAMIC(Default, CurrentEntity) StructuredBuffer<Entity> entities;
 #endif
 
-DECLARE_SRV_DYNAMIC(Default, CurrentLight) StructuredBuffer<Light> current_light_buffer;
-#define light current_light_buffer[0]
-
 DECLARE_SRV_DYNAMIC(Default, MaterialsBuffer) StructuredBuffer<Material> materials_buffer;
 #define material materials_buffer[0]
 

@@ -65,20 +65,6 @@
               "$Class": "ShaderInput",
               "Register": 1,
               "ElementType": 4,
-              "Name": "CurrentLight",
-              "Count": 1,
-              "Size": 4294967295,
-              "IsDynamic": true,
-              "StructInfo": {
-                "Name": "",
-                "Size": 4294967295,
-                "FieldNames": [],
-                "FieldTypes": []
-              }
-            }, {
-              "$Class": "ShaderInput",
-              "Register": 1,
-              "ElementType": 4,
               "Name": "MaterialsBuffer",
               "Count": 1,
               "Size": 4294967295,

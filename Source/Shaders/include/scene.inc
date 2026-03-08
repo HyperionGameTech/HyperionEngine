@@ -40,21 +40,18 @@ struct Camera
     vec4 _pad3;
 };
 
-struct ShadowCascade
+struct ShadowMap
 {
+    // layer indices per cascade for shadow maps. Each cascade is 1 byte.
+    uint layerIndex;
+    float splitDistance;
+    float _pad0;
+    float _pad1;
+    
     float4x4 viewProjMat;
     float4 aabbMin;         // w = offsetUV.x
     float4 aabbMax;         // w = offsetUV.y
     float4 dimensionsScale; // xy = slice dimensions in pixels, zw = slice dimensions relative to the atlas dimensions
-};
-
-struct ShadowMap
-{
-    uint flags;
-    // layer indices per cascade for shadow maps. Each cascade is 1 byte.
-    uint layerIndex;
-    uint2 splitDistances;       // 4 x half
-    ShadowCascade cascades[HYP_MAX_SHADOW_CASCADES];
 };
 
 struct Light
@@ -66,12 +63,10 @@ struct Light
     
     float4 position_intensity;  // position or direction
     float4 color;
-    float4 normal;              // for area lights/spot lights - x,y,z = normal - w = layer indices per cascade for shadow maps. Each cascade is 1 byte.
+    float4 normal;              // for area lights/spot lights - x,y,z = normal
 
     float2 area_size;           // for area lights = area size, for spot lights = spot angles
-    uint2 splitDistances;       // 4 x half
-
-    ShadowCascade cascades[HYP_MAX_SHADOW_CASCADES];
+    float2 _pad0;
 };
 
 // Maps to LightFlags
@@ -90,11 +85,6 @@ struct Light
 #define LF_SHADOW_CSM_SPLIT_MASK (LF_SHADOW_CSM_SPLIT_0 | LF_SHADOW_CSM_SPLIT_1 | LF_SHADOW_CSM_SPLIT_2 | LF_SHADOW_CSM_SPLIT_3)
 
 #define LF_DEFAULT (LF_SHADOW_CASTER | LF_SHADOW_PCF)
-
-// each cascade takes up 1 byte in normal.w
-#define LIGHT_LAYER_INDEX(light, cascadeIndex) ((FLOAT_BITS_TO_UINT(light.normal.w) >> (cascadeIndex * 8)) & 0xFF)
-
-#define SHADOW_MAP_LAYER_INDEX(shadowMap, cascadeIndex) ((FLOAT_BITS_TO_UINT(shadowMap.layerIndex) >> (cascadeIndex * 8)) & 0xFF)
 
 struct LightmapVolume
 {

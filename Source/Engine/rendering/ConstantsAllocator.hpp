@@ -38,6 +38,8 @@ public:
     void OnFrameStart();
     void OnFrameEnd();
 
+    void* Allocate(size_t count, size_t alignment, GpuBuffer*& outBuffer, size_t& outStartOffset);
+
     void Write(const void* src, size_t count, size_t alignment);
 
     template <class T>
@@ -51,8 +53,6 @@ public:
     void Commit(GpuBuffer*& outBuffer, size_t& outOffset, size_t& outSize);
 
 private:
-    void* Allocate(size_t count, size_t alignment, GpuBuffer*& outBuffer, size_t& outStartOffset);
-
     Block* NewBlock(uint32 currentFrameCounter);
     Block* TryGetRecycledBlock(uint32 currentFrameCounter);
 

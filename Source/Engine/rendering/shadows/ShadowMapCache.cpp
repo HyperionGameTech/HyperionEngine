@@ -428,6 +428,16 @@ HYP_NODISCARD View* ShadowMapCache::GetOrCreateShadowView(
             AssertDebug(entry->shadowMaps[cascadeIndex] != nullptr);
 
             outView = new View(GetViewDesc(light, isStatic, cascadeIndex, *entry->shadowMaps[cascadeIndex], *entry->camera));
+
+            if (isStatic)
+            {
+                outView->SetName(NAME_FMT("ShadowMapView_{}_{}_Static", light->GetName(), view->GetName()));
+            }
+            else
+            {
+                outView->SetName(NAME_FMT("ShadowMapView_{}_{}", light->GetName(), view->GetName()));
+            }
+
             InitObject(outView);
 
             (*views)[cascadeIndex] = outView;
@@ -462,6 +472,16 @@ HYP_NODISCARD View* ShadowMapCache::GetOrCreateShadowView(
             AssertDebug(entry.shadowMaps[cascadeIndex] != nullptr);
 
             outView = new View(GetViewDesc(light, isStatic, cascadeIndex, *entry.shadowMaps[cascadeIndex], *entry.camera));
+
+            if (isStatic)
+            {
+                outView->SetName(NAME_FMT("ShadowMapView_{}_{}_Static", light->GetName(), view->GetName()));
+            }
+            else
+            {
+                outView->SetName(NAME_FMT("ShadowMapView_{}_{}", light->GetName(), view->GetName()));
+            }
+
             InitObject(outView);
 
             views[cascadeIndex] = outView;

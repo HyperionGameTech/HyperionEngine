@@ -26,15 +26,15 @@
       "EnumValues": []
     }, {
       "$Class": "ShaderProperty",
-      "Name": "LOBE_SIZE",
-      "Flags": 0,
-      "Value": 0,
-      "EnumValues": []
-    }, {
-      "$Class": "ShaderProperty",
       "Name": "NUM_SAMPLES",
       "Flags": 0,
       "Value": 2048,
+      "EnumValues": []
+    }, {
+      "$Class": "ShaderProperty",
+      "Name": "LOBE_SIZE",
+      "Flags": 0,
+      "Value": 0,
       "EnumValues": []
     }],
   "RevisionNumber": 31459917,

@@ -38,7 +38,9 @@
 #include <rendering/RayTracingReflections.hpp>
 #include <rendering/DDGI.hpp>
 
+#include <rendering/shadows/ShadowMapAllocator.hpp>
 #include <rendering/shadows/ShadowMapCache.hpp>
+#include <rendering/shadows/ShadowMap.hpp>
 
 #include <rendering/util/ShaderCompiler.hpp>
 #include <rendering/util/DeletionQueue.hpp>
@@ -332,7 +334,8 @@ void DeferredPass::RenderToFramebuffer_Internal(Frame* frame, const RenderSetup&
         .passOp = SO_KEEP,
         .failOp = SO_KEEP,
         .depthFailOp = SO_KEEP,
-        .compareOp = SCO_EQUAL });
+        .compareOp = SCO_EQUAL
+    });
 
     // stencil state: only render where stencil == 0 (non-lightmapped geometry)
     cr << SetStencilState(0, LightmapStencilMask, 0x0);
@@ -438,18 +441,72 @@ void DeferredPass::RenderToFramebuffer_Internal(Frame* frame, const RenderSetup&
             
             uint32 localNumShaderUniforms = numShaderUniforms;
 
-            g_renderInterface->constantsAllocator->Write(&lightProxy->bufferData);
-
-            ShadowMapData shadowMapData {};
-            shadowMapData.flags = lightProxy->bufferData.flags;
-            Memory::Copy(shadowMapData.layerIndices, lightProxy->bufferData.layerIndices, sizeof(shadowMapData.layerIndices));
-            Memory::Copy(shadowMapData.cascades, lightProxy->bufferData.cascades, sizeof(shadowMapData.cascades));
-            Memory::Copy(shadowMapData.splitDistances, lightProxy->bufferData.splitDistances, sizeof(shadowMapData.splitDistances));
-            g_renderInterface->constantsAllocator->Write(&shadowMapData);
-
             GpuBuffer* cBuffer = nullptr;
             size_t cBufferOffset = 0;
             size_t cBufferSize = 0;
+
+            g_renderInterface->constantsAllocator->Write(&lightProxy->bufferData);
+
+            ShadowMapData shadowMapData[MaxShadowMapCascades];
+
+            const uint32 numCascadesToWrite = (lightType == LightType::Directional) ? MaxShadowMapCascades : 1;
+
+            for (uint32 cascadeIndex = 0; cascadeIndex < numCascadesToWrite; cascadeIndex++)
+            {
+                ShadowMapData& currShadowMapData = shadowMapData[cascadeIndex];
+                
+                View* shadowMapViewDynamic;
+                View* shadowMapViewStatic;
+
+                ShadowMap* shadowMap = g_renderInterface->shadowMapCache->GetShadowMap(
+                    light,
+                    rs.view,
+                    cascadeIndex,
+                    shadowMapViewDynamic,
+                    shadowMapViewStatic);
+
+                if (shadowMap != nullptr)
+                {
+                    ShadowMapAtlasElement* atlasElement = shadowMap->GetAtlasElement();
+                    AssertDebug(atlasElement != nullptr);
+
+                    if (!atlasElement)
+                        continue;
+
+                    AssertDebug(shadowMapViewDynamic != nullptr && shadowMapViewDynamic->GetCamera() != nullptr);
+
+                    RenderProxyCamera* shadowCameraProxy = static_cast<RenderProxyCamera*>(GetRenderProxy(shadowMapViewDynamic->GetCamera()));
+                    AssertDebug(shadowCameraProxy != nullptr);
+
+                    const Mat4f& viewProjMat = shadowCameraProxy->bufferData.viewProjMat;
+
+                    BoundingBox shadowBoundsNDC;
+                    shadowBoundsNDC.min = Vec3f(-1.0f);
+                    shadowBoundsNDC.max = Vec3f(1.0f);
+
+                    BoundingBox shadowBoundsWS = viewProjMat.Inverse() * shadowBoundsNDC;
+        
+                    currShadowMapData.layerIndex = atlasElement->layerIndex;
+
+                    currShadowMapData.viewProjMat = viewProjMat;
+
+                    currShadowMapData.aabbMin.x = shadowBoundsWS.min.x;
+                    currShadowMapData.aabbMin.y = shadowBoundsWS.min.y;
+                    currShadowMapData.aabbMin.z = shadowBoundsWS.min.z;
+                    currShadowMapData.aabbMin.w = atlasElement->offsetUV.x;
+
+                    currShadowMapData.aabbMax.x = shadowBoundsWS.max.x;
+                    currShadowMapData.aabbMax.y = shadowBoundsWS.max.y;
+                    currShadowMapData.aabbMax.z = shadowBoundsWS.max.z;
+                    currShadowMapData.aabbMax.w = atlasElement->offsetUV.y;
+
+                    currShadowMapData.dimensionsScale = Vec4f(Vec2f(atlasElement->dimensions), atlasElement->scale);
+
+                    currShadowMapData.splitDistance = 0.0f; // @TODO
+                }
+
+                g_renderInterface->constantsAllocator->Write(&shadowMapData[cascadeIndex]);
+            }
             
             g_renderInterface->constantsAllocator->Commit(cBuffer, cBufferOffset, cBufferSize);
 
@@ -1570,12 +1627,6 @@ void DeferredRenderer::RenderFrame(Frame* frame, const RenderSetup& rs)
     HYP_SCOPE;
 
     AssertDebug(rs.world);
-
-    if (rs.world->GetViews().Size() == 0)
-    {
-        // No views to render
-        return;
-    }
 
     Array<RenderProxyList*, InlineAllocator<8, RenderAllocator>> renderProxyLists;
 
