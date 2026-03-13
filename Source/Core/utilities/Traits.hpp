@@ -194,7 +194,10 @@ struct IsString : std::false_type
 };
 
 template <class T>
-using NormalizedType = std::conditional_t<std::is_function_v<T>, std::add_pointer_t<T>, std::remove_cvref_t<T>>;
+using NormalizedType = std::conditional_t<
+    std::is_function_v<T>,
+    std::add_pointer_t<T>,
+    std::remove_cv_t<std::remove_reference_t<T>>>;
 
 template <class T>
 constexpr bool is_pod_type_v = std::is_standard_layout_v<T>
@@ -227,14 +230,11 @@ constexpr bool always_fail_v = false;
  *    - and is standard layout or a scalar type (or void, to allow void* in memcmp)
  */
 template <class T>
-concept BitwiseComparable = (std::has_unique_object_representations_v<std::remove_cv_t<T>>
+HYP_CONCEPT BitwiseComparable = (std::has_unique_object_representations_v<std::remove_cv_t<T>>
         && (std::is_scalar_v<std::remove_cv_t<T>> || std::is_standard_layout_v<std::remove_cv_t<T>>))
     || std::is_void_v<std::remove_cv_t<T>>;
 
 template <class T>
-concept BitwiseCopyable = std::is_void_v<std::remove_cv_t<T>> || std::is_trivially_copyable_v<std::remove_cv_t<T>>;
-
-template <class T>
-concept PODType = is_pod_type_v<T>;
+HYP_CONCEPT BitwiseCopyable = std::is_void_v<std::remove_cv_t<T>> || std::is_trivially_copyable_v<std::remove_cv_t<T>>;
 
 } // namespace Hyperion

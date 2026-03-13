@@ -1,0 +1,81 @@
+{
+    "version": 3,
+    "configurePresets": [
+        {
+            "name": "windows-base",
+            "hidden": true,
+            "generator": "Visual Studio 18 2026",
+            "binaryDir": "${sourceDir}/../Build",
+            "condition": {
+                "type": "equals",
+                "lhs": "${hostSystemName}",
+                "rhs": "Windows"
+            },
+            "cacheVariables": {
+                "CMAKE_BUILD_TYPE": "Release",
+                "HYP_ROOT_DIR": "${sourceDir}/..",
+                "HYP_LIBRARY_OUTPUT_DIRECTORY": "${sourceDir}/../Binaries/Engine",
+                "HYP_THIRD_PARTY_LIBRARY_DIRECTORY": "${sourceDir}/../External/ThirdParty/Binaries"
+            }
+        },
+        {
+            "name": "windows-x64",
+            "displayName": "Windows x64",
+            "description": "Windows 64-bit (MSVC)",
+            "inherits": "windows-base",
+            "architecture": {
+                "value": "x64",
+                "strategy": "set"
+            },
+            "toolchainFile": "$env{VCPKG_ROOT}/scripts/buildsystems/vcpkg.cmake",
+            "cacheVariables": {
+                "VCPKG_DEFAULT_TRIPLET": "x64-windows"
+            }
+        },
+        {
+            "name": "android-base",
+            "hidden": true,
+            "generator": "Ninja",
+            "toolchainFile": "$env{LOCALAPPDATA}/Android/Sdk/ndk/29.0.14206865/build/cmake/android.toolchain.cmake",
+            "cacheVariables": {
+                "ANDROID_PLATFORM": "android-28",
+                "ANDROID_STL": "c++_shared",
+                "HYP_PLATFORM_NAME": "Android",
+                "HYP_ROOT_DIR": "${sourceDir}/..",
+                "HYP_LIBRARY_OUTPUT_DIRECTORY": "${sourceDir}/../Binaries/Engine",
+                "HYP_THIRD_PARTY_LIBRARY_DIRECTORY": "${sourceDir}/../External/ThirdParty/Binaries",
+                "CMAKE_BUILD_TYPE": "Release"
+            },
+            "vendor": {
+                "microsoft.com/VisualStudioSettings/CMake/1.0": {
+                    "intelliSenseMode": "android-clang-arm64"
+                }
+            }
+        },
+        {
+            "name": "android-arm64-v8a",
+            "displayName": "Android ARM64 (arm64-v8a)",
+            "description": "Android ARM64",
+            "inherits": "android-base",
+            "binaryDir": "${sourceDir}/../Build/Android-arm64-v8a",
+            "cacheVariables": {
+              "ANDROID_ABI": "arm64-v8a",
+              "CMAKE_CXX_STANDARD": "20"
+            }
+        }
+    ],
+    "buildPresets": [
+        {
+            "name": "windows-x64",
+            "displayName": "Windows x64",
+            "configurePreset": "windows-x64",
+            "configuration": "Release"
+        },
+        {
+            "name": "android-arm64-v8a",
+            "displayName": "Android ARM64",
+            "configurePreset": "android-arm64-v8a",
+            "configuration": "Release"
+        }
+    ]
+}

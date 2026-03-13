@@ -10,6 +10,7 @@
 #include <scripting/ScriptableDelegate.hpp>
 
 #include <Core/Defines.hpp>
+#include <Core/Util.hpp>
 
 namespace Hyperion {
 
@@ -61,6 +62,8 @@ public:
 #if HYP_EDITOR
     HYP_METHOD(EditorOnly)
     void SetToEditMode();
+#else
+    void SetToEditMode() { }
 #endif
 
     void HandleEvent(Event&& event);

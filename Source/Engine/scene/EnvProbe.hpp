@@ -317,6 +317,8 @@ public:
 #if HYP_EDITOR
     HYP_METHOD(EditorOnly, EditAction = "Bake Cubemap", EditCondition = "IsBaked")
     void BakeCubemap();
+#else
+    void BakeCubemap() { }
 #endif
 };
 

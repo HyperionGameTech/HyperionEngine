@@ -172,6 +172,8 @@ public:
 #if HYP_EDITOR
     HYP_METHOD(EditorOnly, EditAction = "BakeLightmaps")
     void BakeLightmaps();
+#else
+    void BakeLightmaps() { }
 #endif
 
 protected:

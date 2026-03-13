@@ -1,0 +1,18 @@
+{
+  "version": "0.2.1",
+  "tasks": [
+    {
+      "taskLabel": "task-Source",
+      "appliesTo": "/",
+      "type": "launch"
+    },
+    {
+      "taskLabel": "Deploy Android",
+      "appliesTo": "/",
+      "type": "default",
+      "command": "${workspaceRoot}\\..\\Tools\\Scripts\\DeployAndroid.bat",
+      "args": [],
+      "workingDirectory": "${workspaceRoot}\\.."
+    }
+  ]
+}

@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.5)
+cmake_minimum_required(VERSION 3.10)
 
 set(BUILD_NAME hyperion)
 
@@ -29,30 +29,59 @@ set(CMAKE_THIRD_PARTY_LIBRARY_DIRECTORY ${HYP_THIRD_PARTY_LIBRARY_DIRECTORY})
 set(CMAKE_THIRD_PARTY_LIBRARY_DIRECTORY_RELEASE ${CMAKE_THIRD_PARTY_LIBRARY_DIRECTORY})
 set(CMAKE_THIRD_PARTY_LIBRARY_DIRECTORY_DEBUG ${CMAKE_THIRD_PARTY_LIBRARY_DIRECTORY})
 
-set(CMAKE_CONFIGURATION_TYPES "Release;RelWithDebInfo" CACHE STRING "Configurations to build" FORCE)
+set(CMAKE_CONFIGURATION_TYPES "Release" CACHE STRING "Configurations to build" FORCE)
 set(CMAKE_TRY_COMPILE_CONFIGURATION "Release" CACHE STRING "Configuration to use for try_compile" FORCE)
+
+set(CMAKE_CXX_STANDARD 20 CACHE STRING "C++ standard to be used")
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
+set(CMAKE_CXX_EXTENSIONS OFF)
 
 project(${BUILD_NAME} CXX)
 
 # set HYP_PLATFORM_NAME
 if(NOT DEFINED HYP_PLATFORM_NAME)
-    if(WIN32)
+    if(ANDROID)
+        set(HYP_PLATFORM_NAME "Android")
+    elseif(WIN32)
         set(HYP_PLATFORM_NAME "Win32")
     elseif(APPLE)
         set(HYP_PLATFORM_NAME "Mac")
-    elseif(UNIX)
-        set(HYP_PLATFORM_NAME "Linux")
     elseif(IOS)
         set(HYP_PLATFORM_NAME "iOS")
+    elseif(UNIX)
+        set(HYP_PLATFORM_NAME "Linux")
     else()
         message(FATAL_ERROR "Unsupported platform")
     endif()
 endif()
 
+# platform and compiler definitions
+if(CMAKE_CXX_COMPILER_ID STREQUAL "MSVC")
+    add_definitions(-DHYP_MSVC=1)
+    set(HYP_MSVC 1)
+elseif(CMAKE_CXX_COMPILER_ID MATCHES "Clang")
+    add_definitions(-DHYP_CLANG=1)
+    add_definitions(-DHYP_CLANG_OR_GCC=1)
+    set(HYP_CLANG 1)
+    set(HYP_CLANG_OR_GCC 1)
+elseif(CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
+    add_definitions(-DHYP_GCC=1)
+    add_definitions(-DHYP_CLANG_OR_GCC=1)
+    set(HYP_GCC 1)
+    set(HYP_CLANG_OR_GCC 1)
+endif()
+
+message(STATUS "Building for platform: ${HYP_PLATFORM_NAME} with compiler: ${CMAKE_CXX_COMPILER_ID}")
+
 set(USE_MSBUILD_FOR_CSHARP_BUILD false)
 if (MSVC)
     set(USE_MSBUILD_FOR_CSHARP_BUILD true)
     message(STATUS "Using MSBuild for C# projects")
+endif()
+
+if(HYP_PLATFORM_NAME STREQUAL "Android" AND NOT ANDROID)
+    set(ANDROID 1)
+    message(STATUS "Set ANDROID=1 to match HYP_PLATFORM_NAME=Android")
 endif()
 
 string(TOLOWER ${HYP_PLATFORM_NAME} HYP_PLATFORM_NAME_LOWER)
@@ -75,7 +104,8 @@ endif()
 include(ExternalProject)
 
 function(RunCodeGen version_major version_minor)
-    if(WIN32)
+
+    if(CMAKE_HOST_WIN32)
         set(HYP_CODEGEN_RUN_SCRIPT_PATH "${CMAKE_SOURCE_DIR}/../Tools/Scripts/RunCodeGen.bat")
         set(HYP_CODEGEN_BUILD_SCRIPT_PATH "${CMAKE_SOURCE_DIR}/../Tools/Scripts/BuildCodeGen.bat")
     else()
@@ -117,39 +147,13 @@ add_definitions(-DHYP_TESTS=1)
 # will increase compile times slightly but improve runtime performance
 add_definitions(-DHYP_TYPE_ID_COMPILE_TIME=1)
 
-# platform and compiler definitions
-if(MSVC)
-    add_definitions(-DHYP_MSVC=1)
-elseif(__clang__)
-    add_definitions(-DHYP_CLANG=1)
-    add_definitions(-DHYP_CLANG_OR_GCC=1)
-elseif(CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
-    add_definitions(-DHYP_GCC=1)
-    add_definitions(-DHYP_CLANG_OR_GCC=1)
-endif()
-
-if(APPLE)
-    add_definitions(-DHYP_UNIX=1)
-    add_definitions(-DHYP_APPLE=1)
-    if(IOS)
-        add_definitions(-DHYP_IOS=1)
-    else()
-        add_definitions(-DHYP_MACOS=1)
-    endif()
-elseif(UNIX)
-    add_definitions(-DHYP_UNIX=1)
-    add_definitions(-DHYP_LINUX=1)
-elseif(WIN32)
-    add_definitions(-DHYP_WINDOWS=1)
-endif()
-
 if(CMAKE_SYSTEM_NAME STREQUAL "Emscripten")
     set(NATIVE false CACHE BOOL "Is the build occuring on a native platform? (Access to native libraries, filesystem etc.)")
 else()
     set(NATIVE true CACHE BOOL "Is the build occuring on a native platform? (Access to native libraries, filesystem etc.)")
 endif()
 
-if(MSVC)
+if(HYP_MSVC)
     message(STATUS "Building on MSVC, checking toolchain is set (should be set to `<vcpkg root path>/scripts/buildsystems/vcpkg.cmake`)")
 
     if (DEFINED CMAKE_TOOLCHAIN_FILE)
@@ -172,22 +176,24 @@ if(MSVC)
     add_definitions("/DNOMINMAX")
 
     if(HYP_DEBUG_MODE)
-        set(CMAKE_CXX_FLAGS "/Zc:preprocessor /O2 /MD /Z7 /constexpr:depth1024 /bigobj /MP")
+        set(CMAKE_CXX_FLAGS "/Zc:preprocessor /Zc:__cplusplus /O2 /MD /Z7 /constexpr:depth1024 /bigobj /MP")
         set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS_RELEASE} /DEBUG /NATVIS:${CMAKE_SOURCE_DIR}/Engine/Hyperion.natvis")
         set(CMAKE_SHARED_LINKER_FLAGS "${CMAKE_SHARED_LINKER_FLAGS_RELEASE} /DEBUG")
     else()
-        set(CMAKE_CXX_FLAGS "/Zc:preprocessor /O2 /Oy /MD /constexpr:depth1024 /bigobj /MP")
+        set(CMAKE_CXX_FLAGS "/Zc:preprocessor /Zc:__cplusplus /O2 /Oy /MD /constexpr:depth1024 /bigobj /MP")
     endif()
 
     # address sanitizer
     # set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /fsanitize=address")
 else()
     if(HYP_DEBUG_MODE)
-        set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -O1 -g -Werror=return-type -Werror=address") #-Werror=non-virtual-dtor 
+        set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -O2 -g -Werror=return-type -Werror=address") #-Werror=non-virtual-dtor 
     else()
         set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -O3")
     endif()
     # set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -g")
+    
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++20")
 
     # no exceptions
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fno-exceptions")
@@ -215,7 +221,7 @@ if(CMAKE_GENERATOR STREQUAL "Xcode")
     set(CMAKE_XCODE_ATTRIBUTE_CODE_SIGNING_REQUIRED "NO")
 
 # for VS solutions, we want to add some files as a custom solution item
-elseif(MSVC)
+elseif(HYP_MSVC)
     set(SOLUTION_FILES "${CMAKE_SOURCE_DIR}/Engine/Hyperion.natvis" "${CMAKE_SOURCE_DIR}/../.clang-format" "${CMAKE_SOURCE_DIR}/../.clang-tidy")
     add_custom_target(VSSolutionFiles SOURCES ${SOLUTION_FILES})
 endif()
@@ -251,8 +257,10 @@ set(HYP_GENERATED_DIR "${CMAKE_SOURCE_DIR}/Generated")
 set(CSHARP_PROJECTS_DIR "${CMAKE_SOURCE_DIR}/../Build/CSharpProjects")
 file(MAKE_DIRECTORY ${CSHARP_PROJECTS_DIR})
 
-set(HYP_EDITOR 1)
-add_definitions(-DHYP_EDITOR=1)
+if(NOT ANDROID)
+    set(HYP_EDITOR 1)
+    add_definitions(-DHYP_EDITOR=1)
+endif()
 
 # enable HypScript
 add_definitions(-DHYP_SCRIPT=1)
@@ -260,7 +268,8 @@ add_definitions(-DHYP_SCRIPT=1)
 set(HYP_GENERATE_CSHARP_LIBRARIES true)
 
 # if dotnet headers exist, set HYP_DOTNET to 1
-if(EXISTS "${THIRD_PARTY_INCLUDE_DIR}/dotnetcore/hostfxr.h")
+# TODO: Get working on Android
+if(NOT ANDROID AND EXISTS "${THIRD_PARTY_INCLUDE_DIR}/dotnetcore/hostfxr.h")
     message(STATUS ".NET headers found")
     set(HYP_DOTNET 1)
 
@@ -290,15 +299,28 @@ else()
     set(HYP_GENERATE_CSHARP_LIBRARIES false)
 endif()
 
-# C# constant properties shared across all C# projects
 if(${HYP_PLATFORM_NAME} STREQUAL "Win32")
     set(CSHARP_CONSTANTS "HYP_WINDOWS")
+    add_definitions(-DHYP_WINDOWS=1)
 elseif(${HYP_PLATFORM_NAME} STREQUAL "Mac")
-    set(CSHARP_CONSTANTS "HYP_MACOS;HYP_UNIX")
+    set(CSHARP_CONSTANTS "HYP_MACOS;HYP_APPLE;HYP_UNIX")
+    add_definitions(-DHYP_APPLE=1)
+    add_definitions(-DHYP_UNIX=1)
+    add_definitions(-DHYP_MACOS=1)
 elseif(${HYP_PLATFORM_NAME} STREQUAL "iOS")
-    set(CSHARP_CONSTANTS "HYP_IOS;HYP_UNIX")
+    set(CSHARP_CONSTANTS "HYP_IOS;HYP_APPLE;HYP_UNIX")
+    add_definitions(-DHYP_APPLE=1)
+    add_definitions(-DHYP_UNIX=1)
+    add_definitions(-DHYP_IOS=1)
+elseif(${HYP_PLATFORM_NAME} STREQUAL "Android")
+    set(CSHARP_CONSTANTS "HYP_ANDROID;HYP_LINUX;HYP_UNIX")
+    add_definitions(-DHYP_ANDROID=1)
+    add_definitions(-DHYP_LINUX=1)
+    add_definitions(-DHYP_UNIX=1)
 elseif(${HYP_PLATFORM_NAME} STREQUAL "Linux")
     set(CSHARP_CONSTANTS "HYP_LINUX;HYP_UNIX")
+    add_definitions(-DHYP_LINUX=1)
+    add_definitions(-DHYP_UNIX=1)
 endif()
 
 set(RENDERING_BACKEND "Vulkan")
@@ -320,14 +342,24 @@ if (NOT DEFINED RENDERING_BACKEND)
 endif()
 
 if (RENDERING_BACKEND STREQUAL "Vulkan")
-    find_package(Vulkan REQUIRED)
-
-    add_definitions(-DHYP_VULKAN=1)
-    set(HYP_VULKAN 1)
-
-    message(STATUS "Found Vulkan at: ${Vulkan_INCLUDE_DIRS} ${Vulkan_LIBRARIES}")
-
-    include_directories(BEFORE ${Vulkan_INCLUDE_DIRS})
+    if(ANDROID)
+        # On Android, Vulkan (API 24+) is provided by the platform — link against the
+        # system libvulkan.so directly. NDK sysroot includes the headers.
+        add_definitions(-DHYP_VULKAN=1)
+        set(HYP_VULKAN 1)
+        set(RENDERER_LIBRARIES ${RENDERER_LIBRARIES} vulkan)
+        find_package(Vulkan QUIET)
+        if(Vulkan_FOUND)
+            include_directories(BEFORE ${Vulkan_INCLUDE_DIRS})
+        endif()
+        message(STATUS "Android: using platform-provided Vulkan (libvulkan.so)")
+    else()
+        find_package(Vulkan REQUIRED)
+        add_definitions(-DHYP_VULKAN=1)
+        set(HYP_VULKAN 1)
+        message(STATUS "Found Vulkan at: ${Vulkan_INCLUDE_DIRS} ${Vulkan_LIBRARIES}")
+        include_directories(BEFORE ${Vulkan_INCLUDE_DIRS})
+    endif()
 elseif(RENDERING_BACKEND STREQUAL "DX12")
     add_definitions(-DHYP_DX12=1)
     set(HYP_DX12 1)
@@ -350,7 +382,7 @@ endif()
 
 # link glslang if vulkan rendering backend:
 if (RENDERING_BACKEND STREQUAL "Vulkan")
-    if (${NATIVE} AND NOT ${HYP_PLATFORM_NAME} STREQUAL "iOS")
+    if (${NATIVE} AND NOT ${HYP_PLATFORM_NAME} STREQUAL "iOS" AND NOT ANDROID)
         # if glslang folder exists, link with it.
         if(EXISTS "${SUBMODULES_DIR}/glslang/glslang/CMakeLists.txt")
             set(HYP_GLSLANG 1)
@@ -495,7 +527,7 @@ elseif(RENDERING_BACKEND STREQUAL "DX12")
 endif()
 
 # setup DXC if found
-if(EXISTS "${THIRD_PARTY_INCLUDE_DIR}/dxc/dxcapi.h")
+if(EXISTS "${THIRD_PARTY_INCLUDE_DIR}/dxc/dxcapi.h" AND NOT ANDROID)
     message(STATUS "DXC headers found, setting up DXC")
 
     include_directories(BEFORE ${THIRD_PARTY_INCLUDE_DIR}/dxc)
@@ -608,6 +640,11 @@ function(collect_sources_and_modules dir out_sources out_headers out_modules)
         # handle ThirdParty modules separately
         if(dir MATCHES "ThirdParty")
             return()
+        endif()
+
+        if(dir MATCHES "editor" AND NOT HYP_EDITOR)
+            message(STATUS "Skipping editor module: ${dir}; HYP_EDITOR is not set")
+            set(should_skip_module TRUE)
         endif()
 
         if(dir MATCHES "dotnet/runtime")
@@ -729,7 +766,17 @@ set(THIRD_PARTY_LIBRARIES "")
 collect_sources_and_modules(${THIRD_PARTY_INCLUDE_DIR} THIRD_PARTY_SOURCES THIRD_PARTY_HEADERS THIRD_PARTY_LIBRARIES)
 source_group(TREE ${THIRD_PARTY_INCLUDE_DIR} PREFIX "Third-Party Code" FILES ${THIRD_PARTY_SOURCES} ${THIRD_PARTY_HEADERS})
 
-# platform specific stuff
+set(PLATFORM_SPECIFIC_SOURCES "")
+set(PLATFORM_SPECIFIC_HEADERS "")
+set(PLATFORM_SPECIFIC_LIBRARIES "")
+collect_sources_and_modules(${CMAKE_SOURCE_DIR}/PlatformSpecific PLATFORM_SPECIFIC_SOURCES PLATFORM_SPECIFIC_HEADERS PLATFORM_SPECIFIC_LIBRARIES)
+source_group(TREE ${CMAKE_SOURCE_DIR}/PlatformSpecific PREFIX "Platform Specific Code" FILES ${PLATFORM_SPECIFIC_SOURCES} ${PLATFORM_SPECIFIC_HEADERS})
+
+# add platform specific sources to the main sources list, but keep them in their own filter in the solution
+list(APPEND SOURCES ${PLATFORM_SPECIFIC_SOURCES})
+list(APPEND HEADERS ${PLATFORM_SPECIFIC_HEADERS})
+
+# platform specific system stuff
 file(GLOB_RECURSE PLATFORM_FILES "${CMAKE_SOURCE_DIR}/Engine/system/platform/**/*")
 foreach(PLATFORM_FILE ${PLATFORM_FILES})
     if(NOT ${PLATFORM_FILE} MATCHES "${CMAKE_SOURCE_DIR}/Engine/system/platform/${HYP_PLATFORM_NAME_LOWER}")
@@ -744,7 +791,7 @@ file(GLOB_RECURSE SHADER_FILES "${CMAKE_SOURCE_DIR}/Shaders/*")
 foreach(SHADER_FILE ${SHADER_FILES})
     source_group("Shader Code" FILES ${SHADER_FILE})
 
-    if(MSVC)
+    if(HYP_MSVC)
         set_property(SOURCE ${SHADER_FILE} PROPERTY VS_TOOL_OVERRIDE "None")
     endif()
 
@@ -754,9 +801,6 @@ foreach(SHADER_FILE ${SHADER_FILES})
     message(STATUS "Adding shader file to solution: ${SHADER_FILE}")
 endforeach()
 include_directories(${CMAKE_SOURCE_DIR}/Shaders) # so VS can find them for intellisense
-
-set(CMAKE_CXX_STANDARD 20 CACHE STRING "C++ standard to be used")
-set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 if (${HYP_PLATFORM_NAME} STREQUAL "Mac")
     # link with libraries to allow NSAlert and NSString
@@ -781,14 +825,12 @@ if(Bullet_FOUND)
     )
 endif()
 
-
-
-if (${NATIVE} AND NOT ${HYP_PLATFORM_NAME} STREQUAL "iOS")
+if (${NATIVE} AND NOT ${HYP_PLATFORM_NAME} STREQUAL "iOS" AND NOT ANDROID)
     if(EXISTS "${SUBMODULES_DIR}/libdatachannel/CMakeLists.txt")
         add_definitions(-DHYP_LIBDATACHANNEL=1)
 
         # Build libdatachannel as external project (only for VS and Xcode)
-        if(MSVC) # OR CMAKE_GENERATOR STREQUAL "Xcode"
+        if(HYP_MSVC) # OR CMAKE_GENERATOR STREQUAL "Xcode"
             ExternalProject_Add(libdatachannel_external
                 SOURCE_DIR ${SUBMODULES_DIR}/libdatachannel
                 CMAKE_ARGS
@@ -854,6 +896,10 @@ if(WIN32)
     set(COMMON_LIBRARIES ${COMMON_LIBRARIES} DbgHelp)
 endif()
 
+if(ANDROID)
+    set(COMMON_LIBRARIES ${COMMON_LIBRARIES} android log)
+endif()
+
 if(NOT IOS)
     # if(GST_FOUND)
     #     add_definitions(-DHYP_GSTREAMER=1)
@@ -884,7 +930,7 @@ include_directories(
     ${CMAKE_SOURCE_DIR}/Engine
 )
 
-if(NOT WIN32)
+if(NOT WIN32 AND NOT ANDROID)
     include_directories(${SDL2_INCLUDE_DIRS})
 endif()
 
@@ -910,6 +956,11 @@ set_source_files_properties(${THIRD_PARTY_SOURCES} PROPERTIES SKIP_PRECOMPILE_HE
 
 add_library(${BUILD_NAME} SHARED ${SOURCES} ${HEADERS})
 
+if(HYP_ANDROID)
+    # add hyperion-android module
+    add_subdirectory(${CMAKE_SOURCE_DIR}/PlatformSpecific/Android ${CMAKE_BINARY_DIR}/android)
+endif()
+
 # PCHs
 target_precompile_headers(${BUILD_NAME} PRIVATE ${HYP_PCH})
 
@@ -927,7 +978,7 @@ set(COMMON_LIBRARIES
     ${CMAKE_THREADS_LIBS_INIT}
 )
 
-if(NOT DEFINED WIN32)
+if(NOT DEFINED WIN32 AND NOT ANDROID)
     set(COMMON_LIBRARIES
         ${COMMON_LIBRARIES}
         ${SDL2_LIBRARIES}
@@ -936,11 +987,8 @@ endif()
 
 set(SUB_LIBRARIES ${SUB_LIBRARIES} ${THIRD_PARTY_LIBRARIES})
 
-message(STATUS "Sub-libraries: ${SUB_LIBRARIES}")
-
 target_link_libraries(${BUILD_NAME} PUBLIC ${COMMON_LIBRARIES})
 target_link_libraries(${BUILD_NAME} PUBLIC ${RENDERER_LIBRARIES})
-
 
 # add sublibraries as dependencies so any changes get picked up.
 foreach(SUB_LIBRARY ${SUB_LIBRARIES})
@@ -957,7 +1005,7 @@ if(APPLE)
             target_link_libraries(${BUILD_NAME} PRIVATE ${SUB_LIBRARY})
         endif()
     endforeach()
-elseif(MSVC)
+elseif(HYP_MSVC)
     # needs to use /WHOLEARCHIVE on Windows for emulating the above behavior
     foreach(SUB_LIBRARY ${SUB_LIBRARIES})
         if (SUB_LIBRARY MATCHES "hyperion-dotnet-.*" OR SUB_LIBRARY MATCHES "hyperion-editor")
@@ -1019,7 +1067,7 @@ add_subdirectory(Sample)
 
 #     # If building with Visual Studio, add the generated config file into the
 #     # solution so it's visible in the IDE under the VSSolutionFiles target.
-#     if(MSVC)
+#     if(HYP_MSVC)
 #         if(TARGET VSSolutionFiles)
 #             set_property(TARGET VSSolutionFiles APPEND PROPERTY SOURCES ${OUTPUT_CONFIG_FILE})
 #         endif()

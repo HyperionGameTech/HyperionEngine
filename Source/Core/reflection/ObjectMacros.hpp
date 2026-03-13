@@ -12,7 +12,7 @@ const Class* GetClass();
 template <class T>
 struct GetClassHelper
 {
-    static const Class* Get();
+    HYP_API static const Class* Get();
 };
 
 class ClassRegistrationBase;
@@ -29,14 +29,10 @@ public:
     TClassStaticInit(TClassStaticInit&& other) noexcept = delete;
     TClassStaticInit& operator=(TClassStaticInit&& other) noexcept = delete;
 
-    ~TClassStaticInit()
-    {
-        if (m_registration != nullptr)
-        {
-            delete m_registration;
-            m_registration = nullptr;
-        }
-    }
+    // @NOTE: Not deleting ptr as the type is undefined here
+    // and the lifetime of TClassStaticInit is the full length of the program
+    // At some point, it'd be nice to refactor this so lifetime can be managed better.
+    ~TClassStaticInit() = default;
 
     ClassRegistrationBase* GetClassRegistration()
     {
@@ -54,7 +50,7 @@ protected:
 #define HYP_BEGIN_STRUCT(cls, _static_index, _num_descendants, parentClass, ...)                                                                \
                                                                                                                                                 \
     template <>                                                                                                                                 \
-    HYP_EXPORT const Class* GetClassHelper<cls>::Get() { return g_cls##cls; }                                                                   \
+    HYP_API const Class* GetClassHelper<cls>::Get() { return g_cls##cls; }                                                                      \
                                                                                                                                                 \
     template <>                                                                                                                                 \
     TClassStaticInit<cls>::TClassStaticInit()                                                                                                   \
@@ -68,7 +64,7 @@ protected:
 #define HYP_BEGIN_CLASS(cls, _static_index, _num_descendants, parentClass, ...)                                                                 \
                                                                                                                                                 \
     template <>                                                                                                                                 \
-    HYP_EXPORT const Class* GetClassHelper<cls>::Get() { return g_cls##cls; }                                                                   \
+    HYP_API const Class* GetClassHelper<cls>::Get() { return g_cls##cls; }                                                                      \
                                                                                                                                                 \
     template <>                                                                                                                                 \
     TClassStaticInit<cls>::TClassStaticInit()                                                                                                   \
@@ -82,7 +78,7 @@ protected:
 #define HYP_BEGIN_ENUM(cls, _static_index, _num_descendants, ...)                                                                               \
                                                                                                                                                 \
     template <>                                                                                                                                 \
-    HYP_EXPORT const Class* GetClassHelper<cls>::Get() { return g_cls##cls; }                                                                   \
+    HYP_API const Class* GetClassHelper<cls>::Get() { return g_cls##cls; }                                                                      \
                                                                                                                                                 \
     template <>                                                                                                                                 \
     TClassStaticInit<cls>::TClassStaticInit()                                                                                                   \

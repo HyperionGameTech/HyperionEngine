@@ -39,7 +39,7 @@ namespace containers {
 
 namespace detail {
 
-template <Char CharType, size_t Size>
+template <class CharType, size_t Size, typename = std::enable_if_t<IsValidCharType<CharType>>>
 static inline constexpr CharType* ConvertChars(const char* src, CharType (&dst)[Size])
 {
     if (Size == 0)
@@ -126,7 +126,7 @@ public:
     String(const CharType* str);
     String(const CharType* _begin, const CharType* _end);
 
-    template <Char OtherCharType, typename = std::enable_if_t<!std::is_same_v<OtherCharType, CharType>>>
+    template <class OtherCharType, typename = std::enable_if_t<IsValidCharType<OtherCharType> && !std::is_same_v<OtherCharType, CharType>>>
     String(const OtherCharType* str)
         : String()
     {
@@ -180,13 +180,13 @@ public:
         return *this;
     }
 
-    template <Char OtherCharType, typename = std::enable_if_t<!std::is_same_v<OtherCharType, CharType>>>
+    template <class OtherCharType, typename = std::enable_if_t<IsValidCharType<OtherCharType> && !std::is_same_v<OtherCharType, CharType>>>
     HYP_NODISCARD HYP_FORCE_INLINE String operator+(const OtherCharType* str) const
     {
         return String(*this) += str;
     }
 
-    template <Char OtherCharType, typename = std::enable_if_t<!std::is_same_v<OtherCharType, CharType>>>
+    template <class OtherCharType, typename = std::enable_if_t<IsValidCharType<OtherCharType> && !std::is_same_v<OtherCharType, CharType>>>
     HYP_FORCE_INLINE String& operator+=(const OtherCharType* str)
     {
         Append(str);
@@ -216,13 +216,13 @@ public:
     HYP_NODISCARD String operator+(CharType ch) const;
     String& operator+=(CharType ch);
 
-    template <Char OtherCharType, typename = std::enable_if_t<!std::is_same_v<OtherCharType, CharType>>>
+    template <class OtherCharType, typename = std::enable_if_t<IsValidCharType<OtherCharType> && !std::is_same_v<OtherCharType, CharType>>>
     HYP_NODISCARD HYP_FORCE_INLINE String operator+(OtherCharType ch) const
     {
         return String(*this) += ch;
     }
 
-    template <Char OtherCharType, typename = std::enable_if_t<!std::is_same_v<OtherCharType, CharType>>>
+    template <class OtherCharType, typename = std::enable_if_t<IsValidCharType<OtherCharType> && !std::is_same_v<OtherCharType, CharType>>>
     HYP_FORCE_INLINE String& operator+=(CharType ch)
     {
         Append(ch);
@@ -399,7 +399,7 @@ public:
     void Append(const CharType* str);
     void Append(const CharType* _begin, const CharType* _end);
 
-    template <Char OtherCharType, typename = std::enable_if_t<!std::is_same_v<OtherCharType, CharType>>>
+    template <class OtherCharType, typename = std::enable_if_t<IsValidCharType<OtherCharType> && !std::is_same_v<OtherCharType, CharType>>>
     void Append(const OtherCharType* str)
     {
         const size_t size = utf::StringLength<OtherCharType, false>(str);
@@ -407,7 +407,7 @@ public:
         Append(str, str + size);
     }
 
-    template <Char OtherCharType, typename = std::enable_if_t<!std::is_same_v<OtherCharType, CharType>>>
+    template <class OtherCharType, typename = std::enable_if_t<IsValidCharType<OtherCharType> && !std::is_same_v<OtherCharType, CharType>>>
     void Append(const OtherCharType* _begin, const OtherCharType* _end)
     {
         if constexpr (isUtf8)
@@ -689,7 +689,7 @@ public:
     }
 
     /// append single character
-    template <Char OtherCharType, typename = std::enable_if_t<!std::is_same_v<OtherCharType, CharType>>>
+    template <class OtherCharType, typename = std::enable_if_t<IsValidCharType<OtherCharType> && !std::is_same_v<OtherCharType, CharType>>>
     HYP_FORCE_INLINE void Append(OtherCharType ch)
     {
         size_t codepoints = 0;

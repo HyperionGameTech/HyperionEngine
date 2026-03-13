@@ -599,9 +599,9 @@ public:
 };
 
 template <class T>
-concept ResultType = std::is_same_v<T, Result> || (std::is_class_v<T> && std::is_base_of_v<TResult<typename T::ValueType, typename T::ErrorType>, T>);
+constexpr bool IsResultType = std::is_same_v<T, Result> || (std::is_class_v<T> && std::is_base_of_v<TResult<typename T::ValueType, typename T::ErrorType>, T>);
 
-template <ResultType TResultType>
+template <class TResultType, typename = std::enable_if_t<IsResultType<TResultType>>>
 static inline bool CheckResult(const TResultType& result)
 {
     static constexpr const char* NoMessageText = "<no message>";
@@ -633,6 +633,6 @@ using utilities::GetNullError;
 using utilities::Result;
 using utilities::TResult;
 using utilities::CheckResult;
-using utilities::ResultType;
+using utilities::IsResultType;
 
 } // namespace Hyperion

@@ -47,7 +47,7 @@ static const HashMap<String, MemberType> s_memberDefinitionTypes = {
 };
 
 // for each path below, if it matches the module path, add the corresponding define(s) to the class condition
-static const HashMap<String, String> s_builtinConditionalDefines = {
+static const HashMap<String, String> s_pathConditionalDefines = {
     // platforms
     { "platform/win32", "HYP_WINDOWS" },
     { "platform/linux", "HYP_LINUX" },
@@ -57,7 +57,58 @@ static const HashMap<String, String> s_builtinConditionalDefines = {
     // rendering backends
     { "rendering/vulkan", "HYP_VULKAN" },
     { "rendering/dx12", "HYP_DX12" },
+
+    { "editor", "HYP_EDITOR" }
 };
+
+static void ExtractConditionAttribute(String& condition, Array<Pair<String, ClassAttributeValue>>& attributes)
+{
+    // handle editoronly attribute 
+    auto editorOnlyIt = attributes.FindIf([](const Pair<String, ClassAttributeValue>& pair)
+        {
+            return pair.first.ToLower() == "editoronly";
+        });
+
+    if (editorOnlyIt != attributes.End())
+    {
+        if (condition.Any())
+        {
+            condition = HYP_FORMAT("{} && {}", condition, "HYP_EDITOR");
+        }
+        else
+        {
+            condition = "HYP_EDITOR";
+        }
+
+        attributes.Erase(editorOnlyIt);
+    }
+
+    auto conditionIt = attributes.FindIf([](const Pair<String, ClassAttributeValue>& pair)
+        {
+            return pair.first.ToLower() == "condition";
+        });
+
+    if (conditionIt != attributes.End())
+    {
+        if (condition.Any())
+        {
+            if (conditionIt->second.GetString().Contains("&&") || conditionIt->second.GetString().Contains("||"))
+            {
+                condition = HYP_FORMAT("{} && ({})", condition, conditionIt->second.GetString());
+            }
+            else
+            {
+                condition = HYP_FORMAT("{} && {}", condition, conditionIt->second.GetString());
+            }
+        }
+        else
+        {
+            condition = conditionIt->second.GetString();
+        }
+
+        attributes.Erase(conditionIt);
+    }
+}
 
 const String& ClassDefinitionTypeToString(ClassDefinitionType type)
 {
@@ -511,7 +562,7 @@ static TResult<Array<ClassDefinition>, AnalyzerError> BuildClasses(const Analyze
         { // Set up condition for the class
             const String pathSanitized = mod.GetPath().ToLower().ReplaceAll("\\", "/");
 
-            for (const auto& [pathMatch, define] : s_builtinConditionalDefines)
+            for (const auto& [pathMatch, define] : s_pathConditionalDefines)
             {
                 if (pathSanitized.Contains(pathMatch))
                 {
@@ -526,32 +577,7 @@ static TResult<Array<ClassDefinition>, AnalyzerError> BuildClasses(const Analyze
                 }
             }
             
-            // check for `condition` attribute - if present, set condition and remove from attributes
-            auto conditionIt = classDefinition.attributes.FindIf([](const Pair<String, ClassAttributeValue>& pair)
-                {
-                    return pair.first.ToLower() == "condition";
-                });
-
-            if (conditionIt != classDefinition.attributes.End())
-            {
-                if (classDefinition.condition.Any())
-                {
-                    if (conditionIt->second.GetString().Contains("&&") || conditionIt->second.GetString().Contains("||"))
-                    {
-                        classDefinition.condition = HYP_FORMAT("{} && ({})", classDefinition.condition, conditionIt->second.GetString());
-                    }
-                    else
-                    {
-                        classDefinition.condition = HYP_FORMAT("{} && {}", classDefinition.condition, conditionIt->second.GetString());
-                    }
-                }
-                else
-                {
-                    classDefinition.condition = conditionIt->second.GetString();
-                }
-
-                classDefinition.attributes.Erase(conditionIt);
-            }
+            ExtractConditionAttribute(classDefinition.condition, classDefinition.attributes);
 
         }
 
@@ -733,6 +759,8 @@ static TResult<Array<MemberDef>, AnalyzerError> BuildClassMembers(const Analyzer
 
             result.name = result.attributes.PopFront().first;
 
+            ExtractConditionAttribute(result.condition, result.attributes);
+
             continue;
         }
 
@@ -759,6 +787,8 @@ static TResult<Array<MemberDef>, AnalyzerError> BuildClassMembers(const Analyzer
         result.name = decl->name;
         result.cxxType = decl->type;
         result.cxxDecl = decl;
+
+        ExtractConditionAttribute(result.condition, result.attributes);
     }
 
     return results;

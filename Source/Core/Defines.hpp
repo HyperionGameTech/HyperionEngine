@@ -15,132 +15,53 @@
 #if defined(HYPERION_BUILD_RELEASE) && HYPERION_BUILD_RELEASE
 #if HYP_DEBUG_MODE
 #undef HYP_DEBUG_MODE
-#endif
-#endif
+#endif // HYP_DEBUG_MODE
+#endif // HYPERION_BUILD_RELEASE
 
-#if defined(__clang__)
-
-#if !defined(HYP_CLANG) || !HYP_CLANG
-#ifdef HYP_CLANG
-#undef HYP_CLANG
-#endif
-#define HYP_CLANG 1
-#endif
-
-#elif defined(__GNUC__) || defined(__GNUG__)
-
-#if !defined(HYP_GCC) || !HYP_GCC
-#ifdef HYP_GCC
-#undef HYP_GCC
-#endif
-#define HYP_GCC 1
-#endif
-
-#endif
-
-#if defined(HYP_GCC) || defined(HYP_CLANG)
-
-#if !defined(HYP_CLANG_OR_GCC) || !HYP_CLANG_OR_GCC
-#ifdef HYP_CLANG_OR_GCC
-#undef HYP_CLANG_OR_GCC
-#endif
-#define HYP_CLANG_OR_GCC 1
-#endif
-
-#elif defined(_MSC_VER)
-
-#if !defined(HYP_MSVC) || !HYP_MSVC
-#ifdef HYP_MSVC
-#undef HYP_MSVC
-#endif
-#define HYP_MSVC 1
-#endif
-
-#else
-#error Unknown compiler
-#endif
-
-#if defined(HYP_CLANG_OR_GCC) && HYP_CLANG_OR_GCC
+#if HYP_CLANG_OR_GCC
 #define HYP_PACK_BEGIN __attribute__((__packed__))
 #define HYP_PACK_END
 #define HYP_FORCE_INLINE __attribute__((always_inline))
 #define HYP_USED __attribute__((used))
 #endif
 
-#if defined(HYP_MSVC) && HYP_MSVC
+#if HYP_MSVC
 #define HYP_PACK_BEGIN __pragma(pack(push, 1))
 #define HYP_PACK_END __pragma(pack(pop))
 #define HYP_FORCE_INLINE __forceinline
 #define HYP_USED volatile
 #endif
 
-#if defined(HYP_CLANG) && HYP_CLANG
+#if HYP_CLANG
 #define HYP_DEPRECATED __attribute__((deprecated))
-#elif defined(HYP_GCC) && HYP_GCC
+#elif HYP_GCC
 #define HYP_DEPRECATED __attribute__((deprecated))
-#elif defined(HYP_MSVC) && HYP_MSVC
+#elif HYP_MSVC
 #define HYP_DEPRECATED __declspec(deprecated)
 #endif
 
-#if defined(HYP_CLANG) && HYP_CLANG
+#if HYP_CLANG
 #define HYP_NODISCARD __attribute__((warn_unused_result))
-#elif defined(HYP_GCC) && HYP_GCC
+#elif HYP_GCC
 #define HYP_NODISCARD __attribute__((warn_unused_result))
-#elif defined(HYP_MSVC) && HYP_MSVC
+#elif HYP_MSVC
 #define HYP_NODISCARD _Check_return_
 #endif
 
-#if defined(HYP_CLANG) && HYP_CLANG
+#if HYP_CLANG
 #define HYP_NOTNULL __attribute__((nonnull))
-#elif defined(HYP_GCC) && HYP_GCC
+#elif HYP_GCC
 #define HYP_NOTNULL __attribute__((nonnull))
-#elif defined(HYP_MSVC) && HYP_MSVC
+#elif HYP_MSVC
 #define HYP_NOTNULL
 #else
 #define HYP_NOTNULL
 #endif
 
-#if defined(_WIN32) && _WIN32
-
-#if !defined(HYP_WINDOWS) || !HYP_WINDOWS
-#ifdef HYP_WINDOWS
-#undef HYP_WINDOWS
-#endif
-#define HYP_WINDOWS 1
-#endif
-
+#if HYP_WINDOWS
 #define HYP_FILESYSTEM_SEPARATOR "\\"
 #else
 #define HYP_FILESYSTEM_SEPARATOR "/"
-#endif
-
-#if defined(unix) || defined(__unix) || defined(__unix__)
-
-#if !defined(HYP_UNIX) || !HYP_UNIX
-#ifdef HYP_UNIX
-#undef HYP_UNIX
-#endif
-#define HYP_UNIX 1
-#endif
-
-#endif
-
-#if defined(__linux__) || defined(linux) || defined(__linux)
-
-#if !defined(HYP_UNIX) || !HYP_UNIX
-#ifdef HYP_UNIX
-#undef HYP_UNIX
-#endif
-#define HYP_UNIX 1
-#endif
-
-#if !defined(HYP_LINUX) || !HYP_LINUX
-#ifdef HYP_LINUX
-#undef HYP_LINUX
-#endif
-#define HYP_LINUX 1
-#endif
-
 #endif
 
 #if defined(__arm__) || defined(__aarch64__) || defined(__ARM_ARCH)
@@ -154,25 +75,11 @@
 
 #endif
 
-#ifdef __APPLE__
-
-#if !defined(HYP_UNIX) || !HYP_UNIX
-#ifdef HYP_UNIX
-#undef HYP_UNIX
-#endif
-#define HYP_UNIX 1
-#endif
-
-#if !defined(HYP_APPLE) || !HYP_APPLE
-#ifdef HYP_APPLE
-#undef HYP_APPLE
-#endif
-#define HYP_APPLE 1
-#endif
+#if HYP_APPLE
 
 #include <TargetConditionals.h>
 
-// for m1
+// for Apply Silicon
 #if TARGET_CPU_ARM64 && !defined(HYP_ARM) || !HYP_ARM
 #ifdef HYP_ARM
 #undef HYP_ARM
@@ -201,7 +108,7 @@
 #endif
 #endif
 
-#ifdef HYP_MSVC
+#if HYP_MSVC
 #pragma warning(disable : 4251) // class needs to have dll-interface to be used by clients of class
 #pragma warning(disable : 4275) // non dll-interface class used as base for dll-interface class
 #endif
@@ -214,7 +121,7 @@
 
 #define HYP_STR(x) #x
 
-#ifdef HYP_WINDOWS
+#if HYP_WINDOWS
 #define HYP_TEXT(x) L##x
 #else
 #define HYP_TEXT(x) x
@@ -222,6 +129,18 @@
 
 #define HYP_CONCAT(a, b) HYP_CONCAT_INNER(a, b)
 #define HYP_CONCAT_INNER(a, b) a##b
+
+#if defined(__cplusplus) && __cplusplus < 202002L
+// Fallback for pre-c++20 compilers to "support" consteval.
+#define HYP_CONSTEVAL constexpr
+// Same for concept, but only usable for `concept bool ...` stuff. Falls back to C++14 constexpr variable templates.
+#define HYP_CONCEPT constexpr bool
+#define HYP_CONSTEVAL_CONTEXT false
+#else
+#define HYP_CONSTEVAL consteval
+#define HYP_CONCEPT concept
+#define HYP_CONSTEVAL_CONTEXT std::is_constant_evaluated()
+#endif
 
 // https://mpark.github.io/programming/2017/05/26/constexpr-function-parameters/
 #define HYP_MAKE_CONST_ARG(value) \
@@ -573,6 +492,9 @@ static HYP_FORCE_INLINE void ExecuteBreakpointOnce()
 #define HYP_IMPORT __declspec(dllimport)
 #elif defined(HYP_CLANG_OR_GCC)
 #define HYP_EXPORT __attribute__((visibility("default")))
+#define HYP_IMPORT
+#else // fallback
+#define HYP_EXPORT
 #define HYP_IMPORT
 #endif
 

@@ -9,14 +9,15 @@
 #include <cstdarg>
 #include <type_traits>
 
-#if defined(HYP_UNIX)
-#include <sys/types.h>
-#include <sys/sysctl.h>
-#include <unistd.h>
-#elif defined(HYP_WINDOWS)
+#if HYP_WINDOWS
 #define WIN32_LEAN_AND_MEAN
 #include <Windows.h>
 #include <debugapi.h>
+#elif HYP_ANDROID
+#elif HYP_UNIX
+#include <sys/types.h>
+#include <sys/sysctl.h>
+#include <unistd.h>
 #endif
 
 #define HYP_DEBUG_OUTPUT_STREAM stdout
@@ -107,9 +108,12 @@ void WriteToStandardError(const char* msg)
 
 bool IsDebuggerAttached()
 {
-#ifdef HYP_WINDOWS
+#if HYP_WINDOWS
     return ::IsDebuggerPresent();
-#elif defined(HYP_UNIX)
+#elif HYP_ANDROID
+    // @TODO
+    return false;
+#elif HYP_UNIX
     int mib[4] = { CTL_KERN, KERN_PROC, KERN_PROC_PID, getpid() };
     struct kinfo_proc info {};
     size_t size = sizeof(info);

@@ -671,7 +671,7 @@ struct ConcatStrings_Impl
 template <class... StaticStringInstance>
 constexpr auto ConcatStrings(StaticStringInstance&&... strings)
 {
-    return ConcatStrings_Impl<std::remove_cvref_t<decltype(strings)>::size...>()(std::forward<StaticStringInstance>(strings)...);
+    return ConcatStrings_Impl<std::remove_cv_t<std::remove_reference_t<decltype(strings)>>::size...>()(std::forward<StaticStringInstance>(strings)...);
 }
 
 #pragma endregion Concat

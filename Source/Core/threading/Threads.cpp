@@ -13,7 +13,7 @@
 #include <immintrin.h>
 #endif
 
-#ifdef HYP_UNIX
+#if HYP_UNIX
 #include <unistd.h>
 #endif
 
@@ -122,7 +122,7 @@ void SetCurrentThreadId(const ThreadId& id)
     s_currentThreadId = id;
 #endif
 
-#ifdef HYP_WINDOWS
+#if HYP_WINDOWS
     HRESULT setThreadResult = SetThreadDescription(
         GetCurrentThread(),
         WideString(id.GetName().LookupString()).Data());
@@ -131,9 +131,9 @@ void SetCurrentThreadId(const ThreadId& id)
     {
         HYP_LOG(Threading, Error, "Failed to set Win32 thread name for thread {}", id.GetName());
     }
-#elif defined(HYP_MACOS)
+#elif HYP_MACOS
     pthread_setname_np(id.GetName().LookupString());
-#elif defined(HYP_LINUX)
+#elif HYP_LINUX
     pthread_setname_np(pthread_self(), id.GetName().LookupString());
 #endif
 }
@@ -323,7 +323,7 @@ const ThreadId& CurrentThreadId()
     // SetCurrentThreadId() should be called before CurrentThreadId() for any threads that should not use the OS-created name.
     if (!s_currentThreadId.IsValid())
     {
-#ifdef HYP_WINDOWS
+#if HYP_WINDOWS
         PWCHAR threadName[256];
         HRESULT result = GetThreadDescription(GetCurrentThread(), &threadName[0]);
 
@@ -359,7 +359,7 @@ const ThreadId& CurrentThreadId()
 
 void SetCurrentThreadPriority(ThreadPriorityValue priority)
 {
-#ifdef HYP_WINDOWS
+#if HYP_WINDOWS
     int winPriority = THREAD_PRIORITY_NORMAL;
 
     switch (priority)
@@ -419,11 +419,11 @@ void SetCurrentThreadPriority(ThreadPriorityValue priority)
 
 uint32 NumCores() /// TODO: Refactor thread affinity setting per-thread
 {
-#ifdef HYP_WINDOWS
+#if HYP_WINDOWS
     SYSTEM_INFO sysinfo;
     GetSystemInfo(&sysinfo);
     return sysinfo.dwNumberOfProcessors;
-#elif defined(HYP_UNIX)
+#elif HYP_UNIX
     return sysconf(_SC_NPROCESSORS_ONLN);
 #else
     return 1;
@@ -432,9 +432,9 @@ uint32 NumCores() /// TODO: Refactor thread affinity setting per-thread
 
 void ThreadSleep(uint32 milliseconds)
 {
-#ifdef HYP_WINDOWS
+#if HYP_WINDOWS
     ::Sleep(milliseconds);
-#elif defined(HYP_UNIX)
+#elif HYP_UNIX
     usleep(milliseconds * 1000);
 #endif
 }

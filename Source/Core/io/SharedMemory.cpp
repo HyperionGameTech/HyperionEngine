@@ -6,7 +6,7 @@
 
 #include <Core/memory/Memory.hpp>
 
-#ifdef HYP_UNIX
+#if HYP_UNIX && !HYP_ANDROID
 #include <sys/mman.h>
 #include <sys/fcntl.h>
 #endif
@@ -66,7 +66,7 @@ bool SharedMemory::Close()
         return true; // already closed
     }
 
-#ifdef HYP_UNIX
+#if HYP_UNIX && !HYP_ANDROID
     const int munmapResult = munmap(m_address, m_size);
 
     m_handle = -1;
@@ -91,7 +91,7 @@ bool SharedMemory::Open()
         return true; // already opened
     }
 
-#ifdef HYP_UNIX
+#if HYP_UNIX && !HYP_ANDROID
     m_handle = shm_open(m_id.Data(), m_mode == Mode::READ_WRITE ? O_RDWR : O_RDONLY, 0666);
 
     if (m_handle < 0)

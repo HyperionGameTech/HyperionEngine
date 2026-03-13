@@ -7,10 +7,10 @@
 #include <Core/debug/Debug.hpp>
 #include <Core/Defines.hpp>
 
-#ifdef HYP_WINDOWS
+#if HYP_WINDOWS
 #define WIN32_LEAN_AND_MEAN
 #include <windows.h>
-#elif defined(HYP_LINUX) || defined(HYP_MACOS)
+#elif HYP_UNIX
 #include <sys/mman.h>
 #include <sys/stat.h>
 #include <fcntl.h>
@@ -27,10 +27,10 @@ struct MemoryMappedFileImpl
     MemoryMappedFile::Mode mode;
     size_t fileSize;
 
-#ifdef HYP_WINDOWS
+#if HYP_WINDOWS
     HANDLE fileHandle;
     HANDLE mappingHandle;
-#elif defined(HYP_LINUX) || defined(HYP_MACOS)
+#elif HYP_UNIX
     int fd;
 #endif
 
@@ -38,10 +38,10 @@ struct MemoryMappedFileImpl
         : mode(MemoryMappedFile::Mode::READ_ONLY),
           fileSize(0)
     {
-#ifdef HYP_WINDOWS
+#if HYP_WINDOWS
         fileHandle = nullptr;
         mappingHandle = nullptr;
-#elif defined(HYP_LINUX) || defined(HYP_MACOS)
+#elif HYP_UNIX
         fd = -1;
 #endif
     }
@@ -133,12 +133,12 @@ void MemoryMappedFileView::Close()
         return;
     }
 
-#ifdef HYP_WINDOWS
+#if HYP_WINDOWS
     if (m_address != nullptr)
     {
         UnmapViewOfFile(m_address);
     }
-#elif defined(HYP_LINUX) || defined(HYP_MACOS)
+#elif HYP_UNIX
     if (m_address != nullptr && m_mapSize > 0)
     {
         munmap(m_address, m_mapSize);
@@ -217,7 +217,7 @@ bool MemoryMappedFile::Open()
         return true;
     }
 
-#ifdef HYP_WINDOWS
+#if HYP_WINDOWS
     const DWORD desired_access = m_impl->mode == Mode::READ_WRITE
         ? (GENERIC_READ | GENERIC_WRITE)
         : GENERIC_READ;
@@ -286,7 +286,7 @@ bool MemoryMappedFile::Open()
     m_impl->mappingHandle = mappingHandle;
 
     return true;
-#elif defined(HYP_LINUX) || defined(HYP_MACOS)
+#elif HYP_UNIX
     const int openFlags = m_impl->mode == Mode::READ_WRITE
         ? O_RDWR | O_CREAT
         : O_RDONLY;
@@ -396,7 +396,7 @@ bool MemoryMappedFile::MapRange(size_t offset, size_t size, MemoryMappedFileView
         return true;
     }
 
-#ifdef HYP_WINDOWS
+#if HYP_WINDOWS
     if (m_impl->mappingHandle == nullptr)
     {
         return false;
@@ -437,7 +437,7 @@ bool MemoryMappedFile::MapRange(size_t offset, size_t size, MemoryMappedFileView
     outView.m_viewOffset = viewDelta;
 
     return true;
-#elif defined(HYP_LINUX) || defined(HYP_MACOS)
+#elif HYP_UNIX
     const long pageSize = sysconf(_SC_PAGE_SIZE);
     const size_t granularity = pageSize > 0 ? static_cast<size_t>(pageSize) : 4096;
     const size_t alignedOffset = (offset / granularity) * granularity;
@@ -476,7 +476,7 @@ void MemoryMappedFile::Close()
         return;
     }
 
-#ifdef HYP_WINDOWS
+#if HYP_WINDOWS
     if (m_impl->mappingHandle != nullptr)
     {
         CloseHandle(m_impl->mappingHandle);
@@ -488,7 +488,7 @@ void MemoryMappedFile::Close()
         CloseHandle(m_impl->fileHandle);
         m_impl->fileHandle = nullptr;
     }
-#elif defined(HYP_LINUX) || defined(HYP_MACOS)
+#elif HYP_UNIX
     if (m_impl->fd >= 0)
     {
         close(m_impl->fd);
@@ -506,9 +506,9 @@ bool MemoryMappedFile::IsOpen() const
         return false;
     }
 
-#ifdef HYP_WINDOWS
+#if HYP_WINDOWS
     return m_impl->fileHandle != nullptr;
-#elif defined(HYP_LINUX) || defined(HYP_MACOS)
+#elif HYP_UNIX
     return m_impl->fd >= 0;
 #else
     return false;
@@ -572,7 +572,7 @@ bool MemoryMappedFile::Resize(size_t newSize)
 
     Assert(newSize <= INT32_MAX);
 
-#ifdef HYP_WINDOWS
+#if HYP_WINDOWS
     if (m_impl->mappingHandle != nullptr)
     {
         CloseHandle(m_impl->mappingHandle);
@@ -618,7 +618,7 @@ bool MemoryMappedFile::Resize(size_t newSize)
 
     m_impl->mappingHandle = mappingHandle;
     return true;
-#elif defined(HYP_LINUX) || defined(HYP_MACOS)
+#elif HYP_UNIX
     if (ftruncate(m_impl->fd, static_cast<off_t>(newSize)) != 0)
     {
         return false;

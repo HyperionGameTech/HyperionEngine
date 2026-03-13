@@ -1430,7 +1430,11 @@ inline void ToString(T value, size_t& bufferLength, CharType* result)
 
 inline char* ToUtf8Chars(Char32& ch)
 {
+#if defined(__cplusplus) && __cplusplus < 202002L
+    return reinterpret_cast<char*>(&ch);
+#else
     return std::bit_cast<char*>(&ch);
+#endif
 }
 
 } // namespace utf

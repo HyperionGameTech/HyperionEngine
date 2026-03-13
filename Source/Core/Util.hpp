@@ -320,6 +320,20 @@ struct ValueWrapper
 
 #pragma endregion Template helpers
 
+#pragma region Misc utilities
+
+template <class T>
+struct NoOpFunction
+{
+    template <class... Args>
+    HYP_FORCE_INLINE constexpr T operator()(Args&&...) const
+    {
+        return {};
+    }
+};
+
+#pragma endregion Misc utilities
+
 /*! \brief Size of an array literal (Hyperion equivalent of std::size) */
 template <class T, uint32 N>
 constexpr uint32 ArraySize(const T (&)[N])

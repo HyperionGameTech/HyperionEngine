@@ -5,7 +5,7 @@
 
 namespace Hyperion {
 
-ClassRegistrationBase::ClassRegistrationBase(TypeId typeId, Class* cls)
+ClassRegistrationBase::ClassRegistrationBase(const TypeId& typeId, Class* cls)
     : m_class(cls)
 {
     ClassRegistry::GetInstance().RegisterClass(typeId, cls);

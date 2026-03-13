@@ -20,7 +20,7 @@ endif()
 
 set(OpenGL_GL_PREFERENCE GLVND)
 
-link_directories(${CMAKE_THIRD_PARTY_LIBRARY_DIRECTORY} /usr/local/lib)
+link_directories(${CMAKE_THIRD_PARTY_LIBRARY_DIRECTORY})
 
 add_definitions(-DSDL_MAIN_HANDLED=1)
 add_definitions(-DVMA_DYNAMIC_VULKAN_FUNCTIONS=1)
@@ -39,7 +39,7 @@ include_directories(
 add_executable(${BUILD_NAME} ${SOURCES} ${HEADERS})
 
 if(MSVC)
-    set (CMAKE_CONFIGURATION_TYPES "Release;RelWithDebInfo" CACHE STRING "Configurations" FORCE)
+    set (CMAKE_CONFIGURATION_TYPES "Release" CACHE STRING "Configurations" FORCE)
     set_property(TARGET ${BUILD_NAME} APPEND PROPERTY LINK_FLAGS /DEBUG)
 endif()
 

@@ -75,6 +75,7 @@ AudioSource::~AudioSource()
 {
     Stop();
 
+#if HYP_OPENAL
     if (m_sourceId != ~0u)
     {
         alDeleteSources(1, &m_sourceId);
@@ -86,12 +87,14 @@ AudioSource::~AudioSource()
         alDeleteBuffers(1, &m_bufferId);
         m_bufferId = ~0u;
     }
+#endif
 }
 
 void AudioSource::Init()
 {
     if (g_audioManager->IsReady())
     {
+#if HYP_OPENAL
         auto alFormat = AL_FORMAT_MONO8;
 
         switch (m_format)
@@ -120,6 +123,7 @@ void AudioSource::Init()
 
         // drop reference
         m_data = ByteBuffer();
+#endif
         
         SetReady(true);
     }
@@ -132,6 +136,7 @@ AudioSourceState AudioSource::GetState() const
         return AudioSourceState::UNDEFINED;
     }
 
+#if HYP_OPENAL
     ALint state;
     alGetSourcei(m_sourceId, AL_SOURCE_STATE, &state);
 
@@ -147,74 +152,94 @@ AudioSourceState AudioSource::GetState() const
     default:
         return AudioSourceState::UNDEFINED;
     }
+#endif
+
+    return AudioSourceState::UNDEFINED;
 }
 
 void AudioSource::SetPosition(const Vec3f& vec)
 {
+#if HYP_OPENAL
     if (g_audioManager->IsReady())
     {
         alSource3f(m_sourceId, AL_POSITION, vec.x, vec.y, vec.z);
     }
+#endif
 }
 
 void AudioSource::SetVelocity(const Vec3f& vec)
 {
+#if HYP_OPENAL
     if (g_audioManager->IsReady())
     {
         alSource3f(m_sourceId, AL_VELOCITY, vec.x, vec.y, vec.z);
     }
+#endif
 }
 
 void AudioSource::SetPitch(float pitch)
 {
+#if HYP_OPENAL
     if (g_audioManager->IsReady())
     {
         alSourcef(m_sourceId, AL_PITCH, pitch);
     }
+#endif
 }
 
 void AudioSource::SetGain(float gain)
 {
+#if HYP_OPENAL
     if (g_audioManager->IsReady())
     {
         alSourcef(m_sourceId, AL_GAIN, gain);
     }
+#endif
 }
 
 void AudioSource::SetLoop(bool loop)
 {
+#if HYP_OPENAL
     if (g_audioManager->IsReady())
     {
         alSourcei(m_sourceId, AL_LOOPING, loop);
     }
+#endif
 }
 
 void AudioSource::Play()
 {
+#if HYP_OPENAL
     if (g_audioManager->IsReady())
     {
         alSourcePlay(m_sourceId);
     }
+#endif
 }
 
 void AudioSource::Pause()
 {
+#if HYP_OPENAL
     if (g_audioManager->IsReady())
     {
         alSourcePause(m_sourceId);
     }
+#endif
 }
 
 void AudioSource::Stop()
 {
+#if HYP_OPENAL
     if (g_audioManager->IsReady())
     {
         alSourceStop(m_sourceId);
     }
+#endif
 }
 
 void AudioSource::FindSampleLength()
 {
+#if HYP_OPENAL
     if (!g_audioManager->IsReady())
     {
         return;
@@ -229,6 +254,7 @@ void AudioSource::FindSampleLength()
     alGetBufferi(m_bufferId, AL_BITS, &bits);
 
     m_sampleLength = byteSize * 8 / (numChannels * bits);
+#endif
 }
 
 } // namespace Hyperion

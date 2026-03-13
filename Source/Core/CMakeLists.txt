@@ -5,12 +5,13 @@ set(BUILD_NAME hyperion-core)
 
 project(${BUILD_NAME} CXX C)
 
-message(STATUS "Building ${BUILD_NAME} library, base directory: ${CMAKE_SOURCE_DIR}")
+message(STATUS "Building ${BUILD_NAME} library with compiler: ${CMAKE_CXX_COMPILER_ID} ${CMAKE_CXX_COMPILER_VERSION}")
 
-link_directories(${CMAKE_THIRD_PARTY_LIBRARY_DIRECTORY} /usr/local/lib)
+link_directories(${CMAKE_THIRD_PARTY_LIBRARY_DIRECTORY})
 
 set(CMAKE_BUILD_PARALLEL_LEVEL 8)
 set(CMAKE_CXX_STANDARD 20 CACHE STRING "C++ standard to be used")
+set(CMAKE_CONFIGURATION_TYPES "Debug;Release" CACHE STRING "Configurations to build" FORCE)
 
 set(COMMON_LIBRARIES 
     ${COMMON_LIBRARIES}
@@ -26,7 +27,7 @@ find_package(Threads REQUIRED)
 find_package(ZLIB)
 
 if(MSVC)
-    set(CMAKE_CXX_FLAGS "/Zc:preprocessor /MD /O2 /Zi /MP")
+    set(CMAKE_CXX_FLAGS "/Zc:preprocessor /MD /O2 /Zi /MP /Zc:__cplusplus")
     add_definitions("/DNOMINMAX")
 else()
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -g -O3 -fpermissive")

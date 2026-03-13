@@ -350,6 +350,13 @@ extern "C"
         g_appContext = MakeHandle<CocoaAppContext>("Hyperion", cliArgs);
 #elif HYP_SDL
         g_appContext = MakeHandle<SDLAppContext>("Hyperion", cliArgs);
+#elif HYP_ANDROID
+        // @TODO: AndroidAppContext not yet implemented; skip AppContext creation for now.
+        HYP_LOG(Engine, Info, "Android: AppContext not yet implemented, skipping window creation");
+        
+        InitObject(g_engineDriver);
+
+        return 1;
 #else
         HYP_FAIL("AppContext not implemented for this platform");
 #endif
@@ -664,11 +671,13 @@ extern "C"
 
         g_mainThreadInstance->Update();
     }
-
+    
+#if HYP_DOTNET
     HYP_EXPORT void Hyp_SetInitFromManagedCallback(InitFromManagedCallback callback)
     {
         s_initFromManagedCallback = callback;
     }
+#endif
 
 #if HYP_EDITOR
     using LogCallback = void (*)(

@@ -171,7 +171,7 @@ public:
     }
 };
 
-#ifdef HYP_WINDOWS
+#if HYP_MSVC
 
 //! Returns the original value before addition
 static inline int32 AtomicAdd(volatile int32* value, int32 amount)
@@ -302,7 +302,7 @@ static inline int64 AtomicBitXor(volatile int64* value, int64 bitMask)
     return _InterlockedXor64(reinterpret_cast<long long volatile*>(value), bitMask);
 }
 
-#else
+#elif HYP_CLANG_OR_GCC
 
 //! Returns the original value before addition
 static inline int32 AtomicAdd(volatile int32* value, int32 amount)

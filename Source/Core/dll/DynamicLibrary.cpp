@@ -3,6 +3,7 @@
 #include <Core/dll/DynamicLibrary.hpp>
 
 #include <Core/containers/HashMap.hpp>
+#include <Core/containers/String.hpp>
 
 #include <Core/memory/UniquePtr.hpp>
 
@@ -10,13 +11,15 @@
 
 #include <Core/Defines.hpp>
 
-#ifdef HYP_WINDOWS
+#if HYP_WINDOWS
 #define WIN32_LEAN_AND_MEAN
 #include <windows.h>
-#elif defined(HYP_LINUX) || defined(HYP_MACOS)
+#elif HYP_UNIX
 #include <dlfcn.h>
 // so HMODULE can be used as a type for the handle on both Windows and Linux/MacOS
 typedef void* HMODULE;
+#else
+#error "Unsupported platform for DynamicLibrary"
 #endif
 
 namespace Hyperion {

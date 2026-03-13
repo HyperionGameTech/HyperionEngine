@@ -106,7 +106,7 @@ struct Formatter<StringType, Name>
 Name operator""_name(const char*, size_t);
 
 // StringHash literal conversion
-consteval StringHash operator""_sh(const char* str, size_t)
+HYP_CONSTEVAL StringHash operator""_sh(const char* str, size_t)
 {
     return StringHash(str);
 }

@@ -22,19 +22,19 @@ namespace memory {
 class Memory
 {
 public:
-    template <BitwiseComparable T, BitwiseComparable U>
+    template <class T, class U, typename = std::enable_if_t<BitwiseComparable<T> && BitwiseComparable<U>>>
     HYP_FORCE_INLINE static int Compare(const T* a, const U* b, size_t count)
     {
         return std::memcmp(a, b, count);
     }
-
-    template <BitwiseCopyable T, BitwiseCopyable U>
+    
+    template <class T, class U, typename = std::enable_if_t<BitwiseCopyable<T> && BitwiseCopyable<U>>>
     HYP_FORCE_INLINE static void* Copy(T* dest, const U* src, size_t count)
     {
         return std::memcpy(dest, src, count);
     }
-
-    template <BitwiseCopyable T, BitwiseCopyable U>
+    
+template <class T, class U, typename = std::enable_if_t<BitwiseCopyable<T> && BitwiseCopyable<U>>>
     HYP_FORCE_INLINE static void* Move(T* dest, const U* src, size_t size)
     {
         return std::memmove(dest, src, size);
@@ -75,7 +75,7 @@ public:
     template <class T>
     static constexpr bool StrEqual(const T* lhs, const T* rhs, size_t length, size_t index = 0)
     {
-        if (std::is_constant_evaluated())
+        if (HYP_CONSTEVAL_CONTEXT)
         {
             return *lhs == *rhs
                 && ((*lhs == '\0' || (!length || index >= length)) || StrEqual(lhs + 1, rhs + 1, length, index + 1));

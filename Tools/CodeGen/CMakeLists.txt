@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.5)
+cmake_minimum_required(VERSION 3.10)
 cmake_policy(SET CMP0091 NEW)
 
 set(BUILD_NAME hyperion-codegen)
@@ -14,8 +14,53 @@ set (CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR})
 
 project(${BUILD_NAME} CXX C)
 
-if(MSVC)
-    set(CMAKE_CXX_FLAGS "/Zc:preprocessor /MD /O2 /Zi")
+message(STATUS "Building CodeGen Tool with compiler: ${CMAKE_CXX_COMPILER_ID} ${CMAKE_CXX_COMPILER_VERSION}")
+
+set(CMAKE_CXX_STANDARD 20 CACHE STRING "C++ standard to be used")
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
+
+# platform and compiler definitions
+if(CMAKE_CXX_COMPILER_ID STREQUAL "MSVC")
+    add_definitions(-DHYP_MSVC=1)
+    set(HYP_MSVC 1)
+elseif(CMAKE_CXX_COMPILER_ID MATCHES "Clang")
+    add_definitions(-DHYP_CLANG=1)
+    add_definitions(-DHYP_CLANG_OR_GCC=1)
+    set(HYP_CLANG 1)
+    set(HYP_CLANG_OR_GCC 1)
+elseif(CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
+    add_definitions(-DHYP_GCC=1)
+    add_definitions(-DHYP_CLANG_OR_GCC=1)
+    set(HYP_GCC 1)
+    set(HYP_CLANG_OR_GCC 1)
+endif()
+
+if(NOT DEFINED HYP_PLATFORM_NAME)
+    if(WIN32)
+        set(HYP_PLATFORM_NAME "Win32")
+    elseif(APPLE)
+        set(HYP_PLATFORM_NAME "Mac")
+    elseif(UNIX)
+        set(HYP_PLATFORM_NAME "Linux")
+    else()
+        message(FATAL_ERROR "Unsupported platform for CodeGen tool: ${CMAKE_SYSTEM_NAME}")
+    endif()
+endif()
+
+# only build codegen for desktop platforms
+if(HYP_PLATFORM_NAME STREQUAL "Win32")
+    add_definitions(-DHYP_WINDOWS=1)
+elseif(HYP_PLATFORM_NAME STREQUAL "Mac")
+    add_definitions(-DHYP_APPLE=1)
+    add_definitions(-DHYP_UNIX=1)
+    add_definitions(-DHYP_MACOS=1)
+elseif(HYP_PLATFORM_NAME STREQUAL "Linux")
+    add_definitions(-DHYP_LINUX=1)
+    add_definitions(-DHYP_UNIX=1)
+endif()
+
+if(HYP_MSVC)
+    set(CMAKE_CXX_FLAGS "/Zc:preprocessor /MD /O2 /Zi /Zc:__cplusplus")
 
     # set to path of vcpkg
     set(CMAKE_TOOLCHAIN_FILE, "$ENV{VCPKG_ROOT}/../scripts/buildsystems/vcpkg.cmake")
@@ -36,7 +81,7 @@ if(NOT SUBMODULES_DIR)
     set(SUBMODULES_DIR ${CMAKE_SOURCE_DIR}/../../External/ThirdParty/Source)
 endif()
 
-link_directories(${CMAKE_THIRD_PARTY_LIBRARY_DIRECTORY} /usr/local/lib)
+link_directories(${CMAKE_THIRD_PARTY_LIBRARY_DIRECTORY})
 
 add_definitions(-DHYP_ROOT_DIR="${CMAKE_CURRENT_LIST_DIR}")
 add_definitions(-DHYP_DEBUG_MODE=1)
@@ -57,7 +102,6 @@ set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DHYP_ROOT_DIR=\\\"${CMAKE_CURRENT_LIST_
 file(GLOB_RECURSE CODEGEN_SOURCES "*.cpp" "*.cc" "*.c")
 file(GLOB_RECURSE CODEGEN_HEADERS "*.h" "*.hpp")
 
-set(CMAKE_CXX_STANDARD 20 CACHE STRING "C++ standard to be used")
 include_directories(
     ${CMAKE_SOURCE_DIR}/Source
     ${CMAKE_SOURCE_DIR}/../../Source
@@ -67,7 +111,7 @@ include_directories(
 
 add_executable(${BUILD_NAME} ${CODEGEN_SOURCES} ${CODEGEN_HEADERS})
 
-if(MSVC)
+if(HYP_MSVC)
     set_property(TARGET ${BUILD_NAME} APPEND PROPERTY LINK_FLAGS /DEBUG)
 endif()
 

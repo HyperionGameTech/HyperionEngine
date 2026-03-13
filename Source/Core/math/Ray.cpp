@@ -210,7 +210,8 @@ bool Ray::TestTriangle(const Triangle& triangle, RayHitID hitId, RayTestResults&
 
     if (t > 0.0f)
     {
-        outResults.AddHit({ .hitpoint = position + (direction * t),
+        outResults.AddHit({
+            .hitpoint = position + (direction * t),
             .normal = triangle.GetNormal(),
             .barycentricCoords = barycentricCoords,
             .distance = t,

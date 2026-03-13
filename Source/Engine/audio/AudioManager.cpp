@@ -23,14 +23,17 @@ AudioManager::~AudioManager()
 {
     if (IsReady())
     {
+#if HYP_OPENAL
         alcMakeContextCurrent(NULL);
         alcDestroyContext(m_context);
         alcCloseDevice(m_device);
+#endif
     }
 }
 
 void AudioManager::Init()
 {
+#if HYP_OPENAL
     m_device = alcOpenDevice(NULL);
     if (!m_device)
     {
@@ -52,6 +55,7 @@ void AudioManager::Init()
     alListener3f(AL_POSITION, 0, 0, 0);
     alListener3f(AL_VELOCITY, 0, 0, 0);
     alListenerfv(AL_ORIENTATION, orientation);
+#endif
 
     SetReady(true);
 }
@@ -60,6 +64,7 @@ Array<String> AudioManager::ListDevices() const
 {
     Array<String> devices;
 
+#if HYP_OPENAL
     const ALCchar* device = alcGetString(NULL, ALC_DEVICE_SPECIFIER);
     const ALCchar* next = device + 1;
     size_t len = 0;
@@ -71,20 +76,25 @@ Array<String> AudioManager::ListDevices() const
         device += (len + 1);
         next += (len + 2);
     }
+#endif
 
     return devices;
 }
 
 void AudioManager::SetListenerPosition(const Vec3f& position)
 {
+#if HYP_OPENAL
     alListener3f(AL_POSITION, position.x, position.y, position.z);
+#endif
 }
 
 void AudioManager::SetListenerOrientation(
     const Vec3f& forward,
     const Vec3f& up)
 {
+#if HYP_OPENAL
     const float values[] = { forward.x, forward.y, forward.z, up.x, up.y, up.z };
     alListenerfv(AL_ORIENTATION, values);
+#endif
 }
 } // namespace Hyperion

@@ -1,0 +1,43 @@
+{
+  "version": "0.2.1",
+  "defaults": {},
+  "configurations": [
+    {
+      "name": "Debug Windows x64",
+      "type": "cppvsdbg",
+      "request": "launch",
+      "program": "${workspaceFolder}/../Binaries/Engine/HyperionEditor.exe",
+      "args": [],
+      "stopAtEntry": false,
+      "cwd": "${workspaceFolder}/..",
+      "environment": [],
+      "externalConsole": true,
+      "preLaunchTask": {
+        "type": "shell",
+        "command": "${workspaceFolder}/../Tools/Scripts/BuildHyperion.bat"
+      }
+    },
+    {
+      "name": "Release Windows x64",
+      "type": "cppvsdbg",
+      "request": "launch",
+      "program": "${workspaceFolder}/../Binaries/Engine/HyperionEditor.exe",
+      "args": [],
+      "stopAtEntry": false,
+      "cwd": "${workspaceFolder}/..",
+      "environment": [],
+      "externalConsole": true,
+      "preLaunchTask": {
+        "type": "shell",
+        "command": "${workspaceFolder}/../Tools/Scripts/BuildHyperion.bat"
+      }
+    },
+    {
+      "name": "Android ARM64",
+      "type": "default",
+      "project": "Tools\\Scripts\\DeployAndroid.bat",
+      "args": [],
+      "currentDir": "${workspaceFolder}/.."
+    }
+  ]
+}

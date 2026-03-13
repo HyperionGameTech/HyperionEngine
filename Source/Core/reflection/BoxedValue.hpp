@@ -106,7 +106,7 @@ struct BoxedValue
      *  Useful for storing small amounts of data directly in BoxedValue without heap allocation.
      *  \note This is primarily for internal use and should be used with care to avoid alignment issues.
      */
-    struct alignas(std::max_align_t) InlineData
+    struct InlineData
     {
         uint64 data[2];
 
@@ -580,15 +580,15 @@ struct BoxedValueHelper<T, std::enable_if_t<std::is_fundamental_v<T>>>
     }
 };
 
-#ifndef HYP_WINDOWS
+#if !HYP_WINDOWS
 
-template <>
-struct BoxedValueHelperDecl<size_t, std::enable_if_t<!std::is_same_v<size_t, uint64>>>
+template <class T>
+struct BoxedValueHelperDecl<T, std::enable_if_t<std::is_same_v<size_t, T> && !std::is_same_v<size_t, uint64>>>
 {
 };
 
-template <>
-struct BoxedValueHelper<size_t, std::enable_if_t<!std::is_same_v<size_t, uint64>>> : BoxedValueHelper<uint64>
+template <class T>
+struct BoxedValueHelper<T, std::enable_if_t<std::is_same_v<size_t, T> && !std::is_same_v<size_t, uint64>>> : BoxedValueHelper<uint64>
 {
     using StorageType = uint64;
     using ConvertibleFrom = Tuple<
@@ -3944,6 +3944,6 @@ struct BoxedValue_Get<ReturnType, T, Tuple<ConvertibleFrom...>>
 
 #pragma endregion BoxedValue_Get implementation
 
-static_assert(sizeof(BoxedValue) == 32, "sizeof(BoxedValue) != 32 bytes");
+static_assert(sizeof(BoxedValue) == 32 || always_fail_v<std::integral_constant<size_t, sizeof(BoxedValue)>>);
 
 } // namespace Hyperion

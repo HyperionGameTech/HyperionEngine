@@ -560,7 +560,12 @@ Result CXXModuleGenerator::GenerateInline(const Analyzer& analyzer, const Module
         for (size_t i = 0; i < cls.members.Size(); ++i)
         {
             const MemberDef& member = cls.members[i];
-            
+
+            if (member.condition.Any())
+            {
+                writer.WriteString(HYP_FORMAT("#if {}\n", member.condition));
+            }
+
             String attributesString;
 
             if (member.attributes.Any())
@@ -647,6 +652,11 @@ Result CXXModuleGenerator::GenerateInline(const Analyzer& analyzer, const Module
             }
 
             writer.WriteString("\n");
+
+            if (member.condition.Any())
+            {
+                writer.WriteString(HYP_FORMAT("#endif // {}\n", member.condition));
+            }
         }
 
         writer.WriteString(HYP_FORMAT("{}\n\n", s_endMacroNames.At(cls.type)));
@@ -926,6 +936,11 @@ Result CXXModuleGenerator::Generate(const Analyzer& analyzer, const Module& mod,
         for (size_t i = 0; i < cls.members.Size(); ++i)
         {
             const MemberDef& member = cls.members[i];
+
+            if (member.condition.Any())
+            {
+                writer.WriteString(HYP_FORMAT("#if {}\n", member.condition));
+            }
 
             // if (member.type == MemberType::Method && member.HasAttribute("Scriptable")) {
             //     continue;

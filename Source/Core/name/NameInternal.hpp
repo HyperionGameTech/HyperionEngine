@@ -155,7 +155,7 @@ struct StringHash
     }
 
     template <size_t Sz>
-    consteval explicit StringHash(const char (&str)[Sz])
+    HYP_CONSTEVAL explicit StringHash(const char (&str)[Sz])
         : hashCode(HashCode::GetHashCode(str).Value())
     {
     }

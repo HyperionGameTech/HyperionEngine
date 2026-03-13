@@ -7,7 +7,7 @@ project(${BUILD_NAME} CXX C)
 
 message(STATUS "Building ${BUILD_NAME} module, base directory: ${CMAKE_SOURCE_DIR}")
 
-link_directories(${CMAKE_THIRD_PARTY_LIBRARY_DIRECTORY} /usr/local/lib)
+link_directories(${CMAKE_THIRD_PARTY_LIBRARY_DIRECTORY})
 
 set(CMAKE_BUILD_PARALLEL_LEVEL 8)
 set(CMAKE_CXX_STANDARD 20 CACHE STRING "C++ standard to be used")

@@ -21,7 +21,7 @@ namespace Hyperion {
 class ClassRegistrationBase
 {
 protected:
-    ClassRegistrationBase(TypeId typeId, Class* cls);
+    ClassRegistrationBase(const TypeId& typeId, Class* cls);
 
     const Class* m_class;
 };

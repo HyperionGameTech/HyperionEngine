@@ -22,10 +22,16 @@ class ManagedClass;
 class ScriptObjectResource;
 
 namespace utilities {
+
 struct TypeId;
+
+template <class T>
+extern const TypeId& TypeIdOf();
+
 } // namespace utilities
 
 using utilities::TypeId;
+using utilities::TypeIdOf;
 
 enum class ClassFlags : uint8;
 enum class ClassAllocationMethod : uint8;
@@ -261,11 +267,17 @@ HYP_API extern const Class* GetClass(const TypeId& typeId);
 template <class T>
 const Class* GetClass()
 {
-    // If you get an unresolved external for GetClassHelper<T>::Get(),
+#if HYP_MSVC
+    // If you get an unresolved external,
     // it means that T does not have Class info generated for it. Ensure that
     // the build tool was run and that the generated files are included in the build.
     return GetClassHelper<T>::Get();
+#else
+    static const Class* s_cls = GetClass(TypeIdOf<T>());
+    return s_cls;
+#endif
 }
+
 
 /// Casts ///
 

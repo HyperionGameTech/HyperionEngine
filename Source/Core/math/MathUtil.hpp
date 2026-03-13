@@ -683,7 +683,7 @@ HYP_FORCE_INLINE constexpr uint64 FastLog2(uint64 value)
 /* Fast log2 for power-of-2 numbers */
 HYP_FORCE_INLINE constexpr uint64 FastLog2_Pow2(uint64 value)
 {
-    if (std::is_constant_evaluated())
+    if (HYP_CONSTEVAL_CONTEXT)
     {
         return FastLog2(value);
     }

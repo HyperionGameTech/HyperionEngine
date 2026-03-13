@@ -43,6 +43,7 @@ struct MemberDef
     MemberType type;
     String name;
     String friendlyName;
+    String condition;
     Array<Pair<String, ClassAttributeValue>> attributes;
     RC<ASTType> cxxType;
     RC<ASTMemberDecl> cxxDecl;

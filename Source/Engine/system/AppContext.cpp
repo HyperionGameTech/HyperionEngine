@@ -21,12 +21,11 @@
 
 #if HYP_VULKAN
 #include <vulkan/vulkan.h>
-
-#if defined(HYP_WINDOWS)
+#if HYP_WINDOWS
 #include <vulkan/vulkan_win32.h>
-#elif defined(HYP_MACOS)
+#elif HYP_APPLE
 #include <vulkan/vulkan_metal.h>
-#elif defined(HYP_LINUX)
+#elif HYP_LINUX && !HYP_ANDROID
 #include <vulkan/vulkan_xlib.h>
 #endif
 

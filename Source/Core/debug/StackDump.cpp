@@ -7,11 +7,11 @@
 
 #include <Core/logging/Logger.hpp>
 
-#ifdef HYP_WINDOWS
+#if HYP_WINDOWS
 #define WIN32_LEAN_AND_MEAN
 #include <Windows.h>
 #include <DbgHelp.h>
-#elif defined(HYP_UNIX)
+#elif HYP_UNIX && !HYP_ANDROID
 #include <execinfo.h>
 #endif
 
@@ -58,7 +58,7 @@ struct StackDump::Impl
         stringCache.Clear();
         stringCache.Reserve(rawFrames.Size());
 
-#ifdef HYP_WINDOWS
+#if HYP_WINDOWS
         HANDLE process = GetCurrentProcess();
         SymInitialize(process, nullptr, true);
 
@@ -85,7 +85,7 @@ struct StackDump::Impl
         }
 
         SymCleanup(process);
-#elif defined(HYP_UNIX)
+#elif HYP_UNIX && !HYP_ANDROID
         if (rawFrames.Any())
         {
             char** strings = backtrace_symbols(rawFrames.Data(), int(rawFrames.Size()));
@@ -113,7 +113,7 @@ static void CaptureRawStackFrames(Array<void*>& rawFrames, uint32 depth, uint32 
     rawFrames.Clear();
     rawFrames.Reserve(depth);
 
-#ifdef HYP_WINDOWS
+#if HYP_WINDOWS
     HANDLE process = GetCurrentProcess();
     SymInitialize(process, nullptr, true);
 
@@ -129,7 +129,7 @@ static void CaptureRawStackFrames(Array<void*>& rawFrames, uint32 depth, uint32 
     stackFrame.AddrFrame.Offset = context.Rbp;
     stackFrame.AddrStack.Offset = context.Rsp;
 
-#ifdef HYP_ARM
+#if HYP_ARM
     DWORD machineType = IMAGE_FILE_MACHINE_ARM64;
 #else
     DWORD machineType = IMAGE_FILE_MACHINE_AMD64;
@@ -150,7 +150,7 @@ static void CaptureRawStackFrames(Array<void*>& rawFrames, uint32 depth, uint32 
     }
 
     SymCleanup(process);
-#elif defined(HYP_UNIX)
+#elif HYP_UNIX && !HYP_ANDROID
     offset += 2;
 
     void** stack = (void**)malloc((depth + offset) * sizeof(void*));
@@ -246,8 +246,8 @@ const Array<String>& StackDump::GetTrace() const
         return m_impl->stringCache;
     }
 
-    static const Array<String> emptyArray;
-    return emptyArray;
+    static const Array<String> s_emptyArray;
+    return s_emptyArray;
 }
 
 String StackDump::ToString() const

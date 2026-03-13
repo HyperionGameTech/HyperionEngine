@@ -42,11 +42,20 @@ CMakeFiles/**/*
 .vscode/**/*
 
 # JetBrains Rider
-.idea/**/*
+**/.idea/**/*
 
 .cache/**/*
 
 **/*.pyc
+
+*/.vs/**/*
+!*/.vs/launch.vs.json
+!*/.vs/tasks.vs.json
+
+*/out/**/*
+
+Source/PlatformSpecific/Android/app/.cxx/**/*
+Source/PlatformSpecific/Android/app/**/jniLibs/**/*
 
 Source/Generated/**/*
 

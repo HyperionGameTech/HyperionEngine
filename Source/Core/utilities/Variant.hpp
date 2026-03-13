@@ -1028,7 +1028,7 @@ template <class T>
 struct TypeIndex_Impl
 {
 #if HYP_TYPE_ID_COMPILE_TIME
-    consteval bool operator()(TypeId typeId, int& index) const
+    HYP_CONSTEVAL bool operator()(TypeId typeId, int& index) const
 #else
     bool operator()(TypeId typeId, int& index) const
 #endif
@@ -1057,7 +1057,7 @@ template <class T>
 struct TypeIndexHelper<VariantBase<T>>
 {
 #if HYP_TYPE_ID_COMPILE_TIME
-    consteval int operator()(TypeId typeId) const
+    HYP_CONSTEVAL int operator()(TypeId typeId) const
 #else
     int operator()(TypeId typeId) const
 #endif
@@ -1077,7 +1077,7 @@ template <class T, class... Types>
 struct TypeIndexHelper<VariantBase<T, Types...>>
 {
 #if HYP_TYPE_ID_COMPILE_TIME
-    consteval int operator()(TypeId typeId) const
+    HYP_CONSTEVAL int operator()(TypeId typeId) const
 #else
     int operator()(TypeId typeId) const
 #endif

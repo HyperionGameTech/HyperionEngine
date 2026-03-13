@@ -32,7 +32,7 @@ private:
 public:
     template <class T>
 #if HYP_TYPE_ID_COMPILE_TIME
-    static consteval TypeId ForType()
+    static HYP_CONSTEVAL TypeId ForType()
 #else
     static TypeId ForType()
 #endif

@@ -69,7 +69,7 @@ template <int TStringType>
 class String;
 
 template <class CharType>
-concept Char = std::is_same_v<CharType, char>
+constexpr bool IsValidCharType = std::is_same_v<CharType, char>
     || std::is_same_v<CharType, utf::Char8>
     || std::is_same_v<CharType, utf::Char16>
     || std::is_same_v<CharType, utf::Char32>

@@ -19,10 +19,10 @@ namespace memory {
 class Pool;
 
 template <class T>
-concept HasDefaultAllocatorInstance = std::is_default_constructible_v<T>;
+constexpr bool HasDefaultAllocatorInstance = std::is_default_constructible_v<T>;
 
-template <HasDefaultAllocatorInstance AllocatorType>
-AllocatorType* GetDefaultAllocatorInstance();
+template <typename TAllocator, typename TEnable>
+TAllocator* GetDefaultAllocatorInstance();
 
 template <class T, class T2 = void>
 struct DefaultAllocatorInstanceHelper;
@@ -33,14 +33,14 @@ struct DefaultAllocatorInstanceHelper<T>
     T& operator()() const;
 };
 
-template <HasDefaultAllocatorInstance AllocatorType>
+template <typename TAllocator, typename TEnable = std::enable_if_t<HasDefaultAllocatorInstance<TAllocator>>>
 struct GetAllocatorInstanceHelper
 {
-    using Type = AllocatorType;
+    using Type = TAllocator;
 
-    static AllocatorType* Get()
+    static TAllocator* Get()
     {
-        return GetDefaultAllocatorInstance<AllocatorType>();
+        return GetDefaultAllocatorInstance<TAllocator, TEnable>();
     }
 };
 
@@ -711,13 +711,13 @@ struct GetAllocatorInstanceHelper<AllocatorInstance<AllocatorType>>
     }
 };
 
-template <HasDefaultAllocatorInstance AllocatorType>
+template <class AllocatorType, typename = std::enable_if_t<HasDefaultAllocatorInstance<AllocatorType>>>
 static inline auto GetAllocatorInstance() -> typename GetAllocatorInstanceHelper<AllocatorType>::Type*
 {
     return GetAllocatorInstanceHelper<AllocatorType>::Get();
 }
 
-template <HasDefaultAllocatorInstance AllocatorType>
+template <class AllocatorType, typename = std::enable_if_t<HasDefaultAllocatorInstance<AllocatorType>>>
 AllocatorType* GetDefaultAllocatorInstance()
 {
     return &DefaultAllocatorInstanceHelper<AllocatorType> {}();

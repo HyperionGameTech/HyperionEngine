@@ -232,42 +232,42 @@ static inline containers::String<TStringType> TakeWhile(const containers::String
 
 static inline bool Parse(const String& str, int* outValue)
 {
-    *outValue = int(std::strtol(str.Data(), nullptr, 0));
+    *outValue = int(strtol(str.Data(), nullptr, 0));
 
     return true;
 }
 
 static inline bool Parse(const String& str, long* outValue)
 {
-    *outValue = std::strtol(str.Data(), nullptr, 0);
+    *outValue = strtol(str.Data(), nullptr, 0);
 
     return true;
 }
 
 static inline bool Parse(const String& str, long long* outValue)
 {
-    *outValue = std::strtoll(str.Data(), nullptr, 0);
+    *outValue = strtoll(str.Data(), nullptr, 0);
 
     return true;
 }
 
 static inline bool Parse(const String& str, unsigned int* outValue)
 {
-    *outValue = unsigned(std::strtoul(str.Data(), nullptr, 0));
+    *outValue = unsigned(strtoul(str.Data(), nullptr, 0));
 
     return true;
 }
 
 static inline bool Parse(const String& str, float* outValue)
 {
-    *outValue = std::strtof(str.Data(), nullptr);
+    *outValue = strtof(str.Data(), nullptr);
 
     return true;
 }
 
 static inline bool Parse(const String& str, double* outValue)
 {
-    *outValue = std::strtod(str.Data(), nullptr);
+    *outValue = strtod(str.Data(), nullptr);
 
     return true;
 }
@@ -307,5 +307,4 @@ static inline bool IsNumber(const String& str)
 }
 
 } // namespace StringUtil
-
 } // namespace Hyperion

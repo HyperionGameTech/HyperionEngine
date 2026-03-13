@@ -1448,31 +1448,21 @@ bool RenderCollector::BeginRecordDrawCalls(
 
         groupsView = { &mappings, 1 };
     }
-    else
-    {
-        bool allEmpty = true;
-
-        for (uint32 renderBucketIndex = 0; renderBucketIndex < uint32(mappingsByBucket.Size()); renderBucketIndex++)
-        {
-            if (bucketBits & (1u << renderBucketIndex))
-            {
-                allEmpty = false;
-                break;
-            }
-        }
-
-        if (allEmpty)
-        {
-            return false;
-        }
-
-        groupsView = mappingsByBucket.ToSpan();
-    }
 
     bool anyEnqueued = false;
 
-    for (auto& mappings : groupsView)
+    for (size_t i = 0; i < groupsView.Size(); i++)
     {
+        size_t mappingIndex = std::distance(mappingsByBucket.Begin(), &groupsView[i]);
+        AssertDebug(mappingIndex < mappingsByBucket.Size());
+
+        if (!(bucketBits & (1u << uint32(mappingIndex))))
+        {
+            continue;
+        }
+
+        auto& mappings = groupsView[i];
+
         ParallelRenderingState* parallelRenderingState = nullptr;
 
         for (auto& it : mappings)
@@ -1483,11 +1473,6 @@ bool RenderCollector::BeginRecordDrawCalls(
             AssertDebug(drawCallCollection.IsValid());
 
             const RenderBucket rb = attributes.GetMaterialAttributes().bucket;
-
-            if (!(bucketBits & (1u << uint32(rb))))
-            {
-                continue;
-            }
 
             RenderGroup& renderGroup = drawCallCollection.renderGroup;
             AssertDebug(renderGroup.valid);
@@ -1503,7 +1488,7 @@ bool RenderCollector::BeginRecordDrawCalls(
 
             if (!parallelRenderingState)
             {
-                parallelRenderingState = AcquireNextParallelRenderingState(uint8(rb));
+                parallelRenderingState = AcquireNextParallelRenderingState(uint8(mappingIndex));
 
                 AssertDebug(parallelRenderingState != nullptr);
             }

@@ -298,8 +298,8 @@ public:
         {
             return;
         }
-
-        numBatches = MathUtil::Clamp(numBatches, 1u, numItems);
+        
+        numBatches = uint8(MathUtil::Clamp(uint32(numBatches), 1u, MathUtil::Min(numItems, uint32(UINT8_MAX))));
 
         const uint32 itemsPerBatch = (numItems + numBatches - 1) / numBatches;
 

@@ -319,9 +319,11 @@ template <int StringType, class T>
 containers::String<StringType> FormatString_FormatElement_Runtime(const T& element)
 {
     using FormatterSpecializationType = std::conditional_t<
-        std::is_pointer_v<std::remove_cvref_t<T>>,
-        std::add_pointer_t<std::remove_cvref_t<std::remove_pointer_t<T>>>,
-        std::remove_cvref_t<T>>;
+        std::is_pointer_v<
+            std::remove_cv_t<std::remove_reference_t<T>>>,
+            std::add_pointer_t<std::remove_cv_t<std::remove_reference_t<std::remove_pointer_t<T>>>>,
+            std::remove_cv_t<std::remove_reference_t<T>>
+        >;
 
     static_assert(implementation_exists_v<Formatter<containers::String<StringType>, FormatterSpecializationType>>, "No Formatter specialization exists for type");
 
@@ -442,7 +444,7 @@ struct FormatString_ProcessTuple_Impl
     constexpr auto operator()() const
     {
 #if 0
-        if constexpr (std::is_constant_evaluated())
+        if constexpr (HYP_CONSTEVAL_CONTEXT)
             return FormatString_ProcessTuple_ProcessElements_CompileTime(args, std::make_index_sequence<sizeof...(Ts)>());
         else
 #endif

@@ -43,7 +43,7 @@ public:
      *  \param methodName The name of the method to call.
      *  \param flags Flags to control the behavior of the delegate.
      */
-    UIScriptDelegate(UIObject* uiObject, const String& methodName, EnumFlags<UIScriptDelegateFlags> flags)
+    UIScriptDelegate(UIObject* uiObject, const ANSIString& methodName, EnumFlags<UIScriptDelegateFlags> flags)
         : m_uiObject(uiObject),
           m_methodName(methodName),
           m_flags(flags)
@@ -62,7 +62,7 @@ public:
         return m_uiObject;
     }
 
-    HYP_FORCE_INLINE const String& GetMethodName() const
+    HYP_FORCE_INLINE const ANSIString& GetMethodName() const
     {
         return m_methodName;
     }
@@ -95,24 +95,24 @@ public:
             dotnet::ManagedObject* managedObject = scriptComponent->scriptObjectResource->GetManagedObject();
             Assert(managedObject != nullptr);
 
-            if (dotnet::ManagedClass* classPtr = managedObject->GetClass())
+            if (dotnet::ManagedClass* managedClass = managedObject->GetClass())
             {
-                if (dotnet::ManagedMethod* methodPtr = classPtr->GetMethod(m_methodName))
+                if (dotnet::ManagedMethod* managedMethod = managedClass->GetMethod(m_methodName))
                 {
                     if (m_flags & UIScriptDelegateFlags::REQUIRE_UI_EVENT_ATTRIBUTE)
                     {
-                        if (!methodPtr->GetAttributes().GetAttribute("UIEvent"))
+                        if (!managedMethod->GetAttributes().GetAttribute("UIEvent"))
                         {
                             return UIEventHandlerResult(UIEventHandlerResult::ERR, HYP_STATIC_MESSAGE("Method does not have the Hyperion.UIEvent attribute"));
                         }
                     }
 
                     // // Stubbed method, do not call
-                    // if (methodPtr->GetAttributes().GetAttribute("ScriptMethodStub") != nullptr) {
+                    // if (managedMethod->GetAttributes().GetAttribute("ScriptMethodStub") != nullptr) {
                     //     return defaultResult;
                     // }
 
-                    UIEventHandlerResult result = managedObject->InvokeMethod<UIEventHandlerResult>(methodPtr, std::forward<Args>(args)...);
+                    UIEventHandlerResult result = managedObject->InvokeMethod<UIEventHandlerResult>(managedMethod, std::forward<Args>(args)...);
 
                     if (result == UIEventHandlerResult::OK)
                     {
@@ -144,7 +144,7 @@ public:
 
 private:
     UIObject* m_uiObject;
-    String m_methodName;
+    ANSIString m_methodName;
     EnumFlags<UIScriptDelegateFlags> m_flags;
 };
 
