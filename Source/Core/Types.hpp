@@ -2,21 +2,31 @@
 
 #pragma once
 
-#include <stdint.h>
+#include <Core/Defines.hpp>
 
 namespace Hyperion {
 
-using ubyte = uint8_t;
+using ubyte = unsigned char;
 
-using uint8 = uint8_t;
-using uint16 = uint16_t;
-using uint32 = uint32_t;
-using uint64 = uint64_t;
+using uint8 = unsigned char;
+using uint16 = unsigned short;
+using uint32 = unsigned int;
 
-using int8 = int8_t;
-using int16 = int16_t;
-using int32 = int32_t;
-using int64 = int64_t;
+#if HYP_WINDOWS
+using uint64 = unsigned long long;
+#else
+using uint64 = unsigned long;
+#endif
+
+using int8 = signed char;
+using int16 = short;
+using int32 = int;
+
+#if HYP_WINDOWS
+using int64 = long long;
+#else
+using int64 = long;
+#endif
 
 using float32 = float;
 static_assert(sizeof(float32) == 4, "Expected float to be 32-bit!");
@@ -26,7 +36,7 @@ static_assert(sizeof(float64) == 8, "Expected double to be 64-bit!");
 
 using size_t = decltype(sizeof(int));
 
-#ifdef HYP_WINDOWS
+#if HYP_WINDOWS
 using TChar = wchar_t;
 #else
 using TChar = char;

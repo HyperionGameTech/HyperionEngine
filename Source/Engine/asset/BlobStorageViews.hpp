@@ -76,7 +76,7 @@ public:
 
         if (!mappedFile->Open())
         {
-            AssertDebug(false, "Failed to open mapped file at {}", filePath);
+            AssertDebug(false, "Failed to open mapped file at {}", *filePath);
 
             PoolDelete(*g_assetPool, mappedFile);
 

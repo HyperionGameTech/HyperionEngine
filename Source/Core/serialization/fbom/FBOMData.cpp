@@ -136,7 +136,7 @@ FBOMData FBOMData::FromObject(const FBOMObject& object, bool keepNativeObject)
     }
 
     FBOMData value = FBOMData(FBOMBaseObjectType(), std::move(byteWriter.GetBuffer()));
-    AssertDebug(value.IsObject(), "Expected value to be object: Got type: {}", value.GetType().ToString());
+    AssertDebug(value.IsObject(), "Expected value to be object: Got type: {}", value.GetType().name);
 
     return value;
 }
@@ -156,7 +156,7 @@ FBOMData FBOMData::FromObject(FBOMObject&& object, bool keepNativeObject)
     }
 
     FBOMData value = FBOMData(FBOMBaseObjectType(), std::move(byteWriter.GetBuffer()));
-    AssertDebug(value.IsObject(), "Expected value to be object: Got type: {}", value.GetType().ToString());
+    AssertDebug(value.IsObject(), "Expected value to be object: Got type: {}", value.GetType().name);
 
     return value;
 }
@@ -190,7 +190,7 @@ FBOMData FBOMData::FromArray(const FBOMArray& array)
     }
 
     FBOMData value = FBOMData(FBOMArrayType(), std::move(byteWriter.GetBuffer()));
-    AssertDebug(value.IsArray(), "Expected value to be array: Got type: {}", value.GetType().ToString());
+    AssertDebug(value.IsArray(), "Expected value to be array: Got type: {}", value.GetType().name);
 
     return value;
 }

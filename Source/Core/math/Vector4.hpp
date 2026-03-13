@@ -814,4 +814,4 @@ struct Formatter<StringType, math::Vec4<T>>
 
 } // namespace Hyperion
 
-HYP_DEF_STL_HASH(Hyperion::Vector4);
+HYP_DEF_STL_HASH(::Hyperion::Vector4);

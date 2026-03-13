@@ -249,4 +249,4 @@ static_assert(alignof(Vertex) == 16, "Vertex alignment is not 16 bytes, ensure s
 
 } // namespace Hyperion
 
-HYP_DEF_STL_HASH(Hyperion::Vertex);
+HYP_DEF_STL_HASH(::Hyperion::Vertex);

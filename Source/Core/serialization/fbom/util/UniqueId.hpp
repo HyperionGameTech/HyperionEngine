@@ -88,4 +88,4 @@ using utilities::UniqueId;
 
 } // namespace Hyperion
 
-HYP_DEF_STL_HASH(Hyperion::UniqueId);
+HYP_DEF_STL_HASH(::Hyperion::UniqueId);

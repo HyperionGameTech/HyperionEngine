@@ -2175,8 +2175,8 @@ inline containers::String<TStringType> operator+(const typename containers::Stri
 
 } // namespace Hyperion
 
-HYP_DEF_STL_HASH(Hyperion::String);
-HYP_DEF_STL_HASH(Hyperion::ANSIString);
-HYP_DEF_STL_HASH(Hyperion::WideString);
-HYP_DEF_STL_HASH(Hyperion::UTF16String);
-HYP_DEF_STL_HASH(Hyperion::UTF32String);
+HYP_DEF_STL_HASH(::Hyperion::String);
+HYP_DEF_STL_HASH(::Hyperion::ANSIString);
+HYP_DEF_STL_HASH(::Hyperion::WideString);
+HYP_DEF_STL_HASH(::Hyperion::UTF16String);
+HYP_DEF_STL_HASH(::Hyperion::UTF32String);

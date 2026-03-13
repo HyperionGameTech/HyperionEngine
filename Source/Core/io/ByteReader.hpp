@@ -12,10 +12,19 @@
 #include <cstdio>
 
 namespace Hyperion {
+
 class ByteReader
 {
+protected:
+    ByteReader() = default;
+
 public:
     virtual ~ByteReader() = default;
+
+    bool Eof() const
+    {
+        return Position() >= Max();
+    }
 
     template <typename T>
     void Read(T* ptr, size_t size = sizeof(T))
@@ -85,14 +94,9 @@ public:
     virtual void Rewind(size_t amount) = 0;
     virtual void Seek(size_t whereTo) = 0;
     virtual void Close() = 0;
-
-    bool Eof() const
-    {
-        return Position() >= Max();
-    }
 };
 
-class MemoryByteReader : public ByteReader
+class MemoryByteReader final : public ByteReader
 {
 public:
     explicit MemoryByteReader(ConstByteView byteView)
@@ -101,254 +105,74 @@ public:
     {
     }
 
-    virtual ~MemoryByteReader() override = default;
+    ~MemoryByteReader() override = default;
 
-    virtual size_t Position() const override
+    size_t Position() const override
     {
         return m_pos;
     }
 
-    virtual size_t Max() const override
+    size_t Max() const override
     {
         return m_byteView.Size();
     }
 
-    virtual void Skip(size_t amount) override
+    void Skip(size_t amount) override
     {
         m_pos += amount;
     }
 
-    virtual void Rewind(size_t amount) override
+    void Rewind(size_t amount) override
     {
         m_pos -= amount;
     }
 
-    virtual void Seek(size_t whereTo) override
+    void Seek(size_t whereTo) override
     {
         m_pos = whereTo;
     }
 
-    virtual size_t Read(void* ptr, size_t size) override
-    {
-        if (!m_byteView)
-        {
-            return 0;
-        }
+    size_t Read(void* ptr, size_t size) override;
+    ByteBuffer Read(size_t size) override;
 
-        size_t toRead = MathUtil::Min(m_byteView.Size() - m_pos, size);
-
-        Memory::Copy(ptr, m_byteView.Data() + m_pos, toRead);
-        m_pos += toRead;
-
-        return toRead;
-    }
-
-    virtual ByteBuffer Read(size_t size) override
-    {
-        if (!m_byteView)
-        {
-            return ByteBuffer();
-        }
-
-        const auto previousOffset = m_pos;
-        m_pos += size;
-        return ByteBuffer(size, m_byteView.Data() + previousOffset);
-    }
-
-    virtual void Close() override
-    {
-        // do nothing
-    }
+    void Close() override;
 
 protected:
     ConstByteView m_byteView;
     size_t m_pos;
 };
 
-class FileByteReader : public ByteReader
+class FileByteReader final : public ByteReader
 {
 public:
-    FileByteReader(const FilePath& filepath, size_t offset = 0)
-        : m_file(nullptr),
-          m_pos(0),
-          m_maxPos(0),
-          m_filepath(filepath)
-    {
-        m_file = std::fopen(filepath.Data(), "rb");
-
-        if (m_file == nullptr)
-        {
-            m_maxPos = 0;
-            m_pos = 0;
-
-            return;
-        }
-
-        // determine file size
-        if (std::fseek(m_file, 0, SEEK_END) == 0)
-        {
-            long endPos = std::ftell(m_file);
-
-            if (endPos >= 0)
-            {
-                m_maxPos = static_cast<size_t>(endPos);
-            }
-            else
-            {
-                m_maxPos = 0;
-            }
-        }
-        else
-        {
-            m_maxPos = 0;
-        }
-
-        // seek to beginning offset
-        if (offset > m_maxPos)
-        {
-            offset = m_maxPos;
-        }
-
-        std::fseek(m_file, static_cast<long>(offset), SEEK_SET);
-
-        long cur = std::ftell(m_file);
-        m_pos = cur >= 0 ? static_cast<size_t>(cur) : 0;
-    }
-
-    virtual ~FileByteReader() override
-    {
-        if (m_file != nullptr)
-        {
-            std::fclose(m_file);
-            m_file = nullptr;
-        }
-    }
+    FileByteReader(const FilePath& filepath, size_t offset = 0);
+    ~FileByteReader() override;
 
     const FilePath& GetFilepath() const
     {
         return m_filepath;
     }
 
-    virtual size_t Position() const override
+    size_t Position() const override
     {
         return m_pos;
     }
 
-    virtual size_t Max() const override
+    size_t Max() const override
     {
         return m_maxPos;
     }
 
-    virtual void Skip(size_t amount) override
-    {
-        if (m_file == nullptr)
-        {
-            return;
-        }
+    void Skip(size_t amount) override;
 
-        m_pos += amount;
+    void Rewind(size_t amount) override;
 
-        if (m_pos > m_maxPos)
-        {
-            m_pos = m_maxPos;
-        }
+    void Seek(size_t whereTo) override;
 
-        std::fseek(m_file, static_cast<long>(m_pos), SEEK_SET);
-    }
+    size_t Read(void* ptr, size_t size) override;
+    ByteBuffer Read(size_t size) override;
 
-    virtual void Rewind(size_t amount) override
-    {
-        if (m_file == nullptr)
-        {
-            return;
-        }
-
-        if (amount > m_pos)
-        {
-            m_pos = 0;
-        }
-        else
-        {
-            m_pos -= amount;
-        }
-
-        std::fseek(m_file, static_cast<long>(m_pos), SEEK_SET);
-    }
-
-    virtual void Seek(size_t whereTo) override
-    {
-        if (!m_file)
-        {
-            return;
-        }
-
-        if (whereTo > m_maxPos)
-        {
-            whereTo = m_maxPos;
-        }
-
-        m_pos = whereTo;
-        std::fseek(m_file, static_cast<long>(m_pos), SEEK_SET);
-    }
-
-    virtual size_t Read(void* ptr, size_t size) override
-    {
-        if (m_file == nullptr || size == 0)
-        {
-            return 0;
-        }
-
-        const size_t remaining = m_maxPos > m_pos ? (m_maxPos - m_pos) : 0;
-        const size_t toRead = MathUtil::Min(size, remaining);
-
-        if (toRead == 0)
-        {
-            return 0;
-        }
-
-        const size_t readBytes = std::fread(ptr, 1, toRead, m_file);
-        m_pos += readBytes;
-
-        return toRead;
-    }
-
-    virtual ByteBuffer Read(size_t size) override
-    {
-        if (m_file == nullptr)
-        {
-            return ByteBuffer();
-        }
-
-        const size_t remaining = m_maxPos > m_pos ? (m_maxPos - m_pos) : 0;
-        const size_t toRead = MathUtil::Min(size, remaining);
-
-        if (toRead == 0)
-        {
-            return ByteBuffer();
-        }
-
-        ByteBuffer byteBuffer;
-        byteBuffer.SetSize(toRead);
-
-        const size_t readBytes = std::fread(byteBuffer.Data(), 1, toRead, m_file);
-        m_pos += readBytes;
-
-        if (readBytes == toRead)
-        {
-            return byteBuffer;
-        }
-
-        return ByteBuffer(readBytes, byteBuffer.Data());
-    }
-
-    virtual void Close() override
-    {
-        if (m_file != nullptr)
-        {
-            std::fclose(m_file);
-            m_file = nullptr;
-        }
-    }
+    void Close() override;
 
 protected:
     FILE* m_file;
@@ -364,174 +188,38 @@ public:
         MemoryMappedFile* mappedFile,
         size_t offset = 0,
         size_t size = 0,
-        MemoryMappedFile::Mode mode = MemoryMappedFile::Mode::READ_ONLY)
-        : m_mappedFile(mappedFile),
-          m_pos(0),
-          m_ownsFile(false)
-    {
-        HYP_CORE_ASSERT(mappedFile != nullptr);
-
-        const bool opened = m_mappedFile->Open();
-        HYP_CORE_ASSERT(opened, "Failed to open memory mapped file!");
-
-        const bool mapped = m_mappedFile->MapRange(offset, 0, m_mappedView);
-        HYP_CORE_ASSERT(mapped, "Failed to map memory range");
-    }
+        MemoryMappedFile::Mode mode = MemoryMappedFile::Mode::READ_ONLY);
 
     MemoryMappedByteReader(
         const FilePath& filepath,
         size_t offset = 0,
-        MemoryMappedFile::Mode mode = MemoryMappedFile::Mode::READ_ONLY)
-        : m_mappedFile(new MemoryMappedFile(filepath, mode)),
-          m_pos(0),
-          m_ownsFile(true)
-    {
-        const bool opened = m_mappedFile->Open();
-        HYP_CORE_ASSERT(opened, "Failed to open memory mapped file: %s", filepath.Data());
-
-        const bool mapped = m_mappedFile->MapRange(offset, 0, m_mappedView);
-        HYP_CORE_ASSERT(mapped, "Failed to map memory range: %s", filepath.Data());
-    }
+        MemoryMappedFile::Mode mode = MemoryMappedFile::Mode::READ_ONLY);
 
     MemoryMappedByteReader(
         const FilePath& filepath,
         size_t offset,
         size_t size,
-        MemoryMappedFile::Mode mode = MemoryMappedFile::Mode::READ_ONLY)
-        : m_mappedFile(new MemoryMappedFile(filepath, mode)),
-          m_pos(0),
-          m_ownsFile(true)
-    {
-        const bool opened = m_mappedFile->Open();
-        HYP_CORE_ASSERT(opened, "Failed to open memory mapped file: %s", filepath.Data());
+        MemoryMappedFile::Mode mode = MemoryMappedFile::Mode::READ_ONLY);
 
-        const bool mapped = m_mappedFile->MapRange(offset, size, m_mappedView);
-        HYP_CORE_ASSERT(mapped, "Failed to map memory range: %s", filepath.Data());
-    }
+    ~MemoryMappedByteReader() override;
 
-    virtual ~MemoryMappedByteReader() override
-    {
-        MemoryMappedByteReader::Close();
-    }
+    bool IsOpen() const;
 
-    virtual size_t Position() const override
-    {
-        return m_pos;
-    }
+    MemoryMappedFile::Mode GetMode() const;
 
-    virtual size_t Max() const override
-    {
-        return m_mappedView.Size();
-    }
+    size_t Position() const override;
+    size_t Max() const override;
 
-    virtual void Skip(size_t amount) override
-    {
-        m_pos = MathUtil::Min(m_pos + amount, Max());
-    }
+    void Skip(size_t amount) override;
 
-    virtual void Rewind(size_t amount) override
-    {
-        if (amount > m_pos)
-        {
-            m_pos = 0;
-        }
-        else
-        {
-            m_pos -= amount;
-        }
-    }
+    void Rewind(size_t amount) override;
 
-    virtual void Seek(size_t whereTo) override
-    {
-        if (whereTo > Max())
-        {
-            whereTo = Max();
-        }
+    void Seek(size_t whereTo) override;
 
-        m_pos = whereTo;
-    }
-
-    virtual void Close() override
-    {
-        if (IsOpen())
-        {
-            m_mappedView.Close();
-
-            if (m_ownsFile)
-            {
-                m_mappedFile->Close();
-
-                delete m_mappedFile;
-            }
-        }
-            
-        m_mappedFile = nullptr;
-    }
-
-    bool IsOpen() const
-    {
-        return m_mappedFile
-            && m_mappedFile->IsOpen()
-            && m_mappedView.IsOpen();
-    }
-
-    MemoryMappedFile::Mode GetMode() const
-    {
-        return m_mappedFile
-            ? m_mappedFile->GetMode()
-            : MemoryMappedFile::Mode::READ_ONLY;
-    }
+    void Close() override;
     
-    virtual size_t Read(void* ptr, size_t size) override
-    {
-        if (size == 0)
-        {
-            return 0;
-        }
-
-        const size_t remaining = Max() > m_pos ? (Max() - m_pos) : 0;
-        const size_t toRead = MathUtil::Min(size, remaining);
-
-        if (toRead == 0)
-        {
-            return 0;
-        }
-
-        const auto* data = static_cast<const ubyte*>(m_mappedView.Data());
-
-        if (data == nullptr)
-        {
-            return 0;
-        }
-
-        Memory::Copy(ptr, data + m_pos, toRead);
-        m_pos += toRead;
-
-        return toRead;
-    }
-
-    virtual ByteBuffer Read(size_t size) override
-    {
-        const size_t remaining = Max() > m_pos ? (Max() - m_pos) : 0;
-        const size_t toRead = MathUtil::Min(size, remaining);
-
-        if (toRead == 0)
-        {
-            return ByteBuffer();
-        }
-
-        const auto* data = static_cast<const ubyte*>(m_mappedView.Data());
-
-        if (data == nullptr)
-        {
-            return ByteBuffer();
-        }
-
-        const size_t previousOffset = m_pos;
-        m_pos += toRead;
-
-        return ByteBuffer(toRead, data + previousOffset);
-    }
+    size_t Read(void* ptr, size_t size) override;
+    ByteBuffer Read(size_t size) override;
 
 protected:
     MemoryMappedFile* m_mappedFile;

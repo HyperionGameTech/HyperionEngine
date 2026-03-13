@@ -47,7 +47,8 @@ android {
 
     sourceSets {
         main {
-            // Native libs will be staged here when deploying with --with-native.
+            // libhyperion.so and libc++_shared.so are staged here automatically
+            // by the stageNativeLibs task before every build.
             jniLibs.srcDirs = ['src/main/jniLibs']
         }
     }
@@ -55,3 +56,55 @@ android {
 
 dependencies {
 }
+
+// ---------------------------------------------------------------------------
+// Stage native libraries
+// Copies libhyperion.so from Binaries/Engine into jniLibs before every build.
+// Re-runs only when the .so has changed (incremental via inputs/outputs).
+// ---------------------------------------------------------------------------
+def engineBinariesDir = file('../../../../Binaries/Engine')
+def jniLibsAbiDir     = file('src/main/jniLibs/arm64-v8a')
+
+// Resolve android.ndkDirectory at configuration time (not inside doLast).
+def resolvedNdkDir = android.ndkDirectory
+
+tasks.register('stageNativeLibs') {
+    description 'Copies libhyperion.so (and libc++_shared.so) into jniLibs before the APK is assembled.'
+
+    def engineSo = new File(engineBinariesDir, 'libhyperion.so')
+    inputs.file  engineSo
+    outputs.dir  jniLibsAbiDir
+
+    // Capture NDK dir as a task input so the configuration cache can serialise it.
+    def ndkDir = resolvedNdkDir
+
+    doLast {
+        if (!engineSo.exists()) {
+            throw new GradleException(
+                "libhyperion.so not found at:\n  ${engineSo.absolutePath}\n\n" +
+                "Build the engine first: BuildHyperion.bat Android <Debug|Release>"
+            )
+        }
+
+        jniLibsAbiDir.mkdirs()
+        java.nio.file.Files.copy(engineSo.toPath(), new File(jniLibsAbiDir, 'libhyperion.so').toPath(), java.nio.file.StandardCopyOption.REPLACE_EXISTING)
+        logger.lifecycle("[hyperion] Staged libhyperion.so")
+
+        // libc++_shared.so ships with the NDK; stage it so the C++ runtime is
+        // available on device when ANDROID_STL=c++_shared.
+        if (ndkDir != null) {
+            def hostOs = org.gradle.internal.os.OperatingSystem.current()
+            def hostTag = hostOs.isWindows() ? 'windows-x86_64' :
+                          hostOs.isMacOsX()  ? 'darwin-x86_64' : 'linux-x86_64'
+            def libcppSo = new File(ndkDir, "toolchains/llvm/prebuilt/${hostTag}/sysroot/usr/lib/aarch64-linux-android/libc++_shared.so")
+            if (libcppSo.exists()) {
+                java.nio.file.Files.copy(libcppSo.toPath(), new File(jniLibsAbiDir, 'libc++_shared.so').toPath(), java.nio.file.StandardCopyOption.REPLACE_EXISTING)
+                logger.lifecycle("[hyperion] Staged libc++_shared.so")
+            } else {
+                logger.warn("[hyperion] libc++_shared.so not found at ${libcppSo}. Skipping.")
+            }
+        }
+    }
+}
+
+preBuild.dependsOn 'stageNativeLibs'

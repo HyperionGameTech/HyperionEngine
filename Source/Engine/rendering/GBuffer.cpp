@@ -15,6 +15,8 @@
 
 #include <Core/threading/Threads.hpp>
 
+#include <initializer_list>
+
 #include <GBuffer.generated.inl>
 
 namespace Hyperion {

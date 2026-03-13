@@ -82,19 +82,3 @@ public:
 using OBJIndex = OBJModelLoader::OBJModel::OBJIndex;
 
 } // namespace Hyperion
-
-namespace std {
-template <>
-struct hash<Hyperion::OBJIndex>
-{
-    size_t operator()(const Hyperion::OBJIndex& obj) const
-    {
-        Hyperion::HashCode hc;
-        hc.Add(obj.vertex);
-        hc.Add(obj.normal);
-        hc.Add(obj.texcoord);
-
-        return hc.Value();
-    }
-};
-} // namespace std

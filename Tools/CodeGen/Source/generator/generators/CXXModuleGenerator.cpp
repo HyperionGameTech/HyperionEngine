@@ -483,6 +483,8 @@ Result CXXModuleGenerator::GenerateInline(const Analyzer& analyzer, const Module
         {
             writer.WriteString(HYP_FORMAT("using namespace {};\n", BuildNamespaceString(cls.namespaceParts)));
         }
+        
+        writer.WriteString(HYP_FORMAT("using {}::Class;\n", BaseNamespace)); // to resolve ambiguity in intellisense
 
         writer.WriteString("\n");
 
@@ -860,6 +862,8 @@ Result CXXModuleGenerator::Generate(const Analyzer& analyzer, const Module& mod,
         {
             writer.WriteString(HYP_FORMAT("using namespace {};\n", BuildNamespaceString(cls.namespaceParts)));
         }
+        
+        writer.WriteString(HYP_FORMAT("using {}::Class;\n", BaseNamespace)); // to resolve ambiguity in intellisense
 
         writer.WriteString("\n");
 

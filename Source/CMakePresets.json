@@ -12,8 +12,6 @@
                 "rhs": "Windows"
             },
             "cacheVariables": {
-                "CMAKE_BUILD_TYPE": "Release",
-                "HYP_ROOT_DIR": "${sourceDir}/..",
                 "HYP_LIBRARY_OUTPUT_DIRECTORY": "${sourceDir}/../Binaries/Engine",
                 "HYP_THIRD_PARTY_LIBRARY_DIRECTORY": "${sourceDir}/../External/ThirdParty/Binaries"
             }
@@ -29,7 +27,24 @@
             },
             "toolchainFile": "$env{VCPKG_ROOT}/scripts/buildsystems/vcpkg.cmake",
             "cacheVariables": {
-                "VCPKG_DEFAULT_TRIPLET": "x64-windows"
+                "VCPKG_DEFAULT_TRIPLET": "x64-windows",
+                "CMAKE_BUILD_TYPE": "Release"
+            }
+        },
+        {
+            "name": "windows-x64-debug",
+            "displayName": "Windows x64 (Debug)",
+            "description": "Windows 64-bit Debug (MSVC)",
+            "inherits": "windows-base",
+            "architecture": {
+                "value": "x64",
+                "strategy": "set"
+            },
+            "toolchainFile": "$env{VCPKG_ROOT}/scripts/buildsystems/vcpkg.cmake",
+            "cacheVariables": {
+                "HYP_ROOT_DIR": "${sourceDir}/..", // only available in desktop debug builds so we set it here
+                "VCPKG_DEFAULT_TRIPLET": "x64-windows",
+                "CMAKE_BUILD_TYPE": "Debug"
             }
         },
         {
@@ -41,41 +56,73 @@
                 "ANDROID_PLATFORM": "android-28",
                 "ANDROID_STL": "c++_shared",
                 "HYP_PLATFORM_NAME": "Android",
-                "HYP_ROOT_DIR": "${sourceDir}/..",
                 "HYP_LIBRARY_OUTPUT_DIRECTORY": "${sourceDir}/../Binaries/Engine",
                 "HYP_THIRD_PARTY_LIBRARY_DIRECTORY": "${sourceDir}/../External/ThirdParty/Binaries",
-                "CMAKE_BUILD_TYPE": "Release"
+                "CMAKE_EXPORT_COMPILE_COMMANDS": "ON"
             },
             "vendor": {
                 "microsoft.com/VisualStudioSettings/CMake/1.0": {
-                    "intelliSenseMode": "android-clang-arm64"
+                    "intelliSenseMode": "android-clang-arm64",
+                    "intelliSenseOptions": {
+                        "additionalCompilerArgs": "--target=aarch64-linux-android28"
+                    }
                 }
+            }
+        },
+        {
+            "name": "android-arm64-v8a-base",
+            "hidden": true,
+            "inherits": "android-base",
+            "binaryDir": "${sourceDir}/../Build/Android-arm64-v8a",
+            "cacheVariables": {
+                "ANDROID_ABI": "arm64-v8a",
+                "CMAKE_CXX_STANDARD": "20"
             }
         },
         {
             "name": "android-arm64-v8a",
             "displayName": "Android ARM64 (arm64-v8a)",
-            "description": "Android ARM64",
-            "inherits": "android-base",
-            "binaryDir": "${sourceDir}/../Build/Android-arm64-v8a",
+            "description": "Android ARM64 Release",
+            "inherits": "android-arm64-v8a-base",
             "cacheVariables": {
-              "ANDROID_ABI": "arm64-v8a",
-              "CMAKE_CXX_STANDARD": "20"
+                "CMAKE_BUILD_TYPE": "Release"
+            }
+        },
+        {
+            "name": "android-arm64-v8a-debug",
+            "displayName": "Android ARM64 (arm64-v8a) Debug",
+            "description": "Android ARM64 Debug",
+            "inherits": "android-arm64-v8a-base",
+            "cacheVariables": {
+                "CMAKE_BUILD_TYPE": "Debug"
             }
         }
     ],
     "buildPresets": [
         {
             "name": "windows-x64",
-            "displayName": "Windows x64",
+            "displayName": "Windows x64 Release",
             "configurePreset": "windows-x64",
             "configuration": "Release"
         },
         {
+            "name": "windows-x64-debug",
+            "displayName": "Windows x64 Debug",
+            "configurePreset": "windows-x64-debug",
+            "configuration": "Debug"
+        },
+        {
             "name": "android-arm64-v8a",
-            "displayName": "Android ARM64",
+            "displayName": "Android ARM64 Release",
             "configurePreset": "android-arm64-v8a",
             "configuration": "Release"
+        },
+        {
+            "name": "android-arm64-v8a-debug",
+            "displayName": "Android ARM64 Debug",
+            "configurePreset": "android-arm64-v8a-debug",
+            "configuration": "Debug"
         }
     ]
 }
+

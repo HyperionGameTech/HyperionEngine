@@ -26,6 +26,26 @@ enum class LogType : int
     RenDebug,
 };
 
+#if !HYP_DEBUG_MODE
+constexpr struct
+{
+    template <class TCond, class... TArgs>
+    HYP_FORCE_INLINE constexpr void operator()(const TCond& cond, TArgs&&...) const
+    {
+        // purposely not "(void)"ed - if we use NODISCARD we want to keep the 
+        // warnings like: "ignoring return value of function declared with 'nodiscard' attribute"
+        (bool(cond));
+    }
+    
+    // this version of the ctor exists as we sometimes assert against
+    // bitfield values and they can't be bound as a reference.
+    template <class... TArgs>
+    HYP_FORCE_INLINE inline constexpr void operator()(int, TArgs&&...) const
+    {
+    }
+} NoOpAssertWrapper = {};
+#endif
+
 #if HYP_DEBUG_MODE
 // #define DebugLog(type, fmt) DebugLog(type, HYP_DEBUG_FUNC_SHORT, HYP_DEBUG_LINE, fmt)
 #define DebugLog(type, ...) \
@@ -135,7 +155,7 @@ using debug::LogType;
 #if HYP_DEBUG_MODE
 #define AssertDebug(...) Assert(__VA_ARGS__)
 #else
-#define AssertDebug(...) (void)(__VA_ARGS__)
+#define AssertDebug(...) ::Hyperion::debug::NoOpAssertWrapper(__VA_ARGS__)
 #endif
 
 #if HYP_DEBUG_MODE
@@ -155,7 +175,7 @@ using debug::LogType;
     }                                                                                              \
     while (0)
 #else
-#define HYP_CORE_ASSERT(...) (void)(__VA_ARGS__)
+#define HYP_CORE_ASSERT(...) ::Hyperion::debug::NoOpAssertWrapper(__VA_ARGS__)
 #endif
 
 #if HYP_DEBUG_MODE

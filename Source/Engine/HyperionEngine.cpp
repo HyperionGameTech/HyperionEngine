@@ -132,6 +132,7 @@ HYP_EXPORT const FilePath& GetLibraryDirectory()
 #endif
 }
 
+#if HYP_EDITOR
 HYP_EXPORT const FilePath& GetProjectsDirectory()
 {
     // @TODO Use configuration value for this path. can be in Documents folder eg
@@ -139,6 +140,7 @@ HYP_EXPORT const FilePath& GetProjectsDirectory()
     static DirectoryInitializer<HYP_STATIC_STRING("Projects"), /* RelativeToExecutablePath */ false> s_projectsDirectory;
     return s_projectsDirectory.path;
 }
+#endif
 
 // Directory for cached data (shader bundles, compiled scripts, etc.) Expected to be compiled into the asset registry in production builds
 static bool s_cacheDirectoryInit = false;
@@ -184,21 +186,36 @@ HYP_EXPORT const FilePath& GetCacheDirectory()
 // Editor build only
 HYP_EXPORT const FilePath& GetTempDirectory()
 {
+#if HYP_ANDROID
+    static const FilePath s_emptyPath;
+    return s_emptyPath;
+#else
     static DirectoryInitializer<HYP_STATIC_STRING("Temp"), /* RelativeToExecutablePath */ true> s_tempDirectory;
     return s_tempDirectory.path;
+#endif
 }
 
 // Editor build only
 HYP_EXPORT const FilePath& GetDataDirectory()
 {
+#if HYP_ANDROID
+    static const FilePath s_emptyPath;
+    return s_emptyPath;
+#else
     static DirectoryInitializer<HYP_STATIC_STRING("Data"), /* RelativeToExecutablePath */ false> s_dataDirectory;
     return s_dataDirectory.path;
+#endif
 }
 
 HYP_EXPORT const FilePath& GetConfigDirectory()
 {
+#if HYP_ANDROID
+    static const FilePath s_emptyPath;
+    return s_emptyPath;
+#else
     static DirectoryInitializer<HYP_STATIC_STRING("Config"), /* RelativeToExecutablePath */ false> s_configDirectory;
     return s_configDirectory.path;
+#endif
 }
 
 #if HYP_DOTNET

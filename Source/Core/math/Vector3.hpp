@@ -768,4 +768,4 @@ struct Formatter<StringType, math::Vec3<T>>
 
 } // namespace Hyperion
 
-HYP_DEF_STL_HASH(Hyperion::Vector3);
+HYP_DEF_STL_HASH(::Hyperion::Vector3);

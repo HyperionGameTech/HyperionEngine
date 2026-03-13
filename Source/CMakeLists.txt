@@ -14,6 +14,8 @@ if(NOT DEFINED CMAKE_BUILD_TYPE)
     set(CMAKE_BUILD_TYPE "Release" CACHE STRING "Build type to use" FORCE)
 endif()
 
+message(STATUS "Build type: ${CMAKE_BUILD_TYPE}")
+
 set(CMAKE_EXPORT_COMPILE_COMMANDS TRUE)
 
 # use params passed in
@@ -29,8 +31,8 @@ set(CMAKE_THIRD_PARTY_LIBRARY_DIRECTORY ${HYP_THIRD_PARTY_LIBRARY_DIRECTORY})
 set(CMAKE_THIRD_PARTY_LIBRARY_DIRECTORY_RELEASE ${CMAKE_THIRD_PARTY_LIBRARY_DIRECTORY})
 set(CMAKE_THIRD_PARTY_LIBRARY_DIRECTORY_DEBUG ${CMAKE_THIRD_PARTY_LIBRARY_DIRECTORY})
 
-set(CMAKE_CONFIGURATION_TYPES "Release" CACHE STRING "Configurations to build" FORCE)
-set(CMAKE_TRY_COMPILE_CONFIGURATION "Release" CACHE STRING "Configuration to use for try_compile" FORCE)
+set(CMAKE_CONFIGURATION_TYPES "Debug;Release" CACHE STRING "Configurations to build" FORCE)
+set(CMAKE_TRY_COMPILE_CONFIGURATION "Debug;Release" CACHE STRING "Configuration to use for try_compile" FORCE)
 
 set(CMAKE_CXX_STANDARD 20 CACHE STRING "C++ standard to be used")
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
@@ -86,7 +88,7 @@ endif()
 
 string(TOLOWER ${HYP_PLATFORM_NAME} HYP_PLATFORM_NAME_LOWER)
 
-set(HYP_BUILD_TYPE "Release")
+set(HYP_BUILD_TYPE ${CMAKE_BUILD_TYPE})
 
 set(THIRD_PARTY_LIBRARY_DIR ${CMAKE_LIBRARY_OUTPUT_DIRECTORY}/${HYP_PLATFORM_NAME}/${HYP_BUILD_TYPE})
 set(THIRD_PARTY_INCLUDE_DIR ${CMAKE_SOURCE_DIR}/../External/ThirdParty/Source)
@@ -133,8 +135,11 @@ endfunction()
 # Run CodeGen with version 0.9
 RunCodeGen(0 9)
 
-add_definitions(-DHYP_DEBUG_MODE=1)
-set(HYP_DEBUG_MODE 1)
+# set HYP_DEBUG_MODE to 1 for debug builds, 0 for release builds
+if(CMAKE_BUILD_TYPE STREQUAL "Debug")
+    add_definitions(-DHYP_DEBUG_MODE=1)
+    set(HYP_DEBUG_MODE 1)
+endif()
 
 # set HYPERION_ENGINE to 1 (used to differentiate between engine and build tool or other executables using core lib)
 add_definitions(-DHYPERION_ENGINE=1)
@@ -247,7 +252,6 @@ set(HYP_PCH
 
 # default definitions
 
-add_definitions(-DHYP_ROOT_DIR="${HYP_ROOT_DIR}")
 add_definitions(-DHYP_VERSION_MAJOR=${HYP_VERSION_MAJOR})
 add_definitions(-DHYP_VERSION_MINOR=${HYP_VERSION_MINOR})
 add_definitions(-DHYP_VERSION_PATCH=${HYP_VERSION_PATCH})
@@ -258,6 +262,10 @@ set(CSHARP_PROJECTS_DIR "${CMAKE_SOURCE_DIR}/../Build/CSharpProjects")
 file(MAKE_DIRECTORY ${CSHARP_PROJECTS_DIR})
 
 if(NOT ANDROID)
+    if(NOT HYP_DEBUG_MODE)
+        add_definitions(-DHYP_ROOT_DIR="${HYP_ROOT_DIR}")
+    endif()
+    
     set(HYP_EDITOR 1)
     add_definitions(-DHYP_EDITOR=1)
 endif()

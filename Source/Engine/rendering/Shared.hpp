@@ -2,6 +2,8 @@
 
 #pragma once
 
+#include <Core/Types.hpp>
+
 #include <Core/utilities/Float16.hpp>
 
 #include <Core/math/Vector2.hpp>
@@ -1149,11 +1151,6 @@ struct TShaderDataOffset : ShaderDataOffset
     HYP_FORCE_INLINE static constexpr TShaderDataOffset Invalid()
     {
         return TShaderDataOffset();
-    }
-
-    HYP_FORCE_INLINE constexpr operator ShaderDataOffset() const
-    {
-        return static_cast<ShaderDataOffset>(*this);
     }
 };
 
