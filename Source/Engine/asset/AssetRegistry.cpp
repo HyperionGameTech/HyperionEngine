@@ -1910,21 +1910,24 @@ void AssetRegistry::Initialize()
     AssertOnThread(g_mainThread);
 
     InitBlobStorage();
+    
+    // in-memory package store always exists
+    Handle<AssetPackage> memoryPackage = GetPackageFromPath("$Memory", true);
 
+    // editor specific packages
+#if HYP_EDITOR
     Handle<AssetPackage> enginePackage = GetPackageFromPath("Engine", true);
+    Assert(enginePackage.IsValid());
+
     enginePackage->Save(GetLibraryDirectory());
 
     LoadPackagesAsync(/* loadSubpackages */ false);
 
     Handle<AssetPackage> tempPackage = GetPackageFromPath("$Temp", true);
     tempPackage->Save(CoreApi::GetExecutablePath());
-
-    Handle<AssetPackage> memoryPackage = GetPackageFromPath("$Memory", true);
-
-#if HYP_EDITOR
+    
     // Add transient package for imported assets in editor mode
     Handle<AssetPackage> importsPackage = GetPackageFromPath("$Import", true);
-#endif
 
     m_onEngineShutdown = g_engineDriver->GetDelegates().OnShutdown.Bind([this, weakThis = MakeWeakRef(this)]()
         {
@@ -1971,6 +1974,7 @@ void AssetRegistry::Initialize()
                 }
             }
         });
+#endif
 }
 
 void AssetRegistry::PruneTransientPackages()
@@ -2129,6 +2133,7 @@ void AssetRegistry::Update()
     HYP_SCOPE;
     AssertOnThread(s_assetRegistryThread);
 
+#if HYP_EDITOR
     if (!m_pruneTimer.Waiting())
     {
         m_pruneTimer.NextTick();
@@ -2142,6 +2147,7 @@ void AssetRegistry::Update()
 
         SaveBlobCache(/* async */ true);
     }
+#endif
 
     if (m_scheduler->NumEnqueued() > 0)
     {
@@ -2210,8 +2216,6 @@ void AssetRegistry::PostTask(Func&& fn, Task<FutureType>* pOutFuture)
     }
 }
 
-/// \todo Revisit, this will have more overhead now that we execute a lot of functions
-// on the sim thread (would probably be faster to just do it synchronously)
 void AssetRegistry::LoadPackagesAsync(bool loadSubpackages)
 {
     HYP_SCOPE;

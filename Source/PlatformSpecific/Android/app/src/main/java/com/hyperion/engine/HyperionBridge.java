@@ -1,4 +1,7 @@
 package com.hyperion.engine;
+
+import android.content.res.AssetManager;
+
 public final class HyperionBridge {
 
     static {
@@ -6,14 +9,8 @@ public final class HyperionBridge {
         System.loadLibrary("hyperion-android");
     }
 
-    /**
-     * Calls Hyp_Initialize on the native side.
-     * @return non-zero on success, 0 on failure.
-     */
     public static native int nativeInit();
-
-    /**
-     * Calls Hyp_Shutdown on the native side.
-     */
     public static native void nativeShutdown();
+    public static native void nativeLaunchThreads();
+    public static native void nativeSetAssetManager(AssetManager mgr);
 }

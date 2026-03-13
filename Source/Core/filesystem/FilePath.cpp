@@ -11,28 +11,59 @@
 
 #include <sys/stat.h>
 
-#if defined(HYP_WINDOWS)
+#if HYP_WINDOWS
 #include <direct.h>
+
 #ifndef WIN32_LEAN_AND_MEAN
 #define WIN32_LEAN_AND_MEAN
-#endif
+#endif // !WIN32_LEAN_AND_MEAN
+
 #include <windows.h>
+
 #undef WIN32_LEAN_AND_MEAN
+
+#elif HYP_ANDROID
+#include <android/asset_manager.h>
 #elif defined(HYP_UNIX)
 #include <unistd.h>
 #endif
 
 namespace Hyperion {
+
+#if HYP_ANDROID
+
+extern AAssetManager* g_androidAssetManager;
+
+bool IsAndroidAssetPath(const FilePath& filepath)
+{
+    return filepath.FindFirstIndex(AndroidAssetPathPrefix) == 0;
+}
+
+UTF8StringView GetAndroidAssetPath(const FilePath& filepath)
+{
+    if (!IsAndroidAssetPath(filepath))
+    {
+        return {};
+    }
+
+    // we want the path, plus '/' so we use full size of the char array.
+    return filepath.Substr(std::size(AndroidAssetPathPrefix));
+}
+
+#endif
+
 namespace filesystem {
 
 bool FilePath::MkDir() const
 {
+#if HYP_ANDROID
+    if (IsAndroidAssetPath(*this))
+        return false;
+#endif
+
     std::error_code ec;
 
-    if (Exists())
-        return true;
-
-    if (std::filesystem::create_directories(Data(), ec))
+    if (Exists() || std::filesystem::create_directories(Data(), ec))
         return true;
 
     return false;
@@ -40,6 +71,11 @@ bool FilePath::MkDir() const
 
 bool FilePath::CanWrite() const
 {
+#if HYP_ANDROID
+    if (IsAndroidAssetPath(*this))
+        return false;
+#endif
+
     struct stat st;
 
     if (stat(Data(), &st) != 0)
@@ -56,6 +92,11 @@ bool FilePath::CanWrite() const
 
 bool FilePath::CanRead() const
 {
+#if HYP_ANDROID
+    if (IsAndroidAssetPath(*this))
+        return true;
+#endif
+
     struct stat st;
     if (stat(Data(), &st) != 0)
     {
@@ -81,11 +122,21 @@ HYP_NODISCARD String FilePath::StripExtension() const
 
 bool FilePath::Remove() const
 {
+#if HYP_ANDROID
+    if (IsAndroidAssetPath(*this))
+        return false;
+#endif
+
     return std::filesystem::remove(Data());
 }
 
 bool FilePath::Rename(const FilePath& newPath) const
 {
+#if HYP_ANDROID
+    if (IsAndroidAssetPath(*this))
+        return false;
+#endif
+
     std::error_code ec;
     std::filesystem::rename(Data(), newPath.Data(), ec);
 
@@ -94,6 +145,11 @@ bool FilePath::Rename(const FilePath& newPath) const
 
 bool FilePath::Exists() const
 {
+#if HYP_ANDROID
+    if (IsAndroidAssetPath(*this))
+        return true; // assume true; will fail upon read if file doesn't exist
+#endif
+
     if (Empty())
     {
         return false;

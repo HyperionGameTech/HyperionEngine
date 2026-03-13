@@ -30,7 +30,8 @@ struct DirectoryInitializer
         {
             path = CoreApi::GetExecutablePath() / DirectoryStaticString.Data();
         }
-
+        
+#if HYP_EDITOR
         if (!path.Exists())
         {
             if (!path.MkDir())
@@ -39,9 +40,10 @@ struct DirectoryInitializer
             }
         }
 
-        Assert(path.Exists() && path.IsDirectory(), "Resource directory does not exist or is not a directory: {}", path.Data());
-        Assert(path.CanRead(), "Resource directory is not readable: {}", path.Data());
-        Assert(path.CanWrite(), "Resource directory is not writable: {}", path.Data());
+        AssertDebug(path.Exists() && path.IsDirectory(), "Resource directory does not exist or is not a directory: {}", path.Data());
+        AssertDebug(path.CanRead(), "Resource directory is not readable: {}", path.Data());
+        AssertDebug(path.CanWrite(), "Resource directory is not writable: {}", path.Data());
+#endif
     }
 };
 

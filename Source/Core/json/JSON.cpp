@@ -1023,14 +1023,16 @@ JString Value::ToString_Internal(bool representation, uint32 depth) const
         return (AsBool() ? "true" : "false");
     }
 
-    if (IsNull() || (IsUndefined() && representation))
+    if (IsNull() || IsUndefined())
     {
-        // JSON does not have undefined, so we represent it as null
-        return "null";
-    }
-    else if (IsUndefined())
-    {
-        return "undefined";
+        if (representation)
+        {
+            // JSON doesn't have undefined, only null.
+            return "null";
+        }
+        
+        // empty string
+        return "";
     }
 
     if (IsNumber())

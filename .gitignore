@@ -49,8 +49,6 @@ CMakeFiles/**/*
 **/*.pyc
 
 */.vs/**/*
-!*/.vs/launch.vs.json
-!*/.vs/tasks.vs.json
 
 */out/**/*
 

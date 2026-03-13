@@ -57,6 +57,10 @@ extern "C"
 
     // Only for use in detached mode (-Detached CLI flag)
     HYP_API void Hyp_MainThreadUpdate();
+
+#if HYP_ANDROID
+    HYP_API void Hyp_SetAssetManager(void* mgr);
+#endif
 }
 
 } // namespace Hyperion

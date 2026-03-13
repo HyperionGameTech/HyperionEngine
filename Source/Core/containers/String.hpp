@@ -23,7 +23,6 @@
 #include <Core/HashCode.hpp>
 
 #include <type_traits>
-#include <cctype>
 
 namespace Hyperion {
 

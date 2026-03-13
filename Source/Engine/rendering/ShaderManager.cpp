@@ -14,6 +14,8 @@
 
 #include <Core/threading/SharedMutex.hpp>
 
+#include <Core/threading/util/ThreadId.hpp>
+
 #if HYP_EDITOR
 #include <editor/EditorTask.hpp>
 #endif

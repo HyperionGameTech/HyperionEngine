@@ -11,6 +11,10 @@
 
 #include <cstdio>
 
+#if HYP_ANDROID
+struct AAsset;
+#endif
+
 namespace Hyperion {
 
 class ByteReader
@@ -179,6 +183,10 @@ protected:
     size_t m_pos;
     size_t m_maxPos;
     FilePath m_filepath;
+    
+#if HYP_ANDROID
+    AAsset* m_asset;
+#endif
 };
 
 class MemoryMappedByteReader final : public ByteReader

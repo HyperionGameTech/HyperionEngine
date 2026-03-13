@@ -22,6 +22,7 @@ set_target_properties(hyperion PROPERTIES
     IMPORTED_LOCATION "${CMAKE_CURRENT_SOURCE_DIR}/app/src/main/jniLibs/${CMAKE_ANDROID_ARCH_ABI}/libhyperion.so"
 )
 
+add_dependencies(hyperion-android hyperion)
 target_link_libraries(hyperion-android
     PRIVATE
     hyperion

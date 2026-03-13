@@ -4,6 +4,10 @@
 
 #include <Core/Defines.hpp>
 
+#include <stdint.h>
+#include <stddef.h>
+#include <ctype.h>
+
 namespace Hyperion {
 
 using ubyte = unsigned char;
@@ -34,7 +38,9 @@ static_assert(sizeof(float32) == 4, "Expected float to be 32-bit!");
 using float64 = double;
 static_assert(sizeof(float64) == 8, "Expected double to be 64-bit!");
 
+#if HYP_MSVC
 using size_t = decltype(sizeof(int));
+#endif
 
 #if HYP_WINDOWS
 using TChar = wchar_t;
@@ -44,7 +50,7 @@ using TChar = char;
 
 // declare custom pointer-sized types so they don't get defined as long / unsigned long etc.
 
-template <size_t Size, bool Signed>
+template <int Size, bool Signed>
 struct PointerSizedTypeHelper;
 
 template <>
@@ -71,7 +77,7 @@ struct PointerSizedTypeHelper<8, false>
     using Type = uint64;
 };
 
-using UIntPtr = typename PointerSizedTypeHelper<sizeof(void*), false>::Type;
-using IntPtr = typename PointerSizedTypeHelper<sizeof(void*), true>::Type;
+using UIntPtr = typename PointerSizedTypeHelper<int(sizeof(void*)), false>::Type;
+using IntPtr = typename PointerSizedTypeHelper<int(sizeof(void*)), true>::Type;
 
 } // namespace Hyperion

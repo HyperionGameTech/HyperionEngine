@@ -3,6 +3,7 @@ package com.hyperion.engine;
 import android.app.Activity;
 import android.graphics.Color;
 import android.os.Bundle;
+import android.content.res.AssetManager;
 import android.util.Log;
 import android.view.Gravity;
 import android.widget.LinearLayout;
@@ -19,6 +20,9 @@ public class MainActivity extends Activity {
         String statusText;
         int statusColor;
 
+        // call before Hyp_Initialize
+        HyperionBridge.nativeSetAssetManager(getAssets());
+
         try {
             int result = HyperionBridge.nativeInit();
 
@@ -26,6 +30,8 @@ public class MainActivity extends Activity {
                 statusText = "Hyp_Initialize OK (returned " + result + ")";
                 statusColor = Color.rgb(100, 220, 100);
                 Log.i(TAG, statusText);
+
+                HyperionBridge.nativeLaunchThreads();
             } else {
                 statusText = "Hyp_Initialize FAILED (returned 0)";
                 statusColor = Color.rgb(220, 100, 100);
@@ -65,6 +71,8 @@ public class MainActivity extends Activity {
     @Override
     protected void onDestroy() {
         super.onDestroy();
+
+        HyperionBridge.nativeSetAssetManager(null);
 
         try {
             HyperionBridge.nativeShutdown();

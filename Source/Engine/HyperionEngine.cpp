@@ -70,6 +70,10 @@ namespace Hyperion {
 
 HYP_DECLARE_LOG_CHANNEL(Engine);
 
+#if HYP_ANDROID
+struct AAssetManager* g_androidAssetManager;
+#endif
+
 #pragma region Memory Pools
 
 #define HYP_ENGINE_MEMORY_IMPLEMENTATION 1
@@ -126,9 +130,10 @@ HYP_EXPORT const FilePath& GetLibraryDirectory()
     // shouldn't be used in non-editor builds, so just return executable path to avoid issues with appending paths
     HYP_LOG(Engine, Warning, "GetLibraryDirectory() called in non-editor build; returning executable path instead");
 
-    static const FilePath s_emptyPath = CoreApi::GetExecutablePath();
-    Assert(s_emptyPath.Length() != 0); // don't want to return empty path which will cause appending to give root-level paths.
-    return s_emptyPath;
+    static const FilePath s_exePath = CoreApi::GetExecutablePath();
+    Assert(s_exePath.Length() != 0); // don't want to return empty path which will cause appending to give root-level paths.
+
+    return s_exePath;
 #endif
 }
 
@@ -151,7 +156,7 @@ HYP_EXPORT const FilePath& GetCacheDirectory()
     static const ConfigurationValue& s_cfgCacheDirectory = CoreApi::GetGlobalConfig().Get("App.Cache.BaseDirectory");
     static const ConfigurationValue& s_cfgCachePageSize = CoreApi::GetGlobalConfig().Get("App.Cache.PageSize");
 
-    static const FilePath s_cacheDirectory = CoreApi::GetExecutablePath() / s_cfgCacheDirectory.AsString().ToUtf8();
+    static const FilePath s_cacheDirectory = CoreApi::GetExecutablePath() / s_cfgCacheDirectory.ToString().ToUtf8();
 
     TSharedLock sharedLock(s_cacheDirectoryMutex);
 
@@ -173,7 +178,7 @@ HYP_EXPORT const FilePath& GetCacheDirectory()
         CoreApi::UpdateGlobalConfig(newConfigurationTable);
     }
 
-    if (!s_cacheDirectory.Exists() && !s_cacheDirectory.MkDir())
+    if (s_cacheDirectory.Empty() || (!s_cacheDirectory.Exists() && !s_cacheDirectory.MkDir()))
     {
         HYP_FAIL("Failed to initialize cache storage directory {}!", s_cacheDirectory);
     }
@@ -315,7 +320,13 @@ extern "C"
 
         const CommandLineArguments& cliArgs = CoreApi::GetCommandLineArguments();
 
+#if HYP_ANDROID
+        // use asset manager for all assets
+        const FilePath basePath = FilePath(AndroidAssetPathPrefix);
+#else
         const FilePath basePath = FilePath(cliArgs.GetCommand().ToUtf8()).BasePath();
+#endif
+
         CoreApi::SetExecutablePath(basePath);
         
         const bool isEditor = cliArgs["Editor"].ToBool();
@@ -805,6 +816,13 @@ extern "C"
         }
 
         return 1;
+    }
+#endif
+
+#if HYP_ANDROID
+    HYP_EXPORT void Hyp_SetAssetManager(void* assetManager)
+    {
+        g_androidAssetManager = (AAssetManager*)assetManager;
     }
 #endif
 }
