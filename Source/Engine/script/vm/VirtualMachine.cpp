@@ -1,3 +1,5 @@
+#include <ScriptPch.hpp>
+
 #include <script/vm/VirtualMachine.hpp>
 #include <script/vm/Value.hpp>
 #include <script/vm/String.hpp>

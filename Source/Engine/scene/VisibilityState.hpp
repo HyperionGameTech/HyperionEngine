@@ -2,12 +2,13 @@
 
 #pragma once
 
+#include <Core/Defines.hpp>
+#include <Core/Types.hpp>
+
 #include <Core/reflection/ObjectMacros.hpp>
 #include <Core/reflection/ObjId.hpp>
 
 #include <Core/containers/Array.hpp>
-
-#include <Core/Types.hpp>
 
 namespace Hyperion {
 

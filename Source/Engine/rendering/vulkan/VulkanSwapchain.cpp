@@ -26,7 +26,7 @@ namespace Hyperion {
 
 extern VulkanRenderInterface* g_renderInterface;
 
-static constexpr bool VulkanSwapchainUseFIFO = false;
+static constexpr bool VulkanSwapchainUseFIFO = true;
 static constexpr bool UseSRGBFormat = true;
 static constexpr bool UseHDRFormat = false;
 static constexpr VkImageUsageFlags ImageUsageFlags = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
@@ -47,6 +47,8 @@ static RendererResult AcquireNextImage(
         semaphore->GetVulkanHandle(),
         VK_NULL_HANDLE,
         index);
+
+    HYP_LOG_TEMP("Acquired image with index {}, reuslt = {}", *index, (int)vkResult);
 
     if (pOutNeedsRecreate != nullptr && (vkResult == VK_ERROR_OUT_OF_DATE_KHR || vkResult == VK_SUBOPTIMAL_KHR))
     {
@@ -150,11 +152,13 @@ void VulkanSwapchain::PresentFrame(VulkanFrame* frame, VulkanDeviceQueue* queue)
     presentInfo.pImageIndices = &m_acquiredImageIndex;
     presentInfo.pResults = nullptr;
 
+    HYP_LOG(RenderingBackend, Debug, "Presenting image with index {}", m_acquiredImageIndex);
+
     VkResult result = vkQueuePresentKHR(queue->queue, &presentInfo);
 
     if (result == VK_SUBOPTIMAL_KHR || result == VK_ERROR_OUT_OF_DATE_KHR)
     {
-        HYP_LOG(RenderingBackend, Verbose, "Got suboptimal/out of date swapchain present result ({}), calling Recreate()",
+        HYP_LOG(RenderingBackend, Debug, "Got suboptimal/out of date swapchain present result ({}), calling Recreate()",
                 result);
         
         Recreate();

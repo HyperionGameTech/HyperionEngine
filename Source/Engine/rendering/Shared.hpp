@@ -2,9 +2,17 @@
 
 #pragma once
 
+#include <Core/Defines.hpp>
 #include <Core/Types.hpp>
 
+#include <Core/name/Name.hpp>
+
 #include <Core/utilities/Float16.hpp>
+#include <Core/utilities/EnumFlags.hpp>
+#include <Core/utilities/ByteUtil.hpp>
+#include <Core/utilities/Variant.hpp>
+
+#include <Core/containers/FlatMap.hpp>
 
 #include <Core/math/Vector2.hpp>
 
@@ -1687,7 +1695,7 @@ struct ShaderProperty
     }
 
     explicit ShaderProperty(const VertexAttribute& vertexAttribute)
-        : name(NAME_FMT("HYP_ATTRIBUTE_{}", vertexAttribute.name)),
+        : name(CreateNameFromDynamicString(ANSIString("HYP_ATTRIBUTE_") + *vertexAttribute.name)),
           flags(SPF_VERTEX_ATTRIBUTE),
           currentValue(Value(vertexAttribute.name))
     {

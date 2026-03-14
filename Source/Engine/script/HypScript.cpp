@@ -1,3 +1,5 @@
+#include <ScriptPch.hpp>
+
 #include <script/HypScript.hpp>
 
 #include <script/vm/BytecodeStream.hpp>

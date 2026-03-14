@@ -14,7 +14,7 @@
 #include <Core/reflection/TypeInfo.hpp>
 
 #include <Core/io/ByteWriter.hpp>
-#include <Core/io/BufferedByteReader.hpp>
+#include <Core/io/ByteReader.hpp>
 
 #include <Core/logging/LogChannels.hpp>
 #include <Core/logging/Logger.hpp>
@@ -127,21 +127,23 @@ FilePath ConfigurationTable::GetFilePath() const
 Result ConfigurationTable::Read(JSON::Value& outValue) const
 {
     const FilePath configPath = GetFilePath();
+    HYP_LOG(Config, Debug, "Loading configuration \"{}\" from file {}", m_name, GetFilePath());
 
     if (!configPath.Exists())
     {
         return HYP_MAKE_ERROR(Error, "Configuration file does not exist at {}", configPath);
     }
 
-    FileBufferedReaderSource source { configPath };
-    BufferedReader reader { &source };
+    FileByteReader stream { configPath };
 
-    if (!reader.IsOpen())
+    if (stream.Eof())
     {
         return HYP_MAKE_ERROR(Error, "Failed to open configuration file at {}", configPath);
     }
 
-    JSON::ParseResult parseResult = JSON::Parse(String(reader.ReadBytes().ToByteView()));
+    String configStr = String(stream.Read().ToByteView());
+
+    JSON::ParseResult parseResult = JSON::Parse(configStr);
 
     if (!parseResult.ok)
     {
@@ -275,31 +277,31 @@ void ConfigurationTable::AddError(const Error& error)
     m_errors.PushBack(error);
 }
 
-void ConfigurationTable::LogErrors() const
+void ConfigurationTable::LogErrors(FILE* outFile) const
 {
     if (m_errors.Empty())
     {
         return;
     }
 
-    HYP_LOG(Config, Error, "Errors in configuration \"{}\" ({}):", m_name, GetFilePath());
+    std::fprintf(outFile, "Errors in configuration \"%s\" (%s):", *m_name, *GetFilePath());
 
     for (const Error& error : m_errors)
     {
-        HYP_LOG(Config, Error, "  <{}> {}", error.GetFunctionName(), error.GetMessage());
+        std::fprintf(outFile, "  <%s> %s", error.GetFunctionName(), error.GetMessage());
     }
 }
 
-void ConfigurationTable::LogErrors(UTF8StringView message) const
+void ConfigurationTable::LogErrors(FILE* outFile, UTF8StringView message) const
 {
-    HYP_LOG(Config, Error, "Errors in configuration \"{}\" ({}):", m_name, GetFilePath());
+    std::fprintf(outFile, "Errors in configuration \"%s\" (%s):", *m_name, *GetFilePath());
 
     for (const Error& error : m_errors)
     {
-        HYP_LOG(Config, Error, "  <{}> {}", error.GetFunctionName(), error.GetMessage());
+        std::fprintf(outFile, "  <%s> %s", error.GetFunctionName(), error.GetMessage());
     }
 
-    HYP_LOG(Config, Error, "{}", message);
+    std::fprintf(outFile, "%s", message.Data());
 }
 
 bool ConfigurationTable::SetClassFields(const Class* cls, const void* ptr)

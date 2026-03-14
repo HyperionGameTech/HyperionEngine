@@ -1,3 +1,5 @@
+#include <ScriptPch.hpp>
+
 #include <script/vm/SymbolTable.hpp>
 
 #include <Core/reflection/BoxedValue.hpp>

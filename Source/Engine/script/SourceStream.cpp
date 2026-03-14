@@ -1,6 +1,6 @@
-#include <script/SourceStream.hpp>
+#include <ScriptPch.hpp>
 
-#include <stdexcept>
+#include <script/SourceStream.hpp>
 
 namespace Hyperion {
 

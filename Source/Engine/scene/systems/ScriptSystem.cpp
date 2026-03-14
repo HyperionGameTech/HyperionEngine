@@ -37,7 +37,11 @@ namespace Hyperion {
 
 EngineStatTimer g_statScriptUpdate("Script/Update");
 
-constexpr bool enableScriptReloading = true;
+#if HYP_EDITOR
+constexpr bool EnableScriptReloading = true;
+#else
+constexpr bool EnableScriptReloading = false;
+#endif
 
 template <class ReturnType, class... ArgTypes>
 static void InvokeScriptMethodT(ReturnType* outReturnValue, ScriptObjectResource* sor, const char* methodName, ArgTypes&&... args)
@@ -107,8 +111,10 @@ ScriptSystem::ScriptSystem()
 {
     // @FIXME: Issue with reloaded assemblies that spawn native objects having their classes change.
 
-    if (enableScriptReloading)
+    if (EnableScriptReloading)
     {
+        Assert(g_engineDriver->GetScriptingService() != nullptr);
+
         m_delegateHandlers.Add(
             NAME("OnScriptStateChanged"),
             g_engineDriver->GetScriptingService()->OnScriptStateChanged.Bind([this](const ScriptDesc& script)

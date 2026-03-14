@@ -2,7 +2,7 @@
 
 #ifdef __cplusplus
 
-#include <SystemPch.hpp>
+#include <HyperionPch.hpp>
 
 #include <engine/EngineGlobals.hpp>
 

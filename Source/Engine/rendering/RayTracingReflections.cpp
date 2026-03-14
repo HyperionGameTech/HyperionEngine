@@ -39,7 +39,7 @@
 namespace Hyperion {
 
 static const Name s_shaderNames[] = { NAME("RayTracedReflections"), NAME("PathTracer") };
-static constexpr uint32 MaxLights = sizeof(RayTracingConstants::lightIndices) / sizeof(uint32);
+static constexpr uint32 MaxLights = sizeof(RayTracingConstants::lightIndices) / (sizeof(uint32));
 
 RayTracingReflections::RayTracingReflections(RayTracingReflectionsConfig&& config, GBuffer* gbuffer)
     : m_config(std::move(config)),

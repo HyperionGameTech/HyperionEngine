@@ -112,7 +112,7 @@ void Shader::PageBlobData()
         }
     }
 
-#if HYP_EDITOR || HYP_ALLOW_INLINE_BLOBS
+#if HYP_EDITOR
     if (needSaveBlobData)
     {    
         BlobStorage& blobStorage = g_assetManager->GetAssetRegistry()->GetBlobStorage();

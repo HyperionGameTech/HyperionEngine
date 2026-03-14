@@ -628,7 +628,11 @@ RendererResult VulkanRenderInterface::Initialize()
 
     if (s_cfgDebugLayers.ToBool(false))
     {
-        HYP_LOG(RenderingBackend, Verbose, "Vulkan debug layers enabled");
+        HYP_LOG(RenderingBackend, Info, "Running with Vulkan validation layers enabled; expect lower performance");
+    }
+    else
+    {
+        HYP_LOG(RenderingBackend, Info, "Running without Vulkan validation layers");
     }
 
     const bool enableDebugLayers = s_cfgDebugLayers.ToBool(false);

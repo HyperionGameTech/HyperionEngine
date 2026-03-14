@@ -194,6 +194,7 @@ HYP_EXPORT const FilePath& GetCacheDirectory()
 HYP_EXPORT const FilePath& GetTempDirectory()
 {
 #if HYP_ANDROID
+    // not used in Android build.
     static const FilePath s_emptyPath;
     return s_emptyPath;
 #else
@@ -206,8 +207,9 @@ HYP_EXPORT const FilePath& GetTempDirectory()
 HYP_EXPORT const FilePath& GetDataDirectory()
 {
 #if HYP_ANDROID
-    static const FilePath s_emptyPath;
-    return s_emptyPath;
+    // use asset manager for all assets
+    static const FilePath s_dataPath = FilePath(AndroidAssetPathPrefix) / "Data";
+    return s_dataPath;
 #else
     static DirectoryInitializer<HYP_STATIC_STRING("Data"), /* RelativeToExecutablePath */ false> s_dataDirectory;
     return s_dataDirectory.path;
@@ -217,8 +219,9 @@ HYP_EXPORT const FilePath& GetDataDirectory()
 HYP_EXPORT const FilePath& GetConfigDirectory()
 {
 #if HYP_ANDROID
-    static const FilePath s_emptyPath;
-    return s_emptyPath;
+    // use asset manager for all assets
+    static const FilePath s_configPath = FilePath(AndroidAssetPathPrefix) / "Config";
+    return s_configPath;
 #else
     static DirectoryInitializer<HYP_STATIC_STRING("Config"), /* RelativeToExecutablePath */ false> s_configDirectory;
     return s_configDirectory.path;
@@ -282,12 +285,11 @@ static void LoadShaderPropertyDictionary()
 {
     InitShaderPropertyDictionary();
 
-    FileBufferedReaderSource source { GetCacheDirectory() / "ShaderProperties.bin" };
-    BufferedByteReader br { &source };
+    FileByteReader stream { GetCacheDirectory() / "ShaderProperties.bin" };
 
-    if (br.IsOpen())
+    if (!stream.Eof())
     {
-        ReadShaderPropertyDictionary(br);
+        ReadShaderPropertyDictionary(stream);
     }
 }
 

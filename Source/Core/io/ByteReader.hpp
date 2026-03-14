@@ -30,7 +30,7 @@ public:
         return Position() >= Max();
     }
 
-    template <typename T>
+    template <typename T, typename = std::enable_if_t<!std::is_same_v<T*, void*>>>
     void Read(T* ptr, size_t size = sizeof(T))
     {
         if (size == 0)

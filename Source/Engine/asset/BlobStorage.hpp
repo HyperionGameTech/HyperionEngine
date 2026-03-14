@@ -9,14 +9,16 @@
 
 #include <Core/utilities/ValueStorage.hpp>
 #include <Core/utilities/Range.hpp>
+#include <Core/utilities/Result.hpp>
 
 #include <Core/filesystem/FilePath.hpp>
 
 #include <Core/memory/allocator/ArenaAllocator.hpp>
 
-#include <Core/threading/SharedMutex.hpp>
+#include <Core/threading/Mutex.hpp>
 
 #include <Core/reflection/ObjectBase.hpp>
+#include <Core/reflection/Handle.hpp>
 
 #include <Core/io/MemoryMappedFile.hpp>
 

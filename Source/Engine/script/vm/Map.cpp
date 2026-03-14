@@ -1,3 +1,5 @@
+#include <ScriptPch.hpp>
+
 #include <script/vm/Map.hpp>
 
 #include <Core/debug/Debug.hpp>

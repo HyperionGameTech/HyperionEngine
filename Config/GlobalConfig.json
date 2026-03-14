@@ -8,7 +8,7 @@
     }
   },
   "Logging": {
-    "Verbose": false
+    "Verbose": true
   },
   "Rendering": {
     "RayTracing": {
@@ -19,9 +19,9 @@
         "Enabled": false
       },
       "GI": {
-        "Enabled": true
+        "Enabled": false
       },
-      "Enabled": true
+      "Enabled": false
     },
     "SSAO": {
       "Enabled": false
@@ -74,7 +74,7 @@
       "AO": false
     },
     "Vulkan": {
-      "DebugLayers": false
+      "DebugLayers": true
     }
   },
   "Editor": {

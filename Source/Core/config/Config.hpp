@@ -124,6 +124,9 @@ public:
 
     void AddError(const Error& error);
 
+    void LogErrors(FILE* outFile) const;
+    void LogErrors(FILE* outFile, UTF8StringView message) const;
+
     HYP_FORCE_INLINE String ToString() const
     {
         return GetSubobject().ToString(true);
@@ -136,9 +139,6 @@ protected:
 
     Result Read(JSON::Value& outValue) const;
     Result Write(const JSON::Value& value) const;
-
-    void LogErrors() const;
-    void LogErrors(UTF8StringView message) const;
 
     bool SetClassFields(const Class* cls, const void* ptr);
 
@@ -221,7 +221,7 @@ public:
 
         if (!result.Validate())
         {
-            result.LogErrors("Validation failed");
+            result.LogErrors(stderr, "Validation failed");
 
             return {};
         }
@@ -232,7 +232,7 @@ public:
 
             if (!saveResult)
             {
-                result.LogErrors("Failed to save configuration");
+                result.LogErrors(stderr, "Failed to save configuration");
             }
         }
 

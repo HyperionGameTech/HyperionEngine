@@ -284,7 +284,7 @@ void Mesh::PageBlobData()
             m_indexData.readOnly = true;
         }
 
-#if HYP_EDITOR || HYP_ALLOW_INLINE_BLOBS
+#if HYP_EDITOR
         if (needsSaveBlobData)
         {
             Result saveBlobDataResult = SaveBlobData(blobStorage);

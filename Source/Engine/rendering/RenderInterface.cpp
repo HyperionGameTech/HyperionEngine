@@ -67,7 +67,6 @@
 #include <Core/utilities/DeferredScope.hpp>
 
 #include <Core/io/ByteWriter.hpp>
-#include <Core/io/BufferedByteReader.hpp>
 
 #include <Core/containers/SparsePagedArray.hpp>
 

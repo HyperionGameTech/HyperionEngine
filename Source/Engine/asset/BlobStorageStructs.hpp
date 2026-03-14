@@ -2,7 +2,11 @@
 
 #pragma once
 
+#include <Core/Defines.hpp>
 #include <Core/Types.hpp>
+#include <Core/HashCode.hpp>
+
+#include <Core/name/Name.hpp>
 
 #include <Core/io/ByteReader.hpp>
 #include <Core/io/ByteWriter.hpp>

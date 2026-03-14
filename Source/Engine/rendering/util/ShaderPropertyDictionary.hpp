@@ -11,9 +11,7 @@ enum class ShaderPropertyId : uint32;
 struct ShaderProperty;
 
 class ByteWriter;
-
-class BufferedReader;
-using BufferedByteReader = BufferedReader;
+class ByteReader;
 
 /*! \brief ShaderPropertyDictionary assigns all ShaderProperty hashes to a contiguous index
  *  upon first use and reuses that index on subsequent encounters of the same ShaderProperty.
@@ -31,7 +29,7 @@ public:
 void InitShaderPropertyDictionary();
 
 void WriteShaderPropertyDictionary(ByteWriter& stream);
-void ReadShaderPropertyDictionary(BufferedByteReader& stream);
+void ReadShaderPropertyDictionary(ByteReader& stream);
 
 ShaderPropertyId InternShaderProperty(const ShaderProperty& property);
 bool GetShaderPropertyById(ShaderPropertyId propertyId, ShaderProperty& outProperty);

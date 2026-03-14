@@ -1,8 +1,9 @@
+#include <ScriptPch.hpp>
+
 #include <script/SourceFile.hpp>
 
 #include <Core/debug/Debug.hpp>
 
-#include <stdexcept>
 #include <cstring>
 
 namespace Hyperion {

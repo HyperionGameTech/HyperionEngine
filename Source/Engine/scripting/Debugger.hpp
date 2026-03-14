@@ -4,6 +4,11 @@
 
 #include <Core/Defines.hpp>
 
+#include <Core/reflection/ObjectBase.hpp>
+#include <Core/reflection/ObjectMacros.hpp>
+#include <Core/reflection/ObjId.hpp>
+#include <Core/reflection/Handle.hpp>
+
 namespace Hyperion {
 
 /// For interacting with the debugger from scripts - Not intended for use in native code.

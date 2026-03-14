@@ -1,4 +1,7 @@
+#include <ScriptPch.hpp>
+
 #include <script/vm/Tracemap.hpp>
+
 #include <Core/debug/Debug.hpp>
 #include <Core/utilities/Format.hpp>
 

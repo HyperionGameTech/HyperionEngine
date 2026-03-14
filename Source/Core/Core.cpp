@@ -147,12 +147,17 @@ bool Initialize(int argc, char** argv)
     {
         const Error& error = parseResult.GetError();
 
+        // Can't use Logger here, may not be init yet. So we just printf the error to stderr and exit.
+        std::fprintf(stderr, "Error parsing command line arguments: %s\n", error.GetMessage());
+        std::exit(1);
+
         return false;
     }
 
     s_commandLineArguments = CommandLineArguments::Merge(*argParse.GetDefinitions(), s_commandLineArguments, *parseResult);
 
     GlobalConfig config { "GlobalConfig" };
+    config.LogErrors(stderr);
 
     if (JSON::Value configArgs = config.Get("App.Args"))
     {

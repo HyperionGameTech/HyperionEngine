@@ -38,7 +38,7 @@ namespace Hyperion {
 
 static constexpr TextureFormat IrradianceFormat = TextureFormat::RGBA8;
 static constexpr TextureFormat DepthFormat = TextureFormat::RG16F;
-static constexpr uint32 MaxBoundLights = sizeof(DDGIConstants::lightIndices) / sizeof(uint32);
+static constexpr uint32 MaxBoundLights = sizeof(DDGIConstants::lightIndices) / (sizeof(uint32));
 
 static const ShaderPropertyId s_propHasEnvProbe = InternShaderProperty(ShaderProperty(NAME("HAS_ENV_PROBE")));
 

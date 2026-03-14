@@ -128,6 +128,7 @@ tasks.register('stageNativeLibs') {
 // copy packages into assets dir.
 // TODO: Copy Projects/*ProjectName*/ too?
 def basePackagesDir   = file('../../../../Packages')
+def baseConfigDir = file("../../../../Config")
 def assetsDestDir = file('src/main/assets')
 
 tasks.register('stagePackageAssets', Sync) {
@@ -142,6 +143,9 @@ tasks.register('stagePackageAssets', Sync) {
         // exclude '**/*.blob'
     }
 
+    from(baseConfigDir) {
+        into new File('Config')
+    }
     into assetsDestDir
 }
 

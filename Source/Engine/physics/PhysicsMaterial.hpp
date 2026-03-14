@@ -2,6 +2,11 @@
 
 #pragma once
 
+#include <Core/Defines.hpp>
+#include <Core/HashCode.hpp>
+
+#include <Core/reflection/ObjectMacros.hpp>
+
 namespace Hyperion {
 
 HYP_STRUCT()

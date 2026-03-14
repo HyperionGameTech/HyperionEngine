@@ -22,7 +22,7 @@ void WriteShaderPropertyDictionary(ByteWriter& stream)
     ShaderPropertyDictionary::GetInstance().Write(stream);
 }
 
-void ReadShaderPropertyDictionary(BufferedByteReader& stream)
+void ReadShaderPropertyDictionary(ByteReader& stream)
 {
     ShaderPropertyDictionary::GetInstance().Read(stream);
 }

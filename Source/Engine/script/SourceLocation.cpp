@@ -1,3 +1,5 @@
+#include <ScriptPch.hpp>
+
 #include <script/SourceLocation.hpp>
 
 namespace Hyperion {

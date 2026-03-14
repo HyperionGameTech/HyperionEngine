@@ -373,6 +373,7 @@ void Texture::PageBlobData()
 
                 AllocateBlobData(m_imageData, buffer.Data(), buffer.Size(), 1);
                     
+#if HYP_EDITOR
                 Result saveBlobDataResult = SaveBlobData(blobStorage);
                 if (saveBlobDataResult.HasError())
                 {
@@ -380,6 +381,7 @@ void Texture::PageBlobData()
                 }
 
                 MarkDirty();
+#endif
 
                 return;
             }

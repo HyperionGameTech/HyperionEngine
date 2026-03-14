@@ -72,7 +72,7 @@ struct GpuLightmapperReadyNotification : Semaphore<int>
 {
 };
 
-static constexpr uint32 MaxBoundLights = sizeof(RayTracingConstants::lightIndices) / sizeof(uint32);  
+static constexpr uint32 MaxBoundLights = sizeof(RayTracingConstants::lightIndices) / (sizeof(uint32));  
 
 #pragma region Render commands
 

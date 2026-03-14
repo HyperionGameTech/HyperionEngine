@@ -2,6 +2,8 @@
 
 #pragma once
 
+#include <Core/Defines.hpp>
+
 namespace Hyperion {
 namespace memory {
 

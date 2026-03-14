@@ -173,11 +173,11 @@ void ApplicationWindow::CreateSwapchain()
     HYP_SCOPE;
     AssertOnThread(g_mainThread);
 
+    AssertDebug(GetDimensions() != Vec2i::Zero());
+
     TUniqueLock lock(m_mtx);
 
 #if HYP_VULKAN
-    AssertDebug(GetDimensions() != Vec2i::Zero());
-
     if (m_vkSurface)
     {
         return; // already created. swapchain is set on render thread

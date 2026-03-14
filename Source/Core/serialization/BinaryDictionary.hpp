@@ -17,21 +17,19 @@
 #include <Core/threading/LockGuard.hpp>
 
 #include <Core/io/ByteWriter.hpp>
-#include <Core/io/BufferedByteReader.hpp>
+#include <Core/io/ByteReader.hpp>
 
 #include <Core/logging/Logger.hpp>
 
 namespace Hyperion {
 
-/*! \brief BinaryDictionary is a generic, thread-safe dictionary that maps values to compact integer IDs
- *  and supports binary serialization.
+/*! \brief BinaryDictionary is a generic serializable dictionary that maps values to integral IDs
  *
- *  It assigns each unique value (identified by its HashCode) a contiguous integer ID, enabling
- *  efficient bitset-based set representation. The dictionary can be written to and read back from
- *  a binary stream, with static-entry versioning to detect schema changes.
+ *  It assigns each unique value, identified by its HashCode, to a contiguous integer ID to allow
+ *  the IDs to be used in bitsets, as that is a common pattern throughout the codebase.
  *
  *  \tparam Value     The value type to intern. Must be copyable and support HashCode::GetHashCode().
- *  \tparam IdType        An enum or integral type used as the ID. Must be at most 4 bytes.
+ *  \tparam IdType    An enum or integral type used as the ID. Must be at most 4 bytes.
  *  \tparam PageSize  Page size passed to the internal SparsePagedArray reverse map. Must be a power of two. */
 template <class Value, class IdType, uint32 PageSize = 128>
 class BinaryDictionary
@@ -192,7 +190,7 @@ public:
     /*! \brief Deserialize the dictionary from a binary stream.
      *  Only the forward (hash -> ID) map is populated; the reverse map is rebuilt lazily via Intern().
      *  \return True on success. Returns false and rolls back the stream on version or hash mismatch. */
-    bool Read(BufferedByteReader& stream)
+    bool Read(ByteReader& stream)
     {
         const size_t readOffset = stream.Position();
 
@@ -235,7 +233,7 @@ public:
         ubyte* bytes = (ubyte*)Memory::Allocate(entryCount * SizeOfEntry);
         size_t readBytes = 0;
 
-        if ((readBytes = stream.ReadBytes(bytes, entryCount * SizeOfEntry)) != entryCount * SizeOfEntry)
+        if ((readBytes = stream.Read(static_cast<void*>(bytes), size_t(entryCount * SizeOfEntry))) != entryCount * SizeOfEntry)
         {
             HYP_LOG(Core, Error, "BinaryDictionary is corrupt! Read {} bytes, expected {}.",
                 readBytes, entryCount * SizeOfEntry);

@@ -11,6 +11,8 @@
 #include <Core/containers/HashSet.hpp>
 #include <Core/containers/FlatSet.hpp>
 
+#include <Core/memory/pool/Pool.hpp>
+
 #include <Core/memory/allocator/ArenaAllocator.hpp>
 
 #include <Core/Defines.hpp>

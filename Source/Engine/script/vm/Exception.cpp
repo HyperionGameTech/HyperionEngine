@@ -1,3 +1,5 @@
+#include <ScriptPch.hpp>
+
 #include <script/vm/Exception.hpp>
 #include <script/vm/Value.hpp>
 
