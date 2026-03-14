@@ -26,7 +26,7 @@ namespace Hyperion {
 
 extern VulkanRenderInterface* g_renderInterface;
 
-static constexpr bool VulkanSwapchainUseFIFO = true;
+static constexpr bool VulkanSwapchainUseFIFO = false;
 static constexpr bool UseSRGBFormat = true;
 static constexpr bool UseHDRFormat = false;
 static constexpr VkImageUsageFlags ImageUsageFlags = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;

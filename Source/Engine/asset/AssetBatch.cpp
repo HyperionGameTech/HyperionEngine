@@ -10,8 +10,6 @@
 #include <Core/threading/Threads.hpp>
 #include <Core/threading/TaskSystem.hpp>
 
-#include <engine/EngineDriver.hpp>
-
 namespace Hyperion {
 
 #pragma region AssetBatch

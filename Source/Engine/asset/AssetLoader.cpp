@@ -60,7 +60,7 @@ Array<FilePath> AssetLoaderBase::GetTryFilepaths(const FilePath& originalFilepat
         FilePath::Relative(originalFilepath, currentPath)
     };
 
-    auto addRebasedFilepath = [&paths, &originalFilepath, &currentPath](const FilePath& basePath)
+    auto AddRebasedFilepath = [&paths, &originalFilepath, &currentPath](const FilePath& basePath)
     {
         const FilePath filepath = GetRebasedFilepath(basePath, originalFilepath);
 
@@ -72,17 +72,17 @@ Array<FilePath> AssetLoaderBase::GetTryFilepaths(const FilePath& originalFilepat
 
     if (basePath.Any())
     {
-        addRebasedFilepath(basePath);
+        AddRebasedFilepath(basePath);
     }
 
-    AssetManager::GetInstance()->FindAssetCollector([&addRebasedFilepath, &basePath](const Handle<AssetCollector>& assetCollector)
+    AssetManager::GetInstance()->FindAssetCollector([&AddRebasedFilepath, &basePath](const Handle<AssetCollector>& assetCollector)
         {
             if (assetCollector->GetBasePath() == basePath)
             {
                 return false;
             }
 
-            addRebasedFilepath(assetCollector->GetBasePath());
+            AddRebasedFilepath(assetCollector->GetBasePath());
 
             return false;
         });

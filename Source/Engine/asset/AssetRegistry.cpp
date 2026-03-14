@@ -1953,18 +1953,20 @@ void AssetRegistry::Initialize()
 
     // editor specific packages
 #if HYP_EDITOR
+    // load Engine package before importing others (they may reference stuff in this package)
     Handle<AssetPackage> enginePackage = GetPackageFromPath("Engine", true);
     Assert(enginePackage.IsValid());
-
     enginePackage->Save(GetLibraryDirectory());
 
     LoadPackagesAsync(/* loadSubpackages */ false);
 
     Handle<AssetPackage> tempPackage = GetPackageFromPath("$Temp", true);
+    Assert(tempPackage.IsValid());
     tempPackage->Save(CoreApi::GetExecutablePath());
     
     // Add transient package for imported assets in editor mode
     Handle<AssetPackage> importsPackage = GetPackageFromPath("$Import", true);
+    Assert(importsPackage.IsValid());
 
     m_onEngineShutdown = g_engineDriver->GetDelegates().OnShutdown.Bind([this, weakThis = MakeWeakRef(this)]()
         {
@@ -2161,7 +2163,7 @@ void AssetRegistry::InitBlobStorage()
     const FilePath& s_blobStorageLocation = GetCacheDirectory();
     const uint64 s_blobStoragePageSize = CoreApi::GetGlobalConfig().Get("App.Cache.PageSize")
         .ToUInt64(/* defaultValue */ BlobStorage::DefaultPageSize);
-
+    
     m_blobStorage = new BlobStorage(s_blobStorageLocation, s_blobStoragePageSize);
 }
 
@@ -2733,7 +2735,7 @@ Handle<AssetPackage> AssetRegistry::GetPackageFromPath_Internal(
 
             if (!currentPackage)
             {
-                return Handle<AssetPackage>::empty;
+                return Handle<AssetPackage>::Null();
             }
 
             continue;
@@ -2837,42 +2839,49 @@ Handle<AssetPackage> AssetRegistry::GetPackage(
                 pkg->WaitUntilLoaded();
             }
         }
-        else if (canLoadPackage)
+        else
         {
-            // Try loading from manifest path, if it exists.
-            FilePath subpackageDir = GetLibraryDirectory() / String(subpackageName);
-            FilePath manifestPath = subpackageDir / "PackageManifest.json";
-
-            if (manifestPath.Exists() && !manifestPath.IsDirectory())
+            if (canLoadPackage)
             {
-                // same here, need to break out of mutex
-                guard.Reset();
+                // Try loading from manifest path, if it exists.
+                FilePath subpackageDir = GetLibraryDirectory() / String(subpackageName);
+                FilePath manifestPath = subpackageDir / "PackageManifest.json";
 
-                // note forceLoad is true here
-                TResult<Handle<AssetPackage>> loadResult = LoadPackageFromManifest(manifestPath, /* loadSubpackages */ false, /* forceLoad */ true);
-
-                guard.Reset(m_mutex);
-
-                if (loadResult.HasError())
+                if (manifestPath.Exists() && !manifestPath.IsDirectory())
                 {
-                    HYP_LOG(Assets, Error, "Failed to load package '{}' from manifest '{}': {}",
-                        subpackageName, manifestPath, loadResult.GetError().GetMessage());
-                }
-                else
-                {
-                    pkg = std::move(*loadResult);
+                    // same here, need to break out of mutex
+                    guard.Reset();
 
-                    if (pkg)
+                    // note forceLoad is true here
+                    TResult<Handle<AssetPackage>> loadResult = LoadPackageFromManifest(manifestPath, /* loadSubpackages */ false, /* forceLoad */ true);
+
+                    guard.Reset(m_mutex);
+
+                    if (loadResult.HasError())
                     {
-                        pkg->m_registry = WeakHandleFromThis();
+                        HYP_LOG(Assets, Error, "Failed to load package '{}' from manifest '{}': {}",
+                            subpackageName, manifestPath, loadResult.GetError().GetMessage());
+                    }
+                    else
+                    {
+                        pkg = std::move(*loadResult);
 
-                        InitObject(pkg);
+                        if (pkg)
+                        {
+                            pkg->m_registry = WeakHandleFromThis();
 
-                        m_packages.Insert(pkg);
+                            InitObject(pkg);
+
+                            m_packages.Insert(pkg);
+
+                            OnPackageAdded(pkg);
+                        }
                     }
                 }
             }
-            else if (createIfNotExist)
+            
+            // still not valid and createIfNotExist is true? create it.
+            if (!pkg.IsValid() && createIfNotExist)
             {
                 pkg = MakeHandle<AssetPackage>(CreateNameFromDynamicString(subpackageName));
                 pkg->m_registry = WeakHandleFromThis();
@@ -2882,9 +2891,9 @@ Handle<AssetPackage> AssetRegistry::GetPackage(
                 pkg->MarkDirty();
 
                 m_packages.Insert(pkg);
-            }
 
-            OnPackageAdded(pkg);
+                OnPackageAdded(pkg);
+            }
         }
 
         return pkg;
@@ -2975,6 +2984,8 @@ Handle<AssetPackage> AssetRegistry::GetPackage(
             parentPackage->MarkDirty();
         }
     }
+    
+    Assert(pkg.IsValid());
 
     return pkg;
 }

@@ -24,13 +24,15 @@ namespace Hyperion
 
             string formattedMessage = message;
 
-            try
+            if (args.Length > 0)
             {
-                formattedMessage = string.Format(message, args);
-            }
-            catch (FormatException)
-            {
-                // Do nothing, just log as is
+                try
+                {
+                    formattedMessage = string.Format(message, args);
+                } catch (FormatException)
+                {
+                    // Do nothing, just log as is
+                }
             }
 
             if (frame == null)
@@ -52,13 +54,15 @@ namespace Hyperion
 
             string formattedMessage = message;
 
-            try
+            if (args.Length > 0)
             {
-                formattedMessage = string.Format(message, args);
-            }
-            catch (FormatException)
-            {
-                // Do nothing, just log as is
+                try
+                {
+                    formattedMessage = string.Format(message, args);
+                } catch (FormatException)
+                {
+                    // Do nothing, just log as is
+                }
             }
 
             if (frame == null)

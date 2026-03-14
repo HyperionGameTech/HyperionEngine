@@ -90,7 +90,7 @@ namespace Hyperion.Editor.Services
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"Failed to register log callback: {ex.Message}");
+                Logger.Log(LogLevel.Error, $"Failed to register log callback: {ex.Message}");
             }
         }
 

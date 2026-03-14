@@ -36,7 +36,7 @@ IF ERRORLEVEL 2 GOTO SKIP_CMAKE_GENERATION
 
 :DO_CMAKE_GENERATION
 
-for %%i in ("%~dp0..\..") do set "HYP_ROOT_DIR_ABS=%%~fi"
+for %%i in ("%~dp0..\..\..") do set "HYP_ROOT_DIR_ABS=%%~fi"
 set "HYP_ROOT_DIR_ABS=%HYP_ROOT_DIR_ABS:\=/%"
 
 if "%HYP_ANDROID%"=="1" GOTO CMAKE_ANDROID
