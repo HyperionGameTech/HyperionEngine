@@ -3238,20 +3238,27 @@ TResult<Handle<AssetPackage>> AssetRegistry::LoadPackageFromManifest(
     // get asset manifest ifles
     Array<FilePath> assetFiles;
 
-    for (const FilePath& path : dir.GetAllFilesInDirectory())
+    for (auto iter = dir.OpenDirectory(); iter.HasNext(); iter.Advance())
     {
-        if (path.GetExtension() != "json")
+        if (iter.CurrentIsDirectory())
         {
             continue;
         }
 
-        if (path.Basename() == "PackageManifest.json")
+        FilePath curr = iter.Current();
+        
+        if (curr.GetExtension() != "json")
+        {
+            continue;
+        }
+
+        if (curr.Basename() == "PackageManifest.json")
         {
             // Skip the package manifest itself
             continue;
         }
 
-        assetFiles.PushBack(path);
+        assetFiles.PushBack(curr);
     }
 
     // load AssetObjects from manifest files in this package
@@ -3341,10 +3348,24 @@ TResult<Handle<AssetPackage>> AssetRegistry::LoadPackageFromManifest(
     // Each subpackage will be loaded with loadSubpackages=true to recursively load their children
     if (loadSubpackages)
     {
-        for (const FilePath& subdirectory : dir.GetSubdirectories())
+        for (auto dirIter = dir.OpenDirectory(); dirIter.HasNext(); dirIter.Advance())
         {
-            for (const FilePath& entry : subdirectory.GetAllFilesInDirectory())
+            if (!dirIter.CurrentIsDirectory())
             {
+                continue;
+            }
+
+            const FilePath subdirectory = dirIter.Current();
+
+            for (auto subdirIter = subdirectory.OpenDirectory(); subdirIter.HasNext(); subdirIter.Advance())
+            {
+                if (subdirIter.CurrentIsDirectory())
+                {
+                    continue;
+                }
+
+                FilePath entry = subdirIter.Current();
+
                 if (entry.Basename() == "PackageManifest.json")
                 {
                     // Load WITH sub-subpackages recursively

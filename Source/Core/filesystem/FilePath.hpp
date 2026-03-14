@@ -5,6 +5,8 @@
 #include <Core/containers/String.hpp>
 #include <Core/containers/FixedArray.hpp>
 
+#include <Core/memory/Pimpl.hpp>
+
 #include <Core/utilities/Time.hpp>
 #include <Core/utilities/FormatFwd.hpp>
 
@@ -19,6 +21,41 @@ namespace Hyperion {
 class BufferedReader;
 
 namespace filesystem {
+
+struct DirectoryIteratorImpl;
+
+class HYP_API DirectoryIterator
+{
+public:
+    DirectoryIterator();
+    DirectoryIterator(Pimpl<DirectoryIteratorImpl>&& impl);
+
+    DirectoryIterator(const DirectoryIterator&) = delete;
+    DirectoryIterator& operator=(const DirectoryIterator&) = delete;
+
+    DirectoryIterator(DirectoryIterator&& other) noexcept;
+    DirectoryIterator& operator=(DirectoryIterator&& other) noexcept;
+
+    ~DirectoryIterator();
+
+    /*! \brief Returns true if the iterator was successfully opened and has not been exhausted. */
+    bool HasNext() const;
+
+    /*! \brief Returns true if the iterator was successfully opened and has not been exhausted. */
+    explicit operator bool() const;
+
+    /*! \brief Get the FilePath of the current entry. Only valid when IsValid() is true. */
+    FilePath Current() const;
+
+    /*! \brief Returns true if the current entry is a directory. Only valid when IsValid() is true. */
+    bool CurrentIsDirectory() const;
+
+    /*! \brief Move to the next entry. Returns true if there is another entry, false if exhausted. */
+    bool Advance();
+
+private:
+    Pimpl<DirectoryIteratorImpl> m_impl;
+};
 
 class FilePath : public String
 {
@@ -211,12 +248,18 @@ public:
     HYP_API Hyperion::containers::Array<FilePath, DynamicAllocator> GetAllFilesInDirectory() const;
     HYP_API Hyperion::containers::Array<FilePath, DynamicAllocator> GetSubdirectories() const;
 
+    /*! \brief Open the directory for iteration. Returns a DirectoryIterator positioned at the first entry.
+     *  On Android, asset paths (prefixed with AndroidAssetPathPrefix) are iterated via the AssetManager.
+     *  On failure (path doesn't exist, not a directory, etc.) returns an invalid iterator. */
+    HYP_API DirectoryIterator OpenDirectory() const;
+
     HYP_API size_t DirectorySize() const;
     HYP_API size_t FileSize() const;
 };
 } // namespace filesystem
 
 using filesystem::FilePath;
+using filesystem::DirectoryIterator;
 
 namespace utilities {
 

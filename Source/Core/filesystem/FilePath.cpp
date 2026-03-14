@@ -54,6 +54,232 @@ UTF8StringView GetAndroidAssetPath(const FilePath& filepath)
 
 namespace filesystem {
 
+
+struct DirectoryIteratorImpl
+{
+    FilePath basePath;
+    FilePath currentPath;
+    bool currentIsDirectory = false;
+    bool valid = false;
+
+#if HYP_ANDROID
+    // Android specific stuff.
+    AAssetDir* assetDir = nullptr;
+    bool isAssetPath = false;
+
+    void OpenAssetDir(const FilePath& path)
+    {
+        isAssetPath = true;
+
+        if (!g_androidAssetManager)
+        {
+            valid = false;
+            return;
+        }
+
+        UTF8StringView assetRelative = GetAndroidAssetPath(path);
+
+        // AAssetManager_openDir expects a relative path inside the assets/ tree.
+        // An empty string means the root of the assets directory.
+        assetDir = AAssetManager_openDir(g_androidAssetManager, String(assetRelative).Data());
+
+        if (!assetDir)
+        {
+            valid = false;
+            return;
+        }
+
+        // Position on the first entry
+        AdvanceAsset();
+    }
+
+    bool AdvanceAsset()
+    {
+        if (!assetDir)
+        {
+            valid = false;
+            return false;
+        }
+
+        const char* name = AAssetDir_getNextFileName(assetDir);
+
+        if (!name)
+        {
+            valid = false;
+            return false;
+        }
+
+        currentPath = basePath / FilePath(name);
+
+        // try to open as a directory
+        AAssetDir* subDir = AAssetManager_openDir(g_androidAssetManager, String(GetAndroidAssetPath(currentPath)).Data());
+        const char* subEntry = subDir ? AAssetDir_getNextFileName(subDir) : nullptr;
+
+        currentIsDirectory = (subEntry != nullptr);
+
+        if (subDir)
+        {
+            AAssetDir_close(subDir);
+        }
+
+        valid = true;
+        return true;
+    }
+
+    void CloseAsset()
+    {
+        if (assetDir)
+        {
+            AAssetDir_close(assetDir);
+            assetDir = nullptr;
+        }
+    }
+#endif // HYP_ANDROID
+
+    // Filesystem iteration state
+    std::filesystem::directory_iterator fsIter;
+    std::filesystem::directory_iterator fsEnd;
+
+    void OpenFs(const FilePath& path)
+    {
+        std::error_code ec;
+
+        fsIter = std::filesystem::directory_iterator(path.Data(), ec);
+
+        if (ec)
+        {
+            valid = false;
+            return;
+        }
+
+        fsEnd = std::filesystem::directory_iterator();
+
+        if (fsIter == fsEnd)
+        {
+            valid = false;
+            return;
+        }
+
+        ReadFsEntry();
+    }
+
+    bool AdvanceFs()
+    {
+        std::error_code ec;
+
+        fsIter.increment(ec);
+
+        if (ec || fsIter == fsEnd)
+        {
+            valid = false;
+            return false;
+        }
+
+        ReadFsEntry();
+        return true;
+    }
+
+    void ReadFsEntry()
+    {
+#ifdef HYP_WINDOWS
+        currentPath = FilePath(WideString(fsIter->path().c_str()).ToUtf8());
+#else
+        currentPath = FilePath(fsIter->path().c_str());
+#endif
+        currentIsDirectory = fsIter->is_directory();
+        valid = true;
+    }
+
+    ~DirectoryIteratorImpl()
+    {
+#if HYP_ANDROID
+        CloseAsset();
+#endif
+    }
+};
+
+
+DirectoryIterator::DirectoryIterator() = default;
+
+DirectoryIterator::DirectoryIterator(Pimpl<DirectoryIteratorImpl>&& impl)
+    : m_impl(std::move(impl))
+{
+}
+
+DirectoryIterator::DirectoryIterator(DirectoryIterator&& other) noexcept = default;
+DirectoryIterator& DirectoryIterator::operator=(DirectoryIterator&& other) noexcept = default;
+DirectoryIterator::~DirectoryIterator() = default;
+
+bool DirectoryIterator::HasNext() const
+{
+    return m_impl && m_impl->valid;
+}
+
+DirectoryIterator::operator bool() const
+{
+    return HasNext();
+}
+
+FilePath DirectoryIterator::Current() const
+{
+    if (!HasNext())
+    {
+        return FilePath();
+    }
+
+    return m_impl->currentPath;
+}
+
+bool DirectoryIterator::CurrentIsDirectory() const
+{
+    if (!HasNext())
+    {
+        return false;
+    }
+
+    return m_impl->currentIsDirectory;
+}
+
+bool DirectoryIterator::Advance()
+{
+    if (!m_impl)
+    {
+        return false;
+    }
+
+#if HYP_ANDROID
+    if (m_impl->isAssetPath)
+    {
+        return m_impl->AdvanceAsset();
+    }
+#endif
+
+    return m_impl->AdvanceFs();
+}
+
+
+DirectoryIterator FilePath::OpenDirectory() const
+{
+    if (Empty())
+    {
+        return DirectoryIterator();
+    }
+
+    Pimpl<DirectoryIteratorImpl> impl = MakePimpl<DirectoryIteratorImpl>();
+    impl->basePath = *this;
+
+#if HYP_ANDROID
+    if (IsAndroidAssetPath(*this))
+    {
+        impl->OpenAssetDir(*this);
+        return DirectoryIterator(std::move(impl));
+    }
+#endif
+
+    impl->OpenFs(*this);
+    return DirectoryIterator(std::move(impl));
+}
+
 bool FilePath::MkDir() const
 {
 #if HYP_ANDROID
