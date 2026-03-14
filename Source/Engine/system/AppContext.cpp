@@ -25,7 +25,9 @@
 #include <vulkan/vulkan_win32.h>
 #elif HYP_APPLE
 #include <vulkan/vulkan_metal.h>
-#elif HYP_LINUX && !HYP_ANDROID
+#elif HYP_ANDROID
+#include <vulkan/vulkan_android.h>
+#elif HYP_LINUX
 #include <vulkan/vulkan_xlib.h>
 #endif
 
@@ -1754,5 +1756,100 @@ int CocoaAppContext::PollEvents(Event& event)
 #endif
 
 #pragma endregion CocoaAppContext
+
+#pragma region AndroidApplicationWindow
+
+#ifndef HYP_ANDROID
+
+AndroidApplicationWindow::AndroidApplicationWindow(ANSIString title, Vec2i size)
+    : ApplicationWindow(std::move(title), size)
+{
+}
+
+AndroidApplicationWindow::~AndroidApplicationWindow() = default;
+
+void AndroidApplicationWindow::Initialize(WindowOptions windowOptions)
+{
+    HYP_NOT_IMPLEMENTED();
+}
+
+void AndroidApplicationWindow::SetNativeWindow(void* nativeWindow)
+{
+    HYP_NOT_IMPLEMENTED();
+}
+
+void AndroidApplicationWindow::SetMousePosition(Vec2i position)
+{
+    HYP_NOT_IMPLEMENTED();
+}
+
+Vec2i AndroidApplicationWindow::GetMousePosition() const
+{
+    HYP_NOT_IMPLEMENTED();
+}
+
+Vec2i AndroidApplicationWindow::GetDimensions() const
+{
+    HYP_NOT_IMPLEMENTED();
+}
+
+void AndroidApplicationWindow::SetIsMouseLocked(bool locked)
+{
+    HYP_NOT_IMPLEMENTED();
+}
+
+bool AndroidApplicationWindow::HasMouseFocus() const
+{
+    HYP_NOT_IMPLEMENTED();
+}
+
+void AndroidApplicationWindow::Close()
+{
+    HYP_NOT_IMPLEMENTED();
+}
+
+bool AndroidApplicationWindow::HandleInputEvent(int32 type, int32 action, float x, float y, int32 intParam, Event& outEvent)
+{
+    HYP_NOT_IMPLEMENTED();
+}
+
+#endif
+
+#pragma endregion AndroidApplicationWindow
+
+#pragma region AndroidAppContext
+
+#ifndef HYP_ANDROID
+
+AndroidAppContext::AndroidAppContext(ANSIString name, const CommandLineArguments& arguments)
+    : AppContextBase(std::move(name), arguments)
+{
+}
+
+AndroidAppContext::~AndroidAppContext() = default;
+
+Handle<ApplicationWindow> AndroidAppContext::CreateSystemWindow(WindowOptions windowOptions)
+{
+    HYP_NOT_IMPLEMENTED();
+}
+
+int AndroidAppContext::PollEvents(Event& event)
+{
+    HYP_NOT_IMPLEMENTED();
+}
+
+void AndroidAppContext::SetNativeWindow(void* nativeWindow)
+{
+    HYP_NOT_IMPLEMENTED();
+}
+
+void AndroidAppContext::EnqueueEvent(Event&&)
+{
+    HYP_NOT_IMPLEMENTED();
+}
+
+#endif
+
+#pragma endregion AndroidAppContext
 
 } // namespace Hyperion

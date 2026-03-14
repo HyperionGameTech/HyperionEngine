@@ -30,15 +30,6 @@ namespace logging {
 HYP_API extern ANSIStringView GetCurrentThreadName();
 HYP_API extern bool IsVerboseLoggingEnabled();
 
-struct LogMessage
-{
-    LogLevel level;
-    uint64 timestamp;
-    Span<StringView<StringType::UTF8>> chunks;
-    const char* fileName;
-    int lineNumber;
-};
-
 HYP_ENUM()
 enum class LogLevel : uint8
 {
@@ -51,6 +42,15 @@ enum class LogLevel : uint8
 };
 
 constexpr uint8 NumLogLevels = uint8(LogLevel::Debug) + 1;
+
+struct LogMessage
+{
+    LogLevel level;
+    uint64 timestamp;
+    Span<StringView<StringType::UTF8>> chunks;
+    const char* fileName;
+    int lineNumber;
+};
 
 template <LogLevel Level>
 static constexpr auto LogLevelToString()
@@ -424,21 +424,6 @@ struct LogChannelRegistration
     }
 };
 
-#define DEFINE_LOG_LEVEL_GLOBAL(name)           \
-    inline constexpr LogLevel name()            \
-    {                                           \
-        return LogLevel::name;                  \
-    }
-
-DEFINE_LOG_LEVEL_GLOBAL(Fatal);
-DEFINE_LOG_LEVEL_GLOBAL(Error);
-DEFINE_LOG_LEVEL_GLOBAL(Warning);
-DEFINE_LOG_LEVEL_GLOBAL(Info);
-DEFINE_LOG_LEVEL_GLOBAL(Verbose);
-DEFINE_LOG_LEVEL_GLOBAL(Debug);
-
-#undef DEFINE_LOG_LEVEL_GLOBAL
-
 } // namespace logging
 
 using logging::DynamicLogChannelHandle;
@@ -455,12 +440,12 @@ using logging::LogMessage;
 // Helper macros
 
 // Must be used outside of function (in global scope)
-#define HYP_DEFINE_LOG_CHANNEL(name)                                           \
-    Hyperion::logging::LogChannel g_logChannel_##name { NAME(HYP_STR(name)) }; \
+#define HYP_DEFINE_LOG_CHANNEL(name)                                             \
+    ::Hyperion::logging::LogChannel g_logChannel_##name { NAME(HYP_STR(name)) }; \
     static Hyperion::logging::LogChannelRegistration g_logChannelRegistration_##name(&g_logChannel_##name)
 
-#define HYP_DEFINE_LOG_SUBCHANNEL(name, parentName)                            \
-    Hyperion::logging::LogChannel g_logChannel_##name { NAME(HYP_STR(name)) }; \
+#define HYP_DEFINE_LOG_SUBCHANNEL(name, parentName)                              \
+    ::Hyperion::logging::LogChannel g_logChannel_##name { NAME(HYP_STR(name)) }; \
     static Hyperion::logging::LogChannelRegistration g_logChannelRegistration_##name(&g_logChannel_##name, &g_logChannel_##parentName)
 
 // Undefine HYP_LOG if already defined (LoggerFwd could have defined it as an empty macro)

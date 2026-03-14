@@ -715,7 +715,11 @@ function(collect_sources_and_modules dir out_sources out_headers out_modules)
         if(NOT TARGET ${sub_library_name})
             set("${sub_library_name}_SOURCES" ${local_sources})
             set("${sub_library_name}_HEADERS" ${local_headers})
-            set("${sub_library_name}_PCH" ${local_pchs})
+            
+            # debugging android build intellisense errors:
+            if(NOT HYP_ANDROID)
+                set("${sub_library_name}_PCH" ${local_pchs})
+            endif()
 
             message(STATUS "Adding subdirectory ${dir} as module ${sub_library_name}")
 
@@ -773,15 +777,15 @@ set(THIRD_PARTY_LIBRARIES "")
 collect_sources_and_modules(${THIRD_PARTY_INCLUDE_DIR} THIRD_PARTY_SOURCES THIRD_PARTY_HEADERS THIRD_PARTY_LIBRARIES)
 source_group(TREE ${THIRD_PARTY_INCLUDE_DIR} PREFIX "Third-Party Code" FILES ${THIRD_PARTY_SOURCES} ${THIRD_PARTY_HEADERS})
 
-set(PLATFORM_SPECIFIC_SOURCES "")
-set(PLATFORM_SPECIFIC_HEADERS "")
-set(PLATFORM_SPECIFIC_LIBRARIES "")
-collect_sources_and_modules(${CMAKE_SOURCE_DIR}/PlatformSpecific PLATFORM_SPECIFIC_SOURCES PLATFORM_SPECIFIC_HEADERS PLATFORM_SPECIFIC_LIBRARIES)
-source_group(TREE ${CMAKE_SOURCE_DIR}/PlatformSpecific PREFIX "Platform Specific Code" FILES ${PLATFORM_SPECIFIC_SOURCES} ${PLATFORM_SPECIFIC_HEADERS})
+# set(PLATFORM_SPECIFIC_SOURCES "")
+# set(PLATFORM_SPECIFIC_HEADERS "")
+# set(PLATFORM_SPECIFIC_LIBRARIES "")
+# collect_sources_and_modules(${CMAKE_SOURCE_DIR}/PlatformSpecific PLATFORM_SPECIFIC_SOURCES PLATFORM_SPECIFIC_HEADERS PLATFORM_SPECIFIC_LIBRARIES)
+# source_group(TREE ${CMAKE_SOURCE_DIR}/PlatformSpecific PREFIX "Platform Specific Code" FILES ${PLATFORM_SPECIFIC_SOURCES} ${PLATFORM_SPECIFIC_HEADERS})
 
 # add platform specific sources to the main sources list, but keep them in their own filter in the solution
-list(APPEND SOURCES ${PLATFORM_SPECIFIC_SOURCES})
-list(APPEND HEADERS ${PLATFORM_SPECIFIC_HEADERS})
+# list(APPEND SOURCES ${PLATFORM_SPECIFIC_SOURCES})
+# list(APPEND HEADERS ${PLATFORM_SPECIFIC_HEADERS})
 
 # platform specific system stuff
 file(GLOB_RECURSE PLATFORM_FILES "${CMAKE_SOURCE_DIR}/Engine/system/platform/**/*")
@@ -963,13 +967,16 @@ set_source_files_properties(${THIRD_PARTY_SOURCES} PROPERTIES SKIP_PRECOMPILE_HE
 
 add_library(${BUILD_NAME} SHARED ${SOURCES} ${HEADERS})
 
-if(HYP_ANDROID)
-    # add hyperion-android module
-    add_subdirectory(${CMAKE_SOURCE_DIR}/PlatformSpecific/Android ${CMAKE_BINARY_DIR}/android)
-endif()
+# if(HYP_ANDROID)
+#     # add hyperion-android module
+#     add_subdirectory(${CMAKE_SOURCE_DIR}/PlatformSpecific/Android ${CMAKE_BINARY_DIR}/android)
+# endif()
 
 # PCHs
-target_precompile_headers(${BUILD_NAME} PRIVATE ${HYP_PCH})
+# debugging android build intellisense errors:
+if(NOT HYP_ANDROID)
+    target_precompile_headers(${BUILD_NAME} PRIVATE ${HYP_PCH})
+endif()
 
 # if XCode: set the PCH file for the target
 if(APPLE AND CMAKE_GENERATOR STREQUAL "Xcode")

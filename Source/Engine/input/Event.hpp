@@ -71,6 +71,13 @@ struct CocoaEvent
 };
 #endif
 
+#ifdef HYP_ANDROID
+struct AndroidEvent
+{
+    // empty for now
+};
+#endif
+
 union PlatformEvent
 {
 #ifdef HYP_SDL
@@ -83,6 +90,10 @@ union PlatformEvent
 
 #ifdef HYP_MACOS
     CocoaEvent cocoaEvent;
+#endif
+
+#ifdef HYP_ANDROID
+    AndroidEvent androidEvent;
 #endif
 };
 

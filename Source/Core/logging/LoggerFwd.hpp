@@ -9,7 +9,7 @@
 #include <Core/Types.hpp>
 
 #define HYP_DECLARE_LOG_CHANNEL(name) \
-    extern Hyperion::logging::LogChannel g_logChannel_##name
+    extern ::Hyperion::logging::LogChannel g_logChannel_##name
 
 namespace Hyperion {
 namespace logging {
@@ -17,18 +17,6 @@ namespace logging {
 class Logger;
 class LogChannel;
 enum class LogLevel : uint8;
-
-#define DECLARE_LOG_LEVEL_GLOBAL(name) \
-    extern constexpr LogLevel name();
-
-DECLARE_LOG_LEVEL_GLOBAL(Fatal);
-DECLARE_LOG_LEVEL_GLOBAL(Error);
-DECLARE_LOG_LEVEL_GLOBAL(Warning);
-DECLARE_LOG_LEVEL_GLOBAL(Info);
-DECLARE_LOG_LEVEL_GLOBAL(Verbose);
-DECLARE_LOG_LEVEL_GLOBAL(Debug);
-
-#undef DECLARE_LOG_LEVEL_GLOBAL
 
 template <LogLevel Level, auto ChannelArg, auto FormatString, auto FileName, int LineNumber, class... Args>
 inline void LogStatic(Logger& logger, Args&&... args);

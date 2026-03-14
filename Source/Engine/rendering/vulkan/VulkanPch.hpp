@@ -9,7 +9,9 @@
 #include <vulkan/vulkan_win32.h>
 #elif HYP_APPLE
 #include <vulkan/vulkan_metal.h>
-#elif HYP_LINUX && !HYP_ANDROID
+#elif HYP_ANDROID
+#include <vulkan/vulkan_android.h>
+#elif HYP_LINUX
 #include <vulkan/vulkan_xlib.h>
 #endif
 

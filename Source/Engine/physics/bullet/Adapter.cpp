@@ -2,7 +2,6 @@
 
 #include <HyperionPch.hpp>
 
-#include <physics/bullet/Adapter.hpp>
 #include <physics/PhysicsWorld.hpp>
 #include <physics/RigidBody.hpp>
 
@@ -12,6 +11,8 @@
 #include <Core/math/Quaternion.hpp>
 
 #ifdef HYP_BULLET_PHYSICS
+#include <physics/bullet/Adapter.hpp>
+
 #include "btBulletDynamicsCommon.h"
 
 namespace Hyperion {

@@ -1766,7 +1766,7 @@ auto String<TStringType>::ToLower() const -> String
 
             // evil union byte magic
             charU32 = utf::Char8to32(Data() + i, sizeof(utf::Char32), codepoints);
-            charI32 = std::tolower(charI32);
+            charI32 = tolower(charI32);
 
             result.Append(charU32);
 
@@ -1774,7 +1774,7 @@ auto String<TStringType>::ToLower() const -> String
         }
         else
         {
-            result.Data()[i] = CharType(std::tolower(Data()[i]));
+            result.Data()[i] = CharType(tolower(Data()[i]));
 
             i++;
         }
@@ -1811,7 +1811,7 @@ auto String<TStringType>::ToUpper() const -> String
 
             // evil union byte magic
             charU32 = utf::Char8to32(Data() + i, sizeof(utf::Char32), codepoints);
-            charI32 = std::toupper(charI32);
+            charI32 = toupper(charI32);
 
             result.Append(charU32);
 
@@ -1819,7 +1819,7 @@ auto String<TStringType>::ToUpper() const -> String
         }
         else
         {
-            result.Data()[i] = CharType(std::toupper(Data()[i]));
+            result.Data()[i] = CharType(toupper(Data()[i]));
 
             i++;
         }

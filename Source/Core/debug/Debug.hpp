@@ -40,7 +40,7 @@ constexpr struct
     // this version of the ctor exists as we sometimes assert against
     // bitfield values and they can't be bound as a reference.
     template <class... TArgs>
-    HYP_FORCE_INLINE inline constexpr void operator()(int, TArgs&&...) const
+    HYP_FORCE_INLINE constexpr void operator()(int, TArgs&&...) const
     {
     }
 } NoOpAssertWrapper = {};

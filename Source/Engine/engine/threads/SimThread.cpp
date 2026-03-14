@@ -7,7 +7,6 @@
 #include <engine/EngineGlobals.hpp>
 #include <engine/EngineDriver.hpp>
 #include <engine/EngineStats.hpp>
-#include <rendering/DebugDrawer.hpp>
 
 #include <Core/threading/Threads.hpp>
 
@@ -26,6 +25,7 @@
 #include <input/InputManager.hpp>
 
 #include <rendering/RenderInterface.hpp>
+#include <rendering/DebugDrawer.hpp>
 
 #if HYP_EDITOR
 #include <editor/EditorState.hpp>

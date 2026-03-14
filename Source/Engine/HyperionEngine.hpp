@@ -60,6 +60,8 @@ extern "C"
 
 #if HYP_ANDROID
     HYP_API void Hyp_SetAssetManager(void* mgr);
+    HYP_API void Hyp_SetNativeWindow(void* nativeWindow);
+    HYP_API void Hyp_InputEvent(int type, int action, float x, float y, int iParam);
 #endif
 }
 

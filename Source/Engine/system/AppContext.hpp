@@ -7,6 +7,10 @@
 #include <SDL2/SDL.h>
 #endif
 
+#ifdef HYP_ANDROID
+#include <android/looper.h>
+#endif
+
 #include <Core/Defines.hpp>
 #include <Core/Types.hpp>
 
@@ -466,6 +470,94 @@ public:
     static VkSurfaceKHR CreateVulkanSurface(
         CocoaApplicationWindow* window,
         IDummyVulkanSurfaceContext** ppOutDummySurfaceContext);
+#endif
+};
+
+HYP_CLASS()
+class HYP_API AndroidApplicationWindow final : public ApplicationWindow
+{
+    HYP_OBJECT_BODY(AndroidApplicationWindow);
+
+public:
+    AndroidApplicationWindow(ANSIString title, Vec2i size);
+    ~AndroidApplicationWindow() override;
+
+    void Initialize(WindowOptions windowOptions);
+
+    HYP_METHOD()
+    void SetMousePosition(Vec2i position) override;
+
+    HYP_METHOD()
+    Vec2i GetMousePosition() const override;
+
+    HYP_METHOD()
+    Vec2i GetDimensions() const override;
+
+    HYP_METHOD()
+    void SetIsMouseLocked(bool locked) override;
+
+    HYP_METHOD()
+    bool IsMouseLocked() const override
+    {
+        return m_mouseLocked;
+    }
+
+    HYP_METHOD()
+    bool HasMouseFocus() const override;
+
+    HYP_METHOD()
+    void Close() override;
+
+    HYP_FORCE_INLINE void* GetNativeWindow() const
+    {
+        return m_nativeWindow;
+    }
+
+    void SetNativeWindow(void* nativeWindow);
+
+    bool HandleInputEvent(int32 type, int32 action, float x, float y, int32 intParam, Event& outEvent);
+
+private:
+    void* m_nativeWindow = nullptr;
+    Vec2i m_touchPosition = Vec2i::Zero();
+    bool m_mouseLocked = false;
+};
+
+HYP_CLASS()
+class HYP_API AndroidAppContext final : public AppContextBase
+{
+    HYP_OBJECT_BODY(AndroidAppContext);
+
+public:
+    AndroidAppContext(ANSIString name, const CommandLineArguments& arguments);
+    ~AndroidAppContext() override;
+
+    HYP_METHOD()
+    Handle<ApplicationWindow> CreateSystemWindow(WindowOptions windowOptions) override;
+
+    int PollEvents(Event& event) override;
+
+    void SetNativeWindow(void* nativeWindow);
+
+    void EnqueueEvent(Event&& event);
+
+#if HYP_VULKAN
+    static VkSurfaceKHR CreateVulkanSurface(
+        AndroidApplicationWindow* window,
+        IDummyVulkanSurfaceContext** ppOutDummySurfaceContext);
+#endif
+
+private:
+#ifdef HYP_ANDROID
+    void InitializeLooper();
+    void ShutdownLooper();
+
+    ALooper* m_looper = nullptr;
+
+    int m_pipeFd[2] = { -1, -1 };
+
+    Array<Event, DynamicAllocator> m_eventQueue;
+    Mutex m_eventQueueMtx;
 #endif
 };
 

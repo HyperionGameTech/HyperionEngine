@@ -4,6 +4,8 @@
 
 #include <android/asset_manager.h>
 #include <android/asset_manager_jni.h>
+#include <android/native_window.h>
+#include <android/native_window_jni.h>
 
 #define LOG_TAG "HyperionAndroid"
 
@@ -16,16 +18,17 @@ extern "C"
     void Hyp_Shutdown();
     void Hyp_LaunchThreads();
     void Hyp_SetAssetManager(void* mgr);
+    void Hyp_SetNativeWindow(void* nativeWindow);
+    void Hyp_InputEvent(int type, int action, float x, float y, int iParam);
 }
 
 extern "C" JNIEXPORT jint JNICALL
 Java_com_hyperion_engine_HyperionBridge_nativeInit(JNIEnv* env, jclass /*clazz*/)
 {
     const char* argv0 = "hyperion";
-    const char* argv1 = "-Headless";
-    char* argv[] = { const_cast<char*>(argv0), const_cast<char*>(argv1) };
+    char* argv[] = { const_cast<char*>(argv0) };
 
-    return Hyp_Initialize(2, argv);
+    return Hyp_Initialize(1, argv);
 }
 
 extern "C" JNIEXPORT void JNICALL
@@ -62,4 +65,34 @@ Java_com_hyperion_engine_HyperionBridge_nativeSetAssetManager(JNIEnv* env, jclas
     {
         Hyp_SetAssetManager(nullptr);
     }
+}
+
+extern "C" JNIEXPORT void JNICALL
+Java_com_hyperion_engine_HyperionBridge_nativeSetSurface(JNIEnv* env, jclass /*clazz*/, jobject javaSurface)
+{
+    if (javaSurface != nullptr)
+    {
+        ANativeWindow* nativeWindow = ANativeWindow_fromSurface(env, javaSurface);
+        Hyp_SetNativeWindow(nativeWindow);
+        // the engine will acquire its own ref, release this
+        ANativeWindow_release(nativeWindow);
+    }
+    else
+    {
+        Hyp_SetNativeWindow(nullptr);
+    }
+}
+
+extern "C" JNIEXPORT void JNICALL
+Java_com_hyperion_engine_HyperionBridge_nativeTouchEvent(JNIEnv* /*env*/, jclass /*clazz*/,
+    jint action, jfloat x, jfloat y, jint pointerId)
+{
+    Hyp_InputEvent(0, action, x, y, pointerId);
+}
+
+extern "C" JNIEXPORT void JNICALL
+Java_com_hyperion_engine_HyperionBridge_nativeKeyEvent(JNIEnv* /*env*/, jclass /*clazz*/,
+    jint action, jint keyCode)
+{
+    Hyp_InputEvent(1, action, 0.0f, 0.0f, keyCode);
 }

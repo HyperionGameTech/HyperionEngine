@@ -57,4 +57,12 @@ namespace Hyperion
         {
         }
     }
+
+    [ClassBinding(Name = "AndroidAppContext")]
+    public class AndroidAppContext : AppContextBase
+    {
+        public AndroidAppContext()
+        {
+        }
+    }
 }

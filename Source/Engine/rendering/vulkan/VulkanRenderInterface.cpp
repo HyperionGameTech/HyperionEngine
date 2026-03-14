@@ -1156,6 +1156,16 @@ VkSurfaceKHR VulkanRenderInterface::CreateSurface(ApplicationWindow* window, IDu
     }
 
     return SDLAppContext::CreateVulkanSurface(sdlWindow, ppOutDummySurfaceContext);
+#elif HYP_ANDROID
+    if (!window)
+    {
+        window = g_appContext->GetMainWindow();
+    }
+
+    AndroidApplicationWindow* androidWindow = ObjCast<AndroidApplicationWindow>(window);
+    Assert(androidWindow != nullptr);
+
+    return AndroidAppContext::CreateVulkanSurface(androidWindow, ppOutDummySurfaceContext);
 #else
     HYP_NOT_IMPLEMENTED();
     return VK_NULL_HANDLE;
@@ -1259,6 +1269,46 @@ RendererResult VulkanRenderInterface::GetVkExtensions(Array<const char*>& outExt
             if (!found)
             {
                 // required extension missing.
+                return HYP_MAKE_ERROR(RendererError, "Required Vulkan extension '{}' is not supported by the system", 0, requiredExtension);
+            }
+
+            outExtensions.PushBack(requiredExtension);
+        }
+
+        return {};
+    }
+#endif
+
+#if HYP_ANDROID
+    if (const AndroidAppContext* androidAppContext = ObjCast<AndroidAppContext>(g_appContext))
+    {
+        static const char* RequiredExtensions[] = {
+            VK_KHR_SURFACE_EXTENSION_NAME,
+            VK_KHR_ANDROID_SURFACE_EXTENSION_NAME
+        };
+
+        uint32_t count = 0;
+        vkEnumerateInstanceExtensionProperties(nullptr, &count, nullptr);
+
+        Array<VkExtensionProperties> vkProperties(count);
+        vkEnumerateInstanceExtensionProperties(nullptr, &count, vkProperties.Data());
+
+        for (const char* requiredExtension : RequiredExtensions)
+        {
+            bool found = false;
+
+            for (VkExtensionProperties& it : vkProperties)
+            {
+                if (!std::strcmp(it.extensionName, requiredExtension))
+                {
+                    found = true;
+
+                    break;
+                }
+            }
+
+            if (!found)
+            {
                 return HYP_MAKE_ERROR(RendererError, "Required Vulkan extension '{}' is not supported by the system", 0, requiredExtension);
             }
 

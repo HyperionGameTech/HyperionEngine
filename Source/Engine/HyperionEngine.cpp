@@ -36,6 +36,8 @@
 #include <system/AppContext.hpp>
 #include <system/DirectoryInitializer.hpp>
 
+#include <input/Event.hpp>
+
 #include <streaming/StreamingManager.hpp>
 
 #include <rendering/Material.hpp>
@@ -234,26 +236,26 @@ static void InitThreads()
 
     if (CoreApi::GetCommandLineArguments()["RenderOnMainThread"].ToBool())
     {
-        g_renderThread = StaticThreadId(mainThreadIndex, NAME("RenderThread"));
-        g_simThread = StaticThreadId(NAME("SimThread"));
+        g_renderThread = StaticThreadId(mainThreadIndex, NAME("Render"));
+        g_simThread = StaticThreadId(NAME("Simulation"));
     }
     else
     {
-        g_renderThread = StaticThreadId(NAME("RenderThread"));
+        g_renderThread = StaticThreadId(NAME("Render"));
 
         if (CoreApi::GetCommandLineArguments()["SimulateOnMainThread"].ToBool())
         {
-            g_simThread = StaticThreadId(mainThreadIndex, NAME("SimThread"));
+            g_simThread = StaticThreadId(mainThreadIndex, NAME("Simulation"));
         }
         else
         {
-            g_simThread = StaticThreadId(NAME("SimThread"));
+            g_simThread = StaticThreadId(NAME("Simulation"));
         }
     }
 
     if (CoreApi::GetCommandLineArguments()["DedicatedVisThread"].ToBool())
     {
-        g_visThread = StaticThreadId(NAME("VisThread"));
+        g_visThread = StaticThreadId(NAME("Visibility"));
     }
     else
     {
@@ -379,12 +381,7 @@ extern "C"
 #elif HYP_SDL
         g_appContext = MakeHandle<SDLAppContext>("Hyperion", cliArgs);
 #elif HYP_ANDROID
-        // @TODO: AndroidAppContext not yet implemented; skip AppContext creation for now.
-        HYP_LOG(Engine, Info, "Android: AppContext not yet implemented, skipping window creation");
-        
-        InitObject(g_engineDriver);
-
-        return 1;
+        g_appContext = MakeHandle<AndroidAppContext>("Hyperion", cliArgs);
 #else
         HYP_FAIL("AppContext not implemented for this platform");
 #endif
@@ -823,6 +820,37 @@ extern "C"
     HYP_EXPORT void Hyp_SetAssetManager(void* assetManager)
     {
         g_androidAssetManager = (AAssetManager*)assetManager;
+    }
+
+    HYP_EXPORT void Hyp_SetNativeWindow(void* nativeWindow)
+    {
+        Assert(g_appContext.IsValid());
+
+        if (AndroidAppContext* androidAppContext = ObjCast<AndroidAppContext>(g_appContext))
+        {
+            androidAppContext->SetNativeWindow(nativeWindow);
+        }
+    }
+
+    HYP_EXPORT void Hyp_InputEvent(int type, int action, float x, float y, int iParam)
+    {
+        if (!g_appContext.IsValid())
+            return;
+
+        AndroidAppContext* ctx = ObjCast<AndroidAppContext>(g_appContext);
+
+        if (ctx == nullptr || ctx->GetMainWindow() == nullptr)
+            return;
+
+        AndroidApplicationWindow* window = ObjCast<AndroidApplicationWindow>(ctx->GetMainWindow());
+        if (window == nullptr)
+            return;
+
+        Event event;
+        if (window->HandleInputEvent(type, action, x, y, iParam, event))
+        {
+            ctx->EnqueueEvent(std::move(event));
+        }
     }
 #endif
 }

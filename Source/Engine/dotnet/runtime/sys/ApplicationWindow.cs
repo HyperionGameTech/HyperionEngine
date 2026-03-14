@@ -64,4 +64,12 @@ namespace Hyperion
         {
         }
     }
+
+    [ClassBinding(Name = "AndroidApplicationWindow")]
+    public class AndroidApplicationWindow : ApplicationWindow
+    {
+        public AndroidApplicationWindow()
+        {
+        }
+    }
 }

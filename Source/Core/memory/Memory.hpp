@@ -288,17 +288,17 @@ template <class T, class U, typename = std::enable_if_t<BitwiseCopyable<T> && Bi
         }
 #endif
 
-        std::free(ptr);
+        free(ptr);
     }
 
     HYP_FORCE_INLINE static void* AllocateZeros(size_t count)
     {
-        return std::calloc(count, 1);
+        return calloc(count, 1);
     }
 
     HYP_FORCE_INLINE static void* Allocate(size_t count)
     {
-        return std::malloc(count);
+        return malloc(count);
     }
 
     template <class T>
