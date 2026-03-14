@@ -232,6 +232,15 @@ RendererResult VulkanSwapchain::Create()
         imageCount = m_supportDetails.capabilities.maxImageCount;
     }
 
+#if HYP_ANDROID || HYP_IOS
+    // reduce the number of swapchain images on mobile gpus to save bandwidth
+    imageCount = MathUtil::Min(imageCount, NumFramesInFlight);
+    imageCount = MathUtil::Max(imageCount, m_supportDetails.capabilities.minImageCount);
+#endif
+
+    HYP_LOG(RenderingBackend, Verbose, "Creating Vulkan swapchain with {} images", imageCount);
+    HYP_LOG(RenderingBackend, Verbose, "Min image count: {}, max image count: {}, desired image count: {}", m_supportDetails.capabilities.minImageCount, m_supportDetails.capabilities.maxImageCount, imageCount);
+
     VkSwapchainCreateInfoKHR createInfo { VK_STRUCTURE_TYPE_SWAPCHAIN_CREATE_INFO_KHR };
     createInfo.surface = m_surface;
     createInfo.minImageCount = imageCount;
@@ -263,11 +272,8 @@ RendererResult VulkanSwapchain::Create()
         createInfo.pQueueFamilyIndices = nullptr; /* Optional */
     }
 
-    /* For transformations such as rotations, etc. */
     createInfo.preTransform = m_supportDetails.capabilities.currentTransform;
-    /* This can be used to blend with other windows in the windowing system, but we
-     * simply leave it opaque.*/
-    createInfo.compositeAlpha = VK_COMPOSITE_ALPHA_OPAQUE_BIT_KHR;
+    createInfo.compositeAlpha = VK_COMPOSITE_ALPHA_INHERIT_BIT_KHR;
     createInfo.presentMode = m_presentMode;
     createInfo.clipped = VK_TRUE;
     createInfo.oldSwapchain = m_oldHandle;

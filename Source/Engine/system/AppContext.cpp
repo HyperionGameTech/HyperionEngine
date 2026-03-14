@@ -192,8 +192,13 @@ void ApplicationWindow::CreateSwapchain()
         if (m_swapchain.IsValid())
             EnqueueDeletion(std::move(m_swapchain));
 
+        // we need to temporarily release the lock here to avoid deadlocking the render thread
+        lock.Reset();
+
         SwapchainRef swapchain = g_renderInterface->CreateSwapchain(this);
         Assert(swapchain.IsValid());
+
+        lock.Reset(m_mtx);
 
         m_swapchain = swapchain;
     }

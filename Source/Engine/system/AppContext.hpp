@@ -538,7 +538,6 @@ public:
     int PollEvents(Event& event) override;
 
     void SetNativeWindow(void* nativeWindow);
-
     void EnqueueEvent(Event&& event);
 
 #if HYP_VULKAN
@@ -548,17 +547,7 @@ public:
 #endif
 
 private:
-#ifdef HYP_ANDROID
-    void InitializeLooper();
-    void ShutdownLooper();
-
-    ALooper* m_looper = nullptr;
-
-    int m_pipeFd[2] = { -1, -1 };
-
-    Array<Event, DynamicAllocator> m_eventQueue;
-    Mutex m_eventQueueMtx;
-#endif
+    class AndroidLooperThread* m_looperThread;
 };
 
 #ifdef HYP_WINDOWS

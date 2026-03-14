@@ -25,10 +25,13 @@ extern "C"
 extern "C" JNIEXPORT jint JNICALL
 Java_com_hyperion_engine_HyperionBridge_nativeInit(JNIEnv* env, jclass /*clazz*/)
 {
-    const char* argv0 = "hyperion";
-    char* argv[] = { const_cast<char*>(argv0) };
+    const char* argv[] = {
+        "hyperion",
+        "-RenderOnMainThread=false",
+        "-SimulateOnMainThread=true"
+    };
 
-    return Hyp_Initialize(1, argv);
+    return Hyp_Initialize(int(sizeof(argv) / sizeof(argv[0])), const_cast<char**>(argv));
 }
 
 extern "C" JNIEXPORT void JNICALL
