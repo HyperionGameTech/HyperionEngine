@@ -28,6 +28,10 @@
 #include <Logger.generated.inl>
 #endif
 
+#if HYP_ANDROID
+#include <android/log.h>
+#endif
+
 namespace Hyperion {
 
 HYP_DECLARE_LOG_CHANNEL(Core);
@@ -233,27 +237,54 @@ public:
 
         if (!redirectFunction || redirectFunction(redirectContext, *channelPtr, message))
         {
-#if HYP_DEBUG_MODE
-            const bool isStandardOutput = (m_output == stdout || m_output == stderr);
-            if (isStandardOutput)
+            const bool isError = uint8(message.level) <= uint8(LogLevel::Warning);
+            FILE* file = isError ? m_output : m_outputError;
+            const bool isConsole = file == stdout || file == stderr;
+
+#if HYP_ANDROID
+            if (isConsole)
             {
-                Span<const char> colorCode = LogLevelTermColor(message.level);
-                std::fwrite(colorCode.Data(), 1, colorCode.Size(), m_output);
+                static constexpr android_LogPriority LogLevelToAndroidLogPriority[NumLogLevels] = {
+                    
+                     ANDROID_LOG_FATAL,     // Fatal
+                     ANDROID_LOG_ERROR,     // Error
+                     ANDROID_LOG_WARN,      // Warning
+                     ANDROID_LOG_INFO,      // Info
+                     ANDROID_LOG_VERBOSE,   // Verbose
+                     ANDROID_LOG_DEBUG      // Debug
+                };
+
+                
+                for (auto it = message.chunks.Begin(); it != message.chunks.End(); ++it)
+                {
+                    // we're assuming it's null terminated here
+                    __android_log_write(LogLevelToAndroidLogPriority[uint8(message.level)], "HyperionEngine", it->Data());
+                }
             }
+            else
+#endif
+            {
+#if HYP_DEBUG_MODE
+                if (isConsole)
+                {
+                    Span<const char> colorCode = LogLevelTermColor(message.level);
+                    std::fwrite(colorCode.Data(), 1, colorCode.Size(), file);
+                }
 #endif
 
-            for (auto it = message.chunks.Begin(); it != message.chunks.End(); ++it)
-            {
-                std::fwrite(**it, 1, it->Size(), m_output);
-            }
+                for (auto it = message.chunks.Begin(); it != message.chunks.End(); ++it)
+                {
+                    std::fwrite(**it, 1, it->Size(), file);
+                }
 
 #if HYP_DEBUG_MODE
-            if (isStandardOutput)
-            {
-                static constexpr Span<const char> ResetCode = "\033[0m";
-                std::fwrite(ResetCode.Data(), 1, ResetCode.Size(), m_output);
-            }
+                if (isConsole)
+                {
+                    static constexpr Span<const char> ResetCode = "\033[0m";
+                    std::fwrite(ResetCode.Data(), 1, ResetCode.Size(), file);
+                }
 #endif
+            }
         }
 
         m_rwMarker.Decrement(2, MemoryOrder::RELEASE);
@@ -261,76 +292,7 @@ public:
 
     virtual void WriteError(const LogChannel& channel, const LogMessage& message) override
     {
-        const LogChannel* channelPtr = &channel;
-
-        if (channel.id >= Logger::MaxChannels)
-        {
-            // log channel overflow! revert to Log_Misc
-            channelPtr = &g_logChannel_Misc;
-            return;
-        }
-
-        uint64 rwMarkerState;
-
-        do
-        {
-            rwMarkerState = m_rwMarker.Increment(2, MemoryOrder::ACQUIRE);
-
-            if (HYP_UNLIKELY(rwMarkerState & WriteFlag))
-            {
-                m_rwMarker.Decrement(2, MemoryOrder::RELAXED);
-
-                // spin to wait for write flag to be released
-                HYP_WAIT_IDLE();
-            }
-        }
-        while (HYP_UNLIKELY(rwMarkerState & WriteFlag));
-
-        void* redirectContext = nullptr;
-        LoggerWriteFnPtr redirectFunction = nullptr;
-
-        uint32 bitIndex;
-        uint64 mask = channelPtr->maskBitset.ToUInt64();
-
-        while ((bitIndex = ByteUtil::HighestSetBitIndex(mask)) != -1)
-        {
-            if (m_redirectEnabledMask & (1ull << bitIndex))
-            {
-                redirectContext = m_contexts[bitIndex];
-                redirectFunction = m_writeErrorFnptrTable[bitIndex];
-
-                break;
-            }
-
-            mask &= ~(1ull << bitIndex);
-        }
-
-        if (!redirectFunction || redirectFunction(redirectContext, *channelPtr, message))
-        {
-#if HYP_DEBUG_MODE
-            const bool isStandardOutput = (m_output == stdout || m_output == stderr);
-            if (isStandardOutput)
-            {
-                Span<const char> colorCode = LogLevelTermColor(message.level);
-                std::fwrite(colorCode.Data(), 1, colorCode.Size(), m_outputError);
-            }
-#endif
-
-            for (auto it = message.chunks.Begin(); it != message.chunks.End(); ++it)
-            {
-                std::fwrite(**it, 1, it->Size(), m_outputError);
-            }
-
-#if HYP_DEBUG_MODE
-            if (isStandardOutput)
-            {
-                static constexpr Span<const char> ResetCode = "\033[0m";
-                std::fwrite(ResetCode.Data(), 1, ResetCode.Size(), m_outputError);
-            }
-#endif
-        }
-
-        m_rwMarker.Decrement(2, MemoryOrder::RELEASE);
+        Write(channel, message);
     }
 
     virtual void Flush() override

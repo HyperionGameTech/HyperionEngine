@@ -206,9 +206,9 @@ void PlaceholderData::Initialize()
         }
     };
 
-    auto LoadOrInitTexture = [&InitBufferData]<class... Args>(Handle<Texture>& outTexture, const String& path, const UTF8StringView& name, const TextureDesc& textureDesc, PlaceholderBufferData& bufferData, auto fillFn, Args&&... args)
+    auto LoadOrInitTexture = [&InitBufferData]<class... Args>(Handle<Texture>& outTexture, const String& path, Name name, const TextureDesc& textureDesc, PlaceholderBufferData& bufferData, auto fillFn, Args&&... args)
     {
-        if (Handle<AssetObject> asset = g_assetManager->GetAssetRegistry()->GetAssetFromPath(path + "/" + name); asset.IsValid())
+        if (Handle<AssetObject> asset = g_assetManager->GetAssetRegistry()->GetAssetFromPath(path + "/" + *name); asset.IsValid())
         {
             Handle<Texture> textureAsset = ObjCast<Texture>(asset);
             Assert(textureAsset != nullptr);
@@ -225,7 +225,7 @@ void PlaceholderData::Initialize()
         InitBufferData(bufferData, fillFn, textureDesc.extent.GetXY(), std::forward<Args>(args)...);
 
         outTexture = MakeHandle<Texture>(textureDesc, bufferData.first.ToByteView());
-        outTexture->SetName(CreateNameFromDynamicString(*name));
+        outTexture->SetName(name);
         outTexture->SetPersistentRequested(true, /* setFlag */ true);
         
         g_assetManager->GetAssetRegistry()->RegisterAsset(path, outTexture);
@@ -240,7 +240,7 @@ void PlaceholderData::Initialize()
     LoadOrInitTexture(
         defaultTexture2d,
         "Engine/Textures",
-        "Placeholder_Texture_2D_1x1",
+        NAME("Placeholder_Texture_2D_1x1"),
         TextureDesc {
             TextureType::Texture2D,
             TextureFormat::RGBA8,
@@ -256,7 +256,7 @@ void PlaceholderData::Initialize()
     LoadOrInitTexture(
         defaultTexture3d,
         "Engine/Textures",
-        "Placeholder_Texture_3D_1x1x1",
+        NAME("Placeholder_Texture_3D_1x1x1"),
         TextureDesc {
             TextureType::Texture3D,
             TextureFormat::RGBA8,
@@ -272,7 +272,7 @@ void PlaceholderData::Initialize()
     LoadOrInitTexture(
         defaultCubemap,
         "Engine/Textures",
-        "Placeholder_Texture_Cube_1x1",
+        NAME("Placeholder_Texture_Cube_1x1"),
         TextureDesc {
             TextureType::Cubemap,
             TextureFormat::RGBA8,
@@ -288,7 +288,7 @@ void PlaceholderData::Initialize()
     LoadOrInitTexture(
         defaultTexture2dArray,
         "Engine/Textures",
-        "Placeholder_Texture_2D_1x1_Array",
+        NAME("Placeholder_Texture_2D_1x1_Array"),
         TextureDesc {
             TextureType::Texture2DArray,
             TextureFormat::RGBA8,
@@ -304,7 +304,7 @@ void PlaceholderData::Initialize()
     LoadOrInitTexture(
         defaultCubemapArray,
         "Engine/Textures",
-        "Placeholder_Texture_Cube_1x1_Array",
+        NAME("Placeholder_Texture_Cube_1x1_Array"),
         TextureDesc {
             TextureType::CubemapArray,
             TextureFormat::RGBA8,

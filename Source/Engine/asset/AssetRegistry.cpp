@@ -21,7 +21,6 @@
 #include <Core/reflection/Property.hpp>
 
 #include <Core/io/ByteWriter.hpp>
-#include <Core/io/BufferedByteReader.hpp>
 
 #include <Core/json/JSON.hpp>
 
@@ -56,7 +55,10 @@ static constexpr const char* BlobStorageName = "Storage";
 static constexpr bool UseSingleThread = false;
 
 static constexpr const StringHash PredefinedPackages[] = {
-    "Engine"_sh,
+    "Engine"_sh
+};
+
+static constexpr const StringHash PredefinedTransientPackages[] = {
     "$Memory"_sh,
     "$Temp"_sh,
     "$Import"_sh
@@ -211,17 +213,14 @@ static bool ShouldRelocateAssetBeforeSave(const AssetObject& assetObject)
 }
 
 template <size_t Size>
-static bool IsPackageInList(
-    const AssetPackage& package,
-    const StringHash(&elems)[Size],
-    bool exactMatch)
+static bool IsPackageInList(const AssetPackage& package, const StringHash(&elems)[Size], bool matchSubpackages = true)
 {
     StringHash substrHash = StringHash(package.GetName());
 
-    if (!exactMatch)
+    if (matchSubpackages)
     {
-        const ANSIString packagePath = package.BuildPackagePath();
-        const ANSIStringView substr = packagePath.Substr(0, packagePath.FindFirstIndex('/'));
+        const String packagePath = package.BuildPackagePath();
+        const UTF8StringView substr = packagePath.Substr(0, packagePath.FindFirstIndex('/'));
         substrHash = StringHash(substr);
     }
 
@@ -230,6 +229,43 @@ static bool IsPackageInList(
         StringHash packageName = elems[i];
 
         if (substrHash == packageName)
+        {
+            return true;
+        }
+    }
+
+    return false;
+}
+
+
+template <size_t Size>
+static bool IsPackageInList(const UTF8StringView& packagePath, const StringHash(&elems)[Size])
+{
+    const UTF8StringView substr = packagePath.Substr(0, packagePath.FindFirstIndex('/'));
+    
+    const StringHash substrHash = StringHash(substr);
+
+    for (size_t i = 0; i < Size; i++)
+    {
+        StringHash packageName = elems[i];
+
+        if (substrHash == packageName)
+        {
+            return true;
+        }
+    }
+
+    return false;
+}
+
+template <size_t Size>
+static bool IsPackageInList(Name name, const StringHash(&elems)[Size])
+{
+    for (size_t i = 0; i < Size; i++)
+    {
+        StringHash packageName = elems[i];
+
+        if (name == packageName)
         {
             return true;
         }
@@ -249,7 +285,8 @@ static bool ShouldSavePackageOnChanged(const AssetPackage& package)
         return false;
     }
 
-    return IsPackageInList(package, PredefinedPackages, /* exactMatch */ false);
+    return IsPackageInList(package, PredefinedPackages)
+        || IsPackageInList(package, PredefinedTransientPackages);
 }
 
 /*! \brief Check if we should rename assets that have names that are already used within the package.
@@ -295,7 +332,7 @@ static TResult<Handle<AssetPackage>> RelocateAsset(
     {
         AssetPackage* currentPackage = previousPackage;
 
-        while (currentPackage != nullptr && !IsPackageInList(*currentPackage, RelocatablePackages, /* exactMatch */ true))
+        while (currentPackage != nullptr && !IsPackageInList(*currentPackage, RelocatablePackages, /* matchSubpackages */ false))
         {
             subpackageNames.PushBack(currentPackage->GetName());
             currentPackage = currentPackage->GetParentPackage();
@@ -326,9 +363,11 @@ static TResult<Handle<AssetPackage>> RelocateAsset(
     return newPackage;
 }
 
-static Result ReadManifest(BufferedReader& stream, const FilePath& manifestPath, JSON::Object& outManifestData)
+static Result ReadManifest(ByteReader& stream, const FilePath& manifestPath, JSON::Object& outManifestData)
 {
-    JSON::ParseResult parseResult = JSON::Parse(stream);
+    String str = String(stream.Read().ToByteView());
+
+    JSON::ParseResult parseResult = JSON::Parse(str);
 
     if (!parseResult.ok)
     {
@@ -363,7 +402,7 @@ AssetPackage::AssetPackage(Name name, EnumFlags<AssetPackageFlags> flags)
 {
     if (name.IsValid())
     {
-        if (name == "$Memory"_sh || name == "$Import"_sh)
+        if (IsPackageInList(name, PredefinedTransientPackages))
         {
             m_flags |= AssetPackageFlags::Hidden | AssetPackageFlags::Transient;
         }
@@ -915,13 +954,11 @@ Handle<AssetObject> AssetPackage::GetAssetObject(UTF8StringView assetName, bool 
                 Handle<AssetObject> assetObject;
 
                 FilePath manifestPath = m_packageDir / String(assetName) + ".json";
-                
-                FileBufferedReaderSource manifestSource { manifestPath };
-                BufferedReader manifestStream { &manifestSource };
+                FileByteReader stream { manifestPath };
 
                 JSON::Object manifestData;
 
-                if (Result readManifestResult = ReadManifest(manifestStream, manifestPath, manifestData); readManifestResult.HasError())
+                if (Result readManifestResult = ReadManifest(stream, manifestPath, manifestData); readManifestResult.HasError())
                 {
                     HYP_LOG(Assets, Error, "Failed to read asset manifest: {}", readManifestResult.GetError().GetMessage());
 
@@ -1160,8 +1197,8 @@ void AssetPackage::Rename(Name name)
     {
         return;
     }
-
-    if (name == "$Memory"_sh || name == "$Import"_sh)
+    
+    if (IsPackageInList(name, PredefinedTransientPackages))
     {
         m_flags |= AssetPackageFlags::Hidden | AssetPackageFlags::Transient;
     }
@@ -2779,6 +2816,8 @@ Handle<AssetPackage> AssetRegistry::GetPackage(
 
     Handle<AssetPackage> pkg;
 
+    const bool canLoadPackage = !IsPackageInList(subpackageName, PredefinedTransientPackages);
+
     bool isSubpackageSaved = false;
 
     if (!parentPackage) // top-level package
@@ -2798,7 +2837,7 @@ Handle<AssetPackage> AssetRegistry::GetPackage(
                 pkg->WaitUntilLoaded();
             }
         }
-        else
+        else if (canLoadPackage)
         {
             // Try loading from manifest path, if it exists.
             FilePath subpackageDir = GetLibraryDirectory() / String(subpackageName);
@@ -3026,17 +3065,19 @@ TResult<Handle<AssetPackage>> AssetRegistry::LoadPackageFromManifest(
 
     const FilePath dir = manifestPath.BasePath();
 
-    FileBufferedReaderSource manifestSource { manifestPath };
-    BufferedReader manifestStream { &manifestSource };
+    FileByteReader stream { manifestPath };
 
-    if (!manifestStream.IsOpen())
+    if (stream.Eof())
     {
         return HYP_MAKE_ERROR(Error, "Failed to open manifest file '{}'", manifestPath);
     }
 
-    JSON::ParseResult parseResult = JSON::Parse(manifestStream);
+    String str = String(stream.Read().ToByteView());
 
-    manifestStream.Close();
+    JSON::ParseResult parseResult = JSON::Parse(str);
+
+    stream.Close();
+    str = {};
 
     if (!parseResult.ok)
     {
@@ -3226,8 +3267,7 @@ TResult<Handle<AssetPackage>> AssetRegistry::LoadPackageFromManifest(
         {
             const FilePath& entry = assetFiles[index];
 
-            FileBufferedReaderSource manifestSource { entry };
-            BufferedReader manifestStream { &manifestSource };
+            FileByteReader stream { entry };
 
             // here we want to read the manifest to get the `Name` property of the asset,
             // so we can check if the asset is already loaded.
@@ -3237,7 +3277,7 @@ TResult<Handle<AssetPackage>> AssetRegistry::LoadPackageFromManifest(
             //   and we want to reduce the risk of double-loading an asset.
             
             JSON::Object manifestData;
-            if (Result readManifestResult = ReadManifest(manifestStream, entry, manifestData); readManifestResult.HasError())
+            if (Result readManifestResult = ReadManifest(stream, entry, manifestData); readManifestResult.HasError())
             {
                 return Error(readManifestResult.GetError());
             }

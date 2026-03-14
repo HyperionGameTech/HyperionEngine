@@ -50,6 +50,9 @@ android {
             // libhyperion.so and libc++_shared.so are staged here automatically
             // by the stageNativeLibs task before every build.
             jniLibs.srcDirs = ['src/main/jniLibs']
+
+            // Engine packages are staged into assets/ by stagePackageAssets.
+            assets.srcDirs = ['src/main/assets']
         }
     }
 }
@@ -57,15 +60,10 @@ android {
 dependencies {
 }
 
-// ---------------------------------------------------------------------------
-// Stage native libraries
-// Copies libhyperion.so from Binaries/Engine into jniLibs before every build.
-// Re-runs only when the .so has changed (incremental via inputs/outputs).
-// ---------------------------------------------------------------------------
+// stage native libs into jniLibs before the APK is built
 def engineBinariesDir = file('../../../../Binaries/Engine')
 def jniLibsAbiDir     = file('src/main/jniLibs/arm64-v8a')
 
-// Resolve android.ndkDirectory at configuration time (not inside doLast).
 def resolvedNdkDir = android.ndkDirectory
 
 tasks.register('stageNativeLibs') {
@@ -107,4 +105,16 @@ tasks.register('stageNativeLibs') {
     }
 }
 
-preBuild.dependsOn 'stageNativeLibs'
+// copy packages into assets dir.
+// TODO: Copy Projects/*ProjectName*/ too?
+def basePackagesDir   = file('../../../../Packages')
+def assetsDestDir = file('src/main/assets')
+
+tasks.register('stagePackageAssets', Sync) {
+    description 'Syncs engine Packages/ into the Android assets directory before the APK is assembled.'
+
+    from basePackagesDir
+    into assetsDestDir
+}
+
+preBuild.dependsOn 'stageNativeLibs', 'stagePackageAssets'

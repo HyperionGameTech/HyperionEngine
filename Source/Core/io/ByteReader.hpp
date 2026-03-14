@@ -137,6 +137,12 @@ public:
     }
 
     size_t Read(void* ptr, size_t size) override;
+
+    HYP_FORCE_INLINE ByteBuffer Read()
+    {
+        return ByteReader::Read();
+    }
+
     ByteBuffer Read(size_t size) override;
 
     void Close() override;
@@ -149,7 +155,7 @@ protected:
 class FileByteReader final : public ByteReader
 {
 public:
-    FileByteReader(const FilePath& filepath, size_t offset = 0);
+    explicit FileByteReader(const FilePath& filepath, size_t offset = 0);
     ~FileByteReader() override;
 
     const FilePath& GetFilepath() const
@@ -174,6 +180,12 @@ public:
     void Seek(size_t whereTo) override;
 
     size_t Read(void* ptr, size_t size) override;
+    
+    HYP_FORCE_INLINE ByteBuffer Read()
+    {
+        return ByteReader::Read();
+    }
+    
     ByteBuffer Read(size_t size) override;
 
     void Close() override;
@@ -227,6 +239,12 @@ public:
     void Close() override;
     
     size_t Read(void* ptr, size_t size) override;
+    
+    HYP_FORCE_INLINE ByteBuffer Read()
+    {
+        return ByteReader::Read();
+    }
+    
     ByteBuffer Read(size_t size) override;
 
 protected:

@@ -54,6 +54,7 @@ CMakeFiles/**/*
 
 Source/PlatformSpecific/Android/app/.cxx/**/*
 Source/PlatformSpecific/Android/app/**/jniLibs/**/*
+Source/PlatformSpecific/Android/app/**/assets/**/*
 
 Source/Generated/**/*
 
