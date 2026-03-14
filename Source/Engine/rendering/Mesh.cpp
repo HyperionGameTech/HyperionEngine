@@ -25,10 +25,6 @@
 
 namespace Hyperion {
 
-#if HYP_EDITOR
-HYP_DECLARE_LOG_CHANNEL(Editor);
-#endif
-
 static const Name s_nameMeshDefault = NAME("<unnamed mesh>");
 
 const VertexAttribute* VertexAttribute::Attrs[] = {
@@ -225,7 +221,7 @@ void Mesh::PageBlobData()
         {
             ([&]()
                 {
-#if HYP_EDITOR
+#if HYP_EDITOR || HYP_ALLOW_INLINE_BLOBS
                     // check if failed; if so, try to import from raw data blob in project directory
                     Handle<AssetPackage> package = GetPackage();
                     Assert(package.IsValid());
@@ -258,7 +254,7 @@ void Mesh::PageBlobData()
         {
             ([&]()
                 {
-#if HYP_EDITOR
+#if HYP_EDITOR || HYP_ALLOW_INLINE_BLOBS
                     // check if failed; if so, try to import from raw data blob in project directory
                     Handle<AssetPackage> package = GetPackage();
                     Assert(package.IsValid());
@@ -288,13 +284,13 @@ void Mesh::PageBlobData()
             m_indexData.readOnly = true;
         }
 
-#if HYP_EDITOR
+#if HYP_EDITOR || HYP_ALLOW_INLINE_BLOBS
         if (needsSaveBlobData)
         {
             Result saveBlobDataResult = SaveBlobData(blobStorage);
             if (saveBlobDataResult.HasError())
             {
-                HYP_LOG(Editor, Error, "Failed to save local blob data: {}", saveBlobDataResult.GetError().GetMessage());
+                HYP_LOG(Assets, Error, "Failed to save local blob data: {}", saveBlobDataResult.GetError().GetMessage());
             }
         }
 #endif

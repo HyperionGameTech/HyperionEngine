@@ -52,6 +52,9 @@ CMakeFiles/**/*
 
 */out/**/*
 
+# java heap dump files
+*.hprof
+
 Source/PlatformSpecific/Android/app/.cxx/**/*
 Source/PlatformSpecific/Android/app/**/jniLibs/**/*
 Source/PlatformSpecific/Android/app/**/assets/**/*

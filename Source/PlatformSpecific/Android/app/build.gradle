@@ -61,7 +61,27 @@ dependencies {
 }
 
 // stage native libs into jniLibs before the APK is built
-def engineBinariesDir = file('../../../../Binaries/Engine')
+def engineBinariesRoot = file('../../../../Binaries/Android')
+
+// device on path
+def pickEngineDir = {
+    def candidates = [
+        new File(engineBinariesRoot, 'Debug'),
+        new File(engineBinariesRoot, 'Release'),
+        engineBinariesRoot
+    ]
+
+    for (c in candidates) {
+        if (c.exists()) {
+            return c
+        }
+    }
+
+    return engineBinariesRoot
+}
+
+def engineBinariesDir = pickEngineDir()
+
 def jniLibsAbiDir     = file('src/main/jniLibs/arm64-v8a')
 
 def resolvedNdkDir = android.ndkDirectory
@@ -111,9 +131,17 @@ def basePackagesDir   = file('../../../../Packages')
 def assetsDestDir = file('src/main/assets')
 
 tasks.register('stagePackageAssets', Sync) {
-    description 'Syncs engine Packages/ into the Android assets directory before the APK is assembled.'
+    description 'Stage Hyperion AssetPackage manifests'
 
-    from basePackagesDir
+    // Engine package manifests and non-blob assets
+    from(basePackagesDir) {
+        // FOR TESTING - i've commented out the exclusion of .blob files,
+        // so we can test as we currently aren't copying the large blob cache anywhere and can't use it.
+        // for packaged builds, this should be re-enabled and we should ensure the blob cache is being copied.
+        // we'll need a way to trim it down first as it can get huge and bloated.
+        // exclude '**/*.blob'
+    }
+
     into assetsDestDir
 }
 

@@ -472,6 +472,10 @@ static HYP_FORCE_INLINE void ExecuteBreakpointOnce()
 // #define HYP_ENABLE_MT_CHECK
 //  #define HYP_LOG_MEMORY_OPERATIONS
 
+// uncomment to forego blob storage cache and allow usage
+// of *.blob files in non-editor builds.
+#define HYP_ALLOW_INLINE_BLOBS 1
+
 #define HYP_RENDER_COMMANDS_DEBUG_NAME
 #endif
 

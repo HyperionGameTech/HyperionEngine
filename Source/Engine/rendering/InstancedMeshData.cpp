@@ -14,10 +14,6 @@
 
 namespace Hyperion {
 
-#if HYP_EDITOR
-HYP_DECLARE_LOG_CHANNEL(Editor);
-#endif
-
 void InstancedMeshProxy_OnPostLoad(InstancedMeshData& instancedMesh)
 {
     //// Ensure at least one instance
@@ -56,7 +52,7 @@ void InstancedMeshData::PageBlobData()
 
             if (!blobStorage.GetData(ref.key, ref.size, ref.raw))
             {
-#if HYP_EDITOR
+#if HYP_EDITOR || HYP_ALLOW_INLINE_BLOBS
                 Handle<AssetPackage> package = GetPackage();
                 Assert(package.IsValid());
                 Assert(package->IsSaved());
@@ -82,7 +78,7 @@ void InstancedMeshData::PageBlobData()
         }
     }
     
-#if HYP_EDITOR
+#if HYP_EDITOR || HYP_ALLOW_INLINE_BLOBS
     if (needSaveBlobData)
     {    
         BlobStorage& blobStorage = g_assetManager->GetAssetRegistry()->GetBlobStorage();
@@ -91,7 +87,7 @@ void InstancedMeshData::PageBlobData()
 
         if (saveBlobDataResult.HasError())
         {
-            HYP_LOG(Editor, Error, "Failed to save local blob data for InstancedMeshData: {}", saveBlobDataResult.GetError().GetMessage());
+            HYP_LOG(Assets, Error, "Failed to save local blob data for InstancedMeshData: {}", saveBlobDataResult.GetError().GetMessage());
         }
     }
 #endif

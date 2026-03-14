@@ -341,6 +341,7 @@ Result AssetObject::SaveBlobData(
         header.payloadSize = reference->size;
         header.version = version;
 
+        // generate new key
         reference->key = CreateNameFromDynamicString(GetPath().ToString() + "." + magic);
 
         if (!storage.PutData(StringHash(reference->key), header, reference->raw))

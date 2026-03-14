@@ -34,10 +34,6 @@
 
 namespace Hyperion {
 
-#if HYP_EDITOR
-HYP_DECLARE_LOG_CHANNEL(Editor);
-#endif
-
 class Texture;
 class TextureMipmapRenderer;
 
@@ -364,7 +360,7 @@ void Texture::PageBlobData()
 
         if (!blobStorage.GetData(m_imageData.key, m_imageData.size, m_imageData.raw))
         {
-#if HYP_EDITOR
+#if HYP_EDITOR || HYP_ALLOW_INLINE_BLOBS
             // check if failed; if so, try to import from raw data blob in project directory
             Handle<AssetPackage> package = GetPackage();
             Assert(package && package->IsSaved());
@@ -380,7 +376,7 @@ void Texture::PageBlobData()
                 Result saveBlobDataResult = SaveBlobData(blobStorage);
                 if (saveBlobDataResult.HasError())
                 {
-                    HYP_LOG(Editor, Error, "Failed to save local blob data: {}", saveBlobDataResult.GetError().GetMessage());
+                    HYP_LOG(Assets, Error, "Failed to save local blob data: {}", saveBlobDataResult.GetError().GetMessage());
                 }
 
                 MarkDirty();

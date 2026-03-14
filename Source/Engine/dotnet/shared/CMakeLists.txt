@@ -73,7 +73,7 @@ if(HYP_GENERATE_CSHARP_LIBRARIES)
         file(APPEND ${CSPROJ_PATH} "  </ItemGroup>\n")
         # copy dll
         file(APPEND ${CSPROJ_PATH} "  <Target Name=\"CopyDLL\" AfterTargets=\"AfterBuild\">\n")
-        file(APPEND ${CSPROJ_PATH} "    <Copy SourceFiles=\"$(TargetPath)\" DestinationFolder=\"${HYP_LIBRARY_OUTPUT_DIRECTORY}/\" />\n")
+        file(APPEND ${CSPROJ_PATH} "    <Copy SourceFiles=\"$(TargetPath)\" DestinationFolder=\"${CMAKE_LIBRARY_OUTPUT_DIRECTORY}/\" />\n")
         file(APPEND ${CSPROJ_PATH} "  </Target>\n")
         file(APPEND ${CSPROJ_PATH} "</Project>\n")
 

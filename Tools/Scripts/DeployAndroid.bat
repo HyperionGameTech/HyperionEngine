@@ -19,8 +19,9 @@ if not defined HYP_ROOT (
     popd >nul
 )
 
-set "ENGINE_BIN=%HYP_ROOT%\Binaries\Engine"
+REM TODO This should be the same as the CMAKE_LIBRARY_OUTPUT_DIRECTORY, gotta fix
 set "ANDROID_PROJECT=%HYP_ROOT%\Source\PlatformSpecific\Android"
+set "ENGINE_BIN=%HYP_ROOT%\Binaries\Android\Release" 
 set "JNILIB_DIR=%ANDROID_PROJECT%\app\src\main\jniLibs\arm64-v8a"
 set "APK_PATH=%ANDROID_PROJECT%\app\build\outputs\apk\debug\app-debug.apk"
 set "PACKAGE_NAME=com.hyperion.engine"
@@ -143,7 +144,7 @@ if not defined HYP_ROOT (
     popd >nul
 )
 
-set "ENGINE_BIN=%HYP_ROOT%\Binaries\Engine"
+set "ENGINE_BIN=%HYP_ROOT%\Binaries\Android\Release"
 set "ANDROID_PROJECT=%HYP_ROOT%\Source\PlatformSpecific\Android"
 set "JNILIB_DIR=%ANDROID_PROJECT%\app\src\main\jniLibs\arm64-v8a"
 set "APK_PATH=%ANDROID_PROJECT%\app\build\outputs\apk\debug\app-debug.apk"

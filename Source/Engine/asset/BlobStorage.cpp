@@ -57,7 +57,6 @@ static void InitBlobStorage(BlobStorage& outStorage, const FilePath& baseDirecto
 
 #pragma region BlobTableOfContents
 
-HYP_DISABLE_OPTIMIZATION;
 class BlobTableOfContents
 {
     enum class SlotState : uint8
@@ -117,18 +116,6 @@ public:
         : dirty(false)
     {
         AllocateNew(capacity);
-    }
-
-    bool Insert(StringHash key, const Value& value)
-    {
-        MapHeader* header = GetHeader();
-
-        if (header->size * 10 >= header->capacity * 7)
-        {
-            Resize(header->capacity * 2);
-        }
-
-        return Insert_Internal(header, GetBuckets(), key, value);
     }
 
     bool Get(StringHash key, Value& outValue) const
@@ -366,7 +353,6 @@ private:
         std::swap(newMem, mem);
     }
 };
-HYP_ENABLE_OPTIMIZATION;
 
 #pragma endregion BlobTableOfContents
 
@@ -684,7 +670,12 @@ bool BlobStorage::PutData(StringHash key, const BlobHeader& header, const void* 
 
         pd.cursor = writeStream->Position();
 
-        m_toc->Put(key, BlobTableOfContents::Value { .page = page, .offset = offset, .size = header.payloadSize });
+        BlobTableOfContents::Value entryValue {};
+        entryValue.page = page;
+        entryValue.offset = offset;
+        entryValue.size = header.payloadSize;
+
+        m_toc->Put(key, entryValue);
 
         return true;
     };
@@ -890,6 +881,8 @@ Result BlobStorage::SaveManifest_Internal()
 
     JSON::Object manifestJson;
     ObjectToJSON(InstanceClass(), BoxedValue(HandleFromThis()), manifestJson);
+
+    manifestJson.Erase("BaseDirectory");
 
     manifestWriter.WriteString(JSON::Value(std::move(manifestJson)).ToString(true).ToUtf8());
 

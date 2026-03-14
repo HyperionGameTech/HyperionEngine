@@ -4,6 +4,12 @@
 
 CONFIG="Release"
 
+CURR_PLATFORM="$(uname -s)"
+# if Darwin we want to use "Mac" instead of that
+if [[ "$CURR_PLATFORM" == "Darwin" ]]; then
+    CURR_PLATFORM="Mac"
+fi
+
 if [ ! -z "$1" ]; then
     CONFIG="$1"
 fi
@@ -15,7 +21,7 @@ buildDir="$(pwd)"
 pushd CSharpProjects
 
 for project in "${projects[@]}"; do
-    mkdir -p "$buildDir/../Binaries/Engine"
+    mkdir -p "$buildDir/../Binaries/$CURR_PLATFORM/$CONFIG"
     
     echo "Building $project in $CONFIG configuration..."
 
@@ -26,10 +32,10 @@ for project in "${projects[@]}"; do
             exit 1
         fi
         # Copy the built DLL to the Binaries folder
-        if [ ! -d "$buildDir/../Binaries" ]; then
-            mkdir -p "$buildDir/../Binaries"
+        if [ ! -d "$buildDir/../Binaries/$CURR_PLATFORM/$CONFIG" ]; then
+            mkdir -p "$buildDir/../Binaries/$CURR_PLATFORM/$CONFIG"
         fi
-        cp "bin/$CONFIG/net9.0/$project.dll" "$buildDir/../Binaries/$project.dll"
+        cp "bin/$CONFIG/net9.0/$project.dll" "$buildDir/../Binaries/$CURR_PLATFORM/$CONFIG/$project.dll"
     popd # $project
 done
 
