@@ -92,9 +92,9 @@ bool DynamicLibrary::Open()
         return true;
     }
 
-#ifdef HYP_WINDOWS
+#if HYP_WINDOWS
     m_impl->handle = LoadLibraryW(m_impl->path.Data());
-#elif defined(HYP_LINUX) || defined(HYP_MACOS)
+#elif HYP_UNIX
     m_impl->handle = dlopen(m_impl->path.Data(), RTLD_NOW);
 #else
     return false;
@@ -110,9 +110,9 @@ void DynamicLibrary::Close()
         return;
     }
 
-#ifdef HYP_WINDOWS
+#if HYP_WINDOWS
     FreeLibrary(m_impl->handle);
-#elif defined(HYP_LINUX) || defined(HYP_MACOS)
+#elif HYP_UNIX
     dlclose(m_impl->handle);
 #endif
 
@@ -126,9 +126,9 @@ UIntPtr DynamicLibrary::GetFunction(const char* name) const
         return 0;
     }
 
-#ifdef HYP_WINDOWS
+#if HYP_WINDOWS
     return reinterpret_cast<UIntPtr>(GetProcAddress(reinterpret_cast<HMODULE>(m_impl->handle), name));
-#elif defined(HYP_LINUX) || defined(HYP_MACOS)
+#elif HYP_UNIX
     return reinterpret_cast<UIntPtr>(dlsym(reinterpret_cast<void*>(m_impl->handle), name));
 #else
     return 0;

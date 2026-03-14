@@ -17,17 +17,16 @@ namespace Hyperion {
 class NameRegistry;
 
 /*! \brief Creates a Name from a dynamic string. Adds it to the registry, so a lock is required. */
-HYP_API extern Name CreateNameFromDynamicString(const ANSIString& str);
+Name CreateNameFromDynamicString(const ANSIString& str);
 
 /*! \brief Creates a Name from a dynamic string. Does not add it to the registry. */
-HYP_API extern StringHash CreateStringHashFromDynamicString(const ANSIStringView& str);
+StringHash CreateStringHashFromDynamicString(const ANSIStringView& str);
 
-HYP_API extern Name RegisterName(NameRegistry* nameRegistry, NameID id, const ANSIString& str, bool lock);
+Name RegisterName(NameRegistry* nameRegistry, NameID id, const ANSIString& str, bool lock);
+bool ShouldLockNameRegistry();
 
-HYP_API extern bool ShouldLockNameRegistry();
-
-extern void InitNameRegistry();
-extern void DestroyNameRegistry();
+void InitNameRegistry();
+void DestroyNameRegistry();
 
 struct NameRegistration
 {

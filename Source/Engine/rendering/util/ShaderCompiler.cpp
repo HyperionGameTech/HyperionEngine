@@ -307,6 +307,8 @@ static const ShaderPropertyId s_propLinux = InternShaderProperty(ShaderProperty(
 static const ShaderPropertyId s_propMacOS = InternShaderProperty(ShaderProperty(NAME("HYP_MACOS")));
 #elif HYP_IOS
 static const ShaderPropertyId s_propIOS = InternShaderProperty(ShaderProperty(NAME("HYP_IOS")));
+#elif HYP_ANDROID
+static const ShaderPropertyId s_propAndroid = InternShaderProperty(ShaderProperty(NAME("HYP_ANDROID")));
 #endif
 
 static const ShaderPropertyId s_propNumGBufferTextures = InternShaderProperty(ShaderProperty(NAME("NUM_GBUFFER_TEXTURES"), int(NumGBufferTargets)));
@@ -333,6 +335,8 @@ void MergeGlobalShaderProperties(ShaderPropertySet& out)
     out.Add(s_propMacOS);
 #elif HYP_IOS
     out.Add(s_propIOS);
+#elif HYP_ANDROID
+    out.Add(s_propAndroid);
 #endif
 
     out.Add(s_propNumGBufferTextures);

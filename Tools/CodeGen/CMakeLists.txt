@@ -37,7 +37,7 @@ endif()
 
 if(NOT DEFINED HYP_PLATFORM_NAME)
     if(WIN32)
-        set(HYP_PLATFORM_NAME "Win32")
+        set(HYP_PLATFORM_NAME "Windows")
     elseif(APPLE)
         set(HYP_PLATFORM_NAME "Mac")
     elseif(UNIX)
@@ -48,15 +48,24 @@ if(NOT DEFINED HYP_PLATFORM_NAME)
 endif()
 
 # only build codegen for desktop platforms
-if(HYP_PLATFORM_NAME STREQUAL "Win32")
+if(HYP_PLATFORM_NAME STREQUAL "Windows")
     add_definitions(-DHYP_WINDOWS=1)
+
+    set(HYP_WINDOWS 1)
 elseif(HYP_PLATFORM_NAME STREQUAL "Mac")
     add_definitions(-DHYP_APPLE=1)
     add_definitions(-DHYP_UNIX=1)
     add_definitions(-DHYP_MACOS=1)
+
+    set(HYP_APPLE 1)
+    set(HYP_UNIX 1)
+    set(HYP_MACOS 1)
 elseif(HYP_PLATFORM_NAME STREQUAL "Linux")
     add_definitions(-DHYP_LINUX=1)
     add_definitions(-DHYP_UNIX=1)
+
+    set(HYP_LINUX 1)
+    set(HYP_UNIX 1)
 endif()
 
 if(HYP_MSVC)

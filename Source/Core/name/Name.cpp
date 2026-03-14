@@ -201,14 +201,14 @@ Name RegisterName(NameRegistry* nameRegistry, NameID id, const ANSIString& str, 
     return nameRegistry->RegisterName(id, str, lock);
 }
 
-const NameRegistry::CharBuffer& LookupStringForName(const NameRegistry* nameRegistry, Name name)
-{
-    return nameRegistry->LookupStringForName(name);
-}
-
 bool ShouldLockNameRegistry()
 {
     return s_isNameRegistryInitialized;
+}
+
+const NameRegistry::CharBuffer& LookupStringForName(const NameRegistry* nameRegistry, Name name)
+{
+    return nameRegistry->LookupStringForName(name);
 }
 
 void InitNameRegistry()

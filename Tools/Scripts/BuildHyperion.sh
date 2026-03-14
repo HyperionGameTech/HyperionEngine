@@ -48,7 +48,7 @@ if [[ $RESP =~ ^[Yy] ]]; then
     HYP_ROOT_DIR_ABS="$(realpath "$SCRIPT_DIR/../..")"
     printf "Using Hyperion root directory: %s\n" "$HYP_ROOT_DIR_ABS"
 
-    HYP_CMAKE_PARAMS="-DHYP_THIRD_PARTY_LIBRARY_DIRECTORY=$SCRIPT_DIR/../../External/ThirdParty/Binaries -DHYP_LIBRARY_OUTPUT_DIRECTORY=$SCRIPT_DIR/../../../Binaries -DHYP_RUNTIME_OUTPUT_DIRECTORY=$SCRIPT_DIR/../../../Binaries -DHYP_ROOT_DIR=$HYP_ROOT_DIR_ABS"
+    HYP_CMAKE_PARAMS="-DHYP_THIRD_PARTY_LIBRARY_DIRECTORY=$SCRIPT_DIR/../../../External/ThirdParty/Binaries -DHYP_LIBRARY_OUTPUT_DIRECTORY=$SCRIPT_DIR/../../../Binaries -DHYP_RUNTIME_OUTPUT_DIRECTORY=$SCRIPT_DIR/../../../Binaries -DHYP_ROOT_DIR=$HYP_ROOT_DIR_ABS"
 
     # Generate for iOS if requested
     if [[ $IOS -eq 1 ]]; then

@@ -65,8 +65,10 @@ struct WGLayerDesc
 {
     HYP_STRUCT_BODY(WGLayerDesc);
 
+    static const Name s_defaultName;
+
     HYP_FIELD()
-    Name className = NAME("WorldGridLayer");
+    Name className = s_defaultName;
 
     HYP_FIELD()
     Name layerName;

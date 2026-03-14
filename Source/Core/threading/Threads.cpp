@@ -133,7 +133,7 @@ void SetCurrentThreadId(const ThreadId& id)
     }
 #elif HYP_MACOS
     pthread_setname_np(id.GetName().LookupString());
-#elif HYP_LINUX
+#elif HYP_UNIX
     pthread_setname_np(pthread_self(), id.GetName().LookupString());
 #endif
 }
@@ -386,7 +386,7 @@ void SetCurrentThreadPriority(ThreadPriorityValue priority)
     }
 
     SetThreadPriority(GetCurrentThread(), winPriority);
-#elif defined(HYP_LINUX) || defined(HYP_APPLE)
+#elif HYP_UNIX
     int policy = SCHED_OTHER;
     struct sched_param param;
 

@@ -2658,7 +2658,7 @@ void AssetRegistry::RemovePackage(AssetPackage* package)
     {
         TUniqueLock lock(package->m_mutex);
 
-        AssetPackage* parentPackage;
+        AssetPackage* parentPackage = nullptr;
 
         if (package->m_parentPackage != nullptr)
         {

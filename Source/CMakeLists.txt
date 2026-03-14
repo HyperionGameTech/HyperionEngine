@@ -23,7 +23,7 @@ if(NOT DEFINED HYP_PLATFORM_NAME)
     if(ANDROID)
         set(HYP_PLATFORM_NAME "Android")
     elseif(WIN32)
-        set(HYP_PLATFORM_NAME "Win32")
+        set(HYP_PLATFORM_NAME "Windows")
     elseif(APPLE)
         set(HYP_PLATFORM_NAME "Mac")
     elseif(IOS)
@@ -72,17 +72,56 @@ elseif(CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
     set(HYP_CLANG_OR_GCC 1)
 endif()
 
+if(${HYP_PLATFORM_NAME} STREQUAL "Windows")
+    set(CSHARP_CONSTANTS "HYP_WINDOWS")
+    add_definitions(-DHYP_WINDOWS=1)
+
+    set(HYP_WINDOWS 1)
+elseif(${HYP_PLATFORM_NAME} STREQUAL "Mac")
+    set(CSHARP_CONSTANTS "HYP_MACOS;HYP_APPLE;HYP_UNIX")
+    add_definitions(-DHYP_APPLE=1)
+    add_definitions(-DHYP_UNIX=1)
+    add_definitions(-DHYP_MACOS=1)
+
+    set(HYP_APPLE 1)
+    set(HYP_UNIX 1)
+    set(HYP_MACOS 1)
+elseif(${HYP_PLATFORM_NAME} STREQUAL "iOS")
+    set(CSHARP_CONSTANTS "HYP_IOS;HYP_APPLE;HYP_UNIX")
+    add_definitions(-DHYP_APPLE=1)
+    add_definitions(-DHYP_UNIX=1)
+    add_definitions(-DHYP_IOS=1)
+
+    set(HYP_APPLE 1)
+    set(HYP_UNIX 1)
+    set(HYP_IOS 1)
+elseif(${HYP_PLATFORM_NAME} STREQUAL "Android")
+    set(CSHARP_CONSTANTS "HYP_ANDROID;HYP_UNIX")
+    add_definitions(-DHYP_ANDROID=1)
+    add_definitions(-DHYP_UNIX=1)
+
+    set(HYP_ANDROID 1)
+    set(HYP_UNIX 1)
+elseif(${HYP_PLATFORM_NAME} STREQUAL "Linux")
+    set(CSHARP_CONSTANTS "HYP_LINUX;HYP_UNIX")
+    add_definitions(-DHYP_LINUX=1)
+    add_definitions(-DHYP_UNIX=1)
+    
+    set(HYP_LINUX 1)
+    set(HYP_UNIX 1)
+endif()
+
+if (HYP_CLANG AND HYP_WINDOWS)
+    set(HYP_CLANG_WINDOWS true)
+endif()
+
 message(STATUS "Building for platform: ${HYP_PLATFORM_NAME} with compiler: ${CMAKE_CXX_COMPILER_ID}")
 
 set(USE_MSBUILD_FOR_CSHARP_BUILD false)
-if (MSVC)
+
+if (HYP_MSVC)
     set(USE_MSBUILD_FOR_CSHARP_BUILD true)
     message(STATUS "Using MSBuild for C# projects")
-endif()
-
-if(HYP_PLATFORM_NAME STREQUAL "Android" AND NOT ANDROID)
-    set(ANDROID 1)
-    message(STATUS "Set ANDROID=1 to match HYP_PLATFORM_NAME=Android")
 endif()
 
 string(TOLOWER ${HYP_PLATFORM_NAME} HYP_PLATFORM_NAME_LOWER)
@@ -190,11 +229,18 @@ if(HYP_MSVC)
     # address sanitizer
     # set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /fsanitize=address")
 else()
+    # for clang on windows - no min/max macros
+    if(${HYP_PLATFORM_NAME} STREQUAL "Windows")
+        add_definitions(-DNOMINMAX)
+        message(STATUS "Building with Clang on Windows, adding NOMINMAX definition to avoid min/max macro conflicts")
+    endif()
+
     if(HYP_DEBUG_MODE)
         set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -O2 -g -Werror=return-type -Werror=address") #-Werror=non-virtual-dtor 
     else()
         set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -O3")
     endif()
+
     # set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -g")
     
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++20")
@@ -260,7 +306,7 @@ set(HYP_GENERATED_DIR "${CMAKE_SOURCE_DIR}/Generated")
 set(CSHARP_PROJECTS_DIR "${CMAKE_SOURCE_DIR}/../Build/CSharpProjects")
 file(MAKE_DIRECTORY ${CSHARP_PROJECTS_DIR})
 
-if(NOT ANDROID)
+if(NOT HYP_ANDROID)
     if(NOT HYP_DEBUG_MODE)
         add_definitions(-DHYP_ROOT_DIR="${HYP_ROOT_DIR}")
     endif()
@@ -276,7 +322,7 @@ set(HYP_GENERATE_CSHARP_LIBRARIES true)
 
 # if dotnet headers exist, set HYP_DOTNET to 1
 # TODO: Get working on Android
-if(NOT ANDROID AND EXISTS "${THIRD_PARTY_INCLUDE_DIR}/dotnetcore/hostfxr.h")
+if(EXISTS "${THIRD_PARTY_INCLUDE_DIR}/dotnetcore/hostfxr.h" AND NOT HYP_ANDROID)
     message(STATUS ".NET headers found")
     set(HYP_DOTNET 1)
 
@@ -287,6 +333,8 @@ if(NOT ANDROID AND EXISTS "${THIRD_PARTY_INCLUDE_DIR}/dotnetcore/hostfxr.h")
             set(COMMON_LIBRARIES ${COMMON_LIBRARIES} "${CMAKE_THIRD_PARTY_LIBRARY_DIRECTORY}/libnethost.a")
 
             set(HYP_DOTNET 1)
+
+            add_definitions(-DHYP_DOTNET=1)
         elseif(EXISTS "${CMAKE_THIRD_PARTY_LIBRARY_DIRECTORY}/nethost.lib")
             message(STATUS ".NET core found, setting HYP_DOTNET to 1")
 
@@ -296,36 +344,15 @@ if(NOT ANDROID AND EXISTS "${THIRD_PARTY_INCLUDE_DIR}/dotnetcore/hostfxr.h")
             file(COPY "${CMAKE_THIRD_PARTY_LIBRARY_DIRECTORY}/nethost.dll" DESTINATION ${CMAKE_LIBRARY_OUTPUT_DIRECTORY})
 
             set(HYP_DOTNET 1)
-        endif()
 
-        add_definitions(-DHYP_DOTNET=1)
+            add_definitions(-DHYP_DOTNET=1)
+        else()
+            message(STATUS ".NET core not found, expected to find libnethost.a or nethost.lib in ${CMAKE_THIRD_PARTY_LIBRARY_DIRECTORY}, setting HYP_DOTNET to 0")
+            set(HYP_DOTNET 0)
+        endif()
     endif()
 else()
     message(STATUS ".NET headers not found, skipping .NET core runtime")
-endif()
-
-if(${HYP_PLATFORM_NAME} STREQUAL "Win32")
-    set(CSHARP_CONSTANTS "HYP_WINDOWS")
-    add_definitions(-DHYP_WINDOWS=1)
-elseif(${HYP_PLATFORM_NAME} STREQUAL "Mac")
-    set(CSHARP_CONSTANTS "HYP_MACOS;HYP_APPLE;HYP_UNIX")
-    add_definitions(-DHYP_APPLE=1)
-    add_definitions(-DHYP_UNIX=1)
-    add_definitions(-DHYP_MACOS=1)
-elseif(${HYP_PLATFORM_NAME} STREQUAL "iOS")
-    set(CSHARP_CONSTANTS "HYP_IOS;HYP_APPLE;HYP_UNIX")
-    add_definitions(-DHYP_APPLE=1)
-    add_definitions(-DHYP_UNIX=1)
-    add_definitions(-DHYP_IOS=1)
-elseif(${HYP_PLATFORM_NAME} STREQUAL "Android")
-    set(CSHARP_CONSTANTS "HYP_ANDROID;HYP_LINUX;HYP_UNIX")
-    add_definitions(-DHYP_ANDROID=1)
-    add_definitions(-DHYP_LINUX=1)
-    add_definitions(-DHYP_UNIX=1)
-elseif(${HYP_PLATFORM_NAME} STREQUAL "Linux")
-    set(CSHARP_CONSTANTS "HYP_LINUX;HYP_UNIX")
-    add_definitions(-DHYP_LINUX=1)
-    add_definitions(-DHYP_UNIX=1)
 endif()
 
 set(RENDERING_BACKEND "Vulkan")
@@ -347,7 +374,7 @@ if (NOT DEFINED RENDERING_BACKEND)
 endif()
 
 if (RENDERING_BACKEND STREQUAL "Vulkan")
-    if(ANDROID)
+    if(HYP_ANDROID)
         # On Android, Vulkan (API 24+) is provided by the platform — link against the
         # system libvulkan.so directly. NDK sysroot includes the headers.
         add_definitions(-DHYP_VULKAN=1)
@@ -387,7 +414,11 @@ endif()
 
 # link glslang if vulkan rendering backend:
 if (RENDERING_BACKEND STREQUAL "Vulkan")
-    if (${NATIVE} AND NOT ${HYP_PLATFORM_NAME} STREQUAL "iOS" AND NOT ANDROID)
+    if (HYP_CLANG_WINDOWS)
+        message(STATUS "Building with Clang on Windows - not including glslang due to build issues with Clang on Windows. If you want to use glslang, build with MSVC or on another platform.")
+    endif()
+
+    if (${NATIVE} AND NOT HYP_IOS AND NOT HYP_ANDROID AND NOT HYP_CLANG_WINDOWS)
         # if glslang folder exists, link with it.
         if(EXISTS "${SUBMODULES_DIR}/glslang/glslang/CMakeLists.txt")
             set(HYP_GLSLANG 1)
@@ -532,7 +563,7 @@ elseif(RENDERING_BACKEND STREQUAL "DX12")
 endif()
 
 # setup DXC if found
-if(EXISTS "${THIRD_PARTY_INCLUDE_DIR}/dxc/dxcapi.h" AND NOT ANDROID)
+if(EXISTS "${THIRD_PARTY_INCLUDE_DIR}/dxc/dxcapi.h" AND NOT HYP_ANDROID)
     message(STATUS "DXC headers found, setting up DXC")
 
     include_directories(BEFORE ${THIRD_PARTY_INCLUDE_DIR}/dxc)
@@ -834,7 +865,7 @@ if(Bullet_FOUND)
     )
 endif()
 
-if (${NATIVE} AND NOT ${HYP_PLATFORM_NAME} STREQUAL "iOS" AND NOT ANDROID)
+if (${NATIVE} AND NOT ${HYP_PLATFORM_NAME} STREQUAL "iOS" AND NOT HYP_ANDROID)
     if(EXISTS "${SUBMODULES_DIR}/libdatachannel/CMakeLists.txt")
         add_definitions(-DHYP_LIBDATACHANNEL=1)
 
@@ -901,11 +932,11 @@ endif()
 # endif()
 
 # if Win32, link with DbgHelp
-if(WIN32)
+if(HYP_WINDOWS)
     set(COMMON_LIBRARIES ${COMMON_LIBRARIES} DbgHelp)
 endif()
 
-if(ANDROID)
+if(HYP_ANDROID)
     set(COMMON_LIBRARIES ${COMMON_LIBRARIES} android log)
 endif()
 
@@ -939,7 +970,7 @@ include_directories(
     ${CMAKE_SOURCE_DIR}/Engine
 )
 
-if(NOT WIN32 AND NOT ANDROID)
+if(NOT HYP_WINDOWS AND NOT HYP_ANDROID)
     include_directories(${SDL2_INCLUDE_DIRS})
 endif()
 
@@ -990,7 +1021,7 @@ set(COMMON_LIBRARIES
     ${CMAKE_THREADS_LIBS_INIT}
 )
 
-if(NOT DEFINED WIN32 AND NOT ANDROID)
+if(NOT HYP_WINDOWS AND NOT HYP_ANDROID)
     set(COMMON_LIBRARIES
         ${COMMON_LIBRARIES}
         ${SDL2_LIBRARIES}

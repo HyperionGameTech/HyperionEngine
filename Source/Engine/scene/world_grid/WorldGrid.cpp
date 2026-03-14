@@ -41,6 +41,12 @@ void WorldGridState::PushUpdate(StreamingCellUpdate&& update)
 
 #pragma endregion WorldGridState
 
+#pragma region WGLayerDesc
+
+const Name WGLayerDesc::s_defaultName = NAME("WorldGridLayer");
+
+#pragma endregion WGLayerDesc
+
 #pragma region WorldGrid
 
 WorldGrid::WorldGrid()
