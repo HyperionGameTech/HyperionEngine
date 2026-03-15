@@ -464,7 +464,19 @@ RendererResult VulkanInstance::Initialize(bool enableDebugLayers)
     }
 
 #if HYP_DEBUG_MODE
-    extensionNames.PushBack(VK_EXT_DEBUG_UTILS_EXTENSION_NAME);
+    const bool debugUtilsExtAvailable = availableInstanceExtensions.FindIf([](const VkExtensionProperties& ext)
+        {
+            return std::strcmp(ext.extensionName, VK_EXT_DEBUG_UTILS_EXTENSION_NAME) == 0;
+        }) != availableInstanceExtensions.End();
+
+    if (debugUtilsExtAvailable)
+    {
+        extensionNames.PushBack(VK_EXT_DEBUG_UTILS_EXTENSION_NAME);
+    }
+    else
+    {
+        HYP_LOG(RenderingBackend, Warning, "{} not available on this device; debug messenger will be disabled", VK_EXT_DEBUG_UTILS_EXTENSION_NAME);
+    }
 
     // Synchronization validation setup
     constexpr const char LayerName[] = "VK_LAYER_KHRONOS_validation";
@@ -532,7 +544,7 @@ RendererResult VulkanInstance::Initialize(bool enableDebugLayers)
     vkDestroySurfaceKHR(m_instance, surface, nullptr);
 
 #if HYP_DEBUG_MODE
-    if (enableDebugLayers)
+    if (enableDebugLayers && debugUtilsExtAvailable)
     {
         SetupDebugMessenger();
     }

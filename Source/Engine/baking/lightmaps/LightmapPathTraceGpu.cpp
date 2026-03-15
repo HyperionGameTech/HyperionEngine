@@ -175,7 +175,7 @@ void LightmapRenderer_GpuPathTracing::CreateBuffers(BakeJobBase* job)
     PUSH_RENDER_COMMAND(CreateLightmapGPUPathTracerUniformBuffer, jd.cBuffer);
 
     jd.raysBuffer = g_renderInterface->MakeGpuBuffer(GpuBufferType::STORAGE_BUFFER, sizeof(Vec4f) * 2 * m_maxTexelsPerFrame, alignof(Vec4f));
-    jd.raysBuffer->SetRequireCpuAccessible(true);
+    jd.raysBuffer->SetIsCpuAccessible(true);
 
     jd.lightsBuffer = g_renderInterface->MakeGpuBuffer(GpuBufferType::CONSTANT_BUFFER, sizeof(LightShaderData) * MaxBoundLights);
 

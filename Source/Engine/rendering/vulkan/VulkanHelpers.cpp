@@ -451,24 +451,24 @@ VkBufferUsageFlags GetVkUsageFlags(GpuBufferType type)
     }
 }
 
-VmaMemoryUsage GetVmaMemoryUsage(GpuBufferType type, bool requireCpuAccessible)
+VmaMemoryUsage GetVmaMemoryUsage(GpuBufferType type, bool cpuAccessible)
 {
     switch (type)
     {
     case GpuBufferType::MESH_VERTEX_BUFFER:
-        return (requireCpuAccessible ? VMA_MEMORY_USAGE_CPU_TO_GPU : VMA_MEMORY_USAGE_GPU_ONLY);
+        return (cpuAccessible ? VMA_MEMORY_USAGE_CPU_TO_GPU : VMA_MEMORY_USAGE_GPU_ONLY);
     case GpuBufferType::MESH_INDEX_BUFFER:
-        return (requireCpuAccessible ? VMA_MEMORY_USAGE_CPU_TO_GPU : VMA_MEMORY_USAGE_GPU_ONLY);
+        return (cpuAccessible ? VMA_MEMORY_USAGE_CPU_TO_GPU : VMA_MEMORY_USAGE_GPU_ONLY);
     case GpuBufferType::CONSTANT_BUFFER:
         return VMA_MEMORY_USAGE_CPU_ONLY;
     case GpuBufferType::STORAGE_BUFFER:
-        return (requireCpuAccessible ? VMA_MEMORY_USAGE_CPU_TO_GPU : VMA_MEMORY_USAGE_GPU_ONLY);
+        return (cpuAccessible ? VMA_MEMORY_USAGE_CPU_TO_GPU : VMA_MEMORY_USAGE_GPU_ONLY);
     case GpuBufferType::ATOMIC_COUNTER:
-        return (requireCpuAccessible ? VMA_MEMORY_USAGE_CPU_TO_GPU : VMA_MEMORY_USAGE_GPU_ONLY);
+        return (cpuAccessible ? VMA_MEMORY_USAGE_CPU_TO_GPU : VMA_MEMORY_USAGE_GPU_ONLY);
     case GpuBufferType::STAGING_BUFFER:
         return VMA_MEMORY_USAGE_CPU_ONLY;
     case GpuBufferType::INDIRECT_ARGS_BUFFER:
-        Assert(!requireCpuAccessible, "Indirect args buffer cannot be CPU accessible!");
+        // ignore cpuAccessible for indirect args buffer
         return VMA_MEMORY_USAGE_GPU_ONLY;
     case GpuBufferType::SHADER_BINDING_TABLE:
         return VMA_MEMORY_USAGE_CPU_TO_GPU;
@@ -477,10 +477,10 @@ VmaMemoryUsage GetVmaMemoryUsage(GpuBufferType type, bool requireCpuAccessible)
     case GpuBufferType::ACCELERATION_STRUCTURE_INSTANCE_BUFFER:
         return VMA_MEMORY_USAGE_CPU_TO_GPU;
     case GpuBufferType::RT_MESH_VERTEX_BUFFER:
-        Assert(!requireCpuAccessible, "RT mesh vertex buffer cannot be CPU accessible!");
+        // ignore cpuAccessible for RT mesh vertex buffer, as it cannot be CPU accessible regardless
         return VMA_MEMORY_USAGE_GPU_ONLY;
     case GpuBufferType::RT_MESH_INDEX_BUFFER:
-        Assert(!requireCpuAccessible, "RT mesh index buffer cannot be CPU accessible!");
+        // ignore cpuAccessible for RT mesh index buffer, as it cannot be CPU accessible regardless
         return VMA_MEMORY_USAGE_GPU_ONLY;
     case GpuBufferType::SCRATCH_BUFFER:
         return VMA_MEMORY_USAGE_CPU_TO_GPU;
@@ -489,24 +489,24 @@ VmaMemoryUsage GetVmaMemoryUsage(GpuBufferType type, bool requireCpuAccessible)
     }
 }
 
-VmaAllocationCreateFlags GetVkAllocationCreateFlags(GpuBufferType type, bool requireCpuAccessible)
+VmaAllocationCreateFlags GetVkAllocationCreateFlags(GpuBufferType type, bool cpuAccessible)
 {
     switch (type)
     {
     case GpuBufferType::MESH_VERTEX_BUFFER:
-        return (requireCpuAccessible ? VMA_ALLOCATION_CREATE_HOST_ACCESS_SEQUENTIAL_WRITE_BIT : 0);
+        return (cpuAccessible ? VMA_ALLOCATION_CREATE_HOST_ACCESS_SEQUENTIAL_WRITE_BIT : 0);
     case GpuBufferType::MESH_INDEX_BUFFER:
-        return (requireCpuAccessible ? VMA_ALLOCATION_CREATE_HOST_ACCESS_SEQUENTIAL_WRITE_BIT : 0);
+        return (cpuAccessible ? VMA_ALLOCATION_CREATE_HOST_ACCESS_SEQUENTIAL_WRITE_BIT : 0);
     case GpuBufferType::CONSTANT_BUFFER:
         return VMA_ALLOCATION_CREATE_HOST_ACCESS_SEQUENTIAL_WRITE_BIT;
     case GpuBufferType::STORAGE_BUFFER:
-        return (requireCpuAccessible ? VMA_ALLOCATION_CREATE_HOST_ACCESS_SEQUENTIAL_WRITE_BIT : 0);
+        return (cpuAccessible ? VMA_ALLOCATION_CREATE_HOST_ACCESS_SEQUENTIAL_WRITE_BIT : 0);
     case GpuBufferType::ATOMIC_COUNTER:
-        return (requireCpuAccessible ? VMA_ALLOCATION_CREATE_HOST_ACCESS_SEQUENTIAL_WRITE_BIT : 0);
+        return (cpuAccessible ? VMA_ALLOCATION_CREATE_HOST_ACCESS_SEQUENTIAL_WRITE_BIT : 0);
     case GpuBufferType::STAGING_BUFFER:
         return VMA_ALLOCATION_CREATE_HOST_ACCESS_SEQUENTIAL_WRITE_BIT;
     case GpuBufferType::INDIRECT_ARGS_BUFFER:
-        Assert(!requireCpuAccessible, "Indirect args buffer cannot be CPU accessible!");
+        // ignore cpuAccessible for indirect args buffer, as it cannot be CPU accessible regardless
         return 0;
     case GpuBufferType::SHADER_BINDING_TABLE:
         return VMA_ALLOCATION_CREATE_HOST_ACCESS_SEQUENTIAL_WRITE_BIT;
@@ -515,10 +515,10 @@ VmaAllocationCreateFlags GetVkAllocationCreateFlags(GpuBufferType type, bool req
     case GpuBufferType::ACCELERATION_STRUCTURE_INSTANCE_BUFFER:
         return VMA_ALLOCATION_CREATE_HOST_ACCESS_SEQUENTIAL_WRITE_BIT;
     case GpuBufferType::RT_MESH_VERTEX_BUFFER:
-        Assert(!requireCpuAccessible, "RT mesh vertex buffer cannot be CPU accessible!");
+        // ignore cpuAccessible for RT mesh vertex buffer, as it cannot be CPU accessible regardless
         return 0;
     case GpuBufferType::RT_MESH_INDEX_BUFFER:
-        Assert(!requireCpuAccessible, "RT mesh index buffer cannot be CPU accessible!");
+        // ignore cpuAccessible for RT mesh index buffer, as it cannot be CPU accessible regardless
         return 0;
     case GpuBufferType::SCRATCH_BUFFER:
         return VMA_ALLOCATION_CREATE_HOST_ACCESS_SEQUENTIAL_WRITE_BIT;

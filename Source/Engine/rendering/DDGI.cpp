@@ -132,7 +132,7 @@ void DDGI::CreateStorageBuffers()
     const Vec3u probeCounts = NumProbesPerDimension(m_gridInfo);
 
     m_radianceBuffer = g_renderInterface->MakeGpuBuffer(GpuBufferType::STORAGE_BUFFER, GetImageDimensions(m_gridInfo).x * GetImageDimensions(m_gridInfo).y * sizeof(ProbeRayData));
-    m_radianceBuffer->SetRequireCpuAccessible(true);
+    m_radianceBuffer->SetIsCpuAccessible(true);
     Assert(m_radianceBuffer->Create());
     m_radianceBuffer->Memset(m_radianceBuffer->Size(), 0);
 

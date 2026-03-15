@@ -41,8 +41,8 @@ VkImageLayout GetVkImageLayout(ResourceState state, bool isDepthStencil = false,
 VkAccessFlags GetVkAccessMask(ResourceState state, bool isDepthStencil = false);
 VkPipelineStageFlags GetVkShaderStageMask(ResourceState state, bool isSrc, bool isDepthStencil, ShaderModuleType shaderType = (ShaderModuleType)0);
 VkBufferUsageFlags GetVkUsageFlags(GpuBufferType type);
-VmaMemoryUsage GetVmaMemoryUsage(GpuBufferType type, bool requireCpuAccessible = false);
-VmaAllocationCreateFlags GetVkAllocationCreateFlags(GpuBufferType type, bool requireCpuAccessible = false);
+VmaMemoryUsage GetVmaMemoryUsage(GpuBufferType type, bool cpuAccessible = false);
+VmaAllocationCreateFlags GetVkAllocationCreateFlags(GpuBufferType type, bool cpuAccessible = false);
 VkImageLayout GetInitialLayout(LoadOperation loadOperation, bool isDepthStencil, bool onlyDepth = false, bool onlyStencil = false);
 VkImageLayout GetFinalLayout(RenderPassMode renderPassMode, bool isDepthStencil, bool onlyDepth = false, bool onlyStencil = false);
 VkAttachmentLoadOp ToVkLoadOp(LoadOperation loadOperation);

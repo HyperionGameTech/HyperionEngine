@@ -38,16 +38,19 @@ struct alignas(16) ComputeVisibilityConstants
 
 static void ZeroizeBuffer(Frame* frame, GpuBuffer* stagingBuffer, GpuBuffer* dstBuffer)
 {
+    AssertDebug(dstBuffer != nullptr);
+
     if (dstBuffer->IsCpuAccessible())
     {
-        Assert(dstBuffer != nullptr);
-
+        // zeroize buffer, flush
         dstBuffer->Memset(dstBuffer->Size(), 0);
+        dstBuffer->Flush(0, dstBuffer->Size());
 
         return;
     }
     
-    Assert(stagingBuffer != nullptr && dstBuffer != nullptr);
+    // staging buffer cannot be null if dstBuffer isn't cpu accessible.
+    Assert(stagingBuffer != nullptr);
 
     CheckResult(stagingBuffer->EnsureCapacity(dstBuffer->Size()));
 
@@ -90,7 +93,7 @@ static inline bool CreateOrResizeBuffer(
 
         if (prevWasCpuAccessible)
         {
-            buffer->SetRequireCpuAccessible(true);
+            buffer->SetIsCpuAccessible(true);
         }
 
         CheckResult(buffer->Create());
@@ -131,8 +134,7 @@ static bool ResizeIndirectDrawCommandsBuffer(
 static bool ResizeInstancesBuffer(
     Frame* frame,
     uint32 numObjectInstances,
-    GpuBufferRef& instanceBuffer,
-    GpuBuffer* stagingBuffer)
+    GpuBufferRef& instanceBuffer)
 {
     const bool wasCreatedOrResized = CreateOrResizeBuffer(
         frame,
@@ -141,7 +143,7 @@ static bool ResizeInstancesBuffer(
 
     if (wasCreatedOrResized)
     {
-        ZeroizeBuffer(frame, stagingBuffer, instanceBuffer);
+        ZeroizeBuffer(frame, nullptr, instanceBuffer);
     }
 
     return wasCreatedOrResized;
@@ -169,7 +171,7 @@ static bool ResizeIfNeeded(
 
     if ((dirtyBits & (1u << frame->GetFrameIndex())) || !instanceBuffer)
     {
-        resizeHappened |= ResizeInstancesBuffer(frame, numObjectInstances, instanceBuffer, stagingBuffer);
+        resizeHappened |= ResizeInstancesBuffer(frame, numObjectInstances, instanceBuffer);
     }
 
     return resizeHappened;
@@ -203,7 +205,7 @@ void IndirectDrawState::Create()
     for (uint32 frameIndex = 0; frameIndex < NumFramesInFlight; frameIndex++)
     {
         m_instanceBuffers[frameIndex] = g_renderInterface->MakeGpuBuffer(GpuBufferType::STORAGE_BUFFER, sizeof(ObjectInstance));
-        m_instanceBuffers[frameIndex]->SetRequireCpuAccessible(true);
+        m_instanceBuffers[frameIndex]->SetIsCpuAccessible(true);
 #if HYP_DEBUG_MODE
         m_instanceBuffers[frameIndex]->SetDebugName(NAME_FMT("IndirectDraw_InstancesBuffer_Frame{}", frameIndex));
 #endif
@@ -216,12 +218,15 @@ void IndirectDrawState::Create()
 
         CheckResult(m_indirectBuffers[frameIndex]->Create());
 
-        m_stagingBuffers[frameIndex] = g_renderInterface->MakeGpuBuffer(GpuBufferType::STAGING_BUFFER, drawCommandsBuffer.Size());
+        if (!m_indirectBuffers[frameIndex]->IsCpuAccessible())
+        {
+            m_stagingBuffers[frameIndex] = g_renderInterface->MakeGpuBuffer(GpuBufferType::STAGING_BUFFER, drawCommandsBuffer.Size());
 #if HYP_DEBUG_MODE
-        m_stagingBuffers[frameIndex]->SetDebugName(NAME_FMT("IndirectDraw_StagingBuffer_Frame{}", frameIndex));
+            m_stagingBuffers[frameIndex]->SetDebugName(NAME_FMT("IndirectDraw_StagingBuffer_Frame{}", frameIndex));
 #endif
 
-        CheckResult(m_stagingBuffers[frameIndex]->Create());
+            CheckResult(m_stagingBuffers[frameIndex]->Create());
+        }
     }
 }
 
@@ -321,10 +326,14 @@ void IndirectDrawState::UpdateBufferData(Frame* frame, bool* outWasResized)
 
     GpuBuffer* instanceBuffer = m_instanceBuffers[frameIndex];
     GpuBuffer* indirectBuffer = m_indirectBuffers[frameIndex];
-    GpuBuffer* stagingBuffer = m_stagingBuffers[frameIndex];
+
+    const bool needsStaging = !indirectBuffer->IsCpuAccessible();
 
     // fill instances buffer with data of the meshes
+    if (needsStaging)
     {
+        GpuBuffer* stagingBuffer = m_stagingBuffers[frameIndex];
+
         Assert(stagingBuffer != nullptr);
         Assert(stagingBuffer->Size() >= m_drawCommandsBuffer.Size());
 
@@ -342,6 +351,7 @@ void IndirectDrawState::UpdateBufferData(Frame* frame, bool* outWasResized)
 
     // update data for object instances (cpu - gpu)
     instanceBuffer->Copy(m_objectInstances.Size() * sizeof(ObjectInstance), m_objectInstances.Data());
+    instanceBuffer->Flush(0, m_objectInstances.Size() * sizeof(ObjectInstance));
 
     m_dirtyBits &= ~(1u << frameIndex);
 }

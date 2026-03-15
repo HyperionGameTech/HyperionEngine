@@ -161,3 +161,60 @@ tasks.register('stagePackageAssets', Copy) {
 }
 
 preBuild.dependsOn 'stageNativeLibs', 'stagePackageAssets'
+
+def validationLayerFilename = 'libVkLayer_khronos_validation.so'
+def validationLayerDestFile  = new File(jniLibsAbiDir, validationLayerFilename)
+
+tasks.register('stageValidationLayers') {
+    description 'Copies libVkLayer_khronos_validation.so into jniLibs/arm64-v8a for Vulkan validation on Android debug builds.'
+
+   def capturedProjectDir = projectDir
+    def capturedNdkDir = resolvedNdkDir
+
+    outputs.file validationLayerDestFile
+
+    doLast {
+        def candidates = []
+        candidates << new File(capturedProjectDir, "../../../../External/ThirdParty/Binaries/Android/arm64-v8a/${validationLayerFilename}")
+
+        def source = candidates.find { it.exists() }
+
+        if (source) {
+            jniLibsAbiDir.mkdirs()
+            java.nio.file.Files.copy(
+                source.toPath(),
+                validationLayerDestFile.toPath(),
+                java.nio.file.StandardCopyOption.REPLACE_EXISTING
+            )
+            logger.lifecycle("[hyperion] Staged ${validationLayerFilename} from ${source.absolutePath}")
+        } else {
+            logger.warn(
+                "Vulkan validation layers unavailable.\n" +
+                "\n  Checked:\n" + candidates.collect { "    ${it.canonicalPath}" }.join('\n') + '\n' +
+                "\n  Download the prebuilt arm64-v8a binary from:" +
+                "\n    https://github.com/KhronosGroup/Vulkan-ValidationLayers/releases" +
+                "\n  and place it at:" +
+                "\n    External/ThirdParty/Binaries/Android/arm64-v8a/${validationLayerFilename}\n"
+            )
+        }
+    }
+}
+
+android.applicationVariants.all { variant ->
+    def variantCapitalized = variant.name.capitalize()
+
+    if (variant.buildType.debuggable) {
+        tasks.named("pre${variantCapitalized}Build") {
+            dependsOn 'stageValidationLayers'
+        }
+    } else {
+        tasks.named("pre${variantCapitalized}Build") {
+            doFirst {
+                if (validationLayerDestFile.exists()) {
+                    validationLayerDestFile.delete()
+                    logger.lifecycle("[hyperion] Removed ${validationLayerFilename} from jniLibs (release build)")
+                }
+            }
+        }
+    }
+}

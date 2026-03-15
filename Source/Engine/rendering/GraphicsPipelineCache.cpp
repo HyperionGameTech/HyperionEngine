@@ -382,9 +382,11 @@ void GraphicsPipelineCache::GetOrCreate(
             String shaderString = "\tProperties: " + shaderInstance->GetShader()->properties.GetDebugString();
             shaderString += "\n\tVertex attributes: " + (shaderInstance->GetShader()->vertexAttributes ? shaderInstance->GetShader()->vertexAttributes.ToString() : "<none>");
 
+#if HYP_DEBUG_MODE
             HYP_LOG(Rendering, Verbose, "Creating graphics pipeline {} (debug name: {}) on render thread, Shader details:\n{}",
                 graphicsPipeline->Id(), graphicsPipeline->GetDebugName(),
                 shaderString);
+#endif
 
             CheckResultOrReturn(graphicsPipeline->Create());
 

@@ -733,7 +733,7 @@ RendererResult VulkanGpuTlas::BuildMeshDescriptionsBuffer(uint32 first, uint32 l
 #if HYP_DEBUG_MODE
         m_meshDescriptionsBuffer->SetDebugName(NAME("ASMeshDescriptionsBuffer"));
 #endif
-        m_meshDescriptionsBuffer->SetRequireCpuAccessible(true);
+        m_meshDescriptionsBuffer->SetIsCpuAccessible(true);
         CheckResultOrReturn(m_meshDescriptionsBuffer->Create());
 
         meshDescriptionsBufferRecreated = true;

@@ -297,11 +297,11 @@
   "ShaderBlobs": [{
       "$Class": "BlobDataReference",
       "Key": "Engine/Shaders/Tonemap/Tonemap_9412718521670965328.VS",
-      "Size": 932
+      "Size": 776
     }, {
       "$Class": "BlobDataReference",
       "Key": "Engine/Shaders/Tonemap/Tonemap_9412718521670965328.PS",
-      "Size": 1500
+      "Size": 1364
     }],
   "PropertySetHashCode": {},
   "Name": "Tonemap_9412718521670965328",

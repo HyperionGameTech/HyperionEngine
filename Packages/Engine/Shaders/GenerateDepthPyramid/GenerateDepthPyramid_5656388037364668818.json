@@ -95,7 +95,7 @@
   "ShaderBlobs": [{
       "$Class": "BlobDataReference",
       "Key": "Engine/Shaders/GenerateDepthPyramid/GenerateDepthPyramid_5656388037364668818.CS",
-      "Size": 2976
+      "Size": 2800
     }],
   "PropertySetHashCode": {},
   "Name": "GenerateDepthPyramid_5656388037364668818",

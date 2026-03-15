@@ -175,7 +175,7 @@ void GpuBufferHolderBase::CreateBuffers(GpuBufferType bufferType, size_t initial
     m_gpuBuffer->SetDebugName(NAME_FMT("GpuBufferHolder_{}", *m_structTypeInfo->name));
 #endif
     
-    m_gpuBuffer->SetRequireCpuAccessible(m_cpuAccessible);
+    m_gpuBuffer->SetIsCpuAccessible(m_cpuAccessible);
     CheckResult(m_gpuBuffer->Create());
 }
 

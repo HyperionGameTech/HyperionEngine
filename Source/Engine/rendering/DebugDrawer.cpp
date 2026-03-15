@@ -680,7 +680,7 @@ void DebugDrawer::Render(Frame* frame, const RenderSetup& renderSetup)
         }
 
         instanceBuffer = g_renderInterface->MakeGpuBuffer(GpuBufferType::STORAGE_BUFFER, sizeof(ImmediateDrawShaderData) * m_headers[idx].Size());
-        instanceBuffer->SetRequireCpuAccessible(true);
+        instanceBuffer->SetIsCpuAccessible(true);
         CheckResult(instanceBuffer->Create());
 
         instanceBuffer->Memset(sizeof(ImmediateDrawShaderData) * m_headers[idx].Size(), 0);

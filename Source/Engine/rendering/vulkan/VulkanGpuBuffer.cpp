@@ -359,8 +359,8 @@ RendererResult VulkanGpuBuffer::Create()
     }
 
     m_vkBufferUsageFlags = GetVkUsageFlags(m_type);
-    m_vmaUsage = GetVmaMemoryUsage(m_type, m_requireCpuAccessible);
-    m_vmaAllocationCreateFlags = GetVkAllocationCreateFlags(m_type, m_requireCpuAccessible);
+    m_vmaUsage = GetVmaMemoryUsage(m_type, m_cpuAccessible);
+    m_vmaAllocationCreateFlags = GetVkAllocationCreateFlags(m_type, m_cpuAccessible);
 
     if (m_size == 0)
     {

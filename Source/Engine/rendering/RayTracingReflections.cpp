@@ -92,7 +92,7 @@ void RayTracingReflections::UpdateUniforms(Frame* frame, const RenderSetup& rend
         lightsBuffer->SetDebugName(NAME("RayTracingLightsBuffer"));
 #endif
 
-        lightsBuffer->SetRequireCpuAccessible(true);        
+        lightsBuffer->SetIsCpuAccessible(true);        
         Assert(lightsBuffer->Create());
     }
 

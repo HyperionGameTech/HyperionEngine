@@ -60,11 +60,11 @@ public:
 
     virtual bool IsCpuAccessible() const = 0;
 
-    HYP_FORCE_INLINE void SetRequireCpuAccessible(bool requireCpuAccessible)
+    HYP_FORCE_INLINE void SetIsCpuAccessible(bool cpuAccessible)
     {
-        Assert(!IsCreated(), "Cannot set RequireCpuAccessible after the buffer has been created!");
+        Assert(!IsCreated(), "Cannot set cpuAccessible after the buffer has been created!");
 
-        m_requireCpuAccessible = requireCpuAccessible;
+        m_cpuAccessible = cpuAccessible;
     }
 
     virtual void Flush(size_t offset, size_t count)
@@ -111,7 +111,7 @@ protected:
           m_size(size),
           m_alignment(alignment),
           m_resourceState(RS_UNDEFINED),
-          m_requireCpuAccessible(false)
+          m_cpuAccessible(false)
     {
     }
 
@@ -125,7 +125,7 @@ protected:
     Name m_debugName;
 #endif
 
-    bool m_requireCpuAccessible : 1;
+    bool m_cpuAccessible : 1;
 };
 
 } // namespace Hyperion

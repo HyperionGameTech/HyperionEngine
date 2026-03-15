@@ -10,8 +10,8 @@ namespace Hyperion {
 
 VulkanFeatures::VulkanFeatures()
     : m_physicalDevice(nullptr),
-      m_properties({}),
-      m_features({})
+      m_properties { },
+      m_features { }
 {
 }
 
@@ -36,6 +36,11 @@ void VulkanFeatures::SetPhysicalDevice(VkPhysicalDevice physicalDevice)
         m_features2 = {
             .sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_FEATURES_2
         };
+
+        m_vulkan11Features = {
+            .sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_1_FEATURES
+        };
+        VulkanHelpers::ChainNext(m_features2, &m_vulkan11Features);
 
         m_multiviewFeatures = {
             .sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_MULTIVIEW_FEATURES_KHR

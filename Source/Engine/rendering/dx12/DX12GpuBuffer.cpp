@@ -14,14 +14,14 @@ HYP_DECLARE_LOG_CHANNEL(RenderingBackend);
 
 extern DX12RenderInterface* g_renderInterface;
 
-static D3D12_HEAP_TYPE GetHeapType(GpuBufferType bufferType, bool requireCpuAccessible)
+static D3D12_HEAP_TYPE GetHeapType(GpuBufferType bufferType, bool cpuAccessible)
 {
     if (bufferType == GpuBufferType::STAGING_BUFFER)
     {
         return D3D12_HEAP_TYPE_UPLOAD;
     }
 
-    if (requireCpuAccessible)
+    if (cpuAccessible)
     {
         return D3D12_HEAP_TYPE_UPLOAD;
     }
@@ -43,7 +43,7 @@ RendererResult DX12GpuBuffer::Create()
     D3D12MA::Allocator* allocator = g_renderInterface->GetAllocator();
     AssertDebug(allocator != nullptr);
 
-    D3D12_HEAP_TYPE heapType = GetHeapType(m_type, m_requireCpuAccessible);
+    D3D12_HEAP_TYPE heapType = GetHeapType(m_type, m_cpuAccessible);
 
     D3D12_RESOURCE_FLAGS flags = D3D12_RESOURCE_FLAG_NONE;
 

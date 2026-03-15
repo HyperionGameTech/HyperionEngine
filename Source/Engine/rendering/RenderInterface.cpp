@@ -2162,7 +2162,7 @@ void RenderInterface::CreateBlueNoiseBuffer()
     blueNoiseBuffer->SetDebugName(NAME("BlueNoiseBuffer"));
 #endif
 
-    blueNoiseBuffer->SetRequireCpuAccessible(true);
+    blueNoiseBuffer->SetIsCpuAccessible(true);
     CheckResult(blueNoiseBuffer->Create());
 
     blueNoiseBuffer->Copy(sobol256spp256dOffset, sobol256spp256dSize, &BlueNoise::sobol256spp256d[0]);
@@ -2179,7 +2179,7 @@ void RenderInterface::CreateSphereSamplesBuffer()
     sphereSamplesBuffer->SetDebugName(NAME("SphereSamplesBuffer"));
 #endif
 
-    sphereSamplesBuffer->SetRequireCpuAccessible(true);
+    sphereSamplesBuffer->SetIsCpuAccessible(true);
     CheckResult(sphereSamplesBuffer->Create());
 
     Vec4f* sphereSamples = new Vec4f[4096];

@@ -1127,8 +1127,6 @@ static ByteBuffer CompileHLSL(
         uint32 vulkanApiVersion;
         GetSPIRVEnvironmentInfo(type, spirvVersion, vulkanApiVersion);
 
-        args.PushBack(L"-fspv-reflect");
-
         switch (vulkanApiVersion)
         {
         case VK_API_VERSION_1_0:
