@@ -1942,7 +1942,7 @@ void RenderInterface::CommitPipelineState(PSOType psoType, CommandBuffer* comman
     if (state.dirtyUniforms)
     {
         bits.Clear();
-        bits |= { state.dirtyUniforms };
+        bits |= TBitset<FixedAllocator<2>> { state.dirtyUniforms };
 
         // Set dirty descriptors
         for (auto currBit = bits.Begin(); bits.AnyBitsSet(); currBit = bits.Begin())

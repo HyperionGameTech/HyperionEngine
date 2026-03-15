@@ -93,7 +93,6 @@ tasks.register('stageNativeLibs') {
     inputs.file  engineSo
     outputs.dir  jniLibsAbiDir
 
-    // Capture NDK dir as a task input so the configuration cache can serialise it.
     def ndkDir = resolvedNdkDir
 
     doLast {
@@ -108,8 +107,6 @@ tasks.register('stageNativeLibs') {
         java.nio.file.Files.copy(engineSo.toPath(), new File(jniLibsAbiDir, 'libhyperion.so').toPath(), java.nio.file.StandardCopyOption.REPLACE_EXISTING)
         logger.lifecycle("[hyperion] Staged libhyperion.so")
 
-        // libc++_shared.so ships with the NDK; stage it so the C++ runtime is
-        // available on device when ANDROID_STL=c++_shared.
         if (ndkDir != null) {
             def hostOs = org.gradle.internal.os.OperatingSystem.current()
             def hostTag = hostOs.isWindows() ? 'windows-x86_64' :
@@ -129,6 +126,10 @@ tasks.register('stageNativeLibs') {
 // TODO: Copy Projects/*ProjectName*/ too?
 def basePackagesDir   = file('../../../../Packages')
 def baseConfigDir = file("../../../../Config")
+// only for testing, in finished build we'll just use packages / blob storage.
+def baseDataDir = file("../../../../Data")
+// also just for testing, copying Shaders.ini to the assets folder - should prob go elsewhere.
+def shadersIni = file("../../../../Source/Shaders/Shaders.ini")
 def assetsDestDir = file('src/main/assets')
 
 tasks.register('stagePackageAssets', Sync) {
@@ -145,6 +146,12 @@ tasks.register('stagePackageAssets', Sync) {
 
     from(baseConfigDir) {
         into new File('Config')
+    }
+    from(baseDataDir) {
+        into new File('Data')
+    }
+    from(shadersIni) {
+        into new File("Source/Shaders/Shaders.ini")
     }
     into assetsDestDir
 }

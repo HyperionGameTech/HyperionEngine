@@ -1,90 +1,77 @@
 package com.hyperion.engine;
 
 import android.app.Activity;
-import android.graphics.Color;
 import android.os.Bundle;
-import android.content.res.AssetManager;
 import android.util.Log;
 import android.view.KeyEvent;
 import android.view.MotionEvent;
+import android.view.Surface;
 import android.view.SurfaceHolder;
 import android.view.SurfaceView;
-import android.view.Gravity;
-import android.widget.FrameLayout;
-import android.widget.LinearLayout;
-import android.widget.TextView;
+import android.view.Window;
+import android.view.WindowManager;
 
 public class MainActivity extends Activity implements SurfaceHolder.Callback {
 
     private static final String TAG = "HyperionMain";
 
     private SurfaceView m_surfaceView;
-    private boolean m_engineReady = false;
+    private Thread m_engineThread;
 
-    private void initializeEngine() throws Exception {
-        if (m_engineReady) {
-            throw new Exception("Engine already initialized! Double init detected");
-        }
+    private volatile boolean m_engineReady = false;
 
-        int result = HyperionBridge.nativeInit();
-
-        if (result == 0) {
-            throw new Exception("Failed to initialize Hyperion Engine");
-        }
-
-        m_engineReady = true;
-    }
-
-    private void shutdownEngine() {
-        if (!m_engineReady) {
-            return; // not init, fine
-        }
-
-        HyperionBridge.nativeShutdown();
-
-        m_engineReady = false;
-    }
+    private final Object m_surfaceLock = new Object();
+    private volatile Surface m_pendingSurface = null;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
 
-        String statusText;
-        int statusColor;
+        requestWindowFeature(Window.FEATURE_NO_TITLE);
+        getWindow().addFlags(
+            WindowManager.LayoutParams.FLAG_FULLSCREEN |
+            WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
+        getWindow().setBackgroundDrawable(null);
 
-        // call before Hyp_Initialize
         HyperionBridge.nativeSetAssetManager(getAssets());
 
-        FrameLayout root = new FrameLayout(this);
-
-        // Rendering surface
         m_surfaceView = new SurfaceView(this);
         m_surfaceView.getHolder().addCallback(this);
-        root.addView(m_surfaceView);
+        setContentView(m_surfaceView);
 
-        // Status overlay
-        LinearLayout overlay = new LinearLayout(this);
-        overlay.setOrientation(LinearLayout.VERTICAL);
-        overlay.setGravity(Gravity.CENTER);
+        m_engineThread = new Thread(this::runEngineLoop, "HyperionEngineMain");
+        m_engineThread.start();
+    }
 
-        TextView title = new TextView(this);
-        title.setText("Hyperion Engine \u2013 Android");
-        title.setTextColor(Color.WHITE);
-        title.setTextSize(22f);
-        title.setGravity(Gravity.CENTER);
-        title.setPadding(24, 24, 24, 16);
+    private void runEngineLoop() {
+        int result = HyperionBridge.nativeInit();
+        if (result == 0) {
+            Log.e(TAG, "nativeInit failed, engine will not start");
+            return;
+        }
 
-        TextView status = new TextView(this);
-        status.setText("Hi");
-        status.setTextSize(14f);
-        status.setGravity(Gravity.CENTER);
-        status.setPadding(24, 0, 24, 24);
+        Surface surface;
+        synchronized (m_surfaceLock) {
+            while (m_pendingSurface == null) {
+                try {
+                    m_surfaceLock.wait();
+                } catch (InterruptedException e) {
+                    return;
+                }
+            }
+            surface = m_pendingSurface;
+        }
 
-        overlay.addView(title);
-        overlay.addView(status);
-        root.addView(overlay);
+        HyperionBridge.nativeSetSurface(surface);
 
-        setContentView(root);
+        m_engineReady = true;
+
+        // blocks until main thread loop exits
+        HyperionBridge.nativeLaunchThreads();
+
+        m_engineReady = false;
+
+        HyperionBridge.nativeShutdown();
     }
 
     @Override
@@ -93,30 +80,32 @@ public class MainActivity extends Activity implements SurfaceHolder.Callback {
 
         HyperionBridge.nativeSetAssetManager(null);
 
-        shutdownEngine();
+        HyperionBridge.nativeStopThreads();
+
+        synchronized (m_surfaceLock) {
+            m_surfaceLock.notifyAll();
+        }
+
+        if (m_engineThread != null) {
+            try {
+                m_engineThread.join(5000);
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+            }
+        }
     }
 
     // SurfaceHolder.Callback
 
     @Override
     public void surfaceCreated(SurfaceHolder holder) {
-        boolean needsLaunchThreads = false;
-
-        if (!m_engineReady) {
-            needsLaunchThreads = true;
-
-            try {
-                initializeEngine();
-            } catch (Exception ex) {
-                Log.e("HyperionEngine", "Failed to initialize engine upon surface creation: " + ex.getMessage());
-                return;
-            }
+        synchronized (m_surfaceLock) {
+            m_pendingSurface = holder.getSurface();
+            m_surfaceLock.notifyAll();
         }
 
-        HyperionBridge.nativeSetSurface(holder.getSurface());
-
-        if (needsLaunchThreads) {
-            HyperionBridge.nativeLaunchThreads();
+        if (m_engineReady) {
+            HyperionBridge.nativeSetSurface(holder.getSurface());
         }
     }
 
@@ -129,6 +118,10 @@ public class MainActivity extends Activity implements SurfaceHolder.Callback {
 
     @Override
     public void surfaceDestroyed(SurfaceHolder holder) {
+        synchronized (m_surfaceLock) {
+            m_pendingSurface = null;
+        }
+
         if (m_engineReady) {
             HyperionBridge.nativeSetSurface(null);
         }

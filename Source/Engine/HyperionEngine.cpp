@@ -598,6 +598,19 @@ extern "C"
         return 0;
     }
 
+    HYP_EXPORT void Hyp_StopThreads()
+    {
+        if (g_mainThreadInstance != nullptr)
+        {
+            g_mainThreadInstance->Stop();
+        }
+
+        if (g_engineDriver != nullptr)
+        {
+            g_engineDriver->RequestStop();
+        }
+    }
+
     HYP_EXPORT AppContextBase* Hyp_GetAppContext()
     {
         return g_appContext.Get();

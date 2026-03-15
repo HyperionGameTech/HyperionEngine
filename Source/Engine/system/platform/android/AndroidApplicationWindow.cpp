@@ -141,30 +141,38 @@ void AndroidApplicationWindow::Initialize(WindowOptions windowOptions)
 
 void AndroidApplicationWindow::SetNativeWindow(void* nativeWindow)
 {
-    TUniqueLock lock(m_mtx);
+    Vec2i newSize = m_size;
 
-    if (m_nativeWindow != nullptr)
     {
-        ANativeWindow_release(static_cast<ANativeWindow*>(m_nativeWindow));
+        TUniqueLock lock(m_mtx);
+
+        if (m_nativeWindow != nullptr)
+        {
+            ANativeWindow_release(static_cast<ANativeWindow*>(m_nativeWindow));
+        }
+
+        m_nativeWindow = nativeWindow;
+
+        if (m_nativeWindow != nullptr)
+        {
+            ANativeWindow_acquire(static_cast<ANativeWindow*>(m_nativeWindow));
+
+            newSize = Vec2i {
+                ANativeWindow_getWidth(static_cast<ANativeWindow*>(m_nativeWindow)),
+                ANativeWindow_getHeight(static_cast<ANativeWindow*>(m_nativeWindow))
+            };
+
+            m_hwnd = m_nativeWindow;
+        }
+        else
+        {
+            m_hwnd = nullptr;
+        }
     }
 
-    m_nativeWindow = nativeWindow;
-
-    if (m_nativeWindow != nullptr)
-    {
-        ANativeWindow_acquire(static_cast<ANativeWindow*>(m_nativeWindow));
-
-        m_size = Vec2i {
-            ANativeWindow_getWidth(static_cast<ANativeWindow*>(m_nativeWindow)),
-            ANativeWindow_getHeight(static_cast<ANativeWindow*>(m_nativeWindow))
-        };
-
-        m_hwnd = m_nativeWindow; // store in base class hwnd for compatibility
-    }
-    else
-    {
-        m_hwnd = nullptr;
-    }
+    // HandleResize takes its own lock and is safe to call from any thread.
+    // This ensures the swapchain is resized/recreated when the surface dimensions change.
+    HandleResize(newSize);
 }
 
 void AndroidApplicationWindow::SetMousePosition(Vec2i position)

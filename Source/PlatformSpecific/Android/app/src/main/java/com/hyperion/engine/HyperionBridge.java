@@ -13,6 +13,7 @@ public final class HyperionBridge {
     public static native int nativeInit();
     public static native void nativeShutdown();
     public static native void nativeLaunchThreads();
+    public static native void nativeStopThreads();
     public static native void nativeSetAssetManager(AssetManager mgr);
     public static native void nativeSetSurface(Surface surface);
     public static native void nativeTouchEvent(int action, float x, float y, int pointerId);
