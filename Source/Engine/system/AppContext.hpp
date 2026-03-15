@@ -519,7 +519,8 @@ public:
 
 private:
     void* m_nativeWindow = nullptr;
-    Vec2i m_touchPosition = Vec2i::Zero();
+    Vec2i m_touchPosition;
+    Vec2i m_previousTouchPosition;
     bool m_mouseLocked = false;
 };
 

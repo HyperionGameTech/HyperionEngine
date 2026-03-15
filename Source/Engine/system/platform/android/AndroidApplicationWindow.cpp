@@ -244,15 +244,19 @@ bool AndroidApplicationWindow::HandleInputEvent(int32 type, int32 action, float 
     {
     case 0: // touch
     {
+        const Vec2i currentPos = { int(x), int(y) };
+
         {
             TUniqueLock lock(m_mtx);
-            m_touchPosition = Vec2i(int(x), int(y));
+            m_touchPosition = currentPos;
         }
 
         switch (action)
         {
         case ANDROID_ACTION_DOWN:
         case ANDROID_ACTION_POINTER_DOWN:
+            m_previousTouchPosition = currentPos;
+
             outEvent = Event(EventType::MOUSEBUTTON_DOWN, this, platformEvent);
             outEvent.GetEventData().Set(EnumFlags<MouseButtonState>(MouseButtonState::LEFT));
             return true;
@@ -264,9 +268,15 @@ bool AndroidApplicationWindow::HandleInputEvent(int32 type, int32 action, float 
             return true;
 
         case ANDROID_ACTION_MOVE:
+        {
+            const Vec2f delta(float(currentPos.x - m_previousTouchPosition.x),
+                              float(currentPos.y - m_previousTouchPosition.y));
+            m_previousTouchPosition = currentPos;
+
             outEvent = Event(EventType::MOUSEMOTION, this, platformEvent);
-            outEvent.GetEventData().Set(Vec2i(int(x), int(y)));
+            outEvent.GetEventData().Set(delta); // Vec2f = delta-based event
             return true;
+        }
 
         default:
             break;

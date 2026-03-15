@@ -368,7 +368,10 @@ private:
     void StartWorkerThreadPool();
     void DoWork(StreamingManager* streamingManager);
     void ProcessCellUpdatesForLayer(LayerData& layerData);
-    void GetDesiredCellsForLayer(const LayerData& layerData, const Handle<StreamingVolumeBase>& volume, HashSet<Vec2i>& outCellCoords) const;
+    void GetDesiredCellsForLayer(
+        const LayerData& layerData,
+        const Handle<StreamingVolumeBase>& volume,
+        HashSet<Vec2i, &KeyBy_Identity<Vec2i>, PooledNodeAllocator<StreamingAllocator>>& outCellCoords) const;
 
     void PostCellUpdate(Handle<StreamingCell> cell, StreamingCellState state)
     {
@@ -469,7 +472,7 @@ void StreamingManagerThread::DoWork(StreamingManager* streamingManager)
 
         const WorldGridLayerInfo& layerInfo = layer->GetLayerInfo();
 
-        HashSet<Vec2i> desiredCells;
+        HashSet<Vec2i, &KeyBy_Identity<Vec2i>, PooledNodeAllocator<StreamingAllocator>> desiredCells;
 
         for (const Handle<StreamingVolumeBase>& volume : m_volumes)
         {
@@ -689,7 +692,10 @@ void StreamingManagerThread::ProcessCellUpdatesForLayer(LayerData& layerData)
     }
 }
 
-void StreamingManagerThread::GetDesiredCellsForLayer(const LayerData& layerData, const Handle<StreamingVolumeBase>& volume, HashSet<Vec2i>& outCellCoords) const
+void StreamingManagerThread::GetDesiredCellsForLayer(
+    const LayerData& layerData,
+    const Handle<StreamingVolumeBase>& volume,
+    HashSet<Vec2i, &KeyBy_Identity<Vec2i>, PooledNodeAllocator<StreamingAllocator>>& outCellCoords) const
 {
     constexpr Vec2i CellNeighborDirections[4] = { { 1, 0 }, { -1, 0 }, { 0, 1 }, { 0, -1 } };
 

@@ -48,8 +48,6 @@ static RendererResult AcquireNextImage(
         VK_NULL_HANDLE,
         index);
 
-    HYP_LOG_TEMP("Acquired image with index {}, reuslt = {}", *index, (int)vkResult);
-
     if (pOutNeedsRecreate != nullptr && (vkResult == VK_ERROR_OUT_OF_DATE_KHR || vkResult == VK_SUBOPTIMAL_KHR))
     {
         *pOutNeedsRecreate = true;
@@ -151,8 +149,6 @@ void VulkanSwapchain::PresentFrame(VulkanFrame* frame, VulkanDeviceQueue* queue)
     presentInfo.pSwapchains = &m_handle;
     presentInfo.pImageIndices = &m_acquiredImageIndex;
     presentInfo.pResults = nullptr;
-
-    HYP_LOG(RenderingBackend, Debug, "Presenting image with index {}", m_acquiredImageIndex);
 
     VkResult result = vkQueuePresentKHR(queue->queue, &presentInfo);
 

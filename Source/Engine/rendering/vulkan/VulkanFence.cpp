@@ -88,7 +88,6 @@ void VulkanFence::Wait(bool timeoutLoop)
 
     do
     {
-        HYP_LOG(RenderingBackend, Debug, "Waiting for Vulkan fence {} to be signaled...", (void*)handle);
         result = vkWaitForFences(g_renderInterface->GetDevice()->GetDevice(), 1, &handle, VK_TRUE, DEFAULT_FENCE_TIMEOUT);
     }
     while (result == VK_TIMEOUT && timeoutLoop);

@@ -26,6 +26,11 @@ public class MainActivity extends Activity implements SurfaceHolder.Callback {
     private final Object m_surfaceLock = new Object();
     private volatile Surface m_pendingSurface = null;
 
+    private static final float TOUCH_DEAD_ZONE = 8.0f;
+    private float m_touchDownX = 0.0f;
+    private float m_touchDownY = 0.0f;
+    private boolean m_touchMoved = false;
+
     private void runEngineLoop() {
         int result = HyperionBridge.nativeInit();
         if (result == 0) {
@@ -86,6 +91,13 @@ public class MainActivity extends Activity implements SurfaceHolder.Callback {
     protected void onDestroy() {
         super.onDestroy();
 
+        if (!isFinishing()) {
+            // treat as a config change (recreates swapchain)
+            HyperionBridge.nativeSetSurface(null);
+            return;
+        }
+
+        // shut down!
         if (m_gameInstance != NULL) {
             HyperionBridge.nativeSetGame(NULL);
             HyperionBridge.nativeDestroyGame(m_gameInstance);
@@ -150,7 +162,38 @@ public class MainActivity extends Activity implements SurfaceHolder.Callback {
             float x = event.getX(pointerIndex);
             float y = event.getY(pointerIndex);
 
-            HyperionBridge.nativeTouchEvent(action, x, y, pointerId);
+            switch (action) {
+                case MotionEvent.ACTION_DOWN:
+                case MotionEvent.ACTION_POINTER_DOWN:
+                    m_touchDownX = x;
+                    m_touchDownY = y;
+                    m_touchMoved = false;
+                    HyperionBridge.nativeTouchEvent(action, x, y, pointerId);
+                    break;
+
+                case MotionEvent.ACTION_MOVE:
+                    if (!m_touchMoved) {
+                        float dx = x - m_touchDownX;
+                        float dy = y - m_touchDownY;
+                        if (dx * dx + dy * dy < TOUCH_DEAD_ZONE * TOUCH_DEAD_ZONE) {
+                            break;
+                        }
+                        m_touchMoved = true;
+                    }
+                    HyperionBridge.nativeTouchEvent(action, x, y, pointerId);
+                    break;
+
+                case MotionEvent.ACTION_UP:
+                case MotionEvent.ACTION_POINTER_UP:
+                case MotionEvent.ACTION_CANCEL:
+                    HyperionBridge.nativeTouchEvent(action, x, y, pointerId);
+                    m_touchMoved = false;
+                    break;
+
+                default:
+                    HyperionBridge.nativeTouchEvent(action, x, y, pointerId);
+                    break;
+            }
             return true;
         }
         return super.onTouchEvent(event);

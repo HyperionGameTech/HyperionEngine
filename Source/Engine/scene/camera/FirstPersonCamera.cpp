@@ -53,6 +53,10 @@ bool FirstPersonCameraInputHandler::OnMouseDown_Impl(const MouseEvent& evt)
 
 bool FirstPersonCameraInputHandler::OnMouseUp_Impl(const MouseEvent& evt)
 {
+#if HYP_ANDROID || HYP_IOS // @TODO Better check for touch input. Touch devices can still have mouse input, and some non-touch devices might not have mouse input
+    m_controller->SetMode(FirstPersonCameraControllerMode::MOUSE_FREE);
+#endif
+
     return InputHandlerBase::OnMouseUp_Impl(evt);
 }
 
