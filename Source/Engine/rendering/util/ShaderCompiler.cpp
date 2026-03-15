@@ -3166,6 +3166,40 @@ bool ShaderCompiler::CompileBundle(
             }
 
             descriptorUsageSetsPerFile.Clear();
+            
+            // for logging
+            String variablePropertiesString;
+            String staticPropertiesString;
+
+            for (const ShaderProperty& property : perm.ToArray())
+            {
+                if (property.IsPermutable())
+                {
+                    if (!variablePropertiesString.Empty())
+                    {
+                        variablePropertiesString += ", ";
+                    }
+
+                    variablePropertiesString += property.name.LookupString();
+                }
+                else
+                {
+                    if (!staticPropertiesString.Empty())
+                    {
+                        staticPropertiesString += ", ";
+                    }
+
+                    staticPropertiesString += property.name.LookupString();
+                }
+            }
+            
+            HYP_LOG(
+                ShaderCompiler,
+                Verbose,
+                "Compiling shader {}\n\tVariable properties: [{}]\n\tStatic properties: [{}]",
+                decl.name,
+                variablePropertiesString,
+                staticPropertiesString);
 
             // final substitution of properties + compilation
             for (size_t index = 0; index < loadedSourceFiles.Size(); index++)
@@ -3183,41 +3217,6 @@ bool ShaderCompiler::CompileBundle(
                 const FilePath& outputFilepath = filepathState.first;
 
                 Array<String> errorMessages;
-
-                { // logging stuff
-                    String variablePropertiesString;
-                    String staticPropertiesString;
-
-                    for (const ShaderProperty& property : perm.ToArray())
-                    {
-                        if (property.IsPermutable())
-                        {
-                            if (!variablePropertiesString.Empty())
-                            {
-                                variablePropertiesString += ", ";
-                            }
-
-                            variablePropertiesString += property.name.LookupString();
-                        }
-                        else
-                        {
-                            if (!staticPropertiesString.Empty())
-                            {
-                                staticPropertiesString += ", ";
-                            }
-
-                            staticPropertiesString += property.name.LookupString();
-                        }
-                    }
-
-                    HYP_LOG(
-                        ShaderCompiler,
-                        Verbose,
-                        "Compiling shader {}\n\tVariable properties: [{}]\n\tStatic properties: [{}]",
-                        outputFilepath,
-                        variablePropertiesString,
-                        staticPropertiesString);
-                }
 
                 ByteBuffer byteBuffer;
 
@@ -3336,7 +3335,14 @@ bool ShaderCompiler::CompileBundle(
             numCompiledPermutations += (numErrored == 0 && numCompiled > 0 ? 1 : 0);
             numErroredPermutations += (numErrored > 0 ? 1 : 0);
 
-            if (numErrored == 0 && numCompiled > 0)
+            if (numCompiled == 0)
+            {
+                HYP_LOG(ShaderCompiler, Warning, "No shader bytecode files were output for {}\n\tVariable properties: [{}]\n\tStatic properties: [{}]",
+                    decl.name,
+                    variablePropertiesString,
+                    staticPropertiesString);
+            }
+            else if (numErrored == 0)
             {
                 shader->inputGroup = ShaderInputGroup();
                 descriptorUsageSetsMerged.BuildDescriptorTableDeclaration(shader->inputGroup);
@@ -3396,9 +3402,11 @@ bool ShaderCompiler::CompileBundle(
     }
 
     { // register assets
+        Result registerResult;
+
         for (const Handle<Shader>& shader : outBundle->compiledShaders)
         {
-            Result registerResult = g_assetManager->GetAssetRegistry()->RegisterAsset(
+            registerResult = g_assetManager->GetAssetRegistry()->RegisterAsset(
                 HYP_FORMAT("Engine/Shaders/{}", shader->baseName),
                 shader,
                 AddAssetConflictMode::ReplaceExisting);
@@ -3412,8 +3420,10 @@ bool ShaderCompiler::CompileBundle(
                 HYP_LOG(ShaderCompiler, Verbose, "Registered shader asset {}", shader->GetName());
             }
         }
-
-        Result registerResult = g_assetManager->GetAssetRegistry()->RegisterAsset(
+        
+        outBundle->MarkDirty();
+        
+        registerResult = g_assetManager->GetAssetRegistry()->RegisterAsset(
             "Engine/Shaders",
             outBundle->HandleFromThis(),
             AddAssetConflictMode::ReplaceExisting);
@@ -3426,6 +3436,10 @@ bool ShaderCompiler::CompileBundle(
 
             return false;
         }
+
+        HYP_LOG(ShaderCompiler, Verbose, "Shader bundle {} has {} shaders, is dirty? {}",
+            outBundle->GetName(),
+            outBundle->compiledShaders.Size(), outBundle->IsDirty());
     }
 
 #ifdef HYP_SHADER_COMPILER_LOGGING

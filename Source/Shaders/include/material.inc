@@ -35,15 +35,17 @@
 
 struct Material
 {
-    vec4 albedo;
+    float4 albedo;
 
-    uvec4 packed_params;
+    uint4 packed_params;
 
-    vec2 uv_scale;
+    float2 uv_scale;
     float parallax_height;
     uint textureUsage;
 
-    uvec4 texture_indices[4]; // moltenvk is compiling uint32_t texture_index[16] -> uint4 texture_index[16]
+    uint4 texture_indices[4];
+
+    float4 _pad0;
 };
 
 // enum for packed params

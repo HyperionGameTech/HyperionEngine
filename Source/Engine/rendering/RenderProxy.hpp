@@ -83,6 +83,10 @@ struct alignas(16) EntityShaderData
 
     uint32 bucket;
     uint32 flags;
+    uint32 _pad0;
+    uint32 _pad1;
+
+    Vec4f _pad2;
 };
 
 enum class LightmapElementId : uint32;
@@ -195,6 +199,8 @@ struct alignas(16) LightShaderData
     };
 
     Vec2f areaSize; // also angles for spot lights
+    Vec2f _pad0;
+    Vec4f _pad1[3];
 };
 
 class RenderProxyLight final : public IRenderProxy
@@ -283,9 +289,9 @@ struct alignas(16) MaterialShaderData
     uint32 textureUsage;
 
     Vec4u textureIndices[4];
-};
 
-static_assert(sizeof(MaterialShaderData) == 112);
+    Vec4f _pad0;
+};
 
 class RenderProxyMaterial final : public IRenderProxy
 {

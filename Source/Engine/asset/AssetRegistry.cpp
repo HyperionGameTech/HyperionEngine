@@ -3456,6 +3456,22 @@ Result AssetRegistry::RegisterAsset(
     // check if it is already in that package
     if (assetObject->m_package.GetUnsafe() == assetPackage.Get())
     {
+        // check if asset needs to be saved immediately
+        // this is used in the case of e.g adding new shaders to Engine/Shaders/SomeBundle,
+        // we mark SomeBundle dirty and register it with ReplaceExisting.
+        // we need to save it immediately so compiledShaders gets updated and we don't keep compiling on engine start.
+        // in the future, would be better to solve this in a more elegant way.
+        if (assetObject->IsDirty() && ShouldSavePackageOnChanged(*assetPackage) && !assetPackage->IsLoading())
+        {
+            AssertDebug(!assetObject->IsTransient() || assetObject->IsTransientByProxy());
+            
+            const FilePath newManifestFilepath = assetPackage->m_packageDir / *assetObject->GetName() + ".json";
+
+            // save the file in our package
+            Result saveAssetResult = assetObject->Save(newManifestFilepath);
+            return saveAssetResult;
+        }
+
         return {}; // ok
     }
 
@@ -3503,7 +3519,7 @@ Result AssetRegistry::RegisterAsset(
         }
     }
 
-    return assetPackage->AddAssetObject(assetObject, /* replaceOnConflict */ false);
+    return assetPackage->AddAssetObject(assetObject, /* replaceOnConflict */ (conflictMode == AddAssetConflictMode::ReplaceExisting));
 }
 
 void AssetRegistry::RegisterAssetsRecursively(

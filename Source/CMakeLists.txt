@@ -566,7 +566,7 @@ elseif(RENDERING_BACKEND STREQUAL "DX12")
 endif()
 
 # setup DXC if found
-if(EXISTS "${THIRD_PARTY_INCLUDE_DIR}/dxc/dxcapi.h" AND NOT HYP_ANDROID)
+if(EXISTS "${THIRD_PARTY_INCLUDE_DIR}/dxc/dxcapi.h")
     message(STATUS "DXC headers found, setting up DXC")
 
     include_directories(BEFORE ${THIRD_PARTY_INCLUDE_DIR}/dxc)
