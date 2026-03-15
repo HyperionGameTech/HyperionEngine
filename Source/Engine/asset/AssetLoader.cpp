@@ -100,8 +100,13 @@ AssetLoadResult AssetLoaderBase::Load(AssetManager& assetManager, const String& 
 
     const Array<FilePath> filepaths = GetTryFilepaths(originalFilepath);
 
+    uint32 numAttempts = 0;
+
     for (const FilePath& filepath : filepaths)
     {
+        HYP_LOG(Assets, Verbose, "Trying to load asset from path: {} (attempt {}/{})", filepath, numAttempts + 1, filepaths.Size());
+        ++numAttempts;
+
         if (!filepath.Exists())
         {
             // File does not exist, try next path
@@ -114,8 +119,6 @@ AssetLoadResult AssetLoaderBase::Load(AssetManager& assetManager, const String& 
 
         if (state.stream.Eof())
         {
-            HYP_LOG(Assets, Warning, "Could not open file at path: {}, trying next path...", filepath);
-
             continue;
         }
 

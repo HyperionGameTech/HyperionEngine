@@ -58,26 +58,6 @@ AssetCollector::~AssetCollector()
     }
 }
 
-void AssetCollector::Init()
-{
-    if (!m_basePath.Any())
-    {
-        m_basePath = FilePath::Current();
-    }
-
-    if (!m_basePath.IsDirectory())
-    {
-        m_basePath = m_basePath.BasePath();
-    }
-
-    if (!m_basePath.Exists())
-    {
-        m_basePath.MkDir();
-    }
-
-    SetReady(true);
-}
-
 void AssetCollector::NotifyAssetChanged(const FilePath& path, AssetChangeType changeType)
 {
     AssertReady();
@@ -271,6 +251,8 @@ AssetBatch* AssetManager::CreateBatch(const String& identifier)
 void AssetManager::RegisterDefaultLoaders()
 {
     SetBasePath(GetDataDirectory());
+
+    HYP_LOG(Assets, Verbose, "AssetManager Base Path: {}", GetBasePath());
 
     Register<OBJModelLoader, Node>("obj");
     Register<OgreXMLModelLoader, Node>("mesh.xml");

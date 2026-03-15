@@ -23,12 +23,17 @@ struct DirectoryInitializer
         // In non-debug modes, we always want resource directories to be relative to the executable path
         if (!RelativeToExecutablePath)
         {
-            path = FilePath(HYP_ROOT_DIR) / DirectoryStaticString.Data();
+            path = FilePath(HYP_ROOT_DIR) / String(DirectoryStaticString.Data());
         }
         else
 #endif
         {
-            path = CoreApi::GetExecutablePath() / DirectoryStaticString.Data();
+#if HYP_ANDROID
+            path = FilePath(AndroidAssetPathPrefix) / String(DirectoryStaticString.Data());
+#else
+
+            path = CoreApi::GetExecutablePath() / String(DirectoryStaticString.Data());
+#endif
         }
         
 #if HYP_EDITOR

@@ -140,8 +140,6 @@ public:
     void OnAssetChanged(const FilePath& path, AssetChangeType changeType);
 
 private:
-    HYP_API void Init() override;
-
     bool IsWatching_Impl() const
     {
         return false;

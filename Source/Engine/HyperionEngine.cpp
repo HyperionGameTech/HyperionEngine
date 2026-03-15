@@ -206,26 +206,14 @@ HYP_EXPORT const FilePath& GetTempDirectory()
 // Editor build only
 HYP_EXPORT const FilePath& GetDataDirectory()
 {
-#if HYP_ANDROID
-    // use asset manager for all assets
-    static const FilePath s_dataPath = FilePath(AndroidAssetPathPrefix) / "Data";
-    return s_dataPath;
-#else
     static DirectoryInitializer<HYP_STATIC_STRING("Data"), /* RelativeToExecutablePath */ false> s_dataDirectory;
     return s_dataDirectory.path;
-#endif
 }
 
 HYP_EXPORT const FilePath& GetConfigDirectory()
 {
-#if HYP_ANDROID
-    // use asset manager for all assets
-    static const FilePath s_configPath = FilePath(AndroidAssetPathPrefix) / "Config";
-    return s_configPath;
-#else
     static DirectoryInitializer<HYP_STATIC_STRING("Config"), /* RelativeToExecutablePath */ false> s_configDirectory;
     return s_configDirectory.path;
-#endif
 }
 
 #if HYP_DOTNET

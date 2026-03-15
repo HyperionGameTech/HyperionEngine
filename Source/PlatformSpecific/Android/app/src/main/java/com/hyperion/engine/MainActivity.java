@@ -26,26 +26,6 @@ public class MainActivity extends Activity implements SurfaceHolder.Callback {
     private final Object m_surfaceLock = new Object();
     private volatile Surface m_pendingSurface = null;
 
-    @Override
-    protected void onCreate(Bundle savedInstanceState) {
-        super.onCreate(savedInstanceState);
-
-        requestWindowFeature(Window.FEATURE_NO_TITLE);
-        getWindow().addFlags(
-            WindowManager.LayoutParams.FLAG_FULLSCREEN |
-            WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
-        getWindow().setBackgroundDrawable(null);
-
-        HyperionBridge.nativeSetAssetManager(getAssets());
-
-        m_surfaceView = new SurfaceView(this);
-        m_surfaceView.getHolder().addCallback(this);
-        setContentView(m_surfaceView);
-
-        m_engineThread = new Thread(this::runEngineLoop, "HyperionEngineMain");
-        m_engineThread.start();
-    }
-
     private void runEngineLoop() {
         int result = HyperionBridge.nativeInit();
         if (result == 0) {
@@ -80,6 +60,26 @@ public class MainActivity extends Activity implements SurfaceHolder.Callback {
         m_engineReady = false;
 
         HyperionBridge.nativeShutdown();
+    }
+
+    @Override
+    protected void onCreate(Bundle savedInstanceState) {
+        super.onCreate(savedInstanceState);
+
+        requestWindowFeature(Window.FEATURE_NO_TITLE);
+        getWindow().addFlags(
+            WindowManager.LayoutParams.FLAG_FULLSCREEN |
+            WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
+        getWindow().setBackgroundDrawable(null);
+
+        HyperionBridge.nativeSetAssetManager(getAssets());
+
+        m_surfaceView = new SurfaceView(this);
+        m_surfaceView.getHolder().addCallback(this);
+        setContentView(m_surfaceView);
+
+        m_engineThread = new Thread(this::runEngineLoop, "HyperionEngineMain");
+        m_engineThread.start();
     }
 
     @Override

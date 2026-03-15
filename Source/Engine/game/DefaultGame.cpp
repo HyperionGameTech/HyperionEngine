@@ -29,6 +29,7 @@
 #include <asset/AssetObject.hpp>
 #include <asset/AssetRegistry.hpp>
 #include <asset/Assets.hpp>
+#include <asset/AssetBatch.hpp>
 
 #include <rendering/Mesh.hpp>
 #include <rendering/Texture.hpp>
@@ -64,14 +65,10 @@ DefaultGame::~DefaultGame()
 
 void DefaultGame::OnLaunch_Impl()
 {
-    // m_editorSubsystem = MakeHandle<EditorSubsystem>();
-
-    // GetWorld()->AddSubsystem(m_editorSubsystem);
-
-    GetWorld()->GetWorldGrid()->AddLayer(MakeHandle<TerrainWorldGridLayer>());
+    //GetWorld()->GetWorldGrid()->AddLayer(MakeHandle<TerrainWorldGridLayer>());
 
     m_camera = MakeHandle<Camera>();
-    m_camera->SetFOV(85.0f);
+    m_camera->SetFOV(75.0f);
     m_camera->SetFar(10000.0f);
     m_camera->SetCameraFlags(CameraFlags::MATCH_WINDOW_SIZE);
     m_camera->SetWindow(g_appContext->GetMainWindow());
@@ -132,7 +129,17 @@ void DefaultGame::OnLaunch_Impl()
     Memory::StrCpy(scriptDesc.className.Data(), "MyClass", ArraySize(scriptDesc.className));
 
     ScriptComponent& scriptComponent = sunEntity->AddComponent<ScriptComponent>(ScriptComponent {
-        TAssetReference<ScriptAsset>(scriptAsset) });
+        TAssetReference<ScriptAsset>(scriptAsset)
+    });
+
+    AssetBatch* batch = g_assetManager->CreateBatch();
+    batch->Add("sponza", "Models/Sponza/sponza.obj");
+    auto results = batch->ForceLoad();
+
+    LoadedAsset& sponza = results["sponza"];
+    Handle<Node> sponzaNode = sponza.ExtractAs<Node>();
+    
+    scene->GetRoot()->AddChild(sponzaNode);
 
     StartSimulating();
 }
