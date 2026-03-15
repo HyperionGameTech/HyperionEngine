@@ -42,7 +42,7 @@
     "TAA": {
       "Enabled": false
     },
-    "IndirectRendering": true,
+    "IndirectRendering": false,
     "ParallelCollection": true,
     "SSR": {
       "Enabled": false,

@@ -49,7 +49,8 @@
 
 namespace Hyperion {
 
-HYP_DECLARE_LOG_CHANNEL(Editor);
+HYP_DEFINE_LOG_CHANNEL(Game);
+
 namespace game {
 
 DefaultGame::DefaultGame()
@@ -138,6 +139,7 @@ void DefaultGame::OnLaunch_Impl()
 
 void DefaultGame::OnUpdate_Impl(float delta)
 {
+    HYP_LOG(Game, Debug, "Updating DefaultGame with delta {}", delta);
 }
 
 void DefaultGame::OnInputEvent(const Event& event)
