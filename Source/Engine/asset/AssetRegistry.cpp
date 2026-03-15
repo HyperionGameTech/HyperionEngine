@@ -2984,8 +2984,6 @@ Handle<AssetPackage> AssetRegistry::GetPackage(
             parentPackage->MarkDirty();
         }
     }
-    
-    Assert(pkg.IsValid());
 
     return pkg;
 }

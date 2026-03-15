@@ -371,15 +371,14 @@ TResult<Handle<EditorProject>> EditorProject::Load(const FilePath& filepath)
     Handle<EditorProject> project;
 
     {
-        FileBufferedReaderSource source { projectFilepath };
-        BufferedReader reader { &source };
+        FileByteReader stream { projectFilepath };
 
-        if (!reader.IsOpen())
+        if (stream.Eof())
         {
             return HYP_MAKE_ERROR(Error, "Failed to open project file: {}", projectFilepath);
         }
 
-        JSON::ParseResult parseResult = JSON::Parse(String(reader.ReadBytes().ToByteView()));
+        JSON::ParseResult parseResult = JSON::Parse(String(stream.Read().ToByteView()));
 
         if (!parseResult.ok)
         {

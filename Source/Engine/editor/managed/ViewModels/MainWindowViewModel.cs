@@ -62,7 +62,11 @@ namespace Hyperion.Editor.ViewModels
             get
             {
                 EditorProject? project = EngineManager.CurrentProject;
-                Debug.Assert(project != null);
+
+                if (project == null)
+                {
+                    return false;
+                }
 
                 return project.World.GetGameState().Mode != GameStateMode.Simulating;
             }

@@ -1,7 +1,0 @@
-{
-  "Dependencies": [],
-  "Name": "SSRSampleGBuffer",
-  "FriendlyName": "SSRSampleGBuffer",
-  "Flags": 0,
-  "Path": "Engine/Shaders/SSRSampleGBuffer"
-}

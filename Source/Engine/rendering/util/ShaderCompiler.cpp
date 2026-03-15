@@ -295,15 +295,18 @@ static String BuildAttributesDefines(
     return preamble;
 }
 
-#if HYP_VULKAN
-static const ShaderPropertyId s_propVulkan = InternShaderProperty(ShaderProperty(NAME("HYP_VULKAN"), int(HYP_VULKAN_API_VERSION)));
+// fallback to allow compiling shaders for vulkan targets when not compiled with vulkan support.
+#if !HYP_VULKAN
+#ifndef VK_API_VERSION_1_1
+static constexpr uint32 VK_API_VERSION_1_1 = 4198400;
+#endif
+#ifndef VK_API_VERSION_1_1
+static constexpr uint32 VK_API_VERSION_1_2 = 4202496;
+#endif
+static constexpr uint32 HYP_VULKAN_API_VERSION = VK_API_VERSION_1_2;
 #endif
 
-static const ShaderPropertyId s_propWindows = InternShaderProperty(ShaderProperty(NAME("HYP_WINDOWS")));
-static const ShaderPropertyId s_propLinux = InternShaderProperty(ShaderProperty(NAME("HYP_LINUX")));
-static const ShaderPropertyId s_propMacOS = InternShaderProperty(ShaderProperty(NAME("HYP_MACOS")));
-static const ShaderPropertyId s_propIOS = InternShaderProperty(ShaderProperty(NAME("HYP_IOS")));
-static const ShaderPropertyId s_propAndroid = InternShaderProperty(ShaderProperty(NAME("HYP_ANDROID")));
+static const ShaderPropertyId s_propVulkan = InternShaderProperty(ShaderProperty(NAME("HYP_VULKAN"), int(HYP_VULKAN_API_VERSION)));
 
 static const ShaderPropertyId s_propNumGBufferTextures = InternShaderProperty(ShaderProperty(NAME("NUM_GBUFFER_TEXTURES"), int(NumGBufferTargets)));
 
@@ -320,21 +323,6 @@ void MergeGlobalShaderProperties(ShaderPropertySet& out)
 #if HYP_VULKAN
     out.Add(s_propVulkan);
 #endif
-
-    // temp hack
-    out.Add(s_propWindows);
-
-// #if HYP_WINDOWS
-//     out.Add(s_propWindows);
-// #elif HYP_LINUX
-//     out.Add(s_propLinux);
-// #elif HYP_MACOS
-//     out.Add(s_propMacOS);
-// #elif HYP_IOS
-//     out.Add(s_propIOS);
-// #elif HYP_ANDROID
-//     out.Add(s_propAndroid);
-// #endif
 
     out.Add(s_propNumGBufferTextures);
 
@@ -881,18 +869,6 @@ static ByteBuffer CompileGLSL(
         HYP_THROW("Invalid shader type");
         break;
     }
-
-    // fallback to allow compiling shaders for vulkan targets when not compiled with vulkan support.
-#if !HYP_VULKAN
-#ifndef VK_API_VERSION_1_1
-    static constexpr uint32 VK_API_VERSION_1_1 = 4198400;
-#endif
-#ifndef VK_API_VERSION_1_1
-    static constexpr uint32 VK_API_VERSION_1_2 = 4202496;
-#endif
-
-    static constexpr uint32 HYP_VULKAN_API_VERSION = VK_API_VERSION_1_2;
-#endif
 
     uint32 vulkanApiVersion = HYP_VULKAN_API_VERSION;
 

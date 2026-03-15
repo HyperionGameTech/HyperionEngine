@@ -30,7 +30,7 @@
       "Radius": 1.500000,
       "Power": 2.500000,
       "UseTemporalBlending": false,
-      "Enabled": true
+      "Enabled": false
     },
     "HBIL": {
       "Enabled": false
@@ -40,12 +40,12 @@
       "Enabled": false
     },
     "TAA": {
-      "Enabled": true
+      "Enabled": false
     },
     "IndirectRendering": true,
     "ParallelCollection": true,
     "SSR": {
-      "Enabled": true,
+      "Enabled": false,
       "Quality": 2,
       "RoughnessScattering": false,
       "ConeTracing": true,
