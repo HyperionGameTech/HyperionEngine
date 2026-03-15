@@ -11,6 +11,9 @@ public final class HyperionBridge {
     }
 
     public static native int nativeInit();
+    public static native long nativeCreateGame(String gameClassName);
+    public static native void nativeDestroyGame(long gameInstancePtr);
+    public static native void nativeSetGame(long gameInstancePtr);
     public static native void nativeShutdown();
     public static native void nativeLaunchThreads();
     public static native void nativeStopThreads();

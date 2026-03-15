@@ -3,11 +3,8 @@
 #pragma once
 
 #include <Core/io/ByteReader.hpp>
-#include <Core/io/BufferedByteReader.hpp>
 
 #include <Core/utilities/Result.hpp>
-
-#define HYP_LOADER_BUFFER_SIZE 2048
 
 namespace Hyperion {
 
@@ -16,12 +13,12 @@ class AssetRegistry;
 
 struct LoaderState
 {
-    using Stream = BufferedReader;
-
+    using Stream = FileByteReader;
+    
+    Stream stream;
     AssetManager* assetManager;
     FilePath filepath;
     String batchIdentifier;
-    Stream stream;
 };
 
 class AssetLoadError final : public Error

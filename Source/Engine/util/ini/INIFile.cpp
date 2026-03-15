@@ -4,7 +4,7 @@
 
 #include <util/ini/INIFile.hpp>
 
-#include <Core/io/BufferedByteReader.hpp>
+#include <Core/io/ByteReader.hpp>
 
 #include <Core/debug/Debug.hpp>
 
@@ -31,10 +31,9 @@ void INIFile::Parse()
         return;
     }
 
-    FileBufferedReaderSource source { m_path };
-    BufferedReader reader { &source };
+    FileByteReader stream { m_path };
 
-    if (!reader.IsOpen())
+    if (stream.Eof())
     {
         HYP_LOG(Core, Error, "Failed to open INI file: {}", m_path);
 
@@ -45,7 +44,8 @@ void INIFile::Parse()
 
     Array<Pair<String, Section>> sections;
 
-    auto lines = reader.ReadAllLines();
+    String fileContents = String(stream.Read().ToByteView());
+    Array<String> lines = fileContents.Split('\n');
 
     for (const auto& line : lines)
     {

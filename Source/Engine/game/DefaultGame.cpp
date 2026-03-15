@@ -110,7 +110,7 @@ void DefaultGame::OnLaunch_Impl()
     sunNode->AddChild(sunEntity);
 
     // sky
-    GetWorld()->AddSystemT<DynamicSkySystem>();
+    //GetWorld()->AddSystemT<DynamicSkySystem>();
 
     // Fps controller
 

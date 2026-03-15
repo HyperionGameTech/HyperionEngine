@@ -14,11 +14,14 @@ import android.view.WindowManager;
 public class MainActivity extends Activity implements SurfaceHolder.Callback {
 
     private static final String TAG = "HyperionMain";
+    private static final long NULL = 0;
 
     private SurfaceView m_surfaceView;
     private Thread m_engineThread;
 
     private volatile boolean m_engineReady = false;
+
+    private long m_gameInstance = 0;
 
     private final Object m_surfaceLock = new Object();
     private volatile Surface m_pendingSurface = null;
@@ -50,6 +53,11 @@ public class MainActivity extends Activity implements SurfaceHolder.Callback {
             return;
         }
 
+        m_gameInstance = HyperionBridge.nativeCreateGame("DefaultGame"); // @TODO: don't hardcode game class name, pull it from somewhere
+        assert m_gameInstance != NULL;
+
+        HyperionBridge.nativeSetGame(m_gameInstance);
+
         Surface surface;
         synchronized (m_surfaceLock) {
             while (m_pendingSurface == null) {
@@ -77,6 +85,12 @@ public class MainActivity extends Activity implements SurfaceHolder.Callback {
     @Override
     protected void onDestroy() {
         super.onDestroy();
+
+        if (m_gameInstance != NULL) {
+            HyperionBridge.nativeSetGame(NULL);
+            HyperionBridge.nativeDestroyGame(m_gameInstance);
+            m_gameInstance = NULL;
+        }
 
         HyperionBridge.nativeSetAssetManager(null);
 

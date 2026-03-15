@@ -17,7 +17,7 @@ AssetLoadResult WAVAudioLoader::LoadAsset(LoaderState& state) const
 {
     WAVAudio object;
 
-    state.stream.Read(&object.riffHeader);
+    state.stream.Read(&object.riffHeader, sizeof(WAVAudio::RiffHeader));
 
     if (std::strncmp(reinterpret_cast<const char*>(object.riffHeader.chunkId), "RIFF", 4) != 0)
     {
@@ -29,7 +29,7 @@ AssetLoadResult WAVAudioLoader::LoadAsset(LoaderState& state) const
         return HYP_MAKE_ERROR(AssetLoadError, "invalid WAVE header");
     }
 
-    state.stream.Read(&object.waveFormat);
+    state.stream.Read(&object.waveFormat, sizeof(WAVAudio::WaveFormat));
 
     if (std::strncmp(reinterpret_cast<const char*>(object.waveFormat.subChunkId), "fmt ", 4) != 0)
     {
@@ -41,7 +41,7 @@ AssetLoadResult WAVAudioLoader::LoadAsset(LoaderState& state) const
         state.stream.Skip(sizeof(uint16));
     }
 
-    state.stream.Read(&object.waveData);
+    state.stream.Read(&object.waveData, sizeof(WAVAudio::WaveData));
 
     if (std::strncmp(reinterpret_cast<const char*>(object.waveData.subChunkId), "data", 4) != 0)
     {

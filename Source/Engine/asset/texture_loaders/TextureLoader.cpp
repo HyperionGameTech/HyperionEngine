@@ -31,10 +31,7 @@ static const stbi_io_callbacks s_callbacks {
     {
         LoaderState* state = static_cast<LoaderState*>(user);
 
-        return int(state->stream.Read(data, size_t(size), [](void* ptr, const unsigned char* buffer, size_t chunkSize)
-            {
-                Memory::Copy(ptr, buffer, chunkSize);
-            }));
+        return int(state->stream.Read(data, size_t(size)));
     },
     .skip = [](void* user, int n)
     {

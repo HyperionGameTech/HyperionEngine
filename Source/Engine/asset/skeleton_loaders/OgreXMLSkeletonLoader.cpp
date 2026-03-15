@@ -232,11 +232,11 @@ AssetLoadResult OgreXMLSkeletonLoader::LoadAsset(LoaderState& state) const
     OgreXMLSkeletonSAXHandler handler(&state, object);
 
     xml::SAXParser parser(&handler);
-    xml::SAXParser::Result saxResult = parser.Parse(&state.stream);
+    Result saxResult = parser.Parse(state.stream);
 
     if (!saxResult)
     {
-        return HYP_MAKE_ERROR(AssetLoadError, "Failed to parse XML: {}", saxResult.message);
+        return HYP_MAKE_ERROR(AssetLoadError, "Failed to parse XML: {}", saxResult.GetError().GetMessage());
     }
 
     Handle<Bone> rootBone;

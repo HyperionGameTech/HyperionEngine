@@ -113,55 +113,56 @@ PLYModel PLYModelLoader::LoadModel(LoaderState& state)
 
     size_t rowLength = 0;
 
-    state.stream.ReadLines([&](const String& line, bool* stopPtr)
+    String fileContents = String(state.stream.Read().ToByteView());
+    Array<String> lines = fileContents.Split('\n');
+
+    for (const String& line : lines)
+    {
+        if (line == "end_header")
         {
-            if (line == "end_header")
+            break;
+        }
+
+        const Array<String> split = line.Split(' ');
+
+        if (split.Empty())
+        {
+            continue;
+        }
+
+        if (split[0] == "property")
+        {
+            Assert(split.Size() >= 3, "Invalid model header -- property declaration should have at least 3 elements");
+
+            const String propertyTypeString = split[1];
+            const String propertyName = split[2];
+
+            const PLYType propertyType = StringToPLYType(propertyTypeString);
+
+            model.propertyTypes.Set(propertyName, PLYPropertyDefinition { propertyType, rowLength });
+
+            rowLength += PLYTypeSize(propertyType);
+        }
+        else if (split[0] == "element")
+        {
+            Assert(split.Size() >= 3, "Invalid model header -- `element` declaration should have at least 3 elements");
+
+            if (split[1] == "vertex")
             {
-                *stopPtr = true;
+                const uint32 numVertices = StringUtil::Parse<uint32>(split[2].Data());
 
-                return;
+                model.vertices.Resize(numVertices);
             }
-
-            const Array<String> split = line.Split(' ');
-
-            if (split.Empty())
-            {
-                return;
-            }
-
-            if (split[0] == "property")
-            {
-                Assert(split.Size() >= 3, "Invalid model header -- property declaration should have at least 3 elements");
-
-                const String propertyTypeString = split[1];
-                const String propertyName = split[2];
-
-                const PLYType propertyType = StringToPLYType(propertyTypeString);
-
-                model.propertyTypes.Set(propertyName, PLYPropertyDefinition { propertyType, rowLength });
-
-                rowLength += PLYTypeSize(propertyType);
-            }
-            else if (split[0] == "element")
-            {
-                Assert(split.Size() >= 3, "Invalid model header -- `element` declaration should have at least 3 elements");
-
-                if (split[1] == "vertex")
-                {
-                    const uint32 numVertices = StringUtil::Parse<uint32>(split[2].Data());
-
-                    model.vertices.Resize(numVertices);
-                }
-            }
-        });
+        }
+    }
 
     model.headerLength = state.stream.Position();
 
     const size_t numVertices = model.vertices.Size();
 
-    ByteBuffer buffer = state.stream.ReadBytes();
+    ByteBuffer buffer = state.stream.Read();
 
-    const auto isCustomPropertyName = [](const String& str)
+    const auto IsCustomPropertyName = [](const String& str)
     {
         if (str == "x" || str == "y" || str == "z")
         {
@@ -184,7 +185,7 @@ PLYModel PLYModelLoader::LoadModel(LoaderState& state)
 
         DebugLog(LogType::Debug, "%s offset = %u type = %u\n", it.first.Data(), it.second.offset, it.second.type);
 
-        if (isCustomPropertyName(it.first))
+        if (IsCustomPropertyName(it.first))
         {
             const auto customDataIt = model.customData.Find(it.first);
 
@@ -213,7 +214,7 @@ PLYModel PLYModelLoader::LoadModel(LoaderState& state)
 
         for (const auto& it : model.propertyTypes)
         {
-            if (!isCustomPropertyName(it.first))
+            if (!IsCustomPropertyName(it.first))
             {
                 continue;
             }

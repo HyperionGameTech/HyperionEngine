@@ -12,10 +12,19 @@
 #define LOGI(...) __android_log_print(ANDROID_LOG_INFO, LOG_TAG, __VA_ARGS__)
 #define LOGE(...) __android_log_print(ANDROID_LOG_ERROR, LOG_TAG, __VA_ARGS__)
 
+namespace Hyperion {
+    class Game;
+} // namespace Hyperion
+
+using namespace Hyperion;
+
 extern "C"
 {
     int Hyp_Initialize(int argc, char** argv);
     void Hyp_Shutdown();
+    Game* Hyp_CreateGame(const char* gameClassName);
+    void Hyp_DestroyGame(Game* game);
+    void Hyp_SetGame(Game* game);
     void Hyp_LaunchThreads();
     void Hyp_StopThreads();
     void Hyp_SetAssetManager(void* mgr);
@@ -41,6 +50,27 @@ Java_com_hyperion_engine_HyperionBridge_nativeShutdown(JNIEnv* env, jclass /*cla
     Hyp_Shutdown();
 }
 
+extern "C" JNIEXPORT jlong JNICALL
+Java_com_hyperion_engine_HyperionBridge_nativeCreateGame(JNIEnv* env, jclass /*clazz*/, jstring gameClassName)
+{
+    const char* gameClassNameStr = env->GetStringUTFChars(gameClassName, nullptr);
+    Hyperion::Game* game = Hyp_CreateGame(gameClassNameStr);
+    env->ReleaseStringUTFChars(gameClassName, gameClassNameStr);
+
+    return reinterpret_cast<jlong>(game);
+}
+
+extern "C" JNIEXPORT void JNICALL
+Java_com_hyperion_engine_HyperionBridge_nativeDestroyGame(JNIEnv* env, jclass /*clazz*/, jlong gameInstancePtr)
+{
+    Hyp_DestroyGame(reinterpret_cast<Game*>(gameInstancePtr));
+}
+
+extern "C" JNIEXPORT void JNICALL
+Java_com_hyperion_engine_HyperionBridge_nativeSetGame(JNIEnv* env, jclass /*clazz*/, jlong gameInstancePtr)
+{
+    Hyp_SetGame(reinterpret_cast<Game*>(gameInstancePtr));
+}
 
 extern "C" JNIEXPORT void JNICALL
 Java_com_hyperion_engine_HyperionBridge_nativeLaunchThreads(JNIEnv* env, jclass /*clazz*/)

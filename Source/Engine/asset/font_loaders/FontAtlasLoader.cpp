@@ -22,7 +22,7 @@ AssetLoadResult FontAtlasLoader::LoadAsset(LoaderState& state) const
     Assert(state.assetManager != nullptr);
     Value json;
 
-    const ByteBuffer byteBuffer = state.stream.ReadBytes();
+    const ByteBuffer byteBuffer = state.stream.Read();
 
     if (!byteBuffer.Size())
     {

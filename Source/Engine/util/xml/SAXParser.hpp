@@ -5,9 +5,14 @@
 #include <Core/containers/HashMap.hpp>
 #include <Core/containers/String.hpp>
 
+#include <Core/utilities/Result.hpp>
+
 #include <Core/filesystem/FilePath.hpp>
 
 namespace Hyperion {
+
+class ByteReader;
+
 namespace xml {
 
 using AttributeMap = HashMap<String, String>;
@@ -32,36 +37,9 @@ public:
 class SAXParser
 {
 public:
-    struct Result
-    {
-        enum SaxParserResult
-        {
-            SRT_OK = 0,
-            SRT_ERR = 1
-        } result;
-
-        String message;
-
-        Result(decltype(result) result = SRT_OK, const String& message = String::empty)
-            : result(result),
-              message(message)
-        {
-        }
-
-        Result(const Result& other) = default;
-        Result& operator=(const Result& other) = default;
-
-        [[nodiscard]]
-        HYP_FORCE_INLINE
-        operator bool() const
-        {
-            return result == SRT_OK;
-        }
-    };
-
     SAXParser(SAXHandler* handler);
     Result Parse(const FilePath& filepath);
-    Result Parse(BufferedReader* reader);
+    Result Parse(ByteReader& stream);
 
 private:
     SAXHandler* m_handler;

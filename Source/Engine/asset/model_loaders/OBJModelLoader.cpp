@@ -155,146 +155,149 @@ OBJModel OBJModelLoader::LoadModel(LoaderState& state)
 
     String activeMaterial;
 
-    state.stream.ReadLines([&](const String& line, bool*)
+    String fileContents = String(state.stream.Read().ToByteView());
+    Array<String> lines = fileContents.Split('\n');
+
+    for (const String& line : lines)
+    {
+        tokens.Clear();
+
+        const String trimmed = line.Trimmed();
+
+        if (trimmed.Empty() || trimmed.Front() == '#')
         {
-            tokens.Clear();
+            continue;
+        }
 
-            const String trimmed = line.Trimmed();
+        tokens = trimmed.Split(' ');
 
-            if (trimmed.Empty() || trimmed.Front() == '#')
+        if (tokens.Empty())
+        {
+            continue;
+        }
+
+        if (tokens[0] == "v")
+        {
+            model.positions.PushBack(ReadVector<Vec3f>(tokens, 1));
+
+            continue;
+        }
+
+        if (tokens[0] == "vn")
+        {
+            model.normals.PushBack(ReadVector<Vec3f>(tokens, 1));
+
+            continue;
+        }
+
+        if (tokens[0] == "vt")
+        {
+            model.texcoords.PushBack(ReadVector<Vec2f>(tokens, 1));
+
+            continue;
+        }
+
+        if (tokens[0] == "f")
+        {
+            OBJMesh& lastMesh = LastMesh(model);
+
+            /* we don't support per-face material so we compromise by setting the mesh's material
+                * to the last 'usemtl' value when we hit the face command.
+                */
+            if (!activeMaterial.Empty())
             {
-                return;
+                lastMesh.material = activeMaterial;
             }
 
-            tokens = trimmed.Split(' ');
-
-            if (tokens.Empty())
+            if (tokens.Size() > 5)
             {
-                return;
+                HYP_LOG(Assets, Warning, "Faces with more than 4 vertices are not supported by the OBJ model loader");
             }
 
-            if (tokens[0] == "v")
+            /* Performs simple triangulation on quad faces */
+            for (int64 i = 0; i < int64(tokens.Size()) - 3; i++)
             {
-                model.positions.PushBack(ReadVector<Vec3f>(tokens, 1));
-
-                return;
+                lastMesh.indices.PushBack(ParseOBJIndex(tokens[1]));
+                lastMesh.indices.PushBack(ParseOBJIndex(tokens[2 + i]));
+                lastMesh.indices.PushBack(ParseOBJIndex(tokens[3 + i]));
             }
 
-            if (tokens[0] == "vn")
-            {
-                model.normals.PushBack(ReadVector<Vec3f>(tokens, 1));
+            continue;
+        }
 
-                return;
+        if (tokens[0] == "o")
+        {
+            if (tokens.Size() != 1)
+            {
+                model.name = tokens[1];
             }
 
-            if (tokens[0] == "vt")
+            continue;
+        }
+
+        if (tokens[0] == "s")
+        {
+            /* smooth shading; ignore */
+            continue;
+        }
+
+        if (tokens[0] == "mtllib")
+        {
+            if (tokens.Size() != 1)
             {
-                model.texcoords.PushBack(ReadVector<Vec2f>(tokens, 1));
+                String materialLibraryName;
 
-                return;
-            }
-
-            if (tokens[0] == "f")
-            {
-                OBJMesh& lastMesh = LastMesh(model);
-
-                /* we don't support per-face material so we compromise by setting the mesh's material
-                 * to the last 'usemtl' value when we hit the face command.
-                 */
-                if (!activeMaterial.Empty())
+                for (size_t i = 1; i < tokens.Size(); i++)
                 {
-                    lastMesh.material = activeMaterial;
-                }
-
-                if (tokens.Size() > 5)
-                {
-                    HYP_LOG(Assets, Warning, "Faces with more than 4 vertices are not supported by the OBJ model loader");
-                }
-
-                /* Performs simple triangulation on quad faces */
-                for (int64 i = 0; i < int64(tokens.Size()) - 3; i++)
-                {
-                    lastMesh.indices.PushBack(ParseOBJIndex(tokens[1]));
-                    lastMesh.indices.PushBack(ParseOBJIndex(tokens[2 + i]));
-                    lastMesh.indices.PushBack(ParseOBJIndex(tokens[3 + i]));
-                }
-
-                return;
-            }
-
-            if (tokens[0] == "o")
-            {
-                if (tokens.Size() != 1)
-                {
-                    model.name = tokens[1];
-                }
-
-                return;
-            }
-
-            if (tokens[0] == "s")
-            {
-                /* smooth shading; ignore */
-                return;
-            }
-
-            if (tokens[0] == "mtllib")
-            {
-                if (tokens.Size() != 1)
-                {
-                    String materialLibraryName;
-
-                    for (size_t i = 1; i < tokens.Size(); i++)
+                    if (i != 1)
                     {
-                        if (i != 1)
-                        {
-                            materialLibraryName += ' ';
-                        }
-
-                        materialLibraryName += tokens[i];
+                        materialLibraryName += ' ';
                     }
 
-                    model.materialLibrary = materialLibraryName;
+                    materialLibraryName += tokens[i];
                 }
 
-                return;
+                model.materialLibrary = materialLibraryName;
             }
 
-            if (tokens[0] == "g")
+            continue;
+        }
+
+        if (tokens[0] == "g")
+        {
+            String name = "default";
+
+            if (tokens.Size() != 1)
             {
-                String name = "default";
-
-                if (tokens.Size() != 1)
-                {
-                    name = tokens[1];
-                }
-
-                AddMesh(model, name, activeMaterial);
-
-                return;
+                name = tokens[1];
             }
 
-            if (tokens[0] == "usemtl")
+            AddMesh(model, name, activeMaterial);
+
+            continue;
+        }
+
+        if (tokens[0] == "usemtl")
+        {
+            if (tokens.Size() == 1)
             {
-                if (tokens.Size() == 1)
-                {
-                    HYP_LOG(Assets, Warning, "Cannot set obj model material -- no material provided");
+                HYP_LOG(Assets, Warning, "Cannot set obj model material -- no material provided");
 
-                    return;
-                }
-
-                activeMaterial = tokens[1];
-
-                if constexpr (MeshPerMaterial)
-                {
-                    AddMesh(model, activeMaterial, activeMaterial);
-                }
-
-                return;
+                continue;
             }
 
-            HYP_LOG(Assets, Warning, "Unable to parse obj model line: {}", trimmed);
-        });
+            activeMaterial = tokens[1];
+
+            if constexpr (MeshPerMaterial)
+            {
+                AddMesh(model, activeMaterial, activeMaterial);
+            }
+
+            continue;
+        }
+
+        HYP_LOG(Assets, Warning, "Unable to parse obj model line: {}", trimmed);
+    }
 
     if (model.name.Empty())
     {

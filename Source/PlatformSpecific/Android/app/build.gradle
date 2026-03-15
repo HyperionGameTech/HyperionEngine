@@ -124,15 +124,16 @@ tasks.register('stageNativeLibs') {
 
 // copy packages into assets dir.
 // TODO: Copy Projects/*ProjectName*/ too?
-def basePackagesDir   = file('../../../../Packages')
+def basePackagesDir = file('../../../../Packages')
 def baseConfigDir = file("../../../../Config")
 // only for testing, in finished build we'll just use packages / blob storage.
-def baseDataDir = file("../../../../Data")
+def modelsDir = file("../../../../Data/Models")
+def texturesDir = file("../../../../Data/Textures")
 // also just for testing, copying Shaders.ini to the assets folder - should prob go elsewhere.
 def shadersIni = file("../../../../Source/Shaders/Shaders.ini")
 def assetsDestDir = file('src/main/assets')
 
-tasks.register('stagePackageAssets', Sync) {
+tasks.register('stagePackageAssets', Copy) {
     description 'Stage Hyperion AssetPackage manifests'
 
     // Engine package manifests and non-blob assets
@@ -145,13 +146,16 @@ tasks.register('stagePackageAssets', Sync) {
     }
 
     from(baseConfigDir) {
-        into new File('Config')
+        into 'Config'
     }
-    from(baseDataDir) {
-        into new File('Data')
+    from(modelsDir) {
+        into 'Data/Models'
+    }
+    from(texturesDir) {
+        into 'Data/Textures'
     }
     from(shadersIni) {
-        into new File("Source/Shaders/Shaders.ini")
+        into 'Source/Shaders'
     }
     into assetsDestDir
 }

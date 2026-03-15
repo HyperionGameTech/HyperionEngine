@@ -299,17 +299,11 @@ static String BuildAttributesDefines(
 static const ShaderPropertyId s_propVulkan = InternShaderProperty(ShaderProperty(NAME("HYP_VULKAN"), int(HYP_VULKAN_API_VERSION)));
 #endif
 
-#if HYP_WINDOWS
 static const ShaderPropertyId s_propWindows = InternShaderProperty(ShaderProperty(NAME("HYP_WINDOWS")));
-#elif HYP_LINUX
 static const ShaderPropertyId s_propLinux = InternShaderProperty(ShaderProperty(NAME("HYP_LINUX")));
-#elif HYP_MACOS
 static const ShaderPropertyId s_propMacOS = InternShaderProperty(ShaderProperty(NAME("HYP_MACOS")));
-#elif HYP_IOS
 static const ShaderPropertyId s_propIOS = InternShaderProperty(ShaderProperty(NAME("HYP_IOS")));
-#elif HYP_ANDROID
 static const ShaderPropertyId s_propAndroid = InternShaderProperty(ShaderProperty(NAME("HYP_ANDROID")));
-#endif
 
 static const ShaderPropertyId s_propNumGBufferTextures = InternShaderProperty(ShaderProperty(NAME("NUM_GBUFFER_TEXTURES"), int(NumGBufferTargets)));
 
@@ -327,17 +321,20 @@ void MergeGlobalShaderProperties(ShaderPropertySet& out)
     out.Add(s_propVulkan);
 #endif
 
-#if HYP_WINDOWS
+    // temp hack
     out.Add(s_propWindows);
-#elif HYP_LINUX
-    out.Add(s_propLinux);
-#elif HYP_MACOS
-    out.Add(s_propMacOS);
-#elif HYP_IOS
-    out.Add(s_propIOS);
-#elif HYP_ANDROID
-    out.Add(s_propAndroid);
-#endif
+
+// #if HYP_WINDOWS
+//     out.Add(s_propWindows);
+// #elif HYP_LINUX
+//     out.Add(s_propLinux);
+// #elif HYP_MACOS
+//     out.Add(s_propMacOS);
+// #elif HYP_IOS
+//     out.Add(s_propIOS);
+// #elif HYP_ANDROID
+//     out.Add(s_propAndroid);
+// #endif
 
     out.Add(s_propNumGBufferTextures);
 
@@ -1883,13 +1880,14 @@ bool ShaderCompiler::HandleBundle(
 
     const bool anyMissing = missingPerms.Any();
 
-    const bool requestedFound = shaderRequest.HasValue() && inOutBundle->compiledShaders.FindIf([&shaderRequest](const Handle<Shader>& shader)
-                                                                {
-                                                                    return SatisfiesRequested(
-                                                                        shaderRequest->properties,
-                                                                        shaderRequest->vertexAttributes,
-                                                                        *shader);
-                                                                })
+    const bool requestedFound = shaderRequest.HasValue() &&
+        inOutBundle->compiledShaders.FindIf([&shaderRequest](const Handle<Shader>& shader)
+            {
+                return SatisfiesRequested(
+                    shaderRequest->properties,
+                    shaderRequest->vertexAttributes,
+                    *shader);
+            })
             != inOutBundle->compiledShaders.End();
 
     if ((ShouldCompileMissingVariants && anyMissing) || (shaderRequest.HasValue() && !requestedFound))
@@ -1922,12 +1920,23 @@ bool ShaderCompiler::HandleBundle(
         if (shaderRequest.HasValue() && !requestedFound)
         {
             String requestString = "requested shader with properties: " + shaderRequest->properties.GetDebugString();
-
-            requestString += "and vertex attributes: " + (shaderRequest->vertexAttributes ? shaderRequest->vertexAttributes.ToString() : "<none>");
+            requestString += " and vertex attributes: " + (shaderRequest->vertexAttributes ? shaderRequest->vertexAttributes.ToString() : "<none>");
 
             HYP_LOG(ShaderCompiler, Verbose,
                 "Bundle {} does not contain a shader satisfying the {}",
                 *decl.name, requestString);
+
+            HYP_LOG(ShaderCompiler, Verbose, "Other shaders in the bundle:\n===============================");
+
+            for (const Handle<Shader>& shader : inOutBundle->compiledShaders)
+            {
+                String shaderString = "\tProperties: " + shader->properties.GetDebugString();
+                shaderString += "\n\tVertex attributes: " + (shader->vertexAttributes ? shader->vertexAttributes.ToString() : "<none>");
+
+                HYP_LOG(ShaderCompiler, Verbose, "{}", shaderString);
+            }
+
+            HYP_LOG(ShaderCompiler, Verbose, "===============================");
         }
 
         if (CanCompileShaders())

@@ -108,21 +108,20 @@ AssetLoadResult AssetLoaderBase::Load(AssetManager& assetManager, const String& 
             continue;
         }
 
-        FileBufferedReaderSource source { filepath };
-        BufferedReader reader { &source };
+        LoaderState state {
+            FileByteReader { filepath }
+        };
 
-        if (!reader.IsOpen())
+        if (state.stream.Eof())
         {
             HYP_LOG(Assets, Warning, "Could not open file at path: {}, trying next path...", filepath);
 
             continue;
         }
 
-        LoaderState state {};
         state.assetManager = &assetManager;
         state.filepath = filepath;
         state.batchIdentifier = batchIdentifier;
-        state.stream = std::move(reader);
 
         if (state.batchIdentifier.Empty())
         {

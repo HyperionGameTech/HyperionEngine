@@ -667,6 +667,7 @@ extern "C"
     {
         if (!gameClassName)
         {
+            HYP_LOG(Engine, Error, "Failed to create game: gameClassName is NULL!");
             return nullptr;
         }
 
@@ -687,7 +688,7 @@ extern "C"
         }
 
         Handle<Game>& gameHandle = boxed.Get<Handle<Game>>();
-        AssertDebug(gameHandle.IsValid());
+        Assert(gameHandle.IsValid());
 
         Game* pGame = static_cast<Game*>(gameHandle.ptr);
         gameHandle.ptr = nullptr; // transfer ownership

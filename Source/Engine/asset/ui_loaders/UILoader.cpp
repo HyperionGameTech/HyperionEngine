@@ -941,13 +941,12 @@ AssetLoadResult UILoader::LoadAsset(LoaderState& state) const
     UISAXHandler handler(&state, static_cast<UIStage*>(uiStage.Get()));
 
     xml::SAXParser parser(&handler);
-    auto saxResult = parser.Parse(&state.stream);
+
+    Result saxResult = parser.Parse(state.stream);
 
     if (!saxResult)
     {
-        HYP_LOG(Assets, Warning, "Failed to parse UI stage: {}", saxResult.message);
-
-        return HYP_MAKE_ERROR(AssetLoadError, "Failed to parse XML: {}", saxResult.message);
+        return HYP_MAKE_ERROR(AssetLoadError, "Failed to parse XML: {}", saxResult.GetError().GetMessage());
     }
 
     return LoadedAsset { std::move(uiStage) };

@@ -254,11 +254,11 @@ AssetLoadResult OgreXMLModelLoader::LoadAsset(LoaderState& state) const
     OgreXMLSAXHandler handler(&state, model);
 
     xml::SAXParser parser(&handler);
-    auto saxResult = parser.Parse(&state.stream);
+    auto saxResult = parser.Parse(state.stream);
 
     if (!saxResult)
     {
-        return HYP_MAKE_ERROR(AssetLoadError, "XML error: {}", saxResult.message);
+        return HYP_MAKE_ERROR(AssetLoadError, "XML error: {}", saxResult.GetError().GetMessage());
     }
 
     BuildVertices(model);
