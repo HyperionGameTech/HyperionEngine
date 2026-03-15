@@ -440,6 +440,24 @@ RendererResult VulkanInstance::Initialize(bool enableDebugLayers)
     // Setup Vulkan extensions
     Array<const char*> extensionNames;
 
+    uint32 availableInstanceExtensionCount = 0;
+    vkEnumerateInstanceExtensionProperties(nullptr, &availableInstanceExtensionCount, nullptr);
+
+    Array<VkExtensionProperties> availableInstanceExtensions;
+    availableInstanceExtensions.Resize(availableInstanceExtensionCount);
+
+    if (availableInstanceExtensionCount != 0)
+    {
+        vkEnumerateInstanceExtensionProperties(nullptr, &availableInstanceExtensionCount, availableInstanceExtensions.Data());
+    }
+
+    HYP_LOG(RenderingBackend, Info, "Vulkan instance supports {} extensions:", availableInstanceExtensions.Size());
+
+    for (const VkExtensionProperties& extension : availableInstanceExtensions)
+    {
+        HYP_LOG(RenderingBackend, Info, "\t{} (specVersion={})", extension.extensionName, extension.specVersion);
+    }
+
     if (RendererResult result = g_renderInterface->GetVkExtensions(extensionNames); result.HasError())
     {
         return result;
@@ -486,7 +504,7 @@ RendererResult VulkanInstance::Initialize(bool enableDebugLayers)
     }
 #endif
 
-    HYP_LOG(RenderingBackend, Info, "Found {} extensions:", extensionNames.Size());
+    HYP_LOG(RenderingBackend, Info, "Enabling {} Vulkan instance extensions:", extensionNames.Size());
 
     for (const char* extensionName : extensionNames)
     {

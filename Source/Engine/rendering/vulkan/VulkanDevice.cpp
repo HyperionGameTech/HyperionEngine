@@ -427,6 +427,13 @@ RendererResult VulkanDevice::Create(VkSurfaceKHR surface)
     const ExtensionMap unsupportedExtensions = GetUnsupportedExtensions();
     const auto supportedExtensions = GetSupportedExtensions();
 
+    HYP_LOG(RenderingBackend, Info, "Vulkan device '{}' supports {} device extensions:", m_features->GetDeviceName(), supportedExtensions.Size());
+
+    for (const VkExtensionProperties& extension : supportedExtensions)
+    {
+        HYP_LOG(RenderingBackend, Info, "\t{} (specVersion={})", extension.extensionName, extension.specVersion);
+    }
+
     CheckResultOrReturn(CheckDeviceSuitable(unsupportedExtensions));
 
     // no _required_ extensions were missing (otherwise would have caused an error)
@@ -444,6 +451,13 @@ RendererResult VulkanDevice::Create(VkSurfaceKHR surface)
     for (const auto& it : m_wantedExtensions)
     {
         extensionNames.PushBack(it.first.Data());
+    }
+
+    HYP_LOG(RenderingBackend, Info, "Enabling {} Vulkan device extensions:", m_wantedExtensions.Size());
+
+    for (const auto& it : m_wantedExtensions)
+    {
+        HYP_LOG(RenderingBackend, Info, "\t{}{}", it.first, it.second ? " [REQUIRED]" : "");
     }
 
     // Vulkan 1.3 requires VK_KHR_portability_subset to be enabled if it is found in vkEnumerateDeviceExtensionProperties()

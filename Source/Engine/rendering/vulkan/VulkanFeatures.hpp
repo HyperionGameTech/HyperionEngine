@@ -195,7 +195,6 @@ public:
 #ifndef HYP_FEATURES_BINDLESS_TEXTURES
         return false;
 #else
-
         return m_indexingFeatures.descriptorBindingPartiallyBound
             && m_indexingFeatures.runtimeDescriptorArray
             && m_indexingProperties.maxPerStageDescriptorUpdateAfterBindSamplers >= 4096

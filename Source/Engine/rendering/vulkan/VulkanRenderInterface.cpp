@@ -81,7 +81,7 @@ public:
         rayTracing = renderBackend->GetDevice()->GetFeatures().IsRayTracingSupported();
         indirectRendering = CoreApi::GetGlobalConfig().Get("Rendering.IndirectRendering").ToBool(/* defaultValue */ true);
         parallelRendering = CoreApi::GetGlobalConfig().Get("Rendering.ParallelCollection").ToBool(/* defaultValue */ true);
-        dynamicDescriptorIndexing = false; // renderBackend->GetDevice()->GetFeatures().SupportsDynamicDescriptorIndexing();
+        dynamicDescriptorIndexing = renderBackend->GetDevice()->GetFeatures().SupportsDynamicDescriptorIndexing();
     }
 };
 
@@ -672,6 +672,15 @@ RendererResult VulkanRenderInterface::Initialize()
     VulkanDynamicFunctions::Load(m_instance->GetDevice());
 
     m_renderConfig->Initialize(this);
+
+    const VulkanFeatures& deviceFeatures = m_instance->GetDevice()->GetFeatures();
+    const VkPhysicalDeviceProperties& physicalDeviceProperties = deviceFeatures.GetPhysicalDeviceProperties();
+
+    HYP_LOG(RenderingBackend, Info, "Selected Vulkan physical device: {}", physicalDeviceProperties.deviceName);
+    HYP_LOG(RenderingBackend, Info, "Vulkan feature support:\n\tBindless Textures? {}\n\tRay Tracing? {}\n\tDynamic Descriptor Indexing? {}",
+        deviceFeatures.SupportsBindlessTextures(),
+        deviceFeatures.IsRayTracingSupported(),
+        deviceFeatures.SupportsDynamicDescriptorIndexing());
 
     CheckResultOrReturn(m_descriptorSetManager->Create(m_instance->GetDevice()));
 

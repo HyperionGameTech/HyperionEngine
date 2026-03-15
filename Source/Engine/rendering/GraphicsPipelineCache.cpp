@@ -11,6 +11,7 @@
 #include <rendering/RenderResult.hpp>
 #include <rendering/RenderMemory.hpp>
 #include <rendering/ShaderManager.hpp>
+#include <rendering/Shader.hpp>
 
 // For Shader
 #include <rendering/util/ShaderCompiler.hpp>
@@ -376,6 +377,15 @@ void GraphicsPipelineCache::GetOrCreate(
 
         virtual RendererResult operator()() override
         {
+            ShaderInstance* shaderInstance = graphicsPipeline->GetShader();
+            
+            String shaderString = "\tProperties: " + shaderInstance->GetShader()->properties.GetDebugString();
+            shaderString += "\n\tVertex attributes: " + (shaderInstance->GetShader()->vertexAttributes ? shaderInstance->GetShader()->vertexAttributes.ToString() : "<none>");
+
+            HYP_LOG(Rendering, Verbose, "Creating graphics pipeline {} (debug name: {}) on render thread, Shader details:\n{}",
+                graphicsPipeline->Id(), graphicsPipeline->GetDebugName(),
+                shaderString);
+
             CheckResultOrReturn(graphicsPipeline->Create());
 
             if (callback.IsValid())
