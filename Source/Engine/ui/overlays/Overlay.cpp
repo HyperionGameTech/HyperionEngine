@@ -1,8 +1,8 @@
 /* Copyright (c) 2016-2026 Andrew J. MacDonald. All rights reserved. */
 
-#include <EditorPch.hpp>
+#include <UIPch.hpp>
 
-#include <editor/ui/debug/EditorDebugOverlay.hpp>
+#include <ui/overlays/Overlay.hpp>
 
 #include <Core/threading/Threads.hpp>
 
@@ -11,24 +11,24 @@
 #include <ui/UIImage.hpp>
 #include <ui/UIText.hpp>
 
-#include <EditorDebugOverlay.generated.inl>
+#include <Overlay.generated.inl>
 
 namespace Hyperion {
 
-HYP_DECLARE_LOG_CHANNEL(Editor);
+HYP_DECLARE_LOG_CHANNEL(UI);
 
-#pragma region EditorDebugOverlayBase
+#pragma region OverlayBase
 
-EditorDebugOverlayBase::EditorDebugOverlayBase()
+OverlayBase::OverlayBase()
     : m_timer { 0.0167f }
 {
 }
 
-EditorDebugOverlayBase::~EditorDebugOverlayBase()
+OverlayBase::~OverlayBase()
 {
 }
 
-void EditorDebugOverlayBase::Initialize(UIObject* spawnParent)
+void OverlayBase::Initialize(UIObject* spawnParent)
 {
     AssertOnThread(g_simThread);
     Assert(spawnParent != nullptr);
@@ -41,12 +41,12 @@ void EditorDebugOverlayBase::Initialize(UIObject* spawnParent)
     }
 }
 
-Handle<UIObject> EditorDebugOverlayBase::CreateUIObject_Impl(UIObject* spawnParent)
+Handle<UIObject> OverlayBase::CreateUIObject_Impl(UIObject* spawnParent)
 {
     return spawnParent->CreateUIObject<UIImage>(InstanceClass()->GetName(), Vec2i::Zero(), UIObjectSize({ 100, UIObjectSize::PIXEL }, { 75, UIObjectSize::PIXEL }));
 }
 
-#pragma endregion EditorDebugOverlayBase
+#pragma endregion OverlayBase
 
 #pragma region TextureOverlay
 

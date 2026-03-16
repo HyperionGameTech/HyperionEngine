@@ -44,6 +44,9 @@
 
 #include <system/AppContext.hpp>
 
+#include <ui/UISubsystem.hpp>
+#include <ui/overlays/StatsOverlay.hpp> // Temp path
+
 #include <HyperionEngine.hpp>
 
 #include <DefaultGame.generated.inl>
@@ -138,8 +141,11 @@ void DefaultGame::OnLaunch_Impl()
 
     LoadedAsset& sponza = results["sponza"];
     Handle<Node> sponzaNode = sponza.ExtractAs<Node>();
+    sponzaNode->SetWorldScale(0.03f);
     
     scene->GetRoot()->AddChild(sponzaNode);
+
+    //GetUISubsystem()->AddDebugOverlay(MakeHandle<StatsOverlay>());
 
     StartSimulating();
 }

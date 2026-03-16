@@ -3,10 +3,10 @@ using System.Runtime.InteropServices;
 
 namespace Hyperion
 {
-    [ClassBinding(Name = "EditorDebugOverlayBase")]
-    public abstract class EditorDebugOverlayBase : ObjectBase
+    [ClassBinding(Name = "OverlayBase")]
+    public abstract class OverlayBase : ObjectBase
     {
-        public EditorDebugOverlayBase()
+        public OverlayBase()
         {
         }
 

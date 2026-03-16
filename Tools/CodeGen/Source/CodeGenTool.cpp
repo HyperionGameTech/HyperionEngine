@@ -319,6 +319,13 @@ private:
                     classDefinitions.PushBack(&it.second);
                 }
 
+                auto objectBaseIt = classDefinitions.FindIf([](const ClassDefinition* classDef)
+                    {
+                        return classDef->name == "ObjectBase";
+                    });
+
+                Assert(objectBaseIt != classDefinitions.End(), "ObjectBase class definition not found among builtins");
+
                 // init ids and add dependency modules
                 for (const UniquePtr<Module>& mod : m_analyzer.GetModules())
                 {
@@ -480,8 +487,6 @@ private:
 
                     ClassDefinition* classDefinition = classDefinitions[id];
 
-                    uint32 start = nextOut;
-
                     // skip assignment for builtin ObjectBase type (0)
                     const bool isBaseClass = classDefinition->name == "ObjectBase";
 
@@ -489,6 +494,8 @@ private:
                     {
                         classDefinition->staticIndex = int(nextOut++);
                     }
+
+                    const uint32 start = uint32(classDefinition->staticIndex);
 
                     stack.PushBack(id);
 
@@ -503,11 +510,6 @@ private:
                     stack.PopBack();
 
                     classDefinition->numDescendants = nextOut - start - 1;
-
-                    if (!isBaseClass)
-                    {
-                        classDefinition->staticIndex = int(start + 1);
-                    }
                 };
 
                 for (uint32 root : roots)

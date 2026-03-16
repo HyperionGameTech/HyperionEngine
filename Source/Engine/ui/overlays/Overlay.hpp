@@ -19,13 +19,13 @@ class UIStage;
 class Texture;
 
 HYP_CLASS(Abstract)
-class HYP_API EditorDebugOverlayBase : public ObjectBase
+class HYP_API OverlayBase : public ObjectBase
 {
-    HYP_OBJECT_BODY(EditorDebugOverlayBase);
+    HYP_OBJECT_BODY(OverlayBase);
 
 public:
-    EditorDebugOverlayBase();
-    virtual ~EditorDebugOverlayBase();
+    OverlayBase();
+    virtual ~OverlayBase();
 
     HYP_METHOD()
     HYP_FORCE_INLINE const Handle<UIObject>& GetUIObject() const
@@ -77,7 +77,7 @@ protected:
 };
 
 HYP_CLASS()
-class HYP_API TextureOverlay : public EditorDebugOverlayBase
+class HYP_API TextureOverlay : public OverlayBase
 {
     HYP_OBJECT_BODY(TextureOverlay);
 
@@ -92,7 +92,7 @@ protected:
 };
 
 HYP_CLASS()
-class HYP_API TextOverlay : public EditorDebugOverlayBase
+class HYP_API TextOverlay : public OverlayBase
 {
     HYP_OBJECT_BODY(TextOverlay);
 
@@ -106,6 +106,22 @@ protected:
     String m_text;
     Color m_textColor;
     float m_textSize;
+};
+
+HYP_CLASS()
+class HYP_API NullOverlay final : public OverlayBase
+{
+    HYP_OBJECT_BODY(NullOverlay);
+
+public:
+    NullOverlay() = default;
+    ~NullOverlay() override = default;
+
+protected:
+    virtual Handle<UIObject> CreateUIObject_Impl(UIObject* spawnParent) override
+    {
+        return Handle<UIObject>::Null();
+    }
 };
 
 } // namespace Hyperion

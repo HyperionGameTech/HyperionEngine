@@ -339,7 +339,9 @@ struct Handle final : HandleBase
         {
             if (!IsA(GetClass(TypeId::ForType<T>()), ptr->m_header->cls))
             {
-                HYP_FAIL("Cannot create WeakHandle because it is not a base class of T!");
+                HYP_FAIL("Cannot create WeakHandle because it is not a base class of T! "
+                    "Expected = {}, Received = {}",
+                    TypeName<T>().Data(), TypeInfo_GetName(TypeInfo_ForClass(ptr->m_header->cls)));
             }
 
             if (!ptr->m_header->TryIncRefStrong())

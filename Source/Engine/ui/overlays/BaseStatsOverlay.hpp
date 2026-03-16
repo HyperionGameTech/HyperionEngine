@@ -2,7 +2,7 @@
 
 #pragma once
 
-#include <editor/ui/debug/EditorDebugOverlay.hpp>
+#include <ui/overlays/Overlay.hpp>
 
 #include <Core/math/Color.hpp>
 
@@ -17,7 +17,7 @@ class UIText;
 class UIListView;
 
 HYP_CLASS()
-class HYP_API BaseStatsOverlay : public EditorDebugOverlayBase
+class HYP_API BaseStatsOverlay : public OverlayBase
 {
     HYP_OBJECT_BODY(BaseStatsOverlay);
 

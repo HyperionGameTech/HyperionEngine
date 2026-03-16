@@ -2,7 +2,7 @@
 
 #pragma once
 
-#include <editor/ui/debug/EditorDebugOverlay.hpp>
+#include <ui/overlays/Overlay.hpp>
 
 #include <Core/math/Color.hpp>
 
@@ -23,12 +23,12 @@ class UIDataSource;
 class EngineStatBase;
 
 HYP_CLASS()
-class HYP_API StatsOverlay : public EditorDebugOverlayBase
+class HYP_API StatsOverlay : public OverlayBase
 {
     HYP_OBJECT_BODY(StatsOverlay);
 
 public:
-    explicit StatsOverlay();
+    StatsOverlay();
     virtual ~StatsOverlay() override;
 
 protected:

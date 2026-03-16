@@ -1,8 +1,8 @@
 /* Copyright (c) 2016-2026 Andrew J. MacDonald. All rights reserved. */
 
-#include <EditorPch.hpp>
+#include <UIPch.hpp>
 
-#include <editor/ui/debug/BaseStatsOverlay.hpp>
+#include <ui/overlays/BaseStatsOverlay.hpp>
 
 #include <ui/UIListView.hpp>
 #include <ui/UIText.hpp>

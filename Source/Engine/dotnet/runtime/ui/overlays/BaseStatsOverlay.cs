@@ -3,10 +3,10 @@ using System.Runtime.InteropServices;
 
 namespace Hyperion
 {
-    [ClassBinding(Name = "StatsOverlay")]
-    public class StatsOverlay : EditorDebugOverlayBase
+    [ClassBinding(Name = "BaseStatsOverlay")]
+    public class BaseStatsOverlay : OverlayBase
     {
-        public StatsOverlay()
+        public BaseStatsOverlay()
         {
         }
 

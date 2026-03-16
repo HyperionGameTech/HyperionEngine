@@ -72,23 +72,31 @@ const Handle<Mesh>& UIObjectQuadMeshHelper::GetQuadMesh()
 
             // Hack to make vertices be from 0..1 rather than -1..1
 
-            Assert(quad->GetVertexData().Size() != 0);
-            Assert(quad->GetIndexData().Size() != 0);
+            auto readScope = quad->GetReadScope();
+
+            auto vd = quad->GetVertexData();
+            auto id = quad->GetIndexData();
+
+            Assert(vd.Size() != 0);
+            Assert(id.Size() != 0);
 
             const MeshDesc& meshDesc = quad->GetMeshDesc();
 
-            const Span<const Vertex> vertexData = quad->GetVertexData();
-            const Span<const ubyte> indexData = quad->GetIndexData();
+            Array<ubyte> indexData;
+            indexData.Resize(id.Size());
+            Memory::Copy(indexData.Data(), id.Data(), id.Size());
 
             Array<Vertex> newVertices;
-            newVertices.Resize(vertexData.Size());
-            Memory::Copy(newVertices.Data(), vertexData.Data(), sizeof(Vertex) * vertexData.Size());
+            newVertices.Resize(vd.Size());
+            Memory::Copy(newVertices.Data(), vd.Data(), sizeof(Vertex) * vd.Size());
 
             for (Vertex& vert : newVertices)
             {
                 vert.position.x = (vert.position.x + 1.0f) * 0.5f;
                 vert.position.y = (vert.position.y + 1.0f) * 0.5f;
             }
+
+            readScope.Reset();
 
             quad->SetMeshData(meshDesc, newVertices.ToSpan(), indexData);
             quad->SetName(NAME("UIObject_QuadMesh"));

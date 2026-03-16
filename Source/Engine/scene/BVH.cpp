@@ -132,7 +132,7 @@ bool BVHNode::OverlapsTriangle(
     const uint32 i1 = indices[triangleId * 3 + 1];
     const uint32 i2 = indices[triangleId * 3 + 2];
 
-    AssertDebug(i0 < vertices.Size()
+    Assert(i0 < vertices.Size()
         && i1 < vertices.Size()
         && i2 < vertices.Size());
 

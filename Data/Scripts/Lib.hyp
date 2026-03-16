@@ -17,6 +17,34 @@ const DBL_EPSILON : double = 2.2204460492503131e-16
 
 extern struct OctantId
 end
+extern class OverlayBase
+    GetUIObject() -> UIObject
+    GetPlacement() -> int
+    Update(delta : float) -> void
+    CreateUIObject(spawnParent : UIObject) -> UIObject
+    IsEnabled() -> bool
+    GetPlacement_Impl() -> int
+    Update_Impl(delta : float) -> void
+    IsEnabled_Impl() -> bool
+end
+extern class NullOverlay : OverlayBase
+end
+extern class TextureOverlay : OverlayBase
+end
+extern class TextOverlay : OverlayBase
+end
+extern class StatsOverlay : OverlayBase
+    CreateUIObject_Impl(spawnParent : UIObject) -> UIObject
+    GetPlacement_Impl() -> int
+    Update_Impl(delta : float) -> void
+    IsEnabled_Impl() -> bool
+end
+extern class BaseStatsOverlay : OverlayBase
+    CreateUIObject_Impl(spawnParent : UIObject) -> UIObject
+    GetPlacement_Impl() -> int
+    Update_Impl(delta : float) -> void
+    IsEnabled_Impl() -> bool
+end
 extern struct FontAtlasTextureSet
 end
 extern class FontAtlas
@@ -1215,6 +1243,10 @@ extern enum GBufferTargetName : uint32
     GTN_DEPTH,
     GTN_MAX
 end
+extern class UISubsystem : Subsystem
+    AddDebugOverlay(debugOverlay : OverlayBase) -> void
+    RemoveDebugOverlay(debugOverlay : OverlayBase) -> bool
+end
 extern struct DescriptorSetLayoutElement
     Type : ShaderInputType
     Binding : uint32
@@ -1478,32 +1510,6 @@ extern class EngineDriver
     SetGameInstance(gameInstance : Game) -> void
     GetGameInstance() -> Game
 end
-extern class EditorDebugOverlayBase
-    GetUIObject() -> UIObject
-    GetPlacement() -> int
-    Update(delta : float) -> void
-    CreateUIObject(spawnParent : UIObject) -> UIObject
-    IsEnabled() -> bool
-    GetPlacement_Impl() -> int
-    Update_Impl(delta : float) -> void
-    IsEnabled_Impl() -> bool
-end
-extern class TextureOverlay : EditorDebugOverlayBase
-end
-extern class TextOverlay : EditorDebugOverlayBase
-end
-extern class StatsOverlay : EditorDebugOverlayBase
-    CreateUIObject_Impl(spawnParent : UIObject) -> UIObject
-    GetPlacement_Impl() -> int
-    Update_Impl(delta : float) -> void
-    IsEnabled_Impl() -> bool
-end
-extern class BaseStatsOverlay : EditorDebugOverlayBase
-    CreateUIObject_Impl(spawnParent : UIObject) -> UIObject
-    GetPlacement_Impl() -> int
-    Update_Impl(delta : float) -> void
-    IsEnabled_Impl() -> bool
-end
 extern class EditorViewport
     GetCamera() -> Camera
     GetView() -> View
@@ -1596,8 +1602,6 @@ extern class EditorSubsystem : Subsystem
     CloseProject() -> void
     ShowImportContentDialog() -> void
     SetFocusedNode(focusedNode : Node, shouldSelectInOutline : bool) -> void
-    AddDebugOverlay(debugOverlay : EditorDebugOverlayBase) -> void
-    RemoveDebugOverlay(debugOverlay : EditorDebugOverlayBase) -> bool
     GetFocusedNode() -> Node
     GetActiveScene() -> Scene
     SetActiveScene(scene : Scene) -> void

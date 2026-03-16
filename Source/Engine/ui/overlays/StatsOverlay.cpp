@@ -1,8 +1,8 @@
 /* Copyright (c) 2016-2026 Andrew J. MacDonald. All rights reserved. */
 
-#include <EditorPch.hpp>
+#include <UIPch.hpp>
 
-#include <editor/ui/debug/StatsOverlay.hpp>
+#include <ui/overlays/StatsOverlay.hpp>
 
 #include <ui/UIButton.hpp>
 #include <ui/UIListView.hpp>
@@ -25,6 +25,7 @@ HYP_DECLARE_LOG_CHANNEL(Editor);
 #pragma region StatsOverlay
 
 StatsOverlay::StatsOverlay()
+    : OverlayBase()
 {
     m_timer = ClockTimer { 0.0333f }; // update max. 30hz/s
     m_hotFunctionsUpdateTimer = ClockTimer { 1.0f };

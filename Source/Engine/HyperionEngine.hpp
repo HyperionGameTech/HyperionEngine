@@ -32,6 +32,11 @@ struct WindowOptions;
 
 class Game;
 
+#if HYP_DOTNET
+struct ManagedDelegates;
+using InitFromManagedCallback = void (*)(struct ManagedDelegates*);
+#endif
+
 HYP_API const FilePath& GetLibraryDirectory();
 HYP_API const FilePath& GetProjectsDirectory();
 HYP_API const FilePath& GetDataDirectory();
@@ -59,6 +64,10 @@ extern "C"
 
     // Only for use in detached mode (-Detached CLI flag)
     HYP_API void Hyp_MainThreadUpdate();
+
+#if HYP_DOTNET
+    HYP_API void Hyp_SetInitFromManagedCallback(InitFromManagedCallback callback);
+#endif
 
 #if HYP_ANDROID
     HYP_API void Hyp_SetAssetManager(void* mgr);

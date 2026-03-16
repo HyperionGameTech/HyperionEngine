@@ -1413,7 +1413,7 @@ struct VertexAttribute
     uint32 GetId() const
     {
         static const VertexAttribute** s_attrsBegin = Attrs;
-        static const VertexAttribute** s_attrsEnd = std::find(Attrs, (const VertexAttribute**)nullptr, (const VertexAttribute*)nullptr);
+        static const VertexAttribute** s_attrsEnd = std::find(Attrs, Attrs + 64, (const VertexAttribute*)nullptr);
 
         return std::distance(s_attrsBegin, std::find(s_attrsBegin, s_attrsEnd, this));
     }

@@ -33,8 +33,17 @@ namespace Hyperion.Editor
 
             this.SetToEditMode();
 
-            var uiSubsystem = new UISubsystem();
-            World.AddSubsystem(uiSubsystem);
+            // get or create UISubsystem instance.
+            UISubsystem? uiSubsystem = World.GetSubsystem<UISubsystem>();
+            
+            if (uiSubsystem == null)
+            {
+                uiSubsystem = new UISubsystem();
+                World.AddSubsystem(uiSubsystem);
+            }
+
+            uiSubsystem.AddDebugOverlay(new BaseStatsOverlay());
+            uiSubsystem.AddDebugOverlay(new StatsOverlay());
 
             _editorSubsystem = new EditorSubsystem();
             World.AddSubsystem(_editorSubsystem);
@@ -54,12 +63,6 @@ namespace Hyperion.Editor
             {
                 HandleProjectOpened(project);
             }
-
-            EditorDebugOverlayBase statOverlay = new BaseStatsOverlay();
-            _editorSubsystem.AddDebugOverlay(statOverlay);
-
-            statOverlay = new StatsOverlay();
-            _editorSubsystem.AddDebugOverlay(statOverlay);
 
             //project.World.AddSystem(new DynamicSkySystem());
 

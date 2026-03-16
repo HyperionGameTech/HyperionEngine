@@ -53,14 +53,17 @@ extern "C"
             // Set allowAbstract to true so we can use classes marked as `Abstract=true`.
             // allowing the managed class to override methods of an abstract class
             bool success = cls->CreateInstance(value, /* allowAbstract */ true);
-            Assert(success, "Failed to create instance of Class '%s'", cls->GetName().LookupString());
+            Assert(success, "Failed to create instance of Class '{}'", cls->GetName().LookupString());
 
-            ptr = value.Get<ObjectBase*>();
+            Handle<ObjectBase>& handle = value.Get<Handle<ObjectBase>>();
+            Assert(handle.IsValid() && handle->IsA(cls));
+
+            ptr = handle.Get();
 
             // Ref counts are kept as 1 for Handle<T>, managed side is responsible for decrementing the ref count
             ptr->GetObjectHeader_Internal()->IncRefStrong();
 
-            value.Reset();
+            handle.Reset();
         }
 
         *outInstancePtr = ptr;

@@ -13,8 +13,6 @@
 #include <editor/EditorViewport.hpp>
 #include <editor/EditorCommand.hpp>
 
-#include <editor/ui/debug/EditorDebugOverlay.hpp>
-
 #include <dotnet/DotNETHost.hpp>
 
 #include <scene/Scene.hpp>
@@ -71,8 +69,6 @@
 #include <rendering/RenderInterface.hpp>
 
 #include <rendering/util/DeletionQueue.hpp>
-
-#include <ui/font/FontAtlas.hpp>
 
 // temp
 #include <baking/BakerSubsystem.hpp>
@@ -1872,8 +1868,6 @@ void EditorSubsystem::OnAddedToWorld()
     m_editorScene = MakeHandle<Scene>(NAME("EditorScene"), SceneFlags::FOREGROUND | SceneFlags::EDITOR);
     GetWorld()->AddScene(m_editorScene);
 
-    LoadFont();
-
     InitViewport();
 
     CreateHighlightNode();
@@ -1931,8 +1925,6 @@ void EditorSubsystem::Update(float delta)
 
     m_editorDelegates->Update();
 
-    UpdateDebugOverlays();
-
     if (m_focusedNode.IsValid())
     {
         if (Handle<Node> focusedNode = m_focusedNode.Lock(); focusedNode.IsValid())
@@ -1984,22 +1976,6 @@ void EditorSubsystem::OnSceneAttached(const Handle<Scene>& scene)
 void EditorSubsystem::OnSceneDetached(Scene* scene)
 {
     HYP_SCOPE;
-}
-
-void EditorSubsystem::LoadFont()
-{
-    UISubsystem* uiSubsystem = GetWorld()->GetSubsystem<UISubsystem>();
-    Assert(uiSubsystem != nullptr);
-
-    TResult<Handle<FontAtlas>> fontAtlasResult = CreateFontAtlas();
-
-    if (fontAtlasResult.HasError())
-    {
-        HYP_FAIL("Failed to create font atlas for editor UI: {}", fontAtlasResult.GetError().GetMessage());
-    }
-
-    uiSubsystem->GetUIStage()->SetDefaultFontAtlas(*fontAtlasResult);
-    uiSubsystem->GetUIStage()->SetTextSize(18.0f);
 }
 
 void EditorSubsystem::CreateHighlightNode()
@@ -2409,8 +2385,6 @@ void EditorSubsystem::InitViewport()
 
             return UIEventHandlerResult::OK;
         }));
-
-    InitDebugOverlays();
 }
 
 void EditorSubsystem::StartWatchingNode(const Handle<Node>& node)
@@ -2576,64 +2550,6 @@ void EditorSubsystem::UpdateWatchedNodes()
     }
 }
 
-void EditorSubsystem::InitDebugOverlays()
-{
-    HYP_SCOPE;
-
-    UISubsystem* uiSubsystem = GetWorld()->GetSubsystem<UISubsystem>();
-    Assert(uiSubsystem != nullptr);
-
-    static constexpr UIObjectAlignment Aligments[4] = {
-        UIObjectAlignment::TOP_LEFT,
-        UIObjectAlignment::BOTTOM_LEFT,
-        UIObjectAlignment::TOP_RIGHT,
-        UIObjectAlignment::BOTTOM_RIGHT
-    };
-
-    for (int i = 0; i < 4; i++)
-    {
-        Handle<UIObject>& debugOverlayContainer = m_debugOverlayContainers[i];
-
-        debugOverlayContainer = uiSubsystem->GetUIStage()->CreateUIObject<UIListView>(NAME_FMT("DebugOverlay_{}", i), Vec2i::Zero(), UIObjectSize({ 0, UIObjectSize::AUTO }, { 0, UIObjectSize::AUTO }));
-        debugOverlayContainer->SetDepth(100);
-        debugOverlayContainer->SetBackgroundColor(Color(0.0f, 0.0f, 0.0f, 0.0f));
-        debugOverlayContainer->SetParentAlignment(Aligments[i]);
-        debugOverlayContainer->SetOriginAlignment(Aligments[i]);
-        debugOverlayContainer->SetAcceptsFocus(false); // so we don't steal focus from the viewport
-
-        debugOverlayContainer->OnClick.RemoveAllDetached();
-        debugOverlayContainer->OnKeyDown.RemoveAllDetached();
-    }
-
-    for (const Handle<EditorDebugOverlayBase>& debugOverlay : m_debugOverlays)
-    {
-        int placement = debugOverlay->GetPlacement();
-
-        if (placement < 0 || placement >= int(m_debugOverlayContainers.Size()))
-        {
-            // Invalid placement, skip this overlay
-            HYP_LOG(Editor, Warning, "Invalid debug overlay placement: {}", placement);
-
-            placement = 0; // Default to the first container
-        }
-
-        debugOverlay->Initialize(m_debugOverlayContainers[placement]);
-
-        const Handle<UIObject>& uiObject = debugOverlay->GetUIObject();
-        AssertDebug(uiObject != nullptr);
-
-        if (uiObject != nullptr)
-        {
-            m_debugOverlayContainers[placement]->AddChildUIObject(uiObject);
-        }
-    }
-
-    for (const Handle<UIObject>& debugOverlayContainer : m_debugOverlayContainers)
-    {
-        uiSubsystem->GetUIStage()->AddChildUIObject(debugOverlayContainer);
-    }
-}
-
 void EditorSubsystem::InitActiveSceneSelection()
 {
     HYP_SCOPE;
@@ -2779,47 +2695,6 @@ void EditorSubsystem::SetSelectedPackage(const Handle<AssetPackage>& package)
     m_selectedPackage = package;
 
     OnSelectedPackageChanged(package);
-}
-
-TResult<Handle<FontAtlas>> EditorSubsystem::CreateFontAtlas()
-{
-    HYP_SCOPE;
-
-    auto fontFaceAsset = AssetManager::GetInstance()->Load<RC<FontFace>>("Fonts/Roboto/Roboto-Regular.ttf");
-
-    if (fontFaceAsset.HasError())
-    {
-        return HYP_MAKE_ERROR(Error, "Failed to load font face! Error: {}", 0, fontFaceAsset.GetError().GetMessage());
-    }
-
-    Handle<AssetPackage> package = g_assetManager->GetAssetRegistry()->GetPackageFromPath("Engine/Fonts/Roboto", /* createIfNotExist */ true);
-    Assert(package.IsValid());
-
-    Handle<FontAtlas> atlas = MakeHandle<FontAtlas>(std::move(fontFaceAsset->Result()));
-
-    if (Result renderAtlasResult = atlas->RenderAtlasTextures(1.0f, 2.0f, 0.1f); renderAtlasResult.HasError())
-    {
-        return renderAtlasResult.GetError();
-    }
-
-    // register all textures within the atlas as assets:
-    for (const auto& it : atlas->GetAtlasTextures().atlases)
-    {
-        const Handle<Texture>& texture = it.second;
-        Assert(texture != nullptr);
-
-        HYP_LOG(Font, Verbose, "Adding texture {} to package", texture->GetName());
-
-        Result result = package->AddAssetObject(texture, /* replaceOnConflict */ true);
-        
-        if (result.HasError())
-        {
-            HYP_LOG(Editor, Error, "Failed to add texture asset to package: {}", result.GetError().GetMessage());
-        }
-    }
-
-    // need to move in return since return type is wrapped result
-    return std::move(atlas);
 }
 
 bool EditorSubsystem::ExecuteCommand(const Handle<EditorCommandBase>& command)
@@ -3090,86 +2965,6 @@ void EditorSubsystem::SetFocusedNode(const Handle<Node>& focusedNode, bool shoul
     OnFocusedNodeChanged(focusedNode, previousFocusedNode, shouldSelectInOutline);
 }
 
-void EditorSubsystem::AddDebugOverlay(const Handle<EditorDebugOverlayBase>& debugOverlay)
-{
-    HYP_SCOPE;
-
-    AssertDebug(debugOverlay != nullptr);
-
-    if (!debugOverlay)
-    {
-        return;
-    }
-
-    AssertOnThread(g_simThread);
-
-    UISubsystem* uiSubsystem = GetWorld()->GetSubsystem<UISubsystem>();
-    Assert(uiSubsystem != nullptr);
-
-    auto it = m_debugOverlays.Find(debugOverlay);
-
-    if (it != m_debugOverlays.End())
-    {
-        return;
-    }
-
-    m_debugOverlays.PushBack(debugOverlay);
-
-    int placement = debugOverlay->GetPlacement();
-
-    if (placement < 0 || placement >= int(m_debugOverlayContainers.Size()))
-    {
-        // Invalid placement, skip this overlay
-        HYP_LOG(Editor, Warning, "Invalid debug overlay placement: {}", placement);
-
-        placement = 0; // Default to the first container
-    }
-
-    if (!m_debugOverlayContainers[placement])
-    {
-        return; // not initialized yet; it'll be added later
-    }
-
-    debugOverlay->Initialize(uiSubsystem->GetUIStage());
-
-    if (const Handle<UIObject>& object = debugOverlay->GetUIObject())
-    {
-        Handle<UIListViewItem> listViewItem = uiSubsystem->GetUIStage()->CreateUIObject<UIListViewItem>(Vec2i { 0, 0 }, UIObjectSize(UIObjectSize::AUTO));
-        listViewItem->SetBackgroundColor(Color(0.0f, 0.0f, 0.0f, 0.0f));
-        listViewItem->AddChildUIObject(object);
-
-        m_debugOverlayContainers[placement]->AddChildUIObject(listViewItem);
-    }
-}
-
-bool EditorSubsystem::RemoveDebugOverlay(EditorDebugOverlayBase* debugOverlay)
-{
-    HYP_SCOPE;
-
-    if (!debugOverlay)
-    {
-        return false;
-    }
-
-    AssertOnThread(g_simThread);
-
-    auto it = m_debugOverlays.FindAs(debugOverlay);
-
-    if (it == m_debugOverlays.End())
-    {
-        return false;
-    }
-
-    if (const Handle<UIObject>& object = (*it)->GetUIObject())
-    {
-        object->RemoveFromParent();
-    }
-
-    m_debugOverlays.Erase(it);
-
-    return true;
-}
-
 Handle<Scene> EditorSubsystem::GetActiveScene() const
 {
     AssertOnThread(g_simThread);
@@ -3228,28 +3023,6 @@ Vec3f EditorSubsystem::CalculateSceneInsertionPoint(float desiredDistance, float
     }
 
     return insertionPoint;
-}
-
-void EditorSubsystem::UpdateDebugOverlays()
-{
-    HYP_SCOPE;
-
-    for (const Handle<EditorDebugOverlayBase>& debugOverlay : m_debugOverlays)
-    {
-        if (!debugOverlay->IsEnabled())
-        {
-            continue;
-        }
-
-        if (debugOverlay->GetTimer().Waiting())
-        {
-            continue;
-        }
-
-        debugOverlay->GetTimer().NextTick();
-
-        debugOverlay->Update(debugOverlay->GetTimer().delta);
-    }
 }
 
 void EditorSubsystem::SetHoveredGizmo(

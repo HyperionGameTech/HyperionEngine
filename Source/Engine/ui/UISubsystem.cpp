@@ -4,6 +4,9 @@
 
 #include <ui/UISubsystem.hpp>
 #include <ui/UIStage.hpp>
+#include <ui/UIListView.hpp>
+
+#include <ui/font/FontAtlas.hpp>
 
 #include <scene/World.hpp>
 #include <scene/Node.hpp>
@@ -37,6 +40,12 @@
 #include <rendering/renderers/UIRenderer.hpp>
 
 #include <system/AppContext.hpp>
+
+#include <asset/Assets.hpp>
+#include <asset/AssetRegistry.hpp>
+
+// to be moved
+#include <ui/overlays/Overlay.hpp>
 
 #include <engine/EngineDriver.hpp>
 
@@ -127,6 +136,47 @@ struct SetFinalPassImageView : RenderCommand
 
 #pragma endregion Render commands
 
+static TResult<Handle<FontAtlas>> CreateFontAtlas()
+{
+    HYP_SCOPE;
+
+    auto fontFaceAsset = AssetManager::GetInstance()->Load<RC<FontFace>>("Fonts/Roboto/Roboto-Regular.ttf");
+
+    if (fontFaceAsset.HasError())
+    {
+        return HYP_MAKE_ERROR(Error, "Failed to load font face! Error: {}", 0, fontFaceAsset.GetError().GetMessage());
+    }
+
+    Handle<AssetPackage> package = g_assetManager->GetAssetRegistry()->GetPackageFromPath("Engine/Fonts/Roboto", /* createIfNotExist */ true);
+    Assert(package.IsValid());
+
+    Handle<FontAtlas> atlas = MakeHandle<FontAtlas>(std::move(fontFaceAsset->Result()));
+
+    if (Result renderAtlasResult = atlas->RenderAtlasTextures(1.0f, 2.0f, 0.1f); renderAtlasResult.HasError())
+    {
+        return renderAtlasResult.GetError();
+    }
+
+    // register all textures within the atlas as assets:
+    for (const auto& it : atlas->GetAtlasTextures().atlases)
+    {
+        const Handle<Texture>& texture = it.second;
+        Assert(texture != nullptr);
+
+        HYP_LOG(Font, Verbose, "Adding texture {} to package", texture->GetName());
+
+        Result result = package->AddAssetObject(texture, /* replaceOnConflict */ true);
+        
+        if (result.HasError())
+        {
+            HYP_LOG(UI, Error, "Failed to add texture asset to package: {}", result.GetError().GetMessage());
+        }
+    }
+
+    // need to move in return since return type is wrapped result
+    return std::move(atlas);
+}
+
 UISubsystem::UISubsystem()
     : UISubsystem(MakeHandle<UIStage>())
 {
@@ -159,22 +209,21 @@ void UISubsystem::Init()
     Assert(m_uiStage != nullptr);
     InitObject(m_uiStage);
 
-    const auto handleWindowResize = [weakThis = MakeWeakRef(this)](Vec2i windowSize)
+    InitFont();
+
+    const auto HandleWindowResize = [this, weakThis = MakeWeakRef(this)](Vec2i windowSize)
     {
         PUSH_RENDER_COMMAND(SetFinalPassImageView, nullptr);
-        Handle<UISubsystem> subsystem = weakThis.Lock();
+        Handle<UISubsystem> strongThis = weakThis.Lock();
 
-        if (!subsystem)
+        if (!strongThis.IsValid())
         {
             HYP_LOG(UI, Warning, "UISubsystem: subsystem is expired on resize");
             return;
         }
 
-        Handle<UIStage> uiStage = subsystem->GetUIStage();
-        AssertDebug(uiStage != nullptr);
-
-        uiStage->SetSurfaceSize(windowSize);
-        subsystem->CreateFramebuffer();
+        m_uiStage->SetSurfaceSize(windowSize);
+        CreateFramebuffer();
     };
 
     Vec2u windowSize = Vec2u(800, 600);
@@ -183,29 +232,30 @@ void UISubsystem::Init()
     {
         windowSize = Vec2u(g_appContext->GetMainWindow()->GetSize());
 
-        m_onWindowResizedHandle = g_appContext->GetMainWindow()->OnWindowSizeChanged.BindThreaded(handleWindowResize, g_simThread);
+        m_onWindowResizedHandle = g_appContext->GetMainWindow()->OnWindowSizeChanged.BindThreaded(HandleWindowResize, g_simThread);
     }
 
     m_onCurrentWindowChangedHandle = g_appContext->OnCurrentWindowChanged.BindThreaded(
-        [weakThis = MakeWeakRef(this), handleWindowResize](ApplicationWindow* window)
+        [this, weakThis = MakeWeakRef(this), HandleWindowResize](ApplicationWindow* window)
         {
-            Handle<UISubsystem> subsystem = weakThis.Lock();
+            Handle<UISubsystem> strongThis = weakThis.Lock();
 
-            if (!subsystem)
+            if (!strongThis.IsValid())
             {
                 HYP_LOG(UI, Warning, "UISubsystem: subsystem is expired on current window changed");
                 return;
             }
-            if (subsystem->m_onWindowResizedHandle.IsValid())
+
+            if (m_onWindowResizedHandle.IsValid())
             {
-                subsystem->m_onWindowResizedHandle.Reset();
+                m_onWindowResizedHandle.Reset();
             }
 
             if (window != nullptr)
             {
-                subsystem->m_onWindowResizedHandle = window->OnWindowSizeChanged.BindThreaded(handleWindowResize, g_simThread);
+                m_onWindowResizedHandle = window->OnWindowSizeChanged.BindThreaded(HandleWindowResize, g_simThread);
 
-                handleWindowResize(Vec2i(window->GetSize()));
+                HandleWindowResize(Vec2i(window->GetSize()));
             }
         },
         g_simThread);
@@ -238,6 +288,8 @@ void UISubsystem::OnAddedToWorld()
     {
         GetWorld()->AddScene(MakeStrongRef(m_uiStage->GetScene()));
     }
+    
+    InitDebugOverlays();
 }
 
 void UISubsystem::OnRemovedFromWorld()
@@ -255,6 +307,8 @@ void UISubsystem::PreUpdate(float delta)
 void UISubsystem::Update(float delta)
 {
     HYP_SCOPE;
+
+    UpdateDebugOverlays();
 
     m_uiStage->Update(delta);
 
@@ -413,6 +467,174 @@ void UISubsystem::CreateFramebuffer()
     // Assert(attachment->GetImageView()->IsCreated());
 
     PUSH_RENDER_COMMAND(SetFinalPassImageView, attachment->GetImageView());
+}
+
+void UISubsystem::InitFont()
+{
+    TResult<Handle<FontAtlas>> fontAtlasResult = CreateFontAtlas();
+
+    if (fontAtlasResult.HasError())
+    {
+        HYP_LOG(UI, Error, "Failed to create font atlas: {}", fontAtlasResult.GetError().GetMessage());
+        return;
+    }
+
+    m_uiStage->SetDefaultFontAtlas(*fontAtlasResult);
+    m_uiStage->SetTextSize(18.0f);
+}
+
+void UISubsystem::InitDebugOverlays()
+{
+    HYP_SCOPE;
+
+    static constexpr UIObjectAlignment Aligments[4] = {
+        UIObjectAlignment::TOP_LEFT,
+        UIObjectAlignment::BOTTOM_LEFT,
+        UIObjectAlignment::TOP_RIGHT,
+        UIObjectAlignment::BOTTOM_RIGHT
+    };
+
+    for (int i = 0; i < 4; i++)
+    {
+        Handle<UIObject>& debugOverlayContainer = m_debugOverlayContainers[i];
+
+        debugOverlayContainer = m_uiStage->CreateUIObject<UIListView>(NAME_FMT("DebugOverlay_{}", i), Vec2i::Zero(), UIObjectSize({ 0, UIObjectSize::AUTO }, { 0, UIObjectSize::AUTO }));
+        debugOverlayContainer->SetDepth(100);
+        debugOverlayContainer->SetBackgroundColor(Color(0.0f, 0.0f, 0.0f, 0.0f));
+        debugOverlayContainer->SetParentAlignment(Aligments[i]);
+        debugOverlayContainer->SetOriginAlignment(Aligments[i]);
+        debugOverlayContainer->SetAcceptsFocus(false); // so we don't steal focus from the viewport
+
+        debugOverlayContainer->OnClick.RemoveAllDetached();
+        debugOverlayContainer->OnKeyDown.RemoveAllDetached();
+    }
+
+    for (const Handle<OverlayBase>& debugOverlay : m_debugOverlays)
+    {
+        int placement = debugOverlay->GetPlacement();
+
+        if (placement < 0 || placement >= int(m_debugOverlayContainers.Size()))
+        {
+            // Invalid placement, skip this overlay
+            HYP_LOG(UI, Warning, "Invalid debug overlay placement: {}", placement);
+
+            placement = 0; // Default to the first container
+        }
+
+        debugOverlay->Initialize(m_debugOverlayContainers[placement]);
+
+        const Handle<UIObject>& uiObject = debugOverlay->GetUIObject();
+        AssertDebug(uiObject != nullptr);
+
+        if (uiObject != nullptr)
+        {
+            m_debugOverlayContainers[placement]->AddChildUIObject(uiObject);
+        }
+    }
+
+    for (const Handle<UIObject>& debugOverlayContainer : m_debugOverlayContainers)
+    {
+        m_uiStage->AddChildUIObject(debugOverlayContainer);
+    }
+}
+
+void UISubsystem::UpdateDebugOverlays()
+{
+    HYP_SCOPE;
+
+    for (const Handle<OverlayBase>& debugOverlay : m_debugOverlays)
+    {
+        if (!debugOverlay->IsEnabled())
+        {
+            continue;
+        }
+
+        if (debugOverlay->GetTimer().Waiting())
+        {
+            continue;
+        }
+
+        debugOverlay->GetTimer().NextTick();
+
+        debugOverlay->Update(debugOverlay->GetTimer().delta);
+    }
+}
+
+void UISubsystem::AddDebugOverlay(const Handle<OverlayBase>& debugOverlay)
+{
+    HYP_SCOPE;
+
+    AssertDebug(debugOverlay != nullptr);
+
+    if (!debugOverlay)
+    {
+        return;
+    }
+
+    AssertOnThread(g_simThread);
+
+    auto it = m_debugOverlays.Find(debugOverlay);
+
+    if (it != m_debugOverlays.End())
+    {
+        return;
+    }
+
+    m_debugOverlays.PushBack(debugOverlay);
+
+    int placement = debugOverlay->GetPlacement();
+
+    if (placement < 0 || placement >= int(m_debugOverlayContainers.Size()))
+    {
+        // Invalid placement, skip this overlay
+        HYP_LOG(UI, Warning, "Invalid debug overlay placement: {}", placement);
+
+        placement = 0; // Default to the first container
+    }
+
+    if (!m_debugOverlayContainers[placement])
+    {
+        return; // not initialized yet; it'll be added later
+    }
+
+    debugOverlay->Initialize(m_uiStage);
+
+    if (const Handle<UIObject>& object = debugOverlay->GetUIObject())
+    {
+        Handle<UIListViewItem> listViewItem = m_uiStage->CreateUIObject<UIListViewItem>(Vec2i { 0, 0 }, UIObjectSize(UIObjectSize::AUTO));
+        listViewItem->SetBackgroundColor(Color(0.0f, 0.0f, 0.0f, 0.0f));
+        listViewItem->AddChildUIObject(object);
+
+        m_debugOverlayContainers[placement]->AddChildUIObject(listViewItem);
+    }
+}
+
+bool UISubsystem::RemoveDebugOverlay(OverlayBase* debugOverlay)
+{
+    HYP_SCOPE;
+
+    if (!debugOverlay)
+    {
+        return false;
+    }
+
+    AssertOnThread(g_simThread);
+
+    auto it = m_debugOverlays.FindAs(debugOverlay);
+
+    if (it == m_debugOverlays.End())
+    {
+        return false;
+    }
+
+    if (const Handle<UIObject>& object = (*it)->GetUIObject())
+    {
+        object->RemoveFromParent();
+    }
+
+    m_debugOverlays.Erase(it);
+
+    return true;
 }
 
 } // namespace Hyperion

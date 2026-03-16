@@ -19,9 +19,14 @@ class View;
 class World;
 
 class UIStage;
+class UIObject;
 class UIRenderer;
+class UIListView;
+class FontAtlas;
 
 class RenderProxyList;
+
+class OverlayBase;
 
 HYP_STRUCT(NoScriptBindings)
 struct UIEntityInstanceBatch : EntityInstanceBatch
@@ -41,7 +46,7 @@ struct UIEntityInstanceBatch : EntityInstanceBatch
     FixedArray<Vec4u, MaxEntitiesPerBatch> properties;
 };
 
-HYP_CLASS(NoScriptBindings)
+HYP_CLASS()
 class HYP_API UISubsystem final : public Subsystem
 {
     HYP_OBJECT_BODY(UISubsystem);
@@ -53,39 +58,53 @@ public:
     UISubsystem(const UISubsystem& other) = delete;
     UISubsystem& operator=(const UISubsystem& other) = delete;
 
-    virtual ~UISubsystem();
+    ~UISubsystem() override;
 
     HYP_FORCE_INLINE const Handle<UIStage>& GetUIStage() const
     {
         return m_uiStage;
     }
 
-    virtual void PreUpdate(float delta) override;
-    virtual void Update(float delta) override;
+    HYP_METHOD()
+    void AddDebugOverlay(const Handle<OverlayBase>& debugOverlay);
+
+    HYP_METHOD()
+    bool RemoveDebugOverlay(OverlayBase* debugOverlay);
+
+    void PreUpdate(float delta) override;
+    void Update(float delta) override;
 
 protected:
-    virtual SubsystemUpdatePhase GetUpdatePhase_Internal() const
+    SubsystemUpdatePhase GetUpdatePhase_Internal() const override
     {
         return SubsystemUpdatePhase::AfterVis;
     }
 
 private:
-    virtual void Init() override;
+    void Init() override;
 
-    virtual void OnAddedToWorld() override;
-    virtual void OnRemovedFromWorld() override;
+    void OnAddedToWorld() override;
+    void OnRemovedFromWorld() override;
 
     void CreateFramebuffer();
 
     void RenderCollect(RenderProxyList& rpl);
 
-    Handle<UIStage> m_uiStage;
+    void InitFont();
 
-    ShaderInstanceRef m_shader;
+    void InitDebugOverlays();
+    void UpdateDebugOverlays();
+
+    Handle<UIStage> m_uiStage;
 
     Handle<View> m_view;
 
     UIRenderer* m_uiRenderer;
+    
+    Array<Handle<OverlayBase>> m_debugOverlays;
+
+    // top-left, bottom-left, top-right, bottom-right
+    FixedArray<Handle<UIObject>, 4> m_debugOverlayContainers;
 
     DelegateHandler m_onWindowResizedHandle;
     DelegateHandler m_onCurrentWindowChangedHandle;

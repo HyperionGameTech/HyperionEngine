@@ -30,7 +30,6 @@ class FontAtlas;
 class EditorDelegates;
 class EditorSubsystem;
 class EditorProject;
-class EditorDebugOverlayBase;
 class EditorCommandBase;
 class AssetPackage;
 struct MouseEvent;
@@ -450,12 +449,6 @@ public:
     void SetFocusedNode(const Handle<Node>& focusedNode, bool shouldSelectInOutline = true);
 
     HYP_METHOD()
-    void AddDebugOverlay(const Handle<EditorDebugOverlayBase>& debugOverlay);
-
-    HYP_METHOD()
-    bool RemoveDebugOverlay(EditorDebugOverlayBase* debugOverlay);
-
-    HYP_METHOD()
     Handle<Node> GetFocusedNode() const;
 
     HYP_METHOD()
@@ -520,17 +513,10 @@ public:
     ScriptableDelegate<void, Handle<EditorViewport>> OnActiveViewportChanged;
 
 private:
-    void LoadFont();
-
     void CreateHighlightNode();
 
     void InitViewport();
-    void InitDebugOverlays();
     void InitActiveSceneSelection();
-
-    TResult<Handle<FontAtlas>> CreateFontAtlas();
-
-    void UpdateDebugOverlays();
 
     void StartWatchingNode(const Handle<Node>& node);
     void StopWatchingNode(const Handle<Node>& node);
@@ -574,11 +560,6 @@ private:
     bool m_shouldCancelNextClick;
 
     EditorDelegates* m_editorDelegates;
-
-    Array<Handle<EditorDebugOverlayBase>> m_debugOverlays;
-
-    // top-left, bottom-left, top-right, bottom-right
-    FixedArray<Handle<UIObject>, 4> m_debugOverlayContainers;
 
     Handle<UIListView> m_contentBrowserDirectoryList;
     Handle<AssetPackage> m_selectedPackage;
