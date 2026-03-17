@@ -15,7 +15,6 @@ namespace Hyperion {
 class FontFace
 {
 public:
-    using WChar = uint32;
     using GlyphIndex = uint32;
 
     FontFace() = default;
@@ -29,11 +28,9 @@ public:
     FontFace& operator=(FontFace&& other) noexcept;
     ~FontFace();
 
-    void Init();
-
     void RequestPixelSizes(int width, int height);
     void SetGlyphSize(int ptW, int ptH, int screenWidth, int screenHeight);
-    GlyphIndex GetGlyphIndex(WChar toFind);
+    GlyphIndex GetGlyphIndex(uint32 toFind);
     FontEngine::Font GetFace();
 
 private:

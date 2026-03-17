@@ -169,20 +169,10 @@ void RenderThread::Update()
 
             renderSetup.world = world;
 
-#if HYP_EDITOR
-            // for editor world, render UI as well
-            if ((world->GetWorldFlags() & WorldFlags::EDITOR_WORLD))
-            {
-                if (RendererBase* uiRenderer = g_renderInterface->globalRenderers[GRT_UI][0])
-                {
-                    uiRenderer->RenderFrame(frame, renderSetup);
-                }
-            }
-#endif
-
             if (world->GetViews().Size() != 0)
             {
                 mainRenderer->RenderFrame(frame, renderSetup);
+
                 numViewsRendered += world->GetViews().Size();
             }
         }

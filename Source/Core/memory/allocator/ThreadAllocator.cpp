@@ -12,6 +12,7 @@ static constexpr size_t ThreadAllocatorPoolSize = 1024 * 1024 * 10; // 10 MB per
 void InitThreadAllocatorPool(void* allocator)
 {
     Pool* pool = static_cast<Pool*>(allocator);
+    Assert(pool != nullptr);
 
     new (pool) Pool(ThreadAllocatorPoolSize, PF_NONE);
 }

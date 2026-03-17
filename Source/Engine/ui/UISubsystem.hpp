@@ -108,6 +108,8 @@ private:
 
     DelegateHandler m_onWindowResizedHandle;
     DelegateHandler m_onCurrentWindowChangedHandle;
+
+    bool m_wasProcessedLastFrame;
 };
 
 } // namespace Hyperion

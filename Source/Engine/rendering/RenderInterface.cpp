@@ -48,6 +48,7 @@
 #include <rendering/renderers/DeferredRenderer.hpp>
 #include <rendering/renderers/ShadowRenderer.hpp>
 #include <rendering/renderers/ParticleVolumeRenderer.hpp>
+#include <rendering/renderers/UIRenderer.hpp>
 
 #include <rendering/shadows/ShadowMapCache.hpp>
 
@@ -889,6 +890,18 @@ Viewport& GetViewport(View* view)
     return GetBufferedViewData(view, *s_threadFrameIndex)->viewport;
 }
 
+static thread_local uint32 s_currentRenderThreadIndex;
+
+uint32 CurrentRenderThreadIndex()
+{
+    if (s_currentRenderThreadIndex == 0)
+    {
+        s_currentRenderThreadIndex = 1 + (IsOnThread(g_renderThread) ? 0 : GetCurrentThreadIndex() + 1);
+    }
+
+    return s_currentRenderThreadIndex - 1;
+}
+
 void BeginFrameSim()
 {
     HYP_SCOPE;
@@ -1006,6 +1019,9 @@ RendererResult RenderInterface::Initialize()
     }
 
     globalRenderers[GRT_MAIN].PushBack(new DeferredRenderer);
+    globalRenderers[GRT_MAIN][0]->Initialize();
+
+    globalRenderers[GRT_UI].PushBack(new UIRenderer);
     globalRenderers[GRT_MAIN][0]->Initialize();
 
     globalRenderers[GRT_ENV_PROBE].ResizeZeroed(EPT_MAX);
@@ -1460,7 +1476,7 @@ void RenderInterface::EndFrame()
 
             if (subtypeData.hasProxyData)
             {
-                AssertDebug(subtypeData.proxies.HasIndex(i), "Proxy missing for resource {}", rd.resource->Id());
+                AssertDebug(subtypeData.proxies.HasIndex(i));
 
                 IRenderProxy* pProxy = subtypeData.proxies.Get(i);
                 AssertDebug(pProxy != nullptr);

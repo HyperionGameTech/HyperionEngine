@@ -78,7 +78,7 @@ void FontFace::RequestPixelSizes(int width, int height)
 #endif
 }
 
-FontFace::GlyphIndex FontFace::GetGlyphIndex(WChar toFind)
+FontFace::GlyphIndex FontFace::GetGlyphIndex(uint32 toFind)
 {
 #ifdef HYP_FREETYPE
     Assert(m_face != nullptr);

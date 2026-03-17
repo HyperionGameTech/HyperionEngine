@@ -29,7 +29,8 @@ namespace Hyperion
                 try
                 {
                     formattedMessage = string.Format(message, args);
-                } catch (FormatException)
+                }
+                catch (FormatException)
                 {
                     // Do nothing, just log as is
                 }
@@ -59,7 +60,8 @@ namespace Hyperion
                 try
                 {
                     formattedMessage = string.Format(message, args);
-                } catch (FormatException)
+                }
+                catch (FormatException)
                 {
                     // Do nothing, just log as is
                 }

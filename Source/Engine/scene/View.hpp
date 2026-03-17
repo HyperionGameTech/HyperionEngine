@@ -80,6 +80,8 @@ enum class ViewFlags : uint32
 
     EXTERNAL_RENDERTARGET = 0x800000,
 
+    UI = 0x1000000,
+
     DEFAULT = ALL_WORLD_SCENES | COLLECT_ALL_ENTITIES
 };
 

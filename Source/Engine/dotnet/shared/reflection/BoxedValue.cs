@@ -330,12 +330,13 @@ namespace Hyperion
             else if (type.IsArray)
             {
                 Array array = (Array)value;
+                Type elementType = type.GetElementType() ?? throw new("Not an array");
 
-                Class? cls = Class.TryGetClass(type.GetElementType());
+                Class? cls = Class.TryGetClass(elementType);
 
                 if (cls == null)
                 {
-                    throw new InvalidOperationException("Failed to get Class for type: " + type.GetElementType()?.FullName);
+                    throw new InvalidOperationException("Failed to get Class for type: " + elementType.FullName);
                 }
 
                 unsafe

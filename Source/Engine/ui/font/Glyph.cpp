@@ -16,6 +16,8 @@
 
 #endif
 
+#include <Glyph.generated.inl>
+
 namespace Hyperion {
 
 HYP_DECLARE_LOG_CHANNEL(Font);

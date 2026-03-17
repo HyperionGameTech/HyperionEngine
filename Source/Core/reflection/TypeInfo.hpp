@@ -1243,7 +1243,7 @@ void TypeInfoImpl<containers::HashMap<Key, Value, NodeAllocatorType>, TBoxed>::o
         virtual AnyRef GetValueAt(const TBoxed& instance, const TBoxed& key) const override
         {
             MapType& map = instance.template Get<MapType>();
-            Key& k = key.template Get<Key>();
+            const Key& k = key.template Get<Key>();
 
             auto it = map.Find(k);
             if (it != map.End())
@@ -1257,8 +1257,8 @@ void TypeInfoImpl<containers::HashMap<Key, Value, NodeAllocatorType>, TBoxed>::o
         virtual void SetValueAt(const TBoxed& instance, const TBoxed& key, const TBoxed& value) const override
         {
             MapType& map = instance.template Get<MapType>();
-            Key& k = key.template Get<Key>();
-            Value& v = value.template Get<Value>();
+            const Key& k = key.template Get<Key>();
+            const Value& v = value.template Get<Value>();
 
             map[k] = v;
         }
@@ -1266,7 +1266,7 @@ void TypeInfoImpl<containers::HashMap<Key, Value, NodeAllocatorType>, TBoxed>::o
         virtual bool ContainsKey(const TBoxed& instance, const TBoxed& key) const override
         {
             MapType& map = instance.template Get<MapType>();
-            Key& k = key.template Get<Key>();
+            const Key& k = key.template Get<Key>();
 
             return map.Find(k) != map.End();
         }
@@ -1274,7 +1274,7 @@ void TypeInfoImpl<containers::HashMap<Key, Value, NodeAllocatorType>, TBoxed>::o
         virtual bool RemoveKey(const TBoxed& instance, const TBoxed& key) const override
         {
             MapType& map = instance.template Get<MapType>();
-            Key& k = key.template Get<Key>();
+            const Key& k = key.template Get<Key>();
 
             auto it = map.Find(k);
             if (it != map.End())
@@ -1328,7 +1328,7 @@ void TypeInfoImpl<containers::FlatMap<Key, Value>, TBoxed>::operator()(TypeInfo&
         virtual AnyRef GetValueAt(const TBoxed& instance, const TBoxed& key) const override
         {
             MapType& map = instance.template Get<MapType>();
-            Key& k = key.template Get<Key>();
+            const Key& k = key.template Get<Key>();
 
             auto it = map.Find(k);
             if (it != map.End())
@@ -1342,8 +1342,8 @@ void TypeInfoImpl<containers::FlatMap<Key, Value>, TBoxed>::operator()(TypeInfo&
         virtual void SetValueAt(const TBoxed& instance, const TBoxed& key, const TBoxed& value) const override
         {
             MapType& map = instance.template Get<MapType>();
-            Key& k = key.template Get<Key>();
-            Value& v = value.template Get<Value>();
+            const Key& k = key.template Get<Key>();
+            const Value& v = value.template Get<Value>();
 
             map[k] = v;
         }
@@ -1351,7 +1351,7 @@ void TypeInfoImpl<containers::FlatMap<Key, Value>, TBoxed>::operator()(TypeInfo&
         virtual bool ContainsKey(const TBoxed& instance, const TBoxed& key) const override
         {
             MapType& map = instance.template Get<MapType>();
-            Key& k = key.template Get<Key>();
+            const Key& k = key.template Get<Key>();
 
             return map.Find(k) != map.End();
         }
@@ -1359,7 +1359,7 @@ void TypeInfoImpl<containers::FlatMap<Key, Value>, TBoxed>::operator()(TypeInfo&
         virtual bool RemoveKey(const TBoxed& instance, const TBoxed& key) const override
         {
             MapType& map = instance.template Get<MapType>();
-            Key& k = key.template Get<Key>();
+            const Key& k = key.template Get<Key>();
 
             auto it = map.Find(k);
             if (it != map.End())
@@ -1373,7 +1373,6 @@ void TypeInfoImpl<containers::FlatMap<Key, Value>, TBoxed>::operator()(TypeInfo&
 
         virtual size_t GetSize(const TBoxed& instance) const override
         {
-
             MapType& map = instance.template Get<MapType>();
 
             return map.Size();
@@ -1414,7 +1413,7 @@ void TypeInfoImpl<containers::ArrayMap<Key, Value>, TBoxed>::operator()(TypeInfo
         virtual AnyRef GetValueAt(const TBoxed& instance, const TBoxed& key) const override
         {
             MapType& map = instance.template Get<MapType>();
-            Key& k = key.template Get<Key>();
+            const Key& k = key.template Get<Key>();
 
             auto it = map.Find(k);
             if (it != map.End())
@@ -1428,8 +1427,8 @@ void TypeInfoImpl<containers::ArrayMap<Key, Value>, TBoxed>::operator()(TypeInfo
         virtual void SetValueAt(const TBoxed& instance, const TBoxed& key, const TBoxed& value) const override
         {
             MapType& map = instance.template Get<MapType>();
-            Key& k = key.template Get<Key>();
-            Value& v = value.template Get<Value>();
+            const Key& k = key.template Get<Key>();
+            const Value& v = value.template Get<Value>();
 
             map[k] = v;
         }
@@ -1437,7 +1436,7 @@ void TypeInfoImpl<containers::ArrayMap<Key, Value>, TBoxed>::operator()(TypeInfo
         virtual bool ContainsKey(const TBoxed& instance, const TBoxed& key) const override
         {
             MapType& map = instance.template Get<MapType>();
-            Key& k = key.template Get<Key>();
+            const Key& k = key.template Get<Key>();
 
             return map.Find(k) != map.End();
         }
@@ -1445,7 +1444,7 @@ void TypeInfoImpl<containers::ArrayMap<Key, Value>, TBoxed>::operator()(TypeInfo
         virtual bool RemoveKey(const TBoxed& instance, const TBoxed& key) const override
         {
             MapType& map = instance.template Get<MapType>();
-            Key& k = key.template Get<Key>();
+            const Key& k = key.template Get<Key>();
 
             auto it = map.Find(k);
             if (it != map.End())

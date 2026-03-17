@@ -245,6 +245,7 @@ Result EditorProject::SaveAs(FilePath filepath)
         m_package->BuildPackagePath(),
         BoxedValue(AnyRef(*this)),
         /* forceRelocation */ false,
+        /* appendExistingPackagePath */ true, // to preserve structure.
         [](const AssetObject& assetObject) -> String
         {
             // Instances of objects without a pre-defined path (e.g Media/Meshes) go under

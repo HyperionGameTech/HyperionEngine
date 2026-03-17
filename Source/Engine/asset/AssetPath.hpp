@@ -31,6 +31,7 @@ struct HYP_API AssetPath
     explicit AssetPath(const UTF8StringView& path);
 
     AssetPath(const AssetPath& other)
+        : chain(nullptr)
     {
         if (other.chain)
         {

@@ -7,6 +7,7 @@
 #include <Core/threading/Threads.hpp>
 #include <Core/threading/Mutex.hpp>
 #include <Core/threading/AtomicVar.hpp>
+#include <Core/threading/ThreadLocalStorage.hpp>
 
 #include <Core/containers/HashMap.hpp>
 #include <Core/containers/Bitset.hpp>
@@ -16,6 +17,9 @@
 
 #include <Core/memory/ByteBuffer.hpp>
 #include <Core/memory/NotNullPtr.hpp>
+
+#include <Core/memory/allocator/Allocator.hpp>
+#include <Core/memory/allocator/ThreadAllocator.hpp>
 
 #include <Core/config/Config.hpp>
 #include <Core/Core.hpp>
@@ -254,11 +258,64 @@ public:
                      ANDROID_LOG_DEBUG      // Debug
                 };
 
-                
-                for (auto it = message.chunks.Begin(); it != message.chunks.End(); ++it)
+                static thread_local TByteBuffer<ThreadAllocator>* s_androidLogBuffer = nullptr;
+                static thread_local bool s_useAndroidLogger = false;
+
+                if (HYP_UNLIKELY(s_androidLogBuffer == nullptr))
                 {
-                    // we're assuming it's null terminated here
-                    __android_log_write(LogLevelToAndroidLogPriority[uint8(message.level)], "HyperionEngine", it->Data());
+                    ThreadBase* thisThread = CurrentThreadObject();
+
+                    if (thisThread)
+                    {
+                        s_androidLogBuffer = thisThread->GetTLS().Allocate<TByteBuffer<ThreadAllocator>>();
+
+                        if (s_androidLogBuffer)
+                        {
+                            new (s_androidLogBuffer) TByteBuffer<ThreadAllocator>;
+
+                            thisThread->AddOnExitCallback([]()
+                                {
+                                    s_androidLogBuffer->~TByteBuffer<ThreadAllocator>();
+                                });
+
+                            s_useAndroidLogger = true;
+                        }
+                        else
+                        {
+                            // alloc failed!
+                            s_useAndroidLogger = false;
+                        }
+                    }
+                    else
+                    {
+                        // no thread object!
+                        s_useAndroidLogger = false;
+                    }
+                }
+                
+                if (HYP_LIKELY(s_useAndroidLogger))
+                {
+                    size_t offset = 0;
+                    for (auto it = message.chunks.Begin(); it != message.chunks.End(); ++it)
+                    {
+                        if (s_androidLogBuffer->Size() < offset + it->Size())
+                        {
+                            s_androidLogBuffer->SetSize((offset + it->Size()) * 2);
+                        }
+
+                        Memory::Copy(s_androidLogBuffer->Data() + offset, it->Data(), it->Size());
+                        offset += it->Size();
+                    }
+
+                    // ensure null-terminated
+                    if (s_androidLogBuffer->Size() == offset)
+                    {
+                        s_androidLogBuffer->SetSize(offset + 1);
+                    }
+
+                    s_androidLogBuffer->Data()[offset] = '\0';
+                    
+                    __android_log_write(LogLevelToAndroidLogPriority[uint8(message.level)], "HyperionEngine", reinterpret_cast<const char*>(s_androidLogBuffer->Data()));
                 }
             }
             else

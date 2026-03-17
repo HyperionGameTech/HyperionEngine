@@ -61,6 +61,8 @@ namespace CoreApi {
 extern const GlobalConfig& GetGlobalConfig();
 } // namespace CoreApi
 
+extern uint32 CurrentRenderThreadIndex();
+
 static constexpr uint32 AllBucketsMask = (1u << NumRenderBuckets) - 1;
 
 extern EngineStatCounter<uint32> g_statDrawCalls;
@@ -1080,12 +1082,15 @@ RenderCollector::~RenderCollector()
 {
     HYP_SCOPE;
 
-    DeleteOnRenderThread([attrs = std::move(previousAttributes), m = std::move(mappingsByBucket), states = parallelRenderingStates]() mutable
+    const bool isParallel = renderGroupFlags[RenderGroupFlags::PARALLEL_RENDERING];
+
+    DeleteOnRenderThread([isParallel, attrs = std::move(previousAttributes), m = std::move(mappingsByBucket), states = parallelRenderingStates]() mutable
         {
             attrs.Clear(/* freeMemory */ true);
 
             Array<FixedArray<ParallelRenderingState::LocalQueue*, ParallelRenderingState::MaxBatches>> allLocalQueues;
 
+            // Collect command recorders.
             for (auto& list : states)
             {
                 if (list.head)
@@ -1120,38 +1125,49 @@ RenderCollector::~RenderCollector()
 
             if (allLocalQueues.Any())
             {
-                // we have to free up the memory for each local queue on individual threads,
-                // due to the use of ThreadAllocator:
-                Array<Task<void>> tasks;
-                tasks.Reserve(ParallelRenderingState::MaxBatches);
-
-                auto& poolThreads = TaskSystem::GetInstance().GetPool(TaskThreadPoolName::THREAD_POOL_RENDER).GetThreads();
-
-                for (uint32 i = 0; i < uint32(poolThreads.Size()); i++)
+                const auto DestructCommandRecorders = [&allLocalQueues]() -> void
                 {
-                    AssertDebug(poolThreads[i] != nullptr);
+                    static thread_local uint32 s_currRenderThreadThreadIndex = CurrentRenderThreadIndex();
+                    Assert(s_currRenderThreadThreadIndex < ParallelRenderingState::MaxBatches);
 
-                    tasks.EmplaceBack(poolThreads[i]->GetScheduler().Enqueue([&allLocalQueues]()
+                    for (FixedArray<ParallelRenderingState::LocalQueue*, ParallelRenderingState::MaxBatches>& queues : allLocalQueues)
+                    {
+                        ParallelRenderingState::LocalQueue* currQueue = queues[s_currRenderThreadThreadIndex];
+
+                        if (currQueue != nullptr)
                         {
-                            for (FixedArray<ParallelRenderingState::LocalQueue*, ParallelRenderingState::MaxBatches>& queues : allLocalQueues)
-                            {
-                                ParallelRenderingState::LocalQueue* currQueue = queues[GetCurrentThreadIndex()];
+                            currQueue->~TCommandRecorder();
+                        }
+                    }
+                };
+                
+                // Render thread == 0
+                DestructCommandRecorders();
+                
+                if (isParallel)
+                {
+                    // we have to free up the memory for each local queue on individual threads,
+                    // due to the use of ThreadAllocator:
+                    Array<Task<void>> tasks;
+                    tasks.Reserve(ParallelRenderingState::MaxBatches);
 
-                                if (currQueue != nullptr)
-                                {
-                                    currQueue->~TCommandRecorder();
-                                }
-                            }
-                        }));
+                    auto& poolThreads = TaskSystem::GetInstance().GetPool(TaskThreadPoolName::THREAD_POOL_RENDER).GetThreads();
+
+                    for (uint32 i = 0; i < uint32(poolThreads.Size()); i++)
+                    {
+                        AssertDebug(poolThreads[i] != nullptr);
+
+                        tasks.EmplaceBack(poolThreads[i]->GetScheduler().Enqueue([&DestructCommandRecorders] { DestructCommandRecorders(); }));
+                    }
+
+                    AwaitAll(tasks.ToSpan());
                 }
-
-                AwaitAll(tasks.ToSpan());
 
                 for (FixedArray<ParallelRenderingState::LocalQueue*, ParallelRenderingState::MaxBatches>& queues : allLocalQueues)
                 {
                     for (ParallelRenderingState::LocalQueue* queue : queues)
                     {
-                        // NOTE: not PoolDelete(), we already destructed it on its own thread.
+                        // @NOTE: not PoolDelete(), we already destructed it on its own thread.
                         PoolFree(*g_renderPool, queue);
                     }
                 }
@@ -1555,14 +1571,14 @@ void RenderCollector::ExecuteDrawCalls(
     HYP_SCOPE;
     AssertOnThread(g_renderThread);
 
-    const uint32 frameIndex = frame->GetFrameIndex();
-
-    Span<HashMap<RenderableAttributeSet, DrawCallCollection, NodeAllocator<RenderAllocator>>> groupsView;
-
     if (bucketBits == 0)
     {
         bucketBits = AllBucketsMask;
     }
+
+    const uint32 frameIndex = frame->GetFrameIndex();
+
+    Span<HashMap<RenderableAttributeSet, DrawCallCollection, NodeAllocator<RenderAllocator>>> groupsView;
 
     // If only one bit is set, we can skip the loop by directly accessing the RenderGroup
     if (ByteUtil::BitCount(bucketBits) == 1)
@@ -2027,13 +2043,16 @@ void RenderCollector::PerformRendering(
         return;
     }
 
+    static const thread_local uint32 s_renderThreadIndex = CurrentRenderThreadIndex();
+
     if (drawCallCollection.renderGroup.flags & RenderGroupFlags::PARALLEL_RENDERING)
     {
         AssertDebug(drawCallCollection.renderGroup.parallelRenderingState != nullptr);
 
-        auto& cr = *drawCallCollection.renderGroup.parallelRenderingState->threadLocalRecorders[GetCurrentThreadIndex()];
+        auto* cr = drawCallCollection.renderGroup.parallelRenderingState->threadLocalRecorders[s_renderThreadIndex];
+        AssertDebug(cr != nullptr);
 
-        PerformRenderingImpl(frame, cr, renderSetup, drawCallCollection, indirectRenderer);
+        PerformRenderingImpl(frame, *cr, renderSetup, drawCallCollection, indirectRenderer);
     }
     else
     {

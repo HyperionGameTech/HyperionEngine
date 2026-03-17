@@ -1,16 +1,17 @@
 using System;
 using System.Runtime.InteropServices;
 using System.Collections.Concurrent;
+using System.Diagnostics.CodeAnalysis;
 
 namespace Hyperion
 {
     public class StructHelpers
     {
-        public static bool IsStruct(Type type, out Class? outClass)
+        public static bool IsStruct(Type type, [NotNullWhen(true)] out Class? outClass)
         {
             outClass = null;
 
-            ClassBinding classBindingAttribute = ClassBinding.ForType(type);
+            ClassBinding? classBindingAttribute = ClassBinding.ForType(type);
 
             if (classBindingAttribute != null)
             {
@@ -171,10 +172,9 @@ namespace Hyperion
             }
         }
 
-        public static bool TryGet(TypeId typeId, out DynamicStruct? dynamicStruct)
+        public static bool TryGet(TypeId typeId, [NotNullWhen(true)] out DynamicStruct? dynamicStruct)
         {
             dynamicStruct = null;
-
             if (typeIdCache.TryGetValue(typeId, out dynamicStruct))
             {
                 return true;

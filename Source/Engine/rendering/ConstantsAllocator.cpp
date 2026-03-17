@@ -11,17 +11,7 @@ namespace Hyperion {
 
 static constexpr size_t ConstantBufferSize = 65536;
 
-static thread_local uint32 s_currentRenderThreadIndex;
-
-static uint32 CurrentRenderThreadIndex()
-{
-    if (s_currentRenderThreadIndex == 0)
-    {
-        s_currentRenderThreadIndex = 1 + (IsOnThread(g_renderThread) ? 0 : GetCurrentThreadIndex() + 1);
-    }
-
-    return s_currentRenderThreadIndex - 1;
-}
+extern uint32 CurrentRenderThreadIndex();
 
 struct ConstantsAllocatorBlock
 {

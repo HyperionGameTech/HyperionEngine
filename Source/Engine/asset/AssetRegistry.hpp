@@ -421,11 +421,13 @@ public:
      *  \param packagePath The base/root path in which to register the asset and its members.
      *  \param target The object to register.
      *  \param forceRelocation If true, will relocate assets that are already registered to the new package path.
+     *  \param appendExistingPackagePath If true, will append encountered AssetObject's current path past the root package to \p packagePath. (E.g $Memory/Media/Textures/Foo becomes <packagePath>/Media/Textures/Foo)
      * \param getObjectSubpath Optional callback to determine the sub-path for each asset object being registered. */
     void RegisterAssetsRecursively(
         const UTF8StringView& packagePath,
         const BoxedValue& target,
         bool forceRelocation = false,
+        bool appendExistingPackagePath = false,
         ProcRef<String(const AssetObject&)> getObjectSubpath = nullptr);
 
     Handle<AssetObject> GetAssetFromPath(const UTF8StringView& path, bool attemptLoading = true) const;

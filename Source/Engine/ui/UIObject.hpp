@@ -1003,6 +1003,9 @@ public:
 
     Array<UIObject*> GetChildUIObjects(bool deep) const;
 
+    HYP_METHOD()
+    uint32 NumChildUIObjects(bool deep) const;
+
     /*! \brief Gets the relevant script component for this UIObject, if one exists.
      *  The script component is the closest script component to this UIObject in the scene hierarchy, starting from the parent and moving up.
      *  \param deep If set to true, will find the closest parent ScriptComponent if none is attached to this UIObject.

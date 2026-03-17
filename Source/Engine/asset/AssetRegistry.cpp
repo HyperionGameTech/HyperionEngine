@@ -2359,7 +2359,6 @@ void AssetRegistry::SetRootPath(const String& rootPath)
 void AssetRegistry::SetPackages(const AssetPackageSet& packages)
 {
     HYP_SCOPE;
-    AssertOnThread(s_assetRegistryThread);
 
     Proc<void(Handle<AssetPackage>)> InitializePackage;
 
@@ -3507,7 +3506,10 @@ Result AssetRegistry::RegisterAsset(
                 // remove old asset and overwrite it
                 if (Result removeResult = assetPackage->RemoveAssetObject(existingAssetObject); removeResult.HasError())
                 {
-                    return removeResult;
+                    HYP_LOG(Assets, Warning, "Failed to remove existing asset '{}' from package '{}': {}",
+                        existingAssetObject->GetName(),
+                        assetPackage->BuildPackagePath(),
+                        removeResult.GetError().GetMessage());
                 }
             }
         }
@@ -3526,10 +3528,10 @@ void AssetRegistry::RegisterAssetsRecursively(
     const UTF8StringView& packagePath,
     const BoxedValue& target,
     bool forceRelocation,
+    bool appendExistingPackagePath,
     ProcRef<String(const AssetObject&)> getObjectSubpath)
 {
     HYP_SCOPE;
-    AssertOnThread(s_assetRegistryThread);
 
     if (!target.IsValid() || target.IsNull())
     {
@@ -3624,7 +3626,7 @@ void AssetRegistry::RegisterAssetsRecursively(
 
             if (assetObject->IsRegistered()) // already has a path but is transient e.g $Memory/Media/Meshes/Foo; needs to be moved to NewPackage/Media/Meshes/Foo
             {
-                relocateResult = RelocateAsset(*this, assetObject, packagePath, /* preserveStructure */ true);
+                relocateResult = RelocateAsset(*this, assetObject, packagePath, /* preserveStructure */ appendExistingPackagePath);
             }
             else // Doesn't have a path; register instance with package using the passed in function to decide where to relocate it to.
             {
@@ -3651,7 +3653,7 @@ void AssetRegistry::RegisterAssetsRecursively(
 
             if (!array.CanGetElementByIndex())
             {
-                HYP_LOG(Assets, Error, "Cannot iterate over {}: not indexable", LookupTypeName(current.GetTypeId()));
+                HYP_LOG(Assets, Error, "Cannot iterate over {}: not indexable", array.typeInfo->name);
                 return;
             }
 
@@ -3662,7 +3664,7 @@ void AssetRegistry::RegisterAssetsRecursively(
                 BoxedValue boxed;
                 if (!array.GetElementAt(i, boxed))
                 {
-                    HYP_LOG(Assets, Warning, "Failed to get element at index {} of array of type {}", i, LookupTypeName(current.GetTypeId()));
+                    HYP_LOG(Assets, Warning, "Failed to get element at index {} of array of type {}", i, array.typeInfo->name);
                     continue;
                 }
 

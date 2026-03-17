@@ -338,20 +338,6 @@ void UIStage::Init()
     m_onCurrentWindowChangedHandler = g_appContext->OnCurrentWindowChanged
                                           .BindThreaded(updateSurfaceSize, g_simThread);
 
-    if (!m_defaultFontAtlas)
-    {
-        auto fontAtlasAsset = g_assetManager->Load<FontAtlas>("fonts/default.json");
-
-        if (fontAtlasAsset.HasValue())
-        {
-            m_defaultFontAtlas = fontAtlasAsset->Result();
-        }
-        else
-        {
-            HYP_LOG(UI, Error, "Failed to load default font atlas! Error was: {}", fontAtlasAsset.GetError().GetMessage());
-        }
-    }
-
     // Will create a new Scene
     SetScene(nullptr);
     SetNodeProxy(m_scene->GetRoot());
@@ -621,7 +607,8 @@ UIEventHandlerResult UIStage::OnInputEvent(const Event& event)
                             .relativePrevPos = uiObject->TransformScreenCoordsToRelative(previousMousePosition),
                             .absolutePos = Vec2f(mousePosition),
                             .absolutePrevPos = Vec2f(previousMousePosition),
-                            .mouseButtons = stateMouseButtons });
+                            .mouseButtons = stateMouseButtons
+                        });
 
                         eventHandlerResult |= currentResult;
                         mouseStatesIt = m_objectMouseStates.Erase(mouseStatesIt);
@@ -636,7 +623,8 @@ UIEventHandlerResult UIStage::OnInputEvent(const Event& event)
                     .relativePrevPos = uiObject->TransformScreenCoordsToRelative(previousMousePosition),
                     .absolutePos = Vec2f(mousePosition),
                     .absolutePrevPos = Vec2f(previousMousePosition),
-                    .mouseButtons = inputManager->GetButtonStates() });
+                    .mouseButtons = inputManager->GetButtonStates()
+                });
             }
         }
 
@@ -656,7 +644,8 @@ UIEventHandlerResult UIStage::OnInputEvent(const Event& event)
                     uiObject->OnKeyUp(KeyboardEvent {
                         .baseEvent = &event,
                         .inputManager = inputManager,
-                        .keyCode = keyCode });
+                        .keyCode = keyCode
+                    });
                 }
             }
         }
@@ -754,7 +743,8 @@ UIEventHandlerResult UIStage::OnInputEvent(const Event& event)
                             .relativePrevPos = uiObject->TransformScreenCoordsToRelative(previousMousePosition),
                             .absolutePos = Vec2f(mousePosition),
                             .absolutePrevPos = Vec2f(previousMousePosition),
-                            .mouseButtons = mouseButtons });
+                            .mouseButtons = mouseButtons
+                        });
 
                         mouseMoveEventHandlerResult |= currentResult;
 
@@ -804,7 +794,8 @@ UIEventHandlerResult UIStage::OnInputEvent(const Event& event)
                         .relativePrevPos = uiObject->TransformScreenCoordsToRelative(previousMousePosition),
                         .absolutePos = Vec2f(mousePosition),
                         .absolutePrevPos = Vec2f(previousMousePosition),
-                        .mouseButtons = mouseButtons });
+                        .mouseButtons = mouseButtons
+                    });
 
                     mouseHoverEventHandlerResult |= currentResult;
 
@@ -843,7 +834,8 @@ UIEventHandlerResult UIStage::OnInputEvent(const Event& event)
                                 .relativePrevPos = uiObject->TransformScreenCoordsToRelative(previousMousePosition),
                                 .absolutePos = Vec2f(mousePosition),
                                 .absolutePrevPos = Vec2f(previousMousePosition),
-                                .mouseButtons = stateMouseButtons });
+                                .mouseButtons = stateMouseButtons
+                            });
 
                             eventHandlerResult |= currentResult;
                             mouseStatesIt = m_objectMouseStates.Erase(mouseStatesIt);
@@ -858,7 +850,8 @@ UIEventHandlerResult UIStage::OnInputEvent(const Event& event)
                         .relativePrevPos = uiObject->TransformScreenCoordsToRelative(previousMousePosition),
                         .absolutePos = Vec2f(mousePosition),
                         .absolutePrevPos = Vec2f(previousMousePosition),
-                        .mouseButtons = inputManager->GetButtonStates() });
+                        .mouseButtons = inputManager->GetButtonStates()
+                    });
                 }
 
                 it = m_hoveredUiObjects.Erase(it);
@@ -933,7 +926,8 @@ UIEventHandlerResult UIStage::OnInputEvent(const Event& event)
                     .relativePrevPos = uiObject->TransformScreenCoordsToRelative(previousMousePosition),
                     .absolutePos = Vec2f(mousePosition),
                     .absolutePrevPos = Vec2f(previousMousePosition),
-                    .mouseButtons = mouseButtonPressedStatesIt->second.mouseButtons });
+                    .mouseButtons = mouseButtonPressedStatesIt->second.mouseButtons
+                });
 
                 eventHandlerResult |= onMouseDownResult;
 
@@ -992,7 +986,8 @@ UIEventHandlerResult UIStage::OnInputEvent(const Event& event)
                                 .relativePrevPos = uiObject->TransformScreenCoordsToRelative(previousMousePosition),
                                 .absolutePos = Vec2f(mousePosition),
                                 .absolutePrevPos = Vec2f(previousMousePosition),
-                                .mouseButtons = buttons });
+                                .mouseButtons = buttons
+                            });
 
                             eventHandlerResult |= result;
 
@@ -1042,7 +1037,8 @@ UIEventHandlerResult UIStage::OnInputEvent(const Event& event)
                     .relativePrevPos = uiObject->TransformScreenCoordsToRelative(previousMousePosition),
                     .absolutePos = Vec2f(mousePosition),
                     .absolutePrevPos = Vec2f(previousMousePosition),
-                    .mouseButtons = stateMouseButtons & buttons });
+                    .mouseButtons = stateMouseButtons & buttons
+                });
 
                 eventHandlerResult |= currentResult;
 
@@ -1099,7 +1095,8 @@ UIEventHandlerResult UIStage::OnInputEvent(const Event& event)
                     .absolutePos = Vec2f(mousePosition),
                     .absolutePrevPos = Vec2f(previousMousePosition),
                     .mouseButtons = inputManager->GetButtonStates(),
-                    .wheel = wheel });
+                    .wheel = wheel
+                });
 
                 eventHandlerResult |= currentResult;
 
@@ -1140,7 +1137,8 @@ UIEventHandlerResult UIStage::OnInputEvent(const Event& event)
                 UIEventHandlerResult currentResult = uiObject->OnKeyDown(KeyboardEvent {
                     .baseEvent = &event,
                     .inputManager = inputManager,
-                    .keyCode = keyCode });
+                    .keyCode = keyCode
+                });
 
                 eventHandlerResult |= currentResult;
 
@@ -1180,7 +1178,8 @@ UIEventHandlerResult UIStage::OnInputEvent(const Event& event)
                 uiObject->OnKeyUp(KeyboardEvent {
                     .baseEvent = &event,
                     .inputManager = inputManager,
-                    .keyCode = keyCode });
+                    .keyCode = keyCode
+                });
             }
         }
 

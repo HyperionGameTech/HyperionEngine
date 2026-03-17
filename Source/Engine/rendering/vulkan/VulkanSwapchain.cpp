@@ -26,7 +26,13 @@ namespace Hyperion {
 
 extern VulkanRenderInterface* g_renderInterface;
 
+#if HYP_ANDROID || !HYP_DEBUG_MODE
 static constexpr bool VulkanSwapchainUseFIFO = true;
+#else
+// allow unlocked for testing performance
+static constexpr bool VulkanSwapchainUseFIFO = false;
+#endif
+
 static constexpr bool UseSRGBFormat = true;
 static constexpr bool UseHDRFormat = false;
 static constexpr VkImageUsageFlags ImageUsageFlags = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;

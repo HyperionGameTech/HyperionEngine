@@ -45,9 +45,13 @@ extern class BaseStatsOverlay : OverlayBase
     Update_Impl(delta : float) -> void
     IsEnabled_Impl() -> bool
 end
-extern struct FontAtlasTextureSet
-end
-extern class FontAtlas
+extern struct GlyphMetrics
+    Width : uint16
+    Height : uint16
+    BearingX : int16
+    BearingY : int16
+    Advance : uint32
+    ImagePosition : Vec2i
 end
 extern enum ScrollAxis : uint8
     SA_NONE = 0x0,
@@ -178,6 +182,7 @@ extern class UIObject
     DetachFromParent() -> UIObject
     HasChildUIObjects() -> bool
     GetChildUIObject(index : int) -> UIObject
+    NumChildUIObjects(deep : bool) -> uint32
     GetNode() -> Node
     GetWorld() -> World
     GetAABB() -> BoundingBox
@@ -733,6 +738,7 @@ extern enum ViewFlags : uint32
     MATCH_CAMERA_DIMENSIONS = 0x200000,
     SHADOW_VIEW = 0x400000,
     EXTERNAL_RENDERTARGET = 0x800000,
+    UI = 0x1000000,
     DEFAULT = (ALL_WORLD_SCENES | COLLECT_ALL_ENTITIES)
 end
 extern class View
@@ -1858,6 +1864,16 @@ extern class AssetObject
     Package : any
     AssetPath : AssetPath
     ManifestPath : string
+end
+extern struct FontAtlasTextureSet
+    MainAtlas : Texture
+    Atlases : Array<any>
+end
+extern class FontAtlas : AssetObject
+    AtlasTextures : FontAtlasTextureSet
+    CellDimensions : Vec2i
+    GlyphMetrics : Array<GlyphMetrics>
+    SymbolList : Array<uint32>
 end
 extern class ScriptAsset : AssetObject
 end

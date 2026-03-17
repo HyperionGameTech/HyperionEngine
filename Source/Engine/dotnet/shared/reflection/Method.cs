@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Runtime.InteropServices;
 
 namespace Hyperion
@@ -162,6 +163,8 @@ namespace Hyperion
 
             if (numArgs > 1)
             {
+                Debug.Assert(args?.Length == numArgs - 1);
+
                 for (; argIndex < numArgs; argIndex++)
                 {
                     BoxedValueInternal.BoxedValue_Construct(ref argsBuffers[argIndex]);

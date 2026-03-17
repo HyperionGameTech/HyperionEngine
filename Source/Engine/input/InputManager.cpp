@@ -610,7 +610,7 @@ void InputManager::MainThreadUpdate()
         m_previousMousePosition = m_mousePosition;
         m_mousePosition = m_ownerWindow->GetMousePosition();
     }
-
+        
     m_previousVirtualMousePosition = m_virtualMousePosition;
 }
 

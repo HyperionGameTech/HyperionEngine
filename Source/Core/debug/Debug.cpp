@@ -154,9 +154,9 @@ void LogAssert(const char* str)
     if (IsDebuggerAttached())
     {
         HYP_BREAKPOINT;
-
-        return;
     }
+    // allow continuation
+    return;
 #endif
 
     HYP_LOG_DYNAMIC(Core, Fatal, str);

@@ -85,20 +85,46 @@
 
     // Sampling
 
-    #define SAMPLE_TEXTURE_2D(samp, tex, texcoord) (tex).Sample((samp), (texcoord))
     #define SAMPLE_TEXTURE_2D_LOD(samp, tex, texcoord, lod) (tex).SampleLevel((samp), (texcoord), (lod))
+#ifdef PIXEL_SHADER
+    #define SAMPLE_TEXTURE_2D(samp, tex, texcoord) (tex).Sample((samp), (texcoord))
+#else
+    // we don't have on screen derivatives in other shader stages so just sample LOD0
+    #define SAMPLE_TEXTURE_2D(samp, tex, texcoord) (tex).SampleLevel((samp), (texcoord), 0)
+#endif
 
-    #define SAMPLE_TEXTURE_2D_ARRAY(samp, tex, texcoord) (tex).Sample((samp), (texcoord))
     #define SAMPLE_TEXTURE_2D_ARRAY_LOD(samp, tex, texcoord, lod) (tex).SampleLevel((samp), (texcoord), (lod))
+#ifdef PIXEL_SHADER
+    #define SAMPLE_TEXTURE_2D_ARRAY(samp, tex, texcoord) (tex).Sample((samp), (texcoord))
+#else
+    // we don't have on screen derivatives in other shader stages so just sample LOD0
+    #define SAMPLE_TEXTURE_2D_ARRAY(samp, tex, texcoord) (tex).SampleLevel((samp), (texcoord), 0)
+#endif
 
-    #define SAMPLE_TEXTURE_3D(samp, tex, texcoord) (tex).Sample((samp), (texcoord))
     #define SAMPLE_TEXTURE_3D_LOD(samp, tex, texcoord, lod) (tex).SampleLevel((samp), (texcoord), (lod))
 
-    #define SAMPLE_TEXTURE_CUBE(samp, tex, texcoord) (tex).Sample((samp), (texcoord))
-    #define SAMPLE_TEXTURE_CUBE_LOD(samp, tex, texcoord, lod) (tex).SampleLevel((samp), (texcoord), (lod))
+#ifdef PIXEL_SHADER
+    #define SAMPLE_TEXTURE_3D(samp, tex, texcoord) (tex).Sample((samp), (texcoord))
+#else
+    // we don't have on screen derivatives in other shader stages so just sample LOD0
+    #define SAMPLE_TEXTURE_3D(samp, tex, texcoord) (tex).SampleLevel((samp), (texcoord), 0)
+#endif
 
-    #define SAMPLE_TEXTURE_CUBE_ARRAY(samp, tex, texcoord) (tex).Sample((samp), (texcoord))
+    #define SAMPLE_TEXTURE_CUBE_LOD(samp, tex, texcoord, lod) (tex).SampleLevel((samp), (texcoord), (lod))
+#ifdef PIXEL_SHADER
+    #define SAMPLE_TEXTURE_CUBE(samp, tex, texcoord) (tex).Sample((samp), (texcoord))
+#else
+    // we don't have on screen derivatives in other shader stages so just sample LOD0
+    #define SAMPLE_TEXTURE_CUBE(samp, tex, texcoord) (tex).SampleLevel((samp), (texcoord), 0)
+#endif
+
     #define SAMPLE_TEXTURE_CUBE_ARRAY_LOD(samp, tex, texcoord, lod) (tex).SampleLevel((samp), (texcoord), (lod))
+#ifdef PIXEL_SHADER
+    #define SAMPLE_TEXTURE_CUBE_ARRAY(samp, tex, texcoord) (tex).Sample((samp), (texcoord))
+#else
+    // we don't have on screen derivatives in other shader stages so just sample LOD0
+    #define SAMPLE_TEXTURE_CUBE_ARRAY(samp, tex, texcoord) (tex).SampleLevel((samp), (texcoord), 0)
+#endif
 
     #define TEXEL_FETCH_2D(tex, coord) (tex).Load(int3((coord), 0))
     #define TEXEL_FETCH_2D_LOD(samp, tex, coord, lod) (tex).Load(int3((coord), (lod)))

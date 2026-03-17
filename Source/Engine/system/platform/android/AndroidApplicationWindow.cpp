@@ -269,12 +269,11 @@ bool AndroidApplicationWindow::HandleInputEvent(int32 type, int32 action, float 
 
         case ANDROID_ACTION_MOVE:
         {
-            const Vec2f delta(float(currentPos.x - m_previousTouchPosition.x),
-                              float(currentPos.y - m_previousTouchPosition.y));
+            const Vec2f delta { float(currentPos.x - m_previousTouchPosition.x), float(currentPos.y - m_previousTouchPosition.y) };
             m_previousTouchPosition = currentPos;
 
             outEvent = Event(EventType::MOUSEMOTION, this, platformEvent);
-            outEvent.GetEventData().Set(delta); // Vec2f = delta-based event
+            outEvent.GetEventData().Set(currentPos);
             return true;
         }
 

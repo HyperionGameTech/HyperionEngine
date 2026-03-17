@@ -16,11 +16,15 @@
 #include <rendering/TextureViewCache.hpp>
 
 #include <rendering/renderers/DeferredRenderer.hpp>
+#include <rendering/renderers/UIRenderer.hpp>
 
 #include <rendering/util/DeletionQueue.hpp>
 
 #include <rendering/Mesh.hpp>
 #include <rendering/Texture.hpp>
+
+#include <scene/World.hpp>
+#include <scene/View.hpp>
 
 #include <util/MeshBuilder.hpp>
 
@@ -88,14 +92,6 @@ void FinalPass::Render(Frame* frame, const RenderSetup& rs)
         return;
     }
 
-    if (m_uiLayerImageView != nullptr)
-    {
-        // transition ui image before we do any rendering, so we don't
-        // need to end/begin the renderpass in between rendering view texture
-        // (better for performance this way, plus, would break blending and leave us with a blank screen due to CLEAR load op)
-        cr << InsertBarrier(m_uiLayerImageView->GetImage(), RS_SHADER_RESOURCE);
-    }
-
     const FramebufferRef& framebuffer = rs.swapchain->GetFramebuffers()[acquiredImageIndex];
     AssertDebug(framebuffer != nullptr);
 
@@ -116,7 +112,6 @@ void FinalPass::Render(Frame* frame, const RenderSetup& rs)
     cr << SetDepthWrite(false);
     cr << SetStencilTest(false);
 
-    cr << SetFaceCullMode(FCM_BACK);
     cr << SetFillMode(FM_FILL);
     cr << SetTopology(TOP_TRIANGLES);
     
@@ -150,20 +145,28 @@ void FinalPass::Render(Frame* frame, const RenderSetup& rs)
         cr << DrawIndexed(6);
     }
 
-#ifdef HYP_RENDER_UI_IN_FINAL_PASS
-    // Render UI onto screen, blending with the scene render pass
-    if (m_uiLayerImageView != nullptr)
+    // draw ui
+    UIRenderer* uiRenderer = static_cast<UIRenderer*>(g_renderInterface->globalRenderers[GRT_UI][0]);
+
+    if (uiRenderer != nullptr)
     {
-        cr << SetShaderUniform(2, "InTexture"_sh, m_uiLayerImageView);
+        for (World* world : GetActiveWorlds())
+        {
+            for (View* view : world->GetViews())
+            {
+                if (!(view->GetFlags() & ViewFlags::UI))
+                {
+                    continue;
+                }
 
-        cr << CommitDrawState();
+                RenderSetup currentViewSetup = rs.Fork();
+                currentViewSetup.world = world;
+                currentViewSetup.view = view;
 
-        cr << BindVertexBuffer(m_quadMesh->GetVertexBuffer());
-        cr << BindIndexBuffer(m_quadMesh->GetIndexBuffer());
-
-        cr << DrawIndexed(6);
+                uiRenderer->RenderFrame(frame, currentViewSetup);
+            }
+        }
     }
-#endif
 
     cr << SetCurrentFramebuffer(nullptr);
 
@@ -171,13 +174,6 @@ void FinalPass::Render(Frame* frame, const RenderSetup& rs)
     cr << SetCurrentBlendFunction(BlendFunction::None());
     cr << SetDepthTest(true);
     cr << SetDepthWrite(true);
-
-    
-    if (m_uiLayerImageView != nullptr)
-    {
-        // @TODO: check if we can remove this transition.
-        cr << InsertBarrier(m_uiLayerImageView->GetImage(), RS_RENDER_TARGET);
-    }
 }
 
 #pragma endregion FinalPass

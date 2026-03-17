@@ -4,6 +4,7 @@
 
 #include <rendering/renderers/DeferredRenderer.hpp>
 #include <rendering/renderers/EnvProbeRenderer.hpp>
+#include <rendering/renderers/UIRenderer.hpp>
 
 #include <rendering/RenderGroup.hpp>
 #include <rendering/MaterialTextureCache.hpp>
@@ -1803,8 +1804,6 @@ void DeferredRenderer::RenderFrame(Frame* frame, const RenderSetup& rs)
 
     for (View* view : rs.world->GetViews())
     {
-        AssertDebug(view != nullptr);
-
         if (!(view->GetFlags() & ViewFlags::GBUFFER))
         {
             continue;

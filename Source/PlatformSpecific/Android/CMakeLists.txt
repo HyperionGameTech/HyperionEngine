@@ -29,3 +29,34 @@ target_link_libraries(hyperion-android
     log
     android
 )
+
+# ---------------------------------------------------------------------------
+# IDE-only target: makes Android Studio show and index the engine source tree.
+# Nothing here is compiled – libhyperion.so is pre-built separately.
+# ---------------------------------------------------------------------------
+set(HYP_ENGINE_ROOT "${CMAKE_CURRENT_SOURCE_DIR}/../../..")
+
+file(GLOB_RECURSE HYP_ENGINE_IDE_SOURCES
+    "${HYP_ENGINE_ROOT}/Source/Engine/*.cpp"
+    "${HYP_ENGINE_ROOT}/Source/Engine/*.hpp"
+    "${HYP_ENGINE_ROOT}/Source/Core/*.cpp"
+    "${HYP_ENGINE_ROOT}/Source/Core/*.hpp"
+)
+
+add_custom_target(hyperion-sources SOURCES ${HYP_ENGINE_IDE_SOURCES})
+
+# Teach clangd / the IDE about include paths and compile flags for those files.
+# We attach them to the JNI target (which IS compiled) so Android Studio's
+# CMake model inherits the same flags when you open an engine header.
+target_include_directories(hyperion-android PRIVATE
+    "${HYP_ENGINE_ROOT}/Source/Engine"
+    "${HYP_ENGINE_ROOT}/Source/Core"
+    "${HYP_ENGINE_ROOT}/Source"
+)
+
+target_compile_definitions(hyperion-android PRIVATE
+    HYP_ANDROID=1
+    HYP_UNIX=1
+    HYP_VULKAN=1
+    HYPERION_ENGINE=1
+)

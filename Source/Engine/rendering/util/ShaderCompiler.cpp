@@ -1935,12 +1935,14 @@ bool ShaderCompiler::LoadBundle(
 {
     outBundle.Reset();
 
+#if HYP_EDITOR
     if (!CanCompileShaders())
     {
         HYP_LOG(ShaderCompiler, Warning,
             "Not compiled with shader compilation support... Shaders may become out of date.\n"
             "If any shader bundle files are missing, they will not be compiled on the fly.");
     }
+#endif
 
     if (!m_definitions || !m_definitions->IsValid())
     {

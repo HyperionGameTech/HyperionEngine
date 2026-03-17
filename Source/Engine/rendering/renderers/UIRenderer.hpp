@@ -18,15 +18,6 @@ class UIObject;
 class View;
 struct RenderSetup;
 
-HYP_CLASS(NoScriptBindings)
-class HYP_API UIRendererPassData : public PassData
-{
-    HYP_OBJECT_BODY(UIRendererPassData);
-
-public:
-    virtual ~UIRendererPassData() override = default;
-};
-
 class UIRenderCollector : public RenderCollector
 {
 public:
@@ -36,10 +27,21 @@ public:
     void ExecuteDrawCalls(Frame* frame, const RenderSetup& renderSetup, Framebuffer* framebuffer, uint32 bucketBits);
 };
 
-class UIRenderer : public RendererBase
+HYP_CLASS(NoScriptBindings)
+class HYP_API UIRendererPassData : public PassData
+{
+    HYP_OBJECT_BODY(UIRendererPassData);
+
+public:
+    virtual ~UIRendererPassData() override = default;
+
+    UIRenderCollector renderCollector;
+};
+
+class UIRenderer final : public RendererBase
 {
 public:
-    UIRenderer(const Handle<View>& view);
+    UIRenderer();
     virtual ~UIRenderer() = default;
 
     virtual void Initialize() override;
@@ -47,12 +49,8 @@ public:
 
     virtual void RenderFrame(Frame* frame, const RenderSetup& renderSetup) override;
 
-    UIRenderCollector renderCollector;
-
 protected:
     PassData* CreateViewPassData(View* view, PassDataExt&) override;
-
-    Handle<View> m_view;
 };
 
 } // namespace Hyperion

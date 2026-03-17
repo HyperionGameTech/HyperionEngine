@@ -32,20 +32,33 @@ struct GlyphImageData
     HYP_API UniquePtr<GlyphBitmap> CreateBitmap() const;
 };
 
-class HYP_API Glyph
+HYP_STRUCT()
+struct GlyphMetrics
+{
+    HYP_STRUCT_BODY(GlyphMetrics);
+
+    HYP_FIELD()
+    uint16 width = 0;
+    
+    HYP_FIELD()
+    uint16 height = 0;
+    
+    HYP_FIELD()
+    int16 bearingX = 0;
+    
+    HYP_FIELD()
+    int16 bearingY = 0;
+    
+    HYP_FIELD()
+    uint32 advance = 0;
+    
+    HYP_FIELD()
+    Vec2i imagePosition;
+};
+
+class Glyph
 {
 public:
-    struct Metrics
-    {
-        uint16 width = 0;
-        uint16 height = 0;
-        int16 bearingX = 0;
-        int16 bearingY = 0;
-        uint32 advance = 0;
-
-        Vec2i imagePosition;
-    };
-
     Glyph(RC<FontFace> face, FontFace::GlyphIndex index, float scale);
 
     Glyph(const Glyph& other) = default;
@@ -55,7 +68,7 @@ public:
 
     ~Glyph() = default;
 
-    HYP_FORCE_INLINE const Metrics& GetMetrics() const
+    HYP_FORCE_INLINE const GlyphMetrics& GetMetrics() const
     {
         return m_metrics;
     }
@@ -77,7 +90,7 @@ private:
     float m_scale;
 
     GlyphImageData m_glyphImageData;
-    Metrics m_metrics {};
+    GlyphMetrics m_metrics;
 };
 
 }; // namespace Hyperion

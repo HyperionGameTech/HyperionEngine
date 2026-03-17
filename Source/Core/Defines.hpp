@@ -38,7 +38,11 @@
 #define HYP_DEPRECATED __attribute__((deprecated))
 #elif HYP_MSVC
 #define HYP_DEPRECATED __declspec(deprecated)
+#else
+#define HYP_DEPRECATED
 #endif
+
+#define HYP_DEPRECATED_BECAUSE(reason) HYP_DEPRECATED
 
 #if HYP_CLANG
 #define HYP_NODISCARD __attribute__((warn_unused_result))

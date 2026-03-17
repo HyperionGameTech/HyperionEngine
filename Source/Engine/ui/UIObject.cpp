@@ -2874,6 +2874,17 @@ Array<UIObject*> UIObject::GetChildUIObjects(bool deep) const
     return childObjects;
 }
 
+uint32 UIObject::NumChildUIObjects(bool deep) const
+{
+    if (deep)
+    {
+        // slow path
+        return uint32(GetChildUIObjects(true).Size());
+    }
+
+    return uint32(m_childUiObjects.Size());
+}
+
 Array<UIObject*> UIObject::FilterChildUIObjects(ProcRef<bool(UIObject*)> predicate, bool deep) const
 {
     HYP_SCOPE;

@@ -960,9 +960,12 @@ Result ObjectFromJSON(const JSON::Object& jsonObject, const Class* targetClass, 
             }
             else
             {
+                // have to store path here because otherwise it will be invalidated by setting target
+                const AssetPath path = assetReference.GetAssetPath();
+
                 target = BoxedValue(Handle<ObjectBase>::Null());
 
-                return HYP_MAKE_ERROR(Error, "Failed to load AssetObject from AssetReference: {}", assetReference.GetAssetPath());
+                return HYP_MAKE_ERROR(Error, "Failed to load AssetObject from AssetReference: {}", path);
             }
         }
 

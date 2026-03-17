@@ -64,10 +64,10 @@ void Game::Init()
     m_world->m_gameInstance = this;
 
     InitObject(m_world);
-    g_engineDriver->AddWorld(m_world);
 
-    //Handle<UIStage> uiStage = MakeHandle<UIStage>(g_simThread);
-    //m_uiSubsystem = m_world->AddSubsystem(MakeHandle<UISubsystem>(uiStage));
+    m_uiSubsystem = m_world->AddSubsystem(MakeHandle<UISubsystem>());
+
+    g_engineDriver->AddWorld(m_world);
 }
 
 void Game::HandleEvent(Event&& event)

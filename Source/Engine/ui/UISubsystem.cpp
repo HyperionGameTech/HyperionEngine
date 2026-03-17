@@ -59,57 +59,6 @@ HYP_REGISTER_DRAW_BATCH_TYPE(UIEntityInstanceBatch);
 
 #pragma region Render commands
 
-struct AddUIRendererForView : RenderCommand
-{
-    WeakHandle<View> viewWeak;
-
-    AddUIRendererForView(const WeakHandle<View>& viewWeak)
-        : viewWeak(viewWeak)
-    {
-    }
-
-    virtual RendererResult operator()() override
-    {
-        Handle<View> view = viewWeak.Lock();
-        if (!view)
-        {
-            HYP_LOG(UI, Warning, "AddUIRendererForView: view is expired");
-
-            return {};
-        }
-
-        UIRenderer* uiRenderer = PoolNew<UIRenderer>(*g_renderPool, view);
-
-        const Class* entityBatchClass = view->GetViewDesc().entityBatchClass;
-
-        if (entityBatchClass != nullptr)
-        {
-            uiRenderer->renderCollector.batchAllocator = GetOrCreateEntityBatchAllocator(entityBatchClass->GetTypeId());
-        }
-
-        g_renderInterface->AddRenderer(GRT_UI, uiRenderer);
-
-        return {};
-    }
-};
-
-struct RemoveUIRenderer : RenderCommand
-{
-    UIRenderer* uiRenderer;
-
-    RemoveUIRenderer(UIRenderer* uiRenderer)
-        : uiRenderer(uiRenderer)
-    {
-    }
-
-    virtual RendererResult operator()() override
-    {
-        g_renderInterface->RemoveRenderer(GRT_UI, uiRenderer);
-
-        return {};
-    }
-};
-
 struct SetFinalPassImageView : RenderCommand
 {
     GpuImageViewRef imageView;
@@ -138,43 +87,46 @@ struct SetFinalPassImageView : RenderCommand
 
 static TResult<Handle<FontAtlas>> CreateFontAtlas()
 {
-    HYP_SCOPE;
+    // we check if it exists in the registry before creating.
+    // some platforms build without freetype support so the atlas must already exist in the registry.
 
-    auto fontFaceAsset = AssetManager::GetInstance()->Load<RC<FontFace>>("Fonts/Roboto/Roboto-Regular.ttf");
+    AssetRegistry& registry = *g_assetManager->GetAssetRegistry();
+    Handle<FontAtlas> fontAtlas = ObjCast<FontAtlas>(registry.GetAssetFromPath("Engine/Fonts/Roboto/Roboto_Regular"));
+    if (fontAtlas.IsValid())
+    {
+        return fontAtlas;
+    }
+
+    auto fontFaceAsset = g_assetManager->Load<RC<FontFace>>("Fonts/Roboto/Roboto-Regular.ttf");
 
     if (fontFaceAsset.HasError())
     {
-        return HYP_MAKE_ERROR(Error, "Failed to load font face! Error: {}", 0, fontFaceAsset.GetError().GetMessage());
+        return HYP_MAKE_ERROR(Error, "Failed to load font face! Error: {}", fontFaceAsset.GetError().GetMessage());
     }
 
-    Handle<AssetPackage> package = g_assetManager->GetAssetRegistry()->GetPackageFromPath("Engine/Fonts/Roboto", /* createIfNotExist */ true);
+    Handle<AssetPackage> package = registry.GetPackageFromPath("Engine/Fonts/Roboto", /* createIfNotExist */ true);
     Assert(package.IsValid());
 
-    Handle<FontAtlas> atlas = MakeHandle<FontAtlas>(std::move(fontFaceAsset->Result()));
-
-    if (Result renderAtlasResult = atlas->RenderAtlasTextures(1.0f, 2.0f, 0.1f); renderAtlasResult.HasError())
+    // create new font atlas
+    fontAtlas = MakeHandle<FontAtlas>(
+        NAME("Roboto_Regular"),
+        std::move(fontFaceAsset->Result()));
+    
+    // render atlas textures.
+    if (Result renderAtlasResult = fontAtlas->RenderAtlasTextures(1.0f, 2.0f, 0.1f); renderAtlasResult.HasError())
     {
         return renderAtlasResult.GetError();
     }
 
-    // register all textures within the atlas as assets:
-    for (const auto& it : atlas->GetAtlasTextures().atlases)
+    // will save Engine package automatically.
+    Result addAssetResult = package->AddAssetObject(fontAtlas, /* replaceOnConflict */ true);
+    if (addAssetResult.HasError())
     {
-        const Handle<Texture>& texture = it.second;
-        Assert(texture != nullptr);
-
-        HYP_LOG(Font, Verbose, "Adding texture {} to package", texture->GetName());
-
-        Result result = package->AddAssetObject(texture, /* replaceOnConflict */ true);
-        
-        if (result.HasError())
-        {
-            HYP_LOG(UI, Error, "Failed to add texture asset to package: {}", result.GetError().GetMessage());
-        }
+        return HYP_MAKE_ERROR(Error, "Failed to add font face asset to package! Error: {}", fontFaceAsset.GetError().GetMessage());
     }
 
     // need to move in return since return type is wrapped result
-    return std::move(atlas);
+    return fontAtlas;
 }
 
 UISubsystem::UISubsystem()
@@ -184,19 +136,15 @@ UISubsystem::UISubsystem()
 
 UISubsystem::UISubsystem(const Handle<UIStage>& uiStage)
     : m_uiStage(uiStage),
-      m_uiRenderer(nullptr)
+      m_uiRenderer(nullptr),
+      m_wasProcessedLastFrame(false)
 {
 }
 
 UISubsystem::~UISubsystem()
 {
-    if (m_uiRenderer)
-    {
-        PUSH_RENDER_COMMAND(RemoveUIRenderer, m_uiRenderer);
-        m_uiRenderer = nullptr;
-    }
 
-    PUSH_RENDER_COMMAND(SetFinalPassImageView, nullptr);
+    //PUSH_RENDER_COMMAND(SetFinalPassImageView, nullptr);
 
     m_onWindowResizedHandle.Reset();
     m_onCurrentWindowChangedHandle.Reset();
@@ -213,7 +161,7 @@ void UISubsystem::Init()
 
     const auto HandleWindowResize = [this, weakThis = MakeWeakRef(this)](Vec2i windowSize)
     {
-        PUSH_RENDER_COMMAND(SetFinalPassImageView, nullptr);
+        //PUSH_RENDER_COMMAND(SetFinalPassImageView, nullptr);
         Handle<UISubsystem> strongThis = weakThis.Lock();
 
         if (!strongThis.IsValid())
@@ -267,7 +215,7 @@ void UISubsystem::Init()
     renderTargetDesc.AddAttachment({ TextureType::Texture2D, TextureFormat::RGBA8 });
 
     ViewDesc viewDesc {};
-    viewDesc.flags = (ViewFlags::DEFAULT & ~(ViewFlags::ALL_WORLD_SCENES | ViewFlags::MATCH_CAMERA_DIMENSIONS));
+    viewDesc.flags = ViewFlags::UI | (ViewFlags::DEFAULT & ~(ViewFlags::ALL_WORLD_SCENES | ViewFlags::MATCH_CAMERA_DIMENSIONS));
     viewDesc.renderTargetDesc = renderTargetDesc;
     viewDesc.scenes = { m_uiStage->GetScene() };
     viewDesc.camera = m_uiStage->GetCamera();
@@ -276,10 +224,6 @@ void UISubsystem::Init()
     m_view = MakeHandle<View>(viewDesc);
     m_view->SetName(NAME("UISubsystem_View"));
     InitObject(m_view);
-
-    CreateFramebuffer();
-
-    PUSH_RENDER_COMMAND(AddUIRendererForView, m_view);
 }
 
 void UISubsystem::OnAddedToWorld()
@@ -312,9 +256,25 @@ void UISubsystem::Update(float delta)
 
     m_uiStage->Update(delta);
 
-    m_view->SetOverrideCollectFunctor(ProcRef<void(RenderProxyList&)>(*this, ValueWrapper<&UISubsystem::RenderCollect>()));
+    const bool hasOtherChildUIObjects = m_uiStage->NumChildUIObjects(/* deep */ false) > m_debugOverlayContainers.Size();
 
-    GetWorld()->ProcessViewAsync(m_view);
+    // render UI if there are non-debug overlay objects in the stage,
+    // or if there are debug overlays we have to draw.
+    if (hasOtherChildUIObjects || m_debugOverlays.Any())
+    {
+        m_view->SetOverrideCollectFunctor(ProcRef<void(RenderProxyList&)>(*this, ValueWrapper<&UISubsystem::RenderCollect>()));
+
+        GetWorld()->ProcessViewAsync(m_view);
+
+        m_wasProcessedLastFrame = true;
+    }
+    else if (m_wasProcessedLastFrame)
+    {
+        // just to clear it out the first time we see there are no child ui objects.
+        RenderCollect(GetProducerProxyList(m_view));
+
+        m_wasProcessedLastFrame = false;
+    }
 }
 
 void UISubsystem::RenderCollect(RenderProxyList& rpl)
@@ -332,6 +292,13 @@ void UISubsystem::RenderCollect(RenderProxyList& rpl)
     m_uiStage->CollectObjects([&rpl](UIObject* uiObject)
         {
             AssertDebug(uiObject != nullptr);
+
+            if (uiObject->IsA(UIStage::StaticClass()) // don't render stage (too large)
+                || uiObject->ComputeBlendedBackgroundColor().GetAlpha() <= 0.0001f)
+            {
+                // skip; not considered visible.
+                return;
+            }
 
             const Handle<Entity>& entity = uiObject->GetEntity();
             AssertDebug(entity != nullptr);
@@ -466,7 +433,7 @@ void UISubsystem::CreateFramebuffer()
     Assert(attachment->GetImageView().IsValid());
     // Assert(attachment->GetImageView()->IsCreated());
 
-    PUSH_RENDER_COMMAND(SetFinalPassImageView, attachment->GetImageView());
+    //PUSH_RENDER_COMMAND(SetFinalPassImageView, attachment->GetImageView());
 }
 
 void UISubsystem::InitFont()

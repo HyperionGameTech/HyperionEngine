@@ -146,10 +146,14 @@ static void BuildRenderGroupsOrdered(
 void UIRenderCollector::ExecuteDrawCalls(Frame* frame, const RenderSetup& renderSetup, Framebuffer* framebuffer, uint32 bucketBits)
 {
     HYP_SCOPE;
-
     AssertOnThread(g_renderThread);
 
     AssertDebug(renderSetup.HasWorld() && renderSetup.HasView());
+
+    if (bucketBits == 0)
+    {
+        bucketBits = AllRenderBucketsMask;
+    }
 
     RenderProxyList& rpl = GetConsumerProxyList(renderSetup.view);
     rpl.BeginRead();
@@ -239,10 +243,8 @@ void UIRenderCollector::ExecuteDrawCalls(Frame* frame, const RenderSetup& render
 
 #pragma region UIRenderer
 
-UIRenderer::UIRenderer(const Handle<View>& view)
-    : m_view(view)
+UIRenderer::UIRenderer()
 {
-    AssertDebug(view.IsValid());
 }
 
 void UIRenderer::Initialize()
@@ -258,32 +260,34 @@ void UIRenderer::RenderFrame(Frame* frame, const RenderSetup& renderSetup)
     HYP_SCOPE;
     AssertOnThread(g_renderThread);
 
-    UIRendererPassData* pd = ObjCast<UIRendererPassData>(FetchViewPassData(m_view));
+    Assert(renderSetup.view != nullptr);
+
+    UIRendererPassData* pd = ObjCast<UIRendererPassData>(FetchViewPassData(renderSetup.view));
     AssertDebug(pd != nullptr);
 
-    RenderSetup rs = renderSetup.Fork();
-    rs.view = m_view.Get();
-    rs.viewport = Viewport { m_view->GetViewDesc().renderTargetDesc.extent };
-    rs.passData = pd;
-    
-    Framebuffer* framebuffer = rs.framebuffer;
-    
-    if (!framebuffer)
+    if (!pd->renderCollector.batchAllocator)
     {
-        framebuffer = m_view->GetOutputTarget().GetFramebuffer();
+        const Class* entityBatchClass = renderSetup.view->GetViewDesc().entityBatchClass;
+        Assert(entityBatchClass != nullptr);
+
+        pd->renderCollector.batchAllocator = GetOrCreateEntityBatchAllocator(entityBatchClass->GetTypeId());
+        Assert(pd->renderCollector.batchAllocator != nullptr);
     }
 
-    AssertDebug(framebuffer != nullptr);
+    {
+        RenderProxyList& rpl = GetConsumerProxyList(renderSetup.view);
+        rpl.BeginRead();
 
-    RenderProxyList& rpl = GetConsumerProxyList(m_view);
-    rpl.BeginRead();
+        BuildRenderGroupsOrdered(pd->renderCollector, rpl, rpl.meshEntityOrdering, {});
 
-    BuildRenderGroupsOrdered(renderCollector, rpl, rpl.meshEntityOrdering, {});
+        rpl.EndRead();
+    }
 
-    rpl.EndRead();
+    RenderSetup rs = renderSetup.Fork();
+    rs.passData = pd;
 
-    renderCollector.BuildDrawCalls(0);
-    renderCollector.ExecuteDrawCalls(frame, rs, framebuffer, 0);
+    pd->renderCollector.BuildDrawCalls(0);
+    pd->renderCollector.ExecuteDrawCalls(frame, rs, nullptr, 0);
 }
 
 PassData* UIRenderer::CreateViewPassData(View* view, PassDataExt&)

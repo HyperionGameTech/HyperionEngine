@@ -45,7 +45,8 @@
 #include <system/AppContext.hpp>
 
 #include <ui/UISubsystem.hpp>
-#include <ui/overlays/StatsOverlay.hpp> // Temp path
+#include <ui/overlays/BaseStatsOverlay.hpp>
+#include <ui/overlays/StatsOverlay.hpp>
 
 #include <HyperionEngine.hpp>
 
@@ -111,7 +112,7 @@ void DefaultGame::OnLaunch_Impl()
     sunNode->AddChild(sunEntity);
 
     // sky
-    //GetWorld()->AddSystemT<DynamicSkySystem>();
+    GetWorld()->AddSystemT<DynamicSkySystem>();
 
     // Fps controller
 
@@ -141,18 +142,18 @@ void DefaultGame::OnLaunch_Impl()
 
     LoadedAsset& sponza = results["sponza"];
     Handle<Node> sponzaNode = sponza.ExtractAs<Node>();
-    sponzaNode->SetWorldScale(0.03f);
+    sponzaNode->SetWorldScale(0.04f);
     
     scene->GetRoot()->AddChild(sponzaNode);
-
-    //GetUISubsystem()->AddDebugOverlay(MakeHandle<StatsOverlay>());
+    
+    GetUISubsystem()->AddDebugOverlay(MakeHandle<BaseStatsOverlay>());
+    GetUISubsystem()->AddDebugOverlay(MakeHandle<StatsOverlay>());
 
     StartSimulating();
 }
 
 void DefaultGame::OnUpdate_Impl(float delta)
 {
-    HYP_LOG(Game, Debug, "Updating DefaultGame with delta {}", delta);
 }
 
 void DefaultGame::OnInputEvent(const Event& event)

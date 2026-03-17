@@ -3,7 +3,9 @@
 #include <AssetPch.hpp>
 
 #include <asset/font_loaders/FontAtlasLoader.hpp>
+
 #include <asset/Assets.hpp>
+#include <asset/AssetRegistry.hpp>
 
 #include <ui/font/FontAtlas.hpp>
 
@@ -127,7 +129,7 @@ AssetLoadResult FontAtlasLoader::LoadAsset(LoaderState& state) const
         return HYP_MAKE_ERROR(AssetLoadError, "Failed to load cell dimensions");
     }
 
-    FontAtlas::GlyphMetricsBuffer glyphMetrics;
+    Array<GlyphMetrics> glyphMetrics;
 
     if (auto glyphMetricsValue = jsonValue["metrics"])
     {
@@ -138,7 +140,7 @@ AssetLoadResult FontAtlasLoader::LoadAsset(LoaderState& state) const
 
         for (const Value& glyphMetricValue : glyphMetricsValue.AsArray())
         {
-            Glyph::Metrics metrics {};
+            GlyphMetrics metrics {};
 
             metrics.width = uint16(glyphMetricValue["width"].ToNumber());
             metrics.height = uint16(glyphMetricValue["height"].ToNumber());
@@ -157,7 +159,7 @@ AssetLoadResult FontAtlasLoader::LoadAsset(LoaderState& state) const
         return HYP_MAKE_ERROR(AssetLoadError, "Failed to load glyph metrics");
     }
 
-    FontAtlas::SymbolList symbolList;
+    Array<uint32> symbolList;
 
     if (auto symbolListValue = jsonValue["symbol_list"])
     {
@@ -173,7 +175,7 @@ AssetLoadResult FontAtlasLoader::LoadAsset(LoaderState& state) const
                 return HYP_MAKE_ERROR(AssetLoadError, "Symbol list expected to be an array of numbers");
             }
 
-            symbolList.PushBack(FontFace::WChar(symbolValue.AsNumber()));
+            symbolList.PushBack(symbolValue.ToUInt32());
         }
 
         if (symbolList.Empty())
@@ -186,7 +188,13 @@ AssetLoadResult FontAtlasLoader::LoadAsset(LoaderState& state) const
         return HYP_MAKE_ERROR(AssetLoadError, "Failed to load symbol list");
     }
 
-    Handle<FontAtlas> fontAtlas = MakeHandle<FontAtlas>(textureSet, cellDimensions, std::move(glyphMetrics), std::move(symbolList));
+    const Name fontAtlasName = CreateNameFromDynamicString(StringUtil::StripExtension(state.filepath.Basename()));
+
+    Handle<FontAtlas> fontAtlas = MakeHandle<FontAtlas>(
+        fontAtlasName,
+        textureSet, cellDimensions, std::move(glyphMetrics), std::move(symbolList));
+    
+    state.assetManager->GetAssetRegistry()->RegisterAsset("$Import/Media/Fonts", fontAtlas);
 
     return AssetLoadResult { fontAtlas };
 }

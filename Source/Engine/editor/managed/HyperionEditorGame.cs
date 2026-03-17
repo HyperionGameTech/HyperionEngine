@@ -1,4 +1,5 @@
 using Hyperion;
+using System.Diagnostics;
 using System.Threading.Tasks;
 
 namespace Hyperion.Editor
@@ -35,6 +36,7 @@ namespace Hyperion.Editor
 
             // get or create UISubsystem instance.
             UISubsystem? uiSubsystem = World.GetSubsystem<UISubsystem>();
+            Debug.Assert(uiSubsystem != null);
             
             if (uiSubsystem == null)
             {
@@ -42,7 +44,7 @@ namespace Hyperion.Editor
                 World.AddSubsystem(uiSubsystem);
             }
 
-            uiSubsystem.AddDebugOverlay(new BaseStatsOverlay());
+            //uiSubsystem.AddDebugOverlay(new BaseStatsOverlay());
             uiSubsystem.AddDebugOverlay(new StatsOverlay());
 
             _editorSubsystem = new EditorSubsystem();
@@ -69,10 +71,10 @@ namespace Hyperion.Editor
             //project.World.WorldGrid.AddLayer(new TerrainWorldGridLayer());
 
             // tmp debug
-            AssetBatch ab = new AssetBatch();
-            ab.Add("test_model", "Models/Sponza/sponza.obj");//"Models/SanMiguel/san-miguel.obj");
-            ab.Add("guy", "models/ZombieGuy/guy.mesh.xml");
-            _assetBatchTask = ab.Load();
+            // AssetBatch ab = new AssetBatch();
+            // ab.Add("test_model", "Models/Sponza/sponza.obj");//"Models/SanMiguel/san-miguel.obj");
+            // ab.Add("guy", "models/ZombieGuy/guy.mesh.xml");
+            // _assetBatchTask = ab.Load();
         }
 
         protected override void OnUpdate(float deltaTime)

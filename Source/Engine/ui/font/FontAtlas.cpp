@@ -35,6 +35,11 @@ FontAtlasTextureSet::~FontAtlasTextureSet()
         EnqueueDeletion(std::move(atlas.second));
     }
 }
+    
+static constexpr auto UpperBoundPredicate = [](const Pair<uint32, Handle<Texture>>& a, const Pair<uint32, Handle<Texture>>& b)
+{
+    return a.first < b.first;
+};
 
 void FontAtlasTextureSet::AddAtlas(uint32 pixelSize, Handle<Texture> texture, bool isMainAtlas)
 {
@@ -48,7 +53,29 @@ void FontAtlasTextureSet::AddAtlas(uint32 pixelSize, Handle<Texture> texture, bo
         return;
     }
 
-    atlases[pixelSize] = texture;
+    auto it = std::find_if(atlases.Begin(), atlases.End(), [pixelSize](const auto& item)
+        {
+            return item.first == pixelSize;
+        });
+
+    // already exists, set it
+    if (it != atlases.End())
+    {
+        if (isMainAtlas)
+        {
+            mainAtlas = texture;
+        }
+
+        it->second = std::move(texture);
+        return;
+    }
+
+    auto newPair = Pair<uint32, Handle<Texture>> { pixelSize, texture };
+
+    // find UB
+    auto upperBoundIt = std::upper_bound(atlases.Begin(), atlases.End(), newPair, UpperBoundPredicate);
+
+    atlases.Insert(upperBoundIt, std::move(newPair));
 
     if (isMainAtlas)
     {
@@ -56,37 +83,53 @@ void FontAtlasTextureSet::AddAtlas(uint32 pixelSize, Handle<Texture> texture, bo
     }
 }
 
-Handle<Texture> FontAtlasTextureSet::GetAtlasForPixelSize(uint32 pixelSize) const
+const Handle<Texture>& FontAtlasTextureSet::GetAtlasForPixelSize(uint32 pixelSize) const
 {
-    auto it = atlases.Find(pixelSize);
+    auto it = atlases.FindIf([pixelSize](const auto& item)
+        {
+            return item.first == pixelSize;
+        });
 
     if (it != atlases.End())
     {
         return it->second;
     }
 
-    it = atlases.UpperBound(pixelSize);
+    it = std::upper_bound(atlases.Begin(), atlases.End(), Pair<uint32, Handle<Texture>> { pixelSize, Handle<Texture>::Null() }, UpperBoundPredicate);
 
     if (it != atlases.End())
     {
         return it->second;
     }
 
-    return Handle<Texture> {};
+    return Handle<Texture>::Null();
 }
 
 #pragma endregion FontAtlasTextureSet
 
 #pragma region FontAtlas
 
+FontAtlas::FontAtlas(Name name, const RC<FontFace>& face)
+    : AssetObject(name),
+      m_face(face),
+      m_symbolList(GetDefaultSymbolList())
+{
+    Assert(m_symbolList.Size() != 0);
+
+    // Each cell will be the same size at the largest symbol
+    m_cellDimensions = FindMaxDimensions(m_face);
+}
+
 FontAtlas::FontAtlas(
+    Name name,
     const FontAtlasTextureSet& atlasTextures,
     Vec2i cellDimensions,
-    GlyphMetricsBuffer glyphMetrics,
-    SymbolList symbolList)
-    : m_atlasTextures(std::move(atlasTextures)),
+    const Array<GlyphMetrics>& glyphMetrics,
+    Array<uint32> symbolList)
+    : AssetObject(name),
+      m_atlasTextures(std::move(atlasTextures)),
       m_cellDimensions(cellDimensions),
-      m_glyphMetrics(std::move(glyphMetrics)),
+      m_glyphMetrics(glyphMetrics),
       m_symbolList(std::move(symbolList))
 {
     Assert(m_symbolList.Size() != 0);
@@ -102,19 +145,9 @@ FontAtlas::FontAtlas(
     }
 }
 
-FontAtlas::FontAtlas(RC<FontFace> face)
-    : m_face(std::move(face)),
-      m_symbolList(GetDefaultSymbolList())
-{
-    Assert(m_symbolList.Size() != 0);
-
-    // Each cell will be the same size at the largest symbol
-    m_cellDimensions = FindMaxDimensions(m_face);
-}
-
 FontAtlas::~FontAtlas() = default;
 
-FontAtlas::SymbolList FontAtlas::GetDefaultSymbolList()
+Array<uint32> FontAtlas::GetDefaultSymbolList()
 {
     // first renderable symbol
     static constexpr uint32 CharRangeStart = 33; // !
@@ -122,7 +155,7 @@ FontAtlas::SymbolList FontAtlas::GetDefaultSymbolList()
     // highest symbol in the ascii table
     static constexpr uint32 CharRangeEnd = 126; // ~ + 1
 
-    SymbolList symbolList;
+    Array<uint32> symbolList;
     symbolList.Reserve(CharRangeEnd - CharRangeStart + 1);
 
     for (uint32 ch = CharRangeStart; ch <= CharRangeEnd; ch++)
@@ -158,7 +191,7 @@ Result FontAtlas::RenderAtlasTextures(float mainAtlasScale, float maxScale, floa
 
         for (size_t i = 0; i < m_symbolList.Size(); i++)
         {
-            const FontFace::WChar symbol = m_symbolList[i];
+            const uint32 symbol = m_symbolList[i];
 
             const Vec2i index { int(i % SymbolColumns), int(i / SymbolColumns) };
             const Vec2i offset = index * scaledExtent;
@@ -222,6 +255,14 @@ Result FontAtlas::RenderAtlasTextures(float mainAtlasScale, float maxScale, floa
         atlasTexture->SetName(NAME_FMT("FontAtlas_{}", scale));
         CheckResult(atlasTexture->Create());
 
+        // register the texture to in-memory package.
+        // when the package the font atlas is in is saved, it will be moved over
+        Result registerResult = atlasTexture->Register(HYP_FORMAT("$Memory/Media/Fonts/{}", GetName()), /* conflictMode */ AddAssetConflictMode::ReplaceExisting);
+        if (registerResult.HasError())
+        {
+            return registerResult.GetError();
+        }
+
         // Add initial atlas
         m_atlasTextures.AddAtlas(scaledExtent.y, std::move(atlasTexture), isMainAtlas);
 
@@ -242,6 +283,8 @@ Result FontAtlas::RenderAtlasTextures(float mainAtlasScale, float maxScale, floa
             return result.GetError();
         }
     }
+    
+    MarkDirty();
 
     return {};
 }
@@ -273,7 +316,7 @@ Vec2i FontAtlas::FindMaxDimensions(const RC<FontFace>& face) const
     return highestDimensions;
 }
 
-Optional<const Glyph::Metrics&> FontAtlas::GetGlyphMetrics(FontFace::WChar symbol) const
+Optional<const GlyphMetrics&> FontAtlas::GetGlyphMetricsForChar(uint32 symbol) const
 {
     const auto it = m_symbolList.Find(symbol);
 
@@ -326,7 +369,7 @@ JSON::Value FontAtlas::GenerateMetadataJSON(const String& outputDirectory) const
 
     JSON::JArray metricsArray;
 
-    for (const Glyph::Metrics& metric : m_glyphMetrics)
+    for (const GlyphMetrics& metric : m_glyphMetrics)
     {
         metricsArray.PushBack(JSON::Object {
             { "width", JSON::Number(metric.width) },

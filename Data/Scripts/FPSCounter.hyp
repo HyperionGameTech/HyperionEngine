@@ -44,7 +44,7 @@ export func Update(DeltaTime : float)
         Fps = (Counter as double) / Accum
         Accum = 0.0
         Counter = 0
-    end
 
-    // Logger.LogScript(Channel, LogLevel.Info, "fps: " + string(Fps))
+        Logger.LogScript(Channel, LogLevel.Info, "Frames per second: " + string(Fps))
+    end
 end

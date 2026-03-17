@@ -13,6 +13,8 @@
 #include <Core/utilities/Optional.hpp>
 #include <Core/utilities/Result.hpp>
 
+#include <asset/AssetObject.hpp>
+
 #include <ui/font/FontFace.hpp>
 #include <ui/font/Glyph.hpp>
 
@@ -30,8 +32,11 @@ struct HYP_API FontAtlasTextureSet
 {
     HYP_STRUCT_BODY(FontAtlasTextureSet);
 
+    HYP_FIELD()
     Handle<Texture> mainAtlas;
-    FlatMap<uint32, Handle<Texture>> atlases;
+    
+    HYP_FIELD()
+    Array<Pair<uint32, Handle<Texture>>> atlases;
 
     ~FontAtlasTextureSet();
 
@@ -40,13 +45,13 @@ struct HYP_API FontAtlasTextureSet
         return mainAtlas;
     }
 
-    Handle<Texture> GetAtlasForPixelSize(uint32 pixelSize) const;
+    const Handle<Texture>& GetAtlasForPixelSize(uint32 pixelSize) const;
 
     void AddAtlas(uint32 pixelSize, Handle<Texture> texture, bool isMainAtlas = false);
 };
 
 HYP_CLASS()
-class FontAtlas : public ObjectBase
+class HYP_API FontAtlas : public AssetObject
 {
     HYP_OBJECT_BODY(FontAtlas);
 
@@ -54,20 +59,23 @@ public:
     static constexpr uint32 SymbolColumns = 20;
     static constexpr uint32 SymbolRows = 5;
 
-    using SymbolList = Array<FontFace::WChar>;
-    using GlyphMetricsBuffer = Array<Glyph::Metrics>;
-
-    HYP_API static SymbolList GetDefaultSymbolList();
+    static Array<uint32> GetDefaultSymbolList();
 
     FontAtlas() = default;
 
-    HYP_API FontAtlas(
+    explicit FontAtlas(Name name)
+        : AssetObject(name)
+    {
+    }
+
+    FontAtlas(Name name, const RC<FontFace>& face);
+
+    FontAtlas(
+        Name name,
         const FontAtlasTextureSet& atlasTextures,
         Vec2i cellDimensions,
-        GlyphMetricsBuffer glyphMetrics,
-        SymbolList symbolList = GetDefaultSymbolList());
-
-    explicit HYP_API FontAtlas(RC<FontFace> face);
+        const Array<GlyphMetrics>& glyphMetrics,
+        Array<uint32> symbolList = GetDefaultSymbolList());
 
     FontAtlas(const FontAtlas& other) = delete;
     FontAtlas& operator=(const FontAtlas& other) = delete;
@@ -77,9 +85,9 @@ public:
 
     ~FontAtlas();
 
-    HYP_API Result RenderAtlasTextures(float mainAtlasScale, float maxScale, float step = 0.1f);
+    Result RenderAtlasTextures(float mainAtlasScale, float maxScale, float step = 0.1f);
 
-    HYP_FORCE_INLINE const GlyphMetricsBuffer& GetGlyphMetrics() const
+    HYP_FORCE_INLINE const Array<GlyphMetrics>& GetGlyphMetrics() const
     {
         return m_glyphMetrics;
     }
@@ -94,24 +102,32 @@ public:
         return m_cellDimensions;
     }
 
-    HYP_FORCE_INLINE const SymbolList& GetSymbolList() const
+    HYP_FORCE_INLINE const Array<uint32>& GetSymbolList() const
     {
         return m_symbolList;
     }
 
-    HYP_API Optional<const Glyph::Metrics&> GetGlyphMetrics(FontFace::WChar symbol) const;
+    Optional<const GlyphMetrics&> GetGlyphMetricsForChar(uint32 symbol) const;
 
-    HYP_API JSON::Value GenerateMetadataJSON(const String& outputDirectory) const;
+    HYP_DEPRECATED_BECAUSE("Using reflection system to serialize instead")
+        JSON::Value GenerateMetadataJSON(const String& outputDirectory) const;
 
 private:
     Vec2i FindMaxDimensions(const RC<FontFace>& face) const;
 
     RC<FontFace> m_face;
 
+    HYP_FIELD()
     FontAtlasTextureSet m_atlasTextures;
+
+    HYP_FIELD()
     Vec2i m_cellDimensions;
-    GlyphMetricsBuffer m_glyphMetrics;
-    SymbolList m_symbolList;
+
+    HYP_FIELD()
+    Array<GlyphMetrics> m_glyphMetrics;
+
+    HYP_FIELD()
+    Array<uint32> m_symbolList;
 };
 
 } // namespace Hyperion

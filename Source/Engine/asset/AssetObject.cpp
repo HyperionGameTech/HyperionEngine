@@ -256,7 +256,16 @@ Result AssetObject::Save(const FilePath& manifestPath)
         return HYP_MAKE_ERROR(Error, "Path '{}' is not a valid directory, cannot save asset", dir);
     }
 
-    BlobStorage& blobStorage = g_assetManager->GetAssetRegistry()->GetBlobStorage();
+    // recursively register assets associated with this
+    // only assets that are not registered or are registered in transient locations (e.g $Memory, $Temp, $Import, etc.) will be relocated.
+    AssetRegistry& registry = *g_assetManager->GetAssetRegistry();
+    registry.RegisterAssetsRecursively(
+        package->BuildPackagePath(),
+        BoxedValue(AnyRef(*this)),
+        /* forceRelocation */ false,
+        /* appendExistingPackagePath */ false);
+
+    BlobStorage& blobStorage = registry.GetBlobStorage();
 
     Result saveBlobDataResult = SaveBlobData(blobStorage, dir);
     if (saveBlobDataResult.HasError())

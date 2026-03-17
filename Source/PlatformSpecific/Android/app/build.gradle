@@ -129,6 +129,7 @@ def baseConfigDir = file("../../../../Config")
 // only for testing, in finished build we'll just use packages / blob storage.
 def modelsDir = file("../../../../Data/Models")
 def texturesDir = file("../../../../Data/Textures")
+def fontsDir = file("../../../../Data/Fonts")
 // also just for testing, copying Shaders.ini to the assets folder - should prob go elsewhere.
 def shadersIni = file("../../../../Source/Shaders/Shaders.ini")
 def assetsDestDir = file('src/main/assets')
@@ -153,6 +154,9 @@ tasks.register('stagePackageAssets', Copy) {
     }
     from(texturesDir) {
         into 'Data/Textures'
+    }
+    from(fontsDir) {
+        into 'Data/Fonts'
     }
     from(shadersIni) {
         into 'Source/Shaders'

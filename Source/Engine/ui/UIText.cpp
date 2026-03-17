@@ -138,7 +138,7 @@ static void ForEachCharacter(
             continue;
         }
 
-        Optional<const Glyph::Metrics&> glyphMetrics = fontAtlas.GetGlyphMetrics(ch);
+        Optional<const GlyphMetrics&> glyphMetrics = fontAtlas.GetGlyphMetricsForChar(ch);
 
         if (!glyphMetrics.HasValue() || (glyphMetrics->width == 0 || glyphMetrics->height == 0))
         {
@@ -332,7 +332,7 @@ void UIText::UpdateTextAABB()
     }
     else
     {
-        HYP_LOG(UI, Debug, "No font atlas set for UIText {} (text: \"{}\")", GetName(), GetText());
+        HYP_LOG_ONCE(UI, Debug, "No font atlas set for UIText {} (text: \"{}\")", GetName(), GetText());
     }
 }
 
@@ -448,8 +448,7 @@ void UIText::UpdateMaterial_Internal()
 
     if (!m_currentFontAtlasTexture.IsValid())
     {
-        HYP_LOG(UI, Warning, "No font atlas texture for text \"{}\"",
-            GetText());
+        HYP_LOG_ONCE(UI, Warning, "No font atlas texture for text \"{}\"", GetText());
     }
 
     UIObject::UpdateMaterial_Internal();

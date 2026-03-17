@@ -174,10 +174,10 @@ endfunction()
 RunCodeGen(0 9)
 
 # set HYP_DEBUG_MODE to 1 for debug builds, 0 for release builds
-if(CMAKE_BUILD_TYPE STREQUAL "Debug")
+# if(CMAKE_BUILD_TYPE STREQUAL "Debug")
     add_definitions(-DHYP_DEBUG_MODE=1)
     set(HYP_DEBUG_MODE 1)
-endif()
+# endif()
 
 # set HYPERION_ENGINE to 1 (used to differentiate between engine and build tool or other executables using core lib)
 add_definitions(-DHYPERION_ENGINE=1)
@@ -310,9 +310,9 @@ set(CSHARP_PROJECTS_DIR "${CMAKE_SOURCE_DIR}/../Build/CSharpProjects")
 file(MAKE_DIRECTORY ${CSHARP_PROJECTS_DIR})
 
 if(NOT HYP_ANDROID)
-    if(NOT HYP_DEBUG_MODE)
-        add_definitions(-DHYP_ROOT_DIR="${HYP_ROOT_DIR}")
-    endif()
+    # TODO if not final release build check.
+    # for final release follow the android technique
+    add_definitions(-DHYP_ROOT_DIR="${HYP_ROOT_DIR}")
     
     set(HYP_EDITOR 1)
     add_definitions(-DHYP_EDITOR=1)

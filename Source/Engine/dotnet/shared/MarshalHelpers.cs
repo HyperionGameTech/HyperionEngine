@@ -13,7 +13,7 @@ namespace Hyperion
             // Helper for strings
             if (type == typeof(string))
             {
-                obj = Marshal.PtrToStringAnsi(Marshal.ReadIntPtr(ptr));
+                obj = Marshal.PtrToStringAnsi(Marshal.ReadIntPtr(ptr)) ?? throw new("Failed to marshal in string");
 
                 return;
             }
@@ -46,7 +46,7 @@ namespace Hyperion
                     type = Enum.GetUnderlyingType(type);
                 }
 
-                obj = Marshal.PtrToStructure(ptr, type);
+                obj = Marshal.PtrToStructure(ptr, type) ?? throw new("Failed to marshal value type");
 
                 return;
             }
