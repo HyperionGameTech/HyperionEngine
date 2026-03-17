@@ -1,0 +1,12 @@
+{
+  "$Class": "ShaderBundle",
+  "CompiledShaders": [{
+      "$Class": "AssetReference",
+      "AssetPath": {
+        "Value": "Engine/Shaders/Tonemap/Tonemap_9412718521670965328"
+      }
+    }],
+  "Name": "Tonemap",
+  "FriendlyName": "Tonemap",
+  "OriginalFilepath": ""
+}

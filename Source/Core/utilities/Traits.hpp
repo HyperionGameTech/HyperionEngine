@@ -189,6 +189,16 @@ struct IsVariant : std::false_type
 };
 
 template <class T>
+struct IsTuple : std::false_type
+{
+};
+
+template <class T>
+struct IsPair : std::false_type
+{
+};
+
+template <class T>
 struct IsString : std::false_type
 {
 };

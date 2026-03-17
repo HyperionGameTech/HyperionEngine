@@ -1,0 +1,12 @@
+{
+  "$Class": "ShaderBundle",
+  "CompiledShaders": [{
+      "$Class": "AssetReference",
+      "AssetPath": {
+        "Value": "Engine/Shaders/ApplyReflectionProbe/ApplyReflectionProbe_5656388037364668825"
+      }
+    }],
+  "Name": "ApplyReflectionProbe",
+  "FriendlyName": "ApplyReflectionProbe",
+  "OriginalFilepath": ""
+}

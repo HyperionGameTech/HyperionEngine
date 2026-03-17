@@ -896,4 +896,12 @@ using KeyValuePair = utilities::KeyValuePair<K, V>;
 template <class K, class V>
 using Pair = utilities::Pair<K, V>;
 
+template <class First, class Second, class T1, class T2>
+struct IsPair<utilities::detail::Pair<First, Second, T1, T2>> : std::true_type
+{
+    using PairType = utilities::detail::Pair<First, Second, T1, T2>;
+    using FirstType = First;
+    using SecondType = Second;
+};
+
 } // namespace Hyperion

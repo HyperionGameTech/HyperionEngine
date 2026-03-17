@@ -18,6 +18,7 @@
 #include <Core/utilities/Optional.hpp>
 #include <Core/utilities/StringView.hpp>
 #include <Core/utilities/Pair.hpp>
+#include <Core/utilities/Tuple.hpp>
 #include <Core/utilities/EnumFlags.hpp>
 #include <Core/utilities/Float16.hpp>
 #include <Core/utilities/Result.hpp>

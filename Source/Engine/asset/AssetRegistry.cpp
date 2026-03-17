@@ -3636,6 +3636,14 @@ void AssetRegistry::RegisterAssetsRecursively(
 
                 relocateResult = RelocateAsset(*this, assetObject, packagePathWithSubpath, /* preserveStructure */ false);
             }
+
+            if (relocateResult.HasError())
+            {
+                HYP_LOG(Assets, Error, "Failed to relocate asset '{}' to '{}': {}",
+                    assetObject->GetName(),
+                    packagePath,
+                    relocateResult.GetError().GetMessage());
+            }
         }
         else if (assetReference)
         {

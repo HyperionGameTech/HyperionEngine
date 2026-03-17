@@ -3067,6 +3067,9 @@ bool ShaderCompiler::CompileBundle(
     uint32 numCompiledPermutations = 0;
     uint32 numErroredPermutations = 0;
 
+    Array<Handle<Shader>> existingShadersToRemove;
+    HashSet<Name> usedNames;
+
     // compile shader with each permutation of properties
     ForEachPermutation(
         permsToCompile,
@@ -3182,7 +3185,7 @@ bool ShaderCompiler::CompileBundle(
                         variablePropertiesString += ", ";
                     }
 
-                    variablePropertiesString += property.name.LookupString();
+                    variablePropertiesString += property.ToString();
                 }
                 else
                 {
@@ -3191,7 +3194,7 @@ bool ShaderCompiler::CompileBundle(
                         staticPropertiesString += ", ";
                     }
 
-                    staticPropertiesString += property.name.LookupString();
+                    staticPropertiesString += property.ToString();
                 }
             }
             
@@ -3350,7 +3353,29 @@ bool ShaderCompiler::CompileBundle(
                 descriptorUsageSetsMerged.BuildDescriptorTableDeclaration(shader->inputGroup);
 
                 Mutex::Guard guard(compiledShadersMutex);
-                outBundle->compiledShaders.PushBack(std::move(shader));
+
+                AssertDebug(!usedNames.Contains(shader->GetName()));
+                usedNames.Add(shader->GetName());
+
+                auto existingIt = outBundle->compiledShaders.FindIf([name = shader->GetName()](const Handle<Shader>& existing)
+                    {
+                        if (existing->GetName() == name)
+                        {
+                            return true;
+                        }
+
+                        return false;
+                    });
+
+                if (existingIt != outBundle->compiledShaders.End())
+                {
+                    existingShadersToRemove.PushBack(std::move(*existingIt));
+                    *existingIt = std::move(shader);
+                }
+                else
+                {
+                    outBundle->compiledShaders.PushBack(std::move(shader));
+                }
             }
         },
         false);
@@ -3401,6 +3426,27 @@ bool ShaderCompiler::CompileBundle(
         FileByteWriter shaderPropertyDbWriter { shaderPropertyDbPath };
         WriteShaderPropertyDictionary(shaderPropertyDbWriter);
         shaderPropertyDbWriter.Close();
+    }
+
+    if (existingShadersToRemove.Any())
+    {
+        for (Handle<Shader>& shader : existingShadersToRemove)
+        {
+            Handle<AssetPackage> package = shader->GetPackage();
+
+            if (package.IsValid())
+            {
+                Result removeResult = package->RemoveAssetObject(shader);
+                if (removeResult.HasError())
+                {
+                    HYP_LOG(ShaderCompiler, Warning,
+                        "Failed to remove old shader asset {} from package {}: {}",
+                        shader->GetName(), package->GetName(), removeResult.GetError().GetMessage());
+                }
+            }
+        }
+
+        existingShadersToRemove.Clear();
     }
 
     { // register assets

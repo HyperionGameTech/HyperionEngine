@@ -141,11 +141,11 @@ PSOutput PSMain(PSInput input)
     float4 albedo_texture = SAMPLE_MATERIAL_TEXTURE(CURRENT_MATERIAL, DiffuseMap, input.texcoord0);
 
     ui_color *= albedo_texture;
-#endif
     
 #ifdef UI_TEXT
     // ui text uses R8 font atlas bitmap so swizzle red channel into rgba before mult by color value
     ui_color.rgba = (float4)albedo_texture.r;
+#endif
 #endif
     
     ui_color *= CURRENT_MATERIAL.albedo;

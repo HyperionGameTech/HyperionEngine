@@ -1,0 +1,47 @@
+{
+  "$Class": "ShaderBundle",
+  "CompiledShaders": [{
+      "$Class": "AssetReference",
+      "AssetPath": {
+        "Value": "Engine/Shaders/ConvolveProbe/ConvolveProbe_9364674039218919470"
+      }
+    }, {
+      "$Class": "AssetReference",
+      "AssetPath": {
+        "Value": "Engine/Shaders/ConvolveProbe/ConvolveProbe_1922604715491387694"
+      }
+    }, {
+      "$Class": "AssetReference",
+      "AssetPath": {
+        "Value": "Engine/Shaders/ConvolveProbe/ConvolveProbe_14138289418456392826"
+      }
+    }, {
+      "$Class": "AssetReference",
+      "AssetPath": {
+        "Value": "Engine/Shaders/ConvolveProbe/ConvolveProbe_13396520594865016493"
+      }
+    }, {
+      "$Class": "AssetReference",
+      "AssetPath": {
+        "Value": "Engine/Shaders/ConvolveProbe/ConvolveProbe_12695054844855281391"
+      }
+    }, {
+      "$Class": "AssetReference",
+      "AssetPath": {
+        "Value": "Engine/Shaders/ConvolveProbe/ConvolveProbe_11912837837717027188"
+      }
+    }, {
+      "$Class": "AssetReference",
+      "AssetPath": {
+        "Value": "Engine/Shaders/ConvolveProbe/ConvolveProbe_11246050176071258120"
+      }
+    }, {
+      "$Class": "AssetReference",
+      "AssetPath": {
+        "Value": "Engine/Shaders/ConvolveProbe/ConvolveProbe_11024058178103900412"
+      }
+    }],
+  "Name": "ConvolveProbe",
+  "FriendlyName": "ConvolveProbe",
+  "OriginalFilepath": ""
+}

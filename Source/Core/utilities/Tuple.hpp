@@ -2,6 +2,7 @@
 
 #include <Core/Constants.hpp>
 #include <Core/Types.hpp>
+#include <Core/utilities/Traits.hpp>
 
 namespace Hyperion {
 namespace utilities {
@@ -667,6 +668,17 @@ public:
 };
 
 } // namespace utilities
+
+template <class... Types>
+struct IsTuple<utilities::Tuple<Types...>> : std::true_type
+{
+    using TupleType = utilities::Tuple<Types...>;
+
+    template <size_t Index>
+    using TypeAtIndex = typename utilities::TupleElement<Index, Types...>::Type;
+
+    static constexpr size_t size = sizeof...(Types);
+};
 
 using utilities::FindTypeElementIndex;
 using utilities::Tuple;

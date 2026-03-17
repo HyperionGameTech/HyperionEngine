@@ -402,6 +402,57 @@ Result BoxedToJSON(
         return HYP_MAKE_ERROR(Error, "Enum type {} has unsupported underlying type {}", typeInfo.name, underlyingTypeInfo->name);
     }
 
+    if (typeInfo.IsPairType())
+    {
+        Assert(typeInfo.extendedInfo.handler && typeInfo.extendedInfo.handler->GetHandlerType() == ITypeInfoHandler::TYPE_PAIR);
+
+        ITypeInfoPairHandler* pairHandler = static_cast<ITypeInfoPairHandler*>(typeInfo.extendedInfo.handler);
+
+        AnyRef firstRef = pairHandler->GetFirst(value);
+        AnyRef secondRef = pairHandler->GetSecond(value);
+
+        if (!firstRef.HasValue())
+        {
+            return HYP_MAKE_ERROR(Error, "Failed to get first element of pair for type {}", typeInfo.name);
+        }
+
+        if (!secondRef.HasValue())
+        {
+            return HYP_MAKE_ERROR(Error, "Failed to get second element of pair for type {}", typeInfo.name);
+        }
+
+        // we store pair types as array of 2 elems
+        JSON::JArray jsonArray;
+        jsonArray.Resize(2);
+
+        ToJSONOptions newOpts = opts;
+        newOpts.writeClassNames = newOpts.writeClassNamesRecursively;
+
+        if (newOpts.followAssetPaths != ToJSONOptions::FollowAssetPathsMode::Always)
+        {
+            newOpts.followAssetPaths = ToJSONOptions::FollowAssetPathsMode::Never;
+        }
+
+        /*if (newOpts.saveAssetsAsReferences != ToJSONOptions::SaveAssetsAsReferencesMode::Yes)
+        {
+            newOpts.saveAssetsAsReferences = ToJSONOptions::SaveAssetsAsReferencesMode::No;
+        }*/
+
+        if (Result result = BoxedToJSON(BoxedValue(firstRef), jsonArray[0], newOpts); result.HasError())
+        {
+            return HYP_MAKE_ERROR(Error, "Failed to serialize first element of pair for type {}: {}", typeInfo.name, result.GetError().GetMessage());
+        }
+
+        if (Result result = BoxedToJSON(BoxedValue(secondRef), jsonArray[1], newOpts); result.HasError())
+        {
+            return HYP_MAKE_ERROR(Error, "Failed to serialize second element of pair for type {}: {}", typeInfo.name, result.GetError().GetMessage());
+        }
+
+        outJson = std::move(jsonArray);
+
+        return {};
+    }
+
     if (typeInfo.IsVariantType())
     {
         Assert(typeInfo.extendedInfo.handler && typeInfo.extendedInfo.handler->GetHandlerType() == ITypeInfoHandler::TYPE_VARIANT);
@@ -1480,11 +1531,46 @@ Result BoxedFromJSON(const JSON::Value& jsonValue, const TypeInfo& typeInfo, Box
         return {};
     }
 
+    if (typeInfo.IsPairType())
+    {
+        if (!jsonValue.IsArray())
+        {
+            return HYP_MAKE_ERROR(Error, "Expected JSON array for pair type {}, but got JSON value: {}", typeInfo.name, jsonValue.ToString());
+        }
+
+        const JSON::JArray& jsonArray = jsonValue.AsArray();
+
+        if (jsonArray.Size() != 2)
+        {
+            return HYP_MAKE_ERROR(Error, "Expected JSON array of size 2 for pair type {}, but got size {}", typeInfo.name, jsonArray.Size());
+        }
+
+        // pair typeinfo uses a linked list (extendedInfo for first, extendedInfo->next for second)
+
+        const TypeInfo* firstTypeInfo = typeInfo.extendedInfo.GetElementType();
+        Assert(firstTypeInfo != nullptr);
+
+        const TypeInfo* secondTypeInfo = typeInfo.extendedInfo.next->GetElementType();
+        Assert(secondTypeInfo != nullptr);
+
+        BoxedValue firstData;
+        if (Result result = BoxedFromJSON(jsonArray[0], *firstTypeInfo, firstData); result.HasError())
+        {
+            return HYP_MAKE_ERROR(Error, "Failed to deserialize first element of pair for type: {}", typeInfo.name);
+        }
+
+        BoxedValue secondData;
+        if (Result result = BoxedFromJSON(jsonArray[1], *secondTypeInfo, secondData); result.HasError())
+        {
+            return HYP_MAKE_ERROR(Error, "Failed to deserialize second element of pair for type: {}", typeInfo.name);
+        }
+
+        // ok
+        return {};
+    }
+
     if (typeInfo.IsVariantType())
     {
-        // variant type is stored directly as whatever inner type it was serialized as.
-        // so, we need to iterate over the possible types and stop at the first one that works.
-
         ITypeInfoVariantHandler* variantHandler = static_cast<ITypeInfoVariantHandler*>(typeInfo.extendedInfo.handler);
         Assert(variantHandler && variantHandler->GetHandlerType() == ITypeInfoHandler::TYPE_VARIANT);
 
@@ -1504,7 +1590,45 @@ Result BoxedFromJSON(const JSON::Value& jsonValue, const TypeInfo& typeInfo, Box
         }
 
         const int numTypes = variantHandler->GetNumTypes();
+        
+        // // first pass: try to find type that matches (for numbers)
+        // // this is here because sometimes floats will get casted away to integer types,
+        // // even if a floating point type is actually in the variant. so we do this first pass to try filter and fit to the correct one
+        // for (int typeIndex = 0; typeIndex < numTypes; typeIndex++)
+        // {
+        //     const TypeInfo* variantTypeInfo = variantHandler->GetTypeInfoAtIndex(typeIndex);
+        //     AssertDebug(variantTypeInfo != nullptr, "Variant type info at index {} is null", typeIndex);
 
+        //     if (!variantTypeInfo)
+        //     {
+        //         continue;
+        //     }
+
+        //     if (jsonValue.IsNumber() && (variantTypeInfo->IsIntegralType() || variantTypeInfo->IsFloatType()))
+        //     {
+        //         JSON::Number num = jsonValue.AsNumber();
+
+        //         const bool isInteger = floor(num) == num;
+
+        //         if (isInteger == variantTypeInfo->IsIntegralType())
+        //         {
+        //             BoxedValue variantInstance;
+
+        //             if (!variantHandler->CreateInstance(variantInstance))
+        //             {
+        //                 return HYP_MAKE_ERROR(Error, "Failed to create instance of variant type {}", typeInfo.name);
+        //             }
+
+        //             if (variantHandler->SetValue(variantInstance, BoxedValue(num)))
+        //             {
+        //                 outBoxed = std::move(variantInstance);
+        //                 return {};
+        //             }
+        //         }
+        //     }
+        // }
+
+        // second pass: use first one that works
         for (int typeIndex = 0; typeIndex < numTypes; typeIndex++)
         {
             const TypeInfo* variantTypeInfo = variantHandler->GetTypeInfoAtIndex(typeIndex);

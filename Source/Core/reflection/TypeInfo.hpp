@@ -2,21 +2,22 @@
 
 #pragma once
 
-#include <Core/reflection/TypeId.hpp>
+#include <Core/Types.hpp>
+#include <Core/HashCode.hpp>
+
 #include <Core/utilities/EnumFlags.hpp>
 #include <Core/utilities/DeferredScope.hpp>
+#include <Core/utilities/Pair.hpp>
 
 #include <Core/memory/AnyRef.hpp>
 #include <Core/memory/Any.hpp>
 
 #include <Core/name/Name.hpp>
-#include <Core/Types.hpp>
-#include <Core/utilities/Traits.hpp>
-#include <Core/HashCode.hpp>
 
 #include <Core/containers/FixedArray.hpp>
 #include <Core/containers/String.hpp>
 
+#include <Core/reflection/TypeId.hpp>
 #include <Core/reflection/ObjectFwd.hpp>
 
 #include <type_traits>
@@ -53,7 +54,11 @@ enum class TypeInfoFlags : uint32
     // Matrix types
     MAT3_TYPE = 0x1000000,
     MAT4_TYPE = 0x2000000,
-    MATRIX_TYPE = MAT3_TYPE | MAT4_TYPE
+    MATRIX_TYPE = MAT3_TYPE | MAT4_TYPE,
+
+    // Tuple/Pair types
+    TUPLE_TYPE = 0x4000000,
+    PAIR_TYPE = 0x8000000
 };
 
 HYP_MAKE_ENUM_FLAGS(TypeInfoFlags)
@@ -111,6 +116,9 @@ namespace utilities {
 
 template <class... Types>
 struct Variant;
+
+template <class... Types>
+class Tuple;
 
 } // namespace utilities
 
@@ -202,7 +210,9 @@ public:
         TYPE_STRING,
         TYPE_VECTOR,
         TYPE_MATRIX,
-        TYPE_VARIANT
+        TYPE_VARIANT,
+        TYPE_TUPLE,
+        TYPE_PAIR
     };
 
     virtual ~ITypeInfoHandler() = default;
@@ -388,6 +398,50 @@ public:
     virtual bool SetValue(const BoxedValue& instance, const BoxedValue& value) const = 0;
 };
 
+class ITypeInfoTupleHandler : public ITypeInfoHandler
+{
+public:
+    virtual ~ITypeInfoTupleHandler() = default;
+
+    virtual Type GetHandlerType() const override final
+    {
+        return TYPE_TUPLE;
+    }
+
+    virtual bool CreateInstance(BoxedValue& outInstance) const override = 0;
+
+    virtual ITypeInfoHandler* Clone() const override = 0;
+
+    virtual int GetNumElements() const = 0;
+    virtual const TypeInfo* GetElementTypeInfoAtIndex(int index) const = 0;
+
+    virtual AnyRef GetElement(const BoxedValue& instance, int index) const = 0;
+    virtual bool SetElement(const BoxedValue& instance, int index, const BoxedValue& value) const = 0;
+};
+
+class ITypeInfoPairHandler : public ITypeInfoHandler
+{
+public:
+    virtual ~ITypeInfoPairHandler() = default;
+
+    virtual Type GetHandlerType() const override final
+    {
+        return TYPE_PAIR;
+    }
+
+    virtual bool CreateInstance(BoxedValue& outInstance) const override = 0;
+
+    virtual ITypeInfoHandler* Clone() const override = 0;
+
+    virtual const TypeInfo* GetFirstTypeInfo() const = 0;
+    virtual const TypeInfo* GetSecondTypeInfo() const = 0;
+
+    virtual AnyRef GetFirst(const BoxedValue& instance) const = 0;
+    virtual AnyRef GetSecond(const BoxedValue& instance) const = 0;
+    virtual void SetFirst(const BoxedValue& instance, const BoxedValue& value) const = 0;
+    virtual void SetSecond(const BoxedValue& instance, const BoxedValue& value) const = 0;
+};
+
 /*! \brief Additional type information for containers and complex types */
 struct HYP_API TypeInfoEx
 {
@@ -509,6 +563,18 @@ struct TypeInfoImpl<containers::ArrayMap<Key, Value>, TBoxed>
 
 template <class... Types, class TBoxed>
 struct TypeInfoImpl<utilities::Variant<Types...>, TBoxed>
+{
+    void operator()(TypeInfo& result) const;
+};
+
+template <class... Types, class TBoxed>
+struct TypeInfoImpl<utilities::Tuple<Types...>, TBoxed>
+{
+    void operator()(TypeInfo& result) const;
+};
+
+template <class First, class Second, class T1, class T2, class TBoxed>
+struct TypeInfoImpl<utilities::detail::Pair<First, Second, T1, T2>, TBoxed>
 {
     void operator()(TypeInfo& result) const;
 };
@@ -783,6 +849,16 @@ struct TypeInfo
     HYP_FORCE_INLINE bool IsVariantType() const
     {
         return flags & TypeInfoFlags::VARIANT_TYPE;
+    }
+
+    HYP_FORCE_INLINE bool IsTupleType() const
+    {
+        return flags & TypeInfoFlags::TUPLE_TYPE;
+    }
+
+    HYP_FORCE_INLINE bool IsPairType() const
+    {
+        return flags & TypeInfoFlags::PAIR_TYPE;
     }
 
     HYP_FORCE_INLINE bool IsBoolType() const
@@ -1811,6 +1887,224 @@ void TypeInfoImpl<utilities::Variant<Types...>, TBoxed>::operator()(TypeInfo& re
     result.extendedInfo.handler = new VariantHandler();
 }
 
+/// Tuple implementation
+/// Avert your eyes or your sanity shall belong to me!!!
+
+template <class... Types, class TBoxed>
+void TypeInfoImpl<utilities::Tuple<Types...>, TBoxed>::operator()(TypeInfo& result) const
+{
+    using TupleType = utilities::Tuple<Types...>;
+
+    result.flags |= TypeInfoFlags::TUPLE_TYPE;
+
+    constexpr size_t TupleSize = sizeof...(Types);
+
+    // Store each element's TypeInfo as a linked list of TypeInfoEx nodes
+    if constexpr (TupleSize > 0)
+    {
+        TypeInfoEx* head = nullptr;
+        TypeInfoEx* current = nullptr;
+
+        auto buildNodes = [&]<size_t... Indices>(std::index_sequence<Indices...>)
+        {
+            ((
+                [&]() {
+                    TypeInfoEx* node = new TypeInfoEx();
+                    node->data.typeInfo = &TypeInfo::ForType<typename utilities::TupleElement<Indices, Types...>::Type>();
+                    node->dataType = TypeInfoEx::DT_TYPE_INFO;
+
+                    if (!head)
+                    {
+                        head = node;
+                        current = node;
+                    }
+                    else
+                    {
+                        current->next = node;
+                        current = node;
+                    }
+                }()
+            ), ...);
+        };
+
+        buildNodes(std::make_index_sequence<TupleSize> {});
+
+        result.extendedInfo.next = head;
+    }
+
+    class TupleHandler final : public ITypeInfoTupleHandler
+    {
+    public:
+        virtual ITypeInfoHandler* Clone() const override
+        {
+            return new TupleHandler();
+        }
+
+        virtual bool CreateInstance(TBoxed& outInstance) const override
+        {
+            outInstance = BoxedValue(TupleType {});
+            return true;
+        }
+
+        virtual int GetNumElements() const override
+        {
+            return int(TupleSize);
+        }
+
+        virtual const TypeInfo* GetElementTypeInfoAtIndex(int index) const override
+        {
+            if (index < 0 || size_t(index) >= TupleSize)
+            {
+                return nullptr;
+            }
+
+            const TypeInfo* result = nullptr;
+            int i = 0;
+
+            // now, I am become death destroyer of tuple indices
+            [&]<size_t... Indices>(std::index_sequence<Indices...>)
+            {
+                ((
+                    [&]() {
+                        if (i == index)
+                        {
+                            result = &TypeInfo::ForType<typename utilities::TupleElement<Indices, Types...>::Type>();
+                        }
+                        ++i;
+                    }()
+                ), ...);
+            }(std::make_index_sequence<TupleSize> {});
+
+            return result;
+        }
+
+        virtual AnyRef GetElement(const TBoxed& instance, int index) const override
+        {
+            if (index < 0 || size_t(index) >= TupleSize)
+            {
+                return AnyRef();
+            }
+
+            AnyRef result;
+
+            int i = 0;
+            [&]<size_t... Indices>(std::index_sequence<Indices...>)
+            {
+                ((
+                    [&]() {
+                        if (i == index)
+                        {
+                            TupleType& tup = instance.template Get<TupleType>();
+                            result = AnyRef(&tup.template GetElement<Indices>());
+                        }
+                        ++i;
+                    }()
+                ), ...);
+            }(std::make_index_sequence<TupleSize> {});
+
+            return result;
+        }
+
+        virtual bool SetElement(const TBoxed& instance, int index, const TBoxed& value) const override
+        {
+            if (index < 0 || size_t(index) >= TupleSize)
+            {
+                return false;
+            }
+
+            bool isSet = false;
+            int i = 0;
+
+            [&]<size_t... Indices>(std::index_sequence<Indices...>)
+            {
+                ((
+                    [&]() {
+                        if (i == index && !isSet)
+                        {
+                            using ElemType = typename utilities::TupleElement<Indices, Types...>::Type;
+                            TupleType& tup = instance.template Get<TupleType>();
+                            tup.template GetElement<Indices>() = value.template Get<ElemType>();
+                            isSet = true;
+                        }
+                        ++i;
+                    }()
+                ), ...);
+            }(std::make_index_sequence<TupleSize> {});
+
+            return isSet;
+        }
+    };
+
+    result.extendedInfo.handler = new TupleHandler();
+}
+
+template <class First, class Second, class T1, class T2, class TBoxed>
+void TypeInfoImpl<utilities::detail::Pair<First, Second, T1, T2>, TBoxed>::operator()(TypeInfo& result) const
+{
+    using PairType = utilities::detail::Pair<First, Second, T1, T2>;
+
+    result.flags |= TypeInfoFlags::PAIR_TYPE;
+
+    // Store first type in extendedInfo, second type in extendedInfo.next
+    result.extendedInfo.data.typeInfo = &TypeInfo::ForType<First>();
+    result.extendedInfo.dataType = TypeInfoEx::DT_TYPE_INFO;
+
+    result.extendedInfo.next = new TypeInfoEx();
+    result.extendedInfo.next->data.typeInfo = &TypeInfo::ForType<Second>();
+    result.extendedInfo.next->dataType = TypeInfoEx::DT_TYPE_INFO;
+
+    class PairHandler final : public ITypeInfoPairHandler
+    {
+    public:
+        virtual ITypeInfoHandler* Clone() const override
+        {
+            return new PairHandler();
+        }
+
+        virtual bool CreateInstance(TBoxed& outInstance) const override
+        {
+            outInstance = BoxedValue(PairType {});
+            return true;
+        }
+
+        virtual const TypeInfo* GetFirstTypeInfo() const override
+        {
+            return &TypeInfo::ForType<First>();
+        }
+
+        virtual const TypeInfo* GetSecondTypeInfo() const override
+        {
+            return &TypeInfo::ForType<Second>();
+        }
+
+        virtual AnyRef GetFirst(const TBoxed& instance) const override
+        {
+            PairType& pair = instance.template Get<PairType>();
+            return AnyRef(&pair.first);
+        }
+
+        virtual AnyRef GetSecond(const TBoxed& instance) const override
+        {
+            PairType& pair = instance.template Get<PairType>();
+            return AnyRef(&pair.second);
+        }
+
+        virtual void SetFirst(const TBoxed& instance, const TBoxed& value) const override
+        {
+            PairType& pair = instance.template Get<PairType>();
+            pair.first = value.template Get<First>();
+        }
+
+        virtual void SetSecond(const TBoxed& instance, const TBoxed& value) const override
+        {
+            PairType& pair = instance.template Get<PairType>();
+            pair.second = value.template Get<Second>();
+        }
+    };
+
+    result.extendedInfo.handler = new PairHandler();
+}
+
 template <class T, class TBoxed>
 void TypeInfoImpl<math::Vec2<T>, TBoxed>::operator()(TypeInfo& result) const
 {
@@ -2201,6 +2495,8 @@ using utilities::ITypeInfoSetHandler;
 using utilities::ITypeInfoStringHandler;
 using utilities::ITypeInfoVariantHandler;
 using utilities::ITypeInfoVectorHandler;
+using utilities::ITypeInfoTupleHandler;
+using utilities::ITypeInfoPairHandler;
 
 using utilities::TypeInfo_ForClass;
 using utilities::TypeInfo_Void;
