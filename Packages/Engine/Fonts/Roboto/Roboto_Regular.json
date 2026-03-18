@@ -8,42 +8,52 @@
       }
     },
     "Atlases": [[67, {
+          "$Class": "AssetReference",
           "AssetPath": {
             "Value": "Engine/Fonts/Roboto/FontAtlas_1"
           }
         }], [74, {
+          "$Class": "AssetReference",
           "AssetPath": {
             "Value": "Engine/Fonts/Roboto/FontAtlas_1_1"
           }
         }], [81, {
+          "$Class": "AssetReference",
           "AssetPath": {
             "Value": "Engine/Fonts/Roboto/FontAtlas_1_2"
           }
         }], [88, {
+          "$Class": "AssetReference",
           "AssetPath": {
             "Value": "Engine/Fonts/Roboto/FontAtlas_1_3"
           }
         }], [94, {
+          "$Class": "AssetReference",
           "AssetPath": {
             "Value": "Engine/Fonts/Roboto/FontAtlas_1_4"
           }
         }], [101, {
+          "$Class": "AssetReference",
           "AssetPath": {
             "Value": "Engine/Fonts/Roboto/FontAtlas_1_5"
           }
         }], [108, {
+          "$Class": "AssetReference",
           "AssetPath": {
             "Value": "Engine/Fonts/Roboto/FontAtlas_1_6"
           }
         }], [114, {
+          "$Class": "AssetReference",
           "AssetPath": {
             "Value": "Engine/Fonts/Roboto/FontAtlas_1_7"
           }
         }], [121, {
+          "$Class": "AssetReference",
           "AssetPath": {
             "Value": "Engine/Fonts/Roboto/FontAtlas_1_8"
           }
         }], [128, {
+          "$Class": "AssetReference",
           "AssetPath": {
             "Value": "Engine/Fonts/Roboto/FontAtlas_1_9"
           }

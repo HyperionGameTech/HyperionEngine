@@ -408,37 +408,70 @@ Result BoxedToJSON(
 
         ITypeInfoPairHandler* pairHandler = static_cast<ITypeInfoPairHandler*>(typeInfo.extendedInfo.handler);
 
+        const TypeInfo* firstType = typeInfo.extendedInfo.GetElementType();
+        Assert(firstType != nullptr);
+
+        const TypeInfo* secondType = typeInfo.extendedInfo.next ? typeInfo.extendedInfo.next->GetElementType() : nullptr;
+        Assert(secondType != nullptr);
+
         // we store pair types as array of 2 elems
         JSON::JArray jsonArray;
         jsonArray.Resize(2);
 
-        ToJSONOptions newOpts = opts;
-        newOpts.writeClassNames = newOpts.writeClassNamesRecursively;
-
-        if (newOpts.followAssetPaths != ToJSONOptions::FollowAssetPathsMode::Always)
         {
-            newOpts.followAssetPaths = ToJSONOptions::FollowAssetPathsMode::Never;
+            BoxedValue firstBoxed;
+            pairHandler->GetFirst(value, firstBoxed);
+
+            ToJSONOptions newOpts = opts;
+            newOpts.writeClassNames = newOpts.writeClassNamesRecursively;
+
+            if (!newOpts.writeClassNames && ForceWriteClassNamesWhenTypesDiffer && firstType->GetClass() != firstBoxed.GetTypeInfo()->GetClass())
+            {
+                newOpts.writeClassNames = true;
+            }
+
+            if (newOpts.followAssetPaths != ToJSONOptions::FollowAssetPathsMode::Always)
+            {
+                newOpts.followAssetPaths = ToJSONOptions::FollowAssetPathsMode::Never;
+            }
+
+            /*if (newOpts.saveAssetsAsReferences != ToJSONOptions::SaveAssetsAsReferencesMode::Yes)
+            {
+                newOpts.saveAssetsAsReferences = ToJSONOptions::SaveAssetsAsReferencesMode::No;
+            }*/
+
+            if (Result result = BoxedToJSON(firstBoxed, jsonArray[0], newOpts); result.HasError())
+            {
+                return HYP_MAKE_ERROR(Error, "Failed to serialize first element of pair for type {}: {}", typeInfo.name, result.GetError().GetMessage());
+            }
         }
 
-        /*if (newOpts.saveAssetsAsReferences != ToJSONOptions::SaveAssetsAsReferencesMode::Yes)
         {
-            newOpts.saveAssetsAsReferences = ToJSONOptions::SaveAssetsAsReferencesMode::No;
-        }*/
+            BoxedValue secondBoxed;
+            pairHandler->GetSecond(value, secondBoxed);
 
-        BoxedValue firstBoxed;
-        pairHandler->GetFirst(value, firstBoxed);
+            ToJSONOptions newOpts = opts;
+            newOpts.writeClassNames = newOpts.writeClassNamesRecursively;
 
-        BoxedValue secondBoxed;
-        pairHandler->GetSecond(value, secondBoxed);
+            if (!newOpts.writeClassNames && ForceWriteClassNamesWhenTypesDiffer && secondType->GetClass() != secondBoxed.GetTypeInfo()->GetClass())
+            {
+                newOpts.writeClassNames = true;
+            }
 
-        if (Result result = BoxedToJSON(firstBoxed, jsonArray[0], newOpts); result.HasError())
-        {
-            return HYP_MAKE_ERROR(Error, "Failed to serialize first element of pair for type {}: {}", typeInfo.name, result.GetError().GetMessage());
-        }
+            if (newOpts.followAssetPaths != ToJSONOptions::FollowAssetPathsMode::Always)
+            {
+                newOpts.followAssetPaths = ToJSONOptions::FollowAssetPathsMode::Never;
+            }
 
-        if (Result result = BoxedToJSON(secondBoxed, jsonArray[1], newOpts); result.HasError())
-        {
-            return HYP_MAKE_ERROR(Error, "Failed to serialize second element of pair for type {}: {}", typeInfo.name, result.GetError().GetMessage());
+            /*if (newOpts.saveAssetsAsReferences != ToJSONOptions::SaveAssetsAsReferencesMode::Yes)
+            {
+                newOpts.saveAssetsAsReferences = ToJSONOptions::SaveAssetsAsReferencesMode::No;
+            }*/
+
+            if (Result result = BoxedToJSON(secondBoxed, jsonArray[1], newOpts); result.HasError())
+            {
+                return HYP_MAKE_ERROR(Error, "Failed to serialize second element of pair for type {}: {}", typeInfo.name, result.GetError().GetMessage());
+            }
         }
 
         outJson = std::move(jsonArray);
@@ -834,8 +867,9 @@ Result ObjectFromJSON(const JSON::Object& jsonObject, const Class* targetClass, 
 
             if (Result result = BoxedFromJSON(value, typeInfo, boxed); result.HasError())
             {
-                HYP_LOG(Core, Warning, "Failed to deserialize field \"{}\" from json",
-                    member.GetName());
+                HYP_LOG(Core, Warning, "Failed to deserialize field \"{}\" from json: {}",
+                    member.GetName(),
+                    result.GetError().GetMessage());
 
                 return false;
             }
@@ -1454,12 +1488,12 @@ Result BoxedFromJSON(const JSON::Value& jsonValue, const TypeInfo& typeInfo, Box
 
             if (Result result = BoxedFromJSON(jsonArray[i], *elementTypeInfo, elementData); result.HasError())
             {
-                return HYP_MAKE_ERROR(Error, "Failed to deserialize array element at index {} for type: {}", i, typeInfo.name);
+                return HYP_MAKE_ERROR(Error, "Failed to deserialize array element at index {} for type {}: {}", i, typeInfo.name, result.GetError().GetMessage());
             }
 
             if (!arrayHandler->SetElementAt(arrayInstance, i, std::move(elementData)))
             {
-                return HYP_MAKE_ERROR(Error, "Failed to set array element at index {} for type: {}", i, typeInfo.name);
+                return HYP_MAKE_ERROR(Error, "Failed to set array element at index {} for type {}", i, typeInfo.name);
             }
         }
 
@@ -1549,14 +1583,29 @@ Result BoxedFromJSON(const JSON::Value& jsonValue, const TypeInfo& typeInfo, Box
         BoxedValue firstData;
         if (Result result = BoxedFromJSON(jsonArray[0], *firstTypeInfo, firstData); result.HasError())
         {
-            return HYP_MAKE_ERROR(Error, "Failed to deserialize first element of pair for type: {}", typeInfo.name);
+            return HYP_MAKE_ERROR(Error, "Failed to deserialize first element of pair for type {}: {}", typeInfo.name, result.GetError().GetMessage());
         }
 
         BoxedValue secondData;
         if (Result result = BoxedFromJSON(jsonArray[1], *secondTypeInfo, secondData); result.HasError())
         {
-            return HYP_MAKE_ERROR(Error, "Failed to deserialize second element of pair for type: {}", typeInfo.name);
+            return HYP_MAKE_ERROR(Error, "Failed to deserialize second element of pair for type {}: {}", typeInfo.name, result.GetError().GetMessage());
         }
+        
+        ITypeInfoPairHandler* pairHandler = static_cast<ITypeInfoPairHandler*>(typeInfo.extendedInfo.handler);
+        Assert(pairHandler && pairHandler->GetHandlerType() == ITypeInfoHandler::TYPE_PAIR);
+        
+        BoxedValue pairInstance;
+
+        if (!pairHandler->CreateInstance(pairInstance))
+        {
+            return HYP_MAKE_ERROR(Error, "Failed to create instance of pair type {}", typeInfo.name);
+        }
+
+        pairHandler->SetFirst(pairInstance, firstData);
+        pairHandler->SetSecond(pairInstance, secondData);
+
+        outBoxed = std::move(pairInstance);
 
         // ok
         return {};

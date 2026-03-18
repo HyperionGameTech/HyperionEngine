@@ -30,7 +30,7 @@ struct InstanceData;
 HYP_API extern GpuBufferHolderMap* GetGpuBufferHolderMap();
 
 HYP_STRUCT(NoScriptBindings)
-struct alignas(256) EntityInstanceBatch
+struct EntityInstanceBatch
 {
     HYP_STRUCT_BODY(EntityInstanceBatch);
 
@@ -51,7 +51,7 @@ struct alignas(256) EntityInstanceBatch
 };
 
 HYP_STRUCT(NoScriptBindings)
-struct alignas(256) MeshEntityInstanceBatch : EntityInstanceBatch
+struct MeshEntityInstanceBatch : EntityInstanceBatch
 {
     HYP_STRUCT_BODY(MeshEntityInstanceBatch);
 

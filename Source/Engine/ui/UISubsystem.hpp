@@ -29,7 +29,7 @@ class RenderProxyList;
 class OverlayBase;
 
 HYP_STRUCT(NoScriptBindings)
-struct alignas(256) UIEntityInstanceBatch : EntityInstanceBatch
+struct UIEntityInstanceBatch : EntityInstanceBatch
 {
     HYP_STRUCT_BODY(UIEntityInstanceBatch);
 
