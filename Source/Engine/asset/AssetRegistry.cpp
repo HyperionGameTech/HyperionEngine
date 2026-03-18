@@ -3654,31 +3654,21 @@ void AssetRegistry::RegisterAssetsRecursively(
 
         // @TODO Move array, entity, streaming cell special handlings out of this function:
         // like some kind of handler defined per class
+        /// + OR integrate with SerializationUtils for single source of truth.
+        
+        const TypeInfo& typeInfo = *current.GetTypeInfo();
 
-        if (current.IsArray()) // array needs special handling: iterate over elements (if possible)
+        bool walked = false;
+
+        WalkBoxedValue(current, [&](const BoxedValue& value)
+            {
+                Iterate(parentPackage, value);
+
+                walked = true;
+            });
+
+        if (walked)
         {
-            GenericArrayWrapper& array = current.Get<GenericArrayWrapper>();
-
-            if (!array.CanGetElementByIndex())
-            {
-                HYP_LOG(Assets, Error, "Cannot iterate over {}: not indexable", array.typeInfo->name);
-                return;
-            }
-
-            size_t size = array.Size();
-
-            for (size_t i = 0; i < size; ++i)
-            {
-                BoxedValue boxed;
-                if (!array.GetElementAt(i, boxed))
-                {
-                    HYP_LOG(Assets, Warning, "Failed to get element at index {} of array of type {}", i, array.typeInfo->name);
-                    continue;
-                }
-
-                Iterate(parentPackage, boxed);
-            }
-
             return;
         }
 

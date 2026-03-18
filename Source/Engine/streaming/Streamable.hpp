@@ -7,8 +7,6 @@
 
 #include <Core/math/BoundingBox.hpp>
 
-#include <Core/utilities/Uuid.hpp>
-
 #include <Core/reflection/ObjectBase.hpp>
 #include <Core/reflection/Handle.hpp>
 

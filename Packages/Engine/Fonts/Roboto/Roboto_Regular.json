@@ -6,7 +6,48 @@
       "AssetPath": {
         "Value": "Engine/Fonts/Roboto/FontAtlas_1"
       }
-    }
+    },
+    "Atlases": [[67, {
+          "AssetPath": {
+            "Value": "Engine/Fonts/Roboto/FontAtlas_1"
+          }
+        }], [74, {
+          "AssetPath": {
+            "Value": "Engine/Fonts/Roboto/FontAtlas_1_1"
+          }
+        }], [81, {
+          "AssetPath": {
+            "Value": "Engine/Fonts/Roboto/FontAtlas_1_2"
+          }
+        }], [88, {
+          "AssetPath": {
+            "Value": "Engine/Fonts/Roboto/FontAtlas_1_3"
+          }
+        }], [94, {
+          "AssetPath": {
+            "Value": "Engine/Fonts/Roboto/FontAtlas_1_4"
+          }
+        }], [101, {
+          "AssetPath": {
+            "Value": "Engine/Fonts/Roboto/FontAtlas_1_5"
+          }
+        }], [108, {
+          "AssetPath": {
+            "Value": "Engine/Fonts/Roboto/FontAtlas_1_6"
+          }
+        }], [114, {
+          "AssetPath": {
+            "Value": "Engine/Fonts/Roboto/FontAtlas_1_7"
+          }
+        }], [121, {
+          "AssetPath": {
+            "Value": "Engine/Fonts/Roboto/FontAtlas_1_8"
+          }
+        }], [128, {
+          "AssetPath": {
+            "Value": "Engine/Fonts/Roboto/FontAtlas_1_9"
+          }
+        }]]
   },
   "CellDimensions": [55, 67],
   "GlyphMetrics": [{

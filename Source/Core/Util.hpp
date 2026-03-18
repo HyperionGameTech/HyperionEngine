@@ -572,6 +572,42 @@ constexpr void StaticForEach(FunctionType&& function, const Tuple<Types...>& tup
 
 #pragma endregion StaticForEach
 
+#pragma region WithTupleElementAt
+
+/*! \brief Invoke the given functor object for the element at the provided \p index */
+template <class... Types, class Functor>
+constexpr void WithTupleElement(Tuple<Types...>& tuple, size_t index, Functor&& fn)
+{
+    Assert(index < sizeof...(Types), "Tuple index out of range");
+    
+    size_t currIndex = 0;
+
+    auto Doer = [&]<size_t... Indices>(std::index_sequence<Indices...>)
+    {
+        ((currIndex++ == index && (fn(tuple.template GetElement<Indices>()), true)) || ...);
+    };
+
+    Doer(std::make_index_sequence<sizeof...(Types)> {});
+}
+
+/*! \brief Invoke the given functor object for the element at the provided \p index */
+template <class... Types, class Functor>
+constexpr void WithTupleElement(const Tuple<Types...>& tuple, size_t index, Functor&& fn)
+{
+    Assert(index < sizeof...(Types), "Tuple index out of range");
+    
+    size_t currIndex = 0;
+
+    auto Doer = [&]<size_t... Indices>(std::index_sequence<Indices...>)
+    {
+        ((currIndex++ == index && (fn(tuple.template GetElement<Indices>()), true)) || ...);
+    };
+
+    Doer(std::make_index_sequence<sizeof...(Types)> {});
+}
+
+#pragma endregion WithTupleElementAt
+
 #pragma region OffsetOf
 
 template <typename T>

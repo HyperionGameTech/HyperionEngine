@@ -436,8 +436,8 @@ public:
     virtual const TypeInfo* GetFirstTypeInfo() const = 0;
     virtual const TypeInfo* GetSecondTypeInfo() const = 0;
 
-    virtual AnyRef GetFirst(const BoxedValue& instance) const = 0;
-    virtual AnyRef GetSecond(const BoxedValue& instance) const = 0;
+    virtual void GetFirst(const BoxedValue& instance, BoxedValue& outValue) const = 0;
+    virtual void GetSecond(const BoxedValue& instance, BoxedValue& outValue) const = 0;
     virtual void SetFirst(const BoxedValue& instance, const BoxedValue& value) const = 0;
     virtual void SetSecond(const BoxedValue& instance, const BoxedValue& value) const = 0;
 };
@@ -1858,6 +1858,7 @@ void TypeInfoImpl<utilities::Variant<Types...>, TBoxed>::operator()(TypeInfo& re
             VariantType& variant = instance.template Get<VariantType>();
             bool isSet = false;
 
+            // initial pass, strict type match
             StaticForEach<Tuple<Types...>>([&]<class T>(TypeWrapper<T>)
                 {
                     if (isSet)
@@ -1872,15 +1873,69 @@ void TypeInfoImpl<utilities::Variant<Types...>, TBoxed>::operator()(TypeInfo& re
                     }
                 });
 
-            if (!isSet)
+            if (isSet)
+                return true;
+
+            // second pass, for float/integral types.
+            // if the initial 'strict' pass didn't find any type to match against the given value,
+            // we do another pass to allow `double`, for example,
+            // to be cast down to float, rather than settling on an integral type if it comes first in the type list.
+            bool isValueIntegral = value.GetTypeInfo()->IsIntegralType();
+            bool isValueFloat = value.GetTypeInfo()->IsFloatType();
+
+            if (isValueIntegral || isValueFloat)
             {
-                // Type not found in variant types; reset to default
-                variant = VariantType {};
+                if (MathUtil::Fract(value.template Get<double>()) == 0)
+                {
+                    isValueIntegral = true;
+                    isValueFloat = false;
+                }
 
-                return false;
+                StaticForEach<Tuple<Types...>>([&]<class T>(TypeWrapper<T>)
+                    {
+                        if (isSet)
+                        {
+                            return;
+                        }
+
+                        if constexpr (std::is_integral_v<T> || std::is_floating_point_v<T>)
+                        {
+                            if (isValueIntegral == std::is_integral_v<T>)
+                            {
+                                variant.template Set<T>(value.template Get<T>());
+                                isSet = true;
+                            }
+                        }
+                    });
+
+                if (isSet)
+                    return true;
             }
+             
+            // final pass: non-strict match.
+            // allows fundamental types to be used interchangably; the first compatible type that is encountered
+            // will be used.
+            StaticForEach<Tuple<Types...>>([&]<class T>(TypeWrapper<T>)
+                {
+                    if (isSet)
+                    {
+                        return;
+                    }
 
-            return true;
+                    if (value.template Is<T>(/* strict */ false))
+                    {
+                        variant.template Set<T>(value.template Get<T>());
+                        isSet = true;
+                    }
+                });
+
+            if (isSet)
+                return true;
+
+            // Type not found in variant types; reset to default
+            variant = VariantType {};
+
+            return false;
         }
     };
 
@@ -1905,7 +1960,7 @@ void TypeInfoImpl<utilities::Tuple<Types...>, TBoxed>::operator()(TypeInfo& resu
         TypeInfoEx* head = nullptr;
         TypeInfoEx* current = nullptr;
 
-        auto buildNodes = [&]<size_t... Indices>(std::index_sequence<Indices...>)
+        auto BuildNodes = [&]<size_t... Indices>(std::index_sequence<Indices...>)
         {
             ((
                 [&]() {
@@ -1927,7 +1982,7 @@ void TypeInfoImpl<utilities::Tuple<Types...>, TBoxed>::operator()(TypeInfo& resu
             ), ...);
         };
 
-        buildNodes(std::make_index_sequence<TupleSize> {});
+        BuildNodes(std::make_index_sequence<TupleSize> {});
 
         result.extendedInfo.next = head;
     }
@@ -1961,19 +2016,10 @@ void TypeInfoImpl<utilities::Tuple<Types...>, TBoxed>::operator()(TypeInfo& resu
             const TypeInfo* result = nullptr;
             int i = 0;
 
-            // now, I am become death destroyer of tuple indices
-            [&]<size_t... Indices>(std::index_sequence<Indices...>)
-            {
-                ((
-                    [&]() {
-                        if (i == index)
-                        {
-                            result = &TypeInfo::ForType<typename utilities::TupleElement<Indices, Types...>::Type>();
-                        }
-                        ++i;
-                    }()
-                ), ...);
-            }(std::make_index_sequence<TupleSize> {});
+            WithTupleElement(TupleType {}, index, [&](auto&& elem)
+                {
+                    result = &TypeInfo::ForType<NormalizedType<decltype(elem)>>();
+                });
 
             return result;
         }
@@ -1987,6 +2033,7 @@ void TypeInfoImpl<utilities::Tuple<Types...>, TBoxed>::operator()(TypeInfo& resu
 
             AnyRef result;
 
+            // gross again
             int i = 0;
             [&]<size_t... Indices>(std::index_sequence<Indices...>)
             {
@@ -2015,6 +2062,7 @@ void TypeInfoImpl<utilities::Tuple<Types...>, TBoxed>::operator()(TypeInfo& resu
             bool isSet = false;
             int i = 0;
 
+            // yep still gross
             [&]<size_t... Indices>(std::index_sequence<Indices...>)
             {
                 ((
@@ -2077,22 +2125,22 @@ void TypeInfoImpl<utilities::detail::Pair<First, Second, T1, T2>, TBoxed>::opera
             return &TypeInfo::ForType<Second>();
         }
 
-        virtual AnyRef GetFirst(const TBoxed& instance) const override
+        virtual void GetFirst(const TBoxed& instance, TBoxed& outValue) const override
         {
             PairType& pair = instance.template Get<PairType>();
-            return AnyRef(&pair.first);
-        }
-
-        virtual AnyRef GetSecond(const TBoxed& instance) const override
-        {
-            PairType& pair = instance.template Get<PairType>();
-            return AnyRef(&pair.second);
+            outValue = TBoxed(pair.first);
         }
 
         virtual void SetFirst(const TBoxed& instance, const TBoxed& value) const override
         {
             PairType& pair = instance.template Get<PairType>();
             pair.first = value.template Get<First>();
+        }
+
+        virtual void GetSecond(const TBoxed& instance, TBoxed& outValue) const override
+        {
+            PairType& pair = instance.template Get<PairType>();
+            outValue = BoxedValue(pair.second);
         }
 
         virtual void SetSecond(const TBoxed& instance, const TBoxed& value) const override

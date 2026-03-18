@@ -29,6 +29,15 @@ class Object;
 
 } // namespace JSON
 
+namespace functional {
+
+template <class FunctionSignature>
+class ProcRef;
+
+} // namespace functional
+
+using functional::ProcRef;
+
 struct ToJSONOptions
 {
     enum class FollowAssetPathsMode : int
@@ -99,5 +108,9 @@ Result BoxedFromJSON(const JSON::Value& jsonValue, const TypeInfo& typeInfo, Box
  *  \return True if deserialization was successful, false otherwise.
  */
 Result ObjectFromJSON(const JSON::Object& jsonObject, const Class* targetClass, BoxedValue& target);
+
+void WalkBoxedValue(
+    const BoxedValue& target,
+    const ProcRef<void(const BoxedValue& current)>& func);
 
 } // namespace Hyperion

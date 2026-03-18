@@ -936,7 +936,7 @@ endif()
 
 # if Win32, link with DbgHelp
 if(HYP_WINDOWS)
-    set(COMMON_LIBRARIES ${COMMON_LIBRARIES} DbgHelp)
+    set(COMMON_LIBRARIES ${COMMON_LIBRARIES} DbgHelp dwmapi)
 endif()
 
 if(HYP_ANDROID)

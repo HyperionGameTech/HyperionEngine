@@ -1049,6 +1049,7 @@ void Win32ApplicationWindow::Initialize(WindowOptions windowOptions)
     wc.lpfnWndProc = &Win32ApplicationWindow::StaticWndProc;
     wc.hInstance = m_hinst;
     wc.hCursor = LoadCursor(nullptr, IDC_ARROW);
+    wc.hbrBackground = CreateSolidBrush(RGB(10, 10, 10));
     wc.lpszClassName = wTitle.Data();
 
     ATOM classAtom = RegisterClassExW(&wc);
