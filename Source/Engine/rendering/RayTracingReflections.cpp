@@ -16,6 +16,7 @@
 #include <rendering/TextureViewCache.hpp>
 #include <rendering/DescriptorSet.hpp>
 #include <rendering/RenderHelpers.hpp>
+#include <rendering/ConstantsAllocator.hpp>
 
 #include <rendering/renderers/DeferredRenderer.hpp>
 
@@ -40,6 +41,17 @@ namespace Hyperion {
 
 static const Name s_shaderNames[] = { NAME("RayTracedReflections"), NAME("PathTracer") };
 static constexpr uint32 MaxLights = sizeof(RayTracingConstants::lightIndices) / (sizeof(uint32));
+
+namespace DeferredRendererHelpers {
+
+// Defined in DeferredRenderer.cpp
+void FillShadowMapData(
+    ShadowMapData& outShadowMapData,
+    const ShadowMap& inShadowMap,
+    View* shadowMapViewDynamic,
+    View* shadowMapViewStatic);
+
+} // namespace DeferredRendererHelpers
 
 RayTracingReflections::RayTracingReflections(RayTracingReflectionsConfig&& config, GBuffer* gbuffer)
     : m_config(std::move(config)),
@@ -69,101 +81,6 @@ void RayTracingReflections::Create()
     CreateTemporalBlending();
 }
 
-void RayTracingReflections::UpdateUniforms(Frame* frame, const RenderSetup& renderSetup)
-{
-    RayTracingPassData* pd = ObjCast<RayTracingPassData>(renderSetup.passData);
-    Assert(pd != nullptr);
-    
-    GpuBufferRef& cBuffer = pd->cBuffer;
-    if (!cBuffer)
-    {
-        cBuffer = g_renderInterface->MakeGpuBuffer(GpuBufferType::CONSTANT_BUFFER, sizeof(RayTracingConstants));
-#if HYP_DEBUG_MODE
-        cBuffer->SetDebugName(NAME("RayTracingCBuffer"));
-#endif
-        Assert(cBuffer->Create());
-    }
-
-    GpuBufferRef& lightsBuffer = pd->lightsBuffer;
-    if (!lightsBuffer)
-    {
-        lightsBuffer = g_renderInterface->MakeGpuBuffer(GpuBufferType::CONSTANT_BUFFER, sizeof(LightShaderData) * MaxLights);
-#if HYP_DEBUG_MODE
-        lightsBuffer->SetDebugName(NAME("RayTracingLightsBuffer"));
-#endif
-
-        lightsBuffer->SetIsCpuAccessible(true);        
-        Assert(lightsBuffer->Create());
-    }
-
-    struct UpdateRayTracingBuffers
-    {
-        Vec2i extent;
-        View* view = nullptr;
-        RayTracingPassData* passData = nullptr;
-
-        void operator()(Frame*)
-        {
-            AssertDebug(view && passData);
-
-            RenderProxyList& rpl = GetConsumerProxyList(view);
-            rpl.BeginRead();
-            HYP_DEFER({ rpl.EndRead(); });
-            
-            GpuBufferRef& lightsBuffer = passData->lightsBuffer;
-            AssertDebug(lightsBuffer != nullptr);
-
-            GpuBufferRef& cBuffer = passData->cBuffer;
-            AssertDebug(cBuffer != nullptr);
-
-            RayTracingConstants constantData {};
-            constantData.minRoughness = 0.4f;
-            constantData.outputImageResolution = extent;
-
-            uint32 numBoundLights = 0;
-    
-            uint32* lightIndicesU32 = reinterpret_cast<uint32*>(constantData.lightIndices);
-            Memory::Fill(lightIndicesU32, 0, sizeof(constantData.lightIndices));
-
-            for (Light* light : rpl.GetLights())
-            {
-                const LightType lightType = light->GetLightType();
-
-                if (lightType != LightType::Directional
-                    && lightType != LightType::Point)
-                {
-                    continue;
-                }
-
-                if (numBoundLights >= MaxLights)
-                {
-                    break;
-                }
-
-                RenderProxyLight* lightProxy = static_cast<RenderProxyLight*>(GetRenderProxy(light));
-                Assert(lightProxy != nullptr);
-                
-                lightsBuffer->Copy(numBoundLights * sizeof(LightShaderData), sizeof(LightShaderData), &lightProxy->bufferData);
-
-                lightIndicesU32[numBoundLights++] = RetrieveResourceBinding(light);
-            }
-
-            lightsBuffer->Flush(0, numBoundLights * sizeof(LightShaderData));
-
-            constantData.numBoundLights = numBoundLights;
-
-            cBuffer->Copy(sizeof(constantData), &constantData);
-            cBuffer->Flush(0, sizeof(constantData));
-        }
-    };
-
-    g_renderInterface->GetCurrentFrame()->OnFrameEnd.Bind(UpdateRayTracingBuffers {
-        Vec2i(m_config.extent),
-        renderSetup.view,
-        pd
-    }).Detach();
-}
-
 void RayTracingReflections::Render(Frame* frame, const RenderSetup& renderSetup)
 {
     HYP_NAMED_SCOPE("Ray traced reflections");
@@ -175,8 +92,6 @@ void RayTracingReflections::Render(Frame* frame, const RenderSetup& renderSetup)
 
     DeferredRendererPassData* parentPass = pd->parentPass;
     AssertDebug(parentPass != nullptr);
-    
-    UpdateUniforms(frame, renderSetup);
 
     const uint32 frameIndex = frame->GetFrameIndex();
     const GpuTlasRef& tlas = pd->rayTracingTlases[frameIndex];
@@ -219,7 +134,98 @@ void RayTracingReflections::Render(Frame* frame, const RenderSetup& renderSetup)
     Framebuffer* viewFramebuffer = parentPass->view.GetUnsafe()->GetOutputTarget().GetFramebuffer(RenderBucket::Opaque);
     AssertDebug(viewFramebuffer != nullptr);
 
-    AssertDebug(pd->cBuffer != nullptr);
+    GpuBuffer* cBuffer = nullptr;
+    size_t cBufferOffset = 0;
+    size_t cBufferSize = 0;
+
+    {
+        RayTracingConstants rayTracingConstants {};
+        rayTracingConstants.minRoughness = 0.4f;
+        rayTracingConstants.outputImageResolution = Vec2i(m_config.extent);
+
+        Array<Pair<Light*, LightShaderData*>, RenderAllocator> tempLights;
+
+        uint32 numBoundLights = 0;
+    
+        uint32* lightIndicesU32 = reinterpret_cast<uint32*>(rayTracingConstants.lightIndices);
+        Memory::Fill(lightIndicesU32, 0, sizeof(rayTracingConstants.lightIndices));
+        
+        RenderProxyList& rpl = GetConsumerProxyList(renderSetup.view);
+        rpl.BeginRead();
+        HYP_DEFER({ rpl.EndRead(); });
+
+        for (Light* light : rpl.GetLights())
+        {
+            const LightType lightType = light->GetLightType();
+
+            if (lightType != LightType::Directional
+                && lightType != LightType::Point)
+            {
+                continue;
+            }
+
+            if (numBoundLights >= MaxLights)
+            {
+                break;
+            }
+
+            RenderProxyLight* lightProxy = static_cast<RenderProxyLight*>(GetRenderProxy(light));
+            Assert(lightProxy != nullptr);
+
+            tempLights.EmplaceBack(light, &lightProxy->bufferData);
+
+            lightIndicesU32[numBoundLights++] = RetrieveResourceBinding(light);
+        }
+
+        rayTracingConstants.numBoundLights = numBoundLights;
+
+        g_renderInterface->constantsAllocator->Write(&rayTracingConstants);
+
+        for (uint32 i = 0; i < MaxLights; i++)
+        {
+            if (i < uint32(tempLights.Size()))
+            {
+                g_renderInterface->constantsAllocator->Write(tempLights[i].second);
+                continue;
+            }
+        
+            LightShaderData dummy {};
+            g_renderInterface->constantsAllocator->Write(&dummy);
+        }
+
+        for (uint32 i = 0; i < MaxLights; i++)
+        {
+            ShadowMapData shadowMapData {};
+
+            if (i < uint32(tempLights.Size()))
+            {
+                View* shadowMapViewDynamic;
+                View* shadowMapViewStatic;
+
+                Light* light = tempLights[i].first;
+
+                ShadowMap* shadowMap = g_renderInterface->shadowMapCache->GetShadowMap(
+                    light,
+                    renderSetup.view,
+                    /* cascadeIndex */ 0,
+                    shadowMapViewDynamic,
+                    shadowMapViewStatic);
+
+                if (shadowMap != nullptr)
+                {
+                    DeferredRendererHelpers::FillShadowMapData(
+                        shadowMapData,
+                        *shadowMap,
+                        shadowMapViewDynamic,
+                        shadowMapViewStatic);
+                }
+            }
+
+            g_renderInterface->constantsAllocator->Write(&shadowMapData);
+        }
+            
+        g_renderInterface->constantsAllocator->Commit(cBuffer, cBufferOffset, cBufferSize);
+    }
     
     frame->cr << SetShaderUniform(0, "GBufferAlbedoTexture"_sh, viewFramebuffer->GetAttachment(0)->GetImageView());
     frame->cr << SetShaderUniform(1, "GBufferNormalsTexture"_sh, viewFramebuffer->GetAttachment(1)->GetImageView());
@@ -231,8 +237,8 @@ void RayTracingReflections::Render(Frame* frame, const RenderSetup& renderSetup)
     frame->cr << SetShaderUniform(6, "TLAS"_sh, tlas);
     frame->cr << SetShaderUniform(7, "MeshDescriptionsBuffer"_sh, meshDescriptionsBuffer);
     frame->cr << SetShaderUniform(8, "OutputImage"_sh, g_renderInterface->textureViewCache->GetOrCreate(m_texture));
-    frame->cr << SetShaderUniform(9, "RayTracingConstants"_sh, pd->cBuffer);
-    frame->cr << SetShaderUniform(10, "Lights"_sh, pd->lightsBuffer);
+    frame->cr << SetShaderUniform(9, "CBuffer"_sh, cBuffer, ShaderDataOffset(cBufferOffset, cBufferSize));
+
     frame->cr << SetShaderUniform(11, "BlueNoiseBuffer"_sh, g_renderInterface->blueNoiseBuffer);
 
     frame->cr << SetShaderUniform(12, "ShadowMapsTextureArray"_sh, g_renderInterface->shadowMapCache->GetAtlasImageView());

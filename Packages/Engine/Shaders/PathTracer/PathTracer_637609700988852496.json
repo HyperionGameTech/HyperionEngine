@@ -288,34 +288,6 @@
             }, {
               "$Class": "ShaderInput",
               "Register": 3,
-              "ElementType": 1,
-              "Name": "Lights",
-              "Count": 1,
-              "Size": 4294967295,
-              "IsDynamic": false,
-              "StructInfo": {
-                "Name": "",
-                "Size": 4294967295,
-                "FieldNames": [],
-                "FieldTypes": []
-              }
-            }, {
-              "$Class": "ShaderInput",
-              "Register": 3,
-              "ElementType": 1,
-              "Name": "RayTracingConstants",
-              "Count": 1,
-              "Size": 4294967295,
-              "IsDynamic": false,
-              "StructInfo": {
-                "Name": "",
-                "Size": 4294967295,
-                "FieldNames": [],
-                "FieldTypes": []
-              }
-            }, {
-              "$Class": "ShaderInput",
-              "Register": 3,
               "ElementType": 2,
               "Name": "CamerasBuffer",
               "Count": 1,
@@ -363,6 +335,26 @@
         "Name": "BindlessResources0",
         "Slots": [[], [], [], [], []],
         "Flags": 1
+      }, {
+        "$Class": "ShaderInputSet",
+        "SetIndex": 3,
+        "Name": "RTReflections",
+        "Slots": [[], [], [{
+              "$Class": "ShaderInput",
+              "Register": 3,
+              "ElementType": 2,
+              "Name": "CBuffer",
+              "Count": 1,
+              "Size": 4294967295,
+              "IsDynamic": true,
+              "StructInfo": {
+                "Name": "",
+                "Size": 4294967295,
+                "FieldNames": [],
+                "FieldTypes": []
+              }
+            }], [], []],
+        "Flags": 0
       }]
   },
   "ShaderModuleTypes": [9, 12, 13],
@@ -371,7 +363,7 @@
   "ShaderBlobs": [{
       "$Class": "BlobDataReference",
       "Key": "Engine/Shaders/PathTracer/PathTracer_637609700988852496.RGS",
-      "Size": 20172
+      "Size": 20548
     }, {
       "$Class": "BlobDataReference",
       "Key": "Engine/Shaders/PathTracer/PathTracer_637609700988852496.CHS",

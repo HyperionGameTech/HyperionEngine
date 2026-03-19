@@ -47,14 +47,9 @@ DECLARE_BUFFER_DYNAMIC(RTReflections, CamerasBuffer) cbuffer CamerasBuffer
 #include "../include/rt/RayTracingHelpers.inc"
 #include "../include/rt/payload.inc"
 
-DECLARE_BUFFER(RTReflections, RayTracingConstants) cbuffer RayTracingCBuffer
+DECLARE_BUFFER_DYNAMIC(RTReflections, CBuffer) cbuffer CBuffer
 {
     RayTracingConstants rayTracingConstants;
-};
-
-DECLARE_BUFFER(RTReflections, Lights) cbuffer Lights
-{
-    Light lights[MAX_LIGHTS];
 };
 
 #define RAY_OFFSET 0.025

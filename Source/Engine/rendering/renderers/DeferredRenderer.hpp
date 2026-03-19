@@ -318,8 +318,6 @@ public:
     // Set only while rendering to this pass
     DeferredRendererPassData* parentPass = nullptr;
     
-    GpuBufferRef cBuffer;
-    GpuBufferRef lightsBuffer;
     FixedArray<GpuTlasRef, NumFramesInFlight> rayTracingTlases;
 
     virtual ~RayTracingPassData() override;

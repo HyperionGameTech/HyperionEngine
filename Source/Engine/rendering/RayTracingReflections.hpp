@@ -63,8 +63,6 @@ private:
     void CreateImages();
     void CreateTemporalBlending();
 
-    void UpdateUniforms(Frame* frame, const RenderSetup& renderSetup);
-
     RayTracingReflectionsConfig m_config;
 
     GBuffer* m_gbuffer;

@@ -295,7 +295,7 @@ PSOutput PSMain(PSInput input)
 #endif
 
 #if DEBUG_REFLECTIONS
-    //roughness = 0.01;
+    roughness = 0.01;
 #endif
 
 #if HAS_AO_MAP

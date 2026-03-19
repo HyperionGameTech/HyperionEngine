@@ -42,14 +42,11 @@ DECLARE_SRV(RTReflections, EntitiesBuffer) StructuredBuffer<Entity> entities;
 DECLARE_SRV(RTReflections, MaterialsBuffer) StructuredBuffer<Material> materials;
 DECLARE_SRV(RTReflections, MeshDescriptionsBuffer) StructuredBuffer<MeshDescription> mesh_descriptions;
 
-DECLARE_BUFFER(RTReflections, RayTracingConstants) cbuffer RayTracingCBuffer
+DECLARE_BUFFER_DYNAMIC(RTReflections, CBuffer) cbuffer CBuffer
 {
     RayTracingConstants rayTracingConstants;
-};
-
-DECLARE_BUFFER(RTReflections, Lights) cbuffer Lights
-{
     Light lights[MAX_LIGHTS];
+    ShadowMap shadowMaps[MAX_LIGHTS];
 };
 
 DECLARE_SRV(BindlessResources0, Textures) Texture2D textures[];
@@ -100,7 +97,7 @@ void ClosestHitMain(inout RayPayload payload, in BuiltInTriangleIntersectionAttr
         1.0
     )).xyz;
 
-    float4 material_color = float4(1.0, 1.0, 1.0, 1.0);
+    float4 material_color = (float4)1.0;
 
     const uint material_index = mesh_description.material_index;
 
@@ -145,6 +142,7 @@ void ClosestHitMain(inout RayPayload payload, in BuiltInTriangleIntersectionAttr
     for (uint light_index = 0; light_index < rayTracingConstants.num_bound_lights; light_index++)
     {
         const Light light = lights[light_index];
+        const ShadowMap shadowMap = shadowMaps[light_index];
 
         // Only support point and directional lights for RT reflections.
         if (light.type != HYP_LIGHT_TYPE_DIRECTIONAL && light.type != HYP_LIGHT_TYPE_POINT)
@@ -164,9 +162,21 @@ void ClosestHitMain(inout RayPayload payload, in BuiltInTriangleIntersectionAttr
 
         float4 local_light = (float4)NdotL * light.color * light.position_intensity.w * attenuation;
 
-        if (light.type == HYP_LIGHT_TYPE_DIRECTIONAL && bool(light.flags & LF_SHADOW_CASTER))
+        if (bool(light.flags & LF_SHADOW_CASTER))
         {
-            local_light *= GetShadowStandard(light, position.xyz);
+            if (light.type == HYP_LIGHT_TYPE_DIRECTIONAL)
+            {
+                local_light *= GetShadowStandard(shadowMap, position.xyz);
+            }
+            else if (light.type == HYP_LIGHT_TYPE_POINT)
+            {
+                float3 worldToLight = position.xyz - light.position_intensity.xyz;
+                local_light *= GetPointShadowStandard(shadowMap.layerIndex, worldToLight, 0.0);
+            }
+            else
+            {
+                // ... not handled (yet) ...
+            }
         }
 
         direct_lighting += material_color * local_light;

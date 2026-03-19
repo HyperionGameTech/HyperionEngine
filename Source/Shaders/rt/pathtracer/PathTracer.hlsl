@@ -66,14 +66,11 @@ DECLARE_SRV(PathTracer, EnvProbesTexture) Texture2DArray envProbesTexture;
 #include "../../include/rt/RayTracingHelpers.inc"
 #include "../../include/rt/payload.inc"
 
-DECLARE_BUFFER(PathTracer, RayTracingConstants) cbuffer RayTracingCBuffer
+DECLARE_BUFFER_DYNAMIC(RTReflections, CBuffer) cbuffer CBuffer
 {
     RayTracingConstants rayTracingConstants;
-};
-
-DECLARE_BUFFER(PathTracer, Lights) cbuffer Lights
-{
     Light lights[MAX_LIGHTS];
+    ShadowMap shadowMaps[MAX_LIGHTS];
 };
 
 #define RAY_OFFSET 0.01

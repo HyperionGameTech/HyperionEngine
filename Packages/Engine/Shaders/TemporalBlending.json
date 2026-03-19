@@ -3,7 +3,17 @@
   "CompiledShaders": [{
       "$Class": "AssetReference",
       "AssetPath": {
+        "Value": "Engine/Shaders/TemporalBlending/TemporalBlending_7051797211380545493"
+      }
+    }, {
+      "$Class": "AssetReference",
+      "AssetPath": {
         "Value": "Engine/Shaders/TemporalBlending/TemporalBlending_6173123785945935178"
+      }
+    }, {
+      "$Class": "AssetReference",
+      "AssetPath": {
+        "Value": "Engine/Shaders/TemporalBlending/TemporalBlending_2537519862209330249"
       }
     }, {
       "$Class": "AssetReference",

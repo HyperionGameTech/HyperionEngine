@@ -144,12 +144,11 @@ extern const GlobalConfig& GetGlobalConfig();
 
 namespace DeferredRendererHelpers {
 
-static void
-    GetDeferredShaderProperties(
-        DeferredPassMode mode,
-        ShaderPropertySet& outShaderProperties,
-        const RenderProxyList* rpl = nullptr,
-        LightType lightType = InvalidLightType)
+void GetDeferredShaderProperties(
+    DeferredPassMode mode,
+    ShaderPropertySet& outShaderProperties,
+    const RenderProxyList* rpl = nullptr,
+    LightType lightType = InvalidLightType)
 {
     static const GlobalConfig& s_globalConfig = CoreApi::GetGlobalConfig();
     static const IRenderConfig& s_renderConfig = g_renderInterface->GetRenderConfig();
@@ -217,7 +216,7 @@ static void
     }
 }
 
-static void FillShadowMapData(
+void FillShadowMapData(
     ShadowMapData& outShadowMapData,
     const ShadowMap& inShadowMap,
     View* shadowMapViewDynamic,
@@ -1359,8 +1358,6 @@ DeferredRendererPassData::~DeferredRendererPassData()
 
 RayTracingPassData::~RayTracingPassData()
 {
-    EnqueueDeletion(std::move(cBuffer));
-    EnqueueDeletion(std::move(lightsBuffer));
     EnqueueDeletion(std::move(rayTracingTlases));
 }
 

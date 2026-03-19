@@ -46,14 +46,16 @@ DECLARE_SRV(PathTracer, MaterialsBuffer) StructuredBuffer<Material> materials;
 
 DECLARE_SRV(PathTracer, MeshDescriptionsBuffer) StructuredBuffer<MeshDescription> mesh_descriptions;
 
-DECLARE_BUFFER(PathTracer, RayTracingConstants) cbuffer RayTracingCBuffer
-{
-    RayTracingConstants rayTracingConstants;
-};
-
 DECLARE_BUFFER_DYNAMIC(PathTracer, CamerasBuffer) cbuffer CamerasBuffer
 {
     Camera camera;
+};
+
+DECLARE_BUFFER_DYNAMIC(RTReflections, CBuffer) cbuffer CBuffer
+{
+    RayTracingConstants rayTracingConstants;
+    Light lights[MAX_LIGHTS];
+    ShadowMap shadowMaps[MAX_LIGHTS];
 };
 
 DECLARE_SRV(BindlessResources0, Textures) Texture2D textures[];

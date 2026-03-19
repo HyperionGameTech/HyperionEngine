@@ -1,0 +1,17 @@
+{
+  "$Class": "ShaderBundle",
+  "CompiledShaders": [{
+      "$Class": "AssetReference",
+      "AssetPath": {
+        "Value": "Engine/Shaders/RayTracedReflections/RayTracedReflections_637609700988852496"
+      }
+    }, {
+      "$Class": "AssetReference",
+      "AssetPath": {
+        "Value": "Engine/Shaders/RayTracedReflections/RayTracedReflections_15962476042820663833"
+      }
+    }],
+  "Name": "RayTracedReflections",
+  "FriendlyName": "RayTracedReflections",
+  "OriginalFilepath": ""
+}
