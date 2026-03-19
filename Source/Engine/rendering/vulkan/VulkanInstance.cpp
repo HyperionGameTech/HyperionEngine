@@ -302,7 +302,7 @@ static VKAPI_ATTR VkBool32 VKAPI_CALL DebugCallback(
 
     if (String(callbackData->pMessageIdName).Contains("vkCmdDrawIndexed"))
     {
-        HYP_BREAKPOINT;
+        //HYP_BREAKPOINT;
     }
 
     return VK_FALSE;

@@ -409,7 +409,11 @@ void AssetManager::AddPendingBatch(AssetBatch* batch)
     m_numPendingBatches.Increment(1, MemoryOrder::RELEASE);
 }
 
-HYP_NODISCARD AssetLoadResult AssetManager::Load(const TypeId& typeId, const String& path, const String& batchIdentifier)
+HYP_NODISCARD AssetLoadResult AssetManager::Load(
+    const TypeId& typeId,
+    const String& path,
+    const String& batchIdentifier,
+    AssetLoadHint hint)
 {
     const AssetLoaderDefinition* loaderDefinition = GetLoaderDefinition(path, typeId);
 
@@ -421,7 +425,7 @@ HYP_NODISCARD AssetLoadResult AssetManager::Load(const TypeId& typeId, const Str
     const Handle<AssetLoaderBase>& loader = loaderDefinition->loader;
     Assert(loader.IsValid());
 
-    return AssetLoadResult(loader->Load(*this, path, batchIdentifier));
+    return AssetLoadResult(loader->Load(*this, path, batchIdentifier, hint));
 }
 
 #pragma endregion AssetManager

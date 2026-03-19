@@ -272,6 +272,8 @@ Handle<Texture> AcquireTexture(GltfLoadContext& ctx, const cgltf_texture_view& t
                 return {};
             }
 
+            // @TODO srgb
+
             if (auto textureResult = ctx.state.assetManager->Load<Texture>(candidate, ctx.state.batchIdentifier); textureResult.HasValue())
             {
                 return textureResult->Result();

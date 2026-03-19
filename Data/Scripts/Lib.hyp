@@ -2176,7 +2176,7 @@ end
 extern class LightmapVolume : VolumeBase
     GetAtlasTexture(atlasIndex : uint16, type : LightmapTextureType) -> Texture
     SetAtlasTexture(atlasIndex : uint16, type : LightmapTextureType, texture : Texture) -> void
-    BakeLightmaps() -> void
+    Rebake() -> void
     RadianceAtlasTextures : Array<Texture>
     IrradianceAtlasTextures : Array<Texture>
     Atlases : Array<LightmapVolumeAtlas>
@@ -2186,6 +2186,7 @@ end
 extern class FogVolume : VolumeBase
     GetVolumeTexture() -> Texture
     SetTextures(volumeTexture : Texture, noiseTexture : Texture) -> void
+    Rebake() -> void
     VolumeTexture : Texture
     NoiseTexture : Texture
 end

@@ -47,7 +47,7 @@ public:
     template <class T>
     void Write(const T* src)
     {
-        static_assert(is_pod_type_v<T>, "T must be plain old data to write to constant buffers");
+        static_assert(is_pod_type_v<T> && !std::is_pointer_v<T>, "T must be plain old data to write to constant buffers");
 
         Write(src, sizeof(T), alignof(T));
     }
@@ -58,11 +58,12 @@ private:
     Block* NewBlock(uint32 currentFrameCounter);
     Block* TryGetRecycledBlock(uint32 currentFrameCounter);
 
-    LinkedList<Block, RHIAllocator> m_blocks;
+    LinkedList<Block, RenderAllocator> m_blocks;
     size_t m_minAllocationAlignment;
 
-    LinkedList<Block, RHIAllocator> m_currentFrameBlocks[NumRendererWorkerThreads + 1];
-    TByteBuffer<RHITempAllocator> m_scratch[NumRendererWorkerThreads + 1];
+    LinkedList<Block, RenderAllocator> m_currentFrameBlocks[NumRendererWorkerThreads + 1];
+
+    TByteBuffer<RenderAllocator> m_scratch[NumRendererWorkerThreads + 1];
     size_t m_scratchAlignment[NumRendererWorkerThreads + 1];
 
     SharedMutex m_mutex;

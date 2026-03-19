@@ -10,11 +10,6 @@
 #include <scene/components/LightmapElementComponent.hpp>
 #include <scene/components/BoundingBoxComponent.hpp>
 
-#if HYP_EDITOR
-#include <baking/BakerSubsystem.hpp>
-#include <baking/lightmap_volume/LightmapVolumeBakeData.hpp>
-#endif
-
 #include <rendering/Texture.hpp>
 #include <rendering/RenderProxy.hpp>
 
@@ -31,6 +26,11 @@
 
 #include <engine/EngineDriver.hpp>
 #include <engine/EngineGlobals.hpp>
+
+#if HYP_EDITOR
+#include <baking/BakerSubsystem.hpp>
+#include <baking/lightmap_volume/LightmapVolumeBakeData.hpp>
+#endif
 
 #include <LightmapVolume.generated.inl>
 
@@ -299,7 +299,7 @@ void LightmapVolume::UpdateRenderProxy(RenderProxyLightmapVolume* proxy)
 
 #if HYP_EDITOR
 
-void LightmapVolume::BakeLightmaps()
+void LightmapVolume::Rebake()
 {
     HYP_SCOPE;
 
@@ -313,14 +313,14 @@ void LightmapVolume::BakeLightmaps()
         return;
     }
 
-    BakerSubsystem* lightmapperSubsystem = world->GetSubsystem<BakerSubsystem>();
+    BakerSubsystem* bakerSubsystem = world->GetSubsystem<BakerSubsystem>();
 
-    if (!lightmapperSubsystem)
+    if (!bakerSubsystem)
     {
-        lightmapperSubsystem = world->AddSubsystem<BakerSubsystem>();
+        bakerSubsystem = world->AddSubsystem<BakerSubsystem>();
     }
 
-    lightmapperSubsystem->EnqueueBake(MakeStrongRef(this));
+    bakerSubsystem->EnqueueBake(MakeStrongRef(this));
 }
 
 #endif

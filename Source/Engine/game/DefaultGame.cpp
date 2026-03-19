@@ -10,6 +10,7 @@
 #include <scene/EnvProbe.hpp>
 #include <scene/Scene.hpp>
 #include <scene/View.hpp>
+#include <scene/FogVolume.hpp>
 #include <scene/EntityManager.hpp>
 #include <scene/ComponentInterface.hpp>
 
@@ -105,9 +106,9 @@ void DefaultGame::OnLaunch_Impl()
     sunNode->SetName(NAME("Sun"));
 
     Handle<DirectionalLight> sunEntity = scene->GetEntityManager()->AddEntity<DirectionalLight>(
-        Vec3f(-0.1f, 0.9f, 0.1f).Normalize(),
+        Vec3f(0.4f, 0.8f, 0.1f).Normalize(),
         Color(Vec4f(1.0f, 0.9f, 0.8f, 1.0f)),
-        15.0f);
+        25.0f);
 
     sunNode->AddChild(sunEntity);
 
@@ -142,12 +143,20 @@ void DefaultGame::OnLaunch_Impl()
 
     LoadedAsset& sponza = results["sponza"];
     Handle<Node> sponzaNode = sponza.ExtractAs<Node>();
-    sponzaNode->SetWorldScale(0.04f);
+    sponzaNode->SetWorldScale(0.03f);
     
     scene->GetRoot()->AddChild(sponzaNode);
-    
-    // GetUISubsystem()->AddDebugOverlay(MakeHandle<BaseStatsOverlay>());
-    // GetUISubsystem()->AddDebugOverlay(MakeHandle<StatsOverlay>());
+
+    Handle<FogVolume> fogVolume = MakeHandle<FogVolume>();
+    fogVolume->SetLocalBounds(BoundingBox(Vec3f(-30.0f, -0.5f, -30.0f), Vec3f(30.0f, 40.0f, 30.0f)));
+    scene->GetRoot()->AddChild(fogVolume);
+    fogVolume->Rebake();
+
+    if (UISubsystem* uiSubsystem = GetUISubsystem())
+    {
+        uiSubsystem->AddDebugOverlay(MakeHandle<BaseStatsOverlay>());
+        uiSubsystem->AddDebugOverlay(MakeHandle<StatsOverlay>());
+    }
 
     StartSimulating();
 }

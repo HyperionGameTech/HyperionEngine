@@ -38,6 +38,11 @@ public:
 
     void UpdateRenderProxy(class RenderProxyFogVolume* proxy);
 
+#if HYP_EDITOR
+    HYP_METHOD(EditorOnly, EditAction = "Rebake")
+    void Rebake();
+#endif
+
 private:
     void Init() override;
 

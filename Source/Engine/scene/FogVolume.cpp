@@ -3,6 +3,8 @@
 #include <ScenePch.hpp>
 
 #include <scene/FogVolume.hpp>
+#include <scene/Scene.hpp>
+#include <scene/World.hpp>
 
 #include <rendering/Texture.hpp>
 #include <rendering/RenderProxy.hpp>
@@ -19,9 +21,18 @@
 #include <asset/Assets.hpp>
 #include <asset/AssetRegistry.hpp>
 
+#if HYP_EDITOR
+#include <baking/BakerSubsystem.hpp>
+#include <baking/fog_volume/FogVolumeBakeData.hpp>
+#endif
+
 #include <FogVolume.generated.inl>
 
 namespace Hyperion {
+
+#if HYP_EDITOR
+HYP_DECLARE_LOG_CHANNEL(Editor);
+#endif
 
 FogVolume::FogVolume()
 {
@@ -137,5 +148,33 @@ void FogVolume::UpdateRenderProxy(RenderProxyFogVolume* proxy)
         proxy->bufferData.aabbMax = Vec4f(worldAabb.max, 1.0f);
     }
 }
+
+#if HYP_EDITOR
+
+void FogVolume::Rebake()
+{
+    HYP_SCOPE;
+
+    World* world = GetWorld();
+    AssertDebug(world != nullptr);
+
+    if (!world)
+    {
+        HYP_LOG(Editor, Error, "Cannot bake {}: not attached to a World", Id());
+
+        return;
+    }
+
+    BakerSubsystem* bakerSubsystem = world->GetSubsystem<BakerSubsystem>();
+
+    if (!bakerSubsystem)
+    {
+        bakerSubsystem = world->AddSubsystem<BakerSubsystem>();
+    }
+
+    bakerSubsystem->EnqueueBake(MakeStrongRef(this));
+}
+
+#endif
 
 } // namespace Hyperion

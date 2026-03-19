@@ -423,6 +423,7 @@ AssetLoadResult MTLMaterialLoader::LoadAsset(LoaderState& state) const
     Handle<MaterialGroup> materialGroupHandle = MakeHandle<MaterialGroup>();
 
     HashMap<String, String> textureNamesToPath;
+    HashSet<String> srgbTextures;
 
     for (const auto& item : library.materials)
     {
@@ -433,6 +434,11 @@ AssetLoadResult MTLMaterialLoader::LoadAsset(LoaderState& state) const
                 it.name);
 
             textureNamesToPath[it.name] = texturePath;
+
+            if (it.mapping.srgb)
+            {
+                srgbTextures.Add(it.name);
+            }
         }
     }
 
@@ -455,7 +461,12 @@ AssetLoadResult MTLMaterialLoader::LoadAsset(LoaderState& state) const
 
                 ++numEnqueued;
 
-                texturesBatch->Add(it.first, it.second);
+                texturesBatch->Add(
+                    it.first,
+                    it.second,
+                    srgbTextures.Contains(it.first)
+                        ? AssetLoadHint::TextureLoader_LoadAsSRGB
+                        : AssetLoadHint::NoHint);
 
                 if (pathsString.Any())
                 {

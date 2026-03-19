@@ -417,7 +417,8 @@ void Texture::GenerateMipmaps(TextureDesc& desc, ByteBuffer& imageData)
     }
 
     const bool canGenerateMips = (desc.format >= TextureFormat::R16F && desc.format <= TextureFormat::RGBA32F)
-        || (desc.format >= TextureFormat::R8 && desc.format <= TextureFormat::RGBA8);
+        || (desc.format >= TextureFormat::R8 && desc.format <= TextureFormat::RGBA8)
+        || (desc.format >= TextureFormat::R8_SRGB && desc.format <= TextureFormat::RGBA8_SRGB);
 
     if (!canGenerateMips)
     {

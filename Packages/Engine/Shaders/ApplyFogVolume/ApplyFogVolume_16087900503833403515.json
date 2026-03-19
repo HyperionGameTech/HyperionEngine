@@ -1,0 +1,232 @@
+{
+  "$Class": "Shader",
+  "PropertySet": [{
+      "$Class": "ShaderProperty",
+      "Name": "HYP_VULKAN",
+      "Flags": 0,
+      "Value": 4202496,
+      "EnumValues": []
+    }, {
+      "$Class": "ShaderProperty",
+      "Name": "NUM_GBUFFER_TEXTURES",
+      "Flags": 0,
+      "Value": 5,
+      "EnumValues": []
+    }, {
+      "$Class": "ShaderProperty",
+      "Name": "HYP_FEATURES_BINDLESS_TEXTURES",
+      "Flags": 0,
+      "Value": null,
+      "EnumValues": []
+    }, {
+      "$Class": "ShaderProperty",
+      "Name": "DEBUG_REFLECTIONS",
+      "Flags": 0,
+      "Value": null,
+      "EnumValues": []
+    }, {
+      "$Class": "ShaderProperty",
+      "Name": "MAX_LIGHTS",
+      "Flags": 0,
+      "Value": 4,
+      "EnumValues": []
+    }],
+  "RevisionNumber": 31459917,
+  "BaseName": "ApplyFogVolume",
+  "VertexAttributes": {
+    "FlagMask": 55
+  },
+  "ShaderInputGroup": {
+    "Elements": [{
+        "$Class": "ShaderInputSet",
+        "SetIndex": 0,
+        "Name": "FogVolume",
+        "Slots": [[{
+              "$Class": "ShaderInput",
+              "Register": 1,
+              "ElementType": 5,
+              "Name": "GBufferDepthTexture",
+              "Count": 1,
+              "Size": 4294967295,
+              "IsDynamic": false,
+              "StructInfo": {
+                "Name": "",
+                "Size": 4294967295,
+                "FieldNames": [],
+                "FieldTypes": []
+              }
+            }, {
+              "$Class": "ShaderInput",
+              "Register": 1,
+              "ElementType": 5,
+              "Name": "GBufferAlbedoTexture",
+              "Count": 1,
+              "Size": 4294967295,
+              "IsDynamic": false,
+              "StructInfo": {
+                "Name": "",
+                "Size": 4294967295,
+                "FieldNames": [],
+                "FieldTypes": []
+              }
+            }, {
+              "$Class": "ShaderInput",
+              "Register": 1,
+              "ElementType": 5,
+              "Name": "GBufferNormalsTexture",
+              "Count": 1,
+              "Size": 4294967295,
+              "IsDynamic": false,
+              "StructInfo": {
+                "Name": "",
+                "Size": 4294967295,
+                "FieldNames": [],
+                "FieldTypes": []
+              }
+            }, {
+              "$Class": "ShaderInput",
+              "Register": 1,
+              "ElementType": 5,
+              "Name": "PointLightShadowMapsTextureArray",
+              "Count": 1,
+              "Size": 4294967295,
+              "IsDynamic": false,
+              "StructInfo": {
+                "Name": "",
+                "Size": 4294967295,
+                "FieldNames": [],
+                "FieldTypes": []
+              }
+            }, {
+              "$Class": "ShaderInput",
+              "Register": 1,
+              "ElementType": 5,
+              "Name": "GBufferVelocityTexture",
+              "Count": 1,
+              "Size": 4294967295,
+              "IsDynamic": false,
+              "StructInfo": {
+                "Name": "",
+                "Size": 4294967295,
+                "FieldNames": [],
+                "FieldTypes": []
+              }
+            }, {
+              "$Class": "ShaderInput",
+              "Register": 1,
+              "ElementType": 5,
+              "Name": "GBufferMaterialTexture",
+              "Count": 1,
+              "Size": 4294967295,
+              "IsDynamic": false,
+              "StructInfo": {
+                "Name": "",
+                "Size": 4294967295,
+                "FieldNames": [],
+                "FieldTypes": []
+              }
+            }, {
+              "$Class": "ShaderInput",
+              "Register": 1,
+              "ElementType": 5,
+              "Name": "ShadowMapsTextureArray",
+              "Count": 1,
+              "Size": 4294967295,
+              "IsDynamic": false,
+              "StructInfo": {
+                "Name": "",
+                "Size": 4294967295,
+                "FieldNames": [],
+                "FieldTypes": []
+              }
+            }, {
+              "$Class": "ShaderInput",
+              "Register": 1,
+              "ElementType": 5,
+              "Name": "NoiseMap",
+              "Count": 1,
+              "Size": 4294967295,
+              "IsDynamic": false,
+              "StructInfo": {
+                "Name": "",
+                "Size": 4294967295,
+                "FieldNames": [],
+                "FieldTypes": []
+              }
+            }], [], [{
+              "$Class": "ShaderInput",
+              "Register": 3,
+              "ElementType": 2,
+              "Name": "FogVolumeConstants",
+              "Count": 1,
+              "Size": 4294967295,
+              "IsDynamic": true,
+              "StructInfo": {
+                "Name": "",
+                "Size": 4294967295,
+                "FieldNames": [],
+                "FieldTypes": []
+              }
+            }, {
+              "$Class": "ShaderInput",
+              "Register": 3,
+              "ElementType": 2,
+              "Name": "CamerasBuffer",
+              "Count": 1,
+              "Size": 4294967295,
+              "IsDynamic": true,
+              "StructInfo": {
+                "Name": "",
+                "Size": 4294967295,
+                "FieldNames": [],
+                "FieldTypes": []
+              }
+            }], [{
+              "$Class": "ShaderInput",
+              "Register": 4,
+              "ElementType": 7,
+              "Name": "SamplerNearest",
+              "Count": 1,
+              "Size": 4294967295,
+              "IsDynamic": false,
+              "StructInfo": {
+                "Name": "",
+                "Size": 4294967295,
+                "FieldNames": [],
+                "FieldTypes": []
+              }
+            }, {
+              "$Class": "ShaderInput",
+              "Register": 4,
+              "ElementType": 7,
+              "Name": "SamplerLinear",
+              "Count": 1,
+              "Size": 4294967295,
+              "IsDynamic": false,
+              "StructInfo": {
+                "Name": "",
+                "Size": 4294967295,
+                "FieldNames": [],
+                "FieldTypes": []
+              }
+            }], []],
+        "Flags": 0
+      }]
+  },
+  "ShaderModuleTypes": [1, 2],
+  "ShaderModuleNames": ["ApplyFogVolume.hlsl", "ApplyFogVolume.hlsl"],
+  "EntryPointNames": ["VSMain", "PSMain"],
+  "ShaderBlobs": [{
+      "$Class": "BlobDataReference",
+      "Key": "Engine/Shaders/ApplyFogVolume/ApplyFogVolume_16087900503833403515.VS",
+      "Size": 3284
+    }, {
+      "$Class": "BlobDataReference",
+      "Key": "Engine/Shaders/ApplyFogVolume/ApplyFogVolume_16087900503833403515.PS",
+      "Size": 11384
+    }],
+  "PropertySetHashCode": {},
+  "Name": "ApplyFogVolume_16087900503833403515",
+  "FriendlyName": "ApplyFogVolume16087900503833403515",
+  "OriginalFilepath": ""
+}

@@ -65,7 +65,7 @@ void Game::Init()
 
     InitObject(m_world);
 
-    // m_uiSubsystem = m_world->AddSubsystem(MakeHandle<UISubsystem>());
+    m_uiSubsystem = m_world->AddSubsystem(MakeHandle<UISubsystem>());
 
     g_engineDriver->AddWorld(m_world);
 }

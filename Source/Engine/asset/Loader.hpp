@@ -11,14 +11,22 @@ namespace Hyperion {
 class AssetManager;
 class AssetRegistry;
 
+enum class AssetLoadHint : uint32
+{
+    NoHint = 0,
+
+    TextureLoader_LoadAsSRGB
+};
+
 struct LoaderState
 {
     using Stream = FileByteReader;
     
     Stream stream;
-    AssetManager* assetManager;
+    AssetManager* assetManager = nullptr;
     FilePath filepath;
     String batchIdentifier;
+    AssetLoadHint hint = AssetLoadHint::NoHint;
 };
 
 class AssetLoadError final : public Error

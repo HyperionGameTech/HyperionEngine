@@ -90,7 +90,11 @@ Array<FilePath> AssetLoaderBase::GetTryFilepaths(const FilePath& originalFilepat
     return paths;
 }
 
-AssetLoadResult AssetLoaderBase::Load(AssetManager& assetManager, const String& path, const String& batchIdentifier) const
+AssetLoadResult AssetLoaderBase::Load(
+    AssetManager& assetManager,
+    const String& path,
+    const String& batchIdentifier,
+    AssetLoadHint hint) const
 {
     HYP_SCOPE;
 
@@ -113,9 +117,7 @@ AssetLoadResult AssetLoaderBase::Load(AssetManager& assetManager, const String& 
             continue;
         }
 
-        LoaderState state {
-            FileByteReader { filepath }
-        };
+        LoaderState state { FileByteReader { filepath } };
 
         if (state.stream.Eof())
         {
@@ -125,6 +127,7 @@ AssetLoadResult AssetLoaderBase::Load(AssetManager& assetManager, const String& 
         state.assetManager = &assetManager;
         state.filepath = filepath;
         state.batchIdentifier = batchIdentifier;
+        state.hint = hint;
 
         if (state.batchIdentifier.Empty())
         {

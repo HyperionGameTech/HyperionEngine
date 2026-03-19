@@ -133,8 +133,10 @@ AssetLoadResult TextureLoader::LoadAsset(LoaderState& state) const
         baseMipData = std::move(newByteBuffer);
     }
 
-    // debug
-    Assert(textureDesc.format != TextureFormat::RGB8_SRGB);
+    if (state.hint == AssetLoadHint::TextureLoader_LoadAsSRGB)
+    {
+        textureDesc.format = TextureUtils::ChangeFormatSRGB(textureDesc.format, /* useSRGB */ true);
+    }
 
     Texture::GenerateMipmaps(textureDesc, baseMipData);
 

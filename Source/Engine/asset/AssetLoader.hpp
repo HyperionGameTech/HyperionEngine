@@ -171,7 +171,11 @@ class HYP_API AssetLoaderBase : public ObjectBase
 public:
     virtual ~AssetLoaderBase() = default;
 
-    AssetLoadResult Load(AssetManager& assetManager, const String& path, const String& batchIdentifier = String::empty) const;
+    AssetLoadResult Load(
+        AssetManager& assetManager,
+        const String& path,
+        const String& batchIdentifier = String::empty,
+        AssetLoadHint hint = AssetLoadHint::NoHint) const;
 
 protected:
     virtual AssetLoadResult LoadAsset(LoaderState& state) const = 0;

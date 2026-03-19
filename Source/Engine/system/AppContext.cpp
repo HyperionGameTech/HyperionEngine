@@ -1159,11 +1159,6 @@ static bool HandleWindowEvent(
 
         event.GetEventData().Set(Vec2i(pt.x, pt.y));
 
-        if (window->IsMouseLocked())
-        {
-            //   window->SetMousePosition(window->GetInputManager()->GetPreviousMousePosition());
-        }
-
         return true;
     }
     case WM_LBUTTONDOWN:

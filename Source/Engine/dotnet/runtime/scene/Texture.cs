@@ -5,8 +5,6 @@ namespace Hyperion
 {
     public enum TextureFormat : uint
     {
-        None,
-
         R8,
         RG8,
         RGB8,
@@ -27,8 +25,6 @@ namespace Hyperion
         RGB32,
         RGBA32,
 
-        R32_,
-        RG16_,
         R11G11B10F,
         R10G10B10A2,
 
@@ -42,8 +38,7 @@ namespace Hyperion
         RGB32F,
         RGBA32F,
 
-        SRGB, /* begin srgb */
-
+        /* begin srgb */
         R8_SRGB,
         RG8_SRGB,
         RGB8_SRGB,
@@ -54,11 +49,11 @@ namespace Hyperion
         BGR8_SRGB,
         BGRA8_SRGB,
 
-        DEPTH, /* begin depth */
-
-        DEPTH_16 = DEPTH,
-        DEPTH_24,
-        DEPTH_32F
+        /* begin depth */
+        D16,
+        D24_S8,
+        D32F,
+        D32F_S8
     }
 
     public enum TextureFilterMode : uint

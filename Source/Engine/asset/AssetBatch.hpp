@@ -108,12 +108,14 @@ struct ProcessAssetFunctor final : public ProcessAssetFunctorBase
     String key;
     String path;
     AssetBatchCallbacks* callbacks;
+    AssetLoadHint hint;
 
-    ProcessAssetFunctor(const String& batchIdentifier, const String& key, const String& path, AssetBatchCallbacks* callbacks)
+    ProcessAssetFunctor(const String& batchIdentifier, const String& key, const String& path, AssetBatchCallbacks* callbacks, AssetLoadHint hint)
         : batchIdentifier(batchIdentifier),
           key(key),
           path(path),
-          callbacks(callbacks)
+          callbacks(callbacks),
+          hint(hint)
     {
     }
 
@@ -138,7 +140,7 @@ private:
 
         LoadedAsset& asset = it->second;
 
-        if (AssetLoadResult result = assetManager.template Load<T>(path, /* batchIdentifier */ batchIdentifier))
+        if (AssetLoadResult result = assetManager.template Load<T>(path, /* batchIdentifier */ batchIdentifier, hint))
         {
             asset = std::move(result.GetValue());
         }
@@ -213,8 +215,8 @@ public:
 
     /*! \brief Enqueue an asset of type T to be loaded in this batch.
         Only call this method before LoadAsync() is called. */
-    HYP_API void Add(const String& key, const String& path);
-    HYP_API void Add(const String& key, const String& path, const Proc<void(LoadedAsset&)>& callback);
+    HYP_API void Add(const String& key, const String& path, AssetLoadHint hint = AssetLoadHint::NoHint);
+    HYP_API void Add(const String& key, const String& path, const Proc<void(LoadedAsset&)>& callback, AssetLoadHint hint = AssetLoadHint::NoHint);
 
     /*! \brief Begin loading this batch asynchronously. Note that
         you may not add any more tasks to be loaded once you call this method. */

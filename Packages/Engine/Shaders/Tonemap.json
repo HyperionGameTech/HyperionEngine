@@ -5,6 +5,11 @@
       "AssetPath": {
         "Value": "Engine/Shaders/Tonemap/Tonemap_9412718521670965328"
       }
+    }, {
+      "$Class": "AssetReference",
+      "AssetPath": {
+        "Value": "Engine/Shaders/Tonemap/Tonemap_5593757611931525455"
+      }
     }],
   "Name": "Tonemap",
   "FriendlyName": "Tonemap",

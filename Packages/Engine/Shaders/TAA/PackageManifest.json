@@ -1,0 +1,7 @@
+{
+  "Dependencies": [],
+  "Name": "TAA",
+  "FriendlyName": "TAA",
+  "Flags": 0,
+  "Path": "Engine/Shaders/TAA"
+}

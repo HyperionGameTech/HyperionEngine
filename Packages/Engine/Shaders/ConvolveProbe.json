@@ -8,7 +8,47 @@
     }, {
       "$Class": "AssetReference",
       "AssetPath": {
+        "Value": "Engine/Shaders/ConvolveProbe/ConvolveProbe_9095302294154207858"
+      }
+    }, {
+      "$Class": "AssetReference",
+      "AssetPath": {
+        "Value": "Engine/Shaders/ConvolveProbe/ConvolveProbe_6984111572877050603"
+      }
+    }, {
+      "$Class": "AssetReference",
+      "AssetPath": {
+        "Value": "Engine/Shaders/ConvolveProbe/ConvolveProbe_5752292293258251926"
+      }
+    }, {
+      "$Class": "AssetReference",
+      "AssetPath": {
+        "Value": "Engine/Shaders/ConvolveProbe/ConvolveProbe_3611376438601043937"
+      }
+    }, {
+      "$Class": "AssetReference",
+      "AssetPath": {
+        "Value": "Engine/Shaders/ConvolveProbe/ConvolveProbe_3416126739416273646"
+      }
+    }, {
+      "$Class": "AssetReference",
+      "AssetPath": {
         "Value": "Engine/Shaders/ConvolveProbe/ConvolveProbe_1922604715491387694"
+      }
+    }, {
+      "$Class": "AssetReference",
+      "AssetPath": {
+        "Value": "Engine/Shaders/ConvolveProbe/ConvolveProbe_16694586272823301991"
+      }
+    }, {
+      "$Class": "AssetReference",
+      "AssetPath": {
+        "Value": "Engine/Shaders/ConvolveProbe/ConvolveProbe_16124850658096132189"
+      }
+    }, {
+      "$Class": "AssetReference",
+      "AssetPath": {
+        "Value": "Engine/Shaders/ConvolveProbe/ConvolveProbe_15968721863476427966"
       }
     }, {
       "$Class": "AssetReference",

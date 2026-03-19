@@ -179,12 +179,9 @@ protected:
         class FogVolume* volume = nullptr;
         Texture* volumeTexture = nullptr;
         Texture* noiseTexture = nullptr;
-        GpuBufferRef cBuffer;
     };
 
     virtual void RenderToFramebuffer_Internal(Frame* frame, const RenderSetup& renderSetup, Framebuffer* framebuffer) override;
-
-    void UpdateUniforms(Frame* frame, const RenderSetup& renderSetup, FogVolumePassData& data);
 
     FogVolumePassData& GetFogVolumePassData(FogVolume* fogVolume)
     {

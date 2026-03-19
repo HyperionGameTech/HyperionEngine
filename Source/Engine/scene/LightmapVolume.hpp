@@ -170,10 +170,8 @@ public:
     void UpdateRenderProxy(RenderProxyLightmapVolume* proxy);
 
 #if HYP_EDITOR
-    HYP_METHOD(EditorOnly, EditAction = "BakeLightmaps")
-    void BakeLightmaps();
-#else
-    void BakeLightmaps() { }
+    HYP_METHOD(EditorOnly, EditAction = "Rebake")
+    void Rebake();
 #endif
 
 protected:

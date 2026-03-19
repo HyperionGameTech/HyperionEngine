@@ -664,7 +664,10 @@ UIEventHandlerResult UIStage::OnInputEvent(const Event& event)
 
         const EnumFlags<MouseButtonState> mouseButtons = inputManager->GetButtonStates();
 
-        const Vec2i mousePosition = event.GetMousePosition();
+        const Vec2i mousePosition = event.IsAbsoluteMousePosition()
+            ? event.GetMousePosition()
+            : Vec2i(event.GetMousePositionDeltas() + Vec2f(previousMousePosition));
+            
         const Vec2f mouseScreen = Vec2f(mousePosition) / Vec2f(m_surfaceSize);
         const Vec2f invSurfaceSize = Vec2f(1.0f) / Vec2f(m_surfaceSize);
 

@@ -1,7 +1,7 @@
 {
   "App": {
     "Name": "DefaultGame",
-    "Args": "-ResX=480 -ResY=720 -Profile=true -TraceURL=http://localhost:8000/trace",
+    "Args": "-ResX=1920 -ResY=1080 -Profile=true -TraceURL=http://localhost:8000/trace",
     "Cache": {
       "BaseDirectory": "Cache",
       "PageSize": 268435456
@@ -19,9 +19,9 @@
         "Enabled": false
       },
       "GI": {
-        "Enabled": false
+        "Enabled": true
       },
-      "Enabled": false
+      "Enabled": true
     },
     "SSAO": {
       "Enabled": false
@@ -40,12 +40,12 @@
       "Enabled": false
     },
     "TAA": {
-      "Enabled": false
+      "Enabled": true
     },
     "IndirectRendering": false,
     "ParallelCollection": true,
     "SSR": {
-      "Enabled": false,
+      "Enabled": true,
       "Quality": 2,
       "RoughnessScattering": false,
       "ConeTracing": true,
@@ -74,7 +74,7 @@
       "AO": false
     },
     "Vulkan": {
-      "DebugLayers": false
+      "DebugLayers": true
     }
   },
   "Editor": {

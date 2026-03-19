@@ -35,7 +35,7 @@ DECLARE_BUFFER_DYNAMIC(FogVolume, CamerasBuffer) cbuffer CamerasBuffer
     Camera camera;
 };
 
-DECLARE_BUFFER(FogVolume, FogVolumeUniforms) cbuffer FogVolumeUniforms
+DECLARE_BUFFER_DYNAMIC(FogVolume, FogVolumeConstants) cbuffer FogVolumeConstants
 {
     FogVolume fogVolume;
 };
@@ -136,10 +136,11 @@ DECLARE_SRV(FogVolume, PointLightShadowMapsTextureArray) TextureCubeArray point_
 #undef HYP_DO_NOT_DEFINE_DESCRIPTOR_SETS
 
 DECLARE_SRV(FogVolume, NoiseMap) Texture3D<float> NoiseMap;
-DECLARE_BUFFER(FogVolume, FogVolumeUniforms) cbuffer FogVolumeUniforms
+DECLARE_BUFFER_DYNAMIC(FogVolume, FogVolumeConstants) cbuffer FogVolumeConstants
 {
     FogVolume fogVolume;
     Light lights[MAX_LIGHTS];
+    ShadowMap shadowMaps[MAX_LIGHTS];
 };
 
 float2 RayBoxIntersect(float3 rayOrigin, float3 rayDir, float3 boxMin, float3 boxMax)
@@ -197,8 +198,9 @@ float4 RayMarch(float3 rayOrigin, float3 rayDir, float tNear, float tFar, float 
     float transmittance = 1.0;
     float3 accumulatedColor = float3(0.0, 0.0, 0.0);
 
-    const float DensityScale = 0.2;
-    const float Scattering = 0.3 * DensityScale;
+    // @TODO Make these configurable
+    const float DensityScale = 0.3;
+    const float Scattering = 0.2 * DensityScale;
     const float Absorption = 0.2 * DensityScale;
     const float Extinction = Scattering + Absorption;
     const float phaseG = 0.8;
@@ -242,6 +244,9 @@ float4 RayMarch(float3 rayOrigin, float3 rayDir, float tNear, float tFar, float 
         for (uint lightIndex = 0u; lightIndex < fogVolume.numBoundLights; lightIndex++)
         {
             Light light = lights[lightIndex];
+            ShadowMap shadowMap = shadowMaps[lightIndex];
+
+            const uint layerIndex = shadowMap.layerIndex;
             
             float3 lightDir;
             float phase;
@@ -249,11 +254,11 @@ float4 RayMarch(float3 rayOrigin, float3 rayDir, float tNear, float tFar, float 
             float shadow;
             float attenuation = 1.0;
             
+            
             switch (light.type)
             {
                 case HYP_LIGHT_TYPE_POINT:
                 {
-                    uint layerIndex = asuint(light.normal.w);
                     uint flags = light.flags;
                     float3 worldToLight = currentPos - light.position_intensity.xyz;
 
@@ -278,7 +283,7 @@ float4 RayMarch(float3 rayOrigin, float3 rayDir, float tNear, float tFar, float 
                     float cosTheta = dot(lightDir, rayDir);
                     phase = HenyeyGreenstein(phaseG, cosTheta);
 
-                    shadow = GetShadowStandard(light, currentPos, float2(0.0, 0.0), 1.0);
+                    shadow = GetShadowStandard(shadowMap, currentPos, float2(0.0, 0.0), 1.0);
 
                     break;
                 }

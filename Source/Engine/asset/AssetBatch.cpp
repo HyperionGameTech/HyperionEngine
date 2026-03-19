@@ -129,13 +129,13 @@ AssetMap AssetBatch::ForceLoad()
     return std::move(*m_assetMap);
 }
 
-void AssetBatch::Add(const String& key, const String& path)
+void AssetBatch::Add(const String& key, const String& path, AssetLoadHint hint)
 {
     Assert(IsCompleted(), "Cannot add assets while loading!");
     Assert(m_assetMap != nullptr, "AssetBatch is in invalid state");
 
     UniquePtr<ProcessAssetFunctorBase> functorPtr = m_assetManager->CreateProcessAssetFunctor(
-        m_identifier, key, path, &m_callbacks);
+        m_identifier, key, path, &m_callbacks, hint);
 
     if (!functorPtr)
     {
@@ -157,12 +157,18 @@ void AssetBatch::Add(const String& key, const String& path)
 
 #pragma region AssetManager
 
-UniquePtr<ProcessAssetFunctorBase> AssetManager::CreateProcessAssetFunctor(TypeId loaderTypeId, const String& batchIdentifier, const String& key, const String& path, AssetBatchCallbacks* callbacksPtr)
+UniquePtr<ProcessAssetFunctorBase> AssetManager::CreateProcessAssetFunctor(
+    TypeId loaderTypeId,
+    const String& batchIdentifier,
+    const String& key,
+    const String& path,
+    AssetBatchCallbacks* callbacksPtr,
+    AssetLoadHint hint)
 {
     auto it = m_functorFactories.Find(loaderTypeId);
     Assert(it != m_functorFactories.End());
 
-    return it->second(batchIdentifier, key, path, callbacksPtr);
+    return it->second(batchIdentifier, key, path, callbacksPtr, hint);
 }
 
 #pragma endregion AssetManager

@@ -1,0 +1,17 @@
+{
+  "$Class": "ShaderBundle",
+  "CompiledShaders": [{
+      "$Class": "AssetReference",
+      "AssetPath": {
+        "Value": "Engine/Shaders/TAA/TAA_9429953578406145858"
+      }
+    }, {
+      "$Class": "AssetReference",
+      "AssetPath": {
+        "Value": "Engine/Shaders/TAA/TAA_5656388037364668818"
+      }
+    }],
+  "Name": "TAA",
+  "FriendlyName": "TAA",
+  "OriginalFilepath": ""
+}

@@ -172,7 +172,11 @@ class AssetManager final : public ObjectBase
 
 public:
     typedef UniquePtr<ProcessAssetFunctorBase> (*ProcessAssetFunctorFactory)(
-        const String& batchIdentifier, const String& key, const String& path, AssetBatchCallbacks* callbacks);
+        const String& batchIdentifier,
+        const String& key,
+        const String& path,
+        AssetBatchCallbacks* callbacks,
+        AssetLoadHint hint);
 
     static constexpr bool assetCacheEnabled = false;
 
@@ -226,9 +230,14 @@ public:
         assetLoaderDefinition.extensions = FlatSet<String>(formatStrings.Begin(), formatStrings.End());
         assetLoaderDefinition.loader = MakeHandle<Loader>();
 
-        m_functorFactories.Set<Loader>([](const String& batchIdentifier, const String& key, const String& path, AssetBatchCallbacks* callbacksPtr) -> UniquePtr<ProcessAssetFunctorBase>
+        m_functorFactories.Set<Loader>([](
+            const String& batchIdentifier,
+            const String& key,
+            const String& path,
+            AssetBatchCallbacks* callbacksPtr,
+            AssetLoadHint hint) -> UniquePtr<ProcessAssetFunctorBase>
             {
-                return MakeUnique<ProcessAssetFunctor<ResultType>>(batchIdentifier, key, path, callbacksPtr);
+                return MakeUnique<ProcessAssetFunctor<ResultType>>(batchIdentifier, key, path, callbacksPtr, hint);
             });
     }
 
@@ -236,16 +245,25 @@ public:
      *  \param typeId The TypeId of asset to load
      *  \param path The path to the asset
      *  \param batchIdentifier Optional string identifier used to group assets together once they're imported.
+     *  \param hint Optional hint to pass to the loader.
      *  \return The result of the load operation */
-    HYP_NODISCARD AssetLoadResult Load(const TypeId& typeId, const String& path, const String& batchIdentifier = String::empty);
+    HYP_NODISCARD AssetLoadResult Load(
+        const TypeId& typeId,
+        const String& path,
+        const String& batchIdentifier = String::empty,
+        AssetLoadHint hint = AssetLoadHint::NoHint);
 
     /*! \brief Load a single asset synchronously
      *  \tparam T The type of asset to load
      *  \param path The path to the asset
      *  \param batchIdentifier Optional identifier string to group assets together once they're imported.
+     *  \param hint Optional hint to pass to the loader.
      *  \return The result of the load operation */
     template <class T>
-    HYP_NODISCARD TAssetLoadResult<T> Load(const String& path, const String& batchIdentifier = String::empty)
+    HYP_NODISCARD TAssetLoadResult<T> Load(
+        const String& path,
+        const String& batchIdentifier = String::empty,
+        AssetLoadHint hint = AssetLoadHint::NoHint)
     {
         const AssetLoaderDefinition* loaderDefinition = GetLoaderDefinition(path, TypeId::ForType<T>());
 
@@ -257,7 +275,7 @@ public:
         AssetLoaderBase* loader = loaderDefinition->loader.Get();
         Assert(loader != nullptr);
 
-        return TAssetLoadResult<T>(loader->Load(*this, path, batchIdentifier));
+        return TAssetLoadResult<T>(loader->Load(*this, path, batchIdentifier, hint));
     }
 
     HYP_API const AssetLoaderDefinition* GetLoaderDefinition(const FilePath& path, TypeId desiredTypeId = TypeId::Void());
@@ -286,15 +304,26 @@ private:
         const String& batchIdentifier,
         const String& key,
         const String& path,
-        AssetBatchCallbacks* callbacksPtr);
+        AssetBatchCallbacks* callbacksPtr,
+        AssetLoadHint hint = AssetLoadHint::NoHint);
 
     template <class Loader>
-    UniquePtr<ProcessAssetFunctorBase> CreateProcessAssetFunctor(const String& batchIdentifier, const String& key, const String& path, AssetBatchCallbacks* callbacksPtr)
+    UniquePtr<ProcessAssetFunctorBase> CreateProcessAssetFunctor(
+        const String& batchIdentifier,
+        const String& key,
+        const String& path,
+        AssetBatchCallbacks* callbacksPtr,
+        AssetLoadHint hint = AssetLoadHint::NoHint)
     {
-        return CreateProcessAssetFunctor(TypeId::ForType<Loader>(), batchIdentifier, key, path, callbacksPtr);
+        return CreateProcessAssetFunctor(TypeId::ForType<Loader>(), batchIdentifier, key, path, callbacksPtr, hint);
     }
 
-    UniquePtr<ProcessAssetFunctorBase> CreateProcessAssetFunctor(const String& batchIdentifier, const String& key, const String& path, AssetBatchCallbacks* callbacksPtr)
+    UniquePtr<ProcessAssetFunctorBase> CreateProcessAssetFunctor(
+        const String& batchIdentifier,
+        const String& key,
+        const String& path,
+        AssetBatchCallbacks* callbacksPtr,
+        AssetLoadHint hint = AssetLoadHint::NoHint)
     {
         const AssetLoaderDefinition* loaderDefinition = GetLoaderDefinition(path);
 
@@ -304,7 +333,7 @@ private:
             return nullptr;
         }
 
-        return CreateProcessAssetFunctor(loaderDefinition->loaderTypeId, batchIdentifier, key, path, callbacksPtr);
+        return CreateProcessAssetFunctor(loaderDefinition->loaderTypeId, batchIdentifier, key, path, callbacksPtr, hint);
     }
 
     void RegisterDefaultLoaders();

@@ -142,11 +142,14 @@ namespace CoreApi {
 extern const GlobalConfig& GetGlobalConfig();
 } // namespace CoreApi
 
-static void GetDeferredShaderProperties(
-    DeferredPassMode mode,
-    ShaderPropertySet& outShaderProperties,
-    const RenderProxyList* rpl = nullptr,
-    LightType lightType = InvalidLightType)
+namespace DeferredRendererHelpers {
+
+static void
+    GetDeferredShaderProperties(
+        DeferredPassMode mode,
+        ShaderPropertySet& outShaderProperties,
+        const RenderProxyList* rpl = nullptr,
+        LightType lightType = InvalidLightType)
 {
     static const GlobalConfig& s_globalConfig = CoreApi::GetGlobalConfig();
     static const IRenderConfig& s_renderConfig = g_renderInterface->GetRenderConfig();
@@ -178,7 +181,7 @@ static void GetDeferredShaderProperties(
     {
         outShaderProperties.Add(s_propHBAOEnabled);
     }
-    
+
     if (mode == DPM_INDIRECT_LIGHTING)
     {
         outShaderProperties.Set(s_propRayTracingReflections, s_renderConfig.rayTracing && rayTracingReflections);
@@ -213,6 +216,54 @@ static void GetDeferredShaderProperties(
         outShaderProperties = outShaderProperties | s_deferredLightTypeProperties[uint32(lightType)];
     }
 }
+
+static void FillShadowMapData(
+    ShadowMapData& outShadowMapData,
+    const ShadowMap& inShadowMap,
+    View* shadowMapViewDynamic,
+    View* shadowMapViewStatic)
+{
+    ShadowMapAtlasElement* atlasElement = inShadowMap.GetAtlasElement();
+    AssertDebug(atlasElement != nullptr);
+
+    if (!atlasElement)
+        return;
+
+    AssertDebug(shadowMapViewDynamic != nullptr && shadowMapViewDynamic->GetCamera() != nullptr);
+
+    RenderProxyCamera* shadowCameraProxy = static_cast<RenderProxyCamera*>(GetRenderProxy(shadowMapViewDynamic->GetCamera()));
+    AssertDebug(shadowCameraProxy != nullptr);
+
+    const Mat4f& viewProjMat = shadowCameraProxy->bufferData.viewProjMat;
+
+    BoundingBox shadowBoundsNDC;
+    shadowBoundsNDC.min = Vec3f(-1.0f);
+    shadowBoundsNDC.max = Vec3f(1.0f);
+
+    BoundingBox shadowBoundsWS = viewProjMat.Inverse() * shadowBoundsNDC;
+        
+    outShadowMapData = {};
+
+    outShadowMapData.layerIndex = atlasElement->layerIndex;
+
+    outShadowMapData.viewProjMat = viewProjMat;
+
+    outShadowMapData.aabbMin.x = shadowBoundsWS.min.x;
+    outShadowMapData.aabbMin.y = shadowBoundsWS.min.y;
+    outShadowMapData.aabbMin.z = shadowBoundsWS.min.z;
+    outShadowMapData.aabbMin.w = atlasElement->offsetUV.x;
+
+    outShadowMapData.aabbMax.x = shadowBoundsWS.max.x;
+    outShadowMapData.aabbMax.y = shadowBoundsWS.max.y;
+    outShadowMapData.aabbMax.z = shadowBoundsWS.max.z;
+    outShadowMapData.aabbMax.w = atlasElement->offsetUV.y;
+
+    outShadowMapData.dimensionsScale = Vec4f(Vec2f(atlasElement->dimensions), atlasElement->scale);
+
+    outShadowMapData.splitDistance = 0.0f; // @TODO
+}
+
+} // namespace DeferredRendererHelpers
 
 static const TypeId s_envProbeTypeToTypeId[EPT_MAX] = {
     TypeId::ForType<SkyProbe>(),        // EPT_SKY
@@ -397,7 +448,7 @@ void DeferredPass::RenderToFramebuffer_Internal(Frame* frame, const RenderSetup&
     if (m_mode == DPM_INDIRECT_LIGHTING)
     {
         ShaderPropertySet shaderProperties;
-        GetDeferredShaderProperties(DPM_INDIRECT_LIGHTING, shaderProperties, &rpl);
+        DeferredRendererHelpers::GetDeferredShaderProperties(DPM_INDIRECT_LIGHTING, shaderProperties, &rpl);
 
         cr << SetCurrentShader(ShaderDesc(NAME("DeferredIndirect"), shaderProperties));
 
@@ -427,7 +478,7 @@ void DeferredPass::RenderToFramebuffer_Internal(Frame* frame, const RenderSetup&
             if (lightType != prevLightType)
             {
                 ShaderPropertySet shaderProperties;
-                GetDeferredShaderProperties(DPM_DIRECT_LIGHTING, shaderProperties, &rpl, lightType);
+                DeferredRendererHelpers::GetDeferredShaderProperties(DPM_DIRECT_LIGHTING, shaderProperties, &rpl, lightType);
 
                 cr << SetCurrentShader(ShaderDesc(NAME("DeferredDirect"), shaderProperties));
             }
@@ -460,42 +511,11 @@ void DeferredPass::RenderToFramebuffer_Internal(Frame* frame, const RenderSetup&
 
                 if (shadowMap != nullptr)
                 {
-                    ShadowMapAtlasElement* atlasElement = shadowMap->GetAtlasElement();
-                    AssertDebug(atlasElement != nullptr);
-
-                    if (!atlasElement)
-                        continue;
-
-                    AssertDebug(shadowMapViewDynamic != nullptr && shadowMapViewDynamic->GetCamera() != nullptr);
-
-                    RenderProxyCamera* shadowCameraProxy = static_cast<RenderProxyCamera*>(GetRenderProxy(shadowMapViewDynamic->GetCamera()));
-                    AssertDebug(shadowCameraProxy != nullptr);
-
-                    const Mat4f& viewProjMat = shadowCameraProxy->bufferData.viewProjMat;
-
-                    BoundingBox shadowBoundsNDC;
-                    shadowBoundsNDC.min = Vec3f(-1.0f);
-                    shadowBoundsNDC.max = Vec3f(1.0f);
-
-                    BoundingBox shadowBoundsWS = viewProjMat.Inverse() * shadowBoundsNDC;
-        
-                    currShadowMapData.layerIndex = atlasElement->layerIndex;
-
-                    currShadowMapData.viewProjMat = viewProjMat;
-
-                    currShadowMapData.aabbMin.x = shadowBoundsWS.min.x;
-                    currShadowMapData.aabbMin.y = shadowBoundsWS.min.y;
-                    currShadowMapData.aabbMin.z = shadowBoundsWS.min.z;
-                    currShadowMapData.aabbMin.w = atlasElement->offsetUV.x;
-
-                    currShadowMapData.aabbMax.x = shadowBoundsWS.max.x;
-                    currShadowMapData.aabbMax.y = shadowBoundsWS.max.y;
-                    currShadowMapData.aabbMax.z = shadowBoundsWS.max.z;
-                    currShadowMapData.aabbMax.w = atlasElement->offsetUV.y;
-
-                    currShadowMapData.dimensionsScale = Vec4f(Vec2f(atlasElement->dimensions), atlasElement->scale);
-
-                    currShadowMapData.splitDistance = 0.0f; // @TODO
+                    DeferredRendererHelpers::FillShadowMapData(
+                        shadowMapData[cascadeIndex],
+                        *shadowMap,
+                        shadowMapViewDynamic,
+                        shadowMapViewStatic);
                 }
 
                 g_renderInterface->constantsAllocator->Write(&shadowMapData[cascadeIndex]);
@@ -861,7 +881,7 @@ void LightmapPass::RenderToFramebuffer_Internal(Frame* frame, const RenderSetup&
 
 #pragma region FogVolumePass
 
-static constexpr uint32 MaxBoundLightsPerFogVolume = 16;
+static constexpr uint32 MaxBoundLightsPerFogVolume = 4;
 
 FogVolumePass::FogVolumePass()
     : FullScreenPass(TextureFormat::RGBA16F, nullptr, FSP_EXTERNAL_RENDERTARGET)
@@ -870,10 +890,6 @@ FogVolumePass::FogVolumePass()
 
 FogVolumePass::~FogVolumePass()
 {
-    for (FogVolumePassData& data : m_fogVolumePassData)
-    {
-        EnqueueDeletion(std::move(data.cBuffer));
-    }
 }
 
 void FogVolumePass::Create()
@@ -914,8 +930,6 @@ void FogVolumePass::RenderToFramebuffer_Internal(Frame* frame, const RenderSetup
     FogVolumePassData& data = GetFogVolumePassData(volume);
     data.noiseTexture = proxy->noiseTexture;
     data.volumeTexture = proxy->volumeTexture;
-
-    UpdateUniforms(frame, renderSetup, data);
 
     CommandRecorder& cr = frame->cr;
 
@@ -959,7 +973,92 @@ void FogVolumePass::RenderToFramebuffer_Internal(Frame* frame, const RenderSetup
     if (data.noiseTexture)
         cr << SetShaderUniform(6 + GTN_MAX, "NoiseMap"_sh, g_renderInterface->textureViewCache->GetOrCreate(data.noiseTexture));
 
-    cr << SetShaderUniform(7 + GTN_MAX, "FogVolumeUniforms"_sh, data.cBuffer);
+    // Set constants
+    FogVolumeShaderData shaderData = proxy->bufferData;
+
+    uint32& numBoundLights = shaderData.numBoundLights;
+    numBoundLights = 0;
+
+    uint32* lightIndicesU32 = reinterpret_cast<uint32*>(shaderData.lightIndices);
+
+    RenderProxyList& rpl = GetConsumerProxyList(renderSetup.view);
+
+    Array<Pair<Light*, LightShaderData*>, RenderAllocator> tempLightsArray;
+
+    for (Light* light : rpl.GetLights())
+    {
+        const LightType lightType = light->GetLightType();
+
+        if (lightType != LightType::Directional && lightType != LightType::Point)
+        {
+            continue;
+        }
+
+        if (numBoundLights >= MaxBoundLightsPerFogVolume)
+        {
+            break;
+        }
+
+        RenderProxyLight* lightProxy = static_cast<RenderProxyLight*>(GetRenderProxy(light));
+        Assert(lightProxy != nullptr);
+
+        tempLightsArray.EmplaceBack(light, &lightProxy->bufferData);
+
+        lightIndicesU32[numBoundLights++] = RetrieveResourceBinding(light);
+    }
+
+    GpuBuffer* cBuffer = nullptr;
+    size_t cBufferOffset = 0;
+    size_t cBufferSize = 0;
+    
+    g_renderInterface->constantsAllocator->Write(&shaderData);
+
+    for (uint32 i = 0; i < MaxBoundLightsPerFogVolume; i++)
+    {
+        if (i < uint32(tempLightsArray.Size()))
+        {
+            g_renderInterface->constantsAllocator->Write(tempLightsArray[i].second);
+            continue;
+        }
+        
+        LightShaderData dummy {};
+        g_renderInterface->constantsAllocator->Write(&dummy);
+    }
+
+    for (uint32 i = 0; i < MaxBoundLightsPerFogVolume; i++)
+    {
+        ShadowMapData shadowMapData {};
+
+        if (i < uint32(tempLightsArray.Size()))
+        {
+            View* shadowMapViewDynamic;
+            View* shadowMapViewStatic;
+
+            Light* light = tempLightsArray[i].first;
+
+            ShadowMap* shadowMap = g_renderInterface->shadowMapCache->GetShadowMap(
+                light,
+                renderSetup.view,
+                /* cascadeIndex */ 0,
+                shadowMapViewDynamic,
+                shadowMapViewStatic);
+
+            if (shadowMap != nullptr)
+            {
+                DeferredRendererHelpers::FillShadowMapData(
+                    shadowMapData,
+                    *shadowMap,
+                    shadowMapViewDynamic,
+                    shadowMapViewStatic);
+            }
+        }
+
+        g_renderInterface->constantsAllocator->Write(&shadowMapData);
+    }
+            
+    g_renderInterface->constantsAllocator->Commit(cBuffer, cBufferOffset, cBufferSize);
+
+    cr << SetShaderUniform(7 + GTN_MAX, "FogVolumeConstants"_sh, cBuffer, ShaderDataOffset(cBufferOffset, cBufferSize));
 
     cr << CommitDrawState();
 
@@ -973,60 +1072,6 @@ void FogVolumePass::RenderToFramebuffer_Internal(Frame* frame, const RenderSetup
     cr << SetDepthWrite(true);
 
     m_isFirstFrame = false;
-}
-
-void FogVolumePass::UpdateUniforms(Frame* frame, const RenderSetup& renderSetup, FogVolumePassData& data)
-{
-    HYP_SCOPE;
-
-    AssertDebug(renderSetup.world && renderSetup.view);
-
-    RenderProxyList& rpl = GetConsumerProxyList(renderSetup.view);
-
-    if (!data.cBuffer)
-    {
-        data.cBuffer = g_renderInterface->MakeGpuBuffer(
-            GpuBufferType::CONSTANT_BUFFER,
-            sizeof(FogVolumeShaderData) + sizeof(LightShaderData) * MaxBoundLightsPerFogVolume);
-        Assert(data.cBuffer->Create());
-    }
-
-    GpuBufferBase* cBuffer = data.cBuffer;
-    AssertDebug(cBuffer != nullptr);
-
-    RenderProxyFogVolume* proxy = static_cast<RenderProxyFogVolume*>(GetRenderProxy(data.volume));
-    Assert(proxy != nullptr);
-
-    FogVolumeShaderData shaderData = proxy->bufferData;
-
-    uint32& numBoundLights = shaderData.numBoundLights;
-    numBoundLights = 0;
-
-    uint32* lightIndicesU32 = reinterpret_cast<uint32*>(shaderData.lightIndices);
-
-    for (Light* light : rpl.GetLights())
-    {
-        const LightType lightType = light->GetLightType();
-
-        if (lightType != LightType::Directional && lightType != LightType::Point)
-        {
-            continue;
-        }
-
-        if (numBoundLights >= MaxBoundLightmapVolumes)
-        {
-            break;
-        }
-
-        RenderProxyLight* lightProxy = static_cast<RenderProxyLight*>(GetRenderProxy(light));
-        Assert(lightProxy != nullptr);
-
-        cBuffer->Copy(sizeof(FogVolumeShaderData) + (numBoundLights * sizeof(LightShaderData)), sizeof(LightShaderData), &lightProxy->bufferData);
-
-        lightIndicesU32[numBoundLights++] = RetrieveResourceBinding(light);
-    }
-
-    cBuffer->Copy(sizeof(FogVolumeShaderData), &shaderData);
 }
 
 #pragma endregion FogVolumePass
