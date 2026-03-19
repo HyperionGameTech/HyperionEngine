@@ -11,7 +11,10 @@
 - Multi-threaded asset registry system
 
 ## Platforms
-Currently, we are focusing our efforts on the core engine and editor development on Windows and macOS via MoltenVK - Linux support is planned but not a priority at the moment. The engine is in early access and is not yet ready for production use, but we welcome contributions and feedback from the community.
+Currently, we are focusing our efforts on developing the engine for Windows, macOS and Android. Editor support is available on Windows and macOS.
+> Linux support is planned for the future but not in active development. Contributions welcome on that front if you are interested in that!
+
+The engine is in early access and is not yet ready for production use. But if you are feeling adventurous, we welcome you to try it out and see what you can create (or break)!
 
 To get started, check out the [Compiling the Engine](Documentation/CompilingTheEngine.md) guide to set up your development environment and compile the engine.
 
