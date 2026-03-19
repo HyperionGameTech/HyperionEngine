@@ -75,6 +75,8 @@ void Baker<ReflectionProbe>::OnCompleted_Internal()
     BitmapUtils::Blit(bitmap, finalBitmap, rect, rect);
 
     ByteBuffer imageData(finalBitmap.ToByteView());
+
+    // @TODO Proper env probe convolution
     Texture::GenerateMipmaps(textureDesc, imageData);
 
     Handle<Texture> cubemap = MakeHandle<Texture>(textureDesc, imageData.ToByteView());

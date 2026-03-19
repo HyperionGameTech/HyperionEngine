@@ -518,7 +518,7 @@ void AssetPackage::Init()
             const FilePath newManifestFilepath = packageDir / *assetObject->GetName() + ".json";
 
             // save the asset in our package
-            if (Result saveAssetResult = assetObject->Save(newManifestFilepath); saveAssetResult.HasError())
+            if (Result saveAssetResult = assetObject->SaveAs(newManifestFilepath); saveAssetResult.HasError())
             {
                 HYP_LOG(Assets, Error, "Failed to save asset object '{}' in package '{}': {}", assetObject->GetName(), m_name, saveAssetResult.GetError().GetMessage());
             }
@@ -664,7 +664,7 @@ void AssetPackage::SetAssets(const AssetObjectSet& assetObjects)
             const FilePath newManifestFilepath = packageDir / *assetObject->GetName() + ".json";
 
             // save the file in our package
-            Result saveAssetResult = assetObject->Save(newManifestFilepath);
+            Result saveAssetResult = assetObject->SaveAs(newManifestFilepath);
 
             if (saveAssetResult.HasError())
             {
@@ -842,7 +842,7 @@ Result AssetPackage::AddAssetObject(const Handle<AssetObject>& assetObject, bool
         const FilePath newManifestFilepath = packageDir / *assetObject->GetName() + ".json";
 
         // save the file in our package
-        Result saveAssetResult = assetObject->Save(newManifestFilepath);
+        Result saveAssetResult = assetObject->SaveAs(newManifestFilepath);
 
         if (saveAssetResult.HasError())
         {
@@ -1520,7 +1520,7 @@ Result AssetPackage::Save(const FilePath& outputDirectory, bool saveEvenIfNotDir
                 continue;
             }
 
-            if (Result saveAssetResult = assetObject->Save(packageDir / *assetObject->GetName() + ".json"); saveAssetResult.HasError())
+            if (Result saveAssetResult = assetObject->SaveAs(packageDir / *assetObject->GetName() + ".json"); saveAssetResult.HasError())
             {
                 HYP_LOG(Assets, Error, "Failed to save asset object '{}' in package '{}': {}",
                     assetObject->GetName(), packageName, saveAssetResult.GetError().GetMessage());
@@ -1957,8 +1957,6 @@ void AssetRegistry::Initialize()
     Handle<AssetPackage> enginePackage = GetPackageFromPath("Engine", true);
     Assert(enginePackage.IsValid());
     enginePackage->Save(GetLibraryDirectory());
-
-    LoadPackagesAsync(/* loadSubpackages */ false);
 
     Handle<AssetPackage> tempPackage = GetPackageFromPath("$Temp", true);
     Assert(tempPackage.IsValid());
@@ -3467,7 +3465,7 @@ Result AssetRegistry::RegisterAsset(
             const FilePath newManifestFilepath = assetPackage->m_packageDir / *assetObject->GetName() + ".json";
 
             // save the file in our package
-            Result saveAssetResult = assetObject->Save(newManifestFilepath);
+            Result saveAssetResult = assetObject->SaveAs(newManifestFilepath);
             return saveAssetResult;
         }
 

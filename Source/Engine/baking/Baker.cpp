@@ -661,6 +661,12 @@ void BakerBase::OnCompleted()
         totalElapsedStr = HYP_FORMAT("{}s", int(totalElapsedSeconds));
     }
 
+    // mark the source object dirty if it is an AssetObject 
+    if (m_source->IsA(AssetObject::StaticClass()))
+    {
+        static_cast<AssetObject*>(m_source)->MarkDirty();
+    }
+
     HYP_LOG(Lightmap, Info, "Baking complete for {} - Total time: {}", m_source ? m_source->Id() : ObjIdBase(), totalElapsedStr);
 }
 

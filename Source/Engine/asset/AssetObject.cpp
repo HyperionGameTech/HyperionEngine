@@ -226,7 +226,14 @@ bool AssetObject::IsSaved() const
     return m_manifestPath.Length() > 0;
 }
 
-Result AssetObject::Save(const FilePath& manifestPath)
+Result AssetObject::Save()
+{
+    AssertDebug(IsSaved());
+
+    return SaveAs(m_manifestPath);
+}
+
+Result AssetObject::SaveAs(const FilePath& manifestPath)
 {
     HYP_SCOPE;
 
@@ -385,11 +392,22 @@ Result AssetObject::Register(const UTF8StringView& path, AddAssetConflictMode co
     return g_assetManager->GetAssetRegistry()->RegisterAsset(path, MakeStrongRef(this), conflictMode);
 }
 
+
 Result AssetObject::Load(
     JSON::Object& manifestData,
     Handle<AssetObject>& outAssetObject)
 {
     HYP_SCOPE;
+
+    static constexpr uint32 MaxRecursionDepth = 32;
+    static thread_local uint32 s_recursionDepth = 0;
+
+    HYP_DEFER({ --s_recursionDepth; });
+
+    if (++s_recursionDepth >= MaxRecursionDepth)
+    {
+        return HYP_MAKE_ERROR(Error, "Recursion depth limit reached. Is the asset self-referential causing a circular dependency?");
+    }
 
     JSON::Value classNameValue = manifestData["$Class"];
 

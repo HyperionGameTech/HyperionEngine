@@ -346,7 +346,7 @@ private:
         {
             do
             {
-                m_notifier.Wait();
+                m_notifier.WaitAndReset();
 
                 DoWork(streamingManager);
 

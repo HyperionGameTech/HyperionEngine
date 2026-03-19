@@ -183,6 +183,8 @@ public:
     Result AddAssetObject(const Handle<AssetObject>& assetObject, bool replaceOnConflict);
     Result RemoveAssetObject(const Handle<AssetObject>& assetObject);
 
+    Handle<AssetObject> GetAssetObject(UTF8StringView assetName, bool attemptLoading);
+
     /*! \brief Merges the contents of another package into this one.
      *  Transfers ownership of all asset objects and subpackages from the source package
      *  to this package. Assets are renamed if conflicts occur, and subpackages are merged recursively.
@@ -274,8 +276,6 @@ public:
 
 private:
     void Init();
-
-    Handle<AssetObject> GetAssetObject(UTF8StringView assetName, bool attemptLoading);
 
     void MarkDirty();
 

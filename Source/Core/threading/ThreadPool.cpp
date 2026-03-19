@@ -19,7 +19,7 @@
 namespace Hyperion {
 namespace threading {
 
-constexpr bool EnableCleanupIdleBackgroundThreads = false; // tmp debugging
+constexpr bool EnableCleanupIdleBackgroundThreads = true;
 
 #pragma region ThreadPoolBase
 
@@ -256,6 +256,14 @@ BackgroundWorkerPool::~BackgroundWorkerPool()
     Stop();
 }
 
+bool BackgroundWorkerPool::IsRunning() const
+{
+    // consider the background worker pool to be 'running' as long as Start() is been called
+    // we may not have any threads yet, therefore we need to override the default behaviour which
+    // returns false when there are no threads in a pool.
+    return (m_overseerThread != nullptr);
+}
+
 void BackgroundWorkerPool::Start()
 {
     if (m_overseerThread != nullptr)
@@ -280,8 +288,7 @@ void BackgroundWorkerPool::Start()
             {
                 {
                     Mutex::Guard lock(m_pool->m_overseerMutex);
-
-                    m_pool->m_overseerCV.WaitFor(m_pool->m_overseerMutex, 30000);
+                    m_pool->m_overseerCV.WaitFor(m_pool->m_overseerMutex, 1000);
                 }
 
                 if (m_pool->m_overseerShouldStop.Get(MemoryOrder::ACQUIRE))
@@ -364,16 +371,12 @@ TaskThread* BackgroundWorkerPool::GetNextTaskThread()
         }
     }
 
-    const uint32 activeCount = m_activeThreadCount.Get(MemoryOrder::ACQUIRE);
-
-    if (activeCount < m_maxThreads)
-    {
-        return CreateThread();
-    }
-
     // all threads are busy
 
-    if (m_threads.Empty())
+    const uint32 activeCount = m_activeThreadCount.Get(MemoryOrder::ACQUIRE);
+
+    // can create a thread
+    if (activeCount < m_maxThreads)
     {
         return CreateThread();
     }
@@ -400,9 +403,10 @@ TaskThread* BackgroundWorkerPool::CreateThread()
     // Start the thread immediately
     taskThread->Start();
 
+    // wait for ready state
     while (!taskThread->IsRunning())
     {
-        HYP_WAIT_IDLE();
+        ThreadSleep(0);
     }
 
     m_threads.PushBack(std::move(newThread));

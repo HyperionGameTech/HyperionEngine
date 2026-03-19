@@ -174,7 +174,10 @@ public:
     bool IsSaved() const;
 
     HYP_METHOD()
-    Result Save(const FilePath& manifestPath);
+    Result Save();
+
+    HYP_METHOD()
+    Result SaveAs(const FilePath& manifestPath);
 
     TUniqueLock<AssetObject> GetWriteScope() const;
     TSharedLock<AssetObject> GetReadScope() const;

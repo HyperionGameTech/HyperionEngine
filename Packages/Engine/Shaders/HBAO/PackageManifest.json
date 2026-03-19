@@ -1,0 +1,7 @@
+{
+  "Dependencies": [],
+  "Name": "HBAO",
+  "FriendlyName": "HBAO",
+  "Flags": 0,
+  "Path": "Engine/Shaders/HBAO"
+}

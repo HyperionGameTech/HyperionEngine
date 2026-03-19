@@ -49,7 +49,7 @@ public:
     virtual ~ThreadPoolBase();
 
     /*! \brief Check if any thread in the pool is currently running. */
-    bool IsRunning() const;
+    virtual bool IsRunning() const;
 
     /*! \brief Start all threads in the pool. */
     virtual void Start() = 0;
@@ -187,7 +187,7 @@ public:
 /*! \brief Background thread pool that lazily creates threads on-demand and manages thread lifecycle.
  *  Threads are created only when needed and automatically cleaned up when idle for too long.
  *  Useful for background tasks that don't require constant worker threads. */
-class HYP_API BackgroundWorkerPool : public TaskThreadPool
+class HYP_API BackgroundWorkerPool final : public TaskThreadPool
 {
 public:
     static constexpr uint32 IdleTimeout = 10000; // 10 seconds
@@ -201,6 +201,8 @@ public:
     BackgroundWorkerPool& operator=(BackgroundWorkerPool&&) noexcept = delete;
 
     virtual ~BackgroundWorkerPool() override;
+
+    virtual bool IsRunning() const override;
 
     virtual void Start() override;
     virtual void Stop() override;

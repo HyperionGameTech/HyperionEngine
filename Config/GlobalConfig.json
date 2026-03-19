@@ -13,13 +13,13 @@
   "Rendering": {
     "RayTracing": {
       "PathTracing": {
-        "Enabled": false
+        "Enabled": true
       },
       "Reflections": {
         "Enabled": false
       },
       "GI": {
-        "Enabled": true
+        "Enabled": false
       },
       "Enabled": true
     },

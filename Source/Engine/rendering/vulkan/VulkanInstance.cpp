@@ -332,10 +332,6 @@ static void DestroyDebugUtilsMessenger(VkInstance instance, VkDebugUtilsMessenge
     }
 }
 
-#endif
-
-#if HYP_DEBUG_MODE
-
 RendererResult VulkanInstance::SetupDebug()
 {
     static const char* s_requestLayers[] = {

@@ -21,6 +21,8 @@
 
 #include <Core/utilities/DeferredScope.hpp>
 
+#include <Core/threading/ThreadSignal.hpp>
+
 // for EnumToString
 #include <Core/reflection/Enum.hpp>
 
@@ -36,6 +38,8 @@ namespace Hyperion {
 
 class Texture;
 class TextureMipmapRenderer;
+
+extern ThreadSignal g_renderInitSignal;
 
 const FixedArray<Pair<Vec3f, Vec3f>, 6> Texture::s_cubemapDirections = {
     Pair<Vec3f, Vec3f> { Vec3f { 1, 0, 0 }, Vec3f { 0, 1, 0 } },
@@ -85,6 +89,12 @@ static bool CheckImageData(Texture& texture, GpuImage& image)
 
 static RendererResult CreateGpuImage(Texture& texture, GpuImage& image, ResourceState initialState, bool uploadTextureData)
 {
+    if (!IsOnThread(g_renderThread))
+    {
+        // we need the renderer to be ready before we can create the gpu image
+        g_renderInitSignal.Wait();
+    }
+
     CheckResultOrReturn(image.Create());
 
     CommandRecorder& cr = g_renderInterface->commandRecorderAllocator.GetCommandRecorder();

@@ -59,6 +59,8 @@ HYP_DEFINE_LOG_CHANNEL(Game);
 
 namespace game {
 
+static bool s_isSaving = false;
+
 DefaultGame::DefaultGame()
     : Game()
 {
@@ -72,6 +74,44 @@ void DefaultGame::OnLaunch_Impl()
 {
     //GetWorld()->GetWorldGrid()->AddLayer(MakeHandle<TerrainWorldGridLayer>());
 
+    auto pkg = g_assetManager->GetAssetRegistry()->GetPackageFromPath("SampleGame", /* createIfNotExist */ false, /* requireLoaded */ true);
+    if (pkg.IsValid())
+    {
+        // Get MainScene
+        Handle<AssetObject> mainSceneAsset = pkg->GetAssetObject("MainScene", /* attemptLoading */ true);
+        Assert(mainSceneAsset.IsValid());
+
+        if (mainSceneAsset.IsValid())
+        {
+            Handle<Scene> mainScene = ObjCast<Scene>(mainSceneAsset);
+            Assert(mainScene.IsValid(), "Asset 'MainScene' in package 'SampleGame' is not a Scene!");
+            if (mainScene.IsValid())
+            {
+                m_camera = ObjCast<Camera>(mainScene->GetRoot()->GetChild(0));
+                Assert(m_camera.IsValid());
+                
+                Vec2u viewportSize = Vec2u(m_camera->GetDimensions());
+
+                ViewDesc viewDesc {
+                    .flags = ViewFlags::DEFAULT | ViewFlags::GBUFFER | ViewFlags::MATCH_CAMERA_DIMENSIONS,
+                    .renderTargetDesc = { .extent = viewportSize },
+                    .camera = m_camera
+                };
+
+                Handle<View> view = MakeHandle<View>(viewDesc);
+
+                GetWorld()->AddView(view);
+
+                GetWorld()->AddScene(mainScene);
+            }
+        }
+
+        StartSimulating();
+        return;
+    }
+
+#if 1
+    // camera
     m_camera = MakeHandle<Camera>();
     m_camera->SetFOV(65.0f);
     m_camera->SetFar(1000.0f);
@@ -80,6 +120,11 @@ void DefaultGame::OnLaunch_Impl()
 
     InitObject(m_camera);
 
+    // Fps controller
+    Handle<FirstPersonCameraController> cameraController = MakeHandle<FirstPersonCameraController>();
+    m_camera->AddCameraController(cameraController);
+
+    // view
     Vec2u viewportSize = Vec2u(m_camera->GetDimensions());
 
     ViewDesc viewDesc {
@@ -93,7 +138,7 @@ void DefaultGame::OnLaunch_Impl()
     GetWorld()->AddView(view);
 
     Handle<Scene> scene = MakeHandle<Scene>(SceneFlags::FOREGROUND);
-    scene->SetName(NAME("defaultScene"));
+    scene->SetName(NAME("MainScene"));
 
     scene->GetRoot()->AddChild(m_camera);
 
@@ -101,62 +146,64 @@ void DefaultGame::OnLaunch_Impl()
 
     GetWorld()->AddScene(scene);
 
+    scene->Register("SampleGame");
+
     // add sun
     Handle<Node> sunNode = scene->GetRoot()->AddChild();
     sunNode->SetName(NAME("Sun"));
 
     Handle<DirectionalLight> sunEntity = scene->GetEntityManager()->AddEntity<DirectionalLight>(
-        Vec3f(0.4f, 0.8f, 0.1f).Normalize(),
+        Vec3f(0.1f, 0.2f, 0.9f).Normalize(),
         Color(Vec4f(1.0f, 0.9f, 0.8f, 1.0f)),
-        25.0f);
+        10.0f);
 
     sunNode->AddChild(sunEntity);
 
-    // sky
-    GetWorld()->AddSystemT<DynamicSkySystem>();
-
-    // Fps controller
-
-    Handle<FirstPersonCameraController> cameraController = MakeHandle<FirstPersonCameraController>();
-    m_camera->AddCameraController(cameraController);
+    //auto pointLight = MakeHandle<PointLight>(Vec3f(0.0f, 7.0f, 7.0f), Color::Red(), 5.0f, 3.0f);
+    //scene->GetRoot()->AddChild(pointLight);
 
     // temp: add test script component
     Handle<ScriptAsset> scriptAsset = MakeHandle<ScriptAsset>(NAME("NewScript"), ScriptDesc());
 
     // register the package
-    Result assetObjectResult = g_assetManager->GetAssetRegistry()->RegisterAsset("$Import/Scripts", scriptAsset);
+    Result assetObjectResult = g_assetManager->GetAssetRegistry()->RegisterAsset("SampleGame/Scripts", scriptAsset);
     Assert(assetObjectResult, "Failed to register script asset: {}", assetObjectResult.GetError().GetMessage());
 
     ScriptDesc& scriptDesc = scriptAsset->GetScriptDesc();
-
     scriptDesc.language = ScriptLanguage::HypScript;
     Memory::StrCpy(scriptDesc.path.Data(), "FPSCounter.hyp", ArraySize(scriptDesc.path));
     Memory::StrCpy(scriptDesc.className.Data(), "MyClass", ArraySize(scriptDesc.className));
 
-    ScriptComponent& scriptComponent = sunEntity->AddComponent<ScriptComponent>(ScriptComponent {
-        TAssetReference<ScriptAsset>(scriptAsset)
-    });
-
     AssetBatch* batch = g_assetManager->CreateBatch();
-    batch->Add("sponza", "Models/Sponza/sponza.obj");
+    batch->Add("testbed", "Models/Testbed/testbed.obj");
     auto results = batch->ForceLoad();
 
-    LoadedAsset& sponza = results["sponza"];
-    Handle<Node> sponzaNode = sponza.ExtractAs<Node>();
-    sponzaNode->SetWorldScale(0.03f);
+    LoadedAsset& testbedAsset = results["testbed"];
+    Handle<Node> testbedNode = testbedAsset.ExtractAs<Node>();
+    testbedNode->Scale(4.0f);
     
-    scene->GetRoot()->AddChild(sponzaNode);
+    scene->GetRoot()->AddChild(testbedNode);
+    
+    // sky
+    GetWorld()->AddSystemT<DynamicSkySystem>();
 
-    Handle<FogVolume> fogVolume = MakeHandle<FogVolume>();
-    fogVolume->SetLocalBounds(BoundingBox(Vec3f(-30.0f, -0.5f, -30.0f), Vec3f(30.0f, 40.0f, 30.0f)));
-    scene->GetRoot()->AddChild(fogVolume);
-    fogVolume->Rebake();
+
+    //ScriptComponent& scriptComponent = sunEntity->AddComponent<ScriptComponent>(ScriptComponent {
+    //    TAssetReference<ScriptAsset>(scriptAsset)
+    //});
+//
+//    Handle<FogVolume> fogVolume = MakeHandle<FogVolume>();
+//    fogVolume->SetLocalBounds(BoundingBox(Vec3f(-30.0f, -0.5f, -30.0f), Vec3f(30.0f, 40.0f, 30.0f)));
+//    scene->GetRoot()->AddChild(fogVolume);
+//#if HYP_EDITOR
+//    fogVolume->Rebake();
+//#endif
 
     if (UISubsystem* uiSubsystem = GetUISubsystem())
     {
-        uiSubsystem->AddDebugOverlay(MakeHandle<BaseStatsOverlay>());
         uiSubsystem->AddDebugOverlay(MakeHandle<StatsOverlay>());
     }
+#endif
 
     StartSimulating();
 }
@@ -177,6 +224,32 @@ void DefaultGame::OnInputEvent(const Event& event)
         controller->GetInputHandler()->OnKeyUp(event.ToKeyboardEvent());
         break;
     case EventType::KEYDOWN:
+        if (!s_isSaving && event.GetKeyCode() == KeyCode::KEY_1)
+        {
+            s_isSaving = true;
+
+            g_assetManager->GetAssetRegistry()->RegisterAssetsRecursively("SampleGame", BoxedValue(m_defaultScene),
+                /* forceRelocation */ false,
+                /* appendExistingPackagePath */ true,
+                [](const AssetObject& obj) -> String
+                {
+                    return HYP_FORMAT("Instances/{}", obj.InstanceClass()->GetName());
+                });
+
+            // save package
+            Handle<AssetPackage> pkg = g_assetManager->GetAssetRegistry()->GetPackageFromPath("SampleGame", /* createIfNotExist */ false, /* requireLoaded */ false);
+            if (pkg.IsValid())
+            {
+                Result result = pkg->Save(GetLibraryDirectory());
+                if (result.HasError())
+                {
+                    HYP_LOG(Game, Error, "Failed to save package: {}", result.GetError().GetMessage());
+                }
+                
+                s_isSaving = false;
+            }
+        }
+
         controller->GetInputHandler()->OnKeyDown(event.ToKeyboardEvent());
         break;
     case EventType::MOUSEBUTTON_DOWN:

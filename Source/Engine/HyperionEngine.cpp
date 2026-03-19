@@ -334,6 +334,8 @@ extern "C"
 
         g_engineDriver = MakeHandle<EngineDriver>();
 
+        ComponentInterfaceRegistry::GetInstance().Initialize();
+
         g_engineStats = MakeHandle<EngineStats>();
         InitObject(g_engineStats);
 
@@ -361,8 +363,6 @@ extern "C"
         {
             HYP_LOG(Engine, Error, "Failed to load shader definitions!");
         }
-
-        ComponentInterfaceRegistry::GetInstance().Initialize();
 
 #if HYP_WINDOWS
         g_appContext = MakeHandle<Win32AppContext>("Hyperion", cliArgs);

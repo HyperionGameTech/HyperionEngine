@@ -3405,20 +3405,6 @@ bool ShaderCompiler::CompileBundle(
         return false;
     }
 
-    std::sort(
-        outBundle->compiledShaders.Begin(),
-        outBundle->compiledShaders.End(),
-        [](const Handle<Shader>& a, const Handle<Shader>& b) -> bool
-        {
-            if (ByteUtil::BitCount(a->vertexAttributes.flagMask) < ByteUtil::BitCount(b->vertexAttributes.flagMask))
-                return false;
-
-            if (std::strcmp(a->GetName().LookupString(), b->GetName().LookupString()) < 0)
-                return false;
-
-            return true;
-        });
-
     { // Save the shader property DB
 
         const FilePath shaderPropertyDbPath = GetCacheDirectory() / "ShaderProperties.bin";
@@ -3448,6 +3434,24 @@ bool ShaderCompiler::CompileBundle(
 
         existingShadersToRemove.Clear();
     }
+
+    // keep compiled shaders sorted.
+    // partially this is to minimize changes causing excessive diffing in source control,
+    // but also sorting by the amount of bits in the flag mask lets us find more "specific" variants earlier on
+    // when selecting which variant to use.
+    std::sort(
+        outBundle->compiledShaders.Begin(),
+        outBundle->compiledShaders.End(),
+        [](const Handle<Shader>& a, const Handle<Shader>& b) -> bool
+        {
+            if (ByteUtil::BitCount(a->vertexAttributes.flagMask) < ByteUtil::BitCount(b->vertexAttributes.flagMask))
+                return false;
+
+            if (std::strcmp(a->GetName().LookupString(), b->GetName().LookupString()) < 0)
+                return false;
+
+            return true;
+        });
 
     { // register assets
         Result registerResult;

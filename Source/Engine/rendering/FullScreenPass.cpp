@@ -235,7 +235,7 @@ void FullScreenPass::SetBlendFunction(const BlendFunction& blendFunction)
 
 void FullScreenPass::Resize(Vec2u newSize)
 {
-    m_threadSignal.Wait();
+    m_threadSignal.WaitAndReset();
     PUSH_RENDER_COMMAND(RecreateFullScreenPassFramebuffer, this, newSize);
 }
 

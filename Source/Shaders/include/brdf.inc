@@ -524,4 +524,29 @@ vec3 SampleCosineDir(in vec2 xi, in vec3 N)
     return normalize(T1 * dir.x + T2 * dir.y + N * dir.z);
 }
 
+/// https://www.rorydriscoll.com/2012/01/15/cubemap-texel-solid-angle/
+float AreaElement(float x, float y )
+{
+	return atan2(x * y, sqrt(x * x + y * y + 1));
+}
+
+float TexelCoordSolidAngle(int a_FaceIdx, float a_U, float a_V, int a_Size)
+{
+    //scale up to [-1, 1] range (inclusive), offset by 0.5 to point to texel center.
+    float U = (2.0f * ((float)a_U + 0.5f) / (float)a_Size) - 1.0f;
+    float V = (2.0f * ((float)a_V + 0.5f) / (float)a_Size) - 1.0f;
+
+    float InvResolution = 1.0 / (float)a_Size;
+
+	// U and V are the -1..1 texture coordinate on the current face.
+	// Get projected area for this texel
+	float x0 = U - InvResolution;
+	float y0 = V - InvResolution;
+	float x1 = U + InvResolution;
+	float y1 = V + InvResolution;
+	float SolidAngle = AreaElement(x0, y0) - AreaElement(x0, y1) - AreaElement(x1, y0) + AreaElement(x1, y1);
+
+	return SolidAngle;
+}
+
 #endif

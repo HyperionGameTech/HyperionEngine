@@ -17,6 +17,10 @@
 #include <scene/World.hpp>
 #include <scene/View.hpp>
 
+#include <asset/Assets.hpp>
+#include <asset/AssetRegistry.hpp>
+#include <asset/AssetObject.hpp>
+
 #include <Core/threading/TaskSystem.hpp>
 
 #include <Core/math/BoundingBox.hpp>

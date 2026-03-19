@@ -223,10 +223,10 @@
     }, {
       "$Class": "BlobDataReference",
       "Key": "Engine/Shaders/ApplyFogVolume/ApplyFogVolume_16087900503833404331.PS",
-      "Size": 11384
+      "Size": 11368
     }],
   "PropertySetHashCode": {},
   "Name": "ApplyFogVolume_16087900503833404331",
-  "FriendlyName": "ApplyFogVolume16087900503833404331",
+  "FriendlyName": "ApplyFogVolume_16087900503833404331",
   "OriginalFilepath": ""
 }

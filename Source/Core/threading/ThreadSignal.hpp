@@ -22,19 +22,6 @@ public:
 
     ~ThreadSignal() = default;
 
-    void Wait()
-    {
-        Mutex::Guard guard(m_mutex);
-
-        int32 expected = 0;
-        while (AtomicCompareExchange(&m_value, expected, 0))
-        {
-            expected = 0;
-            
-            m_conditionVariable.Wait(m_mutex);
-        }
-    }
-
     bool IsSignalled() const
     {
         return AtomicAdd(&m_value, 0) > 0;
@@ -43,8 +30,36 @@ public:
     void Signal()
     {
         Mutex::Guard guard(m_mutex);
+
         AtomicIncrement(&m_value);
-        m_conditionVariable.NotifyOne();
+
+        m_conditionVariable.NotifyAll();
+    }
+
+    void Wait()
+    {
+        while (!IsSignalled())
+        {   
+            Mutex::Guard guard(m_mutex);
+            m_conditionVariable.Wait(m_mutex);
+        }
+    }
+
+    void WaitAndReset()
+    {
+        while (!IsSignalled())
+        {
+            Mutex::Guard guard(m_mutex);
+            m_conditionVariable.Wait(m_mutex);
+
+            Reset();
+        }
+    }
+
+    void Reset()
+    {
+        Mutex::Guard guard(m_mutex);
+        AtomicExchange(&m_value, 0);
     }
 
 private:

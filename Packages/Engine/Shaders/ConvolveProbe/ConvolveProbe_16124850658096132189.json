@@ -141,10 +141,10 @@
   "ShaderBlobs": [{
       "$Class": "BlobDataReference",
       "Key": "Engine/Shaders/ConvolveProbe/ConvolveProbe_16124850658096132189.CS",
-      "Size": 3244
+      "Size": 3260
     }],
   "PropertySetHashCode": {},
   "Name": "ConvolveProbe_16124850658096132189",
-  "FriendlyName": "ConvolveProbe_16124850658096132189",
+  "FriendlyName": "ConvolveProbe16124850658096132189",
   "OriginalFilepath": ""
 }

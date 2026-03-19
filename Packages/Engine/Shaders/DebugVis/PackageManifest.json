@@ -1,0 +1,7 @@
+{
+  "Dependencies": [],
+  "Name": "DebugVis",
+  "FriendlyName": "DebugVis",
+  "Flags": 0,
+  "Path": "Engine/Shaders/DebugVis"
+}

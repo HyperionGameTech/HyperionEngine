@@ -40,25 +40,49 @@ float4 ConvolveProbe(uint2 local_coord, uint face)
 #endif
 
     const int num_samples = NUM_SAMPLES;
-    const float lobe_size = LOBE_SIZE;
 
-    const float3 dir = normalize(GetCubemapCoord(face, (float2(local_coord) + 0.5) / float2(out_image_dimensions)));
+    const float3 N = normalize(GetCubemapCoord(face, (float2(local_coord) + 0.5) / float2(out_image_dimensions)));
+
+    float3 R = N;
+    float3 V = R;
+
+    const float roughness = LOBE_SIZE;
+
+    float omegaP = 4.0 * HYP_FMATH_PI / float(6 * in_image_dimensions.x * in_image_dimensions.y);
 
     float4 sum_radiance = float4(0.0, 0.0, 0.0, 0.0);
+    float total_weight = 0.0;
 
     uint seed = uint(local_coord.x) * uint(local_coord.y);
 
     for (int i = 0; i < num_samples; i++)
     {
-        float3 offset = SphereSamplesBuffer[i % 4096].xyz;
-        float3 sample_dir = normalize(dir + float3(lobe_size, lobe_size, lobe_size) * offset);
+        vec2 Xi = Hammersley(uint(i), uint(num_samples));
+        vec3 H = SampleGGX(Xi, roughness, N);
+        vec3 L = normalize(2.0 * dot(V, H) * H - V);
 
-        float4 color = SAMPLE_TEXTURE_CUBE(sampler_linear, color_texture, sample_dir);
+        float NdotL = saturate(dot(N, L));
 
-        sum_radiance += color;
+        if (NdotL > 0.0)
+        {
+            float NdotH = saturate(dot(N, H));
+            float HdotV = saturate(dot(H, V));
+
+            float pdf = GGX_PDF(NdotH, HdotV, roughness);
+            float omegaS = 1.0 / (float(num_samples) * max(pdf, 0.0001));
+            float mipLevel = roughness == 0.0 ? 0.0 : max(0.5 * log2(omegaS / omegaP), 0.0);
+
+            float4 sample_color = color_texture.SampleLevel(sampler_linear, L, mipLevel);
+
+            sum_radiance += sample_color * NdotL;
+            total_weight += NdotL;
+        }
     }
 
-    sum_radiance /= float(num_samples);
+    if (total_weight > 0.0)
+    {
+        sum_radiance /= total_weight;
+    }
 
     return sum_radiance;
 }

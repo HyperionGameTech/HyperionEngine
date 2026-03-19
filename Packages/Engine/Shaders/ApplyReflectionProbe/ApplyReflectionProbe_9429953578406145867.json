@@ -245,10 +245,10 @@
     }, {
       "$Class": "BlobDataReference",
       "Key": "Engine/Shaders/ApplyReflectionProbe/ApplyReflectionProbe_9429953578406145867.PS",
-      "Size": 7224
+      "Size": 5052
     }],
   "PropertySetHashCode": {},
   "Name": "ApplyReflectionProbe_9429953578406145867",
-  "FriendlyName": "ApplyReflectionProbe_9429953578406145867",
+  "FriendlyName": "ApplyReflectionProbe9429953578406145867",
   "OriginalFilepath": ""
 }

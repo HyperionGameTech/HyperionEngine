@@ -123,43 +123,27 @@ PSOutput PSMain(PSInput input)
     GBufferUnpackMaterialParams(normalSample.x, materialData.x, materialParams);
 
     float roughness = materialParams.roughness;
-    float perceptualRoughness = ComputePerceptualRoughness(roughness, N);
 
-    const float lod = perceptualRoughness * 7.0; // log2(128) = 7, where 128 is the maximum mip level of the environment map
+    const float lod = roughness * 7.0; // log2(128) = 7, where 128 is the maximum mip level of the environment map
 
     float4 ibl = float4(0.0, 0.0, 0.0, 0.0);
 
     const uint probe_texture_index = max(0, min(current_env_probe.texture_index, HYP_MAX_BOUND_REFLECTION_PROBES - 1));
 
-    float3 tangent;
-    float3 bitangent;
-    ComputeOrthonormalBasis(N, tangent, bitangent);
+    float3 R = reflect(-V, N);
 
-    for (int i = 0; i < SAMPLE_COUNT; i++)
-    {
-        float2 rnd = Hammersley(uint(i), uint(SAMPLE_COUNT));
+    // pre-convoluted from baking util
+    ApplyReflectionProbe(
+        current_env_probe.texture_index,
+        current_env_probe.world_position.xyz,
+        current_env_probe.aabb_min.xyz,
+        current_env_probe.aabb_max.xyz,
+        P,
+        R,
+        lod,
+        ibl);
 
-        float3 H = ImportanceSampleGGX(rnd, N, roughness);
-        H = normalize(tangent * H.x + bitangent * H.y + N * H.z);
-
-        const float3 dir = normalize(2.0 * dot(V, H) * H - V);
-
-        float4 sample_ibl = float4(0.0, 0.0, 0.0, 0.0);
-
-        ApplyReflectionProbe(
-            current_env_probe.texture_index,
-            current_env_probe.world_position.xyz,
-            current_env_probe.aabb_min.xyz,
-            current_env_probe.aabb_max.xyz,
-            P,
-            dir,
-            lod,
-            sample_ibl);
-
-        ibl += sample_ibl;
-    }
-
-    output.color_output = ibl * (1.0 / float(SAMPLE_COUNT));
+    output.color_output = ibl;
 
     return output;
 }
