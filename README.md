@@ -1,6 +1,8 @@
 ### Hyperion Engine is an easy to use, high performance 3D game engine written in C++ and C# with a Vulkan rendering backend and a visual editor built with Avalonia.
 
-Features include:
+![Hyperion Engine screenshot](/Documentation/Images/ddgi.png)
+
+## Features
 - Baking subsystem for precomputing lightmaps, reflection probes, fog volumes, and other static lighting data.
 - Dynamic Diffuse Global Illumination (DDGI) and ray traced reflections for real-time global illumination and accurate reflections.
 - Classical rendering features such as shadow mapping, screen space ambient occlusion (SSAO), screen space reflections (SSR), and more.
@@ -8,7 +10,7 @@ Features include:
 - Scripting via C# or our custom scripting language, HypScript, which is designed for deep integration with the Engine's object system.
 - Multi-threaded asset registry system
 
-
+## Platforms
 Currently, we are focusing our efforts on the core engine and editor development on Windows and macOS via MoltenVK - Linux support is planned but not a priority at the moment. The engine is in early access and is not yet ready for production use, but we welcome contributions and feedback from the community.
 
 To get started, check out the [Compiling the Engine](Documentation/CompilingTheEngine.md) guide to set up your development environment and compile the engine.
@@ -17,12 +19,5 @@ To get started, check out the [Compiling the Engine](Documentation/CompilingTheE
 
 If you want to contribute please feel free to submit a pull request! However if you do use AI tools to assist you in your development, please do disclose this in your pull request and ensure that the majority of the contribution is your own work.
 
-## Documentation
+## Getting started
 [Definitions and Terminology](Documentation/Definitions.md) provides definitions and explanations for various terms and concepts used within the engine.
-
-
----
-
-Dynamic Diffuse Global Illumination (DDGI) | GPU Particles
-:-----------------------------------------:|:-------------------------:
-![DDG(](/Documentation/Images/ddgi.gif)             | ![GPU particles](/Documentation/Images/particles.gif)
