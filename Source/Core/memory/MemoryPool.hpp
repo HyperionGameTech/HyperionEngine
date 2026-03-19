@@ -131,6 +131,7 @@ private:
     void RegisterMemoryPool();
 };
 
+/// Old memory pool class (deprecated, will be removed in the future)
 template <class ElementType, class TInitInfo = MemoryPoolInitInfo<ElementType>, void (*OnBlockAllocated)(void* ctx, ElementType* elements, uint32 startIndex, uint32 count) = nullptr>
 class MemoryPool : MemoryPoolBase
 {
@@ -161,7 +162,7 @@ protected:
 public:
     static constexpr uint32 s_invalidIndex = ~0u;
 
-    MemoryPool(Name poolName, uint32 initialCount = InitInfo::numInitialElements, bool createInitialBlocks = true, void* blockInitCtx = nullptr)
+    HYP_DEPRECATED MemoryPool(Name poolName, uint32 initialCount = InitInfo::numInitialElements, bool createInitialBlocks = true, void* blockInitCtx = nullptr)
         : MemoryPoolBase(poolName, ThreadId::Current(), &CalculateMemoryUsage),
           m_initialNumBlocks((initialCount + numElementsPerBlock - 1) / numElementsPerBlock),
           m_numBlocks(0),

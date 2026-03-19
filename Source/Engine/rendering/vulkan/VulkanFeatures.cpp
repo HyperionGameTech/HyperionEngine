@@ -37,11 +37,6 @@ void VulkanFeatures::SetPhysicalDevice(VkPhysicalDevice physicalDevice)
             .sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_FEATURES_2
         };
 
-        m_vulkan11Features = {
-            .sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_1_FEATURES
-        };
-        VulkanHelpers::ChainNext(m_features2, &m_vulkan11Features);
-
         m_multiviewFeatures = {
             .sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_MULTIVIEW_FEATURES_KHR
         };

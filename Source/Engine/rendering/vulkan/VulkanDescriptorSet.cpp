@@ -196,7 +196,6 @@ VulkanDescriptorSet::~VulkanDescriptorSet()
     }
 }
 
-HYP_DISABLE_OPTIMIZATION;
 void VulkanDescriptorSet::UpdateDirtyState(bool* outIsDirty)
 {
     m_pendingDescriptors.Clear();
@@ -214,7 +213,7 @@ void VulkanDescriptorSet::UpdateDirtyState(bool* outIsDirty)
             cachedIt = m_cachedElements.Emplace(name).first;
         }
 
-        Array<VulkanCachedDescriptor>& cachedElementValues = cachedIt->second;
+        Array<VulkanCachedDescriptor, VulkanAllocator>& cachedElementValues = cachedIt->second;
 
         if (cachedElementValues.Size() != element.values.Size())
         {
@@ -222,7 +221,7 @@ void VulkanDescriptorSet::UpdateDirtyState(bool* outIsDirty)
         }
     }
     
-    Array<VulkanCachedDescriptor> localDescriptors;
+    Array<VulkanCachedDescriptor, VulkanTempAllocator> localDescriptors;
 
     // detect changes from cachedValues
     for (auto& it : m_elements)
@@ -236,7 +235,7 @@ void VulkanDescriptorSet::UpdateDirtyState(bool* outIsDirty)
         auto cachedIt = m_cachedElements.Find(name);
         AssertDebug(cachedIt != m_cachedElements.End());
 
-        Array<VulkanCachedDescriptor>& cachedValues = cachedIt->second;
+        Array<VulkanCachedDescriptor, VulkanAllocator>& cachedValues = cachedIt->second;
         localDescriptors.Clear();
         localDescriptors.Reserve(element.values.Size());
 
@@ -396,7 +395,6 @@ void VulkanDescriptorSet::UpdateDirtyState(bool* outIsDirty)
         *outIsDirty = m_pendingDescriptors.Any();
     }
 }
-HYP_ENABLE_OPTIMIZATION;
 
 void VulkanDescriptorSet::Update(bool force)
 {
@@ -524,7 +522,7 @@ RendererResult VulkanDescriptorSet::Create()
         const Name name = it.first;
         const DescriptorSetElement& element = it.second;
 
-        m_cachedElements.Emplace(name, Array<VulkanCachedDescriptor>(element.values.Size()));
+        m_cachedElements.Emplace(name, Array<VulkanCachedDescriptor, VulkanAllocator>(element.values.Size()));
     }
 
     UpdateDirtyState();

@@ -46,6 +46,8 @@ struct UIEntityInstanceBatch : EntityInstanceBatch
     FixedArray<Vec4u, MaxEntitiesPerBatch> properties;
 };
 
+static_assert(sizeof(UIEntityInstanceBatch) % 64 == 0);
+
 HYP_CLASS()
 class HYP_API UISubsystem final : public Subsystem
 {

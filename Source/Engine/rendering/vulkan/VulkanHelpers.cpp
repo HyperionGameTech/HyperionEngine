@@ -546,7 +546,8 @@ VkAttachmentLoadOp ToVkLoadOp(LoadOperation loadOperation)
     case LoadOperation::UNDEFINED:
         return VK_ATTACHMENT_LOAD_OP_DONT_CARE;
     case LoadOperation::NONE:
-        return VK_ATTACHMENT_LOAD_OP_NONE_EXT;
+         // VK_ATTACHMENT_LOAD_OP_NONE-EXT is an extension and not guaranteed to be supported, so we use DONT_CARE for now
+        return VK_ATTACHMENT_LOAD_OP_DONT_CARE;
     case LoadOperation::CLEAR:
         return VK_ATTACHMENT_LOAD_OP_CLEAR;
     case LoadOperation::LOAD:
@@ -563,7 +564,7 @@ VkAttachmentStoreOp ToVkStoreOp(StoreOperation storeOperation)
     case StoreOperation::UNDEFINED:
         return VK_ATTACHMENT_STORE_OP_DONT_CARE;
     case StoreOperation::NONE:
-        return VK_ATTACHMENT_STORE_OP_NONE_EXT;
+        return VK_ATTACHMENT_STORE_OP_NONE;
     case StoreOperation::STORE:
         return VK_ATTACHMENT_STORE_OP_STORE;
     default:

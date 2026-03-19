@@ -43,12 +43,17 @@ struct EntityInstanceBatch
     uint32 _pad0;
     uint32 _pad1;
 
+    // pad 48 bytes so sizeof % 64 == 0
+    HYP_PAD_STRUCT_HERE(48);
+
     HYP_FIELD()
     FixedArray<uint32, MaxEntitiesPerBatch> indices;
 
     HYP_FIELD()
     FixedArray<Mat4f, MaxEntitiesPerBatch> transforms;
 };
+
+static_assert(sizeof(EntityInstanceBatch) % 64 == 0);
 
 HYP_STRUCT(NoScriptBindings)
 struct MeshEntityInstanceBatch : EntityInstanceBatch
@@ -58,6 +63,8 @@ struct MeshEntityInstanceBatch : EntityInstanceBatch
     HYP_FIELD()
     FixedArray<Mat4f, MaxEntitiesPerBatch> previousTransforms;
 };
+
+static_assert(sizeof(MeshEntityInstanceBatch) % 64 == 0);
 
 /*! \brief Unique identifier for a draw call based on Mesh Id and Material Id.
  *  \details This struct is used to uniquely identify a draw call in the rendering system.
@@ -340,7 +347,7 @@ class TEntityBatchAllocator final : public EntityBatchAllocatorBase
 {
 public:
     static_assert(std::is_base_of_v<EntityInstanceBatch, BatchType>, "BatchType must be a derived struct type of EntityInstanceBatch");
-    static_assert(offsetof(BatchType, indices) == 16, "offsetof for member `indices` of the derived EntityInstanceBatch type must be 16 or shader calculations will be incorrect!");
+    static_assert(offsetof(BatchType, indices) == 64, "offsetof for member `indices` of the derived EntityInstanceBatch type must match shader");
 
     TEntityBatchAllocator(uint32 initialCount, bool cpuAccessible)
         : EntityBatchAllocatorBase(GetGpuBufferHolderMap()->GetOrCreate<BatchType>(initialCount, cpuAccessible))

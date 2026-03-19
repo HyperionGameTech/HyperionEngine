@@ -42,11 +42,12 @@ ThreadPoolBase::ThreadPoolBase(Array<UniquePtr<ThreadBase>>&& threads)
 
 ThreadPoolBase::~ThreadPoolBase()
 {
+    HYP_LOG(Tasks, Debug, "Destroying thread pool with {} threads", m_threads.Size());
+
     for (auto& it : m_threads)
     {
         AssertDebug(it != nullptr);
-        AssertDebug(!it->IsRunning(), "ThreadPoolBase::Stop() must be called before ThreadPoolBase is destroyed");
-
+        
         if (it->CanJoin())
         {
             it->Join();

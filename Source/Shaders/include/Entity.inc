@@ -38,6 +38,8 @@ struct EntityInstanceBatch
     uint _pad0;
     uint _pad1;
 
+    uvec4 _pad[3]; // pad 48 bytes so struct size % 64 == 0
+
     uint4 indices[MAX_ENTITIES_PER_INSTANCE_BATCH / 4];
     float4x4 transforms[MAX_ENTITIES_PER_INSTANCE_BATCH];
 };
@@ -48,6 +50,8 @@ struct MeshEntityInstanceBatch
     uint numEntities;
     uint _pad0;
     uint _pad1;
+
+    uvec4 _pad[3]; // pad 48 bytes so struct size % 64 == 0
 
     uint4 indices[MAX_ENTITIES_PER_INSTANCE_BATCH / 4];
     

@@ -417,7 +417,6 @@ private:
     VkPhysicalDevice m_physicalDevice;
     VkPhysicalDeviceProperties m_properties;
     VkPhysicalDeviceFeatures m_features;
-    VkPhysicalDeviceVulkan11Features m_vulkan11Features;
 
     VkPhysicalDeviceBufferDeviceAddressFeatures m_bufferDeviceAddressFeatures;
     VkPhysicalDeviceRayTracingPipelineFeaturesKHR m_rayTracingPipelineFeatures;

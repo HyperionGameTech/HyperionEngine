@@ -2,13 +2,16 @@
 
 #pragma once
 
-#include <Core/memory/MemoryPool.hpp>
+#include <Core/memory/allocator/SlabAllocator.hpp>
+#include <Core/memory/Memory.hpp>
 #include <Core/memory/Pimpl.hpp>
 
 #include <Core/threading/DataRaceDetector.hpp>
 
 #include <Core/containers/String.hpp>
+#include <Core/containers/FixedArray.hpp>
 
+#include <Core/utilities/IdGenerator.hpp>
 #include <Core/utilities/Range.hpp>
 #include <Core/reflection/TypeInfoFwd.hpp>
 
@@ -190,28 +193,49 @@ protected:
     GpuBufferRef m_gpuBuffer;
 };
 
-// Specialization for Memory pool init info to allocate larger blocks:
 template <class StructType>
 struct GpuBufferHolderMemoryPoolInitInfo
 {
-    static constexpr uint32 numBytesPerBlock = MathUtil::Max(MathUtil::NextPowerOf2(sizeof(StructType)), 1u << 14); // minimum 16KB blocks
+    static constexpr uint32 numBytesPerBlock = MathUtil::Max(MathUtil::NextPowerOf2(sizeof(StructType)), 1u << 14);
     static constexpr uint32 numElementsPerBlock = numBytesPerBlock / sizeof(StructType);
     static constexpr uint32 numInitialElements = numElementsPerBlock;
 };
 
 template <class StructType>
-class GpuBufferHolderMemoryPool final : public MemoryPool<StructType, GpuBufferHolderMemoryPoolInitInfo<StructType>>
+class GpuBufferHolderMemoryPool final
 {
 public:
-    using Base = MemoryPool<StructType, GpuBufferHolderMemoryPoolInitInfo<StructType>>;
+    using InitInfo = GpuBufferHolderMemoryPoolInitInfo<StructType>;
 
-    GpuBufferHolderMemoryPool(Name poolName, uint32 initialCount = Base::InitInfo::numInitialElements)
-        : Base(poolName, initialCount, /* createInitialBlocks */ true, /* blockInitCtx */ nullptr)
+    static constexpr uint32 numElementsPerBlock = InitInfo::numElementsPerBlock;
+
+    GpuBufferHolderMemoryPool(Name poolName, uint32 initialCount = InitInfo::numInitialElements)
+        : m_allocator(
+            InitInfo::numBytesPerBlock,
+            MathUtil::Max(uint32(alignof(StructType)), 16u),
+            4)
     {
+        const uint32 numInitialBlocks = (initialCount + numElementsPerBlock - 1) / numElementsPerBlock;
+
+        for (uint32 i = 0; i < numInitialBlocks; ++i)
+        {
+            AllocateNewBlock();
+        }
+
         for (Range<uint32>& dirtyRange : m_dirtyRanges)
         {
-            dirtyRange = { 0, MathUtil::Max(initialCount, 1) };
+            dirtyRange = { 0, MathUtil::Max(initialCount, 1u) };
         }
+    }
+
+    GpuBufferHolderMemoryPool(const GpuBufferHolderMemoryPool&) = delete;
+    GpuBufferHolderMemoryPool& operator=(const GpuBufferHolderMemoryPool&) = delete;
+
+    ~GpuBufferHolderMemoryPool() = default;
+
+    HYP_FORCE_INLINE uint32 NumAllocatedElements() const
+    {
+        return uint32(m_blocks.Size()) * numElementsPerBlock;
     }
 
     HYP_FORCE_INLINE void MarkDirty(uint32 index)
@@ -224,21 +248,66 @@ public:
 
     void SetElement(uint32 index, const StructType& value)
     {
-        Base::SetElement(index, value);
+        GetElement(index) = value;
 
         MarkDirty(index);
+    }
+
+    StructType& GetElement(uint32 index)
+    {
+        const uint32 blockIndex = index / numElementsPerBlock;
+        const uint32 elementIndex = index % numElementsPerBlock;
+
+        AssertDebug(blockIndex < m_blocks.Size());
+
+        return m_blocks[blockIndex][elementIndex];
+    }
+
+    uint32 AcquireIndex(StructType** outElementPtr = nullptr)
+    {
+        AssertOnThread(g_renderThread);
+
+        const uint32 index = m_idGenerator.Next() - 1;
+        const uint32 blockIndex = index / numElementsPerBlock;
+
+        while (blockIndex >= m_blocks.Size())
+        {
+            AllocateNewBlock();
+        }
+
+        if (outElementPtr != nullptr)
+        {
+            *outElementPtr = &m_blocks[blockIndex][index % numElementsPerBlock];
+        }
+
+        return index;
+    }
+
+    void ReleaseIndex(uint32 index)
+    {
+        m_idGenerator.ReleaseId(index + 1);
+    }
+
+    void EnsureCapacity(uint32 index)
+    {
+        const uint32 requiredBlocks = (index + numElementsPerBlock) / numElementsPerBlock;
+
+        while (requiredBlocks > m_blocks.Size())
+        {
+            AllocateNewBlock();
+        }
     }
 
     void EnsureGpuBufferCapacity(const GpuBufferRef& buffer, uint32 frameIndex)
     {
         bool wasResized = false;
-        CheckResult(buffer->EnsureCapacity(Base::NumAllocatedElements() * sizeof(StructType), &wasResized));
+        CheckResult(buffer->EnsureCapacity(NumAllocatedElements() * sizeof(StructType), &wasResized));
 
         if (wasResized)
         {
             // if resized, we need to copy all data again
             m_dirtyRanges[frameIndex].SetStart(0);
-            m_dirtyRanges[frameIndex].SetEnd(Base::NumAllocatedElements());
+            m_dirtyRanges[frameIndex].SetEnd(NumAllocatedElements());
         }
     }
 
@@ -254,7 +323,7 @@ public:
         Array<uint32, RenderAllocator>& outChunkEnds,
         Array<GpuBuffer*, RenderAllocator>& outStagingBuffers)
     {
-        HYP_MT_CHECK_READ(m_dataRaceDetector);
+        AssertOnThread(g_renderThread);
 
         if (!m_dirtyRanges[frameIndex])
         {
@@ -264,7 +333,7 @@ public:
         const uint32 rangeStart = m_dirtyRanges[frameIndex].GetStart();
         const uint32 rangeEnd = m_dirtyRanges[frameIndex].GetEnd();
 
-        const uint32 numBlocks = Base::m_numBlocks.Get(MemoryOrder::ACQUIRE);
+        const uint32 numBlocks = uint32(m_blocks.Size());
 
         // Collect all dirty blocks first
         struct DirtyBlockInfo
@@ -276,31 +345,29 @@ public:
         };
 
         Array<DirtyBlockInfo, RenderAllocator> dirtyBlocks;
-        dirtyBlocks.Reserve((rangeEnd - rangeStart) / Base::numElementsPerBlock + 1);
+        dirtyBlocks.Reserve((rangeEnd - rangeStart) / numElementsPerBlock + 1);
 
-        typename LinkedList<typename Base::Block>::Iterator blockIt = Base::m_blocks.Begin();
-        typename LinkedList<typename Base::Block>::Iterator endIt = Base::m_blocks.End();
-
-        for (uint32 blockIndex = 0; blockIndex < numBlocks && blockIt != endIt; ++blockIndex, ++blockIt)
+        for (uint32 blockIndex = 0; blockIndex < numBlocks; ++blockIndex)
         {
-            if (blockIndex < rangeStart / Base::numElementsPerBlock)
+            if (blockIndex < rangeStart / numElementsPerBlock)
             {
                 continue;
             }
 
-            if (blockIndex * Base::numElementsPerBlock >= rangeEnd)
+            if (blockIndex * numElementsPerBlock >= rangeEnd)
             {
                 break;
             }
 
-            const uint32 offset = blockIndex * Base::numElementsPerBlock;
+            const uint32 offset = blockIndex * numElementsPerBlock;
             const uint32 bufferOffset = offset * uint32(sizeof(StructType));
-            const uint32 bufferSize = Base::numElementsPerBlock * uint32(sizeof(StructType));
+            const uint32 bufferSize = numElementsPerBlock * uint32(sizeof(StructType));
 
             dirtyBlocks.PushBack({ blockIndex,
                 bufferOffset,
                 bufferSize,
-                blockIt->buffer.GetPointer() });
+                m_blocks[blockIndex]
+            });
         }
 
         if (dirtyBlocks.Empty())
@@ -309,7 +376,7 @@ public:
             return;
         }
 
-        // dirty copy + flush for cpu accessbile
+        // dirty copy + flush for cpu accessible
         if (false) // TEMP debugging. dstBuffer->IsCpuAccessible())
         {
             for (DirtyBlockInfo& dirtyBlock : dirtyBlocks)
@@ -338,8 +405,21 @@ public:
         m_dirtyRanges[frameIndex].Reset();
     }
 
-protected:
-    HYP_DECLARE_MT_CHECK(m_dataRaceDetector);
+private:
+    void AllocateNewBlock()
+    {
+        void* blockMemory = m_allocator.Allocate();
+        Assert(blockMemory != nullptr);
+
+        Memory::Fill(blockMemory, 0, InitInfo::numBytesPerBlock);
+
+        m_blocks.PushBack(static_cast<StructType*>(blockMemory));
+    }
+
+    TSlabAllocator<RenderAllocator> m_allocator;
+
+    Array<StructType*> m_blocks;
+    IdGenerator m_idGenerator;
 
     FixedArray<Range<uint32>, NumFramesInFlight> m_dirtyRanges;
 };

@@ -32,6 +32,8 @@ public class MainActivity extends Activity implements SurfaceHolder.Callback {
     private boolean m_touchMoved = false;
 
     private void runEngineLoop() {
+        Log.i(TAG, "Hyperion runEngineLoop()");
+
         int result = HyperionBridge.nativeInit();
         if (result == 0) {
             Log.e(TAG, "nativeInit failed, engine will not start");
@@ -40,6 +42,8 @@ public class MainActivity extends Activity implements SurfaceHolder.Callback {
 
         m_gameInstance = HyperionBridge.nativeCreateGame("DefaultGame"); // @TODO: don't hardcode game class name, pull it from somewhere
         assert m_gameInstance != NULL;
+
+        Log.i(TAG, "Hyperion setGame");
 
         HyperionBridge.nativeSetGame(m_gameInstance);
 
@@ -59,6 +63,8 @@ public class MainActivity extends Activity implements SurfaceHolder.Callback {
 
         m_engineReady = true;
 
+
+        Log.i(TAG, "Hyperion launch threads");
         // blocks until main thread loop exits
         HyperionBridge.nativeLaunchThreads();
 
@@ -70,6 +76,8 @@ public class MainActivity extends Activity implements SurfaceHolder.Callback {
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+
+        Log.i(TAG, "Surface onCreate()");
 
         requestWindowFeature(Window.FEATURE_NO_TITLE);
         getWindow().addFlags(
@@ -83,6 +91,8 @@ public class MainActivity extends Activity implements SurfaceHolder.Callback {
         m_surfaceView.getHolder().addCallback(this);
         setContentView(m_surfaceView);
 
+        Log.i(TAG, "Hyperion: starting up engine thread");
+
         m_engineThread = new Thread(this::runEngineLoop, "HyperionEngineMain");
         m_engineThread.start();
     }
@@ -90,6 +100,8 @@ public class MainActivity extends Activity implements SurfaceHolder.Callback {
     @Override
     protected void onDestroy() {
         super.onDestroy();
+
+        Log.i(TAG, "Surface onDestroy()");
 
         if (!isFinishing()) {
             // treat as a config change (recreates swapchain)

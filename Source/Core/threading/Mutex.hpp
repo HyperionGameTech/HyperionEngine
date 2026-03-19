@@ -38,31 +38,53 @@ public:
 
 #if HYP_DEBUG_MODE
         m_locked = false;
+        m_destroyed = false;
 #endif
     }
 
     Mutex(const Mutex& other) = delete;
     Mutex& operator=(const Mutex& other) = delete;
+    
     Mutex(Mutex&& other) noexcept = delete;
     Mutex& operator=(Mutex&& other) noexcept = delete;
 
 #if defined(HYP_UNIX)
     ~Mutex()
     {
+#if HYP_DEBUG_MODE
+        HYP_CORE_ASSERT(!m_destroyed, "Mutex is already destroyed");
+#endif
+
         if (pthread_mutex_destroy(&m_mutex) != 0)
         {
             HYP_CORE_ASSERT(false, "Failed to destroy mutex");
         }
+
+#if HYP_DEBUG_MODE
+        m_destroyed = true;
+#endif
     }
 #elif defined(HYP_WINDOWS)
     ~Mutex()
     {
+#if HYP_DEBUG_MODE
+        HYP_CORE_ASSERT(!m_destroyed, "Mutex is already destroyed");
+#endif
+
         DeleteCriticalSection(&m_criticalSection);
+
+#if HYP_DEBUG_MODE
+        m_destroyed = true;
+#endif
     }
 #endif
 
     void Lock()
     {
+#if HYP_DEBUG_MODE
+        HYP_CORE_ASSERT(!m_destroyed, "Mutex is already destroyed");
+#endif
+
 #if defined(HYP_UNIX)
         pthread_mutex_lock(&m_mutex);
 #elif defined(HYP_WINDOWS)
@@ -77,6 +99,10 @@ public:
 
     void Unlock()
     {
+#if HYP_DEBUG_MODE
+        HYP_CORE_ASSERT(!m_destroyed, "Mutex is already destroyed");
+#endif
+
 #if HYP_DEBUG_MODE
         HYP_CORE_ASSERT(m_locked, "Mutex is not locked");
         m_locked = false;
@@ -97,6 +123,7 @@ private:
 
 #if HYP_DEBUG_MODE
     bool m_locked : 1;
+    bool m_destroyed : 1;
 #endif
 };
 

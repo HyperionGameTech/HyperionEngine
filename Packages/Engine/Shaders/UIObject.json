@@ -3,11 +3,6 @@
   "CompiledShaders": [{
       "$Class": "AssetReference",
       "AssetPath": {
-        "Value": "Engine/Shaders/UIObject/UIObject_566973089804150836"
-      }
-    }, {
-      "$Class": "AssetReference",
-      "AssetPath": {
         "Value": "Engine/Shaders/UIObject/UIObject_5656388037364668825"
       }
     }, {
