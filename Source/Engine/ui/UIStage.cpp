@@ -668,6 +668,8 @@ UIEventHandlerResult UIStage::OnInputEvent(const Event& event)
         const Vec2f mouseScreen = Vec2f(mousePosition) / Vec2f(m_surfaceSize);
         const Vec2f invSurfaceSize = Vec2f(1.0f) / Vec2f(m_surfaceSize);
 
+        HYP_LOG(UI, Verbose, "Mouse move at {}, relative {}, buttons {}", mousePosition, mouseScreen, mouseButtons.value);
+
         if (mouseButtons != MouseButtonState::NONE)
         { // mouse drag event
             UIEventHandlerResult mouseDragEventHandlerResult = UIEventHandlerResult::OK;

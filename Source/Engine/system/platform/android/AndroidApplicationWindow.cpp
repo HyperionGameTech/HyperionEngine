@@ -103,16 +103,14 @@ static KeyCode MapAndroidKeyCodeToKeyCode(int32_t androidKeyCode)
     }
 }
 
-// Android MotionEvent action constants (matching android.view.MotionEvent)
-static constexpr int32 ANDROID_ACTION_DOWN          = 0;
-static constexpr int32 ANDROID_ACTION_UP            = 1;
-static constexpr int32 ANDROID_ACTION_MOVE          = 2;
-static constexpr int32 ANDROID_ACTION_POINTER_DOWN  = 5;
-static constexpr int32 ANDROID_ACTION_POINTER_UP    = 6;
+static constexpr int32 ANDROID_ACTION_DOWN = 0;
+static constexpr int32 ANDROID_ACTION_UP = 1;
+static constexpr int32 ANDROID_ACTION_MOVE = 2;
+static constexpr int32 ANDROID_ACTION_POINTER_DOWN = 5;
+static constexpr int32 ANDROID_ACTION_POINTER_UP = 6;
 
-// Android KeyEvent action constants (matching android.view.KeyEvent)
-static constexpr int32 ANDROID_KEY_ACTION_DOWN      = 0;
-static constexpr int32 ANDROID_KEY_ACTION_UP        = 1;
+static constexpr int32 ANDROID_KEY_ACTION_DOWN = 0;
+static constexpr int32 ANDROID_KEY_ACTION_UP = 1;
 
 AndroidApplicationWindow::AndroidApplicationWindow(ANSIString title, Vec2i size)
     : ApplicationWindow(std::move(title), size),
@@ -170,20 +168,18 @@ void AndroidApplicationWindow::SetNativeWindow(void* nativeWindow)
         }
     }
 
-    // HandleResize takes its own lock and is safe to call from any thread.
-    // This ensures the swapchain is resized/recreated when the surface dimensions change.
     HandleResize(newSize);
 }
 
 void AndroidApplicationWindow::SetMousePosition(Vec2i position)
 {
-    // Touch position cannot be programmatically set on Android
+    // can't do that on Android touch devices
 }
 
 Vec2i AndroidApplicationWindow::GetMousePosition() const
 {
     TSharedLock lock(m_mtx);
-    return m_touchPosition;
+    return Vec2i(m_touchPosition);
 }
 
 Vec2i AndroidApplicationWindow::GetDimensions() const
@@ -203,13 +199,11 @@ Vec2i AndroidApplicationWindow::GetDimensions() const
 
 void AndroidApplicationWindow::SetIsMouseLocked(bool locked)
 {
-    // No mouse lock on Android touch devices
     m_mouseLocked = locked;
 }
 
 bool AndroidApplicationWindow::HasMouseFocus() const
 {
-    // Android touch always has "focus" when the window is active
     return m_nativeWindow != nullptr;
 }
 
@@ -244,19 +238,19 @@ bool AndroidApplicationWindow::HandleInputEvent(int32 type, int32 action, float 
     {
     case 0: // touch
     {
-        const Vec2i currentPos = { int(x), int(y) };
+        const Vec2f currentPos = { x, y };
 
         {
             TUniqueLock lock(m_mtx);
             m_touchPosition = currentPos;
         }
 
+
         switch (action)
         {
         case ANDROID_ACTION_DOWN:
         case ANDROID_ACTION_POINTER_DOWN:
-            m_previousTouchPosition = currentPos;
-
+            m_prevTouchPosition = currentPos;
             outEvent = Event(EventType::MOUSEBUTTON_DOWN, this, platformEvent);
             outEvent.GetEventData().Set(EnumFlags<MouseButtonState>(MouseButtonState::LEFT));
             return true;
@@ -269,11 +263,10 @@ bool AndroidApplicationWindow::HandleInputEvent(int32 type, int32 action, float 
 
         case ANDROID_ACTION_MOVE:
         {
-            const Vec2f delta { float(currentPos.x - m_previousTouchPosition.x), float(currentPos.y - m_previousTouchPosition.y) };
-            m_previousTouchPosition = currentPos;
-
+            Vec2f deltas = currentPos - m_prevTouchPosition;
             outEvent = Event(EventType::MOUSEMOTION, this, platformEvent);
-            outEvent.GetEventData().Set(currentPos);
+            outEvent.GetEventData().Set(deltas);
+            m_prevTouchPosition = currentPos;
             return true;
         }
 

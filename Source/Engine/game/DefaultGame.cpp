@@ -72,8 +72,8 @@ void DefaultGame::OnLaunch_Impl()
     //GetWorld()->GetWorldGrid()->AddLayer(MakeHandle<TerrainWorldGridLayer>());
 
     m_camera = MakeHandle<Camera>();
-    m_camera->SetFOV(75.0f);
-    m_camera->SetFar(10000.0f);
+    m_camera->SetFOV(65.0f);
+    m_camera->SetFar(1000.0f);
     m_camera->SetCameraFlags(CameraFlags::MATCH_WINDOW_SIZE);
     m_camera->SetWindow(g_appContext->GetMainWindow());
 
@@ -105,9 +105,9 @@ void DefaultGame::OnLaunch_Impl()
     sunNode->SetName(NAME("Sun"));
 
     Handle<DirectionalLight> sunEntity = scene->GetEntityManager()->AddEntity<DirectionalLight>(
-        Vec3f(-0.2f, 0.8f, 0.2f).Normalize(),
+        Vec3f(-0.1f, 0.9f, 0.1f).Normalize(),
         Color(Vec4f(1.0f, 0.9f, 0.8f, 1.0f)),
-        9.0f);
+        15.0f);
 
     sunNode->AddChild(sunEntity);
 
@@ -146,8 +146,8 @@ void DefaultGame::OnLaunch_Impl()
     
     scene->GetRoot()->AddChild(sponzaNode);
     
-    GetUISubsystem()->AddDebugOverlay(MakeHandle<BaseStatsOverlay>());
-    GetUISubsystem()->AddDebugOverlay(MakeHandle<StatsOverlay>());
+    // GetUISubsystem()->AddDebugOverlay(MakeHandle<BaseStatsOverlay>());
+    // GetUISubsystem()->AddDebugOverlay(MakeHandle<StatsOverlay>());
 
     StartSimulating();
 }

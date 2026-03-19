@@ -5,6 +5,11 @@
       "AssetPath": {
         "Value": "Engine/Shaders/DeferredIndirect/DeferredIndirect_5656388037364668825"
       }
+    }, {
+      "$Class": "AssetReference",
+      "AssetPath": {
+        "Value": "Engine/Shaders/DeferredIndirect/DeferredIndirect_16800979115835235077"
+      }
     }],
   "Name": "DeferredIndirect",
   "FriendlyName": "DeferredIndirect",

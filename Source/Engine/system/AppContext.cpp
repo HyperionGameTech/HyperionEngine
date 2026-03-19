@@ -100,6 +100,12 @@ struct SetupWindowSwapchainAsync
 
 #pragma region ApplicationWindow
 
+#if HYP_ANDROID || HYP_IOS
+static constexpr float SwapchainScale = 0.6f;
+#else
+static constexpr float SwapchainScale = 1.0f;
+#endif
+
 ApplicationWindow::ApplicationWindow(ANSIString title, Vec2i size)
     : m_title(std::move(title)),
       m_size(size),
@@ -122,17 +128,18 @@ void ApplicationWindow::HandleResize(Vec2i newSize)
     m_size = newSize;
 
     Swapchain* swapchain = m_swapchain;
+    const Vec2i swapchainSize = Vec2i(Vec2f(newSize) * SwapchainScale);
 
     if (swapchain != nullptr)
     {
         if (IsOnThread(g_renderThread))
         {
-            swapchain->SetExtent(Vec2u(newSize));
+            swapchain->SetExtent(Vec2u(swapchainSize));
         }
         else
         {
             // if we have a dedicated rendering thread we need to tell the render thread to resize the swapchain
-            GetThreadById(g_renderThread)->GetScheduler().Enqueue([this, weakThis = MakeWeakRef(this), weakSwapchain = MakeWeakRef(swapchain), newSize]()
+            GetThreadById(g_renderThread)->GetScheduler().Enqueue([this, weakThis = MakeWeakRef(this), weakSwapchain = MakeWeakRef(swapchain), newSize, swapchainSize]()
                 {
                     Handle<ApplicationWindow> strongThis = weakThis.Lock();
                     if (strongThis.IsValid())
@@ -159,7 +166,7 @@ void ApplicationWindow::HandleResize(Vec2i newSize)
                         return;
                     }
 
-                    swapchain->SetExtent(Vec2u(newSize));
+                    swapchain->SetExtent(Vec2u(swapchainSize));
                 },
                 TaskEnqueueFlags::FIRE_AND_FORGET);
         }
@@ -192,10 +199,12 @@ void ApplicationWindow::CreateSwapchain()
         if (m_swapchain.IsValid())
             EnqueueDeletion(std::move(m_swapchain));
 
+        const Vec2u swapchainSize = Vec2u(Vec2f(m_size) * SwapchainScale);
+
         // we need to temporarily release the lock here to avoid deadlocking the render thread
         lock.Reset();
 
-        SwapchainRef swapchain = g_renderInterface->CreateSwapchain(this);
+        SwapchainRef swapchain = g_renderInterface->CreateSwapchain(this, swapchainSize);
         Assert(swapchain.IsValid());
 
         lock.Reset(m_mtx);
@@ -213,22 +222,17 @@ void ApplicationWindow::CreateSwapchain()
                     return;
                 }
 
-                SwapchainRef swapchain = g_renderInterface->CreateSwapchain(this);
-                Assert(swapchain.IsValid());
-
                 TUniqueLock lock(m_mtx);
+
+                const Vec2u swapchainSize = Vec2u(Vec2f(m_size) * SwapchainScale);
+
+                SwapchainRef swapchain = g_renderInterface->CreateSwapchain(this, swapchainSize);
+                Assert(swapchain.IsValid());
 
                 if (m_swapchain.IsValid())
                     EnqueueDeletion(std::move(m_swapchain));
 
                 m_swapchain = swapchain;
-
-                // it's possible that window size has changed on another thread.
-                // this causes the editor viewport to render at a lower resolution than expected.
-                if (Vec2u(m_size) != m_swapchain->GetExtent())
-                {
-                    m_swapchain->SetExtent(Vec2u(m_size));
-                }
             },
             TaskEnqueueFlags::FIRE_AND_FORGET);
     }

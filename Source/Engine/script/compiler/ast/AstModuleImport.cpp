@@ -166,8 +166,6 @@ void AstModuleImport::Visit(AstVisitor* visitor, Module* mod)
             currentDir = m_location.GetFileName().Substr(0, slashIndex);
         }
 
-        BufferedReader reader;
-
         FlatSet<String> scanPaths;
         String foundPath;
 
@@ -192,6 +190,8 @@ void AstModuleImport::Visit(AstVisitor* visitor, Module* mod)
             scanPaths.Insert(scanPath);
         }
 
+        ByteReader* stream = nullptr;
+
         // iterate through library paths to try and find a file
         for (const String& scanPath : scanPaths)
         {
@@ -201,7 +201,7 @@ void AstModuleImport::Visit(AstVisitor* visitor, Module* mod)
             foundPath = FilePath::Join(scanPath, filename + ext);
             triedPaths.PushBack(foundPath);
 
-            if (AstImport::TryOpenFile(foundPath, reader))
+            if (AstImport::TryOpenFile(foundPath, stream))
             {
                 opened = true;
                 break;
@@ -211,7 +211,7 @@ void AstModuleImport::Visit(AstVisitor* visitor, Module* mod)
             foundPath = FilePath::Join(scanPath, filename);
             triedPaths.PushBack(foundPath);
 
-            if (AstImport::TryOpenFile(foundPath, reader))
+            if (AstImport::TryOpenFile(foundPath, stream))
             {
                 opened = true;
                 break;
@@ -220,7 +220,8 @@ void AstModuleImport::Visit(AstVisitor* visitor, Module* mod)
 
         if (opened)
         {
-            delete reader.GetSource();
+            delete stream;
+            stream = nullptr;
 
             AstImport::PerformImport(
                 visitor,

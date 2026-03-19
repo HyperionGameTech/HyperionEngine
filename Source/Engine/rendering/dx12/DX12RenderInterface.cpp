@@ -323,11 +323,11 @@ DX12Frame* DX12RenderInterface::PrepareNextFrame()
     return frame;
 }
 
-DX12SwapchainRef DX12RenderInterface::CreateSwapchain(ApplicationWindow* window)
+DX12SwapchainRef DX12RenderInterface::CreateSwapchain(ApplicationWindow* window, const Vec2u& extent)
 {
     Assert(window != nullptr);
     
-    return MakeHandle<DX12Swapchain>(window->GetHWND(), Vec2u(window->GetSize()));
+    return MakeHandle<DX12Swapchain>(window->GetHWND(), extent);
 }
 
 void DX12RenderInterface::PrepareSwapchain(DX12Swapchain* swapchain)

@@ -4,10 +4,6 @@ import CfgLoader.{CfgLoader, GlobalCfg, CacheCfg, AppCfg, CfgBase}
 Logger := Logger.MakeScriptLogger()
 Channel := new LogChannel()
 
-Fps : double = 0.0
-Accum : double = 0.0
-Counter : int = 0
-
 Logger.LogScript(Channel, LogLevel.Info, "GlobalCfg class = " + string(GlobalCfg.GetName()) + " GlobalCfg IsDerivedFrom CfgBase = " + string(GlobalCfg.IsDerivedFrom(CfgBase)))
 
 Global := CfgLoader.Load(GlobalCfg) as GlobalCfg
@@ -36,6 +32,11 @@ Logger.LogScript(Channel, LogLevel.Info, "closure(10.0) = " + string(closure(10.
 Logger.LogScript(Channel, LogLevel.Info, "closure(10.0) = " + string(closure(10.0)))
 
 // Debugger.Breakpoint()
+
+
+Fps := 0.0
+Accum := 0.0
+Counter := 0
 
 export func Update(DeltaTime : float)
     Accum += DeltaTime

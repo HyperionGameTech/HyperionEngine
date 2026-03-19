@@ -107,7 +107,7 @@ public:
 
     VulkanFrame* PrepareNextFrame() override;
 
-    VulkanSwapchainRef CreateSwapchain(ApplicationWindow* window) override;
+    VulkanSwapchainRef CreateSwapchain(ApplicationWindow* window, const Vec2u& extent) override;
 
     void PrepareSwapchain(VulkanSwapchain* swapchain) override;
     void SubmitCommandBuffers(VulkanSwapchain* swapchain) override;

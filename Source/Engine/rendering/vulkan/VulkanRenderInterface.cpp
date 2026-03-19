@@ -802,14 +802,14 @@ VulkanFrame* VulkanRenderInterface::PrepareNextFrame()
     return frame;
 }
 
-VulkanSwapchainRef VulkanRenderInterface::CreateSwapchain(ApplicationWindow* window)
+VulkanSwapchainRef VulkanRenderInterface::CreateSwapchain(ApplicationWindow* window, const Vec2u& extent)
 {
     AssertOnThread(g_renderThread);
 
     VkSurfaceKHR surface = window->GetVkSurface();
     Assert(surface != VK_NULL_HANDLE);
 
-    VulkanSwapchainRef swapchain = MakeHandle<VulkanSwapchain>(surface, Vec2u(window->GetSize()));
+    VulkanSwapchainRef swapchain = MakeHandle<VulkanSwapchain>(surface, extent);
     RendererResult result = swapchain->Create();
 
     if (!result)

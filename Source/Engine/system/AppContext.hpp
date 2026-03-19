@@ -519,9 +519,10 @@ public:
 
 private:
     void* m_nativeWindow = nullptr;
-    Vec2i m_touchPosition;
-    Vec2i m_previousTouchPosition;
     bool m_mouseLocked = false;
+    
+    Vec2f m_touchPosition;
+    Vec2f m_prevTouchPosition;
 };
 
 HYP_CLASS()

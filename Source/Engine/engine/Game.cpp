@@ -65,7 +65,7 @@ void Game::Init()
 
     InitObject(m_world);
 
-    m_uiSubsystem = m_world->AddSubsystem(MakeHandle<UISubsystem>());
+    // m_uiSubsystem = m_world->AddSubsystem(MakeHandle<UISubsystem>());
 
     g_engineDriver->AddWorld(m_world);
 }
@@ -84,9 +84,9 @@ void Game::OnInputEvent(const Event& event)
 
     AssertOnThread(g_simThread);
 
-    if (UISubsystem* uiSubsystem = m_world->GetSubsystem<UISubsystem>())
+    if (m_uiSubsystem.IsValid())
     {
-        if (uiSubsystem->GetUIStage()->OnInputEvent(event))
+        if (m_uiSubsystem->GetUIStage()->OnInputEvent(event))
         {
             return;
         }

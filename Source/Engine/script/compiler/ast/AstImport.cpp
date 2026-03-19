@@ -7,7 +7,7 @@
 #include <script/compiler/Parser.hpp>
 #include <script/compiler/SemanticAnalyzer.hpp>
 
-#include <Core/io/BufferedByteReader.hpp>
+#include <Core/io/ByteReader.hpp>
 
 #include <Core/utilities/StringUtil.hpp>
 
@@ -98,14 +98,14 @@ void AstImport::CopyModules(
     visitor->GetCompilationUnit()->moduleTree.Close();
 }
 
-bool AstImport::TryOpenFile(const String& path, BufferedReader& outReader)
+bool AstImport::TryOpenFile(const String& path, ByteReader*& outStream)
 {
-    FileBufferedReaderSource* source = new FileBufferedReaderSource { FilePath(path) };
-    outReader = BufferedReader(source);
+    outStream = new FileByteReader { FilePath(path) };
 
-    if (!outReader.IsOpen())
+    if (outStream->Eof())
     {
-        delete source;
+        delete outStream;
+        outStream = nullptr;
 
         return false;
     }
@@ -154,9 +154,9 @@ void AstImport::PerformImport(
     else
     {
         // file hasn't been imported, so open it
-        BufferedReader reader;
+        ByteReader* stream = nullptr;
 
-        if (!TryOpenFile(filepath, reader))
+        if (!TryOpenFile(filepath, stream))
         {
             visitor->GetCompilationUnit()->GetErrorList().AddError(CompilerError(
                 LEVEL_ERROR,
@@ -167,16 +167,17 @@ void AstImport::PerformImport(
             return;
         }
 
-        size_t max = reader.Max();
-        reader.Seek(0);
+        size_t max = stream->Max();
+        stream->Seek(0);
 
         SourceFile sourceFile(filepath, max);
 
-        ByteBuffer temp = reader.ReadBytes(max);
+        ByteBuffer temp = stream->Read(max);
 
         sourceFile.ReadIntoBuffer(temp);
 
-        delete reader.GetSource();
+        delete stream;
+        stream = nullptr;
 
         // use the lexer and parser on this file buffer
         TokenStream tokenStream(TokenStreamInfo {

@@ -5,7 +5,7 @@
 #include <Core/containers/FlatSet.hpp>
 #include <Core/containers/FixedArray.hpp>
 
-#include <Core/io/BufferedByteReader.hpp>
+#include <Core/io/ByteReader.hpp>
 
 #include <fstream>
 
@@ -69,12 +69,12 @@ std::ostream& ErrorList::WriteOutput(std::ostream& os) const
         {
             currentFileLines.Clear();
 
-            FileBufferedReaderSource source { path };
-            BufferedReader reader { &source };
+            FileByteReader stream { FilePath(path) };
 
-            if (reader.IsOpen())
+            if (!stream.Eof())
             {
-                currentFileLines = reader.ReadAllLines();
+                currentFileLines = String(stream.Read().ToByteView()).Split('\n');
+                stream.Close();
             }
 
             Array<String> split = path.Split('\\', '/');

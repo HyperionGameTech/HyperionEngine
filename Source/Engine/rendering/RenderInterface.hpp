@@ -27,8 +27,6 @@ class EnvProbeRenderer;
 class EnvProbe;
 class ReflectionProbe;
 class SkyProbe;
-class RenderGlobalState;
-class RenderResourceLock;
 class UIRenderer;
 class Material;
 class MaterialTextureCache;
@@ -38,8 +36,6 @@ class RayTracingPipelineCache;
 class BindlessStorage;
 class RenderCollector;
 struct WorldShaderData;
-struct RenderStats;
-struct RenderStatsCounts;
 struct Viewport;
 class FinalPass;
 class ResourceBinderBase;
@@ -267,7 +263,7 @@ public:
     virtual void BeginFrame(AtomicFlag* pCancelFlag);
     virtual void EndFrame();
 
-    virtual SwapchainRef CreateSwapchain(ApplicationWindow* window) = 0;
+    virtual SwapchainRef CreateSwapchain(ApplicationWindow* window, const Vec2u& extent) = 0;
 
     virtual void PrepareSwapchain(Swapchain* swapchain) = 0;
     virtual void SubmitCommandBuffers(Swapchain* swapchain) = 0;
@@ -333,8 +329,6 @@ public:
     virtual void NextFrame() = 0;
 
     ShaderManager* shaderManager;
-
-    DeletionQueue* safeDeleter;
 
     BindlessStorage* bindlessStorage;
 

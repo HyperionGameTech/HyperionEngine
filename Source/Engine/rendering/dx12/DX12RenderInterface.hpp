@@ -66,7 +66,7 @@ public:
 
     DX12Frame* PrepareNextFrame() override;
     
-    DX12SwapchainRef CreateSwapchain(ApplicationWindow* window) override;
+    DX12SwapchainRef CreateSwapchain(ApplicationWindow* window, const Vec2u& extent) override;
 
     void PrepareSwapchain(DX12Swapchain* swapchain) override;
     void SubmitCommandBuffers(DX12Swapchain* swapchain) override;

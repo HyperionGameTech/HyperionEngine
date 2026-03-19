@@ -1,7 +1,7 @@
 {
   "App": {
     "Name": "DefaultGame",
-    "Args": "-ResX=1920 -ResY=1080 -Profile=true -TraceURL=http://localhost:8000/trace",
+    "Args": "-ResX=480 -ResY=720 -Profile=true -TraceURL=http://localhost:8000/trace",
     "Cache": {
       "BaseDirectory": "Cache",
       "PageSize": 268435456
@@ -74,7 +74,7 @@
       "AO": false
     },
     "Vulkan": {
-      "DebugLayers": true
+      "DebugLayers": false
     }
   },
   "Editor": {

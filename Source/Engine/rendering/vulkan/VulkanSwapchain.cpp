@@ -274,7 +274,7 @@ RendererResult VulkanSwapchain::Create()
         createInfo.pQueueFamilyIndices = nullptr; /* Optional */
     }
 
-    createInfo.preTransform = m_supportDetails.capabilities.currentTransform;
+    createInfo.preTransform = VK_SURFACE_TRANSFORM_IDENTITY_BIT_KHR;
     createInfo.compositeAlpha = VK_COMPOSITE_ALPHA_INHERIT_BIT_KHR;
     createInfo.presentMode = m_presentMode;
     createInfo.clipped = VK_TRUE;

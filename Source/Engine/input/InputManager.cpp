@@ -548,11 +548,7 @@ void InputManager::ProcessEvent(Event&& event)
 
         break;
     case EventType::WINDOW_CLOSE:
-    {
-        HYP_BREAKPOINT;
-
         break;
-    }
     default:
         break;
     }

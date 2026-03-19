@@ -7,7 +7,7 @@
 #include <Core/containers/String.hpp>
 
 namespace Hyperion {
-class BufferedReader;
+class ByteReader;
 } // namespace Hyperion
 
 namespace Hyperion {
@@ -26,7 +26,7 @@ public:
     /*! \brief Caller is required to delete the reader's source on success */
     static bool TryOpenFile(
         const String& path,
-        BufferedReader& outReader);
+        ByteReader*& outStream);
 
     virtual void Visit(AstVisitor* visitor, Module* mod) override = 0;
     virtual UniquePtr<Buildable> Build(AstVisitor* visitor, Module* mod) override;

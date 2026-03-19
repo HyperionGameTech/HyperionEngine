@@ -333,16 +333,15 @@ void EntityScripting::InitEntityScriptComponent(Entity* entity, ScriptComponent&
                     return;
                 }
 
-                FileBufferedReaderSource source { path };
-                BufferedByteReader reader { &source };
+                FileByteReader stream { path };
 
-                if (!reader.IsOpen())
+                if (stream.Eof())
                 {
                     HYP_LOG(Script, Error, "ScriptSystem::OnEntityAdded: Failed to open script file '{}' for reading!", scriptDesc.path.Data());
                     return;
                 }
 
-                ByteBuffer byteBuffer = reader.ReadBytes();
+                ByteBuffer byteBuffer = stream.Read();
 
                 SourceFile sourceFile(path, byteBuffer.Size());
                 sourceFile.ReadIntoBuffer(byteBuffer);
