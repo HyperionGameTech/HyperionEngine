@@ -56,6 +56,8 @@
 #include <scene/ParticleVolume.hpp>
 #include <scene/LightmapVolume.hpp>
 
+#include <engine/config/EngineConfig.hpp>
+
 #include <Core/config/Config.hpp>
 
 #include <Core/filesystem/FsUtil.hpp>
@@ -138,10 +140,6 @@ EngineStatCounter<uint32> g_statEnvProbes("Rendering/EnvProbes");
 EngineStatCounter<uint32> g_statEnvGrids("Rendering/EnvGrids");
 EngineStatCounter<uint32> g_statDebugDraws("Rendering/DebugDraws");
 
-namespace CoreApi {
-extern const GlobalConfig& GetGlobalConfig();
-} // namespace CoreApi
-
 namespace DeferredRendererHelpers {
 
 void GetDeferredShaderProperties(
@@ -150,27 +148,28 @@ void GetDeferredShaderProperties(
     const RenderProxyList* rpl = nullptr,
     LightType lightType = InvalidLightType)
 {
-    static const GlobalConfig& s_globalConfig = CoreApi::GetGlobalConfig();
+    const EngineConfig& cfg = GetEngineConfig();
+
     static const IRenderConfig& s_renderConfig = g_renderInterface->GetRenderConfig();
 
     MergeGlobalShaderProperties(outShaderProperties);
 
-#define DEF_STATIC_CONFIGURATION_VALUE(name, path)                        \
-    static const ConfigValue& s_##name = s_globalConfig.Get(path); \
-    const bool name = s_##name.ToBool()
+#define DEF_CONFIGURATION_VALUE(name, path)     \
+    const ConfigValue& cfg##name = cfg.Get(path);    \
+    const bool name = cfg##name.ToBool()
 
-    DEF_STATIC_CONFIGURATION_VALUE(rayTracingReflections, "Rendering.RayTracing.Reflections.Enabled");
-    DEF_STATIC_CONFIGURATION_VALUE(rayTracingGlobalIllumination, "Rendering.RayTracing.GI.Enabled");
-    DEF_STATIC_CONFIGURATION_VALUE(hbil, "Rendering.HBIL.Enabled");
-    DEF_STATIC_CONFIGURATION_VALUE(hbao, "Rendering.HBAO.Enabled");
-    DEF_STATIC_CONFIGURATION_VALUE(ssao, "Rendering.SSAO.Enabled");
-    DEF_STATIC_CONFIGURATION_VALUE(ssgi, "Rendering.SSGI.Enabled");
-    DEF_STATIC_CONFIGURATION_VALUE(pathTracing, "Rendering.RayTracing.PathTracing.Enabled");
+    DEF_CONFIGURATION_VALUE(rayTracingReflections, "Rendering.RayTracing.Reflections.Enabled");
+    DEF_CONFIGURATION_VALUE(rayTracingGlobalIllumination, "Rendering.RayTracing.GI.Enabled");
+    DEF_CONFIGURATION_VALUE(hbil, "Rendering.HBIL.Enabled");
+    DEF_CONFIGURATION_VALUE(hbao, "Rendering.HBAO.Enabled");
+    DEF_CONFIGURATION_VALUE(ssao, "Rendering.SSAO.Enabled");
+    DEF_CONFIGURATION_VALUE(ssgi, "Rendering.SSGI.Enabled");
+    DEF_CONFIGURATION_VALUE(pathTracing, "Rendering.RayTracing.PathTracing.Enabled");
 
-    DEF_STATIC_CONFIGURATION_VALUE(debugReflections, "Rendering.Debug.Reflections");
-    DEF_STATIC_CONFIGURATION_VALUE(debugIrradiance, "Rendering.Debug.Irradiance");
+    DEF_CONFIGURATION_VALUE(debugReflections, "Rendering.Debug.Reflections");
+    DEF_CONFIGURATION_VALUE(debugIrradiance, "Rendering.Debug.Irradiance");
 
-#undef DEF_STATIC_CONFIGURATION_VALUE
+#undef DEF_CONFIGURATION_VALUE
 
     if (ssao)
     {
@@ -1123,10 +1122,10 @@ void ReflectionsPass::Create()
 
 bool ReflectionsPass::ShouldRenderSSR() const
 {
-    static const ConfigValue& s_ssrEnabled = CoreApi::GetGlobalConfig().Get("Rendering.SSR.Enabled");
-    static const ConfigValue& s_rayTracingReflectionsEnabled = CoreApi::GetGlobalConfig().Get("Rendering.RayTracing.Reflections.Enabled");
+    const ConfigValue& ssrEnabled = GetEngineConfig().Get("Rendering.SSR.Enabled");
+    const ConfigValue& rayTracingReflectionsEnabled = GetEngineConfig().Get("Rendering.RayTracing.Reflections.Enabled");
 
-    return s_ssrEnabled.ToBool(true) && !s_rayTracingReflectionsEnabled.ToBool(false);
+    return ssrEnabled.ToBool(true) && !rayTracingReflectionsEnabled.ToBool(false);
 }
 
 void ReflectionsPass::CreateSSRPass()
@@ -1548,7 +1547,7 @@ void DeferredRenderer::CreateViewRayTracingPasses(View* view, DeferredRendererPa
     }
 
     const bool shouldEnableRayTracingForView = view->GetRayTracingView().IsValid()
-        && CoreApi::GetGlobalConfig().Get("Rendering.RayTracing.Enabled").ToBool();
+        && GetEngineConfig().Get("Rendering.RayTracing.Enabled").ToBool();
 
     if (!shouldEnableRayTracingForView)
     {

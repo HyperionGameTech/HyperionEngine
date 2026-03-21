@@ -62,10 +62,11 @@ void AstIsExpression::Visit(AstVisitor* visitor, Module* mod)
         // clang-format off
         // runtime check
         m_overrideExpr = visitor->GetCompilationUnit()->GetAstNodeBuilder()
-            .Module(Config::globalModuleName).Function("IsInstance")
+            .Module(ScriptConfig::GlobalModuleName).Function("IsInstance")
             .Call({
                 RC<AstArgument>(new AstArgument(CloneAstNode(m_target), false, false, false, false, "", m_target->GetLocation())),
-                RC<AstArgument>(new AstArgument(CloneAstNode(m_typeSpec->GetExpr()), false, false, false, false, "", m_typeSpec->GetLocation())) });
+                RC<AstArgument>(new AstArgument(CloneAstNode(m_typeSpec->GetExpr()), false, false, false, false, "", m_typeSpec->GetLocation()))
+            });
 
         // clang-format on
 

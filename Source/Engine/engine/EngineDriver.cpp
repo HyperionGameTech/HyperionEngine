@@ -386,12 +386,6 @@ void EngineDriver::FinalizeStop()
     m_isShuttingDown = 0;
 }
 
-void EngineDriver::PreFrameUpdate(Frame* frame)
-{
-    HYP_SCOPE;
-    AssertOnThread(g_renderThread);
-}
-
 void EngineDriver::UpdateSim(float delta)
 {
     static const bool s_dedicatedVisThread = CoreApi::GetCommandLineArguments()["DedicatedVisThread"].ToBool();

@@ -11,6 +11,8 @@
 
 #include <Core/functional/Delegate.hpp>
 
+#include <engine/config/EngineConfig.hpp>
+
 #include <rendering/util/ShaderCompiler.hpp>
 
 namespace Hyperion {
@@ -125,6 +127,8 @@ public:
     HYP_METHOD()
     Game* GetGameInstance() const;
 
+    EngineConfig& GetConfig();
+
     void RequestStop();
     void FinalizeStop();
 
@@ -133,7 +137,7 @@ public:
 private:
     void Init() override;
 
-    void PreFrameUpdate(Frame* frame);
+    void SyncConfig();
 
     void UpdateSim(float delta);
 

@@ -47,7 +47,7 @@ using memory::Pool;
 
 HYP_API extern Pool* g_renderPool;
 
-HYP_STRUCT(ConfigName = "GlobalConfig", JsonPath = "Rendering")
+HYP_STRUCT(ConfigName = "EngineConfig", JsonPath = "Rendering")
 struct RendererConfig : public Config<RendererConfig>
 {
     HYP_STRUCT_BODY(RendererConfig);
@@ -71,10 +71,10 @@ struct RendererConfig : public Config<RendererConfig>
     bool hbilEnabled = false;
 
     HYP_FIELD(JsonPath = "SSGI.Enabled")
-    bool ssgiEnabled = false;
+    bool ssgiEnabled = true;
 
     HYP_FIELD(JsonPath = "TAA.Enabled")
-    bool taaEnabled = false;
+    bool taaEnabled = true;
 
     virtual ~RendererConfig() override = default;
 };

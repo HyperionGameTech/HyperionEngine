@@ -314,7 +314,6 @@ void RayGenMain()
                 beta /= float3(p, p, p);
             }
 
-            // Sample next direction (Diffuse - cosine weighted)
             direction = normalize(SampleCosineDir(rnd, N));
 
             beta *= diffuseColor;

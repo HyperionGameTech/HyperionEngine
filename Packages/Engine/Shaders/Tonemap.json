@@ -8,6 +8,11 @@
     }, {
       "$Class": "AssetReference",
       "AssetPath": {
+        "Value": "Engine/Shaders/Tonemap/Tonemap_5593757611931525455"
+      }
+    }, {
+      "$Class": "AssetReference",
+      "AssetPath": {
         "Value": "Engine/Shaders/Tonemap/Tonemap_11844023003505551619"
       }
     }],

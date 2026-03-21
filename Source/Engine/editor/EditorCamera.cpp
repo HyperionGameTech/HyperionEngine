@@ -17,14 +17,13 @@
 #include <Core/profiling/ProfileScope.hpp>
 
 #include <engine/EngineDriver.hpp>
+#include <engine/config/EngineConfig.hpp>
 
 #include <EditorCamera.generated.inl>
 
 namespace Hyperion {
 
-namespace CoreApi {
-extern const GlobalConfig& GetGlobalConfig();
-} // namespace CoreApi
+extern EngineConfig& GetEngineConfig();
 
 HYP_DECLARE_LOG_CHANNEL(Camera);
 
@@ -140,8 +139,8 @@ bool EditorCameraInputHandler::OnMouseDrag_Impl(const MouseEvent& evt)
 {
     HYP_SCOPE;
 
-    static const ConfigValue& s_editorLookSensitivity = CoreApi::GetGlobalConfig().Get("Editor.Camera.LookSensitivity");
-    static const ConfigValue& s_editorMoveSensitivity = CoreApi::GetGlobalConfig().Get("Editor.Camera.MoveSensitivity");
+    const ConfigValue& editorLookSensitivity = GetEngineConfig().Get("Editor.Camera.LookSensitivity");
+    const ConfigValue& editorMoveSensitivity = GetEngineConfig().Get("Editor.Camera.MoveSensitivity");
 
     if (!m_controller)
     {
@@ -156,8 +155,8 @@ bool EditorCameraInputHandler::OnMouseDrag_Impl(const MouseEvent& evt)
     }
 
     // magic numbers for fun
-    const double lookMultiplier = 7000.0 * s_editorLookSensitivity.ToDouble(1.0);
-    const double moveMultiplier = 25.0 * s_editorMoveSensitivity.ToDouble(1.0);
+    const double lookMultiplier = 7000.0 * editorLookSensitivity.ToDouble(1.0);
+    const double moveMultiplier = 25.0 * editorMoveSensitivity.ToDouble(1.0);
 
     // double for moar bits!!1
     const double mouseDeltaX = double(evt.relativePos.x) - double(evt.relativePrevPos.x);

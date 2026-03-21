@@ -12,6 +12,8 @@
 
 #include <Core/math/MathUtil.hpp>
 
+#include <Core/cli/CommandLine.hpp>
+
 #include <engine/Game.hpp>
 
 #include <system/AppContext.hpp>
@@ -40,6 +42,10 @@ namespace Hyperion {
 HYP_DEFINE_LOG_CHANNEL(SimThread);
 
 EngineStatTimer g_statSimUpdate("SimThread/Update");
+
+namespace CoreApi {
+extern const CommandLineArguments& GetCommandLineArguments();
+} // namespace CoreApi
 
 extern void DestroyDetachedScenes();
 
@@ -130,6 +136,8 @@ void SimThread::SetGameInstance(Game* gameInstance)
 void SimThread::Update()
 {
     ENGINE_STAT_SCOPE(&g_statSimUpdate);
+    
+    static const bool s_isDetached = CoreApi::GetCommandLineArguments()["Detached"].ToBool();
 
     m_counter.NextTick();
 

@@ -64,7 +64,7 @@ public:
 #pragma endregion SymbolTypeCache
 
 CompilationUnit::CompilationUnit()
-    : m_globalModule(new Module(Hyperion::Config::globalModuleName, SourceLocation::Eof())),
+    : m_globalModule(new Module(ScriptConfig::GlobalModuleName, SourceLocation::Eof())),
       m_symbolTypeCache(MakePimpl<SymbolTypeCache>())
 {
     m_globalModule->SetImportTreeLink(moduleTree.TopNode());

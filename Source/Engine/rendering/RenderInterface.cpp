@@ -83,6 +83,7 @@
 
 #include <engine/EngineStats.hpp>
 #include <engine/EngineDriver.hpp>
+#include <engine/config/EngineConfig.hpp>
 
 #include <system/AppContext.hpp>
 
@@ -118,6 +119,10 @@ static std::counting_semaphore<RingBufferDepth> s_freeSemaphore { RingBufferDept
 // thread-local frame index for the game and render threads
 static thread_local uint32* s_threadFrameIndex;
 static uint32 s_frameIndex[2] = { 0 };
+
+static thread_local uint32 s_currentRenderThreadIndex;
+
+static EngineConfig s_engineConfig[RingBufferDepth];
 
 EngineStatTimer g_statRenderThreadSync("Render/Sync");
 
@@ -890,8 +895,6 @@ Viewport& GetViewport(View* view)
     return GetBufferedViewData(view, *s_threadFrameIndex)->viewport;
 }
 
-static thread_local uint32 s_currentRenderThreadIndex;
-
 uint32 CurrentRenderThreadIndex()
 {
     if (s_currentRenderThreadIndex == 0)
@@ -924,6 +927,11 @@ void EndFrameSim()
     s_frameIndex[PRODUCER] = (s_frameIndex[PRODUCER] + 1) % RingBufferDepth;
 
     s_fullSemaphore.release();
+}
+
+EngineConfig& GetEngineConfig()
+{
+    return s_engineConfig[s_threadFrameIndex ? *s_threadFrameIndex : s_frameIndex[CONSUMER]];
 }
 
 #pragma region RenderInterface
@@ -977,18 +985,24 @@ RendererResult RenderInterface::Initialize()
         resourceBinder->Initialize();
     }
 
-    { // override global config after renderer initialize
-        ConfigBase renderGlobalConfigOverrides;
+    {
+        EngineConfig& engineConfig = s_engineConfig[0];
+        engineConfig.Load();
 
         // if ray tracing is not supported, we need to update the configuration
         if (!GetRenderConfig().rayTracing)
         {
-            renderGlobalConfigOverrides.Set("Rendering.RayTracing.Enabled", false);
-            renderGlobalConfigOverrides.Set("Rendering.RayTracing.Reflections.Enabled", false);
-            renderGlobalConfigOverrides.Set("Rendering.RayTracing.GI.Enabled", false);
-            renderGlobalConfigOverrides.Set("Rendering.RayTracing.PathTracing.Enabled", false);
+            engineConfig.Set("Rendering.RayTracing.Enabled", false);
+            engineConfig.Set("Rendering.RayTracing.Reflections.Enabled", false);
+            engineConfig.Set("Rendering.RayTracing.GI.Enabled", false);
+            engineConfig.Set("Rendering.RayTracing.PathTracing.Enabled", false);
 
-            CoreApi::UpdateGlobalConfig(renderGlobalConfigOverrides);
+            engineConfig.Save();
+        }
+
+        for (uint32 i = 1; i < RingBufferDepth; i++)
+        {
+            s_engineConfig[i] = engineConfig;
         }
     }
 
@@ -1507,7 +1521,12 @@ void RenderInterface::EndFrame()
 
     textureViewCache->CleanupUnusedTextures();
 
-    s_frameIndex[CONSUMER] = (s_frameIndex[CONSUMER] + 1) % RingBufferDepth;
+    const uint32 nextFrameIndex = (s_frameIndex[CONSUMER] + 1) % RingBufferDepth;
+
+    /// Sync the engine config for the current frame to prev frame
+    s_engineConfig[nextFrameIndex] = s_engineConfig[slot];
+
+    s_frameIndex[CONSUMER] = nextFrameIndex;
 
     AtomicIncrement(&s_frameCounter);
 

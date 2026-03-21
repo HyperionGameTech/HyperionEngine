@@ -219,7 +219,8 @@ const GlobalConfig& GetGlobalConfig()
 
     if (s_globalConfigChain.Empty())
     {
-        s_globalConfigChain.EmplaceBack("GlobalConfig");
+        GlobalConfig& cfg = s_globalConfigChain.EmplaceBack("GlobalConfig");
+        cfg.Load();
     }
 
     return s_globalConfigChain.Back();

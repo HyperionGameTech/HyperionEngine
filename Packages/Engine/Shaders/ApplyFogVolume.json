@@ -160,6 +160,166 @@
       "AssetPath": {
         "Value": "Engine/Shaders/ApplyFogVolume/ApplyFogVolume_8217044443126766607"
       }
+    }, {
+      "$Class": "AssetReference",
+      "AssetPath": {
+        "Value": "Engine/Shaders/ApplyFogVolume/ApplyFogVolume_16087900503833404331"
+      }
+    }, {
+      "$Class": "AssetReference",
+      "AssetPath": {
+        "Value": "Engine/Shaders/ApplyFogVolume/ApplyFogVolume_16087900503833404307"
+      }
+    }, {
+      "$Class": "AssetReference",
+      "AssetPath": {
+        "Value": "Engine/Shaders/ApplyFogVolume/ApplyFogVolume_16087900503833404315"
+      }
+    }, {
+      "$Class": "AssetReference",
+      "AssetPath": {
+        "Value": "Engine/Shaders/ApplyFogVolume/ApplyFogVolume_16087900503833404291"
+      }
+    }, {
+      "$Class": "AssetReference",
+      "AssetPath": {
+        "Value": "Engine/Shaders/ApplyFogVolume/ApplyFogVolume_16087900503833404299"
+      }
+    }, {
+      "$Class": "AssetReference",
+      "AssetPath": {
+        "Value": "Engine/Shaders/ApplyFogVolume/ApplyFogVolume_16087900503833403507"
+      }
+    }, {
+      "$Class": "AssetReference",
+      "AssetPath": {
+        "Value": "Engine/Shaders/ApplyFogVolume/ApplyFogVolume_16087900503833403515"
+      }
+    }, {
+      "$Class": "AssetReference",
+      "AssetPath": {
+        "Value": "Engine/Shaders/ApplyFogVolume/ApplyFogVolume_16087900503833403491"
+      }
+    }, {
+      "$Class": "AssetReference",
+      "AssetPath": {
+        "Value": "Engine/Shaders/ApplyFogVolume/ApplyFogVolume_16087900503833403499"
+      }
+    }, {
+      "$Class": "AssetReference",
+      "AssetPath": {
+        "Value": "Engine/Shaders/ApplyFogVolume/ApplyFogVolume_16087900503833403475"
+      }
+    }, {
+      "$Class": "AssetReference",
+      "AssetPath": {
+        "Value": "Engine/Shaders/ApplyFogVolume/ApplyFogVolume_16087900503833403483"
+      }
+    }, {
+      "$Class": "AssetReference",
+      "AssetPath": {
+        "Value": "Engine/Shaders/ApplyFogVolume/ApplyFogVolume_16087900503833403459"
+      }
+    }, {
+      "$Class": "AssetReference",
+      "AssetPath": {
+        "Value": "Engine/Shaders/ApplyFogVolume/ApplyFogVolume_16087900503833403467"
+      }
+    }, {
+      "$Class": "AssetReference",
+      "AssetPath": {
+        "Value": "Engine/Shaders/ApplyFogVolume/ApplyFogVolume_16087900503833403443"
+      }
+    }, {
+      "$Class": "AssetReference",
+      "AssetPath": {
+        "Value": "Engine/Shaders/ApplyFogVolume/ApplyFogVolume_16087900503833403451"
+      }
+    }, {
+      "$Class": "AssetReference",
+      "AssetPath": {
+        "Value": "Engine/Shaders/ApplyFogVolume/ApplyFogVolume_16087900503833403619"
+      }
+    }, {
+      "$Class": "AssetReference",
+      "AssetPath": {
+        "Value": "Engine/Shaders/ApplyFogVolume/ApplyFogVolume_16087900503833403435"
+      }
+    }, {
+      "$Class": "AssetReference",
+      "AssetPath": {
+        "Value": "Engine/Shaders/ApplyFogVolume/ApplyFogVolume_16087900503833403411"
+      }
+    }, {
+      "$Class": "AssetReference",
+      "AssetPath": {
+        "Value": "Engine/Shaders/ApplyFogVolume/ApplyFogVolume_16087900503833403419"
+      }
+    }, {
+      "$Class": "AssetReference",
+      "AssetPath": {
+        "Value": "Engine/Shaders/ApplyFogVolume/ApplyFogVolume_16087900503833403395"
+      }
+    }, {
+      "$Class": "AssetReference",
+      "AssetPath": {
+        "Value": "Engine/Shaders/ApplyFogVolume/ApplyFogVolume_16087900503833403403"
+      }
+    }, {
+      "$Class": "AssetReference",
+      "AssetPath": {
+        "Value": "Engine/Shaders/ApplyFogVolume/ApplyFogVolume_16087900503833403635"
+      }
+    }, {
+      "$Class": "AssetReference",
+      "AssetPath": {
+        "Value": "Engine/Shaders/ApplyFogVolume/ApplyFogVolume_16087900503833403643"
+      }
+    }, {
+      "$Class": "AssetReference",
+      "AssetPath": {
+        "Value": "Engine/Shaders/ApplyFogVolume/ApplyFogVolume_16087900503833403555"
+      }
+    }, {
+      "$Class": "AssetReference",
+      "AssetPath": {
+        "Value": "Engine/Shaders/ApplyFogVolume/ApplyFogVolume_16087900503833403627"
+      }
+    }, {
+      "$Class": "AssetReference",
+      "AssetPath": {
+        "Value": "Engine/Shaders/ApplyFogVolume/ApplyFogVolume_16087900503833403603"
+      }
+    }, {
+      "$Class": "AssetReference",
+      "AssetPath": {
+        "Value": "Engine/Shaders/ApplyFogVolume/ApplyFogVolume_16087900503833403611"
+      }
+    }, {
+      "$Class": "AssetReference",
+      "AssetPath": {
+        "Value": "Engine/Shaders/ApplyFogVolume/ApplyFogVolume_16087900503833403587"
+      }
+    }, {
+      "$Class": "AssetReference",
+      "AssetPath": {
+        "Value": "Engine/Shaders/ApplyFogVolume/ApplyFogVolume_16087900503833403595"
+      }
+    }, {
+      "$Class": "AssetReference",
+      "AssetPath": {
+        "Value": "Engine/Shaders/ApplyFogVolume/ApplyFogVolume_16087900503833403571"
+      }
+    }, {
+      "$Class": "AssetReference",
+      "AssetPath": {
+        "Value": "Engine/Shaders/ApplyFogVolume/ApplyFogVolume_16087900503833403579"
+      }
+    }, {
+      "$Class": "AssetReference",
+      "AssetPath": {
+        "Value": "Engine/Shaders/ApplyFogVolume/ApplyFogVolume_16087900503833403427"
+      }
     }],
   "Name": "ApplyFogVolume",
   "FriendlyName": "ApplyFogVolume",

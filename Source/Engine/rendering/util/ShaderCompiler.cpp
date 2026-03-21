@@ -72,10 +72,6 @@ HYP_DEFINE_LOG_SUBCHANNEL(ShaderCompiler, Core);
 static constexpr bool ShouldCompileMissingVariants = false;
 static constexpr bool ShouldCompileEntireBundle = false; // aggressively compile all permutations defined
 
-namespace CoreApi {
-extern const GlobalConfig& GetGlobalConfig();
-} // namespace CoreApi
-
 // #define HYP_SHADER_COMPILER_LOGGING
 
 #if HYP_DXC
@@ -326,24 +322,24 @@ void MergeGlobalShaderProperties(ShaderPropertySet& out)
 
     out.Add(s_propNumGBufferTextures);
 
-    const GlobalConfig& globalConfig = CoreApi::GetGlobalConfig();
+    const EngineConfig& cfg = GetEngineConfig();
 
     if (g_renderInterface->GetRenderConfig().bindlessTextures)
         out.Add(s_propBindlessTextures);
 
-    if (globalConfig.Get("Rendering.Debug.Reflections").ToBool(false))
+    if (cfg.Get("Rendering.Debug.Reflections").ToBool(false))
         out.Add(s_propDebugReflections);
 
-    if (globalConfig.Get("Rendering.Debug.Irradiance").ToBool(false))
+    if (cfg.Get("Rendering.Debug.Irradiance").ToBool(false))
         out.Add(s_propDebugIrradiance);
 
-    if (globalConfig.Get("Rendering.Debug.Velocity").ToBool(false))
+    if (cfg.Get("Rendering.Debug.Velocity").ToBool(false))
         out.Add(s_propDebugVelocity);
 
-    if (globalConfig.Get("Rendering.Debug.Normals").ToBool(false))
+    if (cfg.Get("Rendering.Debug.Normals").ToBool(false))
         out.Add(s_propDebugNormals);
 
-    if (globalConfig.Get("Rendering.Debug.AO").ToBool(false))
+    if (cfg.Get("Rendering.Debug.AO").ToBool(false))
         out.Add(s_propDebugAO);
 }
 

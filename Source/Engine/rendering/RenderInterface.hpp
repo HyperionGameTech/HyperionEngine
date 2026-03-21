@@ -54,6 +54,7 @@ class DeletionQueue;
 class BLASCache;
 class ShadowMapCache;
 class CrashHandler;
+class EngineConfig;
 
 enum class GpuBufferType : uint8;
 enum RenderTargetType : uint8;
@@ -117,6 +118,8 @@ void CommitActiveWorlds(Span<World*> activeWorlds);
 Span<World*> GetActiveWorlds();
 
 Viewport& GetViewport(View* view);
+
+EngineConfig& GetEngineConfig();
 
 HYP_ENUM()
 enum GlobalRenderBuffer : uint8

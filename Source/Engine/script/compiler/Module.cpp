@@ -208,7 +208,7 @@ RC<Identifier> Module::LookUpIdentifier(const String& name, bool thisScopeOnly, 
                     }
 
                     Assert(modLink->Get() != nullptr);
-                    Assert(modLink->Get()->GetName() == Config::globalModuleName);
+                    Assert(modLink->Get()->GetName() == ScriptConfig::GlobalModuleName);
 
                     return modLink->Get()->LookUpIdentifier(name, false);
                 }

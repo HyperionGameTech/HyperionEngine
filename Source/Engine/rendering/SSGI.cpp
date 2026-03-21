@@ -38,7 +38,7 @@
 namespace Hyperion {
 
 static constexpr bool UseTemporalBlending = true;
-static constexpr TextureFormat SSGIFormat = TextureFormat::RGBA8;
+static constexpr TextureFormat SSGIFormat = TextureFormat::RGBA16F;
 static constexpr uint32 MaxLights = 4;
 static constexpr uint32 MaxEnvProbes = 4;
 static constexpr uint32 NumSamples = 64; // temporal sample count

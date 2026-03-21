@@ -16,6 +16,8 @@
 
 #include <rendering/util/DeletionQueue.hpp>
 
+#include <engine/config/EngineConfig.hpp>
+
 #include <Core/utilities/Span.hpp>
 
 #include <Core/debug/Debug.hpp>
@@ -43,11 +45,6 @@ constexpr bool EnableVulkanSynchronizationValidation = false;
 constexpr bool EnableVulkanVerboseValidationLogging = false;
 #endif
 
-namespace CoreApi {
-extern void UpdateGlobalConfig(const ConfigBase& mergeValues);
-extern const GlobalConfig& GetGlobalConfig();
-} // namespace CoreApi
-
 static VkPhysicalDevice PickPhysicalDevice(Span<VkPhysicalDevice> devices)
 {
     if (!devices.Size())
@@ -55,9 +52,9 @@ static VkPhysicalDevice PickPhysicalDevice(Span<VkPhysicalDevice> devices)
         return VK_NULL_HANDLE;
     }
     
-    ConfigBase gpuConfig = CoreApi::GetGlobalConfig();
+    EngineConfig& cfg = GetEngineConfig();
 
-    const ConfigValue& cfgSelectedGpuIndex = gpuConfig.Get("System.SelectedGpu.Index");
+    const ConfigValue& cfgSelectedGpuIndex = cfg.Get("System.SelectedGpu.Index");
 
     VulkanFeatures::DeviceRequirementsResult deviceRequirementsResult(VulkanFeatures::DeviceRequirementsResult::DEVICE_REQUIREMENTS_ERR, "No device found");
     VulkanFeatures deviceFeatures;
@@ -111,9 +108,12 @@ static VkPhysicalDevice PickPhysicalDevice(Span<VkPhysicalDevice> devices)
         {
             HYP_LOG(RenderingBackend, Info, "Select discrete device {}", deviceFeatures.GetDeviceName());
             
-            gpuConfig.Set("System.SelectedGpu.Index", JSON::Number(deviceIndex));
+            cfg.Set("System.SelectedGpu.Index", JSON::Number(deviceIndex));
 
-            CoreApi::UpdateGlobalConfig(gpuConfig);
+            if (!cfg.Save())
+            {
+                HYP_LOG(RenderingBackend, Warning, "Failed to save GPU selection config");
+            }
 
             return device;
         }
@@ -139,9 +139,12 @@ static VkPhysicalDevice PickPhysicalDevice(Span<VkPhysicalDevice> devices)
         {
             HYP_LOG(RenderingBackend, Info, "Select integrated device {}", deviceFeatures.GetDeviceName());
             
-            gpuConfig.Set("System.SelectedGpu.Index", JSON::Number(deviceIndex));
+            cfg.Set("System.SelectedGpu.Index", JSON::Number(deviceIndex));
 
-            CoreApi::UpdateGlobalConfig(gpuConfig);
+            if (!cfg.Save())
+            {
+                HYP_LOG(RenderingBackend, Warning, "Failed to save GPU selection config");
+            }
 
             return device;
         }

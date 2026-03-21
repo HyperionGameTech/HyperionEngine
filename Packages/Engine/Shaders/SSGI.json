@@ -23,7 +23,17 @@
     }, {
       "$Class": "AssetReference",
       "AssetPath": {
+        "Value": "Engine/Shaders/SSGI/SSGI_15502306128063421281"
+      }
+    }, {
+      "$Class": "AssetReference",
+      "AssetPath": {
         "Value": "Engine/Shaders/SSGI/SSGI_14563086108039103591"
+      }
+    }, {
+      "$Class": "AssetReference",
+      "AssetPath": {
+        "Value": "Engine/Shaders/SSGI/SSGI_13111718709141416219"
       }
     }],
   "Name": "SSGI",

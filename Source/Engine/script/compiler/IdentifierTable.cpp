@@ -13,7 +13,7 @@ int IdentifierTable::CountUsedVariables() const
 
     for (auto& ident : identifiers)
     {
-        if (!Config::cullUnusedObjects || ident->GetUseCount() > 0)
+        if (!ScriptConfig::CullUnusedObjects || ident->GetUseCount() > 0)
         {
             if (usedVariables.Find(ident->GetIndex()) == usedVariables.End())
             {

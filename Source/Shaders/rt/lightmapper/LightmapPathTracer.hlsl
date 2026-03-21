@@ -81,7 +81,7 @@ DECLARE_BUFFER_DYNAMIC(LightmapPathTracer, CBuffer) cbuffer CBuffer
 #ifdef MODE_FULL
 #define MAX_SAMPLE_LUMINANCE 20.0
 #define MAX_THROUGHPUT_LUMINANCE 10.0
-#define ROUGHNESS_FLOOR 0.05
+#define ROUGHNESS_FLOOR 0.001
 
 float3 ClampLuminance(in float3 c, float max_lum)
 {
@@ -305,18 +305,17 @@ void RayGenMain()
     float3 finalColor = radiance;
 #elif defined(MODE_FULL)
     // full path tracing with diffuse/specular bounces
-    float4 accumRadiance = float4(0.0, 0.0, 0.0, 0.0);
+    float4 accumRadiance = (float4)0.0;
 
     for (uint sample_index = 0; sample_index < NUM_SAMPLES; sample_index++)
     {
         float2 rnd0 = float2(RandomFloat(ray_seed), RandomFloat(ray_seed));
 
-        // Use incoming view ray for the first segment (viewport tracing)
         float3 direction = N0;
         float3 origin = ray.origin + N0 * RAY_OFFSET;
 
-        float3 Li = float3(0.0, 0.0, 0.0);
-        float3 beta = float3(1.0, 1.0, 1.0);
+        float4 Li = (float4)0.0;
+        float3 beta = (float3)1.0;
 
         for (int bounceIndex = 0; bounceIndex < NUM_BOUNCES; ++bounceIndex)
         {
@@ -346,10 +345,16 @@ void RayGenMain()
                     environmentRadiance += env;
                 }
 
-                Li += beta * environmentRadiance.rgb;
+                // we use 0.0 so that probes can blend between each other.
+                // we still want to keep the environment contribution, as we can use it as indirect lighting
+                // (plus we can keep the data of the env radiance around in the color channels so it can be used)
+                Li += float4(beta * environmentRadiance.rgb, 0.0);
 
                 break;
             }
+
+            // mark sample valid for color.
+            Li.a = 1.0;
 
             // hit data
             float3 hitPos = origin + direction * payload.distance;
@@ -361,10 +366,9 @@ void RayGenMain()
             // emissive contribution
             if (any(payload.emissive.rgb > float3(0.0, 0.0, 0.0)))
             {
-                Li += beta * payload.emissive.rgb;
+                Li += float4(beta * payload.emissive.rgb, 1.0);
             }
 
-            // Direct lighting (next event estimation): Lambertian + GGX specular
             float3 diffuseColor = baseColor * (1.0 - metalness);
             float3 V = normalize(-direction);
             float NdotV = max(dot(N, V), 0.0);
@@ -393,7 +397,7 @@ void RayGenMain()
                             float G = G_Smith(NdotV, NdotL, roughness);
                             float3 F = F_Schlick(F0, HdotV);
                             float3 Lo_s = (D * G) * F / max(4.0 * NdotL * NdotV, 1e-6);
-                            Li += beta * (Lo_d + Lo_s * NdotL) * light_color * visibility;
+                            Li += float4(beta * (Lo_d + Lo_s * NdotL) * light_color * visibility, 1.0);
                         }
                     }
                     else if (light.type == HYP_LIGHT_TYPE_POINT)
@@ -418,7 +422,7 @@ void RayGenMain()
                             float G = G_Smith(NdotV, NdotL, roughness);
                             float3 F = F_Schlick(F0, HdotV);
                             float3 Lo_s = (D * G) * F / max(4.0 * NdotL * NdotV, 1e-6);
-                            Li += beta * (Lo_d + Lo_s * NdotL) * light_color * attenuation * visibility;
+                            Li += float4(beta * (Lo_d + Lo_s * NdotL) * light_color * attenuation * visibility, 1.0);
                         }
                     }
                     else
@@ -439,7 +443,6 @@ void RayGenMain()
                 beta /= float3(p, p, p);
             }
 
-            // Sample next direction: mixture of diffuse (cosine) and GGX specular
             float Fv = max(max(F_Schlick(F0, NdotV).r, F_Schlick(F0, NdotV).g), F_Schlick(F0, NdotV).b);
             float specProb = clamp(lerp(0.2, 1.0, metalness) * Fv, 0.02, 0.98);
             float diffProb = 1.0 - specProb;
@@ -477,15 +480,19 @@ void RayGenMain()
             direction = wi;
         }
 
-        accumRadiance.rgb += Li;
+        accumRadiance += Li;
     }
 
-    float3 finalColor = accumRadiance.rgb / float(NUM_SAMPLES);
+    float4 finalColor = accumRadiance / float(NUM_SAMPLES);
+
+    // make sure alpha is in [0, 1], it is used for blending between probes, so we need to make sure this won't
+    // cause lerp() to get borked.
+    finalColor.a = saturate(finalColor.a);
 
 #else
     // shouldn't get here; output green so it's really obvious
-    float3 finalColor = float3(0.0, 1.0, 0.0);
+    float4 finalColor = float3(0.0, 1.0, 0.0, 1.0);
 #endif
 
-    hits[ray_index] = float4(finalColor, 1.0);
+    hits[ray_index] = finalColor;
 }

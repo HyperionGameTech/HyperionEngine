@@ -5,6 +5,16 @@
       "AssetPath": {
         "Value": "Engine/Shaders/SSRSampleGBuffer/SSRSampleGBuffer_6076243050612183518"
       }
+    }, {
+      "$Class": "AssetReference",
+      "AssetPath": {
+        "Value": "Engine/Shaders/SSRSampleGBuffer/SSRSampleGBuffer_17073690898428499451"
+      }
+    }, {
+      "$Class": "AssetReference",
+      "AssetPath": {
+        "Value": "Engine/Shaders/SSRSampleGBuffer/SSRSampleGBuffer_10041356341343096516"
+      }
     }],
   "Name": "SSRSampleGBuffer",
   "FriendlyName": "SSRSampleGBuffer",

@@ -53,13 +53,11 @@
 #include <engine/EngineDriver.hpp>
 #include <engine/EngineStats.hpp>
 
+#include <engine/config/EngineConfig.hpp>
+
 namespace Hyperion {
 
 HYP_API extern const char* LookupTypeName(const TypeId& typeId);
-
-namespace CoreApi {
-extern const GlobalConfig& GetGlobalConfig();
-} // namespace CoreApi
 
 extern uint32 CurrentRenderThreadIndex();
 
@@ -246,10 +244,10 @@ static void BuildAttributes(const RenderProxyMesh& proxy, RenderableAttributeSet
     const bool hasAlphaDiscard = bool(attributes.GetMaterialAttributes().flags & MAF_ALPHA_DISCARD);
     const bool hasSkinning = proxy.skeleton != nullptr && proxy.skeleton->GetRootBone() != nullptr;
 
-    static const bool s_isPathTracer = CoreApi::GetGlobalConfig().Get("Rendering.RayTracing.PathTracing.Enabled").ToBool();
+    const bool isPathTracer = GetEngineConfig().Get("Rendering.RayTracing.PathTracing.Enabled").ToBool();
 
     // if lightmap volume is set we need stencil testing
-    if (hasLightmaps && !s_isPathTracer)
+    if (hasLightmaps && !isPathTracer)
     {
         const uint8 stencilReferenceValue = GetLightmapStencilValue(proxy.lightmapElementId) & LightmapStencilMask;
 

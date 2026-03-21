@@ -17,7 +17,7 @@
 
 #include <Core/threading/Thread.hpp>
 #include <Core/threading/AtomicVar.hpp>
-#include <Core/threading/Mutex.hpp>
+#include <Core/threading/SharedMutex.hpp>
 #include <Core/threading/DataRaceDetector.hpp>
 
 #include <Core/reflection/ObjectFwd.hpp>
@@ -121,6 +121,7 @@ public:
     void Set(UTF8StringView key, const ConfigValue& value);
 
     bool Save();
+    bool Load();
 
     void AddError(const Error& error);
 
@@ -169,9 +170,9 @@ class Config : public ConfigBase
 {
     static const Config<Derived>& GetInstance()
     {
-        static const Derived instance {};
+        static const Derived s_instance {};
 
-        return instance;
+        return s_instance;
     }
 
 protected:
@@ -185,8 +186,10 @@ protected:
 public:
     Config(const Config& other) = default;
     Config& operator=(const Config& other) = default;
+
     Config(Config&& other) noexcept = default;
     Config& operator=(Config&& other) noexcept = default;
+
     virtual ~Config() = default;
 
     static Derived FromConfig()
@@ -203,14 +206,19 @@ public:
     {
         if (configName.Empty())
         {
-            /// \todo Log error
             return {};
         }
 
         const Class* cls = GetDerivedClass();
 
-        Derived result;
+        Derived result {};
         static_cast<ConfigBase&>(result) = ConfigBase { configName, cls };
+
+        if (!result.Load())
+        {
+            result.LogErrors(stderr, "Failed to load config");
+            return {};
+        }
 
         if (cls)
         {

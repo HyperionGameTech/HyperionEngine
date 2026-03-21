@@ -41,14 +41,6 @@ ConfigBase::ConfigBase(const String& configName, const String& subobjectPath)
       m_rootObject(JSON::Object()),
       m_name(configName)
 {
-    // try to read from config file
-    if (Result result = Read(m_rootObject); result.HasError())
-    {
-        m_errors.PushBack(result.GetError());
-        return;
-    }
-
-    m_cachedHashCode = GetSubobject().GetHashCode();
 }
 
 ConfigBase::ConfigBase(const String& configName)
@@ -217,6 +209,20 @@ bool ConfigBase::Save()
     {
         HYP_LOG(Config, Error, "Failed to write configuration file at {}: {}", GetFilePath(), result.GetError().GetMessage());
 
+        return false;
+    }
+
+    m_cachedHashCode = GetSubobject().GetHashCode();
+
+    return true;
+}
+
+bool ConfigBase::Load()
+{
+    // try to read from config file
+    if (Result result = Read(m_rootObject); result.HasError())
+    {
+        m_errors.PushBack(result.GetError());
         return false;
     }
 

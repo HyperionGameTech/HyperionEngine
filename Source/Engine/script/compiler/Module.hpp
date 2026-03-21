@@ -158,7 +158,7 @@ public:
                     }
 
                     Assert(link->Get() != nullptr);
-                    Assert(link->Get()->GetName() == Config::globalModuleName);
+                    Assert(link->Get()->GetName() == ScriptConfig::GlobalModuleName);
 
                     return pred2(link->Get());
                 }

@@ -63,7 +63,7 @@ enum class LightmapShadingType : int
     MAX
 };
 
-HYP_STRUCT(ConfigName = "GlobalConfig", JsonPath = "Lightmapper")
+HYP_STRUCT(ConfigName = "EngineConfig", JsonPath = "Lightmapper")
 struct LightmapperConfig : public Config<LightmapperConfig>
 {
     HYP_STRUCT_BODY(LightmapperConfig);
@@ -126,7 +126,7 @@ struct LightmapperConfig : public Config<LightmapperConfig>
 
 struct LightmapHit
 {
-    Vec3f color;
+    Vec4f color;
 };
 
 static_assert(sizeof(LightmapHit) == 16);

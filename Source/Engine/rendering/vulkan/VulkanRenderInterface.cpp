@@ -28,9 +28,9 @@
 #include <rendering/CrashHandler.hpp>
 #include <rendering/ConstantsAllocator.hpp>
 
-#include <Core/containers/SparsePagedArray.hpp>
+#include <engine/config/EngineConfig.hpp>
 
-#include <Core/config/Config.hpp>
+#include <Core/containers/SparsePagedArray.hpp>
 
 #include <rendering/Texture.hpp>
 
@@ -55,10 +55,6 @@ namespace Hyperion {
 static constexpr bool UseResetDescriptorPool = false;
 static constexpr uint32 MaxDescriptorPools = 32;
 
-namespace CoreApi {
-extern const GlobalConfig& GetGlobalConfig();
-} // namespace CoreApi
-
 enum VulkanDescriptorPoolRequirements : uint8
 {
     VDPR_None = 0x0,
@@ -79,8 +75,8 @@ public:
 
         bindlessTextures = renderBackend->GetDevice()->GetFeatures().SupportsBindlessTextures();
         rayTracing = renderBackend->GetDevice()->GetFeatures().IsRayTracingSupported();
-        indirectRendering = CoreApi::GetGlobalConfig().Get("Rendering.IndirectRendering").ToBool(/* defaultValue */ true);
-        parallelRendering = CoreApi::GetGlobalConfig().Get("Rendering.ParallelCollection").ToBool(/* defaultValue */ true);
+        indirectRendering = GetEngineConfig().Get("Rendering.IndirectRendering").ToBool(/* defaultValue */ true);
+        parallelRendering = GetEngineConfig().Get("Rendering.ParallelCollection").ToBool(/* defaultValue */ true);
         dynamicDescriptorIndexing = renderBackend->GetDevice()->GetFeatures().SupportsDynamicDescriptorIndexing();
     }
 };
@@ -624,9 +620,12 @@ const IRenderConfig& VulkanRenderInterface::GetRenderConfig() const
 RendererResult VulkanRenderInterface::Initialize()
 {
 #if HYP_DEBUG_MODE
-    static const ConfigValue& s_cfgDebugLayers = CoreApi::GetGlobalConfig().Get("Rendering.Vulkan.DebugLayers");
+    EngineConfig& engineConfig = GetEngineConfig();
+    engineConfig.Load();
 
-    if (s_cfgDebugLayers.ToBool(false))
+    const ConfigValue& cfgDebugLayers = engineConfig.Get("Rendering.Vulkan.DebugLayers");
+
+    if (cfgDebugLayers.ToBool(false))
     {
         HYP_LOG(RenderingBackend, Info, "Running with Vulkan validation layers enabled; expect lower performance");
     }
@@ -635,7 +634,7 @@ RendererResult VulkanRenderInterface::Initialize()
         HYP_LOG(RenderingBackend, Info, "Running without Vulkan validation layers");
     }
 
-    const bool enableDebugLayers = s_cfgDebugLayers.ToBool(false);
+    const bool enableDebugLayers = cfgDebugLayers.ToBool(false);
 #else
     const bool enableDebugLayers = false;
 #endif

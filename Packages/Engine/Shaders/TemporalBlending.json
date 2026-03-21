@@ -53,6 +53,11 @@
     }, {
       "$Class": "AssetReference",
       "AssetPath": {
+        "Value": "Engine/Shaders/TemporalBlending/TemporalBlending_5044305231243100389"
+      }
+    }, {
+      "$Class": "AssetReference",
+      "AssetPath": {
         "Value": "Engine/Shaders/TemporalBlending/TemporalBlending_3811173107490122105"
       }
     }, {
@@ -68,6 +73,11 @@
     }, {
       "$Class": "AssetReference",
       "AssetPath": {
+        "Value": "Engine/Shaders/TemporalBlending/TemporalBlending_18371363810632803678"
+      }
+    }, {
+      "$Class": "AssetReference",
+      "AssetPath": {
         "Value": "Engine/Shaders/TemporalBlending/TemporalBlending_15738551845202405988"
       }
     }, {
@@ -79,6 +89,11 @@
       "$Class": "AssetReference",
       "AssetPath": {
         "Value": "Engine/Shaders/TemporalBlending/TemporalBlending_11567616068176735051"
+      }
+    }, {
+      "$Class": "AssetReference",
+      "AssetPath": {
+        "Value": "Engine/Shaders/TemporalBlending/TemporalBlending_10399884446698197506"
       }
     }],
   "Name": "TemporalBlending",

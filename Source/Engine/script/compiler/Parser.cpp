@@ -1335,7 +1335,7 @@ RC<AstModuleAccess> Parser::ParseModuleAccess()
         {
             return RC<AstModuleAccess>(new AstModuleAccess(
                 globalModuleAccess
-                    ? Config::globalModuleName
+                    ? ScriptConfig::GlobalModuleName
                     : token.GetValue(),
                 expr,
                 location));

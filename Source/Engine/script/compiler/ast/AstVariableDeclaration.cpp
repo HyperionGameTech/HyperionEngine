@@ -331,7 +331,7 @@ UniquePtr<Buildable> AstVariableDeclaration::Build(AstVisitor* visitor, Module* 
 
     Assert(m_realAssignment != nullptr);
 
-    if (!Config::cullUnusedObjects
+    if (!ScriptConfig::CullUnusedObjects
         || m_identifier->GetUseCount() > 0
         || (m_flags & (IdentifierFlags::EXTERN | IdentifierFlags::PLACEHOLDER)))
     {

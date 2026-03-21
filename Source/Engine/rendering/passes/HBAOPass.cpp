@@ -31,16 +31,13 @@
 #include <Core/config/Config.hpp>
 
 #include <engine/EngineDriver.hpp>
+#include <engine/config/EngineConfig.hpp>
 
 #include <HBAOPass.generated.inl>
 
 namespace Hyperion {
 
 HYP_DECLARE_LOG_CHANNEL(Rendering);
-
-namespace CoreApi {
-extern const GlobalConfig& GetGlobalConfig();
-} // namespace CoreApi
 
 struct HBAOUniforms
 {
@@ -109,7 +106,7 @@ void HBAO::Render(Frame* frame, const RenderSetup& renderSetup)
     AssertDebug(inputsFramebuffer.IsValid());
     
     ShaderPropertySet shaderProperties;
-    shaderProperties.Set(s_propHBILEnabled, CoreApi::GetGlobalConfig().Get("Rendering.HBIL.Enabled").ToBool());
+    shaderProperties.Set(s_propHBILEnabled, GetEngineConfig().Get("Rendering.HBIL.Enabled").ToBool());
 
     if (ShouldRenderHalfRes())
     {

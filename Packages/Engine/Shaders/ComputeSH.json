@@ -8,6 +8,11 @@
     }, {
       "$Class": "AssetReference",
       "AssetPath": {
+        "Value": "Engine/Shaders/ComputeSH/ComputeSH_647125050414426141"
+      }
+    }, {
+      "$Class": "AssetReference",
+      "AssetPath": {
         "Value": "Engine/Shaders/ComputeSH/ComputeSH_3959915683066511672"
       }
     }, {
@@ -23,12 +28,22 @@
     }, {
       "$Class": "AssetReference",
       "AssetPath": {
+        "Value": "Engine/Shaders/ComputeSH/ComputeSH_16768697431776727790"
+      }
+    }, {
+      "$Class": "AssetReference",
+      "AssetPath": {
         "Value": "Engine/Shaders/ComputeSH/ComputeSH_16198839736632478812"
       }
     }, {
       "$Class": "AssetReference",
       "AssetPath": {
         "Value": "Engine/Shaders/ComputeSH/ComputeSH_14926403349356643471"
+      }
+    }, {
+      "$Class": "AssetReference",
+      "AssetPath": {
+        "Value": "Engine/Shaders/ComputeSH/ComputeSH_13685365908062900749"
       }
     }],
   "Name": "ComputeSH",

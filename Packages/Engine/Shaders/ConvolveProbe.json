@@ -3,7 +3,17 @@
   "CompiledShaders": [{
       "$Class": "AssetReference",
       "AssetPath": {
+        "Value": "Engine/Shaders/ConvolveProbe/ConvolveProbe_9708159200481845459"
+      }
+    }, {
+      "$Class": "AssetReference",
+      "AssetPath": {
         "Value": "Engine/Shaders/ConvolveProbe/ConvolveProbe_9695731133099037351"
+      }
+    }, {
+      "$Class": "AssetReference",
+      "AssetPath": {
+        "Value": "Engine/Shaders/ConvolveProbe/ConvolveProbe_8807892294736855461"
       }
     }, {
       "$Class": "AssetReference",
@@ -14,6 +24,11 @@
       "$Class": "AssetReference",
       "AssetPath": {
         "Value": "Engine/Shaders/ConvolveProbe/ConvolveProbe_8697004131151343463"
+      }
+    }, {
+      "$Class": "AssetReference",
+      "AssetPath": {
+        "Value": "Engine/Shaders/ConvolveProbe/ConvolveProbe_8568106647251619329"
       }
     }, {
       "$Class": "AssetReference",
@@ -33,12 +48,32 @@
     }, {
       "$Class": "AssetReference",
       "AssetPath": {
+        "Value": "Engine/Shaders/ConvolveProbe/ConvolveProbe_7183140055549389026"
+      }
+    }, {
+      "$Class": "AssetReference",
+      "AssetPath": {
+        "Value": "Engine/Shaders/ConvolveProbe/ConvolveProbe_6984111572877050603"
+      }
+    }, {
+      "$Class": "AssetReference",
+      "AssetPath": {
         "Value": "Engine/Shaders/ConvolveProbe/ConvolveProbe_4967863055198785546"
       }
     }, {
       "$Class": "AssetReference",
       "AssetPath": {
         "Value": "Engine/Shaders/ConvolveProbe/ConvolveProbe_3672452589329013851"
+      }
+    }, {
+      "$Class": "AssetReference",
+      "AssetPath": {
+        "Value": "Engine/Shaders/ConvolveProbe/ConvolveProbe_3611376438601043937"
+      }
+    }, {
+      "$Class": "AssetReference",
+      "AssetPath": {
+        "Value": "Engine/Shaders/ConvolveProbe/ConvolveProbe_1940481974687801219"
       }
     }, {
       "$Class": "AssetReference",
@@ -64,6 +99,11 @@
       "$Class": "AssetReference",
       "AssetPath": {
         "Value": "Engine/Shaders/ConvolveProbe/ConvolveProbe_1242103958950283510"
+      }
+    }, {
+      "$Class": "AssetReference",
+      "AssetPath": {
+        "Value": "Engine/Shaders/ConvolveProbe/ConvolveProbe_12288464265508365964"
       }
     }, {
       "$Class": "AssetReference",

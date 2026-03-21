@@ -15,12 +15,10 @@
 
 namespace Hyperion {
 
-struct Config
-{
-    static const size_t maxDataMembers;
-    static const char* globalModuleName;
-    /** Optimize by removing unused variables */
-    static bool cullUnusedObjects;
-};
+namespace ScriptConfig {
 
+static constexpr bool CullUnusedObjects = true;
+static constexpr const char* GlobalModuleName = "global";
+
+} // namespace ScriptConfig
 } // namespace Hyperion

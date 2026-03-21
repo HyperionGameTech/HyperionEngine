@@ -88,7 +88,7 @@ DECLARE_SRV(SSGI, EnvProbesTexture) TextureCubeArray envProbesTexture;
 DECLARE_SRV(SSGI, EnvProbesTexture) Texture2DArray envProbesTexture;
 #endif
 
-#define RAY_OFFSET 0.001
+#define RAY_OFFSET 0.01
 
 #if 1
 
@@ -596,7 +596,6 @@ void CSMain(uint3 dispatchThreadID : SV_DispatchThreadID)
     } // end samples
 
     accum_radiance /= float(numRaySamples); // Note that we do not divide by numSamples here, that is handled by temporal blending.
-    accum_radiance = saturate(accum_radiance);
 
     out_image[coord] = accum_radiance;
 }

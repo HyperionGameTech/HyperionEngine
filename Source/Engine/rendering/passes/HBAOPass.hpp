@@ -10,7 +10,7 @@
 
 namespace Hyperion {
 
-HYP_STRUCT(ConfigName = "GlobalConfig", JsonPath = "Rendering.HBAO")
+HYP_STRUCT(ConfigName = "EngineConfig", JsonPath = "Rendering.HBAO")
 struct HBAOConfig : public Config<HBAOConfig>
 {
     HYP_STRUCT_BODY(HBAOConfig);
