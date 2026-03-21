@@ -3,15 +3,14 @@
 ![Hyperion Engine screenshot2](/Documentation/Images/EditorPT.png)
 
 ## Features
-- Baking subsystem for precomputing lightmaps, reflection probes, fog volumes, and other static lighting data.
-- Dynamic Diffuse Global Illumination (DDGI) and ray traced reflections for real-time global illumination and accurate reflections.
-- Classical rendering features such as shadow mapping, screen space ambient occlusion (SSAO), screen space reflections (SSR), and more.
-- Level streaming system and world partitioning to allow for levels and models to be loaded and unloaded dynamically, facilitating the creation of large open world games.
-- Scripting via C# or our custom scripting language, HypScript, which is designed for deep integration with the Engine's object system.
-- Multi-threaded asset registry system
+- Real time lighting and global illumination. Screen-Space Global Illumination (SSGI), Dynamic Diffuse Global Illumination (DDGI) and ray traced reflections. Additionally we have a real-time path tracer *(visualized above)* that can be used as a lighting reference when designing scene lighting.
+- Baking system integrated into the editor. Bakes lightmap volumes, reflection probes, fog volumes, and other static lighting data.
+- Cascaded shadow maps, screen space ambient occlusion (SSAO), screen space reflections (SSR), and more.
+- Level streaming and world partitioning system to enable efficient memory usage and larger worlds
+- Scripting via C# or our custom scripting language, HypScript.
 
 ## Platforms
-Currently, we are focusing our efforts on developing the engine for Windows, macOS and Android. Editor support is available on Windows and macOS.
+Currently, we are focusing our efforts on developing the engine for *Windows*, *macOS* and *Android*. Editor support is available on Windows and macOS.
 > Linux support is planned for the future but not in active development. Contributions welcome on that front if you are interested in that!
 
 The engine is in early access and is not yet ready for production use. But if you are feeling adventurous, we welcome you to try it out and see what you can create (or break)!
