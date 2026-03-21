@@ -55,7 +55,7 @@ HYP_API ANSIStringView GetCurrentThreadName()
 
 HYP_API bool IsVerboseLoggingEnabled()
 {
-    static const ConfigurationValue& s_cfgVerboseLoggingEnabled = CoreApi::GetGlobalConfig().Get("Logging.Verbose");
+    static const ConfigValue& s_cfgVerboseLoggingEnabled = CoreApi::GetGlobalConfig().Get("Logging.Verbose");
 
     return s_cfgVerboseLoggingEnabled.ToBool(false);
 }

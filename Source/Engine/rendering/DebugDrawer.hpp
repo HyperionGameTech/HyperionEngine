@@ -40,7 +40,7 @@ struct ImmediateDrawShaderData;
 static constexpr int MaxDebugDrawShapeTypes = 8;
 
 HYP_STRUCT(ConfigName = "GlobalConfig", JsonPath = "Rendering.Debug.DebugDrawer")
-struct DebugDrawerConfig : public ConfigBase<DebugDrawerConfig>
+struct DebugDrawerConfig : public Config<DebugDrawerConfig>
 {
     HYP_STRUCT_BODY(DebugDrawerConfig);
 

@@ -156,7 +156,7 @@ void GetDeferredShaderProperties(
     MergeGlobalShaderProperties(outShaderProperties);
 
 #define DEF_STATIC_CONFIGURATION_VALUE(name, path)                        \
-    static const ConfigurationValue& s_##name = s_globalConfig.Get(path); \
+    static const ConfigValue& s_##name = s_globalConfig.Get(path); \
     const bool name = s_##name.ToBool()
 
     DEF_STATIC_CONFIGURATION_VALUE(rayTracingReflections, "Rendering.RayTracing.Reflections.Enabled");
@@ -1123,8 +1123,8 @@ void ReflectionsPass::Create()
 
 bool ReflectionsPass::ShouldRenderSSR() const
 {
-    static const ConfigurationValue& s_ssrEnabled = CoreApi::GetGlobalConfig().Get("Rendering.SSR.Enabled");
-    static const ConfigurationValue& s_rayTracingReflectionsEnabled = CoreApi::GetGlobalConfig().Get("Rendering.RayTracing.Reflections.Enabled");
+    static const ConfigValue& s_ssrEnabled = CoreApi::GetGlobalConfig().Get("Rendering.SSR.Enabled");
+    static const ConfigValue& s_rayTracingReflectionsEnabled = CoreApi::GetGlobalConfig().Get("Rendering.RayTracing.Reflections.Enabled");
 
     return s_ssrEnabled.ToBool(true) && !s_rayTracingReflectionsEnabled.ToBool(false);
 }

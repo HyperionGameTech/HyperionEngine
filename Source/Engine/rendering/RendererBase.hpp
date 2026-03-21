@@ -48,7 +48,7 @@ using memory::Pool;
 HYP_API extern Pool* g_renderPool;
 
 HYP_STRUCT(ConfigName = "GlobalConfig", JsonPath = "Rendering")
-struct RendererConfig : public ConfigBase<RendererConfig>
+struct RendererConfig : public Config<RendererConfig>
 {
     HYP_STRUCT_BODY(RendererConfig);
 

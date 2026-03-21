@@ -64,7 +64,7 @@ enum class LightmapShadingType : int
 };
 
 HYP_STRUCT(ConfigName = "GlobalConfig", JsonPath = "Lightmapper")
-struct LightmapperConfig : public ConfigBase<LightmapperConfig>
+struct LightmapperConfig : public Config<LightmapperConfig>
 {
     HYP_STRUCT_BODY(LightmapperConfig);
 

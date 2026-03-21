@@ -27,16 +27,16 @@ extern FilePath GetConfigDirectory();
 
 namespace config {
 
-static const ConfigurationValue s_invalidConfigValue {};
+static const ConfigValue s_invalidConfigValue {};
 
-#pragma region ConfigurationTable
+#pragma region ConfigBase
 
-ConfigurationTable::ConfigurationTable()
+ConfigBase::ConfigBase()
     : m_rootObject(JSON::Object())
 {
 }
 
-ConfigurationTable::ConfigurationTable(const String& configName, const String& subobjectPath)
+ConfigBase::ConfigBase(const String& configName, const String& subobjectPath)
     : m_subobjectPath(subobjectPath.Any() ? subobjectPath : Optional<String> {}),
       m_rootObject(JSON::Object()),
       m_name(configName)
@@ -51,17 +51,17 @@ ConfigurationTable::ConfigurationTable(const String& configName, const String& s
     m_cachedHashCode = GetSubobject().GetHashCode();
 }
 
-ConfigurationTable::ConfigurationTable(const String& configName)
-    : ConfigurationTable(configName, String::empty)
+ConfigBase::ConfigBase(const String& configName)
+    : ConfigBase(configName, String::empty)
 {
 }
 
-ConfigurationTable::ConfigurationTable(const String& configName, const Class* cls)
-    : ConfigurationTable(configName, cls ? cls->GetAttribute(Attributes::g_attrJsonPath).GetString() : UTF8StringView())
+ConfigBase::ConfigBase(const String& configName, const Class* cls)
+    : ConfigBase(configName, cls ? cls->GetAttribute(Attributes::g_attrJsonPath).GetString() : UTF8StringView())
 {
 }
 
-ConfigurationTable::ConfigurationTable(const ConfigurationTable& other)
+ConfigBase::ConfigBase(const ConfigBase& other)
     : m_subobjectPath(other.m_subobjectPath),
       m_rootObject(other.m_rootObject),
       m_name(other.m_name),
@@ -69,7 +69,7 @@ ConfigurationTable::ConfigurationTable(const ConfigurationTable& other)
 {
 }
 
-ConfigurationTable& ConfigurationTable::operator=(const ConfigurationTable& other)
+ConfigBase& ConfigBase::operator=(const ConfigBase& other)
 {
     if (this == &other)
     {
@@ -84,7 +84,7 @@ ConfigurationTable& ConfigurationTable::operator=(const ConfigurationTable& othe
     return *this;
 }
 
-ConfigurationTable::ConfigurationTable(ConfigurationTable&& other) noexcept
+ConfigBase::ConfigBase(ConfigBase&& other) noexcept
     : m_subobjectPath(std::move(other.m_subobjectPath)),
       m_rootObject(std::move(other.m_rootObject)),
       m_name(std::move(other.m_name)),
@@ -92,7 +92,7 @@ ConfigurationTable::ConfigurationTable(ConfigurationTable&& other) noexcept
 {
 }
 
-ConfigurationTable& ConfigurationTable::operator=(ConfigurationTable&& other) noexcept
+ConfigBase& ConfigBase::operator=(ConfigBase&& other) noexcept
 {
     if (this == &other)
     {
@@ -107,12 +107,12 @@ ConfigurationTable& ConfigurationTable::operator=(ConfigurationTable&& other) no
     return *this;
 }
 
-bool ConfigurationTable::IsChanged() const
+bool ConfigBase::IsChanged() const
 {
     return GetSubobject().GetHashCode() != m_cachedHashCode;
 }
 
-FilePath ConfigurationTable::GetFilePath() const
+FilePath ConfigBase::GetFilePath() const
 {
     FilePath configPath = CoreApi::GetConfigDirectory() / m_name;
 
@@ -124,7 +124,7 @@ FilePath ConfigurationTable::GetFilePath() const
     return configPath;
 }
 
-Result ConfigurationTable::Read(JSON::Value& outValue) const
+Result ConfigBase::Read(JSON::Value& outValue) const
 {
     const FilePath configPath = GetFilePath();
     HYP_LOG(Config, Debug, "Loading configuration \"{}\" from file {}", m_name, GetFilePath());
@@ -155,7 +155,7 @@ Result ConfigurationTable::Read(JSON::Value& outValue) const
     return {};
 }
 
-Result ConfigurationTable::Write(const JSON::Value& value) const
+Result ConfigBase::Write(const JSON::Value& value) const
 {
     const String valueString = value.ToString(true);
 
@@ -166,7 +166,7 @@ Result ConfigurationTable::Write(const JSON::Value& value) const
     return {};
 }
 
-ConfigurationTable& ConfigurationTable::Merge(const ConfigurationTable& other)
+ConfigBase& ConfigBase::Merge(const ConfigBase& other)
 {
     if (this == &other)
     {
@@ -194,7 +194,7 @@ ConfigurationTable& ConfigurationTable::Merge(const ConfigurationTable& other)
     return *this;
 }
 
-const ConfigurationValue& ConfigurationTable::Get(UTF8StringView key) const
+const ConfigValue& ConfigBase::Get(UTF8StringView key) const
 {
     auto selectResult = GetSubobject().Get(key);
 
@@ -206,12 +206,12 @@ const ConfigurationValue& ConfigurationTable::Get(UTF8StringView key) const
     return s_invalidConfigValue;
 }
 
-void ConfigurationTable::Set(UTF8StringView key, const ConfigurationValue& value)
+void ConfigBase::Set(UTF8StringView key, const ConfigValue& value)
 {
     GetSubobject().Set(key, value);
 }
 
-bool ConfigurationTable::Save()
+bool ConfigBase::Save()
 {
     if (auto result = Write(m_rootObject); result.HasError())
     {
@@ -225,7 +225,7 @@ bool ConfigurationTable::Save()
     return true;
 }
 
-JSON::Value& ConfigurationTable::GetSubobject()
+JSON::Value& ConfigBase::GetSubobject()
 {
     JSON::Value* subobject = &m_rootObject;
 
@@ -242,7 +242,7 @@ JSON::Value& ConfigurationTable::GetSubobject()
     return *subobject;
 }
 
-const JSON::Value& ConfigurationTable::GetSubobject() const
+const JSON::Value& ConfigBase::GetSubobject() const
 {
     const JSON::Value* subobject = &m_rootObject;
 
@@ -259,7 +259,7 @@ const JSON::Value& ConfigurationTable::GetSubobject() const
     return *subobject;
 }
 
-UTF8StringView ConfigurationTable::GetDefaultConfigName(const Class* cls)
+UTF8StringView ConfigBase::GetDefaultConfigName(const Class* cls)
 {
     if (cls)
     {
@@ -272,12 +272,12 @@ UTF8StringView ConfigurationTable::GetDefaultConfigName(const Class* cls)
     return {};
 }
 
-void ConfigurationTable::AddError(const Error& error)
+void ConfigBase::AddError(const Error& error)
 {
     m_errors.PushBack(error);
 }
 
-void ConfigurationTable::LogErrors(FILE* outFile) const
+void ConfigBase::LogErrors(FILE* outFile) const
 {
     if (m_errors.Empty())
     {
@@ -292,7 +292,7 @@ void ConfigurationTable::LogErrors(FILE* outFile) const
     }
 }
 
-void ConfigurationTable::LogErrors(FILE* outFile, UTF8StringView message) const
+void ConfigBase::LogErrors(FILE* outFile, UTF8StringView message) const
 {
     std::fprintf(outFile, "Errors in configuration \"%s\" (%s):", *m_name, *GetFilePath());
 
@@ -304,7 +304,7 @@ void ConfigurationTable::LogErrors(FILE* outFile, UTF8StringView message) const
     std::fprintf(outFile, "%s", message.Data());
 }
 
-bool ConfigurationTable::SetClassFields(const Class* cls, const void* ptr)
+bool ConfigBase::SetClassFields(const Class* cls, const void* ptr)
 {
     HYP_CORE_ASSERT(cls != nullptr);
     HYP_CORE_ASSERT(ptr != nullptr);
@@ -336,7 +336,7 @@ bool ConfigurationTable::SetClassFields(const Class* cls, const void* ptr)
     }
 }
 
-#pragma endregion ConfigurationTable
+#pragma endregion ConfigBase
 
 } // namespace config
 } // namespace Hyperion

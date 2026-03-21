@@ -35,19 +35,17 @@ class BufferedReader;
 
 namespace config {
 
-using ConfigurationValue = JSON::Value;
-
-class ConfigurationTable;
-
-template <class Derived>
 class ConfigBase;
 
-class ConfigurationValueKey
+template <class Derived>
+class Config;
+
+class ConfigKey
 {
 public:
-    ConfigurationValueKey() = default;
+    ConfigKey() = default;
 
-    ConfigurationValueKey(const String& path)
+    ConfigKey(const String& path)
         : m_path(path)
     {
     }
@@ -67,12 +65,12 @@ public:
         return IsValid();
     }
 
-    HYP_FORCE_INLINE bool operator==(const ConfigurationValueKey& other) const
+    HYP_FORCE_INLINE bool operator==(const ConfigKey& other) const
     {
         return m_path == other.m_path;
     }
 
-    HYP_FORCE_INLINE bool operator!=(const ConfigurationValueKey& other) const
+    HYP_FORCE_INLINE bool operator!=(const ConfigKey& other) const
     {
         return m_path != other.m_path;
     }
@@ -86,39 +84,41 @@ private:
     String m_path;
 };
 
-class HYP_API ConfigurationTable
+using ConfigValue = JSON::Value;
+
+class ConfigBase
 {
     template <class Derived>
-    friend class ConfigBase;
+    friend class Config;
 
 protected:
-    ConfigurationTable(const String& configName, const Class* cls);
+    ConfigBase(const String& configName, const Class* cls);
 
 public:
-    ConfigurationTable();
+    ConfigBase();
 
-    explicit ConfigurationTable(const String& configName);
-    ConfigurationTable(const String& configName, const String& subobjectPath);
+    explicit ConfigBase(const String& configName);
+    ConfigBase(const String& configName, const String& subobjectPath);
 
-    ConfigurationTable(const ConfigurationTable& other);
-    ConfigurationTable& operator=(const ConfigurationTable& other);
+    ConfigBase(const ConfigBase& other);
+    ConfigBase& operator=(const ConfigBase& other);
 
-    ConfigurationTable(ConfigurationTable&& other) noexcept;
-    ConfigurationTable& operator=(ConfigurationTable&& other) noexcept;
+    ConfigBase(ConfigBase&& other) noexcept;
+    ConfigBase& operator=(ConfigBase&& other) noexcept;
 
-    virtual ~ConfigurationTable() = default;
+    virtual ~ConfigBase() = default;
 
     bool IsChanged() const;
 
-    ConfigurationTable& Merge(const ConfigurationTable& other);
+    ConfigBase& Merge(const ConfigBase& other);
 
-    HYP_FORCE_INLINE const ConfigurationValue& operator[](UTF8StringView key) const
+    HYP_FORCE_INLINE const ConfigValue& operator[](UTF8StringView key) const
     {
         return Get(key);
     }
 
-    const ConfigurationValue& Get(UTF8StringView key) const;
-    void Set(UTF8StringView key, const ConfigurationValue& value);
+    const ConfigValue& Get(UTF8StringView key) const;
+    void Set(UTF8StringView key, const ConfigValue& value);
 
     bool Save();
 
@@ -165,9 +165,9 @@ private:
 };
 
 template <class Derived>
-class ConfigBase : public ConfigurationTable
+class Config : public ConfigBase
 {
-    static const ConfigBase<Derived>& GetInstance()
+    static const Config<Derived>& GetInstance()
     {
         static const Derived instance {};
 
@@ -175,19 +175,19 @@ class ConfigBase : public ConfigurationTable
     }
 
 protected:
-    ConfigBase() = default;
+    Config() = default;
 
-    ConfigBase(const String& configName)
-        : ConfigurationTable(configName, GetDerivedClass())
+    Config(const String& configName)
+        : ConfigBase(configName, GetDerivedClass())
     {
     }
 
 public:
-    ConfigBase(const ConfigBase& other) = default;
-    ConfigBase& operator=(const ConfigBase& other) = default;
-    ConfigBase(ConfigBase&& other) noexcept = default;
-    ConfigBase& operator=(ConfigBase&& other) noexcept = default;
-    virtual ~ConfigBase() = default;
+    Config(const Config& other) = default;
+    Config& operator=(const Config& other) = default;
+    Config(Config&& other) noexcept = default;
+    Config& operator=(Config&& other) noexcept = default;
+    virtual ~Config() = default;
 
     static Derived FromConfig()
     {
@@ -210,11 +210,11 @@ public:
         const Class* cls = GetDerivedClass();
 
         Derived result;
-        static_cast<ConfigurationTable&>(result) = ConfigurationTable { configName, cls };
+        static_cast<ConfigBase&>(result) = ConfigBase { configName, cls };
 
         if (cls)
         {
-            static_cast<ConfigurationTable&>(result).SetClassFields(cls, &result);
+            static_cast<ConfigBase&>(result).SetClassFields(cls, &result);
         }
 
         result.PostLoadCallback();
@@ -247,53 +247,73 @@ private:
     }
 };
 
-class GlobalConfig final : public ConfigBase<GlobalConfig>
+class GlobalConfig final : public Config<GlobalConfig>
 {
 public:
     GlobalConfig()
-        : ConfigBase<GlobalConfig>()
+        : Config<GlobalConfig>(),
+          m_next(nullptr)
     {
     }
 
-    GlobalConfig(const String& configName)
-        : ConfigBase<GlobalConfig>(configName)
+    explicit GlobalConfig(const String& configName)
+        : Config<GlobalConfig>(configName),
+          m_next(nullptr)
     {
     }
 
     GlobalConfig(const GlobalConfig& other)
-        : ConfigBase<GlobalConfig>(static_cast<const ConfigBase<GlobalConfig>&>(other))
+        : Config<GlobalConfig>(static_cast<const Config<GlobalConfig>&>(other)),
+          m_next(nullptr)
     {
     }
 
     GlobalConfig& operator=(const GlobalConfig& other) = delete;
-    GlobalConfig(GlobalConfig&& other) noexcept = default;
-    GlobalConfig& operator=(GlobalConfig&& other) noexcept = delete;
-    virtual ~GlobalConfig() override = default;
 
-    HYP_FORCE_INLINE const ConfigurationValue& Get(UTF8StringView key) const
+    GlobalConfig(GlobalConfig&& other) noexcept
+        : Config<GlobalConfig>(static_cast<Config<GlobalConfig>&&>(other)),
+          m_next(nullptr)
     {
-        HYP_MT_CHECK_READ(m_dataRaceDetector);
-
-        return ConfigBase<GlobalConfig>::Get(key);
     }
 
-    HYP_FORCE_INLINE void Set(UTF8StringView key, const ConfigurationValue& value)
-    {
-        HYP_MT_CHECK_RW(m_dataRaceDetector);
+    GlobalConfig& operator=(GlobalConfig&& other) noexcept = delete;
 
-        ConfigBase<GlobalConfig>::Set(key, value);
+    ~GlobalConfig() override = default;
+
+    HYP_FORCE_INLINE const ConfigValue& Get(UTF8StringView key) const
+    {
+        return Config<GlobalConfig>::Get(key);
+    }
+
+    HYP_FORCE_INLINE void Set(UTF8StringView key, const ConfigValue& value)
+    {
+        Config<GlobalConfig>::Set(key, value);
+    }
+
+    GlobalConfig* GetNewRevision() const
+    {
+        TSharedLock lock(m_mutex);
+        return m_next;
+    }
+
+    void SetNewRevision(GlobalConfig* newRevision)
+    {
+        TUniqueLock lock(m_mutex);
+        m_next = newRevision;
     }
 
 private:
-    HYP_DECLARE_MT_CHECK(m_dataRaceDetector);
+    // Pointer to the latest revision/snapshot.
+    GlobalConfig* m_next;
+    SharedMutex m_mutex;
 };
 
 } // namespace config
 
+using config::Config;
 using config::ConfigBase;
-using config::ConfigurationTable;
-using config::ConfigurationValue;
-using config::ConfigurationValueKey;
+using config::ConfigValue;
+using config::ConfigKey;
 using config::GlobalConfig;
 
 } // namespace Hyperion

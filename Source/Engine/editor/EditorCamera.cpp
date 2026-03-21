@@ -140,8 +140,8 @@ bool EditorCameraInputHandler::OnMouseDrag_Impl(const MouseEvent& evt)
 {
     HYP_SCOPE;
 
-    static const ConfigurationValue& s_editorLookSensitivity = CoreApi::GetGlobalConfig().Get("Editor.Camera.LookSensitivity");
-    static const ConfigurationValue& s_editorMoveSensitivity = CoreApi::GetGlobalConfig().Get("Editor.Camera.MoveSensitivity");
+    static const ConfigValue& s_editorLookSensitivity = CoreApi::GetGlobalConfig().Get("Editor.Camera.LookSensitivity");
+    static const ConfigValue& s_editorMoveSensitivity = CoreApi::GetGlobalConfig().Get("Editor.Camera.MoveSensitivity");
 
     if (!m_controller)
     {

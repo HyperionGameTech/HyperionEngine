@@ -44,7 +44,7 @@ constexpr bool EnableVulkanVerboseValidationLogging = false;
 #endif
 
 namespace CoreApi {
-extern void UpdateGlobalConfig(const ConfigurationTable& mergeValues);
+extern void UpdateGlobalConfig(const ConfigBase& mergeValues);
 extern const GlobalConfig& GetGlobalConfig();
 } // namespace CoreApi
 
@@ -55,9 +55,9 @@ static VkPhysicalDevice PickPhysicalDevice(Span<VkPhysicalDevice> devices)
         return VK_NULL_HANDLE;
     }
     
-    ConfigurationTable gpuConfig = CoreApi::GetGlobalConfig();
+    ConfigBase gpuConfig = CoreApi::GetGlobalConfig();
 
-    const ConfigurationValue& cfgSelectedGpuIndex = gpuConfig.Get("System.SelectedGpu.Index");
+    const ConfigValue& cfgSelectedGpuIndex = gpuConfig.Get("System.SelectedGpu.Index");
 
     VulkanFeatures::DeviceRequirementsResult deviceRequirementsResult(VulkanFeatures::DeviceRequirementsResult::DEVICE_REQUIREMENTS_ERR, "No device found");
     VulkanFeatures deviceFeatures;

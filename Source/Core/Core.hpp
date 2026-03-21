@@ -29,7 +29,7 @@ static constexpr std::false_type IsProfilingEnabled;
 #endif
 
 const GlobalConfig& GetGlobalConfig();
-void UpdateGlobalConfig(const ConfigurationTable& mergeValues);
+void UpdateGlobalConfig(const ConfigBase& mergeValues);
 
 void OnShutdown(void (*func)());
 

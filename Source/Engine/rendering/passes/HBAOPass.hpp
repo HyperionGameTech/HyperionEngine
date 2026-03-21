@@ -11,7 +11,7 @@
 namespace Hyperion {
 
 HYP_STRUCT(ConfigName = "GlobalConfig", JsonPath = "Rendering.HBAO")
-struct HBAOConfig : public ConfigBase<HBAOConfig>
+struct HBAOConfig : public Config<HBAOConfig>
 {
     HYP_STRUCT_BODY(HBAOConfig);
 

@@ -155,8 +155,8 @@ static SharedMutex s_cacheDirectoryMutex;
 
 HYP_EXPORT const FilePath& GetCacheDirectory()
 {
-    static const ConfigurationValue& s_cfgCacheDirectory = CoreApi::GetGlobalConfig().Get("App.Cache.BaseDirectory");
-    static const ConfigurationValue& s_cfgCachePageSize = CoreApi::GetGlobalConfig().Get("App.Cache.PageSize");
+    static const ConfigValue& s_cfgCacheDirectory = CoreApi::GetGlobalConfig().Get("App.Cache.BaseDirectory");
+    static const ConfigValue& s_cfgCachePageSize = CoreApi::GetGlobalConfig().Get("App.Cache.PageSize");
 
     static const FilePath s_cacheDirectory = CoreApi::GetExecutablePath() / s_cfgCacheDirectory.ToString().ToUtf8();
 
@@ -174,8 +174,8 @@ HYP_EXPORT const FilePath& GetCacheDirectory()
 
     if (!s_cfgCachePageSize.IsNumber() || s_cfgCachePageSize.AsNumber() < 1024 * 1024)
     {
-        ConfigurationTable newConfigurationTable;
-        newConfigurationTable.Set("App.Cache.PageSize", ConfigurationValue(BlobStorage::DefaultPageSize));
+        ConfigBase newConfigurationTable;
+        newConfigurationTable.Set("App.Cache.PageSize", ConfigValue(BlobStorage::DefaultPageSize));
 
         CoreApi::UpdateGlobalConfig(newConfigurationTable);
     }

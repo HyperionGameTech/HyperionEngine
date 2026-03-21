@@ -128,7 +128,7 @@ enum
 };
 
 namespace CoreApi {
-extern void UpdateGlobalConfig(const ConfigurationTable& mergeValues);
+extern void UpdateGlobalConfig(const ConfigBase& mergeValues);
 } // namespace CoreApi
 
 #pragma region ResourceContainer
@@ -978,7 +978,7 @@ RendererResult RenderInterface::Initialize()
     }
 
     { // override global config after renderer initialize
-        ConfigurationTable renderGlobalConfigOverrides;
+        ConfigBase renderGlobalConfigOverrides;
 
         // if ray tracing is not supported, we need to update the configuration
         if (!GetRenderConfig().rayTracing)

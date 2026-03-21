@@ -624,7 +624,7 @@ const IRenderConfig& VulkanRenderInterface::GetRenderConfig() const
 RendererResult VulkanRenderInterface::Initialize()
 {
 #if HYP_DEBUG_MODE
-    static const ConfigurationValue& s_cfgDebugLayers = CoreApi::GetGlobalConfig().Get("Rendering.Vulkan.DebugLayers");
+    static const ConfigValue& s_cfgDebugLayers = CoreApi::GetGlobalConfig().Get("Rendering.Vulkan.DebugLayers");
 
     if (s_cfgDebugLayers.ToBool(false))
     {

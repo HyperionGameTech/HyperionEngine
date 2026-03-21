@@ -186,7 +186,7 @@ const CommandLineArguments& GetCommandLineArguments()
     return s_commandLineArguments;
 }
 
-void UpdateGlobalConfig(const ConfigurationTable& mergeValues)
+void UpdateGlobalConfig(const ConfigBase& mergeValues)
 {
     Mutex::Guard guard(s_globalConfigMutex);
 
@@ -206,6 +206,11 @@ void UpdateGlobalConfig(const ConfigurationTable& mergeValues)
 
     newGlobalConfig.Merge(mergeValues);
     newGlobalConfig.Save();
+
+    for (GlobalConfig& curr : s_globalConfigChain)
+    {
+        curr.SetNewRevision(&newGlobalConfig);
+    }
 }
 
 const GlobalConfig& GetGlobalConfig()

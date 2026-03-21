@@ -18,7 +18,7 @@ namespace Hyperion {
 class GBuffer;
 
 HYP_STRUCT(ConfigName = "GlobalConfig", JsonPath = "Rendering.SSR")
-struct SSRRendererConfig : public ConfigBase<SSRRendererConfig>
+struct SSRRendererConfig : public Config<SSRRendererConfig>
 {
     HYP_STRUCT_BODY(SSRRendererConfig);
 

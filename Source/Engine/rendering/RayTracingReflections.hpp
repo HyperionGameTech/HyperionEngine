@@ -17,7 +17,7 @@ class GBuffer;
 class PassData;
 
 HYP_STRUCT(ConfigName = "GlobalConfig", JsonPath = "Rendering.RayTracing")
-struct RayTracingReflectionsConfig : public ConfigBase<RayTracingReflectionsConfig>
+struct RayTracingReflectionsConfig : public Config<RayTracingReflectionsConfig>
 {
     HYP_STRUCT_BODY(RayTracingReflectionsConfig);
 
