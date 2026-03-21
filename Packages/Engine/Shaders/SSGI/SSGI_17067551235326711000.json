@@ -2,6 +2,12 @@
   "$Class": "Shader",
   "PropertySet": [{
       "$Class": "ShaderProperty",
+      "Name": "MAX_ENV_PROBES",
+      "Flags": 0,
+      "Value": 4,
+      "EnumValues": []
+    }, {
+      "$Class": "ShaderProperty",
       "Name": "HYP_VULKAN",
       "Flags": 0,
       "Value": 4202496,
@@ -21,12 +27,6 @@
     }, {
       "$Class": "ShaderProperty",
       "Name": "MAX_LIGHTS",
-      "Flags": 0,
-      "Value": 4,
-      "EnumValues": []
-    }, {
-      "$Class": "ShaderProperty",
-      "Name": "MAX_ENV_PROBES",
       "Flags": 0,
       "Value": 4,
       "EnumValues": []

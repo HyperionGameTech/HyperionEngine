@@ -139,7 +139,7 @@ void ClosestHitMain(inout RayPayload payload, in BuiltInTriangleIntersectionAttr
 
     float4 direct_lighting = float4(0.0, 0.0, 0.0, 0.0);
 
-    for (uint light_index = 0; light_index < rayTracingConstants.num_bound_lights; light_index++)
+    for (uint light_index = 0; light_index < rayTracingConstants.numBoundLights; light_index++)
     {
         const Light light = lights[light_index];
         const ShadowMap shadowMap = shadowMaps[light_index];

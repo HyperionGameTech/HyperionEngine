@@ -49,9 +49,7 @@ public:
 private:
     struct JobData
     {
-        GpuBufferRef cBuffer;
         GpuBufferRef raysBuffer;
-        GpuBufferRef lightsBuffer;
         GpuBufferRef hitsBufferGpu;
         bool isCreated = false;
     };
@@ -59,7 +57,6 @@ private:
     void UpdatePipelineState(Frame* frame, BakeJobBase* job);
     void CreateBuffers(BakeJobBase* job);
     void CreateAccelerationStructures();
-    void UpdateUniforms(Frame* frame, BakeJobBase* job, uint32 rayOffset);
 
     Handle<Scene> m_scene;
     LightmapShadingType m_shadingType;

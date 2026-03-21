@@ -63,6 +63,11 @@
     }, {
       "$Class": "AssetReference",
       "AssetPath": {
+        "Value": "Engine/Shaders/TemporalBlending/TemporalBlending_2529814209843997919"
+      }
+    }, {
+      "$Class": "AssetReference",
+      "AssetPath": {
         "Value": "Engine/Shaders/TemporalBlending/TemporalBlending_15738551845202405988"
       }
     }, {

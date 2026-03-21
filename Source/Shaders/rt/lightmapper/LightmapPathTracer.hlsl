@@ -30,16 +30,11 @@ DECLARE_SRV(LightmapPathTracer, BlueNoiseBuffer) StructuredBuffer<int4> BlueNois
 #include "../../include/BlueNoise.inc"
 #include "../../include/env_probe.inc"
 
-DECLARE_SRV_DYNAMIC(LightmapPathTracer, CurrentEnvProbe) StructuredBuffer<EnvProbe> current_env_probe_buffer;
-#define current_env_probe current_env_probe_buffer[0]
-
 #if ENV_PROBE_CUBEMAP
 DECLARE_SRV(LightmapPathTracer, EnvProbesTexture) TextureCubeArray envProbesTexture;
 #else
 DECLARE_SRV(LightmapPathTracer, EnvProbesTexture) Texture2DArray envProbesTexture;
 #endif
-
-DECLARE_SRV(LightmapPathTracer, EnvProbesBuffer) StructuredBuffer<EnvProbe> env_probes;
 
 DECLARE_BUFFER(LightmapPathTracer, WorldsBuffer) cbuffer WorldsBuffer
 {
@@ -53,11 +48,6 @@ DECLARE_BUFFER(LightmapPathTracer, WorldsBuffer) cbuffer WorldsBuffer
 
 DECLARE_UAV(LightmapPathTracer, HitsBuffer) RWStructuredBuffer<float4> hits;
 
-DECLARE_BUFFER(LightmapPathTracer, Lights) cbuffer Lights
-{
-    Light lights[MAX_LIGHTS];
-};
-
 struct LightmapRay
 {
     float3 origin;
@@ -66,9 +56,11 @@ struct LightmapRay
 
 DECLARE_SRV(LightmapPathTracer, RaysBuffer) StructuredBuffer<float4> ray_data;
 
-DECLARE_BUFFER(LightmapPathTracer, RayTracingConstants) cbuffer RayTracingCBuffer
+DECLARE_BUFFER_DYNAMIC(LightmapPathTracer, CBuffer) cbuffer CBuffer
 {
     RayTracingConstants rayTracingConstants;
+    Light lights[MAX_LIGHTS];
+    EnvProbe envProbes[MAX_ENV_PROBES];
 };
 
 #ifdef MODE_IRRADIANCE
@@ -196,12 +188,17 @@ void RayGenMain()
 
             if (payload.distance < 0.0)
             {
-                // miss -> sample environment probe if present
-                if (current_env_probe.texture_index != ~0u)
+                float4 environmentRadiance = (float4)0.0;
+
+                for (uint envProbeIdx = 0; envProbeIdx < rayTracingConstants.numBoundEnvProbes && environmentRadiance.a < 1.0; envProbeIdx++)
                 {
-                    float3 env = EnvProbeSample(sampler_linear, envProbesTexture, current_env_probe.texture_index, direction, 0.0).rgb;
-                    radiance += beta * env;
+                    const EnvProbe envProbe = envProbes[envProbeIdx];
+                    float4 env = EnvProbeSample(sampler_linear, envProbesTexture, envProbe.texture_index, direction, 0.0) * (1.0 - environmentRadiance.a);
+                    environmentRadiance += env;
                 }
+                
+                radiance += beta * environmentRadiance.rgb;
+                    
                 break;
             }
 
@@ -219,7 +216,7 @@ void RayGenMain()
 
             beta *= albedo * (1.0 - metalness) * HYP_FMATH_ONE_OVER_PI;
 
-            for (uint light_index = 0; light_index < rayTracingConstants.num_bound_lights; light_index++)
+            for (uint light_index = 0; light_index < rayTracingConstants.numBoundLights; light_index++)
             {
                 const Light light = lights[light_index];
                 float3 light_color = light.color.rgb * light.position_intensity.w;
@@ -277,7 +274,7 @@ void RayGenMain()
 
     float3 radiance = float3(0.0, 0.0, 0.0);
 
-    for (uint light_index = 0; light_index < rayTracingConstants.num_bound_lights; light_index++)
+    for (uint light_index = 0; light_index < rayTracingConstants.numBoundLights; light_index++)
     {
         if (lights[light_index].type == HYP_LIGHT_TYPE_DIRECTIONAL)
         {
@@ -340,11 +337,17 @@ void RayGenMain()
             // environment if miss
             if (payload.distance < 0.0)
             {
-                if (current_env_probe.texture_index != ~0u)
+                float4 environmentRadiance = (float4)0.0;
+
+                for (uint envProbeIdx = 0; envProbeIdx < rayTracingConstants.numBoundEnvProbes && environmentRadiance.a < 1.0; envProbeIdx++)
                 {
-                    float3 env = EnvProbeSample(sampler_linear, envProbesTexture, current_env_probe.texture_index, direction, 0.0).rgb;
-                    Li += beta * env;
+                    const EnvProbe envProbe = envProbes[envProbeIdx];
+                    float4 env = EnvProbeSample(sampler_linear, envProbesTexture, envProbe.texture_index, direction, 0.0) * (1.0 - environmentRadiance.a);
+                    environmentRadiance += env;
                 }
+
+                Li += beta * environmentRadiance.rgb;
+
                 break;
             }
 
@@ -368,7 +371,7 @@ void RayGenMain()
             float3 F0 = lerp(float3(0.04, 0.04, 0.04), baseColor, metalness);
             if (dot(diffuseColor, diffuseColor) > 0.0)
             {
-                for (uint light_index = 0; light_index < rayTracingConstants.num_bound_lights; light_index++)
+                for (uint light_index = 0; light_index < rayTracingConstants.numBoundLights; light_index++)
                 {
                     const Light light = lights[light_index];
 

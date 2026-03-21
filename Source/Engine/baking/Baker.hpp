@@ -220,6 +220,12 @@ public:
         return m_view;
     }
 
+    /*! \brief Get the source object that is being baked. This could be a LightmapVolume, ReflectionProbe, etc */
+    HYP_FORCE_INLINE ObjectBase* GetSource() const
+    {
+        return m_source;
+    }
+
     /*! \brief Should the lightmapping process be split into multiple independent jobs? (i.e splitting scene into multiple lightmap atlases) */
     virtual bool ShouldSplitIntoJobs() const
     {

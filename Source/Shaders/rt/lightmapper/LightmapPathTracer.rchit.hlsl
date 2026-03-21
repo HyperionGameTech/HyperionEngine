@@ -47,11 +47,6 @@ DECLARE_SRV(LightmapPathTracer, MaterialsBuffer) StructuredBuffer<Material> mate
 
 DECLARE_SRV(LightmapPathTracer, MeshDescriptionsBuffer) StructuredBuffer<MeshDescription> mesh_descriptions;
 
-DECLARE_BUFFER(LightmapPathTracer, RayTracingConstants) cbuffer RayTracingCBuffer
-{
-    RayTracingConstants rayTracingConstants;
-};
-
 DECLARE_SRV(BindlessResources0, Textures) Texture2D textures[];
 DECLARE_SRV(BindlessResources1, Buffers) ByteAddressBuffer buffers[];
 

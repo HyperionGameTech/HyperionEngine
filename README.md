@@ -1,6 +1,6 @@
 ### Hyperion Engine is an easy to use, high performance 3D game engine written in C++ and C# with a Vulkan rendering backend and a visual editor built with Avalonia.
 
-![Hyperion Engine screenshot](/Documentation/Images/ddgi.png)
+![Hyperion Engine screenshot2](/Documentation/Images/EditorPT.png)
 
 ## Features
 - Baking subsystem for precomputing lightmaps, reflection probes, fog volumes, and other static lighting data.

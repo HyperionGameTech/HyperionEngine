@@ -32,15 +32,15 @@
       "EnumValues": []
     }, {
       "$Class": "ShaderProperty",
-      "Name": "TEMPORAL_BLEND_TECHNIQUE",
-      "Flags": 0,
-      "Value": 3,
-      "EnumValues": []
-    }, {
-      "$Class": "ShaderProperty",
       "Name": "FEEDBACK",
       "Flags": 0,
       "Value": 0.900000,
+      "EnumValues": []
+    }, {
+      "$Class": "ShaderProperty",
+      "Name": "TEMPORAL_BLEND_TECHNIQUE",
+      "Flags": 0,
+      "Value": 3,
       "EnumValues": []
     }],
   "RevisionNumber": 31459917,

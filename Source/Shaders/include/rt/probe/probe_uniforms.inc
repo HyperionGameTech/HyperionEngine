@@ -20,7 +20,7 @@ struct DDGIConstants
 
     float probe_distance;
     uint num_rays_per_probe;
-    uint num_bound_lights;
+    uint numBoundLights;
     uint flags;
 
     uvec4 light_indices[4];

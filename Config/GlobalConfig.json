@@ -13,7 +13,7 @@
   "Rendering": {
     "RayTracing": {
       "PathTracing": {
-        "Enabled": false
+        "Enabled": true
       },
       "Reflections": {
         "Enabled": false

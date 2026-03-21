@@ -2,6 +2,12 @@
   "$Class": "Shader",
   "PropertySet": [{
       "$Class": "ShaderProperty",
+      "Name": "MAX_LIGHTS",
+      "Flags": 0,
+      "Value": 16,
+      "EnumValues": []
+    }, {
+      "$Class": "ShaderProperty",
       "Name": "HYP_VULKAN",
       "Flags": 0,
       "Value": 4202496,
@@ -17,12 +23,6 @@
       "Name": "HYP_FEATURES_BINDLESS_TEXTURES",
       "Flags": 0,
       "Value": null,
-      "EnumValues": []
-    }, {
-      "$Class": "ShaderProperty",
-      "Name": "MAX_LIGHTS",
-      "Flags": 0,
-      "Value": 16,
       "EnumValues": []
     }, {
       "$Class": "ShaderProperty",
@@ -313,6 +313,6 @@
     }],
   "PropertySetHashCode": {},
   "Name": "LightmapPathTracer_4324962684896062991",
-  "FriendlyName": "LightmapPathTracer_4324962684896062991",
+  "FriendlyName": "LightmapPathTracer4324962684896062991",
   "OriginalFilepath": ""
 }

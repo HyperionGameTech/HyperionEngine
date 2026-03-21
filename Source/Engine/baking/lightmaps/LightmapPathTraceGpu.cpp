@@ -26,7 +26,8 @@
 #include <rendering/ShaderInstance.hpp>
 #include <rendering/PlaceholderData.hpp>
 #include <rendering/TextureViewCache.hpp>
-#include <rendering/Buffers.hpp> // For RayTracingConstants
+#include <rendering/ConstantsAllocator.hpp>
+#include <rendering/Buffers.hpp>
 
 #include <rendering/util/DeletionQueue.hpp>
 #include <rendering/util/ShaderCompiler.hpp>
@@ -72,27 +73,13 @@ struct GpuLightmapperReadyNotification : Semaphore<int>
 {
 };
 
-static constexpr uint32 MaxBoundLights = sizeof(RayTracingConstants::lightIndices) / (sizeof(uint32));  
+static constexpr uint32 MaxBoundLights = 16;
+static constexpr uint32 MaxBoundEnvProbes = 4;
+
+static const ShaderPropertyId s_propMaxLights = InternShaderProperty(ShaderProperty(NAME("MAX_LIGHTS"), int(MaxBoundLights)));
+static const ShaderPropertyId s_propMaxEnvProbes = InternShaderProperty(ShaderProperty(NAME("MAX_ENV_PROBES"), int(MaxBoundEnvProbes)));
 
 #pragma region Render commands
-
-struct CreateLightmapGPUPathTracerUniformBuffer : RenderCommand
-{
-    GpuBufferRef uniformBuffer;
-
-    CreateLightmapGPUPathTracerUniformBuffer(GpuBufferRef uniformBuffer)
-        : uniformBuffer(std::move(uniformBuffer))
-    {
-    }
-
-    virtual RendererResult operator()() override
-    {
-        CheckResultOrReturn(uniformBuffer->Create());
-        uniformBuffer->Memset(sizeof(RayTracingConstants), 0x0);
-
-        return {};
-    }
-};
 
 struct SetGpuLightmapperReady : RenderCommand
 {
@@ -121,7 +108,8 @@ namespace Baking {
 static ShaderDesc GetShaderDesc(LightmapShadingType shadingType)
 {
     ShaderPropertySet shaderProperties;
-    shaderProperties.Add(InternShaderProperty(ShaderProperty(NAME("MAX_LIGHTS"), int(MaxBoundLights))));
+    shaderProperties.Add(s_propMaxLights);
+    shaderProperties.Add(s_propMaxEnvProbes);
 
     switch (shadingType)
     {
@@ -160,9 +148,7 @@ LightmapRenderer_GpuPathTracing::~LightmapRenderer_GpuPathTracing()
 
     for (KeyValuePair<BakeJobBase*, JobData>& it : m_jobData)
     {
-        EnqueueDeletion(std::move(it.second.cBuffer));
         EnqueueDeletion(std::move(it.second.raysBuffer));
-        EnqueueDeletion(std::move(it.second.lightsBuffer));
         EnqueueDeletion(std::move(it.second.hitsBufferGpu));
     }
 }
@@ -171,20 +157,14 @@ void LightmapRenderer_GpuPathTracing::CreateBuffers(BakeJobBase* job)
 {
     JobData& jd = m_jobData[job];
 
-    jd.cBuffer = g_renderInterface->MakeGpuBuffer(GpuBufferType::CONSTANT_BUFFER, sizeof(RayTracingConstants));
-    PUSH_RENDER_COMMAND(CreateLightmapGPUPathTracerUniformBuffer, jd.cBuffer);
-
     jd.raysBuffer = g_renderInterface->MakeGpuBuffer(GpuBufferType::STORAGE_BUFFER, sizeof(Vec4f) * 2 * m_maxTexelsPerFrame, alignof(Vec4f));
     jd.raysBuffer->SetIsCpuAccessible(true);
-
-    jd.lightsBuffer = g_renderInterface->MakeGpuBuffer(GpuBufferType::CONSTANT_BUFFER, sizeof(LightShaderData) * MaxBoundLights);
 
     // ATOMIC_COUNTER type allows readback to cpu.
     jd.hitsBufferGpu = g_renderInterface->MakeGpuBuffer(GpuBufferType::ATOMIC_COUNTER, sizeof(LightmapHit) * m_maxTexelsPerFrame, alignof(Vec4f));
 
     DeferCreate(jd.hitsBufferGpu);
     DeferCreate(jd.raysBuffer);
-    DeferCreate(jd.lightsBuffer);
 }
 
 void LightmapRenderer_GpuPathTracing::Create()
@@ -295,74 +275,6 @@ void LightmapRenderer_GpuPathTracing::UpdatePipelineState(Frame* frame, BakeJobB
     jd.isCreated = true;
 }
 
-void LightmapRenderer_GpuPathTracing::UpdateUniforms(Frame* frame, BakeJobBase* job, uint32 rayOffset)
-{
-    struct UpdateConstants
-    {
-        View* view = nullptr;
-        GpuBuffer* cBuffer = nullptr;
-        GpuBuffer* lightsBuffer = nullptr;
-        uint32 rayOffset;
-
-        void operator()(Frame*)
-        {
-            AssertDebug(view && cBuffer && lightsBuffer);
-
-            RenderProxyList& rpl = GetConsumerProxyList(view);
-            rpl.BeginRead();
-            HYP_DEFER({ rpl.EndRead(); });
-
-            RayTracingConstants uniforms {};
-            Memory::Fill(&uniforms, 0, sizeof(uniforms));
-
-            uniforms.rayOffset = rayOffset;
-
-            uint32 numBoundLights = 0;
-
-            for (Light* light : rpl.GetLights())
-            {
-                const LightType lightType = light->GetLightType();
-
-                if (lightType != LightType::Directional && lightType != LightType::Point)
-                {
-                    continue;
-                }
-
-                if (numBoundLights >= MaxBoundLights)
-                {
-                    break;
-                }
-                
-                RenderProxyLight* lightProxy = static_cast<RenderProxyLight*>(GetRenderProxy(light));
-                Assert(lightProxy != nullptr);
-
-                const size_t offset = numBoundLights * sizeof(LightShaderData);
-                const size_t count = sizeof(LightShaderData);
-
-                lightsBuffer->Copy(offset, count, &lightProxy->bufferData);
-
-                uniforms.lightIndices[numBoundLights++] = RetrieveResourceBinding(light);
-            }
-            
-            lightsBuffer->Flush(0, numBoundLights * sizeof(LightShaderData));
-
-            uniforms.numBoundLights = numBoundLights;
-
-            cBuffer->Copy(sizeof(uniforms), &uniforms);
-            cBuffer->Flush(0, sizeof(uniforms));
-        }
-    };
-    
-    JobData& jd = m_jobData[job];
-
-    frame->OnFrameEnd.Bind(UpdateConstants {
-        m_lightmapper->GetView(),
-        jd.cBuffer,
-        jd.lightsBuffer,
-        rayOffset
-    }).Detach();
-}
-
 void LightmapRenderer_GpuPathTracing::ReadHitsBuffer(Frame* frame, BakeJobBase* job, Span<LightmapHit> outHits)
 {
     Assert(m_tlas != nullptr);
@@ -428,7 +340,127 @@ void LightmapRenderer_GpuPathTracing::Render(Frame* frame, const RenderSetup& re
     }
 
     UpdatePipelineState(frame, job);
-    UpdateUniforms(frame, job, rayOffset);
+
+    GpuBuffer* cBuffer = nullptr;
+    size_t cBufferOffset = 0;
+    size_t cBufferSize = 0;
+
+    { // Fill constants buffer
+        RenderProxyList& rpl = GetConsumerProxyList(renderSetup.view);
+        rpl.BeginRead();
+        HYP_DEFER({ rpl.EndRead(); });
+
+        RayTracingConstants constants {};
+        Memory::Zero(&constants, sizeof(constants));
+
+        constants.rayOffset = rayOffset;
+        
+        Array<Pair<Light*, LightShaderData*>, RenderAllocator> tempLights;
+        Array<Pair<EnvProbe*, EnvProbeShaderData*>, RenderAllocator> tempEnvProbes;
+
+        uint32& numBoundLights = constants.numBoundLights;
+        uint32& numBoundEnvProbes = constants.numBoundEnvProbes;
+
+        for (Light* light : rpl.GetLights())
+        {
+            const LightType lightType = light->GetLightType();
+
+            if (lightType != LightType::Directional && lightType != LightType::Point)
+            {
+                continue;
+            }
+
+            if (numBoundLights >= MaxBoundLights)
+            {
+                break;
+            }
+
+            RenderProxyLight* lightProxy = static_cast<RenderProxyLight*>(GetRenderProxy(light));
+            Assert(lightProxy != nullptr);
+
+            tempLights.EmplaceBack(light, &lightProxy->bufferData);
+
+            ++numBoundLights;
+        }
+
+        for (EnvProbe* envProbe : rpl.GetEnvProbes())
+        {
+            if ((envProbe->IsA(ReflectionProbe::StaticClass()) || envProbe->IsA(SkyProbe::StaticClass()))
+                && envProbe != m_lightmapper->GetSource()) // we don't want to bind a probe if it is being baked!
+            {
+                if (numBoundEnvProbes >= MaxBoundEnvProbes)
+                {
+                    break;
+                }
+
+                RenderProxyEnvProbe* envProbeProxy = static_cast<RenderProxyEnvProbe*>(GetRenderProxy(envProbe));
+                Assert(envProbeProxy != nullptr);
+
+                tempEnvProbes.EmplaceBack(envProbe, &envProbeProxy->bufferData);
+
+                ++numBoundEnvProbes;
+            }
+        }
+
+        g_renderInterface->constantsAllocator->Write(&constants);
+
+        for (uint32 i = 0; i < MaxBoundLights; i++)
+        {
+            if (i < uint32(tempLights.Size()))
+            {
+                g_renderInterface->constantsAllocator->Write(tempLights[i].second);
+                continue;
+            }
+        
+            LightShaderData dummy {};
+            g_renderInterface->constantsAllocator->Write(&dummy);
+        }
+
+        // sort so sky is last
+        std::sort(tempEnvProbes.Begin(), tempEnvProbes.End(),
+            [](const Pair<EnvProbe*, EnvProbeShaderData*>& a, const Pair<EnvProbe*, EnvProbeShaderData*>& b)
+        {
+            const bool aIsSky = a.first->IsA(SkyProbe::StaticClass());
+            const bool bIsSky = b.first->IsA(SkyProbe::StaticClass());
+
+            if (aIsSky && !bIsSky)
+            {
+                return false;
+            }
+                
+            if (!aIsSky && bIsSky)
+            {
+                return true;
+            }
+                
+            if (aIsSky && bIsSky)
+            {
+                return false;
+            }
+
+            return true;
+        });
+
+        for (uint32 i = 0; i < MaxBoundEnvProbes; i++)
+        {
+            const EnvProbeShaderData* pEnvProbeShaderData = nullptr;
+
+            if (i < uint32(tempEnvProbes.Size()))
+            {
+                pEnvProbeShaderData = tempEnvProbes[i].second;
+            }
+            else
+            {
+                static const EnvProbeShaderData s_dummyEnvProbeShaderData;
+                pEnvProbeShaderData = &s_dummyEnvProbeShaderData;
+            }
+
+            g_renderInterface->constantsAllocator->Write(pEnvProbeShaderData);
+        }
+
+        g_renderInterface->constantsAllocator->Commit(cBuffer, cBufferOffset, cBufferSize);
+    }
+
 
     JobData& jd = m_jobData[job];
 
@@ -470,9 +502,8 @@ void LightmapRenderer_GpuPathTracing::Render(Frame* frame, const RenderSetup& re
     cr << SetShaderUniform(1, "MeshDescriptionsBuffer"_sh, m_tlas->GetMeshDescriptionsBuffer());
     cr << SetShaderUniform(2, "HitsBuffer"_sh, jd.hitsBufferGpu);
     cr << SetShaderUniform(3, "RaysBuffer"_sh, jd.raysBuffer);
-    cr << SetShaderUniform(4, "Lights"_sh, jd.lightsBuffer);
     cr << SetShaderUniform(5, "MaterialsBuffer"_sh, g_renderInterface->gpuBuffers[GRB_MATERIALS]->GetBuffer(frameIndex));
-    cr << SetShaderUniform(6, "RayTracingConstants"_sh, jd.cBuffer);
+    cr << SetShaderUniform(6, "CBuffer"_sh, cBuffer, ShaderDataOffset(cBufferOffset, cBufferSize));
     
     cr << SetShaderUniform(7, "SamplerNearest"_sh, g_renderInterface->placeholderData->GetSamplerNearest());
     cr << SetShaderUniform(8, "SamplerLinear"_sh, g_renderInterface->placeholderData->GetSamplerLinear());
@@ -484,11 +515,6 @@ void LightmapRenderer_GpuPathTracing::Render(Frame* frame, const RenderSetup& re
     
     cr << SetShaderUniform(12, "EnvProbesTexture"_sh, g_renderInterface->textureViewCache->GetOrCreate(g_renderInterface->envProbesTexture));
     cr << SetShaderUniform(13, "EnvProbesBuffer"_sh, g_renderInterface->gpuBuffers[GRB_ENV_PROBES]->GetBuffer(frameIndex));
-
-    if (renderSetup.envProbe)
-        cr << SetShaderUniform(14, "CurrentEnvProbe"_sh, g_renderInterface->gpuBuffers[GRB_ENV_PROBES]->GetBuffer(frameIndex), TShaderDataOffset<EnvProbeShaderData>(renderSetup.envProbe));
-    else
-        cr << SetShaderUniform(14, "CurrentEnvProbe"_sh, g_renderInterface->gpuBuffers[GRB_ENV_PROBES]->GetBuffer(frameIndex), TShaderDataOffset<EnvProbeShaderData>(0));
 
     frame->cr << InsertBarrier(jd.hitsBufferGpu, RS_UNORDERED_ACCESS);
     frame->cr << TraceRays(Vec3u { uint32(rays.Size()), 1, 1 });

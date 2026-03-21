@@ -3,6 +3,11 @@
   "CompiledShaders": [{
       "$Class": "AssetReference",
       "AssetPath": {
+        "Value": "Engine/Shaders/DeferredIndirect/DeferredIndirect_5745572804640774058"
+      }
+    }, {
+      "$Class": "AssetReference",
+      "AssetPath": {
         "Value": "Engine/Shaders/DeferredIndirect/DeferredIndirect_4358339680524594343"
       }
     }, {

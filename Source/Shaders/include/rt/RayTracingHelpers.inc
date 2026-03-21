@@ -3,14 +3,13 @@
 
 struct RayTracingConstants
 {
-    uint num_bound_lights;
+    uint numBoundLights;
+    uint numBoundEnvProbes;
     uint ray_offset; // for lightmapper
     float min_roughness;
-    float _pad0;
+    
     int2 output_image_resolution;
-    float _pad1;
-    float _pad2;
-    uint4 light_indices[4];
+    float2 _pad;
 };
 
 #if RAY_GEN_SHADER

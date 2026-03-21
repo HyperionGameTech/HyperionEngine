@@ -40,7 +40,7 @@
 namespace Hyperion {
 
 static const Name s_shaderNames[] = { NAME("RayTracedReflections"), NAME("PathTracer") };
-static constexpr uint32 MaxLights = sizeof(RayTracingConstants::lightIndices) / (sizeof(uint32));
+static constexpr uint32 MaxLights = 4;
 
 namespace DeferredRendererHelpers {
 
@@ -145,10 +145,7 @@ void RayTracingReflections::Render(Frame* frame, const RenderSetup& renderSetup)
 
         Array<Pair<Light*, LightShaderData*>, RenderAllocator> tempLights;
 
-        uint32 numBoundLights = 0;
-    
-        uint32* lightIndicesU32 = reinterpret_cast<uint32*>(rayTracingConstants.lightIndices);
-        Memory::Fill(lightIndicesU32, 0, sizeof(rayTracingConstants.lightIndices));
+        uint32& numBoundLights = rayTracingConstants.numBoundLights;
         
         RenderProxyList& rpl = GetConsumerProxyList(renderSetup.view);
         rpl.BeginRead();
@@ -173,10 +170,8 @@ void RayTracingReflections::Render(Frame* frame, const RenderSetup& renderSetup)
 
             tempLights.EmplaceBack(light, &lightProxy->bufferData);
 
-            lightIndicesU32[numBoundLights++] = RetrieveResourceBinding(light);
+            ++numBoundLights;
         }
-
-        rayTracingConstants.numBoundLights = numBoundLights;
 
         g_renderInterface->constantsAllocator->Write(&rayTracingConstants);
 

@@ -1,0 +1,12 @@
+{
+  "$Class": "ShaderBundle",
+  "CompiledShaders": [{
+      "$Class": "AssetReference",
+      "AssetPath": {
+        "Value": "Engine/Shaders/PathTracer/PathTracer_18040257332220255199"
+      }
+    }],
+  "Name": "PathTracer",
+  "FriendlyName": "PathTracer",
+  "OriginalFilepath": ""
+}

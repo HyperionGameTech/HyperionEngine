@@ -92,10 +92,12 @@ struct BlueNoiseBuffer
 struct RayTracingConstants
 {
     uint32 numBoundLights;
+    uint32 numBoundEnvProbes;
     uint32 rayOffset; // for lightmapper
     float minRoughness;
+
     Vec2i outputImageResolution;
-    Vec4u lightIndices[4];
+    Vec2i _pad;
 };
 
 class StagingBufferPool

@@ -176,7 +176,7 @@ void RayGenMain()
             float3 diffuseColor = hitAlbedo * (1.0 - hitMetalness);
             float3 f0 = CalculateF0(hitAlbedo, hitMetalness);
 
-            for (uint light_index = 0; light_index < ddgiConstants.num_bound_lights; light_index++)
+            for (uint light_index = 0; light_index < ddgiConstants.numBoundLights; light_index++)
             {
                 const Light light = lights[light_index];
                 float3 light_color = light.color.rgb * light.position_intensity.w;
