@@ -168,10 +168,10 @@ void RayGenMain()
                 radiance += beta * payload.emissive.rgb;
             }
 
-            float3 hitAlbedo = payload.throughput.rgb;
+            float3 hitAlbedo = saturate(payload.throughput.rgb);
             
             float hitRoughness = payload.roughness;
-            float hitMetalness = payload.throughput.a;
+            float hitMetalness = saturate(payload.throughput.a);
             
             float3 diffuseColor = hitAlbedo * (1.0 - hitMetalness);
             float3 f0 = CalculateF0(hitAlbedo, hitMetalness);

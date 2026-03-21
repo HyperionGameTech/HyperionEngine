@@ -1457,7 +1457,7 @@ PassData* DeferredRenderer::CreateViewPassData(View* view, PassDataExt&)
         const FramebufferRef& opaquePassFramebuffer = view->GetOutputTarget().GetFramebuffer(RenderBucket::Opaque);
         const FramebufferRef& lightmapPassFramebuffer = view->GetOutputTarget().GetFramebuffer(RenderBucket::Lightmapped);
 
-        passData.ssgi = MakeUnique<SSGI>(SSGIConfig::FromConfig(), gbuffer);
+        passData.ssgi = MakeUnique<SSGI>(gbuffer);
         passData.ssgi->Create();
 
         passData.postProcessing = MakeUnique<PostProcessing>();
@@ -1628,6 +1628,10 @@ void DeferredRenderer::ResizeView(Viewport viewport, View* view, DeferredRendere
         passData.hbao = MakeUnique<HBAO>(HBAOConfig::FromConfig(), viewport.extent, gbuffer);
         passData.hbao->Create();
     }
+
+    passData.ssgi.Reset();
+    passData.ssgi = MakeUnique<SSGI>(gbuffer);
+    passData.ssgi->Create();
 
     passData.reflectionsPass.Reset();
     passData.reflectionsPass = MakeUnique<ReflectionsPass>(

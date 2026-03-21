@@ -6,6 +6,12 @@
 #include <baking/reflection_probe/ReflectionProbeBakeJob.hpp>
 
 #include <rendering/Texture.hpp>
+#include <rendering/RenderInterface.hpp>
+#include <rendering/Frame.hpp>
+
+#include <rendering/util/DeletionQueue.hpp>
+
+#include <rendering/renderers/EnvProbeRenderer.hpp>
 
 #include <asset/AssetRegistry.hpp>
 #include <asset/Assets.hpp>
@@ -15,6 +21,13 @@
 #include <engine/EngineGlobals.hpp>
 
 namespace Hyperion {
+
+namespace ConvolveProbe {
+void ConvolveEnvProbeCubemap(
+    const Handle<Texture>& inTexture,
+    const EnvProbe& envProbe);
+} // namespace ConvolveProbe
+
 namespace Baking {
 
 constexpr TextureFormat ReflectionProbeTextureFormat = TextureFormat::RGBA8;
@@ -76,7 +89,6 @@ void Baker<ReflectionProbe>::OnCompleted_Internal()
 
     ByteBuffer imageData(finalBitmap.ToByteView());
 
-    // @TODO Proper env probe convolution
     Texture::GenerateMipmaps(textureDesc, imageData);
 
     Handle<Texture> cubemap = MakeHandle<Texture>(textureDesc, imageData.ToByteView());
@@ -95,6 +107,37 @@ void Baker<ReflectionProbe>::OnCompleted_Internal()
 
     // Set the baked texture on the EnvProbe
     m_envProbe->SetBakedTexture(cubemap);
+
+    struct ConvolveProbeCommand : public RenderCommand
+    {
+        Handle<EnvProbe> envProbe;
+        Handle<Texture> cubemap;
+
+        ConvolveProbeCommand(const Handle<EnvProbe>& envProbe, const Handle<Texture>& cubemap)
+            : envProbe(envProbe),
+              cubemap(cubemap)
+        {
+        }
+
+        ~ConvolveProbeCommand() override
+        {
+        }
+
+        RendererResult operator()() override
+        {
+            ConvolveProbe::ConvolveEnvProbeCubemap(cubemap, *envProbe);
+
+            g_renderInterface->GetCurrentFrame()->OnFrameEnd.Bind([cubemap = cubemap, envProbe = envProbe](Frame*) mutable
+                {
+                    EnqueueDeletion(std::move(cubemap));
+                    EnqueueDeletion(std::move(envProbe));
+                });
+
+            return {};
+        }
+    };
+
+    //PUSH_RENDER_COMMAND(ConvolveProbeCommand, m_envProbe, cubemap);
 
     HYP_LOG(Lightmap, Verbose, "EnvProbe {} lightmap baking complete! Radiance and irradiance textures created.", m_envProbe->Id());
 }

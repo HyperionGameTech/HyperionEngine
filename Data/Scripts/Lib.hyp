@@ -878,10 +878,6 @@ extern struct Vertex
     BoneWeights : Array<float>
     BoneIndices : Array<uint32>
 end
-extern struct SSGIConfig
-    Quality : int
-    Extent : Vec2u
-end
 extern enum TextureFilterMode : uint8
     TFM_NEAREST,
     TFM_LINEAR,
@@ -1855,7 +1851,8 @@ extern class AssetObject
     SetIsTransient(isTransient : bool) -> void
     SetIsTransientByProxy(isTransientByProxy : bool) -> void
     IsSaved() -> bool
-    Save(manifestPath : string) -> Result
+    Save() -> Result
+    SaveAs(manifestPath : string) -> Result
     Register(path : string, conflictMode : AddAssetConflictMode) -> Result
     Name : Name
     FriendlyName : Name
@@ -2478,7 +2475,8 @@ end
 extern enum AssetPackageFlags : uint32
     None = 0x0,
     Transient = 0x1,
-    Hidden = 0x2
+    Hidden = 0x2,
+    SaveOnChanged = 0x4
 end
 extern struct UUID
     Data0 : uint64

@@ -62,6 +62,233 @@ static FixedArray<Mat4f, 6> CreateCubemapMatrices(const BoundingBox& aabb, const
     return viewMatrices;
 }
 
+#pragma region ConvolveProbe
+
+namespace ConvolveProbe {
+
+struct ConvolveProbeUniforms
+{
+    Vec2u outImageDimensions;
+    Vec2u inImageDimensions;
+};
+
+void ConvolveEnvProbeCubemap(
+    const Handle<Texture>& inTexture,
+    const EnvProbe& envProbe)
+{
+    Assert(inTexture != nullptr);
+
+    // Alloc command recorder
+    // we need to do this after we Create() the src texture,
+    // because CreateGpuImage in Texture.cpp creates its own command recorder,
+    // so we need that one to run before this one.
+    CommandRecorder& cr = g_renderInterface->commandRecorderAllocator.GetCommandRecorder();
+    HYP_DEFER({ cr.Done(); });
+    
+    Handle<Texture> prefilteredEnvMap = envProbe.GetPrefilteredEnvMap();
+    Assert(prefilteredEnvMap.IsValid() && prefilteredEnvMap->IsCreated());
+    
+    Handle<Texture> srcTexture;
+    bool needsMipMapGeneration = false;
+    
+    if (inTexture->HasMipMaps())
+    {
+        srcTexture = inTexture;
+    }
+    else
+    {
+        needsMipMapGeneration = true;
+
+        // copy into new texture, we need to generate mips on it before convolving
+        srcTexture = MakeHandle<Texture>(
+            TextureDesc {
+                TextureType::Cubemap,
+                inTexture->GetTextureDesc().format,
+                inTexture->GetExtent(),
+                TFM_LINEAR_MIPMAP,
+                TFM_LINEAR,
+                TWM_CLAMP_TO_EDGE
+            });
+
+        srcTexture->SetName(NAME("EnvProbeRenderer_SrcColorTexture"));
+        CheckResult(srcTexture->Create());
+    }
+
+
+    ConvolveProbeUniforms uniforms {};
+    uniforms.outImageDimensions = Vec2u::Zero(); // set for each mip pass
+    uniforms.inImageDimensions = inTexture->GetExtent().GetXY();
+
+    const Vec2u extent = envProbe.GetDimensions();
+    const uint8 numMips = uint8(MathUtil::FastLog2(MathUtil::Max(extent.x, extent.y))) + 1;
+
+    Array<GpuBufferRef> buffers;
+    buffers.Resize(numMips);
+
+    if (needsMipMapGeneration)
+    { // Blit into mip 0 of the source texture
+        const GpuImageRef& dstImage = srcTexture->GetGpuImage();
+        Assert(dstImage.IsValid());
+
+        const GpuImageRef& srcImage = inTexture->GetGpuImage();
+        Assert(srcImage.IsValid());
+
+        ImageSubResource subResource {};
+        subResource.baseMipLevel = 0;
+        subResource.numLevels = 1;
+        subResource.baseArrayLayer = 0;
+        subResource.numLayers = 6;
+
+        cr << InsertBarrier(srcImage, RS_COPY_SRC, subResource);
+        cr << InsertBarrier(dstImage, RS_COPY_DST, subResource);
+
+        cr << Blit(
+            srcImage,
+            dstImage,
+            Rect<uint32> { 0, 0, inTexture->GetExtent().x, inTexture->GetExtent().y },
+            Rect<uint32> { 0, 0, srcTexture->GetExtent().x, srcTexture->GetExtent().y },
+            subResource,
+            subResource);
+
+        // back to shader resource state
+        cr << InsertBarrier(srcImage, RS_SHADER_RESOURCE, subResource);
+        cr << InsertBarrier(dstImage, RS_SHADER_RESOURCE, subResource);
+
+        // generate mips on src texture before running convolve shader using it as a source
+        cr << GenerateMipmaps(srcTexture->GetGpuImage());
+        cr << InsertBarrier(srcTexture->GetGpuImage(), RS_SHADER_RESOURCE);
+    }
+
+    for (uint8 mipIndex = 0; mipIndex < numMips; mipIndex++)
+    {
+        const float roughness = float(mipIndex) / float(numMips - 1);
+
+        ShaderPropertySet shaderProperties;
+        // we have to round otherwise we'll potentially make too many permutations for *almost* the same values.
+        shaderProperties.Add(InternShaderProperty(ShaderProperty(NAME("LOBE_SIZE"), MathUtil::Round(roughness, 3))));
+        shaderProperties.Add(InternShaderProperty(ShaderProperty(NAME("NUM_SAMPLES"), 2048)));
+
+        const Vec2u mipExtent = mipIndex == 0
+            ? extent
+            : Vec2u(MathUtil::Max(extent.x >> mipIndex, 1u), MathUtil::Max(extent.y >> mipIndex, 1u));
+
+        GpuBufferRef& uniformBuffer = buffers[mipIndex];
+
+        uniformBuffer = g_renderInterface->MakeGpuBuffer(GpuBufferType::CONSTANT_BUFFER, sizeof(uniforms));
+        Assert(uniformBuffer->Create());
+
+        uniforms.outImageDimensions = mipExtent;
+
+        uniformBuffer->Copy(sizeof(uniforms), &uniforms);
+
+        cr << SetCurrentShader(ShaderDesc(NAME("ConvolveProbe"), shaderProperties));
+
+        ImageSubResource subResource {};
+        subResource.baseMipLevel = mipIndex;
+        subResource.numLevels = 1;
+        subResource.baseArrayLayer = 0;
+        subResource.numLayers = 6;
+
+        // create the view as 2D array instead of cubemap
+        GpuImageViewRef dstImageView = g_renderInterface->textureViewCache->GetOrCreate(
+            prefilteredEnvMap, subResource, TextureType::Texture2DArray);
+
+        GpuImageViewRef srcImageView = g_renderInterface->textureViewCache->GetOrCreate(srcTexture);
+        
+        Assert(dstImageView.IsValid() && srcImageView.IsValid());
+
+        cr << InsertBarrier(prefilteredEnvMap->GetGpuImage(), RS_UNORDERED_ACCESS, subResource);
+
+        const Frame* currFrame = g_renderInterface->GetCurrentFrame();
+        const uint32 frameIndex = currFrame ? currFrame->GetFrameIndex() : 0;
+
+        // @TODO Just write the env probe to constant buffer?
+        cr << SetShaderUniform(0, "CurrentEnvProbe"_sh, g_renderInterface->gpuBuffers[GRB_ENV_PROBES]->GetBuffer(frameIndex), TShaderDataOffset<EnvProbeShaderData>(&envProbe));
+        cr << SetShaderUniform(1, "SphereSamplesBuffer"_sh, g_renderInterface->sphereSamplesBuffer);
+        cr << SetShaderUniform(2, "ColorTexture"_sh, srcImageView);
+        cr << SetShaderUniform(3, "SamplerLinear"_sh, g_renderInterface->placeholderData->GetSamplerLinear());
+        cr << SetShaderUniform(4, "SamplerNearest"_sh, g_renderInterface->placeholderData->GetSamplerNearest());
+        cr << SetShaderUniform(5, "OutImage"_sh, dstImageView);
+        cr << SetShaderUniform(6, "UniformBuffer"_sh, uniformBuffer);
+
+        cr << DispatchCompute(Vec3u { (mipExtent.x + 7) / 8, (mipExtent.y + 7) / 8, 6 });
+
+        cr << InsertBarrier(prefilteredEnvMap->GetGpuImage(), RS_SHADER_RESOURCE, subResource);
+    }
+
+    // Update in env probes texture array if bound
+    if (envProbe.IsA(SkyProbe::StaticClass()) || envProbe.IsA(ReflectionProbe::StaticClass()))
+    {
+        const uint32 boundIndex = RetrieveResourceBinding(&envProbe);
+
+        if (boundIndex != ~0u)
+        {
+            // blit to the array texture
+            const GpuImageRef& srcImage = prefilteredEnvMap->GetGpuImage();
+            AssertDebug(srcImage.IsValid());
+
+            const GpuImageRef& dstImage = g_renderInterface->envProbesTexture->GetGpuImage();
+            Assert(dstImage.IsValid());
+
+            cr << InsertBarrier(srcImage, RS_COPY_SRC);
+            cr << InsertBarrier(dstImage, RS_COPY_DST);
+
+            for (uint8 mipIndex = 0; mipIndex < dstImage->NumMips(); mipIndex++)
+            {
+                if (mipIndex >= srcImage->NumMips())
+                {
+                    break;
+                }
+
+                ImageSubResource srcSubResource {};
+                srcSubResource.baseMipLevel = mipIndex;
+                srcSubResource.numLevels = 1;
+                srcSubResource.baseArrayLayer = 0;
+                srcSubResource.numLayers = 6;
+
+                ImageSubResource dstSubResource {};
+                dstSubResource.baseMipLevel = mipIndex;
+                dstSubResource.numLevels = 1;
+                dstSubResource.baseArrayLayer = 6 * boundIndex;
+                dstSubResource.numLayers = 6;
+
+                const Vec3u srcMipExtent = srcImage->GetTextureDesc().GetMipExtent(mipIndex);
+                const Vec3u dstMipExtent = dstImage->GetTextureDesc().GetMipExtent(mipIndex);
+
+                cr << Blit(
+                    srcImage,
+                    dstImage,
+                    Rect<uint32> {
+                        0, 0,
+                        srcMipExtent.x, srcMipExtent.y
+                    },
+                    Rect<uint32> {
+                        0, 0,
+                        dstMipExtent.x, dstMipExtent.y
+                    },
+                    srcSubResource,
+                    dstSubResource);
+            }
+
+            cr << InsertBarrier(srcImage, RS_SHADER_RESOURCE);
+            cr << InsertBarrier(dstImage, RS_SHADER_RESOURCE);
+        }
+    }
+
+    // keep some resources around until we know we're done with them from this pass
+    EnqueueDeletion(std::move(buffers));
+    EnqueueDeletion(std::move(prefilteredEnvMap));
+
+    if (needsMipMapGeneration)
+    {
+        EnqueueDeletion(std::move(srcTexture));
+    }
+}
+
+} // namespace ConvolveProbe
+
+#pragma endregion ConvolveProbe
+
 #pragma region EnvProbeRenderer
 
 EnvProbeRenderer::EnvProbeRenderer()
@@ -257,7 +484,7 @@ void ReflectionProbeRenderer::ComputePrefilteredEnvMap(Frame* frame, const Rende
 {
     HYP_SCOPE;
 
-    AssertDebug(renderSetup.world && renderSetup.view);
+    AssertDebug(renderSetup.world && renderSetup.view && envProbe);
 
     View* view = renderSetup.view;
     AssertDebug(view != nullptr);
@@ -269,16 +496,6 @@ void ReflectionProbeRenderer::ComputePrefilteredEnvMap(Frame* frame, const Rende
     rpl.BeginRead();
     HYP_DEFER({ rpl.EndRead(); });
 
-    struct ConvolveProbeUniforms
-    {
-        Vec2u outImageDimensions;
-        Vec2u inImageDimensions;
-        Vec4f worldPosition;
-    };
-
-    const Handle<Texture>& prefilteredEnvMap = envProbe->GetPrefilteredEnvMap();
-    Assert(prefilteredEnvMap.IsValid());
-
     const ViewOutputTarget& outputTarget = view->GetOutputTarget();
     AssertDebug(outputTarget.IsValid());
 
@@ -287,194 +504,10 @@ void ReflectionProbeRenderer::ComputePrefilteredEnvMap(Frame* frame, const Rende
 
     AttachmentBase* colorAttachment = framebuffer->GetAttachment(0);
     AssertDebug(colorAttachment != nullptr);
-    
-    // copy into source texture, we need to generate mips on it before convolving
-    Handle<Texture> srcTexture = MakeHandle<Texture>(
-        TextureDesc {
-            TextureType::Cubemap,
-            colorAttachment->GetTextureDesc().format,
-            colorAttachment->GetExtent(),
-            TFM_LINEAR_MIPMAP,
-            TFM_LINEAR,
-            TWM_CLAMP_TO_EDGE
-        });
 
-    srcTexture->SetName(NAME("EnvProbeRenderer_SrcColorTexture"));
-
-    CheckResult(srcTexture->Create());
-
-    // Alloc command recorder
-    // we need to do this after we Create() the src texture,
-    // because CreateGpuImage in Texture.cpp creates its own command recorder,
-    // so we need that one to run before this one.
-    CommandRecorder& cr = g_renderInterface->commandRecorderAllocator.GetCommandRecorder();
-    HYP_DEFER({ cr.Done(); });
-
-    ConvolveProbeUniforms uniforms {};
-    uniforms.outImageDimensions = Vec2u::Zero(); // set for each mip pass
-    uniforms.inImageDimensions = colorAttachment->GetExtent().GetXY();
-    uniforms.worldPosition = envProbeProxy->bufferData.worldPosition;
-
-    const Vec2u extent = prefilteredEnvMap->GetExtent().GetXY();
-    const uint8 numMips = uint8(MathUtil::FastLog2(MathUtil::Max(extent.x, extent.y))) + 1;
-
-    Array<GpuBufferRef> buffers;
-    buffers.Resize(numMips);
-
-    { // Blit into mip 0 of the source texture
-        const GpuImageRef& dstImage = srcTexture->GetGpuImage();
-        Assert(dstImage.IsValid());
-
-        const GpuImageRef& srcImage = framebuffer->GetAttachment(0)->GetGpuImage();
-        Assert(srcImage.IsValid());
-
-        ImageSubResource subResource {};
-        subResource.baseMipLevel = 0;
-        subResource.numLevels = 1;
-        subResource.baseArrayLayer = 0;
-        subResource.numLayers = 6;
-
-        cr << InsertBarrier(srcImage, RS_COPY_SRC, subResource);
-        cr << InsertBarrier(dstImage, RS_COPY_DST, subResource);
-
-        cr << Blit(
-            srcImage,
-            dstImage,
-            Rect<uint32> { 0, 0, colorAttachment->GetExtent().x, colorAttachment->GetExtent().y },
-            Rect<uint32> { 0, 0, colorAttachment->GetExtent().x, colorAttachment->GetExtent().y },
-            subResource,
-            subResource);
-
-        // back to shader resource state
-        cr << InsertBarrier(srcImage, RS_SHADER_RESOURCE, subResource);
-        cr << InsertBarrier(dstImage, RS_SHADER_RESOURCE, subResource);
-    }
-
-    {
-        // generate mips on src texture before running convolve shader using it as a source
-        cr << GenerateMipmaps(srcTexture->GetGpuImage());
-        cr << InsertBarrier(srcTexture->GetGpuImage(), RS_SHADER_RESOURCE);
-    }
-
-    for (uint8 mipIndex = 0; mipIndex < numMips; mipIndex++)
-    {
-        const float roughness = float(mipIndex) / float(numMips - 1);
-
-        ShaderPropertySet shaderProperties;
-        // we have to round otherwise we'll potentially make too many permutations for *almost* the same values.
-        shaderProperties.Add(InternShaderProperty(ShaderProperty(NAME("LOBE_SIZE"), MathUtil::Round(roughness, 3))));
-        shaderProperties.Add(InternShaderProperty(ShaderProperty(NAME("NUM_SAMPLES"), 2048)));
-
-        const Vec2u mipExtent = mipIndex == 0
-            ? extent
-            : Vec2u(MathUtil::Max(extent.x >> mipIndex, 1u), MathUtil::Max(extent.y >> mipIndex, 1u));
-
-        GpuBufferRef& uniformBuffer = buffers[mipIndex];
-
-        uniformBuffer = g_renderInterface->MakeGpuBuffer(GpuBufferType::CONSTANT_BUFFER, sizeof(uniforms));
-        Assert(uniformBuffer->Create());
-
-        uniforms.outImageDimensions = mipExtent;
-
-        uniformBuffer->Copy(sizeof(uniforms), &uniforms);
-
-        cr << SetCurrentShader(ShaderDesc(NAME("ConvolveProbe"), shaderProperties));
-
-        ImageSubResource subResource {};
-        subResource.baseMipLevel = mipIndex;
-        subResource.numLevels = 1;
-        subResource.baseArrayLayer = 0;
-        subResource.numLayers = 6;
-
-        // create the view as 2D array instead of cubemap
-        const GpuImageViewRef& dstImageView = g_renderInterface->textureViewCache->GetOrCreate(
-            prefilteredEnvMap, subResource, TextureType::Texture2DArray);
-
-        const GpuImageViewRef& srcImageView = g_renderInterface->textureViewCache->GetOrCreate(srcTexture);
-
-        Assert(dstImageView != nullptr);
-
-        cr << InsertBarrier(prefilteredEnvMap->GetGpuImage(), RS_UNORDERED_ACCESS, subResource);
-
-        cr << SetShaderUniform(0, "CurrentEnvProbe"_sh, g_renderInterface->gpuBuffers[GRB_ENV_PROBES]->GetBuffer(frame->GetFrameIndex()), TShaderDataOffset<EnvProbeShaderData>(renderSetup.envProbe));
-        cr << SetShaderUniform(1, "SphereSamplesBuffer"_sh, g_renderInterface->sphereSamplesBuffer);
-        cr << SetShaderUniform(2, "ColorTexture"_sh, srcImageView);
-        cr << SetShaderUniform(3, "SamplerLinear"_sh, g_renderInterface->placeholderData->GetSamplerLinear());
-        cr << SetShaderUniform(4, "SamplerNearest"_sh, g_renderInterface->placeholderData->GetSamplerNearest());
-        cr << SetShaderUniform(5, "OutImage"_sh, dstImageView);
-        cr << SetShaderUniform(6, "UniformBuffer"_sh, uniformBuffer);
-
-        cr << DispatchCompute(Vec3u { (mipExtent.x + 7) / 8, (mipExtent.y + 7) / 8, 6 });
-
-        cr << InsertBarrier(prefilteredEnvMap->GetGpuImage(), RS_SHADER_RESOURCE, subResource);
-    }
-
-    // Update in env probes texture array if bound
-    if (envProbe->IsA(SkyProbe::StaticClass()) || envProbe->IsA(ReflectionProbe::StaticClass()))
-    {
-        const uint32 boundIndex = RetrieveResourceBinding(envProbe);
-
-        if (boundIndex != ~0u)
-        {
-            // blit to the array texture
-            const GpuImageRef& srcImage = prefilteredEnvMap->GetGpuImage();
-            AssertDebug(srcImage.IsValid());
-
-            const GpuImageRef& dstImage = g_renderInterface->envProbesTexture->GetGpuImage();
-            Assert(dstImage.IsValid());
-
-            cr << InsertBarrier(srcImage, RS_COPY_SRC);
-            cr << InsertBarrier(dstImage, RS_COPY_DST);
-
-            for (uint8 mipIndex = 0; mipIndex < dstImage->NumMips(); mipIndex++)
-            {
-                if (mipIndex >= srcImage->NumMips())
-                {
-                    break;
-                }
-
-                ImageSubResource srcSubResource {};
-                srcSubResource.baseMipLevel = mipIndex;
-                srcSubResource.numLevels = 1;
-                srcSubResource.baseArrayLayer = 0;
-                srcSubResource.numLayers = 6;
-
-                ImageSubResource dstSubResource {};
-                dstSubResource.baseMipLevel = mipIndex;
-                dstSubResource.numLevels = 1;
-                dstSubResource.baseArrayLayer = 6 * boundIndex;
-                dstSubResource.numLayers = 6;
-
-                const Vec3u srcMipExtent = srcImage->GetTextureDesc().GetMipExtent(mipIndex);
-                const Vec3u dstMipExtent = dstImage->GetTextureDesc().GetMipExtent(mipIndex);
-
-                cr << Blit(
-                    srcImage,
-                    dstImage,
-                    Rect<uint32> {
-                        0, 0,
-                        srcMipExtent.x, srcMipExtent.y },
-                    Rect<uint32> {
-                        0, 0,
-                        dstMipExtent.x, dstMipExtent.y },
-                    srcSubResource,
-                    dstSubResource);
-            }
-
-            cr << InsertBarrier(srcImage, RS_SHADER_RESOURCE);
-            cr << InsertBarrier(dstImage, RS_SHADER_RESOURCE);
-        }
-    }
-
-    // keep some resources around until we know we're done with them from this pass
-    DelegateHandler* delegateHandle = new DelegateHandler();
-    *delegateHandle = frame->OnFrameEnd.Bind([delegateHandle, buffers = std::move(buffers), srcTexture = std::move(srcTexture)](...) mutable
-        {
-            EnqueueDeletion(std::move(buffers));
-            EnqueueDeletion(std::move(srcTexture));
-
-            delete delegateHandle;
-        });
+    ConvolveProbe::ConvolveEnvProbeCubemap(
+        MakeStrongRef(colorAttachment),
+        *envProbe);
 }
 
 void ReflectionProbeRenderer::ComputeSH(Frame* frame, const RenderSetup& renderSetup, EnvProbe* envProbe)

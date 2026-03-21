@@ -16,43 +16,15 @@ namespace Hyperion {
 
 class GBuffer;
 class View;
-struct SSGIUniforms;
 
-HYP_STRUCT(ConfigName = "GlobalConfig", JsonPath = "Rendering.SSGI")
-struct SSGIConfig : public ConfigBase<SSGIConfig>
-{
-    HYP_STRUCT_BODY(SSGIConfig);
-
-    HYP_FIELD(Description = "The quality level of the SSGI effect. (0 = quarter res, 1 = half res)")
-    int quality = 0;
-
-    HYP_FIELD(JsonIgnore)
-    Vec2u extent;
-
-    virtual ~SSGIConfig() override = default;
-
-    void PostLoadCallback()
-    {
-        extent = Vec2u { 1280, 720 };
-
-        switch (quality)
-        {
-        case 0:
-            extent /= 2;
-            break;
-        default:
-            break;
-        }
-    }
-};
-
-class SSGI
+class SSGI : public FullScreenPass
 {
 public:
     HYP_DEF_POOL_NEW_DELETE(g_renderPool);
 
-    SSGI(SSGIConfig&& config, GBuffer* gbuffer);
-    ~SSGI();
+    explicit SSGI(GBuffer* gbuffer);
+
+    ~SSGI() override;
 
     HYP_FORCE_INLINE const Handle<Texture>& GetResultTexture() const
     {
@@ -61,33 +33,18 @@ public:
 
     const Handle<Texture>& GetFinalResultTexture() const;
 
-    HYP_FORCE_INLINE bool IsRendered() const
-    {
-        return m_isRendered;
-    }
-
-    void Create();
-
-    void Render(Frame* frame, const RenderSetup& renderSetup);
+    void Create() override;
+    void Render(Frame* frame, const RenderSetup& renderSetup) override;
 
 private:
-    ShaderPropertySet GetShaderProperties() const;
-
-    void CreateUniformBuffers();
-
-    void FillUniformBufferData(View* view, SSGIUniforms& outUniforms) const;
-
-    SSGIConfig m_config;
-
-    GBuffer* m_gbuffer;
-
+    static constexpr uint32 NumDownsamplePasses = 4;
+    
     Handle<Texture> m_resultTexture;
 
-    FixedArray<GpuBufferRef, NumFramesInFlight> m_uniformBuffers;
+    Handle<Texture> m_downsampleTextures[NumDownsamplePasses];
+    UniquePtr<FullScreenPass> m_upsamplePasses[NumDownsamplePasses];
 
     UniquePtr<TemporalBlending> m_temporalBlending;
-
-    bool m_isRendered;
 };
 
 } // namespace Hyperion

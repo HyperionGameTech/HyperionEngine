@@ -174,6 +174,9 @@ void RayGenMain()
                 float3 F = F_Schlick(F0_init, LdotH);
                 float D = DistributionGGX(NdotH, roughness);
                 float G = V_SmithGGXCorrelated(roughness, NdotV, NdotL);
+
+                // do I need to divide by PI here?
+                // @TODO come back to this
                 
                 float3 specularBrdf = F * D * G;
                 float3 diffuseBrdf = (1.0 - F) * (1.0 - metalness) * albedo * HYP_FMATH_ONE_OVER_PI;

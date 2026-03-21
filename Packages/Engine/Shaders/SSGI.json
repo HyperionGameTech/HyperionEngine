@@ -3,7 +3,27 @@
   "CompiledShaders": [{
       "$Class": "AssetReference",
       "AssetPath": {
-        "Value": "Engine/Shaders/SSGI/SSGI_15643552866300104713"
+        "Value": "Engine/Shaders/SSGI/SSGI_9071204359448464444"
+      }
+    }, {
+      "$Class": "AssetReference",
+      "AssetPath": {
+        "Value": "Engine/Shaders/SSGI/SSGI_790309558466917847"
+      }
+    }, {
+      "$Class": "AssetReference",
+      "AssetPath": {
+        "Value": "Engine/Shaders/SSGI/SSGI_2956339981007510216"
+      }
+    }, {
+      "$Class": "AssetReference",
+      "AssetPath": {
+        "Value": "Engine/Shaders/SSGI/SSGI_17067551235326711000"
+      }
+    }, {
+      "$Class": "AssetReference",
+      "AssetPath": {
+        "Value": "Engine/Shaders/SSGI/SSGI_14563086108039103591"
       }
     }],
   "Name": "SSGI",

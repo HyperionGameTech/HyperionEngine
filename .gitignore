@@ -67,6 +67,9 @@ Source/PlatformSpecific/Android/app/**/assets/**/*
 
 Source/Generated/**/*
 
+Data/Models/Testbed/**/*
+Data/Models/Sponza/**/*
+
 Binaries/**/*
 
 Build/**/*

@@ -63,9 +63,6 @@ protected:
     virtual PassData* CreateViewPassData(View* view, PassDataExt&) override;
 
 private:
-    // Shadow maps cached per-light.
-    // Since Lights can have multiple shadow views that blit into one final shadow map
-    // we store the shadow maps here rather than on the per-view PassData
     struct CachedShadowMapData
     {
         Array<ShadowMap*, RenderAllocator> shadowMaps;

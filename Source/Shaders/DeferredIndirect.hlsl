@@ -147,9 +147,9 @@ PSOutput PSMain(PSInput input)
     float3 R = normalize(reflect(-V, N));
 
     float ao = 1.0;
-    float3 irradiance = float3(0.0, 0.0, 0.0);
-    float4 reflections = float4(0.0, 0.0, 0.0, 0.0);
-    float3 ibl = float3(0.0, 0.0, 0.0);
+    float4 irradiance = (float4)0.0;
+    float4 reflections = (float4)0.0;
+    float3 ibl = (float3)0.0;
 
 #if HBAO_ENABLED || SSAO_ENABLED
     const float4 ssao_data = SAMPLE_TEXTURE_2D(HYP_SAMPLER_NEAREST, ssao_gi_result, texcoord);
@@ -166,25 +166,29 @@ PSOutput PSMain(PSInput input)
     CalculateRayTracingReflection(texcoord, reflections);
 #endif
 
-#if RT_GI
-    irradiance += DDGISampleIrradiance(position.xyz, normal, V).rgb * DDGI_MULTIPLIER;
-#endif
-
 #if SSGI_ENABLED
-    const float4 ssgi = SAMPLE_TEXTURE_2D(HYP_SAMPLER_LINEAR, ssgi_result, texcoord);
-    irradiance = irradiance * (1.0 - ssgi.a) + (ssgi.rgb * ssgi.a);
+    // Blend ssgi result into irradiance - if no hit, alpha will be zero or close to it so we can lerp it
+    irradiance = SAMPLE_TEXTURE_2D(HYP_SAMPLER_LINEAR, ssgi_result, texcoord);
 #endif
 
-#if HBIL_ENABLED
-    CalculateHBILIrradiance(ssao_data, irradiance);
+#if RT_GI
+    float3 ddgi = DDGISampleIrradiance(position.xyz, normal, V).rgb * DDGI_MULTIPLIER;
+    // lerp to ddgi based on 1.0-ssgi alpha, so that if ssgi has a hit, it will be used, otherwise ddgi will be used
+    irradiance.rgb = lerp(irradiance.rgb, ddgi, 1.0 - irradiance.a);
 #endif
+
+    irradiance.a = 1.0; // set alpha to 1 now that we're finished lerping between GI methods.
+
+// #if HBIL_ENABLED
+//     CalculateHBILIrradiance(ssao_data, irradiance);
+// #endif
 
     const float NdotV = max(0.0001, dot(N, V));
     const float3 F0 = CalculateF0(albedo.rgb, metalness);
     const float3 F = CalculateFresnelTerm(F0, roughness, NdotV);
     const float3 dfg = CalculateDFG(F, roughness, NdotV);
     const float3 E = CalculateE(F0, dfg);
-    float3 Fd = diffuse_color.rgb * irradiance * (1.0 - E) * ao;
+    float3 Fd = diffuse_color.rgb * irradiance.rgb * (1.0 - E) * ao;
 
     float3 specular_ao = float3(SpecularAO_Lagarde(NdotV, ao, roughness), SpecularAO_Lagarde(NdotV, ao, roughness), SpecularAO_Lagarde(NdotV, ao, roughness));
 

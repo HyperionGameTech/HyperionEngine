@@ -104,9 +104,8 @@ public:
         return m_isRendered;
     }
 
-    void Create();
-
-    void Render(Frame* frame, const RenderSetup& renderSetup);
+    void Create() override;
+    void Render(Frame* frame, const RenderSetup& renderSetup) override;
 
 private:
     ShaderPropertySet GetShaderProperties() const;

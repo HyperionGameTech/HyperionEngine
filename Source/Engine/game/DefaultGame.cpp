@@ -153,7 +153,7 @@ void DefaultGame::OnLaunch_Impl()
     sunNode->SetName(NAME("Sun"));
 
     Handle<DirectionalLight> sunEntity = scene->GetEntityManager()->AddEntity<DirectionalLight>(
-        Vec3f(0.1f, 0.2f, 0.9f).Normalize(),
+        Vec3f(0.8f, 0.9f, -0.2f).Normalize(),
         Color(Vec4f(1.0f, 0.9f, 0.8f, 1.0f)),
         10.0f);
 
@@ -175,12 +175,12 @@ void DefaultGame::OnLaunch_Impl()
     Memory::StrCpy(scriptDesc.className.Data(), "MyClass", ArraySize(scriptDesc.className));
 
     AssetBatch* batch = g_assetManager->CreateBatch();
-    batch->Add("testbed", "Models/Testbed/testbed.obj");
+    batch->Add("testbed", "Models/Sponza/sponza.obj");//"Models/Testbed/testbed.obj");
     auto results = batch->ForceLoad();
 
     LoadedAsset& testbedAsset = results["testbed"];
     Handle<Node> testbedNode = testbedAsset.ExtractAs<Node>();
-    testbedNode->Scale(4.0f);
+    testbedNode->Scale(0.03f);//Scale(4.0f);
     
     scene->GetRoot()->AddChild(testbedNode);
     

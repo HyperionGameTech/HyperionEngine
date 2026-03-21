@@ -3,16 +3,6 @@
   "CompiledShaders": [{
       "$Class": "AssetReference",
       "AssetPath": {
-        "Value": "Engine/Shaders/Skybox/Skybox_7984782509550552157"
-      }
-    }, {
-      "$Class": "AssetReference",
-      "AssetPath": {
-        "Value": "Engine/Shaders/Skybox/Skybox_7984782509550552141"
-      }
-    }, {
-      "$Class": "AssetReference",
-      "AssetPath": {
         "Value": "Engine/Shaders/Skybox/Skybox_15170332063854838616"
       }
     }, {
@@ -53,32 +43,42 @@
     }, {
       "$Class": "AssetReference",
       "AssetPath": {
-        "Value": "Engine/Shaders/Skybox/Skybox_7984782509550552181"
+        "Value": "Engine/Shaders/Skybox/Skybox_12500935138665004248"
       }
     }, {
       "$Class": "AssetReference",
       "AssetPath": {
-        "Value": "Engine/Shaders/Skybox/Skybox_7984782509550552149"
+        "Value": "Engine/Shaders/Skybox/Skybox_12500935138665004240"
       }
     }, {
       "$Class": "AssetReference",
       "AssetPath": {
-        "Value": "Engine/Shaders/Skybox/Skybox_7984782509550552133"
+        "Value": "Engine/Shaders/Skybox/Skybox_12500935138665004088"
       }
     }, {
       "$Class": "AssetReference",
       "AssetPath": {
-        "Value": "Engine/Shaders/Skybox/Skybox_7984782509550552125"
+        "Value": "Engine/Shaders/Skybox/Skybox_12500935138665004080"
       }
     }, {
       "$Class": "AssetReference",
       "AssetPath": {
-        "Value": "Engine/Shaders/Skybox/Skybox_7984782509550552109"
+        "Value": "Engine/Shaders/Skybox/Skybox_12500935138665004072"
       }
     }, {
       "$Class": "AssetReference",
       "AssetPath": {
-        "Value": "Engine/Shaders/Skybox/Skybox_7984782509550552101"
+        "Value": "Engine/Shaders/Skybox/Skybox_12500935138665004064"
+      }
+    }, {
+      "$Class": "AssetReference",
+      "AssetPath": {
+        "Value": "Engine/Shaders/Skybox/Skybox_12500935138665004040"
+      }
+    }, {
+      "$Class": "AssetReference",
+      "AssetPath": {
+        "Value": "Engine/Shaders/Skybox/Skybox_12500935138665004032"
       }
     }],
   "Name": "Skybox",

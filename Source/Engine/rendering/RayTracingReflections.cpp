@@ -138,7 +138,7 @@ void RayTracingReflections::Render(Frame* frame, const RenderSetup& renderSetup)
     size_t cBufferOffset = 0;
     size_t cBufferSize = 0;
 
-    {
+    { // Update constants
         RayTracingConstants rayTracingConstants {};
         rayTracingConstants.minRoughness = 0.4f;
         rayTracingConstants.outputImageResolution = Vec2i(m_config.extent);
@@ -158,8 +158,7 @@ void RayTracingReflections::Render(Frame* frame, const RenderSetup& renderSetup)
         {
             const LightType lightType = light->GetLightType();
 
-            if (lightType != LightType::Directional
-                && lightType != LightType::Point)
+            if (lightType != LightType::Directional && lightType != LightType::Point)
             {
                 continue;
             }

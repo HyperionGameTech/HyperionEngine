@@ -28,7 +28,6 @@ DECLARE_BUFFER(ConvolveProbe, UniformBuffer) cbuffer UniformBuffer
 {
     uint2 out_image_dimensions;
     uint2 in_image_dimensions;
-    float4 world_position;
 };
 
 DECLARE_SRV(ConvolveProbe, SphereSamplesBuffer) StructuredBuffer<float4> SphereSamplesBuffer;

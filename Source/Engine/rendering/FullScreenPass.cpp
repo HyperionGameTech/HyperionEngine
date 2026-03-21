@@ -357,7 +357,7 @@ void FullScreenPass::CreateFramebuffer()
         AttachmentDesc {
             TextureType::Texture2D,
             m_imageFormat,
-            ShouldRenderCheckerboarded() || (m_flags & FSP_RENDERTARGET_LOAD) ? LoadOperation::LOAD : LoadOperation::CLEAR,
+            ShouldRenderCheckerboarded() ? LoadOperation::LOAD : LoadOperation::CLEAR,
             StoreOperation::STORE
         });
 

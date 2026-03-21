@@ -17,6 +17,7 @@
 #include <rendering/ShaderInstance.hpp>
 #include <rendering/TextureViewCache.hpp>
 #include <rendering/RenderHelpers.hpp>
+#include <rendering/ConstantsAllocator.hpp>
 
 #include <rendering/shadows/ShadowMapCache.hpp>
 
@@ -34,92 +35,35 @@
 #include <scene/Light.hpp>
 #include <scene/View.hpp>
 
-#include <SSGI.generated.inl>
-
 namespace Hyperion {
 
 static constexpr bool UseTemporalBlending = true;
 static constexpr TextureFormat SSGIFormat = TextureFormat::RGBA8;
+static constexpr uint32 MaxLights = 4;
+static constexpr uint32 MaxEnvProbes = 4;
+static constexpr uint32 NumSamples = 64; // temporal sample count
 
-struct SSGIUniforms
-{
-    Vec4u dimensions;
-    float rayStep;
-    float numIterations;
-    float maxRayDistance;
-    float distanceBias;
-    float offset;
-    float eyeFadeStart;
-    float eyeFadeEnd;
-    float screenEdgeFadeStart;
-    float screenEdgeFadeEnd;
+static const ShaderPropertyId s_propMaxLights = InternShaderProperty(ShaderProperty(NAME("MAX_LIGHTS"), int(MaxLights)));
+static const ShaderPropertyId s_propMaxEnvProbes = InternShaderProperty(ShaderProperty(NAME("MAX_ENV_PROBES"), int(MaxEnvProbes)));
 
-    uint32 numBoundLights;
-    alignas(16) uint32 lightIndices[16];
-};
+namespace DeferredRendererHelpers {
 
-#pragma region SSGI
+// Defined in DeferredRenderer.cpp
+void FillShadowMapData(
+    ShadowMapData& outShadowMapData,
+    const ShadowMap& inShadowMap,
+    View* shadowMapViewDynamic,
+    View* shadowMapViewStatic);
 
-SSGI::SSGI(SSGIConfig&& config, GBuffer* gbuffer)
-    : m_config(std::move(config)),
-      m_gbuffer(gbuffer),
-      m_isRendered(false)
-{
-}
+} // namespace DeferredRendererHelpers
 
-SSGI::~SSGI()
-{
-    if (m_temporalBlending)
-    {
-        m_temporalBlending.Reset();
-    }
+namespace {
 
-    EnqueueDeletion(std::move(m_uniformBuffers));
-}
-
-void SSGI::Create()
-{
-    m_resultTexture = MakeHandle<Texture>(TextureDesc {
-        TextureType::Texture2D,
-        SSGIFormat,
-        Vec3u(m_config.extent, 1),
-        TFM_NEAREST,
-        TFM_NEAREST,
-        TWM_CLAMP_TO_EDGE,
-        1,
-        IU_STORAGE | IU_SAMPLED
-    });
-
-    m_resultTexture->SetName(NAME("SSGITexture"));
-
-    CheckResult(m_resultTexture->Create());
-
-    CreateUniformBuffers();
-
-    if (UseTemporalBlending)
-    {
-        m_temporalBlending = MakeUnique<TemporalBlending>(
-            m_config.extent,
-            SSGIFormat,
-            TemporalBlendTechnique::TECHNIQUE_1,
-            0.95,
-            g_renderInterface->textureViewCache->GetOrCreate(m_resultTexture),
-            m_gbuffer);
-
-        m_temporalBlending->Create();
-    }
-}
-
-const Handle<Texture>& SSGI::GetFinalResultTexture() const
-{
-    return m_temporalBlending
-        ? m_temporalBlending->GetResultTexture()
-        : m_resultTexture;
-}
-
-ShaderPropertySet SSGI::GetShaderProperties() const
+static ShaderPropertySet GetShaderProperties()
 {
     ShaderPropertySet shaderProperties;
+    shaderProperties.Add(s_propMaxLights);
+    shaderProperties.Add(s_propMaxEnvProbes);
 
     switch (SSGIFormat)
     {
@@ -138,23 +82,102 @@ ShaderPropertySet SSGI::GetShaderProperties() const
 
     return shaderProperties;
 }
+} // namespace
 
-void SSGI::CreateUniformBuffers()
+struct SSGIConstants
 {
-    SSGIUniforms uniforms;
-    FillUniformBufferData(nullptr, uniforms);
+    Vec2u dimensions;
+    float rayStep;
+    float maxIterations;
 
-    for (uint32 frameIndex = 0; frameIndex < NumFramesInFlight; frameIndex++)
+    float distanceBias;
+    uint32 numSamples;
+    uint32 numBoundLights;
+    uint32 numBoundEnvProbes;
+};
+
+#pragma region SSGI
+
+SSGI::SSGI(GBuffer* gbuffer)
+    : FullScreenPass(SSGIFormat, gbuffer, FSP_EXTERNAL_RENDERTARGET)
+{
+}
+
+SSGI::~SSGI()
+{
+    if (m_temporalBlending)
     {
-        m_uniformBuffers[frameIndex] = g_renderInterface->MakeGpuBuffer(GpuBufferType::CONSTANT_BUFFER, sizeof(uniforms));
-#if HYP_DEBUG_MODE
-        m_uniformBuffers[frameIndex]->SetDebugName(NAME_FMT("SSGI_UniformBuffer_Frame{}", frameIndex));
-#endif
-
-        CheckResult(m_uniformBuffers[frameIndex]->Create());
-
-        m_uniformBuffers[frameIndex]->Copy(sizeof(uniforms), &uniforms);
+        m_temporalBlending.Reset();
     }
+}
+
+void SSGI::Create()
+{
+    Assert(m_gbuffer != nullptr);
+    m_extent = m_gbuffer->GetExtent() / 2;
+
+    m_resultTexture = MakeHandle<Texture>(TextureDesc {
+        TextureType::Texture2D,
+        SSGIFormat,
+        Vec3u(m_extent, 1),
+        TFM_LINEAR,
+        TFM_LINEAR,
+        TWM_CLAMP_TO_EDGE,
+        1,
+        IU_STORAGE | IU_SAMPLED
+    });
+    m_resultTexture->SetName(NAME("SSGITexture"));
+    CheckResult(m_resultTexture->Create());
+
+    for (uint32 i = 0; i < NumDownsamplePasses; i++)
+    {
+        m_downsampleTextures[i] = MakeHandle<Texture>(TextureDesc {
+            TextureType::Texture2D,
+            SSGIFormat,
+            Vec3u(m_extent / (2 * (i + 1)), 1),
+            TFM_LINEAR,
+            TFM_LINEAR,
+            TWM_CLAMP_TO_EDGE,
+            1,
+            IU_SAMPLED
+        });
+        m_downsampleTextures[i]->SetName(NAME_FMT("SSGIDownsampleTexture{}", i));
+        CheckResult(m_downsampleTextures[i]->Create());
+    }
+    
+    for (uint32 i = 0; i < NumDownsamplePasses; i++)
+    {
+        // scaling back up
+        const Vec2u targetExtent = i == NumDownsamplePasses - 1
+            ? m_extent
+            : m_extent / (2 * (NumDownsamplePasses - i - 1));
+
+        m_upsamplePasses[i] = MakeUnique<FullScreenPass>(SSGIFormat, targetExtent, nullptr, FSP_NONE);
+        m_upsamplePasses[i]->SetShaderDesc(ShaderDesc(NAME("SSGIUpsample"), ShaderPropertySet {}));
+        m_upsamplePasses[i]->Create();
+    }
+
+    if (UseTemporalBlending)
+    {
+        m_temporalBlending = MakeUnique<TemporalBlending>(
+            m_extent,
+            SSGIFormat,
+            TemporalBlendTechnique::TECHNIQUE_1,
+            0.98,
+            m_upsamplePasses[NumDownsamplePasses - 1]->GetAttachment(0)->GetImageView(),//g_renderInterface->textureViewCache->GetOrCreate(m_resultTexture),
+            m_gbuffer);
+
+        m_temporalBlending->Create();
+    }
+}
+
+const Handle<Texture>& SSGI::GetFinalResultTexture() const
+{
+    return m_temporalBlending
+        ? m_temporalBlending->GetResultTexture()
+        : m_resultTexture;
+
+    //return m_resultTexture;
 }
 
 void SSGI::Render(Frame* frame, const RenderSetup& renderSetup)
@@ -171,120 +194,308 @@ void SSGI::Render(Frame* frame, const RenderSetup& renderSetup)
 
     const FramebufferRef& inputsFramebuffer = dpd->view.GetUnsafe()->GetOutputTarget().GetFramebuffer(RenderBucket::Opaque);
 
-    // Update uniform buffer data
-    SSGIUniforms uniforms;
-    FillUniformBufferData(renderSetup.view, uniforms);
-    m_uniformBuffers[frameIndex]->Copy(sizeof(uniforms), &uniforms);
+    RenderProxyCamera* cameraProxy = static_cast<RenderProxyCamera*>(GetRenderProxy(renderSetup.view->GetCamera()));
+    Assert(cameraProxy != nullptr);
 
-    const uint32 totalPixelsInImage = m_config.extent.Volume();
-    const uint32 numDispatchCalls = (totalPixelsInImage + 255) / 256;
+    GpuBuffer* cBuffer = nullptr;
+    size_t cBufferSize = 0;
+    size_t cBufferOffset = 0;
+
+    /// Used loosely as a source around down/upsampling for SSGI
+    /// https://gamehacker1999.github.io/posts/SSGI/
 
     CommandRecorder& cr = frame->cr;
 
-    // put sample image in writeable state
-    cr << InsertBarrier(m_resultTexture->GetGpuImage(), RS_UNORDERED_ACCESS);
+    { // Compute pass
+        { // Update constant buffer
+            SSGIConstants ssgiConstants {};
+            ssgiConstants.dimensions = m_extent;
+            ssgiConstants.rayStep = 2.0f;
+            ssgiConstants.maxIterations = 32;
+            ssgiConstants.distanceBias = 0.01f;
+            ssgiConstants.numSamples = NumSamples;
 
-    cr << SetCurrentShader(ShaderDesc(NAME("SSGI"), GetShaderProperties()));
+            Array<Pair<Light*, LightShaderData*>, RenderAllocator> tempLights;
+            Array<Pair<EnvProbe*, EnvProbeShaderData*>, RenderAllocator> tempEnvProbes;
 
-    uint32 numShaderUniforms = 0;
+            uint32& numBoundLights = ssgiConstants.numBoundLights;
+            uint32& numBoundEnvProbes = ssgiConstants.numBoundEnvProbes;
+        
+            RenderProxyList& rpl = GetConsumerProxyList(renderSetup.view);
+            rpl.BeginRead();
+            HYP_DEFER({ rpl.EndRead(); });
 
-    cr << SetShaderUniform(numShaderUniforms++, "OutImage"_sh, g_renderInterface->textureViewCache->GetOrCreate(m_resultTexture));
-    cr << SetShaderUniform(numShaderUniforms++, "UniformBuffer"_sh, m_uniformBuffers[frameIndex]);
+            for (Light* light : rpl.GetLights())
+            {
+                const LightType lightType = light->GetLightType();
 
-    // GBuffer textures
-    cr << SetShaderUniform(numShaderUniforms++, "GBufferAlbedoTexture"_sh, inputsFramebuffer->GetAttachment(GTN_ALBEDO)->GetImageView());
-    cr << SetShaderUniform(numShaderUniforms++, "GBufferNormalsTexture"_sh, inputsFramebuffer->GetAttachment(GTN_NORMALS)->GetImageView());
-    cr << SetShaderUniform(numShaderUniforms++, "GBufferMaterialTexture"_sh, inputsFramebuffer->GetAttachment(GTN_MATERIAL)->GetImageView());
-    cr << SetShaderUniform(numShaderUniforms++, "GBufferVelocityTexture"_sh, inputsFramebuffer->GetAttachment(GTN_VELOCITY)->GetImageView());
-    cr << SetShaderUniform(numShaderUniforms++, "GBufferDepthTexture"_sh, inputsFramebuffer->GetAttachment(GTN_DEPTH)->GetImageView());
-    cr << SetShaderUniform(numShaderUniforms++, "GBufferMipChain"_sh, g_renderInterface->textureViewCache->GetOrCreate(dpd->mipChain));
+                if (lightType != LightType::Directional && lightType != LightType::Point)
+                {
+                    continue;
+                }
 
-    // Samplers
-    cr << SetShaderUniform(numShaderUniforms++, "SamplerNearest"_sh, g_renderInterface->placeholderData->GetSamplerNearest());
-    cr << SetShaderUniform(numShaderUniforms++, "SamplerLinear"_sh, g_renderInterface->placeholderData->GetSamplerLinear());
+                if (numBoundLights >= MaxLights)
+                {
+                    break;
+                }
 
-    // Blue noise
-    cr << SetShaderUniform(numShaderUniforms++, "BlueNoiseBuffer"_sh, g_renderInterface->blueNoiseBuffer);
+                RenderProxyLight* lightProxy = static_cast<RenderProxyLight*>(GetRenderProxy(light));
+                Assert(lightProxy != nullptr);
 
-    // World and camera buffers
-    cr << SetShaderUniform(numShaderUniforms++, "WorldsBuffer"_sh, g_renderInterface->gpuBuffers[GRB_WORLDS]->GetBuffer(frameIndex));
-    cr << SetShaderUniform(numShaderUniforms++, "CamerasBuffer"_sh, g_renderInterface->gpuBuffers[GRB_CAMERAS]->GetBuffer(frameIndex), TShaderDataOffset<CameraShaderData>(renderSetup.view->GetCamera()));
+                tempLights.EmplaceBack(light, &lightProxy->bufferData);
 
-    // Lights
-    cr << SetShaderUniform(numShaderUniforms++, "LightsBuffer"_sh, g_renderInterface->gpuBuffers[GRB_LIGHTS]->GetBuffer(frameIndex));
+                ++numBoundLights;
+            }
 
-    // Shadow maps
-    cr << SetShaderUniform(numShaderUniforms++, "ShadowMapsTextureArray"_sh, g_renderInterface->shadowMapCache->GetAtlasImageView());
-    cr << SetShaderUniform(numShaderUniforms++, "PointLightShadowMapsTextureArray"_sh, g_renderInterface->shadowMapCache->GetPointLightShadowMapImageView());
+            for (EnvProbe* envProbe : rpl.GetEnvProbes())
+            {
+                if (envProbe->IsA(ReflectionProbe::StaticClass()) || envProbe->IsA(SkyProbe::StaticClass()))
+                {
+                    if (numBoundEnvProbes >= MaxEnvProbes)
+                    {
+                        break;
+                    }
 
-    // Env probes
-    cr << SetShaderUniform(numShaderUniforms++, "EnvProbesTexture"_sh, g_renderInterface->textureViewCache->GetOrCreate(g_renderInterface->envProbesTexture));
+                    RenderProxyEnvProbe* envProbeProxy = static_cast<RenderProxyEnvProbe*>(GetRenderProxy(envProbe));
+                    Assert(envProbeProxy != nullptr);
 
-    if (renderSetup.envProbe)
-        cr << SetShaderUniform(numShaderUniforms++, "CurrentEnvProbe"_sh, g_renderInterface->gpuBuffers[GRB_ENV_PROBES]->GetBuffer(frameIndex), TShaderDataOffset<EnvProbeShaderData>(renderSetup.envProbe));
-    else
-        cr << SetShaderUniform(numShaderUniforms++, "CurrentEnvProbe"_sh, g_renderInterface->gpuBuffers[GRB_ENV_PROBES]->GetBuffer(frameIndex), TShaderDataOffset<EnvProbeShaderData>(0));
+                    tempEnvProbes.EmplaceBack(envProbe, &envProbeProxy->bufferData);
 
-    cr << SetShaderUniform(numShaderUniforms++, "EnvProbesBuffer"_sh, g_renderInterface->gpuBuffers[GRB_ENV_PROBES]->GetBuffer(frameIndex));
+                    ++numBoundEnvProbes;
+                }
+            }
 
-    cr << DispatchCompute(Vec3u { numDispatchCalls, 1, 1 });
+            g_renderInterface->constantsAllocator->Write(&ssgiConstants);
+
+            for (uint32 i = 0; i < MaxLights; i++)
+            {
+                if (i < uint32(tempLights.Size()))
+                {
+                    g_renderInterface->constantsAllocator->Write(tempLights[i].second);
+                    continue;
+                }
+        
+                LightShaderData dummy {};
+                g_renderInterface->constantsAllocator->Write(&dummy);
+            }
+
+            for (uint32 i = 0; i < MaxLights; i++)
+            {
+                ShadowMapData shadowMapData {};
+
+                if (i < uint32(tempLights.Size()))
+                {
+                    View* shadowMapViewDynamic;
+                    View* shadowMapViewStatic;
+
+                    Light* light = tempLights[i].first;
+
+                    ShadowMap* shadowMap = g_renderInterface->shadowMapCache->GetShadowMap(
+                        light,
+                        renderSetup.view,
+                        /* cascadeIndex */ 0,
+                        shadowMapViewDynamic,
+                        shadowMapViewStatic);
+
+                    if (shadowMap != nullptr)
+                    {
+                        DeferredRendererHelpers::FillShadowMapData(
+                            shadowMapData,
+                            *shadowMap,
+                            shadowMapViewDynamic,
+                            shadowMapViewStatic);
+                    }
+                }
+
+                g_renderInterface->constantsAllocator->Write(&shadowMapData);
+            }
+
+            // sort probes
+            // we want to draw reflection probes first, sky should be the very last
+            // within the reflection probes subgroup, we want to sort based on distance from the
+            // camera to ensure we sample the closest probes first in the shader
+            const Vec4f& cameraPosition = cameraProxy->bufferData.cameraPosition;
+
+            std::sort(tempEnvProbes.Begin(), tempEnvProbes.End(),
+                [&cameraPosition](const Pair<EnvProbe*, EnvProbeShaderData*>& a, const Pair<EnvProbe*, EnvProbeShaderData*>& b)
+            {
+                const bool aIsSky = a.first->IsA(SkyProbe::StaticClass());
+                const bool bIsSky = b.first->IsA(SkyProbe::StaticClass());
+
+                if (aIsSky && !bIsSky)
+                {
+                    return false;
+                }
+                
+                if (!aIsSky && bIsSky)
+                {
+                    return true;
+                }
+                
+                if (aIsSky && bIsSky)
+                {
+                    return false;
+                }
+
+                // both are reflection probes, sort by distance to camera
+                const Vec4f& aProbePosition = a.second->worldPosition;
+                const Vec4f& bProbePosition = b.second->worldPosition;
+
+                const float aDistSq = (aProbePosition - cameraPosition).LengthSquared();
+                const float bDistSq = (bProbePosition - cameraPosition).LengthSquared();
+
+                return aDistSq < bDistSq;
+            });
+
+            for (uint32 i = 0; i < MaxEnvProbes; i++)
+            {
+                const EnvProbeShaderData* pEnvProbeShaderData = nullptr;
+
+                if (i < uint32(tempEnvProbes.Size()))
+                {
+                    pEnvProbeShaderData = tempEnvProbes[i].second;
+                }
+                else
+                {
+                    static const EnvProbeShaderData s_dummyEnvProbeShaderData;
+                    pEnvProbeShaderData = &s_dummyEnvProbeShaderData;
+                }
+
+                g_renderInterface->constantsAllocator->Write(pEnvProbeShaderData);
+            }
+
+            g_renderInterface->constantsAllocator->Commit(cBuffer, cBufferOffset, cBufferSize);
+        }
+
+        const uint32 totalPixelsInImage = m_extent.Volume();
+        const uint32 numDispatchCalls = (totalPixelsInImage + 255) / 256;
+
+        // put sample image in writeable state
+        cr << InsertBarrier(m_resultTexture->GetGpuImage(), RS_UNORDERED_ACCESS);
+
+        cr << SetCurrentShader(ShaderDesc(NAME("SSGI"), GetShaderProperties()));
+
+        uint32 numShaderUniforms = 0;
+
+        cr << SetShaderUniform(numShaderUniforms++, "OutImage"_sh, g_renderInterface->textureViewCache->GetOrCreate(m_resultTexture));
+        cr << SetShaderUniform(numShaderUniforms++, "CBuffer"_sh, cBuffer, ShaderDataOffset(cBufferOffset, cBufferSize));
+
+        // GBuffer textures
+        cr << SetShaderUniform(numShaderUniforms++, "GBufferAlbedoTexture"_sh, inputsFramebuffer->GetAttachment(GTN_ALBEDO)->GetImageView());
+        cr << SetShaderUniform(numShaderUniforms++, "GBufferNormalsTexture"_sh, inputsFramebuffer->GetAttachment(GTN_NORMALS)->GetImageView());
+        cr << SetShaderUniform(numShaderUniforms++, "GBufferMaterialTexture"_sh, inputsFramebuffer->GetAttachment(GTN_MATERIAL)->GetImageView());
+        cr << SetShaderUniform(numShaderUniforms++, "GBufferDepthTexture"_sh, inputsFramebuffer->GetAttachment(GTN_DEPTH)->GetImageView());
+
+        cr << SetShaderUniform(numShaderUniforms++, "DeferredShadingTexture"_sh, dpd->deferredShadingFramebuffer->GetAttachment(0)->GetImageView());
+
+        cr << SetShaderUniform(numShaderUniforms++, "BlueNoiseBuffer"_sh, g_renderInterface->blueNoiseBuffer);
+
+        // Samplers
+        cr << SetShaderUniform(numShaderUniforms++, "SamplerLinear"_sh, g_renderInterface->placeholderData->GetSamplerLinear());
+        cr << SetShaderUniform(numShaderUniforms++, "SamplerNearest"_sh, g_renderInterface->placeholderData->GetSamplerNearest());
+
+        // World and camera buffers
+        cr << SetShaderUniform(numShaderUniforms++, "WorldsBuffer"_sh, g_renderInterface->gpuBuffers[GRB_WORLDS]->GetBuffer(frameIndex));
+        cr << SetShaderUniform(numShaderUniforms++, "CamerasBuffer"_sh, g_renderInterface->gpuBuffers[GRB_CAMERAS]->GetBuffer(frameIndex), TShaderDataOffset<CameraShaderData>(renderSetup.view->GetCamera()));
+
+        // Shadow maps
+        cr << SetShaderUniform(numShaderUniforms++, "ShadowMapsTextureArray"_sh, g_renderInterface->shadowMapCache->GetAtlasImageView());
+        cr << SetShaderUniform(numShaderUniforms++, "PointLightShadowMapsTextureArray"_sh, g_renderInterface->shadowMapCache->GetPointLightShadowMapImageView());
+
+        // Env probes
+        cr << SetShaderUniform(numShaderUniforms++, "EnvProbesTexture"_sh, g_renderInterface->textureViewCache->GetOrCreate(g_renderInterface->envProbesTexture));
+
+        cr << SetShaderUniform(numShaderUniforms++, "EnvProbesBuffer"_sh, g_renderInterface->gpuBuffers[GRB_ENV_PROBES]->GetBuffer(frameIndex));
+
+        cr << DispatchCompute(Vec3u { numDispatchCalls, 1, 1 });
+    }
+
+    for (uint32 i = 0; i < NumDownsamplePasses; i++)
+    {
+        if (i == 0)
+        {
+            cr << InsertBarrier(m_resultTexture->GetGpuImage(), RS_COPY_SRC);
+            cr << InsertBarrier(m_downsampleTextures[i]->GetGpuImage(), RS_COPY_DST);
+
+            cr << Blit(m_resultTexture->GetGpuImage(), m_downsampleTextures[i]->GetGpuImage());
+        }
+        else
+        {
+            cr << InsertBarrier(m_downsampleTextures[i - 1]->GetGpuImage(), RS_COPY_SRC);
+            cr << InsertBarrier(m_downsampleTextures[i]->GetGpuImage(), RS_COPY_DST);
+
+            cr << Blit(m_downsampleTextures[i - 1]->GetGpuImage(), m_downsampleTextures[i]->GetGpuImage());
+        }
+    }
+
+    // Upsample + blur
+    for (uint32 i = 0; i < NumDownsamplePasses; i++)
+    {
+        FullScreenPass* pass = m_upsamplePasses[i].Get();
+
+        const Vec2f sourceResolution = Vec2f(pass->GetExtent()) / 2;
+
+        // Need new cbuffer
+        cBuffer = nullptr;
+        cBufferSize = 0;
+        cBufferOffset = 0;
+        
+        { // Update constant buffer
+            struct SSGIUpsampleConstants
+            {
+                CameraShaderData camera;
+
+                Vec2f texelSize;
+                float depthThreshold;
+                float normalThreshold;
+            };
+
+            SSGIUpsampleConstants upsampleConstants {};
+            upsampleConstants.camera = cameraProxy->bufferData;
+            upsampleConstants.texelSize = Vec2f::One() / sourceResolution;
+            upsampleConstants.depthThreshold = 0.025f;
+            upsampleConstants.normalThreshold = 2.0f;
+
+            g_renderInterface->constantsAllocator->Write(&upsampleConstants);
+            g_renderInterface->constantsAllocator->Commit(cBuffer, cBufferOffset, cBufferSize);
+        }
+
+        pass->Begin(frame, renderSetup);
+
+        uint32 numShaderUniforms = 0;
+
+        // Samplers
+        cr << SetShaderUniform(numShaderUniforms++, "SamplerLinear"_sh, g_renderInterface->placeholderData->GetSamplerLinear());
+        cr << SetShaderUniform(numShaderUniforms++, "SamplerNearest"_sh, g_renderInterface->placeholderData->GetSamplerNearest());
+        
+        // GBuffer textures
+        cr << SetShaderUniform(numShaderUniforms++, "GBufferNormalsTexture"_sh, inputsFramebuffer->GetAttachment(GTN_NORMALS)->GetImageView());
+        cr << SetShaderUniform(numShaderUniforms++, "GBufferDepthTexture"_sh, inputsFramebuffer->GetAttachment(GTN_DEPTH)->GetImageView());
+        
+        cr << SetShaderUniform(numShaderUniforms++, "PrevPassTexture"_sh,
+            i == 0 ? g_renderInterface->textureViewCache->GetOrCreate(m_downsampleTextures[NumDownsamplePasses - 1])
+                : m_upsamplePasses[i - 1]->GetAttachment(0)->GetImageView());
+        
+        cr << SetShaderUniform(numShaderUniforms++, "CBuffer"_sh, cBuffer, ShaderDataOffset(cBufferOffset, cBufferSize));
+
+        // Draw quad
+        pass->RenderFullScreenQuad(frame, renderSetup);
+
+        pass->End(frame, renderSetup);
+
+        if (i == 0)
+        {
+            cr << InsertBarrier(pass->GetAttachment(0)->GetGpuImage(), RS_SHADER_RESOURCE);
+        }
+    }
 
     // transition sample image back into read state
-    cr << InsertBarrier(m_resultTexture->GetGpuImage(), RS_SHADER_RESOURCE);
+    cr << InsertBarrier(m_upsamplePasses[NumDownsamplePasses - 1]->GetAttachment(0)->GetGpuImage(), RS_SHADER_RESOURCE);
 
     if (UseTemporalBlending && m_temporalBlending != nullptr)
     {
         m_temporalBlending->Render(frame, renderSetup);
     }
-
-    m_isRendered = true;
-}
-
-void SSGI::FillUniformBufferData(View* view, SSGIUniforms& outUniforms) const
-{
-    outUniforms = SSGIUniforms();
-    outUniforms.dimensions = Vec4u(m_config.extent, 0, 0);
-    outUniforms.rayStep = 1.0f;
-    outUniforms.numIterations = 16;
-    outUniforms.maxRayDistance = 1000.0f;
-    outUniforms.distanceBias = 0.1f;
-    outUniforms.offset = 0.001f;
-    outUniforms.eyeFadeStart = 0.98f;
-    outUniforms.eyeFadeEnd = 0.99f;
-    outUniforms.screenEdgeFadeStart = 0.98f;
-    outUniforms.screenEdgeFadeEnd = 0.99f;
-
-    uint32 numBoundLights = 0;
-
-    // Can only fill the lights if we have a view ready
-    if (view)
-    {
-        RenderProxyList& rpl = GetConsumerProxyList(view);
-        rpl.BeginRead();
-
-        HYP_DEFER({ rpl.EndRead(); });
-
-        const uint32 maxBoundLights = ArraySize(outUniforms.lightIndices);
-
-        for (Light* light : rpl.GetLights())
-        {
-            const LightType lightType = light->GetLightType();
-
-            if (lightType != LightType::Directional && lightType != LightType::Point)
-            {
-                continue;
-            }
-
-            if (numBoundLights >= maxBoundLights)
-            {
-                break;
-            }
-
-            outUniforms.lightIndices[numBoundLights++] = RetrieveResourceBinding(light);
-        }
-    }
-
-    outUniforms.numBoundLights = numBoundLights;
 }
 
 #pragma endregion SSGI
