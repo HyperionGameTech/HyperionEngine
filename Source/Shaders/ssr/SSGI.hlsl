@@ -88,7 +88,7 @@ DECLARE_SRV(SSGI, EnvProbesTexture) TextureCubeArray envProbesTexture;
 DECLARE_SRV(SSGI, EnvProbesTexture) Texture2DArray envProbesTexture;
 #endif
 
-#define RAY_OFFSET 0.01
+#define RAY_OFFSET 0.03
 #define ENVIRONMENT_INTENSITY 1.0
 
 #if 1
@@ -177,7 +177,7 @@ float CalculateAlpha(
     // Fade ray hits that approach the screen edge
     float2 uvNDC = hit_uv * 2.0 - 1.0;
     float maxDimension = saturate(max(abs(uvNDC.x), abs(uvNDC.y)));
-    alpha *= 1.0 - max(0.0, maxDimension - 0.9) / 0.1;
+    alpha *= 1.0 - max(0.0, maxDimension - 0.98) / 0.02;
 
     return alpha;
 }
@@ -232,7 +232,7 @@ void CSMain(uint3 dispatchThreadID : SV_DispatchThreadID)
 
     float phi = InterleavedGradientNoise(float2(coord));
 
-    const uint numRaySamples = 10; // local (per dispatch) sample count.
+    const uint numRaySamples = 6; // local (per dispatch) sample count.
     const uint temporalSampleIndex = (world_shader_data.frame_counter % ssgiConstants.numSamples);
     const uint numSamplesTotal = ssgiConstants.numSamples * numRaySamples;
 
@@ -263,30 +263,27 @@ void CSMain(uint3 dispatchThreadID : SV_DispatchThreadID)
             }
         }
 
-        if (hit_depth >= 0.9999 && ssgiConstants.numBoundEnvProbes != 0)
+        // sample environment
+        float3 rayDirWorld = normalize(mul(camera.invViewMat, float4(ray_direction, 0.0)).xyz);
+        
+        float4 environmentRadiance = (float4)0.0;
+
+        for (uint envProbeIdx = 0; envProbeIdx < ssgiConstants.numBoundEnvProbes && environmentRadiance.a < 1.0; envProbeIdx++)
         {
-            // sample environment
-            float3 rayDirWorld = normalize(mul(camera.invViewMat, float4(ray_direction, 0.0)).xyz);
-            
-            float4 environmentRadiance = (float4)0.0;
+            EnvProbe envProbe = envProbes[envProbeIdx];
 
-            for (uint envProbeIdx = 0; envProbeIdx < ssgiConstants.numBoundEnvProbes && environmentRadiance.a < 1.0; envProbeIdx++)
+            if (envProbe.texture_index == ~0u)
             {
-                EnvProbe envProbe = envProbes[envProbeIdx];
-
-                if (envProbe.texture_index == ~0u)
-                {
-                    continue;
-                }
-                
-                environmentRadiance += EnvProbeSample(sampler_linear, envProbesTexture, envProbe.texture_index, rayDirWorld, 0.0)
-                    * ENVIRONMENT_INTENSITY
-                    * (1.0 - environmentRadiance.a);
+                continue;
             }
             
-            // use 0 for alpha, so we can blend with other GI if available.
-            accum_result += float4(environmentRadiance.rgb, 0.0);
+            environmentRadiance += EnvProbeSample(sampler_linear, envProbesTexture, envProbe.texture_index, rayDirWorld, 6.0)
+                * ENVIRONMENT_INTENSITY
+                * (1.0 - environmentRadiance.a);
         }
+        
+        // use 0 for alpha, so we can blend with other GI if available.
+        accum_result += float4(environmentRadiance.rgb, 0.0);
     }
 
     out_image[coord] = accum_result / float(numRaySamples);

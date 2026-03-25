@@ -53,7 +53,7 @@
       "AO": false
     },
     "Vulkan": {
-      "DebugLayers": true
+      "DebugLayers": false
     }
   },
   "Editor": {
@@ -73,7 +73,7 @@
   },
   "System": {
     "SelectedGpu": {
-      "Index": 1
+      "Index": 0
     }
   }
 }
