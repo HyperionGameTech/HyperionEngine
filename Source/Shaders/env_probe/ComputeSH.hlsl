@@ -178,6 +178,12 @@ void CSMain(uint3 dispatchThreadID : SV_DispatchThreadID)
     }
 #elif defined(MODE_FINALIZE)
 
+    static const float s_aOverPi[9] = {
+        1.0,
+        2.0/3.0, 2.0/3.0, 2.0/3.0,
+        0.25, 0.25, 0.25, 0.25, 0.25
+    };
+
 #ifdef PARALLEL_REDUCE
     for (int face_index = 0; face_index < 6; face_index++)
     {
@@ -190,8 +196,8 @@ void CSMain(uint3 dispatchThreadID : SV_DispatchThreadID)
     for (int i = 0; i < 9; i++)
     {
         float weight = env_probes[env_probe_index].sh[i].a;
-
-        env_probes[env_probe_index].sh[i] *= (4.0 * HYP_FMATH_PI) / max(weight, 0.0001);
+        float normFactor = (4.0 * HYP_FMATH_PI) / max(weight, 0.0001);
+        env_probes[env_probe_index].sh[i] = float4(env_probes[env_probe_index].sh[i].rgb * normFactor * s_aOverPi[i], 1.0);
     }
 #else
     float total_weight = 0.0;
@@ -218,7 +224,7 @@ void CSMain(uint3 dispatchThreadID : SV_DispatchThreadID)
 
     for (int i = 0; i < 9; i++)
     {
-        float3 result = float3(sh_result[i] *= (4.0 * HYP_FMATH_PI) / total_weight);
+        float3 result = sh_result[i] * ((4.0 * HYP_FMATH_PI) / total_weight) * s_aOverPi[i];
 
         env_probes[env_probe_index].sh[i] = float4(result, 1.0);
     }

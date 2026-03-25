@@ -254,18 +254,29 @@ ExtensionMap VulkanDevice::GetUnsupportedExtensions()
     const Array<VkExtensionProperties> extensionsSupported = GetSupportedExtensions();
     ExtensionMap unsupportedExtensions;
 
-    for (const KeyValuePair<String, bool>& requiredExt : m_wantedExtensions)
+    for (auto it = m_wantedExtensions.Begin(); it != m_wantedExtensions.End();)
     {
+        auto& ext = it->first;
+
         auto supportedIt = extensionsSupported.FindIf(
-            [&requiredExt](const auto& it)
+            [&ext](const auto& it)
             {
-                return requiredExt.first == it.extensionName;
+                return ext == it.extensionName;
             });
 
         if (supportedIt == extensionsSupported.end())
         {
-            unsupportedExtensions.Insert(requiredExt);
+            unsupportedExtensions.Insert(*it);
+
+            if (!it->second) // keep req'd in map, remove optional
+            {
+                it = m_wantedExtensions.Erase(it);
+
+                continue;
+            }
         }
+
+        ++it;
     }
 
     return unsupportedExtensions;
@@ -436,12 +447,8 @@ RendererResult VulkanDevice::Create(VkSurfaceKHR surface)
 
     CheckResultOrReturn(CheckDeviceSuitable(unsupportedExtensions));
 
-    // no _required_ extensions were missing (otherwise would have caused an error)
-    // so for each unsupported extension, remove it from out list of extensions
     for (auto& it : unsupportedExtensions)
     {
-        Assert(!it.second, "Unsupported extension should not be 'required', should have failed earlier check");
-
         m_wantedExtensions.Erase(it.first);
     }
 
@@ -460,17 +467,21 @@ RendererResult VulkanDevice::Create(VkSurfaceKHR surface)
         HYP_LOG(RenderingBackend, Info, "\t{}{}", it.first, it.second ? " [REQUIRED]" : "");
     }
 
+    const auto HasExtensionSupport = [&](const char* name) -> bool
+    {
+        auto it = supportedExtensions.FindIf(
+            [name](const auto& it)
+            {
+                return std::strcmp(it.extensionName, name) == 0;
+            });
+
+        return it != supportedExtensions.End();
+    };
+
     // Vulkan 1.3 requires VK_KHR_portability_subset to be enabled if it is found in vkEnumerateDeviceExtensionProperties()
     // https://vulkan.lunarg.com/doc/view/1.3.211.0/mac/1.3-extensions/vkspec.html#VUID-VkDeviceCreateInfo-pProperties-04451
     {
-
-        auto protabilitySubsetIt = supportedExtensions.FindIf(
-            [](const auto& it)
-            {
-                return std::strcmp(it.extensionName, "VK_KHR_portability_subset") == 0;
-            });
-
-        if (protabilitySubsetIt != supportedExtensions.end())
+        if (HasExtensionSupport("VK_KHR_portability_subset"))
         {
             extensionNames.PushBack("VK_KHR_portability_subset");
         }
@@ -491,20 +502,25 @@ RendererResult VulkanDevice::Create(VkSurfaceKHR surface)
     createInfo.queueCreateInfoCount = uint32(queueCreateInfos.Size());
     
 #if defined(HYP_AFTERMATH) && HYP_AFTERMATH
-    extensionNames.PushBack(VK_NV_DEVICE_DIAGNOSTIC_CHECKPOINTS_EXTENSION_NAME);
-    extensionNames.PushBack(VK_NV_DEVICE_DIAGNOSTICS_CONFIG_EXTENSION_NAME);
-    
-    /// https://docs.nvidia.com/nsight-aftermath/SDK/index.html
-    VkDeviceDiagnosticsConfigFlagsNV aftermathFlags =
-        VK_DEVICE_DIAGNOSTICS_CONFIG_ENABLE_AUTOMATIC_CHECKPOINTS_BIT_NV |  // Enable automatic call stack checkpoints.
-        VK_DEVICE_DIAGNOSTICS_CONFIG_ENABLE_RESOURCE_TRACKING_BIT_NV |      // Enable tracking of resources.
-        VK_DEVICE_DIAGNOSTICS_CONFIG_ENABLE_SHADER_DEBUG_INFO_BIT_NV |      // Generate debug information for shaders.
-        VK_DEVICE_DIAGNOSTICS_CONFIG_ENABLE_SHADER_ERROR_REPORTING_BIT_NV;  // Enable additional runtime shader error reporting.
-
     VkDeviceDiagnosticsConfigCreateInfoNV aftermathInfo { VK_STRUCTURE_TYPE_DEVICE_DIAGNOSTICS_CONFIG_CREATE_INFO_NV };
-    aftermathInfo.flags = aftermathFlags;
 
-    VulkanHelpers::ChainNext(createInfo, &aftermathInfo);
+    if (HasExtensionSupport(VK_NV_DEVICE_DIAGNOSTIC_CHECKPOINTS_EXTENSION_NAME)
+        && HasExtensionSupport(VK_NV_DEVICE_DIAGNOSTICS_CONFIG_EXTENSION_NAME))
+    {
+        extensionNames.PushBack(VK_NV_DEVICE_DIAGNOSTIC_CHECKPOINTS_EXTENSION_NAME);
+        extensionNames.PushBack(VK_NV_DEVICE_DIAGNOSTICS_CONFIG_EXTENSION_NAME);
+
+        /// https://docs.nvidia.com/nsight-aftermath/SDK/index.html
+        VkDeviceDiagnosticsConfigFlagsNV aftermathFlags =
+            VK_DEVICE_DIAGNOSTICS_CONFIG_ENABLE_AUTOMATIC_CHECKPOINTS_BIT_NV | // Enable automatic call stack checkpoints.
+            VK_DEVICE_DIAGNOSTICS_CONFIG_ENABLE_RESOURCE_TRACKING_BIT_NV |     // Enable tracking of resources.
+            VK_DEVICE_DIAGNOSTICS_CONFIG_ENABLE_SHADER_DEBUG_INFO_BIT_NV |     // Generate debug information for shaders.
+            VK_DEVICE_DIAGNOSTICS_CONFIG_ENABLE_SHADER_ERROR_REPORTING_BIT_NV; // Enable additional runtime shader error reporting.
+
+        aftermathInfo.flags = aftermathFlags;
+
+        VulkanHelpers::ChainNext(createInfo, &aftermathInfo);
+    }
 #endif
 
     // Setup Device extensions

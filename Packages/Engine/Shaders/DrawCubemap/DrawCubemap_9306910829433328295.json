@@ -162,7 +162,10 @@
       "Size": 90100
     }],
   "PropertySetHashCode": {},
+  "LastCompiledTimestamp": {
+    "Value": 13418940277180
+  },
   "Name": "DrawCubemap_9306910829433328295",
-  "FriendlyName": "DrawCubemap_9306910829433328295",
+  "FriendlyName": "DrawCubemap9306910829433328295",
   "OriginalFilepath": ""
 }

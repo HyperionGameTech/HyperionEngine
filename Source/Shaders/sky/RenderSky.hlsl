@@ -206,7 +206,7 @@ struct PSOutput
     float4 output_color : SV_Target0;
 };
 
-#define ATOMSPHERE_INTENSITY 20.0
+#define ATOMSPHERE_INTENSITY 30.0
 
 PSOutput PSMain(PSInput input)
 {

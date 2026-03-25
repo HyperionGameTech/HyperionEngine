@@ -49,9 +49,9 @@ static const ShaderPropertyId s_propMaxEnvProbes = InternShaderProperty(ShaderPr
 
 CVar<float> cvSSGIDepthThreshold { "Rendering.SSGI.DepthThreshold", 0.2f };
 CVar<float> cvSSGINormalPower { "Rendering.SSGI.NormalPower", 8.0f };
-CVar<float> cvSSGIRayStep { "Rendering.SSGI.RayStep", 2.0f };
-CVar<float> cvSSGIDistanceBias { "Rendering.SSGI.DistanceBias", 0.01f };
-CVar<uint32> cvSSGIMaxIterations { "Rendering.SSGI.MaxIterations", 32 };
+CVar<float> cvSSGIRayStep { "Rendering.SSGI.RayStep", 1.5f };
+CVar<float> cvSSGIDistanceBias { "Rendering.SSGI.DistanceBias", 0.009f };
+CVar<uint32> cvSSGIMaxIterations { "Rendering.SSGI.MaxIterations", 16 };
 
 namespace DeferredRendererHelpers {
 

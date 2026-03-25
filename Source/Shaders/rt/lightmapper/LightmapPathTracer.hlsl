@@ -311,7 +311,7 @@ void RayGenMain()
     // full path tracing with diffuse/specular bounces
     float4 accumRadiance = (float4)0.0;
 
-#if 0 // old ver (totally path traced)
+#if 0 // path traced ver
     for (uint sample_index = 0; sample_index < NUM_SAMPLES; sample_index++)
     {
         float2 rnd0 = float2(RandomFloat(ray_seed), RandomFloat(ray_seed));

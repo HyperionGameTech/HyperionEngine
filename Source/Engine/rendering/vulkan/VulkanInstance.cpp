@@ -255,11 +255,6 @@ ExtensionMap VulkanInstance::GetExtensionMap()
 #endif
 
 #if HYP_EDITOR
-    // enable external memory and other required extensions for interfacing with the editor application
-#ifndef HYP_APPLE
-    map[VK_KHR_EXTERNAL_MEMORY_EXTENSION_NAME] = true;
-    map[VK_KHR_EXTERNAL_SEMAPHORE_EXTENSION_NAME] = true;
-#endif
 
 #ifdef HYP_WINDOWS
     map[VK_KHR_DEDICATED_ALLOCATION_EXTENSION_NAME] = true;
