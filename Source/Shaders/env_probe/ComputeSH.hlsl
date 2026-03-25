@@ -103,14 +103,14 @@ void CSMain(uint3 dispatchThreadID : SV_DispatchThreadID)
 
     for (int i = 0; i < 9; i++)
     {
-        CURRENT_TILE.coeffs_weights[i] = float4(0.0, 0.0, 0.0, 0.0);
+        CURRENT_TILE.coeffs_weights[i] = (float4)0.0;
     }
 
     if (all(dispatchThreadID.xyz == uint3(0, 0, 0)))
     {
         for (int i = 0; i < 9; i++)
         {
-            env_probes[env_probe_index].sh[i] = float4(0.0, 0.0, 0.0, 0.0);
+            env_probes[env_probe_index].sh[i] = (float4)0.0;
         }
     }
 #elif defined(MODE_BUILD_COEFFICIENTS)
@@ -120,7 +120,7 @@ void CSMain(uint3 dispatchThreadID : SV_DispatchThreadID)
     const float2 sample_point = uv * 2.0 - 1.0;
     const float3 dir = normalize(DecodeOctahedralCoord(sample_point));
 
-    float4 albedo = SAMPLE_TEXTURE_CUBE(sampler_linear, cubemap_color, dir);
+    float4 albedo = SAMPLE_TEXTURE_CUBE_LOD(sampler_linear, cubemap_color, dir, 0.0);
     float4 color = albedo;
 
     float sh_values[27];
@@ -223,5 +223,11 @@ void CSMain(uint3 dispatchThreadID : SV_DispatchThreadID)
         env_probes[env_probe_index].sh[i] = float4(result, 1.0);
     }
 #endif
+
+    // // temp: debug
+    // for (int i = 0; i < 9; i++)
+    // {
+    //     env_probes[env_probe_index].sh[i] = float4(1.0, 0.0, 0.0, 1.0);
+    // }
 #endif
 }

@@ -327,8 +327,19 @@ void ComputeEnvProbeSphericalHarmonics(
     const EnvProbe& envProbe,
     const Texture& inColorTexture)
 {
+    bool useAsyncCompute = UseAsyncCompute;
+    if (!IsOnThread(g_renderThread))
+    {
+        useAsyncCompute = false;
+    }
+
+    // @TODO fix thread safety
     Frame* frame = g_renderInterface->GetCurrentFrame();
     Assert(frame != nullptr);
+    
+    AsyncCompute* asyncCompute = useAsyncCompute ? g_renderInterface->CreateAsyncCompute() : nullptr;
+
+    CommandRecorder& cr = useAsyncCompute ? asyncCompute->cr : g_renderInterface->commandRecorderAllocator.GetCommandRecorder();
 
     Array<GpuBufferRef, FixedAllocator<ShNumLevels>> shTilesBuffers;
     shTilesBuffers.Resize(ShNumLevels);
@@ -373,10 +384,6 @@ void ComputeEnvProbeSphericalHarmonics(
     shReadbackBuffer->Map();
 
     Array<GpuBufferRef> uniformBuffers;
-
-    AsyncCompute* asyncCompute = UseAsyncCompute ? g_renderInterface->CreateAsyncCompute() : nullptr;
-
-    CommandRecorder& cr = UseAsyncCompute ? asyncCompute->cr : frame->cr;
 
     cr << InsertBarrier(shTilesBuffers[0], RS_UNORDERED_ACCESS, ShaderModuleType::Compute);
     cr << InsertBarrier(g_renderInterface->gpuBuffers[GRB_ENV_PROBES]->GetBuffer(frame->GetFrameIndex()), RS_UNORDERED_ACCESS, ShaderModuleType::Compute);
@@ -473,41 +480,79 @@ void ComputeEnvProbeSphericalHarmonics(
         cr << InsertBarrier(envProbesGpuBuffer, RS_UNORDERED_ACCESS, ShaderModuleType::Compute);
     }
 
-    auto OnCompleteCallback = [envProbe = MakeStrongRef(&envProbe),
-                                  shReadbackBuffer = std::move(shReadbackBuffer),
-                                  shTilesBuffers = std::move(shTilesBuffers),
-                                  uniformBuffers = std::move(uniformBuffers)](...) mutable
+    struct ReadbackSphericalHarmonicsPayload
     {
-        // Read back the SH coefficients from the GPU buffer and store on the EnvProbe.
-        EnvProbeSphericalHarmonics shData;
-
-        Assert(shReadbackBuffer.IsValid() && shReadbackBuffer->Size() >= sizeof(shData.values));
-        shReadbackBuffer->Read(sizeof(shData.values), &shData.values[0]);
-
-        {
-            // SetSphericalHarmonicsData() marks it dirty so we don't need to do that here.
-            auto resGuard = envProbe->GetWriteScope();
-            envProbe->SetSphericalHarmonicsData(shData);
-        }
-
-        EnqueueDeletion(std::move(shReadbackBuffer));
-        EnqueueDeletion(std::move(shTilesBuffers));
-        EnqueueDeletion(std::move(uniformBuffers));
+        Handle<EnvProbe> envProbe;
+        GpuBufferRef shReadbackBuffer;
+        Array<GpuBufferRef> shTilesBuffers;
+        Array<GpuBufferRef> uniformBuffers;
     };
 
-    if (UseAsyncCompute)
+    // Custom CmdBase class, executes when all previous commands are done.
+    //Always executes on the Render thread.
+    class ReadbackSphericalHarmonics : public CmdBase
     {
-        asyncCompute->OnCompleted
-            .Bind(std::move(OnCompleteCallback))
-            .Detach();
+    public:
+        ReadbackSphericalHarmonicsPayload* payload;
 
+        explicit ReadbackSphericalHarmonics(ReadbackSphericalHarmonicsPayload* payload)
+            : payload(payload)
+        {
+        }
+
+        static void InvokeStatic(CmdBase* cmd, CommandBuffer* commandBuffer)
+        {
+            ReadbackSphericalHarmonics* cmdCasted = static_cast<ReadbackSphericalHarmonics*>(cmd);
+            
+            Frame* frame = g_renderInterface->GetCurrentFrame();
+            Assert(frame != nullptr);
+
+            // Readback happens after the frame is finished.
+            // Hand over the payload to the delegate handler.
+            frame->OnFrameEnd.Bind([pPayload = cmdCasted->payload](...)
+                {
+                    ReadbackSphericalHarmonicsPayload& payload = *pPayload;
+
+                    // Read back the SH coefficients from the GPU buffer and store on the EnvProbe.
+                    EnvProbeSphericalHarmonics shData;
+
+                    Assert(payload.shReadbackBuffer.IsValid() && payload.shReadbackBuffer->Size() >= sizeof(shData.values));
+                    payload.shReadbackBuffer->Read(sizeof(shData.values), &shData.values[0]);
+
+                    {
+                        // SetSphericalHarmonicsData() marks it dirty so we don't need to do that here.
+                        auto resGuard = payload.envProbe->GetWriteScope();
+                        payload.envProbe->SetSphericalHarmonicsData(shData);
+                    }
+
+                    EnqueueDeletion(std::move(payload.shReadbackBuffer));
+                    EnqueueDeletion(std::move(payload.shTilesBuffers));
+                    EnqueueDeletion(std::move(payload.uniformBuffers));
+
+                    delete pPayload;
+                })
+                .Detach();
+
+            // not necessary but just to aid in debugging
+            cmdCasted->payload = nullptr;
+        }
+    };
+
+    ReadbackSphericalHarmonicsPayload* payload = new ReadbackSphericalHarmonicsPayload;
+    payload->envProbe = MakeStrongRef(&envProbe);
+    payload->shReadbackBuffer = std::move(shReadbackBuffer);
+    payload->shTilesBuffers = shTilesBuffers;
+    payload->uniformBuffers = uniformBuffers;
+
+    cr << ReadbackSphericalHarmonics(payload);
+
+    if (useAsyncCompute)
+    {
         g_renderInterface->SubmitAsyncCompute(asyncCompute);
     }
     else
     {
-        frame->OnFrameEnd
-            .Bind(std::move(OnCompleteCallback))
-            .Detach();
+        cr.Done();
     }
 }
 

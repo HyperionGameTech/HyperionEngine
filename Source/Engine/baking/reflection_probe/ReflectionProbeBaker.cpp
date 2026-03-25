@@ -28,6 +28,12 @@ void ConvolveEnvProbeCubemap(
     const EnvProbe& envProbe);
 } // namespace ConvolveProbe
 
+namespace ComputeSH {
+void ComputeEnvProbeSphericalHarmonics(
+    const EnvProbe& envProbe,
+    const Texture& inColorTexture);
+} // namespace ComputeSH
+
 namespace Baking {
 
 constexpr TextureFormat ReflectionProbeTextureFormat = TextureFormat::RGBA32F;
@@ -107,24 +113,26 @@ void Baker<ReflectionProbe>::OnCompleted_Internal()
     // Set the baked texture on the EnvProbe
     m_envProbe->SetBakedTexture(cubemap);
 
-    struct ConvolveProbeCommand : public RenderCommand
+    // Covolves the env probe cubemap and computes SH coefficients on the GPU
+    struct ProcessEnvProbeCommand : public RenderCommand
     {
         Handle<EnvProbe> envProbe;
         Handle<Texture> cubemap;
 
-        ConvolveProbeCommand(const Handle<EnvProbe>& envProbe, const Handle<Texture>& cubemap)
+        ProcessEnvProbeCommand(const Handle<EnvProbe>& envProbe, const Handle<Texture>& cubemap)
             : envProbe(envProbe),
               cubemap(cubemap)
         {
         }
 
-        ~ConvolveProbeCommand() override
+        ~ProcessEnvProbeCommand() override
         {
         }
 
         RendererResult operator()() override
         {
             ConvolveProbe::ConvolveEnvProbeCubemap(cubemap, *envProbe);
+            ComputeSH::ComputeEnvProbeSphericalHarmonics(*envProbe, *cubemap);
 
             g_renderInterface->GetCurrentFrame()->OnFrameEnd.Bind([cubemap = cubemap, envProbe = envProbe](Frame*) mutable
                 {
@@ -136,7 +144,7 @@ void Baker<ReflectionProbe>::OnCompleted_Internal()
         }
     };
 
-    PUSH_RENDER_COMMAND(ConvolveProbeCommand, m_envProbe, cubemap);
+    PUSH_RENDER_COMMAND(ProcessEnvProbeCommand, m_envProbe, cubemap);
 
     HYP_LOG(Lightmap, Verbose, "EnvProbe {} lightmap baking complete! Radiance and irradiance textures created.", m_envProbe->Id());
 }
