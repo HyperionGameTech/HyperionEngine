@@ -53,7 +53,7 @@
       "AO": false
     },
     "Vulkan": {
-      "DebugLayers": false
+      "DebugLayers": true
     }
   },
   "Editor": {

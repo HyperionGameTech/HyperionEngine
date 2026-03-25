@@ -532,6 +532,7 @@ void EnvProbe::SetBakedTexture(const Handle<Texture>& texture)
         CheckResult(m_texture->Create());
     }
 
+    MarkDirty();
     SetNeedsRenderProxyUpdate();
 }
 

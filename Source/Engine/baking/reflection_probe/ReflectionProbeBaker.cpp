@@ -77,41 +77,16 @@ void Baker<ReflectionProbe>::OnCompleted_Internal()
 
     TextureDesc textureDesc {
         TextureType::Cubemap,
-        ReflectionProbeTextureFormat,
+        bitmap.GetFormat(),
         Vec3u { dimensions.x, dimensions.y, 1 },
-        TFM_LINEAR_MIPMAP,
+        TFM_LINEAR,
         TFM_LINEAR,
         TWM_CLAMP_TO_EDGE
     };
 
-    Rect<uint32> rect {};
-    rect.x0 = 0;
-    rect.y0 = 0;
-    rect.x1 = bitmap.GetWidth();
-    rect.y1 = bitmap.GetHeight();
-
-    Bitmap<ReflectionProbeTextureFormat> finalBitmap(bitmap.GetWidth(), bitmap.GetHeight());
-    BitmapUtils::Blit(bitmap, finalBitmap, rect, rect);
-
-    ByteBuffer imageData(finalBitmap.ToByteView());
-    Texture::GenerateMipmaps(textureDesc, imageData);
-
-    Handle<Texture> cubemap = MakeHandle<Texture>(textureDesc, imageData.ToByteView());
-    cubemap->SetName(NAME_FMT("EnvProbe_{}_Baked", m_envProbe->GetName()));
-
-    Result registerAssetResult = g_assetManager->GetAssetRegistry()->RegisterAsset(
-        "$Import/Media/Lightmaps", cubemap, AddAssetConflictMode::ReplaceExisting);
-
-    if (registerAssetResult.HasError())
-    {
-        HYP_LOG(Lightmap, Error, "Failed to register radiance texture '{}' with asset registry: {}",
-            cubemap->GetName(), registerAssetResult.GetError().GetMessage());
-    }
-
-    CheckResult(cubemap->Create());
-
-    // Set the baked texture on the EnvProbe
-    m_envProbe->SetBakedTexture(cubemap);
+    Handle<Texture> cubemap = MakeHandle<Texture>(textureDesc, bitmap.ToByteView());
+    cubemap->SetName(NAME_FMT("{}_SrcCubemap", m_envProbe->GetName()));
+    cubemap->SetIsTransient(true);
 
     // Covolves the env probe cubemap and computes SH coefficients on the GPU
     struct ProcessEnvProbeCommand : public RenderCommand
@@ -131,6 +106,27 @@ void Baker<ReflectionProbe>::OnCompleted_Internal()
 
         RendererResult operator()() override
         {
+            CheckResult(cubemap->Create());
+            
+            // prevent writing on other threads
+            auto resGuard = envProbe->GetWriteScope();
+
+            Handle<Texture> prefiltered = MakeHandle<Texture>(TextureDesc {
+                TextureType::Cubemap,
+                cubemap->GetFormat(),
+                Vec3u { envProbe->GetDimensions().x, envProbe->GetDimensions().y, 1 },
+                TFM_LINEAR_MIPMAP,
+                TFM_LINEAR,
+                TWM_CLAMP_TO_EDGE
+            });
+
+            prefiltered->SetName(NAME_FMT("{}_Prefiltered", envProbe->GetName()));
+            prefiltered->Register("$Memory/Media/Lightmaps", AddAssetConflictMode::ReplaceExisting);
+
+            CheckResult(prefiltered->Create());
+
+            envProbe->SetBakedTexture(prefiltered);
+
             ConvolveProbe::ConvolveEnvProbeCubemap(cubemap, *envProbe);
             ComputeSH::ComputeEnvProbeSphericalHarmonics(*envProbe, *cubemap);
 

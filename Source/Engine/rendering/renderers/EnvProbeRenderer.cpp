@@ -90,6 +90,13 @@ void ConvolveEnvProbeCubemap(
     
     Handle<Texture> srcTexture;
     bool needsMipMapGeneration = false;
+
+    TextureDesc dstTextureDesc = prefilteredEnvMap->GetTextureDesc();
+    dstTextureDesc.imageUsage = IU_STORAGE | IU_SAMPLED;
+
+    Handle<Texture> dstTexture = MakeHandle<Texture>(dstTextureDesc);
+    dstTexture->SetName(NAME("EnvProbeRenderer_DstColorTexture"));
+    CheckResult(dstTexture->Create());
     
     if (inTexture->HasMipMaps())
     {
@@ -113,7 +120,6 @@ void ConvolveEnvProbeCubemap(
         srcTexture->SetName(NAME("EnvProbeRenderer_SrcColorTexture"));
         CheckResult(srcTexture->Create());
     }
-
 
     ConvolveProbeUniforms uniforms {};
     uniforms.outImageDimensions = Vec2u::Zero(); // set for each mip pass
@@ -191,13 +197,13 @@ void ConvolveEnvProbeCubemap(
 
         // create the view as 2D array instead of cubemap
         GpuImageViewRef dstImageView = g_renderInterface->textureViewCache->GetOrCreate(
-            prefilteredEnvMap, subResource, TextureType::Texture2DArray);
+            dstTexture, subResource, TextureType::Texture2DArray);
 
         GpuImageViewRef srcImageView = g_renderInterface->textureViewCache->GetOrCreate(srcTexture);
         
         Assert(dstImageView.IsValid() && srcImageView.IsValid());
 
-        cr << InsertBarrier(prefilteredEnvMap->GetGpuImage(), RS_UNORDERED_ACCESS, subResource);
+        cr << InsertBarrier(dstTexture->GetGpuImage(), RS_UNORDERED_ACCESS, subResource);
 
         const Frame* currFrame = g_renderInterface->GetCurrentFrame();
         const uint32 frameIndex = currFrame ? currFrame->GetFrameIndex() : 0;
@@ -213,10 +219,20 @@ void ConvolveEnvProbeCubemap(
 
         cr << DispatchCompute(Vec3u { (mipExtent.x + 7) / 8, (mipExtent.y + 7) / 8, 6 });
 
+        // now copy it to the actual dst
+        cr << InsertBarrier(dstTexture->GetGpuImage(), RS_COPY_SRC, subResource);
+        cr << InsertBarrier(prefilteredEnvMap->GetGpuImage(), RS_COPY_DST, subResource);
+
+        cr << CopyImage(dstTexture->GetGpuImage(), prefilteredEnvMap->GetGpuImage(),
+            Vec3u::Zero(), Vec3u::Zero(),
+            dstTexture->GetExtent(),
+            subResource, subResource);
+        
+        // put prefiltered map back into shader read
         cr << InsertBarrier(prefilteredEnvMap->GetGpuImage(), RS_SHADER_RESOURCE, subResource);
     }
 
-    // readback on completion and writ e to cpu-side data if probe is baked
+    // readback on completion and write to cpu-side data if probe is baked
     if (envProbe.IsBaked())
     {
         HYP_LOG(Rendering, Verbose, "Enquueing readback of convolved EnvProbe {}.", envProbe.GetName());
@@ -305,7 +321,6 @@ void ConvolveEnvProbeCubemap(
 
     // keep some resources around until we know we're done with them from this pass
     EnqueueDeletion(std::move(buffers));
-    EnqueueDeletion(std::move(prefilteredEnvMap));
 
     if (needsMipMapGeneration)
     {

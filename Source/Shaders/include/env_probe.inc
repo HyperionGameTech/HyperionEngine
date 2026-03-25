@@ -140,7 +140,7 @@ float3 SphericalHarmonicsSample(const in SH9 sh, float3 normal)
 }
 
 // Sample spherical harmonics from an EnvProbe up to the given SH order
-float3 EnvProbeSH(in EnvProbe envProbe, float3 N, int order = 3)
+float3 EnvProbeSH(in EnvProbe envProbe, float3 N, int order = 2)
 {
     float bands[9];
     ProjectSHBands(N, bands);

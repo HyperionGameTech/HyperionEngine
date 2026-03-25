@@ -602,7 +602,12 @@ void Texture::Readback(ByteBuffer& outByteBuffer)
     HYP_SCOPE;
     AssertOnThread(g_renderThread);
 
-    AssertReady();
+    AssertDebug(IsCreated());
+
+    if (!IsCreated())
+    {
+        return;
+    }
 
     GpuBufferRef gpuBuffer = g_renderInterface->MakeGpuBuffer(GpuBufferType::STAGING_BUFFER, m_gpuImage->GetByteSize());
 #if HYP_DEBUG_MODE
@@ -652,7 +657,12 @@ void Texture::EnqueueReadback(Proc<void(ByteBuffer&& byteBuffer)>&& callback)
     HYP_SCOPE;
     AssertOnThread(g_renderThread);
 
-    AssertReady();
+    AssertDebug(IsCreated());
+
+    if (!IsCreated())
+    {
+        return;
+    }
 
     Frame* currentFrame = g_renderInterface->GetCurrentFrame();
 
