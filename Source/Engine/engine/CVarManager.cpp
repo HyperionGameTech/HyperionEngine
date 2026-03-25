@@ -22,12 +22,89 @@ static CVarManager* s_pInstance = nullptr;
 #pragma region CVar
 
 template <>
-bool CVar<int>::SetFromConfig(const ConfigValue& cfgValue)
+bool CVar<int8>::SetFromConfig(const ConfigValue& cfgValue)
+{
+    if (!cfgValue.IsNumber())
+        return false;
+
+    m_value = cfgValue.ToInt8();
+
+    return true;
+}
+
+template <>
+bool CVar<int16>::SetFromConfig(const ConfigValue& cfgValue)
+{
+    if (!cfgValue.IsNumber())
+        return false;
+
+    m_value = cfgValue.ToInt16();
+
+    return true;
+}
+
+template <>
+bool CVar<int32>::SetFromConfig(const ConfigValue& cfgValue)
 {
     if (!cfgValue.IsNumber())
         return false;
 
     m_value = cfgValue.ToInt32();
+
+    return true;
+}
+
+template <>
+bool CVar<int64>::SetFromConfig(const ConfigValue& cfgValue)
+{
+    if (!cfgValue.IsNumber())
+        return false;
+
+    m_value = cfgValue.ToInt64();
+
+    return true;
+}
+
+template <>
+bool CVar<uint8>::SetFromConfig(const ConfigValue& cfgValue)
+{
+    if (!cfgValue.IsNumber())
+        return false;
+
+    m_value = cfgValue.ToUInt8();
+
+    return true;
+}
+
+template <>
+bool CVar<uint16>::SetFromConfig(const ConfigValue& cfgValue)
+{
+    if (!cfgValue.IsNumber())
+        return false;
+
+    m_value = cfgValue.ToUInt16();
+
+    return true;
+}
+
+template <>
+bool CVar<uint32>::SetFromConfig(const ConfigValue& cfgValue)
+{
+    if (!cfgValue.IsNumber())
+        return false;
+
+    m_value = cfgValue.ToUInt32();
+
+    return true;
+}
+
+template <>
+bool CVar<uint64>::SetFromConfig(const ConfigValue& cfgValue)
+{
+    if (!cfgValue.IsNumber())
+        return false;
+
+    m_value = cfgValue.ToUInt64();
 
     return true;
 }
@@ -39,6 +116,17 @@ bool CVar<float>::SetFromConfig(const ConfigValue& cfgValue)
         return false;
 
     m_value = cfgValue.ToFloat();
+
+    return true;
+}
+
+template <>
+bool CVar<double>::SetFromConfig(const ConfigValue& cfgValue)
+{
+    if (!cfgValue.IsNumber())
+        return false;
+
+    m_value = cfgValue.ToDouble();
 
     return true;
 }

@@ -49,6 +49,9 @@ static const ShaderPropertyId s_propMaxEnvProbes = InternShaderProperty(ShaderPr
 
 CVar<float> cvSSGIDepthThreshold { "Rendering.SSGI.DepthThreshold", 0.2f };
 CVar<float> cvSSGINormalPower { "Rendering.SSGI.NormalPower", 8.0f };
+CVar<float> cvSSGIRayStep { "Rendering.SSGI.RayStep", 2.0f };
+CVar<float> cvSSGIDistanceBias { "Rendering.SSGI.DistanceBias", 0.01f };
+CVar<uint32> cvSSGIMaxIterations { "Rendering.SSGI.MaxIterations", 32 };
 
 namespace DeferredRendererHelpers {
 
@@ -214,9 +217,9 @@ void SSGI::Render(Frame* frame, const RenderSetup& renderSetup)
         { // Update constant buffer
             SSGIConstants ssgiConstants {};
             ssgiConstants.dimensions = m_extent;
-            ssgiConstants.rayStep = 2.0f;
-            ssgiConstants.maxIterations = 32;
-            ssgiConstants.distanceBias = 0.01f;
+            ssgiConstants.rayStep = cvSSGIRayStep.Get();
+            ssgiConstants.maxIterations = cvSSGIMaxIterations.Get();
+            ssgiConstants.distanceBias = cvSSGIDistanceBias.Get();
             ssgiConstants.numSamples = NumSamples;
 
             Array<Pair<Light*, LightShaderData*>, RenderAllocator> tempLights;

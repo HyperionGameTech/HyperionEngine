@@ -20,7 +20,7 @@
 
 groupshared ProbeRayData ray_cache[CACHE_SIZE];
 
-DECLARE_BUFFER(DDGI, CBuffer) cbuffer CBuffer
+DECLARE_BUFFER_DYNAMIC(DDGI, CBuffer) cbuffer CBuffer
 {
     DDGIConstants ddgiConstants;
 };

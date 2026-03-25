@@ -20,15 +20,15 @@
       "EnumValues": []
     }, {
       "$Class": "ShaderProperty",
-      "Name": "LOBE_SIZE",
-      "Flags": 0,
-      "Value": 0.429000,
-      "EnumValues": []
-    }, {
-      "$Class": "ShaderProperty",
       "Name": "NUM_SAMPLES",
       "Flags": 0,
       "Value": 4096,
+      "EnumValues": []
+    }, {
+      "$Class": "ShaderProperty",
+      "Name": "LOBE_SIZE",
+      "Flags": 0,
+      "Value": 0.429000,
       "EnumValues": []
     }],
   "RevisionNumber": 31459917,
@@ -135,7 +135,7 @@
   "ShaderBlobs": [{
       "$Class": "BlobDataReference",
       "Key": "Engine/Shaders/ConvolveProbe/ConvolveProbe_3523834014685790242.CS",
-      "Size": 89820
+      "Size": 89772
     }],
   "PropertySetHashCode": {},
   "LastCompiledTimestamp": {

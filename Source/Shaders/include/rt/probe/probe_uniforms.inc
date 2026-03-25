@@ -22,8 +22,6 @@ struct DDGIConstants
     uint num_rays_per_probe;
     uint numBoundLights;
     uint flags;
-
-    uvec4 light_indices[4];
 };
 
 struct ProbeRayData

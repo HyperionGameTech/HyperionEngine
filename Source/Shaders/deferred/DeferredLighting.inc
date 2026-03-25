@@ -102,18 +102,6 @@ vec3 CalculateRefraction(
 
 #include "../include/env_probe.inc"
 
-vec3 SampleEnvProbe_SH(uint env_probe_index, vec3 N)
-{
-    SH9 sh9;
-
-    for (int i = 0; i < 9; i++)
-    {
-        sh9.values[i] = env_probes[env_probe_index].sh[i].rgb;
-    }
-
-    return SphericalHarmonicsSample(sh9, N);
-}
-
 void ApplyReflectionProbe(uint probe_texture_index, vec3 probe_world_position, vec3 aabb_min, vec3 aabb_max, vec3 P, vec3 R, float lod, inout vec4 ibl)
 {
     ibl = vec4(0.0, 0.0, 0.0, 0.0);

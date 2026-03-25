@@ -78,11 +78,11 @@
             }], [{
               "$Class": "ShaderInput",
               "Register": 3,
-              "ElementType": 1,
+              "ElementType": 2,
               "Name": "CBuffer",
               "Count": 1,
               "Size": 4294967295,
-              "IsDynamic": false,
+              "IsDynamic": true,
               "StructInfo": {
                 "Name": "",
                 "Size": 4294967295,
@@ -99,11 +99,11 @@
   "ShaderBlobs": [{
       "$Class": "BlobDataReference",
       "Key": "Engine/Shaders/UpdateProbeData/UpdateProbeData_18434812368633942494.CS",
-      "Size": 37984
+      "Size": 37824
     }],
   "PropertySetHashCode": {},
   "LastCompiledTimestamp": {
-    "Value": 1772989233000
+    "Value": 1774449188000
   },
   "Name": "UpdateProbeData_18434812368633942494",
   "FriendlyName": "UpdateProbeData_18434812368633942494",

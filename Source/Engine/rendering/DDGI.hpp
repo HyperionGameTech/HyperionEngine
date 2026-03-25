@@ -113,7 +113,11 @@ private:
     Array<DDGIProbeData, DynamicAllocator> m_probeData;
 
     FixedArray<GpuBufferRef, NumFramesInFlight> m_cBuffers;
-    FixedArray<GpuBufferRef, NumFramesInFlight> m_lightsBuffers;
+
+    GpuBuffer* m_dynamicCBuffer = nullptr;
+    size_t m_dynamicCBufferOffset = 0;
+    size_t m_dynamicCBufferSize = 0;
+
     GpuBufferRef m_radianceBuffer;
 
     GpuImageRef m_irradianceImage;

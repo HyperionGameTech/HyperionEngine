@@ -216,6 +216,34 @@ void ConvolveEnvProbeCubemap(
         cr << InsertBarrier(prefilteredEnvMap->GetGpuImage(), RS_SHADER_RESOURCE, subResource);
     }
 
+    // readback on completion and writ e to cpu-side data if probe is baked
+    if (envProbe.IsBaked())
+    {
+        HYP_LOG(Rendering, Verbose, "Enquueing readback of convolved EnvProbe {}.", envProbe.GetName());
+        prefilteredEnvMap->EnqueueReadback([envProbeWeak = MakeWeakRef(&envProbe), prefilteredEnvMap](ByteBuffer&& byteBuffer)
+        {
+            Handle<EnvProbe> envProbeStrong = envProbeWeak.Lock();
+            if (!envProbeStrong.IsValid())
+            {
+                HYP_LOG(Rendering, Warning, "EnvProbe was destroyed before readback of convolved data completed, skipping write to cpu-side data.");
+                return;
+            }
+
+            HYP_LOG(Rendering, Info, "Readback of convolved EnvProbe {} completed, size {} bytes", envProbeStrong->GetName(), byteBuffer.Size());
+
+            auto resGuard = prefilteredEnvMap->GetWriteScope();
+
+            // sanity check
+            Assert(byteBuffer.Size() == prefilteredEnvMap->GetTextureDesc().GetByteSize());
+
+            // Copy to cpu side data
+            prefilteredEnvMap->SetImageData(byteBuffer.ToByteView());
+
+            // mark dirty so it gets saved on project save.
+            envProbeStrong->MarkDirty();
+        });
+    }
+
     // Update in env probes texture array if bound
     if (envProbe.IsA(SkyProbe::StaticClass()) || envProbe.IsA(ReflectionProbe::StaticClass()))
     {
@@ -600,6 +628,13 @@ void ReflectionProbeRenderer::ComputeSH(Frame* frame, const RenderSetup& renderS
 
     AssertDebug(uniforms.envProbeIndex != ~0u);
 
+    static constexpr uint32 ShDataSize = sizeof(EnvProbeShaderData::shData);
+    const uint32 shDataSrcOffset = uint32(sizeof(EnvProbeShaderData) * uniforms.envProbeIndex) + uint32(offsetof(EnvProbeShaderData, shData));
+
+    GpuBufferRef shReadbackBuffer = g_renderInterface->MakeGpuBuffer(GpuBufferType::STAGING_BUFFER, ShDataSize);
+    CheckResult(shReadbackBuffer->Create());
+    shReadbackBuffer->Map();
+
     Array<GpuBufferRef> uniformBuffers;
 
     AsyncCompute* asyncCompute = g_renderInterface->CreateAsyncCompute();
@@ -707,17 +742,36 @@ void ReflectionProbeRenderer::ComputeSH(Frame* frame, const RenderSetup& renderS
 
     asyncRecorder << InsertBarrier(g_renderInterface->gpuBuffers[GRB_ENV_PROBES]->GetBuffer(frame->GetFrameIndex()), RS_UNORDERED_ACCESS, ShaderModuleType::Compute);
 
+    // Copy the computed SH data back to a CPU-accessible staging buffer for readback
+    {
+        const GpuBufferRef& envProbesGpuBuffer = g_renderInterface->gpuBuffers[GRB_ENV_PROBES]->GetBuffer(frame->GetFrameIndex());
+
+        asyncRecorder << InsertBarrier(envProbesGpuBuffer, RS_COPY_SRC);
+        asyncRecorder << InsertBarrier(shReadbackBuffer, RS_COPY_DST);
+        asyncRecorder << CopyBuffer(envProbesGpuBuffer, shReadbackBuffer, shDataSrcOffset, 0u, ShDataSize);
+        asyncRecorder << InsertBarrier(envProbesGpuBuffer, RS_UNORDERED_ACCESS, ShaderModuleType::Compute);
+    }
+
     asyncCompute->OnCompleted
         .Bind([asyncCompute,
                   envProbe = MakeStrongRef(envProbe),
+                  shReadbackBuffer = std::move(shReadbackBuffer),
                   shTilesBuffers = std::move(shTilesBuffers),
                   uniformBuffers = std::move(uniformBuffers)]() mutable
             {
-                //const uint32 boundIndex = GetBinding(envProbe);
-                //Assert(boundIndex != ~0u);
+                // Read back the SH coefficients from the GPU buffer and store on the EnvProbe.
+                EnvProbeSphericalHarmonics shData;
+                
+                Assert(shReadbackBuffer.IsValid() && shReadbackBuffer->Size() >= sizeof(shData.values));
+                shReadbackBuffer->Read(sizeof(shData.values), &shData.values[0]);
 
-                // @TODO! Copy to cpu side data
+                {
+                    // SetSphericalHarmonicsData() marks it dirty so we don't need to do that here.
+                    auto resGuard = envProbe->GetWriteScope();
+                    envProbe->SetSphericalHarmonicsData(shData);
+                }
 
+                EnqueueDeletion(std::move(shReadbackBuffer));
                 EnqueueDeletion(std::move(shTilesBuffers));
                 EnqueueDeletion(std::move(uniformBuffers));
             })

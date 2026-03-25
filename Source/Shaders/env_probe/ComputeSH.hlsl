@@ -289,6 +289,5 @@ void CSMain(uint3 dispatchThreadID : SV_DispatchThreadID)
         env_probes[env_probe_index].sh[i] = float4(result, 1.0);
     }
 #endif
-
 #endif
 }

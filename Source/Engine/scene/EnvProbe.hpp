@@ -234,6 +234,9 @@ public:
     HYP_FORCE_INLINE void SetSphericalHarmonicsData(const EnvProbeSphericalHarmonics& shData)
     {
         m_shData = shData;
+
+        MarkDirty();
+
         SetNeedsRenderProxyUpdate();
     }
 

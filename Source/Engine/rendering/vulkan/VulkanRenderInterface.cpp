@@ -755,6 +755,9 @@ VulkanFrame* VulkanRenderInterface::PrepareNextFrame()
         if (elem->CheckStatus())
         {
             elem->OnCompleted();
+            elem->OnCompleted.RemoveAllDetached();
+
+            AssertDebug(!elem->OnCompleted.AnyBound());
 
             // @NOTE Don't need to lock mutex since we'll only be using CreateAsyncCompute() from main render thread and render task / workers.
             // And workers wouldn't be kicked off at this point in the frame.

@@ -17,34 +17,34 @@ struct EnvProbe
 {
     mat4 face_view_matrices[6];
 
-    vec4 aabb_max;
-    vec4 aabb_min;
-    vec4 world_position;
+    float4 aabb_max;
+    float4 aabb_min;
+    float4 world_position;
 
     uint texture_index; // point light shadow map probes - this is the index in the point shadow maps array
     uint flags;
     float camera_near;
     float camera_far;
 
-    uvec2 dimensions;
-    uvec2 visibility_bits;
+    uint2 dimensions;
+    uint2 visibility_bits;
 
-    vec4 sh[9];
+    float4 sh[9];
 };
 
 struct EnvGrid
 {
-    vec4 dummy;
+    float4 dummy;
 };
 
 struct SH9
 {
-    vec3 values[9];
+    float3 values[9];
 };
 
 #define HYP_ENV_PROBE_PARALLAX_CORRECTED 0x1
 
-vec4 EnvProbeSample(
+float4 EnvProbeSample(
     sampler samp,
 #if ENV_PROBE_CUBEMAP
     textureCubeArray tex,
@@ -52,33 +52,33 @@ vec4 EnvProbeSample(
     texture2DArray tex,
 #endif
     uint texture_index,
-    vec3 coord, float lod)
+    float3 coord, float lod)
 {
 #if ENV_PROBE_CUBEMAP
-    vec4 color = SAMPLE_TEXTURE_CUBE_ARRAY_LOD(samp, tex, vec4(normalize(coord), float(texture_index)), lod);
+    float4 color = SAMPLE_TEXTURE_CUBE_ARRAY_LOD(samp, tex, float4(normalize(coord), float(texture_index)), lod);
 #else
-    vec4 color = SAMPLE_TEXTURE_2D_ARRAY_LOD(samp, tex, vec3(EncodeOctahedralCoord(normalize(coord)) * 0.5 + 0.5, float(texture_index)), lod);
+    float4 color = SAMPLE_TEXTURE_2D_ARRAY_LOD(samp, tex, float3(EncodeOctahedralCoord(normalize(coord)) * 0.5 + 0.5, float(texture_index)), lod);
 #endif
-    // color.rgb = pow(color.rgb, vec3(2.2));
+    // color.rgb = pow(color.rgb, float3(2.2));
     return color;
 }
 
-vec3 EnvProbeCoordParallaxCorrected(
-    vec3 probe_world_position,
-    vec3 aabb_min, vec3 aabb_max,
-    vec3 P, vec3 R)
+float3 EnvProbeCoordParallaxCorrected(
+    float3 probe_world_position,
+    float3 aabb_min, float3 aabb_max,
+    float3 P, float3 R)
 {
-    vec3 rbmax = (aabb_max - P) / R;
-    vec3 rbmin = (aabb_min - P) / R;
-    vec3 rbminmax = max(rbmax, rbmin);
+    float3 rbmax = (aabb_max - P) / R;
+    float3 rbmin = (aabb_min - P) / R;
+    float3 rbminmax = max(rbmax, rbmin);
 
     float correction = min(min(rbminmax.x, rbminmax.y), rbminmax.z);
 
-    vec3 box = P + R * correction;
+    float3 box = P + R * correction;
     return box - probe_world_position;
 }
 
-vec4 EnvProbeSampleParallaxCorrected(
+float4 EnvProbeSampleParallaxCorrected(
     sampler samp,
 #if ENV_PROBE_CUBEMAP
     textureCubeArray tex,
@@ -86,27 +86,27 @@ vec4 EnvProbeSampleParallaxCorrected(
     texture2DArray tex,
 #endif
     in EnvProbe env_probe,
-    vec3 world, vec3 R, float lod)
+    float3 world, float3 R, float lod)
 {
     uint probe_texture_index = env_probe.texture_index;
 
-    vec3 rbmax = (env_probe.aabb_max.xyz - world) / R;
-    vec3 rbmin = (env_probe.aabb_min.xyz - world) / R;
-    vec3 rbminmax = max(rbmax, rbmin);
+    float3 rbmax = (env_probe.aabb_max.xyz - world) / R;
+    float3 rbmin = (env_probe.aabb_min.xyz - world) / R;
+    float3 rbminmax = max(rbmax, rbmin);
 
     float correction = min(min(rbminmax.x, rbminmax.y), rbminmax.z);
 
-    vec3 box = world + R * correction;
-    vec3 coord = box - env_probe.world_position.xyz;
+    float3 box = world + R * correction;
+    float3 coord = box - env_probe.world_position.xyz;
 
 #if ENV_PROBE_CUBEMAP
-    return SAMPLE_TEXTURE_CUBE_ARRAY_LOD(samp, tex, vec4(normalize(coord), float(probe_texture_index)), lod);
+    return SAMPLE_TEXTURE_CUBE_ARRAY_LOD(samp, tex, float4(normalize(coord), float(probe_texture_index)), lod);
 #else
-    return SAMPLE_TEXTURE_2D_ARRAY_LOD(samp, tex, vec3(EncodeOctahedralCoord(normalize(coord)) * 0.5 + 0.5, float(probe_texture_index)), lod);
+    return SAMPLE_TEXTURE_2D_ARRAY_LOD(samp, tex, float3(EncodeOctahedralCoord(normalize(coord)) * 0.5 + 0.5, float(probe_texture_index)), lod);
 #endif
 }
 
-void ProjectSHBands(vec3 N, out float bands[9])
+void ProjectSHBands(float3 N, out float bands[9])
 {
     bands[0] = 0.282095;
     bands[1] = -0.488603 * N.y;
@@ -119,23 +119,12 @@ void ProjectSHBands(vec3 N, out float bands[9])
     bands[8] = 0.546274 * (N.x * N.x - N.y * N.y);
 }
 
-vec3 SphericalHarmonicsSample(const in SH9 sh, vec3 normal)
+float3 SphericalHarmonicsSample(const in SH9 sh, float3 normal)
 {
-    // const float x = normal.x;
-    // const float y = normal.y;
-    // const float z = normal.z;
-
-    // vec3 result = vec3(
-    //     sh.values[0] +
-
-    //     sh.values[1] * x + sh.values[2] * y + sh.values[3] * z +
-
-    //     sh.values[4] * z * x + sh.values[5] * y * z + sh.values[6] * y * x + sh.values[7] * (3.0 * z * z - 1.0) + sh.values[8] * (x * x - y * y));
-
     float bands[9];
     ProjectSHBands(normal, bands);
 
-    vec3 result = sh.values[0] * bands[0]
+    float3 result = sh.values[0] * bands[0]
         + sh.values[1] * bands[1]
         + sh.values[2] * bands[2]
         + sh.values[3] * bands[3]
@@ -145,9 +134,20 @@ vec3 SphericalHarmonicsSample(const in SH9 sh, vec3 normal)
         + sh.values[7] * bands[7]
         + sh.values[8] * bands[8];
 
-    result = max(result, vec3(0.0, 0.0, 0.0));
+    result = max(result, (float3)0.0);
 
     return result;
+}
+
+float3 EnvProbeSH(in EnvProbe envProbe, float3 N)
+{
+    SH9 sh;
+    for (int i = 0; i < 9; i++)
+    {
+        sh.values[i] = envProbe.sh[i].xyz;
+    }
+
+    return SphericalHarmonicsSample(sh, N);
 }
 
 #endif

@@ -391,8 +391,6 @@ struct alignas(16) DDGIConstants
     uint32 numRaysPerProbe;
     uint32 numBoundLights;
     uint32 flags;
-
-    Vec4u lightIndices[4];
 };
 
 } // namespace Hyperion

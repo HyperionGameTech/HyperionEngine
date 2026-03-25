@@ -694,25 +694,26 @@ void Texture::EnqueueReadback(Proc<void(ByteBuffer&& byteBuffer)>&& callback)
     }
 
     DelegateHandler* delegateHandle = new DelegateHandler();
-    *delegateHandle = currentFrame->OnFrameEnd
-                          .Bind([delegateHandle, name = GetName(), gpuImageRef = MakeStrongRef(m_gpuImage), /* hold a strong reference to our buffer to ensure it is kept alive */
-                                    stagingBuffer = MakeStrongRef(stagingBuffer),
-                                    callback = std::move(callback)](...) mutable
-                              {
-                                  HYP_LOG(Texture, Verbose, "Finish readback for texture {}", name);
+    
+    *delegateHandle = currentFrame->OnFrameEnd.Bind(
+        [delegateHandle, name = GetName(), gpuImageRef = MakeStrongRef(m_gpuImage), /* hold a strong reference to our buffer to ensure it is kept alive */
+            stagingBuffer = MakeStrongRef(stagingBuffer),
+            callback = std::move(callback)](...) mutable
+        {
+            HYP_LOG(Texture, Verbose, "Finish readback for texture {}", name);
 
-                                  ByteBuffer byteBuffer;
-                                  byteBuffer.SetSize(stagingBuffer->Size());
+            ByteBuffer byteBuffer;
+            byteBuffer.SetSize(stagingBuffer->Size());
 
-                                  stagingBuffer->Read(byteBuffer.Size(), byteBuffer.Data());
+            stagingBuffer->Read(byteBuffer.Size(), byteBuffer.Data());
 
-                                  EnqueueDeletion(std::move(stagingBuffer));
-                                  EnqueueDeletion(std::move(gpuImageRef));
+            EnqueueDeletion(std::move(stagingBuffer));
+            EnqueueDeletion(std::move(gpuImageRef));
 
-                                  callback(std::move(byteBuffer));
+            callback(std::move(byteBuffer));
 
-                                  delete delegateHandle;
-                              });
+            delete delegateHandle;
+        });
 }
 
 Vec4f Texture::Sample(Vec3f uvw, uint32 faceIndex)

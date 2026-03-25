@@ -20,6 +20,7 @@
 #include <rendering/RenderHelpers.hpp>
 #include <rendering/Texture.hpp>
 #include <rendering/TextureViewCache.hpp>
+#include <rendering/ConstantsAllocator.hpp>
 
 #include <rendering/shadows/ShadowMapCache.hpp>
 
@@ -27,9 +28,7 @@
 
 #include <scene/View.hpp>
 #include <scene/EnvProbe.hpp>
-#include <scene/EnvGrid.hpp>
 
-#include <Core/utilities/ByteUtil.hpp>
 #include <Core/utilities/DeferredScope.hpp>
 
 #include <engine/EngineDriver.hpp>
@@ -38,9 +37,7 @@ namespace Hyperion {
 
 static constexpr TextureFormat IrradianceFormat = TextureFormat::RGBA8;
 static constexpr TextureFormat DepthFormat = TextureFormat::RG16F;
-static constexpr uint32 MaxBoundLights = sizeof(DDGIConstants::lightIndices) / (sizeof(uint32));
-
-static const ShaderPropertyId s_propHasEnvProbe = InternShaderProperty(ShaderProperty(NAME("HAS_ENV_PROBE")));
+static constexpr uint32 MaxBoundLights = 4;
 
 static const ShaderPropertyId s_propUpdateProbeDataModeIrradiance = InternShaderProperty(ShaderProperty(NAME("MODE"), NAME("IRRADIANCE")));
 static const ShaderPropertyId s_propUpdateProbeDataModeDepth = InternShaderProperty(ShaderProperty(NAME("MODE"), NAME("DEPTH")));
@@ -76,7 +73,6 @@ DDGI::DDGI(DDGIInfo&& gridInfo)
 DDGI::~DDGI()
 {
     EnqueueDeletion(std::move(m_cBuffers));
-    EnqueueDeletion(std::move(m_lightsBuffers));
     EnqueueDeletion(std::move(m_radianceBuffer));
     EnqueueDeletion(std::move(m_irradianceImage));
     EnqueueDeletion(std::move(m_irradianceImageView));
@@ -120,10 +116,6 @@ void DDGI::CreateConstantBuffers()
         m_cBuffers[frameIndex] = g_renderInterface->MakeGpuBuffer(GpuBufferType::CONSTANT_BUFFER, sizeof(DDGIConstants));
         Assert(m_cBuffers[frameIndex]->Create());
         m_cBuffers[frameIndex]->Memset(sizeof(DDGIConstants), 0);
-        
-        m_lightsBuffers[frameIndex] = g_renderInterface->MakeGpuBuffer(GpuBufferType::CONSTANT_BUFFER, sizeof(LightShaderData) * MaxBoundLights);
-        Assert(m_lightsBuffers[frameIndex]->Create());
-        m_lightsBuffers[frameIndex]->Memset(sizeof(LightShaderData) * MaxBoundLights, 0);
     }
 }
 
@@ -213,8 +205,12 @@ void DDGI::UpdateUniforms(Frame* frame, const RenderSetup& renderSetup)
     uniforms.numRaysPerProbe = m_gridInfo.numRaysPerProbe;
     uniforms.numBoundLights = 0;
 
-    uint32* lightIndicesU32 = reinterpret_cast<uint32*>(uniforms.lightIndices);
-    Memory::Fill(lightIndicesU32, 0, sizeof(uniforms.lightIndices));
+    if (m_counter == 0)
+    {
+        uniforms.flags |= PROBE_SYSTEM_FLAGS_FIRST_RUN;
+    }
+
+    Array<Pair<Light*, LightShaderData*>, RenderAllocator> tempLights;
 
     for (Light* light : rpl.GetLights())
     {
@@ -230,28 +226,52 @@ void DDGI::UpdateUniforms(Frame* frame, const RenderSetup& renderSetup)
         {
             break;
         }
-        
+
         RenderProxyLight* lightProxy = static_cast<RenderProxyLight*>(GetRenderProxy(light));
         Assert(lightProxy != nullptr);
-                
 
-        m_lightsBuffers[frameIndex]->Copy(
-            uniforms.numBoundLights * sizeof(LightShaderData),
-            sizeof(LightShaderData),
-            &lightProxy->bufferData);
-
-        lightIndicesU32[uniforms.numBoundLights++] = Resources::GetBinding(light);
+        tempLights.EmplaceBack(light, &lightProxy->bufferData);
+        ++uniforms.numBoundLights;
     }
-    
-    m_lightsBuffers[frameIndex]->Flush(0, uniforms.numBoundLights * sizeof(LightShaderData));
 
+    // Update static DDGIConstants buffer (used by UpdateProbeData compute and DeferredIndirect)
     m_cBuffers[frameIndex]->Copy(sizeof(uniforms), &uniforms);
     m_cBuffers[frameIndex]->Flush(0, sizeof(uniforms));
 
-    if (m_counter == 0)
+    // Build dynamic CBuffer for DDGI raygen: DDGIConstants + lights[MAX_LIGHTS] + EnvProbe
+    g_renderInterface->constantsAllocator->Write(&uniforms);
+
+    for (uint32 i = 0; i < MaxBoundLights; i++)
     {
-        uniforms.flags |= PROBE_SYSTEM_FLAGS_FIRST_RUN;
+        if (i < uint32(tempLights.Size()))
+        {
+            g_renderInterface->constantsAllocator->Write(tempLights[i].second);
+            continue;
+        }
+
+        LightShaderData dummy {};
+        g_renderInterface->constantsAllocator->Write(&dummy);
     }
+
+    {
+        const EnvProbeShaderData* pEnvProbeShaderData = nullptr;
+
+        if (renderSetup.envProbe != nullptr)
+        {
+            RenderProxyEnvProbe* envProbeProxy = static_cast<RenderProxyEnvProbe*>(GetRenderProxy(renderSetup.envProbe));
+            Assert(envProbeProxy != nullptr);
+            pEnvProbeShaderData = &envProbeProxy->bufferData;
+        }
+        else
+        {
+            static const EnvProbeShaderData s_dummyEnvProbeShaderData;
+            pEnvProbeShaderData = &s_dummyEnvProbeShaderData;
+        }
+
+        g_renderInterface->constantsAllocator->Write(pEnvProbeShaderData);
+    }
+
+    g_renderInterface->constantsAllocator->Commit(m_dynamicCBuffer, m_dynamicCBufferOffset, m_dynamicCBufferSize);
 }
 
 void DDGI::Render(Frame* frame, const RenderSetup& renderSetup)
@@ -278,32 +298,23 @@ void DDGI::Render(Frame* frame, const RenderSetup& renderSetup)
     ShaderPropertySet shaderProperties;
     shaderProperties.Add(InternShaderProperty(ShaderProperty(NAME("MAX_LIGHTS"), int(MaxBoundLights))));
 
-    if (renderSetup.envProbe != nullptr)
-        shaderProperties.Add(s_propHasEnvProbe);
-
     frame->cr << SetCurrentShader(ShaderDesc(NAME("DDGI"), shaderProperties));
     
     frame->cr << SetShaderUniform(0, "SamplerNearest"_sh, g_renderInterface->placeholderData->GetSamplerNearest());
     frame->cr << SetShaderUniform(1, "SamplerLinear"_sh, g_renderInterface->placeholderData->GetSamplerLinearMipmap());
     frame->cr << SetShaderUniform(2, "TLAS"_sh, tlas);
     frame->cr << SetShaderUniform(3, "MeshDescriptionsBuffer"_sh, meshDescriptionsBuffer);
-    frame->cr << SetShaderUniform(4, "DDGIConstants"_sh, m_cBuffers[frameIndex]);
-    frame->cr << SetShaderUniform(5, "Lights"_sh, m_lightsBuffers[frameIndex]);
-    frame->cr << SetShaderUniform(6, "ProbeRayData"_sh, m_radianceBuffer);
+    frame->cr << SetShaderUniform(4, "CBuffer"_sh, m_dynamicCBuffer, ShaderDataOffset(m_dynamicCBufferOffset, m_dynamicCBufferSize));
+    frame->cr << SetShaderUniform(5, "ProbeRayData"_sh, m_radianceBuffer);
     
-    frame->cr << SetShaderUniform(7, "ShadowMapsTextureArray"_sh, g_renderInterface->shadowMapCache->GetAtlasImageView());
-    frame->cr << SetShaderUniform(8, "PointLightShadowMapsTextureArray"_sh, g_renderInterface->shadowMapCache->GetPointLightShadowMapImageView());
+    frame->cr << SetShaderUniform(6, "ShadowMapsTextureArray"_sh, g_renderInterface->shadowMapCache->GetAtlasImageView());
+    frame->cr << SetShaderUniform(7, "PointLightShadowMapsTextureArray"_sh, g_renderInterface->shadowMapCache->GetPointLightShadowMapImageView());
 
-    frame->cr << SetShaderUniform(9, "MaterialsBuffer"_sh, g_renderInterface->gpuBuffers[GRB_MATERIALS]->GetBuffer(frameIndex));
-    frame->cr << SetShaderUniform(10, "EntitiesBuffer"_sh, g_renderInterface->gpuBuffers[GRB_ENTITIES]->GetBuffer(frameIndex));
-    frame->cr << SetShaderUniform(11, "WorldsBuffer"_sh, g_renderInterface->gpuBuffers[GRB_WORLDS]->GetBuffer(frameIndex));
+    frame->cr << SetShaderUniform(8, "MaterialsBuffer"_sh, g_renderInterface->gpuBuffers[GRB_MATERIALS]->GetBuffer(frameIndex));
+    frame->cr << SetShaderUniform(9, "EntitiesBuffer"_sh, g_renderInterface->gpuBuffers[GRB_ENTITIES]->GetBuffer(frameIndex));
+    frame->cr << SetShaderUniform(10, "WorldsBuffer"_sh, g_renderInterface->gpuBuffers[GRB_WORLDS]->GetBuffer(frameIndex));
     
-    if (renderSetup.envProbe != nullptr)
-    {
-        frame->cr << SetShaderUniform(12, "EnvProbesTexture"_sh, g_renderInterface->textureViewCache->GetOrCreate(g_renderInterface->envProbesTexture));
-        frame->cr << SetShaderUniform(13, "EnvProbesBuffer"_sh, g_renderInterface->gpuBuffers[GRB_ENV_PROBES]->GetBuffer(frameIndex));
-        frame->cr << SetShaderUniform(14, "CurrentEnvProbe"_sh, g_renderInterface->gpuBuffers[GRB_ENV_PROBES]->GetBuffer(frameIndex), TShaderDataOffset<EnvProbeShaderData>(renderSetup.envProbe));
-    }
+    frame->cr << SetShaderUniform(11, "EnvProbesTexture"_sh, g_renderInterface->textureViewCache->GetOrCreate(g_renderInterface->envProbesTexture));
 
     frame->cr << TraceRays(Vec3u { NumProbes(m_gridInfo), m_gridInfo.numRaysPerProbe, 1u });
 
@@ -325,7 +336,7 @@ void DDGI::Render(Frame* frame, const RenderSetup& renderSetup)
 
     frame->cr << SetCurrentShader(ShaderDesc(NAME("UpdateProbeData"), shaderProperties));
 
-    frame->cr << SetShaderUniform(0, "CBuffer"_sh, m_cBuffers[frameIndex]);
+    frame->cr << SetShaderUniform(0, "CBuffer"_sh, m_dynamicCBuffer, ShaderDataOffset(m_dynamicCBufferOffset, m_dynamicCBufferSize));
     frame->cr << SetShaderUniform(1, "ProbeRayData"_sh, m_radianceBuffer);
     frame->cr << SetShaderUniform(2, "OutputImage"_sh, m_irradianceImageView);
 
@@ -339,7 +350,7 @@ void DDGI::Render(Frame* frame, const RenderSetup& renderSetup)
 
     frame->cr << SetCurrentShader(ShaderDesc(NAME("UpdateProbeData"), shaderProperties));
 
-    frame->cr << SetShaderUniform(0, "CBuffer"_sh, m_cBuffers[frameIndex]);
+    frame->cr << SetShaderUniform(0, "CBuffer"_sh, m_dynamicCBuffer, ShaderDataOffset(m_dynamicCBufferOffset, m_dynamicCBufferSize));
     frame->cr << SetShaderUniform(1, "ProbeRayData"_sh, m_radianceBuffer);
     frame->cr << SetShaderUniform(3, "OutputImage"_sh, m_depthImageView);
 

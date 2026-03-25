@@ -27,17 +27,14 @@ DECLARE_SAMPLER(DDGI, SamplerLinear) SamplerState sampler_linear;
 
 DECLARE_SRV(DDGI, TLAS) RaytracingAccelerationStructure tlas;
 
-DECLARE_BUFFER(DDGI, DDGIConstants) cbuffer DDGIUniformBuffer
+DECLARE_BUFFER_DYNAMIC(DDGI, CBuffer) cbuffer CBuffer
 {
     DDGIConstants ddgiConstants;
+    Light lights[MAX_LIGHTS];
+    EnvProbe currentEnvProbe;
 };
 
 DECLARE_UAV(DDGI, ProbeRayData) RWStructuredBuffer<ProbeRayData> probe_rays;
-
-DECLARE_BUFFER(DDGI, Lights) cbuffer Lights
-{
-    Light lights[MAX_LIGHTS];
-};
 
 #include "../../include/rt/probe/shared.inc"
 #include "../../include/rt/RayTracingHelpers.inc"
@@ -47,16 +44,10 @@ DECLARE_BUFFER(DDGI, WorldsBuffer) cbuffer WorldsBuffer
     WorldShaderData world_shader_data;
 };
 
-#if HAS_ENV_PROBE
-DECLARE_SRV_DYNAMIC(DDGI, CurrentEnvProbe) StructuredBuffer<EnvProbe> current_env_probe_buffer;
-#define current_env_probe current_env_probe_buffer[0]
-
 #if ENV_PROBE_CUBEMAP
 DECLARE_SRV(DDGI, EnvProbesTexture) TextureCubeArray envProbesTexture;
 #else
 DECLARE_SRV(DDGI, EnvProbesTexture) Texture2DArray envProbesTexture;
-#endif
-
 #endif
 
 DECLARE_SRV(DDGI, ShadowMapsTextureArray) Texture2DArray shadow_maps;
@@ -140,14 +131,13 @@ void RayGenMain()
         
         if (payload.distance < 0.0)
         {
-#if HAS_ENV_PROBE
-            if (current_env_probe.texture_index != ~0u)
+            if (currentEnvProbe.texture_index != ~0u)
             {
-                uint probe_texture_index = max(0, min(current_env_probe.texture_index, HYP_MAX_BOUND_REFLECTION_PROBES - 1));
+                uint probe_texture_index = max(0, min(currentEnvProbe.texture_index, HYP_MAX_BOUND_REFLECTION_PROBES - 1));
                 float3 env = EnvProbeSample(sampler_linear, envProbesTexture, probe_texture_index, localDirection, 0.0).rgb * ENVIRONMENT_INTENSITY;
                 radiance += env;
             }
-#endif
+
             accumRadiance += float4(radiance, 1.0);
             break;
         }

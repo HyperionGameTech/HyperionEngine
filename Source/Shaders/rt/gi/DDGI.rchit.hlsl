@@ -27,7 +27,7 @@ DECLARE_SAMPLER(DDGI, SamplerLinear) SamplerState sampler_linear;
 
 #include "../../include/rt/probe/probe_uniforms.inc"
 
-DECLARE_BUFFER(DDGI, DDGIConstants) cbuffer CBuffer
+DECLARE_BUFFER_DYNAMIC(DDGI, CBuffer) cbuffer CBuffer
 {
     DDGIConstants ddgiConstants;
 };
