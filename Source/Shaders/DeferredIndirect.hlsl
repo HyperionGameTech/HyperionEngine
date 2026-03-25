@@ -173,7 +173,7 @@ PSOutput PSMain(PSInput input)
 
     // start with fallback EnvProbe spherical harmonics.
     // alpha is zero so we can prioritize other GI methods if available, and lerp to the fallback SH if not.
-    irradiance = float4(EnvProbeSH(fallbackEnvProbe, N, /* order */ 1), 0.0);
+    irradiance = float4(EnvProbeSH(fallbackEnvProbe, N, /* order */ 2), 0.0);
 
 #if SSGI_ENABLED
     // Blend ssgi result into irradiance - if no hit, alpha will be zero or close to it so we can lerp it

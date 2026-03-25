@@ -118,7 +118,7 @@ void CSMain(uint3 dispatchThreadID : SV_DispatchThreadID)
 
     const float2 uv = (float2(sample_index) + 0.5) / float2(NUM_SAMPLES_X, NUM_SAMPLES_Y);
     const float2 sample_point = uv * 2.0 - 1.0;
-    const float3 dir = normalize(DecodeOctahedralCoord(uv));
+    const float3 dir = normalize(DecodeOctahedralCoord(sample_point));
 
     float4 albedo = SAMPLE_TEXTURE_CUBE(sampler_linear, cubemap_color, dir);
     float4 color = albedo;
@@ -126,8 +126,9 @@ void CSMain(uint3 dispatchThreadID : SV_DispatchThreadID)
     float sh_values[27];
     ProjectOntoSH9Color(dir, color.rgb, sh_values);
 
-    float temp = 1.0 + sample_point.x * sample_point.x + sample_point.y * sample_point.y;
-    float weight = 4.0 / (sqrt(temp) * temp);
+    float3 d_unnorm = float3(sample_point.x, sample_point.y, 1.0 - abs(sample_point.x) - abs(sample_point.y));
+    float len = length(d_unnorm);
+    float weight = 1.0 / max(len * len * len, 0.0001);
 
     for (int i = 0; i < 9; i++)
     {
@@ -206,14 +207,11 @@ void CSMain(uint3 dispatchThreadID : SV_DispatchThreadID)
     {
         for (int sample_y = 0; sample_y < NUM_SAMPLES_Y; ++sample_y)
         {
+            total_weight += sh_tiles[(sample_x * NUM_SAMPLES_Y) + sample_y].coeffs_weights[0].a;
+
             for (int i = 0; i < 9; i++)
             {
-                const float3 coeff = sh_tiles[(sample_x * NUM_SAMPLES_Y) + sample_y].coeffs_weights[i].rgb;
-                const float weight = sh_tiles[(sample_x * NUM_SAMPLES_Y) + sample_y].coeffs_weights[i].a;
-
-                sh_result[i] += coeff;
-
-                total_weight += weight;
+                sh_result[i] += sh_tiles[(sample_x * NUM_SAMPLES_Y) + sample_y].coeffs_weights[i].rgb;
             }
         }
     }
