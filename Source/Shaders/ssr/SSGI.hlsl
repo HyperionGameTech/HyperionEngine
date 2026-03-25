@@ -146,6 +146,8 @@ bool TraceRays(
 
             step_delta = abs(marching_position.z) - hit_view_space_position.z;
 
+            intersect = abs(step_delta) < ssgiConstants.distanceBias;
+
             if (abs(step_delta) < ssgiConstants.distanceBias)
             {
                 return true;
@@ -153,7 +155,10 @@ bool TraceRays(
         }
     }
 
-    hit_depth = 1.0;
+    if (i < int(ssgiConstants.maxIterations))
+    {
+        hit_depth = 1.0;
+    }
 
     return false;
 }
@@ -172,7 +177,7 @@ float CalculateAlpha(
     // Fade ray hits that approach the screen edge
     float2 uvNDC = hit_uv * 2.0 - 1.0;
     float maxDimension = saturate(max(abs(uvNDC.x), abs(uvNDC.y)));
-    alpha *= 1.0 - max(0.0, maxDimension - 0.95) / 0.1;
+    alpha *= 1.0 - max(0.0, maxDimension - 0.9) / 0.1;
 
     return alpha;
 }
@@ -242,9 +247,7 @@ void CSMain(uint3 dispatchThreadID : SV_DispatchThreadID)
         const float3 ray_direction = normalize(tangent * d.x + bitangent * d.y + view_space_normal * d.z);
         const float3 ray_origin = P + ray_direction * RAY_OFFSET;
 
-        TraceRays(ray_origin, ray_direction, hit_uv, hit_view_space_position, hit_depth, maxIterations);
-
-        if (hit_depth < 0.9999)
+        if (TraceRays(ray_origin, ray_direction, hit_uv, hit_view_space_position, hit_depth, maxIterations))
         {
             float3 hit_normal = GBufferUnpackNormal(SAMPLE_TEXTURE_2D(sampler_nearest, gbuffer_normals_texture, hit_uv));
             float alpha = CalculateAlpha(maxIterations, hit_uv, hit_normal, ray_direction);
@@ -254,33 +257,36 @@ void CSMain(uint3 dispatchThreadID : SV_DispatchThreadID)
                 float2 sample_uv = saturate(hit_uv);
                 float4 color = SAMPLE_TEXTURE_2D_LOD(sampler_linear, DeferredShadingTexture, sample_uv, 0.0);
 
-                accum_result += float4(color.rgb, alpha);
+                accum_result += float4(color.rgb, 1.0) * alpha;
 
                 continue;
             }
         }
 
-        // // sample environment
-        // float3 rayDirWorld = normalize(mul(camera.invViewMat, float4(ray_direction, 0.0)).xyz);
-        
-        // float4 environmentRadiance = (float4)0.0;
-
-        // for (uint envProbeIdx = 0; envProbeIdx < ssgiConstants.numBoundEnvProbes && environmentRadiance.a < 1.0; envProbeIdx++)
-        // {
-        //     EnvProbe envProbe = envProbes[envProbeIdx];
-
-        //     if (envProbe.texture_index == ~0u)
-        //     {
-        //         continue;
-        //     }
+        if (hit_depth >= 0.9999)
+        {
+            // sample environment if miss.
+            float3 rayDirWorld = normalize(mul(camera.invViewMat, float4(ray_direction, 0.0)).xyz);
             
-        //     environmentRadiance += EnvProbeSample(sampler_linear, envProbesTexture, envProbe.texture_index, rayDirWorld, 0.0)
-        //         * ENVIRONMENT_INTENSITY
-        //         * (1.0 - environmentRadiance.a);
-        // }
-        
-        // // use 0 for alpha, so we can blend with other GI if available.
-        // accum_result += float4(environmentRadiance.rgb, 0.0);
+            float4 environmentRadiance = (float4)0.0;
+
+            for (uint envProbeIdx = 0; envProbeIdx < ssgiConstants.numBoundEnvProbes && environmentRadiance.a < 1.0; envProbeIdx++)
+            {
+                EnvProbe envProbe = envProbes[envProbeIdx];
+
+                if (envProbe.texture_index == ~0u)
+                {
+                    continue;
+                }
+                
+                environmentRadiance += EnvProbeSample(sampler_linear, envProbesTexture, envProbe.texture_index, rayDirWorld, 0.0)
+                    * ENVIRONMENT_INTENSITY
+                    * (1.0 - environmentRadiance.a);
+            }
+            
+            // use 0 for alpha, so we can blend with other GI if available.
+            accum_result += float4(environmentRadiance.rgb, 0.0);
+        }
     }
 
     out_image[coord] = accum_result / float(numRaySamples);
@@ -535,8 +541,8 @@ void CSMain(uint3 dispatchThreadID : SV_DispatchThreadID)
             if (hit_depth >= 0.9999)
             {
                 // miss, sample environment probe
-                float3 world_dir = normalize(mul(camera.invViewMat, float4(local_direction_view, 0.0)).xyz);
-                radiance += float4(beta * SampleSky(world_dir).rgb, 1.0);
+                // float3 world_dir = normalize(mul(camera.invViewMat, float4(local_direction_view, 0.0)).xyz);
+                // radiance += float4(beta * SampleSky(world_dir).rgb, 1.0);
                 break;
             }
 

@@ -73,10 +73,10 @@ DECLARE_BUFFER_DYNAMIC(RTReflections, CBuffer) cbuffer CBuffer
     ShadowMap shadowMaps[MAX_LIGHTS];
 };
 
-#define RAY_OFFSET 0.01
-#define NUM_SAMPLES 4
-#define NUM_BOUNCES 4
-#define ENVIRONMENT_INTENSITY 25.0
+#define RAY_OFFSET 0.005
+#define NUM_SAMPLES 1
+#define NUM_BOUNCES 6
+#define ENVIRONMENT_INTENSITY 1.0
 
 [shader("raygeneration")]
 void RayGenMain()
@@ -116,14 +116,12 @@ void RayGenMain()
     const float roughness = materialParams.roughness;
     const float metalness = materialParams.metalness;
 
-    const float roughnessLinear = roughness * roughness;
-
     const float3 V = normalize(camera.position.xyz - worldPosition.xyz);
     const float3 R = reflect(-V, normal);
 
     const RAY_FLAG flags = RAY_FLAG_FORCE_OPAQUE;
-    const float tmin = 0.01;
-    const float tmax = 10000.0;
+    const float tmin = 0.001;
+    const float tmax = 1000.0;
 
     float4 color = (float4)0;
 
@@ -179,8 +177,8 @@ void RayGenMain()
                 float LdotH = max(dot(L, H), 0.0);
                 
                 float3 F = F_Schlick(F0_init, LdotH);
-                float D = DistributionGGX(NdotH, roughnessLinear);
-                float G = V_SmithGGXCorrelated(roughnessLinear, NdotV, NdotL);
+                float D = DistributionGGX(NdotH, roughness);
+                float G = V_SmithGGXCorrelated(roughness, NdotV, NdotL);
                 
                 float3 specularBrdf = F * D * G;
                 float3 diffuseBrdf = (1.0 - F) * (1.0 - metalness) * albedo * HYP_FMATH_ONE_OVER_PI;
@@ -222,7 +220,7 @@ void RayGenMain()
                 if (current_env_probe.texture_index != ~0u)
                 {
                     uint probe_texture_index = max(0, min(current_env_probe.texture_index, HYP_MAX_BOUND_REFLECTION_PROBES - 1));
-                    float3 env = EnvProbeSample(sampler_linear, envProbesTexture, probe_texture_index, direction, 5.0).rgb * ENVIRONMENT_INTENSITY;
+                    float3 env = EnvProbeSample(sampler_linear, envProbesTexture, probe_texture_index, direction, 6.0).rgb * ENVIRONMENT_INTENSITY;
                     radiance += beta * env;
                 }
                 break;
@@ -240,8 +238,6 @@ void RayGenMain()
             
             float hitRoughness = payload.roughness;
             float hitMetalness = payload.throughput.w;
-
-            const float hitRoughnessLinear = hitRoughness * hitRoughness;
             
             float3 diffuseColor = hitAlbedo * (1.0 - hitMetalness);
             float3 f0 = CalculateF0(hitAlbedo, hitMetalness);
@@ -269,8 +265,8 @@ void RayGenMain()
                             float NdotV = max(dot(N, -direction), 0.0);
                             
                             float3 F = F_Schlick(f0, LdotH);
-                            float G = V_SmithGGXCorrelated(hitRoughnessLinear, NdotV, NdotL);
-                            float D = DistributionGGX(NdotH, hitRoughnessLinear);
+                            float G = V_SmithGGXCorrelated(hitRoughness, NdotV, NdotL);
+                            float D = DistributionGGX(NdotH, hitRoughness);
                             
                             radiance += beta * shadow * light_color * NdotL * (
                                 (1.0 - F) * diffuseColor * HYP_FMATH_ONE_OVER_PI + 
@@ -299,8 +295,8 @@ void RayGenMain()
                         float NdotV = max(dot(N, -direction), 0.0);
                         
                         float3 F = F_Schlick(f0, LdotH);
-                        float G = V_SmithGGXCorrelated(hitRoughnessLinear, NdotV, NdotL);
-                        float D = DistributionGGX(NdotH, hitRoughnessLinear);
+                        float G = V_SmithGGXCorrelated(hitRoughness, NdotV, NdotL);
+                        float D = DistributionGGX(NdotH, hitRoughness);
                         
                         radiance += beta * light_color * attenuation * shadow * NdotL * (
                             (1.0 - F) * diffuseColor * HYP_FMATH_ONE_OVER_PI + 

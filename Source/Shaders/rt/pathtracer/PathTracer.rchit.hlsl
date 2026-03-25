@@ -152,6 +152,9 @@ void ClosestHitMain(inout RayPayload payload, in BuiltInTriangleIntersectionAttr
         
         roughness = roughness_sample;
     }
+
+    // roughness is authorized as "perceptual roughness", we need to convert it to "physical roughness" for the BRDF calculations
+    roughness = roughness * roughness;
     
     const float3 V = normalize(camera.position.xyz - position);
     const float NdotV = max(0.0001, dot(normal, V));

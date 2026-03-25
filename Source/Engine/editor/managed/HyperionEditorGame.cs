@@ -72,8 +72,8 @@ namespace Hyperion.Editor
 
             // tmp debug
             AssetBatch ab = new AssetBatch();
-            ab.Add("test_model",  "Models/NewSponza/NewSponza_Main_glTF_003.gltf");//"Models/SanMiguel/san-miguel.obj"); //
-            ab.Add("guy", "models/ZombieGuy/guy.mesh.xml");
+            ab.Add("test_model", "Models/SponzaGltf/Sponza.gltf"); ///"Models/NewSponza/NewSponza_Main_glTF_003.gltf");//"Models/SanMiguel/san-miguel.obj"); //
+            // ab.Add("guy", "models/ZombieGuy/guy.mesh.xml");
             _assetBatchTask = ab.Load();
         }
 
@@ -101,7 +101,7 @@ namespace Hyperion.Editor
                     Assert.Throw(testModelAsset.Value != null);
 
                     Node n = _editorSubsystem!.GetActiveScene().RootNode.AddChild((Node)testModelAsset.Value);
-                    // n.SetLocalScale(new Vec3f(0.03f));
+                    n.SetLocalScale(new Vec3f(3.0f));
                 }
                 else
                 {

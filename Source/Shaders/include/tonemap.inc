@@ -5,14 +5,14 @@
 
 #define HDR 1
 //#define HDR_TONEMAP_UNCHARTED 1
-#define HDR_TONEMAP_FILMIC 1
+//#define HDR_TONEMAP_FILMIC 1
 //#define HDR_TONEMAP_LOTTES 1
 //#define HDR_TONEMAP_UNREAL 1
 //#define HDR_TONEMAP_REINHARD 1
-//#define HDR_TONEMAP_ACES 1
+#define HDR_TONEMAP_ACES 1
 
 #ifndef HDR_EXPOSURE
-#define HDR_EXPOSURE 9.0
+#define HDR_EXPOSURE 1.4
 #endif
 
 // Source for some of these: https://dmnsgn.github.io/glsl-tone-map
@@ -103,15 +103,36 @@ float3 TonemapReinhard(float3 x)
     return ChangeLuminance(x, l_new);
 }
 
-// Narkowicz 2015, "ACES Filmic Tone Mapping Curve"
-float3 TonemapACES(float3 x)
+// sRGB => XYZ => D65_2_D60 => AP1 => RRT_SAT
+static const float3x3 ACESInputMat = float3x3(
+    0.59719, 0.35458, 0.04823,
+    0.07600, 0.90834, 0.01566,
+    0.02840, 0.13383, 0.83777
+);
+
+// ODT_SAT => XYZ => D60_2_D65 => sRGB
+static const float3x3 ACESOutputMat = float3x3(
+     1.60475, -0.53108, -0.07367,
+    -0.10208,  1.10813, -0.00605,
+    -0.00327, -0.07276,  1.07602
+);
+
+float3 _RRTAndODTFit(float3 color)
 {
-    const float a = 2.51;
-    const float b = 0.03;
-    const float c = 2.43;
-    const float d = 0.59;
-    const float e = 0.14;
-    return clamp((x * (a * x + b)) / (x * (c * x + d) + e), 0.0, 1.0);
+    float3 a = color * (color + 0.0245786) - 0.000090537;
+    float3 b = color * (0.983729 * color + 0.4329510) + 0.238081;
+    return a / b;
+}
+
+// see https://github.com/KhronosGroup/glTF-Sample-Renderer/blob/main/source/Renderer/shaders/tonemapping.glsl
+float3 TonemapACES(float3 color)
+{
+    color *= HDR_EXPOSURE;
+    color /= 0.6;
+    color = mul(ACESInputMat, color);
+    color = _RRTAndODTFit(color);
+    color = mul(ACESOutputMat, color);
+    return clamp(color, 0.0, 1.0);
 }
 
 float3 TonemapReinhardSimple(float3 x)

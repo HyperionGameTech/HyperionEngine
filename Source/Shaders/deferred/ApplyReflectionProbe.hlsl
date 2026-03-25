@@ -122,9 +122,11 @@ PSOutput PSMain(PSInput input)
     GBufferMaterialParams materialParams;
     GBufferUnpackMaterialParams(normalSample.x, materialData.x, materialParams);
 
-    float roughness = materialParams.roughness;
-    float numMips = 7.0; // assuming 128x128 cubemap size for reflection probes
-    const float lod = roughness * numMips;
+    const float roughness = materialParams.roughness;
+    const float perceptualRoughness = sqrt(roughness);
+
+    const float numMips = 7.0; // assuming 128x128 cubemap size for reflection probes
+    const float lod = perceptualRoughness * numMips;
 
     float4 ibl = float4(0.0, 0.0, 0.0, 0.0);
 

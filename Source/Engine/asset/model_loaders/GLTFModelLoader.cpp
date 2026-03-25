@@ -45,6 +45,8 @@
 
 #include <engine/EngineDriver.hpp>
 
+#include <util/img/Bitmap.hpp>
+
 #define CGLTF_IMPLEMENTATION
 #include <gltf/cgltf.h>
 
@@ -58,6 +60,8 @@ extern FilePath GetExecutablePath();
 }// namespace CoreApi
 
 namespace {
+
+static constexpr bool SeparateMetalnessRoughnessTextures = true;
 
 struct GltfPrimitiveResource
 {
@@ -81,7 +85,6 @@ struct GltfLoadContext
     HashMap<const cgltf_texture*, Handle<Texture>> textureCache;
     uint32 unnamedNodeCounter = 0;
     uint32 unnamedMaterialCounter = 0;
-    bool loggedSkinningWarning = false;
     bool loggedMorphTargetWarning = false;
     bool loggedEmbeddedTextureWarning = false;
     bool loggedTextureWrapModeWarning = false;
@@ -268,28 +271,34 @@ Handle<Texture> AcquireTexture(GltfLoadContext& ctx, const cgltf_texture_view& t
     {
         const String texturePath = ResolveTexturePath(ctx, *image);
 
-        auto tryLoadTexture = [&](const String& candidate) -> Handle<Texture>
+        auto TryLoadTexture = [&](const String& candidate) -> Handle<Texture>
         {
             if (candidate.Empty())
             {
                 return {};
             }
 
-            // @TODO srgb
-
-            if (auto textureResult = ctx.state.assetManager->Load<Texture>(candidate, ctx.state.batchIdentifier); textureResult.HasValue())
+            if (auto textureResult = ctx.state.assetManager->Load<Texture>(
+                candidate,
+                ctx.state.batchIdentifier,
+                srgb ? AssetLoadHint::TextureLoader_LoadAsSRGB : AssetLoadHint::NoHint); textureResult.HasValue())
             {
-                return textureResult->Result();
+                const Handle<Texture>& texture = textureResult->Result();
+                ctx.state.assetManager->GetAssetRegistry()->RegisterAsset("$Import/Media/Textures", texture);
+
+                CheckResult(texture->Create());
+
+                return texture;
             }
 
             return {};
         };
 
-        textureHandle = tryLoadTexture(texturePath);
+        textureHandle = TryLoadTexture(texturePath);
 
         if (!textureHandle)
         {
-            textureHandle = tryLoadTexture(String(image->uri));
+            textureHandle = TryLoadTexture(String(image->uri));
         }
 
         if (!textureHandle)
@@ -309,18 +318,20 @@ Handle<Texture> AcquireTexture(GltfLoadContext& ctx, const cgltf_texture_view& t
         return textureHandle;
     }
 
+    {
+        const cgltf_sampler* sampler = texture.sampler;
+
+        TextureDesc desc = textureHandle->GetTextureDesc();
+        desc.filterModeMin = ResolveMinFilter(sampler);
+        desc.filterModeMag = ResolveMagFilter(sampler);
+        desc.wrapMode = ResolveWrapMode(sampler, ctx);
+        textureHandle->SetTextureDesc(desc);
+    }
+
     if (image->name && *image->name)
     {
         textureHandle->SetName(CreateNameFromDynamicString(image->name));
     }
-
-    TextureDesc textureDesc = textureHandle->GetTextureDesc();
-    textureDesc.filterModeMin = ResolveMinFilter(texture.sampler);
-    textureDesc.filterModeMag = ResolveMagFilter(texture.sampler);
-    textureDesc.wrapMode = ResolveWrapMode(texture.sampler, ctx);
-    textureDesc.format = TextureUtils::ChangeFormatSRGB(textureDesc.format, srgb);
-
-    textureHandle->SetTextureDesc(textureDesc);
 
     ctx.textureCache.Set(textureView.texture, textureHandle);
 
@@ -342,62 +353,49 @@ const cgltf_accessor* FindAttribute(const cgltf_primitive& primitive, cgltf_attr
     return nullptr;
 }
 
-bool ReadVec2(const cgltf_accessor* accessor, cgltf_size index, Vec2f& out)
+// https://github.com/StereoKit/StereoKit/blob/422752b4b2ec02b2933ae7959acb687b71f17f20/StereoKitC/asset_types/model_gltf.cpp#L234
+// https://github.com/zhaijialong/RealEngine/blob/99fee10bf802767d4236b1bc12145b3708c65c9f/source/world/gltf_loader.cpp#L378
+// https://github.com/BredaUniversityGames/DXX-Raytracer/blob/2bb9246292cd4c2e39b8553f6c3104540d493ee0/RT/Renderer/Backend/DX12/src/GLTFLoader.cpp#L26
+
+cgltf_size UnpackAccessorFloats(const cgltf_accessor* accessor, Array<float>& outFloats)
 {
     if (!accessor)
     {
-        return false;
+        return 0;
     }
 
-    float values[2] = { 0.0f, 0.0f };
+    cgltf_size size = cgltf_accessor_unpack_floats(accessor, nullptr, 0);
+    outFloats.Resize(size);
 
-    if (!cgltf_accessor_read_float(accessor, index, values, 2))
+    size = cgltf_accessor_unpack_floats(accessor, outFloats.Data(), size);
+
+    if (size == 0)
     {
-        return false;
+        outFloats.Clear();
+        return 0;
     }
 
-    out = Vec2f(values[0], values[1]);
-
-    return true;
+    return size;
 }
 
-bool ReadVec3(const cgltf_accessor* accessor, cgltf_size index, Vec3f& out)
+cgltf_size UnpackAccessorIndices(const cgltf_accessor* accessor, Array<uint32>& outIndices)
 {
     if (!accessor)
     {
-        return false;
+        return 0;
     }
 
-    float values[3] = { 0.0f, 0.0f, 0.0f };
+    outIndices.Resize(accessor->count);
 
-    if (!cgltf_accessor_read_float(accessor, index, values, 3))
+    const cgltf_size unpacked = cgltf_accessor_unpack_indices(accessor, outIndices.Data(), sizeof(uint32), accessor->count);
+
+    if (unpacked == 0)
     {
-        return false;
+        outIndices.Clear();
+        return 0;
     }
 
-    out = Vec3f(values[0], values[1], values[2]);
-
-    return true;
-}
-
-bool ReadFloat4(const cgltf_accessor* accessor, cgltf_size index, float out[4])
-{
-    if (!accessor)
-    {
-        return false;
-    }
-
-    return cgltf_accessor_read_float(accessor, index, out, 4);
-}
-
-bool ReadUint4(const cgltf_accessor* accessor, cgltf_size index, cgltf_uint out[4])
-{
-    if (!accessor)
-    {
-        return false;
-    }
-
-    return cgltf_accessor_read_uint(accessor, index, out, 4);
+    return unpacked;
 }
 
 Name MakePrimitiveName(const cgltf_mesh& mesh, uint32 meshIndex, uint32 primitiveIndex)
@@ -483,6 +481,92 @@ Transform BuildTransformFromNode(const cgltf_node& node)
     return Transform(translation, scale, rotation);
 }
 
+struct SplitMetalnessRoughnessResult
+{
+    Handle<Texture> metalness;
+    Handle<Texture> roughness;
+};
+
+SplitMetalnessRoughnessResult SplitMetalnessRoughnessTexture(
+    GltfLoadContext& ctx,
+    const Handle<Texture>& combinedTexture,
+    const Name& baseName)
+{
+    if (!combinedTexture)
+    {
+        return {};
+    }
+
+    const TextureDesc& srcDesc = combinedTexture->GetTextureDesc();
+
+    auto resGuard = combinedTexture->GetReadScope();
+    const ConstByteView imageData = combinedTexture->GetImageData();
+
+    if (!imageData)
+    {
+        HYP_LOG(Assets, Warning, "GLTF metallic-roughness texture '{}' has no CPU-side image data available for channel splitting; skipping", baseName);
+        return {};
+    }
+
+    const uint32 numComponents = TextureUtils::NumComponents(srcDesc.format);
+    const uint32 bytesPerComponent = TextureUtils::BytesPerComponent(srcDesc.format);
+    const uint32 width = srcDesc.extent.x;
+    const uint32 height = srcDesc.extent.y;
+    const uint32 numPixels = width * height;
+
+    if (numComponents < 3 || bytesPerComponent != 1)
+    {
+        HYP_LOG(Assets, Warning, "GLTF metallic-roughness texture '{}' has unsupported format for channel splitting; skipping separate textures", baseName);
+        return {};
+    }
+
+    const ubyte* src = static_cast<const ubyte*>(imageData.Data());
+    const uint32 stride = numComponents;
+
+    Bitmap<TextureFormat::R8> roughnessBitmap(width, height);
+    Bitmap<TextureFormat::R8> metalnessBitmap(width, height);
+
+    for (uint32 row = 0; row < height; ++row)
+    {
+        for (uint32 col = 0; col < width; ++col)
+        {
+            const ubyte* pixel = src + (row * width + col) * stride;
+            roughnessBitmap.GetPixelReference(col, row).SetR(float(pixel[1]) / 255.0f);
+            metalnessBitmap.GetPixelReference(col, row).SetR(float(pixel[2]) / 255.0f);
+        }
+    }
+
+    TextureDesc channelDesc;
+    channelDesc.type = TextureType::Texture2D;
+    channelDesc.format = TextureFormat::R8;
+    channelDesc.extent = Vec3u { width, height, 1 };
+    channelDesc.filterModeMin = srcDesc.filterModeMin;
+    channelDesc.filterModeMag = srcDesc.filterModeMag;
+    channelDesc.wrapMode = srcDesc.wrapMode;
+
+    ByteBuffer roughnessData(roughnessBitmap.ToByteView());
+    ByteBuffer metalnessData(metalnessBitmap.ToByteView());
+
+    Texture::GenerateMipmaps(channelDesc, roughnessData);
+    // metalness shares the same dimensions so mip layout is identical
+    TextureDesc metalnessDesc = channelDesc;
+    Texture::GenerateMipmaps(metalnessDesc, metalnessData);
+
+    Handle<Texture> roughnessTexture = MakeHandle<Texture>(channelDesc, roughnessData.ToByteView());
+    roughnessTexture->SetName(NAME_FMT("{}_Roughness", baseName));
+    ctx.state.assetManager->GetAssetRegistry()->RegisterAsset("$Import/Media/Textures", roughnessTexture);
+    CheckResult(roughnessTexture->Create());
+
+    Handle<Texture> metalnessTexture = MakeHandle<Texture>(metalnessDesc, metalnessData.ToByteView());
+    metalnessTexture->SetName(NAME_FMT("{}_Metalness", baseName));
+    ctx.state.assetManager->GetAssetRegistry()->RegisterAsset("$Import/Media/Textures", metalnessTexture);
+    CheckResult(metalnessTexture->Create());
+
+    HYP_LOG(Assets, Debug, "GLTF split metallic-roughness for '{}': {}x{} R8 textures created", baseName, width, height);
+
+    return { metalnessTexture, roughnessTexture };
+}
+
 Handle<Material> AcquireMaterial(GltfLoadContext& ctx, const cgltf_material* material, const Handle<Mesh>& mesh)
 {
     MaterialAttributes materialAttributes {};
@@ -535,17 +619,33 @@ Handle<Material> AcquireMaterial(GltfLoadContext& ctx, const cgltf_material* mat
         metallic = float(pbr.metallic_factor);
         roughness = float(pbr.roughness_factor);
 
-        if (Handle<Texture> baseColorTexture = AcquireTexture(ctx, pbr.base_color_texture, true))
+        if (Handle<Texture> baseColorTexture = AcquireTexture(ctx, pbr.base_color_texture, /* srgb */ true))
         {
             textures[MaterialTextureKey::Diffuse] = baseColorTexture;
         }
 
-        ///// \todo implement handling both metallic and roughness in the same texture
-        // if (Handle<Texture> metallicRoughnessTexture = AcquireTexture(ctx, pbr.metallic_roughness_texture, false))
-        //{
-        //     textures[MaterialTextureKey::Metalness] = metallicRoughnessTexture;
-        //     textures[MaterialTextureKey::Roughness] = metallicRoughnessTexture;
-        // }
+        if (Handle<Texture> metallicRoughnessTexture = AcquireTexture(ctx, pbr.metallic_roughness_texture, false))
+        {
+            if constexpr (SeparateMetalnessRoughnessTextures)
+            {
+                auto [metalnessTexture, roughnessTexture] = SplitMetalnessRoughnessTexture(ctx, metallicRoughnessTexture, materialName);
+
+                if (metalnessTexture)
+                {
+                    textures[MaterialTextureKey::Metalness] = metalnessTexture;
+                }
+
+                if (roughnessTexture)
+                {
+                    textures[MaterialTextureKey::Roughness] = roughnessTexture;
+                }
+            }
+            else
+            {
+                textures[MaterialTextureKey::Metalness] = metallicRoughnessTexture;
+                textures[MaterialTextureKey::Roughness] = metallicRoughnessTexture;
+            }
+        }
     }
 
     if (material->has_transmission)
@@ -553,11 +653,10 @@ Handle<Material> AcquireMaterial(GltfLoadContext& ctx, const cgltf_material* mat
         transmission = float(material->transmission.transmission_factor);
     }
 
-    MaterialParameters parameters {
-        { MATERIAL_KEY_ALBEDO, baseColor },
-        { MATERIAL_KEY_METALNESS, metallic },
-        { MATERIAL_KEY_ROUGHNESS, roughness }
-    };
+    MaterialParameters parameters = Material::DefaultParameters();
+    parameters[MATERIAL_KEY_ALBEDO] = baseColor;
+    parameters[MATERIAL_KEY_METALNESS] = metallic;
+    parameters[MATERIAL_KEY_ROUGHNESS] = roughness;
 
     if (transmission > 0.0f)
     {
@@ -597,7 +696,19 @@ Handle<Material> AcquireMaterial(GltfLoadContext& ctx, const cgltf_material* mat
         textures[MaterialTextureKey::AmbientOcclusion] = occlusionTexture;
     }
 
+    const Vec3f emissiveFactor(
+        float(material->emissive_factor[0]),
+        float(material->emissive_factor[1]),
+        float(material->emissive_factor[2]));
+
+    if (emissiveFactor != Vec3f::Zero())
+    {
+        parameters[MATERIAL_KEY_EMISSIVE] = MaterialParameter(Vec4f(emissiveFactor, 1.0f));
+    }
+
     Handle<Material> materialHandle = MaterialCache::GetInstance()->CreateMaterial(materialName, materialAttributes, parameters, textures);
+    InitObject(materialHandle);
+
     ctx.materialCache.Set(material, materialHandle);
 
     return materialHandle;
@@ -661,86 +772,85 @@ bool BuildPrimitive(GltfLoadContext& ctx,
         HYP_LOG(Assets, Warning, "GLTF morph targets are not currently supported and will be ignored");
     }
 
+    Array<float> positionsData;
+    if (UnpackAccessorFloats(positionsAccessor, positionsData) == 0)
+    {
+        HYP_LOG(Assets, Warning, "Failed to unpack POSITION data from buffer view for mesh '{}'",
+            gltfMesh.name ? gltfMesh.name : "<unnamed>");
+        return false;
+    }
+
+    Array<float> normalsData;
+    const bool hasNormals = normalsAccessor != nullptr && UnpackAccessorFloats(normalsAccessor, normalsData) != 0;
+
+    Array<float> tangentsData;
+    const bool hasTangents = tangentAccessor != nullptr && UnpackAccessorFloats(tangentAccessor, tangentsData) != 0;
+
+    Array<float> texcoord0Data;
+    const bool hasTexcoord0 = texcoord0Accessor != nullptr && UnpackAccessorFloats(texcoord0Accessor, texcoord0Data) != 0;
+
+    Array<float> texcoord1Data;
+    const bool hasTexcoord1 = texcoord1Accessor != nullptr && UnpackAccessorFloats(texcoord1Accessor, texcoord1Data) != 0;
+
+    Array<float> jointsFloatData;
+    Array<float> weightsData;
+
+    const bool hasSkinning = jointsAccessor != nullptr && weightsAccessor != nullptr
+        && UnpackAccessorFloats(jointsAccessor, jointsFloatData) != 0
+        && UnpackAccessorFloats(weightsAccessor, weightsData) != 0;
+
     Array<Vertex> vertices;
     vertices.Resize(vertexCount);
-
-    bool hasNormals = normalsAccessor != nullptr;
-    bool hasTangents = tangentAccessor != nullptr;
-    bool hasTexcoord0 = texcoord0Accessor != nullptr;
-    bool hasTexcoord1 = texcoord1Accessor != nullptr;
-    bool hasSkinning = jointsAccessor != nullptr && weightsAccessor != nullptr;
 
     for (cgltf_size vertexIndex = 0; vertexIndex < vertexCount; ++vertexIndex)
     {
         Vertex vertex;
 
-        Vec3f position;
-        if (!ReadVec3(positionsAccessor, vertexIndex, position))
         {
-            HYP_LOG(Assets, Warning, "Failed to read POSITION for vertex {} in mesh '{}'",
-                uint32(vertexIndex),
-                gltfMesh.name ? gltfMesh.name : "<unnamed>");
-            return false;
+            const cgltf_size base = vertexIndex * 3;
+            vertex.SetPosition(Vec3f(positionsData[base], positionsData[base + 1], positionsData[base + 2]));
         }
-
-        vertex.SetPosition(position);
 
         if (hasNormals)
         {
-            Vec3f normal;
-            if (ReadVec3(normalsAccessor, vertexIndex, normal))
-            {
-                vertex.SetNormal(normal);
-            }
+            const cgltf_size base = vertexIndex * 3;
+            vertex.SetNormal(Vec3f(normalsData[base], normalsData[base + 1], normalsData[base + 2]));
         }
 
         if (hasTexcoord0)
         {
-            Vec2f texcoord0;
-            if (ReadVec2(texcoord0Accessor, vertexIndex, texcoord0))
-            {
-                vertex.SetTexCoord0(texcoord0);
-            }
+            const cgltf_size base = vertexIndex * 2;
+            vertex.SetTexCoord0(Vec2f(texcoord0Data[base], 1.0f - texcoord0Data[base + 1]));
         }
 
         if (hasTexcoord1)
         {
-            Vec2f texcoord1;
-            if (ReadVec2(texcoord1Accessor, vertexIndex, texcoord1))
-            {
-                vertex.SetTexCoord1(texcoord1);
-            }
+            const cgltf_size base = vertexIndex * 2;
+            vertex.SetTexCoord1(Vec2f(texcoord1Data[base], 1.0f - texcoord1Data[base + 1]));
         }
 
-        if (hasTangents)
+        if (hasTangents && hasNormals)
         {
-            float tangentValues[4] = { 0.0f, 0.0f, 0.0f, 1.0f };
+            const cgltf_size tBase = vertexIndex * 4;
+            const cgltf_size nBase = vertexIndex * 3;
 
-            if (ReadFloat4(tangentAccessor, vertexIndex, tangentValues))
-            {
-                Vec3f tangent(tangentValues[0], tangentValues[1], tangentValues[2]);
-                vertex.SetTangent(tangent);
+            const Vec3f tangent(tangentsData[tBase], tangentsData[tBase + 1], tangentsData[tBase + 2]);
+            const float handedness = tangentsData[tBase + 3];
 
-                if (hasNormals)
-                {
-                    Vec3f bitangent = vertex.GetNormal().Cross(tangent).Normalize() * tangentValues[3];
-                    vertex.SetBitangent(bitangent);
-                }
-            }
+            vertex.SetTangent(tangent);
+
+            const Vec3f normal(normalsData[nBase], normalsData[nBase + 1], normalsData[nBase + 2]);
+            vertex.SetBitangent(normal.Cross(tangent) * handedness);
         }
 
         if (hasSkinning)
         {
-            cgltf_uint joints[4] = { 0, 0, 0, 0 };
-            float weights[4] = { 0.0f, 0.0f, 0.0f, 0.0f };
+            const cgltf_size base = vertexIndex * 4;
 
-            if (ReadUint4(jointsAccessor, vertexIndex, joints) && ReadFloat4(weightsAccessor, vertexIndex, weights))
+            for (uint32 i = 0; i < 4; ++i)
             {
-                for (uint32 i = 0; i < 4; ++i)
-                {
-                    vertex.SetBoneIndex(i, int(joints[i]));
-                    vertex.SetBoneWeight(i, weights[i]);
-                }
+                vertex.SetBoneIndex(i, int(jointsFloatData[base + i]));
+                vertex.SetBoneWeight(i, weightsData[base + i]);
             }
         }
 
@@ -751,11 +861,11 @@ bool BuildPrimitive(GltfLoadContext& ctx,
 
     if (primitive.indices != nullptr)
     {
-        indices.Resize(primitive.indices->count);
-
-        for (cgltf_size i = 0; i < primitive.indices->count; ++i)
+        if (UnpackAccessorIndices(primitive.indices, indices) == 0)
         {
-            indices[i] = uint32(cgltf_accessor_read_index(primitive.indices, i));
+            HYP_LOG(Assets, Warning, "Failed to unpack index data from buffer view for mesh '{}'",
+                gltfMesh.name ? gltfMesh.name : "<unnamed>");
+            return false;
         }
     }
     else
@@ -834,10 +944,9 @@ Handle<Node> BuildNodeRecursive(GltfLoadContext& ctx, const cgltf_node& node)
     Handle<Node> nodeHandle = MakeHandle<Node>(nodeName);
     nodeHandle->SetLocalTransform(BuildTransformFromNode(node));
 
-    if (node.skin != nullptr && !ctx.loggedSkinningWarning)
+    if (node.skin != nullptr)
     {
-        ctx.loggedSkinningWarning = true;
-        HYP_LOG(Assets, Warning, "GLTF skinning is not yet supported; meshes will be loaded without skin influences");
+        HYP_LOG_ONCE(Assets, Warning, "GLTF skinning is not yet supported; meshes will be loaded without skin influences");
     }
 
     if (node.mesh != nullptr)
@@ -921,7 +1030,8 @@ LoadedAsset BuildModel(LoaderState& state, cgltf_data& data)
             meshResource.primitives.PushBack(GltfPrimitiveResource {
                 .mesh = output.mesh,
                 .material = material,
-                .gltfPrimitiveIndex = uint32(primitiveIndex) });
+                .gltfPrimitiveIndex = uint32(primitiveIndex)
+            });
         }
 
         if (meshResource.primitives.Empty())

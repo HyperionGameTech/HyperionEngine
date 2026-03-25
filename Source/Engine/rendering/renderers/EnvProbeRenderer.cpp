@@ -166,7 +166,7 @@ void ConvolveEnvProbeCubemap(
         ShaderPropertySet shaderProperties;
         // we have to round otherwise we'll potentially make too many permutations for *almost* the same values.
         shaderProperties.Add(InternShaderProperty(ShaderProperty(NAME("LOBE_SIZE"), MathUtil::Round(roughness, 3))));
-        shaderProperties.Add(InternShaderProperty(ShaderProperty(NAME("NUM_SAMPLES"), 2048)));
+        shaderProperties.Add(InternShaderProperty(ShaderProperty(NAME("NUM_SAMPLES"), 4096)));
 
         const Vec2u mipExtent = mipIndex == 0
             ? extent

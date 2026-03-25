@@ -111,5 +111,5 @@ void ClosestHitMain(inout RayPayload payload, in BuiltInTriangleIntersectionAttr
     payload.emissive = float4(0.0, 0.0, 0.0, 0.0);
     payload.distance = RayTCurrent();
     payload.normal = normal;
-    payload.roughness = 0.0; // we don't care about roughness in DDGI
+    payload.roughness = 0.9; // we don't care about roughness in DDGI
 }

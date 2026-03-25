@@ -71,6 +71,7 @@ Data/Models/Testbed/**/*
 Data/Models/Sponza/**/*
 Data/Models/NewSponza/**/*
 Data/Models/lostempire/**/*
+Data/Models/SponzaGltf/**/*
 
 Binaries/**/*
 

@@ -70,10 +70,10 @@ vec3 ImportanceSampleGTR2(float rgh, float r1, float r2)
     return vec3(sinTheta * cosPhi, sinTheta * sinPhi, cosTheta);
 }
 
-float V_SmithGGXCorrelated(float linearRoughness, float NoV, float NoL)
+float V_SmithGGXCorrelated(float roughness, float NoV, float NoL)
 {
     // Heitz 2014, "Understanding the Masking-Shadowing Function in Microfacet-Based BRDFs"
-    float a2 = linearRoughness * linearRoughness;
+    float a2 = roughness;
     // TODO: lambdaV can be pre-computed for all the lights, it should be moved out of this function
     float lambdaV = NoL * sqrt((NoV - a2 * NoV) * NoV + a2);
     float lambdaL = NoV * sqrt((NoL - a2 * NoL) * NoL + a2);
@@ -84,16 +84,19 @@ float V_SmithGGXCorrelated(float linearRoughness, float NoV, float NoL)
     return v;
 }
 
-float DistributionGGX(float NdotH, float linearRoughness)
+float DistributionGGX(float NdotH, float roughness)
 {
-    float a = NdotH * linearRoughness;
-    float k = linearRoughness / (1.0 - NdotH * NdotH + a * a);
-    return k * k * (1.0 / HYP_FMATH_PI);
+    float a = roughness;
+    float a2 = a * a;
+    float NdotH2 = NdotH * NdotH;
+
+    float denom = NdotH2 * (a2 - 1.0) + 1.0;
+    return a2 / (HYP_FMATH_PI * denom * denom);
 }
 
-float GGX_PDF(float NdotH, float HdotV, float linearRoughness)
+float GGX_PDF(float NdotH, float HdotV, float roughness)
 {
-    float D = DistributionGGX(NdotH, linearRoughness);
+    float D = DistributionGGX(NdotH, roughness);
     return D * NdotH / (4.0 * HdotV);
 }
 

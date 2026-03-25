@@ -372,9 +372,7 @@ void RayGenMain()
             float3 N = normalize(payload.normal);
             float3 baseColor = clamp(payload.throughput.rgb, float3(0.0, 0.0, 0.0), float3(1.0, 1.0, 1.0));
             float metalness = clamp(payload.throughput.a, 0.0, 1.0);
-            float roughness = clamp(payload.roughness, 0.0, 1.0);
-
-            const float roughnessLinear = roughness * roughness;
+            float roughness = clamp(payload.roughness * payload.roughness, 0.0, 1.0);
 
             // emissive contribution
             if (any(payload.emissive.rgb > float3(0.0, 0.0, 0.0)))
@@ -407,8 +405,8 @@ void RayGenMain()
                         float LdotH = max(dot(L, H), 0.0);
 
                         float3 F = F_Schlick(F0, LdotH);
-                        float D = DistributionGGX(NdotH, roughnessLinear);
-                        float G = V_SmithGGXCorrelated(roughnessLinear, NdotV, NdotL);
+                        float D = DistributionGGX(NdotH, roughness);
+                        float G = V_SmithGGXCorrelated(roughness, NdotV, NdotL);
 
                         Li += float4(beta * visibility * light_color * NdotL * (
                             (1.0 - F) * diffuseColor * HYP_FMATH_ONE_OVER_PI + 
@@ -439,8 +437,8 @@ void RayGenMain()
                         float NdotV = max(dot(N, -direction), 0.0);
                         
                         float3 F = F_Schlick(F0, LdotH);
-                        float G = V_SmithGGXCorrelated(roughnessLinear, NdotV, NdotL);
-                        float D = DistributionGGX(NdotH, roughnessLinear);
+                        float G = V_SmithGGXCorrelated(roughness, NdotV, NdotL);
+                        float D = DistributionGGX(NdotH, roughness);
                         
                         Li += float4(beta * light_color * attenuation * visibility * NdotL * (
                             (1.0 - F) * diffuseColor * HYP_FMATH_ONE_OVER_PI + 

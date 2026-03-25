@@ -168,6 +168,10 @@ PSOutput PSMain(PSInput input)
     roughness = roughness_sample;
 #endif
 
+    // roughness is authored as perceptual roughness; need to convert to physical roughness for the BRDF calculations
+    const float perceptualRoughness = roughness;
+    roughness = roughness * roughness;
+
 #if SHADING_TYPE_FORWARD
     {
         const float NdotV = max(HYP_FMATH_EPSILON, dot(N, V));
@@ -199,7 +203,7 @@ PSOutput PSMain(PSInput input)
                 P, N, V,
                 texcoord,
                 F0, E,
-                transmission, roughness,
+                transmission, perceptualRoughness,
                 float4(0.0, 0.0, 0.0, 0.0),
                 output.gbuffer_albedo,
                 float3(ao, ao, ao));
@@ -210,7 +214,7 @@ PSOutput PSMain(PSInput input)
                 current_env_probe,
                 P, N, R,
                 camera.position.xyz,
-                roughness);
+                perceptualRoughness);
 
             ibl.a = saturate(ibl.a);
 

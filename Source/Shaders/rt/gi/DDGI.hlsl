@@ -66,7 +66,7 @@ DECLARE_SRV(DDGI, PointLightShadowMapsTextureArray) TextureCubeArray point_shado
 
 #define RAY_OFFSET 0.025
 #define NUM_SAMPLES 1
-#define ENVIRONMENT_INTENSITY 20.0
+#define ENVIRONMENT_INTENSITY 1.0
 
 void SetProbeRayData(uint2 coord, ProbeRayData ray_data)
 {

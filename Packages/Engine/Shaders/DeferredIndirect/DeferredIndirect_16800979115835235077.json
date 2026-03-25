@@ -313,13 +313,13 @@
     }, {
       "$Class": "BlobDataReference",
       "Key": "Engine/Shaders/DeferredIndirect/DeferredIndirect_16800979115835235077.PS",
-      "Size": 152820
+      "Size": 152056
     }],
   "PropertySetHashCode": {},
   "LastCompiledTimestamp": {
-    "Value": 1774195834000
+    "Value": 1774446344000
   },
   "Name": "DeferredIndirect_16800979115835235077",
-  "FriendlyName": "DeferredIndirect16800979115835235077",
+  "FriendlyName": "DeferredIndirect_16800979115835235077",
   "OriginalFilepath": ""
 }

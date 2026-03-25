@@ -158,7 +158,7 @@ PSOutput PSMain(PSInput input)
 
     const float3 diffuse_color = CalculateDiffuseColor(albedo.rgb, metalness);
 
-    const float perceptual_roughness = sqrt(roughness);
+    const float perceptualRoughness = sqrt(roughness);
 
     reflections = SAMPLE_TEXTURE_2D(HYP_SAMPLER_LINEAR, reflections_texture, texcoord);
 

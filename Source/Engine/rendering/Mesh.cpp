@@ -652,15 +652,6 @@ Array<float> Mesh::BuildVertexBuffer(const VertexAttributeSet& vertexAttributes)
         if (vertexAttributes.Has(VertexAttribute::Bitangent))
             PACKED_SET_ATTR(vertex.GetBitangent().values, 3);
 
-        if (vertexAttributes.Has(VertexAttribute::BoneWeights))
-        {
-            float weights[4] = {
-                vertex.GetBoneWeight(0), vertex.GetBoneWeight(1),
-                vertex.GetBoneWeight(2), vertex.GetBoneWeight(3)
-            };
-            PACKED_SET_ATTR(weights, HYP_ARRAY_SIZE(weights));
-        }
-
         if (vertexAttributes.Has(VertexAttribute::BoneIndices))
         {
             float indices[4] = {
@@ -668,6 +659,15 @@ Array<float> Mesh::BuildVertexBuffer(const VertexAttributeSet& vertexAttributes)
                 (float)vertex.GetBoneIndex(2), (float)vertex.GetBoneIndex(3)
             };
             PACKED_SET_ATTR(indices, HYP_ARRAY_SIZE(indices));
+        }
+
+        if (vertexAttributes.Has(VertexAttribute::BoneWeights))
+        {
+            float weights[4] = {
+                vertex.GetBoneWeight(0), vertex.GetBoneWeight(1),
+                vertex.GetBoneWeight(2), vertex.GetBoneWeight(3)
+            };
+            PACKED_SET_ATTR(weights, HYP_ARRAY_SIZE(weights));
         }
     }
 
