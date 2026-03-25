@@ -265,12 +265,27 @@ void CSMain(uint3 dispatchThreadID : SV_DispatchThreadID)
 
         if (hit_depth >= 0.9999 && ssgiConstants.numBoundEnvProbes != 0)
         {
-            // sample environment irradiance on miss
+            // sample environment
             float3 rayDirWorld = normalize(mul(camera.invViewMat, float4(ray_direction, 0.0)).xyz);
             
+            float4 environmentRadiance = (float4)0.0;
+
+            for (uint envProbeIdx = 0; envProbeIdx < ssgiConstants.numBoundEnvProbes && environmentRadiance.a < 1.0; envProbeIdx++)
+            {
+                EnvProbe envProbe = envProbes[envProbeIdx];
+
+                if (envProbe.texture_index == ~0u)
+                {
+                    continue;
+                }
+                
+                environmentRadiance += EnvProbeSample(sampler_linear, envProbesTexture, envProbe.texture_index, rayDirWorld, 0.0)
+                    * ENVIRONMENT_INTENSITY
+                    * (1.0 - environmentRadiance.a);
+            }
+            
             // use 0 for alpha, so we can blend with other GI if available.
-            float4 environmentIrradiance = float4(EnvProbeSH(envProbes[0], rayDirWorld), 0.0);
-            accum_result += environmentIrradiance;
+            accum_result += float4(environmentRadiance.rgb, 0.0);
         }
     }
 

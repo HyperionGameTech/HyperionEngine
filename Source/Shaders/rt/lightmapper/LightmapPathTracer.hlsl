@@ -82,7 +82,7 @@ DECLARE_BUFFER_DYNAMIC(LightmapPathTracer, CBuffer) cbuffer CBuffer
 #define MAX_SAMPLE_LUMINANCE 20.0
 #define MAX_THROUGHPUT_LUMINANCE 10.0
 #define ROUGHNESS_FLOOR 0.001
-#define ENVIRONMENT_INTENSITY 20.0
+#define ENVIRONMENT_INTENSITY 1.0
 
 float3 ClampLuminance(in float3 c, float max_lum)
 {
@@ -311,7 +311,7 @@ void RayGenMain()
     // full path tracing with diffuse/specular bounces
     float4 accumRadiance = (float4)0.0;
 
-#if 1 // old ver
+#if 0 // old ver (totally path traced)
     for (uint sample_index = 0; sample_index < NUM_SAMPLES; sample_index++)
     {
         float2 rnd0 = float2(RandomFloat(ray_seed), RandomFloat(ray_seed));
@@ -481,6 +481,9 @@ void RayGenMain()
     }
 #else // !old ver
 
+    // this version is less about tracing bounces of rays and more just a way to render a cubemap
+    // but uses the RT shaders rather than rasterization.
+
     for (uint sample_index = 0; sample_index < NUM_SAMPLES; sample_index++)
     {
         float2 rnd0 = float2(RandomFloat(ray_seed), RandomFloat(ray_seed));
@@ -589,10 +592,20 @@ void RayGenMain()
             }
         }
 
+        float3 irradiance = (float3)0.0;
+        //use environment irradiance (SH) for diffuse lighting
+        for (uint envProbeIdx = 0; envProbeIdx < rayTracingConstants.numBoundEnvProbes; envProbeIdx++)
+        {
+            const EnvProbe envProbe = envProbes[envProbeIdx];
+
+            irradiance += EnvProbeSH(envProbe, N, /* order */ 2);
+        }
+
         radiance.a = sampleIsMiss ? 0.0 : 1.0;
 
         float3 diffuseColor = baseColor * (1.0 - metalness);
         accumRadiance += radiance * float4(diffuseColor * HYP_FMATH_ONE_OVER_PI, 1.0);
+        accumRadiance += float4(diffuseColor * irradiance, 0.0);
     }
 #endif
 

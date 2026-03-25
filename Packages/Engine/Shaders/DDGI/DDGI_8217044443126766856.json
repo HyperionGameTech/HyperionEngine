@@ -225,7 +225,7 @@
   "ShaderBlobs": [{
       "$Class": "BlobDataReference",
       "Key": "Engine/Shaders/DDGI/DDGI_8217044443126766856.RGS",
-      "Size": 161852
+      "Size": 162232
     }, {
       "$Class": "BlobDataReference",
       "Key": "Engine/Shaders/DDGI/DDGI_8217044443126766856.CHS",

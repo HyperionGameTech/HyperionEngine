@@ -113,6 +113,11 @@ DECLARE_BUFFER_DYNAMIC(DeferredPass, EnvGridsBuffer) cbuffer EnvGridsBuffer
 
 #define DDGI_MULTIPLIER 1.0
 
+DECLARE_BUFFER_DYNAMIC(DeferredPass, CBuffer) cbuffer CBuffer
+{
+    EnvProbe fallbackEnvProbe;
+};
+
 PSOutput PSMain(PSInput input)
 {
     PSOutput output;
@@ -166,9 +171,14 @@ PSOutput PSMain(PSInput input)
     CalculateRayTracingReflection(texcoord, reflections);
 #endif
 
+    // start with fallback EnvProbe spherical harmonics.
+    // alpha is zero so we can prioritize other GI methods if available, and lerp to the fallback SH if not.
+    irradiance = float4(EnvProbeSH(fallbackEnvProbe, N, /* order */ 2), 0.0);
+
 #if SSGI_ENABLED
     // Blend ssgi result into irradiance - if no hit, alpha will be zero or close to it so we can lerp it
-    irradiance = SAMPLE_TEXTURE_2D(HYP_SAMPLER_LINEAR, ssgi_result, texcoord);
+    float4 ssgi = SAMPLE_TEXTURE_2D(HYP_SAMPLER_LINEAR, ssgi_result, texcoord);
+    irradiance = lerp(irradiance, ssgi, ssgi.a);
 #endif
 
 #if RT_GI

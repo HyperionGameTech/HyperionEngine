@@ -49,20 +49,6 @@
                 "FieldNames": [],
                 "FieldTypes": []
               }
-            }, {
-              "$Class": "ShaderInput",
-              "Register": 1,
-              "ElementType": 5,
-              "Name": "EnvProbesTexture",
-              "Count": 1,
-              "Size": 4294967295,
-              "IsDynamic": false,
-              "StructInfo": {
-                "Name": "",
-                "Size": 4294967295,
-                "FieldNames": [],
-                "FieldTypes": []
-              }
             }], [{
               "$Class": "ShaderInput",
               "Register": 2,
@@ -143,11 +129,11 @@
   "ShaderBlobs": [{
       "$Class": "BlobDataReference",
       "Key": "Engine/Shaders/ComputeSH/ComputeSH_6527600843647074732.CS",
-      "Size": 54400
+      "Size": 54548
     }],
   "PropertySetHashCode": {},
   "LastCompiledTimestamp": {
-    "Value": 1774453884000
+    "Value": 1774462049000
   },
   "Name": "ComputeSH_6527600843647074732",
   "FriendlyName": "ComputeSH_6527600843647074732",

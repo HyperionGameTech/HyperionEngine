@@ -199,6 +199,20 @@
               "$Class": "ShaderInput",
               "Register": 3,
               "ElementType": 2,
+              "Name": "CBuffer",
+              "Count": 1,
+              "Size": 4294967295,
+              "IsDynamic": true,
+              "StructInfo": {
+                "Name": "",
+                "Size": 4294967295,
+                "FieldNames": [],
+                "FieldTypes": []
+              }
+            }, {
+              "$Class": "ShaderInput",
+              "Register": 3,
+              "ElementType": 2,
               "Name": "CamerasBuffer",
               "Count": 1,
               "Size": 4294967295,
@@ -261,17 +275,17 @@
   "ShaderBlobs": [{
       "$Class": "BlobDataReference",
       "Key": "Engine/Shaders/DeferredIndirect/DeferredIndirect_5745572804640774058.VS",
-      "Size": 11036
+      "Size": 11080
     }, {
       "$Class": "BlobDataReference",
       "Key": "Engine/Shaders/DeferredIndirect/DeferredIndirect_5745572804640774058.PS",
-      "Size": 109860
+      "Size": 110504
     }],
   "PropertySetHashCode": {},
   "LastCompiledTimestamp": {
-    "Value": 1774446344000
+    "Value": 1774459211000
   },
   "Name": "DeferredIndirect_5745572804640774058",
-  "FriendlyName": "DeferredIndirect_5745572804640774058",
+  "FriendlyName": "DeferredIndirect5745572804640774058",
   "OriginalFilepath": ""
 }

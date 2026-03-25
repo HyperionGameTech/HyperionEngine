@@ -109,13 +109,13 @@ float4 EnvProbeSampleParallaxCorrected(
 void ProjectSHBands(float3 N, out float bands[9])
 {
     bands[0] = 0.282095;
-    bands[1] = -0.488603 * N.y;
+    bands[1] = 0.488603 * N.y;
     bands[2] = 0.488603 * N.z;
-    bands[3] = -0.488603 * N.x;
+    bands[3] = 0.488603 * N.x;
     bands[4] = 1.092548 * N.x * N.y;
-    bands[5] = -1.092548 * N.y * N.z;
+    bands[5] = 1.092548 * N.y * N.z;
     bands[6] = 0.315392 * (3.0 * N.z * N.z - 1.0);
-    bands[7] = -1.092548 * N.x * N.z;
+    bands[7] = 1.092548 * N.x * N.z;
     bands[8] = 0.546274 * (N.x * N.x - N.y * N.y);
 }
 
@@ -139,15 +139,22 @@ float3 SphericalHarmonicsSample(const in SH9 sh, float3 normal)
     return result;
 }
 
-float3 EnvProbeSH(in EnvProbe envProbe, float3 N)
+// Sample spherical harmonics from an EnvProbe up to the given SH order
+float3 EnvProbeSH(in EnvProbe envProbe, float3 N, int order = 3)
 {
-    SH9 sh;
-    for (int i = 0; i < 9; i++)
+    float bands[9];
+    ProjectSHBands(N, bands);
+
+    const int numCoeffs = min((order + 1) * (order + 1), 9);
+
+    float3 result = (float3)0.0;
+
+    for (int i = 0; i < numCoeffs; i++)
     {
-        sh.values[i] = envProbe.sh[i].xyz;
+        result += envProbe.sh[i].rgb * bands[i];
     }
 
-    return SphericalHarmonicsSample(sh, N);
+    return max(result, (float3)0.0);
 }
 
 #endif
