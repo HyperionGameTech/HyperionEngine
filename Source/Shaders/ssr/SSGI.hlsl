@@ -269,7 +269,7 @@ void CSMain(uint3 dispatchThreadID : SV_DispatchThreadID)
             float3 rayDirWorld = normalize(mul(camera.invViewMat, float4(ray_direction, 0.0)).xyz);
             
             // use 0 for alpha, so we can blend with other GI if available.
-            float4 environmentIrradiance = float4(EnvProbeSH(envProbes[0], rayDirWorld), 0.0);
+            float4 environmentIrradiance = float4(EnvProbeSH(envProbes[0], rayDirWorld, /* order */ 0), 0.0);
             accum_result += environmentIrradiance;
         }
     }

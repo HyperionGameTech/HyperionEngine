@@ -373,6 +373,11 @@ void DeferredPass::RenderToFramebuffer_Internal(Frame* frame, const RenderSetup&
     {
         return; // nothing to do for direct pass if no lights active
     }
+    
+    RenderProxyCamera* cameraProxy = static_cast<RenderProxyCamera*>(GetRenderProxy(rs.view->GetCamera()));
+    Assert(cameraProxy != nullptr);
+
+    const Vec4f& cameraPosition = cameraProxy->bufferData.cameraPosition;
 
     CommandRecorder& cr = frame->cr;
 
@@ -386,15 +391,15 @@ void DeferredPass::RenderToFramebuffer_Internal(Frame* frame, const RenderSetup&
     cr << SetDepthWrite(false);
     cr << SetDepthTest(false);
 
-        cr << SetStencilFunction(StencilFunction {
-            .passOp = SO_KEEP,
-            .failOp = SO_KEEP,
-            .depthFailOp = SO_KEEP,
-            .compareOp = SCO_EQUAL
-        });
+    cr << SetStencilFunction(StencilFunction {
+        .passOp = SO_KEEP,
+        .failOp = SO_KEEP,
+        .depthFailOp = SO_KEEP,
+        .compareOp = SCO_EQUAL
+    });
 
-        // stencil state: only render where stencil == 0 (non-lightmapped geometry)
-        cr << SetStencilState(0, LightmapStencilMask, 0x0);
+    // stencil state: only render where stencil == 0 (non-lightmapped geometry)
+    cr << SetStencilState(0, LightmapStencilMask, 0x0);
 
     HYP_DEFER({
         // reset states
@@ -455,10 +460,76 @@ void DeferredPass::RenderToFramebuffer_Internal(Frame* frame, const RenderSetup&
             cr << SetShaderUniform(numShaderUniforms++, "DDGIIrradianceTexture"_sh, dpd->ddgi->GetIrradianceImageView());
             cr << SetShaderUniform(numShaderUniforms++, "DDGIDepthTexture"_sh, dpd->ddgi->GetDepthImageView());
         }
-    }
 
-    if (m_mode == DPM_INDIRECT_LIGHTING)
-    {
+        { // build indirect lighting constants
+
+
+            GpuBuffer* cBuffer = nullptr;
+            size_t cBufferOffset = 0;
+            size_t cBufferSize = 0;
+
+            EnvProbeShaderData fallbackEnvProbeData {};
+
+            const uint32 numEnvProbes = rpl.GetEnvProbes().NumCurrent();
+            
+            // Find closest probe to use as a fallback for indirect light.
+            if (numEnvProbes != 0)
+            {
+                Array<Pair<EnvProbe*, EnvProbeShaderData*>, RenderTempAllocator> tempEnvProbes;
+                tempEnvProbes.Reserve(numEnvProbes);
+
+                for (EnvProbe* envProbe : rpl.GetEnvProbes())
+                {
+                    if (envProbe->IsA(ReflectionProbe::StaticClass()) || envProbe->IsA(SkyProbe::StaticClass()))
+                    {
+                        RenderProxyEnvProbe* envProbeProxy = static_cast<RenderProxyEnvProbe*>(GetRenderProxy(envProbe));
+                        Assert(envProbeProxy != nullptr);
+
+                        tempEnvProbes.EmplaceBack(envProbe, &envProbeProxy->bufferData);
+                    }
+                }
+
+                std::sort(tempEnvProbes.Begin(), tempEnvProbes.End(),
+                    [&cameraPosition](const Pair<EnvProbe*, EnvProbeShaderData*>& a, const Pair<EnvProbe*, EnvProbeShaderData*>& b)
+                    {
+                        const bool aIsSky = a.first->IsA(SkyProbe::StaticClass());
+                        const bool bIsSky = b.first->IsA(SkyProbe::StaticClass());
+
+                        if (aIsSky && !bIsSky)
+                        {
+                            return false;
+                        }
+
+                        if (!aIsSky && bIsSky)
+                        {
+                            return true;
+                        }
+
+                        if (aIsSky && bIsSky)
+                        {
+                            return false;
+                        }
+
+                        // both are reflection probes, sort by distance to camera
+                        const Vec4f& aProbePosition = a.second->worldPosition;
+                        const Vec4f& bProbePosition = b.second->worldPosition;
+
+                        const float aDistSq = (aProbePosition - cameraPosition).LengthSquared();
+                        const float bDistSq = (bProbePosition - cameraPosition).LengthSquared();
+
+                        return aDistSq < bDistSq;
+                    });
+
+                fallbackEnvProbeData = *tempEnvProbes[0].second;
+            }
+
+            g_renderInterface->constantsAllocator->Write(&fallbackEnvProbeData);
+
+            g_renderInterface->constantsAllocator->Commit(cBuffer, cBufferOffset, cBufferSize);
+
+            cr << SetShaderUniform(numShaderUniforms++, "CBuffer"_sh, cBuffer, ShaderDataOffset(cBufferOffset, cBufferSize));
+        }
+
         ShaderPropertySet shaderProperties;
         DeferredRendererHelpers::GetDeferredShaderProperties(DPM_INDIRECT_LIGHTING, shaderProperties, &rpl);
 

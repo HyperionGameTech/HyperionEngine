@@ -77,7 +77,7 @@ public:
     virtual void Shutdown() override;
 
     static void ComputePrefilteredEnvMap(Frame* frame, const RenderSetup& renderSetup, EnvProbe* envProbe);
-    static void ComputeSH(Frame* frame, const RenderSetup& renderSetup, EnvProbe* envProbe);
+    static void ComputeSH(Frame* frame, EnvProbe* envProbe);
 
 protected:
     virtual void RenderProbe(Frame* frame, const RenderSetup& renderSetup, EnvProbe* envProbe) override;

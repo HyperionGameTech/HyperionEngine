@@ -139,15 +139,22 @@ float3 SphericalHarmonicsSample(const in SH9 sh, float3 normal)
     return result;
 }
 
-float3 EnvProbeSH(in EnvProbe envProbe, float3 N)
+// Sample spherical harmonics from an EnvProbe up to the given SH order
+float3 EnvProbeSH(in EnvProbe envProbe, float3 N, int order = 3)
 {
-    SH9 sh;
-    for (int i = 0; i < 9; i++)
+    float bands[9];
+    ProjectSHBands(N, bands);
+
+    const int numCoeffs = min((order + 1) * (order + 1), 9);
+
+    float3 result = (float3)0.0;
+
+    for (int i = 0; i < numCoeffs; i++)
     {
-        sh.values[i] = envProbe.sh[i].xyz;
+        result += envProbe.sh[i].rgb * bands[i];
     }
 
-    return SphericalHarmonicsSample(sh, N);
+    return max(result, (float3)0.0);
 }
 
 #endif

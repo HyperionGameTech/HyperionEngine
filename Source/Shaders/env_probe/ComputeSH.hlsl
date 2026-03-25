@@ -24,35 +24,15 @@ DECLARE_SAMPLER(ComputeSH, SamplerNearest) SamplerState sampler_nearest;
 
 #undef HYP_DO_NOT_DEFINE_DESCRIPTOR_SETS
 
-#if ENV_PROBE_CUBEMAP
-DECLARE_SRV(ComputeSH, EnvProbesTexture) TextureCubeArray envProbesTexture;
-#else
-DECLARE_SRV(ComputeSH, EnvProbesTexture) Texture2DArray envProbesTexture;
-#endif
-
 #if defined(MODE_CLEAR) || defined(MODE_FINALIZE)
+// @TODO Instead of huge RWStructuredBuffer for env probes we should use a one-off
+// sbuffer to write/read from since we end up reading from it onto the cpu anyway.
+// And eventually we will get rid of some of these huge buffers because of the new constants allocator
+// that lets us treat everything as push constants essentially.
 DECLARE_UAV(ComputeSH, EnvProbesBuffer) RWStructuredBuffer<EnvProbe> env_probes;
 #endif
 
-#ifdef LIGHTING
-DECLARE_SRV_DYNAMIC(ComputeSH, CurrentEnvProbe) StructuredBuffer<EnvProbe> current_env_probe_buffer;
-#define current_env_probe current_env_probe_buffer[0]
-
-DECLARE_SRV(ComputeSH, ShadowMapsTextureArray) Texture2DArray shadow_maps;
-DECLARE_SRV(ComputeSH, PointLightShadowMapsTextureArray) TextureCubeArray point_shadow_maps;
-
-DECLARE_SRV_DYNAMIC(ComputeSH, CurrentLight) StructuredBuffer<Light> current_light_buffer;
-#define currentLight current_light_buffer[0]
-
-#include "../include/Shadows.hlsli"
-#endif
-
 DECLARE_SRV(ComputeSH, InColorCubemap) TextureCube cubemap_color;
-
-#if defined(MODE_BUILD_COEFFICIENTS) && defined(LIGHTING)
-DECLARE_SRV(ComputeSH, InNormalsCubemap) TextureCube cubemap_normals;
-DECLARE_SRV(ComputeSH, InDepthCubemap) TextureCube cubemap_depth;
-#endif
 
 #if defined(MODE_BUILD_COEFFICIENTS) || defined(MODE_FINALIZE) || defined(MODE_CLEAR)
 DECLARE_UAV(ComputeSH, InputSHTilesBuffer) RWStructuredBuffer<SHTile> sh_tiles;
@@ -62,7 +42,7 @@ DECLARE_UAV(ComputeSH, InputSHTilesBuffer) RWStructuredBuffer<SHTile> sh_tiles;
 DECLARE_UAV(ComputeSH, OutputSHTilesBuffer) RWStructuredBuffer<SHTile> sh_tiles_output;
 #endif
 
-#if defined(MODE_FINALIZE) || defined(MODE_REDUCE) || defined(MODE_CLEAR) || (defined(MODE_BUILD_COEFFICIENTS) && defined(LIGHTING))
+#if defined(MODE_FINALIZE) || defined(MODE_REDUCE) || defined(MODE_CLEAR) || (defined(MODE_BUILD_COEFFICIENTS))
 DECLARE_BUFFER(ComputeSH, SHUniforms) cbuffer SHUniforms
 {
     uint4 probe_grid_position;
@@ -105,38 +85,6 @@ void ProjectOntoSH9Color(float3 dir, float3 color, out float sh_colors[27])
     }
 }
 
-#ifdef LIGHTING
-float4 SampleSky(float3 dir)
-{
-    if (current_env_probe.texture_index != ~0u)
-    {
-        uint probe_texture_index = max(0, min(current_env_probe.texture_index, HYP_MAX_BOUND_REFLECTION_PROBES - 1));
-
-        return EnvProbeSample(sampler_linear, envProbesTexture, probe_texture_index, dir, 0.0);
-    }
-
-    return float4(0.0, 0.0, 0.0, 0.0);
-}
-
-float4 CalculateDirectLighting(in float3 P, in float3 N)
-{
-    if (currentLight.type != HYP_LIGHT_TYPE_DIRECTIONAL)
-    {
-        return float4(0.0, 0.0, 0.0, 0.0);
-    }
-
-    const float4 light_color = currentLight.color;
-
-    float3 L = normalize(currentLight.position_intensity.xyz);
-
-    float NdotL = max(0.0001, dot(N, L));
-
-    float shadow = 1.0;
-
-    return float4(light_color.rgb * NdotL * shadow * currentLight.position_intensity.w, 1.0);
-}
-#endif
-
 #ifdef MODE_REDUCE
 groupshared float4 shared_memory[9][6];
 #endif
@@ -173,19 +121,7 @@ void CSMain(uint3 dispatchThreadID : SV_DispatchThreadID)
     const float3 dir = normalize(DecodeOctahedralCoord(uv));
 
     float4 albedo = SAMPLE_TEXTURE_CUBE(sampler_linear, cubemap_color, dir);
-
-#ifdef LIGHTING
-    float3 normal = normalize(UnpackNormalVec2(SAMPLE_TEXTURE_CUBE(sampler_nearest, cubemap_normals, dir).rg));
-    float2 dist_dist2 = SAMPLE_TEXTURE_CUBE(sampler_nearest, cubemap_depth, dir).rg;
-
-    float4 position = float4(world_position.xyz + dir * dist_dist2.r, 1.0);
-
-    float4 indirect = SampleSky(normal);
-    float4 color = (indirect + CalculateDirectLighting(position.xyz, normal)) * (albedo * (1.0 / HYP_FMATH_PI));
-    color.a = 1.0;
-#else
     float4 color = albedo;
-#endif
 
     float sh_values[27];
     ProjectOntoSH9Color(dir, color.rgb, sh_values);
