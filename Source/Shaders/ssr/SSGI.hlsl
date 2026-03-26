@@ -70,7 +70,7 @@ DECLARE_BUFFER_DYNAMIC(SSGI, CamerasBuffer) cbuffer CamerasBuffer
     Camera camera;
 };
 
-DECLARE_SRV(SSGI, ShadowMapsTextureArray) Texture2DArray shadow_maps;
+DECLARE_SRV(SSGI, ShadowMapsTextureArray) Texture2DArray<float> shadow_maps;
 DECLARE_SRV(SSGI, PointLightShadowMapsTextureArray) TextureCubeArray point_shadow_maps;
 
 #define HYP_DO_NOT_DEFINE_DESCRIPTOR_SETS

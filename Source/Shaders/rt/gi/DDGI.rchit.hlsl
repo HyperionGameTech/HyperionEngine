@@ -32,7 +32,7 @@ DECLARE_BUFFER_DYNAMIC(DDGI, CBuffer) cbuffer CBuffer
     DDGIConstants ddgiConstants;
 };
 
-DECLARE_SRV(DDGI, ShadowMapsTextureArray) Texture2DArray shadow_maps;
+DECLARE_SRV(DDGI, ShadowMapsTextureArray) Texture2DArray<float> shadow_maps;
 DECLARE_SRV(DDGI, PointLightShadowMapsTextureArray) TextureCubeArray point_shadow_maps;
 
 #define HYP_DO_NOT_DEFINE_DESCRIPTOR_SETS

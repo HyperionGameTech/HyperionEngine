@@ -22,10 +22,6 @@
 #define HYP_SHADOW_PENUMBRA 1
 #define HYP_SHADOW_VARIANCE 1
 
-#ifndef HYP_SAMPLER_SHADOW
-#define HYP_SAMPLER_SHADOW HYP_SAMPLER_LINEAR
-#endif // HYP_SAMPLER_SHADOW
-
 static const float2 s_pcfKernel[16] = {
     float2(-0.94201624, -0.39906216),
     float2(0.94558609, -0.76890725),
@@ -104,13 +100,6 @@ float GetShadowStandard(float4 shadow_sample, float3 coord, float NdotL)
     return max(step(coord.z - bias, shadow_depth), 0.0);
 }
 
-static const float2 s_poissonDisk[4] = {
-    float2(-0.94201624, -0.39906216),
-    float2(0.94558609, -0.76890725),
-    float2(-0.094184101, -0.92938870),
-    float2(0.34495938, 0.29387760)
-};
-
 float GetShadowPCF(in ShadowMap shadowMap, float3 pos, float2 texcoord, float2 screen_dimensions, float NdotL)
 {
     AABB aabb;
@@ -164,7 +153,9 @@ float GetShadowPCF(in ShadowMap shadowMap, float3 pos, float2 texcoord, float2 s
 
     float shadowness = 0.0;
 
-// #define HYP_USE_GATHER
+#ifndef HYP_SAMPLER_SHADOW
+#define HYP_USE_GATHER
+#endif // HYP_SAMPLER_SHADOW
 
 #ifdef HYP_USE_GATHER
     float4 shadow_samples[HYP_SHADOW_SAMPLE_COUNT / 4];
@@ -177,7 +168,7 @@ float GetShadowPCF(in ShadowMap shadowMap, float3 pos, float2 texcoord, float2 s
 
 #define HYP_FETCH_SHADOW_SAMPLES(iter_index0)                                                                                         \
     {                                                                                                                               \
-        float4 samples = shadow_maps.GatherRed(HYP_SAMPLER_SHADOW,                                                                  \
+        float4 samples = shadow_maps.GatherRed(HYP_SAMPLER_LINEAR,                                                                  \
             float3(((coord.xy + (vogel_##iter_index0 * shadow_filter_size)) * uv_scale) + offsetUV, float(shadowMap.layerIndex)),   \
             offsets[iter_index0]);                                                                                                  \
         float4 deltas = max(step(coord.zzzz - (float4)HYP_SHADOW_BIAS, samples), (float4)0.0);                                      \
@@ -188,12 +179,12 @@ float GetShadowPCF(in ShadowMap shadowMap, float3 pos, float2 texcoord, float2 s
 
 #if defined(HYP_SHADOW_SAMPLES_8) || defined(HYP_SHADOW_SAMPLES_16)
     HYP_FETCH_SHADOW_SAMPLES(1);
-#endif
+#endif // HYP_SHADOW_SAMPLES_8 || HYP_SHADOW_SAMPLES_16
 
 #if defined(HYP_SHADOW_SAMPLES_16)
     HYP_FETCH_SHADOW_SAMPLES(2);
     HYP_FETCH_SHADOW_SAMPLES(3);
-#endif
+#endif // HYP_USE_GATHER
 
     for (uint i = 0; i < HYP_SHADOW_SAMPLE_COUNT / 4; i++)
     {
@@ -205,7 +196,7 @@ float GetShadowPCF(in ShadowMap shadowMap, float3 pos, float2 texcoord, float2 s
 
 #define HYP_FETCH_SHADOW_SAMPLE(iter_index) \
     { \
-        float2 rotatedOffset = mul(s_poissonDisk[iter_index], rotationMatrix); \
+        float2 rotatedOffset = mul(s_pcfKernel[iter_index], rotationMatrix); \
         float2 sampleUV = ((coord.xy + (rotatedOffset * shadow_filter_size)) * uv_scale) + offsetUV; \
         shadowness += shadow_maps.SampleCmpLevelZero(HYP_SAMPLER_SHADOW, float3(sampleUV, float(shadowMap.layerIndex)), coord.z - HYP_SHADOW_BIAS); \
     }
@@ -214,67 +205,20 @@ float GetShadowPCF(in ShadowMap shadowMap, float3 pos, float2 texcoord, float2 s
     
 #if defined(HYP_SHADOW_SAMPLES_8) || defined(HYP_SHADOW_SAMPLES_16)
     HYP_FETCH_SHADOW_SAMPLE(4); HYP_FETCH_SHADOW_SAMPLE(5); HYP_FETCH_SHADOW_SAMPLE(6); HYP_FETCH_SHADOW_SAMPLE(7);
-#endif
+#endif // HYP_SHADOW_SAMPLES_8 || HYP_SHADOW_SAMPLES_16
 
 #if defined(HYP_SHADOW_SAMPLES_16)
     HYP_FETCH_SHADOW_SAMPLE(8); HYP_FETCH_SHADOW_SAMPLE(9); HYP_FETCH_SHADOW_SAMPLE(10); HYP_FETCH_SHADOW_SAMPLE(11);
     HYP_FETCH_SHADOW_SAMPLE(12); HYP_FETCH_SHADOW_SAMPLE(13); HYP_FETCH_SHADOW_SAMPLE(14); HYP_FETCH_SHADOW_SAMPLE(15);
-#endif
+#endif // HYP_SHADOW_SAMPLES_16
+
+#endif // HYP_USE_GATHER
 
 #undef HYP_DO_SHADOW
 
     shadowness *= (1.0 / float(HYP_SHADOW_SAMPLE_COUNT));
 
     return shadowness;
-}
-
-float GetShadowVariance(in ShadowMap shadowMap, float3 pos, float NdotL)
-{
-    float bias = HYP_SHADOW_BIAS;
-
-#ifdef HYP_SHADOW_VARIABLE_BIAS
-    bias *= tan(acos(NdotL));
-    bias = clamp(bias, 0.0, 0.01);
-#endif
-
-    const float2 offsetUV = float2(shadowMap.aabbMin.w, shadowMap.aabbMax.w);
-
-    const float3 coord = GetShadowCoord(shadowMap.viewProjMat, pos);
-    float2 moments = SAMPLE_TEXTURE_2D_ARRAY_LOD(HYP_SAMPLER_LINEAR, shadow_maps, float3(coord.xy * shadowMap.dimensionsScale.zw + offsetUV, float(shadowMap.layerIndex)), 0).xy;
-
-    float d = coord.z - moments.x;
-    float p = step(coord.z, moments.x + bias);
-    float variance = max(moments.y - moments.x * moments.x, 0.0001);
-
-    float p_max = variance / (variance + d * d);
-
-    AABB aabb;
-    aabb.min = shadowMap.aabbMin.xyz;
-    aabb.max = shadowMap.aabbMax.xyz;
-
-    return AABBContainsPoint(aabb, pos) ? max(p, p_max) : 1.0;
-
-#if 0
-    const float3 coord = GetShadowCoord(shadowMap.viewProjMat, pos);
-    const float4 shadow_sample = SAMPLE_TEXTURE_2D_ARRAY_LOD(HYP_SAMPLER_LINEAR, shadow_maps, float3(coord.xy * shadowMap.dimensionsScale.zw + offsetUV, float(shadowMap.layerIndex)), 0);
-    const float moment = shadow_sample.r;
-
-    if (coord.z <= moment) {
-        return 1.0;
-    }
-
-    const float moment2 = shadow_sample.g;
-
-    const float variance = max(moment2 - HYP_FMATH_SQR(moment), HYP_FMATH_EPSILON);
-    const float d = coord.z - moment;
-    
-    float percent_in_shadow = variance / (variance + HYP_FMATH_SQR(d));
-    percent_in_shadow = smoothstep(HYP_SHADOW_VARIANCE_LIGHT_BLEED_REDUCTION, 1.0, percent_in_shadow);
-
-    percent_in_shadow *= 1.0 - float(NdotL > 1.5708);
-    return float(acos(NdotL));
-
-#endif
 }
 
 float AvgBlockerDepthToPenumbra(float light_size, float avg_blocker_depth, float shadow_map_coord_z)
@@ -478,8 +422,6 @@ float GetShadow(in ShadowMap shadowMap, uint lightFlags, float3 position, float2
         
     switch (lightFlags & LF_SHADOW_FILTER_MASK)
     {
-    case LF_SHADOW_VSM:
-        return GetShadowVariance(shadowMap, position, NdotL);
     case LF_SHADOW_CONTACT_HARDENING:
         return GetShadowContactHardened(shadowMap, position, texcoord, screen_dimensions, NdotL);
     case LF_SHADOW_PCF:

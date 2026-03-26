@@ -194,7 +194,7 @@ DECLARE_SAMPLER(Default, SamplerNearest) SamplerState sampler_nearest;
 
 #define HYP_CUBEMAP_AMBIENT 0.005
 
-DECLARE_SRV(Default, ShadowMapsTextureArray) Texture2DArray shadow_maps;
+DECLARE_SRV(Default, ShadowMapsTextureArray) Texture2DArray<float> shadow_maps;
 DECLARE_SRV(Default, PointLightShadowMapsTextureArray) TextureCubeArray point_shadow_maps;
 
 #ifdef INSTANCING

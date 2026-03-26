@@ -25,7 +25,7 @@ DECLARE_SAMPLER(RTReflections, SamplerLinear) SamplerState sampler_linear;
 
 /* Shadows */
 
-DECLARE_SRV(RTReflections, ShadowMapsTextureArray) Texture2DArray shadow_maps;
+DECLARE_SRV(RTReflections, ShadowMapsTextureArray) Texture2DArray<float> shadow_maps;
 DECLARE_SRV(RTReflections, PointLightShadowMapsTextureArray) TextureCubeArray point_shadow_maps;
 
 #define HYP_DO_NOT_DEFINE_DESCRIPTOR_SETS

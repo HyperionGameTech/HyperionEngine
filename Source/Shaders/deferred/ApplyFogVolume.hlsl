@@ -112,7 +112,7 @@ DECLARE_BUFFER_DYNAMIC(FogVolume, CamerasBuffer) cbuffer CamerasBuffer
     Camera camera;
 };
 
-DECLARE_SRV(FogVolume, ShadowMapsTextureArray) Texture2DArray shadow_maps;
+DECLARE_SRV(FogVolume, ShadowMapsTextureArray) Texture2DArray<float> shadow_maps;
 DECLARE_SRV(FogVolume, PointLightShadowMapsTextureArray) TextureCubeArray point_shadow_maps;
 
 #include "../include/brdf.inc"

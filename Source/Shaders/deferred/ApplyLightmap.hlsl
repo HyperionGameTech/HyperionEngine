@@ -82,7 +82,7 @@ DECLARE_BUFFER(LightmapPass, WorldsBuffer) cbuffer WorldsBuffer
 
 #include "../include/brdf.inc"
 
-DECLARE_SRV(LightmapPass, ShadowMapsTextureArray) Texture2DArray shadow_maps;
+DECLARE_SRV(LightmapPass, ShadowMapsTextureArray) Texture2DArray<float> shadow_maps;
 DECLARE_SRV(LightmapPass, PointLightShadowMapsTextureArray) TextureCubeArray point_shadow_maps;
 
 #include "../include/Shadows.hlsli"
