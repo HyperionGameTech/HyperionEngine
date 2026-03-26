@@ -18,11 +18,7 @@ class DX12Sampler final : public SamplerBase
     HYP_OBJECT_BODY(DX12Sampler);
 
 public:
-    DX12Sampler(
-        TextureFilterMode minFilterMode = TFM_NEAREST,
-        TextureFilterMode magFilterMode = TFM_NEAREST,
-        TextureWrapMode wrapMode = TWM_CLAMP_TO_EDGE);
-
+    DX12Sampler(const SamplerDesc& desc);
     ~DX12Sampler() override;
 
     bool IsCreated() const override;

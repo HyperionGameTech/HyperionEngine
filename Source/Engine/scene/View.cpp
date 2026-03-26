@@ -234,11 +234,7 @@ void View::Init()
                     attachmentIndex,
                     attachmentDesc);
 
-                attachment->SetClearColor(Vec4f(
-                    attachmentDesc.clearColor[0],
-                    attachmentDesc.clearColor[1],
-                    attachmentDesc.clearColor[2],
-                    attachmentDesc.clearColor[3]));
+                attachment->SetClearColor(Vec4f(attachmentDesc.clearColor));
             }
 
             DeferCreate(framebuffer);

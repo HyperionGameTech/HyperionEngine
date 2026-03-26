@@ -18,12 +18,10 @@ namespace Hyperion {
 
 extern VulkanRenderInterface* g_renderInterface;
 
-VulkanSampler::VulkanSampler(TextureFilterMode minFilterMode, TextureFilterMode magFilterMode, TextureWrapMode wrapMode)
-    : m_handle(VK_NULL_HANDLE)
+VulkanSampler::VulkanSampler(const SamplerDesc& desc)
+    : SamplerBase(desc),
+      m_handle(VK_NULL_HANDLE)
 {
-    m_minFilterMode = minFilterMode;
-    m_magFilterMode = magFilterMode;
-    m_wrapMode = wrapMode;
 }
 
 VulkanSampler::~VulkanSampler()
@@ -65,8 +63,42 @@ RendererResult VulkanSampler::Create()
 
     samplerInfo.borderColor = VK_BORDER_COLOR_INT_OPAQUE_BLACK;
     samplerInfo.unnormalizedCoordinates = VK_FALSE;
+    
     samplerInfo.compareEnable = VK_FALSE;
     samplerInfo.compareOp = VK_COMPARE_OP_ALWAYS;
+
+    if (m_compareOp != SamplerCompareOp::None)
+    {
+        samplerInfo.compareEnable = VK_TRUE;
+
+        switch (m_compareOp)
+        {
+        case SamplerCompareOp::Less:
+            samplerInfo.compareOp = VK_COMPARE_OP_LESS;
+            break;
+        case SamplerCompareOp::LessEq:
+            samplerInfo.compareOp = VK_COMPARE_OP_LESS_OR_EQUAL;
+            break;
+        case SamplerCompareOp::Greater:
+            samplerInfo.compareOp = VK_COMPARE_OP_GREATER;
+            break;
+        case SamplerCompareOp::GreaterEq:
+            samplerInfo.compareOp = VK_COMPARE_OP_GREATER_OR_EQUAL;
+            break;
+        case SamplerCompareOp::Equal:
+            samplerInfo.compareOp = VK_COMPARE_OP_EQUAL;
+            break;
+        case SamplerCompareOp::NotEqual:
+            samplerInfo.compareOp = VK_COMPARE_OP_NOT_EQUAL;
+            break;
+        case SamplerCompareOp::Always:
+            samplerInfo.compareOp = VK_COMPARE_OP_ALWAYS;
+            break;
+        case SamplerCompareOp::Never:
+            samplerInfo.compareOp = VK_COMPARE_OP_NEVER;
+            break;
+        }
+    }
 
     switch (m_minFilterMode)
     {
@@ -86,7 +118,7 @@ RendererResult VulkanSampler::Create()
 
     samplerInfo.mipLodBias = 0.0f;
     samplerInfo.minLod = 0.0f;
-    samplerInfo.maxLod = 12.0f; // 65535.0f;
+    samplerInfo.maxLod = VK_LOD_CLAMP_NONE;
 
     VkSamplerReductionModeCreateInfoEXT reductionInfo { VK_STRUCTURE_TYPE_SAMPLER_REDUCTION_MODE_CREATE_INFO_EXT };
 

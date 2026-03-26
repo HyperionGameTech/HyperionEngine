@@ -265,33 +265,37 @@ void EnvProbe::CreateView()
     if (IsReflectionProbe() || IsSkyProbe())
     {
         renderTargetDesc.AddAttachment(AttachmentDesc {
-            .imageType = TextureType::Cubemap,
-            .format = TextureFormat::R10G10B10A2,
-            .loadOp = LoadOperation::CLEAR,
-            .storeOp = StoreOperation::STORE
+            TextureType::Cubemap,
+            TextureFormat::R10G10B10A2,
+            LoadOperation::CLEAR,
+            StoreOperation::STORE
         });
 
         renderTargetDesc.AddAttachment(AttachmentDesc {
-            .imageType = TextureType::Cubemap,
-            .format = TextureFormat::RG16F,
-            .loadOp = LoadOperation::CLEAR,
-            .storeOp = StoreOperation::STORE
+            TextureType::Cubemap,
+            TextureFormat::RG16F,
+            LoadOperation::CLEAR,
+            StoreOperation::STORE
         });
 
-        renderTargetDesc.AddAttachment(AttachmentDesc {
-            .imageType = TextureType::Cubemap,
-            .format = TextureFormat::RG16F,
-            .loadOp = LoadOperation::CLEAR,
-            .storeOp = StoreOperation::STORE,
-            .clearColor = { FLT16_MAX, FLT16_MAX }
-        });
+        AttachmentDesc momentsAttachmentDesc;
+        momentsAttachmentDesc.imageType = TextureType::Cubemap;
+        momentsAttachmentDesc.format = TextureFormat::RG16F;
+        momentsAttachmentDesc.loadOp = LoadOperation::CLEAR;
+        momentsAttachmentDesc.storeOp = StoreOperation::STORE;
+
+        momentsAttachmentDesc.clearColorF16[0] = FLT16_MAX;
+        momentsAttachmentDesc.clearColorF16[1] = FLT16_MAX;
+        momentsAttachmentDesc.clearColorIsF16 = true;
+
+        renderTargetDesc.AddAttachment(momentsAttachmentDesc);
     }
 
     renderTargetDesc.AddAttachment(AttachmentDesc {
-        .imageType = TextureType::Cubemap,
-        .format = TextureFormat::D32F,
-        .loadOp = LoadOperation::CLEAR,
-        .storeOp = StoreOperation::STORE
+        TextureType::Cubemap,
+        TextureFormat::D32F,
+        LoadOperation::CLEAR,
+        StoreOperation::STORE
     });
 
     ShaderDesc shaderDesc;

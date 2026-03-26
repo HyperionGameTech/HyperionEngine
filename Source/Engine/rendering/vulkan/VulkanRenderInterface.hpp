@@ -135,7 +135,7 @@ public:
     VulkanGpuImageViewRef MakeImageView(const VulkanGpuImageRef& image) override;
     VulkanGpuImageViewRef MakeImageView(const VulkanGpuImageRef& image, uint8 mipIndex, uint8 numMips, uint16 layerIndex, uint16 numLayers) override;
 
-    VulkanSamplerRef MakeSampler(TextureFilterMode filterModeMin, TextureFilterMode filterModeMag, TextureWrapMode wrapMode) override;
+    VulkanSamplerRef MakeSampler(const SamplerDesc& samplerDesc) override;
 
     VulkanFramebufferRef MakeFramebuffer(const RenderTargetDesc& renderTargetDesc) override;
 

@@ -155,18 +155,21 @@ PlaceholderData::PlaceholderData()
           1,
           IU_SAMPLED })),
       m_imageViewCube1x1R8Array(g_renderInterface->MakeImageView(m_imageCube1x1R8Array)),
-      m_samplerLinear(g_renderInterface->MakeSampler(
+      m_samplerLinear(g_renderInterface->MakeSampler(SamplerDesc {
           TFM_LINEAR,
           TFM_LINEAR,
-          TWM_REPEAT)),
-      m_samplerLinearMipmap(g_renderInterface->MakeSampler(
+          TWM_REPEAT
+      })),
+      m_samplerLinearMipmap(g_renderInterface->MakeSampler(SamplerDesc {
           TFM_LINEAR_MIPMAP,
           TFM_LINEAR,
-          TWM_REPEAT)),
-      m_samplerNearest(g_renderInterface->MakeSampler(
+          TWM_REPEAT
+      })),
+      m_samplerNearest(g_renderInterface->MakeSampler(SamplerDesc {
           TFM_NEAREST,
           TFM_NEAREST,
-          TWM_CLAMP_TO_EDGE))
+          TWM_CLAMP_TO_EDGE
+      }))
 {
 }
 

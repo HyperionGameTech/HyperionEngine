@@ -1,6 +1,7 @@
 /* Copyright (c) 2016-2026 Andrew J. MacDonald. All rights reserved. */
 
 #pragma once
+
 #include <rendering/RenderObject.hpp>
 #include <rendering/RenderResult.hpp>
 #include <rendering/Shared.hpp>
@@ -34,6 +35,11 @@ public:
         return m_wrapMode;
     }
 
+    HYP_FORCE_INLINE SamplerCompareOp GetCompareOp() const
+    {
+        return m_compareOp;
+    }
+
     virtual bool IsCreated() const = 0;
 
     virtual RendererResult Create() = 0;
@@ -51,9 +57,20 @@ public:
 #endif
 
 protected:
+    SamplerBase() = default;
+
+    explicit SamplerBase(const SamplerDesc& desc)
+        : m_minFilterMode(desc.minFilterMode),
+          m_magFilterMode(desc.magFilterMode),
+          m_wrapMode(desc.wrapMode),
+          m_compareOp(desc.compareOp)
+    {
+    }
+
     TextureFilterMode m_minFilterMode = TFM_NEAREST;
     TextureFilterMode m_magFilterMode = TFM_NEAREST;
     TextureWrapMode m_wrapMode = TWM_CLAMP_TO_EDGE;
+    SamplerCompareOp m_compareOp = SamplerCompareOp::None;
     
 #if HYP_DEBUG_MODE
     Name m_debugName;

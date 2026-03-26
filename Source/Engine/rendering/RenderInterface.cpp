@@ -31,6 +31,7 @@
 #include <rendering/FinalPass.hpp>
 #include <rendering/ConstantsAllocator.hpp>
 #include <rendering/TextureViewCache.hpp>
+#include <rendering/SamplerCache.hpp>
 #include <rendering/DescriptorSetCache.hpp>
 #include <rendering/ShaderManager.hpp>
 #include <rendering/DebugDrawer.hpp>
@@ -573,6 +574,7 @@ RenderInterface::RenderInterface()
       shaderManager(PoolNew<ShaderManager>(*g_renderPool)),
       finalPass(nullptr),
       textureViewCache(PoolNew<TextureViewCache>(*g_renderPool)),
+      samplerCache(PoolNew<SamplerCache>(*g_renderPool)),
       stagingBufferPool(PoolNew<StagingBufferPool>(*g_renderPool)),
       blasCache(PoolNew<BLASCache>(*g_renderPool)),
       shadowMapCache(PoolNew<ShadowMapCache>(*g_renderPool)),
@@ -776,6 +778,9 @@ void RenderInterface::Shutdown()
 
     PoolDelete(*g_renderPool, textureViewCache);
     textureViewCache = nullptr;
+
+    PoolDelete(*g_renderPool, samplerCache);
+    samplerCache = nullptr;
 
     PoolDelete(*g_renderPool, finalPass);
     finalPass = nullptr;

@@ -54,6 +54,8 @@ class BLASCache;
 class ShadowMapCache;
 class CrashHandler;
 class EngineConfig;
+class SamplerCache;
+struct SamplerDesc;
 
 enum class GpuBufferType : uint8;
 enum RenderTargetType : uint8;
@@ -299,7 +301,7 @@ public:
     virtual GpuImageViewRef MakeImageView(const GpuImageRef& image) = 0;
     virtual GpuImageViewRef MakeImageView(const GpuImageRef& image, uint8 mipIndex, uint8 numMips, uint16 layerIndex, uint16 numLayers) = 0;
 
-    virtual SamplerRef MakeSampler(TextureFilterMode filterModeMin, TextureFilterMode filterModeMag, TextureWrapMode wrapMode) = 0;
+    virtual SamplerRef MakeSampler(const SamplerDesc& samplerDesc) = 0;
 
     virtual FramebufferRef MakeFramebuffer(const RenderTargetDesc& renderTargetDesc) = 0;
 
@@ -365,6 +367,8 @@ public:
     FinalPass* finalPass;
 
     TextureViewCache* textureViewCache;
+
+    SamplerCache* samplerCache;
 
     Span<World*> worldsToRender;
 

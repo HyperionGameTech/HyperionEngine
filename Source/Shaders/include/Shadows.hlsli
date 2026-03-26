@@ -22,6 +22,10 @@
 #define HYP_SHADOW_PENUMBRA 1
 #define HYP_SHADOW_VARIANCE 1
 
+#ifndef HYP_SAMPLER_SHADOW
+#define HYP_SAMPLER_SHADOW HYP_SAMPLER_LINEAR
+#endif // HYP_SAMPLER_SHADOW
+
 static const float2 s_pcfKernel[16] = {
     float2(-0.94201624, -0.39906216),
     float2(0.94558609, -0.76890725),
@@ -100,10 +104,15 @@ float GetShadowStandard(float4 shadow_sample, float3 coord, float NdotL)
     return max(step(coord.z - bias, shadow_depth), 0.0);
 }
 
+static const float2 s_poissonDisk[4] = {
+    float2(-0.94201624, -0.39906216),
+    float2(0.94558609, -0.76890725),
+    float2(-0.094184101, -0.92938870),
+    float2(0.34495938, 0.29387760)
+};
+
 float GetShadowPCF(in ShadowMap shadowMap, float3 pos, float2 texcoord, float2 screen_dimensions, float NdotL)
 {
-#define HYP_1_OVER_16 0.0625
-
     AABB aabb;
     aabb.min = shadowMap.aabbMin.xyz;
     aabb.max = shadowMap.aabbMax.xyz;
@@ -124,8 +133,11 @@ float GetShadowPCF(in ShadowMap shadowMap, float3 pos, float2 texcoord, float2 s
 
     const float shadow_filter_size = 0.001;
     
-    float noise = InterleavedGradientNoise(texcoord * screen_dimensions - 0.5);
-
+    float noise = InterleavedGradientNoise(texcoord * screen_dimensions - 0.5) * HYP_FMATH_TWO_PI;
+    
+    float s, c;
+    sincos(noise, s, c);
+    float2x2 rotationMatrix = float2x2(c, -s, s, c);
 
 #if defined(HYP_SHADOW_SAMPLES_16)
 #define HYP_SHADOW_SAMPLE_COUNT 16
@@ -150,21 +162,27 @@ float GetShadowPCF(in ShadowMap shadowMap, float3 pos, float2 texcoord, float2 s
 #endif
 #undef HYP_DEF_VOGEL_DISK
 
+    float shadowness = 0.0;
+
+// #define HYP_USE_GATHER
+
+#ifdef HYP_USE_GATHER
     float4 shadow_samples[HYP_SHADOW_SAMPLE_COUNT / 4];
+    int2 offsets[HYP_SHADOW_SAMPLE_COUNT / 4] = {
+        int2(0, 0),
+        int2(2, 0),
+        int2(0, 2),
+        int2(2, 2)
+    };
 
 #define HYP_FETCH_SHADOW_SAMPLES(iter_index0)                                                                                         \
     {                                                                                                                               \
-        float4 samples = shadow_maps.GatherRed(HYP_SAMPLER_LINEAR,                                                                  \
-            float3(((coord.xy + (vogel_##iter_index0 * shadow_filter_size)) * uv_scale) + offsetUV, float(shadowMap.layerIndex)),                                                \
-            int2(0, 0),                                            \
-            int2(2, 0),                                            \
-            int2(0, 2),                                            \
-            int2(2, 2));                                           \
+        float4 samples = shadow_maps.GatherRed(HYP_SAMPLER_SHADOW,                                                                  \
+            float3(((coord.xy + (vogel_##iter_index0 * shadow_filter_size)) * uv_scale) + offsetUV, float(shadowMap.layerIndex)),   \
+            offsets[iter_index0]);                                                                                                  \
         float4 deltas = max(step(coord.zzzz - (float4)HYP_SHADOW_BIAS, samples), (float4)0.0);                                      \
         shadow_samples[iter_index0] = deltas;                                                                                         \
     }
-
-    float shadowness = 0.0;
 
     HYP_FETCH_SHADOW_SAMPLES(0);
 
@@ -181,14 +199,33 @@ float GetShadowPCF(in ShadowMap shadowMap, float3 pos, float2 texcoord, float2 s
     {
         shadowness += shadow_samples[i].x + shadow_samples[i].y + shadow_samples[i].z + shadow_samples[i].w;
     }
+#else // !HYP_USE_GATHER
 
-    shadowness *= HYP_1_OVER_16;
+    // Use SampleCmpLevelZero for hardware PCF
+
+#define HYP_FETCH_SHADOW_SAMPLE(iter_index) \
+    { \
+        float2 rotatedOffset = mul(s_poissonDisk[iter_index], rotationMatrix); \
+        float2 sampleUV = ((coord.xy + (rotatedOffset * shadow_filter_size)) * uv_scale) + offsetUV; \
+        shadowness += shadow_maps.SampleCmpLevelZero(HYP_SAMPLER_SHADOW, float3(sampleUV, float(shadowMap.layerIndex)), coord.z - HYP_SHADOW_BIAS); \
+    }
+
+    HYP_FETCH_SHADOW_SAMPLE(0); HYP_FETCH_SHADOW_SAMPLE(1); HYP_FETCH_SHADOW_SAMPLE(2); HYP_FETCH_SHADOW_SAMPLE(3);
+    
+#if defined(HYP_SHADOW_SAMPLES_8) || defined(HYP_SHADOW_SAMPLES_16)
+    HYP_FETCH_SHADOW_SAMPLE(4); HYP_FETCH_SHADOW_SAMPLE(5); HYP_FETCH_SHADOW_SAMPLE(6); HYP_FETCH_SHADOW_SAMPLE(7);
+#endif
+
+#if defined(HYP_SHADOW_SAMPLES_16)
+    HYP_FETCH_SHADOW_SAMPLE(8); HYP_FETCH_SHADOW_SAMPLE(9); HYP_FETCH_SHADOW_SAMPLE(10); HYP_FETCH_SHADOW_SAMPLE(11);
+    HYP_FETCH_SHADOW_SAMPLE(12); HYP_FETCH_SHADOW_SAMPLE(13); HYP_FETCH_SHADOW_SAMPLE(14); HYP_FETCH_SHADOW_SAMPLE(15);
+#endif
 
 #undef HYP_DO_SHADOW
 
-    return shadowness;
+    shadowness *= (1.0 / float(HYP_SHADOW_SAMPLE_COUNT));
 
-#undef HYP_1_OVER_16
+    return shadowness;
 }
 
 float GetShadowVariance(in ShadowMap shadowMap, float3 pos, float NdotL)
