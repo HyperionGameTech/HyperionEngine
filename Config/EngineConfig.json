@@ -43,10 +43,9 @@
       "DebugVis": 0
     },
     "Debug": {
-      "Reflections": true,
+      "Reflections": false,
       "DebugDrawer": {
-        "Enabled": true,
-        "EnvGridProbes": false
+        "Enabled": true
       },
       "Irradiance": false,
       "Normals": false,

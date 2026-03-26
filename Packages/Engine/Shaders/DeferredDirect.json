@@ -18,6 +18,11 @@
     }, {
       "$Class": "AssetReference",
       "AssetPath": {
+        "Value": "Engine/Shaders/DeferredDirect/DeferredDirect_13432334859000456350"
+      }
+    }, {
+      "$Class": "AssetReference",
+      "AssetPath": {
         "Value": "Engine/Shaders/DeferredDirect/DeferredDirect_1190526425160911508"
       }
     }],

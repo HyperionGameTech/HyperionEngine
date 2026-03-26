@@ -126,18 +126,16 @@ void RayGenMain()
 
     float4 accumRadiance = (float4)0;
 
-    float noise = InterleavedGradientNoise(float2(storage_coord)) * HYP_FMATH_TWO_PI;
+    // float noise = InterleavedGradientNoiseAnimated(float2(DispatchRaysIndex().xy), world_shader_data.frame_counter % 256);
     
     for (uint sample_index = 0; sample_index < NUM_SAMPLES; sample_index++)
     {
         float3 origin = worldPosition.xyz + N0 * RAY_OFFSET;
         float3 direction;
 
-        float2 vogel = VogelDisk(sample_index, NUM_SAMPLES, noise);
-        // need to be careful seeding this or we'll get repeated lines
         uint ray_seed = pcg_hash((DispatchRaysIndex().x * NUM_SAMPLES) + sample_index + (world_shader_data.frame_counter * 997));
     
-        float2 rnd = float2(RandomFloat(ray_seed), RandomFloat(ray_seed)); //vogel *  0.5 + 0.5;
+        float2 rnd = float2(RandomFloat(ray_seed), RandomFloat(ray_seed));
 
         float3 F0_init = CalculateF0(albedo, metalness);
         float3 F_init = F_Schlick(F0_init, max(dot(N0, V), 0.0));

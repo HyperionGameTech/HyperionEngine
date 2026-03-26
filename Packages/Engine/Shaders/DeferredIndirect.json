@@ -8,6 +8,11 @@
     }, {
       "$Class": "AssetReference",
       "AssetPath": {
+        "Value": "Engine/Shaders/DeferredIndirect/DeferredIndirect_6857416975269427258"
+      }
+    }, {
+      "$Class": "AssetReference",
+      "AssetPath": {
         "Value": "Engine/Shaders/DeferredIndirect/DeferredIndirect_5745572804640774058"
       }
     }, {
@@ -23,6 +28,11 @@
     }, {
       "$Class": "AssetReference",
       "AssetPath": {
+        "Value": "Engine/Shaders/DeferredIndirect/DeferredIndirect_28954286879005160"
+      }
+    }, {
+      "$Class": "AssetReference",
+      "AssetPath": {
         "Value": "Engine/Shaders/DeferredIndirect/DeferredIndirect_16173391864471278026"
       }
     }, {
@@ -34,6 +44,11 @@
       "$Class": "AssetReference",
       "AssetPath": {
         "Value": "Engine/Shaders/DeferredIndirect/DeferredIndirect_1408226038048639545"
+      }
+    }, {
+      "$Class": "AssetReference",
+      "AssetPath": {
+        "Value": "Engine/Shaders/DeferredIndirect/DeferredIndirect_12038907830406998997"
       }
     }],
   "Name": "DeferredIndirect",
