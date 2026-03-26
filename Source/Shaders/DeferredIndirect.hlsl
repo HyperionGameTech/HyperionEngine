@@ -115,7 +115,8 @@ DECLARE_BUFFER_DYNAMIC(DeferredPass, EnvGridsBuffer) cbuffer EnvGridsBuffer
 
 DECLARE_BUFFER_DYNAMIC(DeferredPass, CBuffer) cbuffer CBuffer
 {
-    EnvProbe fallbackEnvProbe;
+    EnvProbe fallbackEnvProbes[MAX_FALLBACK_PROBES];
+    uint numFallbackProbes;
 };
 
 PSOutput PSMain(PSInput input)
@@ -171,9 +172,41 @@ PSOutput PSMain(PSInput input)
     CalculateRayTracingReflection(texcoord, reflections);
 #endif
 
+    // Blend in SH probes
+    // this will need to be reworked using tiling and per-tile linked lists or something similar.
+    float3 blendedSH = (float3)0.0;
+    float totalWeight = 0.0;
+
+    for (uint probeIndex = 0; probeIndex < uint(numFallbackProbes); probeIndex++)
+    {
+        const EnvProbe probe = fallbackEnvProbes[probeIndex];
+
+        const float3 aabbMin = probe.aabb_min.xyz;
+        const float3 aabbMax = probe.aabb_max.xyz;
+        const float3 aabbExtent = aabbMax - aabbMin;
+
+        const float3 blendZone = aabbExtent * 0.1;
+        const float3 distToMin = (position.xyz - aabbMin) / blendZone;
+        const float3 distToMax = (aabbMax - position.xyz) / blendZone;
+        const float minBlend = min(distToMin.x, min(distToMin.y, min(distToMin.z,
+                               min(distToMax.x, min(distToMax.y, distToMax.z)))));
+
+        float weight = smoothstep(0.0, 1.0, minBlend);
+
+        blendedSH += EnvProbeSH(probe, N, /* order */ 2) * weight;
+        totalWeight += weight;
+    }
+
     // start with fallback EnvProbe spherical harmonics.
     // alpha is zero so we can prioritize other GI methods if available, and lerp to the fallback SH if not.
-    irradiance = float4(EnvProbeSH(fallbackEnvProbe, N, /* order */ 2), 0.0);
+    if (totalWeight > 0.0)
+    {
+        irradiance = float4(blendedSH / totalWeight, 0.0);
+    }
+    else if (numFallbackProbes > 0)
+    {
+        irradiance = float4(EnvProbeSH(fallbackEnvProbes[0], N, /* order */ 2), 0.0);
+    }
 
 #if SSGI_ENABLED
     // Blend ssgi result into irradiance - if no hit, alpha will be zero or close to it so we can lerp it

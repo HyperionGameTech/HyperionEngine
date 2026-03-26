@@ -81,6 +81,8 @@ namespace Hyperion {
 
 static constexpr float CameraJitterScale = 0.25f;
 
+static constexpr uint32 MaxFallbackProbes = 4;
+
 static const Float16 s_ltcMatrix[] = {
 #include <rendering/inl/LTCMatrix.inl>
 };
@@ -117,6 +119,8 @@ static const ShaderPropertyId s_propPathTracer = InternShaderProperty(ShaderProp
 
 static const ShaderPropertyId s_propDebugReflections = InternShaderProperty(ShaderProperty(NAME("DEBUG_REFLECTIONS")));
 static const ShaderPropertyId s_propDebugIrradiance = InternShaderProperty(ShaderProperty(NAME("DEBUG_IRRADIANCE")));
+
+static const ShaderPropertyId s_propMaxFallbackProbes = InternShaderProperty(ShaderProperty(NAME("MAX_FALLBACK_PROBES"), int(MaxFallbackProbes)));
 
 static constexpr StringHash GBufferTextureNames[GTN_MAX] = {
     "GBufferAlbedoTexture"_sh,
@@ -201,6 +205,8 @@ void GetDeferredShaderProperties(
 
         outShaderProperties.Set(s_propHBILEnabled, hbil);
         outShaderProperties.Set(s_propSSGIEnabled, cvSSGI.Get());
+        
+        outShaderProperties.Add(s_propMaxFallbackProbes);
     }
 
     if (s_renderConfig.rayTracing && cvPathTracing.Get())
@@ -472,12 +478,12 @@ void DeferredPass::RenderToFramebuffer_Internal(Frame* frame, const RenderSetup&
 
             const uint32 numEnvProbes = rpl.GetEnvProbes().NumCurrent();
             
+            Array<Pair<EnvProbe*, EnvProbeShaderData*>, RenderTempAllocator> tempEnvProbes;
+            tempEnvProbes.Reserve(numEnvProbes);
+            
             // Find closest probe to use as a fallback for indirect light.
             if (numEnvProbes != 0)
             {
-                Array<Pair<EnvProbe*, EnvProbeShaderData*>, RenderTempAllocator> tempEnvProbes;
-                tempEnvProbes.Reserve(numEnvProbes);
-
                 for (EnvProbe* envProbe : rpl.GetEnvProbes())
                 {
                     if (envProbe->IsA(ReflectionProbe::StaticClass()) || envProbe->IsA(SkyProbe::StaticClass()))
@@ -519,11 +525,21 @@ void DeferredPass::RenderToFramebuffer_Internal(Frame* frame, const RenderSetup&
 
                         return aDistSq < bDistSq;
                     });
-
-                fallbackEnvProbeData = *tempEnvProbes[0].second;
             }
 
-            g_renderInterface->constantsAllocator->Write(&fallbackEnvProbeData);
+            for (uint32 probeIndex = 0; probeIndex < MaxFallbackProbes; probeIndex++)
+            {
+                if (probeIndex < uint32(tempEnvProbes.Size()))
+                {
+                    fallbackEnvProbeData = *tempEnvProbes[probeIndex].second;
+                }
+
+                g_renderInterface->constantsAllocator->Write(&fallbackEnvProbeData);
+            }
+
+            // write num
+            const uint32 numBoundEnvProbes = uint32(tempEnvProbes.Size());
+            g_renderInterface->constantsAllocator->Write(&numBoundEnvProbes);
 
             g_renderInterface->constantsAllocator->Commit(cBuffer, cBufferOffset, cBufferSize);
 
