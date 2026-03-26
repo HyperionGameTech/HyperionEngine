@@ -50,7 +50,7 @@ DECLARE_SRV(DDGI, EnvProbesTexture) TextureCubeArray envProbesTexture;
 DECLARE_SRV(DDGI, EnvProbesTexture) Texture2DArray envProbesTexture;
 #endif
 
-DECLARE_SRV(DDGI, ShadowMapsTextureArray) Texture2DArray shadow_maps;
+DECLARE_SRV(DDGI, ShadowMapsTextureArray) Texture2DArray<float> shadow_maps;
 DECLARE_SRV(DDGI, PointLightShadowMapsTextureArray) TextureCubeArray point_shadow_maps;
 
 #include "../../include/Shadows.hlsli"

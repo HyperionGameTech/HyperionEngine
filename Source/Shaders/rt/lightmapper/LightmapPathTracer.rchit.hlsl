@@ -29,7 +29,7 @@ DECLARE_SAMPLER(LightmapPathTracer, SamplerLinear) SamplerState sampler_linear;
 
 /* Shadows */
 
-DECLARE_SRV(LightmapPathTracer, ShadowMapsTextureArray) Texture2DArray shadow_maps;
+DECLARE_SRV(LightmapPathTracer, ShadowMapsTextureArray) Texture2DArray<float> shadow_maps;
 DECLARE_SRV(LightmapPathTracer, PointLightShadowMapsTextureArray) TextureCubeArray point_shadow_maps;
 
 #define HYP_DO_NOT_DEFINE_DESCRIPTOR_SETS

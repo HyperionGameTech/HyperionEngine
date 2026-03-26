@@ -56,7 +56,7 @@ DECLARE_BUFFER(Default, WorldsBuffer) cbuffer WorldsBuffer
     WorldShaderData world_shader_data;
 };
 
-DECLARE_SRV(Default, ShadowMapsTextureArray) Texture2DArray shadow_maps;
+DECLARE_SRV(Default, ShadowMapsTextureArray) Texture2DArray<float> shadow_maps;
 DECLARE_SRV(Default, PointLightShadowMapsTextureArray) TextureCubeArray point_shadow_maps;
 
 #ifdef LIGHTING_FORWARD

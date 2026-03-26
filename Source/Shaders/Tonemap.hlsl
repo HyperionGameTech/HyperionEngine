@@ -55,7 +55,7 @@ DECLARE_SRV(Tonemap, GBufferVelocityTexture) Texture2D gbuffer_velocity_texture;
 
 DECLARE_SRV(Tonemap, DeferredResult) Texture2D DeferredResult;
 
-DECLARE_SRV(Tonemap, ShadowMapsTextureArray) Texture2DArray shadow_maps;
+DECLARE_SRV(Tonemap, ShadowMapsTextureArray) Texture2DArray<float> shadow_maps;
 
 DECLARE_SRV(Tonemap, GBufferMipChain) Texture2D gbuffer_mip_chain;
 DECLARE_SRV(Tonemap, GBufferDepthTexture) Texture2D gbuffer_depth_texture;

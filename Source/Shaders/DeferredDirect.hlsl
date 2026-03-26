@@ -56,7 +56,7 @@ DECLARE_SRV(DeferredPass, GBufferDepthTexture) Texture2D gbuffer_depth_texture;
 
 DECLARE_SAMPLER(DeferredPass, SamplerNearest) SamplerState sampler_nearest;
 DECLARE_SAMPLER(DeferredPass, SamplerLinear) SamplerState sampler_linear;
-DECLARE_SAMPLER(DeferredPass, SamplerShadow) SamplerState SamplerShadow;
+DECLARE_SAMPLER(DeferredPass, SamplerShadow) SamplerComparisonState SamplerShadow;
 
 DECLARE_SRV(DeferredPass, SSAOResultTexture) Texture2D ssao_gi_result;
 DECLARE_SRV(DeferredPass, RTRadianceResultTexture) Texture2D rt_radiance_final;
@@ -108,7 +108,7 @@ DECLARE_SAMPLER(DeferredPass, LTCSampler) SamplerState ltc_sampler;
 
 #endif
 
-DECLARE_SRV(DeferredPass, ShadowMapsTextureArray) Texture2DArray shadow_maps;
+DECLARE_SRV(DeferredPass, ShadowMapsTextureArray) Texture2DArray<float> shadow_maps;
 DECLARE_SRV(DeferredPass, PointLightShadowMapsTextureArray) TextureCubeArray point_shadow_maps;
 
 #define HYP_DEFERRED_NO_REFRACTION

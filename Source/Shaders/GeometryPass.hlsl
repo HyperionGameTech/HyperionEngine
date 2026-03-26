@@ -65,7 +65,7 @@ DECLARE_SRV(Default, EnvProbesBuffer) StructuredBuffer<EnvProbe> env_probes;
 
 DECLARE_SRV(Default, GBufferMipChain) Texture2D gbuffer_mip_chain;
 
-DECLARE_SRV(Default, ShadowMapsTextureArray) Texture2DArray shadow_maps;
+DECLARE_SRV(Default, ShadowMapsTextureArray) Texture2DArray<float> shadow_maps;
 DECLARE_SRV(Default, PointLightShadowMapsTextureArray) TextureCubeArray point_shadow_maps;
 
 #include "include/brdf.inc"
