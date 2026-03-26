@@ -13,15 +13,9 @@ extern DX12RenderInterface* g_renderInterface;
 
 #pragma region DX12Sampler
 
-DX12Sampler::DX12Sampler(
-    TextureFilterMode minFilterMode,
-    TextureFilterMode magFilterMode,
-    TextureWrapMode wrapMode)
-    : SamplerBase()
+DX12Sampler::DX12Sampler(const SamplerDesc& desc)
+    : SamplerBase(desc)
 {
-    m_minFilterMode = minFilterMode;
-    m_magFilterMode = magFilterMode;
-    m_wrapMode = wrapMode;
 }
 
 DX12Sampler::~DX12Sampler()

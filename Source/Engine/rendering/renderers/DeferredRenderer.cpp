@@ -32,6 +32,7 @@
 #include <rendering/RenderProxy.hpp>
 #include <rendering/ConstantsAllocator.hpp>
 #include <rendering/TextureViewCache.hpp>
+#include <rendering/SamplerCache.hpp>
 #include <rendering/BLASCache.hpp>
 #include <rendering/AccelerationStructure.hpp>
 #include <rendering/RayTracingPipeline.hpp>
@@ -310,12 +311,11 @@ void DeferredPass::Create()
     // linear transform cosines texture data
     if (m_mode == DPM_DIRECT_LIGHTING && !m_ltcSampler)
     {
-        m_ltcSampler = g_renderInterface->MakeSampler(
+        m_ltcSampler = g_renderInterface->samplerCache->GetOrCreate(SamplerDesc {
             TFM_NEAREST,
             TFM_LINEAR,
-            TWM_CLAMP_TO_EDGE);
-
-        Assert(m_ltcSampler->Create());
+            TWM_CLAMP_TO_EDGE
+        });
 
         ByteBuffer ltcMatrixData(sizeof(s_ltcMatrix), s_ltcMatrix);
 
@@ -414,6 +414,12 @@ void DeferredPass::RenderToFramebuffer_Internal(Frame* frame, const RenderSetup&
 
     cr << SetShaderUniform(numShaderUniforms++, "SamplerLinear"_sh, g_renderInterface->placeholderData->GetSamplerLinearMipmap());
     cr << SetShaderUniform(numShaderUniforms++, "SamplerNearest"_sh, g_renderInterface->placeholderData->GetSamplerNearest());
+    cr << SetShaderUniform(numShaderUniforms++, "SamplerShadow"_sh, g_renderInterface->samplerCache->GetOrCreate(SamplerDesc {
+            TFM_LINEAR,
+            TFM_LINEAR,
+            TWM_CLAMP_TO_EDGE,
+            SamplerCompareOp::LessEq
+        }));
 
     cr << SetShaderUniform(numShaderUniforms++, "CamerasBuffer"_sh, g_renderInterface->gpuBuffers[GRB_CAMERAS]->GetBuffer(frameIndex), TShaderDataOffset<CameraShaderData>(rs.view->GetCamera()));
     cr << SetShaderUniform(numShaderUniforms++, "EntitiesBuffer"_sh, g_renderInterface->gpuBuffers[GRB_ENTITIES]->GetBuffer(frameIndex));

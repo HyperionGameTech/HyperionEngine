@@ -53,11 +53,15 @@ DECLARE_SRV(DeferredPass, GBufferVelocityTexture) Texture2D gbuffer_velocity_tex
 
 DECLARE_SRV(DeferredPass, GBufferMipChain) Texture2D gbuffer_mip_chain;
 DECLARE_SRV(DeferredPass, GBufferDepthTexture) Texture2D gbuffer_depth_texture;
+
 DECLARE_SAMPLER(DeferredPass, SamplerNearest) SamplerState sampler_nearest;
 DECLARE_SAMPLER(DeferredPass, SamplerLinear) SamplerState sampler_linear;
+DECLARE_SAMPLER(DeferredPass, SamplerShadow) SamplerState SamplerShadow;
 
 DECLARE_SRV(DeferredPass, SSAOResultTexture) Texture2D ssao_gi_result;
 DECLARE_SRV(DeferredPass, RTRadianceResultTexture) Texture2D rt_radiance_final;
+
+#define HYP_SAMPLER_SHADOW SamplerShadow
 
 #define HYP_DO_NOT_DEFINE_DESCRIPTOR_SETS
 #include "include/env_probe.inc"

@@ -973,9 +973,9 @@ VulkanGpuImageViewRef VulkanRenderInterface::MakeImageView(const VulkanGpuImageR
     return ref;
 }
 
-VulkanSamplerRef VulkanRenderInterface::MakeSampler(TextureFilterMode filterModeMin, TextureFilterMode filterModeMag, TextureWrapMode wrapMode)
+VulkanSamplerRef VulkanRenderInterface::MakeSampler(const SamplerDesc& samplerDesc)
 {
-    return MakeHandle<VulkanSampler>(filterModeMin, filterModeMag, wrapMode);
+    return MakeHandle<VulkanSampler>(samplerDesc);
 }
 
 VulkanFramebufferRef VulkanRenderInterface::MakeFramebuffer(const RenderTargetDesc& renderTargetDesc)

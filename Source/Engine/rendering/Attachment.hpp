@@ -63,19 +63,12 @@ public:
 
     HYP_FORCE_INLINE Vec4f GetClearColor() const
     {
-        return Vec4f(
-            m_attachmentDesc.clearColor[0],
-            m_attachmentDesc.clearColor[1],
-            m_attachmentDesc.clearColor[2],
-            m_attachmentDesc.clearColor[3]);
+        return Vec4f(m_attachmentDesc.clearColor);
     }
 
     HYP_FORCE_INLINE void SetClearColor(const Vec4f& clearColor)
     {
-        m_attachmentDesc.clearColor[0] = clearColor[0];
-        m_attachmentDesc.clearColor[1] = clearColor[1];
-        m_attachmentDesc.clearColor[2] = clearColor[2];
-        m_attachmentDesc.clearColor[3] = clearColor[3];
+        m_attachmentDesc.clearColor = Color(clearColor);
     }
 
     HYP_FORCE_INLINE uint32 GetBinding() const

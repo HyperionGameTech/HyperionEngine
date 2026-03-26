@@ -240,14 +240,27 @@ RendererResult VulkanRenderPass::Create()
             colorAttachmentReferences.PushBack(ToVkAttachmentReference(attachmentIndex, attachmentDesc));
 
             VkClearValue& clearValue = m_vkClearValues.EmplaceBack();
-            clearValue.color = {
-                .float32 = {
-                    attachmentDesc.clearColor[0],
-                    attachmentDesc.clearColor[1],
-                    attachmentDesc.clearColor[2],
-                    attachmentDesc.clearColor[3]
-                }
-            };
+
+            if (attachmentDesc.clearColorIsF16)
+            {
+                clearValue.color = {
+                    .float32 = {
+                        float(attachmentDesc.clearColorF16[0]),
+                        float(attachmentDesc.clearColorF16[1])
+                    }
+                };
+            }
+            else
+            {
+                clearValue.color = {
+                    .float32 = {
+                        attachmentDesc.clearColor.GetRed(),
+                        attachmentDesc.clearColor.GetGreen(),
+                        attachmentDesc.clearColor.GetBlue(),
+                        attachmentDesc.clearColor.GetAlpha()
+                    }
+                };
+            }
         }
     }
 

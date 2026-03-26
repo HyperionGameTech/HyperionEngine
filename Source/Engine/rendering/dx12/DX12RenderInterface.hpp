@@ -94,7 +94,7 @@ public:
     DX12GpuImageViewRef MakeImageView(const DX12GpuImageRef& image) override;
     DX12GpuImageViewRef MakeImageView(const DX12GpuImageRef& image, uint8 mipIndex, uint8 numMips, uint16 layerIndex, uint16 numLayers) override;
 
-    DX12SamplerRef MakeSampler(TextureFilterMode filterModeMin, TextureFilterMode filterModeMag, TextureWrapMode wrapMode) override;
+    DX12SamplerRef MakeSampler(const SamplerDesc& samplerDesc) override;
 
     DX12FramebufferRef MakeFramebuffer(const RenderTargetDesc& renderTargetDesc) override;
 

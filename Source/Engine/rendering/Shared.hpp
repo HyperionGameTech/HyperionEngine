@@ -15,6 +15,7 @@
 #include <Core/containers/FlatMap.hpp>
 
 #include <Core/math/Vector2.hpp>
+#include <Core/math/Color.hpp>
 
 #include <util/EnumOptions.hpp>
 
@@ -733,28 +734,30 @@ struct BlendFunction
 
     uint32 value;
 
-    BlendFunction()
+    constexpr BlendFunction()
         : BlendFunction(BMF_ONE, BMF_ZERO)
     {
     }
 
-    BlendFunction(BlendModeFactor src, BlendModeFactor dst)
+    constexpr BlendFunction(BlendModeFactor src, BlendModeFactor dst)
         : value((uint32(src) << 0) | (uint32(dst) << 4) | (uint32(src) << 8) | (uint32(dst) << 12))
     {
     }
 
-    BlendFunction(BlendModeFactor srcColor, BlendModeFactor dstColor, BlendModeFactor srcAlpha, BlendModeFactor dstAlpha)
+    constexpr BlendFunction(BlendModeFactor srcColor, BlendModeFactor dstColor, BlendModeFactor srcAlpha, BlendModeFactor dstAlpha)
         : value((uint32(srcColor) << 0) | (uint32(dstColor) << 4) | (uint32(srcAlpha) << 8) | (uint32(dstAlpha) << 12))
     {
     }
 
-    BlendFunction(const BlendFunction& other) = default;
+    constexpr BlendFunction(const BlendFunction& other) = default;
     BlendFunction& operator=(const BlendFunction& other) = default;
-    BlendFunction(BlendFunction&& other) noexcept = default;
+    
+    constexpr BlendFunction(BlendFunction&& other) noexcept = default;
     BlendFunction& operator=(BlendFunction&& other) noexcept = default;
+
     ~BlendFunction() = default;
 
-    HYP_FORCE_INLINE BlendModeFactor GetSrcColor() const
+    HYP_FORCE_INLINE constexpr BlendModeFactor GetSrcColor() const
     {
         return BlendModeFactor(value & 0xF);
     }
@@ -764,7 +767,7 @@ struct BlendFunction
         value |= uint32(src);
     }
 
-    HYP_FORCE_INLINE BlendModeFactor GetDstColor() const
+    HYP_FORCE_INLINE constexpr BlendModeFactor GetDstColor() const
     {
         return BlendModeFactor((value >> 4) & 0xF);
     }
@@ -774,7 +777,7 @@ struct BlendFunction
         value |= uint32(dst) << 4;
     }
 
-    HYP_FORCE_INLINE BlendModeFactor GetSrcAlpha() const
+    HYP_FORCE_INLINE constexpr BlendModeFactor GetSrcAlpha() const
     {
         return BlendModeFactor((value >> 8) & 0xF);
     }
@@ -784,7 +787,7 @@ struct BlendFunction
         value |= uint32(src) << 8;
     }
 
-    HYP_FORCE_INLINE BlendModeFactor GetDstAlpha() const
+    HYP_FORCE_INLINE constexpr BlendModeFactor GetDstAlpha() const
     {
         return BlendModeFactor((value >> 12) & 0xF);
     }
@@ -794,42 +797,42 @@ struct BlendFunction
         value |= uint32(dst) << 12;
     }
 
-    HYP_FORCE_INLINE bool operator==(const BlendFunction& other) const
+    HYP_FORCE_INLINE constexpr bool operator==(const BlendFunction& other) const
     {
         return value == other.value;
     }
 
-    HYP_FORCE_INLINE bool operator!=(const BlendFunction& other) const
+    HYP_FORCE_INLINE constexpr bool operator!=(const BlendFunction& other) const
     {
         return value != other.value;
     }
 
-    HYP_FORCE_INLINE bool operator<(const BlendFunction& other) const
+    HYP_FORCE_INLINE constexpr bool operator<(const BlendFunction& other) const
     {
         return value < other.value;
     }
 
-    HYP_FORCE_INLINE HashCode GetHashCode() const
+    HYP_FORCE_INLINE constexpr HashCode GetHashCode() const
     {
         return HashCode::GetHashCode(value);
     }
 
-    HYP_FORCE_INLINE static BlendFunction None()
+    HYP_FORCE_INLINE static constexpr BlendFunction None()
     {
         return BlendFunction(BMF_NONE, BMF_NONE);
     }
 
-    HYP_FORCE_INLINE static BlendFunction Default()
+    HYP_FORCE_INLINE static constexpr BlendFunction Default()
     {
         return BlendFunction(BMF_ONE, BMF_ZERO);
     }
 
-    HYP_FORCE_INLINE static BlendFunction AlphaBlending()
+    HYP_FORCE_INLINE static constexpr BlendFunction AlphaBlending()
     {
         return BlendFunction(BMF_SRC_ALPHA, BMF_ONE_MINUS_SRC_ALPHA, BMF_ONE, BMF_ZERO);
     }
 
-    HYP_FORCE_INLINE static BlendFunction Additive()
+    HYP_FORCE_INLINE static constexpr BlendFunction Additive()
     {
         return BlendFunction(BMF_ONE, BMF_ONE);
     }
@@ -1078,6 +1081,61 @@ enum class ShaderInputType : uint8
     MAX
 };
 
+HYP_ENUM()
+enum class SamplerCompareOp : uint8
+{
+    None,
+    Less,
+    LessEq,
+    Greater,
+    GreaterEq,
+    Equal,
+    NotEqual,
+    Always,
+    Never
+};
+
+#pragma pack(push, 1)
+
+HYP_STRUCT()
+struct SamplerDesc
+{
+    HYP_STRUCT_BODY(SamplerDesc);
+
+    HYP_FIELD()
+    TextureFilterMode minFilterMode;
+    
+    HYP_FIELD()
+    TextureFilterMode magFilterMode;
+    
+    HYP_FIELD()
+    TextureWrapMode wrapMode;
+    
+    HYP_FIELD()
+    SamplerCompareOp compareOp;
+
+    HYP_FORCE_INLINE bool operator==(const SamplerDesc& other) const
+    {
+        static_assert(sizeof(SamplerDesc) == sizeof(uint32) && std::has_unique_object_representations_v<SamplerDesc>);
+
+        return *((const uint32*)this) == *((const uint32*)&other);
+    }
+
+    HYP_FORCE_INLINE bool operator!=(const SamplerDesc& other) const
+    {
+        return !(*this == other);
+    }
+
+    HYP_FORCE_INLINE HashCode GetHashCode() const
+    {
+        static_assert(sizeof(SamplerDesc) == sizeof(uint32) && std::has_unique_object_representations_v<SamplerDesc>);
+
+        return HashCode::GetHashCode((const uint32*)this);
+    }
+};
+
+#pragma pack(pop)
+
 struct ShaderDataOffset
 {
     size_t offset;
@@ -1287,28 +1345,60 @@ enum class RenderPassMode : uint8
     Max
 };
 
+#pragma pack(push, 1)
+
 struct AttachmentDesc
 {
-    TextureType imageType = TextureType::Texture2D;
-    TextureFormat format = TextureFormat::RGBA8;
-    LoadOperation loadOp = LoadOperation::CLEAR;
-    StoreOperation storeOp = StoreOperation::STORE;
-    BlendFunction blendFunction = BlendFunction::None();
-    float clearColor[4] = {};
+    TextureType imageType : 3;
 
-    bool onlyDepth = false;
-    bool onlyStencil = false;
+    TextureFormat format : 6;
+
+    LoadOperation loadOp : 2;
+    StoreOperation storeOp : 2;
+
+    bool onlyDepth : 1;
+    bool onlyStencil : 1;
+    bool clearColorIsF16 : 1;
+    
+    BlendFunction blendFunction;
+    
+    union
+    {
+        Color clearColor;
+        Float16 clearColorF16[2];
+    };
+
+    AttachmentDesc()
+    {
+        static_assert(BlendFunction::None().value == 0);
+        static_assert(uint8(TextureType::Texture2D) == 0);
+
+        Memory::Zero(this, sizeof(AttachmentDesc));
+
+        loadOp = LoadOperation::CLEAR;
+        storeOp = StoreOperation::STORE;
+        format = TextureFormat::RGBA8;
+    }
+
+    AttachmentDesc(
+        TextureType textureType,
+        TextureFormat format,
+        LoadOperation loadOp = LoadOperation::CLEAR,
+        StoreOperation storeOp = StoreOperation::STORE)
+        : AttachmentDesc()
+    {
+        this->imageType = textureType;
+        this->format = format;
+        this->loadOp = loadOp;
+        this->storeOp = storeOp;
+    }
+
+    AttachmentDesc(const AttachmentDesc& other) = default;
+    AttachmentDesc& operator=(const AttachmentDesc& other) = default;
 
     HYP_FORCE_INLINE bool operator==(const AttachmentDesc& other) const
     {
-        return imageType == other.imageType
-            && format == other.format
-            && loadOp == other.loadOp
-            && storeOp == other.storeOp
-            && blendFunction == other.blendFunction
-            && Memory::Compare((void*)clearColor, (const void*)other.clearColor, sizeof(clearColor)) == 0
-            && onlyDepth == other.onlyDepth
-            && onlyStencil == other.onlyStencil;
+        return std::memcmp(this, &other, sizeof(AttachmentDesc)) == 0;
     }
 
     HYP_FORCE_INLINE bool operator!=(const AttachmentDesc& other) const
@@ -1318,19 +1408,11 @@ struct AttachmentDesc
 
     HYP_FORCE_INLINE HashCode GetHashCode() const
     {
-        HashCode hc;
-        hc.Add(uint32(imageType));
-        hc.Add(uint32(format));
-        hc.Add(uint8(loadOp));
-        hc.Add(uint8(storeOp));
-        hc.Add(blendFunction);
-        hc.Add(clearColor);
-        hc.Add(onlyDepth);
-        hc.Add(onlyStencil);
-
-        return hc;
+        return HashCode::GetHashCode((const ubyte*)this, ((const ubyte*)this) + sizeof(AttachmentDesc));
     }
 };
+
+#pragma pack(pop)
 
 struct RenderTargetDesc
 {

@@ -26,24 +26,12 @@ Color::Color(float r, float g, float b, float a)
 {
 }
 
-Color::Color(const Color& other)
-    : color32(other.color32)
-{
-}
-
 Color::Color(const Vec4f& vec)
 {
     bytes[0] = ubyte(vec.x * 255.0f);
     bytes[1] = ubyte(vec.y * 255.0f);
     bytes[2] = ubyte(vec.z * 255.0f);
     bytes[3] = ubyte(vec.w * 255.0f);
-}
-
-Color& Color::operator=(const Color& other)
-{
-    color32 = other.color32;
-
-    return *this;
 }
 
 Color Color::operator+(const Color& other) const

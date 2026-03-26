@@ -22,11 +22,7 @@ class VulkanSampler final : public SamplerBase
     HYP_OBJECT_BODY(VulkanSampler);
 
 public:
-    VulkanSampler(
-        TextureFilterMode minFilterMode = TFM_NEAREST,
-        TextureFilterMode magFilterMode = TFM_NEAREST,
-        TextureWrapMode wrapMode = TWM_CLAMP_TO_EDGE);
-
+    explicit VulkanSampler(const SamplerDesc& desc);
     ~VulkanSampler() override;
 
     HYP_FORCE_INLINE VkSampler GetVulkanHandle() const

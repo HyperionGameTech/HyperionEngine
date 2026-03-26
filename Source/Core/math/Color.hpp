@@ -52,11 +52,12 @@ public:
 
     Color();
     explicit Color(uint32 hex);
+
     Color(float r, float g, float b, float a = 1.0f);
     Color(const Vec4f& vec);
 
-    Color(const Color& other);
-    Color& operator=(const Color& other);
+    constexpr Color(const Color& other) = default;
+    constexpr Color& operator=(const Color& other) = default;
 
     HYP_METHOD(Property = "Red", Serialize = true)
     HYP_FORCE_INLINE float GetRed() const

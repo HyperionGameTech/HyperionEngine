@@ -451,9 +451,9 @@ DX12GpuImageViewRef DX12RenderInterface::MakeImageView(const DX12GpuImageRef& im
     return MakeHandle<DX12GpuImageView>(image, subResource);
 }
 
-DX12SamplerRef DX12RenderInterface::MakeSampler(TextureFilterMode filterModeMin, TextureFilterMode filterModeMag, TextureWrapMode wrapMode)
+DX12SamplerRef DX12RenderInterface::MakeSampler(const SamplerDesc& samplerDesc)
 {
-    return MakeHandle<DX12Sampler>(filterModeMin, filterModeMag, wrapMode);
+    return MakeHandle<DX12Sampler>(samplerDesc);
 }
 
 DX12FramebufferRef DX12RenderInterface::MakeFramebuffer(const RenderTargetDesc& renderTargetDesc)

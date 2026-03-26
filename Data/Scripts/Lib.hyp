@@ -892,6 +892,17 @@ extern enum LoadOperation : uint8
     CLEAR,
     LOAD
 end
+extern enum SamplerCompareOp : uint8
+    None,
+    Less,
+    LessEq,
+    Greater,
+    GreaterEq,
+    Equal,
+    NotEqual,
+    Always,
+    Never
+end
 extern struct VertexAttributeDefinition
     Name : string
     TypeClass : string
@@ -1062,6 +1073,12 @@ end
 extern enum FillMode : uint8
     FM_FILL,
     FM_LINE
+end
+extern struct SamplerDesc
+    MinFilterMode : TextureFilterMode
+    MagFilterMode : TextureFilterMode
+    WrapMode : TextureWrapMode
+    CompareOp : SamplerCompareOp
 end
 extern enum ImageSupport : uint8
     Attachment,
