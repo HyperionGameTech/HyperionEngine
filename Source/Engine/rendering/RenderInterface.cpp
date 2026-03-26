@@ -1557,7 +1557,7 @@ void RenderInterface::CommitPipelineState(PSOType psoType, CommandBuffer* comman
                     state.boundFramebuffer = nullptr;
                 }
 
-                image->InsertBarrier(commandBuffer, desiredResourceState, ShaderModuleType::None);
+                image->InsertBarrier(commandBuffer, desiredResourceState, ShaderModuleType::Pixel);
             }
             else
             {
@@ -1598,7 +1598,7 @@ void RenderInterface::CommitPipelineState(PSOType psoType, CommandBuffer* comman
 
                 if (needsTransition)
                 {
-                    image->InsertBarrier(commandBuffer, subResource, desiredResourceState, ShaderModuleType::None);
+                    image->InsertBarrier(commandBuffer, subResource, desiredResourceState, ShaderModuleType::Pixel);
                 }
             }
         }

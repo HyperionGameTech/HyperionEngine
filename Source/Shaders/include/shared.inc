@@ -342,6 +342,7 @@ float3x3 inverse(float3x3 m)
 
     return float3x3(r0 * invDet, r1 * invDet, r2 * invDet);
 }
+
 #endif
 
 #ifndef LANG_HLSL

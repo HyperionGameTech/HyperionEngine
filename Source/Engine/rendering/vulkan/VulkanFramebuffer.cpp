@@ -113,7 +113,8 @@ RendererResult VulkanAttachmentMap::Create()
 
 VulkanFramebuffer::VulkanFramebuffer(const RenderTargetDesc& renderTargetDesc)
     : FramebufferBase(renderTargetDesc),
-      m_handle(VK_NULL_HANDLE)
+      m_handle(VK_NULL_HANDLE),
+      m_isRecording(false)
 {
     m_attachmentMap.framebufferWeak = WeakHandleFromThis();
 }
@@ -213,7 +214,9 @@ RendererResult VulkanFramebuffer::Create()
 
         singleTimeCommands->Push([this](CommandRecorder& cr) -> RendererResult
             {
+                cr << SetCurrentFramebuffer(this);
                 cr << ClearFramebuffer(this);
+                cr << SetCurrentFramebuffer(nullptr);
 
                 return {};
             });
@@ -309,21 +312,26 @@ VulkanAttachment* VulkanFramebuffer::GetAttachment(uint32 binding) const
 void VulkanFramebuffer::BeginCapture(VulkanCommandBuffer* commandBuffer)
 {
     Assert(!commandBuffer->IsInRenderPass());
+    Assert(!m_isRecording);
 
     commandBuffer->ResetBoundDescriptorSets();
 
     m_renderPass.Begin(commandBuffer, this);
     
     commandBuffer->m_isInRenderPass = true;
+
+    m_isRecording = true;
 }
 
 void VulkanFramebuffer::EndCapture(VulkanCommandBuffer* commandBuffer)
 {
     Assert(commandBuffer->IsInRenderPass());
+    Assert(m_isRecording);
 
     m_renderPass.End(commandBuffer);
 
     commandBuffer->m_isInRenderPass = false;
+    m_isRecording = false;
 }
 
 void VulkanFramebuffer::Clear(
@@ -349,12 +357,7 @@ void VulkanFramebuffer::Clear(
         return; // nothing to clear
     }
 
-    bool shouldCapture = !commandBuffer->IsInRenderPass();
-
-    if (shouldCapture)
-    {
-        BeginCapture(commandBuffer);
-    }
+    Assert(m_isRecording);
 
     VkCommandBuffer vkCommandBuffer = commandBuffer->GetVulkanHandle();
 
@@ -443,11 +446,6 @@ void VulkanFramebuffer::Clear(
             clearAttachments.Data(),
             uint32(clearAttachments.Size()),
             clearRects.Data());
-    }
-
-    if (shouldCapture)
-    {
-        EndCapture(commandBuffer);
     }
 }
 

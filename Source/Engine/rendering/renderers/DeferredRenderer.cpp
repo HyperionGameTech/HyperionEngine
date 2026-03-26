@@ -286,15 +286,12 @@ static const TypeId s_envProbeTypeToTypeId[EPT_MAX] = {
 
 DeferredPass::DeferredPass(DeferredPassMode mode, Vec2u extent, GBuffer* gbuffer, const FramebufferRef& framebuffer)
     : FullScreenPass(ShaderDesc(), framebuffer, TextureFormat::RGBA16F, extent, gbuffer, FSP_EXTERNAL_RENDERTARGET),
-      m_mode(mode)
+      m_mode(mode),
+      m_ltcSampler(nullptr)
 {
     Assert(m_framebuffer.IsValid());
 
-    if (mode == DPM_DIRECT_LIGHTING)
-    {
-        // BMF_ZERO for dst alpha so we dont keep accumulating alpha
-        SetBlendFunction(BlendFunction(BMF_ONE, BMF_ONE, BMF_ONE, BMF_ZERO));
-    }
+    SetBlendFunction(BlendFunction(BMF_ONE, BMF_ONE, BMF_ONE, BMF_ONE));
 }
 
 DeferredPass::~DeferredPass()
@@ -368,11 +365,6 @@ void DeferredPass::RenderToFramebuffer_Internal(Frame* frame, const RenderSetup&
     RenderProxyList& rpl = GetConsumerProxyList(rs.view);
     rpl.BeginRead();
     HYP_DEFER({ rpl.EndRead(); });
-
-    if (m_mode == DPM_DIRECT_LIGHTING && rpl.GetLights().NumCurrent() == 0)
-    {
-        return; // nothing to do for direct pass if no lights active
-    }
     
     RenderProxyCamera* cameraProxy = static_cast<RenderProxyCamera*>(GetRenderProxy(rs.view->GetCamera()));
     Assert(cameraProxy != nullptr);
@@ -412,14 +404,16 @@ void DeferredPass::RenderToFramebuffer_Internal(Frame* frame, const RenderSetup&
 
     uint32 numShaderUniforms = 0;
 
+    Sampler* shadowSampler = g_renderInterface->samplerCache->GetOrCreate(SamplerDesc {
+        TFM_LINEAR,
+        TFM_LINEAR,
+        TWM_CLAMP_TO_EDGE,
+        SamplerCompareOp::LessEq
+    });
+
     cr << SetShaderUniform(numShaderUniforms++, "SamplerLinear"_sh, g_renderInterface->placeholderData->GetSamplerLinearMipmap());
     cr << SetShaderUniform(numShaderUniforms++, "SamplerNearest"_sh, g_renderInterface->placeholderData->GetSamplerNearest());
-    cr << SetShaderUniform(numShaderUniforms++, "SamplerShadow"_sh, g_renderInterface->samplerCache->GetOrCreate(SamplerDesc {
-            TFM_LINEAR,
-            TFM_LINEAR,
-            TWM_CLAMP_TO_EDGE,
-            SamplerCompareOp::LessEq
-        }));
+    cr << SetShaderUniform(numShaderUniforms++, "SamplerShadow"_sh, shadowSampler);
 
     cr << SetShaderUniform(numShaderUniforms++, "CamerasBuffer"_sh, g_renderInterface->gpuBuffers[GRB_CAMERAS]->GetBuffer(frameIndex), TShaderDataOffset<CameraShaderData>(rs.view->GetCamera()));
     cr << SetShaderUniform(numShaderUniforms++, "EntitiesBuffer"_sh, g_renderInterface->gpuBuffers[GRB_ENTITIES]->GetBuffer(frameIndex));
@@ -540,8 +534,12 @@ void DeferredPass::RenderToFramebuffer_Internal(Frame* frame, const RenderSetup&
         DeferredRendererHelpers::GetDeferredShaderProperties(DPM_INDIRECT_LIGHTING, shaderProperties, &rpl);
 
         cr << SetCurrentShader(ShaderDesc(NAME("DeferredIndirect"), shaderProperties));
+        
+        cr << CommitDrawState();
 
-        RenderFullScreenQuad(frame, rs);
+        cr << BindVertexBuffer(m_fullScreenQuad->GetVertexBuffer());
+        cr << BindIndexBuffer(m_fullScreenQuad->GetIndexBuffer());
+        cr << DrawIndexed(6);
 
         return;
     }
@@ -649,8 +647,12 @@ void DeferredPass::RenderToFramebuffer_Internal(Frame* frame, const RenderSetup&
                 if (m_ltcBrdfTexture != nullptr)
                     cr << SetShaderUniform(localNumShaderUniforms++, "LTCBRDFTexture"_sh, g_renderInterface->textureViewCache->GetOrCreate(m_ltcBrdfTexture));
             }
+            
+            cr << CommitDrawState();
 
-            RenderFullScreenQuad(frame, rs);
+            cr << BindVertexBuffer(m_fullScreenQuad->GetVertexBuffer());
+            cr << BindIndexBuffer(m_fullScreenQuad->GetIndexBuffer());
+            cr << DrawIndexed(6);
 
             prevLightType = lightType;
         }
@@ -2068,28 +2070,28 @@ void DeferredRenderer::RenderFrameForView(Frame* frame, const RenderSetup& rs)
             UpdateGpuData(view->GetCamera());
         }
     }
+    
+    // render opaque objects into separate framebuffer
+    frame->cr << SetCurrentFramebuffer(opaquePassFramebuffer);
 
     // if no opaque objects will be rendered, we need to clear the color target anyway
     // as other passes are using load ops
     if (renderCollector.mappingsByBucket[uint32(RenderBucket::Opaque)].Any()
         || (!cvEnableLightmapVolumes.Get() && renderCollector.mappingsByBucket[uint32(RenderBucket::Lightmapped)].Any()))
     {
-        // render opaque objects into separate framebuffer
-        frame->cr << SetCurrentFramebuffer(opaquePassFramebuffer);
-
         renderCollector.ExecuteDrawCalls(frame, rs, RenderBucketMask<RenderBucket::Opaque>);
 
         if (!cvEnableLightmapVolumes.Get())
         {
             renderCollector.ExecuteDrawCalls(frame, rs, RenderBucketMask<RenderBucket::Lightmapped>);
         }
-
-        frame->cr << SetCurrentFramebuffer(nullptr);
     }
     else
     {
         frame->cr << ClearFramebuffer(opaquePassFramebuffer, 0x1);
     }
+
+    frame->cr << SetCurrentFramebuffer(nullptr);
     
     if (cvEnableLightmapVolumes.Get())
     {
@@ -2158,16 +2160,9 @@ void DeferredRenderer::RenderFrameForView(Frame* frame, const RenderSetup& rs)
     {
         passData.hbao->Render(frame, rs);
     }
-
+    
     if (cvSSGI.Get())
     {
-        RenderSetup newRenderSetup = rs;
-
-        if (const auto& skyProbes = rpl.GetEnvProbes().GetElements<SkyProbe>(); skyProbes.Any())
-        {
-            newRenderSetup.envProbe = skyProbes.Front();
-        }
-
         passData.ssgi->Render(frame, rs);
     }
 
@@ -2185,6 +2180,16 @@ void DeferredRenderer::RenderFrameForView(Frame* frame, const RenderSetup& rs)
 
         frame->cr << SetCurrentFramebuffer(passData.deferredShadingFramebuffer);
 
+        //if (cvSSGI.Get())
+        //{
+        //    frame->cr << SetCurrentFramebuffer(nullptr);
+
+        //    passData.ssgi->Render(frame, rs);
+        //
+        //    // back to deferred shading
+        //    frame->cr << SetCurrentFramebuffer(passData.deferredShadingFramebuffer);
+        //}
+        
         passData.indirectPass->RenderToFramebuffer(frame, rs, passData.deferredShadingFramebuffer);
         passData.directPass->RenderToFramebuffer(frame, rs, passData.deferredShadingFramebuffer);
 

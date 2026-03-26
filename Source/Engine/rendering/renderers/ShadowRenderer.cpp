@@ -380,7 +380,9 @@ void ShadowRendererBase::RenderFrame(Frame* frame, const RenderSetup& renderSetu
                 clearRect.x1 = atlasElement.offsetCoords.x + atlasElement.dimensions.x;
                 clearRect.y1 = atlasElement.offsetCoords.y + atlasElement.dimensions.y;
 
+                frame->cr << SetCurrentFramebuffer(framebuffer);
                 frame->cr << ClearFramebuffer(framebuffer, clearRect);
+                frame->cr << SetCurrentFramebuffer(nullptr);
 
                 needsClearBeforeDraw = false;
             }

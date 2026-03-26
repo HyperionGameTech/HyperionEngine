@@ -241,6 +241,20 @@
               "$Class": "ShaderInput",
               "Register": 4,
               "ElementType": 7,
+              "Name": "SamplerShadow",
+              "Count": 1,
+              "Size": 4294967295,
+              "IsDynamic": false,
+              "StructInfo": {
+                "Name": "",
+                "Size": 4294967295,
+                "FieldNames": [],
+                "FieldTypes": []
+              }
+            }, {
+              "$Class": "ShaderInput",
+              "Register": 4,
+              "ElementType": 7,
               "Name": "SamplerLinear",
               "Count": 1,
               "Size": 4294967295,
@@ -261,17 +275,17 @@
   "ShaderBlobs": [{
       "$Class": "BlobDataReference",
       "Key": "Engine/Shaders/DeferredDirect/DeferredDirect_1190526425160911508.VS",
-      "Size": 11044
+      "Size": 11096
     }, {
       "$Class": "BlobDataReference",
       "Key": "Engine/Shaders/DeferredDirect/DeferredDirect_1190526425160911508.PS",
-      "Size": 187728
+      "Size": 185472
     }],
   "PropertySetHashCode": {},
   "LastCompiledTimestamp": {
-    "Value": 1774446878000
+    "Value": 1774532548000
   },
   "Name": "DeferredDirect_1190526425160911508",
-  "FriendlyName": "DeferredDirect1190526425160911508",
+  "FriendlyName": "DeferredDirect_1190526425160911508",
   "OriginalFilepath": ""
 }

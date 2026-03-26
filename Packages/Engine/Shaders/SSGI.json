@@ -5,11 +5,6 @@
       "AssetPath": {
         "Value": "Engine/Shaders/SSGI/SSGI_17067551235326711000"
       }
-    }, {
-      "$Class": "AssetReference",
-      "AssetPath": {
-        "Value": "Engine/Shaders/SSGI/SSGI_15502306128063421281"
-      }
     }],
   "Name": "SSGI",
   "FriendlyName": "SSGI",

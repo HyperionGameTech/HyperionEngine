@@ -66,8 +66,8 @@ DECLARE_BUFFER_DYNAMIC(LightmapPathTracer, CBuffer) cbuffer CBuffer
 #ifdef MODE_IRRADIANCE
 
 #define RAY_OFFSET 0.005
-#define NUM_BOUNCES 3
-#define NUM_SAMPLES 1
+#define NUM_BOUNCES 4
+#define NUM_SAMPLES 8
 #elif defined(MODE_FULL)
 #define RAY_OFFSET 0.01
 #define NUM_BOUNCES 4
@@ -144,8 +144,8 @@ void RayGenMain()
     ray.direction = ray_data[ray_index * 2 + 1].xyz;
 
     const RAY_FLAG flags = RAY_FLAG_FORCE_OPAQUE;
-    const float tmin = 0.01;
-    const float tmax = 10000.0;
+    const float tmin = 0.1;
+    const float tmax = 1000.0;
 
     const float3 firstRayDirection = normalize(ray.direction);
 

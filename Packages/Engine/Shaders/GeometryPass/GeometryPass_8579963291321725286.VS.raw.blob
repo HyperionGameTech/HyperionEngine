@@ -1,1147 +1,0 @@
-
-#endif
-
-#if defined(HYP_SHADOW_SAMPLES_16)
-    HYP_FETCH_SHADOW_SAMPLES(8, 9, 10, 11);
-    HYP_FETCH_SHADOW_SAMPLES(12, 13, 14, 15);
-#endif
-
-    for (uint i = 0; i < HYP_SHADOW_SAMPLE_COUNT / 4; i++)
-    {
-        shadowness += shadow_samples[i].x + shadow_samples[i].y + shadow_samples[i].z + shadow_samples[i].w;
-    }
-
-    shadowness *= HYP_1_OVER_16;
-
-#undef HYP_DO_SHADOW
-
-    return shadowness;
-
-#undef HYP_1_OVER_16
-}
-
-float GetShadowVariance(in ShadowMap shadowMap, float3 pos, float NdotL)
-{
-    float bias = HYP_SHADOW_BIAS;
-
-#ifdef HYP_SHADOW_VARIABLE_BIAS
-    bias *= tan(acos(NdotL));
-    bias = clamp(bias, 0.0, 0.01);
-#endif
-
-    const float2 offsetUV = float2(shadowMap.aabbMin.w, shadowMap.aabbMax.w);
-
-    const float3 coord = GetShadowCoord(shadowMap.viewProjMat, pos);
-    float2 moments = SAMPLE_TEXTURE_2D_ARRAY_LOD(HYP_SAMPLER_LINEAR, shadow_maps, float3(coord.xy * shadowMap.dimensionsScale.zw + offsetUV, float(shadowMap.layerIndex)), 0).xy;
-
-    float d = coord.z - moments.x;
-    float p = step(coord.z, moments.x + bias);
-    float variance = max(moments.y - moments.x * moments.x, 0.0001);
-
-    float p_max = variance / (variance + d * d);
-
-    AABB aabb;
-    aabb.min = shadowMap.aabbMin.xyz;
-    aabb.max = shadowMap.aabbMax.xyz;
-
-    return AABBContainsPoint(aabb, pos) ? max(p, p_max) : 1.0;
-
-#if 0
-    const float3 coord = GetShadowCoord(shadowMap.viewProjMat, pos);
-    const float4 shadow_sample = SAMPLE_TEXTURE_2D_ARRAY_LOD(HYP_SAMPLER_LINEAR, shadow_maps, float3(coord.xy * shadowMap.dimensionsScale.zw + offsetUV, float(shadowMap.layerIndex)), 0);
-    const float moment = shadow_sample.r;
-
-    if (coord.z <= moment) {
-        return 1.0;
-    }
-
-    const float moment2 = shadow_sample.g;
-
-    const float variance = max(moment2 - HYP_FMATH_SQR(moment), HYP_FMATH_EPSILON);
-    const float d = coord.z - moment;
-    
-    float percent_in_shadow = variance / (variance + HYP_FMATH_SQR(d));
-    percent_in_shadow = smoothstep(HYP_SHADOW_VARIANCE_LIGHT_BLEED_REDUCTION, 1.0, percent_in_shadow);
-
-    percent_in_shadow *= 1.0 - float(NdotL > 1.5708);
-    return float(acos(NdotL));
-
-#endif
-}
-
-float AvgBlockerDepthToPenumbra(float light_size, float avg_blocker_depth, float shadow_map_coord_z)
-{
-    float penumbra = (shadow_map_coord_z - avg_blocker_depth) * light_size / avg_blocker_depth;
-    penumbra += HYP_SHADOW_PENUMBRA_MIN;
-    penumbra = min(HYP_SHADOW_PENUMBRA_MAX, penumbra);
-    return penumbra;
-}
-
-float GetShadowContactHardened(in ShadowMap shadowMap, float3 pos, float2 texcoord, float2 screen_dimensions, float NdotL)
-{
-    AABB aabb;
-    aabb.min = shadowMap.aabbMin.xyz;
-    aabb.max = shadowMap.aabbMax.xyz;
-
-    if (!AABBContainsPoint(aabb, pos))
-    {
-        return 1.0;
-    }
-
-    const float2 uv_scale = shadowMap.dimensionsScale.zw;
-
-    const float3 coord = GetShadowCoord(shadowMap.viewProjMat, pos);
-
-    const uint layerIndex = shadowMap.layerIndex;
-
-    const float2 offsetUV = float2(shadowMap.aabbMin.w, shadowMap.aabbMax.w);
-
-    const float shadow_map_depth = coord.z;
-
-    const float shadow_filter_size = 0.002;
-    const float penumbra_filter_size = 0.002;
-    const float light_size = 18.0; // affects how quickly shadows become soft
-
-    const float gradient_noise = InterleavedGradientNoise(texcoord * screen_dimensions - 0.5);
-
-    float total_blocker_depth = 0.0;
-    float num_blockers = 0.0;
-
-#if defined(HYP_SHADOW_SAMPLES_16) || defined(HYP_PENUMBRA_SAMPLES_16)
-#define HYP_DEF_VOGEL_DISK(iter_index) \
-    float2 vogel_##iter_index = VogelDisk(iter_index, 16, gradient_noise)
-#else
-#define HYP_DEF_VOGEL_DISK(iter_index) \
-    float2 vogel_##iter_index = VogelDisk(iter_index, 8, gradient_noise)
-#endif
-
-    HYP_DEF_VOGEL_DISK(0);
-    HYP_DEF_VOGEL_DISK(2);
-    HYP_DEF_VOGEL_DISK(4);
-    HYP_DEF_VOGEL_DISK(6);
-    HYP_DEF_VOGEL_DISK(8);
-    HYP_DEF_VOGEL_DISK(10);
-    HYP_DEF_VOGEL_DISK(12);
-    HYP_DEF_VOGEL_DISK(14);
-
-#if defined(HYP_SHADOW_SAMPLES_16) || defined(HYP_PENUMBRA_SAMPLES_16)
-    HYP_DEF_VOGEL_DISK(1);
-    HYP_DEF_VOGEL_DISK(3);
-    HYP_DEF_VOGEL_DISK(5);
-    HYP_DEF_VOGEL_DISK(7);
-    HYP_DEF_VOGEL_DISK(9);
-    HYP_DEF_VOGEL_DISK(11);
-    HYP_DEF_VOGEL_DISK(13);
-    HYP_DEF_VOGEL_DISK(15);
-#endif
-
-#undef HYP_DEF_VOGEL_DISK
-
-    // // temp debug
-                                                                                                                                                                                                                        
-    // float4 shadowSamples = float4(                                                                                                                                                                                    
-    //     SAMPLE_TEXTURE_2D_ARRAY_LOD(HYP_SAMPLER_LINEAR, shadow_maps, float3(((coord.xy + (vogel_0 * s_pcfKernel[0] * penumbra_filter_size)) * uv_scale) + offsetUV, float(layerIndex)), 0).r,
-    //     SAMPLE_TEXTURE_2D_ARRAY_LOD(HYP_SAMPLER_LINEAR, shadow_maps, float3(((coord.xy + (vogel_2 * s_pcfKernel[2] * penumbra_filter_size)) * uv_scale) + offsetUV, float(layerIndex)), 0).r,
-    //     SAMPLE_TEXTURE_2D_ARRAY_LOD(HYP_SAMPLER_LINEAR, shadow_maps, float3(((coord.xy + (vogel_4 * s_pcfKernel[4] * penumbra_filter_size)) * uv_scale) + offsetUV, float(layerIndex)), 0).r,
-    //     SAMPLE_TEXTURE_2D_ARRAY_LOD(HYP_SAMPLER_LINEAR, shadow_maps, float3(((coord.xy + (vogel_6 * s_pcfKernel[6] * penumbra_filter_size)) * uv_scale) + offsetUV, float(layerIndex)), 0).r);
-    // return (shadowSamples.x + shadowSamples.y + shadowSamples.z + shadowSamples.w) * 0.25;
-
-
-#if defined(HYP_SHADOW_PENUMBRA) && HYP_SHADOW_PENUMBRA
-
-// vectorization
-#define HYP_DO_SHADOW_PENUMBRA(iter_index0, iter_index1, iter_index2, iter_index3)                                                                                                                                          \
-    {                                                                                                                                                                                                                       \
-        float4 blocker_samples = float4(                                                                                                                                                                                    \
-            SAMPLE_TEXTURE_2D_ARRAY_LOD(HYP_SAMPLER_LINEAR, shadow_maps, float3(((coord.xy + (vogel_##iter_index0 * s_pcfKernel[iter_index0] * penumbra_filter_size)) * uv_scale) + offsetUV, float(layerIndex)), 0).r,    \
-            SAMPLE_TEXTURE_2D_ARRAY_LOD(HYP_SAMPLER_LINEAR, shadow_maps, float3(((coord.xy + (vogel_##iter_index1 * s_pcfKernel[iter_index1] * penumbra_filter_size)) * uv_scale) + offsetUV, float(layerIndex)), 0).r,    \
-            SAMPLE_TEXTURE_2D_ARRAY_LOD(HYP_SAMPLER_LINEAR, shadow_maps, float3(((coord.xy + (vogel_##iter_index2 * s_pcfKernel[iter_index2] * penumbra_filter_size)) * uv_scale) + offsetUV, float(layerIndex)), 0).r,    \
-            SAMPLE_TEXTURE_2D_ARRAY_LOD(HYP_SAMPLER_LINEAR, shadow_maps, float3(((coord.xy + (vogel_##iter_index3 * s_pcfKernel[iter_index3] * penumbra_filter_size)) * uv_scale) + offsetUV, float(layerIndex)), 0).r);   \
-        float4 are_samples_blocking = float4(lessThan(blocker_samples, shadow_map_depth.xxxx));                                                                                                                             \
-        total_blocker_depth += dot(blocker_samples * are_samples_blocking, float4(1.0, 1.0, 1.0, 1.0));                                                                                                                     \
-        num_blockers += dot(are_samples_blocking, float4(1.0, 1.0, 1.0, 1.0));                                                                                                                                              \
-    }
-
-#ifdef HYP_PENUMBRA_SAMPLES_8
-    HYP_DO_SHADOW_PENUMBRA(0, 2, 4, 6)
-    HYP_DO_SHADOW_PENUMBRA(8, 10, 12, 14)
-#elif defined(HYP_PENUMBRA_SAMPLES_4)
-    HYP_DO_SHADOW_PENUMBRA(0, 4, 8, 12)
-#endif
-
-#undef HYP_DO_SHADOW_PENUMBRA
-
-    float penumbra_mask = num_blockers > 0.0 ? AvgBlockerDepthToPenumbra(light_size, total_blocker_depth / max(num_blockers, 0.0001), shadow_map_depth) : 0.0;
-#else
-    float penumbra_mask = 1.0;
-#endif
-
-    float shadowness = 0.0;
-
-#define HYP_DO_SHADOW(iter_index)                                                                                                 \
-    {                                                                                                                             \
-        shadowness += GetShadowStandard(shadowMap, pos, (vogel_##iter_index * penumbra_mask * shadow_filter_size * uv_scale), NdotL); \
-    }
-
-#if defined(HYP_SHADOW_SAMPLES_16) || defined(HYP_SHADOW_SAMPLES_8)
-    HYP_DO_SHADOW(0)
-    HYP_DO_SHADOW(2)
-    HYP_DO_SHADOW(4)
-    HYP_DO_SHADOW(6)
-    HYP_DO_SHADOW(8)
-    HYP_DO_SHADOW(10)
-    HYP_DO_SHADOW(12)
-    HYP_DO_SHADOW(14)
-#elif defined(HYP_SHADOW_SAMPLES_4)
-    HYP_DO_SHADOW(0)
-    HYP_DO_SHADOW(4)
-    HYP_DO_SHADOW(8)
-    HYP_DO_SHADOW(12)
-#endif
-
-#ifdef HYP_SHADOW_SAMPLES_16
-    HYP_DO_SHADOW(1)
-    HYP_DO_SHADOW(3)
-    HYP_DO_SHADOW(5)
-    HYP_DO_SHADOW(7)
-    HYP_DO_SHADOW(9)
-    HYP_DO_SHADOW(11)
-    HYP_DO_SHADOW(13)
-    HYP_DO_SHADOW(15)
-
-    shadowness /= 16.0;
-#elif defined(HYP_SHADOW_SAMPLES_8)
-    shadowness /= 8.0;
-#elif defined(HYP_SHADOW_SAMPLES_4)
-    shadowness /= 4.0;
-#endif
-
-#undef HYP_DO_SHADOW
-
-    return shadowness;
-}
-
-float GetPointShadowVariance(uint layerIndex, float3 world_to_light, float NdotL)
-{
-    const float2 moments = SAMPLE_TEXTURE_CUBE_ARRAY_LOD(HYP_SAMPLER_LINEAR, point_shadow_maps, float4(world_to_light, float(layerIndex)), 0).rg;
-    const float current_depth = length(world_to_light);
-
-    float shadow_dist = current_depth - moments.x;
-    float p = step(current_depth, moments.x);
-    float variance = max(moments.y - moments.x * moments.x, 0.0001);
-    float p_max = variance / (variance + shadow_dist * shadow_dist);
-
-    return max(p, p_max);
-}
-
-float GetPointShadowStandard(uint layerIndex, float3 world_to_light, float NdotL)
-{
-    const float shadow_depth = SAMPLE_TEXTURE_CUBE_ARRAY_LOD(HYP_SAMPLER_NEAREST, point_shadow_maps, float4(world_to_light, float(layerIndex)), 0).r;
-    const float current_depth = length(world_to_light);
-
-    float bias = HYP_SHADOW_BIAS;
-
-#ifdef HYP_SHADOW_VARIABLE_BIAS
-    bias *= tan(acos(NdotL));
-    bias = clamp(bias, 0.0, 0.005);
-#endif
-
-    return max(step(current_depth - bias, shadow_depth), 0.0);
-}
-
-float GetPointShadow(in ShadowMap shadowMap, uint lightFlags, float3 world_to_light, float NdotL)
-{
-    uint layerIndex = shadowMap.layerIndex;
-
-    switch (lightFlags & LF_SHADOW_FILTER_MASK)
-    {
-    case LF_SHADOW_VSM:
-        return GetPointShadowVariance(layerIndex, world_to_light, NdotL);
-    default:
-        return GetPointShadowStandard(layerIndex, world_to_light, NdotL);
-    }
-}
-
-float GetShadow(in ShadowMap shadowMap, uint lightFlags, float3 position, float2 texcoord, float2 screen_dimensions, float NdotL)
-{
-    // temp
-    
-        // return GetShadowContactHardened(shadowMap, position, texcoord, screen_dimensions, NdotL);
-        
-    switch (lightFlags & LF_SHADOW_FILTER_MASK)
-    {
-    case LF_SHADOW_VSM:
-        return GetShadowVariance(shadowMap, position, NdotL);
-    case LF_SHADOW_CONTACT_HARDENING:
-        return GetShadowContactHardened(shadowMap, position, texcoord, screen_dimensions, NdotL);
-    case LF_SHADOW_PCF:
-        return GetShadowPCF(shadowMap, position, texcoord, screen_dimensions, NdotL);
-    default:
-        return GetShadowStandard(shadowMap, position, float2(0.0, 0.0), NdotL);
-    }
-}
-
-#endif  E   X  "   #ifndef HYP_AABB_GLSL
-#define HYP_AABB_GLSL
-
-#ifdef LANG_GLSL
-const vec3 aabb_corners[8] = {
-    vec3(0.0, 0.0, 0.0),
-    vec3(1.0, 0.0, 0.0),
-    vec3(0.0, 1.0, 0.0),
-    vec3(0.0, 0.0, 1.0),
-    vec3(1.0, 1.0, 0.0),
-    vec3(0.0, 1.0, 1.0),
-    vec3(1.0, 0.0, 1.0),
-    vec3(1.0, 1.0, 1.0)
-};
-#elif defined(LANG_HLSL)
-static const float3 aabb_corners[8] = {
-    float3(0.0, 0.0, 0.0),
-    float3(1.0, 0.0, 0.0),
-    float3(0.0, 1.0, 0.0),
-    float3(0.0, 0.0, 1.0),
-    float3(1.0, 1.0, 0.0),
-    float3(0.0, 1.0, 1.0),
-    float3(1.0, 0.0, 1.0),
-    float3(1.0, 1.0, 1.0)
-};
-#endif
-
-struct AABB
-{
-    vec3 min;
-    vec3 max;
-};
-
-bool AABBContainsPoint(AABB aabb, vec3 vec)
-{
-    return (
-        vec.x >= aabb.min.x && vec.y >= aabb.min.y && vec.z >= aabb.min.z
-        && vec.x <= aabb.max.x && vec.y <= aabb.max.y && vec.z <= aabb.max.z
-    );
-}
-
-vec3 AABBGetCenter(AABB aabb)
-{
-    return (aabb.max + aabb.min) * 0.5;
-}
-
-vec3 AABBGetExtent(AABB aabb)
-{
-    return aabb.max - aabb.min;
-}
-
-float AABBGetGreatestExtent(AABB aabb)
-{
-    vec3 extent = AABBGetExtent(aabb);
-
-    return max(extent.x, max(extent.y, extent.z));
-}
-// https://github.com/nvpro-samples/gl_occlusion_culling/blob/master/cull-common.h
-vec3 AABBGetCorner(AABB aabb, int index)
-{
-    const vec3 extent = AABBGetExtent(aabb);
-
-    return aabb.min + aabb_corners[index] * extent;
-
-    /*const vec3 corners[8] = {
-        aabb.min,
-        aabb.min + vec3(extent.x, 0.f, 0.f),
-        aabb.min + vec3(0.f, extent.y, 0.f),
-        aabb.min + vec3(0.f, 0.f, extent.z),
-        aabb.min + vec3(extent.xy, 0.f),
-        aabb.min + vec3(0.f, extent.yz),
-        aabb.min + vec3(extent.x, 0.f, extent.z),
-        aabb.max
-    };
-
-    return corners[index];*/
-
-    /*uint mask = 1u << index;
-
-    return vec3(
-        mix(aabb.min.x, aabb.max.x, float((mask & 1u) != 0)),
-        mix(aabb.min.y, aabb.max.y, float((maskVS     P“              mix(aabb.min.z, aabb.max.z, float((mask & 4u) != 0))
-    );*/
-}
-
-void AABBToSphere(AABB aabb, out vec3 center, out float radius)
-{
-    //float greatest_extent = AABBGetGreatestExtent(aabb);
-    center = AABBGetCenter(aabb);
-    radius = length(AABBGetExtent(aabb)) * 0.5;  //greatest_extent * 0.5;
-}
-
-#endif   ¬    X  #   #ifndef HYP_OCTAHEDRON
-#define HYP_OCTAHEDRON
-
-vec2 EncodeOctahedralCoord(in vec3 v)
-{
-#define NON_ZERO_SIGN(n) (n >= 0.0 ? 1.0 : -1.0)
-    float l1norm = abs(v.x) + abs(v.y) + abs(v.z);
-    vec2 vec = v.xy * (1.0 / l1norm);
-
-    if (v.z < 0.0) {
-        vec = (1.0 - abs(vec.yx)) * vec2(NON_ZERO_SIGN(vec.x), NON_ZERO_SIGN(vec.y));
-    }
-#undef NON_ZERO_SIGN
-
-    return vec;
-}
-
-vec3 DecodeOctahedralCoord(vec2 coord)
-{
-#define NON_ZERO_SIGN(n) (n >= 0.0 ? 1.0 : -1.0)
-    vec3 vec = vec3(coord.x, coord.y, 1.0 - abs(coord.x) - abs(coord.y));
-    
-    if (vec.z < 0.0) {
-        vec.xy = (1.0 - abs(vec.yx)) * vec2(NON_ZERO_SIGN(vec.x), NON_ZERO_SIGN(vec.y));
-    }
-#undef NON_ZERO_SIGN
-    
-    return normalize(vec);
-}
-
-#endif   $   type.2d.image        out_image     %   type.CBuffer      %       ssgiConstants     %      lights    %      shadowMaps    %      envProbes     &   SSGIConstants     &       dimension     &      rayStep   &      maxIterations     &      distanceBias      &      numSamples    &      numBoundLights    &      numBoundEnvProbes     '   Light     '       type      '      material_index    '      radiusFalloffPacked   '      flags     '      position_intensity    '      color     '      normal    '      area_size     '      _pad0     '   	   _pad1     (   ShadowMap     (       layerIndex    (      splitDistance     (      _pad0     (      _pad1     (      viewProjMat   (      aabbMin   (      aabbMax   (      dimensionsScale   )   EnvProbe      )       face_view_matrices    )      aabb_max      )      aabb_min      )      world_position    )      texture_index     )      flags     )      camera_near   )      camera_far    )      dimensions    )   	   visibility_bits   )   
-   sh       CBuffer   *   type.2d.image        gbuffer_normals_texture      gbuffer_depth_texture        DeferredShadingTexture    +   type.sampler      	   sampler_nearest   
-   sampler_linear   	 ,   type.StructuredBuffer.v4int      BlueNoiseBuffer   -   type.WorldsBuffer     -       world_shader_data     .   WorldShaderData   .       fog_params    .      game_time     .      frame_counter     .      _pad0     .      _pad1        WorldsBuffer      /   type.CamerasBuffer    /       camera    0   Camera    0       view      0      projection    0      viewProjMat   0      invViewMat    0      invProjMat    0      prevViewProjMat   0      dimensions    0      position      0      direction     0   	   jitter    0   
-   near      0      far   0      fov   0      _pad0     0      _pad1     0      _pad2     0      _pad3        CamerasBuffer     1   type.cube.image.array        envProbesTexture         CSMain    2   type.sampled.image    3   type.sampled.image  J dxc-commit-hash: b106a961   J dxc-cl-option:  -E CSMain -T cs_6_0 -HV 2021 -Zi -spirv -fspv-target-env=vulkan1.2 -fvk-use-scalar-layout -Zsb  G           G     "       G     !   
-   G     "       G     !      G     "       G     !      G     "       G     !      G     "       G     !      G  	   "       G  	   !      G  
-   "       G  
-   !      G     "       G     !       G     "       G     !      G     "       G     !      G     "       G     !      H  &       #       H  &      #      H  &      #      H  &      #      H  &      #      H  &      #      H  &      #      G  4         H  '       #       H  '      #      H  '      #      H  '      #      H  '      #      H  '      #       H  '      #   0   H  '      #   @   H  '      #   H   H  '   	   #   P   G  5      Ä   H  (       #       H  (      #      H  (      #      H  (      #      H  (      #      H  (            H  (         H  (      #   P   H  (      #   `   H  (      #   p   G  6      Ä   G  7      @   G  8         H  )       #       H  )             H  )          H  )      #   Ä  H  )      #   ê  H  )      #   †  H  )      #   ∞  H  )      #   ¥  H  )      #   ∏  H  )      #   º  H  )      #   ¿  H  )   	   #   »  H  )   
-   #   –  G  9      `  H  %       #       H  %      #       H  %      #      H  %      #      G  %      G  :         H  ,       #       H  ,          G  ,      H  .       #       H  .      #      H  .      #      H  .      #      H  .      #      H  -       #       G  -      H  0       #       H  0             H  0          H  0      #   @   H  0            H  0         H  0      #   Ä   H  0            H  0         H  0      #   ¿   H  0            H  0         H  0      #      H  0            H  0         H  0      #   @  H  0            H  0         H  0      #   Ä  H  0      #   ê  H  0      #   †  H  0   	   #   ∞  H  0   
-   #   ¿  H  0      #   ƒ  H  0      #   »  H  0      #   Ã  H  0      #   –  H  0      #   ‡  H  0      #     H  /       #       G  /        ;       +  ;   <     Ä?  =   ;      +  ;   >         ?   ;      ,  ?   @   <   >   >   ,  ?   A   >   <   >     B   ;      +  ;   C      ?  D          +  D   E       ,  B   F   C   C   ,  B   G   >   >   ,  B   H   <   <   +  D   I        J           +  J   K       +  ;   L   r˘?,  =   M   >   >   >   >   +  D   N      +  J   O   
-   +  D   P      +  ;   Q   
-◊#<+  ;   R   wÃ+2+  D   S      +  D   T        U   *  U   V   +  J   W      +  ;   X      A+  J   Y      +  ;   Z      @+  D   [      +  D   \   ˇ   +  D   ]   Ä   +  D   ^      +  J   _    ¿  +  J   `      +  J   a      +  D   b      +  J   c    @  )  U   d   +  ;   e   fff?+  ;   f   ÕÃÃ= 	 $   ;                          g       $     h   J       	 &   h   ;   ;   ;   J   J   J   +  J   i        4   =   a     '   J   J   J   J   =   =   =   B   B   4     5   '   i     j   =       
- (   J   ;   ;   ;   j   =   =   =     6   (   i     7   j   Y   +  J   k   	     8   =   k     )   7   =   =   =   J   J   ;   ;   h   h   8     9   )   i     %   &   5   6   9      l      %    	 *   ;                           m       *     +      n       +     o   D        :   o     ,   :      p      ,     .   =   ;   J   J   J     -   .      q      -     r   J        0   j   j   j   j   j   j   r   =   =   =   ;   ;   ;   ;   =   =   =     /   0      s      /    	 1   ;                          t       1     u   J         v      u     w   !  x   w      y      h      z      J     {   U        2   *      |      j      }      D      ~      ;     3   1   ;  g          ;  l         ;  m          ;  m          ;  m          ;  n   	       ;  n   
-       ;  p         ;  q         ;  s         ;  t          ;  v           U      +  J   Ä   ˇˇˇˇ,  =   Å   f   f   f   f   +  ;   Ç     Ä;   É      J   +  ;   Ñ   €…<     ª      6  w          x   = ¯  Ö   ˜  Ü       ˚  K   á   ¯  á        Ω      A  É   à      E   =  J   â   à        ø      A  y   ä      E   E   A  z   ã      E   E   E   =  J   å   ã        ø      â  J   ç   â   å        ¿      Ü  J   é   â   å        æ      P  h   è   ç   é        ¬       =  h   ê   ä        ¬      Æ  {   ë   è   ê        ¬      ö  U   í   ë        √      ˜  ì       ˙  í   î   ì   ¯  î        ƒ      ˘  Ü   ¯  ì        «   #   p  B   ï   è        «   1   Å  B   ñ   ï   F        «   :   p  B   ó   ê        «   8   à  B   ò   ñ   ó        «        B   ô      +   ò   G   H        Ã      =  *   ö           Ã   D   =  +   õ   	        Ã      V  2   ú   ö   õ   X  =   ù   ú   ô      >        —      =  *   û           —   :   =  +   ü   	        —      V  2   †   û   ü   X  =   °   †   ô      >   Q  ;   ¢   °            ”      ∫  U   £   ¢   L        ‘      ˜  §       ˙  £   •   §   ¯  •        ’      =  $   ¶      c  ¶   è   M            ÷      ˘  Ü   ¯  §        Ÿ   8   A  |   ß      E   N        Ÿ   ?   =  j   ®   ß             é  B   ©   ô   Z          !   É  B   ™   ©   H             Q  ;   ´   ™       Q  ;   ¨   ™      P  =   ≠   ´   ¨   ¢   <        "     ê  =   Æ   ≠   ®        &     Q  ;   Ø   Æ      P  =   ∞   Ø   Ø   Ø   Ø        &  
-   à  =   ±   Æ   ∞        Ÿ      O  ?   ≤   ±   ±                  K      Q  ;   ≥   ù           K      Q  ;   ¥   ù           K      É  ;   µ   ≥   ¥        L      Å  ;   ∂   ≥   ¥        L      É  ;   ∑   ∂   <        M      Q  ;   ∏   ù           M      Ö  ;   π   ∏   Z        M      É  ;   ∫   π   <   = P  ?   ª   µ   ∑   ∫        N        ;   º         µ        N      É  ;   Ω   <   º        N   .     ;   æ         ∑        N   ,   É  ;   ø   Ω   æ        N      Ö  ;   ¿   ∫   ø        N      R  ?   ¡   ¿   ª           P   
-     ?   ¬      E   ¡        ‹   0   A  |   √      E   E        ‹   7   =  j   ƒ   √        ‹   C   Q  ;   ≈   ¬       Q  ;   ∆   ¬      Q  ;   «   ¬      P  =   »   ≈   ∆   «   >        ‹   ,   ê  =   …   »   ƒ   O  ?       …   …                  ‹   "     ?   À      E            k        ?   Ã      D   À   A        l   
-     ?   Õ      D   À   @        l   D   î  ;   Œ   Ã   Ã        l   3     ;   œ      0   R   Œ   P  ?   –   œ   œ   œ        l        ?   —      .   Õ   Ã   –        n        ?   “      E   —        q        ?   ”      D   À   “        q        ?   ‘      E   ”        Ì   #   A  z   ’      E   P        Ì   5   =  J   ÷   ’        Ì   E   A  z   ◊      E   N        Ì   S   =  J   ÿ   ◊        Ì   C   â  J   Ÿ   ÷   ÿ        Ó   7   Ñ  J   ⁄   ÿ   O              ˘  €   ¯  €   ı  U   ‹      §   ›   ﬁ   ı  =   ﬂ   M   §   ‡   ﬁ   ı  J   ·   K   §   ‚   ﬁ           "   ∞  U   „   ·   O           $   ˆ  ‰   ﬁ       ˙  „   Â   ‰   ¯  Â        Ú   .   Ñ  J   Ê   Ÿ   O        Ú   >   Ä  J   Á   Ê   ·        Ù   0   |  D   Ë   ç        Ù   >   |  D   È   é        Ù   H   |  D   Í   Á        Ù   U   |  D   Î   ⁄               «  D   Ï   Ë   [         	      «  D   Ì   È   [         
-      «  D   Ó   Í   \            %   «  D   Ô   Î   \            L   Ñ  D      Ì   ]            B   Ä  D   Ò   Ï               S   Ñ  D   Ú   Ò   ^            7   Ä  D   Û   Ô   Ú            &   |  J   Ù   Û            d   ¬  J   ı   Ù   `            N   Ä  J   ˆ   _   ı            ~   «  J   ˜   Ù   a            *   A  }   ¯      E   ˆ   ˜   =  D   ˘   ¯            (   ∆  D   ˙   Ó   ˘            F   Ñ  D   ˚   ˙   b            0   Ä  D   ¸   Ô   ˚               |  J   ˝   ¸            ;   ä  D   ˛   Ô   ^            @   Ä  D   ˇ   ˛   Ú            )   |  J      ˇ            9   ¬  J     ˝   `            L   «  J     ˝   a               A  }        E       =  D                Q   ¬  J        `            8   Ä  J     c              n   «  J        a               A  }        E       =  D   	                ∆  D   
-    	        ,      o  ;     
-        ,      Å  ;     C           ,      Ö  ;       Ç        …       ;                        Ö  ;       Ñ        Ã       ;                  Ã     Ö  ;              Õ       ;                  Õ     Ö  ;              Œ     Ö  ;              Œ     É  ;     <          Œ       ;                  ¯   0   é  ?     “          ¯   B   é  ?     ‘          ¯   6   Å  ?              ¯   \   é  ?     À          ¯   H   Å  ?              ¯        ?        E          ˘   -   é  ?       Q        ˘      Å  ?     ≤     = ˜        ˚  K      ¯          o   *     ?   !     E          o      A  ~   "     E   I        o       =  ;   #  "       o   (   é  ?   $  !  #       u      ˘  %  ¯  %  ı  ?   &       '  (  ı  ;   )  >      *  (  ı  D   +  E      ,  (  ı  ;   -  <      .  (  ı  B   /  G      0  (  ı  ;   1  >      2  (  ı  U   3  V      4  (       u      A  ~   5     E   P        u      =  ;   6  5       u      n  D   7  6       u   
-   ±  U   8  +  7       u   +   ˆ  9  (      ˙  8  :  9  ¯  :       w      Å  ?   '  &  $       y   '   A  |   ;     E   I        y   .   =  j   <  ;       B  0   Q  ;   =  '      Q  ;   >  '     Q  ;   ?  '     P  =   @  =  >  ?  <        B     ê  =   A  @  <       F  	   O  B   B  A  A              F     Q  ;   C  A     P  B   D  C  C       F     à  B   E  B  D       F  1   é  B   F  E  C        F  7   Å  B   0  F  F        z      =  *   G          z   2   =  +   H  	        z      V  2   I  G  H  X  =   J  I  0     >   Q  ;   .  J                é  B   K  0  Z          !   É  B   L  K  H             Q  ;   M  L      Q  ;   N  L     P  =   O  M  N  .  <        "     ê  =   P  O  ®        &     Q  ;   Q  P     P  =   R  Q  Q  Q  Q       &  
-   à  =   S  P  R       }   $   Q  ;   T  S          }   "   É  ;   2  ?  T             ∫  U   4  2  >        Ä      Å  ;   *  )  <        É      ˜  U      ˙  4  V  U  ¯  V       Ñ      ˘  9  ¯  U       Ü      ˘  (  ¯  (       u   /   Ä  D   ,  +  I        Ü      ˘  %  ¯  9  ı  ?   W  &  %  '  V  ı  ;   X  -  %  .  V  ı  ;   Y  )  %  *  V  ı  B   Z  /  %  0  V  ı  ;   [  1  %  2  V  ı  U   \  3  %  4  V       â      ˜  ]      ˙  \  ^  ]  ¯  ^       ã      ˘  _  ¯  _  ı  ?   `  W  ^  a  b  ı  ;   c  [  ^  d  b  ı  ?   e  $  ^  f  b  ı  D   g  +  ^  h  b  ı  ;   i  X  ^  j  b  ı  B   k  Z  ^  l  b       ã   
-   ±  U   m  g  7       ã   +   ˆ  n  b      ˙  m  o  n  ¯  o       ç   	   é  ?   f  e  C        é   3     ;   p        c       é   8   n  D   q  p       é   3   o  ;   r  q       é   1   é  ?   s  f  r       é   '   É  ?   a  `  s       ê   '   A  |   t     E   I        ê   .   =  j   u  t       B  0   Q  ;   v  a      Q  ;   w  a     Q  ;   x  a     P  =   y  v  w  x  <        B     ê  =   z  y  u       F  	   O  B   {  z  z              F     Q  ;   |  z     P  B   }  |  |       F     à  B   ~  {  }       F  1   é  B     ~  C        F  7   Å  B   l    F        ë      =  *   Ä          ë   2   =  +   Å  	        ë      V  2   Ç  Ä  Å  X  =   É  Ç  l     >   Q  ;   j  É                é  B   Ñ  l  Z          !   É  B   Ö  Ñ  H             Q  ;   Ü  Ö      Q  ;   á  Ö     P  =   à  Ü  á  j  <        "     ê  =   â  à  ®        &     Q  ;   ä  â     P  =   ã  ä  ä  ä  ä       &  
-   à  =   å  â  ã       î        ;   ç        x       î   )   Q  ;   é  å          î   '   É  ;   d  ç  é       ò        ;   è        d       ò      A  ~   ê     E   S        ò   %   =  ;   ë  ê       ò      ∏  U   í  è  ë       ô      ˜  ì      ˙  í  î  ì  ¯  î       ö      ˘  n  ¯  ì       ú      ˘  b  ¯  b       ã   /   Ä  D   h  g  I        ú      ˘  _  ¯  n  ı  ;   ï  i  _  j  î  ı  B   ñ  k  _  l  î  ı  U   ó  ‹   _  d   î  ı  U   ò  V   _  d   î  ˜  ô      ˙  ò    ô  ¯  ô       ù      ˘  ]  ¯  ]  ı  ;   ö  X  9  ï  ô  ı  B   õ  Z  9  ñ  ô  ı  D   ú  +  9  g  ô       ü      ±  U   ù  ú  7  = ©  ;   û  ù  <   ö       §      ˘    ¯    ı  ;   ü  ï  n  û  ]  ı  B   †  ñ  n  õ  ]  ı  U   ›   ó  n  V   ]       ¸      ˜  °      ˙  ›   ¢  °  ¯  ¢       ∞      à  ;   £  Y  6       ∞      É  ;   §  <   £       ≥      é  B   •  †  Z        ≥      É  B   ¶  •  H        ¥   '   Q  ;   ß  ¶           ¥   #     ;   ®        ß       ¥   5   Q  ;   ©  ¶          ¥   1     ;   ™        ©       ¥        ;   ´     P   ®  ™       ¥        ;   ¨     +   ´  >   <        µ   &   É  ;   ≠  ¨  e        µ        ;   Æ     P   >   ≠       µ   -   Ö  ;   Ø  Æ  X        µ      É  ;   ∞  <   Ø       µ      Ö  ;   ±  §  ∞             ∫  U   ≤  ±  R             ˜  ≥      ˙  ≤  ¥  ≥  ¯  ¥              B   µ     +   †  G   H             =  *   ∂            6   =  +   ∑  
-             V  2   ∏  ∂  ∑  X  =   π  ∏  µ     >             Q  ;   ∫  π      Q  ;   ª  π     Q  ;   º  π     P  =   Ω  ∫  ª  º  <          (   é  =   æ  Ω  ±            Å  =   ø  ﬂ   æ            ˘  ﬁ   ¯  ≥       	     ˘  °  ¯  °            æ  U   ¿  ü  L             ˜  ¡      ˙  ¿  ¬  ¡  ¯  ¬         $   A  |   √     E   S          +   =  j   ƒ  √         =   Q  ;   ≈        Q  ;   ∆       Q  ;   «       P  =   »  ≈  ∆  «  >              ê  =   …  »  ƒ  O  ?      …  …                        ?   À     E                ˘  Ã  ¯  Ã  ı  =   Õ  M   ¬  Œ  œ  ı  J   –  K   ¬  —  œ            ˆ  “  œ      ˘  ”  ¯  ”         *   A  z   ‘     E   T          8   =  J   ’  ‘         (   ∞  U   ÷  –  ’  ˜  ◊      ˙  ÷  ÿ  ◊  ¯  ÿ         M   Q  ;   Ÿ  Õ            c   ∏  U   ⁄  Ÿ  <   ˘  ◊  ¯  ◊  ı  U   €  V   ”  ⁄  ÿ         e   ˙  €  ‹  “  ¯  ‹  = A  z   ›     S   –  i   =  J   ﬁ  ›            ™  U   ﬂ  ﬁ  Ä             ˜  ‡      ˙  ﬂ  ·  ‡  ¯  ·            ˘  œ  ¯  ‡         '   =  +   ‚  
-          7   =  1   „          :   2     ?   ‰     E   À       :   J   p  ;   Â  ﬁ       :   1   Q  ;   Ê  ‰      Q  ;   Á  ‰     Q  ;   Ë  ‰     P  =   È  Ê  Á  Ë  Â       :      V  3   Í  „  ‚  X  =   Î  Í  È     >             é  =   Ï  Î  <          
-   Q  ;   Ì  Õ               É  ;   Ó  <   Ì            é  =   Ô  Ï  Ó            Å  =     Õ  Ô            ˘  œ  ¯  œ  ı  =   Œ  Õ  ·    ‡         u   Ä  J   —  –  W             ˘  Ã  ¯  “       !     Q  ;   Ò  Õ      Q  ;   Ú  Õ     Q  ;   Û  Õ     P  =   Ù  Ò  Ú  Û  >        !     Å  =   ı  ﬂ   Ù       "     ˘  ¡  ¯  ¡  ı  =   ˆ  ﬂ   °  ı  “       #     ˘  ﬁ   ¯  ﬁ   ı  =   ‡   ø  ¥  ˆ  ¡          ;   Ä  J   ‚   ·   W        #     ˘  €   ¯  ‰        %  !   Ö  =   ˜  ﬂ   Å        %     =  $   ¯     c  ¯  è   ˜           &     ˘  Ü   ¯  Ü        &     ˝  8  CS      “     ivatives in other shader stages so just sample LOD0
-    #define SAMPLE_TEXTURE_3D(samp, tex, texcoord) (tex).SampleLevel((samp), (texcoord), 0)
-#endif
-
-    #define SAMPLE_TEXTURE_CUBE_LOD(samp, tex, texcoord, lod) (tex).SampleLevel((samp), (texcoord), (lod))
-#ifdef PIXEL_SHADER
-    #define SAMPLE_TEXTURE_CUBE(samp, tex, texcoord) (tex).Sample((samp), (texcoord))
-#else
-    // we don't have on screen derivatives in other shader stages so just sample LOD0
-    #define SAMPLE_TEXTURE_CUBE(samp, tex, texcoord) (tex).SampleLevel((samp), (texcoord), 0)
-#endif
-
-    #define SAMPLE_TEXTURE_CUBE_ARRAY_LOD(samp, tex, texcoord, lod) (tex).SampleLevel((samp), (texcoord), (lod))
-#ifdef PIXEL_SHADER
-    #define SAMPLE_TEXTURE_CUBE_ARRAY(samp, tex, texcoord) (tex).Sample((samp), (texcoord))
-#else
-    // we don't have on screen derivatives in other shader stages so just sample LOD0
-    #define SAMPLE_TEXTURE_CUBE_ARRAY(samp, tex, texcoord) (tex).SampleLevel((samp), (texcoord), 0)
-#endif
-
-    #define TEXEL_FETCH_2D(tex, coord) (tex).Load(int3((coord), 0))
-    #define TEXEL_FETCH_2D_LOD(samp, tex, coord, lod) (tex).Load(int3((coord), (lod)))
-
-    // Utility
-
-    #define FLOAT_BITS_TO_UINT(value) asuint(value)
-    #define UINT_BITS_TO_FLOAT(value) asfloat(value)
-
-#endif
-
-#define HYP_MATERIAL_CUBEMAP_TEXTURES 1
-
-#define HYP_MAX_SHADOW_CASCADES 4
-
-#define HYP_MAX_BOUND_AMBIENT_PROBES 4096
-#define HYP_MAX_BOUND_REFLECTION_PROBES 16
-#define HYP_MAX_BOUND_POINT_SHADOW_MAPS 16
-#define HYP_MAX_SHADOW_MAPS 4
-#define HYP_MAX_BOUND_ENVIRONMENT_MAPS 1
-#define HYP_MAX_MATERIALS 65536
-
-#define HYP_LIGHT_TYPE_DIRECTIONAL 0
-#define HYP_LIGHT_TYPE_POINT 1
-#define HYP_LIGHT_TYPE_SPOT 2
-#define HYP_LIGHT_TYPE_AREA_RECT 3
-
-#define HYP_OBJECT_BUCKET_NONE 0
-#define HYP_OBJECT_BUCKET_OPAQUE 1
-#define HYP_OBJECT_BUCKET_LIGHTMAP 2
-#define HYP_OBJECT_BUCKET_TRANSLUCENT 3
-#define HYP_OBJECT_BUCKET_SKYBOX 4
-#define HYP_OBJECT_BUCKET_DEBUG 5
-
-#define HYP_FMATH_SQR(num) ((num) * (num))
-#define HYP_FMATH_CUBE(num) ((num) * (num) * (num))
-#define HYP_FMATH_PI 3.14159265359
-#define HYP_FMATH_PI_HALF 1.57079632679
-#define HYP_FMATH_TWO_PI 6.28318530718
-#define HYP_FMATH_ONE_OVER_PI 0.31830988618
-#define HYP_FMATH_QUARTER_PI e muVS     x—      e HYP_FMATH_DEG2RAD(deg) ((deg) * HYP_FMATH_PI / 180.0)
-#define HYP_FMATH_RAD2DEG(rad) ((rad) * 180.0 / HYP_FMATH_PI)
-#define HYP_FMATH_EPSILON 0.00000001
-#define HYP_FMATH_INFINITY 99999999.0
-
-#define HYP_FLOAT_MAX 3.402823466e+38F
-#define HYP_FLOAT_MIN 1.175494351e-38F
-
-#ifdef __COUNTER__
-#define HYP_UNIQUE_NAME(prefix) \
-    HYP_CONCAT(prefix, __COUNTER__)
-#else
-#define HYP_UNIQUE_NAME(prefix) \
-    prefix
-#endif
-
-#define HYP_FAST_LESS(x, y) (1 - step((y), (x)))
-
-#ifndef HYP_SHADER_COMPILER
-    ///// For Intellisense /////
-
-    // Placeholder macro definitions to allow intellisense to work.
-    // The engine's shader compiler uses these markers for binding setup
-    #define DECLARE_SRV(set, var)
-    #define DECLARE_SRV_DYNAMIC(set, var)
-
-    #define DECLARE_UAV(set, var)
-    #define DECLARE_UAV_DYNAMIC(set, var)
-
-    #define DECLARE_BUFFER(name, var)
-    #define DECLARE_BUFFER_DYNAMIC(name, var)
-
-    #define DECLARE_SAMPLER(set, var)
-
-    #define HYP_ATTRIBUTE
-    #define HYP_ATTRIBUTE_OPTIONAL
-
-    // If we don't set these, we'll have lots of inactive code blocks
-    // for HLSL shaders that define multiple shader stages in one file.
-    #define VERTEX_SHADER 1
-    #define PIXEL_SHADER 1
-    #define COMPUTE_SHADER 1
-    #define GEOMETRY_SHADER 1
-    #define MESH_SHADER 1
-    #define TASK_SHADER 1
-    #define TESS_CONTROL_SHADER 1
-    #define TESS_EVAL_SHADER 1
-    #define RAY_GEN_SHADER 1
-    #define INTERSECT_SHADER 1
-    #define ANY_HIT_SHADER 1
-    #define CLOSEST_HIT_SHADER 1
-    #define MISS_SHADER 1
-#endif // HYP_SHADER_COMPILER
-
-#endif
-     Ù   X     #ifndef HYP_SHARED
-#define HYP_SHARED
-
-#include "defines.inc"
-
-#ifdef LANG_HLSL
-
-// HLSL <-> GLSL compat
-// @TODO: For Shader Model 6.6+ we can use new intrinsics for packing / unpacking
-float4 unpackUnorm4x8(uint packedVal)
-{
-    float4 unpacked;
-    unpacked.x = float(packedVal & 0xFF);
-    unpacked.y = float((packedVal >> 8) & 0xFF);
-    unpacked.z = float((packedVal >> 16) & 0xFF);
-    unpacked.w = float((packedVal >> 24) & 0xFF);
-    return unpacked / 255.0;
-}
-
-float2 unpackUnorm2x16(uint packedVal)
-{
-    float2 unpacked;
-    unpacked.x = float(packedVal & 0xFFFF);
-    unpacked.y = float((packedVal >> 16) & 0xFFFF);
-    return unpacked / 65535.0;
-}
-
-float2 unpackHalf2x16(uint u)
-{
-    return float2(f16tof32(u & 0xFFFF), f16tof32(u >> 16));
-}
-
-float packUnorm4x8(float4 vec)
-{
-    uint packedVal = uint(vec.x * 255.0) | (uint(vec.y * 255.0) << 8) | (uint(vec.z * 255.0) << 16) | (uint(vec.w * 255.0) << 24);
-    return packedVal;
-}
-
-float packUnorm2x16(float2 vec)
-{
-    uint packedVal = uint(vec.x * 65535.0) | (uint(vec.y * 65535.0) << 16);
-    return packedVal;
-}
-
-uint packHalf2x16(float2 v)
-{
-    return (f32tof16(v.y) << 16) | f32tof16(v.x);
-}
-
-#endif
-
-struct Ray
-{
-    vec3 origin;
-    vec3 direction;
-};
-
-int imod(int a, int b)
-{
-    return (a % b + b) % b;
-}
-
-ivec2 imod(ivec2 a, ivec2 b)
-{
-    return (a % b + b) % b;
-}
-
-ivec3 imod(ivec3 a, ivec3 b)
-{
-    return (a % b + b) % b;
-}
-
-ivec4 imod(ivec4 a, ivec4 b)
-{
-    return (a % b + b) % b;
-}
-
-#define fmod(x, y) ((x) - (y)*floor((x) / (y)))
-
-#define round(x) floor((x) + 0.5)
-
-// #define rcp(x) (1.0 / (x))
-
-float Luminance(vec3 color)
-{
-    return color.r * 0.2125 + color.g * 0.715 + color.b * 0.0721;
-}
-
-#define AngleBetweenVectors(a, b) (acos(dot((a), (b))))
-
-mat4 CreateRotationMatrix(vec3 axis, float angle)
-{
-    axis = normalize(axis);
-    float s = sin(angle);
-    float c = cos(angle);
-    float oc = 1.0 - c;
-
-    return mat4(oc * axis.x * axis.x + c, oc * axis.x * axis.y - axis.z * s, oc * axis.z * axis.x + axis.y * s, 0.0,
-        oc * axis.x * axis.y + axis.z * s, oc * axis.y * axis.y + c, oc * axis.y * axis.z - axis.x * s, 0.0,
-        oc * axis.z * axis.x - axis.y * s, oc * axis.y * axis.z + axis.x * s, oc * axis.z * axis.z + c, 0.0,
-        0.0, 0.0, 0.0, 1.0);
-}
-
-void ComputeOrthonormalBasis(in vec3 normal, out vec3 tangent, out vec3 bitangent)
-{
-    vec3 T;
-    T = cross(normal, vec3(0.0, 1.0, 0.0));
-    T = lerp(cross(normal, vec3(1.0, 0.0, 0.0)), T, step(HYP_FMATH_EPSILON, dot(T, T)));
-
-    T = normalize(T);
-
-    tangent = T;
-    bitangent = normalize(cross(normal, T));
-}
-
-vec3 GetTriplanarBlend(vec3 normal)
-{
-    vec3 blending = normalize(max(abs(normal), 0.0001));
-    blending /= (blending.x + blending.y + blending.z);
-
-    return blending;
-}
-
-#if defined(PIXEL_SHADER) || defined(COMPUTE_SHADER)
-
-#ifdef LANG_GLSL
-
-vec4 SampleTextureTriplanar(sampler samp, texture2D tex, vec3 position, vec3 normal)
-{
-    vec3 blending = GetTriplanarBlend(normal);
-
-    vec4 sample_x = SAMPLE_TEXTURE_2D(samp, tex, position.zy * 0.01);
-    vec4 sample_y = SAMPLE_TEXTURE_2D(samp, tex, position.xz * 0.01);
-    vec4 sample_z = SAMPLE_TEXTURE_2D(samp, tex, position.xy * 0.01);
-
-    return sample_x * blending.x + sample_y * blending.y + sample_z * blending.z;
-}
-
-#elif defined(LANG_HLSL)
-
-float4 SampleTextureTriplanar(sampler samp, Texture2D tex, float3 position, float3 normal)
-{
-    float3 blending = GetTriplanarBlend(normal);
-
-    float4 sample_x = SAMPLE_TEXTURE_2D(samp, tex, position.zy * 0.01);
-    float4 sample_y = SAMPLE_TEXTURE_2D(samp, tex, position.xz * 0.01);
-    float4 sample_z = SAMPLE_TEXTURE_2D(samp, tex, position.xy * 0.01);
-
-    return sample_x * blending.x + sample_y * blending.y + sample_z * blending.z;
-}
-
-#endif
-
-#endif // PIXEL_SHADER || COMPUTE_SHADER
-
-#define GAUSS_TABLE_SIZE 15
-
-#ifdef LANG_GLSL
-const float gauss_table[GAUSS_TABLE_SIZE + 1] = float[](
-    0.1847392078702266,
-    0.16595854345772326,
-    0.12031364177766891,
-    0.07038755277896766,
-    0.03322925565155569,
-    0.012657819729901945,
-    0.0038903040680094217,
-    0.0009646503390864025,
-    0.00019297087402915717,
-    0.000031139936308099136,
-    0.000004053309048174758,
-    4.255228059965837e-7,
-    3.602517634249573e-8,
-    2.4592560765896795e-9,
-    1.3534945386863618e-10,
-    0.0);
-#elif defined(LANG_HLSL)
-static const float gauss_table[GAUSS_TABLE_SIZE + 1] = {
-    0.1847392078702266,
-    0.16595854345772326,
-    0.12031364177766891,
-    0.07038755277896766,
-    0.03322925565155569,
-    0.012657819729901945,
-    0.0038903040680094217,
-    0.0009646503390864025,
-    0.00019297087402915717,
-    0.000031139936308099136,
-    0.000004053309048174758,
-    4.255228059965837e-7,
-    3.602517634249573e-8,
-    2.4592560765896795e-9,
-    1.3534945386863618e-10,
-    0.0 };
-#else
-#error "No LANG_* preprocessor define provided"
-#endif
-
-float GaussianWeight(float value)
-{
-    float idxf;
-    float c = modf(max(0.0, value * float(GAUSS_TABLE_SIZE)), idxf);
-    int idx = int(idxf);
-    if (idx >= GAUSS_TABLE_SIZE + 1)
-    {
-        return 0.0;
-    }
-
-    return lerp(gauss_table[idx], gauss_table[idx + 1], c);
-}
-
-vec4 GaussianBlur9(
-    texture2D tex, sampler samp,
-    vec2 uv,
-    vec2 direction,
-    float radius)
-{
-    vec4 color = vec4(0.0, 0.0, 0.0, 0.0);
-    vec2 offset1 = vec2(1.3846153846, 1.3846153846) * direction;
-    vec2 offset2 = vec2(3.2307692308, 3.2307692308) * direction;
-    color += SAMPLE_TEXTURE_2D(samp, tex, uv) * 0.2270270270;
-    color += SAMPLE_TEXTURE_2D(samp, tex, uv + (offset1 * radius)) * 0.3162162162;
-    color += SAMPLE_TEXTURE_2D(samp, tex, uv - (offset1 * radius)) * 0.3162162162;
-    color += SAMPLE_TEXTURE_2D(samp, tex, uv + (offset2 * radius)) * 0.0702702703;
-    color += SAMPLE_TEXTURE_2D(samp, tex, uv - (offset2 * radius)) * 0.0702702703;
-    return color;
-}
-
-vec4 GaussianBlur5(
-    texture2D tex, sampler samp,
-    vec2 uv,
-    vec2 direction,
-    float radius)
-{
-    vec4 color = vec4(0.0, 0.0, 0.0, 0.0);
-    vec2 offset = vec2(1.333, 1.333) * direction;
-    color += SAMPLE_TEXTURE_2D(samp, tex, uv) * 0.29411764705882354;
-    color += SAMPLE_TEXTURE_2D(samp, tex, uv + (offset * radius)) * 0.35294117647058826;
-    color += SAMPLE_TEXTURE_2D(samp, tex, uv - (offset * radius)) * 0.35294117647058826;
-    return color;
-}
-
-// Based on Unity's Linear01Depth function, Unity uses a reversed depth buffer though.
-float Linear01Depth(float depth, float near, float far)
-{
-    float x = 1.0 - (far / near);
-    float y = (far / near);
-    float z = x / far;
-    float w = y / far;
-
-    return 1.0 - (1.0 / (x * (1.0 - depth) + y));
-}
-
-float ViewDepth(float depth, float near, float far)
-{
-    float x = 1.0 - (far / near);
-    float y = (far / near);
-    float z = x / far;
-    float w = y / far;
-
-    return 1.0 / (z * depth + w);
-
-    // return (far * near) / (far - depth * (far - near));
-}
-
-vec4 ReconstructWorldSpacePositionFromDepth(mat4 inverse_projection, mat4 inverse_view, vec2 coord, float depth)
-{
-    vec4 ndc = vec4(coord * 2.0 - 1.0, depth, 1.0);
-
-#ifdef LANG_HLSL
-    vec4 inversed = mul(inverse_projection, ndc);
-#else
-    vec4 inversed = inverse_projection * ndc;
-#endif
-    inversed /= inversed.w;
-
-#ifdef LANG_HLSL
-    inversed = mul(inverse_view, inversed);
-#else
-    inversed = inverse_view * inversed;
-#endif
-
-    return inversed;
-}
-
-vec4 ReconstructViewSpacePositionFromDepth(mat4 inverse_projection, vec2 coord, float depth)
-{
-    vec4 ndc = vec4(coord * 2.0 - 1.0, depth, 1.0);
-
-#ifdef LANG_HLSL
-    vec4 inversed = mul(inverse_projection, ndc);
-#else
-    vec4 inversed = inverse_projection * ndc;
-#endif
-    inversed /= inversed.w;
-
-    return inversed;
-}
-
-vec2 GetProjectedPositionFromWorld(in mat4 projection, in mat4 view, in vec3 world_space_position)
-{
-#ifdef LANG_HLSL
-    vec4 sample_position = mul(projection, mul(view, vec4(world_space_position, 1.0)));
-#else
-    vec4 sample_position = projection * view * vec4(world_space_position, 1.0);
-#endif
-    return (sample_position.xy / sample_position.w) * 0.5 + 0.5;
-}
-
-vec2 GetProjectedPositionFromWorld(in mat4 view_projection, in v samVS     +      #                           
-        VSMain                      hlsl.hlsl        C:\Users\andre\hyperion-engine\Source\Shaders\./include/defines.inc  Ÿ   b     #define _DeferredPass_SPACE space0
-	#define _DeferredPass_GBufferDepthTexture_REGISTER t0
-	#define _DeferredPass_GBufferAlbedoTexture_REGISTER t1
-	#define _DeferredPass_ReflectionProbeResultTexture_REGISTER t2
-	#define _DeferredPass_GBufferMipChain_REGISTER t3
-	#define _DeferredPass_RTRadianceResultTexture_REGISTER t4
-	#define _DeferredPass_GBufferNormalsTexture_REGISTER t5
-	#define _DeferredPass_GBufferVelocityTexture_REGISTER t6
-	#define _DeferredPass_SSGIResultTexture_REGISTER t7
-	#define _DeferredPass_GBufferMaterialTexture_REGISTER t8
-	#define _DeferredPass_SSAOResultTexture_REGISTER t9
-	#define _DeferredPass_WorldsBuffer_REGISTER b10
-	#define _DeferredPass_CamerasBuffer_REGISTER b11
-	#define _DeferredPass_EnvGridsBuffer_REGISTER b12
-	#define _DeferredPass_SamplerNearest_REGISTER s13
-	#define _DeferredPass_SamplerLinear_REGISTER s14
-
-#define HYP_ATTRIBUTE_a_position
-#define _a_position_LOCATION 0
-
-#define HYP_ATTRIBUTE_a_normal
-#define _a_normal_LOCATION 1
-
-#define HYP_ATTRIBUTE_a_texcoord0
-#define _a_texcoord0_LOCATION 2
-
-#define SSGI_ENABLED 1
-#define HYP_VULKAN 4202496
-#define NUM_GBUFFER_TEXTURES 5
-#define PATHTRACER 1
-#define HYP_FEATURES_BINDLESS_TEXTURES 1
-
-#line 1 "hlsl.hlsl"
-
-#line 1 "C:\\Users\\andre\\hyperion-engine\\Source\\Shaders\\./include/defines.inc"
-#line 57 "C:\\Users\\andre\\hyperion-engine\\Source\\Shaders\\./include/defines.inc"
-#pragma pack_matrix(row_major)
-#line 3 "hlsl.hlsl"
-
-
-
-struct VSInput
-{
-float3 a_position : POSITION;
-float3 a_normal : NORMAL;
-float2 a_texcoord0 : TEXCOORD0;
-};
-
-struct VSOutput
-{
-float4 position_cs : SV_POSITION;
-float3 position : POSITION;
-float2 texcoord : TEXCOORD0;
-};
-
-VSOutput VSMain(VSInput input)
-{
-VSOutput output;
-
-float4 position = float4(input.a_position, 1.0);
-
-output.position = position.xyz;
-output.texcoord = input.a_texcoord0;
-
-output.position_cs = position;
-
-return output;
-}
-   Ÿ   b     #ifndef HYP_SHADER_DEFINES
-#define HYP_SHADER_DEFINES
-
-// TEMP: For hlsl intellisense to work
-#ifndef HYP_SHADER_COMPILER
-    #define LANG_HLSL 1
-#endif
-
-#define UINT_TO_VEC4(_value) unpackUnorm4x8((_value))
-#define UINT_TO_VEC2(_value) unpackUnorm2x16((_value))
-#define VEC4_TO_UINT(_value) packUnorm4x8((_value))
-#define VEC2_TO_UINT(_value) packUnorm2x16((_value))
-
-#ifdef LANG_GLSL
-    // HLSL Compat
-    #define lerp mix
-    #define float2 vec2
-    #define float3 vec3
-    #define float4 vec4
-    #define int2 ivec2
-    #define int3 ivec3
-    #define int4 ivec4
-    #define uint2 uvec2
-    #define uint3 uvec3
-    #define uint4 uvec4
-    #define float2x2 mat2
-    #define float3x3 mat3
-    #define float4x4 mat4
-    #define static
-
-    // Sampling
-
-    #define SAMPLE_TEXTURE_2D(samp, tex, texcoord) texture(sampler2D(tex, samp), texcoord)
-    #define SAMPLE_TEXTURE_2D_LOD(samp, tex, texcoord, lod) textureLod(sampler2D(tex, samp), texcoord, lod)
-
-    #define SAMPLE_TEXTURE_2D_ARRAY(samp, tex, texcoord) texture(sampler2DArray(tex, samp), texcoord)
-    #define SAMPLE_TEXTURE_2D_ARRAY_LOD(samp, tex, texcoord, lod) textureLod(sampler2DArray(tex, samp), texcoord, lod)
-
-    #define SAMPLE_TEXTURE_3D(samp, tex, texcoord) texture(sampler3D(tex, samp), texcoord)
-    #define SAMPLE_TEXTURE_3D_LOD(samp, tex, texcoord, lod) textureLod(sampler3D(tex, samp), texcoord, lod)
-
-    #define SAMPLE_TEXTURE_CUBE(samp, tex, texcoord) texture(samplerCube(tex, samp), texcoord)
-    #define SAMPLE_TEXTURE_CUBE_LOD(samp, tex, texcoord, lod) textureLod(samplerCube(tex, samp), texcoord, lod)
-
-    #define SAMPLE_TEXTURE_CUBE_ARRAY(samp, tex, texcoord) texture(samplerCubeArray(tex, samp), texcoord)
-    #define SAMPLE_TEXTURE_CUBE_ARRAY_LOD(samp, tex, texcoord, lod) textureLod(samplerCubeArray(tex, samp), texcoord, lod)
-
-    #define TEXEL_FETCH_2D(tex, coord) texelFetch(tex, coord, 0)
-    #define TEXEL_FETCH_2D_LOD(samp, tex, coord, lod) texelFetch(sampler2D(tex, samp), coord, lod)
-
-    // Utility
-
-    #define FLOAT_BITS_TO_UINT(value) floatBitsToUint(value)
-    #define UINT_BITS_TO_FLOAT(value) uintBitsToFloat(value)
-
-#elif defined(LANG_HLSL)
-    #pragma pack_matrix(row_major)
-
-    // For porting GLSL to HLSL
-    #define vec2 float2
-    #define vec3 float3
-    #define vec4 float4
-    #define ivec2 int2
-    #define ivec3 int3
-    #define ivec4 int4
-    #define uvec2 uint2
-    #define uvec3 uint3
-    #define uvec4 uint4
-    #define mat3 float3x3
-    #define mat4 float4x4
-    #define texture2D Texture2D
-    #define texture3D Texture3D
-    #define textureCube TextureCube
-    #define texture2DArray Texture2DArray
-    #define textureCubeArray TextureCubeArray
-    #define uniform
-    #define atan atan2
-    #define fract frac
-    #define mod fmod
-    #define dFdx ddx
-    #define dFdy ddy
-    #define inversesqrt rsqrt
-    #define lessThan(a, b) ((a) < (b))
-    #define greaterThan(a, b) ((a) > (b))
-
-    // Sampling
-
-    #define SAMPLE_TEXTURE_2D_LOD(samp, tex, texcoord, lod) (tex).SampleLevel((samp), (texcoord), (lod))
-#ifdef PIXEL_SHADER
-    #define SAMPLE_TEXTURE_2D(samp, tex, texcoord) (tex).Sample((samp), (texcoord))
-#else
-    // we don't have on screen derivatives in other shader stages so just sample LOD0
-    #define SAMPLE_TEXTURE_2D(samp, tex, texcoord) (tex).SampleLevel((samp), (texcoord), 0)
-#endif
-
-    #define SAMPLE_TEXTURE_2D_ARRAY_LOD(samp, tex, texcoord, lod) (tex).SampleLevel((samp), (texcoord), (lod))
-#ifdef PIXEL_SHADER
-    #define SAMPLE_TEXTURE_2D_ARRAY(samp, tex, texcoord) (tex).Sample((samp), (texcoord))
-#else
-    // we don't have on screen derivatives in other shader stages so just sample LOD0
-    #define SAMPLE_TEXTURE_2D_ARRAY(samp, tex, texcoord) (tex).SampleLevel((samp), (texcoord), 0)
-#endif
-
-    #define SAMPLE_TEXTURE_3D_LOD(samp, tex, texcoord, lod) (tex).SampleLevel((samp), (texcoord), (lod))
-
-#ifdef PIXEL_SHADER
-    #define SAMPLE_TEXTURE_3D(samp, tex, texcoord) (tex).Sample((samp), (texcoord))
-#else
-    // we don't have on screen derivatives in other shader stages so just sample LOD0
-    #define SAMPLE_TEXTURE_3D(samp, tex, texcoord) (tex).SampleLevel((samp), (texcoord), 0)
-#endif
-
-    #define SAMPLE_TEXTURE_CUBE_LOD(samp, tex, texcoord, lod) (tex).SampleLevel((samp), (texcoord), (lod))
-#ifdef PIXEL_SHADER
-    #define SAMPLE_TEXTURE_CUBE(samp, tex, texcoord) (tex).Sample((samp), (texcoord))
-#else
-    // we don't have on screen derivatives in other shader stages so just sample LOD0
-    #define SAMPLE_TEXTURE_CUBE(samp, tex, texcoord) (tex).SampleLevel((samp), (texcoord), 0)
-#endif
-
-    #define SAMPLE_TEXTURE_CUBE_ARRAY_LOD(samp, tex, texcoord, lod) (tex).SampleLevel((samp), (texcoord), (lod))
-#ifdef PIXEL_SHADER
-    #define SAMPLE_TEXTURE_CUBE_ARRAY(samp, tex, texcoord) (tex).Sample((samp), (texcoord))
-#else
-    // we don't have on screen derivatives in other shader stages so just sample LOD0
-    #define SAMPLE_TEXTURE_CUBE_ARRAY(samp, tex, texcoord) (tex).SampleLevel((samp), (texcoord), 0)
-#endif
-
-    #define TEXEL_FETCH_2D(tex, coord) (tex).Load(int3((coord), 0))
-    #define TEXEL_FETCH_2D_LOD(samp, tex, coord, lod) (tex).Load(int3((coord), (lod)))
-
-    // Utility
-
-    #define FLOAT_BITS_TO_UINT(value) asuint(value)
-    #define UINT_BITS_TO_FLOAT(value) asfloat(value)
-
-#endif
-
-#define HYP_MATERIAL_CUBEMAP_TEXTURES 1
-
-#define HYP_MAX_SHADOW_CASCADES 4
-
-#define HYP_MAX_BOUND_AMBIENT_PROBES 4096
-#define HYP_MAX_BOUND_REFLECTION_PROBES 16
-#define HYP_MAX_BOUND_POINT_SHADOW_MAPS 16
-#define HYP_MAX_SHADOW_MAPS 4
-#define HYP_MAX_BOUND_ENVIRONMENT_MAPS 1
-#define HYP_MAX_MATERIALS 65536
-
-#define HYP_LIGHT_TYPE_DIRECTIONAL 0
-#define HYP_LIGHT_TYPE_POINT 1
-#define HYP_LIGHT_TYPE_SPOT 2
-#define HYP_LIGHT_TYPE_AREA_RECT 3
-
-#define HYP_OBJECT_BUCKET_NONE 0
-#define HYP_OBJECT_BUCKET_OPAQUE 1
-#define HYP_OBJECT_BUCKET_LIGHTMAP 2
-#define HYP_OBJECT_BUCKET_TRANSLUCENT 3
-#define HYP_OBJECT_BUCKET_SKYBOX 4
-#define HYP_OBJECT_BUCKET_DEBUG 5
-
-#define HYP_FMATH_SQR(num) ((num) * (num))
-#define HYP_FMATH_CUBE(num) ((num) * (num) * (num))
-#define HYP_FMATH_PI 3.14159265359
-#define HYP_FMATH_PI_HALF 1.57079632679
-#define HYP_FMATH_TWO_PI 6.28318530718
-#define HYP_FMATH_ONE_OVER_PI 0.31830988618
-#define HYP_FMATH_QUARTER_PI 0.7853981625
-#define HYP_FMATH_DEG2RAD(deg) ((deg) * HYP_FMATH_PI / 180.0)
-#define HYP_FMATH_RAD2DEG(rad) ((rad) * 180.0 / HYP_FMATH_PI)
-#define HYP_FMATH_EPSILON 0.00000001
-#define HYP_FMATH_INFINITY 99999999.0
-
-#define HYP_FLOAT_MAX 3.402823466e+38F
-#define HYP_FLOAT_MIN 1.175494351e-38F
-
-#ifdef __COUNTER__
-#define HYP_UNIQUE_NAME(prefix) \
-    HYP_CONCAT(prefix, __COUNTER__)
-#else
-#define HYP_UNIQUE_NAME(prefix) \
-    prefix
-#endif
-
-#define HYP_FAST_LESS(x, y) (1 - step((y), (x)))
-
-#ifndef HYP_SHADER_COMPILER
-    ///// For Intellisense /////
-
-    // Placeholder macro definitions to allow intellisense to work.
-    // The engine's shader compiler uses these markers for binding setup
-    #define DECLARE_SRV(set, var)
-    #define DECLARE_SRV_DYNAMIC(set, var)
-
-    #define DECLARE_UAV(set, var)
-    #define DECLARE_UAV_DYNAMIC(set, var)
-
-    #define DECLARE_BUFFER(name, var)
-    #define DECLARE_BUFFER_DYNAMIC(name, var)
-
-    #define DECLARE_SAMPLER(set, var)
-
-    #define HYP_ATTRIBUTE
-    #define HYP_ATTRIBUTE_OPTIONAL
-
-    // If we don't set these, we'll have lots of inactive code blocks
-    // for HLSL shaders that define multiple shader stages in one file.
-    #define VERTEX_SHADER 1
-    #define PIXEL_SHADER 1
-    #define COMPUTE_SHADER 1
-    #define GEOMETRY_SHADER 1
-    #define MESH_SHADER 1
-    #define TASK_SHADER 1
-    #define TESS_CONTROL_SHADER 1
-    #define TESS_EVAL_SHADER 1
-    #define RAY_GEN_SHADER 1
-    #define INTERSECT_SHADER 1
-    #define ANY_HIT_SHADER 1
-    #define CLOSEST_HIT_SHADER 1
-    #define MISS_SHADER 1
-#endif // HYP_SHADER_COMPILER
-
-#endif
-         in.var.POSITION      in.var.TEXCOORD0         out.var.POSITION         out.var.TEXCOORD0        VSMain  J dxc-commit-hash: b106a961   J dxc-cl-option:  -E VSMain -T vs_6_1 -HV 2021 -Zi -spirv -fspv-target-env=vulkan1.2 -fvk-use-scalar-layout -Zsb  G            G            G           G            G             	       +  	   
-     Ä?     	                       	                       	                                               !        ;           ;           ;           ;           ;                      6               = ¯                =           =                      Q  	             Q  	            Q  	            P                 
-              O                                   >        >        >                    ˝  8  iforPS     $≠     #     ,              2        GLSL.std.450              	 

@@ -304,8 +304,6 @@ void SetCurrentFramebuffer::InvokeStatic(CmdBase* cmd, CommandBuffer* commandBuf
 
     state.framebuffer = cmdCasted->m_framebuffer;
 
-    //cmdCasted->m_framebuffer->BeginCapture(commandBuffer);
-
     static_assert(std::is_trivially_destructible_v<SetCurrentFramebuffer>);
     // cmdCasted->~SetCurrentFramebuffer();
 }
@@ -317,6 +315,27 @@ void SetCurrentFramebuffer::InvokeStatic(CmdBase* cmd, CommandBuffer* commandBuf
 void ClearFramebuffer::InvokeStatic(CmdBase* cmd, CommandBuffer* commandBuffer)
 {
     ClearFramebuffer* cmdCasted = static_cast<ClearFramebuffer*>(cmd);
+    
+    AssertDebug(cmdCasted->framebuffer != nullptr);
+
+    RenderInterface::State& state = g_renderInterface->state;
+
+    state.framebuffer = cmdCasted->framebuffer;
+
+    if (state.boundFramebuffer != cmdCasted->framebuffer)
+    {
+        if (state.boundFramebuffer != nullptr)
+        {
+            // end render pass if we are in one and not same as the one we want to bind.
+            state.boundFramebuffer->EndCapture(commandBuffer);
+            state.boundFramebuffer = nullptr;
+        }
+        
+        // begin pass
+        state.boundFramebuffer = cmdCasted->framebuffer;
+        
+        cmdCasted->framebuffer->BeginCapture(commandBuffer);
+    }
 
     if (int(cmdCasted->rect.x1) - int(cmdCasted->rect.x0) == 0
         && int(cmdCasted->rect.y1) - int(cmdCasted->rect.y0) == 0)

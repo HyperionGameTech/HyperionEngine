@@ -217,9 +217,12 @@
     }, {
       "$Class": "BlobDataReference",
       "Key": "Engine/Shaders/SSRSampleGBuffer/SSRSampleGBuffer_6076243050612183518.PS",
-      "Size": 98960
+      "Size": 99296
     }],
   "PropertySetHashCode": {},
+  "LastCompiledTimestamp": {
+    "Value": 1773191967000
+  },
   "Name": "SSRSampleGBuffer_6076243050612183518",
   "FriendlyName": "SSRSampleGBuffer_6076243050612183518",
   "OriginalFilepath": ""
