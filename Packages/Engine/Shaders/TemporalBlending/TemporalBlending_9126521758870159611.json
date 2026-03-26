@@ -20,27 +20,33 @@
       "EnumValues": []
     }, {
       "$Class": "ShaderProperty",
-      "Name": "LIGHT_TYPE",
+      "Name": "OUTPUT",
       "Flags": 0,
-      "Value": "DIRECTIONAL",
+      "Value": "RGBA8",
       "EnumValues": []
     }, {
       "$Class": "ShaderProperty",
-      "Name": "DEBUG_REFLECTIONS",
+      "Name": "TEMPORAL_BLEND_TECHNIQUE",
       "Flags": 0,
-      "Value": null,
+      "Value": 1,
+      "EnumValues": []
+    }, {
+      "$Class": "ShaderProperty",
+      "Name": "FEEDBACK",
+      "Flags": 0,
+      "Value": 0.960000,
       "EnumValues": []
     }],
   "RevisionNumber": 31459917,
-  "BaseName": "DeferredDirect",
+  "BaseName": "TemporalBlending",
   "VertexAttributes": {
-    "FlagMask": 7
+    "FlagMask": 0
   },
   "ShaderInputGroup": {
     "Elements": [{
         "$Class": "ShaderInputSet",
         "SetIndex": 0,
-        "Name": "DeferredPass",
+        "Name": "TemporalBlending",
         "Slots": [[{
               "$Class": "ShaderInput",
               "Register": 1,
@@ -59,7 +65,7 @@
               "$Class": "ShaderInput",
               "Register": 1,
               "ElementType": 5,
-              "Name": "GBufferAlbedoTexture",
+              "Name": "VelocityImage",
               "Count": 1,
               "Size": 4294967295,
               "IsDynamic": false,
@@ -73,7 +79,7 @@
               "$Class": "ShaderInput",
               "Register": 1,
               "ElementType": 5,
-              "Name": "GBufferMipChain",
+              "Name": "PrevImage",
               "Count": 1,
               "Size": 4294967295,
               "IsDynamic": false,
@@ -87,7 +93,7 @@
               "$Class": "ShaderInput",
               "Register": 1,
               "ElementType": 5,
-              "Name": "RTRadianceResultTexture",
+              "Name": "InImage",
               "Count": 1,
               "Size": 4294967295,
               "IsDynamic": false,
@@ -97,11 +103,11 @@
                 "FieldNames": [],
                 "FieldTypes": []
               }
-            }, {
+            }], [{
               "$Class": "ShaderInput",
-              "Register": 1,
-              "ElementType": 5,
-              "Name": "GBufferNormalsTexture",
+              "Register": 2,
+              "ElementType": 6,
+              "Name": "OutImage",
               "Count": 1,
               "Size": 4294967295,
               "IsDynamic": false,
@@ -111,77 +117,7 @@
                 "FieldNames": [],
                 "FieldTypes": []
               }
-            }, {
-              "$Class": "ShaderInput",
-              "Register": 1,
-              "ElementType": 5,
-              "Name": "PointLightShadowMapsTextureArray",
-              "Count": 1,
-              "Size": 4294967295,
-              "IsDynamic": false,
-              "StructInfo": {
-                "Name": "",
-                "Size": 4294967295,
-                "FieldNames": [],
-                "FieldTypes": []
-              }
-            }, {
-              "$Class": "ShaderInput",
-              "Register": 1,
-              "ElementType": 5,
-              "Name": "GBufferVelocityTexture",
-              "Count": 1,
-              "Size": 4294967295,
-              "IsDynamic": false,
-              "StructInfo": {
-                "Name": "",
-                "Size": 4294967295,
-                "FieldNames": [],
-                "FieldTypes": []
-              }
-            }, {
-              "$Class": "ShaderInput",
-              "Register": 1,
-              "ElementType": 5,
-              "Name": "GBufferMaterialTexture",
-              "Count": 1,
-              "Size": 4294967295,
-              "IsDynamic": false,
-              "StructInfo": {
-                "Name": "",
-                "Size": 4294967295,
-                "FieldNames": [],
-                "FieldTypes": []
-              }
-            }, {
-              "$Class": "ShaderInput",
-              "Register": 1,
-              "ElementType": 5,
-              "Name": "ShadowMapsTextureArray",
-              "Count": 1,
-              "Size": 4294967295,
-              "IsDynamic": false,
-              "StructInfo": {
-                "Name": "",
-                "Size": 4294967295,
-                "FieldNames": [],
-                "FieldTypes": []
-              }
-            }, {
-              "$Class": "ShaderInput",
-              "Register": 1,
-              "ElementType": 5,
-              "Name": "SSAOResultTexture",
-              "Count": 1,
-              "Size": 4294967295,
-              "IsDynamic": false,
-              "StructInfo": {
-                "Name": "",
-                "Size": 4294967295,
-                "FieldNames": [],
-                "FieldTypes": []
-              }
-            }], [], [{
+            }], [{
               "$Class": "ShaderInput",
               "Register": 3,
               "ElementType": 1,
@@ -198,11 +134,11 @@
             }, {
               "$Class": "ShaderInput",
               "Register": 3,
-              "ElementType": 2,
-              "Name": "CBuffer",
+              "ElementType": 1,
+              "Name": "TemporalBlendingUniforms",
               "Count": 1,
               "Size": 4294967295,
-              "IsDynamic": true,
+              "IsDynamic": false,
               "StructInfo": {
                 "Name": "",
                 "Size": 4294967295,
@@ -255,23 +191,19 @@
         "Flags": 0
       }]
   },
-  "ShaderModuleTypes": [1, 2],
-  "ShaderModuleNames": ["DeferredDirect.hlsl", "DeferredDirect.hlsl"],
-  "EntryPointNames": ["VSMain", "PSMain"],
+  "ShaderModuleTypes": [4],
+  "ShaderModuleNames": ["TemporalBlending.hlsl"],
+  "EntryPointNames": ["CSMain"],
   "ShaderBlobs": [{
       "$Class": "BlobDataReference",
-      "Key": "Engine/Shaders/DeferredDirect/DeferredDirect_3393473189630044538.VS",
-      "Size": 11052
-    }, {
-      "$Class": "BlobDataReference",
-      "Key": "Engine/Shaders/DeferredDirect/DeferredDirect_3393473189630044538.PS",
-      "Size": 187524
+      "Key": "Engine/Shaders/TemporalBlending/TemporalBlending_9126521758870159611.CS",
+      "Size": 106720
     }],
   "PropertySetHashCode": {},
   "LastCompiledTimestamp": {
-    "Value": 1774446878000
+    "Value": 1772989233000
   },
-  "Name": "DeferredDirect_3393473189630044538",
-  "FriendlyName": "DeferredDirect3393473189630044538",
+  "Name": "TemporalBlending_9126521758870159611",
+  "FriendlyName": "TemporalBlending9126521758870159611",
   "OriginalFilepath": ""
 }
