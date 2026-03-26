@@ -19,7 +19,7 @@ namespace Hyperion {
 class SamplerCacheImpl
 {
 public:
-    HashMap<SamplerDesc, SamplerRef> cache;
+    HashMap<SamplerDesc, SamplerRef, NodeAllocator<RenderAllocator>> cache;
     SharedMutex mutex;
 };
 
@@ -28,9 +28,10 @@ public:
 SamplerCache::SamplerCache()
     : m_impl(MakePimpl<SamplerCacheImpl>())
 {
+    m_impl->cache.Reserve(16);
 }
 
-const SamplerRef& SamplerCache::GetOrCreate(const SamplerDesc& samplerDesc)
+Sampler* SamplerCache::GetOrCreate(const SamplerDesc& samplerDesc)
 {
     TSharedLock lock(m_impl->mutex);
 
@@ -38,7 +39,7 @@ const SamplerRef& SamplerCache::GetOrCreate(const SamplerDesc& samplerDesc)
 
     if (it != m_impl->cache.End())
     {
-        return it->second;
+        return it->second.Get();
     }
 
     lock.Reset();
@@ -50,15 +51,16 @@ const SamplerRef& SamplerCache::GetOrCreate(const SamplerDesc& samplerDesc)
 
     if (it != m_impl->cache.End())
     {
-        return it->second;
+        return it->second.Get();
     }
 
     SamplerRef sampler = g_renderInterface->MakeSampler(samplerDesc);
     CheckResult(sampler->Create());
 
+    AssertDebug(m_impl->cache[samplerDesc] == nullptr);
     m_impl->cache[samplerDesc] = sampler;
 
-    return m_impl->cache[samplerDesc];
+    return sampler.Get();
 }
 
 } // namespace Hyperion

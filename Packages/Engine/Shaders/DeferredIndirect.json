@@ -3,37 +3,12 @@
   "CompiledShaders": [{
       "$Class": "AssetReference",
       "AssetPath": {
-        "Value": "Engine/Shaders/DeferredIndirect/DeferredIndirect_9681973114513273642"
-      }
-    }, {
-      "$Class": "AssetReference",
-      "AssetPath": {
-        "Value": "Engine/Shaders/DeferredIndirect/DeferredIndirect_9520172899095996806"
-      }
-    }, {
-      "$Class": "AssetReference",
-      "AssetPath": {
         "Value": "Engine/Shaders/DeferredIndirect/DeferredIndirect_9429953578406145867"
       }
     }, {
       "$Class": "AssetReference",
       "AssetPath": {
-        "Value": "Engine/Shaders/DeferredIndirect/DeferredIndirect_8811830310544324360"
-      }
-    }, {
-      "$Class": "AssetReference",
-      "AssetPath": {
-        "Value": "Engine/Shaders/DeferredIndirect/DeferredIndirect_6109212758562035842"
-      }
-    }, {
-      "$Class": "AssetReference",
-      "AssetPath": {
         "Value": "Engine/Shaders/DeferredIndirect/DeferredIndirect_5745572804640774058"
-      }
-    }, {
-      "$Class": "AssetReference",
-      "AssetPath": {
-        "Value": "Engine/Shaders/DeferredIndirect/DeferredIndirect_5662077023580571107"
       }
     }, {
       "$Class": "AssetReference",
@@ -44,26 +19,6 @@
       "$Class": "AssetReference",
       "AssetPath": {
         "Value": "Engine/Shaders/DeferredIndirect/DeferredIndirect_4358339680524594343"
-      }
-    }, {
-      "$Class": "AssetReference",
-      "AssetPath": {
-        "Value": "Engine/Shaders/DeferredIndirect/DeferredIndirect_3887042335910720043"
-      }
-    }, {
-      "$Class": "AssetReference",
-      "AssetPath": {
-        "Value": "Engine/Shaders/DeferredIndirect/DeferredIndirect_28954286879005160"
-      }
-    }, {
-      "$Class": "AssetReference",
-      "AssetPath": {
-        "Value": "Engine/Shaders/DeferredIndirect/DeferredIndirect_17384028051758362161"
-      }
-    }, {
-      "$Class": "AssetReference",
-      "AssetPath": {
-        "Value": "Engine/Shaders/DeferredIndirect/DeferredIndirect_16800979115835235077"
       }
     }, {
       "$Class": "AssetReference",

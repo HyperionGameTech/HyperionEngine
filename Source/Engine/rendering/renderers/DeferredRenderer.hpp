@@ -81,7 +81,7 @@ private:
 
     Handle<Texture> m_ltcMatrixTexture;
     Handle<Texture> m_ltcBrdfTexture;
-    SamplerRef m_ltcSampler;
+    Sampler* m_ltcSampler;
 };
 
 class TonemapPass final : public FullScreenPass

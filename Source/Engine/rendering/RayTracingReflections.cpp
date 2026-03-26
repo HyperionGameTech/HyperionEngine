@@ -106,13 +106,16 @@ void RayTracingReflections::Render(Frame* frame, const RenderSetup& renderSetup)
     const bool isPathTracer = cvPathTracing.Get();
     InitTemporalBlending(isPathTracer);
 
+    
     // Reset progressive blending if the camera view matrix has changed (for path tracing)
+    RenderProxyCamera* cameraProxy = static_cast<RenderProxyCamera*>(GetRenderProxy(renderSetup.view->GetCamera()));
+    Assert(cameraProxy != nullptr);
+    
+    CameraShaderData cameraData = cameraProxy->bufferData;
+
     if (isPathTracer)
     {
-        RenderProxyCamera* cameraProxy = static_cast<RenderProxyCamera*>(GetRenderProxy(renderSetup.view->GetCamera()));
-        Assert(cameraProxy != nullptr);
-
-        if (cameraProxy->bufferData.viewMat != m_previousViewMatrix)
+        if (cameraData.viewMat != m_previousViewMatrix)
         {
             RenderSetup newRenderSetup = renderSetup;
             newRenderSetup.passData = parentPass;
@@ -120,7 +123,7 @@ void RayTracingReflections::Render(Frame* frame, const RenderSetup& renderSetup)
             m_temporalBlending->ResetProgressiveBlending();
             m_temporalBlending->Render(frame, newRenderSetup);
 
-            m_previousViewMatrix = cameraProxy->bufferData.viewMat;
+            m_previousViewMatrix = cameraData.viewMat;
         }
     }
 
@@ -147,7 +150,7 @@ void RayTracingReflections::Render(Frame* frame, const RenderSetup& renderSetup)
     { // Update constants
         RayTracingConstants rayTracingConstants {};
         rayTracingConstants.minRoughness = 0.4f;
-        rayTracingConstants.outputImageResolution = Vec2i(m_config.extent);
+        rayTracingConstants.outputImageResolution = Vec2i(m_texture->GetExtent().GetXY());
 
         Array<Pair<Light*, LightShaderData*>, RenderAllocator> tempLights;
 
@@ -180,6 +183,9 @@ void RayTracingReflections::Render(Frame* frame, const RenderSetup& renderSetup)
         }
 
         g_renderInterface->constantsAllocator->Write(&rayTracingConstants);
+
+        // write camera
+        g_renderInterface->constantsAllocator->Write(&cameraData);
 
         for (uint32 i = 0; i < MaxLights; i++)
         {
@@ -247,7 +253,6 @@ void RayTracingReflections::Render(Frame* frame, const RenderSetup& renderSetup)
     frame->cr << SetShaderUniform(14, "MaterialsBuffer"_sh, g_renderInterface->gpuBuffers[GRB_MATERIALS]->GetBuffer(frameIndex));
     frame->cr << SetShaderUniform(15, "EntitiesBuffer"_sh, g_renderInterface->gpuBuffers[GRB_ENTITIES]->GetBuffer(frameIndex));
     frame->cr << SetShaderUniform(16, "WorldsBuffer"_sh, g_renderInterface->gpuBuffers[GRB_WORLDS]->GetBuffer(frameIndex));
-    frame->cr << SetShaderUniform(17, "CamerasBuffer"_sh, g_renderInterface->gpuBuffers[GRB_CAMERAS]->GetBuffer(frameIndex), TShaderDataOffset<CameraShaderData>(parentPass->view.GetUnsafe()->GetCamera()));
 
     if (renderSetup.envProbe != nullptr)
     {

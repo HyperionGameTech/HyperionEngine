@@ -130,6 +130,9 @@
       "Size": 58920
     }],
   "PropertySetHashCode": {},
+  "LastCompiledTimestamp": {
+    "Value": 1774056217000
+  },
   "Name": "SSGIUpsample_5656388037364668825",
   "FriendlyName": "SSGIUpsample_5656388037364668825",
   "OriginalFilepath": ""

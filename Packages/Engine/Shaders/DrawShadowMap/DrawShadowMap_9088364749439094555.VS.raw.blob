@@ -1,1686 +1,0 @@
- * x + 1.570796;
-    return p * sqrt(1.0 - x);
-}
-
-float sphericalCapsIntersection(float cosCap1, float cosCap2, float cosDistance)
-{
-    // Oat and Sander 2007, "Ambient Aperture Lighting"
-    // Approximation mentioned by Jimenez et al. 2016
-    float r1 = acosFastPositive(cosCap1);
-    float r2 = acosFastPositive(cosCap2);
-    float d  = acosFast(cosDistance);
-
-    // We work with cosine angles, replace the original paper's use of
-    // cos(min(r1, r2)) with max(cosCap1, cosCap2)
-    // We also remove a multiplication by 2 * PI to simplify the computation
-    // since we divide by 2 * PI in computeBentSpecularAO()
-
-    if (min(r1, r2) <= max(r1, r2) - d) {
-        return 1.0 - max(cosCap1, cosCap2);
-    } else if (r1 + r2 <= d) {
-        return 0.0;
-    }
-
-    float delta = abs(r1 - r2);
-    float x = 1.0 - clamp((d - delta) / max(r1 + r2 - delta, 1e-4), 0.0, 1.0);
-    // simplified smoothstep()
-    float area = sqr(x) * (-2.0 * x + 3.0);
-    return area * (1.0 - max(cosCap1, cosCap2));
-}
-
-#ifdef PIXEL_SHADER
-/// Compute perceptual roughness a la filament
-float ComputePerceptualRoughness(float roughness, float3 normal)
-{
-    float perceptualRoughness = roughness;
-
-    float3 dndx = ddx(normal);
-    float3 dndy = ddy(normal);
-    
-    float variance = max(dot(dndx, dndx), dot(dndy, dndy));
-    
-    float geometricRoughness = pow(saturate(variance), 0.333f);
-    
-    perceptualRoughness = max(perceptualRoughness, geometricRoughness);
-
-    const float minPerceptualRoughness = 0.089f;
-    perceptualRoughness = clamp(perceptualRoughness, minPerceptualRoughness, 1.0f);
-
-    return perceptualRoughness;
-}
-#endif
-
-float SpecularAO_Cones(vec3 bentNormal, float visibility, float roughness, vec3 shading_reflected)
-{
-    // Jimenez et al. 2016, "Practical Realtime Strategies for Accurate Indirect Occlusion"
-
-    // aperture from ambient occlusion
-    float cosAv = sqrt(1.0 - visibility);
-    // aperture from roughness, log(10) / log(2) = 3.321928
-    float cosAs = exp2(-3.321928 * sqr(roughness));
-    // angle betwen bent normal and reflection direction
-    float cosB  = dot(bentNormal, shading_reflected);
-
-    // Remove the 2 * PI term from the denominator, it cancels out the same term from
-    // sphericalCapsIntersection()
-    float ao = sphericalCapsIntersection(cosAv, cosAs, cosB) / (1.0 - cosAs);
-    // Smoothly kill specular AO when entering the perceptual roughness range [0.1..0.3]
-    // Without this, specular AO can remove all reflections, which looks bad on metals
-    return lerp(1.0, ao, smoothstep(0.01, 0.09, roughness));
-}
-
-float SpecularAO_Lagarde(float NoV, float visibility, float roughness)
-{
-    // Lagarde and de Rousiers 2014, "Moving Frostbite to PBR"
-    return clamp(pow(NoV + visibility, exp2(-16.0 * roughness - 1.0)) - 1.0 + visibility, 0.0, 1.0);
-}
-
-vec3 GTAOMultiBounce(float visibility, const vec3 albedo) {
-    // Jimenez et al. 2016, "Practical Realtime Strategies for Accurate Indirect Occlusion"
-    vec3 a =  2.0404 * albedo - 0.3324;
-    vec3 b = -4.7951 * albedo + 0.6417;
-    vec3 c =  2.7552 * albedo + 0.6903;
-
-    return max(vec3(visibility.xxx), ((visibility * a + b) * visibility + c) * visibility);
-}
-
-float VanDerCorpus(uint bits) 
-{
-    bits = (bits << 16u) | (bits >> 16u);
-    bits = ((bits & 0x55555555u) << 1u) | ((bits & 0xAAAAAAAAu) >> 1u);
-    bits = ((bits & 0x33333333u) << 2u) | ((bits & 0xCCCCCCCCu) >> 2u);
-    bits = ((bits & 0x0F0F0F0Fu) << 4u) | ((bits & 0xF0F0F0F0u) >> 4u);
-    bits = ((bits & 0x00FF00FFu) << 8u) | ((bits & 0xFF00FF00u) >> 8u);
-    return float(bits) * 2.3283064365386963e-10; // / 0x100000000
-}
-      
-vec3 CosWeightedRandomHemisphereDirectionHammersley(uint sample_index, uint num_samples, vec3 n)
-{
-    float x = float(sample_index) / float(num_samples);
-
-    uint i = sample_index;
-    i = (i << 16u) | (i >> 16u);
-    i = ((i & 0x55555555u) << 1u) | ((i & 0xAAAAAAAAu) >> 1u);
-    i = ((i & 0x33333333u) << 2u) | ((i & 0xCCCCCCCCu) >> 2u);
-    i = ((i & 0x0F0F0F0Fu) << 4u) | ((i & 0xF0F0F0F0u) >> 4u);
-    i = ((i & 0x00FF00FFu) << 8u) | ((i & 0xFF00FF00u) >> 8u);
-
-    vec2 r = vec2(x, (float(i) * 2.32830643653086963e-10 * 6.2831));
-    vec3 uu = normalize(cross(n, vec3(1.0,1.0,0.0))), vv = cross(uu, n);
-
-    float sqrtx = sqrt(r.x);
-
-    return normalize(vec3(sqrtx * cos(r.y) * uu + sqrtx * sin(r.y) * vv + sqrt(1.0 - r.x) * n));
-}
-
-// Hammersley sequence
-vec2 Hammersley(uint i, uint N)
-{
-    return vec2(float(i) / float(N), VanDerCorpus(i + 1u));
-}
-
-vec3 ImportanceSampleGGX(vec2 Xi, vec3 N, float roughness)
-{
-    float alpha = roughness * roughness;
-    float alpha2 = alpha * alpha;
-	
-    float phi = 2.0 * HYP_FMATH_PI * Xi.x;
-    float cosTheta = sqrt((1.0 - Xi.y) / (1.0 + (alpha2 - 1.0) * Xi.y));
-    float sinTheta = sqrt(1.0 - cosTheta * cosTheta);
-	
-    // from spherical coordinates to cartesian coordinates
-    vec3 H;
-    H.x = cos(phi) * sinTheta;
-    H.y = sin(phi) * sinTheta;
-    H.z = cosTheta;
-
-    return H;
-}
-
-
-
-float ApplyIORToRoughness(float ior, float roughness)
-{
-    return roughness * clamp(ior * 2.0 - 2.0, 0.0, 1.0);
-}
-
-vec3 CalculateDiffuseColor(vec3 albedo, float metalness)
-{
-    return albedo * (1.0 - metalness);
-}
-
-vec4 CalculateDiffuseColor(vec4 albedo, float metalness)
-{
-    return vec4(CalculateDiffuseColor(albedo.rgb, metalness), albedo.a);
-}
-
-vec3 CalculateF0(vec3 albedo, float metalness)
-{
-    const float IOR = 1.5;
-    vec3 F0 = vec3((pow(IOR - 1.0, 2.0) / pow(IOR + 1.0, 2.0)).xxx);
-    F0 = lerp(F0, albedo, metalness);
-    return F0;
-}
-
-vec3 CalculateFresnelTerm(vec3 F0, float roughness, float NdotV)
-{
-    return SchlickFresnelRoughness(F0, roughness, NdotV);
-}
-
-vec4 CalculateFresnelTerm(vec4 F0, float roughness, float NdotV)
-{
-    return SchlickFresnelRoughness(F0, roughness, NdotV);
-}
-
-float CalculateGeometryTerm(float NdotL, float NdotV, float HdotV, float NdotH)
-{
-    return CookTorranceG(NdotL, NdotV, HdotV, NdotH);
-}
-
-float CalculateDistributionTerm(float roughness, float NdotH)
-{
-    return Trowbridge(NdotH, roughness);
-}
-
-vec3 CalculateDFG(vec3 F, float perceptual_roughness, float NdotV)
-{
-    const vec2 AB = BRDFMap(perceptual_roughness, NdotV);
-
-    return F * AB.x + AB.y;
-}
-
-vec4 CalculateDFG(vec4 F, float perceptual_roughness, float NdotV)
-{
-    const vec2 AB = BRDFMap(perceptual_roughness, NdotV);
-
-    return F * AB.x + AB.y;
-}
-
-vec3 CalculateE(vec3 F0, vec3 dfg)
-{
-    return lerp(dfg.xxx, dfg.yyy, F0);
-}
-
-vec4 CalculateE(vec4 F0, vec4 dfg)
-{
-    return lerp(dfg.xxxx, dfg.yyyy, F0);
-}
-
-vec3 CalculateEnergyCompensation(vec3 F0, vec3 dfg)
-{
-    return 1.0 + F0 * ((1.0 / max(dfg.y, 0.0001)) - 1.0);
-}
-
-vec4 CalculateEnergyCompensation(vec4 F0, vec4 dfg)
-{
-    return 1.0 + F0 * ((1.0 / max(dfg.y, 0.0001)) - 1.0);
-}
-
-vec3 SampleCosineWeightedHemisphere(vec2 Xi)
-{
-    float r = sqrt(Xi.x);
-    float phi = 6.28318530718 * Xi.y;
-
-    float x = r * cos(phi);
-    float y = r * sin(phi);
-    float z = sqrt(1.0 - r * r);
-
-    return vec3(x, y, z);
-}
-
-vec3 SampleCosineDir(in vec2 xi, in vec3 N)
-{
-    vec3 dir = SampleCosineWeightedHemisphere(xi);
-
-    vec3 T1, T2;
-    ComputeOrthonormalBasis(N, T1, T2);
-
-    return normalize(T1 * dir.x + T2 * dir.y + N * dir.z);
-}
-
-/// https://www.rorydriscoll.com/2012/01/15/cubemap-texel-solid-angle/
-float AreaElement(float x, float y )
-{
-	return atan2(x * y, sqrt(x * x + y * y + 1));
-}
-
-float TexelCoordSolidAngle(int a_FaceIdx, float a_U, float a_V, int a_Size)
-{
-    //scale up to [-1, 1] range (inclusive), offset by 0.5 to point to texel center.
-    float U = (2.0f * ((float)a_U + 0.5f) / (float)a_Size) - 1.0f;
-    float V = (2.0f * ((float)a_V + 0.5f) / (float)a_Size) - 1.0f;
-
-    float InvResolution = 1.0 / (float)a_Size;
-
-	// U and V are the -1..1 texture coordinate on the current face.
-	// Get projected area for this texel
-	float x0 = U - InvResolution;
-	float y0 = V - InvResolution;
-	float x1 = U + InvResolution;
-	float y1 = V + InvResolution;
-	float SolidAngle = AreaElement(x0, y0) - AreaElement(x0, y1) - AreaElement(x1, y0) + AreaElement(x1, y1);
-
-	return SolidAngle;
-}
-
-#endif   ¬    X     #ifndef HYP_OCTAHEDRON
-#define HYP_OCTAHEDRON
-
-vec2 EncodeOctahedralCoord(in vec3 v)
-{
-#define NON_ZERO_SIGN(n) (n >= 0.0 ? 1.0 : -1.0)
-    float l1norm = abs(v.x) + abs(v.y) + abs(v.z);
-    vec2 vec = v.xy * (1.0 / l1norm);
-
-    if (v.z < 0.0) {
-        vec = (1.0 - abs(vec.yx)) * vec2(NON_ZERO_SIGN(vec.x), NON_ZERO_SIGN(vec.y));
-    }
-#undef NON_ZERO_SIGN
-
-    return vec;
-}
-
-vec3 DecodeOctahedralCoord(vec2 coord)
-{
-#define NON_ZERO_SIGN(n) (n >= 0.0 ? 1.0 : -1.0)
-    vec3 vec = vec3(coord.x, coord.y, 1.0 - abs(coord.x) - abs(coord.y));
-    
-    if (vec.z < 0.0) {
-        vec.xy = (1.0 - abs(vec.yx)) * vec2(NON_ZERO_SIGN(vec.x), NON_ZERO_SIGN(vec.y));
-    }
-#undef NON_ZERO_SIGN
-    
-    return normalize(vec);
-}
-
-#endif      type.2d.image        gbuffer_albedo_texture       gbuffer_normals_texture      gbuffer_depth_texture        type.sampler         sampler_nearest   	   sampler_linear    
-   reflections_texture      type.CamerasBuffer           camera       Camera           view            projection          viewProjMat         invViewMat          invProjMat          prevViewProjMat         dimensions          position            direction        	   jitter       
-   near            far         fov         _pad0           _pad1           _pad2           _pad3        CamerasBuffer        in.var.TEXCOORD0         out.var.SV_Target0       PSMain       type.sampled.image  J dxc-commit-hash: b106a961   J dxc-cl-option:  -E PSMain -T ps_6_0 -HV 2021 -Zi -spirv -fspv-target-env=vulkan1.2 -fvk-use-scalar-layout -Zsb  G           G            G     "       G     !      G     "       G     !      G     "       G     !       G     "       G     !      G  	   "       G  	   !      G  
-   "       G  
-   !      G     "       G     !      H         #       H               H            H        #   @   H              H           H        #   Ä   H              H           H        #   ¿   H              H           H        #      H              H           H        #   @  H              H           H        #   Ä  H        #   ê  H        #   †  H     	   #   ∞  H     
-   #   ¿  H        #   ƒ  H        #   »  H        #   Ã  H        #   –  H        #   ‡  H        #     H         #       G                 +            +           Ä?  !         +     "     Äø  #         +     $      @  %          +  %   &       +  %   '      +  %   (      +  %   )        *           +     +   ∑—8,  !   ,                 -         ,  -   .           +     /    ¿D+     0      ?+  *   1   ?   +  *   2      +  *   3      +     4     †@+     5   ÆG·º+     6   ònø+     7   X9¥<,  #   8   "   5   6   7   +     9   {.=+     :   ∏Ö?+     ;   
-◊#Ω,  #   <       9   :   ;   +     =   ·z¡+     >   ∏Öø,  -   ?   >   :    	                               @                  A            B   #        C   *           B   B   B   B   B   B   C   #   #   #               #   #   #              D            E      -      F      #     G   !  H   G              I      B      J      #   ;  @          ;  @          ;  @          ;  A          ;  A   	       ;  @   
-       ;  D         ;  E         ;  F         +     K   
-◊#=,  !   L   K   K   K   .  #   M   +     N   !Ç<+     O   âàà=+     P   !Çæ     u      6  G          H   = ¯  Q        u      =  -   R           Ä      =     S           Ä   2   =     T           Ä      V     U   S   T   W  #   V   U   R            Å      =     W           Å   9   =     X           Å      V     Y   W   X   W  #   Z   Y   R            K      Q     [   Z           K      Q     \   Z           K      É     ]   [   \        L      Å     ^   [   \        L      É     _   ^            M      Q     `   Z           M      Ö     a   `   $        M      É     b   a       = P  !   c   ]   _   b        N           d         ]        N      É     e       d        N   .        f         _        N   ,   É     g   e   f        N      Ö     h   b   g        N      R  !   i   h   c           P   
-     !   j      E   i        Ñ      =     k           Ñ   /   =     l           Ñ      V     m   k   l   W  #   n   m   R       Q     o   n            Ö   :   A  I   p      &   '        Ö   A   =  B   q   p        Ö   M   A  I   r      &   (        Ö   T   =  B   s   r             é  -   t   R   $          !   É  -   u   t   .             Q     v   u       Q     w   u      P  #   x   v   w   o                 ê  #   y   x   q             Q     z   y      P  #   {   z   z   z   z          
-   à  #   |   y   {             ê  #   }   |   s        ä      Q     ~   Z            &   A   Ö        ~   /        &   K   Å     Ä      0        &   "        Å         Ä   m  *   Ç   Å        (   /   «  *   É   Ç   1        (      p     Ñ   É        (   8   Ö     Ö   Ñ   N        )   0   ¬  *   Ü   Ç   2        )   6   «  *   á   Ü   3        )      p     à   á        )   >   Ö     â   à   O        í        !   ä      E   j        ì      A  J   ã      &   )        ì      =  #   å   ã        ì      O  !   ç   å   å                  ì   ,   O  !   é   }   }                  ì   *   É  !   è   ç   é        ì        !   ê      E   è        †   4   O  !   ë   V   V                  §      =     í   
-        §   -   =     ì   	        §      V     î   í   ì   W  #   ï   î   R            ª   !   î     ñ   ä   ê        ª           ó      P   +   ñ        ç     P  !   ò   â   â   â        ç       !   ô      .   L   ë   ò        ∫      É     ö       Ö        ∫      P  !   õ   ö   ö   ö        ∫        !   ú      P   õ   ô        ∫   5   É  !   ù   ú   ô        ∫   E   É     û       ó        ∫   =        ü         û   4        ∫   ;   é  !   †   ù   ü        ∫      Å  !   °   ô   †        Õ      é  #   ¢   8   Ö        Õ      Å  #   £   ¢   <        Œ      Q     §   £            Œ      Ö     •   §   §        Œ   *   Ö     ¶   =   ó        Œ           ß         ¶        Œ           ®      O   •   ß        Œ   6   Ö     ©   ®   §        Œ   >   Q     ™   £           Œ   <   Å     ´   ©   ™        œ      é  -   ¨   ?   ´        œ   '   O  -   ≠   £   £              œ   %   Å  -   Æ   ¨   ≠        ©     Q     Ø   Æ            ©  
-   é  !   ∞   °   Ø        ©     Q     ±   Æ      P  !   ≤   ±   ±   ±        ©     Å  !   ≥   ∞   ≤        µ     O  !   ¥   ≥   ≥                    µ     O  !   µ   ≥   ≥                 µ       !   ∂      .   ¥   µ   ô        7     Å     ∑   ó            7  /   Ö     ∏   Ñ   P        7  ;   É     π   ∏            7  $        ∫         π        7          ª         ∑   ∫        7          º      +   ª               ¬      P  !   Ω   º   º   º        ø     Q     æ   ≥           ø          ø      P   æ   +        ø     à     ¿       ø        ø  /   É     ¡   ¿            ø     é  !   ¬   ô   ¡        ø     Å  !   √   ,   ¬        ≈      Ö  !   ƒ   Ω   √        …      O  !   ≈   ï   ï                  …      Ö  !   ∆   ≈   ƒ            (   O  !   «   ∆   M                      &   Ö  !   »   ∂   «        ›      Q     …   »       Q         »      Q     À   »      P  #   Ã   …       À            u      >     Ã        ‡      ˝  8  ANG_VS     $+      #                           
-        VSMain                      hlsl.hlsl        C:\Users\andre\hyperion-engine\Source\Shaders\./include/defines.inc  €   b     #define _DeferredPass_SPACE space0
-	#define _DeferredPass_GBufferDepthTexture_REGISTER t0
-	#define _DeferredPass_GBufferAlbedoTexture_REGISTER t1
-	#define _DeferredPass_ReflectionProbeResultTexture_REGISTER t2
-	#define _DeferredPass_GBufferMipChain_REGISTER t3
-	#define _DeferredPass_RTRadianceResultTexture_REGISTER t4
-	#define _DeferredPass_GBufferNormalsTexture_REGISTER t5
-	#define _DeferredPass_GBufferVelocityTexture_REGISTER t6
-	#define _DeferredPass_SSGIResultTexture_REGISTER t7
-	#define _DeferredPass_GBufferMaterialTexture_REGISTER t8
-	#define _DeferredPass_SSAOResultTexture_REGISTER t9
-	#define _DeferredPass_WorldsBuffer_REGISTER b10
-	#define _DeferredPass_CamerasBuffer_REGISTER b11
-	#define _DeferredPass_EnvGridsBuffer_REGISTER b12
-	#define _DeferredPass_SamplerNearest_REGISTER s13
-	#define _DeferredPass_SamplerLinear_REGISTER s14
-
-#define HYP_ATTRIBUTE_a_position
-#define _a_position_LOCATION 0
-
-#define HYP_ATTRIBUTE_a_normal
-#define _a_normal_LOCATION 1
-
-#define HYP_ATTRIBUTE_a_texcoord0
-#define _a_texcoord0_LOCATION 2
-
-#define SSGI_ENABLED 1
-#define HYP_VULKAN 4202496
-#define NUM_GBUFFER_TEXTURES 5
-#define HYP_FEATURES_BINDLESS_TEXTURES 1
-#define DEBUG_IRRADIANCE 1
-
-#line 1 "hlsl.hlsl"
-
-#line 1 "C:\\Users\\andre\\hyperion-engine\\Source\\Shaders\\./include/defines.inc"
-#line 57 "C:\\Users\\andre\\hyperion-engine\\Source\\Shaders\\./include/defines.inc"
-#pragma pack_matrix(row_major)
-#line 3 "hlsl.hlsl"
-
-
-
-struct VSInput
-{
-float3 a_position : POSITION;
-float3 a_normal : NORMAL;
-float2 a_texcoord0 : TEXCOORD0;
-};
-
-struct VSOutput
-{
-float4 position_cs : SV_POSITION;
-float3 position : POSITION;
-float2 texcoord : TEXCOORD0;
-};
-
-VSOutput VSMain(VSInput input)
-{
-VSOutput output;
-
-float4 position = float4(input.a_position, 1.0);
-
-output.position = position.xyz;
-output.texcoord = input.a_texcoord0;
-
-output.position_cs = position;
-
-return output;
-}
-     Ÿ   b     #ifndef HYP_SHADER_DEFINES
-#define HYP_SHADER_DEFINES
-
-// TEMP: For hlsl intellisense to work
-#ifndef HYP_SHADER_COMPILER
-    #define LANG_HLSL 1
-#endif
-
-#define UINT_TO_VEC4(_value) unpackUnorm4x8((_value))
-#define UINT_TO_VEC2(_value) unpackUnorm2x16((_value))
-#define VEC4_TO_UINT(_value) packUnorm4x8((_value))
-#define VEC2_TO_UINT(_value) packUnorm2x16((_value))
-
-#ifdef LANG_GLSL
-    // HLSL Compat
-    #define lerp mix
-    #define float2 vec2
-    #define float3 vec3
-    #define float4 vec4
-    #define int2 ivec2
-    #define int3 ivec3
-    #define int4 ivec4
-    #define uint2 uvec2
-    #define uint3 uvec3
-    #define uint4 uvec4
-    #define float2x2 mat2
-    #define float3x3 mat3
-    #define float4x4 mat4
-    #define static
-
-    // Sampling
-
-    #define SAMPLE_TEXTURE_2D(samp, tex, texcoord) texture(sampler2D(tex, samp), texcoord)
-    #define SAMPLE_TEXTURE_2D_LOD(samp, tex, texcoord, lod) textureLod(sampler2D(tex, samp), texcoord, lod)
-
-    #define SAMPLE_TEXTURE_2D_ARRAY(samp, tex, texcoord) texture(sampler2DArray(tex, samp), texcoord)
-    #define SAMPLE_TEXTURE_2D_ARRAY_LOD(samp, tex, texcoord, lod) textureLod(sampler2DArray(tex, samp), texcoord, lod)
-
-    #define SAMPLE_TEXTURE_3D(samp, tex, texcoord) texture(sampler3D(tex, samp), texcoord)
-    #define SAMPLE_TEXTURE_3D_LOD(samp, tex, texcoord, lod) textureLod(sampler3D(tex, samp), texcoord, lod)
-
-    #define SAMPLE_TEXTURE_CUBE(samp, tex, texcoord) texture(samplerCube(tex, samp), texcoord)
-    #define SAMPLE_TEXTURE_CUBE_LOD(samp, tex, texcoord, lod) textureLod(samplerCube(tex, samp), texcoord, lod)
-
-    #define SAMPLE_TEXTURE_CUBE_ARRAY(samp, tex, texcoord) texture(samplerCubeArray(tex, samp), texcoord)
-    #define SAMPLE_TEXTURE_CUBE_ARRAY_LOD(samp, tex, texcoord, lod) textureLod(samplerCubeArray(tex, samp), texcoord, lod)
-
-    #define TEXEL_FETCH_2D(tex, coord) texelFetch(tex, coord, 0)
-    #define TEXEL_FETCH_2D_LOD(samp, tex, coord, lod) texelFetch(sampler2D(tex, samp), coord, lod)
-
-    // Utility
-
-    #define FLOAT_BITS_TO_UINT(value) floatBitsToUint(value)
-    #define UINT_BITS_TO_FLOAT(value) uintBitsToFloat(value)
-
-#elif defined(LANG_HLSL)
-    #pragma pack_matrix(row_major)
-
-    // For porting GLSL to HLSL
-    #define vec2 float2
-    #define vec3 float3
-    #define vec4 float4
-    #define ivec2 int2
-    #define ivec3 int3
-    #define ivec4 int4
-    #define uvec2 uint2
-    #define uvec3 uint3
-    #define uvec4 uint4
-    #define mat3 float3x3
-    #define mat4 float4x4
-    #define texture2D Texture2D
-    #define texture3D Texture3D
-    #define textureCube TextureCube
-    #define texture2DArray Texture2DArray
-    #define textureCubeArray TextureCubeArray
-    #define uniform
-    #define atan atan2
-    #define fract frac
-    #define mod fmod
-    #define dFdx ddx
-    #define dFdy ddy
-    #define inversesqrt rsqrt
-    #define lessThan(a, b) ((a) < (b))
-    #define greaterThan(a, b) ((a) > (b))
-
-    // Sampling
-
-    #define SAMPLE_TEXTURE_2D_LOD(samp, tex, texcoord, lod) (tex).SampleLevel((samp), (texcoord), (lod))
-#ifdef PIXEL_SHADER
-    #define SAMPLE_TEXTURE_2D(samp, tex, texcoord) (tex).Sample((samp), (texcoord))
-#else
-    // we don't have on screen derivatives in other shader stages so just sample LOD0
-    #define SAMPLE_TEXTURE_2D(samp, tex, texcoord) (tex).SampleLevel((samp), (texcoord), 0)
-#endif
-
-    #define SAMPLE_TEXTURE_2D_ARRAY_LOD(samp, tex, texcoord, lod) (tex).SampleLevel((samp), (texcoord), (lod))
-#ifdef PIXEL_SHADER
-    #define SAMPLE_TEXTURE_2D_ARRAY(samp, tex, texcoord) (tex).Sample((samp), (texcoord))
-#else
-    // we don't have on screen derivatives in other shader stages so just sample LOD0
-    #define SAMPLE_TEXTURE_2D_ARRAY(samp, tex, texcoord) (tex).SampleLevel((samp), (texcoord), 0)
-#endif
-
-    #define SAMPLE_TEXTURE_3D_LOD(samp, tex, texcoord, lod) (tex).SampleLevel((samp), (texcoord), (lod))
-
-#ifdef PIXEL_SHADER
-    #define SAMPLE_TEXTURE_3D(samp, tex, texcoord) (tex).Sample((samp), (texcoord))
-#else
-    // we don't have on screen derivatives in other shader stages so just sample LOD0
-    #define SAMPLE_TEXTURE_3D(samp, tex, texcoord) (tex).SampleLevel((samp), (texcoord), 0)
-#endif
-
-    #define SAMPLE_TEXTURE_CUBE_LOD(samp, tex, texcoord, lod) (tex).SampleLevel((samp), (texcoord), (lod))
-#ifdef PIXEL_SHADER
-    #define SAMPLE_TEXTURE_CUBE(samp, tex, texcoord) (tex).Sample((samp), (texcoord))
-#else
-    // we don't have on screen derivatives in other shader stages so just sample LOD0
-    #define SAMPLE_TEXTURE_CUBE(samp, tex, texcoord) (tex).SampleLevel((samp), (texcoord), 0)
-#endif
-
-    #define SAMPLE_TEXTURE_CUBE_ARRAY_LOD(samp, tex, texcoord, lod) (tex).SampleLevel((samp), (texcoord), (lod))
-#ifdef PIXEL_SHADER
-    #define SAMPLE_TEXTURE_CUBE_ARRAY(samp, tex, texcoord) (tex).Sample((samp), (texcoord))
-#else
-    // we don't have on screen derivatives in other shader stages so just sample LOD0
-    #define SAMPLE_TEXTURE_CUBE_ARRAY(samp, tex, texcoord) (tex).SampleLevel((samp), (texcoord), 0)
-#endif
-
-    #define TEXEL_FETCH_2D(tex, coord) (tex).Load(int3((coord), 0))
-    #define TEXEL_FETCH_2D_LOD(samp, tex, coord, lod) (tex).Load(int3((coord), (lod)))
-
-    // Utility
-
-    #define FLOAT_BITS_TO_UINT(value) asuint(value)
-    #define UINT_BITS_TO_FLOAT(value) asfloat(value)
-
-#endif
-
-#define HYP_MATERIAL_CUBEMAP_TEXTURES 1
-
-#define HYP_MAX_SHADOW_CASCADES 4
-
-#define HYP_MAX_BOUND_AMBIENT_PROBES 4096
-#define HYP_MAX_BOUND_REFLECTION_PROBES 16
-#define HYP_MAX_BOUND_POINT_SHADOW_MAPS 16
-#define HYP_MAX_SHADOW_MAPS 4
-#define HYP_MAX_BOUND_ENVIRONMENT_MAPS 1
-#define HYP_MAX_MATERIALS 65536
-
-#define HYP_LIGHT_TYPE_DIRECTIONAL 0
-#define HYP_LIGHT_TYPE_POINT 1
-#define HYP_LIGHT_TYPE_SPOT 2
-#define HYP_LIGHT_TYPE_AREA_RECT 3
-
-#define HYP_OBJECT_BUCKET_NONE 0
-#define HYP_OBJECT_BUCKET_OPAQUE 1
-#define HYP_OBJECT_BUCKET_LIGHTMAP 2
-#define HYP_OBJECT_BUCKET_TRANSLUCENT 3
-#define HYP_OBJECT_BUCKET_SKYBOX 4
-#define HYP_OBJECT_BUCKET_DEBUG 5
-
-#define HYP_FMATH_SQR(num) ((num) * (num))
-#define HYP_FMATH_CUBE(num) ((num) * (num) * (num))
-#define HYP_FMATH_PI 3.14159265359
-#define HYP_FMATH_PI_HALF 1.57079632679
-#define HYP_FMATH_TWO_PI 6.28318530718
-#define HYP_FMATH_ONE_OVER_PI 0.31830988618
-#define HYP_FMATH_QUARTER_PI 0.7853981625
-#define HYP_FMATH_DEG2RAD(deg) ((deg) * HYP_FMATH_PI / 180.0)
-#define HYP_FMATH_RAD2DEG(rad) ((rad) * 180.0 / HYP_FMATH_PI)
-#define HYP_FMATH_EPSILON 0.00000001
-#define HYP_FMATH_INFINITY 99999999.0
-
-#define HYP_FLOAT_MAX 3.402823466e+38F
-#define HYP_FLOAT_MIN 1.175494351e-38F
-
-#ifdef __COUNTER__
-#define HYP_UNIQUE_NAME(prefix) \
-    HYP_CONCAT(prefix, __COUNTER__)
-#else
-#define HYP_UNIQUE_NAME(prefix) \
-    prefix
-#endif
-
-#define HYP_FAST_LESS(x, y) (1 - step((y), (x)))
-
-#ifndef HYP_SHADER_COMPILER
-    ///// For Intellisense /////
-
-    // Placeholder macro definitions to allow intellisense to work.
-    // The engine's shader compiler uses these markers for binding setup
-    #define DECLARE_SRV(set, var)
-    #define DECLARE_SRV_DYNAMIC(set, var)
-
-    #define DECLARE_UAV(set, var)
-    #define DECLARE_UAV_DYNAMIC(set, var)
-
-    #define DECLARE_BUFFER(name, var)
-    #define DECLARE_BUFFER_DYNAMIC(name, var)
-
-    #define DECLARE_SAMPLER(set, var)
-
-    #define HYP_ATTRIBUTE
-    #define HYP_ATTRIBUTE_OPTIONAL
-
-    // If we don't set these, we'll have lots of inactive code blocks
-    // for HLSL shaders that define multiple shader stages in one file.
-    #define VERTEX_SHADER 1
-    #define PIXEL_SHADER 1
-    #define COMPUTE_SHADER 1
-    #define GEOMETRY_SHADER 1
-    #define MESH_SHADER 1
-    #define TASK_SHADER 1
-    #define TESS_CONTROL_SHADER 1
-    #define TESS_EVAL_SHADER 1
-    #define RAY_GEN_SHADER 1
-    #define INTERSECT_SHADER 1
-    #define ANY_HIT_SHADER 1
-    #define CLOSEST_HIT_SHADER 1
-    #define MISS_SHADER 1
-#endif // HYP_SHADER_COMPILER
-
-#endif
-         in.var.POSITION      in.var.TEXCOORD0         out.var.POSITION         out.var.TEXCOORD0        VSMain  J dxc-commit-hash: b106a961   J dxc-cl-option:  -E VSMain -T vs_6_1 -HV 2021 -Zi -spirv -fspv-target-env=vulkan1.2 -fvk-use-scalar-layout -Zsb  G            G            G           G            G             	       +  	   
-     Ä?     	                       	                       	                                               !        ;           ;           ;           ;           ;                      6               = ¯                =           =                      Q  	             Q  	            Q  	            P                 
-              O                                   >        >        >                    ˝  8      PS     ,¨     #     +              2        GLSL.std.450              	       PSMain                           hlsl.hlsl        C:\Users\andre\hyperion-engine\Source\Shaders\./include/defines.inc   	   C:\Users\andre\hyperion-engine\Source\Shaders\./include/gbuffer.inc   
-   C:\Users\andre\hyperion-engine\Source\Shaders\./include/shared.inc       C:\Users\andre\hyperion-engine\Source\Shaders\./include/packing.inc      C:\Users\andre\hyperion-engine\Source\Shaders\./include/material.inc         C:\Users\andre\hyperion-engine\Source\Shaders\./include/scene.inc        C:\Users\andre\hyperion-engine\Source\Shaders\./include/PhysicalCamera.inc       C:\Users\andre\hyperion-engine\Source\Shaders\./include/env_probe.inc        C:\Users\andre\hyperion-engine\Source\Shaders\./deferred/DeferredLighting.inc        C:\Users\andre\hyperion-engine\Source\Shaders\./deferred/../include/shared.inc       C:\Users\andre\hyperion-engine\Source\Shaders\./deferred/../include/brdf.inc         C:\Users\andre\hyperion-engine\Source\Shaders\./deferred/../include/Octahedron.inc   P#   X     #define _DeferredPass_SPACE space0
-	#define _DeferredPass_GBufferDepthTexture_REGISTER t0
-	#define _DeferredPass_GBufferAlbedoTexture_REGISTER t1
-	#define _DeferredPass_ReflectionProbeResultTexture_REGISTER t2
-	#define _DeferredPass_GBufferMipChain_REGISTER t3
-	#define _DeferredPass_RTRadianceResultTexture_REGISTER t4
-	#define _DeferredPass_GBufferNormalsTexture_REGISTER t5
-	#define _DeferredPass_GBufferVelocityTexture_REGISTER t6
-	#define _DeferredPass_SSGIResultTexture_REGISTER t7
-	#define _DeferredPass_GBufferMaterialTexture_REGISTER t8
-	#define _DeferredPass_SSAOResultTexture_REGISTER t9
-	#define _DeferredPass_WorldsBuffer_REGISTER b10
-	#define _DeferredPass_CamerasBuffer_REGISTER b11
-	#define _DeferredPass_EnvGridsBuffer_REGISTER b12
-	#define _DeferredPass_SamplerNearest_REGISTER s13
-	#define _DeferredPass_SamplerLinear_REGISTER s14
-
-#define HYP_ATTRIBUTE_a_position
-#define _a_position_LOCATION 0
-
-#define HYP_ATTRIBUTE_a_normal
-#define _a_normal_LOCATION 1
-
-#define HYP_ATTRIBUTE_a_texcoord0
-#define _a_texcoord0_LOCATION 2
-
-#define SSGI_ENABLED 1
-#define HYP_VULKAN 4202496
-#define NUM_GBUFFER_TEXTURES 5
-#define HYP_FEATURES_BINDLESS_TEXTURES 1
-#define DEBUG_IRRADIANCE 1
-
-#line 1 "hlsl.hlsl"
-
-#line 1 "C:\\Users\\andre\\hyperion-engine\\Source\\Shaders\\./include/defines.inc"
-#line 57 "C:\\Users\\andre\\hyperion-engine\\Source\\Shaders\\./include/defines.inc"
-#pragma pack_matrix(row_major)
-#line 3 "hlsl.hlsl"
-#line 38 "hlsl.hlsl"
-struct PSInput
-{
-float4 position_cs : SV_POSITION;
-float3 position : POSITION;
-float2 texcoord : TEXCOORD0;
-};
-
-struct PSOutput
-{
-float4 output_color : SV_Target0;
-};
-
-
-
-Texture2D gbuffer_albedo_texture : register(_DeferredPass_GBufferAlbedoTexture_REGISTER, _DeferredPass_SPACE) ;
-Texture2D gbuffer_normals_texture : register(_DeferredPass_GBufferNormalsTexture_REGISTER, _DeferredPass_SPACE) ;
-Texture2D<uint4> gbuffer_material_texture : register(_DeferredPass_GBufferMaterialTexture_REGISTER, _DeferredPass_SPACE) ;
-Texture2D gbuffer_velocity_texture : register(_DeferredPass_GBufferVelocityTexture_REGISTER, _DeferredPass_SPACE) ;
-
-Texture2D gbuffer_mip_chain : register(_DeferredPass_GBufferMipChain_REGISTER, _DeferredPass_SPACE) ;
-Texture2D gbuffer_depth_texture : register(_DeferredPass_GBufferDepthTexture_REGISTER, _DeferredPass_SPACE) ;
-SamplerState sampler_nearest : register(_DeferredPass_SamplerNearest_REGISTER, _DeferredPass_SPACE) ;
-SamplerState sampler_linear : register(_DeferredPass_SamplerLinear_REGISTER, _DeferredPass_SPACE) ;
-
-Texture2D ssao_gi_result : register(_DeferredPass_SSAOResultTexture_REGISTER, _DeferredPass_SPACE) ;
-Texture2D ssgi_result : register(_DeferredPass_SSGIResultTexture_REGISTER, _DeferredPass_SPACE) ;
-Texture2D rt_radiance_final : register(_DeferredPass_RTRadianceResultTexture_REGISTER, _DeferredPass_SPACE) ;
-Texture2D reflections_texture : register(_DeferredPass_ReflectionProbeResultTexture_REGISTER, _DeferredPass_SPACE) ;
-
-
-#line 1 "C:\\Users\\andre\\hyperion-engine\\Source\\Shaders\\./include/gbuffer.inc"
-
-
-
-
-
-
-
-#line 1 "C:\\Users\\andre\\hyperion-engine\\Source\\Shaders\\./include/shared.inc"
-#line 10 "C:\\Users\\andre\\hyperion-engine\\Source\\Shaders\\./include/shared.inc"
-float4 unpackUnorm4x8(uint packedVal)
-{
-float4 unpacked;
-unpacked.x = float(packedVal & 0xFF);
-unpacked.y = float((packedVal >> 8) & 0xFF);
-unpacked.z = float((packedVal >> 16) & 0xFF);
-unpacked.w = float((packedVal >> 24) & 0xFF);
-return unpacked / 255.0;
-}
-
-float2 unpackUnorm2x16(uint packedVal)
-{
-float2 unpacked;
-unpacked.x = float(packedVal & 0xFFFF);
-unpacked.y = float((packedVal >> 16) & 0xFFFF);
-return unpacked / 65535.0;
-}
-
-float2 unpackHalf2x16(uint u)
-{
-return float2(f16tof32(u & 0xFFFF), f16tof32(u >> 16));
-}
-
-float packUnorm4x8(float4 vec)
-{
-uint packedVal = uint(vec.x * 255.0) | (uint(vec.y * 255.0) << 8) | (uint(vec.z * 255.0) << 16) | (uint(vec.w * 255.0) << 24);
-return packedVal;
-}
-
-float packUnorm2x16(float2 vec)
-{
-uint packedVal = uint(vec.x * 65535.0) | (uint(vec.y * 65535.0) << 16);
-return packedVal;
-}
-
-uint packHalf2x16(float2 v)
-{
-return (f32tof16(v.y) << 16) | f32tof16(v.x);
-}
-
-
-
-struct Ray
-{
-float3 origin;
-float3 direction;
-};
-
-int imod(int a, int b)
-{
-return (a % b + b) % b;
-}
-
-int2 imod(int2 a, int2 b)
-{
-return (a % b + b) % b;
-}
-
-int3 imod(int3 a, int3 b)
-{
-return (a % b + b) % b;
-}
-
-int4 imod(int4 a, int4 b)
-{
-return (a % b + b) % b;
-}
-
-
-
-
-
-
-
-float Luminance(float3 color)
-{
-return color.r * 0.2125 + color.g * 0.715 + color.b * 0.0721;
-}
-
-
-
-float4x4 CreateRotationMatrix(float3 axis, float angle)
-{
-axis = normalize(axis);
-float s = sin(angle);
-float c = cos(angle);
-float oc = 1.0 - c;
-
-return float4x4(oc * axis.x * axis.x + c, oc * axis.x * axis.y - axis.z * s, oc * axis.z * axis.x + axis.y * s, 0.0,
-oc * axis.x * axis.y + axis.z * s, oc * axis.y * axis.y + c, oc * axis.y * axis.z - axis.x * s, 0.0,
-oc * axis.z * axis.x - axis.y * s, oc * axis.y * axis.z + axis.x * s, oc * axis.z * axis.z + c, 0.0,
-0.0, 0.0, 0.0, 1.0);
-}
-
-void ComputeOrthonormalBasis(in float3 normal, out float3 tangent, out float3 bitangent)
-{
-float3 T;
-T = cross(normal, float3(0.0, 1.0, 0.0));
-T = lerp(cross(normal, float3(1.0, 0.0, 0.0)), T, step(0.00000001, dot(T, T)));
-
-T = normalize(T);
-
-tangent = T;
-bitangent = normalize(cross(normal, T));
-}
-
-float3 GetTriplanarBlend(float3 normal)
-{
-float3 blending = normalize(max(abs(normal), 0.0001));
-blending /= (blending.x + blending.y + blending.z);
-
-return blending;
-}
-#line 141 "C:\\Users\\andre\\hyperion-engine\\Source\\Shaders\\./include/shared.inc"
-float4 SampleTextureTriplanar(sampler samp, Texture2D tex, float3 position, float3 normal)
-{
-float3 blending = GetTriplanarBlend(normal);
-
-float4 sample_x = (tex).Sample((samp), (position.zy * 0.01));
-float4 sample_y = (tex).Sample((samp), (position.xz * 0.01));
-float4 sample_z = (tex).Sample((samp), (position.xy * 0.01));
-
-return sample_x * blending.x + sample_y * blending.y + sample_z * blending.z;
-}
-#line 177 "C:\\Users\\andre\\hyperion-engine\\Source\\Shaders\\./include/shared.inc"
-static const float gauss_table[15 + 1] = {
-0.1847392078702266,
-0.16595854345772326,
-0.12031364177766891,
-0.07038755277896766,
-0.03322925565155569,
-0.012657819729901945,
-0.0038903040680094217,
-0.0009646503390864025,
-0.00019297087402915717,
-0.000031139936308099136,
-0.000004053309048174758,
-4.255228059965837e-7,
-3.602517634249573e-8,
-2.4592560765896795e-9,
-1.3534945386863618e-10,
-0.0 };
-
-
-
-
-float GaussianWeight(float value)
-{
-float idxf;
-float c = modf(max(0.0, value * float(15)), idxf);
-int idx = int(idxf);
-if (idx >= 15 + 1)
-{
-return 0.0;
-}
-
-return lerp(gauss_table[idx], gauss_table[idx + 1], c);
-}
-
-float4 GaussianBlur9(
-Texture2D tex, sampler samp,
-float2 uv,
-float2 direction,
-float radius)
-{
-float4 color = float4(0.0, 0.0, 0.0, 0.0);
-float2 offset1 = float2(1.3846153846, 1.3846153846) * direction;
-float2 offset2 = float2(3.2307692308, 3.2307692308) * direction;
-color += (tex).Sample((samp), (uv)) * 0.2270270270;
-color += (tex).Sample((samp), (uv + (offset1 * radius))) * 0.3162162162;
-color += (tex).Sample((samp), (uv - (offset1 * radius))) * 0.3162162162;
-color += (tex).Sample((samp), (uv + (offset2 * radius))) * 0.0702702703;
-color += (tex).Sample((samp), (uv - (offset2 * radius))) * 0.0702702703;
-return color;
-}
-
-float4 GaussianBlur5(
-Texture2D tex, sampler samp,
-float2 uv,
-float2 direction,
-float radius)
-{
-float4 color = float4(0.0, 0.0, 0.0, 0.0);
-float2 offset = float2(1.333, 1.333) * direction;
-color += (tex).Sample((samp), (uv)) * 0.29411764705882354;
-color += (tex).Sample((samp), (uv + (offset * radius))) * 0.35294117647058826;
-color += (tex).Sample((samp), (uv - (offset * radius))) * 0.35294117647058826;
-return color;
-}
-
-
-float Linear01Depth(float depth, float near, float far)
-{
-float x = 1.0 - (far / near);
-float y = (far / near);
-float z = x / far;
-float w = y / far;
-
-return 1.0 - (1.0 / (x * (1.0 - depth) + y));
-}
-
-float ViewDepth(float depth, float near, float far)
-{
-float x = 1.0 - (far / near);
-float y = (far / near);
-float z = x / far;
-float w = y / far;
-
-return 1.0 / (z * depth + w);
-
-
-}
-
-float4 ReconstructWorldSpacePositionFromDepth(float4x4 inverse_projection, float4x4 inverse_view, float2 coord, float depth)
-{
-float4 ndc = float4(coord * 2.0 - 1.0, depth, 1.0);
-
-
-float4 inversed = mul(inverse_projection, ndc);
-
-
-
-inversed /= inversed.w;
-
-
-inversed = mul(inverse_view, inversed);
-
-
-
-
-return inversed;
-}
-
-float4 ReconstructViewSpacePositionFromDepth(float4x4 inverse_projection, float2 coord, float depth)
-{
-float4 ndc = float4(coord * 2.0 - 1.0, depth, 1.0);
-
-
-float4 inversed = mul(inverse_projection, ndc);
-
-
-
-inversed /= inversed.w;
-
-return inversed;
-}
-
-float2 GetProjectedPositionFromWorld(in float4x4 projection, in float4x4 view, in float3 world_space_position)
-{
-
-float4 sample_position = mul(projection, mul(view, float4(world_space_position, 1.0)));
-
-
-
-return (sample_position.xy / sample_position.w) * 0.5 + 0.5;
-}
-
-float2 GetProjectedPositionFromWorld(in float4x4 view_projection, in float3 world_space_position)
-{
-
-float4 sample_position = mul(view_projection, float4(world_space_position, 1.0));
-
-
-
-return (sample_position.xy / sample_position.w) * 0.5 + 0.5;
-}
-
-float2 GetProjectedPositionFromView(in float4x4 projection, in float3 view_space_position)
-{
-
-float4 sample_position = mul(projection, float4(view_space_position, 1.0));
-
-
-
-return (sample_position.xy / sample_position.w) * 0.5 + 0.5;
-}
-
-
-float3x3 inverse(float3x3 m)
-{
-float3 a = m[0];
-float3 b = m[1];
-float3 c = m[2];
-
-float3 r0 = cross(b, c);
-float3 r1 = cross(c, a);
-float3 r2 = cross(a, b);
-
-float det = dot(r2, c);
-float invDet = 1.0 / max(abs(det), 1e-8);
-
-return float3x3(r0 * invDet, r1 * invDet, r2 * invDet);
-}
-#line 369 "C:\\Users\\andre\\hyperion-engine\\Source\\Shaders\\./include/shared.inc"
-float4 CalculateFogExp(in float4 start_color, in float4 end_color, float3 world_position, float3 camera_position, float fog_start, float fog_end)
-{
-const float dist = distance(world_position, camera_position);
-const float density = 0.00003;
-
-const float fog_factor = 1.0 / exp(dist * density);
-
-return lerp(start_color, end_color, 1.0 - fog_factor);
-}
-
-float4 CalculateFogLinear(in float4 start_color, in float4 end_color, float3 world_position, float3 camera_position, float fog_start, float fog_end)
-{
-const float dist = distance(world_position, camera_position);
-
-const float fog_factor = saturate((fog_end - dist) / (fog_end - fog_start));
-
-return lerp(start_color, end_color, 1.0 - fog_factor);
-}
-
-float RoughnessToConeAngle(float roughness)
-{
-float specular_power = 2.0 / pow(roughness, 4.0) - 2.0;
-
-const float xi = 0.244;
-float exponent = 1.0 / (specular_power + 1.0);
-return acos(pow(xi, exponent));
-}
-
-float linstep(float min, float max, float v)
-{
-return clamp((v - min) / (max - min), 0.0, 1.0);
-}
-
-float3 RGBToYCoCg(in float3 rgb)
-{
-float co = rgb.r - rgb.b;
-float t = rgb.b + co / 2.0;
-float cg = rgb.g - t;
-float y = t + cg / 2.0;
-return float3(y, co, cg);
-}
-
-float4 RGBToYCoCg(in float4 rgb)
-{
-float co = rgb.r - rgb.b;
-float t = rgb.b + co / 2.0;
-float cg = rgb.g - t;
-float y = t + cg / 2.0;
-return float4(y, co, cg, rgb.a);
-}
-
-float3 YCoCgToRGB(in float3 ycocg)
-{
-float t = ycocg.r - ycocg.b / 2.0;
-float g = ycocg.b + t;
-float b = t - ycocg.g / 2.0;
-float r = ycocg.g + b;
-return float3(r, g, b);
-}
-
-float4 YCoCgToRGB(in float4 ycocg)
-{
-float t = ycocg.r - ycocg.b / 2.0;
-float g = ycocg.b + t;
-float b = t - ycocg.g / 2.0;
-float r = ycocg.g + b;
-return float4(r, g, b, ycocg.a);
-}
-#line 451 "C:\\Users\\andre\\hyperion-engine\\Source\\Shaders\\./include/shared.inc"
-static const float3 g_cubemapDirections[12] = {
-float3(1.0, 0.0, 0.0), float3(0.0, 1.0, 0.0),
-float3(-1.0, 0.0, 0.0), float3(0.0, 1.0, 0.0),
-float3(0.0, 1.0, 0.0), float3(0.0, 0.0, -1.0),
-float3(0.0, -1.0, 0.0), float3(0.0, 0.0, 1.0),
-float3(0.0, 0.0, 1.0), float3(0.0, 1.0, 0.0),
-float3(0.0, 0.0, -1.0), float3(0.0, 1.0, 0.0)
-};
-
-
-float3 GetCubemapCoord(uint face, float2 uv)
-{
-float3 forward = g_cubemapDirections[face * 2];
-float3 up = g_cubemapDirections[face * 2 + 1];
-float3 right = cross(forward, up);
-
-float2 coord = uv * 2.0 - 1.0;
-
-return normalize(forward - right * coord.x - up * coord.y);
-}
-
-uint GetCubemapFaceIndex(float3 dir)
-{
-uint face = 0u;
-float ax = abs(dir.x);
-float ay = abs(dir.y);
-float az = abs(dir.z);
-
-if (ay > ax && ay > az)
-{
-face = (dir.y < 0.0) ? 3u : 2u;
-}
-else if (az > ax && az > ay)
-{
-face = (dir.z < 0.0) ? 5u : 4u;
-}
-else
-{
-face = (dir.x < 0.0) ? 1u : 0u;
-}
-
-return face;
-}
-#line 8 "C:\\Users\\andre\\hyperion-engine\\Source\\Shaders\\./include/gbuffer.inc"
-
-#line 1 "C:\\Users\\andre\\hyperion-engine\\Source\\Shaders\\./include/packing.inc"
-
-
-
-
-
-
-
-
-float2 PackNormalVec2(float3 n)
-{
-#line 21 "C:\\Users\\andre\\hyperion-engine\\Source\\Shaders\\./include/packing.inc"
-return (float2(atan2(n.x, n.y) / 3.141592654, n.z) + 1.0) * 0.5;
-
-
-
-}
-
-float3 UnpackNormalVec2(float2 enc)
-{
-#line 47 "C:\\Users\\andre\\hyperion-engine\\Source\\Shaders\\./include/packing.inc"
-float2 ang = enc * 2 - 1;
-float2 scth = float2(sin(ang.x * 3.141592654), cos(ang.x * 3.141592654));
-float2 scphi = float2(sqrt(1.0 - ang.y * ang.y), ang.y);
-return float3(scth.y * scphi.x, scth.x * scphi.x, scphi.y);
-
-
-
-}
-
-float3 SignedOctEncode(float3 n)
-{
-float3 result;
-
-n /= (abs(n.x) + abs(n.y) + abs(n.z));
-
-result.y = n.y * 0.5 + 0.5;
-result.x = n.x * 0.5 + result.y;
-result.y = n.x * -0.5 + result.y;
-
-result.z = clamp(n.z * 3.402823466e+38F, 0.0, 1.0);
-
-return result;
-}
-
-float3 SignedOctDecode(float3 n)
-{
-float3 result;
-
-result.x = (n.x - n.y);
-result.y = (n.x + n.y) - 1.0;
-result.z = n.z * 2.0 - 1.0;
-result.z = result.z * (1.0 - abs(result.x) - abs(result.y));
-
-result = normalize(result);
-
-return result;
-}
-
-float4 EncodeNormal(float3 n)
-{
-return float4(SignedOctEncode(n), 0.0);
-}
-
-float3 DecodeNormal(float4 enc)
-{
-return SignedOctDecode(enc.xyz);
-}
-
-
-static const float4 depthBitShift = float4(256.0 * 256.0 * 256.0, 256.0 * 256.0, 256.0, 1.0);
-static const float4 depthBitShiftInv = float4(1.0, 1.0, 1.0, 1.0) / depthBitShift;
-static const float4 depthBitMask = float4(0.0, 1.0 / 256.0, 1.0 / 256.0, 1.0 / 256.0);
-
-
-
-
-
-
-float4 PackDepth(in float depth)
-{
-float4 res = frac(depth.xxxx * depthBitShift);
-res -= res.xxyz * depthBitMask;
-return res;
-}
-
-float UnpackDepth(in float4 packedDepth)
-{
-return dot(packedDepth, depthBitShiftInv);
-}
-#line 9 "C:\\Users\\andre\\hyperion-engine\\Source\\Shaders\\./include/gbuffer.inc"
-#line 22 "C:\\Users\\andre\\hyperion-engine\\Source\\Shaders\\./include/gbuffer.inc"
-struct GBufferMaterialParams
-{
-float roughness;
-float metalness;
-uint mask;
-};
-
-void GBufferPackMaterialParams(GBufferMaterialParams params, out float roughnessAndMetalPacked, out uint mask)
-{
-
-roughnessAndMetalPacked = float(uint(floor((clamp((params.roughness), 0.0, 1.0) * ((1 << (6)) - 1)) + 0.5)) | (uint(floor((clamp((params.metalness), 0.0, 1.0) * ((1 << (4)) - 1)) + 0.5)) << 6)) / 1023.0;
-mask = params.mask & 0x3FFu;
-}
-
-void GBufferUnpackMaterialParams(float roughnessAndMetalPacked, uint mask, out GBufferMaterialParams params)
-{
-uint roughnessAndMetalU32 = uint(floor((roughnessAndMetalPacked * 1023.0) + 0.5));
-
-params.roughness = float(roughnessAndMetalU32 & 0x3Fu) / float((1 << (6)) - 1);
-params.metalness = float((roughnessAndMetalU32 >> 6) & 0xFu) / float((1 << (4)) - 1);
-params.mask = mask & 0x3FFu;
-}
-
-float4 GBufferPackNormal(float3 normal)
-{
-
-return float4(0.0, EncodeNormal(normal).xyz);
-}
-
-float3 GBufferUnpackNormal(float4 packed)
-{
-return DecodeNormal(packed.yzww);
-}
-#line 68 "hlsl.hlsl"
-#line 1 "C:\\Users\\andre\\hyperion-engine\\Source\\Shaders\\./include/material.inc"
-#line 33 "C:\\Users\\andre\\hyperion-engine\\Source\\Shaders\\./include/material.inc"
-struct Material
-{
-float4 albedo;
-
-uint4 packed_params;
-
-float2 uv_scale;
-float parallax_height;
-uint textureUsage;
-
-uint4 texture_indices[4];
-
-float4 _pad0;
-};
-#line 69 "hlsl.hlsl"
-
-#line 1 "C:\\Users\\andre\\hyperion-engine\\Source\\Shaders\\./include/scene.inc"
-
-
-
-
-
-struct WorldShaderData
-{
-float4 fog_params;
-
-float game_time;
-uint frame_counter;
-uint _pad0;
-uint _pad1;
-};
-
-struct Camera
-{
-float4x4 view;
-float4x4 projection;
-
-float4x4 viewProjMat;
-
-float4x4 invViewMat;
-float4x4 invProjMat;
-
-float4x4 prevViewProjMat;
-
-uint4 dimensions;
-float4 position;
-float4 direction;
-float4 jitter;
-
-float near;
-float far;
-float fov;
-float _pad0;
-
-float4 _pad1;
-float4 _pad2;
-float4 _pad3;
-};
-
-struct ShadowMap
-{
-
-uint layerIndex;
-float splitDistance;
-float _pad0;
-float _pad1;
-
-float4x4 viewProjMat;
-float4 aabbMin;
-float4 aabbMax;
-float4 dimensionsScale;
-};
-
-struct Light
-{
-uint type;
-uint material_index;
-uint radiusFalloffPacked;
-uint flags;
-
-float4 position_intensity;
-float4 color;
-float4 normal;
-
-float2 area_size;
-float2 _pad0;
-
-float4 _pad1[3];
-};
-#line 91 "C:\\Users\\andre\\hyperion-engine\\Source\\Shaders\\./include/scene.inc"
-struct LightmapVolume
-{
-float4 aabb_max;
-float4 aabb_min;
-
-uint texture_index;
-uint _pad0;
-uint _pad1;
-uint _pad2;
-};
-
-float3 CalculateLightDirection(Light light, in float3 world_position)
-{
-float3 L = light.position_intensity.xyz;
-L -= world_position.xyz * float(min(light.type, 1));
-L = normalize(L);
-
-return L;
-}
-#line 71 "hlsl.hlsl"
-cbuffer CamerasBuffer : register(_DeferredPass_CamerasBuffer_REGISTER, _DeferredPass_SPACE) 
-{
-Camera camera;
-};
-
-cbuffer WorldsBuffer : register(_DeferredPass_WorldsBuffer_REGISTER, _DeferredPass_SPACE) 
-{
-WorldShaderData world_shader_data;
-};
-
-
-#line 1 "C:\\Users\\andre\\hyperion-engine\\Source\\Shaders\\./include/PhysicalCamera.inc"
-
-
-
-
-static const float aperture = 16.0;
-static const float shutter = 1.0/125.0;
-static const float sensitivity = 100.0;
-static const float ev100 = log2((aperture * aperture) / shutter * 100.0f / sensitivity);
-static const float exposure = 1.0 / (1.2 * pow(2.0, ev100));
-#line 82 "hlsl.hlsl"
-#line 101 "hlsl.hlsl"
-#line 1 "C:\\Users\\andre\\hyperion-engine\\Source\\Shaders\\./include/env_probe.inc"
-#line 16 "C:\\Users\\andre\\hyperion-engine\\Source\\Shaders\\./include/env_probe.inc"
-struct EnvProbe
-{
-float4x4 face_view_matrices[6];
-
-float4 aabb_max;
-float4 aabb_min;
-float4 world_position;
-
-uint texture_index;
-uint flags;
-float camera_near;
-float camera_far;
-
-uint2 dimensions;
-uint2 visibility_bits;
-
-float4 sh[9];
-};
-
-struct EnvGrid
-{
-float4 dummy;
-};
-
-struct SH9
-{
-float3 values[9];
-};
-
-
-
-float4 EnvProbeSample(
-sampler samp,
-
-TextureCubeArray tex,
-
-
-
-uint texture_index,
-float3 coord, float lod)
-{
-
-float4 color = (tex).SampleLevel((samp), (float4(normalize(coord), float(texture_index))), (lod));
-
-
-
-
-return color;
-}
-
-float3 EnvProbeCoordParallaxCorrected(
-float3 probe_world_position,
-float3 aabb_min, float3 aabb_max,
-float3 P, float3 R)
-{
-float3 rbmax = (aabb_max - P) / R;
-float3 rbmin = (aabb_min - P) / R;
-float3 rbminmax = max(rbmax, rbmin);
-
-float correction = min(min(rbminmax.x, rbminmax.y), rbminmax.z);
-
-float3 box = P + R * correction;
-return box - probe_world_position;
-}
-
-float4 EnvProbeSampleParallaxCorrected(
-sampler samp,
-
-TextureCubeArray tex,
-
-
-
-in EnvProbe env_probe,
-float3 world, float3 R, float lod)
-{
-uint probe_texture_index = env_probe.texture_index;
-
-float3 rbmax = (env_probe.aabb_max.xyz - world) / R;
-float3 rbmin = (env_probe.aabb_min.xyz - world) / R;
-float3 rbminmax = max(rbmax, rbmin);
-
-float correction = min(min(rbminmax.x, rbminmax.y), rbminmax.z);
-
-float3 box = world + R * correction;
-float3 coord = box - env_probe.world_position.xyz;
-
-
-return (tex).SampleLevel((samp), (float4(normalize(coord), float(probe_texture_index))), (lod));
-
-
-
-}
-
-void ProjectSHBands(float3 N, out float bands[9])
-{
-bands[0] = 0.282095;
-bands[1] = -0.488603 * N.y;
-bands[2] = 0.488603 * N.z;
-bands[3] = -0.488603 * N.x;
-bands[4] = 1.092548 * N.x * N.y;
-bands[5] = -1.092548 * N.y * N.z;
-bands[6] = 0.315392 * (3.0 * N.z * N.z - 1.0);
-bands[7] = -1.092548 * N.x * N.z;
-bands[8] = 0.546274 * (N.x * N.x - N.y * N.y);
-}
-
-float3 SphericalHarmonicsSample(const in SH9 sh, float3 normal)
-{
-float bands[9];
-ProjectSHBands(normal, bands);
-
-float3 result = sh.values[0] * bands[0]
-+ sh.values[1] * bands[1]
-+ sh.values[2] * bands[2]
-+ sh.values[3] * bands[3]
-+ sh.values[4] * bands[4]
-+ sh.values[5] * bands[5]
-+ sh.values[6] * bands[6]
-+ sh.values[7] * bands[7]
-+ sh.values[8] * bands[8];
-
-result = max(result, (float3)0.0);
-
-return result;
-}
-
-float3 EnvProbeSH(in EnvProbe envProbe, float3 N)
-{
-SH9 sh;
-for (int i = 0; i < 9; i++)
-{
-sh.values[i] = envProbe.sh[i].xyz;
-}
-
-return SphericalHarmonicsSample(sh, N);
-}
-#line 102 "hlsl.hlsl"
-cbuffer EnvGridsBuffer : register(_DeferredPass_EnvGridsBuffer_REGISTER, _DeferredPass_SPACE) 
-{
-EnvGrid env_grid;
-};
-
-
-
-
-#line 1 "C:\\Users\\andre\\hyperion-engine\\Source\\Shaders\\./deferred/DeferredLighting.inc"
-
-
-
-#line 1 "C:\\Users\\andre\\hyperion-engine\\Source\\Shaders\\./deferred/../include/shared.inc"
-#line 4 "C:\\Users\\andre\\hyperion-engine\\Source\\Shaders\\./deferred/DeferredLighting.inc"
-
-#line 1 "C:\\Users\\andre\\hyperion-engine\\Source\\Shaders\\./deferred/../include/brdf.inc"
-
-
-
-float GetSquareFalloffAttenuation(float3 P, float3 L, float radius)
-{
-const float3 position_to_light = P - L;
-
-const float dist = length(position_to_light);
-const float distance_square = dot(position_to_light, position_to_light);
-
-
-
-
-float inv_radius = 1.0 / radius;
-float factor = distance_square * ((inv_radius) * (inv_radius));
-float smooth_factor = max(1.0 - ((factor) * (factor)), 0.0);
-return ((smooth_factor) * (smooth_factor)) / max(distance_square, 1e-4);
-}
-
-
-float RightPyramidSolidAngle(float dist, float half_width, float half_height)
-{
-float a = half_width;
-float b = half_height;
-float h = dist;
-
-return 4.0 * asin(a * b / sqrt((a * a + h * h) * (b * b + h * h)));
-}
-
-
-float3 ClosestPointOnSegment(float3 a, float3 b, float3 c)
-{
-float3 ab = b - a;
-float t = dot(c - a, ab) / dot(ab, ab);
-
-return a + clamp(t, 0.0, 1.0) * ab;
-}
-
-float RectangleSolidAngle(float3 world_position, float3 p0, float3 p1, float3 p2, float3 p3)
-{
-float3 v0 = p0 - world_position;
-float3 v1 = p1 - world_position;
-float3 v2 = p2 - world_position;
-float3 v3 = p3 - world_position;
-
-float3 n0 = normalize(cross(v0, v1));
-float3 n1 = normalize(cross(v1, v2));
-float3 n2 = normalize(cross(v2, v3));
-float3 n3 = normalize(cross(v3, v0));
-
-float g0 = acos(dot(-n0, n1));
-float g1 = acos(dot(-n1, n2));
-float g2 = acos(dot(-n2, n3));
-float g3 = acos(dot(-n3, n0));
-
-return g0 + g1 + g2 + g3 - 2.0 * 3.14159265359;
-}
-
-float3 ImportanceSampleGTR2(float rgh, float r1, float r2)
-{
-float a = max(0.001, rgh);
-
-float phi = r1 * 3.14159265359 * 2.0;
-
-float cosTheta = sqrt((1.0 - r2) / (1.0 + (a * a - 1.0) * r2));
-float sinTheta = clamp(sqrt(1.0 - (cosTheta * cosTheta)), 0.0, 1.0);
-float sinPhi = sin(phi);
-float cosPhi = cos(phi);
-
-return float3(sinTheta * cosPhi, sinTheta * sinPhi, cosTheta);
-}
-
-float V_SmithGGXCorrelated(float roughness, float NoV, float NoL)
-{
-
-float a2 = roughness;
-
-float lambdaV = NoL * sqrt((NoV - a2 * NoV) * NoV + a2);
-float lambdaL = NoV * sqrt((NoL - a2 * NoL) * NoL + a2);
-float v = 0.5 / max(lambdaV + lambdaL, 0.00001);
-
-
-
-return v;
-}
-
-float DistributionGGX(float NdotH, float roughness)
-{
-float a = roughness;
-float a2 = a * a;
-float NdotH2 = NdotH * NdotH;
-
-float denom = NdotH2 * (a2 - 1.0) + 1.0;
-return a2 / (3.14159265359 * denom * denom);
-}
-
-float GGX_PDF(float NdotH, float HdotV, float roughness)
-{
-float D = DistributionGGX(NdotH, roughness);
-return D * NdotH / (4.0 * HdotV);
-}
-
-float3 SampleGGX(float2 xi, float roughness, float3 N)
-{
-float a = roughness * roughness;
-
-
-float phi = 2.0 * 3.14159265359 * xi.x;
-float cosTheta = sqrt((1.0 - xi.y) / (1.0 + (a * a - 1.0) * xi.y));
-float sinTheta = sqrt(1.0 - cosTheta * cosTheta);
-
-
-float3 H;
-H.x = sinTheta * cos(phi);
-H.y = sinTheta * sin(phi);
-H.z = cosTheta;
-
-
-float3 T1, T2;
-ComputeOrthonormalBasis(N, T1, T2);
-return normalize(T1 * H.x + T2 * H.y + N * H.z);
-}
-
-float G_SchlickGGX(float NdotX, float k)
-{
-return NdotX / (NdotX * (1.0 - k) + k);
-}
-
-float G_Smith(float NdotV, float NdotL, float roughness)
-{
-float a = (roughness * roughness) / 2.0;
-return (NdotV / (NdotV * (1.0 - a) + a)) * (NdotL / (NdotL * (1.0 - a) + a));
-}
-
-float Trowbridge(float NdotH, float roughness)
-{
-float alpha = roughness * roughness;
-float alpha2 = alpha * alpha;
-float NdotH2 = NdotH * NdotH;
-float denominator = 3.14159265359 * pow((alpha2 - 1) * NdotH2 + 1, 2);
-return alpha2 / denominator;
-}
-
-float CookTorranceG(float NdotL, float NdotV, float HdotV, float NdotH)
-{
-float first = 2 * NdotH * NdotV / HdotV;
-float second = 2 * NdotH * NdotL / HdotV;
-return min(1, min(first, second));
-
-}
-
-float3 F_Schlick(float3 f0, float cosTheta)
-{
-return f0 + (1.0 - f0) * pow(1.0 - cosTheta, 5.0);
-}
-
-float3 SchlickFresnel(float3 f0, float3 f90, float u)
-{
-
-
-
-return f0 + (f90 - f0) * pow(1.0 - u, 5.0);
-}
-
-float4 SchlickFresnel(float4 f0, float4 f90, float u)
-{
-const float Fc = pow(1 - u, 5.0);
-return f0 * (1.0 - Fc) + f90 * Fc;
-
-
-}
-
-float4 SchlickFresnelRoughness(float4 f0, float roughness, float u)
-{
-
-
-
-return f0 + (max(float4((1.0 - roughness).xxxx), f0) - f0) * pow(1.0 - u, 5.0);
-}
-
-float

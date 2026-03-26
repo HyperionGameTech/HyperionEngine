@@ -157,11 +157,11 @@
   "ShaderBlobs": [{
       "$Class": "BlobDataReference",
       "Key": "Engine/Shaders/DebugVis/DebugVis_9830034249633096847.VS",
-      "Size": 53500
+      "Size": 53772
     }, {
       "$Class": "BlobDataReference",
       "Key": "Engine/Shaders/DebugVis/DebugVis_9830034249633096847.PS",
-      "Size": 162232
+      "Size": 161044
     }],
   "PropertySetHashCode": {},
   "LastCompiledTimestamp": {

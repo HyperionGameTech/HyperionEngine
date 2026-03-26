@@ -25,7 +25,7 @@ public:
 
     ~SamplerCache() = default;
 
-    const SamplerRef& GetOrCreate(const SamplerDesc& samplerDesc);
+    Sampler* GetOrCreate(const SamplerDesc& samplerDesc);
 
 private:
     Pimpl<class SamplerCacheImpl> m_impl;

@@ -1,1280 +1,0 @@
-25565155569,
-    0.012657819729901945,
-    0.0038903040680094217,
-    0.0009646503390864025,
-    0.00019297087402915717,
-    0.000031139936308099136,
-    0.000004053309048174758,
-    4.255228059965837e-7,
-    3.602517634249573e-8,
-    2.4592560765896795e-9,
-    1.3534945386863618e-10,
-    0.0);
-#elif defined(LANG_HLSL)
-static const float gauss_table[GAUSS_TABLE_SIZE + 1] = {
-    0.1847392078702266,
-    0.16595854345772326,
-    0.12031364177766891,
-    0.07038755277896766,
-    0.03322925565155569,
-    0.012657819729901945,
-    0.0038903040680094217,
-    0.0009646503390864025,
-    0.00019297087402915717,
-    0.000031139936308099136,
-    0.000004053309048174758,
-    4.255228059965837e-7,
-    3.602517634249573e-8,
-    2.4592560765896795e-9,
-    1.3534945386863618e-10,
-    0.0 };
-#else
-#error "No LANG_* preprocessor define provided"
-#endif
-
-float GaussianWeight(float value)
-{
-    float idxf;
-    float c = modf(max(0.0, value * float(GAUSS_TABLE_SIZE)), idxf);
-    int idx = int(idxf);
-    if (idx >= GAUSS_TABLE_SIZE + 1)
-    {
-        return 0.0;
-    }
-
-    return lerp(gauss_table[idx], gauss_table[idx + 1], c);
-}
-
-vec4 GaussianBlur9(
-    texture2D tex, sampler samp,
-    vec2 uv,
-    vec2 direction,
-    float radius)
-{
-    vec4 color = vec4(0.0, 0.0, 0.0, 0.0);
-    vec2 offset1 = vec2(1.3846153846, 1.3846153846) * direction;
-    vec2 offset2 = vec2(3.2307692308, 3.2307692308) * direction;
-    color += SAMPLE_TEXTURE_2D(samp, tex, uv) * 0.2270270270;
-    color += SAMPLE_TEXTURE_2D(samp, tex, uv + (offset1 * radius)) * 0.3162162162;
-    color += SAMPLE_TEXTURE_2D(samp, tex, uv - (offset1 * radius)) * 0.3162162162;
-    color += SAMPLE_TEXTURE_2D(samp, tex, uv + (offset2 * radius)) * 0.0702702703;
-    color += SAMPLE_TEXTURE_2D(samp, tex, uv - (offset2 * radius)) * 0.0702702703;
-    return color;
-}
-
-vec4 GaussianBlur5(
-    texture2D tex, sampler samp,
-    vec2 uv,
-    vec2 direction,
-    float radius)
-{
-    vec4 color = vec4(0.0, 0.0, 0.0, 0.0);
-    vec2 offset = vec2(1.333, 1.333) * direction;
-    color += SAMPLE_TEXTURE_2D(samp, tex, uv) * 0.29411764705882354;
-    color += SAMPLE_TEXTURE_2D(samp, tex, uv + (offset * radius)) * 0.35294117647058826;
-    color += SAMPLE_TEXTURE_2D(samp, tex, uv - (offset * radius)) * 0.35294117647058826;
-    return color;
-}
-
-// Based on Unity's Linear01Depth function, Unity uses a reversed depth buffer though.
-float Linear01Depth(float depth, float near, float far)
-{
-    float x = 1.0 - (far / near);
-    float y = (far / near);
-    float z = x / far;
-    float w = y / far;
-
-    return 1.0 - (1.0 / (x * (1.0 - depth) + y));
-}
-
-float ViewDepth(float depth, float near, float far)
-{
-    float x = 1.0 - (far / near);
-    float y = (far / near);
-    float z = x / far;
-    float w = y / far;
-
-    return 1.0 / (z * depth + w);
-
-    // return (far * near) / (far - depth * (far - near));
-}
-
-vec4 ReconstructWorldSpacePositionFromDepth(mat4 inverse_projection, mat4 inverse_view, vec2 coord, float depth)
-{
-    vec4 ndc = vec4(coord * 2.0 - 1.0, depth, 1.0);
-
-#ifdef LANG_HLSL
-    vec4 inversed = mul(inverse_projection, ndc);
-#else
-    vec4 inversed = inverse_projection * ndc;
-#endif
-    inversed /= inversed.w;
-
-#ifdef LANG_HLSL
-    inversed = mul(inverse_view, inversed);
-#else
-    inversed = inverse_view * inversed;
-#endif
-
-    return inversed;
-}
-
-vec4 ReconstructViewSpacePositionFromDepth(mat4 inverse_projection, vec2 coord, float depth)
-{
-    vec4 ndc = vec4(coord * 2.0 - 1.0, depth, 1.0);
-
-#ifdef LANG_HLSL
-    vec4 inversed = mul(inverse_projection, ndc);
-#else
-    vec4 inversed = inverse_projection * ndc;
-#endif
-    inversed /= inversed.w;
-
-    return inversed;
-}
-
-vec2 GetProjectedPositionFromWorld(in mat4 projection, in mat4 view, in vec3 world_space_position)
-{
-#ifdef LANG_HLSL
-    vec4 sample_position = mul(projection, mul(view, vec4(world_space_position, 1.0)));
-#else
-    vec4 sample_position = projection * view * vec4(world_space_position, 1.0);
-#endif
-    return (sample_position.xy / sample_position.w) * 0.5 + 0.5;
-}
-
-vec2 GetProjectedPositionFromWorld(in mat4 view_projection, in vec3 world_space_position)
-{
-#ifdef LANG_HLSL
-    vec4 sample_position = mul(view_projection, vec4(world_space_position, 1.0));
-#else
-    vec4 sample_position = view_projection * vec4(world_space_position, 1.0);
-#endif
-    return (sample_position.xy / sample_position.w) * 0.5 + 0.5;
-}
-
-vec2 GetProjectedPositionFromView(in mat4 projection, in vec3 view_space_position)
-{
-#ifdef LANG_HLSL
-    vec4 sample_position = mul(projection, vec4(view_space_position, 1.0));
-#else
-    vec4 sample_position = projection * vec4(view_space_position, 1.0);
-#endif
-    return (sample_position.xy / sample_position.w) * 0.5 + 0.5;
-}
-
-#ifdef LANG_HLSL
-float3x3 inverse(float3x3 m)
-{
-    float3 a = m[0];
-    float3 b = m[1];
-    float3 c = m[2];
-
-    float3 r0 = cross(b, c);
-    float3 r1 = cross(c, a);
-    float3 r2 = cross(a, b);
-
-    float det = dot(r2, c);
-    float invDet = 1.0 / max(abs(det), 1e-8);
-
-    return float3x3(r0 * invDet, r1 * invDet, r2 * invDet);
-}
-#endif
-
-#ifndef LANG_HLSL
-float saturate(float val)
-{
-    return min(max(val, 0.0), 1.0);
-}
-
-vec2 saturate(vec2 val)
-{
-    return min(max(val, vec2(0.0)), vec2(1.0));
-}
-
-vec3 saturate(vec3 val)
-{
-    return min(max(val, vec3(0.0)), vec3(1.0));
-}
-
-vec4 saturate(vec4 val)
-{
-    return min(max(val, vec4(0.0)), vec4(1.0));
-}
-#endif
-
-vec4 CalculateFogExp(in vec4 start_color, in vec4 end_color, vec3 world_position, vec3 camera_position, float fog_start, float fog_end)
-{
-    const float dist = distance(world_position, camera_position);
-    const float density = 0.00003;
-
-    const float fog_factor = 1.0 / exp(dist * density);
-
-    return lerp(start_color, end_color, 1.0 - fog_factor);
-}
-
-vec4 CalculateFogLinear(in vec4 start_color, in vec4 end_color, vec3 world_position, vec3 camera_position, float fog_start, float fog_end)
-{
-    const float dist = distance(world_position, camera_position);
-
-    const float fog_factor = saturate((fog_end - dist) / (fog_end - fog_start));
-
-    return lerp(start_color, end_color, 1.0 - fog_factor);
-}
-
-float RoughnessToConeAngle(float roughness)
-{
-    float specular_power = 2.0 / pow(roughness, 4.0) - 2.0;
-
-    const float xi = 0.244;
-    float exponent = 1.0 / (specular_power + 1.0);
-    return acos(pow(xi, exponent));
-}
-
-float linstep(float min, float max, float v)
-{
-    return clamp((v - min) / (max - min), 0.0, 1.0);
-}
-
-vec3 RGBToYCoCg(in vec3 rgb)
-{
-    float co = rgb.r - rgb.b;
-    float t = rgb.b + co / 2.0;
-    float cg = rgb.g - t;
-    float y = t + cg / 2.0;
-    return vec3(y, co, cg);
-}
-
-vec4 RGBToYCoCg(in vec4 rgb)
-{
-    float co = rgb.r - rgb.b;
-    float t = rgb.b + co / 2.0;
-    float cg = rgb.g - t;
-    float y = t + cg / 2.0;
-    return vec4(y, co, cg, rgb.a);
-}
-
-vec3 YCoCgToRGB(in vec3 ycocg)
-{
-    float t = ycocg.r - ycocg.b / 2.0;
-    float g = ycocg.b + t;
-    float b = t - ycocg.g / 2.0;
-    float r = ycocg.g + b;
-    return vec3(r, g, b);
-}
-
-vec4 YCoCgToRGB(in vec4 ycocg)
-{
-    float t = ycocg.r - ycocg.b / 2.0;
-    float g = ycocg.b + t;
-    float b = t - ycocg.g / 2.0;
-    float r = ycocg.g + b;
-    return vec4(r, g, b, ycocg.a);
-}
-
-//// Cubemap utilities
-
-#ifdef LANG_GLSL
-// pairs of cubemap forward direction and up direction (interleaved order)
-const vec3 g_cubemapDirections[12] = vec3[](
-    vec3(1.0, 0.0, 0.0), vec3(0.0, 1.0, 0.0),
-    vec3(-1.0, 0.0, 0.0), vec3(0.0, 1.0, 0.0),
-    vec3(0.0, 1.0, 0.0), vec3(0.0, 0.0, -1.0),
-    vec3(0.0, -1.0, 0.0), vec3(0.0, 0.0, 1.0),
-    vec3(0.0, 0.0, 1.0), vec3(0.0, 1.0, 0.0),
-    vec3(0.0, 0.0, -1.0), vec3(0.0, 1.0, 0.0));
-#elif defined(LANG_HLSL)
-// pairs of cubemap forward direction and up direction (interleaved order)
-static const float3 g_cubemapDirections[12] = {
-    float3(1.0, 0.0, 0.0), float3(0.0, 1.0, 0.0),
-    float3(-1.0, 0.0, 0.0), float3(0.0, 1.0, 0.0),
-    float3(0.0, 1.0, 0.0), float3(0.0, 0.0, -1.0),
-    float3(0.0, -1.0, 0.0), float3(0.0, 0.0, 1.0),
-    float3(0.0, 0.0, 1.0), float3(0.0, 1.0, 0.0),
-    float3(0.0, 0.0, -1.0), float3(0.0, 1.0, 0.0)
-};
-#endif
-
-vec3 GetCubemapCoord(uint face, vec2 uv)
-{
-    vec3 forward = g_cubemapDirections[face * 2];
-    vec3 up = g_cubemapDirections[face * 2 + 1];
-    vec3 right = cross(forward, up);
-
-    vec2 coord = uv * 2.0 - 1.0;
-
-    return normalize(forward - right * coord.x - up * coord.y);
-}
-
-uint GetCubemapFaceIndex(vec3 dir)
-{
-    uint face = 0u;
-    float ax = abs(dir.x);
-    float ay = abs(dir.y);
-    float az = abs(dir.z);
-
-    if (ay > ax && ay > az)
-    {
-        face = (dir.y < 0.0) ? 3u : 2u;
-    }
-    else if (az > ax && az > ay)
-    {
-        face = (dir.z < 0.0) ? 5u : 4u;
-    }
-    else
-    {
-        face = (dir.x < 0.0) ? 1u : 0u;
-    }
-
-    return face;
-}
-
-///// End cubemap utilities
-
-#endif   2   X  !   #ifndef HYP_BRDF_GLSL
-#define HYP_BRDF_GLSL
-
-float GetSquareFalloffAttenuation(vec3 P, vec3 L, float radius)
-{
-    const vec3 position_to_light = P - L;
-
-    const float dist = length(position_to_light);
-    const float distance_square = dot(position_to_light, position_to_light);
-    // const float radius_square = radius * radius;
-
-    // return 2.0 / (distance_square + radius_square + (dist * sqrt(distance_square + radius_square)));
-
-    float inv_radius = 1.0 / radius;
-    float factor = distance_square * HYP_FMATH_SQR(inv_radius);
-    float smooth_factor = max(1.0 - HYP_FMATH_SQR(factor), 0.0);
-    return HYP_FMATH_SQR(smooth_factor) / max(distance_square, 1e-4);
-}
-
-// http://www.frostbite.com/wp-content/uploads/2014/11/course_notes_moving_frostbite_to_pbr.pdf
-float RightPyramidSolidAngle(float dist, float half_width, float half_height)
-{
-    float a = half_width;
-    float b = half_height;
-    float h = dist;
-    
-    return 4.0 * asin(a * b / sqrt((a * a + h * h) * (b * b + h * h)));
-}
-
-// https://github.com/turanszkij/WickedEngine/blob/62d1d02691286cc6c25da61294bfb416d018782b/WickedEngine/lightingHF.hlsli#L251C1-L257C2
-vec3 ClosestPointOnSegment(vec3 a, vec3 b, vec3 c)
-{
-    vec3 ab = b - a;
-    float t = dot(c - a, ab) / dot(ab, ab);
-
-    return a + clamp(t, 0.0, 1.0) * ab;
-}
-
-float RectangleSolidAngle(vec3 world_position, vec3 p0, vec3 p1, vec3 p2, vec3 p3)
-{
-    vec3 v0 = p0 - world_position;
-    vec3 v1 = p1 - world_position;
-    vec3 v2 = p2 - world_position;
-    vec3 v3 = p3 - world_position;
-
-    vec3 n0 = normalize(cross(v0, v1));
-    vec3 n1 = normalize(cross(v1, v2));
-    vec3 n2 = normalize(cross(v2, v3));
-    vec3 n3 = normalize(cross(v3, v0));
-
-    float g0 = acos(dot(-n0, n1));
-    float g1 = acos(dot(-n1, n2));
-    float g2 = acos(dot(-n2, n3));
-    float g3 = acos(dot(-n3, n0));
-
-    return g0 + g1 + g2 + g3 - 2.0 * HYP_FMATH_PI;
-}
-
-vec3 ImportanceSampleGTR2(float rgh, float r1, float r2)
-{
-    float a = max(0.001, rgh);
-
-    float phi = r1 * HYP_FMATH_PI * 2.0;
-
-    float cosTheta = sqrt((1.0 - r2) / (1.0 + (a * a - 1.0) * r2));
-    float sinTheta = clamp(sqrt(1.0 - (cosTheta * cosTheta)), 0.0, 1.0);
-    float sinPhi   = sin(phi);
-    float cosPhi   = cos(phi);
-
-    return vec3(sinTheta * cosPhi, sinTheta * sinPhi, cosTheta);
-}
-
-float V_SmithGGXCorrelated(float roughness, float NoV, float NoL)
-{
-    // Heitz 2014, "Understanding the Masking-Shadowing Function in Microfacet-Based BRDFs"
-    float a2 = roughness;
-    // TODO: lambdaV can be pre-computed for all the lights, it should be moved out of this function
-    float lambdaV = NoL * sqrt((NoV - a2 * NoV) * NoV + a2);
-    float lambdaL = NoV * sqrt((NoL - a2 * NoL) * NoL + a2);
-    float v = 0.5 / max(lambdaV + lambdaL, 0.00001);
-    // a2=0 => v = 1 / 4*NoL*NoV   => min=1/4, max=+inf
-    // a2=1 => v = 1 / 2*(NoL+NoV) => min=1/4, max=+inf
-    // clamp to the maximum value representable in mediump
-    return v;
-}
-
-float DistributionGGX(float NdotH, float roughness)
-{
-    float a = roughness;
-    float a2 = a * a;
-    float NdotH2 = NdotH * NdotH;
-
-    float denom = NdotH2 * (a2 - 1.0) + 1.0;
-    return a2 / (HYP_FMATH_PI * denom * denom);
-}
-
-float GGX_PDF(float NdotH, float HdotV, float roughness)
-{
-    float D = DistributionGGX(NdotH, roughness);
-    return D * NdotH / (4.0 * HdotV);
-}
-
-vec3 SampleGGX(vec2 xi, float roughness, vec3 N)
-{
-    float a = roughness * roughness;
-
-    // Sample in polar coordinates
-    float phi = 2.0 * HYP_FMATH_PI * xi.x;
-    float cosTheta = sqrt((1.0 - xi.y) / (1.0 + (a * a - 1.0) * xi.y));
-    float sinTheta = sqrt(1.0 - cosTheta * cosTheta);
-
-    // Convert to cartesian
-    vec3 H;
-    H.x = sinTheta * cos(phi);
-    H.y = sinTheta * sin(phi);
-    H.z = cosTheta;
-
-    // Transform to world space
-    vec3 T1, T2;
-    ComputeOrthonormalBasis(N, T1, T2);
-    return normalize(T1 * H.x + T2 * H.y + N * H.z);
-}
-
-float G_SchlickGGX(float NdotX, float k)
-{
-    return NdotX / (NdotX * (1.0 - k) + k);
-}
-
-float G_Smith(float NdotV, float NdotL, float roughness)
-{
-    float a = (roughness * roughness) / 2.0;
-    return (NdotV / (NdotV * (1.0 - a) + a)) * (NdotL / (NdotL * (1.0 - a) + a));
-}
-
-float Trowbridge(float NdotH, float roughness)
-{
-    float alpha = roughness * roughness;
-    float alpha2 = alpha * alpha;
-    float NdotH2 = NdotH * NdotH;
-    float denominator = HYP_FMATH_PI * pow((alpha2 - 1) * NdotH2 + 1, 2);
-    return alpha2 / denominator;
-}
-
-float CookTorranceG(float NdotL, float NdotV, float HdotV, float NdotH)
-{
-    float first = 2 * NdotH * NdotV / HdotV;
-    float second = 2 * NdotH * NdotL / HdotV;
-    return min(1, min(first, second));
-    //return min(1, 2 * (NdotH / LdotH) * min(NdotL, NdotV));
-}
-
-vec3 F_Schlick(vec3 f0, float cosTheta)
-{
-    return f0 + (1.0 - f0) * pow(1.0 - cosTheta, 5.0);
-}
-
-vec3 SchlickFresnel(vec3 f0, vec3 f90, float u)
-{
-    //const float Fc = pow(1 - u, 5.0);
-    //return f0 * (1.0 - Fc) + f90 * Fc;
-
-    return f0 + (f90 - f0) * pow(1.0 - u, 5.0);
-}
-
-vec4 SchlickFresnel(vec4 f0, vec4 f90, float u)
-{
-    const float Fc = pow(1 - u, 5.0);
-    return f0 * (1.0 - Fc) + f90 * Fc;
-
-    // return f0 + (f90 - f0) * pow(1.0 - u, 5.0);
-}
-
-vec4 SchlickFresnelRoughness(vec4 f0, float roughness, float u)
-{
-    // const float Fc = pow(1 - u, 5.0);
-    // return f0 * (1.0 - Fc) + f90 * Fc;
-
-    return f0 + (max(vec4((1.0 - roughness).xxxx), f0) - f0) * pow(1.0 - u, 5.0);
-}
-
-vec3 SchlickFresnelRoughness(vec3 f0, float roughness, float u)
-{
-    // const float Fc = pow(1 - u, 5.0);
-    // return f0 * (1.0 - Fc) + f90 * Fc;
-
-    return f0 + (max(vec3((1.0 - roughness).xxx), f0) - f0) * pow(1.0 - u, 5.0);
-}
-
-vec3 mon2lin(vec3 x)
-{
-    return vec3(pow(x[0], 2.2), pow(x[1], 2.2), pow(x[2], 2.2));
-}
-
-vec2 BRDFMap(float roughness, float NdotV)
-{
-    // Same as EnvBRDFApprox( 0.04, Roughness, NoV )
-    // const vec2 c0 = { -1.0, -0.0275 };
-    // const vec2 c1 = { 1.0, 0.0425 };
-    // vec2 r = roughness * c0 + c1;
-    // float a004 = min(r.x * r.x, exp2(-9.28 * NdotV)) * r.x + r.y;
-    // return vec2( -1.04, 1.04 ) * a004;
-
-    const vec4 c0 = vec4( -1, -0.0275, -0.572, 0.022 );
-    const vec4 c1 = vec4( 1, 0.0425, 1.04, -0.04 );
-    vec4 r = roughness * c0 + c1;
-    float a004 = min( r.x * r.x, exp2( -9.28 * NdotV ) ) * r.x + r.y;
-    return vec2( -1.04, 1.04 ) * a004 + r.zw;
-}
-
-float sqr(float x)
-{
-    return x * x;
-}
-
-/* From Google Filament */
-
-/**
- * Approximates acos(x) with a max absolute error of 9.0x10^-3.
- * Valid in the range -1..1.
- */
-float acosFast(float x)
-{
-    // Lagarde 2014, "Inverse trigonometric functions GPU optimization for AMD GCN architecture"
-    // This is the approximation of degree 1, with a max absolute error of 9.0x10^-3
-    float y = abs(x);
-    float p = -0.1565827 * y + 1.570796;
-    p *= sqrt(1.0 - y);
-    return x >= 0.0 ? p : HYP_FMATH_PI - p;
-}
-
-/**
- * Approximates acos(x) with a max absolute error of 9.0x10^-3.
- * Valid only in the range 0..1.
- */
-float acosFastPositive(float x)
-{
-    float p = -0.1565827 * x + 1.570796;
-    return p * sqrt(1.0 - x);
-}
-
-float sphericalCapsIntersection(float cosCap1, float cosCap2, float cosDistance)
-{
-    // Oat and Sander 2007, "Ambient Aperture Lighting"
-    // Approximation mentioned by Jimenez et al. 2016
-    float r1 = acosFastPositive(cosCap1);
-    float r2 = acosFastPositive(cosCap2);
-    float d  = acosFast(cosDistance);
-
-    // We work with cosine angles, replace the original paper's use of
-    // cos(min(r1, r2)) with max(cosCap1, cosCap2)
-    // We also remove a multiplication by 2 * PI to simplify the computation
-    // since we divide by 2 * PI in computeBentSpecularAO()
-
-    if (min(r1, r2) <= max(r1, r2) - d) {
-        return 1.0 - max(cosCap1, cosCap2);
-    } else if (r1 + r2 <= d) {
-        return 0.0;
-    }
-
-    float delta = abs(r1 - r2);
-    float x = 1.0 - clamp((d - delta) / max(r1 + r2 - delta, 1e-4), 0.0, 1.0);
-    // simplified smoothstep()
-    float area = sqr(x) * (-2.0 * x + 3.0);
-    return area * (1.0 - max(cosCap1, cosCap2));
-}
-
-#ifdef PIXEL_SHADER
-/// Compute perceptual roughness a la filament
-float ComputePerceptualRoughness(float roughness, float3 normal)
-{
-    float perceptualRoughness = roughness;
-
-    float3 dndx = ddx(normal);
-    float3 dndy = ddy(normal);
-    
-    float variance = max(dot(dndx, dndx), dot(dndy, dndy));
-    
-    float geometricRoughness = pow(saturate(variance), 0.333f);
-    
-    perceptualRoughness = max(perceptualRoughness, geometricRoughness);
-
-    const float minPerceptualRoughness = 0.089f;
-    perceptualRoughness = clamp(perceptualRoughness, minPerceptualRoughness, 1.0f);
-
-    return perceptualRoughness;
-}
-#endif
-
-float SpecularAO_Cones(vec3 bentNormal, float visibility, float roughness, vec3 shading_reflected)
-{
-    // Jimenez et al. 2016, "Practical Realtime Strategies for Accurate Indirect Occlusion"
-
-    // aperture from ambient occlusion
-    float cosAv = sqrt(1.0 - visibility);
-    // aperture from roughness, log(10) / log(2) = 3.321928
-    float cosAs = exp2(-3.321928 * sqr(roughness));
-    // angle betwen bent normal and reflection direction
-    float cosB  = dot(bentNormal, shading_reflected);
-
-    // Remove the 2 * PI term from the denominator, it cancels out the same term from
-    // sphericalCapsIntersection()
-    float ao = sphericalCapsIntersection(cosAv, cosAs, cosB) / (1.0 - cosAs);
-    // Smoothly kill specular AO when entering the perceptual roughness range [0.1..0.3]
-    // Without this, specular AO can remove all reflections, which looks bad on metals
-    return lerp(1.0, ao, smoothstep(0.01, 0.09, roughness));
-}
-
-float SpecularAO_Lagarde(float NoV, float visibility, float roughness)
-{
-    // Lagarde and de Rousiers 2014, "Moving Frostbite to PBR"
-    return clamp(pow(NoV + visibility, exp2(-16.0 * roughness - 1.0)) - 1.0 + visibility, 0.0, 1.0);
-}
-
-vec3 GTAOMultiBounce(float visibility, const vec3 albedo) {
-    // Jimenez et al. 2016, "Practical Realtime Strategies for Accurate Indirect Occlusion"
-    vec3 a =  2.0404 * albedo - 0.3324;
-    vec3 b = -4.7951 * albedo + 0.6417;
-    vec3 c =  2.7552 * albedo + 0.6903;
-
-    return max(vec3(visibility.xxx), ((visibility * a + b) * visibility + c) * visibility);
-}
-
-float VanDerCorpus(uint bits) 
-{
-    bits = (bits << 16u) | (bits >> 16u);
-    bits = ((bits & 0x55555555u) << 1u) | ((bits & 0xAAAAAAAAu) >> 1u);
-    bits = ((bits & 0x33333333u) << 2u) | ((bits & 0xCCCCCCCCu) >> 2u);
-    bits = ((bits & 0x0F0F0F0Fu) << 4u) | ((bits & 0xF0F0F0F0u) >> 4u);
-    bits = ((bits & 0x00FF00FFu) << 8u) | ((bits & 0xFF00FF00u) >> 8u);
-    return float(bits) * 2.3283064365386963e-10; // / 0x100000000
-}
-      
-vec3 CosWeightedRandomHemisphereDirectionHammersley(uint sample_index, uint num_samples, vec3 n)
-{
-    float x = float(sample_index) / float(num_samples);
-
-    uint i = sample_index;
-    i = (i << 16u) | (i >> 16u);
-    i = ((i & 0x55555555u) << 1u) | ((i & 0xAAAAAAAAu) >> 1u);
-    i = ((i & 0x33333333u) << 2u) | ((i & 0xCCCCCCCCu) >> 2u);
-    i = ((i & 0x0F0F0F0Fu) << 4u) | ((i & 0xF0F0F0F0u) >> 4u);
-    i = ((i & 0x00FF00FFu) << 8u) | ((i & 0xFF00FF00u) >> 8u);
-
-    vec2 r = vec2(x, (float(i) * 2.32830643653086963e-10 * 6.2831));
-    vec3 uu = normalize(cross(n, vec3(1.0,1.0,0.0))), vv = cross(uu, n);
-
-    float sqrtx = sqrt(r.x);
-
-    return normalize(vec3(sqrtx * cos(r.y) * uu + sqrtx * sin(r.y) * vv + sqrt(1.0 - r.x) * n));
-}
-
-// Hammersley sequence
-vec2 Hammersley(uint i, uint N)
-{
-    return vec2(float(i) / float(N), VanDerCorpus(i + 1u));
-}
-
-vec3 ImportanceSampleGGX(vec2 Xi, vec3 N, float roughness)
-{
-    float alpha = roughness * roughness;
-    float alpha2 = alpha * alpha;
-	
-    float phi = 2.0 * HYP_FMATH_PI * Xi.x;
-    float cosTheta = sqrt((1.0 - Xi.y) / (1.0 + (alpha2 - 1.0) * Xi.y));
-    float sinTheta = sqrt(1.0 - cosTheta * cosTheta);
-	
-    // from spherical coordinates to cartesian coordinates
-    vec3 H;
-    H.x = cos(phi) * sinTheta;
-    H.y = sin(phi) * sinTheta;
-    H.z = cosTheta;
-
-    return H;
-}
-
-
-
-float ApplyIORToRoughness(float ior, float roughness)
-{
-    return roughness * clamp(ior * 2.0 - 2.0, 0.0, 1.0);
-}
-
-vec3 CalculateDiffuseColor(vec3 albedo, float metalness)
-{
-    return albedo * (1.0 - metalness);
-}
-
-vec4 CalculateDiffuseColor(vec4 albedo, float metalness)
-{
-    return vec4(CalculateDiffuseColor(albedo.rgb, metalness), albedo.a);
-}
-
-vec3 CalculateF0(vec3 albedo, float metalness)
-{
-    const float IOR = 1.5;
-    vec3 F0 = vec3((pow(IOR - 1.0, 2.0) / pow(IOR + 1.0, 2.0)).xxx);
-    F0 = lerp(F0, albedo, metalness);
-    return F0;
-}
-
-vec3 CalculateFresnelTerm(vec3 F0, float roughness, float NdotV)
-{
-    return SchlickFresnelRoughness(F0, roughness, NdotV);
-}
-
-vec4 CalculateFresnelTerm(vec4 F0, float roughness, float NdotV)
-{
-    return SchlickFresnelRoughness(F0, roughness, NdotV);
-}
-
-float CalculateGeometryTerm(float NdotL, float NdotV, float HdotV, float NdotH)
-{
-    return CookTorranceG(NdotL, NdotV, HdotV, NdotH);
-}
-
-float CalculateDistributionTerm(float roughness, float NdotH)
-{
-    return Trowbridge(NdotH, roughness);
-}
-
-vec3 CalculateDFG(vec3 F, float perceptual_roughness, float NdotV)
-{
-    const vec2 AB = BRDFMap(perceptual_roughness, NdotV);
-
-    return F * AB.x + AB.y;
-}
-
-vec4 CalculateDFG(vec4 F, float perceptual_roughness, float NdotV)
-{
-    const vec2 AB = BRDFMap(perceptual_roughness, NdotV);
-
-    return F * AB.x + AB.y;
-}
-
-vec3 CalculateE(vec3 F0, vec3 dfg)
-{
-    return lerp(dfg.xxx, dfg.yyy, F0);
-}
-
-vec4 CalculateE(vec4 F0, vec4 dfg)
-{
-    return lerp(dfg.xxxx, dfg.yyyy, F0);
-}
-
-vec3 CalculateEnergyCompensation(vec3 F0, vec3 dfg)
-{
-    return 1.0 + F0 * ((1.0 / max(dfg.y, 0.0001)) - 1.0);
-}
-
-vec4 CalculateEnergyCompensation(vec4 F0, vec4 dfg)
-{
-    return 1.0 + F0 * ((1.0 / max(dfg.y, 0.0001)) - 1.0);
-}
-
-vec3 SampleCosineWeightedHemisphere(vec2 Xi)
-{
-    float r = sqrt(Xi.x);
-    float phi = 6.28318530718 * Xi.y;
-
-    float x = r * cos(phi);
-    float y = r * sin(phi);
-    float z = sqrt(1.0 - r * r);
-
-    return vec3(x, y, z);
-}
-
-vec3 SampleCosineDir(in vec2 xi, in vec3 N)
-{
-    vec3 dir = SampleCosineWeightedHemisphere(xi);
-
-    vec3 T1, T2;
-    ComputeOrthonormalBasis(N, T1, T2);
-
-    return normalize(T1 * dir.x + T2 * dir.y + N * dir.z);
-}
-
-/// https://www.rorydriscoll.com/2012/01/15/cubemap-texel-solid-angle/
-float AreaElement(float x, float y )
-{
-	return atan2(x * y, sqrt(x * x + y * y + 1));
-}
-
-float TexelCoordSolidAngle(int a_FaceIdx, float a_U, float a_V, int a_Size)
-{
-    //scale up to [-1, 1] range (inclusive), offset by 0.5 to point to texel center.
-    float U = (2.0f * ((float)a_U + 0.5f) / (float)a_Size) - 1.0f;
-    float V = (2.0f * ((float)a_V + 0.5f) / (float)a_Size) - 1.0f;
-
-    float InvResolution = 1.0 / (float)a_Size;
-
-	// U and V are the -1..1 texture coordinate on the current face.
-	// Get projected area for this texel
-	float x0 = U - InvResolution;
-	float y0 = V - InvResolution;
-	float x1 = U + InvResolution;
-	float y1 = V + InvResolution;
-	float SolidAngle = AreaElement(x0, y0) - AreaElement(x0, y1) - AreaElement(x1, y0) + AreaElement(x1, y1);
-
-	return SolidAngle;
-}
-
-#endif   ¬    X  "   #ifndef HYP_OCTAHEDRON
-#define HYP_OCTAHEDRON
-
-vec2 EncodeOctahedralCoord(in vec3 v)
-{
-#define NON_ZERO_SIGN(n) (n >= 0.0 ? 1.0 : -1.0)
-    float l1norm = abs(v.x) + abs(v.y) + abs(v.z);
-    vec2 vec = v.xy * (1.0 / l1norm);
-
-    if (v.z < 0.0) {
-        vec = (1.0 - abs(vec.yx)) * vec2(NON_ZERO_SIGN(vec.x), NON_ZERO_SIGN(vec.y));
-    }
-#undef NON_ZERO_SIGN
-
-    return vec;
-}
-
-vec3 DecodeOctahedralCoord(vec2 coord)
-{
-#define NON_ZERO_SIGN(n) (n >= 0.0 ? 1.0 : -1.0)
-    vec3 vec = vec3(coord.x, coord.y, 1.0 - abs(coord.x) - abs(coord.y));
-    
-    if (vec.z < 0.0) {
-        vec.xy = (1.0 - abs(vec.yx)) * vec2(NON_ZERO_SIGN(vec.x), NON_ZERO_SIGN(vec.y));
-    }
-#undef NON_ZERO_SIGN
-    
-    return normalize(vec);
-}
-
-#endif   #   type.2d.image        gbuffer_albedo_texture       gbuffer_normals_texture      gbuffer_depth_texture     $   type.sampler         sampler_nearest   	   sampler_linear    
-   ssgi_result      reflections_texture   %   type.CamerasBuffer    %       camera    &   Camera    &       view      &      projection    &      viewProjMat   &      invViewMat    &      invProjMat    &      prevViewProjMat   &      dimensions    &      position      &      direction     &   	   jitter    &   
-   near      &      far   &      fov   &      _pad0     &      _pad1     &      _pad2     &      _pad3        CamerasBuffer        probe_irradiance         probe_depth   '   type.DDGI     '       ddgiConstants     (   DDGIConstants     (       rotationMatrix    (      aabb_max      (      aabb_min      (      probe_border      (      probe_counts      (      grid_dimensions   (      image_dimensions      (      probe_distance    (      num_rays_per_probe    (   	   numBoundLights    (   
-   flags        DDGI         in.var.TEXCOORD0         out.var.SV_Target0       PSMain    )   type.sampled.image  J dxc-commit-hash: b106a961   J dxc-cl-option:  -E PSMain -T ps_6_0 -HV 2021 -Zi -spirv -fspv-target-env=vulkan1.2 -fvk-use-scalar-layout -Zsb  G           G            G     "       G     !      G     "       G     !      G     "       G     !       G     "       G     !      G  	   "       G  	   !      G  
-   "       G  
-   !      G     "       G     !      G     "       G     !      G     "       G     !   
-   G     "       G     !      G     "       G     !      H  &       #       H  &             H  &          H  &      #   @   H  &            H  &         H  &      #   Ä   H  &            H  &         H  &      #   ¿   H  &            H  &         H  &      #      H  &            H  &         H  &      #   @  H  &            H  &         H  &      #   Ä  H  &      #   ê  H  &      #   †  H  &   	   #   ∞  H  &   
-   #   ¿  H  &      #   ƒ  H  &      #   »  H  &      #   Ã  H  &      #   –  H  &      #   ‡  H  &      #     H  %       #       G  %      H  (       #       H  (             H  (          H  (      #   @   H  (      #   P   H  (      #   `   H  (      #   p   H  (      #   Ä   H  (      #   ê   H  (      #   †   H  (      #   §   H  (   	   #   ®   H  (   
-   #   ¨   H  '       #       G  '        *       +  *   +       +  *   ,     Ä?  -   *      +  *   .     Äø  /   *      +  *   0      @  1          +  1   2      +  1   3       +  1   4      +  1   5      +  1   6      ,  -   7   +   +   +   +  1   8        9           +  *   :   ∑—8,  -   ;   ,   ,   ,     <   *      ,  <   =   ,   ,   +  *   >    ¿D+  *   ?      ?+  9   @   ?   +  9   A      +  9   B      +  1   C        D   1      ,  D   E   4   4   4   ,  D   F   3   3   3   +  *   G     @@+  *   H   
-◊#<+  *   I   ÕÃL>+  1   J      +  *   K   oÉ:+  9   L       +  9   M      ,  <   N   0   0   +  *   O     †@+  *   P   ÆG·º+  *   Q   ònø+  *   R   X9¥<,  /   S   .   P   Q   R   +  *   T   {.=+  *   U   ∏Ö?+  *   V   
-◊#Ω,  /   W   ,   T   U   V   +  *   X   ·z¡+  *   Y   ∏Öø,  <   Z   Y   U    	 #   *                           [       #     $      \       $     ]   /        ^   9        &   ]   ]   ]   ]   ]   ]   ^   /   /   /   *   *   *   *   /   /   /     %   &      _      %     (   ]   /   /   ^   ^   ^   ^   *   9   9   9     '   (      `      '      a      <      b      /     c   !  d   c     e   9        )   #      f      ]      g      /     h   9         i      *     j      k      ^      l      9   ;  [          ;  [          ;  [          ;  \          ;  \   	       ;  [   
-       ;  [          ;  _         ;  [          ;  [          ;  `         ;  a         ;  b         +  *   m      A+  *   n      A+  9   o   
-   +  *   p   ˇˇ«A+  *   q   
-◊#=,  -   r   q   q   q   .  /   s   +  *   t   !Ç<+  *   u   âàà=+  *   v   !Çæ     u      6  c          d   = ¯  w        u      =  <   x           Ä      =  #   y           Ä   2   =  $   z           Ä      V  )   {   y   z   W  /   |   {   x            Å      =  #   }           Å   9   =  $   ~           Å      V  )      }   ~   W  /   Ä      x            K      Q  *   Å   Ä           K      Q  *   Ç   Ä           K      É  *   É   Å   Ç        L      Å  *   Ñ   Å   Ç        L      É  *   Ö   Ñ   ,        M      Q  *   Ü   Ä           M      Ö  *   á   Ü   0        M      É  *   à   á   ,   = P  -   â   É   Ö   à        N        *   ä         É        N      É  *   ã   ,   ä        N   .     *   å         Ö        N   ,   É  *   ç   ã   å        N      Ö  *   é   à   ç        N      R  -   è   é   â           P   
-     -   ê      E   è        Ñ      =  #   ë           Ñ   /   =  $   í           Ñ      V  )   ì   ë   í   W  /   î   ì   x       Q  *   ï   î            Ö   :   A  f   ñ      3   5        Ö   A   =  ]   ó   ñ        Ö   M   A  f   ò      3   6        Ö   T   =  ]   ô   ò             é  <   ö   x   0          !   É  <   õ   ö   =             Q  *   ú   õ       Q  *   ù   õ      P  /   û   ú   ù   ï   ,             ê  /   ü   û   ó             Q  *   †   ü      P  /   °   †   †   †   †          
-   à  /   ¢   ü   °             ê  /   £   ¢   ô        ä      Q  *   §   Ä            &   A   Ö  *   •   §   >        &   K   Å  *   ¶   •   ?        &   "     *   ß         ¶   m  9   ®   ß        (   /   «  9   ©   ®   @        (      p  *   ™   ©        (   8   Ö  *   ´   ™   t        )   0   ¬  9   ¨   ®   A        )   6   «  9   ≠   ¨   B        )      p  *   Æ   ≠        )   >   Ö  *   Ø   Æ   u        í        -   ∞      E   ê        ì      A  g   ±      3   8        ì      =  /   ≤   ±        ì      O  -   ≥   ≤   ≤                  ì   ,   O  -   ¥   £   £                  ì   *   É  -   µ   ≥   ¥        ì        -   ∂      E   µ        †   4   O  -   ∑   |   |               !   Å     É  *   ∏   ,   Ø     !   Å     é  -   π   ∑   ∏        §      =  #   ∫           §   -   =  $   ª   	        §      V  )   º   ∫   ª   W  /   Ω   º   x            ¨      =  #   æ   
-        ¨   $   =  $   ø   	        ¨      V  )   ¿   æ   ø   W  /   ¡   ¿   x            -   	   A  k   ¬      3   5   A  l   √      3   5   3   =  9   ƒ   √        -   (   A  l   ≈      3   5   4   =  9   ∆   ≈        -   &   Ñ  9   «   ƒ   ∆        -   G   A  l   »      3   5   2   =  9   …   »        -   E   Ñ  9       «   …        -   e   ™  j   À       L        -      ˜  Ã       ˙  À   Õ   Œ   ¯  Õ        .      ˘  Ã   ¯  Œ        /   .   A  g   œ      3   2        /   <   =  /   –   œ        /   .   O  -   —   –   –                  /   +   É  -   “   ¥   —        /        -   ”      P   7   “        /   U   A  i   ‘      3   8        /   c   =  *   ’   ‘        /   T   P  -   ÷   ’   ’   ’        /   K   à  -   ◊   ”   ÷        /   	   n  D   ÿ   ◊        /   ‘   =  ^   Ÿ   ¬        /   ∆   O  h   ⁄   Ÿ   Ÿ                  /   ¡   |  D   €   ⁄        /   Ê   Ç  D   ‹   €   E        /        D   ›      -   ÿ   F   ‹        /   ı   ˘  Ã   ¯  Ã   ı  D   ﬁ   F   Õ   ›   Œ              A  i   ﬂ      3   8              =  *   ‡   ﬂ              P  -   ·   ‡   ‡   ‡           m   o  -   ‚   ﬁ           k   Ö  -   „   ·   ‚           {   A  g   ‰      3   2           â   =  /   Â   ‰           {   O  -   Ê   Â   Â                     y   Å  -   Á   „   Ê              É  -   Ë   ¥   Á           0   à  -   È   Ë   ·                -   Í      +   È   7   ;              ˘  Î   ¯  Î   ı  *   Ï   +   Ã   Ì   Ó   ı  -   Ô   7   Ã      Ó   ı  1   Ò   3   Ã   Ú   Ó              ±  j   Û   Ò   C              ˆ  Ù   Ó       ˙  Û   ı   Ù   ¯  ı              √  1   ˆ   Ò   4           !   √  1   ˜   Ò   2              P  D   ¯   Ò   ˆ   ˜           '   «  D   ˘   ¯   E           /   Ä  D   ˙   ﬁ   ˘           [   =  ^   ˚   ¬           M   O  h   ¸   ˚   ˚                     H   |  D   ˝   ¸           m   Ç  D   ˛   ˝   E                D   ˇ      -   ˙   F   ˛               Q  1      ˇ            !      |  1     ƒ        !   '   Q  1     ˇ           !   %   Ñ  1              !      Ä  1               "   +   |  1     ∆        "   %   Ñ  1              "   K   Q  1     ˇ           "   I   Ñ  1              "      Ä  1   	              m   o  -   
-  ˇ           k   Ö  -     ·   
-          y   Å  -       Ê              É  -     ¥             7   é  -     ∂   G           1   Å  -     ê             <   é  -       H           ,   Å  -                      -                    -        E             /   É  -     ;   Í           ?   o  -     ˘                -        .     Í              ;   É  -       ¥            "     -        E          !      î  *       ê        !   :   Å  *       ,        !   A   Ö  *       ?        !        *        P   :          !   I   Ö  *              !   â   Å  *       I        $   3     -            $   f   A  k         3   J        $   t   =  ^   !          $   f   O  e   "  !  !             @   3     -   #     E                Q  *   $  #                   *   %        $             Q  *   &  #                  *   '        &             Å  *   (  %  '          *   Q  *   )  #             &     *   *        )          $   Å  *   +  (  *             O  <   ,  #  #                    à  *   -  ,   +             é  <   .  ,  -       
-   	   ∏  j   /  )  +        
-      ˜  0      ˙  /  1  0  ¯  1             O  <   2  .  .                      <   3        2             É  <   4  =   3          %   Q  *   5  .              +   æ  j   6  5  +   = ©  *   7  6  ,   .           B   Q  *   8  .             H   æ  j   9  8  +   = ©  *   :  9  ,   .           #   P  <   ;  7  :             Ö  <   <  4  ;             ˘  0  ¯  0  ı  <   =  .  ı   <  1       A   8   Å  <   >  =  =        A   N   é  <   ?  >  ?        F   K   é  <   @  ?  m        F   i   p  <   A  "       F   g   à  <   B  @  A       H      Q  9   C  !          H   )   Ç  9   D  C  M        H   .   Ü  9   E  D  o        L   '   o  *   F  	       L   7   p  *   G  E       L   L   |  9   H  	       L   Z   Ü  9   I  H  E       L   L   p  *   J  I       L   F     *   K        J       L   E   Ö  *   L  G  K       L   5   É  *   M  F  L       L   m   Ö  *   N  M  n        M      Ö  *   O  J  n        L   %   P  <   P  N  O       M   5   Å  <   Q  P  N        O   F   à  <   R  Q  A       Q   .   Å  <   S  R  B       %        *   T     B          '      =  #   U          '   2   =  $   V  	        '      V  )   W  U  V  X  /   X  W  S     +        )      Q  *   Y  X           *      Ö  *   Z  Y  Y       *   *   Q  *   [  X          *   (   É  *   \  Z  [       *        *   ]        \       ,   B   É  *   ^  T  Y       ,   ,     *   _     P   ^  +        ,   P   Ö  *   `  _  _       ,   (   Å  *   a  ]  `       ,      à  *   b  ]  a       -      Ö  *   c  b  b       -   ,   Ö  *   d  c  b       -        *   e     P   d  +        .      º  j   f  T  Y  = ©  *   g  f  ,   e       .      Ö  *   h    g       /   
-     *   i     P   :   h       2   Ä   O  e   j  !  !              @   3     -   k     E   ∞              Q  *   l  k                   *   m        l             Q  *   n  k                  *   o        n             Å  *   p  m  o          *   Q  *   q  k             &     *   r        q          $   Å  *   s  p  r             O  <   t  k  k                    à  *   u  ,   s             é  <   v  t  u       
-   	   ∏  j   w  q  +        
-      ˜  x      ˙  w  y  x  ¯  y             O  <   z  v  v                      <   {        z             É  <   |  =   {          %   Q  *   }  v              +   æ  j   ~  }  +   = ©  *     ~  ,   .           B   Q  *   Ä  v             H   æ  j   Å  Ä  +   = ©  *   Ç  Å  ,   .           #   P  <   É    Ç             Ö  <   Ñ  |  É             ˘  x  ¯  x  ı  <   Ö  v  0  Ñ  y       A   8   Å  <   Ü  Ö  =        A   N   é  <   á  Ü  ?        F   K   é  <   à  á  m        F   i   p  <   â  j       F   g   à  <   ä  à  â       H      Q  9   ã  !           H   )   Ç  9   å  ã  M        H   .   Ü  9   ç  å  o        L   7   p  *   é  ç       L   Z   Ü  9   è  H  ç       L   L   p  *   ê  è       L   F     *   ë        ê       L   E   Ö  *   í  é  ë       L   5   É  *   ì  F  í       L   m   Ö  *   î  ì  n        M      Ö  *   ï  ê  n        L   %   P  <   ñ  î  ï       M   5   Å  <   ó  ñ  N        O   F   à  <   ò  ó  â       Q   .   Å  <   ô  ò  ä       3      =  #   ö          3   5   =  $   õ  	        3      V  )   ú  ö  õ  X  /   ù  ú  ô     +   O  -   û  ù  ù                 6      ∏  j   ü  i  I        6      ˜  †      ˙  ü  °  †  ¯  °       7      Ö  *   ¢  i  i       7      Ö  *   £  ¢  p        7      Ö  *   §  i  £       8      ˘  †  ¯  †  ı  *   •  i  x  §  °       ;      Q  *   ¶             ;      Q  *   ß            ;      Ö  *   ®  ¶  ß       ;   '   Q  *   ©            ;   %   Ö  *   ™  ®  ©       ;      Ö  *   ´  •  ™       =        -   ¨        û       ?       é  -   ≠  ¨  ´       ?      Å  -      Ô   ≠       @      Å  *   Ì   Ï   ´       A      ˘  Ó   ¯  Ó              Ä  1   Ú   Ò   4        A      ˘  Î   ¯  Ù        C   ,     *   Æ     P   Ï   K   P  -   Ø  Æ  Æ  Æ       C   *   à  -   ∞  Ô   Ø       D   $   Ö  -   ±  ∞  ∞       F      Q  *   ≤  ±      Q  *   ≥  ±     Q  *   ¥  ±     P  /   µ  ≤  ≥  ¥  ,        ∞      O  -   ∂  µ  µ                 ∞   A   é  -   ∑  ∂  ,        ≤      O  -   ∏  ¡   ¡                  ≤   3   Q  *   π  ¡           ≤   1   É  *   ∫  ,   π       ≤   -   P  -   ª  ∫  ∫  ∫       ≤        -   º     .   ∏  ∑  ª       ª   !   î  *   Ω  ∞   ∂        ª        *   æ     P   :   Ω    !   ç     P  -   ø  Ø   Ø   Ø     !   ç       -   ¿     .   r   ∑   ø    !   ∫      É  *   ¡  ,   ´     !   ∫      P  -   ¬  ¡  ¡  ¡    !   ∫        -   √     P   ¬  ¿    !   ∫   5   É  -   ƒ  √  ¿    !   ∫   E   É  *   ≈  ,   æ    !   ∫   =     *   ∆        ≈  O     !   ∫   ;   é  -   «  ƒ  ∆    !   ∫      Å  -   »  ¿  «    !   Õ      é  /   …  S   ´     !   Õ      Å  /      …  W     !   Œ      Q  *   À           !   Œ      Ö  *   Ã  À  À    !   Œ   *   Ö  *   Õ  X   æ    !   Œ        *   Œ        Õ    !   Œ        *   œ     O   Ã  Œ    !   Œ   6   Ö  *   –  œ  À    !   Œ   >   Q  *   —          !   Œ   <   Å  *   “  –  —    !   œ      é  <   ”  Z   “    !   œ   '   O  <   ‘                !   œ   %   Å  <   ’  ”  ‘    !   ©     Q  *   ÷  ’        !   ©  
-   é  -   ◊  »  ÷    !   ©     Q  *   ÿ  ’     P  -   Ÿ  ÿ  ÿ  ÿ    !   ©     Å  -   ⁄  ◊  Ÿ    !   µ     O  -   €  ⁄  ⁄                !   µ     O  -   ‹  ⁄  ⁄             !   µ       -   ›     .   €  ‹  ¿       ¿   !   O  -   ﬁ  º  s                  ¿      Ö  -   ﬂ  π   ﬁ       ¿   7   É  -   ‡  ;   ›       ¿   0   Ö  -   ·  ﬂ  ‡       ¿   <   é  -   ‚  ·  ,     !   7     Å  *   „  æ  ,     !   7  /   Ö  *   ‰  ™   v     !   7  ;   É  *   Â  ‰  ,     !   7  $     *   Ê        Â    !   7       *   Á        „  Ê    !   7       *   Ë     +   Á  +   ,        ¬      P  -   È  Ë  Ë  Ë    !   ø     Q  *   Í  ⁄       !   ø       *   Î     P   Í  :     !   ø     à  *   Ï  ,   Î    !   ø  /   É  *   Ì  Ï  ,     !   ø     é  -   Ó  ¿  Ì    !   ø     Å  -   Ô  ;   Ó       ≈      Ö  -     È  Ô       …      O  -   Ò  Ω   Ω                  …      Ö  -   Ú  Ò             (   O  -   Û  Ú  s                      &   Ö  -   Ù  ›  Û       Ã      Å  -   ı  ‚  Ù       ›      Q  *   ˆ  ı      Q  *   ˜  ı     Q  *   ¯  ı     P  /   ˘  ˆ  ˜  ¯  ,        u      >     ˘       ‡      ˝  8   #enVS     (,      loat min, float max, float v)
-{
-    return clamp((v - min) / (max - min), 0.0, 1.0);
-}
-
-vec3 RGBToYCoCg(in vec3 rgb)
-{
-    float co = rgb.r - rgb.b;
-    float t = rgb.b + co / 2.0;
-    float cg = rgb.g - t;
-    float y = t + cg / 2.0;
-    return vec3(y, co, cg);
-}
-
-vec4 RGBToYCoCg(in vec4 rgb)
-{
-    float co = rgb.r - rgb.b;
-    float t = rgb.b + co / 2.0;
-    float cg = rgb.g - t;
-    float y = t + cg / 2.0;
-    return vec4(y, co, cg, rgb.a);
-}
-
-vec3 YCoCgToRGB(in vec3 ycocg)
-{
-    float t = ycocg.r - ycocg.b / 2.0;
-    float g = ycocg.b + t;
-    float b = t - ycocg.g / 2.0;
-    float r = ycocg.g + b;
-    return vec3(r, g, b);
-}
-
-vec4 YCoCgToRGB(in vec4 ycocg)
-{
-    float t = ycocg.r - ycocg.b / 2.0;
-    float g = ycocg.b + t;
-    float b = t - ycocg.g / 2.0;
-    float r = ycocg.g + b;
-    return vec4(r, g, b, ycocg.a);
-}
-
-//// Cubemap utilities
-
-#ifdef LANG_GLSL
-// pairs of cubemap forward direction and up direction (interleaved order)
-const vec3 g_cubemapDirections[12] = vec3[](
-    vec3(1.0, 0.0, 0.0), vec3(0.0, 1.0, 0.0),
-    vec3(-1.0, 0.0, 0.0), vec3(0.0, 1.0, 0.0),
-    vec3(0.0, 1.0, 0.0), vec3(0.0, 0.0, -1.0),
-    vec3(0.0, -1.0, 0.0), vec3(0.0, 0.0, 1.0),
-    vec3(0.0, 0.0, 1.0), vec3(0.0, 1.0, 0.0),
-    vec3(0.0, 0.0, -1.0), vec3(0.0, 1.0, 0.0));
-#elif defined(LANG_HLSL)
-// pairs of cubemap forward direction and up direction (interleaved order)
-static const float3 g_cubemapDirections[12] = {
-    float3(1.0, 0.0, 0.0), float3(0.0, 1.0, 0.0),
-    float3(-1.0, 0.0, 0.0), float3(0.0, 1.0, 0.0),
-    float3(0.0, 1.0, 0.0), float3(0.0, 0.0, -1.0),
-    float3(0.0, -1.0, 0.0), float3(0.0, 0.0, 1.0),
-    float3(0.0, 0.0, 1.0), float3(0.0, 1.0, 0.0),
-    float3(0.0, 0.0, -1.0), float3(0.0, 1.0, 0.0)
-};
-#endif
-
-vec3PS     ú≈     (uint face, vec2 uv)
-{
-    vec3 forward = g_cubemapDirections[face * 2];
-    vec3 up = g_cubemapDirections[face * 2 + 1];
-    vec3 right = cross(forward, up);
-
-    vec2 coord = uv * 2.0 - 1.0;
-
-    return normalize(forward - right * coord.x - up * coord.y);
-}
-
-uint GetCubemapFaceIndex(vec3 dir)
-{
-    uint face = 0u;
-    float ax = abs(dir.x);
-    float ay = abs(dir.y);
-    float az = abs(dir.z);
-
-    if (ay > ax && ay > az)
-    {
-        face = (dir.y < 0.0) ? 3u : 2u;
-    }
-    else if (az > ax && az > ay)
-    {
-        face = (dir.z < 0.0) ? 5u : 4u;
-    }
-    else
-    {
-        face = (dir.x < 0.0) ? 1u : 0u;
-    }
-
-    return face;
-}
-
-///// End cubemap utilities
-
-#endif   z   X     #ifndef HYP_GBUFFER_GLSL
-#define HYP_GBUFFER_GLSL
-
-#include "defines.inc"
-
-#define HYP_GBUFFER_FLIP_Y 0
-
-#include "shared.inc"
-#include "packing.inc"
-
-#define gbuffer_sampler sampler_linear
-#define gbuffer_depth_sampler sampler_nearest
-
-#ifndef sampler_linear
-#define HYP_SAMPLER_NEAREST sampler_nearest
-#endif
-
-#ifndef HYP_SAMPLER_LINEAR
-#define HYP_SAMPLER_LINEAR sampler_linear
-#endif
-
-struct GBufferMaterialParams
-{
-    float roughness;
-    float metalness;
-    uint mask;
-};
-
-void GBufferPackMaterialParams(GBufferMaterialParams params, out float roughnessAndMetalPacked, out uint mask)
-{
-    // max. 10 bits for roughness / metal packed - stored in normals target (r10g10b10a2)
-    roughnessAndMetalPacked = float(HYP_QUANTIZE(params.roughness, 6) | (HYP_QUANTIZE(params.metalness, 4) << 6)) / 1023.0;
-    mask = params.mask & 0x3FFu;
-}
-
-void GBufferUnpackMaterialParams(float roughnessAndMetalPacked, uint mask, out GBufferMaterialParams params)
-{
-    uint roughnessAndMetalU32 = uint(round(roughnessAndMetalPacked * 1023.0));
-
-    params.roughness = HYP_UNQUANTIZE(roughnessAndMetalU32 & 0x3Fu, 6);
-    params.metalness = HYP_UNQUANTIZE((roughnessAndMetalU32 >> 6) & 0xFu, 4);
-    params.mask = mask & 0x3FFu;
-}
-
-vec4 GBufferPackNormal(vec3 normal)
-{
-    // use 2 bit w component for z value
-    return vec4(0.0, EncodeNormal(normal).xyz);
-}
-
-vec3 GBufferUnpackNormal(vec4 packed)
-{
-    return DecodeNormal(packed.yzww);
-}
-
-#endif
-     X     #ifndef HYP_PACKING
-#define HYP_PACKING
-
-// #define HYP_PACK_NORMALS 1
-#define HYP_NORMAL_PACKING_2
-// #define HYP_NORMAL_PACKING_1
-// #define HYP_NORMAL_PACKING_2
-
-vec2 PackNormalVec2(vec3 n)
-{
-#ifdef HYP_NORMAL_PACKING_0
-    float scale = 1.7777;
-    vec2 enc = n.xy / (n.z + 1.0);
-    enc /= scale;
-    enc = enc * 0.5 + 0.5;
-    return enc;
-#elif defined(HYP_NORMAL_PACKING_1)
-    float p = sqrt(n.z * 8 + 8);
-    return n.xy / p + 0.5;
-#elif defined(HYP_NORMAL_PACKING_2)
-    return (vec2(atan(n.x, n.y) / 3.141592654, n.z) + 1.0) * 0.5;
-#else
-    #error No packing mode defined
-#endif
-}
-
-vec3 UnpackNormalVec2(vec2 enc)
-{
-#ifdef HYP_NORMAL_PACKING_0
-    float scale = 1.7777;
-    vec3 nn =
-        vec3(enc.xy, 0.0) * vec3(2 * scale, 2 * scale, 0) + vec3(-scale, -scale, 1);
-    float g = 2.0 / dot(nn.xyz, nn.xyz);
-    vec3 n;
-    n.xy = g * nn.xy;
-    n.z = g - 1.0;
-    return n;
-#elif defined(HYP_NORMAL_PACKING_1)
-    vec2 fenc = enc.xy * 4 - 2;
-    float f = dot(fenc, fenc);
-    float g = sqrt(1 - f / 4);
-    vec3 n;
-    n.xy = fenc * g;
-    n.z = 1 - f / 2;
-    return n;
-#elif defined(HYP_NORMAL_PACKING_2)
-    vec2 ang = enc * 2 - 1;
-    vec2 scth = vec2(sin(ang.x * 3.141592654), cos(ang.x * 3.141592654));
-    vec2 scphi = vec2(sqrt(1.0 - ang.y * ang.y), ang.y);
-    return vec3(scth.y * scphi.x, scth.x * scphi.x, scphi.y);
-#else
-    #error No packing mode defined
-#endif
-}
-
-vec3 SignedOctEncode(vec3 n)
-{
-    vec3 result;
-
-    n /= (abs(n.x) + abs(n.y) + abs(n.z));
-
-    result.y = n.y *  0.5  + 0.5;
-    result.x = n.x *  0.5  + result.y;
-    result.y = n.x * -0.5  + result.y;
-
-    result.z = clamp(n.z * HYP_FLOAT_MAX, 0.0, 1.0);
-
-    return result;
-}
-
-vec3 SignedOctDecode(vec3 n)
-{
-    vec3 result;
-
-    result.x = (n.x - n.y);
-    result.y = (n.x + n.y) - 1.0;
-    result.z = n.z * 2.0 - 1.0;
-    result.z = result.z * (1.0 - abs(result.x) - abs(result.y));
-    
-    result = normalize(result);
-
-    return result;
-}
-
-vec4 EncodeNormal(vec3 n)
-{
-    return vec4(SignedOctEncode(n), 0.0);
-}
-
-vec3 DecodeNormal(vec4 enc)
-{
-    return SignedOctDecode(enc.xyz);
-}
-
-#ifdef LANG_HLSL
-static const float4 depthBitShift = float4(256.0 * 256.0 * 256.0, 256.0 * 256.0, 256.0, 1.0);
-static const float4 depthBitShiftInv = float4(1.0, 1.0, 1.0, 1.0) / depthBitShift;
-static const float4 depthBitMask = float4(0.0, 1.0 / 256.0, 1.0 / 256.0, 1.0 / 256.0);
-#else
-const vec4 depthBitShift = vec4(256.0 * 256.0 * 256.0, 256.0 * 256.0, 256.0, 1.0);
-const vec4 depthBitShiftInv = vec4(1.0, 1.0, 1.0, 1.0) / depthBitShift;
-const vec4 depthBitMask = vec4(0.0, 1.0 / 256.0, 1.0 / 256.0, 1.0 / 256.0);
-#endif
-
-vec4 PackDepth(in float depth)
-{
-    vec4 res = fract(depth.xxxx * depthBitShift);
-    res -= res.xxyz * depthBitMask;
-    return res;
-}
-
-float UnpackDepth(in vec4 packedDepth)
-{
-    return dot(packedDepth, depthBitShiftInv);
-}
-
-#define HYP_QUANTIZE(v, bits) uint(round(clamp((v), 0.0, 1.0) * ((1 << (bits)) - 1)))
-#define HYP_UNQUANTIZE(x, bits) float(x) / float((1 << (bits)) - 1)
-
-#endif
-    {   X     #ifndef HYP_SCENE
-#define HYP_SCENE
-
-#include "defines.inc"
-
-struct WorldShaderData
-{
-    vec4 fog_params;
-
-    float game_time;
-    uint frame_counter;
-    uint _pad0;
-    uint _pad1;
-};
-
-struct Camera
-{
-    mat4 view;
-    mat4 projection;
-
-    mat4 viewProjMat;
-
-    mat4 invViewMat;
-    mat4 invProjMat;
-
-    mat4 prevViewProjMat;
-
-    uvec4 dimensions;
-    vec4 position;
-    vec4 direction;
-    vec4 jitter;
-
-    float near;
-    float far;
-    float fov;
-    float _pad0;
-
-    vec4 _pad1;
-    vec4 _pad2;
-    vec4 _pad3;
-};
-
-struct ShadowMap
-{
-    // layer indices per cascade for shadow maps. Each cascade is 1 byte.
-    uint layerIndex;
-    float splitDistance;
-    float _pad0;
-    float _pad1;
-    
-    float4x4 viewProjMat;
-    float4 aabbMin;         // w = offsetUV.x
-    float4 aabbMax;         // w = offsetUV.y
-    float4 dimensionsScale; // xy = slice dimensions in pixels, zw = slice dimensions relative to the atlas dimensions
-};
-
-struct Light
-{
-    uint type;
-    uint material_index;        // for area lights - ~0u == no material
-    uint radiusFalloffPacked;   // packed as half
-    uint flags;
-    
-    float4 position_intensity;  // position or direction
-    float4 color;
-    float4 normal;              // for area lights/spot lights - x,y,z = normal
-
-    float2 area_size;           // for area lights = area size, for spot lights = spot angles
-    float2 _pad0;
-    
-    float4 _pad1[3];
-};
-
-// Maps to LightFlags
-z = PS     4Æ     
-
-#define LF_SHADOW_CASTER 0x1
-#define LF_SHADOW_PCF 0x2
-#define LF_SHADOW_CONTACT_HARDENING 0x4
-#define LF_SHADOW_VSM 0x8
-#define LF_SHADOW_FILTER_MASK (LF_SHADOW_PCF | LF_SHADOW_CONTACT_HARDENING | LF_SHADOW_VSM)
-
-#define LF_SHADOW_CSM_SPLIT_0 0x20
-#define LF_SHADOW_CSM_SPLIT_1 0x40
-#define LF_SHADOW_CSM_SPLIT_2 0x80
-#define LF_SHADOW_CSM_SPLIT_3 0x100
-#define LF_SHADOW_CSM_SPLIT_MASK (LF_SHADOW_CSM_SPLIT_0 | LF_SHADOW_CSM_SPLIT_1 | LF_SHADOW_CSM_SPLIT_2 | LF_SHADOW_CSM_SPLIT_3)
-
-#define LF_DEFAULT (LF_SHADOW_CASTER | LF_SHADOW_PCF)
-
-struct LightmapVolume
-{
-    vec4 aabb_max;
-    vec4 aabb_min;
-
-    uint texture_index; // index of the lightmap texture in the lightmap atlas
-    uint _pad0;
-    uint _pad1;
-    uint _pad2;
-};
-
-vec3 CalculateLightDirection(Light light, in vec3 world_position)
-{
-    vec3 L = light.position_intensity.xyz;
-    L -= world_position.xyz * float(min(light.type, 1));
-    L = normalize(L);
-
-    return L;
-}
-
-#endif    2   X     #ifndef HYP_BRDF_GLSL
-#define HYP_BRDF_GLSL
-
-float GetSquareFalloffAttenuation(vec3 P, vec3 L, float radius)
-{
-    const vec3 position_to_light = P

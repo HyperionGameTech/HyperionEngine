@@ -47,11 +47,6 @@ DECLARE_BUFFER(PathTracer, WorldsBuffer) cbuffer WorldsBuffer
     WorldShaderData world_shader_data;
 };
 
-DECLARE_BUFFER_DYNAMIC(PathTracer, CamerasBuffer) cbuffer CamerasBuffer
-{
-    Camera camera;
-};
-
 DECLARE_SRV_DYNAMIC(PathTracer, CurrentEnvProbe) StructuredBuffer<EnvProbe> current_env_probe_buffer;
 #define current_env_probe current_env_probe_buffer[0]
 
@@ -69,14 +64,15 @@ DECLARE_SRV(PathTracer, EnvProbesTexture) Texture2DArray envProbesTexture;
 DECLARE_BUFFER_DYNAMIC(RTReflections, CBuffer) cbuffer CBuffer
 {
     RayTracingConstants rayTracingConstants;
+    Camera camera;
     Light lights[MAX_LIGHTS];
     ShadowMap shadowMaps[MAX_LIGHTS];
 };
 
-#define RAY_OFFSET 0.005
+#define RAY_OFFSET 0.001
 #define NUM_SAMPLES 1
-#define NUM_BOUNCES 6
-#define ENVIRONMENT_INTENSITY 1.0
+#define NUM_BOUNCES 4
+#define ENVIRONMENT_INTENSITY 10.0
 
 [shader("raygeneration")]
 void RayGenMain()
@@ -100,7 +96,7 @@ void RayGenMain()
     const float4x4 projection_inverse = camera.invProjMat;
 
     const float4 normalSample = SAMPLE_TEXTURE_2D_LOD(sampler_nearest, gbuffer_normals_texture, uv, 0.0);
-    const float3 normal = GBufferUnpackNormal(normalSample);
+    const float3 normal = normalize(GBufferUnpackNormal(normalSample));
     const float depth = SAMPLE_TEXTURE_2D_LOD(sampler_nearest, gbuffer_depth_texture, uv, 0.0).r;
     const float4 worldPosition = ReconstructWorldSpacePositionFromDepth(projection_inverse, view_inverse, uv, depth);
 
@@ -120,26 +116,28 @@ void RayGenMain()
     const float3 R = reflect(-V, normal);
 
     const RAY_FLAG flags = RAY_FLAG_FORCE_OPAQUE;
-    const float tmin = 0.001;
+    const float tmin = 0.1;
     const float tmax = 1000.0;
 
     float4 color = (float4)0;
 
     const float3 albedo = SAMPLE_TEXTURE_2D_LOD(sampler_nearest, gbuffer_albedo_texture, uv, 0.0).rgb;
-    const float3 N0 = normalize(normal);
+    const float3 N0 = normal;
 
     float4 accumRadiance = (float4)0;
 
+    float noise = InterleavedGradientNoise(float2(storage_coord)) * HYP_FMATH_TWO_PI;
+    
     for (uint sample_index = 0; sample_index < NUM_SAMPLES; sample_index++)
     {
-        uint ray_seed = InitRandomSeed(InitRandomSeed(
-            (DispatchRaysIndex().x * 2 * NUM_SAMPLES) + sample_index * 2,
-            (DispatchRaysIndex().x * 2 * NUM_SAMPLES) + (sample_index * 2) + 1),
-            world_shader_data.frame_counter);
-
         float3 origin = worldPosition.xyz + N0 * RAY_OFFSET;
         float3 direction;
-        float2 rnd = float2(RandomFloat(ray_seed), RandomFloat(ray_seed));
+
+        float2 vogel = VogelDisk(sample_index, NUM_SAMPLES, noise);
+        // need to be careful seeding this or we'll get repeated lines
+        uint ray_seed = pcg_hash((DispatchRaysIndex().x * NUM_SAMPLES) + sample_index + (world_shader_data.frame_counter * 997));
+    
+        float2 rnd = float2(RandomFloat(ray_seed), RandomFloat(ray_seed)); //vogel *  0.5 + 0.5;
 
         float3 F0_init = CalculateF0(albedo, metalness);
         float3 F_init = F_Schlick(F0_init, max(dot(N0, V), 0.0));
@@ -220,14 +218,14 @@ void RayGenMain()
                 if (current_env_probe.texture_index != ~0u)
                 {
                     uint probe_texture_index = max(0, min(current_env_probe.texture_index, HYP_MAX_BOUND_REFLECTION_PROBES - 1));
-                    float3 env = EnvProbeSample(sampler_linear, envProbesTexture, probe_texture_index, direction, 6.0).rgb * ENVIRONMENT_INTENSITY;
+                    float3 env = EnvProbeSample(sampler_linear, envProbesTexture, probe_texture_index, direction, 0.0).rgb * ENVIRONMENT_INTENSITY;
                     radiance += beta * env;
                 }
                 break;
             }
 
             float3 hitPos = origin + direction * payload.distance;
-            float3 N = normalize(payload.normal);
+            float3 N = payload.normal;
 
             if (length(payload.emissive.rgb) > 0.0)
             {
@@ -236,8 +234,8 @@ void RayGenMain()
 
             float3 hitAlbedo = payload.throughput.rgb;
             
-            float hitRoughness = payload.roughness;
-            float hitMetalness = payload.throughput.w;
+            float hitRoughness = clamp(payload.roughness, 0.05, 0.95);
+            float hitMetalness = clamp(payload.throughput.w, 0.0, 1.0);
             
             float3 diffuseColor = hitAlbedo * (1.0 - hitMetalness);
             float3 f0 = CalculateF0(hitAlbedo, hitMetalness);
@@ -318,7 +316,7 @@ void RayGenMain()
 
             direction = normalize(SampleCosineDir(rnd, N));
 
-            beta *= diffuseColor;
+            beta *= max(diffuseColor, 0.001);
 
             origin = hitPos + N * RAY_OFFSET;
         } // end bounces

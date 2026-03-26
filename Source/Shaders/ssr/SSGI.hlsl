@@ -88,8 +88,11 @@ DECLARE_SRV(SSGI, EnvProbesTexture) TextureCubeArray envProbesTexture;
 DECLARE_SRV(SSGI, EnvProbesTexture) Texture2DArray envProbesTexture;
 #endif
 
-#define RAY_OFFSET 0.03
+#define RAY_OFFSET 0.05
 #define ENVIRONMENT_INTENSITY 1.0
+
+// amount to 'brighten up' the SSGI result
+#define SSGI_INTENSITY 1.0
 
 #if 1
 
@@ -232,7 +235,7 @@ void CSMain(uint3 dispatchThreadID : SV_DispatchThreadID)
 
     float phi = InterleavedGradientNoise(float2(coord));
 
-    const uint numRaySamples = 6; // local (per dispatch) sample count.
+    const uint numRaySamples = 10; // local (per dispatch) sample count.
     const uint temporalSampleIndex = (world_shader_data.frame_counter % ssgiConstants.numSamples);
     const uint numSamplesTotal = ssgiConstants.numSamples * numRaySamples;
 
@@ -245,7 +248,7 @@ void CSMain(uint3 dispatchThreadID : SV_DispatchThreadID)
         const float3 d = SampleCosineWeightedHemisphere(rnd);
 
         const float3 ray_direction = normalize(tangent * d.x + bitangent * d.y + view_space_normal * d.z);
-        const float3 ray_origin = P + ray_direction * RAY_OFFSET;
+        const float3 ray_origin = P + N * RAY_OFFSET;
 
         if (TraceRays(ray_origin, ray_direction, hit_uv, hit_view_space_position, hit_depth, maxIterations))
         {
@@ -283,7 +286,7 @@ void CSMain(uint3 dispatchThreadID : SV_DispatchThreadID)
         }
         
         // use 0 for alpha, so we can blend with other GI if available.
-        accum_result += float4(environmentRadiance.rgb, 0.0);
+        accum_result += float4(environmentRadiance.rgb, 0.0) * SSGI_INTENSITY;
     }
 
     out_image[coord] = accum_result / float(numRaySamples);

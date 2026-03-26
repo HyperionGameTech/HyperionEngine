@@ -1,968 +1,0 @@
-hadowness;
-
-#undef HYP_1_OVER_16
-}
-
-float GetShadowVariance(in ShadowMap shadowMap, float3 pos, float NdotL)
-{
-    float bias = HYP_SHADOW_BIAS;
-
-#ifdef HYP_SHADOW_VARIABLE_BIAS
-    bias *= tan(acos(NdotL));
-    bias = clamp(bias, 0.0, 0.01);
-#endif
-
-    const float2 offsetUV = float2(shadowMap.aabbMin.w, shadowMap.aabbMax.w);
-
-    const float3 coord = GetShadowCoord(shadowMap.viewProjMat, pos);
-    float2 moments = SAMPLE_TEXTURE_2D_ARRAY_LOD(HYP_SAMPLER_LINEAR, shadow_maps, float3(coord.xy * shadowMap.dimensionsScale.zw + offsetUV, float(shadowMap.layerIndex)), 0).xy;
-
-    float d = coord.z - moments.x;
-    float p = step(coord.z, moments.x + bias);
-    float variance = max(moments.y - moments.x * moments.x, 0.0001);
-
-    float p_max = variance / (variance + d * d);
-
-    AABB aabb;
-    aabb.min = shadowMap.aabbMin.xyz;
-    aabb.max = shadowMap.aabbMax.xyz;
-
-    return AABBContainsPoint(aabb, pos) ? max(p, p_max) : 1.0;
-
-#if 0
-    const float3 coord = GetShadowCoord(shadowMap.viewProjMat, pos);
-    const float4 shadow_sample = SAMPLE_TEXTURE_2D_ARRAY_LOD(HYP_SAMPLER_LINEAR, shadow_maps, float3(coord.xy * shadowMap.dimensionsScale.zw + offsetUV, float(shadowMap.layerIndex)), 0);
-    const float moment = shadow_sample.r;
-
-    if (coord.z <= moment) {
-        return 1.0;
-    }
-
-    const float moment2 = shadow_sample.g;
-
-    const float variance = max(moment2 - HYP_FMATH_SQR(moment), HYP_FMATH_EPSILON);
-    const float d = coord.z - moment;
-    
-    float percent_in_shadow = variance / (variance + HYP_FMATH_SQR(d));
-    percent_in_shadow = smoothstep(HYP_SHADOW_VARIANCE_LIGHT_BLEED_REDUCTION, 1.0, percent_in_shadow);
-
-    percent_in_shadow *= 1.0 - float(NdotL > 1.5708);
-    return float(acos(NdotL));
-
-#endif
-}
-
-float AvgBlockerDepthToPenumbra(float light_size, float avg_blocker_depth, float shadow_map_coord_z)
-{
-    float penumbra = (shadow_map_coord_z - avg_blocker_depth) * light_size / avg_blocker_depth;
-    penumbra += HYP_SHADOW_PENUMBRA_MIN;
-    penumbra = min(HYP_SHADOW_PENUMBRA_MAX, penumbra);
-    return penumbra;
-}
-
-float GetShadowContactHardened(in ShadowMap shadowMap, float3 pos, float2 texcoord, float2 screen_dimensions, float NdotL)
-{
-    AABB aabb;
-    aabb.min = shadowMap.aabbMin.xyz;
-    aabb.max = shadowMap.aabbMax.xyz;
-
-    if (!AABBContainsPoint(aabb, pos))
-    {
-        return 1.0;
-    }
-
-    const float2 uv_scale = shadowMap.dimensionsScale.zw;
-
-    const float3 coord = GetShadowCoord(shadowMap.viewProjMat, pos);
-
-    const uint layerIndex = shadowMap.layerIndex;
-
-    const float2 offsetUV = float2(shadowMap.aabbMin.w, shadowMap.aabbMax.w);
-
-    const float shadow_map_depth = coord.z;
-
-    const float shadow_filter_size = 0.002;
-    const float penumbra_filter_size = 0.002;
-    const float light_size = 18.0; // affects how quickly shadows become soft
-
-    const float gradient_noise = InterleavedGradientNoise(texcoord * screen_dimensions - 0.5);
-
-    float total_blocker_depth = 0.0;
-    float num_blockers = 0.0;
-
-#if defined(HYP_SHADOW_SAMPLES_16) || defined(HYP_PENUMBRA_SAMPLES_16)
-#define HYP_DEF_VOGEL_DISK(iter_index) \
-    float2 vogel_##iter_index = VogelDisk(iter_index, 16, gradient_noise)
-#else
-#define HYP_DEF_VOGEL_DISK(iter_index) \
-    float2 vogel_##iter_index = VogelDisk(iter_index, 8, gradient_noise)
-#endif
-
-    HYP_DEF_VOGEL_DISK(0);
-    HYP_DEF_VOGEL_DISK(2);
-    HYP_DEF_VOGEL_DISK(4);
-    HYP_DEF_VOGEL_DISK(6);
-    HYP_DEF_VOGEL_DISK(8);
-    HYP_DEF_VOGEL_DISK(10);
-    HYP_DEF_VOGEL_DISK(12);
-    HYP_DEF_VOGEL_DISK(14);
-
-#if defined(HYP_SHADOW_SAMPLES_16) || defined(HYP_PENUMBRA_SAMPLES_16)
-    HYP_DEF_VOGEL_DISK(1);
-    HYP_DEF_VOGEL_DISK(3);
-    HYP_DEF_VOGEL_DISK(5);
-    HYP_DEF_VOGEL_DISK(7);
-    HYP_DEF_VOGEL_DISK(9);
-    HYP_DEF_VOGEL_DISK(11);
-    HYP_DEF_VOGEL_DISK(13);
-    HYP_DEF_VOGEL_DISK(15);
-#endif
-
-#undef HYP_DEF_VOGEL_DISK
-
-    // // temp debug
-                                                                                                                                                                                                                        
-    // float4 shadowSamples = float4(                                                                                                                                                                                    
-    //     SAMPLE_TEXTURE_2D_ARRAY_LOD(HYP_SAMPLER_LINEAR, shadow_maps, float3(((coord.xy + (vogel_0 * s_pcfKernel[0] * penumbra_filter_size)) * uv_scale) + offsetUV, float(layerIndex)), 0).r,
-    //     SAMPLE_TEXTURE_2D_ARRAY_LOD(HYP_SAMPLER_LINEAR, shadow_maps, float3(((coord.xy + (vogel_2 * s_pcfKernel[2] * penumbra_filter_size)) * uv_scale) + offsetUV, float(layerIndex)), 0).r,
-    //     SAMPLE_TEXTURE_2D_ARRAY_LOD(HYP_SAMPLER_LINEAR, shadow_maps, float3(((coord.xy + (vogel_4 * s_pcfKernel[4] * penumbra_filter_size)) * uv_scale) + offsetUV, float(layerIndex)), 0).r,
-    //     SAMPLE_TEXTURE_2D_ARRAY_LOD(HYP_SAMPLER_LINEAR, shadow_maps, float3(((coord.xy + (vogel_6 * s_pcfKernel[6] * penumbra_filter_size)) * uv_scale) + offsetUV, float(layerIndex)), 0).r);
-    // return (shadowSamples.x + shadowSamples.y + shadowSamples.z + shadowSamples.w) * 0.25;
-
-
-#if defined(HYP_SHADOW_PENUMBRA) && HYP_SHADOW_PENUMBRA
-
-// vectorization
-#define HYP_DO_SHADOW_PENUMBRA(iter_index0, iter_index1, iter_index2, iter_index3)                                                                                                                                          \
-    {                                                                                                                                                                                                                       \
-        float4 blocker_samples = float4(                                                                                                                                                                                    \
-            SAMPLE_TEXTURE_2D_ARRAY_LOD(HYP_SAMPLER_LINEAR, shadow_maps, float3(((coord.xy + (vogel_##iter_index0 * s_pcfKernel[iter_index0] * penumbra_filter_size)) * uv_scale) + offsetUV, float(layerIndex)), 0).r,    \
-            SAMPLE_TEXTURE_2D_ARRAY_LOD(HYP_SAMPLER_LINEAR, shadow_maps, float3(((coord.xy + (vogel_##iter_index1 * s_pcfKernel[iter_index1] * penumbra_filter_size)) * uv_scale) + offsetUV, float(layerIndex)), 0).r,    \
-            SAMPLE_TEXTURE_2D_ARRAY_LOD(HYP_SAMPLER_LINEAR, shadow_maps, float3(((coord.xy + (vogel_##iter_index2 * s_pcfKernel[iter_index2] * penumbra_filter_size)) * uv_scale) + offsetUV, float(layerIndex)), 0).r,    \
-            SAMPLE_TEXTURE_2D_ARRAY_LOD(HYP_SAMPLER_LINEAR, shadow_maps, float3(((coord.xy + (vogel_##iter_index3 * s_pcfKernel[iter_index3] * penumbra_filter_size)) * uv_scale) + offsetUV, float(layerIndex)), 0).r);   \
-        float4 are_samples_blocking = float4(lessThan(blocker_samples, shadow_map_depth.xxxx));                                                                                                                             \
-        total_blocker_depth += dot(blocker_samples * are_samples_blocking, float4(1.0, 1.0, 1.0, 1.0));                                                                                                                     \
-        num_blockers += dot(are_samples_blocking, float4(1.0, 1.0, 1.0, 1.0));                                                                                                                                              \
-    }
-
-#ifdef HYP_PENUMBRA_SAMPLES_8
-    HYP_DO_SHADOW_PENUMBRA(0, 2, 4, 6)
-    HYP_DO_SHADOW_PENUMBRA(8, 10, 12, 14)
-#elif defined(HYP_PENUMBRA_SAMPLES_4)
-    HYP_DO_SHADOW_PENUMBRA(0, 4, 8, 12)
-#endif
-
-#undef HYP_DO_SHADOW_PENUMBRA
-
-    float penumbra_mask = num_blockers > 0.0 ? AvgBlockerDepthToPenumbra(light_size, total_blocker_depth / max(num_blockers, 0.0001), shadow_map_depth) : 0.0;
-#else
-    float penumbra_mask = 1.0;
-#endif
-
-    float shadowness = 0.0;
-
-#define HYP_DO_SHADOW(iter_index)                                                                                                 \
-    {                                                                                                                             \
-        shadowness += GetShadowStandard(shadowMap, pos, (vogel_##iter_index * penumbra_mask * shadow_filter_size * uv_scale), NdotL); \
-    }
-
-#if defined(HYP_SHADOW_SAMPLES_16) || defined(HYP_SHADOW_SAMPLES_8)
-    HYP_DO_SHADOW(0)
-    HYP_DO_SHADOW(2)
-    HYP_DO_SHADOW(4)
-    HYP_DO_SHADOW(6)
-    HYP_DO_SHADOW(8)
-    HYP_DO_SHADOW(10)
-    HYP_DO_SHADOW(12)
-    HYP_DO_SHADOW(14)
-#elif defined(HYP_SHADOW_SAMPLES_4)
-    HYP_DO_SHADOW(0)
-    HYP_DO_SHADOW(4)
-    HYP_DO_SHADOW(8)
-    HYP_DO_SHADOW(12)
-#endif
-
-#ifdef HYP_SHADOW_SAMPLES_16
-    HYP_DO_SHADOW(1)
-    HYP_DO_SHADOW(3)
-    HYP_DO_SHADOW(5)
-    HYP_DO_SHADOW(7)
-    HYP_DO_SHADOW(9)
-    HYP_DO_SHADOW(11)
-    HYP_DO_SHADOW(13)
-    HYP_DO_SHADOW(15)
-
-    shadowness /= 16.0;
-#elif defined(HYP_SHADOW_SAMPLES_8)
-    shadowness /= 8.0;
-#elif defined(HYP_SHADOW_SAMPLES_4)
-    shadowness /= 4.0;
-#endif
-
-#undef HYP_DO_SHADOW
-
-    return shadowness;
-}
-
-float GetPointShadowVariance(uint layerIndex, float3 world_to_light, float NdotL)
-{
-    const float2 moments = SAMPLE_TEXTURE_CUBE_ARRAY_LOD(HYP_SAMPLER_LINEAR, point_shadow_maps, float4(world_to_light, float(layerIndex)), 0).rg;
-    const float current_depth = length(world_to_light);
-
-    float shadow_dist = current_depth - moments.x;
-    float p = step(current_depth, moments.x);
-    float variance = max(moments.y - moments.x * moments.x, 0.0001);
-    float p_max = variance / (variance + shadow_dist * shadow_dist);
-
-    return max(p, p_max);
-}
-
-float GetPointShadowStandard(uint layerIndex, float3 world_to_light, float NdotL)
-{
-    const float shadow_depth = SAMPLE_TEXTURE_CUBE_ARRAY_LOD(HYP_SAMPLER_NEAREST, point_shadow_maps, float4(world_to_light, float(layerIndex)), 0).r;
-    const float current_depth = length(world_to_light);
-
-    float bias = HYP_SHADOW_BIAS;
-
-#ifdef HYP_SHADOW_VARIABLE_BIAS
-    bias *= tan(acos(NdotL));
-    bias = clamp(bias, 0.0, 0.005);
-#endif
-
-    return max(step(current_depth - bias, shadow_depth), 0.0);
-}
-
-float GetPointShadow(in ShadowMap shadowMap, uint lightFlags, float3 world_to_light, float NdotL)
-{
-    uint layerIndex = shadowMap.layerIndex;
-
-    switch (lightFlags & LF_SHADOW_FILTER_MASK)
-    {
-    case LF_SHADOW_VSM:
-        return GetPointShadowVariance(layerIndex, world_to_light, NdotL);
-    default:
-        return GetPointShadowStandard(layerIndex, world_to_light, NdotL);
-    }
-}
-
-float GetShadow(in ShadowMap shadowMap, uint lightFlags, float3 position, float2 texcoord, float2 screen_dimensions, float NdotL)
-{
-    // temp
-    
-        // return GetShadowContactHardened(shadowMap, position, texcoord, screen_dimensions, NdotL);
-        
-    switch (lightFlags & LF_SHADOW_FILTER_MASK)
-    {
-    case LF_SHADOW_VSM:
-        return GetShadowVariance(shadowMap, position, NdotL);
-    case LF_SHADOW_CONTACT_HARDENING:
-        return GetShadowContactHardened(shadowMap, position, texcoord, screen_dimensions, NdotL);
-    case LF_SHADOW_PCF:
-        return GetShadowPCF(shadowMap, position, texcoord, screen_dimensions, NdotL);
-    default:
-        return GetShadowStandard(shadowMap, position, float2(0.0, 0.0), NdotL);
-    }
-}
-
-#endif  E   X  !   #ifndef HYP_AABB_GLSL
-#define HYP_AABB_GLSL
-
-#ifdef LANG_GLSL
-const vec3 aabb_corners[8] = {
-    vec3(0.0, 0.0, 0.0),
-    vec3(1.0, 0.0, 0.0),
-    vec3(0.0, 1.0, 0.0),
-    vec3(0.0, 0.0, 1.0),
-    vec3(1.0, 1.0, 0.0),
-    vec3(0.0, 1.0, 1.0),
-    vec3(1.0, 0.0, 1.0),
-    vec3(1.0, 1.0, 1.0)
-};
-#elif defined(LANG_HLSL)
-static const float3 aabb_corners[8] = {
-    float3(0.0, 0.0, 0.0),
-    float3(1.0, 0.0, 0.0),
-    float3(0.0, 1.0, 0.0),
-    float3(0.0, 0.0, 1.0),
-    float3(1.0, 1.0, 0.0),
-    float3(0.0, 1.0, 1.0),
-    float3(1.0, 0.0, 1.0),
-    float3(1.0, 1.0, 1.0)
-};
-#endif
-
-struct AABB
-{
-    vec3 min;
-    vec3 max;
-};
-
-bool AABBContainsPoint(AABB aabb, vec3 vec)
-{
-    return (
-        vec.x >= aabb.min.x && vec.y >= aabb.min.y && vec.z >= aabb.min.z
-        && vec.x <= aabb.max.x && vec.y <= aabb.max.y && vec.z <= aabb.max.z
-    );
-}
-
-vec3 AABBGetCenter(AABB aabb)
-{
-    return (aabb.max + aabb.min) * 0.5;
-}
-
-vec3 AABBGetExtent(AABB aabb)
-{
-    return aabb.max - aabb.min;
-}
-
-float AABBGetGreatestExtent(AABB aabb)
-{
-    vec3 extent = AABBGetExtent(aabb);
-
-    return max(extent.x, max(extent.y, extent.z));
-}
-// https://github.com/nvpro-samples/gl_occlusion_culling/blob/master/cull-common.h
-vec3 AABBGetCorner(AABB aabb, int index)
-{
-    const vec3 extent = AABBGetExtent(aabb);
-
-    return aabb.min + aabb_corners[index] * extent;
-
-    /*const vec3 corners[8] = {
-        aabb.min,
-        aabb.min + vec3(extent.x, 0.f, 0.f),
-        aabb.min + vec3(0.f, extent.y, 0.f),
-        aabb.min + vec3(0.f, 0.f, extent.z),
-        aabb.min + vec3(extent.xy, 0.f),
-        aabb.min + vec3(0.f, extent.yz),
-        aabb.min + vec3(extent.x, 0.f, extent.z),
-        aabb.max
-    };
-
-    return corners[index];*/
-
-    /*uint mask = 1u << index;
-
-    return vec3(
-        mix(aabb.min.x, aabb.max.x, float((mask & 1u) != 0)),
-        mix(aabb.min.y, aabb.max.y, float((mask & 2u) != 0)),
-        mix(aabb.min.z, aabb.max.z, float((mask & 4u) != 0))
-    );*/
-}
-
-void AABBToSphere(AABB aabb, out vec3 center, out float radius)
-{
-    //float greatest_extent = AABBGetGreatestExtent(aabb);
-    center = AABBGetCenter(aabb);
-    radius = length(AABBGetExtent(aabb)) * 0.5;  //greatest_extent * 0.5;
-}
-
-#endif   ¬    X  "   #ifndef HYP_OCTAHEDRON
-#define HYP_OCTAHEDRON
-
-vec2 EncodeOctahedralCoord(in vec3 v)
-{
-#define NON_ZERO_SIGN(n) (n >= 0.0 ? 1.0 : -1.0)
-    float l1norm = abs(v.x) + abs(v.y) + abs(v.z);
-    vec2 vec = v.xy * (1.0 / l1norm);
-
-    if (v.z < 0.0) {
-        vec = (1.0 - abs(vec.yx)) * vec2(NON_ZERO_SIGN(vec.x), NON_ZERO_SIGN(vec.y));
-    }
-#undef NON_ZERO_SIGN
-
-    return vec;
-}
-
-vec3 DecodeOctahedralCoord(vec2 coord)
-{
-#define NON_ZERO_SIGN(n) (n >= 0.0 ? 1.0 : -1.0)
-    vec3 vec = vec3(coord.x, coord.y, 1.0 - abs(coord.x) - abs(coord.y));
-    
-    if (vec.z < 0.0) {
-        vec.xy = (1.0 - abs(vec.yx)) * vec2(NON_ZERO_SIGN(vec.x), NON_ZERO_SIGN(vec.y));
-    }
-#undef NON_ZERO_SIGN
-    
-    return normalize(vec);
-}
-
-#endif   #   type.2d.image        out_image     $   type.CBuffer      $       ssgiConstants     $      lights    $      shadowMaps    $      envProbes     %   SSGIConstants     %       dimension     %      rayStep   %      maxIterations     %      distanceBias      %      numSamples    %      numBoundLights    %      numBoundEnvProbes     &   Light     &       type      &      material_index    &      radiusFalloffPacked   &      flags     &      position_intensity    &      color     &      normal    &      area_size     &      _pad0     &   	   _pad1     '   ShadowMap     '       layerIndex    '      splitDistance     '      _pad0     '      _pad1     '      viewProjMat   '      aabbMin   '      aabbMax   '      dimensionsScale   (   EnvProbe      (       face_view_matrices    (      aabb_max      (      aabb_min      (      world_position    (      texture_index     (      flags     (      camera_near   (      camera_far    (      dimensions    (   	   visibility_bits   (   
-   sh       CBuffer   )   type.2d.image        gbuffer_normals_texture      gbuffer_depth_texture        DeferredShadingTexture    *   type.sampler      	   sampler_nearest   
-   sampler_linear   	 +   type.StructuredBuffer.v4int      BlueNoiseBuffer   ,   type.WorldsBuffer     ,       world_shader_data     -   WorldShaderData   -       fog_params    -      game_time     -      frame_counter     -      _pad0     -      _pad1        WorldsBuffer      .   type.CamerasBuffer    .       camera    /   Camera    /       view      /      projection    /      viewProjMat   /      invViewMat    /      invProjMat    /      prevViewProjMat   /      dimensions    /      position      /      direction     /   	   jitter    /   
-   near      /      far   /      fov   /      _pad0     /      _pad1     /      _pad2     /      _pad3        CamerasBuffer        CSMain    0   type.sampled.image  J dxc-commit-hash: b106a961   J dxc-cl-option:  -E CSMain -T cs_6_0 -HV 2021 -Zi -spirv -fspv-target-env=vulkan1.2 -fvk-use-scalar-layout -Zsb  G           G     "       G     !   
-   G     "       G     !      G     "       G     !      G     "       G     !      G     "       G     !      G  	   "       G  	   !      G  
-   "       G  
-   !      G     "       G     !       G     "       G     !      G     "       G     !      H  %       #       H  %      #      H  %      #      H  %      #      H  %      #      H  %      #      H  %      #      G  1         H  &       #       H  &      #      H  &      #      H  &      #      H  &      #      H  &      #       H  &      #   0   H  &      #   @   H  &      #   H   H  &   	   #   P   G  2      Ä   H  '       #       H  '      #      H  '      #      H  '      #      H  '      #      H  '            H  '         H  '      #   P   H  '      #   `   H  '      #   p   G  3      Ä   G  4      @   G  5         H  (       #       H  (             H  (          H  (      #   Ä  H  (      #   ê  H  (      #   †  H  (      #   ∞  H  (      #   ¥  H  (      #   ∏  H  (      #   º  H  (      #   ¿  H  (   	   #   »  H  (   
-   #   –  G  6      `  H  $       #       H  $      #       H  $      #      H  $      #      G  $      G  7         H  +       #       H  +          G  +      H  -       #       H  -      #      H  -      #      H  -      #      H  -      #      H  ,       #       G  ,      H  /       #       H  /             H  /          H  /      #   @   H  /            H  /         H  /      #   Ä   H  /            H  /         H  /      #   ¿   H  /            H  /         H  /      #      H  /            H  /         H  /      #   @  H  /            H  /         H  /      #   Ä  H  /      #   ê  H  /      #   †  H  /   	   #   ∞  H  /   
-   #   ¿  H  /      #   ƒ  H  /      #   »  H  /      #   Ã  H  /      #   –  H  /      #   ‡  H  /      #     H  .       #       G  .        8       +  8   9     Ä?  :   8      +  8   ;         <   8      ,  <   =   9   ;   ;   ,  <   >   ;   9   ;   ,  <   ?   ;   ;   ;     @   8      +  8   A      ?  B          +  B   C       ,  @   D   A   A   ,  @   E   ;   ;   ,  @   F   9   9   +  B   G        H           +  H   I       +  8   J   r˘?,  :   K   ;   ;   ;   ;   +  B   L      +  H   M   
-   +  B   N      +  8   O   
-◊#<+  8   P   wÃ+2  Q   *  Q   R   +  B   S      +  B   T      +  H   U      +  8   V      A+  H   W      +  8   X      @+  B   Y      +  B   Z   ˇ   +  B   [   Ä   +  B   \      +  H   ]    ¿  +  H   ^      +  H   _      +  B   `      +  H   a    @  )  Q   b   +  8   c   fff?+  8   d   ÕÃÃ=+  B   e   	   +  8   f   ¡nê>+  8   g   ,*˙æ+  8   h   ,*˙>+  8   i   ùÿã?+  8   j   ùÿãø+  8   k   {°>+  8   l     @@+  8   m   ùÿ? 	 #   8                          n       #     o   H       	 %   o   8   8   8   H   H   H   +  H   p        1   :   _     &   H   H   H   H   :   :   :   @   @   1     2   &   p     q   :       
- '   H   8   8   8   q   :   :   :     3   '   p     4   q   W   +  H   r   	     5   :   r     (   4   :   :   :   H   H   8   8   o   o   5     6   (   p     $   %   2   3   6      s      $    	 )   8                           t       )     *      u       *     v   B        7   v     +   7      w      +     -   :   8   H   H   H     ,   -      x      ,     y   H        /   q   q   q   q   q   q   y   :   :   :   8   8   8   8   :   :   :     .   /      z      .     {   H         |      {     }   !  ~   }            <      Ä      o      Å      H     Ç   Q        0   )      É      q      Ñ      B      Ö      8     Ü   <   r      á      Ü   ;  n          ;  s         ;  t          ;  t          ;  t          ;  u   	       ;  u   
-       ;  w         ;  x         ;  z         ;  |           Q   à   ,  :   â   d   d   d   d   +  8   ä     Ä;+  8   ã   €…<   å      5      ç      :        ª      6  }          ~   = ¯  é   ;  á   è           ª      =  {   ê      = ˜  ë       ˚  I   í   ¯  í        Ω      Q  H   ì   ê            ø      A  Ä   î      C   C   A  Å   ï      C   C   C   =  H   ñ   ï        ø      â  H   ó   ì   ñ        ¿      Ü  H   ò   ì   ñ        æ      P  o   ô   ó   ò        ¬       =  o   ö   î        ¬      Æ  Ç   õ   ô   ö        ¬      ö  Q   ú   õ        √      ˜  ù       ˙  ú   û   ù   ¯  û        ƒ      ˘  ë   ¯  ù        «   #   p  @   ü   ô        «   1   Å  @   †   ü   D        «   :   p  @   °   ö        «   8   à  @   ¢   †   °        «        @   £      +   ¢   E   F        Ã      =  )   §           Ã   D   =  *   •   	        Ã      V  0   ¶   §   •   X  :   ß   ¶   £      ;        —      =  )   ®           —   :   =  *   ©   	        —      V  0   ™   ®   ©   X  :   ´   ™   £      ;   Q  8   ¨   ´            ”      ∫  Q   ≠   ¨   J        ‘      ˜  Æ       ˙  ≠   Ø   Æ   ¯  Ø        ’      =  #   ∞      c  ∞   ô   K            ÷      ˘  ë   ¯  Æ        Ÿ   8   A  É   ±      C   L        Ÿ   ?   =  q   ≤   ±             é  @   ≥   £   X          !   É  @   ¥   ≥   F             Q  8   µ   ¥       Q  8   ∂   ¥      P  :   ∑   µ   ∂   ¨   9        "     ê  :   ∏   ∑   ≤        &     Q  8   π   ∏      P  :   ∫   π   π   π   π        &  
-   à  :   ª   ∏   ∫        Ÿ      O  <   º   ª   ª                  K      Q  8   Ω   ß           K      Q  8   æ   ß           K      É  8   ø   Ω   æ        L      F
-#VS     ¨“           L      É  8   ¡   ¿   9        M      Q  8   ¬   ß           M      Ö  8   √   ¬   X        M      É  8   ƒ   √   9   = P  <   ≈   ø   ¡   ƒ        N        8   ∆         ø        N      É  8   «   9   ∆        N   .     8   »         ¡        N   ,   É  8   …   «   »        N      Ö  8       ƒ   …        N      R  <   À       ≈           P   
-     <   Ã      E   À        ‹   0   A  É   Õ      C   C        ‹   7   =  q   Œ   Õ        ‹   C   Q  8   œ   Ã       Q  8   –   Ã      Q  8   —   Ã      P  :   “   œ   –   —   ;        ‹   ,   ê  :   ”   “   Œ   O  <   ‘   ”   ”                  ‹   "     <   ’      E   ‘        k        <   ÷      D   ’   >        l   
-     <   ◊      D   ’   =        l   D   î  8   ÿ   ÷   ÷        l   3     8   Ÿ      0   P   ÿ   P  <   ⁄   Ÿ   Ÿ   Ÿ        l        <   €      .   ◊   ÷   ⁄        n        <   ‹      E   €        q        <   ›      D   ’   ‹        q        <   ﬁ      E   ›        Ì   #   A  Å   ﬂ      C   N        Ì   5   =  H   ‡   ﬂ        Ì   E   A  Å   ·      C   L        Ì   S   =  H   ‚   ·        Ì   C   â  H   „   ‡   ‚        Ó   7   Ñ  H   ‰   ‚   M              ˘  Â   ¯  Â   ı  Q   Ê   à   Æ   Á   Ë   ı  :   È   K   Æ   Í   Ë   ı  H   Î   I   Æ   Ï   Ë           "   ∞  Q   Ì   Î   M           $   ˆ  Ó   Ë       ˙  Ì   Ô   Ó   ¯  Ô        Ú   .   Ñ  H      „   M        Ú   >   Ä  H   Ò      Î        Ù   0   |  B   Ú   ó        Ù   >   |  B   Û   ò        Ù   H   |  B   Ù   Ò        Ù   U   |  B   ı   ‰              «  B   ˆ   Ú   Y        	      «  B   ˜   Û   Y        
-      «  B   ¯   Ù   Z           %   «  B   ˘   ı   Z           L   Ñ  B   ˙   ˜   [           B   Ä  B   ˚   ˆ   ˙           S   Ñ  B   ¸   ˚   \           7   Ä  B   ˝   ˘   ¸           &   |  H   ˛   ˝           d   ¬  H   ˇ   ˛   ^           N   Ä  H      ]   ˇ           ~   «  H     ˛   _           *   A  Ñ        C        =  B               (   ∆  B     ¯             F   Ñ  B       `           0   Ä  B     ˘                |  H               ;   ä  B     ˘   \           @   Ä  B   	    ¸           )   |  H   
-  	          9   ¬  H       ^           L   «  H       _              A  Ñ        C       =  B               Q   ¬  H     
-  ^           8   Ä  H     a             n   «  H     
-  _              A  Ñ        C       =  B                  ∆  B              ,      o  8            ,      Å  8     A          ,      Ö  8       ä        …       8                        Ö  8       ã        Ã       8                  Ã     Ö  8              Õ       8                  Õ     Ö  8              Œ     Ö  8              Œ     É  8     9          Œ       8                   ¯   0   é  <   !  ‹          ¯   B   é  <   "  ﬁ          ¯   6   Å  <   #  !  "       ¯   \   é  <   $  ’           ¯   H   Å  <   %  #  $       ¯        <   &     E   %       ˘   -   é  <   '  &  O        ˘      Å  <   (  º   '  = ˜  )      ˚  I   *  ¯  *       o   *     <   +     E   &       o      A  Ö   ,     C   G        o       =  8   -  ,       o   (   é  <   .  +  -       u      ˘  /  ¯  /  ı  8   0  ;   *  1  2  ı  <   3  (  *  4  2  ı  B   5  C   *  6  2  ı  8   7  9   *  8  2  ı  @   9  E   *  :  2  ı  8   ;  ;   *  <  2  ı  Q   =  R   *  >  2       u      A  Ö   ?     C   N        u      =  8   @  ?       u      n  B   A  @       u   
-   ±  Q   B  5  A       u   +   ˆ  C  2      ˙  B  D  C  ¯  D       w      Å  <   4  3  .       y   '   A  É   E     C   G        y   .   =  q   F  E       B  0   Q  8   G  4      Q  8   H  4     Q  8   I  4     P  :   J  G  H  I  9        B     ê  :   K  J  F       F  	   O  @   L  K  K              F     Q  8   M  K     P  @   N  M  M       F     à  @   O  L  N       F  1   é  @   P  O  A        F  7   Å  @   :  P  D        z      =  )   Q          z   2   =  *   R  	        z      V  0   S  Q  R  X  :   T  S  :     ;   Q  8   8  T                é  @   U  :  X          !   É  @   V  U  F             Q  8   W  V      Q  8   X  V     P  :   Y  W  X  8  9        "     ê  :   Z  Y  ≤        &     Q  8   [  Z     P  :   \  [  [  [  [       &  
-   à  :   ]  Z  \       }   $   Q  8   ^  ]          }   "   É  8   <  I  ^             ∫  Q   >  <  ;        Ä      Å  8   1  0  9        É      ˜  _      ˙  >  `  _  ¯  `       Ñ      ˘  C  ¯  _       Ü      ˘  2  ¯  2       u   /   Ä  B   6  5  G        Ü      ˘  /  ¯  C  ı  8   a  7  /  8  `  ı  @   b  9  /  :  `  ı  8   c  0  /  1  `  ı  8   d  ;  /  <  `  ı  <   e  3  /  4  `  ı  Q   f  =  /  >  `       â      ˜  g      ˙  f  h  g  ¯  h       ã      ˘  i  ¯  i  ı  8   j  d  h  k  l  ı  <   m  e  h  n  l  ı  <   o  .  h  p  l  ı  B   q  5  h  r  l  ı  8   s  a  h  t  l  ı  @   u  b  h  v  l       ã   
-   ±  Q   w  q  A       ã   +   ˆ  x  l      ˙  w  y  x  ¯  y       ç   	   é  <   p  o  A        é   3     8   z        j       é   8   n  B   {  z       é   3   o  8   |  {       é   1   é  <   }  p  |       é   '   É  <   n  m  }       ê   '   A  É   ~     C   G        ê   .   =  q     ~       B  0   Q  8   Ä  n      Q  8   Å  n     Q  8   Ç  n     P  :   É  Ä  Å  Ç  9        B     ê  :   Ñ  É         F  	   O  @   Ö  Ñ  Ñ              F     Q  8   Ü  Ñ     P  @   á  Ü  Ü       F     à  @   à  Ö  á       F  1   é  @   â  à  A        F  7   Å  @   v  â  D        ë      =  )   ä          ë   2   =  *   ã  	        ë      V  0   å  ä  ã  X  :   ç  å  v     ;   Q  8   t  ç                é  @   é  v  X          !   É  @   è  é  F             Q  8   ê  è      Q  8   ë  è     P  :   í  ê  ë  t  9        "     ê  :   ì  í  ≤        &     Q  8   î  ì     P  :   ï  î  î  î  î       &  
-   à  :   ñ  ì  ï       î        8   ó        Ç       î   )   Q  8   ò  ñ          î   '   É  8   k  ó  ò       ò        8   ô        k       ò      A  Ö   ö     C   T        ò   %   =  8   õ  ö       ò      ∏  Q   ú  ô  õ       ô      ˜  ù      ˙  ú  û  ù  ¯  û       ö      ˘  x  ¯  ù       ú      ˘  l  ¯  l       ã   /   Ä  B   r  q  G        ú      ˘  i  ¯  x  ı  8   ü  s  i  t  û  ı  @   †  u  i  v  û  ı  Q   °  Ê   i  b   û  ı  Q   ¢  R   i  b   û  ˜  £      ˙  ¢  )  £  ¯  £       ù      ˘  g  ¯  g  ı  8   §  a  C  ü  £  ı  @   •  b  C  †  £  ı  B   ¶  5  C  q  £       ü      ±  Q   ß  ¶  A  = ©  8   ®  ß  9   §       §      ˘  )  ¯  )  ı  8   ©  ü  x  ®  g  ı  @   ™  †  x  •  g  ı  Q   Á   °  x  R   g       ¸      ˜  ´      ˙  Á   ¨  ´  ¯  ¨       ∞      à  8   ≠  c  @       ∞      É  8   Æ  9   ≠       ≥      é  @   Ø  ™  X        ≥      É  @   ∞  Ø  F        ¥   '   Q  8   ±  ∞           ¥   #     8   ≤        ±       ¥   5   Q  8   ≥  ∞          ¥   1     8   ¥        ≥       ¥        8   µ     P   ≤  ¥       ¥        8   ∂     +   µ  ;   9        µ   &   É  8   ∑  ∂  c        µ        8   ∏     P   ;   ∑       µ   -   Ö  8   π  ∏  V        µ      É  8   ∫  9   π       µ      Ö  8   ª  Æ  ∫             ∫  Q   º  ª  P             ˜  Ω      ˙  º  æ  Ω  ¯  æ              @   ø     +   ™  E   F             =  )   ¿            6   =  *   ¡  
-             V  0   ¬  ¿  ¡  X  :   √  ¬  ø     ;             Q  8   ƒ  √      Q  8   ≈  √     Q  8   ∆  √     P  :   «  ƒ  ≈  ∆  9          (   é  :   »  «  ª            Å  :   …  È   »            ˘  Ë   ¯  Ω       	     ˘  ´  ¯  ´            æ  Q      ©  J   ˜  À      ˙     Ã  À  ¯  Ã            A  Å   Õ     C   S          *   =  H   Œ  Õ         <   ´  Q   œ  Œ  I   ˘  À  ¯  À  ı  Q   –  R   ´  œ  Ã            ˜  —      ˙  –  “  —  ¯  “         $   A  É   ”     C   T          +   =  q   ‘  ”         =   Q  8   ’  &      Q  8   ÷  &     Q  8   ◊  &     P  :   ÿ  ’  ÷  ◊  ;              ê  :   Ÿ  ÿ  ‘  O  <   ⁄  Ÿ  Ÿ                        <   €     E   ⁄  = A  å   ‹     T   C   M        ë      ˘  ›  ¯  ›  ı  B   ﬁ  C   “  ﬂ  ‡       ë      ±  Q   ·  ﬁ  e        ë      ˆ  ‚  ‡      ˙  ·  ‡  ‚  ¯  ‡       ì      A  ç   „  ‹  ﬁ       ì      =  :   ‰  „  O  <   Â  ‰  ‰                 ì      A     Ê  è   ﬁ       ì      >  Ê  Â       ë      Ä  B   ﬂ  ﬁ  G        î      ˘  ›  ¯  ‚       ñ   !   =  Ü   Á  è   Q  <   Ë  Á      Q  <   È  Á     Q  <   Í  Á     Q  <   Î  Á     Q  <   Ï  Á     Q  <   Ì  Á     Q  <   Ó  Á     Q  <   Ô  Á     Q  <     Á          p      Q  8   Ò  €          p      Ö  8   Ú  g   Ò       q      Q  8   Û  €          q      Ö  8   Ù  h   Û       r      Q  8   ı  €           r      Ö  8   ˆ  g   ı       s      Ö  8   ˜  i   ı       s      Ö  8   ¯  ˜  Ò       t      Ö  8   ˘  j   Ò       t      Ö  8   ˙  ˘  Û       u      Ö  8   ˚  l   Û       u   "   Ö  8   ¸  ˚  Û       u   (   É  8   ˝  ¸  9        u      Ö  8   ˛  k   ˝       v      Ö  8   ˇ  j   ı       v      Ö  8      ˇ  Û       w      Ö  8     ı  ı       w   (   Ö  8     Ò  Ò       w   "   É  8              w      Ö  8     m                é  <     Ë  f        Ä      é  <     È  Ú       Ä      Å  <              Å      é  <     Í  Ù       Å      Å  <   	           Ç      é  <   
-  Î  ˆ       Ç      Å  <     	  
-       É      é  <     Ï  ¯       É      Å  <              Ñ      é  <     Ì  ˙       Ñ      Å  <              Ö      é  <     Ó  ˛       Ö      Å  <              Ü      é  <     Ô          Ü      Å  <              á      é  <              á      Å  <              â   
-     <        P     ?          &   Q  8           Q  8          Q  8          P  :           ;             Å  :     È               ˘  —  ¯  —  ı  :     È   À    ‚            ˘  Ë   ¯  Ë   ı  :   Í   …  æ    —          ;   Ä  H   Ï   Î   U             ˘  Â   ¯  Ó          !   Ö  :     È   â             =  #        c    ô                   ˘  ë   ¯  ë             ˝  8  in;
-CS      “     ivatives in other shader stages so just sample LOD0
-    #define SAMPLE_TEXTURE_3D(samp, tex, texcoord) (tex).SampleLevel((samp), (texcoord), 0)
-#endif
-
-    #define SAMPLE_TEXTURE_CUBE_LOD(samp, tex, texcoord, lod) (tex).SampleLevel((samp), (texcoord), (lod))
-#ifdef PIXEL_SHADER
-    #define SAMPLE_TEXTURE_CUBE(samp, tex, texcoord) (tex).Sample((samp), (texcoord))
-#else
-    // we don't have on screen derivatives in other shader stages so just sample LOD0
-    #define SAMPLE_TEXTURE_CUBE(samp, tex, texcoord) (tex).SampleLevel((samp), (texcoord), 0)
-#endif
-
-    #define SAMPLE_TEXTURE_CUBE_ARRAY_LOD(samp, tex, texcoord, lod) (tex).SampleLevel((samp), (texcoord), (lod))
-#ifdef PIXEL_SHADER
-    #define SAMPLE_TEXTURE_CUBE_ARRAY(samp, tex, texcoord) (tex).Sample((samp), (texcoord))
-#else
-    // we don't have on screen derivatives in other shader stages so just sample LOD0
-    #define SAMPLE_TEXTURE_CUBE_ARRAY(samp, tex, texcoord) (tex).SampleLevel((samp), (texcoord), 0)
-#endif
-
-    #define TEXEL_FETCH_2D(tex, coord) (tex).Load(int3((coord), 0))
-    #define TEXEL_FETCH_2D_LOD(samp, tex, coord, lod) (tex).Load(int3((coord), (lod)))
-
-    // Utility
-
-    #define FLOAT_BITS_TO_UINT(value) asuint(value)
-    #define UINT_BITS_TO_FLOAT(value) asfloat(value)
-
-#endif
-
-#define HYP_MATERIAL_CUBEMAP_TEXTURES 1
-
-#define HYP_MAX_SHADOW_CASCADES 4
-
-#define HYP_MAX_BOUND_AMBIENT_PROBES 4096
-#define HYP_MAX_BOUND_REFLECTION_PROBES 16
-#define HYP_MAX_BOUND_POINT_SHADOW_MAPS 16
-#define HYP_MAX_SHADOW_MAPS 4
-#define HYP_MAX_BOUND_ENVIRONMENT_MAPS 1
-#define HYP_MAX_MATERIALS 65536
-
-#define HYP_LIGHT_TYPE_DIRECTIONAL 0
-#define HYP_LIGHT_TYPE_POINT 1
-#define HYP_LIGHT_TYPE_SPOT 2
-#define HYP_LIGHT_TYPE_AREA_RECT 3
-
-#define HYP_OBJECT_BUCKET_NONE 0
-#define HYP_OBJECT_BUCKET_OPAQUE 1
-#define HYP_OBJECT_BUCKET_LIGHTMAP 2
-#define HYP_OBJECT_BUCKET_TRANSLUCENT 3
-#define HYP_OBJECT_BUCKET_SKYBOX 4
-#define HYP_OBJECT_BUCKET_DEBUG 5
-
-#define HYP_FMATH_SQR(num) ((num) * (num))
-#define HYP_FMATH_CUBE(num) ((num) * (num) * (num))
-#define HYP_FMATH_PI 3.14159265359
-#define HYP_FMATH_PI_HALF 1.57079632679
-#define HYP_FMATH_TWO_PI 6.28318530718
-#define HYP_FMATH_ONE_OVER_PI 0.31830988618
-#define HYP_FMATH_QUARTER_PI 0.7853981625
-#define HYP_FMATH_DEG2RAD(deg) ((deg) * HYP_FMATH_PI / 180.0)
-#define HYP_FMATH_RAD2DEG(rad) ((rad) * 180.0 / HYP_FMATH_PI)
-#define HYP_FMATH_EPSILON 0.00000001
-#define HYP_FMATH_INFINITY 99999999.0
-
-#define HYP_FLOAT_MAX 3.402823466e+38F
-#define HYP_FLOAT_MIN 1.175494351e-38F
-
-#ifdef __COUNTER__
-#define HYP_UNIQUE_NAME(prefix) \
-    HYP_CONCAT(prefix, __COUNTER__)
-#else
-#define HYP_UNIQUE_NAME(prefix) \
-    prefix
-#endif
-
-#define HYP_FAST_LESS(x, y) (1 - step((y), (x)))
-
-#ifndef HYP_SHADER_COMPILER
-    ///// For Intellisense /////
-
-    // Placeholder macro definitions to allow intellisense to work.
-    // The engine's shader compiler uses these markers for binding setup
-    #define DECLARE_SRV(set, var)
-    #define DECLARE_SRV_DYNAMIC(set, var)
-
-    #define DECLARE_UAV(set, var)
-    #define DECLARE_UAV_DYNAMIC(set, var)
-
-    #define DECLARE_BUFFER(name, var)
-    #define DECLARE_BUFFER_DYNAMIC(name, var)
-
-    #define DECLARE_SAMPLER(set, var)
-
-    #define HYP_ATTRIBUTE
-    #define HYP_ATTRIBUTE_OPTIONAL
-
-    // If we don't set these, we'll have lots of inactive code blocks
-    // for HLSL shaders that define multiple shader stages in one file.
-    #define VERTEX_SHADER 1
-    #define PIXEL_SHADER 1
-    #define COMPUTE_SHADER 1
-    #define GEOMETRY_SHADER 1
-    #define MESH_SHADER 1
-    #define TASK_SHADER 1
-    #define TESS_CONTROL_SHADER 1
-    #define TESS_EVAL_SHADER 1
-    #define RAY_GEN_SHADER 1
-    #define INTERSECT_SHADER 1
-    #define ANY_HIT_SHADER 1
-    #define CLOSEST_HIT_SHADER 1
-    #define MISS_SHADER 1
-#endif // HYP_SHADER_COMPILER
-
-#endif
-     Ù   X     #ifndef HYP_SHARED
-#define HYP_SHARED
-
-#include "defines.inc"
-
-#ifdef LANG_HLSL
-
-// HLSL <-> GLSL compat
-// @TODO: For Shader Model 6.6+ we can use new intrinsics for packing / unpacking
-float4 unpackUnorm4x8(uint packedVal)
-{
-    float4 unpacked;
-    unpacked.x = float(packedVal & 0xFF);
-    unpacked.y = float((packedVal >> 8) & 0xFF);
-    unpacked.z = float((packedVal >> 16) & 0xFF);
-    unpacked.w = float((packedVal >> 24) & 0xFF);
-    return unpacked / 255.0;
-}
-
-float2 unpackUnorm2x16(uint packedVal)
-{
-    float2 unpacked;
-    unpacked.x = float(packedVal & 0xFFFF);
-    unpacked.y = float((packedVal >> 16) & 0xFFFF);
-    return unpacked / 65535.0;
-}
-
-float2 unpackHalf2x16(uint u)
-{
-    return float2(f16tof32(u & 0xFFFF), f16tof32(u >> 16));
-}
-
-float packUnorm4x8(float4 vec)
-{
-    uint packedVal = uint(vec.x * 255.0) | (uint(vec.y * 255.0) << 8) | (uint(vec.z * 255.0) << 16) | (uint(vec.w * 255.0) << 24);
-    return packedVal;
-}
-
-float packUnorm2x16(float2 vec)
-{
-    uint packedVal = uint(vec.x * 65535.0) | (uint(vec.y * 65535.0) << 16);
-    return packedVal;
-}
-
-uint packHalf2x16(float2 v)
-{
-    return (f32tof16(v.y) << 16) | f32tof16(v.x);
-}
-
-#endif
-
-struct Ray
-{
-    vec3 origin;
-    vec3 direction;
-};
-
-int imod(int a, int b)
-{
-    return (a % b + b) % b;
-}
-
-ivec2 imod(ivec2 a, ivec2 b)
-{
-    return (a % b + b) % b;
-}
-
-ivec3 imod(ivec3 a, ivec3 b)
-{
-    return (a % b + b) % b;
-}
-
-ivec4 imod(ivec4 a, ivec4 b)
-{
-    return (a % b + b) % b;
-}
-
-#define fmod(x, y) ((x) - (y)*floor((x) / (y)))
-
-#define round(x) floor((x) + 0.5)
-
-// #define rcp(x) (1.0 / (x))
-
-float Luminance(vec3 color)
-{
-    return color.r * 0.2125 + color.g * 0.715 + color.b * 0.0721;
-}
-
-#define AngleBetweenVectors(a, b) (acos(dot((a), (b))))
-
-mat4 CreateRotationMatrix(vec3 axis, float angle)
-{
-    axis = normalize(axis);
-    float s = sin(angle);
-    float c = cos(angle);
-    float oc = 1.0 - c;
-
-    return mat4(oc * axis.x * axis.x + c, oc * axis.x * axis.y - axis.z * s, oc * axis.z * axis.x + axis.y * s, 0.0,
-        oc * axis.x * axis.y + axis.z * s, oc * axis.y * axis.y + c, oc * axis.y * axis.z - axis.x * s, 0.0,
-        oc * axis.z * axis.x - axis.y * s, oc * axis.y * axis.z + axis.x * s, oc * axis.z * axis.z + c, 0.0,
-        0.0, 0.0, 0.0, 1.0);
-}
-
-void ComputeOrthonormalBasis(in vec3 normal, out vec3 tangent, out vec3 bitangent)
-{
-    vec3 T;
-    T = cross(normal, vec3(0.0, 1.0, 0.0));
-    T = lerp(cross(normal, vec3(1.0, 0.0, 0.0)), T, step(HYP_FMATH_EPSILON, dot(T, T)));
-
-    T = normalize(T);
-
-    tangent = T;
-    bitangent = normalize(cross(normal, T));
-}
-
-vec3 GetTriplanarBlend(vec3 normal)
-{
-    vec3 blending = normalize(max(abs(normal), 0.0001));
-    blending /= (blending.x + blending.y + blending.z);
-
-    return blending;
-}
-
-#if defined(PIXEL_SHADER) || defined(COMPUTE_SHADER)
-
-#ifdef LANG_GLSL
-
-vec4 SampleTextureTriplanar(sampler samp, texture2D tex, vec3 position, vec3 normal)
-{
-    vec3 blending = GetTriplanarBlend(normal);
-
-    vec4 sample_x = SAMPLE_TEXTURE_2D(samp, tex, position.zy * 0.01);
-    vec4 sample_y = SAMPLE_TEXTURE_2D(samp, tex, position.xz * 0.01);
-    vec4 sample_z = SAMPLE_TEXTURE_2D(samp, tex, position.xy * 0.01);
-
-    return sample_x * blending.x + sample_y * blending.y + sample_z * blending.z;
-}
-
-#elif defined(LANG_HLSL)
-
-float4 SampleTextureTriplanar(sampler samp, Texture2D tex, float3 position, float3 normal)
-{
-    float3 blending = GetTriplanarBlend(normal);
-
-    float4 sample_x = SAMPLE_TEXTURE_2D(samp, tex, position.zy * 0.01);
-    float4 sample_y = SAMPLE_TEXTURE_2D(samp, tex, position.xz * 0.01);
-    float4 sample_z = SAMPLE_TEXTURE_2D(samp, tex, position.xy * 0.01);
-
-    return sample_x * blending.x + sample_y * blending.y + sample_z * blending.z;
-}
-
-#endif
-
-#endif // PIXEL_SHADER || COMPUTE_SHADER
-
-#define GAUSS_TABLE_SIZE 15
-
-#ifdef LANG_GLSL
-const float gauss_table[GAUSS_TABLE_SIZE + 1] = float[](
-    0.1847392078702266,
-    0.16595854345772326,
-    0.12031364177766891,
-    0.07038755277896766,
-    0.03322925565155569,
-    0.012657819729901945,
-    0.0038903040680094217,
-    0.0009646503390864025,
-    0.00019297087402915717,
-    0.000031139936308099136,
-    0.000004053309048174758,
-    4.255228059965837e-7,
-    3.602517634249573e-8,
-    2.4592560765896795e-9,
-    1.3534945386863618e-10,
-    0.0);
-#elif defined(LANG_HLSL)
-static const float gauss_table[GAUSS_TABLE_SIZE + 1] = {
-    0.1847392078702266,
-    0.16595854345772326,
-    0.12031364177766891,
-    0.07038755277896766,
-    0.03322925565155569,
-    0.012657819729901945,
-    0.0038903040680094217,
-    0.0009646503390864025,
-    0.00019297087402915717,
-    0.000031139936308099136,
-    0.000004053309048174758,
-    4.255228059965837e-7,
-    3.602517634249573e-8,
-    2.4592560765896795e-9,
-    1.3534945386863618e-10,
-    0.0 };
-#else
-#error "No LANG_* preprocessor define provided"
-#endif
-
-float GaussianWeight(float value)
-{
-    float idxf;
-    float c = modf(max(0.0, value * float(GAUSS_TABLE_SIZE)), idxf);
-    int idx = int(idxf);
-    if (idx >= GAUSS_TABLE_SIZE + 1)
-    {
-        return 0.0;
-    }
-
-    return lerp(gauss_table[idx], gauss_table[idx + 1], c);
-}
-
-vec4 GaussianBlur9(
-    texture2D tex, sampler samp,
-    vec2 uv,
-    vec2 direction,
-    float radius)
-{
-    vec4 color = vec4(0.0, 0.0, 0.0, 0.0);
-    vec2 offset1 = vec2(1.3846153846, 1.3846153846) * direction;
-    vec2 offset2 = vec2(3.2307692308, 3.2307692308) * direction;
-    color += SAMPLE_TEXTURE_2D(samp, tex, uv) * 0.2270270270;
-    color += SAMPLE_TEXTURE_2D(samp, tex, uv + (offset1 * radius)) * 0.3162162162;
-    color += SAMPLE_TEXTURE_2D(samp, tex, uv - (offset1 * radius)) * 0.3162162162;
-    color += SAMPLE_TEXTURE_2D(samp, tex, uv + (offset2 * radius)) * 0.0702702703;
-    color += SAMPLE_TEXTURE_2D(samp, tex, uv - (offset2 * radius)) * 0.0702702703;
-    return color;
-}
-
-vec4 GaussianBlur5(
-    texture2D tex, sampler samp,
-    vec2 uv,
-    vec2 direction,
-    float radius)
-{
-    vec4 color = vec4(0.0, 0.0, 0.0, 0.0);
-    vec2 offset = vec2(1.333, 1.333) * direction;
-    color += SAMPLE_TEXTURE_2D(samp, tex, uv) * 0.29411764705882354;
-    color += SAMPLE_TEXTURE_2D(samp, tex, uv + (offset * radius)) * 0.35294117647058826;
-    color += SAMPLE_TEXTURE_2D(samp, tex, uv - (offset * radius)) * 0.35294117647058826;
-    return color;
-}
-
-// Based on Unity's Linear01Depth function, Unity uses a reversed depth buffer though.
-float Linear01Depth(float depth, float near, float far)
-{
-    float x = 1.0 - (far / near);
-    float y = (far / near);
-    float z = x / far;
-    float w = y / far;
-
-    return 1.0 - (1.0 / (x * (1.0 - depth) + y));
-}
-
-float ViewDepth(float depth, float near, float far)
-{
-    float x = 1.0 - (far / near);
-    float y = (far / near);
-    float z = x / far;
-    float w = y / far;
-
-    return 1.0 / (z * depth + w);
-
-    // return (far * near) / (far - depth * (far - near));
-}
-
-vec4 ReconstructWorldSpacePositionFromDepth(mat4 inverse_projection, mat4 inverse_view, vec2 coord, float depth)
-{
-    vec4 ndc = vec4(coord * 2.0 - 1.0, depth, 1.0);
-
-#ifdef LANG_HLSL
-    vec4 inversed = mul(inverse_projection, ndc);
-#else
-    vec4 inversed = inverse_projection * ndc;
-#endif
-    inversed /= inversed.w;
-
-#ifdef LANG_HLSL
-    inversed = mul(inverse_view, inversed);
-#else
-    inversed = inverse_view * inversed;
-#endif
-
-    return inversed;
-}
-
-vec4 ReconstructViewSpacePositionFromDepth(mat4 inverse_projection, vec2 coord, float depth)
-{
-    vec4 ndc = vec4(coord * 2.0 - 1.0, depth, 1.0);
-
-#ifdef LANG_HLSL
-    vec4 inversed = mul(inverse_projection, ndc);
-#else
-    vec4 inversed = inverse_projection * ndc;
-#endif
-    inversed /= inversed.w;
-
-    return inversed;
-}
-
-vec2 GetProjectedPositionFromWorld(in mat4 projection, in mat4 view, in vec3 world_space_position)
-{
-#ifdef LANG_HLSL
-    vec4 sample_position = mul(projection, mul(view, vec4(world_space_position, 1.0)));
-#else
-    vec4 sample_position = projection * view * vec4(world_space_position, 1.0);
-#endif
-    return (sample_position.xy / sample_position.w) * 0.5 + 0.5;
-}
-
-vec2 GetProjectedPositionFromWorld(in mat4 view_projection, in vec3 world_space_position)
-{
-#ifdef LANG_HLSL
-    vec4 sample_position = mul(view_projection, vec4(world_space_position, 1.0));
-#else
-    vec4 sample_position = view_projection * vec4(world_space_position, 1.0);
-#endif
-    return (sample_position.xy / sample_position.w) * 0.5 + 0.5;
-}
-
-vec2 GetProjectedPositionFromView(in mat4 projection, in vec3 view_space_position)
-{
-#ifdef LANG_HLSL
-    vec4 sample_position = mul(projection, vec4(view_space_position, 1.0));
-#else
-    vec4 sample_position = projection * vec4(view_space_position, 1.0);
-#endif
-    return (sample_position.xy / sample_position.w) * 0.5 + 0.5;
-}
-
-#ifdef LANG_HLSL
-float3x3 inverse(float3x3 m)
-{
-    float3 a = m[0];
-    float3 b = m[1];
-    float3 c = m[2];
-
-    float3 r0 = cross(b, c);
-    float3 r1 = cross(c, a);
-    float3 r2 = cross(a, b);
-
-    float det = dot(r2, c);
-    float invDet = 1.0 / max(abs(det), 1e-8);
-
-    return float3x3(r0 * invDet, r1 * invDet, r2 * invDet);
-}
-#endif
-
-#ifndef LANG_HLSL
-float saturate(float val)
-{
-    return min(max(val, 0.0), 1.0);
-}
-
-vec2 saturate(vec2 val)
-{
-    return min(max(val, vec2(0.0)), vec2(1.0));
-}
-
-vec3 saturate(vec3 val)
-{
-    return min(max(val, vec3(0.0)), vec3(1.0));
-}
-
-vec4 saturate(vec4 val)
-{
-    return min(max(val, vec4(0.0)), vec4(1.0));
-}
-#endif
-
-vec4 CalculateFogExp(in vec4 start_color, in vec4 end_color, vec3 world_position, vec3 camera_position, float fog_start, float fog_end)
-{
-    const float dist = distance(world_position, camera_position);
-    const float density = 0.00003;
-
-    const float fog_factor = 1.0 / exp(dist * density);
-
-    return lerp(start_color, end_color, 1.0 - fog_factor);
-}
-
-vec4 CalculateFogLinear(in vec4 start_color, in vec4 end_color, vec3 world_position, vec3 camera_position, float fog_start, float fog_end)
-{
-    const float dist = distance(world_position, camera_position);
-
-    const float fog_factor = saturate((fog_end - dist) / (fog_end - fog_start));
-
-    return lerp(start_color, end_color, 1.0 - fog_factor);
-}
-
-float RoughnessToConeAngle(float roughness)
-{
-    float specular_power = 2.0 / pow(roughness, 4.0) - 2.0;
-
-    const float xi = 0.244;
-    float exponent = 1.0 / (specular_power + 1.0);
-    return acos(pow(xi, exponent));
-}
-
-float linstep(float min, float max, float v)
-{
-    return clamp((v - min) / (max - min), 0.0, 1.0);
-}
-
-vec3 RGBToYCoCg(in vec3 rgb)
-{
-    float co = rgb.r - rgb.b;
-    float t = rgb.b + co / 2.0;
-    float cg = rgb.g - t;
-    float y = t + cg / 2.0;
-    return vec3(y, co, cg);
-}
-
-vec4 RGBToYCoCg(in vec4 rgb)
-{
-    float co = rgb.r - rgb.b;
-    float t = rgb.b + co / 2.0;
-    float cg = rgb.g - t;
-    float y = t + cg / 2.0;
-    return vec4(y, co, cg, rgb.a);
-}
-
-vec3 YCoCgToRGB(in vec3 ycocg)
-{
-    float t = ycocg.r - ycocg.b / 2.0;
-    float g = ycocg.b + t;
-    float b = t - ycocg.g / 2.0;
-    float r = ycocg.g + b;
-    return vec3(r, g, b);
-}
-
-vec4 YCoCgToRGB(in vec4 ycocg)
-{
-    float t = ycocg.r - ycocg.b / 2.0;
-    float g = ycocg.b + t;
-    float b = t - ycocg.g / 2.0;
-    float r = ycocg.g + b;
-    return vec4(r, g, b, ycocg.a);

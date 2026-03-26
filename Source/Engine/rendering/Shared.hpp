@@ -1130,7 +1130,7 @@ struct SamplerDesc
     {
         static_assert(sizeof(SamplerDesc) == sizeof(uint32) && std::has_unique_object_representations_v<SamplerDesc>);
 
-        return HashCode::GetHashCode((const uint32*)this);
+        return HashCode::GetHashCode(*(const uint32*)this);
     }
 };
 

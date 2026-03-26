@@ -46,14 +46,10 @@ DECLARE_SRV(PathTracer, MaterialsBuffer) StructuredBuffer<Material> materials;
 
 DECLARE_SRV(PathTracer, MeshDescriptionsBuffer) StructuredBuffer<MeshDescription> mesh_descriptions;
 
-DECLARE_BUFFER_DYNAMIC(PathTracer, CamerasBuffer) cbuffer CamerasBuffer
-{
-    Camera camera;
-};
-
 DECLARE_BUFFER_DYNAMIC(RTReflections, CBuffer) cbuffer CBuffer
 {
     RayTracingConstants rayTracingConstants;
+    Camera camera;
     Light lights[MAX_LIGHTS];
     ShadowMap shadowMaps[MAX_LIGHTS];
 };
@@ -155,14 +151,6 @@ void ClosestHitMain(inout RayPayload payload, in BuiltInTriangleIntersectionAttr
 
     // roughness is authorized as "perceptual roughness", we need to convert it to "physical roughness" for the BRDF calculations
     roughness = roughness * roughness;
-    
-    const float3 V = normalize(camera.position.xyz - position);
-    const float NdotV = max(0.0001, dot(normal, V));
-
-    const float material_reflectance = 0.5;
-    const float reflectance = 0.16 * material_reflectance * material_reflectance;
-    float4 F0 = float4(material_color.rgb * metalness + (reflectance * (1.0 - metalness)), 1.0);
-    float4 F90 = float4(clamp(dot(F0, float4(50.0 * 0.33, 50.0 * 0.33, 50.0 * 0.33, 50.0 * 0.33)), 0.0, 1.0), 0.0, 0.0, 0.0);
 
     payload.emissive = float4(0.0, 0.0, 0.0, 0.0);
     payload.throughput = float4(material_color.rgb, metalness);

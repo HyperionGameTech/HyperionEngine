@@ -181,6 +181,8 @@ private:
     VkFramebuffer m_handle;
     VulkanRenderPass m_renderPass;
     VulkanAttachmentMap m_attachmentMap;
+
+    bool m_isRecording;
 };
 
 } // namespace Hyperion

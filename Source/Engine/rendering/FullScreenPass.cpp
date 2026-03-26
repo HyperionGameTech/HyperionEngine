@@ -570,8 +570,10 @@ void FullScreenPass::RenderToFramebuffer(Frame* frame, const RenderSetup& render
     CommandRecorder& cr = frame->cr;
 
     // are we responsible for starting/ending framebuffer recording?
-    bool shouldStartRecording = !framebuffer->IsDeferredRecording();
-    bool shouldEndRecording = shouldStartRecording;
+    //bool shouldStartRecording = !framebuffer->IsDeferredRecording();
+    //bool shouldEndRecording = shouldStartRecording;
+
+    AssertDebug(framebuffer->IsDeferredRecording());
 
     Array<InsertBarrier, RenderAllocator> preRenderBarriers;
 
@@ -587,7 +589,7 @@ void FullScreenPass::RenderToFramebuffer(Frame* frame, const RenderSetup& render
                 preRenderBarriers.PushBack(InsertBarrier(attachment->GetGpuImage(), attachment->IsDepthAttachment() ? RS_DEPTH_STENCIL : RS_RENDER_TARGET));
             }
         }
-    }*/
+    }
 
     if (preRenderBarriers.Any())
     {
@@ -595,19 +597,19 @@ void FullScreenPass::RenderToFramebuffer(Frame* frame, const RenderSetup& render
         {
             cr << ib;
         }
-    }
+    }*/
 
-    if (shouldStartRecording)
-    {
-        cr << SetCurrentFramebuffer(framebuffer);
-    }
+    //if (shouldStartRecording)
+    //{
+    //    cr << SetCurrentFramebuffer(framebuffer);
+    //}
 
     RenderToFramebuffer_Internal(frame, renderSetup, framebuffer);
 
-    if (shouldEndRecording)
-    {
-        cr << SetCurrentFramebuffer(nullptr);
-    }
+    //if (shouldEndRecording)
+    //{
+    //    cr << SetCurrentFramebuffer(nullptr);
+    //}
 
     m_isFirstFrame = false;
 }

@@ -39,17 +39,13 @@ DECLARE_BUFFER(RTReflections, WorldsBuffer) cbuffer WorldsBuffer
     WorldShaderData world_shader_data;
 };
 
-DECLARE_BUFFER_DYNAMIC(RTReflections, CamerasBuffer) cbuffer CamerasBuffer
-{
-    Camera camera;
-};
-
 #include "../include/rt/RayTracingHelpers.inc"
 #include "../include/rt/payload.inc"
 
 DECLARE_BUFFER_DYNAMIC(RTReflections, CBuffer) cbuffer CBuffer
 {
     RayTracingConstants rayTracingConstants;
+    Camera camera;
 };
 
 #define RAY_OFFSET 0.025

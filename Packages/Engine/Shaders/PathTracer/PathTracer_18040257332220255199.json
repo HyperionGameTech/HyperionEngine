@@ -285,20 +285,6 @@
                 "FieldNames": [],
                 "FieldTypes": []
               }
-            }, {
-              "$Class": "ShaderInput",
-              "Register": 3,
-              "ElementType": 2,
-              "Name": "CamerasBuffer",
-              "Count": 1,
-              "Size": 4294967295,
-              "IsDynamic": true,
-              "StructInfo": {
-                "Name": "",
-                "Size": 4294967295,
-                "FieldNames": [],
-                "FieldTypes": []
-              }
             }], [{
               "$Class": "ShaderInput",
               "Register": 4,
@@ -363,19 +349,19 @@
   "ShaderBlobs": [{
       "$Class": "BlobDataReference",
       "Key": "Engine/Shaders/PathTracer/PathTracer_18040257332220255199.RGS",
-      "Size": 132532
+      "Size": 130956
     }, {
       "$Class": "BlobDataReference",
       "Key": "Engine/Shaders/PathTracer/PathTracer_18040257332220255199.CHS",
-      "Size": 137744
+      "Size": 131676
     }, {
       "$Class": "BlobDataReference",
       "Key": "Engine/Shaders/PathTracer/PathTracer_18040257332220255199.MS",
-      "Size": 36924
+      "Size": 36880
     }],
   "PropertySetHashCode": {},
   "LastCompiledTimestamp": {
-    "Value": 1774448073000
+    "Value": 1774552857000
   },
   "Name": "PathTracer_18040257332220255199",
   "FriendlyName": "PathTracer_18040257332220255199",

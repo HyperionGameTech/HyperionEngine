@@ -45,6 +45,7 @@ DECLARE_SRV(RTReflections, MeshDescriptionsBuffer) StructuredBuffer<MeshDescript
 DECLARE_BUFFER_DYNAMIC(RTReflections, CBuffer) cbuffer CBuffer
 {
     RayTracingConstants rayTracingConstants;
+    Camera camera;
     Light lights[MAX_LIGHTS];
     ShadowMap shadowMaps[MAX_LIGHTS];
 };
