@@ -133,17 +133,31 @@ PSOutput PSMain(PSInput input)
     const uint probe_texture_index = max(0, min(current_env_probe.texture_index, HYP_MAX_BOUND_REFLECTION_PROBES - 1));
 
     float3 R = reflect(-V, N);
+    
+    const float3 aabbMin = current_env_probe.aabb_min.xyz;
+    const float3 aabbMax = current_env_probe.aabb_max.xyz;
 
     // pre-convoluted from baking util
     ApplyReflectionProbe(
         current_env_probe.texture_index,
         current_env_probe.world_position.xyz,
-        current_env_probe.aabb_min.xyz,
-        current_env_probe.aabb_max.xyz,
+        aabbMin,
+        aabbMax,
         P,
         R,
         lod,
         ibl);
+
+    const float3 aabbExtent = aabbMax - aabbMin;
+
+    const float3 blendZone = aabbExtent * 0.1;
+    const float3 distToMin = (P - aabbMin) / blendZone;
+    const float3 distToMax = (aabbMax - P) / blendZone;
+    const float minBlend = min(distToMin.x, min(distToMin.y, min(distToMin.z,
+        min(distToMax.x, min(distToMax.y, distToMax.z)))));
+
+    float weight = smoothstep(0.0, 1.0, minBlend);
+    ibl *= weight;
 
     output.color_output = ibl;
 
