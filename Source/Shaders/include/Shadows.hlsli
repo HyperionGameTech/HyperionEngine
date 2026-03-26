@@ -122,14 +122,10 @@ float GetShadowPCF(in ShadowMap shadowMap, float3 pos, float2 texcoord, float2 s
 
     const float3 coord = GetShadowCoord(shadowMatrix, pos);
 
-    const float2 texel_size = float2(1.0, 1.0) / dimensions;
+    const float shadow_filter_size = 0.001;
+    
+    float noise = InterleavedGradientNoise(texcoord * screen_dimensions - 0.5);
 
-    const float2 a = frac(dimensions * coord.xy);
-    const float2 b = float2(1.0, 1.0) - a;
-
-    const float shadow_filter_size = 0.008;
-
-    const float gradient_noise = InterleavedGradientNoise(texcoord * screen_dimensions - 0.5);
 
 #if defined(HYP_SHADOW_SAMPLES_16)
 #define HYP_SHADOW_SAMPLE_COUNT 16
@@ -140,45 +136,45 @@ float GetShadowPCF(in ShadowMap shadowMap, float3 pos, float2 texcoord, float2 s
 #endif
 
 #define HYP_DEF_VOGEL_DISK(iter_index) \
-    float2 vogel_##iter_index = VogelDisk(iter_index, HYP_SHADOW_SAMPLE_COUNT, gradient_noise)
+    float2 vogel_##iter_index = VogelDisk(iter_index, HYP_SHADOW_SAMPLE_COUNT / 4, noise)
 
-    HYP_DEF_VOGEL_DISK(0); HYP_DEF_VOGEL_DISK(1); HYP_DEF_VOGEL_DISK(2); HYP_DEF_VOGEL_DISK(3);
+    HYP_DEF_VOGEL_DISK(0);
 
 #if defined(HYP_SHADOW_SAMPLES_8) || defined(HYP_SHADOW_SAMPLES_16)
-    HYP_DEF_VOGEL_DISK(4); HYP_DEF_VOGEL_DISK(5); HYP_DEF_VOGEL_DISK(6); HYP_DEF_VOGEL_DISK(7);
+    HYP_DEF_VOGEL_DISK(1);
 #endif
 
 #if defined(HYP_SHADOW_SAMPLES_16)
-    HYP_DEF_VOGEL_DISK(8); HYP_DEF_VOGEL_DISK(9); HYP_DEF_VOGEL_DISK(10); HYP_DEF_VOGEL_DISK(11);
-    HYP_DEF_VOGEL_DISK(12); HYP_DEF_VOGEL_DISK(13);  HYP_DEF_VOGEL_DISK(14); HYP_DEF_VOGEL_DISK(15);
+    HYP_DEF_VOGEL_DISK(2);
+    HYP_DEF_VOGEL_DISK(3);
 #endif
-
 #undef HYP_DEF_VOGEL_DISK
 
     float4 shadow_samples[HYP_SHADOW_SAMPLE_COUNT / 4];
 
-#define HYP_FETCH_SHADOW_SAMPLES(iter_index0, iter_index1, iter_index2, iter_index3)                                                                                                                                          \
-    {                                                                                                                                                                                                                       \
-        float4 samples = float4(                                                                                                                                                                                    \
-            SAMPLE_TEXTURE_2D_ARRAY_LOD(HYP_SAMPLER_LINEAR, shadow_maps, float3(((coord.xy + (vogel_##iter_index0 * s_pcfKernel[iter_index0] * shadow_filter_size)) * uv_scale) + offsetUV, float(shadowMap.layerIndex)), 0).r,    \
-            SAMPLE_TEXTURE_2D_ARRAY_LOD(HYP_SAMPLER_LINEAR, shadow_maps, float3(((coord.xy + (vogel_##iter_index1 * s_pcfKernel[iter_index1] * shadow_filter_size)) * uv_scale) + offsetUV, float(shadowMap.layerIndex)), 0).r,    \
-            SAMPLE_TEXTURE_2D_ARRAY_LOD(HYP_SAMPLER_LINEAR, shadow_maps, float3(((coord.xy + (vogel_##iter_index2 * s_pcfKernel[iter_index2] * shadow_filter_size)) * uv_scale) + offsetUV, float(shadowMap.layerIndex)), 0).r,    \
-            SAMPLE_TEXTURE_2D_ARRAY_LOD(HYP_SAMPLER_LINEAR, shadow_maps, float3(((coord.xy + (vogel_##iter_index3 * s_pcfKernel[iter_index3] * shadow_filter_size)) * uv_scale) + offsetUV, float(shadowMap.layerIndex)), 0).r);   \
-        float4 deltas = max(step(coord.zzzz - (float4)HYP_SHADOW_BIAS, samples), (float4)0.0);                                                                                                                             \
-        shadow_samples[iter_index0 / 4] = deltas;                                                                                                                                              \
+#define HYP_FETCH_SHADOW_SAMPLES(iter_index0)                                                                                         \
+    {                                                                                                                               \
+        float4 samples = shadow_maps.GatherRed(HYP_SAMPLER_LINEAR,                                                                  \
+            float3(((coord.xy + (vogel_##iter_index0 * shadow_filter_size)) * uv_scale) + offsetUV, float(shadowMap.layerIndex)),                                                \
+            int2(0, 0),                                            \
+            int2(2, 0),                                            \
+            int2(0, 2),                                            \
+            int2(2, 2));                                           \
+        float4 deltas = max(step(coord.zzzz - (float4)HYP_SHADOW_BIAS, samples), (float4)0.0);                                      \
+        shadow_samples[iter_index0] = deltas;                                                                                         \
     }
 
     float shadowness = 0.0;
 
-    HYP_FETCH_SHADOW_SAMPLES(0, 1, 2, 3);
+    HYP_FETCH_SHADOW_SAMPLES(0);
 
 #if defined(HYP_SHADOW_SAMPLES_8) || defined(HYP_SHADOW_SAMPLES_16)
-   HYP_FETCH_SHADOW_SAMPLES(4, 5, 6, 7);
+    HYP_FETCH_SHADOW_SAMPLES(1);
 #endif
 
 #if defined(HYP_SHADOW_SAMPLES_16)
-    HYP_FETCH_SHADOW_SAMPLES(8, 9, 10, 11);
-    HYP_FETCH_SHADOW_SAMPLES(12, 13, 14, 15);
+    HYP_FETCH_SHADOW_SAMPLES(2);
+    HYP_FETCH_SHADOW_SAMPLES(3);
 #endif
 
     for (uint i = 0; i < HYP_SHADOW_SAMPLE_COUNT / 4; i++)
