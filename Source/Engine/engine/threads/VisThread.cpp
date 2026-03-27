@@ -108,7 +108,6 @@ static bool ProcessEntity(
 
 #pragma region VisThread
 
-constexpr uint32 MaxVisUpdates = 2048;
 constexpr uint32 TempAllocatorSize = 16 * 1024; // 16KiB per frame ought to be enough
 
 VisThread::VisThread()

@@ -1515,8 +1515,270 @@ static FramebufferRef CreateDeferredShadingFramebuffer(GBuffer* gbuffer)
     return framebuffer;
 }
 
+class TileProcessor
+{
+public:
+    static constexpr uint32 MaxEnvProbesPerTile = 32;
+    static constexpr uint32 MaxLightsPerTile = 128;
+
+    static constexpr uint32 TileSize = 32;
+    static constexpr uint32 TileZBins = 16;
+
+    struct TileGridData
+    {
+        uint32 indexOffset;
+        uint16 numLights;
+        uint16 numEnvProbes;
+    };
+
+    struct TileTempData
+    {
+        uint16 numEnvProbes;
+        uint16 numLights;
+
+        uint16 envProbesIds[MaxEnvProbesPerTile];
+        uint16 lightIds[MaxLightsPerTile];
+    };
+
+    struct TileDataAllocation
+    {
+        size_t gridBufferSize = 0;
+        size_t indexBufferSize = 0;
+        uint32 lastUsedFrame = UINT32_MAX;
+        
+        GpuBufferRef gridGpuBuffer;
+        GpuBufferRef indexGpuBuffer;
+    };
+
+    Array<TileDataAllocation, RenderAllocator> tileDataPerView;
+
+    TileProcessor()
+    {
+
+    }
+
+    TileProcessor(const TileProcessor& other) = delete;
+    TileProcessor& operator=(const TileProcessor& other) = delete;
+
+    ~TileProcessor()
+    {
+        for (TileDataAllocation& allocation : tileDataPerView)
+        {
+            if (allocation.gridGpuBuffer)
+            {
+                EnqueueDeletion(std::move(allocation.gridGpuBuffer));
+            }
+
+            if (allocation.indexGpuBuffer)
+            {
+                EnqueueDeletion(std::move(allocation.indexGpuBuffer));
+            }
+        }
+    }
+
+    void ProcessView(View* view)
+    {
+        Assert(view != nullptr);
+
+        const Vec2u& extent = view->GetOutputTarget().GetFramebuffer()->GetExtent();
+        Assert(extent.Volume() != 0);
+
+        const uint32 numTilesX = (extent.x + TileSize - 1) / TileSize;
+        const uint32 numTilesY = (extent.y + TileSize - 1) / TileSize;
+        const uint32 totalTiles = numTilesX * numTilesY * TileZBins;
+
+        if (tileDataPerView.Size() <= view->Id().ToIndex())
+        {
+            tileDataPerView.Resize(view->Id().ToIndex() + 1);
+        }
+
+        Array<TileTempData, RenderAllocator> tempTiles;
+        tempTiles.ResizeZeroed(totalTiles);
+
+        RenderProxyList& rpl = GetConsumerProxyList(view);
+        rpl.BeginRead();
+        HYP_DEFER({ rpl.EndRead(); });
+
+        RenderProxyCamera* cameraProxy = static_cast<RenderProxyCamera*>(GetRenderProxy(view->GetCamera()));
+        Assert(cameraProxy != nullptr);
+
+        const Mat4f& cameraVP = cameraProxy->bufferData.viewProjMat;
+
+        for (EnvProbe* envProbe : rpl.GetEnvProbes())
+        {
+            RenderProxyEnvProbe* envProbeProxy = static_cast<RenderProxyEnvProbe*>(GetRenderProxy(envProbe));
+            Assert(envProbeProxy != nullptr);
+
+            const BoundingBox aabb = BoundingBox(
+                envProbeProxy->bufferData.aabbMin.GetXYZ(),
+                envProbeProxy->bufferData.aabbMax.GetXYZ());
+                
+            const BoundingBox clipSpaceAABB = cameraVP * aabb;
+
+            if (clipSpaceAABB.min.x > 1.0f || clipSpaceAABB.max.x < -1.0f ||
+                clipSpaceAABB.min.y > 1.0f || clipSpaceAABB.max.y < -1.0f ||
+                clipSpaceAABB.min.z > 1.0f || clipSpaceAABB.max.z < -1.0f)
+            {
+                continue;
+            }
+
+            const uint32 minTileX = uint32(std::max(0.0f, std::floor((clipSpaceAABB.min.x * 0.5f + 0.5f) * extent.x / TileSize)));
+            const uint32 maxTileX = uint32(std::min(float(numTilesX), std::ceil((clipSpaceAABB.max.x * 0.5f + 0.5f) * extent.x / TileSize)));
+            const uint32 minTileY = uint32(std::max(0.0f, std::floor((clipSpaceAABB.min.y * 0.5f + 0.5f) * extent.y / TileSize)));
+            const uint32 maxTileY = uint32(std::min(float(numTilesY), std::ceil((clipSpaceAABB.max.y * 0.5f + 0.5f) * extent.y / TileSize)));
+            const uint32 minZBin = uint32(std::max(0.0f, std::floor((clipSpaceAABB.min.z * 0.5f + 0.5f) * TileZBins)));
+            const uint32 maxZBin = uint32(std::min(float(TileZBins), std::ceil((clipSpaceAABB.max.z * 0.5f + 0.5f) * TileZBins)));
+
+            for (uint32 zBin = minZBin; zBin < maxZBin; zBin++)
+            {
+                for (uint32 tileY = minTileY; tileY < maxTileY; tileY++)
+                {
+                    for (uint32 tileX = minTileX; tileX < maxTileX; tileX++)
+                    {
+                        TileTempData& data = tempTiles[(zBin * numTilesY + tileY) * numTilesX + tileX];
+
+                        if (data.numEnvProbes < MaxEnvProbesPerTile)
+                        {
+                            data.envProbesIds[data.numEnvProbes++] = envProbeProxy->envProbe.Id().Value();
+                        }
+                    }
+                }
+            }
+        }
+
+        for (Light* light : rpl.GetLights())
+        {
+            RenderProxyLight* lightProxy = static_cast<RenderProxyLight*>(GetRenderProxy(light));
+            Assert(lightProxy != nullptr);
+
+            BoundingSphere bounds;
+            bounds.center = lightProxy->bufferData.positionIntensity.GetXYZ();
+            bounds.radius = Float16::FromRaw(uint16(lightProxy->bufferData.radiusFalloffPacked & 0xFFFFu));
+
+            BoundingBox aabb = BoundingBox(bounds);
+        
+            const BoundingBox clipSpaceAABB = cameraVP * aabb;
+
+            if (clipSpaceAABB.min.x > 1.0f || clipSpaceAABB.max.x < -1.0f ||
+                clipSpaceAABB.min.y > 1.0f || clipSpaceAABB.max.y < -1.0f ||
+                clipSpaceAABB.min.z > 1.0f || clipSpaceAABB.max.z < -1.0f)
+            {
+                continue;
+            }
+
+            const uint32 minTileX = uint32(std::max(0.0f, std::floor((clipSpaceAABB.min.x * 0.5f + 0.5f) * extent.x / TileSize)));
+            const uint32 maxTileX = uint32(std::min(float(numTilesX), std::ceil((clipSpaceAABB.max.x * 0.5f + 0.5f) * extent.x / TileSize)));
+            const uint32 minTileY = uint32(std::max(0.0f, std::floor((clipSpaceAABB.min.y * 0.5f + 0.5f) * extent.y / TileSize)));
+            const uint32 maxTileY = uint32(std::min(float(numTilesY), std::ceil((clipSpaceAABB.max.y * 0.5f + 0.5f) * extent.y / TileSize)));
+            const uint32 minZBin = uint32(std::max(0.0f, std::floor((clipSpaceAABB.min.z * 0.5f + 0.5f) * TileZBins)));
+            const uint32 maxZBin = uint32(std::min(float(TileZBins), std::ceil((clipSpaceAABB.max.z * 0.5f + 0.5f) * TileZBins)));
+
+            for (uint32 zBin = minZBin; zBin < maxZBin; zBin++)
+            {
+                for (uint32 tileY = minTileY; tileY < maxTileY; tileY++)
+                {
+                    for (uint32 tileX = minTileX; tileX < maxTileX; tileX++)
+                    {
+                        TileTempData& data = tempTiles[(zBin * numTilesY + tileY) * numTilesX + tileX];
+
+                        if (data.numLights < MaxLightsPerTile)
+                        {
+                            data.lightIds[data.numLights++] = lightProxy->light.Id().Value();
+                        }
+                    }
+                }
+            }
+        }
+
+        Array<TileGridData, RenderTempAllocator> gridData;
+        gridData.Resize(totalTiles);
+        
+        Array<uint16, RenderTempAllocator> flatIndexData;
+        flatIndexData.Reserve(totalTiles * 4);
+
+        uint16 offset = 0;
+
+        for (uint32 i = 0; i < totalTiles; ++i)
+        {
+            const TileTempData& temp = tempTiles[i];
+            
+            gridData[i].indexOffset = uint32(flatIndexData.Size());
+            gridData[i].numLights = temp.numLights;
+            gridData[i].numEnvProbes = temp.numEnvProbes;
+
+            flatIndexData.Resize(offset + temp.numLights + temp.numEnvProbes);
+
+            for (uint16 j = 0; j < temp.numLights; j++)
+            {
+                flatIndexData[offset + j] = temp.lightIds[j];
+            }
+
+            offset += temp.numLights;
+
+            for (uint16 j = 0; j < temp.numEnvProbes; j++)
+            {
+                flatIndexData[offset + j] = temp.envProbesIds[j];
+            }
+
+            offset += temp.numEnvProbes;
+        }
+
+        TileDataAllocation& allocation = tileDataPerView[view->Id().ToIndex()];
+        allocation.lastUsedFrame = GetFrameCounter();
+
+        const size_t requiredGridSize = gridData.Size() * sizeof(TileGridData);
+
+        static constexpr size_t MinIndexBufferSize = 256;
+        const size_t requiredIndexSize = MathUtil::Max(flatIndexData.Size() * sizeof(uint16), MinIndexBufferSize);
+
+        if (!allocation.gridGpuBuffer || allocation.gridBufferSize < requiredGridSize)
+        {
+            if (allocation.gridGpuBuffer)
+            {
+                EnqueueDeletion(std::move(allocation.gridGpuBuffer));
+            }
+
+            allocation.gridGpuBuffer = g_renderInterface->MakeGpuBuffer(GpuBufferType::STORAGE_BUFFER, requiredGridSize);
+            Assert(allocation.gridGpuBuffer.IsValid());
+
+            allocation.gridGpuBuffer->SetIsCpuAccessible(true);
+
+            CheckResult(allocation.gridGpuBuffer->Create());
+
+            allocation.gridBufferSize = requiredGridSize;
+        }
+
+        if (!allocation.indexGpuBuffer || allocation.indexBufferSize < requiredIndexSize)
+        {
+            if (allocation.indexGpuBuffer)
+            {
+                EnqueueDeletion(std::move(allocation.indexGpuBuffer));
+            }
+
+            allocation.indexGpuBuffer = g_renderInterface->MakeGpuBuffer(GpuBufferType::STORAGE_BUFFER, requiredIndexSize);
+            Assert(allocation.indexGpuBuffer.IsValid());
+            
+            allocation.indexGpuBuffer->SetIsCpuAccessible(true);
+
+            CheckResult(allocation.indexGpuBuffer->Create());
+
+            allocation.indexBufferSize = requiredIndexSize;
+        }
+
+        TileGridData* mappedGrid = reinterpret_cast<TileGridData*>(allocation.gridGpuBuffer->Map());
+        Memory::Copy(mappedGrid, gridData.Data(), requiredGridSize);
+
+        if (flatIndexData.Size() > 0)
+        {
+            uint16* mappedIndices = reinterpret_cast<uint16*>(allocation.indexGpuBuffer->Map());
+            Memory::Copy(mappedIndices, flatIndexData.Data(), flatIndexData.Size() * sizeof(uint16));
+        }
+    }
+};
+
 DeferredRenderer::DeferredRenderer()
-    : m_rendererConfig(RendererConfig::FromConfig())
+    : m_rendererConfig(RendererConfig::FromConfig()),
+      m_tileProcessor(MakeUnique<TileProcessor>())
 {
 }
 
@@ -2015,7 +2277,7 @@ void DeferredRenderer::RenderFrameForView(Frame* frame, const RenderSetup& rs)
 
     RenderCollector& renderCollector = GetRenderCollector(view);
 
-    // must be before RecordDrawCalls
+    // must be before BeginRecordDrawCalls
     PerformOcclusionCulling(frame, rs, renderCollector);
     
     renderCollector.BeginRecordDrawCalls(frame, rs, RenderBucketMask<
@@ -2027,6 +2289,8 @@ void DeferredRenderer::RenderFrameForView(Frame* frame, const RenderSetup& rs)
     DeferredRendererPassData& passData = *passDataCasted;
 
     const uint32 frameIndex = frame->GetFrameIndex();
+
+    m_tileProcessor->ProcessView(view);
 
     // Render shadows for shadow casting lights
     for (Light* light : rpl.GetLights())

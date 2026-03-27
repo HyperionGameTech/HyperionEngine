@@ -41,6 +41,7 @@ struct RenderSetup;
 class EntityBatchAllocatorBase;
 class RenderProxyList;
 class RenderCollector;
+class TileProcessor;
 
 enum class LightType : uint32;
 enum EnvProbeType : uint32;
@@ -305,8 +306,6 @@ public:
 
     UniquePtr<RayTracingReflections> rayTracingReflections;
     UniquePtr<DDGI> ddgi;
-
-    mutable Texture* cachedSsrTexture = nullptr;
 };
 
 HYP_CLASS(NoScriptBindings)
@@ -390,6 +389,8 @@ private:
     RendererConfig m_rendererConfig;
 
     Handle<Mesh> m_quadMesh;
+
+    UniquePtr<TileProcessor> m_tileProcessor;
 };
 
 } // namespace Hyperion

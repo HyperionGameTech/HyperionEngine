@@ -169,7 +169,7 @@
     }, {
       "$Class": "BlobDataReference",
       "Key": "Engine/Shaders/GeometryPass/GeometryPass_8173025102338764898.PS",
-      "Size": 66096
+      "Size": 65960
     }],
   "PropertySetHashCode": {},
   "LastCompiledTimestamp": {

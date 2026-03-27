@@ -16,18 +16,17 @@ HYP_ENGINE_MEMORY_DECL Pool* const* g_enginePools[EPN_MAX] = {
 
 #define HYP_ENGINE_MEMORY_DECL HYP_API extern
 
-static constexpr size_t ObjectPoolBlockSize = 1 * 1024 * 1024;    // 1 MiB
-static constexpr size_t RenderPoolBlockSize = 2 * 1024 * 1024;    // 2 MiB
-static constexpr size_t FramePoolBlockSize = 16 * 1024;           // 16 KiB
-static constexpr size_t ScenePoolBlockSize = 16 * 1024 * 1024;    // 16 KiB
-static constexpr size_t TaskPoolBlockSize = 16 * 1024 * 1024;     // 16 KiB
+static constexpr size_t ObjectPoolBlockSize = 16 * 1024 * 1024;    // 16 MiB
+static constexpr size_t RenderPoolBlockSize = 16 * 1024 * 1024;    // 16 MiB
+static constexpr size_t ScenePoolBlockSize = 16 * 1024 * 1024;    // 16 MiB
+static constexpr size_t TaskPoolBlockSize = 4 * 1024 * 1024;     // 4 MiB
 static constexpr size_t ResourcePoolBlockSize = 1 * 1024 * 1024;  // 1 MiB
 static constexpr size_t AssetPoolBlockSize = 64 * 1024 * 1024;    // 64 MiB
 static constexpr size_t StreamingPoolBlockSize = 1 * 1024 * 1024; // 1 MiB
 
 static constexpr size_t SceneArenaSize = 64 * 1024;               // 64 KiB
 static constexpr size_t StreamingArenaSize = 64 * 1024;           // 64 KiB
-static constexpr size_t RenderArenaSize = 64 * 1024;              // 64 KiB
+static constexpr size_t RenderArenaSize = 16 * 1024 * 1024;              // 64 MiB
 
 #if HYP_VULKAN
 static constexpr size_t VulkanPoolBlockSize = 8 * 1024 * 1024;
@@ -41,11 +40,10 @@ HYP_ENGINE_MEMORY_DECL Pool* const* g_enginePools[EPN_MAX];
 #endif
 
 HYP_ENGINE_MEMORY_DECL Pool* g_objectPool;                  // Pool for object allocations, thread safe
-HYP_ENGINE_MEMORY_DECL Pool* g_renderPool;                  // Pool for render thread general allocations
+HYP_ENGINE_MEMORY_DECL Pool* g_renderPool;                  // Pool for rendering general allocations
 HYP_ENGINE_MEMORY_DECL Pool* g_scenePool;                   // Pool for scene-related allocations (thread safe)
 HYP_ENGINE_MEMORY_DECL Pool* g_taskPool;                    // Pool for task system allocations (thread safe)
 HYP_ENGINE_MEMORY_DECL Pool* g_assetPool;                   // Pool for asset system allocations (thread safe)
-HYP_ENGINE_MEMORY_DECL Pool* g_resourcePool;                // Pool for paged data allocations (thread safe)
 HYP_ENGINE_MEMORY_DECL Pool* g_streamingPool;               // Pool for streaming system allocations (thread safe)
 
 #if HYP_VULKAN
@@ -98,7 +96,6 @@ static void InitMemoryPools()
     g_renderPool = new Pool(RenderPoolBlockSize);
     g_scenePool = new Pool(ScenePoolBlockSize);
     g_taskPool = new Pool(TaskPoolBlockSize);
-    g_resourcePool = new Pool(ResourcePoolBlockSize);
     g_assetPool = new Pool(AssetPoolBlockSize);
     g_streamingPool = new Pool(StreamingPoolBlockSize);
 

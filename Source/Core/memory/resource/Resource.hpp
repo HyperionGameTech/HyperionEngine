@@ -21,8 +21,6 @@
 
 namespace Hyperion {
 
-HYP_API extern Pool* g_resourcePool;
-
 class ResourceBase;
 
 class IResourceMemoryPool;

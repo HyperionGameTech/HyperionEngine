@@ -7,16 +7,6 @@
 #include <Core/threading/Mutex.hpp>
 #include <Core/threading/ConditionVariable.hpp>
 
-#include <Core/utilities/Span.hpp>
-
-#include <Core/memory/allocator/ArenaAllocator.hpp>
-
-#include <scene/EntitySet.hpp>
-
-#include <Core/utilities/ClockTimer.hpp>
-
-#include <engine/EngineMemory.hpp>
-
 #include <semaphore>
 
 namespace Hyperion {
@@ -28,21 +18,20 @@ class View;
 
 struct VisibilityStateComponent;
 
-class VisThread final : public TaskThread
+class TileWorker final : public TaskThread
 {
 public:
-    using EntitySetType = EntitySet<VisibilityStateComponent, TagComponent<EntityTag::UpdateVisibility>>;
-
-    VisThread();
-    ~VisThread();
+    TileWorker();
+    ~TileWorker();
 
     bool Start();
     void Stop() override;
 
     void AddViewToProcess(View* view);
+    void WaitUntilProcessed(View* view);
 
     void OnFrameStart(uint32 frameCounter);
-    void OnFrameEnd(Array<Entity*, SceneTempAllocator>& outProcessedEntities);
+    void OnFrameEnd();
 
     void Process();
 
@@ -51,11 +40,13 @@ private:
 
     Arena m_tempAllocator;
 
-    std::binary_semaphore m_visSemaphore;
-    std::binary_semaphore m_simSemaphore;
+    Mutex m_mtx;
+    ConditionVariable m_cv;
+
+    std::binary_semaphore m_workerSemaphore;
+    std::binary_semaphore m_renderSemaphore;
 
     Array<View*> m_views;
-    Array<Entity*> m_processedEntities;
 
     uint32 m_frameCounter;
 };
