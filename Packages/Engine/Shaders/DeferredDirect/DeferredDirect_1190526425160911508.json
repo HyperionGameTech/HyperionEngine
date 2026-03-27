@@ -24,6 +24,12 @@
       "Flags": 0,
       "Value": "DIRECTIONAL",
       "EnumValues": []
+    }, {
+      "$Class": "ShaderProperty",
+      "Name": "PATHTRACER",
+      "Flags": 0,
+      "Value": null,
+      "EnumValues": []
     }],
   "RevisionNumber": 31459917,
   "BaseName": "DeferredDirect",
@@ -274,18 +280,18 @@
   "EntryPointNames": ["VSMain", "PSMain"],
   "ShaderBlobs": [{
       "$Class": "BlobDataReference",
-      "Key": "Engine/Shaders/DeferredDirect/DeferredDirect_14873082431805482417.VS",
-      "Size": 11164
+      "Key": "Engine/Shaders/DeferredDirect/DeferredDirect_1190526425160911508.VS",
+      "Size": 11184
     }, {
       "$Class": "BlobDataReference",
-      "Key": "Engine/Shaders/DeferredDirect/DeferredDirect_14873082431805482417.PS",
-      "Size": 229360
+      "Key": "Engine/Shaders/DeferredDirect/DeferredDirect_1190526425160911508.PS",
+      "Size": 186460
     }],
   "PropertySetHashCode": {},
   "LastCompiledTimestamp": {
     "Value": 1774584158000
   },
-  "Name": "DeferredDirect_14873082431805482417",
-  "FriendlyName": "DeferredDirect_14873082431805482417",
+  "Name": "DeferredDirect_1190526425160911508",
+  "FriendlyName": "DeferredDirect_1190526425160911508",
   "OriginalFilepath": ""
 }

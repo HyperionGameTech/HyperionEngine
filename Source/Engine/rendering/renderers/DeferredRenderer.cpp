@@ -1695,10 +1695,18 @@ public:
             const uint32 maxTileX = uint32(std::min(float(numTilesX), std::ceil((clipSpaceAABB.max.x * 0.5f + 0.5f) * extent.x / TileSize)));
             const uint32 minTileY = uint32(std::max(0.0f, std::floor((clipSpaceAABB.min.y * 0.5f + 0.5f) * extent.y / TileSize)));
             const uint32 maxTileY = uint32(std::min(float(numTilesY), std::ceil((clipSpaceAABB.max.y * 0.5f + 0.5f) * extent.y / TileSize)));
-            const uint32 minZBin = uint32(std::max(0.0f, std::floor((clipSpaceAABB.min.z * 0.5f + 0.5f) * TileZBins)));
-            const uint32 maxZBin = uint32(std::min(float(TileZBins), std::ceil((clipSpaceAABB.max.z * 0.5f + 0.5f) * TileZBins)));
 
-            for (uint32 zBin = minZBin; zBin < maxZBin; zBin++)
+            const BoundingBox viewSpaceAABB = cameraProxy->bufferData.viewMat * aabb;
+            float envProbeMinViewZ = std::min(std::abs(viewSpaceAABB.min.z), std::abs(viewSpaceAABB.max.z));
+            float envProbeMaxViewZ = std::max(std::abs(viewSpaceAABB.min.z), std::abs(viewSpaceAABB.max.z));
+
+            envProbeMinViewZ = MathUtil::Clamp(envProbeMinViewZ, cameraProxy->bufferData.cameraNear, cameraProxy->bufferData.cameraFar);
+            envProbeMaxViewZ = MathUtil::Clamp(envProbeMaxViewZ, cameraProxy->bufferData.cameraNear, cameraProxy->bufferData.cameraFar);
+
+            const uint32 minZBin = uint32(MathUtil::Clamp(int32(std::log2(envProbeMinViewZ) * scale + bias), 0, int32(TileZBins - 1)));
+            const uint32 maxZBin = uint32(MathUtil::Clamp(int32(std::log2(envProbeMaxViewZ) * scale + bias), 0, int32(TileZBins - 1)));
+
+            for (uint32 zBin = minZBin; zBin <= maxZBin; zBin++)
             {
                 for (uint32 tileY = minTileY; tileY < maxTileY; tileY++)
                 {
@@ -1784,7 +1792,7 @@ public:
         Array<uint16, RenderTempAllocator> flatIndexData;
         flatIndexData.Reserve(totalTiles * 4);
 
-        uint16 offset = 0;
+        uint32 offset = 0;
 
         for (uint32 i = 0; i < totalTiles; ++i)
         {

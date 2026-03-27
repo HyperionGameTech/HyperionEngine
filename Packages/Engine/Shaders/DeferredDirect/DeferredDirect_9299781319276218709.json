@@ -20,9 +20,27 @@
       "EnumValues": []
     }, {
       "$Class": "ShaderProperty",
+      "Name": "PATHTRACER",
+      "Flags": 0,
+      "Value": null,
+      "EnumValues": []
+    }, {
+      "$Class": "ShaderProperty",
       "Name": "LIGHT_TYPE",
       "Flags": 0,
-      "Value": "DIRECTIONAL",
+      "Value": "CLUSTERED",
+      "EnumValues": []
+    }, {
+      "$Class": "ShaderProperty",
+      "Name": "TILE_SIZE",
+      "Flags": 0,
+      "Value": 32,
+      "EnumValues": []
+    }, {
+      "$Class": "ShaderProperty",
+      "Name": "TILE_Z_BINS",
+      "Flags": 0,
+      "Value": 16,
       "EnumValues": []
     }],
   "RevisionNumber": 31459917,
@@ -34,14 +52,64 @@
     "Elements": [{
         "$Class": "ShaderInputSet",
         "SetIndex": 0,
-        "Name": "BindlessResources0",
-        "Slots": [[], [], [], [], []],
-        "Flags": 1
-      }, {
-        "$Class": "ShaderInputSet",
-        "SetIndex": 1,
         "Name": "DeferredPass",
         "Slots": [[{
+              "$Class": "ShaderInput",
+              "Register": 1,
+              "ElementType": 3,
+              "Name": "ClusterGridBuffer",
+              "Count": 1,
+              "Size": 4294967295,
+              "IsDynamic": false,
+              "StructInfo": {
+                "Name": "",
+                "Size": 4294967295,
+                "FieldNames": [],
+                "FieldTypes": []
+              }
+            }, {
+              "$Class": "ShaderInput",
+              "Register": 1,
+              "ElementType": 3,
+              "Name": "EnvProbesBuffer",
+              "Count": 1,
+              "Size": 4294967295,
+              "IsDynamic": false,
+              "StructInfo": {
+                "Name": "",
+                "Size": 4294967295,
+                "FieldNames": [],
+                "FieldTypes": []
+              }
+            }, {
+              "$Class": "ShaderInput",
+              "Register": 1,
+              "ElementType": 3,
+              "Name": "ClusterIndexBuffer",
+              "Count": 1,
+              "Size": 4294967295,
+              "IsDynamic": false,
+              "StructInfo": {
+                "Name": "",
+                "Size": 4294967295,
+                "FieldNames": [],
+                "FieldTypes": []
+              }
+            }, {
+              "$Class": "ShaderInput",
+              "Register": 1,
+              "ElementType": 3,
+              "Name": "LightsBuffer",
+              "Count": 1,
+              "Size": 4294967295,
+              "IsDynamic": false,
+              "StructInfo": {
+                "Name": "",
+                "Size": 4294967295,
+                "FieldNames": [],
+                "FieldTypes": []
+              }
+            }, {
               "$Class": "ShaderInput",
               "Register": 1,
               "ElementType": 5,
@@ -199,20 +267,6 @@
               "$Class": "ShaderInput",
               "Register": 3,
               "ElementType": 2,
-              "Name": "CBuffer",
-              "Count": 1,
-              "Size": 4294967295,
-              "IsDynamic": true,
-              "StructInfo": {
-                "Name": "",
-                "Size": 4294967295,
-                "FieldNames": [],
-                "FieldTypes": []
-              }
-            }, {
-              "$Class": "ShaderInput",
-              "Register": 3,
-              "ElementType": 2,
               "Name": "CamerasBuffer",
               "Count": 1,
               "Size": 4294967295,
@@ -267,6 +321,12 @@
               }
             }], []],
         "Flags": 0
+      }, {
+        "$Class": "ShaderInputSet",
+        "SetIndex": 1,
+        "Name": "BindlessResources0",
+        "Slots": [[], [], [], [], []],
+        "Flags": 1
       }]
   },
   "ShaderModuleTypes": [1, 2],
@@ -274,18 +334,18 @@
   "EntryPointNames": ["VSMain", "PSMain"],
   "ShaderBlobs": [{
       "$Class": "BlobDataReference",
-      "Key": "Engine/Shaders/DeferredDirect/DeferredDirect_14873082431805482417.VS",
-      "Size": 11164
+      "Key": "Engine/Shaders/DeferredDirect/DeferredDirect_9299781319276218709.VS",
+      "Size": 11392
     }, {
       "$Class": "BlobDataReference",
-      "Key": "Engine/Shaders/DeferredDirect/DeferredDirect_14873082431805482417.PS",
-      "Size": 229360
+      "Key": "Engine/Shaders/DeferredDirect/DeferredDirect_9299781319276218709.PS",
+      "Size": 191748
     }],
   "PropertySetHashCode": {},
   "LastCompiledTimestamp": {
     "Value": 1774584158000
   },
-  "Name": "DeferredDirect_14873082431805482417",
-  "FriendlyName": "DeferredDirect_14873082431805482417",
+  "Name": "DeferredDirect_9299781319276218709",
+  "FriendlyName": "DeferredDirect_9299781319276218709",
   "OriginalFilepath": ""
 }
