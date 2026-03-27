@@ -282,15 +282,6 @@ PSOutput PSMain(PSInput input)
         lightHit = true;
     }
 
-    // if (lightHit)
-    // {
-    //     result = float4(1.0, 0.0, 0.0, 1.0); // debug
-    // }
-    // else
-    // {
-    //     result = float4(0.0, 0.0, 0.0, 1.0); // debug
-    // }
-
     // Env probes will be in indirect pass.
 #else // !LIGHT_TYPE_CLUSTERED
 

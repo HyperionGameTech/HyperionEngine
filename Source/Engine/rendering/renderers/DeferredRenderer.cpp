@@ -1666,119 +1666,168 @@ public:
 
         const Mat4f& cameraVP = cameraProxy->bufferData.viewProjMat;
 
-        const float scale = float(TileZBins) / std::log2(cameraProxy->bufferData.cameraFar / cameraProxy->bufferData.cameraNear);
-        const float bias = -(float(TileZBins) * std::log2(cameraProxy->bufferData.cameraNear)) / std::log2(cameraProxy->bufferData.cameraFar / cameraProxy->bufferData.cameraNear);
+        const float cameraNear = cameraProxy->bufferData.cameraNear;
+        const float cameraFar = cameraProxy->bufferData.cameraFar;
+        const float logFarOverNear = std::log2(cameraFar / cameraNear);
 
-        for (EnvProbe* envProbe : rpl.GetEnvProbes())
+        const float scale = float(TileZBins) / logFarOverNear;
+        const float bias = -(float(TileZBins) * std::log2(cameraNear)) / logFarOverNear;
+
+        const Mat4f& viewMatrix = cameraProxy->bufferData.viewMat;
+        const Mat4f& projMatrix = cameraProxy->bufferData.projMat;
+
+        auto CalculateZBin = [scale, bias](float viewSpaceZ) -> int32
         {
-            RenderProxyEnvProbe* envProbeProxy = static_cast<RenderProxyEnvProbe*>(GetRenderProxy(envProbe));
-            Assert(envProbeProxy != nullptr);
+            const float z = MathUtil::Max(viewSpaceZ, 0.0001f);
+            const int32 zBin = int32(std::log2(z) * scale + bias);
 
-            const BoundingBox aabb = BoundingBox(
-                envProbeProxy->bufferData.aabbMin.GetXYZ(),
-                envProbeProxy->bufferData.aabbMax.GetXYZ());
-                
-            const BoundingBox clipSpaceAABB = cameraVP * aabb;
+            return MathUtil::Clamp(zBin, 0, int32(TileZBins) - 1);
+        };
 
-            if (clipSpaceAABB.min.x > 1.0f || clipSpaceAABB.max.x < -1.0f ||
-                clipSpaceAABB.min.y > 1.0f || clipSpaceAABB.max.y < -1.0f ||
-                clipSpaceAABB.min.z > 1.0f || clipSpaceAABB.max.z < -1.0f)
+        auto ProjectSphereToScreenAABB = [&projMatrix, &extent, cameraNear, numTilesX, numTilesY](
+            const Vec3f& centerVS, float radius,
+            uint32& outMinX, uint32& outMinY, uint32& outMaxX, uint32& outMaxY) -> bool
+        {
+            const float dist = centerVS.z;
+
+            if (dist + radius < cameraNear)
+            {
+                return false;
+            }
+
+            const float projScaleX = projMatrix[0][0];
+            const float projScaleY = projMatrix[1][1];
+
+            const float effectiveZ = MathUtil::Max(dist, cameraNear);
+            const float invZ = 1.0f / effectiveZ;
+
+            const float ndcCenterX = centerVS.x * projScaleX * invZ;
+            const float ndcCenterY = centerVS.y * projScaleY * invZ;
+
+            const float nearestZ = MathUtil::Max(dist - radius, cameraNear);
+            const float invNearestZ = 1.0f / nearestZ;
+            const float ndcRadiusX = radius * std::abs(projScaleX) * invNearestZ;
+            const float ndcRadiusY = radius * std::abs(projScaleY) * invNearestZ;
+
+            const float halfW = float(extent.x) * 0.5f;
+            const float halfH = float(extent.y) * 0.5f;
+
+            const float pixMinX = (ndcCenterX - ndcRadiusX) * halfW + halfW;
+            const float pixMaxX = (ndcCenterX + ndcRadiusX) * halfW + halfW;
+            const float pixMinY = (ndcCenterY - ndcRadiusY) * halfH + halfH;
+            const float pixMaxY = (ndcCenterY + ndcRadiusY) * halfH + halfH;
+
+            outMinX = uint32(MathUtil::Max(int32(pixMinX) / int32(TileSize), 0));
+            outMinY = uint32(MathUtil::Max(int32(pixMinY) / int32(TileSize), 0));
+            outMaxX = MathUtil::Min(uint32(MathUtil::Max(pixMaxX, 0.0f)) / TileSize, numTilesX - 1);
+            outMaxY = MathUtil::Min(uint32(MathUtil::Max(pixMaxY, 0.0f)) / TileSize, numTilesY - 1);
+
+            return outMinX <= outMaxX && outMinY <= outMaxY;
+        };
+
+        for (Light* light : rpl.GetLights())
+        {
+            const LightType lightType = light->GetLightType();
+
+            if (!DeferredRendererHelpers::CanClusterLight(lightType))
             {
                 continue;
             }
-            
-            const uint32 binding = Resources::GetBinding(envProbe);
-            Assert(binding != ~0u);
 
-            const uint32 minTileX = uint32(std::max(0.0f, std::floor((clipSpaceAABB.min.x * 0.5f + 0.5f) * extent.x / TileSize)));
-            const uint32 maxTileX = uint32(std::min(float(numTilesX), std::ceil((clipSpaceAABB.max.x * 0.5f + 0.5f) * extent.x / TileSize)));
-            const uint32 minTileY = uint32(std::max(0.0f, std::floor((clipSpaceAABB.min.y * 0.5f + 0.5f) * extent.y / TileSize)));
-            const uint32 maxTileY = uint32(std::min(float(numTilesY), std::ceil((clipSpaceAABB.max.y * 0.5f + 0.5f) * extent.y / TileSize)));
+            const uint32 lightBindingIndex = Resources::GetBinding(light);
 
-            const BoundingBox viewSpaceAABB = cameraProxy->bufferData.viewMat * aabb;
-            float envProbeMinViewZ = std::min(std::abs(viewSpaceAABB.min.z), std::abs(viewSpaceAABB.max.z));
-            float envProbeMaxViewZ = std::max(std::abs(viewSpaceAABB.min.z), std::abs(viewSpaceAABB.max.z));
-
-            envProbeMinViewZ = MathUtil::Clamp(envProbeMinViewZ, cameraProxy->bufferData.cameraNear, cameraProxy->bufferData.cameraFar);
-            envProbeMaxViewZ = MathUtil::Clamp(envProbeMaxViewZ, cameraProxy->bufferData.cameraNear, cameraProxy->bufferData.cameraFar);
-
-            const uint32 minZBin = uint32(MathUtil::Clamp(int32(std::log2(envProbeMinViewZ) * scale + bias), 0, int32(TileZBins - 1)));
-            const uint32 maxZBin = uint32(MathUtil::Clamp(int32(std::log2(envProbeMaxViewZ) * scale + bias), 0, int32(TileZBins - 1)));
-
-            for (uint32 zBin = minZBin; zBin <= maxZBin; zBin++)
+            if (lightBindingIndex == ~0u)
             {
-                for (uint32 tileY = minTileY; tileY < maxTileY; tileY++)
-                {
-                    for (uint32 tileX = minTileX; tileX < maxTileX; tileX++)
-                    {
-                        Tile& tile = tempTiles[(zBin * numTilesY + tileY) * numTilesX + tileX];
+                continue;
+            }
 
-                        if (tile.numEnvProbes < MaxEnvProbesPerTile)
+            const Vec3f lightPosWS = light->GetPosition();
+            const Vec3f lightPosVS = viewMatrix * lightPosWS;
+            const float lightRadius = light->GetRadius();
+
+            uint32 tileMinX;
+            uint32 tileMinY;
+            uint32 tileMaxX;
+            uint32 tileMaxY;
+
+            if (!ProjectSphereToScreenAABB(lightPosVS, lightRadius, tileMinX, tileMinY, tileMaxX, tileMaxY))
+            {
+                continue;
+            }
+
+            const float lightDistVS = lightPosVS.z;
+            const int32 zBinMin = CalculateZBin(MathUtil::Max(lightDistVS - lightRadius, cameraNear));
+            const int32 zBinMax = CalculateZBin(MathUtil::Min(lightDistVS + lightRadius, cameraFar));
+
+            for (int32 z = zBinMin; z <= zBinMax; z++)
+            {
+                for (uint32 y = tileMinY; y <= tileMaxY; y++)
+                {
+                    for (uint32 x = tileMinX; x <= tileMaxX; x++)
+                    {
+                        const uint32 clusterIndex = (uint32(z) * numTilesY + y) * numTilesX + x;
+
+                        Tile& tile = tempTiles[clusterIndex];
+
+                        if (tile.numLights < MaxLightsPerTile)
                         {
-                            tile.envProbeIndices[tile.numEnvProbes++] = binding;
+                            tile.lightIndices[tile.numLights++] = uint16(lightBindingIndex);
                         }
                     }
                 }
             }
         }
 
-        for (Light* light : rpl.GetLights())
+        for (EnvProbe* envProbe : rpl.GetEnvProbes())
         {
-            if (!DeferredRendererHelpers::CanClusterLight(light->GetLightType()))
-            {
-                // We don't handle these light types in clusters.
-                continue;
-            }
+            const uint32 envProbeBindingIndex = Resources::GetBinding(envProbe);
 
-            RenderProxyLight* lightProxy = static_cast<RenderProxyLight*>(GetRenderProxy(light));
-            Assert(lightProxy != nullptr);
-
-            BoundingSphere bounds;
-            bounds.center = lightProxy->bufferData.positionIntensity.GetXYZ();
-            bounds.radius = Float16::FromRaw(uint16(lightProxy->bufferData.radiusFalloffPacked & 0xFFFFu));
-
-            BoundingBox aabb = BoundingBox(bounds);
-            BoundingBox aabbCS = cameraVP * aabb;
-
-            if (aabbCS.min.x > 1.0f || aabbCS.max.x < -1.0f
-                || aabbCS.min.y > 1.0f || aabbCS.max.y < -1.0f)
+            if (envProbeBindingIndex == ~0u)
             {
                 continue;
             }
 
-            const uint32 binding = Resources::GetBinding(light);
-            Assert(binding != ~0u);
-        
-            const Mat4f& viewMat = cameraProxy->bufferData.viewMat;
-            Vec3f centerVS = (viewMat * Vec4f(bounds.center, 1.0f)).GetXYZ();
+            RenderProxyEnvProbe* envProbeProxy = static_cast<RenderProxyEnvProbe*>(GetRenderProxy(envProbe));
 
-            float viewZ = std::abs(centerVS.z); 
-
-            float minViewZ = viewZ - bounds.radius;
-            float maxViewZ = viewZ + bounds.radius;
-
-            minViewZ = MathUtil::Clamp(minViewZ, cameraProxy->bufferData.cameraNear, cameraProxy->bufferData.cameraFar);
-            maxViewZ = MathUtil::Clamp(maxViewZ, cameraProxy->bufferData.cameraNear, cameraProxy->bufferData.cameraFar);
-
-            const uint32 minTileX = uint32(std::max(0.0f, std::floor((aabbCS.min.x * 0.5f + 0.5f) * extent.x / TileSize)));
-            const uint32 maxTileX = uint32(std::min(float(numTilesX), std::ceil((aabbCS.max.x * 0.5f + 0.5f) * extent.x / TileSize)));
-            const uint32 minTileY = uint32(std::max(0.0f, std::floor((aabbCS.min.y * 0.5f + 0.5f) * extent.y / TileSize)));
-            const uint32 maxTileY = uint32(std::min(float(numTilesY), std::ceil((aabbCS.max.y * 0.5f + 0.5f) * extent.y / TileSize)));
-
-            const uint32 minZBin = uint32(MathUtil::Clamp(int32(std::log2(minViewZ) * scale + bias), 0, int32(TileZBins - 1)));
-            const uint32 maxZBin = uint32(MathUtil::Clamp(int32(std::log2(maxViewZ) * scale + bias), 0, int32(TileZBins - 1)));
-
-            for (uint32 zBin = minZBin; zBin <= maxZBin; zBin++)
+            if (envProbeProxy == nullptr)
             {
-                for (uint32 tileY = minTileY; tileY < maxTileY; tileY++)
+                continue;
+            }
+
+            const Vec3f aabbMinWS = envProbeProxy->bufferData.aabbMin.GetXYZ();
+            const Vec3f aabbMaxWS = envProbeProxy->bufferData.aabbMax.GetXYZ();
+            const Vec3f centerWS = (aabbMinWS + aabbMaxWS) * 0.5f;
+            const float probeRadius = (aabbMaxWS - centerWS).Length();
+
+            const Vec3f centerVS = viewMatrix * centerWS;
+
+            uint32 tileMinX;
+            uint32 tileMinY;
+            uint32 tileMaxX;
+            uint32 tileMaxY;
+
+            if (!ProjectSphereToScreenAABB(centerVS, probeRadius, tileMinX, tileMinY, tileMaxX, tileMaxY))
+            {
+                continue;
+            }
+
+            const float probeDistVS = centerVS.z;
+            const int32 zBinMin = CalculateZBin(MathUtil::Max(probeDistVS - probeRadius, cameraNear));
+            const int32 zBinMax = CalculateZBin(MathUtil::Min(probeDistVS + probeRadius, cameraFar));
+
+            for (int32 z = zBinMin; z <= zBinMax; z++)
+            {
+                for (uint32 y = tileMinY; y <= tileMaxY; y++)
                 {
-                    for (uint32 tileX = minTileX; tileX < maxTileX; tileX++)
+                    for (uint32 x = tileMinX; x <= tileMaxX; x++)
                     {
-                        Tile& tile = tempTiles[(zBin * numTilesY + tileY) * numTilesX + tileX];
+                        const uint32 clusterIndex = (uint32(z) * numTilesY + y) * numTilesX + x;
 
-                        if (tile.numLights < MaxLightsPerTile)
+                        Tile& tile = tempTiles[clusterIndex];
+
+                        if (tile.numEnvProbes < MaxEnvProbesPerTile)
                         {
-                            tile.lightIndices[tile.numLights++] = binding;
+                            tile.envProbeIndices[tile.numEnvProbes++] = uint16(envProbeBindingIndex);
                         }
                     }
                 }
