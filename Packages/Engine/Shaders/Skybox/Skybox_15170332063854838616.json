@@ -113,11 +113,11 @@
   "ShaderBlobs": [{
       "$Class": "BlobDataReference",
       "Key": "Engine/Shaders/Skybox/Skybox_15170332063854838616.VS",
-      "Size": 56280
+      "Size": 56284
     }, {
       "$Class": "BlobDataReference",
       "Key": "Engine/Shaders/Skybox/Skybox_15170332063854838616.PS",
-      "Size": 55876
+      "Size": 55880
     }],
   "PropertySetHashCode": {},
   "LastCompiledTimestamp": {

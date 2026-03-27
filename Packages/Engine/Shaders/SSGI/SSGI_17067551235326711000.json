@@ -281,7 +281,7 @@
   "ShaderBlobs": [{
       "$Class": "BlobDataReference",
       "Key": "Engine/Shaders/SSGI/SSGI_17067551235326711000.CS",
-      "Size": 181536
+      "Size": 182356
     }],
   "PropertySetHashCode": {},
   "LastCompiledTimestamp": {

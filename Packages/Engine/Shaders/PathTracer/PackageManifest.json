@@ -1,7 +1,0 @@
-{
-  "Dependencies": [],
-  "Name": "PathTracer",
-  "FriendlyName": "PathTracer",
-  "Flags": 0,
-  "Path": "Engine/Shaders/PathTracer"
-}

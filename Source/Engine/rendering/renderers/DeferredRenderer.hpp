@@ -306,6 +306,9 @@ public:
 
     UniquePtr<RayTracingReflections> rayTracingReflections;
     UniquePtr<DDGI> ddgi;
+
+    GpuBuffer* clusterGridBuffer = nullptr;
+    GpuBuffer* clusterIndexBuffer = nullptr;
 };
 
 HYP_CLASS(NoScriptBindings)

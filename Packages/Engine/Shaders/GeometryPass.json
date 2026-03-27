@@ -3,7 +3,7 @@
   "CompiledShaders": [{
       "$Class": "AssetReference",
       "AssetPath": {
-        "Value": "Engine/Shaders/GeometryPass/GeometryPass_8173025102338765698"
+        "Value": "Engine/Shaders/GeometryPass/GeometryPass_8173025102338765818"
       }
     }, {
       "$Class": "AssetReference",
@@ -13,602 +13,17 @@
     }, {
       "$Class": "AssetReference",
       "AssetPath": {
-        "Value": "Engine/Shaders/GeometryPass/GeometryPass_8173025102338765794"
-      }
-    }, {
-      "$Class": "AssetReference",
-      "AssetPath": {
-        "Value": "Engine/Shaders/GeometryPass/GeometryPass_8173025102338765746"
-      }
-    }, {
-      "$Class": "AssetReference",
-      "AssetPath": {
-        "Value": "Engine/Shaders/GeometryPass/GeometryPass_8173025102338764802"
-      }
-    }, {
-      "$Class": "AssetReference",
-      "AssetPath": {
-        "Value": "Engine/Shaders/GeometryPass/GeometryPass_8173025102338764922"
-      }
-    }, {
-      "$Class": "AssetReference",
-      "AssetPath": {
-        "Value": "Engine/Shaders/GeometryPass/GeometryPass_8173025102338764874"
-      }
-    }, {
-      "$Class": "AssetReference",
-      "AssetPath": {
-        "Value": "Engine/Shaders/GeometryPass/GeometryPass_8173025102338764866"
-      }
-    }, {
-      "$Class": "AssetReference",
-      "AssetPath": {
-        "Value": "Engine/Shaders/GeometryPass/GeometryPass_8173025102338764810"
-      }
-    }, {
-      "$Class": "AssetReference",
-      "AssetPath": {
-        "Value": "Engine/Shaders/GeometryPass/GeometryPass_789732564087242420"
-      }
-    }, {
-      "$Class": "AssetReference",
-      "AssetPath": {
-        "Value": "Engine/Shaders/GeometryPass/GeometryPass_789732564087242396"
-      }
-    }, {
-      "$Class": "AssetReference",
-      "AssetPath": {
-        "Value": "Engine/Shaders/GeometryPass/GeometryPass_789732564087242388"
-      }
-    }, {
-      "$Class": "AssetReference",
-      "AssetPath": {
-        "Value": "Engine/Shaders/GeometryPass/GeometryPass_789732564087242380"
-      }
-    }, {
-      "$Class": "AssetReference",
-      "AssetPath": {
-        "Value": "Engine/Shaders/GeometryPass/GeometryPass_789732564087241044"
-      }
-    }, {
-      "$Class": "AssetReference",
-      "AssetPath": {
-        "Value": "Engine/Shaders/GeometryPass/GeometryPass_789732564087242300"
-      }
-    }, {
-      "$Class": "AssetReference",
-      "AssetPath": {
-        "Value": "Engine/Shaders/GeometryPass/GeometryPass_7485626566727086403"
-      }
-    }, {
-      "$Class": "AssetReference",
-      "AssetPath": {
-        "Value": "Engine/Shaders/GeometryPass/GeometryPass_7485626566727086459"
-      }
-    }, {
-      "$Class": "AssetReference",
-      "AssetPath": {
-        "Value": "Engine/Shaders/GeometryPass/GeometryPass_7485626566727086387"
-      }
-    }, {
-      "$Class": "AssetReference",
-      "AssetPath": {
-        "Value": "Engine/Shaders/GeometryPass/GeometryPass_7485626566727086411"
-      }
-    }, {
-      "$Class": "AssetReference",
-      "AssetPath": {
-        "Value": "Engine/Shaders/GeometryPass/GeometryPass_7485626566727086243"
-      }
-    }, {
-      "$Class": "AssetReference",
-      "AssetPath": {
-        "Value": "Engine/Shaders/GeometryPass/GeometryPass_7485626566727086267"
-      }
-    }, {
-      "$Class": "AssetReference",
-      "AssetPath": {
-        "Value": "Engine/Shaders/GeometryPass/GeometryPass_12997497142188121252"
-      }
-    }, {
-      "$Class": "AssetReference",
-      "AssetPath": {
-        "Value": "Engine/Shaders/GeometryPass/GeometryPass_789732564087242476"
-      }
-    }, {
-      "$Class": "AssetReference",
-      "AssetPath": {
-        "Value": "Engine/Shaders/GeometryPass/GeometryPass_12997497142188121140"
-      }
-    }, {
-      "$Class": "AssetReference",
-      "AssetPath": {
-        "Value": "Engine/Shaders/GeometryPass/GeometryPass_789732564087242452"
-      }
-    }, {
-      "$Class": "AssetReference",
-      "AssetPath": {
-        "Value": "Engine/Shaders/GeometryPass/GeometryPass_789732564087242428"
-      }
-    }, {
-      "$Class": "AssetReference",
-      "AssetPath": {
-        "Value": "Engine/Shaders/GeometryPass/GeometryPass_789732564087241052"
-      }
-    }, {
-      "$Class": "AssetReference",
-      "AssetPath": {
-        "Value": "Engine/Shaders/GeometryPass/GeometryPass_789732564087242412"
-      }
-    }, {
-      "$Class": "AssetReference",
-      "AssetPath": {
-        "Value": "Engine/Shaders/GeometryPass/GeometryPass_789732564087242492"
-      }
-    }, {
-      "$Class": "AssetReference",
-      "AssetPath": {
-        "Value": "Engine/Shaders/GeometryPass/GeometryPass_789732564087242460"
-      }
-    }, {
-      "$Class": "AssetReference",
-      "AssetPath": {
-        "Value": "Engine/Shaders/GeometryPass/GeometryPass_16779099286101286697"
-      }
-    }, {
-      "$Class": "AssetReference",
-      "AssetPath": {
-        "Value": "Engine/Shaders/GeometryPass/GeometryPass_7485626566727086435"
-      }
-    }, {
-      "$Class": "AssetReference",
-      "AssetPath": {
-        "Value": "Engine/Shaders/GeometryPass/GeometryPass_789732564087242404"
-      }
-    }, {
-      "$Class": "AssetReference",
-      "AssetPath": {
-        "Value": "Engine/Shaders/GeometryPass/GeometryPass_12407244494021180757"
-      }
-    }, {
-      "$Class": "AssetReference",
-      "AssetPath": {
-        "Value": "Engine/Shaders/GeometryPass/GeometryPass_15170332063854838000"
-      }
-    }, {
-      "$Class": "AssetReference",
-      "AssetPath": {
-        "Value": "Engine/Shaders/GeometryPass/GeometryPass_789732564087242244"
-      }
-    }, {
-      "$Class": "AssetReference",
-      "AssetPath": {
-        "Value": "Engine/Shaders/GeometryPass/GeometryPass_7485626566727086395"
-      }
-    }, {
-      "$Class": "AssetReference",
-      "AssetPath": {
-        "Value": "Engine/Shaders/GeometryPass/GeometryPass_8173025102338765722"
-      }
-    }, {
-      "$Class": "AssetReference",
-      "AssetPath": {
-        "Value": "Engine/Shaders/GeometryPass/GeometryPass_7485626566727086427"
-      }
-    }, {
-      "$Class": "AssetReference",
-      "AssetPath": {
-        "Value": "Engine/Shaders/GeometryPass/GeometryPass_7485626566727086443"
-      }
-    }, {
-      "$Class": "AssetReference",
-      "AssetPath": {
-        "Value": "Engine/Shaders/GeometryPass/GeometryPass_12407244494021180741"
-      }
-    }, {
-      "$Class": "AssetReference",
-      "AssetPath": {
         "Value": "Engine/Shaders/GeometryPass/GeometryPass_8173025102338765802"
       }
     }, {
       "$Class": "AssetReference",
       "AssetPath": {
-        "Value": "Engine/Shaders/GeometryPass/GeometryPass_7485626566727086307"
-      }
-    }, {
-      "$Class": "AssetReference",
-      "AssetPath": {
-        "Value": "Engine/Shaders/GeometryPass/GeometryPass_12407244494021180677"
-      }
-    }, {
-      "$Class": "AssetReference",
-      "AssetPath": {
-        "Value": "Engine/Shaders/GeometryPass/GeometryPass_7485626566727086419"
-      }
-    }, {
-      "$Class": "AssetReference",
-      "AssetPath": {
-        "Value": "Engine/Shaders/GeometryPass/GeometryPass_789732564087242364"
-      }
-    }, {
-      "$Class": "AssetReference",
-      "AssetPath": {
-        "Value": "Engine/Shaders/GeometryPass/GeometryPass_12407244494021180733"
-      }
-    }, {
-      "$Class": "AssetReference",
-      "AssetPath": {
-        "Value": "Engine/Shaders/GeometryPass/GeometryPass_12407244494021180725"
-      }
-    }, {
-      "$Class": "AssetReference",
-      "AssetPath": {
-        "Value": "Engine/Shaders/GeometryPass/GeometryPass_789732564087242284"
-      }
-    }, {
-      "$Class": "AssetReference",
-      "AssetPath": {
-        "Value": "Engine/Shaders/GeometryPass/GeometryPass_16779099286101286569"
-      }
-    }, {
-      "$Class": "AssetReference",
-      "AssetPath": {
-        "Value": "Engine/Shaders/GeometryPass/GeometryPass_8173025102338765610"
-      }
-    }, {
-      "$Class": "AssetReference",
-      "AssetPath": {
-        "Value": "Engine/Shaders/GeometryPass/GeometryPass_8173025102338764914"
-      }
-    }, {
-      "$Class": "AssetReference",
-      "AssetPath": {
-        "Value": "Engine/Shaders/GeometryPass/GeometryPass_8173025102338765730"
-      }
-    }, {
-      "$Class": "AssetReference",
-      "AssetPath": {
-        "Value": "Engine/Shaders/GeometryPass/GeometryPass_7485626566727086371"
-      }
-    }, {
-      "$Class": "AssetReference",
-      "AssetPath": {
-        "Value": "Engine/Shaders/GeometryPass/GeometryPass_789732564087242316"
-      }
-    }, {
-      "$Class": "AssetReference",
-      "AssetPath": {
-        "Value": "Engine/Shaders/GeometryPass/GeometryPass_16779099286101286761"
-      }
-    }, {
-      "$Class": "AssetReference",
-      "AssetPath": {
-        "Value": "Engine/Shaders/GeometryPass/GeometryPass_789732564087242268"
-      }
-    }, {
-      "$Class": "AssetReference",
-      "AssetPath": {
-        "Value": "Engine/Shaders/GeometryPass/GeometryPass_12407244494021180685"
-      }
-    }, {
-      "$Class": "AssetReference",
-      "AssetPath": {
-        "Value": "Engine/Shaders/GeometryPass/GeometryPass_14414497022837931512"
-      }
-    }, {
-      "$Class": "AssetReference",
-      "AssetPath": {
-        "Value": "Engine/Shaders/GeometryPass/GeometryPass_8173025102338765602"
-      }
-    }, {
-      "$Class": "AssetReference",
-      "AssetPath": {
-        "Value": "Engine/Shaders/GeometryPass/GeometryPass_16779099286101286705"
-      }
-    }, {
-      "$Class": "AssetReference",
-      "AssetPath": {
-        "Value": "Engine/Shaders/GeometryPass/GeometryPass_12997497142188121268"
-      }
-    }, {
-      "$Class": "AssetReference",
-      "AssetPath": {
-        "Value": "Engine/Shaders/GeometryPass/GeometryPass_8173025102338765754"
-      }
-    }, {
-      "$Class": "AssetReference",
-      "AssetPath": {
-        "Value": "Engine/Shaders/GeometryPass/GeometryPass_16779099286101286769"
-      }
-    }, {
-      "$Class": "AssetReference",
-      "AssetPath": {
-        "Value": "Engine/Shaders/GeometryPass/GeometryPass_7485626566727086083"
-      }
-    }, {
-      "$Class": "AssetReference",
-      "AssetPath": {
-        "Value": "Engine/Shaders/GeometryPass/GeometryPass_12407244494021180717"
-      }
-    }, {
-      "$Class": "AssetReference",
-      "AssetPath": {
-        "Value": "Engine/Shaders/GeometryPass/GeometryPass_7485626566727086331"
-      }
-    }, {
-      "$Class": "AssetReference",
-      "AssetPath": {
-        "Value": "Engine/Shaders/GeometryPass/GeometryPass_16779099286101286729"
-      }
-    }, {
-      "$Class": "AssetReference",
-      "AssetPath": {
-        "Value": "Engine/Shaders/GeometryPass/GeometryPass_7485626566727086323"
-      }
-    }, {
-      "$Class": "AssetReference",
-      "AssetPath": {
-        "Value": "Engine/Shaders/GeometryPass/GeometryPass_16779099286101286777"
-      }
-    }, {
-      "$Class": "AssetReference",
-      "AssetPath": {
-        "Value": "Engine/Shaders/GeometryPass/GeometryPass_8173025102338765738"
-      }
-    }, {
-      "$Class": "AssetReference",
-      "AssetPath": {
-        "Value": "Engine/Shaders/GeometryPass/GeometryPass_8173025102338765706"
-      }
-    }, {
-      "$Class": "AssetReference",
-      "AssetPath": {
-        "Value": "Engine/Shaders/GeometryPass/GeometryPass_16779099286101286713"
-      }
-    }, {
-      "$Class": "AssetReference",
-      "AssetPath": {
-        "Value": "Engine/Shaders/GeometryPass/GeometryPass_7485626566727086259"
-      }
-    }, {
-      "$Class": "AssetReference",
-      "AssetPath": {
-        "Value": "Engine/Shaders/GeometryPass/GeometryPass_7485626566727086283"
-      }
-    }, {
-      "$Class": "AssetReference",
-      "AssetPath": {
-        "Value": "Engine/Shaders/GeometryPass/GeometryPass_7485626566727086275"
-      }
-    }, {
-      "$Class": "AssetReference",
-      "AssetPath": {
-        "Value": "Engine/Shaders/GeometryPass/GeometryPass_15170332063854837880"
-      }
-    }, {
-      "$Class": "AssetReference",
-      "AssetPath": {
-        "Value": "Engine/Shaders/GeometryPass/GeometryPass_15170332063854837944"
-      }
-    }, {
-      "$Class": "AssetReference",
-      "AssetPath": {
-        "Value": "Engine/Shaders/GeometryPass/GeometryPass_14414497022837931456"
-      }
-    }, {
-      "$Class": "AssetReference",
-      "AssetPath": {
-        "Value": "Engine/Shaders/GeometryPass/GeometryPass_8173025102338765586"
-      }
-    }, {
-      "$Class": "AssetReference",
-      "AssetPath": {
-        "Value": "Engine/Shaders/GeometryPass/GeometryPass_8173025102338764898"
-      }
-    }, {
-      "$Class": "AssetReference",
-      "AssetPath": {
-        "Value": "Engine/Shaders/GeometryPass/GeometryPass_8173025102338764906"
-      }
-    }, {
-      "$Class": "AssetReference",
-      "AssetPath": {
-        "Value": "Engine/Shaders/GeometryPass/GeometryPass_8173025102338765618"
-      }
-    }, {
-      "$Class": "AssetReference",
-      "AssetPath": {
-        "Value": "Engine/Shaders/GeometryPass/GeometryPass_16779099286101286745"
-      }
-    }, {
-      "$Class": "AssetReference",
-      "AssetPath": {
-        "Value": "Engine/Shaders/GeometryPass/GeometryPass_8173025102338765714"
-      }
-    }, {
-      "$Class": "AssetReference",
-      "AssetPath": {
-        "Value": "Engine/Shaders/GeometryPass/GeometryPass_16779099286101286537"
-      }
-    }, {
-      "$Class": "AssetReference",
-      "AssetPath": {
-        "Value": "Engine/Shaders/GeometryPass/GeometryPass_15170332063854837960"
-      }
-    }, {
-      "$Class": "AssetReference",
-      "AssetPath": {
-        "Value": "Engine/Shaders/GeometryPass/GeometryPass_16779099286101286601"
-      }
-    }, {
-      "$Class": "AssetReference",
-      "AssetPath": {
-        "Value": "Engine/Shaders/GeometryPass/GeometryPass_8173025102338765626"
-      }
-    }, {
-      "$Class": "AssetReference",
-      "AssetPath": {
-        "Value": "Engine/Shaders/GeometryPass/GeometryPass_7485626566727086451"
-      }
-    }, {
-      "$Class": "AssetReference",
-      "AssetPath": {
-        "Value": "Engine/Shaders/GeometryPass/GeometryPass_8173025102338765818"
-      }
-    }, {
-      "$Class": "AssetReference",
-      "AssetPath": {
-        "Value": "Engine/Shaders/GeometryPass/GeometryPass_15170332063854837992"
-      }
-    }, {
-      "$Class": "AssetReference",
-      "AssetPath": {
-        "Value": "Engine/Shaders/GeometryPass/GeometryPass_8173025102338764890"
-      }
-    }, {
-      "$Class": "AssetReference",
-      "AssetPath": {
-        "Value": "Engine/Shaders/GeometryPass/GeometryPass_8173025102338764882"
+        "Value": "Engine/Shaders/GeometryPass/GeometryPass_8173025102338765794"
       }
     }, {
       "$Class": "AssetReference",
       "AssetPath": {
         "Value": "Engine/Shaders/GeometryPass/GeometryPass_8173025102338765778"
-      }
-    }, {
-      "$Class": "AssetReference",
-      "AssetPath": {
-        "Value": "Engine/Shaders/GeometryPass/GeometryPass_15170332063854837872"
-      }
-    }, {
-      "$Class": "AssetReference",
-      "AssetPath": {
-        "Value": "Engine/Shaders/GeometryPass/GeometryPass_789732564087242484"
-      }
-    }, {
-      "$Class": "AssetReference",
-      "AssetPath": {
-        "Value": "Engine/Shaders/GeometryPass/GeometryPass_15170332063854837864"
-      }
-    }, {
-      "$Class": "AssetReference",
-      "AssetPath": {
-        "Value": "Engine/Shaders/GeometryPass/GeometryPass_15170332063854837984"
-      }
-    }, {
-      "$Class": "AssetReference",
-      "AssetPath": {
-        "Value": "Engine/Shaders/GeometryPass/GeometryPass_12407244494021180885"
-      }
-    }, {
-      "$Class": "AssetReference",
-      "AssetPath": {
-        "Value": "Engine/Shaders/GeometryPass/GeometryPass_14414497022837931368"
-      }
-    }, {
-      "$Class": "AssetReference",
-      "AssetPath": {
-        "Value": "Engine/Shaders/GeometryPass/GeometryPass_14414497022837931312"
-      }
-    }, {
-      "$Class": "AssetReference",
-      "AssetPath": {
-        "Value": "Engine/Shaders/GeometryPass/GeometryPass_15170332063854837968"
-      }
-    }, {
-      "$Class": "AssetReference",
-      "AssetPath": {
-        "Value": "Engine/Shaders/GeometryPass/GeometryPass_15170332063854837800"
-      }
-    }, {
-      "$Class": "AssetReference",
-      "AssetPath": {
-        "Value": "Engine/Shaders/GeometryPass/GeometryPass_14414497022837931488"
-      }
-    }, {
-      "$Class": "AssetReference",
-      "AssetPath": {
-        "Value": "Engine/Shaders/GeometryPass/GeometryPass_15170332063854837784"
-      }
-    }, {
-      "$Class": "AssetReference",
-      "AssetPath": {
-        "Value": "Engine/Shaders/GeometryPass/GeometryPass_15170332063854837904"
-      }
-    }, {
-      "$Class": "AssetReference",
-      "AssetPath": {
-        "Value": "Engine/Shaders/GeometryPass/GeometryPass_15170332063854837952"
-      }
-    }, {
-      "$Class": "AssetReference",
-      "AssetPath": {
-        "Value": "Engine/Shaders/GeometryPass/GeometryPass_15170332063854837776"
-      }
-    }, {
-      "$Class": "AssetReference",
-      "AssetPath": {
-        "Value": "Engine/Shaders/GeometryPass/GeometryPass_15170332063854837792"
-      }
-    }, {
-      "$Class": "AssetReference",
-      "AssetPath": {
-        "Value": "Engine/Shaders/GeometryPass/GeometryPass_15170332063854837768"
-      }
-    }, {
-      "$Class": "AssetReference",
-      "AssetPath": {
-        "Value": "Engine/Shaders/GeometryPass/GeometryPass_15170332063854837856"
-      }
-    }, {
-      "$Class": "AssetReference",
-      "AssetPath": {
-        "Value": "Engine/Shaders/GeometryPass/GeometryPass_15170332063854837832"
-      }
-    }, {
-      "$Class": "AssetReference",
-      "AssetPath": {
-        "Value": "Engine/Shaders/GeometryPass/GeometryPass_15170332063854838592"
-      }
-    }, {
-      "$Class": "AssetReference",
-      "AssetPath": {
-        "Value": "Engine/Shaders/GeometryPass/GeometryPass_15170332063854837888"
-      }
-    }, {
-      "$Class": "AssetReference",
-      "AssetPath": {
-        "Value": "Engine/Shaders/GeometryPass/GeometryPass_15170332063854837760"
-      }
-    }, {
-      "$Class": "AssetReference",
-      "AssetPath": {
-        "Value": "Engine/Shaders/GeometryPass/GeometryPass_14414497022837931408"
-      }
-    }, {
-      "$Class": "AssetReference",
-      "AssetPath": {
-        "Value": "Engine/Shaders/GeometryPass/GeometryPass_14414497022837931472"
-      }
-    }, {
-      "$Class": "AssetReference",
-      "AssetPath": {
-        "Value": "Engine/Shaders/GeometryPass/GeometryPass_14414497022837931496"
-      }
-    }, {
-      "$Class": "AssetReference",
-      "AssetPath": {
-        "Value": "Engine/Shaders/GeometryPass/GeometryPass_14414497022837931280"
-      }
-    }, {
-      "$Class": "AssetReference",
-      "AssetPath": {
-        "Value": "Engine/Shaders/GeometryPass/GeometryPass_16779099286101286617"
-      }
-    }, {
-      "$Class": "AssetReference",
-      "AssetPath": {
-        "Value": "Engine/Shaders/GeometryPass/GeometryPass_12407244494021180693"
       }
     }, {
       "$Class": "AssetReference",
@@ -623,82 +38,52 @@
     }, {
       "$Class": "AssetReference",
       "AssetPath": {
-        "Value": "Engine/Shaders/GeometryPass/GeometryPass_8173025102338765786"
+        "Value": "Engine/Shaders/GeometryPass/GeometryPass_8173025102338765754"
       }
     }, {
       "$Class": "AssetReference",
       "AssetPath": {
-        "Value": "Engine/Shaders/GeometryPass/GeometryPass_12407244494021180853"
+        "Value": "Engine/Shaders/GeometryPass/GeometryPass_8173025102338764914"
       }
     }, {
       "$Class": "AssetReference",
       "AssetPath": {
-        "Value": "Engine/Shaders/GeometryPass/GeometryPass_12407244494021180821"
+        "Value": "Engine/Shaders/GeometryPass/GeometryPass_8173025102338764898"
       }
     }, {
       "$Class": "AssetReference",
       "AssetPath": {
-        "Value": "Engine/Shaders/GeometryPass/GeometryPass_8173025102338765594"
+        "Value": "Engine/Shaders/GeometryPass/GeometryPass_8173025102338764890"
       }
     }, {
       "$Class": "AssetReference",
       "AssetPath": {
-        "Value": "Engine/Shaders/GeometryPass/GeometryPass_16779099286101286633"
+        "Value": "Engine/Shaders/GeometryPass/GeometryPass_8173025102338764882"
       }
     }, {
       "$Class": "AssetReference",
       "AssetPath": {
-        "Value": "Engine/Shaders/GeometryPass/GeometryPass_789732564087242444"
+        "Value": "Engine/Shaders/GeometryPass/GeometryPass_8173025102338765586"
       }
     }, {
       "$Class": "AssetReference",
       "AssetPath": {
-        "Value": "Engine/Shaders/GeometryPass/GeometryPass_789732564087242468"
+        "Value": "Engine/Shaders/GeometryPass/GeometryPass_8173025102338764874"
       }
     }, {
       "$Class": "AssetReference",
       "AssetPath": {
-        "Value": "Engine/Shaders/GeometryPass/GeometryPass_789732564087242436"
+        "Value": "Engine/Shaders/GeometryPass/GeometryPass_16779099286101286761"
       }
     }, {
       "$Class": "AssetReference",
       "AssetPath": {
-        "Value": "Engine/Shaders/GeometryPass/GeometryPass_12997497142188121332"
+        "Value": "Engine/Shaders/GeometryPass/GeometryPass_16779099286101286729"
       }
     }, {
       "$Class": "AssetReference",
       "AssetPath": {
-        "Value": "Engine/Shaders/GeometryPass/GeometryPass_14414497022837931504"
-      }
-    }, {
-      "$Class": "AssetReference",
-      "AssetPath": {
-        "Value": "Engine/Shaders/GeometryPass/GeometryPass_12997497142188121300"
-      }
-    }, {
-      "$Class": "AssetReference",
-      "AssetPath": {
-        "Value": "Engine/Shaders/GeometryPass/GeometryPass_14414497022837931416"
-      }
-    }, {
-      "$Class": "AssetReference",
-      "AssetPath": {
-        "Value": "Engine/Shaders/GeometryPass/GeometryPass_12997497142188121260"
-      }
-    }, {
-      "$Class": "AssetReference",
-      "AssetPath": {
-        "Value": "Engine/Shaders/GeometryPass/GeometryPass_789732564087242372"
-      }
-    }, {
-      "$Class": "AssetReference",
-      "AssetPath": {
-        "Value": "Engine/Shaders/GeometryPass/GeometryPass_16779099286101286737"
-      }
-    }, {
-      "$Class": "AssetReference",
-      "AssetPath": {
-        "Value": "Engine/Shaders/GeometryPass/GeometryPass_789732564087242276"
+        "Value": "Engine/Shaders/GeometryPass/GeometryPass_16779099286101286713"
       }
     }, {
       "$Class": "AssetReference",
@@ -708,77 +93,7 @@
     }, {
       "$Class": "AssetReference",
       "AssetPath": {
-        "Value": "Engine/Shaders/GeometryPass/GeometryPass_7485626566727086291"
-      }
-    }, {
-      "$Class": "AssetReference",
-      "AssetPath": {
-        "Value": "Engine/Shaders/GeometryPass/GeometryPass_789732564087242356"
-      }
-    }, {
-      "$Class": "AssetReference",
-      "AssetPath": {
-        "Value": "Engine/Shaders/GeometryPass/GeometryPass_12997497142188121324"
-      }
-    }, {
-      "$Class": "AssetReference",
-      "AssetPath": {
-        "Value": "Engine/Shaders/GeometryPass/GeometryPass_7485626566727086299"
-      }
-    }, {
-      "$Class": "AssetReference",
-      "AssetPath": {
-        "Value": "Engine/Shaders/GeometryPass/GeometryPass_12407244494021180805"
-      }
-    }, {
-      "$Class": "AssetReference",
-      "AssetPath": {
-        "Value": "Engine/Shaders/GeometryPass/GeometryPass_789732564087242260"
-      }
-    }, {
-      "$Class": "AssetReference",
-      "AssetPath": {
-        "Value": "Engine/Shaders/GeometryPass/GeometryPass_16779099286101286585"
-      }
-    }, {
-      "$Class": "AssetReference",
-      "AssetPath": {
-        "Value": "Engine/Shaders/GeometryPass/GeometryPass_789732564087242340"
-      }
-    }, {
-      "$Class": "AssetReference",
-      "AssetPath": {
-        "Value": "Engine/Shaders/GeometryPass/GeometryPass_16779099286101286609"
-      }
-    }, {
-      "$Class": "AssetReference",
-      "AssetPath": {
-        "Value": "Engine/Shaders/GeometryPass/GeometryPass_12407244494021180789"
-      }
-    }, {
-      "$Class": "AssetReference",
-      "AssetPath": {
-        "Value": "Engine/Shaders/GeometryPass/GeometryPass_789732564087242252"
-      }
-    }, {
-      "$Class": "AssetReference",
-      "AssetPath": {
-        "Value": "Engine/Shaders/GeometryPass/GeometryPass_789732564087242308"
-      }
-    }, {
-      "$Class": "AssetReference",
-      "AssetPath": {
-        "Value": "Engine/Shaders/GeometryPass/GeometryPass_16779099286101286593"
-      }
-    }, {
-      "$Class": "AssetReference",
-      "AssetPath": {
-        "Value": "Engine/Shaders/GeometryPass/GeometryPass_16779099286101286577"
-      }
-    }, {
-      "$Class": "AssetReference",
-      "AssetPath": {
-        "Value": "Engine/Shaders/GeometryPass/GeometryPass_789732564087242292"
+        "Value": "Engine/Shaders/GeometryPass/GeometryPass_15170332063854838616"
       }
     }, {
       "$Class": "AssetReference",
@@ -788,12 +103,292 @@
     }, {
       "$Class": "AssetReference",
       "AssetPath": {
-        "Value": "Engine/Shaders/GeometryPass/GeometryPass_7485626566727086315"
+        "Value": "Engine/Shaders/GeometryPass/GeometryPass_15170332063854838000"
       }
     }, {
       "$Class": "AssetReference",
       "AssetPath": {
-        "Value": "Engine/Shaders/GeometryPass/GeometryPass_15170332063854837896"
+        "Value": "Engine/Shaders/GeometryPass/GeometryPass_15170332063854837992"
+      }
+    }, {
+      "$Class": "AssetReference",
+      "AssetPath": {
+        "Value": "Engine/Shaders/GeometryPass/GeometryPass_8173025102338765714"
+      }
+    }, {
+      "$Class": "AssetReference",
+      "AssetPath": {
+        "Value": "Engine/Shaders/GeometryPass/GeometryPass_16779099286101286697"
+      }
+    }, {
+      "$Class": "AssetReference",
+      "AssetPath": {
+        "Value": "Engine/Shaders/GeometryPass/GeometryPass_15170332063854837864"
+      }
+    }, {
+      "$Class": "AssetReference",
+      "AssetPath": {
+        "Value": "Engine/Shaders/GeometryPass/GeometryPass_8173025102338764922"
+      }
+    }, {
+      "$Class": "AssetReference",
+      "AssetPath": {
+        "Value": "Engine/Shaders/GeometryPass/GeometryPass_15170332063854837880"
+      }
+    }, {
+      "$Class": "AssetReference",
+      "AssetPath": {
+        "Value": "Engine/Shaders/GeometryPass/GeometryPass_15170332063854837872"
+      }
+    }, {
+      "$Class": "AssetReference",
+      "AssetPath": {
+        "Value": "Engine/Shaders/GeometryPass/GeometryPass_8173025102338765626"
+      }
+    }, {
+      "$Class": "AssetReference",
+      "AssetPath": {
+        "Value": "Engine/Shaders/GeometryPass/GeometryPass_8173025102338764866"
+      }
+    }, {
+      "$Class": "AssetReference",
+      "AssetPath": {
+        "Value": "Engine/Shaders/GeometryPass/GeometryPass_8173025102338765610"
+      }
+    }, {
+      "$Class": "AssetReference",
+      "AssetPath": {
+        "Value": "Engine/Shaders/GeometryPass/GeometryPass_8173025102338765602"
+      }
+    }, {
+      "$Class": "AssetReference",
+      "AssetPath": {
+        "Value": "Engine/Shaders/GeometryPass/GeometryPass_8173025102338765786"
+      }
+    }, {
+      "$Class": "AssetReference",
+      "AssetPath": {
+        "Value": "Engine/Shaders/GeometryPass/GeometryPass_8173025102338765706"
+      }
+    }, {
+      "$Class": "AssetReference",
+      "AssetPath": {
+        "Value": "Engine/Shaders/GeometryPass/GeometryPass_8173025102338765698"
+      }
+    }, {
+      "$Class": "AssetReference",
+      "AssetPath": {
+        "Value": "Engine/Shaders/GeometryPass/GeometryPass_8173025102338765738"
+      }
+    }, {
+      "$Class": "AssetReference",
+      "AssetPath": {
+        "Value": "Engine/Shaders/GeometryPass/GeometryPass_8173025102338765730"
+      }
+    }, {
+      "$Class": "AssetReference",
+      "AssetPath": {
+        "Value": "Engine/Shaders/GeometryPass/GeometryPass_8173025102338764802"
+      }
+    }, {
+      "$Class": "AssetReference",
+      "AssetPath": {
+        "Value": "Engine/Shaders/GeometryPass/GeometryPass_8173025102338765746"
+      }
+    }, {
+      "$Class": "AssetReference",
+      "AssetPath": {
+        "Value": "Engine/Shaders/GeometryPass/GeometryPass_8173025102338764810"
+      }
+    }, {
+      "$Class": "AssetReference",
+      "AssetPath": {
+        "Value": "Engine/Shaders/GeometryPass/GeometryPass_8173025102338765618"
+      }
+    }, {
+      "$Class": "AssetReference",
+      "AssetPath": {
+        "Value": "Engine/Shaders/GeometryPass/GeometryPass_8173025102338765722"
+      }
+    }, {
+      "$Class": "AssetReference",
+      "AssetPath": {
+        "Value": "Engine/Shaders/GeometryPass/GeometryPass_8173025102338764906"
+      }
+    }, {
+      "$Class": "AssetReference",
+      "AssetPath": {
+        "Value": "Engine/Shaders/GeometryPass/GeometryPass_8173025102338765594"
+      }
+    }, {
+      "$Class": "AssetReference",
+      "AssetPath": {
+        "Value": "Engine/Shaders/GeometryPass/GeometryPass_15170332063854838608"
+      }
+    }, {
+      "$Class": "AssetReference",
+      "AssetPath": {
+        "Value": "Engine/Shaders/GeometryPass/GeometryPass_15170332063854837960"
+      }
+    }, {
+      "$Class": "AssetReference",
+      "AssetPath": {
+        "Value": "Engine/Shaders/GeometryPass/GeometryPass_15170332063854837984"
+      }
+    }, {
+      "$Class": "AssetReference",
+      "AssetPath": {
+        "Value": "Engine/Shaders/GeometryPass/GeometryPass_16779099286101286625"
+      }
+    }, {
+      "$Class": "AssetReference",
+      "AssetPath": {
+        "Value": "Engine/Shaders/GeometryPass/GeometryPass_16779099286101286617"
+      }
+    }, {
+      "$Class": "AssetReference",
+      "AssetPath": {
+        "Value": "Engine/Shaders/GeometryPass/GeometryPass_16779099286101286609"
+      }
+    }, {
+      "$Class": "AssetReference",
+      "AssetPath": {
+        "Value": "Engine/Shaders/GeometryPass/GeometryPass_16779099286101286601"
+      }
+    }, {
+      "$Class": "AssetReference",
+      "AssetPath": {
+        "Value": "Engine/Shaders/GeometryPass/GeometryPass_16779099286101286593"
+      }
+    }, {
+      "$Class": "AssetReference",
+      "AssetPath": {
+        "Value": "Engine/Shaders/GeometryPass/GeometryPass_16779099286101286585"
+      }
+    }, {
+      "$Class": "AssetReference",
+      "AssetPath": {
+        "Value": "Engine/Shaders/GeometryPass/GeometryPass_16779099286101286577"
+      }
+    }, {
+      "$Class": "AssetReference",
+      "AssetPath": {
+        "Value": "Engine/Shaders/GeometryPass/GeometryPass_16779099286101286777"
+      }
+    }, {
+      "$Class": "AssetReference",
+      "AssetPath": {
+        "Value": "Engine/Shaders/GeometryPass/GeometryPass_16779099286101286769"
+      }
+    }, {
+      "$Class": "AssetReference",
+      "AssetPath": {
+        "Value": "Engine/Shaders/GeometryPass/GeometryPass_16779099286101286753"
+      }
+    }, {
+      "$Class": "AssetReference",
+      "AssetPath": {
+        "Value": "Engine/Shaders/GeometryPass/GeometryPass_16779099286101286745"
+      }
+    }, {
+      "$Class": "AssetReference",
+      "AssetPath": {
+        "Value": "Engine/Shaders/GeometryPass/GeometryPass_16779099286101286737"
+      }
+    }, {
+      "$Class": "AssetReference",
+      "AssetPath": {
+        "Value": "Engine/Shaders/GeometryPass/GeometryPass_16779099286101286705"
+      }
+    }, {
+      "$Class": "AssetReference",
+      "AssetPath": {
+        "Value": "Engine/Shaders/GeometryPass/GeometryPass_15170332063854837832"
+      }
+    }, {
+      "$Class": "AssetReference",
+      "AssetPath": {
+        "Value": "Engine/Shaders/GeometryPass/GeometryPass_15170332063854837856"
+      }
+    }, {
+      "$Class": "AssetReference",
+      "AssetPath": {
+        "Value": "Engine/Shaders/GeometryPass/GeometryPass_15170332063854837768"
+      }
+    }, {
+      "$Class": "AssetReference",
+      "AssetPath": {
+        "Value": "Engine/Shaders/GeometryPass/GeometryPass_14414497022837931408"
+      }
+    }, {
+      "$Class": "AssetReference",
+      "AssetPath": {
+        "Value": "Engine/Shaders/GeometryPass/GeometryPass_16779099286101286569"
+      }
+    }, {
+      "$Class": "AssetReference",
+      "AssetPath": {
+        "Value": "Engine/Shaders/GeometryPass/GeometryPass_16779099286101286649"
+      }
+    }, {
+      "$Class": "AssetReference",
+      "AssetPath": {
+        "Value": "Engine/Shaders/GeometryPass/GeometryPass_16779099286101286641"
+      }
+    }, {
+      "$Class": "AssetReference",
+      "AssetPath": {
+        "Value": "Engine/Shaders/GeometryPass/GeometryPass_16779099286101286633"
+      }
+    }, {
+      "$Class": "AssetReference",
+      "AssetPath": {
+        "Value": "Engine/Shaders/GeometryPass/GeometryPass_16779099286101286537"
+      }
+    }, {
+      "$Class": "AssetReference",
+      "AssetPath": {
+        "Value": "Engine/Shaders/GeometryPass/GeometryPass_15170332063854837976"
+      }
+    }, {
+      "$Class": "AssetReference",
+      "AssetPath": {
+        "Value": "Engine/Shaders/GeometryPass/GeometryPass_15170332063854837968"
+      }
+    }, {
+      "$Class": "AssetReference",
+      "AssetPath": {
+        "Value": "Engine/Shaders/GeometryPass/GeometryPass_15170332063854837944"
+      }
+    }, {
+      "$Class": "AssetReference",
+      "AssetPath": {
+        "Value": "Engine/Shaders/GeometryPass/GeometryPass_14414497022837931416"
+      }
+    }, {
+      "$Class": "AssetReference",
+      "AssetPath": {
+        "Value": "Engine/Shaders/GeometryPass/GeometryPass_14414497022837931376"
+      }
+    }, {
+      "$Class": "AssetReference",
+      "AssetPath": {
+        "Value": "Engine/Shaders/GeometryPass/GeometryPass_14414497022837930672"
+      }
+    }, {
+      "$Class": "AssetReference",
+      "AssetPath": {
+        "Value": "Engine/Shaders/GeometryPass/GeometryPass_16779099286101286561"
+      }
+    }, {
+      "$Class": "AssetReference",
+      "AssetPath": {
+        "Value": "Engine/Shaders/GeometryPass/GeometryPass_15170332063854837760"
+      }
+    }, {
+      "$Class": "AssetReference",
+      "AssetPath": {
+        "Value": "Engine/Shaders/GeometryPass/GeometryPass_14414497022837931384"
       }
     }, {
       "$Class": "AssetReference",
@@ -803,7 +398,87 @@
     }, {
       "$Class": "AssetReference",
       "AssetPath": {
-        "Value": "Engine/Shaders/GeometryPass/GeometryPass_14414497022837931384"
+        "Value": "Engine/Shaders/GeometryPass/GeometryPass_15170332063854837816"
+      }
+    }, {
+      "$Class": "AssetReference",
+      "AssetPath": {
+        "Value": "Engine/Shaders/GeometryPass/GeometryPass_15170332063854837800"
+      }
+    }, {
+      "$Class": "AssetReference",
+      "AssetPath": {
+        "Value": "Engine/Shaders/GeometryPass/GeometryPass_14414497022837931304"
+      }
+    }, {
+      "$Class": "AssetReference",
+      "AssetPath": {
+        "Value": "Engine/Shaders/GeometryPass/GeometryPass_14414497022837931272"
+      }
+    }, {
+      "$Class": "AssetReference",
+      "AssetPath": {
+        "Value": "Engine/Shaders/GeometryPass/GeometryPass_14414497022837931264"
+      }
+    }, {
+      "$Class": "AssetReference",
+      "AssetPath": {
+        "Value": "Engine/Shaders/GeometryPass/GeometryPass_14414497022837930680"
+      }
+    }, {
+      "$Class": "AssetReference",
+      "AssetPath": {
+        "Value": "Engine/Shaders/GeometryPass/GeometryPass_15170332063854837928"
+      }
+    }, {
+      "$Class": "AssetReference",
+      "AssetPath": {
+        "Value": "Engine/Shaders/GeometryPass/GeometryPass_15170332063854837952"
+      }
+    }, {
+      "$Class": "AssetReference",
+      "AssetPath": {
+        "Value": "Engine/Shaders/GeometryPass/GeometryPass_15170332063854837936"
+      }
+    }, {
+      "$Class": "AssetReference",
+      "AssetPath": {
+        "Value": "Engine/Shaders/GeometryPass/GeometryPass_15170332063854837896"
+      }
+    }, {
+      "$Class": "AssetReference",
+      "AssetPath": {
+        "Value": "Engine/Shaders/GeometryPass/GeometryPass_15170332063854837904"
+      }
+    }, {
+      "$Class": "AssetReference",
+      "AssetPath": {
+        "Value": "Engine/Shaders/GeometryPass/GeometryPass_15170332063854837920"
+      }
+    }, {
+      "$Class": "AssetReference",
+      "AssetPath": {
+        "Value": "Engine/Shaders/GeometryPass/GeometryPass_15170332063854838592"
+      }
+    }, {
+      "$Class": "AssetReference",
+      "AssetPath": {
+        "Value": "Engine/Shaders/GeometryPass/GeometryPass_14414497022837930664"
+      }
+    }, {
+      "$Class": "AssetReference",
+      "AssetPath": {
+        "Value": "Engine/Shaders/GeometryPass/GeometryPass_14414497022837930656"
+      }
+    }, {
+      "$Class": "AssetReference",
+      "AssetPath": {
+        "Value": "Engine/Shaders/GeometryPass/GeometryPass_15170332063854837888"
+      }
+    }, {
+      "$Class": "AssetReference",
+      "AssetPath": {
+        "Value": "Engine/Shaders/GeometryPass/GeometryPass_14414497022837931368"
       }
     }, {
       "$Class": "AssetReference",
@@ -818,22 +493,22 @@
     }, {
       "$Class": "AssetReference",
       "AssetPath": {
-        "Value": "Engine/Shaders/GeometryPass/GeometryPass_15170332063854838616"
+        "Value": "Engine/Shaders/GeometryPass/GeometryPass_16779099286101286417"
       }
     }, {
       "$Class": "AssetReference",
       "AssetPath": {
-        "Value": "Engine/Shaders/GeometryPass/GeometryPass_14414497022837931464"
+        "Value": "Engine/Shaders/GeometryPass/GeometryPass_16779099286101286409"
       }
     }, {
       "$Class": "AssetReference",
       "AssetPath": {
-        "Value": "Engine/Shaders/GeometryPass/GeometryPass_12997497142188121316"
+        "Value": "Engine/Shaders/GeometryPass/GeometryPass_14414497022837931280"
       }
     }, {
       "$Class": "AssetReference",
       "AssetPath": {
-        "Value": "Engine/Shaders/GeometryPass/GeometryPass_7485626566727086235"
+        "Value": "Engine/Shaders/GeometryPass/GeometryPass_14414497022837931344"
       }
     }, {
       "$Class": "AssetReference",
@@ -843,57 +518,37 @@
     }, {
       "$Class": "AssetReference",
       "AssetPath": {
-        "Value": "Engine/Shaders/GeometryPass/GeometryPass_14414497022837931304"
-      }
-    }, {
-      "$Class": "AssetReference",
-      "AssetPath": {
-        "Value": "Engine/Shaders/GeometryPass/GeometryPass_12407244494021180709"
-      }
-    }, {
-      "$Class": "AssetReference",
-      "AssetPath": {
-        "Value": "Engine/Shaders/GeometryPass/GeometryPass_789732564087242348"
-      }
-    }, {
-      "$Class": "AssetReference",
-      "AssetPath": {
-        "Value": "Engine/Shaders/GeometryPass/GeometryPass_7485626566727086211"
-      }
-    }, {
-      "$Class": "AssetReference",
-      "AssetPath": {
-        "Value": "Engine/Shaders/GeometryPass/GeometryPass_7485626566727086219"
-      }
-    }, {
-      "$Class": "AssetReference",
-      "AssetPath": {
-        "Value": "Engine/Shaders/GeometryPass/GeometryPass_12407244494021180749"
-      }
-    }, {
-      "$Class": "AssetReference",
-      "AssetPath": {
-        "Value": "Engine/Shaders/GeometryPass/GeometryPass_15170332063854837976"
-      }
-    }, {
-      "$Class": "AssetReference",
-      "AssetPath": {
         "Value": "Engine/Shaders/GeometryPass/GeometryPass_14414497022837931480"
       }
     }, {
       "$Class": "AssetReference",
       "AssetPath": {
-        "Value": "Engine/Shaders/GeometryPass/GeometryPass_16779099286101286649"
+        "Value": "Engine/Shaders/GeometryPass/GeometryPass_14414497022837931472"
       }
     }, {
       "$Class": "AssetReference",
       "AssetPath": {
-        "Value": "Engine/Shaders/GeometryPass/GeometryPass_12997497142188121308"
+        "Value": "Engine/Shaders/GeometryPass/GeometryPass_14414497022837931456"
       }
     }, {
       "$Class": "AssetReference",
       "AssetPath": {
-        "Value": "Engine/Shaders/GeometryPass/GeometryPass_7485626566727086227"
+        "Value": "Engine/Shaders/GeometryPass/GeometryPass_14414497022837931512"
+      }
+    }, {
+      "$Class": "AssetReference",
+      "AssetPath": {
+        "Value": "Engine/Shaders/GeometryPass/GeometryPass_14414497022837931504"
+      }
+    }, {
+      "$Class": "AssetReference",
+      "AssetPath": {
+        "Value": "Engine/Shaders/GeometryPass/GeometryPass_14414497022837931496"
+      }
+    }, {
+      "$Class": "AssetReference",
+      "AssetPath": {
+        "Value": "Engine/Shaders/GeometryPass/GeometryPass_14414497022837931488"
       }
     }, {
       "$Class": "AssetReference",
@@ -903,22 +558,27 @@
     }, {
       "$Class": "AssetReference",
       "AssetPath": {
-        "Value": "Engine/Shaders/GeometryPass/GeometryPass_14414497022837931352"
+        "Value": "Engine/Shaders/GeometryPass/GeometryPass_16779099286101286553"
       }
     }, {
       "$Class": "AssetReference",
       "AssetPath": {
-        "Value": "Engine/Shaders/GeometryPass/GeometryPass_15170332063854837920"
+        "Value": "Engine/Shaders/GeometryPass/GeometryPass_16779099286101286545"
       }
     }, {
       "$Class": "AssetReference",
       "AssetPath": {
-        "Value": "Engine/Shaders/GeometryPass/GeometryPass_15170332063854837816"
+        "Value": "Engine/Shaders/GeometryPass/GeometryPass_16779099286101286529"
       }
     }, {
       "$Class": "AssetReference",
       "AssetPath": {
-        "Value": "Engine/Shaders/GeometryPass/GeometryPass_16779099286101286753"
+        "Value": "Engine/Shaders/GeometryPass/GeometryPass_15170332063854837776"
+      }
+    }, {
+      "$Class": "AssetReference",
+      "AssetPath": {
+        "Value": "Engine/Shaders/GeometryPass/GeometryPass_15170332063854837784"
       }
     }, {
       "$Class": "AssetReference",
@@ -933,7 +593,27 @@
     }, {
       "$Class": "AssetReference",
       "AssetPath": {
-        "Value": "Engine/Shaders/GeometryPass/GeometryPass_7485626566727086251"
+        "Value": "Engine/Shaders/GeometryPass/GeometryPass_14414497022837931336"
+      }
+    }, {
+      "$Class": "AssetReference",
+      "AssetPath": {
+        "Value": "Engine/Shaders/GeometryPass/GeometryPass_14414497022837931312"
+      }
+    }, {
+      "$Class": "AssetReference",
+      "AssetPath": {
+        "Value": "Engine/Shaders/GeometryPass/GeometryPass_15170332063854837792"
+      }
+    }, {
+      "$Class": "AssetReference",
+      "AssetPath": {
+        "Value": "Engine/Shaders/GeometryPass/GeometryPass_14414497022837931464"
+      }
+    }, {
+      "$Class": "AssetReference",
+      "AssetPath": {
+        "Value": "Engine/Shaders/GeometryPass/GeometryPass_14414497022837931352"
       }
     }, {
       "$Class": "AssetReference",
@@ -943,27 +623,7 @@
     }, {
       "$Class": "AssetReference",
       "AssetPath": {
-        "Value": "Engine/Shaders/GeometryPass/GeometryPass_16779099286101286561"
-      }
-    }, {
-      "$Class": "AssetReference",
-      "AssetPath": {
-        "Value": "Engine/Shaders/GeometryPass/GeometryPass_16779099286101286545"
-      }
-    }, {
-      "$Class": "AssetReference",
-      "AssetPath": {
-        "Value": "Engine/Shaders/GeometryPass/GeometryPass_7485626566727086123"
-      }
-    }, {
-      "$Class": "AssetReference",
-      "AssetPath": {
-        "Value": "Engine/Shaders/GeometryPass/GeometryPass_16779099286101286553"
-      }
-    }, {
-      "$Class": "AssetReference",
-      "AssetPath": {
-        "Value": "Engine/Shaders/GeometryPass/GeometryPass_7485626566727086107"
+        "Value": "Engine/Shaders/GeometryPass/GeometryPass_16779099286101286401"
       }
     }, {
       "$Class": "AssetReference",
@@ -973,312 +633,12 @@
     }, {
       "$Class": "AssetReference",
       "AssetPath": {
-        "Value": "Engine/Shaders/GeometryPass/GeometryPass_7485626566727086099"
-      }
-    }, {
-      "$Class": "AssetReference",
-      "AssetPath": {
-        "Value": "Engine/Shaders/GeometryPass/GeometryPass_16779099286101286529"
-      }
-    }, {
-      "$Class": "AssetReference",
-      "AssetPath": {
-        "Value": "Engine/Shaders/GeometryPass/GeometryPass_14414497022837931376"
-      }
-    }, {
-      "$Class": "AssetReference",
-      "AssetPath": {
-        "Value": "Engine/Shaders/GeometryPass/GeometryPass_12997497142188121172"
-      }
-    }, {
-      "$Class": "AssetReference",
-      "AssetPath": {
-        "Value": "Engine/Shaders/GeometryPass/GeometryPass_14414497022837931344"
-      }
-    }, {
-      "$Class": "AssetReference",
-      "AssetPath": {
-        "Value": "Engine/Shaders/GeometryPass/GeometryPass_12997497142188121284"
-      }
-    }, {
-      "$Class": "AssetReference",
-      "AssetPath": {
-        "Value": "Engine/Shaders/GeometryPass/GeometryPass_12997497142188121132"
-      }
-    }, {
-      "$Class": "AssetReference",
-      "AssetPath": {
-        "Value": "Engine/Shaders/GeometryPass/GeometryPass_12997497142188121124"
-      }
-    }, {
-      "$Class": "AssetReference",
-      "AssetPath": {
-        "Value": "Engine/Shaders/GeometryPass/GeometryPass_12997497142188121292"
-      }
-    }, {
-      "$Class": "AssetReference",
-      "AssetPath": {
-        "Value": "Engine/Shaders/GeometryPass/GeometryPass_12997497142188121204"
-      }
-    }, {
-      "$Class": "AssetReference",
-      "AssetPath": {
-        "Value": "Engine/Shaders/GeometryPass/GeometryPass_12997497142188121108"
-      }
-    }, {
-      "$Class": "AssetReference",
-      "AssetPath": {
-        "Value": "Engine/Shaders/GeometryPass/GeometryPass_12407244494021180813"
-      }
-    }, {
-      "$Class": "AssetReference",
-      "AssetPath": {
-        "Value": "Engine/Shaders/GeometryPass/GeometryPass_16779099286101286641"
-      }
-    }, {
-      "$Class": "AssetReference",
-      "AssetPath": {
-        "Value": "Engine/Shaders/GeometryPass/GeometryPass_16779099286101286409"
-      }
-    }, {
-      "$Class": "AssetReference",
-      "AssetPath": {
-        "Value": "Engine/Shaders/GeometryPass/GeometryPass_15170332063854837928"
-      }
-    }, {
-      "$Class": "AssetReference",
-      "AssetPath": {
-        "Value": "Engine/Shaders/GeometryPass/GeometryPass_14414497022837931264"
-      }
-    }, {
-      "$Class": "AssetReference",
-      "AssetPath": {
-        "Value": "Engine/Shaders/GeometryPass/GeometryPass_14414497022837930672"
-      }
-    }, {
-      "$Class": "AssetReference",
-      "AssetPath": {
-        "Value": "Engine/Shaders/GeometryPass/GeometryPass_14414497022837930656"
-      }
-    }, {
-      "$Class": "AssetReference",
-      "AssetPath": {
-        "Value": "Engine/Shaders/GeometryPass/GeometryPass_12997497142188121492"
-      }
-    }, {
-      "$Class": "AssetReference",
-      "AssetPath": {
-        "Value": "Engine/Shaders/GeometryPass/GeometryPass_12997497142188121340"
-      }
-    }, {
-      "$Class": "AssetReference",
-      "AssetPath": {
-        "Value": "Engine/Shaders/GeometryPass/GeometryPass_12997497142188121196"
-      }
-    }, {
-      "$Class": "AssetReference",
-      "AssetPath": {
-        "Value": "Engine/Shaders/GeometryPass/GeometryPass_12997497142188121188"
-      }
-    }, {
-      "$Class": "AssetReference",
-      "AssetPath": {
-        "Value": "Engine/Shaders/GeometryPass/GeometryPass_12997497142188121180"
-      }
-    }, {
-      "$Class": "AssetReference",
-      "AssetPath": {
-        "Value": "Engine/Shaders/GeometryPass/GeometryPass_12997497142188121164"
-      }
-    }, {
-      "$Class": "AssetReference",
-      "AssetPath": {
-        "Value": "Engine/Shaders/GeometryPass/GeometryPass_12997497142188121156"
-      }
-    }, {
-      "$Class": "AssetReference",
-      "AssetPath": {
-        "Value": "Engine/Shaders/GeometryPass/GeometryPass_12997497142188121116"
-      }
-    }, {
-      "$Class": "AssetReference",
-      "AssetPath": {
-        "Value": "Engine/Shaders/GeometryPass/GeometryPass_12997497142188121100"
-      }
-    }, {
-      "$Class": "AssetReference",
-      "AssetPath": {
-        "Value": "Engine/Shaders/GeometryPass/GeometryPass_12997497142188121092"
-      }
-    }, {
-      "$Class": "AssetReference",
-      "AssetPath": {
-        "Value": "Engine/Shaders/GeometryPass/GeometryPass_12407244494021180917"
-      }
-    }, {
-      "$Class": "AssetReference",
-      "AssetPath": {
-        "Value": "Engine/Shaders/GeometryPass/GeometryPass_12407244494021180877"
-      }
-    }, {
-      "$Class": "AssetReference",
-      "AssetPath": {
-        "Value": "Engine/Shaders/GeometryPass/GeometryPass_12407244494021180869"
-      }
-    }, {
-      "$Class": "AssetReference",
-      "AssetPath": {
-        "Value": "Engine/Shaders/GeometryPass/GeometryPass_12407244494021180861"
-      }
-    }, {
-      "$Class": "AssetReference",
-      "AssetPath": {
-        "Value": "Engine/Shaders/GeometryPass/GeometryPass_12407244494021180845"
-      }
-    }, {
-      "$Class": "AssetReference",
-      "AssetPath": {
-        "Value": "Engine/Shaders/GeometryPass/GeometryPass_12407244494021180837"
-      }
-    }, {
-      "$Class": "AssetReference",
-      "AssetPath": {
-        "Value": "Engine/Shaders/GeometryPass/GeometryPass_15170332063854838608"
-      }
-    }, {
-      "$Class": "AssetReference",
-      "AssetPath": {
-        "Value": "Engine/Shaders/GeometryPass/GeometryPass_15170332063854837936"
-      }
-    }, {
-      "$Class": "AssetReference",
-      "AssetPath": {
-        "Value": "Engine/Shaders/GeometryPass/GeometryPass_7485626566727086091"
-      }
-    }, {
-      "$Class": "AssetReference",
-      "AssetPath": {
-        "Value": "Engine/Shaders/GeometryPass/GeometryPass_12407244494021180781"
-      }
-    }, {
-      "$Class": "AssetReference",
-      "AssetPath": {
-        "Value": "Engine/Shaders/GeometryPass/GeometryPass_16779099286101286625"
-      }
-    }, {
-      "$Class": "AssetReference",
-      "AssetPath": {
-        "Value": "Engine/Shaders/GeometryPass/GeometryPass_16779099286101286417"
-      }
-    }, {
-      "$Class": "AssetReference",
-      "AssetPath": {
-        "Value": "Engine/Shaders/GeometryPass/GeometryPass_16779099286101286401"
-      }
-    }, {
-      "$Class": "AssetReference",
-      "AssetPath": {
-        "Value": "Engine/Shaders/GeometryPass/GeometryPass_14414497022837931336"
-      }
-    }, {
-      "$Class": "AssetReference",
-      "AssetPath": {
-        "Value": "Engine/Shaders/GeometryPass/GeometryPass_14414497022837931272"
-      }
-    }, {
-      "$Class": "AssetReference",
-      "AssetPath": {
-        "Value": "Engine/Shaders/GeometryPass/GeometryPass_14414497022837930680"
-      }
-    }, {
-      "$Class": "AssetReference",
-      "AssetPath": {
-        "Value": "Engine/Shaders/GeometryPass/GeometryPass_14414497022837930664"
-      }
-    }, {
-      "$Class": "AssetReference",
-      "AssetPath": {
-        "Value": "Engine/Shaders/GeometryPass/GeometryPass_14414497022837930624"
-      }
-    }, {
-      "$Class": "AssetReference",
-      "AssetPath": {
-        "Value": "Engine/Shaders/GeometryPass/GeometryPass_12997497142188121500"
-      }
-    }, {
-      "$Class": "AssetReference",
-      "AssetPath": {
-        "Value": "Engine/Shaders/GeometryPass/GeometryPass_12997497142188121484"
-      }
-    }, {
-      "$Class": "AssetReference",
-      "AssetPath": {
-        "Value": "Engine/Shaders/GeometryPass/GeometryPass_12997497142188121532"
-      }
-    }, {
-      "$Class": "AssetReference",
-      "AssetPath": {
-        "Value": "Engine/Shaders/GeometryPass/GeometryPass_12997497142188121212"
-      }
-    }, {
-      "$Class": "AssetReference",
-      "AssetPath": {
         "Value": "Engine/Shaders/GeometryPass/GeometryPass_14414497022837930632"
       }
     }, {
       "$Class": "AssetReference",
       "AssetPath": {
-        "Value": "Engine/Shaders/GeometryPass/GeometryPass_12997497142188121476"
-      }
-    }, {
-      "$Class": "AssetReference",
-      "AssetPath": {
-        "Value": "Engine/Shaders/GeometryPass/GeometryPass_12997497142188121148"
-      }
-    }, {
-      "$Class": "AssetReference",
-      "AssetPath": {
-        "Value": "Engine/Shaders/GeometryPass/GeometryPass_12407244494021180925"
-      }
-    }, {
-      "$Class": "AssetReference",
-      "AssetPath": {
-        "Value": "Engine/Shaders/GeometryPass/GeometryPass_12407244494021180909"
-      }
-    }, {
-      "$Class": "AssetReference",
-      "AssetPath": {
-        "Value": "Engine/Shaders/GeometryPass/GeometryPass_12407244494021180901"
-      }
-    }, {
-      "$Class": "AssetReference",
-      "AssetPath": {
-        "Value": "Engine/Shaders/GeometryPass/GeometryPass_12407244494021180893"
-      }
-    }, {
-      "$Class": "AssetReference",
-      "AssetPath": {
-        "Value": "Engine/Shaders/GeometryPass/GeometryPass_12407244494021180797"
-      }
-    }, {
-      "$Class": "AssetReference",
-      "AssetPath": {
-        "Value": "Engine/Shaders/GeometryPass/GeometryPass_12407244494021180829"
-      }
-    }, {
-      "$Class": "AssetReference",
-      "AssetPath": {
-        "Value": "Engine/Shaders/GeometryPass/GeometryPass_12407244494021180773"
-      }
-    }, {
-      "$Class": "AssetReference",
-      "AssetPath": {
-        "Value": "Engine/Shaders/GeometryPass/GeometryPass_12407244494021180765"
-      }
-    }, {
-      "$Class": "AssetReference",
-      "AssetPath": {
-        "Value": "Engine/Shaders/GeometryPass/GeometryPass_12407244494021180445"
+        "Value": "Engine/Shaders/GeometryPass/GeometryPass_14414497022837930624"
       }
     }],
   "Name": "GeometryPass",

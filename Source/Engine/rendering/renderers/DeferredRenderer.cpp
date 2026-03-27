@@ -83,6 +83,10 @@ static constexpr float CameraJitterScale = 0.25f;
 
 static constexpr uint32 MaxFallbackProbes = 4;
 
+static constexpr uint32 TileSize = 32;
+static constexpr uint32 TileZBins = 16;
+static constexpr bool UseClusteredShading = true;
+
 static const Float16 s_ltcMatrix[] = {
 #include <rendering/inl/LTCMatrix.inl>
 };
@@ -122,6 +126,10 @@ static const ShaderPropertyId s_propDebugIrradiance = InternShaderProperty(Shade
 
 static const ShaderPropertyId s_propMaxFallbackProbes = InternShaderProperty(ShaderProperty(NAME("MAX_FALLBACK_PROBES"), int(MaxFallbackProbes)));
 
+static const ShaderPropertyId s_propLightTypeClustered = InternShaderProperty(ShaderProperty(NAME("LIGHT_TYPE"), NAME("CLUSTERED")));
+static const ShaderPropertyId s_propTileSize = InternShaderProperty(ShaderProperty(NAME("TILE_SIZE"), int(TileSize)));
+static const ShaderPropertyId s_propTileZBins = InternShaderProperty(ShaderProperty(NAME("TILE_Z_BINS"), int(TileZBins)));
+
 static constexpr StringHash GBufferTextureNames[GTN_MAX] = {
     "GBufferAlbedoTexture"_sh,
     "GBufferNormalsTexture"_sh,
@@ -160,11 +168,18 @@ CVar<bool> cvEnableLightmapVolumes { "Rendering.LightmapVolumes", true };
 
 namespace DeferredRendererHelpers {
 
+static HYP_FORCE_INLINE bool CanClusterLight(LightType lightType)
+{
+    return lightType == LightType::Point
+        || lightType == LightType::Spot;
+}
+
 void GetDeferredShaderProperties(
     DeferredPassMode mode,
     ShaderPropertySet& outShaderProperties,
     const RenderProxyList* rpl = nullptr,
-    LightType lightType = InvalidLightType)
+    LightType lightType = InvalidLightType,
+    bool clustered = false)
 {
     const EngineConfig& cfg = GetEngineConfig();
 
@@ -208,6 +223,16 @@ void GetDeferredShaderProperties(
         
         outShaderProperties.Add(s_propMaxFallbackProbes);
     }
+    else
+    {
+        if (clustered)
+        {
+            outShaderProperties.Add(s_propLightTypeClustered);
+
+            outShaderProperties.Add(s_propTileSize);
+            outShaderProperties.Add(s_propTileZBins);
+        }
+    }
 
     if (s_renderConfig.rayTracing && cvPathTracing.Get())
     {
@@ -228,7 +253,7 @@ void GetDeferredShaderProperties(
         }
     }
 
-    if (lightType != InvalidLightType)
+    if (!clustered && lightType != InvalidLightType)
     {
         outShaderProperties = outShaderProperties | s_deferredLightTypeProperties[uint32(lightType)];
     }
@@ -437,6 +462,9 @@ void DeferredPass::RenderToFramebuffer_Internal(Frame* frame, const RenderSetup&
     DeferredRendererPassData* dpd = ObjCast<DeferredRendererPassData>(rs.passData);
     AssertDebug(dpd != nullptr);
 
+    cr << SetShaderUniform(numShaderUniforms++, "ClusterGridBuffer"_sh, dpd->clusterGridBuffer);
+    cr << SetShaderUniform(numShaderUniforms++, "ClusterIndexBuffer"_sh, dpd->clusterIndexBuffer);
+
     const FramebufferRef& opaquePassFramebuffer = dpd->view.GetUnsafe()->GetOutputTarget().GetFramebuffer(RenderBucket::Opaque);
 
     for (uint32 attachmentIndex = 0; attachmentIndex < GTN_MAX; attachmentIndex++)
@@ -560,6 +588,30 @@ void DeferredPass::RenderToFramebuffer_Internal(Frame* frame, const RenderSetup&
         return;
     }
 
+    if constexpr (UseClusteredShading)
+    {
+        AssertDebug(dpd->clusterGridBuffer && dpd->clusterIndexBuffer);
+
+        ShaderPropertySet shaderProperties;
+        DeferredRendererHelpers::GetDeferredShaderProperties(DPM_DIRECT_LIGHTING, shaderProperties, &rpl, InvalidLightType, /* clustered */ true);
+
+        cr << SetCurrentShader(ShaderDesc(NAME("DeferredDirect"), shaderProperties));
+
+        uint32 localNumShaderUniforms = numShaderUniforms;
+
+        cr << SetShaderUniform(localNumShaderUniforms++, "ClusterGridBuffer"_sh, dpd->clusterGridBuffer);
+        cr << SetShaderUniform(localNumShaderUniforms++, "ClusterIndexBuffer"_sh, dpd->clusterIndexBuffer);
+        
+        cr << SetShaderUniform(localNumShaderUniforms++, "LightsBuffer"_sh, g_renderInterface->gpuBuffers[GRB_LIGHTS]->GetBuffer(frameIndex));
+        cr << SetShaderUniform(localNumShaderUniforms++, "EnvProbesBuffer"_sh, g_renderInterface->gpuBuffers[GRB_ENV_PROBES]->GetBuffer(frameIndex));
+
+        cr << CommitDrawState();
+
+        cr << BindVertexBuffer(m_fullScreenQuad->GetVertexBuffer());
+        cr << BindIndexBuffer(m_fullScreenQuad->GetIndexBuffer());
+        cr << DrawIndexed(6);
+    }
+
     // last LightType we rendered
     LightType prevLightType = InvalidLightType;
 
@@ -567,6 +619,14 @@ void DeferredPass::RenderToFramebuffer_Internal(Frame* frame, const RenderSetup&
     for (uint32 lightTypeIndex = 0; lightTypeIndex < NumLightTypes; lightTypeIndex++)
     {
         const LightType lightType = LightType(lightTypeIndex);
+
+        if constexpr (UseClusteredShading)
+        {
+            if (DeferredRendererHelpers::CanClusterLight(lightType))
+            {
+                continue; // skip; would've been rendered with clustering.
+            }
+        }
 
         for (Light* light : rpl.GetLights())
         {
@@ -585,48 +645,50 @@ void DeferredPass::RenderToFramebuffer_Internal(Frame* frame, const RenderSetup&
 
                 cr << SetCurrentShader(ShaderDesc(NAME("DeferredDirect"), shaderProperties));
             }
-            
+                
             uint32 localNumShaderUniforms = numShaderUniforms;
 
-            GpuBuffer* cBuffer = nullptr;
-            size_t cBufferOffset = 0;
-            size_t cBufferSize = 0;
+            { // Build constants
+                GpuBuffer* cBuffer = nullptr;
+                size_t cBufferOffset = 0;
+                size_t cBufferSize = 0;
 
-            g_renderInterface->constantsAllocator->Write(&lightProxy->bufferData);
+                g_renderInterface->constantsAllocator->Write(&lightProxy->bufferData);
 
-            ShadowMapData shadowMapData[MaxShadowMapCascades];
+                ShadowMapData shadowMapData[MaxShadowMapCascades];
 
-            const uint32 numCascadesToWrite = (lightType == LightType::Directional) ? MaxShadowMapCascades : 1;
+                const uint32 numCascadesToWrite = (lightType == LightType::Directional) ? MaxShadowMapCascades : 1;
 
-            for (uint32 cascadeIndex = 0; cascadeIndex < numCascadesToWrite; cascadeIndex++)
-            {
-                ShadowMapData& currShadowMapData = shadowMapData[cascadeIndex];
-                
-                View* shadowMapViewDynamic;
-                View* shadowMapViewStatic;
-
-                ShadowMap* shadowMap = g_renderInterface->shadowMapCache->GetShadowMap(
-                    light,
-                    rs.view,
-                    cascadeIndex,
-                    shadowMapViewDynamic,
-                    shadowMapViewStatic);
-
-                if (shadowMap != nullptr)
+                for (uint32 cascadeIndex = 0; cascadeIndex < numCascadesToWrite; cascadeIndex++)
                 {
-                    DeferredRendererHelpers::FillShadowMapData(
-                        shadowMapData[cascadeIndex],
-                        *shadowMap,
+                    ShadowMapData& currShadowMapData = shadowMapData[cascadeIndex];
+                        
+                    View* shadowMapViewDynamic;
+                    View* shadowMapViewStatic;
+
+                    ShadowMap* shadowMap = g_renderInterface->shadowMapCache->GetShadowMap(
+                        light,
+                        rs.view,
+                        cascadeIndex,
                         shadowMapViewDynamic,
                         shadowMapViewStatic);
+
+                    if (shadowMap != nullptr)
+                    {
+                        DeferredRendererHelpers::FillShadowMapData(
+                            shadowMapData[cascadeIndex],
+                            *shadowMap,
+                            shadowMapViewDynamic,
+                            shadowMapViewStatic);
+                    }
+
+                    g_renderInterface->constantsAllocator->Write(&shadowMapData[cascadeIndex]);
                 }
+                    
+                g_renderInterface->constantsAllocator->Commit(cBuffer, cBufferOffset, cBufferSize);
 
-                g_renderInterface->constantsAllocator->Write(&shadowMapData[cascadeIndex]);
+                cr << SetShaderUniform(localNumShaderUniforms++, "CBuffer"_sh, cBuffer, ShaderDataOffset(cBufferOffset, cBufferSize));
             }
-            
-            g_renderInterface->constantsAllocator->Commit(cBuffer, cBufferOffset, cBufferSize);
-
-            cr << SetShaderUniform(localNumShaderUniforms++, "CBuffer"_sh, cBuffer, ShaderDataOffset(cBufferOffset, cBufferSize));
 
             cr << SetShaderUniform(localNumShaderUniforms++, "CurrentLight"_sh, g_renderInterface->gpuBuffers[GRB_LIGHTS]->GetBuffer(frameIndex), TShaderDataOffset<LightShaderData>(light));
 
@@ -663,7 +725,7 @@ void DeferredPass::RenderToFramebuffer_Internal(Frame* frame, const RenderSetup&
                 if (m_ltcBrdfTexture != nullptr)
                     cr << SetShaderUniform(localNumShaderUniforms++, "LTCBRDFTexture"_sh, g_renderInterface->textureViewCache->GetOrCreate(m_ltcBrdfTexture));
             }
-            
+                
             cr << CommitDrawState();
 
             cr << BindVertexBuffer(m_fullScreenQuad->GetVertexBuffer());
@@ -1515,14 +1577,12 @@ static FramebufferRef CreateDeferredShadingFramebuffer(GBuffer* gbuffer)
     return framebuffer;
 }
 
+HYP_DISABLE_OPTIMIZATION;
 class TileProcessor
 {
 public:
-    static constexpr uint32 MaxEnvProbesPerTile = 32;
-    static constexpr uint32 MaxLightsPerTile = 128;
-
-    static constexpr uint32 TileSize = 32;
-    static constexpr uint32 TileZBins = 16;
+    static constexpr uint32 MaxEnvProbesPerTile = 8;
+    static constexpr uint32 MaxLightsPerTile = 16;
 
     struct TileGridData
     {
@@ -1536,8 +1596,8 @@ public:
         uint16 numEnvProbes;
         uint16 numLights;
 
-        uint16 envProbesIds[MaxEnvProbesPerTile];
-        uint16 lightIds[MaxLightsPerTile];
+        uint16 envProbeIndices[MaxEnvProbesPerTile];
+        uint16 lightIndices[MaxLightsPerTile];
     };
 
     struct TileDataAllocation
@@ -1576,12 +1636,15 @@ public:
         }
     }
 
-    void ProcessView(View* view)
+    void ProcessView(const Viewport& viewport, View* view, GpuBuffer*& outGridBuffer, GpuBuffer*& outIndexBuffer)
     {
         Assert(view != nullptr);
 
-        const Vec2u& extent = view->GetOutputTarget().GetFramebuffer()->GetExtent();
-        Assert(extent.Volume() != 0);
+        outGridBuffer = nullptr;
+        outIndexBuffer = nullptr;
+
+        // @TODO VP offset
+        const Vec2u& extent = viewport.extent;
 
         const uint32 numTilesX = (extent.x + TileSize - 1) / TileSize;
         const uint32 numTilesY = (extent.y + TileSize - 1) / TileSize;
@@ -1604,6 +1667,9 @@ public:
 
         const Mat4f& cameraVP = cameraProxy->bufferData.viewProjMat;
 
+        const float scale = float(TileZBins) / std::log2(cameraProxy->bufferData.cameraFar / cameraProxy->bufferData.cameraNear);
+        const float bias = -(float(TileZBins) * std::log2(cameraProxy->bufferData.cameraNear)) / std::log2(cameraProxy->bufferData.cameraFar / cameraProxy->bufferData.cameraNear);
+
         for (EnvProbe* envProbe : rpl.GetEnvProbes())
         {
             RenderProxyEnvProbe* envProbeProxy = static_cast<RenderProxyEnvProbe*>(GetRenderProxy(envProbe));
@@ -1621,6 +1687,9 @@ public:
             {
                 continue;
             }
+            
+            const uint32 binding = Resources::GetBinding(envProbe);
+            Assert(binding != ~0u);
 
             const uint32 minTileX = uint32(std::max(0.0f, std::floor((clipSpaceAABB.min.x * 0.5f + 0.5f) * extent.x / TileSize)));
             const uint32 maxTileX = uint32(std::min(float(numTilesX), std::ceil((clipSpaceAABB.max.x * 0.5f + 0.5f) * extent.x / TileSize)));
@@ -1639,7 +1708,7 @@ public:
 
                         if (data.numEnvProbes < MaxEnvProbesPerTile)
                         {
-                            data.envProbesIds[data.numEnvProbes++] = envProbeProxy->envProbe.Id().Value();
+                            data.envProbeIndices[data.numEnvProbes++] = binding;
                         }
                     }
                 }
@@ -1648,6 +1717,12 @@ public:
 
         for (Light* light : rpl.GetLights())
         {
+            if (!DeferredRendererHelpers::CanClusterLight(light->GetLightType()))
+            {
+                // We don't handle these light types in clusters.
+                continue;
+            }
+
             RenderProxyLight* lightProxy = static_cast<RenderProxyLight*>(GetRenderProxy(light));
             Assert(lightProxy != nullptr);
 
@@ -1656,24 +1731,37 @@ public:
             bounds.radius = Float16::FromRaw(uint16(lightProxy->bufferData.radiusFalloffPacked & 0xFFFFu));
 
             BoundingBox aabb = BoundingBox(bounds);
-        
-            const BoundingBox clipSpaceAABB = cameraVP * aabb;
+            BoundingBox aabbCS = cameraVP * aabb;
 
-            if (clipSpaceAABB.min.x > 1.0f || clipSpaceAABB.max.x < -1.0f ||
-                clipSpaceAABB.min.y > 1.0f || clipSpaceAABB.max.y < -1.0f ||
-                clipSpaceAABB.min.z > 1.0f || clipSpaceAABB.max.z < -1.0f)
+            if (aabbCS.min.x > 1.0f || aabbCS.max.x < -1.0f
+                || aabbCS.min.y > 1.0f || aabbCS.max.y < -1.0f)
             {
                 continue;
             }
 
-            const uint32 minTileX = uint32(std::max(0.0f, std::floor((clipSpaceAABB.min.x * 0.5f + 0.5f) * extent.x / TileSize)));
-            const uint32 maxTileX = uint32(std::min(float(numTilesX), std::ceil((clipSpaceAABB.max.x * 0.5f + 0.5f) * extent.x / TileSize)));
-            const uint32 minTileY = uint32(std::max(0.0f, std::floor((clipSpaceAABB.min.y * 0.5f + 0.5f) * extent.y / TileSize)));
-            const uint32 maxTileY = uint32(std::min(float(numTilesY), std::ceil((clipSpaceAABB.max.y * 0.5f + 0.5f) * extent.y / TileSize)));
-            const uint32 minZBin = uint32(std::max(0.0f, std::floor((clipSpaceAABB.min.z * 0.5f + 0.5f) * TileZBins)));
-            const uint32 maxZBin = uint32(std::min(float(TileZBins), std::ceil((clipSpaceAABB.max.z * 0.5f + 0.5f) * TileZBins)));
+            const uint32 binding = Resources::GetBinding(light);
+            Assert(binding != ~0u);
+        
+            const Mat4f& viewMat = cameraProxy->bufferData.viewMat;
+            Vec3f centerVS = (viewMat * Vec4f(bounds.center, 1.0f)).GetXYZ();
 
-            for (uint32 zBin = minZBin; zBin < maxZBin; zBin++)
+            float viewZ = std::abs(centerVS.z); 
+
+            float minViewZ = viewZ - bounds.radius;
+            float maxViewZ = viewZ + bounds.radius;
+
+            minViewZ = MathUtil::Clamp(minViewZ, cameraProxy->bufferData.cameraNear, cameraProxy->bufferData.cameraFar);
+            maxViewZ = MathUtil::Clamp(maxViewZ, cameraProxy->bufferData.cameraNear, cameraProxy->bufferData.cameraFar);
+
+            const uint32 minTileX = uint32(std::max(0.0f, std::floor((aabbCS.min.x * 0.5f + 0.5f) * extent.x / TileSize)));
+            const uint32 maxTileX = uint32(std::min(float(numTilesX), std::ceil((aabbCS.max.x * 0.5f + 0.5f) * extent.x / TileSize)));
+            const uint32 minTileY = uint32(std::max(0.0f, std::floor((aabbCS.min.y * 0.5f + 0.5f) * extent.y / TileSize)));
+            const uint32 maxTileY = uint32(std::min(float(numTilesY), std::ceil((aabbCS.max.y * 0.5f + 0.5f) * extent.y / TileSize)));
+
+            const uint32 minZBin = uint32(MathUtil::Clamp(int32(std::log2(minViewZ) * scale + bias), 0, int32(TileZBins - 1)));
+            const uint32 maxZBin = uint32(MathUtil::Clamp(int32(std::log2(maxViewZ) * scale + bias), 0, int32(TileZBins - 1)));
+
+            for (uint32 zBin = minZBin; zBin <= maxZBin; zBin++)
             {
                 for (uint32 tileY = minTileY; tileY < maxTileY; tileY++)
                 {
@@ -1683,7 +1771,7 @@ public:
 
                         if (data.numLights < MaxLightsPerTile)
                         {
-                            data.lightIds[data.numLights++] = lightProxy->light.Id().Value();
+                            data.lightIndices[data.numLights++] = binding;
                         }
                     }
                 }
@@ -1710,14 +1798,14 @@ public:
 
             for (uint16 j = 0; j < temp.numLights; j++)
             {
-                flatIndexData[offset + j] = temp.lightIds[j];
+                flatIndexData[offset + j] = temp.lightIndices[j];
             }
 
             offset += temp.numLights;
 
             for (uint16 j = 0; j < temp.numEnvProbes; j++)
             {
-                flatIndexData[offset + j] = temp.envProbesIds[j];
+                flatIndexData[offset + j] = temp.envProbeIndices[j];
             }
 
             offset += temp.numEnvProbes;
@@ -1773,8 +1861,12 @@ public:
             uint16* mappedIndices = reinterpret_cast<uint16*>(allocation.indexGpuBuffer->Map());
             Memory::Copy(mappedIndices, flatIndexData.Data(), flatIndexData.Size() * sizeof(uint16));
         }
+
+        outGridBuffer = allocation.gridGpuBuffer;
+        outIndexBuffer = allocation.indexGpuBuffer;
     }
 };
+HYP_ENABLE_OPTIMIZATION;
 
 DeferredRenderer::DeferredRenderer()
     : m_rendererConfig(RendererConfig::FromConfig()),
@@ -2290,7 +2382,14 @@ void DeferredRenderer::RenderFrameForView(Frame* frame, const RenderSetup& rs)
 
     const uint32 frameIndex = frame->GetFrameIndex();
 
-    m_tileProcessor->ProcessView(view);
+    if constexpr (UseClusteredShading)
+    {
+        m_tileProcessor->ProcessView(
+            rs.viewport,
+            view,
+            passData.clusterGridBuffer,
+            passData.clusterIndexBuffer);
+    }
 
     // Render shadows for shadow casting lights
     for (Light* light : rpl.GetLights())
