@@ -1577,7 +1577,6 @@ static FramebufferRef CreateDeferredShadingFramebuffer(GBuffer* gbuffer)
     return framebuffer;
 }
 
-HYP_DISABLE_OPTIMIZATION;
 class TileProcessor
 {
 public:
@@ -1591,7 +1590,7 @@ public:
         uint16 numEnvProbes;
     };
 
-    struct TileTempData
+    struct Tile
     {
         uint16 numEnvProbes;
         uint16 numLights;
@@ -1655,7 +1654,7 @@ public:
             tileDataPerView.Resize(view->Id().ToIndex() + 1);
         }
 
-        Array<TileTempData, RenderAllocator> tempTiles;
+        Array<Tile, RenderAllocator> tempTiles;
         tempTiles.ResizeZeroed(totalTiles);
 
         RenderProxyList& rpl = GetConsumerProxyList(view);
@@ -1712,11 +1711,11 @@ public:
                 {
                     for (uint32 tileX = minTileX; tileX < maxTileX; tileX++)
                     {
-                        TileTempData& data = tempTiles[(zBin * numTilesY + tileY) * numTilesX + tileX];
+                        Tile& tile = tempTiles[(zBin * numTilesY + tileY) * numTilesX + tileX];
 
-                        if (data.numEnvProbes < MaxEnvProbesPerTile)
+                        if (tile.numEnvProbes < MaxEnvProbesPerTile)
                         {
-                            data.envProbeIndices[data.numEnvProbes++] = binding;
+                            tile.envProbeIndices[tile.numEnvProbes++] = binding;
                         }
                     }
                 }
@@ -1775,11 +1774,11 @@ public:
                 {
                     for (uint32 tileX = minTileX; tileX < maxTileX; tileX++)
                     {
-                        TileTempData& data = tempTiles[(zBin * numTilesY + tileY) * numTilesX + tileX];
+                        Tile& tile = tempTiles[(zBin * numTilesY + tileY) * numTilesX + tileX];
 
-                        if (data.numLights < MaxLightsPerTile)
+                        if (tile.numLights < MaxLightsPerTile)
                         {
-                            data.lightIndices[data.numLights++] = binding;
+                            tile.lightIndices[tile.numLights++] = binding;
                         }
                     }
                 }
@@ -1796,27 +1795,27 @@ public:
 
         for (uint32 i = 0; i < totalTiles; ++i)
         {
-            const TileTempData& temp = tempTiles[i];
+            const Tile& tile = tempTiles[i];
             
             gridData[i].indexOffset = uint32(flatIndexData.Size());
-            gridData[i].numLights = temp.numLights;
-            gridData[i].numEnvProbes = temp.numEnvProbes;
+            gridData[i].numLights = tile.numLights;
+            gridData[i].numEnvProbes = tile.numEnvProbes;
 
-            flatIndexData.Resize(offset + temp.numLights + temp.numEnvProbes);
+            flatIndexData.Resize(offset + tile.numLights + tile.numEnvProbes);
 
-            for (uint16 j = 0; j < temp.numLights; j++)
+            for (uint16 j = 0; j < tile.numLights; j++)
             {
-                flatIndexData[offset + j] = temp.lightIndices[j];
+                flatIndexData[offset + j] = tile.lightIndices[j];
             }
 
-            offset += temp.numLights;
+            offset += tile.numLights;
 
-            for (uint16 j = 0; j < temp.numEnvProbes; j++)
+            for (uint16 j = 0; j < tile.numEnvProbes; j++)
             {
-                flatIndexData[offset + j] = temp.envProbeIndices[j];
+                flatIndexData[offset + j] = tile.envProbeIndices[j];
             }
 
-            offset += temp.numEnvProbes;
+            offset += tile.numEnvProbes;
         }
 
         TileDataAllocation& allocation = tileDataPerView[view->Id().ToIndex()];
@@ -1874,7 +1873,6 @@ public:
         outIndexBuffer = allocation.indexGpuBuffer;
     }
 };
-HYP_ENABLE_OPTIMIZATION;
 
 DeferredRenderer::DeferredRenderer()
     : m_rendererConfig(RendererConfig::FromConfig()),
