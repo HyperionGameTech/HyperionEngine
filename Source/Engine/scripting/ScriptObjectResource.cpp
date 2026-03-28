@@ -8,8 +8,11 @@
 
 #include <Core/debug/Debug.hpp>
 
+#ifdef HYP_DOTNET
 #include <dotnet/ManagedObject.hpp>
 #include <dotnet/ManagedClass.hpp>
+#include <dotnet/DotNETHost.hpp>
+#endif
 
 #ifdef HYP_SCRIPT
 #include <Lang/HypScript.hpp>
@@ -252,8 +255,13 @@ void ScriptObjectResource::Destroy()
     {
         if (dotNetData->objectPtr)
         {
-            const bool result = dotNetData->objectPtr->SetKeepAlive(false);
-            Assert(result);
+            const DotNETHost& dnh = DotNETHost::GetInstance();
+
+            if (dnh.IsInitialized() && !dnh.IsShuttingDown())
+            {
+                const bool result = dotNetData->objectPtr->SetKeepAlive(false);
+                Assert(result);
+            }
         }
     }
 #endif

@@ -82,6 +82,11 @@ public:
         return m_globalFunctions;
     }
 
+    HYP_FORCE_INLINE bool IsShuttingDown() const
+    {
+        return m_isShuttingDown;
+    }
+
     RC<dotnet::Assembly> LoadAssembly(const char* path) const;
     bool UnloadAssembly(dotnet::ManagedGuid guid) const;
     bool IsCoreAssembly(const dotnet::Assembly* assembly) const;
@@ -104,6 +109,7 @@ private:
 
     mutable Mutex m_mutex;
     bool m_isInitialized;
+    bool m_isShuttingDown;
 
     DotNetImplBase* m_impl;
 

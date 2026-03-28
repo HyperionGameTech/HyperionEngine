@@ -585,6 +585,7 @@ DotNETHost& DotNETHost::GetInstance()
 
 DotNETHost::DotNETHost()
     : m_isInitialized(false),
+      m_isShuttingDown(false),
       m_impl(nullptr)
 {
 }
@@ -692,6 +693,8 @@ void DotNETHost::Shutdown()
         return;
     }
 
+    m_isShuttingDown = true;
+
     if (m_globalFunctions.cleanupOnShutdownFunction != nullptr)
     {
         m_globalFunctions.cleanupOnShutdownFunction();
@@ -703,6 +706,7 @@ void DotNETHost::Shutdown()
     m_impl = nullptr;
 
     m_isInitialized = false;
+    m_isShuttingDown = false;
 }
 
 } // namespace Hyperion

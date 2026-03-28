@@ -1,0 +1,17 @@
+{
+  "$Class": "ShaderBundle",
+  "CompiledShaders": [{
+      "$Class": "AssetReference",
+      "AssetPath": {
+        "Value": "Engine/Shaders/ApplyLightmap/ApplyLightmap_5656388037364668825"
+      }
+    }, {
+      "$Class": "AssetReference",
+      "AssetPath": {
+        "Value": "Engine/Shaders/ApplyLightmap/ApplyLightmap_16850497093972767391"
+      }
+    }],
+  "Name": "ApplyLightmap",
+  "FriendlyName": "ApplyLightmap",
+  "OriginalFilepath": ""
+}

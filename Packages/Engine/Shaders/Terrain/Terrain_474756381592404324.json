@@ -1,0 +1,229 @@
+{
+  "$Class": "Shader",
+  "PropertySet": [{
+      "$Class": "ShaderProperty",
+      "Name": "HYP_VULKAN",
+      "Flags": 0,
+      "Value": 4202496,
+      "EnumValues": []
+    }, {
+      "$Class": "ShaderProperty",
+      "Name": "NUM_GBUFFER_TEXTURES",
+      "Flags": 0,
+      "Value": 5,
+      "EnumValues": []
+    }, {
+      "$Class": "ShaderProperty",
+      "Name": "HYP_FEATURES_BINDLESS_TEXTURES",
+      "Flags": 0,
+      "Value": null,
+      "EnumValues": []
+    }, {
+      "$Class": "ShaderProperty",
+      "Name": "INSTANCING",
+      "Flags": 0,
+      "Value": null,
+      "EnumValues": []
+    }],
+  "RevisionNumber": 31459917,
+  "BaseName": "Terrain",
+  "VertexAttributes": {
+    "FlagMask": 247
+  },
+  "ShaderInputGroup": {
+    "Elements": [{
+        "$Class": "ShaderInputSet",
+        "SetIndex": 0,
+        "Name": "Default",
+        "Slots": [[{
+              "$Class": "ShaderInput",
+              "Register": 1,
+              "ElementType": 3,
+              "Name": "EntitiesBuffer",
+              "Count": 1,
+              "Size": 4294967295,
+              "IsDynamic": false,
+              "StructInfo": {
+                "Name": "",
+                "Size": 4294967295,
+                "FieldNames": [],
+                "FieldTypes": []
+              }
+            }, {
+              "$Class": "ShaderInput",
+              "Register": 1,
+              "ElementType": 4,
+              "Name": "EntityInstanceBatchesBuffer",
+              "Count": 1,
+              "Size": 4294967295,
+              "IsDynamic": true,
+              "StructInfo": {
+                "Name": "",
+                "Size": 4294967295,
+                "FieldNames": [],
+                "FieldTypes": []
+              }
+            }, {
+              "$Class": "ShaderInput",
+              "Register": 1,
+              "ElementType": 4,
+              "Name": "CurrentLight",
+              "Count": 1,
+              "Size": 4294967295,
+              "IsDynamic": true,
+              "StructInfo": {
+                "Name": "",
+                "Size": 4294967295,
+                "FieldNames": [],
+                "FieldTypes": []
+              }
+            }, {
+              "$Class": "ShaderInput",
+              "Register": 1,
+              "ElementType": 4,
+              "Name": "CurrentEnvProbe",
+              "Count": 1,
+              "Size": 4294967295,
+              "IsDynamic": true,
+              "StructInfo": {
+                "Name": "",
+                "Size": 4294967295,
+                "FieldNames": [],
+                "FieldTypes": []
+              }
+            }, {
+              "$Class": "ShaderInput",
+              "Register": 1,
+              "ElementType": 4,
+              "Name": "MaterialsBuffer",
+              "Count": 1,
+              "Size": 4294967295,
+              "IsDynamic": true,
+              "StructInfo": {
+                "Name": "",
+                "Size": 4294967295,
+                "FieldNames": [],
+                "FieldTypes": []
+              }
+            }, {
+              "$Class": "ShaderInput",
+              "Register": 1,
+              "ElementType": 5,
+              "Name": "GBufferMipChain",
+              "Count": 1,
+              "Size": 4294967295,
+              "IsDynamic": false,
+              "StructInfo": {
+                "Name": "",
+                "Size": 4294967295,
+                "FieldNames": [],
+                "FieldTypes": []
+              }
+            }, {
+              "$Class": "ShaderInput",
+              "Register": 1,
+              "ElementType": 5,
+              "Name": "PointLightShadowMapsTextureArray",
+              "Count": 1,
+              "Size": 4294967295,
+              "IsDynamic": false,
+              "StructInfo": {
+                "Name": "",
+                "Size": 4294967295,
+                "FieldNames": [],
+                "FieldTypes": []
+              }
+            }, {
+              "$Class": "ShaderInput",
+              "Register": 1,
+              "ElementType": 5,
+              "Name": "ShadowMapsTextureArray",
+              "Count": 1,
+              "Size": 4294967295,
+              "IsDynamic": false,
+              "StructInfo": {
+                "Name": "",
+                "Size": 4294967295,
+                "FieldNames": [],
+                "FieldTypes": []
+              }
+            }], [], [{
+              "$Class": "ShaderInput",
+              "Register": 3,
+              "ElementType": 1,
+              "Name": "WorldsBuffer",
+              "Count": 1,
+              "Size": 4294967295,
+              "IsDynamic": false,
+              "StructInfo": {
+                "Name": "",
+                "Size": 4294967295,
+                "FieldNames": [],
+                "FieldTypes": []
+              }
+            }, {
+              "$Class": "ShaderInput",
+              "Register": 3,
+              "ElementType": 2,
+              "Name": "CamerasBuffer",
+              "Count": 1,
+              "Size": 4294967295,
+              "IsDynamic": true,
+              "StructInfo": {
+                "Name": "",
+                "Size": 4294967295,
+                "FieldNames": [],
+                "FieldTypes": []
+              }
+            }], [{
+              "$Class": "ShaderInput",
+              "Register": 4,
+              "ElementType": 7,
+              "Name": "SamplerNearest",
+              "Count": 1,
+              "Size": 4294967295,
+              "IsDynamic": false,
+              "StructInfo": {
+                "Name": "",
+                "Size": 4294967295,
+                "FieldNames": [],
+                "FieldTypes": []
+              }
+            }, {
+              "$Class": "ShaderInput",
+              "Register": 4,
+              "ElementType": 7,
+              "Name": "SamplerLinear",
+              "Count": 1,
+              "Size": 4294967295,
+              "IsDynamic": false,
+              "StructInfo": {
+                "Name": "",
+                "Size": 4294967295,
+                "FieldNames": [],
+                "FieldTypes": []
+              }
+            }], []],
+        "Flags": 0
+      }]
+  },
+  "ShaderModuleTypes": [1, 2],
+  "ShaderModuleNames": ["DefaultVertex.hlsl", "Terrain.hlsl"],
+  "EntryPointNames": ["VSMain", "PSMain"],
+  "ShaderBlobs": [{
+      "$Class": "BlobDataReference",
+      "Key": "Engine/Shaders/Terrain/Terrain_474756381592404324.VS",
+      "Size": 59172
+    }, {
+      "$Class": "BlobDataReference",
+      "Key": "Engine/Shaders/Terrain/Terrain_474756381592404324.PS",
+      "Size": 65076
+    }],
+  "PropertySetHashCode": {},
+  "LastCompiledTimestamp": {
+    "Value": 1774531992000
+  },
+  "Name": "Terrain_474756381592404324",
+  "FriendlyName": "Terrain_474756381592404324",
+  "OriginalFilepath": ""
+}

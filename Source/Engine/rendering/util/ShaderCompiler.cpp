@@ -69,6 +69,9 @@ namespace Hyperion {
 
 HYP_DEFINE_LOG_SUBCHANNEL(ShaderCompiler, Core);
 
+/// Should missing shader variants be compiled when requested, or should we just fail?
+/// Enabling this will cause shader compilation to happen during gameplay / editor.
+/// Default is off to ensure that all shader variants are compiled ahead of time via Shaders.ini.
 static constexpr bool ShouldCompileMissingVariants = false;
 
 // #define HYP_SHADER_COMPILER_LOGGING
@@ -1809,9 +1812,6 @@ bool ShaderCompiler::HandleBundle(
 {
     Assert(inOutBundle.IsValid());
 
-    // find variants for the bundle that are not in the compiled bundle
-    Array<ShaderVariantPerms> missingPerms;
-    
     if (CanCompileShaders())
     {
             // Check that each version specified is present in the ShaderBundle.
@@ -1834,33 +1834,6 @@ bool ShaderCompiler::HandleBundle(
 
                 return CompileBundle(decl, shaderRequest, inOutBundle);
             }
-
-        if (ShouldCompileMissingVariants)
-        {
-            ForEachPermutation(
-                decl.variantPerms,
-                [&](const ShaderVariantPerms& perm)
-                {
-                    // get hashcode for this permutation
-                    // only care about the property set (not vertex attributes), as we will
-                    // only have access to those from the bundle plus, changing vertex
-                    // attributes will cause a recompile anyway due to shaders' file
-                    // contents changing
-                    const HashCode propertySetHashCode = perm.GetPropertySetHashCode();
-
-                    const auto it = inOutBundle->compiledShaders.FindIf(
-                        [propertySetHashCode](const Handle<Shader>& item)
-                        {
-                            return item->propertySetHashCode == propertySetHashCode;
-                        });
-
-                    if (it == inOutBundle->compiledShaders.End())
-                    {
-                        missingPerms.PushBack(perm);
-                    }
-                },
-                false);
-        }
     }
 
     const bool requestedFound = shaderRequest.HasValue() &&
@@ -1873,55 +1846,28 @@ bool ShaderCompiler::HandleBundle(
             })
             != inOutBundle->compiledShaders.End();
 
-    if ((ShouldCompileMissingVariants && missingPerms.Any()) || (shaderRequest.HasValue() && !requestedFound))
+    if (shaderRequest.HasValue() && !requestedFound)
     {
-        if (ShouldCompileMissingVariants && missingPerms.Any())
+        String requestString = "requested shader with properties: " + shaderRequest->properties.GetDebugString();
+        requestString += " and vertex attributes: " + (shaderRequest->vertexAttributes ? shaderRequest->vertexAttributes.ToString() : "<none>");
+
+        HYP_LOG(ShaderCompiler, Verbose,
+            "Bundle {} does not contain a shader satisfying the {}",
+            *decl.name, requestString);
+
+        HYP_LOG(ShaderCompiler, Verbose, "Other shaders in the bundle:\n===============================");
+
+        for (const Handle<Shader>& shader : inOutBundle->compiledShaders)
         {
-            size_t index = 0;
-            String missingPermsString;
+            String shaderString = "\tProperties: " + shader->properties.GetDebugString();
+            shaderString += "\n\tVertex attributes: " + (shader->vertexAttributes ? shader->vertexAttributes.ToString() : "<none>");
 
-            for (const ShaderVariantPerms& perm : missingPerms)
-            {
-                missingPermsString += String::ToString(perm.GetPropertySetHashCode().Value())
-                    + " - " + perm.ToString()
-                    + " - " + (perm.GetRequiredVertexAttributes() ? perm.GetRequiredVertexAttributes().ToString() : "<no vertex attributes>");
-
-                if (index != missingPerms.Size() - 1)
-                {
-                    missingPermsString += ",\n\t";
-                }
-
-                index++;
-            }
-
-            HYP_LOG(ShaderCompiler, Verbose,
-                "Bundle {} is missing {} shader variants:\n\t{}",
-                *decl.name, missingPerms.Size(), missingPermsString);
+            HYP_LOG(ShaderCompiler, Verbose, "{}", shaderString);
         }
 
-        if (shaderRequest.HasValue() && !requestedFound)
-        {
-            String requestString = "requested shader with properties: " + shaderRequest->properties.GetDebugString();
-            requestString += " and vertex attributes: " + (shaderRequest->vertexAttributes ? shaderRequest->vertexAttributes.ToString() : "<none>");
+        HYP_LOG(ShaderCompiler, Verbose, "===============================");
 
-            HYP_LOG(ShaderCompiler, Verbose,
-                "Bundle {} does not contain a shader satisfying the {}",
-                *decl.name, requestString);
-
-            HYP_LOG(ShaderCompiler, Verbose, "Other shaders in the bundle:\n===============================");
-
-            for (const Handle<Shader>& shader : inOutBundle->compiledShaders)
-            {
-                String shaderString = "\tProperties: " + shader->properties.GetDebugString();
-                shaderString += "\n\tVertex attributes: " + (shader->vertexAttributes ? shader->vertexAttributes.ToString() : "<none>");
-
-                HYP_LOG(ShaderCompiler, Verbose, "{}", shaderString);
-            }
-
-            HYP_LOG(ShaderCompiler, Verbose, "===============================");
-        }
-
-        if (CanCompileShaders())
+        if (ShouldCompileMissingVariants && CanCompileShaders())
         {
             return CompileBundle(
                 decl,

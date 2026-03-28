@@ -48,27 +48,6 @@ ShadowRendererPassData::~ShadowRendererPassData()
 
 #pragma region ShadowRendererBase
 
-static UniquePtr<FullScreenPass> CreateCombineShadowMapsPass(
-    ShadowMapFilter filterMode, TextureFormat format, Vec2u dimensions)
-{
-    ShaderPropertySet properties;
-
-    if (filterMode == SMF_VSM)
-    {
-        properties.Add(InternShaderProperty(ShaderProperty(NAME("VSM"))));
-    }
-
-    UniquePtr<FullScreenPass> combineShadowMapsPass = MakeUnique<FullScreenPass>(
-        ShaderDesc(NAME("CombineShadowMaps"), properties),
-        format,
-        dimensions,
-        nullptr);
-
-    combineShadowMapsPass->Create();
-
-    return combineShadowMapsPass;
-}
-
 ShadowRendererBase::ShadowRendererBase() = default;
 
 void ShadowRendererBase::Initialize()
