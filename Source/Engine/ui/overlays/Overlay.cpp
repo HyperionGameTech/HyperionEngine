@@ -20,7 +20,7 @@ HYP_DECLARE_LOG_CHANNEL(UI);
 #pragma region OverlayBase
 
 OverlayBase::OverlayBase()
-    : m_timer { 0.0167f }
+    : m_timer { 0.0333f } // update max. 30hz/s default
 {
 }
 

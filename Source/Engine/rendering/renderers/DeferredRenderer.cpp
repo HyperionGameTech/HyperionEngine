@@ -2003,9 +2003,6 @@ DeferredRenderer::~DeferredRenderer()
 
 void DeferredRenderer::Initialize()
 {
-    m_quadMesh = MeshBuilder::Quad();
-    m_quadMesh->SetFlags(MeshFlags::ViewIndependent);
-    InitObject(m_quadMesh);
 }
 
 void DeferredRenderer::Shutdown()
@@ -2257,6 +2254,13 @@ void DeferredRenderer::RenderFrame(Frame* frame, const RenderSetup& rs)
             rpl->EndRead();
         }
     });
+
+    if (!m_quadMesh)
+    {
+        m_quadMesh = MeshBuilder::Quad();
+        m_quadMesh->SetFlags(MeshFlags::ViewIndependent);
+        InitObject(m_quadMesh);
+    }
 
     // Collect view-independent renderable types from all views, binned
     //// \todo : We could use the existing binning by subclass that ResourceTracker now provides.

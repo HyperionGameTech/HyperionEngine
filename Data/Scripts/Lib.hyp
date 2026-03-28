@@ -39,6 +39,12 @@ extern class StatsOverlay : OverlayBase
     Update_Impl(delta : float) -> void
     IsEnabled_Impl() -> bool
 end
+extern class ConsoleOverlay : OverlayBase
+    CreateUIObject_Impl(spawnParent : UIObject) -> UIObject
+    GetPlacement_Impl() -> int
+    Update_Impl(delta : float) -> void
+    IsEnabled_Impl() -> bool
+end
 extern class BaseStatsOverlay : OverlayBase
     CreateUIObject_Impl(spawnParent : UIObject) -> UIObject
     GetPlacement_Impl() -> int
@@ -214,6 +220,8 @@ extern class UIObject
     OnDisabled : any
     OnValueChange : any
     Init() -> void
+end
+extern class UIConsole : UIObject
 end
 extern class UIText : UIObject
     GetCharacterOffset(characterIndex : int) -> Vec2f
@@ -876,7 +884,7 @@ extern struct Vertex
     Texcoord0 : Vec2f
     Texcoord1 : Vec2f
     BoneWeights : Array<float>
-    BoneIndices : Array<uint32>
+    BoneIndices : Array<uint8>
 end
 extern enum TextureFilterMode : uint8
     TFM_NEAREST,

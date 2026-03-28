@@ -46,8 +46,10 @@
 #include <system/AppContext.hpp>
 
 #include <ui/UISubsystem.hpp>
+#include <ui/UIStage.hpp>
 #include <ui/overlays/BaseStatsOverlay.hpp>
 #include <ui/overlays/StatsOverlay.hpp>
+#include <ui/overlays/ConsoleOverlay.hpp>
 
 #include <HyperionEngine.hpp>
 
@@ -203,7 +205,8 @@ void DefaultGame::OnLaunch_Impl()
 
     if (UISubsystem* uiSubsystem = GetUISubsystem())
     {
-    //    uiSubsystem->AddDebugOverlay(MakeHandle<StatsOverlay>());
+        uiSubsystem->AddDebugOverlay(MakeHandle<StatsOverlay>());
+        uiSubsystem->AddDebugOverlay(MakeHandle<ConsoleOverlay>());
     }
 #endif
 
@@ -214,9 +217,15 @@ void DefaultGame::OnUpdate_Impl(float delta)
 {
 }
 
-void DefaultGame::OnInputEvent(const Event& event)
+bool DefaultGame::OnInputEvent(const Event& event)
 {
-    Game::OnInputEvent(event);
+    if (Game::OnInputEvent(event))
+    {
+        if (GetUISubsystem()->GetUIStage()->HasFocus())
+        {
+            return true;
+        }
+    }
 
     CameraController* controller = m_camera->GetCameraController();
 
@@ -266,6 +275,8 @@ void DefaultGame::OnInputEvent(const Event& event)
     default:
         break;
     }
+
+    return true;
 }
 
 } // namespace game

@@ -277,6 +277,8 @@ void UIListView::AddChildUIObject(const Handle<UIObject>& uiObject)
     }
 
     UpdateLayout();
+
+    OnListViewItemAdded(listViewItem);
 }
 
 bool UIListView::RemoveChildUIObject(UIObject* uiObject)
@@ -296,6 +298,8 @@ bool UIListView::RemoveChildUIObject(UIObject* uiObject)
         {
             m_listViewItems.Erase(it);
         }
+
+        OnListViewItemRemoved(static_cast<UIListViewItem*>(uiObject));
     }
 
     return UIObject::RemoveChildUIObject(uiObject);

@@ -34,7 +34,7 @@ public:
 protected:
     virtual void OnLaunch_Impl() override;
     virtual void OnUpdate_Impl(float delta) override;
-    virtual void OnInputEvent(const Event& event) override;
+    virtual bool OnInputEvent(const Event& event) override;
 
     DefaultGameImpl* m_impl;
 

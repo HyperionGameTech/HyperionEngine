@@ -1,5 +1,3 @@
-#include <editor/HyperionEditor.hpp>
-
 #include <Core/logging/Logger.hpp>
 
 #include <HyperionEngine.hpp>

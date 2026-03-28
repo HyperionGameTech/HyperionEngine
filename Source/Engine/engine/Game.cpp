@@ -78,7 +78,7 @@ void Game::HandleEvent(Event&& event)
     OnInputEvent(event);
 }
 
-void Game::OnInputEvent(const Event& event)
+bool Game::OnInputEvent(const Event& event)
 {
     HYP_SCOPE;
 
@@ -88,9 +88,11 @@ void Game::OnInputEvent(const Event& event)
     {
         if (m_uiSubsystem->GetUIStage()->OnInputEvent(event))
         {
-            return;
+            return true;
         }
     }
+
+    return false;
 }
 
 void Game::StartSimulating()

@@ -135,6 +135,8 @@ public:
     void UpdateLayout();
 
     Delegate<void, UIListViewItem*> OnSelectedItemChange;
+    Delegate<void, UIListViewItem*> OnListViewItemAdded;
+    Delegate<void, UIListViewItem*> OnListViewItemRemoved;
 
 protected:
     virtual void Init() override;

@@ -837,6 +837,7 @@ void UIObject::SetScrollOffset(Vec2f scrollOffset, bool smooth)
     OnScrollOffsetUpdate(m_scrollOffset.GetValue());
 }
 
+HYP_DISABLE_OPTIMIZATION;
 void UIObject::ScrollToChild(UIObject* child)
 {
     HYP_SCOPE;
@@ -865,7 +866,9 @@ void UIObject::ScrollToChild(UIObject* child)
     }
 
     // Get the position of the child relative to this object
-    Vec2f childPosition = child->GetAbsolutePosition() - GetAbsolutePosition();
+    Vec2f childPositionAbs = child->GetAbsolutePosition();
+    Vec2f thisPositionAbs = GetAbsolutePosition();
+    Vec2f childPosition = childPositionAbs - thisPositionAbs;
 
     Vec2i scrollOffset = Vec2i(GetScrollOffset());
 
@@ -895,6 +898,7 @@ void UIObject::ScrollToChild(UIObject* child)
         SetScrollOffset(Vec2f(newScrollOffset), /* smooth */ false);
     }
 }
+HYP_ENABLE_OPTIMIZATION;
 
 void UIObject::SetFocusState(EnumFlags<UIObjectFocusState> focusState)
 {

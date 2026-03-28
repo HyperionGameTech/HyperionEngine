@@ -20,8 +20,6 @@
 
 namespace Hyperion {
 
-HYP_DECLARE_LOG_CHANNEL(Editor);
-
 #pragma region StatsOverlay
 
 StatsOverlay::StatsOverlay()

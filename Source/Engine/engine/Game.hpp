@@ -88,7 +88,7 @@ protected:
         HYP_PURE_VIRTUAL();
     }
 
-    virtual void OnInputEvent(const Event& event);
+    virtual bool OnInputEvent(const Event& event);
 
     HYP_METHOD()
     virtual void OnLaunch_Impl()

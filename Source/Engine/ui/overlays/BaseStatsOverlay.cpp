@@ -15,8 +15,6 @@
 
 namespace Hyperion {
 
-HYP_DECLARE_LOG_CHANNEL(Editor);
-
 extern EngineStatCounter<uint32> g_statDrawCalls;
 extern EngineStatCounter<uint32> g_statInstancedDrawCalls;
 extern EngineStatCounter<uint32> g_statTriangles;
