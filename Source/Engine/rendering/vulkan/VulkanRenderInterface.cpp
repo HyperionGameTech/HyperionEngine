@@ -26,7 +26,7 @@
 #include <rendering/FinalPass.hpp>
 #include <rendering/Bindless.hpp>
 #include <rendering/CrashHandler.hpp>
-#include <rendering/ConstantsAllocator.hpp>
+#include <rendering/CBufferAllocator.hpp>
 
 #include <engine/config/EngineConfig.hpp>
 
@@ -686,7 +686,7 @@ RendererResult VulkanRenderInterface::Initialize()
     const VkDeviceSize minUniformBufferOffsetAlignment = g_renderInterface->GetDevice()->GetFeatures()
         .GetPhysicalDeviceProperties().limits.minUniformBufferOffsetAlignment;
 
-    constantsAllocator->Initialize(minUniformBufferOffsetAlignment);
+    cbufferAllocator->Initialize(minUniformBufferOffsetAlignment);
 
     return RenderInterface::Initialize();
 }

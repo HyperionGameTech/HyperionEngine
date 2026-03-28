@@ -60,7 +60,7 @@ private:
     HBAOConfig m_config;
 
     DescriptorSetRef m_descriptorSet;
-    GpuBufferRef m_cBuffer;
+    GpuBufferRef m_cbuffer;
 };
 
 } // namespace Hyperion

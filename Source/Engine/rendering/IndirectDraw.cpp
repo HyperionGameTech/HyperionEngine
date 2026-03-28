@@ -368,7 +368,7 @@ IndirectRenderer::IndirectRenderer()
 
 IndirectRenderer::~IndirectRenderer()
 {
-    EnqueueDeletion(std::move(m_cBuffers));
+    EnqueueDeletion(std::move(m_cbuffers));
 }
 
 void IndirectRenderer::Create(EntityBatchAllocatorBase* batchAllocator)
@@ -380,12 +380,12 @@ void IndirectRenderer::Create(EntityBatchAllocatorBase* batchAllocator)
 
     for (uint32 frameIndex = 0; frameIndex < NumFramesInFlight; frameIndex++)
     {
-        m_cBuffers[frameIndex] = g_renderInterface->MakeGpuBuffer(GpuBufferType::CONSTANT_BUFFER, sizeof(ComputeVisibilityConstants));
+        m_cbuffers[frameIndex] = g_renderInterface->MakeGpuBuffer(GpuBufferType::CONSTANT_BUFFER, sizeof(ComputeVisibilityConstants));
 #if HYP_DEBUG_MODE
-        m_cBuffers[frameIndex]->SetDebugName(NAME_FMT("IndirectRenderer_UniformBuffer_Frame{}", frameIndex));
+        m_cbuffers[frameIndex]->SetDebugName(NAME_FMT("IndirectRenderer_UniformBuffer_Frame{}", frameIndex));
 #endif
 
-        CheckResult(m_cBuffers[frameIndex]->Create());
+        CheckResult(m_cbuffers[frameIndex]->Create());
     }
 }
 
@@ -478,10 +478,10 @@ void IndirectRenderer::ExecuteCullShaderInBatches(Frame* frame, const RenderSetu
     constants.numInstances = numInstances;
     constants.entityInstanceBatchStride = ByteUtil::AlignAs(m_batchAllocator->GetStructSize(), m_batchAllocator->GetStructAlignment());
 
-    m_cBuffers[frameIndex]->Copy(sizeof(constants), &constants);
-    m_cBuffers[frameIndex]->Flush(0, sizeof(constants));
+    m_cbuffers[frameIndex]->Copy(sizeof(constants), &constants);
+    m_cbuffers[frameIndex]->Flush(0, sizeof(constants));
 
-    cr << SetShaderUniform(numShaderUniforms++, "ComputeVisibilityConstants"_sh, m_cBuffers[frameIndex]);
+    cr << SetShaderUniform(numShaderUniforms++, "ComputeVisibilityConstants"_sh, m_cbuffers[frameIndex]);
 
     cr << InsertBarrier(m_indirectDrawState.GetIndirectBuffer(frameIndex), RS_INDIRECT_ARG);
 

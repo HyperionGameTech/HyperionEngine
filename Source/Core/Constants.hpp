@@ -48,6 +48,7 @@ constexpr uint32 MaxBoundLightmapVolumes = 4;
 constexpr uint32 MaxBoundLightsForwardShading = 4;
 
 constexpr uint32 MaxShadowMapCascades = 4;
+constexpr uint32 MaxClusteredShadowMaps = 16;
 
 constexpr uint32 NumGBufferTargets = 5;
 

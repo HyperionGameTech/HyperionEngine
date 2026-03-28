@@ -21,7 +21,7 @@
 #include <rendering/TextureViewCache.hpp>
 #include <rendering/Mesh.hpp>
 #include <rendering/GBuffer.hpp>
-#include <rendering/ConstantsAllocator.hpp>
+#include <rendering/CBufferAllocator.hpp>
 
 #include <rendering/util/DeletionQueue.hpp>
 #include <rendering/util/ShaderPropertyDictionary.hpp>
@@ -240,17 +240,17 @@ void ParticleVolumeRenderer::RenderFrame(Frame* frame, const RenderSetup& render
     csConstants.deltaTime = 0.016f; // TODO: real render delta
     csConstants.globalCounter = m_counter++;
 
-    g_renderInterface->constantsAllocator->Write(&csConstants);
+    g_renderInterface->cbufferAllocator->Write(&csConstants);
 
     RenderProxyCamera* cameraProxy = static_cast<RenderProxyCamera*>(GetRenderProxy(view->GetCamera()));
     AssertDebug(cameraProxy != nullptr);
 
-    g_renderInterface->constantsAllocator->Write(&cameraProxy->bufferData);
+    g_renderInterface->cbufferAllocator->Write(&cameraProxy->bufferData);
     
-    GpuBuffer* cBuffer;
-    size_t cBufferOffset;
-    size_t cBufferSize;
-    g_renderInterface->constantsAllocator->Commit(cBuffer, cBufferOffset, cBufferSize);
+    GpuBuffer* cbuffer;
+    size_t cbufferOffset;
+    size_t cbufferSize;
+    g_renderInterface->cbufferAllocator->Commit(cbuffer, cbufferOffset, cbufferSize);
 
     // this is rendered from translucent pass in DeferredRenderer
     Framebuffer* framebuffer = view->GetOutputTarget().GetFramebuffer(RenderBucket::Translucent);
@@ -280,7 +280,7 @@ void ParticleVolumeRenderer::RenderFrame(Frame* frame, const RenderSetup& render
         
         cr << SetShaderUniform(10, "WorldsBuffer"_sh, g_renderInterface->gpuBuffers[GRB_WORLDS]->GetBuffer(frame->GetFrameIndex()));
         
-        cr << SetShaderUniform(11, "CBuffer"_sh, cBuffer, ShaderDataOffset(cBufferOffset, cBufferSize));
+        cr << SetShaderUniform(11, "CBuffer"_sh, cbuffer, ShaderDataOffset(cbufferOffset, cbufferSize));
 
         const size_t maxParticles = proxy->bufferData.maxParticles;
         cr << DispatchCompute(Vec3u { uint32((maxParticles + 255) / 256), 1, 1 });

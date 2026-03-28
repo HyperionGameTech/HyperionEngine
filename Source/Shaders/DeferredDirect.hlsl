@@ -128,6 +128,20 @@ DECLARE_SRV(DeferredPass, PointLightShadowMapsTextureArray) TextureCubeArray poi
 
 #ifdef LIGHT_TYPE_CLUSTERED
 #include "deferred/Tiles.hlsli"
+
+#if 0
+DECLARE_BUFFER_DYNAMIC(DeferredPass, CBuffer) cbuffer CBuffer
+{
+    // shadow maps for the view are not per-tile as we have a limited number of shadow maps and shadow maps are per-view
+    // so not directly accessible from the Light data.
+    // Use LightToShadowMapIndex to indirectly index into this array based on the light index in the clustered data.
+    ShadowMap shadowMaps[MAX_CLUSTERED_SHADOW_MAPS];
+};
+
+// Map light bound index (uint16) to shadow map index in cbuffer (uint8)
+DECLARE_SRV(DeferredPass, LightToShadowMapIndex) ByteAddressBuffer LightToShadowMapIndex;
+#endif
+
 #endif
 
 PSOutput PSMain(PSInput input)
@@ -195,12 +209,12 @@ PSOutput PSMain(PSInput input)
     
 #ifdef LIGHT_TYPE_CLUSTERED
     // Cluster data
-    const uint clusterIndex = CalculateFlatClusterIndex(
+    const uint gridIndex = Cluster_GetGridIndex(
         gbufferDimensions, pixelCoord,
         positionVS.z / positionVS.w,
         camera.near, camera.far);
 
-    const uint2 clusterData = ClusterGridBuffer[clusterIndex];
+    const uint2 clusterData = ClusterGridBuffer[gridIndex];
     
     const uint clusterIndexOffset = clusterData.x;
 
@@ -212,7 +226,7 @@ PSOutput PSMain(PSInput input)
 
     for (uint i = 0; i < numLights; ++i)
     {
-        const uint lightIndex = CalculateLightIndex(clusterIndexOffset, i);
+        const uint lightIndex = Cluster_LoadLightIndex(clusterIndexOffset, i);
         
         // We handle area lights in a specialized version of the deferred pass, so we skip
         // them for clustered deferred shading.

@@ -17,7 +17,7 @@
 #include <rendering/ShaderInstance.hpp>
 #include <rendering/TextureViewCache.hpp>
 #include <rendering/RenderHelpers.hpp>
-#include <rendering/ConstantsAllocator.hpp>
+#include <rendering/CBufferAllocator.hpp>
 #include <rendering/Texture.hpp>
 
 #include <rendering/shadows/ShadowMapCache.hpp>
@@ -204,9 +204,9 @@ void SSGI::Render(Frame* frame, const RenderSetup& renderSetup)
     RenderProxyCamera* cameraProxy = static_cast<RenderProxyCamera*>(GetRenderProxy(renderSetup.view->GetCamera()));
     Assert(cameraProxy != nullptr);
 
-    GpuBuffer* cBuffer = nullptr;
-    size_t cBufferSize = 0;
-    size_t cBufferOffset = 0;
+    GpuBuffer* cbuffer = nullptr;
+    size_t cbufferSize = 0;
+    size_t cbufferOffset = 0;
 
     /// Used loosely as a source around down/upsampling for SSGI
     /// https://gamehacker1999.github.io/posts/SSGI/
@@ -272,18 +272,18 @@ void SSGI::Render(Frame* frame, const RenderSetup& renderSetup)
                 }
             }
 
-            g_renderInterface->constantsAllocator->Write(&ssgiConstants);
+            g_renderInterface->cbufferAllocator->Write(&ssgiConstants);
 
             for (uint32 i = 0; i < MaxLights; i++)
             {
                 if (i < uint32(tempLights.Size()))
                 {
-                    g_renderInterface->constantsAllocator->Write(tempLights[i].second);
+                    g_renderInterface->cbufferAllocator->Write(tempLights[i].second);
                     continue;
                 }
         
                 LightShaderData dummy {};
-                g_renderInterface->constantsAllocator->Write(&dummy);
+                g_renderInterface->cbufferAllocator->Write(&dummy);
             }
 
             for (uint32 i = 0; i < MaxLights; i++)
@@ -314,7 +314,7 @@ void SSGI::Render(Frame* frame, const RenderSetup& renderSetup)
                     }
                 }
 
-                g_renderInterface->constantsAllocator->Write(&shadowMapData);
+                g_renderInterface->cbufferAllocator->Write(&shadowMapData);
             }
 
             // sort probes
@@ -368,10 +368,10 @@ void SSGI::Render(Frame* frame, const RenderSetup& renderSetup)
                     pEnvProbeShaderData = &s_dummyEnvProbeShaderData;
                 }
 
-                g_renderInterface->constantsAllocator->Write(pEnvProbeShaderData);
+                g_renderInterface->cbufferAllocator->Write(pEnvProbeShaderData);
             }
 
-            g_renderInterface->constantsAllocator->Commit(cBuffer, cBufferOffset, cBufferSize);
+            g_renderInterface->cbufferAllocator->Commit(cbuffer, cbufferOffset, cbufferSize);
         }
 
         const uint32 totalPixelsInImage = m_extent.Volume();
@@ -385,7 +385,7 @@ void SSGI::Render(Frame* frame, const RenderSetup& renderSetup)
         uint32 numShaderUniforms = 0;
 
         cr << SetShaderUniform(numShaderUniforms++, "OutImage"_sh, g_renderInterface->textureViewCache->GetOrCreate(m_resultTexture));
-        cr << SetShaderUniform(numShaderUniforms++, "CBuffer"_sh, cBuffer, ShaderDataOffset(cBufferOffset, cBufferSize));
+        cr << SetShaderUniform(numShaderUniforms++, "CBuffer"_sh, cbuffer, ShaderDataOffset(cbufferOffset, cbufferSize));
 
         // GBuffer textures
         cr << SetShaderUniform(numShaderUniforms++, "GBufferAlbedoTexture"_sh, inputsFramebuffer->GetAttachment(GTN_ALBEDO)->GetImageView());
@@ -443,9 +443,9 @@ void SSGI::Render(Frame* frame, const RenderSetup& renderSetup)
         const Vec2f sourceResolution = MathUtil::Max(Vec2f(pass->GetExtent()) / 2, Vec2f::One());
 
         // Need new cbuffer
-        cBuffer = nullptr;
-        cBufferSize = 0;
-        cBufferOffset = 0;
+        cbuffer = nullptr;
+        cbufferSize = 0;
+        cbufferOffset = 0;
         
         { // Update constant buffer
             struct SSGIUpsampleConstants
@@ -463,8 +463,8 @@ void SSGI::Render(Frame* frame, const RenderSetup& renderSetup)
             upsampleConstants.depthThreshold = cvSSGIDepthThreshold.Get();
             upsampleConstants.normalThreshold = cvSSGINormalPower.Get();
 
-            g_renderInterface->constantsAllocator->Write(&upsampleConstants);
-            g_renderInterface->constantsAllocator->Commit(cBuffer, cBufferOffset, cBufferSize);
+            g_renderInterface->cbufferAllocator->Write(&upsampleConstants);
+            g_renderInterface->cbufferAllocator->Commit(cbuffer, cbufferOffset, cbufferSize);
         }
 
         pass->Begin(frame, renderSetup);
@@ -483,7 +483,7 @@ void SSGI::Render(Frame* frame, const RenderSetup& renderSetup)
             i == 0 ? g_renderInterface->textureViewCache->GetOrCreate(m_downsampleTextures[NumDownsamplePasses - 1])
                 : m_upsamplePasses[i - 1]->GetAttachment(0)->GetImageView());
         
-        cr << SetShaderUniform(numShaderUniforms++, "CBuffer"_sh, cBuffer, ShaderDataOffset(cBufferOffset, cBufferSize));
+        cr << SetShaderUniform(numShaderUniforms++, "CBuffer"_sh, cbuffer, ShaderDataOffset(cbufferOffset, cbufferSize));
 
         // Draw quad
         pass->RenderFullScreenQuad(frame, renderSetup);

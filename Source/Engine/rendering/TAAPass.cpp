@@ -47,7 +47,7 @@ TAAPass::TAAPass(const GpuImageViewRef& inputImageView, const Vec2u& extent, GBu
 TAAPass::~TAAPass()
 {
     EnqueueDeletion(std::move(m_inputImageView));
-    EnqueueDeletion(std::move(m_cBuffers));
+    EnqueueDeletion(std::move(m_cbuffers));
 }
 
 void TAAPass::Create()
@@ -103,14 +103,14 @@ void TAAPass::Render(Frame* frame, const RenderSetup& renderSetup)
 
     const uint32 frameIndex = frame->GetFrameIndex();
 
-    if (!m_cBuffers[frameIndex])
+    if (!m_cbuffers[frameIndex])
     {
-        m_cBuffers[frameIndex] = g_renderInterface->MakeGpuBuffer(GpuBufferType::CONSTANT_BUFFER, sizeof(TAAConstants));
+        m_cbuffers[frameIndex] = g_renderInterface->MakeGpuBuffer(GpuBufferType::CONSTANT_BUFFER, sizeof(TAAConstants));
 #if HYP_DEBUG_MODE
-        m_cBuffers[frameIndex]->SetDebugName(NAME("TAAConstants"));
+        m_cbuffers[frameIndex]->SetDebugName(NAME("TAAConstants"));
 #endif
 
-        CheckResult(m_cBuffers[frameIndex]->Create());
+        CheckResult(m_cbuffers[frameIndex]->Create());
     }
 
     RenderProxyCamera* cameraProxy = static_cast<RenderProxyCamera*>(GetRenderProxy(renderSetup.view->GetCamera()));
@@ -123,7 +123,7 @@ void TAAPass::Render(Frame* frame, const RenderSetup& renderSetup)
     constants.depthTextureDimensions = depthTextureDimensions.GetXY();
     constants.cameraNearFar = Vec2f { cameraProxy->bufferData.cameraNear, cameraProxy->bufferData.cameraFar };
 
-    m_cBuffers[frameIndex]->Copy(sizeof(constants), &constants);
+    m_cbuffers[frameIndex]->Copy(sizeof(constants), &constants);
 
     Texture* activeTexture = frame->GetFrameIndex() % 2 == 0 ? m_resultTexture : m_historyTexture;
     Texture* prevTexture = frame->GetFrameIndex() % 2 == 0 ? m_historyTexture : m_resultTexture;
@@ -141,7 +141,7 @@ void TAAPass::Render(Frame* frame, const RenderSetup& renderSetup)
     frame->cr << SetShaderUniform(4, "SamplerLinear"_sh, g_renderInterface->placeholderData->GetSamplerLinear());
     frame->cr << SetShaderUniform(5, "SamplerNearest"_sh, g_renderInterface->placeholderData->GetSamplerNearest());
     frame->cr << SetShaderUniform(6, "OutColorImage"_sh, g_renderInterface->textureViewCache->GetOrCreate(activeTexture));
-    frame->cr << SetShaderUniform(7, "TAAConstants"_sh, m_cBuffers[frameIndex]);
+    frame->cr << SetShaderUniform(7, "TAAConstants"_sh, m_cbuffers[frameIndex]);
 
     frame->cr << DispatchCompute(Vec3u { (m_extent.x + 7) / 8, (m_extent.y + 7) / 8, 1 });
     frame->cr << InsertBarrier(activeTexture->GetGpuImage(), RS_SHADER_RESOURCE);

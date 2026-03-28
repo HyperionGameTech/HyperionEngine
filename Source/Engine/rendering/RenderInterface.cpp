@@ -29,7 +29,8 @@
 #include <rendering/DescriptorSet.hpp>
 #include <rendering/Swapchain.hpp>
 #include <rendering/FinalPass.hpp>
-#include <rendering/ConstantsAllocator.hpp>
+#include <rendering/CBufferAllocator.hpp>
+#include <rendering/BufferAllocator.hpp>
 #include <rendering/TextureViewCache.hpp>
 #include <rendering/SamplerCache.hpp>
 #include <rendering/DescriptorSetCache.hpp>
@@ -563,7 +564,8 @@ EngineConfig& GetEngineConfig()
 
 RenderInterface::RenderInterface()
     : gpuBufferHolders(PoolNew<GpuBufferHolderMap>(*g_renderPool)),
-      constantsAllocator(PoolNew<ConstantsAllocator>(*g_renderPool)),
+      cbufferAllocator(PoolNew<CBufferAllocator>(*g_renderPool)),
+      sbufferAllocator(PoolNew<SBufferAllocator>(*g_renderPool)),
       descriptorSetCache(PoolNew<DescriptorSetCache>(*g_renderPool)),
       placeholderData(PoolNew<PlaceholderData>(*g_renderPool)),
       materialTextureCache(PoolNew<MaterialTextureCache>(*g_renderPool)),
@@ -785,8 +787,11 @@ void RenderInterface::Shutdown()
     PoolDelete(*g_renderPool, finalPass);
     finalPass = nullptr;
     
-    PoolDelete(*g_renderPool, constantsAllocator);
-    constantsAllocator = nullptr;
+    PoolDelete(*g_renderPool, cbufferAllocator);
+    cbufferAllocator = nullptr;
+    
+    PoolDelete(*g_renderPool, sbufferAllocator);
+    sbufferAllocator = nullptr;
 
     PoolDelete(*g_renderPool, gpuBufferHolders);
     gpuBufferHolders = nullptr;
@@ -836,7 +841,8 @@ void RenderInterface::BeginFrame(AtomicFlag* pCancelFlag)
 
     Framework::BufferedData& bufferedData = Framework::s_bufferedData[slot];
 
-    constantsAllocator->OnFrameStart();
+    cbufferAllocator->OnFrameStart();
+    sbufferAllocator->OnFrameStart();
     descriptorSetCache->OnFrameStart();
     stagingBufferPool->OnFrameStart();
 
@@ -1166,7 +1172,8 @@ void RenderInterface::EndFrame()
 
     state.Reset();
 
-    constantsAllocator->OnFrameEnd();
+    cbufferAllocator->OnFrameEnd();
+    sbufferAllocator->OnFrameEnd();
     descriptorSetCache->OnFrameEnd();
     stagingBufferPool->OnFrameEnd();
 

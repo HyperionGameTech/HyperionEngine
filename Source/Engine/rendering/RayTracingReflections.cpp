@@ -16,7 +16,7 @@
 #include <rendering/TextureViewCache.hpp>
 #include <rendering/DescriptorSet.hpp>
 #include <rendering/RenderHelpers.hpp>
-#include <rendering/ConstantsAllocator.hpp>
+#include <rendering/CBufferAllocator.hpp>
 
 #include <rendering/renderers/DeferredRenderer.hpp>
 
@@ -143,9 +143,9 @@ void RayTracingReflections::Render(Frame* frame, const RenderSetup& renderSetup)
     Framebuffer* viewFramebuffer = parentPass->view.GetUnsafe()->GetOutputTarget().GetFramebuffer(RenderBucket::Opaque);
     AssertDebug(viewFramebuffer != nullptr);
 
-    GpuBuffer* cBuffer = nullptr;
-    size_t cBufferOffset = 0;
-    size_t cBufferSize = 0;
+    GpuBuffer* cbuffer = nullptr;
+    size_t cbufferOffset = 0;
+    size_t cbufferSize = 0;
 
     { // Update constants
         RayTracingConstants rayTracingConstants {};
@@ -182,21 +182,21 @@ void RayTracingReflections::Render(Frame* frame, const RenderSetup& renderSetup)
             ++numBoundLights;
         }
 
-        g_renderInterface->constantsAllocator->Write(&rayTracingConstants);
+        g_renderInterface->cbufferAllocator->Write(&rayTracingConstants);
 
         // write camera
-        g_renderInterface->constantsAllocator->Write(&cameraData);
+        g_renderInterface->cbufferAllocator->Write(&cameraData);
 
         for (uint32 i = 0; i < MaxLights; i++)
         {
             if (i < uint32(tempLights.Size()))
             {
-                g_renderInterface->constantsAllocator->Write(tempLights[i].second);
+                g_renderInterface->cbufferAllocator->Write(tempLights[i].second);
                 continue;
             }
         
             LightShaderData dummy {};
-            g_renderInterface->constantsAllocator->Write(&dummy);
+            g_renderInterface->cbufferAllocator->Write(&dummy);
         }
 
         for (uint32 i = 0; i < MaxLights; i++)
@@ -227,10 +227,10 @@ void RayTracingReflections::Render(Frame* frame, const RenderSetup& renderSetup)
                 }
             }
 
-            g_renderInterface->constantsAllocator->Write(&shadowMapData);
+            g_renderInterface->cbufferAllocator->Write(&shadowMapData);
         }
             
-        g_renderInterface->constantsAllocator->Commit(cBuffer, cBufferOffset, cBufferSize);
+        g_renderInterface->cbufferAllocator->Commit(cbuffer, cbufferOffset, cbufferSize);
     }
     
     frame->cr << SetShaderUniform(0, "GBufferAlbedoTexture"_sh, viewFramebuffer->GetAttachment(0)->GetImageView());
@@ -243,7 +243,7 @@ void RayTracingReflections::Render(Frame* frame, const RenderSetup& renderSetup)
     frame->cr << SetShaderUniform(6, "TLAS"_sh, tlas);
     frame->cr << SetShaderUniform(7, "MeshDescriptionsBuffer"_sh, meshDescriptionsBuffer);
     frame->cr << SetShaderUniform(8, "OutputImage"_sh, g_renderInterface->textureViewCache->GetOrCreate(m_texture));
-    frame->cr << SetShaderUniform(9, "CBuffer"_sh, cBuffer, ShaderDataOffset(cBufferOffset, cBufferSize));
+    frame->cr << SetShaderUniform(9, "CBuffer"_sh, cbuffer, ShaderDataOffset(cbufferOffset, cbufferSize));
 
     frame->cr << SetShaderUniform(11, "BlueNoiseBuffer"_sh, g_renderInterface->blueNoiseBuffer);
 

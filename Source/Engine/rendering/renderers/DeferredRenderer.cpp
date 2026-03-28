@@ -30,7 +30,6 @@
 #include <rendering/RenderCollection.hpp>
 #include <rendering/RenderProxyList.hpp>
 #include <rendering/RenderProxy.hpp>
-#include <rendering/ConstantsAllocator.hpp>
 #include <rendering/TextureViewCache.hpp>
 #include <rendering/SamplerCache.hpp>
 #include <rendering/BLASCache.hpp>
@@ -39,6 +38,8 @@
 #include <rendering/MeshBlasBuilder.hpp>
 #include <rendering/RayTracingReflections.hpp>
 #include <rendering/DDGI.hpp>
+#include <rendering/CBufferAllocator.hpp>
+#include <rendering/BufferAllocator.hpp>
 
 #include <rendering/shadows/ShadowMapAllocator.hpp>
 #include <rendering/shadows/ShadowMapCache.hpp>
@@ -128,6 +129,7 @@ static const ShaderPropertyId s_propMaxFallbackProbes = InternShaderProperty(Sha
 static const ShaderPropertyId s_propLightTypeClustered = InternShaderProperty(ShaderProperty(NAME("LIGHT_TYPE"), NAME("CLUSTERED")));
 static const ShaderPropertyId s_propTileSize = InternShaderProperty(ShaderProperty(NAME("TILE_SIZE"), int(TileSize)));
 static const ShaderPropertyId s_propTileZBins = InternShaderProperty(ShaderProperty(NAME("TILE_Z_BINS"), int(TileZBins)));
+static const ShaderPropertyId s_propMaxClusteredShadowMaps = InternShaderProperty(ShaderProperty(NAME("MAX_CLUSTERED_SHADOW_MAPS"), int(MaxClusteredShadowMaps)));
 
 static constexpr StringHash GBufferTextureNames[GTN_MAX] = {
     "GBufferAlbedoTexture"_sh,
@@ -228,6 +230,7 @@ void GetDeferredShaderProperties(
         if (clustered)
         {
             outShaderProperties.Add(s_propLightTypeClustered);
+            outShaderProperties.Add(s_propMaxClusteredShadowMaps);
 
             outShaderProperties.Add(s_propTileSize);
             outShaderProperties.Add(s_propTileZBins);
@@ -503,9 +506,9 @@ void DeferredPass::RenderToFramebuffer_Internal(Frame* frame, const RenderSetup&
         { // build indirect lighting constants
 
 
-            GpuBuffer* cBuffer = nullptr;
-            size_t cBufferOffset = 0;
-            size_t cBufferSize = 0;
+            GpuBuffer* cbuffer = nullptr;
+            size_t cbufferOffset = 0;
+            size_t cbufferSize = 0;
 
             EnvProbeShaderData fallbackEnvProbeData {};
 
@@ -567,16 +570,16 @@ void DeferredPass::RenderToFramebuffer_Internal(Frame* frame, const RenderSetup&
                     fallbackEnvProbeData = *tempEnvProbes[probeIndex].second;
                 }
 
-                g_renderInterface->constantsAllocator->Write(&fallbackEnvProbeData);
+                g_renderInterface->cbufferAllocator->Write(&fallbackEnvProbeData);
             }
 
             // write num
             const uint32 numBoundEnvProbes = uint32(tempEnvProbes.Size());
-            g_renderInterface->constantsAllocator->Write(&numBoundEnvProbes);
+            g_renderInterface->cbufferAllocator->Write(&numBoundEnvProbes);
 
-            g_renderInterface->constantsAllocator->Commit(cBuffer, cBufferOffset, cBufferSize);
+            g_renderInterface->cbufferAllocator->Commit(cbuffer, cbufferOffset, cbufferSize);
 
-            cr << SetShaderUniform(numShaderUniforms++, "CBuffer"_sh, cBuffer, ShaderDataOffset(cBufferOffset, cBufferSize));
+            cr << SetShaderUniform(numShaderUniforms++, "CBuffer"_sh, cbuffer, ShaderDataOffset(cbufferOffset, cbufferSize));
         }
 
         ShaderPropertySet shaderProperties;
@@ -606,6 +609,77 @@ void DeferredPass::RenderToFramebuffer_Internal(Frame* frame, const RenderSetup&
         
         cr << SetShaderUniform(localNumShaderUniforms++, "LightsBuffer"_sh, g_renderInterface->gpuBuffers[GRB_LIGHTS]->GetBuffer(frameIndex));
         cr << SetShaderUniform(localNumShaderUniforms++, "EnvProbesBuffer"_sh, g_renderInterface->gpuBuffers[GRB_ENV_PROBES]->GetBuffer(frameIndex));
+
+#if 0
+        // Write out MAX_SHADOW_MAPS (8?) ShadowMaps for the View, indexed by light idx (GetBinding())
+        {// Build constants
+            GpuBuffer* cbuffer = nullptr;
+            size_t cbufferOffset = 0;
+            size_t cbufferSize = 0;
+
+            Array<Pair<Light*, uint32>, RenderTempAllocator> shadowCasterLightsInView;
+            shadowCasterLightsInView.Reserve(MaxClusteredShadowMaps);
+
+            for (Light* light : rpl.GetLights())
+            {
+                if (!(light->GetLightFlags() & LightFlags::ShadowCaster))
+                {
+                    continue;
+                }
+
+                if (shadowCasterLightsInView.Size() == MaxClusteredShadowMaps)
+                {
+                    break;
+                }
+
+                const uint32 binding = Resources::GetBinding(light);
+                Assert(binding != ~0u);
+
+                shadowCasterLightsInView.EmplaceBack(light, binding);
+            }
+
+            ShadowMapData shadowMapData[MaxClusteredShadowMaps];
+
+            for (uint32 idx = 0; idx < MaxClusteredShadowMaps; idx++)
+            {
+                ShadowMapData& currShadowMapData = shadowMapData[idx];
+                currShadowMapData = {};
+
+                if (idx < shadowCasterLightsInView.Size())
+                {
+                    Light* light = shadowCasterLightsInView[idx].first;
+                    uint32 lightBinding = shadowCasterLightsInView[idx].second;
+
+                    // @TODO write the uint8 index (idx) into byteaddressbuffer at [lightBinding] index to map
+
+                    View* shadowMapViewDynamic;
+                    View* shadowMapViewStatic;
+
+                    ShadowMap* shadowMap = g_renderInterface->shadowMapCache->GetShadowMap(
+                        light,
+                        rs.view,
+                        0,
+                        shadowMapViewDynamic,
+                        shadowMapViewStatic);
+
+                    if (shadowMap != nullptr)
+                    {
+                        DeferredRendererHelpers::FillShadowMapData(
+                            currShadowMapData,
+                            *shadowMap,
+                            shadowMapViewDynamic,
+                            shadowMapViewStatic);
+                    }
+                }
+
+                g_renderInterface->cbufferAllocator->Write(&currShadowMapData);
+            }
+                    
+            g_renderInterface->cbufferAllocator->Commit(cbuffer, cbufferOffset, cbufferSize);
+
+            cr << SetShaderUniform(localNumShaderUniforms++, "CBuffer"_sh, cbuffer, ShaderDataOffset(cbufferOffset, cbufferSize));
+        }
+#endif
 
         cr << CommitDrawState();
 
@@ -651,11 +725,11 @@ void DeferredPass::RenderToFramebuffer_Internal(Frame* frame, const RenderSetup&
             uint32 localNumShaderUniforms = numShaderUniforms;
 
             { // Build constants
-                GpuBuffer* cBuffer = nullptr;
-                size_t cBufferOffset = 0;
-                size_t cBufferSize = 0;
+                GpuBuffer* cbuffer = nullptr;
+                size_t cbufferOffset = 0;
+                size_t cbufferSize = 0;
 
-                g_renderInterface->constantsAllocator->Write(&lightProxy->bufferData);
+                g_renderInterface->cbufferAllocator->Write(&lightProxy->bufferData);
 
                 ShadowMapData shadowMapData[MaxShadowMapCascades];
 
@@ -684,12 +758,12 @@ void DeferredPass::RenderToFramebuffer_Internal(Frame* frame, const RenderSetup&
                             shadowMapViewStatic);
                     }
 
-                    g_renderInterface->constantsAllocator->Write(&shadowMapData[cascadeIndex]);
+                    g_renderInterface->cbufferAllocator->Write(&shadowMapData[cascadeIndex]);
                 }
                     
-                g_renderInterface->constantsAllocator->Commit(cBuffer, cBufferOffset, cBufferSize);
+                g_renderInterface->cbufferAllocator->Commit(cbuffer, cbufferOffset, cbufferSize);
 
-                cr << SetShaderUniform(localNumShaderUniforms++, "CBuffer"_sh, cBuffer, ShaderDataOffset(cBufferOffset, cBufferSize));
+                cr << SetShaderUniform(localNumShaderUniforms++, "CBuffer"_sh, cbuffer, ShaderDataOffset(cbufferOffset, cbufferSize));
             }
 
             cr << SetShaderUniform(localNumShaderUniforms++, "CurrentLight"_sh, g_renderInterface->gpuBuffers[GRB_LIGHTS]->GetBuffer(frameIndex), TShaderDataOffset<LightShaderData>(light));
@@ -1178,22 +1252,22 @@ void FogVolumePass::RenderToFramebuffer_Internal(Frame* frame, const RenderSetup
         lightIndicesU32[numBoundLights++] = Resources::GetBinding(light);
     }
 
-    GpuBuffer* cBuffer = nullptr;
-    size_t cBufferOffset = 0;
-    size_t cBufferSize = 0;
+    GpuBuffer* cbuffer = nullptr;
+    size_t cbufferOffset = 0;
+    size_t cbufferSize = 0;
     
-    g_renderInterface->constantsAllocator->Write(&shaderData);
+    g_renderInterface->cbufferAllocator->Write(&shaderData);
 
     for (uint32 i = 0; i < MaxBoundLightsPerFogVolume; i++)
     {
         if (i < uint32(tempLightsArray.Size()))
         {
-            g_renderInterface->constantsAllocator->Write(tempLightsArray[i].second);
+            g_renderInterface->cbufferAllocator->Write(tempLightsArray[i].second);
             continue;
         }
         
         LightShaderData dummy {};
-        g_renderInterface->constantsAllocator->Write(&dummy);
+        g_renderInterface->cbufferAllocator->Write(&dummy);
     }
 
     for (uint32 i = 0; i < MaxBoundLightsPerFogVolume; i++)
@@ -1224,12 +1298,12 @@ void FogVolumePass::RenderToFramebuffer_Internal(Frame* frame, const RenderSetup
             }
         }
 
-        g_renderInterface->constantsAllocator->Write(&shadowMapData);
+        g_renderInterface->cbufferAllocator->Write(&shadowMapData);
     }
             
-    g_renderInterface->constantsAllocator->Commit(cBuffer, cBufferOffset, cBufferSize);
+    g_renderInterface->cbufferAllocator->Commit(cbuffer, cbufferOffset, cbufferSize);
 
-    cr << SetShaderUniform(7 + GTN_MAX, "FogVolumeConstants"_sh, cBuffer, ShaderDataOffset(cBufferOffset, cBufferSize));
+    cr << SetShaderUniform(7 + GTN_MAX, "FogVolumeConstants"_sh, cbuffer, ShaderDataOffset(cbufferOffset, cbufferSize));
 
     cr << CommitDrawState();
 
@@ -1620,16 +1694,6 @@ public:
 
     ~TileProcessor() = default;
 
-    void OnFrameStart()
-    {
-        recycler.OnFrameStart();
-    }
-
-    void OnFrameEnd()
-    {
-        recycler.OnFrameEnd();
-    }
-
     void ProcessView(const Viewport& viewport, View* view, GpuBuffer*& outBuffer, size_t& outGridBufferOffset, size_t& outIndexBufferOffset)
     {
         Assert(view != nullptr);
@@ -1871,7 +1935,7 @@ public:
         static constexpr size_t MinIndexBufferSize = 256;
         const size_t requiredIndexSize = MathUtil::Max(flatIndexData.Size() * sizeof(uint16), MinIndexBufferSize);
 
-        GpuBuffer* buffer = recycler.GetBuffer(requiredGridSize + requiredIndexSize);
+        GpuBuffer* buffer = g_renderInterface->sbufferAllocator->GetBuffer(requiredGridSize + requiredIndexSize);
         Assert(buffer != nullptr);
         
         allocation.gridBufferSize = requiredGridSize;
@@ -1893,128 +1957,6 @@ public:
         outGridBufferOffset = (size_t)((ubyte*)gridPtr - bufferPtr);
         outIndexBufferOffset = (size_t)((ubyte*)indicesPtr - bufferPtr);
     }
-
-private:
-    struct BufferRecycler
-    {
-        struct Entry
-        {
-            uint32 size = 0;
-            uint32 lastUsedFrame = uint32(-1);
-
-            GpuBufferRef buffer;
-
-            HYP_FORCE_INLINE bool operator==(const Entry& other) const
-            {
-                return buffer == other.buffer;
-            }
-
-            HYP_FORCE_INLINE bool operator<(const Entry& other) const
-            {
-                return size < other.size;
-            }
-        };
-
-        Array<Entry, RenderAllocator> cachedBuffers;
-        Array<Entry, RenderAllocator> usedBuffers[NumFramesInFlight];
-        SharedMutex mutex;
-
-        void OnFrameStart()
-        {
-            auto& used = usedBuffers[GetFrameCounter() % NumFramesInFlight];
-
-            // recycle it
-            for (Entry& usedBuffer : used)
-            {
-                auto lowerBoundIt = cachedBuffers.LowerBound(usedBuffer);
-                cachedBuffers.Insert(lowerBoundIt, std::move(usedBuffer));
-            }
-
-            used.Clear();
-        }
-
-        void OnFrameEnd()
-        {
-            const uint32 currFrame = GetFrameCounter();
-
-            for (auto it = cachedBuffers.Begin(); it != cachedBuffers.End();)
-            {
-                const int64 frameDiff = int64(currFrame) - int64(it->lastUsedFrame);
-
-                if (frameDiff > NumFramesInFlight)
-                {
-                    GpuBufferRef& gpuBuffer = it->buffer;
-                    gpuBuffer.Reset(); // delete immediately
-
-                    it = cachedBuffers.Erase(it);
-
-                    continue;
-                }
-
-                ++it;
-            }
-        }
-
-        GpuBuffer* GetBuffer(uint32 bufferSize)
-        {
-            TUniqueLock lock(mutex);
-
-            const uint32 currFrame = GetFrameCounter();
-
-            auto lowerBoundIt = cachedBuffers.LowerBound(Entry { bufferSize });
-
-            // unused one (different frame)
-            for (auto it = lowerBoundIt != cachedBuffers.End() ? lowerBoundIt : cachedBuffers.Begin();
-                it != cachedBuffers.End();)
-            {
-                auto& cachedBuffer = *it;
-
-                // find first that fits to reuse and is not too big (don't want to waste space creating more larger buffers for those that need it after us)
-                if (cachedBuffer.size >= bufferSize && cachedBuffer.size < bufferSize * 2)
-                {
-                    cachedBuffer.size = bufferSize;
-                    cachedBuffer.lastUsedFrame = currFrame;
-
-                    GpuBuffer* buffer = cachedBuffer.buffer.Get();
-
-                    Assert(buffer != nullptr
-                        && buffer->IsCreated()
-                        && buffer->Size() >= bufferSize);
-                
-                    auto& used = usedBuffers[currFrame % NumFramesInFlight];
-                    auto cached = std::move(cachedBuffer);
-
-                    cachedBuffers.Erase(it);
-
-                    return used.PushBack(std::move(cached)).buffer.Get();
-                }
-
-                ++it;
-            }
-
-            // bump it up a bit
-            bufferSize = MathUtil::NextMultiple(bufferSize, 256);
-
-            // create new one if none found
-            Entry newBuffer;
-            newBuffer.size = bufferSize;
-            newBuffer.lastUsedFrame = currFrame;
-
-            newBuffer.buffer = g_renderInterface->MakeGpuBuffer(GpuBufferType::STORAGE_BUFFER, bufferSize);
-            newBuffer.buffer->SetIsCpuAccessible(true);
-
-    #if HYP_DEBUG_MODE
-            newBuffer.buffer->SetDebugName(NAME("TileBuffer"));
-    #endif
-
-            Assert(newBuffer.buffer->Create());
-                
-            auto& used = usedBuffers[currFrame % NumFramesInFlight];
-            return used.PushBack(std::move(newBuffer)).buffer.Get();
-        }
-    };
-
-    BufferRecycler recycler;
 };
 
 DeferredRenderer::DeferredRenderer()
@@ -2284,11 +2226,6 @@ void DeferredRenderer::RenderFrame(Frame* frame, const RenderSetup& rs)
         }
     });
 
-    if (m_tileProcessor)
-    {
-        m_tileProcessor->OnFrameStart();
-    }
-
     // Collect view-independent renderable types from all views, binned
     //// \todo : We could use the existing binning by subclass that ResourceTracker now provides.
     FixedArray<FlatSet<EnvProbe*>, EPT_MAX> envProbes;
@@ -2498,11 +2435,6 @@ void DeferredRenderer::RenderFrame(Frame* frame, const RenderSetup& rs)
             rpl.GetEnvGrids().NumCurrent(),
             rpl.GetEnvProbes().NumCurrent());
 #endif
-    }
-
-    if (m_tileProcessor)
-    {
-        m_tileProcessor->OnFrameEnd();
     }
 }
 

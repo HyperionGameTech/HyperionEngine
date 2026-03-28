@@ -18,22 +18,22 @@
 
 namespace Hyperion {
 
-struct ConstantsAllocatorBlock;
+struct CBufferAllocatorBlock;
 
-class ConstantsAllocator
+class CBufferAllocator
 {
-    using Block = ConstantsAllocatorBlock;
+    using Block = CBufferAllocatorBlock;
 
 public:
-    ConstantsAllocator();
+    CBufferAllocator();
 
-    ConstantsAllocator(const ConstantsAllocator& other) = delete;
-    ConstantsAllocator& operator=(const ConstantsAllocator& other) = delete;
+    CBufferAllocator(const CBufferAllocator& other) = delete;
+    CBufferAllocator& operator=(const CBufferAllocator& other) = delete;
 
-    ConstantsAllocator(ConstantsAllocator&& other) noexcept = delete;
-    ConstantsAllocator& operator=(ConstantsAllocator&& other) noexcept = delete;
+    CBufferAllocator(CBufferAllocator&& other) noexcept = delete;
+    CBufferAllocator& operator=(CBufferAllocator&& other) noexcept = delete;
 
-    ~ConstantsAllocator();
+    ~CBufferAllocator();
 
     void Initialize(size_t minAllocationAlignment);
 

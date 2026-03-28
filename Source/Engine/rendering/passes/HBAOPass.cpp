@@ -57,7 +57,7 @@ HBAO::HBAO(HBAOConfig&& config, Vec2u extent, GBuffer* gbuffer)
 
 HBAO::~HBAO()
 {
-    EnqueueDeletion(std::move(m_cBuffer));
+    EnqueueDeletion(std::move(m_cbuffer));
     EnqueueDeletion(std::move(m_descriptorSet));
 }
 
@@ -65,7 +65,7 @@ void HBAO::Resize_Internal(Vec2u newSize)
 {
     HYP_SCOPE;
 
-    EnqueueDeletion(std::move(m_cBuffer));
+    EnqueueDeletion(std::move(m_cbuffer));
     EnqueueDeletion(std::move(m_descriptorSet));
 
     FullScreenPass::Resize_Internal(newSize);
@@ -83,18 +83,18 @@ void HBAO::Render(Frame* frame, const RenderSetup& renderSetup)
 
     CommandRecorder& cr = frame->cr;
 
-    if (!m_cBuffer)
+    if (!m_cbuffer)
     {
         HBAOUniforms constants {};
         constants.dimension = ShouldRenderHalfRes() ? m_extent / 2 : m_extent;
         constants.radius = m_config.radius;
         constants.power = m_config.power;
 
-        m_cBuffer = g_renderInterface->MakeGpuBuffer(GpuBufferType::CONSTANT_BUFFER, sizeof(constants));
-        CheckResult(m_cBuffer->Create());
+        m_cbuffer = g_renderInterface->MakeGpuBuffer(GpuBufferType::CONSTANT_BUFFER, sizeof(constants));
+        CheckResult(m_cbuffer->Create());
 
-        m_cBuffer->Copy(sizeof(constants), &constants);
-        m_cBuffer->Flush(0, sizeof(constants));
+        m_cbuffer->Copy(sizeof(constants), &constants);
+        m_cbuffer->Flush(0, sizeof(constants));
     }
 
     Begin(frame, renderSetup);
@@ -131,7 +131,7 @@ void HBAO::Render(Frame* frame, const RenderSetup& renderSetup)
     cr << SetShaderUniform(numShaderUniforms++, "CamerasBuffer"_sh, g_renderInterface->gpuBuffers[GRB_CAMERAS]->GetBuffer(frameIndex), TShaderDataOffset<CameraShaderData>(renderSetup.view->GetCamera()));
     cr << SetShaderUniform(numShaderUniforms++, "WorldsBuffer"_sh, g_renderInterface->gpuBuffers[GRB_WORLDS]->GetBuffer(frameIndex));
 
-    cr << SetShaderUniform(numShaderUniforms++, "UniformBuffer"_sh, m_cBuffer);
+    cr << SetShaderUniform(numShaderUniforms++, "UniformBuffer"_sh, m_cbuffer);
     
     RenderFullScreenQuad(frame, renderSetup);
 

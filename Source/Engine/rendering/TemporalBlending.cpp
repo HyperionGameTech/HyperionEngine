@@ -115,7 +115,7 @@ TemporalBlending::TemporalBlending(
 
 TemporalBlending::~TemporalBlending()
 {
-    EnqueueDeletion(std::move(m_cBuffers));
+    EnqueueDeletion(std::move(m_cbuffers));
     EnqueueDeletion(std::move(m_inputFramebuffer));
 }
 
@@ -243,23 +243,23 @@ void TemporalBlending::Render(Frame* frame, const RenderSetup& renderSetup)
 
     const Vec3u depthTextureDimensions = m_gbuffer->GetBucket(RenderBucket::Opaque).GetGBufferAttachment(GTN_DEPTH)->GetGpuImage()->GetExtent();
 
-    GpuBufferRef& cBuffer = m_cBuffers[frame->GetFrameIndex()];
+    GpuBufferRef& cbuffer = m_cbuffers[frame->GetFrameIndex()];
 
-    if (!cBuffer)
+    if (!cbuffer)
     {
-        cBuffer = g_renderInterface->MakeGpuBuffer(GpuBufferType::CONSTANT_BUFFER, sizeof(TemporalBlendingConstants));
+        cbuffer = g_renderInterface->MakeGpuBuffer(GpuBufferType::CONSTANT_BUFFER, sizeof(TemporalBlendingConstants));
 #if HYP_DEBUG_MODE
-        cBuffer->SetDebugName(NAME("TemporalBlendingConstants"));
+        cbuffer->SetDebugName(NAME("TemporalBlendingConstants"));
 #endif
 
-        cBuffer->Create();
+        cbuffer->Create();
     }
 
     TemporalBlendingConstants uniforms {};
     uniforms.outputDimensions = Vec2u { extent.x, extent.y };
     uniforms.depthTextureDimensions = Vec2u { depthTextureDimensions.x, depthTextureDimensions.y };
     uniforms.blendingFrameCounter = m_blendingFrameCounter;
-    cBuffer->Copy(sizeof(uniforms), &uniforms);
+    cbuffer->Copy(sizeof(uniforms), &uniforms);
 
     ShaderPropertySet shaderProperties;
     GetShaderProperties(shaderProperties);
@@ -276,7 +276,7 @@ void TemporalBlending::Render(Frame* frame, const RenderSetup& renderSetup)
     frame->cr << SetShaderUniform(3, "SamplerLinear"_sh, g_renderInterface->placeholderData->GetSamplerLinear());
     frame->cr << SetShaderUniform(4, "SamplerNearest"_sh, g_renderInterface->placeholderData->GetSamplerNearest());
     frame->cr << SetShaderUniform(5, "OutImage"_sh, g_renderInterface->textureViewCache->GetOrCreate(activeTexture));
-    frame->cr << SetShaderUniform(6, "TemporalBlendingUniforms"_sh, cBuffer);
+    frame->cr << SetShaderUniform(6, "TemporalBlendingUniforms"_sh, cbuffer);
     
     frame->cr << SetShaderUniform(7, "GBufferDepthTexture"_sh, m_gbuffer->GetBucket(RenderBucket::Opaque).GetGBufferAttachment(GTN_DEPTH)->GetImageView());
 

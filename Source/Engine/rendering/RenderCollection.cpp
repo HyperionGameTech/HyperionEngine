@@ -20,7 +20,7 @@
 #include <rendering/Texture.hpp>
 #include <rendering/TextureViewCache.hpp>
 #include <rendering/PlaceholderData.hpp>
-#include <rendering/ConstantsAllocator.hpp>
+#include <rendering/CBufferAllocator.hpp>
 
 #include <rendering/shadows/ShadowMapCache.hpp>
 #include <rendering/shadows/ShadowMapAllocator.hpp>
@@ -626,20 +626,20 @@ static void SetForwardShadingUniforms(
         uint32 numBoundLights;
     };
 
-    GpuBuffer* cBuffer = nullptr;
-    size_t cBufferOffset = 0;
-    size_t cBufferSize = 0;
+    GpuBuffer* cbuffer = nullptr;
+    size_t cbufferOffset = 0;
+    size_t cbufferSize = 0;
 
-    ForwardShadingConstants* forwardShadingConstants = (ForwardShadingConstants*)g_renderInterface->constantsAllocator->Allocate(
+    ForwardShadingConstants* forwardShadingConstants = (ForwardShadingConstants*)g_renderInterface->cbufferAllocator->Allocate(
         sizeof(ForwardShadingConstants),
         alignof(ForwardShadingConstants),
-        cBuffer,
-        cBufferOffset);
+        cbuffer,
+        cbufferOffset);
 
     Assert(forwardShadingConstants != nullptr);
     Memory::Zero(forwardShadingConstants, sizeof(ForwardShadingConstants));
 
-    cBufferSize = sizeof(ForwardShadingConstants);
+    cbufferSize = sizeof(ForwardShadingConstants);
         
     RenderProxyList& rpl = GetConsumerProxyList(renderSetup.view);
     rpl.BeginRead();
@@ -716,7 +716,7 @@ static void SetForwardShadingUniforms(
 
     rpl.EndRead();
 
-    cr << SetShaderUniform(numShaderUniforms++, "FowardShadingConstants"_sh, cBuffer, ShaderDataOffset(cBufferOffset, cBufferSize));
+    cr << SetShaderUniform(numShaderUniforms++, "FowardShadingConstants"_sh, cbuffer, ShaderDataOffset(cbufferOffset, cbufferSize));
 }
 
 template <bool UseIndirectRendering, class TCommandRecorder>

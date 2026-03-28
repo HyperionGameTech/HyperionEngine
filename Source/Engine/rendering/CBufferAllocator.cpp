@@ -2,18 +2,18 @@
 
 #include <RenderingPch.hpp>
 
-#include <rendering/ConstantsAllocator.hpp>
+#include <rendering/CBufferAllocator.hpp>
 #include <rendering/RenderInterface.hpp>
 
 #include <rendering/util/DeletionQueue.hpp>
 
 namespace Hyperion {
 
-static constexpr size_t ConstantBufferSize = 65536;
+static constexpr size_t CBufferSize = 65536;
 
 extern uint32 CurrentRenderThreadIndex();
 
-struct ConstantsAllocatorBlock
+struct CBufferAllocatorBlock
 {
     HYP_DEF_POOL_NEW_DELETE(g_renderPool);
 
@@ -21,17 +21,17 @@ struct ConstantsAllocatorBlock
     size_t offset;
     uint32 lastUsedFrame;
 
-    ConstantsAllocatorBlock()
-        : buffer(new GpuBuffer{ GpuBufferType::CONSTANT_BUFFER, ConstantBufferSize, 256 }),
+    CBufferAllocatorBlock()
+        : buffer(new GpuBuffer{ GpuBufferType::CONSTANT_BUFFER, CBufferSize, 256 }),
           offset(0),
           lastUsedFrame(UINT32_MAX)
     {
     }
 
-    ConstantsAllocatorBlock(const ConstantsAllocatorBlock&) = delete;
-    ConstantsAllocatorBlock& operator=(const ConstantsAllocatorBlock&) = delete;
+    CBufferAllocatorBlock(const CBufferAllocatorBlock&) = delete;
+    CBufferAllocatorBlock& operator=(const CBufferAllocatorBlock&) = delete;
     
-    ConstantsAllocatorBlock(ConstantsAllocatorBlock&& other) noexcept
+    CBufferAllocatorBlock(CBufferAllocatorBlock&& other) noexcept
         : buffer(other.buffer),
           offset(0),
           lastUsedFrame(other.lastUsedFrame)
@@ -41,7 +41,7 @@ struct ConstantsAllocatorBlock
         other.offset = 0;
     }
 
-    ConstantsAllocatorBlock& operator=(ConstantsAllocatorBlock&& other) noexcept
+    CBufferAllocatorBlock& operator=(CBufferAllocatorBlock&& other) noexcept
     {
         delete buffer;
 
@@ -57,19 +57,19 @@ struct ConstantsAllocatorBlock
         return *this;
     }
 
-    ~ConstantsAllocatorBlock()
+    ~CBufferAllocatorBlock()
     {
         delete buffer;
     }
 };
 
-ConstantsAllocator::ConstantsAllocator()
+CBufferAllocator::CBufferAllocator()
     : m_minAllocationAlignment(0),
       m_scratchAlignment {}
 {
 }
 
-ConstantsAllocator::~ConstantsAllocator()
+CBufferAllocator::~CBufferAllocator()
 {
     for (auto& scratch : m_scratch)
     {
@@ -94,12 +94,12 @@ ConstantsAllocator::~ConstantsAllocator()
     }
 }
 
-void ConstantsAllocator::Initialize(size_t minAllocationAlignment)
+void CBufferAllocator::Initialize(size_t minAllocationAlignment)
 {
     m_minAllocationAlignment = minAllocationAlignment;
 }
 
-void ConstantsAllocator::OnFrameStart()
+void CBufferAllocator::OnFrameStart()
 {
     for (auto& scratch : m_scratch)
     {
@@ -108,7 +108,7 @@ void ConstantsAllocator::OnFrameStart()
 }
 
 // only ever called after all workers are done.
-void ConstantsAllocator::OnFrameEnd()
+void CBufferAllocator::OnFrameEnd()
 {
     AssertOnThread(g_renderThread);
 
@@ -118,7 +118,7 @@ void ConstantsAllocator::OnFrameEnd()
 
         for (Block& block : m_currentFrameBlocks[idx])
         {
-            size_t flushSize = MathUtil::Min(block.offset, ConstantBufferSize);
+            size_t flushSize = MathUtil::Min(block.offset, CBufferSize);
 
             if (flushSize != 0)
             {
@@ -134,7 +134,7 @@ void ConstantsAllocator::OnFrameEnd()
     }
 }
 
-void ConstantsAllocator::Write(const void* src, size_t count, size_t alignment)
+void CBufferAllocator::Write(const void* src, size_t count, size_t alignment)
 {
     if (count == 0)
         return;
@@ -156,7 +156,7 @@ void ConstantsAllocator::Write(const void* src, size_t count, size_t alignment)
     Memory::Copy(scratch.Data() + scratchOffset, reinterpret_cast<const ubyte*>(src), count);
 }
 
-void ConstantsAllocator::Commit(GpuBuffer*& outBuffer, size_t& outOffset, size_t& outSize)
+void CBufferAllocator::Commit(GpuBuffer*& outBuffer, size_t& outOffset, size_t& outSize)
 {
     const uint32 idx = CurrentRenderThreadIndex();
 
@@ -183,7 +183,7 @@ void ConstantsAllocator::Commit(GpuBuffer*& outBuffer, size_t& outOffset, size_t
     scratchAlignment = 0;
 }
 
-void* ConstantsAllocator::Allocate(size_t count, size_t alignment, GpuBuffer*& outBuffer, size_t& outStartOffset)
+void* CBufferAllocator::Allocate(size_t count, size_t alignment, GpuBuffer*& outBuffer, size_t& outStartOffset)
 {
     if (alignment < m_minAllocationAlignment)
         alignment = m_minAllocationAlignment;
@@ -206,7 +206,7 @@ void* ConstantsAllocator::Allocate(size_t count, size_t alignment, GpuBuffer*& o
 
         const size_t offset = ByteUtil::AlignAs(lastBlock.offset, alignment);
 
-        if (offset + alignedCount <= ConstantBufferSize)
+        if (offset + alignedCount <= CBufferSize)
         {
             void* ptr = (void*)(reinterpret_cast<UIntPtr>(lastBlock.buffer->Map()) + offset);
 
@@ -225,7 +225,7 @@ void* ConstantsAllocator::Allocate(size_t count, size_t alignment, GpuBuffer*& o
     if (!newBlock)
         newBlock = NewBlock(currentFrameCounter);
 
-    Assert(alignedCount <= ConstantBufferSize
+    Assert(alignedCount <= CBufferSize
         && newBlock->offset == 0);
     
     outBuffer = newBlock->buffer;
@@ -238,7 +238,7 @@ void* ConstantsAllocator::Allocate(size_t count, size_t alignment, GpuBuffer*& o
     return ptr;
 }
 
-ConstantsAllocator::Block* ConstantsAllocator::NewBlock(uint32 currentFrameCounter)
+CBufferAllocator::Block* CBufferAllocator::NewBlock(uint32 currentFrameCounter)
 {
     const uint32 idx = CurrentRenderThreadIndex();
 
@@ -251,7 +251,7 @@ ConstantsAllocator::Block* ConstantsAllocator::NewBlock(uint32 currentFrameCount
     return &newBlock;
 }
 
-ConstantsAllocator::Block* ConstantsAllocator::TryGetRecycledBlock(uint32 currentFrameCounter)
+CBufferAllocator::Block* CBufferAllocator::TryGetRecycledBlock(uint32 currentFrameCounter)
 {
     const uint32 idx = CurrentRenderThreadIndex();
 

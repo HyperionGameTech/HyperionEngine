@@ -106,7 +106,7 @@ private:
 
     uint16 m_blendingFrameCounter;
 
-    FixedArray<GpuBufferRef, NumFramesInFlight> m_cBuffers;
+    FixedArray<GpuBufferRef, NumFramesInFlight> m_cbuffers;
 
     GpuImageViewRef m_inputImageView;
     FramebufferRef m_inputFramebuffer;

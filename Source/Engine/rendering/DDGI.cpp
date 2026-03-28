@@ -20,7 +20,7 @@
 #include <rendering/RenderHelpers.hpp>
 #include <rendering/Texture.hpp>
 #include <rendering/TextureViewCache.hpp>
-#include <rendering/ConstantsAllocator.hpp>
+#include <rendering/CBufferAllocator.hpp>
 
 #include <rendering/shadows/ShadowMapCache.hpp>
 
@@ -72,7 +72,7 @@ DDGI::DDGI(DDGIInfo&& gridInfo)
 
 DDGI::~DDGI()
 {
-    EnqueueDeletion(std::move(m_cBuffers));
+    EnqueueDeletion(std::move(m_cbuffers));
     EnqueueDeletion(std::move(m_radianceBuffer));
     EnqueueDeletion(std::move(m_irradianceImage));
     EnqueueDeletion(std::move(m_irradianceImageView));
@@ -113,9 +113,9 @@ void DDGI::CreateConstantBuffers()
 {
     for (uint32 frameIndex = 0; frameIndex < NumFramesInFlight; frameIndex++)
     {
-        m_cBuffers[frameIndex] = g_renderInterface->MakeGpuBuffer(GpuBufferType::CONSTANT_BUFFER, sizeof(DDGIConstants));
-        Assert(m_cBuffers[frameIndex]->Create());
-        m_cBuffers[frameIndex]->Memset(sizeof(DDGIConstants), 0);
+        m_cbuffers[frameIndex] = g_renderInterface->MakeGpuBuffer(GpuBufferType::CONSTANT_BUFFER, sizeof(DDGIConstants));
+        Assert(m_cbuffers[frameIndex]->Create());
+        m_cbuffers[frameIndex]->Memset(sizeof(DDGIConstants), 0);
     }
 }
 
@@ -235,22 +235,22 @@ void DDGI::UpdateUniforms(Frame* frame, const RenderSetup& renderSetup)
     }
 
     // Update static DDGIConstants buffer (used by UpdateProbeData compute and DeferredIndirect)
-    m_cBuffers[frameIndex]->Copy(sizeof(uniforms), &uniforms);
-    m_cBuffers[frameIndex]->Flush(0, sizeof(uniforms));
+    m_cbuffers[frameIndex]->Copy(sizeof(uniforms), &uniforms);
+    m_cbuffers[frameIndex]->Flush(0, sizeof(uniforms));
 
     // Build dynamic CBuffer for DDGI raygen: DDGIConstants + lights[MAX_LIGHTS] + EnvProbe
-    g_renderInterface->constantsAllocator->Write(&uniforms);
+    g_renderInterface->cbufferAllocator->Write(&uniforms);
 
     for (uint32 i = 0; i < MaxBoundLights; i++)
     {
         if (i < uint32(tempLights.Size()))
         {
-            g_renderInterface->constantsAllocator->Write(tempLights[i].second);
+            g_renderInterface->cbufferAllocator->Write(tempLights[i].second);
             continue;
         }
 
         LightShaderData dummy {};
-        g_renderInterface->constantsAllocator->Write(&dummy);
+        g_renderInterface->cbufferAllocator->Write(&dummy);
     }
 
     {
@@ -268,10 +268,10 @@ void DDGI::UpdateUniforms(Frame* frame, const RenderSetup& renderSetup)
             pEnvProbeShaderData = &s_dummyEnvProbeShaderData;
         }
 
-        g_renderInterface->constantsAllocator->Write(pEnvProbeShaderData);
+        g_renderInterface->cbufferAllocator->Write(pEnvProbeShaderData);
     }
 
-    g_renderInterface->constantsAllocator->Commit(m_dynamicCBuffer, m_dynamicCBufferOffset, m_dynamicCBufferSize);
+    g_renderInterface->cbufferAllocator->Commit(m_dynamicCBuffer, m_dynamicCBufferOffset, m_dynamicCBufferSize);
 }
 
 void DDGI::Render(Frame* frame, const RenderSetup& renderSetup)
@@ -362,7 +362,7 @@ void DDGI::Render(Frame* frame, const RenderSetup& renderSetup)
 
     // Copy border texels irradiance
     frame->cr << SetCurrentShader(ShaderDesc(NAME("RTCopyBorderTexelsIrradiance")));
-    frame->cr << SetShaderUniform(0, "DDGIConstants"_sh, m_cBuffers[frameIndex]);
+    frame->cr << SetShaderUniform(0, "DDGIConstants"_sh, m_cbuffers[frameIndex]);
     frame->cr << SetShaderUniform(1, "ProbeRayData"_sh, m_radianceBuffer);
     frame->cr << SetShaderUniform(2, "OutputIrradianceImage"_sh, m_irradianceImageView);
     frame->cr << SetShaderUniform(3, "OutputDepthImage"_sh, m_depthImageView);
@@ -375,7 +375,7 @@ void DDGI::Render(Frame* frame, const RenderSetup& renderSetup)
 
     // Copy border texels depth
     frame->cr << SetCurrentShader(ShaderDesc(NAME("RTCopyBorderTexelsDepth")));
-    frame->cr << SetShaderUniform(0, "DDGIConstants"_sh, m_cBuffers[frameIndex]);
+    frame->cr << SetShaderUniform(0, "DDGIConstants"_sh, m_cbuffers[frameIndex]);
     frame->cr << SetShaderUniform(1, "ProbeRayData"_sh, m_radianceBuffer);
     frame->cr << SetShaderUniform(2, "OutputIrradianceImage"_sh, m_irradianceImageView);
     frame->cr << SetShaderUniform(3, "OutputDepthImage"_sh, m_depthImageView);

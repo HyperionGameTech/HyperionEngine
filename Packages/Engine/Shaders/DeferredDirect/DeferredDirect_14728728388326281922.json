@@ -36,6 +36,12 @@
       "Flags": 0,
       "Value": 16,
       "EnumValues": []
+    }, {
+      "$Class": "ShaderProperty",
+      "Name": "MAX_CLUSTERED_SHADOW_MAPS",
+      "Flags": 0,
+      "Value": 16,
+      "EnumValues": []
     }],
   "RevisionNumber": 31459917,
   "BaseName": "DeferredDirect",
@@ -328,18 +334,18 @@
   "EntryPointNames": ["VSMain", "PSMain"],
   "ShaderBlobs": [{
       "$Class": "BlobDataReference",
-      "Key": "Engine/Shaders/DeferredDirect/DeferredDirect_10848241421422782263.VS",
-      "Size": 11372
+      "Key": "Engine/Shaders/DeferredDirect/DeferredDirect_14728728388326281922.VS",
+      "Size": 11408
     }, {
       "$Class": "BlobDataReference",
-      "Key": "Engine/Shaders/DeferredDirect/DeferredDirect_10848241421422782263.PS",
-      "Size": 205400
+      "Key": "Engine/Shaders/DeferredDirect/DeferredDirect_14728728388326281922.PS",
+      "Size": 205572
     }],
   "PropertySetHashCode": {},
   "LastCompiledTimestamp": {
-    "Value": 1774623941000
+    "Value": 1774628539000
   },
-  "Name": "DeferredDirect_10848241421422782263",
-  "FriendlyName": "DeferredDirect10848241421422782263",
+  "Name": "DeferredDirect_14728728388326281922",
+  "FriendlyName": "DeferredDirect_14728728388326281922",
   "OriginalFilepath": ""
 }

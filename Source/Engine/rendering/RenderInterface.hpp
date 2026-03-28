@@ -39,7 +39,6 @@ struct WorldShaderData;
 struct Viewport;
 class FinalPass;
 class World;
-class ConstantsAllocator;
 class DescriptorSetCache;
 struct ShaderInputGroup;
 class Texture;
@@ -56,6 +55,9 @@ class CrashHandler;
 class EngineConfig;
 class SamplerCache;
 struct SamplerDesc;
+
+class CBufferAllocator;
+class SBufferAllocator;
 
 enum class GpuBufferType : uint8;
 enum RenderTargetType : uint8;
@@ -345,7 +347,9 @@ public:
     PlaceholderData* placeholderData;
 
     GpuBufferHolderMap* gpuBufferHolders;
-    ConstantsAllocator* constantsAllocator;
+
+    CBufferAllocator* cbufferAllocator;
+    SBufferAllocator* sbufferAllocator;
 
     DescriptorTableRef globalDescriptorTable;
 

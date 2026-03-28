@@ -26,7 +26,7 @@
 #include <rendering/ShaderInstance.hpp>
 #include <rendering/PlaceholderData.hpp>
 #include <rendering/TextureViewCache.hpp>
-#include <rendering/ConstantsAllocator.hpp>
+#include <rendering/CBufferAllocator.hpp>
 #include <rendering/Buffers.hpp>
 
 #include <rendering/util/DeletionQueue.hpp>
@@ -349,9 +349,9 @@ void LightmapRenderer_GpuPathTracing::Render(Frame* frame, const RenderSetup& re
 
     UpdatePipelineState(frame, job);
 
-    GpuBuffer* cBuffer = nullptr;
-    size_t cBufferOffset = 0;
-    size_t cBufferSize = 0;
+    GpuBuffer* cbuffer = nullptr;
+    size_t cbufferOffset = 0;
+    size_t cbufferSize = 0;
 
     { // Fill constants buffer
         RenderProxyList& rpl = GetConsumerProxyList(renderSetup.view);
@@ -433,18 +433,18 @@ void LightmapRenderer_GpuPathTracing::Render(Frame* frame, const RenderSetup& re
             }
         }
 
-        g_renderInterface->constantsAllocator->Write(&constants);
+        g_renderInterface->cbufferAllocator->Write(&constants);
 
         for (uint32 i = 0; i < MaxBoundLights; i++)
         {
             if (i < uint32(tempLights.Size()))
             {
-                g_renderInterface->constantsAllocator->Write(tempLights[i].second);
+                g_renderInterface->cbufferAllocator->Write(tempLights[i].second);
                 continue;
             }
         
             LightShaderData dummy {};
-            g_renderInterface->constantsAllocator->Write(&dummy);
+            g_renderInterface->cbufferAllocator->Write(&dummy);
         }
 
         // sort so sky is last
@@ -486,10 +486,10 @@ void LightmapRenderer_GpuPathTracing::Render(Frame* frame, const RenderSetup& re
                 pEnvProbeShaderData = &s_dummyEnvProbeShaderData;
             }
 
-            g_renderInterface->constantsAllocator->Write(pEnvProbeShaderData);
+            g_renderInterface->cbufferAllocator->Write(pEnvProbeShaderData);
         }
 
-        g_renderInterface->constantsAllocator->Commit(cBuffer, cBufferOffset, cBufferSize);
+        g_renderInterface->cbufferAllocator->Commit(cbuffer, cbufferOffset, cbufferSize);
     }
 
     JobData& jd = m_jobData[job];
@@ -533,7 +533,7 @@ void LightmapRenderer_GpuPathTracing::Render(Frame* frame, const RenderSetup& re
     cr << SetShaderUniform(2, "HitsBuffer"_sh, jd.hitsBufferGpu);
     cr << SetShaderUniform(3, "RaysBuffer"_sh, jd.raysBuffer);
     cr << SetShaderUniform(5, "MaterialsBuffer"_sh, g_renderInterface->gpuBuffers[GRB_MATERIALS]->GetBuffer(frameIndex));
-    cr << SetShaderUniform(6, "CBuffer"_sh, cBuffer, ShaderDataOffset(cBufferOffset, cBufferSize));
+    cr << SetShaderUniform(6, "CBuffer"_sh, cbuffer, ShaderDataOffset(cbufferOffset, cbufferSize));
     
     cr << SetShaderUniform(7, "SamplerNearest"_sh, g_renderInterface->placeholderData->GetSamplerNearest());
     cr << SetShaderUniform(8, "SamplerLinear"_sh, g_renderInterface->placeholderData->GetSamplerLinear());
