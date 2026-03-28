@@ -213,11 +213,11 @@
   "ShaderBlobs": [{
       "$Class": "BlobDataReference",
       "Key": "Engine/Shaders/SSRWriteUVs/SSRWriteUVs_6076243050612183518.VS",
-      "Size": 10808
+      "Size": 10804
     }, {
       "$Class": "BlobDataReference",
       "Key": "Engine/Shaders/SSRWriteUVs/SSRWriteUVs_6076243050612183518.PS",
-      "Size": 184728
+      "Size": 184724
     }],
   "PropertySetHashCode": {},
   "LastCompiledTimestamp": {

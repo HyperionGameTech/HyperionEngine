@@ -1,7 +1,0 @@
-{
-  "Dependencies": [],
-  "Name": "MergeCheckerboard",
-  "FriendlyName": "MergeCheckerboard",
-  "Flags": 0,
-  "Path": "Engine/Shaders/MergeCheckerboard"
-}

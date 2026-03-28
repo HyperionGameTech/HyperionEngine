@@ -31,11 +31,15 @@
 
 namespace Hyperion {
 
+HYP_DECLARE_LOG_CHANNEL(Shader);
+
 #if HYP_ENABLE_SHADER_RELOAD
 HYP_DECLARE_LOG_CHANNEL(ShaderCompiler);
 #endif
 
 static EngineStatTimer s_statShaderCompilation { "Rendering/ShaderCompilation", /* resetPerFrame */ false };
+
+static const Name s_nameFallbackShader = NAME("Fallback");
 
 static ShaderCacheId GenerateShaderCacheId()
 {
@@ -129,7 +133,48 @@ public:
 
         isValid &= request.entry->shader->IsValid();
 
-        Assert(isValid, "Compiled shader '{}' is not a valid compiled shader", request.shaderName);
+        if (!isValid)
+        {
+            if (request.shaderName != s_nameFallbackShader
+                && g_shaderCompiler->IsGraphicsShaderBundle(request.shaderName))
+            {
+                HYP_LOG(Shader, Verbose,
+                    "Failed to compile shader '{}', trying to load fallback...",
+                    request.shaderName);
+
+                // @TODO Show editor alert.
+
+                static constexpr StringHash PropertiesToKeepForFallback[] = {
+                    "SKINNING"_sh,
+                    "INSTANCED"_sh
+                };
+
+                ShaderPropertySet fallbackProperties {};
+
+                for (const ShaderPropertyId shaderPropertyId : request.properties.ToArray())
+                {
+                    ShaderProperty shaderProperty;
+                    if (GetShaderPropertyById(shaderPropertyId, shaderProperty)
+                        && std::find(std::begin(PropertiesToKeepForFallback), std::end(PropertiesToKeepForFallback), shaderProperty.name) != std::end(PropertiesToKeepForFallback))
+                    {
+                        fallbackProperties.Add(shaderPropertyId);
+                    }
+                }
+
+                isValid = g_shaderCompiler->RequestShader(
+                    s_nameFallbackShader, fallbackProperties, request.attributes, request.entry->shader);
+
+                isValid &= request.entry->shader->IsValid();
+
+                Assert(isValid, "Shader compilation failed and fallback shader could not be loaded!");
+
+                return;
+            }
+
+            HYP_LOG(Shader, Error, "Failed to compile shader '{}'", request.shaderName);
+
+            Assert(false, "Compiled shader '{}' is not a valid compiled shader", request.shaderName);
+        }
 
         request.shaderInstance = g_renderInterface->MakeShader(request.entry->shader);
         CheckResult(request.shaderInstance->Create());

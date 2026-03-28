@@ -3,17 +3,7 @@
   "CompiledShaders": [{
       "$Class": "AssetReference",
       "AssetPath": {
-        "Value": "Engine/Shaders/DrawCubemap/DrawCubemap_5336421232962317307"
-      }
-    }, {
-      "$Class": "AssetReference",
-      "AssetPath": {
         "Value": "Engine/Shaders/DrawCubemap/DrawCubemap_5336421232962317299"
-      }
-    }, {
-      "$Class": "AssetReference",
-      "AssetPath": {
-        "Value": "Engine/Shaders/DrawCubemap/DrawCubemap_5336421232962317291"
       }
     }, {
       "$Class": "AssetReference",
@@ -23,27 +13,17 @@
     }, {
       "$Class": "AssetReference",
       "AssetPath": {
-        "Value": "Engine/Shaders/DrawCubemap/DrawCubemap_5336421232962317267"
-      }
-    }, {
-      "$Class": "AssetReference",
-      "AssetPath": {
         "Value": "Engine/Shaders/DrawCubemap/DrawCubemap_5336421232962317259"
       }
     }, {
       "$Class": "AssetReference",
       "AssetPath": {
-        "Value": "Engine/Shaders/DrawCubemap/DrawCubemap_5336421232962317251"
+        "Value": "Engine/Shaders/DrawCubemap/DrawCubemap_5336421232962317107"
       }
     }, {
       "$Class": "AssetReference",
       "AssetPath": {
         "Value": "Engine/Shaders/DrawCubemap/DrawCubemap_5336421232962317115"
-      }
-    }, {
-      "$Class": "AssetReference",
-      "AssetPath": {
-        "Value": "Engine/Shaders/DrawCubemap/DrawCubemap_5336421232962317107"
       }
     }, {
       "$Class": "AssetReference",
@@ -63,7 +43,32 @@
     }, {
       "$Class": "AssetReference",
       "AssetPath": {
+        "Value": "Engine/Shaders/DrawCubemap/DrawCubemap_5336421232962317251"
+      }
+    }, {
+      "$Class": "AssetReference",
+      "AssetPath": {
+        "Value": "Engine/Shaders/DrawCubemap/DrawCubemap_5336421232962317291"
+      }
+    }, {
+      "$Class": "AssetReference",
+      "AssetPath": {
+        "Value": "Engine/Shaders/DrawCubemap/DrawCubemap_5336421232962317267"
+      }
+    }, {
+      "$Class": "AssetReference",
+      "AssetPath": {
         "Value": "Engine/Shaders/DrawCubemap/DrawCubemap_5336421232962317195"
+      }
+    }, {
+      "$Class": "AssetReference",
+      "AssetPath": {
+        "Value": "Engine/Shaders/DrawCubemap/DrawCubemap_5336421232962317307"
+      }
+    }, {
+      "$Class": "AssetReference",
+      "AssetPath": {
+        "Value": "Engine/Shaders/DrawCubemap/DrawCubemap_5336421232962317203"
       }
     }, {
       "$Class": "AssetReference",
@@ -73,32 +78,17 @@
     }, {
       "$Class": "AssetReference",
       "AssetPath": {
-        "Value": "Engine/Shaders/DrawCubemap/DrawCubemap_5336421232962317227"
-      }
-    }, {
-      "$Class": "AssetReference",
-      "AssetPath": {
-        "Value": "Engine/Shaders/DrawCubemap/DrawCubemap_5336421232962317219"
-      }
-    }, {
-      "$Class": "AssetReference",
-      "AssetPath": {
         "Value": "Engine/Shaders/DrawCubemap/DrawCubemap_5336421232962317243"
       }
     }, {
       "$Class": "AssetReference",
       "AssetPath": {
-        "Value": "Engine/Shaders/DrawCubemap/DrawCubemap_5336421232962317235"
+        "Value": "Engine/Shaders/DrawCubemap/DrawCubemap_5336421232962317227"
       }
     }, {
       "$Class": "AssetReference",
       "AssetPath": {
         "Value": "Engine/Shaders/DrawCubemap/DrawCubemap_5336421232962317211"
-      }
-    }, {
-      "$Class": "AssetReference",
-      "AssetPath": {
-        "Value": "Engine/Shaders/DrawCubemap/DrawCubemap_5336421232962317203"
       }
     }, {
       "$Class": "AssetReference",
@@ -113,12 +103,22 @@
     }, {
       "$Class": "AssetReference",
       "AssetPath": {
-        "Value": "Engine/Shaders/DrawCubemap/DrawCubemap_5336421232962316875"
+        "Value": "Engine/Shaders/DrawCubemap/DrawCubemap_5336421232962316867"
       }
     }, {
       "$Class": "AssetReference",
       "AssetPath": {
-        "Value": "Engine/Shaders/DrawCubemap/DrawCubemap_5336421232962316867"
+        "Value": "Engine/Shaders/DrawCubemap/DrawCubemap_5336421232962317235"
+      }
+    }, {
+      "$Class": "AssetReference",
+      "AssetPath": {
+        "Value": "Engine/Shaders/DrawCubemap/DrawCubemap_5336421232962317219"
+      }
+    }, {
+      "$Class": "AssetReference",
+      "AssetPath": {
+        "Value": "Engine/Shaders/DrawCubemap/DrawCubemap_5336421232962316915"
       }
     }, {
       "$Class": "AssetReference",
@@ -133,12 +133,7 @@
     }, {
       "$Class": "AssetReference",
       "AssetPath": {
-        "Value": "Engine/Shaders/DrawCubemap/DrawCubemap_5336421232962316923"
-      }
-    }, {
-      "$Class": "AssetReference",
-      "AssetPath": {
-        "Value": "Engine/Shaders/DrawCubemap/DrawCubemap_5336421232962316915"
+        "Value": "Engine/Shaders/DrawCubemap/DrawCubemap_5336421232962316875"
       }
     }, {
       "$Class": "AssetReference",
@@ -154,6 +149,11 @@
       "$Class": "AssetReference",
       "AssetPath": {
         "Value": "Engine/Shaders/DrawCubemap/DrawCubemap_5336421232962316811"
+      }
+    }, {
+      "$Class": "AssetReference",
+      "AssetPath": {
+        "Value": "Engine/Shaders/DrawCubemap/DrawCubemap_5336421232962316923"
       }
     }, {
       "$Class": "AssetReference",

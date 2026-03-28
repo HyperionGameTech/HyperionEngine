@@ -267,80 +267,47 @@ public:
 
         ParallelForEach(
             pool,
-            pool.GetProcessorAffinity(),
             numItems,
             std::forward<Callback>(cb));
     }
 
-    /*! \brief Creates a TaskBatch which will call the lambda for \p numItems times in parallel.
-     *  The tasks will be split evenly into groups, based on the number of threads in the pool for the given priority.
-        The lambda will be called with (item, index) for each item. */
     template <class Callback>
-    HYP_FORCE_INLINE void ParallelForEach(TaskThreadPool& pool, uint32 numItems, Callback&& cb)
+    void ParallelForEach(TaskThreadPool& pool, uint32 numItems, Callback&& cb)
     {
-        ParallelForEach(
-            pool,
-            pool.GetProcessorAffinity(),
-            numItems,
-            std::forward<Callback>(cb));
-    }
+        Array<Task<void>> tasks;
+        tasks.Reserve(numItems);
 
-    /*! \brief Creates a TaskBatch which will call the lambda for \p numItems times in parallel.
-     *  The tasks will be split evenly into \p numBatches batches.
-        The lambda will be called with (item, index) for each item. */
-    template <class Callback>
-    void ParallelForEach(TaskThreadPool& pool, uint8 numBatches, uint32 numItems, Callback&& cb)
-    {
-        TaskBatch batch;
-        batch.pool = &pool;
-
-        if (numItems == 0)
+        for (uint32 i = 0; i < numItems; i++)
         {
-            return;
-        }
-        
-        numBatches = uint8(MathUtil::Clamp(uint32(numBatches), 1u, MathUtil::Min(numItems, uint32(UINT8_MAX))));
-
-        const uint32 itemsPerBatch = (numItems + numBatches - 1) / numBatches;
-
-        for (uint32 batchIndex = 0; batchIndex < numBatches; batchIndex++)
-        {
-            batch.AddTask([batchIndex, itemsPerBatch, numItems, &cb](...)
-                {
-                    const uint32 offsetIndex = batchIndex * itemsPerBatch;
-                    const uint32 maxIndex = MathUtil::Min(offsetIndex + itemsPerBatch, numItems);
-
-                    for (uint32 i = offsetIndex; i < maxIndex; i++)
-                    {
-                        cb(i, batchIndex);
-                    }
-                });
+            tasks.EmplaceBack(TaskSystem::GetInstance().Enqueue([&cb, i]() { cb(i); }, pool));
         }
 
-        EnqueueBatch(&batch);
-        batch.AwaitCompletion();
+        AwaitAll(tasks.ToSpan());
     }
 
     template <class Container, class Callback>
-    HYP_FORCE_INLINE void ParallelForEach(TaskThreadPool& pool, Container&& items, Callback&& cb)
-    {
-        ParallelForEach(
-            pool,
-            pool.GetProcessorAffinity(),
-            std::forward<Container>(items),
-            std::forward<Callback>(cb));
-    }
-
-    template <class Container, class Callback>
-    HYP_FORCE_INLINE void ParallelForEach(Container&& items, Callback&& cb)
+    void ParallelForEach(Container&& items, Callback&& cb)
     {
         TaskThreadPool& pool = GetPool(THREAD_POOL_GENERIC);
 
         ParallelForEach(
             pool,
-            pool.GetProcessorAffinity(),
             std::forward<Container>(items),
             std::forward<Callback>(cb));
+    }
+
+    template <class Container, class Callback>
+    void ParallelForEach(TaskThreadPool& pool, Container&& items, Callback&& cb)
+    {
+        Array<Task<void>> tasks;
+        tasks.Reserve(items.Size());
+
+        for (size_t i = 0; i < items.Size(); i++)
+        {
+            tasks.EmplaceBack(TaskSystem::GetInstance().Enqueue([&items, &cb, i]() { cb(items[i], uint32(i)); }, pool));
+        }
+
+        AwaitAll(tasks.ToSpan());
     }
 
     template <class Container, class Callback>
@@ -393,18 +360,6 @@ public:
 
             batch.AddTask(f);
         }
-    }
-
-    template <class Container, class Callback>
-    void ParallelForEach(TaskThreadPool& pool, uint8 numBatches, Container&& items, Callback&& cb)
-    {
-        TaskBatch batch;
-        batch.pool = &pool;
-        
-        ParallelForEach_Batch(batch, numBatches, std::forward<Container>(items), cb);
-
-        EnqueueBatch(&batch);
-        batch.AwaitCompletion();
     }
 
     HYP_FORCE_INLINE bool CancelTask(const TaskRef& taskRef)

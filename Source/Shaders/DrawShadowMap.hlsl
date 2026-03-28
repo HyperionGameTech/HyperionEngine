@@ -141,9 +141,12 @@ PSOutput PSMain(PSInput input)
 {
     PSOutput output;
 
-#if defined(ALPHA_DISCARD) && HAS_DIFFUSE_MAP
-    float4 albedo_texture = SAMPLE_MATERIAL_TEXTURE(CURRENT_MATERIAL, DiffuseMap, input.v_texcoord0);
-    clip(albedo_texture.a - MATERIAL_ALPHA_DISCARD);
+#ifdef ALPHA_DISCARD
+    if (HAS_TEXTURE(CURRENT_MATERIAL, DiffuseMap))
+    {
+        float4 albedo_texture = SAMPLE_MATERIAL_TEXTURE(CURRENT_MATERIAL, DiffuseMap, input.v_texcoord0);
+        clip(albedo_texture.a - MATERIAL_ALPHA_DISCARD);
+    }
 #endif
 
     const float depth = input.position_cs.z / input.position_cs.w;

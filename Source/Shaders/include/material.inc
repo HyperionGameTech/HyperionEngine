@@ -11,21 +11,11 @@
 #ifdef HYP_FEATURES_BINDLESS_TEXTURES
     DECLARE_SRV(BindlessResources0, Textures) uniform texture2D textures[];
 #else
-    #if HAS_DIFFUSE_MAP
-        DECLARE_SRV(Material, DiffuseMap) uniform texture2D DiffuseMap;
-    #endif
-    #if HAS_NORMAL_MAP
-        DECLARE_SRV(Material, NormalMap) uniform texture2D NormalMap;
-    #endif
-    #if HAS_PARALLAX_MAP
-        DECLARE_SRV(Material, ParallaxMap) uniform texture2D ParallaxMap;
-    #endif
-    #if HAS_METALNESS_MAP
-        DECLARE_SRV(Material, MetalnessMap) uniform texture2D MetalnessMap;
-    #endif
-    #if HAS_ROUGHNESS_MAP
-        DECLARE_SRV(Material, RoughnessMap) uniform texture2D RoughnessMap;
-    #endif
+    DECLARE_SRV(Material, DiffuseMap) uniform texture2D DiffuseMap;
+    DECLARE_SRV(Material, NormalMap) uniform texture2D NormalMap;
+    DECLARE_SRV(Material, ParallaxMap) uniform texture2D ParallaxMap;
+    DECLARE_SRV(Material, MetalnessMap) uniform texture2D MetalnessMap;
+    DECLARE_SRV(Material, RoughnessMap) uniform texture2D RoughnessMap;
 #endif
 
 #endif

@@ -256,7 +256,7 @@ FBOMResult FBOMWriter::WriteExternalObjects(ByteWriter* out, const FilePath& bas
         errors.Insert(err);
     };
 
-    auto fn = [&](const FBOMObjectLibrary& library, uint32, uint32) -> void
+    auto fn = [&](const FBOMObjectLibrary& library, uint32) -> void
     {
         FBOMWriter serializer { FBOMWriterConfig {} };
 

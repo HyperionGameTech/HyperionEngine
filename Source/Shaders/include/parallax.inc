@@ -1,12 +1,10 @@
-#ifndef HYP_PARALLAX_GLSL
-#define HYP_PARALLAX_GLSL
-
-#include "material.inc"
+#ifndef HYP_PARALLAX
+#define HYP_PARALLAX
 
 #define PARALLAX_NUM_LAYERS 20
 
 #define PARALLAX_SAMPLE_TEXTURE(texcoords) \
-    (1.0 - SAMPLE_TEXTURE(CURRENT_MATERIAL, ParallaxMap, texcoords).r)
+    (1.0 - SAMPLE_MATERIAL_TEXTURE(CURRENT_MATERIAL, ParallaxMap, texcoords).r)
 
 vec2 ParallaxMappedTexCoords(float parallax_height, vec2 texCoords, vec3 viewDir)
 {

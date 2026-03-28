@@ -129,7 +129,7 @@
   "ShaderBlobs": [{
       "$Class": "BlobDataReference",
       "Key": "Engine/Shaders/ComputeSH/ComputeSH_18376644033294844755.CS",
-      "Size": 56092
+      "Size": 56088
     }],
   "PropertySetHashCode": {},
   "LastCompiledTimestamp": {

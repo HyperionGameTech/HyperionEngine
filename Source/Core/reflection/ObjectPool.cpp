@@ -161,9 +161,9 @@ ObjectContainerBase::~ObjectContainerBase()
 
             if (refCount > 0)
             {
-                HYP_LOG(Core, Warning, "Object {} still has {} strong references during ObjectContainer destruction\n",
-                    ObjIdBase(header->cls->GetTypeId(), header->index + 1),
-                    refCount);
+                //HYP_LOG(Core, Warning, "Object {} still has {} strong references during ObjectContainer destruction",
+                //    ObjIdBase(header->cls->GetTypeId(), header->index + 1),
+                //    refCount);
             }
         }
     }

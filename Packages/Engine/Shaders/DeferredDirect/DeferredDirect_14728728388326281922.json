@@ -363,11 +363,11 @@
   "ShaderBlobs": [{
       "$Class": "BlobDataReference",
       "Key": "Engine/Shaders/DeferredDirect/DeferredDirect_14728728388326281922.VS",
-      "Size": 11512
+      "Size": 11508
     }, {
       "$Class": "BlobDataReference",
       "Key": "Engine/Shaders/DeferredDirect/DeferredDirect_14728728388326281922.PS",
-      "Size": 209268
+      "Size": 209052
     }],
   "PropertySetHashCode": {},
   "LastCompiledTimestamp": {

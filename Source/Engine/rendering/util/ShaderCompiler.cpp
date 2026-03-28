@@ -35,6 +35,7 @@
 #include <system/DirectoryInitializer.hpp>
 
 #include <engine/EngineDriver.hpp>
+#include <Engine/CVarManager.hpp>
 
 #if HYP_GLSLANG
 #include <glslang/Include/ResourceLimits.h>
@@ -71,8 +72,7 @@ HYP_DEFINE_LOG_SUBCHANNEL(ShaderCompiler, Core);
 
 /// Should missing shader variants be compiled when requested, or should we just fail?
 /// Enabling this will cause shader compilation to happen during gameplay / editor.
-/// Default is off to ensure that all shader variants are compiled ahead of time via Shaders.ini.
-static constexpr bool ShouldCompileMissingVariants = false;
+CVar<bool> cvShouldCompileMissingVariants { "ShaderCompiler.CompileMissingVariants", true };
 
 // #define HYP_SHADER_COMPILER_LOGGING
 
@@ -80,6 +80,21 @@ static constexpr bool ShouldCompileMissingVariants = false;
 static CComPtr<IDxcUtils> s_dxcUtils;
 static CComPtr<IDxcCompiler3> s_dxcCompiler;
 #endif
+
+static constexpr uint32 NumPrecompileShadersThreads = 8;
+
+class PrecompileShadersWorkerPool : public TaskThreadPool
+{
+public:
+    PrecompileShadersWorkerPool()
+        : TaskThreadPool(TypeWrapper<TaskThread>(), "PrecompileShadersWorker", NumPrecompileShadersThreads)
+    {
+    }
+
+    virtual ~PrecompileShadersWorkerPool() override = default;
+};
+
+PrecompileShadersWorkerPool* s_precompileShadersPool;
 
 #pragma region Helpers
 
@@ -1161,7 +1176,7 @@ static ByteBuffer CompileHLSL(
 #endif
 
 #if HYP_DEBUG_MODE
-    args.PushBack(L"-Zsb");
+    //args.PushBack(L"-Zsb");
 #endif
 
     DxcBuffer sourceBuffer = { pSource->GetBufferPointer(), pSource->GetBufferSize(), 0 };
@@ -1408,12 +1423,19 @@ static void ForEachPermutation(
 
     if (parallel)
     {
-        auto callbackWrapper = [&callback](const ShaderVariantPerms& perm, uint32, uint32)
+        auto CallbackWrapper = [&callback](const ShaderVariantPerms& perm, uint32)
         {
             callback(perm);
         };
 
-        TaskSystem::GetInstance().ParallelForEach(*currentCombinations, callbackWrapper);
+        if (s_precompileShadersPool)
+        {
+            TaskSystem::GetInstance().ParallelForEach(*s_precompileShadersPool, *currentCombinations, CallbackWrapper);
+        }
+        else
+        {
+            TaskSystem::GetInstance().ParallelForEach(*currentCombinations, CallbackWrapper);
+        }
     }
     else
     {
@@ -1867,7 +1889,7 @@ bool ShaderCompiler::HandleBundle(
 
         HYP_LOG(ShaderCompiler, Verbose, "===============================");
 
-        if (ShouldCompileMissingVariants && CanCompileShaders())
+        if (cvShouldCompileMissingVariants.Get() && CanCompileShaders())
         {
             return CompileBundle(
                 decl,
@@ -2016,24 +2038,26 @@ bool ShaderCompiler::LoadShaderDefinitions(bool precompileShaders)
 
     HYP_LOG(ShaderCompiler, Verbose, "Precompiling shaders...");
 
+    PrecompileShadersWorkerPool pool;
+    s_precompileShadersPool = &pool;
+
+    pool.Start();
+
     HashMap<const ShaderBundleDecl*, bool> results;
-    Mutex resultsMutex;
 
     // Compile all shaders ahead of time
-    TaskSystem::GetInstance().ParallelForEach(m_shaderBundleDecls, [&](const ShaderBundleDecl& decl, uint32, uint32)
+    for (const ShaderBundleDecl& decl : m_shaderBundleDecls)
+    {
+        Handle<ShaderBundle> bundle;
+        if (!LoadBundle(decl.name, Optional<ShaderRequest>(), bundle))
         {
-            Handle<ShaderBundle> bundle;
-            if (!LoadBundle(decl.name, Optional<ShaderRequest>(), bundle))
-            {
-                Mutex::Guard guard(resultsMutex);
-                results[&decl] = false;
+            results[&decl] = false;
 
-                return;
-            }
-            
-            Mutex::Guard guard(resultsMutex);
-            results[&decl] = true;
-        });
+            continue;
+        }
+
+        results[&decl] = true;
+    }
 
     bool allResults = true;
 
@@ -2052,6 +2076,10 @@ bool ShaderCompiler::LoadShaderDefinitions(bool precompileShaders)
     }
 
     m_isPrecompilingShaders = false;
+
+    pool.Stop();
+
+    s_precompileShadersPool = nullptr;
 
     return allResults;
 }
@@ -3316,7 +3344,7 @@ bool ShaderCompiler::CompileBundle(
                 }
             }
         },
-        false);
+        true);
 
     if (outBundle->HasErrors())
     {
@@ -3510,6 +3538,24 @@ bool ShaderCompiler::RequestShader(
 #pragma endregion ShaderCompiler
 
 #if HYP_ENABLE_SHADER_RELOAD
+
+bool ShaderCompiler::IsGraphicsShaderBundle(Name name) const
+{
+    if (!m_definitions || !m_definitions->IsValid())
+    {
+        return false;
+    }
+
+    for (const ShaderBundleDecl& decl : m_shaderBundleDecls)
+    {
+        if (decl.name == name)
+        {
+            return decl.sources.Contains(ShaderModuleType::Vertex);
+        }
+    }
+
+    return false;
+}
 
 bool ShaderCompiler::IsShaderBundleOutdated(Name name, const Time& lastCompiledTimestamp) const
 {

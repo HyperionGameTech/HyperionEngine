@@ -77,6 +77,10 @@ DECLARE_SRV(Default, PointLightShadowMapsTextureArray) TextureCubeArray point_sh
 DECLARE_SRV_DYNAMIC(Default, CurrentEnvProbe) StructuredBuffer<EnvProbe> current_env_probe_buffer;
 #define current_env_probe current_env_probe_buffer[0]
 
+#ifndef MAX_LIGHTS
+#define MAX_LIGHTS 4 // Should be set from the engine side when compiling the shader
+#endif
+
 DECLARE_BUFFER_DYNAMIC(Default, FowardShadingConstants) cbuffer FowardShadingConstants
 {
     Light lights[MAX_LIGHTS];
@@ -93,9 +97,7 @@ DECLARE_SRV_DYNAMIC(Default, MaterialsBuffer) StructuredBuffer<Material> materia
 #define CURRENT_MATERIAL material
 #endif
 
-#if HAS_PARALLAX_MAP
 #include "include/parallax.inc"
-#endif
 
 // #define DEBUG_RAW_REFLECTIONS
 
@@ -122,51 +124,53 @@ PSOutput PSMain(PSInput input)
 
     float2 texcoord = input.texcoord0 * CURRENT_MATERIAL.uv_scale;
 
-#if HAS_PARALLAX_MAP
-    float3 tangent_view = mul(tbn_matrix, view_vector); 
-    float2 parallax_texcoord = ParallaxMappedTexCoords(
-        CURRENT_MATERIAL.parallax_height,
-        texcoord,
-        normalize(tangent_view));
+    if (HAS_TEXTURE(CURRENT_MATERIAL, ParallaxMap))
+    {
+        float3 tangent_view = mul(tbn_matrix, view_vector); 
+        float2 parallax_texcoord = ParallaxMappedTexCoords(
+            CURRENT_MATERIAL.parallax_height,
+            texcoord,
+            normalize(tangent_view));
 
-    texcoord = parallax_texcoord;
-#endif
+        texcoord = parallax_texcoord;
+    }
 
-#if HAS_DIFFUSE_MAP
-    float4 albedo_texture = SAMPLE_MATERIAL_TEXTURE(CURRENT_MATERIAL, DiffuseMap, texcoord);
+    if (HAS_TEXTURE(CURRENT_MATERIAL, DiffuseMap))
+    {
+        float4 albedo_texture = SAMPLE_MATERIAL_TEXTURE(CURRENT_MATERIAL, DiffuseMap, texcoord);
 
 #ifdef ALPHA_DISCARD
-    if (albedo_texture.a < alpha_threshold)
-    {
-        discard;
-    }
+        clip(albedo_texture.a - alpha_threshold);
 #endif
 
-    output.gbuffer_albedo *= albedo_texture;
-#endif
+        output.gbuffer_albedo *= albedo_texture;
+    }
 
     output.gbuffer_albedo.a = max(output.gbuffer_albedo.a, 0.005);
 
     float4 normals_texture = float4(0.0, 0.0, 0.0, 0.0);
 
 // #ifndef DEBUG_RAW_REFLECTIONS
-#if HAS_NORMAL_MAP
-    normals_texture = SAMPLE_MATERIAL_TEXTURE(CURRENT_MATERIAL, NormalMap, texcoord) * 2.0 - 1.0;
-    N = normalize(lerp(mul(normals_texture.xyz, tbn_matrix), input.normal, 1.0 - normal_map_intensity));
-#endif
+    if (HAS_TEXTURE(CURRENT_MATERIAL, NormalMap))
+    {
+        normals_texture = SAMPLE_MATERIAL_TEXTURE(CURRENT_MATERIAL, NormalMap, texcoord) * 2.0 - 1.0;
+        N = normalize(lerp(mul(normals_texture.xyz, tbn_matrix), input.normal, 1.0 - normal_map_intensity));
+    }
 // #endif
 
-#if HAS_METALNESS_MAP
-    float metalness_sample = SAMPLE_MATERIAL_TEXTURE(CURRENT_MATERIAL, MetalnessMap, texcoord).r;
+    if (HAS_TEXTURE(CURRENT_MATERIAL, MetalnessMap))
+    {
+        float metalness_sample = SAMPLE_MATERIAL_TEXTURE(CURRENT_MATERIAL, MetalnessMap, texcoord).r;
 
-    metalness = metalness_sample;
-#endif
+        metalness = metalness_sample;
+    }
 
-#if HAS_ROUGHNESS_MAP
-    float roughness_sample = SAMPLE_MATERIAL_TEXTURE(CURRENT_MATERIAL, RoughnessMap, texcoord).r;
+    if (HAS_TEXTURE(CURRENT_MATERIAL, RoughnessMap))
+    {
+        float roughness_sample = SAMPLE_MATERIAL_TEXTURE(CURRENT_MATERIAL, RoughnessMap, texcoord).r;
 
-    roughness = roughness_sample;
-#endif
+        roughness = roughness_sample;
+    }
 
     // roughness is authored as perceptual roughness; need to convert to physical roughness for the BRDF calculations
     const float perceptualRoughness = roughness;

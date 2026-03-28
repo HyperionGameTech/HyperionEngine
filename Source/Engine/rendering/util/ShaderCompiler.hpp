@@ -543,6 +543,8 @@ public:
         const ShaderPropertySet& properties,
         const VertexAttributeSet& vertexAttributes,
         Shader*& outShader);
+        
+    HYP_API bool IsGraphicsShaderBundle(Name name) const;
 
 #if HYP_ENABLE_SHADER_RELOAD
     HYP_API bool IsShaderBundleOutdated(Name name, const Time& lastCompiledTimestamp) const;

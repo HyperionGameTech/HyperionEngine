@@ -33,11 +33,6 @@
     }, {
       "$Class": "AssetReference",
       "AssetPath": {
-        "Value": "Engine/Shaders/DrawShadowMap/DrawShadowMap_174799930924824675"
-      }
-    }, {
-      "$Class": "AssetReference",
-      "AssetPath": {
         "Value": "Engine/Shaders/DrawShadowMap/DrawShadowMap_174799930924824667"
       }
     }, {
@@ -48,12 +43,12 @@
     }, {
       "$Class": "AssetReference",
       "AssetPath": {
-        "Value": "Engine/Shaders/DrawShadowMap/DrawShadowMap_174799930924824651"
+        "Value": "Engine/Shaders/DrawShadowMap/DrawShadowMap_174799930924824675"
       }
     }, {
       "$Class": "AssetReference",
       "AssetPath": {
-        "Value": "Engine/Shaders/DrawShadowMap/DrawShadowMap_174799930924824643"
+        "Value": "Engine/Shaders/DrawShadowMap/DrawShadowMap_174799930924824651"
       }
     }, {
       "$Class": "AssetReference",
@@ -63,12 +58,17 @@
     }, {
       "$Class": "AssetReference",
       "AssetPath": {
-        "Value": "Engine/Shaders/DrawShadowMap/DrawShadowMap_174799930924824627"
+        "Value": "Engine/Shaders/DrawShadowMap/DrawShadowMap_174799930924824643"
       }
     }, {
       "$Class": "AssetReference",
       "AssetPath": {
         "Value": "Engine/Shaders/DrawShadowMap/DrawShadowMap_174799930924824619"
+      }
+    }, {
+      "$Class": "AssetReference",
+      "AssetPath": {
+        "Value": "Engine/Shaders/DrawShadowMap/DrawShadowMap_174799930924824627"
       }
     }, {
       "$Class": "AssetReference",
@@ -138,12 +138,12 @@
     }, {
       "$Class": "AssetReference",
       "AssetPath": {
-        "Value": "Engine/Shaders/DrawShadowMap/DrawShadowMap_174799930924824739"
+        "Value": "Engine/Shaders/DrawShadowMap/DrawShadowMap_174799930924824731"
       }
     }, {
       "$Class": "AssetReference",
       "AssetPath": {
-        "Value": "Engine/Shaders/DrawShadowMap/DrawShadowMap_174799930924824731"
+        "Value": "Engine/Shaders/DrawShadowMap/DrawShadowMap_174799930924824739"
       }
     }, {
       "$Class": "AssetReference",

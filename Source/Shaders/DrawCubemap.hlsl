@@ -206,19 +206,17 @@ PSOutput PSMain(PSInput input)
 
     float4 albedo = float4(1.0, 1.0, 1.0, 1.0);
 
-#if HAS_DIFFUSE_MAP
-    float2 texcoord = input.texcoord0 * CURRENT_MATERIAL.uv_scale;
-    albedo = CURRENT_MATERIAL.albedo;
-
-    float4 albedo_texture = SAMPLE_MATERIAL_TEXTURE(CURRENT_MATERIAL, DiffuseMap, texcoord);
-
-    if (albedo_texture.a < 0.2)
+    if (HAS_TEXTURE(CURRENT_MATERIAL, DiffuseMap))
     {
-        discard;
-    }
+        float2 texcoord = input.texcoord0 * CURRENT_MATERIAL.uv_scale;
+        albedo = CURRENT_MATERIAL.albedo;
 
-    albedo *= albedo_texture;
-#endif
+        float4 albedo_texture = SAMPLE_MATERIAL_TEXTURE(CURRENT_MATERIAL, DiffuseMap, texcoord);
+
+        clip(albedo_texture.a - 0.2);
+
+        albedo *= albedo_texture;
+    }
 
 #if defined(WRITE_MOMENTS) || defined(MODE_SHADOWS)
     const float dist = distance(input.position, input.camera_position);
