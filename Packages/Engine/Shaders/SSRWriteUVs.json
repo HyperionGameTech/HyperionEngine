@@ -1,0 +1,12 @@
+{
+  "$Class": "ShaderBundle",
+  "CompiledShaders": [{
+      "$Class": "AssetReference",
+      "AssetPath": {
+        "Value": "Engine/Shaders/SSRWriteUVs/SSRWriteUVs_6076243050612183518"
+      }
+    }],
+  "Name": "SSRWriteUVs",
+  "FriendlyName": "SSRWriteUVs",
+  "OriginalFilepath": ""
+}

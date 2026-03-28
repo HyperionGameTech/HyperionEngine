@@ -1046,7 +1046,7 @@ void Win32ApplicationWindow::Initialize(WindowOptions windowOptions)
 
     lock.Reset(); // done using members that are read from other threads after this.
     
-    m_useWndProc = (windowOptions.flags & uint32(WindowFlags::EVENTS_POLLING)) == 0;
+    m_useWndProc = !(windowOptions.flags & uint32(WindowFlags::EVENTS_POLLING));
 
     WNDCLASSEXW wc {};
     wc.cbSize = sizeof(WNDCLASSEXW);
@@ -1339,6 +1339,16 @@ LRESULT Win32ApplicationWindow::WndProc(HWND hWnd, UINT msg, WPARAM wParam, LPAR
         Close();
 
         break;
+    }
+    case WM_ACTIVATE:
+    {
+        bool isActive = (LOWORD(wParam) != WA_INACTIVE);
+
+        Event event(isActive ? EventType::WINDOW_FOCUS_GAINED : EventType::WINDOW_FOCUS_LOST, this, platformEvent);
+
+        m_inputManager->ProcessEvent(std::move(event));
+        
+        return true;
     }
     default:
         break;

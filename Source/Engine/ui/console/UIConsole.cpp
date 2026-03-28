@@ -360,7 +360,7 @@ void UIConsole::Init()
                     
                     m_currentCommandText.Clear();
 
-                    m_textbox->Focus();
+                    //m_textbox->Focus();
                 }
 
                 return UIEventHandlerResult::STOP_BUBBLING;
