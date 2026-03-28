@@ -610,19 +610,22 @@ void DeferredPass::RenderToFramebuffer_Internal(Frame* frame, const RenderSetup&
         cr << SetShaderUniform(localNumShaderUniforms++, "LightsBuffer"_sh, g_renderInterface->gpuBuffers[GRB_LIGHTS]->GetBuffer(frameIndex));
         cr << SetShaderUniform(localNumShaderUniforms++, "EnvProbesBuffer"_sh, g_renderInterface->gpuBuffers[GRB_ENV_PROBES]->GetBuffer(frameIndex));
 
-#if 0
+#if 1
         // Write out MAX_SHADOW_MAPS (8?) ShadowMaps for the View, indexed by light idx (GetBinding())
         {// Build constants
             GpuBuffer* cbuffer = nullptr;
             size_t cbufferOffset = 0;
             size_t cbufferSize = 0;
 
+            uint32 maxLightBinding = 0;
+
             Array<Pair<Light*, uint32>, RenderTempAllocator> shadowCasterLightsInView;
             shadowCasterLightsInView.Reserve(MaxClusteredShadowMaps);
 
             for (Light* light : rpl.GetLights())
             {
-                if (!(light->GetLightFlags() & LightFlags::ShadowCaster))
+                if (!(light->GetLightFlags() & LightFlags::ShadowCaster)
+                    || !DeferredRendererHelpers::CanClusterLight(light->GetLightType()))
                 {
                     continue;
                 }
@@ -635,22 +638,42 @@ void DeferredPass::RenderToFramebuffer_Internal(Frame* frame, const RenderSetup&
                 const uint32 binding = Resources::GetBinding(light);
                 Assert(binding != ~0u);
 
+                maxLightBinding = MathUtil::Max(binding + 1, maxLightBinding);
+
                 shadowCasterLightsInView.EmplaceBack(light, binding);
             }
 
-            ShadowMapData shadowMapData[MaxClusteredShadowMaps];
+            GpuBuffer* shadowMapIndexBuffer = nullptr;
 
-            for (uint32 idx = 0; idx < MaxClusteredShadowMaps; idx++)
+            Array<ShadowMapData, RenderTempAllocator> shadowMapData;
+            shadowMapData.Resize(MaxClusteredShadowMaps);
+
+            if (maxLightBinding != 0)
             {
-                ShadowMapData& currShadowMapData = shadowMapData[idx];
-                currShadowMapData = {};
+                shadowMapIndexBuffer = g_renderInterface->sbufferAllocator->GetBuffer(maxLightBinding * sizeof(uint32));
 
-                if (idx < shadowCasterLightsInView.Size())
+                ubyte* dataPtr = (ubyte*)shadowMapIndexBuffer->Map();
+                AssertDebug(dataPtr != nullptr);
+
+                Memory::Zero(dataPtr, maxLightBinding * sizeof(uint32));
+
+                uint32 shadowMapIndex = 0;
+
+                for (const Pair<Light*, uint32>& lightAndLightBinding : shadowCasterLightsInView)
                 {
-                    Light* light = shadowCasterLightsInView[idx].first;
-                    uint32 lightBinding = shadowCasterLightsInView[idx].second;
+                    if (shadowMapIndex == MaxClusteredShadowMaps)
+                    {
+                        break;
+                    }
 
-                    // @TODO write the uint8 index (idx) into byteaddressbuffer at [lightBinding] index to map
+                    Light* light = lightAndLightBinding.first;
+
+                    uint32 lightBinding = lightAndLightBinding.second;
+                    AssertDebug(lightBinding < maxLightBinding);
+
+                    ShadowMapData& currShadowMapData = shadowMapData[shadowMapIndex];
+
+                    *(uint32*)(dataPtr + (lightBinding * sizeof(uint32))) = shadowMapIndex;
 
                     View* shadowMapViewDynamic;
                     View* shadowMapViewStatic;
@@ -670,11 +693,20 @@ void DeferredPass::RenderToFramebuffer_Internal(Frame* frame, const RenderSetup&
                             shadowMapViewDynamic,
                             shadowMapViewStatic);
                     }
+
+                    ++shadowMapIndex;
                 }
 
-                g_renderInterface->cbufferAllocator->Write(&currShadowMapData);
+                shadowMapIndexBuffer->Flush(0, maxLightBinding * sizeof(uint32));
             }
-                    
+            else
+            {
+                shadowMapIndexBuffer = g_renderInterface->placeholderData->GetOrCreateBuffer(GpuBufferType::STORAGE_BUFFER, sizeof(uint32), /* exactSize */ false);
+            }
+            
+            cr << SetShaderUniform(localNumShaderUniforms++, "ShadowMapIndexBuffer"_sh, shadowMapIndexBuffer);
+
+            g_renderInterface->cbufferAllocator->Write(&shadowMapData[0], shadowMapData.ByteSize(), alignof(ShadowMapData));
             g_renderInterface->cbufferAllocator->Commit(cbuffer, cbufferOffset, cbufferSize);
 
             cr << SetShaderUniform(localNumShaderUniforms++, "CBuffer"_sh, cbuffer, ShaderDataOffset(cbufferOffset, cbufferSize));

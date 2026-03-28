@@ -32,7 +32,7 @@ DECLARE_SRV(DeferredPass, EnvProbesBuffer) StructuredBuffer<EnvProbe> EnvProbesB
 
 uint Cluster_LoadUInt16(uint index)
 {
-    uint dwordAlignedOffset = (index / 2) * /* sizeof(uint) */ 4;
+    uint dwordAlignedOffset = (index / 2) * sizeof(uint);
     uint raw32 = ClusterIndexBuffer.Load(dwordAlignedOffset);
     
     // even index means we want the lower 16 bits, odd index means we want the upper 16 bits

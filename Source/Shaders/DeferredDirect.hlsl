@@ -129,7 +129,6 @@ DECLARE_SRV(DeferredPass, PointLightShadowMapsTextureArray) TextureCubeArray poi
 #ifdef LIGHT_TYPE_CLUSTERED
 #include "deferred/Tiles.hlsli"
 
-#if 0
 DECLARE_BUFFER_DYNAMIC(DeferredPass, CBuffer) cbuffer CBuffer
 {
     // shadow maps for the view are not per-tile as we have a limited number of shadow maps and shadow maps are per-view
@@ -138,9 +137,13 @@ DECLARE_BUFFER_DYNAMIC(DeferredPass, CBuffer) cbuffer CBuffer
     ShadowMap shadowMaps[MAX_CLUSTERED_SHADOW_MAPS];
 };
 
-// Map light bound index (uint16) to shadow map index in cbuffer (uint8)
-DECLARE_SRV(DeferredPass, LightToShadowMapIndex) ByteAddressBuffer LightToShadowMapIndex;
-#endif
+// Map light bound index to shadow map index in cbuffer (uint32 each)
+DECLARE_SRV(DeferredPass, ShadowMapIndexBuffer) ByteAddressBuffer LightToShadowMapIndex;
+
+uint GetShadowMapIndexForLight(uint lightIndex)
+{
+    return LightToShadowMapIndex.Load(lightIndex * sizeof(uint));
+}
 
 #endif
 
@@ -235,6 +238,7 @@ PSOutput PSMain(PSInput input)
 
         float3 L = currentLight.position_intensity.xyz;
         L -= position.xyz * float(min(currentLight.type, 1));
+
         L = normalize(L);
 
         H = normalize(L + V);
@@ -277,6 +281,21 @@ PSOutput PSMain(PSInput input)
                     float2 spot_angles = currentLight.area_size.xy;
 
                     attenuation *= saturate((theta - spot_angles[0]) / (spot_angles[1] - spot_angles[0])) * step(spot_angles[0], theta);
+                    
+                    // @TODO Spot shadows for clustered deferred
+                    
+                }
+                else
+                {
+                    if ((currentLight.flags & LF_SHADOW_CASTER) != 0)
+                    {
+                        uint shadowMapIndex = GetShadowMapIndexForLight(lightIndex);
+                        ShadowMap shadowMap = shadowMaps[shadowMapIndex];
+
+                        float3 worldToLight = position.xyz - currentLight.position_intensity.xyz;
+
+                        shadow = GetPointShadow(shadowMap, currentLight.flags, worldToLight, NdotL);
+                    }
                 }
 
                 break;

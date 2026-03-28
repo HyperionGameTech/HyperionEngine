@@ -8,7 +8,22 @@
     }, {
       "$Class": "AssetReference",
       "AssetPath": {
+        "Value": "Engine/Shaders/DeferredDirect/DeferredDirect_8812999950203557321"
+      }
+    }, {
+      "$Class": "AssetReference",
+      "AssetPath": {
+        "Value": "Engine/Shaders/DeferredDirect/DeferredDirect_863480168066122909"
+      }
+    }, {
+      "$Class": "AssetReference",
+      "AssetPath": {
         "Value": "Engine/Shaders/DeferredDirect/DeferredDirect_733289239890187541"
+      }
+    }, {
+      "$Class": "AssetReference",
+      "AssetPath": {
+        "Value": "Engine/Shaders/DeferredDirect/DeferredDirect_4614720401663875884"
       }
     }, {
       "$Class": "AssetReference",
