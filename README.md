@@ -3,8 +3,10 @@
 ![Hyperion Engine screenshot2](/Documentation/Images/EditorPT.png)
 
 ## Features
-- Real time lighting and global illumination. Screen-Space Global Illumination (SSGI), Dynamic Diffuse Global Illumination (DDGI) and ray traced reflections. Additionally we have a real-time path tracer *(visualized above)* that can be used as a lighting reference when designing scene lighting.
-- Baking system integrated into the editor. Bakes lightmap volumes, reflection probes, fog volumes, and other static lighting data.
+- Real time lighting and global illumination. (Screen-Space Global Illumination (SSGI), Dynamic Diffuse Global Illumination (DDGI) and ray traced reflections)
+- Clustered deferred rendering to support many lights on screen at once.
+- Path tracer to use as a reference for lighting scenes.
+- Baking system integrated into the editor. Bakes lightmap volumes with path traced lighting, reflection probes, fog volumes, and other static lighting data.
 - Cascaded shadow maps, screen space ambient occlusion (SSAO), screen space reflections (SSR), and more.
 - Level streaming and world partitioning system to enable efficient memory usage and larger worlds
 - Scripting via C# or our custom scripting language, HypScript.
