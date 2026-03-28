@@ -13,15 +13,15 @@
       "Enabled": false
     },
     "SSGI": false,
-    "TAA": true,
+    "TAA": false,
     "PathTracing": false,
     "RayTracedReflections": false,
     "RayTracedGI": false,
     "RayTracingEnabled": true,
-    "IndirectRendering": true,
+    "IndirectRendering": false,
     "ParallelCollection": true,
     "SSR": {
-      "Enabled": true,
+      "Enabled": false,
       "Quality": 2,
       "RoughnessScattering": false,
       "ConeTracing": true,
@@ -39,9 +39,6 @@
         "Enabled": false
       }
     },
-    "Deferred": {
-      "DebugVis": 0
-    },
     "Debug": {
       "Reflections": false,
       "DebugDrawer": {
@@ -52,7 +49,7 @@
       "AO": false
     },
     "Vulkan": {
-      "DebugLayers": false
+      "DebugLayers": true
     }
   },
   "Editor": {

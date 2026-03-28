@@ -30,7 +30,7 @@ struct alignas(16) Vertex
 {
     HYP_STRUCT_BODY(Vertex);
 
-    static constexpr uint32 InvalidBoneIndex = uint32(-1);
+    static constexpr uint8 InvalidBoneIndex = UINT8_MAX;
 
     Vertex()
     {
@@ -171,12 +171,12 @@ struct alignas(16) Vertex
         boneWeights = weights;
     }
 
-    HYP_FORCE_INLINE void SetBoneIndex(int i, int val)
+    HYP_FORCE_INLINE void SetBoneIndex(int i, uint8 boneIndex)
     {
-        boneIndices[i] = val;
+        boneIndices[i] = boneIndex;
     }
 
-    HYP_FORCE_INLINE int GetBoneIndex(int i) const
+    HYP_FORCE_INLINE uint8 GetBoneIndex(int i) const
     {
         return boneIndices[i];
     }
@@ -196,12 +196,12 @@ struct alignas(16) Vertex
         return count;
     }
 
-    HYP_FORCE_INLINE const FixedArray<uint32, MAX_BONE_INDICES>& GetBoneIndices() const
+    HYP_FORCE_INLINE const FixedArray<uint8, MAX_BONE_INDICES>& GetBoneIndices() const
     {
         return boneIndices;
     }
 
-    HYP_FORCE_INLINE void SetBoneIndices(const FixedArray<uint32, MAX_BONE_INDICES>& indices)
+    HYP_FORCE_INLINE void SetBoneIndices(const FixedArray<uint8, MAX_BONE_INDICES>& indices)
     {
         boneIndices = indices;
     }
@@ -209,6 +209,7 @@ struct alignas(16) Vertex
     HYP_FORCE_INLINE constexpr HashCode GetHashCode() const
     {
         const uint32 numBoneIndices = NumBoneIndices();
+
         return HashCode()
             .Combine(position)
             .Combine(normal)
@@ -242,7 +243,7 @@ struct alignas(16) Vertex
     FixedArray<float, MAX_BONE_WEIGHTS> boneWeights;
 
     HYP_FIELD(Property = "BoneIndices", Serialize = true)
-    FixedArray<uint32, MAX_BONE_INDICES> boneIndices;
+    FixedArray<uint8, MAX_BONE_INDICES> boneIndices;
 };
 
 static_assert(alignof(Vertex) == 16, "Vertex alignment is not 16 bytes, ensure size matches C# Vertex struct alignment");

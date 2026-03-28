@@ -72,8 +72,9 @@ DefaultGame::~DefaultGame()
 
 void DefaultGame::OnLaunch_Impl()
 {
-    //GetWorld()->GetWorldGrid()->AddLayer(MakeHandle<TerrainWorldGridLayer>());
+    GetWorld()->GetWorldGrid()->AddLayer(MakeHandle<TerrainWorldGridLayer>());
 
+#if 0
     auto pkg = g_assetManager->GetAssetRegistry()->GetPackageFromPath("SampleGame", /* createIfNotExist */ false, /* requireLoaded */ true);
     if (pkg.IsValid())
     {
@@ -109,6 +110,7 @@ void DefaultGame::OnLaunch_Impl()
         StartSimulating();
         return;
     }
+#endif
 
 #if 1
     // camera
@@ -153,14 +155,14 @@ void DefaultGame::OnLaunch_Impl()
     sunNode->SetName(NAME("Sun"));
 
     Handle<DirectionalLight> sunEntity = scene->GetEntityManager()->AddEntity<DirectionalLight>(
-        Vec3f(0.24, 0.9f, 0.0f).Normalize(),
+        Vec3f(0.1, 0.9f, 0.1f).Normalize(),
         Color(Vec4f(1.0f, 0.9f, 0.8f, 1.0f)),
         10.0f);
 
     sunNode->AddChild(sunEntity);
 
-    //auto pointLight = MakeHandle<PointLight>(Vec3f(0.0f, 7.0f, 7.0f), Color::Red(), 5.0f, 3.0f);
-    //scene->GetRoot()->AddChild(pointLight);
+    auto pointLight = MakeHandle<PointLight>(Vec3f(0.0f, 7.0f, 7.0f), Color::Red(), 5.0f, 3.0f);
+    scene->GetRoot()->AddChild(pointLight);
 
     // temp: add test script component
     Handle<ScriptAsset> scriptAsset = MakeHandle<ScriptAsset>(NAME("NewScript"), ScriptDesc());
@@ -201,7 +203,7 @@ void DefaultGame::OnLaunch_Impl()
 
     if (UISubsystem* uiSubsystem = GetUISubsystem())
     {
-        uiSubsystem->AddDebugOverlay(MakeHandle<StatsOverlay>());
+    //    uiSubsystem->AddDebugOverlay(MakeHandle<StatsOverlay>());
     }
 #endif
 

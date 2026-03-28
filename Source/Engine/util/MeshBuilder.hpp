@@ -35,12 +35,8 @@ struct Quad
     }
 };
 
-class HYP_API MeshBuilder
+class MeshBuilder
 {
-    static const Array<Vertex> quadVertices;
-    static const Array<uint32> quadIndices;
-    static const Array<Vertex> cubeVertices;
-
 public:
     /*! \brief Build a quad mesh in the XY plane with size 1x1. */
     static Handle<Mesh> Quad();

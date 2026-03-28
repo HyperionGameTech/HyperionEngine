@@ -71,7 +71,7 @@ struct StagingBufferPoolImpl
     {
     }
 
-    void Cleanup(uint32 frameIndex)
+    void Cleanup()
     {
         const uint32 currFrame = GetFrameCounter();
 
@@ -137,13 +137,18 @@ struct StagingBufferPoolImpl
         CachedStagingBuffer newBuffer;
         newBuffer.size = bufferSize;
         newBuffer.lastUsedFrame = currFrame;
-        newBuffer.buffer = g_renderInterface->MakeGpuBuffer(GpuBufferType::STAGING_BUFFER, bufferSize);
+        newBuffer.buffer = g_renderInterface->MakeGpuBuffer(GpuBufferType::STAGING_BUFFER, bufferSize, 256);
 
 #if HYP_DEBUG_MODE
         newBuffer.buffer->SetDebugName(NAME("StagingBufferPoolTempBuffer"));
 #endif
 
         Assert(newBuffer.buffer->Create());
+
+        void* dataPtr = newBuffer.buffer->Map();
+        Assert(dataPtr != nullptr);
+
+        Memory::Zero(dataPtr, bufferSize);
                 
         auto& used = usedBuffers[currFrame % NumFramesInFlight];
         return used.PushBack(std::move(newBuffer)).buffer.Get();
@@ -167,7 +172,7 @@ void StagingBufferPool::OnFrameEnd()
 
 void StagingBufferPool::Cleanup(uint32 frameIndex)
 {
-    m_impl->Cleanup(frameIndex);
+    m_impl->Cleanup();
 }
 
 GpuBuffer* StagingBufferPool::AcquireStagingBuffer(uint32 bufferSize)

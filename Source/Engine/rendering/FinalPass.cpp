@@ -33,8 +33,6 @@
 #include <engine/EngineDriver.hpp>
 #include <engine/CVarManager.hpp>
 
-#define HYP_RENDER_UI_IN_FINAL_PASS
-
 namespace Hyperion {
 
 HYP_DECLARE_LOG_CHANNEL(Rendering);
@@ -67,10 +65,6 @@ void FinalPass::Create()
 {
     HYP_SCOPE;
     AssertOnThread(g_renderThread);
-
-    m_quadMesh = MeshBuilder::Quad();
-    m_quadMesh->SetFlags(MeshFlags::ViewIndependent);
-    InitObject(m_quadMesh);
 }
 
 void FinalPass::Render(Frame* frame, const RenderSetup& rs)
@@ -95,6 +89,13 @@ void FinalPass::Render(Frame* frame, const RenderSetup& rs)
         return;
     }
 
+    if (!m_quadMesh)
+    {
+        m_quadMesh = MeshBuilder::Quad();
+        m_quadMesh->SetFlags(MeshFlags::ViewIndependent);
+        InitObject(m_quadMesh);
+    }
+
     const FramebufferRef& framebuffer = rs.swapchain->GetFramebuffers()[acquiredImageIndex];
     AssertDebug(framebuffer != nullptr);
 
@@ -117,6 +118,7 @@ void FinalPass::Render(Frame* frame, const RenderSetup& rs)
 
     cr << SetFillMode(FM_FILL);
     cr << SetTopology(TOP_TRIANGLES);
+    cr << SetFaceCullMode(FCM_NONE);
     
     cr << SetShaderUniform(0, "SamplerLinear"_sh, g_renderInterface->placeholderData->GetSamplerLinear());
     cr << SetShaderUniform(1, "WorldsBuffer"_sh, g_renderInterface->gpuBuffers[GRB_WORLDS]->GetBuffer(frameIndex));
@@ -177,6 +179,7 @@ void FinalPass::Render(Frame* frame, const RenderSetup& rs)
     cr << SetCurrentBlendFunction(BlendFunction::None());
     cr << SetDepthTest(true);
     cr << SetDepthWrite(true);
+    cr << SetFaceCullMode(FCM_BACK);
 }
 
 #pragma endregion FinalPass

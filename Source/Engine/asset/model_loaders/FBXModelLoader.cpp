@@ -1003,7 +1003,7 @@ AssetLoadResult FBXModelLoader::LoadAsset(LoaderState& state) const
                     const double weight = cluster->boneWeights[index];
 
                     Vertex& vertex = mesh.vertices[positionIndex];
-                    vertex.SetBoneIndex(index, int(boneIndex));
+                    vertex.SetBoneIndex(index, uint8(boneIndex));
                     vertex.SetBoneWeight(index, float(weight));
                 }
             }

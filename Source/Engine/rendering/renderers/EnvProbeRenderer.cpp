@@ -110,7 +110,7 @@ void ConvolveEnvProbeCubemap(
         srcTexture = MakeHandle<Texture>(
             TextureDesc {
                 TextureType::Cubemap,
-                inTexture->GetTextureDesc().format,
+                prefilteredEnvMap->GetFormat(),
                 inTexture->GetExtent(),
                 TFM_LINEAR_MIPMAP,
                 TFM_LINEAR,
@@ -225,7 +225,7 @@ void ConvolveEnvProbeCubemap(
 
         cr << CopyImage(dstTexture->GetGpuImage(), prefilteredEnvMap->GetGpuImage(),
             Vec3u::Zero(), Vec3u::Zero(),
-            dstTexture->GetExtent(),
+            Vec3u(mipExtent, 1),
             subResource, subResource);
         
         // put prefiltered map back into shader read

@@ -235,7 +235,7 @@ void BuildVertices(OgreXMLModel& model)
                     break;
                 }
 
-                vertices[i].SetBoneIndex(j, boneAssignments[j].index);
+                vertices[i].SetBoneIndex(j, uint8(boneAssignments[j].index));
                 vertices[i].SetBoneWeight(j, boneAssignments[j].weight);
             }
         }

@@ -58,38 +58,17 @@ namespace Hyperion
     }
 
     [ClassBinding(Name="Vertex")]
-    [StructLayout(LayoutKind.Explicit, Size = 128, Pack = 16)]
+    [StructLayout(LayoutKind.Sequential, Pack = 16)]
     public unsafe struct Vertex
     {
-        [FieldOffset(0)]
-        Vec3f position;
-
-        [FieldOffset(16)]
-        Vec3f normal;
-
-        [FieldOffset(32)]
-        Vec3f tangent;
-
-        [FieldOffset(48)]
-        Vec3f bitangent;
-
-        [FieldOffset(64)]
-        Vec2f texCoord0;
-
-        [FieldOffset(72)]
-        Vec2f texCoord1;
-
-        [FieldOffset(80)]
-        unsafe fixed float boneWeights[4];
-
-        [FieldOffset(96)]
-        unsafe fixed int boneIndices[4];
-
-        [FieldOffset(112)]
-        byte numBoneIndices;
-
-        [FieldOffset(113)]
-        byte numBoneWeights;
+        public Vec3f position;
+        public Vec3f normal;
+        public Vec3f tangent;
+        public Vec3f bitangent;
+        public Vec2f texCoord0;
+        public Vec2f texCoord1;
+        public fixed float boneWeights[4];
+        public uint boneIndices;
 
         public Vertex()
         {
@@ -103,11 +82,9 @@ namespace Hyperion
             for (int i = 0; i < 4; i++)
             {
                 boneWeights[i] = 0;
-                boneIndices[i] = 0;
             }
-
-            numBoneIndices = 0;
-            numBoneWeights = 0;
+            
+            boneIndices = uint.MaxValue; // each byte is 0xFF (meaning invalid bone index)
         }
 
         public Vertex(Vec3f position) : this()
@@ -118,157 +95,7 @@ namespace Hyperion
         public Vertex(Vec3f position, Vec2f texCoord, Vec3f normal) : this(position)
         {
             this.normal = normal;
-            texCoord0 = texCoord;
-        }
-
-        public Vec3f Position
-        {
-            get
-            {
-                return position;
-            }
-            set
-            {
-                position = value;
-            }
-        }
-
-        public Vec3f Normal
-        {
-            get
-            {
-                return normal;
-            }
-            set
-            {
-                normal = value;
-            }
-        }
-
-        public Vec3f Tangent
-        {
-            get
-            {
-                return tangent;
-            }
-            set
-            {
-                tangent = value;
-            }
-        }
-
-        public Vec3f Bitangent
-        {
-            get
-            {
-                return bitangent;
-            }
-            set
-            {
-                bitangent = value;
-            }
-        }
-
-        public Vec2f TexCoord0
-        {
-            get
-            {
-                return texCoord0;
-            }
-            set
-            {
-                texCoord0 = value;
-            }
-        }
-
-        public Vec2f TexCoord1
-        {
-            get
-            {
-                return texCoord1;
-            }
-            set
-            {
-                texCoord1 = value;
-            }
-        }
-
-        public float[] BoneWeights
-        {
-            get
-            {
-                float[] weights = new float[numBoneWeights];
-
-                for (int i = 0; i < numBoneWeights; i++)
-                {
-                    weights[i] = boneWeights[i];
-                }
-
-                return weights;
-            }
-            set
-            {
-                numBoneWeights = (byte)value.Length;
-
-                for (int i = 0; i < value.Length; i++)
-                {
-                    boneWeights[i] = value[i];
-                }
-
-                for (int i = value.Length; i < 4; i++)
-                {
-                    boneWeights[i] = 0;
-                }
-
-                numBoneWeights = (byte)value.Length;
-            }
-        }
-
-        public int[] BoneIndices
-        {
-            get
-            {
-                int[] indices = new int[numBoneIndices];
-
-                for (int i = 0; i < numBoneIndices; i++)
-                {
-                    indices[i] = boneIndices[i];
-                }
-
-                return indices;
-            }
-            set
-            {
-                numBoneIndices = (byte)value.Length;
-
-                for (int i = 0; i < value.Length; i++)
-                {
-                    boneIndices[i] = value[i];
-                }
-
-                for (int i = value.Length; i < 4; i++)
-                {
-                    boneIndices[i] = 0;
-                }
-
-                numBoneIndices = (byte)value.Length;
-            }
-        }
-
-        public int NumBoneWeights
-        {
-            get
-            {
-                return (int)numBoneWeights;
-            }
-        }
-
-        public int NumBoneIndices
-        {
-            get
-            {
-                return (int)numBoneIndices;
-            }
+            this.texCoord0 = texCoord;
         }
     }
 }

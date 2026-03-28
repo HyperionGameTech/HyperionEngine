@@ -275,7 +275,11 @@ RendererResult VulkanSwapchain::Create()
     }
 
     createInfo.preTransform = VK_SURFACE_TRANSFORM_IDENTITY_BIT_KHR;
+#if HYP_ANDROID
     createInfo.compositeAlpha = VK_COMPOSITE_ALPHA_INHERIT_BIT_KHR;
+#else
+    createInfo.compositeAlpha = VK_COMPOSITE_ALPHA_OPAQUE_BIT_KHR;
+#endif
     createInfo.presentMode = m_presentMode;
     createInfo.clipped = VK_TRUE;
     createInfo.oldSwapchain = m_oldHandle;

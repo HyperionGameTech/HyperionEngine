@@ -25,20 +25,18 @@ struct VSInput
 
 struct VSOutput
 {
-    float4 position_cs : SV_POSITION;
-    float3 v_position : TEXCOORD0;
-    float2 v_texcoord : TEXCOORD1;
+    float4 position : SV_POSITION;
+    float3 normal : NORMAL;
+    float2 texcoord : TEXCOORD0;
 };
 
 VSOutput VSMain(VSInput input)
 {
     VSOutput output;
 
-    float4 position = float4(input.a_position, 1.0);
-
-    output.position_cs = position;
-    output.v_position = position.xyz;
-    output.v_texcoord = input.a_texcoord0;
+    output.position = float4(input.a_position, 1.0);
+    output.normal = input.a_normal;
+    output.texcoord = input.a_texcoord0;
 
     return output;
 }
@@ -49,9 +47,9 @@ VSOutput VSMain(VSInput input)
 
 struct PSInput
 {
-    float4 position_cs : SV_POSITION;
-    float3 v_position : TEXCOORD0;
-    float2 v_texcoord : TEXCOORD1;
+    float4 position : SV_POSITION;
+    float3 normal : NORMAL;
+    float2 texcoord : TEXCOORD0;
 };
 
 struct PSOutput
@@ -63,14 +61,14 @@ PSOutput PSMain(PSInput input)
 {
     PSOutput output;
 
-    float2 texcoord = input.v_texcoord;
+    float2 texcoord = input.texcoord;
 
 #ifdef CHECKERBOARDED
     // map texcoords to previous frame's output coords
     texcoord = (texcoord * 0.5) + float2(0.5 * float((world_shader_data.frame_counter - 1u) & 1u), 0.0);
 #endif
 
-    output.color_output = SAMPLE_TEXTURE_2D(sampler_linear, src_image, texcoord);
+    output.color_output = SAMPLE_TEXTURE_2D_LOD(sampler_linear, src_image, texcoord, 0.0);
 
     return output;
 }

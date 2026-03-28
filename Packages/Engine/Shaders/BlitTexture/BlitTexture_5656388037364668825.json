@@ -81,15 +81,15 @@
   "ShaderBlobs": [{
       "$Class": "BlobDataReference",
       "Key": "Engine/Shaders/BlitTexture/BlitTexture_5656388037364668825.VS",
-      "Size": 37120
+      "Size": 37096
     }, {
       "$Class": "BlobDataReference",
       "Key": "Engine/Shaders/BlitTexture/BlitTexture_5656388037364668825.PS",
-      "Size": 37484
+      "Size": 37504
     }],
   "PropertySetHashCode": {},
   "LastCompiledTimestamp": {
-    "Value": 1772989233000
+    "Value": 1774664316000
   },
   "Name": "BlitTexture_5656388037364668825",
   "FriendlyName": "BlitTexture_5656388037364668825",
