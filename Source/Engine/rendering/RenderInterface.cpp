@@ -838,6 +838,7 @@ void RenderInterface::BeginFrame(AtomicFlag* pCancelFlag)
 
     constantsAllocator->OnFrameStart();
     descriptorSetCache->OnFrameStart();
+    stagingBufferPool->OnFrameStart();
 
     g_engineStats->Prepare();
 
@@ -1167,6 +1168,7 @@ void RenderInterface::EndFrame()
 
     constantsAllocator->OnFrameEnd();
     descriptorSetCache->OnFrameEnd();
+    stagingBufferPool->OnFrameEnd();
 
     textureViewCache->CleanupUnusedTextures();
 

@@ -744,6 +744,17 @@ HYP_FORCE_INLINE constexpr auto NextMultiple(T&& value, U&& multiple) -> std::co
     return value + multiple - remainder;
 }
 
+/*! \brief Linearizes a depth value from non-linear depth buffer space into 0.0 - 1.0 range */
+HYP_FORCE_INLINE constexpr float LinearizeDepth(float depth, float nearPlane, float farPlane)
+{
+    float x = 1.0f - (farPlane / nearPlane);
+    float y = (farPlane / nearPlane);
+    float z = x / farPlane;
+    float w = y / farPlane;
+
+    return 1.0f - (1.0f / (x * (1.0f - depth) + y));
+}
+
 Vec2i ReshapeExtent(Vec2i extent);
 
 Vec2f Hammersley(uint32 sampleIndex, uint32 numSamples);

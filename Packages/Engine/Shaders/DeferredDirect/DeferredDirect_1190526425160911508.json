@@ -40,6 +40,12 @@
     "Elements": [{
         "$Class": "ShaderInputSet",
         "SetIndex": 0,
+        "Name": "BindlessResources0",
+        "Slots": [[], [], [], [], []],
+        "Flags": 1
+      }, {
+        "$Class": "ShaderInputSet",
+        "SetIndex": 1,
         "Name": "DeferredPass",
         "Slots": [[{
               "$Class": "ShaderInput",
@@ -275,15 +281,15 @@
   "ShaderBlobs": [{
       "$Class": "BlobDataReference",
       "Key": "Engine/Shaders/DeferredDirect/DeferredDirect_1190526425160911508.VS",
-      "Size": 11096
+      "Size": 11184
     }, {
       "$Class": "BlobDataReference",
       "Key": "Engine/Shaders/DeferredDirect/DeferredDirect_1190526425160911508.PS",
-      "Size": 185472
+      "Size": 186460
     }],
   "PropertySetHashCode": {},
   "LastCompiledTimestamp": {
-    "Value": 1774532548000
+    "Value": 1774584158000
   },
   "Name": "DeferredDirect_1190526425160911508",
   "FriendlyName": "DeferredDirect1190526425160911508",

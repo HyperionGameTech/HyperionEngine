@@ -349,7 +349,7 @@
   "ShaderBlobs": [{
       "$Class": "BlobDataReference",
       "Key": "Engine/Shaders/PathTracer/PathTracer_18040257332220255199.RGS",
-      "Size": 131676
+      "Size": 131392
     }, {
       "$Class": "BlobDataReference",
       "Key": "Engine/Shaders/PathTracer/PathTracer_18040257332220255199.CHS",

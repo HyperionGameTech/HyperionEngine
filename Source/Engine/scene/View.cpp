@@ -346,7 +346,12 @@ void View::PrepareShadowViews(Array<View*, SceneTempAllocator>& outShadowViews)
                     cascadeIndex,
                     /* isStatic */ false);
 
-                Assert(shadowViewsDynamic[cascadeIndex] != nullptr);
+                if (!shadowViewsDynamic[cascadeIndex])
+                {
+                    // failed to allocate shadow view - out of slots is most likely cause
+                    // skip processing for this light.
+                    break;
+                }
 
                 if (cacheStaticObjects)
                 {

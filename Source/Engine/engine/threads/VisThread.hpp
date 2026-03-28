@@ -51,9 +51,6 @@ private:
 
     Arena m_tempAllocator;
 
-    Mutex m_mtx;
-    ConditionVariable m_cv;
-
     std::binary_semaphore m_visSemaphore;
     std::binary_semaphore m_simSemaphore;
 

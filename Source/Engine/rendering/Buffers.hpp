@@ -104,9 +104,13 @@ class StagingBufferPool
 {
 public:
     StagingBufferPool();
+    
+    void OnFrameStart();
+    void OnFrameEnd();
 
     void Cleanup(uint32 frameIndex);
-    GpuBuffer* AcquireStagingBuffer(uint32 frameIndex, uint32 offset, uint32 bufferSize);
+
+    GpuBuffer* AcquireStagingBuffer(uint32 bufferSize);
 
 private:
     Pimpl<struct StagingBufferPoolImpl> m_impl;
@@ -394,7 +398,7 @@ public:
 
         for (DirtyBlockInfo& dirtyBlock : dirtyBlocks)
         {
-            GpuBuffer* stagingBuffer = stagingBufferPool.AcquireStagingBuffer(frameIndex, 0, dirtyBlock.bufferSize);
+            GpuBuffer* stagingBuffer = stagingBufferPool.AcquireStagingBuffer(dirtyBlock.bufferSize);
             Assert(stagingBuffer != nullptr && stagingBuffer->IsCreated());
 
             stagingBuffer->Copy(0, dirtyBlock.bufferSize, dirtyBlock.dataPtr);

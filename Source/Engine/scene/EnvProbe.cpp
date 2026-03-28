@@ -505,10 +505,7 @@ void EnvProbe::UpdateRenderProxy(RenderProxyEnvProbe* proxy)
     bufferData.aabbMin = Vec4f(worldBounds.min, 1.0f);
     bufferData.aabbMax = Vec4f(worldBounds.max, 1.0f);
     bufferData.worldPosition = Vec4f(GetOrigin(), 1.0f);
-    bufferData.cameraNear = m_cameraNear;
-    bufferData.cameraFar = m_cameraFar;
     bufferData.dimensions = Vec2u { m_dimensions.x, m_dimensions.y };
-    bufferData.visibilityBits = m_visibilityBits.ToUInt64();
     bufferData.flags = uint32(m_envProbeFlags);
 
     const FixedArray<Mat4f, 6> viewMatrices = CreateCubemapMatrices(worldBounds, GetOrigin());

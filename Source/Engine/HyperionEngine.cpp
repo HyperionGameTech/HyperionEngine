@@ -546,9 +546,6 @@ extern "C"
         delete g_taskPool;
         g_taskPool = nullptr;
 
-        delete g_resourcePool;
-        g_resourcePool = nullptr;
-
         delete g_assetPool;
         g_assetPool = nullptr;
 

@@ -32,15 +32,6 @@ DECLARE_BUFFER_DYNAMIC(Default, CamerasBuffer) cbuffer CamerasBuffer
     Camera camera;
 };
 
-#ifdef ENV_PROBE
-
-#include "include/env_probe.inc"
-
-DECLARE_SRV_DYNAMIC(Default, CurrentEnvProbe) StructuredBuffer<EnvProbe> current_env_probe_buffer;
-#define current_env_probe current_env_probe_buffer[0]
-
-#endif
-
 #include "include/Entity.inc"
 
 #ifdef INSTANCING
@@ -124,14 +115,9 @@ VSOutput VSMain(VSInput input, uint ViewId : SV_ViewID, uint instanceId : SV_Ins
     float4x4 projection_matrix = camera.projection;
 
     float4x4 view_matrix;
-
-#if ENV_PROBE
-    output.camera_position = current_env_probe.world_position.xyz;
-    view_matrix = current_env_probe.face_view_matrices[ViewId];
-#else
+    
     output.camera_position = camera.position.xyz;
     view_matrix = LookAt(output.camera_position, output.camera_position + forward_direction, up_direction);
-#endif
 
 #ifdef INSTANCING
     output.object_index = OBJECT_INDEX;

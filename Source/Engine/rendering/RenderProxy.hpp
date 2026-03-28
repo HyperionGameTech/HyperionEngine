@@ -138,11 +138,7 @@ struct alignas(16) EnvProbeShaderData
 
     uint32 textureIndex = ~0u;
     uint32 flags = 0;
-    float cameraNear = 0.01f;
-    float cameraFar = 100.0f;
-
     Vec2u dimensions;
-    uint64 visibilityBits = 0;
 
     Vec4f shData[9];
 };

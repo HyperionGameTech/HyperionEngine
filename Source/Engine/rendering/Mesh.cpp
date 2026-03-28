@@ -437,7 +437,7 @@ void Mesh::UploadGpuData()
 
             Frame* frame = g_renderInterface->GetCurrentFrame();
 
-            GpuBuffer* stagingBuffer = g_renderInterface->stagingBufferPool->AcquireStagingBuffer(frame->GetFrameIndex(), 0, bufferSizeCombined);
+            GpuBuffer* stagingBuffer = g_renderInterface->stagingBufferPool->AcquireStagingBuffer(bufferSizeCombined);
             stagingBuffer->Copy(packedVerticesSize, vertices.Data());
             stagingBuffer->Copy(ByteUtil::AlignAs(packedVerticesSize, StagingBufferAlignment), packedIndicesSize, indices.Data());
 

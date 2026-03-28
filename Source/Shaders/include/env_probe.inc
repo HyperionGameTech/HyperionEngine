@@ -23,11 +23,7 @@ struct EnvProbe
 
     uint texture_index; // point light shadow map probes - this is the index in the point shadow maps array
     uint flags;
-    float camera_near;
-    float camera_far;
-
     uint2 dimensions;
-    uint2 visibility_bits;
 
     float4 sh[9];
 };

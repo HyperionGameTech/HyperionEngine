@@ -1323,9 +1323,6 @@ void RenderCollector::CommitParallelRenderingState(CommandRecorder& cr, uint8 in
 
     while (state)
     {
-        // @TODO Make a way to not wait dependent - 
-        // just move head after completion maybe?
-        // but we need a way to await certain states.. hmm..
         AssertDebug(state->taskBatch != nullptr);
         state->taskBatch->AwaitCompletion();
 

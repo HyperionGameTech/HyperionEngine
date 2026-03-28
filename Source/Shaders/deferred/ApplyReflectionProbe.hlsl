@@ -150,9 +150,9 @@ PSOutput PSMain(PSInput input)
 
     const float3 aabbExtent = aabbMax - aabbMin;
 
-    const float3 blendZone = aabbExtent * 0.1;
-    const float3 distToMin = (P - aabbMin) / blendZone;
-    const float3 distToMax = (aabbMax - P) / blendZone;
+    const float3 blend = aabbExtent * 0.1;
+    const float3 distToMin = (P - aabbMin) / blend;
+    const float3 distToMax = (aabbMax - P) / blend;
     const float minBlend = min(distToMin.x, min(distToMin.y, min(distToMin.z,
         min(distToMax.x, min(distToMax.y, distToMax.z)))));
 

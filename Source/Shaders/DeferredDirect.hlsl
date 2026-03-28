@@ -63,7 +63,6 @@ DECLARE_SRV(DeferredPass, RTRadianceResultTexture) Texture2D rt_radiance_final;
 
 #define HYP_SAMPLER_SHADOW SamplerShadow
 
-#define HYP_DO_NOT_DEFINE_DESCRIPTOR_SETS
 #include "include/env_probe.inc"
 #include "include/shared.inc"
 #include "include/gbuffer.inc"
@@ -81,6 +80,7 @@ DECLARE_BUFFER(DeferredPass, WorldsBuffer) cbuffer WorldsBuffer
     WorldShaderData world_shader_data;
 };
 
+#ifndef LIGHT_TYPE_CLUSTERED
 DECLARE_BUFFER_DYNAMIC(DeferredPass, CBuffer) cbuffer CBuffer
 {
     Light currentLight;
@@ -89,10 +89,11 @@ DECLARE_BUFFER_DYNAMIC(DeferredPass, CBuffer) cbuffer CBuffer
     ShadowMap shadowMap1;
     ShadowMap shadowMap2;
     ShadowMap shadowMap3;
-#else
+#else // !LIGHT_TYPE_DIRECTIONAL
     ShadowMap shadowMap;
-#endif
+#endif // LIGHT_TYPE_DIRECTIONAL
 };
+#endif // !LIGHT_TYPE_CLUSTERED
 
 #ifdef LIGHT_TYPE_AREA_RECT
 
@@ -106,7 +107,7 @@ DECLARE_SRV(DeferredPass, LTCBRDFTexture) Texture2D ltc_brdf_texture;
 
 DECLARE_SAMPLER(DeferredPass, LTCSampler) SamplerState ltc_sampler;
 
-#endif
+#endif // LIGHT_TYPE_AREA_RECT
 
 DECLARE_SRV(DeferredPass, ShadowMapsTextureArray) Texture2DArray<float> shadow_maps;
 DECLARE_SRV(DeferredPass, PointLightShadowMapsTextureArray) TextureCubeArray point_shadow_maps;
@@ -125,7 +126,9 @@ DECLARE_SRV(DeferredPass, PointLightShadowMapsTextureArray) TextureCubeArray poi
 #include "include/LightRays.inc"
 #include "include/LightSampling.inc"
 
-#undef HYP_DO_NOT_DEFINE_DESCRIPTOR_SETS
+#ifdef LIGHT_TYPE_CLUSTERED
+#include "deferred/Tiles.hlsli"
+#endif
 
 PSOutput PSMain(PSInput input)
 {
@@ -146,7 +149,7 @@ PSOutput PSMain(PSInput input)
     float3 bitangent;
     ComputeOrthonormalBasis(normal, tangent, bitangent);
 
-    float depth = SAMPLE_TEXTURE_2D(HYP_SAMPLER_NEAREST, gbuffer_depth_texture, texcoord).r;
+    const float depth = SAMPLE_TEXTURE_2D(HYP_SAMPLER_NEAREST, gbuffer_depth_texture, texcoord).r;
 
     float4 positionVS = ReconstructViewSpacePositionFromDepth(camera.invProjMat, texcoord, depth);
 
@@ -189,6 +192,108 @@ PSOutput PSMain(PSInput input)
 #endif
 
     float4 area_light_radiance;
+    
+#ifdef LIGHT_TYPE_CLUSTERED
+    // Cluster data
+    const uint clusterIndex = CalculateFlatClusterIndex(
+        gbufferDimensions, pixelCoord,
+        positionVS.z / positionVS.w,
+        camera.near, camera.far);
+
+    const uint2 clusterData = ClusterGridBuffer[clusterIndex];
+    
+    const uint clusterIndexOffset = clusterData.x;
+
+    const uint numLights = (clusterData.y & 0xFFFF);
+    const uint numEnvProbes = (clusterData.y >> 16) & 0xFFFF;
+
+    // for testing
+    bool lightHit = false;
+
+    for (uint i = 0; i < numLights; ++i)
+    {
+        const uint lightIndex = CalculateLightIndex(clusterIndexOffset, i);
+        
+        // We handle area lights in a specialized version of the deferred pass, so we skip
+        // them for clustered deferred shading.
+
+        Light currentLight = LightsBuffer.Load(lightIndex);
+
+        float3 L = currentLight.position_intensity.xyz;
+        L -= position.xyz * float(min(currentLight.type, 1));
+        L = normalize(L);
+
+        H = normalize(L + V);
+
+        const float NdotL = max(0.000001, dot(N, L));
+        const float LdotH = max(0.000001, dot(L, H));
+        const float NdotH = max(0.000001, dot(N, H));
+        const float HdotV = max(0.000001, dot(H, V));
+
+        float4 light_color = currentLight.color;
+
+        float attenuation = 1.0;
+
+        float shadow = 1.0; // @TODO shadows for clustered deferred
+
+        const float D = CalculateDistributionTerm(roughness, NdotH);
+        const float G = CalculateGeometryTerm(NdotL, NdotV, HdotV, NdotH);
+        const float4 F = CalculateFresnelTerm(F0, roughness, LdotH);
+
+        const float4 dfg = CalculateDFG(F, roughness, NdotV);
+        const float4 E = CalculateE(F0, dfg);
+        const float3 energy_compensation = CalculateEnergyCompensation(F0.rgb, dfg.rgb);
+
+        const float4 specular_lobe = D * G * F;
+
+        switch (currentLight.type)
+        {
+            case HYP_LIGHT_TYPE_POINT:
+            case HYP_LIGHT_TYPE_SPOT: // fallthrough
+            {
+                const float2 radiusFalloff = float2(f16tof32(currentLight.radiusFalloffPacked), f16tof32(currentLight.radiusFalloffPacked >> 16));
+                const float radius = radiusFalloff.x;
+                const float falloff = radiusFalloff.y;
+
+                attenuation = GetSquareFalloffAttenuation(position.xyz, currentLight.position_intensity.xyz, radius);
+
+                if (currentLight.type == HYP_LIGHT_TYPE_SPOT)
+                {
+                    float theta = max(dot(-L, normalize(currentLight.normal.xyz)), 0.0);
+                    float2 spot_angles = currentLight.area_size.xy;
+
+                    attenuation *= saturate((theta - spot_angles[0]) / (spot_angles[1] - spot_angles[0])) * step(spot_angles[0], theta);
+                }
+
+                break;
+            }
+            default: break;
+        }
+
+        float4 specular = specular_lobe;
+
+        float4 diffuse_lobe = diffuseColor * HYP_FMATH_ONE_OVER_PI;
+        float4 diffuse = diffuse_lobe;
+
+        float4 direct_component = diffuse + specular * float4(energy_compensation, 1.0);
+
+        result += float4((direct_component * (light_color * ao * NdotL * shadow * currentLight.position_intensity.w * attenuation)).rgb, attenuation);
+
+        lightHit = true;
+    }
+
+    // // Debug clustering
+    // if (lightHit)
+    // {
+    //     result = float4(1.0, 0.0, 0.0, 1.0);
+    // }
+    // else
+    // {
+    //     result = float4(0.0, 0.0, 0.0, 0.0);
+    // }
+
+    // Env probes will be in indirect pass.
+#else // !LIGHT_TYPE_CLUSTERED
 
 #if defined(LIGHT_TYPE_DIRECTIONAL) || defined(LIGHT_TYPE_POINT) || defined(LIGHT_TYPE_SPOT)
     float3 L = currentLight.position_intensity.xyz;
@@ -245,14 +350,13 @@ PSOutput PSMain(PSInput input)
     const float LdotH = 0.0;
     const float NdotH = 0.0;
     const float HdotV = 0.0;
-#else
+#else // !LIGHT_TYPE_DIRECTIONAL && !LIGHT_TYPE_POINT && !LIGHT_TYPE_SPOT && !LIGHT_TYPE_AREA_RECT
     const float NdotL = 0.0;
     const float LdotH = 0.0;
     const float NdotH = 0.0;
     const float HdotV = 0.0;
-#endif
+#endif // LIGHT_TYPE_DIRECTIONAL || LIGHT_TYPE_POINT || LIGHT_TYPE_SPOT || LIGHT_TYPE_AREA_RECT
 
-    float4 light_rays = (float4)0;
     float4 light_color = currentLight.color;
 
 #ifdef LIGHT_TYPE_POINT
@@ -267,7 +371,7 @@ PSOutput PSMain(PSInput input)
     {
         shadow = GetShadow(shadowMap0, currentLight.flags, position.xyz, texcoord, camera.dimensions.xy, NdotL);
     }
-#endif
+#endif // LIGHT_TYPE_POINT
 
     const float D = CalculateDistributionTerm(roughness, NdotH);
     const float G = CalculateGeometryTerm(NdotL, NdotV, HdotV, NdotH);
@@ -291,11 +395,11 @@ PSOutput PSMain(PSInput input)
     float2 spot_angles = currentLight.area_size.xy;
 
     attenuation *= saturate((theta - spot_angles[0]) / (spot_angles[1] - spot_angles[0])) * step(spot_angles[0], theta);
-#endif
+#endif // LIGHT_TYPE_SPOT
 
-#else
+#else // LIGHT_TYPE_POINT || LIGHT_TYPE_SPOT
     const float attenuation = 1.0;
-#endif
+#endif // LIGHT_TYPE_POINT || LIGHT_TYPE_SPOT
 
     float4 specular = specular_lobe;
 
@@ -309,9 +413,9 @@ PSOutput PSMain(PSInput input)
 
 #ifdef LIGHT_TYPE_AREA_RECT
     result = area_light_radiance;
-#endif
+#endif // LIGHT_TYPE_AREA_RECT
 
-    result = (result * (1.0 - light_rays.a)) + light_rays;
+#endif // LIGHT_TYPE_CLUSTERED
 
 #if defined(DEBUG_REFLECTIONS)      \
     || defined(DEBUG_IRRADIANCE)    \
