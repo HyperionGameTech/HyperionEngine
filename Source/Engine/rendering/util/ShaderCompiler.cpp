@@ -3535,10 +3535,6 @@ bool ShaderCompiler::RequestShader(
     return true;
 }
 
-#pragma endregion ShaderCompiler
-
-#if HYP_ENABLE_SHADER_RELOAD
-
 bool ShaderCompiler::IsGraphicsShaderBundle(Name name) const
 {
     if (!m_definitions || !m_definitions->IsValid())
@@ -3556,6 +3552,8 @@ bool ShaderCompiler::IsGraphicsShaderBundle(Name name) const
 
     return false;
 }
+
+#if HYP_ENABLE_SHADER_RELOAD
 
 bool ShaderCompiler::IsShaderBundleOutdated(Name name, const Time& lastCompiledTimestamp) const
 {
@@ -3593,5 +3591,7 @@ bool ShaderCompiler::IsShaderBundleOutdated(Name name, const Time& lastCompiledT
 }
 
 #endif // HYP_ENABLE_SHADER_RELOAD
+
+#pragma endregion ShaderCompiler
 
 } // namespace Hyperion

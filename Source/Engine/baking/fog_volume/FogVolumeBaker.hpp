@@ -16,7 +16,7 @@ template <>
 class Baker<FogVolume> final : public BakerBase
 {
 public:
-    Baker(LightmapperConfig&& config, const Handle<FogVolume>& fogVolume);
+    Baker(BakerConfig&& config, const Handle<FogVolume>& fogVolume);
 
     Baker(const Baker& other) = delete;
     Baker& operator=(const Baker& other) = delete;

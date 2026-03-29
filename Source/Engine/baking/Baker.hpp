@@ -54,8 +54,10 @@ class BakerThreadPool;
 struct BakeJobParams;
 struct BakeEntity;
 
+struct LightmapRay;
+
 HYP_ENUM()
-enum class LightmapShadingType : int
+enum class LightmapShadingType : uint32
 {
     IRRADIANCE = 0, // Bake irradiance only
     RADIANCE,       // Bake radiance only (direct light)
@@ -63,16 +65,10 @@ enum class LightmapShadingType : int
     MAX
 };
 
-HYP_STRUCT(ConfigName = "EngineConfig", JsonPath = "Lightmapper")
-struct LightmapperConfig : public Config<LightmapperConfig>
+HYP_STRUCT(ConfigName = "EngineConfig", JsonPath = "Baker")
+struct BakerConfig : public Config<BakerConfig>
 {
-    HYP_STRUCT_BODY(LightmapperConfig);
-
-    HYP_FIELD()
-    bool radiance = true;
-
-    HYP_FIELD()
-    bool irradiance = true;
+    HYP_STRUCT_BODY(BakerConfig);
 
     HYP_FIELD()
     uint32 numSamples = 16;
@@ -80,24 +76,14 @@ struct LightmapperConfig : public Config<LightmapperConfig>
     HYP_FIELD()
     uint32 maxTexelsPerFrame = 512 * 512;
 
-    HYP_FIELD()
-    uint32 idealTrianglesPerJob = 8192;
-
     HYP_FIELD(Property = "OnlyGenerateUVs", Description = "Skip tracing rays when baking lightmap volumes, only generate atlas UVs and assign to meshes.")
     bool onlyGenerateUVs = false;
 
-    virtual ~LightmapperConfig() override = default;
+    virtual ~BakerConfig() override = default;
 
     bool Validate()
     {
         bool valid = true;
-
-        if (!radiance && !irradiance)
-        {
-            AddError(HYP_MAKE_ERROR(Error, "At least one of radiance or irradiance must be enabled"));
-
-            valid = false;
-        }
 
         if (numSamples == 0)
         {
@@ -113,13 +99,6 @@ struct LightmapperConfig : public Config<LightmapperConfig>
             valid = false;
         }
 
-        if (idealTrianglesPerJob == 0)
-        {
-            AddError(HYP_MAKE_ERROR(Error, "Ideal triangles per job must be greater than zero"));
-
-            valid = false;
-        }
-
         return valid;
     }
 };
@@ -130,22 +109,6 @@ struct LightmapHit
 };
 
 static_assert(sizeof(LightmapHit) == 16);
-
-struct LightmapRay;
-
-class LightmapTopLevelAccelerationStructure;
-
-struct LightmapRayHitPayload
-{
-    Vec3f albedo;
-    Vec3f emissive;
-    Vec3f radiance;
-    Vec3f normal;
-    float distance = -1.0f;
-    Vec3f barycentricCoords;
-    ObjId<Mesh> meshId;
-    uint32 triangleIndex = ~0u;
-};
 
 class ILightmapRenderer
 {
@@ -190,7 +153,7 @@ class HYP_API BakerBase : public ObjectBase
     HYP_OBJECT_BODY(BakerBase);
     
 public:
-    BakerBase(LightmapperConfig&& config, ObjectBase* source, const Handle<Scene>& scene, const BoundingBox& aabb);
+    BakerBase(BakerConfig&& config, ObjectBase* source, const Handle<Scene>& scene, const BoundingBox& aabb);
 
     BakerBase(const BakerBase& other) = delete;
     BakerBase& operator=(const BakerBase& other) = delete;
@@ -200,7 +163,7 @@ public:
 
     virtual ~BakerBase() override;
 
-    HYP_FORCE_INLINE const LightmapperConfig& GetConfig() const
+    HYP_FORCE_INLINE const BakerConfig& GetConfig() const
     {
         return m_config;
     }
@@ -299,9 +262,9 @@ protected:
     virtual UniquePtr<BakeJobBase> CreateJob(BakeJobParams&& params) = 0;
     virtual UniquePtr<ILightmapRenderer> CreateRenderer(LightmapShadingType shadingType, uint32 maxTexelsPerFrame);
 
-    void CreateLightmapRenderers();
+    virtual void CreateLightmapRenderers();
 
-    LightmapperConfig m_config;
+    BakerConfig m_config;
 
     ObjectBase* m_source;
 

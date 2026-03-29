@@ -45,7 +45,7 @@ using CVarSnapshotValue = Variant<
     uint8, uint16, uint32, uint64,
     float, double,
     bool,
-    String>;
+    const char*>;
 
 class CVarBase
 {
@@ -54,6 +54,7 @@ public:
 
 protected:
     explicit CVarBase(const UTF8StringView& path, const UTF8StringView& configPath = {});
+    ~CVarBase() = default;
 
 public:
     Name name;
@@ -61,7 +62,8 @@ public:
     bool isHeapAllocated;
     UTF8StringView configPath;
 
-    virtual ~CVarBase() = default;
+    CVarBase(const CVarBase& other) = delete;
+    CVarBase& operator=(const CVarBase& other) = delete;
 
     virtual bool SetFromConfig(const ConfigValue& cfgValue) = 0;
     virtual bool SetFromBoxed(const BoxedValue& boxed) = 0;
@@ -81,12 +83,10 @@ public:
     {
     }
 
-    HYP_FORCE_INLINE void Set(T value)
-    {
-        m_value = value;
-    }
+    ~CVar();
 
-    const T& Get() const;
+    void Set(T value);
+    T Get() const;
 
     bool SetFromConfig(const ConfigValue& cfgValue) override;
     bool SetFromBoxed(const BoxedValue& boxed) override;
@@ -100,10 +100,32 @@ protected:
 
 private:
     template <typename U>
-    friend const U& ReadCVarValue(const CVar<U>& cvar);
+    friend U ReadCVarValue(const CVar<U>& cvar);
 
     T m_value;
 };
+
+#pragma region const char* CVar specializations
+
+// We need specific impls for dtor and Set() for const char* to handle the dynamic memory allocation of the string.
+
+template <> HYP_API CVar<const char*>::~CVar();
+template <> HYP_API void CVar<const char*>::Set(const char* value);
+
+#pragma endregion const char* CVar specializations
+
+#pragma region Non- const char* impls
+
+template <typename T>
+inline CVar<T>::~CVar() = default;
+
+template <typename T>
+inline void CVar<T>::Set(T value)
+{
+    m_value = value;
+}
+
+#pragma endregion Non- const char* impls
 
 #pragma region SetFromConfig specializations
 
@@ -124,7 +146,7 @@ template <> HYP_API bool CVar<double>::SetFromConfig(const ConfigValue& cfgValue
 
 template <> HYP_API bool CVar<bool>::SetFromConfig(const ConfigValue& cfgValue);
 
-template <> HYP_API bool CVar<String>::SetFromConfig(const ConfigValue& cfgValue);
+template <> HYP_API bool CVar<const char*>::SetFromConfig(const ConfigValue& cfgValue);
 
 // SetFromBoxed
 
@@ -140,6 +162,8 @@ inline bool CVar<T>::SetFromBoxed(const BoxedValue& boxed)
 
     return true;
 }
+
+template <> HYP_API bool CVar<const char*>::SetFromBoxed(const BoxedValue& boxed);
 
 // SetFromString
 
@@ -228,9 +252,24 @@ inline bool CVar<bool>::SetFromString(const String& str)
 }
 
 template <>
-inline bool CVar<String>::SetFromString(const String& str)
+inline bool CVar<const char*>::SetFromString(const String& str)
 {
-    m_value = str;
+    if (m_value != nullptr)
+    {
+        Memory::Free(const_cast<char*>(m_value));
+        m_value = nullptr;
+    }
+
+    char* chars = (char*)Memory::AllocateZeros(str.Size() + 1);
+    Memory::StrCpy(chars, str.Data(), str.Size());
+
+    if (m_value != nullptr)
+    {
+        Memory::Free(const_cast<char*>(m_value));
+    }
+
+    m_value = chars;
+
     return true;
 }
 
@@ -238,22 +277,22 @@ inline bool CVar<String>::SetFromString(const String& str)
 
 #pragma region Get specializations
 
-template <> const int8& CVar<int8>::Get() const;
-template <> const int16& CVar<int16>::Get() const;
-template <> const int32& CVar<int32>::Get() const;
-template <> const int64& CVar<int64>::Get() const;
+template <> int8 CVar<int8>::Get() const;
+template <> int16 CVar<int16>::Get() const;
+template <> int32 CVar<int32>::Get() const;
+template <> int64 CVar<int64>::Get() const;
 
-template <> const uint8& CVar<uint8>::Get() const;
-template <> const uint16& CVar<uint16>::Get() const;
-template <> const uint32& CVar<uint32>::Get() const;
-template <> const uint64& CVar<uint64>::Get() const;
+template <> uint8 CVar<uint8>::Get() const;
+template <> uint16 CVar<uint16>::Get() const;
+template <> uint32 CVar<uint32>::Get() const;
+template <> uint64 CVar<uint64>::Get() const;
 
-template <> const float& CVar<float>::Get() const;
-template <> const double& CVar<double>::Get() const;
+template <> float CVar<float>::Get() const;
+template <> double CVar<double>::Get() const;
 
-template <> const bool& CVar<bool>::Get() const;
+template <> bool CVar<bool>::Get() const;
 
-template <> const String& CVar<String>::Get() const;
+template <> const char* CVar<const char*>::Get() const;
 
 #pragma endregion Get specializations
 
@@ -284,7 +323,7 @@ public:
     HYP_NODISCARD CVarBase* FindVar(const ANSIString& name) const;
 
     template <typename T>
-    void SetVar(StringHash nameHash, const T& value);
+    void SetVar(StringHash nameHash, T value);
 
     template <typename T>
     T GetVar(StringHash nameHash) const;

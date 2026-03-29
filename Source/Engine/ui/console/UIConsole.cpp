@@ -17,7 +17,7 @@ namespace Hyperion {
 HYP_DECLARE_LOG_CHANNEL(UI);
 HYP_DEFINE_LOG_CHANNEL(Console);
 
-extern "C" int Editor_ExecuteConsoleCommand(int argc, const char** argv);
+extern "C" int Hyp_ExecuteConsoleCommand(int argc, const char** argv);
 
 #pragma region ConsoleHistory
 
@@ -348,7 +348,7 @@ void UIConsole::Init()
                     Array<String> args = text.Split(' ');
                     Array<const char*> argsCharV = Map(args, [](const String& str) { return str.Data(); });
 
-                    int result = Editor_ExecuteConsoleCommand(int(args.Size()), argsCharV.Data());
+                    int result = Hyp_ExecuteConsoleCommand(int(args.Size()), argsCharV.Data());
                     if (result != 0)
                     {
                         HYP_LOG(Console, Error, "Error executing command: returned error code {}", result);
@@ -396,7 +396,7 @@ void UIConsole::Init()
                         Array<String> args = text.Split(' ');
                         Array<const char*> argsCharV = Map(args, [](const String& str) { return str.Data(); });
 
-                        int result = Editor_ExecuteConsoleCommand(int(args.Size()), argsCharV.Data());
+                        int result = Hyp_ExecuteConsoleCommand(int(args.Size()), argsCharV.Data());
                         if (result != 0)
                         {
                             HYP_LOG(Console, Error, "Error executing command: returned error code {}", result);

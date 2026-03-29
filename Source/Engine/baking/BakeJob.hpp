@@ -34,15 +34,15 @@ namespace Baking {
 
 class BakerBase;
 
-enum class LightmapShadingType : int; // forward decl from Lightmapper
-struct LightmapHit;                   // forward decl from Lightmapper
+enum class LightmapShadingType : uint32; // forward decl from Lightmapper
+struct LightmapHit;                     // forward decl from Lightmapper
 
-struct LightmapperConfig; // forward decl from Lightmapper
+struct BakerConfig; // forward decl from Lightmapper
 class ILightmapRenderer;
 
 struct BakeJobParams
 {
-    LightmapperConfig* config;
+    BakerConfig* config;
 
     Handle<Scene> scene;
     Handle<View> view;

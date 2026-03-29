@@ -741,7 +741,7 @@ extern "C"
         return true;
     }
 
-    HYP_EXPORT void Editor_RegisterLogCallback(LogCallback callback)
+    HYP_EXPORT void Hyp_RegisterLogCallback(LogCallback callback)
     {
         g_logCallback = callback;
 
@@ -755,8 +755,9 @@ extern "C"
             );
         }
     }
+#endif
 
-    HYP_EXPORT int Editor_ExecuteConsoleCommand(int argc, const char** argv)
+    HYP_EXPORT int Hyp_ExecuteConsoleCommand(int argc, const char** argv)
     {
         if (argc == 0)
             return 1; // NO COMMAND!
@@ -830,7 +831,6 @@ extern "C"
 
         return 1;
     }
-#endif
 
 #if HYP_ANDROID
     HYP_EXPORT void Hyp_SetAssetManager(void* assetManager)

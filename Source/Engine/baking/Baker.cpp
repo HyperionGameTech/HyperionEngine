@@ -86,7 +86,7 @@ static constexpr double IdealGpuMemUsageMB = 1024 * 2;
 static constexpr double ProgressWindowSeconds = 30.0;
 
 // for LightmapVolume gpu trace job
-static inline double GetEstimatedGPUMemUsageForJob(const LightmapperConfig& config)
+static inline double GetEstimatedGPUMemUsageForJob(const BakerConfig& config)
 {
     double usage = 0.0;
 
@@ -105,7 +105,7 @@ static void EmptyViewCollectFunction(RenderProxyList&)
 
 #pragma region BakerBase
 
-BakerBase::BakerBase(LightmapperConfig&& config, ObjectBase* source, const Handle<Scene>& scene, const BoundingBox& aabb)
+BakerBase::BakerBase(BakerConfig&& config, ObjectBase* source, const Handle<Scene>& scene, const BoundingBox& aabb)
     : m_config(std::move(config)),
       m_source(source),
       m_scene(scene),
@@ -269,63 +269,12 @@ UniquePtr<ILightmapRenderer> BakerBase::CreateRenderer(LightmapShadingType shadi
 
 void BakerBase::CreateLightmapRenderers()
 {
-    m_lightmapRenderers.Clear();
-
-    if (!PerformsRayTracing())
-    {
-        return;
-    }
-
-    const uint32 shadingTypesMask = GetShadingTypesMask();
-
-    for (uint32 i = 0; i < uint32(LightmapShadingType::MAX); i++)
-    {
-        if (!(shadingTypesMask & (1u << i)))
-        {
-            continue;
-        }
-
-        switch (LightmapShadingType(i))
-        {
-        case LightmapShadingType::RADIANCE:
-            if (!m_config.radiance)
-            {
-                continue;
-            }
-
-            break;
-        case LightmapShadingType::IRRADIANCE:
-            if (!m_config.irradiance)
-            {
-                continue;
-            }
-
-            break;
-        case LightmapShadingType::FULL: // fallthrough
-        default:
-            break;
-        }
-
-        const uint32 maxTexelsPerFrame = MaxTexelsPerFrame();
-        AssertDebug(maxTexelsPerFrame > 0);
-
-        UniquePtr<ILightmapRenderer>& lightmapRenderer = m_lightmapRenderers.EmplaceBack();
-        lightmapRenderer = CreateRenderer(LightmapShadingType(i), maxTexelsPerFrame);
-
-        if (!lightmapRenderer)
-        {
-            continue;
-        }
-
-        lightmapRenderer->Create();
-    }
 }
 
 void BakerBase::Build()
 {
     HYP_SCOPE;
-    const uint32 idealTrianglesPerJob = m_config.idealTrianglesPerJob;
-
+    
     Assert(m_numJobs == 0, "Cannot initialize lightmap renderer -- jobs currently running!");
 
     // Build jobs

@@ -500,7 +500,7 @@ public:
 
 void MergeGlobalShaderProperties(ShaderPropertySet& out);
 
-class ShaderCompiler
+class HYP_API ShaderCompiler
 {
     struct ProcessError
     {
@@ -535,19 +535,19 @@ public:
     ShaderCompiler& operator=(const ShaderCompiler& other) = delete;
     ~ShaderCompiler();
 
-    HYP_API bool CanCompileShaders() const;
-    HYP_API bool LoadShaderDefinitions(bool precompileShaders = false);
+    bool CanCompileShaders() const;
+    bool LoadShaderDefinitions(bool precompileShaders = false);
 
-    HYP_API bool RequestShader(
+    bool RequestShader(
         Name name,
         const ShaderPropertySet& properties,
         const VertexAttributeSet& vertexAttributes,
         Shader*& outShader);
         
-    HYP_API bool IsGraphicsShaderBundle(Name name) const;
+    bool IsGraphicsShaderBundle(Name name) const;
 
 #if HYP_ENABLE_SHADER_RELOAD
-    HYP_API bool IsShaderBundleOutdated(Name name, const Time& lastCompiledTimestamp) const;
+    bool IsShaderBundleOutdated(Name name, const Time& lastCompiledTimestamp) const;
 #endif
 
 private:

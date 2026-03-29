@@ -21,6 +21,93 @@ static CVarManager* s_pInstance = nullptr;
 
 #pragma region CVar
 
+// String specializations
+
+template <>
+CVar<const char*>::~CVar()
+{
+    if (m_value != nullptr)
+    {
+        Memory::Free(const_cast<char*>(m_value));
+    }
+}
+
+template <>
+void CVar<const char*>::Set(const char* value)
+{
+    if (m_value != nullptr)
+    {
+        Memory::Free(const_cast<char*>(m_value));
+        m_value = nullptr;
+    }
+
+    if (value != nullptr)
+    {
+        size_t length = Memory::StrLen(value) + 1;
+        char* newValue = (char*)Memory::AllocateZeros(length + 1);
+        Memory::StrCpy(newValue, value, length);
+        m_value = newValue;
+    }
+}
+
+template <>
+bool CVar<const char*>::SetFromBoxed(const BoxedValue& boxed)
+{
+    if (!boxed.Is<String>())
+    {
+        return false;
+    }
+
+    String& str = boxed.Get<String>();
+
+    if (m_value != nullptr)
+    {
+        Memory::Free(const_cast<char*>(m_value));
+        m_value = nullptr;
+    }
+
+    char* chars = (char*)Memory::AllocateZeros(str.Size() + 1);
+    Memory::StrCpy(chars, str.Data(), str.Size());
+
+    if (m_value != nullptr)
+    {
+        Memory::Free(const_cast<char*>(m_value));
+    }
+
+    m_value = chars;
+
+    return true;
+}
+
+template <>
+bool CVar<const char*>::SetFromConfig(const ConfigValue& cfgValue)
+{
+    if (!cfgValue.IsString())
+        return false;
+
+    String str = cfgValue.ToString();
+
+    if (m_value != nullptr)
+    {
+        Memory::Free(const_cast<char*>(m_value));
+        m_value = nullptr;
+    }
+
+    char* chars = (char*)Memory::AllocateZeros(str.Size() + 1);
+    Memory::StrCpy(chars, str.Data(), str.Size());
+
+    if (m_value != nullptr)
+    {
+        Memory::Free(const_cast<char*>(m_value));
+    }
+
+    m_value = chars;
+
+    return true;
+}
+
+// Numeric specializations
+
 template <>
 bool CVar<int8>::SetFromConfig(const ConfigValue& cfgValue)
 {
@@ -142,19 +229,8 @@ bool CVar<bool>::SetFromConfig(const ConfigValue& cfgValue)
     return true;
 }
 
-template <>
-bool CVar<String>::SetFromConfig(const ConfigValue& cfgValue)
-{
-    if (!cfgValue.IsString())
-        return false;
-
-    m_value = cfgValue.ToString();
-
-    return true;
-}
-
 template <typename T>
-inline const T& ReadCVarValue(const CVar<T>& cvar)
+inline T ReadCVarValue(const CVar<T>& cvar)
 {
     if (!s_pInstance || cvar.id < 0)
     {
@@ -171,22 +247,22 @@ inline const T& ReadCVarValue(const CVar<T>& cvar)
     return snapshot.values[cvar.id].template Get<T>();
 }
 
-template <> const int8& CVar<int8>::Get() const { return ReadCVarValue(*this); }
-template <> const int16& CVar<int16>::Get() const { return ReadCVarValue(*this); }
-template <> const int32& CVar<int32>::Get() const { return ReadCVarValue(*this); }
-template <> const int64& CVar<int64>::Get() const { return ReadCVarValue(*this); }
+template <> int8 CVar<int8>::Get() const { return ReadCVarValue(*this); }
+template <> int16 CVar<int16>::Get() const { return ReadCVarValue(*this); }
+template <> int32 CVar<int32>::Get() const { return ReadCVarValue(*this); }
+template <> int64 CVar<int64>::Get() const { return ReadCVarValue(*this); }
 
-template <> const uint8& CVar<uint8>::Get() const { return ReadCVarValue(*this); }
-template <> const uint16& CVar<uint16>::Get() const { return ReadCVarValue(*this); }
-template <> const uint32& CVar<uint32>::Get() const { return ReadCVarValue(*this); }
-template <> const uint64& CVar<uint64>::Get() const { return ReadCVarValue(*this); }
+template <> uint8 CVar<uint8>::Get() const { return ReadCVarValue(*this); }
+template <> uint16 CVar<uint16>::Get() const { return ReadCVarValue(*this); }
+template <> uint32 CVar<uint32>::Get() const { return ReadCVarValue(*this); }
+template <> uint64 CVar<uint64>::Get() const { return ReadCVarValue(*this); }
 
-template <> const float& CVar<float>::Get() const { return ReadCVarValue(*this); }
-template <> const double& CVar<double>::Get() const { return ReadCVarValue(*this); }
+template <> float CVar<float>::Get() const { return ReadCVarValue(*this); }
+template <> double CVar<double>::Get() const { return ReadCVarValue(*this); }
 
-template <> const bool& CVar<bool>::Get() const { return ReadCVarValue(*this); }
+template <> bool CVar<bool>::Get() const { return ReadCVarValue(*this); }
 
-template <> const String& CVar<String>::Get() const { return ReadCVarValue(*this); }
+template <> const char* CVar<const char*>::Get() const { return ReadCVarValue(*this); }
 
 #pragma endregion CVar
 
@@ -319,7 +395,7 @@ HYP_NODISCARD CVarBase* CVarManager::FindVar(const ANSIString& name) const
 }
 
 template <typename T>
-void CVarManager::SetVar(StringHash nameHash, const T& value)
+void CVarManager::SetVar(StringHash nameHash, T value)
 {
     int idx = FindVarIndex(nameHash);
 
@@ -425,22 +501,22 @@ HYP_NODISCARD int CVarManager::FindVarIndex(StringHash nameHash) const
 
 // SetVar
 
-template void CVarManager::SetVar<int8>(StringHash, const int8&);
-template void CVarManager::SetVar<int16>(StringHash, const int16&);
-template void CVarManager::SetVar<int32>(StringHash, const int32&);
-template void CVarManager::SetVar<int64>(StringHash, const int64&);
+template void CVarManager::SetVar<int8>(StringHash, int8);
+template void CVarManager::SetVar<int16>(StringHash, int16);
+template void CVarManager::SetVar<int32>(StringHash, int32);
+template void CVarManager::SetVar<int64>(StringHash, int64);
 
-template void CVarManager::SetVar<uint8>(StringHash, const uint8&);
-template void CVarManager::SetVar<uint16>(StringHash, const uint16&);
-template void CVarManager::SetVar<uint32>(StringHash, const uint32&);
-template void CVarManager::SetVar<uint64>(StringHash, const uint64&);
+template void CVarManager::SetVar<uint8>(StringHash, uint8);
+template void CVarManager::SetVar<uint16>(StringHash, uint16);
+template void CVarManager::SetVar<uint32>(StringHash, uint32);
+template void CVarManager::SetVar<uint64>(StringHash, uint64);
 
-template void CVarManager::SetVar<float>(StringHash, const float&);
-template void CVarManager::SetVar<double>(StringHash, const double&);
+template void CVarManager::SetVar<float>(StringHash, float);
+template void CVarManager::SetVar<double>(StringHash, double);
 
-template void CVarManager::SetVar<bool>(StringHash, const bool&);
+template void CVarManager::SetVar<bool>(StringHash, bool);
 
-template void CVarManager::SetVar<String>(StringHash, const String&);
+template void CVarManager::SetVar<const char*>(StringHash, const char*);
 
 // GetVar
 

@@ -54,9 +54,9 @@ namespace Hyperion.Editor
         public static unsafe extern void Hyp_SetInitFromManagedCallback(delegate* unmanaged<ManagedDelegates*, void> callback);
 
         [DllImport("hyperion")]
-        public static extern void Editor_RegisterLogCallback(LogCallbackDelegate callback);
+        public static extern void Hyp_RegisterLogCallback(LogCallbackDelegate callback);
 
         [DllImport("hyperion")]
-        public static extern int Editor_ExecuteConsoleCommand(int argc, IntPtr argv);
+        public static extern int Hyp_ExecuteConsoleCommand(int argc, IntPtr argv);
     }
 }

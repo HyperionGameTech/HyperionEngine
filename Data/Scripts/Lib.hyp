@@ -1708,19 +1708,16 @@ extern class FunctionalEditorAction : EditorActionBase
 end
 extern class BakerBase
 end
-extern struct LightmapperConfig
-    Radiance : bool
-    Irradiance : bool
-    NumSamples : uint32
-    MaxTexelsPerFrame : uint32
-    IdealTrianglesPerJob : uint32
-    OnlyGenerateUVs : bool
-end
-extern enum LightmapShadingType : int
+extern enum LightmapShadingType : uint32
     IRRADIANCE = 0,
     RADIANCE,
     FULL,
     MAX
+end
+extern struct BakerConfig
+    NumSamples : uint32
+    MaxTexelsPerFrame : uint32
+    OnlyGenerateUVs : bool
 end
 extern enum AudioSourceState : uint32
     UNDEFINED,
@@ -2185,8 +2182,6 @@ extern class ParticleVolume : VolumeBase
     Params : ParticleVolumeParams
 end
 extern class LightmapVolume : VolumeBase
-    GetAtlasTexture(atlasIndex : uint16, type : any) -> Texture
-    SetAtlasTexture(atlasIndex : uint16, type : any, texture : Texture) -> void
     Rebake() -> void
     RadianceAtlasTextures : Array<Texture>
     IrradianceAtlasTextures : Array<Texture>

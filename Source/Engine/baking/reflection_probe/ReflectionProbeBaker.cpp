@@ -38,7 +38,7 @@ namespace Baking {
 
 constexpr TextureFormat ReflectionProbeTextureFormat = TextureFormat::RGBA32F;
 
-Baker<ReflectionProbe>::Baker(LightmapperConfig&& config, const Handle<ReflectionProbe>& envProbe)
+Baker<ReflectionProbe>::Baker(BakerConfig&& config, const Handle<ReflectionProbe>& envProbe)
     : BakerBase(std::move(config), envProbe, MakeStrongRef(envProbe->GetScene()), envProbe->GetWorldBounds()),
       m_envProbe(envProbe)
 {
@@ -47,6 +47,24 @@ Baker<ReflectionProbe>::Baker(LightmapperConfig&& config, const Handle<Reflectio
 UniquePtr<BakeJobBase> Baker<ReflectionProbe>::CreateJob(BakeJobParams&& params)
 {
     return MakeUnique<BakeJob<ReflectionProbe>>(std::move(params), m_envProbe, &m_bakeData);
+}
+
+void Baker<ReflectionProbe>::CreateLightmapRenderers()
+{
+    m_lightmapRenderers.Clear();
+
+    if (!PerformsRayTracing())
+    {
+        return;
+    }
+
+    const uint32 maxTexelsPerFrame = MaxTexelsPerFrame();
+    AssertDebug(maxTexelsPerFrame > 0);
+
+    UniquePtr<ILightmapRenderer>& lightmapRenderer = m_lightmapRenderers.EmplaceBack();
+    lightmapRenderer = CreateRenderer(LightmapShadingType::FULL, maxTexelsPerFrame);
+
+    lightmapRenderer->Create();
 }
 
 Result Baker<ReflectionProbe>::Build_Internal()

@@ -359,7 +359,7 @@ static bool BuildElementTextures(
 
 #pragma region Baker<LightmapVolume>
 
-Baker<LightmapVolume>::Baker(LightmapperConfig&& config, const Handle<LightmapVolume>& volume)
+Baker<LightmapVolume>::Baker(BakerConfig&& config, const Handle<LightmapVolume>& volume)
     : BakerBase(std::move(config), volume, MakeStrongRef(volume->GetScene()), volume->GetWorldBounds()),
       m_volume(volume),
       m_lightmapElementId(InvalidLightmapElementId)
@@ -369,6 +369,39 @@ Baker<LightmapVolume>::Baker(LightmapperConfig&& config, const Handle<LightmapVo
 UniquePtr<BakeJobBase> Baker<LightmapVolume>::CreateJob(BakeJobParams&& params)
 {
     return MakeUnique<BakeJob<LightmapVolume>>(std::move(params), m_volume, &m_bakeData);
+}
+
+void Baker<LightmapVolume>::CreateLightmapRenderers()
+{
+    m_lightmapRenderers.Clear();
+
+    if (!PerformsRayTracing())
+    {
+        return;
+    }
+
+    const uint32 shadingTypesMask = GetShadingTypesMask();
+
+    for (uint32 i = 0; i < uint32(LightmapShadingType::MAX); i++)
+    {
+        if (!(shadingTypesMask & (1u << i)))
+        {
+            continue;
+        }
+
+        const uint32 maxTexelsPerFrame = MaxTexelsPerFrame();
+        AssertDebug(maxTexelsPerFrame > 0);
+
+        UniquePtr<ILightmapRenderer>& lightmapRenderer = m_lightmapRenderers.EmplaceBack();
+        lightmapRenderer = CreateRenderer(LightmapShadingType(i), maxTexelsPerFrame);
+
+        if (!lightmapRenderer)
+        {
+            continue;
+        }
+
+        lightmapRenderer->Create();
+    }
 }
 
 void Baker<LightmapVolume>::Initialize_Internal()

@@ -25,11 +25,11 @@ class alignas(uint32) HYP_API Color
 public:
     HYP_STRUCT_BODY(Color);
 
-    static constexpr uint32 size = 4;
+    static constexpr uint32 NumComponents = 4;
 
     union
     {
-        ubyte bytes[size];
+        ubyte bytes[NumComponents];
 
         struct
         {
@@ -57,7 +57,7 @@ public:
     Color(const Vec4f& vec);
 
     constexpr Color(const Color& other) = default;
-    constexpr Color& operator=(const Color& other) = default;
+    Color& operator=(const Color& other) = default;
 
     HYP_METHOD(Property = "Red", Serialize = true)
     HYP_FORCE_INLINE float GetRed() const
@@ -130,13 +130,13 @@ public:
 
     HYP_FORCE_INLINE bool operator<(const Color& other) const
     {
-        return Memory::Compare(bytes, other.bytes, size) < 0;
+        return Memory::Compare(bytes, other.bytes, NumComponents) < 0;
     }
 
     HYP_FORCE_INLINE explicit operator uint32() const
     {
         uint32 result;
-        Memory::Copy(&result, bytes, size);
+        Memory::Copy(&result, bytes, NumComponents);
         return result;
     }
 

@@ -17,7 +17,7 @@ template <>
 class Baker<LightmapVolume> final : public BakerBase
 {
 public:
-    Baker(LightmapperConfig&& config, const Handle<LightmapVolume>& volume);
+    Baker(BakerConfig&& config, const Handle<LightmapVolume>& volume);
 
     Baker(const Baker& other) = delete;
     Baker& operator=(const Baker& other) = delete;
@@ -50,6 +50,8 @@ protected:
     }
 
     virtual UniquePtr<BakeJobBase> CreateJob(BakeJobParams&& params) override;
+
+    virtual void CreateLightmapRenderers() override;
 
     virtual void Initialize_Internal() override;
     virtual void OnCompleted_Internal() override;

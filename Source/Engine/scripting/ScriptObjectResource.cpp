@@ -36,10 +36,10 @@ ScriptObjectResource::ScriptObjectResource(const Handle<ObjectBase>& nativeObjec
     data.nativeObject = nativeObject;
 }
 
+#ifdef HYP_DOTNET
 ScriptObjectResource::ScriptObjectResource(dotnet::ManagedObject* objectPtr, const RC<dotnet::ManagedClass>& managedClass)
     : m_ptr(nullptr)
 {
-#ifdef HYP_DOTNET
     if (!dotNetData)
     {
         dotNetData.Emplace(ScriptObjectData_DotNet());
@@ -50,7 +50,6 @@ ScriptObjectResource::ScriptObjectResource(dotnet::ManagedObject* objectPtr, con
     data.managedClass = managedClass;
 
     AssertDebug(data.objectPtr && data.managedClass);
-#endif
 }
 
 ScriptObjectResource::ScriptObjectResource(ObjectBase* ptr, const RC<dotnet::ManagedClass>& managedClass)
@@ -61,7 +60,6 @@ ScriptObjectResource::ScriptObjectResource(ObjectBase* ptr, const RC<dotnet::Man
 ScriptObjectResource::ScriptObjectResource(ObjectBase* ptr, dotnet::ManagedObject* objectPtr, const RC<dotnet::ManagedClass>& managedClass)
     : m_ptr(ptr)
 {
-#ifdef HYP_DOTNET
     if (!dotNetData)
     {
         dotNetData.Emplace(ScriptObjectData_DotNet());
@@ -72,13 +70,11 @@ ScriptObjectResource::ScriptObjectResource(ObjectBase* ptr, dotnet::ManagedObjec
     data.managedClass = managedClass;
 
     AssertDebug(data.objectPtr && data.managedClass);
-#endif
 }
 
 ScriptObjectResource::ScriptObjectResource(ObjectBase* ptr, const RC<dotnet::ManagedClass>& managedClass, const dotnet::ObjectReference& objectReference, EnumFlags<ObjectFlags> objectFlags)
     : m_ptr(ptr)
 {
-#ifdef HYP_DOTNET
     if (!dotNetData)
     {
         dotNetData.Emplace(ScriptObjectData_DotNet());
@@ -103,8 +99,8 @@ ScriptObjectResource::ScriptObjectResource(ObjectBase* ptr, const RC<dotnet::Man
 
         Assert(data.objectPtr != nullptr);
     }
-#endif
 }
+#endif
 
 #ifdef HYP_SCRIPT
 

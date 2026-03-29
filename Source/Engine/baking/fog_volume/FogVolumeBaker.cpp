@@ -17,7 +17,7 @@
 namespace Hyperion {
 namespace Baking {
 
-Baker<FogVolume>::Baker(LightmapperConfig&& config, const Handle<FogVolume>& fogVolume)
+Baker<FogVolume>::Baker(BakerConfig&& config, const Handle<FogVolume>& fogVolume)
     : BakerBase(std::move(config), fogVolume, MakeStrongRef(fogVolume->GetScene()), fogVolume->GetWorldBounds()),
       m_fogVolume(fogVolume)
 {

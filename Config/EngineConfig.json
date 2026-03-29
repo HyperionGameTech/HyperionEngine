@@ -58,18 +58,14 @@
       "LookSensitivity": 1
     }
   },
-  "Lightmapper": {
-    "OnlyGenerateUVs": false,
-    "Radiance": true,
-    "Irradiance": true,
-    "NumSamples": 8,
-    "MaxTexelsPerFrame": 100000,
-    "IdealTrianglesPerJob": 16000,
-    "NumThreadsPerJob": 4
-  },
   "System": {
     "SelectedGpu": {
       "Index": 1
     }
+  },
+  "Baker": {
+    "OnlyGenerateUVs": false,
+    "NumSamples": 16,
+    "MaxTexelsPerFrame": 262144
   }
 }

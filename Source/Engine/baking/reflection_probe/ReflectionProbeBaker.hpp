@@ -16,7 +16,7 @@ template <>
 class Baker<ReflectionProbe> final : public BakerBase
 {
 public:
-    Baker(LightmapperConfig&& config, const Handle<ReflectionProbe>& envProbe);
+    Baker(BakerConfig&& config, const Handle<ReflectionProbe>& envProbe);
 
     Baker(const Baker& other) = delete;
     Baker& operator=(const Baker& other) = delete;
@@ -48,6 +48,8 @@ protected:
     }
 
     virtual UniquePtr<BakeJobBase> CreateJob(BakeJobParams&& params) override;
+
+    virtual void CreateLightmapRenderers() override;
 
     virtual Result Build_Internal() override;
     virtual void OnCompleted_Internal() override;

@@ -109,7 +109,7 @@ namespace Hyperion.Editor.Services
 
             try
             {
-                NativeBindings.Editor_RegisterLogCallback(_logCallback);
+                NativeBindings.Hyp_RegisterLogCallback(_logCallback);
             }
             catch (Exception ex)
             {
@@ -151,7 +151,7 @@ namespace Hyperion.Editor.Services
                         }
 
                         // execute with int argc, char** argv
-                        int returnValue = NativeBindings.Editor_ExecuteConsoleCommand(argc, (nint)argv);
+                        int returnValue = NativeBindings.Hyp_ExecuteConsoleCommand(argc, (nint)argv);
                         if (returnValue != 0)
                         {
                             throw new Exception("The command returned with error code: " + returnValue);

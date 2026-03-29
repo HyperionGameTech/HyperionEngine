@@ -8,7 +8,6 @@
 
 namespace Hyperion {
 
-    
 void GpuImageBase::SetStencilState(ResourceState newState)
 {
     if (!TextureUtils::HasStencilComponent(m_textureDesc.format))

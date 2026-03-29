@@ -7,9 +7,9 @@
 namespace Hyperion {
 namespace utilities {
 
-class Time;
+struct Time;
 
-struct HYP_API TimeDiff
+struct TimeDiff
 {
     TimeDiff()
         : milliseconds(0)
@@ -104,12 +104,12 @@ struct HYP_API TimeDiff
 };
 
 HYP_STRUCT(Serialize = "bitwise")
-class Time
+struct Time
 {
     HYP_STRUCT_BODY(Time);
 
-public:
-    friend struct TimeDiff;
+    HYP_FIELD()
+    uint64 m_value;
 
     Time();
     Time(uint64 timestamp);
@@ -201,10 +201,6 @@ public:
     }
 
     static Time Now();
-
-private:
-    HYP_FIELD()
-    uint64 m_value;
 };
 
 } // namespace utilities

@@ -67,10 +67,12 @@ public:
 
     explicit ScriptObjectResource(const Handle<ObjectBase>& nativeObject);
 
+#ifdef HYP_DOTNET
     ScriptObjectResource(dotnet::ManagedObject* objectPtr, const RC<dotnet::ManagedClass>& managedClass);
     ScriptObjectResource(ObjectBase* ptr, const RC<dotnet::ManagedClass>& managedClass);
     ScriptObjectResource(ObjectBase* ptr, dotnet::ManagedObject* objectPtr, const RC<dotnet::ManagedClass>& managedClass);
     ScriptObjectResource(ObjectBase* ptr, const RC<dotnet::ManagedClass>& managedClass, const dotnet::ObjectReference& objectReference, EnumFlags<ObjectFlags> objectFlags);
+#endif
 
 #ifdef HYP_SCRIPT
     ScriptObjectResource(ScriptInstance* hypScriptInstance, BoxedValue&& hypScriptValue);
