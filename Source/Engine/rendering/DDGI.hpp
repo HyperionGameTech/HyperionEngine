@@ -15,12 +15,6 @@ namespace Hyperion {
 
 struct RenderSetup;
 
-enum ProbeSystemFlags : uint32
-{
-    PROBE_SYSTEM_FLAGS_NONE = 0x0,
-    PROBE_SYSTEM_FLAGS_FIRST_RUN = 0x1
-};
-
 struct DDGIInfo
 {
     BoundingBox aabb;

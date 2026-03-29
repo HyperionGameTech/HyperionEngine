@@ -3,9 +3,6 @@
 
 #include "../../defines.inc"
 
-#define PROBE_SYSTEM_FLAGS_NONE 0x0
-#define PROBE_SYSTEM_FLAGS_FIRST_RUN 0x1
-
 struct DDGIConstants
 {
     mat4 rotationMatrix;
@@ -21,7 +18,7 @@ struct DDGIConstants
     float probe_distance;
     uint num_rays_per_probe;
     uint numBoundLights;
-    uint flags;
+    uint counter;
 };
 
 struct ProbeRayData

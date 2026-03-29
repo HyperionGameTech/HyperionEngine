@@ -437,8 +437,6 @@ static inline void UpdateRefs_Impl(ResourceTracker<AllocatorType, ObjId<ElementT
             if constexpr (HYP_HAS_METHOD(ElementType, UpdateRenderProxy))
             {
                 resource->UpdateRenderProxy(pProxy);
-
-                pProxy->version = *resource->GetRenderProxyVersionPtr();
             }
         }
     }
@@ -467,8 +465,6 @@ static inline void UpdateRefs_Impl(ResourceTracker<AllocatorType, ObjId<ElementT
             AssertDebug(pProxy != nullptr);
 
             resource.UpdateRenderProxy(pProxy);
-
-            pProxy->version = *resource.GetRenderProxyVersionPtr();
         }
     }
 }

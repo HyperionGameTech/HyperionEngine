@@ -2184,15 +2184,9 @@ extern class ParticleVolume : VolumeBase
     SetParams(newParams : ParticleVolumeParams) -> void
     Params : ParticleVolumeParams
 end
-extern enum LightmapTextureType : uint32
-    LTT_INVALID = ~0u,
-    LTT_RADIANCE = 0,
-    LTT_IRRADIANCE,
-    LTT_MAX
-end
 extern class LightmapVolume : VolumeBase
-    GetAtlasTexture(atlasIndex : uint16, type : LightmapTextureType) -> Texture
-    SetAtlasTexture(atlasIndex : uint16, type : LightmapTextureType, texture : Texture) -> void
+    GetAtlasTexture(atlasIndex : uint16, type : any) -> Texture
+    SetAtlasTexture(atlasIndex : uint16, type : any, texture : Texture) -> void
     Rebake() -> void
     RadianceAtlasTextures : Array<Texture>
     IrradianceAtlasTextures : Array<Texture>

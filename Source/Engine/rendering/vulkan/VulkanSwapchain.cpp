@@ -29,8 +29,7 @@ extern VulkanRenderInterface* g_renderInterface;
 #if HYP_ANDROID || !HYP_DEBUG_MODE
 static constexpr bool VulkanSwapchainUseFIFO = true;
 #else
-// allow unlocked for testing performance
-static constexpr bool VulkanSwapchainUseFIFO = false;
+static constexpr bool VulkanSwapchainUseFIFO = true;
 #endif
 
 static constexpr bool UseSRGBFormat = true;

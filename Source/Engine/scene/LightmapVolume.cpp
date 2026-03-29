@@ -159,10 +159,8 @@ void LightmapVolume::Init()
     SetReady(true);
 }
 
-const Handle<Texture>& LightmapVolume::GetAtlasTexture(uint16 atlasIndex, LightmapTextureType type) const
+const Handle<Texture>& LightmapVolume::GetAtlasTexture(uint16 atlasIndex, AtlasTextureType type) const
 {
-    AssertDebug(type < LTT_MAX, "Invalid LightmapTextureType!");
-
     if (atlasIndex >= m_atlases.Size())
     {
         AssertDebug(false, "atlas index out of bounds");
@@ -172,19 +170,17 @@ const Handle<Texture>& LightmapVolume::GetAtlasTexture(uint16 atlasIndex, Lightm
 
     switch (type)
     {
-    case LTT_RADIANCE:
+    case RadianceTexture:
         return m_radianceAtlasTextures[atlasIndex];
-    case LTT_IRRADIANCE:
+    case IrradianceTexture:
         return m_irradianceAtlasTextures[atlasIndex];
     default:
         return Handle<Texture>::Null();
     }
 }
 
-void LightmapVolume::SetAtlasTexture(uint16 atlasIndex, LightmapTextureType type, const Handle<Texture>& texture)
+void LightmapVolume::SetAtlasTexture(uint16 atlasIndex, AtlasTextureType type, const Handle<Texture>& texture)
 {
-    AssertDebug(type < LTT_MAX, "Invalid LightmapTextureType!");
-
     if (atlasIndex >= m_atlases.Size())
     {
         AssertDebug(false, "atlas index out of bounds");
@@ -194,7 +190,7 @@ void LightmapVolume::SetAtlasTexture(uint16 atlasIndex, LightmapTextureType type
 
     switch (type)
     {
-    case LTT_RADIANCE:
+    case RadianceTexture:
         EnqueueDeletion(std::move(m_radianceAtlasTextures[atlasIndex]));
         m_radianceAtlasTextures[atlasIndex] = texture;
 
@@ -204,7 +200,7 @@ void LightmapVolume::SetAtlasTexture(uint16 atlasIndex, LightmapTextureType type
         }
 
         break;
-    case LTT_IRRADIANCE:
+    case IrradianceTexture:
         EnqueueDeletion(std::move(m_irradianceAtlasTextures[atlasIndex]));
         m_irradianceAtlasTextures[atlasIndex] = texture;
 

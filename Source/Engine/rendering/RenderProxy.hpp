@@ -31,7 +31,7 @@ class EnvGrid;
 class ShadowMap;
 class InstancedMeshData;
 
-enum LightmapTextureType : uint32;
+enum AtlasTextureType : uint32;
 
 HYP_STRUCT()
 struct MeshRayTracingData
@@ -47,7 +47,6 @@ struct MeshRayTracingData
 class IRenderProxy
 {
 public:
-    int version = 0;
     bool forceRebind = false;
 };
 
@@ -386,7 +385,7 @@ struct alignas(16) DDGIConstants
     float probeDistance;
     uint32 numRaysPerProbe;
     uint32 numBoundLights;
-    uint32 flags;
+    uint32 counter;
 };
 
 } // namespace Hyperion

@@ -57,7 +57,7 @@ DECLARE_SRV(DDGI, PointLightShadowMapsTextureArray) TextureCubeArray point_shado
 
 #define RAY_OFFSET 0.025
 #define NUM_SAMPLES 1
-#define ENVIRONMENT_INTENSITY 1.0
+#define ENVIRONMENT_INTENSITY 20.0
 
 void SetProbeRayData(uint2 coord, ProbeRayData ray_data)
 {
@@ -87,7 +87,7 @@ void RayGenMain()
     const float3 origin = ProbeIndexToWorldPosition(probe_index) + direction * RAY_OFFSET;
     
     RAY_FLAG flags = RAY_FLAG_FORCE_OPAQUE;
-    float tmin = RAY_OFFSET;
+    float tmin = 0.1;
     float tmax = 1000.0; //ddgiConstants.probe_distance;
     
     uint ray_seed = InitRandomSeed(InitRandomSeed(coord.x, coord.y), world_shader_data.frame_counter % 256);
@@ -179,7 +179,7 @@ void RayGenMain()
                         float LdotH = max(dot(L, H), 0.0);
                         float NdotV = max(dot(N, -localDirection), 0.0);
                             
-                        radiance += light_color * shadow * NdotL;
+                        radiance += light_color * shadow * NdotL * diffuseColor * HYP_FMATH_ONE_OVER_PI;
                     }
                 }
             }
@@ -202,12 +202,12 @@ void RayGenMain()
                     float LdotH = max(dot(L, H), 0.0);
                     float NdotV = max(dot(N, -localDirection), 0.0);
                         
-                    radiance += light_color * attenuation * shadow * NdotL;
+                    radiance += light_color * attenuation * shadow * NdotL * diffuseColor * HYP_FMATH_ONE_OVER_PI;
                 }
             }
         }
         
-        accumRadiance += float4(radiance * diffuseColor * HYP_FMATH_ONE_OVER_PI, 1.0);
+        accumRadiance += float4(radiance, 1.0);
     } // end samples
     
 #if NUM_SAMPLES > 1

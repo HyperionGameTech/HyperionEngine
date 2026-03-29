@@ -25,17 +25,6 @@ class BakeData;
 
 } // namespace Baking
 
-HYP_ENUM()
-enum LightmapTextureType : uint32
-{
-    LTT_INVALID = ~0u,
-
-    LTT_RADIANCE = 0,
-    LTT_IRRADIANCE,
-
-    LTT_MAX
-};
-
 enum class LightmapElementId : uint32;
 static constexpr LightmapElementId InvalidLightmapElementId = LightmapElementId(~0u);
 
@@ -115,6 +104,14 @@ public:
     static constexpr uint32 MaxAtlases = 4;
     static constexpr Vec2u DefaultAtlasDimensions = Vec2u(2048, 2048);
 
+    static constexpr uint32 NumAtlasTextureTypes = 2;
+    
+    enum AtlasTextureType : uint8
+    {
+        RadianceTexture = 0,
+        IrradianceTexture
+    };
+
     LightmapVolume();
 
     explicit LightmapVolume(const BoundingBox& localBounds);
@@ -123,28 +120,21 @@ public:
     LightmapVolume& operator=(const LightmapVolume& other) = delete;
     ~LightmapVolume() override;
 
-    HYP_FORCE_INLINE Span<const Handle<Texture>> GetAtlasTextures(LightmapTextureType type) const
+    HYP_FORCE_INLINE Span<const Handle<Texture>> GetAtlasTextures(AtlasTextureType type) const
     {
-        AssertDebug(type < LTT_MAX);
-
         switch (type)
         {
-        case LTT_RADIANCE:
+        case RadianceTexture:
             return m_radianceAtlasTextures;
-        case LTT_IRRADIANCE:
+        case IrradianceTexture:
             return m_irradianceAtlasTextures;
         default:
-            break;
+            return {};
         }
-
-        return {};
     }
 
-    HYP_METHOD()
-    const Handle<Texture>& GetAtlasTexture(uint16 atlasIndex, LightmapTextureType type) const;
-
-    HYP_METHOD()
-    void SetAtlasTexture(uint16 atlasIndex, LightmapTextureType type, const Handle<Texture>& texture);
+    const Handle<Texture>& GetAtlasTexture(uint16 atlasIndex, AtlasTextureType type) const;
+    void SetAtlasTexture(uint16 atlasIndex, AtlasTextureType type, const Handle<Texture>& texture);
 
     HYP_FORCE_INLINE const LightmapVolumeAtlas& GetAtlas(uint16 atlasIndex) const
     {
@@ -183,7 +173,7 @@ private:
 
     void UpdateAtlasTextures(
         uint16 atlasIndex,
-        HashMap<LightmapElementId, FixedArray<Handle<Texture>, LTT_MAX>>&& elementTextures);
+        HashMap<LightmapElementId, FixedArray<Handle<Texture>, NumAtlasTextureTypes>>&& elementTextures);
 
     HYP_FIELD(Property = "RadianceAtlasTextures")
     Array<Handle<Texture>, FixedAllocator<MaxAtlases>> m_radianceAtlasTextures;

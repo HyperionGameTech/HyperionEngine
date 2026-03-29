@@ -35,7 +35,7 @@ namespace Baking {
 
 static constexpr LightmapElementId InvalidLightmapElementId = LightmapElementId(~0u);
 
-static constexpr TextureFormat AtlasTextureFormats[LTT_MAX] = {
+static constexpr TextureFormat AtlasTextureFormats[LightmapVolume::NumAtlasTextureTypes] = {
     TextureFormat::RGBA8,//TextureFormat::R11G11B10F, // Radiance
     TextureFormat::RGBA8//TextureFormat::R11G11B10F  // Irradiance
 };
@@ -46,12 +46,12 @@ struct BlitAtlasElements : RenderCommand
 {
     Array<LightmapElement> lightmapElements;
     Array<Handle<Texture>> atlasTextures;
-    HashMap<LightmapElementId, FixedArray<Handle<Texture>, LTT_MAX>> elementTextures;
+    HashMap<LightmapElementId, FixedArray<Handle<Texture>, LightmapVolume::NumAtlasTextureTypes>> elementTextures;
 
     BlitAtlasElements(
         const Array<LightmapElement>& lightmapElements,
         Array<Handle<Texture>>&& atlasTextures,
-        HashMap<LightmapElementId, FixedArray<Handle<Texture>, LTT_MAX>>&& elementTextures)
+        HashMap<LightmapElementId, FixedArray<Handle<Texture>, LightmapVolume::NumAtlasTextureTypes>>&& elementTextures)
         : lightmapElements(lightmapElements),
           atlasTextures(std::move(atlasTextures)),
           elementTextures(std::move(elementTextures))
@@ -73,18 +73,18 @@ struct BlitAtlasElements : RenderCommand
         AssertDebug(!elementTextures.Empty());
 
         // Ensure the array of atlas textures are resized to the correct count
-        Assert(atlasTextures.Size() == uint32(LTT_MAX));
+        Assert(atlasTextures.Size() == uint32(LightmapVolume::NumAtlasTextureTypes));
 
         Frame* currentFrame = g_renderInterface->GetCurrentFrame();
         Assert(currentFrame != nullptr);
 
         CommandRecorder& cr = currentFrame->postRenderCommands;
 
-        for (uint32 textureTypeIndex = 0; textureTypeIndex < uint32(LTT_MAX); textureTypeIndex++)
+        for (uint32 textureTypeIndex = 0; textureTypeIndex < uint32(LightmapVolume::NumAtlasTextureTypes); textureTypeIndex++)
         {
             if (!atlasTextures[textureTypeIndex])
             {
-                AssertDebug(false, "No atlas texture for lightmap texture type {}", uint32(LightmapTextureType(textureTypeIndex)));
+                AssertDebug(false, "No atlas texture for lightmap texture type {}", LightmapVolume::AtlasTextureType(textureTypeIndex));
 
                 continue;
             }
@@ -138,7 +138,7 @@ struct BlitAtlasElements : RenderCommand
         currentFrame->OnFrameEnd
             .Bind([atlasTextures = atlasTextures](Frame* frame)
                 {
-                    for (uint32 textureTypeIndex = 0; textureTypeIndex < uint32(LTT_MAX); textureTypeIndex++)
+                    for (uint32 textureTypeIndex = 0; textureTypeIndex < uint32(LightmapVolume::NumAtlasTextureTypes); textureTypeIndex++)
                     {
                         if (!atlasTextures[textureTypeIndex])
                         {
@@ -175,24 +175,24 @@ struct BlitAtlasElements : RenderCommand
 
 #pragma region LightmapVolume baking helpers
 
-static Name GenerateElementTextureName(LightmapVolume* lmv, uint32 elementIndex, LightmapTextureType textureType)
+static Name GenerateElementTextureName(LightmapVolume* lmv, uint32 elementIndex, LightmapVolume::AtlasTextureType textureType)
 {
-    static constexpr const char* TextureTypeNames[uint32(LTT_MAX)] = { "R", "I" };
+    static constexpr const char* TextureTypeNames[uint32(LightmapVolume::NumAtlasTextureTypes)] = { "R", "I" };
     return NAME_FMT("LightmapVolumeTexture_{}_{}_{}", lmv->GetName(), elementIndex, TextureTypeNames[uint32(textureType)]);
 }
 
 static void UpdateAtlasTextures(
     LightmapVolume* lmv,
     uint16 atlasIndex,
-    HashMap<LightmapElementId, FixedArray<Handle<Texture>, LTT_MAX>>&& elementTextures)
+    HashMap<LightmapElementId, FixedArray<Handle<Texture>, LightmapVolume::NumAtlasTextureTypes>>&& elementTextures)
 {
     HYP_LOG(Lightmap, Verbose, "Updating atlas textures for LightmapVolume {}", lmv->Id());
 
     for (auto& it : elementTextures)
     {
-        for (uint32 i = 0; i < uint32(LTT_MAX); i++)
+        for (uint32 i = 0; i < uint32(LightmapVolume::NumAtlasTextureTypes); i++)
         {
-            AssertDebug(it.second[i] != nullptr, "Element texture for type {} is null!", uint32(LightmapTextureType(i)));
+            AssertDebug(it.second[i] != nullptr, "Element texture for type {} is null!", LightmapVolume::AtlasTextureType(i));
 
             CheckResult(it.second[i]->Create());
         }
@@ -202,13 +202,13 @@ static void UpdateAtlasTextures(
 
     LightmapVolumeAtlas& atlas = lmv->GetAtlases()[atlasIndex];
 
-    Handle<Texture> radianceTexture = lmv->GetAtlasTexture(atlasIndex, LightmapTextureType::LTT_RADIANCE);
+    Handle<Texture> radianceTexture = lmv->GetAtlasTexture(atlasIndex, LightmapVolume::AtlasTextureType::RadianceTexture);
     if (!radianceTexture)
     {
         radianceTexture = MakeHandle<Texture>(
             TextureDesc {
                 TextureType::Texture2D,
-                AtlasTextureFormats[LTT_RADIANCE],
+                AtlasTextureFormats[LightmapVolume::AtlasTextureType::RadianceTexture],
                 Vec3u { atlas.atlasDimensions, 1 },
                 TFM_LINEAR,
                 TFM_LINEAR,
@@ -224,16 +224,16 @@ static void UpdateAtlasTextures(
 
         CheckResult(radianceTexture->Create());
 
-        lmv->SetAtlasTexture(atlasIndex, LightmapTextureType::LTT_RADIANCE, radianceTexture);
+        lmv->SetAtlasTexture(atlasIndex, LightmapVolume::AtlasTextureType::RadianceTexture, radianceTexture);
     }
 
-    Handle<Texture> irradianceTexture = lmv->GetAtlasTexture(atlasIndex, LightmapTextureType::LTT_IRRADIANCE);
+    Handle<Texture> irradianceTexture = lmv->GetAtlasTexture(atlasIndex, LightmapVolume::AtlasTextureType::IrradianceTexture);
     if (!irradianceTexture)
     {
         irradianceTexture = MakeHandle<Texture>(
             TextureDesc {
                 TextureType::Texture2D,
-                AtlasTextureFormats[LTT_IRRADIANCE],
+                AtlasTextureFormats[LightmapVolume::AtlasTextureType::IrradianceTexture],
                 Vec3u { atlas.atlasDimensions, 1 },
                 TFM_LINEAR,
                 TFM_LINEAR,
@@ -249,15 +249,15 @@ static void UpdateAtlasTextures(
 
         CheckResult(irradianceTexture->Create());
 
-        lmv->SetAtlasTexture(atlasIndex, LightmapTextureType::LTT_IRRADIANCE, irradianceTexture);
+        lmv->SetAtlasTexture(atlasIndex, LightmapVolume::AtlasTextureType::IrradianceTexture, irradianceTexture);
     }
 
     lmv->SetNeedsRenderProxyUpdate();
 
     Array<Handle<Texture>> atlasTextures;
-    atlasTextures.Resize(uint32(LTT_MAX));
-    atlasTextures[LTT_IRRADIANCE] = irradianceTexture;
-    atlasTextures[LTT_RADIANCE] = radianceTexture;
+    atlasTextures.Resize(uint32(LightmapVolume::NumAtlasTextureTypes));
+    atlasTextures[LightmapVolume::AtlasTextureType::IrradianceTexture] = irradianceTexture;
+    atlasTextures[LightmapVolume::AtlasTextureType::RadianceTexture] = radianceTexture;
 
     PUSH_RENDER_COMMAND(
         BlitAtlasElements,
@@ -292,16 +292,16 @@ static bool BuildElementTextures(
 
     const Vec2u elementDimensions = element.dimensions;
 
-    FixedArray<typename Baking::BakeData<LightmapVolume>::BitmapType, uint32(LTT_MAX)> bitmaps = {
+    FixedArray<typename Baking::BakeData<LightmapVolume>::BitmapType, uint32(LightmapVolume::NumAtlasTextureTypes)> bitmaps = {
         bakeData.ToBitmapRadiance(),  /* RADIANCE */
         bakeData.ToBitmapIrradiance() /* IRRADIANCE */
     };
 
-    FixedArray<Handle<Texture>, LTT_MAX> elementTextures;
+    FixedArray<Handle<Texture>, LightmapVolume::NumAtlasTextureTypes> elementTextures;
 
-    static constexpr const char* TextureTypeNames[uint32(LTT_MAX)] = { "R", "I" };
+    static constexpr const char* TextureTypeNames[uint32(LightmapVolume::NumAtlasTextureTypes)] = { "R", "I" };
 
-    for (uint32 i = 0; i < uint32(LTT_MAX); i++)
+    for (uint32 i = 0; i < uint32(LightmapVolume::NumAtlasTextureTypes); i++)
     {
         Optional<typename Baking::BakeData<LightmapVolume>::BitmapType> tempBitmap;
 
@@ -346,7 +346,7 @@ static bool BuildElementTextures(
             pBitmap->GetByteSize(),
             texture->GetTextureDesc().GetByteSize());
 
-        texture->SetName(GenerateElementTextureName(lmv, elementIndex, LightmapTextureType(i)));
+        texture->SetName(GenerateElementTextureName(lmv, elementIndex, LightmapVolume::AtlasTextureType(i)));
         CheckResult(texture->Create());
     }
 

@@ -118,10 +118,8 @@ private:
     Array<VoxelOctreeBlas> m_accelerationStructures;
 };
 
-VoxelOctreeBuildResult VoxelOctree::Build(const VoxelOctreeParams& params, EntityManager* entityManager)
+VoxelOctreeBuildResult VoxelOctree::Build(const VoxelOctreeParams& params, EntityManager& entityManager)
 {
-    Assert(entityManager != nullptr);
-
     m_params = params;
 
     OctreeBase::m_aabb = params.aabb;
@@ -137,7 +135,7 @@ VoxelOctreeBuildResult VoxelOctree::Build(const VoxelOctreeParams& params, Entit
 
     Array<Tuple<VoxelOctreeElement, MeshDesc, Span<const Vertex>, Span<const ubyte>, UniquePtr<TSharedLock<AssetObject>>>> meshDatas;
 
-    for (auto [entity, meshComponent, transformComponent, boundingBoxComponent] : entityManager->GetEntitySet<MeshComponent, TransformComponent, BoundingBoxComponent>().GetScopedView(DataAccessFlags::ACCESS_READ, HYP_FUNCTION_NAME_LIT))
+    for (auto [entity, meshComponent, transformComponent, boundingBoxComponent] : entityManager.GetEntitySet<MeshComponent, TransformComponent, BoundingBoxComponent>().GetScopedView(DataAccessFlags::ACCESS_READ, HYP_FUNCTION_NAME_LIT))
     {
         if (!meshComponent.mesh.IsValid())
         {

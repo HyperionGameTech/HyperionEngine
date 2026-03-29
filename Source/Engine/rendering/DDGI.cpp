@@ -193,36 +193,32 @@ void DDGI::UpdateUniforms(Frame* frame, const RenderSetup& renderSetup)
     const Vec2u gridImageDimensions = GetImageDimensions(m_gridInfo);
     const Vec3u numProbesPerDimension = NumProbesPerDimension(m_gridInfo);
 
-    DDGIConstants uniforms {};
-    uniforms.rotationMatrix = m_randomGenerator.Next();
-    uniforms.aabbMax = Vec4f(m_gridInfo.aabb.max, 1.0f);
-    uniforms.aabbMin = Vec4f(m_gridInfo.aabb.min, 1.0f);
-    uniforms.probeBorder = Vec4u(ProbeBorder, 0);
-    uniforms.probeCounts = { numProbesPerDimension.x, numProbesPerDimension.y, numProbesPerDimension.z, 0 };
-    uniforms.gridDimensions = { gridImageDimensions.x, gridImageDimensions.y, 0, 0 };
-    uniforms.imageDimensions = { m_irradianceImage->GetExtent().x, m_irradianceImage->GetExtent().y, m_depthImage->GetExtent().x, m_depthImage->GetExtent().y };
-    uniforms.probeDistance = m_gridInfo.probeDistance;
-    uniforms.numRaysPerProbe = m_gridInfo.numRaysPerProbe;
-    uniforms.numBoundLights = 0;
+    DDGIConstants ddgiConstants {};
+    ddgiConstants.rotationMatrix = m_randomGenerator.Next();
+    ddgiConstants.aabbMax = Vec4f(m_gridInfo.aabb.max, 1.0f);
+    ddgiConstants.aabbMin = Vec4f(m_gridInfo.aabb.min, 1.0f);
+    ddgiConstants.probeBorder = Vec4u(ProbeBorder, 0);
+    ddgiConstants.probeCounts = { numProbesPerDimension.x, numProbesPerDimension.y, numProbesPerDimension.z, 0 };
+    ddgiConstants.gridDimensions = { gridImageDimensions.x, gridImageDimensions.y, 0, 0 };
+    ddgiConstants.imageDimensions = { m_irradianceImage->GetExtent().x, m_irradianceImage->GetExtent().y, m_depthImage->GetExtent().x, m_depthImage->GetExtent().y };
+    ddgiConstants.probeDistance = m_gridInfo.probeDistance;
+    ddgiConstants.numRaysPerProbe = m_gridInfo.numRaysPerProbe;
+    ddgiConstants.numBoundLights = 0;
+    ddgiConstants.counter = m_counter++;
 
-    if (m_counter == 0)
-    {
-        uniforms.flags |= PROBE_SYSTEM_FLAGS_FIRST_RUN;
-    }
-
-    Array<Pair<Light*, LightShaderData*>, RenderAllocator> tempLights;
+    Array<Pair<Light*, LightShaderData*>, RenderTempAllocator> tempLights;
+    tempLights.Reserve(MaxBoundLights);
 
     for (Light* light : rpl.GetLights())
     {
         const LightType lightType = light->GetLightType();
 
-        if (lightType != LightType::Directional
-            && lightType != LightType::Point)
+        if (lightType != LightType::Directional && lightType != LightType::Point)
         {
             continue;
         }
 
-        if (uniforms.numBoundLights >= MaxBoundLights)
+        if (ddgiConstants.numBoundLights >= MaxBoundLights)
         {
             break;
         }
@@ -231,15 +227,15 @@ void DDGI::UpdateUniforms(Frame* frame, const RenderSetup& renderSetup)
         Assert(lightProxy != nullptr);
 
         tempLights.EmplaceBack(light, &lightProxy->bufferData);
-        ++uniforms.numBoundLights;
+        ++ddgiConstants.numBoundLights;
     }
 
     // Update static DDGIConstants buffer (used by UpdateProbeData compute and DeferredIndirect)
-    m_cbuffers[frameIndex]->Copy(sizeof(uniforms), &uniforms);
-    m_cbuffers[frameIndex]->Flush(0, sizeof(uniforms));
+    m_cbuffers[frameIndex]->Copy(sizeof(ddgiConstants), &ddgiConstants);
+    m_cbuffers[frameIndex]->Flush(0, sizeof(ddgiConstants));
 
     // Build dynamic CBuffer for DDGI raygen: DDGIConstants + lights[MAX_LIGHTS] + EnvProbe
-    g_renderInterface->cbufferAllocator->Write(&uniforms);
+    g_renderInterface->cbufferAllocator->Write(&ddgiConstants);
 
     for (uint32 i = 0; i < MaxBoundLights; i++)
     {

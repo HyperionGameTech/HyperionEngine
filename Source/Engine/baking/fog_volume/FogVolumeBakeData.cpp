@@ -94,7 +94,7 @@ Result BakeData<FogVolume>::Build()
 
     m_voxelOctree = MakeUnique<VoxelOctree>();
 
-    auto buildResult = m_voxelOctree->Build(octreeParams, m_fogVolume->GetEntityManager());
+    auto buildResult = m_voxelOctree->Build(octreeParams, *m_fogVolume->GetEntityManager());
 
     if (buildResult.HasError())
     {

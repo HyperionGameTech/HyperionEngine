@@ -112,7 +112,7 @@ public:
 
     ~VoxelOctree() = default;
 
-    VoxelOctreeBuildResult Build(const VoxelOctreeParams& params, EntityManager* entityManager);
+    VoxelOctreeBuildResult Build(const VoxelOctreeParams& params, EntityManager& entityManager);
 
     /*! \brief Gets the distance from the given point to the nearest occupied voxel.
      *  \return The signed distance at the given point. Positive values indicate the point is outside occupied space, negative values indicate the point is inside occupied space.

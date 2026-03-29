@@ -374,7 +374,6 @@ void UISubsystem::RenderCollect(RenderProxyList& rpl)
                 meshProxy.instanceData = {};
             }
 
-            meshProxy.version = *entity->GetRenderProxyVersionPtr();
             meshProxy.forceRebind = false;
             meshProxy.entity = MakeWeakRef(entity);
             meshProxy.mesh = meshComponent->mesh;

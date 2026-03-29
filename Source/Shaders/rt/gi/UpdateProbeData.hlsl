@@ -105,12 +105,10 @@ void GatherRays(int2 coord, uint num_rays, inout float3 result, inout float tota
 
 [numthreads(GROUP_SIZE, GROUP_SIZE, 1)]
 void CSMain(
-    uint3 dispatchThreadID : SV_DispatchThreadID,
-    uint3 groupID         : SV_GroupID,
-    uint  groupIndex      : SV_GroupIndex)
+    uint3 dispatchThreadID  : SV_DispatchThreadID,
+    uint3 groupID           : SV_GroupID,
+    uint  groupIndex        : SV_GroupIndex)
 {
-    const uint is_first_run = ddgiConstants.flags & PROBE_SYSTEM_FLAGS_FIRST_RUN;
-
     int2 coord = int2(dispatchThreadID.xy) + (int2(groupID.xy) * int2(2, 2)) + int2(2, 2);
 
     float3 result = float3(0.0, 0.0, 0.0);
@@ -144,12 +142,12 @@ void CSMain(
 
 #if MODE_DEPTH
     float2 existing = outputImage[coord].xy;
-    float2 blended = is_first_run != 0 ? result.xy : lerp(existing, result.xy, alpha);
+    float2 blended = ddgiConstants.counter == 0 ? result.xy : lerp(existing, result.xy, alpha);
 
     outputImage[coord] = blended;
 #else
     float3 existing = outputImage[coord].rgb;
-    float3 blended = is_first_run != 0 ? result : lerp(existing, result, alpha);
+    float3 blended = ddgiConstants.counter == 0 ? result : lerp(existing, result, alpha);
 
     outputImage[coord] = float4(blended, 1.0);
 #endif
