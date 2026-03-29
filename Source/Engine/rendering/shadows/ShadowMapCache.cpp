@@ -170,6 +170,11 @@ static Camera* CreateShadowCamera(Light* light, uint32 cascadeIndex)
 
 static ViewDesc GetViewDesc(Light* light, bool isStatic, uint32 cascadeIndex, ShadowMap& shadowMap, Camera& camera)
 {
+    if (isStatic && (light->GetLightFlags() & LightFlags::BakeStaticShadows))
+    {
+        AssertDebug(false, "Should not call GetViewDesc() for static view if static shadows are baked");
+    }
+
     ViewDesc viewDesc {};
 
     viewDesc.scenes = {};
@@ -345,6 +350,12 @@ HYP_NODISCARD View* ShadowMapCache::GetOrCreateShadowView(
     bool isStatic) const
 {
     Assert(view != nullptr && light != nullptr);
+
+    if (isStatic && (light->GetLightFlags() & LightFlags::BakeStaticShadows))
+    {
+        AssertDebug(false, "Should not call GetOrCreateShadowView() for static view if static shadows are baked");
+        return nullptr;
+    }
 
     View* outView = nullptr;
 

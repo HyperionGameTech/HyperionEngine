@@ -334,6 +334,7 @@ void View::PrepareShadowViews(Array<View*, SceneTempAllocator>& outShadowViews)
             }
                 
             const bool cacheStaticObjects = (light->GetLightFlags() & LightFlags::CacheStaticShadowMaps);
+            const bool hasBakedStaticShadows = (light->GetLightFlags() & LightFlags::BakeStaticShadows);
 
             View* shadowViewsStatic[MaxShadowMapCascades] {};
             View* shadowViewsDynamic[MaxShadowMapCascades] {};
@@ -353,7 +354,7 @@ void View::PrepareShadowViews(Array<View*, SceneTempAllocator>& outShadowViews)
                     break;
                 }
 
-                if (cacheStaticObjects)
+                if (cacheStaticObjects && !hasBakedStaticShadows)
                 {
                     shadowViewsStatic[cascadeIndex] = g_renderInterface->shadowMapCache->GetOrCreateShadowView(
                         this,

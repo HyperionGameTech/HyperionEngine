@@ -18,6 +18,7 @@ namespace Hyperion {
 
 class Camera;
 class Material;
+class Texture;
 class View;
 class RenderProxyLight;
 
@@ -50,6 +51,7 @@ enum class LightFlags : uint32
     ShadowFilterMask = (ShadowPCF | ShadowContactHardening | ShadowVariance),
 
     CacheStaticShadowMaps = 0x10,
+    BakeStaticShadows = 0x20,
 
     Default = ShadowCaster | ShadowPCF
 };
@@ -252,7 +254,6 @@ public:
     {
         return m_material;
     }
-
     /*! \brief Sets the material handle associated with the Light. Used for textured area lights.
      *
      *  \param material The material to set for this Light. */
@@ -277,8 +278,17 @@ public:
     HYP_METHOD(Property = "ShadowMapCascades", Editor = true)
     void SetNumShadowMapCascades(uint32 numShadowMapCascades);
 
-    HYP_METHOD()
-    BoundingBox GetAABB() const;
+    /*! \brief Get the baked shadow map for this light - only present if the light has static shadows that have been baked.
+     *
+     *  \return The baked shadow map, or an empty handle if there is no baked shadow map. */
+    HYP_METHOD(Property = "BakedShadowMap")
+    HYP_FORCE_INLINE const Handle<Texture>& GetBakedShadowMap() const
+    {
+        return m_shadowMap;
+    }
+
+    HYP_METHOD(Property = "BakedShadowMap")
+    void SetBakedShadowMap(const Handle<Texture>& shadowMap);
 
     HYP_METHOD(Property = "ShadowMapFilter", Editor = true, Transient)
     ShadowMapFilter GetShadowMapFilter() const
@@ -293,7 +303,15 @@ public:
 
     BoundingSphere GetBoundingSphere() const;
 
+    HYP_METHOD()
+    BoundingBox GetAABB() const;
+
     void UpdateRenderProxy(RenderProxyLight* proxy);
+
+#if HYP_EDITOR
+    HYP_METHOD(EditorOnly, EditAction = "Bake Static Shadows", EditCondition = "ShouldBakeStaticShadows")
+    void BakeStaticShadows();
+#endif
 
 protected:
     void Init() override;
@@ -306,6 +324,12 @@ protected:
     void OnRemovedFromScene(Scene* scene) override;
 
     void OnTransformUpdated() override;
+
+    HYP_METHOD()
+    virtual bool ShouldBakeStaticShadows() const
+    {
+        return (m_lightFlags & (LightFlags::ShadowCaster | LightFlags::BakeStaticShadows)) == (LightFlags::ShadowCaster | LightFlags::BakeStaticShadows);
+    }
 
     HYP_FIELD()
     LightType m_type;
@@ -323,6 +347,9 @@ protected:
     Vec2f m_spotAngles;
     Handle<Material> m_material;
 
+    // Only present if baked
+    Handle<Texture> m_shadowMap;
+
     HYP_FIELD(Property = "ShadowMapDimensions")
     Vec2u m_shadowMapDimensions;
     
@@ -334,7 +361,7 @@ private:
 };
 
 HYP_CLASS()
-class HYP_API DirectionalLight : public Light
+class HYP_API DirectionalLight final : public Light
 {
     HYP_OBJECT_BODY(DirectionalLight);
 
@@ -364,10 +391,18 @@ public:
     {
         Light::SetPosition(direction.Normalized());
     }
+
+protected:
+    HYP_METHOD()
+    virtual bool ShouldBakeStaticShadows() const override
+    {
+        // do not bake static shadows for directional lights
+        return false;
+    }
 };
 
 HYP_CLASS()
-class HYP_API PointLight : public Light
+class HYP_API PointLight final : public Light
 {
     HYP_OBJECT_BODY(PointLight);
 
@@ -386,7 +421,7 @@ public:
 };
 
 HYP_CLASS()
-class HYP_API SpotLight : public Light
+class HYP_API SpotLight final : public Light
 {
     HYP_OBJECT_BODY(SpotLight);
 
@@ -405,7 +440,7 @@ public:
 };
 
 HYP_CLASS()
-class HYP_API AreaRectLight : public Light
+class HYP_API AreaRectLight final : public Light
 {
     HYP_OBJECT_BODY(AreaRectLight);
 

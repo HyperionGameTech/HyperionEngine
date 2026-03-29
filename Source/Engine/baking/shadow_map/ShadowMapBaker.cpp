@@ -1,0 +1,96 @@
+/* Copyright (c) 2016-2026 Andrew J. MacDonald. All rights reserved. */
+
+#include <HyperionPch.hpp>
+
+#include <baking/shadow_map/ShadowMapBaker.hpp>
+#include <baking/shadow_map/ShadowMapBakeJob.hpp>
+
+#include <rendering/RenderInterface.hpp>
+#include <rendering/Frame.hpp>
+#include <rendering/Texture.hpp>
+
+#include <rendering/util/DeletionQueue.hpp>
+
+#include <scene/Light.hpp>
+
+#include <engine/EngineGlobals.hpp>
+
+namespace Hyperion {
+
+namespace Baking {
+
+Baker<Light>::Baker(BakerConfig&& config, const Handle<Light>& light)
+    : BakerBase(std::move(config), light, MakeStrongRef(light->GetScene()), light->GetAABB()),
+      m_light(light)
+{
+}
+
+UniquePtr<BakeJobBase> Baker<Light>::CreateJob(BakeJobParams&& params)
+{
+    return MakeUnique<BakeJob<Light>>(std::move(params), m_light, &m_bakeData);
+}
+
+void Baker<Light>::CreateLightmapRenderers()
+{
+    m_lightmapRenderers.Clear();
+
+    if (!PerformsRayTracing())
+    {
+        return;
+    }
+
+    const uint32 maxTexelsPerFrame = MaxTexelsPerFrame();
+    AssertDebug(maxTexelsPerFrame > 0);
+
+    UniquePtr<ILightmapRenderer>& lightmapRenderer = m_lightmapRenderers.EmplaceBack();
+    lightmapRenderer = CreateRenderer(LightmapShadingType::SHADOW, maxTexelsPerFrame);
+
+    lightmapRenderer->Create();
+}
+
+Result Baker<Light>::Build_Internal()
+{
+    Assert(m_light != nullptr);
+    InitObject(m_light);
+
+    m_bakeData = BakeData<Light>(m_bakeEntities, m_light.Get());
+
+    return m_bakeData.Build();
+}
+
+void Baker<Light>::OnCompleted_Internal()
+{
+    HYP_SCOPE;
+
+    AssertDebug(m_bakeData.IsBuilt());
+    if (!m_bakeData.IsBuilt())
+    {
+        HYP_LOG(Lightmap, Warning, "Shadow map bake data for Light {} is not built, skipping texture creation", m_light->Id());
+        return;
+    }
+
+    const bool isCubemap = m_bakeData.GetNumFaces() == 6;
+
+    auto bitmap = m_bakeData.ToBitmap();
+
+    TextureDesc textureDesc {
+        isCubemap ? TextureType::Cubemap : TextureType::Texture2D,
+        bitmap.GetFormat(),
+        Vec3u { bitmap.GetWidth(), isCubemap ? bitmap.GetHeight() / 6 : bitmap.GetHeight(), 1 },
+        TFM_LINEAR,
+        TFM_LINEAR,
+        TWM_CLAMP_TO_EDGE
+    };
+
+    Handle<Texture> shadowMap = MakeHandle<Texture>(textureDesc, bitmap.ToByteView());
+    shadowMap->SetName(NAME_FMT("{}_BakedShadowMap", m_light->GetName()));
+    CheckResult(shadowMap->Create());
+
+    auto resGuard = m_light->GetWriteScope();
+    m_light->SetBakedShadowMap(shadowMap);
+
+    HYP_LOG(Lightmap, Verbose, "Shadow map baking for Light {} complete.", m_light->Id());
+}
+
+} // namespace Baking
+} // namespace Hyperion

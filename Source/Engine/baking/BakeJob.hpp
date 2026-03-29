@@ -24,6 +24,7 @@ using threading::TaskBatch;
 class Scene;
 class ReflectionProbe;
 class FogVolume;
+class Light;
 class View;
 class LightmapVolume;
 struct LightmapElement;

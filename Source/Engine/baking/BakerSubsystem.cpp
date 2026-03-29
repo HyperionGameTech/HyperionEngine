@@ -8,12 +8,14 @@
 #include <baking/lightmap_volume/LightmapVolumeBaker.hpp>
 #include <baking/reflection_probe/ReflectionProbeBaker.hpp>
 #include <baking/fog_volume/FogVolumeBaker.hpp>
+#include <baking/shadow_map/ShadowMapBaker.hpp>
 
 #include <rendering/RenderConfig.hpp>
 
 #include <scene/EnvProbe.hpp>
 #include <scene/FogVolume.hpp>
 #include <scene/LightmapVolume.hpp>
+#include <scene/Light.hpp>
 #include <scene/World.hpp>
 #include <scene/View.hpp>
 
@@ -94,6 +96,12 @@ Task<void> BakerSubsystem::EnqueueBake(const Handle<ReflectionProbe>& source)
 
 template <>
 Task<void> BakerSubsystem::EnqueueBake(const Handle<FogVolume>& source)
+{
+    return EnqueueBake_Internal(source);
+}
+
+template <>
+Task<void> BakerSubsystem::EnqueueBake(const Handle<Light>& source)
 {
     return EnqueueBake_Internal(source);
 }

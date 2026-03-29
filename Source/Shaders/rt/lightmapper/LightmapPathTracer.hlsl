@@ -611,6 +611,37 @@ void RayGenMain()
 
     float4 finalColor = accumRadiance / float(NUM_SAMPLES);
 
+#elif defined(MODE_SHADOW)
+    // We will need to write the shadowmap depth in a way that can be consumed by the rasterizer
+    payload.distance = -1.0;
+    payload.throughput = float4(1.0, 1.0, 1.0, 1.0);
+    payload.emissive = float4(0.0, 0.0, 0.0, 0.0);
+    payload.normal = float3(0.0, 0.0, 0.0);
+
+    RayDesc rayDesc;
+    rayDesc.Origin = ray.origin + ray.direction * RAY_OFFSET;
+    rayDesc.Direction = ray.direction;
+    rayDesc.TMin = 0.1;
+    rayDesc.TMax = 1000.0;
+
+    TraceRay(tlas, flags, 0xff, 0, 1, 0, rayDesc, payload);
+
+    float4 finalColor;
+
+    if (payload.distance >= 0.0)
+    {
+        // encode depth in red channel
+        float dist = payload.distance;
+        // get perspective divide factor for this fragment so that we can reconstruct linear depth in the shader that reads the shadowmap
+        // float4 clipPos = mul(float4(ray.origin + ray.direction * dist, 1.0), world_shader_data.viewProjMat);
+        
+        finalColor = float4(dist, 0.0, 0.0, 1.0);
+    }
+    else
+    {
+        // if the ray misses, write a depth value to indicate that the fragment is in light
+        finalColor = float4(0.0, 0.0, 0.0, 1.0);
+    }
 #else
     // shouldn't get here; output green so it's really obvious
     float4 finalColor = float4(0.0, 1.0, 0.0, 1.0);

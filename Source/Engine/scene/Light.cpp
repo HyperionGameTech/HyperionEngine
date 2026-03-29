@@ -33,9 +33,18 @@
 
 #include <engine/EngineDriver.hpp>
 
+#if HYP_EDITOR
+#include <baking/BakerSubsystem.hpp>
+#include <baking/shadow_map/ShadowMapBakeData.hpp>
+#endif
+
 #include <Light.generated.inl>
 
 namespace Hyperion {
+
+#if HYP_EDITOR
+HYP_DECLARE_LOG_CHANNEL(Editor);
+#endif
 
 static constexpr Vec2u DefaultShadowMapDimensions[NumLightTypes] = {
     Vec2u(1024, 1024), // LightType::Directional
@@ -106,6 +115,11 @@ void Light::Init()
     if (m_material.IsValid())
     {
         InitObject(m_material);
+    }
+
+    if (m_shadowMap.IsValid())
+    {
+        CheckResult(m_shadowMap->Create());
     }
 
     SetReady(true);
@@ -346,6 +360,35 @@ void Light::SetShadowMapFilter(ShadowMapFilter shadowMapFilter)
     SetNeedsRenderProxyUpdate();
 }
 
+void Light::SetBakedShadowMap(const Handle<Texture>& shadowMap)
+{
+    if (m_shadowMap == shadowMap)
+    {
+        return;
+    }
+
+    if (m_shadowMap.IsValid())
+    {
+        EnqueueDeletion(std::move(m_shadowMap));
+    }
+
+    m_shadowMap = shadowMap;
+
+    if (m_shadowMap.IsValid())
+    {
+        m_lightFlags |= LightFlags::BakeStaticShadows | LightFlags::ShadowCaster;
+        m_lightFlags &= ~LightFlags::CacheStaticShadowMaps;
+
+        if (IsInitCalled())
+        {
+            CheckResult(m_shadowMap->Create());
+        }
+    }
+    
+    SetNeedsRenderProxyUpdate();
+    MarkDirty();
+}
+
 BoundingBox Light::GetAABB() const
 {
     HYP_SCOPE;
@@ -425,6 +468,40 @@ void Light::UpdateRenderProxy(RenderProxyLight* proxy)
     //    bufferData.splitDistances[cascadeIndex] = Float16(0.0f); // @TODO
     //}
 }
+
+#if HYP_EDITOR
+
+void Light::BakeStaticShadows()
+{
+    HYP_SCOPE;
+
+    if (!ShouldBakeStaticShadows())
+    {
+        HYP_LOG(Editor, Warning, "Light {} is not marked for static shadow baking", Id());
+        return;
+    }
+
+    World* world = GetWorld();
+    AssertDebug(world != nullptr);
+
+    if (!world)
+    {
+        HYP_LOG(Editor, Error, "Cannot bake {}: not attached to a World", Id());
+
+        return;
+    }
+
+    BakerSubsystem* bakerSubsystem = world->GetSubsystem<BakerSubsystem>();
+
+    if (!bakerSubsystem)
+    {
+        bakerSubsystem = world->AddSubsystem<BakerSubsystem>();
+    }
+
+    bakerSubsystem->EnqueueBake(MakeStrongRef(this));
+}
+
+#endif
 
 #pragma endregion Light
 

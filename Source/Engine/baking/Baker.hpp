@@ -62,6 +62,7 @@ enum class LightmapShadingType : uint32
     IRRADIANCE = 0, // Bake irradiance only
     RADIANCE,       // Bake radiance only (direct light)
     FULL,           // Full scene bake
+    SHADOW,         // Bake static shadow map for a light (ray-traced)
     MAX
 };
 

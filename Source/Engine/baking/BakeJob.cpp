@@ -262,15 +262,12 @@ void BakeJobBase::IntegrateRayHits(Span<const LightmapRay> rays, Span<const Ligh
 
         switch (shadingType)
         {
-        case LightmapShadingType::FULL: // fallthrough
-        case LightmapShadingType::IRRADIANCE:
-            texel.color0 += hit.color;
-            break;
         case LightmapShadingType::RADIANCE:
             texel.color1 += hit.color;
             break;
         default:
-            HYP_UNREACHABLE();
+            texel.color0 += hit.color;
+            break;
         }
     }
 }

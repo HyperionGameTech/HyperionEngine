@@ -21,6 +21,7 @@ namespace Hyperion {
 class LightmapVolume;
 class ReflectionProbe;
 class FogVolume;
+class Light;
 class Scene;
 
 namespace Baking {
@@ -28,8 +29,10 @@ namespace Baking {
 class BakerBase;
 
 template <class T>
-concept Bakeable = std::is_same_v<T, LightmapVolume> || std::is_same_v<T, ReflectionProbe> || std::is_same_v<T, FogVolume>;
-
+    concept Bakeable = std::is_same_v<T, LightmapVolume>
+        || std::is_same_v<T, ReflectionProbe>
+        || std::is_same_v<T, FogVolume>
+        || std::is_same_v<T, Light>;
 } // namespace Baking
 
 HYP_CLASS()

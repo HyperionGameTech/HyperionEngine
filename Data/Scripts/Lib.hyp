@@ -1712,6 +1712,7 @@ extern enum LightmapShadingType : uint32
     IRRADIANCE = 0,
     RADIANCE,
     FULL,
+    SHADOW,
     MAX
 end
 extern struct BakerConfig
@@ -2262,9 +2263,13 @@ extern class Light : Entity
     SetShadowMapDimensions(shadowMapDimensions : Vec2u) -> void
     GetNumShadowMapCascades() -> uint32
     SetNumShadowMapCascades(numShadowMapCascades : uint32) -> void
-    GetAABB() -> BoundingBox
+    GetBakedShadowMap() -> Texture
+    SetBakedShadowMap(shadowMap : Texture) -> void
     GetShadowMapFilter() -> ShadowMapFilter
     SetShadowMapFilter(shadowMapFilter : ShadowMapFilter) -> void
+    GetAABB() -> BoundingBox
+    BakeStaticShadows() -> void
+    ShouldBakeStaticShadows() -> bool
     Type : LightType
     LightFlags : LightFlags
     ShadowMapDimensions : Vec2u
@@ -2279,6 +2284,7 @@ end
 extern class DirectionalLight : Light
     GetDirection() -> Vec3f
     SetDirection(direction : Vec3f) -> void
+    ShouldBakeStaticShadows() -> bool
 end
 extern enum LightType : uint32
     Directional = 0,
@@ -2295,6 +2301,7 @@ extern enum LightFlags : uint32
     ShadowVariance = 0x8,
     ShadowFilterMask = ((ShadowPCF | ShadowContactHardening) | ShadowVariance),
     CacheStaticShadowMaps = 0x10,
+    BakeStaticShadows = 0x20,
     Default = (ShadowCaster | ShadowPCF)
 end
 extern class EnvGrid : Entity

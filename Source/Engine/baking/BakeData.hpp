@@ -9,6 +9,7 @@ namespace Hyperion {
 class LightmapVolume;
 class ReflectionProbe;
 class FogVolume;
+class Light;
 class Mesh;
 class VoxelOctree;
 

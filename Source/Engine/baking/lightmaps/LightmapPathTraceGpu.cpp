@@ -105,26 +105,19 @@ namespace Baking {
 
 #pragma region LightmapRenderer_GpuPathTracing
 
+static const ShaderPropertyId s_lightmapModeProperties[uint32(LightmapShadingType::MAX)] = {
+    InternShaderProperty(ShaderProperty(NAME("MODE"), NAME("RADIANCE"))),
+    InternShaderProperty(ShaderProperty(NAME("MODE"), NAME("IRRADIANCE"))),
+    InternShaderProperty(ShaderProperty(NAME("MODE"), NAME("FULL"))),
+    InternShaderProperty(ShaderProperty(NAME("MODE"), NAME("SHADOW")))
+};
+
 static ShaderDesc GetShaderDesc(LightmapShadingType shadingType)
 {
     ShaderPropertySet shaderProperties;
     shaderProperties.Add(s_propMaxLights);
     shaderProperties.Add(s_propMaxEnvProbes);
-
-    switch (shadingType)
-    {
-    case LightmapShadingType::RADIANCE:
-        shaderProperties.Add(InternShaderProperty(ShaderProperty(NAME("MODE"), NAME("RADIANCE"))));
-        break;
-    case LightmapShadingType::IRRADIANCE:
-        shaderProperties.Add(InternShaderProperty(ShaderProperty(NAME("MODE"), NAME("IRRADIANCE"))));
-        break;
-    case LightmapShadingType::FULL:
-        shaderProperties.Add(InternShaderProperty(ShaderProperty(NAME("MODE"), NAME("FULL"))));
-        break;
-    default:
-        HYP_UNREACHABLE();
-    }
+    shaderProperties.Add(s_lightmapModeProperties[uint32(shadingType)]);
 
     return ShaderDesc(NAME("LightmapPathTracer"), shaderProperties);
 }

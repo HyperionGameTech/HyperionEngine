@@ -523,10 +523,10 @@ void Baker<LightmapVolume>::OnCompleted_Internal()
             {
                 Vertex& vertex = bakeMesh.vertices[i];
 
-                Vec2f& lightmapUv = vertex.texcoord1;
-                lightmapUv.y = 1.0f - lightmapUv.y; // Invert Y coordinate for lightmaps
-                lightmapUv *= lightmapElement->scale;
-                lightmapUv += Vec2f(lightmapElement->offsetUV.x, lightmapElement->offsetUV.y);
+                Vec2f& uv1 = vertex.texcoord1;
+                uv1.y = 1.0f - uv1.y; // Invert Y coordinate for lightmaps
+                uv1 *= lightmapElement->scale;
+                uv1 += Vec2f(lightmapElement->offsetUV.x, lightmapElement->offsetUV.y);
             }
 
             mesh->SetMeshData(newMeshDesc, bakeMesh.vertices.ToSpan(), bakeMesh.indices.ToByteView());

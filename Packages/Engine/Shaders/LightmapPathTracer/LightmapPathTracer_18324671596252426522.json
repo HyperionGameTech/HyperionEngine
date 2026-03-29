@@ -16,7 +16,7 @@
       "$Class": "ShaderProperty",
       "Name": "MODE",
       "Flags": 0,
-      "Value": "FULL",
+      "Value": "SHADOW",
       "EnumValues": []
     }, {
       "$Class": "ShaderProperty",
@@ -264,22 +264,22 @@
   "EntryPointNames": ["RayGenMain", "ClosestHitMain", "MissMain"],
   "ShaderBlobs": [{
       "$Class": "BlobDataReference",
-      "Key": "Engine/Shaders/LightmapPathTracer/LightmapPathTracer_6746685599656616209.RGS",
-      "Size": 111784
+      "Key": "Engine/Shaders/LightmapPathTracer/LightmapPathTracer_18324671596252426522.RGS",
+      "Size": 97856
     }, {
       "$Class": "BlobDataReference",
-      "Key": "Engine/Shaders/LightmapPathTracer/LightmapPathTracer_6746685599656616209.CHS",
+      "Key": "Engine/Shaders/LightmapPathTracer/LightmapPathTracer_18324671596252426522.CHS",
       "Size": 132528
     }, {
       "$Class": "BlobDataReference",
-      "Key": "Engine/Shaders/LightmapPathTracer/LightmapPathTracer_6746685599656616209.MS",
-      "Size": 36772
+      "Key": "Engine/Shaders/LightmapPathTracer/LightmapPathTracer_18324671596252426522.MS",
+      "Size": 36776
     }],
   "PropertySetHashCode": {},
   "LastCompiledTimestamp": {
-    "Value": 1774656712000
+    "Value": 1774803414000
   },
-  "Name": "LightmapPathTracer_6746685599656616209",
-  "FriendlyName": "LightmapPathTracer6746685599656616209",
+  "Name": "LightmapPathTracer_18324671596252426522",
+  "FriendlyName": "LightmapPathTracer_18324671596252426522",
   "OriginalFilepath": ""
 }
