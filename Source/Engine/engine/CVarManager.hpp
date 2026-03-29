@@ -60,7 +60,6 @@ public:
     Name name;
     int id;
     bool isHeapAllocated;
-    UTF8StringView configPath;
 
     CVarBase(const CVarBase& other) = delete;
     CVarBase& operator=(const CVarBase& other) = delete;
@@ -334,7 +333,8 @@ public:
 
     const CVarSnapshot& GetCurrentSnapshot() const;
 
-    FixedArray<CVarBase*, MaxCVars> vars;
+    Array<CVarBase*> cvars;
+    Array<const char*> cvarToConfigPath;
 
 private:
     HYP_NODISCARD int FindVarIndex(const ANSIString& name) const;
@@ -342,6 +342,7 @@ private:
 
     CVarSnapshot m_snapshots[RingBufferDepth];
     AtomicVar<uint32> m_snapshotIndex;
+
     Mutex m_mutex;
 };
 

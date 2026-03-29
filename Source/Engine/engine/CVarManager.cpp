@@ -272,6 +272,7 @@ struct DeferredInitCVar
 {
     CVarBase* cvar;
     String path;
+    String configPath;
 };
 
 static Array<DeferredInitCVar>& GetDeferredInitCVars()
@@ -280,7 +281,7 @@ static Array<DeferredInitCVar>& GetDeferredInitCVars()
     return s_deferredInitCVars;
 }
 
-static void InitCVar(CVarManager* manager, CVarBase* cvar, const UTF8StringView& path)
+static void InitCVar(CVarManager* manager, CVarBase* cvar, const UTF8StringView& path, const UTF8StringView& configPath = {})
 {
     AssertDebug(cvar != nullptr);
 
@@ -289,6 +290,7 @@ static void InitCVar(CVarManager* manager, CVarBase* cvar, const UTF8StringView&
         DeferredInitCVar& deferredCVar = GetDeferredInitCVars().EmplaceBack();
         deferredCVar.cvar = cvar;
         deferredCVar.path = path;
+        deferredCVar.configPath = configPath;
 
         return;
     }
@@ -296,15 +298,24 @@ static void InitCVar(CVarManager* manager, CVarBase* cvar, const UTF8StringView&
     cvar->name = CreateNameFromDynamicString(path);
     cvar->id = s_nextCVarId.Increment(1, MemoryOrder::ACQUIRE_RELEASE);
 
-    manager->vars[cvar->id] = cvar;
+    Assert(cvar->id < MaxCVars);
+
+    if (cvar->id < MaxCVars)
+    {
+        manager->cvars[cvar->id] = cvar;
+
+        if (configPath)
+        {
+            manager->cvarToConfigPath[cvar->id] = configPath.Data();
+        }
+    }
 }
 
 CVarBase::CVarBase(const UTF8StringView& path, const UTF8StringView& configPath)
     : id(-1),
-      isHeapAllocated(false),
-      configPath(configPath.Length() != 0 ? configPath : path) // use normal path if configPath is not provided
+      isHeapAllocated(false)
 {
-    InitCVar(s_pInstance, this, path);
+    InitCVar(s_pInstance, this, path, configPath);
 }
 
 #pragma endregion CVarBase
@@ -318,10 +329,12 @@ CVarManager& CVarManager::GetInstance()
 }
 
 CVarManager::CVarManager()
-    : vars {},
-      m_snapshotIndex(0)
+    : m_snapshotIndex(0)
 {
     s_pInstance = this;
+
+    cvars.Resize(MaxCVars);
+    cvarToConfigPath.Resize(MaxCVars);
 
     Array<DeferredInitCVar>& deferredInitCVars = GetDeferredInitCVars();
 
@@ -329,7 +342,7 @@ CVarManager::CVarManager()
     {
         for (DeferredInitCVar& deferredCVar : deferredInitCVars)
         {
-            InitCVar(this, deferredCVar.cvar, UTF8StringView(deferredCVar.path));
+            InitCVar(this, deferredCVar.cvar, UTF8StringView(deferredCVar.path), UTF8StringView(deferredCVar.configPath));
         }
 
         deferredInitCVars.Clear();
@@ -340,7 +353,7 @@ CVarManager::CVarManager()
 
 CVarManager::~CVarManager()
 {
-    for (CVarBase* var : vars)
+    for (CVarBase* var : cvars)
     {
         if (var && var->isHeapAllocated)
         {
@@ -357,15 +370,15 @@ void CVarManager::InitFromConfig(const ConfigBase& config)
 
     for (int i = 0; i < numVars; i++)
     {
-        CVarBase* cvar = vars[i];
+        CVarBase* cvar = cvars[i];
 
         if (!cvar)
         {
             continue;
         }
 
-        const char* path = cvar->configPath.Length() != 0
-            ? *cvar->configPath
+        const char* path = cvarToConfigPath[cvar->id] != nullptr
+            ? cvarToConfigPath[cvar->id]
             : cvar->name.LookupString();
 
         if (!path || path[0] == '\0')
@@ -391,7 +404,7 @@ HYP_NODISCARD CVarBase* CVarManager::FindVar(const ANSIString& name) const
     if (idx < 0)
         return nullptr;
 
-    return vars[idx];
+    return cvars[idx];
 }
 
 template <typename T>
@@ -404,7 +417,7 @@ void CVarManager::SetVar(StringHash nameHash, T value)
         return;
     }
 
-    static_cast<CVar<T>*>(vars[idx])->Set(value);
+    static_cast<CVar<T>*>(cvars[idx])->Set(value);
 }
 
 template <typename T>
@@ -441,9 +454,9 @@ void CVarManager::Advance()
 
     for (int i = 0; i < numVars; i++)
     {
-        if (vars[i])
+        if (cvars[i])
         {
-            vars[i]->WriteToSnapshot(next.values[i]);
+            cvars[i]->WriteToSnapshot(next.values[i]);
         }
     }
 
@@ -464,10 +477,10 @@ HYP_NODISCARD int CVarManager::FindVarIndex(const ANSIString& name) const
 
     for (uint32 i = 0; i < MaxCVars; i++)
     {
-        if (!vars[i])
+        if (!cvars[i])
             continue;
 
-        const ANSIString varNameLower = ANSIString(*vars[i]->name).ToLower();
+        const ANSIString varNameLower = ANSIString(*cvars[i]->name).ToLower();
 
         if (varNameLower == inNameLower)
             return int(i);
@@ -486,7 +499,7 @@ HYP_NODISCARD int CVarManager::FindVarIndex(StringHash nameHash) const
 {
     for (uint32 i = 0; i < MaxCVars; i++)
     {
-        if (vars[i] && vars[i]->name == nameHash)
+        if (cvars[i] && cvars[i]->name == nameHash)
         {
             return int(i);
         }
