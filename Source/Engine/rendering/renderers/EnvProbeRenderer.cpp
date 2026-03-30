@@ -156,13 +156,16 @@ void ConvolveEnvProbeCubemap(
             subResource,
             subResource);
 
-        // back to shader resource state
+        // back to shader resource state.
         cr << InsertBarrier(srcImage, RS_SHADER_RESOURCE, subResource);
-        cr << InsertBarrier(dstImage, RS_SHADER_RESOURCE, subResource);
+
+        // put ALL the remaining mips of dstImage into copy dst so we can generate mips on it
+        cr << InsertBarrier(dstImage, RS_COPY_DST);
 
         // generate mips on src texture before running convolve shader using it as a source
-        cr << GenerateMipmaps(srcTexture->GetGpuImage());
-        cr << InsertBarrier(srcTexture->GetGpuImage(), RS_SHADER_RESOURCE);
+        cr << GenerateMipmaps(dstImage);
+
+        cr << InsertBarrier(dstImage, RS_SHADER_RESOURCE);
     }
 
     for (uint8 mipIndex = 0; mipIndex < numMips; mipIndex++)

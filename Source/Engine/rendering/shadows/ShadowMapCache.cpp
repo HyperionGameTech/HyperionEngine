@@ -26,14 +26,6 @@ namespace Hyperion {
 
 #define SHADOW_MAP_CACHE_MULTITHREADED 1
 
-static constexpr TextureFormat PointLightShadowFormat = TextureFormat::RG16F;
-static constexpr TextureFormat DirectionalLightShadowFormats[SMF_MAX] = {
-    TextureFormat::RGBA8, // STANDARD
-    TextureFormat::RGBA8, // PCF
-    TextureFormat::RGBA8, // CONTACT_HARDENING
-    TextureFormat::RG16F  // VSM
-};
-
 static constexpr EnumFlags<ViewFlags> DefaultShadowViewFlags = ViewFlags::SHADOW_VIEW
     | ViewFlags::SKIP_LIGHTS | ViewFlags::SKIP_CAMERAS
     | ViewFlags::SKIP_LIGHTMAP_VOLUMES | ViewFlags::SKIP_PARTICLE_VOLUMES | ViewFlags::SKIP_FOG_VOLUMES
@@ -79,21 +71,10 @@ static RenderTargetDesc GetRenderTargetDesc(
     case LightType::Point:
     {
         // Frustum culling for cubemap views not currently supported.
-        outViewFlags |= ViewFlags::NO_FRUSTUM_CULLING | ViewFlags::COLLECT_ALL_ENTITIES;
+        outViewFlags |= ViewFlags::NO_FRUSTUM_CULLING;
 
         renderTargetDesc.numAttachments = 0;
         renderTargetDesc.numLayers = 6;
-
-        // depth, depth^2 texture (for variance shadow map)
-        AttachmentDesc& moments = renderTargetDesc.attachments[renderTargetDesc.numAttachments++];
-        moments.imageType = TextureType::Cubemap;
-        moments.format = TextureFormat::RG16F;
-        moments.loadOp = LoadOperation::LOAD;
-        moments.storeOp = StoreOperation::STORE;
-
-        moments.clearColorF16[0] = 1000.0f;
-        moments.clearColorF16[1] = 1000.0f;
-        moments.clearColorIsF16 = true;
 
         AttachmentDesc& depth = renderTargetDesc.attachments[renderTargetDesc.numAttachments++];
         depth.imageType = TextureType::Cubemap;
@@ -102,7 +83,6 @@ static RenderTargetDesc GetRenderTargetDesc(
         depth.storeOp = StoreOperation::STORE;
 
         outShaderDesc.name = NAME("DrawCubemap");
-
         outShaderDesc.properties = {};
         outShaderDesc.properties.Add(s_propModeShadows);
 
@@ -111,17 +91,6 @@ static RenderTargetDesc GetRenderTargetDesc(
     case LightType::Directional:
     {
         renderTargetDesc.numAttachments = 0;
-
-        //if (light->GetShadowMapFilter() == ShadowMapFilter::SMF_VSM)
-        //{
-        //    // depth, depth^2 texture (for variance shadow map)
-        //    AttachmentDesc& moments = renderTargetDesc.attachments[renderTargetDesc.numAttachments++];
-        //    moments.format = TextureFormat::RG16F;
-        //    moments.imageType = TextureType::Texture2D;
-        //    moments.loadOp = LoadOperation::LOAD;
-        //    moments.storeOp = StoreOperation::STORE;
-        //    std::fill(std::begin(moments.clearColor), std::end(moments.clearColor), 1000.0f);
-        //}
 
         AttachmentDesc& depth = renderTargetDesc.attachments[renderTargetDesc.numAttachments++];
         depth.format = TextureFormat::D16;
@@ -153,11 +122,10 @@ static Camera* CreateShadowCamera(Light* light, uint32 cascadeIndex)
     case LightType::Point:
         shadowMapCamera->SetFOV(90.0f);
         shadowMapCamera->SetNear(0.01f);
-        shadowMapCamera->SetFar(light->GetRadius());
+        shadowMapCamera->SetFar(1000.0f);//light->GetRadius());
 
         shadowMapCamera->AddCameraController(MakeHandle<PerspectiveCameraController>());
-
-        shadowMapCamera->SetDirection(Vec3f(0.0f, 0.0f, 1.0f));
+        
         break;
     default:
         break;
@@ -170,11 +138,6 @@ static Camera* CreateShadowCamera(Light* light, uint32 cascadeIndex)
 
 static ViewDesc GetViewDesc(Light* light, bool isStatic, uint32 cascadeIndex, ShadowMap& shadowMap, Camera& camera)
 {
-    if (isStatic && (light->GetLightFlags() & LightFlags::BakeStaticShadows))
-    {
-        AssertDebug(false, "Should not call GetViewDesc() for static view if static shadows are baked");
-    }
-
     ViewDesc viewDesc {};
 
     viewDesc.scenes = {};
@@ -193,22 +156,15 @@ static ViewDesc GetViewDesc(Light* light, bool isStatic, uint32 cascadeIndex, Sh
 
     viewDesc.overrideAttributes = RenderableAttributeSet(MeshAttributes(), materialAttributes);
 
-    if (light->GetLightFlags() & LightFlags::CacheStaticShadowMaps)
-    {
-        viewDesc.flags &= ~ViewFlags::COLLECT_ALL_ENTITIES;
+    viewDesc.flags &= ~ViewFlags::COLLECT_ALL_ENTITIES;
 
-        if (isStatic)
-        {
-            viewDesc.flags |= ViewFlags::COLLECT_STATIC_ENTITIES;
-        }
-        else
-        {
-            viewDesc.flags |= ViewFlags::COLLECT_DYNAMIC_ENTITIES;
-        }
+    if (isStatic)
+    {
+        viewDesc.flags |= ViewFlags::COLLECT_STATIC_ENTITIES;
     }
     else
     {
-        viewDesc.flags |= ViewFlags::COLLECT_ALL_ENTITIES;
+        viewDesc.flags |= ViewFlags::COLLECT_DYNAMIC_ENTITIES;
     }
 
     return viewDesc;
@@ -351,12 +307,6 @@ HYP_NODISCARD View* ShadowMapCache::GetOrCreateShadowView(
 {
     Assert(view != nullptr && light != nullptr);
 
-    if (isStatic && (light->GetLightFlags() & LightFlags::BakeStaticShadows))
-    {
-        AssertDebug(false, "Should not call GetOrCreateShadowView() for static view if static shadows are baked");
-        return nullptr;
-    }
-
     View* outView = nullptr;
 
     ShadowMapCacheKey key {};
@@ -383,6 +333,8 @@ HYP_NODISCARD View* ShadowMapCache::GetOrCreateShadowView(
             light->GetLightType() == LightType::Point ? ShadowMapType::SMT_OMNI : ShadowMapType::SMT_DIRECTIONAL,
             light->GetLightType() == LightType::Directional ? SMF_CONTACT_HARDENED : SMF_STANDARD,//light->GetShadowMapFilter(),
             light->GetShadowMapDimensions());
+
+        Assert(shadowMap != nullptr, "Failed to allocate ShadowMap");
     };
 
     auto it = m_impl->cache.Find(key);

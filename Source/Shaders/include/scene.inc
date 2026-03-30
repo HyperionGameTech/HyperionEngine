@@ -49,6 +49,7 @@ struct ShadowMap
     float _pad1;
     
     float4x4 viewProjMat;
+    float4x4 invProjMat;
     float4 aabbMin;         // w = offsetUV.x
     float4 aabbMax;         // w = offsetUV.y
     float4 dimensionsScale; // xy = slice dimensions in pixels, zw = slice dimensions relative to the atlas dimensions

@@ -333,8 +333,8 @@ void View::PrepareShadowViews(Array<View*, SceneTempAllocator>& outShadowViews)
                 continue;
             }
                 
-            const bool cacheStaticObjects = (light->GetLightFlags() & LightFlags::CacheStaticShadowMaps);
             const bool hasBakedStaticShadows = (light->GetLightFlags() & LightFlags::BakeStaticShadows);
+            const bool cacheStaticShadowMaps = !hasBakedStaticShadows && (light->GetLightFlags() & LightFlags::CacheStaticShadowMaps);
 
             View* shadowViewsStatic[MaxShadowMapCascades] {};
             View* shadowViewsDynamic[MaxShadowMapCascades] {};
@@ -354,7 +354,10 @@ void View::PrepareShadowViews(Array<View*, SceneTempAllocator>& outShadowViews)
                     break;
                 }
 
-                if (cacheStaticObjects && !hasBakedStaticShadows)
+                // We need a view specifically for static objects if we either:
+                // - cache shadow maps for statics independently
+                // - use baked shadow maps for statics
+                if (cacheStaticShadowMaps || hasBakedStaticShadows)
                 {
                     shadowViewsStatic[cascadeIndex] = g_renderInterface->shadowMapCache->GetOrCreateShadowView(
                         this,

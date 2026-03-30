@@ -39,15 +39,18 @@ Result BakeData<Light>::Build()
     texels.Resize(numTexelsTotal);
     m_rays.Resize(numTexelsTotal);
 
-    const Vec3f origin = m_light->GetPosition();
+    m_projMat = Mat4f::Perspective(90.0f, dimensions.x, dimensions.y, 0.01f, 1000.0f);
 
-    m_projMatrix = Mat4f::Perspective(90.0f, dimensions.x, dimensions.y, 0.001f, 1000.0f);
+    const Vec3f origin = m_light->GetPosition();
 
     for (uint32 face = 0; face < numFaces; face++)
     {
         const Vec3f forward = Texture::s_cubemapDirections[face].first;
         const Vec3f up = Texture::s_cubemapDirections[face].second * Vec3f(-1.0f);
         const Vec3f right = forward.Cross(up).Normalize();
+
+        m_viewProjMats[face] = m_projMat // m_light->GetRadius());
+            * Mat4f::LookAt(origin, origin + forward, up);
 
         for (uint32 y = 0; y < dimensions.y; y++)
         {
@@ -108,10 +111,13 @@ auto BakeData<Light>::ToBitmap() const -> BitmapType
                 }
 
                 // otherwise transform to 0..1 range based on viewproj mat
-                const Vec4f transformedPosition = (m_projMatrix * Vec4f(0.0f, 0.0f, dist, 1.0f));
+                //const Vec4f transformedPosition = (m_viewProjMats[face] * Vec4f(texels[texelIdx].pRay->ray.position + texels[texelIdx].pRay->ray.direction * dist, 1.0f));
+                
+                // otherwise transform to 0..1 range based on viewproj mat
+                const Vec4f transformedPosition = (m_projMat * Vec4f(0.0f, 0.0f, dist, 1.0f));
                 const float depth = transformedPosition.z / transformedPosition.w;
 
-                bitmap.GetPixelReference(x, bitmapY).SetR(depth);
+                bitmap.GetPixelReference(x, bitmapY).SetComponentRaw(0, uint16(depth * 65535.0f));
             }
         }
     }

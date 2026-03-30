@@ -148,21 +148,23 @@ struct PSInput
 struct PSOutput
 {
 #ifdef MODE_SHADOWS
-    float2 output_color : SV_Target0;
-#else
+    #ifdef WRITE_MOMENTS // For variant shadow map
+        float2 output_moments : SV_Target0;
+    #endif // WRITE_MOMENTS
+#else // !MODE_SHADOWS
     float4 output_color : SV_Target0;
-#endif
 
-#ifdef WRITE_NORMALS
-    float2 output_normals : SV_Target1;
-    #ifdef WRITE_MOMENTS
-    float2 output_moments : SV_Target2;
-    #endif
-#else
-    #ifdef WRITE_MOMENTS
-    float2 output_moments : SV_Target1;
-    #endif
-#endif
+    #ifdef WRITE_NORMALS
+        float2 output_normals : SV_Target1;
+        #ifdef WRITE_MOMENTS
+            float2 output_moments : SV_Target2;
+        #endif // !WRITE_MOMENTS
+    #else // !WRITE_NORMALS
+        #ifdef WRITE_MOMENTS
+            float2 output_moments : SV_Target1;
+        #endif
+    #endif // WRITE_NORMALS
+#endif // MODE_SHADOWS
 };
 
 DECLARE_SAMPLER(Default, SamplerLinear) SamplerState sampler_linear;
@@ -218,30 +220,32 @@ PSOutput PSMain(PSInput input)
         albedo *= albedo_texture;
     }
 
-#if defined(WRITE_MOMENTS) || defined(MODE_SHADOWS)
+#ifdef WRITE_MOMENTS
     const float dist = distance(input.position, input.camera_position);
     float2 moments = float2(dist, HYP_FMATH_SQR(dist));
-#endif
-
+    
 #ifdef MODE_SHADOWS
     float dx = ddx(dist);
     float dy = ddy(dist);
 
     moments.y += 0.25 * (HYP_FMATH_SQR(dx) + HYP_FMATH_SQR(dy));
+#endif // MODE_SHADOWS
 
-    output.output_color = moments;
-#else
+#endif // WRITE_MOMENTS
+
+#ifndef MODE_SHADOWS
     output.output_color.rgb = albedo.rgb;
     output.output_color.a = 1.0;
 
 #ifdef WRITE_NORMALS
     output.output_normals = PackNormalVec2(N);
-#endif
+#endif // WRITE_NORMALS
+
+#endif // !MODE_SHADOWS
 
 #ifdef WRITE_MOMENTS
-output.output_moments = moments;
-    #endif
-#endif
+    output.output_moments = moments;
+#endif // WRITE_MOMENTS
 
     return output;
 }

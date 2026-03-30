@@ -621,14 +621,14 @@ void RayGenMain()
     RayDesc rayDesc;
     rayDesc.Origin = ray.origin + ray.direction * RAY_OFFSET;
     rayDesc.Direction = ray.direction;
-    rayDesc.TMin = 0.1;
-    rayDesc.TMax = 1000.0;
+    rayDesc.TMin = 0.01;
+    rayDesc.TMax = 1500.0;
 
     TraceRay(tlas, flags, 0xff, 0, 1, 0, rayDesc, payload);
 
     float4 finalColor;
 
-    if (payload.distance >= 0.0)
+    if (payload.distance > 0.0)
     {
         // encode depth in red channel
         float dist = payload.distance;

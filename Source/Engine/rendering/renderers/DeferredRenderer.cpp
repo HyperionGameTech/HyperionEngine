@@ -292,6 +292,7 @@ void FillShadowMapData(
     outShadowMapData.layerIndex = atlasElement->layerIndex;
 
     outShadowMapData.viewProjMat = viewProjMat;
+    outShadowMapData.invProjMat = shadowCameraProxy->bufferData.inverseProjMat;
 
     outShadowMapData.aabbMin.x = shadowBoundsWS.min.x;
     outShadowMapData.aabbMin.y = shadowBoundsWS.min.y;

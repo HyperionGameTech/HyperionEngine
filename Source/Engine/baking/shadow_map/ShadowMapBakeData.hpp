@@ -16,7 +16,7 @@ template <>
 class BakeData<Light> : public BakeDataBase
 {
 public:
-    using BitmapType = Bitmap_R32F;
+    using BitmapType = Bitmap_R16;
 
     BakeData()
         : m_light(nullptr)
@@ -52,7 +52,8 @@ protected:
     Light* m_light;
     Array<LightmapRay> m_rays;
 
-    Mat4f m_projMatrix;
+    Mat4f m_viewProjMats[6];
+    Mat4f m_projMat;
 };
 
 } // namespace Baking

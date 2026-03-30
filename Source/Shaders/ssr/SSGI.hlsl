@@ -428,7 +428,7 @@ float3 CalculateDirectLighting(uint light_index, float3 albedo, float3 P, float3
         }
         else if (light.type == HYP_LIGHT_TYPE_POINT)
         {
-            shadow = GetPointShadowStandard(shadowMap.layerIndex, P - light.position_intensity.xyz, NdotL);
+            shadow = GetPointShadowStandard(shadowMap, P - light.position_intensity.xyz, NdotL);
         }
     }
 

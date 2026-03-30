@@ -96,7 +96,7 @@ struct PixelReference
 
         if constexpr (std::is_same_v<ComponentType, ubyte>)
         {
-            fv = float(*(byteOffset + index)) / 255.0f;
+            fv = float(*reinterpret_cast<ComponentType*>(reinterpret_cast<UIntPtr>(byteOffset) + (sizeof(ComponentType) * index))) / float(MathUtil::MaxSafeValue<ComponentType>());
         }
         else
         {
@@ -138,9 +138,9 @@ struct PixelReference
             value = MathUtil::Pow(value, 1.0f / 2.2f);
         }
 
-        if constexpr (std::is_same_v<ComponentType, ubyte>)
+        if constexpr (!std::is_floating_point_v<ComponentType> && !std::is_same_v<ComponentType, Float16>)
         {
-            *(byteOffset + index) = ubyte(value * 255.0f);
+            *reinterpret_cast<ComponentType*>(reinterpret_cast<UIntPtr>(byteOffset) + (sizeof(ComponentType) * index)) = ComponentType(value * float(MathUtil::MaxSafeValue<ComponentType>()));
         }
         else
         {
@@ -197,13 +197,13 @@ struct PixelReference
             return rg;
         }
 
-        if constexpr (std::is_same_v<ComponentType, ubyte>)
+        if constexpr (!std::is_floating_point_v<ComponentType> && !std::is_same_v<ComponentType, Float16>)
         {
-            rg.x = float(*(byteOffset)) / 255.0f;
+            rg.x = GetComponentFloat(0);
 
             if constexpr (NumComponents >= 2)
             {
-                rg.y = float(*(byteOffset + 1)) / 255.0f;
+                rg.y = GetComponentFloat(1);
             }
         }
         else
@@ -244,13 +244,13 @@ struct PixelReference
             g = MathUtil::Pow(g, 1.0f / 2.2f);
         }
 
-        if constexpr (std::is_same_v<ComponentType, ubyte>)
+        if constexpr (!std::is_floating_point_v<ComponentType> && !std::is_same_v<ComponentType, Float16>)
         {
-            *byteOffset = ubyte(r * 255.0f);
+            SetComponentFloat(0, r);
 
             if constexpr (NumComponents >= 2)
             {
-                *(byteOffset + 1) = ubyte(g * 255.0f);
+                SetComponentFloat(1, g);
             }
         }
         else
@@ -273,18 +273,18 @@ struct PixelReference
             return rgb;
         }
 
-        if constexpr (std::is_same_v<ComponentType, ubyte>)
+        if constexpr (!std::is_floating_point_v<ComponentType> && !std::is_same_v<ComponentType, Float16>)
         {
-            rgb.x = float(*(byteOffset)) / 255.0f;
+            rgb.x = GetComponentFloat(0);
 
             if constexpr (NumComponents >= 2)
             {
-                rgb.y = float(*(byteOffset + 1)) / 255.0f;
+                rgb.y = GetComponentFloat(1);
             }
 
             if constexpr (NumComponents >= 3)
             {
-                rgb.z = float(*(byteOffset + 2)) / 255.0f;
+                rgb.z = GetComponentFloat(2);
             }
         }
         else
@@ -331,18 +331,18 @@ struct PixelReference
             b = MathUtil::Pow(b, 1.0f / 2.2f);
         }
 
-        if constexpr (std::is_same_v<ComponentType, ubyte>)
+        if constexpr (!std::is_floating_point_v<ComponentType> && !std::is_same_v<ComponentType, Float16>)
         {
-            *byteOffset = ubyte(r * 255.0f);
+            SetComponentFloat(0, r);
 
             if constexpr (NumComponents >= 2)
             {
-                *(byteOffset + 1) = ubyte(g * 255.0f);
+                SetComponentFloat(1, g);
             }
 
             if constexpr (NumComponents >= 3)
             {
-                *(byteOffset + 2) = ubyte(b * 255.0f);
+                SetComponentFloat(2, b);
             }
         }
         else
@@ -370,23 +370,23 @@ struct PixelReference
             return rgba;
         }
 
-        if constexpr (std::is_same_v<ComponentType, ubyte>)
+        if constexpr (!std::is_floating_point_v<ComponentType> && !std::is_same_v<ComponentType, Float16>)
         {
-            rgba.x = float(*(byteOffset)) / 255.0f;
+            rgba.x = GetComponentFloat(0);
 
             if constexpr (NumComponents >= 2)
             {
-                rgba.y = float(*(byteOffset + 1)) / 255.0f;
+                rgba.y = GetComponentFloat(1);
             }
 
             if constexpr (NumComponents >= 3)
             {
-                rgba.z = float(*(byteOffset + 2)) / 255.0f;
+                rgba.z = GetComponentFloat(2);
             }
 
             if constexpr (NumComponents >= 4)
             {
-                rgba.w = float(*(byteOffset + 3)) / 255.0f;
+                rgba.w = GetComponentFloat(3);
             }
         }
         else
@@ -442,23 +442,23 @@ struct PixelReference
             // alpha is not converted to sRGB
         }
 
-        if constexpr (std::is_same_v<ComponentType, ubyte>)
+        if constexpr (!std::is_floating_point_v<ComponentType> && !std::is_same_v<ComponentType, Float16>)
         {
-            *byteOffset = ubyte(r * 255.0f);
+            SetComponentFloat(0, r);
 
             if constexpr (NumComponents >= 2)
             {
-                *(byteOffset + 1) = ubyte(g * 255.0f);
+                SetComponentFloat(1, g);
             }
 
             if constexpr (NumComponents >= 3)
             {
-                *(byteOffset + 2) = ubyte(b * 255.0f);
+                SetComponentFloat(2, b);
             }
 
             if constexpr (NumComponents >= 4)
             {
-                *(byteOffset + 3) = ubyte(a * 255.0f);
+                SetComponentFloat(3, a);
             }
         }
         else
@@ -648,169 +648,18 @@ struct ConstPixelReference
 
     HYP_FORCE_INLINE Vec2f GetRG() const
     {
-        Vec2f rg = Vec2f(0.0f, 0.0f);
-
-        if (HYP_UNLIKELY(!byteOffset))
-        {
-            return rg;
-        }
-
-        if constexpr (std::is_same_v<ComponentType, ubyte>)
-        {
-            rg.x = float(*(byteOffset)) / 255.0f;
-
-            if constexpr (NumComponents >= 2)
-            {
-                rg.y = float(*(byteOffset + 1)) / 255.0f;
-            }
-        }
-        else
-        {
-            rg.x = *reinterpret_cast<const ComponentType*>(byteOffset);
-
-            if constexpr (NumComponents >= 2)
-            {
-                rg.y = *reinterpret_cast<const ComponentType*>(reinterpret_cast<UIntPtr>(byteOffset) + sizeof(ComponentType));
-            }
-        }
-
-        if constexpr (IsSRGB)
-        {
-            // convert from sRGB to linear
-            rg = MathUtil::Pow(rg, 2.2f);
-        }
-
-        return rg;
+        return reinterpret_cast<const PixelReference<ComponentType, NumComponents, IsSRGB>*>(this)->GetRG();
     }
 
     HYP_FORCE_INLINE Vec3f GetRGB() const
     {
-        Vec3f rgb = Vec3f(0.0f, 0.0f, 0.0f);
-
-        if (HYP_UNLIKELY(!byteOffset))
-        {
-            return rgb;
-        }
-
-        if constexpr (std::is_same_v<ComponentType, ubyte>)
-        {
-            rgb.x = float(*(byteOffset)) / 255.0f;
-
-            if constexpr (NumComponents >= 2)
-            {
-                rgb.y = float(*(byteOffset + 1)) / 255.0f;
-            }
-
-            if constexpr (NumComponents >= 3)
-            {
-                rgb.z = float(*(byteOffset + 2)) / 255.0f;
-            }
-        }
-        else
-        {
-            rgb.x = *reinterpret_cast<const ComponentType*>(byteOffset);
-
-            if constexpr (NumComponents >= 2)
-            {
-                rgb.y = *reinterpret_cast<const ComponentType*>(reinterpret_cast<UIntPtr>(byteOffset) + sizeof(ComponentType));
-            }
-
-            if constexpr (NumComponents >= 3)
-            {
-                rgb.z = *reinterpret_cast<const ComponentType*>(reinterpret_cast<UIntPtr>(byteOffset) + sizeof(ComponentType) * 2);
-            }
-        }
-
-        if constexpr (IsSRGB)
-        {
-            // convert from sRGB to linear
-            rgb = MathUtil::Pow(rgb, 2.2f);
-        }
-
-        return rgb;
+        return reinterpret_cast<const PixelReference<ComponentType, NumComponents, IsSRGB>*>(this)->GetRGB();
     }
 
     HYP_FORCE_INLINE Vec4f GetRGBA() const
     {
-        Vec4f rgba = Vec4f(0.0f, 0.0f, 0.0f, 1.0f);
-
-        if (HYP_UNLIKELY(!byteOffset))
-        {
-            return rgba;
-        }
-
-        if constexpr (std::is_same_v<ComponentType, ubyte>)
-        {
-            rgba.x = float(*(byteOffset)) / 255.0f;
-
-            if constexpr (NumComponents >= 2)
-            {
-                rgba.y = float(*(byteOffset + 1)) / 255.0f;
-            }
-
-            if constexpr (NumComponents >= 3)
-            {
-                rgba.z = float(*(byteOffset + 2)) / 255.0f;
-            }
-
-            if constexpr (NumComponents >= 4)
-            {
-                rgba.w = float(*(byteOffset + 3)) / 255.0f;
-            }
-        }
-        else
-        {
-            rgba.x = *reinterpret_cast<const ComponentType*>(byteOffset);
-
-            if constexpr (NumComponents >= 2)
-            {
-                rgba.y = *reinterpret_cast<const ComponentType*>(reinterpret_cast<UIntPtr>(byteOffset) + sizeof(ComponentType));
-            }
-
-            if constexpr (NumComponents >= 3)
-            {
-                rgba.z = *reinterpret_cast<const ComponentType*>(reinterpret_cast<UIntPtr>(byteOffset) + sizeof(ComponentType) * 2);
-            }
-
-            if constexpr (NumComponents >= 4)
-            {
-                rgba.w = *reinterpret_cast<const ComponentType*>(reinterpret_cast<UIntPtr>(byteOffset) + sizeof(ComponentType) * 3);
-            }
-        }
-
-        if constexpr (IsSRGB)
-        {
-            // convert from sRGB to linear
-            Vec3f linear = MathUtil::Pow(rgba.GetXYZ(), 2.2f);
-            rgba.x = linear.x;
-            rgba.y = linear.y;
-            rgba.z = linear.z;
-        }
-
-        return rgba;
+        return reinterpret_cast<const PixelReference<ComponentType, NumComponents, IsSRGB>*>(this)->GetRGBA();
     }
-
-    /*
-
-    HYP_FORCE_INLINE explicit operator float() const
-    {
-        return GetR();
-    }
-
-    HYP_FORCE_INLINE operator Vec2f() const
-    {
-        return GetRG();
-    }
-
-    HYP_FORCE_INLINE operator Vec3f() const
-    {
-        return GetRGB();
-    }
-
-    HYP_FORCE_INLINE operator Vec4f() const
-    {
-        return GetRGBA();
-    }*/
 };
 
 template <>

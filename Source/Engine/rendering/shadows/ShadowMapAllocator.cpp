@@ -83,7 +83,7 @@ void ShadowMapAllocator::Initialize()
 
     m_pointLightTextureArray = MakeHandle<Texture>(TextureDesc {
         TextureType::CubemapArray,
-        TextureFormat::RG16F, // Variance shadow maps are used for point lights
+        TextureFormat::D16,
         Vec3u { 256, 256, 1 },
         TFM_NEAREST,
         TFM_NEAREST,

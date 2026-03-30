@@ -100,9 +100,14 @@ Light::Light(LightType type, const Vec3f& position, const Vec3f& normal, const V
 
 Light::~Light()
 {
-    if (m_material != nullptr)
+    if (m_material.IsValid())
     {
         EnqueueDeletion(std::move(m_material));
+    }
+
+    if (m_shadowMap.IsValid())
+    {
+        EnqueueDeletion(std::move(m_shadowMap));
     }
 }
 
@@ -180,6 +185,24 @@ void Light::Update(float delta)
     }
 }
 
+void Light::SetLightFlags(EnumFlags<LightFlags> flags)
+{
+    if (m_lightFlags == flags)
+    {
+        return;
+    }
+
+    if (!(flags & LightFlags::BakeStaticShadows) && m_shadowMap.IsValid())
+    {
+        EnqueueDeletion(std::move(m_shadowMap));
+    }
+
+    m_lightFlags = flags;
+
+    SetNeedsRenderProxyUpdate();
+    MarkDirty();
+}
+
 void Light::SetPosition(const Vec3f& position)
 {
     HYP_SCOPE;
@@ -192,6 +215,7 @@ void Light::SetPosition(const Vec3f& position)
     m_position = position;
 
     SetNeedsRenderProxyUpdate();
+    MarkDirty();
 }
 
 void Light::SetNormal(const Vec3f& normal)
@@ -204,6 +228,7 @@ void Light::SetNormal(const Vec3f& normal)
     m_normal = normal;
 
     SetNeedsRenderProxyUpdate();
+    MarkDirty();
 }
 
 void Light::SetAreaSize(const Vec2f& areaSize)
@@ -216,6 +241,7 @@ void Light::SetAreaSize(const Vec2f& areaSize)
     m_areaSize = areaSize;
 
     SetNeedsRenderProxyUpdate();
+    MarkDirty();
 }
 
 void Light::SetColor(const Color& color)
@@ -228,6 +254,7 @@ void Light::SetColor(const Color& color)
     m_color = color;
 
     SetNeedsRenderProxyUpdate();
+    MarkDirty();
 }
 
 void Light::SetIntensity(float intensity)
@@ -240,6 +267,7 @@ void Light::SetIntensity(float intensity)
     m_intensity = intensity;
 
     SetNeedsRenderProxyUpdate();
+    MarkDirty();
 }
 
 void Light::SetRadius(float radius)
@@ -252,6 +280,7 @@ void Light::SetRadius(float radius)
     m_radius = radius;
 
     SetNeedsRenderProxyUpdate();
+    MarkDirty();
 }
 
 void Light::SetFalloff(float falloff)
@@ -264,6 +293,7 @@ void Light::SetFalloff(float falloff)
     m_falloff = falloff;
 
     SetNeedsRenderProxyUpdate();
+    MarkDirty();
 }
 
 void Light::SetSpotAngles(const Vec2f& spotAngles)
@@ -276,6 +306,7 @@ void Light::SetSpotAngles(const Vec2f& spotAngles)
     m_spotAngles = spotAngles;
 
     SetNeedsRenderProxyUpdate();
+    MarkDirty();
 }
 
 void Light::SetMaterial(Handle<Material> material)
@@ -294,6 +325,7 @@ void Light::SetMaterial(Handle<Material> material)
     InitObject(m_material);
 
     SetNeedsRenderProxyUpdate();
+    MarkDirty();
 }
 
 Pair<Vec3f, Vec3f> Light::CalculateAreaLightRect() const
@@ -326,9 +358,15 @@ void Light::SetShadowMapDimensions(Vec2u shadowMapDimensions)
         return;
     }
 
+    if (m_shadowMap.IsValid())
+    {
+        EnqueueDeletion(std::move(m_shadowMap));
+    }
+
     m_shadowMapDimensions = shadowMapDimensions;
 
     SetNeedsRenderProxyUpdate();
+    MarkDirty();
 }
 
 void Light::SetNumShadowMapCascades(uint32 numShadowMapCascades)
@@ -339,10 +377,16 @@ void Light::SetNumShadowMapCascades(uint32 numShadowMapCascades)
     {
         return;
     }
+    
+    if (m_shadowMap.IsValid())
+    {
+        EnqueueDeletion(std::move(m_shadowMap));
+    }
 
     m_numShadowMapCascades = numShadowMapCascades;
 
     SetNeedsRenderProxyUpdate();
+    MarkDirty();
 }
 
 void Light::SetShadowMapFilter(ShadowMapFilter shadowMapFilter)
@@ -358,6 +402,7 @@ void Light::SetShadowMapFilter(ShadowMapFilter shadowMapFilter)
     m_lightFlags |= EnumFlags<LightFlags>(1u << shadowMapFilter);
 
     SetNeedsRenderProxyUpdate();
+    MarkDirty();
 }
 
 void Light::SetBakedShadowMap(const Handle<Texture>& shadowMap)
@@ -377,7 +422,6 @@ void Light::SetBakedShadowMap(const Handle<Texture>& shadowMap)
     if (m_shadowMap.IsValid())
     {
         m_lightFlags |= LightFlags::BakeStaticShadows | LightFlags::ShadowCaster;
-        m_lightFlags &= ~LightFlags::CacheStaticShadowMaps;
 
         if (IsInitCalled())
         {
@@ -434,7 +478,7 @@ void Light::UpdateRenderProxy(RenderProxyLight* proxy)
 
     proxy->light = WeakHandleFromThis();
     proxy->lightMaterial = m_material.Get();
-
+    proxy->bakedShadowMap = m_shadowMap.Get();
     proxy->numCascades = m_numShadowMapCascades;
 
     const BoundingBox aabb = GetAABB();
@@ -462,11 +506,6 @@ void Light::UpdateRenderProxy(RenderProxyLight* proxy)
     default:
         break;
     }
-
-    //for (uint32 cascadeIndex = 0; cascadeIndex < uint32(std::size(bufferData.cascades)); cascadeIndex++)
-    //{
-    //    bufferData.splitDistances[cascadeIndex] = Float16(0.0f); // @TODO
-    //}
 }
 
 #if HYP_EDITOR

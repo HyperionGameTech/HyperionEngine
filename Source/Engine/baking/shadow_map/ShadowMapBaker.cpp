@@ -17,6 +17,10 @@
 
 namespace Hyperion {
 
+namespace CoreApi {
+extern FilePath GetExecutablePath();
+}
+
 namespace Baking {
 
 Baker<Light>::Baker(BakerConfig&& config, const Handle<Light>& light)
@@ -75,12 +79,18 @@ void Baker<Light>::OnCompleted_Internal()
 
     TextureDesc textureDesc {
         isCubemap ? TextureType::Cubemap : TextureType::Texture2D,
-        bitmap.GetFormat(),
+        TextureFormat::D16,
         Vec3u { bitmap.GetWidth(), isCubemap ? bitmap.GetHeight() / 6 : bitmap.GetHeight(), 1 },
         TFM_LINEAR,
         TFM_LINEAR,
         TWM_CLAMP_TO_EDGE
     };
+
+    FileByteWriter tmpWriter { CoreApi::GetExecutablePath() / "TempShadow.bmp" };
+    bitmap.Write(&tmpWriter);
+    tmpWriter.Close();
+
+    Assert(TextureUtils::BytesPerComponent(textureDesc.format) == TextureUtils::BytesPerComponent(bitmap.GetFormat()));
 
     Handle<Texture> shadowMap = MakeHandle<Texture>(textureDesc, bitmap.ToByteView());
     shadowMap->SetName(NAME_FMT("{}_BakedShadowMap", m_light->GetName()));

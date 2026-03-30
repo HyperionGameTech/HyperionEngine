@@ -107,16 +107,7 @@ public:
     }
 
     HYP_METHOD()
-    void SetLightFlags(EnumFlags<LightFlags> flags)
-    {
-        if (m_lightFlags == flags)
-        {
-            return;
-        }
-
-        m_lightFlags = flags;
-        SetNeedsRenderProxyUpdate();
-    }
+    void SetLightFlags(EnumFlags<LightFlags> flags);
 
     /*! \brief Get the position for the light. For directional lights, this is the direction the light is pointing.
      *
@@ -408,13 +399,14 @@ class HYP_API PointLight final : public Light
 
 public:
     PointLight()
-        : PointLight(Vec3f(0.0f), Color::White(), 5.0f, 10.0f)
+        : PointLight(Vec3f(0.0f), Color::White(), 5.0f, 25.0f)
     {
     }
 
     PointLight(const Vec3f& position, const Color& color, float intensity, float radius)
         : Light(LightType::Point, position, color, intensity, radius)
     {
+        m_lightFlags |= LightFlags::CacheStaticShadowMaps;
     }
 
     virtual ~PointLight() override = default;

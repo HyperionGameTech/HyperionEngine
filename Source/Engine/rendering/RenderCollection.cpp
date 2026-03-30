@@ -690,11 +690,12 @@ static void SetForwardShadingUniforms(
             shadowBoundsNDC.min = Vec3f(-1.0f);
             shadowBoundsNDC.max = Vec3f(1.0f);
 
-            BoundingBox shadowBoundsWS = viewProjMat.Inverse() * shadowBoundsNDC;
+            BoundingBox shadowBoundsWS = shadowCameraProxy->bufferData.inverseViewMat * shadowBoundsNDC;
         
             currShadowMapData.layerIndex = atlasElement->layerIndex;
 
             currShadowMapData.viewProjMat = viewProjMat;
+            currShadowMapData.invProjMat = shadowCameraProxy->bufferData.inverseProjMat;
 
             currShadowMapData.aabbMin.x = shadowBoundsWS.min.x;
             currShadowMapData.aabbMin.y = shadowBoundsWS.min.y;

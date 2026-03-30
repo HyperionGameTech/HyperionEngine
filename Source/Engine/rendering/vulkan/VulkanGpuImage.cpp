@@ -119,6 +119,8 @@ RendererResult VulkanGpuImage::GenerateMipmaps(VulkanCommandBuffer* commandBuffe
                 RS_COPY_SRC,
                 ShaderModuleType::None);
 
+            AssertDebug(GetSubResourceState(dst) == RS_COPY_DST);
+
             if (i == int32(numMipmaps))
             {
                 if (face == numLayers - 1)
@@ -153,7 +155,8 @@ RendererResult VulkanGpuImage::GenerateMipmaps(VulkanCommandBuffer* commandBuffe
                     .aspectMask = aspectFlagBits,
                     .mipLevel = src.baseMipLevel,
                     .baseArrayLayer = src.baseArrayLayer,
-                    .layerCount = src.numLayers },
+                    .layerCount = src.numLayers
+                },
                 .srcOffsets = { { 0, 0, 0 }, { int32(helpers::MipmapSize(m_textureDesc.extent.x, i - 1)), int32(helpers::MipmapSize(m_textureDesc.extent.y, i - 1)), int32(helpers::MipmapSize(m_textureDesc.extent.z, i - 1)) } },
                 .dstSubresource = { .aspectMask = aspectFlagBits, .mipLevel = dst.baseMipLevel, .baseArrayLayer = dst.baseArrayLayer, .layerCount = dst.numLayers },
                 .dstOffsets = { { 0, 0, 0 }, { mipWidth, mipHeight, mipDepth } }
@@ -191,8 +194,6 @@ RendererResult VulkanGpuImage::Create(ResourceState initialState)
         return {};
     }
 
-    VkImageLayout initialLayout = GetVkImageLayout(initialState, m_textureDesc.IsDepthStencil());
-
     if (!m_isHandleOwned)
     {
         Assert(m_handle != VK_NULL_HANDLE, "If m_isHandleOwned is false, the image handle must not be VK_NULL_HANDLE.");
@@ -202,7 +203,7 @@ RendererResult VulkanGpuImage::Create(ResourceState initialState)
 
     if (GetByteSize() > MaxImageBytes)
     {
-        return HYP_MAKE_ERROR(RendererError, "Image size exceeds maximum supported size of %llu bytes", MaxImageBytes);
+        return HYP_MAKE_ERROR(RendererError, "Image size exceeds maximum supported size of {} bytes", 0, MaxImageBytes);
     }
 
     const Vec3u extent = GetExtent();
@@ -211,10 +212,10 @@ RendererResult VulkanGpuImage::Create(ResourceState initialState)
     const TextureType type = GetType();
 
     const bool isAttachmentTexture = m_textureDesc.imageUsage[IU_ATTACHMENT];
+    const bool isDepthStencil = m_textureDesc.IsDepthStencil();
     const bool isRWTexture = m_textureDesc.imageUsage[IU_STORAGE];
     const bool isExternalMemory = m_textureDesc.imageUsage[IU_EXTERNAL];
 
-    const bool isDepthStencil = m_textureDesc.IsDepthStencil();
     const bool isBlended = m_textureDesc.IsBlended();
     const bool isSrgb = m_textureDesc.IsSrgb();
 
@@ -226,6 +227,12 @@ RendererResult VulkanGpuImage::Create(ResourceState initialState)
     {
         return HYP_MAKE_ERROR(RendererError, "Invalid image extent - width*height*depth cannot equal zero");
     }
+
+    VkImageLayout initialLayout = GetVkImageLayout(
+        initialState,
+        isDepthStencil && isAttachmentTexture,
+        /* onlyDepth */ false,
+        /* onlyStencil */ false);
 
     VkFormat vkFormat = ToVkFormat(format);
     VkImageType vkImageType = ToVkImageType(type);
@@ -550,8 +557,11 @@ void VulkanGpuImage::InsertBarrier(
     const uint16 maxArrayLayers = uint16(subResource.baseArrayLayer + MathUtil::Min(subResource.numLayers, NumArrayLayers()));
     const uint8 maxMipLevels = uint8(subResource.baseMipLevel + MathUtil::Min(subResource.numLevels, NumMips()));
 
+    const bool isAttachmentTexture = m_textureDesc.imageUsage[IU_ATTACHMENT];
+    
     const bool isDepthStencil = m_textureDesc.IsDepthStencil();
     const bool hasStencil = TextureUtils::HasStencilComponent(m_textureDesc.format);
+
 
     // can only use these if we actually do have a stencil component,
     // otherwise use default/main path
@@ -701,7 +711,7 @@ void VulkanGpuImage::InsertBarrier(
     }
     else
     {
-        barrier.oldLayout = GetVkImageLayout(currResourceState, isDepthStencil);
+        barrier.oldLayout = GetVkImageLayout(currResourceState, isDepthStencil && isAttachmentTexture, false, false);
     }
 
     if (onlyDepth && currStencilState == newState)
@@ -714,7 +724,7 @@ void VulkanGpuImage::InsertBarrier(
         onlyStencil = false;
     }
 
-    barrier.newLayout = GetVkImageLayout(newState, isDepthStencil, onlyDepth, onlyStencil);
+    barrier.newLayout = GetVkImageLayout(newState, isDepthStencil && isAttachmentTexture, onlyDepth, onlyStencil);
     barrier.srcAccessMask = GetVkAccessMask(currResourceState, isDepthStencil);
     barrier.dstAccessMask = GetVkAccessMask(newState, isDepthStencil);
     barrier.image = m_handle;
@@ -812,10 +822,12 @@ void VulkanGpuImage::Blit(
         Rect<uint32> { 0, 0, m_textureDesc.extent.x, m_textureDesc.extent.y },
         ImageSubResource {
             .numLevels = srcImage->m_textureDesc.NumMips(),
-            .numLayers = srcImage->m_textureDesc.NumArrayLayers() },
+            .numLayers = srcImage->m_textureDesc.NumArrayLayers()
+        },
         ImageSubResource {
             .numLevels = m_textureDesc.NumMips(),
-            .numLayers = m_textureDesc.NumArrayLayers() });
+            .numLayers = m_textureDesc.NumArrayLayers() 
+    });
 }
 
 void VulkanGpuImage::Blit(
@@ -847,9 +859,15 @@ void VulkanGpuImage::Blit(
     const ImageSubResource& srcSubResource,
     const ImageSubResource& dstSubResource)
 {
+    const bool srcIsDepthStencil = srcImage->m_textureDesc.IsDepthStencil();
+    const bool dstIsDepthStencil = m_textureDesc.IsDepthStencil();
+
+    const bool srcIsAttachmentTexture = srcImage->m_textureDesc.imageUsage[IU_ATTACHMENT];
+    const bool dstIsAttachmentTexture = m_textureDesc.imageUsage[IU_ATTACHMENT];
+
     VkImageAspectFlags srcAspectFlagBits = 0;
 
-    if (TextureUtils::IsDepthFormat(srcImage->GetTextureFormat()))
+    if (srcIsDepthStencil)
     {
         srcAspectFlagBits |= VK_IMAGE_ASPECT_DEPTH_BIT;
 
@@ -865,7 +883,7 @@ void VulkanGpuImage::Blit(
 
     VkImageAspectFlags dstAspectFlagBits = 0;
 
-    if (TextureUtils::IsDepthFormat(GetTextureFormat()))
+    if (dstIsDepthStencil)
     {
         dstAspectFlagBits |= VK_IMAGE_ASPECT_DEPTH_BIT;
 
@@ -902,9 +920,9 @@ void VulkanGpuImage::Blit(
         vkCmdBlitImage(
             commandBuffer->GetVulkanHandle(),
             srcImage->GetVulkanHandle(),
-            GetVkImageLayout(srcResourceState),
+            GetVkImageLayout(srcResourceState, srcIsDepthStencil && srcIsAttachmentTexture, false, false),
             m_handle,
-            GetVkImageLayout(dstResourceState),
+            GetVkImageLayout(dstResourceState, dstIsDepthStencil && dstIsAttachmentTexture, false, false),
             1, &blit,
             ToVkFilter(GetMinFilterMode()));
 
@@ -947,9 +965,9 @@ void VulkanGpuImage::Blit(
             vkCmdBlitImage(
                 commandBuffer->GetVulkanHandle(),
                 srcImage->GetVulkanHandle(),
-                GetVkImageLayout(srcResourceState),
+                GetVkImageLayout(srcResourceState, srcIsDepthStencil && srcIsAttachmentTexture, false, false),
                 m_handle,
-                GetVkImageLayout(dstResourceState),
+                GetVkImageLayout(dstResourceState, dstIsDepthStencil && dstIsAttachmentTexture, false, false),
                 1, &blit,
                 ToVkFilter(GetMinFilterMode()));
         }
@@ -967,7 +985,10 @@ void VulkanGpuImage::CopyFromBuffer(
 {
     VkImageAspectFlags aspectFlagBits = 0;
 
-    if (m_textureDesc.IsDepthStencil())
+    const bool isDepthStencil = m_textureDesc.IsDepthStencil();
+    const bool isAttachmentTexture = m_textureDesc.imageUsage[IU_ATTACHMENT];
+
+    if (isDepthStencil)
     {
         aspectFlagBits |= VK_IMAGE_ASPECT_DEPTH_BIT;
 
@@ -1013,7 +1034,7 @@ void VulkanGpuImage::CopyFromBuffer(
                 commandBuffer->GetVulkanHandle(),
                 srcBuffer->GetVulkanHandle(),
                 m_handle,
-                GetVkImageLayout(m_resourceState),
+                GetVkImageLayout(m_resourceState, isDepthStencil && isAttachmentTexture),
                 1,
                 &region);
         }
@@ -1039,7 +1060,7 @@ void VulkanGpuImage::CopyFromBuffer(
             commandBuffer->GetVulkanHandle(),
             srcBuffer->GetVulkanHandle(),
             m_handle,
-            GetVkImageLayout(m_resourceState),
+            GetVkImageLayout(m_resourceState, isDepthStencil && isAttachmentTexture),
             1,
             &region);
     }
@@ -1049,10 +1070,13 @@ void VulkanGpuImage::CopyToBuffer(VulkanCommandBuffer* commandBuffer, VulkanGpuB
 {
     Assert(dstBuffer != nullptr && dstBuffer->IsCreated(), "Destination buffer is null or invalid !");
     Assert(dstBuffer->Size() >= m_size, "Destination buffer is too small to hold image data!");
+    
+    const bool isDepthStencil = m_textureDesc.IsDepthStencil();
+    const bool isAttachmentTexture = m_textureDesc.imageUsage[IU_ATTACHMENT];
 
     VkImageAspectFlags aspectFlagBits = 0;
 
-    if (m_textureDesc.IsDepthStencil())
+    if (isDepthStencil)
     {
         aspectFlagBits |= VK_IMAGE_ASPECT_DEPTH_BIT;
 
@@ -1086,7 +1110,7 @@ void VulkanGpuImage::CopyToBuffer(VulkanCommandBuffer* commandBuffer, VulkanGpuB
         vkCmdCopyImageToBuffer(
             commandBuffer->GetVulkanHandle(),
             m_handle,
-            GetVkImageLayout(m_resourceState),
+            GetVkImageLayout(m_resourceState, isDepthStencil && isAttachmentTexture),
             dstBuffer->GetVulkanHandle(),
             1,
             &region);
@@ -1102,9 +1126,15 @@ void VulkanGpuImage::CopyFrom(
     const ImageSubResource& srcSubResource,
     const ImageSubResource& dstSubResource)
 {
+    const bool srcIsDepthStencil = srcImage->GetTextureDesc().IsDepthStencil();
+    const bool dstIsDepthStencil = m_textureDesc.IsDepthStencil();
+
+    const bool srcIsAttachmentTexture = srcImage->GetTextureDesc().imageUsage[IU_ATTACHMENT];
+    const bool dstIsAttachmentTexture = m_textureDesc.imageUsage[IU_ATTACHMENT];
+
     VkImageAspectFlags srcAspectFlagBits = 0;
 
-    if (TextureUtils::IsDepthFormat(srcImage->GetTextureFormat()))
+    if (srcIsDepthStencil)
     {
         srcAspectFlagBits |= VK_IMAGE_ASPECT_DEPTH_BIT;
 
@@ -1120,7 +1150,7 @@ void VulkanGpuImage::CopyFrom(
 
     VkImageAspectFlags dstAspectFlagBits = 0;
 
-    if (TextureUtils::IsDepthFormat(GetTextureFormat()))
+    if (dstIsDepthStencil)
     {
         dstAspectFlagBits |= VK_IMAGE_ASPECT_DEPTH_BIT;
 
@@ -1163,9 +1193,9 @@ void VulkanGpuImage::CopyFrom(
         vkCmdCopyImage(
             commandBuffer->GetVulkanHandle(),
             srcImage->GetVulkanHandle(),
-            GetVkImageLayout(srcResourceState),
+            GetVkImageLayout(srcResourceState, srcIsDepthStencil && srcIsAttachmentTexture),
             m_handle,
-            GetVkImageLayout(dstResourceState),
+            GetVkImageLayout(dstResourceState, dstIsDepthStencil && dstIsAttachmentTexture),
             1, &copy);
     }
 
@@ -1211,9 +1241,9 @@ void VulkanGpuImage::CopyFrom(
             vkCmdCopyImage(
                 commandBuffer->GetVulkanHandle(),
                 srcImage->GetVulkanHandle(),
-                GetVkImageLayout(srcResourceState),
+                GetVkImageLayout(srcResourceState, srcIsDepthStencil && srcIsAttachmentTexture),
                 m_handle,
-                GetVkImageLayout(dstResourceState),
+                GetVkImageLayout(dstResourceState, dstIsDepthStencil && dstIsAttachmentTexture),
                 1, &copy);
         }
     }

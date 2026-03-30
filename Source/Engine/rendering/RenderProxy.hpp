@@ -172,6 +172,7 @@ struct alignas(16) ShadowMapData
     float _pad1;
 
     Mat4f viewProjMat;
+    Mat4f invProjMat;
     Vec4f aabbMin;          // w = offsetUV.x
     Vec4f aabbMax;          // w = offsetUV.y
     Vec4f dimensionsScale;  // xy = shadow map dimensions in pixels, zw = shadow map dimensions relative to the atlas dimensions
@@ -203,6 +204,7 @@ class RenderProxyLight final : public IRenderProxy
 public:
     WeakHandle<Light> light;
     Material* lightMaterial = nullptr; // for textured area lights
+    Texture* bakedShadowMap = nullptr;
     uint32 numCascades = 0;
     LightShaderData bufferData {};
 };

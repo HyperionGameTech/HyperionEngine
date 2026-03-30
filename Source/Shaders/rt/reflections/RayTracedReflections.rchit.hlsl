@@ -172,7 +172,7 @@ void ClosestHitMain(inout RayPayload payload, in BuiltInTriangleIntersectionAttr
             else if (light.type == HYP_LIGHT_TYPE_POINT)
             {
                 float3 worldToLight = position.xyz - light.position_intensity.xyz;
-                local_light *= GetPointShadowStandard(shadowMap.layerIndex, worldToLight, 0.0);
+                local_light *= GetPointShadowStandard(shadowMap, worldToLight, 0.0);
             }
             else
             {
