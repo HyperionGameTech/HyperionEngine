@@ -38,7 +38,6 @@ DECLARE_SRV(RTReflections, PointLightShadowMapsTextureArray) TextureCubeArray po
 
 #undef HYP_NO_CUBEMAP
 
-DECLARE_SRV(RTReflections, EntitiesBuffer) StructuredBuffer<Entity> entities;
 DECLARE_SRV(RTReflections, MaterialsBuffer) StructuredBuffer<Material> materials;
 DECLARE_SRV(RTReflections, MeshDescriptionsBuffer) StructuredBuffer<MeshDescription> mesh_descriptions;
 

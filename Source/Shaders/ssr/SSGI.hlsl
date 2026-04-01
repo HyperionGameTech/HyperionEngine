@@ -92,7 +92,7 @@ DECLARE_SRV(SSGI, EnvProbesTexture) Texture2DArray envProbesTexture;
 #define ENVIRONMENT_INTENSITY 1.0
 
 // amount to 'brighten up' the SSGI result
-#define SSGI_INTENSITY 1.0
+#define SSGI_INTENSITY 4.0
 
 #if 1
 
@@ -290,6 +290,9 @@ void CSMain(uint3 dispatchThreadID : SV_DispatchThreadID)
     }
 
     out_image[coord] = accum_result / float(numRaySamples);
+
+    // // temp
+    // out_image[coord] = float4(1.0, 0.0, 0.0, 1.0);
 }
 
 #else

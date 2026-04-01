@@ -78,7 +78,8 @@ bool GraphicsPipelineBase::MatchesSignature(
     const RenderableAttributeSet& attributes,
     const FramebufferDesc& framebufferDesc) const
 {
-    if (!m_framebufferDesc.IsPSOCompatible(framebufferDesc))
+    //if (!m_framebufferDesc.IsPSOCompatible(framebufferDesc))
+    if (m_framebufferDesc != framebufferDesc)
         return false;
 
     const MeshAttributes& meshAttributes = attributes.GetMeshAttributes();

@@ -41,7 +41,6 @@ DECLARE_SRV(PathTracer, PointLightShadowMapsTextureArray) TextureCubeArray point
 
 #undef HYP_NO_CUBEMAP
 
-DECLARE_SRV(PathTracer, EntitiesBuffer) StructuredBuffer<Entity> entities;
 DECLARE_SRV(PathTracer, MaterialsBuffer) StructuredBuffer<Material> materials;
 
 DECLARE_SRV(PathTracer, MeshDescriptionsBuffer) StructuredBuffer<MeshDescription> mesh_descriptions;

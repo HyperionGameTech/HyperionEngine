@@ -1227,7 +1227,7 @@ struct DescriptorSetOffsetMap
 {
     HYP_STRUCT_BODY(DescriptorSetOffsetMap);
 
-    static constexpr uint32 MaxOffsets = 16;
+    static constexpr uint32 MaxOffsets = 8;
 
     StringHash keys[MaxOffsets];
     uint32 values[MaxOffsets];

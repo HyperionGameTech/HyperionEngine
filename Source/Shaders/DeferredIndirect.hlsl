@@ -72,10 +72,6 @@ DECLARE_SRV(DeferredPass, ReflectionProbeResultTexture) Texture2D reflections_te
 #include "./include/material.inc"
 
 #include "./include/scene.inc"
-DECLARE_BUFFER_DYNAMIC(DeferredPass, CamerasBuffer) cbuffer CamerasBuffer
-{
-    Camera camera;
-};
 
 DECLARE_BUFFER(DeferredPass, WorldsBuffer) cbuffer WorldsBuffer
 {
@@ -100,10 +96,6 @@ DECLARE_BUFFER(DeferredPass, DDGIConstants) cbuffer DDGI
 #endif
 
 #include "./include/env_probe.inc"
-DECLARE_BUFFER_DYNAMIC(DeferredPass, EnvGridsBuffer) cbuffer EnvGridsBuffer
-{
-    EnvGrid env_grid;
-};
 
 #define HYP_DEFERRED_NO_REFRACTION
 #define HYP_DEFERRED_NO_ENV_PROBE
@@ -117,6 +109,7 @@ DECLARE_BUFFER_DYNAMIC(DeferredPass, EnvGridsBuffer) cbuffer EnvGridsBuffer
 
 DECLARE_BUFFER_DYNAMIC(DeferredPass, CBuffer) cbuffer CBuffer
 {
+    Camera camera;
     EnvProbe fallbackEnvProbes[MAX_FALLBACK_PROBES];
     uint numFallbackProbes;
 };

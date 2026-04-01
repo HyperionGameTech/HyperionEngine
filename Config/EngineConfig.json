@@ -7,7 +7,7 @@
       "Radius": 1.500000,
       "Power": 2.500000,
       "UseTemporalBlending": false,
-      "Enabled": false
+      "Enabled": true
     },
     "HBIL": {
       "Enabled": false

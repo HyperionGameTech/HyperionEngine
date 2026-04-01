@@ -2763,7 +2763,7 @@ void EditorSubsystem::NewProject()
     sun->SetName(NAME("SunLight"));
     sun->SetDirection(Vec3f(-0.2f, 0.8f, 0.2f).Normalize());
     sun->SetColor(Color(Vec4f(1.0f, 0.9f, 0.8f, 1.0f)));
-    sun->SetIntensity(10.0f);
+    sun->SetIntensity(40.0f);
     InitObject(sun);
 
     defaultScene->GetRoot()->AddChild(sun);

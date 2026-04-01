@@ -475,6 +475,13 @@
                                                         <inspector:EnumFlagsPropertyEditor DataContext="{Binding}" />
                                                     </DataTemplate>
 
+                                                    <DataTemplate x:DataType="vm:NumericPropertyViewModel">
+                                                        <TextBox
+                                                            MinWidth="60"
+                                                            HorizontalAlignment="Stretch"
+                                                            Text="{Binding EditableValue, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
+                                                    </DataTemplate>
+
                                                     <DataTemplate x:DataType="vm:ReadOnlyPropertyViewModel">
                                                         <TextBlock
                                                             VerticalAlignment="Center"
@@ -607,6 +614,13 @@
                                                                 </StackPanel>
                                                             </StackPanel>
                                                         </StackPanel>
+                                                    </DataTemplate>
+
+                                                    <DataTemplate x:DataType="vm:NumericPropertyViewModel">
+                                                        <TextBox
+                                                            MinWidth="60"
+                                                            HorizontalAlignment="Stretch"
+                                                            Text="{Binding EditableValue, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
                                                     </DataTemplate>
 
                                                     <DataTemplate x:DataType="vm:ReadOnlyPropertyViewModel">

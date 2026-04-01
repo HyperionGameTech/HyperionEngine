@@ -50,6 +50,11 @@ namespace Hyperion.Editor.ViewModels
                 return Initialize(new TransformViewModel(target, property, isReadOnly));
             }
 
+            if (typeInfo.IsFundamental && (typeInfo.IsIntegral || typeInfo.IsFloat))
+            {
+                return Initialize(new NumericPropertyViewModel(target, property, isReadOnly));
+            }
+
             Logger.Log(LogLevel.Debug, $"Inspector creating read-only property view model for property '{property.Name}' of type '{typeInfo.Name}'");
 
             return Initialize(new ReadOnlyPropertyViewModel(target, property, isReadOnly));

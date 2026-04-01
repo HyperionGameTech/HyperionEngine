@@ -872,11 +872,6 @@ extern struct SSRRendererConfig
     ScreenEdgeFade : Vec2f
     ResolutionScale : float
 end
-extern struct HBAOConfig
-    Radius : float
-    Power : float
-    UseTemporalBlending : bool
-end
 extern struct Vertex
     Position : Vec3f
     Normal : Vec3f
@@ -1210,11 +1205,6 @@ extern enum GlobalRenderBuffer : uint8
     GRB_ENV_GRIDS,
     GRB_LIGHTMAP_VOLUMES,
     GRB_MAX
-end
-extern struct RendererConfig
-    SsaoEnabled : bool
-    HbaoEnabled : bool
-    HbilEnabled : bool
 end
 extern enum RenderBucket : uint8
     Opaque,

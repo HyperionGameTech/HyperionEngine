@@ -47,23 +47,6 @@ using memory::Pool;
 
 HYP_API extern Pool* g_renderPool;
 
-HYP_STRUCT(ConfigName = "EngineConfig", JsonPath = "Rendering")
-struct RendererConfig : public Config<RendererConfig>
-{
-    HYP_STRUCT_BODY(RendererConfig);
-
-    HYP_FIELD(JsonPath = "SSAO.Enabled")
-    bool ssaoEnabled = false;
-
-    HYP_FIELD(JsonPath = "HBAO.Enabled")
-    bool hbaoEnabled = false;
-
-    HYP_FIELD(JsonPath = "HBIL.Enabled")
-    bool hbilEnabled = false;
-
-    virtual ~RendererConfig() override = default;
-};
-
 /*! \brief Describes the setup for rendering a frame.  */
 struct RenderSetup
 {

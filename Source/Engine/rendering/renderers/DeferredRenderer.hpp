@@ -361,11 +361,6 @@ public:
         return m_lastFrameData;
     }
 
-    HYP_FORCE_INLINE const RendererConfig& GetRendererConfig() const
-    {
-        return m_rendererConfig;
-    }
-
     virtual void Initialize() override;
     virtual void Shutdown() override;
 
@@ -389,8 +384,6 @@ private:
     void GenerateMipChain(Frame* frame, const RenderSetup& rs, RenderCollector& renderCollector, const GpuImageRef& srcImage);
 
     LastFrameData m_lastFrameData;
-
-    RendererConfig m_rendererConfig;
 
     Handle<Mesh> m_quadMesh;
 

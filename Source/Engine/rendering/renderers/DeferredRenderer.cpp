@@ -165,6 +165,7 @@ CVar<bool> cvPathTracing { "Rendering.PathTracing", false };
 CVar<bool> cvSSGI { "Rendering.SSGI", true };
 CVar<bool> cvSSR { "Rendering.SSR", true, "Rendering.SSR.Enabled" };
 CVar<bool> cvTAA { "Rendering.TAA", true };
+CVar<bool> cvHBAO { "Rendering.HBAO", true, "Rendering.HBAO.Enabled" };
 CVar<bool> cvEnableLightmapVolumes { "Rendering.LightmapVolumes", true };
 CVar<bool> cvClusteredShading { "Rendering.ClusteredShading", true };
 
@@ -189,21 +190,7 @@ void GetDeferredShaderProperties(
 
     MergeGlobalShaderProperties(outShaderProperties);
 
-#define DEF_CONFIGURATION_VALUE(name, path)     \
-    const ConfigValue& cfg##name = cfg.Get(path);    \
-    const bool name = cfg##name.ToBool()
-
-    DEF_CONFIGURATION_VALUE(hbil, "Rendering.HBIL.Enabled");
-    DEF_CONFIGURATION_VALUE(hbao, "Rendering.HBAO.Enabled");
-    DEF_CONFIGURATION_VALUE(ssao, "Rendering.SSAO.Enabled");
-
-#undef DEF_CONFIGURATION_VALUE
-
-    if (ssao)
-    {
-        outShaderProperties.Add(s_propSSAOEnabled);
-    }
-    else if (hbao)
+    if (cvHBAO.Get())
     {
         outShaderProperties.Add(s_propHBAOEnabled);
     }
@@ -220,7 +207,6 @@ void GetDeferredShaderProperties(
             outShaderProperties.Add(s_propProbeSideLengthDepth);
         }
 
-        outShaderProperties.Set(s_propHBILEnabled, hbil);
         outShaderProperties.Set(s_propSSGIEnabled, cvSSGI.Get());
         
         outShaderProperties.Add(s_propMaxFallbackProbes);
@@ -450,18 +436,10 @@ void DeferredPass::RenderToFramebuffer_Internal(Frame* frame, const RenderSetup&
     cr << SetShaderUniform(numShaderUniforms++, "SamplerNearest"_sh, g_renderInterface->placeholderData->GetSamplerNearest());
     cr << SetShaderUniform(numShaderUniforms++, "SamplerShadow"_sh, shadowSampler);
 
-    cr << SetShaderUniform(numShaderUniforms++, "CamerasBuffer"_sh, g_renderInterface->gpuBuffers[GRB_CAMERAS]->GetBuffer(frameIndex), TShaderDataOffset<CameraShaderData>(rs.view->GetCamera()));
-    cr << SetShaderUniform(numShaderUniforms++, "EntitiesBuffer"_sh, g_renderInterface->gpuBuffers[GRB_ENTITIES]->GetBuffer(frameIndex));
     cr << SetShaderUniform(numShaderUniforms++, "WorldsBuffer"_sh, g_renderInterface->gpuBuffers[GRB_WORLDS]->GetBuffer(frameIndex));
-    cr << SetShaderUniform(numShaderUniforms++, "MaterialsBuffer"_sh, g_renderInterface->gpuBuffers[GRB_MATERIALS]->GetBuffer(frameIndex));
 
     cr << SetShaderUniform(numShaderUniforms++, "ShadowMapsTextureArray"_sh, g_renderInterface->shadowMapCache->GetAtlasImageView());
     cr << SetShaderUniform(numShaderUniforms++, "PointLightShadowMapsTextureArray"_sh, g_renderInterface->shadowMapCache->GetPointLightShadowMapImageView());
-
-    if (rs.envGrid != nullptr)
-        cr << SetShaderUniform(numShaderUniforms++, "EnvGridsBuffer"_sh, g_renderInterface->gpuBuffers[GRB_ENV_GRIDS]->GetBuffer(frameIndex), TShaderDataOffset<EnvGridShaderData>(rs.envGrid));
-    else
-        cr << SetShaderUniform(numShaderUniforms++, "EnvGridsBuffer"_sh, g_renderInterface->gpuBuffers[GRB_ENV_GRIDS]->GetBuffer(frameIndex), TShaderDataOffset<EnvGridShaderData>(0));
 
     DeferredRendererPassData* dpd = ObjCast<DeferredRendererPassData>(rs.passData);
     AssertDebug(dpd != nullptr);
@@ -510,6 +488,9 @@ void DeferredPass::RenderToFramebuffer_Internal(Frame* frame, const RenderSetup&
             GpuBuffer* cbuffer = nullptr;
             size_t cbufferOffset = 0;
             size_t cbufferSize = 0;
+
+            // write camera
+            g_renderInterface->cbufferAllocator->Write(&cameraProxy->bufferData);
 
             static const EnvProbeShaderData s_dummyFallbackEnvProbe {};
 
@@ -619,6 +600,9 @@ void DeferredPass::RenderToFramebuffer_Internal(Frame* frame, const RenderSetup&
             GpuBuffer* cbuffer = nullptr;
             size_t cbufferOffset = 0;
             size_t cbufferSize = 0;
+            
+            // write camera
+            g_renderInterface->cbufferAllocator->Write(&cameraProxy->bufferData);
 
             uint32 maxLightBinding = 0;
 
@@ -764,6 +748,10 @@ void DeferredPass::RenderToFramebuffer_Internal(Frame* frame, const RenderSetup&
                 size_t cbufferOffset = 0;
                 size_t cbufferSize = 0;
 
+                // write camera
+                g_renderInterface->cbufferAllocator->Write(&cameraProxy->bufferData);
+
+                // write current light
                 g_renderInterface->cbufferAllocator->Write(&lightProxy->bufferData);
 
                 ShadowMapData shadowMapData[MaxShadowMapCascades];
@@ -1572,7 +1560,7 @@ void ReflectionsPass::Render(Frame* frame, const RenderSetup& rs)
         cr << SetCurrentBlendFunction(BlendFunction::None());
     }
 
-    frame->cr << SetCurrentFramebuffer(nullptr);
+    cr << SetCurrentFramebuffer(nullptr);
 
     if (ShouldRenderCheckerboarded())
     {
@@ -1993,8 +1981,7 @@ public:
 };
 
 DeferredRenderer::DeferredRenderer()
-    : m_rendererConfig(RendererConfig::FromConfig()),
-      m_tileProcessor(MakeUnique<TileProcessor>())
+    : m_tileProcessor(MakeUnique<TileProcessor>())
 {
 }
 
@@ -2068,11 +2055,8 @@ PassData* DeferredRenderer::CreateViewPassData(View* view, PassDataExt&)
 
         CheckResult(passData.mipChain->Create());
 
-        if (!m_rendererConfig.ssaoEnabled && (m_rendererConfig.hbaoEnabled || m_rendererConfig.hbilEnabled))
-        {
-            passData.hbao = MakeUnique<HBAO>(HBAOConfig::FromConfig(), gbuffer->GetExtent(), gbuffer);
-            passData.hbao->Create();
-        }
+        passData.hbao = MakeUnique<HBAO>(gbuffer->GetExtent(), gbuffer);
+        passData.hbao->Create();
 
         // m_dofBlur = MakeUnique<DOFBlur>(gbuffer->GetResolution(), gbuffer);
         // m_dofBlur->Create();
@@ -2203,11 +2187,8 @@ void DeferredRenderer::ResizeView(Viewport viewport, View* view, DeferredRendere
     passData.directPass->Resize(newSize);
     passData.indirectPass->Resize(newSize);
 
-    if (!m_rendererConfig.ssaoEnabled && (m_rendererConfig.hbaoEnabled || m_rendererConfig.hbilEnabled))
-    {
-        passData.hbao = MakeUnique<HBAO>(HBAOConfig::FromConfig(), viewport.extent, gbuffer);
-        passData.hbao->Create();
-    }
+    passData.hbao = MakeUnique<HBAO>(viewport.extent, gbuffer);
+    passData.hbao->Create();
 
     passData.ssgi.Reset();
     passData.ssgi = MakeUnique<SSGI>(gbuffer);
@@ -2664,7 +2645,7 @@ void DeferredRenderer::RenderFrameForView(Frame* frame, const RenderSetup& rs)
         }
     }
 
-    if (!m_rendererConfig.ssaoEnabled && (m_rendererConfig.hbaoEnabled || m_rendererConfig.hbilEnabled))
+    if (cvHBAO.Get())
     {
         passData.hbao->Render(frame, rs);
     }

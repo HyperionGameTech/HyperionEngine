@@ -121,7 +121,8 @@ SSGI::~SSGI()
 void SSGI::Create()
 {
     Assert(m_gbuffer != nullptr);
-    m_extent = MathUtil::Max(m_gbuffer->GetExtent() / 2, Vec2u::One());
+
+    m_extent = MathUtil::Max(m_gbuffer->GetExtent() * 0.25f, Vec2u::One());
 
     m_resultTexture = MakeHandle<Texture>(TextureDesc {
         TextureType::Texture2D,

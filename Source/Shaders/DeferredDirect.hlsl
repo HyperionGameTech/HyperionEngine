@@ -76,10 +76,6 @@ DECLARE_SRV(DeferredPass, RTRadianceResultTexture) Texture2D rt_radiance_final;
 #include "include/Entity.inc"
 
 #include "include/scene.inc"
-DECLARE_BUFFER_DYNAMIC(DeferredPass, CamerasBuffer) cbuffer CamerasBuffer
-{
-    Camera camera;
-};
 
 DECLARE_BUFFER(DeferredPass, WorldsBuffer) cbuffer WorldsBuffer
 {
@@ -89,6 +85,7 @@ DECLARE_BUFFER(DeferredPass, WorldsBuffer) cbuffer WorldsBuffer
 #ifndef LIGHT_TYPE_CLUSTERED
 DECLARE_BUFFER_DYNAMIC(DeferredPass, CBuffer) cbuffer CBuffer
 {
+    Camera camera;
     Light currentLight;
 #ifdef LIGHT_TYPE_DIRECTIONAL
     ShadowMap shadowMap0;
@@ -128,8 +125,6 @@ DECLARE_SRV(DeferredPass, PointLightShadowMapsTextureArray) TextureCubeArray poi
 
 #include "include/Shadows.hlsli"
 
-#include "include/PhysicalCamera.inc"
-#include "include/LightRays.inc"
 #include "include/LightSampling.inc"
 
 #ifdef LIGHT_TYPE_CLUSTERED
@@ -137,6 +132,8 @@ DECLARE_SRV(DeferredPass, PointLightShadowMapsTextureArray) TextureCubeArray poi
 
 DECLARE_BUFFER_DYNAMIC(DeferredPass, CBuffer) cbuffer CBuffer
 {
+    Camera camera;
+
     // shadow maps for the view are not per-tile as we have a limited number of shadow maps and shadow maps are per-view
     // so not directly accessible from the Light data.
     // Use LightToShadowMapIndex to indirectly index into this array based on the light index in the clustered data.

@@ -232,19 +232,14 @@ bool CVar<bool>::SetFromConfig(const ConfigValue& cfgValue)
 template <typename T>
 inline T ReadCVarValue(const CVar<T>& cvar)
 {
-    if (!s_pInstance || cvar.id < 0)
-    {
-        return cvar.m_value;
-    }
-
     const CVarSnapshot& snapshot = s_pInstance->GetCurrentSnapshot();
 
-    if (cvar.id >= snapshot.numVars)
+    if (HYP_UNLIKELY(cvar.id < 0 || cvar.id >= snapshot.numVars))
     {
         return cvar.m_value;
     }
 
-    return snapshot.values[cvar.id].template Get<T>();
+    return snapshot.values[cvar.id].template GetUnchecked<T>();
 }
 
 template <> int8 CVar<int8>::Get() const { return ReadCVarValue(*this); }

@@ -28,10 +28,8 @@
 
 #include <Core/math/Vector2.hpp>
 
-#include <Core/config/Config.hpp>
-
 #include <engine/EngineDriver.hpp>
-#include <engine/config/EngineConfig.hpp>
+#include <engine/CVarManager.hpp>
 
 #include <HBAOPass.generated.inl>
 
@@ -49,9 +47,11 @@ struct HBAOUniforms
 static const ShaderPropertyId s_propHBILEnabled = InternShaderProperty(ShaderProperty(NAME("HBIL_ENABLED")));
 static const ShaderPropertyId s_propHalfRes = InternShaderProperty(ShaderProperty(NAME("HALFRES")));
 
-HBAO::HBAO(HBAOConfig&& config, Vec2u extent, GBuffer* gbuffer)
-    : FullScreenPass(TextureFormat::RGBA8, extent, gbuffer),
-      m_config(std::move(config))
+CVar<float> cvHBAORadius { "Rendering.HBAORadius", 1.5f, "Rendering.HBAO.Radius" };
+CVar<float> cvHBAOPower { "Rendering.HBAOPower", 2.5f, "Rendering.HBAO.Power" };
+
+HBAO::HBAO(Vec2u extent, GBuffer* gbuffer)
+    : FullScreenPass(TextureFormat::RGBA8, extent, gbuffer)
 {
 }
 
@@ -87,8 +87,8 @@ void HBAO::Render(Frame* frame, const RenderSetup& renderSetup)
     {
         HBAOUniforms constants {};
         constants.dimension = ShouldRenderHalfRes() ? m_extent / 2 : m_extent;
-        constants.radius = m_config.radius;
-        constants.power = m_config.power;
+        constants.radius = cvHBAORadius.Get();
+        constants.power = cvHBAOPower.Get();
 
         m_cbuffer = g_renderInterface->MakeGpuBuffer(GpuBufferType::CONSTANT_BUFFER, sizeof(constants));
         CheckResult(m_cbuffer->Create());
@@ -106,7 +106,6 @@ void HBAO::Render(Frame* frame, const RenderSetup& renderSetup)
     AssertDebug(inputsFramebuffer.IsValid());
     
     ShaderPropertySet shaderProperties;
-    shaderProperties.Set(s_propHBILEnabled, GetEngineConfig().Get("Rendering.HBIL.Enabled").ToBool());
 
     if (ShouldRenderHalfRes())
     {

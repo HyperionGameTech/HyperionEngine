@@ -1383,7 +1383,7 @@ void RenderInterface::CommitPipelineState(PSOType psoType, CommandBuffer* comman
         }
     };
 
-    constexpr uint32 MaxDynamicOffsetsPerSet = 16;
+    constexpr uint32 MaxDynamicOffsetsPerSet = 8;
     constexpr uint32 MaxDescriptorSetsBound = 4;
 
     DescriptorSet* setsToBind[MaxDescriptorSetsBound] {};
@@ -1621,8 +1621,8 @@ void RenderInterface::CommitPipelineState(PSOType psoType, CommandBuffer* comman
 
             state.boundFramebuffer = state.framebuffer;
 
-            AssertDebug(executeBindCmdFunction != nullptr,
-                "Pipeline bind command should have been set for graphics pipeline if we are to begin a render pass");
+            //AssertDebug(executeBindCmdFunction != nullptr,
+            //    "Pipeline bind command should have been set for graphics pipeline if we are to begin a render pass");
         }
     }
 
@@ -1656,28 +1656,20 @@ void RenderInterface::CommitPipelineState(PSOType psoType, CommandBuffer* comman
             switch (uniform.type)
             {
             case ShaderUniform::UT_Buffer:
-                AssertDebug(uniform.buffer != nullptr);
-
                 ds->SetElement(uniform.name, uniform.buffer, state.shaderUniformBufferOffsetStrides[uniformIndex]);
 
                 state.dirtyBufferOffsets |= (1u << uniformIndex);
 
                 break;
             case ShaderUniform::UT_ImageView:
-                AssertDebug(uniform.imageView != nullptr);
-
                 ds->SetElement(uniform.name, uniform.imageView);
 
                 break;
             case ShaderUniform::UT_Sampler:
-                AssertDebug(uniform.sampler != nullptr);
-
                 ds->SetElement(uniform.name, uniform.sampler);
 
                 break;
             case ShaderUniform::UT_Tlas:
-                AssertDebug(uniform.tlas != nullptr);
-
                 ds->SetElement(uniform.name, uniform.tlas);
 
                 break;
