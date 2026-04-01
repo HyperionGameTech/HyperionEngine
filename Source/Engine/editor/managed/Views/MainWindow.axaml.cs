@@ -2,6 +2,7 @@ using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Controls.Platform;
 using Avalonia.Controls.Primitives;
+using Avalonia.Input;
 using Avalonia.Interactivity;
 using Avalonia.Platform;
 using Avalonia.Threading;
@@ -24,6 +25,11 @@ namespace Hyperion.Editor
         private Border? _consoleCollapsedStrip;
         private bool _contentBrowserExpanded = true;
         private bool _consoleExpanded = true;
+
+        private const string NodeViewModelDragFormat = "application/x-hyperion-nodeviewmodel";
+        private NodeViewModel? _dragCandidate;
+        private Point _dragStartPoint;
+        private bool _isDragging;
 
         public MainWindow()
         {
@@ -58,6 +64,8 @@ namespace Hyperion.Editor
             if (collapseConsole != null) collapseConsole.Click += OnCollapseConsole;
             if (expandConsole != null) expandConsole.Click += OnExpandConsole;
 
+            SetupSceneHierarchyDragDrop();
+
             if (IsRenderingOnMainThread)
             {
                 Opened += (s, e) =>
@@ -66,6 +74,124 @@ namespace Hyperion.Editor
                     topLevel?.RequestAnimationFrame(OnFrame);
                 };
             }
+        }
+
+        private void SetupSceneHierarchyDragDrop()
+        {
+            var tree = this.FindControl<TreeView>("SceneHierarchyTreeView");
+            if (tree == null)
+                return;
+
+            DragDrop.SetAllowDrop(tree, true);
+
+            // Tunnel (Preview) handlers so we see events before TreeView item selection consumes them.
+            tree.AddHandler(InputElement.PointerPressedEvent, OnSceneTreePointerPressed, RoutingStrategies.Tunnel);
+            tree.AddHandler(InputElement.PointerMovedEvent, OnSceneTreePointerMoved, RoutingStrategies.Tunnel);
+            tree.AddHandler(InputElement.PointerReleasedEvent, OnSceneTreePointerReleased, RoutingStrategies.Tunnel);
+            tree.AddHandler(DragDrop.DragOverEvent, OnSceneTreeDragOver);
+            tree.AddHandler(DragDrop.DropEvent, OnSceneTreeDrop);
+        }
+
+        private void OnSceneTreePointerPressed(object? sender, PointerPressedEventArgs e)
+        {
+            if (e.GetCurrentPoint(sender as Visual).Properties.IsLeftButtonPressed)
+            {
+                _dragCandidate = FindNodeViewModelInEventSource(e.Source);
+                _dragStartPoint = e.GetPosition(sender as Visual);
+                _isDragging = false;
+            }
+        }
+
+        private async void OnSceneTreePointerMoved(object? sender, PointerEventArgs e)
+        {
+            if (_dragCandidate == null || _isDragging)
+                return;
+
+            if (!e.GetCurrentPoint(sender as Visual).Properties.IsLeftButtonPressed)
+            {
+                _dragCandidate = null;
+                return;
+            }
+
+            var pos = e.GetPosition(sender as Visual);
+            var delta = pos - _dragStartPoint;
+
+            // Only start a drag after a small movement threshold to avoid stealing normal clicks.
+            if (Math.Abs(delta.X) < 5 && Math.Abs(delta.Y) < 5)
+                return;
+
+            _isDragging = true;
+            var candidate = _dragCandidate;
+
+            var data = new DataObject();
+            data.Set(NodeViewModelDragFormat, candidate);
+
+            await DragDrop.DoDragDrop(e, data, DragDropEffects.Move);
+
+            _isDragging = false;
+            _dragCandidate = null;
+        }
+
+        private void OnSceneTreePointerReleased(object? sender, PointerReleasedEventArgs e)
+        {
+            if (!_isDragging)
+            {
+                _dragCandidate = null;
+            }
+        }
+
+        private void OnSceneTreeDragOver(object? sender, DragEventArgs e)
+        {
+            if (e.Data.Contains(NodeViewModelDragFormat))
+            {
+                var dragged = e.Data.Get(NodeViewModelDragFormat) as NodeViewModel;
+                var target = FindNodeViewModelInEventSource(e.Source);
+
+                if (dragged != null && target != null && target != dragged && !SceneHierarchyViewModel.IsAncestorOf(dragged, target))
+                {
+                    e.DragEffects = DragDropEffects.Move;
+                }
+                else
+                {
+                    e.DragEffects = DragDropEffects.None;
+                }
+
+                e.Handled = true;
+            }
+            else
+            {
+                e.DragEffects = DragDropEffects.None;
+            }
+        }
+
+        private void OnSceneTreeDrop(object? sender, DragEventArgs e)
+        {
+            if (!e.Data.Contains(NodeViewModelDragFormat))
+                return;
+
+            var dragged = e.Data.Get(NodeViewModelDragFormat) as NodeViewModel;
+            var target = FindNodeViewModelInEventSource(e.Source);
+
+            if (dragged == null || target == null)
+                return;
+
+            var vm = DataContext as MainWindowViewModel;
+            vm?.SceneHierarchy.ReparentNode(dragged, target);
+
+            e.Handled = true;
+        }
+
+        private static NodeViewModel? FindNodeViewModelInEventSource(object? source)
+        {
+            // Walk up the visual tree from the event source to find a DataContext that is a NodeViewModel.
+            var control = source as Control;
+            while (control != null)
+            {
+                if (control.DataContext is NodeViewModel nvm)
+                    return nvm;
+                control = control.Parent as Control;
+            }
+            return null;
         }
 
         private void OnCollapseContentBrowser(object? sender, RoutedEventArgs e) { _contentBrowserExpanded = false; UpdateBottomPanelLayout(); }

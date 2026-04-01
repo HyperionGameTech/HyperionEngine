@@ -169,5 +169,46 @@ namespace Hyperion.Editor.ViewModels
 
             return null;
         }
+
+        public async Task<bool> ReparentNode(NodeViewModel dragged, NodeViewModel newParent)
+        {
+            if (dragged == null || newParent == null)
+                return false;
+
+            // need to call on sim thread
+            return await EngineManager.PostToSimThread(() =>
+            {
+                Node draggedNode = dragged.Node;
+                Node newParentNode = newParent.Node;
+
+                if (draggedNode == null || !draggedNode.IsValid || newParentNode == null || !newParentNode.IsValid)
+                    return false;
+
+                if (draggedNode == newParentNode || newParentNode.IsOrHasParent(draggedNode))
+                    return false;
+
+                if (draggedNode.GetParent() == newParentNode)
+                    return false;
+
+                draggedNode.Remove();
+                newParentNode.AddChild(draggedNode);
+
+                return true;
+            });
+        }
+
+        public static bool IsAncestorOf(NodeViewModel potentialAncestor, NodeViewModel node)
+        {
+            // @FIXME: Not thread safe.
+
+            NodeViewModel? current = node.Parent;
+            while (current != null)
+            {
+                if (current == potentialAncestor)
+                    return true;
+                current = current.Parent;
+            }
+            return false;
+        }
     }
 }

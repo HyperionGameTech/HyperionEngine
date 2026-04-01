@@ -318,6 +318,7 @@
                                 </Grid>
                             </Border>
                             <TreeView
+                                x:Name="SceneHierarchyTreeView"
                                 Grid.Row="1"
                                 ItemsSource="{Binding SceneHierarchy.RootNodes}"
                                 SelectedItem="{Binding SceneHierarchy.SelectedNode}">
