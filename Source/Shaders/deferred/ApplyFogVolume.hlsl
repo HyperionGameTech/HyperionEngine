@@ -93,11 +93,7 @@ DECLARE_SAMPLER(FogVolume, SamplerNearest) SamplerState SamplerNearest;
 #define HYP_SAMPLER_NEAREST SamplerNearest
 #define HYP_SAMPLER_LINEAR SamplerLinear
 
-DECLARE_SRV(FogVolume, GBufferAlbedoTexture) Texture2D GBufferAlbedoTexture;
-DECLARE_SRV(FogVolume, GBufferNormalsTexture) Texture2D GBufferNormalsTexture;
-DECLARE_SRV(FogVolume, GBufferMaterialTexture) Texture2D<uint4> GBufferMaterialTexture;
-DECLARE_SRV(FogVolume, GBufferVelocityTexture) Texture2D GBufferVelocityTexture;
-DECLARE_SRV(FogVolume, GBufferDepthTexture) Texture2D GBufferDepthTexture;
+DECLARE_SRV(FogVolume, DepthPyramidTexture) Texture2D DepthPyramidTexture;
 
 #include "../include/scene.inc"
 #include "../include/material.inc"
@@ -245,8 +241,6 @@ float4 RayMarch(float3 rayOrigin, float3 rayDir, float tNear, float tFar, float 
         {
             Light light = lights[lightIndex];
             ShadowMap shadowMap = shadowMaps[lightIndex];
-
-            const uint layerIndex = shadowMap.layerIndex;
             
             float3 lightDir;
             float phase;
@@ -271,7 +265,7 @@ float4 RayMarch(float3 rayOrigin, float3 rayDir, float tNear, float tFar, float 
                     const float radius = radiusFalloff.x;
                     const float falloff = radiusFalloff.y;
 
-                    shadow = GetPointShadowStandard(layerIndex, worldToLight, 0.0);
+                    shadow = GetPointShadowStandard(shadowMap, worldToLight, 0.0);
 
                     attenuation = GetSquareFalloffAttenuation(currentPos, light.position_intensity.xyz, radius);
                     break;
@@ -314,7 +308,7 @@ PSOutput PSMain(PSInput input)
     PSOutput output;
 
     float2 screenSpaceUV = (input.positionNdc.xy / input.positionNdc.w) * 0.5 + 0.5;
-    float sceneDepth = SAMPLE_TEXTURE_2D(SamplerNearest, GBufferDepthTexture, screenSpaceUV).r;
+    float sceneDepth = SAMPLE_TEXTURE_2D_LOD(SamplerNearest, DepthPyramidTexture, screenSpaceUV, 0).r;
     float4 positionVS = ReconstructViewSpacePositionFromDepth(camera.invProjMat, screenSpaceUV, sceneDepth);
     float linearDepth = length(positionVS.xyz);
 

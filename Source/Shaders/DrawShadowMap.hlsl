@@ -24,16 +24,16 @@ DECLARE_BUFFER_DYNAMIC(Default, CamerasBuffer) cbuffer CamerasBuffer
 DECLARE_SRV(Default, EntitiesBuffer) StructuredBuffer<Entity> entities;
 DECLARE_SRV_DYNAMIC(Default, EntityInstanceBatchesBuffer) StructuredBuffer<MeshEntityInstanceBatch> entity_instance_batches;
 #define entity_instance_batch entity_instance_batches[0]
-#else
+#else // !INSTANCING
 DECLARE_SRV_DYNAMIC(Default, CurrentEntity) StructuredBuffer<Entity> entities;
-#endif
+#endif // INSTANCING
 
 DECLARE_SRV_DYNAMIC(Default, MaterialsBuffer) StructuredBuffer<Material> materials_buffer;
 #define material materials_buffer[0]
 
 #ifndef CURRENT_MATERIAL
 #define CURRENT_MATERIAL material
-#endif
+#endif // !CURRENT_MATERIAL
 
 #ifdef VERTEX_SHADER
 

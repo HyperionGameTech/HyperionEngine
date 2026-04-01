@@ -39,35 +39,7 @@
               "$Class": "ShaderInput",
               "Register": 1,
               "ElementType": 5,
-              "Name": "GBufferDepthTexture",
-              "Count": 1,
-              "Size": 4294967295,
-              "IsDynamic": false,
-              "StructInfo": {
-                "Name": "",
-                "Size": 4294967295,
-                "FieldNames": [],
-                "FieldTypes": []
-              }
-            }, {
-              "$Class": "ShaderInput",
-              "Register": 1,
-              "ElementType": 5,
-              "Name": "GBufferAlbedoTexture",
-              "Count": 1,
-              "Size": 4294967295,
-              "IsDynamic": false,
-              "StructInfo": {
-                "Name": "",
-                "Size": 4294967295,
-                "FieldNames": [],
-                "FieldTypes": []
-              }
-            }, {
-              "$Class": "ShaderInput",
-              "Register": 1,
-              "ElementType": 5,
-              "Name": "GBufferNormalsTexture",
+              "Name": "DepthPyramidTexture",
               "Count": 1,
               "Size": 4294967295,
               "IsDynamic": false,
@@ -82,34 +54,6 @@
               "Register": 1,
               "ElementType": 5,
               "Name": "PointLightShadowMapsTextureArray",
-              "Count": 1,
-              "Size": 4294967295,
-              "IsDynamic": false,
-              "StructInfo": {
-                "Name": "",
-                "Size": 4294967295,
-                "FieldNames": [],
-                "FieldTypes": []
-              }
-            }, {
-              "$Class": "ShaderInput",
-              "Register": 1,
-              "ElementType": 5,
-              "Name": "GBufferVelocityTexture",
-              "Count": 1,
-              "Size": 4294967295,
-              "IsDynamic": false,
-              "StructInfo": {
-                "Name": "",
-                "Size": 4294967295,
-                "FieldNames": [],
-                "FieldTypes": []
-              }
-            }, {
-              "$Class": "ShaderInput",
-              "Register": 1,
-              "ElementType": 5,
-              "Name": "GBufferMaterialTexture",
               "Count": 1,
               "Size": 4294967295,
               "IsDynamic": false,
@@ -213,15 +157,15 @@
   "ShaderBlobs": [{
       "$Class": "BlobDataReference",
       "Key": "Engine/Shaders/ApplyFogVolume/ApplyFogVolume_8217044443126766751.VS",
-      "Size": 41244
+      "Size": 41068
     }, {
       "$Class": "BlobDataReference",
       "Key": "Engine/Shaders/ApplyFogVolume/ApplyFogVolume_8217044443126766751.PS",
-      "Size": 178988
+      "Size": 183064
     }],
   "PropertySetHashCode": {},
   "LastCompiledTimestamp": {
-    "Value": 1774656712000
+    "Value": 1774890146000
   },
   "Name": "ApplyFogVolume_8217044443126766751",
   "FriendlyName": "ApplyFogVolume_8217044443126766751",

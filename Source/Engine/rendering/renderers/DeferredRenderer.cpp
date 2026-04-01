@@ -1233,23 +1233,18 @@ void FogVolumePass::RenderToFramebuffer_Internal(Frame* frame, const RenderSetup
     DeferredRendererPassData* dpd = ObjCast<DeferredRendererPassData>(renderSetup.passData);
     AssertDebug(dpd != nullptr);
 
-    const FramebufferRef& opaquePassFramebuffer = dpd->view.GetUnsafe()->GetOutputTarget().GetFramebuffer(RenderBucket::Opaque);
+    cr << SetShaderUniform(2, "CamerasBuffer"_sh, g_renderInterface->gpuBuffers[GRB_CAMERAS]->GetBuffer(frame->GetFrameIndex()), TShaderDataOffset<CameraShaderData>(renderSetup.view->GetCamera()));
 
-    for (uint32 attachmentIndex = 0; attachmentIndex < GTN_MAX; attachmentIndex++)
-    {
-        cr << SetShaderUniform(2 + attachmentIndex, GBufferTextureNames[attachmentIndex], opaquePassFramebuffer->GetAttachment(attachmentIndex)->GetImageView());
-    }
-
-    cr << SetShaderUniform(2 + GTN_MAX, "CamerasBuffer"_sh, g_renderInterface->gpuBuffers[GRB_CAMERAS]->GetBuffer(frame->GetFrameIndex()), TShaderDataOffset<CameraShaderData>(renderSetup.view->GetCamera()));
-
-    cr << SetShaderUniform(3 + GTN_MAX, "ShadowMapsTextureArray"_sh, g_renderInterface->shadowMapCache->GetAtlasImageView());
-    cr << SetShaderUniform(4 + GTN_MAX, "PointLightShadowMapsTextureArray"_sh, g_renderInterface->shadowMapCache->GetPointLightShadowMapImageView());
+    cr << SetShaderUniform(3, "ShadowMapsTextureArray"_sh, g_renderInterface->shadowMapCache->GetAtlasImageView());
+    cr << SetShaderUniform(4, "PointLightShadowMapsTextureArray"_sh, g_renderInterface->shadowMapCache->GetPointLightShadowMapImageView());
 
     if (data.volumeTexture)
-        cr << SetShaderUniform(5 + GTN_MAX, "DataMap"_sh, g_renderInterface->textureViewCache->GetOrCreate(data.volumeTexture));
+        cr << SetShaderUniform(5, "DataMap"_sh, g_renderInterface->textureViewCache->GetOrCreate(data.volumeTexture));
 
     if (data.noiseTexture)
-        cr << SetShaderUniform(6 + GTN_MAX, "NoiseMap"_sh, g_renderInterface->textureViewCache->GetOrCreate(data.noiseTexture));
+        cr << SetShaderUniform(6, "NoiseMap"_sh, g_renderInterface->textureViewCache->GetOrCreate(data.noiseTexture));
+
+    cr << SetShaderUniform(7, "DepthPyramidTexture"_sh, dpd->depthPyramidRenderer->GetResultImageView());
 
     // Set constants
     FogVolumeShaderData shaderData = proxy->bufferData;
@@ -1336,7 +1331,7 @@ void FogVolumePass::RenderToFramebuffer_Internal(Frame* frame, const RenderSetup
             
     g_renderInterface->cbufferAllocator->Commit(cbuffer, cbufferOffset, cbufferSize);
 
-    cr << SetShaderUniform(7 + GTN_MAX, "FogVolumeConstants"_sh, cbuffer, ShaderDataOffset(cbufferOffset, cbufferSize));
+    cr << SetShaderUniform(8, "FogVolumeConstants"_sh, cbuffer, ShaderDataOffset(cbufferOffset, cbufferSize));
 
     cr << CommitDrawState();
 
@@ -2723,6 +2718,13 @@ void DeferredRenderer::RenderFrameForView(Frame* frame, const RenderSetup& rs)
         GenerateMipChain(frame, rs, renderCollector, srcImage);
     }
 
+    { // render Hi-Z
+        passData.depthPyramidRenderer->Render(frame);
+
+        passData.cullData.depthPyramidImageView = passData.depthPyramidRenderer->GetResultImageView();
+        passData.cullData.depthPyramidDimensions = passData.depthPyramidRenderer->GetExtent();
+    }
+
     { // combined + translucent (forward pass)
         frame->cr << SetCurrentFramebuffer(translucentPassFramebuffer);
 
@@ -2789,13 +2791,6 @@ void DeferredRenderer::RenderFrameForView(Frame* frame, const RenderSetup& rs)
         }
 
         frame->cr << SetCurrentFramebuffer(nullptr);
-    }
-
-    { // render depth pyramid
-        passData.depthPyramidRenderer->Render(frame);
-        // update culling info now that depth pyramid has been rendered
-        passData.cullData.depthPyramidImageView = passData.depthPyramidRenderer->GetResultImageView();
-        passData.cullData.depthPyramidDimensions = passData.depthPyramidRenderer->GetExtent();
     }
 
     // debug draw
