@@ -104,7 +104,7 @@ DECLARE_SRV_DYNAMIC(Default, MaterialsBuffer) StructuredBuffer<Material> materia
 
 #include "include/parallax.inc"
 
-// #define DEBUG_RAW_REFLECTIONS
+//#define DEBUG_RAW_REFLECTIONS
 
 PSOutput PSMain(PSInput input)
 {
@@ -155,13 +155,13 @@ PSOutput PSMain(PSInput input)
 
     float4 normals_texture = float4(0.0, 0.0, 0.0, 0.0);
 
-// #ifndef DEBUG_RAW_REFLECTIONS
+ #ifndef DEBUG_RAW_REFLECTIONS
     if (HAS_TEXTURE(CURRENT_MATERIAL, NormalMap))
     {
         normals_texture = SAMPLE_MATERIAL_TEXTURE(CURRENT_MATERIAL, NormalMap, texcoord) * 2.0 - 1.0;
         N = normalize(lerp(mul(normals_texture.xyz, tbn_matrix), input.normal, 1.0 - normal_map_intensity));
     }
-// #endif
+ #endif
 
     if (HAS_TEXTURE(CURRENT_MATERIAL, MetalnessMap))
     {
@@ -312,7 +312,7 @@ PSOutput PSMain(PSInput input)
 #endif
 
 #ifdef DEBUG_RAW_REFLECTIONS
-    roughness = 0.001;
+    roughness = 0.1;
 #endif
 
     // https://www.elopezr.com/temporal-aa-and-the-quest-for-the-holy-trail/

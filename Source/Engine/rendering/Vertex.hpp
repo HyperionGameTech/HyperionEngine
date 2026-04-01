@@ -171,6 +171,16 @@ struct alignas(16) Vertex
         boneWeights = weights;
     }
 
+    void AddBoneWeight(float boneWeight)
+    {
+        const uint32 numWeights = NumBoneWeights();
+
+        if (numWeights < MAX_BONE_WEIGHTS)
+        {
+            boneWeights[numWeights] = boneWeight;
+        }
+    }
+
     HYP_FORCE_INLINE void SetBoneIndex(int i, uint8 boneIndex)
     {
         boneIndices[i] = boneIndex;
@@ -204,6 +214,16 @@ struct alignas(16) Vertex
     HYP_FORCE_INLINE void SetBoneIndices(const FixedArray<uint8, MAX_BONE_INDICES>& indices)
     {
         boneIndices = indices;
+    }
+
+    void AddBoneIndex(uint8 boneIndex)
+    {
+        const uint32 numIndices = NumBoneIndices();
+
+        if (numIndices < MAX_BONE_INDICES)
+        {
+            boneIndices[numIndices] = boneIndex;
+        }
     }
 
     HYP_FORCE_INLINE constexpr HashCode GetHashCode() const

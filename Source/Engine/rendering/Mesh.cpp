@@ -141,7 +141,7 @@ Mesh::Mesh(const Array<Vertex>& vertexData, const ByteBuffer& indexData, Topolog
           vertexData,
           indexData,
           topology,
-          VertexAttributeSet::StaticMeshVertexAttributes | VertexAttributeSet::SkeletalMeshVertexAttributes)
+          VertexAttributeSet::StaticMeshVertexAttributes)
 {
 }
 
@@ -652,21 +652,29 @@ Array<float> Mesh::BuildVertexBuffer(const VertexAttributeSet& vertexAttributes)
         if (vertexAttributes.Has(VertexAttribute::Bitangent))
             PACKED_SET_ATTR(vertex.GetBitangent().values, 3);
 
+        uint32 numBoneIndices = 0;
+
         if (vertexAttributes.Has(VertexAttribute::BoneIndices))
         {
-            float indices[4] = {
-                (float)vertex.GetBoneIndex(0), (float)vertex.GetBoneIndex(1),
-                (float)vertex.GetBoneIndex(2), (float)vertex.GetBoneIndex(3)
-            };
+            numBoneIndices = vertex.NumBoneIndices();
+
+            int32 indices[4] {};
+            indices[0] = numBoneIndices >= 1 ? vertex.GetBoneIndex(0) : 0;
+            indices[1] = numBoneIndices >= 2 ? vertex.GetBoneIndex(1) : 0;
+            indices[2] = numBoneIndices >= 3 ? vertex.GetBoneIndex(2) : 0;
+            indices[3] = numBoneIndices == 4 ? vertex.GetBoneIndex(3) : 0;
+
             PACKED_SET_ATTR(indices, HYP_ARRAY_SIZE(indices));
         }
 
         if (vertexAttributes.Has(VertexAttribute::BoneWeights))
         {
-            float weights[4] = {
-                vertex.GetBoneWeight(0), vertex.GetBoneWeight(1),
-                vertex.GetBoneWeight(2), vertex.GetBoneWeight(3)
-            };
+            float weights[4] {};
+            weights[0] = numBoneIndices >= 1 ? vertex.GetBoneWeight(0) : 0.0f;
+            weights[1] = numBoneIndices >= 2 ? vertex.GetBoneWeight(1) : 0.0f;
+            weights[2] = numBoneIndices >= 3 ? vertex.GetBoneWeight(2) : 0.0f;
+            weights[3] = numBoneIndices == 4 ? vertex.GetBoneWeight(3) : 0.0f;
+
             PACKED_SET_ATTR(weights, HYP_ARRAY_SIZE(weights));
         }
     }

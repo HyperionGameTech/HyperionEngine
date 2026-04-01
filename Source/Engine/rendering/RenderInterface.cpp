@@ -1383,7 +1383,7 @@ void RenderInterface::CommitPipelineState(PSOType psoType, CommandBuffer* comman
         }
     };
 
-    constexpr uint32 MaxDynamicOffsetsPerSet = 8;
+    constexpr uint32 MaxDynamicOffsetsPerSet = 16; // 8;
     constexpr uint32 MaxDescriptorSetsBound = 4;
 
     DescriptorSet* setsToBind[MaxDescriptorSetsBound] {};
@@ -1396,8 +1396,8 @@ void RenderInterface::CommitPipelineState(PSOType psoType, CommandBuffer* comman
     uint8 uniformIndexToSetIndex[RenderInterface::State::MaxShaderUniforms];
     Memory::Fill(uniformIndexToSetIndex, ubyte(-1), sizeof(uniformIndexToSetIndex));
 
-    ShaderInputType uniformIndexToShaderInputType[RenderInterface::State::MaxShaderUniforms];
-    Memory::Fill(uniformIndexToShaderInputType, 0, sizeof(uniformIndexToShaderInputType));
+    ShaderRegister uniformIndexToRegister[RenderInterface::State::MaxShaderUniforms];
+    Memory::Zero(uniformIndexToRegister, sizeof(uniformIndexToRegister));
 
     uint8 dsStates[MaxDescriptorSetsBound] = {};
     uint8 dsIndices = 0;
@@ -1479,7 +1479,7 @@ void RenderInterface::CommitPipelineState(PSOType psoType, CommandBuffer* comman
         }
 
         uniformIndexToSetIndex[uniformIndex] = setIndex;
-        uniformIndexToShaderInputType[uniformIndex] = decl->type;
+        uniformIndexToRegister[uniformIndex] = decl->slot;
 
         dsIndices |= uint8(1u << setIndex);
 
@@ -1532,17 +1532,15 @@ void RenderInterface::CommitPipelineState(PSOType psoType, CommandBuffer* comman
 
         const ShaderUniform& uniform = state.shaderUniforms[uniformIndex];
 
-        const ShaderInputType inputType = uniformIndexToShaderInputType[uniformIndex];
-        AssertDebug(inputType == ShaderInputType::IMAGE || inputType == ShaderInputType::IMAGE_STORAGE);
-
         GpuImageView* imageView = uniform.imageView;
         AssertDebug(imageView != nullptr);
 
         GpuImage* image = imageView->GetImage();
 
-        const ResourceState desiredResourceState = inputType == ShaderInputType::IMAGE
-            ? RS_SHADER_RESOURCE
-            : RS_UNORDERED_ACCESS;
+        const ShaderRegister reg = uniformIndexToRegister[uniformIndex];
+        AssertDebug(reg == ShaderRegister::SRV || reg == ShaderRegister::UAV);
+
+        const ResourceState desiredResourceState = (reg == ShaderRegister::SRV) ? RS_SHADER_RESOURCE : RS_UNORDERED_ACCESS;
 
         // normalize counts
         ImageSubResource subResource = imageView->GetImageSubResource();

@@ -73,7 +73,7 @@ namespace Hyperion.Editor
             // tmp debug
             AssetBatch ab = new AssetBatch();
             ab.Add("test_model", "Models/SponzaGltf/Sponza.gltf"); ///"Models/NewSponza/NewSponza_Main_glTF_003.gltf");//"Models/SanMiguel/san-miguel.obj"); //
-            // ab.Add("guy", "models/ZombieGuy/guy.mesh.xml");
+            ab.Add("guy", "models/ZombieGuy/guy.mesh.xml");
             _assetBatchTask = ab.Load();
         }
 

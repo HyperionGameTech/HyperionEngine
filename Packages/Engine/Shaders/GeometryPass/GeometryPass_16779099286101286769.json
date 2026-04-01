@@ -141,7 +141,7 @@
   "ShaderBlobs": [{
       "$Class": "BlobDataReference",
       "Key": "Engine/Shaders/GeometryPass/GeometryPass_16779099286101286769.VS",
-      "Size": 57524
+      "Size": 57520
     }, {
       "$Class": "BlobDataReference",
       "Key": "Engine/Shaders/GeometryPass/GeometryPass_16779099286101286769.PS",
@@ -149,7 +149,7 @@
     }],
   "PropertySetHashCode": {},
   "LastCompiledTimestamp": {
-    "Value": 1774902011000
+    "Value": 1775007767000
   },
   "Name": "GeometryPass_16779099286101286769",
   "FriendlyName": "GeometryPass_16779099286101286769",

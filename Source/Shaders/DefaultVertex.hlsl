@@ -9,8 +9,8 @@ struct VSInput
     HYP_ATTRIBUTE_OPTIONAL float2 a_texcoord1 : TEXCOORD1;
     HYP_ATTRIBUTE_OPTIONAL float3 a_tangent : TANGENT;
     HYP_ATTRIBUTE_OPTIONAL float3 a_bitangent : BINORMAL;
+    HYP_ATTRIBUTE_OPTIONAL int4 a_bone_indices : BLENDINDICES;
     HYP_ATTRIBUTE_OPTIONAL float4 a_bone_weights : BLENDWEIGHT;
-    HYP_ATTRIBUTE_OPTIONAL float4 a_bone_indices : BLENDINDICES;
 };
 
 struct VSOutput
@@ -86,7 +86,7 @@ VSOutput VSMain(VSInput input, uint instanceId : SV_InstanceID)
 #endif
 
 #if defined(SKINNING) && defined(HYP_ATTRIBUTE_a_bone_indices) && defined(HYP_ATTRIBUTE_a_bone_weights)
-    float4x4 skinning_matrix = CreateSkinningMatrix((int4)input.a_bone_indices, input.a_bone_weights);
+    float4x4 skinning_matrix = CreateSkinningMatrix(input.a_bone_indices, input.a_bone_weights);
 
     position = mul(model_matrix, mul(skinning_matrix, float4(input.a_position, 1.0)));
     previous_position = mul(currentEntity.previous_model_matrix, mul(skinning_matrix, float4(input.a_position, 1.0)));
