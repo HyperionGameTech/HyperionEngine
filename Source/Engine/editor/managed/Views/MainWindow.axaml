@@ -332,10 +332,18 @@
                                 </TreeView.ItemContainerTheme>
                                 <TreeView.ItemTemplate>
                                     <TreeDataTemplate x:DataType="vm:NodeViewModel" ItemsSource="{Binding Children}">
-                                        <StackPanel Orientation="Horizontal" Spacing="6" VerticalAlignment="Center">
-                                            <Ellipse Width="6" Height="6" Fill="White" IsVisible="{Binding IsDirty}" VerticalAlignment="Center" />
-                                            <TextBlock FontStyle="{Binding NameFontStyle}" Text="{Binding DisplayName}" VerticalAlignment="Center" />
-                                        </StackPanel>
+                                        <Grid>
+                                            <!--  Drop-target highlight: sits behind the label, shown during drag-over  -->
+                                            <Border
+                                                Background="{DynamicResource Brush.Accent}"
+                                                CornerRadius="3"
+                                                IsVisible="{Binding IsDropTarget}"
+                                                Opacity="0.35" />
+                                            <StackPanel Margin="2,2" Orientation="Horizontal" Spacing="6" VerticalAlignment="Center">
+                                                <Ellipse Width="6" Height="6" Fill="White" IsVisible="{Binding IsDirty}" VerticalAlignment="Center" />
+                                                <TextBlock FontStyle="{Binding NameFontStyle}" Text="{Binding DisplayName}" VerticalAlignment="Center" />
+                                            </StackPanel>
+                                        </Grid>
                                     </TreeDataTemplate>
                                 </TreeView.ItemTemplate>
                             </TreeView>

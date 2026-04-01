@@ -184,7 +184,7 @@ namespace Hyperion.Editor.ViewModels
                 if (draggedNode == null || !draggedNode.IsValid || newParentNode == null || !newParentNode.IsValid)
                     return false;
 
-                if (draggedNode == newParentNode || newParentNode.IsOrHasParent(draggedNode))
+                if (newParentNode.IsOrHasParent(draggedNode))
                     return false;
 
                 if (draggedNode.GetParent() == newParentNode)
@@ -197,9 +197,27 @@ namespace Hyperion.Editor.ViewModels
             });
         }
 
+        public void SetDropTarget(NodeViewModel? target)
+        {
+            Dispatcher.UIThread.VerifyAccess();
+
+            if (_currentDropTarget == target)
+                return;
+
+            if (_currentDropTarget != null)
+                _currentDropTarget.IsDropTarget = false;
+
+            _currentDropTarget = target;
+
+            if (_currentDropTarget != null)
+                _currentDropTarget.IsDropTarget = true;
+        }
+
+        private NodeViewModel? _currentDropTarget;
+
         public static bool IsAncestorOf(NodeViewModel potentialAncestor, NodeViewModel node)
         {
-            // @FIXME: Not thread safe.
+            // @NOTE Not thread safe currently, needs to be called on sim thread!
 
             NodeViewModel? current = node.Parent;
             while (current != null)

@@ -1977,6 +1977,7 @@ extern class Node : AssetObject
     SetLocalBounds(aabb : BoundingBox) -> void
     AddChild(node : Node) -> Node
     RemoveAt(index : int) -> bool
+    MoveChild(child : Node, newIndex : int) -> bool
     Remove() -> bool
     RemoveAllChildren() -> void
     NumChildren() -> int
