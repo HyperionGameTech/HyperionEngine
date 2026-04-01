@@ -77,10 +77,10 @@ enum class ViewFlags : uint32
     MATCH_CAMERA_DIMENSIONS = 0x200000, //!< If set, the Viewport dimensions will always match the associated Camera's dimensions.
 
     SHADOW_VIEW = 0x400000,             //!< This View is for a rendering a shadow map slice or cascade
+    BAKER_VIEW = 0x800000,              //!< This View is for baking lightmaps or shadow maps, not for rendering to the screen (see: Baker.cpp)
+    UI_VIEW = 0x1000000,                //!< This View is for rendering UI elements. See UISubsystem.
 
-    EXTERNAL_RENDERTARGET = 0x800000,
-
-    UI = 0x1000000,
+    EXTERNAL_RENDERTARGET = 0x10000000,
 
     DEFAULT = ALL_WORLD_SCENES | COLLECT_ALL_ENTITIES
 };

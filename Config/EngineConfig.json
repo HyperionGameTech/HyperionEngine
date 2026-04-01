@@ -13,7 +13,7 @@
       "Enabled": false
     },
     "SSGI": false,
-    "TAA": false,
+    "TAA": true,
     "PathTracing": false,
     "RayTracedReflections": false,
     "RayTracedGI": false,
@@ -21,7 +21,7 @@
     "IndirectRendering": false,
     "ParallelCollection": true,
     "SSR": {
-      "Enabled": false,
+      "Enabled": true,
       "Quality": 2,
       "RoughnessScattering": false,
       "ConeTracing": true,
@@ -60,7 +60,7 @@
   },
   "System": {
     "SelectedGpu": {
-      "Index": 1
+      "Index": 0
     }
   },
   "Baker": {

@@ -231,16 +231,12 @@ extern "C"
 
     HYP_EXPORT Method* Class_GetMethod(const Class* cls, const Name* name)
     {
-        // #ifndef HYP_MSVC
         if (!cls || !name)
         {
             return nullptr;
         }
 
         return cls->GetMethod(*name);
-        // #endif
-        //  @FIXME: Linker error in MSVC ... GetMethod() is not linking??? Weird.
-        HYP_NOT_IMPLEMENTED();
     }
 
     HYP_EXPORT uint32 Class_GetFields(const Class* cls, const Field** outFields)

@@ -159,7 +159,7 @@ void FinalPass::Render(Frame* frame, const RenderSetup& rs)
         {
             for (View* view : world->GetViews())
             {
-                if (!(view->GetFlags() & ViewFlags::UI))
+                if (!(view->GetFlags() & ViewFlags::UI_VIEW))
                 {
                     continue;
                 }

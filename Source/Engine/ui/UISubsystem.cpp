@@ -215,7 +215,7 @@ void UISubsystem::Init()
     renderTargetDesc.AddAttachment({ TextureType::Texture2D, TextureFormat::RGBA8 });
 
     ViewDesc viewDesc {};
-    viewDesc.flags = ViewFlags::UI | (ViewFlags::DEFAULT & ~(ViewFlags::ALL_WORLD_SCENES | ViewFlags::MATCH_CAMERA_DIMENSIONS));
+    viewDesc.flags = ViewFlags::UI_VIEW | (ViewFlags::DEFAULT & ~(ViewFlags::ALL_WORLD_SCENES | ViewFlags::MATCH_CAMERA_DIMENSIONS));
     viewDesc.renderTargetDesc = renderTargetDesc;
     viewDesc.scenes = { m_uiStage->GetScene() };
     viewDesc.camera = m_uiStage->GetCamera();
