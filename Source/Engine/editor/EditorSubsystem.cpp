@@ -423,8 +423,8 @@ void TranslateEditorGizmo::OnDragEnd(const Handle<Camera>& camera, const MouseEv
     {
         if (Handle<Node> focusedNode = m_focusedNode.Lock(); focusedNode.IsValid())
         {
-            project->GetActionStack()->Push(MakeHandle<FunctionalEditorAction>(
-                NAME("Translate"),
+            project->GetActionStack()->PushAction(MakeHandle<FunctionalEditorAction>(
+                "Translate",
                 [manipulationMode = GetManipulationMode(), focusedNode, node = m_node, finalPosition = focusedNode->GetWorldTranslation(), origin = m_dragData->nodeOrigin]() -> EditorActionFunctions
                 {
                     return {
@@ -958,8 +958,8 @@ void RotateEditorGizmo::OnDragEnd(const Handle<Camera>& camera, const MouseEvent
             const Quaternion finalRotation = m_dragData->currentRotation;
             const Quaternion originRotation = m_dragData->startRotation;
 
-            project->GetActionStack()->Push(MakeHandle<FunctionalEditorAction>(
-                NAME("Rotate"),
+            project->GetActionStack()->PushAction(MakeHandle<FunctionalEditorAction>(
+                "Rotate",
                 [manipulationMode = GetManipulationMode(), focusedNode, finalRotation, originRotation]() -> EditorActionFunctions
                 {
                     return {
@@ -1375,8 +1375,8 @@ void VolumeEditorGizmo::OnDragEnd(const Handle<Camera>& camera, const MouseEvent
                 const BoundingBox finalBounds = m_currentBounds;
                 const BoundingBox originalBounds = m_dragData->originalBounds;
 
-                project->GetActionStack()->Push(MakeHandle<FunctionalEditorAction>(
-                    NAME("VolumeEdit"),
+                project->GetActionStack()->PushAction(MakeHandle<FunctionalEditorAction>(
+                    "Edit Volume Shape",
                     [manipulationMode = GetManipulationMode(), focusedNode, finalBounds, originalBounds]() -> EditorActionFunctions
                     {
                         return {
@@ -2727,7 +2727,7 @@ bool EditorSubsystem::ExecuteCommand(const Handle<EditorCommandBase>& command)
     return true;
 }
 
-bool EditorSubsystem::ExecuteCommandByName(Name name)
+bool EditorSubsystem::ExecuteCommandByName(Name name, const String& args)
 {
     if (!name.IsValid())
     {
@@ -2750,6 +2750,8 @@ bool EditorSubsystem::ExecuteCommandByName(Name name)
 
     Handle<EditorCommandBase>& command = instanceData.Get<Handle<EditorCommandBase>>();
     AssertDebug(command != nullptr);
+
+    command->SetArguments(args.Split(' '));
 
     return ExecuteCommand(command);
 }

@@ -44,7 +44,7 @@ public:
     virtual ~EditorActionStack() override;
 
     HYP_METHOD()
-    void Push(const Handle<EditorActionBase>& action);
+    bool PushAction(const Handle<EditorActionBase>& action);
 
     HYP_METHOD()
     bool CanUndo() const;

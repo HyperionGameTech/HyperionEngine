@@ -19,5 +19,10 @@ namespace Hyperion
             get => this.GetActiveScene();
             set => this.SetActiveScene(value);
         }
+
+        public void ExecuteCommandByName(Name commandName, params string[] arguments)
+        {
+            this.InvokeNativeMethod(new Name("ExecuteCommandByName"), new object[] { commandName, string.Join(" ", arguments) });
+        }
     }
 }

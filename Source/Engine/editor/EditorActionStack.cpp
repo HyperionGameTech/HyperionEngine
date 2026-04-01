@@ -71,7 +71,7 @@ bool EditorActionStack::CanRedo() const
     return m_currentActionIndex + 1 < m_actions.Size();
 }
 
-void EditorActionStack::Push(const Handle<EditorActionBase>& action)
+bool EditorActionStack::PushAction(const Handle<EditorActionBase>& action)
 {
     Assert(action.IsValid());
 
@@ -103,6 +103,8 @@ void EditorActionStack::Push(const Handle<EditorActionBase>& action)
     UpdateState();
 
     OnAfterActionPush(action.Get());
+
+    return true;
 }
 
 void EditorActionStack::Undo()
@@ -119,6 +121,7 @@ void EditorActionStack::Undo()
     Assert(editorSubsystem.IsValid());
 
     EditorActionBase* action = m_actions[m_currentActionIndex].Get();
+    HYP_LOG(Editor, Verbose, "Undoing action: {}", action->GetText());
 
     OnBeforeActionPop(action);
 
@@ -145,6 +148,7 @@ void EditorActionStack::Redo()
     Assert(editorSubsystem.IsValid());
 
     EditorActionBase* action = m_actions[m_currentActionIndex + 1].Get();
+    HYP_LOG(Editor, Verbose, "Redoing action: {}", action->GetText());
 
     OnBeforeActionPush(action);
 

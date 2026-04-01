@@ -109,8 +109,8 @@
                     <MenuItem Command="{Binding Exit}" Header="_Exit" />
                 </MenuItem>
                 <MenuItem Header="_Edit">
-                    <MenuItem Command="{Binding Undo}" Header="_Undo" />
-                    <MenuItem Command="{Binding Redo}" Header="_Redo" />
+                    <MenuItem Command="{Binding Undo}" Header="{Binding UndoHeader}" />
+                    <MenuItem Command="{Binding Redo}" Header="{Binding RedoHeader}" />
                     <Separator />
                     <MenuItem Command="{Binding Copy}" Header="_Copy" />
                     <MenuItem Command="{Binding Paste}" Header="_Paste" />

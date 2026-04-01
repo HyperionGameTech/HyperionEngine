@@ -26,7 +26,7 @@ public:
     virtual ~EditorActionBase() = default;
 
     HYP_METHOD(Scriptable)
-    virtual Name GetName() const;
+    virtual String GetText() const;
 
     HYP_METHOD(Scriptable)
     virtual void Execute(EditorSubsystem* editorSubsystem, EditorProject* project);
@@ -35,7 +35,7 @@ public:
     virtual void Revert(EditorSubsystem* editorSubsystem, EditorProject* project);
 
 protected:
-    virtual Name GetName_Impl() const
+    virtual String GetText_Impl() const
     {
         HYP_PURE_VIRTUAL();
     }
@@ -65,17 +65,17 @@ class HYP_API FunctionalEditorAction : public EditorActionBase
 public:
     FunctionalEditorAction() = default;
 
-    FunctionalEditorAction(Name name, Proc<EditorActionFunctions()>&& getStateProc)
-        : m_name(name),
+    FunctionalEditorAction(const String& text, Proc<EditorActionFunctions()>&& getStateProc)
+        : m_text(text),
           m_getStateProc(std::move(getStateProc)),
           m_getStateProcResult(m_getStateProc())
     {
     }
 
     HYP_METHOD()
-    virtual Name GetName() const override final
+    virtual String GetText() const override final
     {
-        return m_name;
+        return m_text;
     }
 
     HYP_METHOD()
@@ -91,7 +91,7 @@ public:
     }
 
 private:
-    Name m_name;
+    String m_text;
     Proc<EditorActionFunctions()> m_getStateProc;
     EditorActionFunctions m_getStateProcResult;
 };

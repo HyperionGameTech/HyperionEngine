@@ -9,5 +9,17 @@ namespace Hyperion
         public EditorCommandBase()
         {
         }
+
+        public IEnumerable<string> Arguments
+        {
+            get
+            {
+                int argCount = this.NumArguments();
+                for (int i = 0; i < argCount; i++)
+                {
+                    yield return this.GetArgument(i);
+                }
+            }
+        }
     }
 }

@@ -1,7 +1,9 @@
 using System;
 using System.Collections.ObjectModel;
+using System.Threading.Tasks;
 using Avalonia.Threading;
 using Hyperion;
+using Hyperion.Editor.Services;
 
 namespace Hyperion.Editor.ViewModels
 {
@@ -170,31 +172,21 @@ namespace Hyperion.Editor.ViewModels
             return null;
         }
 
-        public async Task<bool> ReparentNode(NodeViewModel dragged, NodeViewModel newParent)
+        public bool ReparentNode(NodeViewModel dragged, NodeViewModel newParent)
         {
             if (dragged == null || newParent == null)
                 return false;
 
-            // need to call on sim thread
-            return await EngineManager.PostToSimThread(() =>
-            {
-                Node draggedNode = dragged.Node;
-                Node newParentNode = newParent.Node;
+            Node draggedNode = dragged.Node;
+            Node newParentNode = newParent.Node;
 
-                if (draggedNode == null || !draggedNode.IsValid || newParentNode == null || !newParentNode.IsValid)
-                    return false;
+            // @FIXME - Use IDs instead of names to avoid issues, could run into issues with duplicate names or name changes
+            EngineManager.EditorGame?.EditorSubsystem?.ExecuteCommandByName(
+                new Name("EditorCommandReparentNode"),
+                draggedNode.Name.ToString(),
+                newParentNode.Name.ToString());
 
-                if (newParentNode.IsOrHasParent(draggedNode))
-                    return false;
-
-                if (draggedNode.GetParent() == newParentNode)
-                    return false;
-
-                draggedNode.Remove();
-                newParentNode.AddChild(draggedNode);
-
-                return true;
-            });
+            return true;
         }
 
         public void SetDropTarget(NodeViewModel? target)

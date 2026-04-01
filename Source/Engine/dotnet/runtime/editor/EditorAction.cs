@@ -10,7 +10,7 @@ namespace Hyperion
         {
         }
 
-        public abstract Name GetName();
+        public abstract string GetText();
         public abstract void Execute(EditorSubsystem editorSubsystem, EditorProject editorProject);
         public abstract void Revert(EditorSubsystem editorSubsystem, EditorProject editorProject);
     }
@@ -21,9 +21,9 @@ namespace Hyperion
     [ClassBinding(Name = "FunctionalEditorAction")]
     public class FunctionalEditorAction : EditorActionBase
     {
-        public override Name GetName()
+        public override string GetText()
         {
-            return InvokeNativeMethod<Name>(new Name("GetName", weak: true));
+            return InvokeNativeMethod<string>(new Name("GetText", weak: true));
         }
 
         public override void Execute(EditorSubsystem editorSubsystem, EditorProject editorProject)
@@ -37,36 +37,33 @@ namespace Hyperion
         }
     }
 
+    [ClassBinding(IsDynamic = true)]
     public class EditorAction : EditorActionBase
     {
-        private Name name;
-        private Action<EditorSubsystem, EditorProject> execute;
-        private Action<EditorSubsystem, EditorProject> revert;
+        private string _text;
+        private Action<EditorSubsystem, EditorProject> _execute;
+        private Action<EditorSubsystem, EditorProject> _revert;
 
-        public EditorAction(Name name, Action<EditorSubsystem, EditorProject> execute, Action<EditorSubsystem, EditorProject> revert) : base()
+        public EditorAction(string text, Action<EditorSubsystem, EditorProject> execute, Action<EditorSubsystem, EditorProject> revert) : base()
         {
-            this.name = name;
-            this.execute = execute;
-            this.revert = revert;
+            _text = text;
+            _execute = execute;
+            _revert = revert;
         }
 
-        public override Name GetName()
+        public override string GetText()
         {
-            return name;
+            return _text;
         }
 
         public override void Execute(EditorSubsystem editorSubsystem, EditorProject editorProject)
         {
-            Logger.Log(LogLevel.Info, "Execute action: " + name);
-
-            execute(editorSubsystem, editorProject);
+            _execute(editorSubsystem, editorProject);
         }
 
         public override void Revert(EditorSubsystem editorSubsystem, EditorProject editorProject)
         {
-            Logger.Log(LogLevel.Info, "Revert action: " + name);
-
-            revert(editorSubsystem, editorProject);
+            _revert(editorSubsystem, editorProject);
         }
     }
 }

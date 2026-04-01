@@ -431,7 +431,7 @@ public:
     bool ExecuteCommand(const Handle<EditorCommandBase>& command);
 
     HYP_METHOD()
-    bool ExecuteCommandByName(Name name);
+    bool ExecuteCommandByName(Name name, const String& arguments);
 
     HYP_METHOD()
     void NewProject();

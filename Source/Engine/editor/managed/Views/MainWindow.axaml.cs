@@ -143,9 +143,19 @@ namespace Hyperion.Editor
             var data = new DataObject();
             data.Set(NodeViewModelDragFormat, candidate);
 
-            await DragDrop.DoDragDrop(e, data, DragDropEffects.Move);
-
-            EndDrag();
+            try
+            {
+                await DragDrop.DoDragDrop(e, data, DragDropEffects.Move);
+            }
+            catch (Exception ex) when (ex is System.Runtime.InteropServices.COMException)
+            {
+                // DoDragDrop can throw on Windows if the drag is cancelled externally
+                // or the pointer state is unexpected; treat as a cancelled drag.
+            }
+            finally
+            {
+                EndDrag();
+            }
         }
 
         private void OnSceneTreePointerReleased(object? sender, PointerReleasedEventArgs e)

@@ -1618,7 +1618,7 @@ extern class EditorSubsystem : Subsystem
     RemoveViewport(viewport : EditorViewport) -> void
     GetEditorScene() -> Scene
     ExecuteCommand(command : EditorCommandBase) -> bool
-    ExecuteCommandByName(name : Name) -> bool
+    ExecuteCommandByName(name : Name, arguments : string) -> bool
     NewProject() -> void
     OpenProject(project : EditorProject) -> void
     CloseProject() -> void
@@ -1677,6 +1677,11 @@ extern class EditorProject
     ActionStack : EditorActionStack
 end
 extern class EditorCommandBase
+    GetText() -> string
+    GetArguments() -> Array<string>
+    SetArguments(args : Array<string>) -> void
+    NumArguments() -> int
+    GetArgument(index : int) -> string
 end
 extern enum EditorActionStackState : uint32
     NONE = 0x0,
@@ -1684,7 +1689,7 @@ extern enum EditorActionStackState : uint32
     CAN_REDO = 0x2
 end
 extern class EditorActionStack
-    Push(action : EditorActionBase) -> void
+    PushAction(action : EditorActionBase) -> bool
     CanUndo() -> bool
     CanRedo() -> bool
     Undo() -> void
@@ -1698,12 +1703,12 @@ extern class EditorActionStack
     OnStateChange : any
 end
 extern class EditorActionBase
-    GetName() -> Name
+    GetText() -> string
     Execute(editorSubsystem : EditorSubsystem, project : EditorProject) -> void
     Revert(editorSubsystem : EditorSubsystem, project : EditorProject) -> void
 end
 extern class FunctionalEditorAction : EditorActionBase
-    GetName() -> Name
+    GetText() -> string
     Execute(editorSubsystem : EditorSubsystem, project : EditorProject) -> void
     Revert(editorSubsystem : EditorSubsystem, project : EditorProject) -> void
 end
@@ -1977,7 +1982,6 @@ extern class Node : AssetObject
     SetLocalBounds(aabb : BoundingBox) -> void
     AddChild(node : Node) -> Node
     RemoveAt(index : int) -> bool
-    MoveChild(child : Node, newIndex : int) -> bool
     Remove() -> bool
     RemoveAllChildren() -> void
     NumChildren() -> int

@@ -4,8 +4,15 @@
 
 #include <editor/EditorCommand.hpp>
 
+#include <Core/reflection/Class.hpp>
+
 #include <EditorCommand.generated.inl>
 
 namespace Hyperion {
+
+String EditorCommandBase::GetText() const
+{
+    return InstanceClass()->GetName().LookupString();
+}
 
 } // namespace Hyperion

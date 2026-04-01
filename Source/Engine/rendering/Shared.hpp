@@ -1451,6 +1451,15 @@ struct RenderTargetDesc
         attachments[numAttachments++] = attachmentDesc;
     }
 
+    /*! \brief Test graphics pipeline compatibility: Can we reuse a graphics pipeline with \p other as its associated desc for this given desc? */
+    bool IsPSOCompatible(const RenderTargetDesc& other) const
+    {
+        return numAttachments == other.numAttachments
+            && std::equal(attachments, attachments + numAttachments, other.attachments)
+            && numLayers == other.numLayers
+            && renderPassMode == other.renderPassMode;
+    }
+
     HYP_FORCE_INLINE constexpr HashCode GetHashCode() const
     {
         return HashCode::GetHashCode(extent)

@@ -410,7 +410,7 @@ namespace Hyperion
 
             while (true)
             {
-                Assert.Throw(currentType != null);
+                Debug.Assert(currentType != null);
 
                 Attribute? attribute = Attribute.GetCustomAttribute(currentType, typeof(ClassBinding));
 
@@ -418,8 +418,6 @@ namespace Hyperion
                     break;
 
                 currentType = currentType.BaseType;
-
-                Assert.Throw(currentType != null);
 
                 if (currentType == null)
                     return null;

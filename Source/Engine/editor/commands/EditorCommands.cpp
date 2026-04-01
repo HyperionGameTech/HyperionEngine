@@ -314,6 +314,11 @@ class HYP_API EditorCommandAddLightmapVolume final : public EditorCommandBase
 public:
     virtual ~EditorCommandAddLightmapVolume() override = default;
 
+    virtual String GetText() const override
+    {
+        return "Add Lightmap Volume";
+    }
+
     virtual void Execute(EditorSubsystem* subsystem) override
     {
         const Handle<EditorProject>& currentProject = subsystem->GetCurrentProject();
@@ -342,7 +347,7 @@ public:
         WeakHandle<Node> previousFocusedNode = subsystem->GetFocusedNode();
 
         Handle<FunctionalEditorAction> action = MakeHandle<FunctionalEditorAction>(
-            StaticClass()->GetName(),
+            GetText(),
             Proc<EditorActionFunctions()>([lightmapVolume, previousFocusedNode, activeScene]() -> EditorActionFunctions
                 {
                     return EditorActionFunctions {
@@ -372,7 +377,7 @@ public:
 
         InitObject(action);
 
-        currentProject->GetActionStack()->Push(action);
+        currentProject->GetActionStack()->PushAction(action);
 
 #if 0
         // kickoff lightmap generation for the new volume
@@ -402,6 +407,11 @@ class HYP_API EditorCommandAddReflectionProbe final : public EditorCommandBase
 public:
     virtual ~EditorCommandAddReflectionProbe() override = default;
 
+    virtual String GetText() const override
+    {
+        return "Add Reflection Probe";
+    }
+
     virtual void Execute(EditorSubsystem* subsystem) override
     {
         const Handle<EditorProject>& currentProject = subsystem->GetCurrentProject();
@@ -427,7 +437,7 @@ public:
         WeakHandle<Node> previousFocusedNode = subsystem->GetFocusedNode();
 
         Handle<FunctionalEditorAction> action = MakeHandle<FunctionalEditorAction>(
-            StaticClass()->GetName(),
+            GetText(),
             Proc<EditorActionFunctions()>([reflectionProbe, previousFocusedNode, activeScene]() -> EditorActionFunctions
                 {
                     return EditorActionFunctions {
@@ -457,7 +467,7 @@ public:
 
         InitObject(action);
 
-        currentProject->GetActionStack()->Push(action);
+        currentProject->GetActionStack()->PushAction(action);
 
         if (!reflectionProbe->IsRealtime())
         {
@@ -487,6 +497,11 @@ class HYP_API EditorCommandAddParticleVolume final : public EditorCommandBase
 
 public:
     virtual ~EditorCommandAddParticleVolume() override = default;
+
+    virtual String GetText() const override
+    {
+        return  "Add Particle Volume";
+    }
 
     virtual void Execute(EditorSubsystem* subsystem) override
     {
@@ -525,7 +540,7 @@ public:
         WeakHandle<Node> previousFocusedNode = subsystem->GetFocusedNode();
 
         Handle<FunctionalEditorAction> action = MakeHandle<FunctionalEditorAction>(
-            StaticClass()->GetName(),
+            GetText(),
             Proc<EditorActionFunctions()>([particleVolume, previousFocusedNode, activeScene]() -> EditorActionFunctions
                 {
                     return EditorActionFunctions {
@@ -554,7 +569,7 @@ public:
 
         InitObject(action);
 
-        currentProject->GetActionStack()->Push(action);
+        currentProject->GetActionStack()->PushAction(action);
     }
 };
 
@@ -570,6 +585,11 @@ class HYP_API EditorCommandAddFogVolume final : public EditorCommandBase
 
 public:
     virtual ~EditorCommandAddFogVolume() override = default;
+
+    virtual String GetText() const override
+    {
+        return "Add Fog Volume";
+    }
 
     virtual void Execute(EditorSubsystem* subsystem) override
     {
@@ -595,7 +615,7 @@ public:
         WeakHandle<Node> previousFocusedNode = subsystem->GetFocusedNode();
 
         Handle<FunctionalEditorAction> action = MakeHandle<FunctionalEditorAction>(
-            StaticClass()->GetName(),
+            GetText(),
             Proc<EditorActionFunctions()>([fogVolume, previousFocusedNode, activeScene]() -> EditorActionFunctions
                 {
                     return EditorActionFunctions {
@@ -624,7 +644,7 @@ public:
 
         InitObject(action);
 
-        currentProject->GetActionStack()->Push(action);
+        currentProject->GetActionStack()->PushAction(action);
 
         // start baking fog volume
 
@@ -676,7 +696,7 @@ static void AddNodeOfTypeImpl(EditorSubsystem* subsystem, Name defaultNodeName)
     n->SetWorldTranslation(insertionPoint);
 
     Handle<FunctionalEditorAction> action = MakeHandle<FunctionalEditorAction>(
-        EditorCommandType::StaticClass()->GetName(),
+        HYP_FORMAT("Add {}", defaultNodeName),
         Proc<EditorActionFunctions()>([n, currentFocusedNode, activeScene]() -> EditorActionFunctions
             {
                 return EditorActionFunctions {
@@ -705,7 +725,7 @@ static void AddNodeOfTypeImpl(EditorSubsystem* subsystem, Name defaultNodeName)
 
     InitObject(action);
 
-    currentProject->GetActionStack()->Push(action);
+    currentProject->GetActionStack()->PushAction(action);
 }
 
 template <class Derived>
@@ -713,6 +733,11 @@ class HYP_API EditorCommandAddNodeBase : public EditorCommandBase
 {
 public:
     virtual ~EditorCommandAddNodeBase() override = default;
+
+    virtual String GetText() const override
+    {
+        return HYP_FORMAT("Add {}", Derived::s_defaultNodeName);
+    }
 
     virtual void Execute(EditorSubsystem* subsystem) override
     {
@@ -834,19 +859,38 @@ class HYP_API EditorCommandImportContent final : public EditorCommandBase
 public:
     virtual ~EditorCommandImportContent() override = default;
 
+    virtual String GetText() const override
+    {
+        return m_text.Length() ? m_text : EditorCommandBase::GetText();
+    }
+
     virtual void Execute(EditorSubsystem* subsystem) override
     {
-
         ShowOpenFileDialog(
             "Select the file(s) to import into the project",
             GetDataDirectory(),
             { "obj", "fbx", "jpg", "jpeg", "png", "tga", "bmp", "ogre.xml" },
             /* allowMultiple */ true, /* allowDirectories */ false,
-            [](TResult<Array<FilePath>>&& result)
+            [this](TResult<Array<FilePath>>&& result)
             {
                 if (result.HasError())
                 {
                     HYP_LOG(Editor, Error, "Failed to select files to import: {}", result.GetError().GetMessage());
+
+                    return;
+                }
+
+                if (result.GetValue().Size() > 1)
+                {
+                    m_text = HYP_FORMAT("Import {} files", result.GetValue().Size());
+                }
+                else if (result.GetValue().Size() == 1)
+                {
+                    m_text = HYP_FORMAT("Import '{}'", result.GetValue()[0].Basename());
+                }
+                else
+                {
+                    HYP_LOG(Editor, Warning, "No files selected for import.");
 
                     return;
                 }
@@ -934,11 +978,100 @@ public:
                 // Note: The batch will be destroyed automatically by AssetManager when complete
             });
     }
+
+private:
+    String m_text;
 };
 
 DEFINE_EDITOR_COMMAND(ImportContent);
 
 #pragma endregion EditorCommandImportContent
+
+#pragma region EditorCommandReparentNode
+
+class HYP_API EditorCommandReparentNode final : public EditorCommandBase
+{
+    HYP_OBJECT_BODY(EditorCommandReparentNode);
+
+public:
+    EditorCommandReparentNode() = default;
+
+    virtual ~EditorCommandReparentNode() override = default;
+
+    virtual String GetText() const override
+    {
+        return m_text.Length() ? m_text : EditorCommandBase::GetText();
+    }
+
+    virtual void Execute(EditorSubsystem* subsystem) override
+    {
+        AssertOnThread(g_simThread);
+
+        Handle<Node> node = subsystem->GetActiveScene()->FindNodeByName(StringHash(GetArgument(0)));
+        Handle<Node> newParent = subsystem->GetActiveScene()->FindNodeByName(StringHash(GetArgument(1)));
+
+        if (!node.IsValid() || !newParent.IsValid())
+        {
+            HYP_LOG(Editor, Error, "EditorCommandReparentNode: invalid node or new parent");
+            return;
+        }
+
+        m_text = HYP_FORMAT("Attach '{}' to '{}'", node->GetName(), newParent->GetName());
+
+        // Prevent cycles: reject if newParent is the dragged node itself or any of its descendants.
+        if (newParent->IsOrHasParent(node))
+        {
+            HYP_LOG(Editor, Warning, "EditorCommandReparentNode: cannot reparent a node to its own descendant");
+            return;
+        }
+
+        Node* previousParent = node->GetParent();
+        if (!previousParent)
+        {
+            HYP_LOG(Editor, Error, "EditorCommandReparentNode: node has no parent, cannot reparent");
+            return;
+        }
+
+        if (previousParent == newParent)
+            return;
+
+        const Handle<EditorProject>& currentProject = subsystem->GetCurrentProject();
+        if (!currentProject.IsValid())
+        {
+            HYP_LOG(Editor, Error, "EditorCommandReparentNode: no project loaded");
+            return;
+        }
+
+        Handle<FunctionalEditorAction> action = MakeHandle<FunctionalEditorAction>(
+            GetText(),
+            Proc<EditorActionFunctions()>([node, newParent, previousParent = MakeStrongRef(previousParent)]() -> EditorActionFunctions
+                {
+                    return EditorActionFunctions {
+                        .execute = Proc<void(EditorSubsystem*, EditorProject*)>([node, newParent](EditorSubsystem*, EditorProject*)
+                            {
+                                node->Remove();
+                                newParent->AddChild(node);
+                            }),
+                        .revert = Proc<void(EditorSubsystem*, EditorProject*)>([node, previousParent](EditorSubsystem*, EditorProject*)
+                            {
+                                node->Remove();
+                                previousParent->AddChild(node);
+                            })
+                    };
+                }));
+
+        InitObject(action);
+
+        currentProject->GetActionStack()->PushAction(action);
+    }
+
+private:
+    String m_text;
+};
+
+DEFINE_EDITOR_COMMAND(ReparentNode);
+
+#pragma endregion EditorCommandReparentNode
 
 #undef DEFINE_EDITOR_COMMAND
 

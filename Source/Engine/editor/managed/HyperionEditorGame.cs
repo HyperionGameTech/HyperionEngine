@@ -217,16 +217,11 @@ namespace Hyperion.Editor
         private void UpdateUndo()
         {
             Logger.Log(LogLevel.Debug, "UpdateUndo called");
-
-            /// \todo : Model after EditorMain.cpp
         }
 
         private void UpdateRedo()
         {
             Logger.Log(LogLevel.Debug, "UpdateRedo called");
-
-
-            /// \todo : Model after EditorMain.cpp
         }
     }
 }

@@ -29,6 +29,20 @@ namespace Hyperion.Editor.ViewModels
         public EditorCommand Exit => new EditorCommand("Exit");
         public EditorCommand Undo => new EditorCommand("Undo");
         public EditorCommand Redo => new EditorCommand("Redo");
+
+        private string _undoHeader = "_Undo";
+        public string UndoHeader
+        {
+            get => _undoHeader;
+            set => SetProperty(ref _undoHeader, value);
+        }
+
+        private string _redoHeader = "_Redo";
+        public string RedoHeader
+        {
+            get => _redoHeader;
+            set => SetProperty(ref _redoHeader, value);
+        }
         public EditorCommand Copy => new EditorCommand("Copy");
         public EditorCommand Paste => new EditorCommand("Paste");
 
@@ -110,6 +124,7 @@ namespace Hyperion.Editor.ViewModels
         private DelegateHandler? _currentProjectChangedHandler;
         private DelegateHandler? _selectedGizmoChangedHandler;
         private DelegateHandler? _activeSceneChangedHandler;
+        private DelegateHandler? _actionStackStateChangedHandler;
 
         private int _isUpdatingSelectionFromEngine = 0; // atomic
         private bool _isReady = false;
@@ -267,6 +282,7 @@ namespace Hyperion.Editor.ViewModels
             _currentProjectChangedHandler?.Remove();
             _selectedGizmoChangedHandler?.Remove();
             _activeSceneChangedHandler?.Remove();
+            _actionStackStateChangedHandler?.Remove();
             SceneHierarchy.SelectedNodeChanged -= OnSceneHierarchyNodeSelected;
             ContentBrowser.Dispose();
         }
@@ -363,10 +379,45 @@ namespace Hyperion.Editor.ViewModels
             });
         }
 
+        private void UpdateUndoRedoHeaders(EditorProject? project)
+        {
+            if (project == null)
+            {
+                UndoHeader = "_Undo";
+                RedoHeader = "_Redo";
+                return;
+            }
+
+            _ = EngineManager.PostToSimThread(() =>
+            {
+                EditorActionBase? undoAction = project.ActionStack.GetUndoAction();
+                EditorActionBase? redoAction = project.ActionStack.GetRedoAction();
+                string? undoName = undoAction?.GetText();
+                string? redoName = redoAction?.GetText();
+
+                Dispatcher.UIThread.Post(() =>
+                {
+                    UndoHeader = string.IsNullOrEmpty(undoName) ? "_Undo" : $"_Undo {undoName}";
+                    RedoHeader = string.IsNullOrEmpty(redoName) ? "_Redo" : $"_Redo {redoName}";
+                });
+            });
+        }
+
         private void HandleCurrentProjectChanged(EditorProject? project)
         {
             // Game mode:  when project changes we also want to update the play/pause/stop buttons
             _gameModeChangedHandler?.Remove();
+
+            _actionStackStateChangedHandler?.Remove();
+            _actionStackStateChangedHandler = null;
+
+            if (project != null)
+            {
+                _actionStackStateChangedHandler = project.ActionStack.GetOnStateChangeDelegate()
+                    .Bind((EditorActionStackState _) => UpdateUndoRedoHeaders(project));
+            }
+
+            UpdateUndoRedoHeaders(project);
 
             if (project != null)
             {
