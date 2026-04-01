@@ -10,6 +10,11 @@
 
 #include <climits>
 
+#if HYP_WINDOWS
+#pragma intrinsic(_BitScanForward64)
+#pragma intrinsic(_BitScanReverse64)
+#endif // HYP_WINDOWS
+
 namespace Hyperion {
 namespace utilities {
 

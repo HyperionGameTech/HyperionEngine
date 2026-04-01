@@ -7,8 +7,6 @@ struct VSInput
     HYP_ATTRIBUTE float3 a_normal : NORMAL;
     HYP_ATTRIBUTE float2 a_texcoord0 : TEXCOORD0;
     HYP_ATTRIBUTE_OPTIONAL float2 a_texcoord1 : TEXCOORD1;
-    HYP_ATTRIBUTE_OPTIONAL float3 a_tangent : TANGENT;
-    HYP_ATTRIBUTE_OPTIONAL float3 a_bitangent : BINORMAL;
     HYP_ATTRIBUTE_OPTIONAL int4 a_bone_indices : BLENDINDICES;
     HYP_ATTRIBUTE_OPTIONAL float4 a_bone_weights : BLENDWEIGHT;
 };
