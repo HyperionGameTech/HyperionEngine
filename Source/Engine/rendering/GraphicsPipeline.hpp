@@ -67,14 +67,14 @@ public:
 
     static Pool* GetAllocator() { return g_rhiPool; }
 
-    HYP_FORCE_INLINE const VertexAttributeSet& GetVertexAttributes() const
+    HYP_FORCE_INLINE const VertexInputLayoutDesc& GetInputLayout() const
     {
-        return m_vertexAttributes;
+        return m_inputLayout;
     }
 
-    HYP_FORCE_INLINE void SetVertexAttributes(const VertexAttributeSet& vertexAttributes)
+    HYP_FORCE_INLINE void SetInputLayout(const VertexInputLayoutDesc& inputLayout)
     {
-        m_vertexAttributes = vertexAttributes;
+        m_inputLayout = inputLayout;
     }
 
     HYP_FORCE_INLINE Topology GetTopology() const
@@ -248,7 +248,7 @@ protected:
 
     virtual RendererResult Rebuild() = 0;
 
-    VertexAttributeSet m_vertexAttributes;
+    VertexInputLayoutDesc m_inputLayout = {};
 
     Topology m_topology = TOP_TRIANGLES;
     FaceCullMode m_faceCullMode = FCM_BACK;

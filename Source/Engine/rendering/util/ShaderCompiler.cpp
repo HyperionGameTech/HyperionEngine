@@ -399,7 +399,7 @@ static void MergeGlobalShaderProperties(bool shouldCompileEntireBundle, ShaderVa
 
 static bool SatisfiesRequested(
     const ShaderPropertySet& requestedProperties,
-    const VertexAttributeSet& requestedVertexAttributes,
+    const VertexTypeMask& requestedVertexAttributes,
     const Shader& candidate)
 {
     return candidate.properties == requestedProperties
@@ -1289,10 +1289,10 @@ static bool FindVertexAttributeForDefinition(const String& name, const VertexAtt
     return false;
 }
 
-static VertexAttributeSet BuildVertexAttributeSet(
+static VertexTypeMask BuildVertexTypeMask(
     const Array<VertexAttributeDefinition>& definitions)
 {
-    VertexAttributeSet set;
+    VertexTypeMask set;
 
     for (const VertexAttributeDefinition& definition : definitions)
     {
@@ -1317,7 +1317,7 @@ HYP_DISABLE_OPTIMIZATION;
 static bool IsShaderRequestCoveredByPerms(
     const ShaderVariantPerms& bundlePerms,
     const Array<ShaderProperty>& requestedProperties,
-    const VertexAttributeSet& requestedVertexAttributes,
+    const VertexTypeMask& requestedVertexAttributes,
     String* outReason = nullptr)
 {
     const bool allowCompileAdditionalVariants = cvShouldCompileMissingVariants.Get();
@@ -1409,7 +1409,7 @@ static bool IsShaderRequestCoveredByPerms(
         }
     }
 
-    const VertexAttributeSet allDeclaredAttrs = bundlePerms.GetAllVertexAttributes();
+    const VertexTypeMask allDeclaredAttrs = bundlePerms.GetAllVertexAttributes();
 
     if ((requestedVertexAttributes & allDeclaredAttrs) != requestedVertexAttributes)
     {
@@ -3223,21 +3223,21 @@ bool ShaderCompiler::CompileBundle(
     }
 
     { // Lookup vertex attribute names
-        VertexAttributeSet requiredVertexAttributeSet;
-        VertexAttributeSet optionalVertexAttributeSet;
+        VertexTypeMask requiredVertexTypeMask;
+        VertexTypeMask optionalVertexTypeMask;
 
         for (const Array<VertexAttributeDefinition>& definitions : requiredVertexAttributes)
         {
-            requiredVertexAttributeSet |= BuildVertexAttributeSet(definitions);
+            requiredVertexTypeMask |= BuildVertexTypeMask(definitions);
         }
 
         for (const Array<VertexAttributeDefinition>& definitions : optionalVertexAttributes)
         {
-            optionalVertexAttributeSet |= BuildVertexAttributeSet(definitions);
+            optionalVertexTypeMask |= BuildVertexTypeMask(definitions);
         }
 
-        declaredPerms.SetRequiredVertexAttributes(requiredVertexAttributeSet);
-        declaredPerms.SetOptionalVertexAttributes(optionalVertexAttributeSet);
+        declaredPerms.SetRequiredVertexAttributes(requiredVertexTypeMask);
+        declaredPerms.SetOptionalVertexAttributes(optionalVertexTypeMask);
     }
 
     if (m_isPrecompilingShaders)
@@ -3778,7 +3778,7 @@ bool ShaderCompiler::CompileBundle(
 bool ShaderCompiler::RequestShader(
     Name name,
     const ShaderPropertySet& properties,
-    const VertexAttributeSet& vertexAttributes,
+    const VertexTypeMask& vertexAttributes,
     Shader*& outShader)
 {
     ShaderPropertySet mergedProperties = properties;

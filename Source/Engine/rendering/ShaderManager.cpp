@@ -50,7 +50,7 @@ static ShaderCacheId GenerateShaderCacheId()
 static constexpr HashCode GetShaderEntryHashCode(
     Name name,
     const ShaderPropertySet& propertySet,
-    const VertexAttributeSet& vertexAttributes)
+    const VertexTypeMask& vertexAttributes)
 {
     return name.GetHashCode()
         .Combine(propertySet.GetHashCode())
@@ -81,7 +81,7 @@ public:
     {
         Name shaderName;
         ShaderPropertySet properties;
-        VertexAttributeSet attributes;
+        VertexTypeMask attributes;
         ShaderMapEntry* entry;
 
         ShaderInstanceRef shaderInstance;
@@ -363,7 +363,7 @@ public:
     };
 
     ShaderInstanceRef GetOrCreate(
-        Name name, const ShaderPropertySet& properties, const VertexAttributeSet& vertexAttributes,
+        Name name, const ShaderPropertySet& properties, const VertexTypeMask& vertexAttributes,
         ShaderCacheId& outCacheId, bool doLoadShader)
     {
         HYP_NAMED_SCOPE("Get shader from cache or create");
@@ -371,7 +371,7 @@ public:
         const HashCode hc = GetShaderEntryHashCode(name, properties, vertexAttributes);
 
         const auto EnsureMatch = [](
-                                     const ShaderPropertySet& expectedProperties, const VertexAttributeSet& expectedVertexAttributes,
+                                     const ShaderPropertySet& expectedProperties, const VertexTypeMask& expectedVertexAttributes,
                                      const Shader& received) -> bool
         {
             if (received.vertexAttributes != expectedVertexAttributes)
@@ -519,7 +519,7 @@ public:
     ShaderCacheId GetShaderCacheId(
         Name name,
         const ShaderPropertySet& properties,
-        const VertexAttributeSet& vertexAttributes,
+        const VertexTypeMask& vertexAttributes,
         bool createIfNotExists = false)
     {
         const HashCode hc = GetShaderEntryHashCode(name, properties, vertexAttributes);
@@ -786,7 +786,7 @@ ShaderManager::ShaderManager()
 {
 }
 
-ShaderInstanceRef ShaderManager::GetOrCreate(Name name, const ShaderPropertySet& propertySet, const VertexAttributeSet& vertexAttributes)
+ShaderInstanceRef ShaderManager::GetOrCreate(Name name, const ShaderPropertySet& propertySet, const VertexTypeMask& vertexAttributes)
 {
     ShaderCacheId cacheId;
     return m_impl->GetOrCreate(name, propertySet, vertexAttributes, cacheId, /* doLoadShader */ true);
@@ -795,7 +795,7 @@ ShaderInstanceRef ShaderManager::GetOrCreate(Name name, const ShaderPropertySet&
 ShaderCacheId ShaderManager::GetShaderCacheId(
     Name name,
     const ShaderPropertySet& properties,
-    const VertexAttributeSet& vertexAttributes,
+    const VertexTypeMask& vertexAttributes,
     bool createIfNotExists) const
 {
     return m_impl->GetShaderCacheId(name, properties, vertexAttributes, createIfNotExists);

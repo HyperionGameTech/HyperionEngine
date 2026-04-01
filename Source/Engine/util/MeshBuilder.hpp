@@ -20,21 +20,6 @@ namespace Hyperion {
 class Mesh;
 class VoxelOctree;
 
-struct Quad
-{
-    Vertex vertices[4];
-
-    constexpr Vertex& operator[](uint32 index)
-    {
-        return vertices[index];
-    }
-
-    constexpr const Vertex& operator[](uint32 index) const
-    {
-        return vertices[index];
-    }
-};
-
 class MeshBuilder
 {
 public:

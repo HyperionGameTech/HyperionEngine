@@ -100,12 +100,10 @@ class HYP_API Mesh final : public AssetObject
 public:
     using Index = uint32;
 
-    static Pair<Array<Vertex>, Array<uint32>> CalculateIndices(const Array<Vertex>& vertices);
-
     Mesh();
 
-    Mesh(const Array<Vertex>& vertexData, const ByteBuffer& indexData, Topology topology, const VertexInputLayoutDesc& inputLayout);
-    Mesh(const Array<Vertex>& vertexData, const ByteBuffer& indexData, Topology topology = TOP_TRIANGLES);
+    Mesh(const VertexArrayView& vertexData, const ByteBuffer& indexData, Topology topology, const VertexInputLayoutDesc& inputLayout);
+    Mesh(const VertexArrayView& vertexData, const ByteBuffer& indexData, Topology topology = TOP_TRIANGLES);
 
     ~Mesh();
 
@@ -224,7 +222,7 @@ public:
     Array<float> BuildVertexBuffer() const;
 
     void CalculateNormals(bool weighted = false);
-    void CalculateTangents();
+
     bool BuildBVH(BVHNode& bvhNode, int maxDepth = 3) const;
 
     MeshGpuUploadSemaphore gpuUploadSemaphore;

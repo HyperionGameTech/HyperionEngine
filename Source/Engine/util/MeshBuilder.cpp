@@ -12,13 +12,49 @@
 
 namespace Hyperion {
 
-static const Array<Vertex>& GetQuadVertices()
+static Pair<Array<SimpleVertex>, Array<uint32>> CalculateIndices(const Array<SimpleVertex>& vertices)
 {
-    static const Array<Vertex> s_quadVertices = {
-        Vertex { { -1.0f, -1.0f, 0.0f }, { 0.0f, 0.0f }, { 0.0f, 0.0f, -1.0f } },
-        Vertex { { 1.0f, -1.0f, 0.0f }, { 1.0f, 0.0f }, { 0.0f, 0.0f, -1.0f } },
-        Vertex { { 1.0f, 1.0f, 0.0f }, { 1.0f, 1.0f }, { 0.0f, 0.0f, -1.0f } },
-        Vertex { { -1.0f, 1.0f, 0.0f }, { 0.0f, 1.0f }, { 0.0f, 0.0f, -1.0f } }
+    HashMap<SimpleVertex, uint32> indexMap;
+
+    Array<uint32> indices;
+    indices.Reserve(vertices.Size());
+
+    /* This will be our resulting buffer with only the vertices we need. */
+    Array<SimpleVertex> newVertices;
+    newVertices.Reserve(vertices.Size());
+
+    for (const auto& vertex : vertices)
+    {
+        /* Check if the vertex already exists in our map */
+        auto it = indexMap.Find(vertex);
+
+        /* If it does, push to our indices */
+        if (it != indexMap.End())
+        {
+            indices.PushBack(it->second);
+
+            continue;
+        }
+
+        const uint32 meshIndex = uint32(newVertices.Size());
+
+        /* The vertex is unique, so we push it. */
+        newVertices.PushBack(vertex);
+        indices.PushBack(meshIndex);
+
+        indexMap[vertex] = meshIndex;
+    }
+
+    return { std::move(newVertices), std::move(indices) };
+}
+
+static const Array<SimpleVertex>& GetQuadVertices()
+{
+    static const Array<SimpleVertex> s_quadVertices = {
+        SimpleVertex { Vec3f { -1.0f, -1.0f, 0.0f }, Vec3f { 0.0f, 0.0f, -1.0f }, Vec2f { 0.0f, 0.0f } },
+        SimpleVertex { Vec3f { 1.0f, -1.0f, 0.0f }, Vec3f { 0.0f, 0.0f, -1.0f }, Vec2f { 1.0f, 0.0f } },
+        SimpleVertex { Vec3f { 1.0f, 1.0f, 0.0f }, Vec3f { 0.0f, 0.0f, -1.0f }, Vec2f { 1.0f, 1.0f } },
+        SimpleVertex { Vec3f { -1.0f, 1.0f, 0.0f }, Vec3f { 0.0f, 0.0f, -1.0f }, Vec2f { 0.0f, 1.0f } }
     };
 
     return s_quadVertices;
@@ -34,56 +70,56 @@ static const Array<uint32>& GetQuadIndices()
     return s_quadIndices;
 }
 
-static const Array<Vertex>& GetCubeVertices()
+static const Array<SimpleVertex>& GetCubeVertices()
 {
-    static const Array<Vertex> s_cubeVertices = {
-        Vertex { { -1.0f, 1.0f, 1.0f }, { 1.0f, 1.0f }, { -1.0f, 0.0f, 0.0f } },
-        Vertex { { -1.0f, 1.0f, -1.0f }, { 0.0f, 1.0f }, { -1.0f, 0.0f, 0.0f } },
-        Vertex { { -1.0f, -1.0f, -1.0f }, { 0.0f, 0.0f }, { -1.0f, 0.0f, 0.0f } },
+    static const Array<SimpleVertex> s_cubeVertices = {
+        SimpleVertex { Vec3f { -1.0f, 1.0f, 1.0f }, Vec3f { -1.0f, 0.0f, 0.0f }, Vec2f { 1.0f, 1.0f } },
+        SimpleVertex { Vec3f { -1.0f, 1.0f, -1.0f }, Vec3f { -1.0f, 0.0f, 0.0f }, Vec2f { 0.0f, 1.0f } },
+        SimpleVertex { Vec3f { -1.0f, -1.0f, -1.0f }, Vec3f { -1.0f, 0.0f, 0.0f }, Vec2f { 0.0f, 0.0f } },
 
-        Vertex { { -1.0f, -1.0f, -1.0f }, { 0.0f, 0.0f }, { -1.0f, 0.0f, 0.0f } },
-        Vertex { { -1.0f, -1.0f, 1.0f }, { 1.0f, 0.0f }, { -1.0f, 0.0f, 0.0f } },
-        Vertex { { -1.0f, 1.0f, 1.0f }, { 1.0f, 1.0f }, { -1.0f, 0.0f, 0.0f } },
+        SimpleVertex { Vec3f { -1.0f, -1.0f, -1.0f }, Vec3f { -1.0f, 0.0f, 0.0f }, Vec2f { 0.0f, 0.0f } },
+        SimpleVertex { Vec3f { -1.0f, -1.0f, 1.0f }, Vec3f { -1.0f, 0.0f, 0.0f }, Vec2f { 1.0f, 0.0f } },
+        SimpleVertex { Vec3f { -1.0f, 1.0f, 1.0f }, Vec3f { -1.0f, 0.0f, 0.0f }, Vec2f { 1.0f, 1.0f } },
 
-        Vertex { { 1.0f, 1.0f, 1.0f }, { 1.0f, 1.0f }, { 0.0f, 0.0f, 1.0f } },
-        Vertex { { -1.0f, 1.0f, 1.0f }, { 0.0f, 1.0f }, { 0.0f, 0.0f, 1.0f } },
-        Vertex { { -1.0f, -1.0f, 1.0f }, { 0.0f, 0.0f }, { 0.0f, 0.0f, 1.0f } },
+        SimpleVertex { Vec3f { 1.0f, 1.0f, 1.0f }, Vec3f { 0.0f, 0.0f, 1.0f }, Vec2f { 1.0f, 1.0f } },
+        SimpleVertex { Vec3f { -1.0f, 1.0f, 1.0f }, Vec3f { 0.0f, 0.0f, 1.0f }, Vec2f { 0.0f, 1.0f } },
+        SimpleVertex { Vec3f { -1.0f, -1.0f, 1.0f }, Vec3f { 0.0f, 0.0f, 1.0f }, Vec2f { 0.0f, 0.0f } },
 
-        Vertex { { -1.0f, -1.0f, 1.0f }, { 0.0f, 0.0f }, { 0.0f, 0.0f, 1.0f } },
-        Vertex { { 1.0f, -1.0f, 1.0f }, { 1.0f, 0.0f }, { 0.0f, 0.0f, 1.0f } },
-        Vertex { { 1.0f, 1.0f, 1.0f }, { 1.0f, 1.0f }, { 0.0f, 0.0f, 1.0f } },
+        SimpleVertex { Vec3f { -1.0f, -1.0f, 1.0f }, Vec3f { 0.0f, 0.0f, 1.0f }, Vec2f { 0.0f, 0.0f } },
+        SimpleVertex { Vec3f { 1.0f, -1.0f, 1.0f }, Vec3f { 0.0f, 0.0f, 1.0f }, Vec2f { 1.0f, 0.0f } },
+        SimpleVertex { Vec3f { 1.0f, 1.0f, 1.0f }, Vec3f { 0.0f, 0.0f, 1.0f }, Vec2f { 1.0f, 1.0f } },
 
-        Vertex { { 1.0f, -1.0f, -1.0f }, { 0.0f, 0.0f }, { 1.0f, 0.0f, 0.0f } },
-        Vertex { { 1.0f, 1.0f, -1.0f }, { 0.0f, 1.0f }, { 1.0f, 0.0f, 0.0f } },
-        Vertex { { 1.0f, 1.0f, 1.0f }, { 1.0f, 1.0f }, { 1.0f, 0.0f, 0.0f } },
+        SimpleVertex { Vec3f { 1.0f, -1.0f, -1.0f }, Vec3f { 1.0f, 0.0f, 0.0f }, Vec2f { 0.0f, 0.0f } },
+        SimpleVertex { Vec3f { 1.0f, 1.0f, -1.0f }, Vec3f { 1.0f, 0.0f, 0.0f }, Vec2f { 0.0f, 1.0f } },
+        SimpleVertex { Vec3f { 1.0f, 1.0f, 1.0f }, Vec3f { 1.0f, 0.0f, 0.0f }, Vec2f { 1.0f, 1.0f } },
 
-        Vertex { { 1.0f, 1.0f, 1.0f }, { 1.0f, 1.0f }, { 1.0f, 0.0f, 0.0f } },
-        Vertex { { 1.0f, -1.0f, 1.0f }, { 1.0f, 0.0f }, { 1.0f, 0.0f, 0.0f } },
-        Vertex { { 1.0f, -1.0f, -1.0f }, { 0.0f, 0.0f }, { 1.0f, 0.0f, 0.0f } },
+        SimpleVertex { Vec3f { 1.0f, 1.0f, 1.0f }, Vec3f { 1.0f, 0.0f, 0.0f }, Vec2f { 1.0f, 1.0f } },
+        SimpleVertex { Vec3f { 1.0f, -1.0f, 1.0f }, Vec3f { 1.0f, 0.0f, 0.0f }, Vec2f { 1.0f, 0.0f } },
+        SimpleVertex { Vec3f { 1.0f, -1.0f, -1.0f }, Vec3f { 1.0f, 0.0f, 0.0f }, Vec2f { 0.0f, 0.0f } },
 
-        Vertex { { -1.0f, -1.0f, -1.0f }, { 0.0f, 0.0f }, { 0.0f, 0.0f, -1.0f } },
-        Vertex { { -1.0f, 1.0f, -1.0f }, { 0.0f, 1.0f }, { 0.0f, 0.0f, -1.0f } },
-        Vertex { { 1.0f, 1.0f, -1.0f }, { 1.0f, 1.0f }, { 0.0f, 0.0f, -1.0f } },
+        SimpleVertex { Vec3f { -1.0f, -1.0f, -1.0f }, Vec3f { 0.0f, 0.0f, -1.0f }, Vec2f { 0.0f, 0.0f } },
+        SimpleVertex { Vec3f { -1.0f, 1.0f, -1.0f }, Vec3f { 0.0f, 0.0f, -1.0f }, Vec2f { 0.0f, 1.0f } },
+        SimpleVertex { Vec3f { 1.0f, 1.0f, -1.0f }, Vec3f { 0.0f, 0.0f, -1.0f }, Vec2f { 1.0f, 1.0f } },
 
-        Vertex { { 1.0f, 1.0f, -1.0f }, { 1.0f, 1.0f }, { 0.0f, 0.0f, -1.0f } },
-        Vertex { { 1.0f, -1.0f, -1.0f }, { 1.0f, 0.0f }, { 0.0f, 0.0f, -1.0f } },
-        Vertex { { -1.0f, -1.0f, -1.0f }, { 0.0f, 0.0f }, { 0.0f, 0.0f, -1.0f } },
+        SimpleVertex { Vec3f { 1.0f, 1.0f, -1.0f }, Vec3f { 0.0f, 0.0f, -1.0f }, Vec2f { 1.0f, 1.0f } },
+        SimpleVertex { Vec3f { 1.0f, -1.0f, -1.0f }, Vec3f { 0.0f, 0.0f, -1.0f }, Vec2f { 1.0f, 0.0f } },
+        SimpleVertex { Vec3f { -1.0f, -1.0f, -1.0f }, Vec3f { 0.0f, 0.0f, -1.0f }, Vec2f { 0.0f, 0.0f } },
 
-        Vertex { { 1.0f, 1.0f, -1.0f }, { 0.0f, 0.0f }, { 0.0f, 1.0f, 0.0f } },
-        Vertex { { -1.0f, 1.0f, -1.0f }, { 0.0f, 1.0f }, { 0.0f, 1.0f, 0.0f } },
-        Vertex { { -1.0f, 1.0f, 1.0f }, { 1.0f, 1.0f }, { 0.0f, 1.0f, 0.0f } },
+        SimpleVertex { Vec3f { 1.0f, 1.0f, -1.0f }, Vec3f { 0.0f, 1.0f, 0.0f }, Vec2f { 0.0f, 0.0f } },
+        SimpleVertex { Vec3f { -1.0f, 1.0f, -1.0f }, Vec3f { 0.0f, 1.0f, 0.0f }, Vec2f { 0.0f, 1.0f } },
+        SimpleVertex { Vec3f { -1.0f, 1.0f, 1.0f }, Vec3f { 0.0f, 1.0f, 0.0f }, Vec2f { 1.0f, 1.0f } },
 
-        Vertex { { -1.0f, 1.0f, 1.0f }, { 1.0f, 1.0f }, { 0.0f, 1.0f, 0.0f } },
-        Vertex { { 1.0f, 1.0f, 1.0f }, { 1.0f, 0.0f }, { 0.0f, 1.0f, 0.0f } },
-        Vertex { { 1.0f, 1.0f, -1.0f }, { 0.0f, 0.0f }, { 0.0f, 1.0f, 0.0f } },
+        SimpleVertex { Vec3f { -1.0f, 1.0f, 1.0f }, Vec3f { 0.0f, 1.0f, 0.0f }, Vec2f { 1.0f, 1.0f } },
+        SimpleVertex { Vec3f { 1.0f, 1.0f, 1.0f }, Vec3f { 0.0f, 1.0f, 0.0f }, Vec2f { 1.0f, 0.0f } },
+        SimpleVertex { Vec3f { 1.0f, 1.0f, -1.0f }, Vec3f { 0.0f, 1.0f, 0.0f }, Vec2f { 0.0f, 0.0f } },
 
-        Vertex { { -1.0f, -1.0f, 1.0f }, { 1.0f, 1.0f }, { 0.0f, -1.0f, 0.0f } },
-        Vertex { { -1.0f, -1.0f, -1.0f }, { 0.0f, 1.0f }, { 0.0f, -1.0f, 0.0f } },
-        Vertex { { 1.0f, -1.0f, -1.0f }, { 0.0f, 0.0f }, { 0.0f, -1.0f, 0.0f } },
+        SimpleVertex { Vec3f { -1.0f, -1.0f, 1.0f }, Vec3f { 0.0f, -1.0f, 0.0f }, Vec2f { 1.0f, 1.0f } },
+        SimpleVertex { Vec3f { -1.0f, -1.0f, -1.0f }, Vec3f { 0.0f, -1.0f, 0.0f }, Vec2f { 0.0f, 1.0f } },
+        SimpleVertex { Vec3f { 1.0f, -1.0f, -1.0f }, Vec3f { 0.0f, -1.0f, 0.0f }, Vec2f { 0.0f, 0.0f } },
 
-        Vertex { { 1.0f, -1.0f, -1.0f }, { 0.0f, 0.0f }, { 0.0f, -1.0f, 0.0f } },
-        Vertex { { 1.0f, -1.0f, 1.0f }, { 1.0f, 0.0f }, { 0.0f, -1.0f, 0.0f } },
-        Vertex { { -1.0f, -1.0f, 1.0f }, { 1.0f, 1.0f }, { 0.0f, -1.0f, 0.0f } }
+        SimpleVertex { Vec3f { 1.0f, -1.0f, -1.0f }, Vec3f { 0.0f, -1.0f, 0.0f }, Vec2f { 0.0f, 0.0f } },
+        SimpleVertex { Vec3f { 1.0f, -1.0f, 1.0f }, Vec3f { 0.0f, -1.0f, 0.0f }, Vec2f { 1.0f, 0.0f } },
+        SimpleVertex { Vec3f { -1.0f, -1.0f, 1.0f }, Vec3f { 0.0f, -1.0f, 0.0f }, Vec2f { 1.0f, 1.0f } }
     };
 
     return s_cubeVertices;
@@ -91,40 +127,43 @@ static const Array<Vertex>& GetCubeVertices()
 
 Handle<Mesh> MeshBuilder::Quad()
 {
-    const VertexAttributeSet vertexAttributes = VertexAttribute::Position | VertexAttribute::Normal | VertexAttribute::TexCoord0;
-
-    const Array<Vertex>& vertices = GetQuadVertices();
+    const Array<SimpleVertex>& vertices = GetQuadVertices();
     const Array<uint32>& indices = GetQuadIndices();
 
     MeshDesc meshDesc {};
-    meshDesc.meshAttributes.vertexAttributes = vertexAttributes;
+    meshDesc.meshAttributes.inputLayout = { VT_Simple, sizeof(SimpleVertex) };
     meshDesc.numIndices = uint32(indices.Size());
     meshDesc.numVertices = uint32(vertices.Size());
 
     Handle<Mesh> mesh = MakeHandle<Mesh>();
     mesh->SetName(NAME("MeshBuilder_Quad"));
 
-    mesh->SetMeshData(meshDesc, vertices, indices.ToByteView());
+    VertexArrayView vertexArrayView {};
+    vertexArrayView.floatData = reinterpret_cast<const float*>(vertices.Data());
+    vertexArrayView.layoutDesc = meshDesc.meshAttributes.inputLayout;
+    vertexArrayView.vertexCount = uint32(vertices.Size());
+
+    mesh->SetMeshData(meshDesc, vertexArrayView, indices.ToByteView());
 
     return mesh;
 }
 
 Handle<Mesh> MeshBuilder::Cube(bool originOnBottom)
 {
-    static const auto s_cubeVerticesAndIndices = Mesh::CalculateIndices(GetCubeVertices());
+    static const auto s_cubeVerticesAndIndices = CalculateIndices(GetCubeVertices());
 
     MeshDesc meshDesc;
-    meshDesc.meshAttributes.vertexAttributes = VertexAttributeSet::StaticMeshVertexAttributes;
+    meshDesc.meshAttributes.inputLayout = { VT_Simple, sizeof(SimpleVertex) };
     meshDesc.numIndices = uint32(s_cubeVerticesAndIndices.second.Size());
     meshDesc.numVertices = uint32(s_cubeVerticesAndIndices.first.Size());
 
-    Array<Vertex> vertexData = s_cubeVerticesAndIndices.first;
+    Array<SimpleVertex> vertexData = s_cubeVerticesAndIndices.first;
 
     if (originOnBottom)
     {
-        for (Vertex& vertex : vertexData)
+        for (SimpleVertex& vertex : vertexData)
         {
-            vertex.position.y += 1.0f;
+            vertex.posY += 1.0f;
         }
     }
 
@@ -135,7 +174,12 @@ Handle<Mesh> MeshBuilder::Cube(bool originOnBottom)
     Handle<Mesh> mesh = MakeHandle<Mesh>();
     mesh->SetName(NAME_FMT("MeshBuilder_Cube"));
     
-    mesh->SetMeshData(meshDesc, vertexData, indexData);
+    VertexArrayView vertexArrayView {};
+    vertexArrayView.floatData = reinterpret_cast<const float*>(vertexData.Data());
+    vertexArrayView.vertexCount = vertexData.Size();
+    vertexArrayView.layoutDesc = { VT_Simple, sizeof(SimpleVertex) };
+
+    mesh->SetMeshData(meshDesc, vertexArrayView, indexData);
 
     return mesh;
 }
@@ -171,7 +215,7 @@ Handle<Mesh> MeshBuilder::NormalizedCubeSphere(uint32 numDivisions)
         Vector3(0.0f, 0.0f, -2.0f)
     };
 
-    Array<Vertex> vertices;
+    Array<SimpleVertex> vertices;
     Array<uint32> indices;
 
     for (uint32 face = 0; face < 6; face++)
@@ -192,7 +236,7 @@ Handle<Mesh> MeshBuilder::NormalizedCubeSphere(uint32 numDivisions)
                     float(j + (face * numDivisions)) / float(numDivisions * 6),
                     float(i + (face * numDivisions)) / float(numDivisions * 6));
 
-                vertices.PushBack(Vertex(position, uv));
+                vertices.PushBack(SimpleVertex { position, normal, uv });
             }
         }
     }
@@ -237,14 +281,20 @@ Handle<Mesh> MeshBuilder::NormalizedCubeSphere(uint32 numDivisions)
     }
 
     MeshDesc meshDesc;
-    meshDesc.meshAttributes.vertexAttributes = VertexAttributeSet::StaticMeshVertexAttributes;
+    meshDesc.meshAttributes.inputLayout = { VT_Simple, sizeof(SimpleVertex) };
     meshDesc.numIndices = uint32(indices.Size());
     meshDesc.numVertices = uint32(vertices.Size());
 
     Handle<Mesh> mesh = MakeHandle<Mesh>();
     mesh->SetName(NAME_FMT("MeshBuilder_NormalizedCubeSphere_{}", numDivisions));
     
-    mesh->SetMeshData(meshDesc, vertices, indices.ToByteView());
+    VertexArrayView vertexArrayView {};
+    vertexArrayView.floatData = reinterpret_cast<const float*>(vertices.Data());
+    vertexArrayView.vertexCount = vertices.Size();
+    vertexArrayView.layoutDesc = { VT_Simple, sizeof(SimpleVertex) };
+    
+    mesh->SetMeshData(meshDesc, vertexArrayView, indices.ToByteView());
+
     mesh->CalculateNormals(true);
 
     return mesh;
@@ -265,12 +315,12 @@ Handle<Mesh> MeshBuilder::ApplyTransform(const Mesh* mesh, const Transform& tran
     const Mat4f normalMatrix = modelMatrix.Inverse().Transpose();
 
     const MeshDesc& meshDesc = mesh->GetMeshDesc();
-    const Span<const Vertex> vertexData = mesh->GetVertexData();
+    const VertexArrayView vertexData = mesh->GetVertexData();
     const Span<const ubyte> indexData = mesh->GetIndexData();
 
-    Array<Vertex> newVertices;
-    newVertices.Resize(vertexData.Size());
-    Memory::Copy(newVertices.Data(), vertexData.Data(), sizeof(Vertex) * vertexData.Size());
+    Array<float> newVertices;
+    newVertices.Resize(vertexData.vertexCount * (vertexData.layoutDesc.vertexSize / sizeof(float)));
+    Memory::Copy(newVertices.Data(), vertexData.floatData, vertexData.vertexCount * vertexData.layoutDesc.vertexSize);
 
     Array<ubyte> newIndices;
     newIndices.Resize(indexData.Size());
@@ -278,16 +328,32 @@ Handle<Mesh> MeshBuilder::ApplyTransform(const Mesh* mesh, const Transform& tran
 
     resGuard.Reset();
 
-    for (Vertex& vertex : newVertices)
+    for (float* f = newVertices.Begin(); f != newVertices.End(); f += (vertexData.layoutDesc.vertexSize / sizeof(float)))
     {
-        vertex.SetPosition(modelMatrix * vertex.GetPosition());
-        vertex.SetNormal(normalMatrix * vertex.GetNormal());
-        vertex.SetTangent(normalMatrix * vertex.GetTangent());
-        vertex.SetBitangent(normalMatrix * vertex.GetBitangent());
+        size_t offset = 0;
+
+        if (vertexData.layoutDesc.mask & VT_Position)
+        {
+            TVertexPacket<VT_Position>* packet = reinterpret_cast<TVertexPacket<VT_Position>*>(f);
+            packet->SetPosition(modelMatrix * packet->GetPosition());
+            offset += sizeof(TVertexPacket<VT_Position>) / sizeof(float);
+        }
+
+        if (vertexData.layoutDesc.mask & VT_Normal)
+        {
+            TVertexPacket<VT_Normal>* packet = reinterpret_cast<TVertexPacket<VT_Normal>*>(f + offset);
+            packet->SetNormal(modelMatrix * packet->GetNormal());
+            offset += sizeof(TVertexPacket<VT_Normal>) / sizeof(float);
+        }
     }
 
     Handle<Mesh> newMesh = MakeHandle<Mesh>();
-    newMesh->SetMeshData(meshDesc, newVertices, newIndices);
+
+    VertexArrayView vertexArrayView = vertexData;
+    vertexArrayView.floatData = newVertices.Data();
+
+    newMesh->SetMeshData(meshDesc, vertexArrayView, newIndices);
+
     newMesh->SetName(mesh->GetName());
 
     return newMesh;
@@ -313,7 +379,7 @@ Handle<Mesh> MeshBuilder::Merge(const Mesh* a, const Mesh* b, const Transform& a
         &transformedMeshes[1]->GetMeshDesc()
     };
 
-    Span<const Vertex> meshVertices[] = {
+    VertexArrayView meshVertices[] = {
         transformedMeshes[0]->GetVertexData(),
         transformedMeshes[1]->GetVertexData()
     };
@@ -323,9 +389,8 @@ Handle<Mesh> MeshBuilder::Merge(const Mesh* a, const Mesh* b, const Transform& a
         transformedMeshes[1]->GetIndexData()
     };
 
-    const VertexAttributeSet mergedVertexAttributes = a->GetVertexAttributes() | b->GetVertexAttributes();
-
-    Array<Vertex> allVertices;
+    // only simple for now.
+    Array<SimpleVertex> allVertices;
     allVertices.Resize(meshDescs[0]->numVertices + meshDescs[1]->numVertices);
 
     Array<uint32> allIndices;
@@ -338,9 +403,37 @@ Handle<Mesh> MeshBuilder::Merge(const Mesh* a, const Mesh* b, const Transform& a
     {
         const size_t vertexOffsetBefore = vertexOffset;
 
-        for (size_t i = 0; i < meshVertices[meshIndex].Size(); i++)
+        for (size_t i = 0; i < meshVertices[meshIndex].vertexCount; i++)
         {
-            allVertices[vertexOffset++] = meshVertices[meshIndex][i];
+            SimpleVertex& dstVertex = allVertices[vertexOffset++];
+
+            const float* srcVertexOffset = meshVertices[meshIndex].floatData + (i * (meshVertices[meshIndex].layoutDesc.vertexSize / sizeof(float)));
+
+            size_t offset = 0;
+            
+            if (meshVertices[meshIndex].layoutDesc.mask & VT_Position)
+            {
+                const TVertexPacket<VT_Position>* packet = reinterpret_cast<const TVertexPacket<VT_Position>*>(srcVertexOffset + offset);
+                dstVertex.SetPosition(packet->GetPosition());
+
+                offset += sizeof(TVertexPacket<VT_Position>) / sizeof(float);
+            }
+
+            if (meshVertices[meshIndex].layoutDesc.mask & VT_Normal)
+            {
+                const TVertexPacket<VT_Normal>* packet = reinterpret_cast<const TVertexPacket<VT_Normal>*>(srcVertexOffset + offset);
+                dstVertex.SetNormal(packet->GetNormal());
+
+                offset += sizeof(TVertexPacket<VT_Normal>) / sizeof(float);
+            }
+
+            if (meshVertices[meshIndex].layoutDesc.mask & VT_UV0)
+            {
+                const TVertexPacket<VT_UV0>* packet = reinterpret_cast<const TVertexPacket<VT_UV0>*>(srcVertexOffset + offset);
+                dstVertex.SetUV0(packet->GetUV0());
+
+                offset += sizeof(TVertexPacket<VT_UV0>) / sizeof(float);
+            }
         }
 
         const uint32 stride = GpuElemTypeSize(meshDescs[meshIndex]->meshAttributes.indexBufferElemType);
@@ -369,12 +462,20 @@ Handle<Mesh> MeshBuilder::Merge(const Mesh* a, const Mesh* b, const Transform& a
 
     MeshDesc mergedMeshDesc;
     mergedMeshDesc.meshAttributes.indexBufferElemType = GET_UNSIGNED_INT;
-    mergedMeshDesc.meshAttributes.vertexAttributes = mergedVertexAttributes;
+    mergedMeshDesc.meshAttributes.inputLayout = { VT_Simple, sizeof(SimpleVertex) };
     mergedMeshDesc.numIndices = uint32(allIndices.Size());
     mergedMeshDesc.numVertices = uint32(allVertices.Size());
 
     Handle<Mesh> newMesh = MakeHandle<Mesh>();
-    newMesh->SetMeshData(mergedMeshDesc, allVertices, allIndices.ToByteView());
+    
+    
+    VertexArrayView vertexArrayView {};
+    vertexArrayView.floatData = reinterpret_cast<const float*>(allVertices.Data());
+    vertexArrayView.vertexCount = allVertices.Size();
+    vertexArrayView.layoutDesc = { VT_Simple, sizeof(SimpleVertex) };
+
+    newMesh->SetMeshData(mergedMeshDesc, vertexArrayView, allIndices.ToByteView());
+
     newMesh->SetName(NAME("MeshBuilder_MergedMesh"));
 
     return newMesh;
@@ -387,7 +488,7 @@ Handle<Mesh> MeshBuilder::Merge(const Mesh* a, const Mesh* b)
 
 Handle<Mesh> MeshBuilder::BuildVoxelMesh(const VoxelOctree& voxelOctree)
 {
-    static const auto cubeVerticesAndIndices = Mesh::CalculateIndices(GetCubeVertices());
+    static const auto cubeVerticesAndIndices = CalculateIndices(GetCubeVertices());
 
     Array<BoundingBox> voxelAabbs;
 
@@ -416,8 +517,9 @@ Handle<Mesh> MeshBuilder::BuildVoxelMesh(const VoxelOctree& voxelOctree)
 
     traverse(voxelOctree);
 
-    Array<Vertex> vertices;
+    Array<SimpleVertex> vertices;
     Array<uint32> indices;
+
     uint32 vertexOffset = 0;
 
     static const int faceCornerIdx[6][4] = {
@@ -449,8 +551,9 @@ Handle<Mesh> MeshBuilder::BuildVoxelMesh(const VoxelOctree& voxelOctree)
         {
             for (int i = 0; i < 4; ++i)
             {
-                Vertex vert;
-                vert.position = corners[faceCornerIdx[f][i]];
+                SimpleVertex vert {};
+                vert.SetPosition(corners[faceCornerIdx[f][i]]);
+
                 vertices.PushBack(vert);
             }
             for (int k = 0; k < 6; ++k)
@@ -460,14 +563,21 @@ Handle<Mesh> MeshBuilder::BuildVoxelMesh(const VoxelOctree& voxelOctree)
     }
 
     MeshDesc meshDesc;
-    meshDesc.meshAttributes.vertexAttributes = VertexAttributeSet::StaticMeshVertexAttributes;
+    meshDesc.meshAttributes.inputLayout = { VT_Simple, sizeof(SimpleVertex) };
     meshDesc.numIndices = (uint32)indices.Size();
     meshDesc.numVertices = (uint32)vertices.Size();
     meshDesc.meshAttributes.indexBufferElemType = GET_UNSIGNED_INT;
     meshDesc.meshAttributes.topology = TOP_LINES;
 
     Handle<Mesh> mesh = MakeHandle<Mesh>();
-    mesh->SetMeshData(meshDesc, vertices, indices.ToByteView());
+    
+    VertexArrayView vertexArrayView {};
+    vertexArrayView.floatData = reinterpret_cast<const float*>(vertices.Data());
+    vertexArrayView.vertexCount = vertices.Size();
+    vertexArrayView.layoutDesc = { VT_Simple, sizeof(SimpleVertex) };
+    
+    mesh->SetMeshData(meshDesc, vertexArrayView, indices.ToByteView());
+
     mesh->SetName(NAME("MeshBuilder_VoxelMesh"));
 
     return mesh;

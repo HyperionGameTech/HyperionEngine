@@ -605,10 +605,10 @@ void SetVertexAttributes::InvokeStatic(CmdBase* cmd, CommandBuffer*)
 
     RenderInterface::State& state = g_renderInterface->state;
 
-    if (state.attributes.GetMeshAttributes().vertexAttributes == cmdCasted->vertexAttributes)
+    if (state.attributes.GetMeshAttributes().inputLayout == cmdCasted->inputLayout)
         return;
 
-    state.attributes.GetMeshAttributes().vertexAttributes = cmdCasted->vertexAttributes;
+    state.attributes.GetMeshAttributes().inputLayout = cmdCasted->inputLayout;
 
     state.attributes.Invalidate();
     

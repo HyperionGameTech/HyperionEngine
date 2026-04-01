@@ -105,7 +105,7 @@ VSOutput VSMain(VSInput input, uint instanceId : SV_InstanceID)
     float4x4 model_matrix = entity.model_matrix;
 #endif
 
-#if defined(SKINNING) && defined(HYP_ATTRIBUTE_a_bone_indices) && defined(HYP_ATTRIBUTE_a_bone_weights)
+#if defined(SKINNING) && defined(HYP_ATTRIBUTE_Skeletal)
     float4x4 skinning_matrix = CreateSkinningMatrix(input.a_bone_indices, input.a_bone_weights);
 
     position = mul(model_matrix, mul(skinning_matrix, float4(input.a_position, 1.0)));

@@ -39,7 +39,7 @@ public:
         Array<Vec3f> normals;
         Array<Vec2f> texcoords;
 
-        Array<Vertex> vertices;
+        Array<float> vertexData;
 
         Array<SubMesh> submeshes;
         FlatMap<uint32, Array<BoneAssignment>> boneAssignments;

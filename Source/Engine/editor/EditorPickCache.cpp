@@ -149,8 +149,10 @@ void EditorPickCache::PutEntry(const Mesh* mesh)
     }
 
     const MeshDesc& meshDesc = mesh->GetMeshDesc();
+    
     const VertexArrayView vertexData = mesh->GetVertexData();
     const Span<const ubyte> indexData = mesh->GetIndexData();
+
     const uint32 indexSize = GpuElemTypeSize(meshDesc.meshAttributes.indexBufferElemType);
     const size_t numIndices = indexData.Size() / indexSize;
 

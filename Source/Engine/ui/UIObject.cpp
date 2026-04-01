@@ -1892,7 +1892,7 @@ MaterialAttributes UIObject::GetMaterialAttributes() const
 {
     HYP_SCOPE;
 
-    const VertexAttributeSet vertexAttributes = VertexAttribute::Position
+    const VertexTypeMask vertexAttributes = VertexAttribute::Position
         | VertexAttribute::Normal
         | VertexAttribute::TexCoord0;
 

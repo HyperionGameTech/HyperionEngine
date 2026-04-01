@@ -32,6 +32,8 @@ namespace Hyperion {
 
 HYP_DECLARE_LOG_CHANNEL(Assets);
 
+using FatVertex = TVertex<VT_Simple | VT_Skeletal>;
+
 using OgreXMLModel = OgreXMLModelLoader::OgreXMLModel;
 using BoneAssignment = OgreXMLModelLoader::OgreXMLModel::BoneAssignment;
 using SubMesh = OgreXMLModelLoader::OgreXMLModel::SubMesh;
@@ -174,7 +176,7 @@ void BuildVertices(OgreXMLModel& model)
     const bool hasNormals = !model.normals.Empty(),
                hasTexcoords = !model.texcoords.Empty();
 
-    Array<Vertex> vertices;
+    Array<FatVertex> vertices;
     vertices.Resize(model.positions.Size());
 
     for (uint32 i = 0; i < vertices.Size(); i++)
@@ -218,7 +220,9 @@ void BuildVertices(OgreXMLModel& model)
             }
         }
 
-        vertices[i] = Vertex(position, texcoord, normal);
+        vertices[i].SetPosition(position);
+        vertices[i].SetUV0(texcoord);
+        vertices[i].SetNormal(normal);
 
         const auto boneIt = model.boneAssignments.Find(i);
 
@@ -236,7 +240,7 @@ void BuildVertices(OgreXMLModel& model)
                 }
 
                 const uint32 boneIndex = vertices[i].NumBoneIndices();
-                AssertDebug(boneAssignments[j].index != Vertex::InvalidBoneIndex);
+                AssertDebug(boneAssignments[j].index != TVertexPacket<VT_Skeletal>::InvalidBoneIndex);
 
                 vertices[i].SetBoneIndex(boneIndex, uint8(boneAssignments[j].index));
                 vertices[i].SetBoneWeight(boneIndex, boneAssignments[j].weight);
@@ -244,7 +248,7 @@ void BuildVertices(OgreXMLModel& model)
         }
     }
 
-    model.vertices = std::move(vertices);
+    model.vertexData = Array<float>(reinterpret_cast<const float*>(vertices.Data()), vertices.ByteSize() / sizeof(float));
 }
 
 AssetLoadResult OgreXMLModelLoader::LoadAsset(LoaderState& state) const
@@ -302,20 +306,21 @@ AssetLoadResult OgreXMLModelLoader::LoadAsset(LoaderState& state) const
         Name assetName = CreateNameFromDynamicString(subMesh.name);
 
         MeshDesc meshDesc;
-        meshDesc.meshAttributes.vertexAttributes = VertexAttributeSet::StaticMeshVertexAttributes;
+        meshDesc.meshAttributes.inputLayout = { VT_Simple | VT_Skeletal, sizeof(FatVertex) };
         meshDesc.meshAttributes.indexBufferElemType = GET_UNSIGNED_INT;
         meshDesc.meshAttributes.topology = TOP_TRIANGLES;
-        meshDesc.numVertices = uint32(model.vertices.Size());
+        meshDesc.numVertices = uint32(model.vertexData.ByteSize() / sizeof(FatVertex));
         meshDesc.numIndices = uint32(subMesh.indices.Size());
-
-        if (skeleton.IsValid())
-        {
-            meshDesc.meshAttributes.vertexAttributes |= VertexAttributeSet::SkeletalMeshVertexAttributes;
-        }
 
         Handle<Mesh> mesh = MakeHandle<Mesh>();
         mesh->SetName(assetName);
-        mesh->SetMeshData(meshDesc, model.vertices.ToSpan(), subMesh.indices.ToByteView());
+
+        VertexArrayView vertexArrayView {};
+        vertexArrayView.floatData = model.vertexData.Data();
+        vertexArrayView.vertexCount = model.vertexData.ByteSize() / sizeof(FatVertex);
+        vertexArrayView.layoutDesc = meshDesc.meshAttributes.inputLayout;
+
+        mesh->SetMeshData(meshDesc, vertexArrayView, subMesh.indices.ToByteView());
 
         mesh->CalculateNormals();
 

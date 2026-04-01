@@ -872,15 +872,15 @@ extern struct SSRRendererConfig
     ScreenEdgeFade : Vec2f
     ResolutionScale : float
 end
-extern struct Vertex
-    Position : Vec3f
-    Normal : Vec3f
-    Tangent : Vec3f
-    Bitangent : Vec3f
-    Texcoord0 : Vec2f
-    Texcoord1 : Vec2f
-    BoneWeights : Array<float>
-    BoneIndices : Array<uint8>
+extern enum VertexType : uint8
+    VT_Position = 0x1,
+    VT_Normal = 0x2,
+    VT_UV0 = 0x4,
+    VT_UV1 = 0x8,
+    VT_Simple = ((VT_Position | VT_Normal) | VT_UV0),
+    VT_Skeletal = 0x10
+end
+extern struct VertexInputLayoutDesc
 end
 extern enum TextureFilterMode : uint8
     TFM_NEAREST,
@@ -931,8 +931,8 @@ extern struct TextureDesc
 end
 extern struct ShaderVariantPerms
     Props : any
-    RequiredVertexAttributes : VertexAttributeSet
-    OptionalVertexAttributes : VertexAttributeSet
+    RequiredVertexAttributes : VertexTypeMask
+    OptionalVertexAttributes : VertexTypeMask
 end
 extern enum ShaderInputType : uint8
     UNSET,
@@ -1074,6 +1074,9 @@ extern enum DefaultImageFormat : uint8
     DIF_COLOR,
     DIF_DEPTH
 end
+extern struct VertexTypeMask
+    FlagMask : uint8
+end
 extern enum FillMode : uint8
     FM_FILL,
     FM_LINE
@@ -1126,9 +1129,6 @@ extern enum StencilOp : uint8
     SO_REPLACE,
     SO_INCREMENT,
     SO_DECREMENT
-end
-extern struct VertexAttributeSet
-    FlagMask : uint64
 end
 extern enum GpuElemType : uint8
     GET_UNSIGNED_BYTE,
@@ -1214,7 +1214,7 @@ extern enum RenderBucket : uint8
     Debug
 end
 extern struct MeshAttributes
-    VertexAttributes : VertexAttributeSet
+    InputLayout : VertexInputLayoutDesc
     Topology : Topology
     IndexBufferElemType : GpuElemType
 end
@@ -2357,7 +2357,7 @@ extern class Texture : AssetObject
 end
 extern class Shader : AssetObject
     BaseName : Name
-    VertexAttributes : VertexAttributeSet
+    VertexAttributes : VertexTypeMask
     InputGroup : ShaderInputGroup
     ModuleTypes : Array<ShaderModuleType>
     ModuleNames : Array<string>
@@ -2383,7 +2383,7 @@ extern class Mesh : AssetObject
     SetFlags(flags : MeshFlags) -> void
     Rename(name : Name) -> Result
     NumIndices() -> uint32
-    GetVertexAttributes() -> VertexAttributeSet
+    GetInputLayout() -> VertexInputLayoutDesc
     GetTopology() -> Topology
     GetAABB() -> BoundingBox
     SetAABB(aabb : BoundingBox) -> void

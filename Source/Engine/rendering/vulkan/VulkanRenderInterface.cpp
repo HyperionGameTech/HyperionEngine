@@ -898,7 +898,7 @@ VulkanGraphicsPipelineRef VulkanRenderInterface::MakeGraphicsPipeline(
 
     graphicsPipeline->SetFramebufferDesc(framebufferDesc);
 
-    graphicsPipeline->SetVertexAttributes(attributes.GetMeshAttributes().vertexAttributes);
+    graphicsPipeline->SetInputLayout(attributes.GetMeshAttributes().inputLayout);
     graphicsPipeline->SetTopology(attributes.GetMeshAttributes().topology);
     graphicsPipeline->SetCullMode(attributes.GetMaterialAttributes().cullFaces);
     graphicsPipeline->SetFillMode(attributes.GetMaterialAttributes().fillMode);

@@ -54,7 +54,7 @@ static RenderableAttributeSet GetRenderableAttributes()
 {
     return RenderableAttributeSet(
         MeshAttributes {
-            .vertexAttributes = VertexAttributeSet::StaticMeshVertexAttributes,
+            .vertexAttributes = VertexTypeMask::StaticMeshVertexAttributes,
             .topology = TOP_LINES
         },
         MaterialAttributes {
@@ -745,7 +745,7 @@ void DebugDrawer::Render(Frame* frame, const RenderSetup& renderSetup)
 
     HYP_DEFER({
         // reset states
-        cr << SetVertexAttributes(VertexAttributeSet::StaticMeshVertexAttributes);
+        cr << SetVertexAttributes(VertexTypeMask::StaticMeshVertexAttributes);
         cr << SetTopology(TOP_TRIANGLES);
         cr << SetCurrentBlendFunction(BlendFunction::None());
         cr << SetDepthTest(true);

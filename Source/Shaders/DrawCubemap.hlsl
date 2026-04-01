@@ -100,7 +100,7 @@ VSOutput VSMain(VSInput input, uint ViewId : SV_ViewID, uint instanceId : SV_Ins
     float3x3 normal_matrix = transpose(inverse((float3x3)model_matrix));
 #endif
 
-#if defined(SKINNING) && defined(HYP_ATTRIBUTE_a_bone_indices) && defined(HYP_ATTRIBUTE_a_bone_weights)
+#if defined(SKINNING) && defined(HYP_ATTRIBUTE_Skeletal)
     float4x4 skinning_matrix = CreateSkinningMatrix(input.a_bone_indices, input.a_bone_weights);
 
     position = mul(model_matrix, mul(skinning_matrix, float4(input.a_position, 1.0)));

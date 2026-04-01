@@ -1309,7 +1309,7 @@ void RenderCollector::CommitParallelRenderingState(CommandRecorder& cr, uint8 in
         // non threaded -- reset draw states
 
         cr << SetStencilState(0, 0xFF, 0x0);
-        cr << SetVertexAttributes(VertexAttributeSet::StaticMeshVertexAttributes);
+        cr << SetVertexAttributes(VertexTypeMask::StaticMeshVertexAttributes);
         cr << SetTopology(TOP_TRIANGLES);
         cr << SetFillMode(FM_FILL);
         cr << SetFaceCullMode(FCM_BACK);
@@ -1339,7 +1339,7 @@ void RenderCollector::CommitParallelRenderingState(CommandRecorder& cr, uint8 in
 
         // end threaded commands -- reset draw states
         cr << SetStencilState(0, 0xFF, 0x0);
-        cr << SetVertexAttributes(VertexAttributeSet::StaticMeshVertexAttributes);
+        cr << SetVertexAttributes(VertexTypeMask::StaticMeshVertexAttributes);
         cr << SetTopology(TOP_TRIANGLES);
         cr << SetFillMode(FM_FILL);
         cr << SetFaceCullMode(FCM_BACK);

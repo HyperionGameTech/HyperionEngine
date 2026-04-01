@@ -1477,114 +1477,82 @@ struct FramebufferDesc
  *  \details This struct is a bitmask representation of vertex attributes, allowing for efficient storage and manipulation of vertex attribute flags.
  *  It provides methods for checking, setting, and merging vertex attributes, as well as calculating the size of the vertex data based on the attributes. */
 HYP_STRUCT(Serialize = "bitwise")
-struct VertexAttributeSet
+struct VertexTypeMask
 {
-    HYP_STRUCT_BODY(VertexAttributeSet);
+    HYP_STRUCT_BODY(VertexTypeMask);
 
     HYP_FIELD()
-    uint64 flagMask;
+    uint8 flagMask;
 
-    constexpr VertexAttributeSet()
+    constexpr VertexTypeMask()
         : flagMask(0)
     {
     }
 
-    constexpr VertexAttributeSet(uint64 flagMask)
+    constexpr VertexTypeMask(uint8 flagMask)
         : flagMask(flagMask)
     {
     }
 
-    constexpr VertexAttributeSet(const VertexAttributeSet& other) = default;
-    VertexAttributeSet& operator=(const VertexAttributeSet& other) = default;
+    constexpr VertexTypeMask(const VertexTypeMask& other) = default;
+    VertexTypeMask& operator=(const VertexTypeMask& other) = default;
 
-    ~VertexAttributeSet() = default;
+    ~VertexTypeMask() = default;
 
     HYP_FORCE_INLINE explicit operator bool() const
     {
         return flagMask != 0;
     }
 
-    HYP_FORCE_INLINE bool operator==(const VertexAttributeSet& other) const
+    HYP_FORCE_INLINE bool operator==(const VertexTypeMask& other) const
     {
         return flagMask == other.flagMask;
     }
 
-    HYP_FORCE_INLINE bool operator!=(const VertexAttributeSet& other) const
+    HYP_FORCE_INLINE bool operator!=(const VertexTypeMask& other) const
     {
         return flagMask != other.flagMask;
     }
 
-    HYP_FORCE_INLINE bool operator==(uint64 flags) const
-    {
-        return flagMask == flags;
-    }
-
-    HYP_FORCE_INLINE bool operator!=(uint64 flags) const
-    {
-        return flagMask != flags;
-    }
-
-    HYP_FORCE_INLINE VertexAttributeSet operator~() const
+    HYP_FORCE_INLINE VertexTypeMask operator~() const
     {
         return ~flagMask;
     }
 
-    HYP_FORCE_INLINE VertexAttributeSet operator&(const VertexAttributeSet& other) const
+    HYP_FORCE_INLINE VertexTypeMask operator&(const VertexTypeMask& other) const
     {
-        return { flagMask & other.flagMask };
+        return { uint8(flagMask & other.flagMask) };
     }
 
-    HYP_FORCE_INLINE VertexAttributeSet& operator&=(const VertexAttributeSet& other)
+    HYP_FORCE_INLINE VertexTypeMask& operator&=(const VertexTypeMask& other)
     {
         flagMask &= other.flagMask;
         return *this;
     }
 
-    HYP_FORCE_INLINE VertexAttributeSet operator&(uint64 flags) const
+    HYP_FORCE_INLINE VertexTypeMask operator|(const VertexTypeMask& other) const
     {
-        return { flagMask & flags };
+        return { uint8(flagMask | other.flagMask) };
     }
 
-    HYP_FORCE_INLINE VertexAttributeSet& operator&=(uint64 flags)
-    {
-        flagMask &= flags;
-        return *this;
-    }
-
-    HYP_FORCE_INLINE VertexAttributeSet operator|(const VertexAttributeSet& other) const
-    {
-        return { flagMask | other.flagMask };
-    }
-
-    HYP_FORCE_INLINE VertexAttributeSet& operator|=(const VertexAttributeSet& other)
+    HYP_FORCE_INLINE VertexTypeMask& operator|=(const VertexTypeMask& other)
     {
         flagMask |= other.flagMask;
         return *this;
     }
 
-    HYP_FORCE_INLINE VertexAttributeSet operator|(VertexType attr) const
+    HYP_FORCE_INLINE VertexTypeMask operator|(VertexType attr) const
     {
-        return { flagMask | attr };
+        return { uint8(flagMask | attr) };
     }
 
-    HYP_FORCE_INLINE VertexAttributeSet& operator|=(VertexType attr)
+    HYP_FORCE_INLINE VertexTypeMask& operator|=(VertexType attr)
     {
         flagMask |= attr;
         return *this;
     }
 
-    HYP_FORCE_INLINE VertexAttributeSet operator|(uint64 flags) const
-    {
-        return { flagMask | flags };
-    }
-
-    HYP_FORCE_INLINE VertexAttributeSet& operator|=(uint64 flags)
-    {
-        flagMask |= flags;
-        return *this;
-    }
-
-    HYP_FORCE_INLINE bool operator<(const VertexAttributeSet& other) const
+    HYP_FORCE_INLINE bool operator<(const VertexTypeMask& other) const
     {
         return flagMask < other.flagMask;
     }
@@ -1592,18 +1560,6 @@ struct VertexAttributeSet
     HYP_FORCE_INLINE bool Has(VertexType attr) const
     {
         return bool(*this & attr);
-    }
-
-    HYP_FORCE_INLINE void Set(uint64 flags, bool enable = true)
-    {
-        if (enable)
-        {
-            flagMask |= flags;
-        }
-        else
-        {
-            flagMask &= ~flags;
-        }
     }
 
     HYP_FORCE_INLINE void Set(VertexType attr, bool enable = true)
@@ -1618,19 +1574,9 @@ struct VertexAttributeSet
         }
     }
 
-    HYP_FORCE_INLINE void Merge(const VertexAttributeSet& other)
+    HYP_FORCE_INLINE void Merge(const VertexTypeMask& other)
     {
         flagMask |= other.flagMask;
-    }
-
-    HYP_FORCE_INLINE uint64 GetFlagMask() const
-    {
-        return flagMask;
-    }
-
-    HYP_FORCE_INLINE void SetFlagMask(uint64 flags)
-    {
-        flagMask = flags;
     }
 
     HYP_FORCE_INLINE uint32 Size() const
@@ -1718,10 +1664,10 @@ struct ShaderProperty
         cachedHashCode = GetHashCode();
     }
 
-    explicit ShaderProperty(const VertexAttribute& vertexAttribute)
-        : name(CreateNameFromDynamicString(ANSIString("HYP_ATTRIBUTE_") + *vertexAttribute.name)),
+    explicit ShaderProperty(VertexType vt)
+        : name(CreateNameFromDynamicString(ANSIString("HYP_ATTRIBUTE_") + VertexUtils::ToString(vt))),
           flags(SPF_VERTEX_ATTRIBUTE),
-          currentValue(Value(vertexAttribute.name))
+          currentValue(Value(int(vt)))
     {
         cachedHashCode = GetHashCode();
     }
@@ -1914,7 +1860,7 @@ public:
     }
 
     template <size_t Sz>
-    ShaderVariantPerms(const VertexAttributeSet& vertexAttributes, Name const (&props)[Sz])
+    ShaderVariantPerms(const VertexTypeMask& vertexAttributes, Name const (&props)[Sz])
         : m_requiredVertexAttributes(vertexAttributes),
           m_needsHashCodeRecalculation(true)
     {
@@ -1924,7 +1870,7 @@ public:
         }
     }
 
-    explicit ShaderVariantPerms(const VertexAttributeSet& vertexAttributes)
+    explicit ShaderVariantPerms(const VertexTypeMask& vertexAttributes)
         : m_requiredVertexAttributes(vertexAttributes),
           m_needsHashCodeRecalculation(true)
     {
@@ -1988,24 +1934,24 @@ public:
         return const_cast<ShaderVariantPerms*>(this)->Find(name);
     }
 
-    HYP_FORCE_INLINE bool HasRequiredVertexAttributes(VertexAttributeSet vertexAttributes) const
+    HYP_FORCE_INLINE bool HasRequiredVertexAttributes(VertexTypeMask vertexAttributes) const
     {
         return (m_requiredVertexAttributes & vertexAttributes) == vertexAttributes;
     }
 
-    HYP_FORCE_INLINE bool HasRequiredVertexAttribute(const VertexAttribute& vertexAttribute) const
+    HYP_FORCE_INLINE bool HasRequiredVertexAttribute(VertexType vt) const
     {
-        return m_requiredVertexAttributes.Has(vertexAttribute);
+        return m_requiredVertexAttributes.Has(vt);
     }
 
-    HYP_FORCE_INLINE bool HasOptionalVertexAttributes(VertexAttributeSet vertexAttributes) const
+    HYP_FORCE_INLINE bool HasOptionalVertexAttributes(VertexType vertexAttributes) const
     {
         return (m_optionalVertexAttributes & vertexAttributes) == vertexAttributes;
     }
 
-    HYP_FORCE_INLINE bool HasOptionalVertexAttribute(const VertexAttribute& vertexAttribute) const
+    HYP_FORCE_INLINE bool HasOptionalVertexAttribute(VertexType vt) const
     {
-        return m_optionalVertexAttributes.Has(vertexAttribute);
+        return m_optionalVertexAttributes.Has(vt);
     }
 
     HYP_FORCE_INLINE bool Has(const ShaderProperty& property) const
@@ -2149,22 +2095,22 @@ public:
         return *this;
     }
 
-    HYP_FORCE_INLINE VertexAttributeSet GetRequiredVertexAttributes() const
+    HYP_FORCE_INLINE VertexTypeMask GetRequiredVertexAttributes() const
     {
         return m_requiredVertexAttributes;
     }
 
-    HYP_FORCE_INLINE VertexAttributeSet GetOptionalVertexAttributes() const
+    HYP_FORCE_INLINE VertexTypeMask GetOptionalVertexAttributes() const
     {
         return m_optionalVertexAttributes;
     }
 
-    HYP_FORCE_INLINE VertexAttributeSet GetAllVertexAttributes() const
+    HYP_FORCE_INLINE VertexTypeMask GetAllVertexAttributes() const
     {
         return m_requiredVertexAttributes | m_optionalVertexAttributes;
     }
 
-    HYP_FORCE_INLINE void SetRequiredVertexAttributes(VertexAttributeSet vertexAttributes)
+    HYP_FORCE_INLINE void SetRequiredVertexAttributes(VertexTypeMask vertexAttributes)
     {
         m_requiredVertexAttributes = vertexAttributes;
         m_optionalVertexAttributes = m_optionalVertexAttributes & ~m_requiredVertexAttributes;
@@ -2172,7 +2118,7 @@ public:
         m_needsHashCodeRecalculation = true;
     }
 
-    HYP_FORCE_INLINE void SetOptionalVertexAttributes(VertexAttributeSet vertexAttributes)
+    HYP_FORCE_INLINE void SetOptionalVertexAttributes(VertexTypeMask vertexAttributes)
     {
         m_optionalVertexAttributes = vertexAttributes & ~m_requiredVertexAttributes;
     }
@@ -2259,10 +2205,10 @@ private:
     HashSet<ShaderProperty> m_props;
 
     HYP_FIELD()
-    VertexAttributeSet m_requiredVertexAttributes;
+    VertexTypeMask m_requiredVertexAttributes;
 
     HYP_FIELD()
-    VertexAttributeSet m_optionalVertexAttributes;
+    VertexTypeMask m_optionalVertexAttributes;
 
     mutable HashCode m_cachedHashCode;
     mutable HashCode m_cachedPropertySetHashCode;

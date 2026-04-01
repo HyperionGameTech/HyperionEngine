@@ -836,7 +836,7 @@ private:
 class SetVertexAttributes final : public CmdBase
 {
 public:
-    explicit SetVertexAttributes(VertexAttributeSet vertexAttributes)
+    explicit SetVertexAttributes(VertexTypeMask vertexAttributes)
         : vertexAttributes(vertexAttributes)
     {
     }
@@ -844,7 +844,7 @@ public:
     static void InvokeStatic(CmdBase* cmd, CommandBuffer* commandBuffer);
 
 private:
-    VertexAttributeSet vertexAttributes;
+    VertexTypeMask vertexAttributes;
 };
 
 class SetCurrentBlendFunction final : public CmdBase

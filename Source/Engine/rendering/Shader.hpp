@@ -61,7 +61,7 @@ public:
     Name baseName;
 
     HYP_FIELD(Property = "VertexAttributes")
-    VertexAttributeSet vertexAttributes;
+    VertexTypeMask vertexAttributes;
 
     HYP_FIELD(Property = "ShaderInputGroup")
     ShaderInputGroup inputGroup;

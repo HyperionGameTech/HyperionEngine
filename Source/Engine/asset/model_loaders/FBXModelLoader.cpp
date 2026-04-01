@@ -51,6 +51,48 @@ namespace Hyperion {
 
 HYP_DECLARE_LOG_CHANNEL(Assets);
 
+using FatVertex = TVertex<VT_Simple | VT_Skeletal>;
+
+#pragma region Helpers
+
+static Pair<Array<FatVertex>, Array<uint32>> CalculateIndices(const Array<FatVertex>& vertices)
+{
+    HashMap<FatVertex, uint32> indexMap;
+
+    Array<uint32> indices;
+    indices.Reserve(vertices.Size());
+
+    /* This will be our resulting buffer with only the vertices we need. */
+    Array<FatVertex> newVertices;
+    newVertices.Reserve(vertices.Size());
+
+    for (const auto& vertex : vertices)
+    {
+        /* Check if the vertex already exists in our map */
+        auto it = indexMap.Find(vertex);
+
+        /* If it does, push to our indices */
+        if (it != indexMap.End())
+        {
+            indices.PushBack(it->second);
+
+            continue;
+        }
+
+        const uint32 meshIndex = uint32(newVertices.Size());
+
+        /* The vertex is unique, so we push it. */
+        newVertices.PushBack(vertex);
+        indices.PushBack(meshIndex);
+
+        indexMap[vertex] = meshIndex;
+    }
+
+    return { std::move(newVertices), std::move(indices) };
+}
+
+#pragma endregion Helpers
+
 constexpr char HeaderString[] = "Kaydara FBX Binary  ";
 constexpr uint8 HeaderBytes[] = { 0x1A, 0x00 };
 
@@ -212,9 +254,11 @@ struct FBXMesh
 
     FBXObjectID skinId = 0;
 
-    Array<Vertex> vertices;
+    Array<float> vertexData;
+
+    size_t vertexSize = sizeof(FatVertex);
+
     Array<uint32> indices;
-    VertexAttributeSet attributes;
 
     BoundingBox bounds;
 
@@ -224,11 +268,16 @@ struct FBXMesh
     {
         if (!result.HasValue())
         {
+            VertexArrayView vertexArrayView {};
+            vertexArrayView.floatData = vertexData.Data();
+            vertexArrayView.layoutDesc = VertexInputLayoutDesc { VT_Simple | VT_Skeletal, uint8(vertexSize) };
+            vertexArrayView.vertexCount = vertexData.ByteSize() / vertexSize;
+
             MeshDesc meshDesc;
-            meshDesc.meshAttributes.vertexAttributes = attributes;
+            meshDesc.meshAttributes.inputLayout = vertexArrayView.layoutDesc;
             meshDesc.meshAttributes.indexBufferElemType = GET_UNSIGNED_INT;
             meshDesc.meshAttributes.topology = TOP_TRIANGLES;
-            meshDesc.numVertices = uint32(vertices.Size());
+            meshDesc.numVertices = uint32(vertexArrayView.vertexCount);
             meshDesc.numIndices = uint32(indices.Size());
 
             /*bounds = meshData.CalculateAABB();
@@ -244,7 +293,7 @@ struct FBXMesh
 
             Handle<Mesh> mesh = MakeHandle<Mesh>();
             mesh->SetName(CreateNameFromDynamicString(name));
-            mesh->SetMeshData(meshDesc, vertices.ToSpan(), indices.ToByteView());
+            mesh->SetMeshData(meshDesc, vertexArrayView, indices.ToByteView());
 
             result.Set(std::move(mesh));
         }
@@ -978,10 +1027,10 @@ AssetLoadResult FBXModelLoader::LoadAsset(LoaderState& state) const
                         positionIndex = (positionIndex * -1) - 1;
                     }
 
-                    if (size_t(positionIndex) >= mesh.vertices.Size())
+                    if (size_t(positionIndex) >= mesh.vertexData.Size() / mesh.vertexSize)
                     {
                         HYP_LOG(Assets, Warning, "Position index {} out of range of vertex count {}",
-                            positionIndex, mesh.vertices.Size());
+                            positionIndex, mesh.vertexData.Size() / mesh.vertexSize);
 
                         break;
                     }
@@ -1002,7 +1051,7 @@ AssetLoadResult FBXModelLoader::LoadAsset(LoaderState& state) const
 
                     const double weight = cluster->boneWeights[index];
 
-                    Vertex& vertex = mesh.vertices[positionIndex];
+                    FatVertex& vertex = reinterpret_cast<FatVertex*>(mesh.vertexData.Data())[positionIndex];
                     vertex.SetBoneIndex(index, uint8(boneIndex));
                     vertex.SetBoneWeight(index, float(weight));
                 }
@@ -1167,7 +1216,7 @@ AssetLoadResult FBXModelLoader::LoadAsset(LoaderState& state) const
             {
                 Array<Vec3f> modelVertices;
                 Array<uint32> modelIndices;
-                VertexAttributeSet attributes;
+                VertexTypeMask attributes;
 
                 Array<String> layerNodeNames;
 
@@ -1282,7 +1331,7 @@ AssetLoadResult FBXModelLoader::LoadAsset(LoaderState& state) const
                     }
                 }
 
-                Array<Vertex> verticesUnpacked;
+                Array<FatVertex> verticesUnpacked;
                 verticesUnpacked.Resize(modelIndices.Size());
 
                 for (size_t index = 0; index < modelIndices.Size(); ++index)
@@ -1296,8 +1345,6 @@ AssetLoadResult FBXModelLoader::LoadAsset(LoaderState& state) const
                     {
                         if (const FBXObject& uvNode = (*childObject)[name]["UV"])
                         {
-                            attributes |= VertexAttribute::TexCoord0;
-
                             const size_t count = uvNode.GetProperty(0).arrayElements.Size();
                         }
                     }
@@ -1307,8 +1354,6 @@ AssetLoadResult FBXModelLoader::LoadAsset(LoaderState& state) const
 
                         if (const FBXObject& normalsNode = (*childObject)[name]["Normals"])
                         {
-                            attributes |= VertexAttribute::Normal;
-
                             const FBXProperty& normalsProperty = normalsNode.GetProperty(0);
                             const uint32 numNormals = uint32(normalsProperty.arrayElements.Size()) / 3;
 
@@ -1356,15 +1401,13 @@ AssetLoadResult FBXModelLoader::LoadAsset(LoaderState& state) const
                     }
                 }
 
-                auto newVertsAndIndices = Mesh::CalculateIndices(verticesUnpacked);
+                auto newVertsAndIndices = CalculateIndices(verticesUnpacked);
 
                 FBXMesh fbxMesh;
                 fbxMesh.srcObject = childObject;
                 fbxMesh.name = nodeName;
-                fbxMesh.vertices = std::move(newVertsAndIndices.first);
+                fbxMesh.vertexData = Array<float>(reinterpret_cast<const float*>(newVertsAndIndices.first.Data()), newVertsAndIndices.first.ByteSize() / sizeof(float));
                 fbxMesh.indices = std::move(newVertsAndIndices.second);
-                fbxMesh.attributes = VertexAttributeSet::StaticMeshVertexAttributes
-                    | VertexAttributeSet::SkeletalMeshVertexAttributes;
 
                 mapping.data.Set(std::move(fbxMesh));
             }

@@ -47,7 +47,7 @@ DECLARE_BUFFER_DYNAMIC(Default, CamerasBuffer) cbuffer CamerasBuffer
     DECLARE_SRV_DYNAMIC(Default, CurrentEntity) StructuredBuffer<Entity> entities;
 #endif
 
-#if defined(SKINNING) && defined(HYP_ATTRIBUTE_a_bone_indices) && defined(HYP_ATTRIBUTE_a_bone_weights) && defined(HYP_ATTRIBUTE_a_position)
+#if defined(SKINNING) && defined(HYP_ATTRIBUTE_Skeletal) && defined(HYP_ATTRIBUTE_Position)
 
 #include "include/Skeleton.inc"
 DECLARE_SRV_DYNAMIC(Default, SkeletonsBuffer) StructuredBuffer<Skeleton> skeletons;
@@ -77,10 +77,10 @@ VSOutput VSMain(VSInput input, uint instanceId : SV_InstanceID)
     output.object_index  = 0;
 #endif
 
-#ifdef HYP_ATTRIBUTE_a_position
+#ifdef HYP_ATTRIBUTE_Position
     float4 position = float4(input.a_position, 1.0);
 
-    #if defined(SKINNING) && defined(HYP_ATTRIBUTE_a_bone_indices) && defined(HYP_ATTRIBUTE_a_bone_weights)
+    #if defined(SKINNING) && defined(HYP_ATTRIBUTE_Skeletal)
         float4x4 skinning_matrix = CreateSkinningMatrix((int4)input.a_bone_indices, input.a_bone_weights);
         position = mul(skinning_matrix, position);
     #endif
@@ -94,7 +94,7 @@ VSOutput VSMain(VSInput input, uint instanceId : SV_InstanceID)
     output.v_position  = position.xyz / position.w;
     output.position_cs = mul(camera.viewProjMat, position);
 
-#ifdef HYP_ATTRIBUTE_a_texcoord0
+#ifdef HYP_ATTRIBUTE_UV0
     output.v_texcoord0 = float2(input.a_texcoord0.x, 1.0 - input.a_texcoord0.y);
 #endif
 
@@ -123,7 +123,7 @@ PSOutput PSMain(PSInput input)
     PSOutput output;
 
     // Emit some crap to show that this is not meant to be here
-#ifdef HYP_ATTRIBUTE_a_texcoord0
+#ifdef HYP_ATTRIBUTE_UV0
     const float2 tile = floor(input.v_texcoord0 * 8.0);
     const float  checker = fmod(tile.x + tile.y, 2.0);
     output.color = lerp(float4(1.0, 0.0, 1.0, 1.0), float4(0.1, 0.0, 0.1, 1.0), checker);

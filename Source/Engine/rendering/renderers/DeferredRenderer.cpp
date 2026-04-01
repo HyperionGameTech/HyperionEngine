@@ -843,7 +843,7 @@ void DeferredPass::RenderToFramebuffer_Internal(Frame* frame, const RenderSetup&
 TonemapPass::TonemapPass(Vec2u extent, GBuffer* gbuffer)
     : FullScreenPass(TextureFormat::R11G11B10F, extent, gbuffer)
 {
-    const VertexAttributeSet vertexAttributes = VertexAttribute::Position | VertexAttribute::Normal | VertexAttribute::TexCoord0;
+    const VertexTypeMask vertexAttributes = VertexAttribute::Position | VertexAttribute::Normal | VertexAttribute::TexCoord0;
 
     ShaderPropertySet shaderProperties;
     shaderProperties.Add(InternShaderProperty(ShaderProperty(NAME("OUTPUT"), NAME("SDR"))));
@@ -1017,7 +1017,7 @@ void LightmapPass::RenderToFramebuffer_Internal(Frame* frame, const RenderSetup&
     Framebuffer* viewFramebuffer = dpd->view.GetUnsafe()->GetOutputTarget().GetFramebuffer(RenderBucket::Opaque);
     AssertDebug(viewFramebuffer != nullptr);
 
-    const VertexAttributeSet vertexAttributes = VertexAttribute::Position | VertexAttribute::Normal | VertexAttribute::TexCoord0;
+    const VertexTypeMask vertexAttributes = VertexAttribute::Position | VertexAttribute::Normal | VertexAttribute::TexCoord0;
 
     CommandRecorder& cr = frame->cr;
 

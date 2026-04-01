@@ -208,7 +208,7 @@ PLYModel PLYModelLoader::LoadModel(LoaderState& state)
         ReadPropertyValue<float>(buffer, model, rowOffset, "y", &position.y);
         ReadPropertyValue<float>(buffer, model, rowOffset, "z", &position.z);
 
-        Vertex vertex;
+        SimpleVertex vertex {};
         vertex.SetPosition(Vector3(position.x, position.y, position.z));
         model.vertices[index] = vertex;
 

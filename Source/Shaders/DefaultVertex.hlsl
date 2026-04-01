@@ -83,7 +83,7 @@ VSOutput VSMain(VSInput input, uint instanceId : SV_InstanceID)
     float3x3 normal_matrix = transpose(inverse((float3x3)model_matrix));//(float3x3)entity.normal_matrix;
 #endif
 
-#if defined(SKINNING) && defined(HYP_ATTRIBUTE_a_bone_indices) && defined(HYP_ATTRIBUTE_a_bone_weights)
+#if defined(SKINNING) && defined(HYP_ATTRIBUTE_Skeletal)
     float4x4 skinning_matrix = CreateSkinningMatrix(input.a_bone_indices, input.a_bone_weights);
 
     position = mul(model_matrix, mul(skinning_matrix, float4(input.a_position, 1.0)));
@@ -104,7 +104,7 @@ VSOutput VSMain(VSInput input, uint instanceId : SV_InstanceID)
     output.texcoord0 = float2(input.a_texcoord0.x, 1.0 - input.a_texcoord0.y);
     output.camera_position = camera.position.xyz;
 
-#ifdef HYP_ATTRIBUTE_a_texcoord1
+#ifdef HYP_ATTRIBUTE_UV1
     output.texcoord1 = input.a_texcoord1.xy;
 #else
     output.texcoord1 = float2(0.0, 0.0);

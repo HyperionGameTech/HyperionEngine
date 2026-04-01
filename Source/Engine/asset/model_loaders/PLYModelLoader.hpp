@@ -46,7 +46,7 @@ public:
     {
         HashMap<String, PLYPropertyDefinition> propertyTypes;
         HashMap<String, ByteBuffer> customData;
-        Array<Vertex> vertices;
+        Array<SimpleVertex> vertices;
         size_t headerLength = 0;
     };
 

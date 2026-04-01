@@ -17,24 +17,24 @@ namespace Hyperion
         BoneWeights = 0x80
     }
 
-    [ClassBinding(Name="VertexAttributeSet")]
+    [ClassBinding(Name="VertexTypeMask")]
     [StructLayout(LayoutKind.Explicit, Size = 8)]
-    public struct VertexAttributeSet
+    public struct VertexTypeMask
     {
         [FieldOffset(0)]
         private ulong flagMask;
 
-        public VertexAttributeSet()
+        public VertexTypeMask()
         {
             flagMask = 0;
         }
 
-        public VertexAttributeSet(ulong flagMask)
+        public VertexTypeMask(ulong flagMask)
         {
             this.flagMask = flagMask;
         }
 
-        public VertexAttributeSet(VertexAttributeType[] types)
+        public VertexTypeMask(VertexAttributeType[] types)
         {
             flagMask = 0;
 

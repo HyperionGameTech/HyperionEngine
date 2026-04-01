@@ -73,7 +73,6 @@ private:
     RendererResult Rebuild() override;
 
     void BuildVertexAttributes(
-        const VertexAttributeSet& attributeSet,
         Array<VkVertexInputAttributeDescription>& outVkVertexAttributes,
         Array<VkVertexInputBindingDescription>& outVkVertexBindingDescriptions);
 
