@@ -390,7 +390,7 @@ class HYP_API EditorSubsystem : public Subsystem
     HYP_OBJECT_BODY(EditorSubsystem);
 
 public:
-    using EditorGizmoSet = HashSet<Handle<EditorGizmoBase>, &EditorGizmoBase::GetManipulationMode>;
+    using EditorGizmoSet = IntrusiveMap<Handle<EditorGizmoBase>, &EditorGizmoBase::GetManipulationMode>;
 
     EditorSubsystem();
     virtual ~EditorSubsystem() override;

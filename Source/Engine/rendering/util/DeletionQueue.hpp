@@ -489,8 +489,8 @@ static inline void EnqueueDeletion(FixedArray<T, Sz>&& value)
 }
 
 /*! \see EnqueueDeletion(T&& value) */
-template <class T, auto KeyBy>
-static inline void EnqueueDeletion(HashSet<T, KeyBy>&& value)
+template <class T>
+static inline void EnqueueDeletion(HashSet<T>&& value)
 {
     for (auto& it : value)
     {

@@ -82,7 +82,7 @@ class LinkedList;
 template <class Key, class Value, class NodeAllocatorType>
 class HashMap;
 
-template <class Value, auto KeyBy, class NodeAllocatorType>
+template <class Value, class NodeAllocatorType>
 class HashSet;
 
 template <class Key, class Value>
@@ -537,8 +537,8 @@ struct TypeInfoImpl<containers::HashMap<Key, Value, NodeAllocatorType>, TBoxed>
     void operator()(TypeInfo& result) const;
 };
 
-template <class Value, auto KeyBy, class NodeAllocatorType, class TBoxed>
-struct TypeInfoImpl<containers::HashSet<Value, KeyBy, NodeAllocatorType>, TBoxed>
+template <class Value, class NodeAllocatorType, class TBoxed>
+struct TypeInfoImpl<containers::HashSet<Value, NodeAllocatorType>, TBoxed>
 {
     void operator()(TypeInfo& result) const;
 };
@@ -1665,10 +1665,10 @@ void TypeInfoImpl<containers::FlatSet<Value>, TBoxed>::operator()(TypeInfo& resu
     result.extendedInfo.handler = new FlatSetHandler();
 }
 
-template <class Value, auto KeyBy, class NodeAllocatorType, class TBoxed>
-void TypeInfoImpl<containers::HashSet<Value, KeyBy, NodeAllocatorType>, TBoxed>::operator()(TypeInfo& result) const
+template <class Value, class NodeAllocatorType, class TBoxed>
+void TypeInfoImpl<containers::HashSet<Value, NodeAllocatorType>, TBoxed>::operator()(TypeInfo& result) const
 {
-    using SetType = containers::HashSet<Value, KeyBy, NodeAllocatorType>;
+    using SetType = containers::HashSet<Value, NodeAllocatorType>;
 
     class HashSetHandler final : public ITypeInfoSetHandler
     {

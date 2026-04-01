@@ -23,14 +23,14 @@ class EntityManager;
 class Scene;
 class World;
 
-class SystemComponentDescriptors : HashSet<ComponentInfo, &ComponentInfo::typeId>
+class SystemComponentDescriptors : IntrusiveMap<ComponentInfo, &ComponentInfo::typeId>
 {
 public:
     EntitySetId entitySetId; // can be 0 if inited dynamically (from Span<ComponentInfo>)
 
     template <class... ComponentDescriptors>
     SystemComponentDescriptors(ComponentDescriptors&&... componentDescriptors)
-        : HashSet({ std::forward<ComponentDescriptors>(componentDescriptors)... }),
+        : IntrusiveMap({ std::forward<ComponentDescriptors>(componentDescriptors)... }),
           entitySetId(GetEntitySetId<std::conditional_t<bool(ComponentDescriptors::Access& ComponentAccess::READ_WRITE), typename ComponentDescriptors::Type, VoidComponentType>...>())
     {
         Assert(Size() == sizeof...(ComponentDescriptors), "Duplicate component descriptors found");
@@ -44,9 +44,9 @@ public:
         }
     }
 
-    using HashSet::ToArray;
+    using IntrusiveMap::ToArray;
 
-    HYP_DEF_STL_BEGIN_END(HashSet::Begin(), HashSet::End())
+    HYP_DEF_STL_BEGIN_END(IntrusiveMap::Begin(), IntrusiveMap::End())
 };
 
 /*! \brief A system is attached to a World and batch processes entities with specific components each tick.

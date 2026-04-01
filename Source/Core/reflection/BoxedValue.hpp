@@ -2738,13 +2738,13 @@ struct BoxedValueHelper<FlatMap<K, V>> : BoxedValueHelper<GenericArrayWrapper>
 
 /// HashSet
 
-template <class ValueType, auto KeyByFunction>
-struct BoxedValueHelperDecl<HashSet<ValueType, KeyByFunction>>
+template <class ValueType>
+struct BoxedValueHelperDecl<HashSet<ValueType>>
 {
 };
 
-template <class ValueType, auto KeyByFunction>
-struct BoxedValueHelper<HashSet<ValueType, KeyByFunction>> : BoxedValueHelper<GenericArrayWrapper>
+template <class ValueType>
+struct BoxedValueHelper<HashSet<ValueType>> : BoxedValueHelper<GenericArrayWrapper>
 {
     using ConvertibleFrom = Tuple<>;
 
@@ -2752,24 +2752,24 @@ struct BoxedValueHelper<HashSet<ValueType, KeyByFunction>> : BoxedValueHelper<Ge
     {
         if (const GenericArrayWrapper* array = value.TryGet<GenericArrayWrapper>())
         {
-            return TypeInfo_GetId(*array->typeInfo) == TypeId::ForType<HashSet<ValueType, KeyByFunction>>();
+            return TypeInfo_GetId(*array->typeInfo) == TypeId::ForType<HashSet<ValueType>>();
         }
 
-        return value.GetTypeId() == TypeId::ForType<HashSet<ValueType, KeyByFunction>>();
+        return value.GetTypeId() == TypeId::ForType<HashSet<ValueType>>();
     }
 
-    HYP_FORCE_INLINE HashSet<ValueType, KeyByFunction>& Get(const Any& value) const
+    HYP_FORCE_INLINE HashSet<ValueType>& Get(const Any& value) const
     {
         if (const GenericArrayWrapper* arr = value.TryGet<GenericArrayWrapper>())
         {
-            if (TypeInfo_GetId(*arr->typeInfo) == TypeId::ForType<HashSet<ValueType, KeyByFunction>>())
+            if (TypeInfo_GetId(*arr->typeInfo) == TypeId::ForType<HashSet<ValueType>>())
             {
-                return *static_cast<HashSet<ValueType, KeyByFunction>*>(arr->pInternalArray);
+                return *static_cast<HashSet<ValueType>*>(arr->pInternalArray);
             }
         }
-        else if (value.GetTypeId() == TypeId::ForType<HashSet<ValueType, KeyByFunction>>())
+        else if (value.GetTypeId() == TypeId::ForType<HashSet<ValueType>>())
         {
-            return value.Get<HashSet<ValueType, KeyByFunction>>();
+            return value.Get<HashSet<ValueType>>();
         }
 
         HYP_UNREACHABLE();
@@ -2777,25 +2777,25 @@ struct BoxedValueHelper<HashSet<ValueType, KeyByFunction>> : BoxedValueHelper<Ge
 
     HYP_FORCE_INLINE bool Is(const GenericArrayWrapper& value) const
     {
-        return TypeInfo_GetId(*value.typeInfo) == TypeId::ForType<HashSet<ValueType, KeyByFunction>>();
+        return TypeInfo_GetId(*value.typeInfo) == TypeId::ForType<HashSet<ValueType>>();
     }
 
-    HYP_FORCE_INLINE HashSet<ValueType, KeyByFunction>& Get(const GenericArrayWrapper& value) const
+    HYP_FORCE_INLINE HashSet<ValueType>& Get(const GenericArrayWrapper& value) const
     {
-        return *static_cast<HashSet<ValueType, KeyByFunction>*>(value.pInternalArray);
+        return *static_cast<HashSet<ValueType>*>(value.pInternalArray);
     }
 
-    HYP_FORCE_INLINE void Set(BoxedValue& boxed, const HashSet<ValueType, KeyByFunction>& value) const
+    HYP_FORCE_INLINE void Set(BoxedValue& boxed, const HashSet<ValueType>& value) const
     {
         BoxedValueHelper<GenericArrayWrapper>::Set(boxed, GenericArrayWrapper(GenericArrayWrapper::AS_COPY, value));
     }
 
-    HYP_FORCE_INLINE void Set(BoxedValue& boxed, HashSet<ValueType, KeyByFunction>&& value) const
+    HYP_FORCE_INLINE void Set(BoxedValue& boxed, HashSet<ValueType>&& value) const
     {
         BoxedValueHelper<GenericArrayWrapper>::Set(boxed, GenericArrayWrapper(GenericArrayWrapper::AS_COPY, std::move(value)));
     }
 
-    static FBOMResult Serialize(const HashSet<ValueType, KeyByFunction>& value, FBOMData& outData, EnumFlags<FBOMDataFlags> flags = FBOMDataFlags::NONE)
+    static FBOMResult Serialize(const HashSet<ValueType>& value, FBOMData& outData, EnumFlags<FBOMDataFlags> flags = FBOMDataFlags::NONE)
     {
         HYP_SCOPE;
 
@@ -2842,7 +2842,7 @@ struct BoxedValueHelper<HashSet<ValueType, KeyByFunction>> : BoxedValueHelper<Ge
 
         const size_t size = array.Size();
 
-        HashSet<ValueType, KeyByFunction> result;
+        HashSet<ValueType> result;
 
         for (size_t i = 0; i < size; i++)
         {
@@ -2856,7 +2856,7 @@ struct BoxedValueHelper<HashSet<ValueType, KeyByFunction>> : BoxedValueHelper<Ge
             result.Insert(std::move(element.Get<ValueType>()));
         }
 
-        BoxedValueHelper<HashSet<ValueType, KeyByFunction>> {}.Set(out, std::move(result));
+        BoxedValueHelper<HashSet<ValueType>> {}.Set(out, std::move(result));
 
         return { FBOMResult::FBOM_OK };
     }

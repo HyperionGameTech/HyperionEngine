@@ -49,14 +49,7 @@ RendererResult GraphicsPipelineBase::Create()
         return HYP_MAKE_ERROR(RendererError, "Cannot create a graphics pipeline with no attachment descriptors!");
     }
 
-    RendererResult rebuildResult = Rebuild();
-
-    if (!rebuildResult)
-    {
-        return rebuildResult;
-    }
-
-    return {};
+    return Rebuild();
 }
 
 uint32 GraphicsPipelineBase::GetDescriptorSetIndex(StringHash nameHash) const

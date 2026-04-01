@@ -21,10 +21,10 @@ namespace containers {
  * \tparam Value The type of values stored in the hash map.
  * \tparam NodeAllocatorType The type of node allocator used for managing memory for the hash map elements. The default is `DefaultNodeAllocator`, which can leverage pooled allocation for reduced dynamic memory allocation. If you want to use dynamic allocation (e.g need stable pointers to elements), you can use `HashTable_DynamicNodeAllocator` instead. */
 template <class Key, class Value, class NodeAllocatorType = DefaultNodeAllocator>
-class HashMap : public HashSet<KeyValuePair<Key, Value>, &KeyValuePair<Key, Value>::first, NodeAllocatorType>
+class HashMap : public IntrusiveMap<KeyValuePair<Key, Value>, &KeyValuePair<Key, Value>::first, NodeAllocatorType>
 {
 public:
-    using Base = HashSet<KeyValuePair<Key, Value>, &KeyValuePair<Key, Value>::first, NodeAllocatorType>;
+    using Base = IntrusiveMap<KeyValuePair<Key, Value>, &KeyValuePair<Key, Value>::first, NodeAllocatorType>;
 
     using Iterator = typename Base::Iterator;
     using ConstIterator = typename Base::ConstIterator;

@@ -36,7 +36,7 @@ static const ThreadId& ThreadSet_KeyBy(ThreadBase* thread)
 class ThreadMap
 {
 public:
-    using ThreadSetType = HashSet<ThreadBase*, &ThreadSet_KeyBy>;
+    using ThreadSetType = IntrusiveMap<ThreadBase*, &ThreadSet_KeyBy>;
 
     ThreadMap() = default;
 

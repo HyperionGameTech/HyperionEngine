@@ -140,7 +140,12 @@ ShadowMap* ShadowMapAllocator::AllocateShadowMap(ShadowMapType shadowMapType, Sh
         subResource.baseMipLevel = 0;
         subResource.numLevels = 1;
         
-        GpuImageViewRef atlasImageView = g_renderInterface->textureViewCache->GetOrCreate(m_pointLightTextureArray, subResource);
+        // @NOTE using TextureType::Texture2DArray for point light shadow maps rather than CubemapArray
+        GpuImageViewRef atlasImageView = g_renderInterface->textureViewCache->GetOrCreate(
+            m_pointLightTextureArray,
+            subResource,
+            TextureType::Texture2DArray);
+
         CheckResult(atlasImageView->Create());
 
         ShadowMap* shadowMap = new ShadowMap(

@@ -182,14 +182,16 @@ DECLARE_SAMPLER(Default, SamplerNearest) SamplerState sampler_nearest;
 
 #define HYP_CUBEMAP_AMBIENT 0.005
 
+#ifndef MODE_SHADOWS
 DECLARE_SRV(Default, ShadowMapsTextureArray) Texture2DArray<float> shadow_maps;
 DECLARE_SRV(Default, PointLightShadowMapsTextureArray) TextureCubeArray point_shadow_maps;
+#endif // MODE_SHADOWS
 
 #ifdef INSTANCING
     DECLARE_SRV(Default, EntitiesBuffer) StructuredBuffer<Entity> entities;
-#else
+#else // !INSTANCING
     DECLARE_SRV_DYNAMIC(Default, CurrentEntity) StructuredBuffer<Entity> entities;
-#endif
+#endif // INSTANCING
 
 DECLARE_SRV_DYNAMIC(Default, MaterialsBuffer) StructuredBuffer<Material> materials_buffer;
 #define material materials_buffer[0]

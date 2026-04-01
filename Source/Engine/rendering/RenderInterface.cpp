@@ -1614,11 +1614,15 @@ void RenderInterface::CommitPipelineState(PSOType psoType, CommandBuffer* comman
     {
         if (state.boundFramebuffer == nullptr)
         {
-            AssertDebug(state.framebuffer != nullptr, "No framebuffer bound at the time of CommitDrawState!");
+            AssertDebug(state.framebuffer != nullptr,
+                "No framebuffer bound at the time of CommitDrawState!");
 
             state.framebuffer->BeginCapture(commandBuffer);
 
             state.boundFramebuffer = state.framebuffer;
+
+            AssertDebug(executeBindCmdFunction != nullptr,
+                "Pipeline bind command should have been set for graphics pipeline if we are to begin a render pass");
         }
     }
 

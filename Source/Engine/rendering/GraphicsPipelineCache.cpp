@@ -354,15 +354,21 @@ void GraphicsPipelineCache::GetOrCreate(
             shaderString);
     #endif
 
-        CheckResult(graphicsPipeline->Create());
+        if (CheckResult(graphicsPipeline->Create()))
+        {
 
-        // set initial lastFrame index so we don't delete it right away when cleaning up after the frame.
-        graphicsPipeline->lastFrame = GetFrameCounter();
+            // set initial lastFrame index so we don't delete it right away when cleaning up after the frame.
+            graphicsPipeline->lastFrame = GetFrameCounter();
 
-        // set new allocated slot to the graphics pipeline we just created
-        *cacheHandle.m_ptr = std::move(graphicsPipeline);
-        
-        outCacheHandle = std::move(cacheHandle);
+            // set new allocated slot to the graphics pipeline we just created
+            *cacheHandle.m_ptr = std::move(graphicsPipeline);
+
+            outCacheHandle = std::move(cacheHandle);
+        }
+        else
+        {
+            return;
+        }
     }
 
     // Add to cache

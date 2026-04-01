@@ -69,7 +69,6 @@ public:
 private:
     using VulkanRenderPassesSet = HashSet<
         VulkanRenderPass*,
-        &KeyBy_Identity<VulkanRenderPass*>,
         NodeAllocator<VulkanTempAllocator>>;
 
     struct VulkanSwapchainData

@@ -166,7 +166,7 @@ float GetShadowPCF(in ShadowMap shadowMap, float3 pos, float2 texcoord, float2 s
 
 #ifdef HYP_USE_GATHER
     float4 shadow_samples[HYP_SHADOW_SAMPLE_COUNT / 4];
-    int2 offsets[HYP_SHADOW_SAMPLE_COUNT / 4] = {
+    int2 offsets[4] = {
         int2(0, 0),
         int2(2, 0),
         int2(0, 2),

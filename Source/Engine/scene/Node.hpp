@@ -178,15 +178,17 @@ struct NodeUnlockTransformScope;
 extern void Node_OnPostLoad(Node& node);
 
 HYP_STRUCT()
-class NodeTagSet : public HashSet<NodeTag, &NodeTag::name>
+class NodeTagSet : IntrusiveMap<NodeTag, &NodeTag::name>
 {
     HYP_STRUCT_BODY(NodeTagSet);
 
 public:
-    using Base = HashSet<NodeTag, &NodeTag::name>;
+    using Base = IntrusiveMap<NodeTag, &NodeTag::name>;
 
     using Iterator = typename Base::Iterator;
     using ConstIterator = typename Base::ConstIterator;
+
+    using Base::Contains;
 
     NodeTagSet() = default;
 
@@ -299,6 +301,33 @@ public:
 
         return result;
     }
+
+    /// Serialization
+    HYP_METHOD(Property = "Values", Serialize = true, NoScriptBindings)
+    Array<NodeTag, DynamicAllocator> SerializeValues() const
+    {
+        Array<NodeTag, DynamicAllocator> result;
+        result.Reserve(m_size);
+
+        for (const NodeTag& tag : *this)
+        {
+            result.PushBack(tag);
+        }
+
+        return result;
+    }
+
+    HYP_METHOD(Property = "Values", Serialize = true, NoScriptBindings)
+    void DeserializeValues(const Array<NodeTag, DynamicAllocator>& values)
+    {
+        Reserve(values.Size());
+
+        for (const NodeTag& tag : values)
+        {
+            Add(tag);
+        }
+    }
+    /// End Serialization
 
     HYP_DEF_STL_BEGIN_END(Base::Begin(), Base::End())
 };

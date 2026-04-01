@@ -69,34 +69,6 @@
                 "FieldNames": [],
                 "FieldTypes": []
               }
-            }, {
-              "$Class": "ShaderInput",
-              "Register": 1,
-              "ElementType": 5,
-              "Name": "PointLightShadowMapsTextureArray",
-              "Count": 1,
-              "Size": 4294967295,
-              "IsDynamic": false,
-              "StructInfo": {
-                "Name": "",
-                "Size": 4294967295,
-                "FieldNames": [],
-                "FieldTypes": []
-              }
-            }, {
-              "$Class": "ShaderInput",
-              "Register": 1,
-              "ElementType": 5,
-              "Name": "ShadowMapsTextureArray",
-              "Count": 1,
-              "Size": 4294967295,
-              "IsDynamic": false,
-              "StructInfo": {
-                "Name": "",
-                "Size": 4294967295,
-                "FieldNames": [],
-                "FieldTypes": []
-              }
             }], [], [{
               "$Class": "ShaderInput",
               "Register": 3,
@@ -155,15 +127,15 @@
   "ShaderBlobs": [{
       "$Class": "BlobDataReference",
       "Key": "Engine/Shaders/DrawCubemap/DrawCubemap_5336421232962317083.VS",
-      "Size": 48104
+      "Size": 47988
     }, {
       "$Class": "BlobDataReference",
       "Key": "Engine/Shaders/DrawCubemap/DrawCubemap_5336421232962317083.PS",
-      "Size": 90472
+      "Size": 90152
     }],
   "PropertySetHashCode": {},
   "LastCompiledTimestamp": {
-    "Value": 1774823646000
+    "Value": 1774889061000
   },
   "Name": "DrawCubemap_5336421232962317083",
   "FriendlyName": "DrawCubemap_5336421232962317083",

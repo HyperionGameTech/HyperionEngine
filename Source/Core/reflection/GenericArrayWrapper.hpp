@@ -184,16 +184,16 @@ struct GenericArrayWrapper
     template <class T, size_t Sz>
     GenericArrayWrapper(AsCopyTag, FixedArray<T, Sz>&& arr);
 
-    // HashSet<T, KeyByFunction, AllocatorType>
+    // HashSet<T, AllocatorType>
 
-    template <class T, auto KeyByFunction, class AllocatorType>
-    GenericArrayWrapper(AsReferenceTag, HashSet<T, KeyByFunction, AllocatorType>& set);
+    template <class T, class AllocatorType>
+    GenericArrayWrapper(AsReferenceTag, HashSet<T, AllocatorType>& set);
 
-    template <class T, auto KeyByFunction, class AllocatorType>
-    GenericArrayWrapper(AsCopyTag, const HashSet<T, KeyByFunction, AllocatorType>& set);
+    template <class T, class AllocatorType>
+    GenericArrayWrapper(AsCopyTag, const HashSet<T, AllocatorType>& set);
 
-    template <class T, auto KeyByFunction, class AllocatorType>
-    GenericArrayWrapper(AsCopyTag, HashSet<T, KeyByFunction, AllocatorType>&& set);
+    template <class T, class AllocatorType>
+    GenericArrayWrapper(AsCopyTag, HashSet<T, AllocatorType>&& set);
 
     // FlatSet<T>
 

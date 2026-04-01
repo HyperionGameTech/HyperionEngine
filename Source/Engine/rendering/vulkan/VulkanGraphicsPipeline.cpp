@@ -427,6 +427,8 @@ RendererResult VulkanGraphicsPipeline::Rebuild()
         vkCreateGraphicsPipelines(g_renderInterface->GetDevice()->GetDevice(), VK_NULL_HANDLE, 1, &pipelineInfo, nullptr, &m_handle),
         "Failed to create graphics pipeline");
 
+    Assert(m_handle != VK_NULL_HANDLE, "We got a null handle on our hands!");
+
 #if HYP_DEBUG_MODE
     if (Name debugName = GetDebugName())
     {

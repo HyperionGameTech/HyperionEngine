@@ -51,8 +51,8 @@ class MemoryMappedFile;
 extern StringHash AssetPackage_KeyByFunction(const Handle<AssetPackage>& assetPackage);
 extern StringHash AssetObject_KeyByFunction(const Handle<AssetObject>& assetObject);
 
-using AssetPackageSet = HashSet<Handle<AssetPackage>, &AssetPackage_KeyByFunction, NodeAllocator<AssetAllocator>>;
-using AssetObjectSet = HashSet<Handle<AssetObject>, &AssetObject_KeyByFunction, NodeAllocator<AssetAllocator>>;
+using AssetPackageSet = IntrusiveMap<Handle<AssetPackage>, &AssetPackage_KeyByFunction, NodeAllocator<AssetAllocator>>;
+using AssetObjectSet = IntrusiveMap<Handle<AssetObject>, &AssetObject_KeyByFunction, NodeAllocator<AssetAllocator>>;
 
 HYP_CLASS()
 class HYP_API AssetPackage final : public ObjectBase

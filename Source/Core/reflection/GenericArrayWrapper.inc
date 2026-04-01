@@ -507,8 +507,8 @@ GenericArrayWrapper::GenericArrayWrapper(AsCopyTag, FixedArray<T, Sz>&& arr)
 
 // HashSet<T>
 
-template <class T, auto KeyByFunction, class AllocatorType>
-GenericArrayWrapper::GenericArrayWrapper(AsReferenceTag, HashSet<T, KeyByFunction, AllocatorType>& set)
+template <class T, class AllocatorType>
+GenericArrayWrapper::GenericArrayWrapper(AsReferenceTag, HashSet<T, AllocatorType>& set)
     : GenericArrayWrapper()
 {
     pInternalArray = &set;
@@ -516,8 +516,8 @@ GenericArrayWrapper::GenericArrayWrapper(AsReferenceTag, HashSet<T, KeyByFunctio
 
     functionTable.serializeFunction = [](const GenericArrayWrapper& array, FBOMData& outData, EnumFlags<FBOMDataFlags> flags)
     {
-        auto& hashSet = *static_cast<const HashSet<T, KeyByFunction, AllocatorType>*>(array.pInternalArray);
-        return BoxedValueHelper<HashSet<T, KeyByFunction, AllocatorType>>::Serialize(hashSet, outData, flags);
+        auto& hashSet = *static_cast<const HashSet<T, AllocatorType>*>(array.pInternalArray);
+        return BoxedValueHelper<HashSet<T, AllocatorType>>::Serialize(hashSet, outData, flags);
     };
 
     typeInfo = &TypeOf<std::remove_cvref_t<decltype(set)>>();
@@ -525,13 +525,13 @@ GenericArrayWrapper::GenericArrayWrapper(AsReferenceTag, HashSet<T, KeyByFunctio
 
     functionTable.size = [](const GenericArrayWrapper& array) -> size_t
     {
-        auto& hashSet = *static_cast<const HashSet<T, KeyByFunction, AllocatorType>*>(array.pInternalArray);
+        auto& hashSet = *static_cast<const HashSet<T, AllocatorType>*>(array.pInternalArray);
         return hashSet.Size();
     };
 }
 
-template <class T, auto KeyByFunction, class AllocatorType>
-GenericArrayWrapper::GenericArrayWrapper(AsCopyTag, const HashSet<T, KeyByFunction, AllocatorType>& set)
+template <class T, class AllocatorType>
+GenericArrayWrapper::GenericArrayWrapper(AsCopyTag, const HashSet<T, AllocatorType>& set)
     : GenericArrayWrapper()
 {
     pInternalArray = new std::remove_cvref_t<decltype(set)>(set);
@@ -543,8 +543,8 @@ GenericArrayWrapper::GenericArrayWrapper(AsCopyTag, const HashSet<T, KeyByFuncti
 
     functionTable.serializeFunction = [](const GenericArrayWrapper& array, FBOMData& outData, EnumFlags<FBOMDataFlags> flags)
     {
-        auto& hashSet = *static_cast<const HashSet<T, KeyByFunction, AllocatorType>*>(array.pInternalArray);
-        return BoxedValueHelper<HashSet<T, KeyByFunction, AllocatorType>>::Serialize(hashSet, outData, flags);
+        auto& hashSet = *static_cast<const HashSet<T, AllocatorType>*>(array.pInternalArray);
+        return BoxedValueHelper<HashSet<T, AllocatorType>>::Serialize(hashSet, outData, flags);
     };
 
     typeInfo = &TypeOf<std::remove_cvref_t<decltype(set)>>();
@@ -552,13 +552,13 @@ GenericArrayWrapper::GenericArrayWrapper(AsCopyTag, const HashSet<T, KeyByFuncti
 
     functionTable.size = [](const GenericArrayWrapper& array) -> size_t
     {
-        auto& hashSet = *static_cast<const HashSet<T, KeyByFunction, AllocatorType>*>(array.pInternalArray);
+        auto& hashSet = *static_cast<const HashSet<T, AllocatorType>*>(array.pInternalArray);
         return hashSet.Size();
     };
 }
 
-template <class T, auto KeyByFunction, class AllocatorType>
-GenericArrayWrapper::GenericArrayWrapper(AsCopyTag, HashSet<T, KeyByFunction, AllocatorType>&& set)
+template <class T, class AllocatorType>
+GenericArrayWrapper::GenericArrayWrapper(AsCopyTag, HashSet<T, AllocatorType>&& set)
     : GenericArrayWrapper()
 {
     pInternalArray = new std::remove_cvref_t<decltype(set)>(std::move(set));
@@ -570,8 +570,8 @@ GenericArrayWrapper::GenericArrayWrapper(AsCopyTag, HashSet<T, KeyByFunction, Al
 
     functionTable.serializeFunction = [](const GenericArrayWrapper& array, FBOMData& outData, EnumFlags<FBOMDataFlags> flags)
     {
-        auto& hashSet = *static_cast<const HashSet<T, KeyByFunction, AllocatorType>*>(array.pInternalArray);
-        return BoxedValueHelper<HashSet<T, KeyByFunction, AllocatorType>>::Serialize(hashSet, outData, flags);
+        auto& hashSet = *static_cast<const HashSet<T, AllocatorType>*>(array.pInternalArray);
+        return BoxedValueHelper<HashSet<T, AllocatorType>>::Serialize(hashSet, outData, flags);
     };
 
     typeInfo = &TypeOf<std::remove_cvref_t<decltype(set)>>();
@@ -579,7 +579,7 @@ GenericArrayWrapper::GenericArrayWrapper(AsCopyTag, HashSet<T, KeyByFunction, Al
 
     functionTable.size = [](const GenericArrayWrapper& array) -> size_t
     {
-        auto& hashSet = *static_cast<const HashSet<T, KeyByFunction, AllocatorType>*>(array.pInternalArray);
+        auto& hashSet = *static_cast<const HashSet<T, AllocatorType>*>(array.pInternalArray);
         return hashSet.Size();
     };
 }

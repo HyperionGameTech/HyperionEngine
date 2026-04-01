@@ -378,7 +378,7 @@ struct ClassAttribute final
 class ClassAttributeSet final
 {
 public:
-    using SetType = HashSet<ClassAttribute, &ClassAttribute::name, DynamicNodeAllocator>;
+    using SetType = IntrusiveMap<ClassAttribute, &ClassAttribute::name, DynamicNodeAllocator>;
 
     using Iterator = typename SetType::Iterator;
     using ConstIterator = typename SetType::ConstIterator;
