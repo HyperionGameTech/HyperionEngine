@@ -397,9 +397,9 @@ void ComputeEnvProbeSphericalHarmonics(
     static constexpr uint32 ShDataSize = sizeof(EnvProbeShaderData::shData);
     const uint32 shDataSrcOffset = uint32(sizeof(EnvProbeShaderData) * uniforms.envProbeIndex) + uint32(offsetof(EnvProbeShaderData, shData));
 
-    GpuBufferRef shReadbackBuffer = g_renderInterface->MakeGpuBuffer(GpuBufferType::STAGING_BUFFER, ShDataSize);
+    GpuBufferRef shReadbackBuffer = g_renderInterface->MakeGpuBuffer(GpuBufferType::READBACK_BUFFER, ShDataSize);
+    shReadbackBuffer->SetIsCpuAccessible(true);
     CheckResult(shReadbackBuffer->Create());
-    shReadbackBuffer->Map();
 
     Array<GpuBufferRef> uniformBuffers;
 

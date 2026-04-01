@@ -49,8 +49,7 @@ Result BakeData<Light>::Build()
         const Vec3f up = Texture::s_cubemapDirections[face].second * Vec3f(-1.0f);
         const Vec3f right = forward.Cross(up).Normalize();
 
-        m_viewProjMats[face] = m_projMat // m_light->GetRadius());
-            * Mat4f::LookAt(origin, origin + forward, up);
+        m_viewProjMats[face] = m_projMat * Mat4f::LookAt(origin, origin + forward, up);
 
         for (uint32 y = 0; y < dimensions.y; y++)
         {
@@ -103,10 +102,10 @@ auto BakeData<Light>::ToBitmap() const -> BitmapType
                 const Vec4f& color = texels[texelIdx].color0;
                 const float dist = color.GetX();
 
-                // if <= 0, we assume it is in light (nothing was hit)
-                if (dist <= 0.0001f)
+                // no hit
+                if (dist < 0.0001f)
                 {
-                    bitmap.GetPixelReference(x, bitmapY).SetR(1.0f);
+                    bitmap.GetPixelReference(x, bitmapY).SetComponentRaw(0, UINT16_MAX);
                     continue;
                 }
 
@@ -117,7 +116,7 @@ auto BakeData<Light>::ToBitmap() const -> BitmapType
                 const Vec4f transformedPosition = (m_projMat * Vec4f(0.0f, 0.0f, dist, 1.0f));
                 const float depth = transformedPosition.z / transformedPosition.w;
 
-                bitmap.GetPixelReference(x, bitmapY).SetComponentRaw(0, uint16(depth * 65535.0f));
+                bitmap.GetPixelReference(x, bitmapY).SetComponentRaw(0, uint16(depth * float(UINT16_MAX)));
             }
         }
     }

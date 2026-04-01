@@ -20,15 +20,9 @@
       "EnumValues": []
     }, {
       "$Class": "ShaderProperty",
-      "Name": "DEBUG_IRRADIANCE",
-      "Flags": 0,
-      "Value": null,
-      "EnumValues": []
-    }, {
-      "$Class": "ShaderProperty",
       "Name": "LIGHT_TYPE",
       "Flags": 0,
-      "Value": "DIRECTIONAL",
+      "Value": "POINT",
       "EnumValues": []
     }],
   "RevisionNumber": 31459917,
@@ -280,18 +274,18 @@
   "EntryPointNames": ["VSMain", "PSMain"],
   "ShaderBlobs": [{
       "$Class": "BlobDataReference",
-      "Key": "Engine/Shaders/DeferredDirect/DeferredDirect_863480168066122909.VS",
-      "Size": 11188
+      "Key": "Engine/Shaders/DeferredDirect/DeferredDirect_1053748985340278291.VS",
+      "Size": 11156
     }, {
       "$Class": "BlobDataReference",
-      "Key": "Engine/Shaders/DeferredDirect/DeferredDirect_863480168066122909.PS",
-      "Size": 190168
+      "Key": "Engine/Shaders/DeferredDirect/DeferredDirect_1053748985340278291.PS",
+      "Size": 221296
     }],
   "PropertySetHashCode": {},
   "LastCompiledTimestamp": {
     "Value": 1774831089000
   },
-  "Name": "DeferredDirect_863480168066122909",
-  "FriendlyName": "DeferredDirect863480168066122909",
+  "Name": "DeferredDirect_1053748985340278291",
+  "FriendlyName": "DeferredDirect1053748985340278291",
   "OriginalFilepath": ""
 }

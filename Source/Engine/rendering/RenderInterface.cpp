@@ -1267,7 +1267,6 @@ void RenderInterface::CommitPipelineState(PSOType psoType, CommandBuffer* comman
             new (&deferredBindCommandMemory.bindGraphicsCmd) BindGraphicsPipeline(pipeline, state.viewport);
             executeBindCmdFunction = &BindGraphicsPipeline::InvokeStatic;
 
-            state.prevGraphicsPipeline = pipeline;
             pipelineChanged = true;
         }
         else
@@ -1292,7 +1291,6 @@ void RenderInterface::CommitPipelineState(PSOType psoType, CommandBuffer* comman
             new (&deferredBindCommandMemory.bindComputeCmd) BindComputePipeline(pipeline);
             executeBindCmdFunction = &BindComputePipeline::InvokeStatic;
 
-            state.prevComputePipeline = pipeline;
             pipelineChanged = true;
         }
         else
@@ -1317,7 +1315,6 @@ void RenderInterface::CommitPipelineState(PSOType psoType, CommandBuffer* comman
             new (&deferredBindCommandMemory.bindRayTracingCmd) BindRayTracingPipeline(pipeline);
             executeBindCmdFunction = &BindRayTracingPipeline::InvokeStatic;
 
-            state.prevRayTracingPipeline = pipeline;
             pipelineChanged = true;
         }
         else
@@ -1625,6 +1622,7 @@ void RenderInterface::CommitPipelineState(PSOType psoType, CommandBuffer* comman
         }
     }
 
+    // Bind the new pipeline (if we need to)
     if (executeBindCmdFunction != nullptr)
     {
         executeBindCmdFunction(

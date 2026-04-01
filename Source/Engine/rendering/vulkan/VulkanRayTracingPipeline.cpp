@@ -276,15 +276,15 @@ RendererResult VulkanRayTracingPipeline::CreateShaderBindingTableEntry(
         return HYP_MAKE_ERROR(RendererError, "Creating shader binding table entry with zero shader count");
     }
 
-    out.buffer = MakeHandle<VulkanGpuBuffer>(GpuBufferType::SHADER_BINDING_TABLE, properties.shaderGroupHandleSize * numShaders);
+    const uint32 handleSize = g_renderInterface->GetDevice()->GetFeatures().PaddedSize(properties.shaderGroupHandleSize, properties.shaderGroupHandleAlignment);
+
+    // Buffer device address must be a multiple of shaderGroupBaseAlignment (VUID-vkCmdTraceRaysKHR-pRayGenShaderBindingTable-03682)
+    out.buffer = MakeHandle<VulkanGpuBuffer>(GpuBufferType::SHADER_BINDING_TABLE, numShaders * handleSize, properties.shaderGroupBaseAlignment);
 #if HYP_DEBUG_MODE
     out.buffer->SetDebugName(NAME("ShaderBindingTable"));
 #endif
 
     CheckResultOrReturn(out.buffer->Create());
-
-    /* Get strided device address region */
-    const uint32 handleSize = g_renderInterface->GetDevice()->GetFeatures().PaddedSize(properties.shaderGroupHandleSize, properties.shaderGroupHandleAlignment);
 
     out.stridedDeviceAddressRegion = VkStridedDeviceAddressRegionKHR {
         .deviceAddress = out.buffer->GetBufferDeviceAddress(),

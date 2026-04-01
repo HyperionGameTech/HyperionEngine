@@ -417,7 +417,7 @@ VkBufferUsageFlags GetVkUsageFlags(GpuBufferType type)
         return VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT;
     case GpuBufferType::STORAGE_BUFFER:
         return VK_BUFFER_USAGE_STORAGE_BUFFER_BIT;
-    case GpuBufferType::ATOMIC_COUNTER:
+    case GpuBufferType::READBACK_BUFFER:
         return VK_BUFFER_USAGE_STORAGE_BUFFER_BIT
             | VK_BUFFER_USAGE_TRANSFER_SRC_BIT
             | VK_BUFFER_USAGE_TRANSFER_DST_BIT;
@@ -463,7 +463,7 @@ VmaMemoryUsage GetVmaMemoryUsage(GpuBufferType type, bool cpuAccessible)
         return VMA_MEMORY_USAGE_CPU_ONLY;
     case GpuBufferType::STORAGE_BUFFER:
         return (cpuAccessible ? VMA_MEMORY_USAGE_CPU_TO_GPU : VMA_MEMORY_USAGE_GPU_ONLY);
-    case GpuBufferType::ATOMIC_COUNTER:
+    case GpuBufferType::READBACK_BUFFER:
         return (cpuAccessible ? VMA_MEMORY_USAGE_CPU_TO_GPU : VMA_MEMORY_USAGE_GPU_ONLY);
     case GpuBufferType::STAGING_BUFFER:
         return VMA_MEMORY_USAGE_CPU_ONLY;
@@ -501,7 +501,7 @@ VmaAllocationCreateFlags GetVkAllocationCreateFlags(GpuBufferType type, bool cpu
         return VMA_ALLOCATION_CREATE_HOST_ACCESS_SEQUENTIAL_WRITE_BIT;
     case GpuBufferType::STORAGE_BUFFER:
         return (cpuAccessible ? VMA_ALLOCATION_CREATE_HOST_ACCESS_SEQUENTIAL_WRITE_BIT : 0);
-    case GpuBufferType::ATOMIC_COUNTER:
+    case GpuBufferType::READBACK_BUFFER:
         return (cpuAccessible ? VMA_ALLOCATION_CREATE_HOST_ACCESS_SEQUENTIAL_WRITE_BIT : 0);
     case GpuBufferType::STAGING_BUFFER:
         return VMA_ALLOCATION_CREATE_HOST_ACCESS_SEQUENTIAL_WRITE_BIT;

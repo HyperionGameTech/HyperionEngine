@@ -407,6 +407,11 @@ void Light::SetShadowMapFilter(ShadowMapFilter shadowMapFilter)
 
 void Light::SetBakedShadowMap(const Handle<Texture>& shadowMap)
 {
+    if (!CanBakeStaticShadows())
+    {
+        return;
+    }
+
     if (m_shadowMap == shadowMap)
     {
         return;
@@ -510,13 +515,18 @@ void Light::UpdateRenderProxy(RenderProxyLight* proxy)
 
 #if HYP_EDITOR
 
+bool Light::CanBakeStaticShadows() const
+{
+    return !IsA(DirectionalLight::StaticClass());
+}
+
 void Light::BakeStaticShadows()
 {
     HYP_SCOPE;
 
-    if (!ShouldBakeStaticShadows())
+    if (!CanBakeStaticShadows())
     {
-        HYP_LOG(Editor, Warning, "Light {} is not marked for static shadow baking", Id());
+        HYP_LOG(Editor, Warning, "Light {} cannot have static shadow maps baked", GetName());
         return;
     }
 
@@ -525,7 +535,7 @@ void Light::BakeStaticShadows()
 
     if (!world)
     {
-        HYP_LOG(Editor, Error, "Cannot bake {}: not attached to a World", Id());
+        HYP_LOG(Editor, Error, "Cannot bake  Light {}: not attached to a World", GetName());
 
         return;
     }

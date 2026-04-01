@@ -63,17 +63,15 @@ DECLARE_BUFFER_DYNAMIC(LightmapPathTracer, CBuffer) cbuffer CBuffer
     EnvProbe envProbes[MAX_ENV_PROBES];
 };
 
-#ifdef MODE_IRRADIANCE
+#define RAY_OFFSET 0.05
 
-#define RAY_OFFSET 0.005
+#ifdef MODE_IRRADIANCE
 #define NUM_BOUNCES 4
 #define NUM_SAMPLES 8
 #elif defined(MODE_FULL)
-#define RAY_OFFSET 0.01
 #define NUM_BOUNCES 4
 #define NUM_SAMPLES 8
 #else
-#define RAY_OFFSET 0.01
 #define NUM_BOUNCES 1
 #define NUM_SAMPLES 1
 #endif
@@ -621,7 +619,7 @@ void RayGenMain()
     RayDesc rayDesc;
     rayDesc.Origin = ray.origin + ray.direction * RAY_OFFSET;
     rayDesc.Direction = ray.direction;
-    rayDesc.TMin = 0.01;
+    rayDesc.TMin = 0.1;
     rayDesc.TMax = 1500.0;
 
     TraceRay(tlas, flags, 0xff, 0, 1, 0, rayDesc, payload);

@@ -300,8 +300,14 @@ public:
     void UpdateRenderProxy(RenderProxyLight* proxy);
 
 #if HYP_EDITOR
-    HYP_METHOD(EditorOnly, EditAction = "Bake Static Shadows", EditCondition = "ShouldBakeStaticShadows")
+    HYP_METHOD(EditorOnly, EditAction = "Bake shadows for static objects", EditCondition = "CanBakeStaticShadows")
     void BakeStaticShadows();
+
+    HYP_METHOD(EditorOnly, EditAction = "Remove baked shadows", EditCondition = "CanBakeStaticShadows")
+    void RemoveBakedShadows()
+    {
+        SetBakedShadowMap(Handle<Texture>::Null());
+    }
 #endif
 
 protected:
@@ -316,11 +322,12 @@ protected:
 
     void OnTransformUpdated() override;
 
-    HYP_METHOD()
-    virtual bool ShouldBakeStaticShadows() const
-    {
-        return (m_lightFlags & (LightFlags::ShadowCaster | LightFlags::BakeStaticShadows)) == (LightFlags::ShadowCaster | LightFlags::BakeStaticShadows);
-    }
+#if HYP_EDITOR
+    HYP_METHOD(EditorOnly)
+    bool CanBakeStaticShadows() const;
+#else
+    static constexpr NoOpFunction<bool> CanBakeStaticShadows;
+#endif
 
     HYP_FIELD()
     LightType m_type;
@@ -381,14 +388,6 @@ public:
     void SetDirection(const Vec3f& direction)
     {
         Light::SetPosition(direction.Normalized());
-    }
-
-protected:
-    HYP_METHOD()
-    virtual bool ShouldBakeStaticShadows() const override
-    {
-        // do not bake static shadows for directional lights
-        return false;
     }
 };
 

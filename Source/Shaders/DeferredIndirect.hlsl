@@ -177,7 +177,7 @@ PSOutput PSMain(PSInput input)
     float3 blendedSH = (float3)0.0;
     float totalWeight = 0.0;
 
-    for (uint probeIndex = 0; probeIndex < uint(numFallbackProbes); probeIndex++)
+    for (uint probeIndex = 0; probeIndex < numFallbackProbes; probeIndex++)
     {
         const EnvProbe probe = fallbackEnvProbes[probeIndex];
 

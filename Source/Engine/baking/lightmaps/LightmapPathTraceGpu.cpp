@@ -153,8 +153,8 @@ void LightmapRenderer_GpuPathTracing::CreateBuffers(BakeJobBase* job)
     jd.raysBuffer = g_renderInterface->MakeGpuBuffer(GpuBufferType::STORAGE_BUFFER, sizeof(Vec4f) * 2 * m_maxTexelsPerFrame, alignof(Vec4f));
     jd.raysBuffer->SetIsCpuAccessible(true);
 
-    // ATOMIC_COUNTER type allows readback to cpu.
-    jd.hitsBufferGpu = g_renderInterface->MakeGpuBuffer(GpuBufferType::ATOMIC_COUNTER, sizeof(LightmapHit) * m_maxTexelsPerFrame, alignof(Vec4f));
+    // READBACK_BUFFER type allows readback to cpu.
+    jd.hitsBufferGpu = g_renderInterface->MakeGpuBuffer(GpuBufferType::READBACK_BUFFER, sizeof(LightmapHit) * m_maxTexelsPerFrame, alignof(Vec4f));
 
     DeferCreate(jd.hitsBufferGpu);
     DeferCreate(jd.raysBuffer);

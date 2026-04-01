@@ -232,6 +232,7 @@ static void BuildAttributes(const RenderProxyMesh& proxy, RenderableAttributeSet
         newMaterialAttributes.bucket = attributes.GetMaterialAttributes().bucket;
 
         attributes.SetMaterialAttributes(newMaterialAttributes);
+        attributes.Invalidate();
     }
 
     const bool hasInstancing = proxy.enableAutoInstancing || proxy.numInstances > 1;

@@ -30,7 +30,7 @@ namespace Hyperion {
 class CmdBase;
 class View;
 
-class CmdBase
+class alignas(void*) CmdBase
 {
 public:
 #ifdef HYP_RHI_COMMAND_STACK_TRACE

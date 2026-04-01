@@ -44,14 +44,14 @@ constexpr uint32 ElementTypeToBufferType[uint32(ShaderInputType::MAX)] = {
     (1u << uint32(GpuBufferType::CONSTANT_BUFFER)), // UNIFORM_BUFFER
     (1u << uint32(GpuBufferType::CONSTANT_BUFFER)), // UNIFORM_BUFFER_DYNAMIC
     (1u << uint32(GpuBufferType::STORAGE_BUFFER))
-        | (1u << uint32(GpuBufferType::ATOMIC_COUNTER))
+        | (1u << uint32(GpuBufferType::READBACK_BUFFER))
         | (1u << uint32(GpuBufferType::STAGING_BUFFER))
         | (1u << uint32(GpuBufferType::INDIRECT_ARGS_BUFFER))
         | (1u << uint32(GpuBufferType::RT_MESH_INDEX_BUFFER))
         | (1u << uint32(GpuBufferType::RT_MESH_VERTEX_BUFFER)), // STORAGE_BUFFER
 
     (1u << uint32(GpuBufferType::STORAGE_BUFFER))
-        | (1u << uint32(GpuBufferType::ATOMIC_COUNTER))
+        | (1u << uint32(GpuBufferType::READBACK_BUFFER))
         | (1u << uint32(GpuBufferType::STAGING_BUFFER))
         | (1u << uint32(GpuBufferType::INDIRECT_ARGS_BUFFER))
         | (1u << uint32(GpuBufferType::RT_MESH_INDEX_BUFFER))
