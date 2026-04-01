@@ -71,7 +71,7 @@ public:
     }
 
     void Split(int maxDepth,
-        Span<const Vertex> vertices,
+        const VertexArrayView& vertices,
         Span<const uint32> indices)
     {
         Split_Internal(0, maxDepth, vertices, indices);
@@ -84,7 +84,7 @@ public:
 
     HYP_NODISCARD RayTestResults TestRay(
         const Ray& ray,
-        Span<const Vertex> vertices,
+        const VertexArrayView& vertices,
         Span<const uint32> indices) const;
 
     HYP_NODISCARD RayTestResults TestRay(
@@ -95,19 +95,19 @@ public:
 private:
     static bool OverlapsTriangle(
         const BoundingBox& box,
-        Span<const Vertex> vertices,
+        const VertexArrayView& vertices,
         Span<const uint32> indices,
         uint32 triangleId);
 
     static void QuantizeTriangleData(
-        Span<const Vertex> vertexData,
+        const VertexArrayView& vertices,
         Span<const uint32> indexData,
         ByteBuffer& outQuantizedVertexData,
         ByteBuffer& outQuantizedIndexData);
 
     void Split_Internal(
         int depth, int maxDepth,
-        Span<const Vertex> vertices,
+        const VertexArrayView& vertices,
         Span<const uint32> indices);
 
     void Shake_Internal();

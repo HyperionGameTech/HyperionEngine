@@ -17,6 +17,8 @@
 #include <Core/math/Vector2.hpp>
 #include <Core/math/Color.hpp>
 
+#include <rendering/Vertex.hpp>
+
 #include <util/EnumOptions.hpp>
 
 namespace Hyperion {
@@ -1471,65 +1473,6 @@ struct FramebufferDesc
     }
 };
 
-enum class VertexAttributeName : uint8
-{
-    Undefined,
-    Position,
-    Normal,
-    TexCoord0,
-    TexCoord1,
-    Tangent,
-    Bitangent,
-    BoneIndices,
-    BoneWeights
-};
-
-/*! \brief Represents a vertex attribute used in mesh input.
- *  \details This struct defines the properties of a vertex attribute, including its name, location, binding, and size.
- *  It is used to describe the layout of vertex data in a mesh and is essential for rendering operations. */
-struct VertexAttribute
-{
-    static const VertexAttribute Position;
-    static const VertexAttribute Normal;
-    static const VertexAttribute TexCoord0;
-    static const VertexAttribute TexCoord1;
-    static const VertexAttribute Tangent;
-    static const VertexAttribute Bitangent;
-    static const VertexAttribute BoneIndices;
-    static const VertexAttribute BoneWeights;
-
-    static const VertexAttribute* Attrs[];
-
-    Name name;
-    uint32 size; // total size == num elements * 4
-
-    uint32 GetId() const
-    {
-        static const VertexAttribute** s_attrsBegin = Attrs;
-        static const VertexAttribute** s_attrsEnd = std::find(Attrs, Attrs + 64, (const VertexAttribute*)nullptr);
-
-        return std::distance(s_attrsBegin, std::find(s_attrsBegin, s_attrsEnd, this));
-    }
-
-    HYP_FORCE_INLINE HashCode GetHashCode() const
-    {
-        HashCode hc;
-        hc.Add(name);
-        hc.Add(size);
-
-        return hc;
-    }
-};
-
-inline const VertexAttribute VertexAttribute::Position = { NAME("a_position"), 3 * sizeof(float) };
-inline const VertexAttribute VertexAttribute::Normal = { NAME("a_normal"), 3 * sizeof(float) };
-inline const VertexAttribute VertexAttribute::TexCoord0 = { NAME("a_texcoord0"), 2 * sizeof(float) };
-inline const VertexAttribute VertexAttribute::TexCoord1 = { NAME("a_texcoord1"), 2 * sizeof(float) };
-inline const VertexAttribute VertexAttribute::Tangent = { NAME("a_tangent"), 3 * sizeof(float) };
-inline const VertexAttribute VertexAttribute::Bitangent = { NAME("a_bitangent"), 3 * sizeof(float) };
-inline const VertexAttribute VertexAttribute::BoneIndices = { NAME("a_bone_weights"), 4 * sizeof(float) };
-inline const VertexAttribute VertexAttribute::BoneWeights { NAME("a_bone_indices"), 4 * sizeof(float) };
-
 /*! \brief Represents a set of vertex attributes used in mesh input.
  *  \details This struct is a bitmask representation of vertex attributes, allowing for efficient storage and manipulation of vertex attribute flags.
  *  It provides methods for checking, setting, and merging vertex attributes, as well as calculating the size of the vertex data based on the attributes. */
@@ -1537,9 +1480,6 @@ HYP_STRUCT(Serialize = "bitwise")
 struct VertexAttributeSet
 {
     HYP_STRUCT_BODY(VertexAttributeSet);
-
-    static const VertexAttributeSet StaticMeshVertexAttributes;
-    static const VertexAttributeSet SkeletalMeshVertexAttributes;
 
     HYP_FIELD()
     uint64 flagMask;
@@ -1622,14 +1562,14 @@ struct VertexAttributeSet
         return *this;
     }
 
-    HYP_FORCE_INLINE VertexAttributeSet operator|(const VertexAttribute& attr) const
+    HYP_FORCE_INLINE VertexAttributeSet operator|(VertexType attr) const
     {
-        return { flagMask | (1ull << attr.GetId()) };
+        return { flagMask | attr };
     }
 
-    HYP_FORCE_INLINE VertexAttributeSet& operator|=(const VertexAttribute& attr)
+    HYP_FORCE_INLINE VertexAttributeSet& operator|=(VertexType attr)
     {
-        flagMask |= (1ull << attr.GetId());
+        flagMask |= attr;
         return *this;
     }
 
@@ -1649,9 +1589,9 @@ struct VertexAttributeSet
         return flagMask < other.flagMask;
     }
 
-    HYP_FORCE_INLINE bool Has(const VertexAttribute& attr) const
+    HYP_FORCE_INLINE bool Has(VertexType attr) const
     {
-        return bool(*this & (1ull << attr.GetId()));
+        return bool(*this & attr);
     }
 
     HYP_FORCE_INLINE void Set(uint64 flags, bool enable = true)
@@ -1666,9 +1606,16 @@ struct VertexAttributeSet
         }
     }
 
-    HYP_FORCE_INLINE void Set(const VertexAttribute& attr, bool enable = true)
+    HYP_FORCE_INLINE void Set(VertexType attr, bool enable = true)
     {
-        Set(1ull << attr.GetId(), enable);
+        if (enable)
+        {
+            flagMask |= attr;
+        }
+        else
+        {
+            flagMask &= ~attr;
+        }
     }
 
     HYP_FORCE_INLINE void Merge(const VertexAttributeSet& other)
@@ -1691,8 +1638,7 @@ struct VertexAttributeSet
         return uint32(ByteUtil::BitCount(flagMask));
     }
 
-    HYP_API Array<const VertexAttribute*> BuildAttributes() const;
-    HYP_API size_t CalculateVertexSize() const;
+    HYP_API Array<VertexType> GetAllTypes() const;
 
     HYP_API String ToString() const;
 
@@ -1704,21 +1650,6 @@ struct VertexAttributeSet
         return hc;
     }
 };
-
-inline VertexAttributeSet operator|(const VertexAttribute& lhs, const VertexAttribute& rhs)
-{
-    return { (1ull << lhs.GetId()) | (1ull << rhs.GetId()) };
-}
-
-inline VertexAttributeSet operator&(const VertexAttribute& lhs, const VertexAttribute& rhs)
-{
-    return { (1ull << lhs.GetId()) & (1ull << rhs.GetId()) };
-}
-
-inline VertexAttributeSet operator~(const VertexAttribute& attr)
-{
-    return { ~(1ull << attr.GetId()) };
-}
 
 HYP_STRUCT()
 struct VertexAttributeDefinition

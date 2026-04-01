@@ -86,19 +86,19 @@ const Handle<Mesh>& UIObjectQuadMeshHelper::GetQuadMesh()
             indexData.Resize(id.Size());
             Memory::Copy(indexData.Data(), id.Data(), id.Size());
 
-            Array<Vertex> newVertices;
+            Array<TVertex<VT_Simple>> newVertices;
             newVertices.Resize(vd.Size());
-            Memory::Copy(newVertices.Data(), vd.Data(), sizeof(Vertex) * vd.Size());
+            Memory::Copy(newVertices.Data(), vd.Data(), sizeof(Vertex) * vd.Size());//FIXME
 
-            for (Vertex& vert : newVertices)
+            for (TVertex<VT_Simple>& vert : newVertices)
             {
-                vert.position.x = (vert.position.x + 1.0f) * 0.5f;
-                vert.position.y = (vert.position.y + 1.0f) * 0.5f;
+                vert.posX = (vert.posX + 1.0f) * 0.5f;
+                vert.posY = (vert.posY + 1.0f) * 0.5f;
             }
 
             readScope.Reset();
 
-            quad->SetMeshData(meshDesc, newVertices.ToSpan(), indexData);
+            quad->SetMeshData(meshDesc, VertexArrayView(newVertices.Data(), newVertices.Size()), indexData);
             quad->SetName(NAME("UIObject_QuadMesh"));
 
             InitObject(quad);

@@ -119,8 +119,8 @@ struct MeshAttributes
 {
     HYP_STRUCT_BODY(MeshAttributes);
 
-    HYP_FIELD(Property = "VertexAttributes")
-    VertexAttributeSet vertexAttributes = VertexAttributeSet::StaticMeshVertexAttributes;
+    HYP_FIELD(Property = "InputLayout")
+    VertexInputLayoutDesc inputLayout;
 
     HYP_FIELD(Property = "Topology")
     Topology topology = TOP_TRIANGLES;
@@ -130,14 +130,14 @@ struct MeshAttributes
 
     HYP_FORCE_INLINE bool operator==(const MeshAttributes& other) const
     {
-        return vertexAttributes == other.vertexAttributes
+        return inputLayout == other.inputLayout
             && topology == other.topology
             && indexBufferElemType == other.indexBufferElemType;
     }
 
     HYP_FORCE_INLINE constexpr HashCode GetHashCode() const
     {
-        return HashCode::GetHashCode(vertexAttributes)
+        return HashCode::GetHashCode(inputLayout)
             .Combine(topology)
             .Combine(indexBufferElemType);
     }

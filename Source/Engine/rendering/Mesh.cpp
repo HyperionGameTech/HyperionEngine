@@ -27,47 +27,17 @@ namespace Hyperion {
 
 static const Name s_nameMeshDefault = NAME("<unnamed mesh>");
 
-const VertexAttribute* VertexAttribute::Attrs[] = {
-    &Position,
-    &Normal,
-    &TexCoord0,
-    &TexCoord1,
-    &Tangent,
-    &Bitangent,
-    &BoneIndices,
-    &BoneWeights,
-    nullptr
-};
-
 #pragma region VertexAttributeSet
 
-const VertexAttributeSet VertexAttributeSet::StaticMeshVertexAttributes =
-    VertexAttribute::Position | VertexAttribute::Normal | VertexAttribute::TexCoord0;
-
-const VertexAttributeSet VertexAttributeSet::SkeletalMeshVertexAttributes =
-    VertexAttribute::BoneWeights | VertexAttribute::BoneIndices;
-
-Array<const VertexAttribute*> VertexAttributeSet::BuildAttributes() const
+Array<VertexType> VertexAttributeSet::GetAllTypes() const
 {
-    Array<const VertexAttribute*> attributes;
+    Array<VertexType> attributes;
     FOR_EACH_BIT(flagMask, i)
     {
-        attributes.PushBack(VertexAttribute::Attrs[i]);
+        attributes.PushBack(VertexType(i));
     }
 
     return attributes;
-}
-
-size_t VertexAttributeSet::CalculateVertexSize() const
-{
-    size_t size = 0;
-
-    FOR_EACH_BIT(flagMask, i)
-    {
-        size += VertexAttribute::Attrs[i]->size;
-    }
-
-    return size;
 }
 
 String VertexAttributeSet::ToString() const
@@ -82,7 +52,7 @@ String VertexAttributeSet::ToString() const
             result += ", ";
         }
 
-        result += *VertexAttribute::Attrs[i]->name;
+        result += EnumToString(VertexType(i));
         first = false;
     }
 
@@ -137,21 +107,17 @@ Mesh::Mesh()
 }
 
 Mesh::Mesh(const Array<Vertex>& vertexData, const ByteBuffer& indexData, Topology topology)
-    : Mesh(
-          vertexData,
-          indexData,
-          topology,
-          VertexAttributeSet::StaticMeshVertexAttributes)
+    : Mesh(vertexData, indexData, topology, StaticVertexInputLayout<VT_Simple>)
 {
 }
 
-Mesh::Mesh(const Array<Vertex>& vertexData, const ByteBuffer& indexData, Topology topology, const VertexAttributeSet& vertexAttributes)
+Mesh::Mesh(const Array<Vertex>& vertexData, const ByteBuffer& indexData, Topology topology, const VertexInputLayoutDesc& inputLayout)
     : AssetObject(),
       m_aabb(BoundingBox::Empty()),
       m_flags(MeshFlags::None)
 {
     m_meshDesc = MeshDesc {};
-    m_meshDesc.meshAttributes.vertexAttributes = vertexAttributes;
+    m_meshDesc.meshAttributes.inputLayout = inputLayout;
     m_meshDesc.meshAttributes.topology = topology;
     m_meshDesc.numVertices = uint32(vertexData.Size());
     m_meshDesc.numIndices = uint32(indexData.Size() / GpuElemTypeSize(m_meshDesc.meshAttributes.indexBufferElemType));
@@ -187,12 +153,12 @@ void Mesh::Init()
     SetReady(true);
 }
 
-void Mesh::SetVertexData(Span<const Vertex> vertexData)
+void Mesh::SetVertexData(const VertexArrayView& view)
 {
     Assert(AtomicAdd(&m_rwState, 0) & 0x1);
 
     FreeBlobData(m_vertexData);
-    AllocateBlobData(m_vertexData, vertexData.Data(), sizeof(Vertex) * vertexData.Size(), alignof(Vertex));
+    AllocateBlobData(m_vertexData, view.floatData, view.vertexCount * view.layoutDesc.vertexSize, 16);
 
     MarkDirty();
 }
@@ -484,7 +450,7 @@ Result Mesh::Rename(Name name)
 
 void Mesh::SetMeshData(
     const MeshDesc& meshDesc,
-    Span<const Vertex> vertices,
+    const VertexArrayView& vertices,
     Span<const ubyte> indices)
 {
     HYP_SCOPE;
@@ -493,12 +459,12 @@ void Mesh::SetMeshData(
     FreeBlobData(m_vertexData);
     FreeBlobData(m_indexData);
 
-    AllocateBlobData(m_vertexData, vertices.Data(), sizeof(Vertex) * vertices.Size(), alignof(Vertex));
+    AllocateBlobData(m_vertexData, vertices.floatData, vertices.layoutDesc.vertexSize * vertices.vertexCount, 16);
     AllocateBlobData(m_indexData, indices.Data(), indices.Size(), alignof(uint32));
 
     m_meshDesc = meshDesc;
 
-    AssertDebug(m_meshDesc.numVertices == vertices.Size());
+    AssertDebug(m_meshDesc.numVertices == vertices.vertexCount);
     AssertDebug(m_meshDesc.numIndices == indices.Size() / GpuElemTypeSize(m_meshDesc.meshAttributes.indexBufferElemType));
 
     // recalc aabb
@@ -553,7 +519,7 @@ bool Mesh::BuildBVH(int maxDepth)
         return false;
     }
 
-    AssertDebug(GetVertexData().Size() > 0);
+    AssertDebug(GetVertexData().vertexCount > 0);
     AssertDebug(GetIndexData().Size() > 0);
 
     return BuildBVH(m_bvh, maxDepth);
@@ -561,9 +527,9 @@ bool Mesh::BuildBVH(int maxDepth)
 
 bool Mesh::BuildBVH(BVHNode& bvhNode, int maxDepth) const
 {
-    const Span<const Vertex> vertexData = GetVertexData();
+    const VertexArrayView vertexData = GetVertexData();
     const Span<const ubyte> indexData = GetIndexData();
-    const uint32 numVertices = uint32(vertexData.Size());
+    const uint32 numVertices = uint32(vertexData.vertexCount);
     const uint32 numIndices = uint32(indexData.Size() / sizeof(uint32));
 
     const BoundingBox meshAabb = CalculateAABB();
@@ -611,91 +577,78 @@ BoundingBox Mesh::CalculateAABB() const
     return aabb;
 }
 
-#define PACKED_SET_ATTR(rawValues, argSize)                                                         \
-    do                                                                                              \
-    {                                                                                               \
-        Memory::Copy((void*)(floatBuffer + currentOffset), (rawValues), (argSize) * sizeof(float)); \
-        currentOffset += (argSize);                                                                 \
-    }                                                                                               \
-    while (0)
-
-Array<float> Mesh::BuildVertexBuffer(const VertexAttributeSet& vertexAttributes) const
+Array<float> Mesh::BuildVertexBuffer() const
 {
-    const Span<const Vertex> vertices = GetVertexData();
-    const size_t vertexSize = vertexAttributes.CalculateVertexSize();
+    const VertexArrayView vertices = GetVertexData();
+
+    const uint8 packetMask = m_meshDesc.meshAttributes.inputLayout.packetMask;
+    const size_t vertexSize = m_meshDesc.meshAttributes.inputLayout.vertexSize;
 
     Array<float> packedBuffer;
-    packedBuffer.Resize(vertexSize * vertices.Size());
+    packedBuffer.Resize(vertexSize * vertices.vertexCount);
 
     float* floatBuffer = packedBuffer.Data();
     size_t currentOffset = 0;
 
-    for (size_t i = 0; i < vertices.Size(); i++)
+    for (size_t i = 0; i < vertices.vertexCount; i++)
     {
-        const Vertex& vertex = vertices[i];
-        /* Offset aligned to the current vertex */
-        // currentOffset = i * vertexSize;
+        const float* floatDataOffset = vertices.floatData + (i * vertexSize);
 
-        /* Position and normals */
-        if (vertexAttributes.Has(VertexAttribute::Position))
-            PACKED_SET_ATTR(vertex.GetPosition().values, 3);
-        if (vertexAttributes.Has(VertexAttribute::Normal))
-            PACKED_SET_ATTR(vertex.GetNormal().values, 3);
-        /* Texture coordinates */
-        if (vertexAttributes.Has(VertexAttribute::TexCoord0))
-            PACKED_SET_ATTR(vertex.GetTexCoord0().values, 2);
-        if (vertexAttributes.Has(VertexAttribute::TexCoord1))
-            PACKED_SET_ATTR(vertex.GetTexCoord1().values, 2);
-        /* Tangents and Bitangents */
-        if (vertexAttributes.Has(VertexAttribute::Tangent))
-            PACKED_SET_ATTR(vertex.GetTangent().values, 3);
-        if (vertexAttributes.Has(VertexAttribute::Bitangent))
-            PACKED_SET_ATTR(vertex.GetBitangent().values, 3);
+        if (packetMask & VT_Position)
+        {
+            Memory::Copy(floatBuffer, floatDataOffset, sizeof(TVertexPacket<VT_Position>));
+            floatBuffer += sizeof(TVertexPacket<VT_Position>) / sizeof(float);
+            floatDataOffset += sizeof(TVertexPacket<VT_Position>) / sizeof(float);
+        }
+
+        if (packetMask & VT_Normal)
+        {
+            Memory::Copy(floatBuffer, floatDataOffset, sizeof(TVertexPacket<VT_Normal>));
+            floatBuffer += sizeof(TVertexPacket<VT_Normal>) / sizeof(float);
+            floatDataOffset += sizeof(TVertexPacket<VT_Normal>) / sizeof(float);
+        }
+
+        if (packetMask & VT_UV0)
+        {
+            Memory::Copy(floatBuffer, floatDataOffset, sizeof(TVertexPacket<VT_UV0>));
+            floatBuffer += sizeof(TVertexPacket<VT_UV0>) / sizeof(float);
+            floatDataOffset += sizeof(TVertexPacket<VT_UV0>) / sizeof(float);
+        }
+
+        if (packetMask & VT_UV1)
+        {
+            Memory::Copy(floatBuffer, floatDataOffset, sizeof(TVertexPacket<VT_UV1>));
+            floatBuffer += sizeof(TVertexPacket<VT_UV1>) / sizeof(float);
+            floatDataOffset += sizeof(TVertexPacket<VT_UV1>) / sizeof(float);
+        }
 
         uint8 bonesMask = 0;
 
-        if (vertexAttributes.Has(VertexAttribute::BoneIndices))
+        if (packetMask & VT_Skeletal)
         {
-            bonesMask = uint8((1 << vertex.NumBoneIndices()) - 1);
+            const TVertexPacket<VT_Skeletal>* packet = reinterpret_cast<const TVertexPacket<VT_Skeletal>*>(floatDataOffset);
+
+            bonesMask = uint8((1 << packet->NumBoneIndices()) - 1);
 
             int32 indices[4] {};
-
             FOR_EACH_BIT(bonesMask, j)
             {
-                indices[j] = vertex.GetBoneIndex(j);
+                indices[j] = packet->GetBoneIndex(j);
             }
+            Memory::Copy(floatBuffer, indices, sizeof(indices));
+            floatBuffer += sizeof(indices) / sizeof(float);
 
-            PACKED_SET_ATTR(indices, HYP_ARRAY_SIZE(indices));
-        }
-
-        if (vertexAttributes.Has(VertexAttribute::BoneWeights))
-        {
             float weights[4] {};
-
             FOR_EACH_BIT(bonesMask, j)
             {
-                weights[j] = vertex.GetBoneWeight(j);
+                weights[j] = packet->GetBoneWeight(j);
             }
-
-            PACKED_SET_ATTR(weights, HYP_ARRAY_SIZE(weights));
+            Memory::Copy(floatBuffer, weights, sizeof(weights));
+            floatBuffer += sizeof(weights) / sizeof(float);
         }
     }
 
     return packedBuffer;
-}
-
-#undef PACKED_SET_ATTR
-
-void Mesh::InvertNormals()
-{
-    HYP_SCOPE;
-
-    Span<Vertex> vertices = GetVertexData();
-
-    for (size_t i = 0; i < vertices.Size(); i++)
-    {
-        vertices[i].SetNormal(vertices[i].GetNormal() * -1.0f);
-    }
 }
 
 #define ADD_NORMAL(ary, idx, normal)     \

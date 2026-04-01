@@ -10,7 +10,7 @@ namespace Hyperion {
 
 HYP_NODISCARD RayTestResults BVHNode::TestRay(
     const Ray& ray,
-    Span<const Vertex> vertices,
+    const VertexArrayView& vertices,
     Span<const uint32> indices) const
 {
     RayTestResults results;
@@ -29,11 +29,19 @@ HYP_NODISCARD RayTestResults BVHNode::TestRay(
             const uint32 i1 = indices[triangleId * 3 + 1];
             const uint32 i2 = indices[triangleId * 3 + 2];
 
+            const float* floatDataOffset0 = vertices.floatData + (i0 * (vertices.layoutDesc.vertexSize / sizeof(float)));
+            const float* floatDataOffset1 = vertices.floatData + (i1 * (vertices.layoutDesc.vertexSize / sizeof(float)));
+            const float* floatDataOffset2 = vertices.floatData + (i2 * (vertices.layoutDesc.vertexSize / sizeof(float)));
+
+            const TVertexPacket<VT_Position>* packet0 = reinterpret_cast<const TVertexPacket<VT_Position>*>(floatDataOffset0);
+            const TVertexPacket<VT_Position>* packet1 = reinterpret_cast<const TVertexPacket<VT_Position>*>(floatDataOffset1);
+            const TVertexPacket<VT_Position>* packet2 = reinterpret_cast<const TVertexPacket<VT_Position>*>(floatDataOffset2);
+
             const Triangle tri {
                 {
-                    vertices[i0].position.x, vertices[i0].position.y, vertices[i0].position.z,
-                    vertices[i1].position.x, vertices[i1].position.y, vertices[i1].position.z,
-                    vertices[i2].position.x, vertices[i2].position.y, vertices[i2].position.z
+                    packet0->posX, packet0->posY, packet0->posZ,
+                    packet1->posX, packet1->posY, packet1->posZ,
+                    packet2->posX, packet2->posY, packet2->posZ
                 }
             };
 
@@ -95,14 +103,14 @@ HYP_NODISCARD RayTestResults BVHNode::TestRay(
 }
 
 void BVHNode::QuantizeTriangleData(
-    Span<const Vertex> vertexData,
+    const VertexArrayView& vertices,
     Span<const uint32> indexData,
     ByteBuffer& outQuantizedVertexData,
     ByteBuffer& outQuantizedIndexData)
 {
     HYP_SCOPE;
 
-    const size_t numVertices = vertexData.Size();
+    const size_t numVertices = vertices.vertexCount;
     const size_t quantizedVertexSize = numVertices * sizeof(Vec3f);
 
     outQuantizedVertexData.SetSize(quantizedVertexSize);
@@ -111,7 +119,13 @@ void BVHNode::QuantizeTriangleData(
 
     for (size_t i = 0; i < numVertices; i++)
     {
-        quantizedVertices[i] = vertexData[i].GetPosition();
+        const float* floatDataOffset = vertices.floatData + (i * (vertices.layoutDesc.vertexSize / sizeof(float)));
+
+        const TVertexPacket<VT_Position>* packet = reinterpret_cast<const TVertexPacket<VT_Position>*>(floatDataOffset);
+
+        quantizedVertices[i].x = packet->posX;
+        quantizedVertices[i].y = packet->posY;
+        quantizedVertices[i].z = packet->posZ;
     }
 
     // Copy index data directly as uint32
@@ -124,7 +138,7 @@ void BVHNode::QuantizeTriangleData(
 
 bool BVHNode::OverlapsTriangle(
     const BoundingBox& box,
-    Span<const Vertex> vertices,
+    const VertexArrayView& vertices,
     Span<const uint32> indices,
     uint32 triangleId)
 {
@@ -132,24 +146,32 @@ bool BVHNode::OverlapsTriangle(
     const uint32 i1 = indices[triangleId * 3 + 1];
     const uint32 i2 = indices[triangleId * 3 + 2];
 
-    Assert(i0 < vertices.Size()
-        && i1 < vertices.Size()
-        && i2 < vertices.Size());
+    Assert(i0 < vertices.vertexCount
+        && i1 < vertices.vertexCount
+        && i2 < vertices.vertexCount);
 
-    const Triangle triangle {
+    const float* floatDataOffset0 = vertices.floatData + (i0 * (vertices.layoutDesc.vertexSize / sizeof(float)));
+    const float* floatDataOffset1 = vertices.floatData + (i1 * (vertices.layoutDesc.vertexSize / sizeof(float)));
+    const float* floatDataOffset2 = vertices.floatData + (i2 * (vertices.layoutDesc.vertexSize / sizeof(float)));
+
+    const TVertexPacket<VT_Position>* packet0 = reinterpret_cast<const TVertexPacket<VT_Position>*>(floatDataOffset0);
+    const TVertexPacket<VT_Position>* packet1 = reinterpret_cast<const TVertexPacket<VT_Position>*>(floatDataOffset1);
+    const TVertexPacket<VT_Position>* packet2 = reinterpret_cast<const TVertexPacket<VT_Position>*>(floatDataOffset2);
+
+    const Triangle tri {
         {
-            vertices[i0].position.x, vertices[i0].position.y, vertices[i0].position.z,
-            vertices[i1].position.x, vertices[i1].position.y, vertices[i1].position.z,
-            vertices[i2].position.x, vertices[i2].position.y, vertices[i2].position.z
+            packet0->posX, packet0->posY, packet0->posZ,
+            packet1->posX, packet1->posY, packet1->posZ,
+            packet2->posX, packet2->posY, packet2->posZ
         }
     };
 
-    return box.OverlapsTriangle(triangle);
+    return box.OverlapsTriangle(tri);
 }
 
 void BVHNode::Split_Internal(
     int depth, int maxDepth,
-    Span<const Vertex> vertices,
+    const VertexArrayView& vertices,
     Span<const uint32> indices)
 {
     if (IsLeafNode() && triangleIds.Any() && depth < maxDepth)

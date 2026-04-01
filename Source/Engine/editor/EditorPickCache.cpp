@@ -149,13 +149,13 @@ void EditorPickCache::PutEntry(const Mesh* mesh)
     }
 
     const MeshDesc& meshDesc = mesh->GetMeshDesc();
-    const Span<const Vertex> vertexData = mesh->GetVertexData();
+    const VertexArrayView vertexData = mesh->GetVertexData();
     const Span<const ubyte> indexData = mesh->GetIndexData();
     const uint32 indexSize = GpuElemTypeSize(meshDesc.meshAttributes.indexBufferElemType);
     const size_t numIndices = indexData.Size() / indexSize;
 
     // make sure we have enough memory before adding, otherwise fail
-    if (!HasFreeSpace((vertexData.Size() * sizeof(Vec3f)) + numIndices * indexSize))
+    if (!HasFreeSpace((vertexData.vertexCount * sizeof(Vec3f)) + numIndices * indexSize))
     {
         HYP_LOG_ONCE(Editor, Error, "Not enough headroom in editor pick cache; cannot add mesh {} (id: {}) to editor pick cache", mesh->GetName(), mesh->Id());
 
@@ -165,10 +165,16 @@ void EditorPickCache::PutEntry(const Mesh* mesh)
     EditorPickCacheEntry entry {};
     entry.frameVisible = fc;
 
-    entry.positions.Resize(vertexData.Size());
-    for (size_t i = 0; i < vertexData.Size(); ++i)
+    entry.positions.Resize(vertexData.vertexCount);
+
+    for (size_t i = 0; i < vertexData.vertexCount; ++i)
     {
-        entry.positions[i] = vertexData[i].position;
+        const float* floatDataOffset = vertexData.floatData + (i * (vertexData.layoutDesc.vertexSize / sizeof(float)));
+        const TVertexPacket<VT_Position>* packet = reinterpret_cast<const TVertexPacket<VT_Position>*>(floatDataOffset);
+
+        entry.positions[i].x = packet->posX;
+        entry.positions[i].y = packet->posY;
+        entry.positions[i].z = packet->posZ;
     }
 
     // @TODO fix for non-uint32 indices
