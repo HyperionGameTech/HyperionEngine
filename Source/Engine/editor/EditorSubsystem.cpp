@@ -1284,15 +1284,8 @@ void VolumeEditorGizmo::SetFocusedNode(const Handle<Node>& focusedNode)
         return;
     }
 
-    Handle<VolumeBase> volume = ObjCast<VolumeBase>(focusedNode);
-    AssertDebug(volume.IsValid());
+    m_currentBounds = focusedNode->GetWorldBounds();
 
-    if (!volume.IsValid())
-    {
-        return;
-    }
-
-    m_currentBounds = volume->GetWorldBounds();
     AssertDebug(m_currentBounds.IsValid() && m_currentBounds.IsFinite() && !m_currentBounds.IsZero());
 
     UpdateFaceGeometry(m_currentBounds, focusedNode->GetWorldTranslation());
@@ -2925,6 +2918,7 @@ void EditorSubsystem::SetFocusedNode(const Handle<Node>& focusedNode, bool shoul
         // HYP_LOG(Editor, Verbose, "Set highlight node translation: {}", m_highlightNode->GetWorldTranslation());
 
         if (focusedNode->IsA(VolumeBase::StaticClass()))
+            //|| (focusedNode->IsA(Light::StaticClass()) && !focusedNode->IsA(DirectionalLight::StaticClass())))
         {
             SetSelectedManipulationMode(EditorManipulationMode::VOLUME_EDIT);
         }

@@ -125,7 +125,7 @@ class VulkanFramebuffer final : public FramebufferBase
     HYP_OBJECT_BODY(VulkanFramebuffer);
 
 public:
-    explicit VulkanFramebuffer(const RenderTargetDesc& renderTargetDesc);
+    explicit VulkanFramebuffer(const FramebufferDesc& framebufferDesc);
     ~VulkanFramebuffer() override;
 
     HYP_FORCE_INLINE const VkFramebuffer& GetVulkanHandle() const

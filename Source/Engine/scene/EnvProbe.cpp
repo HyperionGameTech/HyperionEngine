@@ -257,21 +257,21 @@ void EnvProbe::CreateView()
     AssertDebug(m_view == nullptr);
     AssertDebug(m_camera != nullptr);
 
-    RenderTargetDesc renderTargetDesc {};
-    renderTargetDesc.extent = Vec2u(m_dimensions);
-    renderTargetDesc.numAttachments = 0;
-    renderTargetDesc.numLayers = 6;
+    FramebufferDesc framebufferDesc {};
+    framebufferDesc.extent = Vec2u(m_dimensions);
+    framebufferDesc.numAttachments = 0;
+    framebufferDesc.numLayers = 6;
 
     if (IsReflectionProbe() || IsSkyProbe())
     {
-        renderTargetDesc.AddAttachment(AttachmentDesc {
+        framebufferDesc.AddAttachment(AttachmentDesc {
             TextureType::Cubemap,
             TextureFormat::R10G10B10A2,
             LoadOperation::CLEAR,
             StoreOperation::STORE
         });
 
-        renderTargetDesc.AddAttachment(AttachmentDesc {
+        framebufferDesc.AddAttachment(AttachmentDesc {
             TextureType::Cubemap,
             TextureFormat::RG16F,
             LoadOperation::CLEAR,
@@ -288,10 +288,10 @@ void EnvProbe::CreateView()
         momentsAttachmentDesc.clearColorF16[1] = FLT16_MAX;
         momentsAttachmentDesc.clearColorIsF16 = true;
 
-        renderTargetDesc.AddAttachment(momentsAttachmentDesc);
+        framebufferDesc.AddAttachment(momentsAttachmentDesc);
     }
 
-    renderTargetDesc.AddAttachment(AttachmentDesc {
+    framebufferDesc.AddAttachment(AttachmentDesc {
         TextureType::Cubemap,
         TextureFormat::D32F,
         LoadOperation::CLEAR,
@@ -319,7 +319,7 @@ void EnvProbe::CreateView()
             | ViewFlags::NO_FRUSTUM_CULLING
             | ViewFlags::SKIP_ENV_PROBES
             | ViewFlags::SKIP_ENV_GRIDS,
-        .renderTargetDesc = renderTargetDesc,
+        .framebufferDesc = framebufferDesc,
         .scenes = {},
         .camera = m_camera,
         .overrideAttributes = RenderableAttributeSet(

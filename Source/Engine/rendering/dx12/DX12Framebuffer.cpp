@@ -15,8 +15,8 @@ extern DX12RenderInterface* g_renderInterface;
 
 #pragma region DX12Framebuffer
 
-DX12Framebuffer::DX12Framebuffer(const RenderTargetDesc& renderTargetDesc)
-    : FramebufferBase(renderTargetDesc),
+DX12Framebuffer::DX12Framebuffer(const FramebufferDesc& framebufferDesc)
+    : FramebufferBase(framebufferDesc),
       m_isCreated(false),
       m_attachments()
 {
@@ -204,8 +204,8 @@ DX12Attachment* DX12Framebuffer::AddAttachment(
     textureDesc.type = desc.imageType;
     textureDesc.format = desc.format;
     textureDesc.extent = Vec3u {
-        m_renderTargetDesc.extent.x,
-        m_renderTargetDesc.extent.y,
+        m_framebufferDesc.extent.x,
+        m_framebufferDesc.extent.y,
         1
     };
     textureDesc.imageUsage = IU_SAMPLED | IU_ATTACHMENT;
@@ -285,8 +285,8 @@ void DX12Framebuffer::Clear(
     Rect<uint32> rect;
     rect.x0 = 0;
     rect.y0 = 0;
-    rect.x1 = m_renderTargetDesc.extent.x;
-    rect.y1 = m_renderTargetDesc.extent.y;
+    rect.x1 = m_framebufferDesc.extent.x;
+    rect.y1 = m_framebufferDesc.extent.y;
 
     ClearAttachment(commandBuffer, rect, attachmentsMask);
 }

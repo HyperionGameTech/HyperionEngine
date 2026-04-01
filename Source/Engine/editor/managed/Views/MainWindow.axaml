@@ -436,6 +436,7 @@
                                                     <DataTemplate x:DataType="vm:InspectorActionViewModel">
                                                         <Button
                                                             Padding="10,4"
+                                                            Margin="12,6,12,0"
                                                             HorizontalAlignment="Stretch"
                                                             VerticalAlignment="Center"
                                                             Command="{Binding ExecuteActionCommand}"

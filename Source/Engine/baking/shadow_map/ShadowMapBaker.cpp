@@ -24,7 +24,7 @@ extern FilePath GetExecutablePath();
 namespace Baking {
 
 Baker<Light>::Baker(BakerConfig&& config, const Handle<Light>& light)
-    : BakerBase(std::move(config), light, MakeStrongRef(light->GetScene()), light->GetAABB()),
+    : BakerBase(std::move(config), light, MakeStrongRef(light->GetScene()), light->GetWorldBounds()),
       m_light(light)
 {
 }

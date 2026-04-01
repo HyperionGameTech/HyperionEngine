@@ -24,7 +24,7 @@ class DX12Framebuffer final : public FramebufferBase
     HYP_OBJECT_BODY(DX12Framebuffer);
 
 public:
-    explicit DX12Framebuffer(const RenderTargetDesc& renderTargetDesc);
+    explicit DX12Framebuffer(const FramebufferDesc& framebufferDesc);
     ~DX12Framebuffer() override;
 
     bool IsCreated() const override;

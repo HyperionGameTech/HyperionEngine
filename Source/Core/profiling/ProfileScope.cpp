@@ -395,7 +395,7 @@ static void DebugLogProfileScopeEntry(ProfileScopeEntry* entry, int depth = 0)
             putchar(int(' '));
         }
 
-        HYP_LOG(Profile, Debug, "Profile scope entry '{}': {} ms\n", entry->label, entry->measuredTimeMs);
+        HYP_LOG(Profile, Verbose, "Profile scope entry '{}': {} ms\n", entry->label, entry->measuredTimeMs);
     }
 
     for (ProfileScopeEntry& child : entry->children)

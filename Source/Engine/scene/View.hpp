@@ -91,7 +91,7 @@ struct ViewDesc
 {
     EnumFlags<ViewFlags> flags = ViewFlags::DEFAULT;
 
-    RenderTargetDesc renderTargetDesc;
+    FramebufferDesc framebufferDesc;
 
     Array<Scene*> scenes;
 

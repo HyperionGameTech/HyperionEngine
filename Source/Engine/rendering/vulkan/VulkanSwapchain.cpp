@@ -159,8 +159,7 @@ void VulkanSwapchain::PresentFrame(VulkanFrame* frame, VulkanDeviceQueue* queue)
 
     if (result == VK_SUBOPTIMAL_KHR || result == VK_ERROR_OUT_OF_DATE_KHR)
     {
-        HYP_LOG(RenderingBackend, Debug, "Got suboptimal/out of date swapchain present result ({}), calling Recreate()",
-                result);
+        HYP_LOG(RenderingBackend, Verbose, "Got suboptimal/out of date swapchain present result ({}), calling Recreate()", result);
         
         Recreate();
     }
@@ -305,11 +304,11 @@ RendererResult VulkanSwapchain::Create()
         AssertDebug(image && image->IsCreated());
         AssertDebug(image->GetResourceState() == RS_PRESENT);
 
-        RenderTargetDesc renderTargetDesc {};
-        renderTargetDesc.extent = m_extent;
-        renderTargetDesc.renderPassMode = RenderPassMode::Present;
+        FramebufferDesc framebufferDesc {};
+        framebufferDesc.extent = m_extent;
+        framebufferDesc.renderPassMode = RenderPassMode::Present;
 
-        VulkanFramebufferRef framebuffer = MakeHandle<VulkanFramebuffer>(renderTargetDesc);
+        VulkanFramebufferRef framebuffer = MakeHandle<VulkanFramebuffer>(framebufferDesc);
         framebuffer->AddAttachment(
             0,
             AttachmentDesc {

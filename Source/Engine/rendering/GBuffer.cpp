@@ -174,11 +174,11 @@ FramebufferRef GBuffer::CreateFramebuffer(const FramebufferRef& parentFramebuffe
 
     Assert(resolution.Volume() != 0);
 
-    RenderTargetDesc renderTargetDesc;
-    renderTargetDesc.extent = resolution;
-    renderTargetDesc.numLayers = 1;
+    FramebufferDesc framebufferDesc;
+    framebufferDesc.extent = resolution;
+    framebufferDesc.numLayers = 1;
 
-    FramebufferRef framebuffer = g_renderInterface->MakeFramebuffer(renderTargetDesc);
+    FramebufferRef framebuffer = g_renderInterface->MakeFramebuffer(framebufferDesc);
 
 #if HYP_DEBUG_MODE
     framebuffer->SetDebugName(NAME_FMT("{}Framebuffer", EnumToString(rb)));

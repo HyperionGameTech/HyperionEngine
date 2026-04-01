@@ -562,8 +562,6 @@ SplitMetalnessRoughnessResult SplitMetalnessRoughnessTexture(
     ctx.state.assetManager->GetAssetRegistry()->RegisterAsset("$Import/Media/Textures", metalnessTexture);
     CheckResult(metalnessTexture->Create());
 
-    HYP_LOG(Assets, Debug, "GLTF split metallic-roughness for '{}': {}x{} R8 textures created", baseName, width, height);
-
     return { metalnessTexture, roughnessTexture };
 }
 

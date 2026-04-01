@@ -349,7 +349,7 @@ void VulkanDevice::DebugLogAllocatorStats() const
         char* statsString;
         vmaBuildStatsString(m_allocator, &statsString, true);
 
-        HYP_LOG(RenderingBackend, Debug, "Pre-destruction VMA stats:\n{}\n", statsString);
+        HYP_LOG(RenderingBackend, Verbose, "Pre-destruction VMA stats:\n{}\n", statsString);
 
         vmaFreeStatsString(m_allocator, statsString);
     }

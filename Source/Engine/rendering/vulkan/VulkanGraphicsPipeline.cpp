@@ -84,7 +84,7 @@ void VulkanGraphicsPipeline::Bind(VulkanCommandBuffer* cmd)
     Vec2i viewportOffset = Vec2i::Zero();
     Vec2u viewportExtent = Vec2u::One();
 
-    viewportExtent = m_renderTargetDesc.extent;
+    viewportExtent = m_framebufferDesc.extent;
 
     Bind(cmd, viewportOffset, viewportExtent);
 }
@@ -186,11 +186,11 @@ RendererResult VulkanGraphicsPipeline::Rebuild()
 
     if (!m_renderPass)
     {
-        m_renderPass = new VulkanRenderPass(m_renderTargetDesc);
+        m_renderPass = new VulkanRenderPass(m_framebufferDesc);
         CheckResultOrReturn(m_renderPass->Create());
     }
 
-    m_viewport = { m_renderTargetDesc.extent, Vec2i::Zero() };
+    m_viewport = { m_framebufferDesc.extent, Vec2i::Zero() };
 
     VkViewport vkViewport {};
     vkViewport.x = float(m_viewport.position.x);
@@ -256,13 +256,13 @@ RendererResult VulkanGraphicsPipeline::Rebuild()
     multisampling.alphaToOneEnable = VK_FALSE;      // Optional
 
     Array<VkPipelineColorBlendAttachmentState> colorBlendAttachments;
-    colorBlendAttachments.Reserve(m_renderTargetDesc.numAttachments);
+    colorBlendAttachments.Reserve(m_framebufferDesc.numAttachments);
 
     const BlendFunction* pBlendFunction = &m_blendFunction;
 
-    for (uint32 attachmentIdx = 0; attachmentIdx < m_renderTargetDesc.numAttachments; attachmentIdx++)
+    for (uint32 attachmentIdx = 0; attachmentIdx < m_framebufferDesc.numAttachments; attachmentIdx++)
     {
-        const AttachmentDesc& attachmentDesc = m_renderTargetDesc.attachments[attachmentIdx];
+        const AttachmentDesc& attachmentDesc = m_framebufferDesc.attachments[attachmentIdx];
 
         if (TextureUtils::IsDepthFormat(attachmentDesc.format))
         {

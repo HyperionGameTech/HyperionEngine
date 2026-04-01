@@ -9,6 +9,8 @@ namespace Hyperion.Editor.ViewModels
     {
         private readonly List<EnumFlagEntry> _enumFlagEntries = new List<EnumFlagEntry>();
 
+        public event Action? ValueCommitted;
+
         public FlagsPropertyViewModel(ObjectBase target, Property property, Class? enumClass, bool isReadOnly)
             : base(target, property, isReadOnly)
         {
@@ -136,6 +138,8 @@ namespace Hyperion.Editor.ViewModels
                         _isRefreshing = 0;
 
                         Value = FormatValue(combined);
+
+                        ValueCommitted?.Invoke();
                     });
                 }
                 catch (Exception ex)

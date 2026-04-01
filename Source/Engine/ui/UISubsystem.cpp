@@ -210,13 +210,13 @@ void UISubsystem::Init()
 
     const Vec2u windowSize2 = windowSize * 2;
 
-    RenderTargetDesc renderTargetDesc;
-    renderTargetDesc.extent = windowSize2;
-    renderTargetDesc.AddAttachment({ TextureType::Texture2D, TextureFormat::RGBA8 });
+    FramebufferDesc framebufferDesc;
+    framebufferDesc.extent = windowSize2;
+    framebufferDesc.AddAttachment({ TextureType::Texture2D, TextureFormat::RGBA8 });
 
     ViewDesc viewDesc {};
     viewDesc.flags = ViewFlags::UI_VIEW | (ViewFlags::DEFAULT & ~(ViewFlags::ALL_WORLD_SCENES | ViewFlags::MATCH_CAMERA_DIMENSIONS));
-    viewDesc.renderTargetDesc = renderTargetDesc;
+    viewDesc.framebufferDesc = framebufferDesc;
     viewDesc.scenes = { m_uiStage->GetScene() };
     viewDesc.camera = m_uiStage->GetCamera();
     viewDesc.entityBatchClass = UIEntityInstanceBatch::StaticClass();

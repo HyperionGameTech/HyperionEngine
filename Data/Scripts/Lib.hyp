@@ -2247,8 +2247,6 @@ extern class Light : Entity
     GetLightType() -> LightType
     GetLightFlags() -> LightFlags
     SetLightFlags(flags : LightFlags) -> void
-    GetPosition() -> Vec3f
-    SetPosition(position : Vec3f) -> void
     GetNormal() -> Vec3f
     SetNormal(normal : Vec3f) -> void
     GetAreaSize() -> Vec2f
@@ -2273,7 +2271,6 @@ extern class Light : Entity
     SetBakedShadowMap(shadowMap : Texture) -> void
     GetShadowMapFilter() -> ShadowMapFilter
     SetShadowMapFilter(shadowMapFilter : ShadowMapFilter) -> void
-    GetAABB() -> BoundingBox
     BakeStaticShadows() -> void
     RemoveBakedShadows() -> void
     CanBakeStaticShadows() -> bool

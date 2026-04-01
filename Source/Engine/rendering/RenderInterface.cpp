@@ -1253,13 +1253,13 @@ void RenderInterface::CommitPipelineState(PSOType psoType, CommandBuffer* comman
         if (!state.prevGraphicsPipeline
             || !state.prevGraphicsPipeline->MatchesSignature(
                 state.attributes,
-                state.framebuffer->GetRenderTargetDesc()))
+                state.framebuffer->GetFramebufferDesc()))
         {
             GraphicsPipelineCacheHandle cacheHandle;
 
             graphicsPipelineCache->GetOrCreate(
                 state.attributes,
-                state.framebuffer->GetRenderTargetDesc(),
+                state.framebuffer->GetFramebufferDesc(),
                 cacheHandle);
 
             pipeline = *cacheHandle;

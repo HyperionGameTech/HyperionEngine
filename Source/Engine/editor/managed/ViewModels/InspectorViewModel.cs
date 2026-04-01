@@ -167,6 +167,11 @@ namespace Hyperion.Editor.ViewModels
                         isReadOnly = true;
                     }
                     Properties.Add(InspectorViewModelFactory.Create(SelectedNode, property, isReadOnly));
+
+                    if (Properties[Properties.Count - 1] is FlagsPropertyViewModel flagsVm)
+                    {
+                        flagsVm.ValueCommitted += RefreshActions;
+                    }
                 }
                 catch (Exception ex)
                 {
@@ -290,6 +295,58 @@ namespace Hyperion.Editor.ViewModels
                 AddableComponents.Clear();
                 HasAddableComponents = false;
             }
+        }
+
+        private void RefreshActions()
+        {
+            Dispatcher.UIThread.VerifyAccess();
+
+            if (SelectedNode == null || !SelectedNode.IsValid)
+                return;
+
+            Actions.Clear();
+
+            Class nodeClass = SelectedNode.Class;
+
+            List<Method> actions = nodeClass.Methods
+                .Where(m => m.IsMemberFunction)
+                .Where(m => m.GetAttribute("editaction") != null)
+                .Where(m => EvaluateEditCondition(nodeClass, m.GetAttribute("editcondition"), m.Name.ToString()))
+                .OrderBy(m =>
+                {
+                    ClassAttribute? attrEditOrder = m.GetAttribute("editorder");
+                    return attrEditOrder != null ? attrEditOrder.Value.GetInt() : int.MaxValue;
+                })
+                .ThenBy(m => m.Name.ToString())
+                .ToList();
+
+            foreach (Method method in actions)
+            {
+                try
+                {
+                    ClassAttribute? attrEditHide = method.GetAttribute("edithide");
+                    if (attrEditHide != null && attrEditHide.Value.IsBool && attrEditHide.Value.GetBool())
+                        continue;
+
+                    string label = method.Name.ToString();
+                    ClassAttribute? attrEditAction = method.GetAttribute("editaction");
+                    if (attrEditAction != null && attrEditAction.Value.IsString)
+                        label = attrEditAction.Value.GetString();
+
+                    bool isEnabled = true;
+                    ClassAttribute? attrEditEnabled = method.GetAttribute("editenabled");
+                    if (attrEditEnabled != null && attrEditEnabled.Value.IsBool && attrEditEnabled.Value.GetBool() == false)
+                        isEnabled = false;
+
+                    Actions.Add(new InspectorActionViewModel(SelectedNode, method, label, isEnabled));
+                }
+                catch (Exception ex)
+                {
+                    Logger.Log(LogLevel.Warning, $"Inspector failed to create view model for action '{method.Name}': {ex.Message}");
+                }
+            }
+
+            HasActions = Actions.Count > 0;
         }
 
         private void RefreshSceneProperties()

@@ -1548,9 +1548,9 @@ void ReflectionsPass::Render(Frame* frame, const RenderSetup& rs)
         const Handle<Texture>& ssrTexture = m_ssrPass->GetFinalResultTexture();
 
         // render SSR to screen
-        RenderTargetDesc renderTargetDesc = rs.view->GetOutputTarget().GetFramebuffer()->GetRenderTargetDesc();
-        renderTargetDesc.attachments[0].loadOp = LoadOperation::LOAD;
-        renderTargetDesc.attachments[0].blendFunction = BlendFunction(BMF_SRC_ALPHA, BMF_ONE_MINUS_SRC_ALPHA, BMF_ONE, BMF_ONE_MINUS_SRC_ALPHA);
+        FramebufferDesc framebufferDesc = rs.view->GetOutputTarget().GetFramebuffer()->GetFramebufferDesc();
+        framebufferDesc.attachments[0].loadOp = LoadOperation::LOAD;
+        framebufferDesc.attachments[0].blendFunction = BlendFunction(BMF_SRC_ALPHA, BMF_ONE_MINUS_SRC_ALPHA, BMF_ONE, BMF_ONE_MINUS_SRC_ALPHA);
 
         cr << SetCurrentViewport(rs.viewport);
 
@@ -1640,10 +1640,10 @@ RayTracingPassData::~RayTracingPassData()
 
 static FramebufferRef CreateDeferredShadingFramebuffer(GBuffer* gbuffer)
 {
-    RenderTargetDesc renderTargetDesc {};
-    renderTargetDesc.extent = gbuffer->GetExtent();
+    FramebufferDesc framebufferDesc {};
+    framebufferDesc.extent = gbuffer->GetExtent();
 
-    FramebufferRef framebuffer = g_renderInterface->MakeFramebuffer(renderTargetDesc);
+    FramebufferRef framebuffer = g_renderInterface->MakeFramebuffer(framebufferDesc);
 
 #if HYP_DEBUG_MODE
     framebuffer->SetDebugName(NAME("DeferredShadingFramebuffer"));
@@ -1831,9 +1831,12 @@ public:
                 continue;
             }
 
-            const Vec3f lightPosWS = light->GetPosition();
+            RenderProxyLight* lightProxy = static_cast<RenderProxyLight*>(GetRenderProxy(light));
+            AssertDebug(lightProxy != nullptr);
+
+            const Vec3f lightPosWS = lightProxy->bufferData.positionIntensity.GetXYZ();
             const Vec3f lightPosVS = viewMatrix * lightPosWS;
-            const float lightRadius = light->GetRadius();
+            const float lightRadius = float(Float16::FromRaw(uint16(lightProxy->bufferData.radiusFalloffPacked & 0xFFFFu)));
 
             uint32 tileMinX;
             uint32 tileMinY;

@@ -220,16 +220,16 @@ void ShadowRendererBase::RenderFrame(Frame* frame, const RenderSetup& renderSetu
 
         if (!framebuffer.IsValid())
         {
-            const RenderTargetDesc& renderTargetDesc = cachedData->shadowViewsDynamic[cascadeIndex]->GetViewDesc().renderTargetDesc;
+            const FramebufferDesc& framebufferDesc = cachedData->shadowViewsDynamic[cascadeIndex]->GetViewDesc().framebufferDesc;
 
-            framebuffer = g_renderInterface->MakeFramebuffer(renderTargetDesc);
+            framebuffer = g_renderInterface->MakeFramebuffer(framebufferDesc);
 
             uint32 attachmentIndex = 0;
 
             // initial attachment writes to atlas element
             for (; attachmentIndex < 1; attachmentIndex++)
             {
-                const AttachmentDesc& attachmentDesc = renderTargetDesc.attachments[attachmentIndex];
+                const AttachmentDesc& attachmentDesc = framebufferDesc.attachments[attachmentIndex];
 
                 framebuffer->AddAttachment(
                     attachmentIndex,
@@ -238,9 +238,9 @@ void ShadowRendererBase::RenderFrame(Frame* frame, const RenderSetup& renderSetu
             }
 
             // remaining attachments - if any - are the framebuffers' own.
-            for (; attachmentIndex < renderTargetDesc.numAttachments; attachmentIndex++)
+            for (; attachmentIndex < framebufferDesc.numAttachments; attachmentIndex++)
             {
-                const AttachmentDesc& attachmentDesc = renderTargetDesc.attachments[attachmentIndex];
+                const AttachmentDesc& attachmentDesc = framebufferDesc.attachments[attachmentIndex];
 
                 framebuffer->AddAttachment(
                     attachmentIndex,

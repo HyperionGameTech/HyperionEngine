@@ -2197,7 +2197,7 @@ void UIObject::ComputeActualSize(const UIObjectSize& inSize, Vec2i& actualSize, 
         // If the inner AABB is not valid, we can't calculate the size
         actualSize = Vec2i { 0, 0 };
 
-        HYP_LOG_ONCE(UI, Debug, "UIObject '{}' has an invalid inner AABB; cannot compute size yet", GetName());
+        HYP_LOG_ONCE(UI, Verbose, "UIObject '{}' has an invalid inner AABB; cannot compute size yet", GetName());
 
         return;
     }

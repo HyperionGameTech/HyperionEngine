@@ -14,6 +14,7 @@
 #include <Core/threading/Mutex.hpp>
 #include <Core/threading/ConditionVariable.hpp>
 
+#include <Core/utilities/IdGenerator.hpp>
 #include <Core/utilities/Format.hpp>
 
 #include <Core/math/MathUtil.hpp>
@@ -234,7 +235,7 @@ private:
     ANSIString m_baseName;
     uint32 m_maxThreads;
 
-    AtomicVar<uint32> m_nextThreadIndex { 0u };
+    IdGenerator m_workerIdGenerator;
     AtomicVar<uint32> m_activeThreadCount { 0u };
 
     Mutex m_threadCreationMutex;

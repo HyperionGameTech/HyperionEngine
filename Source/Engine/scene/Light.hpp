@@ -109,21 +109,6 @@ public:
     HYP_METHOD()
     void SetLightFlags(EnumFlags<LightFlags> flags);
 
-    /*! \brief Get the position for the light. For directional lights, this is the direction the light is pointing.
-     *
-     *  \return The position or direction. */
-    HYP_METHOD(Property = "Position", Editor = true)
-    const Vec3f& GetPosition() const
-    {
-        return m_position;
-    }
-
-    /*! \brief Set the position for the light. For directional lights, this is the direction the light is pointing.
-     *
-     *  \param position The position or direction to set. */
-    HYP_METHOD(Property = "Position", Editor = true)
-    void SetPosition(const Vec3f& position);
-
     /*! \brief Get the normal for the light. This is used only for area lights.
      *
      *  \return The normal. */
@@ -154,39 +139,24 @@ public:
     HYP_METHOD(Property = "AreaSize", Editor = true)
     void SetAreaSize(const Vec2f& areaSize);
 
-    /*! \brief Get the color for the light.
-     *
-     *  \return The color. */
     HYP_METHOD(Property = "Color", Editor = true)
     const Color& GetColor() const
     {
         return m_color;
     }
 
-    /*! \brief Set the color for the light.
-     *
-     *  \param color The color to set. */
     HYP_METHOD(Property = "Color", Editor = true)
     void SetColor(const Color& color);
 
-    /*! \brief Get the intensity for the light. This is used to determine how bright the light is.
-     *
-     *  \return The intensity. */
     HYP_METHOD(Property = "Intensity", Editor = true)
     float GetIntensity() const
     {
         return m_intensity;
     }
 
-    /*! \brief Set the intensity for the light. This is used to determine how bright the light is.
-     *
-     *  \param intensity The intensity to set. */
     HYP_METHOD(Property = "Intensity", Editor = true)
     void SetIntensity(float intensity);
 
-    /*! \brief Get the radius for the light. This is used to determine the maximum distance at which this light is visible. (point lights only)
-     *
-     *  \return The radius. */
     HYP_METHOD(Property = "Radius", Editor = true)
     float GetRadius() const
     {
@@ -201,24 +171,15 @@ public:
         }
     }
 
-    /*! \brief Set the radius for the light. This is used to determine the maximum distance at which this light is visible. (point lights only)
-     *
-     *  \param radius The radius to set. */
     HYP_METHOD(Property = "Radius", Editor = true)
     void SetRadius(float radius);
 
-    /*! \brief Get the falloff for the light. This is used to determine how the light intensity falls off with distance (point lights only).
-     *
-     *  \return The falloff. */
     HYP_METHOD(Property = "Falloff", Editor = true)
     float GetFalloff() const
     {
         return m_falloff;
     }
 
-    /*! \brief Set the falloff for the light. This is used to determine how the light intensity falls off with distance (point lights only).
-     *
-     *  \param falloff The falloff to set. */
     HYP_METHOD(Property = "Falloff", Editor = true)
     void SetFalloff(float falloff);
 
@@ -292,10 +253,9 @@ public:
     HYP_METHOD(Property = "ShadowMapFilter", Editor = true, Transient)
     void SetShadowMapFilter(ShadowMapFilter shadowMapFilter);
 
-    BoundingSphere GetBoundingSphere() const;
+    BoundingSphere GetBoundingSphere(bool worldSpace) const;
 
-    HYP_METHOD()
-    BoundingBox GetAABB() const;
+    virtual void SetLocalBounds(const BoundingBox& localBounds) override;
 
     void UpdateRenderProxy(RenderProxyLight* proxy);
 
@@ -322,6 +282,8 @@ protected:
 
     void OnTransformUpdated() override;
 
+    BoundingBox CalculateLightBounds() const;
+
 #if HYP_EDITOR
     HYP_METHOD(EditorOnly)
     bool CanBakeStaticShadows() const;
@@ -335,7 +297,6 @@ protected:
     HYP_FIELD(Property = "LightFlags")
     EnumFlags<LightFlags> m_lightFlags;
 
-    Vec3f m_position;
     Vec3f m_normal;
     Vec2f m_areaSize;
     Color m_color;
@@ -381,13 +342,13 @@ public:
     HYP_METHOD()
     const Vec3f& GetDirection() const
     {
-        return Light::GetPosition();
+        return Light::GetLocalTranslation();
     }
 
     HYP_METHOD()
     void SetDirection(const Vec3f& direction)
     {
-        Light::SetPosition(direction.Normalized());
+        Light::SetLocalTranslation(direction.Normalized());
     }
 };
 

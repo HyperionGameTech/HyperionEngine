@@ -30,7 +30,7 @@ public:
 
     VulkanRenderPass();
 
-    explicit VulkanRenderPass(const RenderTargetDesc& renderTargetDesc);
+    explicit VulkanRenderPass(const FramebufferDesc& framebufferDesc);
 
     VulkanRenderPass(VulkanRenderPass&& other) noexcept;
     VulkanRenderPass& operator=(VulkanRenderPass&& other) noexcept;
@@ -42,29 +42,29 @@ public:
         return m_handle;
     }
 
-    HYP_FORCE_INLINE RenderTargetDesc& GetRenderTargetDesc()
+    HYP_FORCE_INLINE FramebufferDesc& GetFramebufferDesc()
     {
-        return m_renderTargetDesc;
+        return m_framebufferDesc;
     }
 
-    HYP_FORCE_INLINE const RenderTargetDesc& GetRenderTargetDesc() const
+    HYP_FORCE_INLINE const FramebufferDesc& GetFramebufferDesc() const
     {
-        return m_renderTargetDesc;
+        return m_framebufferDesc;
     }
 
     HYP_FORCE_INLINE bool IsMultiview() const
     {
-        return m_renderTargetDesc.numLayers > 1;
+        return m_framebufferDesc.numLayers > 1;
     }
 
     HYP_FORCE_INLINE uint32 NumMultiviewLayers() const
     {
-        return m_renderTargetDesc.numLayers;
+        return m_framebufferDesc.numLayers;
     }
 
     Span<const AttachmentDesc> GetAttachmentDescs() const
     {
-        return m_renderTargetDesc.attachments;
+        return m_framebufferDesc.attachments;
     }
 
     RendererResult Create();
@@ -80,7 +80,7 @@ private:
         m_dependencies.PushBack(dependency);
     }
     
-    RenderTargetDesc m_renderTargetDesc;
+    FramebufferDesc m_framebufferDesc;
     
     Array<VkSubpassDependency, VulkanAllocator> m_dependencies;
     Array<VkClearValue, VulkanAllocator> m_vkClearValues;

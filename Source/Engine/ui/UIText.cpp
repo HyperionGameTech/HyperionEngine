@@ -332,7 +332,7 @@ void UIText::UpdateTextAABB()
     }
     else
     {
-        HYP_LOG_ONCE(UI, Debug, "No font atlas set for UIText {} (text: \"{}\")", GetName(), GetText());
+        HYP_LOG_ONCE(UI, Verbose, "No font atlas set for UIText {} (text: \"{}\")", GetName(), GetText());
     }
 }
 
@@ -346,7 +346,7 @@ void UIText::UpdateMeshData_Internal()
 
     if (!fontAtlas)
     {
-        HYP_LOG_ONCE(UI, Debug, "No font atlas, cannot update text mesh data yet");
+        HYP_LOG_ONCE(UI, Verbose, "No font atlas, cannot update text mesh data yet");
 
         return;
     }

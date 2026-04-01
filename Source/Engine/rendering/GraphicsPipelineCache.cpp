@@ -304,12 +304,12 @@ GraphicsPipelineCache::~GraphicsPipelineCache()
 
 void GraphicsPipelineCache::GetOrCreate(
     const RenderableAttributeSet& attributes,
-    const RenderTargetDesc& renderTargetDesc,
+    const FramebufferDesc& framebufferDesc,
     GraphicsPipelineCacheHandle& outCacheHandle)
 {
     HYP_SCOPE;
 
-    GraphicsPipelineCacheHandle cacheHandle = FindGraphicsPipeline(attributes, renderTargetDesc);
+    GraphicsPipelineCacheHandle cacheHandle = FindGraphicsPipeline(attributes, framebufferDesc);
 
     if (cacheHandle.IsAlive())
     {
@@ -319,7 +319,7 @@ void GraphicsPipelineCache::GetOrCreate(
         return;
     }
 
-    Assert(renderTargetDesc.numAttachments > 0,
+    Assert(framebufferDesc.numAttachments > 0,
         "Cannot create a graphics pipeline with no render target descriptor or 0 attachments!");
 
     ShaderInstanceRef shader = g_renderInterface->shaderManager->GetOrCreate(
@@ -334,11 +334,11 @@ void GraphicsPipelineCache::GetOrCreate(
     { // Create pipeline
         GraphicsPipelineRef graphicsPipeline = g_renderInterface->MakeGraphicsPipeline(
             shader,
-            renderTargetDesc,
+            framebufferDesc,
             attributes);
 
         // sanity check: newly created pipeline must match or caching will fail.
-        AssertDebug(graphicsPipeline->MatchesSignature(attributes, renderTargetDesc));
+        AssertDebug(graphicsPipeline->MatchesSignature(attributes, framebufferDesc));
 
         cacheHandle = m_cachedPipelines->Alloc(slot);
         Assert(cacheHandle.m_ptr != nullptr && slot != SIZE_MAX);
@@ -380,7 +380,7 @@ void GraphicsPipelineCache::GetOrCreate(
     HYP_LOG(Rendering, Verbose, "Adding graphics pipeline {} (debug name: {}) to cache with hash: {}", graphicsPipeline->Id(), graphicsPipeline->GetDebugName(), attributes.GetHashCode().Value());
 #endif
     // cache it now that it's been created so it can be reused
-    PSOCacheKey key { attributes, renderTargetDesc };
+    PSOCacheKey key { attributes, framebufferDesc };
     m_cachedPipelines->Add(key, slot);
 
     return;
@@ -388,7 +388,7 @@ void GraphicsPipelineCache::GetOrCreate(
 
 GraphicsPipelineCacheHandle GraphicsPipelineCache::FindGraphicsPipeline(
     const RenderableAttributeSet& attributes,
-    const RenderTargetDesc& renderTargetDesc)
+    const FramebufferDesc& framebufferDesc)
 {
     HYP_SCOPE;
 
@@ -399,7 +399,7 @@ GraphicsPipelineCacheHandle GraphicsPipelineCache::FindGraphicsPipeline(
 
     TSharedLock guard(m_mutex);
 
-    const PSOCacheKey key { attributes, renderTargetDesc };
+    const PSOCacheKey key { attributes, framebufferDesc };
     Span<GraphicsPipelineRef* const> pipelines = m_cachedPipelines->Find(key);
 
     if (!pipelines)
@@ -415,7 +415,7 @@ GraphicsPipelineCacheHandle GraphicsPipelineCache::FindGraphicsPipeline(
     {
         Assert(pPipeline != nullptr);
 
-        if ((*pPipeline)->MatchesSignature(attributes, renderTargetDesc))
+        if ((*pPipeline)->MatchesSignature(attributes, framebufferDesc))
         {
 #if HYP_GRAPHICS_PIPELINE_TIMING_DEBUG
             HYP_LOG(Rendering, Verbose, "GraphicsPipelineCache cache hit ({}) ({} ms)", attributes.GetHashCode().Value(), clock.ElapsedMs());

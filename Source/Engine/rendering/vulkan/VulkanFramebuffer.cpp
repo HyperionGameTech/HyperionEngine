@@ -34,7 +34,7 @@ static void TransitionFramebufferAttachments(CommandRecorder& cr, VulkanFramebuf
         const VulkanGpuImageRef& image = attachment->GetGpuImage();
         Assert(image.IsValid());
 
-        switch (framebuffer->GetRenderTargetDesc().renderPassMode)
+        switch (framebuffer->GetFramebufferDesc().renderPassMode)
         {
         case RenderPassMode::Present:
             // cr << InsertBarrier(image, RS_PRESENT);
@@ -111,8 +111,8 @@ RendererResult VulkanAttachmentMap::Create()
 
 #pragma region VulkanFramebuffer
 
-VulkanFramebuffer::VulkanFramebuffer(const RenderTargetDesc& renderTargetDesc)
-    : FramebufferBase(renderTargetDesc),
+VulkanFramebuffer::VulkanFramebuffer(const FramebufferDesc& framebufferDesc)
+    : FramebufferBase(framebufferDesc),
       m_handle(VK_NULL_HANDLE),
       m_isRecording(false)
 {
@@ -155,7 +155,7 @@ RendererResult VulkanFramebuffer::Create()
 
     Vec2u imageExtent;
 
-    m_renderTargetDesc.numAttachments = 0;
+    m_framebufferDesc.numAttachments = 0;
 
     for (const auto& it : m_attachmentMap.attachments)
     {
@@ -170,10 +170,10 @@ RendererResult VulkanFramebuffer::Create()
 
         imageExtent = image->GetExtent().GetXY();
 
-        m_renderTargetDesc.AddAttachment(attachment->GetAttachmentDesc());
+        m_framebufferDesc.AddAttachment(attachment->GetAttachmentDesc());
     }
 
-    m_renderPass = VulkanRenderPass(m_renderTargetDesc);
+    m_renderPass = VulkanRenderPass(m_framebufferDesc);
     CheckResultOrReturn(m_renderPass.Create());
 
     Array<VkImageView> attachmentImageViews;
@@ -266,7 +266,7 @@ VulkanAttachment* VulkanFramebuffer::AddAttachment(
         imageView->GetImage(),
         imageView,
         WeakHandleFromThis(),
-        m_renderTargetDesc.renderPassMode,
+        m_framebufferDesc.renderPassMode,
         desc);
 
     attachment->SetBinding(binding);
@@ -280,9 +280,9 @@ VulkanAttachment* VulkanFramebuffer::AddAttachment(
 {
     return m_attachmentMap.AddAttachment(
         binding,
-        m_renderTargetDesc.extent,
+        m_framebufferDesc.extent,
         attachmentDesc,
-        m_renderTargetDesc.renderPassMode);
+        m_framebufferDesc.renderPassMode);
 }
 
 bool VulkanFramebuffer::RemoveAttachment(uint32 binding)
@@ -339,10 +339,10 @@ void VulkanFramebuffer::Clear(
     uint8 attachmentsMask)
 {
     Rect<uint32> rect {};
-    rect.x0 = m_renderTargetDesc.offset.x;
-    rect.y0 = m_renderTargetDesc.offset.y;
-    rect.x1 = m_renderTargetDesc.offset.x + m_renderTargetDesc.extent.x;
-    rect.y1 = m_renderTargetDesc.offset.y + m_renderTargetDesc.extent.y;
+    rect.x0 = m_framebufferDesc.offset.x;
+    rect.y0 = m_framebufferDesc.offset.y;
+    rect.x1 = m_framebufferDesc.offset.x + m_framebufferDesc.extent.x;
+    rect.y1 = m_framebufferDesc.offset.y + m_framebufferDesc.extent.y;
 
     Clear(commandBuffer, rect, attachmentsMask);
 }
@@ -361,16 +361,16 @@ void VulkanFramebuffer::Clear(
 
     VkCommandBuffer vkCommandBuffer = commandBuffer->GetVulkanHandle();
 
-    AssertDebug(m_attachmentMap.attachments.Size() == m_renderPass.GetRenderTargetDesc().numAttachments);
+    AssertDebug(m_attachmentMap.attachments.Size() == m_renderPass.GetFramebufferDesc().numAttachments);
 
     Array<const AttachmentDesc*, VulkanTempAllocator> colorAttachments;
-    colorAttachments.Reserve(m_renderTargetDesc.numAttachments);
+    colorAttachments.Reserve(m_framebufferDesc.numAttachments);
     
-    for (uint32 attachmentIndex = 0; attachmentIndex < m_renderTargetDesc.numAttachments; attachmentIndex++)
+    for (uint32 attachmentIndex = 0; attachmentIndex < m_framebufferDesc.numAttachments; attachmentIndex++)
     {
-        if (!TextureUtils::IsDepthFormat(m_renderTargetDesc.attachments[attachmentIndex].format))
+        if (!TextureUtils::IsDepthFormat(m_framebufferDesc.attachments[attachmentIndex].format))
         {
-            colorAttachments.PushBack(&m_renderTargetDesc.attachments[attachmentIndex]);
+            colorAttachments.PushBack(&m_framebufferDesc.attachments[attachmentIndex]);
         }
     }
 
@@ -391,9 +391,9 @@ void VulkanFramebuffer::Clear(
 
         VulkanAttachment* attachment = it.second;
         AssertDebug(attachment != nullptr && attachment->IsCreated());
-        AssertDebug(binding < m_renderTargetDesc.numAttachments);
+        AssertDebug(binding < m_framebufferDesc.numAttachments);
 
-        const AttachmentDesc& attachmentDesc = m_renderTargetDesc.attachments[binding];
+        const AttachmentDesc& attachmentDesc = m_framebufferDesc.attachments[binding];
 
         VkClearRect& clearRect = clearRects[clearAttachments.Size()];
         clearRect = {};

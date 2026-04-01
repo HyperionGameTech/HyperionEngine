@@ -289,7 +289,7 @@ public:
 
     virtual GraphicsPipelineRef MakeGraphicsPipeline(
         const ShaderInstanceRef& shader,
-        const RenderTargetDesc& renderTargetDesc,
+        const FramebufferDesc& framebufferDesc,
         const RenderableAttributeSet& attributes) = 0;
 
     virtual ComputePipelineRef MakeComputePipeline(const ShaderInstanceRef& shader) = 0;
@@ -305,7 +305,7 @@ public:
 
     virtual SamplerRef MakeSampler(const SamplerDesc& samplerDesc) = 0;
 
-    virtual FramebufferRef MakeFramebuffer(const RenderTargetDesc& renderTargetDesc) = 0;
+    virtual FramebufferRef MakeFramebuffer(const FramebufferDesc& framebufferDesc) = 0;
 
     virtual FrameRef MakeFrame(uint32 frameIndex) = 0;
 

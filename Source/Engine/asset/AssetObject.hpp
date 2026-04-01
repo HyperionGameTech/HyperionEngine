@@ -140,7 +140,7 @@ public:
         return m_package.IsValid();
     }
 
-    HYP_METHOD(Property = "AssetFlags")
+    HYP_METHOD(Property = "AssetFlags", Editor = false)
     EnumFlags<AssetObjectFlags> GetAssetFlags() const
     {
         return m_flags;

@@ -20,10 +20,10 @@ namespace Hyperion {
 
 PSOCacheKey::PSOCacheKey(
     const RenderableAttributeSet& attributes,
-    const RenderTargetDesc& renderTargetDesc)
+    const FramebufferDesc& framebufferDesc)
 {
     hashCode = HashCode::GetHashCode(attributes.GetHashCode())
-        .Combine(renderTargetDesc.GetHashCode());
+        .Combine(framebufferDesc.GetHashCode());
 
     shaderName = attributes.GetMaterialAttributes().shaderName;
     shaderProperties = attributes.GetMaterialAttributes().shaderProperties;
@@ -44,7 +44,7 @@ RendererResult GraphicsPipelineBase::Create()
         return HYP_MAKE_ERROR(RendererError, "Cannot create a graphics pipeline with no shader");
     }
 
-    if (m_renderTargetDesc.numAttachments == 0)
+    if (m_framebufferDesc.numAttachments == 0)
     {
         return HYP_MAKE_ERROR(RendererError, "Cannot create a graphics pipeline with no attachment descriptors!");
     }
@@ -69,16 +69,16 @@ void GraphicsPipelineBase::SetShader(const ShaderInstanceRef& shaderInstance)
     m_shaderInstance = shaderInstance;
 }
 
-void GraphicsPipelineBase::SetRenderTargetDesc(const RenderTargetDesc& renderTargetDesc)
+void GraphicsPipelineBase::SetFramebufferDesc(const FramebufferDesc& framebufferDesc)
 {
-    m_renderTargetDesc = renderTargetDesc;
+    m_framebufferDesc = framebufferDesc;
 }
 
 bool GraphicsPipelineBase::MatchesSignature(
     const RenderableAttributeSet& attributes,
-    const RenderTargetDesc& renderTargetDesc) const
+    const FramebufferDesc& framebufferDesc) const
 {
-    if (!m_renderTargetDesc.IsPSOCompatible(renderTargetDesc))
+    if (!m_framebufferDesc.IsPSOCompatible(framebufferDesc))
         return false;
 
     const MeshAttributes& meshAttributes = attributes.GetMeshAttributes();

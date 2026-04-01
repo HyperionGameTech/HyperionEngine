@@ -63,7 +63,6 @@ Light::Light()
 Light::Light(LightType type, const Vec3f& position, const Color& color, float intensity, float radius)
     : m_type(type),
       m_lightFlags(LightFlags::Default),
-      m_position(position),
       m_color(color),
       m_intensity(intensity),
       m_radius(MathUtil::Max(radius, 0.001f)),
@@ -76,12 +75,13 @@ Light::Light(LightType type, const Vec3f& position, const Color& color, float in
     m_entityInitInfo.receivesUpdate = true;
     m_entityInitInfo.bvhDepth = 0; // No BVH for lights
     m_entityInitInfo.initialTags = { EntityTag::Light };
+
+    Entity::SetLocalTranslation(position);
 }
 
 Light::Light(LightType type, const Vec3f& position, const Vec3f& normal, const Vec2f& areaSize, const Color& color, float intensity, float radius)
     : m_type(type),
       m_lightFlags(LightFlags::Default),
-      m_position(position),
       m_normal(normal),
       m_areaSize(areaSize),
       m_color(color),
@@ -96,6 +96,8 @@ Light::Light(LightType type, const Vec3f& position, const Vec3f& normal, const V
     m_entityInitInfo.receivesUpdate = true;
     m_entityInitInfo.bvhDepth = 0; // No BVH for lights
     m_entityInitInfo.initialTags = { EntityTag::Light };
+
+    Entity::SetLocalTranslation(position);
 }
 
 Light::~Light()
@@ -163,16 +165,7 @@ void Light::OnTransformUpdated()
     HYP_SCOPE;
 
     Entity::OnTransformUpdated();
-
-    BoundingBox aabb = GetAABB();
-    Entity::SetLocalBounds(m_type == LightType::Directional ? aabb : (aabb + (GetWorldTranslation() * -1.0f)));
-
-    m_position = GetWorldTranslation();
-
-    if (m_type == LightType::Directional)
-    {
-        m_position.Normalize();
-    }
+    Entity::SetLocalBounds(CalculateLightBounds());
 }
 
 void Light::Update(float delta)
@@ -203,21 +196,6 @@ void Light::SetLightFlags(EnumFlags<LightFlags> flags)
     MarkDirty();
 }
 
-void Light::SetPosition(const Vec3f& position)
-{
-    HYP_SCOPE;
-
-    if (m_position == position)
-    {
-        return;
-    }
-
-    m_position = position;
-
-    SetNeedsRenderProxyUpdate();
-    MarkDirty();
-}
-
 void Light::SetNormal(const Vec3f& normal)
 {
     if (m_normal == normal)
@@ -226,6 +204,8 @@ void Light::SetNormal(const Vec3f& normal)
     }
 
     m_normal = normal;
+
+    Entity::SetLocalBounds(CalculateLightBounds());
 
     SetNeedsRenderProxyUpdate();
     MarkDirty();
@@ -239,6 +219,8 @@ void Light::SetAreaSize(const Vec2f& areaSize)
     }
 
     m_areaSize = areaSize;
+
+    Entity::SetLocalBounds(CalculateLightBounds());
 
     SetNeedsRenderProxyUpdate();
     MarkDirty();
@@ -279,6 +261,8 @@ void Light::SetRadius(float radius)
 
     m_radius = radius;
 
+    Entity::SetLocalBounds(CalculateLightBounds());
+
     SetNeedsRenderProxyUpdate();
     MarkDirty();
 }
@@ -304,6 +288,8 @@ void Light::SetSpotAngles(const Vec2f& spotAngles)
     }
 
     m_spotAngles = spotAngles;
+
+    Entity::SetLocalBounds(CalculateLightBounds());
 
     SetNeedsRenderProxyUpdate();
     MarkDirty();
@@ -339,7 +325,7 @@ Pair<Vec3f, Vec3f> Light::CalculateAreaLightRect() const
     const float halfWidth = m_areaSize.x * 0.5f;
     const float halfHeight = m_areaSize.y * 0.5f;
 
-    const Vec3f center = m_position;
+    const Vec3f center = GetLocalTranslation();
 
     const Vec3f p0 = center - tangent * halfWidth - bitangent * halfHeight;
     const Vec3f p1 = center + tangent * halfWidth - bitangent * halfHeight;
@@ -438,7 +424,58 @@ void Light::SetBakedShadowMap(const Handle<Texture>& shadowMap)
     MarkDirty();
 }
 
-BoundingBox Light::GetAABB() const
+void Light::SetLocalBounds(const BoundingBox& localBounds)
+{
+    switch (m_type)
+    {
+    case LightType::Directional:
+        // for directional we ignore the local bounds and just set it to infinite since the light affects everything in the scene
+        m_localBounds = BoundingBox::Infinity();
+        break;
+    case LightType::Point:
+    {
+        // use the new localBounds to determine the radius of the point light
+        const float newRadius = localBounds.GetExtent().Length() * 0.5f;
+        m_radius = newRadius;
+
+        Entity::SetLocalBounds(CalculateLightBounds());
+
+        break;
+    }
+    case LightType::Spot:
+    {
+        // for spot lights we use the local bounds to determine the radius and spot angles. The local bounds should be a cone shape with the tip at the origin and pointing down the negative Z axis. The radius is determined by the distance from the origin to the center of the base of the cone, and the spot angles are determined by the angle between the negative Z axis and the corners of the base of the cone.
+        const Vec3f extent = localBounds.GetExtent();
+        const float newRadius = extent.Length() * 0.5f;
+
+        const Vec3f center = localBounds.GetCenter();
+        const float angleX = std::atan2(extent.x * 0.5f, center.z);
+        const float angleY = std::atan2(extent.y * 0.5f, center.z);
+
+        m_radius = newRadius;
+        m_spotAngles = Vec2f(angleX, angleY);
+
+        Entity::SetLocalBounds(CalculateLightBounds());
+
+        break;
+    }
+    case LightType::AreaRect:
+    {
+        // for area rect lights we use the local bounds to determine the area size. The local bounds should be a box shape with the center at the origin and facing down the negative Z axis. The area size is determined by the X and Y extent of the box.
+        const Vec3f extent = localBounds.GetExtent();
+        m_areaSize = Vec2f(extent.x, extent.y);
+
+        Entity::SetLocalBounds(CalculateLightBounds());
+
+        break;
+    }
+    default:
+        HYP_UNREACHABLE();
+    }
+}
+
+// Local space
+BoundingBox Light::CalculateLightBounds() const
 {
     HYP_SCOPE;
 
@@ -454,18 +491,18 @@ BoundingBox Light::GetAABB() const
         return BoundingBox::Empty()
             .Union(rect.first)
             .Union(rect.second)
-            .Union(GetWorldTranslation() + m_normal * m_radius);
+            .Union(Vec3f::Zero() + m_normal * m_radius);
     }
 
     if (m_type == LightType::Point)
     {
-        return BoundingBox(GetBoundingSphere());
+        return BoundingBox(GetBoundingSphere(false));
     }
 
     return BoundingBox::Empty();
 }
 
-BoundingSphere Light::GetBoundingSphere() const
+BoundingSphere Light::GetBoundingSphere(bool worldSpace) const
 {
     HYP_SCOPE;
 
@@ -474,7 +511,7 @@ BoundingSphere Light::GetBoundingSphere() const
         return BoundingSphere::infinity;
     }
 
-    return BoundingSphere(m_position, m_radius);
+    return BoundingSphere(worldSpace ? GetWorldTranslation() : Vec3f::Zero(), m_radius);
 }
 
 void Light::UpdateRenderProxy(RenderProxyLight* proxy)
@@ -485,14 +522,12 @@ void Light::UpdateRenderProxy(RenderProxyLight* proxy)
     proxy->lightMaterial = m_material.Get();
     proxy->bakedShadowMap = m_shadowMap.Get();
     proxy->numCascades = m_numShadowMapCascades;
-
-    const BoundingBox aabb = GetAABB();
-
+    
     LightShaderData& bufferData = proxy->bufferData;
     bufferData.lightType = uint32(m_type);
     bufferData.color = Vec4f(m_color);
     bufferData.radiusFalloffPacked = (uint32(Float16(m_falloff).Raw()) << 16) | Float16(m_radius).Raw();
-    bufferData.positionIntensity = Vec4f(m_position, m_intensity);
+    bufferData.positionIntensity = Vec4f(GetWorldTranslation(), m_intensity);
     bufferData.materialIndex = ~0u; // materialIndex gets set in WriteBufferData_Light()
     bufferData.flags = m_lightFlags;
 

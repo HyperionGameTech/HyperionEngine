@@ -374,7 +374,7 @@ DX12DescriptorTableRef DX12RenderInterface::MakeDescriptorTable(const ShaderInpu
 
 DX12GraphicsPipelineRef DX12RenderInterface::MakeGraphicsPipeline(
     const DX12ShaderInstanceRef& shaderInstance,
-    const RenderTargetDesc& renderTargetDesc,
+    const FramebufferDesc& framebufferDesc,
     const RenderableAttributeSet& attributes)
 {
     DX12GraphicsPipelineRef graphicsPipeline = MakeHandle<DX12GraphicsPipeline>();
@@ -408,7 +408,7 @@ DX12GraphicsPipelineRef DX12RenderInterface::MakeGraphicsPipeline(
         graphicsPipeline->SetStencilWrite(true);
     }
 
-    graphicsPipeline->SetRenderTargetDesc(renderTargetDesc);
+    graphicsPipeline->SetFramebufferDesc(framebufferDesc);
 
     return graphicsPipeline;
 }
@@ -456,9 +456,9 @@ DX12SamplerRef DX12RenderInterface::MakeSampler(const SamplerDesc& samplerDesc)
     return MakeHandle<DX12Sampler>(samplerDesc);
 }
 
-DX12FramebufferRef DX12RenderInterface::MakeFramebuffer(const RenderTargetDesc& renderTargetDesc)
+DX12FramebufferRef DX12RenderInterface::MakeFramebuffer(const FramebufferDesc& framebufferDesc)
 {
-    return MakeHandle<DX12Framebuffer>(renderTargetDesc);
+    return MakeHandle<DX12Framebuffer>(framebufferDesc);
 }
 
 DX12FrameRef DX12RenderInterface::MakeFrame(uint32 frameIndex)

@@ -164,15 +164,15 @@ PSOutput PSMain(PSInput input)
 
     const uint2 pixelCoord = uint2(texcoord * max(0, int2(gbufferDimensions) - 1));
 
-    float4 albedo = SAMPLE_TEXTURE_2D(HYP_SAMPLER_NEAREST, gbuffer_albedo_texture, texcoord);
-    float4 normalSample = SAMPLE_TEXTURE_2D(HYP_SAMPLER_NEAREST, gbuffer_normals_texture, texcoord);
+    float4 albedo = SAMPLE_TEXTURE_2D_LOD(HYP_SAMPLER_NEAREST, gbuffer_albedo_texture, texcoord, 0);
+    float4 normalSample = SAMPLE_TEXTURE_2D_LOD(HYP_SAMPLER_NEAREST, gbuffer_normals_texture, texcoord, 0);
     float3 normal = GBufferUnpackNormal(normalSample);
 
     float3 tangent;
     float3 bitangent;
     ComputeOrthonormalBasis(normal, tangent, bitangent);
 
-    const float depth = SAMPLE_TEXTURE_2D(HYP_SAMPLER_NEAREST, gbuffer_depth_texture, texcoord).r;
+    const float depth = SAMPLE_TEXTURE_2D_LOD(HYP_SAMPLER_NEAREST, gbuffer_depth_texture, texcoord, 0).r;
 
     float4 positionVS = ReconstructViewSpacePositionFromDepth(camera.invProjMat, texcoord, depth);
 
@@ -210,7 +210,7 @@ PSOutput PSMain(PSInput input)
     float shadow = 1.0;
 
 #if HBAO_ENABLED || SSAO_ENABLED
-    const float4 ssao_data = SAMPLE_TEXTURE_2D(HYP_SAMPLER_NEAREST, ssao_gi_result, texcoord);
+    const float4 ssao_data = SAMPLE_TEXTURE_2D_LOD(HYP_SAMPLER_NEAREST, ssao_gi_result, texcoord, 0);
     ao = ssao_data.a;
 #endif
 
@@ -442,7 +442,7 @@ PSOutput PSMain(PSInput input)
 
     float4 specular = specular_lobe;
 
-    float4 diffuse_lobe = diffuseColor * (1.0 / HYP_FMATH_PI);
+    float4 diffuse_lobe = diffuseColor * HYP_FMATH_ONE_OVER_PI;
     float4 diffuse = diffuse_lobe;
 
     float4 direct_component = diffuse + specular * float4(energy_compensation, 1.0);

@@ -268,13 +268,13 @@ RendererResult DX12GraphicsPipeline::Rebuild()
     psoDesc.BlendState.AlphaToCoverageEnable = FALSE;
     psoDesc.BlendState.IndependentBlendEnable = FALSE;
 
-    if (m_renderTargetDesc.numAttachments > 0)
+    if (m_framebufferDesc.numAttachments > 0)
     {
         bool hasDSV = false;
 
-        for (uint32 attachmentIndex = 0; attachmentIndex < m_renderTargetDesc.numAttachments; attachmentIndex++)
+        for (uint32 attachmentIndex = 0; attachmentIndex < m_framebufferDesc.numAttachments; attachmentIndex++)
         {
-            const AttachmentDesc& attachmentDesc = m_renderTargetDesc.attachments[attachmentIndex];
+            const AttachmentDesc& attachmentDesc = m_framebufferDesc.attachments[attachmentIndex];
 
             if (TextureUtils::IsDepthFormat(attachmentDesc.format))
             {

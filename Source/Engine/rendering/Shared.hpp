@@ -1414,7 +1414,7 @@ struct AttachmentDesc
 
 #pragma pack(pop)
 
-struct RenderTargetDesc
+struct FramebufferDesc
 {
     static constexpr uint32 MaxAttachments = 5;
 
@@ -1428,7 +1428,7 @@ struct RenderTargetDesc
 
     RenderPassMode renderPassMode = RenderPassMode::RenderTarget;
 
-    HYP_FORCE_INLINE bool operator==(const RenderTargetDesc& other) const
+    HYP_FORCE_INLINE bool operator==(const FramebufferDesc& other) const
     {
         return extent == other.extent
             && offset == other.offset
@@ -1438,7 +1438,7 @@ struct RenderTargetDesc
             && renderPassMode == other.renderPassMode;
     }
 
-    HYP_FORCE_INLINE bool operator!=(const RenderTargetDesc& other) const
+    HYP_FORCE_INLINE bool operator!=(const FramebufferDesc& other) const
     {
         return !(*this == other);
     }
@@ -1452,7 +1452,7 @@ struct RenderTargetDesc
     }
 
     /*! \brief Test graphics pipeline compatibility: Can we reuse a graphics pipeline with \p other as its associated desc for this given desc? */
-    bool IsPSOCompatible(const RenderTargetDesc& other) const
+    bool IsPSOCompatible(const FramebufferDesc& other) const
     {
         return numAttachments == other.numAttachments
             && std::equal(attachments, attachments + numAttachments, other.attachments)

@@ -882,7 +882,7 @@ VulkanDescriptorTableRef VulkanRenderInterface::MakeDescriptorTable(const Shader
 
 VulkanGraphicsPipelineRef VulkanRenderInterface::MakeGraphicsPipeline(
     const VulkanShaderInstanceRef& shaderInstance,
-    const RenderTargetDesc& renderTargetDesc,
+    const FramebufferDesc& framebufferDesc,
     const RenderableAttributeSet& attributes)
 {
     VulkanGraphicsPipelineRef graphicsPipeline = MakeHandle<VulkanGraphicsPipeline>();
@@ -896,7 +896,7 @@ VulkanGraphicsPipelineRef VulkanRenderInterface::MakeGraphicsPipeline(
 #endif
     }
 
-    graphicsPipeline->SetRenderTargetDesc(renderTargetDesc);
+    graphicsPipeline->SetFramebufferDesc(framebufferDesc);
 
     graphicsPipeline->SetVertexAttributes(attributes.GetMeshAttributes().vertexAttributes);
     graphicsPipeline->SetTopology(attributes.GetMeshAttributes().topology);
@@ -978,9 +978,9 @@ VulkanSamplerRef VulkanRenderInterface::MakeSampler(const SamplerDesc& samplerDe
     return MakeHandle<VulkanSampler>(samplerDesc);
 }
 
-VulkanFramebufferRef VulkanRenderInterface::MakeFramebuffer(const RenderTargetDesc& renderTargetDesc)
+VulkanFramebufferRef VulkanRenderInterface::MakeFramebuffer(const FramebufferDesc& framebufferDesc)
 {
-    return MakeHandle<VulkanFramebuffer>(renderTargetDesc);
+    return MakeHandle<VulkanFramebuffer>(framebufferDesc);
 }
 
 VulkanFrameRef VulkanRenderInterface::MakeFrame(uint32 frameIndex)

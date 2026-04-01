@@ -342,11 +342,11 @@ void FullScreenPass::CreateFramebuffer()
         framebufferExtent /= 2;
     }
 
-    RenderTargetDesc renderTargetDesc;
-    renderTargetDesc.extent = framebufferExtent;
-    renderTargetDesc.numLayers = 1;
+    FramebufferDesc framebufferDesc;
+    framebufferDesc.extent = framebufferExtent;
+    framebufferDesc.numLayers = 1;
 
-    m_framebuffer = g_renderInterface->MakeFramebuffer(renderTargetDesc);
+    m_framebuffer = g_renderInterface->MakeFramebuffer(framebufferDesc);
 
 #if HYP_DEBUG_MODE
     m_framebuffer->SetDebugName(NAME_FMT("{}Framebuffer", GetName()));

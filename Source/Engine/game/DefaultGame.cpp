@@ -97,7 +97,7 @@ void DefaultGame::OnLaunch_Impl()
 
                 ViewDesc viewDesc {
                     .flags = ViewFlags::DEFAULT | ViewFlags::GBUFFER | ViewFlags::MATCH_CAMERA_DIMENSIONS,
-                    .renderTargetDesc = { .extent = viewportSize },
+                    .framebufferDesc = { .extent = viewportSize },
                     .camera = m_camera
                 };
 
@@ -133,7 +133,7 @@ void DefaultGame::OnLaunch_Impl()
 
     ViewDesc viewDesc {
         .flags = ViewFlags::DEFAULT | ViewFlags::GBUFFER | ViewFlags::MATCH_CAMERA_DIMENSIONS,
-        .renderTargetDesc = { .extent = viewportSize },
+        .framebufferDesc = { .extent = viewportSize },
         .camera = m_camera
     };
 

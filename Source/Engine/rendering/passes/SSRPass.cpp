@@ -109,11 +109,11 @@ void SSRPass::CreatePasses()
     // Write UVs pass - renders to m_uvsTexture
     {
         // Create framebuffer for UVs texture
-        RenderTargetDesc renderTargetDesc {};
-        renderTargetDesc.extent = m_uvsTexture->GetExtent().GetXY();
-        renderTargetDesc.numLayers = 1;
+        FramebufferDesc framebufferDesc {};
+        framebufferDesc.extent = m_uvsTexture->GetExtent().GetXY();
+        framebufferDesc.numLayers = 1;
 
-        FramebufferRef writeUVsFramebuffer = g_renderInterface->MakeFramebuffer(renderTargetDesc);
+        FramebufferRef writeUVsFramebuffer = g_renderInterface->MakeFramebuffer(framebufferDesc);
 
 #if HYP_DEBUG_MODE
         writeUVsFramebuffer->SetDebugName(NAME("SSRWriteUVsFramebuffer"));
@@ -147,11 +147,11 @@ void SSRPass::CreatePasses()
     // Sample pass - renders to m_sampledResultTexture
     {
         // Create framebuffer for sampled result texture
-        RenderTargetDesc renderTargetDesc {};
-        renderTargetDesc.extent = m_sampledResultTexture->GetExtent().GetXY();
-        renderTargetDesc.numLayers = 1;
+        FramebufferDesc framebufferDesc {};
+        framebufferDesc.extent = m_sampledResultTexture->GetExtent().GetXY();
+        framebufferDesc.numLayers = 1;
 
-        FramebufferRef sampleGBufferFramebuffer = g_renderInterface->MakeFramebuffer(renderTargetDesc);
+        FramebufferRef sampleGBufferFramebuffer = g_renderInterface->MakeFramebuffer(framebufferDesc);
 
 #if HYP_DEBUG_MODE
         sampleGBufferFramebuffer->SetDebugName(NAME("SSRSampleGBufferFramebuffer"));

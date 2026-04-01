@@ -53,8 +53,8 @@ void EditorViewport::Init()
     ViewDesc viewDesc {};
     viewDesc.flags = ViewFlags::DEFAULT | ViewFlags::GBUFFER | ViewFlags::MATCH_CAMERA_DIMENSIONS;
 
-    viewDesc.renderTargetDesc = {};
-    viewDesc.renderTargetDesc.extent = Vec2u(m_camera->GetDimensions());
+    viewDesc.framebufferDesc = {};
+    viewDesc.framebufferDesc.extent = Vec2u(m_camera->GetDimensions());
 
     viewDesc.camera = m_camera;
 

@@ -42,7 +42,7 @@ ThreadPoolBase::ThreadPoolBase(Array<UniquePtr<ThreadBase>>&& threads)
 
 ThreadPoolBase::~ThreadPoolBase()
 {
-    HYP_LOG(Tasks, Debug, "Destroying thread pool with {} threads", m_threads.Size());
+    HYP_LOG(Tasks, Verbose, "Destroying thread pool with {} threads", m_threads.Size());
 
     for (auto& it : m_threads)
     {
@@ -349,6 +349,7 @@ void BackgroundWorkerPool::Stop()
     }
 
     m_threads.Clear();
+    m_workerIdGenerator.Reset();
     m_threadMask = 0;
     m_activeThreadCount.Set(0, MemoryOrder::RELEASE);
 }
@@ -381,17 +382,22 @@ TaskThread* BackgroundWorkerPool::GetNextTaskThread()
         return CreateThread();
     }
 
-    uint32 cycle = m_cycle.Get(MemoryOrder::RELAXED) % uint32(m_threads.Size());
-    TaskThread* taskThread = static_cast<TaskThread*>(m_threads[cycle].Get());
+    TaskThread* taskThread = nullptr;
 
-    m_cycle.Increment(1, MemoryOrder::RELAXED);
+    uint32 seed = m_cycle.Increment(1, MemoryOrder::RELAXED);
+    
+    while (!taskThread)
+    {
+        uint32 index = MathUtil::Floor(MathUtil::RandomFloat(seed) * float(activeCount - 1));
+        taskThread = static_cast<TaskThread*>(m_threads[index].Get());
+    }
 
     return taskThread;
 }
 
 TaskThread* BackgroundWorkerPool::CreateThread()
 {
-    const uint32 threadIndex = m_nextThreadIndex.Increment(1, MemoryOrder::ACQUIRE_RELEASE);
+    const uint32 threadIndex = m_workerIdGenerator.Next() - 1;
 
     ThreadId threadId = CreateTaskThreadId(m_baseName, threadIndex);
 
@@ -409,7 +415,13 @@ TaskThread* BackgroundWorkerPool::CreateThread()
         ThreadSleep(0);
     }
 
-    m_threads.PushBack(std::move(newThread));
+    if (m_threads.Size() <= threadIndex)
+    {
+        m_threads.Resize(threadIndex + 1);
+    }
+
+    m_threads[threadIndex] = std::move(newThread);
+
     m_activeThreadCount.Increment(1, MemoryOrder::RELEASE);
 
     return taskThread;
@@ -458,6 +470,7 @@ void BackgroundWorkerPool::CleanupIdleThreads()
 
         m_threads.EraseAt(index);
         m_activeThreadCount.Decrement(1, MemoryOrder::RELEASE);
+        m_workerIdGenerator.ReleaseId(index + 1);
     }
 }
 

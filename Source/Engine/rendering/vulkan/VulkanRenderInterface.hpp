@@ -121,7 +121,7 @@ public:
 
     VulkanGraphicsPipelineRef MakeGraphicsPipeline(
         const VulkanShaderInstanceRef& shaderInstance,
-        const RenderTargetDesc& renderTargetDesc,
+        const FramebufferDesc& framebufferDesc,
         const RenderableAttributeSet& attributes) override;
 
     VulkanComputePipelineRef MakeComputePipeline(const VulkanShaderInstanceRef& shaderInstance) override;
@@ -137,7 +137,7 @@ public:
 
     VulkanSamplerRef MakeSampler(const SamplerDesc& samplerDesc) override;
 
-    VulkanFramebufferRef MakeFramebuffer(const RenderTargetDesc& renderTargetDesc) override;
+    VulkanFramebufferRef MakeFramebuffer(const FramebufferDesc& framebufferDesc) override;
 
     VulkanFrameRef MakeFrame(uint32 frameIndex) override;
 

@@ -41,7 +41,7 @@ Result BakeData<Light>::Build()
 
     m_projMat = Mat4f::Perspective(90.0f, dimensions.x, dimensions.y, 0.01f, 1000.0f);
 
-    const Vec3f origin = m_light->GetPosition();
+    const Vec3f origin = m_light->GetWorldTranslation();
 
     for (uint32 face = 0; face < numFaces; face++)
     {

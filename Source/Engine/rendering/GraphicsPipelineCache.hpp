@@ -96,7 +96,7 @@ public:
      */
     void GetOrCreate(
         const RenderableAttributeSet& attributes,
-        const RenderTargetDesc& renderTargetDesc,
+        const FramebufferDesc& framebufferDesc,
         GraphicsPipelineCacheHandle& outCacheHandle);
 
     void ExpirePipelinesForShader(const Shader* shader);
@@ -106,7 +106,7 @@ public:
 private:
     GraphicsPipelineCacheHandle FindGraphicsPipeline(
         const RenderableAttributeSet& attributes,
-        const RenderTargetDesc& renderTargetDesc);
+        const FramebufferDesc& framebufferDesc);
 
     CachedPipelinesMap* m_cachedPipelines;
     SharedMutex m_mutex;

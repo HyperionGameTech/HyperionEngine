@@ -80,7 +80,7 @@ public:
 
     DX12GraphicsPipelineRef MakeGraphicsPipeline(
         const DX12ShaderInstanceRef& shaderInstance,
-        const RenderTargetDesc& renderTargetDesc,
+        const FramebufferDesc& framebufferDesc,
         const RenderableAttributeSet& attributes) override;
 
     DX12ComputePipelineRef MakeComputePipeline(const DX12ShaderInstanceRef& shaderInstance) override;
@@ -96,7 +96,7 @@ public:
 
     DX12SamplerRef MakeSampler(const SamplerDesc& samplerDesc) override;
 
-    DX12FramebufferRef MakeFramebuffer(const RenderTargetDesc& renderTargetDesc) override;
+    DX12FramebufferRef MakeFramebuffer(const FramebufferDesc& framebufferDesc) override;
 
     DX12FrameRef MakeFrame(uint32 frameIndex) override;
 

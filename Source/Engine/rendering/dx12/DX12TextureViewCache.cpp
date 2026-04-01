@@ -167,7 +167,7 @@ void DX12TextureViewCache::CleanupUnusedTextures()
 
     if (numRemoved != 0)
     {
-        HYP_LOG(RenderingBackend, Debug, "DX12TextureViewCache: Cleaned up {} unused textures", numRemoved);
+        HYP_LOG(RenderingBackend, Verbose, "DX12TextureViewCache: Cleaned up {} unused textures", numRemoved);
     }
 }
 

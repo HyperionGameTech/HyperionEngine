@@ -197,10 +197,10 @@ void World::Init()
     if (GetEngineConfig().Get("Rendering.RayTracingEnabled").ToBool(false))
     {
         // dummy output target
-        RenderTargetDesc renderTargetDesc;
-        renderTargetDesc.extent = Vec2u::One();
-        renderTargetDesc.attachments[0] = { TextureType::Texture2D, TextureFormat::R8 };
-        renderTargetDesc.numAttachments = 1;
+        FramebufferDesc framebufferDesc;
+        framebufferDesc.extent = Vec2u::One();
+        framebufferDesc.attachments[0] = { TextureType::Texture2D, TextureFormat::R8 };
+        framebufferDesc.numAttachments = 1;
 
         Handle<Camera> camera = MakeHandle<Camera>();
         camera->SetName(NAME("RayTracingViewDummyCamera"));
@@ -216,7 +216,7 @@ void World::Init()
             | ViewFlags::SKIP_FOG_VOLUMES
             | ViewFlags::SKIP_PARTICLE_VOLUMES
             | ViewFlags::NO_FRUSTUM_CULLING;
-        rayTracingViewDesc.renderTargetDesc = renderTargetDesc;
+        rayTracingViewDesc.framebufferDesc = framebufferDesc;
         rayTracingViewDesc.camera = camera;
 
         View* rayTracingView = new View(rayTracingViewDesc);

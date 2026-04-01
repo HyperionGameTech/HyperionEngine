@@ -23,22 +23,22 @@ public:
 
     HYP_FORCE_INLINE uint32 GetWidth() const
     {
-        return m_renderTargetDesc.extent.x;
+        return m_framebufferDesc.extent.x;
     }
 
     HYP_FORCE_INLINE uint32 GetHeight() const
     {
-        return m_renderTargetDesc.extent.y;
+        return m_framebufferDesc.extent.y;
     }
 
     HYP_FORCE_INLINE const Vec2u& GetExtent() const
     {
-        return m_renderTargetDesc.extent;
+        return m_framebufferDesc.extent;
     }
 
-    HYP_FORCE_INLINE const RenderTargetDesc& GetRenderTargetDesc() const
+    HYP_FORCE_INLINE const FramebufferDesc& GetFramebufferDesc() const
     {
-        return m_renderTargetDesc;
+        return m_framebufferDesc;
     }
 
     virtual bool IsCreated() const = 0;
@@ -103,13 +103,13 @@ public:
         uint8 attachmentsMask = uint8(-1)) = 0;
 
 protected:
-    FramebufferBase(const RenderTargetDesc& renderTargetDesc)
-        : m_renderTargetDesc(renderTargetDesc),
+    FramebufferBase(const FramebufferDesc& framebufferDesc)
+        : m_framebufferDesc(framebufferDesc),
           m_isRecordingCount(0)
     {
     }
 
-    RenderTargetDesc m_renderTargetDesc;
+    FramebufferDesc m_framebufferDesc;
     int m_isRecordingCount;
 
 #if HYP_DEBUG_MODE

@@ -119,7 +119,6 @@ FilePath ConfigBase::GetFilePath() const
 Result ConfigBase::Read(JSON::Value& outValue) const
 {
     const FilePath configPath = GetFilePath();
-    HYP_LOG(Config, Debug, "Loading configuration \"{}\" from file {}", m_name, GetFilePath());
 
     if (!configPath.Exists())
     {
