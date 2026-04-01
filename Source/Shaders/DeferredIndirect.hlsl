@@ -206,6 +206,7 @@ PSOutput PSMain(PSInput input)
     else if (numFallbackProbes > 0)
     {
         irradiance = float4(EnvProbeSH(fallbackEnvProbes[0], N, /* order */ 2), 0.0);
+
     }
 
 #if SSGI_ENABLED

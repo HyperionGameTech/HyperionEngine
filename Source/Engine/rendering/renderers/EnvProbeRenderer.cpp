@@ -371,40 +371,25 @@ void ComputeEnvProbeSphericalHarmonics(
         Assert(shTilesBuffers[i]->Create());
     }
 
-    ShaderPropertySet shaderProperties;
-
-    RenderProxyEnvProbe* envProbeProxy = static_cast<RenderProxyEnvProbe*>(GetRenderProxy(&envProbe));
-    Assert(envProbeProxy != nullptr, "EnvProbe not bound!");
-
     const Vec2u cubemapDimensions = inColorTexture.GetExtent().GetXY();
 
     struct SHUniforms
     {
-        Vec4u probeGridPosition;
-        Vec4u cubemapDimensions;
         Vec4u levelDimensions;
-        Vec4f worldPosition;
-        uint32 envProbeIndex;
     } uniforms;
 
-    uniforms.envProbeIndex = Resources::GetBinding(&envProbe);
-    uniforms.probeGridPosition = { 0, 0, 0, 0 };
-    uniforms.cubemapDimensions = Vec4u { cubemapDimensions, 0, 0 };
-    uniforms.worldPosition = envProbeProxy->bufferData.worldPosition;
-
-    AssertDebug(uniforms.envProbeIndex != ~0u);
-
     static constexpr uint32 ShDataSize = sizeof(EnvProbeShaderData::shData);
-    const uint32 shDataSrcOffset = uint32(sizeof(EnvProbeShaderData) * uniforms.envProbeIndex) + uint32(offsetof(EnvProbeShaderData, shData));
 
-    GpuBufferRef shReadbackBuffer = g_renderInterface->MakeGpuBuffer(GpuBufferType::READBACK_BUFFER, ShDataSize);
+    GpuBufferRef shReadbackBuffer = g_renderInterface->MakeGpuBuffer(GpuBufferType::READBACK_BUFFER, MathUtil::NextPowerOf2(ShDataSize));
     shReadbackBuffer->SetIsCpuAccessible(true);
     CheckResult(shReadbackBuffer->Create());
 
     Array<GpuBufferRef> uniformBuffers;
 
     cr << InsertBarrier(shTilesBuffers[0], RS_UNORDERED_ACCESS, ShaderModuleType::Compute);
-    cr << InsertBarrier(g_renderInterface->gpuBuffers[GRB_ENV_PROBES]->GetBuffer(frame->GetFrameIndex()), RS_UNORDERED_ACCESS, ShaderModuleType::Compute);
+    cr << InsertBarrier(shReadbackBuffer, RS_UNORDERED_ACCESS, ShaderModuleType::Compute);
+    
+    ShaderPropertySet shaderProperties;
 
     // Helper to run pass
     auto RunPass = [&](Name mode, const SHUniforms& passUniforms, const Vec3u& dispatchGroupSize, const GpuBufferRef& inputBuffer, const GpuBufferRef& outputBuffer)
@@ -424,6 +409,8 @@ void ComputeEnvProbeSphericalHarmonics(
         cr << SetShaderUniform(0, "SamplerLinear"_sh, g_renderInterface->placeholderData->GetSamplerLinear());
         cr << SetShaderUniform(1, "SamplerNearest"_sh, g_renderInterface->placeholderData->GetSamplerNearest());
         cr << SetShaderUniform(3, "EnvProbesBuffer"_sh, g_renderInterface->gpuBuffers[GRB_ENV_PROBES]->GetBuffer(frame->GetFrameIndex()));
+
+        cr << SetShaderUniform(4, "OutSHBuffer"_sh, shReadbackBuffer);
 
         cr << SetShaderUniform(8, "InColorCubemap"_sh, g_renderInterface->textureViewCache->GetOrCreate(const_cast<Texture*>(&inColorTexture)));
         cr << SetShaderUniform(11, "InputSHTilesBuffer"_sh, inputBuffer);
@@ -481,22 +468,12 @@ void ComputeEnvProbeSphericalHarmonics(
 
     // Finalize - build into final buffer
     cr << InsertBarrier(shTilesBuffers[finalizeShBufferIndex], RS_UNORDERED_ACCESS, ShaderModuleType::Compute);
-    cr << InsertBarrier(g_renderInterface->gpuBuffers[GRB_ENV_PROBES]->GetBuffer(frame->GetFrameIndex()), RS_UNORDERED_ACCESS, ShaderModuleType::Compute);
+    cr << InsertBarrier(shReadbackBuffer, RS_UNORDERED_ACCESS, ShaderModuleType::Compute);
 
     // MODE_FINALIZE
     RunPass(NAME("FINALIZE"), uniforms, Vec3u { 1, 1, 1 }, shTilesBuffers[finalizeShBufferIndex], shTilesBuffers[finalizeShBufferIndex]);
 
-    cr << InsertBarrier(g_renderInterface->gpuBuffers[GRB_ENV_PROBES]->GetBuffer(frame->GetFrameIndex()), RS_UNORDERED_ACCESS, ShaderModuleType::Compute);
-
-    // Copy the computed SH data back to a CPU-accessible staging buffer for readback
-    {
-        const GpuBufferRef& envProbesGpuBuffer = g_renderInterface->gpuBuffers[GRB_ENV_PROBES]->GetBuffer(frame->GetFrameIndex());
-
-        cr << InsertBarrier(envProbesGpuBuffer, RS_COPY_SRC);
-        cr << InsertBarrier(shReadbackBuffer, RS_COPY_DST);
-        cr << CopyBuffer(envProbesGpuBuffer, shReadbackBuffer, shDataSrcOffset, 0u, ShDataSize);
-        cr << InsertBarrier(envProbesGpuBuffer, RS_UNORDERED_ACCESS, ShaderModuleType::Compute);
-    }
+    cr << InsertBarrier(shReadbackBuffer, RS_UNORDERED_ACCESS, ShaderModuleType::Compute);
 
     struct ReadbackSphericalHarmonicsPayload
     {

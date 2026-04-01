@@ -53,6 +53,20 @@
               "$Class": "ShaderInput",
               "Register": 2,
               "ElementType": 3,
+              "Name": "OutSHBuffer",
+              "Count": 1,
+              "Size": 4294967295,
+              "IsDynamic": false,
+              "StructInfo": {
+                "Name": "",
+                "Size": 4294967295,
+                "FieldNames": [],
+                "FieldTypes": []
+              }
+            }, {
+              "$Class": "ShaderInput",
+              "Register": 2,
+              "ElementType": 3,
               "Name": "InputSHTilesBuffer",
               "Count": 1,
               "Size": 4294967295,
@@ -115,11 +129,11 @@
   "ShaderBlobs": [{
       "$Class": "BlobDataReference",
       "Key": "Engine/Shaders/ComputeSH/ComputeSH_16198839736632478812.CS",
-      "Size": 57588
+      "Size": 50760
     }],
   "PropertySetHashCode": {},
   "LastCompiledTimestamp": {
-    "Value": 1774656711000
+    "Value": 1774890913000
   },
   "Name": "ComputeSH_16198839736632478812",
   "FriendlyName": "ComputeSH_16198839736632478812",

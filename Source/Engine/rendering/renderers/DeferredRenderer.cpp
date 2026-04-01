@@ -511,7 +511,7 @@ void DeferredPass::RenderToFramebuffer_Internal(Frame* frame, const RenderSetup&
             size_t cbufferOffset = 0;
             size_t cbufferSize = 0;
 
-            EnvProbeShaderData fallbackEnvProbeData {};
+            static const EnvProbeShaderData s_dummyFallbackEnvProbe {};
 
             const uint32 numEnvProbes = rpl.GetEnvProbes().NumCurrent();
             
@@ -568,10 +568,12 @@ void DeferredPass::RenderToFramebuffer_Internal(Frame* frame, const RenderSetup&
             {
                 if (probeIndex < uint32(tempEnvProbes.Size()))
                 {
-                    fallbackEnvProbeData = *tempEnvProbes[probeIndex].second;
+                    g_renderInterface->cbufferAllocator->Write(tempEnvProbes[probeIndex].second);
                 }
-
-                g_renderInterface->cbufferAllocator->Write(&fallbackEnvProbeData);
+                else
+                {
+                    g_renderInterface->cbufferAllocator->Write(&s_dummyFallbackEnvProbe);
+                }
             }
 
             // write num

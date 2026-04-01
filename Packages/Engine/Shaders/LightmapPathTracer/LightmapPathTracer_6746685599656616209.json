@@ -265,11 +265,11 @@
   "ShaderBlobs": [{
       "$Class": "BlobDataReference",
       "Key": "Engine/Shaders/LightmapPathTracer/LightmapPathTracer_6746685599656616209.RGS",
-      "Size": 111848
+      "Size": 111864
     }, {
       "$Class": "BlobDataReference",
       "Key": "Engine/Shaders/LightmapPathTracer/LightmapPathTracer_6746685599656616209.CHS",
-      "Size": 136660
+      "Size": 136632
     }, {
       "$Class": "BlobDataReference",
       "Key": "Engine/Shaders/LightmapPathTracer/LightmapPathTracer_6746685599656616209.MS",
@@ -277,9 +277,9 @@
     }],
   "PropertySetHashCode": {},
   "LastCompiledTimestamp": {
-    "Value": 1774830430000
+    "Value": 1774842951000
   },
   "Name": "LightmapPathTracer_6746685599656616209",
-  "FriendlyName": "LightmapPathTracer6746685599656616209",
+  "FriendlyName": "LightmapPathTracer_6746685599656616209",
   "OriginalFilepath": ""
 }

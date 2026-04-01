@@ -20,17 +20,8 @@ DECLARE_SAMPLER(ComputeSH, SamplerNearest) SamplerState sampler_nearest;
 #include "../include/packing.inc"
 #include "../include/scene.inc"
 #include "../include/Octahedron.inc"
-#include "../include/env_probe.inc"
 
 #undef HYP_DO_NOT_DEFINE_DESCRIPTOR_SETS
-
-#if defined(MODE_CLEAR) || defined(MODE_FINALIZE)
-// @TODO Instead of huge RWStructuredBuffer for env probes we should use a one-off
-// sbuffer to write/read from since we end up reading from it onto the cpu anyway.
-// And eventually we will get rid of some of these huge buffers because of the new constants allocator
-// that lets us treat everything as push constants essentially.
-DECLARE_UAV(ComputeSH, EnvProbesBuffer) RWStructuredBuffer<EnvProbe> env_probes;
-#endif
 
 DECLARE_SRV(ComputeSH, InColorCubemap) TextureCube cubemap_color;
 
@@ -42,14 +33,12 @@ DECLARE_UAV(ComputeSH, InputSHTilesBuffer) RWStructuredBuffer<SHTile> sh_tiles;
 DECLARE_UAV(ComputeSH, OutputSHTilesBuffer) RWStructuredBuffer<SHTile> sh_tiles_output;
 #endif
 
+DECLARE_UAV(ComputeSH, OutSHBuffer) RWStructuredBuffer<float4> OutSHBuffer;
+
 #if defined(MODE_FINALIZE) || defined(MODE_REDUCE) || defined(MODE_CLEAR) || (defined(MODE_BUILD_COEFFICIENTS))
 DECLARE_BUFFER(ComputeSH, SHUniforms) cbuffer SHUniforms
 {
-    uint4 probe_grid_position;
-    uint4 cubemap_dimensions;
     uint4 level_dimensions;
-    float4 world_position;
-    uint env_probe_index;
 };
 #endif
 
@@ -110,7 +99,7 @@ void CSMain(uint3 dispatchThreadID : SV_DispatchThreadID)
     {
         for (int i = 0; i < 9; i++)
         {
-            env_probes[env_probe_index].sh[i] = (float4)0.0;
+            OutSHBuffer[i] = (float4)0.0;
         }
     }
 #elif defined(MODE_BUILD_COEFFICIENTS)
@@ -189,15 +178,15 @@ void CSMain(uint3 dispatchThreadID : SV_DispatchThreadID)
     {
         for (int i = 0; i < 9; i++)
         {
-            env_probes[env_probe_index].sh[i] += sh_tiles[face_index * 9 + i].coeffs_weights[i];
+            OutSHBuffer[i] += sh_tiles[face_index * 9 + i].coeffs_weights[i];
         }
     }
 
     for (int i = 0; i < 9; i++)
     {
-        float weight = env_probes[env_probe_index].sh[i].a;
+        float weight = OutSHBuffer[i].a;
         float normFactor = (4.0 * HYP_FMATH_PI) / max(weight, 0.0001);
-        env_probes[env_probe_index].sh[i] = float4(env_probes[env_probe_index].sh[i].rgb * normFactor * s_aOverPi[i], 1.0);
+        OutSHBuffer[i] = float4(OutSHBuffer[i].rgb * normFactor * s_aOverPi[i], 1.0);
     }
 #else
     float total_weight = 0.0;
@@ -226,14 +215,14 @@ void CSMain(uint3 dispatchThreadID : SV_DispatchThreadID)
     {
         float3 result = sh_result[i] * ((4.0 * HYP_FMATH_PI) / total_weight) * s_aOverPi[i];
 
-        env_probes[env_probe_index].sh[i] = float4(result, 1.0);
+        OutSHBuffer[i] = float4(result, 1.0);
     }
 #endif
 
     // // temp: debug
     // for (int i = 0; i < 9; i++)
     // {
-    //     env_probes[env_probe_index].sh[i] = float4(1.0, 0.0, 0.0, 1.0);
+    //     OutSHBuffer[i] = float4(1.0, 0.0, 0.0, 1.0);
     // }
 #endif
 }
