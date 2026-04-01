@@ -1,5 +1,10 @@
 #include "include/defines.inc"
 
+PERMUTE(SKINNING);
+PERMUTE(ALPHA_DISCARD);
+PERMUTE(INSTANCING);
+PERMUTE(SHADING_TYPE, DEFERRED, FORWARD, LIGHTMAPPED, UNLIT);
+
 struct PSInput
 {
     float4 position_cs : SV_POSITION;

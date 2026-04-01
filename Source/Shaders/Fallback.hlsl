@@ -3,6 +3,9 @@
  *  Date: 2026/03/27
  **/
 
+PERMUTE(INSTANCING);
+PERMUTE(SKINNING);
+
 #include "./include/defines.inc"
 #include "./include/shared.inc"
 #include "./include/scene.inc"
@@ -26,7 +29,7 @@ struct VSOutput
     float4 position_cs : SV_POSITION;
     float3 v_position : POSITION;
     float2 v_texcoord0 : TEXCOORD0;
-    nointerpolation uint v_object_index : TEXCOORD6;
+    nointerpolation uint object_index : TEXCOORD6;
 };
 
 DECLARE_BUFFER_DYNAMIC(Default, CamerasBuffer) cbuffer CamerasBuffer
@@ -68,10 +71,10 @@ VSOutput VSMain(VSInput input, uint instanceId : SV_InstanceID)
 #ifdef INSTANCING
     const uint objectIndex = OBJECT_INDEX;
     float4x4 model_matrix = mul(entity_instance_batch.transforms[instanceId], entities[objectIndex].model_matrix);
-    output.v_object_index = objectIndex;
+    output.object_index = objectIndex;
 #else
     float4x4 model_matrix = entity.model_matrix;
-    output.v_object_index  = 0;
+    output.object_index  = 0;
 #endif
 
 #ifdef HYP_ATTRIBUTE_a_position
@@ -107,7 +110,7 @@ struct PSInput
     float4 position_cs : SV_POSITION;
     float3 v_position : POSITION;
     float2 v_texcoord0 : TEXCOORD0;
-    nointerpolation uint v_object_index : TEXCOORD6;
+    nointerpolation uint object_index : TEXCOORD6;
 };
 
 struct PSOutput

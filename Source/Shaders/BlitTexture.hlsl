@@ -1,6 +1,8 @@
 #include "include/defines.inc"
 #include "include/shared.inc"
 
+PERMUTE(CHECKERBOARDED);
+
 #define HYP_DO_NOT_DEFINE_DESCRIPTOR_SETS
 #include "include/scene.inc"
 #undef HYP_DO_NOT_DEFINE_DESCRIPTOR_SETS

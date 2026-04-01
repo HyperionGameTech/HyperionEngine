@@ -514,6 +514,7 @@ class HYP_API ShaderCompiler
         Array<VertexAttributeDefinition> requiredAttributes;
         Array<VertexAttributeDefinition> optionalAttributes;
         Array<struct DescriptorUsage, DynamicAllocator> descriptorUsages;
+        ShaderVariantPerms scannedProperties; // properties collected from shader source
 
         ProcessResult() = default;
         ProcessResult(const ProcessResult& other) = default;

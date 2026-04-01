@@ -183,7 +183,7 @@
   </Type>
   
   
-  <Type Name="Hyperion::containers::HashSet&lt;*,*,*&gt;">
+  <Type Name="Hyperion::containers::IntrusiveMap&lt;*,*,*&gt;">
     <DisplayString>{{ Size={m_size} }}</DisplayString>
 
     <Expand>

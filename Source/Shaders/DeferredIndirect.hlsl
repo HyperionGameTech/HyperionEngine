@@ -1,5 +1,10 @@
 #include "./include/defines.inc"
 
+PERMUTE(SSGI_ENABLED);
+PERMUTE(RT_GI);
+PERMUTE(RT_REFLECTIONS);
+PERMUTE(HBAO_ENABLED);
+
 #ifdef VERTEX_SHADER
 
 struct VSInput
@@ -78,9 +83,6 @@ DECLARE_BUFFER(DeferredPass, WorldsBuffer) cbuffer WorldsBuffer
 };
 
 #include "./include/PhysicalCamera.inc"
-
-#define HYP_VCT_REFLECTIONS_ENABLED 1
-#define HYP_VCT_INDIRECT_ENABLED 1
 
 #if RT_GI
 DECLARE_SRV(DeferredPass, DDGIIrradianceTexture) Texture2D probe_irradiance;

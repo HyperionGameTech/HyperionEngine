@@ -1,5 +1,8 @@
 #include "../include/defines.inc"
 
+STATIC(MAX_LIGHTS, 4);
+
+
 #ifdef VERTEX_SHADER
 
 struct VSInput
@@ -23,7 +26,7 @@ struct VSOutput
 
 #define HYP_DO_NOT_DEFINE_DESCRIPTOR_SETS
 
-#include "../include/scene.inc"
+#include "../include/scene.inc" 
 #include "../include/shared.inc"
 
 #undef HYP_DO_NOT_DEFINE_DESCRIPTOR_SETS

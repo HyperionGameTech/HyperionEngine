@@ -153,7 +153,7 @@ struct VSOutput
 {
     float4 position_cs : SV_POSITION;
     float3 v_position : POSITION;
-    nointerpolation uint v_object_index : TEXCOORD1;
+    nointerpolation uint object_index : TEXCOORD1;
     nointerpolation uint v_cube_face_index : TEXCOORD2;
     float2 v_cube_face_uv : TEXCOORD3;
 };
@@ -175,9 +175,9 @@ VSOutput VSMain(VSInput input, uint ViewId : SV_ViewID, uint instanceId : SV_Ins
     float4x4 view_matrix = current_env_probe.face_view_matrices[ViewId];
 
 #ifdef INSTANCING
-    output.v_object_index = OBJECT_INDEX;
+    output.object_index = OBJECT_INDEX;
 #else
-    output.v_object_index = 0;
+    output.object_index = 0;
 #endif
 
     output.position_cs = mul(projection_matrix, mul(view_matrix, position));
@@ -196,7 +196,7 @@ struct PSInput
 {
     float4 position_cs : SV_POSITION;
     float3 v_position : POSITION;
-    nointerpolation uint v_object_index : TEXCOORD1;
+    nointerpolation uint object_index : TEXCOORD1;
     nointerpolation uint v_cube_face_index : TEXCOORD2;
     float2 v_cube_face_uv : TEXCOORD3;
 };

@@ -1,5 +1,7 @@
 #include "../include/defines.inc"
 
+PERMUTE(MODE, CLEAR, BUILD_COEFFICIENTS, REDUCE, FINALIZE);
+
 #define NUM_SAMPLES_X 16
 #define NUM_SAMPLES_Y 16
 

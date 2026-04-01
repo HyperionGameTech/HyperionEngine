@@ -6,6 +6,8 @@
 #include "../../include/noise.inc"
 #include "../../include/packing.inc"
 
+PERMUTE(MODE, IRRADIANCE, RADIANCE, FULL, SHADOW);
+
 DECLARE_SAMPLER(LightmapPathTracer, SamplerNearest) SamplerState sampler_nearest;
 DECLARE_SAMPLER(LightmapPathTracer, SamplerLinear) SamplerState sampler_linear;
 

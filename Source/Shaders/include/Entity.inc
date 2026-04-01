@@ -85,10 +85,8 @@ struct MeshEntityInstanceBatch
         #else
             #define OBJECT_INDEX (entity_instance_batch.indices[gl_InstanceIndex >> 2][gl_InstanceIndex & 3])
         #endif
-        #define entity (entities[OBJECT_INDEX])
-    #elif defined(PIXEL_SHADER)
-        #define entity (entities[v_object_index])
     #endif
+    #define entity (entities[OBJECT_INDEX])
 #else // !INSTANCING
     #ifdef LANG_HLSL // for HLSL (non-instancing) we use a StructuredBuffer<Entity> that is offset, so we need to access the entity by the first element
         #define entity (entities[0])

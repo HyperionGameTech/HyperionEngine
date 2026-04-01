@@ -72,7 +72,7 @@ HYP_DEFINE_LOG_SUBCHANNEL(ShaderCompiler, Core);
 
 /// Should missing shader variants be compiled when requested, or should we just fail?
 /// Enabling this will cause shader compilation to happen during gameplay / editor.
-CVar<bool> cvShouldCompileMissingVariants { "ShaderCompiler.CompileMissingVariants", true };
+CVar<bool> cvShouldCompileMissingVariants { "ShaderCompiler.CompileMissingVariants", false };
 
 // #define HYP_SHADER_COMPILER_LOGGING
 
@@ -327,6 +327,18 @@ static const ShaderPropertyId s_propDebugIrradiance = InternShaderProperty(Shade
 static const ShaderPropertyId s_propDebugVelocity = InternShaderProperty(ShaderProperty(NAME("DEBUG_VELOCITY")));
 static const ShaderPropertyId s_propDebugNormals = InternShaderProperty(ShaderProperty(NAME("DEBUG_NORMALS")));
 static const ShaderPropertyId s_propDebugAO = InternShaderProperty(ShaderProperty(NAME("DEBUG_AO")));
+
+static String ShaderPropertyValueToString(const ShaderProperty::Value& v)
+{
+    String str;
+
+    Visit(v, [&](auto&& value)
+        {
+            str = HYP_FORMAT("{}", value);
+        });
+
+    return str;
+}
 
 void MergeGlobalShaderProperties(ShaderPropertySet& out)
 {
@@ -1301,6 +1313,120 @@ static VertexAttributeSet BuildVertexAttributeSet(
     return set;
 }
 
+HYP_DISABLE_OPTIMIZATION;
+static bool IsShaderRequestCoveredByPerms(
+    const ShaderVariantPerms& bundlePerms,
+    const Array<ShaderProperty>& requestedProperties,
+    const VertexAttributeSet& requestedVertexAttributes,
+    String* outReason = nullptr)
+{
+    const bool allowCompileAdditionalVariants = cvShouldCompileMissingVariants.Get();
+
+    for (const ShaderProperty& requested : requestedProperties)
+    {
+        AssertDebug(!requested.IsPermutable());
+
+        auto bundleIt = bundlePerms.Find(StringHash(requested.name));
+
+        if (bundleIt == bundlePerms.End())
+        {
+            if (!allowCompileAdditionalVariants)
+            {
+                // Property not declared in the bundle at all; ignore it silently.
+                continue;
+            }
+
+            if (outReason)
+            {
+                *outReason = HYP_FORMAT(
+                    "Property '{}' is not declared in the bundle",
+                    requested.name);
+            }
+
+            return false; // return false, so we end up compiling the new one.
+
+        }
+
+        if (requested.HasValue())
+        {
+            if (allowCompileAdditionalVariants)
+            {
+                //ok
+                continue;
+            }
+
+            if (bundleIt->IsStatic())
+            {
+                if (bundleIt->currentValue == requested.currentValue)
+                {
+                    // match, ok
+                    continue;
+                }
+
+                if (outReason)
+                {
+                    ShaderProperty dummy(requested.name, requested.currentValue);
+                    *outReason = HYP_FORMAT(
+                        "Value '{}' for property '{}' does not match the STATIC value '{}'",
+                        dummy.GetValueString(),
+                        requested.name,
+                        ShaderPropertyValueToString(bundleIt->currentValue));
+                }
+                
+                return false;
+            }
+            else if (bundleIt->IsValueGroup())
+            {
+                const bool found = bundleIt->enumValues.FindIf(
+                                       [&requested](const ShaderProperty::Value& v)
+                                       {
+                                           return v == requested.currentValue;
+                                       })
+                    != bundleIt->enumValues.End();
+
+                if (found)
+                {
+                    continue;
+                }
+
+                if (outReason)
+                {
+                    ShaderProperty dummy(requested.name, requested.currentValue);
+                    *outReason = HYP_FORMAT(
+                        "Value '{}' for property '{}' is not a valid value for '{}'.\nApplicable values include: {}",
+                        dummy.GetValueString(),
+                        requested.name,
+                        requested.name,
+                        String::Join(bundleIt->enumValues, ", ", &ShaderPropertyValueToString));
+                }
+
+                return false;
+            }
+            else
+            {
+                HYP_UNREACHABLE();
+            }
+        }
+    }
+
+    const VertexAttributeSet allDeclaredAttrs = bundlePerms.GetAllVertexAttributes();
+
+    if ((requestedVertexAttributes & allDeclaredAttrs) != requestedVertexAttributes)
+    {
+        if (outReason)
+        {
+            *outReason = HYP_FORMAT(
+                "Requested vertex attributes ({}) are not fully declared in the bundle (declared: {})",
+                requestedVertexAttributes.ToString(), allDeclaredAttrs.ToString());
+        }
+
+        return false;
+    }
+
+    return true;
+}
+HYP_ENABLE_OPTIMIZATION;
+
 static void ForEachPermutation(
     const ShaderVariantPerms& versions,
     const ProcRef<void(const ShaderVariantPerms&)>& callback,
@@ -1453,6 +1579,7 @@ static bool LoadBundleFromAssetPath(
 
     if (!asset.IsValid() || !asset->IsA(ShaderBundle::StaticClass()))
     {
+        HYP_LOG(ShaderCompiler, Warning, "Got invalid ShaderBundle asset at : {} ", path.ToString());
         return false;
     }
 
@@ -1508,14 +1635,7 @@ String ShaderProperty::GetValueString() const
 {
     if (HasValue())
     {
-        String str;
-
-        Visit(currentValue, [&](auto&& value)
-            {
-                str = HYP_FORMAT("{}", value);
-            });
-
-        return str;
+        return ShaderPropertyValueToString(currentValue);
     }
 
     return String::empty;
@@ -1836,26 +1956,26 @@ bool ShaderCompiler::HandleBundle(
 
     if (CanCompileShaders())
     {
-            // Check that each version specified is present in the ShaderBundle.
-            // OR any src files have been changed since the object file was compiled.
-            // if not, we need to recompile those versions.
+        // Check that each version specified is present in the ShaderBundle.
+        // OR any src files have been changed since the object file was compiled.
+        // if not, we need to recompile those versions.
 
-            Time maxSourceFileLastModified = Time(0);
+        Time maxSourceFileLastModified = Time(0);
 
-            for (const auto& sourceFile : decl.sources)
-            {
-                maxSourceFileLastModified = MathUtil::Max(maxSourceFileLastModified, FilePath(sourceFile.second).LastModifiedTimestamp());
-            }
+        for (const auto& sourceFile : decl.sources)
+        {
+            maxSourceFileLastModified = MathUtil::Max(maxSourceFileLastModified, FilePath(sourceFile.second).LastModifiedTimestamp());
+        }
 
-            if (maxSourceFileLastModified > lastSavedTimestamp)
-            {
-                HYP_LOG(ShaderCompiler, Verbose,
-                    "Source file in bundle {} has been modified since the bundle was "
-                    "last compiled, recompiling...",
-                    *decl.name);
+        if (maxSourceFileLastModified > lastSavedTimestamp)
+        {
+            HYP_LOG(ShaderCompiler, Verbose,
+                "Source file in bundle {} has been modified since the bundle was "
+                "last compiled, recompiling...",
+                *decl.name);
 
-                return CompileBundle(decl, shaderRequest, inOutBundle);
-            }
+            return CompileBundle(decl, shaderRequest, inOutBundle);
+        }
     }
 
     const bool requestedFound = shaderRequest.HasValue() &&
@@ -1889,12 +2009,9 @@ bool ShaderCompiler::HandleBundle(
 
         HYP_LOG(ShaderCompiler, Verbose, "===============================");
 
-        if (cvShouldCompileMissingVariants.Get() && CanCompileShaders())
+        if (CanCompileShaders())
         {
-            return CompileBundle(
-                decl,
-                shaderRequest,
-                inOutBundle);
+            return CompileBundle(decl, shaderRequest, inOutBundle);
         }
 
         return false;
@@ -1924,6 +2041,7 @@ bool ShaderCompiler::LoadBundle(
         // load for first time if no definitions loaded
         if (!LoadShaderDefinitions())
         {
+            HYP_LOG(ShaderCompiler, Error, "Failed to load shader definitions");
             return false;
         }
     }
@@ -1977,6 +2095,8 @@ bool ShaderCompiler::LoadBundle(
     {
         if (!ForceRecompile(bundleAssetPath))
         {
+            HYP_LOG(ShaderCompiler, Error, "Failed to recompile bundle");
+
             return false;
         }
     }
@@ -2523,6 +2643,130 @@ ShaderCompiler::ProcessResult ShaderCompiler::ProcessShaderSource(
                 continue;
             }
 
+            if (line.StartsWith("PERMUTE") || line.StartsWith("STATIC"))
+            {
+                String commandStr;
+
+                for (size_t index = 0; index < line.Size(); index++)
+                {
+                    if (std::isalnum(line.Data()[index]) || line.Data()[index] == '_')
+                    {
+                        commandStr.Append(line.Data()[index]);
+                    }
+                    else
+                    {
+                        break;
+                    }
+                }
+
+                if (commandStr != "PERMUTE" && commandStr != "STATIC")
+                {
+                    break;
+                }
+
+                auto parseResult = ParseCustomStatement(commandStr, line);
+
+                if (parseResult.args.Empty() || parseResult.args[0].Empty())
+                {
+                    result.errors.PushBack(ProcessError { HYP_FORMAT("{}: Expected a property name as the first argument", commandStr) });
+
+                    break;
+                }
+
+                const Name propertyName = CreateNameFromDynamicString(ANSIString(parseResult.args[0]));
+
+                auto ParseShaderPropertyValue = [&](const String& valueStr) -> Optional<ShaderProperty::Value>
+                {
+                    if (valueStr.Empty())
+                    {
+                        return {};
+                    }
+
+                    if (std::isdigit(valueStr.GetChar(0)))
+                    {
+                        if (valueStr.Contains('.'))
+                        {
+                            float floatValue;
+
+                            if (!StringUtil::Parse(valueStr, &floatValue))
+                            {
+                                HYP_LOG(ShaderCompiler, Warning,
+                                    "{}: Failed to parse value '{}' as float for property '{}'",
+                                    commandStr, valueStr, parseResult.args[0]);
+
+                                return {};
+                            }
+
+                            return ShaderProperty::Value(floatValue);
+                        }
+                        else
+                        {
+                            int intValue;
+
+                            if (!StringUtil::Parse(valueStr, &intValue))
+                            {
+                                HYP_LOG(ShaderCompiler, Warning,
+                                    "{}: Failed to parse value '{}' as integer for property '{}'",
+                                    commandStr, valueStr, parseResult.args[0]);
+
+                                return {};
+                            }
+
+                            return ShaderProperty::Value(intValue);
+                        }
+                    }
+
+                    return ShaderProperty::Value(CreateNameFromDynamicString(ANSIString(valueStr)));
+                };
+
+                if (commandStr == "PERMUTE")
+                {
+                    if (parseResult.args.Size() == 1)
+                    {
+                        result.scannedProperties.AddPermutation(propertyName);
+                    }
+                    else
+                    {
+                        Array<ShaderProperty::Value> enumValues;
+
+                        for (size_t argIndex = 1; argIndex < parseResult.args.Size(); argIndex++)
+                        {
+                            Optional<ShaderProperty::Value> value = ParseShaderPropertyValue(parseResult.args[argIndex]);
+
+                            if (value.HasValue())
+                            {
+                                enumValues.PushBack(value.Get());
+                            }
+                        }
+
+                        result.scannedProperties.AddValueGroup(propertyName, enumValues);
+                    }
+                }
+                else if (commandStr == "STATIC")
+                {
+                    if (parseResult.args.Size() >= 2)
+                    {
+                        Optional<ShaderProperty::Value> value = ParseShaderPropertyValue(parseResult.args[1]);
+
+                        if (value.HasValue())
+                        {
+                            result.scannedProperties.AddStatic(propertyName, value.Get());
+                        }
+                        else
+                        {
+                            result.scannedProperties.AddStatic(propertyName);
+                        }
+                    }
+                    else
+                    {
+                        result.scannedProperties.AddStatic(propertyName);
+                    }
+                }
+
+                // strip; don't emit anything for the line.
+                continue;
+            }
+
             break;
         }
         case ProcessShaderSourcePhase::AFTER_PREPROCESS:
@@ -2722,6 +2966,9 @@ bool ShaderCompiler::CompileBundle(
     Array<Array<VertexAttributeDefinition>> optionalVertexAttributes;
     optionalVertexAttributes.Resize(decl.sources.Size());
 
+    Array<ShaderVariantPerms> scannedPropertiesPerFile;
+    scannedPropertiesPerFile.Resize(decl.sources.Size());
+
     TaskBatch taskBatch;
 
     for (size_t index = 0; index < decl.sources.Size(); index++)
@@ -2731,7 +2978,8 @@ bool ShaderCompiler::CompileBundle(
 
         taskBatch.AddTask([this, index, &decl, &loadedSourceFiles, &processErrors,
                               &requiredVertexAttributes,
-                              &optionalVertexAttributes](...)
+                              &optionalVertexAttributes,
+                              &scannedPropertiesPerFile](...)
             {
                 const auto& pair = decl.sources.AtIndex(index);
 
@@ -2822,6 +3070,7 @@ bool ShaderCompiler::CompileBundle(
 
                 requiredVertexAttributes[index] = result.requiredAttributes;
                 optionalVertexAttributes[index] = result.optionalAttributes;
+                scannedPropertiesPerFile[index] = std::move(result.scannedProperties);
 
                 loadedSourceFiles[index] = LoadedSourceFile {
                     .type = pair.first,
@@ -2871,18 +3120,109 @@ bool ShaderCompiler::CompileBundle(
 
         return false;
     }
+    
+    static const auto MergeProperty = [](ShaderVariantPerms& target, const ShaderProperty& prop) -> Result
+    {
+        auto targetIt = target.Find(StringHash(prop.name));
+
+        if (prop.HasValue())
+        {
+            // Find ValueGroup in target with same name
+            if (targetIt != target.End())
+            {
+                if (targetIt->IsValueGroup())
+                {
+                    // Add each value from prop to the target's ValueGroup
+                    targetIt->AddEnumValue(prop.currentValue);
+
+                    return {};
+                }
+
+                if (*targetIt == prop)
+                {
+                    // already exists but equal; no need to add or give an error.
+                    return {};
+                }
+
+                // conflict: trying to add a value to a non-ValueGroup property
+                return HYP_MAKE_ERROR(Error, "Duplicate property: {} already exists and is not a ValueGroup we can append to!", prop.name);
+            }
+            else
+            {
+                Array<ShaderProperty::Value> valueArray(1);
+                valueArray[0] = prop.currentValue;
+
+                // Add new ValueGroup to the shader variant.
+                target.AddValueGroup(prop.name, valueArray);
+
+                return {};
+            }
+        }
+
+        //if (targetIt != target.End() && *targetIt == prop)
+        //{
+        //    // already exists but equal; no need to add or give duplication error.
+        //    return {};
+        //}
+
+        if (prop.IsValueGroup())
+        {
+            if (targetIt != target.End())
+            {
+                // merge each value from prop to the target's ValueGroup
+                if (targetIt->IsValueGroup())
+                {
+                    for (const ShaderProperty::Value& enumValue : prop.enumValues)
+                    {
+                        targetIt->AddEnumValue(enumValue);
+                    }
+
+                    return {};
+                }
+
+                // conflict: trying to add a ValueGroup to a non-ValueGroup property
+                return HYP_MAKE_ERROR(Error, "Duplicate property: {} already exists and is not a ValueGroup we can merge with!", prop.name);
+            }
+            else
+            {
+                target.AddValueGroup(prop.name, prop.enumValues);
+
+                return {};
+            }
+        }
+
+        if (prop.IsPermutable())
+        {
+            target.AddPermutation(prop.name);
+
+            return {};
+        }
+
+        target.AddStatic(prop.name, prop.currentValue);
+
+        return {};
+    };
 
     // grab each defined property, and iterate over each combination
-    ShaderVariantPerms permsToCompile;
-    MergeGlobalShaderProperties(m_isPrecompilingShaders, permsToCompile);
+    ShaderVariantPerms declaredPerms;
+    MergeGlobalShaderProperties(m_isPrecompilingShaders, declaredPerms);
 
-    if (m_isPrecompilingShaders)
+    ShaderVariantPerms permsToCompile = declaredPerms;
+
+    for (const ShaderProperty& permProperty : decl.variantPerms.GetPropertySet())
     {
-        permsToCompile.Merge(decl.variantPerms);
+        MergeProperty(declaredPerms, permProperty);
+    }
+
+    for (const ShaderVariantPerms& scannedPerms : scannedPropertiesPerFile)
+    {
+        for (const ShaderProperty& permProperty : scannedPerms.GetPropertySet())
+        {
+            MergeProperty(declaredPerms, permProperty);
+        }
     }
 
     { // Lookup vertex attribute names
-
         VertexAttributeSet requiredVertexAttributeSet;
         VertexAttributeSet optionalVertexAttributeSet;
 
@@ -2896,8 +3236,18 @@ bool ShaderCompiler::CompileBundle(
             optionalVertexAttributeSet |= BuildVertexAttributeSet(definitions);
         }
 
-        permsToCompile.SetRequiredVertexAttributes(requiredVertexAttributeSet);
-        permsToCompile.SetOptionalVertexAttributes(optionalVertexAttributeSet);
+        declaredPerms.SetRequiredVertexAttributes(requiredVertexAttributeSet);
+        declaredPerms.SetOptionalVertexAttributes(optionalVertexAttributeSet);
+    }
+
+    if (m_isPrecompilingShaders)
+    {
+        permsToCompile = declaredPerms;
+    }
+    else
+    {
+        permsToCompile.SetRequiredVertexAttributes(declaredPerms.GetRequiredVertexAttributes());
+        permsToCompile.SetOptionalVertexAttributes(declaredPerms.GetOptionalVertexAttributes());
     }
 
     // INFO ON MERGING 'ADDITIONAL' SHADER VERSIONS (upon requesting a shader)
@@ -2912,77 +3262,6 @@ bool ShaderCompiler::CompileBundle(
     // =============================================
     if (shaderRequest.HasValue())
     {
-        const auto MergeProperty = [](ShaderVariantPerms& target, const ShaderProperty& additional) -> Result
-        {
-            AssertDebug(!additional.IsPermutable());
-
-            auto targetIt = target.Find(StringHash(additional.name));
-
-            if (additional.HasValue())
-            {
-                // Find ValueGroup in target with same name
-                if (targetIt != target.End())
-                {
-                    if (targetIt->IsValueGroup())
-                    {
-                        // Add each value from additional to the target's ValueGroup
-                        targetIt->AddEnumValue(additional.currentValue);
-
-                        return {};
-                    }
-
-                    if (*targetIt == additional)
-                    {
-                        // already exists but equal; no need to add or give an error.
-                        return {};
-                    }
-
-                    // conflict: trying to add a value to a non-ValueGroup property
-                    return HYP_MAKE_ERROR(Error, "Duplicate property: {} already exists and is not a ValueGroup we can append to!", additional.name);
-                }
-                else
-                {
-                    Array<ShaderProperty::Value> valueArray(1);
-                    valueArray[0] = additional.currentValue;
-
-                    // Add new ValueGroup to the shader variant.
-                    target.AddValueGroup(additional.name, valueArray);
-
-                    return {};
-                }
-            }
-
-            if (targetIt != target.End() && *targetIt == additional)
-            {
-                // already exists but equal; no need to add or give duplication error.
-                return {};
-            }
-
-            if (additional.IsValueGroup())
-            {
-                if (targetIt != target.End())
-                {
-                    // merge each value from additional to the target's ValueGroup
-                    if (targetIt->IsValueGroup())
-                    {
-                        for (const ShaderProperty::Value& enumValue : additional.enumValues)
-                        {
-                            targetIt->AddEnumValue(enumValue);
-                        }
-
-                        return {};
-                    }
-
-                    // conflict: trying to add a ValueGroup to a non-ValueGroup property
-                    return HYP_MAKE_ERROR(Error, "Duplicate property: {} already exists and is not a ValueGroup we can merge with!", additional.name);
-                }
-            }
-
-            target.AddStatic(additional.name);
-
-            return {};
-        };
-
         Array<ShaderProperty> additionalProperties;
 
         for (ShaderPropertyId propertyId : shaderRequest->properties.ToArray())
@@ -2998,6 +3277,29 @@ bool ShaderCompiler::CompileBundle(
             AssertDebug(!property.IsPermutable());
 
             additionalProperties.PushBack(std::move(property));
+        }
+
+        String coverageFailReason;
+        if (!IsShaderRequestCoveredByPerms(declaredPerms, additionalProperties, shaderRequest->vertexAttributes, &coverageFailReason))
+        {
+            if (cvShouldCompileMissingVariants.Get())
+            {
+                HYP_LOG(ShaderCompiler, Warning,
+                    "Shader request for bundle '{}' is not covered by the bundle's declared permutations: {}\n"
+                    "Compiling missing variant on the fly because ShaderCompiler.CompileMissingVariants is enabled.",
+                    decl.name, coverageFailReason);
+
+                // Fall through, MergeProperty below will add the requested properties to the perm set, and we'll compile a new variant for it.
+            }
+            else
+            {
+                HYP_LOG(ShaderCompiler, Error,
+                    "Shader request for bundle '{}' is not covered by the bundle's declared permutations: {}\n"
+                    "Declare the property variant up front in Shaders.ini or via PERMUTATION/VALUE_GROUP/STATIC macros in the shader source.",
+                    decl.name, coverageFailReason);
+
+                return false;
+            }
         }
 
         for (const ShaderProperty& additionalProperty : additionalProperties)

@@ -1,5 +1,7 @@
 #include "../include/defines.inc"
 
+PERMUTE(CONE_TRACING);
+
 #ifdef VERTEX_SHADER
 
 struct VSInput

@@ -3,6 +3,9 @@
 #include "../include/Entity.inc"
 #include "./UIObject.inc"
 
+PERMUTE(TEXTURED);
+PERMUTE(UI_TEXT);
+
 #ifdef VERTEX_SHADER
 
 struct VSInput

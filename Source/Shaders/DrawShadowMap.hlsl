@@ -1,6 +1,11 @@
 #include "include/defines.inc"
 #include "include/shared.inc"
 
+PERMUTE(MODE, STANDARD, VSM, PCF, CONTACT_HARDENED);
+PERMUTE(INSTANCING);
+PERMUTE(SKINNING);
+PERMUTE(ALPHA_DISCARD);
+
 DECLARE_SAMPLER(Default, SamplerLinear) SamplerState sampler_linear;
 DECLARE_SAMPLER(Default, SamplerNearest) SamplerState sampler_nearest;
 
@@ -19,6 +24,14 @@ DECLARE_BUFFER_DYNAMIC(Default, CamerasBuffer) cbuffer CamerasBuffer
 {
     Camera camera;
 };
+
+#ifdef ALPHA_DISCARD
+#ifdef HYP_FEATURES_BINDLESS_TEXTURES
+    DECLARE_SRV(BindlessResources0, Textures) uniform texture2D textures[];
+#else // !HYP_FEATURES_BINDLESS_TEXTURES
+    DECLARE_SRV(Material, DiffuseMap) uniform texture2D DiffuseMap;
+#endif // HYP_FEATURES_BINDLESS_TEXTURES
+#endif // ALPHA_DISCARD
 
 #ifdef INSTANCING
 DECLARE_SRV(Default, EntitiesBuffer) StructuredBuffer<Entity> entities;
@@ -55,7 +68,7 @@ struct VSOutput
     float3 v_position : TEXCOORD0;
     float2 v_texcoord0 : TEXCOORD1;
     nointerpolation float3 v_camera_position : TEXCOORD2;
-    nointerpolation uint v_object_index : TEXCOORD3;
+    nointerpolation uint object_index : TEXCOORD3;
 };
 
 #ifdef SKINNING
@@ -107,9 +120,9 @@ VSOutput VSMain(VSInput input, uint instanceId : SV_InstanceID)
     output.v_camera_position = camera.position.xyz;
 
 #ifdef INSTANCING
-    output.v_object_index = OBJECT_INDEX;
+    output.object_index = OBJECT_INDEX;
 #else
-    output.v_object_index = ~0u;
+    output.object_index = ~0u;
 #endif
 
     float4 position_ndc = mul(camera.viewProjMat, position);
@@ -129,7 +142,7 @@ struct PSInput
     float3 v_position : TEXCOORD0;
     float2 v_texcoord0 : TEXCOORD1;
     nointerpolation float3 v_camera_position : TEXCOORD2;
-    nointerpolation uint v_object_index : TEXCOORD3;
+    nointerpolation uint object_index : TEXCOORD3;
 };
 
 struct PSOutput

@@ -1,5 +1,8 @@
 #include "../include/defines.inc"
 
+PERMUTE(NUM_SAMPLES, 4096);
+PERMUTE(LOBE_SIZE, 0.0, 0.143, 0.286, 0.429, 0.571, 0.714, 0.857, 1.0);
+
 #define WORKGROUP_SIZE 8
 
 #define HYP_DO_NOT_DEFINE_DESCRIPTOR_SETS

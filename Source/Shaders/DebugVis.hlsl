@@ -1,6 +1,9 @@
 #include "./include/defines.inc"
 #include "./include/shared.inc"
 
+PERMUTE(IMMEDIATE_MODE);
+PERMUTE(INSTANCING);
+
 #ifdef VERTEX_SHADER
 
 struct VSInput
@@ -212,6 +215,8 @@ DECLARE_SRV(DebugDrawerDescriptorSet, EnvProbesBuffer) StructuredBuffer<EnvProbe
 
 #undef HYP_DEFERRED_NO_REFRACTION
 #undef HYP_DO_NOT_DEFINE_DESCRIPTOR_SETS
+
+#define OBJECT_INDEX input.object_index
 
 PSOutput PSMain(PSInput input)
 {

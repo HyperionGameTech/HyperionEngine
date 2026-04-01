@@ -2158,6 +2158,28 @@ public:
         return *this;
     }
 
+    /*! \brief Adds a new static property with key \p key and a fixed \p value.
+     *  Static properties are applied to every shader variant and do not create new permutations. */
+    ShaderVariantPerms& AddStatic(Name key, ShaderProperty::Value value)
+    {
+        const ShaderProperty shaderProperty(key, value, SPF_NONE);
+
+        const auto it = m_props.Find(shaderProperty);
+
+        if (it == m_props.End())
+        {
+            m_props.Insert(shaderProperty);
+        }
+        else
+        {
+            *it = shaderProperty;
+        }
+
+        m_needsHashCodeRecalculation = true;
+
+        return *this;
+    }
+
     /*! \brief Adds a new value group property with key \p key and possible enum values \p enumValues
      *  Value groups create new shader variants but their values are mututally exclusive to each other.
      *  i.e, only one value from the value group can be selected at a time. This reduces the number of

@@ -2,6 +2,12 @@
 #include "include/shared.inc"
 #include "include/scene.inc"
 
+PERMUTE(MODE_SHADOWS)
+PERMUTE(WRITE_NORMALS)
+PERMUTE(WRITE_MOMENTS)
+PERMUTE(INSTANCING)
+PERMUTE(SKINNING)
+
 #ifdef VERTEX_SHADER
 
 struct VSInput

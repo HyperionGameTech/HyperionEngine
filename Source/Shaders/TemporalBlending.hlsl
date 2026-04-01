@@ -2,6 +2,9 @@
 #include "include/packing.inc"
 #include "include/shared.inc"
 
+PERMUTE(OUTPUT, RGBA8, RGBA16F, RGBA32F);
+PERMUTE(TEMPORAL_BLEND_TECHNIQUE, 0, 1, 2, 3, 4);
+
 // #define PASSTHROUGH
 
 #ifndef OUTPUT_FORMAT
