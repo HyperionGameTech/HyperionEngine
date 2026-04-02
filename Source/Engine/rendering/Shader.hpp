@@ -60,8 +60,8 @@ public:
     HYP_FIELD(Property = "BaseName")
     Name baseName;
 
-    HYP_FIELD(Property = "VertexAttributes")
-    VertexTypeMask vertexAttributes;
+    HYP_FIELD(Property = "InputLayout")
+    VertexInputLayoutDesc inputLayout;
 
     HYP_FIELD(Property = "ShaderInputGroup")
     ShaderInputGroup inputGroup;
@@ -174,7 +174,7 @@ public:
         HashCode hc;
         hc.Add(m_name.GetHashCode());
         hc.Add(properties.GetHashCode());
-        hc.Add(vertexAttributes.GetHashCode());
+        hc.Add(inputLayout.GetHashCode());
         hc.Add(moduleTypes.GetHashCode());
         hc.Add(moduleNames.GetHashCode());
         hc.Add(entryPointNames.GetHashCode());

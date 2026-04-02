@@ -122,8 +122,11 @@ GpuBlasRef MeshBlasBuilder::Build(Mesh* mesh, Material* material)
 
     auto resGuard = mesh->GetReadScope();
 
-    Array<float> packedVertices = mesh->BuildVertexBuffer(VertexAttribute::Position | VertexAttribute::Normal | VertexAttribute::TexCoord0);
+    // Currently RT shaders are all expecting VT_Simple layout
+    Array<float> packedVertices = mesh->BuildVertexBuffer(StaticVertexInputLayout<VT_Simple>);
     Array<ubyte> packedIndices = mesh->GetIndexData();
+
+    AssertDebug(packedVertices.Size() > 0 && packedIndices.Size() > 0);
 
     if (packedVertices.Size() == 0 || packedIndices.Size() == 0)
     {
@@ -131,9 +134,10 @@ GpuBlasRef MeshBlasBuilder::Build(Mesh* mesh, Material* material)
     }
 
     // some assertions to prevent gpu faults down the line
-    for (size_t i = 0; i < packedIndices.Size(); i++)
+    const uint32* packedIndicesU32 = reinterpret_cast<const uint32*>(packedIndices.Data());
+    for (size_t i = 0; i <  mesh->GetMeshDesc().numIndices; i++)
     {
-        Assert(packedIndices[i] < packedVertices.Size());
+        Assert(packedIndicesU32[i] < mesh->GetMeshDesc().numVertices);
     }
 
     GpuBlasRef blas;

@@ -527,7 +527,7 @@ class HYP_API ShaderCompiler
     struct ShaderRequest
     {
         ShaderPropertySet properties;
-        VertexTypeMask vertexAttributes;
+        VertexInputLayoutDesc inputLayout;
     };
 
 public:
@@ -542,7 +542,7 @@ public:
     bool RequestShader(
         Name name,
         const ShaderPropertySet& properties,
-        const VertexTypeMask& vertexAttributes,
+        const VertexInputLayoutDesc& inputLayout,
         Shader*& outShader);
         
     bool IsGraphicsShaderBundle(Name name) const;

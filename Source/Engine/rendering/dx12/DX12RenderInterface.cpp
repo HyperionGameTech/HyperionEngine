@@ -388,7 +388,7 @@ DX12GraphicsPipelineRef DX12RenderInterface::MakeGraphicsPipeline(
 #endif
     }
 
-    graphicsPipeline->SetVertexAttributes(attributes.GetMeshAttributes().vertexAttributes);
+    graphicsPipeline->SetInputLayout(attributes.GetMeshAttributes().inputLayout);
     graphicsPipeline->SetTopology(attributes.GetMeshAttributes().topology);
 
     graphicsPipeline->SetCullMode(attributes.GetMaterialAttributes().cullFaces);

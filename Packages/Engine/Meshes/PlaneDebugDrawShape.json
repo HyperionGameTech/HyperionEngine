@@ -6,8 +6,8 @@
   },
   "MeshDesc": {
     "MeshAttributes": {
-      "VertexAttributes": {
-        "FlagMask": 7
+      "InputLayout": {
+        "Mask": 7
       },
       "Topology": 0,
       "IndexBufferElemType": 4
@@ -17,7 +17,7 @@
   },
   "VertexData": {
     "Key": "Engine/Meshes/PlaneDebugDrawShape.VB",
-    "Size": 448
+    "Size": 128
   },
   "IndexData": {
     "Key": "Engine/Meshes/PlaneDebugDrawShape.IB",

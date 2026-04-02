@@ -130,7 +130,7 @@ void TAAPass::Render(Frame* frame, const RenderSetup& renderSetup)
 
     frame->cr << InsertBarrier(activeTexture->GetGpuImage(), RS_UNORDERED_ACCESS);
 
-    frame->cr << SetVertexAttributes(VertexAttribute::Position | VertexAttribute::Normal | VertexAttribute::TexCoord0);
+    frame->cr << SetInputLayout(StaticVertexInputLayout<VT_Simple>);
 
     frame->cr << SetCurrentShader(ShaderDesc(NAME("TAA")));
 

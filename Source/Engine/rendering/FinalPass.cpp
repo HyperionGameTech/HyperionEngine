@@ -103,7 +103,7 @@ void FinalPass::Render(Frame* frame, const RenderSetup& rs)
 
     cr << SetCurrentViewport(Viewport { rs.swapchain->GetExtent() });
 
-    cr << SetVertexAttributes(VertexAttribute::Position | VertexAttribute::Normal | VertexAttribute::TexCoord0);
+    cr << SetInputLayout(StaticVertexInputLayout<VT_Simple>);
 
     cr << SetCurrentShader(ShaderDesc(NAME("BlitTexture")));
 

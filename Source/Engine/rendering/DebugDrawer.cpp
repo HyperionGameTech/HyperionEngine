@@ -54,7 +54,7 @@ static RenderableAttributeSet GetRenderableAttributes()
 {
     return RenderableAttributeSet(
         MeshAttributes {
-            .vertexAttributes = VertexTypeMask::StaticMeshVertexAttributes,
+            .inputLayout = StaticVertexInputLayout<VT_Simple>,
             .topology = TOP_LINES
         },
         MaterialAttributes {
@@ -745,7 +745,7 @@ void DebugDrawer::Render(Frame* frame, const RenderSetup& renderSetup)
 
     HYP_DEFER({
         // reset states
-        cr << SetVertexAttributes(VertexTypeMask::StaticMeshVertexAttributes);
+        cr << SetInputLayout(StaticVertexInputLayout<VT_Simple>);
         cr << SetTopology(TOP_TRIANGLES);
         cr << SetCurrentBlendFunction(BlendFunction::None());
         cr << SetDepthTest(true);
@@ -796,7 +796,7 @@ void DebugDrawer::Render(Frame* frame, const RenderSetup& renderSetup)
                 case DebugDrawType::MESH:
                 {
                     cr << SetTopology(attributes.GetMeshAttributes().topology);
-                    cr << SetVertexAttributes(attributes.GetMeshAttributes().vertexAttributes);
+                    cr << SetInputLayout(attributes.GetMeshAttributes().inputLayout);
 
                     cr << SetCurrentBlendFunction(attributes.GetMaterialAttributes().blendFunction);
                     cr << SetFaceCullMode(attributes.GetMaterialAttributes().cullFaces);

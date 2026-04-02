@@ -457,7 +457,7 @@ void FullScreenPass::DrawHistoryTexture(Frame* frame, const RenderSetup& renderS
 
     cr << SetCurrentShader(shaderDesc);
 
-    cr << SetVertexAttributes(VertexAttribute::Position | VertexAttribute::Normal | VertexAttribute::TexCoord0);
+    cr << SetInputLayout(StaticVertexInputLayout<VT_Simple>);
 
     if (ShouldRenderCheckerboarded())
     {
@@ -642,7 +642,7 @@ void FullScreenPass::RenderToFramebuffer_Internal(Frame* frame, const RenderSetu
         cr << SetCurrentViewport(Viewport { framebuffer->GetExtent() });
     }
 
-    cr << SetVertexAttributes(VertexAttribute::Position | VertexAttribute::Normal | VertexAttribute::TexCoord0);
+    cr << SetInputLayout(StaticVertexInputLayout<VT_Simple>);
     
     cr << SetCurrentShader(m_shaderDesc);
 
@@ -702,7 +702,8 @@ void FullScreenPass::Begin(Frame* frame, const RenderSetup& renderSetup)
         cr << SetCurrentViewport(Viewport { m_framebuffer->GetExtent() });
     }
 
-    cr << SetVertexAttributes(VertexAttribute::Position | VertexAttribute::Normal | VertexAttribute::TexCoord0);
+    cr << SetInputLayout(StaticVertexInputLayout<VT_Simple>);
+    cr << SetTopology(TOP_TRIANGLES);
     
     cr << SetCurrentShader(m_shaderDesc);
 
@@ -710,7 +711,6 @@ void FullScreenPass::Begin(Frame* frame, const RenderSetup& renderSetup)
     cr << SetDepthWrite(false);
     cr << SetFaceCullMode(FCM_BACK);
     cr << SetFillMode(FM_FILL);
-    cr << SetTopology(TOP_TRIANGLES);
     cr << SetCurrentBlendFunction(m_blendFunction);
 }
 

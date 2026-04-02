@@ -499,16 +499,17 @@ void VulkanGraphicsPipeline::BuildVertexAttributes(
         if (vertexType == VT_Skeletal)
         {
             // Skeletal vertex format has two attributes (bone indices and weights) packed into one.
+            outVkVertexAttributes.Resize(outVkVertexAttributes.Size() + 1);
 
             // Bone indices:
             outVkVertexAttributes[attrIndex] = VkVertexInputAttributeDescription {
                 .location = attrIndex,
                 .binding = binding,
-                .format = VK_FORMAT_R32G32B32A32_SFLOAT,
+                .format = VK_FORMAT_R32_UINT,
                 .offset = bindingSizes[binding]
             };
 
-            bindingSizes[binding] += sizeof(float) * 4;
+            bindingSizes[binding] += sizeof(uint32);
 
             ++attrIndex;
 

@@ -39,8 +39,8 @@
     }],
   "RevisionNumber": 31459917,
   "BaseName": "GeometryPass",
-  "VertexAttributes": {
-    "FlagMask": 7
+  "InputLayout": {
+    "Mask": 7
   },
   "ShaderInputGroup": {
     "Elements": [{
@@ -259,15 +259,15 @@
   "ShaderBlobs": [{
       "$Class": "BlobDataReference",
       "Key": "Engine/Shaders/GeometryPass/GeometryPass_9085333858502016825.VS",
-      "Size": 58652
+      "Size": 59780
     }, {
       "$Class": "BlobDataReference",
       "Key": "Engine/Shaders/GeometryPass/GeometryPass_9085333858502016825.PS",
-      "Size": 254948
+      "Size": 254996
     }],
   "PropertySetHashCode": {},
   "LastCompiledTimestamp": {
-    "Value": 1775008177000
+    "Value": 1775169436000
   },
   "Name": "GeometryPass_9085333858502016825",
   "FriendlyName": "GeometryPass_9085333858502016825",

@@ -27,8 +27,8 @@
     }],
   "RevisionNumber": 31459917,
   "BaseName": "Skybox",
-  "VertexAttributes": {
-    "FlagMask": 7
+  "InputLayout": {
+    "Mask": 7
   },
   "ShaderInputGroup": {
     "Elements": [{
@@ -107,15 +107,15 @@
   "ShaderBlobs": [{
       "$Class": "BlobDataReference",
       "Key": "Engine/Shaders/Skybox/Skybox_12407244494021180445.VS",
-      "Size": 56036
+      "Size": 56068
     }, {
       "$Class": "BlobDataReference",
       "Key": "Engine/Shaders/Skybox/Skybox_12407244494021180445.PS",
-      "Size": 55652
+      "Size": 55704
     }],
   "PropertySetHashCode": {},
   "LastCompiledTimestamp": {
-    "Value": 1772989233000
+    "Value": 1775102588000
   },
   "Name": "Skybox_12407244494021180445",
   "FriendlyName": "Skybox_12407244494021180445",

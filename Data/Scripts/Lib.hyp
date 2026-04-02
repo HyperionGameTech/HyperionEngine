@@ -873,6 +873,7 @@ extern struct SSRRendererConfig
     ResolutionScale : float
 end
 extern enum VertexType : uint8
+    VT_Invalid = 0x0,
     VT_Position = 0x1,
     VT_Normal = 0x2,
     VT_UV0 = 0x4,
@@ -881,6 +882,7 @@ extern enum VertexType : uint8
     VT_Skeletal = 0x10
 end
 extern struct VertexInputLayoutDesc
+    Mask : uint8
 end
 extern enum TextureFilterMode : uint8
     TFM_NEAREST,
@@ -2357,7 +2359,7 @@ extern class Texture : AssetObject
 end
 extern class Shader : AssetObject
     BaseName : Name
-    VertexAttributes : VertexTypeMask
+    InputLayout : VertexInputLayoutDesc
     InputGroup : ShaderInputGroup
     ModuleTypes : Array<ShaderModuleType>
     ModuleNames : Array<string>

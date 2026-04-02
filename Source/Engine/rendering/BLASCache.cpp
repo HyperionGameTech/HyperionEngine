@@ -122,6 +122,11 @@ void BLASCache::GetOrCreateBLAS(
     if (it != m_impl->map.End())
     {
         Entry& entry = it->second;
+
+        if (!entry.blas)
+        {
+            return;
+        }
         
         // Check if material changed - if so, we need to rebuild
         const bool materialsDiffer = entry.blas->GetMaterial() != material;

@@ -6,8 +6,8 @@
   },
   "MeshDesc": {
     "MeshAttributes": {
-      "VertexAttributes": {
-        "FlagMask": 7
+      "InputLayout": {
+        "Mask": 7
       },
       "Topology": 0,
       "IndexBufferElemType": 4
@@ -17,7 +17,7 @@
   },
   "VertexData": {
     "Key": "Engine/Meshes/BoxDebugDrawShape.VB",
-    "Size": 2688
+    "Size": 768
   },
   "IndexData": {
     "Key": "Engine/Meshes/BoxDebugDrawShape.IB",

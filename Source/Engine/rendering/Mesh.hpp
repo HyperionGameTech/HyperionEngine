@@ -188,20 +188,7 @@ public:
         return m_meshDesc;
     }
 
-    HYP_FORCE_INLINE VertexArrayView GetVertexData() const
-    {
-        Assert(m_vertexData.raw != nullptr, "Vertex data not loaded!");
-
-        const float* floatData = reinterpret_cast<float*>(m_vertexData.raw);
-
-        VertexArrayView view {};
-        view.floatData = floatData;
-        view.vertexCount = m_vertexData.size / m_meshDesc.meshAttributes.inputLayout.vertexSize;
-        view.layoutDesc = m_meshDesc.meshAttributes.inputLayout;
-
-        return view;
-    }
-
+    VertexArrayView GetVertexData() const;
     void SetVertexData(const VertexArrayView& view);
 
     HYP_FORCE_INLINE Span<ubyte> GetIndexData()
@@ -219,7 +206,7 @@ public:
 
     BoundingBox CalculateAABB() const;
 
-    Array<float> BuildVertexBuffer() const;
+    Array<float> BuildVertexBuffer(const VertexInputLayoutDesc& inputLayout) const;
 
     void CalculateNormals(bool weighted = false);
 

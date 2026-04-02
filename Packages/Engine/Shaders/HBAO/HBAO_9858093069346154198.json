@@ -27,8 +27,8 @@
     }],
   "RevisionNumber": 31459917,
   "BaseName": "HBAO",
-  "VertexAttributes": {
-    "FlagMask": 7
+  "InputLayout": {
+    "Mask": 7
   },
   "ShaderInputGroup": {
     "Elements": [{
@@ -199,11 +199,11 @@
   "ShaderBlobs": [{
       "$Class": "BlobDataReference",
       "Key": "Engine/Shaders/HBAO/HBAO_9858093069346154198.VS",
-      "Size": 10820
+      "Size": 10872
     }, {
       "$Class": "BlobDataReference",
       "Key": "Engine/Shaders/HBAO/HBAO_9858093069346154198.PS",
-      "Size": 123256
+      "Size": 123304
     }],
   "PropertySetHashCode": {},
   "LastCompiledTimestamp": {

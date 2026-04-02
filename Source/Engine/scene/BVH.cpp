@@ -29,9 +29,9 @@ HYP_NODISCARD RayTestResults BVHNode::TestRay(
             const uint32 i1 = indices[triangleId * 3 + 1];
             const uint32 i2 = indices[triangleId * 3 + 2];
 
-            const float* floatDataOffset0 = vertices.floatData + (i0 * (vertices.layoutDesc.vertexSize / sizeof(float)));
-            const float* floatDataOffset1 = vertices.floatData + (i1 * (vertices.layoutDesc.vertexSize / sizeof(float)));
-            const float* floatDataOffset2 = vertices.floatData + (i2 * (vertices.layoutDesc.vertexSize / sizeof(float)));
+            const float* floatDataOffset0 = vertices.floatData + (i0 * (vertices.layoutDesc.VertexSize() / sizeof(float)));
+            const float* floatDataOffset1 = vertices.floatData + (i1 * (vertices.layoutDesc.VertexSize() / sizeof(float)));
+            const float* floatDataOffset2 = vertices.floatData + (i2 * (vertices.layoutDesc.VertexSize() / sizeof(float)));
 
             const TVertexPacket<VT_Position>* packet0 = reinterpret_cast<const TVertexPacket<VT_Position>*>(floatDataOffset0);
             const TVertexPacket<VT_Position>* packet1 = reinterpret_cast<const TVertexPacket<VT_Position>*>(floatDataOffset1);
@@ -117,9 +117,11 @@ void BVHNode::QuantizeTriangleData(
 
     Vec3f* quantizedVertices = reinterpret_cast<Vec3f*>(outQuantizedVertexData.Data());
 
+    const size_t vertexSizeInFloats = vertices.layoutDesc.VertexSize() / sizeof(float);
+
     for (size_t i = 0; i < numVertices; i++)
     {
-        const float* floatDataOffset = vertices.floatData + (i * (vertices.layoutDesc.vertexSize / sizeof(float)));
+        const float* floatDataOffset = vertices.floatData + (i * vertexSizeInFloats);
 
         const TVertexPacket<VT_Position>* packet = reinterpret_cast<const TVertexPacket<VT_Position>*>(floatDataOffset);
 
@@ -150,9 +152,11 @@ bool BVHNode::OverlapsTriangle(
         && i1 < vertices.vertexCount
         && i2 < vertices.vertexCount);
 
-    const float* floatDataOffset0 = vertices.floatData + (i0 * (vertices.layoutDesc.vertexSize / sizeof(float)));
-    const float* floatDataOffset1 = vertices.floatData + (i1 * (vertices.layoutDesc.vertexSize / sizeof(float)));
-    const float* floatDataOffset2 = vertices.floatData + (i2 * (vertices.layoutDesc.vertexSize / sizeof(float)));
+    const size_t vertexSizeInFloats = vertices.layoutDesc.VertexSize() / sizeof(float);
+
+    const float* floatDataOffset0 = vertices.floatData + (i0 * vertexSizeInFloats);
+    const float* floatDataOffset1 = vertices.floatData + (i1 * vertexSizeInFloats);
+    const float* floatDataOffset2 = vertices.floatData + (i2 * vertexSizeInFloats);
 
     const TVertexPacket<VT_Position>* packet0 = reinterpret_cast<const TVertexPacket<VT_Position>*>(floatDataOffset0);
     const TVertexPacket<VT_Position>* packet1 = reinterpret_cast<const TVertexPacket<VT_Position>*>(floatDataOffset1);

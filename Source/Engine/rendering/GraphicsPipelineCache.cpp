@@ -325,7 +325,7 @@ void GraphicsPipelineCache::GetOrCreate(
     ShaderInstanceRef shader = g_renderInterface->shaderManager->GetOrCreate(
         attributes.GetMaterialAttributes().shaderName,
         attributes.GetMaterialAttributes().shaderProperties,
-        attributes.GetMeshAttributes().vertexAttributes);
+        attributes.GetMeshAttributes().inputLayout);
 
     Assert(shader.IsValid());
 
@@ -345,10 +345,10 @@ void GraphicsPipelineCache::GetOrCreate(
 
         ShaderInstance* shaderInstance = graphicsPipeline->GetShader();
         
-        String shaderString = "\tProperties: " + shaderInstance->GetShader()->properties.GetDebugString();
-        shaderString += "\n\tVertex attributes: " + (shaderInstance->GetShader()->vertexAttributes ? shaderInstance->GetShader()->vertexAttributes.ToString() : "<none>");
-
     #if HYP_DEBUG_MODE
+        String shaderString = "\tProperties: " + shaderInstance->GetShader()->properties.GetDebugString();
+        shaderString += "\n\tVertex attributes: " + String::ToString(shaderInstance->GetShader()->inputLayout.mask);
+
         HYP_LOG(Rendering, Verbose, "Creating graphics pipeline {} (debug name: {}) on render thread, Shader details:\n{}",
             graphicsPipeline->Id(), graphicsPipeline->GetDebugName(),
             shaderString);

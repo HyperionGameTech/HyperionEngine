@@ -33,8 +33,8 @@
     }],
   "RevisionNumber": 31459917,
   "BaseName": "UIObject",
-  "VertexAttributes": {
-    "FlagMask": 7
+  "InputLayout": {
+    "Mask": 7
   },
   "ShaderInputGroup": {
     "Elements": [{
@@ -127,11 +127,11 @@
   "ShaderBlobs": [{
       "$Class": "BlobDataReference",
       "Key": "Engine/Shaders/UIObject/UIObject_2941233747186420157.VS",
-      "Size": 48928
+      "Size": 48976
     }, {
       "$Class": "BlobDataReference",
       "Key": "Engine/Shaders/UIObject/UIObject_2941233747186420157.PS",
-      "Size": 61272
+      "Size": 61320
     }],
   "PropertySetHashCode": {},
   "LastCompiledTimestamp": {

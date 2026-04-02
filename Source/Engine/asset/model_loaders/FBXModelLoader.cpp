@@ -256,8 +256,6 @@ struct FBXMesh
 
     Array<float> vertexData;
 
-    size_t vertexSize = sizeof(FatVertex);
-
     Array<uint32> indices;
 
     BoundingBox bounds;
@@ -270,8 +268,8 @@ struct FBXMesh
         {
             VertexArrayView vertexArrayView {};
             vertexArrayView.floatData = vertexData.Data();
-            vertexArrayView.layoutDesc = VertexInputLayoutDesc { VT_Simple | VT_Skeletal, uint8(vertexSize) };
-            vertexArrayView.vertexCount = vertexData.ByteSize() / vertexSize;
+            vertexArrayView.layoutDesc = VertexInputLayoutDesc { VT_Simple | VT_Skeletal };
+            vertexArrayView.vertexCount = vertexData.ByteSize() / vertexArrayView.layoutDesc.VertexSize();
 
             MeshDesc meshDesc;
             meshDesc.meshAttributes.inputLayout = vertexArrayView.layoutDesc;
@@ -1027,10 +1025,10 @@ AssetLoadResult FBXModelLoader::LoadAsset(LoaderState& state) const
                         positionIndex = (positionIndex * -1) - 1;
                     }
 
-                    if (size_t(positionIndex) >= mesh.vertexData.Size() / mesh.vertexSize)
+                    if (size_t(positionIndex) >= mesh.vertexData.Size() / sizeof(FatVertex))
                     {
                         HYP_LOG(Assets, Warning, "Position index {} out of range of vertex count {}",
-                            positionIndex, mesh.vertexData.Size() / mesh.vertexSize);
+                            positionIndex, mesh.vertexData.Size() / sizeof(FatVertex));
 
                         break;
                     }

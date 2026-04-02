@@ -23,6 +23,8 @@ struct VertexAttribute;
 HYP_ENUM()
 enum VertexType : uint8
 {
+    VT_Invalid = 0x0,
+
     VT_Position = 0x1,
     VT_Normal = 0x2,
     VT_UV0 = 0x4,
@@ -66,6 +68,13 @@ template <> struct TVertexPacket<VT_Position>
         posY = position.y;
         posZ = position.z;
     }
+
+    constexpr HashCode GetHashCode() const
+    {
+        return HashCode::GetHashCode(posX)
+            .Combine(HashCode::GetHashCode(posY))
+            .Combine(HashCode::GetHashCode(posZ));
+    }
 };
 
 template <> struct TVertexPacket<VT_Normal>
@@ -99,6 +108,13 @@ template <> struct TVertexPacket<VT_Normal>
         normalY = normal.y;
         normalZ = normal.z;
     }
+
+    constexpr HashCode GetHashCode() const
+    {
+        return HashCode::GetHashCode(normalX)
+            .Combine(HashCode::GetHashCode(normalY))
+            .Combine(HashCode::GetHashCode(normalZ));
+    }
 };
 
 template <> struct TVertexPacket<VT_UV0>
@@ -126,6 +142,11 @@ template <> struct TVertexPacket<VT_UV0>
     {
         this->uv0[0] = uv0.x;
         this->uv0[1] = uv0.y;
+    }
+
+    constexpr HashCode GetHashCode() const
+    {
+        return HashCode::GetHashCode(uv0);
     }
 };
 
@@ -155,14 +176,19 @@ template <> struct TVertexPacket<VT_UV1>
         this->uv1[0] = uv1.x;
         this->uv1[1] = uv1.y;
     }
+
+    constexpr HashCode GetHashCode() const
+    {
+        return HashCode::GetHashCode(uv1);
+    }
 };
 
 template <> struct TVertexPacket<VT_Skeletal>
 {
     static constexpr uint8 InvalidBoneIndex = UINT8_MAX;
-
-    float boneWeights[4] {};
+    
     uint32 boneIndices = UINT32_MAX;
+    float boneWeights[4] {};
     
     HYP_FORCE_INLINE void SetBoneWeight(int i, float val)
     {
@@ -250,32 +276,76 @@ template <> struct TVertexPacket<VT_Skeletal>
             boneIndicesU8[numIndices] = boneIndex;
         }
     }
+
+    constexpr HashCode GetHashCode() const
+    {
+        return HashCode::GetHashCode(boneIndices)
+            .Combine(HashCode::GetHashCode(boneWeights));
+    }
 };
 
 namespace detail {
 
-template <uint8 Bit>
-struct TVertexPacketEmpty {};
-
-template <uint8 PacketMask, uint8 Bit>
-using TVertexPacketConditional = std::conditional_t<(PacketMask & Bit) != 0, TVertexPacket<Bit>, TVertexPacketEmpty<Bit>>;
-
-template <uint8 PacketMask, uint8... Bits>
-struct TVertexPacketExpander : TVertexPacketConditional<PacketMask, Bits>...
+template <uint8... TBits>
+struct TVertexPacketBase : TVertexPacket<TBits>...
 {
+    constexpr HashCode GetHashCode() const
+    {
+        HashCode hc;
+
+        ((hc = hc.Combine(TVertexPacket<TBits>::GetHashCode())), ...);
+
+        return hc;
+    }
 };
+
+template <uint8 TMask, typename TActiveSeq, uint8... TRemaining>
+struct TVertexPacketFilterImpl;
+
+template <uint8 TMask, uint8... TActive>
+struct TVertexPacketFilterImpl<TMask, std::integer_sequence<uint8, TActive...>>
+{
+    using type = TVertexPacketBase<TActive...>;
+};
+
+template <uint8 TMask, uint8... TActive, uint8 THead, uint8... TTail>
+struct TVertexPacketFilterImpl<TMask, std::integer_sequence<uint8, TActive...>, THead, TTail...>
+{
+    using type = typename TVertexPacketFilterImpl<
+        TMask,
+        std::conditional_t<
+            (TMask & THead) != 0,
+            std::integer_sequence<uint8, TActive..., THead>,
+            std::integer_sequence<uint8, TActive...>
+        >,
+        TTail...
+    >::type;
+};
+
+template <uint8 TMask, uint8... TAllBits>
+using TVertexPacketExpander = typename TVertexPacketFilterImpl<TMask, std::integer_sequence<uint8>, TAllBits...>::type;
 
 } // namespace detail
 
-template <uint8 PacketMask>
+template <uint8 TMask>
 struct TVertex
-    : detail::TVertexPacketExpander<PacketMask,
+    : detail::TVertexPacketExpander<
+        TMask,
         VT_Position,
         VT_Normal,
         VT_UV0,
         VT_UV1,
         VT_Skeletal>
 {
+    HYP_FORCE_INLINE bool operator==(const TVertex& other) const
+    {
+        return std::memcmp(this, &other, sizeof(TVertex)) == 0;
+    }
+
+    HYP_FORCE_INLINE bool operator!=(const TVertex& other) const
+    {
+        return std::memcmp(this, &other, sizeof(TVertex)) != 0;
+    }
 };
 
 using SimpleVertex = TVertex<VT_Simple>;
@@ -286,21 +356,22 @@ struct VertexInputLayoutDesc
 {
     HYP_STRUCT_BODY(VertexInputLayoutDesc);
 
+    HYP_FIELD()
     uint8 mask;
-    uint8 vertexSize;
+
+    size_t VertexSize() const;
 
     constexpr bool operator==(const VertexInputLayoutDesc& other) const = default;
     constexpr bool operator!=(const VertexInputLayoutDesc& other) const = default;
 
     constexpr HYP_FORCE_INLINE HashCode GetHashCode() const
     {
-        return HashCode::GetHashCode(mask)
-            .Combine(vertexSize);
+        return HashCode::GetHashCode(mask);
     }
 };
 
 template <uint8 PacketMask>
-static inline constexpr VertexInputLayoutDesc StaticVertexInputLayout = VertexInputLayoutDesc { PacketMask, sizeof(TVertex<PacketMask>) };
+static inline constexpr VertexInputLayoutDesc StaticVertexInputLayout = VertexInputLayoutDesc { PacketMask };
 
 #pragma pack(pop)
 
@@ -317,9 +388,9 @@ struct VertexArrayView
     VertexArrayView(const TVertex<PacketMask>* vertexData, size_t vertexCount)
         : floatData(reinterpret_cast<const float*>(vertexData)),
           vertexCount(vertexCount),
-          layoutDesc { uint8(sizeof(TVertex<PacketMask>)), PacketMask }
+          layoutDesc { PacketMask }
     {
-        static_assert(alignof(TVertex<PacketMask>) == 16);
+        static_assert(alignof(TVertex<PacketMask>) <= 16);
         static_assert(sizeof(TVertex<PacketMask>) <= UINT8_MAX);
     }
 };
@@ -345,9 +416,9 @@ static inline const char* ToString(VertexType vt)
     }
 }
 
-static inline size_t PacketSize(VertexType vt)
+static constexpr inline size_t PacketSize(VertexType vt)
 {
-    AssertDebug(ByteUtil::BitCount(vt) == 1);
+    //AssertDebug(ByteUtil::BitCount(vt) == 1);
 
     switch (vt)
     {
@@ -362,10 +433,45 @@ static inline size_t PacketSize(VertexType vt)
     case VertexType::VT_Skeletal:
         return sizeof(TVertexPacket<VT_Skeletal>);
     default:
-        HYP_UNREACHABLE();
+        //HYP_UNREACHABLE();
+        return 0;
     }
 }
 
+namespace detail {
+
+
+template <uint8 TMask, uint8 TBit>
+static constexpr size_t TVertexSizeCalcConditional = (((TMask & TBit) != 0) ? PacketSize(VertexType(TBit)) : 0);
+
+template <uint8 TMask, uint8... TBits>
+static constexpr size_t TVertexSizeCalcExpander = (TVertexSizeCalcConditional<TMask, TBits> + ...);
+
+} // namespace detail
+
+template <uint8 TMask>
+static constexpr size_t TVertexSize = detail::TVertexSizeCalcExpander<
+    // TMask
+    TMask,
+    // TBits
+    VT_Position,
+    VT_Normal,
+    VT_UV0,
+    VT_UV1,
+    VT_Skeletal>;
+
 } // namespace VertexUtils
+
+inline size_t VertexInputLayoutDesc::VertexSize() const
+{
+    size_t size = 0;
+
+    FOR_EACH_BIT(mask, bit)
+    {
+        size += VertexUtils::PacketSize(VertexType(1 << bit));
+    }
+
+    return size;
+}
 
 } // namespace Hyperion

@@ -84,7 +84,7 @@ bool GraphicsPipelineBase::MatchesSignature(
 
     const MeshAttributes& meshAttributes = attributes.GetMeshAttributes();
 
-    if (meshAttributes.topology != m_topology || meshAttributes.vertexAttributes != m_vertexAttributes)
+    if (meshAttributes.topology != m_topology || meshAttributes.inputLayout != m_inputLayout)
         return false;
 
     const MaterialAttributes& materialAttributes = attributes.GetMaterialAttributes();
@@ -127,7 +127,7 @@ bool GraphicsPipelineBase::MatchesSignature(
     const Shader& shader = *m_shaderInstance->GetShader();
 
     if (materialAttributes.shaderName != shader.baseName
-        || (shader.vertexAttributes.flagMask & meshAttributes.vertexAttributes.flagMask) != shader.vertexAttributes.flagMask
+        || (shader.inputLayout.mask & meshAttributes.inputLayout.mask) != shader.inputLayout.mask
         || materialAttributes.shaderProperties != shader.properties)
     {
         return false;

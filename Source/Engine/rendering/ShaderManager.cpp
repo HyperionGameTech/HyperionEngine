@@ -50,11 +50,11 @@ static ShaderCacheId GenerateShaderCacheId()
 static constexpr HashCode GetShaderEntryHashCode(
     Name name,
     const ShaderPropertySet& propertySet,
-    const VertexTypeMask& vertexAttributes)
+    const VertexInputLayoutDesc& inputLayout)
 {
     return name.GetHashCode()
         .Combine(propertySet.GetHashCode())
-        .Combine(vertexAttributes.GetHashCode());
+        .Combine(inputLayout.GetHashCode());
 }
 
 class ShaderManagerImpl
@@ -81,7 +81,7 @@ public:
     {
         Name shaderName;
         ShaderPropertySet properties;
-        VertexTypeMask attributes;
+        VertexInputLayoutDesc inputLayout;
         ShaderMapEntry* entry;
 
         ShaderInstanceRef shaderInstance;
@@ -129,7 +129,7 @@ public:
     {
         bool isValid = true;
         isValid &= g_shaderCompiler->RequestShader(
-            request.shaderName, request.properties, request.attributes, request.entry->shader);
+            request.shaderName, request.properties, request.inputLayout, request.entry->shader);
 
         isValid &= request.entry->shader->IsValid();
 
@@ -161,8 +161,7 @@ public:
                     }
                 }
 
-                isValid = g_shaderCompiler->RequestShader(
-                    s_nameFallbackShader, fallbackProperties, request.attributes, request.entry->shader);
+                isValid = g_shaderCompiler->RequestShader(s_nameFallbackShader, fallbackProperties, request.inputLayout, request.entry->shader);
 
                 isValid &= request.entry->shader->IsValid();
 
@@ -363,18 +362,16 @@ public:
     };
 
     ShaderInstanceRef GetOrCreate(
-        Name name, const ShaderPropertySet& properties, const VertexTypeMask& vertexAttributes,
+        Name name, const ShaderPropertySet& properties, const VertexInputLayoutDesc& inputLayout,
         ShaderCacheId& outCacheId, bool doLoadShader)
     {
         HYP_NAMED_SCOPE("Get shader from cache or create");
 
-        const HashCode hc = GetShaderEntryHashCode(name, properties, vertexAttributes);
+        const HashCode hc = GetShaderEntryHashCode(name, properties, inputLayout);
 
-        const auto EnsureMatch = [](
-                                     const ShaderPropertySet& expectedProperties, const VertexTypeMask& expectedVertexAttributes,
-                                     const Shader& received) -> bool
+        const auto EnsureMatch = [](const ShaderPropertySet& expectedProperties, const VertexInputLayoutDesc& expectedInputLayout, const Shader& received) -> bool
         {
-            if (received.vertexAttributes != expectedVertexAttributes)
+            if (received.inputLayout.mask != expectedInputLayout.mask)
             {
                 return false;
             }
@@ -453,7 +450,7 @@ public:
                 numSpins++;
             }
 
-            if (EnsureMatch(properties, vertexAttributes, *entry->shaderInstance->GetShader()))
+            if (EnsureMatch(properties, inputLayout, *entry->shaderInstance->GetShader()))
             {
                 return entry->shaderInstance;
             }
@@ -507,7 +504,7 @@ public:
         CompileShaderRequest request {};
         request.shaderName = name;
         request.properties = properties;
-        request.attributes = vertexAttributes;
+        request.inputLayout = inputLayout;
         request.entry = entry;
 
         CompilingShaderScope compilingShaderScope { this, request };
@@ -519,10 +516,10 @@ public:
     ShaderCacheId GetShaderCacheId(
         Name name,
         const ShaderPropertySet& properties,
-        const VertexTypeMask& vertexAttributes,
+        const VertexInputLayoutDesc& inputLayout,
         bool createIfNotExists = false)
     {
-        const HashCode hc = GetShaderEntryHashCode(name, properties, vertexAttributes);
+        const HashCode hc = GetShaderEntryHashCode(name, properties, inputLayout);
 
         { // check through mapping
             TSharedLock lock(m_mutex);
@@ -540,7 +537,7 @@ public:
         if (createIfNotExists)
         {
             // create the shader entry - don't request loading the shader though.
-            (void)GetOrCreate(name, properties, vertexAttributes, cacheId, /* doLoadShader */ false);
+            (void)GetOrCreate(name, properties, inputLayout, cacheId, /* doLoadShader */ false);
         }
 
         return cacheId;
@@ -687,7 +684,7 @@ public:
                 CompileShaderRequest& request = requests.EmplaceBack();
                 request.shaderName = entry->shader->baseName;
                 request.properties = entry->shader->properties;
-                request.attributes = entry->shader->vertexAttributes;
+                request.inputLayout = entry->shader->inputLayout;
                 request.entry = entry;
             }
         }
@@ -786,19 +783,19 @@ ShaderManager::ShaderManager()
 {
 }
 
-ShaderInstanceRef ShaderManager::GetOrCreate(Name name, const ShaderPropertySet& propertySet, const VertexTypeMask& vertexAttributes)
+ShaderInstanceRef ShaderManager::GetOrCreate(Name name, const ShaderPropertySet& propertySet, const VertexInputLayoutDesc& inputLayout)
 {
     ShaderCacheId cacheId;
-    return m_impl->GetOrCreate(name, propertySet, vertexAttributes, cacheId, /* doLoadShader */ true);
+    return m_impl->GetOrCreate(name, propertySet, inputLayout, cacheId, /* doLoadShader */ true);
 }
 
 ShaderCacheId ShaderManager::GetShaderCacheId(
     Name name,
     const ShaderPropertySet& properties,
-    const VertexTypeMask& vertexAttributes,
+    const VertexInputLayoutDesc& inputLayout,
     bool createIfNotExists) const
 {
-    return m_impl->GetShaderCacheId(name, properties, vertexAttributes, createIfNotExists);
+    return m_impl->GetShaderCacheId(name, properties, inputLayout, createIfNotExists);
 }
 
 size_t ShaderManager::CalculateMemoryUsage() const

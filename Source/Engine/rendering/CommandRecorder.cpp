@@ -597,11 +597,11 @@ void SetTopology::InvokeStatic(CmdBase* cmd, CommandBuffer*)
 
 #pragma endregion SetTopology
 
-#pragma region SetVertexAttributes
+#pragma region SetInputLayout
 
-void SetVertexAttributes::InvokeStatic(CmdBase* cmd, CommandBuffer*)
+void SetInputLayout::InvokeStatic(CmdBase* cmd, CommandBuffer*)
 {
-    SetVertexAttributes* cmdCasted = static_cast<SetVertexAttributes*>(cmd);
+    SetInputLayout* cmdCasted = static_cast<SetInputLayout*>(cmd);
 
     RenderInterface::State& state = g_renderInterface->state;
 
@@ -612,11 +612,11 @@ void SetVertexAttributes::InvokeStatic(CmdBase* cmd, CommandBuffer*)
 
     state.attributes.Invalidate();
     
-    static_assert(std::is_trivially_destructible_v<SetVertexAttributes>);
-    // cmdCasted->~SetVertexAttributes();
+    static_assert(std::is_trivially_destructible_v<SetInputLayout>);
+    // cmdCasted->~SetInputLayout();
 }
 
-#pragma endregion SetVertexAttributes
+#pragma endregion SetInputLayout
 
 #pragma region SetCurrentBlendFunction
 

@@ -418,6 +418,7 @@ LoadedAsset OBJModelLoader::BuildModel(LoaderState& state, OBJModel& model)
         Name assetName = CreateNameFromDynamicString(StringUtil::StripExtension(objMesh.name.Split('/', '\\').Back()));
 
         MeshDesc meshDesc;
+        meshDesc.meshAttributes.inputLayout = { VT_Simple };
         meshDesc.numIndices = uint32(indices.Size());
         meshDesc.numVertices = uint32(vertices.Size());
 
@@ -427,11 +428,11 @@ LoadedAsset OBJModelLoader::BuildModel(LoaderState& state, OBJModel& model)
         VertexArrayView vertexArrayView {};
         vertexArrayView.floatData = reinterpret_cast<const float*>(vertices.Data());
         vertexArrayView.vertexCount = vertices.Size();
-        vertexArrayView.layoutDesc = { VT_Simple, sizeof(SimpleVertex) };
+        vertexArrayView.layoutDesc = meshDesc.meshAttributes.inputLayout;
 
         mesh->SetMeshData(meshDesc, vertexArrayView, indices.ToByteView());
 
-        mesh->CalculateNormals();
+        //mesh->CalculateNormals();
 
         mesh->SetOriginalFilepath(FilePath::Relative(state.filepath, state.assetManager->GetBasePath()));
 

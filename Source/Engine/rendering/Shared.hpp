@@ -1665,9 +1665,9 @@ struct ShaderProperty
     }
 
     explicit ShaderProperty(VertexType vt)
-        : name(CreateNameFromDynamicString(ANSIString("HYP_ATTRIBUTE_") + VertexUtils::ToString(vt))),
+        : name(CreateNameFromDynamicString(ANSIString("VT_") + VertexUtils::ToString(vt))),
           flags(SPF_VERTEX_ATTRIBUTE),
-          currentValue(Value(int(vt)))
+          currentValue(Value(CreateNameFromDynamicString(VertexUtils::ToString(vt))))
     {
         cachedHashCode = GetHashCode();
     }

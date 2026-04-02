@@ -420,6 +420,9 @@ TaskThread* BackgroundWorkerPool::CreateThread()
         m_threads.Resize(threadIndex + 1);
     }
 
+    // expected to be null (nothing should exist in the new slot we allocated)
+    Assert(m_threads[threadIndex] == nullptr);
+
     m_threads[threadIndex] = std::move(newThread);
 
     m_activeThreadCount.Increment(1, MemoryOrder::RELEASE);
@@ -445,6 +448,8 @@ void BackgroundWorkerPool::CleanupIdleThreads()
         // If the thread is not running or is free (no pending tasks), mark it for cleanup
         if (!taskThread->IsRunning() || taskThread->IsFree())
         {
+            taskThread->Stop();
+
             threadsToRemove.PushBack(i);
         }
     }
@@ -455,10 +460,11 @@ void BackgroundWorkerPool::CleanupIdleThreads()
         const size_t index = threadsToRemove[i - 1];
 
         ThreadBase* thread = m_threads[index].Get();
+        Assert(thread != nullptr);
 
         if (thread != nullptr)
         {
-            thread->Stop();
+            AssertDebug(!thread->GetScheduler().NumEnqueued());
 
             if (thread->CanJoin())
             {
@@ -468,7 +474,9 @@ void BackgroundWorkerPool::CleanupIdleThreads()
             HYP_LOG(Tasks, Verbose, "BackgroundWorkerPool cleaned up idle thread: {}", thread->Id().GetName());
         }
 
-        m_threads.EraseAt(index);
+        // release the thread at that index;
+        m_threads[index].Reset();
+
         m_activeThreadCount.Decrement(1, MemoryOrder::RELEASE);
         m_workerIdGenerator.ReleaseId(index + 1);
     }

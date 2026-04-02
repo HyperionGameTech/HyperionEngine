@@ -170,7 +170,7 @@ public:
     Handle<Mesh> BuildMesh() const;
 
 private:
-    Array<Vertex> BuildVertices() const;
+    Array<SimpleVertex> BuildVertices() const;
     Array<uint32> BuildIndices() const;
 
     TerrainHeightData m_heightData;
@@ -228,24 +228,31 @@ Handle<Mesh> TerrainMeshBuilder::BuildMesh() const
 {
     HYP_SCOPE;
 
-    Array<Vertex> vertices = BuildVertices();
+    Array<SimpleVertex> vertices = BuildVertices();
     Array<uint32> indices = BuildIndices();
 
     MeshDesc meshDesc;
+    meshDesc.meshAttributes.inputLayout = { VT_Simple };
     meshDesc.numIndices = uint32(indices.Size());
     meshDesc.numVertices = uint32(vertices.Size());
 
     Handle<Mesh> mesh = MakeHandle<Mesh>();
-    mesh->SetMeshData(meshDesc, vertices.ToSpan(), indices.ToByteView());
+
+    VertexArrayView vertexArrayView {};
+    vertexArrayView.floatData = reinterpret_cast<const float*>(vertices.Data());
+    vertexArrayView.vertexCount = vertices.Size();
+    vertexArrayView.layoutDesc = meshDesc.meshAttributes.inputLayout;
+
+    mesh->SetMeshData(meshDesc, vertexArrayView, indices.ToByteView());
 
     mesh->CalculateNormals();
 
     return mesh;
 }
 
-Array<Vertex> TerrainMeshBuilder::BuildVertices() const
+Array<SimpleVertex> TerrainMeshBuilder::BuildVertices() const
 {
-    Array<Vertex> vertices;
+    Array<SimpleVertex> vertices;
     vertices.Resize(m_heightData.cellInfo.extent.x * m_heightData.cellInfo.extent.z);
 
     int i = 0;
@@ -260,7 +267,7 @@ Array<Vertex> TerrainMeshBuilder::BuildVertices() const
                 float(x) / float(m_heightData.cellInfo.extent.x),
                 float(z) / float(m_heightData.cellInfo.extent.z));
 
-            vertices[i++] = Vertex(position, texcoord);
+            vertices[i++] = SimpleVertex { position, Vec3f::Zero(), texcoord };
         }
     }
 

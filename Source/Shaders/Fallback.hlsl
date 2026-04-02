@@ -18,9 +18,7 @@ struct VSInput
     HYP_ATTRIBUTE_OPTIONAL float3 a_normal : NORMAL;
     HYP_ATTRIBUTE_OPTIONAL float2 a_texcoord0 : TEXCOORD0;
     HYP_ATTRIBUTE_OPTIONAL float2 a_texcoord1 : TEXCOORD1;
-    HYP_ATTRIBUTE_OPTIONAL float3 a_tangent : TANGENT;
-    HYP_ATTRIBUTE_OPTIONAL float3 a_bitangent : BINORMAL;
-    HYP_ATTRIBUTE_OPTIONAL int4 a_bone_indices : BLENDINDICES;
+    HYP_ATTRIBUTE_OPTIONAL uint a_bone_indices : BLENDINDICES;
     HYP_ATTRIBUTE_OPTIONAL float4 a_bone_weights : BLENDWEIGHT;
 };
 
@@ -47,21 +45,10 @@ DECLARE_BUFFER_DYNAMIC(Default, CamerasBuffer) cbuffer CamerasBuffer
     DECLARE_SRV_DYNAMIC(Default, CurrentEntity) StructuredBuffer<Entity> entities;
 #endif
 
-#if defined(SKINNING) && defined(HYP_ATTRIBUTE_Skeletal) && defined(HYP_ATTRIBUTE_Position)
+#if defined(SKINNING) && defined(HYP_ATTRIBUTE_a_bone_indices) && defined(HYP_ATTRIBUTE_a_bone_weights) && defined(HYP_ATTRIBUTE_a_position)
 
 #include "include/Skeleton.inc"
 DECLARE_SRV_DYNAMIC(Default, SkeletonsBuffer) StructuredBuffer<Skeleton> skeletons;
-
-float4x4 CreateSkinningMatrix(int4 bone_indices, float4 bone_weights)
-{
-    float4x4 skinning = (float4x4)0;
-    skinning += bone_weights.x * skeletons[0].bones[min(bone_indices.x, HYP_MAX_BONES - 1)];
-    skinning += bone_weights.y * skeletons[0].bones[min(bone_indices.y, HYP_MAX_BONES - 1)];
-    skinning += bone_weights.z * skeletons[0].bones[min(bone_indices.z, HYP_MAX_BONES - 1)];
-    skinning += bone_weights.w * skeletons[0].bones[min(bone_indices.w, HYP_MAX_BONES - 1)];
-    return skinning;
-}
-
 #endif // SKINNING && bone attrs
 
 VSOutput VSMain(VSInput input, uint instanceId : SV_InstanceID)
@@ -77,11 +64,11 @@ VSOutput VSMain(VSInput input, uint instanceId : SV_InstanceID)
     output.object_index  = 0;
 #endif
 
-#ifdef HYP_ATTRIBUTE_Position
+#ifdef HYP_ATTRIBUTE_a_position
     float4 position = float4(input.a_position, 1.0);
 
-    #if defined(SKINNING) && defined(HYP_ATTRIBUTE_Skeletal)
-        float4x4 skinning_matrix = CreateSkinningMatrix((int4)input.a_bone_indices, input.a_bone_weights);
+    #if defined(SKINNING) && defined(HYP_ATTRIBUTE_a_bone_indices) && defined(HYP_ATTRIBUTE_a_bone_weights)
+        float4x4 skinning_matrix = CreateSkinningMatrix(skeletons[0], input.a_bone_indices, input.a_bone_weights);
         position = mul(skinning_matrix, position);
     #endif
 
@@ -94,7 +81,7 @@ VSOutput VSMain(VSInput input, uint instanceId : SV_InstanceID)
     output.v_position  = position.xyz / position.w;
     output.position_cs = mul(camera.viewProjMat, position);
 
-#ifdef HYP_ATTRIBUTE_UV0
+#ifdef HYP_ATTRIBUTE_a_texcoord0
     output.v_texcoord0 = float2(input.a_texcoord0.x, 1.0 - input.a_texcoord0.y);
 #endif
 
@@ -123,7 +110,7 @@ PSOutput PSMain(PSInput input)
     PSOutput output;
 
     // Emit some crap to show that this is not meant to be here
-#ifdef HYP_ATTRIBUTE_UV0
+#ifdef HYP_ATTRIBUTE_a_texcoord0
     const float2 tile = floor(input.v_texcoord0 * 8.0);
     const float  checker = fmod(tile.x + tile.y, 2.0);
     output.color = lerp(float4(1.0, 0.0, 1.0, 1.0), float4(0.1, 0.0, 0.1, 1.0), checker);

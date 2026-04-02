@@ -27,8 +27,8 @@
     }],
   "RevisionNumber": 31459917,
   "BaseName": "RenderSky",
-  "VertexAttributes": {
-    "FlagMask": 7
+  "InputLayout": {
+    "Mask": 7
   },
   "ShaderInputGroup": {
     "Elements": [{
@@ -143,11 +143,11 @@
   "ShaderBlobs": [{
       "$Class": "BlobDataReference",
       "Key": "Engine/Shaders/RenderSky/RenderSky_12407244494021180445.VS",
-      "Size": 73100
+      "Size": 73152
     }, {
       "$Class": "BlobDataReference",
       "Key": "Engine/Shaders/RenderSky/RenderSky_12407244494021180445.PS",
-      "Size": 76824
+      "Size": 76872
     }],
   "PropertySetHashCode": {},
   "LastCompiledTimestamp": {

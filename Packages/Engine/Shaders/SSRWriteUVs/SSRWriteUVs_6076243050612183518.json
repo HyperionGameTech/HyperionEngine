@@ -27,8 +27,8 @@
     }],
   "RevisionNumber": 31459917,
   "BaseName": "SSRWriteUVs",
-  "VertexAttributes": {
-    "FlagMask": 7
+  "InputLayout": {
+    "Mask": 7
   },
   "ShaderInputGroup": {
     "Elements": [{
@@ -213,15 +213,15 @@
   "ShaderBlobs": [{
       "$Class": "BlobDataReference",
       "Key": "Engine/Shaders/SSRWriteUVs/SSRWriteUVs_6076243050612183518.VS",
-      "Size": 10928
+      "Size": 11184
     }, {
       "$Class": "BlobDataReference",
       "Key": "Engine/Shaders/SSRWriteUVs/SSRWriteUVs_6076243050612183518.PS",
-      "Size": 185016
+      "Size": 185088
     }],
   "PropertySetHashCode": {},
   "LastCompiledTimestamp": {
-    "Value": 1775008017000
+    "Value": 1775164662000
   },
   "Name": "SSRWriteUVs_6076243050612183518",
   "FriendlyName": "SSRWriteUVs_6076243050612183518",

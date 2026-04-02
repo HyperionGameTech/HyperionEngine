@@ -169,7 +169,7 @@ ParticleVolumeRenderer::VolumeState& ParticleVolumeRenderer::EnsureVolumeState(R
     materialAttributes.flags = MAF_DEPTH_TEST; // depth test on, depth write off by default
 
     MeshAttributes meshAttributes {};
-    meshAttributes.vertexAttributes = VertexAttribute::Position | VertexAttribute::Normal | VertexAttribute::TexCoord0;
+    meshAttributes.inputLayout = { VT_Simple };
     meshAttributes.indexBufferElemType = GET_UNSIGNED_INT;
     meshAttributes.topology = TOP_TRIANGLES;
     state.renderableAttributes = RenderableAttributeSet(meshAttributes, materialAttributes);
@@ -293,7 +293,7 @@ void ParticleVolumeRenderer::RenderFrame(Frame* frame, const RenderSetup& render
     { // draw particles pass
         CommandRecorder& cr = frame->cr;
 
-        cr << SetVertexAttributes(state.renderableAttributes.GetMeshAttributes().vertexAttributes);
+        cr << SetInputLayout(state.renderableAttributes.GetMeshAttributes().inputLayout);
         cr << SetTopology(state.renderableAttributes.GetMeshAttributes().topology);
 
         cr << SetCurrentShader(ShaderDesc(

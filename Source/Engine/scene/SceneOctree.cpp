@@ -1042,7 +1042,7 @@ bool SceneOctree::TestRay(const Ray& ray, RayTestResults& outResults, EnumFlags<
 #endif
                     {
                         auto resGuard = meshComponent->mesh->GetReadScope();
-                        const Span<const Vertex> vertexData = meshComponent->mesh->GetVertexData();
+                        const VertexArrayView vertexData = meshComponent->mesh->GetVertexData();
                         const Span<const ubyte> indexData = meshComponent->mesh->GetIndexData();
 
                         // @TODO Fix for non-uint32 indices

@@ -833,18 +833,18 @@ private:
     Topology topology;
 };
 
-class SetVertexAttributes final : public CmdBase
+class SetInputLayout final : public CmdBase
 {
 public:
-    explicit SetVertexAttributes(VertexTypeMask vertexAttributes)
-        : vertexAttributes(vertexAttributes)
+    explicit SetInputLayout(const VertexInputLayoutDesc& inputLayout)
+        : inputLayout(inputLayout)
     {
     }
 
     static void InvokeStatic(CmdBase* cmd, CommandBuffer* commandBuffer);
 
 private:
-    VertexTypeMask vertexAttributes;
+    VertexInputLayoutDesc inputLayout;
 };
 
 class SetCurrentBlendFunction final : public CmdBase

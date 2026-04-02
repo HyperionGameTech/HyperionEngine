@@ -51,8 +51,8 @@
     }],
   "RevisionNumber": 31459917,
   "BaseName": "DeferredDirect",
-  "VertexAttributes": {
-    "FlagMask": 7
+  "InputLayout": {
+    "Mask": 7
   },
   "ShaderInputGroup": {
     "Elements": [{
@@ -355,11 +355,11 @@
   "ShaderBlobs": [{
       "$Class": "BlobDataReference",
       "Key": "Engine/Shaders/DeferredDirect/DeferredDirect_15924930052788855720.VS",
-      "Size": 11604
+      "Size": 11656
     }, {
       "$Class": "BlobDataReference",
       "Key": "Engine/Shaders/DeferredDirect/DeferredDirect_15924930052788855720.PS",
-      "Size": 224480
+      "Size": 224528
     }],
   "PropertySetHashCode": {},
   "LastCompiledTimestamp": {

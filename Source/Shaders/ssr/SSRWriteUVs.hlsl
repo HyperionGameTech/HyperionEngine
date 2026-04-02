@@ -16,6 +16,7 @@ struct VSOutput
 {
     float4 position_cs : SV_POSITION;
     float3 position : POSITION;
+    float3 normal : NORMAL;
     float2 texcoord : TEXCOORD0;
 };
 
@@ -26,6 +27,7 @@ VSOutput VSMain(VSInput input)
     float4 position = float4(input.a_position, 1.0);
 
     output.position = position.xyz;
+    output.normal = input.a_normal;
     output.texcoord = input.a_texcoord0;
 
     output.position_cs = position;
@@ -46,6 +48,7 @@ struct PSInput
 {
     float4 position_cs : SV_POSITION;
     float3 position : POSITION;
+    float3 normal : NORMAL;
     float2 texcoord : TEXCOORD0;
 };
 

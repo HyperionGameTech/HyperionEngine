@@ -133,7 +133,7 @@ VoxelOctreeBuildResult VoxelOctree::Build(const VoxelOctreeParams& params, Entit
 
     BoundingBox newAabb = OctreeBase::m_aabb;
 
-    Array<Tuple<VoxelOctreeElement, MeshDesc, Span<const Vertex>, Span<const ubyte>, UniquePtr<TSharedLock<AssetObject>>>> meshDatas;
+    Array<Tuple<VoxelOctreeElement, MeshDesc, VertexArrayView, Span<const ubyte>, UniquePtr<TSharedLock<AssetObject>>>> meshDatas;
 
     for (auto [entity, meshComponent, transformComponent, boundingBoxComponent] : entityManager.GetEntitySet<MeshComponent, TransformComponent, BoundingBoxComponent>().GetScopedView(DataAccessFlags::ACCESS_READ, HYP_FUNCTION_NAME_LIT))
     {
@@ -211,9 +211,9 @@ VoxelOctreeBuildResult VoxelOctree::Build(const VoxelOctreeParams& params, Entit
 
     InitOctants();
 
-    Proc<bool(const VoxelOctreeElement&, const MeshDesc&, Span<const Vertex>, Span<const ubyte>)> InsertIntoOctree;
+    Proc<bool(const VoxelOctreeElement&, const MeshDesc&, const VertexArrayView&, Span<const ubyte>)> InsertIntoOctree;
 
-    InsertIntoOctree = [&](const VoxelOctreeElement& element, const MeshDesc& meshDesc, Span<const Vertex> vertexData, Span<const ubyte> indexData) -> bool
+    InsertIntoOctree = [&](const VoxelOctreeElement& element, const MeshDesc& meshDesc, const VertexArrayView& vertexData, Span<const ubyte> indexData) -> bool
     {
         if (meshDesc.numIndices > 0)
         {
@@ -227,12 +227,22 @@ VoxelOctreeBuildResult VoxelOctree::Build(const VoxelOctreeParams& params, Entit
 
             Assert(meshIndices.Size() % 3 == 0);
 
+            const size_t vertexSizeInFloats = vertexData.layoutDesc.VertexSize() / sizeof(float);
+
             for (size_t i = 0; i < meshIndices.Size(); i += 3)
             {
+                const float* floatDataOffset0 = vertexData.floatData + (meshIndices[i + 0] * vertexSizeInFloats);
+                const float* floatDataOffset1 = vertexData.floatData + (meshIndices[i + 1] * vertexSizeInFloats);
+                const float* floatDataOffset2 = vertexData.floatData + (meshIndices[i + 2] * vertexSizeInFloats);
+
+                const TVertexPacket<VT_Position>* packet0 = reinterpret_cast<const TVertexPacket<VT_Position>*>(floatDataOffset0);
+                const TVertexPacket<VT_Position>* packet1 = reinterpret_cast<const TVertexPacket<VT_Position>*>(floatDataOffset1);
+                const TVertexPacket<VT_Position>* packet2 = reinterpret_cast<const TVertexPacket<VT_Position>*>(floatDataOffset2);
+
                 const Vec3f positions[3] = {
-                    transformMatrix * vertexData[meshIndices[i + 0]].position,
-                    transformMatrix * vertexData[meshIndices[i + 1]].position,
-                    transformMatrix * vertexData[meshIndices[i + 2]].position
+                    transformMatrix * packet0->GetPosition(),
+                    transformMatrix * packet1->GetPosition(),
+                    transformMatrix * packet2->GetPosition()
                 };
 
                 const Triangle triangle {
@@ -262,7 +272,7 @@ VoxelOctreeBuildResult VoxelOctree::Build(const VoxelOctreeParams& params, Entit
     {
         const VoxelOctreeElement& element = tup.GetElement<0>();
         const MeshDesc& meshDesc = tup.GetElement<1>();
-        const Span<const Vertex> vertexData = tup.GetElement<2>();
+        const VertexArrayView& vertexData = tup.GetElement<2>();
         const Span<const ubyte> indexData = tup.GetElement<3>();
 
         InsertIntoOctree(element, meshDesc, vertexData, indexData);

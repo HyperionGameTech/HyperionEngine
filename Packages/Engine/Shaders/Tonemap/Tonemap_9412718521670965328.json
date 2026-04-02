@@ -27,8 +27,8 @@
     }],
   "RevisionNumber": 31459917,
   "BaseName": "Tonemap",
-  "VertexAttributes": {
-    "FlagMask": 7
+  "InputLayout": {
+    "Mask": 7
   },
   "ShaderInputGroup": {
     "Elements": [{
@@ -297,11 +297,11 @@
   "ShaderBlobs": [{
       "$Class": "BlobDataReference",
       "Key": "Engine/Shaders/Tonemap/Tonemap_9412718521670965328.VS",
-      "Size": 11192
+      "Size": 11244
     }, {
       "$Class": "BlobDataReference",
       "Key": "Engine/Shaders/Tonemap/Tonemap_9412718521670965328.PS",
-      "Size": 66196
+      "Size": 66244
     }],
   "PropertySetHashCode": {},
   "LastCompiledTimestamp": {

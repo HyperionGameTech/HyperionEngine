@@ -16,7 +16,7 @@ class Mesh;
 class Node;
 
 HYP_CLASS()
-class HYP_API TerrainStreamingCell : public StreamingCell
+class TerrainStreamingCell : public StreamingCell
 {
     HYP_OBJECT_BODY(TerrainStreamingCell);
 

@@ -169,9 +169,11 @@ void EditorPickCache::PutEntry(const Mesh* mesh)
 
     entry.positions.Resize(vertexData.vertexCount);
 
+    const size_t vertexSizeInFloats = vertexData.layoutDesc.VertexSize() / sizeof(float);
+
     for (size_t i = 0; i < vertexData.vertexCount; ++i)
     {
-        const float* floatDataOffset = vertexData.floatData + (i * (vertexData.layoutDesc.vertexSize / sizeof(float)));
+        const float* floatDataOffset = vertexData.floatData + (i * vertexSizeInFloats);
         const TVertexPacket<VT_Position>* packet = reinterpret_cast<const TVertexPacket<VT_Position>*>(floatDataOffset);
 
         entry.positions[i].x = packet->posX;

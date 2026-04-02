@@ -21,8 +21,8 @@
     }],
   "RevisionNumber": 31459917,
   "BaseName": "ApplyReflectionProbe",
-  "VertexAttributes": {
-    "FlagMask": 7
+  "InputLayout": {
+    "Mask": 7
   },
   "ShaderInputGroup": {
     "Elements": [{
@@ -235,11 +235,11 @@
   "ShaderBlobs": [{
       "$Class": "BlobDataReference",
       "Key": "Engine/Shaders/ApplyReflectionProbe/ApplyReflectionProbe_5656388037364668825.VS",
-      "Size": 135200
+      "Size": 135252
     }, {
       "$Class": "BlobDataReference",
       "Key": "Engine/Shaders/ApplyReflectionProbe/ApplyReflectionProbe_5656388037364668825.PS",
-      "Size": 143864
+      "Size": 143916
     }],
   "PropertySetHashCode": {},
   "LastCompiledTimestamp": {

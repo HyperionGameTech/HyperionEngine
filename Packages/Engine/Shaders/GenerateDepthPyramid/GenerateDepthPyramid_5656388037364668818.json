@@ -21,8 +21,8 @@
     }],
   "RevisionNumber": 31459917,
   "BaseName": "GenerateDepthPyramid",
-  "VertexAttributes": {
-    "FlagMask": 0
+  "InputLayout": {
+    "Mask": 0
   },
   "ShaderInputGroup": {
     "Elements": [{

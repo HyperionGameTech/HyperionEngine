@@ -396,7 +396,7 @@ void DeferredPass::RenderToFramebuffer_Internal(Frame* frame, const RenderSetup&
 
     cr << SetCurrentViewport(rs.viewport);
 
-    cr << SetVertexAttributes(VertexAttribute::Position | VertexAttribute::Normal | VertexAttribute::TexCoord0);
+    cr << SetInputLayout(StaticVertexInputLayout<VT_Simple>);
     cr << SetTopology(TOP_TRIANGLES);
     cr << SetFillMode(FM_FILL);
     cr << SetCurrentBlendFunction(m_blendFunction);
@@ -843,8 +843,6 @@ void DeferredPass::RenderToFramebuffer_Internal(Frame* frame, const RenderSetup&
 TonemapPass::TonemapPass(Vec2u extent, GBuffer* gbuffer)
     : FullScreenPass(TextureFormat::R11G11B10F, extent, gbuffer)
 {
-    const VertexTypeMask vertexAttributes = VertexAttribute::Position | VertexAttribute::Normal | VertexAttribute::TexCoord0;
-
     ShaderPropertySet shaderProperties;
     shaderProperties.Add(InternShaderProperty(ShaderProperty(NAME("OUTPUT"), NAME("SDR"))));
 
@@ -1017,15 +1015,13 @@ void LightmapPass::RenderToFramebuffer_Internal(Frame* frame, const RenderSetup&
     Framebuffer* viewFramebuffer = dpd->view.GetUnsafe()->GetOutputTarget().GetFramebuffer(RenderBucket::Opaque);
     AssertDebug(viewFramebuffer != nullptr);
 
-    const VertexTypeMask vertexAttributes = VertexAttribute::Position | VertexAttribute::Normal | VertexAttribute::TexCoord0;
-
     CommandRecorder& cr = frame->cr;
 
     cr << SetCurrentShader(m_shaderDesc);
 
     cr << SetCurrentViewport(renderSetup.viewport);
 
-    cr << SetVertexAttributes(vertexAttributes);
+    cr << SetInputLayout(StaticVertexInputLayout<VT_Simple>);
 
     cr << SetFaceCullMode(FCM_BACK);
     cr << SetFillMode(FM_FILL);
@@ -1204,7 +1200,7 @@ void FogVolumePass::RenderToFramebuffer_Internal(Frame* frame, const RenderSetup
     cr << SetCurrentViewport(renderSetup.viewport);
 
     cr << SetTopology(m_volumeMesh->GetTopology());
-    cr << SetVertexAttributes(m_volumeMesh->GetVertexAttributes());
+    cr << SetInputLayout(m_volumeMesh->GetMeshAttributes().inputLayout);
 
     cr << SetFillMode(FM_FILL);
     cr << SetDepthWrite(false);
@@ -1435,7 +1431,7 @@ void ReflectionsPass::Render(Frame* frame, const RenderSetup& rs)
     }
 
     cr << SetTopology(TOP_TRIANGLES);
-    cr << SetVertexAttributes(VertexAttribute::Position | VertexAttribute::Normal | VertexAttribute::TexCoord0);
+    cr << SetInputLayout(StaticVertexInputLayout<VT_Simple>);
 
     cr << SetCurrentViewport(viewport);
 
@@ -2718,7 +2714,7 @@ void DeferredRenderer::RenderFrameForView(Frame* frame, const RenderSetup& rs)
 
             frame->cr << SetCurrentViewport(rs.viewport);
 
-            frame->cr << SetVertexAttributes(VertexAttribute::Position | VertexAttribute::Normal | VertexAttribute::TexCoord0);
+            frame->cr << SetInputLayout(StaticVertexInputLayout<VT_Simple>);
             frame->cr << SetFaceCullMode(FCM_BACK);
             frame->cr << SetFillMode(FM_FILL);
             frame->cr << SetTopology(TOP_TRIANGLES);

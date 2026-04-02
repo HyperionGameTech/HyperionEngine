@@ -23,7 +23,7 @@ public:
     ShaderInstanceRef GetOrCreate(
         Name name,
         const ShaderPropertySet& properties,
-        const VertexTypeMask& vertexAttributes);
+        const VertexInputLayoutDesc& inputLayout);
 
     size_t CalculateMemoryUsage() const;
 
@@ -36,7 +36,7 @@ private:
     ShaderCacheId GetShaderCacheId(
         Name name,
         const ShaderPropertySet& properties,
-        const VertexTypeMask& vertexAttributes,
+        const VertexInputLayoutDesc& inputLayout,
         bool createIfNotExists = true) const;
 
     Pimpl<class ShaderManagerImpl> m_impl;

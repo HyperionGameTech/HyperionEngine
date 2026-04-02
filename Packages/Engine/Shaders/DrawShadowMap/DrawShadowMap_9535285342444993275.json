@@ -45,8 +45,8 @@
     }],
   "RevisionNumber": 31459917,
   "BaseName": "DrawShadowMap",
-  "VertexAttributes": {
-    "FlagMask": 7
+  "InputLayout": {
+    "Mask": 7
   },
   "ShaderInputGroup": {
     "Elements": [{
@@ -147,15 +147,15 @@
   "ShaderBlobs": [{
       "$Class": "BlobDataReference",
       "Key": "Engine/Shaders/DrawShadowMap/DrawShadowMap_9535285342444993275.VS",
-      "Size": 54380
+      "Size": 55508
     }, {
       "$Class": "BlobDataReference",
       "Key": "Engine/Shaders/DrawShadowMap/DrawShadowMap_9535285342444993275.PS",
-      "Size": 50216
+      "Size": 50264
     }],
   "PropertySetHashCode": {},
   "LastCompiledTimestamp": {
-    "Value": 1775008184000
+    "Value": 1775102523000
   },
   "Name": "DrawShadowMap_9535285342444993275",
   "FriendlyName": "DrawShadowMap_9535285342444993275",

@@ -83,6 +83,14 @@ static CComPtr<IDxcCompiler3> s_dxcCompiler;
 
 static constexpr uint32 NumPrecompileShadersThreads = 8;
 
+static const HashMap<VertexType, Array<const char*>> s_vertexTypeToVertexAttributes = {
+    { VT_Position, { "a_position" } },
+    { VT_Normal, { "a_normal" } },
+    { VT_UV0, { "a_texcoord0" } },
+    { VT_UV1, { "a_texcoord1" } },
+    { VT_Skeletal, { "a_bone_indices", "a_bone_weights" } }
+};
+
 class PrecompileShadersWorkerPool : public TaskThreadPool
 {
 public:
@@ -128,6 +136,27 @@ static LPCWSTR GetDXCTargetProfile(ShaderModuleType type)
     }
 }
 #endif
+
+static String InputLayoutToString(const VertexInputLayoutDesc& inputLayout)
+{
+    String str;
+
+    uint8 mask = inputLayout.mask;
+
+    FOR_EACH_BIT(mask, bit)
+    {
+        str += VertexUtils::ToString(VertexType(1 << bit));
+
+        mask &= ~(1 << bit);
+
+        if (mask)
+        {
+            str += ", ";
+        }
+    }
+
+    return str;
+}
 
 String GetShaderVersionFromSource(const String& source, String& outSourceWithoutVersion)
 {
@@ -248,14 +277,27 @@ static String BuildAttributesDefines(
 {
     String preamble;
 
-    Array<const VertexAttribute*> attributesArray = perm.GetRequiredVertexAttributes().BuildAttributes();
+    uint32 attrIndex = 0;
 
-    for (size_t attrIndex = 0; attrIndex < attributesArray.Size(); attrIndex++)
+    FOR_EACH_BIT(perm.GetRequiredVertexAttributes().flagMask, bit)
     {
-        const VertexAttribute* attr = attributesArray[attrIndex];
+        VertexType vt = VertexType(1 << bit);
 
-        preamble += String("#define HYP_ATTRIBUTE_") + *attr->name + "\n";
-        preamble += String("#define _") + *attr->name + "_LOCATION " + String::ToString(attrIndex) + "\n\n";
+        auto it = s_vertexTypeToVertexAttributes.Find(vt);
+        Assert(it != s_vertexTypeToVertexAttributes.End());
+
+        const Array<const char*>& vertexAttributes = it->second;
+        Assert(vertexAttributes.Any());
+
+        preamble += String("#define VT_") + VertexUtils::ToString(vt) + "\n";
+
+        for (const String& attr : vertexAttributes)
+        {
+            preamble += HYP_FORMAT("#define HYP_ATTRIBUTE_{}\n", attr);
+            preamble += HYP_FORMAT("#define _{}_LOCATION {}\n", attr, attrIndex);
+
+            ++attrIndex;
+        }
     }
 
     // We do not do the same for Optional attributes, as they have not been
@@ -399,11 +441,11 @@ static void MergeGlobalShaderProperties(bool shouldCompileEntireBundle, ShaderVa
 
 static bool SatisfiesRequested(
     const ShaderPropertySet& requestedProperties,
-    const VertexTypeMask& requestedVertexAttributes,
+    const VertexInputLayoutDesc& requestedInputLayout,
     const Shader& candidate)
 {
     return candidate.properties == requestedProperties
-        && candidate.vertexAttributes == requestedVertexAttributes;
+        && candidate.inputLayout == requestedInputLayout;
 }
 
 #pragma endregion Helpers
@@ -1275,39 +1317,77 @@ static const FlatMap<String, ShaderModuleType> s_shaderTypeNames = {
     { "intersect", ShaderModuleType::Intersect }
 };
 
-static bool FindVertexAttributeForDefinition(const String& name, const VertexAttribute*& outAttribute)
+static VertexType FindVertexType(StringHash name)
 {
-    for (const VertexAttribute** attr = VertexAttribute::Attrs; *attr; attr++)
+    if (name == "Position"_sh)
+        return VT_Position;
+
+    if (name == "Normal"_sh)
+        return VT_Normal;
+
+    if (name == "UV0"_sh)
+        return VT_UV0;
+
+    if (name == "UV1"_sh)
+        return VT_UV1;
+
+    if (name == "Skeletal"_sh)
+        return VT_Skeletal;
+
+    return VT_Invalid;
+}
+
+static bool FindVertexType(const UTF8StringView& str, VertexType& outType)
+{
+    if (str == "a_position")
     {
-        if (name == (*attr)->name)
-        {
-            outAttribute = *attr;
-            return true;
-        }
+        outType = VT_Position;
+        return true;
+    }
+    
+    if (str == "a_normal")
+    {
+        outType = VT_Normal;
+        return true;
+    }
+
+    if (str == "a_texcoord0")
+    {
+        outType = VT_UV0;
+        return true;
+    }
+
+    if (str == "a_texcoord1")
+    {
+        outType = VT_UV1;
+        return true;
+    }
+    
+    if (str == "a_bone_indices" || str == "a_bone_weights")
+    {
+        outType = VT_Skeletal;
+        return true;
     }
 
     return false;
 }
 
-static VertexTypeMask BuildVertexTypeMask(
-    const Array<VertexAttributeDefinition>& definitions)
+static VertexTypeMask BuildVertexTypeMask(const Array<VertexAttributeDefinition>& definitions)
 {
-    VertexTypeMask set;
+    VertexTypeMask set {};
 
     for (const VertexAttributeDefinition& definition : definitions)
     {
-        const VertexAttribute* attr = nullptr;
+        VertexType vt = VT_Invalid;
 
-        if (!FindVertexAttributeForDefinition(definition.name, attr))
+        if (!FindVertexType(definition.name, vt))
         {
             HYP_LOG(ShaderCompiler, Error, "Invalid vertex attribute definition, {}", definition.name);
 
             continue;
         }
 
-        Assert(attr != nullptr);
-
-        set |= *attr;
+        set |= vt;
     }
 
     return set;
@@ -1317,7 +1397,7 @@ HYP_DISABLE_OPTIMIZATION;
 static bool IsShaderRequestCoveredByPerms(
     const ShaderVariantPerms& bundlePerms,
     const Array<ShaderProperty>& requestedProperties,
-    const VertexTypeMask& requestedVertexAttributes,
+    const VertexInputLayoutDesc& requestedInputLayout,
     String* outReason = nullptr)
 {
     const bool allowCompileAdditionalVariants = cvShouldCompileMissingVariants.Get();
@@ -1411,13 +1491,13 @@ static bool IsShaderRequestCoveredByPerms(
 
     const VertexTypeMask allDeclaredAttrs = bundlePerms.GetAllVertexAttributes();
 
-    if ((requestedVertexAttributes & allDeclaredAttrs) != requestedVertexAttributes)
+    if ((requestedInputLayout.mask & allDeclaredAttrs.flagMask) != requestedInputLayout.mask)
     {
         if (outReason)
         {
             *outReason = HYP_FORMAT(
                 "Requested vertex attributes ({}) are not fully declared in the bundle (declared: {})",
-                requestedVertexAttributes.ToString(), allDeclaredAttrs.ToString());
+                InputLayoutToString(requestedInputLayout), allDeclaredAttrs.ToString());
         }
 
         return false;
@@ -1436,18 +1516,24 @@ static void ForEachPermutation(
     Array<ShaderProperty> staticProperties;
     Array<ShaderProperty> valueGroups;
 
-    for (const VertexAttribute** ppAttr = VertexAttribute::Attrs; *ppAttr; ppAttr++)
-    {
-        const VertexAttribute& attr = **ppAttr;
+    uint8 iterMask = 0xFF;
+    uint8 attrIndex = 0;
 
-        if (versions.HasRequiredVertexAttribute(attr))
+    while (iterMask)
+    {
+        VertexType vt = VertexType(1 << attrIndex);
+
+        if (versions.HasRequiredVertexAttribute(vt))
         {
-            staticProperties.PushBack(ShaderProperty(attr));
+            staticProperties.PushBack(ShaderProperty(vt));
         }
-        else if (versions.HasOptionalVertexAttribute(attr))
+        else if (versions.HasOptionalVertexAttribute(vt))
         {
-            variableProperties.PushBack(ShaderProperty(attr));
+            variableProperties.PushBack(ShaderProperty(vt));
         }
+
+        iterMask &= ~vt;
+        ++attrIndex;
     }
 
     for (const ShaderProperty& property : versions.GetPropertySet())
@@ -1649,29 +1735,27 @@ ShaderVariantPerms& ShaderVariantPerms::Set(const ShaderProperty& property, bool
 {
     if (property.IsVertexAttribute())
     {
-        const VertexAttribute* attr = nullptr;
+        VertexType vt = FindVertexType(property.currentValue.Is<Name>()
+            ? property.currentValue.GetUnchecked<Name>()
+            : Name::Invalid());
 
-        if (!FindVertexAttributeForDefinition(property.GetValueString(), attr))
+        if (vt == VT_Invalid)
         {
-            HYP_LOG(ShaderCompiler, Error,
-                "Invalid vertex attribute name for shader: {}",
-                property.GetValueString());
+            HYP_LOG(ShaderCompiler, Error, "Invalid VertexType for shader: {}", property.GetValueString());
 
             return *this;
         }
-
-        Assert(attr != nullptr);
 
         if (property.IsOptionalVertexAttribute())
         {
             if (enabled)
             {
-                m_optionalVertexAttributes |= *attr;
+                m_optionalVertexAttributes |= vt;
                 m_optionalVertexAttributes &= ~m_requiredVertexAttributes;
             }
             else
             {
-                m_optionalVertexAttributes &= ~(*attr);
+                m_optionalVertexAttributes &= ~vt;
             }
 
             // NOTE: Optional vertex attributes should not trigger any hash code
@@ -1682,12 +1766,12 @@ ShaderVariantPerms& ShaderVariantPerms::Set(const ShaderProperty& property, bool
 
         if (enabled)
         {
-            m_requiredVertexAttributes |= *attr;
-            m_optionalVertexAttributes &= ~(*attr);
+            m_requiredVertexAttributes |= vt;
+            m_optionalVertexAttributes &= ~vt;
         }
         else
         {
-            m_requiredVertexAttributes &= ~(*attr);
+            m_requiredVertexAttributes &= ~vt;
         }
 
         m_needsHashCodeRecalculation = true;
@@ -1983,7 +2067,7 @@ bool ShaderCompiler::HandleBundle(
             {
                 return SatisfiesRequested(
                     shaderRequest->properties,
-                    shaderRequest->vertexAttributes,
+                    shaderRequest->inputLayout,
                     *shader);
             })
             != inOutBundle->compiledShaders.End();
@@ -1991,7 +2075,7 @@ bool ShaderCompiler::HandleBundle(
     if (shaderRequest.HasValue() && !requestedFound)
     {
         String requestString = "requested shader with properties: " + shaderRequest->properties.GetDebugString();
-        requestString += " and vertex attributes: " + (shaderRequest->vertexAttributes ? shaderRequest->vertexAttributes.ToString() : "<none>");
+        requestString += " and vertex attributes: " + (shaderRequest->inputLayout.mask ? InputLayoutToString(shaderRequest->inputLayout) : "<none>");
 
         HYP_LOG(ShaderCompiler, Verbose,
             "Bundle {} does not contain a shader satisfying the {}",
@@ -2002,7 +2086,7 @@ bool ShaderCompiler::HandleBundle(
         for (const Handle<Shader>& shader : inOutBundle->compiledShaders)
         {
             String shaderString = "\tProperties: " + shader->properties.GetDebugString();
-            shaderString += "\n\tVertex attributes: " + (shader->vertexAttributes ? shader->vertexAttributes.ToString() : "<none>");
+            shaderString += "\n\tVertex attributes: " + (shader->inputLayout.mask ? InputLayoutToString(shader->inputLayout) : "<none>");
 
             HYP_LOG(ShaderCompiler, Verbose, "{}", shaderString);
         }
@@ -2557,7 +2641,7 @@ ShaderCompiler::ProcessResult ShaderCompiler::ProcessShaderSource(
 
                 if (parts.Size() < 3)
                 {
-                    result.errors.PushBack(ProcessError { "Invalid attribute:  Requires format HYP_ATTRIBUTE(location) type name" });
+                    result.errors.PushBack(ProcessError { "Invalid attribute:  Requires format HYP_ATTRIBUTE type name" });
 
                     break;
                 }
@@ -3280,7 +3364,7 @@ bool ShaderCompiler::CompileBundle(
         }
 
         String coverageFailReason;
-        if (!IsShaderRequestCoveredByPerms(declaredPerms, additionalProperties, shaderRequest->vertexAttributes, &coverageFailReason))
+        if (!IsShaderRequestCoveredByPerms(declaredPerms, additionalProperties, shaderRequest->inputLayout, &coverageFailReason))
         {
             if (cvShouldCompileMissingVariants.Get())
             {
@@ -3356,7 +3440,7 @@ bool ShaderCompiler::CompileBundle(
                 shader->properties.Add(propertyId);
             }
 
-            shader->vertexAttributes = perm.GetRequiredVertexAttributes();
+            shader->inputLayout = { perm.GetRequiredVertexAttributes().flagMask };
             shader->propertySetHashCode = perm.GetPropertySetHashCode();
 
             uint32 numErrored = 0;
@@ -3712,7 +3796,7 @@ bool ShaderCompiler::CompileBundle(
         outBundle->compiledShaders.End(),
         [](const Handle<Shader>& a, const Handle<Shader>& b) -> bool
         {
-            if (ByteUtil::BitCount(a->vertexAttributes.flagMask) < ByteUtil::BitCount(b->vertexAttributes.flagMask))
+            if (ByteUtil::BitCount(a->inputLayout.mask) < ByteUtil::BitCount(b->inputLayout.mask))
                 return false;
 
             if (std::strcmp(a->GetName().LookupString(), b->GetName().LookupString()) < 0)
@@ -3778,7 +3862,7 @@ bool ShaderCompiler::CompileBundle(
 bool ShaderCompiler::RequestShader(
     Name name,
     const ShaderPropertySet& properties,
-    const VertexTypeMask& vertexAttributes,
+    const VertexInputLayoutDesc& inputLayout,
     Shader*& outShader)
 {
     ShaderPropertySet mergedProperties = properties;
@@ -3786,7 +3870,7 @@ bool ShaderCompiler::RequestShader(
 
     Handle<ShaderBundle> bundle;
 
-    if (!LoadBundle(name, ShaderRequest { mergedProperties, vertexAttributes }, bundle))
+    if (!LoadBundle(name, ShaderRequest { mergedProperties, inputLayout }, bundle))
     {
         HYP_LOG(ShaderCompiler, Error, "Failed to attempt loading of shader bundle: {}", name);
 
@@ -3800,9 +3884,9 @@ bool ShaderCompiler::RequestShader(
     }
 
     auto it = bundle->compiledShaders.FindIf(
-        [&mergedProperties, &vertexAttributes](const Handle<Shader>& shader) -> bool
+        [&mergedProperties, &inputLayout](const Handle<Shader>& shader) -> bool
         {
-            return SatisfiesRequested(mergedProperties, vertexAttributes, *shader);
+            return SatisfiesRequested(mergedProperties, inputLayout, *shader);
         });
 
     if (it == bundle->compiledShaders.End())
@@ -3812,11 +3896,11 @@ bool ShaderCompiler::RequestShader(
             "Name: {}\n"
             "\tRequested properties: {}\n\tVertex Attributes: {}\n\n"
             "Found: {}",
-            name, mergedProperties.GetDebugString(), vertexAttributes.ToString(),
+            name, mergedProperties.GetDebugString(), InputLayoutToString(inputLayout),
             String::Join(bundle->compiledShaders, "\n", [](const Handle<Shader>& shader)
                 {
                     return HYP_FORMAT("-----\n\tProperties: {}\n\tVertex Attributes: {}\n-----",
-                        shader->properties.GetDebugString(), shader->vertexAttributes.ToString());
+                        shader->properties.GetDebugString(), InputLayoutToString(shader->inputLayout));
                 }));
 
         return false;

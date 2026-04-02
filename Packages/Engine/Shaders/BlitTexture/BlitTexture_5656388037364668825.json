@@ -21,8 +21,8 @@
     }],
   "RevisionNumber": 31459917,
   "BaseName": "BlitTexture",
-  "VertexAttributes": {
-    "FlagMask": 7
+  "InputLayout": {
+    "Mask": 7
   },
   "ShaderInputGroup": {
     "Elements": [{
@@ -81,11 +81,11 @@
   "ShaderBlobs": [{
       "$Class": "BlobDataReference",
       "Key": "Engine/Shaders/BlitTexture/BlitTexture_5656388037364668825.VS",
-      "Size": 37264
+      "Size": 37316
     }, {
       "$Class": "BlobDataReference",
       "Key": "Engine/Shaders/BlitTexture/BlitTexture_5656388037364668825.PS",
-      "Size": 37672
+      "Size": 37724
     }],
   "PropertySetHashCode": {},
   "LastCompiledTimestamp": {

@@ -82,9 +82,11 @@ BakeData<LightmapVolume>::BakeData(Span<const BakeEntity> bakeEntities, Lightmap
         const Mat4f modelMatrix = bakeEntity.transformMatrix;
         const Mat4f normalMatrix = modelMatrix.Inverse().Transpose();
 
+        const size_t vertexSizeInFloats = vertexData.layoutDesc.VertexSize() / sizeof(float);
+
         for (size_t vertexIndex = 0; vertexIndex < vertexData.vertexCount; vertexIndex++)
         {
-            const float* srcVertexOffset = vertexData.floatData + (i * (vertexData.layoutDesc.vertexSize / sizeof(float)));
+            const float* srcVertexOffset = vertexData.floatData + (i * vertexSizeInFloats);
 
             size_t offset = 0;
 

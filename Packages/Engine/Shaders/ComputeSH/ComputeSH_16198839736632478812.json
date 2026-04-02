@@ -27,8 +27,8 @@
     }],
   "RevisionNumber": 31459917,
   "BaseName": "ComputeSH",
-  "VertexAttributes": {
-    "FlagMask": 0
+  "InputLayout": {
+    "Mask": 0
   },
   "ShaderInputGroup": {
     "Elements": [{

@@ -74,10 +74,10 @@ const Handle<Mesh>& UIObjectQuadMeshHelper::GetQuadMesh()
 
             auto readScope = quad->GetReadScope();
 
-            auto vd = quad->GetVertexData();
-            auto id = quad->GetIndexData();
+            VertexArrayView vd = quad->GetVertexData();
+            ByteView id = quad->GetIndexData();
 
-            Assert(vd.Size() != 0);
+            Assert(vd.vertexCount != 0);
             Assert(id.Size() != 0);
 
             const MeshDesc& meshDesc = quad->GetMeshDesc();
@@ -86,11 +86,11 @@ const Handle<Mesh>& UIObjectQuadMeshHelper::GetQuadMesh()
             indexData.Resize(id.Size());
             Memory::Copy(indexData.Data(), id.Data(), id.Size());
 
-            Array<TVertex<VT_Simple>> newVertices;
-            newVertices.Resize(vd.Size());
-            Memory::Copy(newVertices.Data(), vd.Data(), sizeof(Vertex) * vd.Size());//FIXME
+            Array<SimpleVertex> newVertices;
+            newVertices.Resize(vd.vertexCount);
+            Memory::Copy(newVertices.Data(), vd.floatData, vd.vertexCount * meshDesc.meshAttributes.inputLayout.VertexSize());
 
-            for (TVertex<VT_Simple>& vert : newVertices)
+            for (SimpleVertex& vert : newVertices)
             {
                 vert.posX = (vert.posX + 1.0f) * 0.5f;
                 vert.posY = (vert.posY + 1.0f) * 0.5f;
@@ -98,7 +98,12 @@ const Handle<Mesh>& UIObjectQuadMeshHelper::GetQuadMesh()
 
             readScope.Reset();
 
-            quad->SetMeshData(meshDesc, VertexArrayView(newVertices.Data(), newVertices.Size()), indexData);
+            VertexArrayView vertexArrayView {};
+            vertexArrayView.floatData = reinterpret_cast<const float*>(newVertices.Data());
+            vertexArrayView.vertexCount = newVertices.Size();
+            vertexArrayView.layoutDesc = { VT_Simple };
+
+            quad->SetMeshData(meshDesc, vertexArrayView, indexData);
             quad->SetName(NAME("UIObject_QuadMesh"));
 
             InitObject(quad);
@@ -1891,10 +1896,6 @@ void UIObject::SetAllowMaterialUpdate(bool allowMaterialUpdate)
 MaterialAttributes UIObject::GetMaterialAttributes() const
 {
     HYP_SCOPE;
-
-    const VertexTypeMask vertexAttributes = VertexAttribute::Position
-        | VertexAttribute::Normal
-        | VertexAttribute::TexCoord0;
 
     return MaterialAttributes {
         .shaderName = NAME("UIObject"),

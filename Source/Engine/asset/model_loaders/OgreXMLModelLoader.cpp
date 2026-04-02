@@ -223,6 +223,8 @@ void BuildVertices(OgreXMLModel& model)
         vertices[i].SetPosition(position);
         vertices[i].SetUV0(texcoord);
         vertices[i].SetNormal(normal);
+        vertices[i].boneIndices = UINT32_MAX;
+        Memory::Zero(vertices[i].boneWeights, sizeof(vertices[i].boneWeights));
 
         const auto boneIt = model.boneAssignments.Find(i);
 
@@ -305,8 +307,10 @@ AssetLoadResult OgreXMLModelLoader::LoadAsset(LoaderState& state) const
 
         Name assetName = CreateNameFromDynamicString(subMesh.name);
 
+        AssertDebug(model.vertexData.ByteSize() % sizeof(FatVertex) == 0);
+
         MeshDesc meshDesc;
-        meshDesc.meshAttributes.inputLayout = { VT_Simple | VT_Skeletal, sizeof(FatVertex) };
+        meshDesc.meshAttributes.inputLayout = { VT_Simple | VT_Skeletal };
         meshDesc.meshAttributes.indexBufferElemType = GET_UNSIGNED_INT;
         meshDesc.meshAttributes.topology = TOP_TRIANGLES;
         meshDesc.numVertices = uint32(model.vertexData.ByteSize() / sizeof(FatVertex));
@@ -317,7 +321,7 @@ AssetLoadResult OgreXMLModelLoader::LoadAsset(LoaderState& state) const
 
         VertexArrayView vertexArrayView {};
         vertexArrayView.floatData = model.vertexData.Data();
-        vertexArrayView.vertexCount = model.vertexData.ByteSize() / sizeof(FatVertex);
+        vertexArrayView.vertexCount = meshDesc.numVertices;
         vertexArrayView.layoutDesc = meshDesc.meshAttributes.inputLayout;
 
         mesh->SetMeshData(meshDesc, vertexArrayView, subMesh.indices.ToByteView());

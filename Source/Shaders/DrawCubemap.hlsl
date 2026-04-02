@@ -16,7 +16,7 @@ struct VSInput
     HYP_ATTRIBUTE float3 a_normal : NORMAL;
     HYP_ATTRIBUTE float2 a_texcoord0 : TEXCOORD0;
     HYP_ATTRIBUTE_OPTIONAL float2 a_texcoord1 : TEXCOORD1;
-    HYP_ATTRIBUTE_OPTIONAL int4 a_bone_indices : BLENDINDICES;
+    HYP_ATTRIBUTE_OPTIONAL uint a_bone_indices : BLENDINDICES;
     HYP_ATTRIBUTE_OPTIONAL float4 a_bone_weights : BLENDWEIGHT;
 };
 
@@ -52,22 +52,6 @@ DECLARE_SRV_DYNAMIC(Default, CurrentEntity) StructuredBuffer<Entity> entities;
 
 DECLARE_SRV_DYNAMIC(Default, SkeletonsBuffer) StructuredBuffer<Skeleton> skeletons;
 
-float4x4 CreateSkinningMatrix(int4 bone_indices, float4 bone_weights)
-{
-    float4x4 skinning = (float4x4)0;
-
-    int index0 = min(bone_indices.x, HYP_MAX_BONES - 1);
-    skinning += bone_weights.x * skeletons[0].bones[index0];
-    int index1 = min(bone_indices.y, HYP_MAX_BONES - 1);
-    skinning += bone_weights.y * skeletons[0].bones[index1];
-    int index2 = min(bone_indices.z, HYP_MAX_BONES - 1);
-    skinning += bone_weights.z * skeletons[0].bones[index2];
-    int index3 = min(bone_indices.w, HYP_MAX_BONES - 1);
-    skinning += bone_weights.w * skeletons[0].bones[index3];
-
-    return skinning;
-}
-
 #endif
 
 float4x4 LookAt(float3 pos, float3 target, float3 up)
@@ -100,8 +84,8 @@ VSOutput VSMain(VSInput input, uint ViewId : SV_ViewID, uint instanceId : SV_Ins
     float3x3 normal_matrix = transpose(inverse((float3x3)model_matrix));
 #endif
 
-#if defined(SKINNING) && defined(HYP_ATTRIBUTE_Skeletal)
-    float4x4 skinning_matrix = CreateSkinningMatrix(input.a_bone_indices, input.a_bone_weights);
+#if defined(SKINNING) && defined(HYP_ATTRIBUTE_a_bone_indices) && defined(HYP_ATTRIBUTE_a_bone_weights)
+    float4x4 skinning_matrix = CreateSkinningMatrix(skeletons[0], input.a_bone_indices, input.a_bone_weights);
 
     position = mul(model_matrix, mul(skinning_matrix, float4(input.a_position, 1.0)));
     normal_matrix = mul(normal_matrix, transpose(inverse((float3x3)skinning_matrix)));

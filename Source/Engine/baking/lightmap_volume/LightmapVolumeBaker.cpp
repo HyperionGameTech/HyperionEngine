@@ -515,21 +515,26 @@ void Baker<LightmapVolume>::OnCompleted_Internal()
 
             MeshDesc newMeshDesc;
             newMeshDesc.meshAttributes = mesh->GetMeshAttributes();
-            newMeshDesc.meshAttributes.vertexAttributes |= VertexAttribute::TexCoord1; // add UV1
+            newMeshDesc.meshAttributes.inputLayout = { VT_Simple | VT_UV1 };
             newMeshDesc.numVertices = uint32(bakeMesh.vertices.Size());
             newMeshDesc.numIndices = uint32(bakeMesh.indices.Size());
 
             for (size_t i = 0; i < bakeMesh.vertices.Size(); i++)
             {
-                Vertex& vertex = bakeMesh.vertices[i];
+                BakeVertex& inVertex = bakeMesh.vertices[i];
 
-                Vec2f& uv1 = vertex.texcoord1;
+                Vec2f uv1 = inVertex.GetUV1();
                 uv1.y = 1.0f - uv1.y; // Invert Y coordinate for lightmaps
                 uv1 *= lightmapElement->scale;
                 uv1 += Vec2f(lightmapElement->offsetUV.x, lightmapElement->offsetUV.y);
             }
 
-            mesh->SetMeshData(newMeshDesc, bakeMesh.vertices.ToSpan(), bakeMesh.indices.ToByteView());
+            VertexArrayView vertexArrayView {};
+            vertexArrayView.floatData = reinterpret_cast<const float*>(bakeMesh.vertices.Data());
+            vertexArrayView.layoutDesc = newMeshDesc.meshAttributes.inputLayout;
+            vertexArrayView.vertexCount = bakeMesh.vertices.Size();
+
+            mesh->SetMeshData(newMeshDesc, vertexArrayView, bakeMesh.indices.ToByteView());
         };
 
         UpdateMeshData();

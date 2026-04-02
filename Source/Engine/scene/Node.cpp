@@ -1076,7 +1076,7 @@ bool Node::TestRay(const Ray& ray, RayTestResults& outResults, EnumFlags<RayTest
                 {
                     AssertDebug(resGuard);
 
-                    const Span<const Vertex> vertexData = mesh->GetVertexData();
+                    const VertexArrayView vertexData = mesh->GetVertexData();
                     const Span<const ubyte> indexData = mesh->GetIndexData();
 
                     // @TODO fix for non-uint32 indices

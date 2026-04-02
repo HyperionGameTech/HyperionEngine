@@ -60,6 +60,8 @@ bool RenderThread::Start()
 {
     signal(SIGINT, HandleSignal);
     signal(SIGSEGV, HandleSignal);
+    // handle integer division by zero
+    signal(SIGFPE, HandleSignal);
 
     AddOnExitCallback([](void)
         {

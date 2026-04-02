@@ -120,7 +120,7 @@ struct MeshAttributes
     HYP_STRUCT_BODY(MeshAttributes);
 
     HYP_FIELD(Property = "InputLayout")
-    VertexInputLayoutDesc inputLayout;
+    VertexInputLayoutDesc inputLayout = { VT_Simple };
 
     HYP_FIELD(Property = "Topology")
     Topology topology = TOP_TRIANGLES;
