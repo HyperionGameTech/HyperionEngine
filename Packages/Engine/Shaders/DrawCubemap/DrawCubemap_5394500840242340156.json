@@ -20,41 +20,47 @@
       "EnumValues": []
     }, {
       "$Class": "ShaderProperty",
-      "Name": "OUTPUT",
+      "Name": "SHADING_TYPE",
       "Flags": 0,
-      "Value": "RGBA8",
+      "Value": "FORWARD",
       "EnumValues": []
     }, {
       "$Class": "ShaderProperty",
-      "Name": "TEMPORAL_BLEND_TECHNIQUE",
+      "Name": "SKINNING",
       "Flags": 0,
-      "Value": 1,
+      "Value": null,
       "EnumValues": []
     }, {
       "$Class": "ShaderProperty",
-      "Name": "FEEDBACK",
+      "Name": "MAX_LIGHTS",
       "Flags": 0,
-      "Value": 0.950000,
+      "Value": 4,
+      "EnumValues": []
+    }, {
+      "$Class": "ShaderProperty",
+      "Name": "MODE_SHADOWS",
+      "Flags": 0,
+      "Value": null,
       "EnumValues": []
     }],
   "RevisionNumber": 31459917,
-  "BaseName": "TemporalBlending",
+  "BaseName": "DrawCubemap",
   "InputLayout": {
-    "Mask": 0
+    "Mask": 7
   },
   "ShaderInputGroup": {
     "Elements": [{
         "$Class": "ShaderInputSet",
         "SetIndex": 0,
-        "Name": "TemporalBlending",
+        "Name": "Default",
         "Slots": [[{
               "$Class": "ShaderInput",
               "Register": 1,
-              "ElementType": 5,
-              "Name": "GBufferDepthTexture",
+              "ElementType": 4,
+              "Name": "CurrentEntity",
               "Count": 1,
               "Size": 4294967295,
-              "IsDynamic": false,
+              "IsDynamic": true,
               "StructInfo": {
                 "Name": "",
                 "Size": 4294967295,
@@ -64,11 +70,11 @@
             }, {
               "$Class": "ShaderInput",
               "Register": 1,
-              "ElementType": 5,
-              "Name": "VelocityImage",
+              "ElementType": 4,
+              "Name": "SkeletonsBuffer",
               "Count": 1,
               "Size": 4294967295,
-              "IsDynamic": false,
+              "IsDynamic": true,
               "StructInfo": {
                 "Name": "",
                 "Size": 4294967295,
@@ -78,74 +84,18 @@
             }, {
               "$Class": "ShaderInput",
               "Register": 1,
-              "ElementType": 5,
-              "Name": "PrevImage",
+              "ElementType": 4,
+              "Name": "MaterialsBuffer",
               "Count": 1,
               "Size": 4294967295,
-              "IsDynamic": false,
+              "IsDynamic": true,
               "StructInfo": {
                 "Name": "",
                 "Size": 4294967295,
                 "FieldNames": [],
                 "FieldTypes": []
               }
-            }, {
-              "$Class": "ShaderInput",
-              "Register": 1,
-              "ElementType": 5,
-              "Name": "InImage",
-              "Count": 1,
-              "Size": 4294967295,
-              "IsDynamic": false,
-              "StructInfo": {
-                "Name": "",
-                "Size": 4294967295,
-                "FieldNames": [],
-                "FieldTypes": []
-              }
-            }], [{
-              "$Class": "ShaderInput",
-              "Register": 2,
-              "ElementType": 6,
-              "Name": "OutImage",
-              "Count": 1,
-              "Size": 4294967295,
-              "IsDynamic": false,
-              "StructInfo": {
-                "Name": "",
-                "Size": 4294967295,
-                "FieldNames": [],
-                "FieldTypes": []
-              }
-            }], [{
-              "$Class": "ShaderInput",
-              "Register": 3,
-              "ElementType": 1,
-              "Name": "WorldsBuffer",
-              "Count": 1,
-              "Size": 4294967295,
-              "IsDynamic": false,
-              "StructInfo": {
-                "Name": "",
-                "Size": 4294967295,
-                "FieldNames": [],
-                "FieldTypes": []
-              }
-            }, {
-              "$Class": "ShaderInput",
-              "Register": 3,
-              "ElementType": 1,
-              "Name": "TemporalBlendingUniforms",
-              "Count": 1,
-              "Size": 4294967295,
-              "IsDynamic": false,
-              "StructInfo": {
-                "Name": "",
-                "Size": 4294967295,
-                "FieldNames": [],
-                "FieldTypes": []
-              }
-            }, {
+            }], [], [{
               "$Class": "ShaderInput",
               "Register": 3,
               "ElementType": 2,
@@ -189,21 +139,31 @@
               }
             }], []],
         "Flags": 0
+      }, {
+        "$Class": "ShaderInputSet",
+        "SetIndex": 1,
+        "Name": "BindlessResources0",
+        "Slots": [[], [], [], [], []],
+        "Flags": 1
       }]
   },
-  "ShaderModuleTypes": [4],
-  "ShaderModuleNames": ["TemporalBlending.hlsl"],
-  "EntryPointNames": ["CSMain"],
+  "ShaderModuleTypes": [1, 2],
+  "ShaderModuleNames": ["DrawCubemap.hlsl", "DrawCubemap.hlsl"],
+  "EntryPointNames": ["VSMain", "PSMain"],
   "ShaderBlobs": [{
       "$Class": "BlobDataReference",
-      "Key": "Engine/Shaders/TemporalBlending/TemporalBlending_6173123785945935178.CS",
-      "Size": 106892
+      "Key": "Engine/Shaders/DrawCubemap/DrawCubemap_5394500840242340156.VS",
+      "Size": 50236
+    }, {
+      "$Class": "BlobDataReference",
+      "Key": "Engine/Shaders/DrawCubemap/DrawCubemap_5394500840242340156.PS",
+      "Size": 90324
     }],
   "PropertySetHashCode": {},
   "LastCompiledTimestamp": {
-    "Value": 1775008017000
+    "Value": 1775102464000
   },
-  "Name": "TemporalBlending_6173123785945935178",
-  "FriendlyName": "TemporalBlending6173123785945935178",
+  "Name": "DrawCubemap_5394500840242340156",
+  "FriendlyName": "DrawCubemap_5394500840242340156",
   "OriginalFilepath": ""
 }

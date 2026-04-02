@@ -20,33 +20,33 @@
       "EnumValues": []
     }, {
       "$Class": "ShaderProperty",
-      "Name": "OUTPUT",
+      "Name": "HBAO_ENABLED",
       "Flags": 0,
-      "Value": "RGBA8",
+      "Value": null,
       "EnumValues": []
     }, {
       "$Class": "ShaderProperty",
-      "Name": "TEMPORAL_BLEND_TECHNIQUE",
+      "Name": "SSGI_ENABLED",
       "Flags": 0,
-      "Value": 1,
+      "Value": null,
       "EnumValues": []
     }, {
       "$Class": "ShaderProperty",
-      "Name": "FEEDBACK",
+      "Name": "MAX_FALLBACK_PROBES",
       "Flags": 0,
-      "Value": 0.950000,
+      "Value": 4,
       "EnumValues": []
     }],
   "RevisionNumber": 31459917,
-  "BaseName": "TemporalBlending",
+  "BaseName": "DeferredIndirect",
   "InputLayout": {
-    "Mask": 0
+    "Mask": 7
   },
   "ShaderInputGroup": {
     "Elements": [{
         "$Class": "ShaderInputSet",
         "SetIndex": 0,
-        "Name": "TemporalBlending",
+        "Name": "DeferredPass",
         "Slots": [[{
               "$Class": "ShaderInput",
               "Register": 1,
@@ -65,7 +65,7 @@
               "$Class": "ShaderInput",
               "Register": 1,
               "ElementType": 5,
-              "Name": "VelocityImage",
+              "Name": "GBufferAlbedoTexture",
               "Count": 1,
               "Size": 4294967295,
               "IsDynamic": false,
@@ -79,7 +79,7 @@
               "$Class": "ShaderInput",
               "Register": 1,
               "ElementType": 5,
-              "Name": "PrevImage",
+              "Name": "ReflectionProbeResultTexture",
               "Count": 1,
               "Size": 4294967295,
               "IsDynamic": false,
@@ -93,7 +93,7 @@
               "$Class": "ShaderInput",
               "Register": 1,
               "ElementType": 5,
-              "Name": "InImage",
+              "Name": "GBufferMipChain",
               "Count": 1,
               "Size": 4294967295,
               "IsDynamic": false,
@@ -103,11 +103,11 @@
                 "FieldNames": [],
                 "FieldTypes": []
               }
-            }], [{
+            }, {
               "$Class": "ShaderInput",
-              "Register": 2,
-              "ElementType": 6,
-              "Name": "OutImage",
+              "Register": 1,
+              "ElementType": 5,
+              "Name": "RTRadianceResultTexture",
               "Count": 1,
               "Size": 4294967295,
               "IsDynamic": false,
@@ -117,7 +117,77 @@
                 "FieldNames": [],
                 "FieldTypes": []
               }
-            }], [{
+            }, {
+              "$Class": "ShaderInput",
+              "Register": 1,
+              "ElementType": 5,
+              "Name": "GBufferNormalsTexture",
+              "Count": 1,
+              "Size": 4294967295,
+              "IsDynamic": false,
+              "StructInfo": {
+                "Name": "",
+                "Size": 4294967295,
+                "FieldNames": [],
+                "FieldTypes": []
+              }
+            }, {
+              "$Class": "ShaderInput",
+              "Register": 1,
+              "ElementType": 5,
+              "Name": "GBufferVelocityTexture",
+              "Count": 1,
+              "Size": 4294967295,
+              "IsDynamic": false,
+              "StructInfo": {
+                "Name": "",
+                "Size": 4294967295,
+                "FieldNames": [],
+                "FieldTypes": []
+              }
+            }, {
+              "$Class": "ShaderInput",
+              "Register": 1,
+              "ElementType": 5,
+              "Name": "SSGIResultTexture",
+              "Count": 1,
+              "Size": 4294967295,
+              "IsDynamic": false,
+              "StructInfo": {
+                "Name": "",
+                "Size": 4294967295,
+                "FieldNames": [],
+                "FieldTypes": []
+              }
+            }, {
+              "$Class": "ShaderInput",
+              "Register": 1,
+              "ElementType": 5,
+              "Name": "GBufferMaterialTexture",
+              "Count": 1,
+              "Size": 4294967295,
+              "IsDynamic": false,
+              "StructInfo": {
+                "Name": "",
+                "Size": 4294967295,
+                "FieldNames": [],
+                "FieldTypes": []
+              }
+            }, {
+              "$Class": "ShaderInput",
+              "Register": 1,
+              "ElementType": 5,
+              "Name": "SSAOResultTexture",
+              "Count": 1,
+              "Size": 4294967295,
+              "IsDynamic": false,
+              "StructInfo": {
+                "Name": "",
+                "Size": 4294967295,
+                "FieldNames": [],
+                "FieldTypes": []
+              }
+            }], [], [{
               "$Class": "ShaderInput",
               "Register": 3,
               "ElementType": 1,
@@ -134,22 +204,8 @@
             }, {
               "$Class": "ShaderInput",
               "Register": 3,
-              "ElementType": 1,
-              "Name": "TemporalBlendingUniforms",
-              "Count": 1,
-              "Size": 4294967295,
-              "IsDynamic": false,
-              "StructInfo": {
-                "Name": "",
-                "Size": 4294967295,
-                "FieldNames": [],
-                "FieldTypes": []
-              }
-            }, {
-              "$Class": "ShaderInput",
-              "Register": 3,
               "ElementType": 2,
-              "Name": "CamerasBuffer",
+              "Name": "CBuffer",
               "Count": 1,
               "Size": 4294967295,
               "IsDynamic": true,
@@ -191,19 +247,23 @@
         "Flags": 0
       }]
   },
-  "ShaderModuleTypes": [4],
-  "ShaderModuleNames": ["TemporalBlending.hlsl"],
-  "EntryPointNames": ["CSMain"],
+  "ShaderModuleTypes": [1, 2],
+  "ShaderModuleNames": ["DeferredIndirect.hlsl", "DeferredIndirect.hlsl"],
+  "EntryPointNames": ["VSMain", "PSMain"],
   "ShaderBlobs": [{
       "$Class": "BlobDataReference",
-      "Key": "Engine/Shaders/TemporalBlending/TemporalBlending_6173123785945935178.CS",
-      "Size": 106892
+      "Key": "Engine/Shaders/DeferredIndirect/DeferredIndirect_14237639255780795391.VS",
+      "Size": 11184
+    }, {
+      "$Class": "BlobDataReference",
+      "Key": "Engine/Shaders/DeferredIndirect/DeferredIndirect_14237639255780795391.PS",
+      "Size": 124568
     }],
   "PropertySetHashCode": {},
   "LastCompiledTimestamp": {
-    "Value": 1775008017000
+    "Value": 1775008029000
   },
-  "Name": "TemporalBlending_6173123785945935178",
-  "FriendlyName": "TemporalBlending6173123785945935178",
+  "Name": "DeferredIndirect_14237639255780795391",
+  "FriendlyName": "DeferredIndirect_14237639255780795391",
   "OriginalFilepath": ""
 }

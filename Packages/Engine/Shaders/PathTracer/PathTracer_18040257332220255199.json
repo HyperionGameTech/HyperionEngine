@@ -20,34 +20,90 @@
       "EnumValues": []
     }, {
       "$Class": "ShaderProperty",
-      "Name": "LIGHT_TYPE",
+      "Name": "MAX_LIGHTS",
       "Flags": 0,
-      "Value": "DIRECTIONAL",
+      "Value": 4,
       "EnumValues": []
     }, {
       "$Class": "ShaderProperty",
-      "Name": "HBAO_ENABLED",
+      "Name": "HAS_ENV_PROBE",
       "Flags": 0,
       "Value": null,
       "EnumValues": []
     }],
   "RevisionNumber": 31459917,
-  "BaseName": "DeferredDirect",
+  "BaseName": "PathTracer",
   "InputLayout": {
-    "Mask": 7
+    "Mask": 0
   },
   "ShaderInputGroup": {
     "Elements": [{
         "$Class": "ShaderInputSet",
         "SetIndex": 0,
-        "Name": "BindlessResources0",
+        "Name": "BindlessResources1",
         "Slots": [[], [], [], [], []],
         "Flags": 1
       }, {
         "$Class": "ShaderInputSet",
         "SetIndex": 1,
-        "Name": "DeferredPass",
+        "Name": "PathTracer",
         "Slots": [[{
+              "$Class": "ShaderInput",
+              "Register": 1,
+              "ElementType": 3,
+              "Name": "BlueNoiseBuffer",
+              "Count": 1,
+              "Size": 4294967295,
+              "IsDynamic": false,
+              "StructInfo": {
+                "Name": "",
+                "Size": 4294967295,
+                "FieldNames": [],
+                "FieldTypes": []
+              }
+            }, {
+              "$Class": "ShaderInput",
+              "Register": 1,
+              "ElementType": 3,
+              "Name": "MeshDescriptionsBuffer",
+              "Count": 1,
+              "Size": 4294967295,
+              "IsDynamic": false,
+              "StructInfo": {
+                "Name": "",
+                "Size": 4294967295,
+                "FieldNames": [],
+                "FieldTypes": []
+              }
+            }, {
+              "$Class": "ShaderInput",
+              "Register": 1,
+              "ElementType": 3,
+              "Name": "MaterialsBuffer",
+              "Count": 1,
+              "Size": 4294967295,
+              "IsDynamic": false,
+              "StructInfo": {
+                "Name": "",
+                "Size": 4294967295,
+                "FieldNames": [],
+                "FieldTypes": []
+              }
+            }, {
+              "$Class": "ShaderInput",
+              "Register": 1,
+              "ElementType": 4,
+              "Name": "CurrentEnvProbe",
+              "Count": 1,
+              "Size": 4294967295,
+              "IsDynamic": true,
+              "StructInfo": {
+                "Name": "",
+                "Size": 4294967295,
+                "FieldNames": [],
+                "FieldTypes": []
+              }
+            }, {
               "$Class": "ShaderInput",
               "Register": 1,
               "ElementType": 5,
@@ -93,7 +149,7 @@
               "$Class": "ShaderInput",
               "Register": 1,
               "ElementType": 5,
-              "Name": "RTRadianceResultTexture",
+              "Name": "EnvProbesTexture",
               "Count": 1,
               "Size": 4294967295,
               "IsDynamic": false,
@@ -176,8 +232,8 @@
             }, {
               "$Class": "ShaderInput",
               "Register": 1,
-              "ElementType": 5,
-              "Name": "SSAOResultTexture",
+              "ElementType": 8,
+              "Name": "TLAS",
               "Count": 1,
               "Size": 4294967295,
               "IsDynamic": false,
@@ -187,7 +243,21 @@
                 "FieldNames": [],
                 "FieldTypes": []
               }
-            }], [], [{
+            }], [{
+              "$Class": "ShaderInput",
+              "Register": 2,
+              "ElementType": 6,
+              "Name": "OutputImage",
+              "Count": 1,
+              "Size": 4294967295,
+              "IsDynamic": false,
+              "StructInfo": {
+                "Name": "",
+                "Size": 4294967295,
+                "FieldNames": [],
+                "FieldTypes": []
+              }
+            }], [{
               "$Class": "ShaderInput",
               "Register": 3,
               "ElementType": 1,
@@ -201,39 +271,11 @@
                 "FieldNames": [],
                 "FieldTypes": []
               }
-            }, {
-              "$Class": "ShaderInput",
-              "Register": 3,
-              "ElementType": 2,
-              "Name": "CBuffer",
-              "Count": 1,
-              "Size": 4294967295,
-              "IsDynamic": true,
-              "StructInfo": {
-                "Name": "",
-                "Size": 4294967295,
-                "FieldNames": [],
-                "FieldTypes": []
-              }
             }], [{
               "$Class": "ShaderInput",
               "Register": 4,
               "ElementType": 7,
               "Name": "SamplerNearest",
-              "Count": 1,
-              "Size": 4294967295,
-              "IsDynamic": false,
-              "StructInfo": {
-                "Name": "",
-                "Size": 4294967295,
-                "FieldNames": [],
-                "FieldTypes": []
-              }
-            }, {
-              "$Class": "ShaderInput",
-              "Register": 4,
-              "ElementType": 7,
-              "Name": "SamplerShadow",
               "Count": 1,
               "Size": 4294967295,
               "IsDynamic": false,
@@ -259,25 +301,55 @@
               }
             }], []],
         "Flags": 0
+      }, {
+        "$Class": "ShaderInputSet",
+        "SetIndex": 2,
+        "Name": "BindlessResources0",
+        "Slots": [[], [], [], [], []],
+        "Flags": 1
+      }, {
+        "$Class": "ShaderInputSet",
+        "SetIndex": 3,
+        "Name": "RTReflections",
+        "Slots": [[], [], [{
+              "$Class": "ShaderInput",
+              "Register": 3,
+              "ElementType": 2,
+              "Name": "CBuffer",
+              "Count": 1,
+              "Size": 4294967295,
+              "IsDynamic": true,
+              "StructInfo": {
+                "Name": "",
+                "Size": 4294967295,
+                "FieldNames": [],
+                "FieldTypes": []
+              }
+            }], [], []],
+        "Flags": 0
       }]
   },
-  "ShaderModuleTypes": [1, 2],
-  "ShaderModuleNames": ["DeferredDirect.hlsl", "DeferredDirect.hlsl"],
-  "EntryPointNames": ["VSMain", "PSMain"],
+  "ShaderModuleTypes": [9, 12, 13],
+  "ShaderModuleNames": ["PathTracer.hlsl", "PathTracer.rchit.hlsl", "PathTracer.rmiss.hlsl"],
+  "EntryPointNames": ["RayGenMain", "ClosestHitMain", "MissMain"],
   "ShaderBlobs": [{
       "$Class": "BlobDataReference",
-      "Key": "Engine/Shaders/DeferredDirect/DeferredDirect_3019911219508283078.VS",
-      "Size": 11308
+      "Key": "Engine/Shaders/PathTracer/PathTracer_18040257332220255199.RGS",
+      "Size": 131592
     }, {
       "$Class": "BlobDataReference",
-      "Key": "Engine/Shaders/DeferredDirect/DeferredDirect_3019911219508283078.PS",
-      "Size": 226312
+      "Key": "Engine/Shaders/PathTracer/PathTracer_18040257332220255199.CHS",
+      "Size": 136296
+    }, {
+      "$Class": "BlobDataReference",
+      "Key": "Engine/Shaders/PathTracer/PathTracer_18040257332220255199.MS",
+      "Size": 36948
     }],
   "PropertySetHashCode": {},
   "LastCompiledTimestamp": {
     "Value": 1775008029000
   },
-  "Name": "DeferredDirect_3019911219508283078",
-  "FriendlyName": "DeferredDirect3019911219508283078",
+  "Name": "PathTracer_18040257332220255199",
+  "FriendlyName": "PathTracer_18040257332220255199",
   "OriginalFilepath": ""
 }

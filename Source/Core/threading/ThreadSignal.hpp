@@ -24,14 +24,14 @@ public:
 
     bool IsSignalled() const
     {
-        return AtomicAdd(&m_value, 0) > 0;
+        return AtomicAdd(&m_value, 0) != 0;
     }
 
     void Signal()
     {
         Mutex::Guard guard(m_mutex);
 
-        AtomicIncrement(&m_value);
+        AtomicExchange(&m_value, 1);
 
         m_conditionVariable.NotifyAll();
     }
@@ -47,12 +47,13 @@ public:
 
     void WaitAndReset()
     {
-        while (!IsSignalled())
+        int32 expected = 1;
+        while (!AtomicCompareExchange(&m_value, expected, 0))
         {
+            expected = 1;
+
             Mutex::Guard guard(m_mutex);
             m_conditionVariable.Wait(m_mutex);
-
-            Reset();
         }
     }
 

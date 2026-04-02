@@ -1093,6 +1093,11 @@ public:
         return m_offset == 0;
     }
 
+    HYP_FORCE_INLINE bool IsWritable() const
+    {
+        return m_writableState.Load();
+    }
+
     template <class CmdType>
     void Add(CmdType&& cmd)
     {

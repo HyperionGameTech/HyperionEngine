@@ -2,6 +2,12 @@
   "$Class": "Shader",
   "PropertySet": [{
       "$Class": "ShaderProperty",
+      "Name": "MAX_ENV_PROBES",
+      "Flags": 0,
+      "Value": 4,
+      "EnumValues": []
+    }, {
+      "$Class": "ShaderProperty",
       "Name": "HYP_VULKAN",
       "Flags": 0,
       "Value": 4202496,
@@ -20,25 +26,19 @@
       "EnumValues": []
     }, {
       "$Class": "ShaderProperty",
+      "Name": "MAX_LIGHTS",
+      "Flags": 0,
+      "Value": 4,
+      "EnumValues": []
+    }, {
+      "$Class": "ShaderProperty",
       "Name": "OUTPUT",
       "Flags": 0,
       "Value": "RGBA8",
       "EnumValues": []
-    }, {
-      "$Class": "ShaderProperty",
-      "Name": "TEMPORAL_BLEND_TECHNIQUE",
-      "Flags": 0,
-      "Value": 1,
-      "EnumValues": []
-    }, {
-      "$Class": "ShaderProperty",
-      "Name": "FEEDBACK",
-      "Flags": 0,
-      "Value": 0.950000,
-      "EnumValues": []
     }],
   "RevisionNumber": 31459917,
-  "BaseName": "TemporalBlending",
+  "BaseName": "SSGI",
   "InputLayout": {
     "Mask": 0
   },
@@ -46,8 +46,22 @@
     "Elements": [{
         "$Class": "ShaderInputSet",
         "SetIndex": 0,
-        "Name": "TemporalBlending",
+        "Name": "SSGI",
         "Slots": [[{
+              "$Class": "ShaderInput",
+              "Register": 1,
+              "ElementType": 3,
+              "Name": "BlueNoiseBuffer",
+              "Count": 1,
+              "Size": 4294967295,
+              "IsDynamic": false,
+              "StructInfo": {
+                "Name": "",
+                "Size": 4294967295,
+                "FieldNames": [],
+                "FieldTypes": []
+              }
+            }, {
               "$Class": "ShaderInput",
               "Register": 1,
               "ElementType": 5,
@@ -65,7 +79,7 @@
               "$Class": "ShaderInput",
               "Register": 1,
               "ElementType": 5,
-              "Name": "VelocityImage",
+              "Name": "DeferredShadingTexture",
               "Count": 1,
               "Size": 4294967295,
               "IsDynamic": false,
@@ -79,7 +93,7 @@
               "$Class": "ShaderInput",
               "Register": 1,
               "ElementType": 5,
-              "Name": "PrevImage",
+              "Name": "GBufferAlbedoTexture",
               "Count": 1,
               "Size": 4294967295,
               "IsDynamic": false,
@@ -93,7 +107,77 @@
               "$Class": "ShaderInput",
               "Register": 1,
               "ElementType": 5,
-              "Name": "InImage",
+              "Name": "EnvProbesTexture",
+              "Count": 1,
+              "Size": 4294967295,
+              "IsDynamic": false,
+              "StructInfo": {
+                "Name": "",
+                "Size": 4294967295,
+                "FieldNames": [],
+                "FieldTypes": []
+              }
+            }, {
+              "$Class": "ShaderInput",
+              "Register": 1,
+              "ElementType": 5,
+              "Name": "GBufferNormalsTexture",
+              "Count": 1,
+              "Size": 4294967295,
+              "IsDynamic": false,
+              "StructInfo": {
+                "Name": "",
+                "Size": 4294967295,
+                "FieldNames": [],
+                "FieldTypes": []
+              }
+            }, {
+              "$Class": "ShaderInput",
+              "Register": 1,
+              "ElementType": 5,
+              "Name": "PointLightShadowMapsTextureArray",
+              "Count": 1,
+              "Size": 4294967295,
+              "IsDynamic": false,
+              "StructInfo": {
+                "Name": "",
+                "Size": 4294967295,
+                "FieldNames": [],
+                "FieldTypes": []
+              }
+            }, {
+              "$Class": "ShaderInput",
+              "Register": 1,
+              "ElementType": 5,
+              "Name": "GBufferVelocityTexture",
+              "Count": 1,
+              "Size": 4294967295,
+              "IsDynamic": false,
+              "StructInfo": {
+                "Name": "",
+                "Size": 4294967295,
+                "FieldNames": [],
+                "FieldTypes": []
+              }
+            }, {
+              "$Class": "ShaderInput",
+              "Register": 1,
+              "ElementType": 5,
+              "Name": "GBufferMaterialTexture",
+              "Count": 1,
+              "Size": 4294967295,
+              "IsDynamic": false,
+              "StructInfo": {
+                "Name": "",
+                "Size": 4294967295,
+                "FieldNames": [],
+                "FieldTypes": []
+              }
+            }, {
+              "$Class": "ShaderInput",
+              "Register": 1,
+              "ElementType": 5,
+              "Name": "ShadowMapsTextureArray",
               "Count": 1,
               "Size": 4294967295,
               "IsDynamic": false,
@@ -134,11 +218,11 @@
             }, {
               "$Class": "ShaderInput",
               "Register": 3,
-              "ElementType": 1,
-              "Name": "TemporalBlendingUniforms",
+              "ElementType": 2,
+              "Name": "CBuffer",
               "Count": 1,
               "Size": 4294967295,
-              "IsDynamic": false,
+              "IsDynamic": true,
               "StructInfo": {
                 "Name": "",
                 "Size": 4294967295,
@@ -192,18 +276,18 @@
       }]
   },
   "ShaderModuleTypes": [4],
-  "ShaderModuleNames": ["TemporalBlending.hlsl"],
+  "ShaderModuleNames": ["SSGI.hlsl"],
   "EntryPointNames": ["CSMain"],
   "ShaderBlobs": [{
       "$Class": "BlobDataReference",
-      "Key": "Engine/Shaders/TemporalBlending/TemporalBlending_6173123785945935178.CS",
-      "Size": 106892
+      "Key": "Engine/Shaders/SSGI/SSGI_17067551235326711000.CS",
+      "Size": 186820
     }],
   "PropertySetHashCode": {},
   "LastCompiledTimestamp": {
-    "Value": 1775008017000
+    "Value": 1775008029000
   },
-  "Name": "TemporalBlending_6173123785945935178",
-  "FriendlyName": "TemporalBlending6173123785945935178",
+  "Name": "SSGI_17067551235326711000",
+  "FriendlyName": "SSGI_17067551235326711000",
   "OriginalFilepath": ""
 }

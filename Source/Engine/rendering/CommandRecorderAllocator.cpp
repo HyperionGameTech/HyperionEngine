@@ -64,6 +64,13 @@ void CommandRecorderAllocator::UpdateQueue()
     for (auto it = m_tempCommandRecorders.Begin(); it != m_tempCommandRecorders.End();)
     {
         auto& commandRecorder = *it;
+        
+        // only destroy/read if not in writable state (other thread could be using it)
+        if (commandRecorder.IsWritable())
+        {
+            ++it;
+            continue;
+        }
 
         if (commandRecorder.IsEmpty())
         {
