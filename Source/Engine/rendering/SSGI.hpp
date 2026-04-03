@@ -26,11 +26,6 @@ public:
 
     ~SSGI() override;
 
-    HYP_FORCE_INLINE const Handle<Texture>& GetResultTexture() const
-    {
-        return m_resultTexture;
-    }
-
     const Handle<Texture>& GetFinalResultTexture() const;
 
     void Create() override;
@@ -39,7 +34,7 @@ public:
 private:
     static constexpr uint32 NumDownsamplePasses = 4;
     
-    Handle<Texture> m_resultTexture;
+    Handle<Texture> m_ssgiTexture;
 
     Handle<Texture> m_downsampleTextures[NumDownsamplePasses];
     UniquePtr<FullScreenPass> m_upsamplePasses[NumDownsamplePasses];

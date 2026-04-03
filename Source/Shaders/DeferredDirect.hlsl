@@ -64,8 +64,7 @@ DECLARE_SAMPLER(DeferredPass, SamplerNearest) SamplerState sampler_nearest;
 DECLARE_SAMPLER(DeferredPass, SamplerLinear) SamplerState sampler_linear;
 DECLARE_SAMPLER(DeferredPass, SamplerShadow) SamplerComparisonState SamplerShadow;
 
-DECLARE_SRV(DeferredPass, SSAOResultTexture) Texture2D ssao_gi_result;
-DECLARE_SRV(DeferredPass, RTRadianceResultTexture) Texture2D rt_radiance_final;
+DECLARE_SRV(DeferredPass, SSAOResultTexture) Texture2D SSAOResultTexture;
 
 #define HYP_SAMPLER_SHADOW SamplerShadow
 
@@ -207,8 +206,8 @@ PSOutput PSMain(PSInput input)
     float shadow = 1.0;
 
 #if HBAO_ENABLED || SSAO_ENABLED
-    const float4 ssao_data = SAMPLE_TEXTURE_2D_LOD(HYP_SAMPLER_NEAREST, ssao_gi_result, texcoord, 0);
-    ao = ssao_data.a;
+    const float4 ssao_data = SAMPLE_TEXTURE_2D_LOD(HYP_SAMPLER_NEAREST, SSAOResultTexture, texcoord, 0);
+    ao = ssao_data.r;
 #endif
 
     float4 area_light_radiance;

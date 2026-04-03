@@ -101,20 +101,6 @@
               "$Class": "ShaderInput",
               "Register": 1,
               "ElementType": 5,
-              "Name": "RTRadianceResultTexture",
-              "Count": 1,
-              "Size": 4294967295,
-              "IsDynamic": false,
-              "StructInfo": {
-                "Name": "",
-                "Size": 4294967295,
-                "FieldNames": [],
-                "FieldTypes": []
-              }
-            }, {
-              "$Class": "ShaderInput",
-              "Register": 1,
-              "ElementType": 5,
               "Name": "GBufferNormalsTexture",
               "Count": 1,
               "Size": 4294967295,
@@ -247,17 +233,17 @@
   "ShaderBlobs": [{
       "$Class": "BlobDataReference",
       "Key": "Engine/Shaders/DeferredIndirect/DeferredIndirect_15436598124108814104.VS",
-      "Size": 11160
+      "Size": 11100
     }, {
       "$Class": "BlobDataReference",
       "Key": "Engine/Shaders/DeferredIndirect/DeferredIndirect_15436598124108814104.PS",
-      "Size": 124124
+      "Size": 123676
     }],
   "PropertySetHashCode": {},
   "LastCompiledTimestamp": {
-    "Value": 1775008029000
+    "Value": 1775185340000
   },
   "Name": "DeferredIndirect_15436598124108814104",
-  "FriendlyName": "DeferredIndirect15436598124108814104",
+  "FriendlyName": "DeferredIndirect_15436598124108814104",
   "OriginalFilepath": ""
 }

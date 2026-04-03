@@ -63,9 +63,8 @@ DECLARE_SRV(DeferredPass, GBufferDepthTexture) Texture2D gbuffer_depth_texture;
 DECLARE_SAMPLER(DeferredPass, SamplerNearest) SamplerState sampler_nearest;
 DECLARE_SAMPLER(DeferredPass, SamplerLinear) SamplerState sampler_linear;
 
-DECLARE_SRV(DeferredPass, SSAOResultTexture) Texture2D ssao_gi_result;
-DECLARE_SRV(DeferredPass, SSGIResultTexture) Texture2D ssgi_result;
-DECLARE_SRV(DeferredPass, RTRadianceResultTexture) Texture2D rt_radiance_final;
+DECLARE_SRV(DeferredPass, SSAOResultTexture) Texture2D SSAOResultTexture;
+DECLARE_SRV(DeferredPass, SSGIResultTexture) Texture2D SSGIResultTexture;
 DECLARE_SRV(DeferredPass, ReflectionProbeResultTexture) Texture2D reflections_texture;
 
 #include "./include/gbuffer.inc"
@@ -153,8 +152,8 @@ PSOutput PSMain(PSInput input)
     float3 ibl = (float3)0.0;
 
 #if HBAO_ENABLED || SSAO_ENABLED
-    const float4 ssao_data = SAMPLE_TEXTURE_2D(HYP_SAMPLER_NEAREST, ssao_gi_result, texcoord);
-    ao = ssao_data.a;
+    const float4 ssao_data = SAMPLE_TEXTURE_2D(HYP_SAMPLER_NEAREST, SSAOResultTexture, texcoord);
+    ao = ssao_data.r;
 #endif
 
     const float3 diffuse_color = CalculateDiffuseColor(albedo.rgb, metalness);
@@ -206,7 +205,7 @@ PSOutput PSMain(PSInput input)
 
 #if SSGI_ENABLED
     // Blend ssgi result into irradiance - if no hit, alpha will be zero or close to it so we can lerp it
-    float4 ssgi = SAMPLE_TEXTURE_2D(HYP_SAMPLER_LINEAR, ssgi_result, texcoord);
+    float4 ssgi = SAMPLE_TEXTURE_2D(HYP_SAMPLER_LINEAR, SSGIResultTexture, texcoord);
     irradiance = lerp(irradiance, ssgi, ssgi.a);
 #endif
 
@@ -217,10 +216,6 @@ PSOutput PSMain(PSInput input)
 #endif
 
     irradiance.a = 1.0; // set alpha to 1 now that we're finished lerping between GI methods.
-
-// #if HBIL_ENABLED
-//     CalculateHBILIrradiance(ssao_data, irradiance);
-// #endif
 
     const float NdotV = max(0.0001, dot(N, V));
     const float3 F0 = CalculateF0(albedo.rgb, metalness);

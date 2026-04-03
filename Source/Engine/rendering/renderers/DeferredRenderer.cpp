@@ -113,7 +113,6 @@ static const ShaderPropertyId s_propProbeSideLengthIrradiance = InternShaderProp
 static const ShaderPropertyId s_propProbeSideLengthDepth = InternShaderProperty(ShaderProperty(NAME("DDGI_PROBE_SIDE_LENGTH_DEPTH"), int(DDGI::DepthOctahedronSize)));
 
 static const ShaderPropertyId s_propHBAOEnabled = InternShaderProperty(ShaderProperty(NAME("HBAO_ENABLED")));
-static const ShaderPropertyId s_propHBILEnabled = InternShaderProperty(ShaderProperty(NAME("HBIL_ENABLED")));
 static const ShaderPropertyId s_propSSAOEnabled = InternShaderProperty(ShaderProperty(NAME("SSAO_ENABLED")));
 static const ShaderPropertyId s_propSSGIEnabled = InternShaderProperty(ShaderProperty(NAME("SSGI_ENABLED")));
 
@@ -125,6 +124,8 @@ static const ShaderPropertyId s_propDebugReflections = InternShaderProperty(Shad
 static const ShaderPropertyId s_propDebugIrradiance = InternShaderProperty(ShaderProperty(NAME("DEBUG_IRRADIANCE")));
 
 static const ShaderPropertyId s_propMaxFallbackProbes = InternShaderProperty(ShaderProperty(NAME("MAX_FALLBACK_PROBES"), int(MaxFallbackProbes)));
+
+static const ShaderPropertyId s_propOutputSDR = InternShaderProperty(ShaderProperty(NAME("OUTPUT"), NAME("SDR")));
 
 static const ShaderPropertyId s_propLightTypeClustered = InternShaderProperty(ShaderProperty(NAME("LIGHT_TYPE"), NAME("CLUSTERED")));
 static const ShaderPropertyId s_propTileSize = InternShaderProperty(ShaderProperty(NAME("TILE_SIZE"), int(TileSize)));
@@ -168,6 +169,7 @@ CVar<bool> cvTAA { "Rendering.TAA", true };
 CVar<bool> cvHBAO { "Rendering.HBAO", true, "Rendering.HBAO.Enabled" };
 CVar<bool> cvEnableLightmapVolumes { "Rendering.LightmapVolumes", true };
 CVar<bool> cvClusteredShading { "Rendering.ClusteredShading", true };
+CVar<float> cvTonemapExposure { "Rendering.Tonemap.Exposure", 1.8f };
 
 namespace DeferredRendererHelpers {
 
@@ -843,10 +845,6 @@ void DeferredPass::RenderToFramebuffer_Internal(Frame* frame, const RenderSetup&
 TonemapPass::TonemapPass(Vec2u extent, GBuffer* gbuffer)
     : FullScreenPass(TextureFormat::R11G11B10F, extent, gbuffer)
 {
-    ShaderPropertySet shaderProperties;
-    shaderProperties.Add(InternShaderProperty(ShaderProperty(NAME("OUTPUT"), NAME("SDR"))));
-
-    m_shaderDesc = ShaderDesc(NAME("Tonemap"), shaderProperties);
 }
 
 TonemapPass::~TonemapPass()
@@ -860,6 +858,11 @@ void TonemapPass::Resize_Internal(Vec2u newSize)
 
 void TonemapPass::Render(Frame* frame, const RenderSetup& rs)
 {
+    ShaderPropertySet shaderProperties;
+    shaderProperties.Add(s_propOutputSDR);
+    shaderProperties.Add(InternShaderProperty(ShaderProperty(NAME("EXPOSURE"), cvTonemapExposure.Get())));
+    m_shaderDesc = ShaderDesc(NAME("Tonemap"), shaderProperties);
+
     Begin(frame, rs);
 
     CommandRecorder& cr = frame->cr;

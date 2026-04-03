@@ -5,7 +5,6 @@
 #include "../include/brdf.inc"
 #include "../include/Octahedron.inc"
 
-#define HYP_HBIL_MULTIPLIER 1.0
 #define ENV_GRID_MULTIPLIER 1.0
 
 struct Refraction
@@ -164,11 +163,6 @@ void CalculateRayTracingReflection(vec2 uv, inout vec4 reflections)
 }
 #endif
 #endif
-
-void CalculateHBILIrradiance(in vec4 ssao_data, inout vec3 irradiance)
-{
-    irradiance += ssao_data.rgb * HYP_HBIL_MULTIPLIER;
-}
 
 void IntegrateReflections(inout vec3 Fr, in vec4 reflections)
 {

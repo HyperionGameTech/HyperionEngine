@@ -22,14 +22,8 @@ namespace Hyperion.Editor
                 .With(new MacOSPlatformOptions { ShowInDock = true })
                 .With(new Win32PlatformOptions
                 {
-                    //OverlayPopups = true
-                })
-                .With(new VulkanOptions
-                {
-                    VulkanInstanceCreationOptions = new()
-                    {
-                        UseDebug = true
-                    }
+                    //OverlayPopups = true,
+                    CompositionMode = [Win32CompositionMode.DirectComposition]
                 })
                 .LogToTrace();
     }

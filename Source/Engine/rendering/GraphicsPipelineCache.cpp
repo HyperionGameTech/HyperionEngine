@@ -327,7 +327,11 @@ void GraphicsPipelineCache::GetOrCreate(
         attributes.GetMaterialAttributes().shaderProperties,
         attributes.GetMeshAttributes().inputLayout);
 
-    Assert(shader.IsValid());
+    if (!shader.IsValid())
+    {
+        outCacheHandle = {};
+        return;
+    }
 
     size_t slot = SIZE_MAX;
 

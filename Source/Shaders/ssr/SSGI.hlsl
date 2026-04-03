@@ -94,7 +94,9 @@ DECLARE_SRV(SSGI, EnvProbesTexture) Texture2DArray envProbesTexture;
 // amount to 'brighten up' the SSGI result
 #define SSGI_INTENSITY 4.0
 
-#if 1
+#define USE_NEW_SSGI
+
+#ifdef USE_NEW_SSGI
 
 bool TraceRays(
     float3 ray_origin,

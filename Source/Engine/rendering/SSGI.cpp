@@ -124,7 +124,7 @@ void SSGI::Create()
 
     m_extent = MathUtil::Max(m_gbuffer->GetExtent() * 0.25f, Vec2u::One());
 
-    m_resultTexture = MakeHandle<Texture>(TextureDesc {
+    m_ssgiTexture = MakeHandle<Texture>(TextureDesc {
         TextureType::Texture2D,
         SSGIFormat,
         Vec3u(m_extent, 1),
@@ -134,8 +134,8 @@ void SSGI::Create()
         1,
         IU_STORAGE | IU_SAMPLED
     });
-    m_resultTexture->SetName(NAME("SSGITexture"));
-    CheckResult(m_resultTexture->Create());
+    m_ssgiTexture->SetName(NAME("SSGITexture"));
+    CheckResult(m_ssgiTexture->Create());
 
     for (uint32 i = 0; i < NumDownsamplePasses; i++)
     {
@@ -172,7 +172,7 @@ void SSGI::Create()
             SSGIFormat,
             TemporalBlendTechnique::TECHNIQUE_1,
             0.9,
-            m_upsamplePasses[NumDownsamplePasses - 1]->GetAttachment(0)->GetImageView(),//g_renderInterface->textureViewCache->GetOrCreate(m_resultTexture),
+            m_upsamplePasses[NumDownsamplePasses - 1]->GetAttachment(0)->GetImageView(),
             m_gbuffer);
 
         m_temporalBlending->Create();
@@ -183,9 +183,7 @@ const Handle<Texture>& SSGI::GetFinalResultTexture() const
 {
     return m_temporalBlending
         ? m_temporalBlending->GetResultTexture()
-        : m_resultTexture;
-
-    //return m_resultTexture;
+        : m_ssgiTexture;
 }
 
 void SSGI::Render(Frame* frame, const RenderSetup& renderSetup)
@@ -379,13 +377,13 @@ void SSGI::Render(Frame* frame, const RenderSetup& renderSetup)
         const uint32 numDispatchCalls = (totalPixelsInImage + 255) / 256;
 
         // put sample image in writeable state
-        cr << InsertBarrier(m_resultTexture->GetGpuImage(), RS_UNORDERED_ACCESS);
+        cr << InsertBarrier(m_ssgiTexture->GetGpuImage(), RS_UNORDERED_ACCESS);
 
         cr << SetCurrentShader(ShaderDesc(NAME("SSGI"), GetShaderProperties()));
 
         uint32 numShaderUniforms = 0;
 
-        cr << SetShaderUniform(numShaderUniforms++, "OutImage"_sh, g_renderInterface->textureViewCache->GetOrCreate(m_resultTexture));
+        cr << SetShaderUniform(numShaderUniforms++, "OutImage"_sh, g_renderInterface->textureViewCache->GetOrCreate(m_ssgiTexture));
         cr << SetShaderUniform(numShaderUniforms++, "CBuffer"_sh, cbuffer, ShaderDataOffset(cbufferOffset, cbufferSize));
 
         // GBuffer textures
@@ -422,10 +420,10 @@ void SSGI::Render(Frame* frame, const RenderSetup& renderSetup)
     {
         if (i == 0)
         {
-            cr << InsertBarrier(m_resultTexture->GetGpuImage(), RS_COPY_SRC);
+            cr << InsertBarrier(m_ssgiTexture->GetGpuImage(), RS_COPY_SRC);
             cr << InsertBarrier(m_downsampleTextures[i]->GetGpuImage(), RS_COPY_DST);
 
-            cr << Blit(m_resultTexture->GetGpuImage(), m_downsampleTextures[i]->GetGpuImage());
+            cr << Blit(m_ssgiTexture->GetGpuImage(), m_downsampleTextures[i]->GetGpuImage());
         }
         else
         {

@@ -11,8 +11,8 @@
 //#define HDR_TONEMAP_REINHARD 1
 #define HDR_TONEMAP_ACES 1
 
-#ifndef HDR_EXPOSURE
-#define HDR_EXPOSURE 1.4
+#ifndef EXPOSURE
+#define EXPOSURE 1.0
 #endif
 
 // Source for some of these: https://dmnsgn.github.io/glsl-tone-map
@@ -48,7 +48,7 @@ float3 _TonemapFilmic(float3 x)
 
 float3 TonemapFilmic(float3 x)
 {
-    // x *= HDR_EXPOSURE;  // Hardcoded Exposure Adjustment
+    // x *= EXPOSURE;  // Hardcoded Exposure Adjustment
 
     // const float ExposureBias = 2.0;
     // x *= ExposureBias;
@@ -127,7 +127,7 @@ float3 _RRTAndODTFit(float3 color)
 // see https://github.com/KhronosGroup/glTF-Sample-Renderer/blob/main/source/Renderer/shaders/tonemapping.glsl
 float3 TonemapACES(float3 color)
 {
-    color *= HDR_EXPOSURE;
+    color *= EXPOSURE;
     color /= 0.6;
     color = mul(ACESInputMat, color);
     color = _RRTAndODTFit(color);

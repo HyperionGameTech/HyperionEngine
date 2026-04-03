@@ -44,14 +44,13 @@ struct HBAOUniforms
     float power;
 };
 
-static const ShaderPropertyId s_propHBILEnabled = InternShaderProperty(ShaderProperty(NAME("HBIL_ENABLED")));
 static const ShaderPropertyId s_propHalfRes = InternShaderProperty(ShaderProperty(NAME("HALFRES")));
 
 CVar<float> cvHBAORadius { "Rendering.HBAORadius", 1.5f, "Rendering.HBAO.Radius" };
 CVar<float> cvHBAOPower { "Rendering.HBAOPower", 2.5f, "Rendering.HBAO.Power" };
 
 HBAO::HBAO(Vec2u extent, GBuffer* gbuffer)
-    : FullScreenPass(TextureFormat::RGBA8, extent, gbuffer)
+    : FullScreenPass(TextureFormat::R16F, extent, gbuffer)
 {
 }
 

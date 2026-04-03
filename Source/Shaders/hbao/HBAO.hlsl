@@ -1,5 +1,7 @@
 #include "../include/defines.inc"
 
+PERMUTE(HALFRES);
+
 #ifdef VERTEX_SHADER
 
 struct VSInput
@@ -40,10 +42,6 @@ struct PSInput
     float2 texcoord : TEXCOORD0;
 };
 
-struct PSOutput
-{
-    float4 output_color : SV_Target0;
-};
 
 DECLARE_SRV(HBAO, GBufferAlbedoTexture) Texture2D gbuffer_albedo_texture;
 DECLARE_SRV(HBAO, GBufferNormalsTexture) Texture2D gbuffer_normals_texture;
@@ -147,11 +145,7 @@ float2 CalculateImpact(float2 theta_0, float2 theta_1, float nx, float ny)
     return max(nx * dx + ny * dy, float2(0.0, 0.0));
 }
 
-#ifdef HBIL_ENABLED
-void TraceAO_New(float2 uv, out float occlusion, out float4 light_color)
-#else
 void TraceAO_New(float2 uv, out float occlusion)
-#endif
 {
     const float fov_rad = HYP_FMATH_DEG2RAD(camera.fov);
     const float tan_half_fov = tan(fov_rad * 0.5);
@@ -180,10 +174,6 @@ void TraceAO_New(float2 uv, out float occlusion)
 
     occlusion = 0.0;
 
-#ifdef HBIL_ENABLED
-    light_color = float4(0.0, 0.0, 0.0, 0.0);
-#endif
-
     for (int i = 0; i < HYP_HBAO_NUM_CIRCLES; i++)
     {
         float angle = (float(i) + noise_direction) / float(HYP_HBAO_NUM_CIRCLES) * 2.0 * HYP_FMATH_PI;
@@ -203,24 +193,24 @@ void TraceAO_New(float2 uv, out float occlusion)
 
         float2 slice_ao = float2(0.0, 0.0);
 
-#ifdef HBIL_ENABLED
-        float4 slice_light[2] = { float4(0.0, 0.0, 0.0, 0.0), float4(0.0, 0.0, 0.0, 0.0) };
-#endif
-
         for (int j = 0; j < HYP_HBAO_NUM_SLICES; j++)
         {
             float2 uv_offset = (ss_ray * texel_size) * max(step_radius * (float(j) + ray_step), float(j + 1));
 
             float4 new_uv = uv.xyxy + float4(uv_offset, -uv_offset);
 
-            // Fade hits that approach the screen edge
             const float4 new_uv_ndc = new_uv * 2.0 - 1.0;
-            const float max_dimension = min(1.0, max(abs(new_uv_ndc.x), abs(new_uv_ndc.y)));
-            const float fade = 1.0 - saturate(max(0.0, max_dimension - 0.95) / (1.0 - 0.98));
+            const float2 max_dimension = min(float2(1.0, 1.0), max(abs(new_uv_ndc.xz), abs(new_uv_ndc.yw)));
+            const float2 fade = 1.0 - saturate(max(float2(0.0, 0.0), max_dimension - 0.95) / (1.0 - 0.98));
 
-            if (all(new_uv.xy < float2(1.0, 1.0)) && all(new_uv.xy >= float2(0.0, 0.0)))
+            bool valid_xy = all(new_uv.xy < float2(1.0, 1.0)) && all(new_uv.xy >= float2(0.0, 0.0));
+            bool valid_zw = all(new_uv.zw < float2(1.0, 1.0)) && all(new_uv.zw >= float2(0.0, 0.0));
+
+            if (valid_xy || valid_zw)
             {
                 new_uv = saturate(new_uv);
+
+                float2 in_bounds = float2(valid_xy ? 1.0 : 0.0, valid_zw ? 1.0 : 0.0);
 
                 float depth_0 = GetDepth(new_uv.xy);
                 float depth_1 = GetDepth(new_uv.zw);
@@ -230,10 +220,11 @@ void TraceAO_New(float2 uv, out float occlusion)
 
                 const float2 len = float2(length(ds), length(dt));
                 const float2 dist = len / radius;
+                const float2 DdotD = len * len;
+                
                 ds /= len.x;
                 dt /= len.y;
 
-                const float2 DdotD = float2(dot(ds, ds), dot(dt, dt));
                 const float2 NdotD = float2(dot(ds, N), dot(dt, N));
 
                 const float2 DdotV = float2(-dot(ds, V), -dot(dt, V));
@@ -244,65 +235,30 @@ void TraceAO_New(float2 uv, out float occlusion)
                 const float2 theta = acos(DdotV);
 
                 const float2 impact = CalculateImpact(min(max_theta, theta + float2(HYP_FMATH_PI / 9.0, HYP_FMATH_PI / 9.0)), theta, nx, ny);
-                const float2 total_impact = condition * falloffs * impact;
+                const float2 total_impact = condition * falloffs * impact * in_bounds * fade;
 
-#ifdef HBIL_ENABLED
-                float4 new_color_0 = SAMPLE_TEXTURE_2D(sampler_linear, gbuffer_albedo_texture, new_uv.xy);
-                float4 new_color_1 = SAMPLE_TEXTURE_2D(sampler_linear, gbuffer_albedo_texture, new_uv.zw);
+                slice_ao += total_impact;
 
-                slice_light[0] += new_color_0 * total_impact.x;
-                slice_light[1] += new_color_1 * total_impact.y;
-#endif
-
-                slice_ao += float2(
-                        (1.0 - dist.x * dist.x) * (NdotD.x - slice_ao.x),
-                        (1.0 - dist.y * dist.y) * (NdotD.y - slice_ao.y))
-                    * condition * fade;
-
-                cos_max_theta = lerp(cos_max_theta, DdotV, condition);
-                max_theta = lerp(max_theta, theta, condition);
+                cos_max_theta = lerp(cos_max_theta, DdotV, condition * in_bounds);
+                max_theta = lerp(max_theta, theta, condition * in_bounds);
             }
         }
-
-#ifdef HBIL_ENABLED
-        light_color += slice_light[0] + slice_light[1];
-#endif
 
         occlusion += slice_ao.x + slice_ao.y;
     }
 
     occlusion = 1.0 - saturate(pow(occlusion / float(HYP_HBAO_NUM_CIRCLES * HYP_HBAO_NUM_SLICES), 1.0 / power));
     occlusion *= 1.0 / (1.0 - ANGLE_BIAS);
-
-#ifdef HBIL_ENABLED
-    light_color = light_color / float(HYP_HBAO_NUM_CIRCLES * HYP_HBAO_NUM_SLICES);
-    light_color *= 1.0 / (1.0 - ANGLE_BIAS);
-#endif
 }
 
-PSOutput PSMain(PSInput input)
+float PSMain(PSInput input) : SV_Target0
 {
-    PSOutput output;
-
     float2 texcoord = input.texcoord;
 
-    float4 values;
     float occlusion;
-
-#ifdef HBIL_ENABLED
-    float4 light_color;
-
-    TraceAO_New(texcoord, occlusion, light_color);
-
-    values = float4(light_color.rgb, occlusion);
-#else
     TraceAO_New(texcoord, occlusion);
 
-    values = float4(occlusion, occlusion, occlusion, occlusion);
-#endif
-
-    output.output_color = values;
-    return output;
+    return occlusion;
 }
 
 #endif // PIXEL_SHADER
