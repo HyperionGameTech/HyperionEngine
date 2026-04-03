@@ -1056,7 +1056,9 @@ LoadedAsset BuildModel(LoaderState& state, cgltf_data& data)
     }
 
     const Name rootName = DetermineRootName(state, data);
+    
     Handle<Node> root = MakeHandle<Node>(rootName);
+    root->SetIsDynamic(false);
 
     for (const cgltf_node* rootNode : rootNodes)
     {
@@ -1091,7 +1093,7 @@ AssetLoadResult GLTFModelLoader::LoadAsset(LoaderState& state) const
         }
     });
 
-    const FilePath absPath = CoreApi::GetExecutablePath() / state.filepath;
+    const FilePath absPath = state.filepath;
 
     const cgltf_result parseResult = cgltf_parse_file(&options, absPath.Data(), &data);
 

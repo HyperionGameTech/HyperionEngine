@@ -10,6 +10,11 @@
       "AssetPath": {
         "Value": "Engine/Shaders/UIObject/UIObject_2941233747186420157"
       }
+    }, {
+      "$Class": "AssetReference",
+      "AssetPath": {
+        "Value": "Engine/Shaders/UIObject/UIObject_11297859281165449866"
+      }
     }],
   "Name": "UIObject",
   "FriendlyName": "UIObject",

@@ -50,6 +50,11 @@
       "AssetPath": {
         "Value": "Engine/Shaders/DeferredDirect/DeferredDirect_11428205256708440841"
       }
+    }, {
+      "$Class": "AssetReference",
+      "AssetPath": {
+        "Value": "Engine/Shaders/DeferredDirect/DeferredDirect_1053748985340278291"
+      }
     }],
   "Name": "DeferredDirect",
   "FriendlyName": "DeferredDirect",

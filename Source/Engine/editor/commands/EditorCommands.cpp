@@ -34,9 +34,13 @@
 #include <system/SaveFileDialog.hpp>
 #include <system/SelectFolderDialog.hpp>
 
+#include <ui/UISubsystem.hpp>
+#include <ui/overlays/Overlay.hpp>
+
 namespace Hyperion {
 
 HYP_DECLARE_LOG_CHANNEL(Editor);
+HYP_DECLARE_LOG_CHANNEL(Console);
 
 namespace CoreApi {
 extern FilePath GetExecutablePath();
@@ -1072,6 +1076,166 @@ private:
 DEFINE_EDITOR_COMMAND(ReparentNode);
 
 #pragma endregion EditorCommandReparentNode
+
+#pragma region ShowTexture
+
+class HYP_API EditorCommandShowTexture final : public EditorCommandBase
+{
+    HYP_OBJECT_BODY(EditorCommandShowTexture);
+
+public:
+    virtual ~EditorCommandShowTexture() override = default;
+
+    struct WatchTextureState
+    {
+        Handle<TextureOverlay> overlay;
+
+        DelegateHandler onAssetRemoved;
+        DelegateHandler onAssetAdded;
+        AssetPath path;
+
+        explicit operator bool () const
+        {
+            return path.IsValid();
+        }
+    };
+
+    static WatchTextureState s_watchTextureState;
+    static Mutex s_watchTextureStateMtx;
+
+    virtual String GetText() const override
+    {
+        return "Show Texture";
+    }
+
+    virtual void Execute(EditorSubsystem* subsystem) override
+    {
+        UISubsystem* uiSubsystem = subsystem->GetWorld()->GetSubsystem<UISubsystem>();
+        if (!uiSubsystem)
+        {
+            HYP_LOG(Editor, Error, "ShowTexture: No UISubsystem available");
+            return;
+        }
+
+        { // remove existing overlay and stop watching if active
+            Mutex::Guard guard(s_watchTextureStateMtx);
+            if (s_watchTextureState)
+            {
+                if (IsOnThread(g_simThread))
+                {
+                    if (s_watchTextureState.overlay.IsValid())
+                    {
+                        uiSubsystem->RemoveDebugOverlay(s_watchTextureState.overlay);
+                    }
+                }
+                else
+                {
+                    GetThreadById(g_simThread)->GetScheduler().Enqueue([uiSubsystem = MakeStrongRef(uiSubsystem), overlay = s_watchTextureState.overlay]()
+                        {
+                            if (overlay.IsValid())
+                            {
+                                uiSubsystem->RemoveDebugOverlay(overlay);
+                            }
+                        },
+                        TaskEnqueueFlags::FIRE_AND_FORGET);
+                }
+
+                s_watchTextureState = {};
+            }
+        }
+
+        // just hide the overlay
+        if (NumArguments() == 0 || GetArgument(0).Empty())
+        {
+            return;
+        }
+
+        AssetPath path = AssetPath(GetArgument(0));
+
+        static const auto SetupWatch = [](UISubsystem* uiSubsystem, const AssetPath& path)
+        {
+            Handle<AssetObject> assetObject = g_assetManager->GetAssetRegistry()->GetAssetFromPath(path.ToString());
+            Handle<Texture> texture = ObjCast<Texture>(assetObject);
+
+            if (!texture.IsValid())
+            {
+                HYP_LOG(Console, Error, "ShowTexture: texture '{}' not found", path.ToString());
+                return;
+            }
+
+            Handle<AssetPackage> package = assetObject->GetPackage();
+            if (!package.IsValid())
+            {
+                HYP_LOG(Console, Error, "ShowTexture: texture '{}' has no package", path.ToString());
+                return;
+            }
+
+            Handle<TextureOverlay> overlay = MakeHandle<TextureOverlay>(texture);
+            InitObject(overlay);
+
+            Mutex::Guard guard(s_watchTextureStateMtx);
+            s_watchTextureState.overlay = overlay;
+            s_watchTextureState.path = path;
+
+            s_watchTextureState.onAssetRemoved = package->OnAssetObjectRemoved.Bind(
+                [uiSubsystem = MakeStrongRef(uiSubsystem), overlay = s_watchTextureState.overlay](Handle<AssetObject> removedAsset, bool isDirect)
+                {
+                    Mutex::Guard guard(s_watchTextureStateMtx);
+                    if (!isDirect || removedAsset->GetName() != s_watchTextureState.path.GetName())
+                        return;
+
+                    if (overlay.IsValid())
+                    {
+                        // immediately set texture to null so we dont hold an unregistered texture.
+                        overlay->SetTexture(Handle<Texture>::Null());
+                    }
+                });
+
+            s_watchTextureState.onAssetAdded = package->OnAssetObjectAdded.Bind(
+                [uiSubsystem = MakeStrongRef(uiSubsystem)](Handle<AssetObject> addedAsset, bool isDirect)
+                {
+                    Mutex::Guard guard(s_watchTextureStateMtx);
+                    if (!isDirect || addedAsset->GetName() != s_watchTextureState.path.GetName())
+                        return;
+
+                    Handle<Texture> newTexture = ObjCast<Texture>(addedAsset);
+                    if (!newTexture.IsValid())
+                        return;
+
+                    Handle<TextureOverlay> newOverlay = MakeHandle<TextureOverlay>(newTexture);
+                    InitObject(newOverlay);
+
+                    GetThreadById(g_simThread)->GetScheduler().Enqueue([uiSubsystem, newOverlay, oldOverlay = s_watchTextureState.overlay]() mutable
+                        {
+                            if (oldOverlay.IsValid())
+                            {
+                                uiSubsystem->RemoveDebugOverlay(oldOverlay);
+                                oldOverlay.Reset();
+                            }
+
+                            uiSubsystem->AddDebugOverlay(newOverlay);
+                        }, TaskEnqueueFlags::FIRE_AND_FORGET);
+
+                    s_watchTextureState.overlay = newOverlay;
+                });
+            
+            GetThreadById(g_simThread)->GetScheduler().Enqueue([uiSubsystem, overlay]()
+                {
+                    uiSubsystem->AddDebugOverlay(overlay);
+                }, TaskEnqueueFlags::FIRE_AND_FORGET);
+        };
+
+        SetupWatch(uiSubsystem, path);
+    }
+};
+
+// static definition
+EditorCommandShowTexture::WatchTextureState EditorCommandShowTexture::s_watchTextureState;
+Mutex EditorCommandShowTexture::s_watchTextureStateMtx;
+
+DEFINE_EDITOR_COMMAND(ShowTexture);
+
+#pragma endregion ShowTexture
 
 #undef DEFINE_EDITOR_COMMAND
 

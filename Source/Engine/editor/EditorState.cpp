@@ -177,6 +177,18 @@ void EditorState::ImportAssetsOrSetCallback(const Handle<EditorProject>& project
         });
 }
 
+Handle<EditorSubsystem> EditorState::GetEditorSubsystem() const
+{
+    Mutex::Guard guard(m_mutex);
+
+    if (!m_currentProject.IsValid())
+    {
+        return Handle<EditorSubsystem>::Null();
+    }
+
+    return m_currentProject->GetEditorSubsystem().Lock();
+}
+
 Handle<EditorProject> EditorState::GetCurrentProject() const
 {
     Mutex::Guard guard(m_mutex);

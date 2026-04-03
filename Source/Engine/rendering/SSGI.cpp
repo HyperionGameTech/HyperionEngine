@@ -134,7 +134,9 @@ void SSGI::Create()
         1,
         IU_STORAGE | IU_SAMPLED
     });
+    m_ssgiTexture->SetIsTransient(true);
     m_ssgiTexture->SetName(NAME("SSGITexture"));
+    m_ssgiTexture->Register("$Memory/RenderTargets", AddAssetConflictMode::ReplaceExisting);
     CheckResult(m_ssgiTexture->Create());
 
     for (uint32 i = 0; i < NumDownsamplePasses; i++)

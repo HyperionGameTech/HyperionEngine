@@ -20,6 +20,12 @@
       "EnumValues": []
     }, {
       "$Class": "ShaderProperty",
+      "Name": "SSGI_ENABLED",
+      "Flags": 0,
+      "Value": null,
+      "EnumValues": []
+    }, {
+      "$Class": "ShaderProperty",
       "Name": "MAX_FALLBACK_PROBES",
       "Flags": 0,
       "Value": 4,
@@ -82,20 +88,6 @@
               "Register": 1,
               "ElementType": 5,
               "Name": "GBufferMipChain",
-              "Count": 1,
-              "Size": 4294967295,
-              "IsDynamic": false,
-              "StructInfo": {
-                "Name": "",
-                "Size": 4294967295,
-                "FieldNames": [],
-                "FieldTypes": []
-              }
-            }, {
-              "$Class": "ShaderInput",
-              "Register": 1,
-              "ElementType": 5,
-              "Name": "RTRadianceResultTexture",
               "Count": 1,
               "Size": 4294967295,
               "IsDynamic": false,
@@ -240,18 +232,18 @@
   "EntryPointNames": ["VSMain", "PSMain"],
   "ShaderBlobs": [{
       "$Class": "BlobDataReference",
-      "Key": "Engine/Shaders/DeferredIndirect/DeferredIndirect_17539549100363161116.VS",
-      "Size": 11136
+      "Key": "Engine/Shaders/DeferredIndirect/DeferredIndirect_6857416975269427258.VS",
+      "Size": 11100
     }, {
       "$Class": "BlobDataReference",
-      "Key": "Engine/Shaders/DeferredIndirect/DeferredIndirect_17539549100363161116.PS",
-      "Size": 123516
+      "Key": "Engine/Shaders/DeferredIndirect/DeferredIndirect_6857416975269427258.PS",
+      "Size": 123700
     }],
   "PropertySetHashCode": {},
   "LastCompiledTimestamp": {
-    "Value": 1775239380000
+    "Value": 1775185340000
   },
-  "Name": "DeferredIndirect_17539549100363161116",
-  "FriendlyName": "DeferredIndirect17539549100363161116",
+  "Name": "DeferredIndirect_6857416975269427258",
+  "FriendlyName": "DeferredIndirect6857416975269427258",
   "OriginalFilepath": ""
 }

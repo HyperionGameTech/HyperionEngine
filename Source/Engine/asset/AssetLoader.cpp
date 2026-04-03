@@ -11,6 +11,10 @@ namespace Hyperion {
 
 HYP_DECLARE_LOG_CHANNEL(Assets);
 
+namespace CoreApi {
+extern FilePath GetExecutablePath();
+} // namespace CoreApi
+
 HYP_API void OnPostLoad_Impl(const Class* cls, void* objectPtr)
 {
     cls->PostLoad(objectPtr);
@@ -54,7 +58,7 @@ FilePath AssetLoaderBase::GetRebasedFilepath(const FilePath& basePath, const Fil
 
 Array<FilePath> AssetLoaderBase::GetTryFilepaths(const FilePath& originalFilepath) const
 {
-    const FilePath currentPath = FilePath::Current();
+    const FilePath currentPath = CoreApi::GetExecutablePath();
 
     Array<FilePath> paths {
         FilePath::Relative(originalFilepath, currentPath)

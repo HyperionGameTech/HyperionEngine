@@ -74,7 +74,7 @@ DefaultGame::~DefaultGame()
 
 void DefaultGame::OnLaunch_Impl()
 {
-    GetWorld()->GetWorldGrid()->AddLayer(MakeHandle<TerrainWorldGridLayer>());
+    //GetWorld()->GetWorldGrid()->AddLayer(MakeHandle<TerrainWorldGridLayer>());
 
 #if 0
     auto pkg = g_assetManager->GetAssetRegistry()->GetPackageFromPath("SampleGame", /* createIfNotExist */ false, /* requireLoaded */ true);
@@ -179,12 +179,12 @@ void DefaultGame::OnLaunch_Impl()
     Memory::StrCpy(scriptDesc.className.Data(), "MyClass", ArraySize(scriptDesc.className));
 
     AssetBatch* batch = g_assetManager->CreateBatch();
-    batch->Add("testbed", "Models/Sponza/sponza.obj");//"Models/Testbed/testbed.obj");
+    batch->Add("testbed", "Models/SponzaGltf/Sponza.gltf");//"Models/Testbed/testbed.obj");
     auto results = batch->ForceLoad();
 
     LoadedAsset& testbedAsset = results["testbed"];
-    Handle<Node> testbedNode = testbedAsset.ExtractAs<Node>();
-    testbedNode->Scale(0.03f);//Scale(4.0f);
+    Handle<Node> testbedNode = testbedAsset.value.Get<Handle<Node>>();
+    testbedNode->Scale(3.0f);
     
     scene->GetRoot()->AddChild(testbedNode);
     
@@ -235,6 +235,12 @@ bool DefaultGame::OnInputEvent(const Event& event)
         controller->GetInputHandler()->OnKeyUp(event.ToKeyboardEvent());
         break;
     case EventType::KEYDOWN:
+        if (event.GetKeyCode() == KeyCode::KEY_TILDE)
+        {
+
+            break;
+        }
+
         if (!s_isSaving && event.GetKeyCode() == KeyCode::KEY_1)
         {
             s_isSaving = true;

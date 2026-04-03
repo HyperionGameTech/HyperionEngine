@@ -65,7 +65,8 @@ DECLARE_SAMPLER(DeferredPass, SamplerLinear) SamplerState sampler_linear;
 
 DECLARE_SRV(DeferredPass, SSAOResultTexture) Texture2D SSAOResultTexture;
 DECLARE_SRV(DeferredPass, SSGIResultTexture) Texture2D SSGIResultTexture;
-DECLARE_SRV(DeferredPass, ReflectionProbeResultTexture) Texture2D reflections_texture;
+DECLARE_SRV(DeferredPass, ReflectionProbeResultTexture) Texture2D ReflectionProbeResultTexture;
+DECLARE_SRV(DeferredPass, RTRadianceResultTexture) Texture2D RTRadianceResultTexture;
 
 #include "./include/gbuffer.inc"
 #include "./include/material.inc"
@@ -124,11 +125,11 @@ PSOutput PSMain(PSInput input)
 
     const uint2 pixelCoord = uint2(texcoord * max(0, int2(gbufferDimensions) - 1));
 
-    float4 albedo = SAMPLE_TEXTURE_2D(sampler_nearest, gbuffer_albedo_texture, texcoord);
-    float4 normalSample = SAMPLE_TEXTURE_2D(sampler_nearest, gbuffer_normals_texture, texcoord);
+    float4 albedo = SAMPLE_TEXTURE_2D_LOD(sampler_nearest, gbuffer_albedo_texture, texcoord, 0);
+    float4 normalSample = SAMPLE_TEXTURE_2D_LOD(sampler_nearest, gbuffer_normals_texture, texcoord, 0);
     float3 normal = GBufferUnpackNormal(normalSample);
 
-    float depth = SAMPLE_TEXTURE_2D(sampler_nearest, gbuffer_depth_texture, texcoord).r;
+    float depth = SAMPLE_TEXTURE_2D_LOD(sampler_nearest, gbuffer_depth_texture, texcoord, 0).r;
     float4 position = ReconstructWorldSpacePositionFromDepth(camera.invProjMat, camera.invViewMat, texcoord, depth);
 
     uint2 materialData = gbuffer_material_texture.Load(int3(pixelCoord, 0)).xy;
@@ -152,7 +153,7 @@ PSOutput PSMain(PSInput input)
     float3 ibl = (float3)0.0;
 
 #if HBAO_ENABLED || SSAO_ENABLED
-    const float4 ssao_data = SAMPLE_TEXTURE_2D(HYP_SAMPLER_NEAREST, SSAOResultTexture, texcoord);
+    const float4 ssao_data = SAMPLE_TEXTURE_2D_LOD(HYP_SAMPLER_NEAREST, SSAOResultTexture, texcoord, 0);
     ao = ssao_data.r;
 #endif
 
@@ -160,7 +161,7 @@ PSOutput PSMain(PSInput input)
 
     const float perceptualRoughness = sqrt(roughness);
 
-    reflections = SAMPLE_TEXTURE_2D(HYP_SAMPLER_LINEAR, reflections_texture, texcoord);
+    reflections = SAMPLE_TEXTURE_2D_LOD(HYP_SAMPLER_LINEAR, ReflectionProbeResultTexture, texcoord, 0);
 
 #if RT_REFLECTIONS
     CalculateRayTracingReflection(texcoord, reflections);
@@ -205,7 +206,7 @@ PSOutput PSMain(PSInput input)
 
 #if SSGI_ENABLED
     // Blend ssgi result into irradiance - if no hit, alpha will be zero or close to it so we can lerp it
-    float4 ssgi = SAMPLE_TEXTURE_2D(HYP_SAMPLER_LINEAR, SSGIResultTexture, texcoord);
+    float4 ssgi = SAMPLE_TEXTURE_2D_LOD(HYP_SAMPLER_LINEAR, SSGIResultTexture, texcoord, 0);
     irradiance = lerp(irradiance, ssgi, ssgi.a);
 #endif
 
@@ -243,7 +244,7 @@ PSOutput PSMain(PSInput input)
 #elif defined(DEBUG_IRRADIANCE)
     result = irradiance.rgb;
 #elif defined(DEBUG_VELOCITY)
-    float4 velocity = SAMPLE_TEXTURE_2D(sampler_nearest, gbuffer_velocity_texture, texcoord);
+    float4 velocity = SAMPLE_TEXTURE_2D_LOD(sampler_nearest, gbuffer_velocity_texture, texcoord, 0);
     result = velocity.rgb;
 #elif defined(DEBUG_NORMALS)
     result = normal * 0.5 + 0.5;

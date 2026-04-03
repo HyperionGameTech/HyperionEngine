@@ -16,6 +16,8 @@
 namespace Hyperion {
 
 class UIStage;
+class UIImage;
+
 class Texture;
 
 HYP_CLASS(Abstract)
@@ -85,10 +87,30 @@ public:
     TextureOverlay(const Handle<Texture>& texture);
     virtual ~TextureOverlay() override;
 
+    Handle<Texture> GetTexture() const
+    {
+        Mutex::Guard guard(m_textureMtx);
+        return m_texture;
+    }
+
+    void SetTexture(const Handle<Texture>& texture);
+
 protected:
     virtual Handle<UIObject> CreateUIObject_Impl(UIObject* spawnParent) override;
+    
+    HYP_METHOD()
+    virtual int GetPlacement_Impl() const
+    {
+        return 2;
+    }
+
+    Delegate<void, Handle<Texture>> OnTextureChange;
+    DelegateHandler m_onTextureChangeHandle;
 
     Handle<Texture> m_texture;
+    mutable Mutex m_textureMtx;
+
+    Handle<UIImage> m_image;
 };
 
 HYP_CLASS()

@@ -568,7 +568,7 @@ void UISubsystem::AddDebugOverlay(const Handle<OverlayBase>& debugOverlay)
     if (const Handle<UIObject>& object = debugOverlay->GetUIObject())
     {
         Handle<UIListViewItem> listViewItem = m_uiStage->CreateUIObject<UIListViewItem>(Vec2i { 0, 0 }, UIObjectSize(UIObjectSize::AUTO));
-        listViewItem->SetBackgroundColor(Color(0.0f, 0.0f, 0.0f, 0.0f));
+        //listViewItem->SetBackgroundColor(Color(0.0f, 0.0f, 0.0f, 0.0f));
         listViewItem->AddChildUIObject(object);
 
         m_debugOverlayContainers[placement]->AddChildUIObject(listViewItem);

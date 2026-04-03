@@ -60,6 +60,11 @@
 
 #if HYP_EDITOR
 #include <editor/EditorState.hpp>
+#include <editor/EditorCommand.hpp>
+#include <editor/EditorSubsystem.hpp>
+
+#include <scene/World.hpp>
+#include <scene/Scene.hpp>
 #endif
 
 #if HYP_DOTNET
@@ -828,6 +833,40 @@ extern "C"
 
             return 0; // 0 == success to model C main()
         }
+
+#if HYP_EDITOR
+        // Try finding an EditorCommand by name.
+        const Class* editorCommandClass = ClassRegistry::GetInstance().GetClass(ANSIString("EditorCommand") + commandName, /* ignoreCase */ true);
+
+        if (editorCommandClass != nullptr)
+        {
+            BoxedValue boxed;
+
+            if (editorCommandClass->CreateInstance(boxed))
+            {
+                if (boxed.Is<Handle<EditorCommandBase>>())
+                {
+                    const Handle<EditorCommandBase>& command = boxed.Get<Handle<EditorCommandBase>>();
+
+                    Handle<EditorSubsystem> editorSubsystem = g_editorState->GetEditorSubsystem();
+                    
+                    if (editorSubsystem.IsValid())
+                    {
+                        command->SetArguments(Map(commandLine.Split(' '), &String::Trimmed));
+                        command->Execute(editorSubsystem);
+
+                        return 0;
+                    }
+
+                    HYP_LOG(Engine, Error, "No active editor subsystem; cannot execute editor command.");
+                }
+                else
+                {
+                    HYP_LOG(Engine, Error, "Not an instance of EditorCommandBase");
+                }
+            }
+        }
+#endif // HYP_EDITOR
 
         return 1;
     }

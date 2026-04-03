@@ -18,6 +18,7 @@ namespace Hyperion {
 
 class EditorProject;
 class EditorTaskBase;
+class EditorSubsystem;
 
 HYP_CLASS()
 class HYP_API EditorState : public ObjectBase
@@ -40,6 +41,8 @@ public:
     {
         return m_pickCache;
     }
+
+    Handle<EditorSubsystem> GetEditorSubsystem() const;
 
     HYP_METHOD()
     Handle<EditorProject> GetCurrentProject() const;

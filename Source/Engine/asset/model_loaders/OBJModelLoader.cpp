@@ -312,6 +312,7 @@ LoadedAsset OBJModelLoader::BuildModel(LoaderState& state, OBJModel& model)
     Assert(state.assetManager != nullptr);
 
     Handle<Node> top = MakeHandle<Node>(CreateNameFromDynamicString(model.name));
+    top->SetIsDynamic(false);
 
     Handle<MaterialGroup> materialLibrary;
 

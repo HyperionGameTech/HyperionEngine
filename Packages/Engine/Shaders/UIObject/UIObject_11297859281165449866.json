@@ -24,12 +24,6 @@
       "Flags": 0,
       "Value": null,
       "EnumValues": []
-    }, {
-      "$Class": "ShaderProperty",
-      "Name": "UI_TEXT",
-      "Flags": 0,
-      "Value": null,
-      "EnumValues": []
     }],
   "RevisionNumber": 31459917,
   "BaseName": "UIObject",
@@ -126,18 +120,18 @@
   "EntryPointNames": ["VSMain", "PSMain"],
   "ShaderBlobs": [{
       "$Class": "BlobDataReference",
-      "Key": "Engine/Shaders/UIObject/UIObject_2941233747186420157.VS",
-      "Size": 48976
+      "Key": "Engine/Shaders/UIObject/UIObject_11297859281165449866.VS",
+      "Size": 48960
     }, {
       "$Class": "BlobDataReference",
-      "Key": "Engine/Shaders/UIObject/UIObject_2941233747186420157.PS",
-      "Size": 61320
+      "Key": "Engine/Shaders/UIObject/UIObject_11297859281165449866.PS",
+      "Size": 61196
     }],
   "PropertySetHashCode": {},
   "LastCompiledTimestamp": {
     "Value": 1775008017000
   },
-  "Name": "UIObject_2941233747186420157",
-  "FriendlyName": "UIObject2941233747186420157",
+  "Name": "UIObject_11297859281165449866",
+  "FriendlyName": "UIObject_11297859281165449866",
   "OriginalFilepath": ""
 }

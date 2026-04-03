@@ -10,6 +10,7 @@
 
 #include <ui/UIImage.hpp>
 #include <ui/UIText.hpp>
+#include <ui/UIPanel.hpp>
 
 #include <Overlay.generated.inl>
 
@@ -57,16 +58,65 @@ TextureOverlay::TextureOverlay(const Handle<Texture>& texture)
 
 TextureOverlay::~TextureOverlay()
 {
+    m_onTextureChangeHandle.Reset();
+}
+
+void TextureOverlay::SetTexture(const Handle<Texture>& texture)
+{
+    {
+        Mutex::Guard guard(m_textureMtx);
+        m_texture = texture;
+    }
+
+    OnTextureChange(texture);
 }
 
 Handle<UIObject> TextureOverlay::CreateUIObject_Impl(UIObject* spawnParent)
 {
-    CheckResult(m_texture->Create());
+    Vec2u extent = { 500, 250 };
 
-    Handle<UIImage> image = spawnParent->CreateUIObject<UIImage>(InstanceClass()->GetName(), Vec2i::Zero(), UIObjectSize({ 100, UIObjectSize::PIXEL }, { 75, UIObjectSize::PIXEL }));
-    image->SetTexture(m_texture);
+    Mutex::Guard guard(m_textureMtx);
+    if (m_texture)
+    {
+        if (!m_texture->IsCreated())
+        {
+            CheckResult(m_texture->Create());
+        }
 
-    return image;
+        extent = m_texture->GetExtent().GetXY();
+    }
+;
+    const int displayWidth = 500;
+    const int displayHeight = (extent.x > 0)
+        ? int(float(displayWidth) * float(extent.y) / float(extent.x))
+        : displayWidth;
+    
+    Handle<UIPanel> panelBackdrop = spawnParent->CreateUIObject<UIPanel>(
+        NAME("TextureOverlay_PanelBackdrop"),
+        Vec2i(2, 2),
+        UIObjectSize({ displayWidth, UIObjectSize::PIXEL }, { displayHeight, UIObjectSize::PIXEL }));
+
+    panelBackdrop->SetBackgroundColor(Color(0.0f, 0.0f, 0.0f, 0.8f));
+    panelBackdrop->SetPadding(Vec2i::Zero());
+
+    m_image = spawnParent->CreateUIObject<UIImage>(
+        InstanceClass()->GetName(),
+        Vec2i::Zero(),
+        UIObjectSize({ displayWidth, UIObjectSize::PIXEL }, { displayHeight, UIObjectSize::PIXEL }));
+
+    m_image->SetTexture(m_texture);
+    m_image->SetAllowMaterialUpdate(true);
+
+    m_onTextureChangeHandle = OnTextureChange
+        .BindThreaded([image = m_image](const Handle<Texture>& texture)
+        {
+            image->SetTexture(texture);
+        },
+        g_simThread);
+
+    panelBackdrop->AddChildUIObject(m_image);
+
+    return panelBackdrop;
 }
 
 #pragma endregion TextureOverlay

@@ -20,13 +20,13 @@
       "EnumValues": []
     }, {
       "$Class": "ShaderProperty",
-      "Name": "MAX_FALLBACK_PROBES",
+      "Name": "LIGHT_TYPE",
       "Flags": 0,
-      "Value": 4,
+      "Value": "POINT",
       "EnumValues": []
     }],
   "RevisionNumber": 31459917,
-  "BaseName": "DeferredIndirect",
+  "BaseName": "DeferredDirect",
   "InputLayout": {
     "Mask": 7
   },
@@ -34,6 +34,12 @@
     "Elements": [{
         "$Class": "ShaderInputSet",
         "SetIndex": 0,
+        "Name": "BindlessResources0",
+        "Slots": [[], [], [], [], []],
+        "Flags": 1
+      }, {
+        "$Class": "ShaderInputSet",
+        "SetIndex": 1,
         "Name": "DeferredPass",
         "Slots": [[{
               "$Class": "ShaderInput",
@@ -67,35 +73,7 @@
               "$Class": "ShaderInput",
               "Register": 1,
               "ElementType": 5,
-              "Name": "ReflectionProbeResultTexture",
-              "Count": 1,
-              "Size": 4294967295,
-              "IsDynamic": false,
-              "StructInfo": {
-                "Name": "",
-                "Size": 4294967295,
-                "FieldNames": [],
-                "FieldTypes": []
-              }
-            }, {
-              "$Class": "ShaderInput",
-              "Register": 1,
-              "ElementType": 5,
               "Name": "GBufferMipChain",
-              "Count": 1,
-              "Size": 4294967295,
-              "IsDynamic": false,
-              "StructInfo": {
-                "Name": "",
-                "Size": 4294967295,
-                "FieldNames": [],
-                "FieldTypes": []
-              }
-            }, {
-              "$Class": "ShaderInput",
-              "Register": 1,
-              "ElementType": 5,
-              "Name": "RTRadianceResultTexture",
               "Count": 1,
               "Size": 4294967295,
               "IsDynamic": false,
@@ -123,6 +101,20 @@
               "$Class": "ShaderInput",
               "Register": 1,
               "ElementType": 5,
+              "Name": "PointLightShadowMapsTextureArray",
+              "Count": 1,
+              "Size": 4294967295,
+              "IsDynamic": false,
+              "StructInfo": {
+                "Name": "",
+                "Size": 4294967295,
+                "FieldNames": [],
+                "FieldTypes": []
+              }
+            }, {
+              "$Class": "ShaderInput",
+              "Register": 1,
+              "ElementType": 5,
               "Name": "GBufferVelocityTexture",
               "Count": 1,
               "Size": 4294967295,
@@ -137,7 +129,7 @@
               "$Class": "ShaderInput",
               "Register": 1,
               "ElementType": 5,
-              "Name": "SSGIResultTexture",
+              "Name": "GBufferMaterialTexture",
               "Count": 1,
               "Size": 4294967295,
               "IsDynamic": false,
@@ -151,7 +143,7 @@
               "$Class": "ShaderInput",
               "Register": 1,
               "ElementType": 5,
-              "Name": "GBufferMaterialTexture",
+              "Name": "ShadowMapsTextureArray",
               "Count": 1,
               "Size": 4294967295,
               "IsDynamic": false,
@@ -221,6 +213,20 @@
               "$Class": "ShaderInput",
               "Register": 4,
               "ElementType": 7,
+              "Name": "SamplerShadow",
+              "Count": 1,
+              "Size": 4294967295,
+              "IsDynamic": false,
+              "StructInfo": {
+                "Name": "",
+                "Size": 4294967295,
+                "FieldNames": [],
+                "FieldTypes": []
+              }
+            }, {
+              "$Class": "ShaderInput",
+              "Register": 4,
+              "ElementType": 7,
               "Name": "SamplerLinear",
               "Count": 1,
               "Size": 4294967295,
@@ -236,22 +242,22 @@
       }]
   },
   "ShaderModuleTypes": [1, 2],
-  "ShaderModuleNames": ["DeferredIndirect.hlsl", "DeferredIndirect.hlsl"],
+  "ShaderModuleNames": ["DeferredDirect.hlsl", "DeferredDirect.hlsl"],
   "EntryPointNames": ["VSMain", "PSMain"],
   "ShaderBlobs": [{
       "$Class": "BlobDataReference",
-      "Key": "Engine/Shaders/DeferredIndirect/DeferredIndirect_17539549100363161116.VS",
-      "Size": 11136
+      "Key": "Engine/Shaders/DeferredDirect/DeferredDirect_1053748985340278291.VS",
+      "Size": 11220
     }, {
       "$Class": "BlobDataReference",
-      "Key": "Engine/Shaders/DeferredIndirect/DeferredIndirect_17539549100363161116.PS",
-      "Size": 123516
+      "Key": "Engine/Shaders/DeferredDirect/DeferredDirect_1053748985340278291.PS",
+      "Size": 213420
     }],
   "PropertySetHashCode": {},
   "LastCompiledTimestamp": {
-    "Value": 1775239380000
+    "Value": 1775239461000
   },
-  "Name": "DeferredIndirect_17539549100363161116",
-  "FriendlyName": "DeferredIndirect17539549100363161116",
+  "Name": "DeferredDirect_1053748985340278291",
+  "FriendlyName": "DeferredDirect1053748985340278291",
   "OriginalFilepath": ""
 }

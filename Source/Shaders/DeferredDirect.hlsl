@@ -116,9 +116,11 @@ DECLARE_SRV(DeferredPass, PointLightShadowMapsTextureArray) TextureCubeArray poi
 
 #define HYP_DEFERRED_NO_REFRACTION
 #define HYP_DEFERRED_NO_ENV_PROBE
+#define HYP_DEFERRED_NO_RT_RADIANCE
 
 #include "./deferred/DeferredLighting.inc"
 
+#undef HYP_DEFERRED_NO_RT_RADIANCE
 #undef HYP_DEFERRED_NO_REFRACTION
 #undef HYP_DEFERRED_NO_ENV_PROBE
 
