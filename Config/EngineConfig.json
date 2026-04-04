@@ -50,6 +50,18 @@
     },
     "Vulkan": {
       "DebugLayers": true
+    },
+    "RayTracing": {
+      "Enabled": false,
+      "Reflections": {
+        "Enabled": false
+      },
+      "GI": {
+        "Enabled": false
+      },
+      "PathTracing": {
+        "Enabled": false
+      }
     }
   },
   "Editor": {
@@ -60,7 +72,7 @@
   },
   "System": {
     "SelectedGpu": {
-      "Index": 1
+      "Index": 0
     }
   },
   "Baker": {

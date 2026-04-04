@@ -46,10 +46,14 @@ void Baker<Light>::CreateLightmapRenderers()
     const uint32 maxTexelsPerFrame = MaxTexelsPerFrame();
     AssertDebug(maxTexelsPerFrame > 0);
 
-    UniquePtr<ILightmapRenderer>& lightmapRenderer = m_lightmapRenderers.EmplaceBack();
-    lightmapRenderer = CreateRenderer(LightmapShadingType::SHADOW, maxTexelsPerFrame);
+    UniquePtr<ILightmapRenderer> lightmapRenderer = CreateRenderer(LightmapShadingType::SHADOW, maxTexelsPerFrame);
 
-    lightmapRenderer->Create();
+    if (lightmapRenderer != nullptr)
+    {
+        lightmapRenderer->Create();
+        m_lightmapRenderers.PushBack(std::move(lightmapRenderer));
+        return;
+    }
 }
 
 Result Baker<Light>::Build_Internal()

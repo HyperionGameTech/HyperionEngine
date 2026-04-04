@@ -29,7 +29,7 @@ extern VulkanRenderInterface* g_renderInterface;
 #if HYP_ANDROID || !HYP_DEBUG_MODE
 static constexpr bool VulkanSwapchainUseFIFO = true;
 #else
-static constexpr bool VulkanSwapchainUseFIFO = true;
+static constexpr bool VulkanSwapchainUseFIFO = false;//true;
 #endif
 
 static constexpr bool UseSRGBFormat = true;
@@ -53,7 +53,7 @@ static RendererResult AcquireNextImage(
         VK_NULL_HANDLE,
         index);
 
-    if (pOutNeedsRecreate != nullptr && (vkResult == VK_ERROR_OUT_OF_DATE_KHR || vkResult == VK_SUBOPTIMAL_KHR))
+    if (pOutNeedsRecreate != nullptr && (vkResult == VK_ERROR_OUT_OF_DATE_KHR))
     {
         *pOutNeedsRecreate = true;
     }
@@ -84,7 +84,7 @@ VulkanSwapchain::~VulkanSwapchain()
     m_images.Clear();
     m_presentSemaphores.Clear();
     m_framebuffers.Clear();
-    
+
     if (m_handle != VK_NULL_HANDLE)
     {
         EnqueueDeletion(FunctionWrapper<Proc<void()>>([handle = m_handle]()
@@ -157,13 +157,13 @@ void VulkanSwapchain::PresentFrame(VulkanFrame* frame, VulkanDeviceQueue* queue)
 
     VkResult result = vkQueuePresentKHR(queue->queue, &presentInfo);
 
-    if (result == VK_SUBOPTIMAL_KHR || result == VK_ERROR_OUT_OF_DATE_KHR)
+    if (result == VK_ERROR_OUT_OF_DATE_KHR)
     {
-        HYP_LOG(RenderingBackend, Verbose, "Got suboptimal/out of date swapchain present result ({}), calling Recreate()", result);
-        
+        HYP_LOG(RenderingBackend, Verbose, "Got out of date swapchain present result ({}), calling Recreate()", result);
+
         Recreate();
     }
-    else if (result != VK_SUCCESS)
+    else if (result != VK_SUCCESS && result != VK_SUBOPTIMAL_KHR)
     {
         g_renderInterface->crashHandler->Dump();
 
@@ -212,7 +212,7 @@ RendererResult VulkanSwapchain::Create()
         m_supportDetails.capabilities.maxImageExtent.width,
         m_supportDetails.capabilities.maxImageExtent.height
     };
-    
+
     const Vec2u minExtent {
         m_supportDetails.capabilities.minImageExtent.width,
         m_supportDetails.capabilities.minImageExtent.height
@@ -315,12 +315,11 @@ RendererResult VulkanSwapchain::Create()
                 TextureType::Texture2D,
                 image->GetTextureFormat(),
                 LoadOperation::CLEAR,
-                StoreOperation::STORE
-            },
+                StoreOperation::STORE },
             g_renderInterface->MakeImageView(image));
 
         CheckResultOrReturn(framebuffer->Create());
-        
+
         m_framebuffers.PushBack(framebuffer);
     }
 
@@ -331,7 +330,7 @@ RendererResult VulkanSwapchain::Create()
         m_presentSemaphores[i] = MakeHandle<VulkanSemaphore>();
         CheckResultOrReturn(m_presentSemaphores[i]->Create());
     }
-    
+
     m_needsRecreate = false;
 
     return {};

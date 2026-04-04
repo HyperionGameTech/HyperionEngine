@@ -39,7 +39,7 @@ static void InitBlobStorage(BlobStorage& outStorage, const FilePath& baseDirecto
         MemoryMappedFile* file = mappedBlobStorage->Get(ANSIStringView(name));
         AssertDebug(file != nullptr, "Failed to open mapped file {} ({})", name, mappedBlobStorage->GetBaseDirectory());
 
-        if (!file->Open())
+        if (!file || !file->Open())
         {
             return nullptr;
         }

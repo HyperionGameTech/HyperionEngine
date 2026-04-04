@@ -8,12 +8,27 @@
     }, {
       "$Class": "AssetReference",
       "AssetPath": {
+        "Value": "Engine/Shaders/ConvolveProbe/ConvolveProbe_7626486501626229743"
+      }
+    }, {
+      "$Class": "AssetReference",
+      "AssetPath": {
         "Value": "Engine/Shaders/ConvolveProbe/ConvolveProbe_7497891828663823175"
       }
     }, {
       "$Class": "AssetReference",
       "AssetPath": {
+        "Value": "Engine/Shaders/ConvolveProbe/ConvolveProbe_7477747463479176481"
+      }
+    }, {
+      "$Class": "AssetReference",
+      "AssetPath": {
         "Value": "Engine/Shaders/ConvolveProbe/ConvolveProbe_722583909795040502"
+      }
+    }, {
+      "$Class": "AssetReference",
+      "AssetPath": {
+        "Value": "Engine/Shaders/ConvolveProbe/ConvolveProbe_6665874844250465581"
       }
     }, {
       "$Class": "AssetReference",
@@ -28,6 +43,11 @@
     }, {
       "$Class": "AssetReference",
       "AssetPath": {
+        "Value": "Engine/Shaders/ConvolveProbe/ConvolveProbe_2903497668496809432"
+      }
+    }, {
+      "$Class": "AssetReference",
+      "AssetPath": {
         "Value": "Engine/Shaders/ConvolveProbe/ConvolveProbe_2070160579781860399"
       }
     }, {
@@ -38,7 +58,27 @@
     }, {
       "$Class": "AssetReference",
       "AssetPath": {
+        "Value": "Engine/Shaders/ConvolveProbe/ConvolveProbe_17540296304088354209"
+      }
+    }, {
+      "$Class": "AssetReference",
+      "AssetPath": {
         "Value": "Engine/Shaders/ConvolveProbe/ConvolveProbe_13717260104946890630"
+      }
+    }, {
+      "$Class": "AssetReference",
+      "AssetPath": {
+        "Value": "Engine/Shaders/ConvolveProbe/ConvolveProbe_13248101767976356026"
+      }
+    }, {
+      "$Class": "AssetReference",
+      "AssetPath": {
+        "Value": "Engine/Shaders/ConvolveProbe/ConvolveProbe_12191529352788903501"
+      }
+    }, {
+      "$Class": "AssetReference",
+      "AssetPath": {
+        "Value": "Engine/Shaders/ConvolveProbe/ConvolveProbe_11804015903715863134"
       }
     }],
   "Name": "ConvolveProbe",

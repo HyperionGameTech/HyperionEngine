@@ -376,9 +376,17 @@ uint32 BakeJobBase::Process(uint32 maxTexels)
 
     if (m_lightmapper->PerformsRayTracing())
     {
-        Assert(m_params.renderers->Size() > 0);
-
+        if (m_params.renderers->Empty())
+        {
+            return 0;
+        }
+        
         maxTexels = MathUtil::Min(maxTexels, (*m_params.renderers)[0]->MaxTexelsPerFrame());
+    }
+    
+    if (totalNumTexels == 0 || maxTexels == 0)
+    {
+        return 0;
     }
 
     const uint32 texelOffset = uint32(m_texelIndex % totalNumTexels);

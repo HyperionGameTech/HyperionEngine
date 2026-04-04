@@ -29,19 +29,19 @@ namespace Hyperion
         {
         }
 
+        public override void Update(float delta)
+        {
+            InvokeNativeMethod(new Name("Update_Impl", weak: true), [delta]);
+        }
+
         public override UIObject CreateUIObject(UIObject spawnParent)
         {
-            return InvokeNativeMethod<UIObject>(new Name("CreateUIObject_Impl", weak: true), new object[] { spawnParent });
+            return InvokeNativeMethod<UIObject>(new Name("CreateUIObject_Impl", weak: true), [spawnParent]);
         }
 
         public override bool IsEnabled()
         {
             return InvokeNativeMethod<bool>(new Name("IsEnabled_Impl", weak: true));
-        }
-
-        public override void Update(float delta)
-        {
-            InvokeNativeMethod(new Name("Update_Impl", weak: true), new object[] { delta });
         }
     }
 
@@ -52,19 +52,19 @@ namespace Hyperion
         {
         }
 
+        public override void Update(float delta)
+        {
+            InvokeNativeMethod(new Name("Update_Impl", weak: true), [delta]);
+        }
+
         public override UIObject CreateUIObject(UIObject spawnParent)
         {
-            return InvokeNativeMethod<UIObject>(new Name("CreateUIObject_Impl", weak: true), new object[] { spawnParent });
+            return InvokeNativeMethod<UIObject>(new Name("CreateUIObject_Impl", weak: true), [spawnParent]);
         }
 
         public override bool IsEnabled()
         {
             return InvokeNativeMethod<bool>(new Name("IsEnabled_Impl", weak: true));
-        }
-
-        public override void Update(float delta)
-        {
-            InvokeNativeMethod(new Name("Update_Impl", weak: true), new object[] { delta });
         }
     }
 }

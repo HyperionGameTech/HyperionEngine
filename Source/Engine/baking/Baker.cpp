@@ -58,6 +58,7 @@
 #include <util/MeshBuilder.hpp>
 
 #include <system/AppContext.hpp>
+#include <system/MessageBox.hpp>
 
 #include <engine/EngineGlobals.hpp>
 #include <engine/EngineDriver.hpp>
@@ -165,6 +166,14 @@ void BakerBase::Initialize()
 {
     if (PerformsRayTracing())
     {
+        if (!g_renderInterface->GetRenderConfig().rayTracing)
+        {
+            SystemMessageBox(MessageBoxType::CRITICAL)
+                .Title("Ray tracing must be enabled")
+                .Text("This baking technique requires support for ray tracing which doesn't appear to be supported on this device (or it has been explicitly disabled via config).")
+                .Show();
+        }
+        
         Handle<Camera> camera = MakeHandle<Camera>();
         camera->SetName(NAME_FMT("{}_Camera", InstanceClass()->GetName()));
         camera->AddCameraController(MakeHandle<OrthoCameraController>());
@@ -260,7 +269,7 @@ UniquePtr<ILightmapRenderer> BakerBase::CreateRenderer(LightmapShadingType shadi
 
     if (!g_renderInterface->GetRenderConfig().rayTracing)
     {
-        HYP_LOG(Lightmap, Error, "GPU path tracing is not supported on this device. Falling back to CPU path tracing.");
+        HYP_LOG(Lightmap, Error, "GPU path tracing is not supported on this device");
 
         return nullptr;
     }
