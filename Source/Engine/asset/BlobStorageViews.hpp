@@ -64,7 +64,7 @@ public:
         }
 
         const ANSIString nameStr = ANSIString(name);
-        
+
         const FilePath filePath = m_baseDir / (nameStr + ".bin");
 
         MemoryMappedFile* mappedFile = PoolNew<MemoryMappedFile>(
@@ -76,7 +76,7 @@ public:
 
         if (!mappedFile->Open())
         {
-            AssertDebug(false, "Failed to open mapped file at {}", *filePath);
+            // failed to open file
 
             PoolDelete(*g_assetPool, mappedFile);
 
@@ -111,7 +111,6 @@ public:
 
         m_mappedFiles.Clear();
     }
-
 
 private:
     FilePath m_baseDir;

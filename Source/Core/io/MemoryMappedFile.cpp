@@ -291,7 +291,7 @@ bool MemoryMappedFile::Open()
         ? O_RDWR | O_CREAT
         : O_RDONLY;
 
-    const int fd = open(m_impl->filepath.Data(), openFlags);
+    const int fd = open(m_impl->filepath.Data(), openFlags, 0644);
 
     if (fd < 0)
     {

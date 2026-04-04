@@ -47,7 +47,7 @@ ThreadPoolBase::~ThreadPoolBase()
     for (auto& it : m_threads)
     {
         AssertDebug(it != nullptr);
-        
+
         if (it->CanJoin())
         {
             it->Join();
@@ -385,7 +385,7 @@ TaskThread* BackgroundWorkerPool::GetNextTaskThread()
     TaskThread* taskThread = nullptr;
 
     uint32 seed = m_cycle.Increment(1, MemoryOrder::RELAXED);
-    
+
     while (!taskThread)
     {
         uint32 index = MathUtil::Floor(MathUtil::RandomFloat(seed) * float(activeCount - 1));
@@ -464,8 +464,6 @@ void BackgroundWorkerPool::CleanupIdleThreads()
 
         if (thread != nullptr)
         {
-            AssertDebug(!thread->GetScheduler().NumEnqueued());
-
             if (thread->CanJoin())
             {
                 thread->Join();

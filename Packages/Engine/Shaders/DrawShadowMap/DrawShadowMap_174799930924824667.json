@@ -2,6 +2,18 @@
   "$Class": "Shader",
   "PropertySet": [{
       "$Class": "ShaderProperty",
+      "Name": "SHADING_TYPE",
+      "Flags": 0,
+      "Value": "DEFERRED",
+      "EnumValues": []
+    }, {
+      "$Class": "ShaderProperty",
+      "Name": "MODE",
+      "Flags": 0,
+      "Value": "PCF",
+      "EnumValues": []
+    }, {
+      "$Class": "ShaderProperty",
       "Name": "HYP_VULKAN",
       "Flags": 0,
       "Value": 4202496,
@@ -17,18 +29,6 @@
       "Name": "HYP_FEATURES_BINDLESS_TEXTURES",
       "Flags": 0,
       "Value": null,
-      "EnumValues": []
-    }, {
-      "$Class": "ShaderProperty",
-      "Name": "SHADING_TYPE",
-      "Flags": 0,
-      "Value": "DEFERRED",
-      "EnumValues": []
-    }, {
-      "$Class": "ShaderProperty",
-      "Name": "MODE",
-      "Flags": 0,
-      "Value": "PCF",
       "EnumValues": []
     }],
   "RevisionNumber": 31459917,
@@ -132,6 +132,6 @@
     "Value": 1775102523000
   },
   "Name": "DrawShadowMap_174799930924824667",
-  "FriendlyName": "DrawShadowMap_174799930924824667",
+  "FriendlyName": "DrawShadowMap174799930924824667",
   "OriginalFilepath": ""
 }

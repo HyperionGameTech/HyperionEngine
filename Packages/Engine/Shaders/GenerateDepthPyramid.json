@@ -5,6 +5,11 @@
       "AssetPath": {
         "Value": "Engine/Shaders/GenerateDepthPyramid/GenerateDepthPyramid_5656388037364668818"
       }
+    }, {
+      "$Class": "AssetReference",
+      "AssetPath": {
+        "Value": "Engine/Shaders/GenerateDepthPyramid/GenerateDepthPyramid_16850497093972767380"
+      }
     }],
   "Name": "GenerateDepthPyramid",
   "FriendlyName": "GenerateDepthPyramid",

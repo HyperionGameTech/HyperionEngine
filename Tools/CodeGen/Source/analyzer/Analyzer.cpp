@@ -63,7 +63,7 @@ static const HashMap<String, String> s_pathConditionalDefines = {
 
 static void ExtractConditionAttribute(String& condition, Array<Pair<String, ClassAttributeValue>>& attributes)
 {
-    // handle editoronly attribute 
+    // handle editoronly attribute
     auto editorOnlyIt = attributes.FindIf([](const Pair<String, ClassAttributeValue>& pair)
         {
             return pair.first.ToLower() == "editoronly";
@@ -372,7 +372,7 @@ static TResult<Array<Pair<String, ClassAttributeValue>>> BuildClassAttributes(co
         {
             int valueInt;
 
-            if (!StringUtil::Parse<int>(classAttributeValueString, &valueInt))
+            if (!StringUtil::Parse(classAttributeValueString, &valueInt))
             {
                 return HYP_MAKE_ERROR(Error, "Failed to parse int in Class attribute");
             }
@@ -576,9 +576,8 @@ static TResult<Array<ClassDefinition>, AnalyzerError> BuildClasses(const Analyze
                     }
                 }
             }
-            
-            ExtractConditionAttribute(classDefinition.condition, classDefinition.attributes);
 
+            ExtractConditionAttribute(classDefinition.condition, classDefinition.attributes);
         }
 
         const String contentToEnd = String::Join(lines.Slice(i, lines.Size()), '\n');

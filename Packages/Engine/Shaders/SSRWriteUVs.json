@@ -5,6 +5,11 @@
       "AssetPath": {
         "Value": "Engine/Shaders/SSRWriteUVs/SSRWriteUVs_6076243050612183518"
       }
+    }, {
+      "$Class": "AssetReference",
+      "AssetPath": {
+        "Value": "Engine/Shaders/SSRWriteUVs/SSRWriteUVs_13760957415098438876"
+      }
     }],
   "Name": "SSRWriteUVs",
   "FriendlyName": "SSRWriteUVs",

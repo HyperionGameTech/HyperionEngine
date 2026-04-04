@@ -1,0 +1,137 @@
+{
+  "$Class": "Shader",
+  "PropertySet": [{
+      "$Class": "ShaderProperty",
+      "Name": "SHADING_TYPE",
+      "Flags": 0,
+      "Value": "FORWARD",
+      "EnumValues": []
+    }, {
+      "$Class": "ShaderProperty",
+      "Name": "MAX_LIGHTS",
+      "Flags": 0,
+      "Value": 4,
+      "EnumValues": []
+    }, {
+      "$Class": "ShaderProperty",
+      "Name": "MODE",
+      "Flags": 0,
+      "Value": "PCF",
+      "EnumValues": []
+    }, {
+      "$Class": "ShaderProperty",
+      "Name": "HYP_VULKAN",
+      "Flags": 0,
+      "Value": 4202496,
+      "EnumValues": []
+    }, {
+      "$Class": "ShaderProperty",
+      "Name": "NUM_GBUFFER_TEXTURES",
+      "Flags": 0,
+      "Value": 5,
+      "EnumValues": []
+    }],
+  "RevisionNumber": 31459917,
+  "BaseName": "DrawShadowMap",
+  "InputLayout": {
+    "Mask": 7
+  },
+  "ShaderInputGroup": {
+    "Elements": [{
+        "$Class": "ShaderInputSet",
+        "SetIndex": 0,
+        "Name": "Default",
+        "Slots": [[{
+              "$Class": "ShaderInput",
+              "Register": 1,
+              "ElementType": 4,
+              "Name": "CurrentEntity",
+              "Count": 1,
+              "Size": 4294967295,
+              "IsDynamic": true,
+              "StructInfo": {
+                "Name": "",
+                "Size": 4294967295,
+                "FieldNames": [],
+                "FieldTypes": []
+              }
+            }, {
+              "$Class": "ShaderInput",
+              "Register": 1,
+              "ElementType": 4,
+              "Name": "MaterialsBuffer",
+              "Count": 1,
+              "Size": 4294967295,
+              "IsDynamic": true,
+              "StructInfo": {
+                "Name": "",
+                "Size": 4294967295,
+                "FieldNames": [],
+                "FieldTypes": []
+              }
+            }], [], [{
+              "$Class": "ShaderInput",
+              "Register": 3,
+              "ElementType": 2,
+              "Name": "CamerasBuffer",
+              "Count": 1,
+              "Size": 4294967295,
+              "IsDynamic": true,
+              "StructInfo": {
+                "Name": "",
+                "Size": 4294967295,
+                "FieldNames": [],
+                "FieldTypes": []
+              }
+            }], [{
+              "$Class": "ShaderInput",
+              "Register": 4,
+              "ElementType": 7,
+              "Name": "SamplerNearest",
+              "Count": 1,
+              "Size": 4294967295,
+              "IsDynamic": false,
+              "StructInfo": {
+                "Name": "",
+                "Size": 4294967295,
+                "FieldNames": [],
+                "FieldTypes": []
+              }
+            }, {
+              "$Class": "ShaderInput",
+              "Register": 4,
+              "ElementType": 7,
+              "Name": "SamplerLinear",
+              "Count": 1,
+              "Size": 4294967295,
+              "IsDynamic": false,
+              "StructInfo": {
+                "Name": "",
+                "Size": 4294967295,
+                "FieldNames": [],
+                "FieldTypes": []
+              }
+            }], []],
+        "Flags": 0
+      }]
+  },
+  "ShaderModuleTypes": [1, 2],
+  "ShaderModuleNames": ["DrawShadowMap.hlsl", "DrawShadowMap.hlsl"],
+  "EntryPointNames": ["VSMain", "PSMain"],
+  "ShaderBlobs": [{
+      "$Class": "BlobDataReference",
+      "Key": "Engine/Shaders/DrawShadowMap/DrawShadowMap_11583001194950192283.VS",
+      "Size": 52260
+    }, {
+      "$Class": "BlobDataReference",
+      "Key": "Engine/Shaders/DrawShadowMap/DrawShadowMap_11583001194950192283.PS",
+      "Size": 49100
+    }],
+  "PropertySetHashCode": {},
+  "LastCompiledTimestamp": {
+    "Value": 1775314118084
+  },
+  "Name": "DrawShadowMap_11583001194950192283",
+  "FriendlyName": "DrawShadowMap11583001194950192283",
+  "OriginalFilepath": ""
+}

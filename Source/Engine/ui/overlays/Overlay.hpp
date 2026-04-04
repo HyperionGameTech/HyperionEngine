@@ -55,6 +55,7 @@ public:
     bool IsEnabled() const;
 
 protected:
+    HYP_METHOD()
     virtual Handle<UIObject> CreateUIObject_Impl(UIObject* spawnParent);
 
     HYP_METHOD()
@@ -96,8 +97,9 @@ public:
     void SetTexture(const Handle<Texture>& texture);
 
 protected:
+    HYP_METHOD()
     virtual Handle<UIObject> CreateUIObject_Impl(UIObject* spawnParent) override;
-    
+
     HYP_METHOD()
     virtual int GetPlacement_Impl() const
     {
@@ -123,6 +125,7 @@ public:
     virtual ~TextOverlay() override;
 
 protected:
+    HYP_METHOD()
     virtual Handle<UIObject> CreateUIObject_Impl(UIObject* spawnParent) override;
 
     String m_text;

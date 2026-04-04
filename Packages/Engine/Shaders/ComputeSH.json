@@ -3,7 +3,17 @@
   "CompiledShaders": [{
       "$Class": "AssetReference",
       "AssetPath": {
+        "Value": "Engine/Shaders/ComputeSH/ComputeSH_9132666284519394405"
+      }
+    }, {
+      "$Class": "AssetReference",
+      "AssetPath": {
         "Value": "Engine/Shaders/ComputeSH/ComputeSH_6527600843647074732"
+      }
+    }, {
+      "$Class": "AssetReference",
+      "AssetPath": {
+        "Value": "Engine/Shaders/ComputeSH/ComputeSH_3316121817322928718"
       }
     }, {
       "$Class": "AssetReference",
@@ -14,6 +24,11 @@
       "$Class": "AssetReference",
       "AssetPath": {
         "Value": "Engine/Shaders/ComputeSH/ComputeSH_16198839736632478812"
+      }
+    }, {
+      "$Class": "AssetReference",
+      "AssetPath": {
+        "Value": "Engine/Shaders/ComputeSH/ComputeSH_15766011698208565566"
       }
     }],
   "Name": "ComputeSH",

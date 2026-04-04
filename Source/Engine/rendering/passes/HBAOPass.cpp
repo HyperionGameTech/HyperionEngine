@@ -31,8 +31,6 @@
 #include <engine/EngineDriver.hpp>
 #include <engine/CVarManager.hpp>
 
-#include <HBAOPass.generated.inl>
-
 namespace Hyperion {
 
 HYP_DECLARE_LOG_CHANNEL(Rendering);
@@ -97,13 +95,13 @@ void HBAO::Render(Frame* frame, const RenderSetup& renderSetup)
     }
 
     Begin(frame, renderSetup);
-    
+
     DeferredRendererPassData* dpd = ObjCast<DeferredRendererPassData>(renderSetup.passData);
     AssertDebug(dpd != nullptr);
 
     const FramebufferRef& inputsFramebuffer = dpd->view.GetUnsafe()->GetOutputTarget().GetFramebuffer(RenderBucket::Opaque);
     AssertDebug(inputsFramebuffer.IsValid());
-    
+
     ShaderPropertySet shaderProperties;
 
     if (ShouldRenderHalfRes())
@@ -112,9 +110,9 @@ void HBAO::Render(Frame* frame, const RenderSetup& renderSetup)
     }
 
     cr << SetCurrentShader(ShaderDesc(NAME("HBAO"), shaderProperties));
-    
+
     uint32 numShaderUniforms = 0;
-    
+
     cr << SetShaderUniform(numShaderUniforms++, "SamplerNearest"_sh, g_renderInterface->placeholderData->GetSamplerNearest());
     cr << SetShaderUniform(numShaderUniforms++, "SamplerLinear"_sh, g_renderInterface->placeholderData->GetSamplerLinearMipmap());
 
@@ -123,14 +121,14 @@ void HBAO::Render(Frame* frame, const RenderSetup& renderSetup)
     cr << SetShaderUniform(numShaderUniforms++, "GBufferMaterialTexture"_sh, inputsFramebuffer->GetAttachment(GTN_MATERIAL)->GetImageView());
     cr << SetShaderUniform(numShaderUniforms++, "GBufferVelocityTexture"_sh, inputsFramebuffer->GetAttachment(GTN_VELOCITY)->GetImageView());
     cr << SetShaderUniform(numShaderUniforms++, "GBufferDepthTexture"_sh, inputsFramebuffer->GetAttachment(GTN_DEPTH)->GetImageView());
-    
+
     cr << SetShaderUniform(numShaderUniforms++, "GBufferMipChain"_sh, g_renderInterface->textureViewCache->GetOrCreate(dpd->mipChain));
 
     cr << SetShaderUniform(numShaderUniforms++, "CamerasBuffer"_sh, g_renderInterface->gpuBuffers[GRB_CAMERAS]->GetBuffer(frameIndex), TShaderDataOffset<CameraShaderData>(renderSetup.view->GetCamera()));
     cr << SetShaderUniform(numShaderUniforms++, "WorldsBuffer"_sh, g_renderInterface->gpuBuffers[GRB_WORLDS]->GetBuffer(frameIndex));
 
     cr << SetShaderUniform(numShaderUniforms++, "UniformBuffer"_sh, m_cbuffer);
-    
+
     RenderFullScreenQuad(frame, renderSetup);
 
     End(frame, renderSetup);

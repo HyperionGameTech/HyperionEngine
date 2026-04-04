@@ -40,6 +40,66 @@
       "AssetPath": {
         "Value": "Engine/Shaders/DrawCubemap/DrawCubemap_5336421232962317083"
       }
+    }, {
+      "$Class": "AssetReference",
+      "AssetPath": {
+        "Value": "Engine/Shaders/DrawCubemap/DrawCubemap_14790990473550360424"
+      }
+    }, {
+      "$Class": "AssetReference",
+      "AssetPath": {
+        "Value": "Engine/Shaders/DrawCubemap/DrawCubemap_14790990473550360416"
+      }
+    }, {
+      "$Class": "AssetReference",
+      "AssetPath": {
+        "Value": "Engine/Shaders/DrawCubemap/DrawCubemap_14790990473550360472"
+      }
+    }, {
+      "$Class": "AssetReference",
+      "AssetPath": {
+        "Value": "Engine/Shaders/DrawCubemap/DrawCubemap_14790990473550360432"
+      }
+    }, {
+      "$Class": "AssetReference",
+      "AssetPath": {
+        "Value": "Engine/Shaders/DrawCubemap/DrawCubemap_9714171991210722860"
+      }
+    }, {
+      "$Class": "AssetReference",
+      "AssetPath": {
+        "Value": "Engine/Shaders/DrawCubemap/DrawCubemap_9714171991210722852"
+      }
+    }, {
+      "$Class": "AssetReference",
+      "AssetPath": {
+        "Value": "Engine/Shaders/DrawCubemap/DrawCubemap_9714171991210722836"
+      }
+    }, {
+      "$Class": "AssetReference",
+      "AssetPath": {
+        "Value": "Engine/Shaders/DrawCubemap/DrawCubemap_9714171991210722844"
+      }
+    }, {
+      "$Class": "AssetReference",
+      "AssetPath": {
+        "Value": "Engine/Shaders/DrawCubemap/DrawCubemap_15244994398225541079"
+      }
+    }, {
+      "$Class": "AssetReference",
+      "AssetPath": {
+        "Value": "Engine/Shaders/DrawCubemap/DrawCubemap_15244994398225541071"
+      }
+    }, {
+      "$Class": "AssetReference",
+      "AssetPath": {
+        "Value": "Engine/Shaders/DrawCubemap/DrawCubemap_15244994398225541063"
+      }
+    }, {
+      "$Class": "AssetReference",
+      "AssetPath": {
+        "Value": "Engine/Shaders/DrawCubemap/DrawCubemap_15244994398225540927"
+      }
     }],
   "Name": "DrawCubemap",
   "FriendlyName": "DrawCubemap",
