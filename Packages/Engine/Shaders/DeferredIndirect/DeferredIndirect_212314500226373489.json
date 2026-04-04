@@ -2,12 +2,6 @@
   "$Class": "Shader",
   "PropertySet": [{
       "$Class": "ShaderProperty",
-      "Name": "MAX_FALLBACK_PROBES",
-      "Flags": 0,
-      "Value": 4,
-      "EnumValues": []
-    }, {
-      "$Class": "ShaderProperty",
       "Name": "HYP_VULKAN",
       "Flags": 0,
       "Value": 4202496,
@@ -17,6 +11,12 @@
       "Name": "NUM_GBUFFER_TEXTURES",
       "Flags": 0,
       "Value": 5,
+      "EnumValues": []
+    }, {
+      "$Class": "ShaderProperty",
+      "Name": "MAX_FALLBACK_PROBES",
+      "Flags": 0,
+      "Value": 4,
       "EnumValues": []
     }],
   "RevisionNumber": 31459917,

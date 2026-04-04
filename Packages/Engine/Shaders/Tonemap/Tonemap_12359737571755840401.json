@@ -2,12 +2,6 @@
   "$Class": "Shader",
   "PropertySet": [{
       "$Class": "ShaderProperty",
-      "Name": "OUTPUT",
-      "Flags": 0,
-      "Value": "SDR",
-      "EnumValues": []
-    }, {
-      "$Class": "ShaderProperty",
       "Name": "HYP_VULKAN",
       "Flags": 0,
       "Value": 4202496,
@@ -17,6 +11,12 @@
       "Name": "NUM_GBUFFER_TEXTURES",
       "Flags": 0,
       "Value": 5,
+      "EnumValues": []
+    }, {
+      "$Class": "ShaderProperty",
+      "Name": "OUTPUT",
+      "Flags": 0,
+      "Value": "SDR",
       "EnumValues": []
     }, {
       "$Class": "ShaderProperty",
@@ -98,6 +98,6 @@
     "Value": 1775314118085
   },
   "Name": "Tonemap_12359737571755840401",
-  "FriendlyName": "Tonemap_12359737571755840401",
+  "FriendlyName": "Tonemap12359737571755840401",
   "OriginalFilepath": ""
 }

@@ -2,18 +2,6 @@
   "$Class": "Shader",
   "PropertySet": [{
       "$Class": "ShaderProperty",
-      "Name": "HBAO_ENABLED",
-      "Flags": 0,
-      "Value": null,
-      "EnumValues": []
-    }, {
-      "$Class": "ShaderProperty",
-      "Name": "MAX_FALLBACK_PROBES",
-      "Flags": 0,
-      "Value": 4,
-      "EnumValues": []
-    }, {
-      "$Class": "ShaderProperty",
       "Name": "HYP_VULKAN",
       "Flags": 0,
       "Value": 4202496,
@@ -29,6 +17,18 @@
       "Name": "HYP_FEATURES_BINDLESS_TEXTURES",
       "Flags": 0,
       "Value": null,
+      "EnumValues": []
+    }, {
+      "$Class": "ShaderProperty",
+      "Name": "HBAO_ENABLED",
+      "Flags": 0,
+      "Value": null,
+      "EnumValues": []
+    }, {
+      "$Class": "ShaderProperty",
+      "Name": "MAX_FALLBACK_PROBES",
+      "Flags": 0,
+      "Value": 4,
       "EnumValues": []
     }],
   "RevisionNumber": 31459917,
@@ -258,6 +258,6 @@
     "Value": 1775239380000
   },
   "Name": "DeferredIndirect_15436598124108814104",
-  "FriendlyName": "DeferredIndirect15436598124108814104",
+  "FriendlyName": "DeferredIndirect_15436598124108814104",
   "OriginalFilepath": ""
 }

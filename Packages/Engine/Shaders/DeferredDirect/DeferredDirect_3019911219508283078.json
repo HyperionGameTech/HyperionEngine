@@ -2,18 +2,6 @@
   "$Class": "Shader",
   "PropertySet": [{
       "$Class": "ShaderProperty",
-      "Name": "LIGHT_TYPE",
-      "Flags": 0,
-      "Value": "DIRECTIONAL",
-      "EnumValues": []
-    }, {
-      "$Class": "ShaderProperty",
-      "Name": "HBAO_ENABLED",
-      "Flags": 0,
-      "Value": null,
-      "EnumValues": []
-    }, {
-      "$Class": "ShaderProperty",
       "Name": "HYP_VULKAN",
       "Flags": 0,
       "Value": 4202496,
@@ -27,6 +15,18 @@
     }, {
       "$Class": "ShaderProperty",
       "Name": "HYP_FEATURES_BINDLESS_TEXTURES",
+      "Flags": 0,
+      "Value": null,
+      "EnumValues": []
+    }, {
+      "$Class": "ShaderProperty",
+      "Name": "LIGHT_TYPE",
+      "Flags": 0,
+      "Value": "DIRECTIONAL",
+      "EnumValues": []
+    }, {
+      "$Class": "ShaderProperty",
+      "Name": "HBAO_ENABLED",
       "Flags": 0,
       "Value": null,
       "EnumValues": []
@@ -264,6 +264,6 @@
     "Value": 1775239461000
   },
   "Name": "DeferredDirect_3019911219508283078",
-  "FriendlyName": "DeferredDirect3019911219508283078",
+  "FriendlyName": "DeferredDirect_3019911219508283078",
   "OriginalFilepath": ""
 }

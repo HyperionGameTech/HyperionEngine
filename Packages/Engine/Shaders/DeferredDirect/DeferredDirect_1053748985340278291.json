@@ -2,12 +2,6 @@
   "$Class": "Shader",
   "PropertySet": [{
       "$Class": "ShaderProperty",
-      "Name": "LIGHT_TYPE",
-      "Flags": 0,
-      "Value": "POINT",
-      "EnumValues": []
-    }, {
-      "$Class": "ShaderProperty",
       "Name": "HYP_VULKAN",
       "Flags": 0,
       "Value": 4202496,
@@ -23,6 +17,12 @@
       "Name": "HYP_FEATURES_BINDLESS_TEXTURES",
       "Flags": 0,
       "Value": null,
+      "EnumValues": []
+    }, {
+      "$Class": "ShaderProperty",
+      "Name": "LIGHT_TYPE",
+      "Flags": 0,
+      "Value": "POINT",
       "EnumValues": []
     }],
   "RevisionNumber": 31459917,
