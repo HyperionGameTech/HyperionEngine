@@ -1233,8 +1233,8 @@ void VulkanGpuImage::CopyFrom(
             };
             copy.dstSubresource = {
                 .aspectMask = dstAspectFlagBits,
-                .mipLevel = uint32(srcSubResource.baseMipLevel + mipLevel),
-                .baseArrayLayer = uint32(srcSubResource.baseArrayLayer + layerIndex),
+                .mipLevel = uint32(dstSubResource.baseMipLevel + mipLevel),
+                .baseArrayLayer = uint32(dstSubResource.baseArrayLayer + layerIndex),
                 .layerCount = 1
             };
 

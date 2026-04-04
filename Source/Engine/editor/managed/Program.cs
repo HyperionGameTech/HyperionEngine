@@ -18,13 +18,9 @@ namespace Hyperion.Editor
 
         public static AppBuilder BuildAvaloniaApp()
             => AppBuilder.Configure<App>()
-                .UsePlatformDetect()
                 .With(new MacOSPlatformOptions { ShowInDock = true })
-                .With(new Win32PlatformOptions
-                {
-                    //OverlayPopups = true,
-                    CompositionMode = [Win32CompositionMode.DirectComposition]
-                })
+                .With(new Win32PlatformOptions { OverlayPopups = true })
+                .UsePlatformDetect()
                 .LogToTrace();
     }
 }

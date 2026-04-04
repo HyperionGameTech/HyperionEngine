@@ -30,6 +30,7 @@ end
 extern class NullOverlay : OverlayBase
 end
 extern class TextureOverlay : OverlayBase
+    GetPlacement_Impl() -> int
 end
 extern class TextOverlay : OverlayBase
 end

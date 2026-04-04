@@ -93,6 +93,8 @@ void VulkanGraphicsPipeline::Bind(VulkanCommandBuffer* commandBuffer, Vec2i view
 {
     Assert(m_handle != VK_NULL_HANDLE);
 
+    commandBuffer->m_boundGraphicsPipeline = this;
+
     VulkanCommandBuffer* vulkanCommandBuffer = commandBuffer;
 
     vulkanCommandBuffer->ResetBoundDescriptorSets();

@@ -148,8 +148,8 @@ public:
     EntityBatchAllocatorBase* batchAllocator;
     EnumFlags<RenderGroupFlags> renderGroupFlags;
 
-    ParallelRenderingState* AcquireNextParallelRenderingState(uint8 index);
-    void CommitParallelRenderingState(CommandRecorder& cr, uint8 index);
+    HYP_NODISCARD ParallelRenderingState* AcquireNextParallelRenderingState(uint8 index);
+    void Commit(CommandRecorder& cr, uint8 index);
 
     void PerformOcclusionCulling(Frame* frame, const RenderSetup& renderSetup, uint32 bucketBits);
     

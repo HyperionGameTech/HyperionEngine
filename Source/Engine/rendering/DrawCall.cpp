@@ -198,7 +198,7 @@ void DrawCallCollection::ResetDrawCalls()
     indexMap.Clear();
 }
 
-uint32 DrawCallCollection::PushEntityToBatch(
+HYP_NODISCARD uint32 DrawCallCollection::PushEntityToBatch(
     size_t drawCallIndex,
     Entity* entity,
     const InstanceData& instanceData,

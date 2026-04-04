@@ -30,7 +30,7 @@ namespace Hyperion
         public uint Value => _value;
         public bool IsValid => _value != 0;
 
-        public override bool Equals(object obj)
+        public override bool Equals(object? obj)
         {
             if (obj is ObjIdBase other)
             {

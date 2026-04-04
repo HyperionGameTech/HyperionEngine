@@ -305,6 +305,18 @@ void SetCurrentFramebuffer::InvokeStatic(CmdBase* cmd, CommandBuffer* commandBuf
 
     RenderInterface::State& state = g_renderInterface->state;
 
+    if (cmdCasted->m_framebuffer != state.boundFramebuffer)
+    {
+        // @NOTE: Vulkan validation layers complain that there is no
+        // graphics pipeline bound when drawing when we start a new render pass and
+        // expect the bound graphics pipeline to stay active.
+        // From what I'm seeing in the spec this should be fine, so requires more
+        // investigation to figure out if it is a quirk of the validation layers or
+        // an actual issue.
+        // For now, just rebind the graphics pipeline when we change render passes. (setting it to null will do this)
+        state.prevGraphicsPipeline = nullptr;
+    }
+
     if (cmdCasted->m_framebuffer == nullptr && state.boundFramebuffer != nullptr)
     {
         // end render pass if we are in one.

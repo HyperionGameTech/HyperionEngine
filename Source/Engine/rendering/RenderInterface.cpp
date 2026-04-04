@@ -1393,13 +1393,16 @@ void RenderInterface::CommitPipelineState(PSOType psoType, CommandBuffer* comman
 
 #define IS_BIT_SET(bits, bitIdx) ((bits) & (1u << bitIdx))
 
-    uint8 uniformIndexToSetIndex[RenderInterface::State::MaxShaderUniforms];
-    Memory::Fill(uniformIndexToSetIndex, ubyte(-1), sizeof(uniformIndexToSetIndex));
+    struct
+    {
+        uint8 setIndex : 4;
+        ShaderRegister reg : 4;
+    } uniformMappings[RenderInterface::State::MaxShaderUniforms] {};
 
-    ShaderRegister uniformIndexToRegister[RenderInterface::State::MaxShaderUniforms];
-    Memory::Zero(uniformIndexToRegister, sizeof(uniformIndexToRegister));
+    static_assert(0b1111 >= MaxDescriptorSetsBound);
+    static_assert(0b1111 >= uint8(ShaderRegister::MAX));
 
-    uint8 dsStates[MaxDescriptorSetsBound] = {};
+    uint8 dsStates[MaxDescriptorSetsBound] {};
     uint8 dsIndices = 0;
 
     // set up uniform index to sets mapping
@@ -1437,9 +1440,10 @@ void RenderInterface::CommitPipelineState(PSOType psoType, CommandBuffer* comman
         if (!decl)
         {
             // not found; skip
+            state.validUniforms &= ~(1u << uniformIndex);
             state.dirtyUniforms &= ~(1u << uniformIndex);
             state.dirtyBufferOffsets &= ~(1u << uniformIndex);
-
+            
             bits.Set(currBit, false);
 
             continue;
@@ -1478,8 +1482,7 @@ void RenderInterface::CommitPipelineState(PSOType psoType, CommandBuffer* comman
             dsStates[setIndex] |= DSS_BufferOffsetChanged;
         }
 
-        uniformIndexToSetIndex[uniformIndex] = setIndex;
-        uniformIndexToRegister[uniformIndex] = decl->slot;
+        uniformMappings[uniformIndex] = { setIndex, decl->slot };
 
         dsIndices |= uint8(1u << setIndex);
 
@@ -1489,7 +1492,7 @@ void RenderInterface::CommitPipelineState(PSOType psoType, CommandBuffer* comman
     // valid uniforms / buffer offset updates need to be rebound if the set is dirty
     FOR_EACH_BIT(state.validUniforms | state.dirtyBufferOffsets, uniformIndex)
     {
-        const uint8 setIndex = uniformIndexToSetIndex[uniformIndex];
+        const uint8 setIndex = uniformMappings[uniformIndex].setIndex;
 
         if (dsStates[setIndex] & DSS_Dirty)
         {
@@ -1505,7 +1508,7 @@ void RenderInterface::CommitPipelineState(PSOType psoType, CommandBuffer* comman
         if (state.shaderUniforms[uniformIndex].type != ShaderUniform::UT_Buffer)
             continue;
 
-        const uint8 setIndex = uniformIndexToSetIndex[uniformIndex];
+        const uint8 setIndex = uniformMappings[uniformIndex].setIndex;
 
         if ((dsStates[setIndex] & (DSS_BufferOffsetChanged | DSS_Dirty)) == DSS_BufferOffsetChanged)
         {
@@ -1537,7 +1540,7 @@ void RenderInterface::CommitPipelineState(PSOType psoType, CommandBuffer* comman
 
         GpuImage* image = imageView->GetImage();
 
-        const ShaderRegister reg = uniformIndexToRegister[uniformIndex];
+        const ShaderRegister reg = uniformMappings[uniformIndex].reg;
         AssertDebug(reg == ShaderRegister::SRV || reg == ShaderRegister::UAV);
 
         const ResourceState desiredResourceState = (reg == ShaderRegister::SRV) ? RS_SHADER_RESOURCE : RS_UNORDERED_ACCESS;
@@ -1561,7 +1564,7 @@ void RenderInterface::CommitPipelineState(PSOType psoType, CommandBuffer* comman
                     state.boundFramebuffer = nullptr;
                 }
 
-                image->InsertBarrier(commandBuffer, desiredResourceState, ShaderModuleType::Pixel);
+                image->InsertBarrier(commandBuffer, desiredResourceState, ShaderModuleType::None);
             }
             else
             {
@@ -1602,7 +1605,7 @@ void RenderInterface::CommitPipelineState(PSOType psoType, CommandBuffer* comman
 
                 if (needsTransition)
                 {
-                    image->InsertBarrier(commandBuffer, subResource, desiredResourceState, ShaderModuleType::Pixel);
+                    image->InsertBarrier(commandBuffer, subResource, desiredResourceState, ShaderModuleType::None);
                 }
             }
         }
@@ -1618,9 +1621,6 @@ void RenderInterface::CommitPipelineState(PSOType psoType, CommandBuffer* comman
             state.framebuffer->BeginCapture(commandBuffer);
 
             state.boundFramebuffer = state.framebuffer;
-
-            //AssertDebug(executeBindCmdFunction != nullptr,
-            //    "Pipeline bind command should have been set for graphics pipeline if we are to begin a render pass");
         }
     }
 
@@ -1631,6 +1631,8 @@ void RenderInterface::CommitPipelineState(PSOType psoType, CommandBuffer* comman
             reinterpret_cast<CmdBase*>(&deferredBindCommandMemory),
             commandBuffer);
     }
+    
+    AssertDebug(state.prevGraphicsPipeline != nullptr, "Pipeline not bound");
 
     if (state.dirtyUniforms)
     {
@@ -1643,8 +1645,7 @@ void RenderInterface::CommitPipelineState(PSOType psoType, CommandBuffer* comman
             const uint8 uniformIndex = (uint8)*currBit;
             const ShaderUniform& uniform = state.shaderUniforms[uniformIndex];
 
-            uint8 setIndex = uniformIndexToSetIndex[uniformIndex];
-            AssertDebug(setIndex != uint8(-1));
+            uint8 setIndex = uniformMappings[uniformIndex].setIndex;
 
             DescriptorSet* ds = setsToBind[setIndex];
             AssertDebug(ds != nullptr);
@@ -1689,8 +1690,7 @@ void RenderInterface::CommitPipelineState(PSOType psoType, CommandBuffer* comman
             const uint8 uniformIndex = (uint8)*currBit;
             const ShaderUniform& uniform = state.shaderUniforms[uniformIndex];
 
-            uint8 setIndex = uniformIndexToSetIndex[uniformIndex];
-            AssertDebug(setIndex != uint8(-1));
+            uint8 setIndex = uniformMappings[uniformIndex].setIndex;
 
             const uint8 offsetIndex = bufferOffsetCounts[setIndex]++;
             AssertDebug(offsetIndex < MaxDynamicOffsetsPerSet);

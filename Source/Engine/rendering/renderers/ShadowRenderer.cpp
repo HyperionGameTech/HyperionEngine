@@ -379,15 +379,7 @@ void ShadowRendererBase::RenderFrame(Frame* frame, const RenderSetup& renderSetu
                     srcImageSubResource,
                     dstImageSubResource);
 
-                if (passes[1] != nullptr)
-                {
-                    // get it ready for rendering to!
-                    frame->cr << InsertBarrier(
-                        depthTarget->GetGpuImage(),
-                        RS_RENDER_TARGET,
-                        dstImageSubResource);
-                }
-                else
+                if (!passes[1])
                 {
                     frame->cr << InsertBarrier(
                         depthTarget->GetGpuImage(),
@@ -453,9 +445,14 @@ void ShadowRendererBase::RenderFrame(Frame* frame, const RenderSetup& renderSetu
             pd->prevCameraMatrices[cascadeIndex] = viewProjMat;
 
             //HYP_LOG(Rendering, Verbose, "Rendering shadows for shadow view {} at frame {}", shadowView->Id(), GetFrameCounter());
+            
+            frame->cr << InsertBarrier(
+                resultImage,
+                RS_RENDER_TARGET,
+                target->GetImageView()->GetImageSubResource());
 
             RenderCollector& renderCollector = GetRenderCollector(shadowView);
-           // renderCollector.renderGroupFlags &= ~(RenderGroupFlags::INDIRECT_RENDERING | RenderGroupFlags::PARALLEL_RENDERING | RenderGroupFlags::OCCLUSION_CULLING);
+            renderCollector.renderGroupFlags &= ~RenderGroupFlags::PARALLEL_RENDERING;
             renderCollector.ExecuteDrawCalls(frame, rs, BucketMask);
 
             if (shouldCacheAfterRender)

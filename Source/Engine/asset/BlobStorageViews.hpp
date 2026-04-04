@@ -67,10 +67,7 @@ public:
         
         const FilePath filePath = m_baseDir / (nameStr + ".bin");
 
-        MemoryMappedFile* mappedFile = PoolNew<MemoryMappedFile>(
-            *g_assetPool,
-            filePath,
-            m_readOnly ? MemoryMappedFile::Mode::READ_ONLY : MemoryMappedFile::Mode::READ_WRITE);
+        MemoryMappedFile* mappedFile = HYP_POOL_NEW(g_assetPool, MemoryMappedFile, filePath, m_readOnly ? MemoryMappedFile::Mode::READ_ONLY : MemoryMappedFile::Mode::READ_WRITE);
 
         Assert(mappedFile != nullptr);
 

@@ -76,6 +76,9 @@ class VulkanCommandBuffer final : public CommandBufferBase
 public:
     friend class VulkanFramebuffer;
     friend class VulkanDescriptorSet;
+    friend class VulkanGraphicsPipeline;
+    friend class VulkanComputePipeline;
+    friend class VulkanRayTracingPipeline;
 
     explicit VulkanCommandBuffer(VkCommandBufferLevel type);
     ~VulkanCommandBuffer() override;
@@ -97,7 +100,7 @@ public:
 
     HYP_FORCE_INLINE bool IsInRenderPass() const
     {
-        return m_isInRenderPass;
+        return m_renderPass != nullptr;
     }
 
     bool IsCreated() const override;
@@ -153,7 +156,11 @@ private:
 
     Array<VulkanCachedDescriptorSetBinding> m_boundDescriptorSets;
 
-    bool m_isInRenderPass : 1;
+public:
+    VulkanRenderPass* m_renderPass;
+    VulkanGraphicsPipeline* m_boundGraphicsPipeline;
+    VulkanComputePipeline* m_boundComputePipeline;
+    VulkanRayTracingPipeline* m_boundRayTracingPipeline;
 };
 
 } // namespace Hyperion

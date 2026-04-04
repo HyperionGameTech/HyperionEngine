@@ -630,7 +630,7 @@ void VulkanDevice::InitQueueFamilies(VkSurfaceKHR surface)
         if (insertResult.second)
         {
             // is unique; set member
-            *ppDeviceQueue = PoolNew<VulkanDeviceQueue>(*g_vulkanPool, std::move(deviceQueue));
+            *ppDeviceQueue = HYP_POOL_NEW(g_vulkanPool, VulkanDeviceQueue, std::move(deviceQueue));
             AssertDebug(*ppDeviceQueue != nullptr);
 
             deviceQueue = **ppDeviceQueue; // swap out for the pooled one

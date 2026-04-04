@@ -639,7 +639,7 @@ RendererResult VulkanRenderInterface::Initialize()
     const bool enableDebugLayers = false;
 #endif
 
-    m_instance = PoolNew<VulkanInstance>(*g_vulkanPool);
+    m_instance = HYP_POOL_NEW(g_vulkanPool, VulkanInstance);
     CheckResultOrReturn(m_instance->Initialize(enableDebugLayers));
 
     VulkanDeviceQueue* deviceQueue = GetDevice()->GetPresentQueue();

@@ -3,6 +3,7 @@ using System.Runtime.InteropServices;
 using System.Reflection;
 using System.Collections.Generic;
 using System.Runtime.CompilerServices;
+using System.Diagnostics;
 
 namespace Hyperion
 {
@@ -86,7 +87,7 @@ namespace Hyperion
 
             if (type == typeof(bool))
             {
-                Marshal.WriteByte(outPtr, (byte)((bool)obj ? 1 : 0));
+                Marshal.WriteByte(outPtr, (byte)(obj != null ? 1 : 0));
 
                 return;
             }
@@ -96,6 +97,7 @@ namespace Hyperion
             // or else this will cause memory corruption
             if (type.IsValueType)
             {
+                Debug.Assert(obj != null);
                 Marshal.StructureToPtr(obj, outPtr, false);
 
                 return;
@@ -103,6 +105,7 @@ namespace Hyperion
 
             if (type == typeof(IntPtr))
             {
+                Debug.Assert(obj != null);
                 Marshal.WriteIntPtr(outPtr, (IntPtr)obj);
 
                 return;

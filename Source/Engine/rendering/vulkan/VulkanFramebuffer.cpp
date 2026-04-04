@@ -318,7 +318,7 @@ void VulkanFramebuffer::BeginCapture(VulkanCommandBuffer* commandBuffer)
 
     m_renderPass.Begin(commandBuffer, this);
     
-    commandBuffer->m_isInRenderPass = true;
+    commandBuffer->m_renderPass = &m_renderPass;
 
     m_isRecording = true;
 }
@@ -330,7 +330,7 @@ void VulkanFramebuffer::EndCapture(VulkanCommandBuffer* commandBuffer)
 
     m_renderPass.End(commandBuffer);
 
-    commandBuffer->m_isInRenderPass = false;
+    commandBuffer->m_renderPass = nullptr;
     m_isRecording = false;
 }
 

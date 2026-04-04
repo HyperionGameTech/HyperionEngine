@@ -1494,7 +1494,7 @@ bool World::AddSystemToExecutionGroup(SystemBase* system)
     if (!wasAdded)
     {
         SystemExecutionGroup*& systemExecutionGroup = m_systemExecutionGroups.EmplaceBack();
-        systemExecutionGroup = PoolNew<SystemExecutionGroup>(*g_scenePool, system->RequiresSimThread(), system->AllowUpdate());
+        systemExecutionGroup = HYP_POOL_NEW(g_scenePool, SystemExecutionGroup, system->RequiresSimThread(), system->AllowUpdate());
 
         if (systemExecutionGroup->AddSystem(system))
         {

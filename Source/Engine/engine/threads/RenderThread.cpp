@@ -183,7 +183,7 @@ void RenderThread::Update()
 
         if (!g_renderInterface->finalPass)
         {
-            g_renderInterface->finalPass = PoolNew<FinalPass>(*g_renderPool);
+            g_renderInterface->finalPass = HYP_POOL_NEW(g_renderPool, FinalPass);
             g_renderInterface->finalPass->Create();
         }
 

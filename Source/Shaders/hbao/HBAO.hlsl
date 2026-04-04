@@ -83,7 +83,7 @@ DECLARE_BUFFER(HBAO, UniformBuffer) cbuffer UniformBuffer
 #define HYP_HBAO_NUM_CIRCLES 4
 #define HYP_HBAO_NUM_SLICES 4
 
-#define ANGLE_BIAS 0.0015
+#define ANGLE_BIAS 0.01
 
 float GetOffsets(float2 uv)
 {
@@ -132,7 +132,7 @@ float Falloff(float dist_sqr)
     return dist_sqr * (-1.0 / HYP_FMATH_SQR(radius)) + 1.0;
 }
 
-float2 CalculateImpact(float2 theta_0, float2 theta_1, float nx, float ny)
+float2 CalculateImpact(float2 theta_0, float2 theta_1, float2 nx, float ny)
 {
     float2 sin_theta_0 = sin(theta_0);
     float2 sin_theta_1 = sin(theta_1);
@@ -150,8 +150,6 @@ void TraceAO_New(float2 uv, out float occlusion)
     const float fov_rad = HYP_FMATH_DEG2RAD(camera.fov);
     const float tan_half_fov = tan(fov_rad * 0.5);
     const float inv_tan_half_fov = 1.0 / tan_half_fov;
-    const float2 focal_len = float2(inv_tan_half_fov * (float(camera.dimensions.y) / float(camera.dimensions.x)), inv_tan_half_fov);
-
     uint2 pixel_coord = uint2(clamp(int2(uv * float2(dimension - 1)), int2(0, 0), int2(dimension) - int2(1, 1)));
 
     const float projected_scale = float(dimension.y) / (tan_half_fov * 2.0);
@@ -182,10 +180,10 @@ void TraceAO_New(float2 uv, out float occlusion)
         float3 ray = normalize(float3(ss_ray.xy * V.z, -dot(V.xy, ss_ray.xy)));
         const float nx = dot(ray, N);
         const float ny = -dot(N, V);
-        const float ctg_th0 = -nx / ny;
 
-        float2 cos_max_theta = float2(ctg_th0 * rsqrt(ctg_th0 * ctg_th0 + 1.0), ctg_th0 * rsqrt(ctg_th0 * ctg_th0 + 1.0));
-        float2 max_theta = float2(acos(cos_max_theta.x), acos(cos_max_theta.y));
+        const float proj_len = max(length(float2(nx, ny)), HYP_FMATH_EPSILON);
+        float2 cos_max_theta = float2(-nx, nx) / proj_len;
+        float2 max_theta = acos(clamp(cos_max_theta, -1.0, 1.0));
 
         const float start_angle_delta = 0.0;
         max_theta = max(float2(0.0, 0.0), max_theta - start_angle_delta);
@@ -201,7 +199,7 @@ void TraceAO_New(float2 uv, out float occlusion)
 
             const float4 new_uv_ndc = new_uv * 2.0 - 1.0;
             const float2 max_dimension = min(float2(1.0, 1.0), max(abs(new_uv_ndc.xz), abs(new_uv_ndc.yw)));
-            const float2 fade = 1.0 - saturate(max(float2(0.0, 0.0), max_dimension - 0.95) / (1.0 - 0.98));
+            const float2 fade = 1.0 - saturate(max(float2(0.0, 0.0), max_dimension - 0.9) / 0.1); 
 
             bool valid_xy = all(new_uv.xy < float2(1.0, 1.0)) && all(new_uv.xy >= float2(0.0, 0.0));
             bool valid_zw = all(new_uv.zw < float2(1.0, 1.0)) && all(new_uv.zw >= float2(0.0, 0.0));
@@ -219,11 +217,12 @@ void TraceAO_New(float2 uv, out float occlusion)
                 float3 dt = GetPosition(new_uv.zw, depth_1) - P;
 
                 const float2 len = float2(length(ds), length(dt));
+                const float2 safe_len = max(len, float2(HYP_FMATH_EPSILON, HYP_FMATH_EPSILON));
                 const float2 dist = len / radius;
                 const float2 DdotD = len * len;
                 
-                ds /= len.x;
-                dt /= len.y;
+                ds /= safe_len.x;
+                dt /= safe_len.y;
 
                 const float2 NdotD = float2(dot(ds, N), dot(dt, N));
 
@@ -234,7 +233,7 @@ void TraceAO_New(float2 uv, out float occlusion)
 
                 const float2 theta = acos(DdotV);
 
-                const float2 impact = CalculateImpact(min(max_theta, theta + float2(HYP_FMATH_PI / 9.0, HYP_FMATH_PI / 9.0)), theta, nx, ny);
+                const float2 impact = CalculateImpact(min(max_theta, theta + float2(HYP_FMATH_PI / 9.0, HYP_FMATH_PI / 9.0)), theta, float2(nx, -nx), ny);
                 const float2 total_impact = condition * falloffs * impact * in_bounds * fade;
 
                 slice_ao += total_impact;
@@ -247,7 +246,7 @@ void TraceAO_New(float2 uv, out float occlusion)
         occlusion += slice_ao.x + slice_ao.y;
     }
 
-    occlusion = 1.0 - saturate(pow(occlusion / float(HYP_HBAO_NUM_CIRCLES * HYP_HBAO_NUM_SLICES), 1.0 / power));
+    occlusion = 1.0 - saturate(pow(occlusion / float(2 * HYP_HBAO_NUM_CIRCLES), 1.0 / power));
     occlusion *= 1.0 / (1.0 - ANGLE_BIAS);
 }
 

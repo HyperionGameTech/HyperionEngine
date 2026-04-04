@@ -25,7 +25,10 @@ VulkanCommandBuffer::VulkanCommandBuffer(VkCommandBufferLevel type)
     : m_type(type),
       m_handle(VK_NULL_HANDLE),
       m_commandPool(VK_NULL_HANDLE),
-      m_isInRenderPass(false)
+      m_renderPass(nullptr),
+      m_boundGraphicsPipeline(nullptr),
+      m_boundComputePipeline(nullptr),
+      m_boundRayTracingPipeline(nullptr)
 {
 }
 
@@ -83,6 +86,10 @@ RendererResult VulkanCommandBuffer::Create()
 RendererResult VulkanCommandBuffer::Begin(const VulkanRenderPass* renderPass)
 {
     m_boundDescriptorSets.Clear();
+    m_renderPass = nullptr;
+    m_boundGraphicsPipeline = nullptr;
+    m_boundComputePipeline = nullptr;
+    m_boundRayTracingPipeline = nullptr;
 
     VkCommandBufferInheritanceInfo inheritanceInfo { VK_STRUCTURE_TYPE_COMMAND_BUFFER_INHERITANCE_INFO };
     inheritanceInfo.subpass = 0;
@@ -117,8 +124,6 @@ RendererResult VulkanCommandBuffer::Begin(const VulkanRenderPass* renderPass)
 
 RendererResult VulkanCommandBuffer::End()
 {
-    m_boundDescriptorSets.Clear();
-
     VULKAN_CHECK_MSG(
         vkEndCommandBuffer(m_handle),
         "Failed to end command buffer");
@@ -129,6 +134,10 @@ RendererResult VulkanCommandBuffer::End()
 RendererResult VulkanCommandBuffer::Reset()
 {
     m_boundDescriptorSets.Clear();
+    m_renderPass = nullptr;
+    m_boundGraphicsPipeline = nullptr;
+    m_boundComputePipeline = nullptr;
+    m_boundRayTracingPipeline = nullptr;
 
     VULKAN_CHECK_MSG(
         vkResetCommandBuffer(m_handle, 0),
@@ -144,8 +153,6 @@ RendererResult VulkanCommandBuffer::SubmitPrimary(
     Span<VulkanSemaphore*> signalSemaphores)
 {
     AssertOnThread(g_renderThread);
-
-    m_boundDescriptorSets.Clear();
 
     VkSemaphore* signalSemaphoresVk = signalSemaphores.Size() > 0 ? (VkSemaphore*)StackAlloc(sizeof(VkSemaphore) * signalSemaphores.Size()) : nullptr;
 
@@ -205,8 +212,6 @@ RendererResult VulkanCommandBuffer::SubmitPrimary(
 
 RendererResult VulkanCommandBuffer::SubmitSecondary(VulkanCommandBuffer* primary)
 {
-    m_boundDescriptorSets.Clear();
-
     vkCmdExecuteCommands(
         primary->GetVulkanHandle(),
         1,
@@ -219,22 +224,22 @@ void VulkanCommandBuffer::BindVertexBuffer(const VulkanGpuBuffer* buffer)
 {
     static constexpr VkDeviceSize BindingOffsets[] = { 0 };
 
-    Assert(buffer != nullptr);
-    Assert(buffer->GetBufferType() == GpuBufferType::MESH_VERTEX_BUFFER, "Not a vertex buffer! Got buffer type: %u", uint32(buffer->GetBufferType()));
+    AssertDebug(buffer != nullptr);
+    AssertDebug(buffer->GetBufferType() == GpuBufferType::MESH_VERTEX_BUFFER, "Not a vertex buffer! Got buffer type: %u", uint32(buffer->GetBufferType()));
 
-    const VkBuffer vertexBuffers[] = { static_cast<const VulkanGpuBuffer*>(buffer)->GetVulkanHandle() };
+    const VkBuffer vertexBuffers[] = { buffer->GetVulkanHandle() };
     
     vkCmdBindVertexBuffers(m_handle, 0, 1, vertexBuffers, BindingOffsets);
 }
 
 void VulkanCommandBuffer::BindIndexBuffer(const VulkanGpuBuffer* buffer, GpuElemType elemType)
 {
-    Assert(buffer != nullptr);
-    Assert(buffer->GetBufferType() == GpuBufferType::MESH_INDEX_BUFFER, "Not an index buffer! Got buffer type: %u", uint32(buffer->GetBufferType()));
+    AssertDebug(buffer != nullptr);
+    AssertDebug(buffer->GetBufferType() == GpuBufferType::MESH_INDEX_BUFFER, "Not an index buffer! Got buffer type: %u", uint32(buffer->GetBufferType()));
 
     vkCmdBindIndexBuffer(
         m_handle,
-        static_cast<const VulkanGpuBuffer*>(buffer)->GetVulkanHandle(),
+        buffer->GetVulkanHandle(),
         0,
         ToVkIndexType(elemType));
 }
@@ -244,7 +249,7 @@ void VulkanCommandBuffer::DrawIndexed(
     uint32 numInstances,
     uint32 instanceIndex) const
 {
-    AssertDebug(m_isInRenderPass && g_renderInterface->state.prevGraphicsPipeline != nullptr);
+    AssertDebug(m_renderPass && m_boundGraphicsPipeline);
 
     vkCmdDrawIndexed(
         m_handle,
@@ -259,7 +264,7 @@ void VulkanCommandBuffer::DrawIndexedIndirect(
     const VulkanGpuBuffer* buffer,
     uint32 bufferOffset) const
 {
-    AssertDebug(m_isInRenderPass && g_renderInterface->state.prevGraphicsPipeline != nullptr);
+    AssertDebug(m_renderPass && m_boundGraphicsPipeline);
 
     vkCmdDrawIndexedIndirect(
         m_handle,

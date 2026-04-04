@@ -216,11 +216,9 @@ void UIRenderCollector::ExecuteDrawCalls(Frame* frame, const RenderSetup& render
         }
     }
 
-    // Wait for all parallel rendering tasks to finish
     FOR_EACH_BIT(bucketBits, bit)
     {
-        // Wait for all parallel rendering tasks to finish
-        CommitParallelRenderingState(frame->cr, uint8(bit));
+        Commit(frame->cr, uint8(bit));
     }
     
     if (parallelRenderingStatesToNullify.Any())

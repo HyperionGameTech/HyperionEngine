@@ -93,7 +93,7 @@ struct ParallelRenderingState_Shared
 
         for (uint32 i = 0; i < MaxBatches; i++)
         {
-            threadLocalRecorders[i] = PoolNew<LocalQueue>(*g_renderPool);
+            threadLocalRecorders[i] = HYP_POOL_NEW(g_renderPool, LocalQueue);
         }
     }
 
@@ -357,7 +357,7 @@ static RenderGroup CreateRenderGroup(
     {
         AssertDebug(drawCallCollection.indirectRenderer == nullptr, "Indirect renderer already exists on mapping");
 
-        drawCallCollection.indirectRenderer = PoolNew<IndirectRenderer>(*g_renderPool);
+        drawCallCollection.indirectRenderer = HYP_POOL_NEW(g_renderPool, IndirectRenderer);
         drawCallCollection.indirectRenderer->Create(renderCollector->batchAllocator);
     }
 
@@ -1233,7 +1233,7 @@ void RenderCollector::Clear(bool freeMemory)
     }
 }
 
-ParallelRenderingState* RenderCollector::AcquireNextParallelRenderingState(uint8 index)
+HYP_NODISCARD ParallelRenderingState* RenderCollector::AcquireNextParallelRenderingState(uint8 index)
 {
     HYP_SCOPE;
     AssertOnThread(g_renderThread);
@@ -1295,7 +1295,7 @@ ParallelRenderingState* RenderCollector::AcquireNextParallelRenderingState(uint8
     return curr;
 }
 
-void RenderCollector::CommitParallelRenderingState(CommandRecorder& cr, uint8 index)
+void RenderCollector::Commit(CommandRecorder& cr, uint8 index)
 {
     HYP_SCOPE;
     
@@ -1319,6 +1319,8 @@ void RenderCollector::CommitParallelRenderingState(CommandRecorder& cr, uint8 in
         cr << SetDepthBias(0, 0.0f);
         cr << SetDepthClamp(false);
         cr << SetStencilTest(false);
+
+        return;
     }
 
     while (state)
@@ -1668,8 +1670,7 @@ void RenderCollector::ExecuteDrawCalls(
     {
         FOR_EACH_BIT(bucketBits, bit)
         {
-            // Wait for all parallel rendering tasks to finish
-            CommitParallelRenderingState(frame->cr, uint8(bit));
+            Commit(frame->cr, uint8(bit));
         }
 
         if (parallelRenderingStatesToNullify.Any())

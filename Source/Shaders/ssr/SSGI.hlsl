@@ -92,7 +92,7 @@ DECLARE_SRV(SSGI, EnvProbesTexture) Texture2DArray envProbesTexture;
 #define ENVIRONMENT_INTENSITY 1.0
 
 // amount to 'brighten up' the SSGI result
-#define SSGI_INTENSITY 4.0
+#define SSGI_INTENSITY 1.0
 
 #define USE_NEW_SSGI
 

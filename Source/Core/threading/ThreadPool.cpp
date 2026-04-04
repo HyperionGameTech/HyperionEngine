@@ -464,8 +464,6 @@ void BackgroundWorkerPool::CleanupIdleThreads()
 
         if (thread != nullptr)
         {
-            AssertDebug(!thread->GetScheduler().NumEnqueued());
-
             if (thread->CanJoin())
             {
                 thread->Join();
