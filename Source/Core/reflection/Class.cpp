@@ -476,7 +476,7 @@ Property* MakeProperty(const Field* field, const Method* getter, const Method* s
     return pResult;
 }
 
-using FormattedStringMap = HashMap<TypeId, String, DynamicNodeAllocator>;
+using FormattedStringMap = HashMap<TypeId, String, DynamicAllocator, HashTablePolicy::NotPooled>;
 thread_local FormattedStringMap* s_formattedStringMap;
 
 static void InitFormattedStringMap(void* mem)

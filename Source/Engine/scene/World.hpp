@@ -100,7 +100,7 @@ class HYP_API World final : public ObjectBase
     friend class EngineDriver;
 
 public:
-    using SubsystemsMap = HashMap<TypeId, Handle<Subsystem>, DynamicNodeAllocator>;
+    using SubsystemsMap = HashMap<TypeId, Handle<Subsystem>, SceneAllocator, HashTablePolicy::NotPooled>;
 
     World();
     explicit World(Name name, EnumFlags<WorldFlags> worldFlags = WorldFlags::DEFAULT);

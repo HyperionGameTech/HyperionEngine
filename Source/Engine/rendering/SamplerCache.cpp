@@ -19,7 +19,7 @@ namespace Hyperion {
 class SamplerCacheImpl
 {
 public:
-    HashMap<SamplerDesc, SamplerRef, NodeAllocator<RenderAllocator>> cache;
+    HashMap<SamplerDesc, SamplerRef, RenderAllocator> cache;
     SharedMutex mutex;
 };
 

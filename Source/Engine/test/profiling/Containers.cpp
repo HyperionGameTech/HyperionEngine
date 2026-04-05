@@ -316,7 +316,7 @@ void ProfileHashMapInsertion()
 {
     const Dataset& data = ActiveDataset();
 
-    HashMap<uint32, uint32, PooledNodeAllocator<TestAllocator>> map;
+    HashMap<uint32, uint32, TestAllocator> map;
     map.Reserve(data.elementCount);
 
     for (size_t i = 0; i < data.elementCount; ++i)
@@ -331,7 +331,7 @@ void ProfileHashMapDynamicInsertion()
 {
     const Dataset& data = ActiveDataset();
 
-    HashMap<uint32, uint32, NodeAllocator<TestAllocator>> map;
+    HashMap<uint32, uint32, TestAllocator> map;
     map.Reserve(data.elementCount);
 
     for (size_t i = 0; i < data.elementCount; ++i)
@@ -346,7 +346,7 @@ void ProfileHashMapIteration()
 {
     const Dataset& data = ActiveDataset();
 
-    HashMap<uint32, uint32, PooledNodeAllocator<TestAllocator>> map;
+    HashMap<uint32, uint32, TestAllocator> map;
     map.Reserve(data.elementCount);
 
     for (size_t i = 0; i < data.elementCount; ++i)
@@ -367,7 +367,7 @@ void ProfileHashMapDynamicIteration()
 {
     const Dataset& data = ActiveDataset();
 
-    HashMap<uint32, uint32, NodeAllocator<TestAllocator>> map;
+    HashMap<uint32, uint32, TestAllocator> map;
     map.Reserve(data.elementCount);
 
     for (size_t i = 0; i < data.elementCount; ++i)
@@ -388,7 +388,7 @@ void ProfileHashMapFind()
 {
     const Dataset& data = ActiveDataset();
 
-    HashMap<uint32, uint32, PooledNodeAllocator<TestAllocator>> map;
+    HashMap<uint32, uint32, TestAllocator> map;
     map.Reserve(data.elementCount);
 
     for (size_t i = 0; i < data.elementCount; ++i)
@@ -412,7 +412,7 @@ void ProfileHashMapDynamicFind()
 {
     const Dataset& data = ActiveDataset();
 
-    HashMap<uint32, uint32, NodeAllocator<TestAllocator>> map;
+    HashMap<uint32, uint32, TestAllocator> map;
     map.Reserve(data.elementCount);
 
     for (size_t i = 0; i < data.elementCount; ++i)
@@ -436,7 +436,7 @@ void ProfileHashMapRemoval()
 {
     const Dataset& data = ActiveDataset();
 
-    HashMap<uint32, uint32, PooledNodeAllocator<TestAllocator>> map;
+    HashMap<uint32, uint32, TestAllocator> map;
     map.Reserve(data.elementCount);
 
     for (size_t i = 0; i < data.elementCount; ++i)
@@ -456,7 +456,7 @@ void ProfileHashMapDynamicRemoval()
 {
     const Dataset& data = ActiveDataset();
 
-    HashMap<uint32, uint32, NodeAllocator<TestAllocator>> map;
+    HashMap<uint32, uint32, TestAllocator> map;
     map.Reserve(data.elementCount);
 
     for (size_t i = 0; i < data.elementCount; ++i)
@@ -556,7 +556,7 @@ void ProfileHashSetInsertion()
 {
     const Dataset& data = ActiveDataset();
 
-    HashSet<uint32, PooledNodeAllocator<TestAllocator>> set;
+    HashSet<uint32, TestAllocator> set;
     set.Reserve(data.elementCount);
 
     for (size_t i = 0; i < data.elementCount; ++i)
@@ -571,7 +571,7 @@ void ProfileHashSetDynamicInsertion()
 {
     const Dataset& data = ActiveDataset();
 
-    HashSet<uint32, NodeAllocator<TestAllocator>> set;
+    HashSet<uint32, TestAllocator> set;
     set.Reserve(data.elementCount);
 
     for (size_t i = 0; i < data.elementCount; ++i)
@@ -586,7 +586,7 @@ void ProfileHashSetIteration()
 {
     const Dataset& data = ActiveDataset();
 
-    HashSet<uint32, PooledNodeAllocator<TestAllocator>> set;
+    HashSet<uint32, TestAllocator> set;
     set.Reserve(data.elementCount);
 
     for (size_t i = 0; i < data.elementCount; ++i)
@@ -607,7 +607,7 @@ void ProfileHashSetDynamicIteration()
 {
     const Dataset& data = ActiveDataset();
 
-    HashSet<uint32, NodeAllocator<TestAllocator>> set;
+    HashSet<uint32, TestAllocator> set;
     set.Reserve(data.elementCount);
 
     for (size_t i = 0; i < data.elementCount; ++i)
@@ -628,7 +628,7 @@ void ProfileHashSetFind()
 {
     const Dataset& data = ActiveDataset();
 
-    HashSet<uint32, PooledNodeAllocator<TestAllocator>> set;
+    HashSet<uint32, TestAllocator> set;
     set.Reserve(data.elementCount);
 
     for (size_t i = 0; i < data.elementCount; ++i)
@@ -652,7 +652,7 @@ void ProfileHashSetDynamicFind()
 {
     const Dataset& data = ActiveDataset();
 
-    HashSet<uint32, NodeAllocator<TestAllocator>> set;
+    HashSet<uint32, TestAllocator> set;
     set.Reserve(data.elementCount);
 
     for (size_t i = 0; i < data.elementCount; ++i)
@@ -676,7 +676,7 @@ void ProfileHashSetRemoval()
 {
     const Dataset& data = ActiveDataset();
 
-    HashSet<uint32, PooledNodeAllocator<TestAllocator>> set;
+    HashSet<uint32, TestAllocator> set;
     set.Reserve(data.elementCount);
 
     for (size_t i = 0; i < data.elementCount; ++i)
@@ -696,7 +696,7 @@ void ProfileHashSetDynamicRemoval()
 {
     const Dataset& data = ActiveDataset();
 
-    HashSet<uint32, NodeAllocator<TestAllocator>> set;
+    HashSet<uint32, TestAllocator> set;
     set.Reserve(data.elementCount);
 
     for (size_t i = 0; i < data.elementCount; ++i)

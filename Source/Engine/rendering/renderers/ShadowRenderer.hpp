@@ -96,7 +96,7 @@ private:
     };
 
     /// Cached (per-light/view combination) shadow map rendering data that is cleaned up when no longer used
-    HashMap<CacheKey, CachedShadowMapData, NodeAllocator<RenderAllocator>> m_cachedShadowMapData;
+    HashMap<CacheKey, CachedShadowMapData, RenderAllocator> m_cachedShadowMapData;
 };
 
 class PointShadowRenderer : public ShadowRendererBase

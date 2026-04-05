@@ -77,7 +77,7 @@ struct SceneOctreePayload
         }
     };
 
-    using EntrySet = IntrusiveMap<Entry, &Entry::GetId, DynamicNodeAllocator>;
+    using EntrySet = IntrusiveMap<Entry, &Entry::GetId, DynamicAllocator, HashTablePolicy::NotPooled>;
 
     EntrySet entries;
 

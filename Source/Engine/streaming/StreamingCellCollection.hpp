@@ -72,10 +72,10 @@ struct StreamingCellRuntimeInfo
 };
 
 template <class AllocatorType>
-class StreamingCellCollection final : IntrusiveMap<StreamingCellRuntimeInfo, &StreamingCellRuntimeInfo::coord, NodeAllocator<AllocatorType>>
+class StreamingCellCollection final : IntrusiveMap<StreamingCellRuntimeInfo, &StreamingCellRuntimeInfo::coord, AllocatorType>
 {
 public:
-    using Base = IntrusiveMap<StreamingCellRuntimeInfo, &StreamingCellRuntimeInfo::coord, NodeAllocator<AllocatorType>>;
+    using Base = IntrusiveMap<StreamingCellRuntimeInfo, &StreamingCellRuntimeInfo::coord, AllocatorType>;
 
     using Iterator = typename Base::Iterator;
     using ConstIterator = typename Base::ConstIterator;

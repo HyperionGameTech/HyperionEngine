@@ -255,7 +255,7 @@ public:
     ShadowMapAllocator allocator;
 
     /// Cached (per-light/view combination) shadow map rendering data that is cleaned up when no longer used
-    HashMap<ShadowMapCacheKey, CachedShadowMapData, NodeAllocator<RenderAllocator>> cache;
+    HashMap<ShadowMapCacheKey, CachedShadowMapData, RenderAllocator> cache;
 
 #if SHADOW_MAP_CACHE_MULTITHREADED
     SharedMutex mutex;

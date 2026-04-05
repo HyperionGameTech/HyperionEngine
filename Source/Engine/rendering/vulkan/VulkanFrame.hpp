@@ -69,7 +69,8 @@ public:
 private:
     using VulkanRenderPassesSet = HashSet<
         VulkanRenderPass*,
-        NodeAllocator<VulkanTempAllocator>>;
+        VulkanAllocator,
+        HashTablePolicy::NotPooled>;
 
     struct VulkanSwapchainData
     {
@@ -82,7 +83,7 @@ private:
     VulkanFence* m_queueSubmitFence;
     VulkanRenderPassesSet m_renderPasses;
 
-    HashMap<const VulkanSwapchain*, VulkanSwapchainData, PooledNodeAllocator<VulkanAllocator>> m_swapchainData;
+    HashMap<const VulkanSwapchain*, VulkanSwapchainData, VulkanAllocator> m_swapchainData;
 };
 
 } // namespace Hyperion

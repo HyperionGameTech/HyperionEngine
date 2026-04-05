@@ -338,7 +338,7 @@ struct DrawCallCollection
     InstancedDrawCallStorage instancedDrawCalls;
 
     // Map from draw call id to the index in instancedDrawCalls
-    using InstancedDrawCallIndexMap = HashMap<uint64, Array<size_t, InlineAllocator<3, RenderAllocator>>, NodeAllocator<RenderAllocator>>;
+    using InstancedDrawCallIndexMap = HashMap<uint64, Array<size_t, InlineAllocator<3, RenderAllocator>>, RenderAllocator>;
     InstancedDrawCallIndexMap indexMap;
 };
 

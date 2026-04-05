@@ -68,7 +68,7 @@ private:
         VkStridedDeviceAddressRegionKHR callable {};
     } m_shaderBindingTableEntries;
 
-    using ShaderBindingTableMap = HashMap<ShaderModuleType, ShaderBindingTableEntry, NodeAllocator<VulkanAllocator>>;
+    using ShaderBindingTableMap = HashMap<ShaderModuleType, ShaderBindingTableEntry, VulkanAllocator>;
 
     RendererResult CreateShaderBindingTables(VulkanShaderInstance* shader);
     RendererResult CreateShaderBindingTableEntry(uint32 numShaders, ShaderBindingTableEntry& out);

@@ -147,9 +147,6 @@ void DynamicSkySystem::OnAddedToWorld(World* world)
 
     GetWorld()->AddScene(m_renderScene);
     GetWorld()->AddScene(m_visScene);
-
-    AssertDebug(m_envProbe != nullptr);
-    m_envProbe->SetNeedsRender(true);
 }
 
 void DynamicSkySystem::OnRemovedFromWorld(World* world)

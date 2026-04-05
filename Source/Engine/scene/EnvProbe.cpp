@@ -68,8 +68,6 @@ EnvProbe::EnvProbe(EnvProbeType envProbeType, const BoundingBox& aabb, const Vec
       m_envProbeFlags(DefaultEnvProbeFlags[envProbeType]),
       m_cameraNear(0.05f),
       m_cameraFar(aabb.GetRadius()),
-      m_needsUpdate(false),
-      m_needsRenderCounter(0),
       m_camera(nullptr),
       m_view(nullptr)
 {
@@ -207,8 +205,6 @@ void EnvProbe::OnDetachedFromNode(Node* node)
 void EnvProbe::OnAddedToWorld(World* world)
 {
     Entity::OnAddedToWorld(world);
-
-    SetNeedsRender(true);
 }
 
 void EnvProbe::OnRemovedFromWorld(World* world)
@@ -375,7 +371,7 @@ void EnvProbe::Update(float delta)
 
     bool needsUpdate = false;
 
-    Array<ObjId<Scene>, SceneAllocator> cacheKeysToRemove;
+    Array<ObjId<Scene>, SceneTempAllocator> cacheKeysToRemove;
     cacheKeysToRemove.Reserve(m_cachedOctantHashCodes.Size());
 
     for (const KeyValuePair<ObjId<Scene>, HashCode>& kvp : m_cachedOctantHashCodes)
@@ -483,8 +479,6 @@ void EnvProbe::Update(float delta)
     AssertDebug(m_view != nullptr);
 
     GetWorld()->ProcessViewAsync(m_view);
-
-    SetNeedsRender(true);
 }
 
 void EnvProbe::UpdateRenderProxy(RenderProxyEnvProbe* proxy)

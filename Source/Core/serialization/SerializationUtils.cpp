@@ -361,6 +361,155 @@ Result BoxedToJSON(
         return {};
     }
 
+    if (typeInfo.IsMapType())
+    {
+        Assert(typeInfo.extendedInfo.handler && typeInfo.extendedInfo.handler->GetHandlerType() == ITypeInfoHandler::TYPE_MAP);
+
+        ITypeInfoMapHandler* handler = static_cast<ITypeInfoMapHandler*>(typeInfo.extendedInfo.handler);
+
+        const TypeInfo* keyTypeInfo = typeInfo.extendedInfo.GetElementType();
+        const TypeInfo* valueTypeInfo = typeInfo.extendedInfo.next ? typeInfo.extendedInfo.next->GetElementType() : nullptr;
+
+        Assert(keyTypeInfo != nullptr);
+        Assert(valueTypeInfo != nullptr);
+
+        ITypeInfoIterator* iterator = handler->CreateIterator(value);
+        HYP_DEFER({ delete iterator; });
+
+        if (!iterator)
+        {
+            return HYP_MAKE_ERROR(Error, "Failed to create iterator for map of type {}", typeInfo.name);
+        }
+
+        if (keyTypeInfo->IsStringType())
+        {
+            JSON::Object jsonObject;
+
+            while (iterator->HasNext())
+            {
+                AnyRef keyRef = iterator->GetKey();
+                AnyRef valueRef = iterator->GetCurrent();
+
+                if (!keyRef.HasValue() || !valueRef.HasValue())
+                {
+                    HYP_LOG(Core, Warning, "Failed to get key/value from map iterator of type {}", typeInfo.name);
+                    iterator->Next();
+                    continue;
+                }
+
+                BoxedValue keyData(keyRef);
+                BoxedValue valueData(valueRef);
+
+                JSON::Value keyJson;
+                if (Result result = BoxedToJSON(keyData, keyJson, opts); result.HasError())
+                {
+                    HYP_LOG(Core, Warning, "Failed to serialize map key for type {}: {}", typeInfo.name, result.GetError().GetMessage());
+                    iterator->Next();
+                    continue;
+                }
+
+                if (!keyJson.IsString())
+                {
+                    HYP_LOG(Core, Warning, "Map key for type {} did not serialize to a JSON string", typeInfo.name);
+                    iterator->Next();
+                    continue;
+                }
+
+                ToJSONOptions newOpts = opts;
+                newOpts.writeClassNames = newOpts.writeClassNamesRecursively;
+
+                if (!newOpts.writeClassNames && ForceWriteClassNamesWhenTypesDiffer && valueTypeInfo->GetClass() != valueData.GetTypeInfo()->GetClass())
+                {
+                    newOpts.writeClassNames = true;
+                }
+
+                if (newOpts.followAssetPaths != ToJSONOptions::FollowAssetPathsMode::Always)
+                {
+                    newOpts.followAssetPaths = ToJSONOptions::FollowAssetPathsMode::Never;
+                }
+
+                JSON::Value jsonValue;
+                if (Result result = BoxedToJSON(valueData, jsonValue, newOpts); result.HasError())
+                {
+                    HYP_LOG(Core, Warning, "Failed to serialize map value for key \"{}\" of type {}: {}", keyJson.AsString(), typeInfo.name, result.GetError().GetMessage());
+                    iterator->Next();
+                    continue;
+                }
+
+                jsonObject[keyJson.AsString()] = std::move(jsonValue);
+
+                iterator->Next();
+            }
+
+            outJson = std::move(jsonObject);
+        }
+        else
+        {
+            // Non-string keys: serialize as an array of [key, value] pairs
+            JSON::JArray jsonArray;
+
+            while (iterator->HasNext())
+            {
+                AnyRef keyRef = iterator->GetKey();
+                AnyRef valueRef = iterator->GetCurrent();
+
+                if (!keyRef.HasValue() || !valueRef.HasValue())
+                {
+                    HYP_LOG(Core, Warning, "Failed to get key/value from map iterator of type {}", typeInfo.name);
+                    iterator->Next();
+                    continue;
+                }
+
+                BoxedValue keyData(keyRef);
+                BoxedValue valueData(valueRef);
+
+                ToJSONOptions newOpts = opts;
+                newOpts.writeClassNames = newOpts.writeClassNamesRecursively;
+
+                if (!newOpts.writeClassNames && ForceWriteClassNamesWhenTypesDiffer && valueTypeInfo->GetClass() != valueData.GetTypeInfo()->GetClass())
+                {
+                    newOpts.writeClassNames = true;
+                }
+
+                if (newOpts.followAssetPaths != ToJSONOptions::FollowAssetPathsMode::Always)
+                {
+                    newOpts.followAssetPaths = ToJSONOptions::FollowAssetPathsMode::Never;
+                }
+
+                JSON::JArray pairArray;
+                pairArray.Resize(2);
+
+                JSON::Value keyJson;
+                if (Result result = BoxedToJSON(keyData, keyJson, newOpts); result.HasError())
+                {
+                    HYP_LOG(Core, Warning, "Failed to serialize map key for type {}: {}", typeInfo.name, result.GetError().GetMessage());
+                    iterator->Next();
+                    continue;
+                }
+
+                pairArray[0] = std::move(keyJson);
+
+                JSON::Value valueJson;
+                if (Result result = BoxedToJSON(valueData, valueJson, newOpts); result.HasError())
+                {
+                    HYP_LOG(Core, Warning, "Failed to serialize map value for type {}: {}", typeInfo.name, result.GetError().GetMessage());
+                    iterator->Next();
+                    continue;
+                }
+
+                pairArray[1] = std::move(valueJson);
+
+                jsonArray.PushBack(std::move(pairArray));
+
+                iterator->Next();
+            }
+
+            outJson = std::move(jsonArray);
+        }
+
+        return {};
+    }
+
     if (typeInfo.IsEnum() || typeInfo.IsEnumFlags())
     {
         const TypeInfo* underlyingTypeInfo = typeInfo.GetUnderlyingType();
@@ -1558,6 +1707,98 @@ Result BoxedFromJSON(const JSON::Value& jsonValue, const TypeInfo& typeInfo, Box
         return {};
     }
 
+    if (typeInfo.IsMapType())
+    {
+        const TypeInfo* keyTypeInfo = typeInfo.extendedInfo.GetElementType();
+        const TypeInfo* valueTypeInfo = typeInfo.extendedInfo.next ? typeInfo.extendedInfo.next->GetElementType() : nullptr;
+
+        if (!keyTypeInfo)
+        {
+            return HYP_MAKE_ERROR(Error, "Map type {} does not have a valid key type", typeInfo.name);
+        }
+
+        if (!valueTypeInfo)
+        {
+            return HYP_MAKE_ERROR(Error, "Map type {} does not have a valid value type", typeInfo.name);
+        }
+
+        ITypeInfoHandler* handler = typeInfo.extendedInfo.handler;
+        Assert(handler && handler->GetHandlerType() == ITypeInfoHandler::TYPE_MAP);
+
+        ITypeInfoMapHandler* mapHandler = static_cast<ITypeInfoMapHandler*>(handler);
+
+        BoxedValue mapInstance;
+        if (!mapHandler->CreateInstance(mapInstance))
+        {
+            return HYP_MAKE_ERROR(Error, "Failed to create instance of map type {}", typeInfo.name);
+        }
+
+        if (jsonValue.IsObject())
+        {
+            // JSON object -> string-keyed map
+            const JSON::Object& jsonObj = jsonValue.AsObject();
+
+            for (const auto& [key, val] : jsonObj)
+            {
+                BoxedValue keyData;
+                if (Result result = BoxedFromJSON(JSON::Value(JSON::JString(key)), *keyTypeInfo, keyData); result.HasError())
+                {
+                    HYP_LOG(Core, Warning, "Failed to deserialize map key for type {}: {}", typeInfo.name, result.GetError().GetMessage());
+                    continue;
+                }
+
+                BoxedValue valueData;
+                if (Result result = BoxedFromJSON(val, *valueTypeInfo, valueData); result.HasError())
+                {
+                    HYP_LOG(Core, Warning, "Failed to deserialize map value for type {}: {}", typeInfo.name, result.GetError().GetMessage());
+                    continue;
+                }
+
+                mapHandler->SetValueAt(mapInstance, keyData, valueData);
+            }
+        }
+        else if (jsonValue.IsArray())
+        {
+            // JSON array of [key, value] pairs
+            const JSON::JArray& jsonArray = jsonValue.AsArray();
+
+            for (size_t i = 0; i < jsonArray.Size(); i++)
+            {
+                if (!jsonArray[i].IsArray() || jsonArray[i].AsArray().Size() != 2)
+                {
+                    HYP_LOG(Core, Warning, "Expected [key, value] pair at index {} for map type {}", i, typeInfo.name);
+                    continue;
+                }
+
+                const JSON::JArray& pair = jsonArray[i].AsArray();
+
+                BoxedValue keyData;
+                if (Result result = BoxedFromJSON(pair[0], *keyTypeInfo, keyData); result.HasError())
+                {
+                    HYP_LOG(Core, Warning, "Failed to deserialize map key at index {} for type {}: {}", i, typeInfo.name, result.GetError().GetMessage());
+                    continue;
+                }
+
+                BoxedValue valueData;
+                if (Result result = BoxedFromJSON(pair[1], *valueTypeInfo, valueData); result.HasError())
+                {
+                    HYP_LOG(Core, Warning, "Failed to deserialize map value at index {} for type {}: {}", i, typeInfo.name, result.GetError().GetMessage());
+                    continue;
+                }
+
+                mapHandler->SetValueAt(mapInstance, keyData, valueData);
+            }
+        }
+        else
+        {
+            return HYP_MAKE_ERROR(Error, "Expected JSON object or array for map type {}, but got: {}", typeInfo.name, jsonValue.ToString());
+        }
+
+        outBoxed = std::move(mapInstance);
+
+        return {};
+    }
+
     if (typeInfo.IsPairType())
     {
         if (!jsonValue.IsArray())
@@ -1835,6 +2076,38 @@ void WalkBoxedValue(
             }
 
             func(BoxedValue(element));
+
+            iterator->Next();
+        }
+
+        return;
+    }
+
+    if (typeInfo.IsMapType())
+    {
+        Assert(typeInfo.extendedInfo.handler && typeInfo.extendedInfo.handler->GetHandlerType() == ITypeInfoHandler::TYPE_MAP);
+
+        ITypeInfoMapHandler* handler = static_cast<ITypeInfoMapHandler*>(typeInfo.extendedInfo.handler);
+
+        ITypeInfoIterator* iterator = handler->CreateIterator(target);
+        HYP_DEFER({ delete iterator; });
+
+        Assert(iterator != nullptr);
+
+        while (iterator->HasNext())
+        {
+            AnyRef keyRef = iterator->GetKey();
+            AnyRef valueRef = iterator->GetCurrent();
+
+            if (keyRef.HasValue())
+            {
+                func(BoxedValue(keyRef));
+            }
+
+            if (valueRef.HasValue())
+            {
+                func(BoxedValue(valueRef));
+            }
 
             iterator->Next();
         }

@@ -406,7 +406,7 @@ static void DebugLogProfileScopeEntry(ProfileScopeEntry* entry, int depth = 0)
 
 class ProfileScopeStack
 {
-    using TimeByFunctionMap = HashMap<ANSIString, double, PooledNodeAllocator<ThreadAllocator>>;
+    using TimeByFunctionMap = HashMap<ANSIString, double, ThreadAllocator>;
 
 public:
     ProfileScopeStack()

@@ -39,7 +39,7 @@ public:
         }
     };
 
-    using InternalMapType = HashMap<VMMapKey, BoxedValue, DynamicNodeAllocator>;
+    using InternalMapType = HashMap<VMMapKey, BoxedValue, DynamicAllocator, HashTablePolicy::NotPooled>;
 
     ScriptMap();
     ScriptMap(const ScriptMap& other) = delete;

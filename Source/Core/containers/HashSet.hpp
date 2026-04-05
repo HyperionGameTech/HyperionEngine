@@ -17,6 +17,13 @@
 namespace Hyperion {
 
 namespace containers {
+
+struct HashTablePolicy
+{
+    using NotPooled = std::integral_constant<int, 0>;
+    using NodePooling = std::integral_constant<int, 1>;
+};
+
 template <class Value>
 struct THashNode
 {
@@ -507,26 +514,15 @@ struct NodeAllocator
     };
 };
 
-template <class T>
-struct IsPooledNodeAllocator : std::false_type
-{
-};
-
-template <class Allocator>
-struct IsPooledNodeAllocator<PooledNodeAllocator<Allocator>> : std::true_type
-{
-};
-
-using DynamicNodeAllocator = NodeAllocator<DynamicAllocator>;
-using DefaultNodeAllocator = PooledNodeAllocator<DynamicAllocator>;
-
 #pragma region IntrusiveMap
 
 /*! \brief An IntrusiveMap is a hash table that uses a KeyBy function to extract a key from the value, and uses that key for hashing and equality comparison
  */
-template <class Value, auto KeyBy, class NodeAllocatorType = DefaultNodeAllocator>
-class IntrusiveMap : public ContainerBase<IntrusiveMap<Value, KeyBy, NodeAllocatorType>, decltype(std::declval<FunctionWrapper<decltype(KeyBy)>>()(std::declval<const Value&>()))>
+template <class Value, auto KeyBy, class AllocatorType = DynamicAllocator, class Policy = HashTablePolicy::NodePooling>
+class IntrusiveMap : public ContainerBase<IntrusiveMap<Value, KeyBy, AllocatorType, Policy>, decltype(std::declval<FunctionWrapper<decltype(KeyBy)>>()(std::declval<const Value&>()))>
 {
+    using NodeAllocatorType = std::conditional_t<(Policy{}() == HashTablePolicy::NodePooling{}()), PooledNodeAllocator<AllocatorType>, NodeAllocator<AllocatorType>>;
+
 public:
     static constexpr bool isContiguous = false;
 
@@ -536,7 +532,7 @@ public:
     using Node = THashNode<Value>;
     using Bucket = THashBucket<Value>;
 
-    using BucketArray = Array<Bucket, InlineAllocator<InitialBucketSize>>;
+    using BucketArray = Array<Bucket, AllocatorType>;
 
 protected:
     static constexpr FunctionWrapper<decltype(KeyBy)> keyByFn { KeyBy };
@@ -571,7 +567,7 @@ public:
     using KeyType = decltype(std::declval<FunctionWrapper<decltype(KeyBy)>>()(std::declval<const Value&>()));
     using ValueType = Value;
 
-    using Base = ContainerBase<IntrusiveMap<Value, KeyBy, NodeAllocatorType>, KeyType>;
+    using Base = ContainerBase<IntrusiveMap<Value, KeyBy, AllocatorType, Policy>, KeyType>;
 
     struct ConstIterator;
 
@@ -732,13 +728,16 @@ public:
 
     IntrusiveMap();
     IntrusiveMap(std::initializer_list<Value> initializerList);
-    explicit IntrusiveMap(typename NodeAllocatorType::AllocatorType* pAllocator);
-    IntrusiveMap(typename NodeAllocatorType::AllocatorType* pAllocator, std::initializer_list<Value> initializerList);
+
+    explicit IntrusiveMap(AllocatorType* pAllocator);
+    IntrusiveMap(AllocatorType* pAllocator, std::initializer_list<Value> initializerList);
 
     IntrusiveMap(const IntrusiveMap& other);
     IntrusiveMap& operator=(const IntrusiveMap& other);
+
     IntrusiveMap(IntrusiveMap&& other) noexcept;
     IntrusiveMap& operator=(IntrusiveMap&& other) noexcept;
+
     ~IntrusiveMap();
 
     HYP_FORCE_INLINE bool Any() const
@@ -773,7 +772,7 @@ public:
 
     HYP_FORCE_INLINE size_t Capacity() const
     {
-        if constexpr (IsPooledNodeAllocator<NodeAllocatorType>::value)
+        if constexpr (Policy{}() == HashTablePolicy::NodePooling{}())
         {
             return m_nodeAllocator.m_pool.Capacity();
         }
@@ -1071,15 +1070,15 @@ protected:
     size_t m_size;
 };
 
-template <class Value, auto KeyBy, class NodeAllocatorType>
-IntrusiveMap<Value, KeyBy, NodeAllocatorType>::IntrusiveMap()
+template <class Value, auto KeyBy, class AllocatorType, class Policy>
+IntrusiveMap<Value, KeyBy, AllocatorType, Policy>::IntrusiveMap()
     : m_size(0)
 {
     m_buckets.ResizeZeroed(InitialBucketSize);
 }
 
-template <class Value, auto KeyBy, class NodeAllocatorType>
-IntrusiveMap<Value, KeyBy, NodeAllocatorType>::IntrusiveMap(std::initializer_list<Value> initializerList)
+template <class Value, auto KeyBy, class AllocatorType, class Policy>
+IntrusiveMap<Value, KeyBy, AllocatorType, Policy>::IntrusiveMap(std::initializer_list<Value> initializerList)
     : IntrusiveMap()
 {
     for (const auto& item : initializerList)
@@ -1088,16 +1087,16 @@ IntrusiveMap<Value, KeyBy, NodeAllocatorType>::IntrusiveMap(std::initializer_lis
     }
 }
 
-template <class Value, auto KeyBy, class NodeAllocatorType>
-IntrusiveMap<Value, KeyBy, NodeAllocatorType>::IntrusiveMap(typename NodeAllocatorType::AllocatorType* pAllocator)
+template <class Value, auto KeyBy, class AllocatorType, class Policy>
+IntrusiveMap<Value, KeyBy, AllocatorType, Policy>::IntrusiveMap(AllocatorType* pAllocator)
     : m_size(0),
       m_nodeAllocator(pAllocator)
 {
     m_buckets.ResizeZeroed(InitialBucketSize);
 }
 
-template <class Value, auto KeyBy, class NodeAllocatorType>
-IntrusiveMap<Value, KeyBy, NodeAllocatorType>::IntrusiveMap(typename NodeAllocatorType::AllocatorType* pAllocator, std::initializer_list<Value> initializerList)
+template <class Value, auto KeyBy, class AllocatorType, class Policy>
+IntrusiveMap<Value, KeyBy, AllocatorType, Policy>::IntrusiveMap(AllocatorType* pAllocator, std::initializer_list<Value> initializerList)
     : IntrusiveMap(pAllocator)
 {
     for (const auto& item : initializerList)
@@ -1106,8 +1105,8 @@ IntrusiveMap<Value, KeyBy, NodeAllocatorType>::IntrusiveMap(typename NodeAllocat
     }
 }
 
-template <class Value, auto KeyBy, class NodeAllocatorType>
-IntrusiveMap<Value, KeyBy, NodeAllocatorType>::IntrusiveMap(const IntrusiveMap& other)
+template <class Value, auto KeyBy, class AllocatorType, class Policy>
+IntrusiveMap<Value, KeyBy, AllocatorType, Policy>::IntrusiveMap(const IntrusiveMap& other)
     : m_size(other.m_size)
 {
     m_nodeAllocator.Reserve(m_size, m_buckets);
@@ -1130,8 +1129,8 @@ IntrusiveMap<Value, KeyBy, NodeAllocatorType>::IntrusiveMap(const IntrusiveMap& 
     }
 }
 
-template <class Value, auto KeyBy, class NodeAllocatorType>
-auto IntrusiveMap<Value, KeyBy, NodeAllocatorType>::operator=(const IntrusiveMap& other) -> IntrusiveMap&
+template <class Value, auto KeyBy, class AllocatorType, class Policy>
+auto IntrusiveMap<Value, KeyBy, AllocatorType, Policy>::operator=(const IntrusiveMap& other) -> IntrusiveMap&
 {
     if (this == &other)
     {
@@ -1173,8 +1172,8 @@ auto IntrusiveMap<Value, KeyBy, NodeAllocatorType>::operator=(const IntrusiveMap
     return *this;
 }
 
-template <class Value, auto KeyBy, class NodeAllocatorType>
-IntrusiveMap<Value, KeyBy, NodeAllocatorType>::IntrusiveMap(IntrusiveMap&& other) noexcept
+template <class Value, auto KeyBy, class AllocatorType, class Policy>
+IntrusiveMap<Value, KeyBy, AllocatorType, Policy>::IntrusiveMap(IntrusiveMap&& other) noexcept
     : m_buckets(std::move(other.m_buckets)),
       m_size(other.m_size)
 {
@@ -1184,8 +1183,8 @@ IntrusiveMap<Value, KeyBy, NodeAllocatorType>::IntrusiveMap(IntrusiveMap&& other
     other.m_buckets.ResizeZeroed(InitialBucketSize);
 }
 
-template <class Value, auto KeyBy, class NodeAllocatorType>
-auto IntrusiveMap<Value, KeyBy, NodeAllocatorType>::operator=(IntrusiveMap&& other) noexcept -> IntrusiveMap&
+template <class Value, auto KeyBy, class AllocatorType, class Policy>
+auto IntrusiveMap<Value, KeyBy, AllocatorType, Policy>::operator=(IntrusiveMap&& other) noexcept -> IntrusiveMap&
 {
     if (&other == this)
     {
@@ -1216,8 +1215,8 @@ auto IntrusiveMap<Value, KeyBy, NodeAllocatorType>::operator=(IntrusiveMap&& oth
     return *this;
 }
 
-template <class Value, auto KeyBy, class NodeAllocatorType>
-IntrusiveMap<Value, KeyBy, NodeAllocatorType>::~IntrusiveMap()
+template <class Value, auto KeyBy, class AllocatorType, class Policy>
+IntrusiveMap<Value, KeyBy, AllocatorType, Policy>::~IntrusiveMap()
 {
     for (auto bucketsIt = m_buckets.Begin(); bucketsIt != m_buckets.End(); ++bucketsIt)
     {
@@ -1233,8 +1232,8 @@ IntrusiveMap<Value, KeyBy, NodeAllocatorType>::~IntrusiveMap()
     }
 }
 
-template <class Value, auto KeyBy, class NodeAllocatorType>
-void IntrusiveMap<Value, KeyBy, NodeAllocatorType>::Reserve(size_t capacity)
+template <class Value, auto KeyBy, class AllocatorType, class Policy>
+void IntrusiveMap<Value, KeyBy, AllocatorType, Policy>::Reserve(size_t capacity)
 {
     m_nodeAllocator.Reserve(capacity, m_buckets);
 
@@ -1268,8 +1267,8 @@ void IntrusiveMap<Value, KeyBy, NodeAllocatorType>::Reserve(size_t capacity)
     m_buckets = std::move(newBuckets);
 }
 
-template <class Value, auto KeyBy, class NodeAllocatorType>
-void IntrusiveMap<Value, KeyBy, NodeAllocatorType>::CheckAndRebuildBuckets(size_t neededCapacity)
+template <class Value, auto KeyBy, class AllocatorType, class Policy>
+void IntrusiveMap<Value, KeyBy, AllocatorType, Policy>::CheckAndRebuildBuckets(size_t neededCapacity)
 {
     // Check load factor, if currently load factor is greater than `loadFactor`, then rehash so that the load factor becomes <= `loadFactor` constant.
 
@@ -1283,8 +1282,8 @@ void IntrusiveMap<Value, KeyBy, NodeAllocatorType>::CheckAndRebuildBuckets(size_
     Reserve(neededCapacity * 2);
 }
 
-template <class Value, auto KeyBy, class NodeAllocatorType>
-auto IntrusiveMap<Value, KeyBy, NodeAllocatorType>::Find(const KeyType& value) -> Iterator
+template <class Value, auto KeyBy, class AllocatorType, class Policy>
+auto IntrusiveMap<Value, KeyBy, AllocatorType, Policy>::Find(const KeyType& value) -> Iterator
 {
     const HashCode::ValueType hashCode = HashCode::GetHashCode(value).Value();
     Bucket* bucket = GetBucketForHash(hashCode);
@@ -1299,8 +1298,8 @@ auto IntrusiveMap<Value, KeyBy, NodeAllocatorType>::Find(const KeyType& value) -
     return Iterator(this, it);
 }
 
-template <class Value, auto KeyBy, class NodeAllocatorType>
-auto IntrusiveMap<Value, KeyBy, NodeAllocatorType>::Find(const KeyType& value) const -> ConstIterator
+template <class Value, auto KeyBy, class AllocatorType, class Policy>
+auto IntrusiveMap<Value, KeyBy, AllocatorType, Policy>::Find(const KeyType& value) const -> ConstIterator
 {
     const HashCode::ValueType hashCode = HashCode::GetHashCode(value).Value();
     const Bucket* bucket = GetBucketForHash(hashCode);
@@ -1315,8 +1314,8 @@ auto IntrusiveMap<Value, KeyBy, NodeAllocatorType>::Find(const KeyType& value) c
     return ConstIterator(this, it);
 }
 
-template <class Value, auto KeyBy, class NodeAllocatorType>
-auto IntrusiveMap<Value, KeyBy, NodeAllocatorType>::FindByHashCode(HashCode hashCode) -> Iterator
+template <class Value, auto KeyBy, class AllocatorType, class Policy>
+auto IntrusiveMap<Value, KeyBy, AllocatorType, Policy>::FindByHashCode(HashCode hashCode) -> Iterator
 {
     Bucket* bucket = GetBucketForHash(hashCode.Value());
 
@@ -1330,8 +1329,8 @@ auto IntrusiveMap<Value, KeyBy, NodeAllocatorType>::FindByHashCode(HashCode hash
     return Iterator(this, it);
 }
 
-template <class Value, auto KeyBy, class NodeAllocatorType>
-auto IntrusiveMap<Value, KeyBy, NodeAllocatorType>::FindByHashCode(HashCode hashCode) const -> ConstIterator
+template <class Value, auto KeyBy, class AllocatorType, class Policy>
+auto IntrusiveMap<Value, KeyBy, AllocatorType, Policy>::FindByHashCode(HashCode hashCode) const -> ConstIterator
 {
     const Bucket* bucket = GetBucketForHash(hashCode.Value());
 
@@ -1345,8 +1344,8 @@ auto IntrusiveMap<Value, KeyBy, NodeAllocatorType>::FindByHashCode(HashCode hash
     return ConstIterator(this, it);
 }
 
-template <class Value, auto KeyBy, class NodeAllocatorType>
-auto IntrusiveMap<Value, KeyBy, NodeAllocatorType>::Erase(ConstIterator iter) -> Iterator
+template <class Value, auto KeyBy, class AllocatorType, class Policy>
+auto IntrusiveMap<Value, KeyBy, AllocatorType, Policy>::Erase(ConstIterator iter) -> Iterator
 {
     if (iter == End())
     {
@@ -1379,8 +1378,8 @@ auto IntrusiveMap<Value, KeyBy, NodeAllocatorType>::Erase(ConstIterator iter) ->
     return nextIterator;
 }
 
-template <class Value, auto KeyBy, class NodeAllocatorType>
-bool IntrusiveMap<Value, KeyBy, NodeAllocatorType>::Erase(const KeyType& value)
+template <class Value, auto KeyBy, class AllocatorType, class Policy>
+bool IntrusiveMap<Value, KeyBy, AllocatorType, Policy>::Erase(const KeyType& value)
 {
     const Iterator it = Find(value);
 
@@ -1394,8 +1393,8 @@ bool IntrusiveMap<Value, KeyBy, NodeAllocatorType>::Erase(const KeyType& value)
     return true;
 }
 
-template <class Value, auto KeyBy, class NodeAllocatorType>
-auto IntrusiveMap<Value, KeyBy, NodeAllocatorType>::Set(const Value& value) -> InsertResult
+template <class Value, auto KeyBy, class AllocatorType, class Policy>
+auto IntrusiveMap<Value, KeyBy, AllocatorType, Policy>::Set(const Value& value) -> InsertResult
 {
     const HashCode::ValueType hashCode = GetHashCodeForValue(value).Value();
 
@@ -1426,8 +1425,8 @@ auto IntrusiveMap<Value, KeyBy, NodeAllocatorType>::Set(const Value& value) -> I
     }
 }
 
-template <class Value, auto KeyBy, class NodeAllocatorType>
-auto IntrusiveMap<Value, KeyBy, NodeAllocatorType>::Set(Value&& value) -> InsertResult
+template <class Value, auto KeyBy, class AllocatorType, class Policy>
+auto IntrusiveMap<Value, KeyBy, AllocatorType, Policy>::Set(Value&& value) -> InsertResult
 {
     const HashCode::ValueType hashCode = GetHashCodeForValue(value).Value();
 
@@ -1457,8 +1456,8 @@ auto IntrusiveMap<Value, KeyBy, NodeAllocatorType>::Set(Value&& value) -> Insert
     }
 }
 
-template <class Value, auto KeyBy, class NodeAllocatorType>
-auto IntrusiveMap<Value, KeyBy, NodeAllocatorType>::Insert(const Value& value) -> InsertResult
+template <class Value, auto KeyBy, class AllocatorType, class Policy>
+auto IntrusiveMap<Value, KeyBy, AllocatorType, Policy>::Insert(const Value& value) -> InsertResult
 {
     // Have to rehash before any insertion, so we don't invalidate the iterator or bucket pointer.
     CheckAndRebuildBuckets(m_size + 1);
@@ -1485,8 +1484,8 @@ auto IntrusiveMap<Value, KeyBy, NodeAllocatorType>::Insert(const Value& value) -
     return InsertResult { insertIt, true };
 }
 
-template <class Value, auto KeyBy, class NodeAllocatorType>
-auto IntrusiveMap<Value, KeyBy, NodeAllocatorType>::Insert(Value&& value) -> InsertResult
+template <class Value, auto KeyBy, class AllocatorType, class Policy>
+auto IntrusiveMap<Value, KeyBy, AllocatorType, Policy>::Insert(Value&& value) -> InsertResult
 {
     // Have to rehash before any insertion, so we don't invalidate the iterator or bucket pointer.
     CheckAndRebuildBuckets(m_size + 1);
@@ -1512,8 +1511,8 @@ auto IntrusiveMap<Value, KeyBy, NodeAllocatorType>::Insert(Value&& value) -> Ins
     return InsertResult { insertIt, true };
 }
 
-template <class Value, auto KeyBy, class NodeAllocatorType>
-void IntrusiveMap<Value, KeyBy, NodeAllocatorType>::Clear()
+template <class Value, auto KeyBy, class AllocatorType, class Policy>
+void IntrusiveMap<Value, KeyBy, AllocatorType, Policy>::Clear()
 {
     for (auto bucketsIt = m_buckets.Begin(); bucketsIt != m_buckets.End(); ++bucketsIt)
     {
@@ -1538,11 +1537,11 @@ void IntrusiveMap<Value, KeyBy, NodeAllocatorType>::Clear()
 
 #pragma region HashSet
 
-template <class Value, class NodeAllocatorType = DefaultNodeAllocator>
-class HashSet : public IntrusiveMap<Value, &KeyBy_Identity<Value>, NodeAllocatorType>
+template <class Value, class AllocatorType = DynamicAllocator, class Policy = HashTablePolicy::NodePooling>
+class HashSet : public IntrusiveMap<Value, &KeyBy_Identity<Value>, AllocatorType, Policy>
 {
 public:
-    using Base = IntrusiveMap<Value, &KeyBy_Identity<Value>, NodeAllocatorType>;
+    using Base = IntrusiveMap<Value, &KeyBy_Identity<Value>, AllocatorType, Policy>;
 
     using Base::Base;
 
@@ -1554,12 +1553,10 @@ public:
 
 } // namespace containers
 
-using containers::DefaultNodeAllocator;
-using containers::DynamicNodeAllocator;
 using containers::HashSet;
 using containers::IntrusiveMap;
-using containers::NodeAllocator;
-using containers::PooledNodeAllocator;
+
+using containers::HashTablePolicy;
 
 template <class Value, class NodeAllocatorType>
 struct IsHashSet<HashSet<Value, NodeAllocatorType>> : std::true_type

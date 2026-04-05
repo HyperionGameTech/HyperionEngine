@@ -204,25 +204,6 @@ public:
     HYP_METHOD(Property = "BakedTexture", LoadOrder = 1)
     void SetBakedTexture(const Handle<Texture>& texture);
 
-    HYP_DEPRECATED HYP_FORCE_INLINE void SetNeedsRender(bool needsRender)
-    {
-        if (needsRender)
-        {
-            m_needsRenderCounter.Set(1, MemoryOrder::RELAXED);
-        }
-        else
-        {
-            m_needsRenderCounter.Set(0, MemoryOrder::RELAXED);
-        }
-    }
-
-    HYP_DEPRECATED HYP_FORCE_INLINE bool NeedsRender() const
-    {
-        const int32 counter = m_needsRenderCounter.Get(MemoryOrder::RELAXED);
-
-        return counter > 0;
-    }
-
     HYP_DEPRECATED bool IsVisible(ObjId<Camera> cameraId) const;
     HYP_DEPRECATED void SetIsVisible(ObjId<Camera> cameraId, bool isVisible);
 
@@ -290,9 +271,7 @@ protected:
 
     Bitset m_visibilityBits;
 
-    bool m_needsUpdate;
-    AtomicVar<int32> m_needsRenderCounter;
-    HashMap<ObjId<Scene>, HashCode> m_cachedOctantHashCodes;
+    HashMap<ObjId<Scene>, HashCode, SceneAllocator> m_cachedOctantHashCodes;
 
     Handle<Texture> m_texture;
 };

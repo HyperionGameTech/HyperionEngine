@@ -71,6 +71,7 @@ struct Float16;
 
 HYP_API extern const Class* GetClass(const TypeId& typeId);
 HYP_API extern bool ClassRegistry_IsInitialized();
+
 namespace containers {
 
 template <int TStringType>
@@ -79,10 +80,10 @@ class String;
 template <class T, class AllocatorType>
 class LinkedList;
 
-template <class Key, class Value, class NodeAllocatorType>
+template <class Key, class Value, class AllocatorType, class Policy>
 class HashMap;
 
-template <class Value, class NodeAllocatorType>
+template <class Value, class AllocatorType, class Policy>
 class HashSet;
 
 template <class Key, class Value>
@@ -288,6 +289,10 @@ public:
     virtual bool RemoveKey(const BoxedValue& instance, const BoxedValue& key) const = 0;
 
     virtual size_t GetSize(const BoxedValue& instance) const = 0;
+
+    /*! \brief Create an iterator for the map.
+     *  \returns A new iterator (caller takes ownership and must delete). GetCurrent() returns the value; GetKey() returns the key. */
+    virtual ITypeInfoIterator* CreateIterator(const BoxedValue& instance) const = 0;
 };
 
 class ITypeInfoSetHandler : public ITypeInfoHandler
@@ -1368,6 +1373,72 @@ void TypeInfoImpl<containers::HashMap<Key, Value, NodeAllocatorType>, TBoxed>::o
 
             return map.Size();
         }
+
+        virtual ITypeInfoIterator* CreateIterator(const TBoxed& instance) const override
+        {
+            class HashMapIterator final : public ITypeInfoIterator
+            {
+                MapType* m_map;
+                typename MapType::Iterator m_current;
+                typename MapType::Iterator m_end;
+
+            public:
+                HashMapIterator(MapType* map)
+                    : m_map(map),
+                      m_current(map->Begin()),
+                      m_end(map->End())
+                {
+                }
+
+                virtual ~HashMapIterator() = default;
+
+                virtual bool HasNext() const override
+                {
+                    return m_current != m_end;
+                }
+
+                virtual bool Next() override
+                {
+                    if (m_current != m_end)
+                    {
+                        ++m_current;
+                        return true;
+                    }
+                    return false;
+                }
+
+                virtual AnyRef GetCurrent() const override
+                {
+                    if (m_current != m_end)
+                    {
+                        return AnyRef(&m_current->second);
+                    }
+                    return AnyRef();
+                }
+
+                virtual AnyRef GetKey() const override
+                {
+                    if (m_current != m_end)
+                    {
+                        return AnyRef(&m_current->first);
+                    }
+                    return AnyRef();
+                }
+
+                virtual void Reset() override
+                {
+                    m_current = m_map->Begin();
+                }
+
+                virtual ITypeInfoIterator* Clone() const override
+                {
+                    return new HashMapIterator(m_map);
+                }
+            };
+
+            MapType& map = instance.template Get<MapType>();
+            return new HashMapIterator(&map);
+        }
     };
 
     result.flags |= TypeInfoFlags::MAP_TYPE;
@@ -1453,6 +1524,72 @@ void TypeInfoImpl<containers::FlatMap<Key, Value>, TBoxed>::operator()(TypeInfo&
 
             return map.Size();
         }
+
+        virtual ITypeInfoIterator* CreateIterator(const TBoxed& instance) const override
+        {
+            class FlatMapIterator final : public ITypeInfoIterator
+            {
+                MapType* m_map;
+                typename MapType::Iterator m_current;
+                typename MapType::Iterator m_end;
+
+            public:
+                FlatMapIterator(MapType* map)
+                    : m_map(map),
+                      m_current(map->Begin()),
+                      m_end(map->End())
+                {
+                }
+
+                virtual ~FlatMapIterator() = default;
+
+                virtual bool HasNext() const override
+                {
+                    return m_current != m_end;
+                }
+
+                virtual bool Next() override
+                {
+                    if (m_current != m_end)
+                    {
+                        ++m_current;
+                        return true;
+                    }
+                    return false;
+                }
+
+                virtual AnyRef GetCurrent() const override
+                {
+                    if (m_current != m_end)
+                    {
+                        return AnyRef(&m_current->second);
+                    }
+                    return AnyRef();
+                }
+
+                virtual AnyRef GetKey() const override
+                {
+                    if (m_current != m_end)
+                    {
+                        return AnyRef(&m_current->first);
+                    }
+                    return AnyRef();
+                }
+
+                virtual void Reset() override
+                {
+                    m_current = m_map->Begin();
+                }
+
+                virtual ITypeInfoIterator* Clone() const override
+                {
+                    return new FlatMapIterator(m_map);
+                }
+            };
+
+            MapType& map = instance.template Get<MapType>();
+            return new FlatMapIterator(&map);
+        }
     };
 
     result.flags |= TypeInfoFlags::MAP_TYPE;
@@ -1537,6 +1674,72 @@ void TypeInfoImpl<containers::ArrayMap<Key, Value>, TBoxed>::operator()(TypeInfo
             MapType& map = instance.template Get<MapType>();
 
             return map.Size();
+        }
+
+        virtual ITypeInfoIterator* CreateIterator(const TBoxed& instance) const override
+        {
+            class ArrayMapIterator final : public ITypeInfoIterator
+            {
+                MapType* m_map;
+                typename MapType::Iterator m_current;
+                typename MapType::Iterator m_end;
+
+            public:
+                ArrayMapIterator(MapType* map)
+                    : m_map(map),
+                      m_current(map->Begin()),
+                      m_end(map->End())
+                {
+                }
+
+                virtual ~ArrayMapIterator() = default;
+
+                virtual bool HasNext() const override
+                {
+                    return m_current != m_end;
+                }
+
+                virtual bool Next() override
+                {
+                    if (m_current != m_end)
+                    {
+                        ++m_current;
+                        return true;
+                    }
+                    return false;
+                }
+
+                virtual AnyRef GetCurrent() const override
+                {
+                    if (m_current != m_end)
+                    {
+                        return AnyRef(&m_current->second);
+                    }
+                    return AnyRef();
+                }
+
+                virtual AnyRef GetKey() const override
+                {
+                    if (m_current != m_end)
+                    {
+                        return AnyRef(&m_current->first);
+                    }
+                    return AnyRef();
+                }
+
+                virtual void Reset() override
+                {
+                    m_current = m_map->Begin();
+                }
+
+                virtual ITypeInfoIterator* Clone() const override
+                {
+                    return new ArrayMapIterator(m_map);
+                }
+            };
+
+            MapType& map = instance.template Get<MapType>();
+            return new ArrayMapIterator(&map);
         }
     };
 

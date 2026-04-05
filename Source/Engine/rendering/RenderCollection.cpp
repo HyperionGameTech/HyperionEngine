@@ -1432,7 +1432,7 @@ bool RenderCollector::BeginRecordDrawCalls(
     HYP_SCOPE;
     AssertOnThread(g_renderThread);
 
-    Span<HashMap<RenderableAttributeSet, DrawCallCollection, NodeAllocator<RenderAllocator>>> groupsView;
+    Span<HashMap<RenderableAttributeSet, DrawCallCollection, RenderAllocator, HashTablePolicy::NotPooled>> groupsView;
 
     if (bucketBits == 0)
     {
@@ -1563,7 +1563,7 @@ void RenderCollector::ExecuteDrawCalls(
         bucketBits = AllBucketsMask;
     }
 
-    Span<HashMap<RenderableAttributeSet, DrawCallCollection, NodeAllocator<RenderAllocator>>> groupsView;
+    Span<HashMap<RenderableAttributeSet, DrawCallCollection, RenderAllocator, HashTablePolicy::NotPooled>> groupsView;
 
     // If only one bit is set, we can skip the loop by directly accessing the RenderGroup
     if (ByteUtil::BitCount(bucketBits) == 1)

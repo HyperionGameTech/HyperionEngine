@@ -42,8 +42,8 @@ public:
     using Base = SparsePagedArray<GraphicsPipelineRef, 1024, RenderAllocator>;
     using RefCountMap = SparsePagedArray<int, 1024, RenderAllocator>;
 
-    using Map = HashMap<PSOCacheKey, Array<GraphicsPipelineRef*, InlineAllocator<1, RenderAllocator>>, NodeAllocator<RenderAllocator>>;
-    using ReverseMap = HashMap<size_t, PSOCacheKey, NodeAllocator<RenderAllocator>>;
+    using Map = HashMap<PSOCacheKey, Array<GraphicsPipelineRef*, InlineAllocator<1, RenderAllocator>>, RenderAllocator>;
+    using ReverseMap = HashMap<size_t, PSOCacheKey, RenderAllocator>;
 
     CachedPipelinesMap()
         : Base()

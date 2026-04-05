@@ -922,7 +922,7 @@ private:
 };
 
 /*! \brief Stores a set of DelegateHandlers, intended to hold references to delegates and remove them upon destruction of the owner object. */
-class DelegateHandlerSet : HashMap<Name, DelegateHandler, DynamicNodeAllocator>
+class DelegateHandlerSet : HashMap<Name, DelegateHandler, DynamicAllocator, HashTablePolicy::NotPooled>
 {
 public:
     using HashMap::ConstIterator;

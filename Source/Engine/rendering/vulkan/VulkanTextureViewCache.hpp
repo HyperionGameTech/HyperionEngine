@@ -20,7 +20,7 @@ namespace Hyperion {
 class VulkanTextureViewCache final : public TextureViewCacheBase
 {
 public:
-    using TextureImageViewMap = HashMap<uint64, VulkanGpuImageViewRef, PooledNodeAllocator<VulkanAllocator>>;
+    using TextureImageViewMap = HashMap<uint64, VulkanGpuImageViewRef, VulkanAllocator>;
 
     SharedMutex mutex;
     // map texture ID -> image views

@@ -241,7 +241,7 @@ protected:
     ResourceState m_resourceState;
     ResourceState m_stencilState;
 
-    HashMap<uint64, ResourceState, NodeAllocator<RHIAllocator>> m_subResourceStates;
+    HashMap<uint64, ResourceState, RHIAllocator> m_subResourceStates;
 
     EnumFlags<GpuImageFlags> m_flags;
     

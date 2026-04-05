@@ -30,7 +30,7 @@ public:
     DescriptorSet* GetOrCreate(const DescriptorSetLayout& layout);
 
 private:
-    using AllocationsMap = HashMap<HashCode, Array<DescriptorSetRef, RenderAllocator>, NodeAllocator<RenderAllocator>>;
+    using AllocationsMap = HashMap<HashCode, Array<DescriptorSetRef, RenderAllocator>, RenderAllocator>;
 
     AllocationsMap m_allocsByLayout;
     

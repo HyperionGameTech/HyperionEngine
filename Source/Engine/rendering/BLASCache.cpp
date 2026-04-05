@@ -53,7 +53,7 @@ public:
         map.Clear();
     }
 
-    HashMap<uint64, Entry, PooledNodeAllocator<RenderAllocator>> map;
+    HashMap<uint64, Entry, RenderAllocator> map;
     MeshEntityIdToKeyMap meshEntityIdToKey;
 
     typename MeshEntityIdToKeyMap::Iterator cleanupIterator;

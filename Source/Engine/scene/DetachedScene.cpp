@@ -58,7 +58,7 @@ private:
         return scene;
     }
 
-    HashMap<ThreadId, Scene*, DynamicNodeAllocator> m_scenes;
+    HashMap<ThreadId, Scene*, DynamicAllocator, HashTablePolicy::NotPooled> m_scenes;
     Mutex m_mutex;
 };
 

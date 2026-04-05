@@ -299,7 +299,7 @@ class DescriptorSetBase : public ObjectBase
     HYP_OBJECT_BODY(DescriptorSetBase);
 
 public:
-    using ElementsMap = HashMap<Name, DescriptorSetElement, PooledNodeAllocator<RHIAllocator>>;
+    using ElementsMap = HashMap<Name, DescriptorSetElement, RHIAllocator>;
 
     virtual ~DescriptorSetBase() override;
     
