@@ -553,58 +553,61 @@ void BakerBase::HandleCompletedJob(BakeJobBase* job)
         m_progressSamples.PopFront();
     }
 
-    String timeEstimateStr;
-    if (m_progressSamples.Size() >= 2)
+    if (MathUtil::Floor(progressPercent - m_lastProgressPercent) >= 1)
     {
-        // Calculate progress rate using windowed samples
-        const auto& oldestSample = m_progressSamples.Front();
-        const auto& newestSample = m_progressSamples.Back();
-
-        const double deltaTime = newestSample.first - oldestSample.first;
-        const double deltaProgress = newestSample.second - oldestSample.second;
-
-        if (deltaTime > 0.1 && deltaProgress > 0.001)
+        String timeEstimateStr;
+        if (m_progressSamples.Size() >= 2)
         {
-            const double progressPerSecond = deltaProgress / deltaTime;
-            const double remainingProgress = 100.0 - progressPercent;
-            const double remainingSeconds = remainingProgress / progressPerSecond;
+            // Calculate progress rate using windowed samples
+            const auto& oldestSample = m_progressSamples.Front();
+            const auto& newestSample = m_progressSamples.Back();
 
-            if (remainingSeconds >= 60.0)
+            const double deltaTime = newestSample.first - oldestSample.first;
+            const double deltaProgress = newestSample.second - oldestSample.second;
+
+            if (deltaTime > 0.1 && deltaProgress > 0.001)
             {
-                const int remainingMinutes = int(remainingSeconds / 60.0);
-                const int remainingSecs = int(remainingSeconds) % 60;
-                timeEstimateStr = HYP_FORMAT("~{}m {}s", remainingMinutes, remainingSecs);
+                const double progressPerSecond = deltaProgress / deltaTime;
+                const double remainingProgress = 100.0 - progressPercent;
+                const double remainingSeconds = remainingProgress / progressPerSecond;
+
+                if (remainingSeconds >= 60.0)
+                {
+                    const int remainingMinutes = int(remainingSeconds / 60.0);
+                    const int remainingSecs = int(remainingSeconds) % 60;
+                    timeEstimateStr = HYP_FORMAT("~{}m {}s", remainingMinutes, remainingSecs);
+                }
+                else
+                {
+                    timeEstimateStr = HYP_FORMAT("~{}s", int(remainingSeconds));
+                }
             }
             else
             {
-                timeEstimateStr = HYP_FORMAT("~{}s", int(remainingSeconds));
+                timeEstimateStr = "calculating time";
             }
         }
         else
         {
             timeEstimateStr = "calculating time";
         }
-    }
-    else
-    {
-        timeEstimateStr = "calculating time";
-    }
 
-    String elapsedStr;
-    if (elapsedSeconds >= 60.0)
-    {
-        const int elapsedMinutes = int(elapsedSeconds / 60.0);
-        const int elapsedSecs = int(elapsedSeconds) % 60;
-        elapsedStr = HYP_FORMAT("{}m {}s", elapsedMinutes, elapsedSecs);
-    }
-    else
-    {
-        elapsedStr = HYP_FORMAT("{}s", int(elapsedSeconds));
-    }
+        String elapsedStr;
+        if (elapsedSeconds >= 60.0)
+        {
+            const int elapsedMinutes = int(elapsedSeconds / 60.0);
+            const int elapsedSecs = int(elapsedSeconds) % 60;
+            elapsedStr = HYP_FORMAT("{}m {}s", elapsedMinutes, elapsedSecs);
+        }
+        else
+        {
+            elapsedStr = HYP_FORMAT("{}s", int(elapsedSeconds));
+        }
 
-    HYP_LOG(Lightmap, Info, "Baking {} ... ({}%) - Elapsed: {}, {} remaining", m_source ? m_source->Id() : ObjIdBase(), percentage, elapsedStr, timeEstimateStr);
+        HYP_LOG(Lightmap, Info, "Baking {} ... ({}%) - Elapsed: {}, {} remaining", m_source ? m_source->Id() : ObjIdBase(), percentage, elapsedStr, timeEstimateStr);
 
-    m_lastProgressPercent = progressPercent;
+        m_lastProgressPercent = progressPercent;
+    }
 }
 
 void BakerBase::OnCompleted()

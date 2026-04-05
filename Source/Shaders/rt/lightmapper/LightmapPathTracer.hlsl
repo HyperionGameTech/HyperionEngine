@@ -69,10 +69,10 @@ DECLARE_BUFFER_DYNAMIC(LightmapPathTracer, CBuffer) cbuffer CBuffer
 
 #ifdef MODE_IRRADIANCE
 #define NUM_BOUNCES 4
-#define NUM_SAMPLES 8
+#define NUM_SAMPLES 128
 #elif defined(MODE_FULL)
 #define NUM_BOUNCES 4
-#define NUM_SAMPLES 8
+#define NUM_SAMPLES 128
 #else
 #define NUM_BOUNCES 1
 #define NUM_SAMPLES 1

@@ -77,7 +77,7 @@
   },
   "Baker": {
     "OnlyGenerateUVs": false,
-    "NumSamples": 16,
+    "NumSamples": 1,
     "MaxTexelsPerFrame": 262144
   }
 }

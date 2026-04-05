@@ -186,10 +186,10 @@ Result BakeData<LightmapVolume>::Build()
     }
 
     xatlas::PackOptions packOptions {};
-    packOptions.maxChartSize = 2048;
-    packOptions.texelsPerUnit = 32.0f;
+    packOptions.maxChartSize = 512;
+    packOptions.texelsPerUnit = 8.0f;
     packOptions.padding = 4;
-    //packOptions.resolution = 2048;
+    //packOptions.resolution = 512;
     packOptions.bilinear = true;
 
     xatlas::ComputeCharts(atlas);
