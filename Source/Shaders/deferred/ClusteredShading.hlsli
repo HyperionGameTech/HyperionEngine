@@ -3,24 +3,26 @@
  *  Date: 2026/03/26
  **/
 
-#pragma once
+#ifndef CLUSTERED_SHADING_HLSLI
+#define CLUSTERED_SHADING_HLSLI
 
 #include "include/defines.inc"
 
 float Linear01Depth(float depth, float near, float far);
 
+// For intellisense to work
 #ifndef HYP_SHADER_COMPILER
 #define TILE_SIZE 32
 #define TILE_Z_BINS 16
 #endif // HYP_SHADER_COMPILER
 
 #ifndef TILE_SIZE
-#error "TILE_SIZE must be defined before including Tiles.hlsli"
-#endif
+#error "TILE_SIZE must be defined before including ClusteredShading.hlsli"
+#endif // TILE_SIZE
 
 #ifndef TILE_Z_BINS
-#error "TILE_Z_BINS must be defined before including Tiles.hlsli"
-#endif
+#error "TILE_Z_BINS must be defined before including ClusteredShading.hlsli"
+#endif // TILE_Z_BINS
 
 // x = index offset, y = lights, envprobe counts (uint16 each)
 DECLARE_SRV_DYNAMIC(DeferredPass, ClusterGridBuffer) StructuredBuffer<uint2> ClusterGridBuffer;
@@ -73,3 +75,5 @@ uint Cluster_GetGridIndex(uint2 dimensions, uint2 pixelCoord, float viewSpaceZ, 
     
     return (zBin * tilesY + tileY) * tilesX + tileX;
 }
+
+#endif // CLUSTERED_SHADING_HLSLI

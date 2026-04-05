@@ -4,7 +4,7 @@
 #include "../../include/shared.inc"
 #include "../../include/noise.inc"
 #include "../../include/packing.inc"
-#include "../../include/brdf.inc"
+#include "../../include/BRDF.hlsli"
 
 DECLARE_SAMPLER(DDGI, SamplerNearest) SamplerState sampler_nearest;
 DECLARE_SAMPLER(DDGI, SamplerLinear) SamplerState sampler_linear;

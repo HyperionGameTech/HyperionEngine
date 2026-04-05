@@ -109,12 +109,12 @@ DECLARE_BUFFER_DYNAMIC(FogVolume, CamerasBuffer) cbuffer CamerasBuffer
 DECLARE_SRV(FogVolume, ShadowMapsTextureArray) Texture2DArray<float> shadow_maps;
 DECLARE_SRV(FogVolume, PointLightShadowMapsTextureArray) TextureCubeArray point_shadow_maps;
 
-#include "../include/brdf.inc"
+#include "../include/BRDF.hlsli"
 
 #define HYP_DEFERRED_NO_REFRACTION
 #define HYP_DEFERRED_NO_ENV_PROBE
 
-#include "./DeferredLighting.inc"
+#include "./DeferredLighting.hlsli"
 
 #undef HYP_DEFERRED_NO_REFRACTION
 #undef HYP_DEFERRED_NO_ENV_PROBE

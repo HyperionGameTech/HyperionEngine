@@ -31,7 +31,7 @@ DECLARE_UAV(PathTracer, OutputImage) RWTexture2D<float4> image;
 #include "../../include/scene.inc"
 #include "../../include/packing.inc"
 #include "../../include/noise.inc"
-#include "../../include/brdf.inc"
+#include "../../include/BRDF.hlsli"
 
 /// Blue noise
 DECLARE_SRV(PathTracer, BlueNoiseBuffer) StructuredBuffer<int4> BlueNoiseBuffer;

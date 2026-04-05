@@ -119,18 +119,14 @@ DECLARE_SRV(DeferredPass, PointLightShadowMapsTextureArray) TextureCubeArray poi
 #define HYP_DEFERRED_NO_ENV_PROBE
 #define HYP_DEFERRED_NO_RT_RADIANCE
 
-#include "./deferred/DeferredLighting.inc"
-
-#undef HYP_DEFERRED_NO_RT_RADIANCE
-#undef HYP_DEFERRED_NO_REFRACTION
-#undef HYP_DEFERRED_NO_ENV_PROBE
+#include "./deferred/DeferredLighting.hlsli"
 
 #include "include/Shadows.hlsli"
 
 #include "include/LightSampling.inc"
 
 #ifdef LIGHT_TYPE_CLUSTERED
-#include "deferred/Tiles.hlsli"
+#include "deferred/ClusteredShading.hlsli"
 
 DECLARE_BUFFER_DYNAMIC(DeferredPass, CBuffer) cbuffer CBuffer
 {
@@ -150,7 +146,7 @@ uint GetShadowMapIndexForLight(uint lightIndex)
     return LightToShadowMapIndex.Load(lightIndex * sizeof(uint));
 }
 
-#endif
+#endif // LIGHT_TYPE_CLUSTERED
 
 PSOutput PSMain(PSInput input)
 {

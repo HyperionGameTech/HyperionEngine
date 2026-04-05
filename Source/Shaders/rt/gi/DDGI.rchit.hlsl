@@ -19,7 +19,7 @@ DECLARE_SAMPLER(DDGI, SamplerLinear) SamplerState sampler_linear;
 #include "../../include/Entity.inc"
 #include "../../include/scene.inc"
 
-#include "../../include/brdf.inc"
+#include "../../include/BRDF.hlsli"
 #undef HYP_DO_NOT_DEFINE_DESCRIPTOR_SETS
 
 #include "../../include/rt/mesh.inc"
@@ -35,9 +35,7 @@ DECLARE_BUFFER_DYNAMIC(DDGI, CBuffer) cbuffer CBuffer
 DECLARE_SRV(DDGI, ShadowMapsTextureArray) Texture2DArray<float> shadow_maps;
 DECLARE_SRV(DDGI, PointLightShadowMapsTextureArray) TextureCubeArray point_shadow_maps;
 
-#define HYP_DO_NOT_DEFINE_DESCRIPTOR_SETS
 #include "../../include/Shadows.hlsli"
-#undef HYP_DO_NOT_DEFINE_DESCRIPTOR_SETS
 
 #undef HYP_NO_CUBEMAP
 

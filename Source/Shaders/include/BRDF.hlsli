@@ -1,9 +1,9 @@
-#ifndef HYP_BRDF_GLSL
-#define HYP_BRDF_GLSL
+#ifndef BRDF_HLSLI
+#define BRDF_HLSLI
 
-float GetSquareFalloffAttenuation(vec3 P, vec3 L, float radius)
+float GetSquareFalloffAttenuation(float3 P, float3 L, float radius)
 {
-    const vec3 position_to_light = P - L;
+    const float3 position_to_light = P - L;
 
     const float dist = length(position_to_light);
     const float distance_square = dot(position_to_light, position_to_light);
@@ -28,25 +28,25 @@ float RightPyramidSolidAngle(float dist, float half_width, float half_height)
 }
 
 // https://github.com/turanszkij/WickedEngine/blob/62d1d02691286cc6c25da61294bfb416d018782b/WickedEngine/lightingHF.hlsli#L251C1-L257C2
-vec3 ClosestPointOnSegment(vec3 a, vec3 b, vec3 c)
+float3 ClosestPointOnSegment(float3 a, float3 b, float3 c)
 {
-    vec3 ab = b - a;
+    float3 ab = b - a;
     float t = dot(c - a, ab) / dot(ab, ab);
 
     return a + clamp(t, 0.0, 1.0) * ab;
 }
 
-float RectangleSolidAngle(vec3 world_position, vec3 p0, vec3 p1, vec3 p2, vec3 p3)
+float RectangleSolidAngle(float3 world_position, float3 p0, float3 p1, float3 p2, float3 p3)
 {
-    vec3 v0 = p0 - world_position;
-    vec3 v1 = p1 - world_position;
-    vec3 v2 = p2 - world_position;
-    vec3 v3 = p3 - world_position;
+    float3 v0 = p0 - world_position;
+    float3 v1 = p1 - world_position;
+    float3 v2 = p2 - world_position;
+    float3 v3 = p3 - world_position;
 
-    vec3 n0 = normalize(cross(v0, v1));
-    vec3 n1 = normalize(cross(v1, v2));
-    vec3 n2 = normalize(cross(v2, v3));
-    vec3 n3 = normalize(cross(v3, v0));
+    float3 n0 = normalize(cross(v0, v1));
+    float3 n1 = normalize(cross(v1, v2));
+    float3 n2 = normalize(cross(v2, v3));
+    float3 n3 = normalize(cross(v3, v0));
 
     float g0 = acos(dot(-n0, n1));
     float g1 = acos(dot(-n1, n2));
@@ -56,7 +56,7 @@ float RectangleSolidAngle(vec3 world_position, vec3 p0, vec3 p1, vec3 p2, vec3 p
     return g0 + g1 + g2 + g3 - 2.0 * HYP_FMATH_PI;
 }
 
-vec3 ImportanceSampleGTR2(float rgh, float r1, float r2)
+float3 ImportanceSampleGTR2(float rgh, float r1, float r2)
 {
     float a = max(0.001, rgh);
 
@@ -67,7 +67,7 @@ vec3 ImportanceSampleGTR2(float rgh, float r1, float r2)
     float sinPhi   = sin(phi);
     float cosPhi   = cos(phi);
 
-    return vec3(sinTheta * cosPhi, sinTheta * sinPhi, cosTheta);
+    return float3(sinTheta * cosPhi, sinTheta * sinPhi, cosTheta);
 }
 
 float V_SmithGGXCorrelated(float roughness, float NoV, float NoL)
@@ -100,7 +100,7 @@ float GGX_PDF(float NdotH, float HdotV, float roughness)
     return D * NdotH / (4.0 * HdotV);
 }
 
-vec3 SampleGGX(vec2 xi, float roughness, vec3 N)
+float3 SampleGGX(float2 xi, float roughness, float3 N)
 {
     float a = roughness * roughness;
 
@@ -110,13 +110,13 @@ vec3 SampleGGX(vec2 xi, float roughness, vec3 N)
     float sinTheta = sqrt(1.0 - cosTheta * cosTheta);
 
     // Convert to cartesian
-    vec3 H;
+    float3 H;
     H.x = sinTheta * cos(phi);
     H.y = sinTheta * sin(phi);
     H.z = cosTheta;
 
     // Transform to world space
-    vec3 T1, T2;
+    float3 T1, T2;
     ComputeOrthonormalBasis(N, T1, T2);
     return normalize(T1 * H.x + T2 * H.y + N * H.z);
 }
@@ -149,12 +149,12 @@ float CookTorranceG(float NdotL, float NdotV, float HdotV, float NdotH)
     //return min(1, 2 * (NdotH / LdotH) * min(NdotL, NdotV));
 }
 
-vec3 F_Schlick(vec3 f0, float cosTheta)
+float3 F_Schlick(float3 f0, float cosTheta)
 {
     return f0 + (1.0 - f0) * pow(1.0 - cosTheta, 5.0);
 }
 
-vec3 SchlickFresnel(vec3 f0, vec3 f90, float u)
+float3 SchlickFresnel(float3 f0, float3 f90, float u)
 {
     //const float Fc = pow(1 - u, 5.0);
     //return f0 * (1.0 - Fc) + f90 * Fc;
@@ -162,7 +162,7 @@ vec3 SchlickFresnel(vec3 f0, vec3 f90, float u)
     return f0 + (f90 - f0) * pow(1.0 - u, 5.0);
 }
 
-vec4 SchlickFresnel(vec4 f0, vec4 f90, float u)
+float4 SchlickFresnel(float4 f0, float4 f90, float u)
 {
     const float Fc = pow(1 - u, 5.0);
     return f0 * (1.0 - Fc) + f90 * Fc;
@@ -170,41 +170,41 @@ vec4 SchlickFresnel(vec4 f0, vec4 f90, float u)
     // return f0 + (f90 - f0) * pow(1.0 - u, 5.0);
 }
 
-vec4 SchlickFresnelRoughness(vec4 f0, float roughness, float u)
+float4 SchlickFresnelRoughness(float4 f0, float roughness, float u)
 {
     // const float Fc = pow(1 - u, 5.0);
     // return f0 * (1.0 - Fc) + f90 * Fc;
 
-    return f0 + (max(vec4((1.0 - roughness).xxxx), f0) - f0) * pow(1.0 - u, 5.0);
+    return f0 + (max(float4((1.0 - roughness).xxxx), f0) - f0) * pow(1.0 - u, 5.0);
 }
 
-vec3 SchlickFresnelRoughness(vec3 f0, float roughness, float u)
+float3 SchlickFresnelRoughness(float3 f0, float roughness, float u)
 {
     // const float Fc = pow(1 - u, 5.0);
     // return f0 * (1.0 - Fc) + f90 * Fc;
 
-    return f0 + (max(vec3((1.0 - roughness).xxx), f0) - f0) * pow(1.0 - u, 5.0);
+    return f0 + (max(float3((1.0 - roughness).xxx), f0) - f0) * pow(1.0 - u, 5.0);
 }
 
-vec3 mon2lin(vec3 x)
+float3 mon2lin(float3 x)
 {
-    return vec3(pow(x[0], 2.2), pow(x[1], 2.2), pow(x[2], 2.2));
+    return float3(pow(x[0], 2.2), pow(x[1], 2.2), pow(x[2], 2.2));
 }
 
-vec2 BRDFMap(float roughness, float NdotV)
+float2 BRDFMap(float roughness, float NdotV)
 {
     // Same as EnvBRDFApprox( 0.04, Roughness, NoV )
-    // const vec2 c0 = { -1.0, -0.0275 };
-    // const vec2 c1 = { 1.0, 0.0425 };
-    // vec2 r = roughness * c0 + c1;
+    // const float2 c0 = { -1.0, -0.0275 };
+    // const float2 c1 = { 1.0, 0.0425 };
+    // float2 r = roughness * c0 + c1;
     // float a004 = min(r.x * r.x, exp2(-9.28 * NdotV)) * r.x + r.y;
-    // return vec2( -1.04, 1.04 ) * a004;
+    // return float2( -1.04, 1.04 ) * a004;
 
-    const vec4 c0 = vec4( -1, -0.0275, -0.572, 0.022 );
-    const vec4 c1 = vec4( 1, 0.0425, 1.04, -0.04 );
-    vec4 r = roughness * c0 + c1;
+    const float4 c0 = float4( -1, -0.0275, -0.572, 0.022 );
+    const float4 c1 = float4( 1, 0.0425, 1.04, -0.04 );
+    float4 r = roughness * c0 + c1;
     float a004 = min( r.x * r.x, exp2( -9.28 * NdotV ) ) * r.x + r.y;
-    return vec2( -1.04, 1.04 ) * a004 + r.zw;
+    return float2( -1.04, 1.04 ) * a004 + r.zw;
 }
 
 float sqr(float x)
@@ -286,7 +286,7 @@ float ComputePerceptualRoughness(float roughness, float3 normal)
 }
 #endif
 
-float SpecularAO_Cones(vec3 bentNormal, float visibility, float roughness, vec3 shading_reflected)
+float SpecularAO_Cones(float3 bentNormal, float visibility, float roughness, float3 shading_reflected)
 {
     // Jimenez et al. 2016, "Practical Realtime Strategies for Accurate Indirect Occlusion"
 
@@ -311,13 +311,13 @@ float SpecularAO_Lagarde(float NoV, float visibility, float roughness)
     return clamp(pow(NoV + visibility, exp2(-16.0 * roughness - 1.0)) - 1.0 + visibility, 0.0, 1.0);
 }
 
-vec3 GTAOMultiBounce(float visibility, const vec3 albedo) {
+float3 GTAOMultiBounce(float visibility, const float3 albedo) {
     // Jimenez et al. 2016, "Practical Realtime Strategies for Accurate Indirect Occlusion"
-    vec3 a =  2.0404 * albedo - 0.3324;
-    vec3 b = -4.7951 * albedo + 0.6417;
-    vec3 c =  2.7552 * albedo + 0.6903;
+    float3 a =  2.0404 * albedo - 0.3324;
+    float3 b = -4.7951 * albedo + 0.6417;
+    float3 c =  2.7552 * albedo + 0.6903;
 
-    return max(vec3(visibility.xxx), ((visibility * a + b) * visibility + c) * visibility);
+    return max(float3(visibility.xxx), ((visibility * a + b) * visibility + c) * visibility);
 }
 
 float VanDerCorpus(uint bits) 
@@ -330,7 +330,7 @@ float VanDerCorpus(uint bits)
     return float(bits) * 2.3283064365386963e-10; // / 0x100000000
 }
       
-vec3 CosWeightedRandomHemisphereDirectionHammersley(uint sample_index, uint num_samples, vec3 n)
+float3 CosWeightedRandomHemisphereDirectionHammersley(uint sample_index, uint num_samples, float3 n)
 {
     float x = float(sample_index) / float(num_samples);
 
@@ -341,21 +341,21 @@ vec3 CosWeightedRandomHemisphereDirectionHammersley(uint sample_index, uint num_
     i = ((i & 0x0F0F0F0Fu) << 4u) | ((i & 0xF0F0F0F0u) >> 4u);
     i = ((i & 0x00FF00FFu) << 8u) | ((i & 0xFF00FF00u) >> 8u);
 
-    vec2 r = vec2(x, (float(i) * 2.32830643653086963e-10 * 6.2831));
-    vec3 uu = normalize(cross(n, vec3(1.0,1.0,0.0))), vv = cross(uu, n);
+    float2 r = float2(x, (float(i) * 2.32830643653086963e-10 * 6.2831));
+    float3 uu = normalize(cross(n, float3(1.0,1.0,0.0))), vv = cross(uu, n);
 
     float sqrtx = sqrt(r.x);
 
-    return normalize(vec3(sqrtx * cos(r.y) * uu + sqrtx * sin(r.y) * vv + sqrt(1.0 - r.x) * n));
+    return normalize(float3(sqrtx * cos(r.y) * uu + sqrtx * sin(r.y) * vv + sqrt(1.0 - r.x) * n));
 }
 
 // Hammersley sequence
-vec2 Hammersley(uint i, uint N)
+float2 Hammersley(uint i, uint N)
 {
-    return vec2(float(i) / float(N), VanDerCorpus(i + 1u));
+    return float2(float(i) / float(N), VanDerCorpus(i + 1u));
 }
 
-vec3 ImportanceSampleGGX(vec2 Xi, vec3 N, float roughness)
+float3 ImportanceSampleGGX(float2 Xi, float3 N, float roughness)
 {
     float alpha = roughness * roughness;
     float alpha2 = alpha * alpha;
@@ -365,7 +365,7 @@ vec3 ImportanceSampleGGX(vec2 Xi, vec3 N, float roughness)
     float sinTheta = sqrt(1.0 - cosTheta * cosTheta);
 	
     // from spherical coordinates to cartesian coordinates
-    vec3 H;
+    float3 H;
     H.x = cos(phi) * sinTheta;
     H.y = sin(phi) * sinTheta;
     H.z = cosTheta;
@@ -380,30 +380,30 @@ float ApplyIORToRoughness(float ior, float roughness)
     return roughness * clamp(ior * 2.0 - 2.0, 0.0, 1.0);
 }
 
-vec3 CalculateDiffuseColor(vec3 albedo, float metalness)
+float3 CalculateDiffuseColor(float3 albedo, float metalness)
 {
     return albedo * (1.0 - metalness);
 }
 
-vec4 CalculateDiffuseColor(vec4 albedo, float metalness)
+float4 CalculateDiffuseColor(float4 albedo, float metalness)
 {
-    return vec4(CalculateDiffuseColor(albedo.rgb, metalness), albedo.a);
+    return float4(CalculateDiffuseColor(albedo.rgb, metalness), albedo.a);
 }
 
-vec3 CalculateF0(vec3 albedo, float metalness)
+float3 CalculateF0(float3 albedo, float metalness)
 {
     const float IOR = 1.5;
-    vec3 F0 = vec3((pow(IOR - 1.0, 2.0) / pow(IOR + 1.0, 2.0)).xxx);
+    float3 F0 = float3((pow(IOR - 1.0, 2.0) / pow(IOR + 1.0, 2.0)).xxx);
     F0 = lerp(F0, albedo, metalness);
     return F0;
 }
 
-vec3 CalculateFresnelTerm(vec3 F0, float roughness, float NdotV)
+float3 CalculateFresnelTerm(float3 F0, float roughness, float NdotV)
 {
     return SchlickFresnelRoughness(F0, roughness, NdotV);
 }
 
-vec4 CalculateFresnelTerm(vec4 F0, float roughness, float NdotV)
+float4 CalculateFresnelTerm(float4 F0, float roughness, float NdotV)
 {
     return SchlickFresnelRoughness(F0, roughness, NdotV);
 }
@@ -418,41 +418,41 @@ float CalculateDistributionTerm(float roughness, float NdotH)
     return Trowbridge(NdotH, roughness);
 }
 
-vec3 CalculateDFG(vec3 F, float perceptual_roughness, float NdotV)
+float3 CalculateDFG(float3 F, float perceptual_roughness, float NdotV)
 {
-    const vec2 AB = BRDFMap(perceptual_roughness, NdotV);
+    const float2 AB = BRDFMap(perceptual_roughness, NdotV);
 
     return F * AB.x + AB.y;
 }
 
-vec4 CalculateDFG(vec4 F, float perceptual_roughness, float NdotV)
+float4 CalculateDFG(float4 F, float perceptual_roughness, float NdotV)
 {
-    const vec2 AB = BRDFMap(perceptual_roughness, NdotV);
+    const float2 AB = BRDFMap(perceptual_roughness, NdotV);
 
     return F * AB.x + AB.y;
 }
 
-vec3 CalculateE(vec3 F0, vec3 dfg)
+float3 CalculateE(float3 F0, float3 dfg)
 {
     return lerp(dfg.xxx, dfg.yyy, F0);
 }
 
-vec4 CalculateE(vec4 F0, vec4 dfg)
+float4 CalculateE(float4 F0, float4 dfg)
 {
     return lerp(dfg.xxxx, dfg.yyyy, F0);
 }
 
-vec3 CalculateEnergyCompensation(vec3 F0, vec3 dfg)
+float3 CalculateEnergyCompensation(float3 F0, float3 dfg)
 {
     return 1.0 + F0 * ((1.0 / max(dfg.y, 0.0001)) - 1.0);
 }
 
-vec4 CalculateEnergyCompensation(vec4 F0, vec4 dfg)
+float4 CalculateEnergyCompensation(float4 F0, float4 dfg)
 {
     return 1.0 + F0 * ((1.0 / max(dfg.y, 0.0001)) - 1.0);
 }
 
-vec3 SampleCosineWeightedHemisphere(vec2 Xi)
+float3 SampleCosineWeightedHemisphere(float2 Xi)
 {
     float r = sqrt(Xi.x);
     float phi = 6.28318530718 * Xi.y;
@@ -461,14 +461,14 @@ vec3 SampleCosineWeightedHemisphere(vec2 Xi)
     float y = r * sin(phi);
     float z = sqrt(1.0 - r * r);
 
-    return vec3(x, y, z);
+    return float3(x, y, z);
 }
 
-vec3 SampleCosineDir(in vec2 xi, in vec3 N)
+float3 SampleCosineDir(in float2 xi, in float3 N)
 {
-    vec3 dir = SampleCosineWeightedHemisphere(xi);
+    float3 dir = SampleCosineWeightedHemisphere(xi);
 
-    vec3 T1, T2;
+    float3 T1, T2;
     ComputeOrthonormalBasis(N, T1, T2);
 
     return normalize(T1 * dir.x + T2 * dir.y + N * dir.z);
@@ -499,4 +499,4 @@ float TexelCoordSolidAngle(int a_FaceIdx, float a_U, float a_V, int a_Size)
 	return SolidAngle;
 }
 
-#endif
+#endif // BRDF_HLSLI

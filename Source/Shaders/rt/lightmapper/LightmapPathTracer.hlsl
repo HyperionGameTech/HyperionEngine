@@ -22,7 +22,7 @@ DECLARE_SRV(LightmapPathTracer, TLAS) RaytracingAccelerationStructure tlas;
 #include "../../include/scene.inc"
 #include "../../include/packing.inc"
 #include "../../include/noise.inc"
-#include "../../include/brdf.inc"
+#include "../../include/BRDF.hlsli"
 
 #undef HYP_DO_NOT_DEFINE_DESCRIPTOR_SETS
 

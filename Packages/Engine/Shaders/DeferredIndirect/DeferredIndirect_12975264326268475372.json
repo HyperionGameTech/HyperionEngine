@@ -20,33 +20,39 @@
       "EnumValues": []
     }, {
       "$Class": "ShaderProperty",
-      "Name": "SHADING_TYPE",
-      "Flags": 0,
-      "Value": "FORWARD",
-      "EnumValues": []
-    }, {
-      "$Class": "ShaderProperty",
-      "Name": "SKINNING",
+      "Name": "HBAO_ENABLED",
       "Flags": 0,
       "Value": null,
       "EnumValues": []
     }, {
       "$Class": "ShaderProperty",
-      "Name": "MAX_LIGHTS",
+      "Name": "MAX_FALLBACK_PROBES",
       "Flags": 0,
       "Value": 4,
       "EnumValues": []
+    }, {
+      "$Class": "ShaderProperty",
+      "Name": "TILE_SIZE",
+      "Flags": 0,
+      "Value": 32,
+      "EnumValues": []
+    }, {
+      "$Class": "ShaderProperty",
+      "Name": "TILE_Z_BINS",
+      "Flags": 0,
+      "Value": 16,
+      "EnumValues": []
     }],
   "RevisionNumber": 31459917,
-  "BaseName": "GeometryPass",
+  "BaseName": "DeferredIndirect",
   "InputLayout": {
-    "Mask": 15
+    "Mask": 7
   },
   "ShaderInputGroup": {
     "Elements": [{
         "$Class": "ShaderInputSet",
         "SetIndex": 0,
-        "Name": "Default",
+        "Name": "DeferredPass",
         "Slots": [[{
               "$Class": "ShaderInput",
               "Register": 1,
@@ -64,8 +70,22 @@
             }, {
               "$Class": "ShaderInput",
               "Register": 1,
+              "ElementType": 3,
+              "Name": "LightsBuffer",
+              "Count": 1,
+              "Size": 4294967295,
+              "IsDynamic": false,
+              "StructInfo": {
+                "Name": "",
+                "Size": 4294967295,
+                "FieldNames": [],
+                "FieldTypes": []
+              }
+            }, {
+              "$Class": "ShaderInput",
+              "Register": 1,
               "ElementType": 4,
-              "Name": "CurrentEntity",
+              "Name": "ClusterGridBuffer",
               "Count": 1,
               "Size": 4294967295,
               "IsDynamic": true,
@@ -79,7 +99,7 @@
               "$Class": "ShaderInput",
               "Register": 1,
               "ElementType": 4,
-              "Name": "SkeletonsBuffer",
+              "Name": "ClusterIndexBuffer",
               "Count": 1,
               "Size": 4294967295,
               "IsDynamic": true,
@@ -92,11 +112,11 @@
             }, {
               "$Class": "ShaderInput",
               "Register": 1,
-              "ElementType": 4,
-              "Name": "CurrentEnvProbe",
+              "ElementType": 5,
+              "Name": "GBufferDepthTexture",
               "Count": 1,
               "Size": 4294967295,
-              "IsDynamic": true,
+              "IsDynamic": false,
               "StructInfo": {
                 "Name": "",
                 "Size": 4294967295,
@@ -106,11 +126,25 @@
             }, {
               "$Class": "ShaderInput",
               "Register": 1,
-              "ElementType": 4,
-              "Name": "MaterialsBuffer",
+              "ElementType": 5,
+              "Name": "GBufferAlbedoTexture",
               "Count": 1,
               "Size": 4294967295,
-              "IsDynamic": true,
+              "IsDynamic": false,
+              "StructInfo": {
+                "Name": "",
+                "Size": 4294967295,
+                "FieldNames": [],
+                "FieldTypes": []
+              }
+            }, {
+              "$Class": "ShaderInput",
+              "Register": 1,
+              "ElementType": 5,
+              "Name": "ReflectionProbeResultTexture",
+              "Count": 1,
+              "Size": 4294967295,
+              "IsDynamic": false,
               "StructInfo": {
                 "Name": "",
                 "Size": 4294967295,
@@ -135,7 +169,7 @@
               "$Class": "ShaderInput",
               "Register": 1,
               "ElementType": 5,
-              "Name": "EnvProbesTexture",
+              "Name": "RTRadianceResultTexture",
               "Count": 1,
               "Size": 4294967295,
               "IsDynamic": false,
@@ -149,7 +183,7 @@
               "$Class": "ShaderInput",
               "Register": 1,
               "ElementType": 5,
-              "Name": "PointLightShadowMapsTextureArray",
+              "Name": "GBufferNormalsTexture",
               "Count": 1,
               "Size": 4294967295,
               "IsDynamic": false,
@@ -163,7 +197,49 @@
               "$Class": "ShaderInput",
               "Register": 1,
               "ElementType": 5,
-              "Name": "ShadowMapsTextureArray",
+              "Name": "GBufferVelocityTexture",
+              "Count": 1,
+              "Size": 4294967295,
+              "IsDynamic": false,
+              "StructInfo": {
+                "Name": "",
+                "Size": 4294967295,
+                "FieldNames": [],
+                "FieldTypes": []
+              }
+            }, {
+              "$Class": "ShaderInput",
+              "Register": 1,
+              "ElementType": 5,
+              "Name": "SSGIResultTexture",
+              "Count": 1,
+              "Size": 4294967295,
+              "IsDynamic": false,
+              "StructInfo": {
+                "Name": "",
+                "Size": 4294967295,
+                "FieldNames": [],
+                "FieldTypes": []
+              }
+            }, {
+              "$Class": "ShaderInput",
+              "Register": 1,
+              "ElementType": 5,
+              "Name": "GBufferMaterialTexture",
+              "Count": 1,
+              "Size": 4294967295,
+              "IsDynamic": false,
+              "StructInfo": {
+                "Name": "",
+                "Size": 4294967295,
+                "FieldNames": [],
+                "FieldTypes": []
+              }
+            }, {
+              "$Class": "ShaderInput",
+              "Register": 1,
+              "ElementType": 5,
+              "Name": "SSAOResultTexture",
               "Count": 1,
               "Size": 4294967295,
               "IsDynamic": false,
@@ -191,21 +267,7 @@
               "$Class": "ShaderInput",
               "Register": 3,
               "ElementType": 2,
-              "Name": "CamerasBuffer",
-              "Count": 1,
-              "Size": 4294967295,
-              "IsDynamic": true,
-              "StructInfo": {
-                "Name": "",
-                "Size": 4294967295,
-                "FieldNames": [],
-                "FieldTypes": []
-              }
-            }, {
-              "$Class": "ShaderInput",
-              "Register": 3,
-              "ElementType": 2,
-              "Name": "FowardShadingConstants",
+              "Name": "CBuffer",
               "Count": 1,
               "Size": 4294967295,
               "IsDynamic": true,
@@ -245,31 +307,25 @@
               }
             }], []],
         "Flags": 0
-      }, {
-        "$Class": "ShaderInputSet",
-        "SetIndex": 1,
-        "Name": "BindlessResources0",
-        "Slots": [[], [], [], [], []],
-        "Flags": 1
       }]
   },
   "ShaderModuleTypes": [1, 2],
-  "ShaderModuleNames": ["DefaultVertex.hlsl", "GeometryPass.hlsl"],
+  "ShaderModuleNames": ["DeferredIndirect.hlsl", "DeferredIndirect.hlsl"],
   "EntryPointNames": ["VSMain", "PSMain"],
   "ShaderBlobs": [{
       "$Class": "BlobDataReference",
-      "Key": "Engine/Shaders/GeometryPass/GeometryPass_9085333858502016769.VS",
-      "Size": 60120
+      "Key": "Engine/Shaders/DeferredIndirect/DeferredIndirect_12975264326268475372.VS",
+      "Size": 11416
     }, {
       "$Class": "BlobDataReference",
-      "Key": "Engine/Shaders/GeometryPass/GeometryPass_9085333858502016769.PS",
-      "Size": 255512
+      "Key": "Engine/Shaders/DeferredIndirect/DeferredIndirect_12975264326268475372.PS",
+      "Size": 130740
     }],
   "PropertySetHashCode": {},
   "LastCompiledTimestamp": {
-    "Value": 1775430576000
+    "Value": 1775432734000
   },
-  "Name": "GeometryPass_9085333858502016769",
-  "FriendlyName": "GeometryPass_9085333858502016769",
+  "Name": "DeferredIndirect_12975264326268475372",
+  "FriendlyName": "DeferredIndirect_12975264326268475372",
   "OriginalFilepath": ""
 }

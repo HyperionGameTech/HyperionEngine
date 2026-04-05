@@ -1,7 +1,7 @@
 #ifndef ENV_GRID_RADIANCE_GLSL
 #define ENV_GRID_RADIANCE_GLSL
 
-#include "../include/brdf.inc"
+#include "../include/BRDF.hlsli"
 #include "../include/noise.inc"
 #include "../include/BlueNoise.inc"
 #include "../include/Octahedron.inc"

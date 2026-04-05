@@ -81,7 +81,7 @@ DECLARE_BUFFER(LightmapPass, WorldsBuffer) cbuffer WorldsBuffer
     WorldShaderData world_shader_data;
 };
 
-#include "../include/brdf.inc"
+#include "../include/BRDF.hlsli"
 
 DECLARE_SRV(LightmapPass, ShadowMapsTextureArray) Texture2DArray<float> shadow_maps;
 DECLARE_SRV(LightmapPass, PointLightShadowMapsTextureArray) TextureCubeArray point_shadow_maps;
@@ -118,7 +118,7 @@ DECLARE_BUFFER_DYNAMIC(LightmapPass, EnvGridsBuffer) cbuffer EnvGridsBuffer
     EnvGrid env_grid;
 };
 
-#include "./DeferredLighting.inc"
+#include "./DeferredLighting.hlsli"
 
 PSOutput PSMain(PSInput input)
 {
