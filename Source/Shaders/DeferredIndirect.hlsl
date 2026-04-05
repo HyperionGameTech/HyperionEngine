@@ -167,6 +167,7 @@ PSOutput PSMain(PSInput input)
     CalculateRayTracingReflection(texcoord, reflections);
 #endif
 
+#if 0 // SH probes
     // Blend in SH probes
     // this will need to be reworked using tiling and per-tile linked lists or something similar.
     float3 blendedSH = (float3)0.0;
@@ -201,8 +202,8 @@ PSOutput PSMain(PSInput input)
     else if (numFallbackProbes > 0)
     {
         irradiance = float4(EnvProbeSH(fallbackEnvProbes[0], N, /* order */ 2), 0.0);
-
     }
+#endif
 
 #if SSGI_ENABLED
     // Blend ssgi result into irradiance - if no hit, alpha will be zero or close to it so we can lerp it

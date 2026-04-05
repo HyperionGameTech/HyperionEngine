@@ -46,16 +46,24 @@ struct PSOutput
     float4 color_output : SV_Target0;
 };
 
+// @NOTE: Do not remove texture inputs even if unused,
+// as we render in the same pass as DeferredDirect/DeferredIndirect and if they are not declare here,
+// we will end up ending + restarting the pass so we can transition the image layouts correctly.
+// In order to keep the same pass going without using LOAD operations and more complex management,
+// we just keep the shader inputs the same as the other deferred shaders, even if some of them are not used.
+
 DECLARE_SRV(LightmapPass, GBufferAlbedoTexture) Texture2D gbuffer_albedo_texture;
 DECLARE_SRV(LightmapPass, GBufferNormalsTexture) Texture2D gbuffer_normals_texture;
 DECLARE_SRV(LightmapPass, GBufferMaterialTexture) Texture2D<uint4> gbuffer_material_texture;
 DECLARE_SRV(LightmapPass, GBufferVelocityTexture) Texture2D gbuffer_velocity_texture;
-DECLARE_SRV(LightmapPass, GBufferMipChain) Texture2D gbuffer_mip_chain;
 DECLARE_SRV(LightmapPass, GBufferDepthTexture) Texture2D gbuffer_depth_texture;
+
+DECLARE_SRV(DeferredPass, GBufferMipChain) Texture2D gbuffer_mip_chain;
 
 DECLARE_SAMPLER(LightmapPass, SamplerNearest) SamplerState sampler_nearest;
 DECLARE_SAMPLER(LightmapPass, SamplerLinear) SamplerState sampler_linear;
 
+DECLARE_SRV(LightmapPass, SSAOResultTexture) Texture2D SSAOResultTexture;
 DECLARE_SRV(LightmapPass, ReflectionProbeResultTexture) Texture2D ReflectionProbeResultTexture;
 
 #include "../include/shared.inc"
@@ -78,7 +86,7 @@ DECLARE_BUFFER(LightmapPass, WorldsBuffer) cbuffer WorldsBuffer
 DECLARE_SRV(LightmapPass, ShadowMapsTextureArray) Texture2DArray<float> shadow_maps;
 DECLARE_SRV(LightmapPass, PointLightShadowMapsTextureArray) TextureCubeArray point_shadow_maps;
 
-#include "../include/Shadows.hlsli"
+// #include "../include/Shadows.hlsli"
 
 DECLARE_SRV(LightmapPass, IrradianceTexture) Texture2D IrradianceTexture;
 DECLARE_SRV(LightmapPass, RadianceTexture) Texture2D RadianceTexture;
@@ -123,8 +131,8 @@ PSOutput PSMain(PSInput input)
 
     const uint2 pixelCoord = uint2(texcoord * max(0, int2(gbufferDimensions) - 1));
 
-    const float4 albedo = SAMPLE_TEXTURE_2D(sampler_nearest, gbuffer_albedo_texture, texcoord);
-    const float4 normalSample = SAMPLE_TEXTURE_2D(sampler_nearest, gbuffer_normals_texture, texcoord);
+    const float4 albedo = SAMPLE_TEXTURE_2D_LOD(sampler_nearest, gbuffer_albedo_texture, texcoord, 0);
+    const float4 normalSample = SAMPLE_TEXTURE_2D_LOD(sampler_nearest, gbuffer_normals_texture, texcoord, 0);
 
     const uint4 materialData = gbuffer_material_texture.Load(int3(pixelCoord, 0));
 
@@ -133,18 +141,20 @@ PSOutput PSMain(PSInput input)
 
     const float roughness = materialParams.roughness;
     const float metalness = materialParams.metalness;
-    const float ao = 1.0;
+    float ao = 1.0;
 
     const float4x4 inverse_proj = camera.invProjMat;
     const float4x4 inverse_view = camera.invViewMat;
 
-    float3 N = GBufferUnpackNormal(SAMPLE_TEXTURE_2D(sampler_nearest, gbuffer_normals_texture, texcoord));
+    float3 N = GBufferUnpackNormal(SAMPLE_TEXTURE_2D_LOD(sampler_nearest, gbuffer_normals_texture, texcoord, 0));
     float2 UV1 = float2(asfloat(materialData.z), asfloat(materialData.w));
 
-    const float depth = SAMPLE_TEXTURE_2D(sampler_nearest, gbuffer_depth_texture, texcoord).r;
+    const float depth = SAMPLE_TEXTURE_2D_LOD(sampler_nearest, gbuffer_depth_texture, texcoord, 0).r;
     const float3 P = ReconstructWorldSpacePositionFromDepth(inverse_proj, inverse_view, texcoord, depth).xyz;
     const float3 V = normalize(camera.position.xyz - P);
-    const float3 R = normalize(reflect(-V, N));
+    // const float3 R = normalize(reflect(-V, N));
+
+    ao = SAMPLE_TEXTURE_2D_LOD(sampler_nearest, SSAOResultTexture, texcoord, 0).r;
 
     float2 lightmapUV = UV1;
 
@@ -160,17 +170,17 @@ PSOutput PSMain(PSInput input)
     const float3 F = CalculateFresnelTerm(F0, roughness, NdotV);
     const float3 dfg = CalculateDFG(F, roughness, NdotV);
     const float3 E = CalculateE(F0, dfg);
-    float3 Fd = diffuse_color.rgb * irradiance.rgb * (1.0 - E) * ao;
+    float3 diffuseIndirect = diffuse_color.rgb * irradiance.rgb * (1.0 - E) * ao;
 
-    float3 specular_ao = float3(SpecularAO_Lagarde(NdotV, ao, roughness), SpecularAO_Lagarde(NdotV, ao, roughness), SpecularAO_Lagarde(NdotV, ao, roughness));
+    float3 specularAO = float3(SpecularAO_Lagarde(NdotV, ao, roughness), SpecularAO_Lagarde(NdotV, ao, roughness), SpecularAO_Lagarde(NdotV, ao, roughness));
 
-    const float3 energy_compensation = CalculateEnergyCompensation(F0, dfg);
-    specular_ao *= energy_compensation;
+    const float3 energyCompensation = CalculateEnergyCompensation(F0, dfg);
+    specularAO *= energyCompensation;
     
-    float3 ibl = SAMPLE_TEXTURE_2D_LOD(sampler_nearest, ReflectionProbeResultTexture, texcoord, 0).rgb;
-    float3 Fr = ibl * E * specular_ao;
+    // float3 ibl = SAMPLE_TEXTURE_2D_LOD(sampler_nearest, ReflectionProbeResultTexture, texcoord, 0).rgb;
+    // float3 Fr = ibl * E * specularAO;
 
-    output.color_output.rgb = Fd ;//+ Fr;
+    output.color_output.rgb = diffuseIndirect;
     output.color_output.a = 1.0;
 
     return output;

@@ -405,18 +405,18 @@ void DeferredPass::RenderToFramebuffer_Internal(Frame* frame, const RenderSetup&
     cr << SetDepthWrite(false);
     cr << SetDepthTest(false);
     
-    if (m_mode == DPM_INDIRECT_LIGHTING)
-    {
-        cr << SetStencilTest(true);
-        cr << SetStencilFunction(StencilFunction {
-            .passOp = SO_KEEP,
-            .failOp = SO_KEEP,
-            .depthFailOp = SO_KEEP,
-            .compareOp = SCO_EQUAL });
+    //if (m_mode == DPM_INDIRECT_LIGHTING)
+    //{
+    //    cr << SetStencilTest(true);
+    //    cr << SetStencilFunction(StencilFunction {
+    //        .passOp = SO_KEEP,
+    //        .failOp = SO_KEEP,
+    //        .depthFailOp = SO_KEEP,
+    //        .compareOp = SCO_EQUAL });
 
-        // stencil state: only render where stencil == 0 (non-lightmapped geometry)
-        cr << SetStencilState(0, LightmapStencilMask, 0x0);
-    }
+    //    // stencil state: only render where stencil == 0 (non-lightmapped geometry)
+    //    cr << SetStencilState(0, LightmapStencilMask, 0x0);
+    //}
 
     HYP_DEFER({
         // reset states
@@ -2669,9 +2669,7 @@ void DeferredRenderer::RenderFrameForView(Frame* frame, const RenderSetup& rs)
             /* onlyStencil */ true);
 
         frame->cr << SetCurrentFramebuffer(passData.deferredShadingFramebuffer);
-
-        passData.indirectPass->RenderToFramebuffer(frame, rs, passData.deferredShadingFramebuffer);
-
+        
         if (cvEnableLightmapVolumes.Get())
         {
             // apply baked lighting over lightmapped objects
@@ -2686,6 +2684,7 @@ void DeferredRenderer::RenderFrameForView(Frame* frame, const RenderSetup& rs)
             }
         }
 
+        passData.indirectPass->RenderToFramebuffer(frame, rs, passData.deferredShadingFramebuffer);
         passData.directPass->RenderToFramebuffer(frame, rs, passData.deferredShadingFramebuffer);
 
         frame->cr << SetCurrentFramebuffer(nullptr);

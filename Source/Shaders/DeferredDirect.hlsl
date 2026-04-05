@@ -57,8 +57,9 @@ DECLARE_SRV(DeferredPass, GBufferNormalsTexture) Texture2D gbuffer_normals_textu
 DECLARE_SRV(DeferredPass, GBufferMaterialTexture) Texture2D<uint4> gbuffer_material_texture;
 DECLARE_SRV(DeferredPass, GBufferVelocityTexture) Texture2D gbuffer_velocity_texture;
 
-DECLARE_SRV(DeferredPass, GBufferMipChain) Texture2D gbuffer_mip_chain;
 DECLARE_SRV(DeferredPass, GBufferDepthTexture) Texture2D gbuffer_depth_texture;
+
+DECLARE_SRV(DeferredPass, GBufferMipChain) Texture2D gbuffer_mip_chain;
 
 DECLARE_SAMPLER(DeferredPass, SamplerNearest) SamplerState sampler_nearest;
 DECLARE_SAMPLER(DeferredPass, SamplerLinear) SamplerState sampler_linear;
