@@ -170,7 +170,7 @@ PSOutput PSMain(PSInput input)
     float3 ibl = SAMPLE_TEXTURE_2D_LOD(sampler_nearest, ReflectionProbeResultTexture, texcoord, 0).rgb;
     float3 Fr = ibl * E * specular_ao;
 
-    output.color_output.rgb = Fd + Fr;
+    output.color_output.rgb = Fd ;//+ Fr;
     output.color_output.a = 1.0;
 
     return output;

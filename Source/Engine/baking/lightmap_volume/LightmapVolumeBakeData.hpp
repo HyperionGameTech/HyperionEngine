@@ -46,6 +46,9 @@ public:
 
     virtual Result Build() override;
 
+    void Blur();
+    void Dilate();
+
     BitmapType ToBitmapIrradiance() const;
     BitmapType ToBitmapRadiance() const;
 

@@ -34,7 +34,7 @@ Array<VertexType> VertexTypeMask::GetAllTypes() const
     Array<VertexType> attributes;
     FOR_EACH_BIT(flagMask, i)
     {
-        attributes.PushBack(VertexType(i));
+        attributes.PushBack(VertexType(1u << i));
     }
 
     return attributes;
@@ -52,7 +52,7 @@ String VertexTypeMask::ToString() const
             result += ", ";
         }
 
-        result += EnumToString(VertexType(i));
+        result += EnumToString(VertexType(1u << i));
         first = false;
     }
 

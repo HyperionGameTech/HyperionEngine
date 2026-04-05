@@ -186,7 +186,7 @@ Result BakeData<LightmapVolume>::Build()
     }
 
     xatlas::PackOptions packOptions {};
-    packOptions.maxChartSize = 512;
+    packOptions.maxChartSize = 256;
     packOptions.texelsPerUnit = 8.0f;
     packOptions.padding = 4;
     //packOptions.resolution = 512;
@@ -373,6 +373,235 @@ Result BakeData<LightmapVolume>::Build()
 #else
     return HYP_MAKE_ERROR(Error, "No method to build lightmap");
 #endif
+}
+
+void BakeData<LightmapVolume>::Blur()
+{
+    static constexpr int KernelRadius = 3;
+    static constexpr float SigmaPosition = 0.5f;
+    static constexpr float SigmaNormal = 0.25f;
+
+    const uint32 width = dimensions.x;
+    const uint32 height = dimensions.y;
+
+    if (width == 0 || height == 0 || texels.Empty())
+    {
+        return;
+    }
+
+    const float sigmaSpRcp = 1.0f / (2.0f * float(KernelRadius) * float(KernelRadius));
+    const float sigmaPosRcp = 1.0f / (2.0f * SigmaPosition * SigmaPosition);
+    const float sigmaNrmRcp = 1.0f / (2.0f * SigmaNormal * SigmaNormal);
+
+    const uint32 numTexels = width * height;
+    Array<Vec4f> norm0(numTexels);
+    Array<Vec4f> norm1(numTexels);
+
+    for (uint32 i = 0; i < numTexels; i++)
+    {
+        if (!texels[i].pRay)
+        {
+            continue;
+        }
+
+        if (texels[i].color0.w > 0.0f)
+        {
+            norm0[i] = texels[i].color0 / texels[i].color0.w;
+            norm0[i].w = 1.0f;
+        }
+
+        if (texels[i].color1.w > 0.0f)
+        {
+            norm1[i] = texels[i].color1 / texels[i].color1.w;
+            norm1[i].w = 1.0f;
+        }
+    }
+
+    Array<Vec4f> out0(numTexels);
+    Array<Vec4f> out1(numTexels);
+
+    for (uint32 cy = 0; cy < height; cy++)
+    {
+        for (uint32 cx = 0; cx < width; cx++)
+        {
+            const uint32 centerIdx = cx + cy * width;
+
+            if (!texels[centerIdx].pRay)
+            {
+                continue;
+            }
+
+            const Vec3f centerPos = texels[centerIdx].pRay->ray.position;
+            const Vec3f centerNrm = texels[centerIdx].pRay->ray.direction;
+
+            Vec4f accum0 = Vec4f::Zero();
+            Vec4f accum1 = Vec4f::Zero();
+            float totalW = 0.0f;
+
+            const int nx0 = MathUtil::Max(0, int(cx) - KernelRadius);
+            const int nx1 = MathUtil::Min(int(width)  - 1, int(cx) + KernelRadius);
+            const int ny0 = MathUtil::Max(0, int(cy) - KernelRadius);
+            const int ny1 = MathUtil::Min(int(height) - 1, int(cy) + KernelRadius);
+
+            for (int ny = ny0; ny <= ny1; ny++)
+            {
+                for (int nx = nx0; nx <= nx1; nx++)
+                {
+                    const uint32 nbIdx = uint32(nx) + uint32(ny) * width;
+
+                    if (!texels[nbIdx].pRay)
+                    {
+                        continue;
+                    }
+
+                    const float dx = float(nx - int(cx));
+                    const float dy = float(ny - int(cy));
+                    const float wSpatial = MathUtil::Exp(-(dx * dx + dy * dy) * sigmaSpRcp);
+
+                    const Vec3f posDiff = texels[nbIdx].pRay->ray.position - centerPos;
+                    const float wPos = MathUtil::Exp(-posDiff.Dot(posDiff) * sigmaPosRcp);
+
+                    const float nDot = MathUtil::Clamp(centerNrm.Dot(texels[nbIdx].pRay->ray.direction), -1.0f, 1.0f);
+                    const float wNrm = MathUtil::Exp(-(1.0f - nDot) * sigmaNrmRcp);
+
+                    const float w = wSpatial * wPos * wNrm;
+
+                    accum0 += norm0[nbIdx] * w;
+                    accum1 += norm1[nbIdx] * w;
+                    totalW += w;
+                }
+            }
+
+            if (totalW > 0.0f)
+            {
+                out0[centerIdx] = accum0 / totalW;
+                out1[centerIdx] = accum1 / totalW;
+            }
+        }
+    }
+
+    for (uint32 i = 0; i < numTexels; i++)
+    {
+        if (!texels[i].pRay)
+        {
+            continue;
+        }
+
+        texels[i].color0 = out0[i];
+        texels[i].color1 = out1[i];
+    }
+}
+
+void BakeData<LightmapVolume>::Dilate()
+{
+    static constexpr int NumPasses = 5;
+
+    const uint32 width = dimensions.x;
+    const uint32 height = dimensions.y;
+
+    if (width == 0 || height == 0 || texels.Empty())
+    {
+        return;
+    }
+
+    const uint32 numTexels = width * height;
+
+    static constexpr int offsets[8][2] = {
+        {-1, -1}, { 0, -1}, { 1, -1},
+        {-1,  0},           { 1,  0},
+        {-1,  1}, { 0,  1}, { 1,  1}
+    };
+
+    Array<Vec4f> cur0(numTexels);
+    Array<Vec4f> cur1(numTexels);
+
+    for (uint32 i = 0; i < numTexels; i++)
+    {
+        cur0[i] = texels[i].color0;
+        cur1[i] = texels[i].color1;
+    }
+
+    for (int pass = 0; pass < NumPasses; pass++)
+    {
+        Array<Vec4f> next0(numTexels);
+        Array<Vec4f> next1(numTexels);
+
+        for (uint32 i = 0; i < numTexels; i++)
+        {
+            next0[i] = cur0[i];
+            next1[i] = cur1[i];
+        }
+
+        bool anyChanged = false;
+
+        for (uint32 cy = 0; cy < height; cy++)
+        {
+            for (uint32 cx = 0; cx < width; cx++)
+            {
+                const uint32 idx = cx + cy * width;
+
+                if (texels[idx].pRay != nullptr)
+                {
+                    continue;
+                }
+
+                if (cur0[idx].w > 0.0f)
+                {
+                    continue;
+                }
+
+                Vec4f accum0 = Vec4f::Zero();
+                Vec4f accum1 = Vec4f::Zero();
+                int count = 0;
+
+                for (int k = 0; k < 8; k++)
+                {
+                    const int nx = int(cx) + offsets[k][0];
+                    const int ny = int(cy) + offsets[k][1];
+
+                    if (nx < 0 || ny < 0 || nx >= int(width) || ny >= int(height))
+                    {
+                        continue;
+                    }
+
+                    const uint32 nbIdx = uint32(nx) + uint32(ny) * width;
+
+                    if (cur0[nbIdx].w <= 0.0f)
+                    {
+                        continue;
+                    }
+
+                    accum0 += cur0[nbIdx];
+                    accum1 += cur1[nbIdx];
+                    ++count;
+                }
+
+                if (count > 0)
+                {
+                    next0[idx] = accum0 / float(count);
+                    next1[idx] = accum1 / float(count);
+                    anyChanged = true;
+                }
+            }
+        }
+
+        cur0 = std::move(next0);
+        cur1 = std::move(next1);
+
+        if (!anyChanged)
+        {
+            break;
+        }
+    }
+
+    for (uint32 i = 0; i < numTexels; i++)
+    {
+        if (texels[i].pRay == nullptr)
+        {
+            texels[i].color0 = cur0[i];
+            texels[i].color1 = cur1[i];
+        }
+    }
 }
 
 auto BakeData<LightmapVolume>::ToBitmapIrradiance() const -> BitmapType

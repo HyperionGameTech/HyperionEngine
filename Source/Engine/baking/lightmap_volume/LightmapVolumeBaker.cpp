@@ -37,7 +37,7 @@ static constexpr LightmapElementId InvalidLightmapElementId = LightmapElementId(
 
 static constexpr TextureFormat AtlasTextureFormats[LightmapVolume::NumAtlasTextureTypes] = {
     TextureFormat::RGBA8,//TextureFormat::R11G11B10F, // Radiance
-    TextureFormat::RGBA8//TextureFormat::R11G11B10F  // Irradiance
+    TextureFormat::R11G11B10F  // Irradiance
 };
 
 static constexpr const char* LightmapAtlasTextureTypeNames[LightmapVolume::NumAtlasTextureTypes] = { "R", "I" };
@@ -488,6 +488,9 @@ void Baker<LightmapVolume>::OnCompleted_Internal()
     HYP_SCOPE;
 
     AssertDebug(m_lightmapElementId != InvalidLightmapElementId);
+
+    m_bakeData.Blur();
+    m_bakeData.Dilate();
 
     if (!BuildElementTextures(m_volume, m_bakeData, m_lightmapElementId))
     {

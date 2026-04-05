@@ -20,39 +20,27 @@
       "EnumValues": []
     }, {
       "$Class": "ShaderProperty",
-      "Name": "LIGHT_TYPE",
-      "Flags": 0,
-      "Value": "DIRECTIONAL",
-      "EnumValues": []
-    }, {
-      "$Class": "ShaderProperty",
-      "Name": "HBAO_ENABLED",
+      "Name": "HAS_PHYSICS",
       "Flags": 0,
       "Value": null,
       "EnumValues": []
     }, {
       "$Class": "ShaderProperty",
-      "Name": "PATHTRACER",
+      "Name": "MAX_PARTICLES",
       "Flags": 0,
-      "Value": null,
+      "Value": 2048,
       "EnumValues": []
     }],
   "RevisionNumber": 31459917,
-  "BaseName": "DeferredDirect",
+  "BaseName": "UpdateParticles",
   "InputLayout": {
-    "Mask": 7
+    "Mask": 0
   },
   "ShaderInputGroup": {
     "Elements": [{
         "$Class": "ShaderInputSet",
         "SetIndex": 0,
-        "Name": "BindlessResources0",
-        "Slots": [[], [], [], [], []],
-        "Flags": 1
-      }, {
-        "$Class": "ShaderInputSet",
-        "SetIndex": 1,
-        "Name": "DeferredPass",
+        "Name": "UpdateParticlesDescriptorSet",
         "Slots": [[{
               "$Class": "ShaderInput",
               "Register": 1,
@@ -85,35 +73,7 @@
               "$Class": "ShaderInput",
               "Register": 1,
               "ElementType": 5,
-              "Name": "GBufferMipChain",
-              "Count": 1,
-              "Size": 4294967295,
-              "IsDynamic": false,
-              "StructInfo": {
-                "Name": "",
-                "Size": 4294967295,
-                "FieldNames": [],
-                "FieldTypes": []
-              }
-            }, {
-              "$Class": "ShaderInput",
-              "Register": 1,
-              "ElementType": 5,
               "Name": "GBufferNormalsTexture",
-              "Count": 1,
-              "Size": 4294967295,
-              "IsDynamic": false,
-              "StructInfo": {
-                "Name": "",
-                "Size": 4294967295,
-                "FieldNames": [],
-                "FieldTypes": []
-              }
-            }, {
-              "$Class": "ShaderInput",
-              "Register": 1,
-              "ElementType": 5,
-              "Name": "PointLightShadowMapsTextureArray",
               "Count": 1,
               "Size": 4294967295,
               "IsDynamic": false,
@@ -155,7 +115,21 @@
               "$Class": "ShaderInput",
               "Register": 1,
               "ElementType": 5,
-              "Name": "ShadowMapsTextureArray",
+              "Name": "NoiseMap",
+              "Count": 1,
+              "Size": 4294967295,
+              "IsDynamic": false,
+              "StructInfo": {
+                "Name": "",
+                "Size": 4294967295,
+                "FieldNames": [],
+                "FieldTypes": []
+              }
+            }], [{
+              "$Class": "ShaderInput",
+              "Register": 2,
+              "ElementType": 3,
+              "Name": "ParticlesBuffer",
               "Count": 1,
               "Size": 4294967295,
               "IsDynamic": false,
@@ -167,9 +141,9 @@
               }
             }, {
               "$Class": "ShaderInput",
-              "Register": 1,
-              "ElementType": 5,
-              "Name": "SSAOResultTexture",
+              "Register": 2,
+              "ElementType": 3,
+              "Name": "IndirectDrawCommandsBuffer",
               "Count": 1,
               "Size": 4294967295,
               "IsDynamic": false,
@@ -179,7 +153,7 @@
                 "FieldNames": [],
                 "FieldTypes": []
               }
-            }], [], [{
+            }], [{
               "$Class": "ShaderInput",
               "Register": 3,
               "ElementType": 1,
@@ -225,20 +199,6 @@
               "$Class": "ShaderInput",
               "Register": 4,
               "ElementType": 7,
-              "Name": "SamplerShadow",
-              "Count": 1,
-              "Size": 4294967295,
-              "IsDynamic": false,
-              "StructInfo": {
-                "Name": "",
-                "Size": 4294967295,
-                "FieldNames": [],
-                "FieldTypes": []
-              }
-            }, {
-              "$Class": "ShaderInput",
-              "Register": 4,
-              "ElementType": 7,
               "Name": "SamplerLinear",
               "Count": 1,
               "Size": 4294967295,
@@ -253,23 +213,19 @@
         "Flags": 0
       }]
   },
-  "ShaderModuleTypes": [1, 2],
-  "ShaderModuleNames": ["DeferredDirect.hlsl", "DeferredDirect.hlsl"],
-  "EntryPointNames": ["VSMain", "PSMain"],
+  "ShaderModuleTypes": [4],
+  "ShaderModuleNames": ["UpdateParticles.hlsl"],
+  "EntryPointNames": ["CSMain"],
   "ShaderBlobs": [{
       "$Class": "BlobDataReference",
-      "Key": "Engine/Shaders/DeferredDirect/DeferredDirect_8930255287631564676.VS",
-      "Size": 11272
-    }, {
-      "$Class": "BlobDataReference",
-      "Key": "Engine/Shaders/DeferredDirect/DeferredDirect_8930255287631564676.PS",
-      "Size": 182548
+      "Key": "Engine/Shaders/UpdateParticles/UpdateParticles_11083182689278204635.CS",
+      "Size": 64848
     }],
   "PropertySetHashCode": {},
   "LastCompiledTimestamp": {
-    "Value": 1775239461000
+    "Value": 1773030439000
   },
-  "Name": "DeferredDirect_8930255287631564676",
-  "FriendlyName": "DeferredDirect_8930255287631564676",
+  "Name": "UpdateParticles_11083182689278204635",
+  "FriendlyName": "UpdateParticles_11083182689278204635",
   "OriginalFilepath": ""
 }

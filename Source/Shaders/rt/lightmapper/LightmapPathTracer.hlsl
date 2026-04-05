@@ -69,20 +69,22 @@ DECLARE_BUFFER_DYNAMIC(LightmapPathTracer, CBuffer) cbuffer CBuffer
 
 #ifdef MODE_IRRADIANCE
 #define NUM_BOUNCES 4
-#define NUM_SAMPLES 128
+#define NUM_SAMPLES 64
+#define ENVIRONMENT_INTENSITY 10.0
 #elif defined(MODE_FULL)
 #define NUM_BOUNCES 4
-#define NUM_SAMPLES 128
+#define NUM_SAMPLES 32
+#define ENVIRONMENT_INTENSITY 10.0
 #else
 #define NUM_BOUNCES 1
 #define NUM_SAMPLES 1
+#define ENVIRONMENT_INTENSITY 1.0
 #endif
 
 #ifdef MODE_FULL
 #define MAX_SAMPLE_LUMINANCE 20.0
 #define MAX_THROUGHPUT_LUMINANCE 10.0
 #define ROUGHNESS_FLOOR 0.001
-#define ENVIRONMENT_INTENSITY 1.0
 
 float3 ClampLuminance(in float3 c, float max_lum)
 {
@@ -197,7 +199,7 @@ void RayGenMain()
                     if (envProbe.texture_index != ~0u)
                     {
                         float4 env = EnvProbeSample(sampler_linear, envProbesTexture, envProbe.texture_index, direction, 0.0) * (1.0 - environmentRadiance.a);
-                        environmentRadiance += env;
+                        environmentRadiance += env * ENVIRONMENT_INTENSITY;
                     }
                 }
                 
