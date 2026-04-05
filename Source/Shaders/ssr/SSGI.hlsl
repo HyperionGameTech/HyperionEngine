@@ -4,7 +4,7 @@
 
 #include "./ssr_header.inc"
 
-#include "../include/brdf.inc"
+#include "../include/BRDF.hlsli"
 
 #ifndef OUTPUT_FORMAT
     #if defined(OUTPUT_RGBA8)

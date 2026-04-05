@@ -24,7 +24,7 @@ DECLARE_UAV(RTReflections, OutputImage) RWTexture2D<unorm float4> image;
 #include "../include/scene.inc"
 #include "../include/packing.inc"
 #include "../include/noise.inc"
-#include "../include/brdf.inc"
+#include "../include/BRDF.hlsli"
 
 /// Blue noise
 DECLARE_SRV(RTReflections, BlueNoiseBuffer) StructuredBuffer<int4> BlueNoiseBuffer;

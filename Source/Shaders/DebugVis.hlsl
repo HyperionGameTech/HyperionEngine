@@ -186,7 +186,7 @@ DECLARE_BUFFER(DebugDrawerDescriptorSet, WorldsBuffer) cbuffer WorldsBuffer
 
 #ifdef IMMEDIATE_MODE
 
-#include "include/brdf.inc"
+#include "include/BRDF.hlsli"
 
 #elif defined(INSTANCING)
 DECLARE_SRV(DebugDrawerDescriptorSet, EntitiesBuffer) StructuredBuffer<Entity> entities;
@@ -206,7 +206,7 @@ DECLARE_SRV(DebugDrawerDescriptorSet, EnvProbesBuffer) StructuredBuffer<EnvProbe
 
 #define HYP_DEFERRED_NO_REFRACTION
 
-#include "deferred/DeferredLighting.inc"
+#include "deferred/DeferredLighting.hlsli"
 
 #undef HYP_DEFERRED_NO_REFRACTION
 #undef HYP_DO_NOT_DEFINE_DESCRIPTOR_SETS

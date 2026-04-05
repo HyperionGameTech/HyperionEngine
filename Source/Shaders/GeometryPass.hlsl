@@ -73,8 +73,8 @@ DECLARE_SRV(Default, GBufferMipChain) Texture2D gbuffer_mip_chain;
 DECLARE_SRV(Default, ShadowMapsTextureArray) Texture2DArray<float> shadow_maps;
 DECLARE_SRV(Default, PointLightShadowMapsTextureArray) TextureCubeArray point_shadow_maps;
 
-#include "include/brdf.inc"
-#include "deferred/DeferredLighting.inc"
+#include "include/BRDF.hlsli"
+#include "deferred/DeferredLighting.hlsli"
 #include "include/Shadows.hlsli"
 #endif
 

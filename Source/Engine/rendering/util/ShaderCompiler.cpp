@@ -48,7 +48,6 @@
 #if HYP_WINDOWS
 #include <Unknwn.h>
 #include <d3d12shader.h>
-#include <atlbase.h> // for CComPtr
 #endif
 
 #include <dxcapi.h>
@@ -77,8 +76,8 @@ CVar<bool> cvShouldCompileMissingVariants { "ShaderCompiler.CompileMissingVarian
 // #define HYP_SHADER_COMPILER_LOGGING
 
 #if HYP_DXC
-static CComPtr<IDxcUtils> s_dxcUtils;
-static CComPtr<IDxcCompiler3> s_dxcCompiler;
+static IDxcUtils* s_dxcUtils = nullptr;
+static IDxcCompiler3* s_dxcCompiler = nullptr;
 #endif
 
 static constexpr uint32 NumPrecompileShadersThreads = 8;
@@ -1095,8 +1094,9 @@ static bool PreprocessHLSL(
 
     HRESULT hr;
 
-    CComPtr<IDxcBlobEncoding> pSource;
+    IDxcBlobEncoding* pSource = nullptr;
     hr = s_dxcUtils->CreateBlobFromPinned(fullSource.Data(), (uint32)fullSource.Size(), CP_UTF8, &pSource);
+    HYP_DEFER({ if (pSource) pSource->Release(); });
 
     if (FAILED(hr))
     {
@@ -1107,10 +1107,12 @@ static bool PreprocessHLSL(
 
     DxcBuffer sourceBuffer = { pSource->GetBufferPointer(), pSource->GetBufferSize(), 0 };
 
-    CComPtr<IDxcResult> pResult;
+    IDxcResult* pResult = nullptr;
+    HYP_DEFER({ if (pResult) pResult->Release(); });
 
-    CComPtr<IDxcIncludeHandler> pIncludeHandler;
+    IDxcIncludeHandler* pIncludeHandler = nullptr;
     hr = s_dxcUtils->CreateDefaultIncludeHandler(&pIncludeHandler);
+    HYP_DEFER({ if (pIncludeHandler) pIncludeHandler->Release(); });
 
     if (FAILED(hr))
     {
@@ -1126,8 +1128,9 @@ static bool PreprocessHLSL(
         pIncludeHandler,
         IID_PPV_ARGS(&pResult));
 
-    CComPtr<IDxcBlobUtf8> pErrors;
+    IDxcBlobUtf8* pErrors = nullptr;
     pResult->GetOutput(DXC_OUT_ERRORS, IID_PPV_ARGS(&pErrors), nullptr);
+    HYP_DEFER({ if (pErrors) pErrors->Release(); });
 
     if (pErrors && pErrors->GetStringLength() > 0)
         outErrorMessages.PushBack(String(pErrors->GetStringPointer()));
@@ -1138,8 +1141,9 @@ static bool PreprocessHLSL(
     if (FAILED(status))
         return false;
 
-    CComPtr<IDxcBlobUtf8> pOutput;
+    IDxcBlobUtf8* pOutput = nullptr;
     pResult->GetOutput(DXC_OUT_HLSL, IID_PPV_ARGS(&pOutput), nullptr);
+    HYP_DEFER({ if (pOutput) pOutput->Release(); });
 
     if (pOutput)
     {
@@ -1174,8 +1178,9 @@ static ByteBuffer CompileHLSL(
 
     String fullSource = preamble + "\n" + source;
 
-    CComPtr<IDxcBlobEncoding> pSource;
+    IDxcBlobEncoding* pSource = nullptr;
     s_dxcUtils->CreateBlobFromPinned(fullSource.Data(), (uint32)fullSource.Size(), CP_UTF8, &pSource);
+    HYP_DEFER({ if (pSource) pSource->Release(); });
 
     const WideString entryPointName = WideString(DefaultEntryPointNames[uint8(type)]);
 
@@ -1234,7 +1239,8 @@ static ByteBuffer CompileHLSL(
 #endif
 
     DxcBuffer sourceBuffer = { pSource->GetBufferPointer(), pSource->GetBufferSize(), 0 };
-    CComPtr<IDxcResult> pResult;
+    IDxcResult* pResult = nullptr;
+    HYP_DEFER({ if (pResult) pResult->Release(); });
 
     HRESULT res = s_dxcCompiler->Compile(
         &sourceBuffer,
@@ -1243,8 +1249,9 @@ static ByteBuffer CompileHLSL(
         nullptr,
         IID_PPV_ARGS(&pResult));
 
-    CComPtr<IDxcBlobUtf8> pErrors;
+    IDxcBlobUtf8* pErrors = nullptr;
     pResult->GetOutput(DXC_OUT_ERRORS, IID_PPV_ARGS(&pErrors), nullptr);
+    HYP_DEFER({ if (pErrors) pErrors->Release(); });
 
     if (pErrors && pErrors->GetStringLength() != 0)
     {
@@ -1260,8 +1267,9 @@ static ByteBuffer CompileHLSL(
         return ByteBuffer();
     }
 
-    CComPtr<IDxcBlob> pBlob;
+    IDxcBlob* pBlob = nullptr;
     pResult->GetOutput(DXC_OUT_OBJECT, IID_PPV_ARGS(&pBlob), nullptr);
+    HYP_DEFER({ if (pBlob) pBlob->Release(); });
 
     ByteBuffer bytecode(pBlob->GetBufferSize());
     Assert(bytecode.Size() > 0);
@@ -1922,8 +1930,17 @@ ShaderCompiler::~ShaderCompiler()
 #endif
 
 #if HYP_DXC
-    s_dxcUtils.Release();
-    s_dxcCompiler.Release();
+    if (s_dxcUtils)
+    {
+        s_dxcUtils->Release();
+        s_dxcUtils = nullptr;
+    }
+
+    if (s_dxcCompiler)
+    {
+        s_dxcCompiler->Release();
+        s_dxcCompiler = nullptr;
+    }
 #endif
 
     if (m_definitions)

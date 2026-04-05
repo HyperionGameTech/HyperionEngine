@@ -5,6 +5,9 @@ PERMUTE(RT_GI);
 PERMUTE(RT_REFLECTIONS);
 PERMUTE(HBAO_ENABLED);
 
+STATIC(TILE_Z_BINS, 16);
+STATIC(TILE_SIZE, 32);
+
 #ifdef VERTEX_SHADER
 
 struct VSInput
@@ -99,11 +102,8 @@ DECLARE_BUFFER(DeferredPass, DDGIConstants) cbuffer DDGI
 
 #define HYP_DEFERRED_NO_REFRACTION
 #define HYP_DEFERRED_NO_ENV_PROBE
-#include "./deferred/DeferredLighting.inc"
-#undef HYP_DEFERRED_NO_REFRACTION
-#undef HYP_DEFERRED_NO_ENV_PROBE
-
-#undef HYP_DO_NOT_DEFINE_DESCRIPTOR_SETS
+#include "./deferred/DeferredLighting.hlsli"
+#include "./deferred/ClusteredShading.hlsli"
 
 #define DDGI_MULTIPLIER 1.0
 

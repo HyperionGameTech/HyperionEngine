@@ -166,7 +166,7 @@ DECLARE_SAMPLER(Default, SamplerNearest) SamplerState sampler_nearest;
 #include "include/Octahedron.inc"
 #include "include/Entity.inc"
 #include "include/packing.inc"
-#include "include/brdf.inc"
+#include "include/BRDF.hlsli"
 
 #define HYP_CUBEMAP_AMBIENT 0.005
 

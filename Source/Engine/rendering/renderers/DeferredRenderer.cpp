@@ -212,6 +212,9 @@ void GetDeferredShaderProperties(
         outShaderProperties.Set(s_propSSGIEnabled, cvSSGI.Get());
         
         outShaderProperties.Add(s_propMaxFallbackProbes);
+        
+        outShaderProperties.Add(s_propTileSize);
+        outShaderProperties.Add(s_propTileZBins);
     }
     else
     {
@@ -394,6 +397,11 @@ void DeferredPass::RenderToFramebuffer_Internal(Frame* frame, const RenderSetup&
 
     const Vec4f& cameraPosition = cameraProxy->bufferData.cameraPosition;
 
+    DeferredRendererPassData* dpd = ObjCast<DeferredRendererPassData>(rs.passData);
+    AssertDebug(dpd != nullptr);
+
+    Framebuffer* opaquePassFramebuffer = dpd->view.GetUnsafe()->GetOutputTarget().GetFramebuffer(RenderBucket::Opaque);
+
     CommandRecorder& cr = frame->cr;
 
     cr << SetCurrentViewport(rs.viewport);
@@ -444,19 +452,9 @@ void DeferredPass::RenderToFramebuffer_Internal(Frame* frame, const RenderSetup&
 
     cr << SetShaderUniform(numShaderUniforms++, "ShadowMapsTextureArray"_sh, g_renderInterface->shadowMapCache->GetAtlasImageView());
     cr << SetShaderUniform(numShaderUniforms++, "PointLightShadowMapsTextureArray"_sh, g_renderInterface->shadowMapCache->GetPointLightShadowMapImageView());
-
-    DeferredRendererPassData* dpd = ObjCast<DeferredRendererPassData>(rs.passData);
-    AssertDebug(dpd != nullptr);
-
-    const bool useClusteredShading = cvClusteredShading.Get() && dpd->clusterBuffer != nullptr;
-
-    if (useClusteredShading)
-    {
-        cr << SetShaderUniform(numShaderUniforms++, "ClusterGridBuffer"_sh, dpd->clusterBuffer, ShaderDataOffset(dpd->clusterGridOffset, dpd->clusterIndexOffset));
-        cr << SetShaderUniform(numShaderUniforms++, "ClusterIndexBuffer"_sh, dpd->clusterBuffer, ShaderDataOffset(dpd->clusterIndexOffset, dpd->clusterBuffer->Size() - dpd->clusterIndexOffset));
-    }
-
-    const FramebufferRef& opaquePassFramebuffer = dpd->view.GetUnsafe()->GetOutputTarget().GetFramebuffer(RenderBucket::Opaque);
+        
+    cr << SetShaderUniform(numShaderUniforms++, "LightsBuffer"_sh, g_renderInterface->gpuBuffers[GRB_LIGHTS]->GetBuffer(frameIndex));
+    cr << SetShaderUniform(numShaderUniforms++, "EnvProbesBuffer"_sh, g_renderInterface->gpuBuffers[GRB_ENV_PROBES]->GetBuffer(frameIndex));
 
     for (uint32 attachmentIndex = 0; attachmentIndex < GTN_MAX; attachmentIndex++)
     {
@@ -470,6 +468,17 @@ void DeferredPass::RenderToFramebuffer_Internal(Frame* frame, const RenderSetup&
 
     if (dpd->reflectionsPass != nullptr)
         cr << SetShaderUniform(numShaderUniforms++, "ReflectionProbeResultTexture"_sh, dpd->reflectionsPass->GetFinalImageView());
+
+    const bool useClusteredShading = cvClusteredShading.Get();
+
+    if (useClusteredShading || m_mode == DPM_INDIRECT_LIGHTING)
+    {
+        AssertDebug(dpd->clusterBuffer != nullptr);
+
+        // Indirect pass uses clusters for EnvProbes.
+        cr << SetShaderUniform(numShaderUniforms++, "ClusterGridBuffer"_sh, dpd->clusterBuffer, ShaderDataOffset(dpd->clusterGridOffset, dpd->clusterIndexOffset));
+        cr << SetShaderUniform(numShaderUniforms++, "ClusterIndexBuffer"_sh, dpd->clusterBuffer, ShaderDataOffset(dpd->clusterIndexOffset, dpd->clusterBuffer->Size() - dpd->clusterIndexOffset));
+    }
 
     if (m_mode == DPM_INDIRECT_LIGHTING)
     {
@@ -594,9 +603,6 @@ void DeferredPass::RenderToFramebuffer_Internal(Frame* frame, const RenderSetup&
         cr << SetCurrentShader(ShaderDesc(NAME("DeferredDirect"), shaderProperties));
 
         uint32 localNumShaderUniforms = numShaderUniforms;
-        
-        cr << SetShaderUniform(localNumShaderUniforms++, "LightsBuffer"_sh, g_renderInterface->gpuBuffers[GRB_LIGHTS]->GetBuffer(frameIndex));
-        cr << SetShaderUniform(localNumShaderUniforms++, "EnvProbesBuffer"_sh, g_renderInterface->gpuBuffers[GRB_ENV_PROBES]->GetBuffer(frameIndex));
 
 #if 1
         // Write out MAX_SHADOW_MAPS (8?) ShadowMaps for the View, indexed by light idx (GetBinding())
@@ -2492,15 +2498,12 @@ void DeferredRenderer::RenderFrameForView(Frame* frame, const RenderSetup& rs)
 
     const uint32 frameIndex = frame->GetFrameIndex();
 
-    if (cvClusteredShading.Get())
-    {
-        m_tileProcessor->ProcessView(
-            rs.viewport,
-            view,
-            passData.clusterBuffer,
-            passData.clusterGridOffset,
-            passData.clusterIndexOffset);
-    }
+    m_tileProcessor->ProcessView(
+        rs.viewport,
+        view,
+        passData.clusterBuffer,
+        passData.clusterGridOffset,
+        passData.clusterIndexOffset);
 
     // Render shadows for shadow casting lights
     for (Light* light : rpl.GetLights())

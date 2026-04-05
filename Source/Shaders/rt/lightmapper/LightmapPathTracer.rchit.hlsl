@@ -21,7 +21,7 @@ DECLARE_SAMPLER(LightmapPathTracer, SamplerLinear) SamplerState sampler_linear;
 #include "../../include/scene.inc"
 #include "../../include/noise.inc"
 
-#include "../../include/brdf.inc"
+#include "../../include/BRDF.hlsli"
 #undef HYP_DO_NOT_DEFINE_DESCRIPTOR_SETS
 
 #include "../../include/rt/mesh.inc"

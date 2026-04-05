@@ -36,7 +36,7 @@ VSOutput VSMain(VSInput input)
 
 #include "../include/defines.inc"
 #include "../include/noise.inc"
-#include "../include/brdf.inc"
+#include "../include/BRDF.hlsli"
 
 struct PSInput
 {

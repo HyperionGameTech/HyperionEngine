@@ -2,7 +2,7 @@
 #define HYP_LIGHT_SAMPLING
 
 #include "shared.inc"
-#include "brdf.inc"
+#include "BRDF.hlsli"
 #include "scene.inc"
 #include "material.inc"
 

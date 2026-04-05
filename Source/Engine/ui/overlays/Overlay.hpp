@@ -143,7 +143,6 @@ public:
     ~NullOverlay() override = default;
 
 protected:
-    HYP_METHOD()
     virtual Handle<UIObject> CreateUIObject_Impl(UIObject* spawnParent) override
     {
         return Handle<UIObject>::Null();

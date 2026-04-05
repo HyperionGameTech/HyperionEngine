@@ -1,31 +1,29 @@
-#ifndef HYP_DEFERRED_LIGHTING
-#define HYP_DEFERRED_LIGHTING
+#ifndef DEFERRED_LIGHTING_HLSLI
+#define DEFERRED_LIGHTING_HLSLI
 
 #include "../include/shared.inc"
-#include "../include/brdf.inc"
+#include "../include/BRDF.hlsli"
 #include "../include/Octahedron.inc"
-
-#define ENV_GRID_MULTIPLIER 1.0
 
 struct Refraction
 {
-    vec3 position;
-    vec3 direction;
+    float3 position;
+    float3 direction;
 };
 
 void RefractionSolidSphere(
-    vec3 P, vec3 N, vec3 V, float eta_ir,
+    float3 P, float3 N, float3 V, float eta_ir,
     out Refraction out_refraction)
 {
     const float thickness = 0.8;
 
-    const vec3 R = refract(-V, N, eta_ir);
+    const float3 R = refract(-V, N, eta_ir);
     float NdotR = dot(N, R);
     float d = thickness * -NdotR;
-    vec3 n1 = normalize(NdotR * R - N * 0.5);
+    float3 n1 = normalize(NdotR * R - N * 0.5);
 
     Refraction refraction;
-    refraction.position = vec3(P + R * d);
+    refraction.position = float3(P + R * d);
     refraction.direction = refract(R, n1, eta_ir);
 
     out_refraction = refraction;
@@ -34,7 +32,7 @@ void RefractionSolidSphere(
 #ifndef HYP_DEFERRED_NO_REFRACTION
 
 // Compute attenuated light as it travels through a volume.
-vec3 ApplyVolumeAttenuation(vec3 radiance, float transmission_distance, vec3 attenuation_color, float attenuation_distance)
+float3 ApplyVolumeAttenuation(float3 radiance, float transmission_distance, float3 attenuation_color, float attenuation_distance)
 {
     if (attenuation_distance == 0.0)
     {
@@ -44,19 +42,19 @@ vec3 ApplyVolumeAttenuation(vec3 radiance, float transmission_distance, vec3 att
     else
     {
         // Compute light attenuation using Beer's law.
-        vec3 attenuation_coefficient = -log(attenuation_color) / attenuation_distance;
-        vec3 transmittance = exp(-attenuation_coefficient * transmission_distance); // Beer's law
+        float3 attenuation_coefficient = -log(attenuation_color) / attenuation_distance;
+        float3 transmittance = exp(-attenuation_coefficient * transmission_distance); // Beer's law
         return transmittance * radiance;
     }
 }
 
-vec3 CalculateRefraction(
-    uvec2 image_dimensions,
-    vec3 P, vec3 N, vec3 V, vec2 texcoord,
-    vec3 F0, vec3 E,
+float3 CalculateRefraction(
+    uint2 image_dimensions,
+    float3 P, float3 N, float3 V, float2 texcoord,
+    float3 F0, float3 E,
     float transmission, float roughness,
-    vec4 opaque_color, vec4 translucent_color,
-    vec3 brdf)
+    float4 opaque_color, float4 translucent_color,
+    float3 brdf)
 {
     // dimensions of mip chain image
     const uint max_dimension = max(image_dimensions.x, image_dimensions.y);
@@ -72,22 +70,18 @@ vec3 CalculateRefraction(
     Refraction refraction;
     RefractionSolidSphere(P, N, V, eta_ir, refraction);
 
-#ifdef LANG_GLSL
-    vec4 refraction_pos = camera.viewProjMat * vec4(refraction.position, 1.0);
-#elif defined(LANG_HLSL)
-    float4 refraction_pos = mul(camera.viewProjMat, vec4(refraction.position, 1.0));
-#endif
+    float4 refraction_pos = mul(camera.viewProjMat, float4(refraction.position, 1.0));
 
     refraction_pos /= refraction_pos.w;
 
-    vec2 refraction_texcoord = refraction_pos.xy * 0.5 + 0.5;
+    float2 refraction_texcoord = refraction_pos.xy * 0.5 + 0.5;
 
     const float lod = ApplyIORToRoughness(IOR, roughness) * log2(float(max_dimension));
 
     float absorption = 0.1; // TODO: material parameter
-    vec3 T = min(vec3(1.0, 1.0, 1.0), exp(-absorption * refraction.direction));
+    float3 T = min(float3(1.0, 1.0, 1.0), exp(-absorption * refraction.direction));
 
-    vec3 Ft = SAMPLE_TEXTURE_2D_LOD(sampler_linear, gbuffer_mip_chain, refraction_texcoord, lod).rgb;
+    float3 Ft = SAMPLE_TEXTURE_2D_LOD(sampler_linear, gbuffer_mip_chain, refraction_texcoord, lod).rgb;
     Ft *= translucent_color.rgb;
     Ft *= 1.0 - E;
     Ft *= T;
@@ -95,36 +89,36 @@ vec3 CalculateRefraction(
     return Ft;
 }
 
-#endif
+#endif // HYP_DEFERRED_NO_REFRACTION
 
 #ifndef HYP_DEFERRED_NO_ENV_PROBE
 
 #include "../include/env_probe.inc"
 
-void ApplyReflectionProbe(uint probe_texture_index, vec3 probe_world_position, vec3 aabb_min, vec3 aabb_max, vec3 P, vec3 R, float lod, inout vec4 ibl)
+void ApplyReflectionProbe(uint probe_texture_index, float3 probe_world_position, float3 aabb_min, float3 aabb_max, float3 P, float3 R, float lod, inout float4 ibl)
 {
-    ibl = vec4(0.0, 0.0, 0.0, 0.0);
+    ibl = float4(0.0, 0.0, 0.0, 0.0);
 
     probe_texture_index = min(probe_texture_index, HYP_MAX_BOUND_REFLECTION_PROBES - 1);
 
-    const vec3 extent = (aabb_max - aabb_min);
-    const vec3 center = (aabb_max + aabb_min) * 0.5;
-    const vec3 diff = P - center;
+    const float3 extent = (aabb_max - aabb_min);
+    const float3 center = (aabb_max + aabb_min) * 0.5;
+    const float3 diff = P - center;
 
 #ifdef ENV_PROBE_PARALLAX_CORRECTED
     R = EnvProbeCoordParallaxCorrected(probe_world_position, aabb_min, aabb_max, P, R);
-#endif
+#endif // ENV_PROBE_PARALLAX_CORRECTED
 
 #if ENV_PROBE_CUBEMAP
-    ibl = SAMPLE_TEXTURE_CUBE_ARRAY_LOD(sampler_linear, envProbesTexture, vec4(normalize(R), float(probe_texture_index)), lod);
-#else
-    ibl = SAMPLE_TEXTURE_2D_ARRAY_LOD(sampler_linear, envProbesTexture, vec3(EncodeOctahedralCoord(normalize(R)) * 0.5 + 0.5, float(probe_texture_index)), lod);
-#endif
+    ibl = SAMPLE_TEXTURE_CUBE_ARRAY_LOD(sampler_linear, envProbesTexture, float4(normalize(R), float(probe_texture_index)), lod);
+#else // !ENV_PROBE_CUBEMAP
+    ibl = SAMPLE_TEXTURE_2D_ARRAY_LOD(sampler_linear, envProbesTexture, float3(EncodeOctahedralCoord(normalize(R)) * 0.5 + 0.5, float(probe_texture_index)), lod);
+#endif // ENV_PROBE_CUBEMAP
 }
 
-vec4 CalculateReflectionProbe(in EnvProbe probe, vec3 P, vec3 N, vec3 R, vec3 camera_position, float roughness)
+float4 CalculateReflectionProbe(in EnvProbe probe, float3 P, float3 N, float3 R, float3 camera_position, float roughness)
 {
-    vec4 ibl = vec4(0.0, 0.0, 0.0, 0.0);
+    float4 ibl = float4(0.0, 0.0, 0.0, 0.0);
 
     const float lod = HYP_FMATH_SQR(roughness) * 7.0;
 
@@ -137,36 +131,36 @@ vec4 CalculateReflectionProbe(in EnvProbe probe, vec3 P, vec3 N, vec3 R, vec3 ca
     {
         R = EnvProbeCoordParallaxCorrected(probe.world_position.xyz, probe.aabb_min.xyz, probe.aabb_max.xyz, P, R);
     }
-#endif
+#endif // ENV_PROBE_PARALLAX_CORRECTED
 
     ApplyReflectionProbe(probe.texture_index, probe.world_position.xyz, probe.aabb_min.xyz, probe.aabb_max.xyz, P, R, lod, ibl);
 
     return ibl;
 }
 
-#endif
+#endif // HYP_DEFERRED_NO_ENV_PROBE
 
 #ifndef HYP_DEFERRED_NO_RT_RADIANCE
 #ifdef PATHTRACER
-vec4 CalculatePathTracing(vec2 uv)
+float4 CalculatePathTracing(float2 uv)
 {
     return SAMPLE_TEXTURE_2D_LOD(sampler_linear, RTRadianceResultTexture, uv, 0.0);
 }
-#endif
+#endif // PATHTRACER
 
 #ifdef RT_REFLECTIONS
-void CalculateRayTracingReflection(vec2 uv, inout vec4 reflections)
+void CalculateRayTracingReflection(float2 uv, inout float4 reflections)
 {
-    vec4 rt_radiance = SAMPLE_TEXTURE_2D_LOD(sampler_linear, RTRadianceResultTexture, uv, 0.0);
+    float4 rt_radiance = SAMPLE_TEXTURE_2D_LOD(sampler_linear, RTRadianceResultTexture, uv, 0.0);
 
-    reflections = reflections * (1.0 - rt_radiance.a) + vec4(rt_radiance.rgb, 1.0) * rt_radiance.a;
+    reflections = reflections * (1.0 - rt_radiance.a) + float4(rt_radiance.rgb, 1.0) * rt_radiance.a;
 }
-#endif
-#endif
+#endif // RT_REFLECTIONS
+#endif // HYP_DEFERRED_NO_RT_RADIANCE
 
-void IntegrateReflections(inout vec3 Fr, in vec4 reflections)
+void IntegrateReflections(inout float3 Fr, in float4 reflections)
 {
     Fr = (Fr * (1.0 - reflections.a)) + (reflections.rgb);
 }
 
-#endif
+#endif // DEFERRED_LIGHTING_HLSLI

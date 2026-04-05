@@ -60,8 +60,8 @@ DECLARE_SRV(Default, ShadowMapsTextureArray) Texture2DArray<float> shadow_maps;
 DECLARE_SRV(Default, PointLightShadowMapsTextureArray) TextureCubeArray point_shadow_maps;
 
 #ifdef LIGHTING_FORWARD
-#include "include/brdf.inc"
-#include "deferred/DeferredLighting.inc"
+#include "include/BRDF.hlsli"
+#include "deferred/DeferredLighting.hlsli"
 #include "include/Shadows.hlsli"
 #endif
 
