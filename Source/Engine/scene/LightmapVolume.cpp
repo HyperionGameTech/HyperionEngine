@@ -63,9 +63,6 @@ LightmapVolume::~LightmapVolume()
 
 bool LightmapVolume::AddElement(Vec2u dimensions, LightmapElement& outElement, bool shrinkToFit, float downscaleLimit)
 {
-    HYP_SCOPE;
-    AssertOnThread(g_simThread);
-
     outElement.id = InvalidLightmapElementId;
 
     Optional<LightmapVolumeAtlas> tmpAtlas;
@@ -117,8 +114,6 @@ bool LightmapVolume::AddElement(Vec2u dimensions, LightmapElement& outElement, b
 
 const LightmapElement* LightmapVolume::GetElement(LightmapElementId elementId) const
 {
-    AssertOnThread(g_simThread);
-
     uint16 atlasIndex;
     uint16 elementIndex;
     LightmapElement::GetAtlasAndElementIndex(elementId, atlasIndex, elementIndex);
@@ -134,6 +129,21 @@ const LightmapElement* LightmapVolume::GetElement(LightmapElementId elementId) c
     }
 
     return &m_atlases[atlasIndex].elements[elementIndex];
+}
+
+void LightmapVolume::RemoveAllElements()
+{
+    for (LightmapVolumeAtlas& atlas : m_atlases)
+    {
+        atlas.Clear();
+    }
+
+    m_radianceAtlasTextures.Clear();
+    m_irradianceAtlasTextures.Clear();
+    m_atlases.Clear();
+
+    MarkDirty();
+    SetNeedsRenderProxyUpdate();
 }
 
 void LightmapVolume::Init()

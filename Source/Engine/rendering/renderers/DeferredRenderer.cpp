@@ -402,19 +402,21 @@ void DeferredPass::RenderToFramebuffer_Internal(Frame* frame, const RenderSetup&
     cr << SetTopology(TOP_TRIANGLES);
     cr << SetFillMode(FM_FILL);
     cr << SetCurrentBlendFunction(m_blendFunction);
-    cr << SetStencilTest(true);
     cr << SetDepthWrite(false);
     cr << SetDepthTest(false);
+    
+    if (m_mode == DPM_INDIRECT_LIGHTING)
+    {
+        cr << SetStencilTest(true);
+        cr << SetStencilFunction(StencilFunction {
+            .passOp = SO_KEEP,
+            .failOp = SO_KEEP,
+            .depthFailOp = SO_KEEP,
+            .compareOp = SCO_EQUAL });
 
-    cr << SetStencilFunction(StencilFunction {
-        .passOp = SO_KEEP,
-        .failOp = SO_KEEP,
-        .depthFailOp = SO_KEEP,
-        .compareOp = SCO_EQUAL
-    });
-
-    // stencil state: only render where stencil == 0 (non-lightmapped geometry)
-    cr << SetStencilState(0, LightmapStencilMask, 0x0);
+        // stencil state: only render where stencil == 0 (non-lightmapped geometry)
+        cr << SetStencilState(0, LightmapStencilMask, 0x0);
+    }
 
     HYP_DEFER({
         // reset states
@@ -1032,6 +1034,8 @@ void LightmapPass::RenderToFramebuffer_Internal(Frame* frame, const RenderSetup&
 
     cr << SetDepthTest(false);
     cr << SetDepthWrite(false);
+    
+    cr << SetCurrentBlendFunction(BlendFunction::Additive());
 
     cr << SetStencilTest(true);
     cr << SetStencilFunction(StencilFunction {
@@ -1210,9 +1214,7 @@ void FogVolumePass::RenderToFramebuffer_Internal(Frame* frame, const RenderSetup
     cr << SetDepthTest(false);
     cr << SetStencilTest(false);
     cr << SetFaceCullMode(FCM_FRONT); // cull front faces to render inside of the volume
-    cr << SetCurrentBlendFunction(BlendFunction(
-        BMF_SRC_ALPHA, BMF_ONE_MINUS_SRC_ALPHA,
-        BMF_ONE, BMF_ONE_MINUS_SRC_ALPHA));
+    cr << SetCurrentBlendFunction(BlendFunction::Additive());
 
     cr << SetCurrentShader(m_shaderDesc);
 
@@ -2668,18 +2670,7 @@ void DeferredRenderer::RenderFrameForView(Frame* frame, const RenderSetup& rs)
 
         frame->cr << SetCurrentFramebuffer(passData.deferredShadingFramebuffer);
 
-        //if (cvSSGI.Get())
-        //{
-        //    frame->cr << SetCurrentFramebuffer(nullptr);
-
-        //    passData.ssgi->Render(frame, rs);
-        //
-        //    // back to deferred shading
-        //    frame->cr << SetCurrentFramebuffer(passData.deferredShadingFramebuffer);
-        //}
-        
         passData.indirectPass->RenderToFramebuffer(frame, rs, passData.deferredShadingFramebuffer);
-        passData.directPass->RenderToFramebuffer(frame, rs, passData.deferredShadingFramebuffer);
 
         if (cvEnableLightmapVolumes.Get())
         {
@@ -2694,6 +2685,8 @@ void DeferredRenderer::RenderFrameForView(Frame* frame, const RenderSetup& rs)
                 passData.lightmapPass->RenderToFramebuffer(frame, lightmapPassRS, passData.deferredShadingFramebuffer);
             }
         }
+
+        passData.directPass->RenderToFramebuffer(frame, rs, passData.deferredShadingFramebuffer);
 
         frame->cr << SetCurrentFramebuffer(nullptr);
     }

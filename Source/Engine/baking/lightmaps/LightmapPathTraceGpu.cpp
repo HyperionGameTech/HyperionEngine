@@ -106,8 +106,8 @@ namespace Baking {
 #pragma region LightmapRenderer_GpuPathTracing
 
 static const ShaderPropertyId s_lightmapModeProperties[uint32(LightmapShadingType::MAX)] = {
-    InternShaderProperty(ShaderProperty(NAME("MODE"), NAME("RADIANCE"))),
     InternShaderProperty(ShaderProperty(NAME("MODE"), NAME("IRRADIANCE"))),
+    InternShaderProperty(ShaderProperty(NAME("MODE"), NAME("RADIANCE"))),
     InternShaderProperty(ShaderProperty(NAME("MODE"), NAME("FULL"))),
     InternShaderProperty(ShaderProperty(NAME("MODE"), NAME("SHADOW")))
 };

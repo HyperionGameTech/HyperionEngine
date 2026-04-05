@@ -156,6 +156,9 @@ public:
     bool AddElement(Vec2u dimensions, LightmapElement& outElement, bool shrinkToFit = true, float downscaleLimit = 0.1f);
 
     const LightmapElement* GetElement(LightmapElementId elementId) const;
+    
+    /*! \brief Remove all lightmap elements from this volume */
+    void RemoveAllElements();
 
     void UpdateRenderProxy(RenderProxyLightmapVolume* proxy);
 

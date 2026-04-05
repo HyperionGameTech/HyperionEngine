@@ -10,6 +10,16 @@
       "AssetPath": {
         "Value": "Engine/Shaders/LightmapPathTracer/LightmapPathTracer_18324671596252426522"
       }
+    }, {
+      "$Class": "AssetReference",
+      "AssetPath": {
+        "Value": "Engine/Shaders/LightmapPathTracer/LightmapPathTracer_12398611739765556897"
+      }
+    }, {
+      "$Class": "AssetReference",
+      "AssetPath": {
+        "Value": "Engine/Shaders/LightmapPathTracer/LightmapPathTracer_10052432351400791672"
+      }
     }],
   "Name": "LightmapPathTracer",
   "FriendlyName": "LightmapPathTracer",

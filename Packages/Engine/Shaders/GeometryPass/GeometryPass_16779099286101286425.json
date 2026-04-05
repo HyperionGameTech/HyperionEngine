@@ -2,18 +2,6 @@
   "$Class": "Shader",
   "PropertySet": [{
       "$Class": "ShaderProperty",
-      "Name": "ALPHA_DISCARD",
-      "Flags": 0,
-      "Value": null,
-      "EnumValues": []
-    }, {
-      "$Class": "ShaderProperty",
-      "Name": "SHADING_TYPE",
-      "Flags": 0,
-      "Value": "DEFERRED",
-      "EnumValues": []
-    }, {
-      "$Class": "ShaderProperty",
       "Name": "HYP_VULKAN",
       "Flags": 0,
       "Value": 4202496,
@@ -29,6 +17,18 @@
       "Name": "HYP_FEATURES_BINDLESS_TEXTURES",
       "Flags": 0,
       "Value": null,
+      "EnumValues": []
+    }, {
+      "$Class": "ShaderProperty",
+      "Name": "ALPHA_DISCARD",
+      "Flags": 0,
+      "Value": null,
+      "EnumValues": []
+    }, {
+      "$Class": "ShaderProperty",
+      "Name": "SHADING_TYPE",
+      "Flags": 0,
+      "Value": "DEFERRED",
       "EnumValues": []
     }],
   "RevisionNumber": 31459917,
@@ -141,17 +141,17 @@
   "ShaderBlobs": [{
       "$Class": "BlobDataReference",
       "Key": "Engine/Shaders/GeometryPass/GeometryPass_16779099286101286425.VS",
-      "Size": 57444
+      "Size": 57620
     }, {
       "$Class": "BlobDataReference",
       "Key": "Engine/Shaders/GeometryPass/GeometryPass_16779099286101286425.PS",
-      "Size": 72908
+      "Size": 72912
     }],
   "PropertySetHashCode": {},
   "LastCompiledTimestamp": {
-    "Value": 1775169436000
+    "Value": 1775336823000
   },
   "Name": "GeometryPass_16779099286101286425",
-  "FriendlyName": "GeometryPass16779099286101286425",
+  "FriendlyName": "GeometryPass_16779099286101286425",
   "OriginalFilepath": ""
 }

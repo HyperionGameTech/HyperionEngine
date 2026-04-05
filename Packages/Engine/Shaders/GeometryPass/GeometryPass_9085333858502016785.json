@@ -2,24 +2,6 @@
   "$Class": "Shader",
   "PropertySet": [{
       "$Class": "ShaderProperty",
-      "Name": "SHADING_TYPE",
-      "Flags": 0,
-      "Value": "FORWARD",
-      "EnumValues": []
-    }, {
-      "$Class": "ShaderProperty",
-      "Name": "SKINNING",
-      "Flags": 0,
-      "Value": null,
-      "EnumValues": []
-    }, {
-      "$Class": "ShaderProperty",
-      "Name": "MAX_LIGHTS",
-      "Flags": 0,
-      "Value": 4,
-      "EnumValues": []
-    }, {
-      "$Class": "ShaderProperty",
       "Name": "HYP_VULKAN",
       "Flags": 0,
       "Value": 4202496,
@@ -35,6 +17,24 @@
       "Name": "HYP_FEATURES_BINDLESS_TEXTURES",
       "Flags": 0,
       "Value": null,
+      "EnumValues": []
+    }, {
+      "$Class": "ShaderProperty",
+      "Name": "SHADING_TYPE",
+      "Flags": 0,
+      "Value": "FORWARD",
+      "EnumValues": []
+    }, {
+      "$Class": "ShaderProperty",
+      "Name": "SKINNING",
+      "Flags": 0,
+      "Value": null,
+      "EnumValues": []
+    }, {
+      "$Class": "ShaderProperty",
+      "Name": "MAX_LIGHTS",
+      "Flags": 0,
+      "Value": 4,
       "EnumValues": []
     }],
   "RevisionNumber": 31459917,
@@ -259,17 +259,17 @@
   "ShaderBlobs": [{
       "$Class": "BlobDataReference",
       "Key": "Engine/Shaders/GeometryPass/GeometryPass_9085333858502016785.VS",
-      "Size": 63360
+      "Size": 63536
     }, {
       "$Class": "BlobDataReference",
       "Key": "Engine/Shaders/GeometryPass/GeometryPass_9085333858502016785.PS",
-      "Size": 255240
+      "Size": 254968
     }],
   "PropertySetHashCode": {},
   "LastCompiledTimestamp": {
-    "Value": 1775169436000
+    "Value": 1775336823000
   },
   "Name": "GeometryPass_9085333858502016785",
-  "FriendlyName": "GeometryPass9085333858502016785",
+  "FriendlyName": "GeometryPass_9085333858502016785",
   "OriginalFilepath": ""
 }

@@ -89,7 +89,7 @@ VSOutput VSMain(VSInput input, uint instanceId : SV_InstanceID)
     output.camera_position = camera.position.xyz;
 
 #ifdef VT_UV1
-    output.texcoord1 = input.a_texcoord1.xy;
+    output.texcoord1 = float2(input.a_texcoord1.x, 1.0-input.a_texcoord1.y);
 #else
     output.texcoord1 = float2(0.0, 0.0);
 #endif

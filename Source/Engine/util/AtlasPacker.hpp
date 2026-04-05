@@ -182,10 +182,10 @@ template <class AtlasElement>
 void AtlasPacker<AtlasElement>::Clear()
 {
     freeSpaces.Clear();
-    elements.Clear();
-
     // Add the initial skyline node
     freeSpaces.EmplaceBack(Vec2i::Zero(), Vec2i { int(atlasDimensions.x), 0 });
+
+    elements.Clear();
 }
 
 // Based on: https://jvernay.fr/en/blog/skyline-2d-packer/implementation/

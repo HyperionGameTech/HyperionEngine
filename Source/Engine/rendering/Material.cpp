@@ -424,7 +424,7 @@ const Handle<Texture>& Material::GetTextureAtIndex(uint32 index) const
 Handle<Material> Material::Clone() const
 {
     Handle<Material> material = MakeHandle<Material>(
-        Name::Unique(ANSIString(*m_name) + "_dynamic"),
+        m_name,
         m_attributes,
         m_parameters,
         m_textures);

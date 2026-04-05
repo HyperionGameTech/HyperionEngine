@@ -2,12 +2,6 @@
   "$Class": "Shader",
   "PropertySet": [{
       "$Class": "ShaderProperty",
-      "Name": "SHADING_TYPE",
-      "Flags": 0,
-      "Value": "DEFERRED",
-      "EnumValues": []
-    }, {
-      "$Class": "ShaderProperty",
       "Name": "HYP_VULKAN",
       "Flags": 0,
       "Value": 4202496,
@@ -17,6 +11,12 @@
       "Name": "NUM_GBUFFER_TEXTURES",
       "Flags": 0,
       "Value": 5,
+      "EnumValues": []
+    }, {
+      "$Class": "ShaderProperty",
+      "Name": "SHADING_TYPE",
+      "Flags": 0,
+      "Value": "DEFERRED",
       "EnumValues": []
     }],
   "RevisionNumber": 31459917,
@@ -210,6 +210,6 @@
     "Value": 1775314118084
   },
   "Name": "GeometryPass_628712403385141860",
-  "FriendlyName": "GeometryPass_628712403385141860",
+  "FriendlyName": "GeometryPass628712403385141860",
   "OriginalFilepath": ""
 }

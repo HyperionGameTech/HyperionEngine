@@ -40,6 +40,8 @@ static constexpr TextureFormat AtlasTextureFormats[LightmapVolume::NumAtlasTextu
     TextureFormat::RGBA8//TextureFormat::R11G11B10F  // Irradiance
 };
 
+static constexpr const char* LightmapAtlasTextureTypeNames[LightmapVolume::NumAtlasTextureTypes] = { "R", "I" };
+
 #pragma region Render commands
 
 struct BlitAtlasElements : RenderCommand
@@ -73,14 +75,14 @@ struct BlitAtlasElements : RenderCommand
         AssertDebug(!elementTextures.Empty());
 
         // Ensure the array of atlas textures are resized to the correct count
-        Assert(atlasTextures.Size() == uint32(LightmapVolume::NumAtlasTextureTypes));
+        Assert(atlasTextures.Size() == LightmapVolume::NumAtlasTextureTypes);
 
         Frame* currentFrame = g_renderInterface->GetCurrentFrame();
         Assert(currentFrame != nullptr);
 
         CommandRecorder& cr = currentFrame->postRenderCommands;
 
-        for (uint32 textureTypeIndex = 0; textureTypeIndex < uint32(LightmapVolume::NumAtlasTextureTypes); textureTypeIndex++)
+        for (uint32 textureTypeIndex = 0; textureTypeIndex < LightmapVolume::NumAtlasTextureTypes; textureTypeIndex++)
         {
             if (!atlasTextures[textureTypeIndex])
             {
@@ -138,7 +140,7 @@ struct BlitAtlasElements : RenderCommand
         currentFrame->OnFrameEnd
             .Bind([atlasTextures = atlasTextures](Frame* frame)
                 {
-                    for (uint32 textureTypeIndex = 0; textureTypeIndex < uint32(LightmapVolume::NumAtlasTextureTypes); textureTypeIndex++)
+                    for (uint32 textureTypeIndex = 0; textureTypeIndex < LightmapVolume::NumAtlasTextureTypes; textureTypeIndex++)
                     {
                         if (!atlasTextures[textureTypeIndex])
                         {
@@ -177,8 +179,7 @@ struct BlitAtlasElements : RenderCommand
 
 static Name GenerateElementTextureName(LightmapVolume* lmv, uint32 elementIndex, LightmapVolume::AtlasTextureType textureType)
 {
-    static constexpr const char* TextureTypeNames[uint32(LightmapVolume::NumAtlasTextureTypes)] = { "R", "I" };
-    return NAME_FMT("LightmapVolumeTexture_{}_{}_{}", lmv->GetName(), elementIndex, TextureTypeNames[uint32(textureType)]);
+    return NAME_FMT("LightmapVolumeTexture_{}_{}_{}", lmv->GetName(), elementIndex, LightmapAtlasTextureTypeNames[textureType]);
 }
 
 static void UpdateAtlasTextures(
@@ -190,7 +191,7 @@ static void UpdateAtlasTextures(
 
     for (auto& it : elementTextures)
     {
-        for (uint32 i = 0; i < uint32(LightmapVolume::NumAtlasTextureTypes); i++)
+        for (uint32 i = 0; i < LightmapVolume::NumAtlasTextureTypes; i++)
         {
             AssertDebug(it.second[i] != nullptr, "Element texture for type {} is null!", LightmapVolume::AtlasTextureType(i));
 
@@ -255,7 +256,7 @@ static void UpdateAtlasTextures(
     lmv->SetNeedsRenderProxyUpdate();
 
     Array<Handle<Texture>> atlasTextures;
-    atlasTextures.Resize(uint32(LightmapVolume::NumAtlasTextureTypes));
+    atlasTextures.Resize(LightmapVolume::NumAtlasTextureTypes);
     atlasTextures[LightmapVolume::AtlasTextureType::IrradianceTexture] = irradianceTexture;
     atlasTextures[LightmapVolume::AtlasTextureType::RadianceTexture] = radianceTexture;
 
@@ -292,16 +293,14 @@ static bool BuildElementTextures(
 
     const Vec2u elementDimensions = element.dimensions;
 
-    FixedArray<typename Baking::BakeData<LightmapVolume>::BitmapType, uint32(LightmapVolume::NumAtlasTextureTypes)> bitmaps = {
+    FixedArray<typename Baking::BakeData<LightmapVolume>::BitmapType, LightmapVolume::NumAtlasTextureTypes> bitmaps = {
         bakeData.ToBitmapRadiance(),  /* RADIANCE */
         bakeData.ToBitmapIrradiance() /* IRRADIANCE */
     };
 
     FixedArray<Handle<Texture>, LightmapVolume::NumAtlasTextureTypes> elementTextures;
 
-    static constexpr const char* TextureTypeNames[uint32(LightmapVolume::NumAtlasTextureTypes)] = { "R", "I" };
-
-    for (uint32 i = 0; i < uint32(LightmapVolume::NumAtlasTextureTypes); i++)
+    for (uint32 i = 0; i < LightmapVolume::NumAtlasTextureTypes; i++)
     {
         Optional<typename Baking::BakeData<LightmapVolume>::BitmapType> tempBitmap;
 
@@ -464,6 +463,10 @@ void Baker<LightmapVolume>::Build()
         return;
     }
 
+    AssertDebug(m_bakeData.GetWidth() * m_bakeData.GetHeight() > 0);
+
+    m_volume->RemoveAllElements();
+
     LightmapElement lightmapElement;
     if (!m_volume->AddElement({ m_bakeData.GetWidth(), m_bakeData.GetHeight() }, lightmapElement, /* shrinkToFit */ true, /* downscaleLimit */ 0.1f))
     {
@@ -524,7 +527,7 @@ void Baker<LightmapVolume>::OnCompleted_Internal()
                 BakeVertex& inVertex = bakeMesh.vertices[i];
 
                 Vec2f uv1 = inVertex.GetUV1();
-                uv1.y = 1.0f - uv1.y; // Invert Y coordinate for lightmaps
+                //uv1.y = 1.0f - uv1.y; // Invert Y coordinate for lightmaps
                 uv1 *= lightmapElement->scale;
                 uv1 += Vec2f(lightmapElement->offsetUV.x, lightmapElement->offsetUV.y);
             }

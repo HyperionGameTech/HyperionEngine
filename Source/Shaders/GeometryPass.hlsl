@@ -345,5 +345,8 @@ PSOutput PSMain(PSInput input)
 
     output.gbuffer_velocity = velocity;
 
+    // // temp
+    // output.gbuffer_albedo = float4(input.texcoord1.xy, 0.0, 1.0);
+
     return output;
 }

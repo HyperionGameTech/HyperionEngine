@@ -86,7 +86,7 @@ BakeData<LightmapVolume>::BakeData(Span<const BakeEntity> bakeEntities, Lightmap
 
         for (size_t vertexIndex = 0; vertexIndex < vertexData.vertexCount; vertexIndex++)
         {
-            const float* srcVertexOffset = vertexData.floatData + (i * vertexSizeInFloats);
+            const float* srcVertexOffset = vertexData.floatData + (vertexIndex * vertexSizeInFloats);
 
             size_t offset = 0;
 
@@ -141,6 +141,21 @@ Result BakeData<LightmapVolume>::Build()
 
 #ifdef HYP_XATLAS
     xatlas::Atlas* atlas = xatlas::Create();
+    //xatlas::SetPrint([](const char* str, ...) -> int
+    //    {
+    //        va_list args;
+    //        va_start(args, str);
+
+    //        char buffer[1024] {};
+    //        int sprintfResult = snprintf(buffer, 1024, str, args);
+
+    //        HYP_LOG(Lightmap, Debug, "{}", buffer);
+    //            
+    //        va_end(args);
+
+    //        return sprintfResult;
+    //    },
+    //    true);
 
     for (size_t meshIndex = 0; meshIndex < m_meshData.Size(); meshIndex++)
     {
@@ -172,7 +187,9 @@ Result BakeData<LightmapVolume>::Build()
 
     xatlas::PackOptions packOptions {};
     packOptions.maxChartSize = 2048;
-    packOptions.texelsPerUnit = 16.0f;
+    packOptions.texelsPerUnit = 32.0f;
+    packOptions.padding = 4;
+    //packOptions.resolution = 2048;
     packOptions.bilinear = true;
 
     xatlas::ComputeCharts(atlas);
