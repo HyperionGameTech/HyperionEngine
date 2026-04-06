@@ -335,11 +335,11 @@
   "ShaderBlobs": [{
       "$Class": "BlobDataReference",
       "Key": "Engine/Shaders/PathTracer/PathTracer_18040257332220255199.RGS",
-      "Size": 131592
+      "Size": 131840
     }, {
       "$Class": "BlobDataReference",
       "Key": "Engine/Shaders/PathTracer/PathTracer_18040257332220255199.CHS",
-      "Size": 136296
+      "Size": 136544
     }, {
       "$Class": "BlobDataReference",
       "Key": "Engine/Shaders/PathTracer/PathTracer_18040257332220255199.MS",
@@ -347,7 +347,7 @@
     }],
   "PropertySetHashCode": {},
   "LastCompiledTimestamp": {
-    "Value": 1775008029000
+    "Value": 1775430576000
   },
   "Name": "PathTracer_18040257332220255199",
   "FriendlyName": "PathTracer_18040257332220255199",

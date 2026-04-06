@@ -10,21 +10,6 @@
       "AssetPath": {
         "Value": "Engine/Shaders/UIObject/UIObject_2941233747186420157"
       }
-    }, {
-      "$Class": "AssetReference",
-      "AssetPath": {
-        "Value": "Engine/Shaders/UIObject/UIObject_17367677479498477961"
-      }
-    }, {
-      "$Class": "AssetReference",
-      "AssetPath": {
-        "Value": "Engine/Shaders/UIObject/UIObject_16850497093972767391"
-      }
-    }, {
-      "$Class": "AssetReference",
-      "AssetPath": {
-        "Value": "Engine/Shaders/UIObject/UIObject_11297859281165449866"
-      }
     }],
   "Name": "UIObject",
   "FriendlyName": "UIObject",

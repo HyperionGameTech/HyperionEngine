@@ -5,11 +5,6 @@
       "AssetPath": {
         "Value": "Engine/Shaders/HBAO/HBAO_9858093069346154198"
       }
-    }, {
-      "$Class": "AssetReference",
-      "AssetPath": {
-        "Value": "Engine/Shaders/HBAO/HBAO_9535027780001628655"
-      }
     }],
   "Name": "HBAO",
   "FriendlyName": "HBAO",

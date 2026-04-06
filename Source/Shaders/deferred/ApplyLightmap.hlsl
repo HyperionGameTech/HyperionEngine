@@ -104,9 +104,9 @@ DECLARE_BUFFER(LightmapPass, LightmapVolumeUniforms) cbuffer LightmapVolumeUnifo
 
 #if ENV_PROBE_CUBEMAP
 DECLARE_SRV(LightmapPass, EnvProbesTexture) TextureCubeArray envProbesTexture;
-#else
+#else // !ENV_PROBE_CUBEMAP
 DECLARE_SRV(LightmapPass, EnvProbesTexture) Texture2DArray envProbesTexture;
-#endif
+#endif // ENV_PROBE_CUBEMAP
 
 DECLARE_SRV(LightmapPass, EnvProbesBuffer) StructuredBuffer<EnvProbe> env_probes;
 
@@ -176,9 +176,6 @@ PSOutput PSMain(PSInput input)
 
     const float3 energyCompensation = CalculateEnergyCompensation(F0, dfg);
     specularAO *= energyCompensation;
-    
-    // float3 ibl = SAMPLE_TEXTURE_2D_LOD(sampler_nearest, ReflectionProbeResultTexture, texcoord, 0).rgb;
-    // float3 Fr = ibl * E * specularAO;
 
     output.color_output.rgb = diffuseIndirect;
     output.color_output.a = 1.0;

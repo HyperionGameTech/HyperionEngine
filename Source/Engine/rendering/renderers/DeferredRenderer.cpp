@@ -210,7 +210,7 @@ void GetDeferredShaderProperties(
         }
 
         outShaderProperties.Set(s_propSSGIEnabled, cvSSGI.Get());
-        
+
         outShaderProperties.Add(s_propMaxFallbackProbes);
         
         outShaderProperties.Add(s_propTileSize);
@@ -455,6 +455,8 @@ void DeferredPass::RenderToFramebuffer_Internal(Frame* frame, const RenderSetup&
         
     cr << SetShaderUniform(numShaderUniforms++, "LightsBuffer"_sh, g_renderInterface->gpuBuffers[GRB_LIGHTS]->GetBuffer(frameIndex));
     cr << SetShaderUniform(numShaderUniforms++, "EnvProbesBuffer"_sh, g_renderInterface->gpuBuffers[GRB_ENV_PROBES]->GetBuffer(frameIndex));
+    
+    cr << SetShaderUniform(numShaderUniforms++, "EnvProbesTexture"_sh, g_renderInterface->textureViewCache->GetOrCreate(g_renderInterface->envProbesTexture));
 
     for (uint32 attachmentIndex = 0; attachmentIndex < GTN_MAX; attachmentIndex++)
     {
@@ -1198,6 +1200,9 @@ void FogVolumePass::RenderToFramebuffer_Internal(Frame* frame, const RenderSetup
 
     AssertDebug(renderSetup.world && renderSetup.volume && renderSetup.view);
 
+    DeferredRendererPassData* dpd = ObjCast<DeferredRendererPassData>(renderSetup.passData);
+    AssertDebug(dpd != nullptr);
+
     FogVolume* volume = ObjCast<FogVolume>(renderSetup.volume);
     AssertDebug(volume != nullptr);
 
@@ -1226,9 +1231,6 @@ void FogVolumePass::RenderToFramebuffer_Internal(Frame* frame, const RenderSetup
 
     cr << SetShaderUniform(0, "SamplerLinear"_sh, g_renderInterface->placeholderData->GetSamplerLinearMipmap());
     cr << SetShaderUniform(1, "SamplerNearest"_sh, g_renderInterface->placeholderData->GetSamplerNearest());
-
-    DeferredRendererPassData* dpd = ObjCast<DeferredRendererPassData>(renderSetup.passData);
-    AssertDebug(dpd != nullptr);
 
     cr << SetShaderUniform(2, "CamerasBuffer"_sh, g_renderInterface->gpuBuffers[GRB_CAMERAS]->GetBuffer(frame->GetFrameIndex()), TShaderDataOffset<CameraShaderData>(renderSetup.view->GetCamera()));
 

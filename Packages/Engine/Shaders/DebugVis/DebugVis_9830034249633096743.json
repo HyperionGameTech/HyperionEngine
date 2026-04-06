@@ -2,12 +2,6 @@
   "$Class": "Shader",
   "PropertySet": [{
       "$Class": "ShaderProperty",
-      "Name": "IMMEDIATE_MODE",
-      "Flags": 0,
-      "Value": null,
-      "EnumValues": []
-    }, {
-      "$Class": "ShaderProperty",
       "Name": "HYP_VULKAN",
       "Flags": 0,
       "Value": 4202496,
@@ -21,6 +15,12 @@
     }, {
       "$Class": "ShaderProperty",
       "Name": "HYP_FEATURES_BINDLESS_TEXTURES",
+      "Flags": 0,
+      "Value": null,
+      "EnumValues": []
+    }, {
+      "$Class": "ShaderProperty",
+      "Name": "IMMEDIATE_MODE",
       "Flags": 0,
       "Value": null,
       "EnumValues": []
@@ -161,13 +161,13 @@
     }, {
       "$Class": "BlobDataReference",
       "Key": "Engine/Shaders/DebugVis/DebugVis_9830034249633096743.PS",
-      "Size": 160536
+      "Size": 160972
     }],
   "PropertySetHashCode": {},
   "LastCompiledTimestamp": {
-    "Value": 1775008139000
+    "Value": 1775430576000
   },
   "Name": "DebugVis_9830034249633096743",
-  "FriendlyName": "DebugVis9830034249633096743",
+  "FriendlyName": "DebugVis_9830034249633096743",
   "OriginalFilepath": ""
 }
