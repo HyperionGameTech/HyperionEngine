@@ -104,7 +104,7 @@ DECLARE_SRV_DYNAMIC(Default, MaterialsBuffer) StructuredBuffer<Material> materia
 
 #include "include/parallax.inc"
 
-//#define DEBUG_RAW_REFLECTIONS
+// #define DEBUG_RAW_REFLECTIONS
 
 PSOutput PSMain(PSInput input)
 {
@@ -312,7 +312,7 @@ PSOutput PSMain(PSInput input)
 #endif
 
 #ifdef DEBUG_RAW_REFLECTIONS
-    roughness = 0.1;
+    roughness = 0.01;
 #endif
 
     // https://www.elopezr.com/temporal-aa-and-the-quest-for-the-holy-trail/

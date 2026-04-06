@@ -1536,7 +1536,7 @@ void RenderInterface::CommitPipelineState(PSOType psoType, CommandBuffer* comman
         const ShaderUniform& uniform = state.shaderUniforms[uniformIndex];
 
         GpuImageView* imageView = uniform.imageView;
-        AssertDebug(imageView != nullptr);
+        AssertDebug(imageView != nullptr, "Invalid image view for uniform {}", uniform.name);
 
         GpuImage* image = imageView->GetImage();
 

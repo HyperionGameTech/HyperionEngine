@@ -64,7 +64,6 @@ DECLARE_SAMPLER(LightmapPass, SamplerNearest) SamplerState sampler_nearest;
 DECLARE_SAMPLER(LightmapPass, SamplerLinear) SamplerState sampler_linear;
 
 DECLARE_SRV(LightmapPass, SSAOResultTexture) Texture2D SSAOResultTexture;
-DECLARE_SRV(LightmapPass, ReflectionProbeResultTexture) Texture2D ReflectionProbeResultTexture;
 
 #include "../include/shared.inc"
 #include "../include/gbuffer.inc"

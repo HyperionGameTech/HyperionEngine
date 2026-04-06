@@ -1,6 +1,7 @@
 #include "./include/defines.inc"
 
 PERMUTE(SSGI_ENABLED);
+PERMUTE(SSR_ENABLED);
 PERMUTE(RT_GI);
 PERMUTE(RT_REFLECTIONS);
 PERMUTE(HBAO_ENABLED);
@@ -68,9 +69,18 @@ DECLARE_SRV(DeferredPass, GBufferMipChain) Texture2D gbuffer_mip_chain;
 DECLARE_SRV(DeferredPass, GBufferDepthTexture) Texture2D gbuffer_depth_texture;
 
 DECLARE_SRV(DeferredPass, SSAOResultTexture) Texture2D SSAOResultTexture;
+
+#if SSGI_ENABLED
 DECLARE_SRV(DeferredPass, SSGIResultTexture) Texture2D SSGIResultTexture;
-DECLARE_SRV(DeferredPass, ReflectionProbeResultTexture) Texture2D ReflectionProbeResultTexture;
+#endif // SSGI_ENABLED
+
+#if SSR_ENABLED
+DECLARE_SRV(DeferredPass, SSRResultTexture) Texture2D SSRResultTexture;
+#endif // SSR_ENABLED
+
+#if RT_REFLECTIONS
 DECLARE_SRV(DeferredPass, RTRadianceResultTexture) Texture2D RTRadianceResultTexture;
+#endif // RT_REFLECTIONS
 
 #include "./include/gbuffer.inc"
 #include "./include/material.inc"
@@ -192,11 +202,11 @@ PSOutput PSMain(PSInput input)
 
     const uint2 pixelCoord = uint2(texcoord * max(0, int2(gbufferDimensions) - 1));
 
-    float4 albedo = SAMPLE_TEXTURE_2D_LOD(sampler_linear, gbuffer_albedo_texture, texcoord, 0);
-    float4 normalSample = SAMPLE_TEXTURE_2D_LOD(sampler_linear, gbuffer_normals_texture, texcoord, 0);
+    float4 albedo = SAMPLE_TEXTURE_2D_LOD(sampler_nearest, gbuffer_albedo_texture, texcoord, 0);
+    float4 normalSample = SAMPLE_TEXTURE_2D_LOD(sampler_nearest, gbuffer_normals_texture, texcoord, 0);
     float3 normal = GBufferUnpackNormal(normalSample);
 
-    float depth = SAMPLE_TEXTURE_2D_LOD(sampler_linear, gbuffer_depth_texture, texcoord, 0).r;
+    float depth = SAMPLE_TEXTURE_2D_LOD(sampler_nearest, gbuffer_depth_texture, texcoord, 0).r;
     
     float4 positionVS = ReconstructViewSpacePositionFromDepth(camera.invProjMat, texcoord, depth);
     
@@ -238,11 +248,14 @@ PSOutput PSMain(PSInput input)
         roughness, perceptualRoughness,
         texcoord, gbufferDimensions);
 
-    // reflections = SAMPLE_TEXTURE_2D_LOD(sampler_linear, ReflectionProbeResultTexture, texcoord, 0);
+#if SSR_ENABLED
+    float4 ssrResult = SAMPLE_TEXTURE_2D_LOD(sampler_linear, SSRResultTexture, texcoord, 0);
+    reflections = reflections * (1.0 - ssrResult.a) + ssrResult * ssrResult.a;
+#endif // SSR_ENABLED
 
 #if RT_REFLECTIONS
     CalculateRayTracingReflection(texcoord, reflections);
-#endif
+#endif // RT_REFLECTIONS
 
 #if 0 // SH probes
     // Blend in SH probes

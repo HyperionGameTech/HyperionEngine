@@ -115,6 +115,7 @@ static const ShaderPropertyId s_propProbeSideLengthDepth = InternShaderProperty(
 static const ShaderPropertyId s_propHBAOEnabled = InternShaderProperty(ShaderProperty(NAME("HBAO_ENABLED")));
 static const ShaderPropertyId s_propSSAOEnabled = InternShaderProperty(ShaderProperty(NAME("SSAO_ENABLED")));
 static const ShaderPropertyId s_propSSGIEnabled = InternShaderProperty(ShaderProperty(NAME("SSGI_ENABLED")));
+static const ShaderPropertyId s_propSSREnabled = InternShaderProperty(ShaderProperty(NAME("SSR_ENABLED")));
 
 static const ShaderPropertyId s_propRayTracingReflections = InternShaderProperty(ShaderProperty(NAME("RT_REFLECTIONS")));
 static const ShaderPropertyId s_propRayTracingGlobalIllumination = InternShaderProperty(ShaderProperty(NAME("RT_GI")));
@@ -210,6 +211,7 @@ void GetDeferredShaderProperties(
         }
 
         outShaderProperties.Set(s_propSSGIEnabled, cvSSGI.Get());
+        outShaderProperties.Set(s_propSSREnabled, cvSSR.Get());
 
         outShaderProperties.Add(s_propMaxFallbackProbes);
         
@@ -467,9 +469,9 @@ void DeferredPass::RenderToFramebuffer_Internal(Frame* frame, const RenderSetup&
 
     if (dpd->hbao != nullptr)
         cr << SetShaderUniform(numShaderUniforms++, "SSAOResultTexture"_sh, dpd->hbao->GetFinalImageView());
-
-    if (dpd->reflectionsPass != nullptr)
-        cr << SetShaderUniform(numShaderUniforms++, "ReflectionProbeResultTexture"_sh, dpd->reflectionsPass->GetFinalImageView());
+    
+    if (dpd->reflectionsPass != nullptr && dpd->reflectionsPass->ssrPass != nullptr)
+        cr << SetShaderUniform(numShaderUniforms++, "SSRResultTexture"_sh, g_renderInterface->textureViewCache->GetOrCreate(dpd->reflectionsPass->ssrPass->GetFinalResultTexture()));
 
     const bool useClusteredShading = cvClusteredShading.Get();
 
@@ -930,28 +932,6 @@ void TonemapPass::Render(Frame* frame, const RenderSetup& rs)
         cr << SetShaderUniform(numShaderUniforms++, "TAAResultTexture"_sh, g_renderInterface->placeholderData->GetImageView2D1x1R8());
     }
 
-    Texture* ssrTexture = dpd->reflectionsPass->ShouldRenderSSR()
-        ? dpd->reflectionsPass->GetSSRPass()->GetFinalResultTexture()
-        : nullptr;
-
-    if (ssrTexture)
-    {
-        cr << SetShaderUniform(numShaderUniforms++, "SSRResultTexture"_sh, g_renderInterface->textureViewCache->GetOrCreate(ssrTexture));
-    }
-    else
-    {
-        cr << SetShaderUniform(numShaderUniforms++, "SSRResultTexture"_sh, g_renderInterface->placeholderData->GetImageView2D1x1R8());
-    }
-
-    if (dpd->hbao)
-    {
-        cr << SetShaderUniform(numShaderUniforms++, "SSAOResultTexture"_sh, dpd->hbao->GetFinalImageView());
-    }
-    else
-    {
-        cr << SetShaderUniform(numShaderUniforms++, "SSAOResultTexture"_sh, g_renderInterface->placeholderData->GetImageView2D1x1R8());
-    }
-
     cr << SetShaderUniform(numShaderUniforms++, "DeferredIndirectResultTexture"_sh, dpd->deferredShadingFramebuffer->GetAttachment(0)->GetImageView());
 
     cr << SetShaderUniform(numShaderUniforms++, "PostProcessingUniforms"_sh, dpd->postProcessing->GetUniformBuffer());
@@ -1100,17 +1080,8 @@ void LightmapPass::RenderToFramebuffer_Internal(Frame* frame, const RenderSetup&
     else
         cr << SetShaderUniform(numShaderUniforms++, "EnvGridsBuffer"_sh, g_renderInterface->gpuBuffers[GRB_ENV_GRIDS]->GetBuffer(frameIndex), TShaderDataOffset<EnvProbeShaderData>(0));
 
-    if (dpd->reflectionsPass != nullptr)
-        cr << SetShaderUniform(numShaderUniforms++, "ReflectionProbeResultTexture"_sh, dpd->reflectionsPass->GetFinalImageView());
-
-    if (dpd->ssgi != nullptr)
-        cr << SetShaderUniform(numShaderUniforms++, "SSGIResultTexture"_sh, g_renderInterface->textureViewCache->GetOrCreate(dpd->ssgi->GetFinalResultTexture()));
-
     if (dpd->hbao != nullptr)
         cr << SetShaderUniform(numShaderUniforms++, "SSAOResultTexture"_sh, dpd->hbao->GetFinalImageView());
-
-    if (dpd->rayTracingReflections != nullptr)
-        cr << SetShaderUniform(numShaderUniforms++, "RTRadianceResultTexture"_sh, dpd->rayTracingReflections->GetFinalImageView());
 
     if (data.uniformBuffers.Size() < proxy->numAtlases)
     {
@@ -1382,7 +1353,7 @@ ReflectionsPass::~ReflectionsPass()
 {
     EnqueueDeletion(std::move(m_mipChainImageView));
 
-    m_ssrPass.Reset();
+    ssrPass.Reset();
 }
 
 void ReflectionsPass::Create()
@@ -1401,8 +1372,8 @@ bool ReflectionsPass::ShouldRenderSSR() const
 
 void ReflectionsPass::CreateSSRPass()
 {
-    m_ssrPass = MakeUnique<SSRPass>(SSRRendererConfig::FromConfig(), m_gbuffer, m_mipChainImageView);
-    m_ssrPass->Create();
+    ssrPass = MakeUnique<SSRPass>(SSRRendererConfig::FromConfig(), m_gbuffer, m_mipChainImageView);
+    ssrPass->Create();
 }
 
 void ReflectionsPass::Resize_Internal(Vec2u newSize)
@@ -1440,7 +1411,7 @@ void ReflectionsPass::Render(Frame* frame, const RenderSetup& rs)
 
     if (ShouldRenderSSR())
     {
-        m_ssrPass->Render(frame, rs);
+        ssrPass->Render(frame, rs);
     }
 
     cr << SetTopology(TOP_TRIANGLES);
@@ -1542,7 +1513,7 @@ void ReflectionsPass::Render(Frame* frame, const RenderSetup& rs)
 
     if (ShouldRenderSSR())
     {
-        const Handle<Texture>& ssrTexture = m_ssrPass->GetFinalResultTexture();
+        const Handle<Texture>& ssrTexture = ssrPass->GetFinalResultTexture();
 
         // render SSR to screen
         FramebufferDesc framebufferDesc = rs.view->GetOutputTarget().GetFramebuffer()->GetFramebufferDesc();
@@ -1868,6 +1839,9 @@ public:
             }
         }
 
+        Array<Tuple<EnvProbe*, EnvProbeShaderData*, uint32>, RenderTempAllocator> envProbes;
+        envProbes.Reserve(rpl.GetEnvProbes().NumCurrent());
+        
         for (EnvProbe* envProbe : rpl.GetEnvProbes())
         {
             const uint32 envProbeBindingIndex = Resources::GetBinding(envProbe);
@@ -1878,46 +1852,103 @@ public:
             }
 
             RenderProxyEnvProbe* envProbeProxy = static_cast<RenderProxyEnvProbe*>(GetRenderProxy(envProbe));
+            AssertDebug(envProbeProxy != nullptr);
 
-            if (envProbeProxy == nullptr)
+            envProbes.EmplaceBack(envProbe, &envProbeProxy->bufferData, envProbeBindingIndex);
+        }
+
+        // Sort env probes, we want sky first
+        Vec3f cameraPosition = cameraProxy->bufferData.cameraPosition.GetXYZ();
+
+        std::sort(envProbes.Begin(), envProbes.End(),
+            [&cameraPosition](const Tuple<EnvProbe*, EnvProbeShaderData*, uint32>& a, const Tuple<EnvProbe*, EnvProbeShaderData*, uint32>& b)
             {
-                continue;
-            }
+                const bool aIsSky = a.GetElement<0>()->IsA(SkyProbe::StaticClass());
+                const bool bIsSky = b.GetElement<0>()->IsA(SkyProbe::StaticClass());
 
-            const Vec3f aabbMinWS = envProbeProxy->bufferData.aabbMin.GetXYZ();
-            const Vec3f aabbMaxWS = envProbeProxy->bufferData.aabbMax.GetXYZ();
-            const Vec3f centerWS = (aabbMinWS + aabbMaxWS) * 0.5f;
-            const float probeRadius = (aabbMaxWS - centerWS).Length();
+                if (aIsSky && !bIsSky)
+                {
+                    return false;
+                }
 
+                if (!aIsSky && bIsSky)
+                {
+                    return true;
+                }
+
+                if (aIsSky && bIsSky)
+                {
+                    return false;
+                }
+
+                // both are reflection probes, sort by distance to camera
+                const Vec3f aProbePosition = a.GetElement<1>()->worldPosition.GetXYZ();
+                const Vec3f bProbePosition = b.GetElement<1>()->worldPosition.GetXYZ();
+
+                const float aDistSq = (aProbePosition - cameraPosition).LengthSquared();
+                const float bDistSq = (bProbePosition - cameraPosition).LengthSquared();
+
+                return aDistSq < bDistSq;
+            });
+
+        for (const Tuple<EnvProbe*, EnvProbeShaderData*, uint32>& tup : envProbes)
+        {
+            const EnvProbe& envProbe = *tup.GetElement<0>();
+            const EnvProbeShaderData& envProbeData = *tup.GetElement<1>();
+            const uint32 envProbeBindingIndex = tup.GetElement<2>();
+
+            const Vec3f aabbMinWS = envProbeData.aabbMin.GetXYZ();
+            const Vec3f aabbMaxWS = envProbeData.aabbMax.GetXYZ();
+
+            const BoundingBox aabb = BoundingBox(aabbMinWS, aabbMaxWS);
+
+            const float probeRadius = aabb.GetRadius();
+
+            const Vec3f centerWS = aabb.GetCenter();
             const Vec3f centerVS = viewMatrix * centerWS;
 
-            uint32 tileMinX;
-            uint32 tileMinY;
-            uint32 tileMaxX;
-            uint32 tileMaxY;
+            const bool isSky = envProbe.GetEnvProbeType() == EPT_SKY;
 
-            if (!ProjectSphereToScreenAABB(centerVS, probeRadius, tileMinX, tileMinY, tileMaxX, tileMaxY))
+            if (isSky)
             {
-                continue;
-            }
-
-            const float probeDistVS = centerVS.z;
-            const int32 zBinMin = CalculateZBin(MathUtil::Max(probeDistVS - probeRadius, cameraNear));
-            const int32 zBinMax = CalculateZBin(MathUtil::Min(probeDistVS + probeRadius, cameraFar));
-
-            for (int32 z = zBinMin; z <= zBinMax; z++)
-            {
-                for (uint32 y = tileMinY; y <= tileMaxY; y++)
+                for (Tile& tile : tempTiles)
                 {
-                    for (uint32 x = tileMinX; x <= tileMaxX; x++)
+                    if (tile.numEnvProbes < MaxEnvProbesPerTile)
                     {
-                        const uint32 clusterIndex = (uint32(z) * numTilesY + y) * numTilesX + x;
+                        tile.envProbeIndices[tile.numEnvProbes++] = uint16(envProbeBindingIndex);
+                    }
+                }
+            }
+            else
+            {
+                uint32 tileMinX;
+                uint32 tileMinY;
+                uint32 tileMaxX;
+                uint32 tileMaxY;
 
-                        Tile& tile = tempTiles[clusterIndex];
+                if (!ProjectSphereToScreenAABB(centerVS, probeRadius, tileMinX, tileMinY, tileMaxX, tileMaxY))
+                {
+                    continue;
+                }
 
-                        if (tile.numEnvProbes < MaxEnvProbesPerTile)
+                const float probeDistVS = centerVS.z;
+                const int32 zBinMin = CalculateZBin(MathUtil::Max(probeDistVS - probeRadius, cameraNear));
+                const int32 zBinMax = CalculateZBin(MathUtil::Min(probeDistVS + probeRadius, cameraFar));
+
+                for (int32 z = zBinMin; z <= zBinMax; z++)
+                {
+                    for (uint32 y = tileMinY; y <= tileMaxY; y++)
+                    {
+                        for (uint32 x = tileMinX; x <= tileMaxX; x++)
                         {
-                            tile.envProbeIndices[tile.numEnvProbes++] = uint16(envProbeBindingIndex);
+                            const uint32 clusterIndex = (uint32(z) * numTilesY + y) * numTilesX + x;
+
+                            Tile& tile = tempTiles[clusterIndex];
+
+                            if (tile.numEnvProbes < MaxEnvProbesPerTile)
+                            {
+                                tile.envProbeIndices[tile.numEnvProbes++] = uint16(envProbeBindingIndex);
+                            }
                         }
                     }
                 }
@@ -2602,8 +2633,6 @@ void DeferredRenderer::RenderFrameForView(Frame* frame, const RenderSetup& rs)
         }
     }
 
-    passData.reflectionsPass->Render(frame, rs);
-
     if ((useRayTracingGlobalIllumination || useRayTracingReflections) && view->GetRayTracingView().IsValid())
     {
         Handle<View> rayTracingView = view->GetRayTracingView().Lock();
@@ -2659,6 +2688,29 @@ void DeferredRenderer::RenderFrameForView(Frame* frame, const RenderSetup& rs)
     if (cvSSGI.Get())
     {
         passData.ssgi->Render(frame, rs);
+
+        if (Texture* ssgiResultTexture = passData.ssgi->GetFinalResultTexture())
+        {
+            // make sure it is in a state for reading, we don't want any transitions between lightmap -> deferred indirect pass.
+            frame->cr << InsertBarrier(
+                ssgiResultTexture->GetGpuImage(),
+                RS_SHADER_RESOURCE,
+                ShaderModuleType::Pixel);
+        }
+    }
+
+    if (cvSSR.Get())
+    {
+        passData.reflectionsPass->ssrPass->Render(frame, rs);
+
+        if (Texture* ssrResultTexture = passData.reflectionsPass->ssrPass->GetFinalResultTexture())
+        {
+            // make sure it is in a state for reading, we don't want any transitions between lightmap -> deferred indirect pass.
+            frame->cr << InsertBarrier(
+                ssrResultTexture->GetGpuImage(),
+                RS_SHADER_RESOURCE,
+                ShaderModuleType::Pixel);
+        }
     }
 
     passData.postProcessing->RenderPre(frame, rs);

@@ -232,15 +232,12 @@ public:
         return m_mipChainImageView;
     }
 
-    HYP_FORCE_INLINE SSRPass* GetSSRPass() const
-    {
-        return m_ssrPass.Get();
-    }
-
     bool ShouldRenderSSR() const;
 
     virtual void Create() override;
     virtual void Render(Frame* frame, const RenderSetup& rs) override;
+    
+    UniquePtr<SSRPass> ssrPass;
 
 private:
     virtual bool UsesTemporalBlending() const override
@@ -263,8 +260,6 @@ private:
     virtual void Resize_Internal(Vec2u newSize) override;
 
     GpuImageViewRef m_mipChainImageView;
-
-    UniquePtr<SSRPass> m_ssrPass;
 
     bool m_isFirstFrame;
 };
