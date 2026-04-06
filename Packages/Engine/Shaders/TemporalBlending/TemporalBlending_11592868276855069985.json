@@ -2,12 +2,6 @@
   "$Class": "Shader",
   "PropertySet": [{
       "$Class": "ShaderProperty",
-      "Name": "OUTPUT",
-      "Flags": 0,
-      "Value": "RGBA8",
-      "EnumValues": []
-    }, {
-      "$Class": "ShaderProperty",
       "Name": "HYP_VULKAN",
       "Flags": 0,
       "Value": 4202496,
@@ -26,15 +20,21 @@
       "EnumValues": []
     }, {
       "$Class": "ShaderProperty",
-      "Name": "FEEDBACK",
+      "Name": "OUTPUT",
       "Flags": 0,
-      "Value": 0.900000,
+      "Value": "RGBA8",
       "EnumValues": []
     }, {
       "$Class": "ShaderProperty",
       "Name": "TEMPORAL_BLEND_TECHNIQUE",
       "Flags": 0,
       "Value": 4,
+      "EnumValues": []
+    }, {
+      "$Class": "ShaderProperty",
+      "Name": "FEEDBACK",
+      "Flags": 0,
+      "Value": 0.900000,
       "EnumValues": []
     }],
   "RevisionNumber": 31459917,
@@ -204,6 +204,6 @@
     "Value": 1775008017000
   },
   "Name": "TemporalBlending_11592868276855069985",
-  "FriendlyName": "TemporalBlending11592868276855069985",
+  "FriendlyName": "TemporalBlending_11592868276855069985",
   "OriginalFilepath": ""
 }

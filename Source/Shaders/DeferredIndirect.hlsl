@@ -56,6 +56,9 @@ struct PSOutput
 
 #define HYP_DO_NOT_DEFINE_DESCRIPTOR_SETS
 
+DECLARE_SAMPLER(DeferredPass, SamplerNearest) SamplerState sampler_nearest;
+DECLARE_SAMPLER(DeferredPass, SamplerLinear) SamplerState sampler_linear;
+
 DECLARE_SRV(DeferredPass, GBufferAlbedoTexture) Texture2D gbuffer_albedo_texture;
 DECLARE_SRV(DeferredPass, GBufferNormalsTexture) Texture2D gbuffer_normals_texture;
 DECLARE_SRV(DeferredPass, GBufferMaterialTexture) Texture2D<uint4> gbuffer_material_texture;
@@ -63,8 +66,6 @@ DECLARE_SRV(DeferredPass, GBufferVelocityTexture) Texture2D gbuffer_velocity_tex
 
 DECLARE_SRV(DeferredPass, GBufferMipChain) Texture2D gbuffer_mip_chain;
 DECLARE_SRV(DeferredPass, GBufferDepthTexture) Texture2D gbuffer_depth_texture;
-DECLARE_SAMPLER(DeferredPass, SamplerNearest) SamplerState sampler_nearest;
-DECLARE_SAMPLER(DeferredPass, SamplerLinear) SamplerState sampler_linear;
 
 DECLARE_SRV(DeferredPass, SSAOResultTexture) Texture2D SSAOResultTexture;
 DECLARE_SRV(DeferredPass, SSGIResultTexture) Texture2D SSGIResultTexture;
@@ -96,12 +97,18 @@ DECLARE_BUFFER(DeferredPass, DDGIConstants) cbuffer DDGI
 
 #include "include/rt/probe/SampleDDGI.hlsli"
 
-#endif
+#endif // RT_GI
 
 #include "./include/env_probe.inc"
 
+#if ENV_PROBE_CUBEMAP
+DECLARE_SRV(DeferredPass, EnvProbesTexture) TextureCubeArray envProbesTexture;
+#else // !ENV_PROBE_CUBEMAP
+DECLARE_SRV(DeferredPass, EnvProbesTexture) Texture2DArray envProbesTexture;
+#endif // ENV_PROBE_CUBEMAP
+
 #define HYP_DEFERRED_NO_REFRACTION
-#define HYP_DEFERRED_NO_ENV_PROBE
+
 #include "./deferred/DeferredLighting.hlsli"
 #include "./deferred/ClusteredShading.hlsli"
 
@@ -110,9 +117,69 @@ DECLARE_BUFFER(DeferredPass, DDGIConstants) cbuffer DDGI
 DECLARE_BUFFER_DYNAMIC(DeferredPass, CBuffer) cbuffer CBuffer
 {
     Camera camera;
-    EnvProbe fallbackEnvProbes[MAX_FALLBACK_PROBES];
-    uint numFallbackProbes;
 };
+
+float4 CalculateEnvProbeReflections(
+    float3 positionVS, float3 positionWS, float3 N, float3 V, float3 R,
+    float roughness, float perceptualRoughness,
+    float2 texcoord, uint2 gbufferDimensions)
+{
+    const uint2 pixelCoord = uint2(texcoord * max(0, int2(gbufferDimensions) - 1));
+    
+    const uint gridIndex = Cluster_GetGridIndex(
+        gbufferDimensions, pixelCoord,
+        positionVS.z,
+        camera.near, camera.far);
+
+    const uint2 clusterData = ClusterGridBuffer[gridIndex];
+
+    const uint clusterIndexOffset = clusterData.x;
+    
+    const uint numLights = (clusterData.y & 0xFFFF);
+    const uint numEnvProbes = (clusterData.y >> 16) & 0xFFFF;
+    
+    float4 reflections = (float4)0;
+
+    for (uint i = 0; i < numEnvProbes && reflections.a < 1.0; ++i)
+    {
+        const uint envProbeIndex = Cluster_LoadEnvProbeIndex(clusterIndexOffset, numLights, i);
+
+        EnvProbe currentEnvProbe = EnvProbesBuffer.Load(envProbeIndex);
+        
+        const float numMips = 7.0; // assuming 128x128 cubemap size for reflection probes
+        const float lod = perceptualRoughness * numMips;
+        
+        const float3 aabbMin = currentEnvProbe.aabb_min.xyz;
+        const float3 aabbMax = currentEnvProbe.aabb_max.xyz;
+        
+        float4 currentReflections = (float4)0;
+
+        // pre-convoluted from baking util
+        ApplyReflectionProbe(
+            currentEnvProbe.texture_index,
+            currentEnvProbe.world_position.xyz,
+            aabbMin,
+            aabbMax,
+            positionWS,
+            R,
+            lod,
+            currentReflections);
+
+        const float3 aabbExtent = aabbMax - aabbMin;
+
+        const float3 blend = aabbExtent * 0.1;
+        const float3 distToMin = (positionWS.xyz - aabbMin) / blend;
+        const float3 distToMax = (aabbMax - positionWS.xyz) / blend;
+        const float minBlend = min(distToMin.x, min(distToMin.y, min(distToMin.z, min(distToMax.x, min(distToMax.y, distToMax.z)))));
+
+        float weight = smoothstep(0.0, 1.0, minBlend);
+        currentReflections *= weight;
+
+        reflections += currentReflections * (1.0 - reflections.a);
+    }
+    
+    return reflections;
+}
 
 PSOutput PSMain(PSInput input)
 {
@@ -125,12 +192,16 @@ PSOutput PSMain(PSInput input)
 
     const uint2 pixelCoord = uint2(texcoord * max(0, int2(gbufferDimensions) - 1));
 
-    float4 albedo = SAMPLE_TEXTURE_2D_LOD(sampler_nearest, gbuffer_albedo_texture, texcoord, 0);
-    float4 normalSample = SAMPLE_TEXTURE_2D_LOD(sampler_nearest, gbuffer_normals_texture, texcoord, 0);
+    float4 albedo = SAMPLE_TEXTURE_2D_LOD(sampler_linear, gbuffer_albedo_texture, texcoord, 0);
+    float4 normalSample = SAMPLE_TEXTURE_2D_LOD(sampler_linear, gbuffer_normals_texture, texcoord, 0);
     float3 normal = GBufferUnpackNormal(normalSample);
 
-    float depth = SAMPLE_TEXTURE_2D_LOD(sampler_nearest, gbuffer_depth_texture, texcoord, 0).r;
-    float4 position = ReconstructWorldSpacePositionFromDepth(camera.invProjMat, camera.invViewMat, texcoord, depth);
+    float depth = SAMPLE_TEXTURE_2D_LOD(sampler_linear, gbuffer_depth_texture, texcoord, 0).r;
+    
+    float4 positionVS = ReconstructViewSpacePositionFromDepth(camera.invProjMat, texcoord, depth);
+    
+    float4 positionWS = mul(camera.invViewMat, positionVS);
+    positionWS /= positionWS.w;
 
     uint2 materialData = gbuffer_material_texture.Load(int3(pixelCoord, 0)).xy;
 
@@ -144,7 +215,7 @@ PSOutput PSMain(PSInput input)
     float3 result = (float3)0.0;
 
     float3 N = normalize(normal);
-    float3 V = normalize(camera.position.xyz - position.xyz);
+    float3 V = normalize(camera.position.xyz - positionWS.xyz);
     float3 R = normalize(reflect(-V, N));
 
     float ao = 1.0;
@@ -153,15 +224,21 @@ PSOutput PSMain(PSInput input)
     float3 ibl = (float3)0.0;
 
 #if HBAO_ENABLED || SSAO_ENABLED
-    const float4 ssao_data = SAMPLE_TEXTURE_2D_LOD(HYP_SAMPLER_NEAREST, SSAOResultTexture, texcoord, 0);
+    const float4 ssao_data = SAMPLE_TEXTURE_2D_LOD(sampler_linear, SSAOResultTexture, texcoord, 0);
     ao = ssao_data.r;
 #endif
 
     const float3 diffuse_color = CalculateDiffuseColor(albedo.rgb, metalness);
 
     const float perceptualRoughness = sqrt(roughness);
+    
+    reflections = CalculateEnvProbeReflections(
+        positionVS.xyz, positionWS.xyz,
+        N, V, R,
+        roughness, perceptualRoughness,
+        texcoord, gbufferDimensions);
 
-    reflections = SAMPLE_TEXTURE_2D_LOD(HYP_SAMPLER_LINEAR, ReflectionProbeResultTexture, texcoord, 0);
+    // reflections = SAMPLE_TEXTURE_2D_LOD(sampler_linear, ReflectionProbeResultTexture, texcoord, 0);
 
 #if RT_REFLECTIONS
     CalculateRayTracingReflection(texcoord, reflections);
@@ -182,8 +259,8 @@ PSOutput PSMain(PSInput input)
         const float3 aabbExtent = aabbMax - aabbMin;
 
         const float3 blendZone = aabbExtent * 0.1;
-        const float3 distToMin = (position.xyz - aabbMin) / blendZone;
-        const float3 distToMax = (aabbMax - position.xyz) / blendZone;
+        const float3 distToMin = (positionWS.xyz - aabbMin) / blendZone;
+        const float3 distToMax = (aabbMax - positionWS.xyz) / blendZone;
         const float minBlend = min(distToMin.x, min(distToMin.y, min(distToMin.z,
                                min(distToMax.x, min(distToMax.y, distToMax.z)))));
 
@@ -207,12 +284,12 @@ PSOutput PSMain(PSInput input)
 
 #if SSGI_ENABLED
     // Blend ssgi result into irradiance - if no hit, alpha will be zero or close to it so we can lerp it
-    float4 ssgi = SAMPLE_TEXTURE_2D_LOD(HYP_SAMPLER_LINEAR, SSGIResultTexture, texcoord, 0);
+    float4 ssgi = SAMPLE_TEXTURE_2D_LOD(sampler_linear, SSGIResultTexture, texcoord, 0);
     irradiance = lerp(irradiance, ssgi, ssgi.a);
 #endif
 
 #if RT_GI
-    float3 ddgi = DDGISampleIrradiance(position.xyz, normal, V).rgb * DDGI_MULTIPLIER;
+    float3 ddgi = DDGISampleIrradiance(positionWS.xyz, normal, V).rgb * DDGI_MULTIPLIER;
     // lerp to ddgi based on 1.0-ssgi alpha, so that if ssgi has a hit, it will be used, otherwise ddgi will be used
     irradiance.rgb = lerp(irradiance.rgb, ddgi, 1.0 - irradiance.a);
 #endif
@@ -245,7 +322,7 @@ PSOutput PSMain(PSInput input)
 #elif defined(DEBUG_IRRADIANCE)
     result = irradiance.rgb;
 #elif defined(DEBUG_VELOCITY)
-    float4 velocity = SAMPLE_TEXTURE_2D_LOD(sampler_nearest, gbuffer_velocity_texture, texcoord, 0);
+    float4 velocity = SAMPLE_TEXTURE_2D_LOD(sampler_linear, gbuffer_velocity_texture, texcoord, 0);
     result = velocity.rgb;
 #elif defined(DEBUG_NORMALS)
     result = normal * 0.5 + 0.5;

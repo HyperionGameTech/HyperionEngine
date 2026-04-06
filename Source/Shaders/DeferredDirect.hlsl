@@ -119,6 +119,12 @@ DECLARE_SRV(DeferredPass, PointLightShadowMapsTextureArray) TextureCubeArray poi
 #define HYP_DEFERRED_NO_ENV_PROBE
 #define HYP_DEFERRED_NO_RT_RADIANCE
 
+#if ENV_PROBE_CUBEMAP
+DECLARE_SRV(DeferredPass, EnvProbesTexture) TextureCubeArray envProbesTexture;
+#else // !ENV_PROBE_CUBEMAP
+DECLARE_SRV(DeferredPass, EnvProbesTexture) Texture2DArray envProbesTexture;
+#endif // ENV_PROBE_CUBEMAP
+
 #include "./deferred/DeferredLighting.hlsli"
 
 #include "include/Shadows.hlsli"
@@ -461,6 +467,9 @@ PSOutput PSMain(PSInput input)
 #else
     output.output_color = float4(result);
 #endif
+
+    // temp
+    // output.output_color = float4(0.0, 0.0, 1.0, 1.0);
 
     return output;
 }
