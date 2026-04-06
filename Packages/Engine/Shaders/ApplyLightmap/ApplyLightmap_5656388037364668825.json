@@ -339,15 +339,15 @@
   "ShaderBlobs": [{
       "$Class": "BlobDataReference",
       "Key": "Engine/Shaders/ApplyLightmap/ApplyLightmap_5656388037364668825.VS",
-      "Size": 11552
+      "Size": 11932
     }, {
       "$Class": "BlobDataReference",
       "Key": "Engine/Shaders/ApplyLightmap/ApplyLightmap_5656388037364668825.PS",
-      "Size": 141120
+      "Size": 144244
     }],
   "PropertySetHashCode": {},
   "LastCompiledTimestamp": {
-    "Value": 1775482408000
+    "Value": 1775499573000
   },
   "Name": "ApplyLightmap_5656388037364668825",
   "FriendlyName": "ApplyLightmap_5656388037364668825",

@@ -182,60 +182,46 @@ static RendererResult CreateGpuImage(Texture& texture, GpuImage& image, Resource
 
         cr << InsertBarrier(&image, RS_COPY_DST);
 
-        if (textureDesc.HasMipMaps() && !placeholderBuffer.HasValue())
+        bool hasMips = textureDesc.HasMipMaps() && !placeholderBuffer.HasValue();
+
+        if (hasMips && !textureDesc.mipOffsets[0])
         {
-            const bool hasPreGeneratedMips = textureDesc.mipOffsets[0] != 0;
+            HYP_LOG(Assets, Warning, "Mip data missing for texture {}", texture.GetName());
 
-            if (hasPreGeneratedMips)
+            hasMips = false;
+        }
+
+        if (hasMips)
+        {
+            const uint32 numMips = textureDesc.NumMips();
+            const uint32 numArrayLayers = textureDesc.NumArrayLayers();
+
+            for (uint8 mipIndex = 0; mipIndex < uint8(numMips); mipIndex++)
             {
-                const uint32 numMips = textureDesc.NumMips();
-                const uint32 numArrayLayers = textureDesc.NumArrayLayers();
+                const uint32 mipSize = textureDesc.GetMipByteSize(mipIndex);
 
-                for (uint8 mipIndex = 0; mipIndex < uint8(numMips); mipIndex++)
+                uint32 mipBlockStart = 0;
+                if (mipIndex != 0)
                 {
-                    const uint32 mipSize = textureDesc.GetMipByteSize(mipIndex);
+                    mipBlockStart = mipOffsets[mipIndex - 1];
 
-                    uint32 mipBlockStart = 0;
-                    if (mipIndex != 0)
-                    {
-                        mipBlockStart = mipOffsets[mipIndex - 1];
+                    AssertDebug(mipBlockStart != 0);
+                }
 
-                        AssertDebug(mipBlockStart != 0);
-                    }
+                for (uint32 layerIndex = 0; layerIndex < numArrayLayers; layerIndex++)
+                {
+                    uint32 finalOffset = mipBlockStart + (mipSize * layerIndex);
 
-                    for (uint32 layerIndex = 0; layerIndex < numArrayLayers; layerIndex++)
-                    {
-                        uint32 finalOffset = mipBlockStart + (mipSize * layerIndex);
+                    AssertDebug(finalOffset + mipSize <= stagingBuffer->Size());
 
-                        AssertDebug(finalOffset + mipSize <= stagingBuffer->Size());
-
-                        cr << CopyBufferToImage(
-                            stagingBuffer,
-                            &image,
-                            /* byteOffset */ finalOffset,
-                            /* dstMipIndex */ mipIndex,
-                            /* dstArrayLayer */ layerIndex);
-                    }
+                    cr << CopyBufferToImage(
+                        stagingBuffer,
+                        &image,
+                        /* byteOffset */ finalOffset,
+                        /* dstMipIndex */ mipIndex,
+                        /* dstArrayLayer */ layerIndex);
                 }
             }
-            // else
-            //{
-            //     // runtime mip generation fallback
-            //     const uint32 numArrayLayers = textureDesc.NumArrayLayers();
-            //     const uint32 mipSize = textureDesc.GetMipByteSize(0);
-
-            //    for (uint16 layerIndex = 0; layerIndex < uint16(numArrayLayers); layerIndex++)
-            //    {
-            //        cr << CopyBufferToImage(
-            //            stagingBuffer,
-            //            image,
-            //            layerIndex * mipSize, // Offset assumes simple Layer packing for Mip 0
-            //            0,
-            //            layerIndex);
-            //    }
-
-            //    cr << GenerateMipmaps(image);
-            //}
         }
         else
         {
@@ -597,7 +583,7 @@ void Texture::GenerateMipmaps(TextureDesc& desc, ByteBuffer& imageData)
     }
 }
 
-void Texture::Readback(ByteBuffer& outByteBuffer)
+void Texture::Readback(GpuBufferRef& outBuffer, bool allMips)
 {
     HYP_SCOPE;
     AssertOnThread(g_renderThread);
@@ -609,24 +595,35 @@ void Texture::Readback(ByteBuffer& outByteBuffer)
         return;
     }
 
-    GpuBufferRef gpuBuffer = g_renderInterface->MakeGpuBuffer(GpuBufferType::STAGING_BUFFER, m_gpuImage->GetByteSize());
+    outBuffer = g_renderInterface->MakeGpuBuffer(GpuBufferType::READBACK_BUFFER, m_gpuImage->GetTextureDesc().GetByteSize(allMips));
+    outBuffer->SetIsCpuAccessible(true);
 #if HYP_DEBUG_MODE
-    gpuBuffer->SetDebugName(NAME_FMT("Texture_Readback_StagingBuffer_{}", GetName().IsValid() ? GetName() : NAME("Invalid")));
+    outBuffer->SetDebugName(NAME("Texture_ReadbackBuffer"));
 #endif
 
-    CheckResult(gpuBuffer->Create());
-    gpuBuffer->Map();
+    CheckResult(outBuffer->Create());
 
     UniquePtr<SingleTimeCommands> singleTimeCommands = g_renderInterface->GetSingleTimeCommands();
 
-    singleTimeCommands->Push([this, &gpuBuffer](CommandRecorder& cr)
+    singleTimeCommands->Push([this, &outBuffer, allMips](CommandRecorder& cr)
         {
             const ResourceState previousResourceState = m_gpuImage->GetResourceState();
 
             cr << InsertBarrier(m_gpuImage, RS_COPY_SRC);
-            cr << InsertBarrier(gpuBuffer, RS_COPY_DST);
+            cr << InsertBarrier(outBuffer, RS_COPY_DST);
+            
+            ImageSubResource sr;
+            sr.baseArrayLayer = 0;
+            sr.numLayers = UINT16_MAX;
+            sr.baseMipLevel = 0;
+            sr.numLevels = UINT8_MAX;
 
-            cr << CopyImageToBuffer(m_gpuImage, gpuBuffer);
+            if (!allMips)
+            {
+                sr.numLevels = 1;
+            }
+
+            cr << CopyImageToBuffer(m_gpuImage, outBuffer, sr);
 
             if (previousResourceState != RS_UNDEFINED && previousResourceState != RS_PRE_INITIALIZED)
             {
@@ -644,15 +641,13 @@ void Texture::Readback(ByteBuffer& outByteBuffer)
     {
         HYP_LOG(Rendering, Error, "Failed to readback texture data! {}", result.GetError().GetMessage());
 
+        EnqueueDeletion(std::move(outBuffer));
+
         return;
     }
-
-    outByteBuffer.SetSize(gpuBuffer->Size());
-    gpuBuffer->Read(outByteBuffer.Size(), outByteBuffer.Data());
-    gpuBuffer.Reset();
 }
 
-void Texture::EnqueueReadback(Proc<void(ByteBuffer&& byteBuffer)>&& callback)
+void Texture::EnqueueReadback(Proc<void(GpuBuffer&)>&& callback, bool allMips)
 {
     HYP_SCOPE;
     AssertOnThread(g_renderThread);
@@ -664,35 +659,34 @@ void Texture::EnqueueReadback(Proc<void(ByteBuffer&& byteBuffer)>&& callback)
         return;
     }
 
-    Frame* currentFrame = g_renderInterface->GetCurrentFrame();
-
-    // No current frame, fallback to blocking Readback() call.
-    if (!currentFrame)
-    {
-        ByteBuffer byteBuffer;
-        Readback(byteBuffer);
-
-        callback(std::move(byteBuffer));
-
-        return;
-    }
-
     const ResourceState previousResourceState = m_gpuImage->GetResourceState();
 
-    GpuBufferRef stagingBuffer = g_renderInterface->MakeGpuBuffer(GpuBufferType::STAGING_BUFFER, m_gpuImage->GetByteSize());
+    GpuBufferRef readbackBuffer = g_renderInterface->MakeGpuBuffer(GpuBufferType::READBACK_BUFFER, m_gpuImage->GetTextureDesc().GetByteSize(allMips));
+    readbackBuffer->SetIsCpuAccessible(true);
 #if HYP_DEBUG_MODE
-    stagingBuffer->SetDebugName(NAME_FMT("Texture_EnqueueReadback_StagingBuffer_{}", GetName().IsValid() ? GetName() : NAME("Invalid")));
+    readbackBuffer->SetDebugName(NAME("Texture_EnqueueReadbackBuffer"));
 #endif
 
-    CheckResult(stagingBuffer->Create());
-    stagingBuffer->Map();
+    CheckResult(readbackBuffer->Create());
     
-    CommandRecorder& cr = currentFrame->postRenderCommands;
+    CommandRecorder& cr = g_renderInterface->commandRecorderAllocator.GetCommandRecorder();
+    HYP_DEFER({ cr.Done(); });
 
     cr << InsertBarrier(m_gpuImage, RS_COPY_SRC);
-    cr << InsertBarrier(stagingBuffer, RS_COPY_DST);
+    cr << InsertBarrier(readbackBuffer, RS_COPY_DST);
+    
+    ImageSubResource sr;
+    sr.baseArrayLayer = 0;
+    sr.numLayers = UINT16_MAX;
+    sr.baseMipLevel = 0;
+    sr.numLevels = UINT8_MAX;
 
-    cr << CopyImageToBuffer(m_gpuImage, stagingBuffer);
+    if (!allMips)
+    {
+        sr.numLevels = 1;
+    }
+    
+    cr << CopyImageToBuffer(m_gpuImage, readbackBuffer, sr);
 
     if (previousResourceState != RS_UNDEFINED && previousResourceState != RS_PRE_INITIALIZED)
     {
@@ -703,27 +697,50 @@ void Texture::EnqueueReadback(Proc<void(ByteBuffer&& byteBuffer)>&& callback)
         cr << InsertBarrier(m_gpuImage, RS_SHADER_RESOURCE);
     }
 
-    DelegateHandler* delegateHandle = new DelegateHandler();
-    
-    *delegateHandle = currentFrame->OnFrameEnd.Bind(
-        [delegateHandle, name = GetName(), gpuImageRef = MakeStrongRef(m_gpuImage), /* hold a strong reference to our buffer to ensure it is kept alive */
-            stagingBuffer = MakeStrongRef(stagingBuffer),
-            callback = std::move(callback)](...) mutable
+    struct ReadbackPayload
+    {
+        GpuImageRef image;
+        GpuBufferRef readbackBuffer;
+        Proc<void(GpuBuffer&)> callback;
+    };
+
+    ReadbackPayload* payload = HYP_POOL_NEW(g_renderPool, ReadbackPayload);
+    payload->image = MakeStrongRef(m_gpuImage);
+    payload->readbackBuffer = std::move(readbackBuffer);
+    payload->callback = std::move(callback);
+
+    class ReadbackTextureCmd : public CmdBase
+    {
+    public:
+        ReadbackPayload* payload;
+
+        ReadbackTextureCmd(ReadbackPayload* payload)
+            : payload(payload)
         {
-            HYP_LOG(Texture, Verbose, "Finish readback for texture {}", name);
+        }
 
-            ByteBuffer byteBuffer;
-            byteBuffer.SetSize(stagingBuffer->Size());
+        static void InvokeStatic(CmdBase* cmd, CommandBuffer* commandBuffer)
+        {
+            ReadbackTextureCmd* _this = static_cast<ReadbackTextureCmd*>(cmd);
 
-            stagingBuffer->Read(byteBuffer.Size(), byteBuffer.Data());
+            Frame* currentFrame = g_renderInterface->GetCurrentFrame();
+            Assert(currentFrame != nullptr);
 
-            EnqueueDeletion(std::move(stagingBuffer));
-            EnqueueDeletion(std::move(gpuImageRef));
+            currentFrame->OnFrameEnd
+                .Bind([payload = _this->payload](...)
+                {
+                    payload->callback(*payload->readbackBuffer);
+                    payload->readbackBuffer.Reset();
+            
+                    EnqueueDeletion(std::move(payload->image));
 
-            callback(std::move(byteBuffer));
+                    PoolDelete(*g_renderPool, payload);
+                })
+                .Detach();
+        }
+    };
 
-            delete delegateHandle;
-        });
+    cr << ReadbackTextureCmd(payload);
 }
 
 Vec4f Texture::Sample(Vec3f uvw, uint32 faceIndex)

@@ -74,12 +74,6 @@ void VulkanFrame::OnFrameStart()
         }
     }
 #endif
-
-    if (OnFrameEnd.AnyBound())
-    {
-        OnFrameEnd(this);
-        OnFrameEnd.RemoveAllDetached();
-    }
 }
 
 RendererResult VulkanFrame::Submit(

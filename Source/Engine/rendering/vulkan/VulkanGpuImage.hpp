@@ -86,7 +86,8 @@ public:
 
     void CopyToBuffer(
         VulkanCommandBuffer* commandBuffer,
-        VulkanGpuBuffer* dstBuffer) const override;
+        VulkanGpuBuffer* dstBuffer,
+        const ImageSubResource& subResource) const override;
 
     void CopyFrom(
         VulkanCommandBuffer* commandBuffer,

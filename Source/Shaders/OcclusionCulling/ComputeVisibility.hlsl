@@ -110,7 +110,7 @@ void CSMain(uint3 dispatchThreadID : SV_DispatchThreadID)
     aabb.min = currEntity.world_aabb_min.xyz;
 
     uint cull_bits = 0x7Fu;
-    const bool skip_check = bool(GET_OBJECT_BUCKET(currEntity) & OBJECT_MASK_SKY);
+    const bool skip_check = bool(GET_OBJECT_BUCKET_MASK(currEntity) & OBJECT_MASK_SKY);
 
     is_visible = skip_check;
 

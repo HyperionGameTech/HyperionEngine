@@ -1,6 +1,6 @@
 #include "../include/defines.inc"
 #include "../include/noise.inc"
-#include "../include/env_probe.inc"
+#include "../include/EnvProbes.hlsli"
 
 #include "./ssr_header.inc"
 
@@ -79,7 +79,7 @@ DECLARE_SRV(SSGI, PointLightShadowMapsTextureArray) TextureCubeArray point_shado
 #include "../include/BlueNoise.inc"
 #include "../include/Shadows.hlsli"
 #include "../include/Octahedron.inc"
-#include "../include/env_probe.inc"
+#include "../include/EnvProbes.hlsli"
 #undef HYP_DO_NOT_DEFINE_DESCRIPTOR_SETS
 
 #if ENV_PROBE_CUBEMAP

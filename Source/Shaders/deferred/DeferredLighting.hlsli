@@ -93,7 +93,9 @@ float3 CalculateRefraction(
 
 #ifndef HYP_DEFERRED_NO_ENV_PROBE
 
-#include "../include/env_probe.inc"
+#include "../include/EnvProbes.hlsli"
+
+static const float s_envProbeBlendFactor = 0.1;
 
 void ApplyReflectionProbe(uint probe_texture_index, float3 probe_world_position, float3 aabb_min, float3 aabb_max, float3 P, float3 R, float lod, inout float4 ibl)
 {
@@ -137,6 +139,96 @@ float4 CalculateReflectionProbe(in EnvProbe probe, float3 P, float3 N, float3 R,
 
     return ibl;
 }
+
+float CalculateEnvProbeWeight(float3 positionWS, float3 aabbMin, float3 aabbMax)
+{   
+    const float3 aabbExtent = aabbMax - aabbMin;
+
+    const float3 blend = aabbExtent * s_envProbeBlendFactor;
+    const float3 distToMin = (positionWS.xyz - aabbMin) / blend;
+    const float3 distToMax = (aabbMax - positionWS.xyz) / blend;
+    const float minBlend = min(distToMin.x, min(distToMin.y, min(distToMin.z, min(distToMax.x, min(distToMax.y, distToMax.z)))));
+
+    return smoothstep(0.0, 1.0, minBlend);
+}
+
+// Must include ClusteredShading.hlsli before including this if you want
+// to use CalculateEnvProbesContribution.
+
+#ifdef CLUSTERED_SHADING_HLSLI
+
+void CalculateEnvProbesContribution(
+    float3 positionVS, float3 positionWS,
+    float3 N, float3 V, float3 R,
+    float nearClip, float farClip,
+    float roughness, float perceptualRoughness,
+    float2 texcoordSS, uint2 gbufferDimensions,
+    inout float4 reflections, inout float4 irradiance)
+{
+    const uint2 pixelCoord = uint2(texcoordSS * max(0, int2(gbufferDimensions) - 1));
+    
+    const uint gridIndex = Cluster_GetGridIndex(
+        gbufferDimensions, pixelCoord,
+        positionVS.z,
+        nearClip, farClip);
+
+    const uint2 clusterData = ClusterGridBuffer[gridIndex];
+
+    const uint clusterIndexOffset = clusterData.x;
+    
+    const uint numLights = (clusterData.y & 0xFFFF);
+    const uint numEnvProbes = (clusterData.y >> 16) & 0xFFFF;
+    
+#ifndef HYP_ENV_PROBES_NO_REFLECTIONS
+    for (uint i = 0; i < numEnvProbes && reflections.a < 1.0; ++i)
+    {
+        const uint envProbeIndex = Cluster_LoadEnvProbeIndex(clusterIndexOffset, numLights, i);
+
+        EnvProbe currentEnvProbe = EnvProbesBuffer.Load(envProbeIndex);
+        
+        const float numMips = 7.0; // assuming 128x128 cubemap size for reflection probes
+        const float lod = perceptualRoughness * numMips;
+        
+        const float3 aabbMin = currentEnvProbe.aabb_min.xyz;
+        const float3 aabbMax = currentEnvProbe.aabb_max.xyz;
+        
+        float4 currentReflections = (float4)0;
+        
+        ApplyReflectionProbe(
+            currentEnvProbe.texture_index,
+            currentEnvProbe.world_position.xyz,
+            aabbMin,
+            aabbMax,
+            positionWS,
+            R,
+            lod,
+            currentReflections);
+        
+        const float weight = CalculateEnvProbeWeight(positionWS, aabbMin, aabbMax);
+
+        reflections += currentReflections * weight * (1.0 - reflections.a);
+    }
+#endif // HYP_ENV_PROBES_NO_REFLECTIONS
+    
+#ifndef HYP_ENV_PROBES_NO_IRRADIANCE
+    for (uint i = 0; i < numEnvProbes && irradiance.a < 1.0; ++i)
+    {
+        const uint envProbeIndex = Cluster_LoadEnvProbeIndex(clusterIndexOffset, numLights, i);
+
+        EnvProbe currentEnvProbe = EnvProbesBuffer.Load(envProbeIndex);
+        
+        const float3 aabbMin = currentEnvProbe.aabb_min.xyz;
+        const float3 aabbMax = currentEnvProbe.aabb_max.xyz;
+
+        const float weight = CalculateEnvProbeWeight(positionWS, aabbMin, aabbMax);
+        
+        float3 currentIrradiance = EnvProbeSH(currentEnvProbe, N, /* order */ 2);
+        irradiance += float4(currentIrradiance, weight) * (1.0 - irradiance.a);
+    }
+#endif // HYP_ENV_PROBES_NO_IRRADIANCE
+}
+
+#endif // CLUSTERED_SHADING_HLSLI
 
 #endif // HYP_DEFERRED_NO_ENV_PROBE
 

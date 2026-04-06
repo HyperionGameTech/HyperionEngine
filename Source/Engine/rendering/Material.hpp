@@ -538,7 +538,7 @@ public:
 
     Material();
 
-    Material(
+    explicit Material(
         Name name,
         RenderBucket rb = RenderBucket::Opaque);
 

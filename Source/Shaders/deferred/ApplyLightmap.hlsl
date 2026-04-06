@@ -99,7 +99,7 @@ DECLARE_BUFFER(LightmapPass, LightmapVolumeUniforms) cbuffer LightmapVolumeUnifo
     uint numAtlases;
 };
 
-#include "../include/env_probe.inc"
+#include "../include/EnvProbes.hlsli"
 
 #if ENV_PROBE_CUBEMAP
 DECLARE_SRV(LightmapPass, EnvProbesTexture) TextureCubeArray envProbesTexture;

@@ -30,7 +30,7 @@ DECLARE_UAV(RTReflections, OutputImage) RWTexture2D<unorm float4> image;
 DECLARE_SRV(RTReflections, BlueNoiseBuffer) StructuredBuffer<int4> BlueNoiseBuffer;
 
 #include "../include/BlueNoise.inc"
-#include "../include/env_probe.inc"
+#include "../include/EnvProbes.hlsli"
 
 #undef HYP_DO_NOT_DEFINE_DESCRIPTOR_SETS
 

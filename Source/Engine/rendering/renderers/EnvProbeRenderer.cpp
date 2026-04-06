@@ -239,7 +239,7 @@ void ConvolveEnvProbeCubemap(
     if (envProbe.IsBaked())
     {
         HYP_LOG(Rendering, Verbose, "Enquueing readback of convolved EnvProbe {}.", envProbe.GetName());
-        prefilteredEnvMap->EnqueueReadback([envProbeWeak = MakeWeakRef(&envProbe), prefilteredEnvMap](ByteBuffer&& byteBuffer)
+        prefilteredEnvMap->EnqueueReadback([envProbeWeak = MakeWeakRef(&envProbe), prefilteredEnvMap](GpuBuffer& buffer)
         {
             Handle<EnvProbe> envProbeStrong = envProbeWeak.Lock();
             if (!envProbeStrong.IsValid())
@@ -248,19 +248,45 @@ void ConvolveEnvProbeCubemap(
                 return;
             }
 
-            HYP_LOG(Rendering, Info, "Readback of convolved EnvProbe {} completed, size {} bytes", envProbeStrong->GetName(), byteBuffer.Size());
+            HYP_LOG(Rendering, Info, "Readback of convolved EnvProbe {} completed, size {} bytes", envProbeStrong->GetName(), buffer.Size());
 
             auto resGuard = prefilteredEnvMap->GetWriteScope();
+            
+            TextureDesc desc = prefilteredEnvMap->GetTextureDesc();
 
             // sanity check
-            Assert(byteBuffer.Size() == prefilteredEnvMap->GetTextureDesc().GetByteSize());
+            Assert(buffer.Size() == desc.GetByteSize(/* allMips */ true));
+
+            ConstByteView view;
+            view.first = static_cast<const ubyte*>(buffer.Map());
+            view.last = view.first + buffer.Size();
+
+            // set all mip offsets.
+            Memory::Zero(desc.mipOffsets.Data(), desc.mipOffsets.ByteSize());
+
+            const uint8 numMips = desc.NumMips();
+
+            size_t mipOffset = 0;
+            for (uint8 mipIndex = 0; mipIndex < numMips; mipIndex++)
+            {
+                const size_t mipByteSize = desc.GetMipByteSize(mipIndex, /* includeArrayLayers */ true);
+
+                if (mipIndex > 0)
+                {
+                    desc.mipOffsets[mipIndex - 1] = uint32(mipOffset);
+                }
+                    
+                mipOffset += mipByteSize;
+            }
+            
+            prefilteredEnvMap->SetTextureDesc(desc);
 
             // Copy to cpu side data
-            prefilteredEnvMap->SetImageData(byteBuffer.ToByteView());
+            prefilteredEnvMap->SetImageData(view);
 
             // mark dirty so it gets saved on project save.
             envProbeStrong->MarkDirty();
-        });
+        }, /* allMips */ true);
     }
 
     // Update in env probes texture array if bound
@@ -509,7 +535,7 @@ void ComputeEnvProbeSphericalHarmonics(
                     ReadbackSphericalHarmonicsPayload& payload = *pPayload;
 
                     // Read back the SH coefficients from the GPU buffer and store on the EnvProbe.
-                    EnvProbeSphericalHarmonics shData;
+                    EnvProbeSphericalHarmonics shData {};
 
                     Assert(payload.shReadbackBuffer.IsValid() && payload.shReadbackBuffer->Size() >= sizeof(shData.values));
                     payload.shReadbackBuffer->Read(sizeof(shData.values), &shData.values[0]);

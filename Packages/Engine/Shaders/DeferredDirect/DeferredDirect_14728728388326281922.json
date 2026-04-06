@@ -26,6 +26,12 @@
       "EnumValues": []
     }, {
       "$Class": "ShaderProperty",
+      "Name": "MAX_CLUSTERED_SHADOW_MAPS",
+      "Flags": 0,
+      "Value": 16,
+      "EnumValues": []
+    }, {
+      "$Class": "ShaderProperty",
       "Name": "TILE_SIZE",
       "Flags": 0,
       "Value": 32,
@@ -33,12 +39,6 @@
     }, {
       "$Class": "ShaderProperty",
       "Name": "TILE_Z_BINS",
-      "Flags": 0,
-      "Value": 16,
-      "EnumValues": []
-    }, {
-      "$Class": "ShaderProperty",
-      "Name": "MAX_CLUSTERED_SHADOW_MAPS",
       "Flags": 0,
       "Value": 16,
       "EnumValues": []

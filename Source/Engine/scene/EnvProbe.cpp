@@ -69,7 +69,8 @@ EnvProbe::EnvProbe(EnvProbeType envProbeType, const BoundingBox& aabb, const Vec
       m_cameraNear(0.05f),
       m_cameraFar(aabb.GetRadius()),
       m_camera(nullptr),
-      m_view(nullptr)
+      m_view(nullptr),
+      m_shData {}
 {
     SetLocalBounds(aabb);
 

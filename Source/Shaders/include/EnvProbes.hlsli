@@ -1,21 +1,15 @@
-#ifndef HYP_ENV_PROBE_GLSL
-#define HYP_ENV_PROBE_GLSL
+#ifndef ENV_PROBES_HLSLI
+#define ENV_PROBES_HLSLI
 
 #include "defines.inc"
 
 // ENV PROBES
 
-#define ENV_PROBE_TYPE_INVALID ~0u
-#define ENV_PROBE_TYPE_SKY 0
-#define ENV_PROBE_TYPE_REFLECTION 1
-#define ENV_PROBE_TYPE_SHADOW 2
-#define ENV_PROBE_TYPE_AMBIENT 3
-#define ENV_PROBE_TYPE_MAX 4
 #define ENV_PROBE_CUBEMAP 1
 
 struct EnvProbe
 {
-    mat4 face_view_matrices[6];
+    float4x4 face_view_matrices[6];
 
     float4 aabb_max;
     float4 aabb_min;

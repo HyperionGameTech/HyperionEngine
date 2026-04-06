@@ -152,13 +152,24 @@
 #define HYP_LIGHT_TYPE_SPOT 2
 #define HYP_LIGHT_TYPE_AREA_RECT 3
 
-#define HYP_OBJECT_BUCKET_NONE 0
-#define HYP_OBJECT_BUCKET_OPAQUE 1
-#define HYP_OBJECT_BUCKET_LIGHTMAP 2
-#define HYP_OBJECT_BUCKET_TRANSLUCENT 3
-#define HYP_OBJECT_BUCKET_SKYBOX 4
-#define HYP_OBJECT_BUCKET_DEBUG 5
+// Maps to RenderBucket.
+#define HYP_OBJECT_BUCKET_OPAQUE 0
+#define HYP_OBJECT_BUCKET_LIGHTMAPPED 1
+#define HYP_OBJECT_BUCKET_TRANSLUCENT 2
+#define HYP_OBJECT_BUCKET_SKY 3
+#define HYP_OBJECT_BUCKET_DEBUG 4
 
+// Masking - can use up to 10 bits (stored in R channel of gbuffer normal texture)
+#define OBJECT_MASK_OPAQUE (0x01)
+#define OBJECT_MASK_LIGHTMAPPED (0x02)
+#define OBJECT_MASK_TRANSLUCENT (0x04)
+#define OBJECT_MASK_SKY (0x08)
+#define OBJECT_MASK_DEBUG (0x10)
+
+// Helper to map bucket to mask.
+#define GET_OBJECT_BUCKET_MASK(obj) (1u << (obj).bucket)
+
+// Helper math utilities.
 #define HYP_FMATH_SQR(num) ((num) * (num))
 #define HYP_FMATH_CUBE(num) ((num) * (num) * (num))
 #define HYP_FMATH_PI 3.14159265359

@@ -83,7 +83,7 @@ DECLARE_BUFFER_DYNAMIC(RenderSSR, CamerasBuffer) cbuffer CamerasBuffer
 
 #define HYP_DO_NOT_DEFINE_DESCRIPTOR_SETS
 #include "../include/gbuffer.inc"
-#include "../include/env_probe.inc"
+#include "../include/EnvProbes.hlsli"
 #undef HYP_DO_NOT_DEFINE_DESCRIPTOR_SETS
 
 float IsoscelesTriangleOpposite(float adjacent_length, float cone_theta)

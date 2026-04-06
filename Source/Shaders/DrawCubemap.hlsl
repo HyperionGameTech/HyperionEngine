@@ -162,18 +162,13 @@ DECLARE_SAMPLER(Default, SamplerNearest) SamplerState sampler_nearest;
 
 #include "include/material.inc"
 #include "include/gbuffer.inc"
-#include "include/env_probe.inc"
+#include "include/EnvProbes.hlsli"
 #include "include/Octahedron.inc"
 #include "include/Entity.inc"
 #include "include/packing.inc"
 #include "include/BRDF.hlsli"
 
 #define HYP_CUBEMAP_AMBIENT 0.005
-
-#ifndef MODE_SHADOWS
-DECLARE_SRV(Default, ShadowMapsTextureArray) Texture2DArray<float> shadow_maps;
-DECLARE_SRV(Default, PointLightShadowMapsTextureArray) TextureCubeArray point_shadow_maps;
-#endif // MODE_SHADOWS
 
 #ifdef INSTANCING
     DECLARE_SRV(Default, EntitiesBuffer) StructuredBuffer<Entity> entities;

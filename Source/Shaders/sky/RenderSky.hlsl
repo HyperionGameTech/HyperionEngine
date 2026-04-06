@@ -6,12 +6,10 @@
 #include "../include/shared.inc"
 #include "../include/material.inc"
 #include "../include/gbuffer.inc"
-#include "../include/env_probe.inc"
+#include "../include/EnvProbes.hlsli"
 #include "../include/noise.inc"
 #include "../include/Entity.inc"
 #include "../include/packing.inc"
-
-#undef HYP_DO_NOT_DEFINE_DESCRIPTOR_SETS
 
 DECLARE_SRV_DYNAMIC(Default, CurrentEnvProbe) StructuredBuffer<EnvProbe> current_env_probe_buffer;
 #define current_env_probe current_env_probe_buffer[0]
@@ -20,9 +18,9 @@ DECLARE_SRV_DYNAMIC(Default, CurrentEnvProbe) StructuredBuffer<EnvProbe> current
 DECLARE_SRV(Default, EntitiesBuffer) StructuredBuffer<Entity> entities;
 DECLARE_SRV_DYNAMIC(Default, EntityInstanceBatchesBuffer) StructuredBuffer<MeshEntityInstanceBatch> entity_instance_batches;
 #define entity_instance_batch entity_instance_batches[0]
-#else
+#else // !INSTANCING
 DECLARE_SRV_DYNAMIC(Default, CurrentEntity) StructuredBuffer<Entity> entities;
-#endif
+#endif // INSTANCING
 
 DECLARE_SRV_DYNAMIC(Default, CurrentLight) StructuredBuffer<Light> current_light_buffer;
 #define light current_light_buffer[0]
@@ -32,7 +30,7 @@ DECLARE_SRV_DYNAMIC(Default, MaterialsBuffer) StructuredBuffer<Material> materia
 
 #ifndef CURRENT_MATERIAL
 #define CURRENT_MATERIAL material
-#endif
+#endif // CURRENT_MATERIAL
 
 DECLARE_SAMPLER(Default, SamplerNearest) SamplerState sampler_nearest;
 DECLARE_SAMPLER(Default, SamplerLinear) SamplerState sampler_linear;

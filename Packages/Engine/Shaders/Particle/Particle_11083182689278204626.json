@@ -121,15 +121,15 @@
   "ShaderBlobs": [{
       "$Class": "BlobDataReference",
       "Key": "Engine/Shaders/Particle/Particle_11083182689278204626.VS",
-      "Size": 22876
+      "Size": 22288
     }, {
       "$Class": "BlobDataReference",
       "Key": "Engine/Shaders/Particle/Particle_11083182689278204626.PS",
-      "Size": 49276
+      "Size": 48676
     }],
   "PropertySetHashCode": {},
   "LastCompiledTimestamp": {
-    "Value": 1772989233000
+    "Value": 1775507616000
   },
   "Name": "Particle_11083182689278204626",
   "FriendlyName": "Particle_11083182689278204626",

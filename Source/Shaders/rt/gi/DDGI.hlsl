@@ -18,7 +18,7 @@ DECLARE_SAMPLER(DDGI, SamplerLinear) SamplerState sampler_linear;
 #include "../../include/scene.inc"
 #include "../../include/noise.inc"
 #include "../../include/Octahedron.inc"
-#include "../../include/env_probe.inc"
+#include "../../include/EnvProbes.hlsli"
 
 #undef HYP_DO_NOT_DEFINE_DESCRIPTOR_SETS
 

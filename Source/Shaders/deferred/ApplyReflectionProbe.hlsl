@@ -35,7 +35,7 @@ DECLARE_SRV(ReflectionsPass, GBufferMipChain) Texture2D gbuffer_mip_chain;
 
 #include "../include/BlueNoise.inc"
 
-#include "../include/env_probe.inc"
+#include "../include/EnvProbes.hlsli"
 DECLARE_SRV_DYNAMIC(ReflectionsPass, CurrentEnvProbe) StructuredBuffer<EnvProbe> current_env_probe_buffer;
 #define current_env_probe current_env_probe_buffer[0]
 

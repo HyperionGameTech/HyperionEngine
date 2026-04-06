@@ -24,14 +24,6 @@ float Linear01Depth(float depth, float near, float far);
 #error "TILE_Z_BINS must be defined before including ClusteredShading.hlsli"
 #endif // TILE_Z_BINS
 
-// x = index offset, y = lights, envprobe counts (uint16 each)
-DECLARE_SRV_DYNAMIC(DeferredPass, ClusterGridBuffer) StructuredBuffer<uint2> ClusterGridBuffer;
-// 16-bit ushort for indices
-DECLARE_SRV_DYNAMIC(DeferredPass, ClusterIndexBuffer) ByteAddressBuffer ClusterIndexBuffer;
-
-DECLARE_SRV(DeferredPass, LightsBuffer) StructuredBuffer<Light> LightsBuffer;
-DECLARE_SRV(DeferredPass, EnvProbesBuffer) StructuredBuffer<EnvProbe> EnvProbesBuffer;
-
 uint Cluster_LoadUInt16(uint index)
 {
     uint dwordAlignedOffset = (index / 2) * sizeof(uint);

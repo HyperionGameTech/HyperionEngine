@@ -191,6 +191,7 @@ float3 mon2lin(float3 x)
     return float3(pow(x[0], 2.2), pow(x[1], 2.2), pow(x[2], 2.2));
 }
 
+/// https://www.unrealengine.com/en-US/blog/physically-based-shading-on-mobile
 float2 BRDFMap(float roughness, float NdotV)
 {
     // Same as EnvBRDFApprox( 0.04, Roughness, NoV )

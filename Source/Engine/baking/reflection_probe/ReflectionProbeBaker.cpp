@@ -36,8 +36,6 @@ void ComputeEnvProbeSphericalHarmonics(
 
 namespace Baking {
 
-constexpr TextureFormat ReflectionProbeTextureFormat = TextureFormat::RGBA32F;
-
 Baker<ReflectionProbe>::Baker(BakerConfig&& config, const Handle<ReflectionProbe>& envProbe)
     : BakerBase(std::move(config), envProbe, MakeStrongRef(envProbe->GetScene()), envProbe->GetWorldBounds()),
       m_envProbe(envProbe)

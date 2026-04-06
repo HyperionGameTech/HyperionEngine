@@ -251,7 +251,8 @@ Result EditorProject::SaveAs(FilePath filepath)
             // Instances of objects without a pre-defined path (e.g Media/Meshes) go under
             //  PkgName/Objects/Types/<ObjectClassName>/ObjectName
             return HYP_FORMAT("Objects/Types/{}", assetObject.InstanceClass()->GetName());
-        });
+        },
+        AddAssetConflictMode::ReplaceExisting);
 
     if (filepath.Empty())
     {

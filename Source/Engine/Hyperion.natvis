@@ -335,6 +335,18 @@
     </Expand>
   </Type>
 
+  <Type Name="Hyperion::memory::TByteBuffer&lt;*,*&gt;">
+    <DisplayString>{{ Size={m_size} }}</DisplayString>
+    <Expand>
+      <Item Name="[Size]">m_size</Item>
+
+      <ArrayItems>
+        <Size>m_size</Size>
+        <ValuePointer>(std::byte*)(m_allocation.dynamicAllocation.buffer)</ValuePointer>
+      </ArrayItems>
+    </Expand>
+  </Type>
+
   <Type Name="Hyperion::BoxedValue">
     <Expand>
       <Item Name="[Metadata]">extData</Item>

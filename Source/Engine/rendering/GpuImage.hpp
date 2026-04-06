@@ -207,7 +207,8 @@ public:
 
     virtual void CopyToBuffer(
         CommandBuffer* commandBuffer,
-        GpuBuffer* dstBuffer) const = 0;
+        GpuBuffer* dstBuffer,
+        const ImageSubResource& subResource) const = 0;
 
     virtual void CopyFrom(
         CommandBuffer* commandBuffer,

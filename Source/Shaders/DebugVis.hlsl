@@ -31,7 +31,7 @@ struct VSOutput
 
 #define HYP_DO_NOT_DEFINE_DESCRIPTOR_SETS
 
-#include "./include/env_probe.inc"
+#include "./include/EnvProbes.hlsli"
 #include "./include/scene.inc"
 
 #ifdef IMMEDIATE_MODE
@@ -98,7 +98,7 @@ VSOutput VSMain(VSInput input, uint instanceId : SV_InstanceID)
     output.env_probe_type = immediateDraw.env_probe_type;
     output.env_probe_index = immediateDraw.env_probe_index;
 
-    if (immediateDraw.env_probe_index != ~0u && immediateDraw.env_probe_type == ENV_PROBE_TYPE_AMBIENT)
+    if (immediateDraw.env_probe_index != ~0u)
     {
         SH9 sh9;
 
@@ -194,7 +194,7 @@ DECLARE_SRV(DebugDrawerDescriptorSet, EntitiesBuffer) StructuredBuffer<Entity> e
 DECLARE_SRV_DYNAMIC(DebugDrawerDescriptorSet, CurrentEntity) StructuredBuffer<Entity> entities;
 #endif
 
-#include "include/env_probe.inc"
+#include "include/EnvProbes.hlsli"
 
 #if ENV_PROBE_CUBEMAP
 DECLARE_SRV(DebugDrawerDescriptorSet, EnvProbesTexture) TextureCubeArray envProbesTexture;
@@ -234,7 +234,7 @@ PSOutput PSMain(PSInput input)
 
     materialParams.mask = OBJECT_MASK_TRANSLUCENT | OBJECT_MASK_DEBUG;
 
-    if (input.env_probe_index != ~0u && input.env_probe_type == ENV_PROBE_TYPE_REFLECTION)
+    if (input.env_probe_index != ~0u)
     {
         const float3 N = normal;
         const float3 V = normalize(camera.position.xyz - input.position.xyz);
@@ -256,7 +256,7 @@ PSOutput PSMain(PSInput input)
         output.gbuffer_albedo.rgb = ibl.rgb;
     }
 #else
-    materialParams.mask = GET_OBJECT_BUCKET(entity);
+    materialParams.mask = GET_OBJECT_BUCKET_MASK(entity);
 #endif
 
     float roughnessAndMetalPacked;

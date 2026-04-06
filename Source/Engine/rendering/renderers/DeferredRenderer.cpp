@@ -129,9 +129,10 @@ static const ShaderPropertyId s_propMaxFallbackProbes = InternShaderProperty(Sha
 static const ShaderPropertyId s_propOutputSDR = InternShaderProperty(ShaderProperty(NAME("OUTPUT"), NAME("SDR")));
 
 static const ShaderPropertyId s_propLightTypeClustered = InternShaderProperty(ShaderProperty(NAME("LIGHT_TYPE"), NAME("CLUSTERED")));
-static const ShaderPropertyId s_propTileSize = InternShaderProperty(ShaderProperty(NAME("TILE_SIZE"), int(TileSize)));
-static const ShaderPropertyId s_propTileZBins = InternShaderProperty(ShaderProperty(NAME("TILE_Z_BINS"), int(TileZBins)));
 static const ShaderPropertyId s_propMaxClusteredShadowMaps = InternShaderProperty(ShaderProperty(NAME("MAX_CLUSTERED_SHADOW_MAPS"), int(MaxClusteredShadowMaps)));
+
+ShaderPropertyId propTileSize = InternShaderProperty(ShaderProperty(NAME("TILE_SIZE"), int(TileSize)));
+ShaderPropertyId propTileZBins = InternShaderProperty(ShaderProperty(NAME("TILE_Z_BINS"), int(TileZBins)));
 
 static constexpr StringHash GBufferTextureNames[GTN_MAX] = {
     "GBufferAlbedoTexture"_sh,
@@ -215,8 +216,8 @@ void GetDeferredShaderProperties(
 
         outShaderProperties.Add(s_propMaxFallbackProbes);
         
-        outShaderProperties.Add(s_propTileSize);
-        outShaderProperties.Add(s_propTileZBins);
+        outShaderProperties.Add(propTileSize);
+        outShaderProperties.Add(propTileZBins);
     }
     else
     {
@@ -225,8 +226,8 @@ void GetDeferredShaderProperties(
             outShaderProperties.Add(s_propLightTypeClustered);
             outShaderProperties.Add(s_propMaxClusteredShadowMaps);
 
-            outShaderProperties.Add(s_propTileSize);
-            outShaderProperties.Add(s_propTileZBins);
+            outShaderProperties.Add(propTileSize);
+            outShaderProperties.Add(propTileZBins);
         }
     }
 
@@ -1783,6 +1784,90 @@ public:
             return outMinX <= outMaxX && outMinY <= outMaxY;
         };
 
+        auto ProjectAABBToScreenTiles = [&viewMatrix, &projMatrix, &extent, cameraNear, numTilesX, numTilesY](
+            const Vec3f& aabbMinWS, const Vec3f& aabbMaxWS,
+            uint32& outMinX, uint32& outMinY, uint32& outMaxX, uint32& outMaxY,
+            float& outMinVSZ, float& outMaxVSZ) -> bool
+        {
+            const Vec3f corners[8] = {
+                { aabbMinWS.x, aabbMinWS.y, aabbMinWS.z },
+                { aabbMaxWS.x, aabbMinWS.y, aabbMinWS.z },
+                { aabbMinWS.x, aabbMaxWS.y, aabbMinWS.z },
+                { aabbMaxWS.x, aabbMaxWS.y, aabbMinWS.z },
+                { aabbMinWS.x, aabbMinWS.y, aabbMaxWS.z },
+                { aabbMaxWS.x, aabbMinWS.y, aabbMaxWS.z },
+                { aabbMinWS.x, aabbMaxWS.y, aabbMaxWS.z },
+                { aabbMaxWS.x, aabbMaxWS.y, aabbMaxWS.z },
+            };
+
+            const float projScaleX = projMatrix[0][0];
+            const float projScaleY = projMatrix[1][1];
+            const float halfW = float(extent.x) * 0.5f;
+            const float halfH = float(extent.y) * 0.5f;
+
+            float ndcMinX = MathUtil::MaxSafeValue<float>();
+            float ndcMinY = MathUtil::MaxSafeValue<float>();
+            float ndcMaxX = MathUtil::MinSafeValue<float>();
+            float ndcMaxY = MathUtil::MinSafeValue<float>();
+
+            outMinVSZ = MathUtil::MaxSafeValue<float>();
+            outMaxVSZ = MathUtil::MinSafeValue<float>();
+
+            bool anyInFront = false;
+            bool anyBehind = false;
+
+            for (const Vec3f& corner : corners)
+            {
+                const Vec3f cornerVS = viewMatrix * corner;
+
+                outMinVSZ = MathUtil::Min(outMinVSZ, cornerVS.z);
+                outMaxVSZ = MathUtil::Max(outMaxVSZ, cornerVS.z);
+
+                if (cornerVS.z < cameraNear)
+                {
+                    anyBehind = true;
+                    continue;
+                }
+
+                anyInFront = true;
+
+                const float invZ = 1.0f / cornerVS.z;
+                const float ndcX = cornerVS.x * projScaleX * invZ;
+                const float ndcY = cornerVS.y * projScaleY * invZ;
+
+                ndcMinX = MathUtil::Min(ndcMinX, ndcX);
+                ndcMinY = MathUtil::Min(ndcMinY, ndcY);
+                ndcMaxX = MathUtil::Max(ndcMaxX, ndcX);
+                ndcMaxY = MathUtil::Max(ndcMaxY, ndcY);
+            }
+
+            if (!anyInFront)
+            {
+                return false;
+            }
+
+            // If the AABB straddles the near plane, conservatively cover the full screen
+            if (anyBehind)
+            {
+                ndcMinX = -1.0f;
+                ndcMinY = -1.0f;
+                ndcMaxX = 1.0f;
+                ndcMaxY = 1.0f;
+            }
+
+            const float pixMinX = ndcMinX * halfW + halfW;
+            const float pixMaxX = ndcMaxX * halfW + halfW;
+            const float pixMinY = ndcMinY * halfH + halfH;
+            const float pixMaxY = ndcMaxY * halfH + halfH;
+
+            outMinX = uint32(MathUtil::Max(int32(pixMinX) / int32(TileSize), 0));
+            outMinY = uint32(MathUtil::Max(int32(pixMinY) / int32(TileSize), 0));
+            outMaxX = MathUtil::Min(uint32(MathUtil::Max(pixMaxX, 0.0f)) / TileSize, numTilesX - 1);
+            outMaxY = MathUtil::Min(uint32(MathUtil::Max(pixMaxY, 0.0f)) / TileSize, numTilesY - 1);
+
+            return outMinX <= outMaxX && outMinY <= outMaxY;
+        };
+
         for (Light* light : rpl.GetLights())
         {
             const LightType lightType = light->GetLightType();
@@ -1900,13 +1985,6 @@ public:
             const Vec3f aabbMinWS = envProbeData.aabbMin.GetXYZ();
             const Vec3f aabbMaxWS = envProbeData.aabbMax.GetXYZ();
 
-            const BoundingBox aabb = BoundingBox(aabbMinWS, aabbMaxWS);
-
-            const float probeRadius = aabb.GetRadius();
-
-            const Vec3f centerWS = aabb.GetCenter();
-            const Vec3f centerVS = viewMatrix * centerWS;
-
             const bool isSky = envProbe.GetEnvProbeType() == EPT_SKY;
 
             if (isSky)
@@ -1925,15 +2003,16 @@ public:
                 uint32 tileMinY;
                 uint32 tileMaxX;
                 uint32 tileMaxY;
+                float probeVSZMin;
+                float probeVSZMax;
 
-                if (!ProjectSphereToScreenAABB(centerVS, probeRadius, tileMinX, tileMinY, tileMaxX, tileMaxY))
+                if (!ProjectAABBToScreenTiles(aabbMinWS, aabbMaxWS, tileMinX, tileMinY, tileMaxX, tileMaxY, probeVSZMin, probeVSZMax))
                 {
                     continue;
                 }
 
-                const float probeDistVS = centerVS.z;
-                const int32 zBinMin = CalculateZBin(MathUtil::Max(probeDistVS - probeRadius, cameraNear));
-                const int32 zBinMax = CalculateZBin(MathUtil::Min(probeDistVS + probeRadius, cameraFar));
+                const int32 zBinMin = CalculateZBin(MathUtil::Max(probeVSZMin, cameraNear));
+                const int32 zBinMax = CalculateZBin(MathUtil::Min(probeVSZMax, cameraFar));
 
                 for (int32 z = zBinMin; z <= zBinMax; z++)
                 {

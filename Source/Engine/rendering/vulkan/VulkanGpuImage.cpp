@@ -1066,11 +1066,18 @@ void VulkanGpuImage::CopyFromBuffer(
     }
 }
 
-void VulkanGpuImage::CopyToBuffer(VulkanCommandBuffer* commandBuffer, VulkanGpuBuffer* dstBuffer) const
+void VulkanGpuImage::CopyToBuffer(
+    VulkanCommandBuffer* commandBuffer,
+    VulkanGpuBuffer* dstBuffer,
+    const ImageSubResource& subResource) const
 {
     Assert(dstBuffer != nullptr && dstBuffer->IsCreated(), "Destination buffer is null or invalid !");
     Assert(dstBuffer->Size() >= m_size, "Destination buffer is too small to hold image data!");
     
+    ImageSubResource newSubResource = subResource;
+    newSubResource.numLayers = MathUtil::Min(subResource.numLayers, NumArrayLayers() - subResource.baseArrayLayer);
+    newSubResource.numLevels = MathUtil::Min(subResource.numLevels, NumMips() - subResource.baseMipLevel);
+
     const bool isDepthStencil = m_textureDesc.IsDepthStencil();
     const bool isAttachmentTexture = m_textureDesc.imageUsage[IU_ATTACHMENT];
 
@@ -1090,30 +1097,48 @@ void VulkanGpuImage::CopyToBuffer(VulkanCommandBuffer* commandBuffer, VulkanGpuB
         aspectFlagBits |= VK_IMAGE_ASPECT_COLOR_BIT;
     }
 
-    // copy from staging to image
-    const uint32 numLayers = NumArrayLayers();
-    const uint32 bufferOffsetStep = uint32(m_size) / numLayers;
+    size_t bufferOffset = 0;
 
-    for (uint32 layerIndex = 0; layerIndex < numLayers; layerIndex++)
+    for (uint8 mipIndex = newSubResource.baseMipLevel; mipIndex < newSubResource.baseMipLevel + newSubResource.numLevels; mipIndex++)
     {
-        VkBufferImageCopy region {};
-        region.bufferOffset = layerIndex * bufferOffsetStep;
-        region.bufferRowLength = 0;
-        region.bufferImageHeight = 0;
-        region.imageSubresource.aspectMask = aspectFlagBits;
-        region.imageSubresource.mipLevel = 0;
-        region.imageSubresource.baseArrayLayer = layerIndex;
-        region.imageSubresource.layerCount = 1;
-        region.imageOffset = { 0, 0, 0 };
-        region.imageExtent = VkExtent3D { m_textureDesc.extent.x, m_textureDesc.extent.y, m_textureDesc.extent.z };
+        // copy from staging to image
+        const Vec3u mipExtent = m_textureDesc.GetMipExtent(mipIndex);
+        const size_t mipByteSize = m_textureDesc.GetMipByteSize(mipIndex, /* includeArrayLayers */ true);
 
-        vkCmdCopyImageToBuffer(
-            commandBuffer->GetVulkanHandle(),
-            m_handle,
-            GetVkImageLayout(m_resourceState, isDepthStencil && isAttachmentTexture),
-            dstBuffer->GetVulkanHandle(),
-            1,
-            &region);
+        const size_t layerStep = mipByteSize / NumArrayLayers();
+
+        for (uint16 layerIndex = newSubResource.baseArrayLayer; layerIndex < newSubResource.baseArrayLayer + newSubResource.numLayers; layerIndex++)
+        {
+            ImageSubResource currSubResource;
+            currSubResource.baseMipLevel = mipIndex;
+            currSubResource.numLevels = 1;
+            currSubResource.baseArrayLayer = layerIndex;
+            currSubResource.numLayers = 1;
+
+            VkBufferImageCopy region {};
+            
+            region.bufferOffset = bufferOffset + (layerIndex * layerStep);
+            region.bufferRowLength = 0;
+            region.bufferImageHeight = 0;
+            
+            region.imageSubresource.aspectMask = aspectFlagBits;
+            region.imageSubresource.mipLevel = mipIndex;
+            region.imageSubresource.baseArrayLayer = layerIndex;
+            region.imageSubresource.layerCount = 1;
+
+            region.imageOffset = { 0, 0, 0 };
+            region.imageExtent = VkExtent3D { mipExtent.x, mipExtent.y, mipExtent.z };
+
+            vkCmdCopyImageToBuffer(
+                commandBuffer->GetVulkanHandle(),
+                m_handle,
+                GetVkImageLayout(GetSubResourceState(currSubResource), isDepthStencil && isAttachmentTexture),
+                dstBuffer->GetVulkanHandle(),
+                1,
+                &region);
+        }
+
+        bufferOffset += mipByteSize;
     }
 }
 

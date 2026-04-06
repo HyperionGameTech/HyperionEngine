@@ -591,13 +591,26 @@ public:
         : m_image(image),
           m_buffer(buffer)
     {
+        // by default, only copy one mip level
+        m_subResource = ImageSubResource {};
+        m_subResource.baseArrayLayer = 0;
+        m_subResource.numLayers = UINT16_MAX;
+        m_subResource.baseMipLevel = 0;
+        m_subResource.numLevels = 1;
+    }
+    
+    CopyImageToBuffer(GpuImage* image, GpuBuffer* buffer, const ImageSubResource& subResource)
+        : m_image(image),
+          m_buffer(buffer),
+          m_subResource(subResource)
+    {
     }
 
     static inline void InvokeStatic(CmdBase* cmd, CommandBuffer* commandBuffer)
     {
         CopyImageToBuffer* cmdCasted = static_cast<CopyImageToBuffer*>(cmd);
 
-        cmdCasted->m_image->CopyToBuffer(commandBuffer, cmdCasted->m_buffer);
+        cmdCasted->m_image->CopyToBuffer(commandBuffer, cmdCasted->m_buffer, cmdCasted->m_subResource);
 
         static_assert(std::is_trivially_destructible_v<CopyImageToBuffer>);
         // cmdCasted->~CopyImageToBuffer();
@@ -606,6 +619,7 @@ public:
 private:
     GpuImage* m_image;
     GpuBuffer* m_buffer;
+    ImageSubResource m_subResource;
 };
 
 class CopyBufferToImage final : public CmdBase

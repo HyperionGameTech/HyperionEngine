@@ -73,6 +73,11 @@ static const Name s_nameForward = NAME("FORWARD");
 
 static const ShaderPropertyId s_propShadingTypeForward = InternShaderProperty(ShaderProperty(s_nameShadingType, Name(s_nameForward)));
 
+static const ShaderPropertyId s_propForwardClustered = InternShaderProperty(ShaderProperty(NAME("FORWARD_CLUSTERED")));
+
+extern ShaderPropertyId propTileSize;
+extern ShaderPropertyId propTileZBins;
+
 #pragma region ParallelRenderingState
 
 // Holds shared data for ParallelRenderingState instances to reduce memory usage
@@ -745,7 +750,8 @@ static void RenderAll(
     const uint32 frameIndex = frame->GetFrameIndex();
 
     const RenderGroup& renderGroup = drawCallCollection.renderGroup;
-    const RenderableAttributeSet& renderableAttributes = renderGroup.renderableAttributes;
+    const RenderableAttributeSet& ras = renderGroup.renderableAttributes;
+    const MaterialAttributes& mas = ras.GetMaterialAttributes();
 
     uint32 numShaderUniforms = 0;
     
@@ -764,6 +770,9 @@ static void RenderAll(
     cr << SetShaderUniform(numShaderUniforms++, "EnvProbesTexture"_sh, g_renderInterface->textureViewCache->GetOrCreate(g_renderInterface->envProbesTexture));
     cr << SetShaderUniform(numShaderUniforms++, "EnvProbesBuffer"_sh, g_renderInterface->gpuBuffers[GRB_ENV_PROBES]->GetBuffer(frameIndex));
     
+    cr << SetShaderUniform(numShaderUniforms++, "LightsBuffer"_sh, g_renderInterface->gpuBuffers[GRB_LIGHTS]->GetBuffer(frameIndex));
+    
+    // These two (CurrentLight, CurrentEnvProbe) should be refactored out; they exist for RenderSky shader currently.
     if (renderSetup.light != nullptr)
         cr << SetShaderUniform(numShaderUniforms++, "CurrentLight"_sh, g_renderInterface->gpuBuffers[GRB_LIGHTS]->GetBuffer(frameIndex), TShaderDataOffset<LightShaderData>(renderSetup.light));
     else
@@ -774,15 +783,31 @@ static void RenderAll(
     else
         cr << SetShaderUniform(numShaderUniforms++, "CurrentEnvProbe"_sh, g_renderInterface->gpuBuffers[GRB_ENV_PROBES]->GetBuffer(frameIndex), TShaderDataOffset<EnvProbeShaderData>(0));
     
-    if (renderableAttributes.GetMaterialAttributes().shaderProperties.Test(s_propShadingTypeForward))
+
+    const bool isForwardShading = mas.shaderProperties.Test(s_propShadingTypeForward);
+
+    if (isForwardShading)
     {
         SetForwardShadingUniforms(renderSetup, cr, numShaderUniforms);
     }
 
+    // Will only be non-null if we are in a deferred rendering pass.
     DeferredRendererPassData* dpd = ObjCast<DeferredRendererPassData>(renderSetup.passData);
+
     if (dpd != nullptr)
     {
         cr << SetShaderUniform(numShaderUniforms++, "GBufferMipChain"_sh, g_renderInterface->textureViewCache->GetOrCreate(dpd->mipChain));
+    
+        if (isForwardShading)
+        {
+            // Even though the name suggests otherwise we are in forward pass, where we use clustered shading
+
+            AssertDebug(dpd->clusterBuffer != nullptr);
+
+            // set cluster grid / index buffers for forward shading pass.
+            cr << SetShaderUniform(numShaderUniforms++, "ClusterGridBuffer"_sh, dpd->clusterBuffer, ShaderDataOffset(dpd->clusterGridOffset, dpd->clusterIndexOffset));
+            cr << SetShaderUniform(numShaderUniforms++, "ClusterIndexBuffer"_sh, dpd->clusterBuffer, ShaderDataOffset(dpd->clusterIndexOffset, dpd->clusterBuffer->Size() - dpd->clusterIndexOffset));
+        }
     }
 
     Mesh* prevMesh = nullptr;
@@ -969,36 +994,55 @@ static void PerformRenderingImpl(
         && drawCallCollection.renderGroup.flags[RenderGroupFlags::INDIRECT_RENDERING]
         && (renderSetup.passData && renderSetup.passData->cullData.depthPyramidImageView);
 
-    const RenderableAttributeSet& renderableAttributes = drawCallCollection.renderGroup.renderableAttributes;
-    const uint8 stencilReference = renderableAttributes.GetMaterialAttributes().stencilReference;
+    DeferredRendererPassData* dpd = ObjCast<DeferredRendererPassData>(renderSetup.passData);
+    // Not env probes or anything like that
+    const bool isNormalDrawingPass = dpd != nullptr;
 
-    cr << SetTopology(renderableAttributes.GetMeshAttributes().topology);
-    cr << SetInputLayout(renderableAttributes.GetMeshAttributes().inputLayout);
+    const RenderableAttributeSet& ras = drawCallCollection.renderGroup.renderableAttributes;
+    const MaterialAttributes& mas = ras.GetMaterialAttributes();
+
+    const uint8 stencilReference = mas.stencilReference;
+
+    cr << SetTopology(ras.GetMeshAttributes().topology);
+    cr << SetInputLayout(ras.GetMeshAttributes().inputLayout);
     
     cr << SetCurrentViewport(renderSetup.viewport);
-    
-    cr << SetCurrentShader(ShaderDesc(
-        renderableAttributes.GetMaterialAttributes().shaderName,
-        renderableAttributes.GetMaterialAttributes().shaderProperties));
 
-    cr << SetFillMode(renderableAttributes.GetMaterialAttributes().fillMode);
-    cr << SetFaceCullMode(renderableAttributes.GetMaterialAttributes().cullFaces);
-    
-    cr << SetCurrentBlendFunction(renderableAttributes.GetMaterialAttributes().blendFunction);
 
-    cr << SetDepthTest(bool(renderableAttributes.GetMaterialAttributes().flags & MAF_DEPTH_TEST));
-    cr << SetDepthWrite(bool(renderableAttributes.GetMaterialAttributes().flags & MAF_DEPTH_WRITE));
-    cr << SetDepthClamp(bool(renderableAttributes.GetMaterialAttributes().flags & MAF_DEPTH_CLAMP));
-
-    if (renderableAttributes.GetMaterialAttributes().flags & MAF_DEPTH_BIAS)
+    if (isNormalDrawingPass && mas.shaderProperties.Test(s_propShadingTypeForward) && dpd->clusterBuffer != nullptr)
     {
-        cr << SetDepthBias(
-            renderableAttributes.GetMaterialAttributes().depthBias,
-            renderableAttributes.GetMaterialAttributes().depthBiasSlope);
+        // If we are in normal drawing (e.g NOT env probes, shadows, etc.) - we use clusters of lights and EnvProbe data
+        // Therefore we need to set FORWARD_CLUSTERED prop to true to choose the correct variant.
+        ShaderPropertySet shaderProperties = mas.shaderProperties;
+        shaderProperties.Add(s_propForwardClustered);
+
+        // these are needed too
+        shaderProperties.Add(propTileSize);
+        shaderProperties.Add(propTileZBins);
+    
+        cr << SetCurrentShader(ShaderDesc(mas.shaderName, shaderProperties));
+    }
+    else
+    {
+        cr << SetCurrentShader(ShaderDesc(mas.shaderName, mas.shaderProperties));
     }
 
-    cr << SetStencilTest(bool(renderableAttributes.GetMaterialAttributes().flags & MAF_STENCIL_TEST));
-    cr << SetStencilFunction(renderableAttributes.GetMaterialAttributes().stencilFunction);
+    cr << SetFillMode(mas.fillMode);
+    cr << SetFaceCullMode(mas.cullFaces);
+    
+    cr << SetCurrentBlendFunction(mas.blendFunction);
+
+    cr << SetDepthTest(bool(mas.flags & MAF_DEPTH_TEST));
+    cr << SetDepthWrite(bool(mas.flags & MAF_DEPTH_WRITE));
+    cr << SetDepthClamp(bool(mas.flags & MAF_DEPTH_CLAMP));
+
+    if (mas.flags & MAF_DEPTH_BIAS)
+    {
+        cr << SetDepthBias(mas.depthBias, mas.depthBiasSlope);
+    }
+
+    cr << SetStencilTest(bool(mas.flags & MAF_STENCIL_TEST));
+    cr << SetStencilFunction(mas.stencilFunction);
 
     if (stencilReference != 0)
     {

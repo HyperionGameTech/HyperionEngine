@@ -18,7 +18,7 @@ PERMUTE(LOBE_SIZE, 0.0, 0.143, 0.286, 0.429, 0.571, 0.714, 0.857, 1.0);
 
 #undef HYP_DO_NOT_DEFINE_DESCRIPTOR_SETS
 
-#include "../include/env_probe.inc"
+#include "../include/EnvProbes.hlsli"
 
 DECLARE_SRV(ConvolveProbe, ColorTexture) TextureCube color_texture;
 

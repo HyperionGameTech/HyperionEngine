@@ -69,7 +69,7 @@ DECLARE_SRV(DeferredPass, SSAOResultTexture) Texture2D SSAOResultTexture;
 
 #define HYP_SAMPLER_SHADOW SamplerShadow
 
-#include "include/env_probe.inc"
+#include "include/EnvProbes.hlsli"
 #include "include/shared.inc"
 #include "include/gbuffer.inc"
 #include "include/material.inc"
@@ -132,6 +132,12 @@ DECLARE_SRV(DeferredPass, EnvProbesTexture) Texture2DArray envProbesTexture;
 #include "include/LightSampling.inc"
 
 #ifdef LIGHT_TYPE_CLUSTERED
+
+DECLARE_SRV(DeferredPass, EnvProbesBuffer) StructuredBuffer<EnvProbe> EnvProbesBuffer;
+DECLARE_SRV(DeferredPass, LightsBuffer) StructuredBuffer<Light> LightsBuffer;
+DECLARE_SRV_DYNAMIC(DeferredPass, ClusterGridBuffer) StructuredBuffer<uint2> ClusterGridBuffer;
+DECLARE_SRV_DYNAMIC(DeferredPass, ClusterIndexBuffer) ByteAddressBuffer ClusterIndexBuffer;
+
 #include "deferred/ClusteredShading.hlsli"
 
 DECLARE_BUFFER_DYNAMIC(DeferredPass, CBuffer) cbuffer CBuffer
@@ -196,8 +202,6 @@ PSOutput PSMain(PSInput input)
     float4 F0 = float4(albedo.rgb * metalness + (reflectance * (1.0 - metalness)), 1.0);
 
     const float4 diffuseColor = CalculateDiffuseColor(albedo, metalness);
-
-    float4 F90 = (float4)saturate(dot(F0, (float4)(50.0 * 0.33)));
 
     float3 N = normalize(normal);
     float3 T = normalize(tangent);

@@ -39,7 +39,7 @@ DECLARE_SAMPLER(Default, SamplerNearest) SamplerState sampler_nearest;
 #include "include/Entity.inc"
 #include "include/packing.inc"
 
-#include "include/env_probe.inc"
+#include "include/EnvProbes.hlsli"
 #include "include/gbuffer.inc"
 
 #undef HYP_DO_NOT_DEFINE_DESCRIPTOR_SETS

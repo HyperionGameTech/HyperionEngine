@@ -270,7 +270,9 @@ Result AssetObject::SaveAs(const FilePath& manifestPath)
         package->BuildPackagePath(),
         BoxedValue(AnyRef(*this)),
         /* forceRelocation */ false,
-        /* appendExistingPackagePath */ false);
+        /* appendExistingPackagePath */ false,
+        nullptr,
+        AddAssetConflictMode::ReplaceExisting);
 
     BlobStorage& blobStorage = registry.GetBlobStorage();
 

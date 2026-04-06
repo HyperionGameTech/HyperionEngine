@@ -584,15 +584,29 @@ struct TextureDesc
             MathUtil::Max(extent.z >> mipIndex, 1u));
     }
 
-    uint32 GetByteSize() const
+    size_t GetByteSize(bool includeAllMips = false) const
     {
-        return uint32(extent.x * extent.y * extent.z)
+        if (includeAllMips)
+        {
+            size_t totalByteSize = 0;
+
+            const uint32 numMips = NumMips();
+
+            for (uint32 mipIndex = 0; mipIndex < numMips; mipIndex++)
+            {
+                totalByteSize += GetMipByteSize(uint8(mipIndex), /* includeArrayLayers */ true);
+            }
+
+            return totalByteSize;
+        }
+
+        return (extent.x * extent.y * extent.z)
             * TextureUtils::BytesPerComponent(format)
             * TextureUtils::NumComponents(format)
             * NumArrayLayers();
     }
 
-    uint32 GetMipByteSize(uint8 mipIndex, bool includeArrayLayers = false) const
+    size_t GetMipByteSize(uint8 mipIndex, bool includeArrayLayers = false) const
     {
         const uint32 numMips = NumMips();
         if (mipIndex >= numMips)
@@ -602,7 +616,7 @@ struct TextureDesc
 
         const Vec3u mipExtent = GetMipExtent(mipIndex);
 
-        return uint32(mipExtent.x * mipExtent.y * mipExtent.z)
+        return (mipExtent.x * mipExtent.y * mipExtent.z)
             * TextureUtils::BytesPerComponent(format)
             * TextureUtils::NumComponents(format)
             * (includeArrayLayers ? NumArrayLayers() : 1);

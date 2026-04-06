@@ -2200,6 +2200,12 @@ extern class FogVolume : VolumeBase
     NoiseTexture : Texture
 end
 extern struct EnvProbeSphericalHarmonics
+    GetOrder0() -> Vec3f
+    SetOrder0(inValues : Vec3f) -> void
+    GetOrder1() -> Array<Vec3f>
+    SetOrder1(inValues : Array<Vec3f>) -> void
+    GetOrder2() -> Array<Vec3f>
+    SetOrder2(inValues : Array<Vec3f>) -> void
 end
 extern class EnvProbe : VolumeBase
     GetEnvProbeType() -> EnvProbeType

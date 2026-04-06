@@ -123,10 +123,7 @@ VSOutput VSMain(VSInput input, uint instanceId : SV_InstanceID)
     output.object_index = ~0u; // unused
 #endif
 
-    const uint bucket = currentEntity.bucket;
-    output.object_mask = (uint(bucket == HYP_OBJECT_BUCKET_OPAQUE) * OBJECT_MASK_OPAQUE)
-        | (uint(bucket == HYP_OBJECT_BUCKET_TRANSLUCENT) * OBJECT_MASK_TRANSLUCENT)
-        | (uint(bucket == HYP_OBJECT_BUCKET_SKYBOX) * OBJECT_MASK_SKY);
+    output.object_mask = GET_OBJECT_BUCKET_MASK(currentEntity);
 
     return output;
 }

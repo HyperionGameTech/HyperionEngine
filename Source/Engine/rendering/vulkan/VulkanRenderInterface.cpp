@@ -748,6 +748,13 @@ VulkanFrame* VulkanRenderInterface::PrepareNextFrame()
     VulkanFrame* frame = GetCurrentFrame();
     frame->GetFence()->Wait(true);
 
+    // call frame callbacks after fence is waited on
+    if (frame->OnFrameEnd.AnyBound())
+    {
+        frame->OnFrameEnd(frame);
+        frame->OnFrameEnd.RemoveAllDetached();
+    }
+
     for (auto it = m_submittedAsyncComputes.Begin(); it != m_submittedAsyncComputes.End();)
     {
         VulkanAsyncCompute* elem = *it;

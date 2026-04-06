@@ -305,7 +305,8 @@ static TResult<Handle<AssetPackage>> RelocateAsset(
     AssetRegistry& registry,
     const Handle<AssetObject>& assetObject,
     UTF8StringView newPackageBasePath,
-    bool preservePathStructure)
+    bool preservePathStructure,
+    AddAssetConflictMode conflictMode)
 {
     Assert(assetObject.IsValid() && (!preservePathStructure || assetObject->IsRegistered()),
         "Invalid asset or invalid asset path. If preserveStructure is true, the asset must already have a path assigned");
@@ -349,7 +350,7 @@ static TResult<Handle<AssetPackage>> RelocateAsset(
 
     HYP_LOG(Assets, Verbose, "Relocating asset '{}' to: '{}'", assetObject->GetName(), newPath);
 
-    if (Result registerAssetResult = registry.RegisterAsset(newPath, assetObject, AddAssetConflictMode::FailOnConflict); registerAssetResult.HasError())
+    if (Result registerAssetResult = registry.RegisterAsset(newPath, assetObject, conflictMode); registerAssetResult.HasError())
     {
         return HYP_MAKE_ERROR(Error, "Failed to relocate asset '{}' to '{}': {}", assetObject->GetName(), newPath, registerAssetResult.GetError().GetMessage());
     }
@@ -3525,7 +3526,8 @@ void AssetRegistry::RegisterAssetsRecursively(
     const BoxedValue& target,
     bool forceRelocation,
     bool appendExistingPackagePath,
-    ProcRef<String(const AssetObject&)> getObjectSubpath)
+    ProcRef<String(const AssetObject&)> getObjectSubpath,
+    AddAssetConflictMode conflictMode)
 {
     HYP_SCOPE;
 
@@ -3622,7 +3624,7 @@ void AssetRegistry::RegisterAssetsRecursively(
 
             if (assetObject->IsRegistered()) // already has a path but is transient e.g $Memory/Media/Meshes/Foo; needs to be moved to NewPackage/Media/Meshes/Foo
             {
-                relocateResult = RelocateAsset(*this, assetObject, packagePath, /* preserveStructure */ appendExistingPackagePath);
+                relocateResult = RelocateAsset(*this, assetObject, packagePath, /* preserveStructure */ appendExistingPackagePath, conflictMode);
             }
             else // Doesn't have a path; register instance with package using the passed in function to decide where to relocate it to.
             {
@@ -3630,7 +3632,7 @@ void AssetRegistry::RegisterAssetsRecursively(
                     ? packagePath + "/" + getObjectSubpath(*assetObject)
                     : String(packagePath);
 
-                relocateResult = RelocateAsset(*this, assetObject, packagePathWithSubpath, /* preserveStructure */ false);
+                relocateResult = RelocateAsset(*this, assetObject, packagePathWithSubpath, /* preserveStructure */ false, conflictMode);
             }
 
             if (relocateResult.HasError())

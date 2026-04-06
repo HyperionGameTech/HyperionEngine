@@ -30,7 +30,7 @@ DECLARE_SRV(LightmapPathTracer, TLAS) RaytracingAccelerationStructure tlas;
 DECLARE_SRV(LightmapPathTracer, BlueNoiseBuffer) StructuredBuffer<int4> BlueNoiseBuffer;
 
 #include "../../include/BlueNoise.inc"
-#include "../../include/env_probe.inc"
+#include "../../include/EnvProbes.hlsli"
 
 #if ENV_PROBE_CUBEMAP
 DECLARE_SRV(LightmapPathTracer, EnvProbesTexture) TextureCubeArray envProbesTexture;
@@ -70,11 +70,11 @@ DECLARE_BUFFER_DYNAMIC(LightmapPathTracer, CBuffer) cbuffer CBuffer
 #ifdef MODE_IRRADIANCE
 #define NUM_BOUNCES 4
 #define NUM_SAMPLES 64
-#define ENVIRONMENT_INTENSITY 10.0
+#define ENVIRONMENT_INTENSITY 1.0
 #elif defined(MODE_FULL)
 #define NUM_BOUNCES 4
-#define NUM_SAMPLES 32
-#define ENVIRONMENT_INTENSITY 10.0
+#define NUM_SAMPLES 64
+#define ENVIRONMENT_INTENSITY 1.0
 #else
 #define NUM_BOUNCES 1
 #define NUM_SAMPLES 1
@@ -82,8 +82,8 @@ DECLARE_BUFFER_DYNAMIC(LightmapPathTracer, CBuffer) cbuffer CBuffer
 #endif
 
 #ifdef MODE_FULL
-#define MAX_SAMPLE_LUMINANCE 20.0
-#define MAX_THROUGHPUT_LUMINANCE 10.0
+#define MAX_SAMPLE_LUMINANCE 1.0
+#define MAX_THROUGHPUT_LUMINANCE 1.0
 #define ROUGHNESS_FLOOR 0.001
 
 float3 ClampLuminance(in float3 c, float max_lum)
@@ -313,7 +313,7 @@ void RayGenMain()
     // full path tracing with diffuse/specular bounces
     float4 accumRadiance = (float4)0.0;
 
-#if 0 // path traced ver
+#if 1 // path traced ver
     for (uint sample_index = 0; sample_index < NUM_SAMPLES; sample_index++)
     {
         float2 rnd0 = float2(RandomFloat(ray_seed), RandomFloat(ray_seed));
@@ -606,8 +606,8 @@ void RayGenMain()
         radiance.a = sampleIsMiss ? 0.0 : 1.0;
 
         float3 diffuseColor = baseColor * (1.0 - metalness);
-        accumRadiance += radiance * float4(diffuseColor * HYP_FMATH_ONE_OVER_PI, 1.0);
         accumRadiance += float4(diffuseColor * irradiance, 0.0);
+        accumRadiance += radiance * float4(diffuseColor * HYP_FMATH_ONE_OVER_PI, 1.0);
     }
 #endif
 

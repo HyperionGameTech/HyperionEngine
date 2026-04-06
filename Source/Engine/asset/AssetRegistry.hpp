@@ -428,7 +428,8 @@ public:
         const BoxedValue& target,
         bool forceRelocation = false,
         bool appendExistingPackagePath = false,
-        ProcRef<String(const AssetObject&)> getObjectSubpath = nullptr);
+        ProcRef<String(const AssetObject&)> getObjectSubpath = nullptr,
+        AddAssetConflictMode conflictMode = AddAssetConflictMode::Default);
 
     void LoadPackagesAsync(bool loadSubpackages = false);
 

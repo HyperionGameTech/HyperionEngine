@@ -929,6 +929,7 @@ void View::CollectMeshEntities(RenderProxyList& rpl)
             meshProxy.bufferData.modelMatrix = transformMatrix;
             meshProxy.bufferData.previousModelMatrix = meshComponent->previousModelMatrix;
             meshProxy.bufferData.normalMatrix = Mat3f(transformMatrix).Inverse().Transpose();
+            meshProxy.bufferData.bucket = uint32(meshComponent->material->GetRenderAttributes().bucket);
         }
     }
 }

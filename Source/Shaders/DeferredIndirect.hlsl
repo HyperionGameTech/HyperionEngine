@@ -109,7 +109,7 @@ DECLARE_BUFFER(DeferredPass, DDGIConstants) cbuffer DDGI
 
 #endif // RT_GI
 
-#include "./include/env_probe.inc"
+#include "./include/EnvProbes.hlsli"
 
 #if ENV_PROBE_CUBEMAP
 DECLARE_SRV(DeferredPass, EnvProbesTexture) TextureCubeArray envProbesTexture;
@@ -119,8 +119,13 @@ DECLARE_SRV(DeferredPass, EnvProbesTexture) Texture2DArray envProbesTexture;
 
 #define HYP_DEFERRED_NO_REFRACTION
 
-#include "./deferred/DeferredLighting.hlsli"
+DECLARE_SRV(DeferredPass, EnvProbesBuffer) StructuredBuffer<EnvProbe> EnvProbesBuffer;
+DECLARE_SRV(DeferredPass, LightsBuffer) StructuredBuffer<Light> LightsBuffer;
+DECLARE_SRV_DYNAMIC(DeferredPass, ClusterGridBuffer) StructuredBuffer<uint2> ClusterGridBuffer;
+DECLARE_SRV_DYNAMIC(DeferredPass, ClusterIndexBuffer) ByteAddressBuffer ClusterIndexBuffer;
+
 #include "./deferred/ClusteredShading.hlsli"
+#include "./deferred/DeferredLighting.hlsli"
 
 #define DDGI_MULTIPLIER 1.0
 
@@ -128,68 +133,6 @@ DECLARE_BUFFER_DYNAMIC(DeferredPass, CBuffer) cbuffer CBuffer
 {
     Camera camera;
 };
-
-float4 CalculateEnvProbeReflections(
-    float3 positionVS, float3 positionWS, float3 N, float3 V, float3 R,
-    float roughness, float perceptualRoughness,
-    float2 texcoord, uint2 gbufferDimensions)
-{
-    const uint2 pixelCoord = uint2(texcoord * max(0, int2(gbufferDimensions) - 1));
-    
-    const uint gridIndex = Cluster_GetGridIndex(
-        gbufferDimensions, pixelCoord,
-        positionVS.z,
-        camera.near, camera.far);
-
-    const uint2 clusterData = ClusterGridBuffer[gridIndex];
-
-    const uint clusterIndexOffset = clusterData.x;
-    
-    const uint numLights = (clusterData.y & 0xFFFF);
-    const uint numEnvProbes = (clusterData.y >> 16) & 0xFFFF;
-    
-    float4 reflections = (float4)0;
-
-    for (uint i = 0; i < numEnvProbes && reflections.a < 1.0; ++i)
-    {
-        const uint envProbeIndex = Cluster_LoadEnvProbeIndex(clusterIndexOffset, numLights, i);
-
-        EnvProbe currentEnvProbe = EnvProbesBuffer.Load(envProbeIndex);
-        
-        const float numMips = 7.0; // assuming 128x128 cubemap size for reflection probes
-        const float lod = perceptualRoughness * numMips;
-        
-        const float3 aabbMin = currentEnvProbe.aabb_min.xyz;
-        const float3 aabbMax = currentEnvProbe.aabb_max.xyz;
-        
-        float4 currentReflections = (float4)0;
-
-        // pre-convoluted from baking util
-        ApplyReflectionProbe(
-            currentEnvProbe.texture_index,
-            currentEnvProbe.world_position.xyz,
-            aabbMin,
-            aabbMax,
-            positionWS,
-            R,
-            lod,
-            currentReflections);
-
-        const float3 aabbExtent = aabbMax - aabbMin;
-
-        const float3 blend = aabbExtent * 0.1;
-        const float3 distToMin = (positionWS.xyz - aabbMin) / blend;
-        const float3 distToMax = (aabbMax - positionWS.xyz) / blend;
-        const float minBlend = min(distToMin.x, min(distToMin.y, min(distToMin.z, min(distToMax.x, min(distToMax.y, distToMax.z)))));
-
-        float weight = smoothstep(0.0, 1.0, minBlend);
-        currentReflections *= weight;
-
-        reflections += currentReflections * (1.0 - reflections.a);
-    }
-    
-    return reflections;
-}
 
 PSOutput PSMain(PSInput input)
 {
@@ -242,71 +185,41 @@ PSOutput PSMain(PSInput input)
 
     const float perceptualRoughness = sqrt(roughness);
     
-    reflections = CalculateEnvProbeReflections(
+    CalculateEnvProbesContribution(
         positionVS.xyz, positionWS.xyz,
         N, V, R,
+        camera.near, camera.far,
         roughness, perceptualRoughness,
-        texcoord, gbufferDimensions);
+        texcoord, gbufferDimensions,
+        /* inout */ reflections,
+        /* inout */ irradiance);
+
+    // set irradiance to zero for this pixel if it is in the lightmap bucket
+    // (don't want to double apply indirect contribution approximations)
+    irradiance *= 1.0 - min(1.0, float(mask & OBJECT_MASK_LIGHTMAPPED));
 
 #if SSR_ENABLED
     float4 ssrResult = SAMPLE_TEXTURE_2D_LOD(sampler_linear, SSRResultTexture, texcoord, 0);
-    reflections = reflections * (1.0 - ssrResult.a) + ssrResult * ssrResult.a;
+    reflections = (reflections * (1.0 - ssrResult.a)) + (ssrResult * ssrResult.a);
 #endif // SSR_ENABLED
 
 #if RT_REFLECTIONS
     CalculateRayTracingReflection(texcoord, reflections);
 #endif // RT_REFLECTIONS
 
-#if 0 // SH probes
-    // Blend in SH probes
-    // this will need to be reworked using tiling and per-tile linked lists or something similar.
-    float3 blendedSH = (float3)0.0;
-    float totalWeight = 0.0;
-
-    for (uint probeIndex = 0; probeIndex < numFallbackProbes; probeIndex++)
-    {
-        const EnvProbe probe = fallbackEnvProbes[probeIndex];
-
-        const float3 aabbMin = probe.aabb_min.xyz;
-        const float3 aabbMax = probe.aabb_max.xyz;
-        const float3 aabbExtent = aabbMax - aabbMin;
-
-        const float3 blendZone = aabbExtent * 0.1;
-        const float3 distToMin = (positionWS.xyz - aabbMin) / blendZone;
-        const float3 distToMax = (aabbMax - positionWS.xyz) / blendZone;
-        const float minBlend = min(distToMin.x, min(distToMin.y, min(distToMin.z,
-                               min(distToMax.x, min(distToMax.y, distToMax.z)))));
-
-        float weight = smoothstep(0.0, 1.0, minBlend);
-
-        blendedSH += EnvProbeSH(probe, N, /* order */ 2) * weight;
-        totalWeight += weight;
-    }
-
-    // start with fallback EnvProbe spherical harmonics.
-    // alpha is zero so we can prioritize other GI methods if available, and lerp to the fallback SH if not.
-    if (totalWeight > 0.0)
-    {
-        irradiance = float4(blendedSH / totalWeight, 0.0);
-    }
-    else if (numFallbackProbes > 0)
-    {
-        irradiance = float4(EnvProbeSH(fallbackEnvProbes[0], N, /* order */ 2), 0.0);
-    }
-#endif
-
 #if SSGI_ENABLED
     // Blend ssgi result into irradiance - if no hit, alpha will be zero or close to it so we can lerp it
     float4 ssgi = SAMPLE_TEXTURE_2D_LOD(sampler_linear, SSGIResultTexture, texcoord, 0);
-    irradiance = lerp(irradiance, ssgi, ssgi.a);
+    irradiance = (irradiance * (1.0 - ssgi.a)) + (ssgi * ssgi.a);
 #endif
 
 #if RT_GI
-    float3 ddgi = DDGISampleIrradiance(positionWS.xyz, normal, V).rgb * DDGI_MULTIPLIER;
+    float4 ddgi = DDGISampleIrradiance(positionWS.xyz, normal, V) * DDGI_MULTIPLIER;
     // lerp to ddgi based on 1.0-ssgi alpha, so that if ssgi has a hit, it will be used, otherwise ddgi will be used
-    irradiance.rgb = lerp(irradiance.rgb, ddgi, 1.0 - irradiance.a);
+    irradiance = (ddgi * (1.0 - irradiance.a)) + (irradiance * irradiance.a);
 #endif
 
+    irradiance.rgb *= irradiance.a;
     irradiance.a = 1.0; // set alpha to 1 now that we're finished lerping between GI methods.
 
     const float NdotV = max(0.0001, dot(N, V));

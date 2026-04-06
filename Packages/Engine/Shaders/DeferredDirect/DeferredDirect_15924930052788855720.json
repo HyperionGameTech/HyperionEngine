@@ -32,6 +32,12 @@
       "EnumValues": []
     }, {
       "$Class": "ShaderProperty",
+      "Name": "MAX_CLUSTERED_SHADOW_MAPS",
+      "Flags": 0,
+      "Value": 16,
+      "EnumValues": []
+    }, {
+      "$Class": "ShaderProperty",
       "Name": "TILE_SIZE",
       "Flags": 0,
       "Value": 32,
@@ -39,12 +45,6 @@
     }, {
       "$Class": "ShaderProperty",
       "Name": "TILE_Z_BINS",
-      "Flags": 0,
-      "Value": 16,
-      "EnumValues": []
-    }, {
-      "$Class": "ShaderProperty",
-      "Name": "MAX_CLUSTERED_SHADOW_MAPS",
       "Flags": 0,
       "Value": 16,
       "EnumValues": []
@@ -355,15 +355,15 @@
   "ShaderBlobs": [{
       "$Class": "BlobDataReference",
       "Key": "Engine/Shaders/DeferredDirect/DeferredDirect_15924930052788855720.VS",
-      "Size": 11648
+      "Size": 12028
     }, {
       "$Class": "BlobDataReference",
       "Key": "Engine/Shaders/DeferredDirect/DeferredDirect_15924930052788855720.PS",
-      "Size": 225184
+      "Size": 227460
     }],
   "PropertySetHashCode": {},
   "LastCompiledTimestamp": {
-    "Value": 1775445944000
+    "Value": 1775506186000
   },
   "Name": "DeferredDirect_15924930052788855720",
   "FriendlyName": "DeferredDirect_15924930052788855720",

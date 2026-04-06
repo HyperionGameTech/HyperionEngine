@@ -113,7 +113,7 @@ PSOutput PSMain(PSInput input)
 
     output.gbuffer_albedo = color;
 
-    output.gbuffer_material.x = OBJECT_MASK_TRANSLUCENT | OBJECT_MASK_PARTICLE;
+    output.gbuffer_material.x = OBJECT_MASK_TRANSLUCENT;
     output.gbuffer_material.y = 0u;
     output.gbuffer_material.z = 0u;
     output.gbuffer_material.w = 0u;
