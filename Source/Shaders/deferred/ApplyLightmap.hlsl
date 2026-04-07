@@ -140,6 +140,9 @@ PSOutput PSMain(PSInput input)
 
     const float roughness = materialParams.roughness;
     const float metalness = materialParams.metalness;
+
+    const float perceptualRoughness = sqrt(roughness);
+
     float ao = 1.0;
 
     const float4x4 inverse_proj = camera.invProjMat;
@@ -166,16 +169,11 @@ PSOutput PSMain(PSInput input)
 
     const float NdotV = max(0.0001, dot(N, V));
     const float3 F0 = CalculateF0(albedo.rgb, metalness);
-    const float3 F = CalculateFresnelTerm(F0, roughness, NdotV);
+    const float3 F = CalculateFresnelTerm(F0, perceptualRoughness, NdotV);
     const float3 dfg = CalculateDFG(F, roughness, NdotV);
     const float3 E = CalculateE(F0, dfg);
-    
+
     float3 diffuseIndirect = diffuse_color.rgb * irradiance.rgb * (1.0 - E) * ao;
-
-    float3 specularAO = float3(SpecularAO_Lagarde(NdotV, ao, roughness), SpecularAO_Lagarde(NdotV, ao, roughness), SpecularAO_Lagarde(NdotV, ao, roughness));
-
-    const float3 energyCompensation = CalculateEnergyCompensation(F0, dfg);
-    specularAO *= energyCompensation;
 
     output.color_output.rgb = diffuseIndirect;
     output.color_output.a = 1.0;

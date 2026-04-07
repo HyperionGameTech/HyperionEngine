@@ -343,11 +343,11 @@
     }, {
       "$Class": "BlobDataReference",
       "Key": "Engine/Shaders/ApplyLightmap/ApplyLightmap_5656388037364668825.PS",
-      "Size": 143488
+      "Size": 143328
     }],
   "PropertySetHashCode": {},
   "LastCompiledTimestamp": {
-    "Value": 1775523927000
+    "Value": 1775528349000
   },
   "Name": "ApplyLightmap_5656388037364668825",
   "FriendlyName": "ApplyLightmap_5656388037364668825",

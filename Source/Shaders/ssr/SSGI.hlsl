@@ -92,7 +92,7 @@ DECLARE_SRV(SSGI, EnvProbesTexture) Texture2DArray envProbesTexture;
 #define ENVIRONMENT_INTENSITY 1.0
 
 // amount to 'brighten up' the SSGI result
-#define SSGI_INTENSITY 1.0
+#define SSGI_INTENSITY 1.1
 
 #define USE_NEW_SSGI
 
@@ -262,7 +262,7 @@ void CSMain(uint3 dispatchThreadID : SV_DispatchThreadID)
                 float2 sample_uv = saturate(hit_uv);
                 float4 color = SAMPLE_TEXTURE_2D_LOD(sampler_linear, DeferredShadingTexture, sample_uv, 0.0);
 
-                accum_result += float4(color.rgb, 1.0) * alpha;
+                accum_result += color * alpha;
 
                 continue;
             }
@@ -288,10 +288,10 @@ void CSMain(uint3 dispatchThreadID : SV_DispatchThreadID)
         }
         
         // use 0 for alpha, so we can blend with other GI if available.
-        accum_result += float4(environmentRadiance.rgb, 0.0) * SSGI_INTENSITY;
+        accum_result += float4(environmentRadiance.rgb, 0.0);
     }
 
-    out_image[coord] = accum_result / float(numRaySamples);
+    out_image[coord] = accum_result / float(numRaySamples) * SSGI_INTENSITY;
 
     // // temp
     // out_image[coord] = float4(1.0, 0.0, 0.0, 1.0);

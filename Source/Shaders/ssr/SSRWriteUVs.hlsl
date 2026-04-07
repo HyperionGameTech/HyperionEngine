@@ -198,6 +198,7 @@ PSOutput PSMain(PSInput input)
     GBufferUnpackMaterialParams(normalSample.x, materialData.x, materialParams);
 
     const float roughness = materialParams.roughness;
+    const float perceptualRoughness = sqrt(roughness);
 
     const float depth = SAMPLE_TEXTURE_2D(sampler_nearest, gbuffer_depth_texture, texcoord).r;
 
@@ -227,7 +228,7 @@ PSOutput PSMain(PSInput input)
         SampleBlueNoise(int(coord.x), int(coord.y), int(world_shader_data.frame_counter % NUM_SAMPLES) * 2, NUM_SAMPLES * 2),
         SampleBlueNoise(int(coord.x), int(coord.y), int(world_shader_data.frame_counter % NUM_SAMPLES) * 2 + 1, NUM_SAMPLES * 2));
 #ifdef ROUGHNESS_SCATTERING
-    float3 H = ImportanceSampleGGX(rnd, view_space_normal, roughness);
+    float3 H = ImportanceSampleGGX(rnd, view_space_normal, perceptualRoughness);
     H = tangent * H.x + bitangent * H.y + view_space_normal * H.z;
     H = normalize(H);
 
@@ -249,7 +250,7 @@ PSOutput PSMain(PSInput input)
     float hit_weight;
     float num_iterations;
 
-    bool intersect = TraceRays(ray_origin, ray_direction, rnd.x, sqrt(roughness), hit_pixel, hit_point, hit_weight, num_iterations);
+    bool intersect = TraceRays(ray_origin, ray_direction, rnd.x, perceptualRoughness, hit_pixel, hit_point, hit_weight, num_iterations);
 
     float dist = distance(ray_origin, hit_point);
 

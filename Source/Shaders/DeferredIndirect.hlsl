@@ -164,6 +164,8 @@ PSOutput PSMain(PSInput input)
     const float roughness = materialParams.roughness;
     const float metalness = materialParams.metalness;
     const uint mask = materialParams.mask;
+    
+    const float perceptualRoughness = sqrt(roughness);
 
     float3 result = (float3)0.0;
 
@@ -181,7 +183,7 @@ PSOutput PSMain(PSInput input)
     ao = ssao_data.r;
 #endif
 
-    const float perceptualRoughness = sqrt(roughness);
+    const float3 diffuse_color = CalculateDiffuseColor(albedo.rgb, metalness);
     
     CalculateEnvProbesContribution(
         positionVS.xyz, positionWS.xyz,
@@ -195,6 +197,7 @@ PSOutput PSMain(PSInput input)
     // set irradiance to zero for this pixel if it is in the lightmap bucket
     // (don't want to double apply indirect contribution approximations)
     irradiance *= 1.0 - min(1.0, float(mask & OBJECT_MASK_LIGHTMAPPED));
+    irradiance.a = 0.0;
 
 #ifdef SSR_ENABLED
     float4 ssrResult = SAMPLE_TEXTURE_2D_LOD(sampler_linear, SSRResultTexture, texcoord, 0);
@@ -208,13 +211,13 @@ PSOutput PSMain(PSInput input)
 #ifdef SSGI_ENABLED
     // Blend ssgi result into irradiance - if no hit, alpha will be zero or close to it so we can lerp it
     float4 ssgi = SAMPLE_TEXTURE_2D_LOD(sampler_linear, SSGIResultTexture, texcoord, 0);
-    irradiance = (irradiance * (1.0 - ssgi.a)) + (ssgi * ssgi.a);
+    irradiance = lerp(irradiance, ssgi, ssgi.a);
 #endif
 
 #ifdef RT_GI
     float4 ddgi = DDGISampleIrradiance(positionWS.xyz, normal, V) * DDGI_MULTIPLIER;
     // lerp to ddgi based on 1.0-ssgi alpha, so that if ssgi has a hit, it will be used, otherwise ddgi will be used
-    irradiance = (ddgi * (1.0 - irradiance.a)) + (irradiance * irradiance.a);
+    irradiance = lerp(irradiance, ddgi, 1.0 - irradiance.a);
 #endif
 
     irradiance.rgb *= irradiance.a;
@@ -223,14 +226,21 @@ PSOutput PSMain(PSInput input)
     const float NdotV = max(0.0001, dot(N, V));
     const float3 F0 = CalculateF0(albedo.rgb, metalness);
     const float3 F = CalculateFresnelTerm(F0, perceptualRoughness, NdotV);
-    const float3 dfg = CalculateDFG(F0, perceptualRoughness, NdotV);
-    
-    const float3 kD = (1.0 - F) * (1.0 - metalness);
+    const float3 dfg = CalculateDFG(F, perceptualRoughness, NdotV);
+    const float3 E = CalculateE(F0, dfg);
+    float3 Fd = diffuse_color.rgb * irradiance.rgb * (1.0 - E) * ao;
 
-    const float3 specularIBL = reflections.rgb * dfg;
-    const float3 diffuseIBL = irradiance.rgb * albedo.rgb;
+    float3 specular_ao = (float3)SpecularAO_Lagarde(NdotV, ao, roughness);
 
-    result = (kD * diffuseIBL + specularIBL) * ao;
+    const float3 energy_compensation = CalculateEnergyCompensation(F0, dfg);
+    specular_ao *= energy_compensation;
+
+    float3 Fr = ibl * E * specular_ao;
+
+    reflections.rgb *= specular_ao;
+    Fr = Fr * (1.0 - reflections.a) + (E * reflections.rgb);
+
+    result = Fd + Fr;
 
 #ifdef PATHTRACER
     result = CalculatePathTracing(texcoord).rgb;

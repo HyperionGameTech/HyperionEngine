@@ -206,8 +206,8 @@ PSOutput PSMain(PSInput input)
         const float3 R = normalize(reflect(-V, N));
         
         const float3 F0 = CalculateF0(albedo, metalness);
-        const float3 F = CalculateFresnelTerm(F0, roughness, NdotV);
-        const float3 dfg = CalculateDFG(F, roughness, NdotV);
+        const float3 F = CalculateFresnelTerm(F0, perceptualRoughness, NdotV);
+        const float3 dfg = CalculateDFG(F, perceptualRoughness, NdotV);
         const float3 E = CalculateE(F0, dfg);
 
         const float3 energy_compensation = CalculateEnergyCompensation(F0.rgb, dfg.rgb);
@@ -285,11 +285,11 @@ PSOutput PSMain(PSInput input)
 
             float3 light_color = light.color.rgb;
 
-            const float D = CalculateDistributionTerm(roughness, NdotH);
+            const float D = CalculateDistributionTerm(perceptualRoughness, NdotH);
             const float G = CalculateGeometryTerm(NdotL, NdotV, HdotV, NdotH);
-            const float3 F = CalculateFresnelTerm(F0, roughness, LdotH);
+            const float3 F = CalculateFresnelTerm(F0, perceptualRoughness, LdotH);
 
-            const float3 dfg = CalculateDFG(F, roughness, NdotV);
+            const float3 dfg = CalculateDFG(F, perceptualRoughness, NdotV);
             const float3 E = CalculateE(F0, dfg);
             const float3 energy_compensation = CalculateEnergyCompensation(F0, dfg);
 
@@ -366,9 +366,9 @@ PSOutput PSMain(PSInput input)
             float attenuation = 1.0;
             float shadow = 1.0;
 
-            const float D = CalculateDistributionTerm(roughness, NdotH);
+            const float D = CalculateDistributionTerm(perceptualRoughness, NdotH);
             const float G = CalculateGeometryTerm(NdotL, NdotV, HdotV, NdotH);
-            const float3 F = CalculateFresnelTerm(F0, roughness, LdotH);
+            const float3 F = CalculateFresnelTerm(F0, perceptualRoughness, LdotH);
 
             const float3 specular_lobe = D * G * F;
 
