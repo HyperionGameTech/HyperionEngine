@@ -67,6 +67,8 @@ Source/PlatformSpecific/Android/app/**/assets/**/*
 
 Source/Generated/**/*
 
+Packages/SampleGame/**/*
+
 Data/Models/Testbed/**/*
 Data/Models/Sponza/**/*
 Data/Models/NewSponza/**/*

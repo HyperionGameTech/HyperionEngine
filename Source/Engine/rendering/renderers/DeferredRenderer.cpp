@@ -2620,19 +2620,49 @@ void DeferredRenderer::RenderFrameForView(Frame* frame, const RenderSetup& rs)
     // Render shadows for shadow casting lights
     for (Light* light : rpl.GetLights())
     {
-        if (!(light->GetLightFlags() & LightFlags::ShadowCaster))
-        {
-            continue;
-        }
-
-        const uint32 lightTypeIndex = uint32(light->GetLightType());
-
-        RendererBase* shadowRenderer = g_renderInterface->globalRenderers[GRT_SHADOW_MAP][lightTypeIndex];
+        RendererBase* shadowRenderer = g_renderInterface->globalRenderers[GRT_SHADOW_MAP][uint32(light->GetLightType())];
 
         if (!shadowRenderer)
         {
             continue;
         }
+
+        if (!(light->GetLightFlags() & LightFlags::ShadowCaster))
+        {
+            continue;
+        }
+
+        bool isLightInFrustum = false;
+
+        if (view->GetFlags() & ViewFlags::NO_FRUSTUM_CULLING)
+        {
+            isLightInFrustum = true;
+        }
+        else
+        {
+            switch (light->GetLightType())
+            {
+            case LightType::Directional:
+                isLightInFrustum = true;
+                break;
+            case LightType::Point:
+                isLightInFrustum = view->GetSubFrustum().ContainsBoundingSphere(light->GetBoundingSphere(true));
+                break;
+            case LightType::Spot:
+                /// \todo Implement frustum culling for spot lights
+                isLightInFrustum = true;
+                break;
+            case LightType::AreaRect:
+                isLightInFrustum = view->GetSubFrustum().ContainsAABB(light->GetWorldBounds());
+                break;
+            default:
+                break;
+            }
+        }
+
+        if (!isLightInFrustum)
+            // Skip shadow view creation/update if the light is totally out of view.
+            continue;
         
         RenderSetup shadowRs = rs.Fork();
         shadowRs.light = light;

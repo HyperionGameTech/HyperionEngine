@@ -312,8 +312,8 @@ void Mesh::UploadGpuData()
         indexBuffer->SetDebugName(NAME_FMT("{}_IBO", GetName()));
 #endif
 
-        DeferCreate(vertexBuffer);
-        DeferCreate(indexBuffer);
+        CheckResult(vertexBuffer->Create());
+        CheckResult(indexBuffer->Create());
     }
     else
     {
@@ -326,7 +326,7 @@ void Mesh::UploadGpuData()
 #endif
         }
 
-        DeferCreate(m_vertexBuffer);
+        CheckResult(m_vertexBuffer->Create());
 
         if (!m_indexBuffer.IsValid() || m_indexBuffer->Size() != packedIndicesSize)
         {
@@ -337,7 +337,7 @@ void Mesh::UploadGpuData()
 #endif
         }
 
-        DeferCreate(m_indexBuffer);
+        CheckResult(m_indexBuffer->Create());
 
         vertexBuffer = m_vertexBuffer;
         indexBuffer = m_indexBuffer;

@@ -30,9 +30,6 @@
 
 #include <scripting/ScriptableDelegate.hpp>
 
-#include <algorithm>
-#include <type_traits>
-
 namespace Hyperion {
 
 HYP_DECLARE_LOG_CHANNEL(Assets);

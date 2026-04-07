@@ -138,6 +138,23 @@ void LightmapVolume::RemoveAllElements()
         atlas.Clear();
     }
 
+    // Remove textures from their respective packages
+    for (const Handle<Texture>& texture : m_radianceAtlasTextures)
+    {
+        if (Handle<AssetPackage> package = texture->GetPackage(); package.IsValid())
+        {
+            package->RemoveAssetObject(texture);
+        }
+    }
+
+    for (const Handle<Texture>& texture : m_irradianceAtlasTextures)
+    {
+        if (Handle<AssetPackage> package = texture->GetPackage(); package.IsValid())
+        {
+            package->RemoveAssetObject(texture);
+        }
+    }
+
     m_radianceAtlasTextures.Clear();
     m_irradianceAtlasTextures.Clear();
     m_atlases.Clear();

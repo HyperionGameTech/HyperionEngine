@@ -146,7 +146,7 @@ TResult<CSharpTypeMapping> MapToCSharpType(const Analyzer& analyzer, const ASTTy
 
             HYP_LOG(Parser, Error, "Template type is unable to be mapped to a C# type: {}  (type name string = {})", type->Format(), typeNameString);
 
-            return HYP_MAKE_ERROR(Error, "Template type is unable to be mapped to a C# type");
+            return HYP_MAKE_ERROR(Error, "Template type {} is unable to be mapped to a C# type", type->Format());
         }
 
         // Find a Class with the same name. Objects (classes deriving Object.cs) and structs with ClassBinding

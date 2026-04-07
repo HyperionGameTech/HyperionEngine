@@ -67,17 +67,17 @@
   "ShaderBlobs": [{
       "$Class": "BlobDataReference",
       "Key": "Engine/Shaders/Fallback/Fallback_5656388037364668830.VS",
-      "Size": 50692
+      "Size": 50484
     }, {
       "$Class": "BlobDataReference",
       "Key": "Engine/Shaders/Fallback/Fallback_5656388037364668830.PS",
-      "Size": 37288
+      "Size": 37668
     }],
   "PropertySetHashCode": {},
   "LastCompiledTimestamp": {
-    "Value": 1775102543000
+    "Value": 1775529226000
   },
   "Name": "Fallback_5656388037364668830",
-  "FriendlyName": "Fallback5656388037364668830",
+  "FriendlyName": "Fallback_5656388037364668830",
   "OriginalFilepath": ""
 }

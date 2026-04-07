@@ -209,10 +209,10 @@ void ShadowRendererBase::RenderFrame(Frame* frame, const RenderSetup& renderSetu
         AssertDebug(atlasElement.layerIndex < shadowMapImage->NumArrayLayers());
 
         Camera* camera = cachedData->shadowViewsDynamic[cascadeIndex]->GetCamera();
-        Assert(camera != nullptr);
+        AssertDebug(camera != nullptr);
 
         RenderProxyCamera* cameraProxy = static_cast<RenderProxyCamera*>(GetRenderProxy(camera));
-        Assert(cameraProxy != nullptr);
+        AssertDebug(cameraProxy != nullptr);
 
         const Mat4f& viewProjMat = cameraProxy->bufferData.viewProjMat;
         

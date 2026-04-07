@@ -2259,11 +2259,11 @@ void AssetRegistry::LoadPackagesAsync(bool loadSubpackages)
     HYP_SCOPE;
 
     Array<FilePath> dirs;
-    dirs.PushBack(GetLibraryDirectory());
-
+    
 #if HYP_EDITOR
+    dirs.PushBack(GetLibraryDirectory());
     dirs.PushBack(GetProjectsDirectory());
-#endif
+#endif // HYP_EDITOR
 
     TaskSystem::GetInstance().Enqueue([this, weakThis = WeakHandleFromThis(), dirs, loadSubpackages]()
         {

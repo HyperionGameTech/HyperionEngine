@@ -75,19 +75,19 @@ struct EnvProbeSphericalHarmonics
     
 #pragma region Serialization
 
-    HYP_METHOD(Property = "Order0", Serialize = true)
+    HYP_METHOD(Property = "Order0", Serialize = true, NoScriptBindings)
     Vec3f GetOrder0() const
     {
         return Vec3f(values[0], values[1], values[2]);
     }
 
-    HYP_METHOD(Property = "Order0", Serialize = true)
+    HYP_METHOD(Property = "Order0", Serialize = true, NoScriptBindings)
     void SetOrder0(const Vec3f& inValues)
     {
         std::memcpy(values, &inValues, sizeof(float) * 3);
     }
 
-    HYP_METHOD(Property = "Order1", Serialize = true)
+    HYP_METHOD(Property = "Order1", Serialize = true, NoScriptBindings)
     FixedArray<Vec3f, 3> GetOrder1() const
     {
         return {
@@ -97,13 +97,13 @@ struct EnvProbeSphericalHarmonics
         };
     }
 
-    HYP_METHOD(Property = "Order1", Serialize = true)
+    HYP_METHOD(Property = "Order1", Serialize = true, NoScriptBindings)
     void SetOrder1(const FixedArray<Vec3f, 3>& inValues)
     {
         std::memcpy(values + 3, inValues.Data(), sizeof(float) * 9);
     }
 
-    HYP_METHOD(Property = "Order2", Serialize = true)
+    HYP_METHOD(Property = "Order2", Serialize = true, NoScriptBindings)
     FixedArray<Vec3f, 5> GetOrder2() const
     {
         return {
@@ -115,7 +115,7 @@ struct EnvProbeSphericalHarmonics
         };
     }
 
-    HYP_METHOD(Property = "Order2", Serialize = true)
+    HYP_METHOD(Property = "Order2", Serialize = true, NoScriptBindings)
     void SetOrder2(const FixedArray<Vec3f, 5>& inValues)
     {
         std::memcpy(values + 12, inValues.Data(), sizeof(float) * 15);

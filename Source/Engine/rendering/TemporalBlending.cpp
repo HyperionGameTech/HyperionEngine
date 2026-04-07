@@ -130,7 +130,7 @@ void TemporalBlending::Create()
 
     if (m_inputFramebuffer.IsValid())
     {
-        DeferCreate(m_inputFramebuffer);
+        CheckResult(m_inputFramebuffer->Create());
     }
 
     CreateImages();
