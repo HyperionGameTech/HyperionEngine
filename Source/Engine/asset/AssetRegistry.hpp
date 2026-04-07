@@ -3,7 +3,7 @@
 #pragma once
 
 #include <asset/AssetPath.hpp>
-#include <asset/AssetEnums.hpp>
+#include <asset/AssetTypes.hpp>
 
 #include <Core/reflection/ObjectBase.hpp>
 #include <Core/reflection/Handle.hpp>
@@ -46,10 +46,12 @@ class BlobStorage;
 class MemoryMappedFile;
 
 extern StringHash AssetPackage_KeyByFunction(const Handle<AssetPackage>& assetPackage);
+extern StringHash AssetDesc_KeyByFunction(const AssetDesc& assetDesc);
 extern StringHash AssetObject_KeyByFunction(const Handle<AssetObject>& assetObject);
 
 using AssetPackageSet = IntrusiveMap<Handle<AssetPackage>, &AssetPackage_KeyByFunction, AssetAllocator>;
-using AssetObjectSet = IntrusiveMap<Handle<AssetObject>, &AssetObject_KeyByFunction, AssetAllocator>;
+
+using AssetDescSet = IntrusiveMap<AssetDesc, &AssetDesc_KeyByFunction, AssetAllocator>;
 
 HYP_CLASS()
 class HYP_API AssetPackage final : public ObjectBase
@@ -142,6 +144,9 @@ public:
     }
 
     HYP_METHOD()
+    void LoadSubpackages(bool recursive);
+
+    HYP_METHOD()
     bool IsSubpackageOf(const AssetPackage& other) const;
 
     template <class Callback>
@@ -157,21 +162,16 @@ public:
         ForEach(set, std::forward<Callback>(callback));
     }
 
-    HYP_FORCE_INLINE const AssetObjectSet& GetAssets() const
-    {
-        return m_assetObjects;
-    }
-
-    void SetAssets(const AssetObjectSet& assetObjects);
+    void SetAssets(const AssetDescSet& assetDescs);
 
     template <class Callback>
-    void ForEachAssetObject(Callback&& callback) const
+    void ForEachAssetDesc(Callback&& callback) const
     {
-        AssetObjectSet set;
+        AssetDescSet set;
 
         {
             TUniqueLock guard(m_mutex);
-            set = m_assetObjects;
+            set = m_assetDescs;
         }
 
         ForEach(set, std::forward<Callback>(callback));
@@ -263,7 +263,7 @@ public:
     ScriptableDelegate<void, Handle<AssetObject>, bool /* isDirect */> OnAssetObjectAdded;
 
     HYP_FIELD()
-    ScriptableDelegate<void, Handle<AssetObject>, bool /* isDirect */> OnAssetObjectRemoved;
+    ScriptableDelegate<void, Name, bool /* isDirect */> OnAssetObjectRemoved;
 
     HYP_FIELD()
     ScriptableDelegate<void, Handle<AssetPackage>> OnSubpackageAdded;
@@ -272,6 +272,9 @@ public:
     ScriptableDelegate<void, Handle<AssetPackage>> OnSubpackageRemoved;
 
 private:
+    // Maps from AssetDesc id -> AssetObject handle
+    using AssetObjectCache = SparsePagedArray<Handle<AssetObject>, 64, AssetAllocator>;
+
     void Init();
 
     void MarkDirty();
@@ -308,7 +311,8 @@ private:
     enum StateFlags : int32
     {
         SF_Dirty = 0x1,
-        SF_Loading = 0x2
+        SF_Loading = 0x2,
+        SF_Shallow = 0x4 //!<  Set if the package does not have any asset/subpackages loaded - just a loose empty node
     };
 
     mutable volatile int32 m_stateFlags;
@@ -316,8 +320,10 @@ private:
     WeakHandle<AssetRegistry> m_registry;
     AssetPackage* m_parentPackage;
     AssetPackageSet m_subpackages;
-    AssetObjectSet m_assetObjects;
+    AssetDescSet m_assetDescs;
     FilePath m_packageDir;
+
+    AssetObjectCache m_assetObjectCache;
 
     SharedMutex m_mutex;
 
@@ -326,6 +332,8 @@ private:
     mutable Mutex m_loadedMutex;
     ConditionVariable m_loadedCV;
     ThreadId m_loadingThreadId;
+
+    IdGenerator m_assetIdGenerator;
 };
 
 HYP_CLASS()
@@ -392,13 +400,10 @@ public:
 
     HYP_METHOD()
     Handle<AssetPackage> GetPackage(
-        const Handle<AssetPackage>& parentPackage,
+        AssetPackage* parentPackage,
         const UTF8StringView& subpackageName,
         bool createIfNotExist = true,
         bool requireLoaded = true);
-
-    HYP_METHOD()
-    void LoadSubpackages(const Handle<AssetPackage>& parentPackage, bool recursive);
 
     TResult<Handle<AssetPackage>> LoadPackageFromManifest(
         const FilePath& manifestPath,

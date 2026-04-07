@@ -170,7 +170,7 @@ bool Node::IsOrHasParent(const Node* node) const
 
 Node* Node::FindParentWithName(UTF8StringView name) const
 {
-    if (m_name == name)
+    if (GetName() == name)
     {
         return const_cast<Node*>(this);
     }
@@ -201,7 +201,7 @@ void Node::SetScene(Scene* scene)
         AssertDebug(
             previousScene != nullptr,
             "Previous scene is null when setting new scene for Node {} - should be set to detached world scene by default",
-            m_name);
+            GetName());
         
         m_scene = scene;
 

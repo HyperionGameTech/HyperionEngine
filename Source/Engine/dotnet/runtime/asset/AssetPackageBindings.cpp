@@ -12,19 +12,23 @@ extern "C"
     {
         Assert(pPackage != nullptr);
 
-        if (!pOutAssetHandles)
-        {
-            return uint32(pPackage->GetAssets().Size());
-        }
+        //if (!pOutAssetHandles)
+        //{
+        //    return uint32(pPackage->GetAssets().Size());
+        //}
 
-        Array<Handle<AssetObject>> assets = pPackage->GetAssets().ToArray();
+        //Array<Handle<AssetObject>> assets = pPackage->GetAssets().ToArray();
 
-        for (uint32 i = 0; i < uint32(assets.Size()); i++)
-        {
-            new (&pOutAssetHandles[i]) Handle<AssetObject>(std::move(assets[i]));
-        }
+        //for (uint32 i = 0; i < uint32(assets.Size()); i++)
+        //{
+        //    new (&pOutAssetHandles[i]) Handle<AssetObject>(std::move(assets[i]));
+        //}
 
-        return uint32(assets.Size());
+        //return uint32(assets.Size());
+
+        /// @TODO Reimplement me!!!
+
+        return 0;
     }
 
     HYP_EXPORT uint32 AssetPackage_GetSubpackages(AssetPackage* pPackage, Handle<AssetPackage>* pOutPackageHandles)

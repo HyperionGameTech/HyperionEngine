@@ -292,9 +292,10 @@ RendererResult Texture::Create()
         GpuImageRef gpuImage = g_renderInterface->MakeImage(m_textureDesc);
     
 #if HYP_DEBUG_MODE
-        if (m_name.IsValid())
+        Name assetName = GetName();
+        if (assetName.IsValid())
         {
-            gpuImage->SetDebugName(m_name);
+            gpuImage->SetDebugName(assetName);
         }
 #endif
 

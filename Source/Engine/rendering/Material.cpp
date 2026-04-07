@@ -424,7 +424,7 @@ const Handle<Texture>& Material::GetTextureAtIndex(uint32 index) const
 Handle<Material> Material::Clone() const
 {
     Handle<Material> material = MakeHandle<Material>(
-        m_name,
+        GetName(),
         m_attributes,
         m_parameters,
         m_textures);

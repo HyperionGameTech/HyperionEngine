@@ -394,13 +394,28 @@ Result AssetObject::Register(const UTF8StringView& path, AddAssetConflictMode co
     return g_assetManager->GetAssetRegistry()->RegisterAsset(path, MakeStrongRef(this), conflictMode);
 }
 
+Result AssetObject::LoadDesc(
+    JSON::Object& manifestData,
+    AssetDesc& outAssetDesc)
+{
+    if (!manifestData["Name"].IsString() || !manifestData["$Class"].IsString())
+    {
+        return HYP_MAKE_ERROR(Error, "Manifest must have 'Name', '$Class' values to be considered valid!");
+    }
+
+    outAssetDesc = {};
+    outAssetDesc.name = CreateNameFromDynamicString(*manifestData["Name"].ToString());
+    outAssetDesc.friendlyName = CreateNameFromDynamicString(*manifestData["FriendlyName"].ToString());
+    outAssetDesc.className = CreateNameFromDynamicString(*manifestData["$Class"].ToString());
+    outAssetDesc.originalFilepath = manifestData["OriginalFilepath"].ToString();
+
+    return {};
+}
 
 Result AssetObject::Load(
     JSON::Object& manifestData,
     Handle<AssetObject>& outAssetObject)
 {
-    HYP_SCOPE;
-
     static constexpr uint32 MaxRecursionDepth = 32;
     static thread_local uint32 s_recursionDepth = 0;
 

@@ -65,15 +65,13 @@ namespace Hyperion.Editor.ViewModels
                 }
             });
 
-            _onAssetRemovedHandler = package.GetOnAssetObjectRemovedDelegate().Bind((AssetObject asset, bool isDirect) =>
+            _onAssetRemovedHandler = package.GetOnAssetObjectRemovedDelegate().Bind((Name assetName, bool isDirect) =>
             {
                 if (isDirect)
                 {
-                    ObjIdBase removedAssetId = asset.Id;
-
                     Dispatcher.UIThread.Post(() =>
                     {
-                        AssetObjectViewModel? assetViewModel = Assets.FirstOrDefault(avm => avm.Asset.Id == removedAssetId);
+                        AssetObjectViewModel? assetViewModel = Assets.FirstOrDefault(avm => avm.Asset.Name == assetName);
 
                         if (assetViewModel == null)
                             return;

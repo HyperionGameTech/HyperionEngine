@@ -1178,10 +1178,10 @@ public:
             s_watchTextureState.path = path;
 
             s_watchTextureState.onAssetRemoved = package->OnAssetObjectRemoved.Bind(
-                [uiSubsystem = MakeStrongRef(uiSubsystem), overlay = s_watchTextureState.overlay](Handle<AssetObject> removedAsset, bool isDirect)
+                [uiSubsystem = MakeStrongRef(uiSubsystem), overlay = s_watchTextureState.overlay](Name assetName, bool isDirect)
                 {
                     Mutex::Guard guard(s_watchTextureStateMtx);
-                    if (!isDirect || removedAsset->GetName() != s_watchTextureState.path.GetName())
+                    if (!isDirect || assetName != s_watchTextureState.path.GetName())
                         return;
 
                     if (overlay.IsValid())

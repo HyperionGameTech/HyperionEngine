@@ -3,7 +3,7 @@
 #pragma once
 
 #include <asset/AssetPath.hpp>
-#include <asset/AssetEnums.hpp>
+#include <asset/AssetTypes.hpp>
 #include <asset/BlobStorageStructs.hpp>
 
 #include <Core/reflection/ObjectBase.hpp>
@@ -199,6 +199,10 @@ public:
     {
         SetReady(true);
     }
+
+    static Result LoadDesc(
+        JSON::Object& manifestData,
+        AssetDesc& outAssetDesc);
 
     static Result Load(
         JSON::Object& manifestData,

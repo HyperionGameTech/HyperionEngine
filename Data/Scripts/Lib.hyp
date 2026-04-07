@@ -1756,6 +1756,31 @@ extern struct BlobMappingRange
     Start : uint32
     End : uint32
 end
+extern enum AddAssetConflictMode : uint8
+    FailOnConflict = 0,
+    GenerateNewName,
+    ReplaceExisting,
+    Default
+end
+extern struct AssetDesc
+    Name : Name
+    FriendlyName : Name
+    ClassName : Name
+    OriginalFilepath : string
+    Index : uint32
+end
+extern enum AssetObjectFlags : uint8
+    None = 0x0,
+    Persistent = 0x1,
+    Transient = 0x2,
+    TransientByProxy = 0x4
+end
+extern enum AssetPackageFlags : uint32
+    None = 0x0,
+    Transient = 0x1,
+    Hidden = 0x2,
+    SaveOnChanged = 0x4
+end
 extern class AssetCollector
     GetBasePath() -> string
     SetBasePath(basePath : string) -> void
@@ -1789,7 +1814,6 @@ extern class AssetRegistry
     RemovePackage(package : AssetPackage) -> void
     GetPackageFromPath(path : string, createIfNotExist : bool, requireLoaded : bool) -> AssetPackage
     GetPackage(parentPackage : AssetPackage, subpackageName : string, createIfNotExist : bool, requireLoaded : bool) -> AssetPackage
-    LoadSubpackages(parentPackage : AssetPackage, recursive : bool) -> void
     GetUniqueAssetName(packagePath : string, baseName : Name) -> Name
     OnPackageAdded : any
     OnPackageRemoved : any
@@ -1805,6 +1829,7 @@ extern class AssetPackage
     IsHidden() -> bool
     IsLoading() -> bool
     GetParentPackage() -> AssetPackage
+    LoadSubpackages(recursive : bool) -> void
     IsSubpackageOf(other : AssetPackage) -> bool
     BuildPackagePath() -> string
     GetSavedDirectory() -> string
@@ -2464,24 +2489,6 @@ extern class InstancedMeshData : AssetObject
     BufferStructAlignments : Array<uint32>
 end
 extern class AssetLoaderBase
-end
-extern enum AddAssetConflictMode : uint8
-    FailOnConflict = 0,
-    GenerateNewName,
-    ReplaceExisting,
-    Default
-end
-extern enum AssetObjectFlags : uint8
-    None = 0x0,
-    Persistent = 0x1,
-    Transient = 0x2,
-    TransientByProxy = 0x4
-end
-extern enum AssetPackageFlags : uint32
-    None = 0x0,
-    Transient = 0x1,
-    Hidden = 0x2,
-    SaveOnChanged = 0x4
 end
 extern struct UUID
     Data0 : uint64

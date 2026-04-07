@@ -76,8 +76,20 @@ static void RegisterPackageAssets(const Handle<EditorProject>& project, const Ha
 {
     Assert(project.IsValid() && package.IsValid());
 
-    package->ForEachAssetObject([&](const Handle<AssetObject>& assetObject)
+    Handle<AssetRegistry> registryStrong = package->GetRegistry().Lock();
+    Assert(registryStrong.IsValid());
+
+    AssetRegistry& registry = *registryStrong;
+
+    package->ForEachAssetDesc([&](const AssetDesc& assetDesc)
         {
+            Handle<AssetObject> assetObject = registry.GetAssetFromPath(assetDesc.name.LookupString(), /* attemptLoading */ true);
+            if (!assetObject.IsValid())
+            {
+                HYP_LOG(Editor, Warning, "Failed to load asset '{}' while registering package assets. Skipping.", assetDesc.name);
+                return IterationResult::CONTINUE;
+            }
+
             RegisterImportedAsset(project, assetObject);
 
             return IterationResult::CONTINUE;

@@ -6,6 +6,10 @@
 
 #include <Core/utilities/EnumFlags.hpp>
 
+#include <Core/name/Name.hpp>
+
+#include <Core/filesystem/FilePath.hpp>
+
 namespace Hyperion {
 
 HYP_ENUM()
@@ -39,5 +43,28 @@ enum class AssetObjectFlags : uint8
 };
 
 HYP_MAKE_ENUM_FLAGS(AssetObjectFlags);
+
+HYP_STRUCT()
+struct AssetDesc
+{
+    HYP_STRUCT_BODY(AssetDesc);
+
+    static constexpr uint32 InvalidIndex = 0;
+
+    HYP_FIELD()
+    Name name;
+
+    HYP_FIELD()
+    Name friendlyName;
+
+    HYP_FIELD()
+    Name className;
+
+    HYP_FIELD()
+    FilePath originalFilepath;
+
+    HYP_FIELD()
+    uint32 index = InvalidIndex;
+};
 
 } // namespace Hyperion
