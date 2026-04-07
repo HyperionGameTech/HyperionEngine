@@ -2,6 +2,7 @@ using Avalonia.Threading;
 using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
+using System.Diagnostics;
 using System.Linq;
 
 namespace Hyperion.Editor.ViewModels
@@ -25,9 +26,9 @@ namespace Hyperion.Editor.ViewModels
         {
             _package = package;
 
-            foreach (AssetObject asset in package.Assets)
+            foreach (AssetDesc assetDesc in package.AssetDescs)
             {
-                Assets.Add(new AssetObjectViewModel(asset, this));
+                Assets.Add(new AssetObjectViewModel(assetDesc, this));
             }
 
             foreach (AssetPackage subpackage in package.Subpackages)
@@ -41,37 +42,33 @@ namespace Hyperion.Editor.ViewModels
             OnPropertyChanged(nameof(Assets));
             OnPropertyChanged(nameof(Subpackages));
 
-            _onAssetAddedHandler = package.GetOnAssetObjectAddedDelegate().Bind((AssetObject asset, bool isDirect) =>
+            _onAssetAddedHandler = package.GetOnAssetObjectAddedDelegate().Bind((AssetDesc assetDesc, bool isDirect, AssetPackage parentPackage) =>
             {
+                Debug.Assert(assetDesc.Index != AssetDesc.InvalidIndex);
+
                 if (isDirect)
                 {
-                    WeakReference<AssetObject> weakAsset = new(asset);
-
                     Dispatcher.UIThread.Post(() =>
                     {
-                        AssetObject? asset = null;
-                        if (weakAsset.TryGetTarget(out asset))
-                        {
-                            AssetObjectViewModel? assetViewModel = Assets.FirstOrDefault(avm => avm.Asset.Id == asset.Id);
+                        AssetObjectViewModel? assetViewModel = Assets.FirstOrDefault(avm => avm.AssetDesc.Index == assetDesc.Index);
 
-                            if (assetViewModel != null)
-                                return; // already exists
+                        if (assetViewModel != null)
+                            return; // already exists
 
-                            Assets.Add(new AssetObjectViewModel(asset, this));
+                        Assets.Add(new AssetObjectViewModel(assetDesc, this));
 
-                            OnPropertyChanged(nameof(Assets));
-                        }
+                        OnPropertyChanged(nameof(Assets));
                     });
                 }
             });
 
-            _onAssetRemovedHandler = package.GetOnAssetObjectRemovedDelegate().Bind((Name assetName, bool isDirect) =>
+            _onAssetRemovedHandler = package.GetOnAssetObjectRemovedDelegate().Bind((Name assetName, bool isDirect, AssetPackage parentPackage) =>
             {
                 if (isDirect)
                 {
                     Dispatcher.UIThread.Post(() =>
                     {
-                        AssetObjectViewModel? assetViewModel = Assets.FirstOrDefault(avm => avm.Asset.Name == assetName);
+                        AssetObjectViewModel? assetViewModel = Assets.FirstOrDefault(avm => avm.AssetDesc.Name == assetName);
 
                         if (assetViewModel == null)
                             return;

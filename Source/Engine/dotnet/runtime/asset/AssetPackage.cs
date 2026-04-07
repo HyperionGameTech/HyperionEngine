@@ -1,3 +1,4 @@
+using System.Diagnostics;
 using System.Runtime.InteropServices;
 
 namespace Hyperion
@@ -20,38 +21,35 @@ namespace Hyperion
         {
         }
 
-        public IEnumerable<AssetObject> Assets
+        public IEnumerable<AssetDesc> AssetDescs
         {
             get
             {
-                uint count = AssetPackage_GetAssets(NativeAddress, IntPtr.Zero);
+                uint count = AssetPackage_GetAssetDescs(NativeAddress, IntPtr.Zero, 0);
 
                 if (count == 0)
                 {
                     yield break;
                 }
 
-                IntPtr assetHandlePtrs = Marshal.AllocHGlobal(Marshal.SizeOf<Hyperion.Handle>() * (int)count);
+                Debug.Assert(Marshal.SizeOf<AssetDesc>() == 12);
+                IntPtr assetDescPtrs = Marshal.AllocHGlobal(Marshal.SizeOf<AssetDesc>() * (int)count);
 
                 try
                 {
-                    AssetPackage_GetAssets(NativeAddress, assetHandlePtrs);
+                    AssetPackage_GetAssetDescs(NativeAddress, assetDescPtrs, count);
 
                     for (uint i = 0; i < count; i++)
                     {
-                        IntPtr currentPtr = IntPtr.Add(assetHandlePtrs, (int)(i * Marshal.SizeOf<Hyperion.Handle>()));
-                        Hyperion.Handle assetHandle = Marshal.PtrToStructure<Hyperion.Handle>(currentPtr);
-                        AssetObject? asset = (AssetObject?)assetHandle.GetValue();
+                        IntPtr currentPtr = IntPtr.Add(assetDescPtrs, (int)(i * Marshal.SizeOf<AssetDesc>()));
+                        AssetDesc assetDesc = Marshal.PtrToStructure<AssetDesc>(currentPtr);
 
-                        if (asset != null)
-                        {
-                            yield return asset;
-                        }
+                        yield return assetDesc;
                     }
                 }
                 finally
                 {
-                    Marshal.FreeHGlobal(assetHandlePtrs);
+                    Marshal.FreeHGlobal(assetDescPtrs);
                 }
             }
         }
@@ -60,7 +58,7 @@ namespace Hyperion
         {
             get
             {
-                uint count = AssetPackage_GetSubpackages(NativeAddress, IntPtr.Zero);
+                uint count = AssetPackage_GetSubpackages(NativeAddress, IntPtr.Zero, 0);
 
                 if (count == 0)
                 {
@@ -71,7 +69,7 @@ namespace Hyperion
 
                 try
                 {
-                    AssetPackage_GetSubpackages(NativeAddress, subpackageHandlePtrs);
+                    AssetPackage_GetSubpackages(NativeAddress, subpackageHandlePtrs, count);
 
                     for (uint i = 0; i < count; i++)
                     {
@@ -97,10 +95,10 @@ namespace Hyperion
         public bool Hidden => (Flags & AssetPackageFlags.Hidden) != 0;
         public bool Transient => (Flags & AssetPackageFlags.Transient) != 0;
 
-        [DllImport("hyperion", EntryPoint = "AssetPackage_GetAssets")]
-        private static extern uint AssetPackage_GetAssets(IntPtr pPackage, IntPtr pOutAssetHandles);
+        [DllImport("hyperion", EntryPoint = "AssetPackage_GetAssetDescs")]
+        private static extern uint AssetPackage_GetAssetDescs(IntPtr pPackage, IntPtr pOutAssetDescs, uint maxCount);
 
         [DllImport("hyperion", EntryPoint = "AssetPackage_GetSubpackages")]
-        private static extern uint AssetPackage_GetSubpackages(IntPtr pPackage, IntPtr pOutSubpackageHandles);
+        private static extern uint AssetPackage_GetSubpackages(IntPtr pPackage, IntPtr pOutSubpackageHandles, uint maxCount);
     }
 }

@@ -1,3 +1,5 @@
+using System.Runtime.InteropServices;
+
 namespace Hyperion
 {
     [ClassBinding(Name = "AssetObjectFlags")]
@@ -6,6 +8,16 @@ namespace Hyperion
     {
         None = 0x0,
         Persistent = 0x1
+    }
+
+    [ClassBinding(Name = "AssetDesc")]
+    [StructLayout(LayoutKind.Sequential, Pack = 1)]
+    public struct AssetDesc
+    {
+        public static readonly uint InvalidIndex = 0;
+
+        public Name Name;
+        public uint Index;
     }
 
     [ClassBinding(Name = "AssetObject")]

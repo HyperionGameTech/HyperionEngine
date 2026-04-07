@@ -131,7 +131,8 @@ void EditorState::Init()
     m_taskManager.OnTaskProgressUpdated.Bind([this]<class... Args>(Args&&... args) { OnTaskProgressUpdated(std::forward<Args>(args)...); }).Detach();
 
     // add newly imported assets to the current project's asset registry
-    m_onAssetObjectAddedHandle = importsPackage->OnAssetObjectAdded.Bind([weakThis = WeakHandleFromThis()](Handle<AssetObject> assetObject, bool isDirect)
+    m_onAssetObjectAddedHandle = importsPackage->OnAssetObjectAdded
+        .Bind([weakThis = WeakHandleFromThis()](const AssetDesc& assetDesc, bool isDirect, AssetPackage* parentPackage)
         {
             Handle<EditorState> editorState = weakThis.Lock();
 
@@ -144,6 +145,14 @@ void EditorState::Init()
 
             if (editorState->m_currentProject && editorState->m_currentProject->GetPackage().IsValid())
             {
+                Handle<AssetObject> assetObject = parentPackage->GetAssetObject(assetDesc.name.LookupString(), /* attemptLoading */ true);
+                AssertDebug(assetObject.IsValid());
+
+                if (!assetObject.IsValid())
+                {
+                    return;
+                }
+
                 RegisterImportedAsset(editorState->m_currentProject, assetObject);
             }
         });

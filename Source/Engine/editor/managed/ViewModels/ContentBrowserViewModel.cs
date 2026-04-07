@@ -76,9 +76,9 @@ namespace Hyperion.Editor.ViewModels
                     
                     if (package != null)
                     {
-                        foreach (AssetObject asset in package.Assets)
+                        foreach (AssetDesc assetDesc in package.AssetDescs)
                         {
-                            Assets.Add(new AssetObjectViewModel(asset));
+                            Assets.Add(new AssetObjectViewModel(assetDesc));
                         }
 
                         _currentPackage = new AssetPackageViewModel(package);

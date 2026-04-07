@@ -1178,7 +1178,7 @@ public:
             s_watchTextureState.path = path;
 
             s_watchTextureState.onAssetRemoved = package->OnAssetObjectRemoved.Bind(
-                [uiSubsystem = MakeStrongRef(uiSubsystem), overlay = s_watchTextureState.overlay](Name assetName, bool isDirect)
+                [uiSubsystem = MakeStrongRef(uiSubsystem), overlay = s_watchTextureState.overlay](Name assetName, bool isDirect, AssetPackage*)
                 {
                     Mutex::Guard guard(s_watchTextureStateMtx);
                     if (!isDirect || assetName != s_watchTextureState.path.GetName())
@@ -1192,17 +1192,21 @@ public:
                 });
 
             s_watchTextureState.onAssetAdded = package->OnAssetObjectAdded.Bind(
-                [uiSubsystem = MakeStrongRef(uiSubsystem)](Handle<AssetObject> addedAsset, bool isDirect)
+                [uiSubsystem = MakeStrongRef(uiSubsystem)](const AssetDesc& addedAsset, bool isDirect, AssetPackage* parentPackage)
                 {
                     Mutex::Guard guard(s_watchTextureStateMtx);
-                    if (!isDirect || addedAsset->GetName() != s_watchTextureState.path.GetName())
+                    if (!isDirect || addedAsset.name != s_watchTextureState.path.GetName())
                         return;
 
-                    Handle<Texture> newTexture = ObjCast<Texture>(addedAsset);
-                    if (!newTexture.IsValid())
+                    Handle<AssetObject> assetObject = parentPackage->GetAssetObject(addedAsset.name.LookupString(), /* attemptLoading */ true);
+                    if (!assetObject.IsValid())
                         return;
 
-                    Handle<TextureOverlay> newOverlay = MakeHandle<TextureOverlay>(newTexture);
+                    Handle<Texture> texture = ObjCast<Texture>(assetObject);
+                    if (!texture.IsValid())
+                        return;
+
+                    Handle<TextureOverlay> newOverlay = MakeHandle<TextureOverlay>(texture);
                     InitObject(newOverlay);
 
                     GetThreadById(g_simThread)->GetScheduler().Enqueue([uiSubsystem, newOverlay, oldOverlay = s_watchTextureState.overlay]() mutable

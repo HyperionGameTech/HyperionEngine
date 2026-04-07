@@ -405,9 +405,7 @@ Result AssetObject::LoadDesc(
 
     outAssetDesc = {};
     outAssetDesc.name = CreateNameFromDynamicString(*manifestData["Name"].ToString());
-    outAssetDesc.friendlyName = CreateNameFromDynamicString(*manifestData["FriendlyName"].ToString());
-    outAssetDesc.className = CreateNameFromDynamicString(*manifestData["$Class"].ToString());
-    outAssetDesc.originalFilepath = manifestData["OriginalFilepath"].ToString();
+    outAssetDesc.index = AssetDesc::InvalidIndex;
 
     return {};
 }

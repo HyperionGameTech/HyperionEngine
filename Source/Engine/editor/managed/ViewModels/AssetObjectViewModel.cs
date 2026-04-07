@@ -2,17 +2,17 @@ namespace Hyperion.Editor.ViewModels
 {
     public class AssetObjectViewModel : ViewModelBase
     {
-        private readonly AssetObject _asset;
+        private readonly AssetDesc _assetDesc;
         private readonly AssetPackageViewModel? _package;
 
-        public AssetObject Asset => _asset;
+        public AssetDesc AssetDesc => _assetDesc;
         public AssetPackageViewModel? Package => _package;
 
-        public string DisplayName => _asset.Name.ToString();
+        public string DisplayName => _assetDesc.Name.ToString();
 
-        public AssetObjectViewModel(AssetObject asset, AssetPackageViewModel? package = null)
+        public AssetObjectViewModel(AssetDesc assetDesc, AssetPackageViewModel? package = null)
         {
-            _asset = asset;
+            _assetDesc = assetDesc;
             _package = package;
         }
     }

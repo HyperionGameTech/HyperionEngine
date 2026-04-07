@@ -131,16 +131,17 @@ public:
         return m_parentPackage;
     }
 
-    /*! \internal Serialization only */
-    HYP_FORCE_INLINE const AssetPackageSet& GetSubpackages() const
+    template <class TOutArray>
+    void GetSubpackages(TOutArray& outArray) const
     {
-        return m_subpackages;
-    }
+        TSharedLock guard(m_mutex);
 
-    /*! \internal Serialization only */
-    HYP_FORCE_INLINE void SetSubpackages(const AssetPackageSet& subpackages)
-    {
-        m_subpackages = subpackages;
+        outArray.Reserve(m_subpackages.Size());
+
+        for (const Handle<AssetPackage>& subpackage : m_subpackages)
+        {
+            outArray.PushBack(subpackage);
+        }
     }
 
     HYP_METHOD()
@@ -155,14 +156,27 @@ public:
         AssetPackageSet set;
 
         {
-            TUniqueLock guard(m_mutex);
+            TSharedLock guard(m_mutex);
             set = m_subpackages;
         }
 
         ForEach(set, std::forward<Callback>(callback));
     }
 
-    void SetAssets(const AssetDescSet& assetDescs);
+    void SetAssetDescs(const AssetDescSet& assetDescs);
+
+    template <class TOutArray>
+    void GetAssetDescs(TOutArray& outArray) const
+    {
+        TSharedLock guard(m_mutex);
+
+        outArray.Reserve(m_assetDescs.Size());
+
+        for (const AssetDesc& assetDesc : m_assetDescs)
+        {
+            outArray.PushBack(assetDesc);
+        }
+    }
 
     template <class Callback>
     void ForEachAssetDesc(Callback&& callback) const
@@ -170,7 +184,7 @@ public:
         AssetDescSet set;
 
         {
-            TUniqueLock guard(m_mutex);
+            TSharedLock guard(m_mutex);
             set = m_assetDescs;
         }
 
@@ -260,10 +274,10 @@ public:
     }
 
     HYP_FIELD()
-    ScriptableDelegate<void, Handle<AssetObject>, bool /* isDirect */> OnAssetObjectAdded;
+    ScriptableDelegate<void, AssetDesc, bool /* isDirect */, AssetPackage* /* parentPackage */> OnAssetObjectAdded;
 
     HYP_FIELD()
-    ScriptableDelegate<void, Name, bool /* isDirect */> OnAssetObjectRemoved;
+    ScriptableDelegate<void, Name, bool /* isDirect */, AssetPackage* /* parentPackage */> OnAssetObjectRemoved;
 
     HYP_FIELD()
     ScriptableDelegate<void, Handle<AssetPackage>> OnSubpackageAdded;

@@ -44,6 +44,8 @@ enum class AssetObjectFlags : uint8
 
 HYP_MAKE_ENUM_FLAGS(AssetObjectFlags);
 
+#pragma pack(push, 1)
+
 HYP_STRUCT()
 struct AssetDesc
 {
@@ -55,16 +57,19 @@ struct AssetDesc
     Name name;
 
     HYP_FIELD()
-    Name friendlyName;
-
-    HYP_FIELD()
-    Name className;
-
-    HYP_FIELD()
-    FilePath originalFilepath;
-
-    HYP_FIELD()
     uint32 index = InvalidIndex;
+
+    HYP_FORCE_INLINE bool operator==(const AssetDesc& other) const
+    {
+        return Memory::Compare(this, &other, sizeof(AssetDesc)) == 0;
+    }
+
+    HYP_FORCE_INLINE bool operator!=(const AssetDesc& other) const
+    {
+        return Memory::Compare(this, &other, sizeof(AssetDesc)) != 0;
+    }
 };
+
+#pragma pack(pop)
 
 } // namespace Hyperion

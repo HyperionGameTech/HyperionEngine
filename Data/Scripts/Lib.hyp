@@ -1764,9 +1764,6 @@ extern enum AddAssetConflictMode : uint8
 end
 extern struct AssetDesc
     Name : Name
-    FriendlyName : Name
-    ClassName : Name
-    OriginalFilepath : string
     Index : uint32
 end
 extern enum AssetObjectFlags : uint8
