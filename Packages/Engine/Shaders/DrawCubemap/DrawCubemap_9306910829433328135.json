@@ -131,13 +131,13 @@
     }, {
       "$Class": "BlobDataReference",
       "Key": "Engine/Shaders/DrawCubemap/DrawCubemap_9306910829433328135.PS",
-      "Size": 90016
+      "Size": 89604
     }],
   "PropertySetHashCode": {},
   "LastCompiledTimestamp": {
-    "Value": 1775506537000
+    "Value": 1775523152000
   },
   "Name": "DrawCubemap_9306910829433328135",
-  "FriendlyName": "DrawCubemap9306910829433328135",
+  "FriendlyName": "DrawCubemap_9306910829433328135",
   "OriginalFilepath": ""
 }

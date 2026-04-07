@@ -225,11 +225,11 @@
   "ShaderBlobs": [{
       "$Class": "BlobDataReference",
       "Key": "Engine/Shaders/DDGI/DDGI_8217044443126766856.RGS",
-      "Size": 123780
+      "Size": 123296
     }, {
       "$Class": "BlobDataReference",
       "Key": "Engine/Shaders/DDGI/DDGI_8217044443126766856.CHS",
-      "Size": 141900
+      "Size": 141412
     }, {
       "$Class": "BlobDataReference",
       "Key": "Engine/Shaders/DDGI/DDGI_8217044443126766856.MS",
@@ -237,7 +237,7 @@
     }],
   "PropertySetHashCode": {},
   "LastCompiledTimestamp": {
-    "Value": 1775522419000
+    "Value": 1775523152000
   },
   "Name": "DDGI_8217044443126766856",
   "FriendlyName": "DDGI_8217044443126766856",

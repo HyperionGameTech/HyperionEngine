@@ -181,8 +181,6 @@ PSOutput PSMain(PSInput input)
     ao = ssao_data.r;
 #endif
 
-    const float3 diffuse_color = CalculateDiffuseColor(albedo.rgb, metalness);
-
     const float perceptualRoughness = sqrt(roughness);
     
     CalculateEnvProbesContribution(
@@ -224,22 +222,15 @@ PSOutput PSMain(PSInput input)
 
     const float NdotV = max(0.0001, dot(N, V));
     const float3 F0 = CalculateF0(albedo.rgb, metalness);
-    const float3 F = CalculateFresnelTerm(F0, roughness, NdotV);
-    const float3 dfg = CalculateDFG(F, roughness, NdotV);
-    const float3 E = CalculateE(F0, dfg);
-    float3 Fd = diffuse_color.rgb * irradiance.rgb * (1.0 - E) * ao;
+    const float3 F = CalculateFresnelTerm(F0, perceptualRoughness, NdotV);
+    const float3 dfg = CalculateDFG(F0, perceptualRoughness, NdotV);
+    
+    const float3 kD = (1.0 - F) * (1.0 - metalness);
 
-    float3 specular_ao = float3(SpecularAO_Lagarde(NdotV, ao, roughness), SpecularAO_Lagarde(NdotV, ao, roughness), SpecularAO_Lagarde(NdotV, ao, roughness));
+    const float3 specularIBL = reflections.rgb * dfg;
+    const float3 diffuseIBL = irradiance.rgb * albedo.rgb;
 
-    const float3 energy_compensation = CalculateEnergyCompensation(F0, dfg);
-    specular_ao *= energy_compensation;
-
-    float3 Fr = ibl * E * specular_ao;
-
-    reflections.rgb *= specular_ao;
-    Fr = Fr * (1.0 - reflections.a) + (E * reflections.rgb);
-
-    result = Fd + Fr;
+    result = (kD * diffuseIBL + specularIBL) * ao;
 
 #ifdef PATHTRACER
     result = CalculatePathTracing(texcoord).rgb;

@@ -194,17 +194,10 @@ float3 mon2lin(float3 x)
 /// https://www.unrealengine.com/en-US/blog/physically-based-shading-on-mobile
 float2 BRDFMap(float roughness, float NdotV)
 {
-    // Same as EnvBRDFApprox( 0.04, Roughness, NoV )
-    // const float2 c0 = { -1.0, -0.0275 };
-    // const float2 c1 = { 1.0, 0.0425 };
-    // float2 r = roughness * c0 + c1;
-    // float a004 = min(r.x * r.x, exp2(-9.28 * NdotV)) * r.x + r.y;
-    // return float2( -1.04, 1.04 ) * a004;
-
-    const float4 c0 = float4( -1, -0.0275, -0.572, 0.022 );
-    const float4 c1 = float4( 1, 0.0425, 1.04, -0.04 );
+    const float4 c0 = { -1.0, -0.0275, -0.572,  0.022 };
+    const float4 c1 = {  1.0,  0.0425,  1.04,  -0.04  };
     float4 r = roughness * c0 + c1;
-    float a004 = min( r.x * r.x, exp2( -9.28 * NdotV ) ) * r.x + r.y;
+    float a004 = min(r.x * r.x, exp2(-9.28 * NdotV)) * r.x + r.y;
     return float2( -1.04, 1.04 ) * a004 + r.zw;
 }
 
@@ -419,16 +412,16 @@ float CalculateDistributionTerm(float roughness, float NdotH)
     return Trowbridge(NdotH, roughness);
 }
 
-float3 CalculateDFG(float3 F, float perceptual_roughness, float NdotV)
+float3 CalculateDFG(float3 F, float roughness, float NdotV)
 {
-    const float2 AB = BRDFMap(perceptual_roughness, NdotV);
+    const float2 AB = BRDFMap(roughness, NdotV);
 
     return F * AB.x + AB.y;
 }
 
-float4 CalculateDFG(float4 F, float perceptual_roughness, float NdotV)
+float4 CalculateDFG(float4 F, float roughness, float NdotV)
 {
-    const float2 AB = BRDFMap(perceptual_roughness, NdotV);
+    const float2 AB = BRDFMap(roughness, NdotV);
 
     return F * AB.x + AB.y;
 }

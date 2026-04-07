@@ -169,7 +169,8 @@ PSOutput PSMain(PSInput input)
     const float3 F = CalculateFresnelTerm(F0, roughness, NdotV);
     const float3 dfg = CalculateDFG(F, roughness, NdotV);
     const float3 E = CalculateE(F0, dfg);
-    float3 diffuseIndirect = diffuse_color.rgb * irradiance.rgb * (1.0 - E) * ao
+    
+    float3 diffuseIndirect = diffuse_color.rgb * irradiance.rgb * (1.0 - E) * ao;
 
     float3 specularAO = float3(SpecularAO_Lagarde(NdotV, ao, roughness), SpecularAO_Lagarde(NdotV, ao, roughness), SpecularAO_Lagarde(NdotV, ao, roughness));
 
