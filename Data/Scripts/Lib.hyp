@@ -865,17 +865,6 @@ extern enum ShadowMapType : uint32
     SMT_SPOT,
     SMT_OMNI
 end
-extern struct SSRRendererConfig
-    Enabled : bool
-    Quality : int
-    RoughnessScattering : bool
-    ConeTracing : bool
-    RayStep : float
-    NumIterations : uint32
-    EyeFade : Vec2f
-    ScreenEdgeFade : Vec2f
-    ResolutionScale : float
-end
 extern enum VertexType : uint8
     VT_Invalid = 0x0,
     VT_Position = 0x1,

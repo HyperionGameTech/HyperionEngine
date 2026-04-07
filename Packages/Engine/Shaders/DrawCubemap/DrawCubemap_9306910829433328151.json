@@ -127,17 +127,17 @@
   "ShaderBlobs": [{
       "$Class": "BlobDataReference",
       "Key": "Engine/Shaders/DrawCubemap/DrawCubemap_9306910829433328151.VS",
-      "Size": 48176
+      "Size": 47588
     }, {
       "$Class": "BlobDataReference",
       "Key": "Engine/Shaders/DrawCubemap/DrawCubemap_9306910829433328151.PS",
-      "Size": 90440
+      "Size": 89852
     }],
   "PropertySetHashCode": {},
   "LastCompiledTimestamp": {
     "Value": 1775506537000
   },
   "Name": "DrawCubemap_9306910829433328151",
-  "FriendlyName": "DrawCubemap_9306910829433328151",
+  "FriendlyName": "DrawCubemap9306910829433328151",
   "OriginalFilepath": ""
 }

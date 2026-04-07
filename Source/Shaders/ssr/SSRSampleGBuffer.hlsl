@@ -53,9 +53,9 @@ struct PSOutput
 
 DECLARE_SRV(RenderSSR, UVImage) Texture2D ssr_uv_image;
 
-DECLARE_BUFFER(RenderSSR, UniformBuffer) cbuffer UniformBuffer
+DECLARE_BUFFER_DYNAMIC(RenderSSR, CBuffer) cbuffer CBuffer
 {
-    SSRUniforms ssrUniforms;
+    SSRConstants ssrConstants;
 };
 
 DECLARE_SRV(RenderSSR, GBufferNormalsTexture) Texture2D gbuffer_normals_texture;
@@ -111,7 +111,7 @@ PSOutput PSMain(PSInput input)
     const uint2 coord = uint2(input.position_cs.xy);
     const float2 texcoord = input.texcoord;
 
-    const float2 ssr_image_dimensions = float2(ssrUniforms.dimension.xy);
+    const float2 ssr_image_dimensions = float2(ssrConstants.dimension.xy);
 
     float4 uv_sample = SAMPLE_TEXTURE_2D(sampler_nearest, ssr_uv_image, texcoord);
     const float2 uv = uv_sample.xy;
@@ -148,18 +148,18 @@ PSOutput PSMain(PSInput input)
         roughness = materialParams.roughness;
         roughness = clamp(roughness, 0.001, 0.999);
 
-        const float perceptual_roughness = sqrt(roughness);
+        // const float perceptual_roughness = sqrt(roughness);
 
         const float gloss = 1.0 - roughness;
-        const float cone_angle = RoughnessToConeAngle(perceptual_roughness) * 0.5;
+        const float cone_angle = RoughnessToConeAngle(roughness) * 0.5;
 
-        const float trace_size = float(max(ssrUniforms.dimension.x, ssrUniforms.dimension.y));
+        const float trace_size = float(max(ssrConstants.dimension.x, ssrConstants.dimension.y));
         const float max_mip_level = 9.0;
 
         float2 sample_texcoord = texcoord;
         int2 sample_coord = int2(sample_texcoord * (ssr_image_dimensions - 1.0) + 0.5);
         
-        const float4 hit_data = SAMPLE_TEXTURE_2D(sampler_nearest, ssr_uv_image, sample_texcoord);
+        const float4 hit_data = SAMPLE_TEXTURE_2D_LOD(sampler_linear, ssr_uv_image, sample_texcoord, 0);
         const float2 hit_uv = hit_data.xy;
         const float hit_mask = hit_data.z;
         const float2 delta_p = (hit_uv - texcoord);
@@ -172,7 +172,7 @@ PSOutput PSMain(PSInput input)
 
         float4 accum_color = float4(0.0, 0.0, 0.0, 0.0);
 
-        float2 velocity = SAMPLE_TEXTURE_2D(sampler_linear, gbuffer_velocity_texture, texcoord).xy;
+        float2 velocity = SAMPLE_TEXTURE_2D_LOD(sampler_linear, gbuffer_velocity_texture, texcoord, 0).xy;
 
 #ifdef CONE_TRACING
         for (int i = 0; i < 14; i++)
@@ -185,7 +185,7 @@ PSOutput PSMain(PSInput input)
 
             float4 current_reflection_sample = SAMPLE_TEXTURE_2D_LOD(sampler_linear, gbuffer_mip_chain, clamp(hit_uv - velocity, float2(0.0, 0.0), float2(1.0, 1.0)), mip_level);
 #else
-        const float current_radius = length((hit_uv - texcoord) * float2(ssrUniforms.dimension.xy)) * tan(cone_angle);
+        const float current_radius = length((hit_uv - texcoord) * float2(ssrConstants.dimension.xy)) * tan(cone_angle);
         const float mip_level = clamp(log2(current_radius), 0.0, max_mip_level);
 
         float4 current_reflection_sample = SAMPLE_TEXTURE_2D_LOD(sampler_linear, gbuffer_mip_chain, clamp(hit_uv - velocity, float2(0.0, 0.0), float2(1.0, 1.0)), mip_level);

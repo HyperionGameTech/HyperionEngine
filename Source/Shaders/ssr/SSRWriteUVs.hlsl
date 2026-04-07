@@ -57,9 +57,9 @@ struct PSOutput
     float4 out_color : SV_Target0;
 };
 
-DECLARE_BUFFER(RenderSSR, UniformBuffer) cbuffer UniformBuffer
+DECLARE_BUFFER_DYNAMIC(RenderSSR, CBuffer) cbuffer CBuffer
 {
-    SSRUniforms ssrUniforms;
+    SSRConstants ssrConstants;
 };
 
 DECLARE_SRV(RenderSSR, GBufferNormalsTexture) Texture2D gbuffer_normals_texture;
@@ -90,7 +90,6 @@ DECLARE_BUFFER_DYNAMIC(RenderSSR, CamerasBuffer) cbuffer CamerasBuffer
 #undef HYP_DO_NOT_DEFINE_DESCRIPTOR_SETS
 
 #define MAX_ROUGHNESS 0.4
-#define SSR_THICKNESS 0.5
 
 bool TraceRays(
     float3 ray_origin,
@@ -103,10 +102,10 @@ bool TraceRays(
     out float num_iterations)
 {
     ray_direction = normalize(ray_direction);
-    float3 currStep = ssrUniforms.ray_step * ray_direction;
+    float3 currStep = ssrConstants.ray_step * ray_direction;
     float3 currPosition = ray_origin;
     
-    const int max_iterations = int(ssrUniforms.num_iterations);
+    const int max_iterations = int(ssrConstants.num_iterations);
     
     num_iterations = 0.0;
     hit_weight = 0.0;
@@ -128,10 +127,10 @@ bool TraceRays(
         float step_delta = currPosition.z - view_space_position.z;
         num_iterations += 1.0;
 
-        if (ssrUniforms.max_ray_distance > 0.0)
+        if (ssrConstants.max_ray_distance > 0.0)
         {
             float traveled = distance(ray_origin, currPosition);
-            if (traveled > ssrUniforms.max_ray_distance) break;
+            if (traveled > ssrConstants.max_ray_distance) break;
         }
 
         if (step_delta > 0.0)
@@ -147,7 +146,7 @@ bool TraceRays(
 
                 step_delta = currPosition.z - view_space_position.z;
 
-                if (abs(step_delta) < ssrUniforms.distance_bias)
+                if (abs(step_delta) < ssrConstants.distance_bias)
                 {
                     hit_point = view_space_position.xyz;
                     return true;
@@ -170,11 +169,11 @@ float CalculateAlpha(
     float3 ray_direction)
 {
     float alpha = 1.0;
-    alpha *= 1.0 - (num_iterations / ssrUniforms.num_iterations);
+    alpha *= 1.0 - (num_iterations / ssrConstants.num_iterations);
 
     float2 hit_pixel_ndc = hit_pixel * 2.0 - 1.0;
     float max_dimension = saturate(max(abs(hit_pixel_ndc.x), abs(hit_pixel_ndc.y)));
-    alpha *= 1.0 - max(0.0, max_dimension - ssrUniforms.screen_edge_fade_start) / (1.0 - ssrUniforms.screen_edge_fade_end);
+    alpha *= 1.0 - max(0.0, max_dimension - ssrConstants.screen_edge_fade_start) / (1.0 - ssrConstants.screen_edge_fade_end);
 
     return alpha;
 }
@@ -204,21 +203,21 @@ PSOutput PSMain(PSInput input)
 
     if (depth > 0.99999 || roughness > MAX_ROUGHNESS)
     {
-        output.out_color = float4(0.0, 0.0, 0.0, 0.0);
+        output.out_color = (float4)0.0;
         return output;
     }
 
     float3 N = GBufferUnpackNormal(normalSample);
 
     float3 P = ReconstructViewSpacePositionFromDepth(camera.invProjMat, texcoord, depth).xyz;
-    float3 V = normalize(float3(0.0, 0.0, 0.0) - P);
+    float3 V = normalize(-P);
     float3 view_space_normal = normalize(mul(camera.view, float4(N, 0.0)).xyz);
 
     float3 tangent;
     float3 bitangent;
     ComputeOrthonormalBasis(view_space_normal, tangent, bitangent);
 
-    const float2 texel_size = float2(1.0, 1.0) / float2(ssrUniforms.dimension.xy);
+    const float2 texel_size = float2(1.0, 1.0) / float2(ssrConstants.dimension.xy);
     const float texel_size_max = max(texel_size.x, texel_size.y);
 
     float3 ray_origin;
@@ -241,7 +240,7 @@ PSOutput PSMain(PSInput input)
 
     if (dot(ray_direction, -V) < 0.0)
     {
-        output.out_color = float4(0.0, 0.0, 0.0, 0.0);
+        output.out_color = (float4)0.0;
         return output;
     }
 

@@ -1373,7 +1373,7 @@ bool ReflectionsPass::ShouldRenderSSR() const
 
 void ReflectionsPass::CreateSSRPass()
 {
-    ssrPass = MakeUnique<SSRPass>(SSRRendererConfig::FromConfig(), m_gbuffer, m_mipChainImageView);
+    ssrPass = MakeUnique<SSRPass>(m_gbuffer, m_mipChainImageView);
     ssrPass->Create();
 }
 

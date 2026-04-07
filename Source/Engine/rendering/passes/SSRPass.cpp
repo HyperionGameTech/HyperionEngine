@@ -11,15 +11,17 @@
 #include <rendering/GBuffer.hpp>
 #include <rendering/CommandRecorder.hpp>
 #include <rendering/Frame.hpp>
-#include <rendering/DescriptorSet.hpp>
 #include <rendering/Texture.hpp>
 #include <rendering/TextureViewCache.hpp>
 #include <rendering/Mesh.hpp>
 #include <rendering/ShaderInstance.hpp>
 #include <rendering/RenderProxy.hpp>
 #include <rendering/RenderHelpers.hpp>
+#include <rendering/CBufferAllocator.hpp>
 
 #include <rendering/util/DeletionQueue.hpp>
+
+#include <engine/CVarManager.hpp>
 
 #include <scene/View.hpp>
 #include <scene/EnvProbe.hpp>
@@ -28,16 +30,24 @@
 
 #include <Core/threading/Threads.hpp>
 
-#include <SSRPass.generated.inl>
-
 namespace Hyperion {
 
 static constexpr bool UseTemporalBlending = true;
 static constexpr TextureFormat SSRColorFormat = TextureFormat::R10G10B10A2;
 static constexpr TextureFormat SSRTraceFormat = TextureFormat::RGBA16F; // store hit UVs in RG, and mask / alpha in B
-static constexpr double TraceResolutionScale = 0.4;
+static constexpr double TraceResolutionScale = 0.65;
 
-struct SSRUniforms
+CVar<bool> cvSSRConeTracing { "Rendering.SSR.ConeTracing", true };
+CVar<bool> cvSSRRoughnessScattering { "Rendering.SSR.RoughnessScattering", false };
+
+CVar<float> cvSSRResolutionScale { "Rendering.SSR.ResolutionScale", 1.0f };
+
+CVar<float> cvSSRRayStep { "Rendering.SSR.RayStep", 2.0f };
+CVar<float> cvSSRDistanceBias { "Rendering.SSR.DistanceBias", 0.01f };
+CVar<float> cvSSRMaxDistance { "Rendering.SSR.MaxDistance", 1000.0f };
+CVar<uint32> cvSSRMaxIterations { "Rendering.SSR.MaxIterations", 256 };
+
+struct SSRConstants
 {
     Vec4u dimensions;
     float rayStep,
@@ -53,12 +63,8 @@ struct SSRUniforms
 
 #pragma region SSRPass
 
-SSRPass::SSRPass(
-    SSRRendererConfig&& config,
-    GBuffer* gbuffer,
-    const GpuImageViewRef& mipChainImageView)
-    : m_config(std::move(config)),
-      m_gbuffer(gbuffer),
+SSRPass::SSRPass(GBuffer* gbuffer, const GpuImageViewRef& mipChainImageView)
+    : m_gbuffer(gbuffer),
       m_mipChainImageView(mipChainImageView),
       m_writeUvs(nullptr),
       m_sampleGbuffer(nullptr),
@@ -78,8 +84,6 @@ SSRPass::~SSRPass()
     {
         m_temporalBlending.Reset();
     }
-
-    EnqueueDeletion(std::move(m_uniformBuffer));
 }
 
 void SSRPass::Create()
@@ -96,8 +100,8 @@ const Handle<Texture>& SSRPass::GetFinalResultTexture() const
 ShaderPropertySet SSRPass::GetShaderProperties() const
 {
     ShaderPropertySet shaderProperties;
-    shaderProperties.Set(InternShaderProperty(ShaderProperty(NAME("CONE_TRACING"))), m_config.coneTracing);
-    shaderProperties.Set(InternShaderProperty(ShaderProperty(NAME("ROUGHNESS_SCATTERING"))), m_config.roughnessScattering);
+    shaderProperties.Set(InternShaderProperty(ShaderProperty(NAME("CONE_TRACING"))), cvSSRConeTracing.Get());
+    shaderProperties.Set(InternShaderProperty(ShaderProperty(NAME("ROUGHNESS_SCATTERING"))), cvSSRRoughnessScattering.Get());
 
     return shaderProperties;
 }
@@ -187,7 +191,7 @@ void SSRPass::UpdatePipelineState(Frame* frame, const RenderSetup& renderSetup)
 {
     HYP_SCOPE;
 
-    const Vec2u renderTargetExtent = Vec2u(Vec2f(renderSetup.view->GetOutputTarget().GetFramebuffer()->GetExtent()) * m_config.resolutionScale);
+    const Vec2u renderTargetExtent = Vec2u(Vec2f(renderSetup.view->GetOutputTarget().GetFramebuffer()->GetExtent()) * cvSSRResolutionScale.Get());
 
     // Check if we need to recreate textures and passes
     const bool needsRecreate = !m_writeUvs
@@ -207,34 +211,10 @@ void SSRPass::UpdatePipelineState(Frame* frame, const RenderSetup& renderSetup)
         delete m_sampleGbuffer;
         m_sampleGbuffer = nullptr;
 
-        EnqueueDeletion(std::move(m_uniformBuffer));
-
         if (m_temporalBlending)
         {
             m_temporalBlending.Reset();
         }
-
-        // Create uniform buffer with current settings
-        SSRUniforms uniforms {};
-        uniforms.dimensions = Vec4u(m_currentExtent, 0, 0);
-        uniforms.rayStep = m_config.rayStep;
-        uniforms.numIterations = m_config.numIterations;
-        uniforms.maxRayDistance = 1000.0f;
-        uniforms.distanceBias = 0.02f;
-        uniforms.offset = 0.25f;
-        uniforms.eyeFadeStart = m_config.eyeFade.x;
-        uniforms.eyeFadeEnd = m_config.eyeFade.y;
-        uniforms.screenEdgeFadeStart = m_config.screenEdgeFade.x;
-        uniforms.screenEdgeFadeEnd = m_config.screenEdgeFade.y;
-
-        m_uniformBuffer = g_renderInterface->MakeGpuBuffer(GpuBufferType::CONSTANT_BUFFER, sizeof(uniforms));
-#if HYP_DEBUG_MODE
-        m_uniformBuffer->SetDebugName(NAME("SSR_UniformBuffer"));
-#endif
-        CheckResult(m_uniformBuffer->Create());
-
-        m_uniformBuffer->Copy(sizeof(uniforms), &uniforms);
-        m_uniformBuffer->Flush(0, sizeof(uniforms));
 
         // Create textures
         m_uvsTexture = MakeHandle<Texture>(TextureDesc {
@@ -297,12 +277,33 @@ void SSRPass::Render(Frame* frame, const RenderSetup& renderSetup)
     const uint32 frameIndex = frame->GetFrameIndex();
     CommandRecorder& cr = frame->cr;
 
+    GpuBuffer* cbuffer = nullptr;
+    size_t cbufferOffset = 0;
+    size_t cbufferSize = 0;
+
+    { // Update cbuffer
+        SSRConstants constants {};
+        constants.dimensions = Vec4u(m_currentExtent, 0, 0);
+        constants.rayStep = cvSSRRayStep.Get();
+        constants.numIterations = cvSSRMaxIterations.Get();
+        constants.maxRayDistance = cvSSRMaxDistance.Get();
+        constants.distanceBias = cvSSRDistanceBias.Get();
+        constants.offset = 0.25f;
+        constants.eyeFadeStart = 0.98f;
+        constants.eyeFadeEnd = 0.99f;
+        constants.screenEdgeFadeStart = 0.98f;
+        constants.screenEdgeFadeEnd = 0.99f;
+
+        g_renderInterface->cbufferAllocator->Write(&constants);
+        g_renderInterface->cbufferAllocator->Commit(cbuffer, cbufferOffset, cbufferSize);
+    }
+
     { // PASS 1 -- write UVs
         m_writeUvs->Begin(frame, renderSetup);
 
         uint32 uniformIndex = 0;
 
-        cr << SetShaderUniform(uniformIndex++, "UniformBuffer"_sh, m_uniformBuffer);
+        cr << SetShaderUniform(uniformIndex++, "CBuffer"_sh, cbuffer, ShaderDataOffset(cbufferOffset, cbufferSize));
         cr << SetShaderUniform(uniformIndex++, "GBufferNormalsTexture"_sh, m_gbuffer->GetBucket(RenderBucket::Opaque).GetGBufferAttachment(GTN_NORMALS)->GetImageView());
         cr << SetShaderUniform(uniformIndex++, "GBufferMaterialTexture"_sh, m_gbuffer->GetBucket(RenderBucket::Opaque).GetGBufferAttachment(GTN_MATERIAL)->GetImageView());
         cr << SetShaderUniform(uniformIndex++, "GBufferVelocityTexture"_sh, m_gbuffer->GetBucket(RenderBucket::Opaque).GetGBufferAttachment(GTN_VELOCITY)->GetImageView());
@@ -326,8 +327,7 @@ void SSRPass::Render(Frame* frame, const RenderSetup& renderSetup)
 
         uint32 uniformIndex = 0;
 
-        cr << SetShaderUniform(uniformIndex++, "UVImage"_sh, g_renderInterface->textureViewCache->GetOrCreate(m_uvsTexture));
-        cr << SetShaderUniform(uniformIndex++, "UniformBuffer"_sh, m_uniformBuffer);
+        cr << SetShaderUniform(uniformIndex++, "CBuffer"_sh, cbuffer, ShaderDataOffset(cbufferOffset, cbufferSize));
         cr << SetShaderUniform(uniformIndex++, "GBufferNormalsTexture"_sh, m_gbuffer->GetBucket(RenderBucket::Opaque).GetGBufferAttachment(GTN_NORMALS)->GetImageView());
         cr << SetShaderUniform(uniformIndex++, "GBufferMaterialTexture"_sh, m_gbuffer->GetBucket(RenderBucket::Opaque).GetGBufferAttachment(GTN_MATERIAL)->GetImageView());
         cr << SetShaderUniform(uniformIndex++, "GBufferVelocityTexture"_sh, m_gbuffer->GetBucket(RenderBucket::Opaque).GetGBufferAttachment(GTN_VELOCITY)->GetImageView());
@@ -338,6 +338,7 @@ void SSRPass::Render(Frame* frame, const RenderSetup& renderSetup)
         cr << SetShaderUniform(uniformIndex++, "BlueNoiseBuffer"_sh, g_renderInterface->blueNoiseBuffer);
         cr << SetShaderUniform(uniformIndex++, "WorldsBuffer"_sh, g_renderInterface->gpuBuffers[GRB_WORLDS]->GetBuffer(frameIndex));
         cr << SetShaderUniform(uniformIndex++, "CamerasBuffer"_sh, g_renderInterface->gpuBuffers[GRB_CAMERAS]->GetBuffer(frameIndex), TShaderDataOffset<CameraShaderData>(renderSetup.view->GetCamera()));
+        cr << SetShaderUniform(uniformIndex++, "UVImage"_sh, g_renderInterface->textureViewCache->GetOrCreate(m_uvsTexture));
 
         m_sampleGbuffer->RenderFullScreenQuad(frame, renderSetup);
         m_sampleGbuffer->End(frame, renderSetup);

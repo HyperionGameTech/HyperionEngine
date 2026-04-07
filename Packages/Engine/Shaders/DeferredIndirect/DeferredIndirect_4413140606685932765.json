@@ -327,15 +327,15 @@
   "ShaderBlobs": [{
       "$Class": "BlobDataReference",
       "Key": "Engine/Shaders/DeferredIndirect/DeferredIndirect_4413140606685932765.VS",
-      "Size": 11440
+      "Size": 11820
     }, {
       "$Class": "BlobDataReference",
       "Key": "Engine/Shaders/DeferredIndirect/DeferredIndirect_4413140606685932765.PS",
-      "Size": 144464
+      "Size": 153620
     }],
   "PropertySetHashCode": {},
   "LastCompiledTimestamp": {
-    "Value": 1775482371000
+    "Value": 1775515311000
   },
   "Name": "DeferredIndirect_4413140606685932765",
   "FriendlyName": "DeferredIndirect4413140606685932765",

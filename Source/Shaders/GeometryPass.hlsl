@@ -171,7 +171,7 @@ PSOutput PSMain(PSInput input)
     if (HAS_TEXTURE(CURRENT_MATERIAL, NormalMap))
     {
         normals_texture = SAMPLE_MATERIAL_TEXTURE(CURRENT_MATERIAL, NormalMap, texcoord) * 2.0 - 1.0;
-        N = normalize(lerp(mul(normals_texture.xyz, tbn_matrix), input.normal, 1.0 - normal_map_intensity));
+        N = normalize(mul(normals_texture.xyz, tbn_matrix));//lerp(mul(normals_texture.xyz, tbn_matrix), input.normal, 1.0 - normal_map_intensity));
     }
  #endif
 
@@ -428,7 +428,7 @@ PSOutput PSMain(PSInput input)
 #endif // SHADING_TYPE_FORWARD
 
 #ifdef DEBUG_RAW_REFLECTIONS
-    roughness = 0.01;
+    roughness = 0.02;
 #endif
 
     // https://www.elopezr.com/temporal-aa-and-the-quest-for-the-holy-trail/

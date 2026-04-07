@@ -322,7 +322,7 @@ void DDGI::Render(Frame* frame, const RenderSetup& renderSetup)
     frame->cr << InsertBarrier(m_irradianceImage, RS_UNORDERED_ACCESS);
     frame->cr << InsertBarrier(m_depthImage, RS_UNORDERED_ACCESS);
 
-    static const ShaderPropertyId s_propHysteresis = InternShaderProperty(ShaderProperty(NAME("HYSTERESIS"), float(0.98f)));
+    static const ShaderPropertyId s_propHysteresis = InternShaderProperty(ShaderProperty(NAME("HYSTERESIS"), float(0.95f)));
 
     // Update irradiance
     shaderProperties = ShaderPropertySet();

@@ -1,6 +1,10 @@
 #include "../include/defines.inc"
 #include "../include/rt/probe/probe_uniforms.inc"
 
+PERMUTE(MODE, IRRADIANCE, DEPTH);
+
+STATIC(HYSTERESIS, 0.95);
+
 #define CACHE_SIZE 64
 #define EPS 0.00001
 #define ENERGY_CONSERVATION 0.95
@@ -31,13 +35,9 @@ DECLARE_SRV(DDGI, ProbeRayData) StructuredBuffer<ProbeRayData> probe_rays;
 
 #if MODE_DEPTH
 DECLARE_UAV(DDGI, OutputImage) RWTexture2D<float2> outputImage;
-#else
+#else // !MODE_DEPTH
 DECLARE_UAV(DDGI, OutputImage) RWTexture2D<float4> outputImage;
-#endif
-
-#ifndef HYSTERESIS
-#define HYSTERESIS 0.9
-#endif
+#endif // MODE_DEPTH
 
 float2 NormalizeOctahedralCoord(uint2 coord)
 {

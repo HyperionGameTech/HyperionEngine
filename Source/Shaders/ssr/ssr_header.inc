@@ -22,7 +22,7 @@
 
 #define HYP_SSR_ROUGHNESS_MAX 1.0
 
-struct SSRUniforms
+struct SSRConstants
 {
     uint4 dimension;
     float ray_step;

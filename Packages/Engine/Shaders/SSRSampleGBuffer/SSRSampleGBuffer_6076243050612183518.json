@@ -150,11 +150,11 @@
             }, {
               "$Class": "ShaderInput",
               "Register": 3,
-              "ElementType": 1,
-              "Name": "UniformBuffer",
+              "ElementType": 2,
+              "Name": "CBuffer",
               "Count": 1,
               "Size": 4294967295,
-              "IsDynamic": false,
+              "IsDynamic": true,
               "StructInfo": {
                 "Name": "",
                 "Size": 4294967295,
@@ -213,15 +213,15 @@
   "ShaderBlobs": [{
       "$Class": "BlobDataReference",
       "Key": "Engine/Shaders/SSRSampleGBuffer/SSRSampleGBuffer_6076243050612183518.VS",
-      "Size": 11352
+      "Size": 11348
     }, {
       "$Class": "BlobDataReference",
       "Key": "Engine/Shaders/SSRSampleGBuffer/SSRSampleGBuffer_6076243050612183518.PS",
-      "Size": 101356
+      "Size": 101268
     }],
   "PropertySetHashCode": {},
   "LastCompiledTimestamp": {
-    "Value": 1775499573000
+    "Value": 1775519480000
   },
   "Name": "SSRSampleGBuffer_6076243050612183518",
   "FriendlyName": "SSRSampleGBuffer_6076243050612183518",

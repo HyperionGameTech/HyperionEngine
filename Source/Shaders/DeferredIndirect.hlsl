@@ -70,15 +70,15 @@ DECLARE_SRV(DeferredPass, GBufferDepthTexture) Texture2D gbuffer_depth_texture;
 
 DECLARE_SRV(DeferredPass, SSAOResultTexture) Texture2D SSAOResultTexture;
 
-#if SSGI_ENABLED
+#ifdef SSGI_ENABLED
 DECLARE_SRV(DeferredPass, SSGIResultTexture) Texture2D SSGIResultTexture;
 #endif // SSGI_ENABLED
 
-#if SSR_ENABLED
+#ifdef SSR_ENABLED
 DECLARE_SRV(DeferredPass, SSRResultTexture) Texture2D SSRResultTexture;
 #endif // SSR_ENABLED
 
-#if RT_REFLECTIONS
+#if defined(RT_REFLECTIONS) || defined(PATHTRACER)
 DECLARE_SRV(DeferredPass, RTRadianceResultTexture) Texture2D RTRadianceResultTexture;
 #endif // RT_REFLECTIONS
 
@@ -94,7 +94,7 @@ DECLARE_BUFFER(DeferredPass, WorldsBuffer) cbuffer WorldsBuffer
 
 #include "./include/PhysicalCamera.inc"
 
-#if RT_GI
+#ifdef RT_GI
 DECLARE_SRV(DeferredPass, DDGIIrradianceTexture) Texture2D probe_irradiance;
 DECLARE_SRV(DeferredPass, DDGIDepthTexture) Texture2D probe_depth;
 
@@ -198,22 +198,22 @@ PSOutput PSMain(PSInput input)
     // (don't want to double apply indirect contribution approximations)
     irradiance *= 1.0 - min(1.0, float(mask & OBJECT_MASK_LIGHTMAPPED));
 
-#if SSR_ENABLED
+#ifdef SSR_ENABLED
     float4 ssrResult = SAMPLE_TEXTURE_2D_LOD(sampler_linear, SSRResultTexture, texcoord, 0);
     reflections = (reflections * (1.0 - ssrResult.a)) + (ssrResult * ssrResult.a);
 #endif // SSR_ENABLED
 
-#if RT_REFLECTIONS
+#ifdef RT_REFLECTIONS
     CalculateRayTracingReflection(texcoord, reflections);
 #endif // RT_REFLECTIONS
 
-#if SSGI_ENABLED
+#ifdef SSGI_ENABLED
     // Blend ssgi result into irradiance - if no hit, alpha will be zero or close to it so we can lerp it
     float4 ssgi = SAMPLE_TEXTURE_2D_LOD(sampler_linear, SSGIResultTexture, texcoord, 0);
     irradiance = (irradiance * (1.0 - ssgi.a)) + (ssgi * ssgi.a);
 #endif
 
-#if RT_GI
+#ifdef RT_GI
     float4 ddgi = DDGISampleIrradiance(positionWS.xyz, normal, V) * DDGI_MULTIPLIER;
     // lerp to ddgi based on 1.0-ssgi alpha, so that if ssgi has a hit, it will be used, otherwise ddgi will be used
     irradiance = (ddgi * (1.0 - irradiance.a)) + (irradiance * irradiance.a);

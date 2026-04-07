@@ -46,18 +46,13 @@ DECLARE_BUFFER(DDGI, WorldsBuffer) cbuffer WorldsBuffer
 
 #if ENV_PROBE_CUBEMAP
 DECLARE_SRV(DDGI, EnvProbesTexture) TextureCubeArray envProbesTexture;
-#else
+#else // !ENV_PROBE_CUBEMAP
 DECLARE_SRV(DDGI, EnvProbesTexture) Texture2DArray envProbesTexture;
-#endif
+#endif  // ENV_PROBE_CUBEMAP
 
-DECLARE_SRV(DDGI, ShadowMapsTextureArray) Texture2DArray<float> shadow_maps;
-DECLARE_SRV(DDGI, PointLightShadowMapsTextureArray) TextureCubeArray point_shadow_maps;
-
-#include "../../include/Shadows.hlsli"
-
-#define RAY_OFFSET 0.025
+#define RAY_OFFSET 0.05
 #define NUM_SAMPLES 1
-#define ENVIRONMENT_INTENSITY 20.0
+#define ENVIRONMENT_INTENSITY 10.0
 
 void SetProbeRayData(uint2 coord, ProbeRayData ray_data)
 {
@@ -87,7 +82,7 @@ void RayGenMain()
     const float3 origin = ProbeIndexToWorldPosition(probe_index) + direction * RAY_OFFSET;
     
     RAY_FLAG flags = RAY_FLAG_FORCE_OPAQUE;
-    float tmin = 0.1;
+    float tmin = RAY_OFFSET;
     float tmax = 1000.0; //ddgiConstants.probe_distance;
     
     uint ray_seed = InitRandomSeed(InitRandomSeed(coord.x, coord.y), world_shader_data.frame_counter % 256);
@@ -160,7 +155,7 @@ void RayGenMain()
         for (uint light_index = 0; light_index < ddgiConstants.numBoundLights; light_index++)
         {
             const Light light = lights[light_index];
-            float3 light_color = light.color.rgb * light.position_intensity.w;
+            float3 light_color = light.color.rgb;
 
             if (light.type == HYP_LIGHT_TYPE_DIRECTIONAL)
             {
@@ -179,7 +174,7 @@ void RayGenMain()
                         float LdotH = max(dot(L, H), 0.0);
                         float NdotV = max(dot(N, -localDirection), 0.0);
                             
-                        radiance += light_color * shadow * NdotL * diffuseColor * HYP_FMATH_ONE_OVER_PI;
+                        radiance += light_color * shadow * NdotL * diffuseColor * light.position_intensity.w;
                     }
                 }
             }
@@ -202,7 +197,7 @@ void RayGenMain()
                     float LdotH = max(dot(L, H), 0.0);
                     float NdotV = max(dot(N, -localDirection), 0.0);
                         
-                    radiance += light_color * attenuation * shadow * NdotL * diffuseColor * HYP_FMATH_ONE_OVER_PI;
+                    radiance += light_color * attenuation * shadow * NdotL * diffuseColor * light.position_intensity.w;
                 }
             }
         }
@@ -217,6 +212,9 @@ void RayGenMain()
 #endif
 
     ray_data.color = accumRadiance / NUM_SAMPLES;
+
+    // // // temp debug
+    // ray_data.color = float4(1.0, 0.0, 0.0, 1.0);
 
     SetProbeRayData(coord, ray_data);
 }

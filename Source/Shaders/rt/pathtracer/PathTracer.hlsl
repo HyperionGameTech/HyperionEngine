@@ -69,10 +69,10 @@ DECLARE_BUFFER_DYNAMIC(RTReflections, CBuffer) cbuffer CBuffer
     ShadowMap shadowMaps[MAX_LIGHTS];
 };
 
-#define RAY_OFFSET 0.001
+#define RAY_OFFSET 0.01
 #define NUM_SAMPLES 1
 #define NUM_BOUNCES 4
-#define ENVIRONMENT_INTENSITY 10.0
+#define ENVIRONMENT_INTENSITY 1.0
 
 [shader("raygeneration")]
 void RayGenMain()
@@ -116,7 +116,7 @@ void RayGenMain()
     const float3 R = reflect(-V, normal);
 
     const RAY_FLAG flags = RAY_FLAG_FORCE_OPAQUE;
-    const float tmin = 0.1;
+    const float tmin = 0.05;
     const float tmax = 1000.0;
 
     float4 color = (float4)0;
