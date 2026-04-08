@@ -505,7 +505,7 @@ void ComputeEnvProbeSphericalHarmonics(
     {
         Handle<EnvProbe> envProbe;
         GpuBufferRef shReadbackBuffer;
-        Array<GpuBufferRef> shTilesBuffers;
+        Array<GpuBufferRef, FixedAllocator<ShNumLevels>> shTilesBuffers;
         Array<GpuBufferRef> uniformBuffers;
     };
 

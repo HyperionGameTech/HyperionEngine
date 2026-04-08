@@ -61,7 +61,7 @@ DECLARE_SRV(PathTracer, EnvProbesTexture) Texture2DArray envProbesTexture;
 #include "../../include/rt/RayTracingHelpers.inc"
 #include "../../include/rt/payload.inc"
 
-DECLARE_BUFFER_DYNAMIC(RTReflections, CBuffer) cbuffer CBuffer
+DECLARE_BUFFER_DYNAMIC(PathTracer, CBuffer) cbuffer CBuffer
 {
     RayTracingConstants rayTracingConstants;
     Camera camera;

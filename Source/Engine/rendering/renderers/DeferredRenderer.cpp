@@ -3087,7 +3087,7 @@ void DeferredRenderer::UpdateRayTracingView(Frame* frame, const RenderSetup& rs)
         return;
     }
 
-    RTUpdateStateFlags updateStateFlags = RTUpdateStateFlagBits::RT_UPDATE_STATE_FLAGS_NONE;
+    RTUpdateStateFlags updateStateFlags;
     pd->rayTracingTlases[currentFrameIndex]->UpdateStructure(updateStateFlags);
 }
 

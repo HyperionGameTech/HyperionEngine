@@ -102,7 +102,7 @@ void ClosestHitMain(inout RayPayload payload, in BuiltInTriangleIntersectionAttr
     }
 
     payload.throughput = float4(material_color.rgb, metalness);
-    payload.emissive = float4(0.0, 0.0, 0.0, 0.0);
+    payload.emissive = float4(GET_MATERIAL_PARAM_FLOAT3(material, MATERIAL_PARAM_EMISSIVE_FACTOR), 1.0);
     payload.distance = RayTCurrent();
     payload.normal = normal;
     payload.roughness = 1.0;

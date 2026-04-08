@@ -145,7 +145,7 @@ void ClosestHitMain(inout RayPayload payload, in BuiltInTriangleIntersectionAttr
         roughness = roughness_sample;
     }
 
-    payload.emissive = float4(0.0, 0.0, 0.0, 0.0);
+    payload.emissive = float4(GET_MATERIAL_PARAM_FLOAT3(material, MATERIAL_PARAM_EMISSIVE_FACTOR), 1.0);
     payload.throughput = float4(material_color.rgb, metalness); // metalness is stored in the alpha channel
     payload.barycentric_coords = barycentric_coords;
     payload.distance = RayTCurrent();

@@ -81,7 +81,7 @@ void DefaultGame::OnLaunch_Impl()
     if (pkg.IsValid())
     {
         // Get MainScene
-        Handle<AssetObject> mainSceneAsset = pkg->GetAssetObject("DefaultScene1", /* attemptLoading */ true);
+        Handle<AssetObject> mainSceneAsset = pkg->GetAssetObject(NAME("DefaultScene1"));
         Assert(mainSceneAsset.IsValid());
 
         if (mainSceneAsset.IsValid())

@@ -323,7 +323,7 @@ void DDGI::Render(Frame* frame, const RenderSetup& renderSetup)
     frame->cr << InsertBarrier(m_irradianceImage, RS_UNORDERED_ACCESS);
     frame->cr << InsertBarrier(m_depthImage, RS_UNORDERED_ACCESS);
 
-    static const ShaderPropertyId s_propHysteresis = InternShaderProperty(ShaderProperty(NAME("HYSTERESIS"), float(0.95f)));
+    static const ShaderPropertyId s_propHysteresis = InternShaderProperty(ShaderProperty(NAME("HYSTERESIS"), float(0.98f)));
 
     // Update irradiance
     shaderProperties = ShaderPropertySet();
@@ -339,6 +339,8 @@ void DDGI::Render(Frame* frame, const RenderSetup& renderSetup)
 
     frame->cr << DispatchCompute(Vec3u { probeCounts.x * probeCounts.y, probeCounts.z, 1u });
 
+    frame->cr << InsertBarrier(m_irradianceImage, RS_UNORDERED_ACCESS);
+
     // Update depth
     shaderProperties = ShaderPropertySet();
     shaderProperties.Add(s_propHysteresis);
@@ -349,9 +351,12 @@ void DDGI::Render(Frame* frame, const RenderSetup& renderSetup)
 
     frame->cr << SetShaderUniform(0, "CBuffer"_sh, m_dynamicCBuffer, ShaderDataOffset(m_dynamicCBufferOffset, m_dynamicCBufferSize));
     frame->cr << SetShaderUniform(1, "ProbeRayData"_sh, m_radianceBuffer);
-    frame->cr << SetShaderUniform(3, "OutputImage"_sh, m_depthImageView);
+    frame->cr << SetShaderUniform(2, "OutputImage"_sh, m_depthImageView);
 
     frame->cr << DispatchCompute(Vec3u { probeCounts.x * probeCounts.y, probeCounts.z, 1u });
+
+    frame->cr << InsertBarrier(m_irradianceImage, RS_SHADER_RESOURCE);
+    frame->cr << InsertBarrier(m_depthImage, RS_SHADER_RESOURCE);
 
 #if 0 // @FIXME: Properly implement an optimized way to copy border texels without invoking for each pixel in the images.
     frame->cr << InsertBarrier(m_irradianceImage, RS_UNORDERED_ACCESS);

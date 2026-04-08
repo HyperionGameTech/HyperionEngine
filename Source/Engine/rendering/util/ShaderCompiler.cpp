@@ -1669,7 +1669,7 @@ static void ForEachPermutation(
 static bool LoadBundleFromAssetPath(
     const AssetPath& path, Handle<ShaderBundle>& outBundle)
 {
-    Handle<AssetObject> asset = g_assetManager->GetAssetRegistry()->GetAssetFromPath(path.ToString(), /* attemptLoading */ true);
+    Handle<AssetObject> asset = g_assetManager->GetAssetRegistry()->GetAssetFromPath(path.ToString());
 
     if (!asset.IsValid() || !asset->IsA(ShaderBundle::StaticClass()))
     {

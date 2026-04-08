@@ -271,6 +271,20 @@
                 "FieldNames": [],
                 "FieldTypes": []
               }
+            }, {
+              "$Class": "ShaderInput",
+              "Register": 3,
+              "ElementType": 2,
+              "Name": "CBuffer",
+              "Count": 1,
+              "Size": 4294967295,
+              "IsDynamic": true,
+              "StructInfo": {
+                "Name": "",
+                "Size": 4294967295,
+                "FieldNames": [],
+                "FieldTypes": []
+              }
             }], [{
               "$Class": "ShaderInput",
               "Register": 4,
@@ -307,26 +321,6 @@
         "Name": "BindlessResources0",
         "Slots": [[], [], [], [], []],
         "Flags": 1
-      }, {
-        "$Class": "ShaderInputSet",
-        "SetIndex": 3,
-        "Name": "RTReflections",
-        "Slots": [[], [], [{
-              "$Class": "ShaderInput",
-              "Register": 3,
-              "ElementType": 2,
-              "Name": "CBuffer",
-              "Count": 1,
-              "Size": 4294967295,
-              "IsDynamic": true,
-              "StructInfo": {
-                "Name": "",
-                "Size": 4294967295,
-                "FieldNames": [],
-                "FieldTypes": []
-              }
-            }], [], []],
-        "Flags": 0
       }]
   },
   "ShaderModuleTypes": [9, 12, 13],
@@ -335,19 +329,19 @@
   "ShaderBlobs": [{
       "$Class": "BlobDataReference",
       "Key": "Engine/Shaders/PathTracer/PathTracer_18040257332220255199.RGS",
-      "Size": 132196
+      "Size": 132152
     }, {
       "$Class": "BlobDataReference",
       "Key": "Engine/Shaders/PathTracer/PathTracer_18040257332220255199.CHS",
-      "Size": 135628
+      "Size": 137104
     }, {
       "$Class": "BlobDataReference",
       "Key": "Engine/Shaders/PathTracer/PathTracer_18040257332220255199.MS",
-      "Size": 37328
+      "Size": 37292
     }],
   "PropertySetHashCode": {},
   "LastCompiledTimestamp": {
-    "Value": 1775529226000
+    "Value": 1775674987000
   },
   "Name": "PathTracer_18040257332220255199",
   "FriendlyName": "PathTracer_18040257332220255199",

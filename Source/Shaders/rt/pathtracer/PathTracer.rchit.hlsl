@@ -122,8 +122,8 @@ void ClosestHitMain(inout RayPayload payload, in BuiltInTriangleIntersectionAttr
     // roughness is authorized as "perceptual roughness", we need to convert it to "physical roughness" for the BRDF calculations
     roughness = roughness * roughness;
 
-    payload.emissive = float4(0.0, 0.0, 0.0, 0.0);
     payload.throughput = float4(material_color.rgb, metalness);
+    payload.emissive = float4(GET_MATERIAL_PARAM_FLOAT3(material, MATERIAL_PARAM_EMISSIVE_FACTOR), 1.0);
     payload.distance = RayTCurrent();
     payload.normal = normal;
     payload.roughness = roughness;

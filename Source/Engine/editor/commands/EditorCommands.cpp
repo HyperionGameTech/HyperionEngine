@@ -1198,7 +1198,7 @@ public:
                     if (!isDirect || addedAsset.name != s_watchTextureState.path.GetName())
                         return;
 
-                    Handle<AssetObject> assetObject = parentPackage->GetAssetObject(addedAsset.name.LookupString(), /* attemptLoading */ true);
+                    Handle<AssetObject> assetObject = parentPackage->GetAssetObject(addedAsset.name);
                     if (!assetObject.IsValid())
                         return;
 

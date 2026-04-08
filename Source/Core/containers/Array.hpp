@@ -232,7 +232,7 @@ public:
     }
 
     template <class OtherAllocatorType, typename = std::enable_if_t<!std::is_same_v<OtherAllocatorType, AllocatorType> && HasDefaultAllocatorInstance<AllocatorType>>>
-    Array(const Array<T, OtherAllocatorType>& other)
+    explicit Array(const Array<T, OtherAllocatorType>& other)
         : Array()
     {
         m_size = other.Size();
@@ -248,21 +248,6 @@ public:
 
     Array& operator=(const Array& other);
     Array& operator=(Array&& other) noexcept;
-
-    template <class OtherAllocatorType, typename = std::enable_if_t<!std::is_same_v<OtherAllocatorType, AllocatorType> && HasDefaultAllocatorInstance<AllocatorType>>>
-    Array& operator=(const Array<T, OtherAllocatorType>& other)
-    {
-        m_allocation.DestructInRange(m_startOffset, m_size);
-        m_allocation.Free(m_pAllocator);
-
-        m_size = other.m_size - other.m_startOffset;
-        m_startOffset = 0;
-
-        m_allocation.Allocate(m_pAllocator, m_size);
-        m_allocation.InitFromRangeCopy(other.Begin(), other.End());
-
-        return *this;
-    }
 
     template <class OtherAllocatorType, typename = std::enable_if_t<!std::is_same_v<OtherAllocatorType, AllocatorType>>>
     Array& operator=(Array<T, OtherAllocatorType>&& other) noexcept = delete;

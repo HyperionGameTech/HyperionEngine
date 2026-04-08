@@ -133,7 +133,7 @@ const MaterialParameters& Material::DefaultParameters()
         { MATERIAL_KEY_METALNESS, 0.0f },
         { MATERIAL_KEY_ROUGHNESS, 0.65f },
         { MATERIAL_KEY_TRANSMISSION, 0.0f },
-        { MATERIAL_KEY_EMISSIVE, 0.0f },
+        { MATERIAL_KEY_EMISSIVE_FACTOR, 0.0f },
         { MATERIAL_KEY_SPECULAR, 0.0f },
         { MATERIAL_KEY_SPECULAR_TINT, 0.0f },
         { MATERIAL_KEY_ANISOTROPIC, 0.0f },
@@ -450,14 +450,18 @@ void Material::UpdateRenderProxy(RenderProxyMaterial* proxy)
 
     bufferData.albedo = GetParameter<Vec4f>(MATERIAL_KEY_ALBEDO);
     bufferData.packedParams = Vec4u(
-        ByteUtil::PackVec4f(Vec4f(
+        ByteUtil::PackVec4f(Vec4f {
             GetParameter<float>(MATERIAL_KEY_ROUGHNESS),
             GetParameter<float>(MATERIAL_KEY_METALNESS),
             GetParameter<float>(MATERIAL_KEY_TRANSMISSION),
-            GetParameter<float>(MATERIAL_KEY_NORMAL_MAP_INTENSITY))),
-        ByteUtil::PackVec4f(Vec4f(GetParameter<float>(MATERIAL_KEY_ALPHA_THRESHOLD))),
-        ByteUtil::PackVec4f(Vec4f {}),
-        ByteUtil::PackVec4f(Vec4f {}));
+            GetParameter<float>(MATERIAL_KEY_NORMAL_MAP_INTENSITY)
+        }),
+        ByteUtil::PackVec4f(Vec4f {
+            GetParameter<Vec3f>(MATERIAL_KEY_EMISSIVE_FACTOR),
+            GetParameter<float>(MATERIAL_KEY_ALPHA_THRESHOLD)
+        }),
+        ByteUtil::PackVec4f(Vec4f::Zero()),
+        ByteUtil::PackVec4f(Vec4f::Zero()));
     bufferData.uvScale = GetParameter<Vec2f>(MATERIAL_KEY_UV_SCALE);
     bufferData.parallaxHeight = GetParameter<float>(MATERIAL_KEY_PARALLAX_HEIGHT);
 

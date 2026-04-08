@@ -674,7 +674,7 @@ void EngineDriver::UpdateSim(float delta)
         bufferData->gameTime = m_currentWorld->GetGameState().gameTime;
     }
 
-    m_viewsPerFrame[slot] = views;
+    m_viewsPerFrame[slot] = Array<View*>(views);
 }
 
 #pragma endregion EngineDriver

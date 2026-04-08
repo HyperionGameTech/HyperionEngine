@@ -70,7 +70,7 @@ static RenderableAttributeSet GetMergedRenderableAttributes(
 static void BuildRenderGroupsOrdered(
     RenderCollector& renderCollector,
     RenderProxyList& rpl,
-    const Array<Pair<ObjId<Entity>, int>>& meshEntityOrdering,
+    Span<const Pair<ObjId<Entity>, int>> meshEntityOrdering,
     const Optional<RenderableAttributeSet>& overrideAttributes)
 {
     renderCollector.Clear(/* freeMemory */ false);
@@ -274,7 +274,7 @@ void UIRenderer::RenderFrame(Frame* frame, const RenderSetup& renderSetup)
         RenderProxyList& rpl = GetConsumerProxyList(renderSetup.view);
         rpl.BeginRead();
 
-        BuildRenderGroupsOrdered(pd->renderCollector, rpl, rpl.meshEntityOrdering, {});
+        BuildRenderGroupsOrdered(pd->renderCollector, rpl, rpl.meshEntityOrdering.ToSpan(), {});
 
         rpl.EndRead();
     }

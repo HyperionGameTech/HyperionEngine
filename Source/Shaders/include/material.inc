@@ -40,11 +40,39 @@ struct Material
 #define MATERIAL_PARAM_METALNESS 1
 #define MATERIAL_PARAM_TRANSMISSION 2
 #define MATERIAL_PARAM_NORMAL_MAP_INTENSITY 3
-#define MATERIAL_PARAM_ALPHA_THRESHOLD 4
+#define MATERIAL_PARAM_EMISSIVE_FACTOR 4 // r,g,b
+#define MATERIAL_PARAM_ALPHA_THRESHOLD 7
 #define MATERIAL_PARAM_UI_BACKGROUND_COLOR 15
 
-#define GET_MATERIAL_PARAM(mat, index) \
-    UINT_TO_VEC4(mat.packed_params[(index) / 4])[(index) % 4]
+float UnpackMaterialParamFloat(uint4 uValue, uint index)
+{
+    return UINT_TO_VEC4(uValue[index / 4])[index % 4];
+}
+
+float2 UnpackMaterialParamFloat2(uint4 uValue, uint index)
+{
+    float4 v = UINT_TO_VEC4(uValue[index / 4]);
+    return float2(v[index % 4], v[(index + 1) % 4]);
+}
+
+float3 UnpackMaterialParamFloat3(uint4 uValue, uint index)
+{
+    float4 v = UINT_TO_VEC4(uValue[index / 4]);
+    return float3(v[index % 4], v[(index + 1) % 4], v[(index + 2) % 4]);
+}
+
+float4 UnpackMaterialParamFloat4(uint4 uValue, uint index)
+{
+    float4 v = UINT_TO_VEC4(uValue[index / 4]);
+    // since we never have multiple params cross the boundary of the uint4, we can just return the whole thing rather than swizzling it.
+    return v;
+}
+
+// Get float param
+#define GET_MATERIAL_PARAM(mat, index) UnpackMaterialParamFloat((mat).packed_params, index)
+#define GET_MATERIAL_PARAM_FLOAT2(mat, index) UnpackMaterialParamFloat2((mat).packed_params, index)
+#define GET_MATERIAL_PARAM_FLOAT3(mat, index) UnpackMaterialParamFloat3((mat).packed_params, index)
+#define GET_MATERIAL_PARAM_FLOAT4(mat, index) UnpackMaterialParamFloat4((mat).packed_params, index)
 
 #define MATERIAL_TEXTURE_DiffuseMap 0
 #define MATERIAL_TEXTURE_NormalMap 1

@@ -192,9 +192,13 @@ public:
     }
 
     Result AddAssetObject(const Handle<AssetObject>& assetObject, bool replaceOnConflict);
+
+    Result RemoveAssetObject(StringHash nameHash);
     Result RemoveAssetObject(const Handle<AssetObject>& assetObject);
 
-    Handle<AssetObject> GetAssetObject(UTF8StringView assetName, bool attemptLoading);
+    Handle<AssetObject> GetAssetObject(Name name);
+
+    bool GetAssetDesc(StringHash nameHash, AssetDesc& outAssetDesc);
 
     /*! \brief Merges the contents of another package into this one.
      *  Transfers ownership of all asset objects and subpackages from the source package
@@ -449,7 +453,7 @@ public:
 
     void LoadPackagesAsync(bool loadSubpackages = false);
 
-    Handle<AssetObject> GetAssetFromPath(const UTF8StringView& path, bool attemptLoading = true) const;
+    Handle<AssetObject> GetAssetFromPath(const UTF8StringView& path) const;
 
     BlobStorage& GetBlobStorage();
 
@@ -481,8 +485,7 @@ private:
 
     Handle<AssetObject> GetAssetFromPath_Internal(
         const UTF8StringView& path,
-        String& outAssetName,
-        bool attemptLoading);
+        String& outAssetName);
 
     HYP_FIELD(Serialize = true)
     String m_rootPath;

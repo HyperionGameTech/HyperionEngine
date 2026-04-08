@@ -135,7 +135,7 @@ public:
         m_flags = AccelerationStructureFlags(m_flags & ~flag);
     }
 
-    HYP_FORCE_INLINE const Array<VulkanAccelerationGeometryRef>& GetGeometries() const
+    HYP_FORCE_INLINE const Array<VulkanAccelerationGeometryRef, VulkanAllocator>& GetGeometries() const
     {
         return m_geometries;
     }
@@ -197,7 +197,7 @@ protected:
 
     VulkanGpuBufferRef m_buffer;
     VulkanGpuBufferRef m_scratchBuffer;
-    Array<VulkanAccelerationGeometryRef> m_geometries;
+    Array<VulkanAccelerationGeometryRef, VulkanAllocator> m_geometries;
     Mat4f m_transform;
     VkAccelerationStructureKHR m_accelerationStructure;
     uint64 m_deviceAddress;
@@ -301,8 +301,8 @@ private:
 
     RendererResult Rebuild(RTUpdateStateFlags& outUpdateStateFlags);
 
-    Array<VkAccelerationStructureGeometryKHR> GetGeometries() const;
-    Array<uint32> GetPrimitiveCounts() const;
+    Array<VkAccelerationStructureGeometryKHR, VulkanAllocator> GetGeometries() const;
+    Array<uint32, VulkanAllocator> GetPrimitiveCounts() const;
 
     RendererResult BuildInstancesBuffer();
     RendererResult BuildInstancesBuffer(uint32 first, uint32 last);

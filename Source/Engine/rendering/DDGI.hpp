@@ -18,8 +18,8 @@ struct RenderSetup;
 struct DDGIInfo
 {
     BoundingBox aabb;
-    float probeDistance = 2.2f;
-    uint32 numRaysPerProbe = 32;
+    float probeDistance = 1.0f;
+    uint32 numRaysPerProbe = 16;
 
     HYP_FORCE_INLINE const Vec3f& GetOrigin() const
     {
