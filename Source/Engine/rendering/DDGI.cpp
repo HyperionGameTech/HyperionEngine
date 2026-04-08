@@ -283,10 +283,11 @@ void DDGI::Render(Frame* frame, const RenderSetup& renderSetup)
     Assert(pd != nullptr);
 
     const uint32 frameIndex = frame->GetFrameIndex();
-    const GpuTlasRef& tlas = pd->rayTracingTlases[frameIndex];
+
+    GpuTlas* tlas = pd->rayTracingTlases[frameIndex];
     Assert(tlas != nullptr);
 
-    const GpuBufferRef& meshDescriptionsBuffer = tlas->GetMeshDescriptionsBuffer();
+    GpuBuffer* meshDescriptionsBuffer = tlas->GetMeshDescriptionsBuffer();
     Assert(meshDescriptionsBuffer != nullptr && meshDescriptionsBuffer->IsCreated());
 
     frame->cr << InsertBarrier(m_radianceBuffer, RS_UNORDERED_ACCESS);

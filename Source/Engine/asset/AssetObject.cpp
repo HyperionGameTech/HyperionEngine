@@ -267,12 +267,12 @@ Result AssetObject::SaveAs(const FilePath& manifestPath)
     // only assets that are not registered or are registered in transient locations (e.g $Memory, $Temp, $Import, etc.) will be relocated.
     AssetRegistry& registry = *g_assetManager->GetAssetRegistry();
     registry.RegisterAssetsRecursively(
-        package->BuildPackagePath(),
-        BoxedValue(AnyRef(*this)),
-        /* forceRelocation */ false,
-        /* appendExistingPackagePath */ false,
-        nullptr,
-        AddAssetConflictMode::ReplaceExisting);
+       package->BuildPackagePath(),
+       BoxedValue(AnyRef(*this)),
+       /* forceRelocation */ false,
+       /* appendExistingPackagePath */ false,
+       nullptr,
+       AddAssetConflictMode::ReplaceExisting);
 
     BlobStorage& blobStorage = registry.GetBlobStorage();
 
@@ -392,6 +392,17 @@ Result AssetObject::SaveBlobData(
 Result AssetObject::Register(const UTF8StringView& path, AddAssetConflictMode conflictMode)
 {
     return g_assetManager->GetAssetRegistry()->RegisterAsset(path, MakeStrongRef(this), conflictMode);
+}
+
+void AssetObject::RegisterRecursive(const UTF8StringView& path, AddAssetConflictMode conflictMode)
+{
+    g_assetManager->GetAssetRegistry()->RegisterAssetsRecursively(
+        path,
+        BoxedValue(AnyRef(*this)),
+        /* forceRelocation */ false,
+        /* appendExistingPackagePath */ false,
+        nullptr,
+        conflictMode);
 }
 
 Result AssetObject::LoadDesc(

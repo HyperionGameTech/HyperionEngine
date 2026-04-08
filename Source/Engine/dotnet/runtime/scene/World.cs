@@ -22,7 +22,7 @@ namespace Hyperion
 
 
     [ClassBinding(Name = "World")]
-    public class World : ObjectBase
+    public class World : AssetObject
     {
         public World()
         {

@@ -13,6 +13,11 @@
     }, {
       "$Class": "AssetReference",
       "AssetPath": {
+        "Value": "Engine/Shaders/GeometryPass/GeometryPass_16779099286101286417"
+      }
+    }, {
+      "$Class": "AssetReference",
+      "AssetPath": {
         "Value": "Engine/Shaders/GeometryPass/GeometryPass_12407244494021180909"
       }
     }, {
@@ -33,12 +38,22 @@
     }, {
       "$Class": "AssetReference",
       "AssetPath": {
-        "Value": "Engine/Shaders/GeometryPass/GeometryPass_16779099286101286417"
+        "Value": "Engine/Shaders/GeometryPass/GeometryPass_15596072521906326877"
       }
     }, {
       "$Class": "AssetReference",
       "AssetPath": {
         "Value": "Engine/Shaders/GeometryPass/GeometryPass_14842577468441402987"
+      }
+    }, {
+      "$Class": "AssetReference",
+      "AssetPath": {
+        "Value": "Engine/Shaders/GeometryPass/GeometryPass_15596072521906326869"
+      }
+    }, {
+      "$Class": "AssetReference",
+      "AssetPath": {
+        "Value": "Engine/Shaders/GeometryPass/GeometryPass_15596072521906326861"
       }
     }, {
       "$Class": "AssetReference",
@@ -53,12 +68,37 @@
     }, {
       "$Class": "AssetReference",
       "AssetPath": {
+        "Value": "Engine/Shaders/GeometryPass/GeometryPass_15596072521906326853"
+      }
+    }, {
+      "$Class": "AssetReference",
+      "AssetPath": {
         "Value": "Engine/Shaders/GeometryPass/GeometryPass_14842577468441402963"
       }
     }, {
       "$Class": "AssetReference",
       "AssetPath": {
         "Value": "Engine/Shaders/GeometryPass/GeometryPass_12407244494021180445"
+      }
+    }, {
+      "$Class": "AssetReference",
+      "AssetPath": {
+        "Value": "Engine/Shaders/GeometryPass/GeometryPass_10876146500803752570"
+      }
+    }, {
+      "$Class": "AssetReference",
+      "AssetPath": {
+        "Value": "Engine/Shaders/GeometryPass/GeometryPass_10876146500803752562"
+      }
+    }, {
+      "$Class": "AssetReference",
+      "AssetPath": {
+        "Value": "Engine/Shaders/GeometryPass/GeometryPass_10876146500803752554"
+      }
+    }, {
+      "$Class": "AssetReference",
+      "AssetPath": {
+        "Value": "Engine/Shaders/GeometryPass/GeometryPass_10876146500803752546"
       }
     }],
   "Name": "GeometryPass",

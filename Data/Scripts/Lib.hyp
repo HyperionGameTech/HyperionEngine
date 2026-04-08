@@ -661,70 +661,6 @@ extern struct Keyframe
     Transform : Transform
     Blend(to : Keyframe, blend : float) -> Keyframe
 end
-extern struct CSMState
-    PlayerCenter : Vec3f
-end
-extern struct FogParams
-    Color : Color
-    StartDistance : float
-    EndDistance : float
-end
-extern enum WorldFlags : uint32
-    NONE = 0x0,
-    EDITOR_WORLD = 0x1,
-    HAS_PHYSICS = 0x2,
-    HAS_STREAMING = 0x4,
-    HAS_SCENE_STREAMING_LAYER = 0x100,
-    ALL_STREAMING_LAYER_FLAGS = HAS_SCENE_STREAMING_LAYER,
-    DEFAULT = ((HAS_PHYSICS | HAS_STREAMING) | ALL_STREAMING_LAYER_FLAGS)
-end
-extern struct CSMParams
-    NumCascades : uint32
-end
-extern class World
-    GetName() -> Name
-    SetName(name : Name) -> void
-    GetGame() -> Game
-    GetWorldFlags() -> WorldFlags
-    SetWorldFlags(flags : WorldFlags) -> void
-    GetFogParams() -> FogParams
-    SetFogParams(fogParams : FogParams) -> void
-    GetCSMParams() -> CSMParams
-    SetCSMParams(csmParams : CSMParams) -> void
-    GetCSMState() -> CSMState
-    SetCSMState(csmState : CSMState) -> void
-    GetPhysicsWorld() -> PhysicsWorldBase
-    TryAddSubsystem(subsystem : Subsystem) -> bool
-    GetSubsystemByName(name : any) -> Subsystem
-    RemoveSubsystem(subsystem : Subsystem) -> bool
-    GetWorldGrid() -> WorldGrid
-    GetGameState() -> GameState
-    AddScene(scene : Scene, addToStreamingLayer : bool) -> void
-    RemoveScene(scene : Scene, removeFromStreamingLayer : bool) -> bool
-    HasScene(sceneId : any) -> bool
-    GetSceneByName(nameHash : any) -> Scene
-    GetScenes() -> Array<Scene>
-    AddView(view : View) -> void
-    RemoveView(view : View) -> void
-    AddSystem(system : SystemBase) -> SystemBase
-    RemoveSystem(system : SystemBase) -> bool
-    OnSceneAdded : any
-    OnSceneRemoved : any
-    DeserializeNonStreamingScenes(scenes : Array<Scene>) -> void
-    SerializeNonStreamingScenes() -> Array<Scene>
-    DeserializeStreamingLayers(streamingLayers : Array<WGLayerDesc>) -> void
-    SerializeStreamingLayers() -> Array<WGLayerDesc>
-    DeserializeSystems(systems : Array<SystemBase>) -> void
-    SerializeSystems() -> Array<SystemBase>
-    Name : Name
-    GameInstance : Game
-    WorldFlags : WorldFlags
-    Scenes : Array<Scene>
-    FogParams : FogParams
-    CsmParams : CSMParams
-    CsmState : CSMState
-    Systems : Array<SystemBase>
-end
 extern struct VisibilityStateSnapshot
 end
 extern struct VisibilityState
@@ -1929,6 +1865,67 @@ extern class AnimationTrack : AssetObject
     GetKeyframe(time : float) -> Keyframe
     BoneName : Name
     KeyframeData : BlobDataReference
+end
+extern struct CSMState
+    PlayerCenter : Vec3f
+end
+extern struct FogParams
+    Color : Color
+    StartDistance : float
+    EndDistance : float
+end
+extern enum WorldFlags : uint32
+    NONE = 0x0,
+    EDITOR_WORLD = 0x1,
+    HAS_PHYSICS = 0x2,
+    HAS_STREAMING = 0x4,
+    HAS_SCENE_STREAMING_LAYER = 0x100,
+    ALL_STREAMING_LAYER_FLAGS = HAS_SCENE_STREAMING_LAYER,
+    DEFAULT = ((HAS_PHYSICS | HAS_STREAMING) | ALL_STREAMING_LAYER_FLAGS)
+end
+extern struct CSMParams
+    NumCascades : uint32
+end
+extern class World : AssetObject
+    GetGame() -> Game
+    GetWorldFlags() -> WorldFlags
+    SetWorldFlags(flags : WorldFlags) -> void
+    GetFogParams() -> FogParams
+    SetFogParams(fogParams : FogParams) -> void
+    GetCSMParams() -> CSMParams
+    SetCSMParams(csmParams : CSMParams) -> void
+    GetCSMState() -> CSMState
+    SetCSMState(csmState : CSMState) -> void
+    GetPhysicsWorld() -> PhysicsWorldBase
+    TryAddSubsystem(subsystem : Subsystem) -> bool
+    GetSubsystemByName(name : any) -> Subsystem
+    RemoveSubsystem(subsystem : Subsystem) -> bool
+    GetWorldGrid() -> WorldGrid
+    GetGameState() -> GameState
+    AddScene(scene : Scene, addToStreamingLayer : bool) -> void
+    RemoveScene(scene : Scene, removeFromStreamingLayer : bool) -> bool
+    HasScene(sceneId : any) -> bool
+    GetSceneByName(nameHash : any) -> Scene
+    GetScenes() -> Array<Scene>
+    AddView(view : View) -> void
+    RemoveView(view : View) -> void
+    AddSystem(system : SystemBase) -> SystemBase
+    RemoveSystem(system : SystemBase) -> bool
+    OnSceneAdded : any
+    OnSceneRemoved : any
+    DeserializeNonStreamingScenes(scenes : Array<Scene>) -> void
+    SerializeNonStreamingScenes() -> Array<Scene>
+    DeserializeStreamingLayers(streamingLayers : Array<WGLayerDesc>) -> void
+    SerializeStreamingLayers() -> Array<WGLayerDesc>
+    DeserializeSystems(systems : Array<SystemBase>) -> void
+    SerializeSystems() -> Array<SystemBase>
+    GameInstance : Game
+    WorldFlags : WorldFlags
+    Scenes : Array<Scene>
+    FogParams : FogParams
+    CsmParams : CSMParams
+    CsmState : CSMState
+    Systems : Array<SystemBase>
 end
 extern enum SceneFlags : uint32
     NONE = 0x0,

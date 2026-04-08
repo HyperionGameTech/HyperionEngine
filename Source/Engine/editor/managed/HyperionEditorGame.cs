@@ -31,6 +31,7 @@ namespace Hyperion.Editor
 
             World.Name = new Name("EditorWorld");
             World.WorldFlags |= WorldFlags.EditorWorld;
+            World.SetIsTransient(true); // Editor world should not be saved or loaded from disk.
 
             this.SetToEditMode();
 

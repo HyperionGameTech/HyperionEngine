@@ -82,12 +82,12 @@ float4 SampleRectLightTexture(in Light light, in float3 pts[4])
     return lerp(tex_a, tex_b, t);
 }
 
-float4 CalculateAreaLightRadiance(in Light light, in mat3 Minv, in float3 pts[4], in float3 P, in float3 N, in float3 V)
+float4 CalculateAreaLightRadiance(in Light light, in float3x3 Minv, in float3 pts[4], in float3 P, in float3 N, in float3 V)
 {
     // construct an orthonormal basis around N
     float3 T1 = normalize(V - N * dot(V, N));
     float3 T2 = cross(N, T1);
-    mat3 tbn = transpose(mat3(T1, T2, N));
+    float3x3 tbn = transpose(float3x3(T1, T2, N));
 
     // rotate area light in (T1, T2, N) basis
     Minv = mul(tbn, Minv);
@@ -95,22 +95,15 @@ float4 CalculateAreaLightRadiance(in Light light, in mat3 Minv, in float3 pts[4]
     // polygon (allocate 4 vertices for clipping)
     float3 L[4];
 
-#ifdef LANG_GLSL
-    // transform polygon from LTC back to origin Do (cosine weighted)
-    L[0] = Minv * (pts[0] - P);
-    L[1] = Minv * (pts[1] - P);
-    L[2] = Minv * (pts[2] - P);
-    L[3] = Minv * (pts[3] - P);
-#elif defined(LANG_HLSL)
     // transform polygon from LTC back to origin Do (cosine weighted)
     L[0] = mul(pts[0] - P, Minv);
     L[1] = mul(pts[1] - P, Minv);
     L[2] = mul(pts[2] - P, Minv);
     L[3] = mul(pts[3] - P, Minv);
-#endif
 
     float4 sampled_texture = SampleRectLightTexture(light, L);
 
+    [unroll]
     for (int i = 0; i < 4; i++)
     {
         L[i] = normalize(L[i]);
@@ -134,9 +127,7 @@ float4 CalculateAreaLightRadiance(in Light light, in mat3 Minv, in float3 pts[4]
     float z = vsum.z / len;
     
     if (behind)
-    {
         z = -z;
-    }
 
     float2 uv = float2(z * 0.5 + 0.5, len); // range [0, 1]
     uv.y = 1.0 - uv.y;
@@ -145,15 +136,7 @@ float4 CalculateAreaLightRadiance(in Light light, in mat3 Minv, in float3 pts[4]
     // Fetch the form factor for horizon clipping
     float scale = SAMPLE_TEXTURE_2D(ltc_sampler, ltc_brdf_texture, uv).w;
 
-    float sum = len * scale;
-    
-    if (!behind)
-    {
-        sum = 0.0;
-    }
-
-    // fix negative values
-    sum = max(sum, 0.0);
+    float sum = max(select(behind, 0.0, len * scale), 0.0);
 
     return sampled_texture * sum;
 }

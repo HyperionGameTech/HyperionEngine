@@ -83,7 +83,7 @@ static void RegisterPackageAssets(const Handle<EditorProject>& project, const Ha
 
     package->ForEachAssetDesc([&](const AssetDesc& assetDesc)
         {
-            Handle<AssetObject> assetObject = registry.GetAssetFromPath(assetDesc.name.LookupString(), /* attemptLoading */ true);
+            Handle<AssetObject> assetObject = registry.GetAssetFromPath(package->BuildAssetPath(assetDesc.name).ToString(), /* attemptLoading */ true);
             if (!assetObject.IsValid())
             {
                 HYP_LOG(Editor, Warning, "Failed to load asset '{}' while registering package assets. Skipping.", assetDesc.name);

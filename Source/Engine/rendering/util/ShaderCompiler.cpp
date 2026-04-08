@@ -69,16 +69,16 @@ namespace Hyperion {
 
 HYP_DEFINE_LOG_SUBCHANNEL(ShaderCompiler, Core);
 
+// #define HYP_SHADER_COMPILER_LOGGING
+
 /// Should missing shader variants be compiled when requested, or should we just fail?
 /// Enabling this will cause shader compilation to happen during gameplay / editor.
 CVar<bool> cvShouldCompileMissingVariants { "ShaderCompiler.CompileMissingVariants", false };
 
-// #define HYP_SHADER_COMPILER_LOGGING
-
 #if HYP_DXC
 static IDxcUtils* s_dxcUtils = nullptr;
 static IDxcCompiler3* s_dxcCompiler = nullptr;
-#endif
+#endif // HYP_DXC
 
 static constexpr uint32 NumPrecompileShadersThreads = 8;
 
@@ -134,7 +134,7 @@ static LPCWSTR GetDXCTargetProfile(ShaderModuleType type)
         return L"vs_6_0";
     }
 }
-#endif
+#endif // HYP_DXC
 
 static String InputLayoutToString(const VertexInputLayoutDesc& inputLayout)
 {
@@ -351,12 +351,12 @@ static String BuildAttributesDefines(
 #if !HYP_VULKAN
 #ifndef VK_API_VERSION_1_1
 static constexpr uint32 VK_API_VERSION_1_1 = 4198400;
-#endif
+#endif // VK_API_VERSION_1_1
 #ifndef VK_API_VERSION_1_1
 static constexpr uint32 VK_API_VERSION_1_2 = 4202496;
-#endif
+#endif // VK_API_VERSION_1_2
 static constexpr uint32 HYP_VULKAN_API_VERSION = VK_API_VERSION_1_2;
-#endif
+#endif // !HYP_VULKAN
 
 static const ShaderPropertyId s_propVulkan = InternShaderProperty(ShaderProperty(NAME("HYP_VULKAN"), int(HYP_VULKAN_API_VERSION)));
 
@@ -385,7 +385,7 @@ void MergeGlobalShaderProperties(ShaderPropertySet& out)
 {
 #if HYP_VULKAN
     out.Add(s_propVulkan);
-#endif
+#endif // HYP_VULKAN
 
     out.Add(s_propNumGBufferTextures);
 

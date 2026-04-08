@@ -67,14 +67,10 @@ void ClosestHitMain(inout RayPayload payload, in BuiltInTriangleIntersectionAttr
     LoadVertex(buffers[vbIndex], index[1], v1);
     LoadVertex(buffers[vbIndex], index[2], v2);
 
-    v0.position = mul(ObjectToWorld3x4(), float4(v0.position, 1.0)).xyz;
-    v1.position = mul(ObjectToWorld3x4(), float4(v1.position, 1.0)).xyz;
-    v2.position = mul(ObjectToWorld3x4(), float4(v2.position, 1.0)).xyz;
-
     const float3 barycentric_coords = float3(1.0 - attrib.barycentrics.x - attrib.barycentrics.y, attrib.barycentrics.x, attrib.barycentrics.y);
     const float3 normal = normalize(mul(ObjectToWorld3x4(), float4(v0.normal * barycentric_coords.x + v1.normal * barycentric_coords.y + v2.normal * barycentric_coords.z, 0.0)).xyz);
     const float2 texcoord = v0.texcoord0 * barycentric_coords.x + v1.texcoord0 * barycentric_coords.y + v2.texcoord0 * barycentric_coords.z;
-    const float3 position = v0.position * barycentric_coords.x + v1.position * barycentric_coords.y + v2.position * barycentric_coords.z;
+    const float3 position = mul(ObjectToWorld3x4(), float4(v0.position * barycentric_coords.x + v1.position * barycentric_coords.y + v2.position * barycentric_coords.z, 1.0)).xyz;
     
     float4 material_color = float4(1.0, 1.0, 1.0, 1.0);
 
@@ -91,7 +87,7 @@ void ClosestHitMain(inout RayPayload payload, in BuiltInTriangleIntersectionAttr
 
     if (HAS_TEXTURE(material, DiffuseMap))
     {
-        float4 albedo_texture = SAMPLE_MATERIAL_TEXTURE(material, DiffuseMap, float2(texcoord.x, 1.0 - texcoord.y));
+        float4 albedo_texture = SAMPLE_MATERIAL_TEXTURE_LOD(material, DiffuseMap, float2(texcoord.x, 1.0 - texcoord.y), 0.0);
         
         material_color *= albedo_texture;
     }
@@ -100,7 +96,7 @@ void ClosestHitMain(inout RayPayload payload, in BuiltInTriangleIntersectionAttr
 
     if (HAS_TEXTURE(material, MetalnessMap))
     {
-        float metalness_sample = SAMPLE_MATERIAL_TEXTURE(material, MetalnessMap, float2(texcoord.x, 1.0 - texcoord.y)).r;
+        float metalness_sample = SAMPLE_MATERIAL_TEXTURE_LOD(material, MetalnessMap, float2(texcoord.x, 1.0 - texcoord.y), 0.0).r;
         
         metalness = metalness_sample;
     }
@@ -109,5 +105,5 @@ void ClosestHitMain(inout RayPayload payload, in BuiltInTriangleIntersectionAttr
     payload.emissive = float4(0.0, 0.0, 0.0, 0.0);
     payload.distance = RayTCurrent();
     payload.normal = normal;
-    payload.roughness = 0.9; // we don't care about roughness in DDGI
+    payload.roughness = 1.0;
 }

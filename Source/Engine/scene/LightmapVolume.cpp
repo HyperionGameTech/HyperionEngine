@@ -51,14 +51,17 @@ LightmapVolume::LightmapVolume(const BoundingBox& localBounds)
     m_atlases.Reserve(MaxAtlases);
     m_atlases.EmplaceBack(DefaultAtlasDimensions);
 
-    m_radianceAtlasTextures.PushBack(Handle<Texture>::Null());
-    m_irradianceAtlasTextures.PushBack(Handle<Texture>::Null());
+    m_irradianceAtlasTextures.Resize(1);
+    m_radianceAtlasTextures.Resize(1);
 }
 
 LightmapVolume::~LightmapVolume()
 {
-    EnqueueDeletion(std::move(m_radianceAtlasTextures));
-    EnqueueDeletion(std::move(m_irradianceAtlasTextures));
+    if (AnyOf(m_radianceAtlasTextures, &Handle<Texture>::IsValid))
+        EnqueueDeletion(std::move(m_radianceAtlasTextures));
+    
+    if (AnyOf(m_irradianceAtlasTextures, &Handle<Texture>::IsValid))
+        EnqueueDeletion(std::move(m_irradianceAtlasTextures));
 }
 
 bool LightmapVolume::AddElement(Vec2u dimensions, LightmapElement& outElement, bool shrinkToFit, float downscaleLimit)
@@ -139,25 +142,40 @@ void LightmapVolume::RemoveAllElements()
     }
 
     // Remove textures from their respective packages
-    for (const Handle<Texture>& texture : m_radianceAtlasTextures)
+    for (Handle<Texture>& texture : m_radianceAtlasTextures)
     {
+        if (!texture.IsValid())
+            continue;
+
         if (Handle<AssetPackage> package = texture->GetPackage(); package.IsValid())
         {
             package->RemoveAssetObject(texture);
         }
+
+        EnqueueDeletion(std::move(texture));
     }
 
-    for (const Handle<Texture>& texture : m_irradianceAtlasTextures)
+    for (Handle<Texture>& texture : m_irradianceAtlasTextures)
     {
+        if (!texture.IsValid())
+            continue;
+
         if (Handle<AssetPackage> package = texture->GetPackage(); package.IsValid())
         {
             package->RemoveAssetObject(texture);
         }
+        
+        EnqueueDeletion(std::move(texture));
     }
 
-    m_radianceAtlasTextures.Clear();
-    m_irradianceAtlasTextures.Clear();
     m_atlases.Clear();
+    m_atlases.EmplaceBack(DefaultAtlasDimensions);
+    
+    m_radianceAtlasTextures.Clear();
+    m_radianceAtlasTextures.Resize(1);
+
+    m_irradianceAtlasTextures.Clear();
+    m_irradianceAtlasTextures.Resize(1);
 
     MarkDirty();
     SetNeedsRenderProxyUpdate();

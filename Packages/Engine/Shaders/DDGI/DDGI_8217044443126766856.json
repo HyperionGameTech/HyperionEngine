@@ -229,7 +229,7 @@
     }, {
       "$Class": "BlobDataReference",
       "Key": "Engine/Shaders/DDGI/DDGI_8217044443126766856.CHS",
-      "Size": 141488
+      "Size": 141312
     }, {
       "$Class": "BlobDataReference",
       "Key": "Engine/Shaders/DDGI/DDGI_8217044443126766856.MS",
@@ -237,7 +237,7 @@
     }],
   "PropertySetHashCode": {},
   "LastCompiledTimestamp": {
-    "Value": 1775529226000
+    "Value": 1775619335000
   },
   "Name": "DDGI_8217044443126766856",
   "FriendlyName": "DDGI_8217044443126766856",

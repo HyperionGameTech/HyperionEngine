@@ -194,6 +194,10 @@ public:
     Result Register(
         const UTF8StringView& path,
         AddAssetConflictMode conflictMode = AddAssetConflictMode::Default);
+
+    virtual void RegisterRecursive(
+        const UTF8StringView& path,
+        AddAssetConflictMode conflictMode = AddAssetConflictMode::Default);
         
     virtual void Init() override
     {
@@ -209,7 +213,6 @@ public:
         Handle<AssetObject>& outAssetObject);
 
 protected:
-
     virtual void OnDirtyStateChanged(bool isDirty)
     {
         // do nothing by default

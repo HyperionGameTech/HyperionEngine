@@ -316,6 +316,9 @@ static TResult<Handle<AssetPackage>> RelocateAsset(
     Assert(assetObject.IsValid() && (!preservePathStructure || assetObject->IsRegistered()),
         "Invalid asset or invalid asset path. If preserveStructure is true, the asset must already have a path assigned");
 
+    HYP_LOG(Assets, Verbose, "Relocating asset '{}' to new package base path '{}'",
+        assetObject->IsRegistered() ? *assetObject->GetPath().ToString() : *assetObject->GetName(), newPackageBasePath);
+
     Array<Name> subpackageNames;
 
     Handle<AssetPackage> previousPackage = assetObject->GetPackage();
@@ -443,6 +446,7 @@ void AssetPackage::Init()
 {
     HYP_SCOPE;
 
+#if 0
     Handle<AssetRegistry> registry = m_registry.Lock();
     Assert(registry.IsValid());
 
@@ -550,6 +554,7 @@ void AssetPackage::Init()
             parentPackage = parentPackage->GetParentPackage();
         }
     }
+#endif
 
     SetReady(true);
 }
@@ -1037,6 +1042,7 @@ Handle<AssetObject> AssetPackage::GetAssetObject(UTF8StringView assetName, bool 
 
         if (it == m_assetDescs.End())
         {
+            HYP_LOG(Assets, Verbose, "No AssetDesc for {} found in package {}.", assetName, GetName());
             return Handle<AssetObject>::Null();
         }
         
@@ -1049,6 +1055,7 @@ Handle<AssetObject> AssetPackage::GetAssetObject(UTF8StringView assetName, bool 
 
         if (pAssetObject != nullptr)
         {
+            AssertDebug(pAssetObject->IsValid());
             return *pAssetObject;
         }
     }
@@ -1057,78 +1064,71 @@ Handle<AssetObject> AssetPackage::GetAssetObject(UTF8StringView assetName, bool 
     {
         m_loadedMutex.Lock();
 
-        const bool isLoading = IsLoading();
-
         // We should attempt loading if:
         //  - we are already loading on this thread, meaning we can force load this asset immediately.
         //  - we are not loading, but the asset is marked as shallow. This means that the assets may not be populated.
-        const bool shouldAttemptLoading = (isLoading && m_loadingThreadId == CurrentThreadId());
-
-        if (isLoading || shouldAttemptLoading)
+        if (!IsLoading() || m_loadingThreadId == CurrentThreadId())
         {
-            if (shouldAttemptLoading)
+            m_loadedMutex.Unlock();
+
+            // currently loading on this thread; force load this asset immediately.
+            // can happen if we are loading assets from LoadPackageFromManifest() one by one,
+            // and one asset's loading procedure requires this asset to be loaded.
+
+            // @TODO Combine this code with the code in LoadPackageFromManifest that does this.
+
+            Handle<AssetObject> assetObject;
+
+            FilePath manifestPath = m_packageDir / String(assetName) + ".json";
+            FileByteReader stream { manifestPath };
+
+            JSON::Object manifestData;
+
+            if (Result readManifestResult = ReadManifest(stream, manifestPath, manifestData); readManifestResult.HasError())
             {
-                m_loadedMutex.Unlock();
+                HYP_LOG(Assets, Error, "Failed to read asset manifest: {}", readManifestResult.GetError().GetMessage());
 
-                // currently loading on this thread; force load this asset immediately.
-                // can happen if we are loading assets from LoadPackageFromManifest() one by one,
-                // and one asset's loading procedure requires this asset to be loaded.
-
-                // @TODO Combine this code with the code in LoadPackageFromManifest that does this.
-
-                Handle<AssetObject> assetObject;
-
-                FilePath manifestPath = m_packageDir / String(assetName) + ".json";
-                FileByteReader stream { manifestPath };
-
-                JSON::Object manifestData;
-
-                if (Result readManifestResult = ReadManifest(stream, manifestPath, manifestData); readManifestResult.HasError())
-                {
-                    HYP_LOG(Assets, Error, "Failed to read asset manifest: {}", readManifestResult.GetError().GetMessage());
-
-                    return Handle<AssetObject>::Null();
-                }
-                
-                Result loadResult = AssetObject::Load(manifestData, assetObject);
-
-                if (loadResult.HasError())
-                {
-                    HYP_LOG(Assets, Error, "Failed to load asset: {}", loadResult.GetError().GetMessage());
-
-                    return Handle<AssetObject>::Null();
-                }
-
-                assetObject->m_package = WeakHandleFromThis();
-                assetObject->m_assetPath = BuildAssetPath(assetObject->GetName());
-
-                { // set the asset in cache
-                    TUniqueLock packageLock(m_mutex);
-                        
-                    assetDesc.name = assetObject->GetName();
-
-                    if (assetDesc.index == AssetDesc::InvalidIndex)
-                    {
-                        assetDesc.index = m_assetIdGenerator.Next();
-                    }
-
-                    m_assetDescs.Set(assetDesc);
-                    m_assetObjectCache.Set(assetDesc.index, assetObject);
-                }
-
-                InitObject(assetObject);
-                
-                assetObject->OnLoaded();
-
-                return assetObject;
+                return Handle<AssetObject>::Null();
             }
-            else
+                
+            Result loadResult = AssetObject::Load(manifestData, assetObject);
+
+            if (loadResult.HasError())
             {
-                // wait for other thread to finish loading it
-                while (IsLoading())
+                HYP_LOG(Assets, Error, "Failed to load asset: {}", loadResult.GetError().GetMessage());
+
+                return Handle<AssetObject>::Null();
+            }
+
+            assetObject->m_package = WeakHandleFromThis();
+            assetObject->m_assetPath = BuildAssetPath(assetObject->GetName());
+
+            { // set the asset in cache
+                TUniqueLock packageLock(m_mutex);
+                        
+                assetDesc.name = assetObject->GetName();
+
+                if (assetDesc.index == AssetDesc::InvalidIndex)
                 {
-                    m_loadedCV.Wait(m_loadedMutex);
+                    assetDesc.index = m_assetIdGenerator.Next();
                 }
+
+                m_assetDescs.Set(assetDesc);
+                m_assetObjectCache.Set(assetDesc.index, assetObject);
+            }
+
+            InitObject(assetObject);
+                
+            assetObject->OnLoaded();
+
+            return assetObject;
+        }
+        else
+        {
+            // wait for other thread to finish loading it
+            while (IsLoading())
+            {
+                m_loadedCV.Wait(m_loadedMutex);
             }
         }
         
@@ -1913,7 +1913,7 @@ void AssetPackage::Prune(Array<Handle<AssetPackage>>& outRemovedPackages, bool* 
                 }
 
                 TUniqueLock guard2(subpackage->m_mutex);
-                if (subpackage->m_assetDescs.Empty() && subpackage->m_assetDescs.Empty())
+                if (subpackage->m_assetDescs.Empty() && subpackage->m_subpackages.Empty())
                 {
                     subpackagesToDelete.PushBack(subpackage);
 
@@ -2030,7 +2030,7 @@ AssetRegistry::AssetRegistry()
 AssetRegistry::AssetRegistry(const String& rootPath)
     : m_rootPath(rootPath),
       m_scheduler(new Scheduler(s_assetRegistryThread)),
-      m_pruneTimer { 30.0 },        // every 30 seconds
+      m_pruneTimer { 5.0 }, // every 5 seconds
       m_pruneTaskBatch(nullptr),
       m_saveBlobCacheTimer { 5.0 }, // every 5 seconds
       m_saveBlobCacheBatch(nullptr),
@@ -2306,9 +2306,9 @@ void AssetRegistry::Update()
 #if HYP_EDITOR
     if (!m_pruneTimer.Waiting())
     {
-        m_pruneTimer.NextTick();
+       m_pruneTimer.NextTick();
 
-        PruneTransientPackages();
+       PruneTransientPackages();
     }
 
     if (!m_saveBlobCacheTimer.Waiting())
@@ -2913,14 +2913,15 @@ Handle<AssetObject> AssetRegistry::GetAssetFromPath_Internal(
     {
         if (*it == utf::Char32('/') || *it == utf::Char32('\\'))
         {
-            currentPackage = GetPackage(currentPackage, currentString, /* createIfNotExist */ false, /* requireLoaded */ false);
-
-            currentString.Clear();
+            currentPackage = GetPackage(currentPackage, currentString, /* createIfNotExist */ false);
 
             if (!currentPackage)
             {
+                HYP_LOG(Assets, Verbose, "No package {} found when using GetAssetFromPath() for path: {}", currentString, path);
                 return Handle<AssetObject>::Null();
             }
+
+            currentString.Clear();
 
             continue;
         }
@@ -2934,6 +2935,8 @@ Handle<AssetObject> AssetRegistry::GetAssetFromPath_Internal(
     {
         return currentPackage->GetAssetObject(outAssetName, attemptLoading);
     }
+    
+    HYP_LOG(Assets, Verbose, "No package {} found when using GetAssetFromPath() for path: {}", outAssetName, path);
 
     return Handle<AssetObject>::Null();
 }

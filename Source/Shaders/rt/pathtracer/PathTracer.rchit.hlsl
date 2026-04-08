@@ -45,7 +45,7 @@ DECLARE_SRV(PathTracer, MaterialsBuffer) StructuredBuffer<Material> materials;
 
 DECLARE_SRV(PathTracer, MeshDescriptionsBuffer) StructuredBuffer<MeshDescription> mesh_descriptions;
 
-DECLARE_BUFFER_DYNAMIC(RTReflections, CBuffer) cbuffer CBuffer
+DECLARE_BUFFER_DYNAMIC(PathTracer, CBuffer) cbuffer CBuffer
 {
     RayTracingConstants rayTracingConstants;
     Camera camera;
@@ -55,29 +55,6 @@ DECLARE_BUFFER_DYNAMIC(RTReflections, CBuffer) cbuffer CBuffer
 
 DECLARE_SRV(BindlessResources0, Textures) Texture2D textures[];
 DECLARE_SRV(BindlessResources1, Buffers) ByteAddressBuffer buffers[];
-
-float CheckLightIntersection(in Light light, in float3 position, in float3 R)
-{
-    float3 L = CalculateLightDirection(light, position);
-
-    if (light.type == 0)
-    {
-        return HYP_FMATH_INFINITY;
-    }
-
-    float3 light_to_position = position - light.position_intensity.xyz;
-    float light_to_position_length = length(light_to_position);
-
-    const float2 radiusFalloff = unpackHalf2x16(light.radiusFalloffPacked);
-    const float radius = radiusFalloff.x;
-
-    if (light_to_position_length > radius)
-    {
-        return HYP_FMATH_INFINITY;
-    }
-
-    return light_to_position_length;
-}
 
 [shader("closesthit")]
 void ClosestHitMain(inout RayPayload payload, in BuiltInTriangleIntersectionAttributes attrib)
@@ -103,12 +80,6 @@ void ClosestHitMain(inout RayPayload payload, in BuiltInTriangleIntersectionAttr
     const float3 normal = normalize(mul(ObjectToWorld3x4(), float4(v0.normal * barycentric_coords.x + v1.normal * barycentric_coords.y + v2.normal * barycentric_coords.z, 0.0)).xyz);
     const float2 texcoord = v0.texcoord0 * barycentric_coords.x + v1.texcoord0 * barycentric_coords.y + v2.texcoord0 * barycentric_coords.z;
     const float3 position = mul(ObjectToWorld3x4(), float4(v0.position * barycentric_coords.x + v1.position * barycentric_coords.y + v2.position * barycentric_coords.z, 1.0)).xyz;
-
-    v0.position = mul(ObjectToWorld3x4(), float4(v0.position, 1.0)).xyz;
-    v1.position = mul(ObjectToWorld3x4(), float4(v1.position, 1.0)).xyz;
-    v2.position = mul(ObjectToWorld3x4(), float4(v2.position, 1.0)).xyz;
-
-    const float3 hit_position = (WorldRayOrigin() + RayTCurrent() * WorldRayDirection()).xyz;
 
     float4 material_color = float4(1.0, 1.0, 1.0, 1.0);
 

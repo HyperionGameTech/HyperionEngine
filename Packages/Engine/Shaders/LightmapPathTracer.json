@@ -3,7 +3,12 @@
   "CompiledShaders": [{
       "$Class": "AssetReference",
       "AssetPath": {
-        "Value": "Engine/Shaders/LightmapPathTracer/LightmapPathTracer_6746685599656616209"
+        "Value": "Engine/Shaders/LightmapPathTracer/LightmapPathTracer_12398611739765556897"
+      }
+    }, {
+      "$Class": "AssetReference",
+      "AssetPath": {
+        "Value": "Engine/Shaders/LightmapPathTracer/LightmapPathTracer_10052432351400791672"
       }
     }],
   "Name": "LightmapPathTracer",
