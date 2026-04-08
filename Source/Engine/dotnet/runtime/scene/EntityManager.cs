@@ -89,6 +89,11 @@ namespace Hyperion
             }
         }
 
+        public IntPtr GetComponentPtr(Entity entity, TypeId componentTypeId)
+        {
+            return EntityManager_GetComponent(NativeAddress, componentTypeId, entity.NativeAddress);
+        }
+
         public IEnumerable<TypeId> GetComponentTypeIds(Entity entity)
         {
             IntPtr pTypeIds = IntPtr.Zero;

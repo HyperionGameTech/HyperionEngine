@@ -259,10 +259,10 @@ protected:
     HYP_FIELD(Property = "FriendlyName")
     Name m_friendlyName;
 
-    HYP_FIELD(Property = "AssetFlags", Transient)
+    HYP_FIELD(Property = "AssetFlags", Transient, EditHide)
     EnumFlags<AssetObjectFlags> m_flags;
 
-    HYP_FIELD()
+    HYP_FIELD(EditEnabled = false)
     FilePath m_originalFilepath; // used to determine if we should skip importing an asset
 
     HYP_FIELD(Transient)

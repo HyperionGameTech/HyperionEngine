@@ -39,16 +39,16 @@ DECLARE_BUFFER_DYNAMIC(Default, CamerasBuffer) cbuffer CamerasBuffer
     DECLARE_SRV_DYNAMIC(Default, EntityInstanceBatchesBuffer) StructuredBuffer<MeshEntityInstanceBatch> entity_instance_batches;
 
     #define entity_instance_batch entity_instance_batches[0]
-#else
+#else // !INSTANCING
     DECLARE_SRV_DYNAMIC(Default, CurrentEntity) StructuredBuffer<Entity> entities;
-#endif
+#endif // INSTANCING
 
 #ifdef SKINNING
 
 #include "include/Skeleton.inc"
 DECLARE_SRV_DYNAMIC(Default, SkeletonsBuffer) StructuredBuffer<Skeleton> skeletons;
 
-#endif
+#endif // SKINNING
 
 VSOutput VSMain(VSInput input, uint instanceId : SV_InstanceID)
 {
@@ -59,13 +59,13 @@ VSOutput VSMain(VSInput input, uint instanceId : SV_InstanceID)
 
 #ifdef INSTANCING
     Entity currentEntity = entities[instanceId];
-    float4x4 model_matrix = mul(entity_instance_batch.transforms[instanceId], currentEntity.model_matrix);
+    float4x4 model_matrix = entity_instance_batch.transforms[instanceId];
     float3x3 normal_matrix = transpose(inverse((float3x3)model_matrix));
-#else
+#else // !INSTANCING
     Entity currentEntity = entity;
     float4x4 model_matrix = entity.model_matrix;
     float3x3 normal_matrix = transpose(inverse((float3x3)model_matrix));//(float3x3)entity.normal_matrix;
-#endif
+#endif // INSTANCING
 
 #if defined(SKINNING) && defined(VT_Skeletal)
     float4x4 skinning_matrix = CreateSkinningMatrix(skeletons[0], input.a_bone_indices, input.a_bone_weights);
@@ -73,15 +73,15 @@ VSOutput VSMain(VSInput input, uint instanceId : SV_InstanceID)
     position = mul(model_matrix, mul(skinning_matrix, float4(input.a_position, 1.0)));
     previous_position = mul(currentEntity.previous_model_matrix, mul(skinning_matrix, float4(input.a_position, 1.0)));
     normal_matrix = mul(normal_matrix, (float3x3)skinning_matrix);
-#else
+#else // !SKINNING || !VT_Skeletal
     position = mul(model_matrix, float4(input.a_position, 1.0));
 
 #ifdef INSTANCING
     previous_position = mul(mul(entity_instance_batch.previousTransforms[instanceId], currentEntity.previous_model_matrix), float4(input.a_position, 1.0));
-#else
+#else // !INSTANCING
     previous_position = mul(currentEntity.previous_model_matrix, float4(input.a_position, 1.0));
-#endif
-#endif
+#endif // !SKINNING || !VT_Skeletal
+#endif // SKINNING && VT_Skeletal
 
     output.position = position.xyz / position.w;
     output.normal = mul(normal_matrix, input.a_normal);
@@ -90,9 +90,9 @@ VSOutput VSMain(VSInput input, uint instanceId : SV_InstanceID)
 
 #ifdef VT_UV1
     output.texcoord1 = float2(input.a_texcoord1.x, 1.0-input.a_texcoord1.y);
-#else
+#else // !VT_UV1
     output.texcoord1 = float2(0.0, 0.0);
-#endif
+#endif // VT_UV1
 
     float3 tangent;
     float3 bitangent;
@@ -119,9 +119,9 @@ VSOutput VSMain(VSInput input, uint instanceId : SV_InstanceID)
 
 #ifdef INSTANCING
     output.object_index = OBJECT_INDEX;
-#else
+#else // !INSTANCING
     output.object_index = ~0u; // unused
-#endif
+#endif // INSTANCING
 
     output.object_mask = GET_OBJECT_BUCKET_MASK(currentEntity);
 

@@ -16,6 +16,7 @@
 #include <scene/systems/AudioSystem.hpp>
 #include <scene/systems/PhysicsSystem.hpp>
 #include <scene/systems/ScriptSystem.hpp>
+#include <scene/systems/MeshSystem.hpp>
 
 #include <scene/components/MeshComponent.hpp>
 #include <scene/components/TransformComponent.hpp>
@@ -310,6 +311,9 @@ void World::Init()
 
     if (!HasSystem<ScriptSystem>())
         AddSystem(MakeHandle<ScriptSystem>());
+
+    if (!HasSystem<MeshSystem>())
+        AddSystem(MakeHandle<MeshSystem>());
 
     for (View* view : m_views)
     {

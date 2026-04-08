@@ -758,19 +758,12 @@ public:
 
         if (shadersToExpire.Any())
         {
-            g_renderThreadInstance->GetScheduler().Enqueue([this, shadersToExpire = std::move(shadersToExpire)]()
-                {
-                    for (Shader* shader : shadersToExpire)
-                    {
-                        g_renderInterface->graphicsPipelineCache->ExpirePipelinesForShader(shader);
-                        g_renderInterface->computePipelineCache->ExpirePipelinesForShader(shader);
-                        g_renderInterface->rayTracingPipelineCache->ExpirePipelinesForShader(shader);
-                    }
-                    
-                    AtomicExchange(&m_isReloadingShaders, 0);
-                }, TaskEnqueueFlags::FIRE_AND_FORGET);
-
-            return;
+            for (Shader* shader : shadersToExpire)
+            {
+                g_renderInterface->graphicsPipelineCache->ExpirePipelinesForShader(shader);
+                g_renderInterface->computePipelineCache->ExpirePipelinesForShader(shader);
+                g_renderInterface->rayTracingPipelineCache->ExpirePipelinesForShader(shader);
+            }
         }
         
         AtomicExchange(&m_isReloadingShaders, 0);

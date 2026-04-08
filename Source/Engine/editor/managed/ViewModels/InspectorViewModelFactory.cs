@@ -50,6 +50,11 @@ namespace Hyperion.Editor.ViewModels
                 return Initialize(new TransformViewModel(target, property, isReadOnly));
             }
 
+            if (typeInfo.IsFundamental && typeInfo.IsIntegral && typeInfo.Name == "bool")
+            {
+                return Initialize(new BoolPropertyViewModel(target, property, isReadOnly));
+            }
+
             if (typeInfo.IsFundamental && (typeInfo.IsIntegral || typeInfo.IsFloat))
             {
                 return Initialize(new NumericPropertyViewModel(target, property, isReadOnly));
@@ -58,6 +63,62 @@ namespace Hyperion.Editor.ViewModels
             Logger.Log(LogLevel.Debug, $"Inspector creating read-only property view model for property '{property.Name}' of type '{typeInfo.Name}'");
 
             return Initialize(new ReadOnlyPropertyViewModel(target, property, isReadOnly));
+        }
+
+        public static InspectorPropertyViewModelBase CreateForComponent(
+            IntPtr classAddress, Func<IntPtr> targetAddressResolver, Property property, bool isReadOnly)
+        {
+            TypeInfo typeInfo = property.TypeInfo;
+            bool isNameType = InspectorPropertyViewModelBase.IsNameType(typeInfo);
+
+            if (typeInfo.IsString || isNameType)
+            {
+                return Initialize(new TextPropertyViewModel(classAddress, targetAddressResolver, property, isReadOnly, isNameType));
+            }
+
+            if (typeInfo.IsEnumFlags)
+            {
+                return Initialize(new FlagsPropertyViewModel(classAddress, targetAddressResolver, property, typeInfo.Class, isReadOnly));
+            }
+
+            if (typeInfo.IsEnum)
+            {
+                return Initialize(new EnumPropertyViewModel(classAddress, targetAddressResolver, property, typeInfo.Class, isReadOnly));
+            }
+
+            if (typeInfo.IsVec2 && typeInfo.Name == "Vec2f")
+            {
+                return Initialize(new Vec2fViewModel(classAddress, targetAddressResolver, property, isReadOnly));
+            }
+
+            if (typeInfo.IsVec3 && typeInfo.Name == "Vec3f")
+            {
+                return Initialize(new Vec3fViewModel(classAddress, targetAddressResolver, property, isReadOnly));
+            }
+
+            if (typeInfo.IsVec4 && typeInfo.Name == "Vec4f")
+            {
+                return Initialize(new Vec4fViewModel(classAddress, targetAddressResolver, property, isReadOnly));
+            }
+
+            if (typeInfo.Class?.Name == "Transform")
+            {
+                return Initialize(new TransformViewModel(classAddress, targetAddressResolver, property, isReadOnly));
+            }
+
+            if (typeInfo.IsFundamental && typeInfo.IsIntegral && typeInfo.Name == "bool")
+            {
+                return Initialize(new BoolPropertyViewModel(classAddress, targetAddressResolver, property, isReadOnly));
+            }
+
+            if (typeInfo.IsFundamental && (typeInfo.IsIntegral || typeInfo.IsFloat))
+            {
+                return Initialize(new NumericPropertyViewModel(classAddress, targetAddressResolver, property, isReadOnly));
+            }
+
+            Logger.Log(LogLevel.Debug, $"Inspector creating read-only component property view model for property '{property.Name}' of type '{typeInfo.Name}'");
+
+            return Initialize(new ReadOnlyPropertyViewModel(classAddress, targetAddressResolver, property, isReadOnly));
         }
 
         private static InspectorPropertyViewModelBase Initialize(InspectorPropertyViewModelBase viewModel)

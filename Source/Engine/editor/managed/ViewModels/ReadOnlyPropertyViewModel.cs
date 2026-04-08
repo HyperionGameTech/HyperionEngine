@@ -11,6 +11,11 @@ namespace Hyperion.Editor.ViewModels
         {
         }
 
+        public ReadOnlyPropertyViewModel(IntPtr classAddress, Func<IntPtr> targetAddressResolver, Property property, bool isReadOnly)
+            : base(classAddress, targetAddressResolver, property, isReadOnly)
+        {
+        }
+
         public override void RefreshValue()
         {
             if (Interlocked.CompareExchange(ref _isRefreshing, 1, 0) == 1)
@@ -22,7 +27,7 @@ namespace Hyperion.Editor.ViewModels
             {
                 try
                 {
-                    using BoxedValue boxed = _property.Get(_target);
+                    using BoxedValue boxed = GetPropertyValue();
                     object? rawValue = boxed.GetValue();
 
                     Dispatcher.UIThread.Post(() =>

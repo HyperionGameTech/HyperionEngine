@@ -11,6 +11,8 @@
 #include <rendering/DescriptorSet.hpp>
 #include <rendering/Shader.hpp>
 #include <rendering/ShaderInstance.hpp>
+#include <rendering/GraphicsPipelineCache.hpp>
+#include <rendering/GenericPipelineCache.hpp>
 
 #include <asset/Assets.hpp>
 #include <asset/AssetRegistry.hpp>
@@ -3799,9 +3801,13 @@ bool ShaderCompiler::CompileBundle(
                         shader->GetName(), package->GetName(), removeResult.GetError().GetMessage());
                 }
             }
+
+            g_renderInterface->graphicsPipelineCache->ExpirePipelinesForShader(shader);
+            g_renderInterface->computePipelineCache->ExpirePipelinesForShader(shader);
+            g_renderInterface->rayTracingPipelineCache->ExpirePipelinesForShader(shader);
         }
 
-        existingShadersToRemove.Clear();
+        EnqueueDeletion(std::move(existingShadersToRemove));
     }
 
     // keep compiled shaders sorted.

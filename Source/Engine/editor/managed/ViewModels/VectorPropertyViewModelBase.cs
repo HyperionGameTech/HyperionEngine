@@ -34,6 +34,26 @@ namespace Hyperion.Editor.ViewModels
             _components = new string[_componentCount];
         }
 
+        protected VectorPropertyViewModelBase(
+            IntPtr classAddress,
+            Func<IntPtr> targetAddressResolver,
+            Property property,
+            bool isReadOnly,
+            int componentCount,
+            Func<TStruct, int, float> getComponent,
+            Func<TStruct, int, float, TStruct> withComponent,
+            Func<TStruct>? readOverride = null,
+            Action<TStruct>? writeOverride = null)
+            : base(classAddress, targetAddressResolver, property, isReadOnly)
+        {
+            _componentCount = componentCount;
+            _getComponent = getComponent;
+            _withComponent = withComponent;
+            _readStruct = readOverride ?? ReadStructFromProperty;
+            _writeStruct = writeOverride ?? WriteStructToProperty;
+            _components = new string[_componentCount];
+        }
+
         public string X
         {
             get => _components[0];
@@ -135,7 +155,7 @@ namespace Hyperion.Editor.ViewModels
                 return;
             }
 
-            if (!_target.IsValid)
+            if (!IsTargetValid)
             {
                 return;
             }
@@ -198,7 +218,7 @@ namespace Hyperion.Editor.ViewModels
         {
             Task<TStruct> task = EngineManager.PostToSimThread<TStruct>(() =>
             {
-                using BoxedValue boxed = _property.Get(_target);
+                using BoxedValue boxed = GetPropertyValue();
                 object? raw = boxed.GetValue();
 
                 if (raw is TStruct casted)
@@ -226,7 +246,7 @@ namespace Hyperion.Editor.ViewModels
                 try
                 {
                     using BoxedValue boxed = new BoxedValue(value);
-                    _property.Set(_target, boxed);
+                    SetPropertyValue(boxed);
                 }
                 catch (Exception ex)
                 {

@@ -17,6 +17,12 @@ namespace Hyperion.Editor.ViewModels
             _typeName = property.TypeInfo.Name.ToString();
         }
 
+        public NumericPropertyViewModel(IntPtr classAddress, Func<IntPtr> targetAddressResolver, Property property, bool isReadOnly)
+            : base(classAddress, targetAddressResolver, property, isReadOnly)
+        {
+            _typeName = property.TypeInfo.Name.ToString();
+        }
+
         public override bool IsNumericEditable => true;
 
         public string EditableValue
@@ -42,7 +48,7 @@ namespace Hyperion.Editor.ViewModels
             {
                 try
                 {
-                    using BoxedValue boxed = _property.Get(_target);
+                    using BoxedValue boxed = GetPropertyValue();
                     object? rawValue = boxed.GetValue();
 
                     Dispatcher.UIThread.Post(() =>
@@ -84,7 +90,7 @@ namespace Hyperion.Editor.ViewModels
                 try
                 {
                     using BoxedValue boxed = new BoxedValue(captured);
-                    _property.Set(_target, boxed);
+                    SetPropertyValue(boxed);
 
                     Dispatcher.UIThread.Post(() =>
                     {

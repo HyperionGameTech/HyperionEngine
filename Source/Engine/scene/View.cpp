@@ -955,32 +955,34 @@ void View::CollectMeshEntities(RenderProxyList& rpl)
 
             Mat4f transformMatrix = transformComponent->GetMatrix();
             
-            if ((meshComponent->enableAutoInstancing || meshComponent->numInstances > 1)
-                && meshComponent->instanceData.IsLoaded())
+            if ((meshComponent->enableAutoInstancing || meshComponent->numInstances > 1) && meshComponent->instanceData.IsLoaded())
             {
                 AssertDebug(m_viewDesc.entityBatchClass == nullptr || m_viewDesc.entityBatchClass == MeshEntityInstanceBatch::StaticClass());
 
-                const Handle<InstancedMeshData>& instancedMesh = ObjCast<InstancedMeshData>(meshComponent->instanceData.Resolve());
-                AssertDebug(instancedMesh.IsValid());
+                const Handle<InstancedMeshData>& imd = ObjCast<InstancedMeshData>(meshComponent->instanceData.Resolve());
+                AssertDebug(imd.IsValid());
 
-                auto writeScope = instancedMesh->GetWriteScope();
-
-                // set current transform and previous transform data for MeshEntityInstanceBatch
-                instancedMesh->SetBufferData(0, &transformMatrix, 1);
-                instancedMesh->SetBufferData(1, &meshComponent->previousModelMatrix, 1);
-
-                for (uint32 i = 0; i < uint32(instancedMesh->buffers.Size()); i++)
+                if (imd.IsValid())
                 {
-                    if (instancedMesh->buffers[i].size == 0)
-                        continue;
+                    auto writeScope = imd->GetWriteScope();
 
-                    meshProxy.instanceData.buffers[i].SetSize(instancedMesh->buffers[i].size, false);
+                    // set current transform and previous transform data for MeshEntityInstanceBatch
+                    imd->SetBufferData(0, &transformMatrix, 1);
+                    imd->SetBufferData(1, &meshComponent->previousModelMatrix, 1);
 
-                    AssertDebug(instancedMesh->buffers[i].raw != nullptr);
-                    Memory::Copy(meshProxy.instanceData.buffers[i].Data(), instancedMesh->buffers[i].raw, instancedMesh->buffers[i].size);
+                    for (uint32 i = 0; i < uint32(imd->buffers.Size()); i++)
+                    {
+                        if (imd->buffers[i].size == 0)
+                            continue;
 
-                    meshProxy.instanceData.bufferStructSizes[i] = instancedMesh->bufferStructSizes[i];
-                    meshProxy.instanceData.bufferStructAlignments[i] = instancedMesh->bufferStructAlignments[i];
+                        meshProxy.instanceData.buffers[i].SetSize(imd->buffers[i].size, false);
+
+                        AssertDebug(imd->buffers[i].raw != nullptr);
+                        Memory::Copy(meshProxy.instanceData.buffers[i].Data(), imd->buffers[i].raw, imd->buffers[i].size);
+
+                        meshProxy.instanceData.bufferStructSizes[i] = imd->bufferStructSizes[i];
+                        meshProxy.instanceData.bufferStructAlignments[i] = imd->bufferStructAlignments[i];
+                    }
                 }
             }
             else

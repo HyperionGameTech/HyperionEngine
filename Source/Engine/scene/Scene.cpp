@@ -8,13 +8,6 @@
 
 #include <scene/EntityManager.hpp>
 
-#include <scene/systems/VisibilityStateUpdaterSystem.hpp>
-#include <scene/systems/AnimationSystem.hpp>
-#include <scene/systems/LightmapSystem.hpp>
-#include <scene/systems/AudioSystem.hpp>
-#include <scene/systems/PhysicsSystem.hpp>
-#include <scene/systems/ScriptSystem.hpp>
-
 #include <rendering/RenderInterface.hpp>
 
 #include <rendering/AccelerationStructure.hpp>

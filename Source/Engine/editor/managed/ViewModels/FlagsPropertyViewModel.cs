@@ -20,6 +20,15 @@ namespace Hyperion.Editor.ViewModels
             BuildFlagEntries(enumClass.Value);
         }
 
+        public FlagsPropertyViewModel(IntPtr classAddress, Func<IntPtr> targetAddressResolver, Property property, Class? enumClass, bool isReadOnly)
+            : base(classAddress, targetAddressResolver, property, isReadOnly)
+        {
+            if (enumClass == null)
+                throw new ArgumentNullException(nameof(enumClass));
+
+            BuildFlagEntries(enumClass.Value);
+        }
+
         public IList<EnumFlagEntry> EnumFlagEntries => _enumFlagEntries;
 
         public override bool IsEnumFlagsEditable => _enumFlagEntries.Count > 0;
@@ -35,7 +44,7 @@ namespace Hyperion.Editor.ViewModels
             {
                 try
                 {
-                    using BoxedValue boxed = _property.Get(_target);
+                    using BoxedValue boxed = GetPropertyValue();
                     object? rawValue = boxed.GetValue();
 
                     Dispatcher.UIThread.Post(() =>
@@ -131,7 +140,7 @@ namespace Hyperion.Editor.ViewModels
                     }
 
                     using BoxedValue boxed = new BoxedValue(combined);
-                    _property.Set(_target, boxed);
+                    SetPropertyValue(boxed);
 
                     Dispatcher.UIThread.Post(() =>
                     {

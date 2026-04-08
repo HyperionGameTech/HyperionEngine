@@ -140,8 +140,6 @@ void GenericPipelineCache<PipelineType>::ExpirePipelinesForShader(const Shader* 
         return;
     }
 
-    AssertOnThread(g_renderThread);
-
     TUniqueLock guard(m_mutex);
 
     // find all pipelines that use this shader and remove them, so they will be recreated with the new shader instance when requested again.

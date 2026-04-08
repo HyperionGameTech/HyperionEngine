@@ -37,6 +37,7 @@ enum class EntityTag : uint64
 
     UpdateRenderProxy,
     UpdateVisibility,
+    UpdateInstancedMeshData,
 
     EntityType = 2147483648,            // Flag to indicate that this EntityTag is an EntityType tag
     EntityTypeMask = 0xFFFFFFFF00000000 // Mask to get TypeId from the vaue

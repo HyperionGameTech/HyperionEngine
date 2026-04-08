@@ -19,6 +19,15 @@ namespace Hyperion.Editor.ViewModels
             BuildEnumEntries(enumClass.Value);
         }
 
+        public EnumPropertyViewModel(IntPtr classAddress, Func<IntPtr> targetAddressResolver, Property property, Class? enumClass, bool isReadOnly)
+            : base(classAddress, targetAddressResolver, property, isReadOnly)
+        {
+            if (enumClass == null)
+                throw new ArgumentNullException(nameof(enumClass));
+
+            BuildEnumEntries(enumClass.Value);
+        }
+
         public IList<EnumEntry> EnumEntries => _enumEntries;
 
         public object? SelectedEnumValue
@@ -46,7 +55,7 @@ namespace Hyperion.Editor.ViewModels
             {
                 try
                 {
-                    using BoxedValue boxed = _property.Get(_target);
+                    using BoxedValue boxed = GetPropertyValue();
                     object? rawValue = boxed.GetValue();
 
                     Dispatcher.UIThread.Post(() =>
@@ -83,7 +92,7 @@ namespace Hyperion.Editor.ViewModels
                 try
                 {
                     using BoxedValue boxed = new BoxedValue(value);
-                    _property.Set(_target, boxed);
+                    SetPropertyValue(boxed);
 
                     Dispatcher.UIThread.Post(() =>
                     {

@@ -15,6 +15,12 @@ namespace Hyperion.Editor.ViewModels
             _isNameProperty = isNameProperty;
         }
 
+        public TextPropertyViewModel(IntPtr classAddress, Func<IntPtr> targetAddressResolver, Property property, bool isReadOnly, bool isNameProperty)
+            : base(classAddress, targetAddressResolver, property, isReadOnly)
+        {
+            _isNameProperty = isNameProperty;
+        }
+
         public override bool IsTextEditable => true;
 
         public bool IsStringEditable => !_isNameProperty;
@@ -44,7 +50,7 @@ namespace Hyperion.Editor.ViewModels
             {
                 try
                 {
-                    using BoxedValue boxed = _property.Get(_target);
+                    using BoxedValue boxed = GetPropertyValue();
                     object? rawValue = boxed.GetValue();
 
                     Dispatcher.UIThread.Post(() =>
@@ -79,7 +85,7 @@ namespace Hyperion.Editor.ViewModels
                         ? new BoxedValue(new Name(value ?? string.Empty))
                         : new BoxedValue(value ?? string.Empty);
 
-                    _property.Set(_target, boxed);
+                    SetPropertyValue(boxed);
 
                     Dispatcher.UIThread.Post(() =>
                     {

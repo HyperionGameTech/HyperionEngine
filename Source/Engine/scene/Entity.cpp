@@ -23,7 +23,6 @@
 #include <rendering/Mesh.hpp>
 #include <rendering/Material.hpp>
 #include <rendering/RenderProxy.hpp>
-#include <rendering/InstancedMeshData.hpp>
 
 #include <engine/EngineDriver.hpp>
 
@@ -33,78 +32,6 @@
 #include <Entity.generated.inl>
 
 namespace Hyperion {
-
-static void DestroyInstancedMeshData(Entity& entity, MeshComponent& meshComponent, bool removeFromPackage = false);
-
-static void InitInstancedMeshData(Entity& entity, MeshComponent& meshComponent)
-{
-    if (!meshComponent.enableAutoInstancing && meshComponent.numInstances <= 1)
-    {
-        if (meshComponent.instanceData.IsValid())
-        {
-            DestroyInstancedMeshData(entity, meshComponent, /* removeFromPackage */ true);
-        }
-
-        return;
-    }
-
-    if (!meshComponent.instanceData.IsValid())
-    {
-        Handle<InstancedMeshData> instancedMesh = MakeHandle<InstancedMeshData>(NAME_FMT("IMD_{}", entity.GetName()));
-
-        Result registerResult = instancedMesh->Register("$Memory/Objects/Types/InstancedMeshData", AddAssetConflictMode::GenerateNewName);
-
-        if (registerResult.HasError())
-        {
-            HYP_LOG(Scene, Error, "Failed to register InstancedMeshData: {}", registerResult.GetError().GetMessage());
-        }
-
-        meshComponent.instanceData = AssetReference(instancedMesh);
-    }
-    
-    const Handle<InstancedMeshData>& instancedMesh = ObjCast<InstancedMeshData>(meshComponent.instanceData.Resolve());
-
-    if (!instancedMesh.IsValid())
-    {
-        HYP_LOG(Scene, Error, "Failed to load instanced mesh data for Entity {}", entity.GetName());
-
-        DestroyInstancedMeshData(entity, meshComponent, /* removeFromPackage */ false);
-    }
-}
-
-static void DestroyInstancedMeshData(Entity& entity, MeshComponent& meshComponent, bool removeFromPackage)
-{
-    if (meshComponent.instanceData.IsValid())
-    {
-        if (!removeFromPackage)
-        {
-            if (meshComponent.instanceData.IsLoaded())
-            {
-                meshComponent.instanceData = AssetReference(meshComponent.instanceData.GetAssetPath());
-            }
-
-            return;
-        }
-
-        Handle<AssetObject> obj = meshComponent.instanceData.Resolve();
-        meshComponent.instanceData = AssetReference();
-
-        if (obj.IsValid())
-        {
-            Handle<AssetPackage> package = obj->GetPackage();
-            if (package.IsValid())
-            {
-                Result removeAssetResult = package->RemoveAssetObject(obj);
-
-                if (removeAssetResult.HasError())
-                {
-                    HYP_LOG(Scene, Error, "Failed to remove InstancedMeshData asset from package. Error was: {}",
-                        removeAssetResult.GetError().GetMessage());
-                }
-            }
-        }
-    }
-}
 
 #pragma region Entity
 
@@ -344,8 +271,6 @@ void Entity::OnComponentAdded(AnyRef component)
 
     if (MeshComponent* meshComponent = component.TryGet<MeshComponent>())
     {
-        InitInstancedMeshData(*this, *meshComponent);
-
         bool isInvalid = false;
 
         if (!meshComponent->mesh.IsValid())
@@ -394,10 +319,6 @@ void Entity::OnComponentAdded(AnyRef component)
 
 void Entity::OnComponentRemoved(AnyRef component)
 {
-    if (MeshComponent* meshComponent = component.TryGet<MeshComponent>())
-    {
-        DestroyInstancedMeshData(*this, *meshComponent);
-    }
 }
 
 void Entity::OnTagAdded(EntityTag tag)

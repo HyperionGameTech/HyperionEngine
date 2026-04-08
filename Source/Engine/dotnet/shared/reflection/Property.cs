@@ -102,6 +102,33 @@ namespace Hyperion
             return BoxedValue.FromBuffer(resultBuffer);
         }
 
+        public BoxedValue Get(IntPtr classAddress, IntPtr targetAddress)
+        {
+            if (_ptr == IntPtr.Zero)
+            {
+                throw new InvalidOperationException("Cannot invoke getter: Invalid property");
+            }
+
+            if (classAddress == IntPtr.Zero)
+            {
+                throw new InvalidOperationException("Cannot invoke getter: Invalid class address");
+            }
+
+            if (targetAddress == IntPtr.Zero)
+            {
+                throw new InvalidOperationException("Cannot invoke getter: Invalid target address");
+            }
+
+            BoxedValueInternal resultBuffer;
+
+            if (!Property_InvokeGetter(_ptr, classAddress, targetAddress, out resultBuffer))
+            {
+                throw new InvalidOperationException("Failed to invoke getter");
+            }
+
+            return BoxedValue.FromBuffer(resultBuffer);
+        }
+
         public void Set(ObjectBase obj, BoxedValue value)
         {
             if (_ptr == IntPtr.Zero)
@@ -120,6 +147,34 @@ namespace Hyperion
             }
 
             if (!Property_InvokeSetter(_ptr, obj.Class.Address, obj.NativeAddress, ref value.Buffer))
+            {
+                throw new InvalidOperationException("Failed to invoke setter");
+            }
+        }
+
+        public void Set(IntPtr classAddress, IntPtr targetAddress, BoxedValue value)
+        {
+            if (_ptr == IntPtr.Zero)
+            {
+                throw new InvalidOperationException("Cannot invoke setter: Invalid property");
+            }
+
+            if (classAddress == IntPtr.Zero)
+            {
+                throw new InvalidOperationException("Cannot invoke setter: Invalid class address");
+            }
+
+            if (targetAddress == IntPtr.Zero)
+            {
+                throw new InvalidOperationException("Cannot invoke setter: Invalid target address");
+            }
+
+            if (value == null)
+            {
+                throw new ArgumentNullException("value");
+            }
+
+            if (!Property_InvokeSetter(_ptr, classAddress, targetAddress, ref value.Buffer))
             {
                 throw new InvalidOperationException("Failed to invoke setter");
             }

@@ -5,10 +5,12 @@ namespace Hyperion.Editor.ViewModels
 {
     public abstract class InspectorPropertyViewModelBase : ViewModelBase
     {
-        protected readonly ObjectBase _target;
+        protected readonly ObjectBase? _target;
         protected readonly Property _property;
         protected readonly bool _isReadOnly;
-        
+
+        private readonly IntPtr _componentClassAddress;
+        private readonly Func<IntPtr>? _componentTargetResolver;
 
         private string _value = string.Empty;
         private string _label;
@@ -41,6 +43,23 @@ namespace Hyperion.Editor.ViewModels
             _isReadOnly = isReadOnly;
             _isRefreshing = 0;
 
+            InitializeLabel(property);
+        }
+
+        protected InspectorPropertyViewModelBase(IntPtr classAddress, Func<IntPtr> targetAddressResolver, Property property, bool isReadOnly = false)
+        {
+            _target = null;
+            _componentClassAddress = classAddress;
+            _componentTargetResolver = targetAddressResolver ?? throw new ArgumentNullException(nameof(targetAddressResolver));
+            _property = property;
+            _isReadOnly = isReadOnly;
+            _isRefreshing = 0;
+
+            InitializeLabel(property);
+        }
+
+        private void InitializeLabel(Property property)
+        {
             ClassAttribute? attrLabel = property.GetAttribute("label");
 
             if (attrLabel != null)
@@ -52,6 +71,31 @@ namespace Hyperion.Editor.ViewModels
                 _label = property.Name.ToString();
             }
         }
+
+        protected BoxedValue GetPropertyValue()
+        {
+            if (_componentTargetResolver != null)
+            {
+                return _property.Get(_componentClassAddress, _componentTargetResolver());
+            }
+
+            return _property.Get(_target!);
+        }
+
+        protected void SetPropertyValue(BoxedValue value)
+        {
+            if (_componentTargetResolver != null)
+            {
+                _property.Set(_componentClassAddress, _componentTargetResolver(), value);
+            }
+            else
+            {
+                _property.Set(_target!, value);
+            }
+        }
+
+        protected bool IsTargetValid =>
+            _componentTargetResolver != null || (_target?.IsValid ?? false);
 
         public abstract void RefreshValue();
 

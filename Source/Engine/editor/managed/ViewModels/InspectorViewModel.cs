@@ -260,26 +260,34 @@ namespace Hyperion.Editor.ViewModels
 
                         foreach (TypeId typeId in componentTypeIds)
                         {
+                            InspectorComponentViewModelBase? componentVm = null;
+
                             switch (typeId)
                             {
                                 case TypeId tid when tid == BoundingBoxComponent.Class.TypeId:
-                                    Components.Add(new InspectorComponentViewModel<BoundingBoxComponent>(entity));
+                                    componentVm = new InspectorComponentViewModel<BoundingBoxComponent>(entity);
                                     break;
                                 case TypeId tid when tid == TransformComponent.Class.TypeId:
-                                    Components.Add(new InspectorComponentViewModel<TransformComponent>(entity));
+                                    componentVm = new InspectorComponentViewModel<TransformComponent>(entity);
                                     break;
                                 case TypeId tid when tid == MeshComponent.Class.TypeId:
-                                    Components.Add(new InspectorComponentViewModel<MeshComponent>(entity));
+                                    componentVm = new InspectorComponentViewModel<MeshComponent>(entity);
                                     break;
                                 case TypeId tid when tid == UIComponent.Class.TypeId:
-                                    Components.Add(new InspectorComponentViewModel<UIComponent>(entity));
+                                    componentVm = new InspectorComponentViewModel<UIComponent>(entity);
                                     break;
                                 case TypeId tid when tid == VisibilityStateComponent.Class.TypeId:
-                                    Components.Add(new InspectorComponentViewModel<VisibilityStateComponent>(entity));
+                                    componentVm = new InspectorComponentViewModel<VisibilityStateComponent>(entity);
                                     break;
                                 default:
                                     Logger.Log(LogLevel.Debug, $"Inspector has no view model for component type '{typeId}'");
                                     break;
+                            }
+
+                            if (componentVm != null && componentVm.IsEditorVisible)
+                            {
+                                Components.Add(componentVm);
+                                componentVm.PopulateProperties();
                             }
                         }
 

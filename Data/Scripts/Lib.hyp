@@ -745,6 +745,7 @@ extern enum EntityTag : uint64
     FocusedInEditor,
     UpdateRenderProxy,
     UpdateVisibility,
+    UpdateInstancedMeshData,
     EntityType = 2147483648,
     EntityTypeMask = 0xFFFFFFFF00000000
 end
@@ -2429,7 +2430,7 @@ extern enum MaterialParameterKey : uint64
     MATERIAL_KEY_METALNESS = (1 << 1),
     MATERIAL_KEY_ROUGHNESS = (1 << 2),
     MATERIAL_KEY_TRANSMISSION = (1 << 3),
-    MATERIAL_KEY_EMISSIVE = (1 << 4),
+    MATERIAL_KEY_EMISSIVE_FACTOR = (1 << 4),
     MATERIAL_KEY_SPECULAR = (1 << 5),
     MATERIAL_KEY_SPECULAR_TINT = (1 << 6),
     MATERIAL_KEY_ANISOTROPIC = (1 << 7),

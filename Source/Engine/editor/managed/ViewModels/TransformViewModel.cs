@@ -21,6 +21,14 @@ namespace Hyperion.Editor.ViewModels
             _scale = new Vec3fViewModel(target, property, isReadOnly, ReadScale, WriteScale);
         }
 
+        public TransformViewModel(IntPtr classAddress, Func<IntPtr> targetAddressResolver, Property property, bool isReadOnly)
+            : base(classAddress, targetAddressResolver, property, isReadOnly)
+        {
+            _translation = new Vec3fViewModel(classAddress, targetAddressResolver, property, isReadOnly, ReadTranslation, WriteTranslation);
+            _rotationEuler = new Vec3fViewModel(classAddress, targetAddressResolver, property, isReadOnly, ReadRotationEuler, WriteRotationEuler);
+            _scale = new Vec3fViewModel(classAddress, targetAddressResolver, property, isReadOnly, ReadScale, WriteScale);
+        }
+
         public Vec3fViewModel Translation => _translation;
         public Vec3fViewModel Rotation => _rotationEuler;
         public Vec3fViewModel Scale => _scale;
@@ -43,7 +51,7 @@ namespace Hyperion.Editor.ViewModels
                 try
                 {
                     Transform transform;
-                    using (BoxedValue boxed = _property.Get(_target))
+                    using (BoxedValue boxed = GetPropertyValue())
                     {
                         object? raw = boxed.GetValue();
                         transform = raw is Transform t ? t : Transform.Identity;
@@ -73,7 +81,7 @@ namespace Hyperion.Editor.ViewModels
         {
             Task<Transform> task = EngineManager.PostToSimThread<Transform>(() =>
             {
-                using BoxedValue boxed = _property.Get(_target);
+                using BoxedValue boxed = GetPropertyValue();
                 object? raw = boxed.GetValue();
 
                 Logger.Log(LogLevel.Debug, $"ReadTransform got raw value of type: {(raw != null ? raw.GetType().Name : "null")}");
@@ -101,7 +109,7 @@ namespace Hyperion.Editor.ViewModels
                 try
                 {
                     using BoxedValue boxed = new BoxedValue(transform);
-                    _property.Set(_target, boxed);
+                    SetPropertyValue(boxed);
                 }
                 catch (Exception ex)
                 {

@@ -1,0 +1,48 @@
+/* Copyright (c) 2016-2026 Andrew J. MacDonald. All rights reserved. */
+
+#pragma once
+
+#include <scene/System.hpp>
+#include <scene/components/MeshComponent.hpp>
+
+#include <Core/containers/HashMap.hpp>
+
+namespace Hyperion {
+
+HYP_CLASS(NoScriptBindings)
+class MeshSystem final : public SystemBase
+{
+    HYP_OBJECT_BODY(MeshSystem);
+
+public:
+    ~MeshSystem() override = default;
+
+    void OnEntityAdded(Entity* entity) override;
+    void OnEntityRemoved(Entity* entity) override;
+
+    void Process(float delta, Span<Handle<Scene>> scenes) override;
+
+private:
+    SystemComponentDescriptors GetComponentDescriptors() const override
+    {
+        return {
+            ComponentDescriptor<MeshComponent, ComponentAccess::READ_WRITE> {},
+            
+            ComponentDescriptor<TagComponent<EntityTag::UpdateInstancedMeshData>, ComponentAccess::READ, false> {}
+        };
+    }
+
+#if HYP_EDITOR
+    struct CachedInstancedMeshDataState
+    {
+        uint32 numInstances;
+        bool enableAutoInstancing;
+    };
+
+    // Per entity mapping from Entity* -> cached state (num instances, auto instancing enabled)
+    // Currently only needed to be able to init/deinit instanced mesh data when changed in editor.
+    HashMap<Entity*, CachedInstancedMeshDataState, SceneAllocator> m_cachedStates;
+#endif // HYP_EDITOR
+};
+
+} // namespace Hyperion
