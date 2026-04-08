@@ -156,8 +156,8 @@ void LightmapRenderer_GpuPathTracing::CreateBuffers(BakeJobBase* job)
     // READBACK_BUFFER type allows readback to cpu.
     jd.hitsBufferGpu = g_renderInterface->MakeGpuBuffer(GpuBufferType::READBACK_BUFFER, sizeof(LightmapHit) * m_maxTexelsPerFrame, alignof(Vec4f));
 
-    DeferCreate(jd.hitsBufferGpu);
-    DeferCreate(jd.raysBuffer);
+    CheckResult(jd.hitsBufferGpu->Create());
+    CheckResult(jd.raysBuffer->Create());
 }
 
 void LightmapRenderer_GpuPathTracing::Create()

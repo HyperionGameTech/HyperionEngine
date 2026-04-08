@@ -144,7 +144,7 @@ void TextureMipmapRenderer::RenderMipmaps(const Handle<Texture>& texture)
         const uint32 mipHeight = MathUtil::Max(1u, extent.y >> mipLevel);
 
         GpuImageViewRef mipImageView = g_renderInterface->MakeImageView(texture->GetGpuImage(), mipLevel, 1, 0, texture->NumArrayLayers());
-        DeferCreate(mipImageView);
+        CheckResult(mipImageView->Create());
 
         mipImageViews[mipLevel] = std::move(mipImageView);
 

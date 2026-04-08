@@ -122,7 +122,7 @@ ShadowMap* ShadowMapAllocator::AllocateShadowMap(ShadowMapType shadowMapType, Sh
         {
             m_pointLightShadowMapIdGenerator.ReleaseId(pointLightIndex + 1);
 
-            HYP_LOG(Rendering, Error, "Too mani omni shadow maps allocated");
+            HYP_LOG_ONCE(Rendering, Warning, "Too many omni shadow maps allocated; returning NULL for AllocateShadowMap()");
             
             return nullptr;
         }

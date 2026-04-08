@@ -76,18 +76,18 @@ void DefaultGame::OnLaunch_Impl()
 {
     //GetWorld()->GetWorldGrid()->AddLayer(MakeHandle<TerrainWorldGridLayer>());
 
-#if 0
-    auto pkg = g_assetManager->GetAssetRegistry()->GetPackageFromPath("SampleGame", /* createIfNotExist */ false, /* requireLoaded */ true);
+#if 1
+    auto pkg = g_assetManager->GetAssetRegistry()->GetPackageFromPath("DefaultProject39", /* createIfNotExist */ false, /* requireLoaded */ true);
     if (pkg.IsValid())
     {
         // Get MainScene
-        Handle<AssetObject> mainSceneAsset = pkg->GetAssetObject("MainScene", /* attemptLoading */ true);
+        Handle<AssetObject> mainSceneAsset = pkg->GetAssetObject("DefaultScene1", /* attemptLoading */ true);
         Assert(mainSceneAsset.IsValid());
 
         if (mainSceneAsset.IsValid())
         {
             Handle<Scene> mainScene = ObjCast<Scene>(mainSceneAsset);
-            Assert(mainScene.IsValid(), "Asset 'MainScene' in package 'SampleGame' is not a Scene!");
+            Assert(mainScene.IsValid(), "Could not find main scene asset");
             if (mainScene.IsValid())
             {
                 m_camera = ObjCast<Camera>(mainScene->GetRoot()->GetChild(0));
@@ -110,8 +110,8 @@ void DefaultGame::OnLaunch_Impl()
         }
 
         StartSimulating();
-        return;
     }
+    return;
 #endif
 
 #if 1
@@ -227,7 +227,17 @@ bool DefaultGame::OnInputEvent(const Event& event)
         }
     }
 
+    if (!m_camera)
+    {
+        return false;
+    }
+
     CameraController* controller = m_camera->GetCameraController();
+
+    if (!controller)
+    {
+        return false;
+    }
 
     switch (event.GetType())
     {

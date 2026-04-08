@@ -3396,7 +3396,7 @@ bool ShaderCompiler::CompileBundle(
             {
                 HYP_LOG(ShaderCompiler, Error,
                     "Shader request for bundle '{}' is not covered by the bundle's declared permutations: {}\n"
-                    "Declare the property variant up front in Shaders.ini or via PERMUTATION/VALUE_GROUP/STATIC macros in the shader source.",
+                    "Ensure PERMUTE() / STATIC() declarations that cover the desired property set exist in the shader source",
                     decl.name, coverageFailReason);
 
                 return false;

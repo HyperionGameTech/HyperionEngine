@@ -320,21 +320,23 @@ HYP_NODISCARD View* ShadowMapCache::GetOrCreateShadowView(
     AssertOnThread(g_renderThread);
 #endif
 
-    auto InitShadowCascade = [&](CachedShadowMapData& entry)
+    auto InitShadowCascade = [this, cascadeIndex, light](CachedShadowMapData& entry) -> ShadowMap*
     {
-        entry.shadowViewsStatic.Resize(cascadeIndex + 1);
-        entry.shadowViewsDynamic.Resize(cascadeIndex + 1);
-        entry.shadowMaps.Resize(cascadeIndex + 1);
-
-        // create shadow map
-        ShadowMap*& shadowMap = entry.shadowMaps[cascadeIndex];
-        
-        shadowMap = m_impl->allocator.AllocateShadowMap(
+        ShadowMap* shadowMap = m_impl->allocator.AllocateShadowMap(
             light->GetLightType() == LightType::Point ? ShadowMapType::SMT_OMNI : ShadowMapType::SMT_DIRECTIONAL,
-            light->GetLightType() == LightType::Directional ? SMF_CONTACT_HARDENED : SMF_STANDARD,//light->GetShadowMapFilter(),
+            light->GetLightType() == LightType::Directional ? SMF_CONTACT_HARDENED : SMF_STANDARD,
             light->GetShadowMapDimensions());
 
-        Assert(shadowMap != nullptr, "Failed to allocate ShadowMap");
+        if (shadowMap)
+        {
+            entry.shadowMaps.Resize(cascadeIndex + 1);
+            entry.shadowMaps[cascadeIndex] = shadowMap;
+
+            entry.shadowViewsStatic.Resize(cascadeIndex + 1);
+            entry.shadowViewsDynamic.Resize(cascadeIndex + 1);
+        }
+
+        return shadowMap;
     };
 
     auto it = m_impl->cache.Find(key);
@@ -360,7 +362,10 @@ HYP_NODISCARD View* ShadowMapCache::GetOrCreateShadowView(
 
             if (cascadeIndex >= entry->shadowViewsStatic.Size())
             {
-                InitShadowCascade(*entry);
+                if (!InitShadowCascade(*entry))
+                {
+                    return nullptr;
+                }
             }
         }
 
@@ -427,7 +432,10 @@ HYP_NODISCARD View* ShadowMapCache::GetOrCreateShadowView(
 
         if (cascadeIndex >= entry.shadowViewsStatic.Size())
         {
-            InitShadowCascade(entry);
+            if (!InitShadowCascade(entry))
+            {
+                return nullptr;
+            }
         }
 
         auto& views = isStatic ? entry.shadowViewsStatic : entry.shadowViewsDynamic;

@@ -52,6 +52,33 @@ namespace Hyperion {
 
 HYP_API extern Pool* g_scenePool;
 
+struct LightSorter
+{
+    Camera& camera;
+    const Frustum& frustum;
+
+    LightSorter(Camera& camera, const Frustum& frustum)
+        : camera(camera),
+          frustum(frustum)
+    {
+    }
+
+    bool operator()(Light* a, Light* b) const
+    {
+        // Prirotize directional lights first
+        if (a->GetLightType() != b->GetLightType())
+        {
+            return a->GetLightType() == LightType::Directional;
+        }
+
+        // Then sort by distance to camera (closest first)
+        const float aDistance = (a->GetWorldTranslation() - camera.GetWorldTranslation()).LengthSquared();
+        const float bDistance = (b->GetWorldTranslation() - camera.GetWorldTranslation()).LengthSquared();
+
+        return aDistance < bDistance;
+    }
+};
+
 #pragma region ViewOutputTarget
 
 ViewOutputTarget::ViewOutputTarget()
@@ -237,7 +264,7 @@ void View::Init()
                 attachment->SetClearColor(Vec4f(attachmentDesc.clearColor));
             }
 
-            DeferCreate(framebuffer);
+            CheckResult(framebuffer->Create());
 
             m_outputTarget = ViewOutputTarget(framebuffer);
         }
@@ -318,6 +345,11 @@ void View::PrepareShadowViews(Array<View*, SceneTempAllocator>& outShadowViews)
         return;
     }
 
+    // Collect all shadow casting lights into here so we can sort by distance / visibility to prioritize
+    // closer lights' casting shadows.
+    Array<Light*, RenderAllocator> allShadowCastingLights;
+    allShadowCastingLights.Reserve(8);
+
     for (Scene* scene : m_scenes)
     {
         AssertDebug(scene && scene->IsReady());
@@ -326,89 +358,122 @@ void View::PrepareShadowViews(Array<View*, SceneTempAllocator>& outShadowViews)
         {
             Light* light = static_cast<Light*>(entity);
 
-            bool lightCastsShadows = light->GetLightFlags() & LightFlags::ShadowCaster;
-
-            if (!lightCastsShadows)
-            {
+            if (!(light->GetLightFlags() & LightFlags::ShadowCaster))
                 continue;
-            }
-                
-            const bool hasBakedStaticShadows = (light->GetLightFlags() & LightFlags::BakeStaticShadows);
-            const bool cacheStaticShadowMaps = !hasBakedStaticShadows && (light->GetLightFlags() & LightFlags::CacheStaticShadowMaps);
+            
+            bool isLightInFrustum = false;
 
-            View* shadowViewsStatic[MaxShadowMapCascades] {};
-            View* shadowViewsDynamic[MaxShadowMapCascades] {};
-                    
-            for (uint32 cascadeIndex = 0; cascadeIndex < light->GetNumShadowMapCascades(); cascadeIndex++)
+            if (m_flags & ViewFlags::NO_FRUSTUM_CULLING)
+                isLightInFrustum = true;
+            else
             {
-                shadowViewsDynamic[cascadeIndex] = g_renderInterface->shadowMapCache->GetOrCreateShadowView(
+                switch (light->GetLightType())
+                {
+                case LightType::Directional:
+                    isLightInFrustum = true;
+                    break;
+                case LightType::Point:
+                    isLightInFrustum = m_subFrustum.ContainsBoundingSphere(light->GetBoundingSphere(true));
+                    break;
+                case LightType::Spot:
+                    /// \todo Implement frustum culling for spot lights
+                    isLightInFrustum = true;
+                    break;
+                case LightType::AreaRect:
+                    isLightInFrustum = m_subFrustum.ContainsAABB(light->GetWorldBounds());
+                    break;
+                default:
+                    break;
+                }
+            }
+
+            //if (!isLightInFrustum)
+                // Skip shadow view creation/update if the light is totally out of view.
+            //    continue;
+
+            allShadowCastingLights.PushBack(light);
+        }
+    }
+
+    std::sort(allShadowCastingLights.Begin(), allShadowCastingLights.End(), LightSorter(*m_camera, m_subFrustum));
+
+    for (Light* light : allShadowCastingLights)
+    {
+        const bool hasBakedStaticShadows = (light->GetLightFlags() & LightFlags::BakeStaticShadows);
+        const bool cacheStaticShadowMaps = !hasBakedStaticShadows && (light->GetLightFlags() & LightFlags::CacheStaticShadowMaps);
+
+        View* shadowViewsStatic[MaxShadowMapCascades] {};
+        View* shadowViewsDynamic[MaxShadowMapCascades] {};
+                    
+        for (uint32 cascadeIndex = 0; cascadeIndex < light->GetNumShadowMapCascades(); cascadeIndex++)
+        {
+            shadowViewsDynamic[cascadeIndex] = g_renderInterface->shadowMapCache->GetOrCreateShadowView(
+                this,
+                light,
+                cascadeIndex,
+                /* isStatic */ false);
+
+            if (!shadowViewsDynamic[cascadeIndex])
+            {
+                // failed to allocate shadow view - out of slots is most likely cause
+                // skip processing for this light.
+                break;
+            }
+
+            // We need a view specifically for static objects if we either:
+            // - cache shadow maps for statics independently
+            // - use baked shadow maps for statics
+            if (cacheStaticShadowMaps || hasBakedStaticShadows)
+            {
+                shadowViewsStatic[cascadeIndex] = g_renderInterface->shadowMapCache->GetOrCreateShadowView(
                     this,
                     light,
                     cascadeIndex,
-                    /* isStatic */ false);
+                    /* isStatic */ true);
+            }
 
-                if (!shadowViewsDynamic[cascadeIndex])
+            // Update shadow map camera
+            if (cascadeIndex == 0)
+            {
+                BoundingBox shadowBounds;
+
+                Camera* shadowCamera = shadowViewsDynamic[0]->GetCamera();
+                Assert(shadowCamera != nullptr);
+
+                switch (light->GetLightType())
                 {
-                    // failed to allocate shadow view - out of slots is most likely cause
-                    // skip processing for this light.
+                case LightType::Directional:
+                {
+                    ShadowCameraHelper::UpdateShadowCameraDirectional(
+                        *shadowCamera,
+                        Vec3f::Zero(), //m_camera.IsValid() ? m_camera->GetTranslation() : Vec3f::Zero(),
+                        light->GetWorldTranslation().Normalized() * 1000.0f,
+                        40.0f);
+
                     break;
                 }
+                case LightType::Point:
+                    shadowBounds = light->GetWorldBounds();
 
-                // We need a view specifically for static objects if we either:
-                // - cache shadow maps for statics independently
-                // - use baked shadow maps for statics
-                if (cacheStaticShadowMaps || hasBakedStaticShadows)
+                    shadowCamera->SetTranslation(light->GetWorldTranslation());
+
+                    break;
+                default:
+                    HYP_LOG_ONCE(Scene, Warning, "Shadow view update not implemented for light type {}", EnumToString(light->GetLightType()));
+                    break;
+                }
+            }
+
+            for (View* shadowView : { shadowViewsDynamic[cascadeIndex], shadowViewsStatic[cascadeIndex] })
+            {
+                if (!shadowView || outShadowViews.Contains(shadowView))
                 {
-                    shadowViewsStatic[cascadeIndex] = g_renderInterface->shadowMapCache->GetOrCreateShadowView(
-                        this,
-                        light,
-                        cascadeIndex,
-                        /* isStatic */ true);
+                    continue;
                 }
 
-                // Update shadow map camera
-                if (cascadeIndex == 0)
-                {
-                    BoundingBox shadowBounds;
+                shadowView->m_scenes = m_scenes;
 
-                    Camera* shadowCamera = shadowViewsDynamic[0]->GetCamera();
-                    Assert(shadowCamera != nullptr);
-
-                    switch (light->GetLightType())
-                    {
-                    case LightType::Directional:
-                    {
-                        ShadowCameraHelper::UpdateShadowCameraDirectional(
-                            *shadowCamera,
-                            Vec3f::Zero(), //m_camera.IsValid() ? m_camera->GetTranslation() : Vec3f::Zero(),
-                            light->GetWorldTranslation().Normalized() * 1000.0f,
-                            40.0f);
-
-                        break;
-                    }
-                    case LightType::Point:
-                        shadowBounds = light->GetWorldBounds();
-
-                        shadowCamera->SetTranslation(light->GetWorldTranslation());
-
-                        break;
-                    default:
-                        HYP_LOG_ONCE(Scene, Warning, "Shadow view update not implemented for light type {}", EnumToString(light->GetLightType()));
-                        break;
-                    }
-                }
-
-                for (View* shadowView : { shadowViewsDynamic[cascadeIndex], shadowViewsStatic[cascadeIndex] })
-                {
-                    if (!shadowView || outShadowViews.Contains(shadowView))
-                    {
-                        continue;
-                    }
-
-                    shadowView->m_scenes = m_scenes;
-
-                    outShadowViews.PushBack(shadowView);
-                }
+                outShadowViews.PushBack(shadowView);
             }
         }
     }

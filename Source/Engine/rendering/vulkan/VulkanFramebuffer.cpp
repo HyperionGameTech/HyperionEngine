@@ -95,16 +95,11 @@ RendererResult VulkanAttachmentMap::Create()
         }
     }
 
-    UniquePtr<SingleTimeCommands> singleTimeCommands = g_renderInterface->GetSingleTimeCommands();
+    CommandRecorder& cr = g_renderInterface->commandRecorderAllocator.GetCommandRecorder();
+    TransitionFramebufferAttachments(cr, framebuffer, attachments.ToSpan());
+    cr.Done();
 
-    singleTimeCommands->Push([&](CommandRecorder& cr) -> RendererResult
-        {
-            TransitionFramebufferAttachments(cr, framebuffer, attachments.ToSpan());
-
-            return {};
-        });
-
-    return singleTimeCommands->Execute();
+    return {};
 }
 
 #pragma endregion VulkanAttachmentMap
@@ -210,22 +205,13 @@ RendererResult VulkanFramebuffer::Create()
 
     if (shouldClearFramebuffer)
     {
-        UniquePtr<SingleTimeCommands> singleTimeCommands = g_renderInterface->GetSingleTimeCommands();
+        CommandRecorder& cr = g_renderInterface->commandRecorderAllocator.GetCommandRecorder();
 
-        singleTimeCommands->Push([this](CommandRecorder& cr) -> RendererResult
-            {
-                cr << SetCurrentFramebuffer(this);
-                cr << ClearFramebuffer(this);
-                cr << SetCurrentFramebuffer(nullptr);
+        cr << SetCurrentFramebuffer(this);
+        cr << ClearFramebuffer(this);
+        cr << SetCurrentFramebuffer(nullptr);
 
-                return {};
-            });
-
-        RendererResult result = singleTimeCommands->Execute();
-        if (!result)
-        {
-            return HYP_MAKE_ERROR(RendererError, "Failed to clear framebuffer on create! Error was: {}", result.GetError().GetErrorCode(), result.GetError().GetMessage());
-        }
+        cr.Done();
     }
 
 #if HYP_DEBUG_MODE

@@ -199,15 +199,15 @@
   "ShaderBlobs": [{
       "$Class": "BlobDataReference",
       "Key": "Engine/Shaders/HBAO/HBAO_9858093069346154198.VS",
-      "Size": 10872
+      "Size": 11252
     }, {
       "$Class": "BlobDataReference",
       "Key": "Engine/Shaders/HBAO/HBAO_9858093069346154198.PS",
-      "Size": 124612
+      "Size": 124992
     }],
   "PropertySetHashCode": {},
   "LastCompiledTimestamp": {
-    "Value": 1775331153000
+    "Value": 1775529226000
   },
   "Name": "HBAO_9858093069346154198",
   "FriendlyName": "HBAO_9858093069346154198",
