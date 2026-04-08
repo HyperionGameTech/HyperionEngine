@@ -144,7 +144,7 @@ Keyframe AnimationTrack::GetKeyframe(float time) const
 Animation::Animation() = default;
 
 Animation::Animation(Name name)
-    : m_name(name)
+    : AssetObject(name)
 {
 }
 

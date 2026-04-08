@@ -1912,8 +1912,6 @@ extern class Skeleton : AssetObject
     Animations : Array<Animation>
 end
 extern class Animation : AssetObject
-    GetName() -> Name
-    SetName(name : Name) -> void
     GetLength() -> float
     AddTrack(track : AnimationTrack) -> void
     GetTracks() -> Array<AnimationTrack>
@@ -1922,7 +1920,6 @@ extern class Animation : AssetObject
     NumTracks() -> uint32
     Apply(skeleton : Skeleton, time : float) -> void
     ApplyBlended(skeleton : Skeleton, time : float, blend : float) -> void
-    Name : Name
     Tracks : Array<AnimationTrack>
 end
 extern class AnimationTrack : AssetObject
