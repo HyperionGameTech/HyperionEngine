@@ -276,7 +276,7 @@
                                                     IsEnabled="False" />
                                                 <MenuItem Command="{Binding AddEntity}" Header="Entity" />
                                                 <MenuItem Command="{Binding AddEmptyNode}" Header="Empty Node" />
-                                                <MenuItem Command="{Binding AddInstance}" Header="Instance" /> <!-- @TODO: disable it unless an object is selected in the inspector! -->
+                                                <MenuItem Command="{Binding AddInstance}" Header="Instance" IsEnabled="{Binding CanAddInstance}" />
                                                 <MenuItem Command="{Binding AddCamera}" Header="Camera" />
                                                 <Separator />
                                                 <MenuItem

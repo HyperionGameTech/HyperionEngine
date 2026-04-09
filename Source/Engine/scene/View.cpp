@@ -955,9 +955,11 @@ void View::CollectMeshEntities(RenderProxyList& rpl)
 
             Mat4f transformMatrix = transformComponent->GetMatrix();
             
-            if ((meshComponent->enableAutoInstancing || meshComponent->numInstances) && meshComponent->instanceData.IsLoaded())
+            if (meshComponent->enableAutoInstancing || meshComponent->numInstances)
             {
                 AssertDebug(m_viewDesc.entityBatchClass == nullptr || m_viewDesc.entityBatchClass == MeshEntityInstanceBatch::StaticClass());
+
+                AssertDebug(meshComponent->instanceData.IsLoaded());
 
                 const Handle<InstancedMeshData>& imd = ObjCast<InstancedMeshData>(meshComponent->instanceData.Resolve());
                 AssertDebug(imd.IsValid());

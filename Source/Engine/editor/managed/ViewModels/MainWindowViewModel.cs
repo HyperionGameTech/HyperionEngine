@@ -48,7 +48,21 @@ namespace Hyperion.Editor.ViewModels
 
         public EditorCommand AddEmptyNode => new EditorCommand("AddEmptyNode");
         public EditorCommand AddEntity => new EditorCommand("AddEntity");
-        public EditorCommand AddInstance => new EditorCommand("AddInstance");
+        private EditorCommand _addInstance = new EditorCommand("AddInstance");
+        public EditorCommand AddInstance => _addInstance;
+
+        private bool _canAddInstance = false;
+        public bool CanAddInstance
+        {
+            get => _canAddInstance;
+            private set
+            {
+                if (SetProperty(ref _canAddInstance, value))
+                {
+                    _addInstance.RaiseCanExecuteChanged();
+                }
+            }
+        }
         public EditorCommand AddCamera => new EditorCommand("AddCamera");
 
         public EditorCommand AddPointLight => new EditorCommand("AddPointLight");
@@ -502,6 +516,8 @@ namespace Hyperion.Editor.ViewModels
                 return;
             }
 
+            CanAddInstance = node is Entity;
+
             _ = EngineManager.PostToSimThread(() =>
             {
                 try
@@ -616,6 +632,13 @@ namespace Hyperion.Editor.ViewModels
                     bool isRootNode = SceneHierarchy.IsRootNode(validNode);
                     Inspector.SetSelectedNode(validNode, SceneHierarchy.Scene, isRootNode);
                     SceneHierarchy.SelectNodeFromEngine(validNode);
+
+                    // can ONLY add Instanced Mesh Proxy child objects instances to entities that have a MeshComponent.
+                    // Note that for now the most derived class MUST be EQUAL to Entity (not just derived from it)
+                    // as currently we only support adding instances to entities, not to other node types (e.g. we don't support adding instances to a Light)
+                    CanAddInstance = validNode != null
+                        && validNode.GetType() == typeof(Entity);
+                        //&& ((Entity)validNode).HasComponent<MeshComponent>();
                 }
                 finally
                 {

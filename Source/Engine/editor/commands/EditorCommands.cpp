@@ -705,9 +705,16 @@ static void AddNodeOfTypeImpl(EditorSubsystem* subsystem, Name defaultNodeName)
         Proc<EditorActionFunctions()>([n, currentFocusedNode, activeScene]() -> EditorActionFunctions
             {
                 return EditorActionFunctions {
-                    .execute = Proc<void(EditorSubsystem*, EditorProject*)>([n, activeScene](EditorSubsystem* editorSubsystem, EditorProject* project)
+                    .execute = Proc<void(EditorSubsystem*, EditorProject*)>([n, currentFocusedNode, activeScene](EditorSubsystem* editorSubsystem, EditorProject* project)
                         {
-                            activeScene->GetRoot()->AddChild(n);
+                            Handle<Node> parentNode = currentFocusedNode.Lock();
+
+                            if (!parentNode.IsValid())
+                            {
+                                parentNode = activeScene->GetRoot();
+                            }
+
+                            parentNode->AddChild(n);
                             editorSubsystem->SetFocusedNode(n, true);
                         }),
                     .revert = Proc<void(EditorSubsystem*, EditorProject*)>([n, currentFocusedNode](EditorSubsystem* editorSubsystem, EditorProject* project)

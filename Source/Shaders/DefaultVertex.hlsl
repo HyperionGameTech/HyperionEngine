@@ -58,8 +58,8 @@ VSOutput VSMain(VSInput input, uint instanceId : SV_InstanceID)
     float4 previous_position;
 
 #ifdef INSTANCING
-    Entity currentEntity = entities[instanceId];
-    float4x4 model_matrix = entity_instance_batch.transforms[instanceId];
+    Entity currentEntity = entities[entity_instance_batch.indices[instanceId / 4][instanceId % 4]];
+    float4x4 model_matrix = mul(currentEntity.model_matrix, entity_instance_batch.transforms[instanceId]); //entity_instance_batch.transforms[instanceId];
     float3x3 normal_matrix = transpose(inverse((float3x3)model_matrix));
 #else // !INSTANCING
     Entity currentEntity = entity;

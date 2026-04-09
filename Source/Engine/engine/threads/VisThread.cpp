@@ -150,7 +150,7 @@ void VisThread::OnFrameStart(uint32 frameCounter)
     m_simSemaphore.release();
 }
 
-void VisThread::OnFrameEnd(Array<Entity*, SceneTempAllocator>& outProcessedEntities)
+void VisThread::OnFrameEnd(Array<Entity*, SceneAllocator>& outProcessedEntities)
 {
     AssertOnThread(g_simThread);
 

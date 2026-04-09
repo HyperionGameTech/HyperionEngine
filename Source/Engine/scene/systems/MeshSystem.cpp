@@ -142,10 +142,13 @@ void MeshSystem::OnEntityAdded(Entity* entity)
 
     UpdateInstancedMeshData(*entity, meshComponent);
 
+    entity->AddTag<EntityTag::UpdateRenderProxy>();
     entity->RemoveTag<EntityTag::UpdateInstancedMeshData>();
 
 #if HYP_EDITOR
-    m_cachedStates[entity] = { meshComponent.enableAutoInstancing };
+    m_cachedStates[entity] = CachedInstancedMeshDataState {
+        meshComponent.enableAutoInstancing
+    };
 #endif // HYP_EDITOR
 }
 
@@ -159,7 +162,8 @@ void MeshSystem::OnEntityRemoved(Entity* entity)
     }
     
     DestroyInstancedMeshData(*entity, entity->GetComponent<MeshComponent>(), /* removeFromPackage */ false);
-
+    
+    entity->AddTag<EntityTag::UpdateRenderProxy>();
     entity->RemoveTag<EntityTag::UpdateInstancedMeshData>();
 
 #if HYP_EDITOR
@@ -198,7 +202,7 @@ void MeshSystem::Process(float delta, Span<Handle<Scene>> scenes)
                 {
                     UpdateInstancedMeshData(*entity, meshComponent);
 
-                    cachedIt->second = { meshComponent.enableAutoInstancing };
+                    cachedIt->second.enableAutoInstancing = meshComponent.enableAutoInstancing;
 
                     updatedEntities.Add(entity);
                 }
@@ -222,7 +226,7 @@ void MeshSystem::Process(float delta, Span<Handle<Scene>> scenes)
                 {
                     for (Entity* entity : updatedEntities)
                     {
-                        entity->RemoveTag<EntityTag::UpdateInstancedMeshData>();
+                        entity->SetNeedsRenderProxyUpdate();
                     }
                 });
         }

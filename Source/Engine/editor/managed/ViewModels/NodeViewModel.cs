@@ -87,7 +87,6 @@ namespace Hyperion.Editor.ViewModels
 
             WeakReference<NodeViewModel> weakThis = new WeakReference<NodeViewModel>(this);
 
-            // Subscribe to child added/removed if available
             _onChildAdded = node.GetOnChildAddedDelegate().Bind((Node child, bool isDirect) =>
             {
                 NodeViewModel? target;
