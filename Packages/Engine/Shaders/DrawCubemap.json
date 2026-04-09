@@ -60,6 +60,26 @@
       "AssetPath": {
         "Value": "Engine/Shaders/DrawCubemap/DrawCubemap_5336421232962317083"
       }
+    }, {
+      "$Class": "AssetReference",
+      "AssetPath": {
+        "Value": "Engine/Shaders/DrawCubemap/DrawCubemap_10653931154166359881"
+      }
+    }, {
+      "$Class": "AssetReference",
+      "AssetPath": {
+        "Value": "Engine/Shaders/DrawCubemap/DrawCubemap_10653931154166359889"
+      }
+    }, {
+      "$Class": "AssetReference",
+      "AssetPath": {
+        "Value": "Engine/Shaders/DrawCubemap/DrawCubemap_10653931154166359873"
+      }
+    }, {
+      "$Class": "AssetReference",
+      "AssetPath": {
+        "Value": "Engine/Shaders/DrawCubemap/DrawCubemap_10653931154166359225"
+      }
     }],
   "Name": "DrawCubemap",
   "FriendlyName": "DrawCubemap",

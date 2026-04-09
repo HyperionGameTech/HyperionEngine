@@ -429,7 +429,7 @@ namespace Hyperion.Editor.ViewModels
             if (project != null)
             {
                 _actionStackStateChangedHandler = project.ActionStack.GetOnStateChangeDelegate()
-                    .Bind((EditorActionStackState _) => UpdateUndoRedoHeaders(project));
+                    .Bind((EditorActionStackState state, int undoDepth) => UpdateUndoRedoHeaders(project));
             }
 
             UpdateUndoRedoHeaders(project);

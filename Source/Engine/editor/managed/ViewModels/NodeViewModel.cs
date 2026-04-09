@@ -44,6 +44,22 @@ namespace Hyperion.Editor.ViewModels
         public bool IsUnnamed => string.IsNullOrEmpty(_name);
         public FontStyle NameFontStyle => IsUnnamed ? FontStyle.Italic : FontStyle.Normal;
 
+        public string IconKind => _node switch
+        {
+            DirectionalLight    => "Sun",
+            PointLight          => "Lightbulb",
+            SpotLight           => "Spotlight",
+            AreaRectLight       => "RectangleHorizontal",
+            Camera              => "Video",
+            ReflectionProbe     => "Gem",
+            ParticleVolume      => "Sparkles",
+            InstancedMeshProxy  => "SquaresUnite",
+            Bone                => "Bone",
+            VolumeBase          => "Box",
+            Entity              => "Shapes",
+            _                   => "Circle",
+        };
+
         public ObservableCollection<NodeViewModel> Children { get; } = new ObservableCollection<NodeViewModel>();
 
         private bool _isExpanded;

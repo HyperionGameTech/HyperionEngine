@@ -335,50 +335,47 @@ void GraphicsPipelineCache::GetOrCreate(
 
     size_t slot = SIZE_MAX;
 
-    { // Create pipeline
-        GraphicsPipelineRef graphicsPipeline = g_renderInterface->MakeGraphicsPipeline(
-            shader,
-            framebufferDesc,
-            attributes);
+    // Create pipeline
+    GraphicsPipelineRef graphicsPipeline = g_renderInterface->MakeGraphicsPipeline(
+        shader,
+        framebufferDesc,
+        attributes);
 
-        // sanity check: newly created pipeline must match or caching will fail.
-        AssertDebug(graphicsPipeline->MatchesSignature(attributes, framebufferDesc));
+    // sanity check: newly created pipeline must match or caching will fail.
+    AssertDebug(graphicsPipeline->MatchesSignature(attributes, framebufferDesc));
 
-        cacheHandle = m_cachedPipelines->Alloc(slot);
-        Assert(cacheHandle.m_ptr != nullptr && slot != SIZE_MAX);
+    TUniqueLock guard(m_mutex);
 
-        ShaderInstance* shaderInstance = graphicsPipeline->GetShader();
-        
-    #if HYP_DEBUG_MODE
-        String shaderString = "\tProperties: " + shaderInstance->GetShader()->properties.GetDebugString();
-        shaderString += "\n\tVertex attributes: " + String::ToString(shaderInstance->GetShader()->inputLayout.mask);
+    ShaderInstance* shaderInstance = graphicsPipeline->GetShader();
+    
+#if HYP_DEBUG_MODE
+    String shaderString = "\tProperties: " + shaderInstance->GetShader()->properties.GetDebugString();
+    shaderString += "\n\tVertex attributes: " + String::ToString(shaderInstance->GetShader()->inputLayout.mask);
 
-        HYP_LOG(Rendering, Verbose, "Creating graphics pipeline {} (debug name: {}) on render thread, Shader details:\n{}",
-            graphicsPipeline->Id(), graphicsPipeline->GetDebugName(),
-            shaderString);
-    #endif
+    HYP_LOG(Rendering, Verbose, "Creating graphics pipeline {} (debug name: {}) on render thread, Shader details:\n{}",
+        graphicsPipeline->Id(), graphicsPipeline->GetDebugName(),
+        shaderString);
+#endif
 
-        if (CheckResult(graphicsPipeline->Create()))
-        {
-
-            // set initial lastFrame index so we don't delete it right away when cleaning up after the frame.
-            graphicsPipeline->lastFrame = GetFrameCounter();
-
-            // set new allocated slot to the graphics pipeline we just created
-            *cacheHandle.m_ptr = std::move(graphicsPipeline);
-
-            outCacheHandle = std::move(cacheHandle);
-        }
-        else
-        {
-            return;
-        }
+    if (!CheckResult(graphicsPipeline->Create()))
+    {
+        return;
     }
+    
+    // set initial lastFrame index so we don't delete it right away when cleaning up after the frame.
+    graphicsPipeline->lastFrame = GetFrameCounter();
+
+    cacheHandle = m_cachedPipelines->Alloc(slot);
+    
+    Assert(cacheHandle.m_ptr != nullptr && slot != SIZE_MAX);
+
+    // set new allocated slot to the graphics pipeline we just created
+    *cacheHandle.m_ptr = std::move(graphicsPipeline);
+
+    outCacheHandle = std::move(cacheHandle);
 
     // Add to cache
     Assert(slot != SIZE_MAX);
-    
-    TUniqueLock guard(m_mutex);
 
 #if HYP_GRAPHICS_PIPELINE_TIMING_DEBUG
     HYP_LOG(Rendering, Verbose, "Adding graphics pipeline {} (debug name: {}) to cache with hash: {}", graphicsPipeline->Id(), graphicsPipeline->GetDebugName(), attributes.GetHashCode().Value());

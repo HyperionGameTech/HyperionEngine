@@ -53,7 +53,7 @@ auto GenericPipelineCache<PipelineType>::GetOrCreate(Name shaderName, const Shad
     }
 
     // Not found, create new
-    TUniqueLock guard(m_mutex);
+    TSharedLock sharedLock(m_mutex);
 
     auto it = m_keyToIndex.Find(key);
     if (it != m_keyToIndex.End())
@@ -67,44 +67,30 @@ auto GenericPipelineCache<PipelineType>::GetOrCreate(Name shaderName, const Shad
         }
     }
 
+    // unlock for MakePipeline - don't want to deadlock if the thread we wait on calls ExpirePipelinesForShader().
+    sharedLock.Reset();
+
     PipelineRefType pipeline = MakePipeline(shaderName, properties);
 
     if (!pipeline.IsValid())
     {
         return nullptr;
     }
+    
+    pipeline->lastFrame = GetFrameCounter();
+    CheckResult(pipeline->Create());
 
     const uint32 index = m_idGenerator.Next() - 1;
     
     CachedPipeline cached {};
     cached.pipeline = pipeline;
     cached.key = key;
+
+    // re-lock
+    TUniqueLock uniqueLock(m_mutex);
     
     m_pipelines.Set(index, std::move(cached));
     m_keyToIndex[key] = index;
-
-    struct CreatePipelineCommand : RenderCommand
-    {
-        PipelineType* pipeline;
-
-        CreatePipelineCommand(PipelineType* pipeline)
-            : pipeline(pipeline)
-        {
-        }
-
-        virtual ~CreatePipelineCommand() override = default;
-
-        virtual RendererResult operator()() override
-        {
-            CheckResultOrReturn(pipeline->Create());
-            
-            pipeline->lastFrame = GetFrameCounter();
-
-            return RendererResult {};
-        }
-    };
-
-    PUSH_RENDER_COMMAND(CreatePipelineCommand, pipeline);
 
     return pipeline;
 }

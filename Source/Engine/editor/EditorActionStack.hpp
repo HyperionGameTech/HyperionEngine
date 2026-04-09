@@ -36,11 +36,15 @@ class HYP_API EditorActionStack : public ObjectBase
 
 public:
     EditorActionStack();
+    
     EditorActionStack(const WeakHandle<EditorProject>& editorProject);
+
     EditorActionStack(const EditorActionStack& other) = delete;
     EditorActionStack& operator=(const EditorActionStack& other) = delete;
+
     EditorActionStack(EditorActionStack&& other) noexcept;
     EditorActionStack& operator=(EditorActionStack&& other) noexcept;
+    
     virtual ~EditorActionStack() override;
 
     HYP_METHOD()
@@ -77,15 +81,15 @@ public:
     ScriptableDelegate<void, EditorActionBase*> OnAfterActionPop;
 
     HYP_FIELD()
-    ScriptableDelegate<void, EnumFlags<EditorActionStackState>> OnStateChange;
+    ScriptableDelegate<void, EnumFlags<EditorActionStackState> /* state */, int /* undoDepth */> OnStateChange;
 
 private:
-    void UpdateState();
+    void UpdateState(int newUndoDepth);
 
     WeakHandle<EditorProject> m_editorProject;
 
     LinkedList<Handle<EditorActionBase>> m_actions;
-    int m_currentActionIndex;
+    int m_undoDepth;
 
     EnumFlags<EditorActionStackState> m_currentState;
 };
