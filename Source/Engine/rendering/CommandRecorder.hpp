@@ -270,32 +270,6 @@ private:
     uint8 m_pipelineType : 2; // 0 = Graphics, 1 = Compute, 2 = RayTracing
 };
 
-class BindDescriptorTable final : public CmdBase
-{
-public:
-    BindDescriptorTable(DescriptorTable* descriptorTable, GraphicsPipeline* graphicsPipeline, const DescriptorTableOffsetMap& offsets, uint32 frameIndex);
-    BindDescriptorTable(DescriptorTable* descriptorTable, ComputePipeline* computePipeline, const DescriptorTableOffsetMap& offsets, uint32 frameIndex);
-    BindDescriptorTable(DescriptorTable* descriptorTable, RayTracingPipeline* rayTracingPipeline, const DescriptorTableOffsetMap& offsets, uint32 frameIndex);
-
-    static void PrepareStatic(CmdBase* cmd, Frame* frame);
-    static void InvokeStatic(CmdBase* cmd, CommandBuffer* commandBuffer);
-
-private:
-    DescriptorTable* m_descriptorTable;
-
-    union
-    {
-        GraphicsPipeline* m_graphicsPipeline;
-        ComputePipeline* m_computePipeline;
-        RayTracingPipeline* m_rayTracingPipeline;
-    };
-
-    DescriptorTableOffsetMap m_offsets;
-    uint32 m_frameIndex;
-
-    uint8 m_pipelineType : 2; // 0 = Graphics, 1 = Compute, 2 = RayTracing
-};
-
 class InsertBarrier final : public CmdBase
 {
 public:

@@ -18,6 +18,8 @@
 #include <Core/math/Color.hpp>
 
 #include <rendering/Vertex.hpp>
+#include <rendering/RenderObject.hpp>
+#include <rendering/RenderResult.hpp>
 
 #include <util/EnumOptions.hpp>
 
@@ -1295,64 +1297,6 @@ struct DescriptorSetOffsetMap
     }
 };
 
-HYP_STRUCT()
-struct DescriptorTableOffsetMap
-{
-    HYP_STRUCT_BODY(DescriptorTableOffsetMap);
-
-    static constexpr uint32 MaxSets = 4;
-
-    StringHash setNames[MaxSets];
-    DescriptorSetOffsetMap setOffsets[MaxSets];
-    uint32 count;
-
-    DescriptorTableOffsetMap()
-        : setNames(),
-          setOffsets(),
-          count(0)
-    {
-    }
-
-    DescriptorTableOffsetMap(std::initializer_list<Pair<StringHash, DescriptorSetOffsetMap>> v)
-        : setNames(),
-          setOffsets(),
-          count(v.size())
-    {
-        AssertDebug(v.size() <= MaxSets, "too many values provided to constructor!");
-
-        for (auto it = v.begin(); it != v.end(); ++it)
-        {
-            setNames[it - v.begin()] = it->first;
-            setOffsets[it - v.begin()] = it->second;
-        }
-    }
-
-    template <size_t Count>
-    DescriptorTableOffsetMap(Pair<StringHash, DescriptorSetOffsetMap> const (&v)[Count])
-        : setNames(),
-          setOffsets(),
-          count(Count)
-    {
-        static_assert(Count <= MaxSets, "too many values provided to constructor!");
-
-        for (uint32 i = 0; i < Count; i++)
-        {
-            setNames[i] = v[i].first;
-            setOffsets[i] = v[i].second;
-        }
-    }
-
-    HYP_FORCE_INLINE DescriptorSetOffsetMap& Add(StringHash setName)
-    {
-        uint32 idx = count++;
-        AssertDebug(idx < MaxSets, "too many offsets!");
-
-        setNames[idx] = setName;
-
-        return setOffsets[count];
-    }
-};
-
 enum class RenderPassMode : uint8
 {
     RenderTarget,
@@ -2229,6 +2173,8 @@ private:
     mutable bool m_needsHashCodeRecalculation;
 };
 
+#pragma pack(push, 1)
+
 HYP_STRUCT()
 struct ShaderPropertySet
 {
@@ -2288,14 +2234,14 @@ struct ShaderPropertySet
             || bool(chunks[3] & (1u << uint32(id)));
     }
 
-    HYP_FORCE_INLINE constexpr bool operator==(const ShaderPropertySet& other) const
+    HYP_FORCE_INLINE bool operator==(const ShaderPropertySet& other) const
     {
-        return chunks == other.chunks;
+        return std::memcmp(this, &other, sizeof(ShaderPropertySet)) == 0;
     }
 
-    HYP_FORCE_INLINE constexpr bool operator!=(const ShaderPropertySet& other) const
+    HYP_FORCE_INLINE bool operator!=(const ShaderPropertySet& other) const
     {
-        return chunks != other.chunks;
+        return std::memcmp(this, &other, sizeof(ShaderPropertySet)) != 0;
     }
 
     HYP_FORCE_INLINE constexpr ShaderPropertySet operator&(const ShaderPropertySet& other) const
@@ -2323,9 +2269,11 @@ struct ShaderPropertySet
     Array<ShaderPropertyId> ToArray() const;
     String GetDebugString() const;
 
-    HYP_FORCE_INLINE constexpr HashCode GetHashCode() const
+    HYP_FORCE_INLINE HashCode GetHashCode() const
     {
-        return chunks.GetHashCode();
+        return HashCode::GetHashCode(
+            reinterpret_cast<const ubyte*>(this),
+            reinterpret_cast<const ubyte*>(this) + sizeof(ShaderPropertySet));
     }
 };
 
@@ -2335,121 +2283,7 @@ extern ShaderPropertyId InternShaderProperty(const ShaderProperty& shaderPropert
 struct ShaderDesc
 {
     static constexpr uint32 MaxShaderProperties = 8;
-
-    struct PropertyValue
-    {
-        union
-        {
-            Name nameValue;
-            int intValue;
-            float floatValue;
-        };
-
-        uint8 index;
-
-        PropertyValue()
-            : nameValue(),
-              index(uint8(-1))
-        {
-        }
-
-        PropertyValue(Name value)
-            : nameValue(value),
-              index(0)
-        {
-        }
-
-        PropertyValue(int value)
-            : intValue(value),
-              index(1)
-        {
-        }
-
-        PropertyValue(float value)
-            : floatValue(value),
-              index(2)
-        {
-        }
-
-        PropertyValue(const PropertyValue& other) = default;
-        PropertyValue& operator=(const PropertyValue& other) = default;
-
-        bool operator==(const PropertyValue& other) const
-        {
-            if (index != other.index)
-            {
-                return false;
-            }
-
-            switch (index)
-            {
-            case 0:
-                return nameValue == other.nameValue;
-            case 1:
-                return intValue == other.intValue;
-            case 2:
-                return floatValue == other.floatValue;
-            }
-
-            return false;
-        }
-
-        bool operator!=(const PropertyValue& other) const
-        {
-            return !(*this == other);
-        }
-
-        HYP_FORCE_INLINE bool IsValid() const
-        {
-            return index != uint8(-1);
-        }
-
-        HYP_FORCE_INLINE bool IsName() const
-        {
-            return index == 0;
-        }
-
-        HYP_FORCE_INLINE bool IsInt() const
-        {
-            return index == 1;
-        }
-
-        HYP_FORCE_INLINE bool IsFloat() const
-        {
-            return index == 2;
-        }
-
-        HYP_FORCE_INLINE Name GetName() const
-        {
-            return index == 0 ? nameValue : Name::Invalid();
-        }
-
-        HYP_FORCE_INLINE int GetInt() const
-        {
-            return index == 1 ? intValue : 0;
-        }
-
-        HYP_FORCE_INLINE float GetFloat() const
-        {
-            return index == 2 ? floatValue : 0.0f;
-        }
-
-        HYP_FORCE_INLINE HashCode GetHashCode() const
-        {
-            switch (index)
-            {
-            case 0:
-                return nameValue.GetHashCode();
-            case 1:
-                return HashCode::GetHashCode(intValue);
-            case 2:
-                return HashCode::GetHashCode(floatValue);
-            default:
-                return HashCode();
-            }
-        }
-    };
-
+    
     Name name;
     ShaderPropertySet properties;
 
@@ -2480,23 +2314,94 @@ struct ShaderDesc
     ShaderDesc(const ShaderDesc& other) = default;
     ShaderDesc& operator=(const ShaderDesc& other) = default;
 
-    HYP_FORCE_INLINE constexpr bool operator==(const ShaderDesc& other) const
+    HYP_FORCE_INLINE bool operator==(const ShaderDesc& other) const
     {
-        return name == other.name
-            && properties == other.properties;
+        return std::memcmp(this, &other, sizeof(ShaderDesc)) == 0;
     }
 
-    HYP_FORCE_INLINE constexpr bool operator!=(const ShaderDesc& other) const
+    HYP_FORCE_INLINE bool operator!=(const ShaderDesc& other) const
     {
-        return !(*this == other);
+        return std::memcmp(this, &other, sizeof(ShaderDesc)) != 0;
     }
 
-    HYP_FORCE_INLINE constexpr HashCode GetHashCode() const
+    HYP_FORCE_INLINE HashCode GetHashCode() const
     {
-        return HashCode::GetHashCode(name)
-            .Combine(properties.GetHashCode());
+        return HashCode::GetHashCode(
+            reinterpret_cast<const ubyte*>(this),
+            reinterpret_cast<const ubyte*>(this) + sizeof(ShaderDesc));
     }
 };
+
+struct ShaderUniform
+{
+    Name name;
+
+    union
+    {
+        GpuBuffer* buffer;
+        GpuImageView* imageView;
+        Sampler* sampler;
+        GpuTlas* tlas;
+    };
+
+    enum
+    {
+        UT_Buffer,
+        UT_ImageView,
+        UT_Sampler,
+        UT_Tlas
+    } type;
+
+    ShaderUniform() = default;
+    ShaderUniform(const ShaderUniform& other) = default;
+    
+    ShaderUniform(StringHash name, GpuBuffer* buffer)
+        : name(name),
+          buffer(buffer),
+          type(UT_Buffer)
+    {
+    }
+
+    ShaderUniform(StringHash name, GpuImageView* imageView)
+        : name(name),
+          imageView(imageView),
+          type(UT_ImageView)
+    {
+    }
+
+    ShaderUniform(StringHash name, Sampler* sampler)
+        : name(name),
+          sampler(sampler),
+          type(UT_Sampler)
+    {
+    }
+
+    ShaderUniform(StringHash name, GpuTlas* tlas)
+        : name(name),
+          tlas(tlas),
+          type(UT_Tlas)
+    {
+    }
+
+    HYP_FORCE_INLINE bool operator==(const ShaderUniform& other) const
+    {
+        return std::memcmp(this, &other, sizeof(ShaderUniform)) == 0;
+    }
+
+    HYP_FORCE_INLINE bool operator!=(const ShaderUniform& other) const
+    {
+        return std::memcmp(this, &other, sizeof(ShaderUniform)) != 0;
+    }
+
+    HYP_FORCE_INLINE HashCode GetHashCode() const
+    {
+        return HashCode::GetHashCode(
+            reinterpret_cast<const ubyte*>(this),
+            reinterpret_cast<const ubyte*>(this) + sizeof(ShaderUniform));
+    }
+};
+
+#pragma pack(pop)
 
 HYP_ENUM()
 enum class ShaderModuleType : uint8

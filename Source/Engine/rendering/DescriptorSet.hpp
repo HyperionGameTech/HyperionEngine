@@ -537,52 +537,6 @@ public:
         \return The result of the operation */
     void Update(uint32 frameIndex, bool force = false);
 
-    /*! \brief Bind all descriptor sets in the table
-        \param commandBuffer The command buffer to push the bind commands to
-        \param frameIndex The index of the frame to bind the descriptor sets for
-        \param pipeline The pipeline to bind the descriptor sets to
-        \param offsets The offsets to bind dynamic descriptor sets with */
-    template <class PipelineRef>
-    void Bind(CommandBuffer* commandBuffer, uint32 frameIndex, const PipelineRef& pipeline, const DescriptorTableOffsetMap& offsets) const
-    {
-        for (const DescriptorSetRef& set : m_sets[frameIndex])
-        {
-            DescriptorSetBase* setBase = static_cast<DescriptorSetBase*>(set.ptr);
-
-            if (!setBase->GetLayout().IsValid() || setBase->GetLayout().IsTemplate())
-            {
-                continue;
-            }
-
-            const Name descriptorSetName = setBase->GetLayout().GetName();
-
-            const uint32 setIndex = GetDescriptorSetIndex(descriptorSetName);
-
-            if (setBase->GetLayout().GetDynamicElements().Any() && offsets.count != 0)
-            {
-                int offsetIdx = -1;
-
-                for (uint32 i = 0; i < offsets.count; i++)
-                {
-                    if (offsets.setNames[i] == descriptorSetName)
-                    {
-                        offsetIdx = i;
-                        break;
-                    }
-                }
-
-                if (offsetIdx != -1)
-                {
-                    setBase->Bind(commandBuffer, pipeline, offsets.setOffsets[offsetIdx], setIndex);
-
-                    continue;
-                }
-            }
-
-            setBase->Bind(commandBuffer, pipeline, setIndex);
-        }
-    }
-
 protected:
     const ShaderInputGroup* m_decl;
     FixedArray<Array<DescriptorSetRef>, NumFramesInFlight> m_sets;

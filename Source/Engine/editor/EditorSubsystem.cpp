@@ -413,12 +413,12 @@ void TranslateEditorGizmo::OnDragStart(const Handle<Camera>& camera, const Mouse
 
     m_dragData = dragData;
 }
+HYP_DISABLE_OPTIMIZATION;
 
 void TranslateEditorGizmo::OnDragEnd(const Handle<Camera>& camera, const MouseEvent& mouseEvent)
 {
     EditorGizmoBase::OnDragEnd(camera, mouseEvent);
 
-    // Commit editor transaction
     if (Handle<EditorProject> project = GetCurrentProject(); project.IsValid())
     {
         if (Handle<Node> focusedNode = m_focusedNode.Lock(); focusedNode.IsValid())
@@ -463,6 +463,7 @@ void TranslateEditorGizmo::OnDragEnd(const Handle<Camera>& camera, const MouseEv
 
     m_dragData.Unset();
 }
+HYP_ENABLE_OPTIMIZATION;
 
 bool TranslateEditorGizmo::OnMouseHover(const Handle<Camera>& camera, const MouseEvent& mouseEvent, const Handle<Node>& node)
 {
