@@ -17,6 +17,8 @@ class MeshSystem final : public SystemBase
 public:
     ~MeshSystem() override = default;
 
+    bool ShouldProcessScene(Scene* scene) const override;
+
     void OnEntityAdded(Entity* entity) override;
     void OnEntityRemoved(Entity* entity) override;
 
@@ -35,7 +37,6 @@ private:
 #if HYP_EDITOR
     struct CachedInstancedMeshDataState
     {
-        uint32 numInstances;
         bool enableAutoInstancing;
     };
 

@@ -1,0 +1,31 @@
+/* Copyright (c) 2016-2026 Andrew J. MacDonald. All rights reserved. */
+
+#pragma once
+
+#include <scene/Node.hpp>
+
+namespace Hyperion {
+
+HYP_CLASS()
+class HYP_API InstancedMeshProxy : public Node
+{
+    HYP_OBJECT_BODY(InstancedMeshProxy);
+
+public:
+    InstancedMeshProxy();
+
+    InstancedMeshProxy(const InstancedMeshProxy& other) = delete;
+    InstancedMeshProxy& operator=(const InstancedMeshProxy& other) = delete;
+
+    ~InstancedMeshProxy();
+
+    Mat4f prevTransformMatrix;
+
+protected:
+    virtual void OnAttachedToNode(Node* node) override;
+    virtual void OnDetachedFromNode(Node* node) override;
+
+    virtual void OnTransformUpdated() override;
+};
+
+} // namespace Hyperion

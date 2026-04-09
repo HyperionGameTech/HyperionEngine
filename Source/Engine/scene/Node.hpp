@@ -594,7 +594,7 @@ public:
      *  \param index The index of the child element to remove
      *  \returns Whether then removal was successful */
     HYP_METHOD()
-    bool RemoveAt(int index);
+    bool RemoveAt(uint32 index);
 
     /*! \brief Remove this node from the parent Node's list of child Nodes.
      *  \returns Whether the removal was successful. */
@@ -605,14 +605,14 @@ public:
     void RemoveAllChildren();
 
     HYP_METHOD()
-    int NumChildren() const;
+    uint32 NumChildren() const;
 
     /*! \brief Get a child Node from this Node's child list at the given index.
      *  \param index The index of the child element to return
      *  \returns The child node at the given index. If the index is out of bounds, nullptr
      *  will be returned. */
     HYP_METHOD()
-    Handle<Node> GetChild(int index) const;
+    Handle<Node> GetChild(uint32 index) const;
 
     /*! \brief Search for a (potentially nested) node using the syntax `some/child/node`.
      *  Each `/` indicates searching a level deeper, so first a child node with the name "some"

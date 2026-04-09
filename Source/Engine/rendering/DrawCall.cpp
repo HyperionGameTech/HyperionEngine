@@ -80,8 +80,6 @@ void DrawCallCollection::PushRenderProxyInstanced(EntityInstanceBatch* batch, Dr
     const uint32 initialNumInstances = renderProxy.numInstances;
     uint32 numInstances = initialNumInstances;
 
-    AssertDebug(initialNumInstances > 0);
-
     GpuBufferHolderBase* entityInstanceBatches = batchAllocator->GetGpuBufferHolder();
     Assert(entityInstanceBatches != nullptr);
 

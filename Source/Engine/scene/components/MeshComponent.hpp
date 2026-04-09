@@ -38,14 +38,14 @@ struct MeshComponent
     HYP_FIELD(Property = "Skeleton", Editor = true)
     Handle<Skeleton> skeleton;
 
-    HYP_FIELD(Property = "NumInstances", Serialize = true)
-    uint32 numInstances = 1;
-
     HYP_FIELD(Property = "EnableAutoInstancing", Serialize = true)
     bool enableAutoInstancing = false;
 
     HYP_FIELD(Property = "InstanceData", NoScriptBindings)
     AssetReference instanceData;
+
+    HYP_FIELD(Transient)
+    uint32 numInstances = 0;
 
     HYP_FIELD(Transient)
     Mat4f previousModelMatrix;

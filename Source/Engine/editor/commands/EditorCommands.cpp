@@ -9,6 +9,7 @@
 #include <scene/Light.hpp>
 #include <scene/EnvProbe.hpp>
 #include <scene/LightmapVolume.hpp>
+#include <scene/InstancedMeshProxy.hpp>
 
 #include <scene/ParticleVolume.hpp>
 #include <scene/FogVolume.hpp>
@@ -778,6 +779,19 @@ public:
 DEFINE_EDITOR_COMMAND(AddEmptyNode);
 
 #pragma endregion EditorCommandAddEmptyNode
+
+#pragma region EditorCommandAddInstance
+
+class HYP_API EditorCommandAddInstance final : public EditorCommandAddNodeBase<EditorCommandAddInstance>
+{
+    HYP_OBJECT_BODY(EditorCommandAddInstance);
+
+public:
+    using NodeType = InstancedMeshProxy;
+    static inline const Name s_defaultNodeName = NAME("New Instance");
+};
+
+DEFINE_EDITOR_COMMAND(AddInstance);
 
 #pragma region EditorCommandAddCamera
 

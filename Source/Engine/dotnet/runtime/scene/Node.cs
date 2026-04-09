@@ -109,7 +109,7 @@ namespace Hyperion
             }
         }
 
-        public int NumChildren
+        public uint NumChildren
         {
             get
             {
@@ -121,8 +121,8 @@ namespace Hyperion
         {
             get
             {
-                int count = NumChildren;
-                for (int i = 0; i < count; i++)
+                uint count = NumChildren;
+                for (uint i = 0; i < count; i++)
                 {
                     Node? child = this.GetChild(i);
                     yield return child;

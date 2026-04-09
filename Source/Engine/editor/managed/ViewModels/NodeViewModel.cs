@@ -75,7 +75,7 @@ namespace Hyperion.Editor.ViewModels
             _isExpanded = parent == null;
 
             // Initialize existing children
-            for (int i = 0; i < node.NumChildren(); i++)
+            for (uint i = 0; i < node.NumChildren(); i++)
             {
                 Node? child = node.GetChild(i);
 

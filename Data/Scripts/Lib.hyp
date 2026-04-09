@@ -604,8 +604,8 @@ extern struct MeshComponent
     Mesh : Mesh
     Material : Material
     Skeleton : Skeleton
-    NumInstances : uint32
     EnableAutoInstancing : bool
+    NumInstances : uint32
     PreviousModelMatrix : Mat4f
 end
 extern struct BoundingBoxComponent
@@ -1983,11 +1983,11 @@ extern class Node : AssetObject
     GetLocalBounds() -> BoundingBox
     SetLocalBounds(aabb : BoundingBox) -> void
     AddChild(node : Node) -> Node
-    RemoveAt(index : int) -> bool
+    RemoveAt(index : uint32) -> bool
     Remove() -> bool
     RemoveAllChildren() -> void
-    NumChildren() -> int
-    GetChild(index : int) -> Node
+    NumChildren() -> uint32
+    GetChild(index : uint32) -> Node
     Select(selector : string) -> Node
     SetLocalTransform(transform : Transform) -> void
     GetLocalTransform() -> Transform
@@ -2055,6 +2055,8 @@ extern class Bone : Node
     WorldBoneTranslation : Vec3f
     WorldBoneRotation : Quaternion
     InvBindingRotation : Quaternion
+end
+extern class InstancedMeshProxy : Node
 end
 extern class Entity : Node
     GetWorld() -> World

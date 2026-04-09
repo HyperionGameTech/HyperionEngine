@@ -955,7 +955,7 @@ void View::CollectMeshEntities(RenderProxyList& rpl)
 
             Mat4f transformMatrix = transformComponent->GetMatrix();
             
-            if ((meshComponent->enableAutoInstancing || meshComponent->numInstances > 1) && meshComponent->instanceData.IsLoaded())
+            if ((meshComponent->enableAutoInstancing || meshComponent->numInstances) && meshComponent->instanceData.IsLoaded())
             {
                 AssertDebug(m_viewDesc.entityBatchClass == nullptr || m_viewDesc.entityBatchClass == MeshEntityInstanceBatch::StaticClass());
 
@@ -964,11 +964,7 @@ void View::CollectMeshEntities(RenderProxyList& rpl)
 
                 if (imd.IsValid())
                 {
-                    auto writeScope = imd->GetWriteScope();
-
-                    // set current transform and previous transform data for MeshEntityInstanceBatch
-                    imd->SetBufferData(0, &transformMatrix, 1);
-                    imd->SetBufferData(1, &meshComponent->previousModelMatrix, 1);
+                    auto scope = imd->GetReadScope();
 
                     for (uint32 i = 0; i < uint32(imd->buffers.Size()); i++)
                     {

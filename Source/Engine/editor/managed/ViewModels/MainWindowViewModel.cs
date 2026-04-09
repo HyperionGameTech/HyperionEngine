@@ -48,6 +48,7 @@ namespace Hyperion.Editor.ViewModels
 
         public EditorCommand AddEmptyNode => new EditorCommand("AddEmptyNode");
         public EditorCommand AddEntity => new EditorCommand("AddEntity");
+        public EditorCommand AddInstance => new EditorCommand("AddInstance");
         public EditorCommand AddCamera => new EditorCommand("AddCamera");
 
         public EditorCommand AddPointLight => new EditorCommand("AddPointLight");

@@ -436,14 +436,9 @@ bool Node::RemoveChild(const Node* node)
     return true;
 }
 
-bool Node::RemoveAt(int index)
+bool Node::RemoveAt(uint32 index)
 {
     HYP_SCOPE;
-
-    if (index < 0)
-    {
-        index = int(m_childNodes.Size()) + index;
-    }
 
     if (index >= m_childNodes.Size())
     {
@@ -502,18 +497,13 @@ void Node::RemoveAllChildren()
     UpdateWorldTransform();
 }
 
-int Node::NumChildren() const
+uint32 Node::NumChildren() const
 {
-    return int(m_childNodes.Size());
+    return uint32(m_childNodes.Size());
 }
 
-Handle<Node> Node::GetChild(int index) const
+Handle<Node> Node::GetChild(uint32 index) const
 {
-    if (index < 0)
-    {
-        index = int(m_childNodes.Size()) + index;
-    }
-
     if (index >= m_childNodes.Size())
     {
         return Handle<Node>::empty;

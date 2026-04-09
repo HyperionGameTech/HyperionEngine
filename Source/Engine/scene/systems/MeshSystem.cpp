@@ -6,6 +6,7 @@
 #include <scene/EntityManager.hpp>
 #include <scene/Entity.hpp>
 #include <scene/EntityTag.hpp>
+#include <scene/InstancedMeshProxy.hpp>
 
 #include <scene/systems/MeshSystem.hpp>
 
@@ -20,9 +21,21 @@ namespace Hyperion {
 
 void DestroyInstancedMeshData(Entity& entity, MeshComponent& meshComponent, bool removeFromPackage = false);
 
-void InitInstancedMeshData(Entity& entity, MeshComponent& meshComponent)
+void UpdateInstancedMeshData(Entity& entity, MeshComponent& meshComponent)
 {
-    if (!meshComponent.enableAutoInstancing && meshComponent.numInstances <= 1)
+    Array<InstancedMeshProxy*, SceneAllocator> instancedMeshProxies;
+
+    for (const Handle<Node>& childNode : entity.GetChildren())
+    {
+        if (childNode->IsA(InstancedMeshProxy::StaticClass()))
+        {
+            instancedMeshProxies.PushBack(static_cast<InstancedMeshProxy*>(childNode.Get()));
+        }
+    }
+
+    meshComponent.numInstances = uint32(instancedMeshProxies.Size());
+
+    if (!meshComponent.enableAutoInstancing && instancedMeshProxies.Empty())
     {
         if (meshComponent.instanceData.IsValid())
         {
@@ -34,21 +47,21 @@ void InitInstancedMeshData(Entity& entity, MeshComponent& meshComponent)
     
     if (!meshComponent.instanceData.IsValid())
     {
-        Handle<InstancedMeshData> instancedMesh = MakeHandle<InstancedMeshData>(NAME_FMT("IMD_{}", entity.GetName()));
+        Handle<InstancedMeshData> imd = MakeHandle<InstancedMeshData>(NAME_FMT("IMD_{}", entity.GetName()));
 
-        Result registerResult = instancedMesh->Register("$Memory/Objects/Types/InstancedMeshData", AddAssetConflictMode::GenerateNewName);
+        Result registerResult = imd->Register("$Memory/Objects/Types/InstancedMeshData", AddAssetConflictMode::GenerateNewName);
 
         if (registerResult.HasError())
         {
             HYP_LOG(Scene, Error, "Failed to register InstancedMeshData: {}", registerResult.GetError().GetMessage());
         }
 
-        meshComponent.instanceData = AssetReference(instancedMesh);
+        meshComponent.instanceData = AssetReference(imd);
     }
     
-    const Handle<InstancedMeshData>& instancedMesh = ObjCast<InstancedMeshData>(meshComponent.instanceData.Resolve());
+    const Handle<InstancedMeshData>& imd = ObjCast<InstancedMeshData>(meshComponent.instanceData.Resolve());
 
-    if (!instancedMesh.IsValid())
+    if (!imd.IsValid())
     {
         HYP_LOG(Scene, Error, "Failed to load instanced mesh data for Entity {}", entity.GetName());
 
@@ -57,13 +70,31 @@ void InitInstancedMeshData(Entity& entity, MeshComponent& meshComponent)
         return;
     }
 
-    entity.RemoveTag<EntityTag::UpdateInstancedMeshData>();
+    auto scope = imd->GetWriteScope();
+
+    Array<Mat4f, SceneAllocator> transforms;
+    transforms.Resize(instancedMeshProxies.Size());
+
+    Array<Mat4f, SceneAllocator> previousTransforms;
+    previousTransforms.Resize(instancedMeshProxies.Size());
+
+    for (size_t i = 0; i < instancedMeshProxies.Size(); i++)
+    {
+        InstancedMeshProxy* imp = instancedMeshProxies[i];
+
+        transforms[i] = imp->GetLocalTransform().GetMatrix();
+        previousTransforms[i] = imp->prevTransformMatrix;
+
+        imp->prevTransformMatrix = transforms[i];
+    }
+
+    // Update transforms etc. based on the InstancedMeshProxy child objects
+    imd->SetBufferData(0, transforms.Data(), transforms.Size());
+    imd->SetBufferData(1, previousTransforms.Data(), previousTransforms.Size());
 }
 
 void DestroyInstancedMeshData(Entity& entity, MeshComponent& meshComponent, bool removeFromPackage)
 {
-    entity.RemoveTag<EntityTag::UpdateInstancedMeshData>();
-
     if (meshComponent.instanceData.IsValid())
     {
         if (!removeFromPackage)
@@ -102,27 +133,43 @@ void MeshSystem::OnEntityAdded(Entity* entity)
 {
     SystemBase::OnEntityAdded(entity);
 
+    if (!ShouldProcessScene(entity->GetScene()))
+    {
+        return;
+    }
+
     MeshComponent& meshComponent = entity->GetComponent<MeshComponent>();
 
-    InitInstancedMeshData(*entity, meshComponent);
+    UpdateInstancedMeshData(*entity, meshComponent);
+
+    entity->RemoveTag<EntityTag::UpdateInstancedMeshData>();
 
 #if HYP_EDITOR
-    m_cachedStates[entity] = CachedInstancedMeshDataState {
-        meshComponent.numInstances,
-        meshComponent.enableAutoInstancing
-    };
+    m_cachedStates[entity] = { meshComponent.enableAutoInstancing };
 #endif // HYP_EDITOR
 }
 
 void MeshSystem::OnEntityRemoved(Entity* entity)
 {
     SystemBase::OnEntityRemoved(entity);
+
+    if (!ShouldProcessScene(entity->GetScene()))
+    {
+        return;
+    }
     
     DestroyInstancedMeshData(*entity, entity->GetComponent<MeshComponent>(), /* removeFromPackage */ false);
+
+    entity->RemoveTag<EntityTag::UpdateInstancedMeshData>();
 
 #if HYP_EDITOR
     m_cachedStates.Erase(entity);
 #endif // HYP_EDITOR
+}
+
+bool MeshSystem::ShouldProcessScene(Scene* scene) const
+{
+    return !(scene->GetSceneFlags() & SceneFlags::UI);
 }
 
 void MeshSystem::Process(float delta, Span<Handle<Scene>> scenes)
@@ -131,23 +178,29 @@ void MeshSystem::Process(float delta, Span<Handle<Scene>> scenes)
 
     for (Scene* scene : scenes)
     {
-        HashSet<WeakHandle<Entity>, SceneAllocator> updatedEntities;
+        if (!ShouldProcessScene(scene))
+        {
+            continue;
+        }
+
+        HashSet<Entity*, SceneAllocator> updatedEntities;
 
 #if HYP_EDITOR
         for (auto [entity, meshComponent] : scene->GetEntityManager()->GetEntitySet<MeshComponent>().GetScopedView(GetComponentInfos()))
         {
+            if (updatedEntities.Find(entity) != updatedEntities.End())
+                continue;
+
             auto cachedIt = m_cachedStates.Find(entity);
             if (cachedIt != m_cachedStates.End())
             {
-                if ((cachedIt->second.numInstances > 1) != (meshComponent.numInstances > 1)
-                    || cachedIt->second.enableAutoInstancing != meshComponent.enableAutoInstancing)
+                if (cachedIt->second.enableAutoInstancing != meshComponent.enableAutoInstancing)
                 {
-                    InitInstancedMeshData(*entity, meshComponent);
+                    UpdateInstancedMeshData(*entity, meshComponent);
 
-                    cachedIt->second.numInstances = meshComponent.numInstances;
-                    cachedIt->second.enableAutoInstancing = meshComponent.enableAutoInstancing;
+                    cachedIt->second = { meshComponent.enableAutoInstancing };
 
-                    updatedEntities.Add(MakeWeakRef(entity));
+                    updatedEntities.Add(entity);
                 }
             }
         }
@@ -155,21 +208,21 @@ void MeshSystem::Process(float delta, Span<Handle<Scene>> scenes)
 
         for (auto [entity, meshComponent, _] : scene->GetEntityManager()->GetEntitySet<MeshComponent, TagComponent<EntityTag::UpdateInstancedMeshData>>().GetScopedView(GetComponentInfos()))
         {
-            InitInstancedMeshData(*entity, meshComponent);
+            if (updatedEntities.Find(entity) != updatedEntities.End())
+                continue;
 
-            updatedEntities.Add(MakeWeakRef(entity));
+            UpdateInstancedMeshData(*entity, meshComponent);
+
+            updatedEntities.Add(entity);
         }
 
         if (updatedEntities.Any())
         {
             AfterProcess([updatedEntities = std::move(updatedEntities)]()
                 {
-                    for (const WeakHandle<Entity>& entityWeak : updatedEntities)
+                    for (Entity* entity : updatedEntities)
                     {
-                        if (Handle<Entity> entity = entityWeak.Lock(); entity.IsValid())
-                        {
-                            entity->RemoveTag<EntityTag::UpdateInstancedMeshData>();
-                        }
+                        entity->RemoveTag<EntityTag::UpdateInstancedMeshData>();
                     }
                 });
         }

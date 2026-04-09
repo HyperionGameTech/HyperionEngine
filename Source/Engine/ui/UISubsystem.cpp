@@ -349,8 +349,7 @@ void UISubsystem::RenderCollect(RenderProxyList& rpl)
 
             RenderProxyMesh& meshProxy = *rpl.GetMeshEntities().SetProxy(entity->Id(), RenderProxyMesh());
 
-            if ((meshComponent->enableAutoInstancing || meshComponent->numInstances > 1)
-                && meshComponent->instanceData.IsLoaded())
+            if ((meshComponent->enableAutoInstancing || meshComponent->numInstances) && meshComponent->instanceData.IsLoaded())
             {
                 const Handle<InstancedMeshData>& instancedMesh = ObjCast<InstancedMeshData>(meshComponent->instanceData.Resolve());
                 Assert(instancedMesh.IsValid());

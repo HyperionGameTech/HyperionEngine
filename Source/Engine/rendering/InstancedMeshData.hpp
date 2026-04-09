@@ -59,6 +59,20 @@ public:
 
         BlobDataReference& ref = buffers[bufferIndex];
 
+        if (count == 0)
+        {
+            if (!ref.readOnly && ref.raw != nullptr)
+            {
+                FreeBlobData(ref);
+            }
+
+            ref = {};
+
+            MarkDirty();
+
+            return;
+        }
+
         if (ref.readOnly || ref.raw == nullptr || ref.size < sizeof(StructType) * count)
         {
             if (!ref.readOnly && ref.raw != nullptr)
