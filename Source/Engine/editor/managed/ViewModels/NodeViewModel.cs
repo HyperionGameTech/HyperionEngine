@@ -105,6 +105,9 @@ namespace Hyperion.Editor.ViewModels
 
             _onChildAdded = node.GetOnChildAddedDelegate().Bind((Node child, bool isDirect) =>
             {
+                if (!isDirect)
+                    return;
+
                 NodeViewModel? target;
                 if (!weakThis.TryGetTarget(out target))
                 {
@@ -117,6 +120,9 @@ namespace Hyperion.Editor.ViewModels
 
             _onChildRemoved = node.GetOnChildRemovedDelegate().Bind((Node child, bool isDirect) =>
             {
+                if (!isDirect)
+                    return;
+
                 NodeViewModel? target;
                 if (!weakThis.TryGetTarget(out target))
                 {

@@ -22,7 +22,7 @@ namespace Hyperion
     }
 
     [ClassBinding(Name = "EnvProbe")]
-    public class EnvProbe : Entity
+    public class EnvProbe : VolumeBase
     {
         public EnvProbe()
         {

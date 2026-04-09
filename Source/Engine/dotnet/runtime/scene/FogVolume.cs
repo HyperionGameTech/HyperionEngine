@@ -4,7 +4,7 @@ using System.Runtime.InteropServices;
 namespace Hyperion
 {
     [ClassBinding(Name = "FogVolume")]
-    public class FogVolume : Entity
+    public class FogVolume : VolumeBase
     {
         public FogVolume()
         {

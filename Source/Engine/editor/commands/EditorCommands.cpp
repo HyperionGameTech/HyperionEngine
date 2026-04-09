@@ -671,6 +671,13 @@ DEFINE_EDITOR_COMMAND(AddFogVolume);
 
 #pragma endregion AddFogVolume
 
+template <class T>
+static constexpr bool ShouldAddNodeAsChild()
+{
+    // InstancedMeshProxy should always be a child of the actively selected entity.
+    return std::is_same_v<T, InstancedMeshProxy>;
+}
+
 template <class EditorCommandType, class T>
 static void AddNodeOfTypeImpl(EditorSubsystem* subsystem, Name defaultNodeName)
 {
@@ -707,14 +714,22 @@ static void AddNodeOfTypeImpl(EditorSubsystem* subsystem, Name defaultNodeName)
                 return EditorActionFunctions {
                     .execute = Proc<void(EditorSubsystem*, EditorProject*)>([n, currentFocusedNode, activeScene](EditorSubsystem* editorSubsystem, EditorProject* project)
                         {
-                            Handle<Node> parentNode = currentFocusedNode.Lock();
-
-                            if (!parentNode.IsValid())
+                            if constexpr (ShouldAddNodeAsChild<T>())
                             {
-                                parentNode = activeScene->GetRoot();
+                                Handle<Node> parentNode = currentFocusedNode.Lock();
+
+                                if (!parentNode.IsValid())
+                                {
+                                    parentNode = activeScene->GetRoot();
+                                }
+
+                                parentNode->AddChild(n);
+                            }
+                            else
+                            {
+                                activeScene->GetRoot()->AddChild(n);
                             }
 
-                            parentNode->AddChild(n);
                             editorSubsystem->SetFocusedNode(n, true);
                         }),
                     .revert = Proc<void(EditorSubsystem*, EditorProject*)>([n, currentFocusedNode](EditorSubsystem* editorSubsystem, EditorProject* project)
@@ -726,6 +741,7 @@ static void AddNodeOfTypeImpl(EditorSubsystem* subsystem, Name defaultNodeName)
                                 editorSubsystem->SetFocusedNode(nullptr, true);
 
                                 Handle<Node> focusedNode = currentFocusedNode.Lock();
+                                
                                 if (focusedNode.IsValid())
                                 {
                                     editorSubsystem->SetFocusedNode(focusedNode, true);

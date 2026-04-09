@@ -274,10 +274,9 @@
                                                     Foreground="#808080"
                                                     Header="Node"
                                                     IsEnabled="False" />
-                                                <MenuItem Command="{Binding AddEntity}" Header="Entity" />
+                                                <MenuItem Command="{Binding AddEntity}" Header="Basic Entity" />
                                                 <MenuItem Command="{Binding AddEmptyNode}" Header="Empty Node" />
-                                                <MenuItem Command="{Binding AddInstance}" Header="Instance" IsEnabled="{Binding CanAddInstance}" />
-                                                <MenuItem Command="{Binding AddCamera}" Header="Camera" />
+                                                <MenuItem Command="{Binding AddCamera}" Header="Camera Node" />
                                                 <Separator />
                                                 <MenuItem
                                                     Margin="0,2"
@@ -285,7 +284,17 @@
                                                     HorizontalAlignment="Center"
                                                     FontSize="12"
                                                     Foreground="#808080"
-                                                    Header="Light"
+                                                    Header="Rendering"
+                                                    IsEnabled="False" />
+                                                <MenuItem Command="{Binding AddInstance}" Header="Instanced Mesh" IsEnabled="{Binding CanAddInstance}" />
+                                                <Separator />
+                                                <MenuItem
+                                                    Margin="0,2"
+                                                    Padding="8,4"
+                                                    HorizontalAlignment="Center"
+                                                    FontSize="12"
+                                                    Foreground="#808080"
+                                                    Header="Lights"
                                                     IsEnabled="False" />
                                                 <MenuItem Command="{Binding AddDirectionalLight}" Header="Directional Light" />
                                                 <MenuItem Command="{Binding AddPointLight}" Header="Point Light" />
@@ -298,7 +307,7 @@
                                                     HorizontalAlignment="Center"
                                                     FontSize="12"
                                                     Foreground="#808080"
-                                                    Header="Baking"
+                                                    Header="Baked Lighting"
                                                     IsEnabled="False" />
                                                 <MenuItem Command="{Binding AddReflectionProbe}" Header="Reflection Probe" />
                                                 <MenuItem Command="{Binding AddLightmapVolume}" Header="Lightmap Volume" />
