@@ -1,4 +1,8 @@
-/* Copyright (c) 2016-2026 Andrew J. MacDonald. All rights reserved. */
+/*!
+ *  @author: The Hyperion Contributors
+ *  @date 2016-2026
+ *  @licence MIT
+*/
 
 #ifndef HYPERION_CODEGEN_MODULE_HPP
 #define HYPERION_CODEGEN_MODULE_HPP

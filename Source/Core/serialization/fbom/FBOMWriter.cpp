@@ -1,4 +1,8 @@
-/* Copyright (c) 2016-2026 Andrew J. MacDonald. All rights reserved. */
+/*!
+ *  @author: The Hyperion Contributors
+ *  @date 2016-2026
+ *  @licence MIT
+*/
 
 #include <Core/serialization/fbom/FBOMWriter.hpp>
 #include <Core/serialization/fbom/FBOMReader.hpp>

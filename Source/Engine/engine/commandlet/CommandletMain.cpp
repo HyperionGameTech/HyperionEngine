@@ -1,4 +1,8 @@
-/* Copyright (c) 2016-2026 Andrew J. MacDonald. All rights reserved. */
+/*!
+ *  @author: The Hyperion Contributors
+ *  @date 2016-2026
+ *  @licence MIT
+*/
 
 #ifdef HYP_COMMANDLET_NAME // only defined if this is being compiled as part of a commandlet target
 
