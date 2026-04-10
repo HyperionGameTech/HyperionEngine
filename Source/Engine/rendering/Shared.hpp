@@ -24,6 +24,7 @@
 #include <rendering/Vertex.hpp>
 #include <rendering/RenderObject.hpp>
 #include <rendering/RenderResult.hpp>
+#include <rendering/RenderMemory.hpp>
 
 #include <util/EnumOptions.hpp>
 

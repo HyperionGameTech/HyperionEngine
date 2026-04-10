@@ -92,7 +92,7 @@ private:
 
     WeakHandle<EditorProject> m_editorProject;
 
-    LinkedList<Handle<EditorActionBase>> m_actions;
+    Array<Handle<EditorActionBase>> m_actions;
     int m_undoDepth;
 
     EnumFlags<EditorActionStackState> m_currentState;

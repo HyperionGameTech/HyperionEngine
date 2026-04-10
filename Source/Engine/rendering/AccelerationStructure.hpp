@@ -12,7 +12,8 @@
 
 #include <Core/reflection/Handle.hpp>
 
-#include <rendering/RenderObject.hpp>
+#include <rendering/Shared.hpp>
+
 #include <rendering/util/DeletionQueue.hpp>
 
 namespace Hyperion {

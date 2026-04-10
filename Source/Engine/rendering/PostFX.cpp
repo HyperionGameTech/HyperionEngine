@@ -177,8 +177,6 @@ void PostProcessing::PerformUpdates()
     }
 
     m_effectsUpdated.Set(false, MemoryOrder::RELEASE);
-
-    HYP_SYNC_RENDER();
 }
 
 PostProcessingUniforms PostProcessing::GetUniforms() const

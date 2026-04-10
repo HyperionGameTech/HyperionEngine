@@ -348,6 +348,11 @@ void EngineDriver::RemoveWorld(const World* world)
     }
 }
 
+Span<View* const> EngineDriver::GetCurrentFrameViews() const
+{
+    return m_viewsPerFrame[GetRingIndex()].ToSpan();
+}
+
 bool EngineDriver::IsRenderLoopActive() const
 {
     return g_renderThreadInstance != nullptr

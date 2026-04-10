@@ -17,7 +17,7 @@
 #include <Core/utilities/Time.hpp>
 #endif
 
-#include <rendering/RenderObject.hpp>
+#include <rendering/Shared.hpp>
 
 #include <Core/HashCode.hpp>
 #include <Core/Types.hpp>

@@ -981,8 +981,6 @@ extern enum StoreOperation : uint8
     NONE,
     STORE
 end
-extern struct DescriptorTableOffsetMap
-end
 extern enum TextureBaseFormat : uint8
     Red,
     RG,

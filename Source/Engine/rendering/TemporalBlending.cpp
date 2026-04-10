@@ -40,31 +40,6 @@ struct TemporalBlendingConstants
     uint32 blendingFrameCounter;
 };
 
-#pragma region Render commands
-
-struct RecreateTemporalBlendingFramebuffer : RenderCommand
-{
-    TemporalBlending& temporalBlending;
-    Vec2u newSize;
-
-    RecreateTemporalBlendingFramebuffer(TemporalBlending& temporalBlending, const Vec2u& newSize)
-        : temporalBlending(temporalBlending),
-          newSize(newSize)
-    {
-    }
-
-    virtual ~RecreateTemporalBlendingFramebuffer() override = default;
-
-    virtual RendererResult operator()() override
-    {
-        temporalBlending.Resize_Internal(newSize);
-
-        return {};
-    }
-};
-
-#pragma endregion Render commands
-
 TemporalBlending::TemporalBlending(
     const Vec2u& extent,
     TemporalBlendTechnique technique,
@@ -149,8 +124,19 @@ void TemporalBlending::Create()
 
 void TemporalBlending::Resize(Vec2u newSize)
 {
-    PUSH_RENDER_COMMAND(RecreateTemporalBlendingFramebuffer, *this, newSize);
-    HYP_SYNC_RENDER();
+    // @TODO Use FullScreenPass to have proper sync
+
+    if (IsOnThread(g_renderThread))
+    {
+        Resize_Internal(newSize);
+        return;
+    }
+
+    GetThreadById(g_renderThread)->GetScheduler().Enqueue([this, newSize]()
+        {
+            Resize_Internal(newSize);
+        },
+        TaskEnqueueFlags::FIRE_AND_FORGET);
 }
 
 void TemporalBlending::Resize_Internal(Vec2u newSize)

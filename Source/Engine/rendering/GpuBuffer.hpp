@@ -7,6 +7,7 @@
 #pragma once
 
 #include <Core/Defines.hpp>
+#include <Core/Types.hpp>
 
 #include <Core/functional/Proc.hpp>
 
@@ -14,10 +15,8 @@
 #include <Core/containers/HashSet.hpp>
 
 #include <rendering/RenderResult.hpp>
-#include <rendering/Shared.hpp>
 #include <rendering/RenderObject.hpp>
-
-#include <Core/Types.hpp>
+#include <rendering/Shared.hpp>
 
 namespace Hyperion {
 

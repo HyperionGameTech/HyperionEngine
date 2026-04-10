@@ -93,17 +93,18 @@ bool EditorActionStack::PushAction(const Handle<EditorActionBase>& action)
 
     // Chop off any actions stack that are after the current action index,
     // since we are pushing a new action.
-    if (m_undoDepth > 0)
+    if (m_undoDepth + 1 < m_actions.Size())
     {
-        while (int(m_actions.Size()) > m_undoDepth)
+        auto it = m_actions.Begin() + m_undoDepth + 1;
+        while (it != m_actions.End())
         {
-            m_actions.PopBack();
+            it = m_actions.Erase(it);
         }
     }
 
     m_actions.PushBack(action);
 
-    UpdateState(int(m_actions.Size()) - 1);
+    UpdateState(m_undoDepth + 1);
 
     OnAfterActionPush(action.Get());
 

@@ -1797,7 +1797,7 @@ void RenderCollector::BuildDrawCalls(uint32 bucketBits)
 
             if (!meshProxy->enableAutoInstancing && !meshProxy->numInstances)
             {
-                drawCallCollection.PushRenderProxy(drawCallId, *meshProxy); // NOLINT(bugprone-use-after-move)
+                drawCallCollection.PushRenderProxy(drawCallId, *meshProxy);
 
                 continue;
             }

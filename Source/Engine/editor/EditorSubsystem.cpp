@@ -417,7 +417,6 @@ void TranslateEditorGizmo::OnDragStart(const Handle<Camera>& camera, const Mouse
 
     m_dragData = dragData;
 }
-HYP_DISABLE_OPTIMIZATION;
 
 void TranslateEditorGizmo::OnDragEnd(const Handle<Camera>& camera, const MouseEvent& mouseEvent)
 {
@@ -429,7 +428,7 @@ void TranslateEditorGizmo::OnDragEnd(const Handle<Camera>& camera, const MouseEv
         {
             project->GetActionStack()->PushAction(MakeHandle<FunctionalEditorAction>(
                 "Translate",
-                [manipulationMode = GetManipulationMode(), focusedNode, node = m_node, finalPosition = focusedNode->GetWorldTranslation(), origin = m_dragData->nodeOrigin]() -> EditorActionFunctions
+                [focusedNode, node = m_node, finalPosition = focusedNode->GetWorldTranslation(), origin = m_dragData->nodeOrigin]() -> EditorActionFunctions
                 {
                     return {
                         [&](EditorSubsystem* editorSubsystem, EditorProject* editorProject)
@@ -441,8 +440,6 @@ void TranslateEditorGizmo::OnDragEnd(const Handle<Camera>& camera, const MouseEv
                             {
                                 parent->SetWorldTranslation(finalPosition);
                             }
-
-                            editorSubsystem->SetSelectedManipulationMode(manipulationMode);
 
                             editorSubsystem->SetFocusedNode(focusedNode, true);
                         },
@@ -456,8 +453,6 @@ void TranslateEditorGizmo::OnDragEnd(const Handle<Camera>& camera, const MouseEv
                                 parent->SetWorldTranslation(origin);
                             }
 
-                            editorSubsystem->SetSelectedManipulationMode(manipulationMode);
-
                             editorSubsystem->SetFocusedNode(focusedNode, true);
                         }
                     };
@@ -467,7 +462,6 @@ void TranslateEditorGizmo::OnDragEnd(const Handle<Camera>& camera, const MouseEv
 
     m_dragData.Unset();
 }
-HYP_ENABLE_OPTIMIZATION;
 
 bool TranslateEditorGizmo::OnMouseHover(const Handle<Camera>& camera, const MouseEvent& mouseEvent, const Handle<Node>& node)
 {
@@ -965,7 +959,7 @@ void RotateEditorGizmo::OnDragEnd(const Handle<Camera>& camera, const MouseEvent
 
             project->GetActionStack()->PushAction(MakeHandle<FunctionalEditorAction>(
                 "Rotate",
-                [manipulationMode = GetManipulationMode(), focusedNode, finalRotation, originRotation]() -> EditorActionFunctions
+                [focusedNode, finalRotation, originRotation]() -> EditorActionFunctions
                 {
                     return {
                         [&](EditorSubsystem* editorSubsystem, EditorProject*)
@@ -973,7 +967,6 @@ void RotateEditorGizmo::OnDragEnd(const Handle<Camera>& camera, const MouseEvent
                             NodeUnlockTransformScope unlockTransformScope(*focusedNode);
                             focusedNode->SetWorldRotation(finalRotation);
 
-                            editorSubsystem->SetSelectedManipulationMode(manipulationMode);
                             editorSubsystem->SetFocusedNode(focusedNode, true);
                         },
                         [&](EditorSubsystem* editorSubsystem, EditorProject*)
@@ -981,7 +974,6 @@ void RotateEditorGizmo::OnDragEnd(const Handle<Camera>& camera, const MouseEvent
                             NodeUnlockTransformScope unlockTransformScope(*focusedNode);
                             focusedNode->SetWorldRotation(originRotation);
 
-                            editorSubsystem->SetSelectedManipulationMode(manipulationMode);
                             editorSubsystem->SetFocusedNode(focusedNode, true);
                         }
                     };
