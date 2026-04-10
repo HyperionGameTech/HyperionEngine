@@ -147,17 +147,25 @@
   "ShaderBlobs": [{
       "$Class": "BlobDataReference",
       "Key": "Engine/Shaders/DrawShadowMap/DrawShadowMap_9535285342444993267.VS",
+<<<<<<< HEAD
       "Size": 56916
     }, {
       "$Class": "BlobDataReference",
       "Key": "Engine/Shaders/DrawShadowMap/DrawShadowMap_9535285342444993267.PS",
       "Size": 51604
+=======
+      "Size": 56812
+    }, {
+      "$Class": "BlobDataReference",
+      "Key": "Engine/Shaders/DrawShadowMap/DrawShadowMap_9535285342444993267.PS",
+      "Size": 51552
+>>>>>>> 63cf5f217 (Skunkworks - fx sse)
     }],
   "PropertySetHashCode": {},
   "LastCompiledTimestamp": {
     "Value": 13420389132652
   },
   "Name": "DrawShadowMap_9535285342444993267",
-  "FriendlyName": "DrawShadowMap9535285342444993267",
+  "FriendlyName": "DrawShadowMap_9535285342444993267",
   "OriginalFilepath": ""
 }

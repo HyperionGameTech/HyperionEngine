@@ -107,11 +107,19 @@
   "ShaderBlobs": [{
       "$Class": "BlobDataReference",
       "Key": "Engine/Shaders/Skybox/Skybox_12407244494021180445.VS",
+<<<<<<< HEAD
       "Size": 57376
     }, {
       "$Class": "BlobDataReference",
       "Key": "Engine/Shaders/Skybox/Skybox_12407244494021180445.PS",
       "Size": 56960
+=======
+      "Size": 57272
+    }, {
+      "$Class": "BlobDataReference",
+      "Key": "Engine/Shaders/Skybox/Skybox_12407244494021180445.PS",
+      "Size": 56908
+>>>>>>> 63cf5f217 (Skunkworks - fx sse)
     }],
   "PropertySetHashCode": {},
   "LastCompiledTimestamp": {

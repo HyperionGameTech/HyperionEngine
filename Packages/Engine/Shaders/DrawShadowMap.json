@@ -40,6 +40,7 @@
       "AssetPath": {
         "Value": "Engine/Shaders/DrawShadowMap/DrawShadowMap_9535285342444993251"
       }
+<<<<<<< HEAD
     }, {
       "$Class": "AssetReference",
       "AssetPath": {
@@ -60,6 +61,8 @@
       "AssetPath": {
         "Value": "Engine/Shaders/DrawShadowMap/DrawShadowMap_8519616899161084679"
       }
+=======
+>>>>>>> 63cf5f217 (Skunkworks - fx sse)
     }],
   "Name": "DrawShadowMap",
   "FriendlyName": "DrawShadowMap",

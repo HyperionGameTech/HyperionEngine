@@ -3,6 +3,7 @@
   "CompiledShaders": [{
       "$Class": "AssetReference",
       "AssetPath": {
+<<<<<<< HEAD
         "Value": "Engine/Shaders/DeferredDirect/DeferredDirect_8930255287631564676"
       }
     }, {
@@ -13,11 +14,14 @@
     }, {
       "$Class": "AssetReference",
       "AssetPath": {
+=======
+>>>>>>> 63cf5f217 (Skunkworks - fx sse)
         "Value": "Engine/Shaders/DeferredDirect/DeferredDirect_3019911219508283078"
       }
     }, {
       "$Class": "AssetReference",
       "AssetPath": {
+<<<<<<< HEAD
         "Value": "Engine/Shaders/DeferredDirect/DeferredDirect_2384068169048451622"
       }
     }, {
@@ -50,6 +54,10 @@
       "AssetPath": {
         "Value": "Engine/Shaders/DeferredDirect/DeferredDirect_11428205256708440841"
       }
+=======
+        "Value": "Engine/Shaders/DeferredDirect/DeferredDirect_15924930052788855720"
+      }
+>>>>>>> 63cf5f217 (Skunkworks - fx sse)
     }],
   "Name": "DeferredDirect",
   "FriendlyName": "DeferredDirect",

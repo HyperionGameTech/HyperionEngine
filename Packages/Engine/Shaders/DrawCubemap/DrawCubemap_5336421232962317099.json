@@ -127,17 +127,25 @@
   "ShaderBlobs": [{
       "$Class": "BlobDataReference",
       "Key": "Engine/Shaders/DrawCubemap/DrawCubemap_5336421232962317099.VS",
+<<<<<<< HEAD
       "Size": 47824
     }, {
       "$Class": "BlobDataReference",
       "Key": "Engine/Shaders/DrawCubemap/DrawCubemap_5336421232962317099.PS",
       "Size": 91368
+=======
+      "Size": 47720
+    }, {
+      "$Class": "BlobDataReference",
+      "Key": "Engine/Shaders/DrawCubemap/DrawCubemap_5336421232962317099.PS",
+      "Size": 91316
+>>>>>>> 63cf5f217 (Skunkworks - fx sse)
     }],
   "PropertySetHashCode": {},
   "LastCompiledTimestamp": {
     "Value": 13420395411325
   },
   "Name": "DrawCubemap_5336421232962317099",
-  "FriendlyName": "DrawCubemap5336421232962317099",
+  "FriendlyName": "DrawCubemap_5336421232962317099",
   "OriginalFilepath": ""
 }

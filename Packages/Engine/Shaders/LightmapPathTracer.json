@@ -5,6 +5,7 @@
       "AssetPath": {
         "Value": "Engine/Shaders/LightmapPathTracer/LightmapPathTracer_6746685599656616209"
       }
+<<<<<<< HEAD
     }, {
       "$Class": "AssetReference",
       "AssetPath": {
@@ -15,6 +16,8 @@
       "AssetPath": {
         "Value": "Engine/Shaders/LightmapPathTracer/LightmapPathTracer_10052432351400791672"
       }
+=======
+>>>>>>> 63cf5f217 (Skunkworks - fx sse)
     }],
   "Name": "LightmapPathTracer",
   "FriendlyName": "LightmapPathTracer",

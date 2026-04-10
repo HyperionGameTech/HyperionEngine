@@ -265,6 +265,7 @@
   "ShaderBlobs": [{
       "$Class": "BlobDataReference",
       "Key": "Engine/Shaders/LightmapPathTracer/LightmapPathTracer_6746685599656616209.RGS",
+<<<<<<< HEAD
       "Size": 118728
     }, {
       "$Class": "BlobDataReference",
@@ -274,6 +275,17 @@
       "$Class": "BlobDataReference",
       "Key": "Engine/Shaders/LightmapPathTracer/LightmapPathTracer_6746685599656616209.MS",
       "Size": 37292
+=======
+      "Size": 118688
+    }, {
+      "$Class": "BlobDataReference",
+      "Key": "Engine/Shaders/LightmapPathTracer/LightmapPathTracer_6746685599656616209.CHS",
+      "Size": 138348
+    }, {
+      "$Class": "BlobDataReference",
+      "Key": "Engine/Shaders/LightmapPathTracer/LightmapPathTracer_6746685599656616209.MS",
+      "Size": 37288
+>>>>>>> 63cf5f217 (Skunkworks - fx sse)
     }],
   "PropertySetHashCode": {},
   "LastCompiledTimestamp": {

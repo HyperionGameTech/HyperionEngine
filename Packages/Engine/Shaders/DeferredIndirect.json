@@ -3,6 +3,7 @@
   "CompiledShaders": [{
       "$Class": "AssetReference",
       "AssetPath": {
+<<<<<<< HEAD
         "Value": "Engine/Shaders/DeferredIndirect/DeferredIndirect_7850391772018025550"
       }
     }, {
@@ -49,6 +50,9 @@
       "$Class": "AssetReference",
       "AssetPath": {
         "Value": "Engine/Shaders/DeferredIndirect/DeferredIndirect_12185543061054139245"
+=======
+        "Value": "Engine/Shaders/DeferredIndirect/DeferredIndirect_2550717387119116152"
+>>>>>>> 63cf5f217 (Skunkworks - fx sse)
       }
     }],
   "Name": "DeferredIndirect",

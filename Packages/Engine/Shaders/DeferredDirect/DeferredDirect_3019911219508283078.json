@@ -267,6 +267,7 @@
   "ShaderBlobs": [{
       "$Class": "BlobDataReference",
       "Key": "Engine/Shaders/DeferredDirect/DeferredDirect_3019911219508283078.VS",
+<<<<<<< HEAD
       "Size": 11700
     }, {
       "$Class": "BlobDataReference",
@@ -276,6 +277,17 @@
   "PropertySetHashCode": {},
   "LastCompiledTimestamp": {
     "Value": 13420400488375
+=======
+      "Size": 11696
+    }, {
+      "$Class": "BlobDataReference",
+      "Key": "Engine/Shaders/DeferredDirect/DeferredDirect_3019911219508283078.PS",
+      "Size": 230308
+    }],
+  "PropertySetHashCode": {},
+  "LastCompiledTimestamp": {
+    "Value": 1775836115000
+>>>>>>> 63cf5f217 (Skunkworks - fx sse)
   },
   "Name": "DeferredDirect_3019911219508283078",
   "FriendlyName": "DeferredDirect_3019911219508283078",

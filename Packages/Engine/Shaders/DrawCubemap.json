@@ -3,11 +3,14 @@
   "CompiledShaders": [{
       "$Class": "AssetReference",
       "AssetPath": {
+<<<<<<< HEAD
         "Value": "Engine/Shaders/DrawCubemap/DrawCubemap_9306910829433328159"
       }
     }, {
       "$Class": "AssetReference",
       "AssetPath": {
+=======
+>>>>>>> 63cf5f217 (Skunkworks - fx sse)
         "Value": "Engine/Shaders/DrawCubemap/DrawCubemap_5394500840242340148"
       }
     }, {
@@ -19,6 +22,11 @@
       "$Class": "AssetReference",
       "AssetPath": {
         "Value": "Engine/Shaders/DrawCubemap/DrawCubemap_5336421232962317091"
+      }
+    }, {
+      "$Class": "AssetReference",
+      "AssetPath": {
+        "Value": "Engine/Shaders/DrawCubemap/DrawCubemap_5336421232962317083"
       }
     }, {
       "$Class": "AssetReference",
@@ -40,6 +48,7 @@
       "AssetPath": {
         "Value": "Engine/Shaders/DrawCubemap/DrawCubemap_5394500840242340036"
       }
+<<<<<<< HEAD
     }, {
       "$Class": "AssetReference",
       "AssetPath": {
@@ -60,6 +69,8 @@
       "AssetPath": {
         "Value": "Engine/Shaders/DrawCubemap/DrawCubemap_5336421232962317083"
       }
+=======
+>>>>>>> 63cf5f217 (Skunkworks - fx sse)
     }],
   "Name": "DrawCubemap",
   "FriendlyName": "DrawCubemap",

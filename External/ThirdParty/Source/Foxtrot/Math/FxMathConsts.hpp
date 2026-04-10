@@ -1,0 +1,24 @@
+#pragma once
+
+#define FX_E 2.71828182845904523536 // e
+
+// Logarithmic constants
+#define FX_LN_2  0.693147180559945309417 // ln(2)
+#define FX_LN_10 2.30258509299404568402  // ln(10)
+
+// Pi constants
+#define FX_PI  3.14159265358979323846 // Pi
+#define FX_2PI 6.28318530717958647693 // 2 * Pi
+
+#define FX_PI_2 1.57079632679489661923  // Pi / 2
+#define FX_PI_4 0.785398163397448309616 // Pi / 4
+
+#define FX_HALF_PI FX_PI_2
+
+#define FX_1_OVER_PI      0.318309886183790671538 // 1 / Pi
+#define FX_1_OVER_2PI     0.159154943091895335768 // 1 / 2 * Pi
+#define FX_2_OVER_PI      0.636619772367581343076 // 2 / Pi
+#define FX_2_OVER_SQRT_PI 1.12837916709551257390  // 2 / sqrt(Pi)
+
+#define FX_SQRT_2        1.41421356237309504880  // sqrt(2)
+#define FX_1_OVER_SQRT_2 0.707106781186547524401 // 1 / sqrt(2)

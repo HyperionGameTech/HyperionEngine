@@ -461,19 +461,16 @@ PSOutput PSMain(PSInput input)
 
 #endif // LIGHT_TYPE_CLUSTERED
 
-#if defined(DEBUG_REFLECTIONS)      \
-    || defined(DEBUG_IRRADIANCE)    \
-    || defined(PATHTRACER)          \
-    || defined(DEBUG_VELOCITY)      \
-    || defined(DEBUG_NORMALS)       \
-    || defined(DEBUG_AO)
-    output.output_color = float4(0.0, 0.0, 0.0, 0.0);
-#else
+// #if defined(DEBUG_REFLECTIONS)      \
+//     || defined(DEBUG_IRRADIANCE)    \
+//     || defined(PATHTRACER)          \
+//     || defined(DEBUG_VELOCITY)      \
+//     || defined(DEBUG_NORMALS)       \
+//     || defined(DEBUG_AO)
+//     output.output_color = float4(0.0, 0.0, 0.0, 0.0);
+// #else
     output.output_color = float4(result);
-#endif
-
-    // temp
-    // output.output_color = float4(0.0, 0.0, 1.0, 1.0);
+// #endif
 
     return output;
 }

@@ -81,11 +81,19 @@
   "ShaderBlobs": [{
       "$Class": "BlobDataReference",
       "Key": "Engine/Shaders/BlitTexture/BlitTexture_5656388037364668825.VS",
+<<<<<<< HEAD
       "Size": 37748
     }, {
       "$Class": "BlobDataReference",
       "Key": "Engine/Shaders/BlitTexture/BlitTexture_5656388037364668825.PS",
       "Size": 38156
+=======
+      "Size": 37708
+    }, {
+      "$Class": "BlobDataReference",
+      "Key": "Engine/Shaders/BlitTexture/BlitTexture_5656388037364668825.PS",
+      "Size": 38116
+>>>>>>> 63cf5f217 (Skunkworks - fx sse)
     }],
   "PropertySetHashCode": {},
   "LastCompiledTimestamp": {
