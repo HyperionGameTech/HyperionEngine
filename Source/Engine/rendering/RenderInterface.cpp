@@ -595,7 +595,7 @@ void StructuredBuffer::Write(size_t offset, size_t count, const void* data)
     dirtyRangeEnd = MathUtil::Max(dirtyRangeEnd, offset + count);
 }
 
-void StructuredBuffer::Update()
+void StructuredBuffer::Update(CommandRecorder& cr)
 {
     Assert(gpuBuffer && gpuBuffer->IsCreated());
 
@@ -606,16 +606,12 @@ void StructuredBuffer::Update()
 
         Memory::Copy(stagingBuffer->Map(), cpuBuffer.Data() + dirtyRangeStart, dirtyRangeEnd - dirtyRangeStart);
 
-        CommandRecorder& cr = g_renderInterface->commandRecorderAllocator.GetCommandRecorder();
-
         cr << InsertBarrier(stagingBuffer, RS_COPY_SRC);
         cr << InsertBarrier(gpuBuffer, RS_COPY_DST);
 
         cr << CopyBuffer(stagingBuffer, gpuBuffer, 0, dirtyRangeStart, dirtyRangeEnd - dirtyRangeStart);
         
         cr << InsertBarrier(gpuBuffer, RS_SHADER_RESOURCE);
-
-        cr.Done();
 
         dirtyRangeStart = SIZE_MAX;
         dirtyRangeEnd = 0;
@@ -1906,7 +1902,7 @@ void RenderInterface::UpdateBuffers(Frame* frame)
     {
         if (grb.IsDirty())
         {
-            grb.Update();
+            grb.Update(frame->preRenderCommands);
         }
     }
 

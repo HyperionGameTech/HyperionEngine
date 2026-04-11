@@ -259,7 +259,7 @@ public:
     void Shutdown();
 
     void Write(size_t offset, size_t count, const void* data);
-    void Update();
+    void Update(CommandRecorder& cr);
 
     GpuBuffer* gpuBuffer;
     TByteBuffer<RenderAllocator> cpuBuffer;

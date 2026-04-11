@@ -32,6 +32,12 @@
       "EnumValues": []
     }, {
       "$Class": "ShaderProperty",
+      "Name": "DEBUG_REFLECTIONS",
+      "Flags": 0,
+      "Value": null,
+      "EnumValues": []
+    }, {
+      "$Class": "ShaderProperty",
       "Name": "TILE_SIZE",
       "Flags": 0,
       "Value": 32,
@@ -300,18 +306,18 @@
   "EntryPointNames": ["VSMain", "PSMain"],
   "ShaderBlobs": [{
       "$Class": "BlobDataReference",
-      "Key": "Engine/Shaders/DeferredIndirect/DeferredIndirect_2550717387119116152.VS",
-      "Size": 11728
+      "Key": "Engine/Shaders/DeferredIndirect/DeferredIndirect_7783131375131654991.VS",
+      "Size": 11756
     }, {
       "$Class": "BlobDataReference",
-      "Key": "Engine/Shaders/DeferredIndirect/DeferredIndirect_2550717387119116152.PS",
-      "Size": 149172
+      "Key": "Engine/Shaders/DeferredIndirect/DeferredIndirect_7783131375131654991.PS",
+      "Size": 149248
     }],
   "PropertySetHashCode": {},
   "LastCompiledTimestamp": {
-    "Value": 13420397006442
+    "Value": 13420396167766
   },
-  "Name": "DeferredIndirect_2550717387119116152",
-  "FriendlyName": "DeferredIndirect_2550717387119116152",
+  "Name": "DeferredIndirect_7783131375131654991",
+  "FriendlyName": "DeferredIndirect7783131375131654991",
   "OriginalFilepath": ""
 }

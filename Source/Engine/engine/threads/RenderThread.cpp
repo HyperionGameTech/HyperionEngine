@@ -144,6 +144,8 @@ void RenderThread::Update()
     }
 
     g_renderInterface->namedBuffers[NamedBuffer::Worlds].Write(0, sizeof(WorldShaderData), GetWorldBufferData());
+
+    g_renderInterface->UpdateBuffers(frame);
     
     for (Swapchain* swapchain : swapchains)
     {

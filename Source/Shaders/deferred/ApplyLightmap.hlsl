@@ -108,11 +108,6 @@ DECLARE_SRV(LightmapPass, EnvProbesBuffer) StructuredBuffer<EnvProbe> env_probes
 DECLARE_SRV_DYNAMIC(LightmapPass, CurrentEnvProbe) StructuredBuffer<EnvProbe> current_env_probe_buffer;
 #define current_env_probe current_env_probe_buffer[0]
 
-DECLARE_BUFFER_DYNAMIC(LightmapPass, EnvGridsBuffer) cbuffer EnvGridsBuffer
-{
-    EnvGrid env_grid;
-};
-
 #include "./DeferredLighting.hlsli"
 
 PSOutput PSMain(PSInput input)

@@ -1004,11 +1004,6 @@ void LightmapPass::RenderToFramebuffer_Internal(Frame* frame, const RenderSetup&
     else
         cr << SetShaderUniform(numShaderUniforms++, "CurrentEnvProbe"_sh, g_renderInterface->namedBuffers[NamedBuffer::EnvProbes].gpuBuffer, TShaderDataOffset<EnvProbeShaderData>(0));
 
-    if (renderSetup.envGrid != nullptr)
-        cr << SetShaderUniform(numShaderUniforms++, "EnvGridsBuffer"_sh, g_renderInterface->namedBuffers[NamedBuffer::EnvGrids].gpuBuffer, TShaderDataOffset<EnvGridShaderData>(renderSetup.envGrid));
-    else
-        cr << SetShaderUniform(numShaderUniforms++, "EnvGridsBuffer"_sh, g_renderInterface->namedBuffers[NamedBuffer::EnvGrids].gpuBuffer, TShaderDataOffset<EnvProbeShaderData>(0));
-
     if (dpd->hbao != nullptr)
         cr << SetShaderUniform(numShaderUniforms++, "SSAOResultTexture"_sh, dpd->hbao->GetFinalImageView());
 
