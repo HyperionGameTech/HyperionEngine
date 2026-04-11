@@ -598,15 +598,15 @@ RendererResult RenderInterface::Initialize()
 
     Framework::s_threadFrameIndex = &Framework::s_frameIndex[Framework::TT_FrameDataConsumer];
 
-    gpuBuffers.buffers[GRB_WORLDS] = gpuBufferHolders->GetOrCreate<WorldShaderData, GpuBufferType::CONSTANT_BUFFER>(16, /* cpuAccessible */ true);
-    gpuBuffers.buffers[GRB_CAMERAS] = gpuBufferHolders->GetOrCreate<CameraShaderData, GpuBufferType::CONSTANT_BUFFER>(1024, /* cpuAccessible */ true);
-    gpuBuffers.buffers[GRB_LIGHTS] = gpuBufferHolders->GetOrCreate<LightShaderData, GpuBufferType::STORAGE_BUFFER>(1024, /* cpuAccessible */ false);
-    gpuBuffers.buffers[GRB_ENTITIES] = gpuBufferHolders->GetOrCreate<EntityShaderData, GpuBufferType::STORAGE_BUFFER>(1 << 15, /* cpuAccessible */ false);
-    gpuBuffers.buffers[GRB_MATERIALS] = gpuBufferHolders->GetOrCreate<MaterialShaderData, GpuBufferType::STORAGE_BUFFER>(1 << 10, /* cpuAccessible */ false);
-    gpuBuffers.buffers[GRB_SKELETONS] = gpuBufferHolders->GetOrCreate<SkeletonShaderData, GpuBufferType::STORAGE_BUFFER>(1 << 6, /* cpuAccessible */ false);
-    gpuBuffers.buffers[GRB_ENV_PROBES] = gpuBufferHolders->GetOrCreate<EnvProbeShaderData, GpuBufferType::STORAGE_BUFFER>(1 << 3, /* cpuAccessible */ false);
-    gpuBuffers.buffers[GRB_ENV_GRIDS] = gpuBufferHolders->GetOrCreate<EnvGridShaderData, GpuBufferType::CONSTANT_BUFFER>(1 << 3, /* cpuAccessible */ true);
-    gpuBuffers.buffers[GRB_LIGHTMAP_VOLUMES] = gpuBufferHolders->GetOrCreate<LightmapVolumeShaderData, GpuBufferType::STORAGE_BUFFER>(1 << 3, /* cpuAccessible */ false);
+    gpuBuffers.buffers[GRB_WORLDS] = gpuBufferHolders->GetOrCreate<WorldShaderData, GpuBufferType::CONSTANT_BUFFER>(MaxBoundWorlds, /* cpuAccessible */ true);
+    gpuBuffers.buffers[GRB_CAMERAS] = gpuBufferHolders->GetOrCreate<CameraShaderData, GpuBufferType::CONSTANT_BUFFER>(MaxBoundCameras, /* cpuAccessible */ true);
+    gpuBuffers.buffers[GRB_LIGHTS] = gpuBufferHolders->GetOrCreate<LightShaderData, GpuBufferType::STORAGE_BUFFER>(MaxBoundLights, /* cpuAccessible */ false);
+    gpuBuffers.buffers[GRB_ENTITIES] = gpuBufferHolders->GetOrCreate<EntityShaderData, GpuBufferType::STORAGE_BUFFER>(MaxBoundEntities, /* cpuAccessible */ false);
+    gpuBuffers.buffers[GRB_MATERIALS] = gpuBufferHolders->GetOrCreate<MaterialShaderData, GpuBufferType::STORAGE_BUFFER>(MaxBoundMaterials, /* cpuAccessible */ false);
+    gpuBuffers.buffers[GRB_SKELETONS] = gpuBufferHolders->GetOrCreate<SkeletonShaderData, GpuBufferType::STORAGE_BUFFER>(MaxBoundSkeletons, /* cpuAccessible */ false);
+    gpuBuffers.buffers[GRB_ENV_PROBES] = gpuBufferHolders->GetOrCreate<EnvProbeShaderData, GpuBufferType::STORAGE_BUFFER>(MaxBoundEnvProbes, /* cpuAccessible */ false);
+    gpuBuffers.buffers[GRB_ENV_GRIDS] = gpuBufferHolders->GetOrCreate<EnvGridShaderData, GpuBufferType::CONSTANT_BUFFER>(MaxBoundEnvGrids, /* cpuAccessible */ true);
+    gpuBuffers.buffers[GRB_LIGHTMAP_VOLUMES] = gpuBufferHolders->GetOrCreate<LightmapVolumeShaderData, GpuBufferType::STORAGE_BUFFER>(MaxBoundLightmapVolumes, /* cpuAccessible */ false);
 
     crashHandler->Initialize();
 

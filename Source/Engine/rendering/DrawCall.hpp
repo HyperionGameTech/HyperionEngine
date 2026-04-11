@@ -129,7 +129,7 @@ struct DrawCallStorage
     Array<Skeleton*, AllocatorType> skeletons;
     Array<uint32, AllocatorType> drawCommandIndices;
     Array<uint32, AllocatorType> numIndices;
-    Array<ObjId<Entity>, AllocatorType> entityIds;
+    Array<uint32, AllocatorType> entityBindingIndices;
 
     HYP_FORCE_INLINE size_t Size() const
     {
@@ -154,10 +154,10 @@ struct DrawCallStorage
         skeletons.Clear();
         drawCommandIndices.Clear();
         numIndices.Clear();
-        entityIds.Clear();
+        entityBindingIndices.Clear();
     }
 
-    size_t Push(DrawCallID id, Mesh* mesh, Material* material, Skeleton* skeleton, ObjId<Entity> entityId, uint32 numIndicesValue)
+    size_t Push(DrawCallID id, Mesh* mesh, Material* material, Skeleton* skeleton, uint32 entityBindingIndex, uint32 numIndicesValue)
     {
         const size_t index = ids.Size();
 
@@ -167,7 +167,7 @@ struct DrawCallStorage
         skeletons.PushBack(skeleton);
         drawCommandIndices.PushBack(~0u);
         numIndices.PushBack(numIndicesValue);
-        entityIds.PushBack(entityId);
+        entityBindingIndices.PushBack(entityBindingIndex);
 
         return index;
     }
@@ -186,7 +186,6 @@ struct InstancedDrawCallStorage
     Array<uint32, AllocatorType> numIndices;
     Array<EntityInstanceBatch*, AllocatorType> batches;
     Array<uint32, AllocatorType> counts;
-    Array<FixedArray<ObjId<Entity>, MaxEntitiesPerBatch>, AllocatorType> entityIds;
 
     HYP_FORCE_INLINE size_t Size() const
     {
@@ -213,7 +212,6 @@ struct InstancedDrawCallStorage
         numIndices.Clear();
         batches.Clear();
         counts.Clear();
-        entityIds.Clear();
     }
 
     size_t Push(DrawCallID id, Mesh* mesh, Material* material, Skeleton* skeleton, EntityInstanceBatch* batch, uint32 numIndicesValue)
@@ -228,7 +226,6 @@ struct InstancedDrawCallStorage
         numIndices.PushBack(numIndicesValue);
         batches.PushBack(batch);
         counts.PushBack(0);
-        entityIds.EmplaceBack();
 
         return index;
     }

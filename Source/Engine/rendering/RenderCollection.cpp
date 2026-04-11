@@ -819,8 +819,6 @@ static void RenderAll(
     const DrawCallStorage& drawCalls = drawCallCollection.drawCalls;
     for (size_t i = 0; i < drawCalls.Size(); i++)
     {
-        AssertDebug(drawCalls.entityIds[i].GetTypeId() == TypeId::ForType<Entity>());
-
         const uint32 materialBoundIndex = Resources::GetBinding(drawCalls.materials[i]);
         AssertDebug(materialBoundIndex != ~0u);
 
@@ -828,7 +826,7 @@ static void RenderAll(
 
         cr << SetShaderUniform(numDrawCallUniforms++, "CurrentEntity"_sh,
             g_renderInterface->gpuBuffers[GRB_ENTITIES]->GetBuffer(frameIndex),
-            TShaderDataOffset<EntityShaderData>(drawCalls.entityIds[i].ToIndex()));
+            TShaderDataOffset<EntityShaderData>(drawCalls.entityBindingIndices[i]));
 
         cr << SetShaderUniform(numDrawCallUniforms++, "MaterialsBuffer"_sh,
             g_renderInterface->gpuBuffers[GRB_MATERIALS]->GetBuffer(frameIndex),

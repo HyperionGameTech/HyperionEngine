@@ -59,7 +59,7 @@ void DrawCallCollection::PushRenderProxy(DrawCallID id, const RenderProxyMesh& r
         renderProxy.mesh,
         renderProxy.material,
         renderProxy.skeleton,
-        renderProxy.entity.Id(),
+        Resources::GetBinding(renderProxy.entity.GetUnsafe()),
         renderProxy.numIndices);
 }
 
@@ -225,7 +225,6 @@ HYP_NODISCARD uint32 DrawCallCollection::PushEntityToBatch(
 
     EntityInstanceBatch* batch = instancedDrawCalls.batches[drawCallIndex];
     uint32& count = instancedDrawCalls.counts[drawCallIndex];
-    FixedArray<ObjId<Entity>, MaxEntitiesPerBatch>& entityIdsArray = instancedDrawCalls.entityIds[drawCallIndex];
 
     bool dirty = false;
 
@@ -237,7 +236,7 @@ HYP_NODISCARD uint32 DrawCallCollection::PushEntityToBatch(
         {
             const uint32 entityIndex = batch->numEntities++;
 
-            batch->indices[entityIndex] = uint32(entity->Id().ToIndex());
+            batch->indices[entityIndex] = Resources::GetBinding(entity);
 
             // Starts at the offset of `transforms` in EntityInstanceBatch - data in buffers is expected to be
             // after the `indices` element
@@ -276,7 +275,7 @@ HYP_NODISCARD uint32 DrawCallCollection::PushEntityToBatch(
 
             instanceOffset++;
 
-            entityIdsArray[count++] = entity->Id();
+            count++;
 
             --numInstances;
 
@@ -289,10 +288,10 @@ HYP_NODISCARD uint32 DrawCallCollection::PushEntityToBatch(
         {
             const uint32 entityIndex = batch->numEntities++;
 
-            batch->indices[entityIndex] = uint32(entity->Id().ToIndex());
+            batch->indices[entityIndex] = Resources::GetBinding(entity);
             batch->transforms[entityIndex] = Mat4f::identity;
 
-            entityIdsArray[count++] = entity->Id();
+            count++;
 
             --numInstances;
 

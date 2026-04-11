@@ -33,8 +33,7 @@ void OnBindingChanged_MeshEntity(Entity* entity, uint32 prev, uint32 next)
         "Cannot use Entity subclass as MeshEntity, indices would overlap! Class: {}",
         entity->InstanceClass()->GetName());
 
-    // For now, use Entity ID as index.
-    SetBinding(entity, entity->Id().ToIndex());
+    SetBinding(entity, next);
 }
 
 void WriteBufferData_MeshEntity(GpuBufferHolderBase* gpuBufferHolder, uint32 idx, IRenderProxy* proxy)
@@ -45,12 +44,11 @@ void WriteBufferData_MeshEntity(GpuBufferHolderBase* gpuBufferHolder, uint32 idx
     RenderProxyMesh* proxyCasted = static_cast<RenderProxyMesh*>(proxy);
     AssertDebug(proxyCasted != nullptr);
 
-    AssertDebug(idx == proxyCasted->entity.Id().ToIndex());
     AssertDebug(proxyCasted->entity.Id().GetTypeId() == TypeId::ForType<Entity>(),
         "Cannot use Entity subclass as MeshEntity, indices would overlap! Class: {}",
         LookupTypeName(proxyCasted->entity.Id().GetTypeId()));
 
-    proxyCasted->bufferData.entityIndex = proxyCasted->entity.Id().ToIndex();
+    proxyCasted->bufferData.entityIndex = idx;
     proxyCasted->bufferData.materialIndex = GetBinding(proxyCasted->material);
     proxyCasted->bufferData.skeletonIndex = GetBinding(proxyCasted->skeleton);
 

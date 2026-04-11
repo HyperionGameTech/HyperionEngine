@@ -35,7 +35,7 @@ struct IndirectDrawCommand
 
 struct ObjectInstance
 {
-    uint entity_id;
+    uint entity_binding_index;
     uint draw_command_index;
     uint batch_index;
     uint _pad;
@@ -90,18 +90,18 @@ void CSMain(uint3 dispatchThreadID : SV_DispatchThreadID)
     }
 
     ObjectInstance object_instance = instances[index];
-    const uint entity_id = object_instance.entity_id;
+    const uint entity_binding_index = object_instance.entity_binding_index;
     const uint draw_command_index = object_instance.draw_command_index;
 
-    // entity id should not ever be zero/unset,
+    // entity binding index should not ever be ~0u/unset,
     // but we should make sure we do not cause a gpu crash by indexing
-    // the uint - 1.
-    if (entity_id == 0)
+    // an invalid slot.
+    if (entity_binding_index == ~0u)
     {
         return;
     }
 
-    Entity currEntity = entities[entity_id - 1];
+    Entity currEntity = entities[entity_binding_index];
 
     bool is_visible = false;
 
@@ -174,7 +174,7 @@ void CSMain(uint3 dispatchThreadID : SV_DispatchThreadID)
             uint indicesOffsetWords = bufferOffsetWords + 4 + instance_index;
 
             uint oldValue;
-            InterlockedExchange(entityInstanceBatchData[indicesOffsetWords >> 2][indicesOffsetWords & 3], entity_id - 1u, oldValue);
+            InterlockedExchange(entityInstanceBatchData[indicesOffsetWords >> 2][indicesOffsetWords & 3], entity_binding_index, oldValue);
         }
     }
 }

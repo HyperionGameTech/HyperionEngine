@@ -43,12 +43,29 @@ constexpr uint32 NumRendererWorkerThreads = 2;
 constexpr uint32 NumForegroundWorkerThreads = 3;
 constexpr uint32 MaxBackgroundWorkerThreads = 4;
 
+// Constants for types that have a global structured buffer.
+// These are the maximum number of elements that can be stored in the corresponding global structured buffer or bound for rendering at any given time.
+constexpr uint32 MaxBoundWorlds = 16;
+constexpr uint32 MaxBoundCameras = 1024;
+constexpr uint32 MaxBoundLights = 1024;
+constexpr uint32 MaxBoundEntities = 1u << 15; // 32768
+constexpr uint32 MaxBoundMaterials = 1u << 10; // 1024
+constexpr uint32 MaxBoundSkeletons = 64;
+constexpr uint32 MaxBoundEnvProbes = 256;
 constexpr uint32 MaxBoundReflectionProbes = 16;
 constexpr uint32 MaxBoundEnvGrids = 16;
 constexpr uint32 MaxBoundAmbientProbes = 4096;
 constexpr uint32 MaxBoundOmniShadowMaps = 8;
-constexpr uint32 MaxBoundTextures = 16;
 constexpr uint32 MaxBoundLightmapVolumes = 4;
+
+// Types that do not have a global structured buffer.
+constexpr uint32 MaxBoundMeshes = 1u << 15; // 32768
+constexpr uint32 MaxBoundResourceTextures = 1u << 14; // 16384
+constexpr uint32 MaxBoundParticleVolumes = 256;
+constexpr uint32 MaxBoundFogVolumes = 256;
+
+// Per-material texture slots.
+constexpr uint32 MaxBoundTextures = 16;
 constexpr uint32 MaxBoundLightsForwardShading = 4;
 
 constexpr uint32 MaxShadowMapCascades = 4;

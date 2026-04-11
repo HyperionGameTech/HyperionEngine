@@ -52,7 +52,7 @@
 
 #include <Core/threading/TaskSystem.hpp>
 #include <Core/threading/TaskThread.hpp>
-#include <Core/threading/Semaphore.hpp>
+#include <Core/threading/ThreadSignal.hpp>
 
 #include <Core/utilities/Time.hpp>
 #include <Core/utilities/DeferredScope.hpp>
@@ -69,15 +69,15 @@
 
 namespace Hyperion {
 
-struct GpuLightmapperReadyNotification : Semaphore<int>
+struct GpuLightmapperReadyNotification : ThreadSignal
 {
 };
 
-static constexpr uint32 MaxBoundLights = 16;
-static constexpr uint32 MaxBoundEnvProbes = 4;
+static constexpr uint32 LightmapVolumeMaxBoundLights = 16;
+static constexpr uint32 LightmapVolumeMaxBoundEnvProbes = 4;
 
-static const ShaderPropertyId s_propMaxLights = InternShaderProperty(ShaderProperty(NAME("MAX_LIGHTS"), int(MaxBoundLights)));
-static const ShaderPropertyId s_propMaxEnvProbes = InternShaderProperty(ShaderProperty(NAME("MAX_ENV_PROBES"), int(MaxBoundEnvProbes)));
+static const ShaderPropertyId s_propMaxLights = InternShaderProperty(ShaderProperty(NAME("MAX_LIGHTS"), int(LightmapVolumeMaxBoundLights)));
+static const ShaderPropertyId s_propMaxEnvProbes = InternShaderProperty(ShaderProperty(NAME("MAX_ENV_PROBES"), int(LightmapVolumeMaxBoundEnvProbes)));
 
 #pragma region Render commands
 
@@ -93,7 +93,7 @@ struct SetGpuLightmapperReady : RenderCommand
 
     virtual RendererResult operator()() override
     {
-        notification->Produce();
+        notification->Signal();
 
         return {};
     }
@@ -185,7 +185,8 @@ void LightmapRenderer_GpuPathTracing::CleanJobData(BakeJobBase* job)
 
 bool LightmapRenderer_GpuPathTracing::CanRender() const
 {
-    return m_readyNotification != nullptr && m_readyNotification->IsInSignalState();
+    return m_readyNotification != nullptr
+        && m_readyNotification->IsSignalled();
 }
 
 void LightmapRenderer_GpuPathTracing::CreateAccelerationStructures()
@@ -369,7 +370,7 @@ void LightmapRenderer_GpuPathTracing::Render(Frame* frame, const RenderSetup& re
                 continue;
             }
 
-            if (numBoundLights >= MaxBoundLights)
+            if (numBoundLights >= LightmapVolumeMaxBoundLights)
             {
                 break;
             }
@@ -387,7 +388,7 @@ void LightmapRenderer_GpuPathTracing::Render(Frame* frame, const RenderSetup& re
             if ((envProbe->IsA(SkyProbe::StaticClass()) /* || envProbe->IsA(ReflectionProbe::StaticClass()) */)
                 && envProbe != m_lightmapper->GetSource()) // we don't want to bind a probe if it is being baked!
             {
-                if (numBoundEnvProbes >= MaxBoundEnvProbes)
+                if (numBoundEnvProbes >= LightmapVolumeMaxBoundEnvProbes)
                 {
                     break;
                 }
@@ -403,7 +404,7 @@ void LightmapRenderer_GpuPathTracing::Render(Frame* frame, const RenderSetup& re
 
         if (renderSetup.envProbe != nullptr
             && renderSetup.envProbe != m_lightmapper->GetSource()
-            && numBoundEnvProbes < MaxBoundEnvProbes)
+            && numBoundEnvProbes < LightmapVolumeMaxBoundEnvProbes)
         {
             auto it = tempEnvProbes.FindIf([envProbe = renderSetup.envProbe](const auto& pair)
                 {
@@ -428,7 +429,7 @@ void LightmapRenderer_GpuPathTracing::Render(Frame* frame, const RenderSetup& re
 
         g_renderInterface->cbufferAllocator->Write(&constants);
 
-        for (uint32 i = 0; i < MaxBoundLights; i++)
+        for (uint32 i = 0; i < LightmapVolumeMaxBoundLights; i++)
         {
             if (i < uint32(tempLights.Size()))
             {
@@ -465,7 +466,7 @@ void LightmapRenderer_GpuPathTracing::Render(Frame* frame, const RenderSetup& re
             return true;
         });
 
-        for (uint32 i = 0; i < MaxBoundEnvProbes; i++)
+        for (uint32 i = 0; i < LightmapVolumeMaxBoundEnvProbes; i++)
         {
             const EnvProbeShaderData* pEnvProbeShaderData = nullptr;
 

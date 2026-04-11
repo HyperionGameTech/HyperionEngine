@@ -123,9 +123,10 @@ private:
 class GpuBufferHolderBase
 {
 protected:
-    GpuBufferHolderBase(const TypeInfo* structTypeInfo, bool cpuAccessible)
+    GpuBufferHolderBase(const TypeInfo* structTypeInfo, bool cpuAccessible, size_t maxCapacity)
         : m_structTypeInfo(structTypeInfo),
-          m_cpuAccessible(cpuAccessible)
+          m_cpuAccessible(cpuAccessible),
+          m_maxCapacity(maxCapacity)
     {
         AssertDebug(m_structTypeInfo != nullptr);
     }
@@ -136,6 +137,11 @@ public:
     HYP_FORCE_INLINE const TypeInfo* GetStructTypeInfo() const
     {
         return m_structTypeInfo;
+    }
+
+    HYP_FORCE_INLINE size_t MaxCapacity() const
+    {
+        return m_maxCapacity;
     }
 
     virtual size_t Count() const = 0;
@@ -199,6 +205,7 @@ protected:
 
     const TypeInfo* m_structTypeInfo;
     bool m_cpuAccessible;
+    size_t m_maxCapacity;
 
     GpuBufferRef m_gpuBuffer;
 };
@@ -439,7 +446,7 @@ class GpuBufferHolder final : public GpuBufferHolderBase
 {
 public:
     GpuBufferHolder(uint32 initialCount, bool cpuAccessible)
-        : GpuBufferHolderBase(&TypeOf<StructType>(), cpuAccessible),
+        : GpuBufferHolderBase(&TypeOf<StructType>(), cpuAccessible, initialCount),
           m_pool(NAME_FMT("GpuBufferData_{}", TypeInfo_GetName(*m_structTypeInfo)), initialCount)
     {
         GpuBufferHolderBase::CreateBuffers(BufferType, initialCount, sizeof(StructType));
@@ -541,6 +548,11 @@ public:
 
     virtual void EnsureCapacity(uint32 index) override
     {
+        AssertDebug(index < m_maxCapacity,
+            "EnsureCapacity({}) exceeds max capacity {} for buffer type {}. "
+            "Increase the corresponding MaxBound* constant.",
+            index, m_maxCapacity, TypeInfo_GetName(*m_structTypeInfo));
+
         m_pool.EnsureCapacity(index);
     }
 

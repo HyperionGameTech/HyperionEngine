@@ -45,21 +45,21 @@ extern void OnBindingChanged_Material(Material* lightmapVolume, uint32 prev, uin
 
 extern void OnBindingChanged_Texture(Texture* texture, uint32 prev, uint32 next);
 
-static ResourceBindingAllocator<> s_meshEntityBindingsAllocator;
+static ResourceBindingAllocator<MaxBoundEntities> s_meshEntityBindingsAllocator;
 static ResourceBinder<Entity, &OnBindingChanged_MeshEntity> s_meshEntityBinder { &s_meshEntityBindingsAllocator };
 ResourceBinderBase* g_meshEntityBinder = &s_meshEntityBinder;
 
-static ResourceBindingAllocator<> s_meshBindingsAllocator;
+static ResourceBindingAllocator<MaxBoundMeshes> s_meshBindingsAllocator;
 static ResourceBinder<Mesh, &OnBindingChanged_Mesh> s_meshBinder { &s_meshBindingsAllocator };
 ResourceBinderBase* g_meshBinder = &s_meshBinder;
 
-static ResourceBindingAllocator<> s_cameraBindingsAllocator;
+static ResourceBindingAllocator<MaxBoundCameras> s_cameraBindingsAllocator;
 static ResourceBinder<Camera, &OnBindingChanged_Default<Camera>> s_cameraBinder { &s_cameraBindingsAllocator };
 ResourceBinderBase* g_cameraBinder = &s_cameraBinder;
 
 // Shared index allocator for all envprobes
 
-static ResourceBindingAllocator<> s_envProbeBindingsAllocator;
+static ResourceBindingAllocator<MaxBoundEnvProbes> s_envProbeBindingsAllocator;
 static ResourceBinder<EnvProbe, &OnBindingChanged_EnvProbe> s_envProbeBinder { &s_envProbeBindingsAllocator };
 ResourceBinderBase* g_envProbeBinder = &s_envProbeBinder;
 
@@ -72,7 +72,7 @@ static ResourceBindingAllocator<MaxBoundEnvGrids> s_envGridBindingsAllocator;
 static ResourceBinder<EnvGrid, &OnBindingChanged_EnvGrid> s_envGridBinder { &s_envGridBindingsAllocator };
 ResourceBinderBase* g_envGridBinder = &s_envGridBinder;
 
-static ResourceBindingAllocator<> s_lightBindingsAllocator;
+static ResourceBindingAllocator<MaxBoundLights> s_lightBindingsAllocator;
 static ResourceBinder<Light, &OnBindingChanged_Light> s_lightBinder { &s_lightBindingsAllocator };
 ResourceBinderBase* g_lightBinder = &s_lightBinder;
 
@@ -82,27 +82,27 @@ static ResourceBinder<LightmapVolume, &OnBindingChanged_Default<LightmapVolume>>
 };
 ResourceBinderBase* g_lightmapVolumeBinder = &s_lightmapVolumeBinder;
 
-static ResourceBindingAllocator<> s_particleVolumeBindingsAllocator;
+static ResourceBindingAllocator<MaxBoundParticleVolumes> s_particleVolumeBindingsAllocator;
 static ResourceBinder<ParticleVolume, &OnBindingChanged_Default<ParticleVolume>> s_particleVolumeBinder {
     &s_particleVolumeBindingsAllocator
 };
 ResourceBinderBase* g_particleVolumeBinder = &s_particleVolumeBinder;
 
-static ResourceBindingAllocator<> s_fogVolumeBindingsAllocator;
+static ResourceBindingAllocator<MaxBoundFogVolumes> s_fogVolumeBindingsAllocator;
 static ResourceBinder<FogVolume, &OnBindingChanged_Default<FogVolume>> s_fogVolumeBinder {
     &s_fogVolumeBindingsAllocator
 };
 ResourceBinderBase* g_fogVolumeBinder = &s_fogVolumeBinder;
 
-static ResourceBindingAllocator<> s_materialBindingsAllocator;
+static ResourceBindingAllocator<MaxBoundMaterials> s_materialBindingsAllocator;
 static ResourceBinder<Material, &OnBindingChanged_Material> s_materialBinder { &s_materialBindingsAllocator };
 ResourceBinderBase* g_materialBinder = &s_materialBinder;
 
-static ResourceBindingAllocator<> s_textureBindingsAllocator;
+static ResourceBindingAllocator<MaxBoundResourceTextures> s_textureBindingsAllocator;
 static ResourceBinder<Texture, &OnBindingChanged_Texture> s_textureBinder { &s_textureBindingsAllocator };
 ResourceBinderBase* g_textureBinder = &s_textureBinder;
 
-static ResourceBindingAllocator<> s_skeletonBindingsAllocator;
+static ResourceBindingAllocator<MaxBoundSkeletons> s_skeletonBindingsAllocator;
 static ResourceBinder<Skeleton, &OnBindingChanged_Default<Skeleton>> s_skeletonBinder { &s_skeletonBindingsAllocator };
 ResourceBinderBase* g_skeletonBinder = &s_skeletonBinder;
 

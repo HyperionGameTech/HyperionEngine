@@ -41,7 +41,7 @@ namespace Hyperion {
 
 static constexpr TextureFormat IrradianceFormat = TextureFormat::RGBA8;
 static constexpr TextureFormat DepthFormat = TextureFormat::RG16F;
-static constexpr uint32 MaxBoundLights = 4;
+static constexpr uint32 DDGIMaxBoundLights = 4;
 
 static const ShaderPropertyId s_propUpdateProbeDataModeIrradiance = InternShaderProperty(ShaderProperty(NAME("MODE"), NAME("IRRADIANCE")));
 static const ShaderPropertyId s_propUpdateProbeDataModeDepth = InternShaderProperty(ShaderProperty(NAME("MODE"), NAME("DEPTH")));
@@ -211,7 +211,7 @@ void DDGI::UpdateUniforms(Frame* frame, const RenderSetup& renderSetup)
     ddgiConstants.counter = m_counter++;
 
     Array<Pair<Light*, LightShaderData*>, RenderTempAllocator> tempLights;
-    tempLights.Reserve(MaxBoundLights);
+    tempLights.Reserve(DDGIMaxBoundLights);
 
     for (Light* light : rpl.GetLights())
     {
@@ -222,7 +222,7 @@ void DDGI::UpdateUniforms(Frame* frame, const RenderSetup& renderSetup)
             continue;
         }
 
-        if (ddgiConstants.numBoundLights >= MaxBoundLights)
+        if (ddgiConstants.numBoundLights >= DDGIMaxBoundLights)
         {
             break;
         }
@@ -241,7 +241,7 @@ void DDGI::UpdateUniforms(Frame* frame, const RenderSetup& renderSetup)
     // Build dynamic CBuffer for DDGI raygen: DDGIConstants + lights[MAX_LIGHTS] + EnvProbe
     g_renderInterface->cbufferAllocator->Write(&ddgiConstants);
 
-    for (uint32 i = 0; i < MaxBoundLights; i++)
+    for (uint32 i = 0; i < DDGIMaxBoundLights; i++)
     {
         if (i < uint32(tempLights.Size()))
         {
@@ -297,7 +297,7 @@ void DDGI::Render(Frame* frame, const RenderSetup& renderSetup)
     frame->cr << InsertBarrier(m_radianceBuffer, RS_UNORDERED_ACCESS);
 
     ShaderPropertySet shaderProperties;
-    shaderProperties.Add(InternShaderProperty(ShaderProperty(NAME("MAX_LIGHTS"), int(MaxBoundLights))));
+    shaderProperties.Add(InternShaderProperty(ShaderProperty(NAME("MAX_LIGHTS"), int(DDGIMaxBoundLights))));
 
     frame->cr << SetCurrentShader(ShaderDesc(NAME("DDGI"), shaderProperties));
     

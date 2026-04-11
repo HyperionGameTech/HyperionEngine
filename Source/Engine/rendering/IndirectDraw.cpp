@@ -243,7 +243,7 @@ void IndirectDrawState::PushDrawCall(size_t drawCallIndex, const DrawCallStorage
     const uint32 drawCommandIndex = m_numDrawCommands++;
 
     ObjectInstance& instance = m_objectInstances.EmplaceBack();
-    instance.entityId = drawCalls.entityIds[drawCallIndex].Value();
+    instance.entityBindingIndex = drawCalls.entityBindingIndices[drawCallIndex];
     instance.drawCommandIndex = drawCommandIndex;
     instance.batchIndex = ~0u;
 
@@ -265,13 +265,12 @@ void IndirectDrawState::PushInstancedDrawCall(size_t drawCallIndex, const Instan
     const uint32 drawCommandIndex = m_numDrawCommands++;
 
     const uint32 count = drawCalls.counts[drawCallIndex];
-    const FixedArray<ObjId<Entity>, MaxEntitiesPerBatch>& entityIds = drawCalls.entityIds[drawCallIndex];
     EntityInstanceBatch* batch = drawCalls.batches[drawCallIndex];
 
     for (uint32 index = 0; index < count; index++)
     {
         ObjectInstance& instance = m_objectInstances.EmplaceBack();
-        instance.entityId = entityIds[index].Value();
+        instance.entityBindingIndex = batch->indices[index];
         instance.drawCommandIndex = drawCommandIndex;
         instance.batchIndex = batch->batchIndex;
     }

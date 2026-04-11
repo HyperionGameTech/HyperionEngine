@@ -33,7 +33,7 @@ class EntityBatchAllocatorBase;
 
 struct alignas(16) ObjectInstance
 {
-    uint32 entityId;
+    uint32 entityBindingIndex;
     uint32 drawCommandIndex;
     uint32 batchIndex;
 };
