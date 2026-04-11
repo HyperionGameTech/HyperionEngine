@@ -71,6 +71,20 @@
               "$Class": "ShaderInput",
               "Register": 1,
               "ElementType": 4,
+              "Name": "CamerasBuffer",
+              "Count": 1,
+              "Size": 4294967295,
+              "IsDynamic": true,
+              "StructInfo": {
+                "Name": "",
+                "Size": 4294967295,
+                "FieldNames": [],
+                "FieldTypes": []
+              }
+            }, {
+              "$Class": "ShaderInput",
+              "Register": 1,
+              "ElementType": 4,
               "Name": "SkeletonsBuffer",
               "Count": 1,
               "Size": 4294967295,
@@ -95,21 +109,7 @@
                 "FieldNames": [],
                 "FieldTypes": []
               }
-            }], [], [{
-              "$Class": "ShaderInput",
-              "Register": 3,
-              "ElementType": 2,
-              "Name": "CamerasBuffer",
-              "Count": 1,
-              "Size": 4294967295,
-              "IsDynamic": true,
-              "StructInfo": {
-                "Name": "",
-                "Size": 4294967295,
-                "FieldNames": [],
-                "FieldTypes": []
-              }
-            }], [{
+            }], [], [], [{
               "$Class": "ShaderInput",
               "Register": 4,
               "ElementType": 7,
@@ -147,7 +147,7 @@
   "ShaderBlobs": [{
       "$Class": "BlobDataReference",
       "Key": "Engine/Shaders/DrawShadowMap/DrawShadowMap_9535285342444993251.VS",
-      "Size": 60064
+      "Size": 60116
     }, {
       "$Class": "BlobDataReference",
       "Key": "Engine/Shaders/DrawShadowMap/DrawShadowMap_9535285342444993251.PS",
@@ -155,9 +155,9 @@
     }],
   "PropertySetHashCode": {},
   "LastCompiledTimestamp": {
-    "Value": 13420338238194
+    "Value": 13420357506328
   },
   "Name": "DrawShadowMap_9535285342444993251",
-  "FriendlyName": "DrawShadowMap9535285342444993251",
+  "FriendlyName": "DrawShadowMap_9535285342444993251",
   "OriginalFilepath": ""
 }

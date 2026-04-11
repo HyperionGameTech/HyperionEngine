@@ -143,7 +143,7 @@ void RenderThread::Update()
         }
     }
 
-    g_renderInterface->namedBuffers[NamedBuffer::Worlds]->WriteBufferData(0, GetWorldBufferData(), sizeof(WorldShaderData));
+    g_renderInterface->namedBuffers[NamedBuffer::Worlds].Write(0, sizeof(WorldShaderData), GetWorldBufferData());
     
     for (Swapchain* swapchain : swapchains)
     {

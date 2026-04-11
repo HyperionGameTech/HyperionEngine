@@ -59,20 +59,6 @@
               "$Class": "ShaderInput",
               "Register": 1,
               "ElementType": 4,
-              "Name": "MaterialsBuffer",
-              "Count": 1,
-              "Size": 4294967295,
-              "IsDynamic": true,
-              "StructInfo": {
-                "Name": "",
-                "Size": 4294967295,
-                "FieldNames": [],
-                "FieldTypes": []
-              }
-            }], [], [{
-              "$Class": "ShaderInput",
-              "Register": 3,
-              "ElementType": 2,
               "Name": "CamerasBuffer",
               "Count": 1,
               "Size": 4294967295,
@@ -83,7 +69,21 @@
                 "FieldNames": [],
                 "FieldTypes": []
               }
-            }], [{
+            }, {
+              "$Class": "ShaderInput",
+              "Register": 1,
+              "ElementType": 4,
+              "Name": "MaterialsBuffer",
+              "Count": 1,
+              "Size": 4294967295,
+              "IsDynamic": true,
+              "StructInfo": {
+                "Name": "",
+                "Size": 4294967295,
+                "FieldNames": [],
+                "FieldTypes": []
+              }
+            }], [], [], [{
               "$Class": "ShaderInput",
               "Register": 4,
               "ElementType": 7,
@@ -127,7 +127,7 @@
   "ShaderBlobs": [{
       "$Class": "BlobDataReference",
       "Key": "Engine/Shaders/UIObject/UIObject_2941233747186420157.VS",
-      "Size": 48448
+      "Size": 48488
     }, {
       "$Class": "BlobDataReference",
       "Key": "Engine/Shaders/UIObject/UIObject_2941233747186420157.PS",
@@ -135,7 +135,7 @@
     }],
   "PropertySetHashCode": {},
   "LastCompiledTimestamp": {
-    "Value": 13420338230561
+    "Value": 13420357505119
   },
   "Name": "UIObject_2941233747186420157",
   "FriendlyName": "UIObject_2941233747186420157",

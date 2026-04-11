@@ -282,7 +282,7 @@ void ParticleVolumeRenderer::RenderFrame(Frame* frame, const RenderSetup& render
         cr << SetShaderUniform(8, "GBufferVelocityTexture"_sh, framebuffer->GetAttachment(GTN_VELOCITY)->GetImageView());
         cr << SetShaderUniform(9, "GBufferDepthTexture"_sh, framebuffer->GetAttachment(GTN_DEPTH)->GetImageView());
         
-        cr << SetShaderUniform(10, "WorldsBuffer"_sh, g_renderInterface->namedBuffers[NamedBuffer::Worlds]->GetBuffer(frame->GetFrameIndex()));
+        cr << SetShaderUniform(10, "WorldsBuffer"_sh, g_renderInterface->namedBuffers[NamedBuffer::Worlds].gpuBuffer);
         
         cr << SetShaderUniform(11, "CBuffer"_sh, cbuffer, ShaderDataOffset(cbufferOffset, cbufferSize));
 
@@ -324,8 +324,8 @@ void ParticleVolumeRenderer::RenderFrame(Frame* frame, const RenderSetup& render
         }
 
         cr << SetShaderUniform(2, "SamplerLinear"_sh, g_renderInterface->placeholderData->GetSamplerLinearMipmap());
-        cr << SetShaderUniform(3, "WorldsBuffer"_sh, g_renderInterface->namedBuffers[NamedBuffer::Worlds]->GetBuffer(frame->GetFrameIndex()));
-        cr << SetShaderUniform(4, "CamerasBuffer"_sh, g_renderInterface->namedBuffers[NamedBuffer::Cameras]->GetBuffer(frame->GetFrameIndex()), TShaderDataOffset<CameraShaderData>(view->GetCamera()));
+        cr << SetShaderUniform(3, "WorldsBuffer"_sh, g_renderInterface->namedBuffers[NamedBuffer::Worlds].gpuBuffer);
+        cr << SetShaderUniform(4, "CamerasBuffer"_sh, g_renderInterface->namedBuffers[NamedBuffer::Cameras].gpuBuffer, TShaderDataOffset<CameraShaderData>(view->GetCamera()));
 
         cr << CommitDrawState();
 

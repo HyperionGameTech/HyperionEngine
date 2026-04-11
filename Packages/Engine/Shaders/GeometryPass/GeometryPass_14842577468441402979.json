@@ -69,6 +69,20 @@
               "$Class": "ShaderInput",
               "Register": 1,
               "ElementType": 3,
+              "Name": "WorldsBuffer",
+              "Count": 1,
+              "Size": 4294967295,
+              "IsDynamic": false,
+              "StructInfo": {
+                "Name": "",
+                "Size": 4294967295,
+                "FieldNames": [],
+                "FieldTypes": []
+              }
+            }, {
+              "$Class": "ShaderInput",
+              "Register": 1,
+              "ElementType": 3,
               "Name": "EnvProbesBuffer",
               "Count": 1,
               "Size": 4294967295,
@@ -112,6 +126,20 @@
               "Register": 1,
               "ElementType": 4,
               "Name": "CurrentEntity",
+              "Count": 1,
+              "Size": 4294967295,
+              "IsDynamic": true,
+              "StructInfo": {
+                "Name": "",
+                "Size": 4294967295,
+                "FieldNames": [],
+                "FieldTypes": []
+              }
+            }, {
+              "$Class": "ShaderInput",
+              "Register": 1,
+              "ElementType": 4,
+              "Name": "CamerasBuffer",
               "Count": 1,
               "Size": 4294967295,
               "IsDynamic": true,
@@ -222,34 +250,6 @@
             }], [], [{
               "$Class": "ShaderInput",
               "Register": 3,
-              "ElementType": 1,
-              "Name": "WorldsBuffer",
-              "Count": 1,
-              "Size": 4294967295,
-              "IsDynamic": false,
-              "StructInfo": {
-                "Name": "",
-                "Size": 4294967295,
-                "FieldNames": [],
-                "FieldTypes": []
-              }
-            }, {
-              "$Class": "ShaderInput",
-              "Register": 3,
-              "ElementType": 2,
-              "Name": "CamerasBuffer",
-              "Count": 1,
-              "Size": 4294967295,
-              "IsDynamic": true,
-              "StructInfo": {
-                "Name": "",
-                "Size": 4294967295,
-                "FieldNames": [],
-                "FieldTypes": []
-              }
-            }, {
-              "$Class": "ShaderInput",
-              "Register": 3,
               "ElementType": 2,
               "Name": "FowardShadingConstants",
               "Count": 1,
@@ -305,17 +305,17 @@
   "ShaderBlobs": [{
       "$Class": "BlobDataReference",
       "Key": "Engine/Shaders/GeometryPass/GeometryPass_14842577468441402979.VS",
-      "Size": 62760
+      "Size": 62860
     }, {
       "$Class": "BlobDataReference",
       "Key": "Engine/Shaders/GeometryPass/GeometryPass_14842577468441402979.PS",
-      "Size": 218472
+      "Size": 218592
     }],
   "PropertySetHashCode": {},
   "LastCompiledTimestamp": {
-    "Value": 13420338240105
+    "Value": 13420357507032
   },
   "Name": "GeometryPass_14842577468441402979",
-  "FriendlyName": "GeometryPass14842577468441402979",
+  "FriendlyName": "GeometryPass_14842577468441402979",
   "OriginalFilepath": ""
 }

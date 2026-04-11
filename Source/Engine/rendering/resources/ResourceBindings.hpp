@@ -25,9 +25,9 @@ struct SubtypeResourceBindings
     StructuredBuffer* sbuffer;
     SparsePagedArray<uint32, 1024, RenderAllocator> bindingIndices;
 
-    SubtypeResourceBindings(const Class* resourceClass, StructuredBuffer& sbuffer)
+    SubtypeResourceBindings(const Class* resourceClass, StructuredBuffer* sbuffer)
         : resourceClass(resourceClass),
-          sbuffer(&sbuffer)
+          sbuffer(sbuffer)
     {
         AssertDebug(resourceClass != nullptr);
     }
@@ -250,7 +250,7 @@ public:
 
     template <class... ResourceBinderTypes>
     ResourceContainerFactory(
-        NamedBuffer buffer,
+        uint8 bufferId,
         WriteBufferDataFunction writeBufferDataFn,
         ResourceBinderTypes*... resourceBinders)
     {
@@ -263,15 +263,15 @@ public:
                 const int staticIndex = resourceClass->GetStaticIndex();
                 AssertDebug(staticIndex >= 0, "Invalid class: '{}' has no assigned static index!", *resourceClass->GetName());
 
+                StructuredBuffer* sbuffer = bufferId != NamedBuffer::Invalid
+                    ? &g_renderInterface->namedBuffers[bufferId]
+                    : nullptr;
+
                 if (!s_subtypeBindings.HasIndex(staticIndex))
                 {
                     // add new ResourceSubtypeBindings slot for the given class
                     s_subtypeBindings.Emplace(staticIndex, resourceClass, sbuffer);
                 }
-
-                StructuredBuffer* sbuffer = buffer != NamedBuffer::Invalid
-                    ? g_renderInterface->namedBuffers[buffer]
-                    : nullptr;
 
                 AssertDebug(!container.dataByType.HasIndex(staticIndex),
                     "ResourceSubtypeData for resource class '{}' has already been registered!",

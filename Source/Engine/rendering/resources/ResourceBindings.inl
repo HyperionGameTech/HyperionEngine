@@ -1,4 +1,4 @@
-typedef void (*WriteBufferDataFunction)(GlobalRenderBuffer& sbuffer, uint32 idx, IRenderProxy* proxy);
+typedef void (*WriteBufferDataFunction)(StructuredBuffer& sbuffer, uint32 idx, IRenderProxy* proxy);
 
 template <class T>
 static void OnBindingChanged_Default(T* resource, uint32 prev, uint32 next)
@@ -13,18 +13,17 @@ static void OnBindingChanged_Default(T* resource, uint32 prev, uint32 next)
 }
 
 template <class ProxyType>
-static void WriteBufferData_Default(GpuBufferHolderBase* gpuBufferHolder, uint32 idx, IRenderProxy* proxy)
+static void WriteBufferData_Default(StructuredBuffer& sbuffer, uint32 idx, IRenderProxy* proxy)
 {
-    AssertDebug(gpuBufferHolder != nullptr);
     AssertDebug(idx != ~0u, "Invalid index for writing buffer data!");
 
     ProxyType* proxyCasted = static_cast<ProxyType*>(proxy);
     AssertDebug(proxyCasted != nullptr, "Proxy is null!");
 
-    gpuBufferHolder->WriteBufferData(idx, &proxyCasted->bufferData, sizeof(proxyCasted->bufferData));
+    sbuffer.Write(idx * sizeof(proxyCasted->bufferData), sizeof(proxyCasted->bufferData), &proxyCasted->bufferData);
 }
 
-extern void WriteBufferData_MeshEntity(GpuBufferHolderBase* gpuBufferHolder, uint32 idx, IRenderProxy* proxy);
+extern void WriteBufferData_MeshEntity(StructuredBuffer& sbuffer, uint32 idx, IRenderProxy* proxy);
 
 extern void OnBindingChanged_Mesh(Mesh* mesh, uint32 prev, uint32 next);
 
@@ -32,19 +31,19 @@ extern void OnBindingChanged_Mesh(Mesh* mesh, uint32 prev, uint32 next);
 extern void OnBindingChanged_ReflectionProbe(EnvProbe* envProbe, uint32 prev, uint32 next);
 
 extern void OnBindingChanged_EnvProbe(EnvProbe* envProbe, uint32 prev, uint32 next);
-extern void WriteBufferData_EnvProbe(GpuBufferHolderBase* gpuBufferHolder, uint32 idx, IRenderProxy* proxy);
+extern void WriteBufferData_EnvProbe(StructuredBuffer& sbuffer, uint32 idx, IRenderProxy* proxy);
 
 extern void OnBindingChanged_EnvGrid(EnvGrid* envGrid, uint32 prev, uint32 next);
 
 extern void OnBindingChanged_Light(Light* light, uint32 prev, uint32 next);
-extern void WriteBufferData_Light(GpuBufferHolderBase* gpuBufferHolder, uint32 idx, IRenderProxy* proxy);
+extern void WriteBufferData_Light(StructuredBuffer& sbuffer, uint32 idx, IRenderProxy* proxy);
 
 extern void OnBindingChanged_Material(Material* lightmapVolume, uint32 prev, uint32 next);
 
 extern void OnBindingChanged_Texture(Texture* texture, uint32 prev, uint32 next);
 
 static ResourceBindingAllocator<MaxBoundEntities> s_meshEntityBindingsAllocator;
-static ResourceBinder<Entity, &OnBindingChanged_Default> s_meshEntityBinder { &s_meshEntityBindingsAllocator };
+static ResourceBinder<Entity, &OnBindingChanged_Default<Entity>> s_meshEntityBinder { &s_meshEntityBindingsAllocator };
 ResourceBinderBase* g_meshEntityBinder = &s_meshEntityBinder;
 
 static ResourceBindingAllocator<MaxBoundMeshes> s_meshBindingsAllocator;

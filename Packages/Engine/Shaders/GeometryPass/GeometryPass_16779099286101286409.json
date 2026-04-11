@@ -44,8 +44,36 @@
         "Slots": [[{
               "$Class": "ShaderInput",
               "Register": 1,
+              "ElementType": 3,
+              "Name": "WorldsBuffer",
+              "Count": 1,
+              "Size": 4294967295,
+              "IsDynamic": false,
+              "StructInfo": {
+                "Name": "",
+                "Size": 4294967295,
+                "FieldNames": [],
+                "FieldTypes": []
+              }
+            }, {
+              "$Class": "ShaderInput",
+              "Register": 1,
               "ElementType": 4,
               "Name": "CurrentEntity",
+              "Count": 1,
+              "Size": 4294967295,
+              "IsDynamic": true,
+              "StructInfo": {
+                "Name": "",
+                "Size": 4294967295,
+                "FieldNames": [],
+                "FieldTypes": []
+              }
+            }, {
+              "$Class": "ShaderInput",
+              "Register": 1,
+              "ElementType": 4,
+              "Name": "CamerasBuffer",
               "Count": 1,
               "Size": 4294967295,
               "IsDynamic": true,
@@ -69,35 +97,7 @@
                 "FieldNames": [],
                 "FieldTypes": []
               }
-            }], [], [{
-              "$Class": "ShaderInput",
-              "Register": 3,
-              "ElementType": 1,
-              "Name": "WorldsBuffer",
-              "Count": 1,
-              "Size": 4294967295,
-              "IsDynamic": false,
-              "StructInfo": {
-                "Name": "",
-                "Size": 4294967295,
-                "FieldNames": [],
-                "FieldTypes": []
-              }
-            }, {
-              "$Class": "ShaderInput",
-              "Register": 3,
-              "ElementType": 2,
-              "Name": "CamerasBuffer",
-              "Count": 1,
-              "Size": 4294967295,
-              "IsDynamic": true,
-              "StructInfo": {
-                "Name": "",
-                "Size": 4294967295,
-                "FieldNames": [],
-                "FieldTypes": []
-              }
-            }], [{
+            }], [], [], [{
               "$Class": "ShaderInput",
               "Register": 4,
               "ElementType": 7,
@@ -141,7 +141,7 @@
   "ShaderBlobs": [{
       "$Class": "BlobDataReference",
       "Key": "Engine/Shaders/GeometryPass/GeometryPass_16779099286101286409.VS",
-      "Size": 57244
+      "Size": 57348
     }, {
       "$Class": "BlobDataReference",
       "Key": "Engine/Shaders/GeometryPass/GeometryPass_16779099286101286409.PS",
@@ -149,9 +149,9 @@
     }],
   "PropertySetHashCode": {},
   "LastCompiledTimestamp": {
-    "Value": 13420338238828
+    "Value": 13420357506569
   },
   "Name": "GeometryPass_16779099286101286409",
-  "FriendlyName": "GeometryPass16779099286101286409",
+  "FriendlyName": "GeometryPass_16779099286101286409",
   "OriginalFilepath": ""
 }

@@ -311,9 +311,9 @@ void DDGI::Render(Frame* frame, const RenderSetup& renderSetup)
     frame->cr << SetShaderUniform(6, "ShadowMapsTextureArray"_sh, g_renderInterface->shadowMapCache->GetAtlasImageView());
     frame->cr << SetShaderUniform(7, "PointLightShadowMapsTextureArray"_sh, g_renderInterface->shadowMapCache->GetPointLightShadowMapImageView());
 
-    frame->cr << SetShaderUniform(8, "MaterialsBuffer"_sh, &g_renderInterface->namedBuffers[NamedBuffer::Materials].gpuBuffer);
-    frame->cr << SetShaderUniform(9, "EntitiesBuffer"_sh, &g_renderInterface->namedBuffers[NamedBuffer::Entities].gpuBuffer);
-    frame->cr << SetShaderUniform(10, "WorldsBuffer"_sh, &g_renderInterface->namedBuffers[NamedBuffer::Worlds].gpuBuffer);
+    frame->cr << SetShaderUniform(8, "MaterialsBuffer"_sh, g_renderInterface->namedBuffers[NamedBuffer::Materials].gpuBuffer);
+    frame->cr << SetShaderUniform(9, "EntitiesBuffer"_sh, g_renderInterface->namedBuffers[NamedBuffer::Entities].gpuBuffer);
+    frame->cr << SetShaderUniform(10, "WorldsBuffer"_sh, g_renderInterface->namedBuffers[NamedBuffer::Worlds].gpuBuffer);
     
     frame->cr << SetShaderUniform(11, "EnvProbesTexture"_sh, g_renderInterface->textureViewCache->GetOrCreate(g_renderInterface->envProbesTexture));
 

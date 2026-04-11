@@ -216,7 +216,7 @@ void ConvolveEnvProbeCubemap(
         const uint32 frameIndex = currFrame ? currFrame->GetFrameIndex() : 0;
 
         // @TODO Just write the env probe to constant buffer?
-        cr << SetShaderUniform(0, "CurrentEnvProbe"_sh, g_renderInterface->namedBuffers[NamedBuffer::EnvProbes]->GetBuffer(frameIndex), TShaderDataOffset<EnvProbeShaderData>(&envProbe));
+        cr << SetShaderUniform(0, "CurrentEnvProbe"_sh, g_renderInterface->namedBuffers[NamedBuffer::EnvProbes].gpuBuffer, TShaderDataOffset<EnvProbeShaderData>(&envProbe));
         cr << SetShaderUniform(1, "SphereSamplesBuffer"_sh, g_renderInterface->sphereSamplesBuffer);
         cr << SetShaderUniform(2, "ColorTexture"_sh, srcImageView);
         cr << SetShaderUniform(3, "SamplerLinear"_sh, g_renderInterface->placeholderData->GetSamplerLinear());
@@ -438,7 +438,7 @@ void ComputeEnvProbeSphericalHarmonics(
 
         cr << SetShaderUniform(0, "SamplerLinear"_sh, g_renderInterface->placeholderData->GetSamplerLinear());
         cr << SetShaderUniform(1, "SamplerNearest"_sh, g_renderInterface->placeholderData->GetSamplerNearest());
-        cr << SetShaderUniform(3, "EnvProbesBuffer"_sh, g_renderInterface->namedBuffers[NamedBuffer::EnvProbes]->GetBuffer(frame->GetFrameIndex()));
+        cr << SetShaderUniform(3, "EnvProbesBuffer"_sh, g_renderInterface->namedBuffers[NamedBuffer::EnvProbes].gpuBuffer);
 
         cr << SetShaderUniform(4, "OutSHBuffer"_sh, shReadbackBuffer);
 

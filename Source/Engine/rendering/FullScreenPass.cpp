@@ -466,7 +466,7 @@ void FullScreenPass::DrawHistoryTexture(Frame* frame, const RenderSetup& renderS
     
     cr << SetShaderUniform(0, "SamplerLinear"_sh, g_renderInterface->placeholderData->GetSamplerLinear());
     cr << SetShaderUniform(1, "SamplerNearest"_sh, g_renderInterface->placeholderData->GetSamplerNearest());
-    cr << SetShaderUniform(2, "WorldsBuffer"_sh, g_renderInterface->namedBuffers[NamedBuffer::Worlds]->GetBuffer(frameIndex));
+    cr << SetShaderUniform(2, "WorldsBuffer"_sh, g_renderInterface->namedBuffers[NamedBuffer::Worlds].gpuBuffer);
     cr << SetShaderUniform(3, "InTexture"_sh, GetPreviousFrameColorImageView());
 
     RenderFullScreenQuad(frame, renderSetup);
@@ -511,7 +511,7 @@ void FullScreenPass::MergeCheckerboard(Frame* frame, const RenderSetup& renderSe
 
     cr << SetShaderUniform(0, "SamplerLinear"_sh, g_renderInterface->placeholderData->GetSamplerLinear());
     cr << SetShaderUniform(1, "SamplerNearest"_sh, g_renderInterface->placeholderData->GetSamplerNearest());
-    cr << SetShaderUniform(2, "WorldsBuffer"_sh, g_renderInterface->namedBuffers[NamedBuffer::Worlds]->GetBuffer(frameIndex));
+    cr << SetShaderUniform(2, "WorldsBuffer"_sh, g_renderInterface->namedBuffers[NamedBuffer::Worlds].gpuBuffer);
     cr << SetShaderUniform(3, "InTexture"_sh, GetAttachment(0)->GetImageView());
     cr << SetShaderUniform(4, "UniformBuffer"_sh, m_mergeCheckerboardUniformBuffer);
 

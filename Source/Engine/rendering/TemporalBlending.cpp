@@ -270,8 +270,8 @@ void TemporalBlending::Render(Frame* frame, const RenderSetup& renderSetup)
     
     frame->cr << SetShaderUniform(7, "GBufferDepthTexture"_sh, m_gbuffer->GetBucket(RenderBucket::Opaque).GetGBufferAttachment(GTN_DEPTH)->GetImageView());
 
-    frame->cr << SetShaderUniform(8, "WorldsBuffer"_sh, g_renderInterface->namedBuffers[NamedBuffer::Worlds]->GetBuffer(frame->GetFrameIndex()));
-    frame->cr << SetShaderUniform(9, "CamerasBuffer"_sh, g_renderInterface->namedBuffers[NamedBuffer::Cameras]->GetBuffer(frame->GetFrameIndex()), TShaderDataOffset<CameraShaderData>(renderSetup.view->GetCamera()));
+    frame->cr << SetShaderUniform(8, "WorldsBuffer"_sh, g_renderInterface->namedBuffers[NamedBuffer::Worlds].gpuBuffer);
+    frame->cr << SetShaderUniform(9, "CamerasBuffer"_sh, g_renderInterface->namedBuffers[NamedBuffer::Cameras].gpuBuffer, TShaderDataOffset<CameraShaderData>(renderSetup.view->GetCamera()));
 
     frame->cr << DispatchCompute(Vec3u { (extent.x + 7) / 8, (extent.y + 7) / 8, 1 });
     frame->cr << InsertBarrier(activeTexture->GetGpuImage(), RS_SHADER_RESOURCE);

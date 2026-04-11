@@ -59,20 +59,6 @@
               "$Class": "ShaderInput",
               "Register": 1,
               "ElementType": 4,
-              "Name": "MaterialsBuffer",
-              "Count": 1,
-              "Size": 4294967295,
-              "IsDynamic": true,
-              "StructInfo": {
-                "Name": "",
-                "Size": 4294967295,
-                "FieldNames": [],
-                "FieldTypes": []
-              }
-            }], [], [{
-              "$Class": "ShaderInput",
-              "Register": 3,
-              "ElementType": 2,
               "Name": "CamerasBuffer",
               "Count": 1,
               "Size": 4294967295,
@@ -83,7 +69,21 @@
                 "FieldNames": [],
                 "FieldTypes": []
               }
-            }], [{
+            }, {
+              "$Class": "ShaderInput",
+              "Register": 1,
+              "ElementType": 4,
+              "Name": "MaterialsBuffer",
+              "Count": 1,
+              "Size": 4294967295,
+              "IsDynamic": true,
+              "StructInfo": {
+                "Name": "",
+                "Size": 4294967295,
+                "FieldNames": [],
+                "FieldTypes": []
+              }
+            }], [], [], [{
               "$Class": "ShaderInput",
               "Register": 4,
               "ElementType": 7,
@@ -127,7 +127,7 @@
   "ShaderBlobs": [{
       "$Class": "BlobDataReference",
       "Key": "Engine/Shaders/DrawCubemap/DrawCubemap_5336421232962317099.VS",
-      "Size": 47768
+      "Size": 47820
     }, {
       "$Class": "BlobDataReference",
       "Key": "Engine/Shaders/DrawCubemap/DrawCubemap_5336421232962317099.PS",
@@ -135,9 +135,9 @@
     }],
   "PropertySetHashCode": {},
   "LastCompiledTimestamp": {
-    "Value": 13420341850759
+    "Value": 13420357482481
   },
   "Name": "DrawCubemap_5336421232962317099",
-  "FriendlyName": "DrawCubemap5336421232962317099",
+  "FriendlyName": "DrawCubemap_5336421232962317099",
   "OriginalFilepath": ""
 }

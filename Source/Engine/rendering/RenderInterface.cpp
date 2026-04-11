@@ -568,18 +568,21 @@ EngineConfig& GetEngineConfig()
 
 void StructuredBuffer::Initialize()
 {
-    if (gpuBuffer.IsCreated())
+    Assert(gpuBuffer);
+
+    if (gpuBuffer->IsCreated())
         return;
 
-    CheckResult(gpuBuffer.Create());
+    CheckResult(gpuBuffer->Create());
 }
 
 void StructuredBuffer::Shutdown()
 {
-    if (!gpuBuffer.IsCreated())
+    if (!gpuBuffer)
         return;
 
-    gpuBuffer = GpuBuffer(GpuBufferType::STORAGE_BUFFER, 0);
+    delete gpuBuffer;
+    gpuBuffer = nullptr;
 }
 
 void StructuredBuffer::Write(size_t offset, size_t count, const void* data)
@@ -594,7 +597,7 @@ void StructuredBuffer::Write(size_t offset, size_t count, const void* data)
 
 void StructuredBuffer::Update()
 {
-    Assert(gpuBuffer.IsCreated());
+    Assert(gpuBuffer && gpuBuffer->IsCreated());
 
     if (dirtyRangeEnd - dirtyRangeStart > 0)
     {
@@ -604,11 +607,11 @@ void StructuredBuffer::Update()
         CommandRecorder& cr = g_renderInterface->commandRecorderAllocator.GetCommandRecorder();
 
         cr << InsertBarrier(stagingBuffer, RS_COPY_SRC);
-        cr << InsertBarrier(&gpuBuffer, RS_COPY_DST);
+        cr << InsertBarrier(gpuBuffer, RS_COPY_DST);
 
-        cr << CopyBuffer(stagingBuffer, &gpuBuffer, 0, dirtyRangeStart, dirtyRangeEnd - dirtyRangeStart);
+        cr << CopyBuffer(stagingBuffer, gpuBuffer, 0, dirtyRangeStart, dirtyRangeEnd - dirtyRangeStart);
         
-        cr << InsertBarrier(&gpuBuffer, RS_SHADER_RESOURCE);
+        cr << InsertBarrier(gpuBuffer, RS_SHADER_RESOURCE);
 
         cr.Done();
 

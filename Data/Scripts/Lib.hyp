@@ -1123,19 +1123,6 @@ extern enum GlobalRendererType : uint32
     GRT_SSAO,
     GRT_MAX
 end
-extern enum GlobalRenderBuffer : uint8
-    GRB_INVALID = UINT8_MAX,
-    GRB_WORLDS = 0,
-    GRB_CAMERAS,
-    GRB_LIGHTS,
-    GRB_ENTITIES,
-    GRB_MATERIALS,
-    GRB_SKELETONS,
-    GRB_ENV_PROBES,
-    GRB_ENV_GRIDS,
-    GRB_LIGHTMAP_VOLUMES,
-    GRB_MAX
-end
 extern enum RenderBucket : uint8
     Opaque,
     Lightmapped,

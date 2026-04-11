@@ -63,6 +63,20 @@
               "$Class": "ShaderInput",
               "Register": 1,
               "ElementType": 3,
+              "Name": "WorldsBuffer",
+              "Count": 1,
+              "Size": 4294967295,
+              "IsDynamic": false,
+              "StructInfo": {
+                "Name": "",
+                "Size": 4294967295,
+                "FieldNames": [],
+                "FieldTypes": []
+              }
+            }, {
+              "$Class": "ShaderInput",
+              "Register": 1,
+              "ElementType": 3,
               "Name": "EnvProbesBuffer",
               "Count": 1,
               "Size": 4294967295,
@@ -272,20 +286,6 @@
             }], [], [{
               "$Class": "ShaderInput",
               "Register": 3,
-              "ElementType": 1,
-              "Name": "WorldsBuffer",
-              "Count": 1,
-              "Size": 4294967295,
-              "IsDynamic": false,
-              "StructInfo": {
-                "Name": "",
-                "Size": 4294967295,
-                "FieldNames": [],
-                "FieldTypes": []
-              }
-            }, {
-              "$Class": "ShaderInput",
-              "Register": 3,
               "ElementType": 2,
               "Name": "CBuffer",
               "Count": 1,
@@ -359,13 +359,13 @@
     }, {
       "$Class": "BlobDataReference",
       "Key": "Engine/Shaders/DeferredDirect/DeferredDirect_15924930052788855720.PS",
-      "Size": 228336
+      "Size": 228324
     }],
   "PropertySetHashCode": {},
   "LastCompiledTimestamp": {
-    "Value": 13420338115684
+    "Value": 13420357502359
   },
   "Name": "DeferredDirect_15924930052788855720",
-  "FriendlyName": "DeferredDirect15924930052788855720",
+  "FriendlyName": "DeferredDirect_15924930052788855720",
   "OriginalFilepath": ""
 }

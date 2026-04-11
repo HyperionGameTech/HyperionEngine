@@ -762,30 +762,30 @@ static void RenderAll(
     cr << SetShaderUniform(numShaderUniforms++, "SamplerLinear"_sh, g_renderInterface->placeholderData->GetSamplerLinearMipmap());
     cr << SetShaderUniform(numShaderUniforms++, "SamplerNearest"_sh, g_renderInterface->placeholderData->GetSamplerNearest());
 
-    cr << SetShaderUniform(numShaderUniforms++, "CamerasBuffer"_sh, g_renderInterface->namedBuffers[NamedBuffer::Cameras]->GetBuffer(frameIndex), TShaderDataOffset<CameraShaderData>(renderSetup.view->GetCamera()));
+    cr << SetShaderUniform(numShaderUniforms++, "CamerasBuffer"_sh, g_renderInterface->namedBuffers[NamedBuffer::Cameras].gpuBuffer, TShaderDataOffset<CameraShaderData>(renderSetup.view->GetCamera()));
     
-    cr << SetShaderUniform(numShaderUniforms++, "EntitiesBuffer"_sh, g_renderInterface->namedBuffers[NamedBuffer::Entities]->GetBuffer(frameIndex));
+    cr << SetShaderUniform(numShaderUniforms++, "EntitiesBuffer"_sh, g_renderInterface->namedBuffers[NamedBuffer::Entities].gpuBuffer);
 
-    cr << SetShaderUniform(numShaderUniforms++, "WorldsBuffer"_sh, g_renderInterface->namedBuffers[NamedBuffer::Worlds]->GetBuffer(frameIndex));
+    cr << SetShaderUniform(numShaderUniforms++, "WorldsBuffer"_sh, g_renderInterface->namedBuffers[NamedBuffer::Worlds].gpuBuffer);
     
     cr << SetShaderUniform(numShaderUniforms++, "ShadowMapsTextureArray"_sh, g_renderInterface->shadowMapCache->GetAtlasImageView()); 
     cr << SetShaderUniform(numShaderUniforms++, "PointLightShadowMapsTextureArray"_sh, g_renderInterface->shadowMapCache->GetPointLightShadowMapImageView());
     
     cr << SetShaderUniform(numShaderUniforms++, "EnvProbesTexture"_sh, g_renderInterface->textureViewCache->GetOrCreate(g_renderInterface->envProbesTexture));
-    cr << SetShaderUniform(numShaderUniforms++, "EnvProbesBuffer"_sh, g_renderInterface->namedBuffers[NamedBuffer::EnvProbes]->GetBuffer(frameIndex));
+    cr << SetShaderUniform(numShaderUniforms++, "EnvProbesBuffer"_sh, g_renderInterface->namedBuffers[NamedBuffer::EnvProbes].gpuBuffer);
     
-    cr << SetShaderUniform(numShaderUniforms++, "LightsBuffer"_sh, g_renderInterface->namedBuffers[NamedBuffer::Lights]->GetBuffer(frameIndex));
+    cr << SetShaderUniform(numShaderUniforms++, "LightsBuffer"_sh, g_renderInterface->namedBuffers[NamedBuffer::Lights].gpuBuffer);
     
     // These two (CurrentLight, CurrentEnvProbe) should be refactored out; they exist for RenderSky shader currently.
     if (renderSetup.light != nullptr)
-        cr << SetShaderUniform(numShaderUniforms++, "CurrentLight"_sh, g_renderInterface->namedBuffers[NamedBuffer::Lights]->GetBuffer(frameIndex), TShaderDataOffset<LightShaderData>(renderSetup.light));
+        cr << SetShaderUniform(numShaderUniforms++, "CurrentLight"_sh, g_renderInterface->namedBuffers[NamedBuffer::Lights].gpuBuffer, TShaderDataOffset<LightShaderData>(renderSetup.light));
     else
-        cr << SetShaderUniform(numShaderUniforms++, "CurrentLight"_sh, g_renderInterface->namedBuffers[NamedBuffer::Lights]->GetBuffer(frameIndex), TShaderDataOffset<LightShaderData>(0));
+        cr << SetShaderUniform(numShaderUniforms++, "CurrentLight"_sh, g_renderInterface->namedBuffers[NamedBuffer::Lights].gpuBuffer, TShaderDataOffset<LightShaderData>(0));
 
     if (renderSetup.envProbe != nullptr)
-        cr << SetShaderUniform(numShaderUniforms++, "CurrentEnvProbe"_sh, g_renderInterface->namedBuffers[NamedBuffer::EnvProbes]->GetBuffer(frameIndex), TShaderDataOffset<EnvProbeShaderData>(renderSetup.envProbe));
+        cr << SetShaderUniform(numShaderUniforms++, "CurrentEnvProbe"_sh, g_renderInterface->namedBuffers[NamedBuffer::EnvProbes].gpuBuffer, TShaderDataOffset<EnvProbeShaderData>(renderSetup.envProbe));
     else
-        cr << SetShaderUniform(numShaderUniforms++, "CurrentEnvProbe"_sh, g_renderInterface->namedBuffers[NamedBuffer::EnvProbes]->GetBuffer(frameIndex), TShaderDataOffset<EnvProbeShaderData>(0));
+        cr << SetShaderUniform(numShaderUniforms++, "CurrentEnvProbe"_sh, g_renderInterface->namedBuffers[NamedBuffer::EnvProbes].gpuBuffer, TShaderDataOffset<EnvProbeShaderData>(0));
     
 
     const bool isForwardShading = mas.shaderProperties.Test(s_propShadingTypeForward);
@@ -825,17 +825,17 @@ static void RenderAll(
         uint32 numDrawCallUniforms = numShaderUniforms;
 
         cr << SetShaderUniform(numDrawCallUniforms++, "CurrentEntity"_sh,
-            g_renderInterface->namedBuffers[NamedBuffer::Entities]->GetBuffer(frameIndex),
+            g_renderInterface->namedBuffers[NamedBuffer::Entities].gpuBuffer,
             TShaderDataOffset<EntityShaderData>(drawCalls.entityBindingIndices[i]));
 
         cr << SetShaderUniform(numDrawCallUniforms++, "MaterialsBuffer"_sh,
-            g_renderInterface->namedBuffers[NamedBuffer::Materials]->GetBuffer(frameIndex),
+            g_renderInterface->namedBuffers[NamedBuffer::Materials].gpuBuffer,
             TShaderDataOffset<MaterialShaderData>(materialBoundIndex));
                         
         if (drawCalls.skeletons[i] != nullptr)
         {
             cr << SetShaderUniform(numDrawCallUniforms++, "SkeletonsBuffer"_sh,
-                g_renderInterface->namedBuffers[NamedBuffer::Skeletons]->GetBuffer(frameIndex),
+                g_renderInterface->namedBuffers[NamedBuffer::Skeletons].gpuBuffer,
                 TShaderDataOffset<SkeletonShaderData>(drawCalls.skeletons[i]));
         }
         
@@ -914,13 +914,13 @@ static void RenderAll(
         AssertDebug(materialBoundIndex != ~0u);
 
         cr << SetShaderUniform(numDrawCallUniforms++, "MaterialsBuffer"_sh,
-            g_renderInterface->namedBuffers[NamedBuffer::Materials]->GetBuffer(frameIndex),
+            g_renderInterface->namedBuffers[NamedBuffer::Materials].gpuBuffer,
             TShaderDataOffset<MaterialShaderData>(materialBoundIndex));
                         
         if (instancedDrawCalls.skeletons[i] != nullptr)
         {
             cr << SetShaderUniform(numDrawCallUniforms++, "SkeletonsBuffer"_sh,
-                g_renderInterface->namedBuffers[NamedBuffer::Skeletons]->GetBuffer(frameIndex),
+                g_renderInterface->namedBuffers[NamedBuffer::Skeletons].gpuBuffer,
                 TShaderDataOffset<SkeletonShaderData>(instancedDrawCalls.skeletons[i]));
         }
         

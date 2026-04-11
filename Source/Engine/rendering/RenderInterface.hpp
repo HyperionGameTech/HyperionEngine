@@ -182,22 +182,59 @@ struct NamedBuffer
 
 static constexpr uint8 NumNamedBuffers = NamedBuffer::Max;
 
-class StructuredBuffer
+class StructuredBuffer final
 {
 public:
     StructuredBuffer()
-        : gpuBuffer(GpuBufferType::STORAGE_BUFFER, 0),
+        : gpuBuffer(nullptr),
+          elementSize(0),
           dirtyRangeStart(0),
           dirtyRangeEnd(0)
     {
     }
 
-    explicit StructuredBuffer(size_t size, size_t alignment)
-        : gpuBuffer(GpuBufferType::STORAGE_BUFFER, size, alignment),
+    explicit StructuredBuffer(size_t numElements, size_t elementSize)
+        : gpuBuffer(new GpuBuffer(GpuBufferType::STORAGE_BUFFER, numElements * elementSize, 16)),
+          elementSize(elementSize),
           dirtyRangeStart(0),
           dirtyRangeEnd(0)
     {
-        cpuBuffer.SetSize(size);
+        cpuBuffer.SetSize(numElements * elementSize);
+    }
+
+    StructuredBuffer(const StructuredBuffer& other) = delete;
+    StructuredBuffer& operator=(const StructuredBuffer& other) = delete;
+
+    StructuredBuffer(StructuredBuffer&& other) noexcept
+        : gpuBuffer(other.gpuBuffer),
+          cpuBuffer(std::move(other.cpuBuffer)),
+          elementSize(other.elementSize),
+          dirtyRangeStart(other.dirtyRangeStart),
+          dirtyRangeEnd(other.dirtyRangeEnd)
+    {
+    }
+
+    StructuredBuffer& operator=(StructuredBuffer&& other) noexcept
+    {
+        if (this != &other)
+        {
+            delete gpuBuffer;
+
+            gpuBuffer = other.gpuBuffer;
+            other.gpuBuffer = nullptr;
+
+            cpuBuffer = std::move(other.cpuBuffer);
+            elementSize = other.elementSize;
+            dirtyRangeStart = other.dirtyRangeStart;
+            dirtyRangeEnd = other.dirtyRangeEnd;
+        }
+        
+        return *this;
+    }
+
+    ~StructuredBuffer()
+    {
+        delete gpuBuffer;
     }
 
     void Initialize();
@@ -206,8 +243,10 @@ public:
     void Write(size_t offset, size_t count, const void* data);
     void Update();
 
-    GpuBuffer gpuBuffer;
+    GpuBuffer* gpuBuffer;
     TByteBuffer<RenderAllocator> cpuBuffer;
+
+    size_t elementSize;
 
     size_t dirtyRangeStart;
     size_t dirtyRangeEnd;
