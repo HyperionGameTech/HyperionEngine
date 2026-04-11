@@ -1,7 +1,0 @@
-{
-  "Dependencies": [],
-  "Name": "ApplyFogVolume",
-  "FriendlyName": "ApplyFogVolume",
-  "Flags": 0,
-  "Path": "Engine/Shaders/ApplyFogVolume"
-}

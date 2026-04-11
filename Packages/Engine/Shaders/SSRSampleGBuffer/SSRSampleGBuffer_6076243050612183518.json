@@ -213,23 +213,15 @@
   "ShaderBlobs": [{
       "$Class": "BlobDataReference",
       "Key": "Engine/Shaders/SSRSampleGBuffer/SSRSampleGBuffer_6076243050612183518.VS",
-<<<<<<< HEAD
       "Size": 11364
     }, {
       "$Class": "BlobDataReference",
       "Key": "Engine/Shaders/SSRSampleGBuffer/SSRSampleGBuffer_6076243050612183518.PS",
       "Size": 101368
-=======
-      "Size": 11360
-    }, {
-      "$Class": "BlobDataReference",
-      "Key": "Engine/Shaders/SSRSampleGBuffer/SSRSampleGBuffer_6076243050612183518.PS",
-      "Size": 101292
->>>>>>> 63cf5f217 (Skunkworks - fx sse)
     }],
   "PropertySetHashCode": {},
   "LastCompiledTimestamp": {
-    "Value": 13420389126463
+    "Value": 13420350831161
   },
   "Name": "SSRSampleGBuffer_6076243050612183518",
   "FriendlyName": "SSRSampleGBuffer_6076243050612183518",

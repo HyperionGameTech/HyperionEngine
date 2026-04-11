@@ -3,19 +3,6 @@
   "CompiledShaders": [{
       "$Class": "AssetReference",
       "AssetPath": {
-<<<<<<< HEAD
-        "Value": "Engine/Shaders/DrawCubemap/DrawCubemap_9306910829433328159"
-      }
-    }, {
-      "$Class": "AssetReference",
-      "AssetPath": {
-=======
->>>>>>> 63cf5f217 (Skunkworks - fx sse)
-        "Value": "Engine/Shaders/DrawCubemap/DrawCubemap_5394500840242340148"
-      }
-    }, {
-      "$Class": "AssetReference",
-      "AssetPath": {
         "Value": "Engine/Shaders/DrawCubemap/DrawCubemap_5336421232962317099"
       }
     }, {
@@ -26,51 +13,13 @@
     }, {
       "$Class": "AssetReference",
       "AssetPath": {
-        "Value": "Engine/Shaders/DrawCubemap/DrawCubemap_5336421232962317083"
-      }
-    }, {
-      "$Class": "AssetReference",
-      "AssetPath": {
         "Value": "Engine/Shaders/DrawCubemap/DrawCubemap_5336421232962317075"
       }
     }, {
       "$Class": "AssetReference",
       "AssetPath": {
-        "Value": "Engine/Shaders/DrawCubemap/DrawCubemap_5394500840242340156"
-      }
-    }, {
-      "$Class": "AssetReference",
-      "AssetPath": {
-        "Value": "Engine/Shaders/DrawCubemap/DrawCubemap_5394500840242340044"
-      }
-    }, {
-      "$Class": "AssetReference",
-      "AssetPath": {
-        "Value": "Engine/Shaders/DrawCubemap/DrawCubemap_5394500840242340036"
-      }
-<<<<<<< HEAD
-    }, {
-      "$Class": "AssetReference",
-      "AssetPath": {
-        "Value": "Engine/Shaders/DrawCubemap/DrawCubemap_9306910829433328175"
-      }
-    }, {
-      "$Class": "AssetReference",
-      "AssetPath": {
-        "Value": "Engine/Shaders/DrawCubemap/DrawCubemap_9306910829433328151"
-      }
-    }, {
-      "$Class": "AssetReference",
-      "AssetPath": {
-        "Value": "Engine/Shaders/DrawCubemap/DrawCubemap_9306910829433328135"
-      }
-    }, {
-      "$Class": "AssetReference",
-      "AssetPath": {
         "Value": "Engine/Shaders/DrawCubemap/DrawCubemap_5336421232962317083"
       }
-=======
->>>>>>> 63cf5f217 (Skunkworks - fx sse)
     }],
   "Name": "DrawCubemap",
   "FriendlyName": "DrawCubemap",

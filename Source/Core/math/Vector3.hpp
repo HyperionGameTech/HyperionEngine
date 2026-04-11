@@ -477,49 +477,19 @@ struct alignas(alignof(float) * 4) HYP_API Vec3<float>
         return values[index];
     }
 
-    HYP_FORCE_INLINE constexpr Vec3 operator+(const Vec3& other) const
-    {
-        return { x + other.x, y + other.y, z + other.z };
-    }
+    Vec3 operator+(const Vec3& other) const;
 
-    HYP_FORCE_INLINE Vec3& operator+=(const Vec3& other)
-    {
-        x += other.x;
-        y += other.y;
-        z += other.z;
-        return *this;
-    }
+    Vec3& operator+=(const Vec3& other);
 
-    HYP_FORCE_INLINE constexpr Vec3 operator-(const Vec3& other) const
-    {
-        return { x - other.x, y - other.y, z - other.z };
-    }
+    Vec3 operator-(const Vec3& other) const;
 
-    HYP_FORCE_INLINE Vec3& operator-=(const Vec3& other)
-    {
-        x -= other.x;
-        y -= other.y;
-        z -= other.z;
-        return *this;
-    }
+    Vec3& operator-=(const Vec3& other);
 
-    HYP_FORCE_INLINE constexpr Vec3 operator*(const Vec3& other) const
-    {
-        return { x * other.x, y * other.y, z * other.z };
-    }
+    Vec3 operator*(const Vec3& other) const;
 
-    HYP_FORCE_INLINE Vec3& operator*=(const Vec3& other)
-    {
-        x *= other.x;
-        y *= other.y;
-        z *= other.z;
-        return *this;
-    }
+    Vec3& operator*=(const Vec3& other);
 
-    HYP_FORCE_INLINE constexpr Vec3 operator/(const Vec3& other) const
-    {
-        return { x / other.x, y / other.y, z / other.z };
-    }
+    Vec3 operator/(const Vec3& other) const;
 
     HYP_FORCE_INLINE Vec3& operator/=(const Vec3& other)
     {
@@ -529,20 +499,14 @@ struct alignas(alignof(float) * 4) HYP_API Vec3<float>
         return *this;
     }
 
-    HYP_FORCE_INLINE constexpr bool operator==(const Vec3& other) const
-    {
-        return x == other.x && y == other.y && z == other.z;
-    }
+    bool operator==(const Vec3& other) const;
 
     HYP_FORCE_INLINE constexpr bool operator!=(const Vec3& other) const
     {
         return x != other.x || y != other.y || z != other.z;
     }
 
-    HYP_FORCE_INLINE constexpr Vec3 operator-() const
-    {
-        return operator*(Type(-1));
-    }
+    Vec3 operator-() const;
 
     HYP_FORCE_INLINE constexpr Vec3 operator+() const
     {
@@ -604,10 +568,7 @@ struct alignas(alignof(float) * 4) HYP_API Vec3<float>
         return x * x + y * y + z * z;
     }
 
-    Type Length() const
-    {
-        return std::sqrt(LengthSquared());
-    }
+    Type Length() const;
 
     Vec3 Normalized() const;
     Vec3& Normalize();

@@ -93,23 +93,15 @@
   "ShaderBlobs": [{
       "$Class": "BlobDataReference",
       "Key": "Engine/Shaders/Tonemap/Tonemap_16972387467701211923.VS",
-<<<<<<< HEAD
       "Size": 33272
     }, {
       "$Class": "BlobDataReference",
       "Key": "Engine/Shaders/Tonemap/Tonemap_16972387467701211923.PS",
       "Size": 43956
-=======
-      "Size": 33268
-    }, {
-      "$Class": "BlobDataReference",
-      "Key": "Engine/Shaders/Tonemap/Tonemap_16972387467701211923.PS",
-      "Size": 43952
->>>>>>> 63cf5f217 (Skunkworks - fx sse)
     }],
   "PropertySetHashCode": {},
   "LastCompiledTimestamp": {
-    "Value": 13420389128464
+    "Value": 13420002826863
   },
   "Name": "Tonemap_16972387467701211923",
   "FriendlyName": "Tonemap_16972387467701211923",

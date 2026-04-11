@@ -165,15 +165,11 @@
   "ShaderBlobs": [{
       "$Class": "BlobDataReference",
       "Key": "Engine/Shaders/ComputeVisibility/ComputeVisibility_5656388037364668818.CS",
-<<<<<<< HEAD
       "Size": 63064
-=======
-      "Size": 62916
->>>>>>> 63cf5f217 (Skunkworks - fx sse)
     }],
   "PropertySetHashCode": {},
   "LastCompiledTimestamp": {
-    "Value": 13420389131863
+    "Value": 13420350831131
   },
   "Name": "ComputeVisibility_5656388037364668818",
   "FriendlyName": "ComputeVisibility_5656388037364668818",

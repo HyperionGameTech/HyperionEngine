@@ -95,15 +95,11 @@
   "ShaderBlobs": [{
       "$Class": "BlobDataReference",
       "Key": "Engine/Shaders/GenerateDepthPyramid/GenerateDepthPyramid_5656388037364668818.CS",
-<<<<<<< HEAD
       "Size": 38864
-=======
-      "Size": 38860
->>>>>>> 63cf5f217 (Skunkworks - fx sse)
     }],
   "PropertySetHashCode": {},
   "LastCompiledTimestamp": {
-    "Value": 13420389127794
+    "Value": 13418959125517
   },
   "Name": "GenerateDepthPyramid_5656388037364668818",
   "FriendlyName": "GenerateDepthPyramid_5656388037364668818",

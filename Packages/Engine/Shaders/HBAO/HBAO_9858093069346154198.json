@@ -199,23 +199,15 @@
   "ShaderBlobs": [{
       "$Class": "BlobDataReference",
       "Key": "Engine/Shaders/HBAO/HBAO_9858093069346154198.VS",
-<<<<<<< HEAD
       "Size": 11268
     }, {
       "$Class": "BlobDataReference",
       "Key": "Engine/Shaders/HBAO/HBAO_9858093069346154198.PS",
       "Size": 125276
-=======
-      "Size": 11264
-    }, {
-      "$Class": "BlobDataReference",
-      "Key": "Engine/Shaders/HBAO/HBAO_9858093069346154198.PS",
-      "Size": 125004
->>>>>>> 63cf5f217 (Skunkworks - fx sse)
     }],
   "PropertySetHashCode": {},
   "LastCompiledTimestamp": {
-    "Value": 13420389125930
+    "Value": 13420350831162
   },
   "Name": "HBAO_9858093069346154198",
   "FriendlyName": "HBAO_9858093069346154198",

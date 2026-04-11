@@ -3,10 +3,10 @@
   "CompiledShaders": [{
       "$Class": "AssetReference",
       "AssetPath": {
-        "Value": "Engine/Shaders/DebugVis/DebugVis_9830034249633096743"
+        "Value": "Engine/Shaders/PathTracer/PathTracer_18040257332220255199"
       }
     }],
-  "Name": "DebugVis",
-  "FriendlyName": "DebugVis",
+  "Name": "PathTracer",
+  "FriendlyName": "PathTracer",
   "OriginalFilepath": ""
 }

@@ -109,23 +109,15 @@
   "ShaderBlobs": [{
       "$Class": "BlobDataReference",
       "Key": "Engine/Shaders/UIObject/UIObject_5656388037364668825.VS",
-<<<<<<< HEAD
       "Size": 48364
     }, {
       "$Class": "BlobDataReference",
       "Key": "Engine/Shaders/UIObject/UIObject_5656388037364668825.PS",
       "Size": 61432
-=======
-      "Size": 48272
-    }, {
-      "$Class": "BlobDataReference",
-      "Key": "Engine/Shaders/UIObject/UIObject_5656388037364668825.PS",
-      "Size": 61380
->>>>>>> 63cf5f217 (Skunkworks - fx sse)
     }],
   "PropertySetHashCode": {},
   "LastCompiledTimestamp": {
-    "Value": 13420389128892
+    "Value": 13420350831162
   },
   "Name": "UIObject_5656388037364668825",
   "FriendlyName": "UIObject_5656388037364668825",

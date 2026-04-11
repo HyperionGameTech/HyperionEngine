@@ -135,15 +135,11 @@
   "ShaderBlobs": [{
       "$Class": "BlobDataReference",
       "Key": "Engine/Shaders/ConvolveProbe/ConvolveProbe_17751610118206604763.CS",
-<<<<<<< HEAD
       "Size": 91208
-=======
-      "Size": 91156
->>>>>>> 63cf5f217 (Skunkworks - fx sse)
     }],
   "PropertySetHashCode": {},
   "LastCompiledTimestamp": {
-    "Value": 13420389129517
+    "Value": 13420002826867
   },
   "Name": "ConvolveProbe_17751610118206604763",
   "FriendlyName": "ConvolveProbe_17751610118206604763",

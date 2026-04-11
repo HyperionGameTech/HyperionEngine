@@ -151,15 +151,11 @@
   "ShaderBlobs": [{
       "$Class": "BlobDataReference",
       "Key": "Engine/Shaders/TAA/TAA_5656388037364668818.CS",
-<<<<<<< HEAD
       "Size": 103520
-=======
-      "Size": 103468
->>>>>>> 63cf5f217 (Skunkworks - fx sse)
     }],
   "PropertySetHashCode": {},
   "LastCompiledTimestamp": {
-    "Value": 13420389128655
+    "Value": 13417585436992
   },
   "Name": "TAA_5656388037364668818",
   "FriendlyName": "TAA_5656388037364668818",

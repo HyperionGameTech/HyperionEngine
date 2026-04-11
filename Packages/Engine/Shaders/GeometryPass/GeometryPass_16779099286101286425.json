@@ -141,7 +141,6 @@
   "ShaderBlobs": [{
       "$Class": "BlobDataReference",
       "Key": "Engine/Shaders/GeometryPass/GeometryPass_16779099286101286425.VS",
-<<<<<<< HEAD
       "Size": 57116
     }, {
       "$Class": "BlobDataReference",
@@ -151,17 +150,6 @@
   "PropertySetHashCode": {},
   "LastCompiledTimestamp": {
     "Value": 13420400501078
-=======
-      "Size": 56964
-    }, {
-      "$Class": "BlobDataReference",
-      "Key": "Engine/Shaders/GeometryPass/GeometryPass_16779099286101286425.PS",
-      "Size": 74600
-    }],
-  "PropertySetHashCode": {},
-  "LastCompiledTimestamp": {
-    "Value": 1775835296000
->>>>>>> 63cf5f217 (Skunkworks - fx sse)
   },
   "Name": "GeometryPass_16779099286101286425",
   "FriendlyName": "GeometryPass_16779099286101286425",

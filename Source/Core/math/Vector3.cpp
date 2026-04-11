@@ -14,9 +14,9 @@
 
 #include <cmath>
 
-#if !HYP_ARM && (defined(__SSE2__) || (HYP_MSVC && (defined(_M_X64) || (defined(_M_IX86_FP) && _M_IX86_FP >= 2))))
+#if !HYP_ARM && (defined(__SSE4_1__) || (HYP_MSVC && defined(_M_X64)))
 #include <immintrin.h>
-#define HYP_VECTOR3_USE_SSE 0//1
+#define HYP_VECTOR3_USE_SSE 1
 #else
 #define HYP_VECTOR3_USE_SSE 0
 #endif
@@ -72,6 +72,134 @@ HYP_END_STRUCT
 HYP_REGISTER_STATIC_CLASS(Vec3u);
 
 // clang-format on
+
+Vec3<float> math::Vec3<float>::operator+(const Vec3<float>& other) const
+{
+#if HYP_VECTOR3_USE_SSE
+    // Adapted from Foxtrot SIMD vector paths:
+    // Math/Impl/Vector/FxVec3_AVX.inl
+    return StoreVec3f(_mm_add_ps(LoadVec3f(*this), LoadVec3f(other)));
+#else
+    return { x + other.x, y + other.y, z + other.z };
+#endif
+}
+
+Vec3<float>& math::Vec3<float>::operator+=(const Vec3<float>& other)
+{
+#if HYP_VECTOR3_USE_SSE
+    // Adapted from Foxtrot SIMD vector paths:
+    // Math/Impl/Vector/FxVec3_AVX.inl
+    *this = StoreVec3f(_mm_add_ps(LoadVec3f(*this), LoadVec3f(other)));
+
+    return *this;
+#else
+    x += other.x;
+    y += other.y;
+    z += other.z;
+    return *this;
+#endif
+}
+
+Vec3<float> math::Vec3<float>::operator-(const Vec3<float>& other) const
+{
+#if HYP_VECTOR3_USE_SSE
+    // Adapted from Foxtrot SIMD vector paths:
+    // Math/Impl/Vector/FxVec3_AVX.inl
+    return StoreVec3f(_mm_sub_ps(LoadVec3f(*this), LoadVec3f(other)));
+#else
+    return { x - other.x, y - other.y, z - other.z };
+#endif
+}
+
+Vec3<float>& math::Vec3<float>::operator-=(const Vec3<float>& other)
+{
+#if HYP_VECTOR3_USE_SSE
+    // Adapted from Foxtrot SIMD vector paths:
+    // Math/Impl/Vector/FxVec3_AVX.inl
+    *this = StoreVec3f(_mm_sub_ps(LoadVec3f(*this), LoadVec3f(other)));
+
+    return *this;
+#else
+    x -= other.x;
+    y -= other.y;
+    z -= other.z;
+    return *this;
+#endif
+}
+
+Vec3<float> math::Vec3<float>::operator*(const Vec3<float>& other) const
+{
+#if HYP_VECTOR3_USE_SSE
+    // Adapted from Foxtrot SIMD vector paths:
+    // Math/Impl/Vector/FxVec3_AVX.inl
+    return StoreVec3f(_mm_mul_ps(LoadVec3f(*this), LoadVec3f(other)));
+#else
+    return { x * other.x, y * other.y, z * other.z };
+#endif
+}
+
+Vec3<float>& math::Vec3<float>::operator*=(const Vec3<float>& other)
+{
+#if HYP_VECTOR3_USE_SSE
+    // Adapted from Foxtrot SIMD vector paths:
+    // Math/Impl/Vector/FxVec3_AVX.inl
+    *this = StoreVec3f(_mm_mul_ps(LoadVec3f(*this), LoadVec3f(other)));
+
+    return *this;
+#else
+    x *= other.x;
+    y *= other.y;
+    z *= other.z;
+    return *this;
+#endif
+}
+
+Vec3<float> math::Vec3<float>::operator/(const Vec3<float>& other) const
+{
+#if HYP_VECTOR3_USE_SSE
+    // Adapted from Foxtrot SIMD vector paths:
+    // Math/Impl/Vector/FxVec3_AVX.inl
+    return StoreVec3f(_mm_div_ps(LoadVec3f(*this), LoadVec3f(other)));
+#else
+    return { x / other.x, y / other.y, z / other.z };
+#endif
+}
+
+bool math::Vec3<float>::operator==(const Vec3<float>& other) const
+{
+#if HYP_VECTOR3_USE_SSE
+    // Adapted from Foxtrot SIMD vector paths:
+    // Math/Impl/Vector/FxVec3_AVX.inl
+    __m128i cmp_v = _mm_castps_si128(_mm_cmpeq_ps(LoadVec3f(*this), LoadVec3f(other)));
+    // This is frequently done as a comparison against _mm_movemask, but _mm_test_all_ones potentially saves one extra
+    // instruction.
+    return static_cast<bool>(_mm_test_all_ones(cmp_v));
+#else
+    return x == other.x && y == other.y && z == other.z;
+#endif
+}
+
+Vec3<float> math::Vec3<float>::operator-() const
+{
+#if HYP_VECTOR3_USE_SSE
+    // Adapted from Foxtrot SIMD vector paths:
+    // Math/Impl/Vector/FxVec3_AVX.inl
+    return StoreVec3f(_mm_sub_ps(_mm_setzero_ps(), LoadVec3f(*this)));
+#else
+    return { -x, -y, -z };
+#endif
+}
+
+float math::Vec3<float>::Length() const
+{
+#if HYP_VECTOR3_USE_SSE
+    // Adapted from Foxtrot SIMD vector paths:
+    // Math/Impl/Vector/FxVec3_AVX.inl
+    return MathUtil::Sqrt(Dot(*this));
+#else
+    return std::sqrt(LengthSquared());
+#endif
+}
 
 Vec3<float> math::Vec3<float>::operator*(const Mat3f& mat) const
 {
@@ -132,10 +260,7 @@ float math::Vec3<float>::DistanceSquared(const Vec3f& other) const
     // Adapted from Foxtrot SIMD vector paths:
     // Math/Impl/Vector/FxVec3_AVX.inl
     const __m128 diff = _mm_sub_ps(LoadVec3f(*this), LoadVec3f(other));
-    const __m128 sq = _mm_mul_ps(diff, diff);
-    const Vec3<float> packed = StoreVec3f(sq);
-
-    return packed.x + packed.y + packed.z;
+    return _mm_cvtss_f32(_mm_dp_ps(diff, diff, 0x7F));
 #else
     float dx = x - other.x;
     float dy = y - other.y;
@@ -177,11 +302,29 @@ Vec3<float>& math::Vec3<float>::Normalize()
 
 Vec3<float> math::Vec3<float>::Cross(const Vec3<float>& other) const
 {
+#if HYP_VECTOR3_USE_SSE
+    // Adapted from Foxtrot SIMD vector paths:
+    // Math/Impl/Vector/FxVec3_AVX.cpp
+    //
+    // Permute both operands to (Y, Z, X, W), compute a*b_yzxw - a_yzxw*b,
+    // which yields the cross product in (Z, X, Y, 0) order, then permute
+    // once more with the same mask to arrive at (X, Y, Z, 0).
+    const __m128 a = LoadVec3f(*this);
+    const __m128 b = LoadVec3f(other);
+
+    const __m128 a_yzxw = _mm_shuffle_ps(a, a, _MM_SHUFFLE(3, 0, 2, 1));
+    const __m128 b_yzxw = _mm_shuffle_ps(b, b, _MM_SHUFFLE(3, 0, 2, 1));
+
+    const __m128 result_yzxw = _mm_sub_ps(_mm_mul_ps(a, b_yzxw), _mm_mul_ps(a_yzxw, b));
+
+    return StoreVec3f(_mm_shuffle_ps(result_yzxw, result_yzxw, _MM_SHUFFLE(3, 0, 2, 1)));
+#else
     return {
         y * other.z - z * other.y,
         z * other.x - x * other.z,
         x * other.y - y * other.x
     };
+#endif
 }
 
 Vec3<float> math::Vec3<float>::Reflect(const Vec3<float>& normal) const
@@ -224,10 +367,8 @@ float math::Vec3<float>::Dot(const Vec3<float>& other) const
 #if HYP_VECTOR3_USE_SSE
     // Adapted from Foxtrot SIMD vector paths:
     // Math/Impl/Vector/FxVec3_AVX.inl
-    const __m128 product = _mm_mul_ps(LoadVec3f(*this), LoadVec3f(other));
-    const Vec3<float> packed = StoreVec3f(product);
-
-    return packed.x + packed.y + packed.z;
+    // Mask 0x7F: Src=0111 (x,y,z only), Dest=1111 (broadcast to all lanes).
+    return _mm_cvtss_f32(_mm_dp_ps(LoadVec3f(*this), LoadVec3f(other), 0x7F));
 #else
     return x * other.x + y * other.y + z * other.z;
 #endif

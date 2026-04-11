@@ -143,23 +143,15 @@
   "ShaderBlobs": [{
       "$Class": "BlobDataReference",
       "Key": "Engine/Shaders/RenderSky/RenderSky_12407244494021180445.VS",
-<<<<<<< HEAD
       "Size": 74260
     }, {
       "$Class": "BlobDataReference",
       "Key": "Engine/Shaders/RenderSky/RenderSky_12407244494021180445.PS",
       "Size": 77944
-=======
-      "Size": 74172
-    }, {
-      "$Class": "BlobDataReference",
-      "Key": "Engine/Shaders/RenderSky/RenderSky_12407244494021180445.PS",
-      "Size": 77892
->>>>>>> 63cf5f217 (Skunkworks - fx sse)
     }],
   "PropertySetHashCode": {},
   "LastCompiledTimestamp": {
-    "Value": 13420389125635
+    "Value": 13420350831157
   },
   "Name": "RenderSky_12407244494021180445",
   "FriendlyName": "RenderSky_12407244494021180445",

@@ -3,15 +3,12 @@
   "CompiledShaders": [{
       "$Class": "AssetReference",
       "AssetPath": {
-<<<<<<< HEAD
-        "Value": "Engine/Shaders/GeometryPass/GeometryPass_16779099286101286433"
+        "Value": "Engine/Shaders/GeometryPass/GeometryPass_16779099286101286425"
       }
     }, {
       "$Class": "AssetReference",
       "AssetPath": {
-=======
->>>>>>> 63cf5f217 (Skunkworks - fx sse)
-        "Value": "Engine/Shaders/GeometryPass/GeometryPass_16779099286101286425"
+        "Value": "Engine/Shaders/GeometryPass/GeometryPass_16779099286101286433"
       }
     }, {
       "$Class": "AssetReference",
@@ -21,40 +18,12 @@
     }, {
       "$Class": "AssetReference",
       "AssetPath": {
-<<<<<<< HEAD
         "Value": "Engine/Shaders/GeometryPass/GeometryPass_16779099286101286409"
-=======
-        "Value": "Engine/Shaders/GeometryPass/GeometryPass_16779099286101286433"
->>>>>>> 63cf5f217 (Skunkworks - fx sse)
-      }
-    }, {
-      "$Class": "AssetReference",
-      "AssetPath": {
-<<<<<<< HEAD
-        "Value": "Engine/Shaders/GeometryPass/GeometryPass_15596072521906326877"
-=======
-        "Value": "Engine/Shaders/GeometryPass/GeometryPass_16779099286101286409"
->>>>>>> 63cf5f217 (Skunkworks - fx sse)
-      }
-    }, {
-      "$Class": "AssetReference",
-      "AssetPath": {
-        "Value": "Engine/Shaders/GeometryPass/GeometryPass_14842577468441402987"
       }
     }, {
       "$Class": "AssetReference",
       "AssetPath": {
         "Value": "Engine/Shaders/GeometryPass/GeometryPass_12407244494021180917"
-      }
-    }, {
-      "$Class": "AssetReference",
-      "AssetPath": {
-        "Value": "Engine/Shaders/GeometryPass/GeometryPass_14842577468441402979"
-      }
-    }, {
-      "$Class": "AssetReference",
-      "AssetPath": {
-        "Value": "Engine/Shaders/GeometryPass/GeometryPass_14842577468441402971"
       }
     }, {
       "$Class": "AssetReference",
@@ -69,51 +38,8 @@
     }, {
       "$Class": "AssetReference",
       "AssetPath": {
-        "Value": "Engine/Shaders/GeometryPass/GeometryPass_14842577468441402963"
-      }
-    }, {
-      "$Class": "AssetReference",
-      "AssetPath": {
         "Value": "Engine/Shaders/GeometryPass/GeometryPass_12407244494021180445"
       }
-<<<<<<< HEAD
-    }, {
-      "$Class": "AssetReference",
-      "AssetPath": {
-        "Value": "Engine/Shaders/GeometryPass/GeometryPass_10876146500803752570"
-      }
-    }, {
-      "$Class": "AssetReference",
-      "AssetPath": {
-        "Value": "Engine/Shaders/GeometryPass/GeometryPass_15596072521906326869"
-      }
-    }, {
-      "$Class": "AssetReference",
-      "AssetPath": {
-        "Value": "Engine/Shaders/GeometryPass/GeometryPass_15596072521906326861"
-      }
-    }, {
-      "$Class": "AssetReference",
-      "AssetPath": {
-        "Value": "Engine/Shaders/GeometryPass/GeometryPass_10876146500803752562"
-      }
-    }, {
-      "$Class": "AssetReference",
-      "AssetPath": {
-        "Value": "Engine/Shaders/GeometryPass/GeometryPass_10876146500803752554"
-      }
-    }, {
-      "$Class": "AssetReference",
-      "AssetPath": {
-        "Value": "Engine/Shaders/GeometryPass/GeometryPass_15596072521906326853"
-      }
-    }, {
-      "$Class": "AssetReference",
-      "AssetPath": {
-        "Value": "Engine/Shaders/GeometryPass/GeometryPass_10876146500803752546"
-      }
-=======
->>>>>>> 63cf5f217 (Skunkworks - fx sse)
     }],
   "Name": "GeometryPass",
   "FriendlyName": "GeometryPass",

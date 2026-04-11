@@ -18,6 +18,13 @@
 #include <cmath>
 #include <cstdio>
 
+#if !HYP_ARM && (defined(__SSE4_1__) || (HYP_MSVC && defined(_M_X64)))
+#include <immintrin.h>
+#define HYP_VEC4F_HAS_SSE 1
+#else
+#define HYP_VEC4F_HAS_SSE 0
+#endif
+
 namespace Hyperion {
 
 class Mat4f;
@@ -177,71 +184,19 @@ struct alignas(alignof(T) * 4) HYP_API Vec4
         return values[index];
     }
 
-    Vec4 operator+(const Vec4& other) const
-    {
-        return Vec4(
-            x + other.x,
-            y + other.y,
-            z + other.z,
-            w + other.w);
-    }
+    Vec4 operator+(const Vec4& other) const;
 
-    Vec4& operator+=(const Vec4& other)
-    {
-        x += other.x;
-        y += other.y;
-        z += other.z;
-        w += other.w;
+    Vec4& operator+=(const Vec4& other);
 
-        return *this;
-    }
+    Vec4 operator-(const Vec4& other) const;
 
-    Vec4 operator-(const Vec4& other) const
-    {
-        return Vec4(
-            x - other.x,
-            y - other.y,
-            z - other.z,
-            w - other.w);
-    }
+    Vec4& operator-=(const Vec4& other);
 
-    Vec4& operator-=(const Vec4& other)
-    {
-        x -= other.x;
-        y -= other.y;
-        z -= other.z;
-        w -= other.w;
+    Vec4 operator*(const Vec4& other) const;
 
-        return *this;
-    }
+    Vec4& operator*=(const Vec4& other);
 
-    Vec4 operator*(const Vec4& other) const
-    {
-        return Vec4(
-            x * other.x,
-            y * other.y,
-            z * other.z,
-            w * other.w);
-    }
-
-    Vec4& operator*=(const Vec4& other)
-    {
-        x *= other.x;
-        y *= other.y;
-        z *= other.z;
-        w *= other.w;
-
-        return *this;
-    }
-
-    Vec4 operator/(const Vec4& other) const
-    {
-        return Vec4(
-            x / other.x,
-            y / other.y,
-            z / other.z,
-            w / other.w);
-    }
+    Vec4 operator/(const Vec4& other) const;
 
     Vec4& operator/=(const Vec4& other)
     {
@@ -263,10 +218,7 @@ struct alignas(alignof(T) * 4) HYP_API Vec4
         return !operator==(other);
     }
 
-    Vec4 operator-() const
-    {
-        return operator*(Type(-1));
-    }
+    Vec4 operator-() const;
 
     bool operator<(const Vec4& other) const
     {
@@ -282,10 +234,7 @@ struct alignas(alignof(T) * 4) HYP_API Vec4
         return false;
     }
 
-    constexpr Type LengthSquared() const
-    {
-        return x * x + y * y + z * z + w * w;
-    }
+    Type LengthSquared() const;
 
     Type Length() const
     {
@@ -381,6 +330,10 @@ struct alignas(alignof(float) * 4) HYP_API Vec4<float>
         };
 
         Type values[4];
+
+#if HYP_VEC4F_HAS_SSE
+        __m128 _value;
+#endif
     };
 
     Vec4()
@@ -520,71 +473,19 @@ struct alignas(alignof(float) * 4) HYP_API Vec4<float>
         return values[index];
     }
 
-    Vec4 operator+(const Vec4& other) const
-    {
-        return Vec4(
-            x + other.x,
-            y + other.y,
-            z + other.z,
-            w + other.w);
-    }
+    Vec4 operator+(const Vec4& other) const;
 
-    Vec4& operator+=(const Vec4& other)
-    {
-        x += other.x;
-        y += other.y;
-        z += other.z;
-        w += other.w;
+    Vec4& operator+=(const Vec4& other);
 
-        return *this;
-    }
+    Vec4 operator-(const Vec4& other) const;
 
-    Vec4 operator-(const Vec4& other) const
-    {
-        return Vec4(
-            x - other.x,
-            y - other.y,
-            z - other.z,
-            w - other.w);
-    }
+    Vec4& operator-=(const Vec4& other);
 
-    Vec4& operator-=(const Vec4& other)
-    {
-        x -= other.x;
-        y -= other.y;
-        z -= other.z;
-        w -= other.w;
+    Vec4 operator*(const Vec4& other) const;
 
-        return *this;
-    }
+    Vec4& operator*=(const Vec4& other);
 
-    Vec4 operator*(const Vec4& other) const
-    {
-        return Vec4(
-            x * other.x,
-            y * other.y,
-            z * other.z,
-            w * other.w);
-    }
-
-    Vec4& operator*=(const Vec4& other)
-    {
-        x *= other.x;
-        y *= other.y;
-        z *= other.z;
-        w *= other.w;
-
-        return *this;
-    }
-
-    Vec4 operator/(const Vec4& other) const
-    {
-        return Vec4(
-            x / other.x,
-            y / other.y,
-            z / other.z,
-            w / other.w);
-    }
+    Vec4 operator/(const Vec4& other) const;
 
     Vec4& operator/=(const Vec4& other)
     {
@@ -596,20 +497,10 @@ struct alignas(alignof(float) * 4) HYP_API Vec4<float>
         return *this;
     }
 
-    bool operator==(const Vec4& other) const
-    {
-        return x == other.x && y == other.y && z == other.z && w == other.w;
-    }
+    bool operator==(const Vec4& other) const;
+    bool operator!=(const Vec4& other) const;
 
-    bool operator!=(const Vec4& other) const
-    {
-        return !operator==(other);
-    }
-
-    Vec4 operator-() const
-    {
-        return operator*(Type(-1));
-    }
+    Vec4 operator-() const;
 
     bool operator<(const Vec4& other) const
     {
@@ -625,10 +516,7 @@ struct alignas(alignof(float) * 4) HYP_API Vec4<float>
         return false;
     }
 
-    constexpr Type LengthSquared() const
-    {
-        return x * x + y * y + z * z + w * w;
-    }
+    Type LengthSquared() const;
 
     Type Length() const
     {
@@ -660,8 +548,21 @@ struct alignas(alignof(float) * 4) HYP_API Vec4<float>
         return x < y ? (x < z ? (x < w ? x : w) : (z < w ? z : w)) : (y < z ? (y < w ? y : w) : (z < w ? z : w));
     }
 
+    HYP_FORCE_INLINE constexpr bool IsZero() const
+    {
+        return (x == 0.0f && y == 0.0f && z == 0.0f && w == 0.0f);
+    }
+
     Vec4 operator*(const Mat4f& mat) const;
     Vec4& operator*=(const Mat4f& mat);
+
+    /*! \brief 3-component transform by a 3x3 matrix. The w component is preserved. */
+    Vec4 operator*(const Mat3f& mat) const;
+    Vec4& operator*=(const Mat3f& mat);
+
+    /*! \brief 3-component rotation by quaternion. The w component is preserved. */
+    Vec4 operator*(const Quaternion& quat) const;
+    Vec4& operator*=(const Quaternion& quat);
 
     Type DistanceSquared(const Vec4& other) const;
     Type Distance(const Vec4& other) const;
@@ -669,8 +570,17 @@ struct alignas(alignof(float) * 4) HYP_API Vec4<float>
     Vec4 Normalized() const;
     Vec4& Normalize();
     Vec4& Rotate(const Vec3<float>& axis, float radians);
+    /*! \brief 3-component rotation by quaternion. The w component is preserved. */
+    Vec4& Rotate(const Quaternion& quaternion);
     Vec4& Lerp(const Vec4& to, float amt);
     float Dot(const Vec4& other) const;
+
+    /*! \brief 3-component cross product. The w component is set to 0 in the result. */
+    Vec4 Cross(const Vec4& other) const;
+    /*! \brief 3-component reflection about a normal. The w component is preserved. */
+    Vec4 Reflect(const Vec4& normal) const;
+    /*! \brief 3-component angle between vectors (radians). The w component is ignored. */
+    float AngleBetween(const Vec4& other) const;
 
     static Vec4 Abs(const Vec4&);
     static Vec4 Round(const Vec4&);
