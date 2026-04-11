@@ -3,7 +3,22 @@
   "CompiledShaders": [{
       "$Class": "AssetReference",
       "AssetPath": {
+        "Value": "Engine/Shaders/DeferredIndirect/DeferredIndirect_7850391772018025550"
+      }
+    }, {
+      "$Class": "AssetReference",
+      "AssetPath": {
         "Value": "Engine/Shaders/DeferredIndirect/DeferredIndirect_7783131375131654991"
+      }
+    }, {
+      "$Class": "AssetReference",
+      "AssetPath": {
+        "Value": "Engine/Shaders/DeferredIndirect/DeferredIndirect_4855872063706635853"
+      }
+    }, {
+      "$Class": "AssetReference",
+      "AssetPath": {
+        "Value": "Engine/Shaders/DeferredIndirect/DeferredIndirect_4149493920766566506"
       }
     }, {
       "$Class": "AssetReference",
@@ -13,7 +28,27 @@
     }, {
       "$Class": "AssetReference",
       "AssetPath": {
+        "Value": "Engine/Shaders/DeferredIndirect/DeferredIndirect_16602236124482124842"
+      }
+    }, {
+      "$Class": "AssetReference",
+      "AssetPath": {
+        "Value": "Engine/Shaders/DeferredIndirect/DeferredIndirect_16518339199512011469"
+      }
+    }, {
+      "$Class": "AssetReference",
+      "AssetPath": {
         "Value": "Engine/Shaders/DeferredIndirect/DeferredIndirect_16495654302570710720"
+      }
+    }, {
+      "$Class": "AssetReference",
+      "AssetPath": {
+        "Value": "Engine/Shaders/DeferredIndirect/DeferredIndirect_1648970903976311908"
+      }
+    }, {
+      "$Class": "AssetReference",
+      "AssetPath": {
+        "Value": "Engine/Shaders/DeferredIndirect/DeferredIndirect_12185543061054139245"
       }
     }],
   "Name": "DeferredIndirect",

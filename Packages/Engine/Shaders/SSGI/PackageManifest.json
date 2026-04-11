@@ -1,0 +1,7 @@
+{
+  "Dependencies": [],
+  "Name": "SSGI",
+  "FriendlyName": "SSGI",
+  "Flags": 0,
+  "Path": "Engine/Shaders/SSGI"
+}
