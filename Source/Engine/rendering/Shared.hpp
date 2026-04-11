@@ -2406,6 +2406,50 @@ struct ShaderUniform
     }
 };
 
+struct ShaderUniforms
+{
+    static constexpr size_t MaxUniforms = 16;
+
+    ShaderUniform uniforms[MaxUniforms] {};
+    size_t bufferOffsets[MaxUniforms] {};
+    size_t bufferStrides[MaxUniforms] {};
+    uint8 count = 0;
+
+    HYP_FORCE_INLINE void SetBuffer(StringHash name, GpuBuffer* buffer, size_t offset, size_t stride)
+    {
+        uint8 index = count++;
+        Assert(index < MaxUniforms);
+
+        uniforms[index] = ShaderUniform(name, buffer);
+        bufferOffsets[index] = offset;
+        bufferStrides[index] = stride;
+    }
+
+    HYP_FORCE_INLINE void SetImageView(StringHash name, GpuImageView* imageView)
+    {
+        uint8 index = count++;
+        Assert(index < MaxUniforms);
+
+        uniforms[index] = ShaderUniform(name, imageView);
+    }
+
+    HYP_FORCE_INLINE void SetSampler(StringHash name, Sampler* sampler)
+    {
+        uint8 index = count++;
+        Assert(index < MaxUniforms);
+
+        uniforms[index] = ShaderUniform(name, sampler);
+    }
+
+    HYP_FORCE_INLINE void SetTlas(StringHash name, GpuTlas* tlas)
+    {
+        uint8 index = count++;
+        Assert(index < MaxUniforms);
+
+        uniforms[index] = ShaderUniform(name, tlas);
+    }
+};
+
 #pragma pack(pop)
 
 HYP_ENUM()

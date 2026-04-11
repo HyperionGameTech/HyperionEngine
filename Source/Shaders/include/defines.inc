@@ -212,7 +212,7 @@
     #define DECLARE_SAMPLER(set, var)
 
     // ShaderProperty interfacing
-    #define PERMUTE int __COUNTER__
+    #define PERMUTE int HYP_UNIQUE_NAME(_permute)
     #define STATIC(name, value) int name = value
 
     #define HYP_ATTRIBUTE

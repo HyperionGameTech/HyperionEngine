@@ -3,12 +3,12 @@
  *  Date: 2026/03/27
  **/
 
-PERMUTE(INSTANCING);
-PERMUTE(SKINNING);
-
 #include "./include/defines.inc"
 #include "./include/shared.inc"
 #include "./include/scene.inc"
+
+PERMUTE(INSTANCING);
+PERMUTE(SKINNING);
 
 #ifdef VERTEX_SHADER
 

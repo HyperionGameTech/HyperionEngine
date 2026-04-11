@@ -32,10 +32,14 @@ extern "C"
             return nullptr;
         }
 
-        if (AssetLoadResult result = loader->Load(*assetManager, path))
+        if (AssetLoadResult result = loader->Load(*assetManager, path); result.HasValue())
         {
             return new LoadedAsset(std::move(result.GetValue()));
         }
+        // else if (result.HasError())
+        // {
+        //     return new LoadedAsset(result.GetError());
+        // }
 
         return nullptr;
     }

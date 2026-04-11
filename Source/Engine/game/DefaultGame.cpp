@@ -76,7 +76,7 @@ void DefaultGame::OnLaunch_Impl()
 {
     //GetWorld()->GetWorldGrid()->AddLayer(MakeHandle<TerrainWorldGridLayer>());
 
-#if 1
+#if 0
     auto pkg = g_assetManager->GetAssetRegistry()->GetPackageFromPath("DefaultProject39", /* createIfNotExist */ false, /* requireLoaded */ true);
     if (pkg.IsValid())
     {
@@ -183,10 +183,18 @@ void DefaultGame::OnLaunch_Impl()
     auto results = batch->ForceLoad();
 
     LoadedAsset& testbedAsset = results["testbed"];
-    Handle<Node> testbedNode = testbedAsset.value.Get<Handle<Node>>();
-    testbedNode->Scale(3.0f);
-    
-    scene->GetRoot()->AddChild(testbedNode);
+
+    if (testbedAsset.IsValid())
+    {
+        Handle<Node> testbedNode = testbedAsset.ExtractAs<Handle<Node>>();
+        testbedNode->Scale(3.0f);
+
+        scene->GetRoot()->AddChild(testbedNode);
+    }
+    else if (const AssetLoadError* error = testbedAsset.GetErrorIfFailed())
+    {
+        HYP_LOG_TEMP("Failed to load test asset: {}", error->GetMessage());
+    }
     
     // sky
     GetWorld()->AddSystemT<DynamicSkySystem>();

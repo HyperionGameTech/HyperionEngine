@@ -260,6 +260,11 @@ void SetCurrentFramebuffer::InvokeStatic(CmdBase* cmd, CommandBuffer* commandBuf
 
     state.framebuffer = cmdCasted->m_framebuffer;
 
+    // Clear uniforms for new pass
+    state.validUniforms = 0;
+    state.dirtyUniforms = 0;
+    state.dirtyBufferOffsets = 0;
+
     static_assert(std::is_trivially_destructible_v<SetCurrentFramebuffer>);
     // cmdCasted->~SetCurrentFramebuffer();
 }
@@ -833,6 +838,62 @@ void SetShaderUniform::InvokeStatic(CmdBase* cmd, CommandBuffer* commandBuffer)
 }
 
 #pragma endregion SetShaderUniform
+
+#pragma region SetShaderUniforms
+
+void SetShaderUniforms::InvokeStatic(CmdBase* cmd, CommandBuffer* commandBuffer)
+{
+    SetShaderUniforms* cmdCasted = static_cast<SetShaderUniforms*>(cmd);
+    
+    RenderInterface& ri = *g_renderInterface;
+    RenderInterface::State& state = ri.state;
+
+    const ShaderUniforms& srcUniforms = cmdCasted->shaderUniforms;
+    AssertDebug(cmdCasted->startIndex + srcUniforms.count <= state.MaxShaderUniforms);
+
+    for (uint32 i = cmdCasted->startIndex; i < cmdCasted->startIndex + srcUniforms.count; i++)
+    {
+        const ShaderUniform& srcUniform = srcUniforms.uniforms[i - cmdCasted->startIndex];
+
+        ShaderUniform& dstUniform = state.shaderUniforms[i];
+
+        if (dstUniform != srcUniform                                   // uniform packet differs
+            || !(state.validUniforms & (1u << i)))    // previous bound is invalid
+        {
+            dstUniform = srcUniform;
+
+            state.dirtyUniforms |= (1u << i);
+        }
+
+        if (srcUniform.type == ShaderUniform::UT_Buffer)
+        {
+            const size_t bufferStride = srcUniforms.bufferStrides[i - cmdCasted->startIndex];
+            const size_t bufferOffset = srcUniforms.bufferOffsets[i - cmdCasted->startIndex];
+
+            // strides differ for buffer; needs rebind
+            if (state.shaderUniformBufferOffsetStrides[i] != bufferStride)
+            {
+                state.dirtyUniforms |= (1u << i);
+            }
+
+            // buffer offset + stride updating
+            state.shaderUniformBufferOffsets[i] = bufferOffset;
+            state.shaderUniformBufferOffsetStrides[i] = bufferStride;
+
+            state.dirtyBufferOffsets |= (1u << i);
+        }
+        else
+        {
+            // unset dirty buffer offset bit if it is not a buffer
+            state.dirtyBufferOffsets &= ~(1u << i);
+        }
+    }
+
+    static_assert(std::is_trivially_destructible_v<SetShaderUniforms>);
+    // cmdCasted->~SetShaderUniforms();
+}
+
+#pragma endregion SetShaderUniforms
 
 #pragma region CommitDrawState
 

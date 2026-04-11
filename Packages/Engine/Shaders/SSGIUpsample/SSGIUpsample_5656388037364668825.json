@@ -123,15 +123,15 @@
   "ShaderBlobs": [{
       "$Class": "BlobDataReference",
       "Key": "Engine/Shaders/SSGIUpsample/SSGIUpsample_5656388037364668825.VS",
-      "Size": 37420
+      "Size": 37480
     }, {
       "$Class": "BlobDataReference",
       "Key": "Engine/Shaders/SSGIUpsample/SSGIUpsample_5656388037364668825.PS",
-      "Size": 60368
+      "Size": 60428
     }],
   "PropertySetHashCode": {},
   "LastCompiledTimestamp": {
-    "Value": 1774056217000
+    "Value": 13420340133983
   },
   "Name": "SSGIUpsample_5656388037364668825",
   "FriendlyName": "SSGIUpsample_5656388037364668825",

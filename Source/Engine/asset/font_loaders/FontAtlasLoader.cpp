@@ -200,7 +200,7 @@ AssetLoadResult FontAtlasLoader::LoadAsset(LoaderState& state) const
     
     state.assetManager->GetAssetRegistry()->RegisterAsset("$Import/Media/Fonts", fontAtlas);
 
-    return AssetLoadResult { fontAtlas };
+    return AssetLoadResult { LoadedAsset(fontAtlas) };
 }
 
 } // namespace Hyperion

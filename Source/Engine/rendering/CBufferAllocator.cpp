@@ -177,6 +177,7 @@ void CBufferAllocator::Commit(GpuBuffer*& outBuffer, size_t& outOffset, size_t& 
 
     void* ptr = Allocate(scratch.Size(), scratchAlignment, outBuffer, outOffset);
     AssertDebug(ptr != nullptr && outBuffer != nullptr);
+    AssertDebug(outOffset % m_minAllocationAlignment == 0);
 
     Memory::Copy(ptr, scratch.Data(), scratch.Size());
 
@@ -197,8 +198,6 @@ void* CBufferAllocator::Allocate(size_t count, size_t alignment, GpuBuffer*& out
     auto& scratch = m_scratch[idx];
     size_t& scratchAlignment = m_scratchAlignment[idx];
 
-    const size_t alignedCount = ByteUtil::AlignAs(count, alignment);
-
     const uint32 currentFrameCounter = GetFrameCounter();
     
     outBuffer = nullptr;
@@ -210,14 +209,14 @@ void* CBufferAllocator::Allocate(size_t count, size_t alignment, GpuBuffer*& out
 
         const size_t offset = ByteUtil::AlignAs(lastBlock.offset, alignment);
 
-        if (offset + alignedCount <= CBufferSize)
+        if (offset + count <= CBufferSize)
         {
             void* ptr = (void*)(reinterpret_cast<UIntPtr>(lastBlock.buffer->Map()) + offset);
 
             outBuffer = lastBlock.buffer;
             outStartOffset = offset;
 
-            lastBlock.offset = offset + alignedCount;
+            lastBlock.offset = offset + count;
 
             return ptr;
         }
@@ -229,15 +228,14 @@ void* CBufferAllocator::Allocate(size_t count, size_t alignment, GpuBuffer*& out
     if (!newBlock)
         newBlock = NewBlock(currentFrameCounter);
 
-    Assert(alignedCount <= CBufferSize
-        && newBlock->offset == 0);
+    Assert(count <= CBufferSize && newBlock->offset == 0);
     
     outBuffer = newBlock->buffer;
     outStartOffset = 0;
 
     void* ptr = newBlock->buffer->Map();
 
-    newBlock->offset += alignedCount;
+    newBlock->offset += count;
 
     return ptr;
 }

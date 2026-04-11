@@ -3,16 +3,6 @@
   "CompiledShaders": [{
       "$Class": "AssetReference",
       "AssetPath": {
-        "Value": "Engine/Shaders/DrawCubemap/DrawCubemap_9306910829433328159"
-      }
-    }, {
-      "$Class": "AssetReference",
-      "AssetPath": {
-        "Value": "Engine/Shaders/DrawCubemap/DrawCubemap_9306910829433328151"
-      }
-    }, {
-      "$Class": "AssetReference",
-      "AssetPath": {
         "Value": "Engine/Shaders/DrawCubemap/DrawCubemap_5394500840242340148"
       }
     }, {
@@ -48,57 +38,7 @@
     }, {
       "$Class": "AssetReference",
       "AssetPath": {
-        "Value": "Engine/Shaders/DrawCubemap/DrawCubemap_9306910829433328175"
-      }
-    }, {
-      "$Class": "AssetReference",
-      "AssetPath": {
-        "Value": "Engine/Shaders/DrawCubemap/DrawCubemap_9306910829433328135"
-      }
-    }, {
-      "$Class": "AssetReference",
-      "AssetPath": {
         "Value": "Engine/Shaders/DrawCubemap/DrawCubemap_5336421232962317083"
-      }
-    }, {
-      "$Class": "AssetReference",
-      "AssetPath": {
-        "Value": "Engine/Shaders/DrawCubemap/DrawCubemap_10653931154166359881"
-      }
-    }, {
-      "$Class": "AssetReference",
-      "AssetPath": {
-        "Value": "Engine/Shaders/DrawCubemap/DrawCubemap_10653931154166359889"
-      }
-    }, {
-      "$Class": "AssetReference",
-      "AssetPath": {
-        "Value": "Engine/Shaders/DrawCubemap/DrawCubemap_10653931154166359873"
-      }
-    }, {
-      "$Class": "AssetReference",
-      "AssetPath": {
-        "Value": "Engine/Shaders/DrawCubemap/DrawCubemap_10653931154166359225"
-      }
-    }, {
-      "$Class": "AssetReference",
-      "AssetPath": {
-        "Value": "Engine/Shaders/DrawCubemap/DrawCubemap_506059677615502125"
-      }
-    }, {
-      "$Class": "AssetReference",
-      "AssetPath": {
-        "Value": "Engine/Shaders/DrawCubemap/DrawCubemap_506059677615502117"
-      }
-    }, {
-      "$Class": "AssetReference",
-      "AssetPath": {
-        "Value": "Engine/Shaders/DrawCubemap/DrawCubemap_506059677615502045"
-      }
-    }, {
-      "$Class": "AssetReference",
-      "AssetPath": {
-        "Value": "Engine/Shaders/DrawCubemap/DrawCubemap_506059677615502037"
       }
     }],
   "Name": "DrawCubemap",

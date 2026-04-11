@@ -10,6 +10,8 @@
 #include <Core/HashCode.hpp>
 #include <Core/Types.hpp>
 
+#include <Core/utilities/ByteUtil.hpp>
+
 #include <Core/containers/FixedArray.hpp>
 #include <Core/containers/String.hpp>
 

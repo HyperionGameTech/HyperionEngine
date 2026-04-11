@@ -60,46 +60,6 @@
       "AssetPath": {
         "Value": "Engine/Shaders/DrawShadowMap/DrawShadowMap_8519616899161084679"
       }
-    }, {
-      "$Class": "AssetReference",
-      "AssetPath": {
-        "Value": "Engine/Shaders/DrawShadowMap/DrawShadowMap_12297081356384673440"
-      }
-    }, {
-      "$Class": "AssetReference",
-      "AssetPath": {
-        "Value": "Engine/Shaders/DrawShadowMap/DrawShadowMap_16949290008311930509"
-      }
-    }, {
-      "$Class": "AssetReference",
-      "AssetPath": {
-        "Value": "Engine/Shaders/DrawShadowMap/DrawShadowMap_16949290008311930501"
-      }
-    }, {
-      "$Class": "AssetReference",
-      "AssetPath": {
-        "Value": "Engine/Shaders/DrawShadowMap/DrawShadowMap_12297081356384673112"
-      }
-    }, {
-      "$Class": "AssetReference",
-      "AssetPath": {
-        "Value": "Engine/Shaders/DrawShadowMap/DrawShadowMap_12297081356384673104"
-      }
-    }, {
-      "$Class": "AssetReference",
-      "AssetPath": {
-        "Value": "Engine/Shaders/DrawShadowMap/DrawShadowMap_16949290008311930549"
-      }
-    }, {
-      "$Class": "AssetReference",
-      "AssetPath": {
-        "Value": "Engine/Shaders/DrawShadowMap/DrawShadowMap_16949290008311930525"
-      }
-    }, {
-      "$Class": "AssetReference",
-      "AssetPath": {
-        "Value": "Engine/Shaders/DrawShadowMap/DrawShadowMap_12297081356384673096"
-      }
     }],
   "Name": "DrawShadowMap",
   "FriendlyName": "DrawShadowMap",

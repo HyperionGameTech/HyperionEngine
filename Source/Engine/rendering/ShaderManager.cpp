@@ -103,7 +103,7 @@ public:
 #endif
 
     Mutex m_compilingShadersMutex; // mutex for tracking shaders we're compiling + editor task
-    uint32 m_numCompilingShaders = 0;
+    AtomicVar<uint32> m_numCompilingShaders = 0;
     HashMap<String, Array<CompileShaderRequest*>> m_compilingShaders;
     std::binary_semaphore m_spActiveCompilationTask { 0 };
 
@@ -139,6 +139,8 @@ public:
 
         if (!isValid)
         {
+            // use fallback shader on fail.
+
             if (request.shaderName != s_nameFallbackShader
                 && g_shaderCompiler->IsGraphicsShaderBundle(request.shaderName))
             {
@@ -179,19 +181,21 @@ public:
             Assert(false, "Compiled shader '{}' is not a valid compiled shader", request.shaderName);
         }
 
-        request.shaderInstance = g_renderInterface->MakeShader(request.entry->shader);
-        CheckResult(request.shaderInstance->Create());
-
-        // Update the entry
-        request.entry->shaderInstance = request.shaderInstance;
-        AtomicExchange(&request.entry->state, ShaderMapEntry::State::LOADED);
+        ShaderInstanceRef si = g_renderInterface->MakeShader(request.entry->shader);
+        request.shaderInstance = si;
 
 #if HYP_ENABLE_SHADER_RELOAD
-        if (request.entry->shader && request.shaderInstance.IsValid())
+        if (si.IsValid())
         {
-            request.shaderInstance->SetCompiledTimestamp(request.entry->shader->lastCompiledTimestamp);
+            si->SetCompiledTimestamp(request.entry->shader->lastCompiledTimestamp);
         }
 #endif
+        
+        CheckResult(si->Create());
+        
+        // Update the entry
+        request.entry->shaderInstance = si;
+        AtomicExchange(&request.entry->state, ShaderMapEntry::State::LOADED);
     }
 
     void CompileShaders()
@@ -216,7 +220,7 @@ public:
                     return;
                 }
 
-                current = m_compilingShaders;
+                current = std::move(m_compilingShaders);
             }
 
             for (const auto& it : current)
@@ -228,19 +232,7 @@ public:
                 {
                     CompileShader(*request);
 
-                    Mutex::Guard guard(m_compilingShadersMutex);
-
-                    auto compilingShadersIt = m_compilingShaders.Find(name);
-                    Assert(compilingShadersIt != m_compilingShaders.End());
-
-                    compilingShadersIt->second.Erase(request);
-
-                    if (compilingShadersIt->second.Empty())
-                    {
-                        m_compilingShaders.Erase(name);
-                    }
-
-                    --m_numCompilingShaders;
+                    m_numCompilingShaders.Decrement(1, MemoryOrder::RELAXED);
 
 #if HYP_EDITOR
                     UpdateEditorTask();
@@ -271,12 +263,14 @@ public:
             return String::Join(shaderNames, "\n");
         };
 
-        if (m_numCompilingShaders == 0)
+        if (m_numCompilingShaders.Get(MemoryOrder::ACQUIRE) == 0)
         {
             m_editorTask.Reset();
         }
         else
         {
+            Mutex::Guard guard(m_compilingShadersMutex);
+
             if (!m_editorTask.GetEditorTask())
             {
                 m_editorTask = EditorTaskScope(
@@ -319,7 +313,7 @@ public:
 
                 const String shaderNameStr = *request.shaderName;
 
-                impl->m_numCompilingShaders++;
+                impl->m_numCompilingShaders.Increment(1, MemoryOrder::RELAXED);
                 impl->m_compilingShaders[shaderNameStr].PushBack(&this->request);
             }
 

@@ -86,8 +86,6 @@ namespace Hyperion {
 
 static constexpr float CameraJitterScale = 0.25f;
 
-static constexpr uint32 MaxFallbackProbes = 4;
-
 static constexpr uint32 TileSize = 32;
 static constexpr uint32 TileZBins = 16;
 
@@ -127,8 +125,6 @@ static const ShaderPropertyId s_propPathTracer = InternShaderProperty(ShaderProp
 
 static const ShaderPropertyId s_propDebugReflections = InternShaderProperty(ShaderProperty(NAME("DEBUG_REFLECTIONS")));
 static const ShaderPropertyId s_propDebugIrradiance = InternShaderProperty(ShaderProperty(NAME("DEBUG_IRRADIANCE")));
-
-static const ShaderPropertyId s_propMaxFallbackProbes = InternShaderProperty(ShaderProperty(NAME("MAX_FALLBACK_PROBES"), int(MaxFallbackProbes)));
 
 static const ShaderPropertyId s_propOutputSDR = InternShaderProperty(ShaderProperty(NAME("OUTPUT"), NAME("SDR")));
 
@@ -217,8 +213,6 @@ void GetDeferredShaderProperties(
 
         outShaderProperties.Set(s_propSSGIEnabled, cvSSGI.Get());
         outShaderProperties.Set(s_propSSREnabled, cvSSR.Get());
-
-        outShaderProperties.Add(s_propMaxFallbackProbes);
         
         outShaderProperties.Add(propTileSize);
         outShaderProperties.Add(propTileZBins);
@@ -456,13 +450,16 @@ void DeferredPass::RenderToFramebuffer_Internal(Frame* frame, const RenderSetup&
     cr << SetShaderUniform(numShaderUniforms++, "SamplerShadow"_sh, shadowSampler);
 
     cr << SetShaderUniform(numShaderUniforms++, "WorldsBuffer"_sh, g_renderInterface->gpuBuffers[GRB_WORLDS]->GetBuffer(frameIndex));
+    
+    cr << SetShaderUniform(numShaderUniforms++, "LightsBuffer"_sh, g_renderInterface->gpuBuffers[GRB_LIGHTS]->GetBuffer(frameIndex));
+    cr << SetShaderUniform(numShaderUniforms++, "EnvProbesBuffer"_sh, g_renderInterface->gpuBuffers[GRB_ENV_PROBES]->GetBuffer(frameIndex));
+    
+    // use the same index for the CBuffer uniform across shaders
+    const uint32 cbufferUniformIndex = numShaderUniforms++;
 
     cr << SetShaderUniform(numShaderUniforms++, "ShadowMapsTextureArray"_sh, g_renderInterface->shadowMapCache->GetAtlasImageView());
     cr << SetShaderUniform(numShaderUniforms++, "PointLightShadowMapsTextureArray"_sh, g_renderInterface->shadowMapCache->GetPointLightShadowMapImageView());
         
-    cr << SetShaderUniform(numShaderUniforms++, "LightsBuffer"_sh, g_renderInterface->gpuBuffers[GRB_LIGHTS]->GetBuffer(frameIndex));
-    cr << SetShaderUniform(numShaderUniforms++, "EnvProbesBuffer"_sh, g_renderInterface->gpuBuffers[GRB_ENV_PROBES]->GetBuffer(frameIndex));
-    
     cr << SetShaderUniform(numShaderUniforms++, "EnvProbesTexture"_sh, g_renderInterface->textureViewCache->GetOrCreate(g_renderInterface->envProbesTexture));
 
     for (uint32 attachmentIndex = 0; attachmentIndex < GTN_MAX; attachmentIndex++)
@@ -505,87 +502,16 @@ void DeferredPass::RenderToFramebuffer_Internal(Frame* frame, const RenderSetup&
         }
 
         { // build indirect lighting constants
-
-
             GpuBuffer* cbuffer = nullptr;
             size_t cbufferOffset = 0;
             size_t cbufferSize = 0;
 
-            // write camera
+            // write camera data
             g_renderInterface->cbufferAllocator->Write(&cameraProxy->bufferData);
-
-            static const EnvProbeShaderData s_dummyFallbackEnvProbe {};
-
-            const uint32 numEnvProbes = rpl.GetEnvProbes().NumCurrent();
-            
-            Array<Pair<EnvProbe*, EnvProbeShaderData*>, RenderTempAllocator> tempEnvProbes;
-            tempEnvProbes.Reserve(numEnvProbes);
-            
-            // Find closest probe to use as a fallback for indirect light.
-            if (numEnvProbes != 0)
-            {
-                for (EnvProbe* envProbe : rpl.GetEnvProbes())
-                {
-                    if (envProbe->IsA(ReflectionProbe::StaticClass()) || envProbe->IsA(SkyProbe::StaticClass()))
-                    {
-                        RenderProxyEnvProbe* envProbeProxy = static_cast<RenderProxyEnvProbe*>(GetRenderProxy(envProbe));
-                        Assert(envProbeProxy != nullptr);
-
-                        tempEnvProbes.EmplaceBack(envProbe, &envProbeProxy->bufferData);
-                    }
-                }
-
-                std::sort(tempEnvProbes.Begin(), tempEnvProbes.End(),
-                    [&cameraPosition](const Pair<EnvProbe*, EnvProbeShaderData*>& a, const Pair<EnvProbe*, EnvProbeShaderData*>& b)
-                    {
-                        const bool aIsSky = a.first->IsA(SkyProbe::StaticClass());
-                        const bool bIsSky = b.first->IsA(SkyProbe::StaticClass());
-
-                        if (aIsSky && !bIsSky)
-                        {
-                            return false;
-                        }
-
-                        if (!aIsSky && bIsSky)
-                        {
-                            return true;
-                        }
-
-                        if (aIsSky && bIsSky)
-                        {
-                            return false;
-                        }
-
-                        // both are reflection probes, sort by distance to camera
-                        const Vec4f& aProbePosition = a.second->worldPosition;
-                        const Vec4f& bProbePosition = b.second->worldPosition;
-
-                        const float aDistSq = (aProbePosition - cameraPosition).LengthSquared();
-                        const float bDistSq = (bProbePosition - cameraPosition).LengthSquared();
-
-                        return aDistSq < bDistSq;
-                    });
-            }
-
-            for (uint32 probeIndex = 0; probeIndex < MaxFallbackProbes; probeIndex++)
-            {
-                if (probeIndex < uint32(tempEnvProbes.Size()))
-                {
-                    g_renderInterface->cbufferAllocator->Write(tempEnvProbes[probeIndex].second);
-                }
-                else
-                {
-                    g_renderInterface->cbufferAllocator->Write(&s_dummyFallbackEnvProbe);
-                }
-            }
-
-            // write num
-            const uint32 numBoundEnvProbes = uint32(tempEnvProbes.Size());
-            g_renderInterface->cbufferAllocator->Write(&numBoundEnvProbes);
 
             g_renderInterface->cbufferAllocator->Commit(cbuffer, cbufferOffset, cbufferSize);
 
-            cr << SetShaderUniform(numShaderUniforms++, "CBuffer"_sh, cbuffer, ShaderDataOffset(cbufferOffset, cbufferSize));
+            cr << SetShaderUniform(cbufferUniformIndex, "CBuffer"_sh, cbuffer, ShaderDataOffset(cbufferOffset, cbufferSize));
         }
 
         ShaderPropertySet shaderProperties;
@@ -613,7 +539,6 @@ void DeferredPass::RenderToFramebuffer_Internal(Frame* frame, const RenderSetup&
 
         uint32 localNumShaderUniforms = numShaderUniforms;
 
-#if 1
         // Write out MAX_SHADOW_MAPS (8?) ShadowMaps for the View, indexed by light idx (GetBinding())
         {// Build constants
             GpuBuffer* cbuffer = nullptr;
@@ -715,9 +640,8 @@ void DeferredPass::RenderToFramebuffer_Internal(Frame* frame, const RenderSetup&
             g_renderInterface->cbufferAllocator->Write(&shadowMapData[0], shadowMapData.ByteSize(), alignof(ShadowMapData));
             g_renderInterface->cbufferAllocator->Commit(cbuffer, cbufferOffset, cbufferSize);
 
-            cr << SetShaderUniform(localNumShaderUniforms++, "CBuffer"_sh, cbuffer, ShaderDataOffset(cbufferOffset, cbufferSize));
+            cr << SetShaderUniform(cbufferUniformIndex, "CBuffer"_sh, cbuffer, ShaderDataOffset(cbufferOffset, cbufferSize));
         }
-#endif
 
         cr << CommitDrawState();
 
@@ -805,7 +729,7 @@ void DeferredPass::RenderToFramebuffer_Internal(Frame* frame, const RenderSetup&
                     
                 g_renderInterface->cbufferAllocator->Commit(cbuffer, cbufferOffset, cbufferSize);
 
-                cr << SetShaderUniform(localNumShaderUniforms++, "CBuffer"_sh, cbuffer, ShaderDataOffset(cbufferOffset, cbufferSize));
+                cr << SetShaderUniform(cbufferUniformIndex, "CBuffer"_sh, cbuffer, ShaderDataOffset(cbufferOffset, cbufferSize));
             }
 
             cr << SetShaderUniform(localNumShaderUniforms++, "CurrentLight"_sh, g_renderInterface->gpuBuffers[GRB_LIGHTS]->GetBuffer(frameIndex), TShaderDataOffset<LightShaderData>(light));

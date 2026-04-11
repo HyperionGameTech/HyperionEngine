@@ -51,7 +51,7 @@ namespace Hyperion.Editor.ViewModels
             SpotLight           => "Spotlight",
             AreaRectLight       => "RectangleHorizontal",
             Camera              => "Video",
-            ReflectionProbe     => "Gem",
+            ReflectionProbe     => "Orbit",
             ParticleVolume      => "Sparkles",
             InstancedMeshProxy  => "SquaresUnite",
             Bone                => "Bone",

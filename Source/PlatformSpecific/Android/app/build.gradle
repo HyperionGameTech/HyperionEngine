@@ -145,6 +145,8 @@ tasks.register('stagePackageAssets', Copy) {
         // for packaged builds, this should be re-enabled and we should ensure the blob cache is being copied.
         // we'll need a way to trim it down first as it can get huge and bloated.
         // exclude '**/*.blob'
+
+        exclude 'SampleGame/**' // exclude this for now
     }
 
     from(baseConfigDir) {

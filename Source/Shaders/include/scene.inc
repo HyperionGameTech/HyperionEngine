@@ -5,7 +5,7 @@
 
 struct WorldShaderData
 {
-    vec4 fog_params;
+    float4 fog_params;
 
     float game_time;
     uint frame_counter;
@@ -15,29 +15,29 @@ struct WorldShaderData
 
 struct Camera
 {
-    mat4 view;
-    mat4 projection;
+    float4x4 view;
+    float4x4 projection;
 
-    mat4 viewProjMat;
+    float4x4 viewProjMat;
 
-    mat4 invViewMat;
-    mat4 invProjMat;
+    float4x4 invViewMat;
+    float4x4 invProjMat;
 
-    mat4 prevViewProjMat;
+    float4x4 prevViewProjMat;
 
-    uvec4 dimensions;
-    vec4 position;
-    vec4 direction;
-    vec4 jitter;
+    uint4 dimensions;
+    float4 position;
+    float4 direction;
+    float4 jitter;
 
     float near;
     float far;
     float fov;
     float _pad0;
 
-    vec4 _pad1;
-    vec4 _pad2;
-    vec4 _pad3;
+    float4 _pad1;
+    float4 _pad2;
+    float4 _pad3;
 };
 
 struct ShadowMap
@@ -91,8 +91,8 @@ struct Light
 
 struct LightmapVolume
 {
-    vec4 aabb_max;
-    vec4 aabb_min;
+    float4 aabb_max;
+    float4 aabb_min;
 
     uint texture_index; // index of the lightmap texture in the lightmap atlas
     uint _pad0;
@@ -100,9 +100,9 @@ struct LightmapVolume
     uint _pad2;
 };
 
-vec3 CalculateLightDirection(Light light, in vec3 world_position)
+float3 CalculateLightDirection(Light light, in float3 world_position)
 {
-    vec3 L = light.position_intensity.xyz;
+    float3 L = light.position_intensity.xyz;
     L -= world_position.xyz * float(min(light.type, 1));
     L = normalize(L);
 

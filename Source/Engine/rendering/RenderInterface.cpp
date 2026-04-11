@@ -1656,6 +1656,8 @@ void RenderInterface::CommitPipelineState(PSOType psoType, CommandBuffer* comman
 
             AssertDebug(dsStates[setIndex] & DSS_Dirty);
 
+            state.uniformNameToIndex[uniform.name] = uniformIndex;
+
             switch (uniform.type)
             {
             case ShaderUniform::UT_Buffer:

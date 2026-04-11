@@ -17,7 +17,6 @@
 #include <rendering/RenderHelpers.hpp>
 
 #include <rendering/util/DeletionQueue.hpp>
-#include <rendering/util/TextureMipmapRenderer.hpp>
 
 #include <asset/Assets.hpp>
 #include <asset/AssetRegistry.hpp>
@@ -41,7 +40,6 @@
 namespace Hyperion {
 
 class Texture;
-class TextureMipmapRenderer;
 
 extern ThreadSignal g_renderInitSignal;
 

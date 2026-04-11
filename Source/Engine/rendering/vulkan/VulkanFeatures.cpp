@@ -37,73 +37,47 @@ void VulkanFeatures::SetPhysicalDevice(VkPhysicalDevice physicalDevice)
 
         Assert(m_features.samplerAnisotropy);
         
-        m_features2 = {
-            .sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_FEATURES_2
-        };
+        m_features2 = { VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_FEATURES_2 };
 
-        m_multiviewFeatures = {
-            .sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_MULTIVIEW_FEATURES_KHR
-        };
+        m_multiviewFeatures = { VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_MULTIVIEW_FEATURES_KHR };
         VulkanHelpers::ChainNext(m_features2, &m_multiviewFeatures);
 
-        m_indexingFeatures = {
-            .sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_DESCRIPTOR_INDEXING_FEATURES_EXT
-        };
+        m_indexingFeatures = { VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_DESCRIPTOR_INDEXING_FEATURES_EXT };
         VulkanHelpers::ChainNext(m_features2, &m_indexingFeatures);
 
-        m_scalarBlockLayoutFeatures = {
-            .sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_SCALAR_BLOCK_LAYOUT_FEATURES
-        };
+        m_scalarBlockLayoutFeatures = { VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_SCALAR_BLOCK_LAYOUT_FEATURES };
         VulkanHelpers::ChainNext(m_features2, &m_scalarBlockLayoutFeatures);
 
 #if defined(HYP_FEATURES_ENABLE_RAY_TRACING) && defined(HYP_FEATURES_BINDLESS_TEXTURES)
-        m_bufferDeviceAddressFeatures = {
-            .sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_BUFFER_DEVICE_ADDRESS_FEATURES
-        };
+        m_bufferDeviceAddressFeatures = { VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_BUFFER_DEVICE_ADDRESS_FEATURES };
         VulkanHelpers::ChainNext(m_features2, &m_bufferDeviceAddressFeatures);
 
-        m_rayTracingPipelineFeatures = {
-            .sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_RAY_TRACING_PIPELINE_FEATURES_KHR
-        };
+        m_rayTracingPipelineFeatures = { VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_RAY_TRACING_PIPELINE_FEATURES_KHR };
         VulkanHelpers::ChainNext(m_features2, &m_rayTracingPipelineFeatures);
 
-        m_accelerationStructureFeatures = {
-            .sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_ACCELERATION_STRUCTURE_FEATURES_KHR
-        };
+        m_accelerationStructureFeatures = { VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_ACCELERATION_STRUCTURE_FEATURES_KHR };
         VulkanHelpers::ChainNext(m_features2, &m_accelerationStructureFeatures);
 
-        m_rayQueryFeatures = {
-            .sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_RAY_QUERY_FEATURES_KHR
-        };
+        m_rayQueryFeatures = { VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_RAY_QUERY_FEATURES_KHR };
         VulkanHelpers::ChainNext(m_features2, &m_rayQueryFeatures);
 #endif
 
         vkGetPhysicalDeviceFeatures2(m_physicalDevice, &m_features2);
 
         // properties
-        m_properties2 = {
-            .sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_PROPERTIES_2
-        };
+        m_properties2 = { VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_PROPERTIES_2 };
 
-        m_indexingProperties = {
-            .sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_DESCRIPTOR_INDEXING_PROPERTIES_EXT
-        };
+        m_indexingProperties = { VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_DESCRIPTOR_INDEXING_PROPERTIES_EXT };
         VulkanHelpers::ChainNext(m_properties2, &m_indexingProperties);
 
-        m_samplerMinmaxProperties = {
-            .sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_SAMPLER_FILTER_MINMAX_PROPERTIES_EXT
-        };
+        m_samplerMinmaxProperties = { VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_SAMPLER_FILTER_MINMAX_PROPERTIES_EXT };
         VulkanHelpers::ChainNext(m_properties2, &m_samplerMinmaxProperties);
 
 #if defined(HYP_FEATURES_ENABLE_RAY_TRACING) && defined(HYP_FEATURES_BINDLESS_TEXTURES)
-        m_rayTracingPipelineProperties = {
-            .sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_RAY_TRACING_PIPELINE_PROPERTIES_KHR
-        };
+        m_rayTracingPipelineProperties = { VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_RAY_TRACING_PIPELINE_PROPERTIES_KHR };
         VulkanHelpers::ChainNext(m_properties2, &m_rayTracingPipelineProperties);
 
-        m_accelerationStructureProperties = {
-            .sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_ACCELERATION_STRUCTURE_PROPERTIES_KHR
-        };
+        m_accelerationStructureProperties = { VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_ACCELERATION_STRUCTURE_PROPERTIES_KHR };
         VulkanHelpers::ChainNext(m_properties2, &m_accelerationStructureProperties);
 #endif
 

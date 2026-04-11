@@ -28,20 +28,22 @@ HYP_API void OnPostLoad_Impl(const Class* cls, void* objectPtr)
 
 HYP_API void LoadedAsset::OnPostLoad()
 {
-    if (!value.IsValid())
+    if (!IsValid())
     {
         return;
     }
 
+    BoxedValue& bv = valueOrError.GetUnchecked<BoxedValue>();
+
     /// \todo : Change to use T::InstanceClass() from TLoadedAsset<T>, as types might not be an exact match
-    const Class* cls = GetClass(value.GetTypeId());
+    const Class* cls = GetClass(bv.GetTypeId());
 
     if (!cls)
     {
         return;
     }
 
-    cls->PostLoad(value.ToRef().GetPointer());
+    cls->PostLoad(bv.ToRef().GetPointer());
 }
 
 #pragma endregion LoadedAsset
@@ -161,6 +163,8 @@ AssetLoadResult AssetLoaderBase::Load(
             return result;
         }
     }
+
+    HYP_LOG(Assets, Error, "Failed to load asset {} after {} attempts", originalFilepath, numAttempts);
 
     return s_defaultError;
 }

@@ -1,7 +1,0 @@
-{
-  "Dependencies": [],
-  "Name": "Fallback",
-  "FriendlyName": "Fallback",
-  "Flags": 0,
-  "Path": "Engine/Shaders/Fallback"
-}

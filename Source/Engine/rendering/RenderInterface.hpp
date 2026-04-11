@@ -199,6 +199,8 @@ public:
         RenderableAttributeSet attributes;
         Viewport viewport;
 
+        HashMap<Name, uint8, RenderAllocator> uniformNameToIndex;
+
         ShaderUniform shaderUniforms[MaxShaderUniforms] {};
         uint32 validUniforms = 0;
         uint32 dirtyUniforms = 0;
@@ -230,6 +232,9 @@ public:
             AssertDebug(boundFramebuffer == nullptr);
 
             attributes = {};
+
+            uniformNameToIndex.Clear();
+
             validUniforms = 0;
             dirtyUniforms = 0;
             dirtyBufferOffsets = 0;

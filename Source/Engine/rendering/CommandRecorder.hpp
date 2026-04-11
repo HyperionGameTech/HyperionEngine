@@ -1011,10 +1011,24 @@ public:
 
     static void InvokeStatic(CmdBase* cmd, CommandBuffer* commandBuffer);
 
-private:
     uint32 uniformIndex;
     ShaderUniform uniform;
     ShaderDataOffset shaderDataOffset;
+};
+
+class SetShaderUniforms final : public CmdBase
+{
+public:
+    SetShaderUniforms(const ShaderUniforms& shaderUniforms, uint32 startIndex = 0)
+        : shaderUniforms(shaderUniforms),
+          startIndex(startIndex)
+    {
+    }
+
+    static void InvokeStatic(CmdBase* cmd, CommandBuffer* commandBuffer);
+
+    uint32 startIndex;
+    ShaderUniforms shaderUniforms;
 };
 
 class CommitDrawState final : public CmdBase

@@ -2202,7 +2202,7 @@ bool ShaderCompiler::LoadBundle(
     {
         if (!ForceRecompile(bundleAssetPath))
         {
-            HYP_LOG(ShaderCompiler, Error, "Failed to recompile bundle");
+            HYP_LOG(ShaderCompiler, Error, "Failed to recompile bundle {}", bundleAssetPath.ToString());
 
             return false;
         }
@@ -3724,7 +3724,7 @@ bool ShaderCompiler::CompileBundle(
                 descriptorUsageSetsMerged.BuildDescriptorTableDeclaration(shader->inputGroup);
 
 #if HYP_ENABLE_SHADER_RELOAD
-                shader->lastCompiledTimestamp = maxSourceFileLastModified;
+                shader->lastCompiledTimestamp = Time::Now();
 #endif
 
                 Mutex::Guard guard(compiledShadersMutex);

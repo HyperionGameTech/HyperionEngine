@@ -987,7 +987,7 @@ Result ObjectFromJSON(const JSON::Object& jsonObject, const Class* targetClass, 
             const Property& property = static_cast<const Property&>(member);
 
             if (!property.CanSet())
-                return false;
+                return false;//true; // skip read-only properties silently.
 
             const TypeInfo& typeInfo = property.GetTypeInfo();
 

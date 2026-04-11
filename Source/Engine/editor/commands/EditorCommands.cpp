@@ -970,27 +970,24 @@ public:
                                 LoadedAsset& loadedAsset = it.second;
 
                                 editorTaskScope->GetEditorTask()->SetDescription("Processing " + key);
-
-                                AssertDebug(loadedAsset.value.Is<AssetObject>());
-
-                                if (!loadedAsset.value.Is<AssetObject>())
+                                
+                                Handle<AssetObject> assetObject = loadedAsset.ExtractAs<AssetObject>();
+                                if (!assetObject.IsValid())
                                 {
                                     continue;
                                 }
 
-                                const AssetObject& assetObject = loadedAsset.value.Get<AssetObject>();
+                                ANSIStringView importSubPath;
 
-                                UTF8StringView importSubPath;
-
-                                if (assetObject.IsA(Texture::StaticClass()))
+                                if (assetObject->IsA(Texture::StaticClass()))
                                 {
                                     importSubPath = "Media/Textures";
                                 }
-                                else if (assetObject.IsA(Node::StaticClass()))
+                                else if (assetObject->IsA(Node::StaticClass()))
                                 {
                                     importSubPath = "Media/Models";
                                 }
-                                else if (assetObject.IsA(Skeleton::StaticClass()))
+                                else if (assetObject->IsA(Skeleton::StaticClass()))
                                 {
                                     importSubPath = "Media/Skeletons";
                                 }
@@ -1001,12 +998,12 @@ public:
 
                                 Result registerAssetResult = AssetManager::GetInstance()->GetAssetRegistry()->RegisterAsset(
                                     HYP_FORMAT("$Import/{}", importSubPath),
-                                    MakeStrongRef(&assetObject),
+                                    assetObject,
                                     AddAssetConflictMode::GenerateNewName);
 
                                 if (registerAssetResult.HasError())
                                 {
-                                    HYP_LOG(Editor, Error, "Failed to import asset {}: {}", assetObject.GetName(), registerAssetResult.GetError().GetMessage());
+                                    HYP_LOG(Editor, Error, "Failed to import asset {}: {}", assetObject->GetName(), registerAssetResult.GetError().GetMessage());
                                 }
                             }
 

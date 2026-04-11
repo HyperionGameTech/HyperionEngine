@@ -42,19 +42,24 @@ HYP_API extern void OnPostLoad_Impl(const Class* cls, void* objectPtr);
 
 struct LoadedAsset
 {
-    BoxedValue value;
+    Variant<BoxedValue, AssetLoadError> valueOrError;
 
     LoadedAsset() = default;
 
-    LoadedAsset(BoxedValue&& value)
-        : value(std::move(value))
+    explicit LoadedAsset(BoxedValue&& value)
+        : valueOrError(std::move(value))
+    {
+    }
+
+    explicit LoadedAsset(AssetLoadError&& error)
+        : valueOrError(std::move(error))
     {
     }
 
     template <class T, typename = std::enable_if_t<!std::is_base_of_v<LoadedAsset, T> && !IsBoxedValueV<T> && !std::is_same_v<T, TResult<LoadedAsset, AssetLoadError>>>>
-    LoadedAsset(T&& value)
-        : value(std::forward<T>(value))
+    explicit LoadedAsset(T&& value)
     {
+        valueOrError.Emplace<BoxedValue>(std::forward<T>(value));
     }
 
     LoadedAsset(const LoadedAsset& other) = delete;
@@ -75,40 +80,45 @@ struct LoadedAsset
 
     HYP_FORCE_INLINE bool IsValid() const
     {
-        return value.IsValid();
+        return valueOrError.Is<BoxedValue>()
+            && valueOrError.GetUnchecked<BoxedValue>().IsValid();
+    }
+
+    const AssetLoadError* GetErrorIfFailed() const&
+    {
+        if (!valueOrError.Is<AssetLoadError>())
+            return nullptr;
+
+        return &valueOrError.GetUnchecked<AssetLoadError>();
     }
 
     template <class T>
-    HYP_NODISCARD HYP_FORCE_INLINE auto&& ExtractAs() const&
+    HYP_NODISCARD HYP_FORCE_INLINE auto ExtractAs() const&
     {
-        if constexpr (std::is_base_of_v<EnableRefCountedPtrFromThisBase<>, T>)
-        {
-            return value.Get<RC<T>>();
-        }
-        else if constexpr (std::is_base_of_v<ObjectBase, T>)
-        {
-            return value.Get<Handle<T>>();
-        }
-        else
-        {
-            return value.Get<T>();
-        }
-    }
+        Assert(IsValid(), "Extracting errored LoadedAsset!");
 
-    template <class T>
-    HYP_NODISCARD HYP_FORCE_INLINE auto&& ExtractAs() &&
-    {
+        const BoxedValue& bv = valueOrError.GetUnchecked<BoxedValue>();
+
         if constexpr (std::is_base_of_v<EnableRefCountedPtrFromThisBase<>, T>)
         {
-            return std::move(value).Get<RC<T>>();
+            if (bv.Is<RC<T>>())
+                return bv.Get<RC<T>>();
+            else
+                return RC<T> {}; // return null
         }
         else if constexpr (std::is_base_of_v<ObjectBase, T>)
         {
-            return std::move(value).Get<Handle<T>>();
+            if (bv.Is<Handle<T>>())
+                return bv.Get<Handle<T>>();
+            else
+                return Handle<T>::Null();
         }
         else
         {
-            return std::move(value).Get<T>();
+            if (bv.Is<T>())
+                return bv.Get<T>();
+            else
+                return T {};
         }
     }
 

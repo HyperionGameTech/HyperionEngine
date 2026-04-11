@@ -13,25 +13,23 @@ using namespace Hyperion;
 extern "C"
 {
 
-    HYP_EXPORT void Asset_Destroy(LoadedAsset* pLoadedAsset)
+    HYP_EXPORT void LoadedAsset_Destroy(LoadedAsset* pLoadedAsset)
     {
         if (!pLoadedAsset)
-        {
             return;
-        }
 
         delete pLoadedAsset;
     }
 
-    HYP_EXPORT void Asset_GetBoxed(LoadedAsset* pLoadedAsset, BoxedValue* pOutData)
+    HYP_EXPORT void LoadedAsset_GetBoxed(LoadedAsset* pLoadedAsset, BoxedValue* pOutData)
     {
         if (!pLoadedAsset || !pOutData)
-        {
             return;
-        }
 
-        *pOutData = std::move(pLoadedAsset->value);
-        pLoadedAsset->value.Reset();
+        if (pLoadedAsset->valueOrError.Is<BoxedValue>())
+            *pOutData = std::move(pLoadedAsset->valueOrError.GetUnchecked<BoxedValue>());
+
+        pLoadedAsset->valueOrError.Reset();
     }
 
 } // extern "C"
