@@ -13,6 +13,31 @@
 #include <Quaternion.generated.inl>
 #endif
 
+#if !HYP_ARM && (defined(__SSE4_1__) || (HYP_MSVC && defined(_M_X64)))
+#include <immintrin.h>
+#define HYP_QUATERNION_USE_SSE 1
+#else
+#define HYP_QUATERNION_USE_SSE 0
+#endif
+
+namespace {
+
+#if HYP_QUATERNION_USE_SSE
+HYP_FORCE_INLINE __m128 LoadQuatf(const Hyperion::Quaternion& q)
+{
+    return _mm_setr_ps(q.x, q.y, q.z, q.w);
+}
+
+HYP_FORCE_INLINE Hyperion::Quaternion StoreQuatf(__m128 value)
+{
+    alignas(16) float data[4];
+    _mm_store_ps(data, value);
+    return Hyperion::Quaternion(data[0], data[1], data[2], data[3]);
+}
+#endif
+
+} // namespace
+
 namespace Hyperion {
 
 Quaternion::Quaternion()
@@ -200,11 +225,31 @@ float Quaternion::Length() const
 
 float Quaternion::LengthSquared() const
 {
+#if HYP_QUATERNION_USE_SSE
+    // Adapted from Foxtrot SIMD quaternion paths:
+    // Math/Impl/Quaternion/FxQuat_AVX.inl
+    const __m128 v = LoadQuatf(*this);
+    return _mm_cvtss_f32(_mm_dp_ps(v, v, 0xFF));
+#else
     return w * w + x * x + y * y + z * z;
+#endif
 }
 
 Quaternion& Quaternion::Normalize()
 {
+#if HYP_QUATERNION_USE_SSE
+    // Adapted from Foxtrot SIMD quaternion paths:
+    // Math/Impl/Quaternion/FxQuat_AVX.inl NLerpIP (normalization step)
+    const __m128 v = LoadQuatf(*this);
+    const float d = _mm_cvtss_f32(_mm_dp_ps(v, v, 0xFF));
+    if (d < FLT_EPSILON)
+    {
+        w = 1.0f;
+        return *this;
+    }
+    *this = StoreQuatf(_mm_mul_ps(v, _mm_set1_ps(1.0f / sqrtf(d))));
+    return *this;
+#else
     float d = LengthSquared();
     if (d < FLT_EPSILON)
     {
@@ -218,6 +263,7 @@ Quaternion& Quaternion::Normalize()
     z *= d;
 
     return *this;
+#endif
 }
 
 Quaternion Quaternion::Inverse() const
@@ -237,6 +283,36 @@ Quaternion Quaternion::Inverse() const
 
 Quaternion& Quaternion::Slerp(const Quaternion& to, float amt)
 {
+#if HYP_QUATERNION_USE_SSE
+    // Adapted from Foxtrot SIMD quaternion paths:
+    // Math/Impl/Quaternion/FxQuat_AVX.inl SLerp
+    // Note: FMA (_mm_fmadd_ps) replaced with mul+add to require only SSE4.1.
+    __m128 a_v = LoadQuatf(*this);
+    __m128 b_v = LoadQuatf(to);
+
+    const float cosHalfTheta = _mm_cvtss_f32(_mm_dp_ps(a_v, b_v, 0xFF));
+
+    if (abs(cosHalfTheta) >= 1.0f)
+    {
+        return *this;
+    }
+
+    const float halfTheta = acos(cosHalfTheta);
+    const float sinHalfTheta = sqrt(1.0f - cosHalfTheta * cosHalfTheta);
+
+    if (abs(sinHalfTheta) < 0.001f)
+    {
+        *this = StoreQuatf(_mm_add_ps(_mm_mul_ps(a_v, _mm_set1_ps(0.5f)), _mm_mul_ps(b_v, _mm_set1_ps(0.5f))));
+        return *this;
+    }
+
+    const float sht_recip = 1.0f / sinHalfTheta;
+    const float ratioA = sin((1.0f - amt) * halfTheta) * sht_recip;
+    const float ratioB = sin(amt * halfTheta) * sht_recip;
+
+    *this = StoreQuatf(_mm_add_ps(_mm_mul_ps(a_v, _mm_set1_ps(ratioA)), _mm_mul_ps(b_v, _mm_set1_ps(ratioB))));
+    return *this;
+#else
     float cosHalfTheta = w * to.w + x * to.x + y * to.y + z * to.z;
 
     if (abs(cosHalfTheta) >= 1.0f)
@@ -264,6 +340,7 @@ Quaternion& Quaternion::Slerp(const Quaternion& to, float amt)
     y = y * ratioA + to.y * ratioB;
     z = z * ratioA + to.z * ratioB;
     return *this;
+#endif
 }
 
 int Quaternion::GimbalPole() const

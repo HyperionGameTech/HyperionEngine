@@ -20,21 +20,33 @@
       "EnumValues": []
     }, {
       "$Class": "ShaderProperty",
-      "Name": "ALPHA_DISCARD",
+      "Name": "SHADING_TYPE",
+      "Flags": 0,
+      "Value": "FORWARD",
+      "EnumValues": []
+    }, {
+      "$Class": "ShaderProperty",
+      "Name": "SKINNING",
       "Flags": 0,
       "Value": null,
       "EnumValues": []
     }, {
       "$Class": "ShaderProperty",
-      "Name": "SHADING_TYPE",
+      "Name": "MAX_LIGHTS",
       "Flags": 0,
-      "Value": "DEFERRED",
+      "Value": 4,
+      "EnumValues": []
+    }, {
+      "$Class": "ShaderProperty",
+      "Name": "MODE",
+      "Flags": 0,
+      "Value": "PCF",
       "EnumValues": []
     }],
   "RevisionNumber": 31459917,
-  "BaseName": "GeometryPass",
+  "BaseName": "DrawShadowMap",
   "InputLayout": {
-    "Mask": 31
+    "Mask": 15
   },
   "ShaderInputGroup": {
     "Elements": [{
@@ -42,20 +54,6 @@
         "SetIndex": 0,
         "Name": "Default",
         "Slots": [[{
-              "$Class": "ShaderInput",
-              "Register": 1,
-              "ElementType": 3,
-              "Name": "WorldsBuffer",
-              "Count": 1,
-              "Size": 4294967295,
-              "IsDynamic": false,
-              "StructInfo": {
-                "Name": "",
-                "Size": 4294967295,
-                "FieldNames": [],
-                "FieldTypes": []
-              }
-            }, {
               "$Class": "ShaderInput",
               "Register": 1,
               "ElementType": 4,
@@ -74,6 +72,20 @@
               "Register": 1,
               "ElementType": 4,
               "Name": "CamerasBuffer",
+              "Count": 1,
+              "Size": 4294967295,
+              "IsDynamic": true,
+              "StructInfo": {
+                "Name": "",
+                "Size": 4294967295,
+                "FieldNames": [],
+                "FieldTypes": []
+              }
+            }, {
+              "$Class": "ShaderInput",
+              "Register": 1,
+              "ElementType": 4,
+              "Name": "SkeletonsBuffer",
               "Count": 1,
               "Size": 4294967295,
               "IsDynamic": true,
@@ -127,31 +139,25 @@
               }
             }], []],
         "Flags": 0
-      }, {
-        "$Class": "ShaderInputSet",
-        "SetIndex": 1,
-        "Name": "BindlessResources0",
-        "Slots": [[], [], [], [], []],
-        "Flags": 1
       }]
   },
   "ShaderModuleTypes": [1, 2],
-  "ShaderModuleNames": ["DefaultVertex.hlsl", "GeometryPass.hlsl"],
+  "ShaderModuleNames": ["DrawShadowMap.hlsl", "DrawShadowMap.hlsl"],
   "EntryPointNames": ["VSMain", "PSMain"],
   "ShaderBlobs": [{
       "$Class": "BlobDataReference",
-      "Key": "Engine/Shaders/GeometryPass/GeometryPass_16779099286101286409.VS",
-      "Size": 57352
+      "Key": "Engine/Shaders/DrawShadowMap/DrawShadowMap_9535285342444993267.VS",
+      "Size": 56916
     }, {
       "$Class": "BlobDataReference",
-      "Key": "Engine/Shaders/GeometryPass/GeometryPass_16779099286101286409.PS",
-      "Size": 74816
+      "Key": "Engine/Shaders/DrawShadowMap/DrawShadowMap_9535285342444993267.PS",
+      "Size": 51604
     }],
   "PropertySetHashCode": {},
   "LastCompiledTimestamp": {
-    "Value": 13420400501078
+    "Value": 13420350831157
   },
-  "Name": "GeometryPass_16779099286101286409",
-  "FriendlyName": "GeometryPass16779099286101286409",
+  "Name": "DrawShadowMap_9535285342444993267",
+  "FriendlyName": "DrawShadowMap_9535285342444993267",
   "OriginalFilepath": ""
 }
