@@ -3724,7 +3724,7 @@ bool ShaderCompiler::CompileBundle(
                 descriptorUsageSetsMerged.BuildDescriptorTableDeclaration(shader->inputGroup);
 
 #if HYP_ENABLE_SHADER_RELOAD
-                shader->lastCompiledTimestamp = Time::Now();
+                shader->lastCompiledTimestamp = maxSourceFileLastModified;
 #endif
 
                 Mutex::Guard guard(compiledShadersMutex);

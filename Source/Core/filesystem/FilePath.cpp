@@ -409,6 +409,19 @@ bool FilePath::IsDirectory() const
 
 Time FilePath::LastModifiedTimestamp() const
 {
+#if HYP_WINDOWS
+    WIN32_FILE_ATTRIBUTE_DATA fileInfo;
+
+    if (!GetFileAttributesExA(Data(), GetFileExInfoStandard, &fileInfo))
+    {
+        return Time(0);
+    }
+
+    const FILETIME& ft = fileInfo.ftLastWriteTime;
+
+    // Same conversion as Time::Now(): FILETIME is in 100-nanosecond intervals, divide by 10000 to get milliseconds
+    return Time((uint64(ft.dwHighDateTime) << 32 | ft.dwLowDateTime) / 10000);
+#else
     struct stat st;
 
     if (stat(Data(), &st) != 0)
@@ -422,6 +435,7 @@ Time FilePath::LastModifiedTimestamp() const
     return Time(st.st_mtimespec.tv_sec * 1000 + st.st_mtimespec.tv_nsec / 1000000);
 #else
     return Time(st.st_mtime * 1000);
+#endif
 #endif
 }
 
