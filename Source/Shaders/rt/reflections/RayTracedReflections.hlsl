@@ -34,10 +34,8 @@ DECLARE_SRV(RTReflections, BlueNoiseBuffer) StructuredBuffer<int4> BlueNoiseBuff
 
 #undef HYP_DO_NOT_DEFINE_DESCRIPTOR_SETS
 
-DECLARE_BUFFER(RTReflections, WorldsBuffer) cbuffer WorldsBuffer
-{
-    WorldShaderData world_shader_data;
-};
+DECLARE_SRV(RTReflections, WorldsBuffer) StructuredBuffer<WorldShaderData> _worlds_buffer;
+#define world_shader_data _worlds_buffer[0]
 
 #include "../include/rt/RayTracingHelpers.inc"
 #include "../include/rt/payload.inc"

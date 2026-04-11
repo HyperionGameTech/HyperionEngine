@@ -5,10 +5,8 @@
 #include "include/scene.inc"
 #undef HYP_DO_NOT_DEFINE_DESCRIPTOR_SETS
 
-DECLARE_BUFFER(MergeHalfResTexture, WorldsBuffer) cbuffer WorldsBuffer
-{
-    WorldShaderData world_shader_data;
-};
+DECLARE_SRV(MergeHalfResTexture, WorldsBuffer) StructuredBuffer<WorldShaderData> _worlds_buffer;
+#define world_shader_data _worlds_buffer[0]
 
 DECLARE_SAMPLER(MergeHalfResTexture, SamplerNearest) SamplerState sampler_nearest;
 DECLARE_SAMPLER(MergeHalfResTexture, SamplerLinear) SamplerState sampler_linear;

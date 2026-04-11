@@ -87,10 +87,8 @@ DECLARE_SRV(DeferredPass, RTRadianceResultTexture) Texture2D RTRadianceResultTex
 
 #include "./include/scene.inc"
 
-DECLARE_BUFFER(DeferredPass, WorldsBuffer) cbuffer WorldsBuffer
-{
-    WorldShaderData world_shader_data;
-};
+DECLARE_SRV(DeferredPass, WorldsBuffer) StructuredBuffer<WorldShaderData> _worlds_buffer;
+#define world_shader_data _worlds_buffer[0]
 
 #include "./include/PhysicalCamera.inc"
 

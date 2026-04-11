@@ -70,15 +70,11 @@ DECLARE_SRV(LightmapPass, SSAOResultTexture) Texture2D SSAOResultTexture;
 #include "../include/Entity.inc"
 #include "../include/scene.inc"
 
-DECLARE_BUFFER_DYNAMIC(LightmapPass, CamerasBuffer) cbuffer CamerasBuffer
-{
-    Camera camera;
-};
+DECLARE_SRV_DYNAMIC(LightmapPass, CamerasBuffer) StructuredBuffer<Camera> _cameras_buffer;
+#define camera _cameras_buffer[0]
 
-DECLARE_BUFFER(LightmapPass, WorldsBuffer) cbuffer WorldsBuffer
-{
-    WorldShaderData world_shader_data;
-};
+DECLARE_SRV(LightmapPass, WorldsBuffer) StructuredBuffer<WorldShaderData> _worlds_buffer;
+#define world_shader_data _worlds_buffer[0]
 
 #include "../include/BRDF.hlsli"
 

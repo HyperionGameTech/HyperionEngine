@@ -61,15 +61,11 @@ DECLARE_SAMPLER(RenderSSAO, SamplerNearest) SamplerState sampler_nearest;
 DECLARE_SAMPLER(RenderSSAO, SamplerLinear) SamplerState sampler_linear;
 DECLARE_SRV(RenderSSAO, BlueNoiseBuffer) StructuredBuffer<int4> BlueNoiseBuffer;
 
-DECLARE_BUFFER(RenderSSAO, WorldsBuffer) cbuffer WorldsBuffer
-{
-    WorldShaderData world_shader_data;
-};
+DECLARE_SRV(RenderSSAO, WorldsBuffer) StructuredBuffer<WorldShaderData> _worlds_buffer;
+#define world_shader_data _worlds_buffer[0]
 
-DECLARE_BUFFER_DYNAMIC(RenderSSAO, CamerasBuffer) cbuffer CamerasBuffer
-{
-    Camera camera;
-};
+DECLARE_SRV_DYNAMIC(RenderSSAO, CamerasBuffer) StructuredBuffer<Camera> _cameras_buffer;
+#define camera _cameras_buffer[0]
 
 #define HYP_DO_NOT_DEFINE_DESCRIPTOR_SETS
 #include "../include/gbuffer.inc"

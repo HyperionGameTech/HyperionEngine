@@ -9,10 +9,8 @@ PERMUTE(CHECKERBOARDED);
 
 DECLARE_SAMPLER(RenderTextureToScreenDescriptorSet, SamplerLinear) SamplerState sampler_linear;
 
-DECLARE_BUFFER(RenderTextureToScreenDescriptorSet, WorldsBuffer) cbuffer WorldsBuffer
-{
-    WorldShaderData world_shader_data;
-};
+DECLARE_SRV(RenderTextureToScreenDescriptorSet, WorldsBuffer) StructuredBuffer<WorldShaderData> _worlds_buffer;
+#define world_shader_data _worlds_buffer[0]
 
 DECLARE_SRV(RenderTextureToScreenDescriptorSet, InTexture) Texture2D src_image;
 

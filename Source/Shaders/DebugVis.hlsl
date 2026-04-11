@@ -71,10 +71,8 @@ DECLARE_SRV_DYNAMIC(DebugDrawerDescriptorSet, CurrentEntity) StructuredBuffer<En
 
 #undef HYP_DO_NOT_DEFINE_DESCRIPTOR_SETS
 
-DECLARE_BUFFER_DYNAMIC(DebugDrawerDescriptorSet, CamerasBuffer) cbuffer CamerasBuffer
-{
-    Camera camera;
-};
+DECLARE_SRV_DYNAMIC(DebugDrawerDescriptorSet, CamerasBuffer) StructuredBuffer<Camera> _cameras_buffer;
+#define camera _cameras_buffer[0]
 
 VSOutput VSMain(VSInput input, uint instanceId : SV_InstanceID)
 {
@@ -172,15 +170,11 @@ DECLARE_SAMPLER(DebugDrawerDescriptorSet, SamplerNearest) SamplerState sampler_n
 
 DECLARE_SRV(DebugDrawerDescriptorSet, GBufferMipChain) Texture2D gbuffer_mip_chain;
 
-DECLARE_BUFFER_DYNAMIC(DebugDrawerDescriptorSet, CamerasBuffer) cbuffer CamerasBuffer
-{
-    Camera camera;
-};
+DECLARE_SRV_DYNAMIC(DebugDrawerDescriptorSet, CamerasBuffer) StructuredBuffer<Camera> _cameras_buffer;
+#define camera _cameras_buffer[0]
 
-DECLARE_BUFFER(DebugDrawerDescriptorSet, WorldsBuffer) cbuffer WorldsBuffer
-{
-    WorldShaderData world_shader_data;
-};
+DECLARE_SRV(DebugDrawerDescriptorSet, WorldsBuffer) StructuredBuffer<WorldShaderData> _worlds_buffer;
+#define world_shader_data _worlds_buffer[0]
 
 #include "include/Entity.inc"
 

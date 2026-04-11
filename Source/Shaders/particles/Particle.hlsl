@@ -35,15 +35,11 @@ struct VSOutput
 
 DECLARE_UAV(ParticleDescriptorSet, ParticlesBuffer) RWStructuredBuffer<ParticleShaderData> instances;
 
-DECLARE_BUFFER(ParticleDescriptorSet, WorldsBuffer) cbuffer WorldsBuffer
-{
-    WorldShaderData world_shader_data;
-};
+DECLARE_SRV(ParticleDescriptorSet, WorldsBuffer) StructuredBuffer<WorldShaderData> _worlds_buffer;
+#define world_shader_data _worlds_buffer[0]
 
-DECLARE_BUFFER_DYNAMIC(ParticleDescriptorSet, CamerasBuffer) cbuffer CamerasBuffer
-{
-    Camera camera;
-};
+DECLARE_SRV_DYNAMIC(ParticleDescriptorSet, CamerasBuffer) StructuredBuffer<Camera> _cameras_buffer;
+#define camera _cameras_buffer[0]
 
 VSOutput VSMain(VSInput input, uint instanceId : SV_InstanceID)
 {

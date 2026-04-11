@@ -453,8 +453,8 @@ void UpdateGpuData(const ObjectBase* resource)
     Resources::ResourceSubtypeData& subtypeData = g_renderInterface->resources->GetSubtypeData(resource->InstanceClass());
     AssertDebug(resourceId.GetTypeId() == subtypeData.typeInfo->id);
 
-    AssertDebug(subtypeData.gpuBufferHolder != nullptr,
-        "Cannot update GPU data for type which does not have a GpuBufferHolder! Type: {}",
+    AssertDebug(subtypeData.sbuffer != nullptr,
+        "Cannot update GPU data for type which does not have a buffer! Type: {}",
         subtypeData.typeInfo->name);
 
     AssertDebug(subtypeData.hasProxyData,
@@ -564,23 +564,41 @@ EngineConfig& GetEngineConfig()
     return Framework::s_engineConfig[Framework::s_threadFrameIndex ? *Framework::s_threadFrameIndex : Framework::s_frameIndex[Framework::TT_FrameDataConsumer]];
 }
 
-#pragma region GlobalRenderBuffer
+#pragma region StructuredBuffer
 
-void GlobalRenderBuffer::SetElement(size_t index, void* data)
+void StructuredBuffer::Initialize()
 {
-    AssertDebug((index * elementSize) + elementSize <= cpuBuffer.Size());
+    if (gpuBuffer.IsCreated())
+        return;
 
-    cpuBuffer.Write(elementSize, index * elementSize, data);
-
-    dirtyRangeStart = MathUtil::Min(dirtyRangeStart, index);
-    dirtyRangeEnd = MathUtil::Max(dirtyRangeEnd, dirtyRangeStart + 1);
+    CheckResult(gpuBuffer.Create());
 }
 
-void GlobalRenderBuffer::Update()
+void StructuredBuffer::Shutdown()
 {
+    if (!gpuBuffer.IsCreated())
+        return;
+
+    gpuBuffer = GpuBuffer(GpuBufferType::STORAGE_BUFFER, 0);
+}
+
+void StructuredBuffer::Write(size_t offset, size_t count, const void* data)
+{
+    AssertDebug(offset + count <= cpuBuffer.Size());
+
+    cpuBuffer.Write(count, offset, data);
+
+    dirtyRangeStart = MathUtil::Min(dirtyRangeStart, offset);
+    dirtyRangeEnd = MathUtil::Max(dirtyRangeEnd, dirtyRangeStart + count);
+}
+
+void StructuredBuffer::Update()
+{
+    Assert(gpuBuffer.IsCreated());
+
     if (dirtyRangeEnd - dirtyRangeStart > 0)
     {
-        GpuBuffer* stagingBuffer = g_renderInterface->stagingBufferPool->AcquireStagingBuffer((dirtyRangeEnd - dirtyRangeStart) * elementSize);
+        GpuBuffer* stagingBuffer = g_renderInterface->stagingBufferPool->AcquireStagingBuffer(dirtyRangeEnd - dirtyRangeStart);
         Assert(stagingBuffer != nullptr);
 
         CommandRecorder& cr = g_renderInterface->commandRecorderAllocator.GetCommandRecorder();
@@ -588,7 +606,7 @@ void GlobalRenderBuffer::Update()
         cr << InsertBarrier(stagingBuffer, RS_COPY_SRC);
         cr << InsertBarrier(&gpuBuffer, RS_COPY_DST);
 
-        cr << CopyBuffer(stagingBuffer, &gpuBuffer, 0, dirtyRangeStart * elementSize, (dirtyRangeEnd - dirtyRangeStart) * elementSize);
+        cr << CopyBuffer(stagingBuffer, &gpuBuffer, 0, dirtyRangeStart, dirtyRangeEnd - dirtyRangeStart);
         
         cr << InsertBarrier(&gpuBuffer, RS_SHADER_RESOURCE);
 
@@ -599,7 +617,7 @@ void GlobalRenderBuffer::Update()
     }
 }
 
-#pragma endregion GlobalRenderBuffer
+#pragma endregion StructuredBuffer
 
 #pragma region RenderInterface
 
@@ -635,15 +653,23 @@ RendererResult RenderInterface::Initialize()
 
     Framework::s_threadFrameIndex = &Framework::s_frameIndex[Framework::TT_FrameDataConsumer];
 
-    gpuBuffers[GlobalRenderBuffer::GRB_WORLDS] = GlobalRenderBuffer(MaxBoundWorlds, sizeof(WorldShaderData));
-    gpuBuffers[GlobalRenderBuffer::GRB_CAMERAS] = gpuBufferHolders->GetOrCreate<CameraShaderData, GpuBufferType::CONSTANT_BUFFER>(MaxBoundCameras, /* cpuAccessible */ true);
-    gpuBuffers[GlobalRenderBuffer::GRB_LIGHTS] = gpuBufferHolders->GetOrCreate<LightShaderData, GpuBufferType::STORAGE_BUFFER>(MaxBoundLights, /* cpuAccessible */ false);
-    gpuBuffers[GlobalRenderBuffer::GRB_ENTITIES] = gpuBufferHolders->GetOrCreate<EntityShaderData, GpuBufferType::STORAGE_BUFFER>(MaxBoundEntities, /* cpuAccessible */ false);
-    gpuBuffers[GlobalRenderBuffer::GRB_MATERIALS] = gpuBufferHolders->GetOrCreate<MaterialShaderData, GpuBufferType::STORAGE_BUFFER>(MaxBoundMaterials, /* cpuAccessible */ false);
-    gpuBuffers[GlobalRenderBuffer::GRB_SKELETONS] = gpuBufferHolders->GetOrCreate<SkeletonShaderData, GpuBufferType::STORAGE_BUFFER>(MaxBoundSkeletons, /* cpuAccessible */ false);
-    gpuBuffers[GlobalRenderBuffer::GRB_ENV_PROBES] = gpuBufferHolders->GetOrCreate<EnvProbeShaderData, GpuBufferType::STORAGE_BUFFER>(MaxBoundEnvProbes, /* cpuAccessible */ false);
-    gpuBuffers[GlobalRenderBuffer::GRB_ENV_GRIDS] = gpuBufferHolders->GetOrCreate<EnvGridShaderData, GpuBufferType::CONSTANT_BUFFER>(MaxBoundEnvGrids, /* cpuAccessible */ true);
-    gpuBuffers[GlobalRenderBuffer::GRB_LIGHTMAP_VOLUMES] = gpuBufferHolders->GetOrCreate<LightmapVolumeShaderData, GpuBufferType::STORAGE_BUFFER>(MaxBoundLightmapVolumes, /* cpuAccessible */ false);
+    namedBuffers[NamedBuffer::Worlds] = StructuredBuffer(MaxBoundWorlds, sizeof(WorldShaderData));
+    namedBuffers[NamedBuffer::Cameras] = StructuredBuffer(MaxBoundCameras, sizeof(CameraShaderData));
+    namedBuffers[NamedBuffer::Lights] = StructuredBuffer(MaxBoundLights, sizeof(LightShaderData));
+    namedBuffers[NamedBuffer::Entities] = StructuredBuffer(MaxBoundEntities, sizeof(EntityShaderData));
+    namedBuffers[NamedBuffer::Materials] = StructuredBuffer(MaxBoundMaterials, sizeof(MaterialShaderData));
+    namedBuffers[NamedBuffer::Skeletons] = StructuredBuffer(MaxBoundSkeletons, sizeof(SkeletonShaderData));
+    namedBuffers[NamedBuffer::EnvProbes] = StructuredBuffer(MaxBoundEnvProbes, sizeof(EnvProbeShaderData));
+    namedBuffers[NamedBuffer::EnvGrids] = StructuredBuffer(MaxBoundEnvGrids, sizeof(EnvGridShaderData));
+    namedBuffers[NamedBuffer::LightmapVolumes] = StructuredBuffer(MaxBoundLightmapVolumes, sizeof(LightmapVolumeShaderData));
+
+    for (StructuredBuffer& grb : namedBuffers)
+    {
+        if (!grb.cpuBuffer.Empty())
+        {
+            grb.Initialize();
+        }
+    }
 
     crashHandler->Initialize();
 
@@ -797,6 +823,11 @@ void RenderInterface::Shutdown()
     }
     
     DebugDrawer::GetInstance().Shutdown();
+
+    for (StructuredBuffer& grb : namedBuffers)
+    {
+        grb.Shutdown();
+    }
 
     blueNoiseBuffer.Reset();
     sphereSamplesBuffer.Reset();
@@ -1017,7 +1048,7 @@ void RenderInterface::BeginFrame(AtomicFlag* pCancelFlag)
                 continue;
             }
 
-            if (!subtypeData.gpuBufferHolder)
+            if (!subtypeData.sbuffer)
             {
                 // in the loop below we only do anything if we have gpu data to update.
                 // short circuit here and just clear the bits without doing anything if we don't have a gpu buffer holder set.
@@ -1860,6 +1891,14 @@ void RenderInterface::UpdateBuffers(Frame* frame)
         it.second->UpdateBufferData(frameIndex, *stagingBufferPool, frame->preRenderCommands);
     }
 
+    for (StructuredBuffer& grb : namedBuffers)
+    {
+        if ((grb.dirtyRangeEnd - grb.dirtyRangeStart) > 0)
+        {
+            grb.Update();
+        }
+    }
+
     stagingBufferPool->Cleanup(frameIndex);
 }
 
@@ -1949,34 +1988,34 @@ void RenderInterface::CreateEnvProbesTexture()
 
 namespace Resources {
 
-DECLARE_RENDER_DATA_CONTAINER(Entity, RenderProxyMesh, GRB_ENTITIES, &WriteBufferData_MeshEntity, &s_meshEntityBinder);
+DECLARE_RENDER_DATA_CONTAINER(Entity, RenderProxyMesh, NamedBuffer::Entities, &WriteBufferData_MeshEntity, &s_meshEntityBinder);
 
-DECLARE_RENDER_DATA_CONTAINER(Mesh, NullProxy, GRB_INVALID, nullptr, &s_meshBinder);
+DECLARE_RENDER_DATA_CONTAINER(Mesh, NullProxy, NamedBuffer::Invalid, nullptr, &s_meshBinder);
 
-DECLARE_RENDER_DATA_CONTAINER(Camera, RenderProxyCamera, GRB_CAMERAS, nullptr, &s_cameraBinder);
+DECLARE_RENDER_DATA_CONTAINER(Camera, RenderProxyCamera, NamedBuffer::Cameras, nullptr, &s_cameraBinder);
 
-DECLARE_RENDER_DATA_CONTAINER(EnvGrid, RenderProxyEnvGrid, GRB_ENV_GRIDS, nullptr, &s_envGridBinder);
+DECLARE_RENDER_DATA_CONTAINER(EnvGrid, RenderProxyEnvGrid, NamedBuffer::EnvGrids, nullptr, &s_envGridBinder);
 
-DECLARE_RENDER_DATA_CONTAINER(EnvProbe, RenderProxyEnvProbe, GRB_ENV_PROBES, &WriteBufferData_EnvProbe, &s_envProbeBinder);
-DECLARE_RENDER_DATA_CONTAINER(ReflectionProbe, RenderProxyEnvProbe, GRB_ENV_PROBES, &WriteBufferData_EnvProbe, &s_envProbeBinder, &s_reflectionProbeTextureBinder);
-DECLARE_RENDER_DATA_CONTAINER(SkyProbe, RenderProxyEnvProbe, GRB_ENV_PROBES, &WriteBufferData_EnvProbe, &s_envProbeBinder, &s_reflectionProbeTextureBinder);
+DECLARE_RENDER_DATA_CONTAINER(EnvProbe, RenderProxyEnvProbe, NamedBuffer::EnvProbes, &WriteBufferData_EnvProbe, &s_envProbeBinder);
+DECLARE_RENDER_DATA_CONTAINER(ReflectionProbe, RenderProxyEnvProbe, NamedBuffer::EnvProbes, &WriteBufferData_EnvProbe, &s_envProbeBinder, &s_reflectionProbeTextureBinder);
+DECLARE_RENDER_DATA_CONTAINER(SkyProbe, RenderProxyEnvProbe, NamedBuffer::EnvProbes, &WriteBufferData_EnvProbe, &s_envProbeBinder, &s_reflectionProbeTextureBinder);
 
-DECLARE_RENDER_DATA_CONTAINER(Light, RenderProxyLight, GRB_LIGHTS, &WriteBufferData_Light, &s_lightBinder);
-DECLARE_RENDER_DATA_CONTAINER(DirectionalLight, RenderProxyLight, GRB_LIGHTS, &WriteBufferData_Light, &s_lightBinder);
-DECLARE_RENDER_DATA_CONTAINER(PointLight, RenderProxyLight, GRB_LIGHTS, &WriteBufferData_Light, &s_lightBinder);
-DECLARE_RENDER_DATA_CONTAINER(AreaRectLight, RenderProxyLight, GRB_LIGHTS, &WriteBufferData_Light, &s_lightBinder);
-DECLARE_RENDER_DATA_CONTAINER(SpotLight, RenderProxyLight, GRB_LIGHTS, &WriteBufferData_Light, &s_lightBinder);
+DECLARE_RENDER_DATA_CONTAINER(Light, RenderProxyLight, NamedBuffer::Lights, &WriteBufferData_Light, &s_lightBinder);
+DECLARE_RENDER_DATA_CONTAINER(DirectionalLight, RenderProxyLight, NamedBuffer::Lights, &WriteBufferData_Light, &s_lightBinder);
+DECLARE_RENDER_DATA_CONTAINER(PointLight, RenderProxyLight, NamedBuffer::Lights, &WriteBufferData_Light, &s_lightBinder);
+DECLARE_RENDER_DATA_CONTAINER(AreaRectLight, RenderProxyLight, NamedBuffer::Lights, &WriteBufferData_Light, &s_lightBinder);
+DECLARE_RENDER_DATA_CONTAINER(SpotLight, RenderProxyLight, NamedBuffer::Lights, &WriteBufferData_Light, &s_lightBinder);
 
-DECLARE_RENDER_DATA_CONTAINER(LightmapVolume, RenderProxyLightmapVolume, GRB_LIGHTMAP_VOLUMES, nullptr, &s_lightmapVolumeBinder);
+DECLARE_RENDER_DATA_CONTAINER(LightmapVolume, RenderProxyLightmapVolume, NamedBuffer::LightmapVolumes, nullptr, &s_lightmapVolumeBinder);
 
-DECLARE_RENDER_DATA_CONTAINER(ParticleVolume, RenderProxyParticleVolume, GRB_INVALID, nullptr, &s_particleVolumeBinder);
-DECLARE_RENDER_DATA_CONTAINER(FogVolume, RenderProxyFogVolume, GRB_INVALID, nullptr, &s_fogVolumeBinder);
+DECLARE_RENDER_DATA_CONTAINER(ParticleVolume, RenderProxyParticleVolume, NamedBuffer::Invalid, nullptr, &s_particleVolumeBinder);
+DECLARE_RENDER_DATA_CONTAINER(FogVolume, RenderProxyFogVolume, NamedBuffer::Invalid, nullptr, &s_fogVolumeBinder);
 
-DECLARE_RENDER_DATA_CONTAINER(Material, RenderProxyMaterial, GRB_MATERIALS, nullptr, &s_materialBinder);
+DECLARE_RENDER_DATA_CONTAINER(Material, RenderProxyMaterial, NamedBuffer::Materials, nullptr, &s_materialBinder);
 
-DECLARE_RENDER_DATA_CONTAINER(Texture, NullProxy, GRB_INVALID, nullptr, &s_textureBinder);
+DECLARE_RENDER_DATA_CONTAINER(Texture, NullProxy, NamedBuffer::Invalid, nullptr, &s_textureBinder);
 
-DECLARE_RENDER_DATA_CONTAINER(Skeleton, RenderProxySkeleton, GRB_SKELETONS, nullptr, &s_skeletonBinder);
+DECLARE_RENDER_DATA_CONTAINER(Skeleton, RenderProxySkeleton, NamedBuffer::Skeletons, nullptr, &s_skeletonBinder);
 
 
 #define DECLARE_SRV_COND(setName, name, type, count, cond) \

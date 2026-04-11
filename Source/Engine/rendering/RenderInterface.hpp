@@ -160,50 +160,54 @@ enum PSOType : uint8
     PSO_RayTracing
 };
 
-class GlobalRenderBuffer
+struct NamedBuffer
 {
-public:
     enum : uint8
     {
-        GRB_INVALID = UINT8_MAX,
+        Invalid = UINT8_MAX,
 
-        GRB_WORLDS = 0,
-        GRB_CAMERAS,
-        GRB_LIGHTS,
-        GRB_ENTITIES,
-        GRB_MATERIALS,
-        GRB_SKELETONS,
-        GRB_ENV_PROBES,
-        GRB_ENV_GRIDS,
-        GRB_LIGHTMAP_VOLUMES,
+        Worlds = 0,
+        Cameras,
+        Lights,
+        Entities,
+        Materials,
+        Skeletons,
+        EnvProbes,
+        EnvGrids,
+        LightmapVolumes,
 
-        GRB_MAX
+        Max
     };
+};
 
-    GlobalRenderBuffer()
+static constexpr uint8 NumNamedBuffers = NamedBuffer::Max;
+
+class StructuredBuffer
+{
+public:
+    StructuredBuffer()
         : gpuBuffer(GpuBufferType::STORAGE_BUFFER, 0),
-          elementSize(0),
           dirtyRangeStart(0),
           dirtyRangeEnd(0)
     {
     }
 
-    GlobalRenderBuffer(size_t numElements, size_t elementSize)
-        : gpuBuffer(GpuBufferType::STORAGE_BUFFER, numElements * elementSize, /* alignment */ 16),
-          elementSize(elementSize),
+    explicit StructuredBuffer(size_t size, size_t alignment)
+        : gpuBuffer(GpuBufferType::STORAGE_BUFFER, size, alignment),
           dirtyRangeStart(0),
           dirtyRangeEnd(0)
     {
-        cpuBuffer.SetSize(numElements * elementSize);
+        cpuBuffer.SetSize(size);
     }
 
-    void SetElement(size_t index, void* data);
+    void Initialize();
+    void Shutdown();
+
+    void Write(size_t offset, size_t count, const void* data);
     void Update();
 
     GpuBuffer gpuBuffer;
     TByteBuffer<RenderAllocator> cpuBuffer;
-
-    size_t elementSize;
 
     size_t dirtyRangeStart;
     size_t dirtyRangeEnd;
@@ -385,7 +389,7 @@ public:
 
     Array<RendererBase*> globalRenderers[GRT_MAX];
 
-    GlobalRenderBuffer gpuBuffers[GlobalRenderBuffer::GRB_MAX];
+    StructuredBuffer namedBuffers[NumNamedBuffers];
 
     GpuBufferRef blueNoiseBuffer;
     GpuBufferRef sphereSamplesBuffer;

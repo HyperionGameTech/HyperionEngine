@@ -61,15 +61,11 @@ DECLARE_SAMPLER(HBAO, SamplerNearest) SamplerState sampler_nearest;
 #include "../include/noise.inc"
 #undef HYP_DO_NOT_DEFINE_DESCRIPTOR_SETS
 
-DECLARE_BUFFER_DYNAMIC(HBAO, CamerasBuffer) cbuffer CamerasBuffer
-{
-    Camera camera;
-};
+DECLARE_SRV_DYNAMIC(HBAO, CamerasBuffer) StructuredBuffer<Camera> _cameras_buffer;
+#define camera _cameras_buffer[0]
 
-DECLARE_BUFFER(HBAO, WorldsBuffer) cbuffer WorldsBuffer
-{
-    WorldShaderData world_shader_data;
-};
+DECLARE_SRV(HBAO, WorldsBuffer) StructuredBuffer<WorldShaderData> _worlds_buffer;
+#define world_shader_data _worlds_buffer[0]
 
 DECLARE_BUFFER(HBAO, UniformBuffer) cbuffer UniformBuffer
 {

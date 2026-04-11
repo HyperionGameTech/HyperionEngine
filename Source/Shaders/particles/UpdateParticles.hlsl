@@ -48,10 +48,8 @@ DECLARE_UAV(UpdateParticlesDescriptorSet, IndirectDrawCommandsBuffer) RWStructur
 
 DECLARE_SRV(UpdateParticlesDescriptorSet, NoiseMap) Texture2D noise_map;
 
-DECLARE_BUFFER(UpdateParticlesDescriptorSet, WorldsBuffer) cbuffer WorldsBuffer
-{
-    WorldShaderData world_shader_data;
-};
+DECLARE_SRV(UpdateParticlesDescriptorSet, WorldsBuffer) StructuredBuffer<WorldShaderData> _worlds_buffer;
+#define world_shader_data _worlds_buffer[0]
 
 DECLARE_BUFFER_DYNAMIC(UpdateParticlesDescriptorSet, CBuffer) cbuffer CBuffer
 {

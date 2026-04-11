@@ -28,10 +28,8 @@ struct VSOutput
 
 #include "./FogVolume.inl"
 
-DECLARE_BUFFER_DYNAMIC(FogVolume, CamerasBuffer) cbuffer CamerasBuffer
-{
-    Camera camera;
-};
+DECLARE_SRV_DYNAMIC(FogVolume, CamerasBuffer) StructuredBuffer<Camera> _cameras_buffer;
+#define camera _cameras_buffer[0]
 
 DECLARE_BUFFER_DYNAMIC(FogVolume, FogVolumeConstants) cbuffer FogVolumeConstants
 {
@@ -101,10 +99,8 @@ DECLARE_SRV(FogVolume, DepthPyramidTexture) Texture2D DepthPyramidTexture;
 
 #include "../include/gbuffer.inc"
 
-DECLARE_BUFFER_DYNAMIC(FogVolume, CamerasBuffer) cbuffer CamerasBuffer
-{
-    Camera camera;
-};
+DECLARE_SRV_DYNAMIC(FogVolume, CamerasBuffer) StructuredBuffer<Camera> _cameras_buffer;
+#define camera _cameras_buffer[0]
 
 DECLARE_SRV(FogVolume, ShadowMapsTextureArray) Texture2DArray<float> shadow_maps;
 DECLARE_SRV(FogVolume, PointLightShadowMapsTextureArray) TextureCubeArray point_shadow_maps;

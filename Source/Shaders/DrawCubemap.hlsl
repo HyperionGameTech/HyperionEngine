@@ -31,10 +31,8 @@ struct VSOutput
     nointerpolation uint cube_face_index : TEXCOORD7;
 };
 
-DECLARE_BUFFER_DYNAMIC(Default, CamerasBuffer) cbuffer CamerasBuffer
-{
-    Camera camera;
-};
+DECLARE_SRV_DYNAMIC(Default, CamerasBuffer) StructuredBuffer<Camera> _cameras_buffer;
+#define camera _cameras_buffer[0]
 
 #include "include/Entity.inc"
 

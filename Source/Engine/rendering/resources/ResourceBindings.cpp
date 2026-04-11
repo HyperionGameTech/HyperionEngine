@@ -27,9 +27,8 @@ namespace Hyperion {
 namespace Resources {
 extern ResourceBinderBase* g_reflectionProbeTextureBinder;
 
-void WriteBufferData_MeshEntity(GpuBufferHolderBase* gpuBufferHolder, uint32 idx, IRenderProxy* proxy)
+void WriteBufferData_MeshEntity(StructuredBuffer& sbuffer, uint32 idx, IRenderProxy* proxy)
 {
-    AssertDebug(gpuBufferHolder != nullptr);
     AssertDebug(idx != ~0u);
 
     RenderProxyMesh* proxyCasted = static_cast<RenderProxyMesh*>(proxy);
@@ -38,8 +37,8 @@ void WriteBufferData_MeshEntity(GpuBufferHolderBase* gpuBufferHolder, uint32 idx
     proxyCasted->bufferData.entityIndex = idx;
     proxyCasted->bufferData.materialIndex = GetBinding(proxyCasted->material);
     proxyCasted->bufferData.skeletonIndex = GetBinding(proxyCasted->skeleton);
-
-    gpuBufferHolder->WriteBufferData(idx, &proxyCasted->bufferData, sizeof(proxyCasted->bufferData));
+    
+    sbuffer.Write(idx * sizeof(proxyCasted->bufferData), sizeof(proxyCasted->bufferData), &proxyCasted->bufferData);
 }
 
 void OnBindingChanged_Mesh(Mesh* mesh, uint32 prev, uint32 next)
@@ -153,9 +152,8 @@ void OnBindingChanged_EnvProbe(EnvProbe* envProbe, uint32 prev, uint32 next)
     SetBinding(envProbe, next);
 }
 
-void WriteBufferData_EnvProbe(GpuBufferHolderBase* gpuBufferHolder, uint32 idx, IRenderProxy* proxy)
+void WriteBufferData_EnvProbe(StructuredBuffer& sbuffer, uint32 idx, IRenderProxy* proxy)
 {
-    AssertDebug(gpuBufferHolder != nullptr);
     AssertDebug(idx != ~0u);
 
     RenderProxyEnvProbe* proxyCasted = static_cast<RenderProxyEnvProbe*>(proxy);
@@ -169,7 +167,7 @@ void WriteBufferData_EnvProbe(GpuBufferHolderBase* gpuBufferHolder, uint32 idx, 
         proxyCasted->bufferData.textureIndex = textureBinding;
     }
 
-    gpuBufferHolder->WriteBufferData(idx, &proxyCasted->bufferData, sizeof(proxyCasted->bufferData));
+    sbuffer.Write(idx * sizeof(proxyCasted->bufferData), sizeof(proxyCasted->bufferData), &proxyCasted->bufferData);
 }
 
 void OnBindingChanged_EnvGrid(EnvGrid* envGrid, uint32 prev, uint32 next)
@@ -186,9 +184,8 @@ void OnBindingChanged_Light(Light* light, uint32 prev, uint32 next)
     SetBinding(light, next);
 }
 
-void WriteBufferData_Light(GpuBufferHolderBase* gpuBufferHolder, uint32 idx, IRenderProxy* proxy)
+void WriteBufferData_Light(StructuredBuffer& sbuffer, uint32 idx, IRenderProxy* proxy)
 {
-    AssertDebug(gpuBufferHolder != nullptr);
     AssertDebug(idx != ~0u);
 
     RenderProxyLight* proxyCasted = static_cast<RenderProxyLight*>(proxy);
@@ -208,8 +205,8 @@ void WriteBufferData_Light(GpuBufferHolderBase* gpuBufferHolder, uint32 idx, IRe
     {
         bufferData.materialIndex = ~0u;
     }
-
-    gpuBufferHolder->WriteBufferData(idx, &bufferData, sizeof(bufferData));
+    
+    sbuffer.Write(idx * sizeof(bufferData), sizeof(bufferData), &bufferData);
 }
 
 void OnBindingChanged_Material(Material* material, uint32 prev, uint32 next)

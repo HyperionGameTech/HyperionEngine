@@ -17,15 +17,11 @@ DECLARE_SRV(ReflectionsPass, GBufferMaterialTexture) Texture2D<uint2> gbuffer_ma
 DECLARE_SRV(ReflectionsPass, GBufferVelocityTexture) Texture2D gbuffer_velocity_texture;
 DECLARE_SRV(ReflectionsPass, GBufferDepthTexture) Texture2D gbuffer_depth_texture;
 
-DECLARE_BUFFER_DYNAMIC(ReflectionsPass, CamerasBuffer) cbuffer CamerasBuffer
-{
-    Camera camera;
-};
+DECLARE_SRV_DYNAMIC(ReflectionsPass, CamerasBuffer) StructuredBuffer<Camera> _cameras_buffer;
+#define camera _cameras_buffer[0]
 
-DECLARE_BUFFER(ReflectionsPass, WorldsBuffer) cbuffer WorldsBuffer
-{
-    WorldShaderData world_shader_data;
-};
+DECLARE_SRV(ReflectionsPass, WorldsBuffer) StructuredBuffer<WorldShaderData> _worlds_buffer;
+#define world_shader_data _worlds_buffer[0]
 
 DECLARE_SRV(ReflectionsPass, BlueNoiseBuffer) StructuredBuffer<int4> BlueNoiseBuffer;
 

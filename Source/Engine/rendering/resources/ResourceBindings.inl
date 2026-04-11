@@ -1,5 +1,4 @@
-/// TODO: refactor to use mappings instead of idx (void* directly to element on cpu)
-typedef void (*WriteBufferDataFunction)(GpuBufferHolderBase* gpuBufferHolder, uint32 idx, IRenderProxy* proxy);
+typedef void (*WriteBufferDataFunction)(GlobalRenderBuffer& sbuffer, uint32 idx, IRenderProxy* proxy);
 
 template <class T>
 static void OnBindingChanged_Default(T* resource, uint32 prev, uint32 next)

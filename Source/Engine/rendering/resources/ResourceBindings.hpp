@@ -22,12 +22,12 @@ namespace Resources {
 struct SubtypeResourceBindings
 {
     const Class* resourceClass;
-    GpuBufferHolderBase* gpuBufferHolder;
+    StructuredBuffer* sbuffer;
     SparsePagedArray<uint32, 1024, RenderAllocator> bindingIndices;
 
-    SubtypeResourceBindings(const Class* resourceClass, GpuBufferHolderBase* gpuBufferHolder)
+    SubtypeResourceBindings(const Class* resourceClass, StructuredBuffer& sbuffer)
         : resourceClass(resourceClass),
-          gpuBufferHolder(gpuBufferHolder)
+          sbuffer(&sbuffer)
     {
         AssertDebug(resourceClass != nullptr);
     }
@@ -73,11 +73,6 @@ void SetBinding(ObjectBase* resource, uint32 binding)
         bindings.bindingIndices.EraseAt(resourceId.ToIndex());
 
         return;
-    }
-
-    if (bindings.gpuBufferHolder != nullptr)
-    {
-        bindings.gpuBufferHolder->EnsureCapacity(binding);
     }
 
     bindings.bindingIndices.Emplace(resourceId.ToIndex(), binding);
@@ -141,7 +136,8 @@ struct ResourceSubtypeData final
 
     // reserve 1 extra for easier iteration without bounds checking
     ResourceBinderBase* resourceBinders[MaxResourceBindersPerType + 1];
-    GpuBufferHolderBase* gpuBufferHolder;
+
+    StructuredBuffer* sbuffer;
 
     WriteBufferDataFunction writeBufferDataFn;
 
@@ -153,12 +149,12 @@ struct ResourceSubtypeData final
     ResourceSubtypeData(
         TypeWrapper<ResourceType>,
         TypeWrapper<ProxyType>,
-        GpuBufferHolderBase* gpuBufferHolder = nullptr,
+        StructuredBuffer* sbuffer = nullptr,
         FixedArray<ResourceBinderBase*, NumResourceBinders> resourceBinders = {},
         WriteBufferDataFunction writeBufferDataFn = nullptr)
         : typeInfo(&TypeInfo::ForType<ResourceType>()),
           hasProxyData(false),
-          gpuBufferHolder(gpuBufferHolder),
+          sbuffer(sbuffer),
           resourceBinders { nullptr },
           writeBufferDataFn(writeBufferDataFn)
     {
@@ -200,10 +196,10 @@ struct ResourceSubtypeData final
     HYP_FORCE_INLINE void SetGpuElem(uint32 idx, IRenderProxy* proxy)
     {
         AssertDebug(writeBufferDataFn != nullptr);
-        AssertDebug(gpuBufferHolder != nullptr);
+        AssertDebug(sbuffer != nullptr);
         AssertDebug(idx != ~0u);
 
-        writeBufferDataFn(gpuBufferHolder, idx, proxy);
+        writeBufferDataFn(*sbuffer, idx, proxy);
     }
 };
 
@@ -254,7 +250,7 @@ public:
 
     template <class... ResourceBinderTypes>
     ResourceContainerFactory(
-        GlobalRenderBuffer buf,
+        NamedBuffer buffer,
         WriteBufferDataFunction writeBufferDataFn,
         ResourceBinderTypes*... resourceBinders)
     {
@@ -267,13 +263,15 @@ public:
                 const int staticIndex = resourceClass->GetStaticIndex();
                 AssertDebug(staticIndex >= 0, "Invalid class: '{}' has no assigned static index!", *resourceClass->GetName());
 
-                GpuBufferHolderBase* gpuBufferHolder = buf < GRB_MAX ? g_renderInterface->gpuBuffers[buf] : nullptr;
-
                 if (!s_subtypeBindings.HasIndex(staticIndex))
                 {
                     // add new ResourceSubtypeBindings slot for the given class
-                    s_subtypeBindings.Emplace(staticIndex, resourceClass, gpuBufferHolder);
+                    s_subtypeBindings.Emplace(staticIndex, resourceClass, sbuffer);
                 }
+
+                StructuredBuffer* sbuffer = buffer != NamedBuffer::Invalid
+                    ? g_renderInterface->namedBuffers[buffer]
+                    : nullptr;
 
                 AssertDebug(!container.dataByType.HasIndex(staticIndex),
                     "ResourceSubtypeData for resource class '{}' has already been registered!",
@@ -283,9 +281,8 @@ public:
                     staticIndex,
                     TypeWrapper<ResourceType>(),
                     TypeWrapper<ProxyType>(),
-                    gpuBufferHolder,
-                    FixedArray<ResourceBinderBase*, sizeof...(ResourceBinderTypes)> {
-                        static_cast<ResourceBinderBase*>(resourceBinders)... },
+                    sbuffer,
+                    FixedArray<ResourceBinderBase*, sizeof...(ResourceBinderTypes)> { static_cast<ResourceBinderBase*>(resourceBinders)... },
                     writeBufferDataFn);
 
                 HYP_LOG(Rendering, Verbose, "Registered resource container for resource class '{}'",

@@ -143,7 +143,7 @@ void RenderThread::Update()
         }
     }
 
-    g_renderInterface->gpuBuffers[GRB_WORLDS]->WriteBufferData(0, GetWorldBufferData(), sizeof(WorldShaderData));
+    g_renderInterface->namedBuffers[NamedBuffer::Worlds]->WriteBufferData(0, GetWorldBufferData(), sizeof(WorldShaderData));
     
     for (Swapchain* swapchain : swapchains)
     {

@@ -39,10 +39,8 @@ DECLARE_UAV(DDGI, ProbeRayData) RWStructuredBuffer<ProbeRayData> probe_rays;
 #include "../../include/rt/probe/shared.inc"
 #include "../../include/rt/RayTracingHelpers.inc"
 
-DECLARE_BUFFER(DDGI, WorldsBuffer) cbuffer WorldsBuffer
-{
-    WorldShaderData world_shader_data;
-};
+DECLARE_SRV(DDGI, WorldsBuffer) StructuredBuffer<WorldShaderData> _worlds_buffer;
+#define world_shader_data _worlds_buffer[0]
 
 #if ENV_PROBE_CUBEMAP
 DECLARE_SRV(DDGI, EnvProbesTexture) TextureCubeArray envProbesTexture;

@@ -42,15 +42,11 @@ DECLARE_SAMPLER(TemporalBlending, SamplerNearest) SamplerState sampler_nearest;
 
 DECLARE_UAV(TemporalBlending, OutImage) RWTexture2D<OUTPUT_UAV_TYPE> output_image;
 
-DECLARE_BUFFER(TemporalBlending, WorldsBuffer) cbuffer WorldsBuffer
-{
-    WorldShaderData world_shader_data;
-};
+DECLARE_SRV(TemporalBlending, WorldsBuffer) StructuredBuffer<WorldShaderData> _worlds_buffer;
+#define world_shader_data _worlds_buffer[0]
 
-DECLARE_BUFFER_DYNAMIC(TemporalBlending, CamerasBuffer) cbuffer CamerasBuffer
-{
-    Camera camera;
-};
+DECLARE_SRV_DYNAMIC(TemporalBlending, CamerasBuffer) StructuredBuffer<Camera> _cameras_buffer;
+#define camera _cameras_buffer[0]
 
 DECLARE_SRV(TemporalBlending, GBufferDepthTexture) Texture2D depth_texture;
 

@@ -60,15 +60,11 @@ DECLARE_SAMPLER(SSGI, SamplerLinear) SamplerState sampler_linear;
 
 DECLARE_SRV(SSGI, BlueNoiseBuffer) StructuredBuffer<int4> BlueNoiseBuffer;
 
-DECLARE_BUFFER(SSGI, WorldsBuffer) cbuffer WorldsBuffer
-{
-    WorldShaderData world_shader_data;
-};
+DECLARE_SRV(SSGI, WorldsBuffer) StructuredBuffer<WorldShaderData> _worlds_buffer;
+#define world_shader_data _worlds_buffer[0]
 
-DECLARE_BUFFER_DYNAMIC(SSGI, CamerasBuffer) cbuffer CamerasBuffer
-{
-    Camera camera;
-};
+DECLARE_SRV_DYNAMIC(SSGI, CamerasBuffer) StructuredBuffer<Camera> _cameras_buffer;
+#define camera _cameras_buffer[0]
 
 DECLARE_SRV(SSGI, ShadowMapsTextureArray) Texture2DArray<float> shadow_maps;
 DECLARE_SRV(SSGI, PointLightShadowMapsTextureArray) TextureCubeArray point_shadow_maps;

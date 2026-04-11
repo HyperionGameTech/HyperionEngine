@@ -38,10 +38,8 @@ DECLARE_SRV(LightmapPathTracer, EnvProbesTexture) TextureCubeArray envProbesText
 DECLARE_SRV(LightmapPathTracer, EnvProbesTexture) Texture2DArray envProbesTexture;
 #endif
 
-DECLARE_BUFFER(LightmapPathTracer, WorldsBuffer) cbuffer WorldsBuffer
-{
-    WorldShaderData world_shader_data;
-};
+DECLARE_SRV(LightmapPathTracer, WorldsBuffer) StructuredBuffer<WorldShaderData> _worlds_buffer;
+#define world_shader_data _worlds_buffer[0]
 
 #include "../../include/Octahedron.inc"
 
