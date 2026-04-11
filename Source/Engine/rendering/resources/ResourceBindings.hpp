@@ -197,9 +197,7 @@ struct ResourceSubtypeData final
 
     HYP_FORCE_INLINE void SetGpuElem(uint32 idx, IRenderProxy* proxy)
     {
-        AssertDebug(writeBufferDataFn != nullptr);
-        AssertDebug(sbuffer != nullptr);
-        AssertDebug(idx != ~0u);
+        AssertDebug(writeBufferDataFn != nullptr && sbuffer != nullptr && idx != ~0u);
 
         writeBufferDataFn(*sbuffer, idx, proxy);
     }

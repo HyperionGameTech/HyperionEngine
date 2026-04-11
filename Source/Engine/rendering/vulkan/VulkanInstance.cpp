@@ -231,9 +231,14 @@ static Array<const char*, VulkanAllocator> CheckValidationLayerSupport(Span<cons
 ExtensionMap VulkanInstance::GetExtensionMap()
 {
     ExtensionMap map;
+    // Swapchain
     map[VK_KHR_SWAPCHAIN_EXTENSION_NAME] = true;
+    // Scalar block layout needed for our shaders.
     map[VK_EXT_SCALAR_BLOCK_LAYOUT_EXTENSION_NAME] = true;
+    // Dynamic descriptor indexing - needed for bindless resources and our clustered shading implementation.
     map[VK_EXT_DESCRIPTOR_INDEXING_EXTENSION_NAME] = true;
+    // Load store op none is used so we don't write to certain attachments (e.g stencil texture for deferred shading passes)
+    map[VK_EXT_LOAD_STORE_OP_NONE_EXTENSION_NAME] = true;
     
     map[VK_EXT_SWAPCHAIN_COLOR_SPACE_EXTENSION_NAME] = false;
 
