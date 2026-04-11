@@ -63,6 +63,20 @@
               "$Class": "ShaderInput",
               "Register": 1,
               "ElementType": 3,
+              "Name": "ClusterGridBuffer",
+              "Count": 1,
+              "Size": 4294967295,
+              "IsDynamic": false,
+              "StructInfo": {
+                "Name": "",
+                "Size": 4294967295,
+                "FieldNames": [],
+                "FieldTypes": []
+              }
+            }, {
+              "$Class": "ShaderInput",
+              "Register": 1,
+              "ElementType": 3,
               "Name": "WorldsBuffer",
               "Count": 1,
               "Size": 4294967295,
@@ -78,6 +92,20 @@
               "Register": 1,
               "ElementType": 3,
               "Name": "EnvProbesBuffer",
+              "Count": 1,
+              "Size": 4294967295,
+              "IsDynamic": false,
+              "StructInfo": {
+                "Name": "",
+                "Size": 4294967295,
+                "FieldNames": [],
+                "FieldTypes": []
+              }
+            }, {
+              "$Class": "ShaderInput",
+              "Register": 1,
+              "ElementType": 3,
+              "Name": "ClusterIndexBuffer",
               "Count": 1,
               "Size": 4294967295,
               "IsDynamic": false,
@@ -109,34 +137,6 @@
               "Count": 1,
               "Size": 4294967295,
               "IsDynamic": false,
-              "StructInfo": {
-                "Name": "",
-                "Size": 4294967295,
-                "FieldNames": [],
-                "FieldTypes": []
-              }
-            }, {
-              "$Class": "ShaderInput",
-              "Register": 1,
-              "ElementType": 4,
-              "Name": "ClusterGridBuffer",
-              "Count": 1,
-              "Size": 4294967295,
-              "IsDynamic": true,
-              "StructInfo": {
-                "Name": "",
-                "Size": 4294967295,
-                "FieldNames": [],
-                "FieldTypes": []
-              }
-            }, {
-              "$Class": "ShaderInput",
-              "Register": 1,
-              "ElementType": 4,
-              "Name": "ClusterIndexBuffer",
-              "Count": 1,
-              "Size": 4294967295,
-              "IsDynamic": true,
               "StructInfo": {
                 "Name": "",
                 "Size": 4294967295,
@@ -363,9 +363,9 @@
     }],
   "PropertySetHashCode": {},
   "LastCompiledTimestamp": {
-    "Value": 13420389127242
+    "Value": 13420400488375
   },
   "Name": "DeferredDirect_15924930052788855720",
-  "FriendlyName": "DeferredDirect15924930052788855720",
+  "FriendlyName": "DeferredDirect_15924930052788855720",
   "OriginalFilepath": ""
 }

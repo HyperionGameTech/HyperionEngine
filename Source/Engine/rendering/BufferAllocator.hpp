@@ -147,6 +147,4 @@ public:
     }
 };
 
-class SBufferAllocator : public TBufferAllocator<GpuBufferType::STORAGE_BUFFER> { };
-
 } // namespace Hyperion

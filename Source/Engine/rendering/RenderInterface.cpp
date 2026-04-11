@@ -33,8 +33,6 @@
 #include <rendering/DescriptorSet.hpp>
 #include <rendering/Swapchain.hpp>
 #include <rendering/FinalPass.hpp>
-#include <rendering/CBufferAllocator.hpp>
-#include <rendering/BufferAllocator.hpp>
 #include <rendering/TextureViewCache.hpp>
 #include <rendering/SamplerCache.hpp>
 #include <rendering/DescriptorSetCache.hpp>
@@ -43,6 +41,8 @@
 #include <rendering/Shader.hpp>
 #include <rendering/BLASCache.hpp>
 #include <rendering/CrashHandler.hpp>
+#include <rendering/CBufferAllocator.hpp>
+#include <rendering/StructuredBufferAllocator.hpp>
 
 #include <engine/resources/ResourceTracker.hpp>
 #include <rendering/util/DeletionQueue.hpp>
@@ -564,68 +564,12 @@ EngineConfig& GetEngineConfig()
     return Framework::s_engineConfig[Framework::s_threadFrameIndex ? *Framework::s_threadFrameIndex : Framework::s_frameIndex[Framework::TT_FrameDataConsumer]];
 }
 
-#pragma region StructuredBuffer
-
-void StructuredBuffer::Initialize()
-{
-    Assert(gpuBuffer);
-
-    if (gpuBuffer->IsCreated())
-        return;
-
-    CheckResult(gpuBuffer->Create());
-}
-
-void StructuredBuffer::Shutdown()
-{
-    if (!gpuBuffer)
-        return;
-
-    delete gpuBuffer;
-    gpuBuffer = nullptr;
-}
-
-void StructuredBuffer::Write(size_t offset, size_t count, const void* data)
-{
-    AssertDebug(offset + count <= cpuBuffer.Size());
-
-    cpuBuffer.Write(count, offset, data);
-
-    dirtyRangeStart = MathUtil::Min(dirtyRangeStart, offset);
-    dirtyRangeEnd = MathUtil::Max(dirtyRangeEnd, offset + count);
-}
-
-void StructuredBuffer::Update(CommandRecorder& cr)
-{
-    Assert(gpuBuffer && gpuBuffer->IsCreated());
-
-    if (IsDirty())
-    {
-        GpuBuffer* stagingBuffer = g_renderInterface->stagingBufferPool->AcquireStagingBuffer(dirtyRangeEnd - dirtyRangeStart);
-        Assert(stagingBuffer != nullptr);
-
-        Memory::Copy(stagingBuffer->Map(), cpuBuffer.Data() + dirtyRangeStart, dirtyRangeEnd - dirtyRangeStart);
-
-        cr << InsertBarrier(stagingBuffer, RS_COPY_SRC);
-        cr << InsertBarrier(gpuBuffer, RS_COPY_DST);
-
-        cr << CopyBuffer(stagingBuffer, gpuBuffer, 0, dirtyRangeStart, dirtyRangeEnd - dirtyRangeStart);
-        
-        cr << InsertBarrier(gpuBuffer, RS_SHADER_RESOURCE);
-
-        dirtyRangeStart = SIZE_MAX;
-        dirtyRangeEnd = 0;
-    }
-}
-
-#pragma endregion StructuredBuffer
-
 #pragma region RenderInterface
 
 RenderInterface::RenderInterface()
     : gpuBufferHolders(PoolNew<GpuBufferHolderMap>(*g_renderPool)),
       cbufferAllocator(PoolNew<CBufferAllocator>(*g_renderPool)),
-      sbufferAllocator(PoolNew<SBufferAllocator>(*g_renderPool)),
+      sbufferAllocator(PoolNew<StructuredBufferAllocator>(*g_renderPool)),
       descriptorSetCache(PoolNew<DescriptorSetCache>(*g_renderPool)),
       placeholderData(PoolNew<PlaceholderData>(*g_renderPool)),
       materialTextureCache(PoolNew<MaterialTextureCache>(*g_renderPool)),
@@ -1905,6 +1849,8 @@ void RenderInterface::UpdateBuffers(Frame* frame)
             grb.Update(frame->preRenderCommands);
         }
     }
+
+    sbufferAllocator->UpdateAllUsedInFrame(frame->preRenderCommands);
 
     stagingBufferPool->Cleanup(frameIndex);
 }

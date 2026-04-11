@@ -78,8 +78,8 @@ DECLARE_SRV(Default, PointLightShadowMapsTextureArray) TextureCubeArray point_sh
 
 DECLARE_SRV(Default, EnvProbesBuffer) StructuredBuffer<EnvProbe> EnvProbesBuffer;
 DECLARE_SRV(Default, LightsBuffer) StructuredBuffer<Light> LightsBuffer;
-DECLARE_SRV_DYNAMIC(Default, ClusterGridBuffer) StructuredBuffer<uint2> ClusterGridBuffer;
-DECLARE_SRV_DYNAMIC(Default, ClusterIndexBuffer) ByteAddressBuffer ClusterIndexBuffer;
+DECLARE_SRV(Default, ClusterGridBuffer) StructuredBuffer<uint2> ClusterGridBuffer;
+DECLARE_SRV(Default, ClusterIndexBuffer) ByteAddressBuffer ClusterIndexBuffer;
 
 #include "deferred/ClusteredShading.hlsli"
 #endif // FORWARD_CLUSTERED

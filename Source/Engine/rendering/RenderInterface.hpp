@@ -15,6 +15,7 @@
 #include <rendering/GpuBuffer.hpp>
 #include <rendering/RenderConfig.hpp>
 #include <rendering/CommandRecorderAllocator.hpp>
+#include <rendering/StructuredBuffer.hpp>
 
 namespace Hyperion {
 
@@ -61,7 +62,7 @@ class SamplerCache;
 struct SamplerDesc;
 
 class CBufferAllocator;
-class SBufferAllocator;
+class StructuredBufferAllocator;
 
 enum class GpuBufferType : uint8;
 enum RenderTargetType : uint8;
@@ -193,82 +194,6 @@ struct NamedBuffer
 };
 
 static constexpr uint8 NumNamedBuffers = NamedBuffer::Max;
-
-class StructuredBuffer final
-{
-public:
-    StructuredBuffer()
-        : gpuBuffer(nullptr),
-          elementSize(0),
-          dirtyRangeStart(SIZE_MAX),
-          dirtyRangeEnd(0)
-    {
-    }
-
-    explicit StructuredBuffer(size_t numElements, size_t elementSize)
-        : gpuBuffer(new GpuBuffer(GpuBufferType::STORAGE_BUFFER, numElements * elementSize, 16)),
-          elementSize(elementSize),
-          dirtyRangeStart(SIZE_MAX),
-          dirtyRangeEnd(0)
-    {
-        cpuBuffer.SetSize(numElements * elementSize);
-    }
-
-    StructuredBuffer(const StructuredBuffer& other) = delete;
-    StructuredBuffer& operator=(const StructuredBuffer& other) = delete;
-
-    StructuredBuffer(StructuredBuffer&& other) noexcept
-        : gpuBuffer(other.gpuBuffer),
-          cpuBuffer(std::move(other.cpuBuffer)),
-          elementSize(other.elementSize),
-          dirtyRangeStart(other.dirtyRangeStart),
-          dirtyRangeEnd(other.dirtyRangeEnd)
-    {
-    }
-
-    StructuredBuffer& operator=(StructuredBuffer&& other) noexcept
-    {
-        if (this != &other)
-        {
-            delete gpuBuffer;
-
-            gpuBuffer = other.gpuBuffer;
-            other.gpuBuffer = nullptr;
-
-            cpuBuffer = std::move(other.cpuBuffer);
-            elementSize = other.elementSize;
-            dirtyRangeStart = other.dirtyRangeStart;
-            dirtyRangeEnd = other.dirtyRangeEnd;
-        }
-        
-        return *this;
-    }
-
-    ~StructuredBuffer()
-    {
-        delete gpuBuffer;
-    }
-
-    HYP_FORCE_INLINE bool IsDirty() const
-    {
-        return dirtyRangeStart < dirtyRangeEnd
-            && (dirtyRangeEnd - dirtyRangeStart) > 0;
-    }
-
-    void Initialize();
-    void Shutdown();
-
-    void Write(size_t offset, size_t count, const void* data);
-    void Update(CommandRecorder& cr);
-
-    GpuBuffer* gpuBuffer;
-    TByteBuffer<RenderAllocator> cpuBuffer;
-
-    size_t elementSize;
-
-    size_t dirtyRangeStart;
-    size_t dirtyRangeEnd;
-};
 
 class RenderInterface
 {
@@ -440,7 +365,7 @@ public:
     GpuBufferHolderMap* gpuBufferHolders;
 
     CBufferAllocator* cbufferAllocator;
-    SBufferAllocator* sbufferAllocator;
+    StructuredBufferAllocator* sbufferAllocator;
 
     DescriptorTableRef globalDescriptorTable;
 

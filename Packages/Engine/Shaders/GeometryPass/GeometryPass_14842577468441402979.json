@@ -69,6 +69,20 @@
               "$Class": "ShaderInput",
               "Register": 1,
               "ElementType": 3,
+              "Name": "ClusterGridBuffer",
+              "Count": 1,
+              "Size": 4294967295,
+              "IsDynamic": false,
+              "StructInfo": {
+                "Name": "",
+                "Size": 4294967295,
+                "FieldNames": [],
+                "FieldTypes": []
+              }
+            }, {
+              "$Class": "ShaderInput",
+              "Register": 1,
+              "ElementType": 3,
               "Name": "WorldsBuffer",
               "Count": 1,
               "Size": 4294967295,
@@ -97,7 +111,7 @@
               "$Class": "ShaderInput",
               "Register": 1,
               "ElementType": 3,
-              "Name": "LightsBuffer",
+              "Name": "ClusterIndexBuffer",
               "Count": 1,
               "Size": 4294967295,
               "IsDynamic": false,
@@ -110,11 +124,11 @@
             }, {
               "$Class": "ShaderInput",
               "Register": 1,
-              "ElementType": 4,
-              "Name": "ClusterGridBuffer",
+              "ElementType": 3,
+              "Name": "LightsBuffer",
               "Count": 1,
               "Size": 4294967295,
-              "IsDynamic": true,
+              "IsDynamic": false,
               "StructInfo": {
                 "Name": "",
                 "Size": 4294967295,
@@ -154,20 +168,6 @@
               "Register": 1,
               "ElementType": 4,
               "Name": "SkeletonsBuffer",
-              "Count": 1,
-              "Size": 4294967295,
-              "IsDynamic": true,
-              "StructInfo": {
-                "Name": "",
-                "Size": 4294967295,
-                "FieldNames": [],
-                "FieldTypes": []
-              }
-            }, {
-              "$Class": "ShaderInput",
-              "Register": 1,
-              "ElementType": 4,
-              "Name": "ClusterIndexBuffer",
               "Count": 1,
               "Size": 4294967295,
               "IsDynamic": true,
@@ -313,9 +313,9 @@
     }],
   "PropertySetHashCode": {},
   "LastCompiledTimestamp": {
-    "Value": 13420389134230
+    "Value": 13420400501078
   },
   "Name": "GeometryPass_14842577468441402979",
-  "FriendlyName": "GeometryPass14842577468441402979",
+  "FriendlyName": "GeometryPass_14842577468441402979",
   "OriginalFilepath": ""
 }

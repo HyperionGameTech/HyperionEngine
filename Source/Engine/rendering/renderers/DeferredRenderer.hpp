@@ -46,6 +46,7 @@ class EntityBatchAllocatorBase;
 class RenderProxyList;
 class RenderCollector;
 class TileProcessor;
+class StructuredBuffer;
 
 enum class LightType : uint32;
 enum EnvProbeType : uint32;
@@ -306,9 +307,8 @@ public:
     UniquePtr<RayTracingReflections> rayTracingReflections;
     UniquePtr<DDGI> ddgi;
 
-    GpuBuffer* clusterBuffer = nullptr;
-    size_t clusterGridOffset = 0;
-    size_t clusterIndexOffset = 0;
+    StructuredBuffer* gridTilesBuffer = nullptr;
+    StructuredBuffer* gridIndexBuffer = nullptr;
 };
 
 HYP_CLASS(NoScriptBindings)

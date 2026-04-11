@@ -806,11 +806,11 @@ static void RenderAll(
         {
             // Even though the name suggests otherwise we are in forward pass, where we use clustered shading
 
-            AssertDebug(dpd->clusterBuffer != nullptr);
+            AssertDebug(dpd->gridTilesBuffer != nullptr && dpd->gridIndexBuffer != nullptr);
 
             // set cluster grid / index buffers for forward shading pass.
-            cr << SetShaderUniform(numShaderUniforms++, "ClusterGridBuffer"_sh, dpd->clusterBuffer, ShaderDataOffset(dpd->clusterGridOffset, dpd->clusterIndexOffset));
-            cr << SetShaderUniform(numShaderUniforms++, "ClusterIndexBuffer"_sh, dpd->clusterBuffer, ShaderDataOffset(dpd->clusterIndexOffset, dpd->clusterBuffer->Size() - dpd->clusterIndexOffset));
+            cr << SetShaderUniform(numShaderUniforms++, "ClusterGridBuffer"_sh, dpd->gridTilesBuffer->gpuBuffer);
+            cr << SetShaderUniform(numShaderUniforms++, "ClusterIndexBuffer"_sh, dpd->gridIndexBuffer->gpuBuffer);
         }
     }
 
@@ -1011,7 +1011,7 @@ static void PerformRenderingImpl(
     cr << SetCurrentViewport(renderSetup.viewport);
 
 
-    if (isNormalDrawingPass && mas.shaderProperties.Test(s_propShadingTypeForward) && dpd->clusterBuffer != nullptr)
+    if (isNormalDrawingPass && mas.shaderProperties.Test(s_propShadingTypeForward) && dpd->gridTilesBuffer != nullptr)
     {
         // If we are in normal drawing (e.g NOT env probes, shadows, etc.) - we use clusters of lights and EnvProbe data
         // Therefore we need to set FORWARD_CLUSTERED prop to true to choose the correct variant.

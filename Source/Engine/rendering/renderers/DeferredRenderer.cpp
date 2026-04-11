@@ -43,7 +43,7 @@
 #include <rendering/RayTracingReflections.hpp>
 #include <rendering/DDGI.hpp>
 #include <rendering/CBufferAllocator.hpp>
-#include <rendering/BufferAllocator.hpp>
+#include <rendering/StructuredBufferAllocator.hpp>
 
 #include <rendering/shadows/ShadowMapAllocator.hpp>
 #include <rendering/shadows/ShadowMapCache.hpp>
@@ -479,11 +479,11 @@ void DeferredPass::RenderToFramebuffer_Internal(Frame* frame, const RenderSetup&
 
     if (useClusteredShading || m_mode == DPM_INDIRECT_LIGHTING)
     {
-        AssertDebug(dpd->clusterBuffer != nullptr);
+        AssertDebug(dpd->gridTilesBuffer != nullptr && dpd->gridIndexBuffer != nullptr);
 
         // Indirect pass uses clusters for EnvProbes.
-        cr << SetShaderUniform(numShaderUniforms++, "ClusterGridBuffer"_sh, dpd->clusterBuffer, ShaderDataOffset(dpd->clusterGridOffset, dpd->clusterIndexOffset));
-        cr << SetShaderUniform(numShaderUniforms++, "ClusterIndexBuffer"_sh, dpd->clusterBuffer, ShaderDataOffset(dpd->clusterIndexOffset, dpd->clusterBuffer->Size() - dpd->clusterIndexOffset));
+        cr << SetShaderUniform(numShaderUniforms++, "ClusterGridBuffer"_sh, dpd->gridTilesBuffer->gpuBuffer);
+        cr << SetShaderUniform(numShaderUniforms++, "ClusterIndexBuffer"_sh, dpd->gridIndexBuffer->gpuBuffer);
     }
 
     if (m_mode == DPM_INDIRECT_LIGHTING)
@@ -530,8 +530,6 @@ void DeferredPass::RenderToFramebuffer_Internal(Frame* frame, const RenderSetup&
 
     if (useClusteredShading)
     {
-        AssertDebug(dpd->clusterBuffer != nullptr);
-
         ShaderPropertySet shaderProperties;
         DeferredRendererHelpers::GetDeferredShaderProperties(DPM_DIRECT_LIGHTING, shaderProperties, &rpl, InvalidLightType, /* clustered */ true);
 
@@ -574,68 +572,55 @@ void DeferredPass::RenderToFramebuffer_Internal(Frame* frame, const RenderSetup&
                 shadowCasterLightsInView.EmplaceBack(light, binding);
             }
 
-            GpuBuffer* shadowMapIndexBuffer = nullptr;
-
             Array<ShadowMapData, RenderTempAllocator> shadowMapData;
             shadowMapData.Resize(MaxClusteredShadowMaps);
 
-            if (maxLightBinding != 0)
+            if (maxLightBinding == 0)
+                maxLightBinding = 1;
+
+            StructuredBuffer& shadowMapIndexBuffer = g_renderInterface->sbufferAllocator->AcquireBuffer(maxLightBinding, sizeof(uint32));
+
+            uint32 shadowMapIndex = 0;
+
+            for (const Pair<Light*, uint32>& lightAndLightBinding : shadowCasterLightsInView)
             {
-                shadowMapIndexBuffer = g_renderInterface->sbufferAllocator->GetBuffer(maxLightBinding * sizeof(uint32));
-
-                ubyte* dataPtr = (ubyte*)shadowMapIndexBuffer->Map();
-                AssertDebug(dataPtr != nullptr);
-
-                Memory::Zero(dataPtr, maxLightBinding * sizeof(uint32));
-
-                uint32 shadowMapIndex = 0;
-
-                for (const Pair<Light*, uint32>& lightAndLightBinding : shadowCasterLightsInView)
+                if (shadowMapIndex == MaxClusteredShadowMaps)
                 {
-                    if (shadowMapIndex == MaxClusteredShadowMaps)
-                    {
-                        break;
-                    }
-
-                    Light* light = lightAndLightBinding.first;
-
-                    uint32 lightBinding = lightAndLightBinding.second;
-                    AssertDebug(lightBinding < maxLightBinding);
-
-                    ShadowMapData& currShadowMapData = shadowMapData[shadowMapIndex];
-
-                    *(uint32*)(dataPtr + (lightBinding * sizeof(uint32))) = shadowMapIndex;
-
-                    View* shadowMapViewDynamic;
-                    View* shadowMapViewStatic;
-
-                    ShadowMap* shadowMap = g_renderInterface->shadowMapCache->GetShadowMap(
-                        light,
-                        rs.view,
-                        0,
-                        shadowMapViewDynamic,
-                        shadowMapViewStatic);
-
-                    if (shadowMap != nullptr)
-                    {
-                        DeferredRendererHelpers::FillShadowMapData(
-                            currShadowMapData,
-                            *shadowMap,
-                            shadowMapViewDynamic,
-                            shadowMapViewStatic);
-                    }
-
-                    ++shadowMapIndex;
+                    break;
                 }
 
-                shadowMapIndexBuffer->Flush(0, maxLightBinding * sizeof(uint32));
-            }
-            else
-            {
-                shadowMapIndexBuffer = g_renderInterface->placeholderData->GetOrCreateBuffer(GpuBufferType::STORAGE_BUFFER, sizeof(uint32), /* exactSize */ false);
+                Light* light = lightAndLightBinding.first;
+
+                uint32 lightBinding = lightAndLightBinding.second;
+                AssertDebug(lightBinding < maxLightBinding);
+
+                ShadowMapData& currShadowMapData = shadowMapData[shadowMapIndex];
+
+                shadowMapIndexBuffer.Write(lightBinding * sizeof(uint32), sizeof(uint32), &shadowMapIndex);
+
+                View* shadowMapViewDynamic;
+                View* shadowMapViewStatic;
+
+                ShadowMap* shadowMap = g_renderInterface->shadowMapCache->GetShadowMap(
+                    light,
+                    rs.view,
+                    0,
+                    shadowMapViewDynamic,
+                    shadowMapViewStatic);
+
+                if (shadowMap != nullptr)
+                {
+                    DeferredRendererHelpers::FillShadowMapData(
+                        currShadowMapData,
+                        *shadowMap,
+                        shadowMapViewDynamic,
+                        shadowMapViewStatic);
+                }
+
+                ++shadowMapIndex;
             }
             
-            cr << SetShaderUniform(localNumShaderUniforms++, "ShadowMapIndexBuffer"_sh, shadowMapIndexBuffer);
+            cr << SetShaderUniform(localNumShaderUniforms++, "ShadowMapIndexBuffer"_sh, shadowMapIndexBuffer.gpuBuffer);
 
             g_renderInterface->cbufferAllocator->Write(&shadowMapData[0], shadowMapData.ByteSize(), alignof(ShadowMapData));
             g_renderInterface->cbufferAllocator->Commit(cbuffer, cbufferOffset, cbufferSize);
@@ -1616,13 +1601,12 @@ public:
 
     ~TileProcessor() = default;
 
-    void ProcessView(const Viewport& viewport, View* view, GpuBuffer*& outBuffer, size_t& outGridBufferOffset, size_t& outIndexBufferOffset)
+    void ProcessView(const Viewport& viewport, View* view, StructuredBuffer*& outGridBuffer, StructuredBuffer*& outIndexBuffer)
     {
         Assert(view != nullptr);
 
-        outBuffer = nullptr;
-        outGridBufferOffset = 0;
-        outIndexBufferOffset = 0;
+        outGridBuffer = nullptr;
+        outIndexBuffer = nullptr;
 
         // @TODO VP offset
         const Vec2u& extent = viewport.extent;
@@ -1957,10 +1941,10 @@ public:
             }
         }
 
-        Array<TileGridData, RenderTempAllocator> gridData;
+        Array<TileGridData, RenderAllocator> gridData;
         gridData.Resize(totalTiles);
         
-        Array<uint16, RenderTempAllocator> flatIndexData;
+        Array<uint16, RenderAllocator> flatIndexData;
         flatIndexData.Reserve(totalTiles * 4);
 
         uint32 offset = 0;
@@ -1990,35 +1974,25 @@ public:
             offset += tile.numEnvProbes;
         }
 
+        if (flatIndexData.Empty())
+        {
+            flatIndexData.Resize(1);
+        }
+
         TileDataAllocation& allocation = tileDataPerView[view->Id().ToIndex()];
         allocation.lastUsedFrame = GetFrameCounter();
 
-        const size_t requiredGridSize = gridData.Size() * sizeof(TileGridData);
-
-        static constexpr size_t MinIndexBufferSize = 256;
-        const size_t requiredIndexSize = MathUtil::Max(flatIndexData.Size() * sizeof(uint16), MinIndexBufferSize);
-
-        GpuBuffer* buffer = g_renderInterface->sbufferAllocator->GetBuffer(requiredGridSize + requiredIndexSize);
-        Assert(buffer != nullptr);
+        StructuredBuffer& gridBuffer = g_renderInterface->sbufferAllocator->AcquireBuffer(gridData.Size(), sizeof(TileGridData));
+        StructuredBuffer& indexBuffer = g_renderInterface->sbufferAllocator->AcquireBuffer(flatIndexData.Size(), sizeof(uint16));
         
-        allocation.gridBufferSize = requiredGridSize;
-        allocation.indexBufferSize = requiredIndexSize;
+        allocation.gridBufferSize = gridBuffer.gpuBuffer->Size();
+        allocation.indexBufferSize = indexBuffer.gpuBuffer->Size();
 
-        ubyte* bufferPtr = (ubyte*)buffer->Map();
-        
-        TileGridData* gridPtr = reinterpret_cast<TileGridData*>(bufferPtr);
-        uint16* indicesPtr = reinterpret_cast<uint16*>(bufferPtr + requiredGridSize);
+        gridBuffer.Write(0, gridData.Size() * sizeof(TileGridData), gridData.Data());
+        indexBuffer.Write(0, flatIndexData.Size() * sizeof(uint16), flatIndexData.Data());
 
-        Memory::Copy(gridPtr, gridData.Data(), requiredGridSize);
-
-        if (flatIndexData.Size() > 0)
-        {
-            Memory::Copy(indicesPtr, flatIndexData.Data(), flatIndexData.Size() * sizeof(uint16));
-        }
-
-        outBuffer = buffer;
-        outGridBufferOffset = (size_t)((ubyte*)gridPtr - bufferPtr);
-        outIndexBufferOffset = (size_t)((ubyte*)indicesPtr - bufferPtr);
+        outGridBuffer = &gridBuffer;
+        outIndexBuffer = &indexBuffer;
     }
 };
 
@@ -2536,9 +2510,8 @@ void DeferredRenderer::RenderFrameForView(Frame* frame, const RenderSetup& rs)
     m_tileProcessor->ProcessView(
         rs.viewport,
         view,
-        passData.clusterBuffer,
-        passData.clusterGridOffset,
-        passData.clusterIndexOffset);
+        passData.gridTilesBuffer,
+        passData.gridIndexBuffer);
 
     // Render shadows for shadow casting lights
     for (Light* light : rpl.GetLights())

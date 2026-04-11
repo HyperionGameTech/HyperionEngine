@@ -13,6 +13,8 @@
 
 namespace Hyperion {
 
+class StructuredBuffer;
+
 namespace Resources {
 
 #pragma region ResourceBindings
