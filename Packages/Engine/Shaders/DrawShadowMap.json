@@ -3,7 +3,12 @@
   "CompiledShaders": [{
       "$Class": "AssetReference",
       "AssetPath": {
-        "Value": "Engine/Shaders/DrawShadowMap/DrawShadowMap_9535285342444993267"
+        "Value": "Engine/Shaders/DrawShadowMap/DrawShadowMap_9535285342444993275"
+      }
+    }, {
+      "$Class": "AssetReference",
+      "AssetPath": {
+        "Value": "Engine/Shaders/DrawShadowMap/DrawShadowMap_174799930924824675"
       }
     }, {
       "$Class": "AssetReference",
@@ -18,17 +23,12 @@
     }, {
       "$Class": "AssetReference",
       "AssetPath": {
-        "Value": "Engine/Shaders/DrawShadowMap/DrawShadowMap_174799930924824675"
-      }
-    }, {
-      "$Class": "AssetReference",
-      "AssetPath": {
         "Value": "Engine/Shaders/DrawShadowMap/DrawShadowMap_174799930924824651"
       }
     }, {
       "$Class": "AssetReference",
       "AssetPath": {
-        "Value": "Engine/Shaders/DrawShadowMap/DrawShadowMap_9535285342444993275"
+        "Value": "Engine/Shaders/DrawShadowMap/DrawShadowMap_9535285342444993267"
       }
     }, {
       "$Class": "AssetReference",
@@ -39,26 +39,6 @@
       "$Class": "AssetReference",
       "AssetPath": {
         "Value": "Engine/Shaders/DrawShadowMap/DrawShadowMap_9535285342444993251"
-      }
-    }, {
-      "$Class": "AssetReference",
-      "AssetPath": {
-        "Value": "Engine/Shaders/DrawShadowMap/DrawShadowMap_8519616899161084703"
-      }
-    }, {
-      "$Class": "AssetReference",
-      "AssetPath": {
-        "Value": "Engine/Shaders/DrawShadowMap/DrawShadowMap_8519616899161084695"
-      }
-    }, {
-      "$Class": "AssetReference",
-      "AssetPath": {
-        "Value": "Engine/Shaders/DrawShadowMap/DrawShadowMap_8519616899161084687"
-      }
-    }, {
-      "$Class": "AssetReference",
-      "AssetPath": {
-        "Value": "Engine/Shaders/DrawShadowMap/DrawShadowMap_8519616899161084679"
       }
     }],
   "Name": "DrawShadowMap",

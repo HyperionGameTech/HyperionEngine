@@ -592,17 +592,19 @@ void StructuredBuffer::Write(size_t offset, size_t count, const void* data)
     cpuBuffer.Write(count, offset, data);
 
     dirtyRangeStart = MathUtil::Min(dirtyRangeStart, offset);
-    dirtyRangeEnd = MathUtil::Max(dirtyRangeEnd, dirtyRangeStart + count);
+    dirtyRangeEnd = MathUtil::Max(dirtyRangeEnd, offset + count);
 }
 
 void StructuredBuffer::Update()
 {
     Assert(gpuBuffer && gpuBuffer->IsCreated());
 
-    if (dirtyRangeEnd - dirtyRangeStart > 0)
+    if (IsDirty())
     {
         GpuBuffer* stagingBuffer = g_renderInterface->stagingBufferPool->AcquireStagingBuffer(dirtyRangeEnd - dirtyRangeStart);
         Assert(stagingBuffer != nullptr);
+
+        Memory::Copy(stagingBuffer->Map(), cpuBuffer.Data() + dirtyRangeStart, dirtyRangeEnd - dirtyRangeStart);
 
         CommandRecorder& cr = g_renderInterface->commandRecorderAllocator.GetCommandRecorder();
 
@@ -615,7 +617,7 @@ void StructuredBuffer::Update()
 
         cr.Done();
 
-        dirtyRangeStart = 0;
+        dirtyRangeStart = SIZE_MAX;
         dirtyRangeEnd = 0;
     }
 }
@@ -666,11 +668,17 @@ RendererResult RenderInterface::Initialize()
     namedBuffers[NamedBuffer::EnvGrids] = StructuredBuffer(MaxBoundEnvGrids, sizeof(EnvGridShaderData));
     namedBuffers[NamedBuffer::LightmapVolumes] = StructuredBuffer(MaxBoundLightmapVolumes, sizeof(LightmapVolumeShaderData));
 
-    for (StructuredBuffer& grb : namedBuffers)
+    for (uint8 namedBufferIndex = 0; namedBufferIndex < NamedBuffer::Max; namedBufferIndex++)
     {
-        if (!grb.cpuBuffer.Empty())
+        StructuredBuffer& sbuffer = namedBuffers[namedBufferIndex];
+
+        if (!sbuffer.cpuBuffer.Empty())
         {
-            grb.Initialize();
+            sbuffer.Initialize();
+
+#if HYP_DEBUG_MODE
+            sbuffer.gpuBuffer->SetDebugName(CreateNameFromDynamicString(NamedBuffer::StringValues[namedBufferIndex]));
+#endif // HYP_DEBUG_MODE
         }
     }
 
@@ -1896,7 +1904,7 @@ void RenderInterface::UpdateBuffers(Frame* frame)
 
     for (StructuredBuffer& grb : namedBuffers)
     {
-        if ((grb.dirtyRangeEnd - grb.dirtyRangeStart) > 0)
+        if (grb.IsDirty())
         {
             grb.Update();
         }

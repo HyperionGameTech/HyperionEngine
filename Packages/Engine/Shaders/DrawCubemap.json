@@ -3,16 +3,6 @@
   "CompiledShaders": [{
       "$Class": "AssetReference",
       "AssetPath": {
-        "Value": "Engine/Shaders/DrawCubemap/DrawCubemap_9306910829433328159"
-      }
-    }, {
-      "$Class": "AssetReference",
-      "AssetPath": {
-        "Value": "Engine/Shaders/DrawCubemap/DrawCubemap_9306910829433328151"
-      }
-    }, {
-      "$Class": "AssetReference",
-      "AssetPath": {
         "Value": "Engine/Shaders/DrawCubemap/DrawCubemap_5394500840242340148"
       }
     }, {
@@ -44,16 +34,6 @@
       "$Class": "AssetReference",
       "AssetPath": {
         "Value": "Engine/Shaders/DrawCubemap/DrawCubemap_5394500840242340036"
-      }
-    }, {
-      "$Class": "AssetReference",
-      "AssetPath": {
-        "Value": "Engine/Shaders/DrawCubemap/DrawCubemap_9306910829433328175"
-      }
-    }, {
-      "$Class": "AssetReference",
-      "AssetPath": {
-        "Value": "Engine/Shaders/DrawCubemap/DrawCubemap_9306910829433328135"
       }
     }, {
       "$Class": "AssetReference",

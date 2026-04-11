@@ -178,6 +178,18 @@ struct NamedBuffer
 
         Max
     };
+
+    static constexpr const char* StringValues[Max] = {
+        "Worlds",
+        "Cameras",
+        "Lights",
+        "Entities",
+        "Materials",
+        "Skeletons",
+        "EnvProbes",
+        "EnvGrids",
+        "LightmapVolumes"
+    };
 };
 
 static constexpr uint8 NumNamedBuffers = NamedBuffer::Max;
@@ -188,7 +200,7 @@ public:
     StructuredBuffer()
         : gpuBuffer(nullptr),
           elementSize(0),
-          dirtyRangeStart(0),
+          dirtyRangeStart(SIZE_MAX),
           dirtyRangeEnd(0)
     {
     }
@@ -196,7 +208,7 @@ public:
     explicit StructuredBuffer(size_t numElements, size_t elementSize)
         : gpuBuffer(new GpuBuffer(GpuBufferType::STORAGE_BUFFER, numElements * elementSize, 16)),
           elementSize(elementSize),
-          dirtyRangeStart(0),
+          dirtyRangeStart(SIZE_MAX),
           dirtyRangeEnd(0)
     {
         cpuBuffer.SetSize(numElements * elementSize);
@@ -235,6 +247,12 @@ public:
     ~StructuredBuffer()
     {
         delete gpuBuffer;
+    }
+
+    HYP_FORCE_INLINE bool IsDirty() const
+    {
+        return dirtyRangeStart < dirtyRangeEnd
+            && (dirtyRangeEnd - dirtyRangeStart) > 0;
     }
 
     void Initialize();

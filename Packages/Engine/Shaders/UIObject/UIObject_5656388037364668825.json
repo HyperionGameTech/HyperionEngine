@@ -109,15 +109,15 @@
   "ShaderBlobs": [{
       "$Class": "BlobDataReference",
       "Key": "Engine/Shaders/UIObject/UIObject_5656388037364668825.VS",
-      "Size": 48360
+      "Size": 48364
     }, {
       "$Class": "BlobDataReference",
       "Key": "Engine/Shaders/UIObject/UIObject_5656388037364668825.PS",
-      "Size": 61428
+      "Size": 61432
     }],
   "PropertySetHashCode": {},
   "LastCompiledTimestamp": {
-    "Value": 13420357504972
+    "Value": 13420389128892
   },
   "Name": "UIObject_5656388037364668825",
   "FriendlyName": "UIObject_5656388037364668825",

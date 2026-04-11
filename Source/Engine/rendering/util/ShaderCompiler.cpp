@@ -1241,7 +1241,7 @@ static ByteBuffer CompileHLSL(
 #endif
 
 #if HYP_DEBUG_MODE
-    //args.PushBack(L"-Zsb");
+    args.PushBack(L"-Zsb");
 #endif
 
     DxcBuffer sourceBuffer = { pSource->GetBufferPointer(), pSource->GetBufferSize(), 0 };

@@ -143,15 +143,15 @@
   "ShaderBlobs": [{
       "$Class": "BlobDataReference",
       "Key": "Engine/Shaders/RenderSky/RenderSky_12407244494021180445.VS",
-      "Size": 74256
+      "Size": 74260
     }, {
       "$Class": "BlobDataReference",
       "Key": "Engine/Shaders/RenderSky/RenderSky_12407244494021180445.PS",
-      "Size": 77940
+      "Size": 77944
     }],
   "PropertySetHashCode": {},
   "LastCompiledTimestamp": {
-    "Value": 13420357501294
+    "Value": 13420389125635
   },
   "Name": "RenderSky_12407244494021180445",
   "FriendlyName": "RenderSky_12407244494021180445",
