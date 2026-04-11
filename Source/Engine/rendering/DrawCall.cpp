@@ -210,17 +210,6 @@ HYP_NODISCARD uint32 DrawCallCollection::PushEntityToBatch(
     HYP_SCOPE;
     AssertOnThread(g_renderThread);
 
-//#if HYP_DEBUG_MODE // Sanity checks
-//    // type check - cannot be a subclass of Entity, indices would get messed up
-//    Assert(entity->InstanceClass() == Entity::StaticClass(), "Cannot push Entity subclass to EntityInstanceBatch: {}", entity->InstanceClass()->GetName());
-//
-//    // buffer size check
-//    for (uint32 bufferIndex = 0; bufferIndex < uint32(instancedMesh.buffers.Size()); bufferIndex++)
-//    {
-//        Assert(instancedMesh.buffers[bufferIndex].Size() / instancedMesh.bufferStructSizes[bufferIndex] == instancedMesh.numInstances);
-//    }
-//#endif
-
     const size_t batchStructSize = batchAllocator->GetStructSize();
 
     EntityInstanceBatch* batch = instancedDrawCalls.batches[drawCallIndex];

@@ -25,7 +25,6 @@ static void WriteBufferData_Default(GpuBufferHolderBase* gpuBufferHolder, uint32
     gpuBufferHolder->WriteBufferData(idx, &proxyCasted->bufferData, sizeof(proxyCasted->bufferData));
 }
 
-extern void OnBindingChanged_MeshEntity(Entity* envProbe, uint32 prev, uint32 next);
 extern void WriteBufferData_MeshEntity(GpuBufferHolderBase* gpuBufferHolder, uint32 idx, IRenderProxy* proxy);
 
 extern void OnBindingChanged_Mesh(Mesh* mesh, uint32 prev, uint32 next);
@@ -46,7 +45,7 @@ extern void OnBindingChanged_Material(Material* lightmapVolume, uint32 prev, uin
 extern void OnBindingChanged_Texture(Texture* texture, uint32 prev, uint32 next);
 
 static ResourceBindingAllocator<MaxBoundEntities> s_meshEntityBindingsAllocator;
-static ResourceBinder<Entity, &OnBindingChanged_MeshEntity> s_meshEntityBinder { &s_meshEntityBindingsAllocator };
+static ResourceBinder<Entity, &OnBindingChanged_Default> s_meshEntityBinder { &s_meshEntityBindingsAllocator };
 ResourceBinderBase* g_meshEntityBinder = &s_meshEntityBinder;
 
 static ResourceBindingAllocator<MaxBoundMeshes> s_meshBindingsAllocator;

@@ -22,19 +22,7 @@
       "$Class": "ShaderProperty",
       "Name": "SHADING_TYPE",
       "Flags": 0,
-      "Value": "FORWARD",
-      "EnumValues": []
-    }, {
-      "$Class": "ShaderProperty",
-      "Name": "SKINNING",
-      "Flags": 0,
-      "Value": null,
-      "EnumValues": []
-    }, {
-      "$Class": "ShaderProperty",
-      "Name": "MAX_LIGHTS",
-      "Flags": 0,
-      "Value": 4,
+      "Value": "LIGHTMAPPED",
       "EnumValues": []
     }, {
       "$Class": "ShaderProperty",
@@ -46,7 +34,7 @@
   "RevisionNumber": 31459917,
   "BaseName": "DrawCubemap",
   "InputLayout": {
-    "Mask": 23
+    "Mask": 7
   },
   "ShaderInputGroup": {
     "Elements": [{
@@ -58,20 +46,6 @@
               "Register": 1,
               "ElementType": 4,
               "Name": "CurrentEntity",
-              "Count": 1,
-              "Size": 4294967295,
-              "IsDynamic": true,
-              "StructInfo": {
-                "Name": "",
-                "Size": 4294967295,
-                "FieldNames": [],
-                "FieldTypes": []
-              }
-            }, {
-              "$Class": "ShaderInput",
-              "Register": 1,
-              "ElementType": 4,
-              "Name": "SkeletonsBuffer",
               "Count": 1,
               "Size": 4294967295,
               "IsDynamic": true,
@@ -152,18 +126,18 @@
   "EntryPointNames": ["VSMain", "PSMain"],
   "ShaderBlobs": [{
       "$Class": "BlobDataReference",
-      "Key": "Engine/Shaders/DrawCubemap/DrawCubemap_5394500840242340044.VS",
-      "Size": 53544
+      "Key": "Engine/Shaders/DrawCubemap/DrawCubemap_9306910829433328175.VS",
+      "Size": 47548
     }, {
       "$Class": "BlobDataReference",
-      "Key": "Engine/Shaders/DrawCubemap/DrawCubemap_5394500840242340044.PS",
-      "Size": 91448
+      "Key": "Engine/Shaders/DrawCubemap/DrawCubemap_9306910829433328175.PS",
+      "Size": 91200
     }],
   "PropertySetHashCode": {},
   "LastCompiledTimestamp": {
-    "Value": 13420347307629
+    "Value": 13420347307037
   },
-  "Name": "DrawCubemap_5394500840242340044",
-  "FriendlyName": "DrawCubemap_5394500840242340044",
+  "Name": "DrawCubemap_9306910829433328175",
+  "FriendlyName": "DrawCubemap_9306910829433328175",
   "OriginalFilepath": ""
 }

@@ -56,6 +56,55 @@ VulkanGpuBuffer::VulkanGpuBuffer(GpuBufferType type, size_t size, size_t alignme
 {
 }
 
+VulkanGpuBuffer::VulkanGpuBuffer(VulkanGpuBuffer&& other) noexcept
+    : GpuBufferBase(other.m_type, other.m_size, other.m_alignment),
+      m_handle(other.m_handle),
+      m_vmaAllocation(other.m_vmaAllocation),
+      m_mapping(other.m_mapping)
+{
+    other.m_handle = VK_NULL_HANDLE;
+    other.m_vmaAllocation = VK_NULL_HANDLE;
+    other.m_mapping = nullptr;
+    other.m_resourceState = RS_UNDEFINED;
+}
+
+VulkanGpuBuffer& VulkanGpuBuffer::operator=(VulkanGpuBuffer&& other) noexcept
+{
+    if (this == &other)
+    {
+        return *this;
+    }
+
+    // Clean up existing buffer if it exists
+    if (IsCreated())
+    {
+        if (m_mapping != nullptr)
+        {
+            Unmap();
+        }
+
+        EnqueueDeletion(FunctionWrapper<Proc<void()>>([handle = m_handle, allocation = m_vmaAllocation]() -> void
+            {
+                vmaDestroyBuffer(g_renderInterface->GetDevice()->GetVmaAllocator(), handle, allocation);
+            }));
+    }
+
+    m_type = other.m_type;
+    m_size = other.m_size;
+    m_alignment = other.m_alignment;
+    m_resourceState = other.m_resourceState;
+    m_handle = other.m_handle;
+    m_vmaAllocation = other.m_vmaAllocation;
+    m_mapping = other.m_mapping;
+
+    other.m_handle = VK_NULL_HANDLE;
+    other.m_vmaAllocation = VK_NULL_HANDLE;
+    other.m_mapping = nullptr;
+    other.m_resourceState = RS_UNDEFINED;
+
+    return *this;
+}
+
 VulkanGpuBuffer::~VulkanGpuBuffer()
 {
     if (!IsCreated())

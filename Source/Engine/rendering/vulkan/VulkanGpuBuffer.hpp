@@ -27,6 +27,13 @@ class VulkanGpuBuffer final : public GpuBufferBase
 
 public:
     VulkanGpuBuffer(GpuBufferType type, size_t size, size_t alignment = 0);
+    
+    VulkanGpuBuffer(const VulkanGpuBuffer& other) = delete;
+    VulkanGpuBuffer& operator=(const VulkanGpuBuffer& other) = delete;
+
+    VulkanGpuBuffer(VulkanGpuBuffer&& other) noexcept;
+    VulkanGpuBuffer& operator=(VulkanGpuBuffer&& other) noexcept;
+
     ~VulkanGpuBuffer() override;
 
     HYP_FORCE_INLINE VkBuffer GetVulkanHandle() const

@@ -137,24 +137,6 @@ Viewport& GetViewport(View* view);
 EngineConfig& GetEngineConfig();
 
 HYP_ENUM()
-enum GlobalRenderBuffer : uint8
-{
-    GRB_INVALID = UINT8_MAX,
-
-    GRB_WORLDS = 0,
-    GRB_CAMERAS,
-    GRB_LIGHTS,
-    GRB_ENTITIES,
-    GRB_MATERIALS,
-    GRB_SKELETONS,
-    GRB_ENV_PROBES,
-    GRB_ENV_GRIDS,
-    GRB_LIGHTMAP_VOLUMES,
-
-    GRB_MAX
-};
-
-HYP_ENUM()
 enum GlobalRendererType : uint32
 {
     GRT_NONE = ~0u, //!< Not a global renderer type
@@ -178,14 +160,53 @@ enum PSOType : uint8
     PSO_RayTracing
 };
 
-struct GlobalGpuBuffers
+class GlobalRenderBuffer
 {
-    GpuBufferHolderBase* buffers[GRB_MAX];
-
-    HYP_FORCE_INLINE GpuBufferHolderBase* operator[](GlobalRenderBuffer buf) const
+public:
+    enum : uint8
     {
-        return buffers[buf];
+        GRB_INVALID = UINT8_MAX,
+
+        GRB_WORLDS = 0,
+        GRB_CAMERAS,
+        GRB_LIGHTS,
+        GRB_ENTITIES,
+        GRB_MATERIALS,
+        GRB_SKELETONS,
+        GRB_ENV_PROBES,
+        GRB_ENV_GRIDS,
+        GRB_LIGHTMAP_VOLUMES,
+
+        GRB_MAX
+    };
+
+    GlobalRenderBuffer()
+        : gpuBuffer(GpuBufferType::STORAGE_BUFFER, 0),
+          elementSize(0),
+          dirtyRangeStart(0),
+          dirtyRangeEnd(0)
+    {
     }
+
+    GlobalRenderBuffer(size_t numElements, size_t elementSize)
+        : gpuBuffer(GpuBufferType::STORAGE_BUFFER, numElements * elementSize, /* alignment */ 16),
+          elementSize(elementSize),
+          dirtyRangeStart(0),
+          dirtyRangeEnd(0)
+    {
+        cpuBuffer.SetSize(numElements * elementSize);
+    }
+
+    void SetElement(size_t index, void* data);
+    void Update();
+
+    GpuBuffer gpuBuffer;
+    TByteBuffer<RenderAllocator> cpuBuffer;
+
+    size_t elementSize;
+
+    size_t dirtyRangeStart;
+    size_t dirtyRangeEnd;
 };
 
 class RenderInterface
@@ -364,7 +385,7 @@ public:
 
     Array<RendererBase*> globalRenderers[GRT_MAX];
 
-    GlobalGpuBuffers gpuBuffers;
+    GlobalRenderBuffer gpuBuffers[GlobalRenderBuffer::GRB_MAX];
 
     GpuBufferRef blueNoiseBuffer;
     GpuBufferRef sphereSamplesBuffer;
