@@ -4,13 +4,13 @@
  *  @licence MIT
 */
 
-#include <Core/math/Quaternion.hpp>
+#include <Core/math/Quat4f.hpp>
 #include <Core/math/Mat4f.hpp>
 
 #include <float.h>
 
 #ifndef HYP_TOOL
-#include <Quaternion.generated.inl>
+#include <Quat4f.generated.inl>
 #endif
 
 #if !HYP_ARM && (defined(__SSE4_1__) || (HYP_MSVC && defined(_M_X64)))
@@ -23,16 +23,16 @@
 namespace {
 
 #if HYP_QUATERNION_USE_SSE
-HYP_FORCE_INLINE __m128 LoadQuatf(const Hyperion::Quaternion& q)
+HYP_FORCE_INLINE __m128 LoadQuatf(const Hyperion::Quat4f& q)
 {
     return _mm_setr_ps(q.x, q.y, q.z, q.w);
 }
 
-HYP_FORCE_INLINE Hyperion::Quaternion StoreQuatf(__m128 value)
+HYP_FORCE_INLINE Hyperion::Quat4f StoreQuatf(__m128 value)
 {
     alignas(16) float data[4];
     _mm_store_ps(data, value);
-    return Hyperion::Quaternion(data[0], data[1], data[2], data[3]);
+    return Hyperion::Quat4f(data[0], data[1], data[2], data[3]);
 }
 #endif
 
@@ -40,7 +40,7 @@ HYP_FORCE_INLINE Hyperion::Quaternion StoreQuatf(__m128 value)
 
 namespace Hyperion {
 
-Quaternion::Quaternion()
+Quat4f::Quat4f()
     : x(0.0),
       y(0.0),
       z(0.0),
@@ -48,7 +48,7 @@ Quaternion::Quaternion()
 {
 }
 
-Quaternion::Quaternion(float x, float y, float z, float w)
+Quat4f::Quat4f(float x, float y, float z, float w)
     : x(x),
       y(y),
       z(z),
@@ -56,7 +56,7 @@ Quaternion::Quaternion(float x, float y, float z, float w)
 {
 }
 
-Quaternion::Quaternion(const Mat4f& m)
+Quat4f::Quat4f(const Mat4f& m)
 {
     Vec3f m0 = Vec3f(m[0][0], m[0][1], m[0][2]),
         m1 = Vec3f(m[1][0], m[1][1], m[1][2]),
@@ -132,7 +132,7 @@ Quaternion::Quaternion(const Mat4f& m)
     }
 }
 
-Quaternion::Quaternion(const Vec3f& euler)
+Quat4f::Quat4f(const Vec3f& euler)
 {
     const float xOver2 = euler.x * 0.5f; // roll
     const float yOver2 = euler.y * 0.5f; // pitch
@@ -148,7 +148,7 @@ Quaternion::Quaternion(const Vec3f& euler)
     w = cy * cx * cz + sy * sx * sz;
 }
 
-Quaternion::Quaternion(const Vec3f& axis, float radians)
+Quat4f::Quat4f(const Vec3f& axis, float radians)
 {
     Vec3f tmp(axis);
 
@@ -169,20 +169,20 @@ Quaternion::Quaternion(const Vec3f& axis, float radians)
     }
     else
     {
-        (*this) = Quaternion::Identity();
+        (*this) = Quat4f::Identity();
     }
 }
 
-Quaternion Quaternion::operator*(const Quaternion& other) const
+Quat4f Quat4f::operator*(const Quat4f& other) const
 {
     float x1 = x * other.w + y * other.z - z * other.y + w * other.x;
     float y1 = -x * other.z + y * other.w + z * other.x + w * other.y;
     float z1 = x * other.y - y * other.x + z * other.w + w * other.z;
     float w1 = -x * other.x - y * other.y - z * other.z + w * other.w;
-    return Quaternion(x1, y1, z1, w1);
+    return Quat4f(x1, y1, z1, w1);
 }
 
-Quaternion& Quaternion::operator*=(const Quaternion& other)
+Quat4f& Quat4f::operator*=(const Quat4f& other)
 {
     float x1 = x * other.w + y * other.z - z * other.y + w * other.x;
     float y1 = -x * other.z + y * other.w + z * other.x + w * other.y;
@@ -195,9 +195,9 @@ Quaternion& Quaternion::operator*=(const Quaternion& other)
     return *this;
 }
 
-Quaternion& Quaternion::operator+=(const Vec3f& vec)
+Quat4f& Quat4f::operator+=(const Vec3f& vec)
 {
-    Quaternion q(vec.x, vec.y, vec.z, 0.0);
+    Quat4f q(vec.x, vec.y, vec.z, 0.0);
     q *= *this;
     x += q.x * 0.5f;
     y += q.y * 0.5f;
@@ -206,7 +206,7 @@ Quaternion& Quaternion::operator+=(const Vec3f& vec)
     return *this;
 }
 
-Vec3f Quaternion::operator*(const Vec3f& vec) const
+Vec3f Quat4f::operator*(const Vec3f& vec) const
 {
     Vec3f result;
     result.x = w * w * vec.x + 2 * y * w * vec.z - 2 * z * w * vec.y + x * x * vec.x
@@ -218,16 +218,16 @@ Vec3f Quaternion::operator*(const Vec3f& vec) const
     return result;
 }
 
-float Quaternion::Length() const
+float Quat4f::Length() const
 {
     return sqrt(LengthSquared());
 }
 
-float Quaternion::LengthSquared() const
+float Quat4f::LengthSquared() const
 {
 #if HYP_QUATERNION_USE_SSE
     // Adapted from Foxtrot SIMD quaternion paths:
-    // Math/Impl/Quaternion/FxQuat_AVX.inl
+    // Math/Impl/Quat4f/FxQuat_AVX.inl
     const __m128 v = LoadQuatf(*this);
     return _mm_cvtss_f32(_mm_dp_ps(v, v, 0xFF));
 #else
@@ -235,11 +235,11 @@ float Quaternion::LengthSquared() const
 #endif
 }
 
-Quaternion& Quaternion::Normalize()
+Quat4f& Quat4f::Normalize()
 {
 #if HYP_QUATERNION_USE_SSE
     // Adapted from Foxtrot SIMD quaternion paths:
-    // Math/Impl/Quaternion/FxQuat_AVX.inl NLerpIP (normalization step)
+    // Math/Impl/Quat4f/FxQuat_AVX.inl NLerpIP (normalization step)
     const __m128 v = LoadQuatf(*this);
     const float d = _mm_cvtss_f32(_mm_dp_ps(v, v, 0xFF));
     if (d < FLT_EPSILON)
@@ -266,9 +266,9 @@ Quaternion& Quaternion::Normalize()
 #endif
 }
 
-Quaternion Quaternion::Inverse() const
+Quat4f Quat4f::Inverse() const
 {
-    Quaternion q(*this);
+    Quat4f q(*this);
     float len2 = LengthSquared();
     if (len2 > 0.0)
     {
@@ -281,11 +281,11 @@ Quaternion Quaternion::Inverse() const
     return q;
 }
 
-Quaternion& Quaternion::Slerp(const Quaternion& to, float amt)
+Quat4f& Quat4f::Slerp(const Quat4f& to, float amt)
 {
 #if HYP_QUATERNION_USE_SSE
     // Adapted from Foxtrot SIMD quaternion paths:
-    // Math/Impl/Quaternion/FxQuat_AVX.inl SLerp
+    // Math/Impl/Quat4f/FxQuat_AVX.inl SLerp
     // Note: FMA (_mm_fmadd_ps) replaced with mul+add to require only SSE4.1.
     __m128 a_v = LoadQuatf(*this);
     __m128 b_v = LoadQuatf(to);
@@ -343,14 +343,14 @@ Quaternion& Quaternion::Slerp(const Quaternion& to, float amt)
 #endif
 }
 
-int Quaternion::GimbalPole() const
+int Quat4f::GimbalPole() const
 {
     const float qx = x, qy = y, qz = z, qw = w;
     const float t = qx * qy + qz * qw;
     return t > 0.499f ? 1 : (t < -0.499f ? -1 : 0);
 }
 
-float Quaternion::Roll() const
+float Quat4f::Roll() const
 {
     const int pole = GimbalPole();
     if (pole == 0)
@@ -361,7 +361,7 @@ float Quaternion::Roll() const
     return 0.0f;
 }
 
-float Quaternion::Pitch() const
+float Quat4f::Pitch() const
 {
     const int pole = GimbalPole();
     if (pole == 0)
@@ -377,7 +377,7 @@ float Quaternion::Pitch() const
     return float(pole) * MathUtil::pi<float> * 0.5f;
 }
 
-float Quaternion::Yaw() const
+float Quat4f::Yaw() const
 {
     const int pole = GimbalPole();
     if (pole == 0)
@@ -388,12 +388,12 @@ float Quaternion::Yaw() const
     return float(pole) * 2.0f * std::atan2(x, w);
 }
 
-Quaternion Quaternion::Identity()
+Quat4f Quat4f::Identity()
 {
-    return Quaternion(0.0, 0.0, 0.0, 1.0);
+    return Quat4f(0.0, 0.0, 0.0, 1.0);
 }
 
-Quaternion Quaternion::LookAt(const Vec3f& direction, const Vec3f& up)
+Quat4f Quat4f::LookAt(const Vec3f& direction, const Vec3f& up)
 {
     const Vec3f z = direction.Normalized();
     const Vec3f x = up.Cross(direction).Normalized();
@@ -406,12 +406,12 @@ Quaternion Quaternion::LookAt(const Vec3f& direction, const Vec3f& up)
         Vec4f::UnitW()
     };
 
-    return Quaternion(Mat4f(rows));
+    return Quat4f(Mat4f(rows));
 }
 
-Quaternion Quaternion::AxisAngles(const Vec3f& axis, float radians)
+Quat4f Quat4f::AxisAngles(const Vec3f& axis, float radians)
 {
-    return Quaternion(axis, radians);
+    return Quat4f(axis, radians);
 }
 
 } // namespace Hyperion

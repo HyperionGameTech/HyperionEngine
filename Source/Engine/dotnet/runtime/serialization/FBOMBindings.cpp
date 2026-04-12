@@ -51,7 +51,7 @@ extern "C"
     FBOM_TYPE_CREATE_FUNCTION(Vec2u, Vec2u)
     FBOM_TYPE_CREATE_FUNCTION(Vec3u, Vec3u)
     FBOM_TYPE_CREATE_FUNCTION(Vec4u, Vec4u)
-    FBOM_TYPE_CREATE_FUNCTION(Quat4f, Quaternion)
+    FBOM_TYPE_CREATE_FUNCTION(Quat4f, Quat4f)
 
 #undef FBOM_TYPE_CREATE_FUNCTION
 
@@ -197,7 +197,7 @@ extern "C"
     FBOM_TYPE_GET_SET_FUNCTIONS(Vec2u, Vec2u, Vec2u)
     FBOM_TYPE_GET_SET_FUNCTIONS(Vec3u, Vec3u, Vec3u)
     FBOM_TYPE_GET_SET_FUNCTIONS(Vec4u, Vec4u, Vec4u)
-    FBOM_TYPE_GET_SET_FUNCTIONS(Quat4f, Quaternion, Quaternion)
+    FBOM_TYPE_GET_SET_FUNCTIONS(Quat4f, Quat4f, Quat4f)
 
     HYP_EXPORT bool FBOMData_GetObject(FBOMLoadContext* context, FBOMData* data, FBOMObject* outPtr)
     {

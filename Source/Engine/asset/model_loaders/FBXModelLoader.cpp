@@ -1459,7 +1459,7 @@ AssetLoadResult FBXModelLoader::LoadAsset(LoaderState& state) const
                                 radians.x = MathUtil::DegToRad(degrees.x);
                                 radians.y = MathUtil::DegToRad(degrees.y);
                                 radians.z = MathUtil::DegToRad(degrees.z);
-                                transform.SetRotation(Quaternion(radians).Inverse());
+                                transform.SetRotation(Quat4f(radians).Inverse());
                             }
                         }
                     }
@@ -1907,7 +1907,7 @@ AssetLoadResult FBXModelLoader::LoadAsset(LoaderState& state) const
     }
 
     // temp hack
-    top->SetLocalRotation(Quaternion::AxisAngles(Vec3f(1.0f, 0.0f, 0.0f), MathUtil::DegToRad(-90.0f)));
+    top->SetLocalRotation(Quat4f::AxisAngles(Vec3f(1.0f, 0.0f, 0.0f), MathUtil::DegToRad(-90.0f)));
     top->Scale(0.01f);
 
     return LoadedAsset { top };

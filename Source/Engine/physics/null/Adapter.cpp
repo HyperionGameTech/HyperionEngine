@@ -12,7 +12,7 @@
 
 #include <Core/memory/UniquePtr.hpp>
 #include <Core/math/Vector3.hpp>
-#include <Core/math/Quaternion.hpp>
+#include <Core/math/Quat4f.hpp>
 
 namespace Hyperion {
 

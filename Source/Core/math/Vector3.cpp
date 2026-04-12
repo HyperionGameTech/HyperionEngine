@@ -5,7 +5,7 @@
 */
 
 #include <Core/math/Vector3.hpp>
-#include <Core/math/Quaternion.hpp>
+#include <Core/math/Quat4f.hpp>
 #include <Core/math/Mat3f.hpp>
 #include <Core/math/Mat4f.hpp>
 
@@ -238,7 +238,7 @@ Vec3<float>& math::Vec3<float>::operator*=(const Mat4f& mat)
     return operator=(operator*(mat));
 }
 
-Vec3<float> math::Vec3<float>::operator*(const Quaternion& quat) const
+Vec3<float> math::Vec3<float>::operator*(const Quat4f& quat) const
 {
     Vec3<float> result;
     result.x = quat.w * quat.w * x + 2 * quat.y * quat.w * z - 2 * quat.z * quat.w * y + quat.x * quat.x * x + 2 * quat.y * quat.x * y + 2 * quat.z * quat.x * z - quat.z * quat.z * x - quat.y * quat.y * x;
@@ -249,7 +249,7 @@ Vec3<float> math::Vec3<float>::operator*(const Quaternion& quat) const
     return result;
 }
 
-Vec3<float>& math::Vec3<float>::operator*=(const Quaternion& quat)
+Vec3<float>& math::Vec3<float>::operator*=(const Quat4f& quat)
 {
     return operator=(operator*(quat));
 }
@@ -338,7 +338,7 @@ Vec3<float>& math::Vec3<float>::Rotate(const Vec3<float>& axis, float radians)
     return (*this) = Mat4f::Rotation(axis, radians) * (*this);
 }
 
-Vec3<float>& math::Vec3<float>::Rotate(const Quaternion& quaternion)
+Vec3<float>& math::Vec3<float>::Rotate(const Quat4f& quaternion)
 {
     return (*this) = Mat4f::Rotation(quaternion) * (*this);
 }

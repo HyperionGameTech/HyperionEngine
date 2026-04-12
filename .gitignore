@@ -60,6 +60,7 @@ local.properties
 # download bin or compile it, and place here manually (since it's not a direct dependency of the engine, but only used for debugging)
 # and the file is quite large.
 External/ThirdParty/Binaries/Android/**/libVkLayer_khronos_validation.so
+External/ThirdParty/Source/Foxtrot/**/*
 
 Source/PlatformSpecific/Android/app/.cxx/**/*
 Source/PlatformSpecific/Android/app/**/jniLibs/**/*

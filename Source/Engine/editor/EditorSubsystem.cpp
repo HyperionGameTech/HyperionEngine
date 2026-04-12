@@ -627,7 +627,7 @@ bool TranslateEditorGizmo::OnKeyPress(const Handle<Camera>& camera, const Keyboa
         const Vec3f cameraForwardVector = camera->GetDirection();
         const Vec3f cameraSideVector = camera->GetSideVector();
 
-        const Quaternion invNodeRotation = node->GetWorldRotation().Inverse();
+        const Quat4f invNodeRotation = node->GetWorldRotation().Inverse();
 
         const Vec3f nodeForwardVector = (invNodeRotation * cameraForwardVector);
         const Vec3f nodeSideVector = (invNodeRotation * cameraSideVector);
@@ -954,8 +954,8 @@ void RotateEditorGizmo::OnDragEnd(const Handle<Camera>& camera, const MouseEvent
     {
         if (Handle<Node> focusedNode = m_focusedNode.Lock(); focusedNode.IsValid())
         {
-            const Quaternion finalRotation = m_dragData->currentRotation;
-            const Quaternion originRotation = m_dragData->startRotation;
+            const Quat4f finalRotation = m_dragData->currentRotation;
+            const Quat4f originRotation = m_dragData->startRotation;
 
             project->GetActionStack()->PushAction(MakeHandle<FunctionalEditorAction>(
                 "Rotate",
@@ -1092,8 +1092,8 @@ bool RotateEditorGizmo::OnMouseMove(const Handle<Camera>& camera, const MouseEve
     const float cosAngle = m_dragData->startVector.Dot(currentVector);
     const float angle = std::atan2(sinAngle, cosAngle);
 
-    Quaternion deltaRotation = Quaternion::AxisAngles(m_dragData->axis, angle).Inverse();
-    Quaternion newRotation = deltaRotation * m_dragData->startRotation;
+    Quat4f deltaRotation = Quat4f::AxisAngles(m_dragData->axis, angle).Inverse();
+    Quat4f newRotation = deltaRotation * m_dragData->startRotation;
 
     m_dragData->currentRotation = newRotation;
 
@@ -1214,13 +1214,13 @@ Handle<Node> VolumeEditorGizmo::Load_Internal() const
     rootNode->SetIsTransient(true);
 
     // quad face rotations
-    static const Quaternion s_faceRotations[VEF_Max] = {
-        Quaternion::AxisAngles(Vec3f::UnitY(), -MathUtil::pi<float> * 0.5f),
-        Quaternion::AxisAngles(Vec3f::UnitY(), MathUtil::pi<float> * 0.5f),
-        Quaternion::AxisAngles(Vec3f::UnitX(), MathUtil::pi<float> * 0.5f),
-        Quaternion::AxisAngles(Vec3f::UnitX(), -MathUtil::pi<float> * 0.5f),
-        Quaternion::AxisAngles(Vec3f::UnitY(), MathUtil::pi<float>),
-        Quaternion::Identity()
+    static const Quat4f s_faceRotations[VEF_Max] = {
+        Quat4f::AxisAngles(Vec3f::UnitY(), -MathUtil::pi<float> * 0.5f),
+        Quat4f::AxisAngles(Vec3f::UnitY(), MathUtil::pi<float> * 0.5f),
+        Quat4f::AxisAngles(Vec3f::UnitX(), MathUtil::pi<float> * 0.5f),
+        Quat4f::AxisAngles(Vec3f::UnitX(), -MathUtil::pi<float> * 0.5f),
+        Quat4f::AxisAngles(Vec3f::UnitY(), MathUtil::pi<float>),
+        Quat4f::Identity()
     };
 
     Handle<Mesh> quadMesh = MeshBuilder::Quad();

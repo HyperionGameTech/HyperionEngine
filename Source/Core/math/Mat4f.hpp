@@ -8,7 +8,7 @@
 
 #include <Core/math/Vector3.hpp>
 #include <Core/math/Vector4.hpp>
-#include <Core/math/Quaternion.hpp>
+#include <Core/math/Quat4f.hpp>
 
 #include <Core/Defines.hpp>
 
@@ -34,7 +34,7 @@ public:
     static const Mat4f ones;
 
     static Mat4f Translation(const Vec3f& translation);
-    static Mat4f Rotation(const Quaternion& rotation);
+    static Mat4f Rotation(const Quat4f& rotation);
     static Mat4f Rotation(const Vec3f& axis, float radians);
     static Mat4f Scaling(const Vec3f& scaling);
     static Mat4f Perspective(float fov, int w, int h, float n, float f);
@@ -79,7 +79,7 @@ public:
 
     Vec3f ExtractTranslation() const;
     Vec3f ExtractScale() const;
-    Quaternion ExtractRotation() const;
+    Quat4f ExtractRotation() const;
 
     Vec4f GetColumn(uint32 index) const;
 

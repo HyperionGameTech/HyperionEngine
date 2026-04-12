@@ -58,7 +58,7 @@ Mat4f Mat4f::Translation(const Vec3f& translation)
     return mat;
 }
 
-Mat4f Mat4f::Rotation(const Quaternion& rotation)
+Mat4f Mat4f::Rotation(const Quat4f& rotation)
 {
     Mat4f mat;
 
@@ -92,7 +92,7 @@ Mat4f Mat4f::Rotation(const Quaternion& rotation)
 
 Mat4f Mat4f::Rotation(const Vec3f& axis, float radians)
 {
-    return Rotation(Quaternion(axis, radians));
+    return Rotation(Quat4f(axis, radians));
 }
 
 Mat4f Mat4f::Scaling(const Vec3f& scale)
@@ -392,17 +392,17 @@ Mat4f Mat4f::Orthonormalized() const
 
 float Mat4f::GetYaw() const
 {
-    return Quaternion(*this).Yaw();
+    return Quat4f(*this).Yaw();
 }
 
 float Mat4f::GetPitch() const
 {
-    return Quaternion(*this).Pitch();
+    return Quat4f(*this).Pitch();
 }
 
 float Mat4f::GetRoll() const
 {
-    return Quaternion(*this).Roll();
+    return Quat4f(*this).Roll();
 }
 
 Mat4f Mat4f::operator+(const Mat4f& other) const
@@ -629,9 +629,9 @@ Vec3f Mat4f::ExtractScale() const
     };
 }
 
-Quaternion Mat4f::ExtractRotation() const
+Quat4f Mat4f::ExtractRotation() const
 {
-    return Quaternion(*this);
+    return Quat4f(*this);
 }
 
 Vec4f Mat4f::GetColumn(uint32 index) const

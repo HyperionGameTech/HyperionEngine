@@ -561,8 +561,8 @@ struct alignas(alignof(float) * 4) HYP_API Vec4<float>
     Vec4& operator*=(const Mat3f& mat);
 
     /*! \brief 3-component rotation by quaternion. The w component is preserved. */
-    Vec4 operator*(const Quaternion& quat) const;
-    Vec4& operator*=(const Quaternion& quat);
+    Vec4 operator*(const Quat4f& quat) const;
+    Vec4& operator*=(const Quat4f& quat);
 
     Type DistanceSquared(const Vec4& other) const;
     Type Distance(const Vec4& other) const;
@@ -571,7 +571,7 @@ struct alignas(alignof(float) * 4) HYP_API Vec4<float>
     Vec4& Normalize();
     Vec4& Rotate(const Vec3<float>& axis, float radians);
     /*! \brief 3-component rotation by quaternion. The w component is preserved. */
-    Vec4& Rotate(const Quaternion& quaternion);
+    Vec4& Rotate(const Quat4f& quaternion);
     Vec4& Lerp(const Vec4& to, float amt);
     float Dot(const Vec4& other) const;
 

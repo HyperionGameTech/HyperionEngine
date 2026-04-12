@@ -578,7 +578,7 @@ extern struct UIComponent
 end
 extern struct TransformComponent
     Translation : Vec3f
-    Rotation : Quaternion
+    Rotation : Quat4f
     Scale : Vec3f
 end
 extern enum ScriptComponentFlags : uint32
@@ -1982,16 +1982,16 @@ extern class Node : AssetObject
     GetLocalScale() -> Vec3f
     SetLocalScale(scale : Vec3f) -> void
     Scale(scale : Vec3f) -> void
-    GetLocalRotation() -> Quaternion
-    SetLocalRotation(rotation : Quaternion) -> void
-    Rotate(rotation : Quaternion) -> void
+    GetLocalRotation() -> Quat4f
+    SetLocalRotation(rotation : Quat4f) -> void
+    Rotate(rotation : Quat4f) -> void
     GetWorldMatrix() -> Mat4f
     GetWorldTranslation() -> Vec3f
     SetWorldTranslation(translation : Vec3f) -> void
     GetWorldScale() -> Vec3f
     SetWorldScale(scale : Vec3f) -> void
-    GetWorldRotation() -> Quaternion
-    SetWorldRotation(rotation : Quaternion) -> void
+    GetWorldRotation() -> Quat4f
+    SetWorldRotation(rotation : Quat4f) -> void
     IsTransformLocked() -> bool
     GetLocalBoundsWithChildren() -> BoundingBox
     GetWorldBounds() -> BoundingBox
@@ -2038,8 +2038,8 @@ extern class Bone : Node
     BindingTransform : Transform
     PoseTransform : Transform
     WorldBoneTranslation : Vec3f
-    WorldBoneRotation : Quaternion
-    InvBindingRotation : Quaternion
+    WorldBoneRotation : Quat4f
+    InvBindingRotation : Quat4f
 end
 extern class InstancedMeshProxy : Node
 end
@@ -2492,7 +2492,7 @@ end
 extern struct Transform
     Translation : Vec3f
     Scale : Vec3f
-    Rotation : Quaternion
+    Rotation : Quat4f
 end
 extern struct Ray
     Position : Vec3f
@@ -2504,7 +2504,7 @@ extern enum RayTestFlags : uint32
     EditorPick = 0x2,
     Max = 0xFFFFFFFF
 end
-extern struct Quaternion
+extern struct Quat4f
     X : float
     Y : float
     Z : float

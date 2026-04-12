@@ -860,12 +860,12 @@ void Node::SetWorldScale(const Vec3f& scale)
     SetLocalScale(scale / m_parentNode->GetWorldScale());
 }
 
-Quaternion Node::GetWorldRotation() const
+Quat4f Node::GetWorldRotation() const
 {
-    return Quaternion(m_worldMatrix).Inverse();
+    return Quat4f(m_worldMatrix).Inverse();
 }
 
-void Node::SetWorldRotation(const Quaternion& rotation)
+void Node::SetWorldRotation(const Quat4f& rotation)
 {
     if (m_parentNode == nullptr || (m_nodeFlags & NodeFlags::IgnoreParentRotation))
     {

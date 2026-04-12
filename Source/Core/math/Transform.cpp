@@ -17,18 +17,18 @@ const Transform Transform::identity {};
 Transform::Transform()
     : translation(Vec3f::Zero()),
       scale(Vec3f::One()),
-      rotation(Quaternion::Identity())
+      rotation(Quat4f::Identity())
 {
 }
 
 Transform::Transform(const Vec3f& translation, const Vec3f& scale)
     : translation(translation),
       scale(scale),
-      rotation(Quaternion::Identity())
+      rotation(Quat4f::Identity())
 {
 }
 
-Transform::Transform(const Vec3f& translation, const Vec3f& scale, const Quaternion& rotation)
+Transform::Transform(const Vec3f& translation, const Vec3f& scale, const Quat4f& rotation)
     : translation(translation),
       scale(scale),
       rotation(rotation)
@@ -36,7 +36,7 @@ Transform::Transform(const Vec3f& translation, const Vec3f& scale, const Quatern
 }
 
 Transform::Transform(const Vec3f& translation)
-    : Transform(translation, Vec3f::One(), Quaternion::Identity())
+    : Transform(translation, Vec3f::One(), Quat4f::Identity())
 {
 }
 

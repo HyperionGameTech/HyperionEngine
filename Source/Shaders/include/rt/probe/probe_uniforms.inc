@@ -3,6 +3,9 @@
 
 #include "../../defines.inc"
 
+#define DDGI_PROBE_SIDE_LENGTH_IRRADIANCE 8
+#define DDGI_PROBE_SIDE_LENGTH_DEPTH 8
+
 struct DDGIConstants
 {
     mat4 rotationMatrix;

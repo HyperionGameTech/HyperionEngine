@@ -177,7 +177,7 @@ public:
                 }
                 else
                 {
-                    LastKeyframe().rotation = Quaternion(axis, m_keyframeAngles.Top()).Inverse();
+                    LastKeyframe().rotation = Quat4f(axis, m_keyframeAngles.Top()).Inverse();
 
                     m_keyframeAngles.Pop();
                 }
@@ -196,7 +196,7 @@ public:
                     }
                     else
                     {
-                        m_skeleton.bones.Back().bindingRotation = Quaternion(axis, m_bindingAngles.Top());
+                        m_skeleton.bones.Back().bindingRotation = Quat4f(axis, m_bindingAngles.Top());
                     }
 
                     m_bindingAngles.Pop();

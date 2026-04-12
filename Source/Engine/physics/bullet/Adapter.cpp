@@ -12,7 +12,7 @@
 #include <Core/memory/UniquePtr.hpp>
 
 #include <Core/math/Vector3.hpp>
-#include <Core/math/Quaternion.hpp>
+#include <Core/math/Quat4f.hpp>
 
 #ifdef HYP_BULLET_PHYSICS
 #include <physics/bullet/Adapter.hpp>
@@ -31,14 +31,14 @@ static inline Vec3f FromBtVector(const btVector3& vec)
     return Vec3f(vec.x(), vec.y(), vec.z());
 }
 
-static inline btQuaternion ToBtQuaternion(const Quaternion& quat)
+static inline btQuaternion ToBtQuaternion(const Quat4f& quat)
 {
     return btQuaternion(quat.x, quat.y, quat.z, quat.w);
 }
 
-static inline Quaternion FromBtQuaternion(const btQuaternion& quat)
+static inline Quat4f FromBtQuaternion(const btQuaternion& quat)
 {
-    return Quaternion(quat.x(), quat.y(), quat.z(), quat.w());
+    return Quat4f(quat.x(), quat.y(), quat.z(), quat.w());
 }
 
 struct RigidBodyInternalData

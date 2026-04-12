@@ -46,9 +46,6 @@ static constexpr uint32 DDGIMaxBoundLights = 4;
 static const ShaderPropertyId s_propUpdateProbeDataModeIrradiance = InternShaderProperty(ShaderProperty(NAME("MODE"), NAME("IRRADIANCE")));
 static const ShaderPropertyId s_propUpdateProbeDataModeDepth = InternShaderProperty(ShaderProperty(NAME("MODE"), NAME("DEPTH")));
 
-static const ShaderPropertyId s_propProbeSideLengthIrradiance = InternShaderProperty(ShaderProperty(NAME("DDGI_PROBE_SIDE_LENGTH_IRRADIANCE"), int(DDGI::IrradianceOctahedronSize)));
-static const ShaderPropertyId s_propProbeSideLengthDepth = InternShaderProperty(ShaderProperty(NAME("DDGI_PROBE_SIDE_LENGTH_DEPTH"), int(DDGI::DepthOctahedronSize)));
-
 static Vec3u NumProbesPerDimension(const DDGIInfo& info)
 {
     const Vec3f probesPerDimension = MathUtil::Ceil((info.aabb.GetExtent() / info.probeDistance) + Vec3f(DDGI::ProbeBorder));
@@ -333,7 +330,6 @@ void DDGI::Render(Frame* frame, const RenderSetup& renderSetup)
     shaderProperties = ShaderPropertySet();
     shaderProperties.Add(s_propHysteresis);
     shaderProperties.Add(s_propUpdateProbeDataModeIrradiance);
-    shaderProperties.Add(s_propProbeSideLengthIrradiance);
 
     frame->cr << SetCurrentShader(ShaderDesc(NAME("UpdateProbeData"), shaderProperties));
 
@@ -349,7 +345,6 @@ void DDGI::Render(Frame* frame, const RenderSetup& renderSetup)
     shaderProperties = ShaderPropertySet();
     shaderProperties.Add(s_propHysteresis);
     shaderProperties.Add(s_propUpdateProbeDataModeDepth);
-    shaderProperties.Add(s_propProbeSideLengthDepth);
 
     frame->cr << SetCurrentShader(ShaderDesc(NAME("UpdateProbeData"), shaderProperties));
 

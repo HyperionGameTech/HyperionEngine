@@ -176,7 +176,7 @@ void SphereDebugDrawShape::operator()(const Vec3f& position, float radius, const
     DebugDrawCommand* ptr = reinterpret_cast<DebugDrawCommand*>(list.Alloc(sizeof(DebugDrawCommand), alignof(DebugDrawCommand), header));
     new (ptr) DebugDrawCommand {
         this,
-        Transform(position, radius, Quaternion::Identity()).GetMatrix(),
+        Transform(position, radius, Quat4f::Identity()).GetMatrix(),
         color,
         attributes
     };
@@ -226,7 +226,7 @@ void AmbientProbeDebugDrawShape::operator()(const Vec3f& position, float radius,
 
     new (ptr) DebugDrawCommand();
     ptr->shape = this;
-    ptr->transformMatrix = Transform(position, radius, Quaternion::Identity()).GetMatrix();
+    ptr->transformMatrix = Transform(position, radius, Quat4f::Identity()).GetMatrix();
     ptr->color = Color::White();
     ptr->envProbe = &envProbe;
 
@@ -275,7 +275,7 @@ void ReflectionProbeDebugDrawShape::operator()(const Vec3f& position, float radi
 
     new (ptr) DebugDrawCommand();
     ptr->shape = this;
-    ptr->transformMatrix = Transform(position, radius, Quaternion::Identity()).GetMatrix();
+    ptr->transformMatrix = Transform(position, radius, Quat4f::Identity()).GetMatrix();
     ptr->color = Color::White();
     ptr->envProbe = &envProbe;
 
@@ -352,7 +352,7 @@ void BoxDebugDrawShape::operator()(const Vec3f& position, const Vec3f& size, con
     DebugDrawCommand* ptr = reinterpret_cast<DebugDrawCommand*>(list.Alloc(sizeof(DebugDrawCommand), alignof(DebugDrawCommand), header));
     new (ptr) DebugDrawCommand {
         this,
-        Transform(position, size, Quaternion::Identity()).GetMatrix(),
+        Transform(position, size, Quat4f::Identity()).GetMatrix(),
         color,
         attributes
     };

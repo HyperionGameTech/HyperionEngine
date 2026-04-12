@@ -20,9 +20,9 @@ namespace Hyperion {
 class Mat4f;
 
 HYP_STRUCT(Size = 16)
-struct alignas(16) HYP_API Quaternion
+struct alignas(16) HYP_API Quat4f
 {
-    HYP_STRUCT_BODY(Quaternion);
+    HYP_STRUCT_BODY(Quat4f);
 
     HYP_FIELD()
     float x;
@@ -36,16 +36,16 @@ struct alignas(16) HYP_API Quaternion
     HYP_FIELD()
     float w;
 
-    Quaternion();
-    Quaternion(float x, float y, float z, float w);
-    explicit Quaternion(const Mat4f& mat);
-    explicit Quaternion(const Vec3f& euler);
-    Quaternion(const Vec3f& axis, float radians);
+    Quat4f();
+    Quat4f(float x, float y, float z, float w);
+    explicit Quat4f(const Mat4f& mat);
+    explicit Quat4f(const Vec3f& euler);
+    Quat4f(const Vec3f& axis, float radians);
 
-    Quaternion(const Quaternion& other) = default;
-    Quaternion& operator=(const Quaternion& other) = default;
+    Quat4f(const Quat4f& other) = default;
+    Quat4f& operator=(const Quat4f& other) = default;
 
-    HYP_FORCE_INLINE bool operator==(const Quaternion& other) const
+    HYP_FORCE_INLINE bool operator==(const Quat4f& other) const
     {
         return x == other.x
             && y == other.y
@@ -53,7 +53,7 @@ struct alignas(16) HYP_API Quaternion
             && w == other.w;
     }
 
-    HYP_FORCE_INLINE bool operator!=(const Quaternion& other) const
+    HYP_FORCE_INLINE bool operator!=(const Quat4f& other) const
     {
         return x != other.x
             || y != other.y
@@ -101,27 +101,27 @@ struct alignas(16) HYP_API Quaternion
         this->w = w;
     }
 
-    Quaternion operator*(const Quaternion& other) const;
-    Quaternion& operator*=(const Quaternion& other);
-    Quaternion& operator+=(const Vec3f& vec);
+    Quat4f operator*(const Quat4f& other) const;
+    Quat4f& operator*=(const Quat4f& other);
+    Quat4f& operator+=(const Vec3f& vec);
     Vec3f operator*(const Vec3f& vec) const;
 
     float Length() const;
     float LengthSquared() const;
-    Quaternion& Normalize();
+    Quat4f& Normalize();
 
-    Quaternion Inverse() const;
+    Quat4f Inverse() const;
 
-    Quaternion& Slerp(const Quaternion& to, float amt);
+    Quat4f& Slerp(const Quat4f& to, float amt);
 
     int GimbalPole() const;
     float Roll() const;
     float Pitch() const;
     float Yaw() const;
 
-    static Quaternion Identity();
-    static Quaternion LookAt(const Vec3f& direction, const Vec3f& up);
-    static Quaternion AxisAngles(const Vec3f& axis, float radians);
+    static Quat4f Identity();
+    static Quat4f LookAt(const Vec3f& direction, const Vec3f& up);
+    static Quat4f AxisAngles(const Vec3f& axis, float radians);
 
     HashCode GetHashCode() const
     {
@@ -141,9 +141,9 @@ struct alignas(16) HYP_API Quaternion
 namespace utilities {
 
 template <class StringType>
-struct Formatter<StringType, Quaternion>
+struct Formatter<StringType, Quat4f>
 {
-    auto operator()(const Quaternion& value) const
+    auto operator()(const Quat4f& value) const
     {
         ubyte inlineBuf[1024];
         ubyte* buf = &inlineBuf[0];

@@ -319,8 +319,8 @@ protected:
         Vec3f axis;
         Vec3f planePoint;
         Vec3f startVector;
-        Quaternion startRotation;
-        Quaternion currentRotation;
+        Quat4f startRotation;
+        Quat4f currentRotation;
     };
 
     virtual Handle<Node> Load_Internal() const override;

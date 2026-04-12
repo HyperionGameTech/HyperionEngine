@@ -7,7 +7,7 @@
 #pragma once
 
 #include <Core/math/Vector3.hpp>
-#include <Core/math/Quaternion.hpp>
+#include <Core/math/Quat4f.hpp>
 #include <Core/math/Mat4f.hpp>
 
 #include <Core/reflection/ObjectMacros.hpp>
@@ -30,12 +30,12 @@ struct alignas(16) HYP_API Transform
     Vec3f scale;
 
     HYP_FIELD()
-    Quaternion rotation;
+    Quat4f rotation;
 
     Transform();
     explicit Transform(const Vec3f& translation);
     Transform(const Vec3f& translation, const Vec3f& scale);
-    Transform(const Vec3f& translation, const Vec3f& scale, const Quaternion& rotation);
+    Transform(const Vec3f& translation, const Vec3f& scale, const Quat4f& rotation);
 
     Transform(const Transform& other) = default;
     Transform& operator=(const Transform& other) = default;
@@ -70,17 +70,17 @@ struct alignas(16) HYP_API Transform
         this->scale = scale;
     }
 
-    HYP_FORCE_INLINE const Quaternion& GetRotation() const
+    HYP_FORCE_INLINE const Quat4f& GetRotation() const
     {
         return rotation;
     }
 
-    HYP_FORCE_INLINE Quaternion& GetRotation()
+    HYP_FORCE_INLINE Quat4f& GetRotation()
     {
         return rotation;
     }
 
-    HYP_FORCE_INLINE void SetRotation(const Quaternion& rotation)
+    HYP_FORCE_INLINE void SetRotation(const Quat4f& rotation)
     {
         this->rotation = rotation;
     }

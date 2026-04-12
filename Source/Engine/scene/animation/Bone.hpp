@@ -34,7 +34,7 @@ public:
     virtual ~Bone() override;
 
     Vec3f GetOffsetTranslation() const;
-    Quaternion GetOffsetRotation() const;
+    Quat4f GetOffsetRotation() const;
 
     const Keyframe& GetKeyframe() const
     {
@@ -108,10 +108,10 @@ private:
     Vec3f m_worldBoneTranslation;
 
     HYP_FIELD()
-    Quaternion m_worldBoneRotation;
+    Quat4f m_worldBoneRotation;
 
     HYP_FIELD()
-    Quaternion m_invBindingRotation;
+    Quat4f m_invBindingRotation;
 };
 
 } // namespace Hyperion

@@ -1407,7 +1407,6 @@ static VertexTypeMask BuildVertexTypeMask(const Array<VertexAttributeDefinition>
     return set;
 }
 
-HYP_DISABLE_OPTIMIZATION;
 static bool IsShaderRequestCoveredByPerms(
     const ShaderVariantPerms& bundlePerms,
     const Array<ShaderProperty>& requestedProperties,
@@ -1519,7 +1518,6 @@ static bool IsShaderRequestCoveredByPerms(
 
     return true;
 }
-HYP_ENABLE_OPTIMIZATION;
 
 static void ForEachPermutation(
     const ShaderVariantPerms& versions,

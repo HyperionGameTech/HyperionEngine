@@ -24,7 +24,7 @@
 #include <scene/components/BoundingBoxComponent.hpp>
 
 #include <Core/math/Vector3.hpp>
-#include <Core/math/Quaternion.hpp>
+#include <Core/math/Quat4f.hpp>
 
 #include <system/AppContext.hpp>
 

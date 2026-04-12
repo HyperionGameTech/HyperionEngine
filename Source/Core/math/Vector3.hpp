@@ -19,7 +19,7 @@
 
 namespace Hyperion {
 
-struct Quaternion;
+struct Quat4f;
 class Mat3f;
 class Mat4f;
 
@@ -532,8 +532,8 @@ struct alignas(alignof(float) * 4) HYP_API Vec3<float>
     Vec3& operator*=(const Mat3f& mat);
     Vec3 operator*(const Mat4f& mat) const;
     Vec3& operator*=(const Mat4f& mat);
-    Vec3 operator*(const Quaternion& quat) const;
-    Vec3& operator*=(const Quaternion& quat);
+    Vec3 operator*(const Quat4f& quat) const;
+    Vec3& operator*=(const Quat4f& quat);
 
     HYP_FORCE_INLINE constexpr Type Avg() const
     {
@@ -578,7 +578,7 @@ struct alignas(alignof(float) * 4) HYP_API Vec3<float>
     Vec3 Reflect(const Vec3& normal) const;
 
     Vec3& Rotate(const Vec3& axis, Type radians);
-    Vec3& Rotate(const Quaternion& quaternion);
+    Vec3& Rotate(const Quat4f& quaternion);
     Vec3& Lerp(const Vec3& to, Type amt);
     Type Dot(const Vec3& other) const;
     Type AngleBetween(const Vec3& other) const;

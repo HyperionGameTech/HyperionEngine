@@ -725,14 +725,14 @@ public:
 
     /*! \returns The local-space rotation of this Node. */
     HYP_METHOD(Property = "LocalRotation", Transient, EditHide)
-    HYP_FORCE_INLINE const Quaternion& GetLocalRotation() const
+    HYP_FORCE_INLINE const Quat4f& GetLocalRotation() const
     {
         return m_localTransform.GetRotation();
     }
 
     /*! \brief Set the local-space rotation of this Node (not influenced by the parent Node) */
     HYP_METHOD(Property = "LocalRotation", Transient)
-    HYP_FORCE_INLINE void SetLocalRotation(const Quaternion& rotation)
+    HYP_FORCE_INLINE void SetLocalRotation(const Quat4f& rotation)
     {
         SetLocalTransform(Transform { m_localTransform.GetTranslation(), m_localTransform.GetScale(), rotation });
     }
@@ -740,7 +740,7 @@ public:
     /*! \brief Rotate the Node by multiplying the current local-space rotation by the given quaternion.
      * \param rotation The quaternion to rotate this Node by */
     HYP_METHOD()
-    HYP_FORCE_INLINE void Rotate(const Quaternion& rotation)
+    HYP_FORCE_INLINE void Rotate(const Quat4f& rotation)
     {
         SetLocalRotation(m_localTransform.GetRotation() * rotation);
     }
@@ -770,11 +770,11 @@ public:
 
     /*! \returns The world-space rotation of this Node. */
     HYP_METHOD(Property = "WorldRotation", Transient, EditHide)
-    Quaternion GetWorldRotation() const;
+    Quat4f GetWorldRotation() const;
 
     /*! \brief Set the world-space rotation of this Node by offsetting the local-space rotation */
     HYP_METHOD(Property = "WorldRotation", Transient)
-    void SetWorldRotation(const Quaternion& rotation);
+    void SetWorldRotation(const Quat4f& rotation);
 
     /*! \brief Returns whether the Node is locked from being transformed. */
     HYP_METHOD()

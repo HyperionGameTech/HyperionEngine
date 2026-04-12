@@ -23,7 +23,7 @@ struct TransformComponent
     Vec3f translation;
 
     HYP_FIELD(Property = "Rotation")
-    Quaternion rotation;
+    Quat4f rotation;
 
     HYP_FIELD(Property = "Scale")
     Vec3f scale;

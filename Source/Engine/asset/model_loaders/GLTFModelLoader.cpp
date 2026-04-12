@@ -38,7 +38,7 @@
 #include <Core/name/Name.hpp>
 
 #include <Core/math/Mat4f.hpp>
-#include <Core/math/Quaternion.hpp>
+#include <Core/math/Quat4f.hpp>
 #include <Core/math/Vector2.hpp>
 #include <Core/math/Vector3.hpp>
 #include <Core/math/Vector4.hpp>
@@ -450,7 +450,7 @@ Transform BuildTransformFromNode(const cgltf_node& node)
             Vec3f(matrix[0][1], matrix[1][1], matrix[2][1]).Length(),
             Vec3f(matrix[0][2], matrix[1][2], matrix[2][2]).Length());
 
-        Quaternion rotation = matrix.ExtractRotation().Inverse();
+        Quat4f rotation = matrix.ExtractRotation().Inverse();
         rotation.Normalize();
 
         return Transform(translation, scale, rotation);
@@ -458,7 +458,7 @@ Transform BuildTransformFromNode(const cgltf_node& node)
 
     Vec3f translation(0.0f);
     Vec3f scale(1.0f);
-    Quaternion rotation = Quaternion::Identity();
+    Quat4f rotation = Quat4f::Identity();
 
     if (node.has_translation)
     {
@@ -478,7 +478,7 @@ Transform BuildTransformFromNode(const cgltf_node& node)
 
     if (node.has_rotation)
     {
-        rotation = Quaternion(
+        rotation = Quat4f(
             float(node.rotation[0]),
             float(node.rotation[1]),
             float(node.rotation[2]),

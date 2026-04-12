@@ -3397,31 +3397,31 @@ struct BoxedValueHelper<Mat4f> : BoxedValueHelper<Any>
 };
 
 template <>
-struct BoxedValueHelperDecl<Quaternion>
+struct BoxedValueHelperDecl<Quat4f>
 {
 };
 
 template <>
-struct BoxedValueHelper<Quaternion> : BoxedValueHelper<Any>
+struct BoxedValueHelper<Quat4f> : BoxedValueHelper<Any>
 {
     using ConvertibleFrom = Tuple<>;
 
     HYP_FORCE_INLINE bool Is(const Any& value) const
     {
-        return value.Is<Quaternion>();
+        return value.Is<Quat4f>();
     }
 
-    HYP_FORCE_INLINE Quaternion& Get(const Any& value) const
+    HYP_FORCE_INLINE Quat4f& Get(const Any& value) const
     {
-        return value.Get<Quaternion>();
+        return value.Get<Quat4f>();
     }
 
-    HYP_FORCE_INLINE void Set(BoxedValue& boxed, const Quaternion& value) const
+    HYP_FORCE_INLINE void Set(BoxedValue& boxed, const Quat4f& value) const
     {
-        BoxedValueHelper<Any>::Set(boxed, Any::Construct<Quaternion>(value));
+        BoxedValueHelper<Any>::Set(boxed, Any::Construct<Quat4f>(value));
     }
 
-    HYP_FORCE_INLINE static FBOMResult Serialize(const Quaternion& value, FBOMData& outData, EnumFlags<FBOMDataFlags> flags = FBOMDataFlags::NONE)
+    HYP_FORCE_INLINE static FBOMResult Serialize(const Quat4f& value, FBOMData& outData, EnumFlags<FBOMDataFlags> flags = FBOMDataFlags::NONE)
     {
         HYP_SCOPE;
 
@@ -3434,7 +3434,7 @@ struct BoxedValueHelper<Quaternion> : BoxedValueHelper<Any>
     {
         HYP_SCOPE;
 
-        Quaternion result;
+        Quat4f result;
 
         if (FBOMResult err = data.Read(&result))
         {

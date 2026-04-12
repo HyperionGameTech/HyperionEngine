@@ -164,7 +164,7 @@ FBOMMat4f::FBOMMat4f()
 }
 
 FBOMQuat4f::FBOMQuat4f()
-    : FBOMType("quat4f", 16, TypeId::ForType<Quaternion>(), FBOMSequence(FBOMFloat(), 4))
+    : FBOMType("quat4f", 16, TypeId::ForType<Quat4f>(), FBOMSequence(FBOMFloat(), 4))
 {
 }
 

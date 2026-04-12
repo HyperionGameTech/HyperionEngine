@@ -29,7 +29,7 @@
 #include <Core/math/Vector4.hpp>
 #include <Core/math/Mat3f.hpp>
 #include <Core/math/Mat4f.hpp>
-#include <Core/math/Quaternion.hpp>
+#include <Core/math/Quat4f.hpp>
 
 #include <Core/utilities/Uuid.hpp>
 
@@ -300,7 +300,7 @@ public:
     FBOM_TYPE_FUNCTIONS(Vec2u, Vec2u)
     FBOM_TYPE_FUNCTIONS(Vec3u, Vec3u)
     FBOM_TYPE_FUNCTIONS(Vec4u, Vec4u)
-    FBOM_TYPE_FUNCTIONS(Quat4f, Quaternion)
+    FBOM_TYPE_FUNCTIONS(Quat4f, Quat4f)
 
 #undef FBOM_TYPE_FUNCTIONS
 

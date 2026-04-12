@@ -1,7 +1,0 @@
-{
-  "Dependencies": [],
-  "Name": "RenderSky",
-  "FriendlyName": "RenderSky",
-  "Flags": 0,
-  "Path": "Engine/Shaders/RenderSky"
-}

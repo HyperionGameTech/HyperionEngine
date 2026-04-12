@@ -8,7 +8,7 @@
 
 #include <asset/AssetLoader.hpp>
 
-#include <Core/math/Quaternion.hpp>
+#include <Core/math/Quat4f.hpp>
 
 #include <Core/Types.hpp>
 
@@ -29,14 +29,14 @@ public:
 
             String parentName;
             Vector3 bindingTranslation;
-            Quaternion bindingRotation;
+            Quat4f bindingRotation;
         };
 
         struct KeyframeData
         {
             float time;
             Vector3 translation;
-            Quaternion rotation;
+            Quat4f rotation;
         };
 
         struct AnimationTrackData

@@ -1,7 +1,0 @@
-{
-  "Dependencies": [],
-  "Name": "SSRWriteUVs",
-  "FriendlyName": "SSRWriteUVs",
-  "Flags": 0,
-  "Path": "Engine/Shaders/SSRWriteUVs"
-}
