@@ -1,5 +1,5 @@
-#include "../include/defines.inc"
-#include "../include/shared.inc"
+#include "../include/Defines.hlsli"
+#include "../include/Shared.hlsli"
 
 DECLARE_SAMPLER(UpdateParticlesDescriptorSet, SamplerNearest) SamplerState sampler_nearest;
 DECLARE_SAMPLER(UpdateParticlesDescriptorSet, SamplerLinear) SamplerState sampler_linear;
@@ -11,10 +11,10 @@ DECLARE_SRV(UpdateParticlesDescriptorSet, GBufferVelocityTexture) Texture2D gbuf
 DECLARE_SRV(UpdateParticlesDescriptorSet, GBufferDepthTexture) Texture2D gbuffer_depth_texture;
 
 #define HYP_DO_NOT_DEFINE_DESCRIPTOR_SETS
-#include "../include/scene.inc"
-#include "../include/Entity.inc"
-#include "../include/packing.inc"
-#include "../include/gbuffer.inc"
+#include "../include/Scene.hlsli"
+#include "../include/Entity.hlsli"
+#include "../include/Packing.hlsli"
+#include "../include/Gbuffer.hlsli"
 #undef HYP_DO_NOT_DEFINE_DESCRIPTOR_SETS
 
 struct ParticleShaderData

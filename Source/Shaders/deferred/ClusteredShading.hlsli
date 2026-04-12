@@ -6,7 +6,7 @@
 #ifndef CLUSTERED_SHADING_HLSLI
 #define CLUSTERED_SHADING_HLSLI
 
-#include "include/defines.inc"
+#include "include/Defines.hlsli"
 
 float Linear01Depth(float depth, float near, float far);
 

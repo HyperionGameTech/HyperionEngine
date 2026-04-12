@@ -1,4 +1,4 @@
-#include "include/defines.inc"
+#include "include/Defines.hlsli"
 
 struct PSInput
 {
@@ -34,13 +34,13 @@ DECLARE_SAMPLER(Default, SamplerNearest) SamplerState sampler_nearest;
 
 #define HYP_DO_NOT_DEFINE_DESCRIPTOR_SETS
 
-#include "include/scene.inc"
-#include "include/material.inc"
-#include "include/Entity.inc"
-#include "include/packing.inc"
+#include "include/Scene.hlsli"
+#include "include/Material.hlsli"
+#include "include/Entity.hlsli"
+#include "include/Packing.hlsli"
 
 #include "include/EnvProbes.hlsli"
-#include "include/gbuffer.inc"
+#include "include/Gbuffer.hlsli"
 
 #undef HYP_DO_NOT_DEFINE_DESCRIPTOR_SETS
 

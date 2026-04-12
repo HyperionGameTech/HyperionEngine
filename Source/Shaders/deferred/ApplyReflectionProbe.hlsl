@@ -1,10 +1,10 @@
-#include "../include/defines.inc"
-#include "../include/shared.inc"
+#include "../include/Defines.hlsli"
+#include "../include/Shared.hlsli"
 
 #define HYP_DO_NOT_DEFINE_DESCRIPTOR_SETS
-#include "../include/gbuffer.inc"
-#include "../include/scene.inc"
-#include "../include/noise.inc"
+#include "../include/Gbuffer.hlsli"
+#include "../include/Scene.hlsli"
+#include "../include/Noise.hlsli"
 
 DECLARE_SAMPLER(ReflectionsPass, SamplerNearest) SamplerState sampler_nearest;
 DECLARE_SAMPLER(ReflectionsPass, SamplerLinear) SamplerState sampler_linear;
@@ -29,7 +29,7 @@ DECLARE_SRV(ReflectionsPass, GBufferMipChain) Texture2D gbuffer_mip_chain;
 
 #define HYP_DEFERRED_NO_RT_RADIANCE
 
-#include "../include/BlueNoise.inc"
+#include "../include/BlueNoise.hlsli"
 
 #include "../include/EnvProbes.hlsli"
 DECLARE_SRV_DYNAMIC(ReflectionsPass, CurrentEnvProbe) StructuredBuffer<EnvProbe> current_env_probe_buffer;

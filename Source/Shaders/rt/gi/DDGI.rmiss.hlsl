@@ -1,8 +1,8 @@
 #define DDGI
 
-#include "../../include/defines.inc"
-#include "../../include/shared.inc"
-#include "../../include/rt/payload.inc"
+#include "../../include/Defines.hlsli"
+#include "../../include/Shared.hlsli"
+#include "../../include/rt/Payload.hlsli"
 
 struct PayloadData
 {

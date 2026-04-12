@@ -1,4 +1,4 @@
-#include "include/defines.inc"
+#include "include/Defines.hlsli"
 
 #ifdef VERTEX_SHADER
 
@@ -46,8 +46,8 @@ struct PSOutput
     float4 color_output : SV_Target0;
 };
 
-#include "include/scene.inc"
-#include "include/PostFXInstance.inc"
+#include "include/Scene.hlsli"
+#include "include/PostFXInstance.hlsli"
 
 #define HYP_FFXA_IMPL 2
 

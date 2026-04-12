@@ -1,4 +1,4 @@
-#include "include/defines.inc"
+#include "include/Defines.hlsli"
 
 PERMUTE(LIGHT_TYPE, CLUSTERED, DIRECTIONAL, POINT, SPOT, AREA_RECT);
 
@@ -70,12 +70,12 @@ DECLARE_SRV(DeferredPass, SSAOResultTexture) Texture2D SSAOResultTexture;
 #define HYP_SAMPLER_SHADOW SamplerShadow
 
 #include "include/EnvProbes.hlsli"
-#include "include/shared.inc"
-#include "include/gbuffer.inc"
-#include "include/material.inc"
-#include "include/Entity.inc"
+#include "include/Shared.hlsli"
+#include "include/Gbuffer.hlsli"
+#include "include/Material.hlsli"
+#include "include/Entity.hlsli"
 
-#include "include/scene.inc"
+#include "include/Scene.hlsli"
 
 DECLARE_SRV(DeferredPass, WorldsBuffer) StructuredBuffer<WorldShaderData> _worlds_buffer;
 #define world_shader_data _worlds_buffer[0]
@@ -127,7 +127,7 @@ DECLARE_SRV(DeferredPass, EnvProbesTexture) Texture2DArray envProbesTexture;
 
 #include "include/Shadows.hlsli"
 
-#include "include/LightSampling.inc"
+#include "include/LightSampling.hlsli"
 
 #ifdef LIGHT_TYPE_CLUSTERED
 

@@ -1,7 +1,7 @@
-#include "../include/defines.inc"
-#include "../include/shared.inc"
-#include "../include/Entity.inc"
-#include "./UIObject.inc"
+#include "../include/Defines.hlsli"
+#include "../include/Shared.hlsli"
+#include "../include/Entity.hlsli"
+#include "./UIObject.hlsli"
 
 PERMUTE(TEXTURED);
 PERMUTE(UI_TEXT);
@@ -28,7 +28,7 @@ struct VSOutput
 
 #define INSTANCING
 
-#include "../include/scene.inc"
+#include "../include/Scene.hlsli"
 
 DECLARE_SRV_DYNAMIC(Default, CamerasBuffer) StructuredBuffer<Camera> _cameras_buffer;
 #define camera _cameras_buffer[0]
@@ -94,9 +94,9 @@ struct PSOutput
 
 #define HYP_DO_NOT_DEFINE_DESCRIPTOR_SETS
 
-#include "../include/gbuffer.inc"
-#include "../include/material.inc"
-#include "../include/scene.inc"
+#include "../include/Gbuffer.hlsli"
+#include "../include/Material.hlsli"
+#include "../include/Scene.hlsli"
 
 #undef HYP_DO_NOT_DEFINE_DESCRIPTOR_SETS
 

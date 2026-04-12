@@ -456,7 +456,7 @@ void UISubsystem::InitDebugOverlays()
 {
     HYP_SCOPE;
 
-    static constexpr UIObjectAlignment Aligments[4] = {
+    static constexpr UIObjectAlignment Alignments[4] = {
         UIObjectAlignment::TOP_LEFT,
         UIObjectAlignment::BOTTOM_LEFT,
         UIObjectAlignment::TOP_RIGHT,
@@ -470,8 +470,8 @@ void UISubsystem::InitDebugOverlays()
         debugOverlayContainer = m_uiStage->CreateUIObject<UIListView>(NAME_FMT("DebugOverlay_{}", i), Vec2i::Zero(), UIObjectSize({ 0, UIObjectSize::AUTO }, { 0, UIObjectSize::AUTO }));
         debugOverlayContainer->SetDepth(100);
         debugOverlayContainer->SetBackgroundColor(Color(0.0f, 0.0f, 0.0f, 0.0f));
-        debugOverlayContainer->SetParentAlignment(Aligments[i]);
-        debugOverlayContainer->SetOriginAlignment(Aligments[i]);
+        debugOverlayContainer->SetParentAlignment(Alignments[i]);
+        debugOverlayContainer->SetOriginAlignment(Alignments[i]);
         debugOverlayContainer->SetAcceptsFocus(false); // so we don't steal focus from the viewport
 
         debugOverlayContainer->OnClick.RemoveAllDetached();

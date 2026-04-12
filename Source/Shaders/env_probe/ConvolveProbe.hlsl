@@ -1,4 +1,4 @@
-#include "../include/defines.inc"
+#include "../include/Defines.hlsli"
 
 PERMUTE(NUM_SAMPLES, 4096);
 PERMUTE(LOBE_SIZE, 0.0, 0.143, 0.286, 0.429, 0.571, 0.714, 0.857, 1.0);
@@ -10,10 +10,10 @@ PERMUTE(LOBE_SIZE, 0.0, 0.143, 0.286, 0.429, 0.571, 0.714, 0.857, 1.0);
 #define HYP_SAMPLER_NEAREST sampler_nearest
 #define HYP_SAMPLER_LINEAR sampler_linear
 
-#include "../include/shared.inc"
-#include "../include/noise.inc"
-#include "../include/packing.inc"
-#include "../include/scene.inc"
+#include "../include/Shared.hlsli"
+#include "../include/Noise.hlsli"
+#include "../include/Packing.hlsli"
+#include "../include/Scene.hlsli"
 #include "../include/BRDF.hlsli"
 
 #undef HYP_DO_NOT_DEFINE_DESCRIPTOR_SETS

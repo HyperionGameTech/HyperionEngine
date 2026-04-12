@@ -1,8 +1,8 @@
-#include "../include/defines.inc"
-#include "../include/noise.inc"
+#include "../include/Defines.hlsli"
+#include "../include/Noise.hlsli"
 #include "../include/EnvProbes.hlsli"
 
-#include "./ssr_header.inc"
+#include "./SSRShared.hlsli"
 
 #include "../include/BRDF.hlsli"
 
@@ -70,11 +70,11 @@ DECLARE_SRV(SSGI, ShadowMapsTextureArray) Texture2DArray<float> shadow_maps;
 DECLARE_SRV(SSGI, PointLightShadowMapsTextureArray) TextureCubeArray point_shadow_maps;
 
 #define HYP_DO_NOT_DEFINE_DESCRIPTOR_SETS
-#include "../include/scene.inc"
-#include "../include/gbuffer.inc"
-#include "../include/BlueNoise.inc"
+#include "../include/Scene.hlsli"
+#include "../include/Gbuffer.hlsli"
+#include "../include/BlueNoise.hlsli"
 #include "../include/Shadows.hlsli"
-#include "../include/Octahedron.inc"
+#include "../include/Octahedron.hlsli"
 #include "../include/EnvProbes.hlsli"
 #undef HYP_DO_NOT_DEFINE_DESCRIPTOR_SETS
 

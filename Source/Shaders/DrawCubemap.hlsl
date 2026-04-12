@@ -1,6 +1,6 @@
-#include "include/defines.inc"
-#include "include/shared.inc"
-#include "include/scene.inc"
+#include "include/Defines.hlsli"
+#include "include/Shared.hlsli"
+#include "include/Scene.hlsli"
 
 PERMUTE(MODE_SHADOWS)
 PERMUTE(WRITE_NORMALS)
@@ -34,7 +34,7 @@ struct VSOutput
 DECLARE_SRV_DYNAMIC(Default, CamerasBuffer) StructuredBuffer<Camera> _cameras_buffer;
 #define camera _cameras_buffer[0]
 
-#include "include/Entity.inc"
+#include "include/Entity.hlsli"
 
 #ifdef INSTANCING
 DECLARE_SRV(Default, EntitiesBuffer) StructuredBuffer<Entity> entities;
@@ -46,7 +46,7 @@ DECLARE_SRV_DYNAMIC(Default, CurrentEntity) StructuredBuffer<Entity> entities;
 #endif
 
 #ifdef SKINNING
-#include "include/Skeleton.inc"
+#include "include/Skeleton.hlsli"
 
 DECLARE_SRV_DYNAMIC(Default, SkeletonsBuffer) StructuredBuffer<Skeleton> skeletons;
 
@@ -158,12 +158,12 @@ DECLARE_SAMPLER(Default, SamplerNearest) SamplerState sampler_nearest;
 
 #define texture_sampler sampler_linear
 
-#include "include/material.inc"
-#include "include/gbuffer.inc"
+#include "include/Material.hlsli"
+#include "include/Gbuffer.hlsli"
 #include "include/EnvProbes.hlsli"
-#include "include/Octahedron.inc"
-#include "include/Entity.inc"
-#include "include/packing.inc"
+#include "include/Octahedron.hlsli"
+#include "include/Entity.hlsli"
+#include "include/Packing.hlsli"
 #include "include/BRDF.hlsli"
 
 #define HYP_CUBEMAP_AMBIENT 0.005

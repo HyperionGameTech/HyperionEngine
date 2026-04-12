@@ -127,15 +127,15 @@
   "ShaderBlobs": [{
       "$Class": "BlobDataReference",
       "Key": "Engine/Shaders/DrawShadowMap/DrawShadowMap_9088364749439094443.VS",
-      "Size": 54672
+      "Size": 54716
     }, {
       "$Class": "BlobDataReference",
       "Key": "Engine/Shaders/DrawShadowMap/DrawShadowMap_9088364749439094443.PS",
-      "Size": 51456
+      "Size": 51504
     }],
   "PropertySetHashCode": {},
   "LastCompiledTimestamp": {
-    "Value": 13420350831157
+    "Value": 13420486038930
   },
   "Name": "DrawShadowMap_9088364749439094443",
   "FriendlyName": "DrawShadowMap_9088364749439094443",

@@ -1,9 +1,6 @@
-#include "include/defines.inc"
-#include "include/shared.inc"
-
-#define HYP_DO_NOT_DEFINE_DESCRIPTOR_SETS
-#include "include/scene.inc"
-#undef HYP_DO_NOT_DEFINE_DESCRIPTOR_SETS
+#include "include/Defines.hlsli"
+#include "include/Shared.hlsli"
+#include "include/Scene.hlsli"
 
 DECLARE_SRV(TAA, InColorTexture) Texture2D color_texture;
 DECLARE_SRV(TAA, InPrevColorTexture) Texture2D prev_color_texture;
@@ -24,7 +21,7 @@ DECLARE_BUFFER(TAA, TAAConstants) cbuffer TAAConstants
 
 // #define ADJUST_COLOR_HDR
 
-#include "include/Temporal.inc"
+#include "include/Temporal.hlsli"
 
 [numthreads(8, 8, 1)]
 void CSMain(uint3 dispatchThreadID : SV_DispatchThreadID)

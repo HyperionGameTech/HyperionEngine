@@ -1,9 +1,9 @@
 #define DDGI
 
-#include "../../include/defines.inc"
-#include "../../include/shared.inc"
-#include "../../include/noise.inc"
-#include "../../include/packing.inc"
+#include "../../include/Defines.hlsli"
+#include "../../include/Shared.hlsli"
+#include "../../include/Noise.hlsli"
+#include "../../include/Packing.hlsli"
 #include "../../include/BRDF.hlsli"
 
 DECLARE_SAMPLER(DDGI, SamplerNearest) SamplerState sampler_nearest;
@@ -15,15 +15,15 @@ DECLARE_SAMPLER(DDGI, SamplerLinear) SamplerState sampler_linear;
 
 #define HYP_DO_NOT_DEFINE_DESCRIPTOR_SETS
 
-#include "../../include/scene.inc"
-#include "../../include/noise.inc"
-#include "../../include/Octahedron.inc"
+#include "../../include/Scene.hlsli"
+#include "../../include/Noise.hlsli"
+#include "../../include/Octahedron.hlsli"
 #include "../../include/EnvProbes.hlsli"
 
 #undef HYP_DO_NOT_DEFINE_DESCRIPTOR_SETS
 
-#include "../../include/rt/payload.inc"
-#include "../../include/rt/probe/probe_uniforms.inc"
+#include "../../include/rt/Payload.hlsli"
+#include "../../include/rt/probe/ProbeUniforms.hlsli"
 
 DECLARE_SRV(DDGI, TLAS) RaytracingAccelerationStructure tlas;
 
@@ -36,8 +36,8 @@ DECLARE_BUFFER_DYNAMIC(DDGI, CBuffer) cbuffer CBuffer
 
 DECLARE_UAV(DDGI, ProbeRayData) RWStructuredBuffer<ProbeRayData> probe_rays;
 
-#include "../../include/rt/probe/shared.inc"
-#include "../../include/rt/RayTracingHelpers.inc"
+#include "../../include/rt/probe/Shared.hlsli"
+#include "../../include/rt/RayTracingHelpers.hlsli"
 
 DECLARE_SRV(DDGI, WorldsBuffer) StructuredBuffer<WorldShaderData> _worlds_buffer;
 #define world_shader_data _worlds_buffer[0]

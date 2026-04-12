@@ -1,5 +1,5 @@
-#include "include/defines.inc"
-#include "include/shared.inc"
+#include "include/Defines.hlsli"
+#include "include/Shared.hlsli"
 
 PERMUTE(MODE, STANDARD, VSM, PCF, CONTACT_HARDENED);
 PERMUTE(INSTANCING);
@@ -13,10 +13,10 @@ DECLARE_SAMPLER(Default, SamplerNearest) SamplerState sampler_nearest;
 
 #define HYP_DO_NOT_DEFINE_DESCRIPTOR_SETS
 
-#include "include/scene.inc"
-#include "include/Entity.inc"
-#include "include/material.inc"
-#include "include/packing.inc"
+#include "include/Scene.hlsli"
+#include "include/Entity.hlsli"
+#include "include/Material.hlsli"
+#include "include/Packing.hlsli"
 
 #undef HYP_DO_NOT_DEFINE_DESCRIPTOR_SETS
 
@@ -69,7 +69,7 @@ struct VSOutput
 
 #ifdef SKINNING
 
-#include "include/Skeleton.inc"
+#include "include/Skeleton.hlsli"
 DECLARE_SRV_DYNAMIC(Default, SkeletonsBuffer) StructuredBuffer<Skeleton> skeletons;
 
 #endif

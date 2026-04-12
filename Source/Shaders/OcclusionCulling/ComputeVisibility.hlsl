@@ -1,14 +1,14 @@
-#include "../include/defines.inc"
-#include "../include/shared.inc"
-#include "../include/aabb.inc"
-#include "./Shared.inc"
+#include "../include/Defines.hlsli"
+#include "../include/Shared.hlsli"
+#include "../include/Aabb.hlsli"
+#include "./Shared.hlsli"
 
 DECLARE_SAMPLER(ComputeVisibility, SamplerNearest) SamplerState depth_pyramid_sampler;
 DECLARE_SRV(ComputeVisibility, DepthPyramidResult) Texture2D depth_pyramid;
 
 #define HYP_DO_NOT_DEFINE_DESCRIPTOR_SETS
-#include "../include/Entity.inc"
-#include "../include/scene.inc"
+#include "../include/Entity.hlsli"
+#include "../include/Scene.hlsli"
 #undef HYP_DO_NOT_DEFINE_DESCRIPTOR_SETS
 
 DECLARE_SRV_DYNAMIC(ComputeVisibility, CamerasBuffer) StructuredBuffer<Camera> _cameras_buffer;

@@ -19,6 +19,7 @@
 #include <Core/reflection/Handle.hpp>
 
 #include <Core/threading/SharedMutex.hpp>
+#include <Core/threading/ThreadSignal.hpp>
 
 #include <Core/threading/util/ThreadId.hpp>
 
@@ -66,19 +67,22 @@ class ShaderManagerImpl
 public:
     struct ShaderMapEntry
     {
-        enum State : int32
-        {
-            UNLOADED = 0,
-            LOADING = 1,
-            LOADED = 2
-        };
-
         ShaderCacheId cacheId = InvalidShaderCacheId;
         ShaderInstanceRef shaderInstance;
         Shader* shader = nullptr;
-        ThreadId loadingThreadId;
-        
-        volatile int32 state = int32(State::UNLOADED);
+
+        ThreadSignal threadSignal { false };
+
+        bool IsLoading() const
+        {
+            return !threadSignal.IsSignalled();
+        }
+
+        bool IsLoaded() const
+        {
+            return threadSignal.IsSignalled()
+                && shader != nullptr;
+        }
     };
 
     struct CompileShaderRequest
@@ -131,6 +135,9 @@ public:
 
     static void CompileShader(CompileShaderRequest& request)
     {
+        AssertDebug(!request.entry->threadSignal.IsSignalled());
+        HYP_DEFER({ request.entry->threadSignal.Signal(); });
+
         bool isValid = true;
         isValid &= g_shaderCompiler->RequestShader(
             request.shaderName, request.properties, request.inputLayout, request.entry->shader);
@@ -195,7 +202,6 @@ public:
         
         // Update the entry
         request.entry->shaderInstance = si;
-        AtomicExchange(&request.entry->state, ShaderMapEntry::State::LOADED);
     }
 
     void CompileShaders()
@@ -415,38 +421,12 @@ public:
 
         if (entry != nullptr && doLoadShader)
         {
-            constexpr int MaxSpins = 1024;
-            int numSpins = 0;
-
-            // loading from another thread -- wait until state is no longer LOADING
-            int32 currState;
-            while ((currState = AtomicAdd(&entry->state, 0)) == ShaderMapEntry::State::LOADING)
+            while (entry->IsLoading())
             {
-                // sanity check - should never happen
-                Assert(entry->loadingThreadId != CurrentThreadId());
-
-                if (numSpins == MaxSpins)
-                {
-                    HYP_LOG(Shader, Warning,
-                        "Shader {} is loading for too long! Skipping reuse attempt and loading on this thread. (Loading thread: {}, current thread: {})",
-                        name,
-                        entry->loadingThreadId.GetName(),
-                        CurrentThreadId().GetName());
-
-                    // make new entry (this thread only)
-                    entry = MakeRefCountedPtr<ShaderMapEntry>();
-                    entry->state = ShaderMapEntry::State::LOADING;
-                    entry->loadingThreadId = CurrentThreadId();
-
-                    shouldAddEntryToCache = false;
-
-                    break;
-                }
-
-                ThreadSleep(0);
-
-                numSpins++;
+                entry->threadSignal.Wait();
             }
+
+            Assert(entry->shaderInstance.IsValid());
 
             if (EnsureMatch(properties, inputLayout, *entry->shaderInstance->GetShader()))
             {
@@ -470,9 +450,7 @@ public:
 
             if (doLoadShader)
             {
-                // @FIXME should do compare exchange here
-                AtomicExchange(&entry->state, ShaderMapEntry::State::LOADING);
-                entry->loadingThreadId = CurrentThreadId();
+                entry->threadSignal.Reset();
             }
         }
 
@@ -662,7 +640,7 @@ public:
             {
                 ShaderMapEntry* entry = it.second;
 
-                if (!entry || AtomicAdd(&entry->state, 0) != ShaderMapEntry::State::LOADED)
+                if (!entry || !entry->IsLoaded())
                 {
                     continue;
                 }
@@ -729,14 +707,12 @@ public:
 
         for (CompileShaderRequest& request : requests)
         {
-            int32 expected = ShaderMapEntry::State::LOADED;
-
-            if (!AtomicCompareExchange(&request.entry->state, expected, ShaderMapEntry::State::LOADING))
+            if (!request.entry->IsLoaded())
             {
                 continue;
             }
 
-            request.entry->loadingThreadId = CurrentThreadId();
+            request.entry->threadSignal.Reset();
 
             CompilingShaderScope compilingShaderScope(
                 this,
@@ -750,8 +726,7 @@ public:
 
             shadersToExpire.Add(request.entry->shader);
 
-            // now mark loaded so other threads can use it.
-            AtomicExchange(&request.entry->state, ShaderMapEntry::State::LOADED);
+            AssertDebug(request.entry->IsLoaded());
         }
 
         if (shadersToExpire.Any())

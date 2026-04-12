@@ -1,4 +1,4 @@
-#include "include/defines.inc"
+#include "include/Defines.hlsli"
 
 PERMUTE(SKINNING);
 PERMUTE(ALPHA_DISCARD);
@@ -41,17 +41,12 @@ DECLARE_SAMPLER(Default, SamplerNearest) SamplerState sampler_nearest;
 
 #define HAS_REFRACTION 1
 
-#include "include/material.inc"
+#include "include/Material.hlsli"
 
-#define HYP_DO_NOT_DEFINE_DESCRIPTOR_SETS
-
-#include "include/scene.inc"
-#include "include/packing.inc"
-
+#include "include/Scene.hlsli"
+#include "include/Packing.hlsli"
 #include "include/EnvProbes.hlsli"
-#include "include/gbuffer.inc"
-
-#undef HYP_DO_NOT_DEFINE_DESCRIPTOR_SETS
+#include "include/Gbuffer.hlsli"
 
 DECLARE_SRV_DYNAMIC(Default, CamerasBuffer) StructuredBuffer<Camera> _cameras_buffer;
 #define camera _cameras_buffer[0]
@@ -109,7 +104,7 @@ DECLARE_SRV_DYNAMIC(Default, MaterialsBuffer) StructuredBuffer<Material> materia
 #define CURRENT_MATERIAL material
 #endif // CURRENT_MATERIAL
 
-#include "include/parallax.inc"
+#include "include/Parallax.hlsli"
 
 // #define DEBUG_RAW_REFLECTIONS
 
@@ -424,7 +419,7 @@ PSOutput PSMain(PSInput input)
 #endif // SHADING_TYPE_FORWARD
 
 #ifdef DEBUG_RAW_REFLECTIONS
-    roughness = 0.02;
+    roughness = 0.05;
 #endif
 
     // https://www.elopezr.com/temporal-aa-and-the-quest-for-the-holy-trail/

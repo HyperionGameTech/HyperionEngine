@@ -1,4 +1,4 @@
-#include "../include/defines.inc"
+#include "../include/Defines.hlsli"
 
 STATIC(MAX_LIGHTS, 4);
 
@@ -21,8 +21,8 @@ struct VSOutput
 
 #define HYP_DO_NOT_DEFINE_DESCRIPTOR_SETS
 
-#include "../include/scene.inc" 
-#include "../include/shared.inc"
+#include "../include/Scene.hlsli" 
+#include "../include/Shared.hlsli"
 
 #undef HYP_DO_NOT_DEFINE_DESCRIPTOR_SETS
 
@@ -91,13 +91,13 @@ DECLARE_SAMPLER(FogVolume, SamplerNearest) SamplerState SamplerNearest;
 
 DECLARE_SRV(FogVolume, DepthPyramidTexture) Texture2D DepthPyramidTexture;
 
-#include "../include/scene.inc"
-#include "../include/material.inc"
-#include "../include/Entity.inc"
-#include "../include/packing.inc"
-#include "../include/shared.inc"
+#include "../include/Scene.hlsli"
+#include "../include/Material.hlsli"
+#include "../include/Entity.hlsli"
+#include "../include/Packing.hlsli"
+#include "../include/Shared.hlsli"
 
-#include "../include/gbuffer.inc"
+#include "../include/Gbuffer.hlsli"
 
 DECLARE_SRV_DYNAMIC(FogVolume, CamerasBuffer) StructuredBuffer<Camera> _cameras_buffer;
 #define camera _cameras_buffer[0]

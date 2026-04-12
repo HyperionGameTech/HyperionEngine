@@ -8,9 +8,9 @@ layout(location = 0) in vec3 v_position;
 layout(location = 1) in vec2 v_texcoord0;
 layout(location = 0) out vec4 color_output;
 
-#include "../include/shared.inc"
-#include "../include/defines.inc"
-#include "../include/gbuffer.inc"
+#include "../include/Shared.hlsli"
+#include "../include/Defines.hlsli"
+#include "../include/Gbuffer.hlsli"
 
 layout(set = DECLARE_SET_GLOBAL, binding = 50) uniform texture2D temporal_aa_result;
 layout(set = DECLARE_SET_GLOBAL, binding = 77) uniform texture2D dof_blur_hor;

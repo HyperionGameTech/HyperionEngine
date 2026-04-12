@@ -1,4 +1,4 @@
-#include "../include/defines.inc"
+#include "../include/Defines.hlsli"
 
 #ifdef VERTEX_SHADER
 
@@ -65,10 +65,10 @@ DECLARE_SAMPLER(LightmapPass, SamplerLinear) SamplerState sampler_linear;
 
 DECLARE_SRV(LightmapPass, SSAOResultTexture) Texture2D SSAOResultTexture;
 
-#include "../include/shared.inc"
-#include "../include/gbuffer.inc"
-#include "../include/Entity.inc"
-#include "../include/scene.inc"
+#include "../include/Shared.hlsli"
+#include "../include/Gbuffer.hlsli"
+#include "../include/Entity.hlsli"
+#include "../include/Scene.hlsli"
 
 DECLARE_SRV_DYNAMIC(LightmapPass, CamerasBuffer) StructuredBuffer<Camera> _cameras_buffer;
 #define camera _cameras_buffer[0]

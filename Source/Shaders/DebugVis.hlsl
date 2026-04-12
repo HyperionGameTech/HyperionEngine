@@ -1,5 +1,5 @@
-#include "./include/defines.inc"
-#include "./include/shared.inc"
+#include "./include/Defines.hlsli"
+#include "./include/Shared.hlsli"
 
 PERMUTE(IMMEDIATE_MODE);
 PERMUTE(INSTANCING);
@@ -32,7 +32,7 @@ struct VSOutput
 #define HYP_DO_NOT_DEFINE_DESCRIPTOR_SETS
 
 #include "./include/EnvProbes.hlsli"
-#include "./include/scene.inc"
+#include "./include/Scene.hlsli"
 
 #ifdef IMMEDIATE_MODE
 DECLARE_SRV(DebugDrawerDescriptorSet, EnvProbesBuffer) StructuredBuffer<EnvProbe> env_probes;
@@ -54,7 +54,7 @@ DECLARE_SRV_DYNAMIC(DebugDrawerDescriptorSet, ImmediateDrawsBuffer) StructuredBu
 
 #else
 
-#include "./include/Entity.inc"
+#include "./include/Entity.hlsli"
 
 #ifdef INSTANCING
 DECLARE_SRV(DebugDrawerDescriptorSet, EntitiesBuffer) StructuredBuffer<Entity> entities;
@@ -163,10 +163,10 @@ struct PSOutput
 DECLARE_SAMPLER(DebugDrawerDescriptorSet, SamplerLinear) SamplerState sampler_linear;
 DECLARE_SAMPLER(DebugDrawerDescriptorSet, SamplerNearest) SamplerState sampler_nearest;
 
-#include "include/material.inc"
-#include "include/packing.inc"
-#include "include/scene.inc"
-#include "include/gbuffer.inc"
+#include "include/Material.hlsli"
+#include "include/Packing.hlsli"
+#include "include/Scene.hlsli"
+#include "include/Gbuffer.hlsli"
 
 DECLARE_SRV(DebugDrawerDescriptorSet, GBufferMipChain) Texture2D gbuffer_mip_chain;
 
@@ -176,7 +176,7 @@ DECLARE_SRV_DYNAMIC(DebugDrawerDescriptorSet, CamerasBuffer) StructuredBuffer<Ca
 DECLARE_SRV(DebugDrawerDescriptorSet, WorldsBuffer) StructuredBuffer<WorldShaderData> _worlds_buffer;
 #define world_shader_data _worlds_buffer[0]
 
-#include "include/Entity.inc"
+#include "include/Entity.hlsli"
 
 #ifdef IMMEDIATE_MODE
 

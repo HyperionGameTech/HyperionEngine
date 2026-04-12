@@ -1,7 +1,7 @@
 #define DDGI
 
-#include "../../include/defines.inc"
-#include "../../include/shared.inc"
+#include "../../include/Defines.hlsli"
+#include "../../include/Shared.hlsli"
 
 #define HYP_NO_CUBEMAP
 
@@ -12,20 +12,20 @@ DECLARE_SAMPLER(DDGI, SamplerLinear) SamplerState sampler_linear;
 #define HYP_SAMPLER_NEAREST sampler_nearest
 #define HYP_SAMPLER_LINEAR sampler_linear
 
-#include "../../include/vertex.inc"
+#include "../../include/Vertex.hlsli"
 
 #define HYP_DO_NOT_DEFINE_DESCRIPTOR_SETS
-#include "../../include/material.inc"
-#include "../../include/Entity.inc"
-#include "../../include/scene.inc"
+#include "../../include/Material.hlsli"
+#include "../../include/Entity.hlsli"
+#include "../../include/Scene.hlsli"
 
 #include "../../include/BRDF.hlsli"
 #undef HYP_DO_NOT_DEFINE_DESCRIPTOR_SETS
 
-#include "../../include/rt/mesh.inc"
-#include "../../include/rt/payload.inc"
+#include "../../include/rt/Mesh.hlsli"
+#include "../../include/rt/Payload.hlsli"
 
-#include "../../include/rt/probe/probe_uniforms.inc"
+#include "../../include/rt/probe/ProbeUniforms.hlsli"
 
 DECLARE_BUFFER_DYNAMIC(DDGI, CBuffer) cbuffer CBuffer
 {

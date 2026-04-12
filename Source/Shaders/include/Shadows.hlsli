@@ -1,8 +1,8 @@
 #ifndef HYP_SHADOWS
 #define HYP_SHADOWS
 
-#include "noise.inc"
-#include "aabb.inc"
+#include "Noise.hlsli"
+#include "Aabb.hlsli"
 
 #define HYP_SHADOW_BIAS 0.001
 // #define HYP_SHADOW_VARIABLE_BIAS 1

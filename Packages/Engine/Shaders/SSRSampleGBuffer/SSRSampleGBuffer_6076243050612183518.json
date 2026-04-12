@@ -213,15 +213,15 @@
   "ShaderBlobs": [{
       "$Class": "BlobDataReference",
       "Key": "Engine/Shaders/SSRSampleGBuffer/SSRSampleGBuffer_6076243050612183518.VS",
-      "Size": 11364
+      "Size": 11368
     }, {
       "$Class": "BlobDataReference",
       "Key": "Engine/Shaders/SSRSampleGBuffer/SSRSampleGBuffer_6076243050612183518.PS",
-      "Size": 101368
+      "Size": 100024
     }],
   "PropertySetHashCode": {},
   "LastCompiledTimestamp": {
-    "Value": 13420350831161
+    "Value": 13420486391212
   },
   "Name": "SSRSampleGBuffer_6076243050612183518",
   "FriendlyName": "SSRSampleGBuffer_6076243050612183518",

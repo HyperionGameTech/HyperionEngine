@@ -2,9 +2,9 @@
 #define ENV_GRID_RADIANCE_GLSL
 
 #include "../include/BRDF.hlsli"
-#include "../include/noise.inc"
-#include "../include/BlueNoise.inc"
-#include "../include/Octahedron.inc"
+#include "../include/Noise.hlsli"
+#include "../include/BlueNoise.hlsli"
+#include "../include/Octahedron.hlsli"
 
 //#define HYP_VCT_USE_ROUGHNESS_SCATTERING
 

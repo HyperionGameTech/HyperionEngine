@@ -1,9 +1,9 @@
 #ifndef DEFERRED_LIGHTING_HLSLI
 #define DEFERRED_LIGHTING_HLSLI
 
-#include "../include/shared.inc"
+#include "../include/Shared.hlsli"
 #include "../include/BRDF.hlsli"
-#include "../include/Octahedron.inc"
+#include "../include/Octahedron.hlsli"
 
 struct Refraction
 {

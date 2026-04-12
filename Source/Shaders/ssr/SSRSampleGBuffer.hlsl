@@ -1,4 +1,4 @@
-#include "../include/defines.inc"
+#include "../include/Defines.hlsli"
 
 PERMUTE(CONE_TRACING);
 
@@ -36,8 +36,8 @@ VSOutput VSMain(VSInput input)
 
 #ifdef PIXEL_SHADER
 
-#include "ssr_header.inc"
-#include "../include/defines.inc"
+#include "SSRShared.hlsli"
+#include "../include/Defines.hlsli"
 
 struct PSInput
 {
@@ -74,13 +74,10 @@ DECLARE_SRV(RenderSSR, WorldsBuffer) StructuredBuffer<WorldShaderData> _worlds_b
 DECLARE_SRV_DYNAMIC(RenderSSR, CamerasBuffer) StructuredBuffer<Camera> _cameras_buffer;
 #define camera _cameras_buffer[0]
 
-#include "../include/noise.inc"
-#include "../include/shared.inc"
-
-#define HYP_DO_NOT_DEFINE_DESCRIPTOR_SETS
-#include "../include/gbuffer.inc"
+#include "../include/Noise.hlsli"
+#include "../include/Shared.hlsli"
+#include "../include/Gbuffer.hlsli"
 #include "../include/EnvProbes.hlsli"
-#undef HYP_DO_NOT_DEFINE_DESCRIPTOR_SETS
 
 float IsoscelesTriangleOpposite(float adjacent_length, float cone_theta)
 {

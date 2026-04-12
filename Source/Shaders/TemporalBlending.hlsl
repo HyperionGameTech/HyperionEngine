@@ -1,6 +1,6 @@
-#include "include/defines.inc"
-#include "include/packing.inc"
-#include "include/shared.inc"
+#include "include/Defines.hlsli"
+#include "include/Packing.hlsli"
+#include "include/Shared.hlsli"
 
 PERMUTE(OUTPUT, RGBA8, RGBA16F, RGBA32F);
 PERMUTE(TEMPORAL_BLEND_TECHNIQUE, 0, 1, 2, 3, 4);
@@ -32,7 +32,7 @@ PERMUTE(TEMPORAL_BLEND_TECHNIQUE, 0, 1, 2, 3, 4);
 #endif
 
 #define HYP_DO_NOT_DEFINE_DESCRIPTOR_SETS
-#include "include/scene.inc"
+#include "include/Scene.hlsli"
 
 DECLARE_SRV(TemporalBlending, InImage) Texture2D input_texture;
 DECLARE_SRV(TemporalBlending, PrevImage) Texture2D prev_input_texture;
@@ -60,7 +60,7 @@ DECLARE_BUFFER(TemporalBlending, TemporalBlendingUniforms) cbuffer TemporalBlend
 #define TEMPORAL_BLENDING_USE_YCoCg
 // #define ADJUST_COLOR_HDR
 
-#include "include/Temporal.inc"
+#include "include/Temporal.hlsli"
 #undef HYP_DO_NOT_DEFINE_DESCRIPTOR_SETS
 
 [numthreads(8, 8, 1)]

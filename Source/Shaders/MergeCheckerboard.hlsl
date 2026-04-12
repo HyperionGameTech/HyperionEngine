@@ -1,9 +1,6 @@
-#include "include/defines.inc"
-#include "include/shared.inc"
-
-#define HYP_DO_NOT_DEFINE_DESCRIPTOR_SETS
-#include "include/scene.inc"
-#undef HYP_DO_NOT_DEFINE_DESCRIPTOR_SETS
+#include "include/Defines.hlsli"
+#include "include/Shared.hlsli"
+#include "include/Scene.hlsli"
 
 DECLARE_SRV(MergeHalfResTexture, WorldsBuffer) StructuredBuffer<WorldShaderData> _worlds_buffer;
 #define world_shader_data _worlds_buffer[0]

@@ -257,6 +257,12 @@ else()
 
     # # address sanitizer and other debugging utilities
     # set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fsanitize=address -fsanitize=undefined")
+
+    # ClangCL on Windows uses link.exe, so it supports /DEBUG and /NATVIS
+    if(HYP_CLANG_WINDOWS)
+        set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} /DEBUG /NATVIS:${CMAKE_SOURCE_DIR}/Engine/Hyperion.natvis")
+        set(CMAKE_SHARED_LINKER_FLAGS "${CMAKE_SHARED_LINKER_FLAGS} /DEBUG /NATVIS:${CMAKE_SOURCE_DIR}/Engine/Hyperion.natvis")
+    endif()
 endif()
 
 set(HYP_VERSION_MAJOR 1)
@@ -274,7 +280,7 @@ if(CMAKE_GENERATOR STREQUAL "Xcode")
     set(CMAKE_XCODE_ATTRIBUTE_CODE_SIGNING_REQUIRED "NO")
 
 # for VS solutions, we want to add some files as a custom solution item
-elseif(HYP_MSVC)
+elseif(HYP_MSVC OR HYP_CLANG_WINDOWS)
     set(SOLUTION_FILES "${CMAKE_SOURCE_DIR}/Engine/Hyperion.natvis" "${CMAKE_SOURCE_DIR}/../.clang-format" "${CMAKE_SOURCE_DIR}/../.clang-tidy")
     add_custom_target(VSSolutionFiles SOURCES ${SOLUTION_FILES})
 endif()
@@ -671,7 +677,7 @@ function(collect_sources_and_modules dir out_sources out_headers out_modules)
         "${dir}/*.cpp" "${dir}/*.cxx" "${dir}/*.cc" "${dir}/*.c" "${dir}/*.mm" "${dir}/*.m")
     list(APPEND local_sources ${current_sources})
     file(GLOB current_headers RELATIVE ${CMAKE_SOURCE_DIR}
-        "${dir}/*.hpp" "${dir}/*.hxx" "${dir}/*.hh" "${dir}/*.h" "${dir}/*.inl" "${dir}/*.inc")
+        "${dir}/*.hpp" "${dir}/*.hxx" "${dir}/*.hh" "${dir}/*.h" "${dir}/*.inl" "${dir}/*.inc" "${dir}/*.hlsli")
     list(APPEND local_headers ${current_headers})
 
     # If this directory has a CMakeLists.txt, consider it a module
@@ -790,7 +796,7 @@ function(collect_sources_and_modules dir out_sources out_headers out_modules)
                         file(GLOB_RECURSE child_all_sources RELATIVE ${CMAKE_SOURCE_DIR}
                             "${child}/*.cpp" "${child}/*.cxx" "${child}/*.cc" "${child}/*.c" "${child}/*.mm" "${child}/*.m")
                         file(GLOB_RECURSE child_all_headers RELATIVE ${CMAKE_SOURCE_DIR}
-                            "${child}/*.hpp" "${child}/*.hxx" "${child}/*.hh" "${child}/*.h" "${child}/*.inl" "${child}/*.inc")
+                            "${child}/*.hpp" "${child}/*.hxx" "${child}/*.hh" "${child}/*.h" "${child}/*.inl" "${child}/*.inc" "${child}/*.hlsli")
                         list(REMOVE_ITEM local_sources ${child_all_sources})
                         list(REMOVE_ITEM local_headers ${child_all_headers})
                     else()

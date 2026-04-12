@@ -8,10 +8,10 @@ layout(location = 0) in vec3 v_position;
 layout(location = 1) in vec2 v_texcoord;
 layout(location = 0) out vec4 color_output;
 
-#include "../include/shared.inc"
-#include "../include/defines.inc"
-#include "../include/gbuffer.inc"
-#include "../include/scene.inc"
+#include "../include/Shared.hlsli"
+#include "../include/Defines.hlsli"
+#include "../include/Gbuffer.hlsli"
+#include "../include/Scene.hlsli"
 
 layout(set = DepthOfField, binding = 78) uniform texture2D dof_blur_vert;
 

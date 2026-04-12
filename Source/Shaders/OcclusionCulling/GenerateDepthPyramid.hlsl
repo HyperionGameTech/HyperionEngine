@@ -1,7 +1,7 @@
-#include "../include/defines.inc"
+#include "../include/Defines.hlsli"
 
-#include "../include/shared.inc"
-#include "./Shared.inc"
+#include "../include/Shared.hlsli"
+#include "./Shared.hlsli"
 
 DECLARE_SRV(DepthPyramidDescriptorSet, InImage) Texture2D mip_in;
 DECLARE_UAV(DepthPyramidDescriptorSet, OutImage) RWTexture2D<float4> mip_out;

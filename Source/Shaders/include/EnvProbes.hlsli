@@ -1,7 +1,7 @@
 #ifndef ENV_PROBES_HLSLI
 #define ENV_PROBES_HLSLI
 
-#include "defines.inc"
+#include "Defines.hlsli"
 
 // ENV PROBES
 

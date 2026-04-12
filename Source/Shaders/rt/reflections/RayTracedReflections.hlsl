@@ -1,7 +1,7 @@
-#include "../include/defines.inc"
-#include "../include/shared.inc"
-#include "../include/noise.inc"
-#include "../include/packing.inc"
+#include "../include/Defines.hlsli"
+#include "../include/Shared.hlsli"
+#include "../include/Noise.hlsli"
+#include "../include/Packing.hlsli"
 
 DECLARE_SRV(RTReflections, GBufferAlbedoTexture) Texture2D gbuffer_albedo_texture;
 DECLARE_SRV(RTReflections, GBufferNormalsTexture) Texture2D gbuffer_normals_texture;
@@ -20,16 +20,16 @@ DECLARE_UAV(RTReflections, OutputImage) RWTexture2D<unorm float4> image;
 
 #define HYP_DO_NOT_DEFINE_DESCRIPTOR_SETS
 
-#include "../include/gbuffer.inc"
-#include "../include/scene.inc"
-#include "../include/packing.inc"
-#include "../include/noise.inc"
+#include "../include/Gbuffer.hlsli"
+#include "../include/Scene.hlsli"
+#include "../include/Packing.hlsli"
+#include "../include/Noise.hlsli"
 #include "../include/BRDF.hlsli"
 
 /// Blue noise
 DECLARE_SRV(RTReflections, BlueNoiseBuffer) StructuredBuffer<int4> BlueNoiseBuffer;
 
-#include "../include/BlueNoise.inc"
+#include "../include/BlueNoise.hlsli"
 #include "../include/EnvProbes.hlsli"
 
 #undef HYP_DO_NOT_DEFINE_DESCRIPTOR_SETS
@@ -37,8 +37,8 @@ DECLARE_SRV(RTReflections, BlueNoiseBuffer) StructuredBuffer<int4> BlueNoiseBuff
 DECLARE_SRV(RTReflections, WorldsBuffer) StructuredBuffer<WorldShaderData> _worlds_buffer;
 #define world_shader_data _worlds_buffer[0]
 
-#include "../include/rt/RayTracingHelpers.inc"
-#include "../include/rt/payload.inc"
+#include "../include/rt/RayTracingHelpers.hlsli"
+#include "../include/rt/Payload.hlsli"
 
 DECLARE_BUFFER_DYNAMIC(RTReflections, CBuffer) cbuffer CBuffer
 {

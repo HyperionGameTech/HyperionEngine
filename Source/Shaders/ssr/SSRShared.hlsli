@@ -1,0 +1,39 @@
+#ifndef OUTPUT_FORMAT
+#if defined(OUTPUT_RGBA8)
+#define OUTPUT_FORMAT rgba8
+#define TEMPORAL_BLENDING_GAMMA_CORRECTION
+#elif defined(OUTPUT_RGBA16F)
+#define OUTPUT_FORMAT rgba16f
+#elif defined(OUTPUT_RGBA32F)
+#define OUTPUT_FORMAT rgba32f
+#else
+#define OUTPUT_FORMAT rgba8
+#define TEMPORAL_BLENDING_GAMMA_CORRECTION
+#endif
+#endif
+
+#include "../include/Defines.hlsli"
+#include "../include/Packing.hlsli"
+#include "../include/Scene.hlsli"
+#include "../include/Shared.hlsli"
+#include "../include/Noise.hlsli"
+
+#define HYP_SSR_ROUGHNESS_MAX 1.0
+
+struct SSRConstants
+{
+    uint4 dimension;
+    float ray_step;
+    float num_iterations;
+    float max_ray_distance;
+    float distance_bias;
+    float offset;
+    float eye_fade_start;
+    float eye_fade_end;
+    float screen_edge_fade_start;
+    float screen_edge_fade_end;
+
+    float _pad0;
+    float _pad1;
+    float _pad2;
+};

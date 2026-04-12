@@ -1,15 +1,15 @@
-#include "../include/defines.inc"
+#include "../include/Defines.hlsli"
 
 #define HYP_DO_NOT_DEFINE_DESCRIPTOR_SETS
 
-#include "../include/scene.inc"
-#include "../include/shared.inc"
-#include "../include/material.inc"
-#include "../include/gbuffer.inc"
+#include "../include/Scene.hlsli"
+#include "../include/Shared.hlsli"
+#include "../include/Material.hlsli"
+#include "../include/Gbuffer.hlsli"
 #include "../include/EnvProbes.hlsli"
-#include "../include/noise.inc"
-#include "../include/Entity.inc"
-#include "../include/packing.inc"
+#include "../include/Noise.hlsli"
+#include "../include/Entity.hlsli"
+#include "../include/Packing.hlsli"
 
 DECLARE_SRV_DYNAMIC(Default, CurrentEnvProbe) StructuredBuffer<EnvProbe> current_env_probe_buffer;
 #define current_env_probe current_env_probe_buffer[0]

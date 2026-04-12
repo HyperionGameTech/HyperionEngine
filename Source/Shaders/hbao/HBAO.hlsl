@@ -1,4 +1,4 @@
-#include "../include/defines.inc"
+#include "../include/Defines.hlsli"
 
 PERMUTE(HALFRES);
 
@@ -53,13 +53,11 @@ DECLARE_SRV(HBAO, GBufferDepthTexture) Texture2D gbuffer_depth_texture;
 DECLARE_SAMPLER(HBAO, SamplerLinear) SamplerState sampler_linear;
 DECLARE_SAMPLER(HBAO, SamplerNearest) SamplerState sampler_nearest;
 
-#define HYP_DO_NOT_DEFINE_DESCRIPTOR_SETS
-#include "../include/shared.inc"
-#include "../include/scene.inc"
-#include "../include/gbuffer.inc"
-#include "../include/packing.inc"
-#include "../include/noise.inc"
-#undef HYP_DO_NOT_DEFINE_DESCRIPTOR_SETS
+#include "../include/Shared.hlsli"
+#include "../include/Scene.hlsli"
+#include "../include/Gbuffer.hlsli"
+#include "../include/Packing.hlsli"
+#include "../include/Noise.hlsli"
 
 DECLARE_SRV_DYNAMIC(HBAO, CamerasBuffer) StructuredBuffer<Camera> _cameras_buffer;
 #define camera _cameras_buffer[0]
@@ -74,7 +72,7 @@ DECLARE_BUFFER(HBAO, UniformBuffer) cbuffer UniformBuffer
     float power;
 };
 
-#include "../include/Temporal.inc"
+#include "../include/Temporal.hlsli"
 
 #define HYP_HBAO_NUM_CIRCLES 4
 #define HYP_HBAO_NUM_SLICES 4

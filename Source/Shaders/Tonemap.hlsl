@@ -1,5 +1,5 @@
-#include "include/defines.inc"
-#include "include/shared.inc"
+#include "include/Defines.hlsli"
+#include "include/Shared.hlsli"
 
 PERMUTE(EXPOSURE, 1.0, 1.1, 1.2, 1.4, 1.6, 1.8, 2.0);
 
@@ -54,7 +54,7 @@ DECLARE_SRV(Tonemap, DeferredResult) Texture2D DeferredResult;
 DECLARE_SAMPLER(Tonemap, SamplerNearest) SamplerState sampler_nearest;
 DECLARE_SAMPLER(Tonemap, SamplerLinear) SamplerState sampler_linear;
 
-#include "include/tonemap.inc"
+#include "include/Tonemap.hlsli"
 
 PSOutput PSMain(PSInput input)
 {

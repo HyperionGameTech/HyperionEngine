@@ -3,9 +3,9 @@
  *  Date: 2026/03/27
  **/
 
-#include "./include/defines.inc"
-#include "./include/shared.inc"
-#include "./include/scene.inc"
+#include "./include/Defines.hlsli"
+#include "./include/Shared.hlsli"
+#include "./include/Scene.hlsli"
 
 PERMUTE(INSTANCING);
 PERMUTE(SKINNING);
@@ -33,7 +33,7 @@ struct VSOutput
 DECLARE_SRV_DYNAMIC(Default, CamerasBuffer) StructuredBuffer<Camera> _cameras_buffer;
 #define camera _cameras_buffer[0]
 
-#include "include/Entity.inc"
+#include "include/Entity.hlsli"
 
 #ifdef INSTANCING
     DECLARE_SRV(Default, EntitiesBuffer) StructuredBuffer<Entity> entities;
@@ -45,7 +45,7 @@ DECLARE_SRV_DYNAMIC(Default, CamerasBuffer) StructuredBuffer<Camera> _cameras_bu
 
 #if defined(SKINNING) && defined(HYP_ATTRIBUTE_a_bone_indices) && defined(HYP_ATTRIBUTE_a_bone_weights) && defined(HYP_ATTRIBUTE_a_position)
 
-#include "include/Skeleton.inc"
+#include "include/Skeleton.hlsli"
 DECLARE_SRV_DYNAMIC(Default, SkeletonsBuffer) StructuredBuffer<Skeleton> skeletons;
 #endif // SKINNING && bone attrs
 

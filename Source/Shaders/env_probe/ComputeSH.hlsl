@@ -1,4 +1,4 @@
-#include "../include/defines.inc"
+#include "../include/Defines.hlsli"
 
 PERMUTE(MODE, CLEAR, BUILD_COEFFICIENTS, REDUCE, FINALIZE);
 
@@ -18,10 +18,10 @@ struct SHTile
 DECLARE_SAMPLER(ComputeSH, SamplerLinear) SamplerState sampler_linear;
 DECLARE_SAMPLER(ComputeSH, SamplerNearest) SamplerState sampler_nearest;
 
-#include "../include/shared.inc"
-#include "../include/packing.inc"
-#include "../include/scene.inc"
-#include "../include/Octahedron.inc"
+#include "../include/Shared.hlsli"
+#include "../include/Packing.hlsli"
+#include "../include/Scene.hlsli"
+#include "../include/Octahedron.hlsli"
 
 #undef HYP_DO_NOT_DEFINE_DESCRIPTOR_SETS
 

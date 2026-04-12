@@ -1,8 +1,8 @@
 #ifndef HYP_SAMPLE_DDGI
 #define HYP_SAMPLE_DDGI
 
-#include "./probe_uniforms.inc"
-#include "./shared.inc"
+#include "./ProbeUniforms.hlsli"
+#include "./Shared.hlsli"
 
 float4 DDGISampleIrradiance(float3 P, float3 N, float3 V)
 {

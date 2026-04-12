@@ -1,5 +1,5 @@
-#include "../include/defines.inc"
-#include "../include/rt/probe/probe_uniforms.inc"
+#include "../include/Defines.hlsli"
+#include "../include/rt/probe/ProbeUniforms.hlsli"
 
 PERMUTE(MODE, IRRADIANCE, DEPTH);
 
@@ -31,7 +31,7 @@ DECLARE_BUFFER_DYNAMIC(DDGI, CBuffer) cbuffer CBuffer
 
 DECLARE_SRV(DDGI, ProbeRayData) StructuredBuffer<ProbeRayData> probe_rays;
 
-#include "../include/rt/probe/shared.inc"
+#include "../include/rt/probe/Shared.hlsli"
 
 #if MODE_DEPTH
 DECLARE_UAV(DDGI, OutputImage) RWTexture2D<float2> outputImage;

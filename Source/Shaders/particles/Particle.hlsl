@@ -1,10 +1,10 @@
-#include "../include/defines.inc"
+#include "../include/Defines.hlsli"
 
 #ifdef VERTEX_SHADER
 
 #define HYP_DO_NOT_DEFINE_DESCRIPTOR_SETS
-#include "../include/scene.inc"
-#include "../include/Entity.inc"
+#include "../include/Scene.hlsli"
+#include "../include/Entity.hlsli"
 #undef HYP_DO_NOT_DEFINE_DESCRIPTOR_SETS
 
 struct ParticleShaderData
@@ -77,11 +77,11 @@ VSOutput VSMain(VSInput input, uint instanceId : SV_InstanceID)
 #ifdef PIXEL_SHADER
 
 #define HYP_DO_NOT_DEFINE_DESCRIPTOR_SETS
-#include "../include/shared.inc"
-#include "../include/material.inc"
-#include "../include/packing.inc"
-#include "../include/gbuffer.inc"
-#include "../include/Entity.inc"
+#include "../include/Shared.hlsli"
+#include "../include/Material.hlsli"
+#include "../include/Packing.hlsli"
+#include "../include/Gbuffer.hlsli"
+#include "../include/Entity.hlsli"
 #undef HYP_DO_NOT_DEFINE_DESCRIPTOR_SETS
 
 struct PSInput

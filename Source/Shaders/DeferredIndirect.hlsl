@@ -1,4 +1,4 @@
-#include "./include/defines.inc"
+#include "./include/Defines.hlsli"
 
 PERMUTE(SSGI_ENABLED);
 PERMUTE(SSR_ENABLED);
@@ -82,21 +82,21 @@ DECLARE_SRV(DeferredPass, SSRResultTexture) Texture2D SSRResultTexture;
 DECLARE_SRV(DeferredPass, RTRadianceResultTexture) Texture2D RTRadianceResultTexture;
 #endif // RT_REFLECTIONS
 
-#include "./include/gbuffer.inc"
-#include "./include/material.inc"
+#include "./include/Gbuffer.hlsli"
+#include "./include/Material.hlsli"
 
-#include "./include/scene.inc"
+#include "./include/Scene.hlsli"
 
 DECLARE_SRV(DeferredPass, WorldsBuffer) StructuredBuffer<WorldShaderData> _worlds_buffer;
 #define world_shader_data _worlds_buffer[0]
 
-#include "./include/PhysicalCamera.inc"
+#include "./include/PhysicalCamera.hlsli"
 
 #ifdef RT_GI
 DECLARE_SRV(DeferredPass, DDGIIrradianceTexture) Texture2D probe_irradiance;
 DECLARE_SRV(DeferredPass, DDGIDepthTexture) Texture2D probe_depth;
 
-#include "include/rt/probe/probe_uniforms.inc"
+#include "include/rt/probe/ProbeUniforms.hlsli"
 
 DECLARE_BUFFER(DeferredPass, DDGIConstants) cbuffer DDGI
 {

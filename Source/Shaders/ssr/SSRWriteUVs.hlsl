@@ -1,4 +1,4 @@
-#include "../include/defines.inc"
+#include "../include/Defines.hlsli"
 
 PERMUTE(CONE_TRACING);
 PERMUTE(ROUGHNESS_SCATTERING);
@@ -39,9 +39,9 @@ VSOutput VSMain(VSInput input)
 
 #ifdef PIXEL_SHADER
 
-#include "ssr_header.inc"
-#include "../include/defines.inc"
-#include "../include/noise.inc"
+#include "SSRShared.hlsli"
+#include "../include/Defines.hlsli"
+#include "../include/Noise.hlsli"
 #include "../include/BRDF.hlsli"
 
 struct PSInput
@@ -80,9 +80,9 @@ DECLARE_SRV_DYNAMIC(RenderSSR, CamerasBuffer) StructuredBuffer<Camera> _cameras_
 #define camera _cameras_buffer[0]
 
 #define HYP_DO_NOT_DEFINE_DESCRIPTOR_SETS
-#include "../include/gbuffer.inc"
-#include "../include/BlueNoise.inc"
-#include "../include/Temporal.inc"
+#include "../include/Gbuffer.hlsli"
+#include "../include/BlueNoise.hlsli"
+#include "../include/Temporal.hlsli"
 #undef HYP_DO_NOT_DEFINE_DESCRIPTOR_SETS
 
 #define MAX_ROUGHNESS 0.4

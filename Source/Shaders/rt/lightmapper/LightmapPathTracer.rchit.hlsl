@@ -1,8 +1,8 @@
 #define PATHTRACER
 #define LIGHTMAPPER
 
-#include "../../include/defines.inc"
-#include "../../include/shared.inc"
+#include "../../include/Defines.hlsli"
+#include "../../include/Shared.hlsli"
 
 #define HYP_NO_CUBEMAP
 
@@ -13,19 +13,19 @@ DECLARE_SAMPLER(LightmapPathTracer, SamplerLinear) SamplerState sampler_linear;
 #define HYP_SAMPLER_NEAREST sampler_nearest
 #define HYP_SAMPLER_LINEAR sampler_linear
 
-#include "../../include/vertex.inc"
+#include "../../include/Vertex.hlsli"
 
 #define HYP_DO_NOT_DEFINE_DESCRIPTOR_SETS
-#include "../../include/material.inc"
-#include "../../include/Entity.inc"
-#include "../../include/scene.inc"
-#include "../../include/noise.inc"
+#include "../../include/Material.hlsli"
+#include "../../include/Entity.hlsli"
+#include "../../include/Scene.hlsli"
+#include "../../include/Noise.hlsli"
 
 #include "../../include/BRDF.hlsli"
 #undef HYP_DO_NOT_DEFINE_DESCRIPTOR_SETS
 
-#include "../../include/rt/mesh.inc"
-#include "../../include/rt/payload.inc"
+#include "../../include/rt/Mesh.hlsli"
+#include "../../include/rt/Payload.hlsli"
 
 /* Shadows */
 
@@ -36,7 +36,7 @@ DECLARE_SRV(LightmapPathTracer, PointLightShadowMapsTextureArray) TextureCubeArr
 #include "../../include/Shadows.hlsli"
 #undef HYP_DO_NOT_DEFINE_DESCRIPTOR_SETS
 
-#include "../../include/rt/RayTracingHelpers.inc"
+#include "../../include/rt/RayTracingHelpers.hlsli"
 
 /* End Shadows */
 

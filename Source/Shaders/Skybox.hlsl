@@ -1,11 +1,11 @@
-#include "include/defines.inc"
+#include "include/Defines.hlsli"
 
 #define HYP_DO_NOT_DEFINE_DESCRIPTOR_SETS
-#include "include/gbuffer.inc"
-#include "include/scene.inc"
-#include "include/Entity.inc"
-#include "include/packing.inc"
-#include "include/material.inc"
+#include "include/Gbuffer.hlsli"
+#include "include/Scene.hlsli"
+#include "include/Entity.hlsli"
+#include "include/Packing.hlsli"
+#include "include/Material.hlsli"
 #undef HYP_DO_NOT_DEFINE_DESCRIPTOR_SETS
 
 DECLARE_SRV_DYNAMIC(Default, MaterialsBuffer) StructuredBuffer<Material> material_buffer;

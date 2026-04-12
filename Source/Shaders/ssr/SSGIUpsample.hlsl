@@ -1,6 +1,6 @@
-#include "../include/defines.inc"
-#include "../include/shared.inc"
-#include "../include/scene.inc"
+#include "../include/Defines.hlsli"
+#include "../include/Shared.hlsli"
+#include "../include/Scene.hlsli"
 
 #ifdef VERTEX_SHADER
 
@@ -66,11 +66,11 @@ DECLARE_BUFFER_DYNAMIC(SSGIUpsample, CBuffer) cbuffer CBuffer
 };
 
 #define HYP_DO_NOT_DEFINE_DESCRIPTOR_SETS
-#include "../include/shared.inc"
-#include "../include/scene.inc"
-#include "../include/gbuffer.inc"
-#include "../include/packing.inc"
-#include "../include/noise.inc"
+#include "../include/Shared.hlsli"
+#include "../include/Scene.hlsli"
+#include "../include/Gbuffer.hlsli"
+#include "../include/Packing.hlsli"
+#include "../include/Noise.hlsli"
 #undef HYP_DO_NOT_DEFINE_DESCRIPTOR_SETS
     
 static const float SpatialWeights[5] = { 0.0545f, 0.2442f, 0.4026f, 0.2442f, 0.0545f };

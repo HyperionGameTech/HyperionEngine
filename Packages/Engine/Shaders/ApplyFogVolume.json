@@ -1,0 +1,12 @@
+{
+  "$Class": "ShaderBundle",
+  "CompiledShaders": [{
+      "$Class": "AssetReference",
+      "AssetPath": {
+        "Value": "Engine/Shaders/ApplyFogVolume/ApplyFogVolume_8217044443126766855"
+      }
+    }],
+  "Name": "ApplyFogVolume",
+  "FriendlyName": "ApplyFogVolume",
+  "OriginalFilepath": ""
+}
