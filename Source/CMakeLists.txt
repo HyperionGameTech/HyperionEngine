@@ -119,7 +119,7 @@ message(STATUS "Building for platform: ${HYP_PLATFORM_NAME} with compiler: ${CMA
 
 set(USE_MSBUILD_FOR_CSHARP_BUILD false)
 
-if (HYP_MSVC)
+if (HYP_MSVC OR HYP_CLANG_WINDOWS)
     set(USE_MSBUILD_FOR_CSHARP_BUILD true)
     message(STATUS "Using MSBuild for C# projects")
 endif()
@@ -845,7 +845,7 @@ file(GLOB_RECURSE SHADER_FILES "${CMAKE_SOURCE_DIR}/Shaders/*")
 foreach(SHADER_FILE ${SHADER_FILES})
     source_group("Shader Code" FILES ${SHADER_FILE})
 
-    if(HYP_MSVC)
+    if(HYP_MSVC OR HYP_CLANG_WINDOWS)
         set_property(SOURCE ${SHADER_FILE} PROPERTY VS_TOOL_OVERRIDE "None")
     endif()
 
@@ -1063,7 +1063,7 @@ if(APPLE)
             target_link_libraries(${BUILD_NAME} PRIVATE ${SUB_LIBRARY})
         endif()
     endforeach()
-elseif(HYP_MSVC)
+elseif(HYP_MSVC OR HYP_CLANG_WINDOWS)
     # needs to use /WHOLEARCHIVE on Windows for emulating the above behavior
     foreach(SUB_LIBRARY ${SUB_LIBRARIES})
         if (SUB_LIBRARY MATCHES "hyperion-dotnet-.*" OR SUB_LIBRARY MATCHES "hyperion-editor")

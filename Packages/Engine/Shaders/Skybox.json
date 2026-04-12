@@ -1,0 +1,12 @@
+{
+  "$Class": "ShaderBundle",
+  "CompiledShaders": [{
+      "$Class": "AssetReference",
+      "AssetPath": {
+        "Value": "Engine/Shaders/Skybox/Skybox_12407244494021180445"
+      }
+    }],
+  "Name": "Skybox",
+  "FriendlyName": "Skybox",
+  "OriginalFilepath": ""
+}

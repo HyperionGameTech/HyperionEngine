@@ -375,9 +375,9 @@ namespace Hyperion
 
         // public static FBOMData FromVec4f(Vec4f value)
 
-        public Quaternion? GetQuaternion()
+        public Quat4f? GetQuaternion()
         {
-            Quaternion value;
+            Quat4f value;
 
             if (FBOMData_GetQuaternion(this.ptr, out value))
             {
@@ -387,7 +387,7 @@ namespace Hyperion
             return null;
         }
 
-        public static FBOMData FromQuaternion(Quaternion value)
+        public static FBOMData FromQuaternion(Quat4f value)
         {
             FBOMData data = new FBOMData();
             FBOMData_SetQuaternion(data.ptr, ref value);
@@ -534,10 +534,10 @@ namespace Hyperion
         // private static extern void FBOMData_SetVec4f(IntPtr dataPtr, [In] ref Vec4f value);
 
         [DllImport("hyperion", EntryPoint = "FBOMData_GetQuaternion")]
-        private static extern bool FBOMData_GetQuaternion(IntPtr dataPtr, [Out] out Quaternion value);
+        private static extern bool FBOMData_GetQuaternion(IntPtr dataPtr, [Out] out Quat4f value);
 
         [DllImport("hyperion", EntryPoint = "FBOMData_SetQuaternion")]
-        private static extern void FBOMData_SetQuaternion(IntPtr dataPtr, [In] ref Quaternion value);
+        private static extern void FBOMData_SetQuaternion(IntPtr dataPtr, [In] ref Quat4f value);
 
         [DllImport("hyperion", EntryPoint = "FBOMData_GetObject")]
         private static extern bool FBOMData_GetObject(IntPtr contextPtr, IntPtr dataPtr, [Out] IntPtr ptr);

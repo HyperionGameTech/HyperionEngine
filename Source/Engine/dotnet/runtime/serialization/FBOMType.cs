@@ -23,7 +23,7 @@ namespace Hyperion
         public static readonly FBOMType Vec2f;
         public static readonly FBOMType Vec3f;
         public static readonly FBOMType Vec4f;
-        public static readonly FBOMType Quaternion;
+        public static readonly FBOMType Quat4f;
 
         static FBOMType()
         {
@@ -45,7 +45,7 @@ namespace Hyperion
             Vec2f = new FBOMType(FBOMType_Vec2f());
             Vec3f = new FBOMType(FBOMType_Vec3f());
             Vec4f = new FBOMType(FBOMType_Vec4f());
-            Quaternion = new FBOMType(FBOMType_Quaternion());
+            Quat4f = new FBOMType(FBOMType_Quaternion());
         }
 
         internal IntPtr ptr;

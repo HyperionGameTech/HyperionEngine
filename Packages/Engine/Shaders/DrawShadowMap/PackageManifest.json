@@ -1,0 +1,7 @@
+{
+  "Dependencies": [],
+  "Name": "DrawShadowMap",
+  "FriendlyName": "DrawShadowMap",
+  "Flags": 0,
+  "Path": "Engine/Shaders/DrawShadowMap"
+}

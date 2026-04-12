@@ -1264,7 +1264,7 @@ RendererResult VulkanRenderInterface::GetVkExtensions(Array<const char*>& outExt
 #endif
 
 #if HYP_WINDOWS
-    if (const Win32AppContext* win32AppContext = ObjCast<Win32AppContext>(g_appContext))
+    if (g_appContext->IsA(Win32AppContext::StaticClass()))
     {
         // extensions required for Win32 surface support
         static const char* RequiredExtensions[] = {

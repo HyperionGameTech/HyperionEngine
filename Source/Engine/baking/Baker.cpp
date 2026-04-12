@@ -432,7 +432,6 @@ void BakerBase::Update(float delta)
 
     uint32 numTexelsProcessed = 0;
     uint32 numRunningJobs = 0;
-    uint32 numProcessedJobs = 0;
 
     double gpuMemUsagePerJobMB = GetEstimatedGPUMemUsageForJob(m_config);
     AssertDebug(gpuMemUsagePerJobMB <= IdealGpuMemUsageMB);
@@ -470,8 +469,6 @@ void BakerBase::Update(float delta)
         if (job->IsRunning())
         {
             numTexelsProcessed += job->Process(uint32(MathUtil::Max(0, int64(IdealTexelsPerFrame) - int64(numTexelsProcessed))));
-
-            ++numProcessedJobs;
         }
 
         if (job->IsCompleted())

@@ -11,16 +11,16 @@ namespace Hyperion
 
         private Vec3f _translation;
         private Vec3f _scale;
-        private Quaternion _rotation;
+        private Quat4f _rotation;
 
         public Transform()
         {
             _translation = new Vec3f();
             _scale = new Vec3f(1);
-            _rotation = new Quaternion();
+            _rotation = new Quat4f();
         }
 
-        public Transform(Vec3f translation, Vec3f scale, Quaternion rotation)
+        public Transform(Vec3f translation, Vec3f scale, Quat4f rotation)
         {
             _translation = translation;
             _scale = scale;
@@ -39,7 +39,7 @@ namespace Hyperion
             set => _scale = value;
         }
 
-        public Quaternion Rotation
+        public Quat4f Rotation
         {
             get => _rotation;
             set => _rotation = value;

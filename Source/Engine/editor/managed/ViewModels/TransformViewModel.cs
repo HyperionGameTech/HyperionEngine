@@ -126,7 +126,7 @@ namespace Hyperion.Editor.ViewModels
         private Vec3f ReadScale() => ReadTransform().Scale;
         private Vec3f ReadRotationEuler()
         {
-            Quaternion q = ReadTransform().Rotation;
+            Quat4f q = ReadTransform().Rotation;
             return QuaternionToEulerDegrees(q);
         }
 
@@ -156,12 +156,12 @@ namespace Hyperion.Editor.ViewModels
             return $"({v.x.ToString("F3", CultureInfo.InvariantCulture)}, {v.y.ToString("F3", CultureInfo.InvariantCulture)}, {v.z.ToString("F3", CultureInfo.InvariantCulture)})";
         }
 
-        private static string FormatQuat(Quaternion q)
+        private static string FormatQuat(Quat4f q)
         {
             return $"({q.X.ToString("F3", CultureInfo.InvariantCulture)}, {q.Y.ToString("F3", CultureInfo.InvariantCulture)}, {q.Z.ToString("F3", CultureInfo.InvariantCulture)}, {q.W.ToString("F3", CultureInfo.InvariantCulture)})";
         }
 
-        private static Vec3f QuaternionToEulerDegrees(Quaternion q)
+        private static Vec3f QuaternionToEulerDegrees(Quat4f q)
         {
             float sinr_cosp = 2f * (q.W * q.X + q.Y * q.Z);
             float cosr_cosp = 1f - 2f * (q.X * q.X + q.Y * q.Y);
@@ -178,7 +178,7 @@ namespace Hyperion.Editor.ViewModels
             return new Vec3f(roll * rad2deg, pitch * rad2deg, yaw * rad2deg);
         }
 
-        private static Quaternion EulerDegreesToQuaternion(Vec3f eulerDegrees)
+        private static Quat4f EulerDegreesToQuaternion(Vec3f eulerDegrees)
         {
             const float deg2rad = MathF.PI / 180f;
             float roll = eulerDegrees.x * deg2rad;
@@ -192,7 +192,7 @@ namespace Hyperion.Editor.ViewModels
             float cr = MathF.Cos(roll * 0.5f);
             float sr = MathF.Sin(roll * 0.5f);
 
-            Quaternion q = new Quaternion
+            Quat4f q = new Quat4f
             {
                 W = cr * cp * cy + sr * sp * sy,
                 X = sr * cp * cy - cr * sp * sy,

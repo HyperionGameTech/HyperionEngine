@@ -158,8 +158,6 @@ void RenderThread::Update()
 
     if (worldsToRender)
     {
-        uint32 numViewsRendered = 0;
-
         RendererBase* mainRenderer = g_renderInterface->globalRenderers[GRT_MAIN][0];
         AssertDebug(mainRenderer != nullptr);
 
@@ -180,8 +178,6 @@ void RenderThread::Update()
             if (world->GetViews().Size() != 0)
             {
                 mainRenderer->RenderFrame(frame, renderSetup);
-
-                numViewsRendered += world->GetViews().Size();
             }
         }
 

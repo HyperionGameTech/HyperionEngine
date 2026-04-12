@@ -2,6 +2,7 @@
 setlocal EnableDelayedExpansion
 
 set "HYP_ANDROID=0"
+set "HYP_CLANG=0"
 set "HYP_REGENERATE=0"
 set "HYP_NOWAIT=0"
 set "HYP_BUILD_TYPE=Release"
@@ -11,6 +12,7 @@ IF "%~1"=="" GOTO END_PARSE_ARGS
 IF /I "%~1"=="debug" set "HYP_BUILD_TYPE=Debug"
 IF /I "%~1"=="release" set "HYP_BUILD_TYPE=Release"
 IF /I "%~1"=="android" set "HYP_ANDROID=1"
+IF /I "%~1"=="clang" set "HYP_CLANG=1"
 IF /I "%~1"=="regenerate" set "HYP_REGENERATE=1"
 IF /I "%~1"=="nowait" set "HYP_NOWAIT=1"
 SHIFT
@@ -20,6 +22,9 @@ GOTO PARSE_ARGS
 if "%HYP_ANDROID%"=="1" (
     if not exist Build\Android\%HYP_BUILD_TYPE% mkdir Build\Android\%HYP_BUILD_TYPE%
     pushd Build\Android\%HYP_BUILD_TYPE%
+) else if "%HYP_CLANG%"=="1" (
+    if not exist Build\Windows-Clang\%HYP_BUILD_TYPE% mkdir Build\Windows-Clang\%HYP_BUILD_TYPE%
+    pushd Build\Windows-Clang\%HYP_BUILD_TYPE%
 ) else (
     if not exist Build\Windows\%HYP_BUILD_TYPE% mkdir Build\Windows\%HYP_BUILD_TYPE%
     pushd Build\Windows\%HYP_BUILD_TYPE%
@@ -41,6 +46,7 @@ set "HYP_ROOT_DIR=%HYP_ROOT_DIR:\=/%"
 
 
 if "%HYP_ANDROID%"=="1" GOTO CMAKE_ANDROID
+if "%HYP_CLANG%"=="1" GOTO CMAKE_WINDOWS_CLANG
 GOTO CMAKE_WINDOWS
 
 :CMAKE_ANDROID
@@ -100,7 +106,15 @@ cmake ../../../Source -G Ninja -DCMAKE_MAKE_PROGRAM="%NINJA_EXE%" -DCMAKE_TOOLCH
 
 
 GOTO SKIP_CMAKE_GENERATION
+:CMAKE_WINDOWS_CLANG
+IF NOT DEFINED VCPKG_ROOT (
+    echo VCPKG_ROOT environment variable is not set. Please set it to the path of your vcpkg installation.
+    exit /b 1
+)
 
+cmake ../../../Source -DCMAKE_TOOLCHAIN_FILE="%VCPKG_ROOT%/scripts/buildsystems/vcpkg.cmake" -DVCPKG_DEFAULT_TRIPLET=x64-windows -DCMAKE_BUILD_TYPE="%HYP_BUILD_TYPE%" -G "Visual Studio 18 2026" -A x64 -T ClangCL -DHYP_THIRD_PARTY_LIBRARY_DIRECTORY="%~dp0..\..\..\External\ThirdParty\Binaries" -DHYP_LIBRARY_OUTPUT_DIRECTORY="%~dp0..\..\..\Binaries" -DHYP_RUNTIME_OUTPUT_DIRECTORY="%~dp0..\..\..\Binaries" -DHYP_ROOT_DIR="%HYP_ROOT_DIR%"
+
+GOTO SKIP_CMAKE_GENERATION
 :CMAKE_WINDOWS
 IF NOT DEFINED VCPKG_ROOT (
     echo VCPKG_ROOT environment variable is not set. Please set it to the path of your vcpkg installation.

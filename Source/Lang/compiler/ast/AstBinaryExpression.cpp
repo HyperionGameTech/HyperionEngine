@@ -676,8 +676,6 @@ UniquePtr<Buildable> AstBinaryExpression::Build(AstVisitor* visitor, Module* mod
     }
     else if (m_op->GetType() & ASSIGNMENT)
     {
-        uint8 rp;
-
         if (m_op->GetOperatorType() == Operators::OP_assign)
         {
             // load right-hand side into register 0
@@ -712,8 +710,6 @@ UniquePtr<Buildable> AstBinaryExpression::Build(AstVisitor* visitor, Module* mod
 
             chunk->Append(Compiler::BuildBinOp(opcode, visitor, mod, info));
         }
-
-        rp = visitor->GetCompilationUnit()->GetInstructionStream().GetCurrentRegister();
 
         Assert(m_left->GetAccessOptions() & AccessMode::ACCESS_MODE_STORE);
 

@@ -3,11 +3,11 @@ using System.Runtime.InteropServices;
 
 namespace Hyperion
 {
-    [ClassBinding(Name="Quaternion")]
+    [ClassBinding(Name="Quat4f")]
     [StructLayout(LayoutKind.Explicit, Size = 16, Pack = 16)]
-    public struct Quaternion
+    public struct Quat4f
     {
-        public static readonly Quaternion Identity = new Quaternion(0.0f, 0.0f, 0.0f, 1.0f);
+        public static readonly Quat4f Identity = new Quat4f(0.0f, 0.0f, 0.0f, 1.0f);
 
         [FieldOffset(0)]
         private float x;
@@ -18,7 +18,7 @@ namespace Hyperion
         [FieldOffset(12)]
         private float w;
 
-        public Quaternion()
+        public Quat4f()
         {
             this.x = 0;
             this.y = 0;
@@ -26,7 +26,7 @@ namespace Hyperion
             this.w = 1;
         }
 
-        public Quaternion(float x, float y, float z, float w)
+        public Quat4f(float x, float y, float z, float w)
         {
             this.x = x;
             this.y = y;

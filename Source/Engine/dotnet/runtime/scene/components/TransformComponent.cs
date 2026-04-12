@@ -13,7 +13,7 @@ namespace Hyperion
         public Vec3f Translation = Vec3f.Zero;
 
         [FieldOffset(16)]
-        public Quaternion Rotation = Quaternion.Identity;
+        public Quat4f Rotation = Quat4f.Identity;
 
         [FieldOffset(32)]
         public Vec3f Scale = Vec3f.One;
