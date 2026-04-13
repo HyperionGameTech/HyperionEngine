@@ -177,9 +177,10 @@ MaterialParameters UIListViewItem::GetMaterialParameters() const
         color = Color(Vec4f { 0.3f, 0.3f, 0.3f, 1.0f });
     }
 
-    return MaterialParameters {
-        { MATERIAL_KEY_ALBEDO, Vec4f(color) }
-    };
+    MaterialParameters parameters;
+    parameters.albedo = Vec4f(color);
+
+    return parameters;
 }
 
 #pragma endregion UIListViewItem

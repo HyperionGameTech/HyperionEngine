@@ -160,8 +160,6 @@ public:
 
     void PopulateIndirectDrawCommandsBuffer(const VulkanGpuBufferRef& vertexBuffer, const VulkanGpuBufferRef& indexBuffer, uint32 instanceOffset, TByteBuffer<RenderAllocator>& outByteBuffer) override;
 
-    TextureFormat GetDefaultFormat(DefaultImageFormat type) const override;
-
     bool IsSupportedFormat(TextureFormat format, ImageSupport supportType) const override;
     TextureFormat FindSupportedFormat(Span<TextureFormat> possibleFormats, ImageSupport supportType) const override;
 
@@ -198,8 +196,6 @@ private:
     Pimpl<VulkanRenderConfig> m_renderConfig;
 
     Pimpl<VulkanDescriptorSetManager> m_descriptorSetManager;
-
-    HashMap<DefaultImageFormat, TextureFormat> m_defaultFormats;
 
     Pimpl<VulkanTextureCache> m_textureCache;
 

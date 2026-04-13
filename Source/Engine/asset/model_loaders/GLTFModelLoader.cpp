@@ -585,11 +585,7 @@ Handle<Material> AcquireMaterial(GltfLoadContext& ctx, const cgltf_material* mat
         Handle<Material> fallback = MaterialCache::GetInstance()->GetOrCreate(
             NAME("BasicGLTFMaterial"),
             materialAttributes,
-            {
-                { MATERIAL_KEY_ALBEDO, Vec4f(1.0f) },
-                { MATERIAL_KEY_ROUGHNESS, 0.9f },
-                { MATERIAL_KEY_METALNESS, 0.0f }
-            });
+            MaterialParameters {});
 
         InitObject(fallback);
 
@@ -659,19 +655,19 @@ Handle<Material> AcquireMaterial(GltfLoadContext& ctx, const cgltf_material* mat
         transmission = float(material->transmission.transmission_factor);
     }
 
-    MaterialParameters parameters = Material::DefaultParameters();
-    parameters[MATERIAL_KEY_ALBEDO] = baseColor;
-    parameters[MATERIAL_KEY_METALNESS] = metallic;
-    parameters[MATERIAL_KEY_ROUGHNESS] = roughness;
+    MaterialParameters parameters;
+    parameters.albedo = baseColor;
+    parameters.metalness = metallic;
+    parameters.roughness = roughness;
 
     if (transmission > 0.0f)
     {
-        parameters[MATERIAL_KEY_TRANSMISSION] = MaterialParameter(transmission);
+        parameters.transmission = transmission;
     }
 
     if (material->alpha_mode == cgltf_alpha_mode_mask)
     {
-        parameters[MATERIAL_KEY_ALPHA_THRESHOLD] = MaterialParameter(float(material->alpha_cutoff));
+        parameters.alphaThreshold = float(material->alpha_cutoff);
     }
 
     switch (material->alpha_mode)
@@ -709,7 +705,7 @@ Handle<Material> AcquireMaterial(GltfLoadContext& ctx, const cgltf_material* mat
 
     if (emissiveFactor != Vec3f::Zero())
     {
-        parameters[MATERIAL_KEY_EMISSIVE_FACTOR] = MaterialParameter(emissiveFactor);
+        parameters.emissiveColor = Vec4f(emissiveFactor, 1.0f);
     }
 
     Handle<Material> materialHandle = MaterialCache::GetInstance()->CreateMaterial(materialName, materialAttributes, parameters, textures);

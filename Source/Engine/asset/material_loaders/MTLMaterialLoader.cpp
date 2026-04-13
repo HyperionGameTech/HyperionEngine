@@ -185,9 +185,7 @@ AssetLoadResult MTLMaterialLoader::LoadAsset(LoaderState& state) const
                 color.w = 1.0f;
             }
 
-            LastMaterial(library).parameters[MATERIAL_KEY_ALBEDO] = ParameterDef {
-                FixedArray<float, 4> { color[0], color[1], color[2], color[3] }
-            };
+            LastMaterial(library).parameters.albedo = color;
 
             continue;
         }
@@ -227,9 +225,7 @@ AssetLoadResult MTLMaterialLoader::LoadAsset(LoaderState& state) const
 
             const int spec = StringUtil::Parse<int>(tokens[1].Data());
 
-            LastMaterial(library).parameters[MATERIAL_KEY_ROUGHNESS] = ParameterDef {
-                .values = { MapSpecularToRoughness(spec) }
-            };
+            LastMaterial(library).parameters.roughness = MapSpecularToRoughness(spec);
 
             continue;
         }
@@ -285,22 +281,7 @@ AssetLoadResult MTLMaterialLoader::LoadAsset(LoaderState& state) const
             const float dissolve = MathUtil::Clamp(StringUtil::Parse<float>(tokens[valueIndex].Data()), 0.0f, 1.0f);
 
             auto &material = LastMaterial(library);
-            Vec4f albedo(1.0f, 1.0f, 1.0f, 1.0f);
-
-            if (auto it = material.parameters.Find(MATERIAL_KEY_ALBEDO); it != material.parameters.end())
-            {
-                albedo = Vec4f(
-                    it->second.values[0],
-                    it->second.values[1],
-                    it->second.values[2],
-                    it->second.values[3]);
-            }
-
-            albedo.w = dissolve;
-
-            material.parameters[MATERIAL_KEY_ALBEDO] = ParameterDef {
-                FixedArray<float, 4> { albedo[0], albedo[1], albedo[2], albedo[3] }
-            };
+            material.parameters.albedo.w = dissolve;
 
             continue;
         }
@@ -332,22 +313,7 @@ AssetLoadResult MTLMaterialLoader::LoadAsset(LoaderState& state) const
             const float dissolve = 1.0f - transparency;
 
             auto &material = LastMaterial(library);
-            Vec4f albedo(1.0f, 1.0f, 1.0f, 1.0f);
-
-            if (auto it = material.parameters.Find(MATERIAL_KEY_ALBEDO); it != material.parameters.end())
-            {
-                albedo = Vec4f(
-                    it->second.values[0],
-                    it->second.values[1],
-                    it->second.values[2],
-                    it->second.values[3]);
-            }
-
-            albedo.w = dissolve;
-
-            material.parameters[MATERIAL_KEY_ALBEDO] = ParameterDef {
-                FixedArray<float, 4> { albedo[0], albedo[1], albedo[2], albedo[3] }
-            };
+            material.parameters.albedo.w = dissolve;
 
             continue;
         }
@@ -397,9 +363,7 @@ AssetLoadResult MTLMaterialLoader::LoadAsset(LoaderState& state) const
 
             if (IsTransparencyModel(illumModel))
             {
-                LastMaterial(library).parameters[MATERIAL_KEY_TRANSMISSION] = ParameterDef {
-                    .values = FixedArray<float, 4> { 0.95f, 0.0f, 0.0f, 0.0f }
-                };
+                LastMaterial(library).parameters.transmission = 0.95f;
             }
 
             continue;
@@ -505,21 +469,13 @@ AssetLoadResult MTLMaterialLoader::LoadAsset(LoaderState& state) const
         attributes.bucket = RenderBucket::Translucent;*/
         attributes.flags |= MAF_ALPHA_DISCARD;
 
-        MaterialParameters parameters = Material::DefaultParameters();
-        parameters[MATERIAL_KEY_ALPHA_THRESHOLD] = 0.1f;
+        MaterialParameters& parameters = item.parameters;
+        parameters.alphaThreshold = 0.1f;
 
-        for (auto& it : item.parameters)
+        if (parameters.transmission > 0.0f)
         {
-            parameters[it.first] = MaterialParameter(it.second.values.Data(), it.second.values.Size());
-
-            if (it.first == MATERIAL_KEY_TRANSMISSION && AnyOf(it.second.values, [](float value)
-                    {
-                        return value > 0.0f;
-                    }))
-            {
-                attributes.blendFunction = BlendFunction::AlphaBlending();
-                attributes.bucket = RenderBucket::Translucent;
-            }
+            attributes.blendFunction = BlendFunction::AlphaBlending();
+            attributes.bucket = RenderBucket::Translucent;
         }
 
         // if (auto it = item.parameters.Find(MATERIAL_KEY_ALBEDO); it != item.parameters.end())

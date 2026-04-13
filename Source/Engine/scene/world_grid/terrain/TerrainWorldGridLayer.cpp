@@ -50,10 +50,12 @@ void TerrainWorldGridLayer::Init()
     m_material->SetBucket(RenderBucket::Opaque);
     m_material->SetIsDepthTestEnabled(true);
     m_material->SetIsDepthWriteEnabled(true);
-    m_material->SetParameter(MATERIAL_KEY_ALBEDO, Vec4f(0.06f, 0.25f, 0.05f, 1.0f));
-    m_material->SetParameter(MATERIAL_KEY_ROUGHNESS, 0.95f);
-    m_material->SetParameter(MATERIAL_KEY_METALNESS, 0.0f);
-    m_material->SetParameter(MATERIAL_KEY_UV_SCALE, Vec2f(10.0f));
+
+    MaterialParameters parameters;
+    parameters.albedo = Vec4f(0.06f, 0.25f, 0.05f, 1.0f);
+    parameters.roughness = 0.95f;
+    parameters.metalness = 0.0f;
+    m_material->SetParameters(parameters);
     
     g_assetManager->GetAssetRegistry()->RegisterAsset("$Memory/Media/Materials", m_material);
 

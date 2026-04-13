@@ -339,16 +339,18 @@ AssetLoadResult OgreXMLModelLoader::LoadAsset(LoaderState& state) const
             HYP_LOG(Assets, Error, "Failed to register mesh: {}", result.GetError().GetMessage());
         }
 
-        MaterialAttributes materialAttributes {};
-        materialAttributes.bucket = RenderBucket::Translucent;
-        materialAttributes.blendFunction = BlendFunction::AlphaBlending();
-        materialAttributes.shaderName = NAME("GeometryPass");
-        materialAttributes.shaderProperties = {};
+        MaterialAttributes attributes {};
+        attributes.bucket = RenderBucket::Translucent;
+        attributes.blendFunction = BlendFunction::AlphaBlending();
+        attributes.shaderName = NAME("GeometryPass");
+        attributes.shaderProperties = {};
 
-        Handle<Material> material = MakeHandle<Material>(CreateNameFromDynamicString(ANSIString(subMesh.name.Data())), materialAttributes);
-        material->SetParameter(MaterialParameterKey::MATERIAL_KEY_ALBEDO, Vec4f(1.0f, 1.0f, 1.0f, 1.0f));
-        material->SetParameter(MaterialParameterKey::MATERIAL_KEY_TRANSMISSION, 0.9f);
-        material->SetParameter(MaterialParameterKey::MATERIAL_KEY_ROUGHNESS, 0.2f);
+        MaterialParameters parameters;
+        parameters.albedo = Vec4f(1.0f, 1.0f, 1.0f, 1.0f);
+        parameters.transmission = 0.9f;
+        parameters.roughness = 0.2f;
+
+        Handle<Material> material = MakeHandle<Material>(CreateNameFromDynamicString(ANSIString(subMesh.name.Data())), attributes, parameters, MaterialTextures {});
         
         if (Result result = material->Register("$Import/Media/Materials"); result.HasError())
         {

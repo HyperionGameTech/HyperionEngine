@@ -8,8 +8,6 @@
 
 #include <rendering/RenderableAttributes.hpp>
 
-#include <Core/utilities/DataMutationState.hpp>
-
 #include <Core/containers/FixedArray.hpp>
 #include <Core/containers/String.hpp>
 #include <Core/containers/HashMap.hpp>
@@ -45,300 +43,7 @@ enum class MaterialTextureKey : uint64
     AmbientOcclusion = 0x20
 };
 
-HYP_ENUM()
-enum MaterialParameterType : uint32
-{
-    MPT_NONE = 0,
-    MPT_FLOAT = 1,
-    MPT_FLOAT2 = 2,
-    MPT_FLOAT3 = 3,
-    MPT_FLOAT4 = 4,
-    MPT_INT = 5,
-    MPT_INT2 = 6,
-    MPT_INT3 = 7,
-    MPT_INT4 = 8
-};
-
-HYP_STRUCT(Serialize = "bitwise", Size = 16)
-struct MaterialParameterValue
-{
-    HYP_STRUCT_BODY(MaterialParameterValue);
-
-    union
-    {
-        float floatValues[4];
-        int32 intValues[4];
-    };
-};
-
-HYP_STRUCT()
-struct MaterialParameter
-{
-    HYP_STRUCT_BODY(MaterialParameter);
-
-    using Type = MaterialParameterType;
-    using SerializedValueType = Variant<float32, Vec2f, Vec3f, Vec4f, int32, Vec2i, Vec3i, Vec4i>;
-
-    HYP_FIELD(Property = "Type", LoadOrder = -1)
-    MaterialParameterType type;
-
-    HYP_FIELD(Transient)
-    MaterialParameterValue value;
-
-    MaterialParameter()
-        : type(MPT_NONE)
-    {
-        Memory::Fill(&value, 0, sizeof(value));
-    }
-
-    template <size_t Size>
-    explicit MaterialParameter(FixedArray<float, Size>&& v)
-        : MaterialParameter(v.Data(), Size)
-    {
-    }
-
-    explicit MaterialParameter(const float* v, size_t count)
-        : type(Type(MPT_FLOAT + (count - 1)))
-    {
-        Assert(count >= 1 && count <= 4);
-
-        Memory::Copy(value.floatValues, v, count * sizeof(float));
-
-        if (count < ArraySize(value.floatValues))
-        {
-            Memory::Fill(&value.floatValues[count], 0, (ArraySize(value.floatValues) - count) * sizeof(float));
-        }
-    }
-
-    MaterialParameter(float value)
-        : MaterialParameter(&value, 1)
-    {
-    }
-
-    MaterialParameter(const Vec2f& xy)
-        : MaterialParameter(xy.values, 2)
-    {
-    }
-
-    MaterialParameter(const Vec3f& xyz)
-        : MaterialParameter(xyz.values, 3)
-    {
-    }
-
-    MaterialParameter(const Vec4f& xyzw)
-        : MaterialParameter(xyzw.values, 4)
-    {
-    }
-
-    MaterialParameter(const Color& color)
-        : MaterialParameter(Vec4f(color.GetRed(), color.GetGreen(), color.GetBlue(), color.GetAlpha()))
-    {
-    }
-
-    template <size_t Size>
-    explicit MaterialParameter(FixedArray<int32, Size>&& v)
-        : MaterialParameter(v.Data(), Size)
-    {
-    }
-
-    explicit MaterialParameter(const int32* v, size_t count)
-        : type(Type(MPT_INT + (count - 1)))
-    {
-        Assert(count >= 1 && count <= 4);
-
-        Memory::Copy(value.intValues, v, count * sizeof(int32));
-
-        if (count < ArraySize(value.intValues))
-        {
-            Memory::Fill(&value.intValues[count], 0, (ArraySize(value.intValues) - count) * sizeof(int32));
-        }
-    }
-
-    MaterialParameter(int32 value)
-        : MaterialParameter(&value, 1)
-    {
-    }
-
-    MaterialParameter(const Vec2i& xy)
-        : MaterialParameter(xy.values, 2)
-    {
-    }
-
-    MaterialParameter(const Vec3i& xyz)
-        : MaterialParameter(xyz.values, 3)
-    {
-    }
-
-    MaterialParameter(const Vec4i& xyzw)
-        : MaterialParameter(xyzw.values, 4)
-    {
-    }
-
-    MaterialParameter(const MaterialParameter& other)
-        : type(other.type)
-    {
-        value = other.value;
-    }
-
-    MaterialParameter& operator=(const MaterialParameter& other)
-    {
-        type = other.type;
-        value = other.value;
-
-        return *this;
-    }
-
-    ~MaterialParameter() = default;
-
-    HYP_FORCE_INLINE bool IsIntType() const
-    {
-        return type >= MPT_INT && type <= MPT_INT4;
-    }
-
-    HYP_FORCE_INLINE bool IsFloatType() const
-    {
-        return type >= MPT_FLOAT && type <= MPT_FLOAT4;
-    }
-
-    HYP_FORCE_INLINE uint32 Size() const
-    {
-        if (type == MPT_NONE)
-        {
-            return 0u;
-        }
-
-        if (type >= MPT_INT)
-        {
-            return uint32(type - MPT_INT) + 1;
-        }
-
-        return uint32(type);
-    }
-
-    HYP_FORCE_INLINE void Copy(uint8* dst) const
-    {
-        Memory::Copy(dst, value.floatValues, Size() * sizeof(float));
-    }
-
-    HYP_FORCE_INLINE bool operator==(const MaterialParameter& other) const
-    {
-        if (type != other.type)
-            return false;
-
-        if (type >= MPT_INT)
-        {
-            for (uint8 i = 0; i < Size(); i++)
-            {
-                if (value.intValues[i] != other.value.intValues[i])
-                    return false;
-            }
-        }
-        else
-        {
-            for (uint8 i = 0; i < Size(); i++)
-            {
-                if (value.floatValues[i] != other.value.floatValues[i])
-                    return false;
-            }
-        }
-
-        return true;
-    }
-
-    HYP_FORCE_INLINE bool operator!=(const MaterialParameter& other) const
-    {
-        return !(*this == other);
-    }
-
-    HYP_FORCE_INLINE explicit operator int() const
-    {
-        return value.intValues[0];
-    }
-
-    HYP_FORCE_INLINE explicit operator Vec2i() const
-    {
-        return Vec2i { value.intValues[0], value.intValues[1] };
-    }
-
-    HYP_FORCE_INLINE explicit operator Vec3i() const
-    {
-        return Vec3i { value.intValues[0], value.intValues[1], value.intValues[2] };
-    }
-
-    HYP_FORCE_INLINE explicit operator Vec4i() const
-    {
-        return Vec4i { value.intValues[0], value.intValues[1], value.intValues[2], value.intValues[3] };
-    }
-
-    HYP_FORCE_INLINE explicit operator float() const
-    {
-        return value.floatValues[0];
-    }
-
-    HYP_FORCE_INLINE explicit operator Vec2f() const
-    {
-        return Vec2f { value.floatValues[0], value.floatValues[1] };
-    }
-
-    HYP_FORCE_INLINE explicit operator Vec3f() const
-    {
-        return Vec3f { value.floatValues[0], value.floatValues[1], value.floatValues[2] };
-    }
-
-    HYP_FORCE_INLINE explicit operator Vec4f() const
-    {
-        return Vec4f { value.floatValues[0], value.floatValues[1], value.floatValues[2], value.floatValues[3] };
-    }
-
-    HYP_METHOD(Property = "Value", NoScriptBindings)
-    HYP_API SerializedValueType SerializeData() const;
-
-    HYP_METHOD(Property = "Value", NoScriptBindings)
-    HYP_API void DeserializeData(const SerializedValueType& data);
-
-    HYP_FORCE_INLINE HashCode GetHashCode() const
-    {
-        HashCode hc;
-        hc.Add(int(type));
-        hc.Add(HashCode::GetHashCode(reinterpret_cast<const ubyte*>(&value), reinterpret_cast<const ubyte*>(&value) + sizeof(value)));
-
-        return hc;
-    }
-};
-
-HYP_ENUM()
-enum MaterialParameterKey : uint64
-{
-    MATERIAL_KEY_NONE = 0,
-
-    // basic
-    MATERIAL_KEY_ALBEDO = 1 << 0,
-    MATERIAL_KEY_METALNESS = 1 << 1,
-    MATERIAL_KEY_ROUGHNESS = 1 << 2,
-    MATERIAL_KEY_TRANSMISSION = 1 << 3,
-    MATERIAL_KEY_EMISSIVE_FACTOR = 1 << 4,
-
-    MATERIAL_KEY_SPECULAR = 1 << 5,         // UNUSED
-    MATERIAL_KEY_SPECULAR_TINT = 1 << 6,    // UNUSED
-    MATERIAL_KEY_ANISOTROPIC = 1 << 7,      // UNUSED
-    MATERIAL_KEY_SHEEN = 1 << 8,            // UNUSED
-    MATERIAL_KEY_SHEEN_TINT = 1 << 9,       // UNUSED
-    MATERIAL_KEY_CLEARCOAT = 1 << 10,       // UNUSED
-    MATERIAL_KEY_CLEARCOAT_GLOSS = 1 << 11, // UNUSED
-    MATERIAL_KEY_SUBSURFACE = 1 << 12,      // UNUSED
-
-    MATERIAL_KEY_NORMAL_MAP_INTENSITY = 1 << 13,
-    MATERIAL_KEY_UV_SCALE = 1 << 14,
-    MATERIAL_KEY_PARALLAX_HEIGHT = 1 << 15,
-    MATERIAL_KEY_ALPHA_THRESHOLD = 1 << 16,
-    MATERIAL_KEY_RESERVED2 = 1 << 17,
-
-    // terrain
-    MATERIAL_KEY_TERRAIN_LEVEL_0_HEIGHT = 1 << 18,
-    MATERIAL_KEY_TERRAIN_LEVEL_1_HEIGHT = 1 << 19,
-    MATERIAL_KEY_TERRAIN_LEVEL_2_HEIGHT = 1 << 20,
-    MATERIAL_KEY_TERRAIN_LEVEL_3_HEIGHT = 1 << 21
-};
+#pragma pack(push, 1)
 
 HYP_STRUCT()
 class MaterialParameters
@@ -346,19 +51,44 @@ class MaterialParameters
 public:
     HYP_STRUCT_BODY(MaterialParameters);
 
-    static constexpr uint32 MaxParameters = 32u;
+    HYP_FIELD(Serialize)
+    Vec4f albedo;
 
-    using Iterator = FixedArray<MaterialParameter, MaxParameters>::Iterator;
-    using ConstIterator = FixedArray<MaterialParameter, MaxParameters>::ConstIterator;
+    HYP_FIELD(Serialize)
+    float metalness;
 
-    MaterialParameters() = default;
+    HYP_FIELD(Serialize)
+    float roughness;
 
-    MaterialParameters(std::initializer_list<Pair<MaterialParameterKey, MaterialParameter>> initializerList)
+    HYP_FIELD(Serialize)
+    float alphaThreshold;
+
+    HYP_FIELD(Serialize)
+    float parallaxHeightScale;
+
+    HYP_FIELD(Serialize)
+    float transmission;
+
+    HYP_FIELD(Serialize)
+    float ior;
+
+    HYP_FIELD(Serialize)
+    Vec4f emissiveColor; // w component is intensity
+
+    HYP_FIELD(Serialize)
+    Vec4f userParams;
+
+    MaterialParameters()
+        : albedo(1.0f),
+          metalness(0.0f),
+          roughness(1.0f),
+          alphaThreshold(0.0f),
+          parallaxHeightScale(0.02f),
+          transmission(0.0f),
+          ior(1.5f),
+          emissiveColor(0.0f),
+          userParams(0.0f)
     {
-        for (const auto& it : initializerList)
-        {
-            m_values[EnumOptions<MaterialParameterKey, MaterialParameter, MaxParameters>::EnumToOrdinal(it.first)] = it.second;
-        }
     }
 
     MaterialParameters(const MaterialParameters& other) = default;
@@ -367,68 +97,23 @@ public:
     MaterialParameters(MaterialParameters&& other) noexcept = default;
     MaterialParameters& operator=(MaterialParameters&& other) noexcept = default;
 
-    ~MaterialParameters() = default;
-
     HYP_FORCE_INLINE bool operator==(const MaterialParameters& other) const
     {
-        return m_values == other.m_values;
+        return memcmp(this, &other, sizeof(MaterialParameters)) == 0;
     }
 
     HYP_FORCE_INLINE bool operator!=(const MaterialParameters& other) const
     {
-        return m_values != other.m_values;
-    }
-
-    HYP_FORCE_INLINE MaterialParameter& operator[](MaterialParameterKey key)
-    {
-        return m_values[EnumOptions<MaterialParameterKey, MaterialParameter, MaxParameters>::EnumToOrdinal(key)];
-    }
-
-    HYP_FORCE_INLINE const MaterialParameter& operator[](MaterialParameterKey key) const
-    {
-        return m_values[EnumOptions<MaterialParameterKey, MaterialParameter, MaxParameters>::EnumToOrdinal(key)];
-    }
-
-    HYP_FORCE_INLINE MaterialParameter& AtIndex(size_t index)
-    {
-        return m_values[index];
-    }
-
-    HYP_FORCE_INLINE const MaterialParameter& AtIndex(size_t index) const
-    {
-        return m_values[index];
-    }
-
-    HYP_FORCE_INLINE Pair<MaterialParameterKey, MaterialParameter&> KeyValueAt(size_t index)
-    {
-        return Pair<MaterialParameterKey, MaterialParameter&>(
-            EnumOptions<MaterialParameterKey, MaterialParameter, MaxParameters>::OrdinalToEnum(index),
-            m_values[index]);
-    }
-
-    HYP_FORCE_INLINE Pair<MaterialParameterKey, const MaterialParameter&> KeyValueAt(size_t index) const
-    {
-        return Pair<MaterialParameterKey, const MaterialParameter&>(
-            EnumOptions<MaterialParameterKey, MaterialParameter, MaxParameters>::OrdinalToEnum(index),
-            m_values[index]);
-    }
-
-    HYP_FORCE_INLINE size_t Size() const
-    {
-        return m_values.Size();
+        return memcmp(this, &other, sizeof(MaterialParameters)) != 0;
     }
 
     HYP_FORCE_INLINE HashCode GetHashCode() const
     {
-        return m_values.GetHashCode();
+        return HashCode::GetHashCode((const ubyte*)this, (const ubyte*)this + sizeof(MaterialParameters));
     }
-
-    HYP_DEF_STL_BEGIN_END(m_values.Begin(), m_values.End());
-
-private:
-    HYP_FIELD(Serialize)
-    FixedArray<MaterialParameter, MaxParameters> m_values;
 };
+
+#pragma pack(pop)
 
 HYP_STRUCT()
 class MaterialTextures
@@ -531,16 +216,13 @@ class HYP_API Material final : public AssetObject
     HYP_OBJECT_BODY(Material);
 
 public:
-    static const Array<Name> s_textureNames;
+    static const StringHash s_textureNames[];
 
     enum State
     {
         MATERIAL_STATE_CLEAN,
         MATERIAL_STATE_DIRTY
     };
-
-    /*! \brief Default parameters for a Material. */
-    static const MaterialParameters& DefaultParameters();
 
     Material();
 
@@ -566,61 +248,11 @@ public:
 
     ~Material() override;
 
-    /*! \brief Get the current mutation state of this Material.
-        \return The current mutation state of this Material */
-    HYP_FORCE_INLINE DataMutationState GetMutationState() const
-    {
-        return m_mutationState;
-    }
-
-    HYP_FORCE_INLINE MaterialParameters& GetParameters()
-    {
-        return m_parameters;
-    }
-
     HYP_FORCE_INLINE const MaterialParameters& GetParameters() const
     {
         return m_parameters;
     }
 
-    HYP_FORCE_INLINE const MaterialParameter& GetParameter(MaterialParameterKey key) const
-    {
-        return m_parameters[key];
-    }
-
-    template <class T>
-    typename std::enable_if_t<std::is_same_v<std::decay_t<T>, float>, std::decay_t<T>>
-    GetParameter(MaterialParameterKey key) const
-    {
-        return m_parameters[key].value.floatValues[0];
-    }
-
-    template <class T>
-    typename std::enable_if_t<std::is_same_v<std::decay_t<T>, int>, std::decay_t<T>>
-    GetParameter(MaterialParameterKey key) const
-    {
-        return m_parameters[key].value.intValues[0];
-    }
-
-    template <class T>
-    typename std::enable_if_t<std::is_same_v<std::decay_t<decltype(T::values[0])>, float>, std::decay_t<T>>
-    GetParameter(MaterialParameterKey key) const
-    {
-        static_assert(sizeof(T::values) <= sizeof(MaterialParameter::value), "T must have a size <= to the size of Parameter::values");
-        static_assert(std::is_trivially_copyable_v<T>, "T must be trivially copyable");
-
-        T result;
-        std::memcpy(&result.values[0], &m_parameters[key].value.floatValues[0], sizeof(float) * ArraySize(result.values));
-        return result;
-    }
-
-    /*! \brief Set a parameter on this material with the given key and value
-     *  \param key The key of the parameter to be set
-     *  \param value The value of the parameter to be set */
-    void SetParameter(MaterialParameterKey key, const MaterialParameter& value);
-
-    /*! \brief Set all parameters on this Material to the given MaterialParameters.
-     *  \param parameters The material parameter table to set. */
     void SetParameters(const MaterialParameters& parameters);
 
     /*! \brief Set all parameters back to their default values. */
@@ -860,8 +492,6 @@ private:
     HYP_FIELD()
     bool m_isDynamic;
 
-    mutable DataMutationState m_mutationState;
-
     int m_renderProxyVersion;
 };
 
@@ -910,12 +540,12 @@ public:
     Handle<Material> CreateMaterial(
         Name name,
         const MaterialAttributes& attributes = {},
-        const MaterialParameters& parameters = Material::DefaultParameters(),
+        const MaterialParameters& parameters = {},
         const MaterialTextures& textures = {});
 
     HYP_FORCE_INLINE Handle<Material> CreateMaterial(
         const MaterialAttributes& attributes = {},
-        const MaterialParameters& parameters = Material::DefaultParameters(),
+        const MaterialParameters& parameters = {},
         const MaterialTextures& textures = {})
     {
         return CreateMaterial(Name::Unique("Material"), attributes, parameters, textures);
@@ -924,12 +554,12 @@ public:
     Handle<Material> GetOrCreate(
         Name name,
         const MaterialAttributes& attributes = {},
-        const MaterialParameters& parameters = Material::DefaultParameters(),
+        const MaterialParameters& parameters = {},
         const MaterialTextures& textures = {});
 
     HYP_FORCE_INLINE Handle<Material> GetOrCreate(
         const MaterialAttributes& attributes = {},
-        const MaterialParameters& parameters = Material::DefaultParameters(),
+        const MaterialParameters& parameters = {},
         const MaterialTextures& textures = {})
     {
         return GetOrCreate(Name::Invalid(), attributes, parameters, textures);

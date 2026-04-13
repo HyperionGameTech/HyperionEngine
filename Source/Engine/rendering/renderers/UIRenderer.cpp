@@ -119,7 +119,7 @@ static void BuildRenderGroupsOrdered(
             }
         }
 
-        if (const MaterialParameter& textParam = material->GetParameter(MaterialParameterKey::MATERIAL_KEY_RESERVED2); int(textParam) == 1) // text
+        if (material->GetParameters().userParams.x > 0.0f) // it is text if this is set
         {
             ShaderPropertySet newProperties = attributes.GetShaderProperties();
             newProperties.Add(s_propUIText);

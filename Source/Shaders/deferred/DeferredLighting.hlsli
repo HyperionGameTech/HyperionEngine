@@ -180,7 +180,8 @@ void CalculateEnvProbesContribution(
     const uint numEnvProbes = (clusterData.y >> 16) & 0xFFFF;
     
 #ifndef HYP_ENV_PROBES_NO_REFLECTIONS
-    for (uint i = 0; i < numEnvProbes && reflections.a < 1.0; ++i)
+    float accumWeightReflections = 0.0;
+    for (uint i = 0; i < numEnvProbes && accumWeightReflections < 1.0; ++i)
     {
         const uint envProbeIndex = Cluster_LoadEnvProbeIndex(clusterIndexOffset, numLights, i);
 
@@ -204,14 +205,17 @@ void CalculateEnvProbesContribution(
             lod,
             currentReflections);
         
-        const float weight = CalculateEnvProbeWeight(positionWS, aabbMin, aabbMax);
+        float weight = CalculateEnvProbeWeight(positionWS, aabbMin, aabbMax);
 
-        reflections += currentReflections * weight * (1.0 - reflections.a);
+        reflections += currentReflections * weight * (1.0 - accumWeightReflections);
+        weight *= currentReflections.a; // so we can blend probes that have alpha zero with another (e.g blending with skybox)
+        accumWeightReflections += weight * (1.0 - accumWeightReflections);
     }
 #endif // HYP_ENV_PROBES_NO_REFLECTIONS
     
 #ifndef HYP_ENV_PROBES_NO_IRRADIANCE
-    for (uint i = 0; i < numEnvProbes && irradiance.a < 1.0; ++i)
+    float accumWeightIrradiance = 0.0;
+    for (uint i = 0; i < numEnvProbes && accumWeightIrradiance < 1.0; ++i)
     {
         const uint envProbeIndex = Cluster_LoadEnvProbeIndex(clusterIndexOffset, numLights, i);
 
@@ -223,7 +227,8 @@ void CalculateEnvProbesContribution(
         const float weight = CalculateEnvProbeWeight(positionWS, aabbMin, aabbMax);
         
         float3 currentIrradiance = EnvProbeSH(currentEnvProbe, N, /* order */ 2);
-        irradiance += float4(currentIrradiance, weight) * (1.0 - irradiance.a);
+        irradiance += float4(currentIrradiance, 1.0) * weight * (1.0 - accumWeightIrradiance);
+        accumWeightIrradiance += weight * (1.0 - accumWeightIrradiance);
     }
 #endif // HYP_ENV_PROBES_NO_IRRADIANCE
 }

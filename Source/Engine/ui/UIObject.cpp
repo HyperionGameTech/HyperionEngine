@@ -1913,11 +1913,10 @@ MaterialAttributes UIObject::GetMaterialAttributes() const
 
 MaterialParameters UIObject::GetMaterialParameters() const
 {
-    HYP_SCOPE;
+    MaterialParameters parameters;
+    parameters.albedo = Vec4f(GetBackgroundColor());
 
-    return MaterialParameters {
-        { MATERIAL_KEY_ALBEDO, Vec4f(GetBackgroundColor()) }
-    };
+    return parameters;
 }
 
 MaterialTextures UIObject::GetMaterialTextures() const

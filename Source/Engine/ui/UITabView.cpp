@@ -101,9 +101,10 @@ MaterialParameters UITab::GetMaterialParameters() const
         color = m_backgroundColor;
     }
 
-    return MaterialParameters {
-        { MATERIAL_KEY_ALBEDO, Vec4f(color) }
-    };
+    MaterialParameters parameters;
+    parameters.albedo = Vec4f(color);
+
+    return parameters;
 }
 
 #pragma endregion UITab

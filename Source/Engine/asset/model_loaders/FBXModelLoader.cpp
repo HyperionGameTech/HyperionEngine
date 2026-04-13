@@ -1666,15 +1666,20 @@ AssetLoadResult FBXModelLoader::LoadAsset(LoaderState& state) const
 
                 state.assetManager->GetAssetRegistry()->RegisterAsset("$Import/Media/Meshes", mesh);
 
-                MaterialAttributes materialAttributes {};
-                materialAttributes.shaderName = NAME("GeometryPass");
-                materialAttributes.shaderProperties = {};
-                materialAttributes.bucket = RenderBucket::Opaque;
+                MaterialAttributes attributes;
+                attributes.shaderName = NAME("GeometryPass");
+                attributes.shaderProperties = {};
+                attributes.bucket = RenderBucket::Opaque;
+
+                MaterialParameters parameters;
+                parameters.albedo = Vec4f(1.0f, 1.0f, 1.0f, 1.0f);
+                parameters.roughness = 0.65f;
+                parameters.metalness = 0.0f;
 
                 Handle<Material> material = MaterialCache::GetInstance()->GetOrCreate(
                     CreateNameFromDynamicString(fbxNode.name),
-                    materialAttributes,
-                    { { MATERIAL_KEY_ALBEDO, Vec4f(1.0f) }, { MATERIAL_KEY_ROUGHNESS, 0.65f }, { MATERIAL_KEY_METALNESS, 0.0f } });
+                    attributes,
+                    parameters);
 
                 Scene* scene = GetDetachedSceneForCurrentThread();
 

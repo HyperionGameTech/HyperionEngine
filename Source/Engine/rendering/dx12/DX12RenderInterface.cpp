@@ -621,19 +621,6 @@ void DX12RenderInterface::PopulateIndirectDrawCommandsBuffer(const DX12GpuBuffer
     // @TODO: Implement indirect draw command buffer population for DX12
 }
 
-TextureFormat DX12RenderInterface::GetDefaultFormat(DefaultImageFormat type) const
-{
-    switch (type)
-    {
-    case DefaultImageFormat::DIF_COLOR:
-        return TextureFormat::RGBA8;
-    case DefaultImageFormat::DIF_DEPTH:
-        return TextureFormat::D24_S8;
-    default:
-        return InvalidTextureFormat;
-    }
-}
-
 bool DX12RenderInterface::IsSupportedFormat(TextureFormat format, ImageSupport supportType) const
 {
     // @TODO: Implement format support checking for DX12

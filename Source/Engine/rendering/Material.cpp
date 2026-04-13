@@ -49,111 +49,16 @@ static HashCode GetMaterialHashCode(
     return hc;
 }
 
-#pragma region MaterialParameter
-
-MaterialParameter::SerializedValueType MaterialParameter::SerializeData() const
-{
-    switch (type)
-    {
-    case MPT_FLOAT:
-        return SerializedValueType(float32(*this));
-    case MPT_FLOAT2:
-        return SerializedValueType(Vec2f(*this));
-    case MPT_FLOAT3:
-        return SerializedValueType(Vec3f(*this));
-    case MPT_FLOAT4:
-        return SerializedValueType(Vec4f(*this));
-    case MPT_INT:
-        return SerializedValueType(int32(*this));
-    case MPT_INT2:
-        return SerializedValueType(Vec2i(*this));
-    case MPT_INT3:
-        return SerializedValueType(Vec3i(*this));
-    case MPT_INT4:
-        return SerializedValueType(Vec4i(*this));
-    default:
-        return SerializedValueType();
-    }
-}
-
-void MaterialParameter::DeserializeData(const SerializedValueType& data)
-{
-    if (data.Is<float32>())
-    {
-        *this = MaterialParameter(data.Get<float32>());
-    }
-    else if (data.Is<Vec2f>())
-    {
-        *this = MaterialParameter(data.Get<Vec2f>());
-    }
-    else if (data.Is<Vec3f>())
-    {
-        *this = MaterialParameter(data.Get<Vec3f>());
-    }
-    else if (data.Is<Vec4f>())
-    {
-        *this = MaterialParameter(data.Get<Vec4f>());
-    }
-    else if (data.Is<int32>())
-    {
-        *this = MaterialParameter(data.Get<int32>());
-    }
-    else if (data.Is<Vec2i>())
-    {
-        *this = MaterialParameter(data.Get<Vec2i>());
-    }
-    else if (data.Is<Vec3i>())
-    {
-        *this = MaterialParameter(data.Get<Vec3i>());
-    }
-    else if (data.Is<Vec4i>())
-    {
-        *this = MaterialParameter(data.Get<Vec4i>());
-    }
-    else
-    {
-        type = MPT_NONE;
-        value = {};
-    }
-}
-
-#pragma endregion MaterialParameter
-
 #pragma region Material
 
-const Array<Name> Material::s_textureNames = {
-    NAME("DiffuseMap"),
-    NAME("NormalMap"),
-    NAME("ParallaxMap"),
-    NAME("MetalnessMap"),
-    NAME("RoughnessMap"),
-    NAME("AoMap")
+const StringHash Material::s_textureNames[] = {
+    "DiffuseMap"_sh,
+    "NormalMap"_sh,
+    "ParallaxMap"_sh,
+    "MetalnessMap"_sh,
+    "RoughnessMap"_sh,
+    "AoMap"_sh
 };
-
-const MaterialParameters& Material::DefaultParameters()
-{
-    static const MaterialParameters s_defaultParameters {
-        { MATERIAL_KEY_ALBEDO, Vec4f(1.0f) },
-        { MATERIAL_KEY_METALNESS, 0.0f },
-        { MATERIAL_KEY_ROUGHNESS, 0.65f },
-        { MATERIAL_KEY_TRANSMISSION, 0.0f },
-        { MATERIAL_KEY_EMISSIVE_FACTOR, 0.0f },
-        { MATERIAL_KEY_SPECULAR, 0.0f },
-        { MATERIAL_KEY_SPECULAR_TINT, 0.0f },
-        { MATERIAL_KEY_ANISOTROPIC, 0.0f },
-        { MATERIAL_KEY_SHEEN, 0.0f },
-        { MATERIAL_KEY_SHEEN_TINT, 0.0f },
-        { MATERIAL_KEY_CLEARCOAT, 0.0f },
-        { MATERIAL_KEY_CLEARCOAT_GLOSS, 0.0f },
-        { MATERIAL_KEY_SUBSURFACE, 0.0f },
-        { MATERIAL_KEY_NORMAL_MAP_INTENSITY, 1.0f },
-        { MATERIAL_KEY_UV_SCALE, Vec2f(1.0f) },
-        { MATERIAL_KEY_PARALLAX_HEIGHT, 0.05f },
-        { MATERIAL_KEY_ALPHA_THRESHOLD, 0.2f }
-    };
-
-    return s_defaultParameters;
-}
 
 Material::Material()
     : m_attributes {
@@ -165,7 +70,6 @@ Material::Material()
           .flags = MAF_DEPTH_WRITE | MAF_DEPTH_TEST
       },
       m_isDynamic(false),
-      m_mutationState(DataMutationState::CLEAN),
       m_renderProxyVersion(0)
 {
     ResetParameters();
@@ -178,14 +82,13 @@ Material::Material(Name name, RenderBucket rb)
           .bucket = rb
       },
       m_isDynamic(false),
-      m_mutationState(DataMutationState::CLEAN),
       m_renderProxyVersion(0)
 {
     ResetParameters();
 }
 
 Material::Material(Name name, const MaterialAttributes& attributes)
-    : Material(name, attributes, DefaultParameters(), MaterialTextures {})
+    : Material(name, attributes, MaterialParameters {}, MaterialTextures {})
 {
 }
 
@@ -199,7 +102,6 @@ Material::Material(
       m_textures(textures),
       m_attributes(attributes),
       m_isDynamic(false),
-      m_mutationState(DataMutationState::CLEAN),
       m_renderProxyVersion(0)
 {
     UpdateAttributesTextureMask();
@@ -238,8 +140,6 @@ void Material::Init()
         CheckResult(keyValue.second->Create());
     }
 
-    m_mutationState |= DataMutationState::DIRTY;
-
     AssetObject::Init();
 
     SetReady(true);
@@ -251,41 +151,7 @@ void Material::EnqueueRenderUpdates()
 {
     AssertReady();
 
-    if (!m_mutationState.IsDirty())
-    {
-        HYP_LOG_ONCE(Material, Warning, "EnqueueRenderUpdates called on material with Id {} (name: {}) that is not dirty", Id(), GetName());
-
-        return;
-    }
-
     SetNeedsRenderProxyUpdate();
-
-    m_mutationState = DataMutationState::CLEAN;
-}
-
-void Material::SetParameter(MaterialParameterKey key, const MaterialParameter& value)
-{
-    if (IsStatic() && IsReady())
-    {
-        HYP_LOG(Material, Warning, "Setting parameter on static material with Id {} (name: {})", Id(), GetName());
-#if HYP_DEBUG_MODE
-        HYP_BREAKPOINT;
-#endif // HYP_DEBUG_MODE
-    }
-
-    if (m_parameters[key] == value)
-    {
-        return;
-    }
-
-    m_parameters[key] = value;
-
-    if (IsInitCalled())
-    {
-        m_mutationState |= DataMutationState::DIRTY;
-
-        SetNeedsRenderProxyUpdate();
-    }
 }
 
 void Material::SetParameters(const MaterialParameters& parameters)
@@ -300,12 +166,8 @@ void Material::SetParameters(const MaterialParameters& parameters)
 
     m_parameters = parameters;
 
-    if (IsInitCalled())
-    {
-        m_mutationState |= DataMutationState::DIRTY;
-
-        SetNeedsRenderProxyUpdate();
-    }
+    SetNeedsRenderProxyUpdate();
+    MarkDirty();
 }
 
 void Material::ResetParameters()
@@ -318,14 +180,10 @@ void Material::ResetParameters()
 #endif // HYP_DEBUG_MODE
     }
 
-    m_parameters = DefaultParameters();
+    m_parameters = MaterialParameters {};
 
-    if (IsInitCalled())
-    {
-        m_mutationState |= DataMutationState::DIRTY;
-
-        SetNeedsRenderProxyUpdate();
-    }
+    SetNeedsRenderProxyUpdate();
+    MarkDirty();
 }
 
 void Material::SetTexture(MaterialTextureKey key, const Handle<Texture>& texture)
@@ -353,14 +211,10 @@ void Material::SetTexture(MaterialTextureKey key, const Handle<Texture>& texture
 
     UpdateAttributesTextureMask();
 
-    if (IsInitCalled())
-    {
-        CheckResult(texture->Create());
+    CheckResult(texture->Create());
 
-        SetNeedsRenderProxyUpdate();
-
-        m_mutationState |= DataMutationState::DIRTY;
-    }
+    SetNeedsRenderProxyUpdate();
+    MarkDirty();
 }
 
 void Material::SetTextureAtIndex(uint32 index, const Handle<Texture>& texture)
@@ -397,22 +251,19 @@ void Material::SetTextures(const MaterialTextures& textures)
 
     UpdateAttributesTextureMask();
 
-    if (IsInitCalled())
+    for (size_t i = 0; i < m_textures.Size(); i++)
     {
-        for (size_t i = 0; i < m_textures.Size(); i++)
+        if (!m_textures.AtIndex(i).IsValid())
         {
-            if (!m_textures.AtIndex(i).IsValid())
-            {
-                continue;
-            }
-
-            CheckResult(m_textures.AtIndex(i)->Create());
+            continue;
         }
 
-        SetNeedsRenderProxyUpdate();
-
-        m_mutationState |= DataMutationState::DIRTY;
+        CheckResult(m_textures.AtIndex(i)->Create());
     }
+
+    SetNeedsRenderProxyUpdate();
+
+    MarkDirty();
 }
 
 const Handle<Texture>& Material::GetTexture(MaterialTextureKey key) const
@@ -452,22 +303,22 @@ void Material::UpdateRenderProxy(RenderProxyMaterial* proxy)
     
     MaterialShaderData& bufferData = proxy->bufferData;
 
-    bufferData.albedo = GetParameter<Vec4f>(MATERIAL_KEY_ALBEDO);
+    bufferData.albedo = m_parameters.albedo;
     bufferData.packedParams = Vec4u(
         ByteUtil::PackVec4f(Vec4f {
-            GetParameter<float>(MATERIAL_KEY_ROUGHNESS),
-            GetParameter<float>(MATERIAL_KEY_METALNESS),
-            GetParameter<float>(MATERIAL_KEY_TRANSMISSION),
-            GetParameter<float>(MATERIAL_KEY_NORMAL_MAP_INTENSITY)
+            m_parameters.roughness,
+            m_parameters.metalness,
+            m_parameters.transmission,
+            1.0f
         }),
         ByteUtil::PackVec4f(Vec4f {
-            GetParameter<Vec3f>(MATERIAL_KEY_EMISSIVE_FACTOR),
-            GetParameter<float>(MATERIAL_KEY_ALPHA_THRESHOLD)
+            m_parameters.emissiveColor.GetXYZ() * m_parameters.emissiveColor.w,
+            m_parameters.alphaThreshold
         }),
         ByteUtil::PackVec4f(Vec4f::Zero()),
         ByteUtil::PackVec4f(Vec4f::Zero()));
-    bufferData.uvScale = GetParameter<Vec2f>(MATERIAL_KEY_UV_SCALE);
-    bufferData.parallaxHeight = GetParameter<float>(MATERIAL_KEY_PARALLAX_HEIGHT);
+    bufferData.uvScale = 1.0f;
+    bufferData.parallaxHeight = m_parameters.parallaxHeightScale;
 
     bufferData.textureUsage = 0;
 
@@ -560,10 +411,7 @@ void MaterialGroup::Init()
 
 void MaterialGroup::Add(const String& name, Handle<Material>&& material)
 {
-    if (IsInitCalled())
-    {
-        InitObject(material);
-    }
+    InitObject(material);
 
     m_materials[name] = std::move(material);
 }

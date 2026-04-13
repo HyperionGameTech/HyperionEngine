@@ -854,7 +854,7 @@ static void RenderAll(
 
                 FOR_EACH_BIT(textureMask, bit)
                 {
-                    const Name textureUniformName = Material::s_textureNames[bit];
+                    const StringHash textureUniformName = Material::s_textureNames[bit];
 
                     cr << SetShaderUniform(numDrawCallUniforms++,
                         textureUniformName,
@@ -939,7 +939,7 @@ static void RenderAll(
 
                 FOR_EACH_BIT(textureMask, bit)
                 {
-                    const Name textureUniformName = Material::s_textureNames[bit];
+                    const StringHash textureUniformName = Material::s_textureNames[bit];
 
                     cr << SetShaderUniform(numDrawCallUniforms++,
                         textureUniformName,

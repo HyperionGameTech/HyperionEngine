@@ -351,8 +351,6 @@ public:
         uint32 instanceOffset,
         TByteBuffer<RenderAllocator>& outByteBuffer) = 0;
 
-    virtual TextureFormat GetDefaultFormat(DefaultImageFormat type) const = 0;
-
     virtual bool IsSupportedFormat(TextureFormat format, ImageSupport supportType) const = 0;
     virtual TextureFormat FindSupportedFormat(Span<TextureFormat> possibleFormats, ImageSupport supportType) const = 0;
 

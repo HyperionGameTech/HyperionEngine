@@ -42,7 +42,7 @@ public:
         {
             String tag;
             Array<TextureDef> textures;
-            HashMap<MaterialParameterKey, ParameterDef> parameters;
+            MaterialParameters parameters;
         };
 
         String filepath;

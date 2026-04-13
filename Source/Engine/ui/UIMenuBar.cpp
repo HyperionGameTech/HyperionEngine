@@ -367,9 +367,10 @@ MaterialParameters UIMenuItem::GetMaterialParameters() const
         }
     }
 
-    return MaterialParameters {
-        { MATERIAL_KEY_ALBEDO, Vec4f(color) }
-    };
+    MaterialParameters parameters;
+    parameters.albedo = Vec4f(color);
+
+    return parameters;
 }
 
 #pragma endregion UIMenuItem

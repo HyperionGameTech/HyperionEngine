@@ -192,10 +192,7 @@ PSOutput PSMain(PSInput input)
         /* inout */ reflections,
         /* inout */ irradiance);
 
-    // set irradiance to zero for this pixel if it is in the lightmap bucket
-    // (don't want to double apply indirect contribution approximations)
     irradiance *= 1.0 - min(1.0, float(mask & OBJECT_MASK_LIGHTMAPPED));
-    irradiance.a = 0.0;
 
 #ifdef SSR_ENABLED
     float4 ssrResult = SAMPLE_TEXTURE_2D_LOD(sampler_linear, SSRResultTexture, texcoord, 0);
@@ -210,12 +207,14 @@ PSOutput PSMain(PSInput input)
     // Blend ssgi result into irradiance - if no hit, alpha will be zero or close to it so we can lerp it
     float4 ssgi = SAMPLE_TEXTURE_2D_LOD(sampler_linear, SSGIResultTexture, texcoord, 0);
     irradiance = lerp(irradiance, ssgi, ssgi.a);
+#else
+    float4 ssgi = (float4)0.0;
 #endif
 
 #ifdef RT_GI
     float4 ddgi = DDGISampleIrradiance(positionWS.xyz, normal, V) * DDGI_MULTIPLIER;
     // lerp to ddgi based on 1.0-ssgi alpha, so that if ssgi has a hit, it will be used, otherwise ddgi will be used
-    irradiance = lerp(irradiance, ddgi, 1.0 - irradiance.a);
+    irradiance = lerp(irradiance, ddgi, 1.0 - ssgi.a);
 #endif
 
     irradiance.rgb *= irradiance.a;

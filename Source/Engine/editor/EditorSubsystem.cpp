@@ -478,9 +478,10 @@ bool TranslateEditorGizmo::OnMouseHover(const Handle<Camera>& camera, const Mous
         return false;
     }
 
-    meshComponent->material->SetParameter(
-        MATERIAL_KEY_ALBEDO,
-        Vec4f(1.0f, 1.0f, 0.0, 1.0));
+    MaterialParameters newParameters = meshComponent->material->GetParameters();
+    newParameters.albedo = Vec4f(1.0f, 1.0f, 0.0, 1.0);
+
+    meshComponent->material->SetParameters(newParameters);
 
     return true;
 }
@@ -502,9 +503,10 @@ bool TranslateEditorGizmo::OnMouseLeave(const Handle<Camera>& camera, const Mous
 
     if (const NodeTag& tag = node->GetTag("TransformWidgetElementColor"_sh))
     {
-        meshComponent->material->SetParameter(
-            MATERIAL_KEY_ALBEDO,
-            tag.data.TryGet<Vec4f>(Vec4f::Zero()));
+        MaterialParameters newParameters = meshComponent->material->GetParameters();
+        newParameters.albedo = tag.data.TryGet<Vec4f>(Vec4f::Zero());
+
+        meshComponent->material->SetParameters(newParameters);
     }
 
     return true;
@@ -767,10 +769,6 @@ Handle<Node> TranslateEditorGizmo::Load_Internal() const
                     materialAttributes = meshComponent->material->GetRenderAttributes();
                     materialParameters = meshComponent->material->GetParameters();
                 }
-                else
-                {
-                    materialParameters = Material::DefaultParameters();
-                }
 
                 materialAttributes.bucket = RenderBucket::Debug;
 
@@ -778,7 +776,7 @@ Handle<Node> TranslateEditorGizmo::Load_Internal() const
                 meshComponent->material->SetIsDynamic(true);
 
                 childEntity->SetNeedsRenderProxyUpdate();
-                childEntity->Node::AddTag(NodeTag(NAME("TransformWidgetElementColor"), Vec4f(meshComponent->material->GetParameter(MATERIAL_KEY_ALBEDO))));
+                childEntity->Node::AddTag(NodeTag(NAME("TransformWidgetElementColor"), Vec4f(materialParameters.albedo)));
             }
 
             return node;
@@ -851,10 +849,6 @@ Handle<Node> RotateEditorGizmo::Load_Internal() const
                         materialAttributes = meshComponent->material->GetRenderAttributes();
                         materialParameters = meshComponent->material->GetParameters();
                     }
-                    else
-                    {
-                        materialParameters = Material::DefaultParameters();
-                    }
 
                     materialAttributes.bucket = RenderBucket::Debug;
 
@@ -862,7 +856,7 @@ Handle<Node> RotateEditorGizmo::Load_Internal() const
                     meshComponent->material->SetIsDynamic(true);
 
                     childEntity->SetNeedsRenderProxyUpdate();
-                    childEntity->Node::AddTag(NodeTag(NAME("TransformWidgetElementColor"), Vec4f(meshComponent->material->GetParameter(MATERIAL_KEY_ALBEDO))));
+                    childEntity->Node::AddTag(NodeTag(NAME("TransformWidgetElementColor"), Vec4f(materialParameters.albedo)));
                 }
             }
 
@@ -998,10 +992,11 @@ bool RotateEditorGizmo::OnMouseHover(const Handle<Camera>& camera, const MouseEv
     {
         return false;
     }
+    
+    MaterialParameters newParameters = meshComponent->material->GetParameters();
+    newParameters.albedo = Vec4f(1.0f, 1.0f, 0.0f, 1.0f);
 
-    meshComponent->material->SetParameter(
-        MATERIAL_KEY_ALBEDO,
-        Vec4f(1.0f, 1.0f, 0.0f, 1.0f));
+    meshComponent->material->SetParameters(newParameters);
 
     return true;
 }
@@ -1023,9 +1018,10 @@ bool RotateEditorGizmo::OnMouseLeave(const Handle<Camera>& camera, const MouseEv
 
     if (const NodeTag& tag = node->GetTag("TransformWidgetElementColor"_sh))
     {
-        meshComponent->material->SetParameter(
-            MATERIAL_KEY_ALBEDO,
-            tag.data.TryGet<Vec4f>(Vec4f::Zero()));
+        MaterialParameters newParameters = meshComponent->material->GetParameters();
+        newParameters.albedo = tag.data.TryGet<Vec4f>(Vec4f::Zero());
+
+        meshComponent->material->SetParameters(newParameters);
     }
 
     return true;
@@ -1241,9 +1237,8 @@ Handle<Node> VolumeEditorGizmo::Load_Internal() const
         materialAttributes.cullFaces = FCM_NONE;
         materialAttributes.flags = MAF_NONE;
 
-        MaterialParameters materialParameters = Material::DefaultParameters();
-
-        materialParameters[MATERIAL_KEY_ALBEDO] = volumeColor;
+        MaterialParameters materialParameters;
+        materialParameters.albedo = volumeColor;
 
         Handle<Material> material = MaterialCache::GetInstance()->CreateMaterial(materialAttributes, materialParameters);
         material->SetIsDynamic(true);
@@ -1414,9 +1409,9 @@ bool VolumeEditorGizmo::OnMouseHover(const Handle<Camera>& camera, const MouseEv
         return false;
     }
 
-    meshComponent->material->SetParameter(
-        MATERIAL_KEY_ALBEDO,
-        Vec4f(0.7f, 0.35f, 0.0f, 0.35f));
+    MaterialParameters newParameters = meshComponent->material->GetParameters();
+    newParameters.albedo = Vec4f(0.7f, 0.35f, 0.0f, 0.35f);
+    meshComponent->material->SetParameters(newParameters);
 
     return true;
 }
@@ -1439,9 +1434,10 @@ bool VolumeEditorGizmo::OnMouseLeave(const Handle<Camera>& camera, const MouseEv
     // Restore original face color
     if (const NodeTag& tag = node->GetTag("TransformWidgetElementColor"_sh))
     {
-        meshComponent->material->SetParameter(
-            MATERIAL_KEY_ALBEDO,
-            tag.data.TryGet<Vec4f>(Vec4f::Zero()));
+        MaterialParameters newParameters = meshComponent->material->GetParameters();
+        newParameters.albedo = tag.data.TryGet<Vec4f>(Vec4f::Zero());
+
+        meshComponent->material->SetParameters(newParameters);
     }
 
     return true;

@@ -472,10 +472,11 @@ MaterialParameters UIText::GetMaterialParameters() const
         color.a *= 0.5f;
     }
 
-    return {
-        { MATERIAL_KEY_ALBEDO, Vec4f(color) },
-        { MATERIAL_KEY_RESERVED2, int(1) } // text param
-    };
+    MaterialParameters parameters;
+    parameters.albedo = Vec4f(color);
+    parameters.userParams.x = 1.0f; // text param
+
+    return parameters;
 }
 
 MaterialTextures UIText::GetMaterialTextures() const

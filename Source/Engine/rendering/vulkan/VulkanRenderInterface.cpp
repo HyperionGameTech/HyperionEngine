@@ -1178,17 +1178,6 @@ void VulkanRenderInterface::PopulateIndirectDrawCommandsBuffer(
     commandPtr->indexCount = numIndices;
 }
 
-TextureFormat VulkanRenderInterface::GetDefaultFormat(DefaultImageFormat type) const
-{
-    auto it = m_defaultFormats.Find(type);
-    if (it != m_defaultFormats.End())
-    {
-        return it->second;
-    }
-
-    return InvalidTextureFormat;
-}
-
 bool VulkanRenderInterface::IsSupportedFormat(TextureFormat format, ImageSupport supportType) const
 {
     return m_instance->GetDevice()->GetFeatures().IsSupportedFormat(format, supportType);
