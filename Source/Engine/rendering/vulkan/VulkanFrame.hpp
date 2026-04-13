@@ -38,6 +38,12 @@ public:
 
     ~VulkanFrame() override;
 
+    HYP_FORCE_INLINE void AddRenderPass(VulkanRenderPass* renderPass)
+    {
+        Assert(renderPass != nullptr);
+        m_renderPasses.Add(renderPass);
+    }
+
     bool IsCreated() const override
     {
         return m_queueSubmitFence != nullptr;
@@ -47,16 +53,7 @@ public:
 
     void OnFrameStart() override;
 
-    HYP_FORCE_INLINE void AddRenderPass(VulkanRenderPass* renderPass)
-    {
-        Assert(renderPass != nullptr);
-        m_renderPasses.Add(renderPass);
-    }
-
-    RendererResult Submit(
-        VulkanDeviceQueue* deviceQueue,
-        VulkanCommandBuffer* commandBuffer,
-        VulkanSwapchain* swapchain = nullptr);
+    void WriteCommandBuffer(VulkanCommandBuffer* commandBuffer) override;
 
     HYP_FORCE_INLINE VulkanFence* GetFence() const
     {

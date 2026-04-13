@@ -112,7 +112,7 @@ public:
     void OnFrameStart();
     void OnFrameEnd();
 
-    void Cleanup(uint32 frameIndex);
+    void Cleanup();
 
     GpuBuffer* AcquireStagingBuffer(uint32 bufferSize);
 

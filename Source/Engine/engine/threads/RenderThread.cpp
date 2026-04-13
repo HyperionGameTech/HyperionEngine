@@ -145,8 +145,6 @@ void RenderThread::Update()
 
     g_renderInterface->namedBuffers[NamedBuffer::Worlds].Write(0, sizeof(WorldShaderData), GetWorldBufferData());
 
-    g_renderInterface->UpdateBuffers(frame);
-    
     for (Swapchain* swapchain : swapchains)
     {
         g_renderInterface->PrepareSwapchain(swapchain);
@@ -204,14 +202,7 @@ void RenderThread::Update()
 
     g_renderInterface->commandRecorderAllocator.UpdateQueue();
 
-    g_renderInterface->UpdateBuffers(frame);
-
-    g_renderInterface->SubmitCommandBuffers(swapchain);
-
-    if (swapchain != nullptr)
-    {
-        g_renderInterface->PresentToSwapchain(swapchain);
-    }
+    g_renderInterface->PresentToSwapchain(swapchain);
 
     g_renderInterface->EndFrame();
 

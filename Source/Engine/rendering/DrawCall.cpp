@@ -28,11 +28,6 @@ HYP_DECLARE_LOG_CHANNEL(RenderCollection);
 
 HYP_API extern const char* LookupTypeName(const TypeId& typeId);
 
-HYP_API GpuBufferHolderMap* GetGpuBufferHolderMap()
-{
-    return g_renderInterface->gpuBufferHolders;
-}
-
 // Register allocator for the batch type used if none other is specified
 HYP_REGISTER_DRAW_BATCH_TYPE(EntityInstanceBatch);
 HYP_REGISTER_DRAW_BATCH_TYPE(MeshEntityInstanceBatch);
@@ -83,9 +78,6 @@ void DrawCallCollection::PushRenderProxyInstanced(EntityInstanceBatch* batch, Dr
 
     const uint32 initialNumInstances = renderProxy.numInstances;
     uint32 numInstances = initialNumInstances;
-
-    GpuBufferHolderBase* entityInstanceBatches = batchAllocator->GetGpuBufferHolder();
-    Assert(entityInstanceBatches != nullptr);
 
     while (numInstances != 0)
     {
@@ -174,9 +166,6 @@ void DrawCallCollection::ResetDrawCalls()
     AssertOnThread(g_renderThread);
 
     AssertDebug(batchAllocator != nullptr);
-
-    GpuBufferHolderBase* entityInstanceBatches = batchAllocator->GetGpuBufferHolder();
-    AssertDebug(entityInstanceBatches != nullptr);
 
     for (size_t i = 0; i < instancedDrawCalls.Size(); i++)
     {
@@ -290,7 +279,7 @@ HYP_NODISCARD uint32 DrawCallCollection::PushEntityToBatch(
 
     if (dirty)
     {
-        batchAllocator->GetGpuBufferHolder()->MarkDirty(batch->batchIndex);
+        batchAllocator->MarkBatchDirty(batch);
     }
 
     return numInstances;
@@ -316,21 +305,28 @@ static CreateFnMap& GetEntityBatchAllocatorCreateFnMap()
     return s_entityBatchAllocatorCreateFnMap;
 }
 
-EntityBatchAllocatorBase::EntityBatchAllocatorBase(GpuBufferHolderBase* bufferHolder)
-    : m_bufferHolder(bufferHolder)
+EntityBatchAllocatorBase::EntityBatchAllocatorBase(const TypeInfo* structTypeInfo, uint32 maxBatches)
+    : m_sbuffer(maxBatches, TypeInfo_GetSize(*structTypeInfo))
 {
-    Assert(m_bufferHolder != nullptr);
-
-    const TypeInfo* structTypeInfo = m_bufferHolder->GetStructTypeInfo();
     Assert(structTypeInfo != nullptr);
 
     m_structSize = structTypeInfo->size;
     m_structAlignment = structTypeInfo->alignment;
 }
 
-void EntityBatchAllocatorBase::ReleaseBatch(EntityInstanceBatch* batch) const
+void EntityBatchAllocatorBase::Initialize()
 {
-    m_bufferHolder->ReleaseIndex(batch->batchIndex);
+    m_sbuffer.Initialize();
+}
+
+void EntityBatchAllocatorBase::ReleaseBatch(EntityInstanceBatch* batch)
+{
+    m_idGenerator.ReleaseId(batch->batchIndex + 1);
+}
+
+void EntityBatchAllocatorBase::MarkBatchDirty(EntityInstanceBatch* batch)
+{
+    m_sbuffer.MarkDirty(batch->batchIndex * m_structSize, m_structSize);
 }
 
 EntityBatchAllocatorBase* GetEntityBatchAllocator(const TypeId& typeId)
@@ -358,6 +354,8 @@ EntityBatchAllocatorBase* GetEntityBatchAllocator(const TypeId& typeId)
 
     EntityBatchAllocatorBase* pBatchAllocator = createFnIt->second();
     AssertDebug(pBatchAllocator != nullptr);
+
+    pBatchAllocator->Initialize();
 
     s_entityBatchAllocatorMap.Set(typeId, pBatchAllocator);
 
@@ -411,7 +409,8 @@ EntityBatchAllocatorBase* GetOrCreateEntityBatchAllocator(const TypeId& typeId)
 
             batchAllocator = createFn();
             AssertDebug(batchAllocator != nullptr);
-            AssertDebug(batchAllocator->GetGpuBufferHolder() == nullptr);
+
+            batchAllocator->Initialize();
         }
 
         if (!SetEntityBatchAllocator(typeId, batchAllocator))
@@ -422,6 +421,11 @@ EntityBatchAllocatorBase* GetOrCreateEntityBatchAllocator(const TypeId& typeId)
     }
 
     return batchAllocator;
+}
+
+const HashMap<TypeId, EntityBatchAllocatorBase*>& GetAllEntityBatchAllocators()
+{
+    return s_entityBatchAllocatorMap;
 }
 
 void RegisterEntityBatchAllocator(const TypeId& typeId, PFNCreateEntityBatchAllocator createFn)

@@ -838,33 +838,56 @@ void VulkanRenderInterface::PrepareSwapchain(VulkanSwapchain* swapchain)
     swapchain->PrepareForFrame(GetCurrentFrame());
 }
 
-void VulkanRenderInterface::SubmitCommandBuffers(VulkanSwapchain* swapchain)
-{
-    VulkanDeviceQueue* presentQueue = m_instance->GetDevice()->GetPresentQueue();
-
-    if (!presentQueue)
-    {
-        // running in headless mode
-        presentQueue = m_instance->GetDevice()->GetGraphicsQueue();
-    }
-
-    VulkanDevice* vulkanDevice = m_instance->GetDevice();
-    VulkanFrame* vulkanFrame = GetCurrentFrame();
-    VulkanCommandBuffer* vulkanCommandBuffer = GetCurrentCommandBuffer();
-
-    CHECK_FRAME_RESULT(vulkanFrame->Submit(presentQueue, vulkanCommandBuffer, swapchain));
-}
-
 void VulkanRenderInterface::PresentToSwapchain(VulkanSwapchain* swapchain)
 {
+    VulkanCommandBuffer* commandBuffer = GetCurrentCommandBuffer();
+
     VulkanDeviceQueue* presentQueue = m_instance->GetDevice()->GetPresentQueue();
-    AssertDebug(presentQueue != nullptr); // should never be null when presenting, not used in headless mode
 
-    VulkanDevice* vulkanDevice = m_instance->GetDevice();
-    VulkanCommandBuffer* vulkanCommandBuffer = GetCurrentCommandBuffer();
-    VulkanFrame* vulkanFrame = GetCurrentFrame();
+    if (swapchain != nullptr)
+    {
+        AssertDebug(presentQueue != nullptr); // should never be null when presenting, not used in headless mode
 
-    swapchain->PresentFrame(vulkanFrame, presentQueue);
+    }
+    else
+    {
+        if (!presentQueue)
+        {
+            VulkanDeviceQueue* graphicsQueue = m_instance->GetDevice()->GetGraphicsQueue();
+            Assert(graphicsQueue != nullptr);
+
+            presentQueue = graphicsQueue;
+        }
+    }
+
+    AssertDebug(commandBuffer->IsRecording());
+
+    VulkanFrame* frame = GetCurrentFrame();
+    frame->WriteCommandBuffer(commandBuffer);
+
+    commandBuffer->End();
+    
+    VulkanSemaphore* waitSemaphore = nullptr;
+    VulkanSemaphore* signalSemaphore = nullptr;
+
+    if (swapchain != nullptr)
+    {
+        waitSemaphore = frame->GetImageAvailableSemaphore(swapchain, /* createIfNotExist */ true);
+        signalSemaphore = swapchain->GetCurrentPresentSemaphore();
+
+        AssertDebug(waitSemaphore != nullptr && signalSemaphore != nullptr);
+    }
+    
+    commandBuffer->SubmitPrimary(
+        presentQueue,
+        frame->GetFence(),
+        Span<VulkanSemaphore*>(&waitSemaphore, waitSemaphore ? 1 : 0),
+        Span<VulkanSemaphore*>(&signalSemaphore, signalSemaphore ? 1 : 0));
+
+    if (swapchain != nullptr)
+    {
+        swapchain->PresentFrame(frame, presentQueue);
+    }
 }
 
 VulkanCommandBuffer* VulkanRenderInterface::GetCurrentCommandBuffer() const

@@ -74,6 +74,7 @@ constexpr uint32 MaxClusteredShadowMaps = 16;
 constexpr uint32 NumGBufferTargets = 5;
 
 constexpr uint32 MaxEntitiesPerBatch = 16;
+constexpr uint32 MaxEntityInstanceBatches = 4096;
 
 #if HYP_ANDROID
 constexpr const char AndroidAssetPathPrefix[] = "$Android";

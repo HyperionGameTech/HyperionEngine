@@ -473,7 +473,7 @@ void IndirectRenderer::ExecuteCullShaderInBatches(Frame* frame, const RenderSetu
 
     cr << SetShaderUniform(numShaderUniforms++, "ObjectInstancesBuffer"_sh, m_indirectDrawState.GetInstanceBuffer(frameIndex));
     cr << SetShaderUniform(numShaderUniforms++, "IndirectDrawCommandsBuffer"_sh, m_indirectDrawState.GetIndirectBuffer(frameIndex));
-    cr << SetShaderUniform(numShaderUniforms++, "EntityInstanceBatchesBuffer"_sh, m_batchAllocator->GetGpuBufferHolder()->GetBuffer(frameIndex));
+    cr << SetShaderUniform(numShaderUniforms++, "EntityInstanceBatchesBuffer"_sh, m_batchAllocator->GetStructuredBuffer().gpuBuffer);
 
     ComputeVisibilityConstants constants {};
     constants.depthPyramidDimensions = pd->depthPyramidRenderer->GetExtent();

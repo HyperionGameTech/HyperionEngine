@@ -894,7 +894,7 @@ void RenderInterface::BeginFrame(AtomicFlag* pCancelFlag)
             bufferedData.sharedLists.PushBack(bufferedViewData.rplShared);
         }
 
-        bufferedViewData.viewData->lastUsedFrame = GetFrameCounter();
+        bufferedViewData.viewData->lastUsedFrame = currFrame;
     }
 
     // copy deps to render side owned lists
@@ -1035,6 +1035,11 @@ void RenderInterface::BeginFrame(AtomicFlag* pCancelFlag)
             }
         }
     }
+    
+    GetCurrentCommandBuffer()->Begin();
+
+    // flush structured buffer data writes now that the data has been written cpu-side
+    FlushStructuredBuffers();
 
     // Build draw call lists
     for (View* view : activeViews)
@@ -1070,6 +1075,10 @@ void RenderInterface::EndFrame()
 
     Framework::BufferedData& bufferedData = Framework::s_bufferedData[slot];
     bufferedData.activeWorlds.Clear();
+    
+    //sbufferAllocator->UpdateAllUsedInFrame(GetCurrentFrame()->preRenderCommands);
+
+    stagingBufferPool->Cleanup();
 
     const uint32 currFrame = GetFrameCounter();
 
@@ -1831,30 +1840,23 @@ void RenderInterface::CommitPipelineState(PSOType psoType, CommandBuffer* comman
 #undef IS_BIT_SET
 }
 
-void RenderInterface::UpdateBuffers(Frame* frame)
+void RenderInterface::FlushStructuredBuffers()
 {
     HYP_SCOPE;
     AssertOnThread(g_renderThread);
 
-    const uint32 frameIndex = frame->GetFrameIndex();
-
-    for (auto& it : gpuBufferHolders->GetItems())
+    for (StructuredBuffer& sbuffer : namedBuffers)
     {
-        it.second->UpdateBufferSize(frameIndex);
-        it.second->UpdateBufferData(frameIndex, *stagingBufferPool, frame->preRenderCommands);
-    }
-
-    for (StructuredBuffer& grb : namedBuffers)
-    {
-        if (grb.IsDirty())
+        if (sbuffer.IsDirty())
         {
-            grb.Update(frame->preRenderCommands);
+            sbuffer.Update();
         }
     }
 
-    sbufferAllocator->UpdateAllUsedInFrame(frame->preRenderCommands);
-
-    stagingBufferPool->Cleanup(frameIndex);
+    for (auto& it : GetAllEntityBatchAllocators())
+    {
+        it.second->Flush();
+    }
 }
 
 void RenderInterface::CreateBlueNoiseBuffer()

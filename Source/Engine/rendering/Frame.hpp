@@ -38,6 +38,8 @@ public:
 
     virtual void OnFrameStart();
 
+    virtual void WriteCommandBuffer(CommandBuffer* commandBuffer) = 0;
+
     HYP_FORCE_INLINE uint32 GetFrameIndex() const
     {
         return m_frameIndex;

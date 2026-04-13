@@ -172,159 +172,169 @@ PSOutput PSMain(PSInput input)
 
 #if SHADING_TYPE_FORWARD
     float3 albedo = output.gbuffer_albedo.rgb;
-    float3 diffuseColor = CalculateDiffuseColor(albedo, metalness);
 
+    const bool drawUnlit = (input.object_mask & OBJECT_MASK_DEBUG) != 0;
+
+    if (drawUnlit)
     {
-        float3 indirect_lighting = 0;
-        float3 direct_lighting = 0;
+        output.gbuffer_albedo = float4(albedo, 1.0);
+    }
+    else
+    {
+        float3 diffuseColor = CalculateDiffuseColor(albedo, metalness);
 
-        const float NdotV = max(HYP_FMATH_EPSILON, dot(N, V));
-
-        const float3 R = normalize(reflect(-V, N));
-        
-        const float3 F0 = CalculateF0(albedo, metalness);
-        const float3 F = CalculateFresnelTerm(F0, perceptualRoughness, NdotV);
-        const float3 dfg = CalculateDFG(F, perceptualRoughness, NdotV);
-        const float3 E = CalculateE(F0, dfg);
-
-        const float3 energy_compensation = CalculateEnergyCompensation(F0.rgb, dfg.rgb);
-
-        { // Indirect part.
-            float4 irradiance = (float4)0;
-            float4 reflections = (float4)0;
-
-            uint2 mipChainDimensions;
-            gbuffer_mip_chain.GetDimensions(mipChainDimensions.x, mipChainDimensions.y);
-
-            float3 Ft = CalculateRefraction(
-                mipChainDimensions,
-                P, N, V,
-                texcoord, 
-                F0, E,
-                transmission, perceptualRoughness,
-                float4(0.0, 0.0, 0.0, 0.0),
-                output.gbuffer_albedo,
-                float3(ao, ao, ao));
-
-            // @TODO
-            // Select env probes - add reflection + irradiance using CalculateEnvProbesContribution 
-            // Calc Fr + Fd
-            // Bada bing badaboom
-
-            float3 Fr = (float3)0;
-            float3 Fd = (float3)0;
-
-            // @TODO Fd and Fr.
-
-            Ft *= transmission;
-            Fd *= (1.0 - transmission);
-
-            indirect_lighting = Ft + Fd + Fr;
-        }
-
-#ifdef FORWARD_CLUSTERED
-        const uint2 pixelCoord = uint2(input.texcoord0 * max(0, int2(camera.dimensions.xy) - 1));
-
-        // @TODO!!! This is poopy; just reconstruct view space position in the shader and use that for cluster indexing instead of reconstructing world space position and then transforming to view space
-        float4 positionVS = mul(camera.view, float4(P, 1.0));
-        positionVS /= positionVS.w;
-
-        const float viewSpaceZ = positionVS.z;
-
-        // Clustered shading
-        const uint gridIndex = Cluster_GetGridIndex(
-            camera.dimensions.xy, pixelCoord,
-            viewSpaceZ,
-            camera.near, camera.far);
-
-        const uint2 clusterData = ClusterGridBuffer[gridIndex];
-        
-        const uint clusterIndexOffset = clusterData.x;
-
-        const uint numLights = (clusterData.y & 0xFFFF);
-        const uint numEnvProbes = (clusterData.y >> 16) & 0xFFFF;
-
-        for (uint i = 0; i < numLights; ++i)
         {
-            const uint lightIndex = Cluster_LoadLightIndex(clusterIndexOffset, i);
+            float3 indirect_lighting = 0;
+            float3 direct_lighting = 0;
+
+            const float NdotV = max(HYP_FMATH_EPSILON, dot(N, V));
+
+            const float3 R = normalize(reflect(-V, N));
             
-            Light currentLight = LightsBuffer.Load(lightIndex);
+            const float3 F0 = CalculateF0(albedo, metalness);
+            const float3 F = CalculateFresnelTerm(F0, perceptualRoughness, NdotV);
+            const float3 dfg = CalculateDFG(F, perceptualRoughness, NdotV);
+            const float3 E = CalculateE(F0, dfg);
 
-            float3 L = currentLight.position_intensity.xyz;
-            L -= P * float(min(currentLight.type, 1));
+            const float3 energy_compensation = CalculateEnergyCompensation(F0.rgb, dfg.rgb);
 
-            L = normalize(L);
+            { // Indirect part.
+                float4 irradiance = (float4)0;
+                float4 reflections = (float4)0;
 
-            const float3 H = normalize(L + V);
+                uint2 mipChainDimensions;
+                gbuffer_mip_chain.GetDimensions(mipChainDimensions.x, mipChainDimensions.y);
 
-            const float NdotL = max(0.000001, dot(N, L));
-            const float LdotH = max(0.000001, dot(L, H));
-            const float NdotH = max(0.000001, dot(N, H));
-            const float HdotV = max(0.000001, dot(H, V));
+                float3 Ft = CalculateRefraction(
+                    mipChainDimensions,
+                    P, N, V,
+                    texcoord, 
+                    F0, E,
+                    transmission, perceptualRoughness,
+                    float4(0.0, 0.0, 0.0, 0.0),
+                    output.gbuffer_albedo,
+                    float3(ao, ao, ao));
 
-            float3 light_color = currentLight.color.rgb;
+                // @TODO
+                // Select env probes - add reflection + irradiance using CalculateEnvProbesContribution 
+                // Calc Fr + Fd
+                // Bada bing badaboom
 
-            float attenuation = 1.0;
-            float shadow = 1.0;
+                float3 Fr = (float3)0;
+                float3 Fd = (float3)0;
 
-            const float D = CalculateDistributionTerm(perceptualRoughness, NdotH);
-            const float G = CalculateGeometryTerm(NdotL, NdotV, HdotV, NdotH);
-            const float3 F = CalculateFresnelTerm(F0, perceptualRoughness, LdotH);
+                // @TODO Fd and Fr.
 
-            const float3 specular_lobe = D * G * F;
+                Ft *= transmission;
+                Fd *= (1.0 - transmission);
 
-            switch (currentLight.type)
-            {
-                case HYP_LIGHT_TYPE_POINT:
-                case HYP_LIGHT_TYPE_SPOT: // fallthrough
-                {
-                    const float2 radiusFalloff = float2(f16tof32(currentLight.radiusFalloffPacked), f16tof32(currentLight.radiusFalloffPacked >> 16));
-                    const float radius = radiusFalloff.x;
-                    const float falloff = radiusFalloff.y;
-
-                    attenuation = GetSquareFalloffAttenuation(P, currentLight.position_intensity.xyz, radius);
-
-                    if (currentLight.type == HYP_LIGHT_TYPE_SPOT)
-                    {
-                        float theta = max(dot(-L, normalize(currentLight.normal.xyz)), 0.0);
-                        float2 spot_angles = currentLight.area_size.xy;
-
-                        attenuation *= saturate((theta - spot_angles[0]) / (spot_angles[1] - spot_angles[0])) * step(spot_angles[0], theta);
-                        
-                        // @TODO Spot shadows - add here when adding to DeferredDirect.hlsl
-                        
-                    }
-                    else
-                    {
-                        // @TODO Forward clustered needs shadows.
-                        if ((currentLight.flags & LF_SHADOW_CASTER) != 0)
-                        {
-                            //uint shadowMapIndex = GetShadowMapIndexForLight(lightIndex);
-                            //ShadowMap shadowMap = shadowMaps[shadowMapIndex];
-
-                            float3 worldToLight = P - currentLight.position_intensity.xyz;
-
-                            //shadow = GetPointShadow(shadowMap, currentLight.flags, worldToLight, NdotL);
-                        }
-                    }
-
-                    break;
-                }
-                default: break;
+                indirect_lighting = Ft + Fd + Fr;
             }
 
-            float3 specular = specular_lobe;
+    #ifdef FORWARD_CLUSTERED
+            const uint2 pixelCoord = uint2(input.texcoord0 * max(0, int2(camera.dimensions.xy) - 1));
 
-            float3 diffuse_lobe = diffuseColor * HYP_FMATH_ONE_OVER_PI;
-            float3 diffuse = diffuse_lobe;
+            // @TODO!!! This is poopy; just reconstruct view space position in the shader and use that for cluster indexing instead of reconstructing world space position and then transforming to view space
+            float4 positionVS = mul(camera.view, float4(P, 1.0));
+            positionVS /= positionVS.w;
 
-            float3 direct_component = diffuse + specular * energy_compensation;
+            const float viewSpaceZ = positionVS.z;
 
-            direct_lighting += (direct_component * (light_color * ao * NdotL * shadow * currentLight.position_intensity.w * attenuation)).rgb;
+            // Clustered shading
+            const uint gridIndex = Cluster_GetGridIndex(
+                camera.dimensions.xy, pixelCoord,
+                viewSpaceZ,
+                camera.near, camera.far);
+
+            const uint2 clusterData = ClusterGridBuffer[gridIndex];
+            
+            const uint clusterIndexOffset = clusterData.x;
+
+            const uint numLights = (clusterData.y & 0xFFFF);
+            const uint numEnvProbes = (clusterData.y >> 16) & 0xFFFF;
+
+            for (uint i = 0; i < numLights; ++i)
+            {
+                const uint lightIndex = Cluster_LoadLightIndex(clusterIndexOffset, i);
+                
+                Light currentLight = LightsBuffer.Load(lightIndex);
+
+                float3 L = currentLight.position_intensity.xyz;
+                L -= P * float(min(currentLight.type, 1));
+
+                L = normalize(L);
+
+                const float3 H = normalize(L + V);
+
+                const float NdotL = max(0.000001, dot(N, L));
+                const float LdotH = max(0.000001, dot(L, H));
+                const float NdotH = max(0.000001, dot(N, H));
+                const float HdotV = max(0.000001, dot(H, V));
+
+                float3 light_color = currentLight.color.rgb;
+
+                float attenuation = 1.0;
+                float shadow = 1.0;
+
+                const float D = CalculateDistributionTerm(perceptualRoughness, NdotH);
+                const float G = CalculateGeometryTerm(NdotL, NdotV, HdotV, NdotH);
+                const float3 F = CalculateFresnelTerm(F0, perceptualRoughness, LdotH);
+
+                const float3 specular_lobe = D * G * F;
+
+                switch (currentLight.type)
+                {
+                    case HYP_LIGHT_TYPE_POINT:
+                    case HYP_LIGHT_TYPE_SPOT: // fallthrough
+                    {
+                        const float2 radiusFalloff = float2(f16tof32(currentLight.radiusFalloffPacked), f16tof32(currentLight.radiusFalloffPacked >> 16));
+                        const float radius = radiusFalloff.x;
+                        const float falloff = radiusFalloff.y;
+
+                        attenuation = GetSquareFalloffAttenuation(P, currentLight.position_intensity.xyz, radius);
+
+                        if (currentLight.type == HYP_LIGHT_TYPE_SPOT)
+                        {
+                            float theta = max(dot(-L, normalize(currentLight.normal.xyz)), 0.0);
+                            float2 spot_angles = currentLight.area_size.xy;
+
+                            attenuation *= saturate((theta - spot_angles[0]) / (spot_angles[1] - spot_angles[0])) * step(spot_angles[0], theta);
+                            
+                            // @TODO Spot shadows - add here when adding to DeferredDirect.hlsl
+                            
+                        }
+                        else
+                        {
+                            // @TODO Forward clustered needs shadows.
+                            if ((currentLight.flags & LF_SHADOW_CASTER) != 0)
+                            {
+                                //uint shadowMapIndex = GetShadowMapIndexForLight(lightIndex);
+                                //ShadowMap shadowMap = shadowMaps[shadowMapIndex];
+
+                                float3 worldToLight = P - currentLight.position_intensity.xyz;
+
+                                //shadow = GetPointShadow(shadowMap, currentLight.flags, worldToLight, NdotL);
+                            }
+                        }
+
+                        break;
+                    }
+                    default: break;
+                }
+
+                float3 specular = specular_lobe;
+
+                float3 diffuse_lobe = diffuseColor * HYP_FMATH_ONE_OVER_PI;
+                float3 diffuse = diffuse_lobe;
+
+                float3 direct_component = diffuse + specular * energy_compensation;
+
+                direct_lighting += (direct_component * (light_color * ao * NdotL * shadow * currentLight.position_intensity.w * attenuation)).rgb;
+            }
+    #endif // CLUSTERED
+
+            output.gbuffer_albedo.rgb = indirect_lighting + direct_lighting;
         }
-#endif // CLUSTERED
-
-        output.gbuffer_albedo.rgb = indirect_lighting + direct_lighting;
     }
 #endif // SHADING_TYPE_FORWARD
 
@@ -361,9 +371,6 @@ PSOutput PSMain(PSInput input)
 #endif
 
     output.gbuffer_velocity = velocity;
-
-    // // temp
-    // output.gbuffer_albedo = float4(input.texcoord1.xy, 0.0, 1.0);
 
     return output;
 }

@@ -89,13 +89,18 @@ public:
             && (dirtyRangeEnd - dirtyRangeStart) > 0;
     }
 
+    HYP_FORCE_INLINE void MarkDirty(size_t offset, size_t count)
+    {
+        dirtyRangeStart = offset < dirtyRangeStart ? offset : dirtyRangeStart;
+        dirtyRangeEnd = (offset + count) > dirtyRangeEnd ? (offset + count) : dirtyRangeEnd;
+    }
+
     void Initialize();
     void Shutdown();
 
     void Write(size_t offset, size_t count, const void* data);
 
-    template <class AllocatorType>
-    void Update(TCommandRecorder<AllocatorType>& cr);
+    void Update();
 
     GpuBuffer* gpuBuffer;
     TByteBuffer<RenderAllocator> cpuBuffer;
@@ -105,7 +110,5 @@ public:
     size_t dirtyRangeStart;
     size_t dirtyRangeEnd;
 };
-
-template <> void StructuredBuffer::Update<RenderAllocator>(TCommandRecorder<RenderAllocator>& cr);
 
 } // namespace Hyperion

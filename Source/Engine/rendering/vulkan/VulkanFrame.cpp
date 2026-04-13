@@ -80,10 +80,7 @@ void VulkanFrame::OnFrameStart()
 #endif
 }
 
-RendererResult VulkanFrame::Submit(
-    VulkanDeviceQueue* deviceQueue,
-    VulkanCommandBuffer* commandBuffer,
-    VulkanSwapchain* swapchain)
+void VulkanFrame::WriteCommandBuffer(VulkanCommandBuffer* commandBuffer)
 {
     AssertOnThread(g_renderThread);
 
@@ -107,33 +104,12 @@ RendererResult VulkanFrame::Submit(
     }
 
     {
-        commandBuffer->Begin();
-    
         for (CommandRecorder* commandRecorder : commandRecorders)
         {
             commandRecorder->Execute(commandBuffer);
             commandRecorder->Reset(/* freeMemory */ false);
         }
-
-        commandBuffer->End();
     }
-
-    VulkanSemaphore* waitSemaphore = nullptr;
-    VulkanSemaphore* signalSemaphore = nullptr;
-
-    if (swapchain != nullptr)
-    {
-        waitSemaphore = GetImageAvailableSemaphore(swapchain, /* createIfNotExist */ true);
-        signalSemaphore = swapchain->GetCurrentPresentSemaphore();
-
-        AssertDebug(waitSemaphore != nullptr && signalSemaphore != nullptr);
-    }
-
-    return commandBuffer->SubmitPrimary(
-        deviceQueue,
-        m_queueSubmitFence,
-        Span<VulkanSemaphore*>(&waitSemaphore, waitSemaphore ? 1 : 0),
-        Span<VulkanSemaphore*>(&signalSemaphore, signalSemaphore ? 1 : 0));
 }
 
 void VulkanFrame::RecreateFence()

@@ -349,9 +349,9 @@ RendererResult VulkanAccelerationStructureBase::CreateAccelerationStructure(
     }
 
     VulkanCommandBufferRef commandBuffer = MakeHandle<VulkanCommandBuffer>(VK_COMMAND_BUFFER_LEVEL_PRIMARY);
-    CheckResultOrReturn(commandBuffer->Create(g_renderInterface->GetDevice()->GetGraphicsQueue()->commandPools[0]));
+    commandBuffer->Create(g_renderInterface->GetDevice()->GetGraphicsQueue()->commandPools[0]);
 
-    CheckResultOrReturn(commandBuffer->Begin());
+    commandBuffer->Begin();
 
     g_vulkanDynamicFunctions->vkCmdBuildAccelerationStructuresKHR(
         commandBuffer->GetVulkanHandle(),
@@ -372,7 +372,7 @@ RendererResult VulkanAccelerationStructureBase::CreateAccelerationStructure(
         0, nullptr,
         0, nullptr);
 
-    CheckResultOrReturn(commandBuffer->End());
+    commandBuffer->End();
 
     CheckResultOrReturn(commandBuffer->SubmitPrimary(g_renderInterface->GetDevice()->GetGraphicsQueue(), nullptr, nullptr, nullptr));
 

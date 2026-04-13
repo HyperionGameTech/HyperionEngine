@@ -11,8 +11,11 @@
 #include <Core/reflection/ObjId.hpp>
 #include <Core/reflection/Handle.hpp>
 #include <Core/reflection/TypeInfoFwd.hpp>
+#include <Core/reflection/TypeInfo.hpp>
 
-#include <rendering/GlobalBuffers.hpp>
+#include <Core/utilities/IdGenerator.hpp>
+
+#include <rendering/StructuredBuffer.hpp>
 #include <rendering/RenderMemory.hpp>
 #include <rendering/RenderObject.hpp>
 #include <rendering/RenderGroup.hpp>
@@ -28,10 +31,7 @@ class Entity;
 class RenderProxyMesh;
 struct DrawCommandData;
 class IndirectDrawState;
-class GpuBufferHolderBase;
 struct InstanceData;
-
-HYP_API extern GpuBufferHolderMap* GetGpuBufferHolderMap();
 
 HYP_STRUCT(NoScriptBindings)
 struct EntityInstanceBatch
@@ -236,22 +236,11 @@ class EntityBatchAllocatorBase
 public:
     virtual ~EntityBatchAllocatorBase() = default;
 
-    EntityBatchAllocatorBase(const EntityBatchAllocatorBase& other)
-        : m_bufferHolder(other.m_bufferHolder),
-          m_structSize(other.m_structSize),
-          m_structAlignment(other.m_structAlignment)
-    {
-    }
+    EntityBatchAllocatorBase(const EntityBatchAllocatorBase& other) = delete;
+    EntityBatchAllocatorBase& operator=(const EntityBatchAllocatorBase& other) = delete;
 
-    EntityBatchAllocatorBase(EntityBatchAllocatorBase&& other) noexcept
-        : m_bufferHolder(other.m_bufferHolder),
-          m_structSize(other.m_structSize),
-          m_structAlignment(other.m_structAlignment)
-    {
-        other.m_bufferHolder = nullptr;
-        other.m_structSize = 0;
-        other.m_structAlignment = 0;
-    }
+    EntityBatchAllocatorBase(EntityBatchAllocatorBase&& other) noexcept = delete;
+    EntityBatchAllocatorBase& operator=(EntityBatchAllocatorBase&& other) noexcept = delete;
 
     HYP_FORCE_INLINE size_t GetStructSize() const
     {
@@ -263,19 +252,37 @@ public:
         return m_structAlignment;
     }
 
-    void ReleaseBatch(EntityInstanceBatch* batch) const;
-
-    HYP_FORCE_INLINE GpuBufferHolderBase* GetGpuBufferHolder() const
+    HYP_FORCE_INLINE StructuredBuffer& GetStructuredBuffer()
     {
-        return m_bufferHolder;
+        return m_sbuffer;
     }
 
-    virtual EntityInstanceBatch* AcquireBatch() const = 0;
+    HYP_FORCE_INLINE const StructuredBuffer& GetStructuredBuffer() const
+    {
+        return m_sbuffer;
+    }
+
+    void Initialize();
+
+    void ReleaseBatch(EntityInstanceBatch* batch);
+
+    void MarkBatchDirty(EntityInstanceBatch* batch);
+
+    void Flush()
+    {
+        if (m_sbuffer.IsDirty())
+        {
+            m_sbuffer.Update();
+        }
+    }
+
+    virtual EntityInstanceBatch* AcquireBatch() = 0;
 
 protected:
-    explicit EntityBatchAllocatorBase(GpuBufferHolderBase* bufferHolder);
+    explicit EntityBatchAllocatorBase(const TypeInfo* structTypeInfo, uint32 maxBatches);
 
-    GpuBufferHolderBase* m_bufferHolder;
+    StructuredBuffer m_sbuffer;
+    mutable IdGenerator m_idGenerator;
     size_t m_structSize;
     size_t m_structAlignment;
 };
@@ -350,22 +357,26 @@ public:
     static_assert(std::is_base_of_v<EntityInstanceBatch, BatchType>, "BatchType must be a derived struct type of EntityInstanceBatch");
     static_assert(offsetof(BatchType, indices) == 64, "offsetof for member `indices` of the derived EntityInstanceBatch type must match shader");
 
-    TEntityBatchAllocator(uint32 initialCount, bool cpuAccessible)
-        : EntityBatchAllocatorBase(GetGpuBufferHolderMap()->GetOrCreate<BatchType>(initialCount, cpuAccessible))
+    TEntityBatchAllocator()
+        : EntityBatchAllocatorBase(&TypeOf<BatchType>(), MaxEntityInstanceBatches)
     {
     }
 
-    TEntityBatchAllocator(const TEntityBatchAllocator& other) = default;
-    TEntityBatchAllocator(TEntityBatchAllocator&& other) noexcept = default;
+    TEntityBatchAllocator(const TEntityBatchAllocator& other) = delete;
+    TEntityBatchAllocator(TEntityBatchAllocator&& other) noexcept = delete;
 
     ~TEntityBatchAllocator() = default;
 
-    virtual EntityInstanceBatch* AcquireBatch() const override
+    virtual EntityInstanceBatch* AcquireBatch() override
     {
-        BatchType* batch;
-        const uint32 batchIndex = reinterpret_cast<GpuBufferHolder<BatchType, GpuBufferType::STORAGE_BUFFER>*>(m_bufferHolder)->AcquireIndex(&batch);
+        const uint32 batchIndex = m_idGenerator.Next() - 1;
 
+        AssertDebug(batchIndex < MaxEntityInstanceBatches,
+            "Entity instance batch limit ({}) exceeded! Consider increasing MaxEntityInstanceBatches.", MaxEntityInstanceBatches);
+
+        BatchType* batch = reinterpret_cast<BatchType*>(m_sbuffer.cpuBuffer.Data() + batchIndex * m_structSize);
         batch->batchIndex = batchIndex;
+        batch->numEntities = 0;
 
         return batch;
     }
@@ -385,6 +396,8 @@ static inline EntityBatchAllocatorBase* GetOrCreateEntityBatchAllocator()
 // used internally
 extern void RegisterEntityBatchAllocator(const TypeId& typeId, PFNCreateEntityBatchAllocator createFn);
 
+HYP_API const HashMap<TypeId, EntityBatchAllocatorBase*>& GetAllEntityBatchAllocators();
+
 #define HYP_REGISTER_DRAW_BATCH_TYPE(BatchType)                                                                                             \
     namespace {                                                                                                                             \
     struct BatchType##AllocatorRegistrationHelper                                                                                           \
@@ -393,7 +406,7 @@ extern void RegisterEntityBatchAllocator(const TypeId& typeId, PFNCreateEntityBa
         {                                                                                                                                   \
             RegisterEntityBatchAllocator(TypeId::ForType<BatchType>(), []() -> EntityBatchAllocatorBase*                                    \
                 {                                                                                                                           \
-                    return HYP_POOL_NEW(g_renderPool, TEntityBatchAllocator<BatchType>, /* initialCount */ 0, /* cpuAccessible */ false);   \
+                    return HYP_POOL_NEW(g_renderPool, TEntityBatchAllocator<BatchType>);                                                    \
                 });                                                                                                                         \
         }                                                                                                                                   \
     };                                                                                                                                      \

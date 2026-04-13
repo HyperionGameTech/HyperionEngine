@@ -29,6 +29,7 @@ VulkanCommandBuffer::VulkanCommandBuffer(VkCommandBufferLevel type)
     : m_type(type),
       m_handle(VK_NULL_HANDLE),
       m_commandPool(VK_NULL_HANDLE),
+      m_isRecording(false),
       m_renderPass(nullptr),
       m_boundGraphicsPipeline(nullptr),
       m_boundComputePipeline(nullptr),
@@ -87,8 +88,11 @@ RendererResult VulkanCommandBuffer::Create()
     return {};
 }
 
-RendererResult VulkanCommandBuffer::Begin(const VulkanRenderPass* renderPass)
+void VulkanCommandBuffer::Begin()
 {
+    Assert(!m_isRecording, "Command buffer is already recording!");
+    Assert(m_handle != VK_NULL_HANDLE, "Command buffer must be created before it can be begun!");
+
     m_boundDescriptorSets.Clear();
     m_renderPass = nullptr;
     m_boundGraphicsPipeline = nullptr;
@@ -100,54 +104,31 @@ RendererResult VulkanCommandBuffer::Begin(const VulkanRenderPass* renderPass)
     inheritanceInfo.framebuffer = VK_NULL_HANDLE;
 
     VkCommandBufferBeginInfo beginInfo { VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO };
+    Assert(vkBeginCommandBuffer(m_handle, &beginInfo) == VK_SUCCESS, "Failed to begin command buffer");
 
-    if (m_type == VK_COMMAND_BUFFER_LEVEL_SECONDARY)
-    {
-        if (renderPass == nullptr)
-        {
-            return HYP_MAKE_ERROR(RendererError, "Render pass not provided for secondary command buffer!");
-        }
-
-        inheritanceInfo.renderPass = renderPass->GetVulkanHandle();
-
-        beginInfo.pInheritanceInfo = &inheritanceInfo;
-        beginInfo.flags |= VK_COMMAND_BUFFER_USAGE_RENDER_PASS_CONTINUE_BIT;
-    }
-
-    if (!m_handle)
-    {
-        return HYP_MAKE_ERROR(RendererError, "Command buffer not created!");
-    }
-
-    VULKAN_CHECK_MSG(
-        vkBeginCommandBuffer(m_handle, &beginInfo),
-        "Failed to begin command buffer");
-
-    return {};
+    m_isRecording = true;
 }
 
-RendererResult VulkanCommandBuffer::End()
+void VulkanCommandBuffer::End()
 {
-    VULKAN_CHECK_MSG(
-        vkEndCommandBuffer(m_handle),
-        "Failed to end command buffer");
+    Assert(m_isRecording, "Command buffer is not recording!");
 
-    return {};
+    Assert(vkEndCommandBuffer(m_handle) == VK_SUCCESS, "Failed to end command buffer");
+
+    m_isRecording = false;
 }
 
-RendererResult VulkanCommandBuffer::Reset()
+void VulkanCommandBuffer::Reset()
 {
+    Assert(!m_isRecording, "Cannot reset command buffer while it is in recording state!");
+
     m_boundDescriptorSets.Clear();
     m_renderPass = nullptr;
     m_boundGraphicsPipeline = nullptr;
     m_boundComputePipeline = nullptr;
     m_boundRayTracingPipeline = nullptr;
 
-    VULKAN_CHECK_MSG(
-        vkResetCommandBuffer(m_handle, 0),
-        "Failed to reset command buffer");
-
-    return {};
+    Assert(vkResetCommandBuffer(m_handle, 0), "Failed to reset command buffer");
 }
 
 RendererResult VulkanCommandBuffer::SubmitPrimary(

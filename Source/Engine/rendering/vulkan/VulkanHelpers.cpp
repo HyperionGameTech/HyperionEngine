@@ -697,10 +697,6 @@ RendererResult VulkanSingleTimeCommands::Execute()
 {
     AssertOnThread(g_renderThread);
 
-    VulkanFrameRef tempFrame;
-    VulkanCommandBufferRef commandBuffer;
-    VulkanFenceRef fence;
-
     CommandRecorder cr;
 
     for (auto& fn : m_functions)
@@ -710,35 +706,26 @@ RendererResult VulkanSingleTimeCommands::Execute()
 
     m_functions.Clear();
 
-    tempFrame = g_renderInterface->MakeFrame(0);
-    CheckResultOrReturn(tempFrame->Create());
+    VulkanFrame tempFrame;
+    CheckResultOrReturn(tempFrame.Create());
 
-    cr.Prepare(tempFrame);
+    cr.Prepare(&tempFrame);
 
-    commandBuffer = MakeHandle<VulkanCommandBuffer>(VK_COMMAND_BUFFER_LEVEL_PRIMARY);
-    CheckResultOrReturn(commandBuffer->Create(g_renderInterface->GetDevice()->GetGraphicsQueue()->commandPools[0]));
+    VulkanFence fence;
+    fence.Create(/* createSignalled */ false);
 
-    CheckResultOrReturn(commandBuffer->Begin());
+    VulkanCommandBuffer commandBuffer { VK_COMMAND_BUFFER_LEVEL_PRIMARY };
+    commandBuffer.Create(g_renderInterface->GetDevice()->GetGraphicsQueue()->commandPools[0]);
 
-    // Execute the command list
-    cr.Execute(commandBuffer);
-
-    CheckResultOrReturn(commandBuffer->End());
-
-    /// \todo Refactor to use frame's fence instead, just need to make Frame able to not be presentable
-    fence = MakeHandle<VulkanFence>();
-    fence->Create(/* createSignalled */ false);
+    commandBuffer.Begin();
+    cr.Execute(&commandBuffer);
+    commandBuffer.End();
 
     // Submit to the queue
     VulkanDeviceQueue* queueGraphics = g_renderInterface->GetDevice()->GetGraphicsQueue();
+    CheckResultOrReturn(commandBuffer.SubmitPrimary(queueGraphics, &fence, nullptr, nullptr));
 
-    CheckResultOrReturn(commandBuffer->SubmitPrimary(queueGraphics, fence, nullptr, nullptr));
-
-    fence->Wait();
-
-    fence.Reset();
-    commandBuffer.Reset();
-    tempFrame.Reset();
+    fence.Wait();
 
     return {};
 }

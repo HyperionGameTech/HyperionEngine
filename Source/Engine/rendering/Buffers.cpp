@@ -174,7 +174,7 @@ void StagingBufferPool::OnFrameEnd()
     m_impl->OnFrameEnd();
 }
 
-void StagingBufferPool::Cleanup(uint32 frameIndex)
+void StagingBufferPool::Cleanup()
 {
     m_impl->Cleanup();
 }

@@ -30,6 +30,11 @@ public:
 
     virtual RendererResult Create() = 0;
 
+    virtual bool IsRecording() const = 0;
+
+    virtual void Begin() = 0;
+    virtual void End() = 0;
+
     virtual void BindVertexBuffer(const GpuBuffer* buffer) = 0;
     virtual void BindIndexBuffer(const GpuBuffer* buffer, GpuElemType elemType = GET_UNSIGNED_INT) = 0;
 

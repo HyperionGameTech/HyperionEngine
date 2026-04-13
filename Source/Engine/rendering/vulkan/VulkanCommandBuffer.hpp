@@ -112,9 +112,16 @@ public:
     RendererResult Create() override;
     RendererResult Create(VkCommandPool commandPool);
 
-    RendererResult Begin(const VulkanRenderPass* renderPass = nullptr);
-    RendererResult End();
-    RendererResult Reset();
+    bool IsRecording() const override
+    {
+        return m_isRecording;
+    }
+
+    void Begin() override;
+    void End() override;
+
+    void Reset();
+    
     RendererResult SubmitPrimary(
         VulkanDeviceQueue* queue,
         VulkanFence* fence,
@@ -138,16 +145,6 @@ public:
     void DebugMarkerBegin(const char* markerName) const;
     void DebugMarkerEnd() const;
 
-    template <class LambdaFunction>
-    RendererResult Record(const VulkanRenderPass* renderPass, LambdaFunction&& fn)
-    {
-        CheckResultOrReturn(Begin(renderPass));
-        CheckResultOrReturn(fn(this));
-        CheckResultOrReturn(End());
-
-        return {};
-    }
-
     void ResetBoundDescriptorSets()
     {
         m_boundDescriptorSets.Clear();
@@ -159,6 +156,8 @@ private:
     VkCommandPool m_commandPool;
 
     Array<VulkanCachedDescriptorSetBinding> m_boundDescriptorSets;
+
+    bool m_isRecording;
 
 public:
     VulkanRenderPass* m_renderPass;

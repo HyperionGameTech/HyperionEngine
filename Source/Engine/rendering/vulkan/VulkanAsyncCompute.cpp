@@ -82,9 +82,9 @@ void VulkanAsyncCompute::Submit()
     m_fence->Wait(true);
     m_fence->Reset();
 
-    CheckResult(m_commandBuffer->Begin());
+    m_commandBuffer->Begin();
     cr.Execute(m_commandBuffer);
-    CheckResult(m_commandBuffer->End());
+    m_commandBuffer->End();
 
     CheckResult(m_commandBuffer->SubmitPrimary(m_deviceQueue, m_fence, nullptr, nullptr));
 

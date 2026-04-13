@@ -909,7 +909,7 @@ static void RenderAll(
         const uint32 stride = drawCallCollection.batchAllocator->GetStructSize();
 
         cr << SetShaderUniform(numDrawCallUniforms++, "EntityInstanceBatchesBuffer"_sh,
-            drawCallCollection.batchAllocator->GetGpuBufferHolder()->GetBuffer(frameIndex),
+            drawCallCollection.batchAllocator->GetStructuredBuffer().gpuBuffer,
             ShaderDataOffset(entityInstanceBatch->batchIndex * stride, stride));
 
         const uint32 materialBoundIndex = Resources::GetBinding(instancedDrawCalls.materials[i]);

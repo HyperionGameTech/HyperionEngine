@@ -63,9 +63,7 @@ struct StructuredBufferAllocatorImpl
         for (auto it = usedBuffers.Begin(); it != usedBuffers.End();)
         {
             CachedStructuredBuffer& usedBuffer = *it;
-            // Reset dirty state before recycling
-            usedBuffer.buffer.dirtyRangeStart = SIZE_MAX;
-            usedBuffer.buffer.dirtyRangeEnd = 0;
+            usedBuffer.buffer.Update();
 
             cachedBuffers.PushBack(std::move(usedBuffer));
 
@@ -76,12 +74,12 @@ struct StructuredBufferAllocatorImpl
     template <class AllocatorType>
     void UpdateAllUsedInFrame(TCommandRecorder<AllocatorType>& cr)
     {
-        for (CachedStructuredBuffer& usedBuffer : usedBuffers)
-        {
-            AssertDebug(usedBuffer.buffer.gpuBuffer != nullptr && usedBuffer.buffer.gpuBuffer->IsCreated());
+        // for (CachedStructuredBuffer& usedBuffer : usedBuffers)
+        // {
+        //     AssertDebug(usedBuffer.buffer.gpuBuffer != nullptr && usedBuffer.buffer.gpuBuffer->IsCreated());
 
-            usedBuffer.buffer.Update(cr);
-        }
+        //     usedBuffer.buffer.Update(cr);
+        // }
     }
 
     StructuredBuffer& AcquireBuffer(size_t numElements, size_t elementSize)

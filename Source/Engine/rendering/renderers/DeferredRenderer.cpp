@@ -611,6 +611,8 @@ void DeferredPass::RenderToFramebuffer_Internal(Frame* frame, const RenderSetup&
 
                 ++shadowMapIndex;
             }
+
+            shadowMapIndexBuffer.Update();
             
             cr << SetShaderUniform(localNumShaderUniforms++, "ShadowMapIndexBuffer"_sh, shadowMapIndexBuffer.gpuBuffer);
 
@@ -1981,7 +1983,10 @@ public:
         allocation.indexBufferSize = indexBuffer.gpuBuffer->Size();
 
         gridBuffer.Write(0, gridData.Size() * sizeof(TileGridData), gridData.Data());
+        gridBuffer.Update();
+
         indexBuffer.Write(0, flatIndexData.Size() * sizeof(uint16), flatIndexData.Data());
+        indexBuffer.Update();
 
         outGridBuffer = &gridBuffer;
         outIndexBuffer = &indexBuffer;

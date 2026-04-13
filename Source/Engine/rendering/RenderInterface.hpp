@@ -274,7 +274,7 @@ public:
     void AddRenderer(GlobalRendererType globalRendererType, RendererBase* renderer);
     void RemoveRenderer(GlobalRendererType globalRendererType, RendererBase* renderer);
 
-    void UpdateBuffers(Frame* frame);
+    void FlushStructuredBuffers();
 
     void CommitDrawState(CommandBuffer* commandBuffer)
     {
@@ -295,7 +295,6 @@ public:
     virtual SwapchainRef CreateSwapchain(ApplicationWindow* window, const Vec2u& extent) = 0;
 
     virtual void PrepareSwapchain(Swapchain* swapchain) = 0;
-    virtual void SubmitCommandBuffers(Swapchain* swapchain) = 0;
     virtual void PresentToSwapchain(Swapchain* swapchain) = 0;
 
     virtual CommandBuffer* GetCurrentCommandBuffer() const = 0;

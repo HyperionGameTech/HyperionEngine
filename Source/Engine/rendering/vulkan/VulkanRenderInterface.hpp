@@ -114,7 +114,6 @@ public:
     VulkanSwapchainRef CreateSwapchain(ApplicationWindow* window, const Vec2u& extent) override;
 
     void PrepareSwapchain(VulkanSwapchain* swapchain) override;
-    void SubmitCommandBuffers(VulkanSwapchain* swapchain) override;
     void PresentToSwapchain(VulkanSwapchain* swapchain) override;
 
     VulkanCommandBuffer* GetCurrentCommandBuffer() const override;
