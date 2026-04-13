@@ -118,6 +118,9 @@ public:
 
     VulkanCommandBuffer* GetCurrentCommandBuffer() const override;
 
+    VulkanCommandBuffer& GetTransientCommandBuffer() override;
+    void SubmitTransientCommandBuffer(VulkanCommandBuffer& commandBuffer) override;
+
     VulkanDescriptorSetRef MakeDescriptorSet(const DescriptorSetLayout& layout) override;
 
     VulkanDescriptorTableRef MakeDescriptorTable(const ShaderInputGroup* decl) override;
@@ -204,6 +207,14 @@ private:
     uint32 m_currentFrameIndex;
 
     Array<VulkanCommandBufferRef, VulkanAllocator> m_commandBuffers;
+
+    LinkedList<VulkanCommandBuffer, VulkanAllocator> m_transientCommandBuffers[NumRendererWorkerThreads + 1][NumFramesInFlight];
+    LinkedList<VulkanCommandBuffer, VulkanAllocator> m_pendingTransientCommandBuffers[NumRendererWorkerThreads + 1][NumFramesInFlight];
+
+    LinkedList<VulkanFence, VulkanAllocator> m_transientCommandBufferFences[NumFramesInFlight];
+    LinkedList<VulkanFence, VulkanAllocator> m_recycledTransientCommandBufferFences;
+
+    Mutex m_transientCommandBuffersMutex;
 
     Array<VulkanAsyncCompute*, VulkanAllocator> m_asyncComputePool;
     Array<VulkanAsyncCompute*, VulkanAllocator> m_submittedAsyncComputes;

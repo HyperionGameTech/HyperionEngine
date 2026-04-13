@@ -714,7 +714,7 @@ RendererResult VulkanSingleTimeCommands::Execute()
     VulkanFence fence;
     fence.Create(/* createSignalled */ false);
 
-    VulkanCommandBuffer commandBuffer { VK_COMMAND_BUFFER_LEVEL_PRIMARY };
+    VulkanCommandBuffer commandBuffer;
     commandBuffer.Create(g_renderInterface->GetDevice()->GetGraphicsQueue()->commandPools[0]);
 
     commandBuffer.Begin();
@@ -723,7 +723,7 @@ RendererResult VulkanSingleTimeCommands::Execute()
 
     // Submit to the queue
     VulkanDeviceQueue* queueGraphics = g_renderInterface->GetDevice()->GetGraphicsQueue();
-    CheckResultOrReturn(commandBuffer.SubmitPrimary(queueGraphics, &fence, nullptr, nullptr));
+    CheckResultOrReturn(commandBuffer.Submit(queueGraphics, &fence, nullptr, nullptr));
 
     fence.Wait();
 

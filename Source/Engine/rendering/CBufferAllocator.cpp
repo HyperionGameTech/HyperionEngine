@@ -15,8 +15,6 @@ namespace Hyperion {
 
 static constexpr size_t CBufferSize = 65536;
 
-extern uint32 CurrentRenderThreadIndex();
-
 struct CBufferAllocatorBlock
 {
     HYP_DEF_POOL_NEW_DELETE(g_renderPool);

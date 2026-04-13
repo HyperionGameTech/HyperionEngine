@@ -94,6 +94,11 @@ HYP_API uint32 GetRingIndex();
  *  \note This is thread-safe and can be called from any thread as the frame counter is atomic. */
 HYP_API uint32 GetFrameCounter();
 
+/*! \brief Get the current render thread index (valid indices starting at 1) - usable from Render thread or renderer worker threads.
+ *  For the main render thread, this index would be 0. For worker threads, it would be 1,2... so on and so forth.
+ *  Undefined for sim thread or other threads than the render thread or renderer worker threads. */
+uint32 CurrentRenderThreadIndex();
+
 void BeginFrameSim();
 void EndFrameSim();
 
@@ -298,6 +303,9 @@ public:
     virtual void PresentToSwapchain(Swapchain* swapchain) = 0;
 
     virtual CommandBuffer* GetCurrentCommandBuffer() const = 0;
+
+    virtual CommandBuffer& GetTransientCommandBuffer() = 0;
+    virtual void SubmitTransientCommandBuffer(CommandBuffer& commandBuffer) = 0;
 
     virtual DescriptorSetRef MakeDescriptorSet(const DescriptorSetLayout& layout) = 0;
 

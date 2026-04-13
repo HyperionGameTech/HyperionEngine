@@ -665,7 +665,7 @@ RendererResult VulkanRenderInterface::Initialize()
         VkCommandPool pool = deviceQueue->commandPools[0];
         Assert(pool != VK_NULL_HANDLE);
 
-        commandBuffer = MakeHandle<VulkanCommandBuffer>(VK_COMMAND_BUFFER_LEVEL_PRIMARY);
+        commandBuffer = MakeHandle<VulkanCommandBuffer>();
         frame = MakeHandle<VulkanFrame>(frameIndex);
 
         CheckResultOrReturn(commandBuffer->Create(pool));
@@ -731,6 +731,17 @@ void VulkanRenderInterface::Shutdown()
 
     m_asyncComputePool.Clear();
     m_submittedAsyncComputes.Clear();
+    
+    for (uint32 frameIndex = 0; frameIndex < NumFramesInFlight; frameIndex++)
+    {
+        m_transientCommandBufferFences[frameIndex].Clear();
+
+        for (uint32 threadIndex = 0; threadIndex < NumRendererWorkerThreads + 1; threadIndex++)
+        {
+            m_transientCommandBuffers[threadIndex][frameIndex].Clear();
+            m_pendingTransientCommandBuffers[threadIndex][frameIndex].Clear();
+        }
+    }
 
     RenderInterface::Shutdown();
 
@@ -749,6 +760,8 @@ VulkanFrame* VulkanRenderInterface::GetCurrentFrame() const
 
 VulkanFrame* VulkanRenderInterface::PrepareNextFrame()
 {
+    const uint32 frameCounter = GetFrameCounter();
+
     VulkanFrame* frame = GetCurrentFrame();
     frame->GetFence()->Wait(true);
 
@@ -803,6 +816,36 @@ VulkanFrame* VulkanRenderInterface::PrepareNextFrame()
             }
 
             ++it;
+        }
+    }
+    
+    auto& fences = m_transientCommandBufferFences[frameCounter % NumFramesInFlight];
+    for (auto it = fences.Begin(); it != fences.End();)
+    {
+        VulkanFence& fence = *it;
+        fence.Wait(true);
+
+        fence.Reset();
+
+        m_recycledTransientCommandBufferFences.PushBack(std::move(fence));
+
+        it = fences.Erase(it);
+    }
+
+    for (uint32 threadIndex = 0; threadIndex < NumRendererWorkerThreads + 1; threadIndex++)
+    {
+        // reset our transient command buffers
+        LinkedList<VulkanCommandBuffer, VulkanAllocator>& freeList = m_transientCommandBuffers[threadIndex][frameCounter % NumFramesInFlight];
+        LinkedList<VulkanCommandBuffer, VulkanAllocator>& pendingList = m_pendingTransientCommandBuffers[threadIndex][frameCounter % NumFramesInFlight];
+
+        for (auto it = pendingList.Begin(); it != pendingList.End();)
+        {
+            VulkanCommandBuffer& commandBuffer = *it;
+            Assert(!commandBuffer.IsRecording());
+
+            freeList.EmplaceBack(std::move(*it));
+
+            it = pendingList.Erase(it);
         }
     }
 
@@ -878,7 +921,7 @@ void VulkanRenderInterface::PresentToSwapchain(VulkanSwapchain* swapchain)
         AssertDebug(waitSemaphore != nullptr && signalSemaphore != nullptr);
     }
     
-    commandBuffer->SubmitPrimary(
+    commandBuffer->Submit(
         presentQueue,
         frame->GetFence(),
         Span<VulkanSemaphore*>(&waitSemaphore, waitSemaphore ? 1 : 0),
@@ -893,6 +936,67 @@ void VulkanRenderInterface::PresentToSwapchain(VulkanSwapchain* swapchain)
 VulkanCommandBuffer* VulkanRenderInterface::GetCurrentCommandBuffer() const
 {
     return m_commandBuffers[m_currentFrameIndex];
+}
+
+VulkanCommandBuffer& VulkanRenderInterface::GetTransientCommandBuffer()
+{
+    // usable from main render thread or renderer worker threads.
+    AssertOnThread(g_renderThread | ThreadCategory::THREAD_CATEGORY_TASK);
+
+    const uint32 frameCounter = GetFrameCounter();
+    const uint32 renderThreadIndex = CurrentRenderThreadIndex();
+
+    LinkedList<VulkanCommandBuffer, VulkanAllocator>& freeList = m_transientCommandBuffers[renderThreadIndex][frameCounter % NumFramesInFlight];
+    LinkedList<VulkanCommandBuffer, VulkanAllocator>& pendingList = m_pendingTransientCommandBuffers[renderThreadIndex][frameCounter % NumFramesInFlight];
+    
+    VulkanDeviceQueue* graphicsQueue = m_instance->GetDevice()->GetGraphicsQueue();
+    Assert(graphicsQueue != nullptr);
+
+    VkCommandPool pool = graphicsQueue->commandPools[renderThreadIndex];
+    Assert(pool != VK_NULL_HANDLE);
+
+    if (freeList.Empty())
+    {
+        VulkanCommandBuffer& commandBuffer = pendingList.EmplaceBack();
+        CheckResult(commandBuffer.Create(pool));
+        
+        commandBuffer.Begin();
+
+        return commandBuffer;
+    }
+
+    VulkanCommandBuffer& commandBuffer = pendingList.PushBack(freeList.PopFront());
+    commandBuffer.Begin();
+
+    return commandBuffer;
+}
+
+void VulkanRenderInterface::SubmitTransientCommandBuffer(VulkanCommandBuffer& commandBuffer)
+{
+    const uint32 frameCounter = GetFrameCounter();
+    const uint32 renderThreadIndex = CurrentRenderThreadIndex();
+
+    if (commandBuffer.IsRecording())
+    {
+        commandBuffer.End();
+    }
+
+    VulkanDeviceQueue* graphicsQueue = m_instance->GetDevice()->GetGraphicsQueue();
+    Assert(graphicsQueue != nullptr);
+
+    VulkanFence& fence = m_transientCommandBufferFences[frameCounter % NumFramesInFlight].EmplaceBack();
+
+    Mutex::Guard guard(m_transientCommandBuffersMutex);
+    if (m_recycledTransientCommandBufferFences.Any())
+    {
+        fence = std::move(m_recycledTransientCommandBufferFences.PopFront());
+    }
+    else
+    {
+        fence.Create();
+    }
+
+    commandBuffer.Submit(graphicsQueue, &fence, {}, {});
 }
 
 VulkanDescriptorSetRef VulkanRenderInterface::MakeDescriptorSet(const DescriptorSetLayout& layout)

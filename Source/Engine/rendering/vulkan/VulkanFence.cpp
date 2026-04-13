@@ -29,6 +29,30 @@ VulkanFence::VulkanFence()
 {
 }
 
+VulkanFence& VulkanFence::operator=(VulkanFence&& other) noexcept
+{
+    if (this != &other)
+    {
+        if (handle != VK_NULL_HANDLE)
+        {
+            EnqueueDeletion(FunctionWrapper<Proc<void()>>([handle = handle]()
+                {
+                    vkDestroyFence(g_renderInterface->GetDevice()->GetDevice(), handle, nullptr);
+                }));
+        }
+
+        handle = other.handle;
+        lastFrameResult = other.lastFrameResult;
+        isSubmitted = other.isSubmitted;
+
+        other.handle = VK_NULL_HANDLE;
+        other.lastFrameResult = VK_SUCCESS;
+        other.isSubmitted = false;
+    }
+    
+    return *this;
+}
+
 VulkanFence::~VulkanFence()
 {
     if (handle != VK_NULL_HANDLE)

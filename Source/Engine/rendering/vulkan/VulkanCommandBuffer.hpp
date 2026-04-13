@@ -84,7 +84,14 @@ public:
     friend class VulkanComputePipeline;
     friend class VulkanRayTracingPipeline;
 
-    explicit VulkanCommandBuffer(VkCommandBufferLevel type);
+    VulkanCommandBuffer();
+
+    VulkanCommandBuffer(const VulkanCommandBuffer& other) = delete;
+    VulkanCommandBuffer& operator=(const VulkanCommandBuffer& other) = delete;
+
+    VulkanCommandBuffer(VulkanCommandBuffer&& other) noexcept;
+    VulkanCommandBuffer& operator=(VulkanCommandBuffer&& other) noexcept;
+    
     ~VulkanCommandBuffer() override;
 
     HYP_FORCE_INLINE VkCommandBuffer GetVulkanHandle() const
@@ -95,11 +102,6 @@ public:
     HYP_FORCE_INLINE VkCommandPool GetVulkanCommandPool() const
     {
         return m_commandPool;
-    }
-
-    HYP_FORCE_INLINE VkCommandBufferLevel GetType() const
-    {
-        return m_type;
     }
 
     HYP_FORCE_INLINE bool IsInRenderPass() const
@@ -122,14 +124,12 @@ public:
 
     void Reset();
     
-    RendererResult SubmitPrimary(
+    RendererResult Submit(
         VulkanDeviceQueue* queue,
         VulkanFence* fence,
         Span<VulkanSemaphore*> waitSemaphores,
         Span<VulkanSemaphore*> signalSemaphores);
-
-    RendererResult SubmitSecondary(VulkanCommandBuffer* primary);
-
+        
     void BindVertexBuffer(const VulkanGpuBuffer* buffer) override;
     void BindIndexBuffer(const VulkanGpuBuffer* buffer, GpuElemType elemType = GET_UNSIGNED_INT) override;
 
@@ -151,7 +151,6 @@ public:
     }
 
 private:
-    VkCommandBufferLevel m_type;
     VkCommandBuffer m_handle;
     VkCommandPool m_commandPool;
 

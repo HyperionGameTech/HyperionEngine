@@ -25,9 +25,8 @@ HYP_DECLARE_LOG_CHANNEL(RenderingBackend);
 
 extern VulkanRenderInterface* g_renderInterface;
 
-VulkanCommandBuffer::VulkanCommandBuffer(VkCommandBufferLevel type)
-    : m_type(type),
-      m_handle(VK_NULL_HANDLE),
+VulkanCommandBuffer::VulkanCommandBuffer()
+    : m_handle(VK_NULL_HANDLE),
       m_commandPool(VK_NULL_HANDLE),
       m_isRecording(false),
       m_renderPass(nullptr),
@@ -35,6 +34,62 @@ VulkanCommandBuffer::VulkanCommandBuffer(VkCommandBufferLevel type)
       m_boundComputePipeline(nullptr),
       m_boundRayTracingPipeline(nullptr)
 {
+}
+
+VulkanCommandBuffer::VulkanCommandBuffer(VulkanCommandBuffer&& other) noexcept
+    : m_handle(other.m_handle),
+      m_commandPool(other.m_commandPool),
+      m_boundDescriptorSets(std::move(other.m_boundDescriptorSets)),
+      m_isRecording(other.m_isRecording),
+      m_renderPass(other.m_renderPass),
+      m_boundGraphicsPipeline(other.m_boundGraphicsPipeline),
+      m_boundComputePipeline(other.m_boundComputePipeline),
+      m_boundRayTracingPipeline(other.m_boundRayTracingPipeline)
+{
+    other.m_handle = VK_NULL_HANDLE;
+    other.m_commandPool = VK_NULL_HANDLE;
+    other.m_isRecording = false;
+    other.m_renderPass = nullptr;
+    other.m_boundGraphicsPipeline = nullptr;
+    other.m_boundComputePipeline = nullptr;
+    other.m_boundRayTracingPipeline = nullptr;
+}
+
+VulkanCommandBuffer& VulkanCommandBuffer::operator=(VulkanCommandBuffer&& other) noexcept
+{
+    if (this == &other)
+    {
+        return *this;
+    }
+
+    if (m_handle != VK_NULL_HANDLE)
+    {
+        Assert(m_commandPool != VK_NULL_HANDLE);
+
+        EnqueueDeletion(FunctionWrapper<Proc<void()>>([commandPool = m_commandPool, handle = m_handle]() -> void
+            {
+                vkFreeCommandBuffers(g_renderInterface->GetDevice()->GetDevice(), commandPool, 1, &handle);
+            }));
+    }
+
+    m_handle = other.m_handle;
+    m_commandPool = other.m_commandPool;
+    m_boundDescriptorSets = std::move(other.m_boundDescriptorSets);
+    m_isRecording = other.m_isRecording;
+    m_renderPass = other.m_renderPass;
+    m_boundGraphicsPipeline = other.m_boundGraphicsPipeline;
+    m_boundComputePipeline = other.m_boundComputePipeline;
+    m_boundRayTracingPipeline = other.m_boundRayTracingPipeline;
+
+    other.m_handle = VK_NULL_HANDLE;
+    other.m_commandPool = VK_NULL_HANDLE;
+    other.m_isRecording = false;
+    other.m_renderPass = nullptr;
+    other.m_boundGraphicsPipeline = nullptr;
+    other.m_boundComputePipeline = nullptr;
+    other.m_boundRayTracingPipeline = nullptr;
+
+    return *this;
 }
 
 VulkanCommandBuffer::~VulkanCommandBuffer()
@@ -77,7 +132,7 @@ RendererResult VulkanCommandBuffer::Create()
     Assert(m_commandPool != VK_NULL_HANDLE);
 
     VkCommandBufferAllocateInfo allocInfo { VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO };
-    allocInfo.level = m_type;
+    allocInfo.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
     allocInfo.commandPool = m_commandPool;
     allocInfo.commandBufferCount = 1;
 
@@ -131,7 +186,7 @@ void VulkanCommandBuffer::Reset()
     Assert(vkResetCommandBuffer(m_handle, 0), "Failed to reset command buffer");
 }
 
-RendererResult VulkanCommandBuffer::SubmitPrimary(
+RendererResult VulkanCommandBuffer::Submit(
     VulkanDeviceQueue* queue,
     VulkanFence* fence,
     Span<VulkanSemaphore*> waitSemaphores,
@@ -191,16 +246,6 @@ RendererResult VulkanCommandBuffer::SubmitPrimary(
     }
 
     VULKAN_CHECK(vkQueueSubmit(queue->queue, 1, &submitInfo, fence ? fence->GetVulkanHandle() : VK_NULL_HANDLE));
-
-    return {};
-}
-
-RendererResult VulkanCommandBuffer::SubmitSecondary(VulkanCommandBuffer* primary)
-{
-    vkCmdExecuteCommands(
-        primary->GetVulkanHandle(),
-        1,
-        &m_handle);
 
     return {};
 }

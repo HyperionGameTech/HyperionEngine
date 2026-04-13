@@ -13,6 +13,7 @@
 #include <rendering/dx12/DX12Frame.hpp>
 #include <rendering/dx12/DX12Swapchain.hpp>
 #include <rendering/dx12/DX12AsyncCompute.hpp>
+#include <rendering/dx12/DX12Fence.hpp>
 #include <rendering/dx12/DX12AccelerationStructure.hpp>
 #include <rendering/dx12/DX12DescriptorSet.hpp>
 #include <rendering/dx12/DX12GraphicsPipeline.hpp>
@@ -240,6 +241,33 @@ void DX12RenderInterface::Shutdown()
     m_asyncComputePool.Clear();
     m_submittedAsyncComputes.Clear();
 
+    for (DX12CommandBuffer* commandBuffer : m_ownedTransientCommandBuffers)
+    {
+        delete commandBuffer;
+    }
+
+    m_ownedTransientCommandBuffers.Clear();
+
+    for (DX12Fence* fence : m_ownedTransientCommandBufferFences)
+    {
+        delete fence;
+    }
+
+    m_ownedTransientCommandBufferFences.Clear();
+
+    for (uint32 threadIndex = 0; threadIndex < NumRendererWorkerThreads + 1; threadIndex++)
+    {
+        for (uint32 frameIndex = 0; frameIndex < NumFramesInFlight; frameIndex++)
+        {
+            m_transientCommandBufferFences[threadIndex][frameIndex].Clear();
+
+            m_transientCommandBuffers[threadIndex][frameIndex].Clear();
+            m_pendingTransientCommandBuffers[threadIndex][frameIndex].Clear();
+        }
+    }
+
+    m_recycledTransientCommandBufferFences.Clear();
+
     descriptorHeapManager->Shutdown();
 
     m_commandBuffer.Reset();
@@ -315,14 +343,34 @@ DX12Frame* DX12RenderInterface::PrepareNextFrame()
         }
     }
 
+    const uint32 frameCounter = GetFrameCounter();
+
+    for (uint32 threadIndex = 0; threadIndex < NumRendererWorkerThreads + 1; threadIndex++)
+    {
+        Array<DX12Fence*, RenderAllocator>& fences = m_transientCommandBufferFences[threadIndex][frameCounter % NumFramesInFlight];
+        for (DX12Fence* fence : fences)
+        {
+            fence->Wait(true);
+
+            m_recycledTransientCommandBufferFences.PushBack(fence);
+        }
+        fences.Clear();
+
+        // reset our transient command buffers
+        Array<DX12CommandBuffer*, RenderAllocator>& freeList = m_transientCommandBuffers[threadIndex][frameCounter % NumFramesInFlight];
+        Array<DX12CommandBuffer*, RenderAllocator>& pendingList = m_pendingTransientCommandBuffers[threadIndex][frameCounter % NumFramesInFlight];
+
+        for (DX12CommandBuffer* commandBuffer : pendingList)
+        {
+            Assert(!commandBuffer->IsRecording());
+
+            freeList.PushBack(commandBuffer);
+        }
+
+        pendingList.Clear();
+    }
+
     DX12Frame* frame = GetCurrentFrame();
-
-    const uint32 frameIndex = frame->GetFrameIndex();
-
-    ID3D12CommandAllocator* commandAllocator = m_queueData[D3D12_COMMAND_LIST_TYPE_DIRECT].commandAllocators[frameIndex].Get();
-    Assert(SUCCEEDED(commandAllocator->Reset()));
-
-    Assert(SUCCEEDED(m_commandBuffer->GetCommandList()->Reset(commandAllocator, nullptr)));
 
     return frame;
 }
@@ -341,15 +389,12 @@ void DX12RenderInterface::PrepareSwapchain(DX12Swapchain* swapchain)
 
 void DX12RenderInterface::SubmitCommandBuffers(DX12Swapchain* swapchain)
 {
-    DX12Frame* currentFrame = GetCurrentFrame();
-    const uint32 frameIndex = currentFrame->GetFrameIndex();
-
     DX12QueueData& queueData = m_queueData[D3D12_COMMAND_LIST_TYPE_DIRECT];
 
-    ID3D12CommandAllocator* allocator = queueData.commandAllocators[frameIndex].Get();
-    AssertDebug(allocator != nullptr);
-
-    Assert(SUCCEEDED(m_commandBuffer->GetCommandList()->Close()));
+    if (m_commandBuffer->IsRecording())
+    {
+        m_commandBuffer->End();
+    }
 
     ID3D12CommandList* commandLists[] = { m_commandBuffer->GetCommandList() };
 
@@ -364,6 +409,80 @@ void DX12RenderInterface::PresentToSwapchain(DX12Swapchain* swapchain)
 DX12CommandBuffer* DX12RenderInterface::GetCurrentCommandBuffer() const
 {
     return m_commandBuffer.Get();
+}
+
+DX12CommandBuffer& DX12RenderInterface::GetTransientCommandBuffer()
+{
+    // usable from main render thread or renderer worker threads.
+    const uint32 frameCounter = GetFrameCounter();
+    const uint32 renderThreadIndex = CurrentRenderThreadIndex();
+
+    Array<DX12CommandBuffer*, RenderAllocator>& freeList = m_transientCommandBuffers[renderThreadIndex][frameCounter % NumFramesInFlight];
+    Array<DX12CommandBuffer*, RenderAllocator>& pendingList = m_pendingTransientCommandBuffers[renderThreadIndex][frameCounter % NumFramesInFlight];
+
+    DX12CommandBuffer* commandBuffer = nullptr;
+
+    if (freeList.Any())
+    {
+        commandBuffer = freeList.PopBack();
+    }
+    else
+    {
+        commandBuffer = new DX12CommandBuffer(D3D12_COMMAND_LIST_TYPE_DIRECT);
+        CheckResult(commandBuffer->Create());
+
+        Mutex::Guard guard(m_transientCommandBuffersMutex);
+        m_ownedTransientCommandBuffers.PushBack(commandBuffer);
+    }
+
+    pendingList.PushBack(commandBuffer);
+
+    commandBuffer->Begin();
+
+    return *commandBuffer;
+}
+
+void DX12RenderInterface::SubmitTransientCommandBuffer(DX12CommandBuffer& commandBuffer)
+{
+    const uint32 frameCounter = GetFrameCounter();
+    const uint32 renderThreadIndex = CurrentRenderThreadIndex();
+
+    if (commandBuffer.IsRecording())
+    {
+        commandBuffer.End();
+    }
+
+    DX12QueueData& queueData = m_queueData[D3D12_COMMAND_LIST_TYPE_DIRECT];
+
+    ID3D12CommandList* commandLists[] = { commandBuffer.GetCommandList() };
+    queueData.commandQueue->ExecuteCommandLists(ArraySize(commandLists), commandLists);
+
+    DX12Fence* fence = nullptr;
+
+    {
+        Mutex::Guard guard(m_transientCommandBuffersMutex);
+
+        if (m_recycledTransientCommandBufferFences.Any())
+        {
+            fence = m_recycledTransientCommandBufferFences.PopBack();
+        }
+    }
+
+    if (fence == nullptr)
+    {
+        fence = new DX12Fence();
+        CheckResult(fence->Create());
+
+        Mutex::Guard guard(m_transientCommandBuffersMutex);
+        m_ownedTransientCommandBufferFences.PushBack(fence);
+    }
+
+    CheckResult(fence->Reset());
+
+    HRESULT hr = queueData.commandQueue->Signal(fence->GetD3D12Fence(), fence->GetValue());
+    Assert(SUCCEEDED(hr));
+
+    m_transientCommandBufferFences[renderThreadIndex][frameCounter % NumFramesInFlight].PushBack(fence);
 }
 
 DX12DescriptorSetRef DX12RenderInterface::MakeDescriptorSet(const DescriptorSetLayout& layout)

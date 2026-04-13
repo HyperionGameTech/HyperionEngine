@@ -39,6 +39,14 @@ public:
 
     RendererResult Create() override;
 
+    bool IsRecording() const override
+    {
+        return m_isRecording;
+    }
+
+    void Begin() override;
+    void End() override;
+
     void BindVertexBuffer(const DX12GpuBuffer* buffer) override;
     void BindIndexBuffer(const DX12GpuBuffer* buffer, GpuElemType elemType = GET_UNSIGNED_INT) override;
 
@@ -53,7 +61,9 @@ public:
 
 private:
     D3D12_COMMAND_LIST_TYPE m_type;
+    ComPtr<ID3D12CommandAllocator> m_commandAllocator;
     ComPtr<ID3D12GraphicsCommandList> m_commandList;
+    bool m_isRecording;
 };
 
 } // namespace Hyperion

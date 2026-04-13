@@ -1035,8 +1035,6 @@ void RenderInterface::BeginFrame(AtomicFlag* pCancelFlag)
             }
         }
     }
-    
-    GetCurrentCommandBuffer()->Begin();
 
     // flush structured buffer data writes now that the data has been written cpu-side
     FlushStructuredBuffers();
@@ -1064,6 +1062,8 @@ void RenderInterface::BeginFrame(AtomicFlag* pCancelFlag)
 
         vd.rplRender.EndRead();
     }
+    
+    GetCurrentCommandBuffer()->Begin();
 }
 
 void RenderInterface::EndFrame()

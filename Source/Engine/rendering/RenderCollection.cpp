@@ -33,7 +33,6 @@
 #include <rendering/renderers/DeferredRenderer.hpp>
 
 #include <rendering/util/DeletionQueue.hpp>
-#include <engine/resources/ResourceTracker.hpp>
 #include <rendering/util/ShaderPropertyDictionary.hpp>
 
 #include <scene/Scene.hpp>
@@ -57,13 +56,13 @@
 #include <engine/EngineDriver.hpp>
 #include <engine/EngineStats.hpp>
 
+#include <engine/resources/ResourceTracker.hpp>
+
 #include <engine/config/EngineConfig.hpp>
 
 namespace Hyperion {
 
 HYP_API extern const char* LookupTypeName(const TypeId& typeId);
-
-extern uint32 CurrentRenderThreadIndex();
 
 static constexpr uint32 AllBucketsMask = (1u << NumRenderBuckets) - 1;
 

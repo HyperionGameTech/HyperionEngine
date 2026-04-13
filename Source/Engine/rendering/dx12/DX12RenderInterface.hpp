@@ -30,6 +30,7 @@ namespace Hyperion {
 class DX12RenderConfig;
 class DX12DescriptorHeapManager;
 class DX12AsyncCompute;
+class DX12Fence;
 
 struct DX12QueueData
 {
@@ -77,6 +78,9 @@ public:
     void PresentToSwapchain(DX12Swapchain* swapchain) override;
 
     DX12CommandBuffer* GetCurrentCommandBuffer() const override;
+
+    DX12CommandBuffer& GetTransientCommandBuffer() override;
+    void SubmitTransientCommandBuffer(DX12CommandBuffer& commandBuffer) override;
 
     DX12DescriptorSetRef MakeDescriptorSet(const DescriptorSetLayout& layout) override;
 
@@ -142,6 +146,16 @@ private:
     uint32 m_currentFrameIndex;
 
     DX12CommandBufferRef m_commandBuffer;
+
+    Array<DX12CommandBuffer*, RenderAllocator> m_transientCommandBuffers[NumRendererWorkerThreads + 1][NumFramesInFlight];
+    Array<DX12CommandBuffer*, RenderAllocator> m_pendingTransientCommandBuffers[NumRendererWorkerThreads + 1][NumFramesInFlight];
+
+    Array<DX12Fence*, RenderAllocator> m_transientCommandBufferFences[NumRendererWorkerThreads + 1][NumFramesInFlight];
+    Array<DX12Fence*, RenderAllocator> m_recycledTransientCommandBufferFences;
+
+    Array<DX12CommandBuffer*, RenderAllocator> m_ownedTransientCommandBuffers;
+    Array<DX12Fence*, RenderAllocator> m_ownedTransientCommandBufferFences;
+    Mutex m_transientCommandBuffersMutex;
     
     ComPtr<IDXGIAdapter1> m_hardwareAdapter;
 

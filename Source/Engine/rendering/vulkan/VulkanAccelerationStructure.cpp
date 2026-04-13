@@ -348,7 +348,7 @@ RendererResult VulkanAccelerationStructureBase::CreateAccelerationStructure(
         rangeInfoPtrs[i] = &rangeInfos[i];
     }
 
-    VulkanCommandBufferRef commandBuffer = MakeHandle<VulkanCommandBuffer>(VK_COMMAND_BUFFER_LEVEL_PRIMARY);
+    VulkanCommandBufferRef commandBuffer = MakeHandle<VulkanCommandBuffer>();
     commandBuffer->Create(g_renderInterface->GetDevice()->GetGraphicsQueue()->commandPools[0]);
 
     commandBuffer->Begin();
@@ -374,7 +374,7 @@ RendererResult VulkanAccelerationStructureBase::CreateAccelerationStructure(
 
     commandBuffer->End();
 
-    CheckResultOrReturn(commandBuffer->SubmitPrimary(g_renderInterface->GetDevice()->GetGraphicsQueue(), nullptr, nullptr, nullptr));
+    CheckResultOrReturn(commandBuffer->Submit(g_renderInterface->GetDevice()->GetGraphicsQueue(), nullptr, nullptr, nullptr));
 
     EnqueueDeletion(std::move(commandBuffer));
 

@@ -52,17 +52,19 @@ void StructuredBuffer::Update()
         // @TODO We'll need to use a separate command buffer than this,
         // as this command buffer may be used for rendering commands and we don't want to insert barriers in the middle of rendering.
         // We could potentially use a transient command buffer for this, but for now we'll just use the main command buffer and insert barriers around the copy.
-        CommandBuffer* cmdBuffer = g_renderInterface->GetCurrentCommandBuffer();
+        CommandBuffer& cmdBuffer = g_renderInterface->GetTransientCommandBuffer();
 
         GpuBuffer* stagingBuffer = g_renderInterface->stagingBufferPool->AcquireStagingBuffer(dirtyRangeEnd - dirtyRangeStart);
         Assert(stagingBuffer != nullptr);
 
         Memory::Copy(stagingBuffer->Map(), cpuBuffer.Data() + dirtyRangeStart, dirtyRangeEnd - dirtyRangeStart);
 
-        stagingBuffer->InsertBarrier(cmdBuffer, RS_COPY_SRC);
-        gpuBuffer->InsertBarrier(cmdBuffer, RS_COPY_DST);
-        gpuBuffer->CopyFrom(cmdBuffer, stagingBuffer, 0, dirtyRangeStart, dirtyRangeEnd - dirtyRangeStart);
-        gpuBuffer->InsertBarrier(cmdBuffer, RS_SHADER_RESOURCE);
+        stagingBuffer->InsertBarrier(&cmdBuffer, RS_COPY_SRC);
+        gpuBuffer->InsertBarrier(&cmdBuffer, RS_COPY_DST);
+        gpuBuffer->CopyFrom(&cmdBuffer, stagingBuffer, 0, dirtyRangeStart, dirtyRangeEnd - dirtyRangeStart);
+        gpuBuffer->InsertBarrier(&cmdBuffer, RS_SHADER_RESOURCE);
+
+        g_renderInterface->SubmitTransientCommandBuffer(cmdBuffer);
 
         dirtyRangeStart = SIZE_MAX;
         dirtyRangeEnd = 0;

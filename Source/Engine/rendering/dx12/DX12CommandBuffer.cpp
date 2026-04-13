@@ -20,7 +20,8 @@ HYP_DECLARE_LOG_CHANNEL(RenderingBackend);
 extern DX12RenderInterface* g_renderInterface;
 
 DX12CommandBuffer::DX12CommandBuffer(D3D12_COMMAND_LIST_TYPE type)
-    : m_type(type)
+    : m_type(type),
+      m_isRecording(false)
 {
 }
 
@@ -30,26 +31,56 @@ DX12CommandBuffer::~DX12CommandBuffer()
 
 bool DX12CommandBuffer::IsCreated() const
 {
-    return false; // @TODO
+    return m_commandAllocator != nullptr && m_commandList != nullptr;
 }
 
 RendererResult DX12CommandBuffer::Create()
 {
+    if (IsCreated())
+    {
+        return {};
+    }
+
     ID3D12Device* device = g_renderInterface->GetDevice();
 
-    const DX12QueueData* queueData = g_renderInterface->GetQueueData(m_type);
-    Assert(queueData != nullptr);
+    if (m_commandAllocator == nullptr)
+    {
+        HRESULT res = device->CreateCommandAllocator(m_type, IID_PPV_ARGS(&m_commandAllocator));
+        if (!SUCCEEDED(res))
+        {
+            return HYP_MAKE_ERROR(RendererError, "Failed to create command allocator!", res);
+        }
+    }
 
-    ID3D12CommandAllocator* allocator = queueData->commandAllocators[0].Get();
-    Assert(allocator != nullptr);
-
-    HRESULT res = device->CreateCommandList(0, m_type, allocator, nullptr, IID_PPV_ARGS(&m_commandList));
+    HRESULT res = device->CreateCommandList(0, m_type, m_commandAllocator.Get(), nullptr, IID_PPV_ARGS(&m_commandList));
     if (!SUCCEEDED(res))
         return HYP_MAKE_ERROR(RendererError, "Failed to create command list!", res);
 
     m_commandList->Close();
 
     return {};
+}
+
+void DX12CommandBuffer::Begin()
+{
+    Assert(m_commandAllocator != nullptr);
+    Assert(m_commandList != nullptr);
+    Assert(!m_isRecording, "Command buffer is already recording!");
+
+    Assert(SUCCEEDED(m_commandAllocator->Reset()));
+    Assert(SUCCEEDED(m_commandList->Reset(m_commandAllocator.Get(), nullptr)));
+
+    m_isRecording = true;
+}
+
+void DX12CommandBuffer::End()
+{
+    Assert(m_commandList != nullptr);
+    Assert(m_isRecording, "Command buffer is not recording!");
+
+    Assert(SUCCEEDED(m_commandList->Close()));
+
+    m_isRecording = false;
 }
 
 void DX12CommandBuffer::BindVertexBuffer(const DX12GpuBuffer* buffer)

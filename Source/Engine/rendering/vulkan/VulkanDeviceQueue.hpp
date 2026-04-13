@@ -6,8 +6,10 @@
 
 #pragma once
 
-#include <Core/containers/FixedArray.hpp>
 #include <Core/Types.hpp>
+#include <Core/Constants.hpp>
+
+#include <Core/containers/FixedArray.hpp>
 
 #include <vulkan/vulkan.h>
 
@@ -31,7 +33,7 @@ struct VulkanDeviceQueue
     VulkanDeviceQueueType type = VulkanDeviceQueueType::INVALID;
     VkQueue queue = VK_NULL_HANDLE;
     uint32 familyIndex = 0;
-    FixedArray<VkCommandPool, 8> commandPools {};
+    FixedArray<VkCommandPool, NumRendererWorkerThreads + 1> commandPools {};
 };
 
 } // namespace Hyperion

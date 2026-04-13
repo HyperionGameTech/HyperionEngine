@@ -26,7 +26,7 @@ VulkanAsyncCompute::VulkanAsyncCompute()
       m_isSupported(false),
       m_isSubmitted(false)
 {
-    m_commandBuffer = new VulkanCommandBuffer(VK_COMMAND_BUFFER_LEVEL_PRIMARY);
+    m_commandBuffer = new VulkanCommandBuffer();
     m_fence = new VulkanFence();
 }
 
@@ -86,7 +86,7 @@ void VulkanAsyncCompute::Submit()
     cr.Execute(m_commandBuffer);
     m_commandBuffer->End();
 
-    CheckResult(m_commandBuffer->SubmitPrimary(m_deviceQueue, m_fence, nullptr, nullptr));
+    CheckResult(m_commandBuffer->Submit(m_deviceQueue, m_fence, nullptr, nullptr));
 
     m_isSubmitted = true;
 }
