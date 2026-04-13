@@ -14,7 +14,7 @@
 namespace Hyperion {
 
 HYP_ENUM()
-enum class AnimationPlaybackStatus : uint32
+enum class AnimationPlaybackStatus : uint8
 {
     STOPPED = 0,
     PAUSED,
@@ -22,7 +22,7 @@ enum class AnimationPlaybackStatus : uint32
 };
 
 HYP_ENUM()
-enum class AnimationLoopMode : uint32
+enum class AnimationLoopMode : uint8
 {
     ONCE = 0,
     REPEAT
