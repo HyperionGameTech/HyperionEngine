@@ -1853,10 +1853,6 @@ void RenderInterface::FlushStructuredBuffers()
         }
     }
 
-    for (auto& it : GetAllEntityBatchAllocators())
-    {
-        it.second->Flush();
-    }
 }
 
 void RenderInterface::CreateBlueNoiseBuffer()

@@ -1828,6 +1828,11 @@ void RenderCollector::BuildDrawCalls(uint32 bucketBits)
             prevDrawCallCollection.ResetDrawCalls();
         }
     }
+
+    if (batchAllocator != nullptr)
+    {
+        batchAllocator->Flush();
+    }
 }
 
 void RenderCollector::RemoveEmptyRenderGroups()

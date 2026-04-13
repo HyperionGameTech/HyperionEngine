@@ -1,0 +1,7 @@
+{
+  "Dependencies": [],
+  "Name": "SSGIUpsample",
+  "FriendlyName": "SSGIUpsample",
+  "Flags": 0,
+  "Path": "Engine/Shaders/SSGIUpsample"
+}
