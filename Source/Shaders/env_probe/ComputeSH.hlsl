@@ -13,8 +13,6 @@ struct SHTile
     float4 coeffs_weights[9];
 };
 
-#define HYP_DO_NOT_DEFINE_DESCRIPTOR_SETS
-
 DECLARE_SAMPLER(ComputeSH, SamplerLinear) SamplerState sampler_linear;
 DECLARE_SAMPLER(ComputeSH, SamplerNearest) SamplerState sampler_nearest;
 
@@ -23,17 +21,10 @@ DECLARE_SAMPLER(ComputeSH, SamplerNearest) SamplerState sampler_nearest;
 #include "../include/Scene.hlsli"
 #include "../include/Octahedron.hlsli"
 
-#undef HYP_DO_NOT_DEFINE_DESCRIPTOR_SETS
-
 DECLARE_SRV(ComputeSH, InColorCubemap) TextureCube cubemap_color;
 
-#if defined(MODE_BUILD_COEFFICIENTS) || defined(MODE_FINALIZE) || defined(MODE_CLEAR)
 DECLARE_UAV(ComputeSH, InputSHTilesBuffer) RWStructuredBuffer<SHTile> sh_tiles;
-#endif
-
-#ifdef MODE_REDUCE
 DECLARE_UAV(ComputeSH, OutputSHTilesBuffer) RWStructuredBuffer<SHTile> sh_tiles_output;
-#endif
 
 DECLARE_UAV(ComputeSH, OutSHBuffer) RWStructuredBuffer<float4> OutSHBuffer;
 

@@ -1,5 +1,7 @@
 #include "include/Defines.hlsli"
 
+PERMUTE(SHADING_TYPE, FORWARD);
+
 #define HYP_DO_NOT_DEFINE_DESCRIPTOR_SETS
 #include "include/Gbuffer.hlsli"
 #include "include/Scene.hlsli"

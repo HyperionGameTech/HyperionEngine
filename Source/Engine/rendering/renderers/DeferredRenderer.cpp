@@ -111,9 +111,6 @@ static const FixedArray<ShaderPropertySet, NumLightTypes> s_deferredLightTypePro
 
 static const ShaderPropertyId s_propHasDiffuseMap = InternShaderProperty(ShaderProperty(NAME("HAS_DIFFUSE_MAP")));
 
-static const ShaderPropertyId s_propProbeSideLengthIrradiance = InternShaderProperty(ShaderProperty(NAME("DDGI_PROBE_SIDE_LENGTH_IRRADIANCE"), int(DDGI::IrradianceOctahedronSize)));
-static const ShaderPropertyId s_propProbeSideLengthDepth = InternShaderProperty(ShaderProperty(NAME("DDGI_PROBE_SIDE_LENGTH_DEPTH"), int(DDGI::DepthOctahedronSize)));
-
 static const ShaderPropertyId s_propHBAOEnabled = InternShaderProperty(ShaderProperty(NAME("HBAO_ENABLED")));
 static const ShaderPropertyId s_propSSAOEnabled = InternShaderProperty(ShaderProperty(NAME("SSAO_ENABLED")));
 static const ShaderPropertyId s_propSSGIEnabled = InternShaderProperty(ShaderProperty(NAME("SSGI_ENABLED")));
@@ -194,6 +191,9 @@ void GetDeferredShaderProperties(
 
     MergeGlobalShaderProperties(outShaderProperties);
 
+    outShaderProperties.Add(propTileSize);
+    outShaderProperties.Add(propTileZBins);
+
     if (cvHBAO.Get())
     {
         outShaderProperties.Add(s_propHBAOEnabled);
@@ -206,26 +206,18 @@ void GetDeferredShaderProperties(
         if (s_renderConfig.rayTracing && cvRayTracedGI.Get())
         {
             outShaderProperties.Add(s_propRayTracingGlobalIllumination);
-
-            outShaderProperties.Add(s_propProbeSideLengthIrradiance);
-            outShaderProperties.Add(s_propProbeSideLengthDepth);
         }
 
         outShaderProperties.Set(s_propSSGIEnabled, cvSSGI.Get());
         outShaderProperties.Set(s_propSSREnabled, cvSSR.Get());
-        
-        outShaderProperties.Add(propTileSize);
-        outShaderProperties.Add(propTileZBins);
     }
     else
     {
+        outShaderProperties.Add(s_propMaxClusteredShadowMaps);
+
         if (clustered)
         {
             outShaderProperties.Add(s_propLightTypeClustered);
-            outShaderProperties.Add(s_propMaxClusteredShadowMaps);
-
-            outShaderProperties.Add(propTileSize);
-            outShaderProperties.Add(propTileZBins);
         }
     }
 

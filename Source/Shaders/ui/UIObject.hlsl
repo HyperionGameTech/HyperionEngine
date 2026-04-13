@@ -113,15 +113,15 @@ DECLARE_SRV_DYNAMIC(Default, MaterialsBuffer) StructuredBuffer<Material> materia
 
 #ifndef CURRENT_MATERIAL
 #define CURRENT_MATERIAL material
-#endif
+#endif // CURRENT_MATERIAL
 
 #ifdef TEXTURED
 #ifdef HYP_FEATURES_BINDLESS_TEXTURES
 DECLARE_SRV(BindlessResources0, Textures) Texture2D textures[];
-#else
+#else // !HYP_FEATURES_BINDLESS_TEXTURES
 DECLARE_SRV(Default, DiffuseMap) Texture2D DiffuseMap;
-#endif
-#endif
+#endif // HYP_FEATURES_BINDLESS_TEXTURES
+#endif // TEXTURED
 
 float RoundedRectangle(float2 pos, float2 size, float radius)
 {

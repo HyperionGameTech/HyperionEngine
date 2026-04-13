@@ -72,10 +72,12 @@ DECLARE_SRV(DeferredPass, SSAOResultTexture) Texture2D SSAOResultTexture;
 #include "include/EnvProbes.hlsli"
 #include "include/Shared.hlsli"
 #include "include/Gbuffer.hlsli"
-#include "include/Material.hlsli"
 #include "include/Entity.hlsli"
-
 #include "include/Scene.hlsli"
+
+#define HYP_DO_NOT_DEFINE_DESCRIPTOR_SETS
+#include "include/Material.hlsli"
+#undef HYP_DO_NOT_DEFINE_DESCRIPTOR_SETS
 
 DECLARE_SRV(DeferredPass, WorldsBuffer) StructuredBuffer<WorldShaderData> _worlds_buffer;
 #define world_shader_data _worlds_buffer[0]

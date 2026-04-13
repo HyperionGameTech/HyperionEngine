@@ -447,10 +447,12 @@ static void MergeGlobalShaderProperties(bool shouldCompileEntireBundle, ShaderVa
 static bool SatisfiesRequested(
     const ShaderPropertySet& requestedProperties,
     const VertexInputLayoutDesc& requestedInputLayout,
-    const Shader& candidate)
+    const Shader& candidate,
+    bool matchAllProperties)
 {
-    return candidate.properties == requestedProperties
-        && candidate.inputLayout == requestedInputLayout;
+    return candidate.inputLayout == requestedInputLayout
+        && (matchAllProperties ? candidate.properties == requestedProperties
+                               : (requestedProperties & candidate.properties) == candidate.properties);
 }
 
 #pragma endregion Helpers
@@ -2082,14 +2084,15 @@ bool ShaderCompiler::HandleBundle(
             return CompileBundle(decl, shaderRequest, inOutBundle);
         }
     }
-
+    
     const bool requestedFound = shaderRequest.HasValue() &&
-        inOutBundle->compiledShaders.FindIf([&shaderRequest](const Handle<Shader>& shader)
+        inOutBundle->compiledShaders.FindIf([&](const Handle<Shader>& shader)
             {
                 return SatisfiesRequested(
                     shaderRequest->properties,
                     shaderRequest->inputLayout,
-                    *shader);
+                    *shader,
+                    /* matchAllProperties */ CanCompileShaders());
             })
             != inOutBundle->compiledShaders.End();
 
@@ -2311,6 +2314,10 @@ bool ShaderCompiler::LoadShaderDefinitions(bool precompileShaders)
 
 bool ShaderCompiler::CanCompileShaders() const
 {
+#if HYP_ANDROID || HYP_IOS
+    return false;
+#endif
+
 #if HYP_GLSLANG || HYP_DXC
     return true;
 #else
@@ -3355,6 +3362,7 @@ bool ShaderCompiler::CompileBundle(
         permsToCompile.SetOptionalVertexAttributes(declaredPerms.GetOptionalVertexAttributes());
     }
 
+#if 1
     // INFO ON MERGING 'ADDITIONAL' SHADER VERSIONS (upon requesting a shader)
     // ============================================
     // if shaderRequest is set, we need to properly merge those properties with our ShaderVariant.
@@ -3418,6 +3426,7 @@ bool ShaderCompiler::CompileBundle(
             }
         }
     }
+#endif
 
     Mutex compiledShadersMutex;
     Mutex errorMessagesMutex;
@@ -3911,8 +3920,19 @@ bool ShaderCompiler::RequestShader(
     auto it = bundle->compiledShaders.FindIf(
         [&mergedProperties, &inputLayout](const Handle<Shader>& shader) -> bool
         {
-            return SatisfiesRequested(mergedProperties, inputLayout, *shader);
+            return SatisfiesRequested(mergedProperties, inputLayout, *shader, /* matchAllProperties */ true);
         });
+
+    if (it == bundle->compiledShaders.End()
+        && (!CanCompileShaders() && !m_isPrecompilingShaders))
+    {
+        // try again but this time only match the required properties, not all properties
+        it = bundle->compiledShaders.FindIf(
+            [&mergedProperties, &inputLayout](const Handle<Shader>& shader) -> bool
+            {
+                return SatisfiesRequested(mergedProperties, inputLayout, *shader, /* matchAllProperties */ false);
+            });
+    }
 
     if (it == bundle->compiledShaders.End())
     {

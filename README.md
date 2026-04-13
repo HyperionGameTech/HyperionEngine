@@ -1,4 +1,8 @@
-### Hyperion Engine is an easy to use, high performance 3D game engine written in C++ and C# with a Vulkan rendering backend and a visual editor built with Avalonia.
+## About Hyperion
+
+Hyperion Engine is a high performance game engine written in C++ 20, with a focus on modern rendering techniques such as clustered shading, gpu driven rendering, ray tracing, and a high performance Vulkan graphics backend. This project started as a fork of [an earlier engine project](https://github.com/ajmd17/apex-engine) that I started working on in 2016, but has since been almost completely rewritten and redesigned from the ground up.
+
+#### Editor screenshot
 
 ![Hyperion Engine Screenshot - Baked lightmaps in Editor view](/Documentation/Images/LightmapBakeEditor.png)
 

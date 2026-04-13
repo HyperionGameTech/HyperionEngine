@@ -154,6 +154,9 @@ ParallelRenderingState::~ParallelRenderingState()
 #pragma region GeometryPass
 
 namespace GeometryPass {
+
+static constexpr StringHash DefaultShaderName = "GeometryPass"_sh;
+
 namespace Props {
 
 /// Static property names
@@ -165,7 +168,6 @@ static const Name s_nameShadingType = NAME("SHADING_TYPE");
 static const Name s_nameDeferred = NAME("DEFERRED");
 static const Name s_nameForward = NAME("FORWARD");
 static const Name s_nameLightmapped = NAME("LIGHTMAPPED");
-static const Name s_nameMaxLights = NAME("MAX_LIGHTS");
 
 static const Name s_nameHasDiffuseMap = NAME("HAS_DIFFUSE_MAP");
 static const Name s_nameHasNormalMap = NAME("HAS_NORMAL_MAP");
@@ -178,7 +180,6 @@ static const Name s_nameHasRoughnessMap = NAME("HAS_ROUGHNESS_MAP");
 static const ShaderPropertyId s_propInstancing = InternShaderProperty(ShaderProperty(s_nameInstancing));
 static const ShaderPropertyId s_propAlphaDiscard = InternShaderProperty(ShaderProperty(s_nameAlphaDiscard));
 static const ShaderPropertyId s_propSkinning = InternShaderProperty(ShaderProperty(s_nameSkinning));
-static const ShaderPropertyId s_propMaxLights = InternShaderProperty(ShaderProperty(s_nameMaxLights, int(MaxBoundLightsForwardShading)));
 
 // shading mode
 static const ShaderPropertyId s_propShadingTypeDeferred = InternShaderProperty(ShaderProperty(s_nameShadingType, Name(s_nameDeferred)));
@@ -244,10 +245,13 @@ static void BuildAttributes(const RenderProxyMesh& proxy, RenderableAttributeSet
         attributes.Invalidate();
     }
 
-    const bool hasInstancing = proxy.enableAutoInstancing || proxy.numInstances;
-    const bool hasForwardLighting = attributes.GetMaterialAttributes().bucket == RenderBucket::Translucent;
-    const bool hasLightmaps = attributes.GetMaterialAttributes().bucket == RenderBucket::Lightmapped;
+    const RenderBucket bucket = attributes.GetMaterialAttributes().bucket;
+
+    const bool hasForwardLighting = (bucket == RenderBucket::Translucent || bucket == RenderBucket::Sky || bucket == RenderBucket::Debug);
+    const bool hasLightmaps = (bucket == RenderBucket::Lightmapped);
     const bool hasDeferredLighting = !hasForwardLighting && !hasLightmaps;
+
+    const bool hasInstancing = proxy.enableAutoInstancing || proxy.numInstances;
     const bool hasAlphaDiscard = bool(attributes.GetMaterialAttributes().flags & MAF_ALPHA_DISCARD);
     const bool hasSkinning = proxy.skeleton != nullptr && proxy.skeleton->GetRootBone() != nullptr;
 
@@ -295,8 +299,6 @@ static void BuildAttributes(const RenderProxyMesh& proxy, RenderableAttributeSet
 
         if (hasForwardLighting != currentShaderProperties.Test(Props::s_propShadingTypeForward))
         {
-            // set 'MAX_LIGHTS' if using forward shading
-            newShaderProperties.Set(Props::s_propMaxLights, hasForwardLighting);
             newShaderProperties.Set(Props::s_propShadingTypeForward, hasForwardLighting);
         }
 
@@ -790,10 +792,10 @@ static void RenderAll(
 
     const bool isForwardShading = mas.shaderProperties.Test(s_propShadingTypeForward);
 
-    if (isForwardShading)
-    {
-        SetForwardShadingUniforms(renderSetup, cr, numShaderUniforms);
-    }
+    // if (isForwardShading)
+    // {
+    //     SetForwardShadingUniforms(renderSetup, cr, numShaderUniforms);
+    // }
 
     // Will only be non-null if we are in a deferred rendering pass.
     DeferredRendererPassData* dpd = ObjCast<DeferredRendererPassData>(renderSetup.passData);
@@ -1011,7 +1013,10 @@ static void PerformRenderingImpl(
     cr << SetCurrentViewport(renderSetup.viewport);
 
 
-    if (isNormalDrawingPass && mas.shaderProperties.Test(s_propShadingTypeForward) && dpd->gridTilesBuffer != nullptr)
+    if (isNormalDrawingPass
+        && mas.shaderName == GeometryPass::DefaultShaderName
+        && mas.shaderProperties.Test(s_propShadingTypeForward)
+        && dpd->gridTilesBuffer != nullptr)
     {
         // If we are in normal drawing (e.g NOT env probes, shadows, etc.) - we use clusters of lights and EnvProbe data
         // Therefore we need to set FORWARD_CLUSTERED prop to true to choose the correct variant.

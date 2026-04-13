@@ -3,7 +3,7 @@
   "CompiledShaders": [{
       "$Class": "AssetReference",
       "AssetPath": {
-        "Value": "Engine/Shaders/Skybox/Skybox_12407244494021180445"
+        "Value": "Engine/Shaders/Skybox/Skybox_1452286195543374241"
       }
     }],
   "Name": "Skybox",

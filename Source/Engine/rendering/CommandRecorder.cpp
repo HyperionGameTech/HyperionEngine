@@ -246,7 +246,7 @@ void SetCurrentFramebuffer::InvokeStatic(CmdBase* cmd, CommandBuffer* commandBuf
         // investigation to figure out if it is a quirk of the validation layers or
         // an actual issue.
         // For now, just rebind the graphics pipeline when we change render passes. (setting it to null will do this)
-        state.prevGraphicsPipeline = nullptr;
+        state.boundGraphicsPipeline = nullptr;
     }
 
     if (cmdCasted->m_framebuffer == nullptr && state.boundFramebuffer != nullptr)
@@ -333,7 +333,7 @@ void BindGraphicsPipeline::InvokeStatic(CmdBase* cmd, CommandBuffer* commandBuff
         cmdCasted->m_pipeline->Bind(commandBuffer);
     }
     
-    state.prevGraphicsPipeline = cmdCasted->m_pipeline;
+    state.boundGraphicsPipeline = cmdCasted->m_pipeline;
 
     //// temporary, will be removed once everything operates through CommitDrawState().
     //RenderInterface::State& state = g_renderInterface->state;
@@ -355,7 +355,7 @@ void BindComputePipeline::InvokeStatic(CmdBase* cmd, CommandBuffer* commandBuffe
 
     cmdCasted->m_pipeline->Bind(commandBuffer);
     
-    state.prevComputePipeline = cmdCasted->m_pipeline;
+    state.boundComputePipeline = cmdCasted->m_pipeline;
 
     static_assert(std::is_trivially_destructible_v<BindComputePipeline>);
     // cmdCasted->~BindComputePipeline();
@@ -373,7 +373,7 @@ void BindRayTracingPipeline::InvokeStatic(CmdBase* cmd, CommandBuffer* commandBu
 
     cmdCasted->m_pipeline->Bind(commandBuffer);
 
-    state.prevRayTracingPipeline = cmdCasted->m_pipeline;
+    state.boundRayTracingPipeline = cmdCasted->m_pipeline;
 
     static_assert(std::is_trivially_destructible_v<BindRayTracingPipeline>);
     // cmdCasted->~BindRayTracingPipeline();
@@ -393,7 +393,7 @@ void DispatchCompute::InvokeStatic(CmdBase* cmd, CommandBuffer* commandBuffer)
     {
         g_renderInterface->CommitPipelineState(PSO_Compute, commandBuffer);
         
-        pipeline = g_renderInterface->state.prevComputePipeline;
+        pipeline = g_renderInterface->state.boundComputePipeline;
         AssertDebug(pipeline != nullptr, "No compute pipeline set, call SetCurrentShader before DispatchCompute() without pipeline passed");
     }
 
@@ -417,7 +417,7 @@ void TraceRays::InvokeStatic(CmdBase* cmd, CommandBuffer* commandBuffer)
     {
         g_renderInterface->CommitPipelineState(PSO_RayTracing, commandBuffer);
 
-        pipeline = g_renderInterface->state.prevRayTracingPipeline;
+        pipeline = g_renderInterface->state.boundRayTracingPipeline;
         AssertDebug(pipeline != nullptr, "No rayTracing pipeline set, call SetCurrentShader before TraceRays() without pipeline passed");
     }
 
@@ -476,7 +476,7 @@ void SetStencilState::InvokeStatic(CmdBase* cmd, CommandBuffer* commandBuffer)
         state.stencilWriteMask = cmdCasted->m_writeMask;
 
         // invalidate pipeline state
-        state.prevGraphicsPipeline = nullptr;
+        state.boundGraphicsPipeline = nullptr;
 
         state.dirtyUniforms |= (state.validUniforms | state.dirtyBufferOffsets);
         state.validUniforms = 0;

@@ -3,10 +3,10 @@
 PERMUTE(SKINNING);
 PERMUTE(ALPHA_DISCARD);
 PERMUTE(INSTANCING);
-PERMUTE(FORWARD_CLUSTERED);
 PERMUTE(SHADING_TYPE, DEFERRED, FORWARD, LIGHTMAPPED, UNLIT);
 
 // Used in FORWARD_CLUSTERED only
+PERMUTE(FORWARD_CLUSTERED);
 STATIC(TILE_Z_BINS, 16);
 STATIC(TILE_SIZE, 32);
 
@@ -81,20 +81,6 @@ DECLARE_SRV(Default, ClusterIndexBuffer) ByteAddressBuffer ClusterIndexBuffer;
 
 #include "deferred/DeferredLighting.hlsli"
 #include "include/Shadows.hlsli"
-#endif // SHADING_TYPE_FORWARD
-
-#ifdef SHADING_TYPE_FORWARD
-#ifndef MAX_LIGHTS
-#define MAX_LIGHTS 4 // Should be set from the engine side when compiling the shader
-#endif // MAX_LIGHTS
-
-DECLARE_BUFFER_DYNAMIC(Default, FowardShadingConstants) cbuffer FowardShadingConstants
-{
-    Light lights[MAX_LIGHTS];
-    ShadowMap shadowMaps[MAX_LIGHTS];
-    uint numBoundLights;
-};
-
 #endif // SHADING_TYPE_FORWARD
 
 DECLARE_SRV_DYNAMIC(Default, MaterialsBuffer) StructuredBuffer<Material> materials_buffer;
@@ -235,82 +221,6 @@ PSOutput PSMain(PSInput input)
 
             indirect_lighting = Ft + Fd + Fr;
         }
-
-        
-#if 0
-        
-        for (uint lightIndex = 0; lightIndex < numBoundLights; ++lightIndex)
-        {
-            Light light = lights[lightIndex];
-            ShadowMap shadowMap = shadowMaps[lightIndex];
-
-            float3 L = light.position_intensity.xyz;
-            L -= input.position.xyz * float(min(light.type, 1));
-            
-            float3 worldToLight = L;
-            L = normalize(L);
-
-            const float3 H = normalize(L + V);
-            const float NdotL = max(0.0001, dot(N, L));
-            const float NdotH = max(0.0001, dot(N, H));
-            const float LdotH = max(0.0001, dot(L, H));
-            const float HdotV = max(0.0001, dot(H, V));
-
-            float shadow = 1.0;
-
-            if (bool(light.flags & LF_SHADOW_CASTER))
-            {
-                if (light.type == HYP_LIGHT_TYPE_DIRECTIONAL)
-                {
-                    shadow = GetShadow(shadowMap, light.flags, P, texcoord, camera.dimensions.xy, NdotL);
-                }
-                else if (light.type == HYP_LIGHT_TYPE_POINT)
-                {
-                    shadow = GetPointShadow(shadowMap, light.flags, worldToLight, NdotL);
-                }
-                else
-                {
-                    // not implemented yet; treat as unshadowed for now
-                }
-            }
-
-            float3 light_color = light.color.rgb;
-
-            const float D = CalculateDistributionTerm(perceptualRoughness, NdotH);
-            const float G = CalculateGeometryTerm(NdotL, NdotV, HdotV, NdotH);
-            const float3 F = CalculateFresnelTerm(F0, perceptualRoughness, LdotH);
-
-            const float3 dfg = CalculateDFG(F, perceptualRoughness, NdotV);
-            const float3 E = CalculateE(F0, dfg);
-            const float3 energy_compensation = CalculateEnergyCompensation(F0, dfg);
-
-            const float3 diffuse_color = CalculateDiffuseColor(output.gbuffer_albedo.rgb, metalness);
-            const float3 specular_lobe = D * G * F;
-
-            float3 specular = specular_lobe;
-
-            const float2 radiusFalloff = float2(f16tof32(light.radiusFalloffPacked), f16tof32(light.radiusFalloffPacked >> 16));
-            const float radius = radiusFalloff.x;
-            const float falloff = radiusFalloff.y;
-
-            const float attenuation = light.type == HYP_LIGHT_TYPE_POINT
-                ? GetSquareFalloffAttenuation(P, light.position_intensity.xyz, radius)
-                : 1.0;
-
-            float3 diffuse_lobe = diffuse_color * (1.0 / HYP_FMATH_PI);
-            float3 diffuse = diffuse_lobe;
-            diffuse *= (1.0 - transmission);
-
-            float3 direct_component = diffuse + specular * energy_compensation;
-
-            direct_lighting += direct_component * (light_color * ao * NdotL * shadow * light.position_intensity.w * attenuation);
-        }
-
-        float3 lighting = indirect_lighting + direct_lighting;
-
-        // overwrite gbuffer_albedo with lit result
-        output.gbuffer_albedo.rgb = lighting;
-#endif
 
 #ifdef FORWARD_CLUSTERED
         const uint2 pixelCoord = uint2(input.texcoord0 * max(0, int2(camera.dimensions.xy) - 1));

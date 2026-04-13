@@ -1251,9 +1251,9 @@ void RenderInterface::CommitPipelineState(PSOType psoType, CommandBuffer* comman
 
     // set prev pipeline to null if state changed,
     // we cannot rely upon descriptors being valid between switches
-    if (psoType != state.prevPsoType)
+    if (psoType != state.boundPsoType)
     {
-        state.prevGraphicsPipeline = nullptr;
+        state.boundGraphicsPipeline = nullptr;
     }
 
     union
@@ -1273,10 +1273,9 @@ void RenderInterface::CommitPipelineState(PSOType psoType, CommandBuffer* comman
         
         GraphicsPipeline* pipeline = nullptr;
 
-        if (!state.prevGraphicsPipeline
-            || !state.prevGraphicsPipeline->MatchesSignature(
-                state.attributes,
-                state.framebuffer->GetFramebufferDesc()))
+        if (!state.boundGraphicsPipeline
+            || state.boundShaderDesc.properties != state.attributes.GetShaderProperties()
+            || !state.boundGraphicsPipeline->MatchesSignature(state.attributes, state.framebuffer->GetFramebufferDesc()))
         {
             GraphicsPipelineCacheHandle cacheHandle;
 
@@ -1294,7 +1293,7 @@ void RenderInterface::CommitPipelineState(PSOType psoType, CommandBuffer* comman
         }
         else
         {
-            pipeline = state.prevGraphicsPipeline;
+            pipeline = state.boundGraphicsPipeline;
         }
 
         shaderInstance = pipeline->GetShader();
@@ -1306,7 +1305,9 @@ void RenderInterface::CommitPipelineState(PSOType psoType, CommandBuffer* comman
     {
         ComputePipeline* pipeline = nullptr;
 
-        if (!state.prevComputePipeline || !state.prevComputePipeline->MatchesSignature(ShaderDesc(state.attributes.GetShaderName(), state.attributes.GetShaderProperties())))
+        if (!state.boundComputePipeline
+            || state.boundShaderDesc.properties != state.attributes.GetShaderProperties()
+            || !state.boundComputePipeline->MatchesSignature(ShaderDesc(state.attributes.GetShaderName(), state.attributes.GetShaderProperties())))
         {
             pipeline = computePipelineCache->GetOrCreate(state.attributes.GetShaderName(), state.attributes.GetShaderProperties());
             AssertDebug(pipeline != nullptr);
@@ -1318,7 +1319,7 @@ void RenderInterface::CommitPipelineState(PSOType psoType, CommandBuffer* comman
         }
         else
         {
-            pipeline = state.prevComputePipeline;
+            pipeline = state.boundComputePipeline;
         }
 
         shaderInstance = pipeline->GetShader();
@@ -1330,7 +1331,9 @@ void RenderInterface::CommitPipelineState(PSOType psoType, CommandBuffer* comman
     {
         RayTracingPipeline* pipeline = nullptr;
 
-        if (!state.prevRayTracingPipeline || !state.prevRayTracingPipeline->MatchesSignature(ShaderDesc(state.attributes.GetShaderName(), state.attributes.GetShaderProperties())))
+        if (!state.boundRayTracingPipeline
+            || state.boundShaderDesc.properties != state.attributes.GetShaderProperties()
+            || !state.boundRayTracingPipeline->MatchesSignature(ShaderDesc(state.attributes.GetShaderName(), state.attributes.GetShaderProperties())))
         {
             pipeline = rayTracingPipelineCache->GetOrCreate(state.attributes.GetShaderName(), state.attributes.GetShaderProperties());
             AssertDebug(pipeline != nullptr);
@@ -1342,7 +1345,7 @@ void RenderInterface::CommitPipelineState(PSOType psoType, CommandBuffer* comman
         }
         else
         {
-            pipeline = state.prevRayTracingPipeline;
+            pipeline = state.boundRayTracingPipeline;
         }
 
         shaderInstance = pipeline->GetShader();
@@ -1354,7 +1357,8 @@ void RenderInterface::CommitPipelineState(PSOType psoType, CommandBuffer* comman
         HYP_UNREACHABLE();
     }
 
-    state.prevPsoType = psoType;
+    state.boundPsoType = psoType;
+    state.boundShaderDesc = ShaderDesc(state.attributes.GetShaderName(), state.attributes.GetShaderProperties());
 
     AssertDebug(shaderInstance != nullptr);
 
@@ -1655,7 +1659,7 @@ void RenderInterface::CommitPipelineState(PSOType psoType, CommandBuffer* comman
             commandBuffer);
     }
     
-    AssertDebug(state.prevGraphicsPipeline != nullptr, "Pipeline not bound");
+    AssertDebug(state.boundGraphicsPipeline != nullptr, "Pipeline not bound");
 
     if (state.dirtyUniforms)
     {
@@ -1805,13 +1809,13 @@ void RenderInterface::CommitPipelineState(PSOType psoType, CommandBuffer* comman
         switch (psoType)
         {
         case PSO_Graphics:
-            ds->Bind(commandBuffer, state.prevGraphicsPipeline, offsets, setIndex);
+            ds->Bind(commandBuffer, state.boundGraphicsPipeline, offsets, setIndex);
             break;
         case PSO_Compute:
-            ds->Bind(commandBuffer, state.prevComputePipeline, offsets, setIndex);
+            ds->Bind(commandBuffer, state.boundComputePipeline, offsets, setIndex);
             break;
         case PSO_RayTracing:
-            ds->Bind(commandBuffer, state.prevRayTracingPipeline, offsets, setIndex);
+            ds->Bind(commandBuffer, state.boundRayTracingPipeline, offsets, setIndex);
             break;
         default:
             HYP_UNREACHABLE();

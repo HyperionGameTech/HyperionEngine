@@ -568,13 +568,6 @@ private:
         const INIFile::Section& section,
         ShaderBundleDecl& outDecl);
 
-    bool CompileBundle(
-        ShaderBundleDecl& decl,
-        Handle<ShaderBundle>& outBundle)
-    {
-        return CompileBundle(decl, {}, outBundle);
-    }
-
     bool HandleBundle(
         ShaderBundleDecl& decl,
         Optional<ShaderRequest> shaderRequest,

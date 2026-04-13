@@ -193,7 +193,7 @@ void DefaultGame::OnLaunch_Impl()
     }
     else if (const AssetLoadError* error = testbedAsset.GetErrorIfFailed())
     {
-        HYP_LOG_TEMP("Failed to load test asset: {}", error->GetMessage());
+        HYP_LOG(Game, Error, "Failed to load test asset: {}", error->GetMessage());
     }
     
     // sky

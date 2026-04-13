@@ -341,12 +341,6 @@
               }
             }], []],
         "Flags": 0
-      }, {
-        "$Class": "ShaderInputSet",
-        "SetIndex": 1,
-        "Name": "BindlessResources0",
-        "Slots": [[], [], [], [], []],
-        "Flags": 1
       }]
   },
   "ShaderModuleTypes": [1, 2],
@@ -355,15 +349,15 @@
   "ShaderBlobs": [{
       "$Class": "BlobDataReference",
       "Key": "Engine/Shaders/DeferredDirect/DeferredDirect_15924930052788855720.VS",
-      "Size": 12048
+      "Size": 11956
     }, {
       "$Class": "BlobDataReference",
       "Key": "Engine/Shaders/DeferredDirect/DeferredDirect_15924930052788855720.PS",
-      "Size": 226848
+      "Size": 226532
     }],
   "PropertySetHashCode": {},
   "LastCompiledTimestamp": {
-    "Value": 13420488423453
+    "Value": 13420505288109
   },
   "Name": "DeferredDirect_15924930052788855720",
   "FriendlyName": "DeferredDirect_15924930052788855720",

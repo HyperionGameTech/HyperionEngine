@@ -222,15 +222,17 @@ public:
 
         union
         {
-            GraphicsPipeline* prevGraphicsPipeline = nullptr;
-            ComputePipeline* prevComputePipeline;
-            RayTracingPipeline* prevRayTracingPipeline;
+            GraphicsPipeline* boundGraphicsPipeline = nullptr;
+            ComputePipeline* boundComputePipeline;
+            RayTracingPipeline* boundRayTracingPipeline;
         };
+
+        ShaderDesc boundShaderDesc;
 
         Framebuffer* framebuffer = nullptr;
         Framebuffer* boundFramebuffer = nullptr;
 
-        PSOType prevPsoType = PSO_Graphics;
+        PSOType boundPsoType = PSO_Graphics;
 
         void Reset()
         {
@@ -251,8 +253,11 @@ public:
             framebuffer = nullptr;
             boundFramebuffer = nullptr;
 
-            prevPsoType = PSO_Graphics;
-            prevGraphicsPipeline = nullptr;
+            boundPsoType = PSO_Graphics;
+
+            boundShaderDesc = ShaderDesc {};
+
+            boundGraphicsPipeline = nullptr;
         }
     };
 
