@@ -9,6 +9,7 @@
 #include <physics/null/Adapter.hpp>
 #include <physics/PhysicsWorld.hpp>
 #include <physics/RigidBody.hpp>
+#include <physics/CharacterController.hpp>
 
 #include <Core/memory/UniquePtr.hpp>
 #include <Core/math/Vector3.hpp>
@@ -48,7 +49,23 @@ void NullPhysicsAdapter::OnChangePhysicsMaterial(RigidBody* rigidBody)
 {
 }
 
-void NullPhysicsAdapter::ApplyForceToBody(const RigidBody* rigidBody, const Vector3& force)
+void NullPhysicsAdapter::ApplyForceToBody(const RigidBody* rigidBody, const Vec3f& force)
+{
+}
+
+void NullPhysicsAdapter::OnCharacterControllerAdded(const Handle<CharacterController>& characterController)
+{
+}
+
+void NullPhysicsAdapter::OnCharacterControllerRemoved(const Handle<CharacterController>& characterController)
+{
+}
+
+void NullPhysicsAdapter::SetCharacterWalkDirection(CharacterController* characterController, const Vec3f& velocity)
+{
+}
+
+void NullPhysicsAdapter::ApplyCharacterJump(CharacterController* characterController)
 {
 }
 

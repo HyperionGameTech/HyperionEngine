@@ -26,7 +26,12 @@ public:
     void OnChangePhysicsShape(RigidBody* rigidBody);
     void OnChangePhysicsMaterial(RigidBody* rigidBody);
 
-    void ApplyForceToBody(const RigidBody* rigidBody, const Vector3& force);
+    void ApplyForceToBody(const RigidBody* rigidBody, const Vec3f& force);
+
+    void OnCharacterControllerAdded(const Handle<CharacterController>& characterController);
+    void OnCharacterControllerRemoved(const Handle<CharacterController>& characterController);
+    void SetCharacterWalkDirection(CharacterController* characterController, const Vec3f& velocity);
+    void ApplyCharacterJump(CharacterController* characterController);
 };
 
 } // namespace Hyperion

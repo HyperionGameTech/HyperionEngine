@@ -357,28 +357,6 @@ namespace Hyperion
             return a.ptr != b.ptr;
         }
 
-        public static Class? GetClass(string name)
-        {
-            Class? cls = null;
-
-            if (classTypeNameCache.TryGetValue(name, out Class foundClass))
-            {
-                cls = foundClass;
-            }
-            else
-            {
-                IntPtr ptr = Class_GetClassByName(name);
-
-                if (ptr != IntPtr.Zero)
-                {
-                    cls = new Class(ptr);
-                    classTypeNameCache[name] = cls.Value;
-                }
-            }
-
-            return cls;
-        }
-
         public static Class GetClass<T>()
         {
             return GetClass(typeof(T));
@@ -456,8 +434,45 @@ namespace Hyperion
             return cls;
         }
 
+        public static Class? TryGetClass(TypeId typeId)
+        {
+            IntPtr ptr = Class_GetClassByTypeId(ref typeId);
+
+            if (ptr == IntPtr.Zero)
+            {
+                return null;
+            }
+
+            return new Class(ptr);
+        }
+        
+        public static Class? TryGetClass(string name)
+        {
+            Class? cls = null;
+
+            if (classTypeNameCache.TryGetValue(name, out Class foundClass))
+            {
+                cls = foundClass;
+            }
+            else
+            {
+                IntPtr ptr = Class_GetClassByName(name);
+
+                if (ptr != IntPtr.Zero)
+                {
+                    cls = new Class(ptr);
+                    classTypeNameCache[name] = cls.Value;
+                }
+            }
+
+            return cls;
+        }
+
         [DllImport("hyperion", EntryPoint = "NativeInterop_GetAssemblyPointer")]
         private static extern unsafe void NativeInterop_GetAssemblyPointer([In] void* assemblyObjectReferencePtr, [Out] void* outAssemblyPtr);
+
+        [DllImport("hyperion", EntryPoint = "Class_GetClassByTypeId")]
+        private static extern IntPtr Class_GetClassByTypeId([In] ref TypeId typeId);
 
         [DllImport("hyperion", EntryPoint = "Class_GetClassByName")]
         private static extern IntPtr Class_GetClassByName([MarshalAs(UnmanagedType.LPStr)] string name);

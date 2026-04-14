@@ -8,6 +8,7 @@
 
 #include <physics/Adapter.hpp>
 #include <physics/RigidBody.hpp>
+#include <physics/CharacterController.hpp>
 
 #include <Core/math/Vector3.hpp>
 
@@ -19,7 +20,7 @@ class HYP_API PhysicsWorldBase : public ObjectBase
     HYP_OBJECT_BODY(PhysicsWorldBase);
 
 public:
-    static constexpr Vec3f earthGravity = Vec3f { 0.0f, -9.81f, 0.0f };
+    static constexpr Vec3f EarthGravity = Vec3f { 0.0f, -9.81f, 0.0f };
 
     PhysicsWorldBase() = default;
     PhysicsWorldBase(const PhysicsWorldBase& other) = delete;
@@ -46,16 +47,30 @@ public:
         return m_rigidBodies;
     }
 
+    HYP_FORCE_INLINE FlatSet<Handle<CharacterController>>& GetCharacterControllers()
+    {
+        return m_characterControllers;
+    }
+
+    HYP_FORCE_INLINE const FlatSet<Handle<CharacterController>>& GetCharacterControllers() const
+    {
+        return m_characterControllers;
+    }
+
     virtual void Teardown() = 0;
     virtual void Tick(double delta) = 0;
 
     virtual void AddRigidBody(const Handle<RigidBody>& rigidBody) = 0;
     virtual void RemoveRigidBody(const Handle<RigidBody>& rigidBody) = 0;
 
+    virtual void AddCharacterController(const Handle<CharacterController>& characterController) = 0;
+    virtual void RemoveCharacterController(const Handle<CharacterController>& characterController) = 0;
+
 protected:
-    Vec3f m_gravity = earthGravity;
+    Vec3f m_gravity = EarthGravity;
 
     FlatSet<Handle<RigidBody>> m_rigidBodies;
+    FlatSet<Handle<CharacterController>> m_characterControllers;
 };
 
 template <class Adapter>
@@ -103,6 +118,32 @@ public:
 
         m_adapter.OnRigidBodyRemoved(rigidBody);
         m_rigidBodies.Erase(rigidBody);
+    }
+
+    void AddCharacterController(const Handle<CharacterController>& characterController) override
+    {
+        if (!characterController)
+        {
+            return;
+        }
+
+        const auto insertResult = m_characterControllers.Insert(characterController);
+
+        if (insertResult.second)
+        {
+            m_adapter.OnCharacterControllerAdded(characterController);
+        }
+    }
+
+    void RemoveCharacterController(const Handle<CharacterController>& characterController) override
+    {
+        if (!characterController)
+        {
+            return;
+        }
+
+        m_adapter.OnCharacterControllerRemoved(characterController);
+        m_characterControllers.Erase(characterController);
     }
 
     void Init() override

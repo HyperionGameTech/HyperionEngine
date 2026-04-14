@@ -45,27 +45,31 @@ void StructuredBuffer::Write(size_t offset, size_t count, const void* data)
 
 void StructuredBuffer::Flush()
 {
+    if (!IsDirty())
+    {
+        return;
+    }
+    
     Assert(gpuBuffer && gpuBuffer->IsCreated());
 
-    if (IsDirty())
-    {
-        CommandBuffer& cmdBuffer = g_renderInterface->GetTransientCommandBuffer();
+    RenderInterface& ri = *g_renderInterface;
 
-        GpuBuffer* stagingBuffer = g_renderInterface->stagingBufferPool->AcquireStagingBuffer(dirtyRangeEnd - dirtyRangeStart);
-        Assert(stagingBuffer != nullptr);
+    CommandBuffer& cmdBuffer = ri.GetTransientCommandBuffer();
 
-        Memory::Copy(stagingBuffer->Map(), cpuBuffer.Data() + dirtyRangeStart, dirtyRangeEnd - dirtyRangeStart);
+    GpuBuffer* stagingBuffer = ri.stagingBufferPool->AcquireStagingBuffer(dirtyRangeEnd - dirtyRangeStart);
+    Assert(stagingBuffer != nullptr);
 
-        stagingBuffer->InsertBarrier(&cmdBuffer, RS_COPY_SRC);
-        gpuBuffer->InsertBarrier(&cmdBuffer, RS_COPY_DST);
-        gpuBuffer->CopyFrom(&cmdBuffer, stagingBuffer, 0, dirtyRangeStart, dirtyRangeEnd - dirtyRangeStart);
-        gpuBuffer->InsertBarrier(&cmdBuffer, RS_SHADER_RESOURCE);
+    Memory::Copy(stagingBuffer->Map(), cpuBuffer.Data() + dirtyRangeStart, dirtyRangeEnd - dirtyRangeStart);
 
-        g_renderInterface->SubmitTransientCommandBuffer(cmdBuffer);
+    stagingBuffer->InsertBarrier(&cmdBuffer, RS_COPY_SRC);
+    gpuBuffer->InsertBarrier(&cmdBuffer, RS_COPY_DST);
+    gpuBuffer->CopyFrom(&cmdBuffer, stagingBuffer, 0, dirtyRangeStart, dirtyRangeEnd - dirtyRangeStart);
+    gpuBuffer->InsertBarrier(&cmdBuffer, RS_SHADER_RESOURCE);
 
-        dirtyRangeStart = SIZE_MAX;
-        dirtyRangeEnd = 0;
-    }
+    ri.SubmitTransientCommandBuffer(cmdBuffer);
+
+    dirtyRangeStart = SIZE_MAX;
+    dirtyRangeEnd = 0;
 }
 
 #pragma endregion StructuredBuffer

@@ -589,16 +589,9 @@ extern enum ScriptComponentFlags : uint32
     BEFORE_ADDED_CALLED = 0x10,
     ON_ADDED_CALLED = 0x20
 end
-extern enum RigidBodyComponentFlags : uint32
-    NONE = 0x0,
-    INIT = 0x1,
-    DIRTY = 0x2
-end
 extern struct RigidBodyComponent
     RigidBody : RigidBody
     PhysicsMaterial : PhysicsMaterial
-    Flags : RigidBodyComponentFlags
-    TransformHashCode : HashCode
 end
 extern struct MeshComponent
     Mesh : Mesh
@@ -607,6 +600,12 @@ extern struct MeshComponent
     EnableAutoInstancing : bool
     NumInstances : uint32
     PreviousModelMatrix : Mat4f
+end
+extern struct CharacterControllerComponent
+    CharacterController : CharacterController
+    MoveSpeed : float
+    ViewDirection : Vec3f
+    InputHandler : InputHandlerBase
 end
 extern struct BoundingBoxComponent
     WorldAabb : BoundingBox
@@ -637,12 +636,12 @@ extern enum AudioLoopMode : uint8
     ALM_ONCE,
     ALM_REPEAT
 end
-extern enum AnimationPlaybackStatus : uint32
+extern enum AnimationPlaybackStatus : uint8
     STOPPED = 0,
     PAUSED,
     PLAYING
 end
-extern enum AnimationLoopMode : uint32
+extern enum AnimationLoopMode : uint8
     ONCE = 0,
     REPEAT
 end
@@ -1188,32 +1187,6 @@ extern enum AccelerationStructureType : uint8
     BOTTOM_LEVEL,
     TOP_LEVEL
 end
-extern class PhysicsShape
-end
-extern class PlanePhysicsShape : PhysicsShape
-end
-extern class BoxPhysicsShape : PhysicsShape
-end
-extern class ConvexHullPhysicsShape : PhysicsShape
-end
-extern class SpherePhysicsShape : PhysicsShape
-end
-extern class RigidBody
-    GetTransform() -> Transform
-    SetTransform(transform : Transform) -> void
-    GetShape() -> PhysicsShape
-    SetShape(shape : PhysicsShape) -> void
-    IsKinematic() -> bool
-    SetIsKinematic(isKinematic : bool) -> void
-    ApplyForce(force : Vec3f) -> void
-end
-extern enum PhysicsShapeType : uint32
-    NONE,
-    BOX,
-    SPHERE,
-    PLANE,
-    CONVEX_HULL
-end
 extern class PhysicsWorldBase
 end
 extern struct PhysicsMaterial
@@ -1357,6 +1330,26 @@ extern class InputHandlerBase
     OnLoseFocus_Impl(evt : MouseEvent) -> bool
 end
 extern class NullInputHandler : InputHandlerBase
+end
+extern class CharacterController
+    GetShape() -> PhysicsShape
+    SetShape(shape : PhysicsShape) -> void
+    GetTranslation() -> Vec3f
+    GetStepHeight() -> float
+    SetStepHeight(stepHeight : float) -> void
+    GetMaxSlopeAngle() -> float
+    SetMaxSlopeAngle(maxSlopeAngle : float) -> void
+    GetJumpSpeed() -> float
+    SetJumpSpeed(jumpSpeed : float) -> void
+    GetFallSpeed() -> float
+    SetFallSpeed(fallSpeed : float) -> void
+    IsOnGround() -> bool
+    SetWalkDirection(velocity : Vec3f) -> void
+    Jump() -> void
+end
+extern class CharacterControllerInputHandler : InputHandlerBase
+    GetMovementInput() -> Vec2f
+    IsJumpPressed() -> bool
 end
 extern enum EventType : uint32
     INVALID = ~0u,
@@ -2432,6 +2425,39 @@ extern class InstancedMeshData : AssetObject
     Buffers : Array<BlobDataReference>
     BufferStructSizes : Array<uint32>
     BufferStructAlignments : Array<uint32>
+end
+extern class PhysicsShape : AssetObject
+end
+extern class PlanePhysicsShape : PhysicsShape
+    Plane : Vec4f
+end
+extern class BoxPhysicsShape : PhysicsShape
+    Aabb : BoundingBox
+end
+extern class ConvexHullPhysicsShape : PhysicsShape
+end
+extern class SpherePhysicsShape : PhysicsShape
+    Sphere : BoundingSphere
+end
+extern class CapsulePhysicsShape : PhysicsShape
+    Radius : float
+    Height : float
+end
+extern class RigidBody
+    GetTransform() -> Transform
+    SetTransform(transform : Transform) -> void
+    GetShape() -> PhysicsShape
+    SetShape(shape : PhysicsShape) -> void
+    IsKinematic() -> bool
+    SetIsKinematic(isKinematic : bool) -> void
+    ApplyForce(force : Vec3f) -> void
+end
+extern enum PhysicsShapeType : uint8
+    BOX,
+    SPHERE,
+    PLANE,
+    CONVEX_HULL,
+    CAPSULE
 end
 extern class AssetLoaderBase
 end
