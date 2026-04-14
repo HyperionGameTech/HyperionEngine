@@ -272,7 +272,7 @@ public:
     {
         if (m_sbuffer.IsDirty())
         {
-            m_sbuffer.Update();
+            m_sbuffer.Flush();
         }
     }
 

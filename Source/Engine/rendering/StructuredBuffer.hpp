@@ -100,7 +100,7 @@ public:
 
     void Write(size_t offset, size_t count, const void* data);
 
-    void Update();
+    void Flush();
 
     GpuBuffer* gpuBuffer;
     TByteBuffer<RenderAllocator> cpuBuffer;

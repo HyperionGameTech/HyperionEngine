@@ -43,15 +43,12 @@ void StructuredBuffer::Write(size_t offset, size_t count, const void* data)
     dirtyRangeEnd = MathUtil::Max(dirtyRangeEnd, offset + count);
 }
 
-void StructuredBuffer::Update()
+void StructuredBuffer::Flush()
 {
     Assert(gpuBuffer && gpuBuffer->IsCreated());
 
     if (IsDirty())
     {
-        // @TODO We'll need to use a separate command buffer than this,
-        // as this command buffer may be used for rendering commands and we don't want to insert barriers in the middle of rendering.
-        // We could potentially use a transient command buffer for this, but for now we'll just use the main command buffer and insert barriers around the copy.
         CommandBuffer& cmdBuffer = g_renderInterface->GetTransientCommandBuffer();
 
         GpuBuffer* stagingBuffer = g_renderInterface->stagingBufferPool->AcquireStagingBuffer(dirtyRangeEnd - dirtyRangeStart);
