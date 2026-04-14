@@ -63,15 +63,6 @@ namespace Hyperion.Editor.ViewModels
 
             if (typeInfo.IsClass && typeInfo.Class.HasValue)
             {
-                Class propertyClass = typeInfo.Class.Value;
-                Class? assetObjectClass = Class.TryGetClass<AssetObject>();
-
-                if (assetObjectClass.HasValue &&
-                    (propertyClass == assetObjectClass.Value || propertyClass.IsSubclassOf(assetObjectClass.Value)))
-                {
-                    return Initialize(new AssetObjectPropertyViewModel(target, property, isReadOnly));
-                }
-
                 return Initialize(new ObjectPropertyViewModel(target, property, isReadOnly, depth));
             }
 
@@ -133,15 +124,6 @@ namespace Hyperion.Editor.ViewModels
 
             if (typeInfo.IsClass && typeInfo.Class.HasValue)
             {
-                Class propertyClass = typeInfo.Class.Value;
-                Class? assetObjectClass = Class.TryGetClass<AssetObject>();
-
-                // if (assetObjectClass.HasValue &&
-                //     (propertyClass == assetObjectClass.Value || propertyClass.IsSubclassOf(assetObjectClass.Value)))
-                // {
-                //     return Initialize(new AssetObjectPropertyViewModel(classAddress, targetAddressResolver, property, isReadOnly));
-                // }
-
                 return Initialize(new ObjectPropertyViewModel(classAddress, targetAddressResolver, property, isReadOnly, depth));
             }
 
