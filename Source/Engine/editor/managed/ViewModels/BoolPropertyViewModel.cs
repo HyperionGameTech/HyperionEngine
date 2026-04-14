@@ -19,6 +19,8 @@ namespace Hyperion.Editor.ViewModels
         {
         }
 
+        public override bool ShowInlineLabel => false;
+
         public bool IsChecked
         {
             get => _isChecked;

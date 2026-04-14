@@ -34,6 +34,8 @@ namespace Hyperion.Editor.ViewModels
 
         public virtual bool IsNumericEditable => false;
 
+        public virtual bool ShowInlineLabel => true;
+
         public bool ShowTextValue => !IsTextEditable && !IsEnumEditable && !IsEnumFlagsEditable && !IsNumericEditable;
 
         protected InspectorPropertyViewModelBase(ObjectBase? target, Property property, bool isReadOnly = false)

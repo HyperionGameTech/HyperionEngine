@@ -6,6 +6,8 @@
 
 #include <ScenePch.hpp>
 
+#include <scene/Scene.hpp>
+
 #include <scene/systems/ScriptableSystem.hpp>
 #include <scene/Entity.hpp>
 

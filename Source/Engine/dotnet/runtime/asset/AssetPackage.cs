@@ -95,10 +95,32 @@ namespace Hyperion
         public bool Hidden => (Flags & AssetPackageFlags.Hidden) != 0;
         public bool Transient => (Flags & AssetPackageFlags.Transient) != 0;
 
+        public AssetObject? GetAssetObject(Name name)
+        {
+            BoxedValueInternal dataBuffer;
+
+            if (!AssetPackage_GetAssetObjectBoxed(NativeAddress, ref name, out dataBuffer))
+            {
+                return null;
+            }
+
+            try
+            {
+                return dataBuffer.ReadObject<AssetObject>();
+            }
+            finally
+            {
+                dataBuffer.Dispose();
+            }
+        }
+
         [DllImport("hyperion", EntryPoint = "AssetPackage_GetAssetDescs")]
         private static extern uint AssetPackage_GetAssetDescs(IntPtr pPackage, IntPtr pOutAssetDescs, uint maxCount);
 
         [DllImport("hyperion", EntryPoint = "AssetPackage_GetSubpackages")]
         private static extern uint AssetPackage_GetSubpackages(IntPtr pPackage, IntPtr pOutSubpackageHandles, uint maxCount);
+
+        [DllImport("hyperion", EntryPoint = "AssetPackage_GetAssetObjectBoxed")]
+        private static extern bool AssetPackage_GetAssetObjectBoxed([In] IntPtr pPackage, [In] ref Name name, [Out] out BoxedValueInternal outBoxed);
     }
 }

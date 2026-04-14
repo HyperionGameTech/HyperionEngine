@@ -146,7 +146,7 @@ HYP_API void TypeInfo_Shutdown()
 TypeInfoEx::TypeInfoEx(const TypeInfoEx& other)
     : dataType(other.dataType),
       next(other.next ? new TypeInfoEx(*other.next) : nullptr),
-      handler(other.handler ? other.handler->Clone() : nullptr)
+      handler(other.handler ? other.handler : nullptr)
 {
     Memory::Copy(&data, &other.data, sizeof(data));
 }
@@ -160,16 +160,11 @@ TypeInfoEx& TypeInfoEx::operator=(const TypeInfoEx& other)
             delete next;
         }
 
-        if (handler)
-        {
-            delete handler;
-        }
-
         Memory::Copy(&data, &other.data, sizeof(data));
 
         dataType = other.dataType;
         next = other.next ? new TypeInfoEx(*other.next) : nullptr;
-        handler = other.handler ? other.handler->Clone() : nullptr;
+        handler = other.handler ? other.handler : nullptr;
     }
 
     return *this;
@@ -197,11 +192,6 @@ TypeInfoEx& TypeInfoEx::operator=(TypeInfoEx&& other) noexcept
             delete next;
         }
 
-        if (handler)
-        {
-            delete handler;
-        }
-
         Memory::Copy(&data, &other.data, sizeof(data));
         Memory::Fill(&other.data, 0, sizeof(data));
 
@@ -222,11 +212,6 @@ TypeInfoEx::~TypeInfoEx()
     if (next)
     {
         delete next;
-    }
-
-    if (handler)
-    {
-        delete handler;
     }
 }
 
