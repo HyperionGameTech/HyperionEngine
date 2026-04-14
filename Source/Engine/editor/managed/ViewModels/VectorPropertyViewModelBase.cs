@@ -12,6 +12,7 @@ namespace Hyperion.Editor.ViewModels
         private readonly Func<TStruct, int, float, TStruct> _withComponent;
         private readonly Func<TStruct> _readStruct;
         private readonly Action<TStruct> _writeStruct;
+        private readonly bool _hasWriteOverride;
 
         private readonly string[] _components;
 
@@ -31,6 +32,7 @@ namespace Hyperion.Editor.ViewModels
             _withComponent = withComponent;
             _readStruct = readOverride ?? ReadStructFromProperty;
             _writeStruct = writeOverride ?? WriteStructToProperty;
+            _hasWriteOverride = writeOverride != null;
             _components = new string[_componentCount];
         }
 
@@ -51,6 +53,7 @@ namespace Hyperion.Editor.ViewModels
             _withComponent = withComponent;
             _readStruct = readOverride ?? ReadStructFromProperty;
             _writeStruct = writeOverride ?? WriteStructToProperty;
+            _hasWriteOverride = writeOverride != null;
             _components = new string[_componentCount];
         }
 
@@ -160,29 +163,68 @@ namespace Hyperion.Editor.ViewModels
                 return;
             }
 
-            if (!float.TryParse(newValue, NumberStyles.Float, CultureInfo.InvariantCulture, out float parsed))
+            
+            _components[index] = newValue;
+        }
+
+        public override void CommitValue()
+        {
+            if (!IsTargetValid)
             {
-                RefreshValue();
                 return;
             }
 
+            TStruct current;
+
             try
             {
-                if (!TryReadStruct(out TStruct current))
-                {
-                    return;
-                }
-
-                TStruct updated = _withComponent(current, index, parsed);
-                _writeStruct(updated);
-
-                RefreshValue();
+                current = _readStruct();
             }
             catch (Exception ex)
             {
-                Logger.Log(LogLevel.Error, $"Inspector failed to set vector component for '{_property.Name}': {ex.Message}");
-                RefreshValue();
+                Logger.Log(LogLevel.Warning, $"Inspector failed to read vector for '{_property.Name}': {ex.Message}");
+                return;
             }
+
+            TStruct updated = current;
+
+            for (int i = 0; i < _componentCount; i++)
+            {
+                if (float.TryParse(_components[i], System.Globalization.NumberStyles.Float,
+                        System.Globalization.CultureInfo.InvariantCulture, out float parsed))
+                {
+                    updated = _withComponent(updated, i, parsed);
+                }
+            }
+
+            if (Interlocked.CompareExchange(ref _isRefreshing, 1, 0) == 1)
+            {
+                return;
+            }
+
+            _ = EngineManager.PostToSimThread(() =>
+            {
+                try
+                {
+                    if (_hasWriteOverride)
+                    {
+                        _writeStruct(updated);
+                    }
+                    else
+                    {
+                        using BoxedValue boxed = new BoxedValue(updated);
+                        CommitPropertyChange($"Set {Label}", boxed);
+                    }
+                }
+                catch (Exception ex)
+                {
+                    Logger.Log(LogLevel.Error, $"Inspector failed to write vector property '{_property.Name}': {ex.Message}");
+                }
+                finally
+                {
+                    Dispatcher.UIThread.Post(() => _isRefreshing = 0);
+                }
+            });
         }
 
         private void ResetComponentStrings()

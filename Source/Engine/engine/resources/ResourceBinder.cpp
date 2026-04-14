@@ -9,5 +9,7 @@
 #include <engine/resources/ResourceBinder.hpp>
 
 namespace Hyperion {
+namespace Resources {
 
+} // namespace Resources
 } // namespace Hyperion

@@ -204,9 +204,7 @@ namespace Hyperion.Editor.ViewModels
                     }
 
                     using BoxedValue boxed = new BoxedValue(obj);
-                    SetPropertyValue(boxed);
-
-                    RefreshValue();
+                    CommitPropertyChange($"Set {_property.Name}", boxed);
                 }
                 catch (Exception ex)
                 {
@@ -222,17 +220,7 @@ namespace Hyperion.Editor.ViewModels
                 try
                 {
                     using BoxedValue boxed = new BoxedValue(null);
-                    SetPropertyValue(boxed);
-
-                    Dispatcher.UIThread.Post(() =>
-                    {
-                        Value = "(None)";
-                        AssetPathDisplay = "(None)";
-                        _assetClass = null;
-                        SubObject = null;
-                        HasSubObject = false;
-                        CanSelectFromContentBrowser = false;
-                    });
+                    CommitPropertyChange($"Clear {_property.Name}", boxed);
                 }
                 catch (Exception ex)
                 {

@@ -140,13 +140,11 @@ namespace Hyperion.Editor.ViewModels
                     }
 
                     using BoxedValue boxed = new BoxedValue(combined);
-                    SetPropertyValue(boxed);
+                    CommitPropertyChange($"Set {Label}", boxed);
 
                     Dispatcher.UIThread.Post(() =>
                     {
                         _isRefreshing = 0;
-
-                        Value = FormatValue(combined);
 
                         ValueCommitted?.Invoke();
                     });

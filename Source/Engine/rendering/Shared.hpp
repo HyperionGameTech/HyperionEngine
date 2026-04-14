@@ -33,6 +33,7 @@ namespace Hyperion {
 class ObjectBase;
 
 namespace Resources {
+static constexpr uint32 InvalidBinding = ~0u;
 extern uint32 GetBinding(const ObjectBase* resource);
 } // namespace Resources
 

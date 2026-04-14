@@ -11,6 +11,8 @@
 
 #include <Core/logging/LoggerFwd.hpp>
 
+#include <rendering/Shared.hpp>
+
 #include <engine/EngineMemory.hpp>
 
 namespace Hyperion {
@@ -22,10 +24,20 @@ HYP_DECLARE_LOG_CHANNEL(Rendering);
 
 namespace Resources {
 
+template <class T>
+void OnBindingChanged_Default(T* resource, uint32 prev, uint32 next)
+{
+#if HYP_DEBUG_MODE
+    AssertOnThread(g_renderThread);
+#endif
+
+    AssertDebug(resource != nullptr);
+
+    SetBinding(resource, next);
+}
+
 struct ResourceBindingAllocatorBase
 {
-    static constexpr uint32 InvalidBinding = ~0u;
-
     explicit ResourceBindingAllocatorBase(uint32 maxSize)
         : maxSize(maxSize)
     {
@@ -133,7 +145,7 @@ protected:
  *  So binding an instance of e.g ReflectionProbe can be put into the same group of slots as SkyProbe if given the same allocator instance.
  *  Only static subclasses are supported so using types extended only from managed code will not work. (See Class::GetStaticIndex)
  *  \note This system is not thread safe and should only be used from a single thread at any given time */
-template <class T, auto OnBindingChanged = (void (*)(T*, uint32, uint32)) nullptr>
+template <class T, auto OnBindingChanged = &OnBindingChanged_Default<T> >
 class ResourceBinder : public ResourceBinderBase
 {
     using BitsetType = TBitset<RenderAllocator>;
@@ -162,7 +174,7 @@ class ResourceBinder : public ResourceBinderBase
 
                     if (OnBindingChanged != nullptr)
                     {
-                        OnBindingChanged(object, binding, ResourceBindingAllocatorBase::InvalidBinding);
+                        OnBindingChanged(object, binding, InvalidBinding);
                     }
 
                     allocator->FreeIndex(binding);
@@ -258,7 +270,7 @@ class ResourceBinder : public ResourceBinderBase
 
                     if (OnBindingChanged != nullptr)
                     {
-                        OnBindingChanged(object, binding, ResourceBindingAllocatorBase::InvalidBinding);
+                        OnBindingChanged(object, binding, InvalidBinding);
                     }
 
                     allocator->FreeIndex(binding);
@@ -282,7 +294,7 @@ class ResourceBinder : public ResourceBinderBase
                 }
 
                 const uint32 binding = allocator->AllocateIndex();
-                if (binding == ResourceBindingAllocatorBase::InvalidBinding)
+                if (binding == InvalidBinding)
                 {
                     HYP_LOG(Rendering, Warning, "ResourceBinder<{}>: Maximum size of {} reached, cannot bind more objects!",
                         TypeName<T>().Data(),
@@ -296,7 +308,7 @@ class ResourceBinder : public ResourceBinderBase
 
                 if (OnBindingChanged != nullptr)
                 {
-                    OnBindingChanged(insertResult.first->first.GetUnsafe(), ResourceBindingAllocatorBase::InvalidBinding, binding);
+                    OnBindingChanged(insertResult.first->first.GetUnsafe(), InvalidBinding, binding);
                 }
             }
 
@@ -317,8 +329,8 @@ class ResourceBinder : public ResourceBinderBase
 
                         if (OnBindingChanged != nullptr)
                         {
-                            OnBindingChanged(object, binding, ResourceBindingAllocatorBase::InvalidBinding);
-                            OnBindingChanged(object, ResourceBindingAllocatorBase::InvalidBinding, binding);
+                            OnBindingChanged(object, binding, InvalidBinding);
+                            OnBindingChanged(object, InvalidBinding, binding);
                         }
                     }
                 }
@@ -537,7 +549,7 @@ public:
 
             if (!m_subclassImplsInitialized.Test(subclassIndex))
             {
-                return ResourceBindingAllocatorBase::InvalidBinding;
+                return InvalidBinding;
             }
 
             const Impl& impl = m_subclassImpls[subclassIndex].Get();
@@ -550,7 +562,7 @@ public:
             }
         }
 
-        return ResourceBindingAllocatorBase::InvalidBinding;
+        return InvalidBinding;
     }
 
     virtual void ApplyUpdates() override

@@ -61,6 +61,24 @@ namespace Hyperion
             entityManager.AddComponent<T>(this, ref component);
         }
 
+        public void AddTag(EntityTag tag)
+        {
+            EntityManager? entityManager = this.GetEntityManager();
+            entityManager?.AddTag(this, tag);
+        }
+
+        public bool RemoveTag(EntityTag tag)
+        {
+            EntityManager? entityManager = this.GetEntityManager();
+            return entityManager?.RemoveTag(this, tag) ?? false;
+        }
+
+        public bool HasTag(EntityTag tag)
+        {
+            EntityManager? entityManager = this.GetEntityManager();
+            return entityManager?.HasTag(this, tag) ?? false;
+        }
+
         [DllImport("hyperion", EntryPoint = "Entity_GetID")]
         private static extern ulong Entity_GetID(IntPtr entityPtr);
     }

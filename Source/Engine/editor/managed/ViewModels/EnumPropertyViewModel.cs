@@ -60,10 +60,9 @@ namespace Hyperion.Editor.ViewModels
 
                     Dispatcher.UIThread.Post(() =>
                     {
-                        _isRefreshing = 0;
-
                         Value = FormatValue(rawValue);
                         SetProperty(ref _selectedEnumValue, rawValue);
+                        _isRefreshing = 0;
                     });
                 }
                 catch (Exception ex)
@@ -92,14 +91,9 @@ namespace Hyperion.Editor.ViewModels
                 try
                 {
                     using BoxedValue boxed = new BoxedValue(value);
-                    SetPropertyValue(boxed);
+                    CommitPropertyChange($"Set {Label}", boxed);
 
-                    Dispatcher.UIThread.Post(() =>
-                    {
-                        _isRefreshing = 0;
-
-                        Value = FormatValue(value);
-                    });
+                    Dispatcher.UIThread.Post(() => _isRefreshing = 0);
                 }
                 catch (Exception ex)
                 {

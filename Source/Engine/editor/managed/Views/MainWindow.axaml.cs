@@ -76,6 +76,9 @@ namespace Hyperion.Editor
 
             SetupSceneHierarchyDragDrop();
 
+            AddHandler(InputElement.LostFocusEvent, OnInspectorTextBoxLostFocus, RoutingStrategies.Bubble);
+            AddHandler(InputElement.KeyDownEvent, OnInspectorTextBoxKeyDown, RoutingStrategies.Bubble);
+
             if (IsRenderingOnMainThread)
             {
                 Opened += (s, e) =>
@@ -83,6 +86,23 @@ namespace Hyperion.Editor
                     var topLevel = TopLevel.GetTopLevel(this);
                     topLevel?.RequestAnimationFrame(OnFrame);
                 };
+            }
+        }
+
+        private void OnInspectorTextBoxLostFocus(object? sender, RoutedEventArgs e)
+        {
+            if (e.Source is TextBox { DataContext: InspectorPropertyViewModelBase vm })
+            {
+                vm.CommitValue();
+            }
+        }
+
+        private void OnInspectorTextBoxKeyDown(object? sender, KeyEventArgs e)
+        {
+            if (e.Key == Key.Return && e.Source is TextBox { DataContext: InspectorPropertyViewModelBase vm })
+            {
+                vm.CommitValue();
+                e.Handled = true;
             }
         }
 
