@@ -1849,7 +1849,7 @@ void RenderInterface::FlushStructuredBuffers()
     {
         if (sbuffer.IsDirty())
         {
-            sbuffer.Update();
+            sbuffer.Flush();
         }
     }
 
