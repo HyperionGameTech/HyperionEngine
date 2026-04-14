@@ -160,9 +160,7 @@ namespace Hyperion.Editor.ViewModels
                         .ThenBy(p => p.Name.ToString())
                         .ToList();
 
-                    // Separate properties into: sub-objects (ObjectBase) and scalar properties
-                    List<InspectorPropertyViewModelBase> scalarVMs = new();
-                    List<(string label, ObjectBase obj)> subObjects = new();
+                    List<InspectorPropertyViewModelBase> vms = new();
 
                     foreach (Property property in componentProperties)
                     {
@@ -178,29 +176,8 @@ namespace Hyperion.Editor.ViewModels
                                 isReadOnly = true;
                             }
 
-                            // Try to read the property value to see if it's an ObjectBase (Handle<T>)
-                            using BoxedValue boxed = property.Get(classAddress, componentPtr);
-                            object? value = boxed.GetValue();
-
-                            if (value is ObjectBase obj && obj.IsValid)
-                            {
-                                // This is a sub-object like Mesh, Material, Skeleton
-                                string label = property.Name.ToString();
-                                ClassAttribute? attrLabel = property.GetAttribute("label");
-
-                                if (attrLabel != null)
-                                {
-                                    label = attrLabel.Value.GetString();
-                                }
-
-                                subObjects.Add((label, obj));
-                            }
-                            else
-                            {
-                                // Scalar or non-ObjectBase property - create a property VM
-                                scalarVMs.Add(InspectorViewModelFactory.CreateForComponent(
-                                    classAddress, targetAddressResolver, property, isReadOnly));
-                            }
+                            vms.Add(InspectorViewModelFactory.CreateForComponent(
+                                classAddress, targetAddressResolver, property, isReadOnly));
                         }
                         catch (Exception ex)
                         {
@@ -213,18 +190,13 @@ namespace Hyperion.Editor.ViewModels
                         Properties.Clear();
                         SubObjects.Clear();
 
-                        foreach (var vm in scalarVMs)
+                        foreach (var vm in vms)
                         {
                             Properties.Add(vm);
                         }
 
-                        foreach (var (label, obj) in subObjects)
-                        {
-                            SubObjects.Add(new ComponentSubObjectViewModel(label, obj));
-                        }
-
                         HasProperties = Properties.Count > 0;
-                        HasSubObjects = SubObjects.Count > 0;
+                        HasSubObjects = false;
                     });
                 }
                 catch (Exception ex)

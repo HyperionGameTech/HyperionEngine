@@ -62,7 +62,9 @@ enum class TypeInfoFlags : uint32
 
     // Tuple/Pair types
     TUPLE_TYPE = 0x4000000,
-    PAIR_TYPE = 0x8000000
+    PAIR_TYPE = 0x8000000,
+
+    HANDLE_TYPE = 0x10000000
 };
 
 HYP_MAKE_ENUM_FLAGS(TypeInfoFlags)
@@ -217,12 +219,12 @@ public:
         TYPE_MATRIX,
         TYPE_VARIANT,
         TYPE_TUPLE,
-        TYPE_PAIR
+        TYPE_PAIR,
+        TYPE_HANDLE
     };
 
     virtual ~ITypeInfoHandler() = default;
 
-    virtual ITypeInfoHandler* Clone() const = 0;
     virtual Type GetHandlerType() const = 0;
 
     virtual bool CreateInstance(BoxedValue& outInstance) const = 0;
@@ -232,8 +234,6 @@ class ITypeInfoArrayHandler : public ITypeInfoHandler
 {
 public:
     virtual ~ITypeInfoArrayHandler() = default;
-
-    virtual ITypeInfoHandler* Clone() const override = 0;
 
     virtual Type GetHandlerType() const override final
     {
@@ -255,8 +255,6 @@ class ITypeInfoLinkedListHandler : public ITypeInfoHandler
 public:
     virtual ~ITypeInfoLinkedListHandler() = default;
 
-    virtual ITypeInfoHandler* Clone() const override = 0;
-
     virtual Type GetHandlerType() const override final
     {
         return TYPE_LINKEDLIST;
@@ -276,8 +274,6 @@ class ITypeInfoMapHandler : public ITypeInfoHandler
 {
 public:
     virtual ~ITypeInfoMapHandler() = default;
-
-    virtual ITypeInfoHandler* Clone() const override = 0;
 
     virtual Type GetHandlerType() const override final
     {
@@ -303,8 +299,6 @@ class ITypeInfoSetHandler : public ITypeInfoHandler
 {
 public:
     virtual ~ITypeInfoSetHandler() = default;
-
-    virtual ITypeInfoHandler* Clone() const override = 0;
 
     virtual Type GetHandlerType() const override final
     {
@@ -337,8 +331,6 @@ public:
 
     virtual bool CreateInstance(BoxedValue& outInstance) const override = 0;
 
-    virtual ITypeInfoHandler* Clone() const override = 0;
-
     virtual String GetValue(const BoxedValue& instance) const = 0;
     virtual void SetValue(const BoxedValue& instance, const UTF8StringView& str) const = 0;
 };
@@ -354,8 +346,6 @@ public:
     }
 
     virtual bool CreateInstance(BoxedValue& outInstance) const override = 0;
-
-    virtual ITypeInfoHandler* Clone() const override = 0;
 
     virtual int GetNumComponents() const = 0;
 
@@ -375,8 +365,6 @@ public:
 
     virtual bool CreateInstance(BoxedValue& outInstance) const override = 0;
 
-    virtual ITypeInfoHandler* Clone() const override = 0;
-
     virtual int GetNumRows() const = 0;
     virtual int GetNumColumns() const = 0;
 
@@ -395,8 +383,6 @@ public:
     }
 
     virtual bool CreateInstance(BoxedValue& outInstance) const override = 0;
-
-    virtual ITypeInfoHandler* Clone() const override = 0;
 
     virtual int GetNumTypes() const = 0;
     virtual const TypeInfo* GetTypeInfoAtIndex(int typeIndex) const = 0;
@@ -419,8 +405,6 @@ public:
 
     virtual bool CreateInstance(BoxedValue& outInstance) const override = 0;
 
-    virtual ITypeInfoHandler* Clone() const override = 0;
-
     virtual int GetNumElements() const = 0;
     virtual const TypeInfo* GetElementTypeInfoAtIndex(int index) const = 0;
 
@@ -440,8 +424,6 @@ public:
 
     virtual bool CreateInstance(BoxedValue& outInstance) const override = 0;
 
-    virtual ITypeInfoHandler* Clone() const override = 0;
-
     virtual const TypeInfo* GetFirstTypeInfo() const = 0;
     virtual const TypeInfo* GetSecondTypeInfo() const = 0;
 
@@ -449,6 +431,22 @@ public:
     virtual void GetSecond(const BoxedValue& instance, BoxedValue& outValue) const = 0;
     virtual void SetFirst(const BoxedValue& instance, const BoxedValue& value) const = 0;
     virtual void SetSecond(const BoxedValue& instance, const BoxedValue& value) const = 0;
+};
+
+class ITypeInfoHandleHandler : public ITypeInfoHandler
+{
+public:
+    virtual ~ITypeInfoHandleHandler() = default;
+
+    virtual Type GetHandlerType() const override final
+    {
+        return TYPE_HANDLE;
+    }
+
+    virtual bool CreateInstance(BoxedValue& outInstance) const override = 0;
+
+    virtual AnyRef GetObject(const BoxedValue& instance) const = 0;
+    virtual void SetObject(BoxedValue& instance, const BoxedValue& value) const = 0;
 };
 
 /*! \brief Additional type information for containers and complex types */
@@ -614,6 +612,12 @@ struct TypeInfoImpl<T, TBoxed, std::enable_if_t<std::is_same_v<T, Mat3f>>>
 
 template <class T, class TBoxed>
 struct TypeInfoImpl<T, TBoxed, std::enable_if_t<std::is_same_v<T, Mat4f>>>
+{
+    void operator()(TypeInfo& result) const;
+};
+
+template <class T, class TBoxed>
+struct TypeInfoImpl<Handle<T>, TBoxed>
 {
     void operator()(TypeInfo& result) const;
 };
@@ -827,6 +831,14 @@ struct TypeInfo
 
     HYP_FORCE_INLINE const Class* GetClass() const
     {
+        // For Handle<T> -- we use the class of T
+        if (IsHandleType())
+        {
+            HYP_CORE_ASSERT(extendedInfo.data.typeInfo != nullptr);
+
+            return Hyperion::GetClass(extendedInfo.data.typeInfo->id);
+        }
+
         return Hyperion::GetClass(id);
     }
 
@@ -898,6 +910,11 @@ struct TypeInfo
     HYP_FORCE_INLINE bool IsMatrixType() const
     {
         return flags & TypeInfoFlags::MATRIX_TYPE;
+    }
+
+    HYP_FORCE_INLINE bool IsHandleType() const
+    {
+        return flags & TypeInfoFlags::HANDLE_TYPE;
     }
 
     /*! \brief Get element type for Array, String, HashSet, FlatSet, or key type for HashMap/FlatMap */
@@ -990,11 +1007,6 @@ void TypeInfoImpl<T, TBoxed, std::enable_if_t<std::is_same_v<T, GenericArrayWrap
     class GenericArrayHandler final : public ITypeInfoArrayHandler
     {
     public:
-        virtual ITypeInfoHandler* Clone() const override
-        {
-            return new GenericArrayHandler();
-        }
-
         virtual bool CreateInstance(TBoxed& outInstance) const override
         {
             outInstance = TBoxed(T {});
@@ -1047,7 +1059,8 @@ void TypeInfoImpl<T, TBoxed, std::enable_if_t<std::is_same_v<T, GenericArrayWrap
     result.extendedInfo.data.typeInfo = &TypeInfo::ForType<BoxedValue>();
     result.extendedInfo.dataType = TypeInfoEx::DT_TYPE_INFO;
 
-    result.extendedInfo.handler = new GenericArrayHandler();
+    static GenericArrayHandler s_handler {};
+    result.extendedInfo.handler = &s_handler;
 }
 
 template <class ArrayType, class TBoxed>
@@ -1056,11 +1069,6 @@ void TypeInfoImpl<ArrayType, TBoxed, std::enable_if_t<IsArray<ArrayType>::value>
     class ArrayHandler final : public ITypeInfoArrayHandler
     {
     public:
-        virtual ITypeInfoHandler* Clone() const override
-        {
-            return new ArrayHandler();
-        }
-
         virtual bool CreateInstance(TBoxed& outInstance) const override
         {
             outInstance = TBoxed(ArrayType {});
@@ -1119,7 +1127,9 @@ void TypeInfoImpl<ArrayType, TBoxed, std::enable_if_t<IsArray<ArrayType>::value>
 
     result.extendedInfo.data.typeInfo = &TypeInfo::ForType<typename ArrayType::ValueType>();
     result.extendedInfo.dataType = TypeInfoEx::DT_TYPE_INFO;
-    result.extendedInfo.handler = new ArrayHandler();
+
+    static ArrayHandler s_handler;
+    result.extendedInfo.handler = &s_handler;
 }
 
 template <class T, size_t Size, class TBoxed>
@@ -1130,11 +1140,6 @@ void TypeInfoImpl<containers::FixedArray<T, Size>, TBoxed>::operator()(TypeInfo&
     class FixedArrayHandler final : public ITypeInfoArrayHandler
     {
     public:
-        virtual ITypeInfoHandler* Clone() const override
-        {
-            return new FixedArrayHandler();
-        }
-
         virtual bool CreateInstance(TBoxed& outInstance) const override
         {
             outInstance = TBoxed(FixedArrayType {});
@@ -1193,7 +1198,9 @@ void TypeInfoImpl<containers::FixedArray<T, Size>, TBoxed>::operator()(TypeInfo&
 
     result.extendedInfo.data.typeInfo = &TypeInfo::ForType<T>();
     result.extendedInfo.dataType = TypeInfoEx::DT_TYPE_INFO;
-    result.extendedInfo.handler = new FixedArrayHandler();
+
+    static FixedArrayHandler s_handler;
+    result.extendedInfo.handler = &s_handler;
 }
 
 template <class T, class AllocatorType, class TBoxed>
@@ -1204,11 +1211,6 @@ void TypeInfoImpl<containers::LinkedList<T, AllocatorType>, TBoxed>::operator()(
     class LinkedListHandler final : public ITypeInfoLinkedListHandler
     {
     public:
-        virtual ITypeInfoHandler* Clone() const override
-        {
-            return new LinkedListHandler();
-        }
-
         virtual bool CreateInstance(TBoxed& outInstance) const override
         {
             outInstance = TBoxed(ListType {});
@@ -1256,7 +1258,8 @@ void TypeInfoImpl<containers::LinkedList<T, AllocatorType>, TBoxed>::operator()(
     result.extendedInfo.data.typeInfo = &TypeInfo::ForType<T>();
     result.extendedInfo.dataType = TypeInfoEx::DT_TYPE_INFO;
 
-    result.extendedInfo.handler = new LinkedListHandler();
+    static LinkedListHandler s_handler;
+    result.extendedInfo.handler = &s_handler;
 }
 
 template <int TStringType, class TBoxed>
@@ -1267,11 +1270,6 @@ void TypeInfoImpl<containers::String<TStringType>, TBoxed>::operator()(TypeInfo&
     class StringHandler final : public ITypeInfoStringHandler
     {
     public:
-        virtual ITypeInfoHandler* Clone() const override
-        {
-            return new StringHandler();
-        }
-
         virtual bool CreateInstance(TBoxed& outInstance) const override
         {
             outInstance = TBoxed(StringType {});
@@ -1296,7 +1294,9 @@ void TypeInfoImpl<containers::String<TStringType>, TBoxed>::operator()(TypeInfo&
 
     result.extendedInfo.data.typeInfo = &TypeInfo::ForType<typename StringType::CharType>();
     result.extendedInfo.dataType = TypeInfoEx::DT_TYPE_INFO;
-    result.extendedInfo.handler = new StringHandler();
+
+    static StringHandler s_handler;
+    result.extendedInfo.handler = &s_handler;
 }
 
 template <class T, class TBoxed>
@@ -1314,11 +1314,6 @@ void TypeInfoImpl<containers::HashMap<Key, Value, NodeAllocatorType>, TBoxed>::o
     class HashMapHandler final : public ITypeInfoMapHandler
     {
     public:
-        virtual ITypeInfoHandler* Clone() const override
-        {
-            return new HashMapHandler();
-        }
-
         virtual bool CreateInstance(TBoxed& outInstance) const override
         {
             outInstance = BoxedValue(MapType {});
@@ -1454,7 +1449,8 @@ void TypeInfoImpl<containers::HashMap<Key, Value, NodeAllocatorType>, TBoxed>::o
     result.extendedInfo.next->data.typeInfo = &TypeInfo::ForType<Value>();
     result.extendedInfo.next->dataType = TypeInfoEx::DT_TYPE_INFO;
 
-    result.extendedInfo.handler = new HashMapHandler();
+    static HashMapHandler s_handler;
+    result.extendedInfo.handler = &s_handler;
 }
 
 template <class Key, class Value, class TBoxed>
@@ -1465,11 +1461,6 @@ void TypeInfoImpl<containers::FlatMap<Key, Value>, TBoxed>::operator()(TypeInfo&
     class FlatMapHandler final : public ITypeInfoMapHandler
     {
     public:
-        virtual ITypeInfoHandler* Clone() const override
-        {
-            return new FlatMapHandler();
-        }
-
         virtual bool CreateInstance(TBoxed& outInstance) const override
         {
             outInstance = BoxedValue(MapType {});
@@ -1605,7 +1596,8 @@ void TypeInfoImpl<containers::FlatMap<Key, Value>, TBoxed>::operator()(TypeInfo&
     result.extendedInfo.next->data.typeInfo = &TypeInfo::ForType<Value>();
     result.extendedInfo.next->dataType = TypeInfoEx::DT_TYPE_INFO;
 
-    result.extendedInfo.handler = new FlatMapHandler();
+    static FlatMapHandler s_handler;
+    result.extendedInfo.handler = &s_handler;
 }
 
 template <class Key, class Value, class TBoxed>
@@ -1616,11 +1608,6 @@ void TypeInfoImpl<containers::ArrayMap<Key, Value>, TBoxed>::operator()(TypeInfo
     class ArrayMapHandler final : public ITypeInfoMapHandler
     {
     public:
-        virtual ITypeInfoHandler* Clone() const override
-        {
-            return new ArrayMapHandler();
-        }
-
         virtual bool CreateInstance(TBoxed& outInstance) const override
         {
             outInstance = BoxedValue(MapType {});
@@ -1756,7 +1743,8 @@ void TypeInfoImpl<containers::ArrayMap<Key, Value>, TBoxed>::operator()(TypeInfo
     result.extendedInfo.next->data.typeInfo = &TypeInfo::ForType<Value>();
     result.extendedInfo.next->dataType = TypeInfoEx::DT_TYPE_INFO;
 
-    result.extendedInfo.handler = new ArrayMapHandler();
+    static ArrayMapHandler s_handler;
+    result.extendedInfo.handler = &s_handler;
 }
 
 template <class Value, class TBoxed>
@@ -1767,11 +1755,6 @@ void TypeInfoImpl<containers::FlatSet<Value>, TBoxed>::operator()(TypeInfo& resu
     class FlatSetHandler final : public ITypeInfoSetHandler
     {
     public:
-        virtual ITypeInfoHandler* Clone() const override
-        {
-            return new FlatSetHandler();
-        }
-
         virtual bool CreateInstance(TBoxed& outInstance) const override
         {
             outInstance = TBoxed(SetType {});
@@ -1869,7 +1852,9 @@ void TypeInfoImpl<containers::FlatSet<Value>, TBoxed>::operator()(TypeInfo& resu
     result.flags |= TypeInfoFlags::SET_TYPE;
     result.extendedInfo.data.typeInfo = &TypeInfo::ForType<Value>();
     result.extendedInfo.dataType = TypeInfoEx::DT_TYPE_INFO;
-    result.extendedInfo.handler = new FlatSetHandler();
+
+    static FlatSetHandler s_handler;
+    result.extendedInfo.handler = &s_handler;
 }
 
 template <class Value, class NodeAllocatorType, class TBoxed>
@@ -1880,11 +1865,6 @@ void TypeInfoImpl<containers::HashSet<Value, NodeAllocatorType>, TBoxed>::operat
     class HashSetHandler final : public ITypeInfoSetHandler
     {
     public:
-        virtual ITypeInfoHandler* Clone() const override
-        {
-            return new HashSetHandler();
-        }
-
         virtual bool CreateInstance(TBoxed& outInstance) const override
         {
             outInstance = TBoxed(SetType {});
@@ -1982,7 +1962,9 @@ void TypeInfoImpl<containers::HashSet<Value, NodeAllocatorType>, TBoxed>::operat
     result.flags |= TypeInfoFlags::SET_TYPE;
     result.extendedInfo.data.typeInfo = &TypeInfo::ForType<Value>();
     result.extendedInfo.dataType = TypeInfoEx::DT_TYPE_INFO;
-    result.extendedInfo.handler = new HashSetHandler();
+
+    static HashSetHandler s_handler;
+    result.extendedInfo.handler = &s_handler;
 }
 
 template <class... Types, class TBoxed>
@@ -2026,11 +2008,6 @@ void TypeInfoImpl<utilities::Variant<Types...>, TBoxed>::operator()(TypeInfo& re
     class VariantHandler final : public ITypeInfoVariantHandler
     {
     public:
-        virtual ITypeInfoHandler* Clone() const override
-        {
-            return new VariantHandler();
-        }
-
         virtual bool CreateInstance(TBoxed& outInstance) const override
         {
             outInstance = BoxedValue(VariantType {});
@@ -2146,7 +2123,8 @@ void TypeInfoImpl<utilities::Variant<Types...>, TBoxed>::operator()(TypeInfo& re
         }
     };
 
-    result.extendedInfo.handler = new VariantHandler();
+    static VariantHandler s_handler;
+    result.extendedInfo.handler = &s_handler;
 }
 
 /// Tuple implementation
@@ -2197,11 +2175,6 @@ void TypeInfoImpl<utilities::Tuple<Types...>, TBoxed>::operator()(TypeInfo& resu
     class TupleHandler final : public ITypeInfoTupleHandler
     {
     public:
-        virtual ITypeInfoHandler* Clone() const override
-        {
-            return new TupleHandler();
-        }
-
         virtual bool CreateInstance(TBoxed& outInstance) const override
         {
             outInstance = BoxedValue(TupleType {});
@@ -2290,7 +2263,8 @@ void TypeInfoImpl<utilities::Tuple<Types...>, TBoxed>::operator()(TypeInfo& resu
         }
     };
 
-    result.extendedInfo.handler = new TupleHandler();
+    static TupleHandler s_handler;
+    result.extendedInfo.handler = &s_handler;
 }
 
 template <class First, class Second, class T1, class T2, class TBoxed>
@@ -2311,11 +2285,6 @@ void TypeInfoImpl<utilities::detail::Pair<First, Second, T1, T2>, TBoxed>::opera
     class PairHandler final : public ITypeInfoPairHandler
     {
     public:
-        virtual ITypeInfoHandler* Clone() const override
-        {
-            return new PairHandler();
-        }
-
         virtual bool CreateInstance(TBoxed& outInstance) const override
         {
             outInstance = BoxedValue(PairType {});
@@ -2357,7 +2326,8 @@ void TypeInfoImpl<utilities::detail::Pair<First, Second, T1, T2>, TBoxed>::opera
         }
     };
 
-    result.extendedInfo.handler = new PairHandler();
+    static PairHandler s_handler;
+    result.extendedInfo.handler = &s_handler;
 }
 
 template <class T, class TBoxed>
@@ -2373,11 +2343,6 @@ void TypeInfoImpl<math::Vec2<T>, TBoxed>::operator()(TypeInfo& result) const
     class Vec2Handler final : public ITypeInfoVectorHandler
     {
     public:
-        virtual ITypeInfoHandler* Clone() const override
-        {
-            return new Vec2Handler();
-        }
-
         virtual bool CreateInstance(TBoxed& outInstance) const override
         {
             outInstance = BoxedValue(Vec2Type {});
@@ -2422,7 +2387,8 @@ void TypeInfoImpl<math::Vec2<T>, TBoxed>::operator()(TypeInfo& result) const
         }
     };
 
-    result.extendedInfo.handler = new Vec2Handler();
+    static Vec2Handler s_handler;
+    result.extendedInfo.handler = &s_handler;
 }
 
 template <class T, class TBoxed>
@@ -2438,11 +2404,6 @@ void TypeInfoImpl<math::Vec3<T>, TBoxed>::operator()(TypeInfo& result) const
     class Vec3Handler final : public ITypeInfoVectorHandler
     {
     public:
-        virtual ITypeInfoHandler* Clone() const override
-        {
-            return new Vec3Handler();
-        }
-
         virtual bool CreateInstance(TBoxed& outInstance) const override
         {
             outInstance = BoxedValue(Vec3Type {});
@@ -2492,7 +2453,8 @@ void TypeInfoImpl<math::Vec3<T>, TBoxed>::operator()(TypeInfo& result) const
         }
     };
 
-    result.extendedInfo.handler = new Vec3Handler();
+    static Vec3Handler s_handler;
+    result.extendedInfo.handler = &s_handler;
 }
 
 template <class T, class TBoxed>
@@ -2508,11 +2470,6 @@ void TypeInfoImpl<math::Vec4<T>, TBoxed>::operator()(TypeInfo& result) const
     class Vec4Handler final : public ITypeInfoVectorHandler
     {
     public:
-        virtual ITypeInfoHandler* Clone() const override
-        {
-            return new Vec4Handler();
-        }
-
         virtual bool CreateInstance(TBoxed& outInstance) const override
         {
             outInstance = BoxedValue(Vec4Type {});
@@ -2567,7 +2524,8 @@ void TypeInfoImpl<math::Vec4<T>, TBoxed>::operator()(TypeInfo& result) const
         }
     };
 
-    result.extendedInfo.handler = new Vec4Handler();
+    static Vec4Handler s_handler;
+    result.extendedInfo.handler = &s_handler;
 }
 
 template <class T, class TBoxed>
@@ -2583,11 +2541,6 @@ void TypeInfoImpl<T, TBoxed, std::enable_if_t<std::is_same_v<T, Mat3f>>>::operat
     class Mat3fHandler final : public ITypeInfoMatrixHandler
     {
     public:
-        virtual ITypeInfoHandler* Clone() const override
-        {
-            return new Mat3fHandler();
-        }
-
         virtual bool CreateInstance(TBoxed& outInstance) const override
         {
             outInstance = BoxedValue(MatrixType {});
@@ -2627,7 +2580,8 @@ void TypeInfoImpl<T, TBoxed, std::enable_if_t<std::is_same_v<T, Mat3f>>>::operat
         }
     };
 
-    result.extendedInfo.handler = new Mat3fHandler();
+    static Mat3fHandler s_handler;
+    result.extendedInfo.handler = &s_handler;
 }
 
 template <class T, class TBoxed>
@@ -2643,11 +2597,6 @@ void TypeInfoImpl<T, TBoxed, std::enable_if_t<std::is_same_v<T, Mat4f>>>::operat
     class Mat4fHandler final : public ITypeInfoMatrixHandler
     {
     public:
-        virtual ITypeInfoHandler* Clone() const override
-        {
-            return new Mat4fHandler();
-        }
-
         virtual bool CreateInstance(TBoxed& outInstance) const override
         {
             outInstance = BoxedValue(MatrixType {});
@@ -2687,7 +2636,43 @@ void TypeInfoImpl<T, TBoxed, std::enable_if_t<std::is_same_v<T, Mat4f>>>::operat
         }
     };
 
-    result.extendedInfo.handler = new Mat4fHandler();
+    static Mat4fHandler s_handler;
+    result.extendedInfo.handler = &s_handler;
+}
+
+template <class T, class TBoxed>
+void TypeInfoImpl<Handle<T>, TBoxed>::operator()(TypeInfo& result) const
+{
+    using HandleType = Handle<T>;
+
+    // we set CLASS_TYPE because for Handle<T>, T must be a subclass of ObjectBase
+    result.flags |= TypeInfoFlags::HANDLE_TYPE | TypeInfoFlags::CLASS_TYPE;
+
+    result.extendedInfo.data.typeInfo = &TypeInfo::ForType<T>();
+    result.extendedInfo.dataType = TypeInfoEx::DT_TYPE_INFO;
+
+    class HandleTHandler final : public ITypeInfoHandleHandler
+    {
+    public:
+        virtual bool CreateInstance(TBoxed& outInstance) const override
+        {
+            outInstance = BoxedValue(HandleType {});
+            return true;
+        }
+
+        virtual AnyRef GetObject(const TBoxed& instance) const override
+        {
+            return instance.ToRef();
+        }
+
+        virtual void SetObject(TBoxed& instance, const TBoxed& value) const override
+        {
+            instance = value;
+        }
+    };
+
+    static HandleTHandler s_handler;
+    result.extendedInfo.handler = &s_handler;
 }
 
 /// Wrapper functions for forward decls
