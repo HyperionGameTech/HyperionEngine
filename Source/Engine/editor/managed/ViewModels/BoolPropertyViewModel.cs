@@ -49,11 +49,10 @@ namespace Hyperion.Editor.ViewModels
 
                     Dispatcher.UIThread.Post(() =>
                     {
-                        _isRefreshing = 0;
-
                         Value = boolValue ? "True" : "False";
                         _isChecked = boolValue;
                         OnPropertyChanged(nameof(IsChecked));
+                        _isRefreshing = 0;
                     });
                 }
                 catch (Exception ex)
@@ -79,13 +78,9 @@ namespace Hyperion.Editor.ViewModels
                 try
                 {
                     using BoxedValue boxed = new BoxedValue(captured);
-                    SetPropertyValue(boxed);
+                    CommitPropertyChange($"Set {Label}", boxed);
 
-                    Dispatcher.UIThread.Post(() =>
-                    {
-                        _isRefreshing = 0;
-                        Value = captured ? "True" : "False";
-                    });
+                    Dispatcher.UIThread.Post(() => _isRefreshing = 0);
                 }
                 catch (Exception ex)
                 {

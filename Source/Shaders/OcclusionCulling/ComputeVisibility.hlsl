@@ -108,7 +108,7 @@ void CSMain(uint3 dispatchThreadID : SV_DispatchThreadID)
     uint cull_bits = 0x7Fu;
     const bool skip_check = bool(GET_OBJECT_BUCKET_MASK(currEntity) & OBJECT_MASK_SKY);
 
-    is_visible = skip_check;
+    // is_visible = skip_check;
 
     if (!skip_check)
     {

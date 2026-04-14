@@ -25,6 +25,7 @@
 namespace Hyperion {
 
 namespace Resources {
+
 extern ResourceBinderBase* g_reflectionProbeTextureBinder;
 
 void WriteBufferData_MeshEntity(StructuredBuffer& sbuffer, uint32 idx, IRenderProxy* proxy)
@@ -32,7 +33,6 @@ void WriteBufferData_MeshEntity(StructuredBuffer& sbuffer, uint32 idx, IRenderPr
     AssertDebug(idx != ~0u);
 
     RenderProxyMesh* proxyCasted = static_cast<RenderProxyMesh*>(proxy);
-    AssertDebug(proxyCasted != nullptr);
 
     proxyCasted->bufferData.entityIndex = idx;
     proxyCasted->bufferData.materialIndex = GetBinding(proxyCasted->material);
@@ -59,13 +59,12 @@ void OnBindingChanged_Mesh(Mesh* mesh, uint32 prev, uint32 next)
             mesh->ReleaseGpuData();
         }
     }
+
+    SetBinding(mesh, next);
 }
 
 void OnBindingChanged_ReflectionProbe(EnvProbe* envProbe, uint32 prev, uint32 next)
 {
-    AssertDebug(envProbe != nullptr);
-    AssertDebug(envProbe->IsReady());
-
     Assert(envProbe->IsA<SkyProbe>() || envProbe->IsA<ReflectionProbe>(),
         "EnvProbe must be a SkyProbe or ReflectionProbe, but is a {}", envProbe->InstanceClass()->GetName());
 
@@ -144,14 +143,6 @@ void OnBindingChanged_ReflectionProbe(EnvProbe* envProbe, uint32 prev, uint32 ne
     }
 }
 
-void OnBindingChanged_EnvProbe(EnvProbe* envProbe, uint32 prev, uint32 next)
-{
-    AssertDebug(envProbe != nullptr);
-    AssertDebug(envProbe->IsReady());
-
-    SetBinding(envProbe, next);
-}
-
 void WriteBufferData_EnvProbe(StructuredBuffer& sbuffer, uint32 idx, IRenderProxy* proxy)
 {
     AssertDebug(idx != ~0u);
@@ -168,20 +159,6 @@ void WriteBufferData_EnvProbe(StructuredBuffer& sbuffer, uint32 idx, IRenderProx
     }
 
     sbuffer.Write(idx * sizeof(proxyCasted->bufferData), sizeof(proxyCasted->bufferData), &proxyCasted->bufferData);
-}
-
-void OnBindingChanged_EnvGrid(EnvGrid* envGrid, uint32 prev, uint32 next)
-{
-    AssertDebug(envGrid != nullptr);
-
-    SetBinding(envGrid, next);
-}
-
-void OnBindingChanged_Light(Light* light, uint32 prev, uint32 next)
-{
-    AssertDebug(light != nullptr);
-
-    SetBinding(light, next);
 }
 
 void WriteBufferData_Light(StructuredBuffer& sbuffer, uint32 idx, IRenderProxy* proxy)
@@ -218,8 +195,6 @@ void OnBindingChanged_Material(Material* material, uint32 prev, uint32 next)
     AssertDebug(material != nullptr);
 
     SetBinding(material, next);
-
-    //// \todo : Needs to notify that mesh descriptions buffer needs to be updated for ray tracing.
 
     if (prev != ~0u)
     {

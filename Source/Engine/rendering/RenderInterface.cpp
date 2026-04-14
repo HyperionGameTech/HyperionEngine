@@ -1056,8 +1056,6 @@ void RenderInterface::BeginFrame(AtomicFlag* pCancelFlag)
         vd.rplRender.BeginRead();
 
         vd.renderCollector.BuildRenderGroups(vd.view, vd.rplRender);
-
-        /// TODO: Use View's bucket mask property to pass to BuildDrawCalls().
         vd.renderCollector.BuildDrawCalls(0);
 
         vd.rplRender.EndRead();

@@ -16,6 +16,12 @@ namespace Hyperion.Editor.ViewModels
         public ObservableCollection<InspectorPropertyViewModelBase> Properties { get; } = new();
         public ObservableCollection<ComponentSubObjectViewModel> SubObjects { get; } = new();
 
+        // Properties on MeshComponent that invalidate the render proxy when changed.
+        protected static readonly HashSet<string> MeshComponentRenderProxyProperties = new()
+        {
+            "Mesh", "Material", "Skeleton"
+        };
+
         private bool _hasProperties;
         public bool HasProperties
         {
@@ -162,6 +168,8 @@ namespace Hyperion.Editor.ViewModels
 
                     List<InspectorPropertyViewModelBase> vms = new();
 
+                    bool isMeshComponent = typeof(T) == typeof(MeshComponent);
+
                     foreach (Property property in componentProperties)
                     {
                         try
@@ -176,8 +184,20 @@ namespace Hyperion.Editor.ViewModels
                                 isReadOnly = true;
                             }
 
-                            vms.Add(InspectorViewModelFactory.CreateForComponent(
-                                classAddress, targetAddressResolver, property, isReadOnly));
+                            InspectorPropertyViewModelBase vm = InspectorViewModelFactory.CreateForComponent(
+                                classAddress, targetAddressResolver, property, isReadOnly);
+
+                            if (isMeshComponent && MeshComponentRenderProxyProperties.Contains(property.Name.ToString()))
+                            {
+                                Entity entity = _target;
+                                
+                                vm.PostWriteCallback = () =>
+                                {
+                                    entity.AddTag(EntityTag.UpdateRenderProxy);
+                                };
+                            }
+
+                            vms.Add(vm);
                         }
                         catch (Exception ex)
                         {

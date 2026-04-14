@@ -6,6 +6,25 @@ namespace Hyperion
 {
     using ComponentId = uint;
 
+    public enum EntityTag : ulong
+    {
+        None = 0,
+        MobStatic = 1,
+        MobDynamic = 2,
+        Light = 3,
+        PrimaryCamera = 4,
+        EditorCamera = 5,
+        LightmapElement = 6,
+        ReceivesUpdate = 7,
+        MaxPersistent = 8,
+        UIVisible = 8,
+        FocusedInEditor = 9,
+        UpdateRenderProxy = 10,
+        UpdateVisibility = 11,
+        UpdateInstancedMeshData = 12,
+        EntityType = 2147483648UL,
+    }
+
     [ClassBinding(Name = "EntityManager")]
     public class EntityManager : ObjectBase
     {
@@ -167,5 +186,31 @@ namespace Hyperion
         [DllImport("hyperion", EntryPoint = "EntityManager_AddTypedEntity")]
         [return: MarshalAs(UnmanagedType.I1)]
         private static unsafe extern bool EntityManager_AddTypedEntity(IntPtr pManager, IntPtr pClass, [Out] BoxedValueInternal* pOutBoxed);
+
+        public void AddTag(Entity entity, EntityTag tag)
+        {
+            EntityManager_AddTag(NativeAddress, entity.NativeAddress, (ulong)tag);
+        }
+
+        public bool RemoveTag(Entity entity, EntityTag tag)
+        {
+            return EntityManager_RemoveTag(NativeAddress, entity.NativeAddress, (ulong)tag);
+        }
+
+        public bool HasTag(Entity entity, EntityTag tag)
+        {
+            return EntityManager_HasTag(NativeAddress, entity.NativeAddress, (ulong)tag);
+        }
+
+        [DllImport("hyperion", EntryPoint = "EntityManager_AddTag")]
+        private static extern void EntityManager_AddTag(IntPtr pManager, IntPtr pEntity, ulong tag);
+
+        [DllImport("hyperion", EntryPoint = "EntityManager_RemoveTag")]
+        [return: MarshalAs(UnmanagedType.I1)]
+        private static extern bool EntityManager_RemoveTag(IntPtr pManager, IntPtr pEntity, ulong tag);
+
+        [DllImport("hyperion", EntryPoint = "EntityManager_HasTag")]
+        [return: MarshalAs(UnmanagedType.I1)]
+        private static extern bool EntityManager_HasTag(IntPtr pManager, IntPtr pEntity, ulong tag);
     }
 }
