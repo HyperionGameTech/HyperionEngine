@@ -212,7 +212,7 @@ namespace Hyperion
 
                 thisObject = args[0] as ObjectBase;
 
-                if (thisObject == null)
+                if (thisObject == null && args[0] == null)
                 {
                     throw new InvalidOperationException("Cannot invoke method: Invalid thisObject");
                 }

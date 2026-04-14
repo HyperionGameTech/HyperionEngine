@@ -486,22 +486,23 @@
                                                                         <DataTemplate x:DataType="vm:NumericPropertyViewModel">
                                                                             <TextBox MinWidth="60" HorizontalAlignment="Stretch" Text="{Binding EditableValue, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
                                                                         </DataTemplate>
-                                                                        <DataTemplate x:DataType="vm:AssetObjectPropertyViewModel">
-                                                                            <Grid ColumnDefinitions="*, Auto, Auto" HorizontalAlignment="Stretch">
-                                                                                <Border Grid.Column="0" BorderThickness="1" BorderBrush="{DynamicResource Brush.Border}" CornerRadius="4" Padding="6,2" VerticalAlignment="Center">
-                                                                                    <TextBlock Text="{Binding AssetDisplayName}" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" />
-                                                                                </Border>
-                                                                                <Button Grid.Column="1" Margin="4,0,0,0" Padding="6,2" Content="Select" VerticalAlignment="Center" Command="{Binding SelectCommand}" IsEnabled="{Binding CanSelectFromContentBrowser}" />
-                                                                                <Button Grid.Column="2" Margin="4,0,0,0" Padding="6,2" Content="Clear" VerticalAlignment="Center" Command="{Binding ClearCommand}" />
-                                                                            </Grid>
-                                                                        </DataTemplate>
                                                                         <DataTemplate x:DataType="vm:ObjectPropertyViewModel">
-                                                                            <StackPanel IsVisible="{Binding HasSubObject}" Margin="0,2,0,0" Spacing="2">
+                                                                            <StackPanel Margin="0,2,0,0" Spacing="0">
                                                                                 <TextBlock Text="{Binding Label}" FontWeight="SemiBold" FontSize="13" Margin="4,0,0,2" />
+                                                                                <StackPanel IsVisible="{Binding IsAssetObject}" Spacing="2" Margin="4,0,0,4">
+                                                                                    <Grid ColumnDefinitions="*, Auto, Auto">
+                                                                                        <Border Grid.Column="0" BorderThickness="1" BorderBrush="{DynamicResource Brush.Border}" CornerRadius="4" Padding="6,2" VerticalAlignment="Center">
+                                                                                            <TextBlock Text="{Binding AssetPathDisplay}" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" Classes="inspector-name" />
+                                                                                        </Border>
+                                                                                        <Button Grid.Column="1" Margin="4,0,0,0" Padding="6,2" Content="Select" VerticalAlignment="Center" Command="{Binding SelectCommand}" IsEnabled="{Binding CanSelectFromContentBrowser}" />
+                                                                                        <Button Grid.Column="2" Margin="4,0,0,0" Padding="6,2" Content="Clear" VerticalAlignment="Center" Command="{Binding ClearCommand}" />
+                                                                                    </Grid>
+                                                                                    <Separator IsVisible="{Binding HasSubObject}" Margin="0,2,0,2" />
+                                                                                </StackPanel>
                                                                                 <ItemsControl
                                                                                     HorizontalAlignment="Stretch"
                                                                                     Grid.IsSharedSizeScope="True"
-                                                                                    IsVisible="{Binding SubObject.HasProperties}"
+                                                                                    IsVisible="{Binding HasSubObject}"
                                                                                     ItemsSource="{Binding SubObject.Properties}">
                                                                                     <ItemsControl.ItemTemplate>
                                                                                         <DataTemplate x:DataType="vm:InspectorPropertyViewModelBase">
@@ -610,22 +611,23 @@
                                                                                         <DataTemplate x:DataType="vm:NumericPropertyViewModel">
                                                                                             <TextBox MinWidth="60" HorizontalAlignment="Stretch" Text="{Binding EditableValue, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
                                                                                         </DataTemplate>
-                                                                                        <DataTemplate x:DataType="vm:AssetObjectPropertyViewModel">
-                                                                                            <Grid ColumnDefinitions="*, Auto, Auto" HorizontalAlignment="Stretch">
-                                                                                                <Border Grid.Column="0" BorderThickness="1" BorderBrush="{DynamicResource Brush.Border}" CornerRadius="4" Padding="6,2" VerticalAlignment="Center">
-                                                                                                    <TextBlock Text="{Binding AssetDisplayName}" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" />
-                                                                                                </Border>
-                                                                                                <Button Grid.Column="1" Margin="4,0,0,0" Padding="6,2" Content="Select" VerticalAlignment="Center" Command="{Binding SelectCommand}" IsEnabled="{Binding CanSelectFromContentBrowser}" />
-                                                                                                <Button Grid.Column="2" Margin="4,0,0,0" Padding="6,2" Content="Clear" VerticalAlignment="Center" Command="{Binding ClearCommand}" />
-                                                                                            </Grid>
-                                                                                        </DataTemplate>
                                                                                         <DataTemplate x:DataType="vm:ObjectPropertyViewModel">
-                                                                                            <StackPanel IsVisible="{Binding HasSubObject}" Margin="0,2,0,0" Spacing="2">
+                                                                                            <StackPanel Margin="0,2,0,0" Spacing="0">
                                                                                                 <TextBlock Text="{Binding Label}" FontWeight="SemiBold" FontSize="13" Margin="4,0,0,2" />
+                                                                                                <StackPanel IsVisible="{Binding IsAssetObject}" Spacing="2" Margin="4,0,0,4">
+                                                                                                    <Grid ColumnDefinitions="*, Auto, Auto">
+                                                                                                        <Border Grid.Column="0" BorderThickness="1" BorderBrush="{DynamicResource Brush.Border}" CornerRadius="4" Padding="6,2" VerticalAlignment="Center">
+                                                                                                            <TextBlock Text="{Binding AssetPathDisplay}" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" Classes="inspector-name" />
+                                                                                                        </Border>
+                                                                                                        <Button Grid.Column="1" Margin="4,0,0,0" Padding="6,2" Content="Select" VerticalAlignment="Center" Command="{Binding SelectCommand}" IsEnabled="{Binding CanSelectFromContentBrowser}" />
+                                                                                                        <Button Grid.Column="2" Margin="4,0,0,0" Padding="6,2" Content="Clear" VerticalAlignment="Center" Command="{Binding ClearCommand}" />
+                                                                                                    </Grid>
+                                                                                                    <Separator IsVisible="{Binding HasSubObject}" Margin="0,2,0,2" />
+                                                                                                </StackPanel>
                                                                                                 <ItemsControl
                                                                                                     HorizontalAlignment="Stretch"
                                                                                                     Grid.IsSharedSizeScope="True"
-                                                                                                    IsVisible="{Binding SubObject.HasProperties}"
+                                                                                                    IsVisible="{Binding HasSubObject}"
                                                                                                     ItemsSource="{Binding SubObject.Properties}">
                                                                                                     <ItemsControl.ItemTemplate>
                                                                                                         <DataTemplate x:DataType="vm:InspectorPropertyViewModelBase">
@@ -746,23 +748,23 @@
                                                             Text="{Binding EditableValue, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
                                                     </DataTemplate>
 
-                                                    <DataTemplate x:DataType="vm:AssetObjectPropertyViewModel">
-                                                        <Grid ColumnDefinitions="*, Auto, Auto" HorizontalAlignment="Stretch">
-                                                            <Border Grid.Column="0" BorderThickness="1" BorderBrush="{DynamicResource Brush.Border}" CornerRadius="4" Padding="6,2" VerticalAlignment="Center">
-                                                                <TextBlock Text="{Binding AssetDisplayName}" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" />
-                                                            </Border>
-                                                            <Button Grid.Column="1" Margin="4,0,0,0" Padding="6,2" Content="Select" VerticalAlignment="Center" Command="{Binding SelectCommand}" IsEnabled="{Binding CanSelectFromContentBrowser}" />
-                                                            <Button Grid.Column="2" Margin="4,0,0,0" Padding="6,2" Content="Clear" VerticalAlignment="Center" Command="{Binding ClearCommand}" />
-                                                        </Grid>
-                                                    </DataTemplate>
-
                                                     <DataTemplate x:DataType="vm:ObjectPropertyViewModel">
-                                                        <StackPanel IsVisible="{Binding HasSubObject}" Margin="0,2,0,0" Spacing="2">
+                                                        <StackPanel Margin="0,2,0,0" Spacing="0">
                                                             <TextBlock Text="{Binding Label}" FontWeight="SemiBold" FontSize="13" Margin="4,0,0,2" />
+                                                            <StackPanel IsVisible="{Binding IsAssetObject}" Spacing="2" Margin="4,0,0,4">
+                                                                <Grid ColumnDefinitions="*, Auto, Auto">
+                                                                    <Border Grid.Column="0" BorderThickness="1" BorderBrush="{DynamicResource Brush.Border}" CornerRadius="4" Padding="6,2" VerticalAlignment="Center">
+                                                                        <TextBlock Text="{Binding AssetPathDisplay}" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" Classes="inspector-name" />
+                                                                    </Border>
+                                                                    <Button Grid.Column="1" Margin="4,0,0,0" Padding="6,2" Content="Select" VerticalAlignment="Center" Command="{Binding SelectCommand}" IsEnabled="{Binding CanSelectFromContentBrowser}" />
+                                                                    <Button Grid.Column="2" Margin="4,0,0,0" Padding="6,2" Content="Clear" VerticalAlignment="Center" Command="{Binding ClearCommand}" />
+                                                                </Grid>
+                                                                <Separator IsVisible="{Binding HasSubObject}" Margin="0,2,0,2" />
+                                                            </StackPanel>
                                                             <ItemsControl
                                                                 HorizontalAlignment="Stretch"
                                                                 Grid.IsSharedSizeScope="True"
-                                                                IsVisible="{Binding SubObject.HasProperties}"
+                                                                IsVisible="{Binding HasSubObject}"
                                                                 ItemsSource="{Binding SubObject.Properties}">
                                                                 <ItemsControl.ItemTemplate>
                                                                     <DataTemplate x:DataType="vm:InspectorPropertyViewModelBase">
@@ -938,23 +940,23 @@
                                                             Text="{Binding EditableValue, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
                                                     </DataTemplate>
 
-                                                    <DataTemplate x:DataType="vm:AssetObjectPropertyViewModel">
-                                                        <Grid ColumnDefinitions="*, Auto, Auto" HorizontalAlignment="Stretch">
-                                                            <Border Grid.Column="0" BorderThickness="1" BorderBrush="{DynamicResource Brush.Border}" CornerRadius="4" Padding="6,2" VerticalAlignment="Center">
-                                                                <TextBlock Text="{Binding AssetDisplayName}" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" />
-                                                            </Border>
-                                                            <Button Grid.Column="1" Margin="4,0,0,0" Padding="6,2" Content="Select" VerticalAlignment="Center" Command="{Binding SelectCommand}" IsEnabled="{Binding CanSelectFromContentBrowser}" />
-                                                            <Button Grid.Column="2" Margin="4,0,0,0" Padding="6,2" Content="Clear" VerticalAlignment="Center" Command="{Binding ClearCommand}" />
-                                                        </Grid>
-                                                    </DataTemplate>
-
                                                     <DataTemplate x:DataType="vm:ObjectPropertyViewModel">
-                                                        <StackPanel IsVisible="{Binding HasSubObject}" Margin="0,2,0,0" Spacing="2">
+                                                        <StackPanel Margin="0,2,0,0" Spacing="0">
                                                             <TextBlock Text="{Binding Label}" FontWeight="SemiBold" FontSize="13" Margin="4,0,0,2" />
+                                                            <StackPanel IsVisible="{Binding IsAssetObject}" Spacing="2" Margin="4,0,0,4">
+                                                                <Grid ColumnDefinitions="*, Auto, Auto">
+                                                                    <Border Grid.Column="0" BorderThickness="1" BorderBrush="{DynamicResource Brush.Border}" CornerRadius="4" Padding="6,2" VerticalAlignment="Center">
+                                                                        <TextBlock Text="{Binding AssetPathDisplay}" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" Classes="inspector-name" />
+                                                                    </Border>
+                                                                    <Button Grid.Column="1" Margin="4,0,0,0" Padding="6,2" Content="Select" VerticalAlignment="Center" Command="{Binding SelectCommand}" IsEnabled="{Binding CanSelectFromContentBrowser}" />
+                                                                    <Button Grid.Column="2" Margin="4,0,0,0" Padding="6,2" Content="Clear" VerticalAlignment="Center" Command="{Binding ClearCommand}" />
+                                                                </Grid>
+                                                                <Separator IsVisible="{Binding HasSubObject}" Margin="0,2,0,2" />
+                                                            </StackPanel>
                                                             <ItemsControl
                                                                 HorizontalAlignment="Stretch"
                                                                 Grid.IsSharedSizeScope="True"
-                                                                IsVisible="{Binding SubObject.HasProperties}"
+                                                                IsVisible="{Binding HasSubObject}"
                                                                 ItemsSource="{Binding SubObject.Properties}">
                                                                 <ItemsControl.ItemTemplate>
                                                                     <DataTemplate x:DataType="vm:InspectorPropertyViewModelBase">
