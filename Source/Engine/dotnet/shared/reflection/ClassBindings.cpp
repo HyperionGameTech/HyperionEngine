@@ -293,6 +293,16 @@ extern "C"
         delete cls;
     }
 
+    HYP_EXPORT const Class* Class_GetParent(const Class* cls)
+    {
+        if (!cls)
+        {
+            return nullptr;
+        }
+
+        return cls->GetParent();
+    }
+
 #pragma endregion Class
 
 } // extern "C"

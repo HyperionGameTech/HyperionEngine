@@ -14,11 +14,20 @@ namespace Hyperion.Editor.ViewModels
 {
     public class ContentBrowserViewModel : ViewModelBase, IDisposable
     {
+        public static ContentBrowserViewModel? Instance { get; private set; }
+
         private readonly EditorSubsystem _editorSubsystem;
 
         public ObservableCollection<AssetPackageViewModel> Packages { get; } = new ObservableCollection<AssetPackageViewModel>();
         public ObservableCollection<AssetObjectViewModel> Assets { get; } = new ObservableCollection<AssetObjectViewModel>();
-        
+
+        private AssetObjectViewModel? _selectedAsset;
+        public AssetObjectViewModel? SelectedAsset
+        {
+            get => _selectedAsset;
+            set => SetProperty(ref _selectedAsset, value);
+        }
+
         private AssetPackageViewModel? _currentPackage;
         public AssetPackageViewModel? CurrentPackage
         {
@@ -40,6 +49,8 @@ namespace Hyperion.Editor.ViewModels
             _editorSubsystem = editorSubsystem ?? throw new ArgumentNullException(nameof(editorSubsystem));
 
             ImportCommand = new EditorCommand("ImportContent");
+
+            Instance = this;
         }
 
         public void LoadPackages()
@@ -73,15 +84,18 @@ namespace Hyperion.Editor.ViewModels
                 Dispatcher.UIThread.Post(() =>
                 {
                     Assets.Clear();
-                    
+                    SelectedAsset = null;
+
                     if (package != null)
                     {
+                        AssetPackageViewModel pkgVm = new AssetPackageViewModel(package);
+
                         foreach (AssetDesc assetDesc in package.AssetDescs)
                         {
-                            Assets.Add(new AssetObjectViewModel(assetDesc));
+                            Assets.Add(new AssetObjectViewModel(assetDesc, pkgVm));
                         }
 
-                        _currentPackage = new AssetPackageViewModel(package);
+                        _currentPackage = pkgVm;
                     }
                     else
                     {

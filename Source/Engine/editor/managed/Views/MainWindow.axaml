@@ -478,10 +478,47 @@
                                                                             </StackPanel>
                                                                         </DataTemplate>
                                                                         <DataTemplate x:DataType="vm:BoolPropertyViewModel">
-                                                                            <CheckBox IsChecked="{Binding IsChecked, Mode=TwoWay}" />
+                                                                            <StackPanel Orientation="Horizontal" Margin="4,0" Spacing="6">
+                                                                                <CheckBox IsChecked="{Binding IsChecked, Mode=TwoWay}" VerticalAlignment="Center" />
+                                                                                <TextBlock Classes="inspector-name" Text="{Binding Label}" VerticalAlignment="Center" />
+                                                                            </StackPanel>
                                                                         </DataTemplate>
                                                                         <DataTemplate x:DataType="vm:NumericPropertyViewModel">
                                                                             <TextBox MinWidth="60" HorizontalAlignment="Stretch" Text="{Binding EditableValue, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
+                                                                        </DataTemplate>
+                                                                        <DataTemplate x:DataType="vm:ObjectPropertyViewModel">
+                                                                            <StackPanel Margin="0,2,0,0" Spacing="0">
+                                                                                <TextBlock Text="{Binding Label}" FontWeight="SemiBold" FontSize="13" Margin="4,0,0,2" />
+                                                                                <StackPanel IsVisible="{Binding IsAssetObject}" Spacing="2" Margin="4,0,0,4">
+                                                                                    <Grid ColumnDefinitions="*, Auto, Auto">
+                                                                                        <Border Grid.Column="0" BorderThickness="1" BorderBrush="{DynamicResource Brush.Border}" CornerRadius="4" Padding="6,2" VerticalAlignment="Center">
+                                                                                            <TextBlock Text="{Binding AssetPathDisplay}" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" Classes="inspector-name" />
+                                                                                        </Border>
+                                                                                        <Button Grid.Column="1" Margin="4,0,0,0" Padding="6,2" Content="Select" VerticalAlignment="Center" Command="{Binding SelectCommand}" IsEnabled="{Binding CanSelectFromContentBrowser}" />
+                                                                                        <Button Grid.Column="2" Margin="4,0,0,0" Padding="6,2" Content="Clear" VerticalAlignment="Center" Command="{Binding ClearCommand}" />
+                                                                                    </Grid>
+                                                                                    <Separator IsVisible="{Binding HasSubObject}" Margin="0,2,0,2" />
+                                                                                </StackPanel>
+                                                                                <ItemsControl
+                                                                                    HorizontalAlignment="Stretch"
+                                                                                    Grid.IsSharedSizeScope="True"
+                                                                                    IsVisible="{Binding HasSubObject}"
+                                                                                    ItemsSource="{Binding SubObject.Properties}">
+                                                                                    <ItemsControl.ItemTemplate>
+                                                                                        <DataTemplate x:DataType="vm:InspectorPropertyViewModelBase">
+                                                                                            <Grid Margin="6,2">
+                                                                                                <Grid.ColumnDefinitions>
+                                                                                                    <ColumnDefinition Width="Auto" SharedSizeGroup="ComponentPropertyName" />
+                                                                                                    <ColumnDefinition Width="*" />
+                                                                                                </Grid.ColumnDefinitions>
+                                                                                                <TextBlock Grid.Column="0" IsVisible="{Binding ShowInlineLabel}" MaxWidth="80" Margin="0,0,8,0" Classes="inspector-name" Text="{Binding Label}" />
+                                                                                                <ContentControl Grid.Column="0" Grid.ColumnSpan="2" IsVisible="{Binding !ShowInlineLabel}" VerticalAlignment="Center" Content="{Binding}" />
+                                                                                                <ContentControl Grid.Column="1" IsVisible="{Binding ShowInlineLabel}" VerticalAlignment="Center" Content="{Binding}" />
+                                                                                            </Grid>
+                                                                                        </DataTemplate>
+                                                                                    </ItemsControl.ItemTemplate>
+                                                                                </ItemsControl>
+                                                                            </StackPanel>
                                                                         </DataTemplate>
                                                                         <DataTemplate x:DataType="vm:ReadOnlyPropertyViewModel">
                                                                             <TextBlock VerticalAlignment="Center" Text="{Binding Value}" TextTrimming="CharacterEllipsis" />
@@ -494,8 +531,9 @@
                                                                                     <ColumnDefinition Width="Auto" SharedSizeGroup="ComponentPropertyName" />
                                                                                     <ColumnDefinition Width="*" />
                                                                                 </Grid.ColumnDefinitions>
-                                                                                <TextBlock Grid.Column="0" MaxWidth="80" Margin="0,0,8,0" Classes="inspector-name" Text="{Binding Label}" />
-                                                                                <ContentControl Grid.Column="1" VerticalAlignment="Center" Content="{Binding}" />
+                                                                                <TextBlock Grid.Column="0" IsVisible="{Binding ShowInlineLabel}" MaxWidth="80" Margin="0,0,8,0" Classes="inspector-name" Text="{Binding Label}" />
+                                                                                <ContentControl Grid.Column="0" Grid.ColumnSpan="2" IsVisible="{Binding !ShowInlineLabel}" VerticalAlignment="Center" Content="{Binding}" />
+                                                                                <ContentControl Grid.Column="1" IsVisible="{Binding ShowInlineLabel}" VerticalAlignment="Center" Content="{Binding}" />
                                                                             </Grid>
                                                                         </DataTemplate>
                                                                     </ItemsControl.ItemTemplate>
@@ -565,10 +603,47 @@
                                                                                             </StackPanel>
                                                                                         </DataTemplate>
                                                                                         <DataTemplate x:DataType="vm:BoolPropertyViewModel">
-                                                                                            <CheckBox IsChecked="{Binding IsChecked, Mode=TwoWay}" />
+                                                                                            <StackPanel Orientation="Horizontal" Margin="4,0" Spacing="6">
+                                                                                                <CheckBox IsChecked="{Binding IsChecked, Mode=TwoWay}" VerticalAlignment="Center" />
+                                                                                                <TextBlock Classes="inspector-name" Text="{Binding Label}" VerticalAlignment="Center" />
+                                                                                            </StackPanel>
                                                                                         </DataTemplate>
                                                                                         <DataTemplate x:DataType="vm:NumericPropertyViewModel">
                                                                                             <TextBox MinWidth="60" HorizontalAlignment="Stretch" Text="{Binding EditableValue, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
+                                                                                        </DataTemplate>
+                                                                                        <DataTemplate x:DataType="vm:ObjectPropertyViewModel">
+                                                                                            <StackPanel Margin="0,2,0,0" Spacing="0">
+                                                                                                <TextBlock Text="{Binding Label}" FontWeight="SemiBold" FontSize="13" Margin="4,0,0,2" />
+                                                                                                <StackPanel IsVisible="{Binding IsAssetObject}" Spacing="2" Margin="4,0,0,4">
+                                                                                                    <Grid ColumnDefinitions="*, Auto, Auto">
+                                                                                                        <Border Grid.Column="0" BorderThickness="1" BorderBrush="{DynamicResource Brush.Border}" CornerRadius="4" Padding="6,2" VerticalAlignment="Center">
+                                                                                                            <TextBlock Text="{Binding AssetPathDisplay}" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" Classes="inspector-name" />
+                                                                                                        </Border>
+                                                                                                        <Button Grid.Column="1" Margin="4,0,0,0" Padding="6,2" Content="Select" VerticalAlignment="Center" Command="{Binding SelectCommand}" IsEnabled="{Binding CanSelectFromContentBrowser}" />
+                                                                                                        <Button Grid.Column="2" Margin="4,0,0,0" Padding="6,2" Content="Clear" VerticalAlignment="Center" Command="{Binding ClearCommand}" />
+                                                                                                    </Grid>
+                                                                                                    <Separator IsVisible="{Binding HasSubObject}" Margin="0,2,0,2" />
+                                                                                                </StackPanel>
+                                                                                                <ItemsControl
+                                                                                                    HorizontalAlignment="Stretch"
+                                                                                                    Grid.IsSharedSizeScope="True"
+                                                                                                    IsVisible="{Binding HasSubObject}"
+                                                                                                    ItemsSource="{Binding SubObject.Properties}">
+                                                                                                    <ItemsControl.ItemTemplate>
+                                                                                                        <DataTemplate x:DataType="vm:InspectorPropertyViewModelBase">
+                                                                                                            <Grid Margin="6,2">
+                                                                                                                <Grid.ColumnDefinitions>
+                                                                                                                    <ColumnDefinition Width="Auto" SharedSizeGroup="SubObjectPropertyName" />
+                                                                                                                    <ColumnDefinition Width="*" />
+                                                                                                                </Grid.ColumnDefinitions>
+                                                                                                                <TextBlock Grid.Column="0" IsVisible="{Binding ShowInlineLabel}" MaxWidth="80" Margin="0,0,8,0" Classes="inspector-name" Text="{Binding Label}" />
+                                                                                                                <ContentControl Grid.Column="0" Grid.ColumnSpan="2" IsVisible="{Binding !ShowInlineLabel}" VerticalAlignment="Center" Content="{Binding}" />
+                                                                                                                <ContentControl Grid.Column="1" IsVisible="{Binding ShowInlineLabel}" VerticalAlignment="Center" Content="{Binding}" />
+                                                                                                            </Grid>
+                                                                                                        </DataTemplate>
+                                                                                                    </ItemsControl.ItemTemplate>
+                                                                                                </ItemsControl>
+                                                                                            </StackPanel>
                                                                                         </DataTemplate>
                                                                                         <DataTemplate x:DataType="vm:ReadOnlyPropertyViewModel">
                                                                                             <TextBlock VerticalAlignment="Center" Text="{Binding Value}" TextTrimming="CharacterEllipsis" />
@@ -581,8 +656,9 @@
                                                                                                     <ColumnDefinition Width="Auto" SharedSizeGroup="SubObjectPropertyName" />
                                                                                                     <ColumnDefinition Width="*" />
                                                                                                 </Grid.ColumnDefinitions>
-                                                                                                <TextBlock Grid.Column="0" MaxWidth="80" Margin="0,0,8,0" Classes="inspector-name" Text="{Binding Label}" />
-                                                                                                <ContentControl Grid.Column="1" VerticalAlignment="Center" Content="{Binding}" />
+                                                                                                <TextBlock Grid.Column="0" IsVisible="{Binding ShowInlineLabel}" MaxWidth="80" Margin="0,0,8,0" Classes="inspector-name" Text="{Binding Label}" />
+                                                                                                <ContentControl Grid.Column="0" Grid.ColumnSpan="2" IsVisible="{Binding !ShowInlineLabel}" VerticalAlignment="Center" Content="{Binding}" />
+                                                                                                <ContentControl Grid.Column="1" IsVisible="{Binding ShowInlineLabel}" VerticalAlignment="Center" Content="{Binding}" />
                                                                                             </Grid>
                                                                                         </DataTemplate>
                                                                                     </ItemsControl.ItemTemplate>
@@ -659,7 +735,10 @@
                                                     </DataTemplate>
 
                                                     <DataTemplate x:DataType="vm:BoolPropertyViewModel">
-                                                        <CheckBox IsChecked="{Binding IsChecked, Mode=TwoWay}" />
+                                                        <StackPanel Orientation="Horizontal" Margin="4,0" Spacing="6">
+                                                            <CheckBox IsChecked="{Binding IsChecked, Mode=TwoWay}" VerticalAlignment="Center" />
+                                                            <TextBlock Classes="inspector-name" Text="{Binding Label}" VerticalAlignment="Center" />
+                                                        </StackPanel>
                                                     </DataTemplate>
 
                                                     <DataTemplate x:DataType="vm:NumericPropertyViewModel">
@@ -667,6 +746,41 @@
                                                             MinWidth="60"
                                                             HorizontalAlignment="Stretch"
                                                             Text="{Binding EditableValue, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
+                                                    </DataTemplate>
+
+                                                    <DataTemplate x:DataType="vm:ObjectPropertyViewModel">
+                                                        <StackPanel Margin="0,2,0,0" Spacing="0">
+                                                            <TextBlock Text="{Binding Label}" FontWeight="SemiBold" FontSize="13" Margin="4,0,0,2" />
+                                                            <StackPanel IsVisible="{Binding IsAssetObject}" Spacing="2" Margin="4,0,0,4">
+                                                                <Grid ColumnDefinitions="*, Auto, Auto">
+                                                                    <Border Grid.Column="0" BorderThickness="1" BorderBrush="{DynamicResource Brush.Border}" CornerRadius="4" Padding="6,2" VerticalAlignment="Center">
+                                                                        <TextBlock Text="{Binding AssetPathDisplay}" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" Classes="inspector-name" />
+                                                                    </Border>
+                                                                    <Button Grid.Column="1" Margin="4,0,0,0" Padding="6,2" Content="Select" VerticalAlignment="Center" Command="{Binding SelectCommand}" IsEnabled="{Binding CanSelectFromContentBrowser}" />
+                                                                    <Button Grid.Column="2" Margin="4,0,0,0" Padding="6,2" Content="Clear" VerticalAlignment="Center" Command="{Binding ClearCommand}" />
+                                                                </Grid>
+                                                                <Separator IsVisible="{Binding HasSubObject}" Margin="0,2,0,2" />
+                                                            </StackPanel>
+                                                            <ItemsControl
+                                                                HorizontalAlignment="Stretch"
+                                                                Grid.IsSharedSizeScope="True"
+                                                                IsVisible="{Binding HasSubObject}"
+                                                                ItemsSource="{Binding SubObject.Properties}">
+                                                                <ItemsControl.ItemTemplate>
+                                                                    <DataTemplate x:DataType="vm:InspectorPropertyViewModelBase">
+                                                                        <Grid Margin="6,2">
+                                                                            <Grid.ColumnDefinitions>
+                                                                                <ColumnDefinition Width="Auto" SharedSizeGroup="InspectorPropertyName" />
+                                                                                <ColumnDefinition Width="*" />
+                                                                            </Grid.ColumnDefinitions>
+                                                                            <TextBlock Grid.Column="0" IsVisible="{Binding ShowInlineLabel}" MaxWidth="80" Margin="0,0,8,0" Classes="inspector-name" Text="{Binding Label}" />
+                                                                            <ContentControl Grid.Column="0" Grid.ColumnSpan="2" IsVisible="{Binding !ShowInlineLabel}" VerticalAlignment="Center" Content="{Binding}" />
+                                                                            <ContentControl Grid.Column="1" IsVisible="{Binding ShowInlineLabel}" VerticalAlignment="Center" Content="{Binding}" />
+                                                                        </Grid>
+                                                                    </DataTemplate>
+                                                                </ItemsControl.ItemTemplate>
+                                                            </ItemsControl>
+                                                        </StackPanel>
                                                     </DataTemplate>
 
                                                     <DataTemplate x:DataType="vm:ReadOnlyPropertyViewModel">
@@ -687,13 +801,22 @@
 
                                                             <TextBlock
                                                                 Grid.Column="0"
+                                                                IsVisible="{Binding ShowInlineLabel}"
                                                                 MaxWidth="80"
                                                                 Margin="0,0,8,0"
                                                                 Classes="inspector-name"
                                                                 Text="{Binding Label}" />
 
                                                             <ContentControl
+                                                                Grid.Column="0"
+                                                                Grid.ColumnSpan="2"
+                                                                IsVisible="{Binding !ShowInlineLabel}"
+                                                                VerticalAlignment="Center"
+                                                                Content="{Binding}" />
+
+                                                            <ContentControl
                                                                 Grid.Column="1"
+                                                                IsVisible="{Binding ShowInlineLabel}"
                                                                 VerticalAlignment="Center"
                                                                 Content="{Binding}" />
                                                         </Grid>
@@ -804,7 +927,10 @@
                                                     </DataTemplate>
 
                                                     <DataTemplate x:DataType="vm:BoolPropertyViewModel">
-                                                        <CheckBox IsChecked="{Binding IsChecked, Mode=TwoWay}" />
+                                                        <StackPanel Orientation="Horizontal" Margin="4,0" Spacing="6">
+                                                            <CheckBox IsChecked="{Binding IsChecked, Mode=TwoWay}" VerticalAlignment="Center" />
+                                                            <TextBlock Classes="inspector-name" Text="{Binding Label}" VerticalAlignment="Center" />
+                                                        </StackPanel>
                                                     </DataTemplate>
 
                                                     <DataTemplate x:DataType="vm:NumericPropertyViewModel">
@@ -812,6 +938,41 @@
                                                             MinWidth="60"
                                                             HorizontalAlignment="Stretch"
                                                             Text="{Binding EditableValue, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
+                                                    </DataTemplate>
+
+                                                    <DataTemplate x:DataType="vm:ObjectPropertyViewModel">
+                                                        <StackPanel Margin="0,2,0,0" Spacing="0">
+                                                            <TextBlock Text="{Binding Label}" FontWeight="SemiBold" FontSize="13" Margin="4,0,0,2" />
+                                                            <StackPanel IsVisible="{Binding IsAssetObject}" Spacing="2" Margin="4,0,0,4">
+                                                                <Grid ColumnDefinitions="*, Auto, Auto">
+                                                                    <Border Grid.Column="0" BorderThickness="1" BorderBrush="{DynamicResource Brush.Border}" CornerRadius="4" Padding="6,2" VerticalAlignment="Center">
+                                                                        <TextBlock Text="{Binding AssetPathDisplay}" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" Classes="inspector-name" />
+                                                                    </Border>
+                                                                    <Button Grid.Column="1" Margin="4,0,0,0" Padding="6,2" Content="Select" VerticalAlignment="Center" Command="{Binding SelectCommand}" IsEnabled="{Binding CanSelectFromContentBrowser}" />
+                                                                    <Button Grid.Column="2" Margin="4,0,0,0" Padding="6,2" Content="Clear" VerticalAlignment="Center" Command="{Binding ClearCommand}" />
+                                                                </Grid>
+                                                                <Separator IsVisible="{Binding HasSubObject}" Margin="0,2,0,2" />
+                                                            </StackPanel>
+                                                            <ItemsControl
+                                                                HorizontalAlignment="Stretch"
+                                                                Grid.IsSharedSizeScope="True"
+                                                                IsVisible="{Binding HasSubObject}"
+                                                                ItemsSource="{Binding SubObject.Properties}">
+                                                                <ItemsControl.ItemTemplate>
+                                                                    <DataTemplate x:DataType="vm:InspectorPropertyViewModelBase">
+                                                                        <Grid Margin="6,2">
+                                                                            <Grid.ColumnDefinitions>
+                                                                                <ColumnDefinition Width="Auto" SharedSizeGroup="InspectorPropertyName" />
+                                                                                <ColumnDefinition Width="*" />
+                                                                            </Grid.ColumnDefinitions>
+                                                                            <TextBlock Grid.Column="0" IsVisible="{Binding ShowInlineLabel}" MaxWidth="80" Margin="0,0,8,0" Classes="inspector-name" Text="{Binding Label}" />
+                                                                            <ContentControl Grid.Column="0" Grid.ColumnSpan="2" IsVisible="{Binding !ShowInlineLabel}" VerticalAlignment="Center" Content="{Binding}" />
+                                                                            <ContentControl Grid.Column="1" IsVisible="{Binding ShowInlineLabel}" VerticalAlignment="Center" Content="{Binding}" />
+                                                                        </Grid>
+                                                                    </DataTemplate>
+                                                                </ItemsControl.ItemTemplate>
+                                                            </ItemsControl>
+                                                        </StackPanel>
                                                     </DataTemplate>
 
                                                     <DataTemplate x:DataType="vm:ReadOnlyPropertyViewModel">
@@ -832,13 +993,22 @@
 
                                                             <TextBlock
                                                                 Grid.Column="0"
+                                                                IsVisible="{Binding ShowInlineLabel}"
                                                                 MaxWidth="80"
                                                                 Margin="0,0,8,0"
                                                                 Classes="inspector-name"
                                                                 Text="{Binding Label}" />
 
                                                             <ContentControl
+                                                                Grid.Column="0"
+                                                                Grid.ColumnSpan="2"
+                                                                IsVisible="{Binding !ShowInlineLabel}"
+                                                                VerticalAlignment="Center"
+                                                                Content="{Binding}" />
+
+                                                            <ContentControl
                                                                 Grid.Column="1"
+                                                                IsVisible="{Binding ShowInlineLabel}"
                                                                 VerticalAlignment="Center"
                                                                 Content="{Binding}" />
                                                         </Grid>
@@ -911,7 +1081,7 @@
                                                     </TreeDataTemplate>
                                                 </TreeView.ItemTemplate>
                                             </TreeView>
-                                            <ListBox Grid.Column="1" ItemsSource="{Binding ContentBrowser.Assets}">
+                                            <ListBox Grid.Column="1" ItemsSource="{Binding ContentBrowser.Assets}" SelectedItem="{Binding ContentBrowser.SelectedAsset, Mode=TwoWay}">
                                                 <ListBox.ItemTemplate>
                                                     <DataTemplate x:DataType="vm:AssetObjectViewModel">
                                                         <StackPanel Orientation="Horizontal" Spacing="6">

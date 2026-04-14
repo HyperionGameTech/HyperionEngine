@@ -37,7 +37,14 @@ namespace Hyperion
         // Matrix types
         Mat3Type = 0x1000000,
         Mat4Type = 0x2000000,
-        MatrixType = Mat3Type | Mat4Type
+        MatrixType = Mat3Type | Mat4Type,
+
+        // Tuple/Pair types
+        TupleType = 0x4000000,
+        PairType = 0x8000000,
+
+        // Handle<T> type (where T : ObjectBase)
+        HandleType = 0x10000000
     }
 
     /// <summary>
@@ -125,6 +132,8 @@ namespace Hyperion
         public bool IsFundamental => (Flags & TypeInfoFlags.FundamentalType) != 0;
         public bool IsIntegral => (Flags & TypeInfoFlags.IntegralType) != 0;
         public bool IsFloat => (Flags & TypeInfoFlags.FloatType) != 0;
+        public bool IsHandle => (Flags & TypeInfoFlags.HandleType) != 0;
+        
 
         [DllImport("hyperion", EntryPoint = "TypeInfo_IsValid")]
         [return: MarshalAs(UnmanagedType.I1)]

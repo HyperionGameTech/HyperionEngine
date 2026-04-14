@@ -19,15 +19,15 @@ namespace Hyperion.Editor.ViewModels
             private set => SetProperty(ref _hasProperties, value);
         }
 
-        public ComponentSubObjectViewModel(string label, ObjectBase target)
+        public ComponentSubObjectViewModel(string label, ObjectBase target, int depth = 0)
         {
             Label = label;
             Target = target ?? throw new ArgumentNullException(nameof(target));
 
-            PopulateProperties();
+            PopulateProperties(depth);
         }
 
-        private void PopulateProperties()
+        private void PopulateProperties(int depth)
         {
             if (!Target.IsValid)
             {
@@ -74,7 +74,7 @@ namespace Hyperion.Editor.ViewModels
                         isReadOnly = true;
                     }
 
-                    Properties.Add(InspectorViewModelFactory.Create(Target, property, isReadOnly));
+                    Properties.Add(InspectorViewModelFactory.Create(Target, property, isReadOnly, depth));
                 }
                 catch (Exception ex)
                 {

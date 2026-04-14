@@ -4,7 +4,7 @@ using System.Runtime.InteropServices;
 namespace Hyperion
 {
     [ClassBinding(Name = "PhysicsShape")]
-    public abstract class PhysicsShape : ObjectBase
+    public abstract class PhysicsShape : AssetObject
     {
         public PhysicsShape()
         {

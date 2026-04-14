@@ -1,11 +1,12 @@
 using System;
+using System.Diagnostics;
 using Hyperion;
 
 namespace Hyperion.Editor.ViewModels
 {
     public static class InspectorViewModelFactory
     {
-        public static InspectorPropertyViewModelBase Create(ObjectBase? target, Property property, bool isReadOnly)
+        public static InspectorPropertyViewModelBase Create(ObjectBase? target, Property property, bool isReadOnly, int depth = 0)
         {
             if (target == null)
             {
@@ -60,13 +61,18 @@ namespace Hyperion.Editor.ViewModels
                 return Initialize(new NumericPropertyViewModel(target, property, isReadOnly));
             }
 
+            if (typeInfo.IsClass && typeInfo.Class.HasValue)
+            {
+                return Initialize(new ObjectPropertyViewModel(target, property, isReadOnly, depth));
+            }
+
             Logger.Log(LogLevel.Debug, $"Inspector creating read-only property view model for property '{property.Name}' of type '{typeInfo.Name}'");
 
             return Initialize(new ReadOnlyPropertyViewModel(target, property, isReadOnly));
         }
 
         public static InspectorPropertyViewModelBase CreateForComponent(
-            IntPtr classAddress, Func<IntPtr> targetAddressResolver, Property property, bool isReadOnly)
+            IntPtr classAddress, Func<IntPtr> targetAddressResolver, Property property, bool isReadOnly, int depth = 0)
         {
             TypeInfo typeInfo = property.TypeInfo;
             bool isNameType = InspectorPropertyViewModelBase.IsNameType(typeInfo);
@@ -116,6 +122,11 @@ namespace Hyperion.Editor.ViewModels
                 return Initialize(new NumericPropertyViewModel(classAddress, targetAddressResolver, property, isReadOnly));
             }
 
+            if (typeInfo.IsClass && typeInfo.Class.HasValue)
+            {
+                return Initialize(new ObjectPropertyViewModel(classAddress, targetAddressResolver, property, isReadOnly, depth));
+            }
+
             Logger.Log(LogLevel.Debug, $"Inspector creating read-only component property view model for property '{property.Name}' of type '{typeInfo.Name}'");
 
             return Initialize(new ReadOnlyPropertyViewModel(classAddress, targetAddressResolver, property, isReadOnly));
@@ -128,3 +139,5 @@ namespace Hyperion.Editor.ViewModels
         }
     }
 }
+
+            

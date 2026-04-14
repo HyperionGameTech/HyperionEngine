@@ -106,6 +106,35 @@ namespace Hyperion
             }
         }
 
+        public Class? GetParent()
+        {
+            IntPtr parentPtr = Class_GetParent(ptr);
+
+            if (parentPtr == IntPtr.Zero)
+            {
+                return null;
+            }
+
+            return new Class(parentPtr);
+        }
+
+        public bool IsSubclassOf(Class other)
+        {
+            Class? current = GetParent();
+
+            while (current.HasValue)
+            {
+                if (current.Value == other)
+                {
+                    return true;
+                }
+
+                current = current.Value.GetParent();
+            }
+
+            return false;
+        }
+
         public ClassAttribute? GetAttribute(Name name)
         {
             IntPtr attributePtr = Class_GetAttribute(ptr, ref name);
@@ -497,6 +526,9 @@ namespace Hyperion
 
         [DllImport("hyperion", EntryPoint = "Class_GetAllocationMethod")]
         private static extern byte Class_GetAllocationMethod([In] IntPtr classPtr);
+
+        [DllImport("hyperion", EntryPoint = "Class_GetParent")]
+        private static extern IntPtr Class_GetParent([In] IntPtr classPtr);
 
         [DllImport("hyperion", EntryPoint = "Class_GetAttribute")]
         private static extern IntPtr Class_GetAttribute([In] IntPtr classPtr, [In] ref Name name);

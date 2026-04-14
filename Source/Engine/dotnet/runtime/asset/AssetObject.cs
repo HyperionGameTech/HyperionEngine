@@ -46,5 +46,7 @@ namespace Hyperion
             get => this.GetFriendlyName();      // extension method
             set => this.SetFriendlyName(value); // extension method
         }
+
+        public AssetPath Path => this.IsRegistered() ? this.GetPath() : AssetPath.Invalid; // extension method
     }
 }
