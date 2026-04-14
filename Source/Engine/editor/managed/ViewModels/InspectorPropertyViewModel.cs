@@ -1,5 +1,9 @@
 using System;
+using System.Diagnostics;
+using System.Windows.Input;
+using Avalonia.Threading;
 using Hyperion;
+using Hyperion.Editor.Commands;
 
 namespace Hyperion.Editor.ViewModels
 {
@@ -37,6 +41,9 @@ namespace Hyperion.Editor.ViewModels
         public virtual bool ShowInlineLabel => true;
 
         public bool ShowTextValue => !IsTextEditable && !IsEnumEditable && !IsEnumFlagsEditable && !IsNumericEditable;
+
+        // Called on the sim thread immediately after a property value write succeeds.
+        public Action? PostWriteCallback { get; set; }
 
         protected InspectorPropertyViewModelBase(ObjectBase? target, Property property, bool isReadOnly = false)
         {
@@ -94,7 +101,86 @@ namespace Hyperion.Editor.ViewModels
             {
                 _property.Set(_target!, value);
             }
+
+            PostWriteCallback?.Invoke();
         }
+        
+        protected void CommitPropertyChange(string actionText, BoxedValue newValue)
+        {
+            // Capture old value for undo (we are already on the sim thread).
+            object? oldValueObj = null;
+
+            try
+            {
+                using BoxedValue old = GetPropertyValue();
+                oldValueObj = old.GetValue();
+            }
+            catch
+            {
+                /* If we can't read the old value, undo will be a no-op */
+            }
+
+            object? newValueObj = newValue.GetValue();
+
+            if (oldValueObj != null && oldValueObj.Equals(newValueObj))
+            {
+                return;
+            }
+
+            EditorProject? project = EngineManager.CurrentProject;
+            Debug.Assert(project != null, "No active project found when committing property change");
+
+            // Capture everything the lambdas need (avoids capturing 'this' type members directly).
+            IntPtr capturedClassAddress = _componentClassAddress;
+            Func<IntPtr>? capturedResolver = _componentTargetResolver;
+            ObjectBase? capturedTarget = _target;
+            Property capturedProperty = _property;
+            Action? capturedPostWrite = PostWriteCallback;
+            InspectorPropertyViewModelBase capturedThis = this;
+
+            void ApplyValue(object? valueObj)
+            {
+                if (valueObj == null)
+                {
+                    return;
+                }
+
+                try
+                {
+                    using BoxedValue bv = new BoxedValue(valueObj);
+
+                    if (capturedResolver != null)
+                    {
+                        capturedProperty.Set(capturedClassAddress, capturedResolver(), bv);
+                    }
+                    else
+                    {
+                        capturedProperty.Set(capturedTarget!, bv);
+                    }
+
+                    capturedPostWrite?.Invoke();
+                }
+                catch (Exception ex)
+                {
+                    Logger.Log(LogLevel.Warning, $"Editor action failed for property '{capturedProperty.Name}': {ex.Message}");
+                }
+
+                Dispatcher.UIThread.Post(() => capturedThis.RefreshValue());
+            }
+
+            EditorAction action = new EditorAction(
+                actionText,
+                execute: (_, _) => ApplyValue(newValueObj),
+                revert:  (_, _) => ApplyValue(oldValueObj)
+            );
+
+            project.ActionStack.PushAction(action);
+        }
+
+        public virtual void CommitValue() { }
+
+        private ICommand? _commitValueCommand;
+        public ICommand CommitValueCommand => _commitValueCommand ??= new RelayCommand(CommitValue);
 
         protected bool IsTargetValid =>
             _componentTargetResolver != null || (_target?.IsValid ?? false);

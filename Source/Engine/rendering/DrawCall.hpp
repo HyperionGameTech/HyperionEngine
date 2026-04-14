@@ -307,8 +307,8 @@ struct DrawCallCollection
         return batchAllocator != nullptr && renderGroup.valid;
     }
 
-    void PushRenderProxy(DrawCallID id, const RenderProxyMesh& renderProxy);
-    void PushRenderProxyInstanced(EntityInstanceBatch* batch, DrawCallID id, const RenderProxyMesh& renderProxy);
+    void PushDrawCall(DrawCallID id, const RenderProxyMesh& renderProxy);
+    void PushInstancedDrawCall(EntityInstanceBatch* batch, DrawCallID id, const RenderProxyMesh& renderProxy);
 
     EntityInstanceBatch* RecycleDrawBatch(DrawCallID id);
 

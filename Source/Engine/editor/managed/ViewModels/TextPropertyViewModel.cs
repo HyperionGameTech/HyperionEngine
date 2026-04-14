@@ -30,13 +30,7 @@ namespace Hyperion.Editor.ViewModels
         public string EditableValue
         {
             get => _editableValue;
-            set
-            {
-                if (SetProperty(ref _editableValue, value) && _isRefreshing == 0)
-                {
-                    CommitEditableText(value);
-                }
-            }
+            set => SetProperty(ref _editableValue, value);
         }
 
         public override void RefreshValue()
@@ -70,6 +64,11 @@ namespace Hyperion.Editor.ViewModels
             });
         }
 
+        public override void CommitValue()
+        {
+            CommitEditableText(_editableValue);
+        }
+
         private void CommitEditableText(string value)
         {
             if (Interlocked.CompareExchange(ref _isRefreshing, 1, 0) == 1)
@@ -85,14 +84,9 @@ namespace Hyperion.Editor.ViewModels
                         ? new BoxedValue(new Name(value ?? string.Empty))
                         : new BoxedValue(value ?? string.Empty);
 
-                    SetPropertyValue(boxed);
+                    CommitPropertyChange($"Set {Label}", boxed);
 
-                    Dispatcher.UIThread.Post(() =>
-                    {
-                        _isRefreshing = 0;
-
-                        Value = value ?? string.Empty;
-                    });
+                    Dispatcher.UIThread.Post(() => _isRefreshing = 0);
                 }
                 catch (Exception ex)
                 {

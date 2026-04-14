@@ -1789,6 +1789,8 @@ void RenderCollector::BuildDrawCalls(uint32 bucketBits)
 
         for (RenderProxyMesh* meshProxy : drawCallCollection.meshProxies)
         {
+            AssertDebug(Resources::GetBinding(meshProxy->mesh) != Resources::InvalidBinding);
+
             AssertDebug(meshProxy->mesh != nullptr
                         && meshProxy->mesh->GetVertexBuffer() != nullptr
                         && meshProxy->mesh->GetIndexBuffer() != nullptr);
@@ -1799,7 +1801,7 @@ void RenderCollector::BuildDrawCalls(uint32 bucketBits)
 
             if (!meshProxy->enableAutoInstancing && !meshProxy->numInstances)
             {
-                drawCallCollection.PushRenderProxy(drawCallId, *meshProxy);
+                drawCallCollection.PushDrawCall(drawCallId, *meshProxy);
 
                 continue;
             }
@@ -1819,7 +1821,7 @@ void RenderCollector::BuildDrawCalls(uint32 bucketBits)
                 }
             }
 
-            drawCallCollection.PushRenderProxyInstanced(batch, drawCallId, *meshProxy);
+            drawCallCollection.PushInstancedDrawCall(batch, drawCallId, *meshProxy);
         }
 
         if (prevDrawCallCollection.IsValid())

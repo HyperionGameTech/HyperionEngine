@@ -941,10 +941,12 @@ void View::CollectMeshEntities(RenderProxyList& rpl)
             auto&& [meshComponent, transformComponent, boundingBoxComponent, lightmapElementComponent] = entity->GetEntityManager()->TryGetComponents<MeshComponent, TransformComponent, BoundingBoxComponent, LightmapElementComponent>(entity);
             
             AssertDebug(meshComponent != nullptr);
-            AssertDebug(meshComponent->mesh && meshComponent->mesh->IsReady());
-            AssertDebug(meshComponent->material && meshComponent->material->IsReady());
 
             RenderProxyMesh& meshProxy = *rpl.GetMeshEntities().SetProxy(entity->Id(), RenderProxyMesh());
+
+            if (!meshComponent->mesh || !meshComponent->material)
+                continue;
+
             meshProxy.forceRebind = false;
             meshProxy.entity = MakeWeakRef(entity);
             meshProxy.mesh = meshComponent->mesh;

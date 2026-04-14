@@ -128,4 +128,34 @@ extern "C"
         return true;
     }
 
+    HYP_EXPORT void EntityManager_AddTag(EntityManager* pManager, Entity* pEntity, uint64 tag)
+    {
+        if (!pManager || !pEntity)
+        {
+            return;
+        }
+
+        pManager->AddTag(pEntity, EntityTag(tag));
+    }
+
+    HYP_EXPORT int8 EntityManager_RemoveTag(EntityManager* pManager, Entity* pEntity, uint64 tag)
+    {
+        if (!pManager || !pEntity)
+        {
+            return false;
+        }
+
+        return pManager->RemoveTag(pEntity, EntityTag(tag));
+    }
+
+    HYP_EXPORT int8 EntityManager_HasTag(EntityManager* pManager, Entity* pEntity, uint64 tag)
+    {
+        if (!pManager || !pEntity)
+        {
+            return false;
+        }
+
+        return pManager->HasTag(pEntity, EntityTag(tag));
+    }
+
 } // extern "C"

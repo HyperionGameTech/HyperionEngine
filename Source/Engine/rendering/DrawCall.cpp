@@ -42,7 +42,7 @@ DrawCallCollection::~DrawCallCollection()
     }
 }
 
-void DrawCallCollection::PushRenderProxy(DrawCallID id, const RenderProxyMesh& renderProxy)
+void DrawCallCollection::PushDrawCall(DrawCallID id, const RenderProxyMesh& renderProxy)
 {
     HYP_SCOPE;
     AssertOnThread(g_renderThread);
@@ -58,7 +58,7 @@ void DrawCallCollection::PushRenderProxy(DrawCallID id, const RenderProxyMesh& r
         renderProxy.numIndices);
 }
 
-void DrawCallCollection::PushRenderProxyInstanced(EntityInstanceBatch* batch, DrawCallID id, const RenderProxyMesh& renderProxy)
+void DrawCallCollection::PushInstancedDrawCall(EntityInstanceBatch* batch, DrawCallID id, const RenderProxyMesh& renderProxy)
 {
     HYP_SCOPE;
     AssertOnThread(g_renderThread);
