@@ -9,7 +9,6 @@
 #include <physics/null/Adapter.hpp>
 #include <physics/PhysicsWorld.hpp>
 #include <physics/RigidBody.hpp>
-#include <physics/CharacterController.hpp>
 
 #include <Core/memory/UniquePtr.hpp>
 #include <Core/math/Vector3.hpp>
@@ -53,19 +52,23 @@ void NullPhysicsAdapter::ApplyForceToBody(const RigidBody* rigidBody, const Vec3
 {
 }
 
-void NullPhysicsAdapter::OnCharacterControllerAdded(const Handle<CharacterController>& characterController)
+void NullPhysicsAdapter::OnCharacterControllerAdded(const CharacterControllerConfig& config, RC<void>& outPhysicsHandle)
 {
 }
 
-void NullPhysicsAdapter::OnCharacterControllerRemoved(const Handle<CharacterController>& characterController)
+void NullPhysicsAdapter::OnCharacterControllerRemoved(RC<void>& physicsHandle)
 {
 }
 
-void NullPhysicsAdapter::SetCharacterWalkDirection(CharacterController* characterController, const Vec3f& velocity)
+void NullPhysicsAdapter::SetCharacterWalkDirection(const RC<void>& physicsHandle, const Vec3f& velocity)
 {
 }
 
-void NullPhysicsAdapter::ApplyCharacterJump(CharacterController* characterController)
+void NullPhysicsAdapter::ApplyCharacterJump(const RC<void>& physicsHandle)
+{
+}
+
+void NullPhysicsAdapter::GetCharacterState(const RC<void>& physicsHandle, Vec3f& outTranslation, bool& outIsOnGround)
 {
 }
 

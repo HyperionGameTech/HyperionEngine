@@ -602,10 +602,17 @@ extern struct MeshComponent
     PreviousModelMatrix : Mat4f
 end
 extern struct CharacterControllerComponent
-    CharacterController : CharacterController
-    MoveSpeed : float
-    ViewDirection : Vec3f
+    Shape : PhysicsShape
     InputHandler : InputHandlerBase
+    PhysicsHandle : void
+    ViewDirection : Vec3f
+    Translation : Vec3f
+    MoveSpeed : float
+    StepHeight : float
+    MaxSlopeAngle : float
+    JumpSpeed : float
+    FallSpeed : float
+    IsOnGround : bool
 end
 extern struct BoundingBoxComponent
     WorldAabb : BoundingBox
@@ -1331,25 +1338,7 @@ extern class InputHandlerBase
 end
 extern class NullInputHandler : InputHandlerBase
 end
-extern class CharacterController
-    GetShape() -> PhysicsShape
-    SetShape(shape : PhysicsShape) -> void
-    GetTranslation() -> Vec3f
-    GetStepHeight() -> float
-    SetStepHeight(stepHeight : float) -> void
-    GetMaxSlopeAngle() -> float
-    SetMaxSlopeAngle(maxSlopeAngle : float) -> void
-    GetJumpSpeed() -> float
-    SetJumpSpeed(jumpSpeed : float) -> void
-    GetFallSpeed() -> float
-    SetFallSpeed(fallSpeed : float) -> void
-    IsOnGround() -> bool
-    SetWalkDirection(velocity : Vec3f) -> void
-    Jump() -> void
-end
 extern class CharacterControllerInputHandler : InputHandlerBase
-    GetMovementInput() -> Vec2f
-    IsJumpPressed() -> bool
 end
 extern enum EventType : uint32
     INVALID = ~0u,

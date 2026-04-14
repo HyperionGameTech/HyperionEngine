@@ -8,12 +8,23 @@
 
 #include <Core/reflection/Handle.hpp>
 #include <Core/math/Vector3.hpp>
+#include <Core/memory/RefCountedPtr.hpp>
 
 namespace Hyperion {
 
 class PhysicsWorldBase;
 class RigidBody;
-class CharacterController;
+class PhysicsShape;
+
+struct CharacterControllerConfig
+{
+    Handle<PhysicsShape> shape;
+    Vec3f startTranslation;
+    float stepHeight = 0.35f;
+    float maxSlopeAngle = 45.0f;
+    float jumpSpeed = 10.0f;
+    float fallSpeed = 55.0f;
+};
 
 template <class DerivedAdapter>
 class PhysicsAdapter
@@ -69,24 +80,29 @@ public:
         GetDerivedAdapter()->DerivedAdapter::ApplyForceToBody(rigidBody, force);
     }
 
-    void OnCharacterControllerAdded(const Handle<CharacterController>& characterController)
+    void OnCharacterControllerAdded(const CharacterControllerConfig& config, RC<void>& outPhysicsHandle)
     {
-        GetDerivedAdapter()->DerivedAdapter::OnCharacterControllerAdded(characterController);
+        GetDerivedAdapter()->DerivedAdapter::OnCharacterControllerAdded(config, outPhysicsHandle);
     }
 
-    void OnCharacterControllerRemoved(const Handle<CharacterController>& characterController)
+    void OnCharacterControllerRemoved(RC<void>& physicsHandle)
     {
-        GetDerivedAdapter()->DerivedAdapter::OnCharacterControllerRemoved(characterController);
+        GetDerivedAdapter()->DerivedAdapter::OnCharacterControllerRemoved(physicsHandle);
     }
 
-    void SetCharacterWalkDirection(CharacterController* characterController, const Vec3f& velocity)
+    void SetCharacterWalkDirection(const RC<void>& physicsHandle, const Vec3f& velocity)
     {
-        GetDerivedAdapter()->DerivedAdapter::SetCharacterWalkDirection(characterController, velocity);
+        GetDerivedAdapter()->DerivedAdapter::SetCharacterWalkDirection(physicsHandle, velocity);
     }
 
-    void ApplyCharacterJump(CharacterController* characterController)
+    void ApplyCharacterJump(const RC<void>& physicsHandle)
     {
-        GetDerivedAdapter()->DerivedAdapter::ApplyCharacterJump(characterController);
+        GetDerivedAdapter()->DerivedAdapter::ApplyCharacterJump(physicsHandle);
+    }
+
+    void GetCharacterState(const RC<void>& physicsHandle, Vec3f& outTranslation, bool& outIsOnGround)
+    {
+        GetDerivedAdapter()->DerivedAdapter::GetCharacterState(physicsHandle, outTranslation, outIsOnGround);
     }
 };
 

@@ -8,7 +8,6 @@
 
 #include <physics/PhysicsWorld.hpp>
 #include <physics/RigidBody.hpp>
-#include <physics/CharacterController.hpp>
 
 #include <Core/memory/UniquePtr.hpp>
 
@@ -164,20 +163,7 @@ void BulletPhysicsAdapter::Tick(PhysicsWorldBase* world, double delta)
         rigidBody->SetTransform(rigidBodyTransform);
     }
 
-    // Sync character controller positions from ghost objects
-    for (Handle<CharacterController>& characterController : world->GetCharacterControllers())
-    {
-        CharacterControllerInternalData* internalData = static_cast<CharacterControllerInternalData*>(characterController->GetHandle());
 
-        if (!internalData)
-        {
-            continue;
-        }
-
-        const btTransform& ghostTransform = internalData->ghostObject->getWorldTransform();
-        characterController->SetTranslation(FromBtVector(ghostTransform.getOrigin()));
-        characterController->SetIsOnGround(internalData->kcc->onGround());
-    }
 }
 
 void BulletPhysicsAdapter::OnRigidBodyAdded(const Handle<RigidBody>& rigidBody)
@@ -308,16 +294,17 @@ void BulletPhysicsAdapter::ApplyForceToBody(const RigidBody* rigidBody, const Ve
     internalData->rigidBody->applyCentralForce(ToBtVector(force));
 }
 
-void BulletPhysicsAdapter::OnCharacterControllerAdded(const Handle<CharacterController>& characterController)
+void BulletPhysicsAdapter::OnCharacterControllerAdded(const CharacterControllerConfig& config, RC<void>& outPhysicsHandle)
 {
     Assert(m_dynamicsWorld != nullptr);
-    Assert(characterController.IsValid());
 
-    const Handle<PhysicsShape>& shape = characterController->GetShape();
-    Assert(shape.IsValid() && shape->GetType() == PhysicsShapeType::CAPSULE,
-        "CharacterController requires a CapsulePhysicsShape!");
+    if (!config.shape || config.shape->GetType() != PhysicsShapeType::CAPSULE)
+    {
+        HYP_LOG(Physics, Error, "CharacterController requires a valid CapsulePhysicsShape");
+        return;
+    }
 
-    CapsulePhysicsShape* capsuleShape = static_cast<CapsulePhysicsShape*>(shape.Get());
+    CapsulePhysicsShape* capsuleShape = static_cast<CapsulePhysicsShape*>(config.shape.Get());
 
     RC<CharacterControllerInternalData> internalData = MakeRefCountedPtr<CharacterControllerInternalData>();
     internalData->capsuleShape = MakeRefCountedPtr<btCapsuleShape>(capsuleShape->GetRadius(), capsuleShape->GetHeight());
@@ -325,7 +312,7 @@ void BulletPhysicsAdapter::OnCharacterControllerAdded(const Handle<CharacterCont
 
     btTransform startTransform;
     startTransform.setIdentity();
-    startTransform.setOrigin(ToBtVector(characterController->GetTranslation()));
+    startTransform.setOrigin(ToBtVector(config.startTranslation));
     internalData->ghostObject->setWorldTransform(startTransform);
     internalData->ghostObject->setCollisionShape(internalData->capsuleShape.Get());
     internalData->ghostObject->setCollisionFlags(btCollisionObject::CF_CHARACTER_OBJECT);
@@ -333,11 +320,11 @@ void BulletPhysicsAdapter::OnCharacterControllerAdded(const Handle<CharacterCont
     internalData->kcc = MakeRefCountedPtr<btKinematicCharacterController>(
         internalData->ghostObject.Get(),
         internalData->capsuleShape.Get(),
-        characterController->GetStepHeight());
+        config.stepHeight);
 
-    internalData->kcc->setMaxSlope(btRadians(characterController->GetMaxSlopeAngle()));
-    internalData->kcc->setJumpSpeed(characterController->GetJumpSpeed());
-    internalData->kcc->setFallSpeed(characterController->GetFallSpeed());
+    internalData->kcc->setMaxSlope(btRadians(config.maxSlopeAngle));
+    internalData->kcc->setJumpSpeed(config.jumpSpeed);
+    internalData->kcc->setFallSpeed(config.fallSpeed);
     internalData->kcc->setGravity(btVector3(0.0f, -btFabs(m_dynamicsWorld->getGravity().y()), 0.0f));
 
     m_dynamicsWorld->addCollisionObject(
@@ -347,19 +334,14 @@ void BulletPhysicsAdapter::OnCharacterControllerAdded(const Handle<CharacterCont
 
     m_dynamicsWorld->addAction(internalData->kcc.Get());
 
-    characterController->SetHandle(std::move(internalData));
+    outPhysicsHandle = std::move(internalData);
 }
 
-void BulletPhysicsAdapter::OnCharacterControllerRemoved(const Handle<CharacterController>& characterController)
+void BulletPhysicsAdapter::OnCharacterControllerRemoved(RC<void>& physicsHandle)
 {
-    if (!characterController)
-    {
-        return;
-    }
-
     Assert(m_dynamicsWorld != nullptr);
 
-    CharacterControllerInternalData* internalData = static_cast<CharacterControllerInternalData*>(characterController->GetHandle());
+    CharacterControllerInternalData* internalData = static_cast<CharacterControllerInternalData*>(physicsHandle.GetVoid());
 
     if (!internalData)
     {
@@ -368,16 +350,12 @@ void BulletPhysicsAdapter::OnCharacterControllerRemoved(const Handle<CharacterCo
 
     m_dynamicsWorld->removeAction(internalData->kcc.Get());
     m_dynamicsWorld->removeCollisionObject(internalData->ghostObject.Get());
+    physicsHandle.Reset();
 }
 
-void BulletPhysicsAdapter::SetCharacterWalkDirection(CharacterController* characterController, const Vec3f& velocity)
+void BulletPhysicsAdapter::SetCharacterWalkDirection(const RC<void>& physicsHandle, const Vec3f& velocity)
 {
-    if (!characterController)
-    {
-        return;
-    }
-
-    CharacterControllerInternalData* internalData = static_cast<CharacterControllerInternalData*>(characterController->GetHandle());
+    CharacterControllerInternalData* internalData = static_cast<CharacterControllerInternalData*>(physicsHandle.GetVoid());
 
     if (!internalData)
     {
@@ -387,14 +365,9 @@ void BulletPhysicsAdapter::SetCharacterWalkDirection(CharacterController* charac
     internalData->kcc->setWalkDirection(ToBtVector(velocity));
 }
 
-void BulletPhysicsAdapter::ApplyCharacterJump(CharacterController* characterController)
+void BulletPhysicsAdapter::ApplyCharacterJump(const RC<void>& physicsHandle)
 {
-    if (!characterController)
-    {
-        return;
-    }
-
-    CharacterControllerInternalData* internalData = static_cast<CharacterControllerInternalData*>(characterController->GetHandle());
+    CharacterControllerInternalData* internalData = static_cast<CharacterControllerInternalData*>(physicsHandle.GetVoid());
 
     if (!internalData)
     {
@@ -403,8 +376,21 @@ void BulletPhysicsAdapter::ApplyCharacterJump(CharacterController* characterCont
 
     if (internalData->kcc->onGround())
     {
-        internalData->kcc->jump(btVector3(0.0f, characterController->GetJumpSpeed(), 0.0f));
+        internalData->kcc->jump(btVector3(0.0f, 1.0f, 0.0f));
     }
+}
+
+void BulletPhysicsAdapter::GetCharacterState(const RC<void>& physicsHandle, Vec3f& outTranslation, bool& outIsOnGround)
+{
+    CharacterControllerInternalData* internalData = static_cast<CharacterControllerInternalData*>(physicsHandle.GetVoid());
+
+    if (!internalData)
+    {
+        return;
+    }
+
+    outTranslation = FromBtVector(internalData->ghostObject->getWorldTransform().getOrigin());
+    outIsOnGround = internalData->kcc->onGround();
 }
 
 } // namespace Hyperion

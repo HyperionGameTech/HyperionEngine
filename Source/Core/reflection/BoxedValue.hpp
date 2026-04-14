@@ -1328,6 +1328,11 @@ struct BoxedValueHelper<RC<void>>
 
         return FBOMResult::FBOM_OK;
     }
+
+    static FBOMResult Deserialize(FBOMLoadContext& context, const FBOMData& data, BoxedValue& out)
+    {
+        return { FBOMResult::FBOM_ERR, "Cannot deserialize RC<void>" };
+    }
 };
 
 template <class T>

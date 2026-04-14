@@ -8,7 +8,6 @@
 
 #include <physics/Adapter.hpp>
 #include <physics/RigidBody.hpp>
-#include <physics/CharacterController.hpp>
 
 #include <Core/math/Vector3.hpp>
 
@@ -47,30 +46,22 @@ public:
         return m_rigidBodies;
     }
 
-    HYP_FORCE_INLINE FlatSet<Handle<CharacterController>>& GetCharacterControllers()
-    {
-        return m_characterControllers;
-    }
-
-    HYP_FORCE_INLINE const FlatSet<Handle<CharacterController>>& GetCharacterControllers() const
-    {
-        return m_characterControllers;
-    }
-
     virtual void Teardown() = 0;
     virtual void Tick(double delta) = 0;
 
     virtual void AddRigidBody(const Handle<RigidBody>& rigidBody) = 0;
     virtual void RemoveRigidBody(const Handle<RigidBody>& rigidBody) = 0;
 
-    virtual void AddCharacterController(const Handle<CharacterController>& characterController) = 0;
-    virtual void RemoveCharacterController(const Handle<CharacterController>& characterController) = 0;
+    virtual void AddCharacterController(const CharacterControllerConfig& config, RC<void>& outPhysicsHandle) = 0;
+    virtual void RemoveCharacterController(RC<void>& physicsHandle) = 0;
+    virtual void SetCharacterWalkDirection(const RC<void>& physicsHandle, const Vec3f& velocity) = 0;
+    virtual void ApplyCharacterJump(const RC<void>& physicsHandle) = 0;
+    virtual void GetCharacterState(const RC<void>& physicsHandle, Vec3f& outTranslation, bool& outIsOnGround) = 0;
 
 protected:
     Vec3f m_gravity = EarthGravity;
 
     FlatSet<Handle<RigidBody>> m_rigidBodies;
-    FlatSet<Handle<CharacterController>> m_characterControllers;
 };
 
 template <class Adapter>
@@ -120,30 +111,29 @@ public:
         m_rigidBodies.Erase(rigidBody);
     }
 
-    void AddCharacterController(const Handle<CharacterController>& characterController) override
+    void AddCharacterController(const CharacterControllerConfig& config, RC<void>& outPhysicsHandle) override
     {
-        if (!characterController)
-        {
-            return;
-        }
-
-        const auto insertResult = m_characterControllers.Insert(characterController);
-
-        if (insertResult.second)
-        {
-            m_adapter.OnCharacterControllerAdded(characterController);
-        }
+        m_adapter.OnCharacterControllerAdded(config, outPhysicsHandle);
     }
 
-    void RemoveCharacterController(const Handle<CharacterController>& characterController) override
+    void RemoveCharacterController(RC<void>& physicsHandle) override
     {
-        if (!characterController)
-        {
-            return;
-        }
+        m_adapter.OnCharacterControllerRemoved(physicsHandle);
+    }
 
-        m_adapter.OnCharacterControllerRemoved(characterController);
-        m_characterControllers.Erase(characterController);
+    void SetCharacterWalkDirection(const RC<void>& physicsHandle, const Vec3f& velocity) override
+    {
+        m_adapter.SetCharacterWalkDirection(physicsHandle, velocity);
+    }
+
+    void ApplyCharacterJump(const RC<void>& physicsHandle) override
+    {
+        m_adapter.ApplyCharacterJump(physicsHandle);
+    }
+
+    void GetCharacterState(const RC<void>& physicsHandle, Vec3f& outTranslation, bool& outIsOnGround) override
+    {
+        m_adapter.GetCharacterState(physicsHandle, outTranslation, outIsOnGround);
     }
 
     void Init() override
