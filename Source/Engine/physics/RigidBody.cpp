@@ -72,7 +72,7 @@ void RigidBody::SetPhysicsMaterial(const PhysicsMaterial& physicsMaterial)
     GetPhysicsWorld()->GetAdapter().OnChangePhysicsMaterial(this);
 }
 
-void RigidBody::ApplyForce(const Vector3& force)
+void RigidBody::ApplyForce(const Vec3f& force)
 {
     GetPhysicsWorld()->GetAdapter().ApplyForceToBody(this, force);
 }

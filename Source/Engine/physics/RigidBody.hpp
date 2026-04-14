@@ -21,38 +21,36 @@
 
 #include <physics/PhysicsMaterial.hpp>
 
+#include <asset/AssetObject.hpp>
+
 #include <type_traits>
 
 namespace Hyperion {
 
 HYP_ENUM()
-enum class PhysicsShapeType : uint32
+enum class PhysicsShapeType : uint8
 {
-    NONE,
     BOX,
     SPHERE,
     PLANE,
-    CONVEX_HULL
+    CONVEX_HULL,
+    CAPSULE
 };
 
 HYP_CLASS(Abstract)
-class PhysicsShape : public ObjectBase
+class PhysicsShape : public AssetObject
 {
     HYP_OBJECT_BODY(PhysicsShape);
 
-    PhysicsShape()
-        : m_type(PhysicsShapeType::NONE)
-    {
-    }
-
 protected:
-    PhysicsShape(PhysicsShapeType type)
-        : m_type(type)
+    PhysicsShape(Name name, PhysicsShapeType type)
+        : AssetObject(name),
+          m_type(type)
     {
     }
 
 public:
-    ~PhysicsShape() = default;
+    ~PhysicsShape() override = default;
 
     HYP_FORCE_INLINE PhysicsShapeType GetType() const
     {
@@ -84,13 +82,13 @@ class BoxPhysicsShape final : public PhysicsShape
     HYP_OBJECT_BODY(BoxPhysicsShape);
 
 public:
-    BoxPhysicsShape(const BoundingBox& aabb)
-        : PhysicsShape(PhysicsShapeType::BOX),
+    BoxPhysicsShape(Name name, const BoundingBox& aabb)
+        : PhysicsShape(name, PhysicsShapeType::BOX),
           m_aabb(aabb)
     {
     }
 
-    ~BoxPhysicsShape() = default;
+    ~BoxPhysicsShape() override = default;
 
     HYP_FORCE_INLINE const BoundingBox& GetAABB() const
     {
@@ -98,6 +96,7 @@ public:
     }
 
 protected:
+    HYP_FIELD(Property = "Bounds", Serialize)
     BoundingBox m_aabb;
 };
 
@@ -107,13 +106,13 @@ class SpherePhysicsShape final : public PhysicsShape
     HYP_OBJECT_BODY(SpherePhysicsShape);
 
 public:
-    SpherePhysicsShape(const BoundingSphere& sphere)
-        : PhysicsShape(PhysicsShapeType::SPHERE),
+    SpherePhysicsShape(Name name, const BoundingSphere& sphere)
+        : PhysicsShape(name, PhysicsShapeType::SPHERE),
           m_sphere(sphere)
     {
     }
 
-    ~SpherePhysicsShape() = default;
+    ~SpherePhysicsShape() override = default;
 
     HYP_FORCE_INLINE const BoundingSphere& GetSphere() const
     {
@@ -121,6 +120,7 @@ public:
     }
 
 protected:
+    HYP_FIELD(Property = "Bounds", Serialize)
     BoundingSphere m_sphere;
 };
 
@@ -130,13 +130,13 @@ class PlanePhysicsShape final : public PhysicsShape
     HYP_OBJECT_BODY(PlanePhysicsShape);
 
 public:
-    PlanePhysicsShape(const Vec4f& plane)
-        : PhysicsShape(PhysicsShapeType::PLANE),
+    PlanePhysicsShape(Name name, const Vec4f& plane)
+        : PhysicsShape(name, PhysicsShapeType::PLANE),
           m_plane(plane)
     {
     }
 
-    ~PlanePhysicsShape() = default;
+    ~PlanePhysicsShape() override = default;
 
     HYP_FORCE_INLINE const Vec4f& GetPlane() const
     {
@@ -144,6 +144,7 @@ public:
     }
 
 protected:
+    HYP_FIELD(Property = "Plane", Serialize)
     Vec4f m_plane;
 };
 
@@ -153,8 +154,8 @@ class ConvexHullPhysicsShape final : public PhysicsShape
     HYP_OBJECT_BODY(ConvexHullPhysicsShape);
 
 public:
-    ConvexHullPhysicsShape(const Array<Vec3f>& vertices)
-        : PhysicsShape(PhysicsShapeType::CONVEX_HULL)
+    ConvexHullPhysicsShape(Name name, const Array<Vec3f>& vertices)
+        : PhysicsShape(name, PhysicsShapeType::CONVEX_HULL)
     {
         m_vertices.Resize(vertices.Size() * 3);
 
@@ -166,7 +167,7 @@ public:
         }
     }
 
-    ~ConvexHullPhysicsShape() = default;
+    ~ConvexHullPhysicsShape() override = default;
 
     HYP_FORCE_INLINE const float* GetVertexData() const
     {
@@ -179,7 +180,42 @@ public:
     }
 
 protected:
+    // @TODO Use blob data for this to serialize.
+
     Array<float> m_vertices;
+};
+
+HYP_CLASS()
+class CapsulePhysicsShape final : public PhysicsShape
+{
+    HYP_OBJECT_BODY(CapsulePhysicsShape);
+
+public:
+    CapsulePhysicsShape(Name name, float radius, float height)
+        : PhysicsShape(name, PhysicsShapeType::CAPSULE),
+          m_radius(radius),
+          m_height(height)
+    {
+    }
+
+    ~CapsulePhysicsShape() override = default;
+
+    HYP_FORCE_INLINE float GetRadius() const
+    {
+        return m_radius;
+    }
+
+    HYP_FORCE_INLINE float GetHeight() const
+    {
+        return m_height;
+    }
+
+protected:
+    HYP_FIELD(Property = "Radius", Serialize)
+    float m_radius;
+
+    HYP_FIELD(Property = "Height", Serialize)
+    float m_height;
 };
 
 HYP_CLASS()
@@ -189,33 +225,38 @@ class HYP_API RigidBody final : public ObjectBase
 
 public:
     RigidBody();
-    RigidBody(const PhysicsMaterial& physicsMaterial);
+    explicit RigidBody(const PhysicsMaterial& physicsMaterial);
+    
     RigidBody(const Handle<PhysicsShape>& shape, const PhysicsMaterial& physicsMaterial);
 
     RigidBody(const RigidBody& other) = delete;
     RigidBody& operator=(const RigidBody& other) = delete;
+
+    RigidBody(RigidBody&& other) noexcept = default;
+    RigidBody& operator=(RigidBody&& other) noexcept = default;
+
     ~RigidBody();
 
     /*! \brief Get the world-space transform of this RigidBody. */
-    HYP_METHOD(Serialize, Property = "Transform")
+    HYP_METHOD(Property = "Transform", Serialize)
     HYP_FORCE_INLINE const Transform& GetTransform() const
     {
         return m_transform;
     }
 
-    HYP_METHOD(Serialize, Property = "Transform")
+    HYP_METHOD(Property = "Transform", Serialize)
     HYP_FORCE_INLINE void SetTransform(const Transform& transform)
     {
         m_transform = transform;
     }
 
-    HYP_METHOD(Serialize, Property = "Shape")
+    HYP_METHOD(Property = "Shape", Serialize)
     HYP_FORCE_INLINE const Handle<PhysicsShape>& GetShape() const
     {
         return m_shape;
     }
 
-    HYP_METHOD(Serialize, Property = "Shape")
+    HYP_METHOD(Property = "Shape", Serialize)
     void SetShape(const Handle<PhysicsShape>& shape);
 
     HYP_FORCE_INLINE PhysicsMaterial& GetPhysicsMaterial()
@@ -230,13 +271,13 @@ public:
 
     void SetPhysicsMaterial(const PhysicsMaterial& physicsMaterial);
 
-    HYP_METHOD(Serialize, Property = "IsKinematic")
+    HYP_METHOD(Property = "IsKinematic", Serialize)
     HYP_FORCE_INLINE bool IsKinematic() const
     {
         return m_isKinematic;
     }
 
-    HYP_METHOD(Serialize, Property = "IsKinematic")
+    HYP_METHOD(Property = "IsKinematic", Serialize)
     HYP_FORCE_INLINE void SetIsKinematic(bool isKinematic)
     {
         m_isKinematic = isKinematic;

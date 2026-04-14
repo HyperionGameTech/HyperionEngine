@@ -7,11 +7,13 @@
 #pragma once
 
 #include <Core/reflection/Handle.hpp>
+#include <Core/math/Vector3.hpp>
 
 namespace Hyperion {
 
 class PhysicsWorldBase;
 class RigidBody;
+class CharacterController;
 
 template <class DerivedAdapter>
 class PhysicsAdapter
@@ -65,6 +67,26 @@ public:
     void ApplyForceToBody(const RigidBody* rigidBody, const Vector3& force)
     {
         GetDerivedAdapter()->DerivedAdapter::ApplyForceToBody(rigidBody, force);
+    }
+
+    void OnCharacterControllerAdded(const Handle<CharacterController>& characterController)
+    {
+        GetDerivedAdapter()->DerivedAdapter::OnCharacterControllerAdded(characterController);
+    }
+
+    void OnCharacterControllerRemoved(const Handle<CharacterController>& characterController)
+    {
+        GetDerivedAdapter()->DerivedAdapter::OnCharacterControllerRemoved(characterController);
+    }
+
+    void SetCharacterWalkDirection(CharacterController* characterController, const Vec3f& velocity)
+    {
+        GetDerivedAdapter()->DerivedAdapter::SetCharacterWalkDirection(characterController, velocity);
+    }
+
+    void ApplyCharacterJump(CharacterController* characterController)
+    {
+        GetDerivedAdapter()->DerivedAdapter::ApplyCharacterJump(characterController);
     }
 };
 

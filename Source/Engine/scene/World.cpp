@@ -19,6 +19,7 @@
 #include <scene/systems/AnimationSystem.hpp>
 #include <scene/systems/AudioSystem.hpp>
 #include <scene/systems/PhysicsSystem.hpp>
+#include <scene/systems/CharacterControllerSystem.hpp>
 #include <scene/systems/ScriptSystem.hpp>
 #include <scene/systems/MeshSystem.hpp>
 
@@ -312,6 +313,9 @@ void World::Init()
     
     if (!HasSystem<PhysicsSystem>())
         AddSystem(MakeHandle<PhysicsSystem>());
+
+    if (!HasSystem<CharacterControllerSystem>())
+        AddSystem(MakeHandle<CharacterControllerSystem>());
 
     if (!HasSystem<ScriptSystem>())
         AddSystem(MakeHandle<ScriptSystem>());

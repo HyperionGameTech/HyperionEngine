@@ -18,7 +18,7 @@ struct PhysicsMaterial
 {
     HYP_STRUCT_BODY(PhysicsMaterial);
 
-    HYP_FIELD(Serialize, Property = "Mass")
+    HYP_FIELD(Property = "Mass", Serialize)
     float mass = 0.0f;
 
     HYP_FORCE_INLINE float GetMass() const
@@ -34,7 +34,6 @@ struct PhysicsMaterial
     HYP_FORCE_INLINE HashCode GetHashCode() const
     {
         HashCode hashCode;
-
         hashCode.Add(mass);
 
         return hashCode;

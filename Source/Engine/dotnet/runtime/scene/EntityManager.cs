@@ -71,6 +71,13 @@ namespace Hyperion
             }
         }
 
+        public unsafe void AddDefaultComponent(Entity entity, Class componentClass)
+        {
+            uint size = componentClass.Size;
+            byte* buffer = stackalloc byte[(int)size];
+            EntityManager_AddComponent(NativeAddress, entity.NativeAddress, componentClass.TypeId, (IntPtr)buffer);
+        }
+
         public ref T GetComponent<T>(Entity entity) where T : IComponent, allows ref struct
         {
             Class componentClass = Class.GetClass(typeof(T));

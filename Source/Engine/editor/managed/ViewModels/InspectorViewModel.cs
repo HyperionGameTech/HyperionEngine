@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Linq;
+using System.Reflection;
 using System.Threading.Tasks;
 using System.Windows.Input;
 using Avalonia.Threading;
@@ -262,27 +263,13 @@ namespace Hyperion.Editor.ViewModels
                         {
                             InspectorComponentViewModelBase? componentVm = null;
 
-                            switch (typeId)
-                            {
-                                case TypeId tid when tid == BoundingBoxComponent.Class.TypeId:
-                                    componentVm = new InspectorComponentViewModel<BoundingBoxComponent>(entity);
-                                    break;
-                                case TypeId tid when tid == TransformComponent.Class.TypeId:
-                                    componentVm = new InspectorComponentViewModel<TransformComponent>(entity);
-                                    break;
-                                case TypeId tid when tid == MeshComponent.Class.TypeId:
-                                    componentVm = new InspectorComponentViewModel<MeshComponent>(entity);
-                                    break;
-                                case TypeId tid when tid == UIComponent.Class.TypeId:
-                                    componentVm = new InspectorComponentViewModel<UIComponent>(entity);
-                                    break;
-                                case TypeId tid when tid == VisibilityStateComponent.Class.TypeId:
-                                    componentVm = new InspectorComponentViewModel<VisibilityStateComponent>(entity);
-                                    break;
-                                default:
-                                    Logger.Log(LogLevel.Debug, $"Inspector has no view model for component type '{typeId}'");
-                                    break;
-                            }
+                            ComponentTypeDescriptor? descriptor = s_registeredComponents.Value
+                                .FirstOrDefault(d => d.TypeId == typeId);
+
+                            if (descriptor != null)
+                                componentVm = descriptor.CreateViewModel(entity);
+                            else
+                                Logger.Log(LogLevel.Debug, $"Inspector has no view model for component type '{typeId}'");
 
                             if (componentVm != null && componentVm.IsEditorVisible)
                             {
@@ -419,7 +406,7 @@ namespace Hyperion.Editor.ViewModels
 
         private void UpdateAddableComponents(IEnumerable<TypeId> existingComponentTypes)
         {
-            HashSet<TypeId> existingTypes = new HashSet<TypeId>(existingComponentTypes);
+            HashSet<TypeId> existingTypes = new(existingComponentTypes);
 
             AddableComponents.Clear();
 
@@ -438,13 +425,60 @@ namespace Hyperion.Editor.ViewModels
         }
 
         private static IEnumerable<(string Label, TypeId TypeId)> GetSupportedComponentTypes()
+            => s_registeredComponents.Value
+                .Where(d => d.IsEditorEnabled)
+                .Select(d => (d.Label, d.TypeId));
+
+        private sealed record ComponentTypeDescriptor(
+            string Label,
+            Func<TypeId> GetTypeId,
+            Func<Entity, InspectorComponentViewModelBase> CreateViewModel,
+            Action<EntityManager, Entity> AddComponent)
         {
-            yield return ("Transform", TransformComponent.Class.TypeId);
-            yield return ("Mesh", MeshComponent.Class.TypeId);
-            yield return ("UI", UIComponent.Class.TypeId);
-            yield return ("Visibility State", VisibilityStateComponent.Class.TypeId);
-            yield return ("Bounding Box", BoundingBoxComponent.Class.TypeId);
+            // Evaluated on first access rather than at static init time
+            public TypeId TypeId => GetTypeId();
+            public bool IsEditorEnabled => Class.TryGetClass(TypeId)?.GetAttribute(new Name("editor", weak: true))?.GetBool() ?? true;
         }
+
+        private static ComponentTypeDescriptor? BuildDescriptor(Type componentType)
+        {
+            try
+            {
+                Class? cls = Class.TryGetClass(componentType);
+
+                if (cls == null || !cls.Value.IsValid)
+                    return null;
+
+                Class componentClass = cls.Value;
+                ClassAttribute? attrLabel = componentClass.GetAttribute("label");
+                string label = attrLabel.HasValue ? attrLabel.Value.GetString() : componentClass.Name.ToString();
+
+                Type vmType = typeof(InspectorComponentViewModel<>).MakeGenericType(componentType);
+
+                return new ComponentTypeDescriptor(
+                    label,
+                    () => componentClass.TypeId,
+                    entity => (InspectorComponentViewModelBase)Activator.CreateInstance(vmType, entity)!,
+                    (mgr, entity) => mgr.AddDefaultComponent(entity, componentClass));
+            }
+            catch (Exception ex)
+            {
+                Logger.Log(LogLevel.Warning, $"Inspector failed to build descriptor for '{componentType.Name}': {ex.Message}");
+                return null;
+            }
+        }
+
+        private static readonly Lazy<ComponentTypeDescriptor[]> s_registeredComponents = new(() =>
+            AppDomain.CurrentDomain.GetAssemblies()
+                .SelectMany(a =>
+                {
+                    try { return a.GetTypes(); }
+                    catch { return Array.Empty<Type>(); }
+                })
+                .Where(t => t.IsValueType && t.GetInterfaces().Contains(typeof(IComponent)))
+                .Select(BuildDescriptor)
+                .OfType<ComponentTypeDescriptor>()
+                .ToArray());
 
         private bool CanAddComponent(object? parameter)
         {
@@ -478,42 +512,13 @@ namespace Hyperion.Editor.ViewModels
 
                     try
                     {
-                        switch (option.TypeId)
-                        {
-                            case TypeId tid when tid == TransformComponent.Class.TypeId:
-                            {
-                                TransformComponent comp = default;
-                                mgr.AddComponent(entity, ref comp);
-                                break;
-                            }
-                            case TypeId tid when tid == MeshComponent.Class.TypeId:
-                            {
-                                MeshComponent comp = default;
-                                mgr.AddComponent(entity, ref comp);
-                                break;
-                            }
-                            case TypeId tid when tid == UIComponent.Class.TypeId:
-                            {
-                                UIComponent comp = default;
-                                mgr.AddComponent(entity, ref comp);
-                                break;
-                            }
-                            case TypeId tid when tid == VisibilityStateComponent.Class.TypeId:
-                            {
-                                VisibilityStateComponent comp = default;
-                                mgr.AddComponent(entity, ref comp);
-                                break;
-                            }
-                            case TypeId tid when tid == BoundingBoxComponent.Class.TypeId:
-                            {
-                                BoundingBoxComponent comp = default;
-                                mgr.AddComponent(entity, ref comp);
-                                break;
-                            }
-                            default:
-                                Logger.Log(LogLevel.Warning, $"Inspector cannot add unsupported component type '{option.TypeId}'");
-                                break;
-                        }
+                        ComponentTypeDescriptor? descriptor = s_registeredComponents.Value
+                            .FirstOrDefault(d => d.TypeId == option.TypeId);
+
+                        if (descriptor != null)
+                            descriptor.AddComponent(mgr, entity);
+                        else
+                            Logger.Log(LogLevel.Warning, $"Inspector cannot add unsupported component type '{option.Label}'");
                     }
                     catch (Exception ex)
                     {
