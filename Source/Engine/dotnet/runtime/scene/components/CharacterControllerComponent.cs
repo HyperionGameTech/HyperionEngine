@@ -20,14 +20,25 @@ namespace Hyperion
             }
         }
 
-        public Handle<CharacterController> CharacterController;
-        public float MoveSpeed;
-        public Vec3f ViewDirection;
+        public Handle<PhysicsShape> Shape;
         public Handle<InputHandlerBase> InputHandler;
+        public RefCountedPtr PhysicsHandle; // RC<void> - internal, do not access directly
+
+        public Vec3f ViewDirection;
+        public Vec3f Translation;
+
+        public float MoveSpeed;
+        public float StepHeight;
+        public float MaxSlopeAngle;
+        public float JumpSpeed;
+        public float FallSpeed;
+
+        [MarshalAs(UnmanagedType.I1)]
+        public bool IsOnGround;
 
         public void Dispose()
         {
-            CharacterController.Dispose();
+            Shape.Dispose();
             InputHandler.Dispose();
         }
     }

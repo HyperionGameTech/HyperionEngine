@@ -437,7 +437,7 @@ namespace Hyperion.Editor.ViewModels
         {
             // Evaluated on first access rather than at static init time
             public TypeId TypeId => GetTypeId();
-            public bool IsEditorEnabled => Class.TryGetClass(TypeId)?.GetAttribute(new Name("editor", weak: true))?.GetBool() ?? true;
+            public bool IsEditorEnabled => Class.TryGetClass(TypeId)?.GetAttribute("editor")?.GetBool() ?? true;
         }
 
         private static ComponentTypeDescriptor? BuildDescriptor(Type componentType)

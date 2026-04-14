@@ -13,13 +13,69 @@
 #include <scene/World.hpp>
 
 #include <physics/PhysicsWorld.hpp>
-#include <physics/CharacterController.hpp>
+
+#include <input/Keyboard.hpp>
 
 #include <engine/Game.hpp>
 
 #include <CharacterControllerSystem.generated.inl>
 
 namespace Hyperion {
+
+#pragma region CharacterControllerInputHandler
+
+Vec2f CharacterControllerInputHandler::GetMovementInput() const
+{
+    return Vec2f(m_strafe, m_forward);
+}
+
+bool CharacterControllerInputHandler::IsJumpPressed() const
+{
+    return m_jump;
+}
+
+bool CharacterControllerInputHandler::OnKeyDown_Impl(const KeyboardEvent& evt)
+{
+    switch (evt.keyCode)
+    {
+    case KeyCode::KEY_W:     m_forward =  1.0f; return true;
+    case KeyCode::KEY_S:     m_forward = -1.0f; return true;
+    case KeyCode::KEY_A:     m_strafe  = -1.0f; return true;
+    case KeyCode::KEY_D:     m_strafe  =  1.0f; return true;
+    case KeyCode::KEY_SPACE: m_jump    = true;  return true;
+    default: break;
+    }
+
+    return false;
+}
+
+bool CharacterControllerInputHandler::OnKeyUp_Impl(const KeyboardEvent& evt)
+{
+    switch (evt.keyCode)
+    {
+    case KeyCode::KEY_W:
+        if (m_forward > 0.0f) m_forward = 0.0f;
+        return true;
+    case KeyCode::KEY_S:
+        if (m_forward < 0.0f) m_forward = 0.0f;
+        return true;
+    case KeyCode::KEY_A:
+        if (m_strafe < 0.0f) m_strafe = 0.0f;
+        return true;
+    case KeyCode::KEY_D:
+        if (m_strafe > 0.0f) m_strafe = 0.0f;
+        return true;
+    case KeyCode::KEY_SPACE:
+        m_jump = false;
+        return true;
+    default:
+        return false;
+    }
+}
+
+#pragma endregion CharacterControllerInputHandler
+
+#pragma region CharacterControllerSystem
 
 bool CharacterControllerSystem::ShouldProcessScene(Scene* scene) const
 {
@@ -32,7 +88,10 @@ void CharacterControllerSystem::OnEntityAdded(Entity* entity)
 {
     SystemBase::OnEntityAdded(entity);
 
-    CharacterControllerComponent& component = entity->GetEntityManager()->GetComponent<CharacterControllerComponent>(entity);
+    if (!ShouldProcessScene(entity->GetScene()))
+        return;
+
+    CharacterControllerComponent& component = entity->GetComponent<CharacterControllerComponent>();
 
     if (!component.inputHandler)
     {
@@ -40,38 +99,38 @@ void CharacterControllerSystem::OnEntityAdded(Entity* entity)
         InitObject(component.inputHandler);
     }
 
-    if (component.characterController)
-    {
-        InitObject(component.characterController);
+    TransformComponent& transformComponent = entity->GetComponent<TransformComponent>();
+    component.translation = transformComponent.translation;
 
-        TransformComponent& transformComponent = entity->GetEntityManager()->GetComponent<TransformComponent>(entity);
+    CharacterControllerConfig config;
+    config.shape = component.shape;
+    config.startTranslation = component.translation;
+    config.stepHeight = component.stepHeight;
+    config.maxSlopeAngle = component.maxSlopeAngle;
+    config.jumpSpeed = component.jumpSpeed;
+    config.fallSpeed = component.fallSpeed;
 
-        component.characterController->SetTranslation(transformComponent.translation);
-
-        entity->GetWorld()->GetPhysicsWorld()->AddCharacterController(component.characterController);
-    }
+    entity->GetWorld()->GetPhysicsWorld()->AddCharacterController(config, component.physicsHandle);
 }
 
 void CharacterControllerSystem::OnEntityRemoved(Entity* entity)
 {
     SystemBase::OnEntityRemoved(entity);
 
-    CharacterControllerComponent& component = entity->GetEntityManager()->GetComponent<CharacterControllerComponent>(entity);
+    if (!ShouldProcessScene(entity->GetScene()))
+        return;
 
-    if (component.characterController)
+    CharacterControllerComponent& component = entity->GetComponent<CharacterControllerComponent>();
+
+    if (component.physicsHandle)
     {
-        entity->GetWorld()->GetPhysicsWorld()->RemoveCharacterController(component.characterController);
+        entity->GetWorld()->GetPhysicsWorld()->RemoveCharacterController(component.physicsHandle);
     }
 }
 
 void CharacterControllerSystem::Process(float delta, Span<Handle<Scene>> scenes)
 {
     HYP_SCOPE;
-
-    if (!GetWorld()->GetGameState().IsSimulating())
-    {
-        return;
-    }
 
     for (Scene* scene : scenes)
     {
@@ -82,9 +141,7 @@ void CharacterControllerSystem::Process(float delta, Span<Handle<Scene>> scenes)
 
         for (auto [entity, component, transformComponent] : scene->GetEntityManager()->GetEntitySet<CharacterControllerComponent, TransformComponent>().GetScopedView(GetComponentInfos()))
         {
-            Handle<CharacterController>& characterController = component.characterController;
-
-            if (!characterController)
+            if (!component.physicsHandle)
             {
                 continue;
             }
@@ -97,11 +154,10 @@ void CharacterControllerSystem::Process(float delta, Span<Handle<Scene>> scenes)
 
                 if (inputHandler)
                 {
-                    Vec2f movementInput = inputHandler->GetMovementInput(); // (strafe, forward)
+                    Vec2f movementInput = inputHandler->GetMovementInput();
 
                     if (movementInput.LengthSquared() > 0.0001f)
                     {
-                        // Build a right vector from the view direction (flat on XZ plane)
                         Vec3f forward = Vec3f(component.viewDirection.x, 0.0f, component.viewDirection.z).Normalize();
                         Vec3f right   = forward.Cross(Vec3f(0.0f, 1.0f, 0.0f)).Normalize();
 
@@ -110,16 +166,20 @@ void CharacterControllerSystem::Process(float delta, Span<Handle<Scene>> scenes)
 
                     if (inputHandler->IsJumpPressed())
                     {
-                        characterController->Jump();
+                        entity->GetWorld()->GetPhysicsWorld()->ApplyCharacterJump(component.physicsHandle);
                     }
                 }
             }
 
-            characterController->SetWalkDirection(walkDirection);
+            entity->GetWorld()->GetPhysicsWorld()->SetCharacterWalkDirection(component.physicsHandle, walkDirection);
+            entity->GetWorld()->GetPhysicsWorld()->GetCharacterState(component.physicsHandle, component.translation, component.isOnGround);
 
-            transformComponent.translation = characterController->GetTranslation();
+            transformComponent.translation = component.translation;
         }
     }
 }
 
+#pragma endregion CharacterControllerSystem
+
 } // namespace Hyperion
+

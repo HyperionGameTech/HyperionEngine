@@ -20,6 +20,18 @@
       "EnumValues": []
     }, {
       "$Class": "ShaderProperty",
+      "Name": "TILE_SIZE",
+      "Flags": 0,
+      "Value": 32,
+      "EnumValues": []
+    }, {
+      "$Class": "ShaderProperty",
+      "Name": "TILE_Z_BINS",
+      "Flags": 0,
+      "Value": 16,
+      "EnumValues": []
+    }, {
+      "$Class": "ShaderProperty",
       "Name": "SHADING_TYPE",
       "Flags": 0,
       "Value": "FORWARD",
@@ -35,18 +47,6 @@
       "Name": "SKINNING",
       "Flags": 0,
       "Value": null,
-      "EnumValues": []
-    }, {
-      "$Class": "ShaderProperty",
-      "Name": "TILE_SIZE",
-      "Flags": 0,
-      "Value": 32,
-      "EnumValues": []
-    }, {
-      "$Class": "ShaderProperty",
-      "Name": "TILE_Z_BINS",
-      "Flags": 0,
-      "Value": 16,
       "EnumValues": []
     }],
   "RevisionNumber": 31459917,

@@ -10,10 +10,12 @@
 #include <Core/reflection/ObjectMacros.hpp>
 
 #include <Core/math/Vector3.hpp>
+#include <Core/memory/RefCountedPtr.hpp>
+
+#include <physics/RigidBody.hpp>
 
 namespace Hyperion {
 
-class CharacterController;
 class InputHandlerBase;
 
 HYP_STRUCT(Component,
@@ -24,17 +26,38 @@ struct CharacterControllerComponent
 {
     HYP_STRUCT_BODY(CharacterControllerComponent);
 
-    HYP_FIELD(Property = "CharacterController")
-    Handle<CharacterController> characterController;
-
-    HYP_FIELD(Property = "MoveSpeed")
-    float moveSpeed = 5.0f;
-
-    HYP_FIELD(Property = "ViewDirection")
-    Vec3f viewDirection = Vec3f(0.0f, 0.0f, 1.0f);
+    HYP_FIELD(Property = "Shape", Serialize)
+    Handle<PhysicsShape> shape;
 
     HYP_FIELD(Transient)
     Handle<InputHandlerBase> inputHandler;
+
+    HYP_FIELD(Transient)
+    RC<void> physicsHandle;
+
+    HYP_FIELD(Property = "ViewDirection", Serialize)
+    Vec3f viewDirection = Vec3f(0.0f, 0.0f, 1.0f);
+
+    HYP_FIELD(Transient)
+    Vec3f translation;
+
+    HYP_FIELD(Property = "MoveSpeed", Serialize)
+    float moveSpeed = 5.0f;
+
+    HYP_FIELD(Property = "StepHeight", Serialize)
+    float stepHeight = 0.35f;
+
+    HYP_FIELD(Property = "MaxSlopeAngle", Serialize)
+    float maxSlopeAngle = 45.0f;
+
+    HYP_FIELD(Property = "JumpSpeed", Serialize)
+    float jumpSpeed = 10.0f;
+
+    HYP_FIELD(Property = "FallSpeed", Serialize)
+    float fallSpeed = 55.0f;
+
+    HYP_FIELD(Transient)
+    bool isOnGround = false;
 };
 
 } // namespace Hyperion

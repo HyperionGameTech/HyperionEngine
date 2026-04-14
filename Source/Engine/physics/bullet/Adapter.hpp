@@ -34,10 +34,11 @@ public:
 
     void ApplyForceToBody(const RigidBody* rigidBody, const Vec3f& force);
 
-    void OnCharacterControllerAdded(const Handle<CharacterController>& characterController);
-    void OnCharacterControllerRemoved(const Handle<CharacterController>& characterController);
-    void SetCharacterWalkDirection(CharacterController* characterController, const Vec3f& velocity);
-    void ApplyCharacterJump(CharacterController* characterController);
+    void OnCharacterControllerAdded(const CharacterControllerConfig& config, RC<void>& outPhysicsHandle);
+    void OnCharacterControllerRemoved(RC<void>& physicsHandle);
+    void SetCharacterWalkDirection(const RC<void>& physicsHandle, const Vec3f& velocity);
+    void ApplyCharacterJump(const RC<void>& physicsHandle);
+    void GetCharacterState(const RC<void>& physicsHandle, Vec3f& outTranslation, bool& outIsOnGround);
 
 private:
     btDbvtBroadphase* m_broadphase;
