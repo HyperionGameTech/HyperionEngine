@@ -146,9 +146,9 @@ public:
     template <EntityTag Tag>
     HYP_FORCE_INLINE HashCode GetEntryListHash() const
     {
-        static_assert((uint32(Tag) < uint32(EntityTag::MaxPersistent)), "All tags must have a value < EntityTag::SAVABLE_MAX");
+        static_assert((uint64(Tag) < NumEntryHashes), "All tags must have a value < NumEntryHashes");
 
-        return HashCode(m_entryHashes[uint32(Tag)])
+        return HashCode(m_entryHashes[uint64(Tag)])
             .Add(m_invalidationMarker);
     }
 
@@ -156,9 +156,12 @@ public:
      */
     HYP_FORCE_INLINE HashCode GetEntryListHash(EntityTag entityTag) const
     {
-        Assert(uint32(entityTag) < m_entryHashes.Size());
+        AssertDebug(uint64(entityTag) < m_entryHashes.Size());
 
-        return HashCode(m_entryHashes[uint32(entityTag)])
+        if (uint64(entityTag) >= m_entryHashes.Size())
+            return HashCode();
+
+        return HashCode(m_entryHashes[uint64(entityTag)])
             .Add(m_invalidationMarker);
     }
 
@@ -200,7 +203,7 @@ public:
     Result Update(Entity* entity, const BoundingBox& aabb, bool forceInvalidation = false, bool allowRebuild = false);
 
 private:
-    static constexpr uint32 numEntryHashes = uint32(EntityTag::MaxPersistent);
+    static constexpr uint32 NumEntryHashes = MathUtil::FastLog2_Pow2(EntityTag::SerializableTagMask) + 1;
 
     HYP_FORCE_INLINE bool UseEntityMap() const
     {
@@ -232,7 +235,7 @@ private:
 
     Handle<EntityManager> m_entityManager;
 
-    FixedArray<HashCode, numEntryHashes> m_entryHashes;
+    FixedArray<HashCode, NumEntryHashes> m_entryHashes;
 
     VisibilityState m_visibilityState;
 };

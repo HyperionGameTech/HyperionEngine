@@ -587,7 +587,7 @@ void Entity::DeserializeComponents(const Array<BoxedValue, DynamicAllocator>& co
 
             HYP_NAMED_SCOPE("Deserializing entity tag");
 
-            Optional<EntityTag> entityTagOpt = componentData.TryGet<EntityTag>();
+            Optional<EntityTag&> entityTagOpt = componentData.TryGet<EntityTag>();
 
             if (!entityTagOpt.HasValue())
             {

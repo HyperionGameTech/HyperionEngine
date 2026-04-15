@@ -16,6 +16,7 @@
 #include <Core/math/Mat4f.hpp>
 
 #include <scene/Node.hpp>
+#include <scene/EntityTag.hpp>
 
 namespace Hyperion {
 
@@ -25,7 +26,6 @@ class Node;
 class EntityManager;
 struct Transform;
 struct BoxedValue;
-enum class EntityTag : uint64;
 
 struct EntityInitInfo
 {
