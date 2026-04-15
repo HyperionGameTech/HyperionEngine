@@ -299,10 +299,8 @@ class RenderProxyMaterial final : public IRenderProxy
 public:
     RenderProxyMaterial()
     {
-        for (uint32 i = 0; i < MaxBoundTextures; ++i)
-        {
-            boundTextureIndices[i] = ~0u;
-        }
+        // set all to invalid (~0u) by default
+        Memory::Fill(boundTextureIndices.Data(), 0xFFu, boundTextureIndices.ByteSize());
     }
 
     WeakHandle<Material> material;
