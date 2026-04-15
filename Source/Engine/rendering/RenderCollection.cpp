@@ -317,19 +317,6 @@ static void BuildAttributes(const RenderProxyMesh& proxy, RenderableAttributeSet
         newShaderProperties.Set(Props::s_propSkinning, hasSkinning);
     }
 
-#if 0 // Not using this any more since we are just using branching on uniforms. Remove eventually.
-    // update shader properties to reflect texture presence based on texture mask
-    for (const auto& [textureKey, property] : Props::s_textureProperties)
-    {
-        const bool presence = bool(attributes.GetMaterialAttributes().textureMask & uint32(textureKey));
-
-        if (presence != currentShaderProperties.Test(property))
-        {
-            newShaderProperties.Set(property, presence);
-        }
-    }
-#endif
-
     if (newShaderProperties != currentShaderProperties)
     {
         // Update the shader definition in the attributes
@@ -842,24 +829,17 @@ static void RenderAll(
         
         if (!s_useBindlessTextures)
         {
-            const uint32 textureMask = drawCallCollection.renderGroup.renderableAttributes.GetMaterialAttributes().textureMask;
+            RenderProxyMaterial* materialProxy = static_cast<RenderProxyMaterial*>(GetRenderProxy(drawCalls.materials[i]));
+            AssertDebug(materialProxy != nullptr);
 
-            if (textureMask != 0)
+            Span<const GpuImageViewRef> imageViews = g_renderInterface->materialTextureCache->imageViews.Get(materialBoundIndex);
+            AssertDebug(imageViews.Size() >= materialProxy->boundTextures.Size());
+
+            FOR_EACH_BIT(materialProxy->bufferData.textureUsage, bit)
             {
-                RenderProxyMaterial* materialProxy = static_cast<RenderProxyMaterial*>(GetRenderProxy(drawCalls.materials[i]));
-                AssertDebug(materialProxy != nullptr);
+                const StringHash textureUniformName = Material::s_textureNames[bit];
 
-                Span<const GpuImageViewRef> imageViews = g_renderInterface->materialTextureCache->imageViews.Get(materialBoundIndex);
-                AssertDebug(imageViews.Size() >= materialProxy->boundTextures.Size());
-
-                FOR_EACH_BIT(textureMask, bit)
-                {
-                    const StringHash textureUniformName = Material::s_textureNames[bit];
-
-                    cr << SetShaderUniform(numDrawCallUniforms++,
-                        textureUniformName,
-                        imageViews[materialProxy->boundTextureIndices[bit]]);
-                }
+                cr << SetShaderUniform(numDrawCallUniforms++, textureUniformName, imageViews[materialProxy->boundTextureIndices[bit]]);
             }
         }
         
@@ -927,24 +907,19 @@ static void RenderAll(
         
         if (!s_useBindlessTextures)
         {
-            const uint32 textureMask = drawCallCollection.renderGroup.renderableAttributes.GetMaterialAttributes().textureMask;
+            RenderProxyMaterial* materialProxy = static_cast<RenderProxyMaterial*>(GetRenderProxy(instancedDrawCalls.materials[i]));
+            AssertDebug(materialProxy != nullptr);
 
-            if (textureMask != 0)
+            Span<const GpuImageViewRef> imageViews = g_renderInterface->materialTextureCache->imageViews.Get(materialBoundIndex);
+            AssertDebug(imageViews.Size() >= materialProxy->boundTextures.Size());
+
+            FOR_EACH_BIT(materialProxy->bufferData.textureUsage, bit)
             {
-                RenderProxyMaterial* materialProxy = static_cast<RenderProxyMaterial*>(GetRenderProxy(instancedDrawCalls.materials[i]));
-                AssertDebug(materialProxy != nullptr);
+                const StringHash textureUniformName = Material::s_textureNames[bit];
 
-                Span<const GpuImageViewRef> imageViews = g_renderInterface->materialTextureCache->imageViews.Get(materialBoundIndex);
-                AssertDebug(imageViews.Size() >= materialProxy->boundTextures.Size());
-
-                FOR_EACH_BIT(textureMask, bit)
-                {
-                    const StringHash textureUniformName = Material::s_textureNames[bit];
-
-                    cr << SetShaderUniform(numDrawCallUniforms++,
-                        textureUniformName,
-                        imageViews[materialProxy->boundTextureIndices[bit]]);
-                }
+                cr << SetShaderUniform(numDrawCallUniforms++,
+                    textureUniformName,
+                    imageViews[materialProxy->boundTextureIndices[bit]]);
             }
         }
         

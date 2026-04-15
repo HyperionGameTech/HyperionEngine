@@ -74,9 +74,6 @@ struct MaterialAttributes
     HYP_FIELD()
     float depthBiasSlope = 0.0f;
 
-    HYP_FIELD(Transient)
-    uint32 textureMask = 0;
-
     HYP_FORCE_INLINE bool operator==(const MaterialAttributes& other) const
     {
         return shaderName == other.shaderName
@@ -89,8 +86,7 @@ struct MaterialAttributes
             && stencilFunction == other.stencilFunction
             && stencilReference == other.stencilReference
             && depthBias == other.depthBias
-            && MathUtil::ApproxEqual(depthBiasSlope, other.depthBiasSlope)
-            && textureMask == other.textureMask;
+            && MathUtil::ApproxEqual(depthBiasSlope, other.depthBiasSlope);
     }
 
     HYP_FORCE_INLINE bool operator!=(const MaterialAttributes& other) const
@@ -112,7 +108,6 @@ struct MaterialAttributes
         hc.Add(stencilReference);
         hc.Add(depthBias);
         hc.Add(depthBiasSlope);
-        hc.Add(textureMask);
 
         return hc;
     }

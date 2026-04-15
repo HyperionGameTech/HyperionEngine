@@ -104,7 +104,6 @@ Material::Material(
       m_isDynamic(false),
       m_renderProxyVersion(0)
 {
-    UpdateAttributesTextureMask();
 }
 
 Material::~Material()
@@ -209,8 +208,6 @@ void Material::SetTexture(MaterialTextureKey key, const Handle<Texture>& texture
 
     m_textures[key] = texture;
 
-    UpdateAttributesTextureMask();
-
     CheckResult(texture->Create());
 
     SetNeedsRenderProxyUpdate();
@@ -248,8 +245,6 @@ void Material::SetTextures(const MaterialTextures& textures)
     }
 
     m_textures = textures;
-
-    UpdateAttributesTextureMask();
 
     for (size_t i = 0; i < m_textures.Size(); i++)
     {
@@ -369,19 +364,6 @@ void Material::UpdateRenderProxy(RenderProxyMaterial* proxy)
             proxy->boundTextureIndices[slot] = idx;
 
             --remainingTextureSlots;
-        }
-    }
-}
-
-void Material::UpdateAttributesTextureMask()
-{
-    m_attributes.textureMask = 0;
-
-    for (uint32 i = 0; i < uint32(m_textures.Size()); i++)
-    {
-        if (m_textures.AtIndex(i) != nullptr)
-        {
-            m_attributes.textureMask |= (1u << i);
         }
     }
 }
