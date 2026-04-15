@@ -101,7 +101,10 @@ Result BoxedToJSON(
     {
         AssertDebug(assetReference.IsValid(), "Serializing invalid asset reference");
 
-        return BoxedToJSON(BoxedValue(assetReference), outJson, opts);
+        ToJSONOptions newOpts = opts;
+        newOpts.writeClassNames |= ForceWriteClassNamesWhenTypesDiffer;
+
+        return BoxedToJSON(BoxedValue(assetReference), outJson, newOpts);
     }
 
     assetReference = AssetReference(); // reset

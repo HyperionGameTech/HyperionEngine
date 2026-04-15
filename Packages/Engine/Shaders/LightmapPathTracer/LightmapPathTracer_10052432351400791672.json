@@ -2,21 +2,9 @@
   "$Class": "Shader",
   "PropertySet": [{
       "$Class": "ShaderProperty",
-      "Name": "HYP_VULKAN",
+      "Name": "MAX_LIGHTS",
       "Flags": 0,
-      "Value": 4202496,
-      "EnumValues": []
-    }, {
-      "$Class": "ShaderProperty",
-      "Name": "NUM_GBUFFER_TEXTURES",
-      "Flags": 0,
-      "Value": 5,
-      "EnumValues": []
-    }, {
-      "$Class": "ShaderProperty",
-      "Name": "HYP_FEATURES_BINDLESS_TEXTURES",
-      "Flags": 0,
-      "Value": null,
+      "Value": 16,
       "EnumValues": []
     }, {
       "$Class": "ShaderProperty",
@@ -32,9 +20,21 @@
       "EnumValues": []
     }, {
       "$Class": "ShaderProperty",
-      "Name": "MAX_LIGHTS",
+      "Name": "HYP_VULKAN",
       "Flags": 0,
-      "Value": 16,
+      "Value": 4202496,
+      "EnumValues": []
+    }, {
+      "$Class": "ShaderProperty",
+      "Name": "NUM_GBUFFER_TEXTURES",
+      "Flags": 0,
+      "Value": 5,
+      "EnumValues": []
+    }, {
+      "$Class": "ShaderProperty",
+      "Name": "HYP_FEATURES_BINDLESS_TEXTURES",
+      "Flags": 0,
+      "Value": null,
       "EnumValues": []
     }],
   "RevisionNumber": 31459917,
@@ -269,7 +269,7 @@
     }, {
       "$Class": "BlobDataReference",
       "Key": "Engine/Shaders/LightmapPathTracer/LightmapPathTracer_10052432351400791672.CHS",
-      "Size": 136536
+      "Size": 136764
     }, {
       "$Class": "BlobDataReference",
       "Key": "Engine/Shaders/LightmapPathTracer/LightmapPathTracer_10052432351400791672.MS",
@@ -277,7 +277,7 @@
     }],
   "PropertySetHashCode": {},
   "LastCompiledTimestamp": {
-    "Value": 13420488423492
+    "Value": 13420740413432
   },
   "Name": "LightmapPathTracer_10052432351400791672",
   "FriendlyName": "LightmapPathTracer_10052432351400791672",

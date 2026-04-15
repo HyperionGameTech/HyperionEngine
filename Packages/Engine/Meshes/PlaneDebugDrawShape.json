@@ -23,6 +23,10 @@
     "Key": "Engine/Meshes/PlaneDebugDrawShape.IB",
     "Size": 24
   },
+  "BvhData": {
+    "Key": "",
+    "Size": 0
+  },
   "Flags": 1,
   "Name": "PlaneDebugDrawShape",
   "FriendlyName": "PlaneDebugDrawShape",

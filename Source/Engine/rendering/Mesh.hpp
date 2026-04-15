@@ -214,6 +214,11 @@ protected:
     {
         outReferences.EmplaceBack("VB", 1, &m_vertexData);
         outReferences.EmplaceBack("IB", 1, &m_indexData);
+
+        if (m_bvhData.size != 0)
+        {
+            outReferences.EmplaceBack("BVH", 1, &m_bvhData);
+        }
     }
 
 private:
@@ -227,6 +232,9 @@ private:
     
     HYP_FIELD(Serialize)
     BlobDataReference m_indexData;
+
+    HYP_FIELD(Serialize)
+    BlobDataReference m_bvhData;
 
     HYP_FIELD(Property = "AABB")
     mutable BoundingBox m_aabb;

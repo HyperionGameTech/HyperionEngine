@@ -1912,12 +1912,6 @@ void RenderCollector::BuildRenderGroups(View* view, RenderProxyList& renderProxy
     {
         for (const ObjId<Entity> id : changedIds)
         {
-#if HYP_DEBUG_MODE
-            // type check - cannot be a subclass of Entity, indices would get messed up
-            static const TypeId s_entityTypeId = TypeId::ForType<Entity>();
-            AssertDebug(id.GetTypeId() == s_entityTypeId, "Cannot include instance of Entity subclass in RenderGroup: {}", LookupTypeName(id.GetTypeId()));
-#endif
-
             const uint32 idx = id.ToIndex();
 
             RenderableAttributeSet* cachedAttributes = previousAttributes.TryGet(id.ToIndex());
@@ -1980,11 +1974,6 @@ void RenderCollector::BuildRenderGroups(View* view, RenderProxyList& renderProxy
     {
         for (const ObjId<Entity>& id : removed)
         {
-#if HYP_DEBUG_MODE
-            // type check - cannot be a subclass of Entity, indices would get messed up
-            AssertDebug(id.GetTypeId() == TypeId::ForType<Entity>());
-#endif
-
             const RenderProxyMesh* meshProxy = renderProxyList.GetMeshEntities().GetProxy(id);
             AssertDebug(meshProxy != nullptr);
 
@@ -2019,12 +2008,6 @@ void RenderCollector::BuildRenderGroups(View* view, RenderProxyList& renderProxy
     {
         for (const ObjId<Entity>& id : added)
         {
-#if HYP_DEBUG_MODE
-            // type check - cannot be a subclass of Entity, indices would get messed up
-            static const TypeId s_entityTypeId = TypeId::ForType<Entity>();
-            AssertDebug(id.GetTypeId() == s_entityTypeId, "Cannot include instance of Entity subclass in RenderGroup: {}", LookupTypeName(id.GetTypeId()));
-#endif
-
             const RenderProxyMesh* meshProxy = renderProxyList.GetMeshEntities().GetProxy(id);
             AssertDebug(meshProxy != nullptr);
 
