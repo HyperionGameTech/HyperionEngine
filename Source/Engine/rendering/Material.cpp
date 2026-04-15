@@ -451,7 +451,7 @@ void MaterialCache::Add(const Handle<Material>& material)
     Mutex::Guard guard(m_mutex);
 
     const HashCode hc = GetMaterialHashCode(
-        material->GetRenderAttributes(),
+        material->GetAttributes(),
         material->GetParameters(),
         material->GetTextures());
 

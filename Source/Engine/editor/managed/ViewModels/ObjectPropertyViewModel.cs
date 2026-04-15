@@ -47,7 +47,6 @@ namespace Hyperion.Editor.ViewModels
             private set => SetProperty(ref _canSelectFromContentBrowser, value);
         }
 
-        // The declared type of the property (e.g. PhysicsShape, Mesh, etc.) — used to type-check selections.
         private readonly Class? _propertyTypeClass;
 
         public ICommand SelectCommand { get; }

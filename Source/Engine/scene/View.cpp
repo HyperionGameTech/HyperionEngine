@@ -957,7 +957,7 @@ void View::CollectMeshEntities(RenderProxyList& rpl)
             meshProxy.enableAutoInstancing = meshComponent->enableAutoInstancing;
             meshProxy.lightmapVolume = lightmapElementComponent ? lightmapElementComponent->lightmapVolume.GetUnsafe() : nullptr;
             meshProxy.lightmapElementId = lightmapElementComponent ? lightmapElementComponent->lightmapElementId : InvalidLightmapElementId;
-            meshProxy.cachedAttributes = RenderableAttributeSet(meshComponent->mesh->GetMeshAttributes(), meshComponent->material->GetRenderAttributes());
+            meshProxy.cachedAttributes = RenderableAttributeSet(meshComponent->mesh->GetMeshAttributes(), meshComponent->material->GetAttributes());
 
             Mat4f transformMatrix = transformComponent->GetMatrix();
             
@@ -1000,7 +1000,7 @@ void View::CollectMeshEntities(RenderProxyList& rpl)
             meshProxy.bufferData.modelMatrix = transformMatrix;
             meshProxy.bufferData.previousModelMatrix = meshComponent->previousModelMatrix;
             meshProxy.bufferData.normalMatrix = Mat3f(transformMatrix).Inverse().Transpose();
-            meshProxy.bufferData.bucket = uint32(meshComponent->material->GetRenderAttributes().bucket);
+            meshProxy.bufferData.bucket = uint32(meshComponent->material->GetAttributes().bucket);
         }
     }
 }

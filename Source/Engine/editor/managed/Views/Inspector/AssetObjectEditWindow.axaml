@@ -1,0 +1,147 @@
+<Window
+    x:Class="Hyperion.Editor.Views.Inspector.AssetObjectEditWindow"
+    xmlns="https://github.com/avaloniaui"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+    xmlns:inspector="clr-namespace:Hyperion.Editor.Views.Inspector;assembly=Hyperion.Editor"
+    xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+    xmlns:vm="clr-namespace:Hyperion.Editor.ViewModels;assembly=Hyperion.Editor"
+    Width="420"
+    MaxHeight="640"
+    SizeToContent="Height"
+    x:DataType="vm:ComponentSubObjectViewModel"
+    CanResize="False"
+    ShowInTaskbar="False"
+    WindowStartupLocation="CenterOwner"
+    mc:Ignorable="d">
+    <DockPanel>
+        <Border
+            DockPanel.Dock="Bottom"
+            BorderBrush="{DynamicResource Brush.Border}"
+            BorderThickness="0,1,0,0"
+            Padding="12,8">
+            <Button
+                HorizontalAlignment="Right"
+                Padding="20,6"
+                Click="OnClose"
+                Content="Close" />
+        </Border>
+
+        <ScrollViewer Padding="4,0">
+            <StackPanel Margin="0,12,0,8" Spacing="0">
+                <TextBlock
+                    x:Name="PART_Heading"
+                    Margin="8,0,8,2"
+                    FontSize="14"
+                    FontWeight="SemiBold" />
+                <TextBlock
+                    x:Name="PART_SubHeading"
+                    Margin="8,0,8,10"
+                    FontSize="11"
+                    Opacity="0.55"
+                    TextTrimming="CharacterEllipsis" />
+
+                <ItemsControl
+                    HorizontalAlignment="Stretch"
+                    Grid.IsSharedSizeScope="True"
+                    IsVisible="{Binding HasProperties}"
+                    ItemsSource="{Binding Properties}">
+                    <ItemsControl.DataTemplates>
+                        <DataTemplate x:DataType="vm:TextPropertyViewModel">
+                            <inspector:StringNamePropertyEditor DataContext="{Binding}" />
+                        </DataTemplate>
+                        <DataTemplate x:DataType="vm:EnumPropertyViewModel">
+                            <inspector:EnumPropertyEditor DataContext="{Binding}" />
+                        </DataTemplate>
+                        <DataTemplate x:DataType="vm:FlagsPropertyViewModel">
+                            <inspector:EnumFlagsPropertyEditor DataContext="{Binding}" />
+                        </DataTemplate>
+                        <DataTemplate x:DataType="vm:Vec2fViewModel">
+                            <Grid ColumnDefinitions="*,*">
+                                <TextBox Grid.Column="0" Margin="0,0,4,0" HorizontalAlignment="Stretch" Text="{Binding X, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
+                                <TextBox Grid.Column="1" HorizontalAlignment="Stretch" Text="{Binding Y, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
+                            </Grid>
+                        </DataTemplate>
+                        <DataTemplate x:DataType="vm:Vec3fViewModel">
+                            <Grid ColumnDefinitions="*,*,*">
+                                <TextBox Grid.Column="0" Margin="0,0,4,0" HorizontalAlignment="Stretch" Text="{Binding X, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
+                                <TextBox Grid.Column="1" Margin="0,0,4,0" HorizontalAlignment="Stretch" Text="{Binding Y, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
+                                <TextBox Grid.Column="2" HorizontalAlignment="Stretch" Text="{Binding Z, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
+                            </Grid>
+                        </DataTemplate>
+                        <DataTemplate x:DataType="vm:Vec4fViewModel">
+                            <Grid ColumnDefinitions="*,*,*,*">
+                                <TextBox Grid.Column="0" Margin="0,0,4,0" HorizontalAlignment="Stretch" Text="{Binding X, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
+                                <TextBox Grid.Column="1" Margin="0,0,4,0" HorizontalAlignment="Stretch" Text="{Binding Y, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
+                                <TextBox Grid.Column="2" Margin="0,0,4,0" HorizontalAlignment="Stretch" Text="{Binding Z, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
+                                <TextBox Grid.Column="3" HorizontalAlignment="Stretch" Text="{Binding W, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
+                            </Grid>
+                        </DataTemplate>
+                        <DataTemplate x:DataType="vm:BoolPropertyViewModel">
+                            <StackPanel Orientation="Horizontal" Margin="4,0" Spacing="6">
+                                <CheckBox IsChecked="{Binding IsChecked, Mode=TwoWay}" VerticalAlignment="Center" />
+                                <TextBlock Classes="inspector-name" Text="{Binding Label}" VerticalAlignment="Center" />
+                            </StackPanel>
+                        </DataTemplate>
+                        <DataTemplate x:DataType="vm:NumericPropertyViewModel">
+                            <TextBox MinWidth="60" HorizontalAlignment="Stretch" Text="{Binding EditableValue, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
+                        </DataTemplate>
+
+                        <!--  Nested asset references are read-only in the edit dialog  -->
+                        <DataTemplate x:DataType="vm:ObjectPropertyViewModel">
+                            <Border
+                                Background="{DynamicResource Brush.PanelAlt}"
+                                BorderBrush="{DynamicResource Brush.Border}"
+                                BorderThickness="1"
+                                CornerRadius="4"
+                                Padding="6,5">
+                                <TextBlock
+                                    FontSize="11"
+                                    Text="{Binding AssetPathDisplay}"
+                                    TextTrimming="CharacterEllipsis" />
+                            </Border>
+                        </DataTemplate>
+                        <DataTemplate x:DataType="vm:ReadOnlyPropertyViewModel">
+                            <TextBlock VerticalAlignment="Center" Text="{Binding Value}" TextTrimming="CharacterEllipsis" />
+                        </DataTemplate>
+                    </ItemsControl.DataTemplates>
+                    <ItemsControl.ItemTemplate>
+                        <DataTemplate x:DataType="vm:InspectorPropertyViewModelBase">
+                            <Grid Margin="6,3">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="Auto" SharedSizeGroup="EditDialogPropertyName" />
+                                    <ColumnDefinition Width="*" />
+                                </Grid.ColumnDefinitions>
+                                <TextBlock
+                                    Grid.Column="0"
+                                    IsVisible="{Binding ShowInlineLabel}"
+                                    MaxWidth="120"
+                                    Margin="0,0,8,0"
+                                    Classes="inspector-name"
+                                    Text="{Binding Label}"
+                                    VerticalAlignment="Center" />
+                                <ContentControl
+                                    Grid.Column="0"
+                                    Grid.ColumnSpan="2"
+                                    IsVisible="{Binding !ShowInlineLabel}"
+                                    VerticalAlignment="Center"
+                                    Content="{Binding}" />
+                                <ContentControl
+                                    Grid.Column="1"
+                                    IsVisible="{Binding ShowInlineLabel}"
+                                    VerticalAlignment="Center"
+                                    Content="{Binding}" />
+                            </Grid>
+                        </DataTemplate>
+                    </ItemsControl.ItemTemplate>
+                </ItemsControl>
+
+                <TextBlock
+                    IsVisible="{Binding !HasProperties}"
+                    Margin="8,4"
+                    Opacity="0.5"
+                    Text="No editable properties." />
+            </StackPanel>
+        </ScrollViewer>
+    </DockPanel>
+</Window>

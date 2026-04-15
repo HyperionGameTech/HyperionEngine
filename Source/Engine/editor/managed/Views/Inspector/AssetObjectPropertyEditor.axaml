@@ -1,0 +1,68 @@
+<UserControl
+    x:Class="Hyperion.Editor.Views.Inspector.AssetObjectPropertyEditor"
+    xmlns="https://github.com/avaloniaui"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+    xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+    xmlns:vm="clr-namespace:Hyperion.Editor.ViewModels;assembly=Hyperion.Editor"
+    x:DataType="vm:ObjectPropertyViewModel"
+    mc:Ignorable="d">
+    <Grid ColumnDefinitions="72,*" Margin="2,2,2,4">
+        <Border
+            Width="64"
+            Height="64"
+            Margin="0,0,8,0"
+            VerticalAlignment="Top"
+            Background="{DynamicResource Brush.PanelAlt}"
+            BorderBrush="{DynamicResource Brush.Border}"
+            BorderThickness="1"
+            CornerRadius="4">
+            <TextBlock
+                HorizontalAlignment="Center"
+                VerticalAlignment="Center"
+                FontSize="22"
+                Opacity="0.3"
+                Text="☐" />
+        </Border>
+
+        <StackPanel Grid.Column="1" Spacing="4">
+            <TextBlock
+                FontSize="12"
+                FontWeight="SemiBold"
+                Text="{Binding Label}" />
+
+            <Border
+                Background="{DynamicResource Brush.PanelAlt}"
+                BorderBrush="{DynamicResource Brush.Border}"
+                BorderThickness="1"
+                CornerRadius="4"
+                Padding="6,5">
+                <TextBlock
+                    FontSize="11"
+                    Text="{Binding AssetPathDisplay}"
+                    TextTrimming="CharacterEllipsis" />
+            </Border>
+
+            <StackPanel Orientation="Horizontal" Spacing="4">
+                <Button
+                    Padding="8,2"
+                    FontSize="11"
+                    Command="{Binding SelectCommand}"
+                    Content="Swap"
+                    IsEnabled="{Binding CanSelectFromContentBrowser}"
+                    ToolTip.Tip="Assign to the currently selected asset in the Content Browser" />
+                <Button
+                    Padding="8,2"
+                    FontSize="11"
+                    Command="{Binding ClearCommand}"
+                    Content="Clear" />
+                <Button
+                    x:Name="PART_EditButton"
+                    Padding="8,2"
+                    FontSize="11"
+                    Content="Edit"
+                    IsEnabled="{Binding HasSubObject}" />
+            </StackPanel>
+        </StackPanel>
+    </Grid>
+</UserControl>
