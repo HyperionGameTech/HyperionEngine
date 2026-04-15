@@ -51,31 +51,34 @@ class MaterialParameters
 public:
     HYP_STRUCT_BODY(MaterialParameters);
 
-    HYP_FIELD(Serialize)
+    HYP_FIELD(Property = "Albedo", Editor, Serialize)
     Vec4f albedo;
 
-    HYP_FIELD(Serialize)
+    HYP_FIELD(Property = "Metalness", Editor, Serialize)
     float metalness;
 
-    HYP_FIELD(Serialize)
+    HYP_FIELD(Property = "Roughness", Editor, Serialize)
     float roughness;
 
-    HYP_FIELD(Serialize)
+    HYP_FIELD(Property = "AlphaThreshold", Editor, Serialize)
     float alphaThreshold;
 
-    HYP_FIELD(Serialize)
+    HYP_FIELD(Property = "ParallaxHeightScale", Editor, Serialize)
     float parallaxHeightScale;
 
-    HYP_FIELD(Serialize)
+    HYP_FIELD(Property = "Transmission", Editor, Serialize)
     float transmission;
 
-    HYP_FIELD(Serialize)
+    HYP_FIELD(Property = "IOR", Editor, Serialize)
     float ior;
 
-    HYP_FIELD(Serialize)
-    Vec4f emissiveColor; // w component is intensity
+    HYP_FIELD(Property = "EmissiveColor", Editor, Serialize)
+    Color emissiveColor;
 
-    HYP_FIELD(Serialize)
+    HYP_FIELD(Property = "EmissiveIntensity", Editor, Serialize)
+    float emissiveIntensity;
+
+    HYP_FIELD(Property = "UserParams", Serialize)
     Vec4f userParams;
 
     MaterialParameters()
@@ -86,7 +89,8 @@ public:
           parallaxHeightScale(0.02f),
           transmission(0.0f),
           ior(1.5f),
-          emissiveColor(0.0f),
+          emissiveColor(),
+          emissiveIntensity(0.0f),
           userParams(0.0f)
     {
     }

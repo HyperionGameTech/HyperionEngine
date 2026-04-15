@@ -2349,8 +2349,6 @@ extern class Mesh : AssetObject
     SetFlags(flags : MeshFlags) -> void
     Rename(name : Name) -> Result
     NumIndices() -> uint32
-    GetInputLayout() -> VertexInputLayoutDesc
-    GetTopology() -> Topology
     GetAABB() -> BoundingBox
     SetAABB(aabb : BoundingBox) -> void
     MeshDesc : MeshDesc
@@ -2371,7 +2369,8 @@ extern struct MaterialParameters
     ParallaxHeightScale : float
     Transmission : float
     Ior : float
-    EmissiveColor : Vec4f
+    EmissiveColor : Color
+    EmissiveIntensity : float
     UserParams : Vec4f
 end
 extern class MaterialGroup

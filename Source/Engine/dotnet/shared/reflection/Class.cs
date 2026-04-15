@@ -29,9 +29,9 @@ namespace Hyperion
 
     public struct Class
     {
-        public static readonly Class Invalid = new Class(IntPtr.Zero);
-        private static readonly ConcurrentDictionary<string, Class> classTypeNameCache = new ConcurrentDictionary<string, Class>();
-        private static readonly ConcurrentDictionary<Type, Class> classTypeObjectCache = new ConcurrentDictionary<Type, Class>();
+        public static readonly Class Invalid = new(IntPtr.Zero);
+        private static readonly ConcurrentDictionary<string, Class> classTypeNameCache = new();
+        private static readonly ConcurrentDictionary<Type, Class> classTypeObjectCache = new();
 
         private IntPtr ptr;
 
@@ -115,7 +115,7 @@ namespace Hyperion
                 return null;
             }
 
-            return new Class(parentPtr);
+            return new(parentPtr);
         }
 
         public bool IsSubclassOf(Class other)
@@ -144,7 +144,7 @@ namespace Hyperion
                 return null;
             }
 
-            return new ClassAttribute(attributePtr);
+            return new(attributePtr);
         }
 
         public IEnumerable<ClassAttribute> Attributes
@@ -160,7 +160,7 @@ namespace Hyperion
 
                     for (uint i = 0; i < count; i++)
                     {
-                        yield return new ClassAttribute(Marshal.ReadIntPtr(currentPtr, (int)i * IntPtr.Size));
+                        yield return new(Marshal.ReadIntPtr(currentPtr, (int)i * IntPtr.Size));
                     }
                 }
                 finally
@@ -184,7 +184,7 @@ namespace Hyperion
 
                     for (int i = 0; i < count; i++)
                     {
-                        yield return new Property(Marshal.ReadIntPtr(propertyPtrs, i * IntPtr.Size));
+                        yield return new(Marshal.ReadIntPtr(propertyPtrs, i * IntPtr.Size));
                     }
                 }
                 finally
@@ -203,7 +203,7 @@ namespace Hyperion
                 return null;
             }
 
-            return new Property(propertyPtr);
+            return new(propertyPtr);
         }
 
         public IEnumerable<Method> Methods
@@ -220,7 +220,7 @@ namespace Hyperion
 
                     for (int i = 0; i < count; i++)
                     {
-                        yield return new Method(Marshal.ReadIntPtr(methodPtrs, i * IntPtr.Size));
+                        yield return new(Marshal.ReadIntPtr(methodPtrs, i * IntPtr.Size));
                     }
                 }
                 finally
@@ -239,7 +239,7 @@ namespace Hyperion
                 return null;
             }
 
-            return new Method(methodPtr);
+            return new(methodPtr);
         }
 
         public IEnumerable<Field> Fields
@@ -256,7 +256,7 @@ namespace Hyperion
 
                     for (int i = 0; i < count; i++)
                     {
-                        yield return new Field(Marshal.ReadIntPtr(fieldPtrs, i * IntPtr.Size));
+                        yield return new(Marshal.ReadIntPtr(fieldPtrs, i * IntPtr.Size));
                     }
                 }
                 finally
@@ -275,7 +275,7 @@ namespace Hyperion
                 return null;
             }
 
-            return new Field(fieldPtr);
+            return new(fieldPtr);
         }
 
         public IEnumerable<StaticField> StaticFields
@@ -292,7 +292,7 @@ namespace Hyperion
 
                     for (int i = 0; i < count; i++)
                     {
-                        yield return new StaticField(Marshal.ReadIntPtr(staticFieldPtrs, i * IntPtr.Size));
+                        yield return new(Marshal.ReadIntPtr(staticFieldPtrs, i * IntPtr.Size));
                     }
                 }
                 finally
@@ -311,7 +311,7 @@ namespace Hyperion
                 return null;
             }
 
-            return new StaticField(constantPtr);
+            return new(constantPtr);
         }
 
         public void ValidateType(Type type)
@@ -400,7 +400,7 @@ namespace Hyperion
                 throw new Exception("Failed to get Class for type " + type.Name);
             }
 
-            return (Class)cls;
+            return cls.Value;
         }
 
         public static Class? TryGetClass<T>()
@@ -456,7 +456,7 @@ namespace Hyperion
             if (classPtr == IntPtr.Zero)
                 return null;
 
-            Class cls = new Class(classPtr);
+            Class cls = new(classPtr);
 
             classTypeObjectCache[type] = cls;
 
@@ -472,7 +472,7 @@ namespace Hyperion
                 return null;
             }
 
-            return new Class(ptr);
+            return new(ptr);
         }
         
         public static Class? TryGetClass(string name)
@@ -489,7 +489,8 @@ namespace Hyperion
 
                 if (ptr != IntPtr.Zero)
                 {
-                    cls = new Class(ptr);
+                    cls = new(ptr);
+
                     classTypeNameCache[name] = cls.Value;
                 }
             }

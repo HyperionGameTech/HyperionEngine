@@ -1,5 +1,6 @@
 using System;
 using System.Globalization;
+using System.Runtime.InteropServices;
 using Avalonia.Threading;
 using Hyperion;
 
@@ -110,6 +111,7 @@ namespace Hyperion.Editor.ViewModels
             {
                 if (!TryReadStruct(out TStruct vector))
                 {
+                    _isRefreshing = 0;
                     Value = "(unavailable)";
                     ResetComponentStrings();
                     return;
@@ -261,14 +263,14 @@ namespace Hyperion.Editor.ViewModels
             Task<TStruct> task = EngineManager.PostToSimThread<TStruct>(() =>
             {
                 using BoxedValue boxed = GetPropertyValue();
-                object? raw = boxed.GetValue();
+                IntPtr ptr = boxed.Pointer;
 
-                if (raw is TStruct casted)
+                if (ptr == IntPtr.Zero)
                 {
-                    return casted;
+                    throw new InvalidOperationException($"Property '{_property.Name}' returned null pointer");
                 }
 
-                throw new InvalidOperationException($"Property '{_property.Name}' value is not of expected type {typeof(TStruct).Name}");
+                return Marshal.PtrToStructure<TStruct>(ptr);
             });
 
             task.Wait();

@@ -67,12 +67,12 @@ namespace Hyperion
 
         public static bool operator ==(Name a, string b)
         {
-            return a.Equals(new Name(b));
+            return a.Equals(new Name(b, weak: true));
         }
 
         public static bool operator !=(Name a, string b)
         {
-            return !a.Equals(new Name(b));
+            return !a.Equals(new Name(b, weak: true));
         }
 
         public bool Equals(Name other)
@@ -80,7 +80,7 @@ namespace Hyperion
             return _value == other._value;
         }
 
-        public override bool Equals(object obj)
+        public override bool Equals(object? obj)
         {
             if (obj is Name)
             {
@@ -89,7 +89,7 @@ namespace Hyperion
 
             if (obj is string)
             {
-                return Equals(new Name((string)obj));
+                return Equals(new Name((string)obj, weak: true));
             }
 
             return false;

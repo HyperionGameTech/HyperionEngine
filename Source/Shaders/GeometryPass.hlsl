@@ -114,8 +114,6 @@ PSOutput PSMain(PSInput input)
     float transmission = GET_MATERIAL_PARAM(CURRENT_MATERIAL, MATERIAL_PARAM_TRANSMISSION);
     const float alpha_threshold = GET_MATERIAL_PARAM(CURRENT_MATERIAL, MATERIAL_PARAM_ALPHA_THRESHOLD);
 
-    const float normal_map_intensity = GET_MATERIAL_PARAM(CURRENT_MATERIAL, MATERIAL_PARAM_NORMAL_MAP_INTENSITY);
-
     float2 texcoord = input.texcoord0 * CURRENT_MATERIAL.uv_scale;
 
     if (HAS_TEXTURE(CURRENT_MATERIAL, ParallaxMap))
@@ -148,7 +146,7 @@ PSOutput PSMain(PSInput input)
     if (HAS_TEXTURE(CURRENT_MATERIAL, NormalMap))
     {
         normals_texture = SAMPLE_MATERIAL_TEXTURE(CURRENT_MATERIAL, NormalMap, texcoord) * 2.0 - 1.0;
-        N = normalize(mul(normals_texture.xyz, tbn_matrix));//lerp(mul(normals_texture.xyz, tbn_matrix), input.normal, 1.0 - normal_map_intensity));
+        N = normalize(mul(normals_texture.xyz, tbn_matrix));
     }
  #endif
 

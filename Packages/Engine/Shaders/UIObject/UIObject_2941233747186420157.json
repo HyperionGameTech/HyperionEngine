@@ -131,7 +131,7 @@
     }, {
       "$Class": "BlobDataReference",
       "Key": "Engine/Shaders/UIObject/UIObject_2941233747186420157.PS",
-      "Size": 62652
+      "Size": 62648
     }],
   "PropertySetHashCode": {},
   "LastCompiledTimestamp": {

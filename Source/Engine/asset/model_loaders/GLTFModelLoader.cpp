@@ -705,7 +705,8 @@ Handle<Material> AcquireMaterial(GltfLoadContext& ctx, const cgltf_material* mat
 
     if (emissiveFactor != Vec3f::Zero())
     {
-        parameters.emissiveColor = Vec4f(emissiveFactor, 1.0f);
+        parameters.emissiveIntensity = emissiveFactor.Length();
+        parameters.emissiveColor = Color(Vec4f(emissiveFactor / parameters.emissiveIntensity, 1.0f));
     }
 
     Handle<Material> materialHandle = MaterialCache::GetInstance()->CreateMaterial(materialName, materialAttributes, parameters, textures);

@@ -184,18 +184,20 @@ namespace Hyperion.Editor.ViewModels
                                 isReadOnly = true;
                             }
 
-                            InspectorPropertyViewModelBase vm = InspectorViewModelFactory.CreateForComponent(
-                                classAddress, targetAddressResolver, property, isReadOnly);
+                            Action? postWrite = null;
 
                             if (isMeshComponent && MeshComponentRenderProxyProperties.Contains(property.Name.ToString()))
                             {
                                 Entity entity = _target;
                                 
-                                vm.PostWriteCallback = () =>
+                                postWrite = () =>
                                 {
                                     entity.AddTag(EntityTag.UpdateRenderProxy);
                                 };
                             }
+
+                            InspectorPropertyViewModelBase vm = InspectorViewModelFactory.CreateForComponent(
+                                classAddress, targetAddressResolver, property, isReadOnly, postWriteCallback: postWrite);
 
                             vms.Add(vm);
                         }
