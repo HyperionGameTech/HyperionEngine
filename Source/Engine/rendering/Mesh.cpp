@@ -103,6 +103,7 @@ Mesh::~Mesh()
 
     FreeBlobData(m_vertexData);
     FreeBlobData(m_indexData);
+    FreeBlobData(m_bvhData);
 }
 
 void Mesh::Init()
@@ -238,6 +239,46 @@ void Mesh::PageBlobData()
             m_indexData.readOnly = true;
         }
 
+        if (m_bvhData.raw == nullptr && m_bvhData.key && m_bvhData.size != 0)
+        {
+            if (!blobStorage.GetData(m_bvhData.key, m_bvhData.size, m_bvhData.raw))
+            {
+                ([&]()
+                    {
+#if HYP_EDITOR || HYP_ALLOW_INLINE_BLOBS
+                        Handle<AssetPackage> package = GetPackage();
+                        Assert(package.IsValid());
+                        Assert(package->IsSaved());
+
+                        FileByteReader stream { package->GetSavedDirectory() / (String(*GetName()) + ".BVH.raw.blob") };
+                        if (!stream.Eof())
+                        {
+                            ByteBuffer buffer = stream.Read(stream.Max());
+
+                            AllocateBlobData(m_bvhData, buffer.Data(), buffer.Size(), alignof(uint32));
+
+                            needsSaveBlobData = true;
+
+                            MarkDirty();
+
+                            return;
+                        }
+#endif
+
+                        HYP_LOG(Assets, Warning, "BVH blob data missing for mesh '{}' - BVH will not be available until rebuilt", GetName());
+                    })();
+            }
+            else
+            {
+                m_bvhData.readOnly = true;
+            }
+
+            if (m_bvhData.raw != nullptr)
+            {
+                BVHNode::Deserialize(m_bvh, m_bvhData.raw, m_bvhData.size);
+            }
+        }
+
 #if HYP_EDITOR
         if (needsSaveBlobData)
         {
@@ -257,6 +298,11 @@ void Mesh::UnpageBlobData()
     {
         m_vertexData.raw = nullptr;
         m_indexData.raw = nullptr;
+    }
+
+    if (m_bvhData.readOnly)
+    {
+        m_bvhData.raw = nullptr;
     }
 }
 
@@ -512,7 +558,17 @@ bool Mesh::BuildBVH(int maxDepth)
     AssertDebug(GetVertexData().vertexCount > 0);
     AssertDebug(GetIndexData().Size() > 0);
 
-    return BuildBVH(m_bvh, maxDepth);
+    if (!BuildBVH(m_bvh, maxDepth))
+    {
+        return false;
+    }
+
+    // Serialize the BVH into blob data so it can be saved/loaded without a rebuild
+    ByteBuffer bvhBuffer = BVHNode::Serialize(m_bvh);
+    FreeBlobData(m_bvhData);
+    AllocateBlobData(m_bvhData, bvhBuffer.Data(), bvhBuffer.Size(), alignof(uint32));
+
+    return true;
 }
 
 bool Mesh::BuildBVH(BVHNode& bvhNode, int maxDepth) const

@@ -225,7 +225,7 @@ void BVHNode::Split_Internal(
         triangleIds.Clear();
         triangleIds.Refit();
 
-        flags[BF_IS_LEAF_NODE] = false;
+        isLeafNode = false;
     }
 
     for (BVHNode& node : children)
@@ -263,8 +263,85 @@ void BVHNode::Shake_Internal()
 
     if (children.Empty())
     {
-        flags[BF_IS_LEAF_NODE] = true;
+        isLeafNode = true;
     }
 }
+
+#pragma region BVHNode Serialization
+
+static void SerializeBVHNodeInto(ByteWriter& writer, const BVHNode& node)
+{
+    writer.Write(&node.aabb.min, sizeof(Vec3f));
+    writer.Write(&node.aabb.max, sizeof(Vec3f));
+
+    const int8 flags = int8(node.isLeafNode);
+    writer.Write(&flags, sizeof(int8));
+
+    const uint32 numTriangles = uint32(node.triangleIds.Size());
+    writer.Write(&numTriangles, sizeof(uint32));
+    for (uint32 i = 0; i < numTriangles; i++)
+    {
+        writer.Write(&node.triangleIds[i], sizeof(uint32));
+    }
+
+    const uint32 numChildren = uint32(node.children.Size());
+    writer.Write(&numChildren, sizeof(uint32));
+    for (const BVHNode& child : node.children)
+    {
+        SerializeBVHNodeInto(writer, child);
+    }
+}
+
+static bool DeserializeBVHNodeFrom(ByteReader& reader, BVHNode& node)
+{
+    if (reader.Position() + sizeof(Vec3f) * 2 + sizeof(uint32) * 3 > reader.Max())
+    {
+        return false;
+    }
+
+    reader.Read(&node.aabb.min, sizeof(Vec3f));
+    reader.Read(&node.aabb.max, sizeof(Vec3f));
+
+    int8 isLeafNode = 0;
+    reader.Read(&isLeafNode, sizeof(int8));
+    node.isLeafNode = bool(isLeafNode);
+
+    uint32 numTriangles = 0;
+    reader.Read(&numTriangles, sizeof(uint32));
+    node.triangleIds.Resize(numTriangles);
+    for (uint32 i = 0; i < numTriangles; i++)
+    {
+        reader.Read(&node.triangleIds[i], sizeof(uint32));
+    }
+
+    uint32 numChildren = 0;
+    reader.Read(&numChildren, sizeof(uint32));
+    node.children.Resize(numChildren);
+    for (uint32 i = 0; i < numChildren; i++)
+    {
+        if (!DeserializeBVHNodeFrom(reader, node.children[i]))
+        {
+            return false;
+        }
+    }
+
+    return true;
+}
+
+ByteBuffer BVHNode::Serialize(const BVHNode& node)
+{
+    MemoryByteWriter writer;
+    SerializeBVHNodeInto(writer, node);
+    writer.Close();
+    return std::move(writer.GetBuffer());
+}
+
+bool BVHNode::Deserialize(BVHNode& outNode, const void* data, size_t size)
+{
+    MemoryByteReader reader(ConstByteView(reinterpret_cast<const ubyte*>(data), size));
+    return DeserializeBVHNodeFrom(reader, outNode);
+}
+
+#pragma endregion BVHNode Serialization
 
 } // namespace Hyperion
