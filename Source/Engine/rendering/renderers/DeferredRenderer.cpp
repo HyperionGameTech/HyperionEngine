@@ -720,7 +720,7 @@ void DeferredPass::RenderToFramebuffer_Internal(Frame* frame, const RenderSetup&
                     RenderProxyMaterial* materialProxy = static_cast<RenderProxyMaterial*>(GetRenderProxy(lightProxy->lightMaterial));
                     AssertDebug(materialProxy != nullptr);
 
-                    if (materialProxy->attributes.textureMask & uint32(MaterialTextureKey::Diffuse))
+                    if (materialProxy->bufferData.textureUsage & uint32(MaterialTextureKey::Diffuse))
                     {
                         const uint32 materialBoundIndex = Resources::GetBinding(lightProxy->lightMaterial);
                         AssertDebug(materialBoundIndex != ~0u);

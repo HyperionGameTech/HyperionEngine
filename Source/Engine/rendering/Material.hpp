@@ -481,9 +481,6 @@ public:
 private:
     void Init() override;
 
-    // set the texture mask in MaterialAttributes based on currently set textures
-    void UpdateAttributesTextureMask();
-
     HYP_FIELD(Property = "Parameters", Serialize, Editor)
     MaterialParameters m_parameters;
 

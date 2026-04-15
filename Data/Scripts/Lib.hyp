@@ -758,15 +758,7 @@ extern enum ComponentAccess : uint32
     WRITE = 0x2,
     READ_WRITE = (READ | WRITE)
 end
-extern enum BvhFlags : uint32
-    BF_NONE = 0x0,
-    BF_IS_LEAF_NODE = 0x1
-end
 extern struct BVHNode
-    Aabb : BoundingBox
-    Children : Array<BVHNode>
-    TriangleIds : Array<uint32>
-    Flags : BvhFlags
 end
 extern enum VulkanDeviceQueueType : uint8
     INVALID = 0,
@@ -1138,7 +1130,6 @@ extern struct MaterialAttributes
     StencilReference : uint8
     DepthBias : int32
     DepthBiasSlope : float
-    TextureMask : uint32
 end
 extern enum MaterialAttributeFlags : uint8
     MAF_NONE = 0x0,
