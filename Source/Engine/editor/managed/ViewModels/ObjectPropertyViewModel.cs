@@ -1,5 +1,6 @@
 using System;
 using System.ComponentModel;
+using System.Diagnostics;
 using System.Threading;
 using System.Windows.Input;
 using Avalonia.Threading;
@@ -46,7 +47,8 @@ namespace Hyperion.Editor.ViewModels
             private set => SetProperty(ref _canSelectFromContentBrowser, value);
         }
 
-        private Class? _assetClass; // set on each RefreshValue to the class of the current value
+        // The declared type of the property (e.g. PhysicsShape, Mesh, etc.) — used to type-check selections.
+        private readonly Class? _propertyTypeClass;
 
         public ICommand SelectCommand { get; }
         public ICommand ClearCommand { get; }
@@ -56,6 +58,7 @@ namespace Hyperion.Editor.ViewModels
         {
             _depth = depth;
             _isAssetObjectType = DetectIsAssetObjectType(property.TypeInfo);
+            _propertyTypeClass = GetPropertyTypeClass(property.TypeInfo);
             SelectCommand = new RelayCommand(OnSelect);
             ClearCommand = new RelayCommand(OnClear);
             HookContentBrowser();
@@ -66,6 +69,7 @@ namespace Hyperion.Editor.ViewModels
         {
             _depth = depth;
             _isAssetObjectType = DetectIsAssetObjectType(property.TypeInfo);
+            _propertyTypeClass = GetPropertyTypeClass(property.TypeInfo);
             SelectCommand = new RelayCommand(OnSelect);
             ClearCommand = new RelayCommand(OnClear);
             HookContentBrowser();
@@ -89,6 +93,16 @@ namespace Hyperion.Editor.ViewModels
 
             Class propertyClass = typeInfo.Class.Value;
             return propertyClass == assetClass.Value || propertyClass.IsSubclassOf(assetClass.Value);
+        }
+
+        private static Class? GetPropertyTypeClass(TypeInfo typeInfo)
+        {
+            if (!typeInfo.IsClass || !typeInfo.Class.HasValue)
+            {
+                return null;
+            }
+
+            return typeInfo.Class.Value;
         }
 
         private void HookContentBrowser()
@@ -142,7 +156,9 @@ namespace Hyperion.Editor.ViewModels
 
             var assetName = selected.AssetDesc.Name;
             var package = selected.Package.Package;
-            var assetClass = _assetClass;
+
+            Class? expectedClass = _propertyTypeClass;
+            Debug.Assert(expectedClass != null, "Expected class should not be null for asset object properties");
 
             _ = EngineManager.PostToSimThread(() =>
             {
@@ -155,15 +171,7 @@ namespace Hyperion.Editor.ViewModels
                     {
                         Class objClass = obj.Class;
 
-                        if (assetClass.HasValue)
-                        {
-                            compatible = objClass == assetClass.Value || objClass.IsSubclassOf(assetClass.Value);
-                        }
-                        else
-                        {
-                            // No current value yet, accept an AssetObject
-                            compatible = true;
-                        }
+                        compatible = objClass == expectedClass.Value || objClass.IsSubclassOf(expectedClass.Value);
                     }
 
                     Dispatcher.UIThread.Post(() => CanSelectFromContentBrowser = compatible);
@@ -245,7 +253,6 @@ namespace Hyperion.Editor.ViewModels
 
                     ComponentSubObjectViewModel? subObjectVm = null;
                     string assetPathDisplay = "(None)";
-                    Class? assetClass = null;
                     string displayName = "(None)";
 
                     if (val is ObjectBase obj && obj.IsValid && _depth < MaxDepth)
@@ -255,8 +262,6 @@ namespace Hyperion.Editor.ViewModels
 
                         if (obj is AssetObject assetObj)
                         {
-                            assetClass = assetObj.Class;
-
                             if (assetObj.IsRegistered())
                             {
                                 assetPathDisplay = assetObj.Path.ToString();
@@ -274,7 +279,6 @@ namespace Hyperion.Editor.ViewModels
 
                         Value = displayName;
                         AssetPathDisplay = assetPathDisplay;
-                        _assetClass = assetClass;
                         SubObject = subObjectVm;
                         HasSubObject = subObjectVm != null;
 

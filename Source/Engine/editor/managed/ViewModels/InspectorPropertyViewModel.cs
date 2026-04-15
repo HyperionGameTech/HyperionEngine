@@ -130,7 +130,7 @@ namespace Hyperion.Editor.ViewModels
             EditorProject? project = EngineManager.CurrentProject;
             Debug.Assert(project != null, "No active project found when committing property change");
 
-            // Capture everything the lambdas need (avoids capturing 'this' type members directly).
+            // Capture all members we need so we don't need to actually capture 'this'
             IntPtr capturedClassAddress = _componentClassAddress;
             Func<IntPtr>? capturedResolver = _componentTargetResolver;
             ObjectBase? capturedTarget = _target;

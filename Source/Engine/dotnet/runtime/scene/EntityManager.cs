@@ -6,23 +6,42 @@ namespace Hyperion
 {
     using ComponentId = uint;
 
-    public enum EntityTag : ulong
+    [ClassBinding(Name = "EntityTag")]
+    public struct EntityTag
     {
-        None = 0,
-        MobStatic = 1,
-        MobDynamic = 2,
-        Light = 3,
-        PrimaryCamera = 4,
-        EditorCamera = 5,
-        LightmapElement = 6,
-        ReceivesUpdate = 7,
-        MaxPersistent = 8,
-        UIVisible = 8,
-        FocusedInEditor = 9,
-        UpdateRenderProxy = 10,
-        UpdateVisibility = 11,
-        UpdateInstancedMeshData = 12,
-        EntityType = 2147483648UL,
+        public static readonly EntityTag None = new EntityTag(0x0);
+
+        public static readonly EntityTag MobStatic = new EntityTag(0x1);
+        public static readonly EntityTag MobDynamic = new EntityTag(0x2);
+
+        public static readonly EntityTag Light = new EntityTag(0x3);
+
+        public static readonly EntityTag PrimaryCamera = new EntityTag(0x4);
+        public static readonly EntityTag EditorCamera = new EntityTag(0x5);
+
+        public static readonly EntityTag LightmapElement = new EntityTag(0x6);
+
+        public static readonly EntityTag ReceivesUpdate = new EntityTag(0x7);
+
+        public static readonly EntityTag UIVisible = new EntityTag(0x10);
+
+        public static readonly EntityTag FocusedInEditor = new EntityTag(0x20);
+
+        public static readonly EntityTag UpdateRenderProxy = new EntityTag(0x30);
+        public static readonly EntityTag UpdateVisibility = new EntityTag(0x40);
+        public static readonly EntityTag UpdateInstancedMeshData = new EntityTag(0x50);
+
+        internal ulong Value;
+
+        internal EntityTag(ulong value)
+        {
+            Value = value;
+        }
+
+        public override string ToString()
+        {
+            return $"EntityTag({Value})";
+        }
     }
 
     [ClassBinding(Name = "EntityManager")]
@@ -34,7 +53,7 @@ namespace Hyperion
 
         public Entity AddEntity()
         {
-            return InvokeNativeMethod<Entity>(new Name("AddBasicEntity", weak: true));
+            return InvokeNativeMethod<Entity>("AddBasicEntity");
         }
 
         public T AddEntity<T>() where T : Entity
@@ -189,17 +208,17 @@ namespace Hyperion
 
         public void AddTag(Entity entity, EntityTag tag)
         {
-            EntityManager_AddTag(NativeAddress, entity.NativeAddress, (ulong)tag);
+            EntityManager_AddTag(NativeAddress, entity.NativeAddress, tag.Value);
         }
 
         public bool RemoveTag(Entity entity, EntityTag tag)
         {
-            return EntityManager_RemoveTag(NativeAddress, entity.NativeAddress, (ulong)tag);
+            return EntityManager_RemoveTag(NativeAddress, entity.NativeAddress, tag.Value);
         }
 
         public bool HasTag(Entity entity, EntityTag tag)
         {
-            return EntityManager_HasTag(NativeAddress, entity.NativeAddress, (ulong)tag);
+            return EntityManager_HasTag(NativeAddress, entity.NativeAddress, tag.Value);
         }
 
         [DllImport("hyperion", EntryPoint = "EntityManager_AddTag")]

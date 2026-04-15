@@ -737,23 +737,8 @@ end
 extern struct TagComponentBase
     Value : EntityTag
 end
-extern enum EntityTag : uint64
-    None,
-    MobStatic,
-    MobDynamic,
-    Light,
-    PrimaryCamera,
-    EditorCamera,
-    LightmapElement,
-    ReceivesUpdate,
-    MaxPersistent,
-    UIVisible = MaxPersistent,
-    FocusedInEditor,
-    UpdateRenderProxy,
-    UpdateVisibility,
-    UpdateInstancedMeshData,
-    EntityType = 2147483648,
-    EntityTypeMask = 0xFFFFFFFF00000000
+extern struct EntityTag
+    Value : uint64
 end
 extern class EntityManager
     GetWorld() -> World
