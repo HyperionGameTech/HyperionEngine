@@ -287,6 +287,8 @@ Handle<Material> Material::Clone() const
     // cloned materials are dynamic by default
     material->m_isDynamic = true;
 
+    material->Register("$Memory/Media/Materials");
+
     return material;
 }
 
@@ -309,14 +311,17 @@ void Material::UpdateRenderProxy(RenderProxyMaterial* proxy)
             m_parameters.roughness,
             m_parameters.metalness,
             m_parameters.transmission,
-            1.0f
+            m_parameters.alphaThreshold
         }),
         ByteUtil::PackVec4f(Vec4f {
-            m_parameters.emissiveColor.GetXYZ() * m_parameters.emissiveColor.w,
-            m_parameters.alphaThreshold
+            m_parameters.emissiveColor.GetRed(),
+            m_parameters.emissiveColor.GetGreen(),
+            m_parameters.emissiveColor.GetBlue(),
+            m_parameters.emissiveIntensity
         }),
         ByteUtil::PackVec4f(Vec4f::Zero()),
         ByteUtil::PackVec4f(Vec4f::Zero()));
+        
     bufferData.uvScale = 1.0f;
     bufferData.parallaxHeight = m_parameters.parallaxHeightScale;
 
@@ -481,6 +486,8 @@ Handle<Material> MaterialCache::CreateMaterial(
         parameters,
         textures);
 
+    handle->Register("$Memory/Media/Materials");
+
     InitObject(handle);
 
     return handle;
@@ -532,6 +539,8 @@ Handle<Material> MaterialCache::GetOrCreate(
             *attributesPtr,
             parameters,
             textures);
+
+        strongRef->Register("$Memory/Media/Materials");
 
         m_map.Set(hc, strongRef);
     }

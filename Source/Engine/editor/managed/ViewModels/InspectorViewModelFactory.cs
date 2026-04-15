@@ -6,7 +6,7 @@ namespace Hyperion.Editor.ViewModels
 {
     public static class InspectorViewModelFactory
     {
-        public static InspectorPropertyViewModelBase Create(ObjectBase? target, Property property, bool isReadOnly, int depth = 0)
+        public static InspectorPropertyViewModelBase Create(ObjectBase? target, Property property, bool isReadOnly, int depth = 0, Action? postWriteCallback = null)
         {
             if (target == null)
             {
@@ -16,120 +16,126 @@ namespace Hyperion.Editor.ViewModels
             TypeInfo typeInfo = property.TypeInfo;
             bool isNameType = InspectorPropertyViewModelBase.IsNameType(typeInfo);
 
+            InspectorPropertyViewModelBase vm;
+
             if (typeInfo.IsString || isNameType)
             {
-                return Initialize(new TextPropertyViewModel(target, property, isReadOnly, isNameType));
+                vm = new TextPropertyViewModel(target, property, isReadOnly, isNameType);
             }
-
-            if (typeInfo.IsEnumFlags)
+            else if (typeInfo.IsEnumFlags)
             {
-                return Initialize(new FlagsPropertyViewModel(target, property, typeInfo.Class, isReadOnly));
+                vm = new FlagsPropertyViewModel(target, property, typeInfo.Class, isReadOnly);
             }
-
-            if (typeInfo.IsEnum)
+            else if (typeInfo.IsEnum)
             {
-                return Initialize(new EnumPropertyViewModel(target, property, typeInfo.Class, isReadOnly));
+                vm = new EnumPropertyViewModel(target, property, typeInfo.Class, isReadOnly);
             }
-
-            if (typeInfo.IsVec2 && typeInfo.Name == "Vec2f")
+            else if (typeInfo.IsVec2 && typeInfo.Class?.Name == "Vec2f")
             {
-                return Initialize(new Vec2fViewModel(target, property, isReadOnly));
+                vm = new Vec2fViewModel(target, property, isReadOnly);
             }
-
-            if (typeInfo.IsVec3 && typeInfo.Name == "Vec3f")
+            else if (typeInfo.IsVec3 && typeInfo.Class?.Name == "Vec3f")
             {
-                return Initialize(new Vec3fViewModel(target, property, isReadOnly));
+                vm = new Vec3fViewModel(target, property, isReadOnly);
             }
-
-            if (typeInfo.IsVec4 && typeInfo.Name == "Vec4f")
+            else if (typeInfo.IsVec4 && typeInfo.Class?.Name == "Vec4f")
             {
-                return Initialize(new Vec4fViewModel(target, property, isReadOnly));
+                vm = new Vec4fViewModel(target, property, isReadOnly);
             }
-
-            if (typeInfo.Class?.Name == "Transform")
+            else if (typeInfo.Class?.Name == "Transform")
             {
-                return Initialize(new TransformViewModel(target, property, isReadOnly));
+                vm = new TransformViewModel(target, property, isReadOnly);
             }
-
-            if (typeInfo.IsFundamental && typeInfo.IsIntegral && typeInfo.Name == "bool")
+            else if (typeInfo.IsFundamental && typeInfo.IsIntegral && typeInfo.Name == "bool")
             {
-                return Initialize(new BoolPropertyViewModel(target, property, isReadOnly));
+                vm = new BoolPropertyViewModel(target, property, isReadOnly);
             }
-
-            if (typeInfo.IsFundamental && (typeInfo.IsIntegral || typeInfo.IsFloat))
+            else if (typeInfo.IsFundamental && (typeInfo.IsIntegral || typeInfo.IsFloat))
             {
-                return Initialize(new NumericPropertyViewModel(target, property, isReadOnly));
+                vm = new NumericPropertyViewModel(target, property, isReadOnly);
             }
-
-            if (typeInfo.IsClass && typeInfo.Class.HasValue)
+            else if (typeInfo.Class.HasValue && typeInfo.Class.Value.IsClassType)
             {
-                return Initialize(new ObjectPropertyViewModel(target, property, isReadOnly, depth));
+                vm = new ObjectPropertyViewModel(target, property, isReadOnly, depth);
+            }
+            else if (typeInfo.Class.HasValue && typeInfo.Class.Value.IsStructType)
+            {
+                vm = new StructPropertyViewModel(target, property, isReadOnly, depth);
+            }
+            else
+            {
+                Logger.Log(LogLevel.Debug, $"Inspector creating read-only property view model for property '{property.Name}' of type '{typeInfo.Name}'");
+                vm = new ReadOnlyPropertyViewModel(target, property, isReadOnly);
             }
 
-            Logger.Log(LogLevel.Debug, $"Inspector creating read-only property view model for property '{property.Name}' of type '{typeInfo.Name}'");
+            vm.PostWriteCallback = postWriteCallback;
 
-            return Initialize(new ReadOnlyPropertyViewModel(target, property, isReadOnly));
+            return Initialize(vm);
         }
 
+        // initialize: pass false when the caller will call RefreshValue() manually later
+        // (e.g. StructPropertyViewModel defers refresh until its struct copy is loaded).
         public static InspectorPropertyViewModelBase CreateForComponent(
-            IntPtr classAddress, Func<IntPtr> targetAddressResolver, Property property, bool isReadOnly, int depth = 0)
+            IntPtr classAddress, Func<IntPtr> targetAddressResolver, Property property, bool isReadOnly, int depth = 0, bool initialize = true, Action? postWriteCallback = null)
         {
             TypeInfo typeInfo = property.TypeInfo;
             bool isNameType = InspectorPropertyViewModelBase.IsNameType(typeInfo);
 
+            InspectorPropertyViewModelBase vm;
+
             if (typeInfo.IsString || isNameType)
             {
-                return Initialize(new TextPropertyViewModel(classAddress, targetAddressResolver, property, isReadOnly, isNameType));
+                vm = new TextPropertyViewModel(classAddress, targetAddressResolver, property, isReadOnly, isNameType);
             }
-
-            if (typeInfo.IsEnumFlags)
+            else if (typeInfo.IsEnumFlags)
             {
-                return Initialize(new FlagsPropertyViewModel(classAddress, targetAddressResolver, property, typeInfo.Class, isReadOnly));
+                vm = new FlagsPropertyViewModel(classAddress, targetAddressResolver, property, typeInfo.Class, isReadOnly);
             }
-
-            if (typeInfo.IsEnum)
+            else if (typeInfo.IsEnum)
             {
-                return Initialize(new EnumPropertyViewModel(classAddress, targetAddressResolver, property, typeInfo.Class, isReadOnly));
+                vm = new EnumPropertyViewModel(classAddress, targetAddressResolver, property, typeInfo.Class, isReadOnly);
             }
-
-            if (typeInfo.IsVec2 && typeInfo.Name == "Vec2f")
+            else if (typeInfo.IsVec2 && typeInfo.Class?.Name == "Vec2f")
             {
-                return Initialize(new Vec2fViewModel(classAddress, targetAddressResolver, property, isReadOnly));
+                vm = new Vec2fViewModel(classAddress, targetAddressResolver, property, isReadOnly);
             }
-
-            if (typeInfo.IsVec3 && typeInfo.Name == "Vec3f")
+            else if (typeInfo.IsVec3 && typeInfo.Class?.Name == "Vec3f")
             {
-                return Initialize(new Vec3fViewModel(classAddress, targetAddressResolver, property, isReadOnly));
+                vm = new Vec3fViewModel(classAddress, targetAddressResolver, property, isReadOnly);
             }
-
-            if (typeInfo.IsVec4 && typeInfo.Name == "Vec4f")
+            else if (typeInfo.IsVec4 && typeInfo.Class?.Name == "Vec4f")
             {
-                return Initialize(new Vec4fViewModel(classAddress, targetAddressResolver, property, isReadOnly));
+                vm = new Vec4fViewModel(classAddress, targetAddressResolver, property, isReadOnly);
             }
-
-            if (typeInfo.Class?.Name == "Transform")
+            else if (typeInfo.Class?.Name == "Transform")
             {
-                return Initialize(new TransformViewModel(classAddress, targetAddressResolver, property, isReadOnly));
+                vm = new TransformViewModel(classAddress, targetAddressResolver, property, isReadOnly);
             }
-
-            if (typeInfo.IsFundamental && typeInfo.IsIntegral && typeInfo.Name == "bool")
+            else if (typeInfo.IsFundamental && typeInfo.IsIntegral && typeInfo.Name == "bool")
             {
-                return Initialize(new BoolPropertyViewModel(classAddress, targetAddressResolver, property, isReadOnly));
+                vm = new BoolPropertyViewModel(classAddress, targetAddressResolver, property, isReadOnly);
             }
-
-            if (typeInfo.IsFundamental && (typeInfo.IsIntegral || typeInfo.IsFloat))
+            else if (typeInfo.IsFundamental && (typeInfo.IsIntegral || typeInfo.IsFloat))
             {
-                return Initialize(new NumericPropertyViewModel(classAddress, targetAddressResolver, property, isReadOnly));
+                vm = new NumericPropertyViewModel(classAddress, targetAddressResolver, property, isReadOnly);
             }
-
-            if (typeInfo.IsClass && typeInfo.Class.HasValue)
+            else if (typeInfo.Class.HasValue && typeInfo.Class.Value.IsClassType)
             {
-                return Initialize(new ObjectPropertyViewModel(classAddress, targetAddressResolver, property, isReadOnly, depth));
+                vm = new ObjectPropertyViewModel(classAddress, targetAddressResolver, property, isReadOnly, depth);
+            }
+            else if (typeInfo.Class.HasValue && typeInfo.Class.Value.IsStructType)
+            {
+                vm = new StructPropertyViewModel(classAddress, targetAddressResolver, property, isReadOnly, depth);
+            }
+            else
+            {
+                Logger.Log(LogLevel.Debug, $"Inspector creating read-only property view model for property '{property.Name}' of type '{typeInfo.Name}'");
+                vm = new ReadOnlyPropertyViewModel(classAddress, targetAddressResolver, property, isReadOnly);
             }
 
-            Logger.Log(LogLevel.Debug, $"Inspector creating read-only component property view model for property '{property.Name}' of type '{typeInfo.Name}'");
+            vm.PostWriteCallback = postWriteCallback;
 
-            return Initialize(new ReadOnlyPropertyViewModel(classAddress, targetAddressResolver, property, isReadOnly));
+            return initialize ? Initialize(vm) : vm;
         }
 
         private static InspectorPropertyViewModelBase Initialize(InspectorPropertyViewModelBase viewModel)
@@ -139,5 +145,3 @@ namespace Hyperion.Editor.ViewModels
         }
     }
 }
-
-            

@@ -1,6 +1,7 @@
 using System;
 using System.Runtime.InteropServices;
 using Avalonia.Controls;
+using Avalonia.Input;
 using Avalonia.Interactivity;
 using Hyperion.Editor.ViewModels;
 
@@ -20,6 +21,9 @@ namespace Hyperion.Editor.Views.Inspector
             bool hasPath = !string.IsNullOrEmpty(assetPath) && assetPath != "(None)";
             PART_SubHeading.Text = hasPath ? assetPath : string.Empty;
             PART_SubHeading.IsVisible = hasPath;
+
+            AddHandler(InputElement.LostFocusEvent, OnTextBoxLostFocus, RoutingStrategies.Bubble);
+            AddHandler(InputElement.KeyDownEvent, OnTextBoxKeyDown, RoutingStrategies.Bubble);
         }
 
         protected override void OnOpened(EventArgs e)
@@ -53,6 +57,23 @@ namespace Hyperion.Editor.Views.Inspector
         private void OnClose(object? sender, RoutedEventArgs e)
         {
             Close();
+        }
+
+        private void OnTextBoxLostFocus(object? sender, RoutedEventArgs e)
+        {
+            if (e.Source is TextBox { DataContext: InspectorPropertyViewModelBase vm })
+            {
+                vm.CommitValue();
+            }
+        }
+
+        private void OnTextBoxKeyDown(object? sender, KeyEventArgs e)
+        {
+            if (e.Key == Key.Return && e.Source is TextBox { DataContext: InspectorPropertyViewModelBase vm })
+            {
+                vm.CommitValue();
+                e.Handled = true;
+            }
         }
 
         [DllImport("user32.dll")]

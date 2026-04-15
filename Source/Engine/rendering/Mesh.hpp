@@ -109,7 +109,7 @@ public:
     Mesh(const VertexArrayView& vertexData, const ByteBuffer& indexData, Topology topology, const VertexInputLayoutDesc& inputLayout);
     Mesh(const VertexArrayView& vertexData, const ByteBuffer& indexData, Topology topology = TOP_TRIANGLES);
 
-    ~Mesh();
+    ~Mesh() override;
 
     HYP_METHOD()
     EnumFlags<MeshFlags> GetFlags() const
@@ -146,21 +146,9 @@ public:
         return m_indexBuffer;
     }
 
-    HYP_METHOD(Property = "InputLayout", Transient)
-    HYP_FORCE_INLINE const VertexInputLayoutDesc& GetInputLayout() const
-    {
-        return m_meshDesc.meshAttributes.inputLayout;
-    }
-
     HYP_FORCE_INLINE MeshAttributes GetMeshAttributes() const
     {
         return m_meshDesc.meshAttributes;
-    }
-
-    HYP_METHOD(Property = "Topology", Transient)
-    HYP_FORCE_INLINE Topology GetTopology() const
-    {
-        return GetMeshAttributes().topology;
     }
 
     /*! \brief Get the axis-aligned bounding box for the mesh. */

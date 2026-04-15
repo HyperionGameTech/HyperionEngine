@@ -1941,6 +1941,8 @@ Handle<Material> UIObject::CreateMaterial() const
             materialTextures);
 
         material->SetIsDynamic(true);
+        
+        material->Register("$Memory/Media/Materials");
 
         InitObject(material);
 

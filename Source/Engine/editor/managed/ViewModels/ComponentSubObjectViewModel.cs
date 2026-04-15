@@ -12,6 +12,8 @@ namespace Hyperion.Editor.ViewModels
         public ObjectBase Target { get; }
         public ObservableCollection<InspectorPropertyViewModelBase> Properties { get; } = new();
 
+        private readonly Action? _postWriteCallback;
+
         private bool _hasProperties;
         public bool HasProperties
         {
@@ -19,10 +21,11 @@ namespace Hyperion.Editor.ViewModels
             private set => SetProperty(ref _hasProperties, value);
         }
 
-        public ComponentSubObjectViewModel(string label, ObjectBase target, int depth = 0)
+        public ComponentSubObjectViewModel(string label, ObjectBase target, int depth = 0, Action? postWriteCallback = null)
         {
             Label = label;
             Target = target ?? throw new ArgumentNullException(nameof(target));
+            _postWriteCallback = postWriteCallback;
 
             PopulateProperties(depth);
         }
@@ -74,7 +77,9 @@ namespace Hyperion.Editor.ViewModels
                         isReadOnly = true;
                     }
 
-                    Properties.Add(InspectorViewModelFactory.Create(Target, property, isReadOnly, depth));
+                    InspectorPropertyViewModelBase vm = InspectorViewModelFactory.Create(Target, property, isReadOnly, depth, _postWriteCallback);
+
+                    Properties.Add(vm);
                 }
                 catch (Exception ex)
                 {
