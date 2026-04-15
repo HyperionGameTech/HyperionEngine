@@ -33,19 +33,19 @@ struct MeshComponent
 {
     HYP_STRUCT_BODY(MeshComponent);
 
-    HYP_FIELD(Property = "Mesh", Editor = true)
+    HYP_FIELD(Property = "Mesh", Editor)
     Handle<Mesh> mesh;
 
-    HYP_FIELD(Property = "Material", Editor = true)
+    HYP_FIELD(Property = "Material", Editor)
     Handle<Material> material;
 
-    HYP_FIELD(Property = "Skeleton", Editor = true)
+    HYP_FIELD(Property = "Skeleton", Editor)
     Handle<Skeleton> skeleton;
 
-    HYP_FIELD(Property = "EnableAutoInstancing", Serialize = true)
+    HYP_FIELD(Property = "EnableAutoInstancing", Serialize)
     bool enableAutoInstancing = false;
 
-    HYP_FIELD(Property = "InstanceData", NoScriptBindings)
+    HYP_FIELD(Property = "InstanceData", Serialize, NoScriptBindings)
     AssetReference instanceData;
 
     HYP_FIELD(Transient)
@@ -67,46 +67,12 @@ struct MeshComponent
     }
 
     MeshComponent(const MeshComponent& other) = default;
-    HYP_API MeshComponent& operator=(const MeshComponent& other);
+    MeshComponent& operator=(const MeshComponent& other);
 
     MeshComponent(MeshComponent&& other) noexcept = default;
-    HYP_API MeshComponent& operator=(MeshComponent&& other) noexcept;
+    MeshComponent& operator=(MeshComponent&& other) noexcept;
 
-    HYP_API ~MeshComponent();
-
-    HYP_FORCE_INLINE bool operator==(const MeshComponent& other) const
-    {
-        return mesh == other.mesh
-            && material == other.material
-            && skeleton == other.skeleton
-            && numInstances == other.numInstances
-            && enableAutoInstancing == other.enableAutoInstancing
-            && instanceData == other.instanceData;
-    }
-
-    HYP_FORCE_INLINE bool operator!=(const MeshComponent& other) const
-    {
-        return !(*this == other);
-    }
-
-    HYP_FORCE_INLINE bool IsValid() const
-    {
-        return mesh.IsValid() && material.IsValid();
-    }
-
-    HYP_FORCE_INLINE HashCode GetHashCode() const
-    {
-        HashCode hashCode;
-
-        hashCode.Add(mesh);
-        hashCode.Add(material);
-        hashCode.Add(skeleton);
-        hashCode.Add(numInstances);
-        hashCode.Add(enableAutoInstancing);
-        hashCode.Add(instanceData);
-
-        return hashCode;
-    }
+    ~MeshComponent();
 };
 
 } // namespace Hyperion

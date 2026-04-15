@@ -256,7 +256,7 @@ namespace Hyperion.Editor.ViewModels
 
                     if (val is ObjectBase obj && obj.IsValid && _depth < MaxDepth)
                     {
-                        subObjectVm = new ComponentSubObjectViewModel(_property.Name.ToString(), obj, _depth + 1);
+                        subObjectVm = new ComponentSubObjectViewModel(_property.Name.ToString(), obj, _depth + 1, PostWriteCallback);
                         displayName = obj.Class.Name.ToString();
 
                         if (obj is AssetObject assetObj)

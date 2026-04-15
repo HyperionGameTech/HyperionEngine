@@ -1091,7 +1091,7 @@ void FogVolumePass::RenderToFramebuffer_Internal(Frame* frame, const RenderSetup
 
     cr << SetCurrentViewport(renderSetup.viewport);
 
-    cr << SetTopology(m_volumeMesh->GetTopology());
+    cr << SetTopology(m_volumeMesh->GetMeshAttributes().topology);
     cr << SetInputLayout(m_volumeMesh->GetMeshAttributes().inputLayout);
 
     cr << SetFillMode(FM_FILL);
