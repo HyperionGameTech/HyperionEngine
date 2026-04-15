@@ -105,7 +105,7 @@ static void BuildRenderGroupsOrdered(
 
         // @FIXME Thread safe?
         RenderableAttributeSet attributes = GetMergedRenderableAttributes(
-            RenderableAttributeSet { mesh->GetMeshAttributes(), material->GetRenderAttributes() },
+            RenderableAttributeSet { mesh->GetMeshAttributes(), material->GetAttributes() },
             overrideAttributes);
 
         if (const Handle<Texture>& albedoTexture = material->GetTexture(MaterialTextureKey::Diffuse); albedoTexture.IsValid())

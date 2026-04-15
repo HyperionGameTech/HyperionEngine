@@ -2907,7 +2907,7 @@ void DeferredRenderer::UpdateRayTracingView(Frame* frame, const RenderSetup& rs)
         AssertDebug(meshProxy->mesh != nullptr && meshProxy->mesh->IsReady());
         AssertDebug(meshProxy->material != nullptr && meshProxy->material->IsReady());
 
-        const RenderBucket bucket = meshProxy->material->GetRenderAttributes().bucket;
+        const RenderBucket bucket = meshProxy->material->GetAttributes().bucket;
 
         if (bucket != RenderBucket::Opaque
             && bucket != RenderBucket::Lightmapped
