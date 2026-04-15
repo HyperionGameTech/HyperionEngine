@@ -473,7 +473,7 @@ LoadedAsset OBJModelLoader::BuildModel(LoaderState& state, OBJModel& model)
         }
         else
         {
-            materialAttributes = material->GetRenderAttributes();
+            materialAttributes = material->GetAttributes();
         }
 
         InitObject(material);

@@ -766,7 +766,7 @@ Handle<Node> TranslateEditorGizmo::Load_Internal() const
 
                 if (meshComponent->material.IsValid())
                 {
-                    materialAttributes = meshComponent->material->GetRenderAttributes();
+                    materialAttributes = meshComponent->material->GetAttributes();
                     materialParameters = meshComponent->material->GetParameters();
                 }
 
@@ -846,7 +846,7 @@ Handle<Node> RotateEditorGizmo::Load_Internal() const
 
                     if (meshComponent->material.IsValid())
                     {
-                        materialAttributes = meshComponent->material->GetRenderAttributes();
+                        materialAttributes = meshComponent->material->GetAttributes();
                         materialParameters = meshComponent->material->GetParameters();
                     }
 
@@ -2888,8 +2888,8 @@ void EditorSubsystem::SetFocusedNode(const Handle<Node>& focusedNode, bool shoul
                 {
                     if (Material* material = meshComponent->material)
                     {
-                        material->GetRenderAttributes().stencilReference = 0b1000;
-                        material->GetRenderAttributes().flags |= MAF_STENCIL_TEST;
+                        material->GetAttributes().stencilReference = 0b1000;
+                        material->GetAttributes().flags |= MAF_STENCIL_TEST;
                         material->SetNeedsRenderProxyUpdate();
                     }
                 }
@@ -2940,8 +2940,8 @@ void EditorSubsystem::SetFocusedNode(const Handle<Node>& focusedNode, bool shoul
             {
                 if (Material* material = meshComponent->material)
                 {
-                    material->GetRenderAttributes().stencilReference = 0;
-                    material->GetRenderAttributes().flags &= ~MAF_STENCIL_TEST;
+                    material->GetAttributes().stencilReference = 0;
+                    material->GetAttributes().flags &= ~MAF_STENCIL_TEST;
 
                     material->SetNeedsRenderProxyUpdate();
                 }

@@ -405,14 +405,14 @@ public:
 
     /*! \brief Get the render attributes of this Material.
      *  \return The render attributes of this Material. */
-    HYP_FORCE_INLINE MaterialAttributes& GetRenderAttributes()
+    HYP_FORCE_INLINE MaterialAttributes& GetAttributes()
     {
         return m_attributes;
     }
 
     /*! \brief Get the render attributes of this Material.
      *  \return The render attributes of this Material. */
-    HYP_FORCE_INLINE const MaterialAttributes& GetRenderAttributes() const
+    HYP_FORCE_INLINE const MaterialAttributes& GetAttributes() const
     {
         return m_attributes;
     }
@@ -480,13 +480,13 @@ private:
     // set the texture mask in MaterialAttributes based on currently set textures
     void UpdateAttributesTextureMask();
 
-    HYP_FIELD()
+    HYP_FIELD(Property = "Parameters", Serialize, Editor)
     MaterialParameters m_parameters;
 
-    HYP_FIELD(Property = "Textures")
+    HYP_FIELD(Property = "Textures", Serialize, Editor)
     MaterialTextures m_textures;
 
-    HYP_FIELD()
+    HYP_FIELD(Property = "Attributes", Serialize, Editor)
     MaterialAttributes m_attributes;
 
     HYP_FIELD()

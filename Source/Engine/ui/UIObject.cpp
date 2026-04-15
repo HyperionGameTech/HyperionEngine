@@ -2531,7 +2531,7 @@ void UIObject::UpdateMaterial_Internal()
 
     if (!currentMaterial.IsValid()
         || (!currentMaterial->GetIsDynamic() && AllowMaterialUpdate()) // set to dynamic if we allow material updates
-        || currentMaterial->GetRenderAttributes() != materialAttributes)
+        || currentMaterial->GetAttributes() != materialAttributes)
     {
         // need to get a new Material if attributes have changed
         Handle<Material> newMaterial = CreateMaterial();
