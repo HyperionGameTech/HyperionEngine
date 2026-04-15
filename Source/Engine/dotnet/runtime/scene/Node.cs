@@ -29,18 +29,6 @@ namespace Hyperion
         {
         }
 
-        public Name Name
-        {
-            get
-            {
-                return this.GetName();
-            }
-            set
-            {
-                this.SetName(value);
-            }
-        }
-
         public NodeFlags Flags
         {
             get

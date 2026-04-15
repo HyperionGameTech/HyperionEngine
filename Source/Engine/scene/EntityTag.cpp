@@ -32,6 +32,6 @@ HYP_REGISTER_ENTITY_TAG(UpdateRenderProxy, false);
 HYP_REGISTER_ENTITY_TAG(UpdateVisibility, false);
 HYP_REGISTER_ENTITY_TAG(UpdateInstancedMeshData, false);
 
-HYP_REGISTER_ENTITY_TAG(EntityType, false);
+HYP_REGISTER_ENTITY_TAG(EntityTypeSentinel, false);
 
 } // namespace Hyperion

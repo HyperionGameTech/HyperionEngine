@@ -302,7 +302,7 @@ void EntityManager::Shutdown()
 
                 // Notify the entity that the component is being removed
                 // - needed to ensure proper lifecycle. every OnComponentRemoved() call must be matched with an OnComponentAdded() call and vice versa
-                EntityTag tag;
+                EntityTag tag = EntityTag::None;
                 if (IsEntityTagComponent(componentTypeId, tag))
                 {
                     // Remove the tag from the entity
@@ -456,7 +456,7 @@ Handle<Entity> EntityManager::AddBasicEntity()
     InitObject(entity);
 
     // Use basic TypeId tag for the entity, as the type is just Entity
-    AddTag<EntityTag::EntityType>(entity);
+    AddTag<EntityTag::EntityTypeSentinel>(entity);
 
     if (entity->m_entityInitInfo.receivesUpdate)
     {
@@ -520,12 +520,12 @@ Handle<Entity> EntityManager::AddTypedEntity(const Class* cls)
 
     // Create tag to track class of the entity.
 
-    AddTag<EntityTag::EntityType>(entity);
+    AddTag<EntityTag::EntityTypeSentinel>(entity);
 
     while (cls != nullptr && cls != Entity::StaticClass())
     {
         EntityTag entityTypeTag = MakeEntityTypeTag(cls->GetTypeId());
-        AssertDebug(uint64(entityTypeTag) & uint64(EntityTag::EntityType));
+        AssertDebug((uint64(entityTypeTag) & uint64(EntityTag::EntityTypeSentinel)) != 0);
 
         const IComponentInterface* componentInterface = ComponentInterfaceRegistry::GetInstance().GetEntityTagComponentInterface(entityTypeTag);
         AssertDebug(componentInterface);
@@ -587,14 +587,14 @@ void EntityManager::AddExistingEntity_Internal(const Handle<Entity>& entity)
 
     InitObject(entity);
 
-    AddTag<EntityTag::EntityType>(entity);
+    AddTag<EntityTag::EntityTypeSentinel>(entity);
 
     const Class* cls = entity->InstanceClass();
 
     while (cls != nullptr && cls != Entity::StaticClass())
     {
         EntityTag entityTypeTag = MakeEntityTypeTag(cls->GetTypeId());
-        AssertDebug(uint64(entityTypeTag) & uint64(EntityTag::EntityType));
+        AssertDebug((uint64(entityTypeTag) & uint64(EntityTag::EntityTypeSentinel)) != 0);
 
         const IComponentInterface* componentInterface = ComponentInterfaceRegistry::GetInstance().GetEntityTagComponentInterface(entityTypeTag);
         AssertDebug(componentInterface);
@@ -756,7 +756,7 @@ void EntityManager::MoveEntity(const Handle<Entity>& entity, const Handle<Entity
 
             // Notify the entity that the component is being removed
             // - needed to ensure proper lifecycle. every OnComponentRemoved() call must be matched with an OnComponentAdded() call and vice versa
-            EntityTag tag;
+            EntityTag tag = EntityTag::None;
             if (IsEntityTagComponent(componentTypeId, tag))
             {
                 // Remove the tag from the entity
@@ -860,7 +860,7 @@ void EntityManager::MoveEntity(const Handle<Entity>& entity, const Handle<Entity
             AnyRef componentRef = container->TryGetComponent(componentId);
             Assert(componentRef.HasValue(), "Failed to get component of type '{}' with id {} from component container", *GetComponentTypeName(componentTypeId), componentId);
 
-            EntityTag tag;
+            EntityTag tag = EntityTag::None;
             if (IsEntityTagComponent(componentTypeId, tag))
             {
                 entity->OnTagAdded(tag);
@@ -977,7 +977,7 @@ void EntityManager::AddComponent(Entity* entity, const BoxedValue& componentData
 
     // Note: Call before notifying systems as they are able to remove components!
 
-    EntityTag tag;
+    EntityTag tag = EntityTag::None;
     if (IsEntityTagComponent(componentTypeId, tag))
     {
         entity->OnTagAdded(tag);
@@ -1053,7 +1053,7 @@ void EntityManager::AddComponent(Entity* entity, BoxedValue&& componentData)
     AnyRef componentRef = container->TryGetComponent(componentId);
     Assert(componentRef.HasValue(), "Failed to get component of type '{}' with id {} from component container", *GetComponentTypeName(componentTypeId), componentId);
 
-    EntityTag tag;
+    EntityTag tag = EntityTag::None;
     if (IsEntityTagComponent(componentTypeId, tag))
     {
         entity->OnTagAdded(tag);
@@ -1119,7 +1119,7 @@ bool EntityManager::RemoveComponent(TypeId componentTypeId, Entity* entity)
         return false;
     }
 
-    EntityTag tag;
+    EntityTag tag = EntityTag::None;
     if (IsEntityTagComponent(componentTypeId, tag))
     {
         entity->OnTagRemoved(tag);
@@ -1178,7 +1178,7 @@ bool EntityManager::HasTag(const Entity* entity, EntityTag tag) const
 
     if (!componentInterface)
     {
-        HYP_LOG(Entity, Error, "No TagComponent registered for EntityTag {}", tag);
+        HYP_LOG(Entity, Error, "No TagComponent registered for EntityTag {}", tag.value);
 
         return false;
     }
@@ -1206,7 +1206,7 @@ void EntityManager::AddTag(Entity* entity, EntityTag tag)
 
     if (!componentInterface)
     {
-        HYP_LOG(Entity, Error, "No TagComponent registered for EntityTag {}", tag);
+        HYP_LOG(Entity, Error, "No TagComponent registered for EntityTag {}", tag.value);
 
         return;
     }
@@ -1225,7 +1225,7 @@ void EntityManager::AddTag(Entity* entity, EntityTag tag)
 
     if (!componentInterface->CreateInstance(component))
     {
-        HYP_LOG(Entity, Error, "Failed to create TagComponent for EntityTag {}", tag);
+        HYP_LOG(Entity, Error, "Failed to create TagComponent for EntityTag {}", tag.value);
 
         return;
     }
@@ -1248,7 +1248,7 @@ bool EntityManager::RemoveTag(Entity* entity, EntityTag tag)
 
     if (!componentInterface)
     {
-        HYP_LOG(Entity, Error, "No TagComponent registered for EntityTag {}", tag);
+        HYP_LOG(Entity, Error, "No TagComponent registered for EntityTag {}", tag.value);
 
         return false;
     }

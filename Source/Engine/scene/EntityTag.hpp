@@ -16,40 +16,134 @@ namespace Hyperion {
 
 class Entity;
 
-HYP_ENUM()
-enum class EntityTag : uint64
+HYP_STRUCT()
+struct EntityTag
 {
-    None,
+    HYP_STRUCT_BODY(EntityTag);
 
-    MobStatic,
-    MobDynamic,
+    HYP_FIELD()
+    uint64 value;
 
-    Light,
+    static const EntityTag None;
 
-    PrimaryCamera,
-    EditorCamera,
+    /// Persistent tags
+    static const EntityTag MobStatic;
+    static const EntityTag MobDynamic;
 
-    LightmapElement,
+    static const EntityTag Light;
 
-    ReceivesUpdate,
+    static const EntityTag PrimaryCamera;
+    static const EntityTag EditorCamera;
 
-    MaxPersistent, // persistent entity tags end here.
+    static const EntityTag LightmapElement;
 
-    UIVisible = MaxPersistent,
+    static const EntityTag ReceivesUpdate;
 
-    FocusedInEditor,
+    static constexpr uint64 SerializableTagMask = 0xF;
 
-    UpdateRenderProxy,
-    UpdateVisibility,
-    UpdateInstancedMeshData,
+    /// Non-persistent
+    static const EntityTag UIVisible;
 
-    EntityType = 2147483648,            // Flag to indicate that this EntityTag is an EntityType tag
-    EntityTypeMask = 0xFFFFFFFF00000000 // Mask to get TypeId from the vaue
+    static const EntityTag FocusedInEditor;
+
+    static const EntityTag UpdateRenderProxy;
+    static const EntityTag UpdateVisibility;
+    static const EntityTag UpdateInstancedMeshData;
+
+    static const EntityTag EntityTypeSentinel;
+
+    constexpr EntityTag()
+        : value(0)
+    {
+    }
+
+    constexpr explicit EntityTag(uint64 value)
+        : value(value)
+    {
+    }
+
+    constexpr EntityTag(const EntityTag& other) = default;
+    EntityTag& operator=(const EntityTag& other) = default;
+
+    constexpr EntityTag(EntityTag&& other) noexcept
+        : value(other.value)
+    {
+        other.value = 0;
+    }
+
+    EntityTag& operator=(EntityTag&& other) noexcept
+    {
+        value = other.value;
+        other.value = 0;
+
+        return *this;
+    }
+
+    HYP_FORCE_INLINE constexpr explicit operator bool() const
+    {
+        return value != 0;
+    }
+
+    HYP_FORCE_INLINE constexpr bool operator!() const
+    {
+        return value == 0;
+    }
+
+    HYP_FORCE_INLINE constexpr bool operator==(const EntityTag& other) const
+    {
+        return value == other.value;
+    }
+
+    HYP_FORCE_INLINE constexpr bool operator!=(const EntityTag& other) const
+    {
+        return value != other.value;
+    }
+
+    HYP_FORCE_INLINE constexpr explicit operator uint64() const
+    {
+        return value;
+    }
+
+    HYP_FORCE_INLINE constexpr HashCode GetHashCode() const
+    {
+        return HashCode(HashCode::ValueType(value));
+    }
 };
+
+inline constexpr EntityTag EntityTag::None = EntityTag(0x0);
+
+// Persistent tags
+
+inline constexpr EntityTag EntityTag::MobStatic = EntityTag(0x1);
+inline constexpr EntityTag EntityTag::MobDynamic = EntityTag(0x2);
+
+inline constexpr EntityTag EntityTag::Light = EntityTag(0x3);
+
+inline constexpr EntityTag EntityTag::PrimaryCamera = EntityTag(0x4);
+inline constexpr EntityTag EntityTag::EditorCamera = EntityTag(0x5);
+
+inline constexpr EntityTag EntityTag::LightmapElement = EntityTag(0x6);
+
+inline constexpr EntityTag EntityTag::ReceivesUpdate = EntityTag(0x7);
+
+// Non-persistent
+
+inline constexpr EntityTag EntityTag::UIVisible = EntityTag(0x10);
+
+inline constexpr EntityTag EntityTag::FocusedInEditor = EntityTag(0x20);
+
+inline constexpr EntityTag EntityTag::UpdateRenderProxy = EntityTag(0x30);
+inline constexpr EntityTag EntityTag::UpdateVisibility = EntityTag(0x40);
+inline constexpr EntityTag EntityTag::UpdateInstancedMeshData = EntityTag(0x50);
+
+inline constexpr EntityTag EntityTag::EntityTypeSentinel = EntityTag(1ull << 31);
+
+// Mask for the actual TypeId to be stored in the upper 32 bits of the EntityTag value.
+static constexpr uint64 EntityTypeTagMask = 0xFFFFFFFF00000000ull;
 
 static constexpr inline bool IsEntityTypeTag(EntityTag tag)
 {
-    return uint64(tag) & uint64(EntityTag::EntityType);
+    return (uint64(tag) & uint64(EntityTag::EntityTypeSentinel)) != 0;
 }
 
 static constexpr inline TypeId GetTypeIdFromEntityTag(EntityTag tag)
@@ -68,18 +162,18 @@ struct EntityType_Impl
 {
     // static_assert(std::is_base_of_v<Entity, T>, "T must be a base of Entity to use EntityType");
     static constexpr EntityTag value = (std::is_void_v<T> || std::is_same_v<T, Entity>)
-        ? EntityTag::EntityType
-        : EntityTag((uint64(CONSTEXPR_TYPE_ID(T)) << 32) | uint64(EntityTag::EntityType));
+        ? EntityTag::EntityTypeSentinel
+        : EntityTag((uint64(CONSTEXPR_TYPE_ID(T)) << 32) | uint64(EntityTag::EntityTypeSentinel));
 };
 
 static constexpr inline EntityTag MakeEntityTypeTag(TypeId typeId)
 {
     if (typeId == TypeId::Void() || typeId == TypeId::ForType<Entity>())
     {
-        return EntityTag::EntityType;
+        return EntityTag::EntityTypeSentinel;
     }
 
-    return EntityTag((static_cast<uint64>(typeId.Value()) << 32) | uint64(EntityTag::EntityType));
+    return EntityTag((uint64(typeId.Value()) << 32) | uint64(EntityTag::EntityTypeSentinel));
 }
 
 HYP_STRUCT(Component)
@@ -98,8 +192,6 @@ struct TagComponentBase
 template <EntityTag TEntityTag>
 struct TagComponent : TagComponentBase
 {
-    static constexpr EntityTag Tag = TEntityTag;
-
     TagComponent()
     {
         TagComponentBase::value = TEntityTag;

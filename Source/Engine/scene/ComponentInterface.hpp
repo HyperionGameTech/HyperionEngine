@@ -20,13 +20,12 @@
 
 #include <scene/ComponentFactory.hpp>
 #include <scene/ComponentContainer.hpp>
+#include <scene/EntityTag.hpp>
 
 namespace Hyperion {
 
 class ComponentInterfaceRegistry;
 class ComponentContainerFactoryBase;
-
-enum class EntityTag : uint64;
 
 template <EntityTag Tag>
 struct TagComponent;

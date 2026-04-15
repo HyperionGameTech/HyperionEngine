@@ -958,7 +958,7 @@ void SceneOctree::RebuildEntriesHash(uint32 level)
                 continue;
             }
 
-            tagsMask = m_entityManager->GetSavableTagsMask(entry.value);
+            tagsMask = m_entityManager->GetTagBits<EntityTag::SerializableTagMask>(entry.value);
         }
 
         const HashCode entryHashCode = entry.GetHashCode();
@@ -967,9 +967,9 @@ void SceneOctree::RebuildEntriesHash(uint32 level)
         FOR_EACH_BIT(tagsMask, i)
         {
             EntityTag tag = EntityTag(i + 1);
-            AssertDebug(uint32(tag) < m_entryHashes.Size());
+            AssertDebug(uint64(tag) < m_entryHashes.Size());
 
-            m_entryHashes[uint32(tag)].Add(entryHashCode);
+            m_entryHashes[uint64(tag)].Add(entryHashCode);
         }
     }
 

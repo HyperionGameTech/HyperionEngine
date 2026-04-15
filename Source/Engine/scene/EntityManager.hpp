@@ -248,6 +248,11 @@ public:
     template <EntityTag Tag>
     HYP_FORCE_INLINE bool HasTag(const Entity* entity) const
     {
+        if (!IsValidComponentType<TagComponent<Tag>>())
+        {
+            return false;
+        }
+
         return HasComponent<TagComponent<Tag>>(entity);
     }
 
@@ -272,7 +277,7 @@ public:
     {
         for (EntityTag tag : tags)
         {
-            if (tag == EntityTag::None || uint32(tag) >= uint32(EntityTag::EntityType))
+            if (tag == EntityTag::None || uint64(tag) >= uint64(EntityTag::EntityTypeSentinel))
             {
                 continue;
             }
@@ -292,20 +297,13 @@ public:
         return RemoveComponent<TagComponent<Tag>>(entity);
     }
 
-    HYP_FORCE_INLINE Array<EntityTag> GetSavableTags(const Entity* entity) const
+    template <uint64 InMask>
+    HYP_FORCE_INLINE uint64 GetTagBits(const Entity* entity) const
     {
-        Array<EntityTag> tags;
-        GetTagsHelper(entity, std::make_integer_sequence<uint32, uint32(EntityTag::MaxPersistent) - 2>(), tags);
+        uint64 result = 0;
+        GetTagsHelper<InMask>(entity, result);
 
-        return tags;
-    }
-
-    HYP_FORCE_INLINE uint32 GetSavableTagsMask(const Entity* entity) const
-    {
-        uint32 mask = 0;
-        GetTagsHelper(entity, std::make_integer_sequence<uint32, uint32(EntityTag::MaxPersistent) - 2>(), mask);
-
-        return mask;
+        return result;
     }
 
     template <class Component>
@@ -567,7 +565,7 @@ public:
         componentIds = entityData->components;
 
         // Note: Call OnComponentAdded on the entity before notifying systems, as systems may remove the component
-        EntityTag tag;
+        EntityTag tag = EntityTag::None;
         if (IsEntityTagComponent(componentTypeId, tag))
         {
             // If the component is an TagComponent, add the tag to the entity
@@ -646,7 +644,7 @@ public:
 
         NotifySystemsOfEntityRemoved(entity, removedComponents);
 
-        EntityTag tag;
+        EntityTag tag = EntityTag::None;
         if (IsEntityTagComponent(componentTypeId, tag))
         {
             // If the component is an TagComponent, remove the tag from the entity
@@ -837,16 +835,24 @@ private:
         AssertDebug(IsValidComponentType(componentTypeId), "Invalid component type: TypeId({})", componentTypeId.Value());
     }
 
-    template <uint32... Indices>
-    HYP_FORCE_INLINE void GetTagsHelper(const Entity* entity, std::integer_sequence<uint32, Indices...>, Array<EntityTag>& outTags) const
+    template <uint64 InMask>
+    HYP_FORCE_INLINE void GetTagsHelper(const Entity* entity, uint64& outMask) const
     {
-        ((HasTag<EntityTag(Indices + 1)>(entity) ? (void)(outTags.PushBack(EntityTag(Indices + 1))) : void()), ...);
+        GetTagsHelper(entity, std::make_integer_sequence<uint64, 64>{}, outMask);
+        outMask &= InMask;
     }
 
-    template <uint32... Indices>
-    HYP_FORCE_INLINE void GetTagsHelper(const Entity* entity, std::integer_sequence<uint32, Indices...>, uint32& outMask) const
+    template <uint64... Indices>
+    HYP_FORCE_INLINE void GetTagsHelper(const Entity* entity, std::integer_sequence<uint64, Indices...>, uint64& outMask) const
     {
-        ((HasTag<EntityTag(Indices + 1)>(entity) ? (void)(outMask |= (1u << uint32(Indices))) : void()), ...);
+        outMask = 0;
+        ((HasTag<EntityTag(Indices + 1)>(entity) ? (void)(outMask |= (1ull << Indices)) : void()), ...);
+    }
+
+    template <uint64... Indices>
+    HYP_FORCE_INLINE void GetTagsHelper(const Entity* entity, std::integer_sequence<uint64, Indices...>, Array<EntityTag>& outTags) const
+    {
+        ((HasTag<EntityTag(Indices + 1)>(entity) ? (void)(outTags.PushBack(EntityTag(Indices + 1))) : void()), ...);
     }
 
     void NotifySystemOfExistingEntities(SystemBase* system);
