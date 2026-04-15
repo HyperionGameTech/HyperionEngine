@@ -2354,6 +2354,7 @@ extern class Mesh : AssetObject
     MeshDesc : MeshDesc
     VertexData : BlobDataReference
     IndexData : BlobDataReference
+    BvhData : BlobDataReference
     Aabb : BoundingBox
     Bvh : BVHNode
     Flags : MeshFlags

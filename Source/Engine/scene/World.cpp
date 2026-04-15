@@ -176,6 +176,8 @@ World::~World()
 
 void World::Init()
 {
+    ObjectBase::Init();
+
     if (m_worldFlags & WorldFlags::HAS_STREAMING)
     {
         if (!m_worldGrid)

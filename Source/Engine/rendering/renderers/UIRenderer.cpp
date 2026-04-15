@@ -89,12 +89,6 @@ static void BuildRenderGroupsOrdered(
             continue;
         }
 
-#if HYP_DEBUG_MODE
-        AssertDebug(meshProxy->entity.Id().GetTypeId() == TypeId::ForType<Entity>(),
-            "Cannot use Entity subclass as MeshEntity, indices would overlap! Class: {}",
-            LookupTypeName(meshProxy->entity.Id().GetTypeId()));
-#endif
-
         Mesh* mesh = meshProxy->mesh;
         Material* material = meshProxy->material;
 
