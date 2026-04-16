@@ -386,7 +386,7 @@ void UISubsystem::RenderCollect(RenderProxyList& rpl)
             meshProxy.numIndices = meshComponent->mesh->NumIndices();
             meshProxy.numInstances = meshComponent->numInstances;
             meshProxy.enableAutoInstancing = meshComponent->enableAutoInstancing;
-            meshProxy.cachedAttributes = RenderableAttributeSet(meshComponent->mesh->GetMeshAttributes(), meshComponent->material->GetAttributes());
+            meshProxy.attributes = RenderableAttributeSet(meshComponent->mesh->GetMeshAttributes(), meshComponent->material->GetAttributes());
             meshProxy.bufferData.worldAabbMax = boundingBoxComponent ? boundingBoxComponent->worldAabb.max : MathUtil::MinSafeValue<Vec3f>();
             meshProxy.bufferData.worldAabbMin = boundingBoxComponent ? boundingBoxComponent->worldAabb.min : MathUtil::MaxSafeValue<Vec3f>();
         }
