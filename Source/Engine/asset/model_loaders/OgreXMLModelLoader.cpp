@@ -24,7 +24,10 @@
 #include <scene/components/VisibilityStateComponent.hpp>
 
 #include <rendering/Mesh.hpp>
-#include <rendering/Material.hpp>
+#include <rendering/MaterialDefinition.hpp>
+#include <rendering/MaterialInstance.hpp>
+
+#include <engine/EngineGlobals.hpp>
 
 #include <engine/EngineDriver.hpp>
 
@@ -350,12 +353,16 @@ AssetLoadResult OgreXMLModelLoader::LoadAsset(LoaderState& state) const
         parameters.transmission = 0.9f;
         parameters.roughness = 0.2f;
 
-        Handle<Material> material = MakeHandle<Material>(CreateNameFromDynamicString(ANSIString(subMesh.name.Data())), attributes, parameters, MaterialTextures {});
-        
-        if (Result result = material->Register("$Import/Media/Materials"); result.HasError())
+        Handle<MaterialDefinition> materialDef = MakeHandle<MaterialDefinition>(CreateNameFromDynamicString(ANSIString(subMesh.name.Data())), attributes, parameters, MaterialTextures {});
+
+        if (Result result = materialDef->Register("$Import/Media/MaterialDefinitions"); result.HasError())
         {
-            HYP_LOG(Assets, Error, "Failed to register material: {}", result.GetError().GetMessage());
+            HYP_LOG(Assets, Error, "Failed to register material definition: {}", result.GetError().GetMessage());
         }
+
+        InitObject(materialDef);
+
+        Handle<MaterialInstance> material = materialDef->CreateInstance();
 
         entity->SetLocalBounds(mesh->GetAABB());
 

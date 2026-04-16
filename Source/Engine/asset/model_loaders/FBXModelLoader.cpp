@@ -9,7 +9,10 @@
 #include <asset/model_loaders/FBXModelLoader.hpp>
 
 #include <rendering/Mesh.hpp>
-#include <rendering/Material.hpp>
+#include <rendering/MaterialDefinition.hpp>
+#include <rendering/MaterialInstance.hpp>
+
+#include <engine/EngineGlobals.hpp>
 
 #include <scene/Entity.hpp>
 #include <scene/World.hpp>
@@ -1676,7 +1679,7 @@ AssetLoadResult FBXModelLoader::LoadAsset(LoaderState& state) const
                 parameters.roughness = 0.65f;
                 parameters.metalness = 0.0f;
 
-                Handle<Material> material = MaterialCache::GetInstance()->GetOrCreate(
+                Handle<MaterialInstance> material = g_materialInstanceCache->GetOrCreate(
                     CreateNameFromDynamicString(fbxNode.name),
                     attributes,
                     parameters);

@@ -45,7 +45,8 @@
 
 #include <streaming/StreamingManager.hpp>
 
-#include <rendering/Material.hpp>
+#include <rendering/MaterialDefinition.hpp>
+#include <rendering/MaterialInstance.hpp>
 #include <rendering/RenderInterface.hpp>
 #include <rendering/ShaderManager.hpp>
 #include <rendering/DebugDrawer.hpp>
@@ -103,7 +104,7 @@ Handle<AudioManager> g_audioManager;
 Handle<AppContextBase> g_appContext;
 Handle<StreamingManager> g_streamingManager;
 Handle<EngineStats> g_engineStats;
-MaterialCache* g_materialCache;
+MaterialInstanceCache* g_materialInstanceCache;
 ShaderCompiler* g_shaderCompiler;
 
 #if HYP_EDITOR
@@ -364,7 +365,7 @@ extern "C"
         InitObject(g_editorState);
 #endif // HYP_EDITOR
 
-        g_materialCache = new MaterialCache;
+        g_materialInstanceCache = new MaterialInstanceCache;
 
         LoadShaderPropertyDictionary();
 
@@ -520,8 +521,8 @@ extern "C"
         delete g_shaderCompiler;
         g_shaderCompiler = nullptr;
 
-        delete g_materialCache;
-        g_materialCache = nullptr;
+        delete g_materialInstanceCache;
+        g_materialInstanceCache = nullptr;
 
         // Named threads
         delete g_mainThreadInstance;

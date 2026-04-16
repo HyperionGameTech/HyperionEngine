@@ -24,7 +24,7 @@
 #include <rendering/AsyncCompute.hpp>
 #include <rendering/Bindless.hpp>
 #include <rendering/Texture.hpp>
-#include <rendering/Material.hpp>
+#include <rendering/MaterialInstance.hpp>
 #include <rendering/Mesh.hpp>
 #include <rendering/RenderCollection.hpp>
 #include <rendering/RenderObject.hpp>
@@ -1962,7 +1962,7 @@ DECLARE_RENDER_DATA_CONTAINER(LightmapVolume, RenderProxyLightmapVolume, NamedBu
 DECLARE_RENDER_DATA_CONTAINER(ParticleVolume, RenderProxyParticleVolume, NamedBuffer::Invalid, nullptr, &s_particleVolumeBinder);
 DECLARE_RENDER_DATA_CONTAINER(FogVolume, RenderProxyFogVolume, NamedBuffer::Invalid, nullptr, &s_fogVolumeBinder);
 
-DECLARE_RENDER_DATA_CONTAINER(Material, RenderProxyMaterial, NamedBuffer::Materials, nullptr, &s_materialBinder);
+DECLARE_RENDER_DATA_CONTAINER(MaterialInstance, RenderProxyMaterial, NamedBuffer::Materials, nullptr, &s_materialBinder);
 
 DECLARE_RENDER_DATA_CONTAINER(Texture, NullProxy, NamedBuffer::Invalid, nullptr, &s_textureBinder);
 

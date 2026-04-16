@@ -10,7 +10,7 @@
 #include <scene/animation/Skeleton.hpp>
 
 #include <rendering/Mesh.hpp>
-#include <rendering/Material.hpp>
+#include <rendering/MaterialInstance.hpp>
 
 #include <rendering/util/DeletionQueue.hpp>
 

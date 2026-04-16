@@ -9,7 +9,7 @@
 #include <rendering/BLASCache.hpp>
 #include <rendering/MeshBlasBuilder.hpp>
 #include <rendering/Mesh.hpp>
-#include <rendering/Material.hpp>
+#include <rendering/MaterialInstance.hpp>
 
 #include <Core/threading/Mutex.hpp>
 #include <Core/containers/HashMap.hpp>
@@ -71,7 +71,7 @@ BLASCache::BLASCache()
 BLASCache::~BLASCache() = default;
 
 void BLASCache::GetOrCreateBLAS(
-    Entity* entity, Mesh* mesh, Material* material,
+    Entity* entity, Mesh* mesh, MaterialInstance* material,
     uint64& outNewKey, uint64& outOldKey,
     GpuBlas*& outBlas)
 {
@@ -92,7 +92,7 @@ void BLASCache::GetOrCreateBLAS(
     const uint64 newKey = MakeBLASKey(Span<const ObjIdBase>({
         entity->Id(),
         mesh->Id(),
-        material ? material->Id() : ObjId<Material>()
+        material ? material->Id() : ObjId<MaterialInstance>()
     }));
 
     outNewKey = newKey;

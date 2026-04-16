@@ -20,7 +20,7 @@
 #include <rendering/shadows/ShadowMap.hpp>
 #include <rendering/shadows/ShadowCameraHelper.hpp>
 
-#include <rendering/Material.hpp>
+#include <rendering/MaterialInstance.hpp>
 #include <rendering/RenderProxy.hpp>
 #include <rendering/RenderInterface.hpp>
 
@@ -299,7 +299,7 @@ void Light::SetSpotAngles(const Vec2f& spotAngles)
     MarkDirty();
 }
 
-void Light::SetMaterial(Handle<Material> material)
+void Light::SetMaterial(Handle<MaterialInstance> material)
 {
     if (material == m_material)
     {

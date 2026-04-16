@@ -38,6 +38,7 @@
 #include <rendering/Texture.hpp>
 #include <rendering/TextureViewCache.hpp>
 #include <rendering/Mesh.hpp>
+#include <rendering/MaterialInstance.hpp>
 #include <rendering/Buffers.hpp>
 #include <rendering/InstancedMeshData.hpp>
 
@@ -318,7 +319,7 @@ void UISubsystem::RenderCollect(RenderProxyList& rpl)
                 rpl.GetMeshes().Track(mesh->Id(), mesh);
             }
 
-            if (Material* material = meshComponent.material)
+            if (MaterialInstance* material = meshComponent.material)
             {
                 rpl.GetMaterials().Track(material->Id(), material, material->GetRenderProxyVersionPtr(), /* allowDuplicatesInSameFrame */ true);
 

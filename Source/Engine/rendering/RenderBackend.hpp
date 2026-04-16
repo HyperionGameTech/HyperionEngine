@@ -25,7 +25,6 @@ namespace Hyperion {
 
 class RenderableAttributeSet;
 class Shader;
-class Material;
 class FrameBase;
 class SwapchainBase;
 class AsyncComputeBase;

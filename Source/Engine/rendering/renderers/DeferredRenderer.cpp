@@ -22,7 +22,7 @@
 #include <rendering/passes/HBAOPass.hpp>
 #include <rendering/DepthOfField.hpp>
 #include <rendering/Mesh.hpp>
-#include <rendering/Material.hpp>
+#include <rendering/MaterialInstance.hpp>
 #include <rendering/Texture.hpp>
 #include <rendering/PlaceholderData.hpp>
 #include <rendering/RenderObject.hpp>

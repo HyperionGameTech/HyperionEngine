@@ -32,7 +32,6 @@
 namespace Hyperion {
 
 class Entity;
-class Material;
 
 extern Pool* g_vulkanPool;
 
@@ -52,7 +51,7 @@ public:
         const VulkanGpuBufferRef& packedIndicesBuffer,
         uint32 numVertices,
         uint32 numIndices,
-        const Handle<Material>& material);
+        const Handle<MaterialInstance>& material);
 
     ~VulkanAccelerationGeometry() override;
 
@@ -76,7 +75,7 @@ public:
         return m_numIndices;
     }
 
-    HYP_FORCE_INLINE const Handle<Material>& GetMaterial() const
+    HYP_FORCE_INLINE const Handle<MaterialInstance>& GetMaterial() const
     {
         return m_material;
     }
@@ -94,7 +93,7 @@ private:
     uint32 m_numVertices;
     uint32 m_numIndices;
 
-    Handle<Material> m_material;
+    Handle<MaterialInstance> m_material;
 
     VkAccelerationStructureGeometryKHR m_geometry;
 };
@@ -226,7 +225,7 @@ public:
         const VulkanGpuBufferRef& packedIndicesBuffer,
         uint32 numVertices,
         uint32 numIndices,
-        const Handle<Material>& material,
+        const Handle<MaterialInstance>& material,
         const Mat4f& transform);
     ~VulkanGpuBlas() override;
 

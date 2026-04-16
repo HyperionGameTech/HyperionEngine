@@ -22,7 +22,7 @@ namespace Hyperion {
 
 class Entity;
 class Mesh;
-class Material;
+class MaterialInstance;
 class EntityManager;
 
 struct VoxelOctreeParams
@@ -36,7 +36,7 @@ struct VoxelOctreeElement
 {
     Handle<Entity> entity;
     Handle<Mesh> mesh;
-    Handle<Material> material;
+    Handle<MaterialInstance> material;
     Mat4f transformMatrix;
     BoundingBox aabb;
 

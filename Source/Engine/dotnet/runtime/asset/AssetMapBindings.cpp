@@ -11,7 +11,6 @@
 #include <scene/Node.hpp>
 #include <scene/animation/Skeleton.hpp>
 
-#include <rendering/Material.hpp>
 
 #include <audio/AudioSource.hpp>
 
