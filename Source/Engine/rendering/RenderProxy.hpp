@@ -122,7 +122,7 @@ public:
     LightmapVolume* lightmapVolume = nullptr;
     LightmapElementId lightmapElementId = LightmapElementId(~0u);
 
-    RenderableAttributeSet cachedAttributes;
+    RenderableAttributeSet attributes;
 
     InstanceData instanceData;
 

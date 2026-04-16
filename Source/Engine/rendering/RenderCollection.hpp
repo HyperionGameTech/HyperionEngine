@@ -136,10 +136,10 @@ public:
 
     void Clear(bool freeMemory = true);
 
-    // map entity id to previous attribute set (for draw call collection)
-    SparsePagedArray<RenderableAttributeSet, 128, RenderAllocator> previousAttributes;
+    // map entity id to previous attribute handle (for draw call collection)
+    SparsePagedArray<RenderableAttributeHandle, 128, RenderAllocator> previousAttributes;
 
-    FixedArray<HashMap<RenderableAttributeSet, DrawCallCollection, RenderAllocator, HashTablePolicy::NotPooled>, NumRenderBuckets> mappingsByBucket;
+    FixedArray<HashMap<RenderableAttributeHandle, DrawCallCollection, RenderAllocator, HashTablePolicy::NotPooled>, NumRenderBuckets> mappingsByBucket;
 
     struct ParallelRenderingStateLL
     {

@@ -142,21 +142,74 @@ struct MeshAttributes
     }
 };
 
+/*! \brief Compact 32-bit handle into the RenderGroupCache.
+ *  Bits 29-31 embed the RenderBucket (3 bits, 8 possible values >= NumRenderBuckets=5).
+ *  Bits 0-28 encode the registry index (29 bits = up to ~500 M unique sets).
+ *  All bits set (0xFFFFFFFF) is the invalid sentinel. */
+struct RenderableAttributeHandle
+{
+    static constexpr uint32 InvalidValue = ~0u;
+
+    uint32 value = InvalidValue;
+
+    HYP_FORCE_INLINE static RenderableAttributeHandle Create(uint32 index, RenderBucket bucket)
+    {
+        AssertDebug(index <= 0x1FFFFFFFu);
+
+        RenderableAttributeHandle handle;
+        handle.value = (uint32(bucket) << 29) | index;
+
+        return handle;
+    }
+
+    HYP_FORCE_INLINE bool IsValid() const
+    {
+        return value != InvalidValue;
+    }
+
+    /*! \brief Returns the RenderBucket encoded in this handle without a registry lookup. */
+    HYP_FORCE_INLINE RenderBucket GetBucket() const
+    {
+        return RenderBucket(value >> 29);
+    }
+
+    HYP_FORCE_INLINE uint32 GetIndex() const
+    {
+        return value & 0x1FFFFFFFu;
+    }
+
+    HYP_FORCE_INLINE bool operator==(const RenderableAttributeHandle& other) const
+    {
+        return value == other.value;
+    }
+
+    HYP_FORCE_INLINE bool operator!=(const RenderableAttributeHandle& other) const
+    {
+        return value != other.value;
+    }
+
+    HYP_FORCE_INLINE bool operator<(const RenderableAttributeHandle& other) const
+    {
+        return value < other.value;
+    }
+
+    HYP_FORCE_INLINE HashCode GetHashCode() const
+    {
+        return HashCode::GetHashCode(value);
+    }
+};
+
 class RenderableAttributeSet
 {
     MeshAttributes m_meshAttributes;
     MaterialAttributes m_materialAttributes;
     uint32 m_layerIndex;
 
-    mutable HashCode m_cachedHashCode;
-    mutable bool m_needsHashCodeRecalculation;
-
 public:
     RenderableAttributeSet(const MeshAttributes& meshAttributes = {}, const MaterialAttributes& materialAttributes = {})
         : m_meshAttributes(meshAttributes),
           m_materialAttributes(materialAttributes),
-          m_layerIndex(0),
-          m_needsHashCodeRecalculation(true)
+          m_layerIndex(0)
     {
     }
 
@@ -170,12 +223,14 @@ public:
 
     HYP_FORCE_INLINE bool operator==(const RenderableAttributeSet& other) const
     {
-        return GetHashCode() == other.GetHashCode();
+        return m_meshAttributes == other.m_meshAttributes
+            && m_materialAttributes == other.m_materialAttributes
+            && m_layerIndex == other.m_layerIndex;
     }
 
     HYP_FORCE_INLINE bool operator!=(const RenderableAttributeSet& other) const
     {
-        return GetHashCode() != other.GetHashCode();
+        return !(operator==(other));
     }
 
     HYP_FORCE_INLINE bool operator<(const RenderableAttributeSet& other) const
@@ -196,8 +251,6 @@ public:
         }
 
         m_materialAttributes.shaderName = shaderName;
-        m_needsHashCodeRecalculation = true;
-
     }
 
     HYP_FORCE_INLINE const ShaderPropertySet& GetShaderProperties() const
@@ -213,7 +266,6 @@ public:
         }
 
         m_materialAttributes.shaderProperties = shaderProperties;
-        m_needsHashCodeRecalculation = true;
     }
 
     HYP_FORCE_INLINE MeshAttributes& GetMeshAttributes()
@@ -229,7 +281,6 @@ public:
     HYP_FORCE_INLINE void SetMeshAttributes(const MeshAttributes& meshAttributes)
     {
         m_meshAttributes = meshAttributes;
-        m_needsHashCodeRecalculation = true;
     }
 
     HYP_FORCE_INLINE MaterialAttributes& GetMaterialAttributes()
@@ -250,7 +301,6 @@ public:
         }
 
         m_materialAttributes = materialAttributes;
-        m_needsHashCodeRecalculation = true;
     }
 
     HYP_FORCE_INLINE uint32 GetLayerIndex() const
@@ -266,35 +316,15 @@ public:
         }
 
         m_layerIndex = layerIndex;
-        m_needsHashCodeRecalculation = true;
-    }
-
-    void Invalidate()
-    {
-        m_needsHashCodeRecalculation = true;
     }
 
     HYP_FORCE_INLINE HashCode GetHashCode() const
-    {
-        if (m_needsHashCodeRecalculation)
-        {
-            RecalculateHashCode();
-
-            m_needsHashCodeRecalculation = false;
-        }
-
-        return m_cachedHashCode;
-    }
-
-private:
-    void RecalculateHashCode() const
     {
         HashCode hc;
         hc.Add(m_meshAttributes.GetHashCode());
         hc.Add(m_materialAttributes.GetHashCode());
         hc.Add(m_layerIndex);
-
-        m_cachedHashCode = hc;
+        return hc;
     }
 };
 

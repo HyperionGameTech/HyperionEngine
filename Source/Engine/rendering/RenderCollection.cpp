@@ -18,6 +18,7 @@
 #include <rendering/RenderConfig.hpp>
 #include <rendering/RenderMemory.hpp>
 #include <rendering/IndirectDraw.hpp>
+#include <rendering/RenderGroupCache.hpp>
 #include <rendering/Mesh.hpp>
 #include <rendering/MaterialDefinition.hpp>
 #include <rendering/MaterialInstance.hpp>
@@ -233,7 +234,7 @@ static void BuildAttributes(const RenderProxyMesh& proxy, RenderableAttributeSet
     MaterialInstance* material = proxy.material;
     AssertDebug(material != nullptr);
 
-    attributes = proxy.cachedAttributes;
+    attributes = proxy.attributes;
 
     if (overrideAttributes)
     {
@@ -242,7 +243,6 @@ static void BuildAttributes(const RenderProxyMesh& proxy, RenderableAttributeSet
         newMaterialAttributes.bucket = attributes.GetMaterialAttributes().bucket;
 
         attributes.SetMaterialAttributes(newMaterialAttributes);
-        attributes.Invalidate();
     }
 
     const RenderBucket bucket = attributes.GetMaterialAttributes().bucket;
@@ -267,7 +267,6 @@ static void BuildAttributes(const RenderProxyMesh& proxy, RenderableAttributeSet
             attributes.GetMaterialAttributes().flags |= MAF_STENCIL_TEST;
             attributes.GetMaterialAttributes().stencilReference &= ~LightmapStencilMask;
             attributes.GetMaterialAttributes().stencilReference |= stencilReferenceValue;
-            attributes.Invalidate();
         }
     }
     else if (attributes.GetMaterialAttributes().stencilReference & LightmapStencilMask)
@@ -278,8 +277,6 @@ static void BuildAttributes(const RenderProxyMesh& proxy, RenderableAttributeSet
         {
             attributes.GetMaterialAttributes().flags &= ~MAF_STENCIL_TEST;
         }
-
-        attributes.Invalidate();
     }
 
     const ShaderPropertySet& currentShaderProperties = attributes.GetShaderProperties();
@@ -1217,7 +1214,7 @@ size_t RenderCollector::NumDrawCallsCollected() const
 
     for (const auto& mappings : mappingsByBucket)
     {
-        for (const KeyValuePair<RenderableAttributeSet, DrawCallCollection>& it : mappings)
+        for (const KeyValuePair<RenderableAttributeHandle, DrawCallCollection>& it : mappings)
         {
             const DrawCallCollection& drawCallCollection = it.second;
 
@@ -1458,7 +1455,7 @@ bool RenderCollector::BeginRecordDrawCalls(
     HYP_SCOPE;
     AssertOnThread(g_renderThread);
 
-    Span<HashMap<RenderableAttributeSet, DrawCallCollection, RenderAllocator, HashTablePolicy::NotPooled>> groupsView;
+    Span<HashMap<RenderableAttributeHandle, DrawCallCollection, RenderAllocator, HashTablePolicy::NotPooled>> groupsView;
 
     if (bucketBits == 0)
     {
@@ -1480,6 +1477,8 @@ bool RenderCollector::BeginRecordDrawCalls(
         groupsView = { &mappings, 1 };
     }
 
+    RenderGroupCache& attributeRegistry = RenderGroupCache::GetInstance();
+
     bool anyEnqueued = false;
 
     for (size_t i = 0; i < groupsView.Size(); i++)
@@ -1498,7 +1497,7 @@ bool RenderCollector::BeginRecordDrawCalls(
 
         for (auto& it : mappings)
         {
-            const RenderableAttributeSet& attributes = it.first;
+            const RenderableAttributeSet& attributes = attributeRegistry.Get(it.first);
 
             DrawCallCollection& drawCallCollection = it.second;
             AssertDebug(drawCallCollection.IsValid());
@@ -1589,7 +1588,7 @@ void RenderCollector::ExecuteDrawCalls(
         bucketBits = AllBucketsMask;
     }
 
-    Span<HashMap<RenderableAttributeSet, DrawCallCollection, RenderAllocator, HashTablePolicy::NotPooled>> groupsView;
+    Span<HashMap<RenderableAttributeHandle, DrawCallCollection, RenderAllocator, HashTablePolicy::NotPooled>> groupsView;
 
     // If only one bit is set, we can skip the loop by directly accessing the RenderGroup
     if (ByteUtil::BitCount(bucketBits) == 1)
@@ -1615,7 +1614,7 @@ void RenderCollector::ExecuteDrawCalls(
             {
                 if (AnyOf(mappings, [&bucketBits](const auto& it)
                         {
-                            return (bucketBits & (1u << uint32(it.first.GetMaterialAttributes().bucket))) != 0;
+                            return (bucketBits & (1u << uint32(it.first.GetBucket()))) != 0;
                         }))
                 {
                     allEmpty = false;
@@ -1638,6 +1637,8 @@ void RenderCollector::ExecuteDrawCalls(
         frame->cr << SetCurrentFramebuffer(framebuffer);
     }
 
+    RenderGroupCache& attributeRegistry = RenderGroupCache::GetInstance();
+
     // set these to null after rendering
     Array<ParallelRenderingState**, RenderTempAllocator> parallelRenderingStatesToNullify;
     parallelRenderingStatesToNullify.Reserve(32);
@@ -1646,7 +1647,7 @@ void RenderCollector::ExecuteDrawCalls(
     {
         for (auto& it : mappings)
         {
-            const RenderableAttributeSet& attributes = it.first;
+            const RenderableAttributeSet& attributes = attributeRegistry.Get(it.first);
 
             DrawCallCollection& drawCallCollection = it.second;
             AssertDebug(drawCallCollection.IsValid());
@@ -1730,7 +1731,7 @@ void RenderCollector::BuildDrawCalls(uint32 bucketBits)
         bucketBits = AllBucketsMask;
     }
 
-    using IteratorType = FlatMap<RenderableAttributeSet, DrawCallCollection>::Iterator;
+    using IteratorType = FlatMap<RenderableAttributeHandle, DrawCallCollection>::Iterator;
     Array<IteratorType> iterators;
 
     FOR_EACH_BIT(bucketBits, bitIndex)
@@ -1872,6 +1873,8 @@ void RenderCollector::BuildRenderGroups(View* view, RenderProxyList& renderProxy
     AssertDebug(view != nullptr);
     AssertDebug(renderProxyList.state == RenderProxyList::CS_READING);
 
+    RenderGroupCache& attributeRegistry = RenderGroupCache::GetInstance();
+
     const RenderableAttributeSet* overrideAttributes = view->GetOverrideAttributes().TryGet();
 
     auto diff = renderProxyList.GetMeshEntities().GetDiff();
@@ -1890,13 +1893,13 @@ void RenderCollector::BuildRenderGroups(View* view, RenderProxyList& renderProxy
         {
             const uint32 idx = id.ToIndex();
 
-            RenderableAttributeSet* cachedAttributes = previousAttributes.TryGet(id.ToIndex());
-            AssertDebug(cachedAttributes != nullptr);
+            RenderableAttributeHandle* cachedHandle = previousAttributes.TryGet(id.ToIndex());
+            AssertDebug(cachedHandle != nullptr && cachedHandle->IsValid());
 
             // remove from prev
-            auto& prevMappings = mappingsByBucket[uint32(cachedAttributes->GetMaterialAttributes().bucket)];
+            auto& prevMappings = mappingsByBucket[uint32(cachedHandle->GetBucket())];
 
-            auto it = prevMappings.Find(*cachedAttributes);
+            auto it = prevMappings.Find(*cachedHandle);
             Assert(it != prevMappings.End());
 
             DrawCallCollection* prevDrawCallCollection = &it->second;
@@ -1910,8 +1913,9 @@ void RenderCollector::BuildRenderGroups(View* view, RenderProxyList& renderProxy
             AssertDebug(newAttributes.GetMeshAttributes().inputLayout.mask != 0);
 
             const RenderBucket bucket = newAttributes.GetMaterialAttributes().bucket;
+            const RenderableAttributeHandle newHandle = attributeRegistry.GetOrCreate(newAttributes);
 
-            if (newAttributes == *cachedAttributes)
+            if (newHandle == *cachedHandle)
             {
                 // not changed, skip
                 continue;
@@ -1921,7 +1925,7 @@ void RenderCollector::BuildRenderGroups(View* view, RenderProxyList& renderProxy
             prevDrawCallCollection = nullptr;
 
             // Add proxy to group
-            DrawCallCollection& newDrawCallCollection = mappingsByBucket[uint32(bucket)][newAttributes];
+            DrawCallCollection& newDrawCallCollection = mappingsByBucket[uint32(bucket)][newHandle];
 
             RenderGroup& rg = newDrawCallCollection.renderGroup;
             AssertDebug(rg.parallelRenderingState == nullptr); // not handled properly? should be set to null after awaited
@@ -1936,7 +1940,7 @@ void RenderCollector::BuildRenderGroups(View* view, RenderProxyList& renderProxy
 
             newDrawCallCollection.meshProxies.Set(idx, meshProxy);
 
-            *cachedAttributes = newAttributes;
+            *cachedHandle = newHandle;
         }
     }
 
@@ -1962,12 +1966,12 @@ void RenderCollector::BuildRenderGroups(View* view, RenderProxyList& renderProxy
 
             AssertDebug(previousAttributes.HasIndex(idx));
 
-            const RenderableAttributeSet& attributes = previousAttributes.Get(idx);
-            const RenderBucket bucket = attributes.GetMaterialAttributes().bucket;
+            const RenderableAttributeHandle attributeHandle = previousAttributes.Get(idx);
+            const RenderBucket bucket = attributeHandle.GetBucket();
 
             auto& mappings = mappingsByBucket[uint32(bucket)];
 
-            auto it = mappings.Find(attributes);
+            auto it = mappings.Find(attributeHandle);
             Assert(it != mappings.End());
 
             DrawCallCollection& drawCallCollection = it->second;
@@ -1991,9 +1995,10 @@ void RenderCollector::BuildRenderGroups(View* view, RenderProxyList& renderProxy
             GeometryPass::BuildAttributes(*meshProxy, attributes, overrideAttributes);
 
             const RenderBucket bucket = attributes.GetMaterialAttributes().bucket;
+            const RenderableAttributeHandle handle = attributeRegistry.GetOrCreate(attributes);
 
             // Add proxy to group
-            DrawCallCollection& drawCallCollection = mappingsByBucket[uint32(bucket)][attributes];
+            DrawCallCollection& drawCallCollection = mappingsByBucket[uint32(bucket)][handle];
             RenderGroup& rg = drawCallCollection.renderGroup;
 
             if (!rg.valid)
@@ -2005,7 +2010,7 @@ void RenderCollector::BuildRenderGroups(View* view, RenderProxyList& renderProxy
             const uint32 idx = id.ToIndex();
 
             drawCallCollection.meshProxies.Set(idx, const_cast<RenderProxyMesh*>(meshProxy));
-            previousAttributes.Set(idx, attributes);
+            previousAttributes.Set(idx, handle);
         }
     }
 }
