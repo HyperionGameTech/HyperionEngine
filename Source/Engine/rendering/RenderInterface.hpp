@@ -33,7 +33,7 @@ class EnvProbe;
 class ReflectionProbe;
 class SkyProbe;
 class UIRenderer;
-class Material;
+class MaterialInstance;
 class MaterialTextureCache;
 class GraphicsPipelineCache;
 class ComputePipelineCache;
@@ -340,7 +340,7 @@ public:
         const GpuBufferRef& packedIndicesBuffer,
         uint32 numVertices,
         uint32 numIndices,
-        const Handle<Material>& material,
+        const Handle<MaterialInstance>& material,
         const Mat4f& transform) = 0;
 
     virtual GpuTlasRef MakeTLAS() = 0;

@@ -66,6 +66,10 @@
 #include <Core/io/ByteWriter.hpp>
 
 #include <rendering/Mesh.hpp>
+#include <rendering/MaterialDefinition.hpp>
+#include <rendering/MaterialInstance.hpp>
+
+#include <engine/EngineGlobals.hpp>
 #include <rendering/Texture.hpp>
 #include <rendering/RenderCollection.hpp>
 #include <rendering/RenderProxyList.hpp>
@@ -772,8 +776,16 @@ Handle<Node> TranslateEditorGizmo::Load_Internal() const
 
                 materialAttributes.bucket = RenderBucket::Debug;
 
-                meshComponent->material = MaterialCache::GetInstance()->CreateMaterial(materialAttributes, materialParameters);
-                meshComponent->material->SetIsDynamic(true);
+                {
+                    Handle<MaterialDefinition> materialDefinition = MakeHandle<MaterialDefinition>(Name::Unique("debug_material"), materialAttributes, materialParameters, MaterialTextures {});
+                    materialDefinition->Register("$Memory/Media/MaterialDefinitions");
+                    InitObject(materialDefinition);
+
+                    Handle<MaterialInstance> materialInstance = materialDefinition->CreateInstance();
+                    materialInstance->SetIsDynamic(true);
+
+                    meshComponent->material = std::move(materialInstance);
+                }
 
                 childEntity->SetNeedsRenderProxyUpdate();
                 childEntity->Node::AddTag(NodeTag(NAME("TransformWidgetElementColor"), Vec4f(materialParameters.albedo)));
@@ -852,8 +864,15 @@ Handle<Node> RotateEditorGizmo::Load_Internal() const
 
                     materialAttributes.bucket = RenderBucket::Debug;
 
-                    meshComponent->material = MaterialCache::GetInstance()->CreateMaterial(materialAttributes, materialParameters);
-                    meshComponent->material->SetIsDynamic(true);
+                    {
+                        Handle<MaterialDefinition> materialDefinition = MakeHandle<MaterialDefinition>(Name::Unique("debug_material"), materialAttributes, materialParameters, MaterialTextures {});
+                        materialDefinition->Register("$Memory/Media/MaterialDefinitions");
+                        InitObject(materialDefinition);
+                        
+                        Handle<MaterialInstance> materialInstance = materialDefinition->CreateInstance();
+                        materialInstance->SetIsDynamic(true);
+                        meshComponent->material = std::move(materialInstance);
+                    }
 
                     childEntity->SetNeedsRenderProxyUpdate();
                     childEntity->Node::AddTag(NodeTag(NAME("TransformWidgetElementColor"), Vec4f(materialParameters.albedo)));
@@ -1240,7 +1259,7 @@ Handle<Node> VolumeEditorGizmo::Load_Internal() const
         MaterialParameters materialParameters;
         materialParameters.albedo = volumeColor;
 
-        Handle<Material> material = MaterialCache::GetInstance()->CreateMaterial(materialAttributes, materialParameters);
+        Handle<MaterialInstance> material = MakeHandle<MaterialDefinition>(Name::Unique("debug_volume_material"), materialAttributes, materialParameters, MaterialTextures {})->CreateInstance();
         material->SetIsDynamic(true);
 
         rootNode->AddChild(faceEntity);
@@ -1974,7 +1993,7 @@ void EditorSubsystem::CreateHighlightNode()
     // Handle<Mesh> mesh = MeshBuilder::Cube();
     // InitObject(mesh);
 
-    // Handle<Material> material = g_materialCache->GetOrCreate(
+    // Handle<MaterialInstance> material = g_materialInstanceCache->GetOrCreate(
     //     {
     //         .shaderDefinition = ShaderDefinition {
     //             NAME("Forward"),
@@ -2882,19 +2901,6 @@ void EditorSubsystem::SetFocusedNode(const Handle<Node>& focusedNode, bool shoul
             if (Entity* entity = ObjCast<Entity>(focusedNode))
             {
                 entity->AddTag<EntityTag::FocusedInEditor>();
-
-                // Debug
-                if (MeshComponent* meshComponent = entity->TryGetComponent<MeshComponent>())
-                {
-                    if (Material* material = meshComponent->material)
-                    {
-                        material->GetAttributes().stencilReference = 0b1000;
-                        material->GetAttributes().flags |= MAF_STENCIL_TEST;
-                        material->SetNeedsRenderProxyUpdate();
-                    }
-                }
-
-                entity->SetNeedsRenderProxyUpdate();
             }
         }
 
@@ -2934,20 +2940,6 @@ void EditorSubsystem::SetFocusedNode(const Handle<Node>& focusedNode, bool shoul
         if (Entity* entity = ObjCast<Entity>(previousFocusedNode))
         {
             entity->RemoveTag<EntityTag::FocusedInEditor>();
-            
-            // Debug
-            if (MeshComponent* meshComponent = entity->TryGetComponent<MeshComponent>())
-            {
-                if (Material* material = meshComponent->material)
-                {
-                    material->GetAttributes().stencilReference = 0;
-                    material->GetAttributes().flags &= ~MAF_STENCIL_TEST;
-
-                    material->SetNeedsRenderProxyUpdate();
-                }
-            }
-
-            entity->SetNeedsRenderProxyUpdate();
         }
     }
 

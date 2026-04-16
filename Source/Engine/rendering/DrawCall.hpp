@@ -25,7 +25,7 @@
 namespace Hyperion {
 
 class Mesh;
-class Material;
+class MaterialInstance;
 class Skeleton;
 class Entity;
 class RenderProxyMesh;
@@ -88,7 +88,7 @@ struct DrawCallID
     {
     }
 
-    constexpr DrawCallID(ObjId<Mesh> meshId, ObjId<Material> materialId)
+    constexpr DrawCallID(ObjId<Mesh> meshId, ObjId<MaterialInstance> materialId)
         : value(uint64(meshId.Value()) | (uint64(materialId.Value()) << 32))
     {
     }
@@ -125,7 +125,7 @@ struct DrawCallStorage
 
     Array<DrawCallID, AllocatorType> ids;
     Array<Mesh*, AllocatorType> meshes;
-    Array<Material*, AllocatorType> materials;
+    Array<MaterialInstance*, AllocatorType> materials;
     Array<Skeleton*, AllocatorType> skeletons;
     Array<uint32, AllocatorType> drawCommandIndices;
     Array<uint32, AllocatorType> numIndices;
@@ -157,7 +157,7 @@ struct DrawCallStorage
         entityBindingIndices.Clear();
     }
 
-    size_t Push(DrawCallID id, Mesh* mesh, Material* material, Skeleton* skeleton, uint32 entityBindingIndex, uint32 numIndicesValue)
+    size_t Push(DrawCallID id, Mesh* mesh, MaterialInstance* material, Skeleton* skeleton, uint32 entityBindingIndex, uint32 numIndicesValue)
     {
         const size_t index = ids.Size();
 
@@ -180,7 +180,7 @@ struct InstancedDrawCallStorage
 
     Array<DrawCallID, AllocatorType> ids;
     Array<Mesh*, AllocatorType> meshes;
-    Array<Material*, AllocatorType> materials;
+    Array<MaterialInstance*, AllocatorType> materials;
     Array<Skeleton*, AllocatorType> skeletons;
     Array<uint32, AllocatorType> drawCommandIndices;
     Array<uint32, AllocatorType> numIndices;
@@ -214,7 +214,7 @@ struct InstancedDrawCallStorage
         counts.Clear();
     }
 
-    size_t Push(DrawCallID id, Mesh* mesh, Material* material, Skeleton* skeleton, EntityInstanceBatch* batch, uint32 numIndicesValue)
+    size_t Push(DrawCallID id, Mesh* mesh, MaterialInstance* material, Skeleton* skeleton, EntityInstanceBatch* batch, uint32 numIndicesValue)
     {
         const size_t index = ids.Size();
 

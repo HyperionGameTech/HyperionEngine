@@ -9,7 +9,6 @@
 #include <asset/model_loaders/PLYModelLoader.hpp>
 
 #include <rendering/Mesh.hpp>
-#include <rendering/Material.hpp>
 
 #include <scene/Node.hpp>
 

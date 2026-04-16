@@ -751,6 +751,8 @@ ShaderManager::ShaderManager()
 
 ShaderInstanceRef ShaderManager::GetOrCreate(Name name, const ShaderPropertySet& propertySet, const VertexInputLayoutDesc& inputLayout)
 {
+    AssertDebug(name.IsValid());
+
     ShaderCacheId cacheId;
     return m_impl->GetOrCreate(name, propertySet, inputLayout, cacheId, /* doLoadShader */ true);
 }

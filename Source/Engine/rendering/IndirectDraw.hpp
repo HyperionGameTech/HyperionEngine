@@ -21,7 +21,6 @@
 namespace Hyperion {
 
 class Mesh;
-class Material;
 class Entity;
 struct RenderSetup;
 

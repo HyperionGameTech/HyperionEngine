@@ -9,7 +9,6 @@
 #include <asset/model_loaders/FBOMModelLoader.hpp>
 
 #include <rendering/Mesh.hpp>
-#include <rendering/Material.hpp>
 
 #include <Core/serialization/fbom/FBOM.hpp>
 #include <Core/serialization/fbom/FBOMReader.hpp>

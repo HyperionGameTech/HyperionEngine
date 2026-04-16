@@ -22,7 +22,7 @@ extern void WriteBufferData_EnvProbe(StructuredBuffer& sbuffer, uint32 idx, IRen
 
 extern void WriteBufferData_Light(StructuredBuffer& sbuffer, uint32 idx, IRenderProxy* proxy);
 
-extern void OnBindingChanged_Material(Material* lightmapVolume, uint32 prev, uint32 next);
+extern void OnBindingChanged_Material(MaterialInstance* material, uint32 prev, uint32 next);
 
 extern void OnBindingChanged_Texture(Texture* texture, uint32 prev, uint32 next);
 
@@ -76,7 +76,7 @@ static ResourceBinder<FogVolume> s_fogVolumeBinder {
 ResourceBinderBase* g_fogVolumeBinder = &s_fogVolumeBinder;
 
 static ResourceBindingAllocator<MaxBoundMaterials> s_materialBindingsAllocator;
-static ResourceBinder<Material, &OnBindingChanged_Material> s_materialBinder { &s_materialBindingsAllocator };
+static ResourceBinder<MaterialInstance, &OnBindingChanged_Material> s_materialBinder { &s_materialBindingsAllocator };
 ResourceBinderBase* g_materialBinder = &s_materialBinder;
 
 static ResourceBindingAllocator<MaxBoundResourceTextures> s_textureBindingsAllocator;

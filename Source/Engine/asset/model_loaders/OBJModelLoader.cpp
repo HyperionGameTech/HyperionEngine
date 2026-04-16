@@ -7,11 +7,15 @@
 #include <AssetPch.hpp>
 
 #include <asset/model_loaders/OBJModelLoader.hpp>
+#include <asset/material_loaders/MTLMaterialLoader.hpp>
 #include <asset/Assets.hpp>
 #include <asset/AssetObject.hpp>
 #include <asset/AssetRegistry.hpp>
 
-#include <rendering/Material.hpp>
+#include <rendering/MaterialDefinition.hpp>
+#include <rendering/MaterialInstance.hpp>
+
+#include <engine/EngineGlobals.hpp>
 #include <rendering/Mesh.hpp>
 
 #include <scene/World.hpp>
@@ -318,7 +322,7 @@ LoadedAsset OBJModelLoader::BuildModel(LoaderState& state, OBJModel& model)
     Handle<Node> top = MakeHandle<Node>(CreateNameFromDynamicString(model.name));
     top->SetIsDynamic(false);
 
-    Handle<MaterialGroup> materialLibrary;
+    HashMap<String, Handle<MaterialInstance>> materialLibrary;
 
     if (LoadMaterials && !model.materialLibrary.Empty())
     {
@@ -331,15 +335,11 @@ LoadedAsset OBJModelLoader::BuildModel(LoaderState& state, OBJModel& model)
             materialLibraryPath += ".mtl";
         }
 
-        auto materialLibraryAsset = state.assetManager->Load<MaterialGroup>(materialLibraryPath);
+        materialLibrary = MTLMaterialLoader::ParseMtl(materialLibraryPath, *state.assetManager, state.batchIdentifier);
 
-        if (materialLibraryAsset.HasValue())
+        if (materialLibrary.Empty())
         {
-            materialLibrary = materialLibraryAsset->Result();
-        }
-        else
-        {
-            HYP_LOG(Assets, Warning, "Obj model loader: Could not load material library at {}: {}", materialLibraryPath, materialLibraryAsset.GetError().GetMessage());
+            HYP_LOG(Assets, Warning, "Obj model loader: Material library at {} could not be loaded or was empty", materialLibraryPath);
         }
     }
 
@@ -445,13 +445,13 @@ LoadedAsset OBJModelLoader::BuildModel(LoaderState& state, OBJModel& model)
 
         InitObject(mesh);
 
-        Handle<Material> material;
+        Handle<MaterialInstance> material;
 
-        if (!objMesh.material.Empty() && materialLibrary)
+        if (!objMesh.material.Empty() && !materialLibrary.Empty())
         {
-            if (materialLibrary->Has(objMesh.material))
+            if (materialLibrary.Contains(objMesh.material))
             {
-                material = materialLibrary->Get(objMesh.material);
+                material = materialLibrary.At(objMesh.material);
             }
             else
             {
@@ -466,7 +466,7 @@ LoadedAsset OBJModelLoader::BuildModel(LoaderState& state, OBJModel& model)
 
         if (!material.IsValid())
         {
-            material = MaterialCache::GetInstance()->GetOrCreate(
+            material = g_materialInstanceCache->GetOrCreate(
                 NAME("BasicOBJMaterial"),
                 materialAttributes,
                 MaterialParameters {});

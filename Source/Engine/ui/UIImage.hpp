@@ -8,6 +8,8 @@
 
 #include <ui/UIObject.hpp>
 
+#include <rendering/MaterialTypes.hpp>
+
 namespace Hyperion {
 
 class UIStage;

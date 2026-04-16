@@ -595,7 +595,7 @@ extern struct RigidBodyComponent
 end
 extern struct MeshComponent
     Mesh : Mesh
-    Material : Material
+    Material : MaterialInstance
     Skeleton : Skeleton
     EnableAutoInstancing : bool
     NumInstances : uint32
@@ -1142,6 +1142,30 @@ extern enum MaterialAttributeFlags : uint8
 end
 extern struct RayTracingReflectionsConfig
     Extent : Vec2u
+end
+extern struct MaterialTextures
+    Values : Array<Texture>
+end
+extern struct MaterialParameters
+    Albedo : Vec4f
+    Metalness : float
+    Roughness : float
+    AlphaThreshold : float
+    ParallaxHeightScale : float
+    Transmission : float
+    Ior : float
+    EmissiveColor : Color
+    EmissiveIntensity : float
+    UserParams : Vec4f
+end
+extern enum MaterialTextureKey : uint64
+    NONE = 0,
+    Diffuse = 0x1,
+    Normals = 0x2,
+    Parallax = 0x4,
+    Metalness = 0x8,
+    Roughness = 0x10,
+    AmbientOcclusion = 0x20
 end
 extern enum GpuImageFlags : uint32
     NONE = 0x0
@@ -2208,8 +2232,8 @@ extern class Light : Entity
     SetFalloff(falloff : float) -> void
     GetSpotAngles() -> Vec2f
     SetSpotAngles(spotAngles : Vec2f) -> void
-    GetMaterial() -> Material
-    SetMaterial(material : Material) -> void
+    GetMaterial() -> MaterialInstance
+    SetMaterial(material : MaterialInstance) -> void
     GetShadowMapDimensions() -> Vec2u
     SetShadowMapDimensions(shadowMapDimensions : Vec2u) -> void
     GetNumShadowMapCascades() -> uint32
@@ -2350,41 +2374,20 @@ extern class Mesh : AssetObject
     Bvh : BVHNode
     Flags : MeshFlags
 end
-extern struct MaterialTextures
-    Values : Array<Texture>
-end
-extern struct MaterialParameters
-    Albedo : Vec4f
-    Metalness : float
-    Roughness : float
-    AlphaThreshold : float
-    ParallaxHeightScale : float
-    Transmission : float
-    Ior : float
-    EmissiveColor : Color
-    EmissiveIntensity : float
-    UserParams : Vec4f
-end
-extern class MaterialGroup
-end
-extern enum MaterialTextureKey : uint64
-    NONE = 0,
-    Diffuse = 0x1,
-    Normals = 0x2,
-    Parallax = 0x4,
-    Metalness = 0x8,
-    Roughness = 0x10,
-    AmbientOcclusion = 0x20
-end
-extern class Material : AssetObject
+extern class MaterialInstance : AssetObject
     IsStatic() -> bool
     GetIsDynamic() -> bool
     SetIsDynamic(isDynamic : bool) -> void
-    Clone() -> Material
+    Clone() -> MaterialInstance
+    Definition : MaterialDefinition
     Parameters : MaterialParameters
     Textures : MaterialTextures
-    Attributes : MaterialAttributes
     IsDynamic : bool
+end
+extern class MaterialDefinition : AssetObject
+    Attributes : MaterialAttributes
+    DefaultParameters : MaterialParameters
+    DefaultTextures : MaterialTextures
 end
 extern class InstancedMeshData : AssetObject
     Buffers : Array<BlobDataReference>

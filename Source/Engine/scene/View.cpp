@@ -34,7 +34,7 @@
 #include <rendering/GBuffer.hpp>
 #include <rendering/Texture.hpp>
 #include <rendering/Mesh.hpp>
-#include <rendering/Material.hpp>
+#include <rendering/MaterialInstance.hpp>
 
 #include <rendering/shadows/ShadowMapCache.hpp>
 #include <rendering/shadows/ShadowCameraHelper.hpp>
@@ -626,7 +626,7 @@ void View::CollectMeshEntities(RenderProxyList& rpl)
                         rpl.GetMeshes().Track(mesh->Id(), mesh);
                     }
 
-                    if (Material* material = meshComponent.material)
+                    if (MaterialInstance* material = meshComponent.material)
                     {
                         rpl.GetMaterials().Track(material->Id(), material, material->GetRenderProxyVersionPtr());
 
@@ -687,7 +687,7 @@ void View::CollectMeshEntities(RenderProxyList& rpl)
                         rpl.GetMeshes().Track(mesh->Id(), mesh);
                     }
 
-                    if (Material* material = meshComponent.material)
+                    if (MaterialInstance* material = meshComponent.material)
                     {
                         rpl.GetMaterials().Track(material->Id(), material, material->GetRenderProxyVersionPtr());
 
@@ -730,7 +730,7 @@ void View::CollectMeshEntities(RenderProxyList& rpl)
                         rpl.GetMeshes().Track(mesh->Id(), mesh);
                     }
 
-                    if (Material* material = meshComponent.material)
+                    if (MaterialInstance* material = meshComponent.material)
                     {
                         rpl.GetMaterials().Track(material->Id(), material, material->GetRenderProxyVersionPtr());
 
@@ -791,7 +791,7 @@ void View::CollectMeshEntities(RenderProxyList& rpl)
                         rpl.GetMeshes().Track(mesh->Id(), mesh);
                     }
 
-                    if (Material* material = meshComponent.material)
+                    if (MaterialInstance* material = meshComponent.material)
                     {
                         rpl.GetMaterials().Track(material->Id(), material, material->GetRenderProxyVersionPtr());
 
@@ -834,7 +834,7 @@ void View::CollectMeshEntities(RenderProxyList& rpl)
                         rpl.GetMeshes().Track(mesh->Id(), mesh);
                     }
 
-                    if (Material* material = meshComponent.material)
+                    if (MaterialInstance* material = meshComponent.material)
                     {
                         rpl.GetMaterials().Track(material->Id(), material, material->GetRenderProxyVersionPtr());
 
@@ -895,7 +895,7 @@ void View::CollectMeshEntities(RenderProxyList& rpl)
                         rpl.GetMeshes().Track(mesh->Id(), mesh);
                     }
 
-                    if (Material* material = meshComponent.material)
+                    if (MaterialInstance* material = meshComponent.material)
                     {
                         rpl.GetMaterials().Track(material->Id(), material, material->GetRenderProxyVersionPtr());
 

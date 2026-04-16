@@ -35,7 +35,6 @@ namespace Hyperion {
 
 class BVHNode;
 class RenderMesh;
-class Material;
 
 HYP_ENUM()
 enum class MeshFlags : uint32

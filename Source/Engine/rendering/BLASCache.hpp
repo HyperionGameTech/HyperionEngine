@@ -15,7 +15,7 @@ namespace Hyperion {
 
 class Entity;
 class Mesh;
-class Material;
+class MaterialInstance;
 
 using BLASRef = GpuBlasRef;
 
@@ -33,7 +33,7 @@ public:
     ~BLASCache();
 
     void GetOrCreateBLAS(
-        Entity* entity, Mesh* mesh, Material* material,
+        Entity* entity, Mesh* mesh, MaterialInstance* material,
         uint64& outNewKey, uint64& outOldKey,
         GpuBlas*& outBlas);
 

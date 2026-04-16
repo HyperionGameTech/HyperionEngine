@@ -13,12 +13,12 @@
 namespace Hyperion {
 
 class Mesh;
-class Material;
+class MaterialInstance;
 
 class HYP_API MeshBlasBuilder
 {
 public:
-    static GpuBlasRef Build(Mesh* mesh, Material* material = nullptr);
+    static GpuBlasRef Build(Mesh* mesh, MaterialInstance* material = nullptr);
 };
 
 } // namespace Hyperion

@@ -25,7 +25,7 @@
 #include <scene/components/BoundingBoxComponent.hpp>
 
 #include <rendering/Mesh.hpp>
-#include <rendering/Material.hpp>
+#include <rendering/MaterialInstance.hpp>
 #include <rendering/RenderProxy.hpp>
 
 #include <engine/EngineDriver.hpp>

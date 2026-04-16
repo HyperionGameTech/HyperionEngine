@@ -18,6 +18,7 @@
 #include <rendering/ShaderManager.hpp>
 #include <rendering/Frame.hpp>
 #include <rendering/Mesh.hpp>
+#include <rendering/MaterialInstance.hpp>
 
 #include <rendering/renderers/DeferredRenderer.hpp>
 #include <rendering/renderers/UIRenderer.hpp>
@@ -43,8 +44,6 @@ namespace Hyperion {
 HYP_DECLARE_LOG_CHANNEL(UI);
 
 HYP_API extern const char* LookupTypeName(const TypeId& typeId);
-
-#pragma region UIRenderCollector
 
 static const ShaderPropertyId s_propTextured = InternShaderProperty(ShaderProperty(NAME("TEXTURED")));
 static const ShaderPropertyId s_propUIText = InternShaderProperty(ShaderProperty(NAME("UI_TEXT")));
@@ -90,7 +89,7 @@ static void BuildRenderGroupsOrdered(
         }
 
         Mesh* mesh = meshProxy->mesh;
-        Material* material = meshProxy->material;
+        MaterialInstance* material = meshProxy->material;
 
         if (!mesh || !material)
         {

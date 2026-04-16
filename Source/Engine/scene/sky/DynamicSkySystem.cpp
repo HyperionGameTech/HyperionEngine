@@ -22,12 +22,15 @@
 #include <rendering/Frame.hpp>
 #include <rendering/Texture.hpp>
 #include <rendering/Mesh.hpp>
-#include <rendering/Material.hpp>
+#include <rendering/MaterialDefinition.hpp>
+#include <rendering/MaterialInstance.hpp>
 
 #include <Core/threading/Scheduler.hpp>
 
 #include <asset/Assets.hpp>
 #include <asset/AssetRegistry.hpp>
+
+#include <engine/EngineGlobals.hpp>
 
 #include <util/MeshBuilder.hpp>
 
@@ -131,11 +134,11 @@ void DynamicSkySystem::Init()
 
         m_envProbe->GetView()->AddScene(m_renderScene);
 
-        Handle<Material> material = MakeHandle<Material>(NAME("SkyboxMaterial"), materialAttributes);
+        Handle<MaterialInstance> material = g_materialInstanceCache->GetOrCreate(NAME("SkyboxMaterial"), materialAttributes);
         material->SetTexture(MaterialTextureKey::Diffuse, m_envProbe->GetPrefilteredEnvMap());
         InitObject(material);
 
-        g_assetManager->GetAssetRegistry()->RegisterAsset("$Memory/Media/Materials", material);
+        g_assetManager->GetAssetRegistry()->RegisterAsset("$Memory/Media/MaterialInstances", material);
 
         // add MeshComponent to skybox entity
         m_skyboxEntity->AddComponent<MeshComponent>(MeshComponent { mesh, material });

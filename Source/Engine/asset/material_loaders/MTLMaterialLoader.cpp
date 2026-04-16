@@ -12,6 +12,10 @@
 #include <asset/AssetRegistry.hpp>
 
 #include <rendering/Texture.hpp>
+#include <rendering/MaterialDefinition.hpp>
+#include <rendering/MaterialInstance.hpp>
+
+#include <engine/EngineGlobals.hpp>
 
 #include <Core/filesystem/FsUtil.hpp>
 
@@ -115,6 +119,31 @@ static float MapSpecularToRoughness(int spec)
 }
 
 AssetLoadResult MTLMaterialLoader::LoadAsset(LoaderState& state) const
+{
+    // MTL files are no longer loaded via the asset system. Use ParseMtl() directly.
+    return { HYP_MAKE_ERROR(AssetLoadError, "MTL files should be loaded via MTLMaterialLoader::ParseMtl()") };
+}
+
+HashMap<String, Handle<MaterialInstance>> MTLMaterialLoader::ParseMtl(
+    FilePath filepath,
+    AssetManager& assetManager,
+    const String& batchIdentifier)
+{
+    LoaderState state { FileByteReader { filepath } };
+    state.assetManager = &assetManager;
+    state.filepath = filepath;
+    state.batchIdentifier = batchIdentifier;
+
+    if (state.stream.Eof())
+    {
+        HYP_LOG(Assets, Warning, "MTLMaterialLoader: Could not open file: {}", filepath);
+        return {};
+    }
+
+    return ParseMtl_Internal(state);
+}
+
+HashMap<String, Handle<MaterialInstance>> MTLMaterialLoader::ParseMtl_Internal(LoaderState& state)
 {
     Assert(state.assetManager != nullptr);
 
@@ -393,7 +422,7 @@ AssetLoadResult MTLMaterialLoader::LoadAsset(LoaderState& state) const
         }
     }
 
-    Handle<MaterialGroup> materialGroupHandle = MakeHandle<MaterialGroup>();
+    HashMap<String, Handle<MaterialInstance>> result;
 
     HashMap<String, String> textureNamesToPath;
     HashSet<String> srgbTextures;
@@ -520,16 +549,16 @@ AssetLoadResult MTLMaterialLoader::LoadAsset(LoaderState& state) const
             textures[it.mapping.key] = std::move(texture);
         }
 
-        Handle<Material> material = MaterialCache::GetInstance()->GetOrCreate(
+        Handle<MaterialInstance> material = g_materialInstanceCache->GetOrCreate(
             CreateNameFromDynamicString(item.tag),
             attributes,
             parameters,
             textures);
 
-        materialGroupHandle->Add(item.tag, std::move(material));
+        result.Set(item.tag, std::move(material));
     }
 
-    return LoadedAsset { materialGroupHandle };
+    return result;
 }
 
 } // namespace Hyperion
