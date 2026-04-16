@@ -538,7 +538,6 @@ void SetTopology::InvokeStatic(CmdBase* cmd, CommandBuffer*)
         return;
 
     g_renderInterface->state.attributes.GetMeshAttributes().topology = cmdCasted->topology;
-    g_renderInterface->state.attributes.Invalidate();
     
     static_assert(std::is_trivially_destructible_v<SetTopology>);
     // cmdCasted->~SetTopology();
@@ -558,8 +557,6 @@ void SetInputLayout::InvokeStatic(CmdBase* cmd, CommandBuffer*)
         return;
 
     state.attributes.GetMeshAttributes().inputLayout = cmdCasted->inputLayout;
-
-    state.attributes.Invalidate();
     
     static_assert(std::is_trivially_destructible_v<SetInputLayout>);
     // cmdCasted->~SetInputLayout();
@@ -577,7 +574,6 @@ void SetCurrentBlendFunction::InvokeStatic(CmdBase* cmd, CommandBuffer*)
         return;
 
     g_renderInterface->state.attributes.GetMaterialAttributes().blendFunction = cmdCasted->blendFunction;
-    g_renderInterface->state.attributes.Invalidate();
     
     static_assert(std::is_trivially_destructible_v<SetCurrentBlendFunction>);
     // cmdCasted->~SetCurrentBlendFunction();
@@ -605,8 +601,6 @@ void SetDepthWrite::InvokeStatic(CmdBase* cmd, CommandBuffer*)
 
         g_renderInterface->state.attributes.GetMaterialAttributes().flags &= ~MAF_DEPTH_WRITE;
     }
-
-    g_renderInterface->state.attributes.Invalidate();
     
     static_assert(std::is_trivially_destructible_v<SetDepthWrite>);
     // cmdCasted->~SetDepthWrite();
@@ -634,8 +628,6 @@ void SetDepthTest::InvokeStatic(CmdBase* cmd, CommandBuffer*)
 
         g_renderInterface->state.attributes.GetMaterialAttributes().flags &= ~MAF_DEPTH_TEST;
     }
-
-    g_renderInterface->state.attributes.Invalidate();
     
     static_assert(std::is_trivially_destructible_v<SetDepthTest>);
     // cmdCasted->~SetDepthTest();
@@ -673,8 +665,6 @@ void SetDepthBias::InvokeStatic(CmdBase* cmd, CommandBuffer*)
 
         state.attributes.GetMaterialAttributes().flags &= ~MAF_DEPTH_BIAS;
     }
-
-    state.attributes.Invalidate();
     
     static_assert(std::is_trivially_destructible_v<SetDepthBias>);
     // cmdCasted->~SetDepthBias();
@@ -702,8 +692,6 @@ void SetDepthClamp::InvokeStatic(CmdBase* cmd, CommandBuffer*)
 
         g_renderInterface->state.attributes.GetMaterialAttributes().flags &= ~MAF_DEPTH_CLAMP;
     }
-
-    g_renderInterface->state.attributes.Invalidate();
     
     static_assert(std::is_trivially_destructible_v<SetDepthClamp>);
     // cmdCasted->~SetDepthClamp();
@@ -731,8 +719,6 @@ void SetStencilTest::InvokeStatic(CmdBase* cmd, CommandBuffer*)
 
         g_renderInterface->state.attributes.GetMaterialAttributes().flags &= ~MAF_STENCIL_TEST;
     }
-
-    g_renderInterface->state.attributes.Invalidate();
     
     static_assert(std::is_trivially_destructible_v<SetStencilTest>);
     // cmdCasted->~SetStencilTest();
@@ -750,7 +736,6 @@ void SetStencilFunction::InvokeStatic(CmdBase* cmd, CommandBuffer*)
         return;
 
     g_renderInterface->state.attributes.GetMaterialAttributes().stencilFunction = cmdCasted->stencilFunction;
-    g_renderInterface->state.attributes.Invalidate();
     
     static_assert(std::is_trivially_destructible_v<SetStencilFunction>);
     // cmdCasted->~SetStencilFunction();
@@ -768,7 +753,6 @@ void SetFillMode::InvokeStatic(CmdBase* cmd, CommandBuffer*)
         return;
 
     g_renderInterface->state.attributes.GetMaterialAttributes().fillMode = cmdCasted->fillMode;
-    g_renderInterface->state.attributes.Invalidate();
     
     static_assert(std::is_trivially_destructible_v<SetFillMode>);
     // cmdCasted->~SetFillMode();
@@ -786,7 +770,6 @@ void SetFaceCullMode::InvokeStatic(CmdBase* cmd, CommandBuffer*)
         return;
 
     g_renderInterface->state.attributes.GetMaterialAttributes().cullFaces = cmdCasted->faceCullMode;
-    g_renderInterface->state.attributes.Invalidate();
     
     static_assert(std::is_trivially_destructible_v<SetFaceCullMode>);
     // cmdCasted->~SetFaceCullMode();

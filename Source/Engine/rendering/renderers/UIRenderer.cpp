@@ -19,6 +19,7 @@
 #include <rendering/Frame.hpp>
 #include <rendering/Mesh.hpp>
 #include <rendering/MaterialInstance.hpp>
+#include <rendering/RenderGroupCache.hpp>
 
 #include <rendering/renderers/DeferredRenderer.hpp>
 #include <rendering/renderers/UIRenderer.hpp>
@@ -78,6 +79,8 @@ static void BuildRenderGroupsOrdered(
 {
     renderCollector.Clear(/* freeMemory */ false);
 
+    RenderGroupCache& attributeRegistry = RenderGroupCache::GetInstance();
+
     for (const Pair<ObjId<Entity>, int>& pair : meshEntityOrdering)
     {
         RenderProxyMesh* meshProxy = rpl.GetMeshEntities().GetProxy(pair.first);
@@ -124,7 +127,9 @@ static void BuildRenderGroupsOrdered(
 
         attributes.SetLayerIndex(pair.second);
 
-        DrawCallCollection& drawCallCollection = renderCollector.mappingsByBucket[uint32(bucket)][attributes];
+        const RenderableAttributeHandle handle = attributeRegistry.GetOrCreate(attributes);
+
+        DrawCallCollection& drawCallCollection = renderCollector.mappingsByBucket[uint32(bucket)][handle];
         RenderGroup& rg = drawCallCollection.renderGroup;
 
         if (!rg.valid)
@@ -161,7 +166,9 @@ void UIRenderCollector::ExecuteDrawCalls(Frame* frame, const RenderSetup& render
         frame->cr << SetCurrentFramebuffer(framebuffer);
     }
 
-    using IteratorType = FlatMap<RenderableAttributeSet, DrawCallCollection>::Iterator;
+    RenderGroupCache& attributeRegistry = RenderGroupCache::GetInstance();
+
+    using IteratorType = FlatMap<RenderableAttributeHandle, DrawCallCollection>::Iterator;
     Array<IteratorType> iterators;
 
     for (auto& mappings : mappingsByBucket)
@@ -177,7 +184,9 @@ void UIRenderCollector::ExecuteDrawCalls(Frame* frame, const RenderSetup& render
 
         std::sort(iterators.Begin(), iterators.End(), [](IteratorType lhs, IteratorType rhs) -> bool
             {
-                return lhs->first.GetLayerIndex() < rhs->first.GetLayerIndex();
+                const RenderGroupCache& attributeRegistry = RenderGroupCache::GetInstance();
+
+                return attributeRegistry.Get(lhs->first).GetLayerIndex() < attributeRegistry.Get(rhs->first).GetLayerIndex();
             });
     }
 
@@ -189,7 +198,7 @@ void UIRenderCollector::ExecuteDrawCalls(Frame* frame, const RenderSetup& render
     {
         auto& it = *iterators[index];
 
-        const RenderableAttributeSet& attributes = it.first;
+        const RenderableAttributeSet& attributes = attributeRegistry.Get(it.first);
 
         DrawCallCollection& drawCallCollection = it.second;
         Assert(drawCallCollection.IsValid());

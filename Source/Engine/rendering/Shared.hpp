@@ -2179,8 +2179,6 @@ private:
     mutable bool m_needsHashCodeRecalculation;
 };
 
-#pragma pack(push, 1)
-
 HYP_STRUCT()
 struct ShaderPropertySet
 {
@@ -2338,6 +2336,8 @@ struct ShaderDesc
     }
 };
 
+#pragma pack(push, 1)
+
 struct ShaderUniform
 {
     Name name;
@@ -2350,7 +2350,7 @@ struct ShaderUniform
         GpuTlas* tlas;
     };
 
-    enum
+    enum : uint32
     {
         UT_Buffer,
         UT_ImageView,
@@ -2359,7 +2359,13 @@ struct ShaderUniform
     } type;
 
     ShaderUniform() = default;
-    ShaderUniform(const ShaderUniform& other) = default;
+
+    ShaderUniform(const ShaderUniform& other)
+        : name(other.name),
+          buffer(other.buffer),
+          type(other.type)
+    {
+    }
     
     ShaderUniform(StringHash name, GpuBuffer* buffer)
         : name(name),

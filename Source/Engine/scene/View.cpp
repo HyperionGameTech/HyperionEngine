@@ -957,7 +957,7 @@ void View::CollectMeshEntities(RenderProxyList& rpl)
             meshProxy.enableAutoInstancing = meshComponent->enableAutoInstancing;
             meshProxy.lightmapVolume = lightmapElementComponent ? lightmapElementComponent->lightmapVolume.GetUnsafe() : nullptr;
             meshProxy.lightmapElementId = lightmapElementComponent ? lightmapElementComponent->lightmapElementId : InvalidLightmapElementId;
-            meshProxy.cachedAttributes = RenderableAttributeSet(meshComponent->mesh->GetMeshAttributes(), meshComponent->material->GetAttributes());
+            meshProxy.attributes = RenderableAttributeSet(meshComponent->mesh->GetMeshAttributes(), meshComponent->material->GetAttributes());
 
             Mat4f transformMatrix = transformComponent->GetMatrix();
             
