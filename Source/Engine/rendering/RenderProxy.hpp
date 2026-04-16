@@ -28,7 +28,7 @@ class Texture;
 class LightmapVolume;
 class ParticleVolume;
 class FogVolume;
-class Material;
+class MaterialInstance;
 class Skeleton;
 class EnvProbe;
 class EnvGrid;
@@ -111,7 +111,7 @@ public:
     WeakHandle<Entity> entity;
 
     Mesh* mesh = nullptr;
-    Material* material = nullptr;
+    MaterialInstance* material = nullptr;
     Skeleton* skeleton = nullptr;
 
     uint32 numIndices = 0;
@@ -207,7 +207,7 @@ class RenderProxyLight final : public IRenderProxy
 {
 public:
     WeakHandle<Light> light;
-    Material* lightMaterial = nullptr; // for textured area lights
+    MaterialInstance* lightMaterial = nullptr; // for textured area lights
     Texture* bakedShadowMap = nullptr;
     uint32 numCascades = 0;
     LightShaderData bufferData {};
@@ -303,7 +303,7 @@ public:
         Memory::Fill(boundTextureIndices.Data(), 0xFFu, boundTextureIndices.ByteSize());
     }
 
-    WeakHandle<Material> material;
+    WeakHandle<MaterialInstance> material;
     MaterialAttributes attributes;
     MaterialShaderData bufferData {};
     FixedArray<uint32, MaxBoundTextures> boundTextureIndices;

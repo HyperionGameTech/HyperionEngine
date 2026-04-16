@@ -7,7 +7,7 @@
 #include <rendering/Bindless.hpp>
 #include <rendering/Texture.hpp>
 #include <rendering/TextureViewCache.hpp>
-#include <rendering/Material.hpp>
+#include <rendering/MaterialInstance.hpp>
 #include <rendering/Mesh.hpp>
 #include <rendering/DescriptorSet.hpp>
 
@@ -186,7 +186,7 @@ void WriteBufferData_Light(StructuredBuffer& sbuffer, uint32 idx, IRenderProxy* 
     sbuffer.Write(idx * sizeof(bufferData), sizeof(bufferData), &bufferData);
 }
 
-void OnBindingChanged_Material(Material* material, uint32 prev, uint32 next)
+void OnBindingChanged_Material(MaterialInstance* material, uint32 prev, uint32 next)
 {
     AssertOnThread(g_renderThread);
 

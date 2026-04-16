@@ -14,7 +14,10 @@
 #include <asset/Loader.hpp>
 
 #include <rendering/Shared.hpp>
-#include <rendering/Material.hpp>
+#include <rendering/MaterialDefinition.hpp>
+#include <rendering/MaterialInstance.hpp>
+
+#include <engine/EngineGlobals.hpp>
 #include <rendering/Mesh.hpp>
 #include <rendering/Texture.hpp>
 
@@ -73,7 +76,7 @@ static constexpr bool SeparateMetalnessRoughnessTextures = true;
 struct GltfPrimitiveResource
 {
     Handle<Mesh> mesh;
-    Handle<Material> material;
+    Handle<MaterialInstance> material;
     Vec3f localTranslation = Vec3f::Zero();
     uint32 gltfPrimitiveIndex = 0;
 };
@@ -89,7 +92,7 @@ struct GltfLoadContext
     cgltf_data& data;
     Scene* scene;
     Array<GltfMeshResource> meshResources;
-    HashMap<const cgltf_material*, Handle<Material>> materialCache;
+    HashMap<const cgltf_material*, Handle<MaterialInstance>> materialCache;
     HashMap<const cgltf_texture*, Handle<Texture>> textureCache;
     uint32 unnamedNodeCounter = 0;
     uint32 unnamedMaterialCounter = 0;
@@ -573,7 +576,7 @@ SplitMetalnessRoughnessResult SplitMetalnessRoughnessTexture(
     return { metalnessTexture, roughnessTexture };
 }
 
-Handle<Material> AcquireMaterial(GltfLoadContext& ctx, const cgltf_material* material, const Handle<Mesh>& mesh)
+Handle<MaterialInstance> AcquireMaterial(GltfLoadContext& ctx, const cgltf_material* material, const Handle<Mesh>& mesh)
 {
     MaterialAttributes materialAttributes {};
     materialAttributes.shaderName = NAME("GeometryPass");
@@ -582,7 +585,7 @@ Handle<Material> AcquireMaterial(GltfLoadContext& ctx, const cgltf_material* mat
 
     if (material == nullptr)
     {
-        Handle<Material> fallback = MaterialCache::GetInstance()->GetOrCreate(
+        Handle<MaterialInstance> fallback = g_materialInstanceCache->GetOrCreate(
             NAME("BasicGLTFMaterial"),
             materialAttributes,
             MaterialParameters {});
@@ -709,7 +712,7 @@ Handle<Material> AcquireMaterial(GltfLoadContext& ctx, const cgltf_material* mat
         parameters.emissiveColor = Color(Vec4f(emissiveFactor / parameters.emissiveIntensity, 1.0f));
     }
 
-    Handle<Material> materialHandle = MaterialCache::GetInstance()->CreateMaterial(materialName, materialAttributes, parameters, textures);
+    Handle<MaterialInstance> materialHandle = g_materialInstanceCache->GetOrCreate(materialName, materialAttributes, parameters, textures);
     InitObject(materialHandle);
 
     ctx.materialCache.Set(material, materialHandle);
@@ -1073,7 +1076,7 @@ LoadedAsset BuildModel(LoaderState& state, cgltf_data& data)
                 continue;
             }
 
-            Handle<Material> material = AcquireMaterial(ctx, gltfMesh.primitives[primitiveIndex].material, output.mesh);
+            Handle<MaterialInstance> material = AcquireMaterial(ctx, gltfMesh.primitives[primitiveIndex].material, output.mesh);
             InitObject(material);
 
             meshResource.primitives.PushBack(GltfPrimitiveResource {

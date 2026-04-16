@@ -18,16 +18,16 @@
 #include <Core/containers/Array.hpp>
 #include <Core/containers/String.hpp>
 
-#include <scripting/ScriptableDelegate.hpp>
-
 #include <Core/utilities/EnumFlags.hpp>
 #include <Core/utilities/Uuid.hpp>
 #include <Core/utilities/Pair.hpp>
 #include <Core/utilities/ForEach.hpp>
 
+#include <scripting/ScriptableDelegate.hpp>
+
 #include <scene/Entity.hpp>
 
-#include <rendering/Material.hpp>
+#include <rendering/MaterialTypes.hpp>
 
 #include <input/Mouse.hpp>
 #include <input/Keyboard.hpp>
@@ -42,6 +42,7 @@ class UISubsystem;
 class UIDataSourceBase;
 class UIDataSource;
 class Mesh;
+class MaterialInstance;
 class Scene;
 
 // Helper function to get the scene from a UIStage
@@ -1034,7 +1035,7 @@ public:
 
     virtual Scene* GetScene() const;
 
-    const Handle<Material>& GetMaterial() const;
+    const Handle<MaterialInstance>& GetMaterial() const;
 
     /*! \brief Get the AABB of the UIObject (calculated with absolute positioning, or world space) */
     HYP_METHOD()
@@ -1480,7 +1481,7 @@ private:
 
     void UpdateNodeTransform();
 
-    Handle<Material> CreateMaterial() const;
+    Handle<MaterialInstance> CreateMaterial() const;
 
     EnumFlags<UIObjectFocusState> m_focusState;
 

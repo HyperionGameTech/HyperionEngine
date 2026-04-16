@@ -206,7 +206,7 @@ namespace Hyperion
             }
         }
 
-        public Material Material
+        public MaterialInstance Material
         {
             get
             {

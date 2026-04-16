@@ -13,7 +13,8 @@
 #include <asset/AssetRegistry.hpp>
 
 #include <rendering/Mesh.hpp>
-#include <rendering/Material.hpp>
+#include <rendering/MaterialDefinition.hpp>
+#include <rendering/MaterialInstance.hpp>
 #include <rendering/Texture.hpp>
 
 #include <rendering/util/DeletionQueue.hpp>
@@ -379,30 +380,52 @@ void Baker<LightmapVolume>::OnCompleted_Internal()
 
         if (bakeEntity.material)
         {
-            Handle<Material> clonedMaterial = bakeEntity.material->Clone();
-            EnqueueDeletion(std::move(bakeEntity.material));
+            MaterialAttributes attributes = bakeEntity.material->GetAttributes();
+            attributes.bucket = RenderBucket::Lightmapped;
 
-            bakeEntity.material = clonedMaterial;
+            Handle<MaterialDefinition> materialDefinition = MakeHandle<MaterialDefinition>(
+                Name::Unique("lightmap_material"),
+                attributes,
+                bakeEntity.material->GetParameters(),
+                bakeEntity.material->GetTextures());
+            
+            materialDefinition->Register("$Memory/Media/MaterialDefinitions");
+
+            InitObject(materialDefinition);
+
+            Handle<MaterialInstance> materialInstance = materialDefinition->CreateInstance();
+            materialInstance->SetIsDynamic(true);
+
+            EnqueueDeletion(std::move(bakeEntity.material));
+            bakeEntity.material = std::move(materialInstance);
         }
         else
         {
-            bakeEntity.material = MakeHandle<Material>();
+            MaterialAttributes attributes;
+            attributes.bucket = RenderBucket::Lightmapped;
+
+            Handle<MaterialDefinition> materialDefinition = MakeHandle<MaterialDefinition>(Name::Unique("lightmap_material"), attributes);
+            materialDefinition->Register("$Memory/Media/MaterialDefinitions");
+            InitObject(materialDefinition);
+
+            Handle<MaterialInstance> materialInstance = materialDefinition->CreateInstance();
+            materialInstance->SetIsDynamic(true);
+
+            bakeEntity.material = std::move(materialInstance);
         }
         
-        if (Result result = bakeEntity.material->Register("$Import/Media/Materials"); result.HasError())
+        if (Result result = bakeEntity.material->Register("$Import/Media/MaterialInstances"); result.HasError())
         {
             HYP_LOG(Lightmap, Error, "Failed to register material: {}", result.GetError().GetMessage());
         }
 
         isNewMaterial = true;
 
-        bakeEntity.material->SetBucket(RenderBucket::Lightmapped);
-
         auto UpdateMeshComponent = [entityManagerWeak = MakeWeakRef(m_scene->GetEntityManager()),
                                         lightmapElementId = m_lightmapElementId,
                                         volume = m_volume,
                                         bakeEntity = bakeEntity,
-                                        newMaterial = (isNewMaterial ? bakeEntity.material : Handle<Material>::empty)]()
+                                        newMaterial = (isNewMaterial ? bakeEntity.material : Handle<MaterialInstance>::empty)]()
         {
             Handle<EntityManager> entityManager = entityManagerWeak.Lock();
 

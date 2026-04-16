@@ -115,7 +115,7 @@ public:
         const DX12GpuBufferRef& packedIndicesBuffer,
         uint32 numVertices,
         uint32 numIndices,
-        const Handle<Material>& material,
+        const Handle<MaterialInstance>& material,
         const Mat4f& transform) override;
     DX12GpuTlasRef MakeTLAS() override;
 

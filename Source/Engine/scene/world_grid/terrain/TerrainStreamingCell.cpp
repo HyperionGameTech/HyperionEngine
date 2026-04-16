@@ -20,7 +20,7 @@
 #include <scene/components/MeshComponent.hpp>
 
 #include <rendering/Mesh.hpp>
-#include <rendering/Material.hpp>
+#include <rendering/MaterialInstance.hpp>
 #include <rendering/Texture.hpp>
 #include <rendering/Vertex.hpp>
 
@@ -352,7 +352,7 @@ TerrainStreamingCell::TerrainStreamingCell()
 {
 }
 
-TerrainStreamingCell::TerrainStreamingCell(const StreamingCellInfo& cellInfo, const Handle<Scene>& scene, const Handle<Material>& material)
+TerrainStreamingCell::TerrainStreamingCell(const StreamingCellInfo& cellInfo, const Handle<Scene>& scene, const Handle<MaterialInstance>& material)
     : StreamingCell(cellInfo),
       m_scene(scene),
       m_material(material)

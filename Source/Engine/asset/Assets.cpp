@@ -264,7 +264,6 @@ void AssetManager::RegisterDefaultLoaders()
     Register<TextureLoader, Texture>(
         "png", "jpg", "jpeg", "tga",
         "bmp", "psd", "gif", "hdr", "tif");
-    Register<MTLMaterialLoader, MaterialGroup>("mtl");
     Register<WAVAudioLoader, AudioSource>("wav");
     Register<FBOMModelLoader, Node>("hypmodel");
     Register<FBXModelLoader, Node>("fbx");

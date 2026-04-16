@@ -12,7 +12,6 @@
 
 namespace Hyperion {
 
-class Material;
 class Texture;
 
 enum class MaterialTextureKey : uint64;

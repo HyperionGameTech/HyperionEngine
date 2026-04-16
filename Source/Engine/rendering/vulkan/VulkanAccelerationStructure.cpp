@@ -16,7 +16,7 @@
 #include <rendering/vulkan/VulkanRenderInterface.hpp>
 #include <rendering/vulkan/VulkanDescriptorSet.hpp>
 
-#include <rendering/Material.hpp>
+#include <rendering/MaterialInstance.hpp>
 #include <rendering/Shared.hpp>
 #include <rendering/Bindless.hpp>
 
@@ -59,7 +59,7 @@ VulkanAccelerationGeometry::VulkanAccelerationGeometry(
     const VulkanGpuBufferRef& packedVerticesBuffer,
     const VulkanGpuBufferRef& packedIndicesBuffer,
     uint32 numVertices, uint32 numIndices,
-    const Handle<Material>& material)
+    const Handle<MaterialInstance>& material)
     : m_isCreated(false),
       m_packedVerticesBuffer(packedVerticesBuffer),
       m_packedIndicesBuffer(packedIndicesBuffer),
@@ -904,7 +904,7 @@ VulkanGpuBlas::VulkanGpuBlas(
     const VulkanGpuBufferRef& packedIndicesBuffer,
     uint32 numVertices,
     uint32 numIndices,
-    const Handle<Material>& material,
+    const Handle<MaterialInstance>& material,
     const Mat4f& transform)
     : VulkanAccelerationStructureBase(transform),
       m_packedVerticesBuffer(packedVerticesBuffer),

@@ -17,7 +17,10 @@
 #include <asset/Assets.hpp>
 #include <asset/AssetRegistry.hpp>
 
-#include <rendering/Material.hpp>
+#include <rendering/MaterialDefinition.hpp>
+#include <rendering/MaterialInstance.hpp>
+
+#include <engine/EngineGlobals.hpp>
 
 #include <TerrainWorldGridLayer.generated.inl>
 
@@ -46,18 +49,18 @@ void TerrainWorldGridLayer::Init()
     AssertDebug(m_scene.IsValid());
     InitObject(m_scene);
 
-    m_material = MakeHandle<Material>(NAME("terrain_material"));
-    m_material->SetBucket(RenderBucket::Opaque);
-    m_material->SetIsDepthTestEnabled(true);
-    m_material->SetIsDepthWriteEnabled(true);
+    MaterialAttributes attributes;
+    attributes.bucket = RenderBucket::Opaque;
+    attributes.flags |= MAF_DEPTH_TEST | MAF_DEPTH_WRITE;
 
     MaterialParameters parameters;
     parameters.albedo = Vec4f(0.06f, 0.25f, 0.05f, 1.0f);
     parameters.roughness = 0.95f;
     parameters.metalness = 0.0f;
-    m_material->SetParameters(parameters);
+
+    m_material = g_materialInstanceCache->GetOrCreate(NAME("terrain_material"), attributes, parameters, MaterialTextures{});
     
-    g_assetManager->GetAssetRegistry()->RegisterAsset("$Memory/Media/Materials", m_material);
+    g_assetManager->GetAssetRegistry()->RegisterAsset("$Memory/Media/MaterialInstances", m_material);
 
     // if (auto albedoTextureAsset = AssetManager::GetInstance()->Load<Texture>("textures/mossy-ground1-Unity/mossy-ground1-albedo.png"))
     // {

@@ -18,7 +18,7 @@
 
 namespace Hyperion {
 
-class Material;
+class MaterialInstance;
 
 HYP_ENUM()
 enum class AccelerationStructureType : uint8
@@ -144,7 +144,7 @@ public:
 
     virtual RendererResult Create() = 0;
 
-    HYP_FORCE_INLINE const Handle<Material>& GetMaterial() const
+    HYP_FORCE_INLINE const Handle<MaterialInstance>& GetMaterial() const
     {
         return m_material;
     }
@@ -162,7 +162,7 @@ public:
     virtual void SetTransform(const Mat4f& transform) = 0;
 
 protected:
-    Handle<Material> m_material;
+    Handle<MaterialInstance> m_material;
     uint32 m_materialBinding;
 
 #if HYP_DEBUG_MODE

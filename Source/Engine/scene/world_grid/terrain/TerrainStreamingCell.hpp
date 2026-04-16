@@ -15,7 +15,7 @@
 namespace Hyperion {
 
 class Scene;
-class Material;
+class MaterialInstance;
 class Mesh;
 class Node;
 
@@ -26,7 +26,7 @@ class TerrainStreamingCell : public StreamingCell
 
 public:
     TerrainStreamingCell();
-    TerrainStreamingCell(const StreamingCellInfo& cellInfo, const Handle<Scene>& scene, const Handle<Material>& material);
+    TerrainStreamingCell(const StreamingCellInfo& cellInfo, const Handle<Scene>& scene, const Handle<MaterialInstance>& material);
     virtual ~TerrainStreamingCell() override;
 
 protected:
@@ -41,7 +41,7 @@ protected:
 
     Handle<Scene> m_scene;
     Handle<Mesh> m_mesh;
-    Handle<Material> m_material;
+    Handle<MaterialInstance> m_material;
     Handle<Node> m_node;
 };
 } // namespace Hyperion
