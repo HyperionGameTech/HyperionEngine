@@ -175,10 +175,10 @@ void Scene::SetWorld(World* world)
         m_world->RemoveScene(this);
     }
 
+    m_world = world;
+
     // When world is changed, entity manager needs all systems to have this change reflected
     m_entityManager->SetWorld(world);
-
-    m_world = world;
 }
 
 Handle<Node> Scene::FindNodeByName(StringHash name) const

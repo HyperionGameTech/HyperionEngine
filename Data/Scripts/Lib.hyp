@@ -1786,6 +1786,7 @@ extern class AssetObject
     SetIsTransient(isTransient : bool) -> void
     SetIsTransientByProxy(isTransientByProxy : bool) -> void
     IsSaved() -> bool
+    Unload() -> void
     Save() -> Result
     SaveAs(manifestPath : string) -> Result
     Register(path : string, conflictMode : AddAssetConflictMode) -> Result

@@ -54,12 +54,6 @@ public:
     virtual ~Entity() override;
 
     HYP_METHOD()
-    HYP_FORCE_INLINE World* GetWorld() const
-    {
-        return m_world;
-    }
-
-    HYP_METHOD()
     HYP_FORCE_INLINE EntityManager* GetEntityManager() const
     {
         return m_entityManager;
@@ -145,13 +139,18 @@ protected:
 private:
     void SetEntityManager(const Handle<EntityManager>& entityManager);
 
-    HYP_METHOD(Property = "Components", NoScriptBindings, EditOrder = 1000)
+    HYP_METHOD(Property = "Tags", NoScriptBindings)
+    Array<EntityTag> SerializeTags() const;
+
+    HYP_METHOD(Property = "Tags", NoScriptBindings, LoadOrder = 1001)
+    void DeserializeTags(const Array<EntityTag>& tags);
+
+    HYP_METHOD(Property = "Components", NoScriptBindings)
     Array<BoxedValue, DynamicAllocator> SerializeComponents() const;
 
     HYP_METHOD(Property = "Components", NoScriptBindings, LoadOrder = 1000)
     void DeserializeComponents(const Array<BoxedValue, DynamicAllocator>& components);
 
-    World* m_world;
     EntityManager* m_entityManager;
 
     int m_renderProxyVersion;

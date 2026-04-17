@@ -16,9 +16,6 @@
 
 #include <physics/PhysicsWorld.hpp>
 
-#include <engine/Game.hpp>
-#include <Engine/EngineGlobals.hpp>
-
 #include <asset/Assets.hpp>
 #include <asset/AssetRegistry.hpp>
 
@@ -61,19 +58,12 @@ void PhysicsSystem::OnEntityAdded(Entity* entity)
 
     rigidBody->SetTransform(transform);
 
-    if (GetWorld()->GetGameState().IsSimulating())
-    {
-        m_simulationOriginTransforms.Set(entity, entity->GetLocalTransform());
-    }
-
     entity->GetWorld()->GetPhysicsWorld()->AddRigidBody(rigidBodyComponent.rigidBody);
 }
 
 void PhysicsSystem::OnEntityRemoved(Entity* entity)
 {
     SystemBase::OnEntityRemoved(entity);
-
-    m_simulationOriginTransforms.Erase(entity);
 
     RigidBodyComponent& rigidBodyComponent = entity->GetEntityManager()->GetComponent<RigidBodyComponent>(entity);
 
@@ -88,76 +78,6 @@ void PhysicsSystem::OnEntityRemoved(Entity* entity)
 
         rigidBody.Reset();
     }
-}
-
-void PhysicsSystem::OnAddedToWorld(World* world)
-{
-    SystemBase::OnAddedToWorld(world);
-
-    if (Game* game = world->GetGame())
-    {
-        m_delegateHandlers.Add(
-            NAME("OnGameStateChange"),
-            game->OnGameStateChange.Bind([this](Game*, GameStateMode previousMode, GameStateMode currentMode)
-            {
-                const bool wasSimulating = previousMode == GameStateMode::SIMULATING
-                    || previousMode == GameStateMode::PAUSED;
-                const bool isSimulating  = currentMode  == GameStateMode::SIMULATING
-                    || currentMode  == GameStateMode::PAUSED;
-
-                if (isSimulating && !wasSimulating)
-                {
-                    SaveSimulationOrigins();
-                }
-                else if (!isSimulating && wasSimulating)
-                {
-                    RestoreSimulationOrigins();
-                }
-            }));
-    }
-}
-
-void PhysicsSystem::OnRemovedFromWorld(World* world)
-{
-    SystemBase::OnRemovedFromWorld(world);
-
-    m_delegateHandlers.Remove(NAME("OnGameStateChange"));
-    m_simulationOriginTransforms.Clear();
-}
-
-void PhysicsSystem::SaveSimulationOrigins()
-{
-    m_simulationOriginTransforms.Clear();
-
-    World* world = GetWorld();
-
-    for (Scene* scene : world->GetScenes())
-    {
-        if (!scene)
-        {
-            continue;
-        }
-
-        for (auto [entity, rigidBodyComponent, transformComponent] : scene->GetEntityManager()->GetEntitySet<RigidBodyComponent, TransformComponent>().GetScopedView(GetComponentInfos()))
-        {
-            m_simulationOriginTransforms.Set(entity, entity->GetLocalTransform());
-        }
-    }
-}
-
-void PhysicsSystem::RestoreSimulationOrigins()
-{
-    for (auto& [entity, originTransform] : m_simulationOriginTransforms)
-    {
-        if (entity == nullptr)
-        {
-            continue;
-        }
-
-        entity->SetLocalTransform(originTransform, TransformChangeType::Default);
-    }
-
-    m_simulationOriginTransforms.Clear();
 }
 
 void PhysicsSystem::Process(float delta, Span<Handle<Scene>> scenes)

@@ -35,14 +35,7 @@ public:
     void OnEntityAdded(Entity* entity) override;
     void OnEntityRemoved(Entity* entity) override;
 
-    void OnAddedToWorld(World* world) override;
-    void OnRemovedFromWorld(World* world) override;
-
     void Process(float delta, Span<Handle<Scene>> scenes) override;
-
-private:
-    void SaveSimulationOrigins();
-    void RestoreSimulationOrigins();
 
     SystemComponentDescriptors GetComponentDescriptors() const override
     {
@@ -55,9 +48,6 @@ private:
         };
     }
 
-    HashMap<Entity*, Transform, SceneAllocator> m_simulationOriginTransforms;
-
-    DelegateHandlerSet m_delegateHandlers;
-};
+}; // class PhysicsSystem
 
 } // namespace Hyperion

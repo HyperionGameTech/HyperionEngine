@@ -230,7 +230,6 @@ EngineDriver::~EngineDriver()
 
 HYP_API void EngineDriver::Init()
 {
-    HYP_SCOPE;
     AssertOnThread(g_mainThread);
 
 #if HYP_EDITOR
@@ -263,7 +262,6 @@ HYP_API void EngineDriver::Init()
 
 World* EngineDriver::GetCurrentWorld() const
 {
-    HYP_SCOPE;
     AssertOnThread(g_simThread);
 
     return m_currentWorld;
@@ -271,7 +269,6 @@ World* EngineDriver::GetCurrentWorld() const
 
 void EngineDriver::SetCurrentWorld(World* world)
 {
-    HYP_SCOPE;
     AssertOnThread(g_simThread);
 
     if (world == m_currentWorld)
@@ -292,7 +289,6 @@ void EngineDriver::SetCurrentWorld(World* world)
 
 void EngineDriver::SetDefaultWorld(const Handle<World>& defaultWorld)
 {
-    HYP_SCOPE;
     AssertOnThread(g_simThread);
 
     m_defaultWorld = defaultWorld;
@@ -305,7 +301,6 @@ void EngineDriver::SetDefaultWorld(const Handle<World>& defaultWorld)
 
 void EngineDriver::AddWorld(const Handle<World>& world)
 {
-    HYP_SCOPE;
     AssertOnThread(g_simThread);
 
     if (!world)
@@ -323,7 +318,6 @@ void EngineDriver::AddWorld(const Handle<World>& world)
 
 void EngineDriver::RemoveWorld(const World* world)
 {
-    HYP_SCOPE;
     AssertOnThread(g_simThread);
 
     if (!world)

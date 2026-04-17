@@ -200,6 +200,15 @@ public:
     Result RemoveAssetObject(StringHash nameHash);
     Result RemoveAssetObject(const Handle<AssetObject>& assetObject);
 
+    /*! \brief Drops the cached strong reference for a single asset object in this package
+     *   without removing its AssetDesc. The asset will be re-loaded from disk on next request.
+     *  \param name The name of the asset to unload. */
+    void UnloadAssetObject(Name name);
+
+    /*! \brief Drops the cached strong references for all asset objects in this package
+     *  \param recursive If true, also unloads asset objects in all subpackages. */
+    void UnloadAssetObjects(bool recursive = false);
+
     Handle<AssetObject> GetAssetObject(Name name);
 
     bool GetAssetDesc(StringHash nameHash, AssetDesc& outAssetDesc);

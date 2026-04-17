@@ -20,12 +20,6 @@
       "EnumValues": []
     }, {
       "$Class": "ShaderProperty",
-      "Name": "DEBUG_IRRADIANCE",
-      "Flags": 0,
-      "Value": null,
-      "EnumValues": []
-    }, {
-      "$Class": "ShaderProperty",
       "Name": "HBAO_ENABLED",
       "Flags": 0,
       "Value": null,
@@ -33,6 +27,12 @@
     }, {
       "$Class": "ShaderProperty",
       "Name": "SSR_ENABLED",
+      "Flags": 0,
+      "Value": null,
+      "EnumValues": []
+    }, {
+      "$Class": "ShaderProperty",
+      "Name": "PATHTRACER",
       "Flags": 0,
       "Value": null,
       "EnumValues": []
@@ -189,6 +189,20 @@
               "$Class": "ShaderInput",
               "Register": 1,
               "ElementType": 5,
+              "Name": "RTRadianceResultTexture",
+              "Count": 1,
+              "Size": 4294967295,
+              "IsDynamic": false,
+              "StructInfo": {
+                "Name": "",
+                "Size": 4294967295,
+                "FieldNames": [],
+                "FieldTypes": []
+              }
+            }, {
+              "$Class": "ShaderInput",
+              "Register": 1,
+              "ElementType": 5,
               "Name": "EnvProbesTexture",
               "Count": 1,
               "Size": 4294967295,
@@ -306,18 +320,18 @@
   "EntryPointNames": ["VSMain", "PSMain"],
   "ShaderBlobs": [{
       "$Class": "BlobDataReference",
-      "Key": "Engine/Shaders/DeferredIndirect/DeferredIndirect_16495654302570710720.VS",
-      "Size": 11764
+      "Key": "Engine/Shaders/DeferredIndirect/DeferredIndirect_16518339199512011469.VS",
+      "Size": 11820
     }, {
       "$Class": "BlobDataReference",
-      "Key": "Engine/Shaders/DeferredIndirect/DeferredIndirect_16495654302570710720.PS",
-      "Size": 148144
+      "Key": "Engine/Shaders/DeferredIndirect/DeferredIndirect_16518339199512011469.PS",
+      "Size": 137492
     }],
   "PropertySetHashCode": {},
   "LastCompiledTimestamp": {
     "Value": 13420591026643
   },
-  "Name": "DeferredIndirect_16495654302570710720",
-  "FriendlyName": "DeferredIndirect_16495654302570710720",
+  "Name": "DeferredIndirect_16518339199512011469",
+  "FriendlyName": "DeferredIndirect16518339199512011469",
   "OriginalFilepath": ""
 }

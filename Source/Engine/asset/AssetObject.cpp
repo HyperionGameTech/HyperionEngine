@@ -40,8 +40,6 @@ extern HYP_NODISCARD Name CreateFriendlyName(Name name);
 template <class T>
 static Name GetUniqueName(Name baseName, T&& elements)
 {
-    HYP_SCOPE;
-
     baseName = SanitizeName(baseName);
 
     String str = *baseName;
@@ -122,8 +120,6 @@ void AssetObject::MarkDirty()
 void AssetObject::SetPersistentRequested(
     bool persistentlyLoaded, bool setFlag, bool markDirty)
 {
-    HYP_SCOPE;
-
     if (setFlag && m_flags[AssetObjectFlags::Persistent] != persistentlyLoaded)
     {
         if (markDirty)
@@ -137,8 +133,6 @@ void AssetObject::SetPersistentRequested(
 
 void AssetObject::SetIsTransient(bool isTransient)
 {
-    HYP_SCOPE;
-
     m_flags[AssetObjectFlags::Transient] = isTransient;
 
     if (IsTransient())
@@ -157,8 +151,6 @@ void AssetObject::SetIsTransient(bool isTransient)
 
 void AssetObject::SetIsTransientByProxy(bool isTransientByProxy)
 {
-    HYP_SCOPE;
-
     m_flags[AssetObjectFlags::TransientByProxy] = isTransientByProxy;
 
     if (IsTransient())
@@ -177,8 +169,6 @@ void AssetObject::SetIsTransientByProxy(bool isTransientByProxy)
 
 Result AssetObject::Rename(Name name)
 {
-    HYP_SCOPE;
-
     if (name == m_name)
     {
         // same name, do nothing
@@ -230,6 +220,14 @@ bool AssetObject::IsSaved() const
     return m_manifestPath.Length() > 0;
 }
 
+void AssetObject::Unload()
+{
+    if (Handle<AssetPackage> package = m_package.Lock(); package.IsValid())
+    {
+        package->UnloadAssetObject(m_name);
+    }
+}
+
 Result AssetObject::Save()
 {
     AssertDebug(IsSaved());
@@ -239,8 +237,6 @@ Result AssetObject::Save()
 
 Result AssetObject::SaveAs(const FilePath& manifestPath)
 {
-    HYP_SCOPE;
-
     auto readScope = GetReadScope();
 
     Handle<AssetPackage> package = m_package.Lock();
@@ -321,8 +317,6 @@ Result AssetObject::SaveAs(const FilePath& manifestPath)
 
 Result AssetObject::SaveManifest(ByteWriter& stream) const
 {
-    HYP_SCOPE;
-
     JSON::Object manifestJson;
 
     ToJSONOptions opts;
