@@ -29,13 +29,6 @@ namespace Hyperion {
 extern PhysicsMaterial& GetDefaultPhysicsMaterial();
 extern PhysicsShape& GetDefaultPhysicsShape();
 
-bool PhysicsSystem::ShouldProcessScene(Scene* scene) const
-{
-    static constexpr EnumFlags<SceneFlags> ExpectedFlags = SceneFlags::FOREGROUND;
-
-    return (scene->GetSceneFlags() & (SceneFlags::UI | SceneFlags::DETACHED | ExpectedFlags)) == ExpectedFlags;
-}
-
 void PhysicsSystem::OnEntityAdded(Entity* entity)
 {
     SystemBase::OnEntityAdded(entity);
@@ -43,7 +36,7 @@ void PhysicsSystem::OnEntityAdded(Entity* entity)
     RigidBodyComponent& rigidBodyComponent = entity->GetEntityManager()->GetComponent<RigidBodyComponent>(entity);
     TransformComponent& transformComponent = entity->GetEntityManager()->GetComponent<TransformComponent>(entity);
 
-    // temp debug
+    // TEMP
     rigidBodyComponent.physicsMaterial.mass = 1.0f;
 
     if (!rigidBodyComponent.shape)
@@ -71,12 +64,19 @@ void PhysicsSystem::OnEntityAdded(Entity* entity)
 
     rigidBody->SetTransform(transform);
 
+    if (GetWorld()->GetGameState().IsSimulating())
+    {
+        m_simulationOriginTransforms.Set(entity, entity->GetLocalTransform());
+    }
+
     entity->GetWorld()->GetPhysicsWorld()->AddRigidBody(rigidBodyComponent.rigidBody);
 }
 
 void PhysicsSystem::OnEntityRemoved(Entity* entity)
 {
     SystemBase::OnEntityRemoved(entity);
+
+    m_simulationOriginTransforms.Erase(entity);
 
     RigidBodyComponent& rigidBodyComponent = entity->GetEntityManager()->GetComponent<RigidBodyComponent>(entity);
 
@@ -93,85 +93,77 @@ void PhysicsSystem::OnEntityRemoved(Entity* entity)
     }
 }
 
-void PhysicsSystem::Process(float delta, Span<Handle<Scene>> scenes)
+void PhysicsSystem::OnAddedToWorld(World* world)
 {
-    HYP_SCOPE;
+    SystemBase::OnAddedToWorld(world);
 
-    if (!GetWorld()->GetGameState().IsSimulating())
+    if (Game* game = world->GetGame())
     {
-    //    return;
+        m_delegateHandlers.Add(
+            NAME("OnGameStateChange"),
+            game->OnGameStateChange.Bind([this](Game*, GameStateMode previousMode, GameStateMode currentMode)
+            {
+                const bool wasSimulating = previousMode == GameStateMode::SIMULATING
+                    || previousMode == GameStateMode::PAUSED;
+                const bool isSimulating  = currentMode  == GameStateMode::SIMULATING;
+
+                if (isSimulating && !wasSimulating)
+                {
+                    SaveSimulationOrigins();
+                }
+                else if (!isSimulating && wasSimulating)
+                {
+                    RestoreSimulationOrigins();
+                }
+            }));
     }
+}
 
-    PhysicsWorld& physicsWorld = static_cast<PhysicsWorld&>(*GetWorld()->GetPhysicsWorld());
+void PhysicsSystem::OnRemovedFromWorld(World* world)
+{
+    SystemBase::OnRemovedFromWorld(world);
 
-    // To remove tag from after update.
-    Array<Entity*, SceneAllocator> updatedEntities;
+    m_delegateHandlers.Remove(NAME("OnGameStateChange"));
+    m_simulationOriginTransforms.Clear();
+}
 
-    for (Scene* scene : scenes)
+void PhysicsSystem::SaveSimulationOrigins()
+{
+    m_simulationOriginTransforms.Clear();
+
+    World* world = GetWorld();
+
+    for (Scene* scene : world->GetScenes())
     {
-        if (!ShouldProcessScene(scene))
+        if (!scene)
         {
             continue;
         }
 
-        for (auto [entity, rigidBodyComponent, _] : scene->GetEntityManager()->GetEntitySet<RigidBodyComponent, TagComponent<EntityTag::UpdatePhysicsShape>>().GetScopedView(GetComponentInfos()))
-        {
-            Handle<RigidBody>& rigidBody = rigidBodyComponent.rigidBody;
-
-            if (!rigidBody)
-            {
-                continue;
-            }
-            
-            physicsWorld.GetAdapter().OnChangePhysicsShape(rigidBody.Get());
-
-            updatedEntities.PushBack(entity);
-        }
-
-        for (auto [entity, rigidBodyComponent, _] : scene->GetEntityManager()->GetEntitySet<RigidBodyComponent, TagComponent<EntityTag::UpdatePhysicsMaterial>>().GetScopedView(GetComponentInfos()))
-        {
-            Handle<RigidBody>& rigidBody = rigidBodyComponent.rigidBody;
-
-            if (!rigidBody)
-            {
-                continue;
-            }
-            
-            physicsWorld.GetAdapter().OnChangePhysicsMaterial(rigidBody.Get());
-
-            updatedEntities.PushBack(entity);
-        }
-
         for (auto [entity, rigidBodyComponent, transformComponent] : scene->GetEntityManager()->GetEntitySet<RigidBodyComponent, TransformComponent>().GetScopedView(GetComponentInfos()))
         {
-            Handle<RigidBody>& rigidBody = rigidBodyComponent.rigidBody;
-
-            if (!rigidBody)
-            {
-                continue;
-            }
-
-            Transform rigidBodyTransform = rigidBody->GetTransform();
-            transformComponent.translation = rigidBodyTransform.GetTranslation();
-            transformComponent.rotation = rigidBodyTransform.GetRotation();
-
-            rigidBody->SetTransform(rigidBodyTransform);
-
-            // @TODO Sync entity world transforms.
+            m_simulationOriginTransforms.Set(entity, entity->GetLocalTransform());
         }
     }
+}
 
-    if (updatedEntities.Any())
+void PhysicsSystem::RestoreSimulationOrigins()
+{
+    for (auto& [entity, originTransform] : m_simulationOriginTransforms)
     {
-        AfterProcess([entities = std::move(updatedEntities)]() mutable
+        if (entity == nullptr)
         {
-            for (Entity* entity : entities)
-            {
-                entity->RemoveTag<EntityTag::UpdatePhysicsMaterial>();
-                entity->RemoveTag<EntityTag::UpdatePhysicsShape>();
-            }
-        });
+            continue;
+        }
+
+        entity->SetLocalTransform(originTransform, TransformChangeType::Default);
     }
+
+    m_simulationOriginTransforms.Clear();
+}
+
+void PhysicsSystem::Process(float delta, Span<Handle<Scene>> scenes)
+{
 }
 
 } // namespace Hyperion

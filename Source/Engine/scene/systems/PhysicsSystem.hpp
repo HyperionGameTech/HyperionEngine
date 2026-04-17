@@ -11,29 +11,40 @@
 #include <scene/components/RigidBodyComponent.hpp>
 #include <scene/components/TransformComponent.hpp>
 
+#include <Core/containers/HashMap.hpp>
+#include <Core/functional/Delegate.hpp>
+#include <Core/math/Transform.hpp>
+
 namespace Hyperion {
 
-/*! \brief System for updating transforms of objects with RigidBodyComponent to sync with physics simulation.
- *
- * This system processes entities with RigidBodyComponent and TransformComponent,
- * updating their transforms based on the physics simulation results. */
+/*! \brief This system initialized physics objects.
+ *  It does not update them, due to needing to mutate states before visibility calculation, hence this logic exists in World::SyncPhysicsToEntities() */
 HYP_CLASS(NoScriptBindings)
-class PhysicsSystem : public SystemBase
+class PhysicsSystem final : public SystemBase
 {
     HYP_OBJECT_BODY(PhysicsSystem);
 
 public:
-    virtual ~PhysicsSystem() override = default;
+    ~PhysicsSystem() override = default;
 
-    virtual bool ShouldProcessScene(Scene* scene) const override;
+    bool AllowUpdate() const override
+    {
+        return false;
+    }
 
-    virtual void OnEntityAdded(Entity* entity) override;
-    virtual void OnEntityRemoved(Entity* entity) override;
+    void OnEntityAdded(Entity* entity) override;
+    void OnEntityRemoved(Entity* entity) override;
 
-    virtual void Process(float delta, Span<Handle<Scene>> scenes) override;
+    void OnAddedToWorld(World* world) override;
+    void OnRemovedFromWorld(World* world) override;
+
+    void Process(float delta, Span<Handle<Scene>> scenes) override;
 
 private:
-    virtual SystemComponentDescriptors GetComponentDescriptors() const override
+    void SaveSimulationOrigins();
+    void RestoreSimulationOrigins();
+
+    SystemComponentDescriptors GetComponentDescriptors() const override
     {
         return {
             ComponentDescriptor<RigidBodyComponent, ComponentAccess::READ_WRITE> {},
@@ -43,6 +54,10 @@ private:
             ComponentDescriptor<TagComponent<EntityTag::UpdatePhysicsMaterial>, ComponentAccess::READ, false> {}
         };
     }
+
+    HashMap<Entity*, Transform, SceneAllocator> m_simulationOriginTransforms;
+
+    DelegateHandlerSet m_delegateHandlers;
 };
 
 } // namespace Hyperion

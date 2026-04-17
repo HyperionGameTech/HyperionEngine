@@ -32,6 +32,7 @@
 #endif
 
 #include <engine/EngineDriver.hpp>
+#include <engine/GameState.hpp>
 
 #include <rendering/Mesh.hpp>
 #include <rendering/util/DeletionQueue.hpp>
@@ -699,7 +700,7 @@ void Node::UnlockTransform()
     }
 }
 
-void Node::SetLocalTransform(const Transform& transform)
+void Node::SetLocalTransform(const Transform& transform, TransformChangeType changeType)
 {
     if (IsTransformLocked())
     {
@@ -713,8 +714,14 @@ void Node::SetLocalTransform(const Transform& transform)
 
     m_localTransform = transform;
 
-    // @TODO Only if in editor
-    MarkDirty();
+#if HYP_EDITOR
+    World* world = GetWorld();
+
+    if (changeType != TransformChangeType::Simulation && world && world->GetGameState().IsEditMode())
+    {
+        MarkDirty();
+    }
+#endif
 
     UpdateWorldTransform();
 }
@@ -757,9 +764,15 @@ void Node::SetLocalBounds(const BoundingBox& aabb)
     }
 
     m_localBounds = aabb;
-    
-    // @TODO Only if in editor
-    MarkDirty();
+
+#if HYP_EDITOR
+    World* world = GetWorld();
+
+    if (world && world->GetGameState().IsEditMode())
+    {
+        MarkDirty();
+    }
+#endif
 }
 
 BoundingBox Node::GetLocalBoundsWithChildren() const
@@ -824,16 +837,16 @@ Vec3f Node::GetWorldTranslation() const
     return translationWS;
 }
 
-void Node::SetWorldTranslation(const Vec3f& translation)
+void Node::SetWorldTranslation(const Vec3f& translation, TransformChangeType changeType)
 {
     if (m_parentNode == nullptr || (m_nodeFlags & NodeFlags::IgnoreParentTranslation))
     {
-        SetLocalTranslation(translation);
+        SetLocalTranslation(translation, changeType);
 
         return;
     }
 
-    SetLocalTranslation(m_parentNode->GetWorldMatrix().Inverse() * translation);
+    SetLocalTranslation(m_parentNode->GetWorldMatrix().Inverse() * translation, changeType);
 }
 
 Vec3f Node::GetWorldScale() const
@@ -848,16 +861,16 @@ Vec3f Node::GetWorldScale() const
     return scaleWS;
 }
 
-void Node::SetWorldScale(const Vec3f& scale)
+void Node::SetWorldScale(const Vec3f& scale, TransformChangeType changeType)
 {
     if (m_parentNode == nullptr || (m_nodeFlags & NodeFlags::IgnoreParentScale))
     {
-        SetLocalScale(scale);
+        SetLocalScale(scale, changeType);
 
         return;
     }
 
-    SetLocalScale(scale / m_parentNode->GetWorldScale());
+    SetLocalScale(scale / m_parentNode->GetWorldScale(), changeType);
 }
 
 Quat4f Node::GetWorldRotation() const
@@ -865,16 +878,16 @@ Quat4f Node::GetWorldRotation() const
     return Quat4f(m_worldMatrix).Inverse();
 }
 
-void Node::SetWorldRotation(const Quat4f& rotation)
+void Node::SetWorldRotation(const Quat4f& rotation, TransformChangeType changeType)
 {
     if (m_parentNode == nullptr || (m_nodeFlags & NodeFlags::IgnoreParentRotation))
     {
-        SetLocalRotation(rotation);
+        SetLocalRotation(rotation, changeType);
 
         return;
     }
 
-    SetLocalRotation(m_parentNode->GetWorldRotation().Inverse() * rotation);
+    SetLocalRotation(m_parentNode->GetWorldRotation().Inverse() * rotation, changeType);
 }
 
 void Node::UpdateWorldTransform(bool updateChildTransforms)
@@ -1171,8 +1184,14 @@ void Node::AddTag(NodeTag&& value)
     {
         m_tags.Add(std::move(value));
 
-        // @TODO Only if in editor
-        MarkDirty();
+#if HYP_EDITOR
+        World* world = GetWorld();
+
+        if (world && world->GetGameState().IsEditMode())
+        {
+            MarkDirty();
+        }
+#endif // HYP_EDITOR
     }
 }
 
@@ -1184,8 +1203,14 @@ bool Node::RemoveTag(StringHash key)
 
     if (removed)
     {
-        // @TODO Only if in editor
-        MarkDirty();
+#if HYP_EDITOR
+        World* world = GetWorld();
+
+        if (world && world->GetGameState().IsEditMode())
+        {
+            MarkDirty();
+        }
+#endif // HYP_EDITOR
 
         return true;
     }

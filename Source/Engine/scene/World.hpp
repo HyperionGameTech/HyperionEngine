@@ -361,6 +361,8 @@ private:
 
     void UpdateCSMState();
 
+    void SyncPhysicsToEntities();
+
     bool AddSystemToExecutionGroup(SystemBase* system);
 
     Handle<WorldGridLayer> GetOrCreateStreamingLayer(Name streamingLayerName);

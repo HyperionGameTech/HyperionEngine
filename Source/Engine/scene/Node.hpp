@@ -43,6 +43,13 @@ class Entity;
 class EditorDelegates;
 
 HYP_ENUM()
+enum class TransformChangeType : uint8
+{
+    Default = 0,    //!< Default transform change, marks the node as dirty so the transform is saved and the editor is aware of the change when not in simulation mode.
+    Simulation = 1  //!< Transform change caused by physics or other simulation (e.g scripts) - should not mark the node as "dirty" for editor modifications.
+};
+
+HYP_ENUM()
 enum class NodeFlags : uint32
 {
     None = 0x0,
@@ -669,7 +676,7 @@ public:
 
     /*! \brief Set the local-space translation, scale, rotation of this Node (not influenced by the parent Node) */
     HYP_METHOD(Property = "LocalTransform")
-    void SetLocalTransform(const Transform& transform);
+    void SetLocalTransform(const Transform& transform, TransformChangeType changeType = TransformChangeType::Default);
 
     /*! \returns The local-space translation, scale, rotation of this Node. */
     HYP_METHOD(Property = "LocalTransform")
@@ -687,9 +694,9 @@ public:
 
     /*! \brief Set the local-space translation of this Node (not influenced by the parent Node) */
     HYP_METHOD(Property = "LocalTranslation", Transient)
-    HYP_FORCE_INLINE void SetLocalTranslation(const Vec3f& translation)
+    HYP_FORCE_INLINE void SetLocalTranslation(const Vec3f& translation, TransformChangeType changeType = TransformChangeType::Default)
     {
-        SetLocalTransform(Transform { translation, m_localTransform.GetScale(), m_localTransform.GetRotation() });
+        SetLocalTransform(Transform { translation, m_localTransform.GetScale(), m_localTransform.GetRotation() }, changeType);
     }
 
     /*! \brief Move the Node in local-space by adding the given vector to the current local-space translation.
@@ -710,9 +717,9 @@ public:
 
     /*! \brief Set the local-space scale of this Node (not influenced by the parent Node) */
     HYP_METHOD(Property = "LocalScale", Transient)
-    HYP_FORCE_INLINE void SetLocalScale(const Vec3f& scale)
+    HYP_FORCE_INLINE void SetLocalScale(const Vec3f& scale, TransformChangeType changeType = TransformChangeType::Default)
     {
-        SetLocalTransform(Transform { m_localTransform.GetTranslation(), scale, m_localTransform.GetRotation() });
+        SetLocalTransform(Transform { m_localTransform.GetTranslation(), scale, m_localTransform.GetRotation() }, changeType);
     }
 
     /*! \brief Scale the Node in local-space by multiplying the current local-space scale by the given scale vector.
@@ -732,9 +739,9 @@ public:
 
     /*! \brief Set the local-space rotation of this Node (not influenced by the parent Node) */
     HYP_METHOD(Property = "LocalRotation", Transient)
-    HYP_FORCE_INLINE void SetLocalRotation(const Quat4f& rotation)
+    HYP_FORCE_INLINE void SetLocalRotation(const Quat4f& rotation, TransformChangeType changeType = TransformChangeType::Default)
     {
-        SetLocalTransform(Transform { m_localTransform.GetTranslation(), m_localTransform.GetScale(), rotation });
+        SetLocalTransform(Transform { m_localTransform.GetTranslation(), m_localTransform.GetScale(), rotation }, changeType);
     }
 
     /*! \brief Rotate the Node by multiplying the current local-space rotation by the given quaternion.
@@ -758,7 +765,7 @@ public:
 
     /*! \brief Set the world-space translation of this Node by offsetting the local-space translation */
     HYP_METHOD(Property = "WorldTranslation", Transient)
-    void SetWorldTranslation(const Vec3f& translation);
+    void SetWorldTranslation(const Vec3f& translation, TransformChangeType changeType = TransformChangeType::Default);
 
     /*! \returns The local-space scale of this Node. */
     HYP_METHOD(Property = "WorldScale", Transient, EditHide)
@@ -766,7 +773,7 @@ public:
 
     /*! \brief Set the local-space scale of this Node by offsetting the local-space scale */
     HYP_METHOD(Property = "WorldScale", Transient)
-    void SetWorldScale(const Vec3f& scale);
+    void SetWorldScale(const Vec3f& scale, TransformChangeType changeType = TransformChangeType::Default);
 
     /*! \returns The world-space rotation of this Node. */
     HYP_METHOD(Property = "WorldRotation", Transient, EditHide)
@@ -774,7 +781,7 @@ public:
 
     /*! \brief Set the world-space rotation of this Node by offsetting the local-space rotation */
     HYP_METHOD(Property = "WorldRotation", Transient)
-    void SetWorldRotation(const Quat4f& rotation);
+    void SetWorldRotation(const Quat4f& rotation, TransformChangeType changeType = TransformChangeType::Default);
 
     /*! \brief Returns whether the Node is locked from being transformed. */
     HYP_METHOD()

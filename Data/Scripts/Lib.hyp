@@ -590,8 +590,9 @@ extern enum ScriptComponentFlags : uint32
     ON_ADDED_CALLED = 0x20
 end
 extern struct RigidBodyComponent
-    RigidBody : RigidBody
     PhysicsMaterial : PhysicsMaterial
+    Shape : PhysicsShape
+    RigidBody : RigidBody
 end
 extern struct MeshComponent
     Mesh : Mesh
@@ -1956,24 +1957,24 @@ extern class Node : AssetObject
     NumChildren() -> uint32
     GetChild(index : uint32) -> Node
     Select(selector : string) -> Node
-    SetLocalTransform(transform : Transform) -> void
+    SetLocalTransform(transform : Transform, changeType : TransformChangeType) -> void
     GetLocalTransform() -> Transform
     GetLocalTranslation() -> Vec3f
-    SetLocalTranslation(translation : Vec3f) -> void
+    SetLocalTranslation(translation : Vec3f, changeType : TransformChangeType) -> void
     Translate(translation : Vec3f) -> void
     GetLocalScale() -> Vec3f
-    SetLocalScale(scale : Vec3f) -> void
+    SetLocalScale(scale : Vec3f, changeType : TransformChangeType) -> void
     Scale(scale : Vec3f) -> void
     GetLocalRotation() -> Quat4f
-    SetLocalRotation(rotation : Quat4f) -> void
+    SetLocalRotation(rotation : Quat4f, changeType : TransformChangeType) -> void
     Rotate(rotation : Quat4f) -> void
     GetWorldMatrix() -> Mat4f
     GetWorldTranslation() -> Vec3f
-    SetWorldTranslation(translation : Vec3f) -> void
+    SetWorldTranslation(translation : Vec3f, changeType : TransformChangeType) -> void
     GetWorldScale() -> Vec3f
-    SetWorldScale(scale : Vec3f) -> void
+    SetWorldScale(scale : Vec3f, changeType : TransformChangeType) -> void
     GetWorldRotation() -> Quat4f
-    SetWorldRotation(rotation : Quat4f) -> void
+    SetWorldRotation(rotation : Quat4f, changeType : TransformChangeType) -> void
     IsTransformLocked() -> bool
     GetLocalBoundsWithChildren() -> BoundingBox
     GetWorldBounds() -> BoundingBox
@@ -1997,6 +1998,10 @@ extern struct NodeTag
     Data : any
 end
 extern struct NodeTagSet
+end
+extern enum TransformChangeType : uint8
+    Default = 0,
+    Simulation = 1
 end
 extern enum NodeFlags : uint32
     None = 0x0,
@@ -2412,13 +2417,6 @@ extern class CapsulePhysicsShape : PhysicsShape
     Height : float
 end
 extern class RigidBody
-    GetTransform() -> Transform
-    SetTransform(transform : Transform) -> void
-    GetShape() -> PhysicsShape
-    SetShape(shape : PhysicsShape) -> void
-    IsKinematic() -> bool
-    SetIsKinematic(isKinematic : bool) -> void
-    ApplyForce(force : Vec3f) -> void
 end
 extern enum PhysicsShapeType : uint8
     BOX,

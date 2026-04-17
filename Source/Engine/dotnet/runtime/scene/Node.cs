@@ -22,6 +22,13 @@ namespace Hyperion
         HideInSceneOutline = 0x1000 // Should this node be hidden in the editor's outline window?
     }
 
+    [ClassBinding(Name = "TransformChangeType")]
+    public enum TransformChangeType : byte
+    {
+        Default = 0,    // Default transform change, marks the node as dirty so the transform is saved and the editor is aware of the change when not in simulation mode.
+        Simulation = 1  // Transform change caused by physics or other simulation (e.g scripts) - should not mark the node as "dirty" for editor modifications.
+    }
+
     [ClassBinding(Name = "Node")]
     public class Node : AssetObject
     {
@@ -57,7 +64,43 @@ namespace Hyperion
             }
             set
             {
-                this.SetLocalTransform(value);
+                this.SetLocalTransform(value, TransformChangeType.Default);
+            }
+        }
+
+        public Vec3f LocalTranslation
+        {
+            get
+            {
+                return this.GetLocalTranslation();
+            }
+            set
+            {
+                this.SetLocalTranslation(value, TransformChangeType.Default);
+            }
+        }
+
+        public Vec3f LocalScale
+        {
+            get
+            {
+                return this.GetLocalScale();
+            }
+            set
+            {
+                this.SetLocalScale(value, TransformChangeType.Default);
+            }
+        }
+
+        public Quat4f LocalRotation
+        {
+            get
+            {
+                return this.GetLocalRotation();
+            }
+            set
+            {
+                this.SetLocalRotation(value, TransformChangeType.Default);
             }
         }
 
