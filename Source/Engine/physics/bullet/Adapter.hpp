@@ -16,7 +16,7 @@ class btDiscreteDynamicsWorld;
 
 namespace Hyperion {
 
-class HYP_API BulletPhysicsAdapter : public PhysicsAdapter<BulletPhysicsAdapter>
+class BulletPhysicsAdapter : public PhysicsAdapter<BulletPhysicsAdapter>
 {
 public:
     BulletPhysicsAdapter();

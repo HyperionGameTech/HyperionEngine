@@ -19,62 +19,27 @@
 
 namespace Hyperion {
 
-static inline PhysicsWorld* GetPhysicsWorld()
+PhysicsMaterial& GetDefaultPhysicsMaterial()
 {
-    World* currentWorld = g_engineDriver->GetCurrentWorld();
+    static PhysicsMaterial s_defaultPhysicsMaterial;
+    return s_defaultPhysicsMaterial;
+}
 
-    if (!currentWorld)
-    {
-        return nullptr;
-    }
-
-    return static_cast<PhysicsWorld*>(currentWorld->GetPhysicsWorld().Get());
+PhysicsShape& GetDefaultPhysicsShape()
+{
+    static BoxPhysicsShape s_defaultPhysicsShape(Name::Invalid(), BoundingBox());
+    return s_defaultPhysicsShape;
 }
 
 RigidBody::RigidBody()
-    : RigidBody(nullptr, {})
-{
-}
-
-RigidBody::RigidBody(const PhysicsMaterial& physicsMaterial)
-    : RigidBody(nullptr, physicsMaterial)
-{
-}
-
-RigidBody::RigidBody(const Handle<PhysicsShape>& shape, const PhysicsMaterial& physicsMaterial)
-    : ObjectBase(),
-      m_shape(shape),
-      m_physicsMaterial(physicsMaterial),
+    : shape(&GetDefaultPhysicsShape()),
+      physicsMaterial(&GetDefaultPhysicsMaterial()),
       m_isKinematic(true)
 {
 }
 
 RigidBody::~RigidBody()
 {
-}
-
-void RigidBody::Init()
-{
-    SetReady(true);
-}
-
-void RigidBody::SetShape(const Handle<PhysicsShape>& shape)
-{
-    m_shape = shape;
-
-    GetPhysicsWorld()->GetAdapter().OnChangePhysicsShape(this);
-}
-
-void RigidBody::SetPhysicsMaterial(const PhysicsMaterial& physicsMaterial)
-{
-    m_physicsMaterial = physicsMaterial;
-
-    GetPhysicsWorld()->GetAdapter().OnChangePhysicsMaterial(this);
-}
-
-void RigidBody::ApplyForce(const Vec3f& force)
-{
-    GetPhysicsWorld()->GetAdapter().ApplyForceToBody(this, force);
 }
 
 } // namespace Hyperion
