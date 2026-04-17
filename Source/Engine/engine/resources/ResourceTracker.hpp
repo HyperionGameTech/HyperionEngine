@@ -29,6 +29,8 @@ HYP_API extern const TypeInfo& Class_GetTypeInfo(const Class& cls);
 
 class NullProxy;
 
+namespace Resources {
+
 struct ResourceTrackerDiff
 {
     uint32 numAdded = 0;
@@ -1402,5 +1404,7 @@ static inline void GetRemovedElements(ResourceTracker<IdType, ElementType, Proxy
         impl(*lhs.subclassImpls[i], *rhs.subclassImpls[i]);
     }
 }
+
+} // namespace Resources
 
 } // namespace Hyperion

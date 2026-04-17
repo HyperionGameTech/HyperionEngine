@@ -302,11 +302,6 @@ struct DrawCallCollection
 
     ~DrawCallCollection();
 
-    HYP_FORCE_INLINE bool IsValid() const
-    {
-        return batchAllocator != nullptr && renderGroup.valid;
-    }
-
     void PushDrawCall(DrawCallID id, const RenderProxyMesh& renderProxy);
     void PushInstancedDrawCall(EntityInstanceBatch* batch, DrawCallID id, const RenderProxyMesh& renderProxy);
 
@@ -327,16 +322,24 @@ struct DrawCallCollection
     void TakeDrawCalls(DrawCallCollection& out)
     {
         out.batchAllocator = batchAllocator;
-        out.renderGroup = renderGroup;
+        out.attributes = attributes;
         out.indirectRenderer = indirectRenderer;
         out.drawCalls = std::move(drawCalls);
         out.instancedDrawCalls = std::move(instancedDrawCalls);
         out.indexMap = std::move(indexMap);
+
+        if (isInit)
+        {
+            out.isInit = true;
+        }
     }
 
     EntityBatchAllocatorBase* batchAllocator;
 
-    RenderGroup renderGroup;
+    RenderableAttributeSet attributes;
+    EnumFlags<RenderGroupFlags> flags = {};
+    ParallelRenderingState* parallelRenderingState = nullptr;
+    bool isInit = false;
 
     // map entity id to mesh proxy
     IndirectRenderer* indirectRenderer = nullptr;

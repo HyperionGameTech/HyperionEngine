@@ -38,8 +38,6 @@ class RenderGroup
 public:
     bool valid = false;
     RenderableAttributeSet renderableAttributes;
-    EnumFlags<RenderGroupFlags> flags;
-    ParallelRenderingState* parallelRenderingState = nullptr;
 };
 
 } // namespace Hyperion

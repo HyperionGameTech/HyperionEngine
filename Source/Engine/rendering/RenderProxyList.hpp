@@ -60,6 +60,12 @@ class RenderProxyList
 
 public:
     using AllocatorType = Pool; // per-frame pools
+    
+    template <class... Ts>
+    using ResourceTrackerBase = Resources::ResourceTrackerBase<Ts...>;
+
+    template <class... Ts>
+    using ResourceTracker = Resources::ResourceTracker<Ts...>;
 
     using TrackedResourceTypes = Tuple<
         Entity, // mesh entities
