@@ -177,6 +177,12 @@ public:
     HYP_METHOD()
     bool IsSaved() const;
 
+    /*! \brief Drops this asset object's strong reference from its package cache without removing
+     *   its AssetDesc. Clears the asset's package and path metadata. After calling this, the next
+     *   request for this asset by name will re-load it fresh from disk. */
+    HYP_METHOD()
+    void Unload();
+
     HYP_METHOD()
     Result Save();
 

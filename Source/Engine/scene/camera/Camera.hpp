@@ -237,7 +237,6 @@ public:
     }
 
     HYP_METHOD()
-    HYP_METHOD()
     void SetWindow(ApplicationWindow* window);
 
     HYP_METHOD(Property = "CameraControllers")

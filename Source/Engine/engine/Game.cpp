@@ -59,6 +59,8 @@ void Game::Init()
     HYP_SCOPE;
     AssertOnThread(g_simThread);
 
+    ObjectBase::Init();
+
     if (!m_world)
     {
         m_world = MakeHandle<World>(s_nameMainWorld, WorldFlags::DEFAULT);
@@ -70,8 +72,6 @@ void Game::Init()
     InitObject(m_world);
 
     m_uiSubsystem = m_world->AddSubsystem(MakeHandle<UISubsystem>());
-
-    g_engineDriver->AddWorld(m_world);
 }
 
 void Game::HandleEvent(Event&& event)

@@ -60,6 +60,7 @@
 
 #include <system/AppContext.hpp>
 #include <system/OpenFileDialog.hpp>
+#include <system/MessageBox.hpp>
 
 #include <Core/threading/TaskSystem.hpp>
 
@@ -2079,9 +2080,22 @@ void EditorSubsystem::OnBeginSimulation()
 {
     HYP_SCOPE;
 
-    if (m_editorViewports.Empty() || !m_currentProject)
+    if (m_editorViewports.Empty() || !m_currentProject.IsValid())
     {
         return;
+    }
+
+    // Save the current project state as a snapshot to restore from when simulation ends.
+    
+    if (Result saveResult = m_currentProject->Save(); saveResult.HasError())
+    {
+        HYP_LOG(Editor, Error, "Failed to save project snapshot before simulation: {}", saveResult.GetError().GetMessage());
+
+        return;
+    }
+    else
+    {
+        m_simulationSnapshotPath = m_currentProject->GetFilePath();
     }
 
     Camera* primaryCamera = nullptr;
@@ -2107,7 +2121,16 @@ void EditorSubsystem::OnBeginSimulation()
 
     if (!primaryCamera)
     {
-        HYP_LOG(Editor, Warning, "OnBeginSimulation: no primary camera found in project scenes");
+        HYP_LOG(Editor, Warning, "OnBeginSimulation: no primary camera found!");
+
+        // Show a messagebox since this can be really annoying and frustrating if this happens
+        // should make it easier to narrow down the issue at least.
+
+        SystemMessageBox(MessageBoxType::WARNING)
+            .Title("No primary camera found")
+            .Text("No primary camera was found in any foreground scene. Simulation requires a primary camera in order to properly visualize the scene, without this you will just see a blank / not updating screen in your viewport. Ensure a camera exists with the PrimaryCamera EntityTag set!")
+            .Show();
+
         return;
     }
 
@@ -2153,6 +2176,38 @@ void EditorSubsystem::OnEndSimulation()
     }
 
     m_simulationView.Reset();
+
+    // Restore the pre-simulation project state from the snapshot taken in OnBeginSimulation
+    if (!m_simulationSnapshotPath.Empty())
+    {
+        Handle<AssetPackage> oldPackage;
+        if (m_currentProject)
+        {
+            oldPackage = m_currentProject->GetPackage();
+        }
+
+        CloseProject();
+
+        // Drop all cached strong refs in the old package, we want to force reload.
+        if (oldPackage.IsValid())
+        {
+            oldPackage->UnloadAssetObjects(/* recursive */ true);
+            oldPackage.Reset();
+        }
+
+        FilePath snapshotPath = std::move(m_simulationSnapshotPath);
+
+        TResult<Handle<EditorProject>> loadResult = EditorProject::Load(snapshotPath);
+
+        if (loadResult.HasError())
+        {
+            HYP_LOG(Editor, Error, "Failed to restore project from simulation snapshot: {}", loadResult.GetError().GetMessage());
+
+            return;
+        }
+
+        OpenProject(*loadResult);
+    }
 }
 
 void EditorSubsystem::InitViewport()
@@ -2900,6 +2955,9 @@ void EditorSubsystem::NewProject()
 
     defaultScene->GetRoot()->AddChild(camera);
 
+    // add dynamic skybox
+    project->GetWorld()->AddSystemT<DynamicSkySystem>();
+
     OpenProject(project);
 }
 
@@ -2914,6 +2972,8 @@ void EditorSubsystem::CloseProject()
 
         m_currentProject->SetEditorSubsystem(WeakHandle<EditorSubsystem>::Null());
         m_currentProject->Close();
+
+        m_currentProject.Reset();
     }
 }
 
@@ -2929,29 +2989,25 @@ void EditorSubsystem::OpenProject(const Handle<EditorProject>& project)
 
     CloseProject();
 
-    if (project)
+    if (!project.IsValid())
     {
-        if (project.IsValid())
-        {
-            project->SetEditorSubsystem(MakeWeakRef(this));
-        }
-
-        InitObject(project);
-
-        m_currentProject = project;
-        
-        // temp
-        project->GetWorld()->AddSystemT<DynamicSkySystem>();
-
-        // if (Result saveResult = project->Save(); saveResult.HasError())
-        // {
-        //     HYP_LOG(Editor, Error, "Failed to save newly created project: {}", saveResult.GetError().GetMessage());
-        // }
-
-        OnProjectOpened(m_currentProject);
-
-        g_editorState->SetCurrentProject(m_currentProject);
+        return;
     }
+
+    project->SetEditorSubsystem(MakeWeakRef(this));
+
+    InitObject(project);
+
+    m_currentProject = project;
+
+    // if (Result saveResult = project->Save(); saveResult.HasError())
+    // {
+    //     HYP_LOG(Editor, Error, "Failed to save newly created project: {}", saveResult.GetError().GetMessage());
+    // }
+
+    OnProjectOpened(m_currentProject);
+
+    g_editorState->SetCurrentProject(m_currentProject);
 }
 
 void EditorSubsystem::ShowImportContentDialog()

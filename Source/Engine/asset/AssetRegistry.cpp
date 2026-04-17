@@ -1084,6 +1084,78 @@ Result AssetPackage::RemoveAssetObject(const Handle<AssetObject>& assetObject)
     return {};
 }
 
+void AssetPackage::UnloadAssetObject(Name name)
+{
+    TUniqueLock guard(m_mutex);
+
+    auto it = m_assetDescs.Find(name);
+    if (it == m_assetDescs.End())
+    {
+        return;
+    }
+
+    const AssetDesc& assetDesc = *it;
+    AssertDebug(assetDesc.index != AssetDesc::InvalidIndex);
+
+    Handle<AssetObject>* pAssetObject = m_assetObjectCache.TryGet(assetDesc.index);
+
+    if (pAssetObject != nullptr)
+    {
+        Handle<AssetObject>& assetObject = *pAssetObject;
+
+        if (assetObject.IsValid())
+        {
+            assetObject->OnUnloaded();
+            assetObject->m_package.Reset();
+            assetObject->m_assetPath = {};
+        }
+
+        m_assetObjectCache.EraseAt(assetDesc.index);
+    }
+}
+
+void AssetPackage::UnloadAssetObjects(bool recursive)
+{
+    {
+        TUniqueLock guard(m_mutex);
+
+        for (const AssetDesc& assetDesc : m_assetDescs)
+        {
+            if (assetDesc.index != AssetDesc::InvalidIndex)
+            {
+                Handle<AssetObject>* pAssetObject = m_assetObjectCache.TryGet(assetDesc.index);
+
+                if (pAssetObject != nullptr)
+                {
+                    Handle<AssetObject>& assetObject = *pAssetObject;
+
+                    // unset metadata on AssetObject so we can't save it, lord knows what would happen
+                    // if we had multiple asset objects referencing the same 'asset' and both were
+                    // saved at the same time or something. Better safe than sorry.
+                    if (assetObject.IsValid())
+                    {
+                        assetObject->OnUnloaded();
+                        assetObject->m_package.Reset();
+                        assetObject->m_assetPath = {};
+                    }
+                }
+
+                m_assetObjectCache.EraseAt(assetDesc.index);
+            }
+        }
+    }
+
+    if (recursive)
+    {
+        ForEachSubpackage([](const Handle<AssetPackage>& subpackage)
+        {
+            subpackage->UnloadAssetObjects(true);
+
+            return IterationResult::CONTINUE;
+        });
+    }
+}
+
 Handle<AssetObject> AssetPackage::GetAssetObject(Name name)
 {
     if (!name.IsValid())
