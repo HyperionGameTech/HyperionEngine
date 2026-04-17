@@ -575,6 +575,7 @@ private:
     Array<Handle<EditorViewport>> m_editorViewports;
 
     Handle<View> m_simulationView;
+    FilePath m_simulationSnapshotPath;
 
     DelegateHandlerSet m_delegateHandlers;
 };

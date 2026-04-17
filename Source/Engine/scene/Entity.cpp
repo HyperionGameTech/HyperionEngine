@@ -46,7 +46,6 @@ Entity::Entity()
 
 Entity::Entity(Name name)
     : Node(name),
-      m_world(nullptr),
       m_entityManager(nullptr),
       m_renderProxyVersion(0),
       m_transformChanged(false)
@@ -56,7 +55,6 @@ Entity::Entity(Name name)
 Entity::~Entity()
 {
     m_scene = nullptr;
-    m_world = nullptr;
 
     EntityManager* entityManager = GetEntityManager();
     if (entityManager == nullptr)
@@ -237,17 +235,10 @@ void Entity::OnDetachedFromNode(Node* node)
 
 void Entity::OnAddedToWorld(World* world)
 {
-    AssertDebug(world != nullptr);
-
-    m_world = world;
 }
 
 void Entity::OnRemovedFromWorld(World* world)
 {
-    AssertDebug(world != nullptr);
-    AssertDebug(m_world == world);
-
-    m_world = nullptr;
 }
 
 void Entity::OnAddedToScene(Scene* scene)
@@ -460,6 +451,98 @@ void Entity::SetEntityManager(const Handle<EntityManager>& entityManager)
     AssertDebug(m_entityManager == entityManager);
 }
 
+static bool ShouldSkipEntityTagForSerialization(EntityTag tag)
+{
+    return tag == EntityTag::None
+        || tag == EntityTag::MobStatic
+        || tag == EntityTag::MobDynamic;
+}
+
+Array<EntityTag> Entity::SerializeTags() const
+{
+    HYP_SCOPE;
+
+    EntityManager* entityManager = GetEntityManager();
+
+    if (!entityManager)
+    {
+        return {};
+    }
+
+    Array<EntityTag> resultTags;
+
+    auto SerializeEntityTags = [this, entityManager, &resultTags]()
+    {
+        Optional<const TypeMap<ComponentId>&> allComponents = entityManager->GetAllComponents(this);
+
+        if (!allComponents.HasValue())
+        {
+            return;
+        }
+
+        for (const auto& it : *allComponents)
+        {
+            const IComponentInterface* componentInterface = ComponentInterfaceRegistry::GetInstance().GetComponentInterface(it.first);
+
+            if (!componentInterface || !componentInterface->IsEntityTag() || !componentInterface->GetShouldSerialize())
+            {
+                continue;
+            }
+
+            const EntityTag tag = componentInterface->GetEntityTag();
+
+            if (ShouldSkipEntityTagForSerialization(tag))
+            {
+                continue;
+            }
+
+            resultTags.PushBack(tag);
+        }
+    };
+
+    if (IsOnThread(entityManager->GetOwnerThreadId()))
+    {
+        SerializeEntityTags();
+    }
+    else
+    {
+        HYP_NAMED_SCOPE("Awaiting async entity tag serialization");
+
+        Task<void> task = GetThreadById(entityManager->GetOwnerThreadId())->GetScheduler().Enqueue(HYP_STATIC_MESSAGE("Serialize Entity Tags"), [&SerializeEntityTags]()
+            {
+                SerializeEntityTags();
+            });
+
+        task.Await();
+    }
+
+    return resultTags;
+}
+
+void Entity::DeserializeTags(const Array<EntityTag>& tags)
+{
+    HYP_SCOPE;
+
+    AssertDebug(m_scene != nullptr);
+
+    if (!m_entityManager)
+    {
+        SetEntityManager(m_scene->GetEntityManager());
+    }
+
+    AssertDebug(m_entityManager != nullptr);
+
+    for (const EntityTag& tag : tags)
+    {
+        if (ShouldSkipEntityTagForSerialization(tag))
+        {
+            continue;
+        }
+
+        m_entityManager->AddTag(this, tag);
+    }
+}
+
 Array<BoxedValue, DynamicAllocator> Entity::SerializeComponents() const
 {
     HYP_SCOPE;
@@ -513,7 +596,7 @@ Array<BoxedValue, DynamicAllocator> Entity::SerializeComponents() const
 
             if (componentInterface->IsEntityTag())
             {
-                // tags are serialized separately
+                // tags are serialized separately via the "Tags" property
                 continue;
             }
 
@@ -583,37 +666,7 @@ void Entity::DeserializeComponents(const Array<BoxedValue, DynamicAllocator>& co
 
         if (componentInterface->IsEntityTag())
         {
-            continue; // tags are deserialized separately
-
-            HYP_NAMED_SCOPE("Deserializing entity tag");
-
-            Optional<EntityTag&> entityTagOpt = componentData.TryGet<EntityTag>();
-
-            if (!entityTagOpt.HasValue())
-            {
-                HYP_LOG(Serialization, Error, "Failed to deserialize entity tag component of type {}", componentTypeInfo.name);
-
-                continue;
-            }
-
-            const TypeId entityTagTypeId = componentInterface->GetTypeInfo().id;
-
-            if (!m_entityManager->IsEntityTagComponent(entityTagTypeId))
-            {
-                HYP_LOG(Serialization, Warning, "Component {} is not an entity tag component", componentInterface->GetTypeInfo().name);
-
-                continue;
-            }
-
-            if (entityTagTypeId == TypeId::ForType<TagComponent<EntityTag::MobStatic>>()
-                || entityTagTypeId == TypeId::ForType<TagComponent<EntityTag::MobDynamic>>())
-            {
-                // we now handle these tags based on the Entity's mobility, skip
-                continue;
-            }
-
-            m_entityManager->AddTag(this, *entityTagOpt);
-
+            // tags are serialized/deserialized separately via the "Tags" property
             continue;
         }
 

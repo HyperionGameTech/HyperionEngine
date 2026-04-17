@@ -19,8 +19,11 @@
 #include <Core/cli/CommandLine.hpp>
 
 #include <engine/Game.hpp>
+#include <engine/EngineDriver.hpp>
+#include <engine/EngineGlobals.hpp>
 
 #include <system/AppContext.hpp>
+
 #include <input/Event.hpp>
 
 #include <scene/World.hpp>
@@ -71,6 +74,8 @@ struct LaunchGameAsync
         {
             gameInstance->OnLaunch();
             gameInstance->m_isLaunched.Set(true, MemoryOrder::RELEASE);
+
+            g_engineDriver->AddWorld(gameInstance->GetWorld());
 
             gameInstance->OnLaunched();
         }
