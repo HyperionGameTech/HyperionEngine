@@ -491,16 +491,19 @@ void World::BeginUpdate(TaskBatch& inBatch, float delta)
 
     UpdateCSMState();
 
+    if (m_physicsWorld != nullptr && GetGameState().IsSimulating())
+    {
+        m_physicsWorld->Tick(delta);
+        
+        // must be called before entity managers are locked.
+        SyncPhysicsToEntities();
+    }
+
     for (Scene* scene : m_scenes)
     {
         scene->Update(delta);
 
         scene->GetEntityManager()->Lock();
-    }
-
-    if (m_physicsWorld != nullptr)
-    {
-        m_physicsWorld->Tick(delta);
     }
 
     m_rootSynchronousExecutionGroup = nullptr;
@@ -671,6 +674,71 @@ void World::UpdateCSMState()
         }
     }
 #endif
+}
+
+void World::SyncPhysicsToEntities()
+{
+    PhysicsWorld& physicsWorld = static_cast<PhysicsWorld&>(*m_physicsWorld);
+
+    Array<Entity*, SceneAllocator> updatedEntities;
+
+    for (Scene* scene : m_scenes)
+    {
+        // only sync physics to entities for FOREGROUND scenes.
+        if ((scene->GetSceneFlags() & (SceneFlags::FOREGROUND | SceneFlags::UI | SceneFlags::DETACHED)) != SceneFlags::FOREGROUND)
+        {
+            continue;
+        }
+
+        for (auto [entity, rigidBodyComponent, _] : scene->GetEntityManager()->GetEntitySet<RigidBodyComponent, TagComponent<EntityTag::UpdatePhysicsShape>>())
+        {
+            Handle<RigidBody>& rigidBody = rigidBodyComponent.rigidBody;
+
+            if (!rigidBody)
+            {
+                continue;
+            }
+            
+            physicsWorld.GetAdapter().OnChangePhysicsShape(rigidBody.Get());
+
+            updatedEntities.PushBack(entity);
+        }
+
+        for (auto [entity, rigidBodyComponent, _] : scene->GetEntityManager()->GetEntitySet<RigidBodyComponent, TagComponent<EntityTag::UpdatePhysicsMaterial>>())
+        {
+            Handle<RigidBody>& rigidBody = rigidBodyComponent.rigidBody;
+
+            if (!rigidBody)
+            {
+                continue;
+            }
+            
+            physicsWorld.GetAdapter().OnChangePhysicsMaterial(rigidBody.Get());
+
+            updatedEntities.PushBack(entity);
+        }
+
+        for (auto [entity, rigidBodyComponent, transformComponent] : scene->GetEntityManager()->GetEntitySet<RigidBodyComponent, TransformComponent>())
+        {
+            Handle<RigidBody>& rigidBody = rigidBodyComponent.rigidBody;
+
+            if (!rigidBody)
+            {
+                continue;
+            }
+
+            const Transform& rigidBodyTransform = rigidBody->GetTransform();
+
+            entity->SetWorldTranslation(rigidBodyTransform.GetTranslation(), TransformChangeType::Simulation);
+            entity->SetWorldRotation(rigidBodyTransform.GetRotation(), TransformChangeType::Simulation);
+        }
+    }
+    
+    for (Entity* entity : updatedEntities)
+    {
+        entity->RemoveTag<EntityTag::UpdatePhysicsMaterial>();
+        entity->RemoveTag<EntityTag::UpdatePhysicsShape>();
+    }
 }
 
 void World::CollectScenes(Array<Scene*, SceneTempAllocator>& outScenes)

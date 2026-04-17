@@ -91,7 +91,7 @@ namespace Hyperion.Editor
                     Assert.Throw(guy.Value != null);
 
                     Node n = _editorSubsystem!.GetActiveScene().RootNode.AddChild((Node)guy.Value);
-                    n.SetLocalScale(new Vec3f(0.5f));
+                    n.LocalScale = new Vec3f(0.5f);
                 }
 
                 var testModelAsset = assetMap["test_model"];
@@ -102,7 +102,7 @@ namespace Hyperion.Editor
                     Assert.Throw(testModelAsset.Value != null);
 
                     Node n = _editorSubsystem!.GetActiveScene().RootNode.AddChild((Node)testModelAsset.Value);
-                    n.SetLocalScale(new Vec3f(3.0f));
+                    n.LocalScale = new Vec3f(3.0f);
                 }
                 else
                 {
