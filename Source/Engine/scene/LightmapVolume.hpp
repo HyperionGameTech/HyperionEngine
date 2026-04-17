@@ -157,7 +157,7 @@ public:
     }
 
     /*! \brief Add a LightmapElement to this volume. */
-    bool AddElement(Vec2u dimensions, LightmapElement& outElement, bool shrinkToFit = true, float downscaleLimit = 0.1f);
+    bool AddElement(Vec2u dimensions, LightmapElement*& outElement, bool shrinkToFit = true, float downscaleLimit = 0.1f);
 
     const LightmapElement* GetElement(LightmapElementId elementId) const;
     

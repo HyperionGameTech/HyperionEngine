@@ -60,7 +60,7 @@ void TerrainWorldGridLayer::Init()
 
     m_material = g_materialInstanceCache->GetOrCreate(NAME("terrain_material"), attributes, parameters, MaterialTextures{});
     
-    g_assetManager->GetAssetRegistry()->RegisterAsset("$Memory/Media/MaterialInstances", m_material);
+    g_assetManager->GetAssetRegistry()->RegisterAsset("$Memory/MaterialInstances", m_material);
 
     // if (auto albedoTextureAsset = AssetManager::GetInstance()->Load<Texture>("textures/mossy-ground1-Unity/mossy-ground1-albedo.png"))
     // {

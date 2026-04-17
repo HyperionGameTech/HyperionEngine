@@ -337,7 +337,7 @@ AssetLoadResult OgreXMLModelLoader::LoadAsset(LoaderState& state) const
 
         mesh->SetOriginalFilepath(FilePath::Relative(state.filepath, state.assetManager->GetBasePath()));
         
-        if (Result result = mesh->Register("$Import/Media/Meshes"); result.HasError())
+        if (Result result = mesh->Register("$Import/Meshes"); result.HasError())
         {
             HYP_LOG(Assets, Error, "Failed to register mesh: {}", result.GetError().GetMessage());
         }
@@ -355,7 +355,7 @@ AssetLoadResult OgreXMLModelLoader::LoadAsset(LoaderState& state) const
 
         Handle<MaterialDefinition> materialDef = MakeHandle<MaterialDefinition>(CreateNameFromDynamicString(ANSIString(subMesh.name.Data())), attributes, parameters, MaterialTextures {});
 
-        if (Result result = materialDef->Register("$Import/Media/MaterialDefinitions"); result.HasError())
+        if (Result result = materialDef->Register("$Import/MaterialDefinitions"); result.HasError())
         {
             HYP_LOG(Assets, Error, "Failed to register material definition: {}", result.GetError().GetMessage());
         }

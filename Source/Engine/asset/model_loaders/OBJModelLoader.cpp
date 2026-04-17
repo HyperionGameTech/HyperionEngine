@@ -441,7 +441,7 @@ LoadedAsset OBJModelLoader::BuildModel(LoaderState& state, OBJModel& model)
 
         mesh->SetOriginalFilepath(FilePath::Relative(state.filepath, state.assetManager->GetBasePath()));
 
-        state.assetManager->GetAssetRegistry()->RegisterAsset("$Import/Media/Meshes", mesh);
+        state.assetManager->GetAssetRegistry()->RegisterAsset("$Import/Meshes", mesh);
 
         InitObject(mesh);
 

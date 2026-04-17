@@ -36,6 +36,7 @@ class EditorSubsystem;
 class EditorProject;
 class EditorCommandBase;
 class AssetPackage;
+class ApplicationWindow;
 struct MouseEvent;
 struct KeyboardEvent;
 class View;
@@ -530,6 +531,9 @@ private:
     void InitializeGizmos();
     void ShutdownGizmos();
 
+    void OnBeginSimulation();
+    void OnEndSimulation();
+
     void SetHoveredGizmo(
         const MouseEvent& event,
         EditorGizmoBase* gizmo,
@@ -569,6 +573,8 @@ private:
     Handle<AssetPackage> m_selectedPackage;
 
     Array<Handle<EditorViewport>> m_editorViewports;
+
+    Handle<View> m_simulationView;
 
     DelegateHandlerSet m_delegateHandlers;
 };

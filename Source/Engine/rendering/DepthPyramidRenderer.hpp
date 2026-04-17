@@ -50,7 +50,6 @@ private:
     GpuImageViewRef m_depthPyramidView;
     Array<GpuImageViewRef> m_mipImageViews;
     Array<GpuBufferRef> m_mipUniformBuffers;
-    SamplerRef m_depthPyramidSampler;
 
     bool m_isRendered;
 };

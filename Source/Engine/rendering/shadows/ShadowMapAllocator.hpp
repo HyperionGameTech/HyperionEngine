@@ -136,7 +136,7 @@ struct ShadowMapAtlas : AtlasPacker<ShadowMapAtlasElement>
         return *this;
     }
 
-    bool AddElement(const Vec2u& elementDimensions, ShadowMapAtlasElement& outElement);
+    bool AddElement(const Vec2u& elementDimensions, ShadowMapAtlasElement*& outElement);
 };
 
 class ShadowMapAllocator

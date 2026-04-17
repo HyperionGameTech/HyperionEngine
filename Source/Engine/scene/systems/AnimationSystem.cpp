@@ -20,6 +20,7 @@
 #include <Core/reflection/Handle.hpp>
 
 #include <engine/GameState.hpp>
+#include <engine/Game.hpp>
 
 #include <AnimationSystem.generated.inl>
 
@@ -81,13 +82,67 @@ void AnimationSystem::OnEntityRemoved(Entity* entity)
     }
 }
 
+void AnimationSystem::OnAddedToWorld(World* world)
+{
+    SystemBase::OnAddedToWorld(world);
+
+    if (Game* game = world->GetGame())
+    {
+        m_delegateHandlers.Add(
+            NAME("OnGameStateChange"),
+            game->OnGameStateChange.Bind([this](Game*, GameStateMode previousMode, GameStateMode currentMode)
+            {
+                if (currentMode == GameStateMode::STOPPED)
+                {
+                    ResetAnimationStates();
+                }
+            }));
+    }
+}
+
+void AnimationSystem::OnRemovedFromWorld(World* world)
+{
+    SystemBase::OnRemovedFromWorld(world);
+
+    m_delegateHandlers.Remove(NAME("OnGameStateChange"));
+}
+
+void AnimationSystem::ResetAnimationStates()
+{
+    World* world = GetWorld();
+
+    if (!world)
+    {
+        return;
+    }
+
+    for (const Handle<Scene>& scene : world->GetScenes())
+    {
+        if (!scene || !ShouldProcessScene(scene.Get()))
+        {
+            continue;
+        }
+
+        for (auto [entity, animationComponent, meshComponent] : scene->GetEntityManager()->GetEntitySet<AnimationComponent, MeshComponent>().GetScopedView(GetComponentInfos()))
+        {
+            animationComponent.playbackState.currentTime = 0.0f;
+            animationComponent.playbackState.status = AnimationPlaybackStatus::PLAYING;
+
+            if (meshComponent.skeleton.IsValid())
+            {
+                meshComponent.skeleton->SetNeedsRenderProxyUpdate();
+            }
+        }
+    }
+}
+
 void AnimationSystem::Process(float delta, Span<Handle<Scene>> scenes)
 {
     HYP_SCOPE;
 
     if (!GetWorld()->GetGameState().IsSimulating())
     {
-        // return;
+        return;
     }
 
     for (Scene* scene : scenes)
