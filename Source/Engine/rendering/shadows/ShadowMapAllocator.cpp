@@ -33,17 +33,22 @@ HYP_DECLARE_LOG_CHANNEL(Rendering);
 
 #pragma region ShadowMapAtlas
 
-bool ShadowMapAtlas::AddElement(const Vec2u& elementDimensions, ShadowMapAtlasElement& outElement)
+bool ShadowMapAtlas::AddElement(const Vec2u& elementDimensions, ShadowMapAtlasElement*& outElement)
 {
+    outElement = nullptr;
+
     uint32 elementIndex = ~0u;
 
     if (!AtlasPacker<ShadowMapAtlasElement>::AddElement(elementDimensions, outElement, elementIndex))
     {
+        HYP_LOG(Rendering, Warning, "Failed to add shadow map atlas element with dimensions {}x{}", elementDimensions.x, elementDimensions.y);
         return false;
     }
 
-    outElement.index = elementIndex;
-    outElement.layerIndex = atlasIndex;
+    AssertDebug(outElement != nullptr);
+
+    outElement->index = elementIndex;
+    outElement->layerIndex = atlasIndex;
 
     return true;
 }
@@ -163,12 +168,14 @@ ShadowMap* ShadowMapAllocator::AllocateShadowMap(ShadowMapType shadowMapType, Sh
 
     for (ShadowMapAtlas& atlas : m_atlases)
     {
-        ShadowMapAtlasElement atlasElement;
+        ShadowMapAtlasElement* atlasElement = nullptr;
 
         if (atlas.AddElement(dimensions, atlasElement))
         {
+            AssertDebug(atlasElement != nullptr);
+
             ImageSubResource subResource {};
-            subResource.baseArrayLayer = atlasElement.layerIndex;
+            subResource.baseArrayLayer = atlasElement->layerIndex;
             subResource.numLayers = 1;
             subResource.baseMipLevel = 0;
             subResource.numLevels = 1;
@@ -179,7 +186,7 @@ ShadowMap* ShadowMapAllocator::AllocateShadowMap(ShadowMapType shadowMapType, Sh
             ShadowMap* shadowMap = new ShadowMap(
                 shadowMapType,
                 filterMode,
-                atlasElement,
+                *atlasElement,
                 atlasImageView);
 
             return shadowMap;

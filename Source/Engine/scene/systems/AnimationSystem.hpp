@@ -31,10 +31,15 @@ public:
 
     virtual bool ShouldProcessScene(Scene* scene) const override;
 
+    virtual void OnAddedToWorld(World* world) override;
+    virtual void OnRemovedFromWorld(World* world) override;
+
     virtual void OnEntityAdded(Entity* entity) override;
     virtual void OnEntityRemoved(Entity* entity) override;
 
     virtual void Process(float delta, Span<Handle<Scene>> scenes) override;
+
+    void ResetAnimationStates();
 
 private:
     virtual SystemComponentDescriptors GetComponentDescriptors() const override

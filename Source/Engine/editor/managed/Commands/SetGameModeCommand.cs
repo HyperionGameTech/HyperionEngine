@@ -43,13 +43,17 @@ namespace Hyperion.Editor.Commands
                     {
                         gameInstance = hyperionEditorGame.EditorSubsystem?.CurrentProject?.GameInstance;
                         Debug.Assert(gameInstance != null, "Failed to get game instance from current project");
+
+                        EngineManager.InitializeGame(gameInstance);
+                    }
+                    else if (currentGameInstance.GetGameState().Paused)
+                    {
+                        gameInstance = currentGameInstance;
                     }
                     else
                     {
                         throw new InvalidOperationException("Cannot enter Simulating mode when game instance is not HyperionEditorGame");
                     }
-
-                    EngineManager.InitializeGame(gameInstance);
 
                     _ = EngineManager.PostToSimThread(() =>
                     {

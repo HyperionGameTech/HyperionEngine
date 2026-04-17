@@ -36,9 +36,6 @@ void PhysicsSystem::OnEntityAdded(Entity* entity)
     RigidBodyComponent& rigidBodyComponent = entity->GetEntityManager()->GetComponent<RigidBodyComponent>(entity);
     TransformComponent& transformComponent = entity->GetEntityManager()->GetComponent<TransformComponent>(entity);
 
-    // TEMP
-    rigidBodyComponent.physicsMaterial.mass = 1.0f;
-
     if (!rigidBodyComponent.shape)
     {
         Handle<PhysicsShape> shape = MakeHandle<BoxPhysicsShape>(NAME_FMT("{}_BoxPhysicsShape", entity->GetName()), entity->GetLocalBounds());
@@ -105,7 +102,8 @@ void PhysicsSystem::OnAddedToWorld(World* world)
             {
                 const bool wasSimulating = previousMode == GameStateMode::SIMULATING
                     || previousMode == GameStateMode::PAUSED;
-                const bool isSimulating  = currentMode  == GameStateMode::SIMULATING;
+                const bool isSimulating  = currentMode  == GameStateMode::SIMULATING
+                    || currentMode  == GameStateMode::PAUSED;
 
                 if (isSimulating && !wasSimulating)
                 {

@@ -778,7 +778,7 @@ Handle<Node> TranslateEditorGizmo::Load_Internal() const
 
                 {
                     Handle<MaterialDefinition> materialDefinition = MakeHandle<MaterialDefinition>(Name::Unique("debug_material"), materialAttributes, materialParameters, MaterialTextures {});
-                    materialDefinition->Register("$Memory/Media/MaterialDefinitions");
+                    materialDefinition->Register("$Memory/MaterialDefinitions");
                     InitObject(materialDefinition);
 
                     Handle<MaterialInstance> materialInstance = materialDefinition->CreateInstance();
@@ -866,7 +866,7 @@ Handle<Node> RotateEditorGizmo::Load_Internal() const
 
                     {
                         Handle<MaterialDefinition> materialDefinition = MakeHandle<MaterialDefinition>(Name::Unique("debug_material"), materialAttributes, materialParameters, MaterialTextures {});
-                        materialDefinition->Register("$Memory/Media/MaterialDefinitions");
+                        materialDefinition->Register("$Memory/MaterialDefinitions");
                         InitObject(materialDefinition);
                         
                         Handle<MaterialInstance> materialInstance = materialDefinition->CreateInstance();
@@ -1757,6 +1757,25 @@ EditorSubsystem::EditorSubsystem()
                 m_delegateHandlers.Remove("OnPackageAdded"_sh);
                 m_delegateHandlers.Remove("OnPackageRemoved"_sh);
 
+                m_delegateHandlers.Add(
+                    NAME("OnGameStateChange"),
+                    project->GetGame()->OnGameStateChange.Bind([this](Game*, GameStateMode previousMode, GameStateMode currentMode)
+                        {
+                            const bool wasSimulating = previousMode == GameStateMode::SIMULATING
+                                || previousMode == GameStateMode::PAUSED;
+                            const bool isSimulating  = currentMode  == GameStateMode::SIMULATING
+                                || currentMode  == GameStateMode::PAUSED;
+
+                            if (isSimulating && !wasSimulating)
+                            {
+                                OnBeginSimulation();
+                            }
+                            else if (!isSimulating && wasSimulating)
+                            {
+                                OnEndSimulation();
+                            }
+                        }));
+
                 SetActiveScene(activeScene);
             })
         .Detach();
@@ -1770,6 +1789,13 @@ EditorSubsystem::EditorSubsystem()
 
                 // Shutdown to reinitialize gizmos after project is opened
                 ShutdownGizmos();
+
+                m_delegateHandlers.Remove(NAME("OnGameStateChange"));
+
+                if (m_simulationView.IsValid())
+                {
+                    OnEndSimulation();
+                }
 
                 m_focusedNode.Reset();
 
@@ -2047,6 +2073,86 @@ void EditorSubsystem::CreateHighlightNode()
     // );
 
     // m_highlightNode->SetEntity(entity);
+}
+
+void EditorSubsystem::OnBeginSimulation()
+{
+    HYP_SCOPE;
+
+    if (m_editorViewports.Empty() || !m_currentProject)
+    {
+        return;
+    }
+
+    Camera* primaryCamera = nullptr;
+
+    for (Scene* scene : m_currentProject->GetWorld()->GetScenes())
+    {
+        if (!scene)
+        {
+            continue;
+        }
+
+        if ((scene->GetSceneFlags() & (SceneFlags::FOREGROUND | SceneFlags::UI | SceneFlags::DETACHED)) != SceneFlags::FOREGROUND)
+        {
+            continue;
+        }
+
+        if (Camera* camera = scene->GetPrimaryCamera())
+        {
+            primaryCamera = camera;
+            break;
+        }
+    }
+
+    if (!primaryCamera)
+    {
+        HYP_LOG(Editor, Warning, "OnBeginSimulation: no primary camera found in project scenes");
+        return;
+    }
+
+    ViewDesc viewDesc {};
+    viewDesc.flags = ViewFlags::DEFAULT | ViewFlags::GBUFFER | ViewFlags::MATCH_CAMERA_DIMENSIONS;
+    viewDesc.framebufferDesc.extent = Vec2u(primaryCamera->GetDimensions());
+    viewDesc.camera = primaryCamera;
+
+    m_simulationView = MakeHandle<View>(viewDesc);
+    m_simulationView->SetName(NAME("SimulationView"));
+    InitObject(m_simulationView);
+
+    for (Scene* scene : m_currentProject->GetWorld()->GetScenes())
+    {
+        if (!scene)
+        {
+            continue;
+        }
+
+        if ((scene->GetSceneFlags() & (SceneFlags::FOREGROUND | SceneFlags::UI | SceneFlags::DETACHED)) != SceneFlags::FOREGROUND)
+        {
+            continue;
+        }
+
+        m_simulationView->AddScene(scene);
+    }
+
+    m_currentProject->GetWorld()->AddView(m_simulationView);
+}
+
+void EditorSubsystem::OnEndSimulation()
+{
+    HYP_SCOPE;
+
+    if (!m_simulationView)
+    {
+        return;
+    }
+
+    if (m_currentProject)
+    {
+        m_currentProject->GetWorld()->RemoveView(m_simulationView);
+    }
+
+    m_simulationView.Reset();
 }
 
 void EditorSubsystem::InitViewport()
@@ -2779,6 +2885,20 @@ void EditorSubsystem::NewProject()
     InitObject(sun);
 
     defaultScene->GetRoot()->AddChild(sun);
+
+    // Add primary camera
+    Handle<Camera> camera = MakeHandle<Camera>();
+    camera->SetDimensions(Vec2i(1920, 1080)); // @TODO Match window size
+    camera->SetName(NAME("Camera"));
+    camera->SetTranslation(Vec3f(0.0f, 1.0f, -5.0f));
+    camera->AddTag<EntityTag::PrimaryCamera>();
+
+    Handle<FirstPersonCameraController> firstPersonController = MakeHandle<FirstPersonCameraController>();
+    camera->AddCameraController(firstPersonController);
+
+    InitObject(camera);
+
+    defaultScene->GetRoot()->AddChild(camera);
 
     OpenProject(project);
 }

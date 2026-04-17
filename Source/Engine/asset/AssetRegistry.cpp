@@ -3704,7 +3704,7 @@ void AssetRegistry::RegisterAssetsRecursively(
         {
             TResult<Handle<AssetPackage>> relocateResult = HYP_MAKE_ERROR(Error, "Asset relocated failed unexpectedly");
 
-            if (assetObject->IsRegistered()) // already has a path but is transient e.g $Memory/Media/Meshes/Foo; needs to be moved to NewPackage/Media/Meshes/Foo
+            if (assetObject->IsRegistered()) // already has a path but is transient e.g $Memory/Meshes/Foo; needs to be moved to NewPackage/Media/Meshes/Foo
             {
                 relocateResult = RelocateAsset(*this, assetObject, packagePath, /* preserveStructure */ appendExistingPackagePath, conflictMode);
             }

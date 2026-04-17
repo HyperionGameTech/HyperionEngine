@@ -315,7 +315,7 @@ DeferredPass::DeferredPass(DeferredPassMode mode, Vec2u extent, GBuffer* gbuffer
 
 DeferredPass::~DeferredPass()
 {
-    EnqueueDeletion(std::move(m_ltcSampler));
+    m_ltcSampler = nullptr;
 }
 
 void DeferredPass::Create()
@@ -2476,10 +2476,10 @@ void DeferredRenderer::RenderFrameForView(Frame* frame, const RenderSetup& rs)
     AssertDebug(rs.world && rs.view);
 
     uint32 slot = GetRingIndex();
-    if (m_lastFrameData.frameId != slot)
+    if (m_renderedViewOutputs.frameId != slot)
     {
-        m_lastFrameData.frameId = slot;
-        m_lastFrameData.passData.Clear();
+        m_renderedViewOutputs.frameId = slot;
+        m_renderedViewOutputs.items.Clear();
     }
 
     View* view = rs.view;
@@ -2854,17 +2854,21 @@ void DeferredRenderer::RenderFrameForView(Frame* frame, const RenderSetup& rs)
     // depth of field
     // m_dofBlur->Render(frame);
 
+    GpuImageViewRef finalImageView = (passData.taaPass != nullptr && cvTAA.Get())
+        ? g_renderInterface->textureViewCache->GetOrCreate(passData.taaPass->GetResultTexture())
+        : passData.tonemapPass->GetFinalImageView();
+
     // Ordered by View priority
-    auto lastFrameDataIt = std::lower_bound(
-        m_lastFrameData.passData.Begin(),
-        m_lastFrameData.passData.End(),
-        Pair<View*, DeferredRendererPassData*> { view, &passData },
-        [view](const Pair<View*, DeferredRendererPassData*>& a, const Pair<View*, DeferredRendererPassData*>& b)
+    auto outputsIt = std::lower_bound(
+        m_renderedViewOutputs.items.Begin(),
+        m_renderedViewOutputs.items.End(),
+        passData.priority,
+        [](const RenderedViewOutput& a, int priority)
         {
-            return a.second->priority < b.second->priority;
+            return a.priority < priority;
         });
 
-    m_lastFrameData.passData.Insert(lastFrameDataIt, Pair<View*, DeferredRendererPassData*> { view, &passData });
+    m_renderedViewOutputs.items.Insert(outputsIt, RenderedViewOutput { view, std::move(finalImageView), passData.priority });
 }
 
 void DeferredRenderer::UpdateRayTracingView(Frame* frame, const RenderSetup& rs)

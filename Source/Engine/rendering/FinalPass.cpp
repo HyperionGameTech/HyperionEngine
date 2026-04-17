@@ -41,8 +41,6 @@ namespace Hyperion {
 
 HYP_DECLARE_LOG_CHANNEL(Rendering);
 
-extern CVar<bool> cvTAA;
-
 #pragma region FinalPass
 
 FinalPass::FinalPass()
@@ -132,19 +130,9 @@ void FinalPass::Render(Frame* frame, const RenderSetup& rs)
     AssertDebug(dr != nullptr);
 
     // ordered by priority of the view
-    for (const Pair<View*, DeferredRendererPassData*>& it : dr->GetLastFrameData().passData)
+    for (const DeferredRenderer::RenderedViewOutput& output : dr->GetRenderedViewOutputs().items)
     {
-        View* view = it.first;
-        AssertDebug(view != nullptr);
-
-        DeferredRendererPassData* pd = it.second;
-        AssertDebug(pd != nullptr);
-
-        GpuImageView* inputImageView = cvTAA.Get()
-            ? g_renderInterface->textureViewCache->GetOrCreate(pd->taaPass->GetResultTexture())
-            : pd->tonemapPass->GetFinalImageView();
-
-        cr << SetShaderUniform(2, "InTexture"_sh, inputImageView);
+        cr << SetShaderUniform(2, "InTexture"_sh, output.finalImageView);
 
         cr << CommitDrawState();
 

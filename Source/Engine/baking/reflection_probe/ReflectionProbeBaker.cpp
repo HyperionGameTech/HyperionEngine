@@ -141,7 +141,7 @@ void Baker<ReflectionProbe>::OnCompleted_Internal()
             });
 
             prefiltered->SetName(NAME_FMT("{}_Prefiltered", envProbe->GetName()));
-            prefiltered->Register("$Memory/Media/Lightmaps", AddAssetConflictMode::ReplaceExisting);
+            prefiltered->Register("$Memory/Lightmaps", AddAssetConflictMode::ReplaceExisting);
 
             CheckResult(prefiltered->Create());
 

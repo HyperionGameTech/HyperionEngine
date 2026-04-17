@@ -1944,12 +1944,12 @@ Handle<MaterialInstance> UIObject::CreateMaterial() const
             GetMaterialParameters(),
             materialTextures);
 
-        definition->Register("$Memory/Media/MaterialDefinitions");
+        definition->Register("$Memory/MaterialDefinitions");
         InitObject(definition);
 
         Handle<MaterialInstance> instance = definition->CreateInstance();
         instance->SetIsDynamic(true);
-        instance->Register("$Memory/Media/MaterialInstances");
+        instance->Register("$Memory/MaterialInstances");
         InitObject(instance);
 
         return instance;
