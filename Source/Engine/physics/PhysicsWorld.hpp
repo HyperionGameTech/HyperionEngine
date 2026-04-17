@@ -157,7 +157,7 @@ private:
 
 } // namespace Hyperion
 
-#ifdef HYP_BULLET_PHYSICS
+#if defined(HYP_BULLET) && HYP_BULLET
 
 #include <physics/bullet/Adapter.hpp>
 
@@ -165,7 +165,7 @@ namespace Hyperion {
 using PhysicsWorld = TPhysicsWorld<BulletPhysicsAdapter>;
 } // namespace Hyperion
 
-#else
+#else // !HYP_BULLET_PHYSICS
 
 #include <physics/null/Adapter.hpp>
 
@@ -173,4 +173,4 @@ namespace Hyperion {
 using PhysicsWorld = TPhysicsWorld<NullPhysicsAdapter>;
 } // namespace Hyperion
 
-#endif
+#endif // HYP_BULLET_PHYSICS

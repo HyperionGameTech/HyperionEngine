@@ -50,6 +50,9 @@ struct EntityTag
     static const EntityTag UpdateVisibility;
     static const EntityTag UpdateInstancedMeshData;
 
+    static const EntityTag UpdatePhysicsShape;
+    static const EntityTag UpdatePhysicsMaterial;
+
     static const EntityTag EntityTypeSentinel;
 
     constexpr EntityTag()
@@ -135,6 +138,9 @@ inline constexpr EntityTag EntityTag::FocusedInEditor = EntityTag(0x20);
 inline constexpr EntityTag EntityTag::UpdateRenderProxy = EntityTag(0x30);
 inline constexpr EntityTag EntityTag::UpdateVisibility = EntityTag(0x40);
 inline constexpr EntityTag EntityTag::UpdateInstancedMeshData = EntityTag(0x50);
+
+inline constexpr EntityTag EntityTag::UpdatePhysicsShape = EntityTag(0x60);
+inline constexpr EntityTag EntityTag::UpdatePhysicsMaterial = EntityTag(0x70);
 
 inline constexpr EntityTag EntityTag::EntityTypeSentinel = EntityTag(1ull << 31);
 

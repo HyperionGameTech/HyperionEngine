@@ -169,6 +169,7 @@ namespace Hyperion.Editor.ViewModels
                     List<InspectorPropertyViewModelBase> vms = new();
 
                     bool isMeshComponent = typeof(T) == typeof(MeshComponent);
+                    bool isRigidBodyComponent = typeof(T) == typeof(RigidBodyComponent);
 
                     foreach (Property property in componentProperties)
                     {
@@ -193,6 +194,22 @@ namespace Hyperion.Editor.ViewModels
                                 postWrite = () =>
                                 {
                                     entity.AddTag(EntityTag.UpdateRenderProxy);
+                                };
+                            }
+                            else if (isRigidBodyComponent && (property.Name == "PhysicsShape" || property.Name == "PhysicsMaterial"))
+                            {
+                                Entity entity = _target;
+
+                                postWrite = () =>
+                                {
+                                    if (property.Name == "PhysicsShape")
+                                    {
+                                        entity.AddTag(EntityTag.UpdatePhysicsShape);
+                                    }
+                                    else
+                                    {
+                                        entity.AddTag(EntityTag.UpdatePhysicsMaterial);
+                                    }
                                 };
                             }
 

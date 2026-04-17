@@ -10,7 +10,7 @@
 
 namespace Hyperion {
 
-class HYP_API NullPhysicsAdapter : public PhysicsAdapter<NullPhysicsAdapter>
+class NullPhysicsAdapter : public PhysicsAdapter<NullPhysicsAdapter>
 {
 public:
     NullPhysicsAdapter();

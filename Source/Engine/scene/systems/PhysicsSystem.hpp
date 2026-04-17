@@ -7,6 +7,7 @@
 #pragma once
 
 #include <scene/System.hpp>
+#include <scene/EntityTag.hpp>
 #include <scene/components/RigidBodyComponent.hpp>
 #include <scene/components/TransformComponent.hpp>
 
@@ -36,7 +37,10 @@ private:
     {
         return {
             ComponentDescriptor<RigidBodyComponent, ComponentAccess::READ_WRITE> {},
-            ComponentDescriptor<TransformComponent, ComponentAccess::READ_WRITE> {}
+            ComponentDescriptor<TransformComponent, ComponentAccess::READ_WRITE> {},
+
+            ComponentDescriptor<TagComponent<EntityTag::UpdatePhysicsShape>, ComponentAccess::READ, false> {},
+            ComponentDescriptor<TagComponent<EntityTag::UpdatePhysicsMaterial>, ComponentAccess::READ, false> {}
         };
     }
 };

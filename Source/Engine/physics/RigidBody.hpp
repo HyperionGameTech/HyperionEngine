@@ -27,6 +27,8 @@
 
 namespace Hyperion {
 
+class PhysicsWorldBase;
+
 HYP_ENUM()
 enum class PhysicsShapeType : uint8
 {
@@ -225,9 +227,6 @@ class HYP_API RigidBody final : public ObjectBase
 
 public:
     RigidBody();
-    explicit RigidBody(const PhysicsMaterial& physicsMaterial);
-    
-    RigidBody(const Handle<PhysicsShape>& shape, const PhysicsMaterial& physicsMaterial);
 
     RigidBody(const RigidBody& other) = delete;
     RigidBody& operator=(const RigidBody& other) = delete;
@@ -237,47 +236,21 @@ public:
 
     ~RigidBody();
 
-    /*! \brief Get the world-space transform of this RigidBody. */
-    HYP_METHOD(Property = "Transform", Serialize)
     HYP_FORCE_INLINE const Transform& GetTransform() const
     {
         return m_transform;
     }
 
-    HYP_METHOD(Property = "Transform", Serialize)
     HYP_FORCE_INLINE void SetTransform(const Transform& transform)
     {
         m_transform = transform;
     }
 
-    HYP_METHOD(Property = "Shape", Serialize)
-    HYP_FORCE_INLINE const Handle<PhysicsShape>& GetShape() const
-    {
-        return m_shape;
-    }
-
-    HYP_METHOD(Property = "Shape", Serialize)
-    void SetShape(const Handle<PhysicsShape>& shape);
-
-    HYP_FORCE_INLINE PhysicsMaterial& GetPhysicsMaterial()
-    {
-        return m_physicsMaterial;
-    }
-
-    HYP_FORCE_INLINE const PhysicsMaterial& GetPhysicsMaterial() const
-    {
-        return m_physicsMaterial;
-    }
-
-    void SetPhysicsMaterial(const PhysicsMaterial& physicsMaterial);
-
-    HYP_METHOD(Property = "IsKinematic", Serialize)
     HYP_FORCE_INLINE bool IsKinematic() const
     {
         return m_isKinematic;
     }
 
-    HYP_METHOD(Property = "IsKinematic", Serialize)
     HYP_FORCE_INLINE void SetIsKinematic(bool isKinematic)
     {
         m_isKinematic = isKinematic;
@@ -295,16 +268,13 @@ public:
     {
         m_handle = std::move(handle);
     }
-
-    HYP_METHOD()
-    void ApplyForce(const Vec3f& force);
+    
+    PhysicsShape* shape;
+    PhysicsMaterial* physicsMaterial;
 
 private:
-    void Init() override;
-
     Transform m_transform;
-    Handle<PhysicsShape> m_shape;
-    PhysicsMaterial m_physicsMaterial;
+
     bool m_isKinematic;
 
     RC<void> m_handle;
