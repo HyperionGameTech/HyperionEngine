@@ -68,9 +68,9 @@ LightmapVolume::~LightmapVolume()
         EnqueueDeletion(std::move(m_irradianceAtlasTextures));
 }
 
-bool LightmapVolume::AddElement(Vec2u dimensions, LightmapElement& outElement, bool shrinkToFit, float downscaleLimit)
+bool LightmapVolume::AddElement(Vec2u dimensions, LightmapElement*& outElement, bool shrinkToFit, float downscaleLimit)
 {
-    outElement.id = InvalidLightmapElementId;
+    outElement = nullptr;
 
     Optional<LightmapVolumeAtlas> tmpAtlas;
 
@@ -95,10 +95,7 @@ bool LightmapVolume::AddElement(Vec2u dimensions, LightmapElement& outElement, b
         {
             AssertDebug(elementIndex < UINT16_MAX);
 
-            outElement.id = LightmapElementId(uint32((atlasIndex << 16) | elementIndex));
-
-            // ensure ID is also stored in elements
-            atlas->elements[elementIndex].id = outElement.id;
+            outElement->id = LightmapElementId(uint32((atlasIndex << 16) | elementIndex));
 
             if (isNewAtlas)
             {

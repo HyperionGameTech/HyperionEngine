@@ -106,7 +106,7 @@ static void UpdateAtlasTextures(
 
         atlasTexture->SetName(NAME_FMT("LightmapVolumeAtlasTexture_{}_{}", lmv->GetName(), LightmapAtlasTextureTypeNames[textureTypeIndex]));
 
-        if (Result result = g_assetManager->GetAssetRegistry()->RegisterAsset("$Import/Media/Lightmaps", atlasTexture, AddAssetConflictMode::ReplaceExisting); result.HasError())
+        if (Result result = g_assetManager->GetAssetRegistry()->RegisterAsset("$Import/Lightmaps", atlasTexture, AddAssetConflictMode::ReplaceExisting); result.HasError())
         {
             HYP_LOG(Lightmap, Error, "Failed to register atlas texture '{}' with asset registry: {}", atlasTexture->GetName(), result.GetError().GetMessage());
         }
@@ -298,14 +298,16 @@ void Baker<LightmapVolume>::Build()
 
     m_volume->RemoveAllElements();
 
-    LightmapElement lightmapElement;
+    LightmapElement* lightmapElement = nullptr;
     if (!m_volume->AddElement({ m_bakeData.GetWidth(), m_bakeData.GetHeight() }, lightmapElement, /* shrinkToFit */ true, /* downscaleLimit */ 0.1f))
     {
         HYP_LOG(Lightmap, Error, "Failed to add element to volume!");
         return;
     }
 
-    m_lightmapElementId = lightmapElement.id;
+    AssertDebug(lightmapElement != nullptr);
+
+    m_lightmapElementId = lightmapElement->id;
     AssertDebug(m_lightmapElementId != InvalidLightmapElementId);
 
     if (!m_config.onlyGenerateUVs)
@@ -389,7 +391,7 @@ void Baker<LightmapVolume>::OnCompleted_Internal()
                 bakeEntity.material->GetParameters(),
                 bakeEntity.material->GetTextures());
             
-            materialDefinition->Register("$Memory/Media/MaterialDefinitions");
+            materialDefinition->Register("$Memory/MaterialDefinitions");
 
             InitObject(materialDefinition);
 
@@ -405,7 +407,7 @@ void Baker<LightmapVolume>::OnCompleted_Internal()
             attributes.bucket = RenderBucket::Lightmapped;
 
             Handle<MaterialDefinition> materialDefinition = MakeHandle<MaterialDefinition>(Name::Unique("lightmap_material"), attributes);
-            materialDefinition->Register("$Memory/Media/MaterialDefinitions");
+            materialDefinition->Register("$Memory/MaterialDefinitions");
             InitObject(materialDefinition);
 
             Handle<MaterialInstance> materialInstance = materialDefinition->CreateInstance();
@@ -414,7 +416,7 @@ void Baker<LightmapVolume>::OnCompleted_Internal()
             bakeEntity.material = std::move(materialInstance);
         }
         
-        if (Result result = bakeEntity.material->Register("$Import/Media/MaterialInstances"); result.HasError())
+        if (Result result = bakeEntity.material->Register("$Import/MaterialInstances"); result.HasError())
         {
             HYP_LOG(Lightmap, Error, "Failed to register material: {}", result.GetError().GetMessage());
         }

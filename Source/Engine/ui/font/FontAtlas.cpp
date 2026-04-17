@@ -261,7 +261,7 @@ Result FontAtlas::RenderAtlasTextures(float mainAtlasScale, float maxScale, floa
 
         // register the texture to in-memory package.
         // when the package the font atlas is in is saved, it will be moved over
-        Result registerResult = atlasTexture->Register(HYP_FORMAT("$Memory/Media/Fonts/{}", GetName()), /* conflictMode */ AddAssetConflictMode::ReplaceExisting);
+        Result registerResult = atlasTexture->Register(HYP_FORMAT("$Memory/Fonts/{}", GetName()), /* conflictMode */ AddAssetConflictMode::ReplaceExisting);
         if (registerResult.HasError())
         {
             return registerResult.GetError();

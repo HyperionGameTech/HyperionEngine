@@ -203,7 +203,7 @@ public:
     Result Update(Entity* entity, const BoundingBox& aabb, bool forceInvalidation = false, bool allowRebuild = false);
 
 private:
-    static constexpr uint32 NumEntryHashes = MathUtil::FastLog2_Pow2(EntityTag::SerializableTagMask) + 1;
+    static constexpr uint32 NumEntryHashes = 8;
 
     HYP_FORCE_INLINE bool UseEntityMap() const
     {

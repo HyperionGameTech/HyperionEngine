@@ -121,6 +121,7 @@ void DefaultGame::OnLaunch_Impl()
     m_camera->SetFar(1000.0f);
     m_camera->SetCameraFlags(CameraFlags::MATCH_WINDOW_SIZE);
     m_camera->SetWindow(g_appContext->GetMainWindow());
+    m_camera->AddTag<EntityTag::PrimaryCamera>();
 
     InitObject(m_camera);
 

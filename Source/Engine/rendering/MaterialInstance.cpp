@@ -247,7 +247,7 @@ Handle<MaterialInstance> MaterialInstance::Clone() const
 
     instance->m_isDynamic = true;
 
-    instance->Register("$Memory/Media/MaterialInstances");
+    instance->Register("$Memory/MaterialInstances");
 
     return instance;
 }

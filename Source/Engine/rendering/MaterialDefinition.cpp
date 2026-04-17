@@ -142,7 +142,7 @@ Handle<MaterialInstance> MaterialDefinition::CreateInstance() const
         m_defaultParameters,
         m_defaultTextures);
 
-    instance->Register("$Memory/Media/MaterialInstances");
+    instance->Register("$Memory/MaterialInstances");
 
     return instance;
 }
@@ -196,7 +196,7 @@ Handle<MaterialInstance> MaterialInstanceCache::Create(
         parameters,
         textures);
 
-    definition->Register("$Memory/Media/MaterialDefinitions");
+    definition->Register("$Memory/MaterialDefinitions");
     InitObject(definition);
 
     Handle<MaterialInstance> instance = definition->CreateInstance();
@@ -252,7 +252,7 @@ Handle<MaterialInstance> MaterialInstanceCache::GetOrCreate(
             parameters,
             textures);
 
-        definition->Register("$Memory/Media/MaterialDefinitions");
+        definition->Register("$Memory/MaterialDefinitions");
 
         strongRef = definition->CreateInstance();
 

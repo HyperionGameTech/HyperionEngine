@@ -328,26 +328,18 @@ public:
 class DeferredRenderer final : public RendererBase
 {
 public:
-    struct LastFrameData
+
+    struct RenderedViewOutput
     {
-        // View pass data from the most recent frame, sorted by View priority
+        View* view = nullptr;
+        GpuImageViewRef finalImageView;
+        int priority      = 0;
+    };
+
+    struct RenderedViewOutputs
+    {
         uint8 frameId = uint8(-1);
-
-        // The pass data for the last frame (per-View), sorted by View priority.
-        Array<Pair<View*, DeferredRendererPassData*>> passData;
-
-        DeferredRendererPassData* GetPassDataForView(const View* view) const
-        {
-            for (const auto& pair : passData)
-            {
-                if (pair.first == view)
-                {
-                    return pair.second;
-                }
-            }
-
-            return nullptr;
-        }
+        Array<RenderedViewOutput> items;
     };
 
     DeferredRenderer();
@@ -355,9 +347,9 @@ public:
     DeferredRenderer& operator=(const DeferredRenderer& other) = delete;
     virtual ~DeferredRenderer() override;
 
-    HYP_FORCE_INLINE const LastFrameData& GetLastFrameData() const
+    HYP_FORCE_INLINE const RenderedViewOutputs& GetRenderedViewOutputs() const
     {
-        return m_lastFrameData;
+        return m_renderedViewOutputs;
     }
 
     virtual void Initialize() override;
@@ -382,7 +374,7 @@ private:
     void ExecuteDrawCalls(Frame* frame, const RenderSetup& rs, RenderCollector& renderCollector, uint32 bucketMask);
     void GenerateMipChain(Frame* frame, const RenderSetup& rs, RenderCollector& renderCollector, const GpuImageRef& srcImage);
 
-    LastFrameData m_lastFrameData;
+    RenderedViewOutputs m_renderedViewOutputs;
 
     Handle<Mesh> m_quadMesh;
 

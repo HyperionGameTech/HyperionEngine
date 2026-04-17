@@ -295,7 +295,7 @@ Handle<Texture> AcquireTexture(GltfLoadContext& ctx, const cgltf_texture_view& t
                 srgb ? AssetLoadHint::TextureLoader_LoadAsSRGB : AssetLoadHint::NoHint); textureResult.HasValue())
             {
                 const Handle<Texture>& texture = textureResult->Result();
-                ctx.state.assetManager->GetAssetRegistry()->RegisterAsset("$Import/Media/Textures", texture);
+                ctx.state.assetManager->GetAssetRegistry()->RegisterAsset("$Import/Textures", texture);
 
                 CheckResult(texture->Create());
 
@@ -565,12 +565,12 @@ SplitMetalnessRoughnessResult SplitMetalnessRoughnessTexture(
 
     Handle<Texture> roughnessTexture = MakeHandle<Texture>(channelDesc, roughnessData.ToByteView());
     roughnessTexture->SetName(NAME_FMT("{}_Roughness", baseName));
-    ctx.state.assetManager->GetAssetRegistry()->RegisterAsset("$Import/Media/Textures", roughnessTexture);
+    ctx.state.assetManager->GetAssetRegistry()->RegisterAsset("$Import/Textures", roughnessTexture);
     CheckResult(roughnessTexture->Create());
 
     Handle<Texture> metalnessTexture = MakeHandle<Texture>(metalnessDesc, metalnessData.ToByteView());
     metalnessTexture->SetName(NAME_FMT("{}_Metalness", baseName));
-    ctx.state.assetManager->GetAssetRegistry()->RegisterAsset("$Import/Media/Textures", metalnessTexture);
+    ctx.state.assetManager->GetAssetRegistry()->RegisterAsset("$Import/Textures", metalnessTexture);
     CheckResult(metalnessTexture->Create());
 
     return { metalnessTexture, roughnessTexture };
@@ -954,7 +954,7 @@ bool BuildPrimitive(GltfLoadContext& ctx,
 
     mesh->SetOriginalFilepath(FilePath::Relative(ctx.state.filepath, ctx.state.assetManager->GetBasePath()));
 
-    ctx.state.assetManager->GetAssetRegistry()->RegisterAsset("$Import/Media/Meshes", mesh);
+    ctx.state.assetManager->GetAssetRegistry()->RegisterAsset("$Import/Meshes", mesh);
 
     InitObject(mesh);
 

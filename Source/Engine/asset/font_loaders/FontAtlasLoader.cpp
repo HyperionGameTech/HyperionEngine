@@ -198,7 +198,7 @@ AssetLoadResult FontAtlasLoader::LoadAsset(LoaderState& state) const
         fontAtlasName,
         textureSet, cellDimensions, std::move(glyphMetrics), std::move(symbolList));
     
-    state.assetManager->GetAssetRegistry()->RegisterAsset("$Import/Media/Fonts", fontAtlas);
+    state.assetManager->GetAssetRegistry()->RegisterAsset("$Import/Fonts", fontAtlas);
 
     return AssetLoadResult { LoadedAsset(fontAtlas) };
 }
