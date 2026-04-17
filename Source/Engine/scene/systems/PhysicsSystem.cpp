@@ -17,10 +17,17 @@
 #include <physics/PhysicsWorld.hpp>
 
 #include <engine/Game.hpp>
+#include <Engine/EngineGlobals.hpp>
+
+#include <asset/Assets.hpp>
+#include <asset/AssetRegistry.hpp>
 
 #include <PhysicsSystem.generated.inl>
 
 namespace Hyperion {
+
+extern PhysicsMaterial& GetDefaultPhysicsMaterial();
+extern PhysicsShape& GetDefaultPhysicsShape();
 
 bool PhysicsSystem::ShouldProcessScene(Scene* scene) const
 {
@@ -36,19 +43,35 @@ void PhysicsSystem::OnEntityAdded(Entity* entity)
     RigidBodyComponent& rigidBodyComponent = entity->GetEntityManager()->GetComponent<RigidBodyComponent>(entity);
     TransformComponent& transformComponent = entity->GetEntityManager()->GetComponent<TransformComponent>(entity);
 
-    if (rigidBodyComponent.rigidBody)
+    // temp debug
+    rigidBodyComponent.physicsMaterial.mass = 1.0f;
+
+    if (!rigidBodyComponent.shape)
     {
-        InitObject(rigidBodyComponent.rigidBody);
+        Handle<PhysicsShape> shape = MakeHandle<BoxPhysicsShape>(NAME_FMT("{}_BoxPhysicsShape", entity->GetName()), entity->GetLocalBounds());
+        shape->Register("$Import/PhysicsShapes");
 
-        Transform transform;
-        transform.SetTranslation(transformComponent.translation);
-        transform.SetRotation(transformComponent.rotation);
-        transform.SetScale(transformComponent.scale);
-
-        rigidBodyComponent.rigidBody->SetTransform(transform);
-
-        entity->GetWorld()->GetPhysicsWorld()->AddRigidBody(rigidBodyComponent.rigidBody);
+        rigidBodyComponent.shape = shape;
     }
+
+    Handle<RigidBody>& rigidBody = rigidBodyComponent.rigidBody;
+
+    if (!rigidBody)
+    {
+        rigidBody = MakeHandle<RigidBody>();
+    }
+
+    rigidBody->shape = rigidBodyComponent.shape.Get();
+    rigidBody->physicsMaterial = &rigidBodyComponent.physicsMaterial;
+
+    Transform transform;
+    transform.SetTranslation(transformComponent.translation);
+    transform.SetRotation(transformComponent.rotation);
+    transform.SetScale(transformComponent.scale);
+
+    rigidBody->SetTransform(transform);
+
+    entity->GetWorld()->GetPhysicsWorld()->AddRigidBody(rigidBodyComponent.rigidBody);
 }
 
 void PhysicsSystem::OnEntityRemoved(Entity* entity)
@@ -57,9 +80,16 @@ void PhysicsSystem::OnEntityRemoved(Entity* entity)
 
     RigidBodyComponent& rigidBodyComponent = entity->GetEntityManager()->GetComponent<RigidBodyComponent>(entity);
 
-    if (rigidBodyComponent.rigidBody)
+    Handle<RigidBody>& rigidBody = rigidBodyComponent.rigidBody;
+
+    if (rigidBody.IsValid())
     {
-        entity->GetWorld()->GetPhysicsWorld()->RemoveRigidBody(rigidBodyComponent.rigidBody);
+        entity->GetWorld()->GetPhysicsWorld()->RemoveRigidBody(rigidBody);
+
+        rigidBody->physicsMaterial = &GetDefaultPhysicsMaterial();
+        rigidBody->shape = &GetDefaultPhysicsShape();
+
+        rigidBody.Reset();
     }
 }
 
@@ -69,14 +99,47 @@ void PhysicsSystem::Process(float delta, Span<Handle<Scene>> scenes)
 
     if (!GetWorld()->GetGameState().IsSimulating())
     {
-        return;
+    //    return;
     }
+
+    PhysicsWorld& physicsWorld = static_cast<PhysicsWorld&>(*GetWorld()->GetPhysicsWorld());
+
+    // To remove tag from after update.
+    Array<Entity*, SceneAllocator> updatedEntities;
 
     for (Scene* scene : scenes)
     {
         if (!ShouldProcessScene(scene))
         {
             continue;
+        }
+
+        for (auto [entity, rigidBodyComponent, _] : scene->GetEntityManager()->GetEntitySet<RigidBodyComponent, TagComponent<EntityTag::UpdatePhysicsShape>>().GetScopedView(GetComponentInfos()))
+        {
+            Handle<RigidBody>& rigidBody = rigidBodyComponent.rigidBody;
+
+            if (!rigidBody)
+            {
+                continue;
+            }
+            
+            physicsWorld.GetAdapter().OnChangePhysicsShape(rigidBody.Get());
+
+            updatedEntities.PushBack(entity);
+        }
+
+        for (auto [entity, rigidBodyComponent, _] : scene->GetEntityManager()->GetEntitySet<RigidBodyComponent, TagComponent<EntityTag::UpdatePhysicsMaterial>>().GetScopedView(GetComponentInfos()))
+        {
+            Handle<RigidBody>& rigidBody = rigidBodyComponent.rigidBody;
+
+            if (!rigidBody)
+            {
+                continue;
+            }
+            
+            physicsWorld.GetAdapter().OnChangePhysicsMaterial(rigidBody.Get());
+
+            updatedEntities.PushBack(entity);
         }
 
         for (auto [entity, rigidBodyComponent, transformComponent] : scene->GetEntityManager()->GetEntitySet<RigidBodyComponent, TransformComponent>().GetScopedView(GetComponentInfos()))
@@ -93,7 +156,21 @@ void PhysicsSystem::Process(float delta, Span<Handle<Scene>> scenes)
             transformComponent.rotation = rigidBodyTransform.GetRotation();
 
             rigidBody->SetTransform(rigidBodyTransform);
+
+            // @TODO Sync entity world transforms.
         }
+    }
+
+    if (updatedEntities.Any())
+    {
+        AfterProcess([entities = std::move(updatedEntities)]() mutable
+        {
+            for (Entity* entity : entities)
+            {
+                entity->RemoveTag<EntityTag::UpdatePhysicsMaterial>();
+                entity->RemoveTag<EntityTag::UpdatePhysicsShape>();
+            }
+        });
     }
 }
 

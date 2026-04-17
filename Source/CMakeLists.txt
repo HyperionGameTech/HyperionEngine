@@ -297,6 +297,21 @@ endif()
 find_package(Threads REQUIRED)
 find_package(Bullet)
 
+if(Bullet_FOUND)
+    message(STATUS "Bullet found")
+
+    add_definitions(-DHYP_BULLET=1)
+
+    include_directories(${BULLET_INCLUDE_DIRS})
+
+    set(COMMON_LIBRARIES
+        ${COMMON_LIBRARIES}
+        ${BULLET_LIBRARIES}
+    )
+else()
+    message(WARNING "Bullet not found, physics will be disabled!")
+endif()
+
 # PCHs
 set(HYP_PCH
     "${CMAKE_SOURCE_DIR}/Engine/HyperionPch.hpp"
@@ -870,18 +885,6 @@ if (${HYP_PLATFORM_NAME} STREQUAL "Mac")
         "-framework Foundation"
         "-framework AppKit"
         "-framework QuartzCore"
-    )
-endif()
-
-if(Bullet_FOUND)
-    message(STATUS "Bullet found")
-
-    add_definitions(-DHYP_BULLET=1)
-
-    include_directories(${BULLET_INCLUDE_DIRS})
-    set(COMMON_LIBRARIES
-        ${COMMON_LIBRARIES}
-        ${BULLET_LIBRARIES}
     )
 endif()
 

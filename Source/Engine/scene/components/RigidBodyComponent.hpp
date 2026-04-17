@@ -14,6 +14,7 @@
 namespace Hyperion {
 
 class RigidBody;
+class PhysicsShape;
 
 HYP_STRUCT(Component,
     Label = "Rigid Body Component",
@@ -23,11 +24,14 @@ struct RigidBodyComponent
 {
     HYP_STRUCT_BODY(RigidBodyComponent);
 
-    HYP_FIELD(Property = "RigidBody")
-    Handle<RigidBody> rigidBody;
-
-    HYP_FIELD(Property = "PhysicsMaterial")
+    HYP_FIELD(Property = "PhysicsMaterial", Serialize, Editor)
     PhysicsMaterial physicsMaterial;
+
+    HYP_FIELD(Property = "CollisionShape", Serialize, Editor)
+    Handle<PhysicsShape> shape;
+
+    HYP_FIELD(Property = "RigidBody", Transient)
+    Handle<RigidBody> rigidBody;
 };
 
 } // namespace Hyperion

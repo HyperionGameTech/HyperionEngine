@@ -14,7 +14,7 @@
 #include <Core/math/Vector3.hpp>
 #include <Core/math/Quat4f.hpp>
 
-#ifdef HYP_BULLET_PHYSICS
+#if defined(HYP_BULLET) && HYP_BULLET
 #include <physics/bullet/Adapter.hpp>
 
 #include "btBulletDynamicsCommon.h"
@@ -58,6 +58,8 @@ struct CharacterControllerInternalData
 
 static RC<btCollisionShape> CreatePhysicsShapeHandle(PhysicsShape* physicsShape)
 {
+    Assert(physicsShape != nullptr);
+
     switch (physicsShape->GetType())
     {
     case PhysicsShapeType::BOX:
@@ -162,8 +164,6 @@ void BulletPhysicsAdapter::Tick(PhysicsWorldBase* world, double delta)
 
         rigidBody->SetTransform(rigidBodyTransform);
     }
-
-
 }
 
 void BulletPhysicsAdapter::OnRigidBodyAdded(const Handle<RigidBody>& rigidBody)
@@ -171,19 +171,19 @@ void BulletPhysicsAdapter::OnRigidBodyAdded(const Handle<RigidBody>& rigidBody)
     Assert(m_dynamicsWorld != nullptr);
 
     Assert(rigidBody.IsValid());
-    Assert(rigidBody->GetShape() != nullptr, "No PhysicsShape on RigidBody!");
+    Assert(rigidBody->shape != nullptr, "No PhysicsShape on RigidBody!");
 
-    if (!rigidBody->GetShape()->GetHandle())
+    if (!rigidBody->shape->GetHandle())
     {
-        rigidBody->GetShape()->SetHandle(CreatePhysicsShapeHandle(rigidBody->GetShape().Get()));
+        rigidBody->shape->SetHandle(CreatePhysicsShapeHandle(rigidBody->shape));
     }
 
     btVector3 localInertia(0, 0, 0);
 
-    if (rigidBody->IsKinematic() && rigidBody->GetPhysicsMaterial().GetMass() != 0.0f)
+    if (rigidBody->IsKinematic() && rigidBody->physicsMaterial->GetMass() != 0.0f)
     {
-        static_cast<btCollisionShape*>(rigidBody->GetShape()->GetHandle())
-            ->calculateLocalInertia(rigidBody->GetPhysicsMaterial().GetMass(), localInertia);
+        static_cast<btCollisionShape*>(rigidBody->shape->GetHandle())
+            ->calculateLocalInertia(rigidBody->physicsMaterial->GetMass(), localInertia);
     }
 
     RC<RigidBodyInternalData> internalData = MakeRefCountedPtr<RigidBodyInternalData>();
@@ -195,9 +195,9 @@ void BulletPhysicsAdapter::OnRigidBodyAdded(const Handle<RigidBody>& rigidBody)
     internalData->motionState = MakeRefCountedPtr<btDefaultMotionState>(btTransform);
 
     btRigidBody::btRigidBodyConstructionInfo constructionInfo(
-        rigidBody->GetPhysicsMaterial().GetMass(),
+        rigidBody->physicsMaterial->GetMass(),
         internalData->motionState.Get(),
-        static_cast<btCollisionShape*>(rigidBody->GetShape()->GetHandle()),
+        static_cast<btCollisionShape*>(rigidBody->shape->GetHandle()),
         localInertia);
 
     internalData->rigidBody = MakeRefCountedPtr<btRigidBody>(constructionInfo);
@@ -240,17 +240,17 @@ void BulletPhysicsAdapter::OnChangePhysicsShape(RigidBody* rigidBody)
 
     btVector3 localInertia = internalData->rigidBody->getLocalInertia();
 
-    if (rigidBody->GetShape() != nullptr && rigidBody->GetShape()->GetHandle() != nullptr)
+    if (rigidBody->shape != nullptr && rigidBody->shape->GetHandle() != nullptr)
     {
-        if (rigidBody->IsKinematic() && rigidBody->GetPhysicsMaterial().GetMass() >= 0.00001f)
+        if (rigidBody->IsKinematic() && rigidBody->physicsMaterial->GetMass() >= 0.00001f)
         {
-            static_cast<btCollisionShape*>(rigidBody->GetShape()->GetHandle())
-                ->calculateLocalInertia(rigidBody->GetPhysicsMaterial().GetMass(), localInertia);
+            static_cast<btCollisionShape*>(rigidBody->shape->GetHandle())
+                ->calculateLocalInertia(rigidBody->physicsMaterial->GetMass(), localInertia);
         }
     }
 
     internalData->rigidBody->setMassProps(
-        rigidBody->GetPhysicsMaterial().GetMass(),
+        rigidBody->physicsMaterial->GetMass(),
         localInertia);
 }
 
@@ -268,12 +268,12 @@ void BulletPhysicsAdapter::OnChangePhysicsMaterial(RigidBody* rigidBody)
 
     Assert(internalData->rigidBody != nullptr);
 
-    if (!rigidBody->GetShape()->GetHandle())
+    if (!rigidBody->shape->GetHandle())
     {
-        rigidBody->GetShape()->SetHandle(CreatePhysicsShapeHandle(rigidBody->GetShape().Get()));
+        rigidBody->shape->SetHandle(CreatePhysicsShapeHandle(rigidBody->shape));
     }
 
-    internalData->rigidBody->setCollisionShape(static_cast<btCollisionShape*>(rigidBody->GetShape()->GetHandle()));
+    internalData->rigidBody->setCollisionShape(static_cast<btCollisionShape*>(rigidBody->shape->GetHandle()));
 }
 
 void BulletPhysicsAdapter::ApplyForceToBody(const RigidBody* rigidBody, const Vec3f& force)
@@ -395,4 +395,4 @@ void BulletPhysicsAdapter::GetCharacterState(const RC<void>& physicsHandle, Vec3
 
 } // namespace Hyperion
 
-#endif
+#endif // HYP_BULLET_PHYSICS

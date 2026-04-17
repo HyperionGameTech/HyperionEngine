@@ -14,6 +14,21 @@ set(CMAKE_CXX_STANDARD 20 CACHE STRING "C++ standard to be used")
 
 add_definitions(-DHYP_BUILD_LIBRARY=1)
 
+if(Bullet_FOUND)
+    message(STATUS "Bullet found")
+
+    add_definitions(-DHYP_BULLET=1)
+
+    include_directories(${BULLET_INCLUDE_DIRS})
+    
+    set(COMMON_LIBRARIES
+        ${COMMON_LIBRARIES}
+        ${BULLET_LIBRARIES}
+    )
+else()
+    message(WARNING "Bullet not found, physics will be disabled!")
+endif()
+
 include_directories(
     ${CMAKE_SOURCE_DIR}
     ${THIRD_PARTY_INCLUDE_DIR}
