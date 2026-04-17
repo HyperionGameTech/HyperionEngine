@@ -139,7 +139,8 @@ public:
     // map entity id to previous attribute handle (for draw call collection)
     SparsePagedArray<RenderableAttributeHandle, 128, RenderAllocator> previousAttributes;
 
-    FixedArray<HashMap<RenderableAttributeHandle, DrawCallCollection, RenderAllocator, HashTablePolicy::NotPooled>, NumRenderBuckets> mappingsByBucket;
+    using BinnedDrawCallCollections = SparsePagedArray<DrawCallCollection, 128, RenderAllocator>;
+    FixedArray<BinnedDrawCallCollections, NumRenderBuckets> mappingsByBucket;
 
     struct ParallelRenderingStateLL
     {

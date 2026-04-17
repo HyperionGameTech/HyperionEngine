@@ -64,7 +64,7 @@
 
 namespace Hyperion {
 
-HYP_API extern const char* LookupTypeName(const TypeId& typeId);
+using namespace Resources;
 
 static constexpr uint32 AllBucketsMask = (1u << NumRenderBuckets) - 1;
 
@@ -326,7 +326,7 @@ static void BuildAttributes(const RenderProxyMesh& proxy, RenderableAttributeSet
 
 #pragma endregion GeometryPass
 
-static RenderGroup CreateRenderGroup(
+static void InitDrawCallCollection(
     RenderCollector* renderCollector,
     DrawCallCollection& drawCallCollection,
     const RenderableAttributeSet& attributes)
@@ -343,10 +343,8 @@ static RenderGroup CreateRenderGroup(
         renderGroupFlags &= ~(RenderGroupFlags::OCCLUSION_CULLING | RenderGroupFlags::INDIRECT_RENDERING);
     }
 
-    // Create RenderGroup
-    RenderGroup rg {};
-    rg.renderableAttributes = attributes;
-    rg.flags = renderGroupFlags;
+    drawCallCollection.attributes = attributes;
+    drawCallCollection.flags = renderGroupFlags;
 
     if (renderGroupFlags & RenderGroupFlags::INDIRECT_RENDERING)
     {
@@ -361,15 +359,15 @@ static RenderGroup CreateRenderGroup(
     // If parallel rendering is globally disabled, disable it for this RenderGroup
     if (!g_renderInterface->GetRenderConfig().parallelRendering)
     {
-        rg.flags &= ~RenderGroupFlags::PARALLEL_RENDERING;
+        drawCallCollection.flags &= ~RenderGroupFlags::PARALLEL_RENDERING;
     }
 
     if (!g_renderInterface->GetRenderConfig().indirectRendering)
     {
-        rg.flags &= ~RenderGroupFlags::INDIRECT_RENDERING;
+        drawCallCollection.flags &= ~RenderGroupFlags::INDIRECT_RENDERING;
     }
 
-    return rg;
+    drawCallCollection.isInit = true;
 }
 
 template <class AllocatorType, class Functor, size_t... Indices>
@@ -739,8 +737,7 @@ static void RenderAll(
 
     const uint32 frameIndex = frame->GetFrameIndex();
 
-    const RenderGroup& renderGroup = drawCallCollection.renderGroup;
-    const RenderableAttributeSet& ras = renderGroup.renderableAttributes;
+    const RenderableAttributeSet& ras = drawCallCollection.attributes;
     const MaterialAttributes& mas = ras.GetMaterialAttributes();
 
     uint32 numShaderUniforms = 0;
@@ -967,14 +964,14 @@ static void PerformRenderingImpl(
     static const bool s_indirectRenderingEnabled = g_renderInterface->GetRenderConfig().indirectRendering;
 
     const bool useIndirectRendering = s_indirectRenderingEnabled
-        && drawCallCollection.renderGroup.flags[RenderGroupFlags::INDIRECT_RENDERING]
+        && drawCallCollection.flags[RenderGroupFlags::INDIRECT_RENDERING]
         && (renderSetup.passData && renderSetup.passData->cullData.depthPyramidImageView);
 
     DeferredRendererPassData* dpd = ObjCast<DeferredRendererPassData>(renderSetup.passData);
     // Not env probes or anything like that
     const bool isNormalDrawingPass = dpd != nullptr;
 
-    const RenderableAttributeSet& ras = drawCallCollection.renderGroup.renderableAttributes;
+    const RenderableAttributeSet& ras = drawCallCollection.attributes;
     const MaterialAttributes& mas = ras.GetMaterialAttributes();
 
     const uint8 stencilReference = mas.stencilReference;
@@ -1188,9 +1185,8 @@ RenderCollector::~RenderCollector()
 
             for (auto& mappings : m)
             {
-                for (auto& it : mappings)
+                for (DrawCallCollection& drawCallCollection : mappings)
                 {
-                    DrawCallCollection& drawCallCollection = it.second;
                     drawCallCollection.meshProxies.Clear(/* freeMemory */ true);
 
                     if (drawCallCollection.indirectRenderer)
@@ -1214,10 +1210,8 @@ size_t RenderCollector::NumDrawCallsCollected() const
 
     for (const auto& mappings : mappingsByBucket)
     {
-        for (const KeyValuePair<RenderableAttributeHandle, DrawCallCollection>& it : mappings)
+        for (DrawCallCollection& drawCallCollection : mappings)
         {
-            const DrawCallCollection& drawCallCollection = it.second;
-
             numDrawCalls += drawCallCollection.drawCalls.Size()
                 + drawCallCollection.instancedDrawCalls.Size();
         }
@@ -1234,9 +1228,8 @@ void RenderCollector::Clear(bool freeMemory)
 
     for (auto& mappings : mappingsByBucket)
     {
-        for (auto& it : mappings)
+        for (DrawCallCollection& drawCallCollection : mappings)
         {
-            DrawCallCollection& drawCallCollection = it.second;
             drawCallCollection.meshProxies.Clear(/* freeMemory */ freeMemory);
 
             if (freeMemory)
@@ -1421,19 +1414,15 @@ void RenderCollector::PerformOcclusionCulling(Frame* frame, const RenderSetup& r
                 continue;
             }
 
-            for (auto& it : mappings)
+            for (DrawCallCollection& drawCallCollection : mappings)
             {
-                DrawCallCollection& drawCallCollection = it.second;
-                AssertDebug(drawCallCollection.IsValid());
-
-                RenderGroup& renderGroup = drawCallCollection.renderGroup;
-                AssertDebug(renderGroup.valid);
+                AssertDebug(drawCallCollection.isInit);
 
                 IndirectRenderer* indirectRenderer = drawCallCollection.indirectRenderer;
 
-                if (renderGroup.flags & RenderGroupFlags::OCCLUSION_CULLING)
+                if (drawCallCollection.flags & RenderGroupFlags::OCCLUSION_CULLING)
                 {
-                    AssertDebug((renderGroup.flags & (RenderGroupFlags::INDIRECT_RENDERING | RenderGroupFlags::OCCLUSION_CULLING)) == (RenderGroupFlags::INDIRECT_RENDERING | RenderGroupFlags::OCCLUSION_CULLING));
+                    AssertDebug((drawCallCollection.flags & (RenderGroupFlags::INDIRECT_RENDERING | RenderGroupFlags::OCCLUSION_CULLING)) == (RenderGroupFlags::INDIRECT_RENDERING | RenderGroupFlags::OCCLUSION_CULLING));
                     AssertDebug(indirectRenderer != nullptr);
 
                     indirectRenderer->GetDrawState().ResetDrawState();
@@ -1455,14 +1444,13 @@ bool RenderCollector::BeginRecordDrawCalls(
     HYP_SCOPE;
     AssertOnThread(g_renderThread);
 
-    Span<HashMap<RenderableAttributeHandle, DrawCallCollection, RenderAllocator, HashTablePolicy::NotPooled>> groupsView;
+    Span<BinnedDrawCallCollections> groupsView;
 
     if (bucketBits == 0)
     {
         bucketBits = AllBucketsMask;
     }
 
-    // If only one bit is set, we can skip the loop by directly accessing the RenderGroup
     if (ByteUtil::BitCount(bucketBits) == 1)
     {
         const uint32 renderBucketIndex = MathUtil::FastLog2_Pow2(bucketBits);
@@ -1476,8 +1464,6 @@ bool RenderCollector::BeginRecordDrawCalls(
 
         groupsView = { &mappings, 1 };
     }
-
-    RenderGroupCache& attributeRegistry = RenderGroupCache::GetInstance();
 
     bool anyEnqueued = false;
 
@@ -1495,24 +1481,18 @@ bool RenderCollector::BeginRecordDrawCalls(
 
         ParallelRenderingState* parallelRenderingState = nullptr;
 
-        for (auto& it : mappings)
+        for (DrawCallCollection& drawCallCollection : mappings)
         {
-            const RenderableAttributeSet& attributes = attributeRegistry.Get(it.first);
-
-            DrawCallCollection& drawCallCollection = it.second;
-            AssertDebug(drawCallCollection.IsValid());
-
-            RenderGroup& renderGroup = drawCallCollection.renderGroup;
-            AssertDebug(renderGroup.valid);
+            AssertDebug(drawCallCollection.isInit);
 
             IndirectRenderer* indirectRenderer = drawCallCollection.indirectRenderer;
 
-            if (!(renderGroup.flags & RenderGroupFlags::PARALLEL_RENDERING))
+            if (!(drawCallCollection.flags & RenderGroupFlags::PARALLEL_RENDERING))
             {
                 continue;
             }
 
-            AssertDebug(renderGroup.parallelRenderingState == nullptr);
+            AssertDebug(drawCallCollection.parallelRenderingState == nullptr);
 
             if (!parallelRenderingState)
             {
@@ -1521,9 +1501,9 @@ bool RenderCollector::BeginRecordDrawCalls(
                 AssertDebug(parallelRenderingState != nullptr);
             }
 
-            renderGroup.parallelRenderingState = parallelRenderingState;
+            drawCallCollection.parallelRenderingState = parallelRenderingState;
 
-            AssertDebug(renderGroup.parallelRenderingState->taskBatch != nullptr);
+            AssertDebug(drawCallCollection.parallelRenderingState->taskBatch != nullptr);
 
             // @TODO refactor to use payload similar to before
             parallelRenderingState->taskBatch->AddTask([this, frame, renderSetup = renderSetup, &drawCallCollection, indirectRenderer]()
@@ -1588,7 +1568,7 @@ void RenderCollector::ExecuteDrawCalls(
         bucketBits = AllBucketsMask;
     }
 
-    Span<HashMap<RenderableAttributeHandle, DrawCallCollection, RenderAllocator, HashTablePolicy::NotPooled>> groupsView;
+    Span<BinnedDrawCallCollections> groupsView;
 
     // If only one bit is set, we can skip the loop by directly accessing the RenderGroup
     if (ByteUtil::BitCount(bucketBits) == 1)
@@ -1608,19 +1588,12 @@ void RenderCollector::ExecuteDrawCalls(
     {
         bool allEmpty = true;
 
-        for (auto& mappings : mappingsByBucket)
+        FOR_EACH_BIT(bucketBits, bit)
         {
-            if (mappings.Any())
+            if (mappingsByBucket[bit].Any())
             {
-                if (AnyOf(mappings, [&bucketBits](const auto& it)
-                        {
-                            return (bucketBits & (1u << uint32(it.first.GetBucket()))) != 0;
-                        }))
-                {
-                    allEmpty = false;
-
-                    break;
-                }
+                allEmpty = false;
+                break;
             }
         }
 
@@ -1645,32 +1618,28 @@ void RenderCollector::ExecuteDrawCalls(
 
     for (auto& mappings : groupsView)
     {
-        for (auto& it : mappings)
+        for (DrawCallCollection& drawCallCollection : mappings)
         {
-            const RenderableAttributeSet& attributes = attributeRegistry.Get(it.first);
+            AssertDebug(drawCallCollection.batchAllocator != nullptr && drawCallCollection.isInit);
 
-            DrawCallCollection& drawCallCollection = it.second;
-            AssertDebug(drawCallCollection.IsValid());
-
-            const RenderBucket rb = attributes.GetMaterialAttributes().bucket;
+            const RenderBucket rb = drawCallCollection.attributes.GetMaterialAttributes().bucket;
 
             if (!(bucketBits & (1u << uint32(rb))))
             {
                 continue;
             }
 
-            RenderGroup& renderGroup = drawCallCollection.renderGroup;
-            AssertDebug(renderGroup.valid);
+            AssertDebug(drawCallCollection.isInit);
 
             IndirectRenderer* indirectRenderer = drawCallCollection.indirectRenderer;
 
             ParallelRenderingState* parallelRenderingState = nullptr;
 
-            if (renderGroup.flags & RenderGroupFlags::PARALLEL_RENDERING)
+            if (drawCallCollection.flags & RenderGroupFlags::PARALLEL_RENDERING)
             {
-                parallelRenderingStatesToNullify.PushBack(&renderGroup.parallelRenderingState);
+                parallelRenderingStatesToNullify.PushBack(&drawCallCollection.parallelRenderingState);
 
-                if (renderGroup.parallelRenderingState != nullptr)
+                if (drawCallCollection.parallelRenderingState != nullptr)
                 {
                     // If PrepareAsyncDrawCalls() was used, parallelRenderingState would be non-null,
                     // therefore we skip enqueueing teh task batch if that is set and instead just
@@ -1681,7 +1650,7 @@ void RenderCollector::ExecuteDrawCalls(
                 parallelRenderingState = AcquireNextParallelRenderingState(uint8(rb));
             }
 
-            renderGroup.parallelRenderingState = parallelRenderingState;
+            drawCallCollection.parallelRenderingState = parallelRenderingState;
             PerformRendering(frame, renderSetup, drawCallCollection, indirectRenderer);
 
             if (parallelRenderingState != nullptr)
@@ -1731,23 +1700,26 @@ void RenderCollector::BuildDrawCalls(uint32 bucketBits)
         bucketBits = AllBucketsMask;
     }
 
-    using IteratorType = FlatMap<RenderableAttributeHandle, DrawCallCollection>::Iterator;
-    Array<IteratorType> iterators;
+    using IteratorType = BinnedDrawCallCollections::Iterator;
+
+    Array<IteratorType, RenderAllocator> iterators;
 
     FOR_EACH_BIT(bucketBits, bitIndex)
     {
         AssertDebug(bitIndex < mappingsByBucket.Size());
 
-        auto& mappings = mappingsByBucket[bitIndex];
+        BinnedDrawCallCollections& mappings = mappingsByBucket[bitIndex];
 
         if (mappings.Empty())
         {
             continue;
         }
 
-        for (auto& it : mappings)
+        iterators.Reserve(iterators.Size() + mappings.Count());
+
+        for (auto it = mappings.Begin(); it != mappings.End(); ++it)
         {
-            iterators.PushBack(&it);
+            iterators.PushBack(it);
         }
     }
 
@@ -1758,8 +1730,8 @@ void RenderCollector::BuildDrawCalls(uint32 bucketBits)
 
     for (IteratorType it : iterators)
     {
-        DrawCallCollection& drawCallCollection = it->second;
-        AssertDebug(drawCallCollection.IsValid());
+        DrawCallCollection& drawCallCollection = *it;
+        AssertDebug(drawCallCollection.batchAllocator != nullptr && drawCallCollection.isInit);
 
         DrawCallCollection prevDrawCallCollection;
         drawCallCollection.TakeDrawCalls(prevDrawCallCollection);
@@ -1785,7 +1757,7 @@ void RenderCollector::BuildDrawCalls(uint32 bucketBits)
 
             EntityInstanceBatch* batch = nullptr;
 
-            if (prevDrawCallCollection.IsValid())
+            if (prevDrawCallCollection.batchAllocator != nullptr && prevDrawCallCollection.isInit)
             {
                 // take a batch for reuse if a draw call was using one
                 if ((batch = prevDrawCallCollection.RecycleDrawBatch(drawCallId)) != nullptr)
@@ -1801,7 +1773,7 @@ void RenderCollector::BuildDrawCalls(uint32 bucketBits)
             drawCallCollection.PushInstancedDrawCall(batch, drawCallId, *meshProxy);
         }
 
-        if (prevDrawCallCollection.IsValid())
+        if (prevDrawCallCollection.batchAllocator != nullptr && prevDrawCallCollection.isInit)
         {
             // Any draw calls that were not reused from the previous state, clear them out and release batch indices.
             prevDrawCallCollection.ResetDrawCalls();
@@ -1822,8 +1794,8 @@ void RenderCollector::RemoveEmptyRenderGroups()
     {
         for (auto it = mappings.Begin(); it != mappings.End();)
         {
-            DrawCallCollection& drawCallCollection = it->second;
-            AssertDebug(drawCallCollection.IsValid());
+            DrawCallCollection& drawCallCollection = *it;
+            AssertDebug(drawCallCollection.batchAllocator != nullptr && drawCallCollection.isInit);
 
             if (drawCallCollection.meshProxies.Any())
             {
@@ -1851,15 +1823,11 @@ uint32 RenderCollector::NumRenderGroups() const
 
     for (const auto& mappings : mappingsByBucket)
     {
-        for (const auto& it : mappings)
+        for (const DrawCallCollection& drawCallCollection : mappings)
         {
-            const DrawCallCollection& drawCallCollection = it.second;
-            AssertDebug(drawCallCollection.IsValid());
+            AssertDebug(drawCallCollection.batchAllocator != nullptr && drawCallCollection.isInit);
 
-            if (drawCallCollection.IsValid())
-            {
-                ++count;
-            }
+            ++count;
         }
     }
 
@@ -1898,11 +1866,9 @@ void RenderCollector::BuildRenderGroups(View* view, RenderProxyList& renderProxy
 
             // remove from prev
             auto& prevMappings = mappingsByBucket[uint32(cachedHandle->GetBucket())];
+            AssertDebug(prevMappings.HasIndex(cachedHandle->GetIndex()));
 
-            auto it = prevMappings.Find(*cachedHandle);
-            Assert(it != prevMappings.End());
-
-            DrawCallCollection* prevDrawCallCollection = &it->second;
+            DrawCallCollection* prevDrawCallCollection = &prevMappings.Get(cachedHandle->GetIndex());
 
             RenderProxyMesh* meshProxy = prevDrawCallCollection->meshProxies.Get(idx);
             AssertDebug(meshProxy != nullptr);
@@ -1925,15 +1891,13 @@ void RenderCollector::BuildRenderGroups(View* view, RenderProxyList& renderProxy
             prevDrawCallCollection = nullptr;
 
             // Add proxy to group
-            DrawCallCollection& newDrawCallCollection = mappingsByBucket[uint32(bucket)][newHandle];
+            DrawCallCollection& newDrawCallCollection = mappingsByBucket[uint32(bucket)][newHandle.GetIndex()];
 
-            RenderGroup& rg = newDrawCallCollection.renderGroup;
-            AssertDebug(rg.parallelRenderingState == nullptr); // not handled properly? should be set to null after awaited
+            AssertDebug(newDrawCallCollection.parallelRenderingState == nullptr); // not handled properly? should be set to null after awaited
 
-            if (!rg.valid)
+            if (!newDrawCallCollection.isInit)
             {
-                rg = CreateRenderGroup(this, newDrawCallCollection, newAttributes);
-                rg.valid = true;
+                InitDrawCallCollection(this, newDrawCallCollection, newAttributes);
             }
 
             AssertDebug(meshProxy->mesh != nullptr && meshProxy->material != nullptr);
@@ -1970,12 +1934,10 @@ void RenderCollector::BuildRenderGroups(View* view, RenderProxyList& renderProxy
             const RenderBucket bucket = attributeHandle.GetBucket();
 
             auto& mappings = mappingsByBucket[uint32(bucket)];
+            AssertDebug(mappings.HasIndex(attributeHandle.GetIndex()));
 
-            auto it = mappings.Find(attributeHandle);
-            Assert(it != mappings.End());
-
-            DrawCallCollection& drawCallCollection = it->second;
-            Assert(drawCallCollection.IsValid());
+            DrawCallCollection& drawCallCollection = mappings.Get(attributeHandle.GetIndex());
+            Assert(drawCallCollection.batchAllocator != nullptr && drawCallCollection.isInit);
 
             AssertDebug(drawCallCollection.meshProxies.HasIndex(idx));
             drawCallCollection.meshProxies.EraseAt(idx);
@@ -1994,17 +1956,14 @@ void RenderCollector::BuildRenderGroups(View* view, RenderProxyList& renderProxy
             RenderableAttributeSet attributes;
             GeometryPass::BuildAttributes(*meshProxy, attributes, overrideAttributes);
 
-            const RenderBucket bucket = attributes.GetMaterialAttributes().bucket;
             const RenderableAttributeHandle handle = attributeRegistry.GetOrCreate(attributes);
 
             // Add proxy to group
-            DrawCallCollection& drawCallCollection = mappingsByBucket[uint32(bucket)][handle];
-            RenderGroup& rg = drawCallCollection.renderGroup;
+            DrawCallCollection& drawCallCollection = mappingsByBucket[uint32(handle.GetBucket())][handle.GetIndex()];
 
-            if (!rg.valid)
+            if (!drawCallCollection.isInit)
             {
-                rg = CreateRenderGroup(this, drawCallCollection, attributes);
-                rg.valid = true;
+                InitDrawCallCollection(this, drawCallCollection, attributes);
             }
 
             const uint32 idx = id.ToIndex();
@@ -2043,11 +2002,11 @@ void RenderCollector::PerformRendering(
 
     static const thread_local uint32 s_renderThreadIndex = CurrentRenderThreadIndex();
 
-    if (drawCallCollection.renderGroup.flags & RenderGroupFlags::PARALLEL_RENDERING)
+    if (drawCallCollection.flags & RenderGroupFlags::PARALLEL_RENDERING)
     {
-        AssertDebug(drawCallCollection.renderGroup.parallelRenderingState != nullptr);
+        AssertDebug(drawCallCollection.parallelRenderingState != nullptr);
 
-        auto* cr = drawCallCollection.renderGroup.parallelRenderingState->threadLocalRecorders[s_renderThreadIndex];
+        auto* cr = drawCallCollection.parallelRenderingState->threadLocalRecorders[s_renderThreadIndex];
         AssertDebug(cr != nullptr);
 
         PerformRenderingImpl(frame, *cr, renderSetup, drawCallCollection, indirectRenderer);

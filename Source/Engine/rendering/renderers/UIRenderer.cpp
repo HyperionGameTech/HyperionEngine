@@ -123,22 +123,20 @@ static void BuildRenderGroupsOrdered(
             attributes.SetShaderProperties(newProperties);
         }
 
-        const RenderBucket bucket = attributes.GetMaterialAttributes().bucket;
-
         attributes.SetLayerIndex(pair.second);
 
         const RenderableAttributeHandle handle = attributeRegistry.GetOrCreate(attributes);
 
-        DrawCallCollection& drawCallCollection = renderCollector.mappingsByBucket[uint32(bucket)][handle];
-        RenderGroup& rg = drawCallCollection.renderGroup;
+        DrawCallCollection& drawCallCollection = renderCollector.mappingsByBucket[uint32(handle.GetBucket())][handle.GetIndex()];
 
-        if (!rg.valid)
+        if (!drawCallCollection.isInit)
         {
-            rg.valid = true;
-            rg.renderableAttributes = attributes;
-            rg.flags = RenderGroupFlags::NONE;
+            drawCallCollection.attributes = attributes;
+            drawCallCollection.flags = RenderGroupFlags::NONE;
 
             drawCallCollection.batchAllocator = renderCollector.batchAllocator;
+
+            drawCallCollection.isInit = true;
         }
 
         drawCallCollection.meshProxies.Set(meshProxy->entity.Id().ToIndex(), meshProxy);
@@ -168,14 +166,17 @@ void UIRenderCollector::ExecuteDrawCalls(Frame* frame, const RenderSetup& render
 
     RenderGroupCache& attributeRegistry = RenderGroupCache::GetInstance();
 
-    using IteratorType = FlatMap<RenderableAttributeHandle, DrawCallCollection>::Iterator;
-    Array<IteratorType> iterators;
+    using IteratorType = BinnedDrawCallCollections::Iterator;
 
-    for (auto& mappings : mappingsByBucket)
+    Array<IteratorType, RenderAllocator> iterators;
+
+    for (BinnedDrawCallCollections& mappings : mappingsByBucket)
     {
-        for (auto& it : mappings)
+        iterators.Reserve(iterators.Size() + mappings.Count());
+
+        for (auto it = mappings.Begin(); it != mappings.End(); ++it)
         {
-            iterators.PushBack(&it);
+            iterators.PushBack(it);
         }
     }
 
@@ -184,9 +185,7 @@ void UIRenderCollector::ExecuteDrawCalls(Frame* frame, const RenderSetup& render
 
         std::sort(iterators.Begin(), iterators.End(), [](IteratorType lhs, IteratorType rhs) -> bool
             {
-                const RenderGroupCache& attributeRegistry = RenderGroupCache::GetInstance();
-
-                return attributeRegistry.Get(lhs->first).GetLayerIndex() < attributeRegistry.Get(rhs->first).GetLayerIndex();
+                return lhs->attributes.GetLayerIndex() < rhs->attributes.GetLayerIndex();
             });
     }
 
@@ -196,29 +195,22 @@ void UIRenderCollector::ExecuteDrawCalls(Frame* frame, const RenderSetup& render
 
     for (size_t index = 0; index < iterators.Size(); index++)
     {
-        auto& it = *iterators[index];
+        DrawCallCollection& drawCallCollection = *iterators[index];
+        Assert(drawCallCollection.isInit);
 
-        const RenderableAttributeSet& attributes = attributeRegistry.Get(it.first);
-
-        DrawCallCollection& drawCallCollection = it.second;
-        Assert(drawCallCollection.IsValid());
-
-        RenderGroup& renderGroup = drawCallCollection.renderGroup;
-        Assert(renderGroup.valid);
-
-        if (renderGroup.flags & RenderGroupFlags::PARALLEL_RENDERING)
+        if (drawCallCollection.flags & RenderGroupFlags::PARALLEL_RENDERING)
         {
-            renderGroup.parallelRenderingState = AcquireNextParallelRenderingState(uint8(attributes.GetMaterialAttributes().bucket));
+            drawCallCollection.parallelRenderingState = AcquireNextParallelRenderingState(uint8(drawCallCollection.attributes.GetMaterialAttributes().bucket));
         }
 
         PerformRendering(frame, renderSetup, drawCallCollection, nullptr);
 
-        if (renderGroup.parallelRenderingState != nullptr)
+        if (drawCallCollection.parallelRenderingState != nullptr)
         {
-            parallelRenderingStatesToNullify.PushBack(&renderGroup.parallelRenderingState);
+            parallelRenderingStatesToNullify.PushBack(&drawCallCollection.parallelRenderingState);
 
-            AssertDebug(renderGroup.parallelRenderingState->taskBatch != nullptr);
-            TaskSystem::GetInstance().EnqueueBatch(renderGroup.parallelRenderingState->taskBatch);
+            AssertDebug(drawCallCollection.parallelRenderingState->taskBatch != nullptr);
+            TaskSystem::GetInstance().EnqueueBatch(drawCallCollection.parallelRenderingState->taskBatch);
         }
     }
 

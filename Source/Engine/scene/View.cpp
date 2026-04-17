@@ -927,7 +927,7 @@ void View::CollectMeshEntities(RenderProxyList& rpl)
 #endif
     }
 
-    ResourceTrackerDiff meshesDiff = rpl.GetMeshEntities().GetDiff();
+    Resources::ResourceTrackerDiff meshesDiff = rpl.GetMeshEntities().GetDiff();
 
     if (meshesDiff.NeedsUpdate())
     {

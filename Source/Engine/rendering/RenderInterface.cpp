@@ -104,6 +104,8 @@
 
 namespace Hyperion {
 
+using namespace Resources;
+
 static_assert(RingBufferDepth <= MinSafeDeleteCycles,
     "RingBufferDepth must be less than or equal to MinSafeDeleteCycles to ensure safe deletion of resources.");
 
@@ -116,8 +118,6 @@ static_assert(MaxFramesBeforeDiscard >= MinSafeDeleteCycles,
 
 // iterations per frame for cleaning up unused resources for passes
 static constexpr int FrameCleanupBudget = 16;
-
-
 
 EngineStatTimer g_statRenderThreadSync("Render/Sync");
 static EngineStatTimer s_statViewDataAllocTime { "Rendering/ViewData/AllocTime", /* resetPerFrame */ false };
@@ -398,21 +398,6 @@ RenderCollector& GetRenderCollector(View* view)
     return vd->renderCollector;
 }
 
-Array<Pair<View*, RenderCollector*>> GetAllRenderCollectors()
-{
-    HYP_SCOPE;
-    AssertOnThread(g_renderThread);
-
-    Array<Pair<View*, RenderCollector*>> result;
-
-    for (auto& it : Framework::s_viewData)
-    {
-        result.PushBack(Pair<View*, RenderCollector*>(it.first, &it.second->renderCollector));
-    }
-
-    return result;
-}
-
 IRenderProxy* GetRenderProxy(const ObjectBase* resource)
 {
     HYP_SCOPE;
@@ -420,7 +405,7 @@ IRenderProxy* GetRenderProxy(const ObjectBase* resource)
 
     AssertDebug(resource != nullptr);
 
-    Resources::ResourceSubtypeData& subtypeData = g_renderInterface->resources->GetSubtypeData(resource->InstanceClass());
+    ResourceSubtypeData& subtypeData = g_renderInterface->resources->GetSubtypeData(resource->InstanceClass());
     AssertDebug(subtypeData.hasProxyData,
         "Cannot use GetRenderProxy() for type which does not have a RenderProxy! Type name: {}",
         subtypeData.typeInfo->name);
@@ -450,7 +435,7 @@ void UpdateGpuData(const ObjectBase* resource)
 
     const ObjIdBase resourceId = resource->Id();
 
-    Resources::ResourceSubtypeData& subtypeData = g_renderInterface->resources->GetSubtypeData(resource->InstanceClass());
+    ResourceSubtypeData& subtypeData = g_renderInterface->resources->GetSubtypeData(resource->InstanceClass());
     AssertDebug(resourceId.GetTypeId() == subtypeData.typeInfo->id);
 
     AssertDebug(subtypeData.sbuffer != nullptr,
@@ -461,7 +446,7 @@ void UpdateGpuData(const ObjectBase* resource)
         "Cannot use UpdateGpuData() for type which does not have a RenderProxy! Type: {}",
         subtypeData.typeInfo->name);
 
-    const uint32 bindingIndex = Resources::GetBinding(resource);
+    const uint32 bindingIndex = GetBinding(resource);
     AssertDebug(bindingIndex != ~0u);
 
     const uint32 idx = resourceId.ToIndex();
@@ -482,11 +467,11 @@ void SetForceRebind(ObjectBase* resource, bool forceRebind)
 
     AssertDebug(resource != nullptr);
 
-    Resources::ResourceSubtypeData& subtypeData = g_renderInterface->resources->GetSubtypeData(resource->InstanceClass());
+    ResourceSubtypeData& subtypeData = g_renderInterface->resources->GetSubtypeData(resource->InstanceClass());
 
-    for (Resources::ResourceBinderBase** it = subtypeData.resourceBinders; *it; ++it)
+    for (ResourceBinderBase** it = subtypeData.resourceBinders; *it; ++it)
     {
-        Resources::ResourceBinderBase* resourceBinder = *it;
+        ResourceBinderBase* resourceBinder = *it;
         resourceBinder->SetForceRebind(resource, forceRebind);
     }
 }
@@ -624,9 +609,9 @@ RendererResult RenderInterface::Initialize()
 
     crashHandler->Initialize();
 
-    resources = PoolNew<Resources::ResourceContainer>(*g_renderPool);
+    resources = PoolNew<ResourceContainer>(*g_renderPool);
 
-    for (Resources::ResourceBinderBase* resourceBinder : Resources::s_resourceBinders)
+    for (ResourceBinderBase* resourceBinder : s_resourceBinders)
     {
         resourceBinder->Initialize();
     }
@@ -673,7 +658,7 @@ RendererResult RenderInterface::Initialize()
     finalPass = PoolNew<FinalPass>(*g_renderPool);
     finalPass->Create();
 
-    Resources::ResourceContainerFactoryRegistry& registry = Resources::ResourceContainerFactoryRegistry::GetInstance();
+    ResourceContainerFactoryRegistry& registry = ResourceContainerFactoryRegistry::GetInstance();
     registry.InvokeAll(*resources);
 
     registry.funcs.Clear();
@@ -743,12 +728,12 @@ void RenderInterface::Shutdown()
 
     Framework::s_viewData.Clear();
 
-    for (Resources::ResourceBinderBase* resourceBinder : Resources::s_resourceBinders)
+    for (ResourceBinderBase* resourceBinder : s_resourceBinders)
     {
         resourceBinder->Shutdown();
     }
 
-    Resources::ClearSubtypeBindings();
+    ClearSubtypeBindings();
 
     commandRecorderAllocator.Shutdown();
 
@@ -942,9 +927,9 @@ void RenderInterface::BeginFrame(AtomicFlag* pCancelFlag)
     {
         HYP_NAMED_SCOPE("Resource bindings - select candidates");
 
-        for (Resources::ResourceSubtypeData& subtypeData : resources->dataByType)
+        for (ResourceSubtypeData& subtypeData : resources->dataByType)
         {
-            for (Resources::ResourceData& elem : subtypeData.data)
+            for (ResourceData& elem : subtypeData.data)
             {
                 AssertDebug(elem.resource != nullptr);
 
@@ -964,9 +949,9 @@ void RenderInterface::BeginFrame(AtomicFlag* pCancelFlag)
                     }
                 }
 
-                for (Resources::ResourceBinderBase** it = subtypeData.resourceBinders; *it; ++it)
+                for (ResourceBinderBase** it = subtypeData.resourceBinders; *it; ++it)
                 {
-                    Resources::ResourceBinderBase* resourceBinder = *it;
+                    ResourceBinderBase* resourceBinder = *it;
                     resourceBinder->Consider(elem.resource, forceRebind);
                 }
             }
@@ -974,22 +959,22 @@ void RenderInterface::BeginFrame(AtomicFlag* pCancelFlag)
     }
 
     // assign the actual bindings:
-    for (Resources::ResourceBinderBase* resourceBinder : Resources::s_resourceBinders)
+    for (ResourceBinderBase* resourceBinder : s_resourceBinders)
     {
         resourceBinder->ApplyUpdates();
     }
     
     TBitset<RenderAllocator> currentBoundIndices;
 
-    for (Resources::ResourceSubtypeData& subtypeData : resources->dataByType)
+    for (ResourceSubtypeData& subtypeData : resources->dataByType)
     {
         if (subtypeData.indicesPendingUpdate.Count() != 0)
         {
             currentBoundIndices.Clear();
 
-            for (Resources::ResourceBinderBase** it = subtypeData.resourceBinders; *it; ++it)
+            for (ResourceBinderBase** it = subtypeData.resourceBinders; *it; ++it)
             {
-                Resources::ResourceBinderBase* resourceBinder = *it;
+                ResourceBinderBase* resourceBinder = *it;
                 currentBoundIndices |= resourceBinder->GetBoundIndices(subtypeData.typeInfo->id);
             }
 
@@ -1022,7 +1007,7 @@ void RenderInterface::BeginFrame(AtomicFlag* pCancelFlag)
 
                 AssertDebug(subtypeData.hasProxyData);
 
-                const uint32 bindingIndex = Resources::GetBinding(resource);
+                const uint32 bindingIndex = GetBinding(resource);
                 AssertDebug(bindingIndex != ~0u,
                     "Failed to retrieve binding for resource: {} in frame {}, but it is marked as bound (index: {})",
                     i, slot, i);
@@ -1152,11 +1137,11 @@ void RenderInterface::EndFrame()
     numCleanupCycles -= computePipelineCache->RunCleanupCycle(4);
     numCleanupCycles -= rayTracingPipelineCache->RunCleanupCycle(1);
 
-    for (Resources::ResourceSubtypeData& subtypeData : resources->dataByType)
+    for (ResourceSubtypeData& subtypeData : resources->dataByType)
     {
         for (Bitset::BitIndex i : subtypeData.indicesPendingDelete)
         {
-            Resources::ResourceData& rd = subtypeData.data.Get(i);
+            ResourceData& rd = subtypeData.data.Get(i);
             AssertDebug(rd.resource != nullptr);
             AssertDebug(rd.useCount == 0, "Use count should be 0 before deletion");
 
@@ -1164,9 +1149,9 @@ void RenderInterface::EndFrame()
             // dead items)
             subtypeData.indicesPendingUpdate.Set(i, false);
 
-            for (Resources::ResourceBinderBase** it = subtypeData.resourceBinders; *it; ++it)
+            for (ResourceBinderBase** it = subtypeData.resourceBinders; *it; ++it)
             {
-                Resources::ResourceBinderBase* resourceBinder = *it;
+                ResourceBinderBase* resourceBinder = *it;
                 resourceBinder->Deconsider(rd.resource);
             }
 
