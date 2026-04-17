@@ -338,7 +338,7 @@ void UISubsystem::RenderCollect(RenderProxyList& rpl)
         },
         /* onlyVisible */ true);
 
-    ResourceTrackerDiff meshesDiff = rpl.GetMeshEntities().GetDiff();
+    Resources::ResourceTrackerDiff meshesDiff = rpl.GetMeshEntities().GetDiff();
 
     if (meshesDiff.NeedsUpdate())
     {

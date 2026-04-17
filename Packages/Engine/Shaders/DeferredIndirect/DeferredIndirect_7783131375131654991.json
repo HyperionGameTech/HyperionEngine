@@ -20,12 +20,6 @@
       "EnumValues": []
     }, {
       "$Class": "ShaderProperty",
-      "Name": "DEBUG_IRRADIANCE",
-      "Flags": 0,
-      "Value": null,
-      "EnumValues": []
-    }, {
-      "$Class": "ShaderProperty",
       "Name": "HBAO_ENABLED",
       "Flags": 0,
       "Value": null,
@@ -33,6 +27,12 @@
     }, {
       "$Class": "ShaderProperty",
       "Name": "SSR_ENABLED",
+      "Flags": 0,
+      "Value": null,
+      "EnumValues": []
+    }, {
+      "$Class": "ShaderProperty",
+      "Name": "DEBUG_REFLECTIONS",
       "Flags": 0,
       "Value": null,
       "EnumValues": []
@@ -306,18 +306,18 @@
   "EntryPointNames": ["VSMain", "PSMain"],
   "ShaderBlobs": [{
       "$Class": "BlobDataReference",
-      "Key": "Engine/Shaders/DeferredIndirect/DeferredIndirect_16495654302570710720.VS",
+      "Key": "Engine/Shaders/DeferredIndirect/DeferredIndirect_7783131375131654991.VS",
       "Size": 11764
     }, {
       "$Class": "BlobDataReference",
-      "Key": "Engine/Shaders/DeferredIndirect/DeferredIndirect_16495654302570710720.PS",
-      "Size": 148144
+      "Key": "Engine/Shaders/DeferredIndirect/DeferredIndirect_7783131375131654991.PS",
+      "Size": 150140
     }],
   "PropertySetHashCode": {},
   "LastCompiledTimestamp": {
     "Value": 13420591026643
   },
-  "Name": "DeferredIndirect_16495654302570710720",
-  "FriendlyName": "DeferredIndirect_16495654302570710720",
+  "Name": "DeferredIndirect_7783131375131654991",
+  "FriendlyName": "DeferredIndirect_7783131375131654991",
   "OriginalFilepath": ""
 }
