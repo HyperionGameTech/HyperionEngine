@@ -86,6 +86,26 @@ namespace AssetBuckets {
     inline constexpr AssetBucket Bones(14);
     inline constexpr AssetBucket EnvProbes(15);
     inline constexpr AssetBucket LightmapVolumes(16);
+
+    static constexpr const AssetBucket* AllBuckets[] = {
+        &None,
+        &Meshes,
+        &MaterialDefinitions,
+        &MaterialInstances,
+        &Textures,
+        &Lights,
+        &InstancedMeshData,
+        &Animations,
+        &AnimationTracks,
+        &Skeletons,
+        &Worlds,
+        &Scenes,
+        &Nodes,
+        &Entities,
+        &Bones,
+        &EnvProbes,
+        &LightmapVolumes
+    };
 } // namespace AssetBuckets
 
 // adjust as needed
@@ -148,6 +168,36 @@ inline constexpr const AssetBucket& GetAssetBucketByName(StringHash nameHash)
     default:
         return AssetBuckets::None;
     }
+}
+
+inline static const char* GetAssetBucketName(const uint32 bucketIndex)
+{
+    static constexpr const char* s_names[MaxAssetBuckets] = {
+        nullptr,                // 0 = None
+        "Meshes",               // 1
+        "MaterialDefinitions",  // 2
+        "MaterialInstances",    // 3
+        "Textures",             // 4
+        "Lights",               // 5
+        "InstancedMeshData",    // 6
+        "Animations",           // 7
+        "AnimationTracks",      // 8
+        "Skeletons",            // 9
+        "Worlds",               // 10
+        "Scenes",               // 11
+        "Nodes",                // 12
+        "Entities",             // 13
+        "Bones",                // 14
+        "EnvProbes",            // 15
+        "LightmapVolumes"       // 16
+    };
+
+    if (bucketIndex == 0 || bucketIndex >= MaxAssetBuckets)
+    {
+        return nullptr;
+    }
+
+    return s_names[bucketIndex];
 }
 
 } // namespace Hyperion

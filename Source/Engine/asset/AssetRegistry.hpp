@@ -526,6 +526,7 @@ public:
     void PutAsset(const AssetBucket& bucket, const Handle<AssetObject>& asset);
 
     void LoadAssetDescs(const FilePath& rootDirectory);
+    void SaveDirtyAssets(const FilePath& rootDirectory);
 
     /// End new assetbucket based stuff
 

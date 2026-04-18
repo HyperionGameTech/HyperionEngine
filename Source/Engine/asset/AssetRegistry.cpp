@@ -2749,6 +2749,115 @@ void AssetRegistry::LoadAssetDescs(const FilePath& rootDirectory)
     }
 }
 
+void AssetRegistry::SaveDirtyAssets(const FilePath& rootDirectory)
+{
+    if (!rootDirectory.Exists() || !rootDirectory.IsDirectory())
+    {
+        HYP_LOG(Assets, Warning, "SaveDirtyAssets: root directory '{}' does not exist or is not a directory", rootDirectory);
+        return;
+    }
+
+    BlobStorage& blobStorage = GetBlobStorage();
+
+    for (uint32 bucketIndex = 1; bucketIndex < MaxAssetBuckets; ++bucketIndex)
+    {
+        AssetBucketData& data = m_assetBucketData[bucketIndex];
+
+        const char* bucketName = GetAssetBucketName(bucketIndex);
+        AssertDebug(bucketName != nullptr);
+
+        Array<Pair<Bitset::BitIndex, Handle<AssetObject>>> dirtyAssets;
+
+        {
+            TSharedLock lock(data.mtx);
+
+            if (!data.dirtyIndices.AnyBitsSet())
+            {
+                continue;
+            }
+
+            for (Bitset::BitIndex index = data.dirtyIndices.NextSetBitIndex(1); index != Bitset::NotFound; index = data.dirtyIndices.NextSetBitIndex(index + 1))
+            {
+                const Handle<AssetObject>* pAssetObject = data.assetObjectCache.TryGet(index);
+
+                if (!pAssetObject || !pAssetObject->IsValid())
+                {
+                    HYP_LOG(Assets, Warning, "SaveDirtyAssets: dirty index {} in bucket '{}' has no cached asset object, skipping",
+                        index, bucketName);
+                    continue;
+                }
+
+                dirtyAssets.EmplaceBack(index, *pAssetObject);
+            }
+        }
+
+        if (dirtyAssets.Empty())
+        {
+            continue;
+        }
+
+        const FilePath bucketDir = rootDirectory / bucketName;
+
+        if (!bucketDir.Exists())
+        {
+            if (!bucketDir.MkDir())
+            {
+                HYP_LOG(Assets, Error, "SaveDirtyAssets: failed to create bucket directory '{}'", bucketDir);
+                continue;
+            }
+        }
+
+        for (const Pair<Bitset::BitIndex, Handle<AssetObject>>& pair : dirtyAssets)
+        {
+            const Bitset::BitIndex index = pair.first;
+            const Handle<AssetObject>& assetObject = pair.second;
+
+            const Name assetName = assetObject->GetName();
+            if (!assetName.IsValid())
+            {
+                HYP_LOG(Assets, Warning, "SaveDirtyAssets: asset at index {} in bucket '{}' has no name, skipping",
+                    index, bucketName);
+                continue;
+            }
+
+            const FilePath manifestPath = bucketDir / (String(*assetName) + ".json");
+
+            if (Result saveBlobResult = assetObject->SaveBlobData(blobStorage, bucketDir); saveBlobResult.HasError())
+            {
+                HYP_LOG(Assets, Error, "SaveDirtyAssets: failed to save blob data for asset '{}' in bucket '{}': {}",
+                    assetName, bucketName, saveBlobResult.GetError().GetMessage());
+                continue;
+            }
+
+            {
+                FileByteWriter manifestWriter { manifestPath };
+
+                if (!manifestWriter.IsOpen())
+                {
+                    HYP_LOG(Assets, Error, "SaveDirtyAssets: failed to open manifest file '{}' for writing", manifestPath);
+                    continue;
+                }
+
+                if (Result saveManifestResult = assetObject->SaveManifest(manifestWriter); saveManifestResult.HasError())
+                {
+                    HYP_LOG(Assets, Error, "SaveDirtyAssets: failed to save manifest for asset '{}' in bucket '{}': {}",
+                        assetName, bucketName, saveManifestResult.GetError().GetMessage());
+                    continue;
+                }
+
+                manifestWriter.Close();
+            }
+
+            assetObject->m_manifestPath = manifestPath;
+
+            HYP_LOG(Assets, Verbose, "SaveDirtyAssets: saved asset '{}' to '{}'", assetName, manifestPath);
+
+            TUniqueLock lock(data.mtx);
+            data.dirtyIndices.Set(index, false);
+        }
+    }
+}
+
 BlobStorage& AssetRegistry::GetBlobStorage()
 {
     Assert(m_blobStorage != nullptr);
