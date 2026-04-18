@@ -1388,11 +1388,11 @@ extern class Game
     GetGameState() -> GameState
     OnLaunch() -> void
     OnUpdate(delta : float) -> void
+    SetToEditMode() -> void
+    IsLaunched() -> bool
     StartSimulating() -> void
     StopSimulating() -> void
     PauseSimulation() -> void
-    SetToEditMode() -> void
-    IsLaunched() -> bool
     OnLaunched : any
     OnGameStateChange : any
     OnLaunch_Impl() -> void
@@ -1530,8 +1530,9 @@ extern class EditorSubsystem : Subsystem
     OnSelectedGizmoChanged : any
     OnSelectedPackageChanged : any
     OnActiveViewportChanged : any
-    OnBeginSimulation() -> void
-    OnEndSimulation() -> void
+    StartSimulation() -> void
+    StopSimulation() -> void
+    PauseSimulation() -> void
 end
 extern class EditorState
     static GetInstance() -> EditorState

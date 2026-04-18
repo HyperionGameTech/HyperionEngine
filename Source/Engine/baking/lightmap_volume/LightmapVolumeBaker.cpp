@@ -106,7 +106,7 @@ static void UpdateAtlasTextures(
 
         atlasTexture->SetName(NAME_FMT("LightmapVolumeAtlasTexture_{}_{}", lmv->GetName(), LightmapAtlasTextureTypeNames[textureTypeIndex]));
 
-        if (Result result = g_assetManager->GetAssetRegistry()->RegisterAsset("$Import/Lightmaps", atlasTexture, AddAssetConflictMode::ReplaceExisting); result.HasError())
+        if (Result result = g_assetManager->GetAssetRegistry()->RegisterAsset("$Memory/Lightmaps", atlasTexture, AddAssetConflictMode::ReplaceExisting); result.HasError())
         {
             HYP_LOG(Lightmap, Error, "Failed to register atlas texture '{}' with asset registry: {}", atlasTexture->GetName(), result.GetError().GetMessage());
         }

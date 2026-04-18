@@ -55,13 +55,10 @@ public:
     virtual void OnUpdate(float delta) final;
 
     HYP_METHOD()
-    void StartSimulating();
+    void Initialize();
 
     HYP_METHOD()
-    void StopSimulating();
-
-    HYP_METHOD()
-    void PauseSimulation();
+    void Shutdown();
 
 #if HYP_EDITOR
     HYP_METHOD(EditorOnly)
@@ -78,6 +75,15 @@ public:
         return m_isLaunched.Get(MemoryOrder::ACQUIRE);
     }
 
+    HYP_METHOD()
+    void StartSimulating();
+
+    HYP_METHOD()
+    void StopSimulating();
+
+    HYP_METHOD()
+    void PauseSimulation();
+
     HYP_FIELD()
     ScriptableDelegate<void> OnLaunched;
 
@@ -85,8 +91,6 @@ public:
     ScriptableDelegate<void, Game*, GameStateMode, GameStateMode> OnGameStateChange;
 
 protected:
-    void Init() override final;
-
     virtual void Logic(float delta)
     {
         HYP_PURE_VIRTUAL();
