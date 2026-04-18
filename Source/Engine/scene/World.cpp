@@ -1276,13 +1276,25 @@ void World::DeserializeNonStreamingScenes(const Array<Handle<Scene>>& scenes)
 
 Array<Handle<Scene>> World::SerializeNonStreamingScenes() const
 {
-    if (m_worldFlags & WorldFlags::HAS_SCENE_STREAMING_LAYER)
+    Array<Handle<Scene>> scenes;
+    scenes.Reserve(m_scenes.Size());
+
+    for (const Handle<Scene>& scene : m_scenes)
     {
-        // return nothing if we have streaming enabled.
-        return {};
+        if ((m_worldFlags & WorldFlags::HAS_SCENE_STREAMING_LAYER) && (scene->GetSceneFlags() & SceneFlags::STREAMED))
+        {
+            continue;
+        }
+
+        if (scene->GetAssetFlags() & AssetObjectFlags::Transient)
+        {
+            continue;
+        }
+
+        scenes.PushBack(scene);
     }
 
-    return m_scenes;
+    return scenes;
 }
 
 static void BindStreamingDelegates(DelegateHandlerSet& set, World* world, WorldGridLayer* layer)

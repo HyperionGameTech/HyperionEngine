@@ -342,7 +342,6 @@ public:
             return;
         }
 
-        /// \todo : Allow building a bounding box in editor before starting the task.
         BoundingBox lightmapVolumeAabb(Vec3f(-60.0f, -5.0f, -60.0f), Vec3f(60.0f, 40.0f, 60.0f));
 
         Handle<LightmapVolume> lightmapVolume = MakeHandle<LightmapVolume>(lightmapVolumeAabb);
