@@ -80,7 +80,7 @@ const Handle<AssetObject>& AssetReference::Resolve() const
 
     if (assetPath.IsValid())
     {
-        Handle<AssetObject> assetObject = g_assetManager->GetAssetRegistry()->GetAssetFromPath(assetPath.ToString());
+        Handle<AssetObject> assetObject = GetCurrentAssetRegistry()->GetAsset(*AssetBuckets::AllBuckets[assetPath.bucketIndex], assetPath.assetName);
 
         if (assetObject)
         {

@@ -12,6 +12,7 @@
 #include <rendering/DebugDrawer.hpp>
 
 #include <asset/Assets.hpp>
+#include <asset/AssetRegistry.hpp>
 
 #include <Core/threading/Threads.hpp>
 
@@ -39,6 +40,8 @@ namespace Hyperion {
 
 static const Name s_nameMainWorld = NAME("World");
 
+HYP_API extern const FilePath& GetLibraryDirectory();
+
 Game::Game()
     : m_isLaunched(false)
 {
@@ -52,6 +55,14 @@ Game::~Game()
 void Game::Initialize()
 {
     AssertOnThread(g_simThread);
+
+    if (!m_assetRegistry)
+    {
+        m_assetRegistry = MakeHandle<AssetRegistry>(GetLibraryDirectory() / *InstanceClass()->GetName());
+        m_assetRegistry->Initialize();
+    }
+
+    PushCurrentAssetRegistry(m_assetRegistry, true);
 
     if (!m_world)
     {
@@ -78,6 +89,15 @@ void Game::Shutdown()
         g_engineDriver->RemoveWorld(m_world);
 
         m_world.Reset();
+    }
+
+    if (m_assetRegistry)
+    {
+        m_assetRegistry->Shutdown();
+
+        PopCurrentAssetRegistry(true);
+
+        m_assetRegistry.Reset();
     }
 }
 

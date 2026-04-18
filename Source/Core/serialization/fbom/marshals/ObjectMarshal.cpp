@@ -34,13 +34,8 @@ namespace Hyperion::serialization {
 static const TypeId s_typeIdAssetReference = TypeId::ForType<AssetReference>();
 static const Name s_nameResolveAsset = NAME("resolveasset");
 
-struct SaveAssetsAsReferencesContext
-{
-};
-
-struct LoadAssetsFromReferencesContext
-{
-};
+struct SaveAssetsAsReferencesContext { };
+struct LoadAssetsFromReferencesContext { };
 
 static void CollectAssetReferenceMembers(
     const Class* cls,

@@ -473,7 +473,7 @@ struct ShaderInputGroup
     };
 };
 
-HYP_CLASS()
+HYP_CLASS(AssetBucket = "ShaderBundles")
 class HYP_API ShaderBundle : public AssetObject
 {
     HYP_OBJECT_BODY(ShaderBundle);

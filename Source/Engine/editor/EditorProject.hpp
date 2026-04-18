@@ -26,8 +26,6 @@ namespace Hyperion {
 class Scene;
 class World;
 class Game;
-class AssetCollector;
-class AssetPackage;
 class EditorActionStack;
 class EditorSubsystem;
 
@@ -88,12 +86,6 @@ public:
     }
 
     HYP_METHOD()
-    HYP_FORCE_INLINE const Handle<AssetPackage>& GetPackage() const
-    {
-        return m_package;
-    }
-
-    HYP_METHOD()
     void AddScene(const Handle<Scene>& scene);
 
     HYP_METHOD()
@@ -125,12 +117,8 @@ public:
     HYP_FIELD()
     ScriptableDelegate<void, const Handle<EditorProject>&> OnProjectSaved;
 
-    Delegate<void, Handle<AssetPackage>> OnPackageCreated;
-
 private:
     void Init() override;
-
-    Result CreatePackage();
 
     HYP_FORCE_INLINE void SetEditorSubsystem(const WeakHandle<EditorSubsystem>& editorSubsystem)
     {
@@ -150,9 +138,6 @@ private:
 
     HYP_FIELD(Property = "GameInstance")
     Handle<Game> m_gameInstance;
-
-    HYP_FIELD(Transient)
-    Handle<AssetPackage> m_package;
 
     HYP_FIELD(Transient)
     Handle<EditorActionStack> m_actionStack;

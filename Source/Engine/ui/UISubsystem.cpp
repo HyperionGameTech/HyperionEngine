@@ -95,8 +95,8 @@ static TResult<Handle<FontAtlas>> CreateFontAtlas()
     // we check if it exists in the registry before creating.
     // some platforms build without freetype support so the atlas must already exist in the registry.
 
-    AssetRegistry& registry = *g_assetManager->GetAssetRegistry();
-    Handle<FontAtlas> fontAtlas = ObjCast<FontAtlas>(registry.GetAssetFromPath("Engine/Fonts/Roboto/Roboto_Regular"));
+    AssetRegistry& registry = *GetEngineAssetRegistry();
+    Handle<FontAtlas> fontAtlas = ObjCast<FontAtlas>(registry.GetAsset(AssetBuckets::FontAtlases, "Roboto_Regular"_sh));
     if (fontAtlas.IsValid())
     {
         return fontAtlas;
@@ -109,26 +109,17 @@ static TResult<Handle<FontAtlas>> CreateFontAtlas()
         return HYP_MAKE_ERROR(Error, "Failed to load font face! Error: {}", fontFaceAsset.GetError().GetMessage());
     }
 
-    Handle<AssetPackage> package = registry.GetPackageFromPath("Engine/Fonts/Roboto", /* createIfNotExist */ true);
-    Assert(package.IsValid());
-
     // create new font atlas
-    fontAtlas = MakeHandle<FontAtlas>(
-        NAME("Roboto_Regular"),
-        std::move(fontFaceAsset->Result()));
+    fontAtlas = MakeHandle<FontAtlas>(NAME("Roboto_Regular"), std::move(fontFaceAsset->Result()));
     
     // render atlas textures.
     if (Result renderAtlasResult = fontAtlas->RenderAtlasTextures(1.0f, 2.0f, 0.1f); renderAtlasResult.HasError())
     {
         return renderAtlasResult.GetError();
     }
-
-    // will save Engine package automatically.
-    Result addAssetResult = package->AddAssetObject(fontAtlas, /* replaceOnConflict */ true);
-    if (addAssetResult.HasError())
-    {
-        return HYP_MAKE_ERROR(Error, "Failed to add font face asset to package! Error: {}", fontFaceAsset.GetError().GetMessage());
-    }
+    
+    registry.PutAsset(fontAtlas);
+    registry.SaveDirtyAssets();
 
     // need to move in return since return type is wrapped result
     return fontAtlas;

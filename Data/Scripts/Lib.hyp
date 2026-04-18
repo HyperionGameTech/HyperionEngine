@@ -1385,6 +1385,7 @@ extern struct GameState
 end
 extern class Game
     GetWorld() -> World
+    GetAssetRegistry() -> AssetRegistry
     GetGameState() -> GameState
     OnLaunch() -> void
     OnUpdate(delta : float) -> void
@@ -1523,14 +1524,14 @@ extern class EditorSubsystem : Subsystem
     SetSelectedManipulationMode(mode : EditorManipulationMode) -> void
     GetSelectedGizmo() -> EditorGizmoBase
     GetGizmo(mode : EditorManipulationMode) -> EditorGizmoBase
-    SetSelectedPackage(package : AssetPackage) -> void
+    SetSelectedBucket(bucketIndex : uint32) -> void
     CalculateSceneInsertionPoint(desiredDistance : float, offsetFromSurface : float) -> Vec3f
     OnFocusedNodeChanged : any
     OnProjectClosing : any
     OnProjectOpened : any
     OnActiveSceneChanged : any
     OnSelectedGizmoChanged : any
-    OnSelectedPackageChanged : any
+    OnSelectedBucketChanged : any
     OnActiveViewportChanged : any
     StartSimulation() -> void
     StopSimulation() -> void
@@ -1554,7 +1555,6 @@ extern class EditorProject
     SetGame(gameInstance : Game) -> void
     GetLastSavedTime() -> Time
     GetFilePath() -> string
-    GetPackage() -> AssetPackage
     AddScene(scene : Scene) -> void
     RemoveScene(scene : Scene) -> void
     GetProjectsDirectory() -> string
@@ -1568,7 +1568,6 @@ extern class EditorProject
     LastSavedTime : Time
     Filepath : string
     GameInstance : Game
-    Package : AssetPackage
     ActionStack : EditorActionStack
 end
 extern class EditorCommandBase
@@ -1717,47 +1716,7 @@ extern enum AssetChangeType : uint32
 end
 extern class AssetRegistry
     GetRootPath() -> string
-    SetRootPath(rootPath : string) -> void
-    RemovePackage(package : AssetPackage) -> void
-    GetPackageFromPath(path : string, createIfNotExist : bool, requireLoaded : bool) -> AssetPackage
-    GetPackage(parentPackage : AssetPackage, subpackageName : string, createIfNotExist : bool, requireLoaded : bool) -> AssetPackage
-    GetUniqueAssetName(packagePath : string, baseName : Name) -> Name
-    OnPackageAdded : any
-    OnPackageRemoved : any
     RootPath : string
-end
-extern class AssetPackage
-    GetName() -> Name
-    Rename(name : Name) -> void
-    GetFriendlyName() -> Name
-    SetFriendlyName(friendlyName : Name) -> void
-    GetFlags() -> AssetPackageFlags
-    IsTransient() -> bool
-    IsHidden() -> bool
-    IsLoading() -> bool
-    GetParentPackage() -> AssetPackage
-    LoadSubpackages(recursive : bool) -> void
-    IsSubpackageOf(other : AssetPackage) -> bool
-    BuildPackagePath() -> string
-    GetSavedDirectory() -> string
-    BuildAssetPath(assetName : Name) -> AssetPath
-    HasAssetWithName(assetName : any) -> bool
-    GetUniqueAssetName(baseName : Name) -> Name
-    Save(outputDirectory : string, saveEvenIfNotDirty : bool) -> Result
-    GetDependencies() -> Array<AssetPath>
-    AddDependency(dependency : AssetPath) -> void
-    IsDirty() -> bool
-    IsSaved() -> bool
-    OnAssetObjectAdded : any
-    OnAssetObjectRemoved : any
-    OnSubpackageAdded : any
-    OnSubpackageRemoved : any
-    GetRelativeDependencies() -> Array<string>
-    SetRelativeDependencies(relativePaths : Array<string>) -> void
-    Name : Name
-    FriendlyName : Name
-    Flags : AssetPackageFlags
-    Dependencies : Array<AssetPath>
 end
 extern struct AssetReference
     GetAssetPath() -> AssetPath
@@ -1766,8 +1725,6 @@ end
 extern struct AssetPath
     IsValid() -> bool
     GetName() -> Name
-    GetChain() -> Array<Name>
-    SetChain(names : Array<Name>) -> void
     ToString() -> string
 end
 extern class AssetObject
@@ -1779,11 +1736,10 @@ extern class AssetObject
     GetFriendlyName() -> Name
     SetFriendlyName(friendlyName : Name) -> void
     GetAssetIndex() -> uint32
+    IsRegistered() -> bool
     GetOriginalFilepath() -> string
     SetOriginalFilepath(originalFilepath : string) -> void
-    GetPackage() -> AssetPackage
     GetPath() -> AssetPath
-    IsRegistered() -> bool
     GetAssetFlags() -> AssetObjectFlags
     SetAssetFlags(flags : AssetObjectFlags) -> void
     SetPersistentRequested(persistentlyLoaded : bool, setFlag : bool, markDirty : bool) -> void
@@ -1792,16 +1748,13 @@ extern class AssetObject
     SetIsTransient(isTransient : bool) -> void
     SetIsTransientByProxy(isTransientByProxy : bool) -> void
     IsSaved() -> bool
-    Unload() -> void
     Save() -> Result
     SaveAs(manifestPath : string) -> Result
-    Register(path : string, conflictMode : AddAssetConflictMode) -> Result
     Name : Name
     FriendlyName : Name
     Flags : AssetObjectFlags
     OriginalFilepath : string
     AssetIndex : uint32
-    Package : any
     AssetPath : AssetPath
     ManifestPath : string
 end
@@ -2433,6 +2386,8 @@ extern enum PhysicsShapeType : uint8
     CAPSULE
 end
 extern class AssetLoaderBase
+end
+extern struct AssetBucket
 end
 extern struct UUID
     Data0 : uint64

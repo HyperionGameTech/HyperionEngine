@@ -151,7 +151,7 @@ AssetLoadResult TextureLoader::LoadAsset(LoaderState& state) const
     texture->SetName(assetName);
     texture->SetOriginalFilepath(FilePath::Relative(state.filepath, state.assetManager->GetBasePath()));
     
-    state.assetManager->GetAssetRegistry()->RegisterAsset("$Import/Textures", texture);
+    GetCurrentAssetRegistry()->PutAssetUnique(texture);
     
     CheckResult(texture->Create());
 

@@ -328,12 +328,14 @@ void AssetManager::Init()
 {
     RegisterDefaultLoaders();
 
-    m_assetRegistry = MakeHandle<AssetRegistry>();
-    m_assetRegistry->Initialize();
-
     m_threadPool->Start();
 
     SetReady(true);
+}
+
+Handle<AssetRegistry> AssetManager::GetAssetRegistry() const
+{
+    return GetCurrentAssetRegistry();
 }
 
 void AssetManager::Update(float delta)
@@ -341,7 +343,15 @@ void AssetManager::Update(float delta)
     HYP_SCOPE;
     AssertOnThread(g_simThread);
 
-    m_assetRegistry->Update();
+    if (Handle<AssetRegistry> engineRegistry = GetEngineAssetRegistry())
+    {
+        engineRegistry->Update();
+    }
+
+    if (Handle<AssetRegistry> currentRegistry = GetCurrentAssetRegistry())
+    {
+        currentRegistry->Update();
+    }
 
     uint32 numPendingBatches;
 

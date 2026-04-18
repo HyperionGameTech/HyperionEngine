@@ -976,34 +976,7 @@ public:
                                     continue;
                                 }
 
-                                ANSIStringView importSubPath;
-
-                                if (assetObject->IsA(Texture::StaticClass()))
-                                {
-                                    importSubPath = "Media/Textures";
-                                }
-                                else if (assetObject->IsA(Node::StaticClass()))
-                                {
-                                    importSubPath = "Media/Models";
-                                }
-                                else if (assetObject->IsA(Skeleton::StaticClass()))
-                                {
-                                    importSubPath = "Media/Skeletons";
-                                }
-                                else
-                                {
-                                    importSubPath = "Media/Misc";
-                                }
-
-                                Result registerAssetResult = AssetManager::GetInstance()->GetAssetRegistry()->RegisterAsset(
-                                    HYP_FORMAT("$Import/{}", importSubPath),
-                                    assetObject,
-                                    AddAssetConflictMode::GenerateNewName);
-
-                                if (registerAssetResult.HasError())
-                                {
-                                    HYP_LOG(Editor, Error, "Failed to import asset {}: {}", assetObject->GetName(), registerAssetResult.GetError().GetMessage());
-                                }
+                                GetCurrentAssetRegistry()->PutAssetUnique(assetObject);
                             }
 
                             delete editorTaskScope;
@@ -1112,6 +1085,7 @@ DEFINE_EDITOR_COMMAND(ReparentNode);
 
 #pragma region ShowTexture
 
+#if 0
 class HYP_API EditorCommandShowTexture final : public EditorCommandBase
 {
     HYP_OBJECT_BODY(EditorCommandShowTexture);
@@ -1187,7 +1161,7 @@ public:
 
         static const auto SetupWatch = [](UISubsystem* uiSubsystem, const AssetPath& path)
         {
-            Handle<AssetObject> assetObject = g_assetManager->GetAssetRegistry()->GetAssetFromPath(path.ToString());
+            Handle<AssetObject> assetObject = GetCurrentAssetRegistry()->GetAssetFromPath(path.ToString());
             Handle<Texture> texture = ObjCast<Texture>(assetObject);
 
             if (!texture.IsValid())
@@ -1271,6 +1245,7 @@ EditorCommandShowTexture::WatchTextureState EditorCommandShowTexture::s_watchTex
 Mutex EditorCommandShowTexture::s_watchTextureStateMtx;
 
 DEFINE_EDITOR_COMMAND(ShowTexture);
+#endif
 
 #pragma endregion ShowTexture
 

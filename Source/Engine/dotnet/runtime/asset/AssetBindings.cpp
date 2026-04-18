@@ -8,6 +8,7 @@
 
 #include <asset/Assets.hpp>
 #include <asset/AssetRegistry.hpp>
+#include <asset/AssetBucket.hpp>
 
 using namespace Hyperion;
 
@@ -33,14 +34,21 @@ extern "C"
         pLoadedAsset->valueOrError.Reset();
     }
 
-    HYP_EXPORT int8 AssetPackage_GetAssetObjectBoxed(AssetPackage* pPackage, const Name* pName, BoxedValue* pOutBoxed)
+    HYP_EXPORT int8 AssetRegistry_GetAssetBoxed(AssetRegistry* pRegistry, uint32 bucketIndex, const Name* pName, BoxedValue* pOutBoxed)
     {
-        if (!pPackage || !pName || !pOutBoxed)
+        if (!pRegistry || !pName || !pOutBoxed)
         {
             return 0;
         }
 
-        Handle<AssetObject> assetObject = pPackage->GetAssetObject(*pName);
+        if (bucketIndex >= MaxAssetBuckets)
+        {
+            return 0;
+        }
+
+        const AssetBucket& bucket = *AssetBuckets::AllBuckets[bucketIndex];
+
+        Handle<AssetObject> assetObject = pRegistry->GetAsset(bucket, StringHash(*pName));
 
         if (!assetObject.IsValid())
         {

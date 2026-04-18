@@ -1667,7 +1667,7 @@ AssetLoadResult FBXModelLoader::LoadAsset(LoaderState& state) const
 
                 Handle<Mesh> mesh = fbxMesh->GetResultObject();
 
-                state.assetManager->GetAssetRegistry()->RegisterAsset("$Import/Meshes", mesh);
+                GetCurrentAssetRegistry()->PutAssetUnique(mesh);
 
                 MaterialAttributes attributes;
                 attributes.shaderName = NAME("GeometryPass");

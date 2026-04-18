@@ -145,7 +145,7 @@ Mesh* SphereDebugDrawShape::GetMesh_Internal() const
             mesh->SetFlags(MeshFlags::ViewIndependent);
             mesh->SetName(NAME("SphereDebugDrawShape"));
 
-            g_assetManager->GetAssetRegistry()->RegisterAsset("Engine/Meshes", mesh);
+            GetEngineAssetRegistry()->PutAsset(mesh);
 
             InitObject(mesh);
 
@@ -321,7 +321,7 @@ Mesh* BoxDebugDrawShape::GetMesh_Internal() const
             mesh->SetFlags(MeshFlags::ViewIndependent);
             mesh->SetName(NAME("BoxDebugDrawShape"));
 
-            g_assetManager->GetAssetRegistry()->RegisterAsset("Engine/Meshes", mesh);
+            GetEngineAssetRegistry()->PutAsset(mesh);
 
             InitObject(mesh);
             
@@ -392,7 +392,7 @@ Mesh* PlaneDebugDrawShape::GetMesh_Internal() const
             mesh->SetFlags(MeshFlags::ViewIndependent);
             mesh->SetName(NAME("PlaneDebugDrawShape"));
 
-            g_assetManager->GetAssetRegistry()->RegisterAsset("Engine/Meshes", mesh);
+            GetEngineAssetRegistry()->PutAsset(mesh);
 
             InitObject(mesh);
             

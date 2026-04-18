@@ -19,6 +19,7 @@
 #include <engine/threads/VisThread.hpp>
 
 #include <asset/Assets.hpp>
+#include <asset/AssetRegistry.hpp>
 #include <asset/BlobStorage.hpp>
 
 #include <Core/Core.hpp>
@@ -357,6 +358,14 @@ extern "C"
         g_assetManager = MakeHandle<AssetManager>();
         InitObject(g_assetManager);
 
+        // Create the engine-global asset registry for shared engine data (shaders, debug shapes, etc.)
+        {
+            Handle<AssetRegistry> engineRegistry = MakeHandle<AssetRegistry>(GetLibraryDirectory() / "Engine");
+            engineRegistry->Initialize();
+
+            SetEngineAssetRegistry(engineRegistry);
+        }
+
         g_audioManager = MakeHandle<AudioManager>();
         InitObject(g_audioManager);
 
@@ -489,6 +498,9 @@ extern "C"
 
         g_streamingManager->Stop();
         g_streamingManager.Reset();
+
+        GetEngineAssetRegistry()->Shutdown();
+        SetEngineAssetRegistry(Handle<AssetRegistry>::Null());
 
         g_assetManager.Reset();
         g_audioManager.Reset();

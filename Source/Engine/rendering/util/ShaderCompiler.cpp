@@ -1675,7 +1675,7 @@ static void ForEachPermutation(
 static bool LoadBundleFromAssetPath(
     const AssetPath& path, Handle<ShaderBundle>& outBundle)
 {
-    Handle<AssetObject> asset = g_assetManager->GetAssetRegistry()->GetAssetFromPath(path.ToString());
+    Handle<AssetObject> asset = GetEngineAssetRegistry()->GetAsset(*AssetBuckets::AllBuckets[path.bucketIndex], path.assetName);
 
     if (!asset.IsValid() || !asset->IsA(ShaderBundle::StaticClass()))
     {
@@ -2211,10 +2211,14 @@ bool ShaderCompiler::LoadBundle(
 
     Assert(outBundle != nullptr);
 
-    Handle<AssetPackage> package = outBundle->GetPackage();
-    Assert(package.IsValid());
+    //Handle<AssetPackage> package = outBundle->GetPackage();
+    //Assert(package.IsValid());
 
-    const Time lastSavedTimestamp = package.IsValid() ? package->GetLastSavedTimestamp() : Time(0);
+    //const Time lastSavedTimestamp = package.IsValid() ? package->GetLastSavedTimestamp() : Time(0);
+
+    // @FIXME
+
+    const Time lastSavedTimestamp = Time(0);
 
     return HandleBundle(decl, shaderRequest, lastSavedTimestamp, outBundle);
 }
@@ -3800,18 +3804,7 @@ bool ShaderCompiler::CompileBundle(
     {
         for (Handle<Shader>& shader : existingShadersToRemove)
         {
-            Handle<AssetPackage> package = shader->GetPackage();
-
-            if (package.IsValid())
-            {
-                Result removeResult = package->RemoveAssetObject(shader);
-                if (removeResult.HasError())
-                {
-                    HYP_LOG(ShaderCompiler, Warning,
-                        "Failed to remove old shader asset {} from package {}: {}",
-                        shader->GetName(), package->GetName(), removeResult.GetError().GetMessage());
-                }
-            }
+            GetEngineAssetRegistry()->RemoveAsset(shader);
 
             g_renderInterface->graphicsPipelineCache->ExpirePipelinesForShader(shader);
             g_renderInterface->computePipelineCache->ExpirePipelinesForShader(shader);
@@ -3844,10 +3837,7 @@ bool ShaderCompiler::CompileBundle(
 
         for (const Handle<Shader>& shader : outBundle->compiledShaders)
         {
-            registerResult = g_assetManager->GetAssetRegistry()->RegisterAsset(
-                HYP_FORMAT("Engine/Shaders/{}", shader->baseName),
-                shader,
-                AddAssetConflictMode::ReplaceExisting);
+            GetEngineAssetRegistry()->PutAsset(shader);
 
             if (registerResult.HasError())
             {
@@ -3861,19 +3851,7 @@ bool ShaderCompiler::CompileBundle(
         
         outBundle->MarkDirty();
         
-        registerResult = g_assetManager->GetAssetRegistry()->RegisterAsset(
-            "Engine/Shaders",
-            outBundle->HandleFromThis(),
-            AddAssetConflictMode::ReplaceExisting);
-
-        if (registerResult.HasError())
-        {
-            HYP_LOG(ShaderCompiler, Error,
-                "Failed to register shader bundle asset {}: {}",
-                outBundle->GetName(), registerResult.GetError().GetMessage());
-
-            return false;
-        }
+        GetEngineAssetRegistry()->PutAsset(outBundle->HandleFromThis());
 
         HYP_LOG(ShaderCompiler, Verbose, "Shader bundle {} has {} shaders, is dirty? {}",
             outBundle->GetName(),

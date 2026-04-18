@@ -19,8 +19,8 @@ namespace Hyperion {
 
 class AssetObject;
 
-HYP_STRUCT(Size = 16)
-class HYP_API AssetReference
+HYP_STRUCT()
+class AssetReference
 {
 public:
     HYP_STRUCT_BODY(AssetReference)

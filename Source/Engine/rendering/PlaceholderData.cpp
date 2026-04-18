@@ -213,9 +213,9 @@ void PlaceholderData::Initialize()
         }
     };
 
-    auto LoadOrInitTexture = [&InitBufferData]<class... Args>(Handle<Texture>& outTexture, const String& path, Name name, const TextureDesc& textureDesc, PlaceholderBufferData& bufferData, auto fillFn, Args&&... args)
+    auto LoadOrInitTexture = [&InitBufferData]<class... Args>(Handle<Texture>& outTexture, Name name, const TextureDesc& textureDesc, PlaceholderBufferData& bufferData, auto fillFn, Args&&... args)
     {
-        if (Handle<AssetObject> asset = g_assetManager->GetAssetRegistry()->GetAssetFromPath(path + "/" + *name); asset.IsValid())
+        if (Handle<AssetObject> asset = GetEngineAssetRegistry()->GetAsset(AssetBuckets::Textures, name); asset.IsValid())
         {
             Handle<Texture> textureAsset = ObjCast<Texture>(asset);
             Assert(textureAsset != nullptr);
@@ -235,7 +235,7 @@ void PlaceholderData::Initialize()
         outTexture->SetName(name);
         outTexture->SetPersistentRequested(true, /* setFlag */ true);
         
-        g_assetManager->GetAssetRegistry()->RegisterAsset(path, outTexture);
+        GetEngineAssetRegistry()->PutAsset(outTexture);
 
         CheckResult(outTexture->Create());
     };
@@ -246,7 +246,6 @@ void PlaceholderData::Initialize()
 
     LoadOrInitTexture(
         defaultTexture2d,
-        "Engine/Textures",
         NAME("Placeholder_Texture_2D_1x1"),
         TextureDesc {
             TextureType::Texture2D,
@@ -262,7 +261,6 @@ void PlaceholderData::Initialize()
 
     LoadOrInitTexture(
         defaultTexture3d,
-        "Engine/Textures",
         NAME("Placeholder_Texture_3D_1x1x1"),
         TextureDesc {
             TextureType::Texture3D,
@@ -278,7 +276,6 @@ void PlaceholderData::Initialize()
 
     LoadOrInitTexture(
         defaultCubemap,
-        "Engine/Textures",
         NAME("Placeholder_Texture_Cube_1x1"),
         TextureDesc {
             TextureType::Cubemap,
@@ -294,7 +291,6 @@ void PlaceholderData::Initialize()
 
     LoadOrInitTexture(
         defaultTexture2dArray,
-        "Engine/Textures",
         NAME("Placeholder_Texture_2D_1x1_Array"),
         TextureDesc {
             TextureType::Texture2DArray,
@@ -310,7 +306,6 @@ void PlaceholderData::Initialize()
 
     LoadOrInitTexture(
         defaultCubemapArray,
-        "Engine/Textures",
         NAME("Placeholder_Texture_Cube_1x1_Array"),
         TextureDesc {
             TextureType::CubemapArray,

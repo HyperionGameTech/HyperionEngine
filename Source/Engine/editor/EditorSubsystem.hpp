@@ -35,7 +35,6 @@ class EditorDelegates;
 class EditorSubsystem;
 class EditorProject;
 class EditorCommandBase;
-class AssetPackage;
 class ApplicationWindow;
 struct MouseEvent;
 struct KeyboardEvent;
@@ -477,7 +476,7 @@ public:
     const EditorGizmoSet& GetGizmos() const;
 
     HYP_METHOD()
-    void SetSelectedPackage(const Handle<AssetPackage>& package);
+    void SetSelectedBucket(uint32 bucketIndex);
 
     /*! \brief Calculate an appropriate position for inserting a new object into the scene.
      *  Uses raycasting from the camera to find a suitable location that doesn't intersect with existing geometry.
@@ -512,7 +511,7 @@ public:
     ScriptableDelegate<void, EditorGizmoBase*, EditorGizmoBase*> OnSelectedGizmoChanged;
 
     HYP_FIELD()
-    ScriptableDelegate<void, Handle<AssetPackage>> OnSelectedPackageChanged;
+    ScriptableDelegate<void, uint32> OnSelectedBucketChanged;
 
     HYP_FIELD()
     ScriptableDelegate<void, Handle<EditorViewport>> OnActiveViewportChanged;
@@ -580,7 +579,7 @@ private:
     EditorDelegates* m_editorDelegates;
 
     Handle<UIListView> m_contentBrowserDirectoryList;
-    Handle<AssetPackage> m_selectedPackage;
+    uint32 m_selectedBucketIndex;
 
     Array<Handle<EditorViewport>> m_editorViewports;
 

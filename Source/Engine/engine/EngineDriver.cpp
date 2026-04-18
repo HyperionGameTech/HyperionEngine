@@ -8,6 +8,8 @@
 
 #include <engine/EngineDriver.hpp>
 #include <engine/EngineGlobals.hpp>
+
+#include <asset/AssetRegistry.hpp>
 #include <engine/EngineStats.hpp>
 #include <engine/EngineMemory.hpp>
 #include <engine/CVarManager.hpp>
@@ -141,12 +143,7 @@ static void UpdateInstancedMeshEntities(Scene* scene, Array<Entity*, AllocatorTy
         {
             Handle<InstancedMeshData> imd = MakeHandle<InstancedMeshData>(NAME_FMT("IMD_{}", entity->GetName()));
 
-            Result registerResult = imd->Register("$Memory/Objects/Types/InstancedMeshData", AddAssetConflictMode::GenerateNewName);
-
-            if (registerResult.HasError())
-            {
-                HYP_LOG(Scene, Error, "Failed to register InstancedMeshData: {}", registerResult.GetError().GetMessage());
-            }
+            GetCurrentAssetRegistry()->PutAssetUnique(imd);
 
             meshComponent.instanceData = AssetReference(imd);
         }

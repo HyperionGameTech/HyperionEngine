@@ -357,16 +357,13 @@ void Texture::PageBlobData()
         && m_imageData.key
         && m_imageData.size != 0)
     {
-        BlobStorage& blobStorage = g_assetManager->GetAssetRegistry()->GetBlobStorage();
+        BlobStorage& blobStorage = GetCurrentAssetRegistry()->GetBlobStorage();
 
         if (!blobStorage.GetData(m_imageData.key, m_imageData.size, m_imageData.raw))
         {
 #if HYP_EDITOR || HYP_ALLOW_INLINE_BLOBS
             // check if failed; if so, try to import from raw data blob in project directory
-            Handle<AssetPackage> package = GetPackage();
-            Assert(package && package->IsSaved());
-
-            FileByteReader stream { package->GetSavedDirectory() / (String(*GetName()) + ".TEX.raw.blob") };
+            FileByteReader stream { GetCurrentAssetRegistry()->GetRootPath() / AssetBuckets::Textures.GetName() / (String(*GetName()) + ".TEX.raw.blob") };
             if (!stream.Eof())
             {
                 ByteBuffer buffer = stream.Read(stream.Max());

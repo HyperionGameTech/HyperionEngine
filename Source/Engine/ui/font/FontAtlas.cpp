@@ -259,13 +259,8 @@ Result FontAtlas::RenderAtlasTextures(float mainAtlasScale, float maxScale, floa
         atlasTexture->SetName(NAME_FMT("FontAtlas_{}", scale));
         CheckResult(atlasTexture->Create());
 
-        // register the texture to in-memory package.
-        // when the package the font atlas is in is saved, it will be moved over
-        Result registerResult = atlasTexture->Register(HYP_FORMAT("$Memory/Fonts/{}", GetName()), /* conflictMode */ AddAssetConflictMode::ReplaceExisting);
-        if (registerResult.HasError())
-        {
-            return registerResult.GetError();
-        }
+        // register the texture to the asset registry
+        GetCurrentAssetRegistry()->PutAsset(atlasTexture);
 
         // Add initial atlas
         m_atlasTextures.AddAtlas(scaledExtent.y, std::move(atlasTexture), isMainAtlas);

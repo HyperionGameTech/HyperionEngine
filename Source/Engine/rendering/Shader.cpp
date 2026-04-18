@@ -84,18 +84,14 @@ void Shader::PageBlobData()
 
         if (ref.raw == nullptr && ref.key && ref.size != 0)
         {
-            BlobStorage& blobStorage = g_assetManager->GetAssetRegistry()->GetBlobStorage();
+            BlobStorage& blobStorage = GetEngineAssetRegistry()->GetBlobStorage();
 
             if (!blobStorage.GetData(ref.key, ref.size, ref.raw))
             {
 #if HYP_EDITOR || HYP_ALLOW_INLINE_BLOBS
-                Handle<AssetPackage> package = GetPackage();
-                Assert(package.IsValid());
-                Assert(package->IsSaved());
-
                 const char* moduleTypeString = GetShaderHeaderPrefix(moduleType);
 
-                FileByteReader stream { package->GetSavedDirectory() / (String(*GetName()) + "." + moduleTypeString + ".raw.blob") };
+                FileByteReader stream { GetCurrentAssetRegistry()->GetRootPath() / AssetBuckets::Shaders.GetName() / (String(*GetName()) + "." + moduleTypeString + ".raw.blob") };
                 if (!stream.Eof())
                 {
                     ByteBuffer buffer = stream.Read(stream.Max());
@@ -119,7 +115,7 @@ void Shader::PageBlobData()
 #if HYP_EDITOR
     if (needSaveBlobData)
     {    
-        BlobStorage& blobStorage = g_assetManager->GetAssetRegistry()->GetBlobStorage();
+        BlobStorage& blobStorage = GetEngineAssetRegistry()->GetBlobStorage();
 
         Result saveBlobDataResult = SaveBlobData(blobStorage);
 

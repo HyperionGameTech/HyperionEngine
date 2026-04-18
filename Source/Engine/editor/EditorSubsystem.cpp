@@ -778,12 +778,15 @@ Handle<Node> TranslateEditorGizmo::Load_Internal() const
                 materialAttributes.bucket = RenderBucket::Debug;
 
                 {
-                    Handle<MaterialDefinition> materialDefinition = MakeHandle<MaterialDefinition>(Name::Unique("debug_material"), materialAttributes, materialParameters, MaterialTextures {});
-                    materialDefinition->Register("$Memory/MaterialDefinitions");
+                    Handle<MaterialDefinition> materialDefinition = MakeHandle<MaterialDefinition>(NAME("DebugMaterial"), materialAttributes, materialParameters, MaterialTextures {});
                     InitObject(materialDefinition);
+
+                    GetCurrentAssetRegistry()->PutAssetUnique(materialDefinition);
 
                     Handle<MaterialInstance> materialInstance = materialDefinition->CreateInstance();
                     materialInstance->SetIsDynamic(true);
+
+                    GetCurrentAssetRegistry()->PutAssetUnique(materialInstance);
 
                     meshComponent->material = std::move(materialInstance);
                 }
@@ -866,8 +869,8 @@ Handle<Node> RotateEditorGizmo::Load_Internal() const
                     materialAttributes.bucket = RenderBucket::Debug;
 
                     {
-                        Handle<MaterialDefinition> materialDefinition = MakeHandle<MaterialDefinition>(Name::Unique("debug_material"), materialAttributes, materialParameters, MaterialTextures {});
-                        materialDefinition->Register("$Memory/MaterialDefinitions");
+                        Handle<MaterialDefinition> materialDefinition = MakeHandle<MaterialDefinition>(NAME("DebugMaterial"), materialAttributes, materialParameters, MaterialTextures {});
+                        GetCurrentAssetRegistry()->PutAssetUnique(materialDefinition);
                         InitObject(materialDefinition);
                         
                         Handle<MaterialInstance> materialInstance = materialDefinition->CreateInstance();
@@ -2094,18 +2097,11 @@ void EditorSubsystem::StartSimulation()
 
     m_simulationSnapshotPath = m_currentProject->GetFilePath();
 
-    Handle<AssetPackage> oldPackage = m_currentProject->GetPackage();
-    Assert(oldPackage.IsValid());
-
     m_preSimulationProject = m_currentProject;
 
     CloseProject();
-
-    // Drop all cached strong refs in the old package, we want to force reload for loading the project for sim state.
-    if (oldPackage.IsValid())
-    {
-        oldPackage->UnloadAssetObjects(/* recursive */ true);
-    }
+    
+    m_currentProject->GetGame()->GetAssetRegistry()->RemoveCached();
 
     FilePath snapshotPath = std::move(m_simulationSnapshotPath);
 
@@ -2209,27 +2205,6 @@ void EditorSubsystem::StopSimulation()
 
     // should be set in StartSimulation, but just in case.
     AssertDebug(m_preSimulationProject.IsValid());
-
-    Handle<AssetPackage> package = m_preSimulationProject->GetPackage();
-    Assert(package.IsValid());
-
-    // purge what is there
-    package->UnloadAssetObjects(/* recursive */ true);
-
-    // re-register the pre-simulation package
-    g_assetManager->GetAssetRegistry()->RegisterAssetsRecursively(
-        package->BuildPackagePath(),
-        BoxedValue(AnyRef(*m_preSimulationProject)),
-        /* forceRelocation */ false,
-        /* appendExistingPackagePath */ true, // to preserve structure.
-        [](const AssetObject& assetObject) -> String
-        {
-            // Instances of objects without a pre-defined path (e.g Media/Meshes) go under
-            //  PkgName/Objects/Types/<ObjectClassName>/ObjectName
-            return HYP_FORMAT("Objects/Types/{}", assetObject.InstanceClass()->GetName());
-        },
-        AddAssetConflictMode::ReplaceExisting,
-        /* recacheExisting */ true);
 
     OpenProject(m_preSimulationProject);
 
@@ -2883,18 +2858,18 @@ void EditorSubsystem::InitActiveSceneSelection()
     }
 }
 
-void EditorSubsystem::SetSelectedPackage(const Handle<AssetPackage>& package)
+void EditorSubsystem::SetSelectedBucket(uint32 bucketIndex)
 {
     HYP_SCOPE;
 
-    if (m_selectedPackage == package)
+    if (m_selectedBucketIndex == bucketIndex)
     {
         return;
     }
 
-    m_selectedPackage = package;
+    m_selectedBucketIndex = bucketIndex;
 
-    OnSelectedPackageChanged(package);
+    OnSelectedBucketChanged(bucketIndex);
 }
 
 bool EditorSubsystem::ExecuteCommand(const Handle<EditorCommandBase>& command)

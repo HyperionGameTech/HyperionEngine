@@ -147,11 +147,8 @@ void LightmapVolume::RemoveAllElements()
     {
         if (!texture.IsValid())
             continue;
-
-        if (Handle<AssetPackage> package = texture->GetPackage(); package.IsValid())
-        {
-            package->RemoveAssetObject(texture);
-        }
+            
+        GetCurrentAssetRegistry()->RemoveAsset(texture);
 
         EnqueueDeletion(std::move(texture));
     }
@@ -161,11 +158,8 @@ void LightmapVolume::RemoveAllElements()
         if (!texture.IsValid())
             continue;
 
-        if (Handle<AssetPackage> package = texture->GetPackage(); package.IsValid())
-        {
-            package->RemoveAssetObject(texture);
-        }
-        
+        GetCurrentAssetRegistry()->RemoveAsset(texture);
+
         EnqueueDeletion(std::move(texture));
     }
 

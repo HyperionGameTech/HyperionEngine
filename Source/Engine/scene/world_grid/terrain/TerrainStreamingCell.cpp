@@ -373,7 +373,7 @@ void TerrainStreamingCell::OnStreamStart_Impl()
     m_mesh = meshBuilder.BuildMesh();
     m_mesh->Rename(NAME_FMT("Terrain_{}", m_cellInfo.coord));
 
-    g_assetManager->GetAssetRegistry()->RegisterAsset("$Temp/Media/Meshes", m_mesh, AddAssetConflictMode::ReplaceExisting);
+    GetCurrentAssetRegistry()->PutAsset(m_mesh);
 
     m_mesh->Rename(NAME_FMT("Terrain_{}_Mesh", m_cellInfo.coord));
 

@@ -803,22 +803,15 @@ public:
                 Handle<ScriptAsset> scriptAsset = MakeHandle<ScriptAsset>(CreateNameFromDynamicString(scriptDesc.assemblyPath.Data()), scriptDesc);
                 InitObject(scriptAsset);
 
-                Result assetObjectResult = m_state->assetManager->GetAssetRegistry()->RegisterAsset("$Import/Scripts", scriptAsset);
+                GetCurrentAssetRegistry()->PutAsset(scriptAsset);
 
-                if (assetObjectResult)
+                scriptComponent.assetReference = TAssetReference<ScriptAsset>(std::move(scriptAsset));
+
+                if (m_uiObjectStack.Any())
                 {
-                    scriptComponent.assetReference = TAssetReference<ScriptAsset>(std::move(scriptAsset));
+                    LastObject()->SetScriptComponent(std::move(scriptComponent));
 
-                    if (m_uiObjectStack.Any())
-                    {
-                        LastObject()->SetScriptComponent(std::move(scriptComponent));
-
-                        valid = true;
-                    }
-                }
-                else
-                {
-                    HYP_LOG(Assets, Error, "Failed to register UI script {}", assetObjectResult.GetError().GetMessage());
+                    valid = true;
                 }
             }
 #endif

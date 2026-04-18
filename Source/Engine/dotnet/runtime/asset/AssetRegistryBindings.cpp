@@ -7,27 +7,39 @@
 #include <HyperionPch.hpp>
 
 #include <asset/AssetRegistry.hpp>
+#include <asset/AssetBucket.hpp>
 
 using namespace Hyperion;
 
 extern "C"
 {
-    HYP_EXPORT uint32 AssetRegistry_GetPackages(AssetRegistry* pRegistry, Handle<AssetPackage>* pOutPackageHandles)
+    HYP_EXPORT uint32 AssetRegistry_GetBucketAssetDescs(AssetRegistry* pRegistry, uint32 bucketIndex, AssetDesc* pOutAssetDescs, uint32 maxCount)
     {
         Assert(pRegistry != nullptr);
 
-        if (!pOutPackageHandles)
+        Array<AssetDesc> descs;
+        pRegistry->GetBucketAssetDescs(bucketIndex, descs);
+
+        if (!pOutAssetDescs)
         {
-            return uint32(pRegistry->GetPackages().Size());
+            return uint32(descs.Size());
         }
 
-        Array<Handle<AssetPackage>> packages = pRegistry->GetPackages().ToArray();
-
-        for (uint32 i = 0; i < uint32(packages.Size()); i++)
+        if (maxCount > uint32(descs.Size()))
         {
-            new (&pOutPackageHandles[i]) Handle<AssetPackage>(std::move(packages[i]));
+            maxCount = uint32(descs.Size());
         }
 
-        return uint32(packages.Size());
+        for (uint32 i = 0; i < maxCount; i++)
+        {
+            new (&pOutAssetDescs[i]) AssetDesc(std::move(descs[i]));
+        }
+
+        return maxCount;
+    }
+
+    HYP_EXPORT const char* AssetRegistry_GetBucketName(uint32 bucketIndex)
+    {
+        return GetAssetBucketName(bucketIndex);
     }
 } // extern "C"

@@ -1,7 +1,0 @@
-{
-  "Dependencies": [],
-  "Name": "Skybox",
-  "FriendlyName": "Skybox",
-  "Flags": 0,
-  "Path": "Engine/Shaders/Skybox"
-}

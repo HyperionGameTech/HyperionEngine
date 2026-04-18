@@ -17,6 +17,8 @@
 #include <rendering/Texture.hpp>
 #include <rendering/InstancedMeshData.hpp>
 
+#include <asset/AssetRegistry.hpp>
+
 #include <scene/camera/OrthoCamera.hpp>
 
 #include <scene/EntityManager.hpp>
@@ -419,11 +421,7 @@ void UIText::UpdateMeshData_Internal()
     {
         instancedMesh = MakeHandle<InstancedMeshData>(NAME_FMT("IMD_{}_{}", InstanceClass()->GetName(), GetName()));
 
-        Result registerResult = instancedMesh->Register("$Memory/Objects/Types/InstancedMeshData", AddAssetConflictMode::GenerateNewName);
-        if (registerResult.HasError())
-        {
-            HYP_LOG(UI, Error, "Failed to register UIObject InstancedMeshData: {}", registerResult.GetError().GetMessage());
-        }
+        GetCurrentAssetRegistry()->PutAssetUnique(instancedMesh);
 
         meshComponent.instanceData = AssetReference(instancedMesh);
     }

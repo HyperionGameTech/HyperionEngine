@@ -54,7 +54,7 @@ struct HYP_API FontAtlasTextureSet
     void AddAtlas(uint32 pixelSize, Handle<Texture> texture, bool isMainAtlas = false);
 };
 
-HYP_CLASS()
+HYP_CLASS(AssetBucket = "FontAtlases")
 class HYP_API FontAtlas : public AssetObject
 {
     HYP_OBJECT_BODY(FontAtlas);

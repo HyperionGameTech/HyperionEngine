@@ -91,46 +91,6 @@ AssetObject::~AssetObject()
     }
 }
 
-#if 0
-AssetPackage* AssetObject::GetPackage() const
-{
-    if (!IsRegistered())
-    {
-        return Handle<AssetPackage>::Null();
-    }
-
-    if (Handle<AssetPackage> package = m_package.Lock(); package.IsValid())
-    {
-        return package;
-    }
-
-    // If we have an asset path but our package reference is invalid, we need to attempt to re-resolve our package
-    // This can happen after deserialization when the package reference is not yet set, but the asset path is deserialized before the package's asset list is populated.
-    AssetRegistry& registry = *g_assetManager->GetAssetRegistry();
-
-    String packagePathStr = m_assetPath.ToString();
-    Array<String> pathSegments = packagePathStr.Split('/');
-    if (pathSegments.Empty())
-    {
-        HYP_LOG(Assets, Error, "Asset '{}' has invalid package path '{}'", m_name, packagePathStr);
-        return Handle<AssetPackage>::Null();
-    }
-
-    packagePathStr = String::Join(pathSegments.Slice(0, pathSegments.Size() - 1), '/'); // remove asset name segment to get package path
-    
-    Handle<AssetPackage> resolvedPackage = registry.GetPackageFromPath(packagePathStr, /* createIfNotExist */ false, /* requireLoaded */ false);
-    if (resolvedPackage.IsValid())
-    {
-        const_cast<AssetObject*>(this)->m_package = resolvedPackage; // cache resolved package for future calls
-
-        return resolvedPackage;
-    }
-
-    HYP_LOG(Assets, Error, "Failed to resolve package for asset '{}' with path '{}'", m_name, packagePathStr);
-    return Handle<AssetPackage>::Null();
-}
-#endif
-
 void AssetObject::SetAssetFlags(EnumFlags<AssetObjectFlags> flags)
 {
     if (m_flags != flags)
@@ -211,46 +171,16 @@ void AssetObject::SetIsTransientByProxy(bool isTransientByProxy)
 
 Result AssetObject::Rename(Name name)
 {
+    name = SanitizeName(name);
+
     if (name == m_name)
     {
         // same name, do nothing
         return {};
     }
 
-    name = SanitizeName(name);
-
-    Handle<AssetPackage> package = m_package.Lock();
-
-    if (package.IsValid())
-    {
-        Handle<AssetObject> strongThis = HandleFromThis();
-
-        if (Result result = package->RemoveAssetObject(strongThis); result.HasError())
-        {
-            HYP_LOG(Assets, Error, "Failed to remove asset object '{}' from package '{}': {}", m_name, package->GetName(), result.GetError().GetMessage());
-
-            return result;
-        }
-
-        const Name prevName = m_name;
-        m_name = name;
-
-        if (Result result = package->AddAssetObject(strongThis, /* replaceOnConflict */ false); result.HasError())
-        {
-            m_name = prevName; // revert change
-
-            HYP_LOG(Assets, Error, "Failed to rename asset object '{}' to '{}': {}", m_name, name, result.GetError().GetMessage());
-
-            return result;
-        }
-
-        m_friendlyName = CreateFriendlyName(name);
-    }
-    else
-    {
-        m_name = name;
-        m_friendlyName = CreateFriendlyName(name);
-    }
+    m_name = name;
+    m_friendlyName = CreateFriendlyName(name);
 
     MarkDirty();
 
@@ -260,14 +190,6 @@ Result AssetObject::Rename(Name name)
 bool AssetObject::IsSaved() const
 {
     return m_manifestPath.Length() > 0;
-}
-
-void AssetObject::Unload()
-{
-    if (Handle<AssetPackage> package = m_package.Lock(); package.IsValid())
-    {
-        package->UnloadAssetObject(m_name);
-    }
 }
 
 Result AssetObject::Save()
@@ -280,12 +202,6 @@ Result AssetObject::Save()
 Result AssetObject::SaveAs(const FilePath& manifestPath)
 {
     auto readScope = GetReadScope();
-
-    Handle<AssetPackage> package = m_package.Lock();
-    if (!package.IsValid())
-    {
-        return HYP_MAKE_ERROR(Error, "Asset package is invalid");
-    }
 
     // save our manifest first
     if (manifestPath.Empty())
@@ -305,16 +221,8 @@ Result AssetObject::SaveAs(const FilePath& manifestPath)
         return HYP_MAKE_ERROR(Error, "Path '{}' is not a valid directory, cannot save asset", dir);
     }
 
-    // recursively register assets associated with this
-    // only assets that are not registered or are registered in transient locations (e.g $Memory, $Temp, $Import, etc.) will be relocated.
-    AssetRegistry& registry = *g_assetManager->GetAssetRegistry();
-    registry.RegisterAssetsRecursively(
-       package->BuildPackagePath(),
-       BoxedValue(AnyRef(*this)),
-       /* forceRelocation */ false,
-       /* appendExistingPackagePath */ false,
-       nullptr,
-       AddAssetConflictMode::ReplaceExisting);
+    AssetRegistry& registry = *GetCurrentAssetRegistry();
+    registry.PutAssetsDeep(MakeStrongRef(this));
 
     BlobStorage& blobStorage = registry.GetBlobStorage();
 
@@ -427,22 +335,6 @@ Result AssetObject::SaveBlobData(
     }
 
     return {};
-}
-
-Result AssetObject::Register(const UTF8StringView& path, AddAssetConflictMode conflictMode)
-{
-    return g_assetManager->GetAssetRegistry()->RegisterAsset(path, MakeStrongRef(this), conflictMode);
-}
-
-void AssetObject::RegisterRecursive(const UTF8StringView& path, AddAssetConflictMode conflictMode)
-{
-    g_assetManager->GetAssetRegistry()->RegisterAssetsRecursively(
-        path,
-        BoxedValue(AnyRef(*this)),
-        /* forceRelocation */ false,
-        /* appendExistingPackagePath */ false,
-        nullptr,
-        conflictMode);
 }
 
 Result AssetObject::LoadDesc(

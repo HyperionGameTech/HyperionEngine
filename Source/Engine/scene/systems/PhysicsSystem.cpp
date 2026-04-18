@@ -36,7 +36,7 @@ void PhysicsSystem::OnEntityAdded(Entity* entity)
     if (!rigidBodyComponent.shape)
     {
         Handle<PhysicsShape> shape = MakeHandle<BoxPhysicsShape>(NAME_FMT("{}_BoxPhysicsShape", entity->GetName()), entity->GetLocalBounds());
-        shape->Register("$Import/PhysicsShapes");
+        GetCurrentAssetRegistry()->PutAsset(shape);
 
         rigidBodyComponent.shape = shape;
     }

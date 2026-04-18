@@ -106,10 +106,7 @@ static void UpdateAtlasTextures(
 
         atlasTexture->SetName(NAME_FMT("LightmapVolumeAtlasTexture_{}_{}", lmv->GetName(), LightmapAtlasTextureTypeNames[textureTypeIndex]));
 
-        if (Result result = g_assetManager->GetAssetRegistry()->RegisterAsset("$Memory/Lightmaps", atlasTexture, AddAssetConflictMode::ReplaceExisting); result.HasError())
-        {
-            HYP_LOG(Lightmap, Error, "Failed to register atlas texture '{}' with asset registry: {}", atlasTexture->GetName(), result.GetError().GetMessage());
-        }
+        GetCurrentAssetRegistry()->PutAsset(atlasTexture);
 
         CheckResult(atlasTexture->Create());
 
@@ -386,19 +383,22 @@ void Baker<LightmapVolume>::OnCompleted_Internal()
             attributes.bucket = RenderBucket::Lightmapped;
 
             Handle<MaterialDefinition> materialDefinition = MakeHandle<MaterialDefinition>(
-                Name::Unique("lightmap_material"),
+                NAME("LightmapMaterial"),
                 attributes,
                 bakeEntity.material->GetParameters(),
                 bakeEntity.material->GetTextures());
-            
-            materialDefinition->Register("$Memory/MaterialDefinitions");
 
             InitObject(materialDefinition);
+
+            GetCurrentAssetRegistry()->PutAssetUnique(materialDefinition);
 
             Handle<MaterialInstance> materialInstance = materialDefinition->CreateInstance();
             materialInstance->SetIsDynamic(true);
 
+            GetCurrentAssetRegistry()->PutAssetUnique(materialInstance);
+
             EnqueueDeletion(std::move(bakeEntity.material));
+            
             bakeEntity.material = std::move(materialInstance);
         }
         else
@@ -406,19 +406,20 @@ void Baker<LightmapVolume>::OnCompleted_Internal()
             MaterialAttributes attributes;
             attributes.bucket = RenderBucket::Lightmapped;
 
-            Handle<MaterialDefinition> materialDefinition = MakeHandle<MaterialDefinition>(Name::Unique("lightmap_material"), attributes);
-            materialDefinition->Register("$Memory/MaterialDefinitions");
+            Handle<MaterialDefinition> materialDefinition = MakeHandle<MaterialDefinition>(
+                NAME("LightmapMaterial"),
+                attributes);
+                
             InitObject(materialDefinition);
+
+            GetCurrentAssetRegistry()->PutAssetUnique(materialDefinition);
 
             Handle<MaterialInstance> materialInstance = materialDefinition->CreateInstance();
             materialInstance->SetIsDynamic(true);
+        
+            GetCurrentAssetRegistry()->PutAssetUnique(materialInstance);
 
             bakeEntity.material = std::move(materialInstance);
-        }
-        
-        if (Result result = bakeEntity.material->Register("$Memory/MaterialInstances"); result.HasError())
-        {
-            HYP_LOG(Lightmap, Error, "Failed to register material: {}", result.GetError().GetMessage());
         }
 
         isNewMaterial = true;

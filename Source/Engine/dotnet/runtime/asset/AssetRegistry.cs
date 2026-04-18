@@ -1,3 +1,4 @@
+using System.Diagnostics;
 using System.Runtime.InteropServices;
 
 namespace Hyperion
@@ -9,43 +10,58 @@ namespace Hyperion
         {
         }
 
-        public IEnumerable<AssetPackage> Packages
+        public IEnumerable<AssetDesc> GetBucketAssetDescs(uint bucketIndex)
         {
-            get
+            uint count = AssetRegistry_GetBucketAssetDescs(NativeAddress, bucketIndex, IntPtr.Zero, 0);
+
+            if (count == 0)
             {
-                uint count = AssetRegistry_GetPackages(NativeAddress, IntPtr.Zero);
-                
-                if (count == 0)
+                yield break;
+            }
+
+            Debug.Assert(Marshal.SizeOf<AssetDesc>() == 12);
+            IntPtr buffer = Marshal.AllocHGlobal(Marshal.SizeOf<AssetDesc>() * (int)count);
+
+            try
+            {
+                AssetRegistry_GetBucketAssetDescs(NativeAddress, bucketIndex, buffer, count);
+
+                for (uint i = 0; i < count; i++)
                 {
-                    yield break;
+                    IntPtr currentPtr = IntPtr.Add(buffer, (int)(i * Marshal.SizeOf<AssetDesc>()));
+                    AssetDesc assetDesc = Marshal.PtrToStructure<AssetDesc>(currentPtr);
+                    yield return assetDesc;
                 }
-
-                IntPtr packageHandlePtrs = Marshal.AllocHGlobal(Marshal.SizeOf<Hyperion.Handle>() * (int)count);
-
-                try
-                {
-                    AssetRegistry_GetPackages(NativeAddress, packageHandlePtrs);
-
-                    for (uint i = 0; i < count; i++)
-                    {
-                        IntPtr currentPtr = IntPtr.Add(packageHandlePtrs, (int)(i * Marshal.SizeOf<Hyperion.Handle>()));
-                        Hyperion.Handle packageHandle = Marshal.PtrToStructure<Hyperion.Handle>(currentPtr);
-                        AssetPackage? package = (AssetPackage?)packageHandle.GetValue();
-
-                        if (package != null)
-                        {
-                            yield return package;
-                        }
-                    }
-                }
-                finally
-                {
-                    Marshal.FreeHGlobal(packageHandlePtrs);
-                }
+            }
+            finally
+            {
+                Marshal.FreeHGlobal(buffer);
             }
         }
 
-        [DllImport("hyperion", EntryPoint = "AssetRegistry_GetPackages")]
-        private static extern uint AssetRegistry_GetPackages(IntPtr pRegistry, IntPtr pOutPackageHandles);
+        public AssetObject? GetAsset(uint bucketIndex, Name name)
+        {
+            BoxedValueInternal dataBuffer;
+
+            if (!AssetRegistry_GetAssetBoxed(NativeAddress, bucketIndex, ref name, out dataBuffer))
+            {
+                return null;
+            }
+
+            try
+            {
+                return dataBuffer.ReadObject<AssetObject>();
+            }
+            finally
+            {
+                dataBuffer.Dispose();
+            }
+        }
+
+        [DllImport("hyperion", EntryPoint = "AssetRegistry_GetBucketAssetDescs")]
+        private static extern uint AssetRegistry_GetBucketAssetDescs(IntPtr pRegistry, uint bucketIndex, IntPtr pOutAssetDescs, uint maxCount);
+
+        [DllImport("hyperion", EntryPoint = "AssetRegistry_GetAssetBoxed")]
+        private static extern bool AssetRegistry_GetAssetBoxed([In] IntPtr pRegistry, uint bucketIndex, [In] ref Name name, [Out] out BoxedValueInternal outBoxed);
     }
 }
