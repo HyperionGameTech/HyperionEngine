@@ -531,7 +531,10 @@ private:
     void InitializeGizmos();
     void ShutdownGizmos();
 
+    HYP_METHOD()
     void OnBeginSimulation();
+    
+    HYP_METHOD()
     void OnEndSimulation();
 
     void SetHoveredGizmo(
