@@ -89,6 +89,51 @@ AssetObject::~AssetObject()
     }
 }
 
+bool AssetObject::IsRegistered() const
+{
+    return m_package.IsValid();
+}
+
+#if 0
+AssetPackage* AssetObject::GetPackage() const
+{
+    if (!IsRegistered())
+    {
+        return Handle<AssetPackage>::Null();
+    }
+
+    if (Handle<AssetPackage> package = m_package.Lock(); package.IsValid())
+    {
+        return package;
+    }
+
+    // If we have an asset path but our package reference is invalid, we need to attempt to re-resolve our package
+    // This can happen after deserialization when the package reference is not yet set, but the asset path is deserialized before the package's asset list is populated.
+    AssetRegistry& registry = *g_assetManager->GetAssetRegistry();
+
+    String packagePathStr = m_assetPath.ToString();
+    Array<String> pathSegments = packagePathStr.Split('/');
+    if (pathSegments.Empty())
+    {
+        HYP_LOG(Assets, Error, "Asset '{}' has invalid package path '{}'", m_name, packagePathStr);
+        return Handle<AssetPackage>::Null();
+    }
+
+    packagePathStr = String::Join(pathSegments.Slice(0, pathSegments.Size() - 1), '/'); // remove asset name segment to get package path
+    
+    Handle<AssetPackage> resolvedPackage = registry.GetPackageFromPath(packagePathStr, /* createIfNotExist */ false, /* requireLoaded */ false);
+    if (resolvedPackage.IsValid())
+    {
+        const_cast<AssetObject*>(this)->m_package = resolvedPackage; // cache resolved package for future calls
+
+        return resolvedPackage;
+    }
+
+    HYP_LOG(Assets, Error, "Failed to resolve package for asset '{}' with path '{}'", m_name, packagePathStr);
+    return Handle<AssetPackage>::Null();
+}
+#endif
+
 void AssetObject::SetAssetFlags(EnumFlags<AssetObjectFlags> flags)
 {
     if (m_flags != flags)
@@ -177,7 +222,7 @@ Result AssetObject::Rename(Name name)
 
     name = SanitizeName(name);
 
-    Handle<AssetPackage> package = GetPackage();
+    Handle<AssetPackage> package = m_package.Lock();
 
     if (package.IsValid())
     {

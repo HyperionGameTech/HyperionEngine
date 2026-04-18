@@ -209,6 +209,18 @@ public:
      *  \param recursive If true, also unloads asset objects in all subpackages. */
     void UnloadAssetObjects(bool recursive = false);
 
+    /*! \brief Eagerly re-loads all asset objects whose AssetDescs are present in this package
+     *   but are no longer in the cache (e.g. after UnloadAssetObjects). The assets are loaded
+     *   from disk and re-registered back into the cache.
+     *  \param recursive If true, also reloads asset objects in all subpackages. */
+    void ReloadAssetObjects(bool recursive = false);
+
+    /*! \brief Re-populates the cache slot for an asset object that is already registered
+     *   (its AssetDesc exists) but was evicted from the cache via UnloadAssetObject/UnloadAssetObjects.
+     *   Sets m_package / m_assetPath on the object and invokes OnLoaded().
+     *  \param assetObject The asset object to recache. Must belong to this package. */
+    void RecacheAssetObject(const Handle<AssetObject>& assetObject);
+
     Handle<AssetObject> GetAssetObject(Name name);
 
     bool GetAssetDesc(StringHash nameHash, AssetDesc& outAssetDesc);
@@ -248,18 +260,6 @@ public:
     {
         return m_dependencies;
     }
-
-    /*! \brief Method to save dependencies as relative paths to this package rather than absolute
-     *   \warning Not thread-safe.
-     *  \return Array of relative dependency paths. */
-    HYP_METHOD(Property = "Dependencies", Serialize = true)
-    Array<String> GetRelativeDependencies() const;
-
-    /*! \brief Sets dependencies from relative paths to this package rather than absolute
-     *   \warning Not thread-safe.
-     *  \param relativePaths Array of relative dependency paths. */
-    HYP_METHOD(Property = "Dependencies", Serialize = true)
-    void SetRelativeDependencies(const Array<String>& relativePaths);
 
     HYP_METHOD()
     void AddDependency(const AssetPath& dependency);
@@ -326,6 +326,22 @@ private:
 
     Name GetUniqueAssetName_Internal(Name baseName) const;
     Name GetUniqueSubpackageName_Internal(Name baseName) const;
+    
+    /// Serialization
+
+    /*! \brief Method to save dependencies as relative paths to this package rather than absolute
+     *   \warning Not thread-safe.
+     *  \return Array of relative dependency paths. */
+    HYP_METHOD(Property = "Dependencies", Serialize = true)
+    Array<String> GetRelativeDependencies() const;
+
+    /*! \brief Sets dependencies from relative paths to this package rather than absolute
+     *   \warning Not thread-safe.
+     *  \param relativePaths Array of relative dependency paths. */
+    HYP_METHOD(Property = "Dependencies", Serialize = true)
+    void SetRelativeDependencies(const Array<String>& relativePaths);
+
+    /// End Serialization
 
     HYP_FIELD()
     Name m_name;
@@ -455,14 +471,18 @@ public:
      *  \param target The object to register.
      *  \param forceRelocation If true, will relocate assets that are already registered to the new package path.
      *  \param appendExistingPackagePath If true, will append encountered AssetObject's current path past the root package to \p packagePath. (E.g $Memory/Textures/Foo becomes <packagePath>/Media/Textures/Foo)
-     * \param getObjectSubpath Optional callback to determine the sub-path for each asset object being registered. */
+     * \param getObjectSubpath Optional callback to determine the sub-path for each asset object being registered.
+     * \param recacheExisting If true, asset objects that are already registered in the correct package will be
+     *  re-inserted into the cache (sets m_package/m_assetPath and invokes OnLoaded). Use this after UnloadAssetObjects
+     *  to re-populate the cache without a full remove/re-add lifecycle. */
     void RegisterAssetsRecursively(
         const UTF8StringView& packagePath,
         const BoxedValue& target,
         bool forceRelocation = false,
         bool appendExistingPackagePath = false,
         ProcRef<String(const AssetObject&)> getObjectSubpath = nullptr,
-        AddAssetConflictMode conflictMode = AddAssetConflictMode::Default);
+        AddAssetConflictMode conflictMode = AddAssetConflictMode::Default,
+        bool recacheExisting = false);
 
     void LoadPackagesAsync(bool loadSubpackages = false);
 

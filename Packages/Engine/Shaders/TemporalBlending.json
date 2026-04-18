@@ -5,16 +5,6 @@
       "AssetPath": {
         "Value": "Engine/Shaders/TemporalBlending/TemporalBlending_6173123785945935178"
       }
-    }, {
-      "$Class": "AssetReference",
-      "AssetPath": {
-        "Value": "Engine/Shaders/TemporalBlending/TemporalBlending_11592868276855069985"
-      }
-    }, {
-      "$Class": "AssetReference",
-      "AssetPath": {
-        "Value": "Engine/Shaders/TemporalBlending/TemporalBlending_11567616068176735051"
-      }
     }],
   "Name": "TemporalBlending",
   "FriendlyName": "TemporalBlending",
