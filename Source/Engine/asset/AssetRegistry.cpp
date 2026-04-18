@@ -440,7 +440,9 @@ AssetPackage::~AssetPackage()
     for (const Handle<AssetObject>& assetObject : m_assetObjectCache)
     {
         if (!assetObject.IsValid())
+        {
             continue;
+        }
 
         assetObject->OnUnloaded();
     }
@@ -871,7 +873,7 @@ Result AssetPackage::AddAssetObject(const Handle<AssetObject>& assetObject, bool
                 existingAssetObject->OnUnloaded();
 
                 existingAssetObject->m_package.Reset();
-                existingAssetObject->m_assetPath = {};
+                existingAssetObject->m_assetPath = AssetPath();
 
                 assetObject->m_manifestPath = existingAssetObject->m_manifestPath;
                 existingAssetObject->m_manifestPath = FilePath();
@@ -997,7 +999,8 @@ Result AssetPackage::RemoveAssetObject(StringHash nameHash)
             assetObject->OnUnloaded();
 
             assetObject->m_package.Reset();
-            assetObject->m_assetPath = {};
+            assetObject->m_assetPath = AssetPath();
+            assetObject->m_manifestPath = FilePath();
 
             MarkDirty();
             assetObject->MarkDirty();
@@ -1055,7 +1058,8 @@ Result AssetPackage::RemoveAssetObject(const Handle<AssetObject>& assetObject)
         assetObject->OnUnloaded();
 
         assetObject->m_package.Reset();
-        assetObject->m_assetPath = {};
+        assetObject->m_assetPath = AssetPath();
+        assetObject->m_manifestPath = FilePath();
 
         m_assetDescs.Erase(it);
         m_assetObjectCache.EraseAt(assetDesc.index);
@@ -1107,7 +1111,8 @@ void AssetPackage::UnloadAssetObject(Name name)
         {
             assetObject->OnUnloaded();
             assetObject->m_package.Reset();
-            assetObject->m_assetPath = {};
+            assetObject->m_assetPath = AssetPath();
+            assetObject->m_manifestPath = FilePath();
         }
 
         m_assetObjectCache.EraseAt(assetDesc.index);
@@ -1136,7 +1141,8 @@ void AssetPackage::UnloadAssetObjects(bool recursive)
                     {
                         assetObject->OnUnloaded();
                         assetObject->m_package.Reset();
-                        assetObject->m_assetPath = {};
+                        assetObject->m_assetPath = AssetPath();
+                        assetObject->m_manifestPath = FilePath();
                     }
                 }
 
@@ -1230,6 +1236,7 @@ Handle<AssetObject> AssetPackage::GetAssetObject(Name name)
 
         assetObject->m_package = WeakHandleFromThis();
         assetObject->m_assetPath = BuildAssetPath(assetObject->GetName());
+        assetObject->m_manifestPath = manifestPath;
 
         { // set the asset in cache
             TUniqueLock packageLock(m_mutex);
@@ -1969,7 +1976,8 @@ void AssetPackage::Prune(Array<Handle<AssetPackage>>& outRemovedPackages, bool* 
 
                     assetObject->SetIsTransientByProxy(false);
                     assetObject->m_package.Reset();
-                    assetObject->m_assetPath = {};
+                    assetObject->m_assetPath = AssetPath();
+                    assetObject->m_manifestPath = FilePath();
                         
                     m_assetObjectCache.EraseAt(assetDesc.index);
                     m_assetIdGenerator.ReleaseId(assetDesc.index);

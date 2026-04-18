@@ -1755,27 +1755,22 @@ EditorSubsystem::EditorSubsystem()
                             // InitActiveSceneSelection();
                         }));
 
-                m_delegateHandlers.Remove("OnPackageAdded"_sh);
-                m_delegateHandlers.Remove("OnPackageRemoved"_sh);
+                m_delegateHandlers.Add(project->GetGame()->OnGameStateChange.Bind([this](Game*, GameStateMode previousMode, GameStateMode currentMode)
+                    {
+                        const bool wasSimulating = previousMode == GameStateMode::SIMULATING
+                            || previousMode == GameStateMode::PAUSED;
+                        const bool isSimulating  = currentMode  == GameStateMode::SIMULATING
+                            || currentMode == GameStateMode::PAUSED;
 
-                m_delegateHandlers.Add(
-                    NAME("OnGameStateChange"),
-                    project->GetGame()->OnGameStateChange.Bind([this](Game*, GameStateMode previousMode, GameStateMode currentMode)
+                        if (isSimulating && !wasSimulating)
                         {
-                            const bool wasSimulating = previousMode == GameStateMode::SIMULATING
-                                || previousMode == GameStateMode::PAUSED;
-                            const bool isSimulating  = currentMode  == GameStateMode::SIMULATING
-                                || currentMode  == GameStateMode::PAUSED;
-
-                            if (isSimulating && !wasSimulating)
-                            {
-                                OnBeginSimulation();
-                            }
-                            else if (!isSimulating && wasSimulating)
-                            {
-                                OnEndSimulation();
-                            }
-                        }));
+                            OnBeginSimulation();
+                        }
+                        else if (!isSimulating && wasSimulating)
+                        {
+                            OnEndSimulation();
+                        }
+                    }));
 
                 SetActiveScene(activeScene);
             })
@@ -1791,12 +1786,10 @@ EditorSubsystem::EditorSubsystem()
                 // Shutdown to reinitialize gizmos after project is opened
                 ShutdownGizmos();
 
-                m_delegateHandlers.Remove(NAME("OnGameStateChange"));
+                m_delegateHandlers.Remove(&project->GetGame()->OnGameStateChange);
 
-                if (m_simulationView.IsValid())
-                {
-                    OnEndSimulation();
-                }
+                m_preSimulationProject.Reset();
+                m_simulationView.Reset();
 
                 m_focusedNode.Reset();
 
@@ -1826,10 +1819,6 @@ EditorSubsystem::EditorSubsystem()
 
                 m_delegateHandlers.Remove(&project->GetWorld()->OnSceneAdded);
                 m_delegateHandlers.Remove(&project->GetWorld()->OnSceneRemoved);
-
-                m_delegateHandlers.Remove("SetBuildBVHFlag"_sh);
-                m_delegateHandlers.Remove("OnPackageAdded"_sh);
-                m_delegateHandlers.Remove("OnPackageRemoved"_sh);
 
                 // if (m_contentBrowserDirectoryList && m_contentBrowserDirectoryList->GetDataSource())
                 // {
@@ -2086,17 +2075,44 @@ void EditorSubsystem::OnBeginSimulation()
     }
 
     // Save the current project state as a snapshot to restore from when simulation ends.
-    
     if (Result saveResult = m_currentProject->Save(); saveResult.HasError())
     {
         HYP_LOG(Editor, Error, "Failed to save project snapshot before simulation: {}", saveResult.GetError().GetMessage());
 
         return;
     }
-    else
+
+    m_simulationSnapshotPath = m_currentProject->GetFilePath();
+
+    Handle<AssetPackage> oldPackage = m_currentProject->GetPackage();
+    Assert(oldPackage.IsValid());
+
+    m_preSimulationProject = m_currentProject;
+
+    CloseProject();
+
+    // Drop all cached strong refs in the old package, we want to force reload for loading the project for sim state.
+    if (oldPackage.IsValid())
     {
-        m_simulationSnapshotPath = m_currentProject->GetFilePath();
+        oldPackage->UnloadAssetObjects(/* recursive */ true);
     }
+
+    FilePath snapshotPath = std::move(m_simulationSnapshotPath);
+
+    TResult<Handle<EditorProject>> loadResult = EditorProject::Load(snapshotPath);
+
+    if (loadResult.HasError())
+    {
+        HYP_LOG(Editor, Error, "Failed to load project when starting simulation!! Error was: {}", loadResult.GetError().GetMessage());
+
+        return;
+    }
+
+    OpenProject(*loadResult);
+
+    Assert(m_currentProject.IsValid() && m_currentProject->GetWorld() != nullptr);
+
+    // @TODO Stream in scenes.
 
     Camera* primaryCamera = nullptr;
 
@@ -2121,7 +2137,7 @@ void EditorSubsystem::OnBeginSimulation()
 
     if (!primaryCamera)
     {
-        HYP_LOG(Editor, Warning, "OnBeginSimulation: no primary camera found!");
+        HYP_LOG(Editor, Warning, "no primary camera found!");
 
         // Show a messagebox since this can be really annoying and frustrating if this happens
         // should make it easier to narrow down the issue at least.
@@ -2165,10 +2181,7 @@ void EditorSubsystem::OnEndSimulation()
 {
     HYP_SCOPE;
 
-    if (!m_simulationView)
-    {
-        return;
-    }
+    AssertDebug(m_simulationView.IsValid());
 
     if (m_currentProject)
     {
@@ -2177,37 +2190,12 @@ void EditorSubsystem::OnEndSimulation()
 
     m_simulationView.Reset();
 
-    // Restore the pre-simulation project state from the snapshot taken in OnBeginSimulation
-    if (!m_simulationSnapshotPath.Empty())
-    {
-        Handle<AssetPackage> oldPackage;
-        if (m_currentProject)
-        {
-            oldPackage = m_currentProject->GetPackage();
-        }
+    // should be set in OnBeginSimulation
+    AssertDebug(m_preSimulationProject.IsValid());
 
-        CloseProject();
+    OpenProject(m_preSimulationProject);
 
-        // Drop all cached strong refs in the old package, we want to force reload.
-        if (oldPackage.IsValid())
-        {
-            oldPackage->UnloadAssetObjects(/* recursive */ true);
-            oldPackage.Reset();
-        }
-
-        FilePath snapshotPath = std::move(m_simulationSnapshotPath);
-
-        TResult<Handle<EditorProject>> loadResult = EditorProject::Load(snapshotPath);
-
-        if (loadResult.HasError())
-        {
-            HYP_LOG(Editor, Error, "Failed to restore project from simulation snapshot: {}", loadResult.GetError().GetMessage());
-
-            return;
-        }
-
-        OpenProject(*loadResult);
-    }
+    m_preSimulationProject.Reset();
 }
 
 void EditorSubsystem::InitViewport()
@@ -2927,10 +2915,10 @@ void EditorSubsystem::NewProject()
     Handle<EditorProject> project = MakeHandle<EditorProject>();
     InitObject(project);
 
-    Handle<Scene> defaultScene = MakeHandle<Scene>();
-    defaultScene->SetName(NAME("MainScene"));
-    defaultScene->SetSceneFlags(SceneFlags::DEFAULT);
-    project->AddScene(defaultScene);
+    Handle<Scene> mainScene = MakeHandle<Scene>();
+    mainScene->SetName(NAME("MainScene"));
+    mainScene->SetSceneFlags(SceneFlags::DEFAULT & ~SceneFlags::STREAMED);
+    project->AddScene(mainScene);
 
     Handle<DirectionalLight> sun = MakeHandle<DirectionalLight>();
     sun->SetName(NAME("SunLight"));
@@ -2939,7 +2927,7 @@ void EditorSubsystem::NewProject()
     sun->SetIntensity(40.0f);
     InitObject(sun);
 
-    defaultScene->GetRoot()->AddChild(sun);
+    mainScene->GetRoot()->AddChild(sun);
 
     // Add primary camera
     Handle<Camera> camera = MakeHandle<Camera>();
@@ -2953,7 +2941,12 @@ void EditorSubsystem::NewProject()
 
     InitObject(camera);
 
-    defaultScene->GetRoot()->AddChild(camera);
+    mainScene->GetRoot()->AddChild(camera);
+
+    Handle<Scene> streamedScene = MakeHandle<Scene>();
+    streamedScene->SetName(NAME("StreamedScene"));
+    streamedScene->SetSceneFlags(SceneFlags::DEFAULT);
+    project->AddScene(streamedScene);
 
     // add dynamic skybox
     project->GetWorld()->AddSystemT<DynamicSkySystem>();

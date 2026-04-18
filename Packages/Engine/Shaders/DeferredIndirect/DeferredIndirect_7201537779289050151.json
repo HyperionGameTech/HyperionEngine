@@ -20,6 +20,12 @@
       "EnumValues": []
     }, {
       "$Class": "ShaderProperty",
+      "Name": "SSR_ENABLED",
+      "Flags": 0,
+      "Value": null,
+      "EnumValues": []
+    }, {
+      "$Class": "ShaderProperty",
       "Name": "TILE_SIZE",
       "Flags": 0,
       "Value": 32,
@@ -30,35 +36,17 @@
       "Flags": 0,
       "Value": 16,
       "EnumValues": []
-    }, {
-      "$Class": "ShaderProperty",
-      "Name": "SHADING_TYPE",
-      "Flags": 0,
-      "Value": "FORWARD",
-      "EnumValues": []
-    }, {
-      "$Class": "ShaderProperty",
-      "Name": "FORWARD_CLUSTERED",
-      "Flags": 0,
-      "Value": null,
-      "EnumValues": []
-    }, {
-      "$Class": "ShaderProperty",
-      "Name": "ALPHA_DISCARD",
-      "Flags": 0,
-      "Value": null,
-      "EnumValues": []
     }],
   "RevisionNumber": 31459917,
-  "BaseName": "GeometryPass",
+  "BaseName": "DeferredIndirect",
   "InputLayout": {
-    "Mask": 15
+    "Mask": 7
   },
   "ShaderInputGroup": {
     "Elements": [{
         "$Class": "ShaderInputSet",
         "SetIndex": 0,
-        "Name": "Default",
+        "Name": "DeferredPass",
         "Slots": [[{
               "$Class": "ShaderInput",
               "Register": 1,
@@ -132,11 +120,11 @@
             }, {
               "$Class": "ShaderInput",
               "Register": 1,
-              "ElementType": 4,
-              "Name": "CurrentEntity",
+              "ElementType": 5,
+              "Name": "GBufferDepthTexture",
               "Count": 1,
               "Size": 4294967295,
-              "IsDynamic": true,
+              "IsDynamic": false,
               "StructInfo": {
                 "Name": "",
                 "Size": 4294967295,
@@ -146,11 +134,11 @@
             }, {
               "$Class": "ShaderInput",
               "Register": 1,
-              "ElementType": 4,
-              "Name": "CamerasBuffer",
+              "ElementType": 5,
+              "Name": "GBufferAlbedoTexture",
               "Count": 1,
               "Size": 4294967295,
-              "IsDynamic": true,
+              "IsDynamic": false,
               "StructInfo": {
                 "Name": "",
                 "Size": 4294967295,
@@ -160,11 +148,11 @@
             }, {
               "$Class": "ShaderInput",
               "Register": 1,
-              "ElementType": 4,
-              "Name": "MaterialsBuffer",
+              "ElementType": 5,
+              "Name": "SSRResultTexture",
               "Count": 1,
               "Size": 4294967295,
-              "IsDynamic": true,
+              "IsDynamic": false,
               "StructInfo": {
                 "Name": "",
                 "Size": 4294967295,
@@ -203,7 +191,7 @@
               "$Class": "ShaderInput",
               "Register": 1,
               "ElementType": 5,
-              "Name": "PointLightShadowMapsTextureArray",
+              "Name": "GBufferNormalsTexture",
               "Count": 1,
               "Size": 4294967295,
               "IsDynamic": false,
@@ -217,7 +205,7 @@
               "$Class": "ShaderInput",
               "Register": 1,
               "ElementType": 5,
-              "Name": "ShadowMapsTextureArray",
+              "Name": "GBufferVelocityTexture",
               "Count": 1,
               "Size": 4294967295,
               "IsDynamic": false,
@@ -227,7 +215,49 @@
                 "FieldNames": [],
                 "FieldTypes": []
               }
-            }], [], [], [{
+            }, {
+              "$Class": "ShaderInput",
+              "Register": 1,
+              "ElementType": 5,
+              "Name": "GBufferMaterialTexture",
+              "Count": 1,
+              "Size": 4294967295,
+              "IsDynamic": false,
+              "StructInfo": {
+                "Name": "",
+                "Size": 4294967295,
+                "FieldNames": [],
+                "FieldTypes": []
+              }
+            }, {
+              "$Class": "ShaderInput",
+              "Register": 1,
+              "ElementType": 5,
+              "Name": "SSAOResultTexture",
+              "Count": 1,
+              "Size": 4294967295,
+              "IsDynamic": false,
+              "StructInfo": {
+                "Name": "",
+                "Size": 4294967295,
+                "FieldNames": [],
+                "FieldTypes": []
+              }
+            }], [], [{
+              "$Class": "ShaderInput",
+              "Register": 3,
+              "ElementType": 2,
+              "Name": "CBuffer",
+              "Count": 1,
+              "Size": 4294967295,
+              "IsDynamic": true,
+              "StructInfo": {
+                "Name": "",
+                "Size": 4294967295,
+                "FieldNames": [],
+                "FieldTypes": []
+              }
+            }], [{
               "$Class": "ShaderInput",
               "Register": 4,
               "ElementType": 7,
@@ -257,31 +287,25 @@
               }
             }], []],
         "Flags": 0
-      }, {
-        "$Class": "ShaderInputSet",
-        "SetIndex": 1,
-        "Name": "BindlessResources0",
-        "Slots": [[], [], [], [], []],
-        "Flags": 1
       }]
   },
   "ShaderModuleTypes": [1, 2],
-  "ShaderModuleNames": ["DefaultVertex.hlsl", "GeometryPass.hlsl"],
+  "ShaderModuleNames": ["DeferredIndirect.hlsl", "DeferredIndirect.hlsl"],
   "EntryPointNames": ["VSMain", "PSMain"],
   "ShaderBlobs": [{
       "$Class": "BlobDataReference",
-      "Key": "Engine/Shaders/GeometryPass/GeometryPass_15815265620870122380.VS",
-      "Size": 57624
+      "Key": "Engine/Shaders/DeferredIndirect/DeferredIndirect_7201537779289050151.VS",
+      "Size": 11716
     }, {
       "$Class": "BlobDataReference",
-      "Key": "Engine/Shaders/GeometryPass/GeometryPass_15815265620870122380.PS",
-      "Size": 218200
+      "Key": "Engine/Shaders/DeferredIndirect/DeferredIndirect_7201537779289050151.PS",
+      "Size": 154756
     }],
   "PropertySetHashCode": {},
   "LastCompiledTimestamp": {
-    "Value": 13420736921432
+    "Value": 13420591026643
   },
-  "Name": "GeometryPass_15815265620870122380",
-  "FriendlyName": "GeometryPass15815265620870122380",
+  "Name": "DeferredIndirect_7201537779289050151",
+  "FriendlyName": "DeferredIndirect7201537779289050151",
   "OriginalFilepath": ""
 }
