@@ -27,7 +27,7 @@ namespace Hyperion {
 class Bone;
 class Skeleton;
 
-HYP_CLASS()
+HYP_CLASS(AssetBucket = "AnimationTracks")
 class HYP_API AnimationTrack final : public AssetObject
 {
     HYP_OBJECT_BODY(AnimationTrack);
@@ -91,7 +91,7 @@ private:
     BlobDataReference m_keyframeData;
 };
 
-HYP_CLASS()
+HYP_CLASS(AssetBucket = "Animations")
 class HYP_API Animation final : public AssetObject
 {
     HYP_OBJECT_BODY(Animation);

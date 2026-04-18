@@ -156,19 +156,6 @@ FBOMResult ObjectMarshal::Serialize(ConstAnyRef in, FBOMObject& out) const
         isAssetObject = true;
     }
 
-#if 0 // def HYP_DEBUG_MODE
-    // Check that the asset being referred to is not in a transient package -- deserialization will result in an asset that can't be found.
-    if (assetReference.IsValid())
-    {
-        const Handle<AssetObject>& assetObject = assetReference.Resolve();
-
-        if (!assetObject || !assetObject->GetPackage() || assetObject->GetPackage()->IsTransient())
-        {
-            return { FBOMResult::FBOM_ERR, HYP_FORMAT("Cannot serialize AssetReference to asset '{}' because it is not loaded or in a transient package", assetReference.GetAssetPath().ToString()) };
-        }
-    }
-#endif
-
     // If we have an asset reference to serialize, we serialize that instead of the actual object inline.
     // This will reduce duplication and file sizes.
     if (isAssetObject

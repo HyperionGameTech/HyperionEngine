@@ -64,6 +64,7 @@ class HYP_API AssetObject : public ObjectBase
 public:
     friend class AssetRegistry;
     friend class AssetPackage;
+    friend class AssetBucketData;
 
     AssetObject();
     explicit AssetObject(Name name);
@@ -113,6 +114,12 @@ public:
     }
 
     HYP_METHOD()
+    uint32 GetAssetIndex() const
+    {
+        return m_assetIndex;
+    }
+
+    HYP_METHOD()
     const FilePath& GetOriginalFilepath() const
     {
         return m_originalFilepath;
@@ -139,7 +146,10 @@ public:
     }
 
     HYP_METHOD()
-    bool IsRegistered() const;
+    bool IsRegistered() const
+    {
+        return m_package.IsValid();
+    }
 
     HYP_METHOD(Property = "AssetFlags", Editor = false)
     EnumFlags<AssetObjectFlags> GetAssetFlags() const
@@ -271,6 +281,9 @@ protected:
 
     HYP_FIELD(EditEnabled = false)
     FilePath m_originalFilepath; // used to determine if we should skip importing an asset
+
+    HYP_FIELD(Property = "AssetIndex", Transient, EditHide)
+    uint32 m_assetIndex;
 
     HYP_FIELD(Transient)
     WeakHandle<AssetPackage> m_package;

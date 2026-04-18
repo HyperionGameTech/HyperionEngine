@@ -25,7 +25,7 @@ class Bone;
 class Animation;
 class RenderProxySkeleton;
 
-HYP_CLASS()
+HYP_CLASS(AssetBucket = "Skeletons")
 class HYP_API Skeleton final : public AssetObject
 {
     HYP_OBJECT_BODY(Skeleton);

@@ -8,6 +8,7 @@
 
 #include <asset/AssetPath.hpp>
 #include <asset/AssetTypes.hpp>
+#include <asset/AssetBucket.hpp>
 
 #include <Core/reflection/ObjectBase.hpp>
 #include <Core/reflection/Handle.hpp>
@@ -56,6 +57,9 @@ extern StringHash AssetObject_KeyByFunction(const Handle<AssetObject>& assetObje
 using AssetPackageSet = IntrusiveMap<Handle<AssetPackage>, &AssetPackage_KeyByFunction, AssetAllocator>;
 
 using AssetDescSet = IntrusiveMap<AssetDesc, &AssetDesc_KeyByFunction, AssetAllocator>;
+
+// Maps from AssetDesc id -> AssetObject handle
+using AssetObjectCache = SparsePagedArray<Handle<AssetObject>, 64, AssetAllocator>;
 
 HYP_CLASS()
 class HYP_API AssetPackage final : public ObjectBase
@@ -303,9 +307,6 @@ public:
     ScriptableDelegate<void, Handle<AssetPackage>> OnSubpackageRemoved;
 
 private:
-    // Maps from AssetDesc id -> AssetObject handle
-    using AssetObjectCache = SparsePagedArray<Handle<AssetObject>, 64, AssetAllocator>;
-
     void Init();
 
     void MarkDirty();
@@ -381,6 +382,36 @@ private:
     ThreadId m_loadingThreadId;
 
     IdGenerator m_assetIdGenerator;
+};
+
+class AssetBucketData
+{
+public:
+    AssetDescSet assetDescs;
+    AssetObjectCache assetObjectCache;
+    Bitset dirtyIndices;
+    Bitset usedIndices;
+    SharedMutex mtx;
+
+    AssetBucketData()
+    {
+        // reserve index 0 for invalid
+        usedIndices.Set(0, true);
+    }
+
+    AssetBucketData(const AssetBucketData& other) = delete;
+    AssetBucketData& operator=(const AssetBucketData& other) = delete;
+
+    AssetBucketData(AssetBucketData&& other) noexcept = delete;
+    AssetBucketData& operator=(AssetBucketData&& other) noexcept = delete;
+
+    void MarkDirty(uint32 index);
+
+    void AddAsset(
+        AssetDesc& assetDesc,
+        const Handle<AssetObject>& assetObject = Handle<AssetObject>::Null());
+
+    bool GetAssetDesc(StringHash nameHash, AssetDesc& outAssetDesc) const;
 };
 
 HYP_CLASS()
@@ -488,6 +519,16 @@ public:
 
     Handle<AssetObject> GetAssetFromPath(const UTF8StringView& path) const;
 
+    /// Begin new assetbucket based stuff
+    Handle<AssetObject> GetAsset(const AssetBucket& bucket, StringHash name);
+
+    void PutAsset(const Handle<AssetObject>& asset);
+    void PutAsset(const AssetBucket& bucket, const Handle<AssetObject>& asset);
+
+    void LoadAssetDescs(const FilePath& rootDirectory);
+
+    /// End new assetbucket based stuff
+
     BlobStorage& GetBlobStorage();
 
     void Initialize();
@@ -533,6 +574,8 @@ private:
     // timer for saving blob cache data
     ClockTimer m_saveBlobCacheTimer;
     threading::TaskBatch* m_saveBlobCacheBatch;
+
+    FixedArray<AssetBucketData, MaxAssetBuckets> m_assetBucketData;
 
     Scheduler* m_scheduler;
 

@@ -343,7 +343,7 @@ public:
     HYP_DEF_STL_BEGIN_END(Base::Begin(), Base::End())
 };
 
-HYP_CLASS(PostLoad = "Node_OnPostLoad")
+HYP_CLASS(PostLoad = "Node_OnPostLoad", AssetBucket = "Nodes")
 class HYP_API Node : public AssetObject
 {
     friend class Scene;

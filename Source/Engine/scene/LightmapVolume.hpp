@@ -98,7 +98,7 @@ struct LightmapVolumeAtlas : AtlasPacker<LightmapElement>
     LightmapVolumeAtlas& operator=(LightmapVolumeAtlas&& other) noexcept = default;
 };
 
-HYP_CLASS()
+HYP_CLASS(AssetBucket = "LightmapVolumes")
 class HYP_API LightmapVolume final : public VolumeBase
 {
     HYP_OBJECT_BODY(LightmapVolume);

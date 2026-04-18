@@ -130,7 +130,7 @@ struct EnvProbeSphericalHarmonics
 
 #pragma pack(pop)
 
-HYP_CLASS()
+HYP_CLASS(AssetBucket = "EnvProbes")
 class HYP_API EnvProbe : public VolumeBase
 {
     HYP_OBJECT_BODY(EnvProbe);

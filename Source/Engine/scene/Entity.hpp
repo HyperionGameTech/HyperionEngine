@@ -37,7 +37,7 @@ struct EntityInitInfo
     Array<EntityTag, InlineAllocator<4>> initialTags;
 };
 
-HYP_CLASS()
+HYP_CLASS(AssetBucket = "Entities")
 class HYP_API Entity : public Node
 {
     HYP_OBJECT_BODY(Entity);

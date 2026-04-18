@@ -62,7 +62,7 @@ enum class LightFlags : uint32
 
 HYP_MAKE_ENUM_FLAGS(LightFlags);
 
-HYP_CLASS()
+HYP_CLASS(AssetBucket = "Lights")
 class HYP_API Light : public Entity
 {
     HYP_OBJECT_BODY(Light);

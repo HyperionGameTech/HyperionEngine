@@ -23,7 +23,7 @@ class InstancedMeshData;
 
 extern void InstancedMeshProxy_OnPostLoad(InstancedMeshData&);
 
-HYP_CLASS(PostLoad = "InstancedMeshProxy_OnPostLoad")
+HYP_CLASS(PostLoad = "InstancedMeshProxy_OnPostLoad", AssetBucket = "InstancedMeshData")
 class InstancedMeshData : public AssetObject
 {
     HYP_OBJECT_BODY(InstancedMeshData);

@@ -64,6 +64,7 @@ static Name GetUniqueName(Name baseName, T&& elements)
 
 AssetObject::AssetObject()
     : m_flags(AssetObjectFlags::None),
+      m_assetIndex(AssetDesc::InvalidIndex),
       m_isDirty(0),
       m_rwState(0),
       m_isBlobLoaded(false)
@@ -73,6 +74,7 @@ AssetObject::AssetObject()
 AssetObject::AssetObject(Name name)
     : m_name(SanitizeName(name)),
       m_flags(AssetObjectFlags::None),
+      m_assetIndex(AssetDesc::InvalidIndex),
       m_isDirty(0),
       m_rwState(0),
       m_isBlobLoaded(false)
@@ -87,11 +89,6 @@ AssetObject::~AssetObject()
         // block new readers/writers from acquiring the resource while we're destroying it.
         LockWriter(/* doInitialize */ false);
     }
-}
-
-bool AssetObject::IsRegistered() const
-{
-    return m_package.IsValid();
 }
 
 #if 0
