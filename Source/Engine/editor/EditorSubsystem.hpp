@@ -551,7 +551,11 @@ private:
 
     Handle<Scene> m_editorScene;
 
+    // The project.
     Handle<EditorProject> m_currentProject;
+    // The project, but only used when we start simulation and need to restore the pre-simulation state after we end simulation.
+    Handle<EditorProject> m_preSimulationProject;
+
     WeakHandle<Scene> m_activeScene;
 
     EditorManipulationMode m_selectedManipulationMode;
