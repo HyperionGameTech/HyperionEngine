@@ -91,7 +91,7 @@ void EditorProject::Init()
         m_gameInstance = MakeHandle<Game>(); // base game instance
     }
 
-    InitObject(m_gameInstance);
+    m_gameInstance->Initialize();
 
     SetReady(true);
 }
@@ -127,11 +127,21 @@ const Handle<World>& EditorProject::GetWorld() const
 
 void EditorProject::SetGame(const Handle<Game>& gameInstance)
 {
+    if (m_gameInstance == gameInstance)
+    {
+        return;
+    }
+
+    if (m_gameInstance.IsValid())
+    {
+        m_gameInstance->Shutdown();
+    }
+
     m_gameInstance = gameInstance;
 
-    if (IsInitCalled())
+    if (m_gameInstance.IsValid())
     {
-        InitObject(m_gameInstance);
+        m_gameInstance->Initialize();
     }
 }
 

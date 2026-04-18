@@ -1,0 +1,7 @@
+{
+  "Dependencies": [],
+  "Name": "DrawCubemap",
+  "FriendlyName": "DrawCubemap",
+  "Flags": 0,
+  "Path": "Engine/Shaders/DrawCubemap"
+}

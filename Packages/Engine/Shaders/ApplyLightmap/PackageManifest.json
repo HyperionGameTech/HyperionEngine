@@ -1,0 +1,7 @@
+{
+  "Dependencies": [],
+  "Name": "ApplyLightmap",
+  "FriendlyName": "ApplyLightmap",
+  "Flags": 0,
+  "Path": "Engine/Shaders/ApplyLightmap"
+}

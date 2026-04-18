@@ -1,0 +1,285 @@
+{
+  "$Class": "Shader",
+  "PropertySet": [{
+      "$Class": "ShaderProperty",
+      "Name": "MAX_LIGHTS",
+      "Flags": 0,
+      "Value": 16,
+      "EnumValues": []
+    }, {
+      "$Class": "ShaderProperty",
+      "Name": "MAX_ENV_PROBES",
+      "Flags": 0,
+      "Value": 4,
+      "EnumValues": []
+    }, {
+      "$Class": "ShaderProperty",
+      "Name": "MODE",
+      "Flags": 0,
+      "Value": "IRRADIANCE",
+      "EnumValues": []
+    }, {
+      "$Class": "ShaderProperty",
+      "Name": "HYP_VULKAN",
+      "Flags": 0,
+      "Value": 4202496,
+      "EnumValues": []
+    }, {
+      "$Class": "ShaderProperty",
+      "Name": "NUM_GBUFFER_TEXTURES",
+      "Flags": 0,
+      "Value": 5,
+      "EnumValues": []
+    }, {
+      "$Class": "ShaderProperty",
+      "Name": "HYP_FEATURES_BINDLESS_TEXTURES",
+      "Flags": 0,
+      "Value": null,
+      "EnumValues": []
+    }],
+  "RevisionNumber": 31459917,
+  "BaseName": "LightmapPathTracer",
+  "InputLayout": {
+    "Mask": 0
+  },
+  "ShaderInputGroup": {
+    "Elements": [{
+        "$Class": "ShaderInputSet",
+        "SetIndex": 0,
+        "Name": "LightmapPathTracer",
+        "Slots": [[{
+              "$Class": "ShaderInput",
+              "Register": 1,
+              "ElementType": 3,
+              "Name": "EntitiesBuffer",
+              "Count": 1,
+              "Size": 4294967295,
+              "IsDynamic": false,
+              "StructInfo": {
+                "Name": "",
+                "Size": 4294967295,
+                "FieldNames": [],
+                "FieldTypes": []
+              }
+            }, {
+              "$Class": "ShaderInput",
+              "Register": 1,
+              "ElementType": 3,
+              "Name": "WorldsBuffer",
+              "Count": 1,
+              "Size": 4294967295,
+              "IsDynamic": false,
+              "StructInfo": {
+                "Name": "",
+                "Size": 4294967295,
+                "FieldNames": [],
+                "FieldTypes": []
+              }
+            }, {
+              "$Class": "ShaderInput",
+              "Register": 1,
+              "ElementType": 3,
+              "Name": "BlueNoiseBuffer",
+              "Count": 1,
+              "Size": 4294967295,
+              "IsDynamic": false,
+              "StructInfo": {
+                "Name": "",
+                "Size": 4294967295,
+                "FieldNames": [],
+                "FieldTypes": []
+              }
+            }, {
+              "$Class": "ShaderInput",
+              "Register": 1,
+              "ElementType": 3,
+              "Name": "RaysBuffer",
+              "Count": 1,
+              "Size": 4294967295,
+              "IsDynamic": false,
+              "StructInfo": {
+                "Name": "",
+                "Size": 4294967295,
+                "FieldNames": [],
+                "FieldTypes": []
+              }
+            }, {
+              "$Class": "ShaderInput",
+              "Register": 1,
+              "ElementType": 3,
+              "Name": "MeshDescriptionsBuffer",
+              "Count": 1,
+              "Size": 4294967295,
+              "IsDynamic": false,
+              "StructInfo": {
+                "Name": "",
+                "Size": 4294967295,
+                "FieldNames": [],
+                "FieldTypes": []
+              }
+            }, {
+              "$Class": "ShaderInput",
+              "Register": 1,
+              "ElementType": 3,
+              "Name": "MaterialsBuffer",
+              "Count": 1,
+              "Size": 4294967295,
+              "IsDynamic": false,
+              "StructInfo": {
+                "Name": "",
+                "Size": 4294967295,
+                "FieldNames": [],
+                "FieldTypes": []
+              }
+            }, {
+              "$Class": "ShaderInput",
+              "Register": 1,
+              "ElementType": 5,
+              "Name": "EnvProbesTexture",
+              "Count": 1,
+              "Size": 4294967295,
+              "IsDynamic": false,
+              "StructInfo": {
+                "Name": "",
+                "Size": 4294967295,
+                "FieldNames": [],
+                "FieldTypes": []
+              }
+            }, {
+              "$Class": "ShaderInput",
+              "Register": 1,
+              "ElementType": 5,
+              "Name": "PointLightShadowMapsTextureArray",
+              "Count": 1,
+              "Size": 4294967295,
+              "IsDynamic": false,
+              "StructInfo": {
+                "Name": "",
+                "Size": 4294967295,
+                "FieldNames": [],
+                "FieldTypes": []
+              }
+            }, {
+              "$Class": "ShaderInput",
+              "Register": 1,
+              "ElementType": 5,
+              "Name": "ShadowMapsTextureArray",
+              "Count": 1,
+              "Size": 4294967295,
+              "IsDynamic": false,
+              "StructInfo": {
+                "Name": "",
+                "Size": 4294967295,
+                "FieldNames": [],
+                "FieldTypes": []
+              }
+            }, {
+              "$Class": "ShaderInput",
+              "Register": 1,
+              "ElementType": 8,
+              "Name": "TLAS",
+              "Count": 1,
+              "Size": 4294967295,
+              "IsDynamic": false,
+              "StructInfo": {
+                "Name": "",
+                "Size": 4294967295,
+                "FieldNames": [],
+                "FieldTypes": []
+              }
+            }], [{
+              "$Class": "ShaderInput",
+              "Register": 2,
+              "ElementType": 3,
+              "Name": "HitsBuffer",
+              "Count": 1,
+              "Size": 4294967295,
+              "IsDynamic": false,
+              "StructInfo": {
+                "Name": "",
+                "Size": 4294967295,
+                "FieldNames": [],
+                "FieldTypes": []
+              }
+            }], [{
+              "$Class": "ShaderInput",
+              "Register": 3,
+              "ElementType": 2,
+              "Name": "CBuffer",
+              "Count": 1,
+              "Size": 4294967295,
+              "IsDynamic": true,
+              "StructInfo": {
+                "Name": "",
+                "Size": 4294967295,
+                "FieldNames": [],
+                "FieldTypes": []
+              }
+            }], [{
+              "$Class": "ShaderInput",
+              "Register": 4,
+              "ElementType": 7,
+              "Name": "SamplerNearest",
+              "Count": 1,
+              "Size": 4294967295,
+              "IsDynamic": false,
+              "StructInfo": {
+                "Name": "",
+                "Size": 4294967295,
+                "FieldNames": [],
+                "FieldTypes": []
+              }
+            }, {
+              "$Class": "ShaderInput",
+              "Register": 4,
+              "ElementType": 7,
+              "Name": "SamplerLinear",
+              "Count": 1,
+              "Size": 4294967295,
+              "IsDynamic": false,
+              "StructInfo": {
+                "Name": "",
+                "Size": 4294967295,
+                "FieldNames": [],
+                "FieldTypes": []
+              }
+            }], []],
+        "Flags": 0
+      }, {
+        "$Class": "ShaderInputSet",
+        "SetIndex": 1,
+        "Name": "BindlessResources1",
+        "Slots": [[], [], [], [], []],
+        "Flags": 1
+      }, {
+        "$Class": "ShaderInputSet",
+        "SetIndex": 2,
+        "Name": "BindlessResources0",
+        "Slots": [[], [], [], [], []],
+        "Flags": 1
+      }]
+  },
+  "ShaderModuleTypes": [9, 12, 13],
+  "ShaderModuleNames": ["LightmapPathTracer.hlsl", "LightmapPathTracer.rchit.hlsl", "LightmapPathTracer.rmiss.hlsl"],
+  "EntryPointNames": ["RayGenMain", "ClosestHitMain", "MissMain"],
+  "ShaderBlobs": [{
+      "$Class": "BlobDataReference",
+      "Key": "Engine/Shaders/LightmapPathTracer/LightmapPathTracer_10052432351400791672.RGS",
+      "Size": 111824
+    }, {
+      "$Class": "BlobDataReference",
+      "Key": "Engine/Shaders/LightmapPathTracer/LightmapPathTracer_10052432351400791672.CHS",
+      "Size": 136764
+    }, {
+      "$Class": "BlobDataReference",
+      "Key": "Engine/Shaders/LightmapPathTracer/LightmapPathTracer_10052432351400791672.MS",
+      "Size": 37208
+    }],
+  "PropertySetHashCode": {},
+  "LastCompiledTimestamp": {
+    "Value": 13420740413432
+  },
+  "Name": "LightmapPathTracer_10052432351400791672",
+  "FriendlyName": "LightmapPathTracer10052432351400791672",
+  "OriginalFilepath": ""
+}

@@ -46,20 +46,12 @@ Game::Game()
 
 Game::~Game()
 {
-    if (m_world)
-    {
-        m_world->m_gameInstance = nullptr;
-
-        g_engineDriver->RemoveWorld(m_world);
-    }
+    Shutdown();
 }
 
-void Game::Init()
+void Game::Initialize()
 {
-    HYP_SCOPE;
     AssertOnThread(g_simThread);
-
-    ObjectBase::Init();
 
     if (!m_world)
     {
@@ -71,7 +63,22 @@ void Game::Init()
 
     InitObject(m_world);
 
-    m_uiSubsystem = m_world->AddSubsystem(MakeHandle<UISubsystem>());
+    if (!m_uiSubsystem)
+    {
+        m_uiSubsystem = m_world->AddSubsystem(MakeHandle<UISubsystem>());
+    }
+}
+
+void Game::Shutdown()
+{
+    if (m_world)
+    {
+        m_world->m_gameInstance = nullptr;
+
+        g_engineDriver->RemoveWorld(m_world);
+
+        m_world.Reset();
+    }
 }
 
 void Game::HandleEvent(Event&& event)
