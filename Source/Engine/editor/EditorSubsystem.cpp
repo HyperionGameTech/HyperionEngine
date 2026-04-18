@@ -1704,8 +1704,7 @@ EditorSubsystem::EditorSubsystem()
                     vp->OnAdded(this);
                 }
 
-                m_delegateHandlers.Add(
-                    project->GetWorld()->OnSceneAdded.Bind([this, projectWeak = project.ToWeak()](World*, const Handle<Scene>& scene)
+                m_delegateHandlers.Add(project->GetWorld()->OnSceneAdded.Bind([this, projectWeak = project.ToWeak()](World*, const Handle<Scene>& scene)
                         {
                             Assert(scene != nullptr);
                             Assert(scene != m_editorScene);
@@ -1730,8 +1729,7 @@ EditorSubsystem::EditorSubsystem()
                             }
                         }));
 
-                m_delegateHandlers.Add(
-                    project->GetWorld()->OnSceneRemoved.Bind([this, projectWeak = project.ToWeak()](World*, Scene* scene)
+                m_delegateHandlers.Add(project->GetWorld()->OnSceneRemoved.Bind([this, projectWeak = project.ToWeak()](World*, Scene* scene)
                         {
                             Assert(scene != nullptr);
                             Assert(scene != m_editorScene);
@@ -1755,22 +1753,22 @@ EditorSubsystem::EditorSubsystem()
                             // InitActiveSceneSelection();
                         }));
 
-                m_delegateHandlers.Add(project->GetGame()->OnGameStateChange.Bind([this](Game*, GameStateMode previousMode, GameStateMode currentMode)
-                    {
-                        const bool wasSimulating = previousMode == GameStateMode::SIMULATING
-                            || previousMode == GameStateMode::PAUSED;
-                        const bool isSimulating  = currentMode  == GameStateMode::SIMULATING
-                            || currentMode == GameStateMode::PAUSED;
+                //m_delegateHandlers.Add(project->GetGame()->OnGameStateChange.Bind([this](Game*, GameStateMode previousMode, GameStateMode currentMode)
+                //    {
+                //        const bool wasSimulating = previousMode == GameStateMode::SIMULATING
+                //            || previousMode == GameStateMode::PAUSED;
+                //        const bool isSimulating  = currentMode  == GameStateMode::SIMULATING
+                //            || currentMode == GameStateMode::PAUSED;
 
-                        if (isSimulating && !wasSimulating)
-                        {
-                            OnBeginSimulation();
-                        }
-                        else if (!isSimulating && wasSimulating)
-                        {
-                            OnEndSimulation();
-                        }
-                    }));
+                //        if (isSimulating && !wasSimulating)
+                //        {
+                //            OnBeginSimulation();
+                //        }
+                //        else if (!isSimulating && wasSimulating)
+                //        {
+                //            OnEndSimulation();
+                //        }
+                //    }));
 
                 SetActiveScene(activeScene);
             })
@@ -1785,11 +1783,6 @@ EditorSubsystem::EditorSubsystem()
 
                 // Shutdown to reinitialize gizmos after project is opened
                 ShutdownGizmos();
-
-                m_delegateHandlers.Remove(&project->GetGame()->OnGameStateChange);
-
-                m_preSimulationProject.Reset();
-                m_simulationView.Reset();
 
                 m_focusedNode.Reset();
 
@@ -1819,6 +1812,7 @@ EditorSubsystem::EditorSubsystem()
 
                 m_delegateHandlers.Remove(&project->GetWorld()->OnSceneAdded);
                 m_delegateHandlers.Remove(&project->GetWorld()->OnSceneRemoved);
+                m_delegateHandlers.Remove(&project->GetGame()->OnGameStateChange);
 
                 // if (m_contentBrowserDirectoryList && m_contentBrowserDirectoryList->GetDataSource())
                 // {
@@ -2175,6 +2169,8 @@ void EditorSubsystem::OnBeginSimulation()
     }
 
     m_currentProject->GetWorld()->AddView(m_simulationView);
+
+    m_currentProject->GetGame()->StartSimulating();
 }
 
 void EditorSubsystem::OnEndSimulation()
@@ -2185,6 +2181,8 @@ void EditorSubsystem::OnEndSimulation()
 
     if (m_currentProject)
     {
+        m_currentProject->GetGame()->StopSimulating();
+
         m_currentProject->GetWorld()->RemoveView(m_simulationView);
     }
 
@@ -2192,6 +2190,25 @@ void EditorSubsystem::OnEndSimulation()
 
     // should be set in OnBeginSimulation
     AssertDebug(m_preSimulationProject.IsValid());
+
+    Handle<AssetPackage> package = m_preSimulationProject->GetPackage();
+    Assert(package.IsValid());
+
+    // purge what is there
+    package->UnloadAssetObjects(/* recursive */ true);
+
+    // re-register the pre-simulation package
+    g_assetManager->GetAssetRegistry()->RegisterAssetsRecursively(
+        package->BuildPackagePath(),
+        BoxedValue(AnyRef(*m_preSimulationProject)),
+        /* forceRelocation */ false,
+        /* appendExistingPackagePath */ true, // to preserve structure.
+        [](const AssetObject& assetObject) -> String
+        {
+            // Instances of objects without a pre-defined path (e.g Media/Meshes) go under
+            //  PkgName/Objects/Types/<ObjectClassName>/ObjectName
+            return HYP_FORMAT("Objects/Types/{}", assetObject.InstanceClass()->GetName());
+        });
 
     OpenProject(m_preSimulationProject);
 

@@ -368,6 +368,7 @@ static TResult<Handle<AssetPackage>> RelocateAsset(
     }
 
     Handle<AssetPackage> newPackage = assetObject->GetPackage();
+
     if (!newPackage.IsValid())
     {
         return HYP_MAKE_ERROR(Error, "Asset '{}' relocation did not assign a new package!", assetObject->GetName());
@@ -445,6 +446,7 @@ AssetPackage::~AssetPackage()
         }
 
         assetObject->OnUnloaded();
+        // assetObject->m_package.Reset();
     }
 }
 
@@ -798,7 +800,7 @@ Result AssetPackage::AddAssetObject(const Handle<AssetObject>& assetObject, bool
     if (assetObject->IsRegistered())
     {
         Handle<AssetPackage> currentPackage = assetObject->GetPackage();
-        AssertDebug(currentPackage != nullptr);
+        AssertDebug(currentPackage.IsValid());
 
         if (currentPackage)
         {
@@ -1111,8 +1113,8 @@ void AssetPackage::UnloadAssetObject(Name name)
         {
             assetObject->OnUnloaded();
             assetObject->m_package.Reset();
-            assetObject->m_assetPath = AssetPath();
-            assetObject->m_manifestPath = FilePath();
+            // assetObject->m_assetPath = AssetPath();
+            // assetObject->m_manifestPath = FilePath();
         }
 
         m_assetObjectCache.EraseAt(assetDesc.index);
@@ -1134,15 +1136,12 @@ void AssetPackage::UnloadAssetObjects(bool recursive)
                 {
                     Handle<AssetObject>& assetObject = *pAssetObject;
 
-                    // unset metadata on AssetObject so we can't save it, lord knows what would happen
-                    // if we had multiple asset objects referencing the same 'asset' and both were
-                    // saved at the same time or something. Better safe than sorry.
                     if (assetObject.IsValid())
                     {
                         assetObject->OnUnloaded();
                         assetObject->m_package.Reset();
-                        assetObject->m_assetPath = AssetPath();
-                        assetObject->m_manifestPath = FilePath();
+                        // assetObject->m_assetPath = AssetPath();
+                        // assetObject->m_manifestPath = FilePath();
                     }
                 }
 
@@ -1160,6 +1159,63 @@ void AssetPackage::UnloadAssetObjects(bool recursive)
             return IterationResult::CONTINUE;
         });
     }
+}
+
+void AssetPackage::ReloadAssetObjects(bool recursive)
+{
+    Array<Name> names;
+
+    ForEachAssetDesc([&](const AssetDesc& assetDesc)
+        {
+            names.PushBack(assetDesc.name);
+
+            return IterationResult::CONTINUE;
+        });
+
+    for (const Name& name : names)
+    {
+        GetAssetObject(name);
+    }
+
+    if (recursive)
+    {
+        ForEachSubpackage([](const Handle<AssetPackage>& subpackage)
+        {
+            subpackage->ReloadAssetObjects(true);
+
+            return IterationResult::CONTINUE;
+        });
+    }
+}
+
+void AssetPackage::RecacheAssetObject(const Handle<AssetObject>& assetObject)
+{
+    if (!assetObject.IsValid())
+    {
+        return;
+    }
+
+    TUniqueLock guard(m_mutex);
+
+    auto it = m_assetDescs.Find(assetObject->GetName());
+    if (it == m_assetDescs.End())
+    {
+        HYP_LOG(Assets, Warning, "RecacheAssetObject: AssetDesc for '{}' not found in package '{}', skipping",
+            assetObject->GetName(), GetName());
+        return;
+    }
+
+    const AssetDesc& assetDesc = *it;
+    AssertDebug(assetDesc.index != AssetDesc::InvalidIndex);
+
+    assetObject->m_package = WeakHandleFromThis();
+    assetObject->m_assetPath = BuildAssetPath(assetObject->GetName());
+
+    m_assetObjectCache.Set(assetDesc.index, assetObject);
+
+    guard.Reset(); // release lock before calling OnLoaded
+
+    assetObject->OnLoaded();
 }
 
 Handle<AssetObject> AssetPackage::GetAssetObject(Name name)
@@ -1896,47 +1952,46 @@ Array<String> AssetPackage::GetRelativeDependencies() const
 
 void AssetPackage::SetRelativeDependencies(const Array<String>& relativePaths)
 {
+    m_dependencies.Clear();
+
+    const AssetPath thisPackagePath = AssetPath(BuildPackagePath());
+
+    Handle<AssetRegistry> registry = m_registry.Lock();
+
+    for (const String& path : relativePaths)
     {
-        TUniqueLock guard(m_mutex);
+        const AssetPath dependencyPath = AssetPath::FromRelativePath(thisPackagePath, path);
 
-        m_dependencies.Clear();
-
-        const AssetPath thisPackagePath = AssetPath(BuildPackagePath());
-
-        Handle<AssetRegistry> registry = m_registry.Lock();
-
-        for (const String& path : relativePaths)
+        if (dependencyPath.chain && dependencyPath.chain[0] != Name::Invalid() && dependencyPath != thisPackagePath)
         {
-            const AssetPath dependencyPath = AssetPath::FromRelativePath(thisPackagePath, path);
+            // Check for circular dependency
+            bool isCircular = false;
 
-            if (dependencyPath.chain && dependencyPath.chain[0] != Name::Invalid() && dependencyPath != thisPackagePath)
+            if (registry.IsValid())
             {
-                // Check for circular dependency
-                bool isCircular = false;
+                Handle<AssetPackage> dependencyPackage = registry->GetPackageFromPath(
+                    dependencyPath.ToString(),
+                    /* createIfNotExist */ false,
+                    /* requireLoaded */ false);
 
-                if (registry.IsValid())
+                if (dependencyPackage.IsValid())
                 {
-                    Handle<AssetPackage> dependencyPackage = registry->GetPackageFromPath(dependencyPath.ToString(), /* createIfNotExist */ false);
-
-                    if (dependencyPackage.IsValid())
+                    // Check if the dependency package depends on us (circular dependency)
+                    for (const AssetPath& depOfDep : dependencyPackage->m_dependencies)
                     {
-                        // Check if the dependency package depends on us (circular dependency)
-                        for (const AssetPath& depOfDep : dependencyPackage->m_dependencies)
+                        if (depOfDep == thisPackagePath)
                         {
-                            if (depOfDep == thisPackagePath)
-                            {
-                                HYP_LOG(Assets, Warning, "Circular dependency detected: Package '{}' and '{}' depend on each other. Skipping dependency.", thisPackagePath.ToString(), dependencyPath.ToString());
-                                isCircular = true;
-                                break;
-                            }
+                            HYP_LOG(Assets, Warning, "Circular dependency detected: Package '{}' and '{}' depend on each other. Skipping dependency.", thisPackagePath.ToString(), dependencyPath.ToString());
+                            isCircular = true;
+                            break;
                         }
                     }
                 }
+            }
 
-                if (!isCircular)
-                {
-                    m_dependencies.PushBack(dependencyPath);
-                }
+            if (!isCircular)
+            {
+                m_dependencies.PushBack(dependencyPath);
             }
         }
     }
@@ -3691,7 +3746,8 @@ void AssetRegistry::RegisterAssetsRecursively(
     bool forceRelocation,
     bool appendExistingPackagePath,
     ProcRef<String(const AssetObject&)> getObjectSubpath,
-    AddAssetConflictMode conflictMode)
+    AddAssetConflictMode conflictMode,
+    bool recacheExisting)
 {
     if (!target.IsValid() || target.IsNull())
     {
@@ -3953,12 +4009,16 @@ void AssetRegistry::RegisterAssetsRecursively(
 
         if (assetObject != nullptr)
         {
-            if (forceRelocation || !assetObject->IsRegistered())
+            if (forceRelocation || !assetObject->m_assetPath.IsValid())
             {
                 if (Result result = parentPackage->AddAssetObject(assetObject, /* replaceOnConflict */ false); result.HasError())
                 {
                     HYP_LOG(Assets, Error, "Failed to register asset '{}': {}", assetObject->GetName(), result.GetError().GetMessage());
                 }
+            }
+            else if (recacheExisting || !assetObject->m_package.IsValid())
+            {
+                parentPackage->RecacheAssetObject(assetObject);
             }
         }
     };

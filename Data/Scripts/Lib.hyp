@@ -1530,6 +1530,8 @@ extern class EditorSubsystem : Subsystem
     OnSelectedGizmoChanged : any
     OnSelectedPackageChanged : any
     OnActiveViewportChanged : any
+    OnBeginSimulation() -> void
+    OnEndSimulation() -> void
 end
 extern class EditorState
     static GetInstance() -> EditorState
@@ -1740,8 +1742,6 @@ extern class AssetPackage
     GetUniqueAssetName(baseName : Name) -> Name
     Save(outputDirectory : string, saveEvenIfNotDirty : bool) -> Result
     GetDependencies() -> Array<AssetPath>
-    GetRelativeDependencies() -> Array<string>
-    SetRelativeDependencies(relativePaths : Array<string>) -> void
     AddDependency(dependency : AssetPath) -> void
     IsDirty() -> bool
     IsSaved() -> bool
@@ -1749,6 +1749,8 @@ extern class AssetPackage
     OnAssetObjectRemoved : any
     OnSubpackageAdded : any
     OnSubpackageRemoved : any
+    GetRelativeDependencies() -> Array<string>
+    SetRelativeDependencies(relativePaths : Array<string>) -> void
     Name : Name
     FriendlyName : Name
     Flags : AssetPackageFlags
@@ -2032,7 +2034,6 @@ end
 extern class InstancedMeshProxy : Node
 end
 extern class Entity : Node
-    GetWorld() -> World
     GetEntityManager() -> EntityManager
     ReceivesUpdate() -> bool
     SetReceivesUpdate(receivesUpdate : bool) -> void

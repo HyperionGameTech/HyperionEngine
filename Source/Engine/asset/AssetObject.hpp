@@ -139,10 +139,7 @@ public:
     }
 
     HYP_METHOD()
-    bool IsRegistered() const
-    {
-        return m_package.IsValid();
-    }
+    bool IsRegistered() const;
 
     HYP_METHOD(Property = "AssetFlags", Editor = false)
     EnumFlags<AssetObjectFlags> GetAssetFlags() const
