@@ -84,7 +84,7 @@ void Shader::PageBlobData()
 
         if (ref.raw == nullptr && ref.key && ref.size != 0)
         {
-            BlobStorage& blobStorage = g_assetManager->GetAssetRegistry()->GetBlobStorage();
+            BlobStorage& blobStorage = GetEngineAssetRegistry()->GetBlobStorage();
 
             if (!blobStorage.GetData(ref.key, ref.size, ref.raw))
             {
@@ -119,7 +119,7 @@ void Shader::PageBlobData()
 #if HYP_EDITOR
     if (needSaveBlobData)
     {    
-        BlobStorage& blobStorage = g_assetManager->GetAssetRegistry()->GetBlobStorage();
+        BlobStorage& blobStorage = GetEngineAssetRegistry()->GetBlobStorage();
 
         Result saveBlobDataResult = SaveBlobData(blobStorage);
 

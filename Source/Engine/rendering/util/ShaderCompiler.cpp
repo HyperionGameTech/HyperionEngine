@@ -1675,7 +1675,7 @@ static void ForEachPermutation(
 static bool LoadBundleFromAssetPath(
     const AssetPath& path, Handle<ShaderBundle>& outBundle)
 {
-    Handle<AssetObject> asset = g_assetManager->GetAssetRegistry()->GetAssetFromPath(path.ToString());
+    Handle<AssetObject> asset = GetEngineAssetRegistry()->GetAssetFromPath(path.ToString());
 
     if (!asset.IsValid() || !asset->IsA(ShaderBundle::StaticClass()))
     {
@@ -3844,7 +3844,7 @@ bool ShaderCompiler::CompileBundle(
 
         for (const Handle<Shader>& shader : outBundle->compiledShaders)
         {
-            registerResult = g_assetManager->GetAssetRegistry()->RegisterAsset(
+            registerResult = GetEngineAssetRegistry()->RegisterAsset(
                 HYP_FORMAT("Engine/Shaders/{}", shader->baseName),
                 shader,
                 AddAssetConflictMode::ReplaceExisting);
@@ -3861,7 +3861,7 @@ bool ShaderCompiler::CompileBundle(
         
         outBundle->MarkDirty();
         
-        registerResult = g_assetManager->GetAssetRegistry()->RegisterAsset(
+        registerResult = GetEngineAssetRegistry()->RegisterAsset(
             "Engine/Shaders",
             outBundle->HandleFromThis(),
             AddAssetConflictMode::ReplaceExisting);

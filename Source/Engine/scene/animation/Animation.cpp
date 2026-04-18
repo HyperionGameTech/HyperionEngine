@@ -42,7 +42,7 @@ void AnimationTrack::PageBlobData()
         && m_keyframeData.key
         && m_keyframeData.size != 0)
     {
-        BlobStorage& blobStorage = g_assetManager->GetAssetRegistry()->GetBlobStorage();
+        BlobStorage& blobStorage = GetCurrentAssetRegistry()->GetBlobStorage();
 
         if (!blobStorage.GetData(m_keyframeData.key, m_keyframeData.size, m_keyframeData.raw))
         {

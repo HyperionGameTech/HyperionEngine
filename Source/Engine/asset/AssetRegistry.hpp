@@ -35,6 +35,8 @@
 
 #include <scripting/ScriptableDelegate.hpp>
 
+#include <Core/utilities/GlobalContext.hpp>
+
 namespace Hyperion {
 
 HYP_DECLARE_LOG_CHANNEL(Assets);
@@ -420,12 +422,13 @@ class HYP_API AssetRegistry final : public ObjectBase
     HYP_OBJECT_BODY(AssetRegistry);
 
     friend class AssetPackage;
+    
+    AssetRegistry() = default;
 
 public:
     static Pool* GetAllocator() { return g_assetPool; }
 
-    AssetRegistry();
-    explicit AssetRegistry(const String& rootPath);
+    explicit AssetRegistry(const FilePath& rootPath);
 
     AssetRegistry(const AssetRegistry& other) = delete;
     AssetRegistry& operator=(const AssetRegistry& other) = delete;
@@ -563,7 +566,7 @@ private:
         String& outAssetName);
 
     HYP_FIELD(Serialize = true)
-    String m_rootPath;
+    FilePath m_rootPath;
 
     AssetPackageSet m_packages;
     SharedMutex m_mutex;
@@ -584,5 +587,19 @@ private:
 
     DelegateHandler m_onEngineShutdown;
 };
+
+/*! \brief Context struct used with GlobalContext to allow scope-based overriding of the current AssetRegistry. */
+struct AssetRegistryContext
+{
+    Handle<AssetRegistry> registry;
+};
+
+HYP_API Handle<AssetRegistry> GetCurrentAssetRegistry();
+
+HYP_API void PushCurrentAssetRegistry(const Handle<AssetRegistry>& registry, bool global = false);
+HYP_API void PopCurrentAssetRegistry(bool global = false);
+
+HYP_API Handle<AssetRegistry> GetEngineAssetRegistry();
+HYP_API void SetEngineAssetRegistry(const Handle<AssetRegistry>& registry);
 
 } // namespace Hyperion

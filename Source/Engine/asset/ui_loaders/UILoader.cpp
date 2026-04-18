@@ -803,7 +803,7 @@ public:
                 Handle<ScriptAsset> scriptAsset = MakeHandle<ScriptAsset>(CreateNameFromDynamicString(scriptDesc.assemblyPath.Data()), scriptDesc);
                 InitObject(scriptAsset);
 
-                Result assetObjectResult = m_state->assetManager->GetAssetRegistry()->RegisterAsset("$Import/Scripts", scriptAsset);
+                Result assetObjectResult = GetCurrentAssetRegistry()->RegisterAsset("$Import/Scripts", scriptAsset);
 
                 if (assetObjectResult)
                 {

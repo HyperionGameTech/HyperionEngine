@@ -76,6 +76,10 @@ Data/Models/NewSponza/**/*
 Data/Models/lostempire/**/*
 Data/Models/SponzaGltf/**/*
 
+Packages/**/Cache/**/*
+
+Packages/**/*
+
 Binaries/**/*
 
 Build/**/*

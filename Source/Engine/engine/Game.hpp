@@ -18,6 +18,7 @@
 
 namespace Hyperion {
 
+class AssetRegistry;
 class UISubsystem;
 class World;
 class Scene;
@@ -28,6 +29,7 @@ class HYP_API Game : public ObjectBase
 {
     friend class SimThread;
     friend class EngineDriver;
+    friend class EditorProject;
     friend struct LaunchGameAsync;
 
     HYP_OBJECT_BODY(Game);
@@ -40,6 +42,12 @@ public:
     HYP_FORCE_INLINE const Handle<World>& GetWorld() const
     {
         return m_world;
+    }
+
+    HYP_METHOD(Property = "AssetRegistry", Transient)
+    HYP_FORCE_INLINE const Handle<AssetRegistry>& GetAssetRegistry() const
+    {
+        return m_assetRegistry;
     }
 
     HYP_METHOD(Property = "GameState")
@@ -119,6 +127,7 @@ protected:
     HYP_FIELD(Property = "GameState", Transient)
     GameState m_gameState;
 
+    Handle<AssetRegistry> m_assetRegistry;
     Handle<UISubsystem> m_uiSubsystem;
 
     AtomicVar<bool> m_isLaunched;

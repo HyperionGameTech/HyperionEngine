@@ -107,7 +107,7 @@ void WorldGridLayer::AddStreamingObject(const AssetObject* assetObject, const Ve
     if (!assetObject->IsRegistered())
     {
         // When AssetRegistry::RegisterAssetsRecursively is called, these will be moved to their proper packages/paths (i.e project package)
-        g_assetManager->GetAssetRegistry()->RegisterAsset(
+        GetCurrentAssetRegistry()->RegisterAsset(
             HYP_FORMAT("$Memory/Objects/Types/{}", assetObject->InstanceClass()->GetName()),
             MakeStrongRef(assetObject));
     }

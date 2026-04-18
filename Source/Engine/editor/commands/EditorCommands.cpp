@@ -995,7 +995,7 @@ public:
                                     importSubPath = "Media/Misc";
                                 }
 
-                                Result registerAssetResult = AssetManager::GetInstance()->GetAssetRegistry()->RegisterAsset(
+                                Result registerAssetResult = GetCurrentAssetRegistry()->RegisterAsset(
                                     HYP_FORMAT("$Import/{}", importSubPath),
                                     assetObject,
                                     AddAssetConflictMode::GenerateNewName);
@@ -1187,7 +1187,7 @@ public:
 
         static const auto SetupWatch = [](UISubsystem* uiSubsystem, const AssetPath& path)
         {
-            Handle<AssetObject> assetObject = g_assetManager->GetAssetRegistry()->GetAssetFromPath(path.ToString());
+            Handle<AssetObject> assetObject = GetCurrentAssetRegistry()->GetAssetFromPath(path.ToString());
             Handle<Texture> texture = ObjCast<Texture>(assetObject);
 
             if (!texture.IsValid())

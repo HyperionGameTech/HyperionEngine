@@ -41,9 +41,7 @@
 
 namespace Hyperion {
 
-struct EditorProjectSaveContext
-{
-};
+struct EditorProjectSaveContext { };
 
 HYP_DECLARE_LOG_CHANNEL(Editor);
 
@@ -157,7 +155,7 @@ Result EditorProject::CreatePackage()
     {
         // if name is already set, use that
         // @NOTE: if package already exists at this path it will be used
-        m_package = g_assetManager->GetAssetRegistry()->GetPackageFromPath(*m_name, /* createIfNotExist */ true);
+        m_package = GetCurrentAssetRegistry()->GetPackageFromPath(*m_name, /* createIfNotExist */ true);
 
         OnPackageCreated(m_package);
 
@@ -169,11 +167,11 @@ Result EditorProject::CreatePackage()
 
     do
     {
-        Handle<AssetPackage> tmpPackage = g_assetManager->GetAssetRegistry()->GetPackageFromPath(currentName, /* createIfNotExist */ false);
+        Handle<AssetPackage> tmpPackage = GetCurrentAssetRegistry()->GetPackageFromPath(currentName, /* createIfNotExist */ false);
 
         if (!tmpPackage)
         {
-            m_package = g_assetManager->GetAssetRegistry()->GetPackageFromPath(currentName, /* createIfNotExist */ true);
+            m_package = GetCurrentAssetRegistry()->GetPackageFromPath(currentName, /* createIfNotExist */ true);
             m_name = CreateNameFromDynamicString(currentName);
 
             OnPackageCreated(m_package);
@@ -255,7 +253,7 @@ Result EditorProject::SaveAs(FilePath filepath)
         "Registering assets",
         /* isForegroundTask */ true);
 
-    g_assetManager->GetAssetRegistry()->RegisterAssetsRecursively(
+    GetCurrentAssetRegistry()->RegisterAssetsRecursively(
         m_package->BuildPackagePath(),
         BoxedValue(AnyRef(*this)),
         /* forceRelocation */ false,
@@ -327,12 +325,12 @@ Result EditorProject::SaveAs(FilePath filepath)
         return packageSaveResult;
     };
 
-    if (Result saveManifestResult = g_assetManager->GetAssetRegistry()->GetBlobStorage().SaveManifest(); saveManifestResult.HasError())
+    if (Result saveManifestResult = GetCurrentAssetRegistry()->GetBlobStorage().SaveManifest(); saveManifestResult.HasError())
     {
         return HYP_MAKE_ERROR(Error, "Failed to save BlobStorage manifest: {}", saveManifestResult.GetError().GetMessage());
     }
 
-    if (Result saveTOCResult = g_assetManager->GetAssetRegistry()->GetBlobStorage().SaveTOC(); saveTOCResult.HasError())
+    if (Result saveTOCResult = GetCurrentAssetRegistry()->GetBlobStorage().SaveTOC(); saveTOCResult.HasError())
     {
         return HYP_MAKE_ERROR(Error, "Failed to save BlobStorage table of contents: {}", saveTOCResult.GetError().GetMessage());
     }
@@ -345,10 +343,6 @@ Result EditorProject::SaveAs(FilePath filepath)
 TResult<Handle<EditorProject>> EditorProject::Load(const FilePath& filepath)
 {
     HYP_SCOPE;
-
-    // registry to load assets into
-    AssetRegistry* registry = g_assetManager->GetAssetRegistry();
-    AssertDebug(registry != nullptr);
 
     FilePath dir;
     FilePath projectFilepath;
@@ -421,12 +415,23 @@ TResult<Handle<EditorProject>> EditorProject::Load(const FilePath& filepath)
     const FilePath packageDir = dir / FilePath(projectFilepath.StripExtension()).Basename();
     const FilePath packageManifestPath = packageDir / "PackageManifest.json";
 
+    // create registry to load assets into
+    Handle<AssetRegistry> registry = MakeHandle<AssetRegistry>(packageDir);
+    registry->Initialize();
+
+    GlobalContextScope contextScope { AssetRegistryContext { registry } };
+
     TResult<Handle<AssetPackage>> loadPackageResult = registry->LoadPackageFromManifest(packageManifestPath, /* loadSubpackages */ true, /* forceLoad */ true);
 
     if (loadPackageResult.HasError())
     {
         return loadPackageResult.GetError();
     }
+
+    Assert(project->m_gameInstance != nullptr);
+
+    // hand registry over to the game instance on the project
+    project->m_gameInstance->m_assetRegistry = std::move(registry);
 
     project->m_package = std::move(*loadPackageResult);
 

@@ -77,7 +77,7 @@ void DefaultGame::OnLaunch_Impl()
     //GetWorld()->GetWorldGrid()->AddLayer(MakeHandle<TerrainWorldGridLayer>());
 
 #if 0
-    auto pkg = g_assetManager->GetAssetRegistry()->GetPackageFromPath("DefaultProject39", /* createIfNotExist */ false, /* requireLoaded */ true);
+    auto pkg = GetCurrentAssetRegistry()->GetPackageFromPath("DefaultProject39", /* createIfNotExist */ false, /* requireLoaded */ true);
     if (pkg.IsValid())
     {
         // Get MainScene
@@ -171,7 +171,7 @@ void DefaultGame::OnLaunch_Impl()
     Handle<ScriptAsset> scriptAsset = MakeHandle<ScriptAsset>(NAME("NewScript"), ScriptDesc());
 
     // register the package
-    Result assetObjectResult = g_assetManager->GetAssetRegistry()->RegisterAsset("SampleGame/Scripts", scriptAsset);
+    Result assetObjectResult = GetCurrentAssetRegistry()->RegisterAsset("SampleGame/Scripts", scriptAsset);
     Assert(assetObjectResult, "Failed to register script asset: {}", assetObjectResult.GetError().GetMessage());
 
     ScriptDesc& scriptDesc = scriptAsset->GetScriptDesc();
@@ -264,7 +264,7 @@ bool DefaultGame::OnInputEvent(const Event& event)
         {
             s_isSaving = true;
 
-            g_assetManager->GetAssetRegistry()->RegisterAssetsRecursively("SampleGame", BoxedValue(m_defaultScene),
+            GetCurrentAssetRegistry()->RegisterAssetsRecursively("SampleGame", BoxedValue(m_defaultScene),
                 /* forceRelocation */ false,
                 /* appendExistingPackagePath */ true,
                 [](const AssetObject& obj) -> String
@@ -273,7 +273,7 @@ bool DefaultGame::OnInputEvent(const Event& event)
                 });
 
             // save package
-            Handle<AssetPackage> pkg = g_assetManager->GetAssetRegistry()->GetPackageFromPath("SampleGame", /* createIfNotExist */ false, /* requireLoaded */ false);
+            Handle<AssetPackage> pkg = GetCurrentAssetRegistry()->GetPackageFromPath("SampleGame", /* createIfNotExist */ false, /* requireLoaded */ false);
             if (pkg.IsValid())
             {
                 Result result = pkg->Save(GetLibraryDirectory());

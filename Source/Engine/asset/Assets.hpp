@@ -287,10 +287,7 @@ public:
     HYP_API AssetBatch* CreateBatch(const String& identifier = String::empty);
 
     HYP_METHOD()
-    HYP_FORCE_INLINE const Handle<AssetRegistry>& GetAssetRegistry() const
-    {
-        return m_assetRegistry;
-    }
+    HYP_API Handle<AssetRegistry> GetAssetRegistry() const;
 
     void Update(float delta);
 
@@ -341,8 +338,6 @@ private:
     }
 
     void RegisterDefaultLoaders();
-
-    Handle<AssetRegistry> m_assetRegistry;
 
     UniquePtr<AssetManagerThreadPool> m_threadPool;
 

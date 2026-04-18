@@ -106,7 +106,7 @@ AssetPackage* AssetObject::GetPackage() const
 
     // If we have an asset path but our package reference is invalid, we need to attempt to re-resolve our package
     // This can happen after deserialization when the package reference is not yet set, but the asset path is deserialized before the package's asset list is populated.
-    AssetRegistry& registry = *g_assetManager->GetAssetRegistry();
+    AssetRegistry& registry = *GetCurrentAssetRegistry();
 
     String packagePathStr = m_assetPath.ToString();
     Array<String> pathSegments = packagePathStr.Split('/');
@@ -307,7 +307,7 @@ Result AssetObject::SaveAs(const FilePath& manifestPath)
 
     // recursively register assets associated with this
     // only assets that are not registered or are registered in transient locations (e.g $Memory, $Temp, $Import, etc.) will be relocated.
-    AssetRegistry& registry = *g_assetManager->GetAssetRegistry();
+    AssetRegistry& registry = *GetCurrentAssetRegistry();
     registry.RegisterAssetsRecursively(
        package->BuildPackagePath(),
        BoxedValue(AnyRef(*this)),
@@ -431,12 +431,12 @@ Result AssetObject::SaveBlobData(
 
 Result AssetObject::Register(const UTF8StringView& path, AddAssetConflictMode conflictMode)
 {
-    return g_assetManager->GetAssetRegistry()->RegisterAsset(path, MakeStrongRef(this), conflictMode);
+    return GetCurrentAssetRegistry()->RegisterAsset(path, MakeStrongRef(this), conflictMode);
 }
 
 void AssetObject::RegisterRecursive(const UTF8StringView& path, AddAssetConflictMode conflictMode)
 {
-    g_assetManager->GetAssetRegistry()->RegisterAssetsRecursively(
+    GetCurrentAssetRegistry()->RegisterAssetsRecursively(
         path,
         BoxedValue(AnyRef(*this)),
         /* forceRelocation */ false,

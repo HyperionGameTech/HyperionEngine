@@ -95,7 +95,7 @@ static TResult<Handle<FontAtlas>> CreateFontAtlas()
     // we check if it exists in the registry before creating.
     // some platforms build without freetype support so the atlas must already exist in the registry.
 
-    AssetRegistry& registry = *g_assetManager->GetAssetRegistry();
+    AssetRegistry& registry = *GetEngineAssetRegistry();
     Handle<FontAtlas> fontAtlas = ObjCast<FontAtlas>(registry.GetAssetFromPath("Engine/Fonts/Roboto/Roboto_Regular"));
     if (fontAtlas.IsValid())
     {

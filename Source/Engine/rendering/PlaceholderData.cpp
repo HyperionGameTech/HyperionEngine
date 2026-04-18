@@ -215,7 +215,7 @@ void PlaceholderData::Initialize()
 
     auto LoadOrInitTexture = [&InitBufferData]<class... Args>(Handle<Texture>& outTexture, const String& path, Name name, const TextureDesc& textureDesc, PlaceholderBufferData& bufferData, auto fillFn, Args&&... args)
     {
-        if (Handle<AssetObject> asset = g_assetManager->GetAssetRegistry()->GetAssetFromPath(path + "/" + *name); asset.IsValid())
+        if (Handle<AssetObject> asset = GetEngineAssetRegistry()->GetAssetFromPath(path + "/" + *name); asset.IsValid())
         {
             Handle<Texture> textureAsset = ObjCast<Texture>(asset);
             Assert(textureAsset != nullptr);
@@ -235,7 +235,7 @@ void PlaceholderData::Initialize()
         outTexture->SetName(name);
         outTexture->SetPersistentRequested(true, /* setFlag */ true);
         
-        g_assetManager->GetAssetRegistry()->RegisterAsset(path, outTexture);
+        GetEngineAssetRegistry()->RegisterAsset(path, outTexture);
 
         CheckResult(outTexture->Create());
     };

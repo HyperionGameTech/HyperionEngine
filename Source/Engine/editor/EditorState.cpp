@@ -30,7 +30,7 @@ HYP_API Pool* g_editorPickCachePool = &s_editorPickCachePool;
 
 static Handle<AssetPackage> GetImportsPackage()
 {
-    return AssetManager::GetInstance()->GetAssetRegistry()->GetPackageFromPath("$Import", true);
+    return GetCurrentAssetRegistry()->GetPackageFromPath("$Import", true);
 }
 
 static void RegisterImportedAsset(const Handle<EditorProject>& project, const Handle<AssetObject>& assetObject)
@@ -125,15 +125,16 @@ EditorState::~EditorState()
 
 void EditorState::Init()
 {
-    Handle<AssetPackage> importsPackage = GetImportsPackage();
-    Assert(importsPackage.IsValid());
+   // Handle<AssetPackage> importsPackage = GetImportsPackage();
+   // Assert(importsPackage.IsValid());
 
-    g_assetManager->GetAssetRegistry()->LoadPackagesAsync();
+    //GetCurrentAssetRegistry()->LoadPackagesAsync();
 
     m_taskManager.OnTaskAdded.Bind([this]<class... Args>(Args&&... args) { OnTaskStarted(std::forward<Args>(args)...); }).Detach();
     m_taskManager.OnTaskRemoved.Bind([this]<class... Args>(Args&&... args) { OnTaskEnded(std::forward<Args>(args)...); }).Detach();
     m_taskManager.OnTaskProgressUpdated.Bind([this]<class... Args>(Args&&... args) { OnTaskProgressUpdated(std::forward<Args>(args)...); }).Detach();
 
+#if 0
     // add newly imported assets to the current project's asset registry
     m_onAssetObjectAddedHandle = importsPackage->OnAssetObjectAdded
         .Bind([weakThis = WeakHandleFromThis()](const AssetDesc& assetDesc, bool isDirect, AssetPackage* parentPackage)
@@ -164,6 +165,7 @@ void EditorState::Init()
     Mutex::Guard guard(m_mutex);
 
     ImportAssetsOrSetCallback(m_currentProject);
+#endif
 
     SetReady(true);
 }

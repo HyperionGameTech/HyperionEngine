@@ -357,7 +357,7 @@ void Texture::PageBlobData()
         && m_imageData.key
         && m_imageData.size != 0)
     {
-        BlobStorage& blobStorage = g_assetManager->GetAssetRegistry()->GetBlobStorage();
+        BlobStorage& blobStorage = GetCurrentAssetRegistry()->GetBlobStorage();
 
         if (!blobStorage.GetData(m_imageData.key, m_imageData.size, m_imageData.raw))
         {

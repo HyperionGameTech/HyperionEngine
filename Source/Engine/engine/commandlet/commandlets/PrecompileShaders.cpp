@@ -41,7 +41,7 @@ public:
 protected:
     virtual Result Run_Impl(const CommandLineArguments& args) override
     {
-        //TResult loadShaderPackageResult = g_assetManager->GetAssetRegistry()->LoadPackageFromManifest(
+        //TResult loadShaderPackageResult = GetEngineAssetRegistry()->LoadPackageFromManifest(
         //    GetLibraryDirectory() / "Engine" / "Shaders" / "PackageManifest.json",
         //    true,
         //    true);

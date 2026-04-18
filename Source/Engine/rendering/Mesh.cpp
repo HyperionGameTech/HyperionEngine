@@ -170,7 +170,7 @@ void Mesh::PageBlobData()
     {
         bool needsSaveBlobData = false;
 
-        BlobStorage& blobStorage = g_assetManager->GetAssetRegistry()->GetBlobStorage();
+        BlobStorage& blobStorage = GetCurrentAssetRegistry()->GetBlobStorage();
 
         if (!blobStorage.GetData(m_vertexData.key, m_vertexData.size, m_vertexData.raw))
         {

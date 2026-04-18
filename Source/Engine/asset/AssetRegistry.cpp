@@ -16,6 +16,7 @@
 
 #include <Core/utilities/DeferredScope.hpp>
 #include <Core/utilities/GlobalContext.hpp>
+
 #include <Core/reflection/TypeInfo.hpp>
 #include <Core/reflection/Class.hpp>
 
@@ -51,19 +52,68 @@ extern const GlobalConfig& GetGlobalConfig();
 
 HYP_API extern const FilePath& GetCacheDirectory();
 
-static SharedMutex s_currentAssetRegistryMutex;
-static Handle<AssetRegistry> s_currentAssetRegistry;
+static Handle<AssetRegistry> s_engineAssetRegistry;
 
-Handle<AssetRegistry> CurrentAssetRegistry()
+static Mutex s_currentAssetRegistryMtx;
+static Array<Handle<AssetRegistry>> s_currentAssetRegistryStack;
+
+HYP_API Handle<AssetRegistry> GetCurrentAssetRegistry()
 {
-    TSharedLock guard(s_currentAssetRegistryMutex);
-    return s_currentAssetRegistry;
+    AssetRegistryContext* arc = GetGlobalContext<AssetRegistryContext>();
+
+    if (arc)
+    {
+        return arc->registry;
+    }
+    
+    {
+        Mutex::Guard guard(s_currentAssetRegistryMtx);
+
+        if (s_currentAssetRegistryStack.Any())
+        {
+            return s_currentAssetRegistryStack.Back();
+        }
+    }
+
+    AssertDebug(s_engineAssetRegistry.IsValid());
+
+    return s_engineAssetRegistry;
 }
 
-void SetCurrentAssetRegistry(const Handle<AssetRegistry>& registry)
+HYP_API void PushCurrentAssetRegistry(const Handle<AssetRegistry>& registry, bool global)
 {
-    TUniqueLock guard(s_currentAssetRegistryMutex);
-    s_currentAssetRegistry = registry;
+    if (global)
+    {
+        Mutex::Guard guard(s_currentAssetRegistryMtx);
+        s_currentAssetRegistryStack.PushBack(registry);
+
+        return;
+    }
+
+    PushGlobalContext(AssetRegistryContext { registry });
+}
+
+HYP_API void PopCurrentAssetRegistry(bool global)
+{
+    if (global)
+    {
+        Mutex::Guard guard(s_currentAssetRegistryMtx);
+        s_currentAssetRegistryStack.PopBack();
+
+        return;
+    }
+
+    PopGlobalContext<AssetRegistryContext>();
+}
+
+HYP_API Handle<AssetRegistry> GetEngineAssetRegistry()
+{
+    return s_engineAssetRegistry;
+}
+
+HYP_API void SetEngineAssetRegistry(const Handle<AssetRegistry>& registry)
+{
+    s_engineAssetRegistry = registry;
 }
 
 static const ThreadId& s_assetRegistryThread = g_simThread;
@@ -2298,12 +2348,7 @@ bool AssetBucketData::GetAssetDesc(StringHash nameHash, AssetDesc& outAssetDesc)
 
 #pragma region AssetRegistry
 
-AssetRegistry::AssetRegistry()
-    : AssetRegistry("Packages")
-{
-}
-
-AssetRegistry::AssetRegistry(const String& rootPath)
+AssetRegistry::AssetRegistry(const FilePath& rootPath)
     : m_rootPath(rootPath),
       m_scheduler(new Scheduler(s_assetRegistryThread)),
       m_pruneTimer { 5.0 }, // every 5 seconds
@@ -2351,7 +2396,16 @@ AssetRegistry::~AssetRegistry()
 
 void AssetRegistry::Initialize()
 {
-    AssertOnThread(g_mainThread);
+    Assert(m_rootPath.Length() > 0);
+
+    if (m_rootPath.Exists())
+    {
+        Assert(m_rootPath.IsDirectory(), "AssetRegistry root path ({}) exists but is not a directory!", m_rootPath);
+    }
+    else
+    {
+        Assert(m_rootPath.MkDir(), "Failed to create root directory for AssetRegistry: {}", m_rootPath);
+    }
 
     InitBlobStorage();
     
@@ -2872,11 +2926,15 @@ void AssetRegistry::InitBlobStorage()
         return;
     }
 
-    const FilePath& s_blobStorageLocation = GetCacheDirectory();
+    Assert(m_rootPath.Length() > 0 && m_rootPath.Exists() && m_rootPath.IsDirectory());
+
+    const FilePath blobStorageDir = m_rootPath / "Cache";
+    blobStorageDir.MkDir();
+
     const uint64 s_blobStoragePageSize = CoreApi::GetGlobalConfig().Get("App.Cache.PageSize")
         .ToUInt64(/* defaultValue */ BlobStorage::DefaultPageSize);
     
-    m_blobStorage = new BlobStorage(s_blobStorageLocation, s_blobStoragePageSize);
+    m_blobStorage = new BlobStorage(blobStorageDir, s_blobStoragePageSize);
 }
 
 void AssetRegistry::Update()

@@ -335,7 +335,7 @@ AssetLoadResult OgreXMLModelLoader::LoadAsset(LoaderState& state) const
         mesh->CalculateNormals();
         mesh->SetOriginalFilepath(FilePath::Relative(state.filepath, state.assetManager->GetBasePath()));
 
-        g_assetManager->GetAssetRegistry()->PutAsset(mesh);
+        GetCurrentAssetRegistry()->PutAsset(mesh);
 
         MaterialAttributes attributes {};
         attributes.bucket = RenderBucket::Translucent;
@@ -349,7 +349,7 @@ AssetLoadResult OgreXMLModelLoader::LoadAsset(LoaderState& state) const
         parameters.roughness = 0.2f;
 
         Handle<MaterialDefinition> materialDef = MakeHandle<MaterialDefinition>(CreateNameFromDynamicString(ANSIString(subMesh.name.Data())), attributes, parameters, MaterialTextures {});
-        g_assetManager->GetAssetRegistry()->PutAsset(materialDef);
+        GetCurrentAssetRegistry()->PutAsset(materialDef);
 
         InitObject(materialDef);
 

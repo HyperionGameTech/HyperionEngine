@@ -2217,7 +2217,7 @@ void EditorSubsystem::StopSimulation()
     package->UnloadAssetObjects(/* recursive */ true);
 
     // re-register the pre-simulation package
-    g_assetManager->GetAssetRegistry()->RegisterAssetsRecursively(
+    GetCurrentAssetRegistry()->RegisterAssetsRecursively(
         package->BuildPackagePath(),
         BoxedValue(AnyRef(*m_preSimulationProject)),
         /* forceRelocation */ false,

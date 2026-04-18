@@ -1,7 +1,0 @@
-{
-  "Dependencies": [],
-  "Name": "Tonemap",
-  "FriendlyName": "Tonemap",
-  "Flags": 0,
-  "Path": "Engine/Shaders/Tonemap"
-}
