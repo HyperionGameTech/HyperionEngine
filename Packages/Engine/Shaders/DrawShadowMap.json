@@ -3,6 +3,16 @@
   "CompiledShaders": [{
       "$Class": "AssetReference",
       "AssetPath": {
+        "Value": "Engine/Shaders/DrawShadowMap/DrawShadowMap_8519616899161084703"
+      }
+    }, {
+      "$Class": "AssetReference",
+      "AssetPath": {
+        "Value": "Engine/Shaders/DrawShadowMap/DrawShadowMap_8519616899161084695"
+      }
+    }, {
+      "$Class": "AssetReference",
+      "AssetPath": {
         "Value": "Engine/Shaders/DrawShadowMap/DrawShadowMap_7314361891265029577"
       }
     }, {
@@ -39,6 +49,16 @@
       "$Class": "AssetReference",
       "AssetPath": {
         "Value": "Engine/Shaders/DrawShadowMap/DrawShadowMap_7314361891265029433"
+      }
+    }, {
+      "$Class": "AssetReference",
+      "AssetPath": {
+        "Value": "Engine/Shaders/DrawShadowMap/DrawShadowMap_8519616899161084687"
+      }
+    }, {
+      "$Class": "AssetReference",
+      "AssetPath": {
+        "Value": "Engine/Shaders/DrawShadowMap/DrawShadowMap_8519616899161084679"
       }
     }],
   "Name": "DrawShadowMap",

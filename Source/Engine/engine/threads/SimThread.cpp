@@ -72,6 +72,8 @@ struct LaunchGameAsync
 
         if (!gameInstance->m_isLaunched.Get(MemoryOrder::RELAXED))
         {
+            gameInstance->Initialize();
+            
             gameInstance->OnLaunch();
             gameInstance->m_isLaunched.Set(true, MemoryOrder::RELEASE);
 

@@ -1109,13 +1109,13 @@ void AssetPackage::UnloadAssetObject(Name name)
     {
         Handle<AssetObject>& assetObject = *pAssetObject;
 
-        if (assetObject.IsValid())
-        {
-            assetObject->OnUnloaded();
-            assetObject->m_package.Reset();
+        // if (assetObject.IsValid())
+        // {
+            // assetObject->OnUnloaded();
+            // assetObject->m_package.Reset();
             // assetObject->m_assetPath = AssetPath();
             // assetObject->m_manifestPath = FilePath();
-        }
+        // }
 
         m_assetObjectCache.EraseAt(assetDesc.index);
     }
@@ -1136,13 +1136,13 @@ void AssetPackage::UnloadAssetObjects(bool recursive)
                 {
                     Handle<AssetObject>& assetObject = *pAssetObject;
 
-                    if (assetObject.IsValid())
-                    {
-                        assetObject->OnUnloaded();
-                        assetObject->m_package.Reset();
+                    // if (assetObject.IsValid())
+                    // {
+                        // assetObject->OnUnloaded();
+                        // assetObject->m_package.Reset();
                         // assetObject->m_assetPath = AssetPath();
                         // assetObject->m_manifestPath = FilePath();
-                    }
+                    // }
                 }
 
                 m_assetObjectCache.EraseAt(assetDesc.index);
@@ -4009,14 +4009,14 @@ void AssetRegistry::RegisterAssetsRecursively(
 
         if (assetObject != nullptr)
         {
-            if (forceRelocation || !assetObject->m_assetPath.IsValid())
+            if (forceRelocation || !assetObject->IsRegistered())
             {
                 if (Result result = parentPackage->AddAssetObject(assetObject, /* replaceOnConflict */ false); result.HasError())
                 {
                     HYP_LOG(Assets, Error, "Failed to register asset '{}': {}", assetObject->GetName(), result.GetError().GetMessage());
                 }
             }
-            else if (recacheExisting || !assetObject->m_package.IsValid())
+            else if (recacheExisting)
             {
                 parentPackage->RecacheAssetObject(assetObject);
             }

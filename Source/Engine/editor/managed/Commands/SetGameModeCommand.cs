@@ -48,7 +48,7 @@ namespace Hyperion.Editor.Commands
                             EditorSubsystem? editorSubsystem = EngineManager.EditorGame?.EditorSubsystem;
                             Debug.Assert(editorSubsystem != null, "EditorSubsystem is null");
 
-                            editorSubsystem.OnBeginSimulation();
+                            editorSubsystem.StartSimulation();
 
                             gameInstance = editorSubsystem.CurrentProject?.GameInstance;
                             Debug.Assert(gameInstance != null);
@@ -71,52 +71,23 @@ namespace Hyperion.Editor.Commands
                         });
                     });
 
-
-                    // if (currentGameInstance is HyperionEditorGame hyperionEditorGame)
-                    // {
-                    //     gameInstance = hyperionEditorGame.EditorSubsystem?.CurrentProject?.GameInstance;
-                    //     Debug.Assert(gameInstance != null, "Failed to get game instance from current project");
-
-                    //     EngineManager.InitializeGame(gameInstance);
-                    // }
-                    // else if (currentGameInstance.GetGameState().Paused)
-                    // {
-                    //     gameInstance = currentGameInstance;
-                    // }
-                    // else
-                    // {
-                    //     throw new InvalidOperationException("Cannot enter Simulating mode when game instance is not HyperionEditorGame");
-                    // }
-
-                    // _ = EngineManager.PostToSimThread(() =>
-                    // {
-                    //     try
-                    //     {
-                    //         gameInstance.StartSimulating();
-                    //     }
-                    //     finally
-                    //     {
-                    //         Interlocked.Exchange(ref _isChangingGameMode, 0);
-                    //     }
-                    // });
-
                     break;
                 }
                 case GameStateMode.Paused:
-                    // temp
-                    Interlocked.Exchange(ref _isChangingGameMode, 0);
+                    _ = EngineManager.PostToSimThread(() =>
+                    {
+                        try
+                        {
+                            EditorSubsystem? editorSubsystem = EngineManager.EditorGame?.EditorSubsystem;
+                            Debug.Assert(editorSubsystem != null, "EditorSubsystem is null");
 
-                    // _ = EngineManager.PostToSimThread(() =>
-                    // {
-                    //     try
-                    //     {
-                    //         gameInstance.PauseSimulation();
-                    //     }
-                    //     finally
-                    //     {
-                    //         Interlocked.Exchange(ref _isChangingGameMode, 0);
-                    //     }
-                    // });
+                            editorSubsystem.PauseSimulation();
+                        }
+                        finally
+                        {
+                            Interlocked.Exchange(ref _isChangingGameMode, 0);
+                        }
+                    });
 
                     break;
                 case GameStateMode.Stopped:
@@ -127,7 +98,7 @@ namespace Hyperion.Editor.Commands
                             EditorSubsystem? editorSubsystem = EngineManager.EditorGame?.EditorSubsystem;
                             Debug.Assert(editorSubsystem != null, "EditorSubsystem is null");
 
-                            editorSubsystem.OnEndSimulation();
+                            editorSubsystem.StopSimulation();
                         }
                         catch (Exception)
                         {
@@ -147,22 +118,6 @@ namespace Hyperion.Editor.Commands
                         });
                     });
 
-                    // _ = EngineManager.PostToSimThread(() =>
-                    // {
-                    //     gameInstance.StopSimulating();
-
-                    //     Dispatcher.UIThread.Post(() =>
-                    //     {
-                    //         try
-                    //         {
-                    //             EngineManager.InitializeEditor();
-                    //         }
-                    //         finally
-                    //         {
-                    //             Interlocked.Exchange(ref _isChangingGameMode, 0);
-                    //         }
-                    //     });
-                    // });
                     break;
                 default:
                     throw new NotImplementedException();

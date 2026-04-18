@@ -2059,12 +2059,28 @@ void EditorSubsystem::CreateHighlightNode()
     // m_highlightNode->SetEntity(entity);
 }
 
-void EditorSubsystem::OnBeginSimulation()
+void EditorSubsystem::StartSimulation()
 {
     HYP_SCOPE;
 
     if (m_editorViewports.Empty() || !m_currentProject.IsValid())
     {
+        return;
+    }
+
+    const GameState& gameState = m_currentProject->GetGame()->GetGameState();
+
+    const bool isSimulatingOrPaused = gameState.mode == GameStateMode::SIMULATING
+        || gameState.mode == GameStateMode::PAUSED;
+
+    if (isSimulatingOrPaused)
+    {
+        // already simulating, unpause if paused, otherwise do nothing.
+        if (gameState.mode == GameStateMode::PAUSED)
+        {
+            m_currentProject->GetGame()->StartSimulating();
+        }
+
         return;
     }
 
@@ -2173,7 +2189,7 @@ void EditorSubsystem::OnBeginSimulation()
     m_currentProject->GetGame()->StartSimulating();
 }
 
-void EditorSubsystem::OnEndSimulation()
+void EditorSubsystem::StopSimulation()
 {
     HYP_SCOPE;
 
@@ -2181,14 +2197,17 @@ void EditorSubsystem::OnEndSimulation()
 
     if (m_currentProject)
     {
-        m_currentProject->GetGame()->StopSimulating();
+        Game* gameInstance = m_currentProject->GetGame();
 
-        m_currentProject->GetWorld()->RemoveView(m_simulationView);
+        gameInstance->GetWorld()->RemoveView(m_simulationView);
+        
+        gameInstance->StopSimulating();
+        gameInstance->Shutdown();
     }
 
     m_simulationView.Reset();
 
-    // should be set in OnBeginSimulation
+    // should be set in StartSimulation, but just in case.
     AssertDebug(m_preSimulationProject.IsValid());
 
     Handle<AssetPackage> package = m_preSimulationProject->GetPackage();
@@ -2208,11 +2227,21 @@ void EditorSubsystem::OnEndSimulation()
             // Instances of objects without a pre-defined path (e.g Media/Meshes) go under
             //  PkgName/Objects/Types/<ObjectClassName>/ObjectName
             return HYP_FORMAT("Objects/Types/{}", assetObject.InstanceClass()->GetName());
-        });
+        },
+        AddAssetConflictMode::ReplaceExisting,
+        /* recacheExisting */ true);
 
     OpenProject(m_preSimulationProject);
 
     m_preSimulationProject.Reset();
+}
+
+void EditorSubsystem::PauseSimulation()
+{
+    if (m_currentProject.IsValid())
+    {
+        m_currentProject->GetGame()->PauseSimulation();
+    }
 }
 
 void EditorSubsystem::InitViewport()
