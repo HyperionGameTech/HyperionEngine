@@ -17,6 +17,7 @@
 #include <Core/utilities/DeferredScope.hpp>
 #include <Core/utilities/GlobalContext.hpp>
 #include <Core/reflection/TypeInfo.hpp>
+#include <Core/reflection/Class.hpp>
 
 #include <Core/threading/Scheduler.hpp>
 
@@ -49,6 +50,21 @@ extern const GlobalConfig& GetGlobalConfig();
 } // namespace CoreApi
 
 HYP_API extern const FilePath& GetCacheDirectory();
+
+static SharedMutex s_currentAssetRegistryMutex;
+static Handle<AssetRegistry> s_currentAssetRegistry;
+
+Handle<AssetRegistry> CurrentAssetRegistry()
+{
+    TSharedLock guard(s_currentAssetRegistryMutex);
+    return s_currentAssetRegistry;
+}
+
+void SetCurrentAssetRegistry(const Handle<AssetRegistry>& registry)
+{
+    TUniqueLock guard(s_currentAssetRegistryMutex);
+    s_currentAssetRegistry = registry;
+}
 
 static const ThreadId& s_assetRegistryThread = g_simThread;
 
@@ -2196,6 +2212,90 @@ void AssetPackage::SignalLoaded()
 
 #pragma endregion AssetPackage
 
+#pragma region AssetBucketData
+
+static const AssetBucket& GetBucketForAsset(const AssetObject& assetObject)
+{
+    const Class* cls = assetObject.InstanceClass();
+
+    const ClassAttributeValue& attr = cls->GetAttributeDeep("assetbucket"_sh);
+
+    if (attr.IsValid() && attr.GetType() == ClassAttributeType::STRING)
+    {
+        UTF8StringView bucketName = attr.GetString();
+
+        const AssetBucket& bucket = GetAssetBucketByName(StringHash(bucketName));
+
+        return bucket;
+    }
+
+    return AssetBuckets::None;
+}
+
+void AssetBucketData::MarkDirty(uint32 index)
+{
+    TUniqueLock lock(mtx);
+    dirtyIndices.Set(index, true);
+}
+
+void AssetBucketData::AddAsset(
+    AssetDesc& assetDesc,
+    const Handle<AssetObject>& assetObject)
+{
+    TUniqueLock lock(mtx);
+
+    if (assetObject.IsValid() && assetObject->m_assetIndex != AssetDesc::InvalidIndex)
+    {
+        // reuse the existing index, if we don't have one.
+        if (assetDesc.index == AssetDesc::InvalidIndex)
+        {
+            assetDesc.index = assetObject->m_assetIndex;
+        }
+        // otherwise, free the old index and take the new one
+        else
+        {
+            usedIndices.Set(assetObject->m_assetIndex, false);
+            
+            assetObject->m_assetIndex = assetDesc.index;
+        }
+    }
+        
+    if (assetDesc.index == AssetDesc::InvalidIndex)
+    {
+        assetDesc.index = usedIndices.FirstZeroBitIndex();
+
+        usedIndices.Set(assetDesc.index, true);
+    }
+
+    if (assetObject.IsValid())
+    {
+        assetObject->m_assetIndex = assetDesc.index;
+    }
+
+    auto it = assetDescs.Emplace(assetDesc).first;
+    assetDesc = *it; // update ref
+
+    assetObjectCache.Set(assetDesc.index, assetObject);
+    dirtyIndices.Set(assetDesc.index, true);
+}
+
+bool AssetBucketData::GetAssetDesc(StringHash nameHash, AssetDesc& outAssetDesc) const
+{
+    TSharedLock lock(mtx);
+
+    auto it = assetDescs.Find(nameHash);
+    if (it == assetDescs.End())
+    {
+        return false;
+    }
+
+    outAssetDesc = *it;
+
+    return true;
+}
+
+#pragma endregion AssetBucketData
+
 #pragma region AssetRegistry
 
 AssetRegistry::AssetRegistry()
@@ -2448,6 +2548,204 @@ void AssetRegistry::SaveBlobCache(bool async)
     else
     {
         DoSaveBlobCache();
+    }
+}
+
+Handle<AssetObject> AssetRegistry::GetAsset(const AssetBucket& bucket, StringHash name)
+{
+    AssetBucketData& data = m_assetBucketData[bucket.GetIndex()];
+
+    TSharedLock lock(data.mtx);
+
+    auto it = data.assetDescs.Find(name);
+    if (it == data.assetDescs.End())
+    {
+        return Handle<AssetObject>::Null();
+    }
+
+    const uint32 index = it->index;
+
+    const Handle<AssetObject>* pAssetObject = data.assetObjectCache.TryGet(index);
+
+    if (pAssetObject != nullptr)
+    {
+        return *pAssetObject;
+    }
+
+    lock.Reset();
+
+    String strName = String(*Name(name));
+    AssertDebug(strName.Length() > 0);
+
+    // Load it into cache
+    Handle<AssetObject> assetObject;
+
+    FilePath manifestPath = FilePath(m_rootPath) / (strName + ".json");
+    FileByteReader stream { manifestPath };
+
+    JSON::Object manifestData;
+
+    if (Result readManifestResult = ReadManifest(stream, manifestPath, manifestData); readManifestResult.HasError())
+    {
+        HYP_LOG(Assets, Error, "Failed to read asset manifest: {}", readManifestResult.GetError().GetMessage());
+
+        return Handle<AssetObject>::Null();
+    }
+        
+    Result loadResult = AssetObject::Load(manifestData, assetObject);
+
+    if (loadResult.HasError())
+    {
+        HYP_LOG(Assets, Error, "Failed to load asset: {}", loadResult.GetError().GetMessage());
+
+        return Handle<AssetObject>::Null();
+    }
+
+    assetObject->m_assetIndex = index;
+
+    { // set the asset in cache
+        TUniqueLock packageLock(data.mtx);
+
+        // check again in case another thread added it; in that case we'll reuse the existing asset and discard ours
+        pAssetObject = data.assetObjectCache.TryGet(index);
+
+        if (pAssetObject != nullptr)
+        {
+            return *pAssetObject;
+        }
+
+        data.assetObjectCache[index] = assetObject;
+    }
+
+    InitObject(assetObject);
+    assetObject->OnLoaded();
+
+    return assetObject;
+}
+
+void AssetRegistry::PutAsset(const Handle<AssetObject>& assetObject)
+{
+    if (!assetObject.IsValid())
+    {
+        return;
+    }
+
+    const AssetBucket& bucket = GetBucketForAsset(*assetObject);
+    AssertDebug(bucket != AssetBuckets::None);
+
+    if (bucket == AssetBuckets::None)
+    {
+        HYP_LOG(Assets, Warning, "Asset '{}' does not have a valid bucket, cannot be put in registry", assetObject->GetName());
+        return;
+    }
+
+    PutAsset(bucket, assetObject);
+}
+
+void AssetRegistry::PutAsset(const AssetBucket& bucket, const Handle<AssetObject>& assetObject)
+{
+    if (!assetObject.IsValid())
+    {
+        return;
+    }
+
+    AssetBucketData& data = m_assetBucketData[bucket.GetIndex()];
+    
+    AssetDesc assetDesc;
+    assetDesc.name = assetObject->m_name;
+    assetDesc.index = AssetDesc::InvalidIndex;
+
+    data.AddAsset(assetDesc, assetObject);
+}
+
+void AssetRegistry::LoadAssetDescs(const FilePath& rootDirectory)
+{
+    if (!rootDirectory.Exists() || !rootDirectory.IsDirectory())
+    {
+        HYP_LOG(Assets, Warning, "LoadAssetDescs: root directory '{}' does not exist or is not a directory", rootDirectory);
+        return;
+    }
+
+    for (const FilePath& subdirectory : rootDirectory.GetSubdirectories())
+    {
+        const String bucketName = subdirectory.Basename();
+        const AssetBucket& bucket = GetAssetBucketByName(StringHash(bucketName));
+
+        if (bucket == AssetBuckets::None)
+        {
+            HYP_LOG(Assets, Verbose, "LoadAssetDescs: subdirectory '{}' does not match any known AssetBucket, skipping", bucketName);
+            continue;
+        }
+
+        AssetBucketData& data = m_assetBucketData[bucket.GetIndex()];
+
+        // Reserve index 0 (== AssetDesc::InvalidIndex) so it is never assigned to a real asset.
+        data.usedIndices.Set(0, true);
+
+        Array<FilePath> assetFiles;
+
+        for (auto iter = subdirectory.OpenDirectory(); iter.HasNext(); iter.Advance())
+        {
+            if (iter.CurrentIsDirectory())
+            {
+                continue;
+            }
+
+            const FilePath curr = iter.Current();
+
+            if (curr.GetExtension() != "json")
+            {
+                continue;
+            }
+
+            assetFiles.PushBack(curr);
+        }
+
+        Array<AssetDesc> assetDescs;
+        assetDescs.Reserve(assetFiles.Size());
+
+        for (const FilePath& entry : assetFiles)
+        {
+            FileByteReader stream { entry };
+
+            JSON::Object manifestData;
+            if (Result readResult = ReadManifest(stream, entry, manifestData); readResult.HasError())
+            {
+                HYP_LOG(Assets, Error, "LoadAssetDescs: failed to read manifest '{}': {}", entry, readResult.GetError().GetMessage());
+                continue;
+            }
+
+            AssetDesc assetDesc;
+            if (Result loadDescResult = AssetObject::LoadDesc(manifestData, assetDesc); loadDescResult.HasError())
+            {
+                HYP_LOG(Assets, Error, "LoadAssetDescs: failed to load asset desc from '{}': {}", entry, loadDescResult.GetError().GetMessage());
+                continue;
+            }
+
+            assetDescs.PushBack(std::move(assetDesc));
+        }
+
+        if (assetDescs.Any())
+        {
+            TUniqueLock lock(data.mtx);
+
+            for (AssetDesc& assetDesc : assetDescs)
+            {
+                if (data.assetDescs.Contains(assetDesc.name))
+                {
+                    HYP_LOG(Assets, Verbose, "LoadAssetDescs: asset '{}' already present in bucket '{}', skipping",
+                        assetDesc.name, bucketName);
+                    continue;
+                }
+
+                AssertDebug(assetDesc.index == AssetDesc::InvalidIndex);
+
+                assetDesc.index = data.usedIndices.FirstZeroBitIndex();
+                data.usedIndices.Set(assetDesc.index, true);
+
+                data.assetDescs.Add(std::move(assetDesc));
+            }
+        }
     }
 }
 

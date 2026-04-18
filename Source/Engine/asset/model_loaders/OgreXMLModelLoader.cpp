@@ -332,15 +332,10 @@ AssetLoadResult OgreXMLModelLoader::LoadAsset(LoaderState& state) const
         vertexArrayView.layoutDesc = meshDesc.meshAttributes.inputLayout;
 
         mesh->SetMeshData(meshDesc, vertexArrayView, subMesh.indices.ToByteView());
-
         mesh->CalculateNormals();
-
         mesh->SetOriginalFilepath(FilePath::Relative(state.filepath, state.assetManager->GetBasePath()));
-        
-        if (Result result = mesh->Register("$Import/Meshes"); result.HasError())
-        {
-            HYP_LOG(Assets, Error, "Failed to register mesh: {}", result.GetError().GetMessage());
-        }
+
+        g_assetManager->GetAssetRegistry()->PutAsset(mesh);
 
         MaterialAttributes attributes {};
         attributes.bucket = RenderBucket::Translucent;
@@ -354,11 +349,7 @@ AssetLoadResult OgreXMLModelLoader::LoadAsset(LoaderState& state) const
         parameters.roughness = 0.2f;
 
         Handle<MaterialDefinition> materialDef = MakeHandle<MaterialDefinition>(CreateNameFromDynamicString(ANSIString(subMesh.name.Data())), attributes, parameters, MaterialTextures {});
-
-        if (Result result = materialDef->Register("$Import/MaterialDefinitions"); result.HasError())
-        {
-            HYP_LOG(Assets, Error, "Failed to register material definition: {}", result.GetError().GetMessage());
-        }
+        g_assetManager->GetAssetRegistry()->PutAsset(materialDef);
 
         InitObject(materialDef);
 

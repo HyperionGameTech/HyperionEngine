@@ -416,7 +416,7 @@ void Baker<LightmapVolume>::OnCompleted_Internal()
             bakeEntity.material = std::move(materialInstance);
         }
         
-        if (Result result = bakeEntity.material->Register("$Import/MaterialInstances"); result.HasError())
+        if (Result result = bakeEntity.material->Register("$Memory/MaterialInstances"); result.HasError())
         {
             HYP_LOG(Lightmap, Error, "Failed to register material: {}", result.GetError().GetMessage());
         }

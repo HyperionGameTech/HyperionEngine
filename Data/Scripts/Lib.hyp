@@ -1388,6 +1388,8 @@ extern class Game
     GetGameState() -> GameState
     OnLaunch() -> void
     OnUpdate(delta : float) -> void
+    Initialize() -> void
+    Shutdown() -> void
     SetToEditMode() -> void
     IsLaunched() -> bool
     StartSimulating() -> void
@@ -1776,6 +1778,7 @@ extern class AssetObject
     MarkDirty() -> void
     GetFriendlyName() -> Name
     SetFriendlyName(friendlyName : Name) -> void
+    GetAssetIndex() -> uint32
     GetOriginalFilepath() -> string
     SetOriginalFilepath(originalFilepath : string) -> void
     GetPackage() -> AssetPackage
@@ -1797,6 +1800,7 @@ extern class AssetObject
     FriendlyName : Name
     Flags : AssetObjectFlags
     OriginalFilepath : string
+    AssetIndex : uint32
     Package : any
     AssetPath : AssetPath
     ManifestPath : string

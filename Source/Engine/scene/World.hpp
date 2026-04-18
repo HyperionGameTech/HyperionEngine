@@ -97,7 +97,7 @@ struct CSMState
     Vec3f playerCenter;
 };
 
-HYP_CLASS()
+HYP_CLASS(AssetBucket = "Worlds")
 class HYP_API World final : public AssetObject
 {
     HYP_OBJECT_BODY(World);
