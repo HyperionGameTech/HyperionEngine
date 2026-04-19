@@ -1672,10 +1672,9 @@ static void ForEachPermutation(
     }
 }
 
-static bool LoadBundleFromAssetPath(
-    const AssetPath& path, Handle<ShaderBundle>& outBundle)
+static bool LoadBundleFromAssetPath(const AssetPath& path, Handle<ShaderBundle>& outBundle)
 {
-    Handle<AssetObject> asset = GetEngineAssetRegistry()->GetAsset(*AssetBuckets::AllBuckets[path.bucketIndex], path.assetName);
+    Handle<AssetObject> asset = GetEngineAssetRegistry()->GetAsset(path.GetBucket(), path.assetName);
 
     if (!asset.IsValid() || !asset->IsA(ShaderBundle::StaticClass()))
     {

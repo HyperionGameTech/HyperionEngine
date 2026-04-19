@@ -83,7 +83,7 @@ const Handle<AssetObject>& AssetReference::Resolve() const
     {
         AssetRegistry& registry = *GetCurrentAssetRegistry();
 
-        Handle<AssetObject> assetObject = registry.GetAsset(*AssetBuckets::AllBuckets[assetPath.bucketIndex], assetPath.assetName);
+        Handle<AssetObject> assetObject = registry.GetAsset(assetPath.GetBucket(), assetPath.assetName);
 
         if (assetObject)
         {

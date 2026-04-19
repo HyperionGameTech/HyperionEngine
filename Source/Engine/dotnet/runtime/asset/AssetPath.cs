@@ -9,15 +9,17 @@ namespace Hyperion
         public static readonly AssetPath Invalid = new AssetPath();
 
         private Name assetName;
-        private uint bucketIndex;
+        private uint bucketIndexAndRegistryId;
 
         public AssetPath()
         {
             assetName = new Name();
-            bucketIndex = AssetBucket.InvalidBucket;
+            bucketIndexAndRegistryId = 0;
         }
 
-        public bool Valid => assetName.Valid && bucketIndex != AssetBucket.InvalidBucket;
+        public bool Valid => assetName.Valid
+            // The bucket index is stored in the lower 24 bits, and the registry ID in the upper 8 bits.
+            && (bucketIndexAndRegistryId & 0xFFFFFF) != AssetBucket.InvalidBucket;
 
         public override string ToString()
         {

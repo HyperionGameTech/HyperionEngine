@@ -14,18 +14,61 @@ namespace Hyperion {
 
 HYP_DECLARE_LOG_CHANNEL(Assets);
 
-AssetPath::AssetPath(const UTF8StringView& path)
+static constexpr AssetRegistryId GetAssetRegistryIndex(StringHash hash)
+{
+    constexpr HashCode::ValueType GameRegistryHash = ("Game"_sh).hashCode;
+    constexpr HashCode::ValueType EngineRegistryHash = ("Engine"_sh).hashCode;
+    constexpr HashCode::ValueType EditorRegistryHash = ("Editor"_sh).hashCode;
+
+    switch (hash.hashCode)
+    {
+    case GameRegistryHash:
+        return AssetRegistryId::Game;
+    case EngineRegistryHash:
+        return AssetRegistryId::Engine;
+    case EditorRegistryHash:
+        return AssetRegistryId::Editor;
+    }
+
+    return AssetRegistryId::Game;
+}
+
+static constexpr const char* GetAssetRegistryName(AssetRegistryId registryId)
+{
+    switch (registryId)
+    {
+    case AssetRegistryId::Game:
+        return "Game";
+    case AssetRegistryId::Engine:
+        return "Engine";
+    case AssetRegistryId::Editor:
+        return "Editor";
+    }
+
+    return "Game";
+}
+
+AssetPath::AssetPath(const ANSIStringView& path)
+    : registryId(AssetRegistryId::Game),
+      bucketIndex(AssetBucket::InvalidIndex)
 {
     if (!path)
     {
         return;
     }
 
-    const size_t slashIdx = path.FindFirstIndex('/');
+    ANSIStringView curr = path;
 
-    if (slashIdx != UTF8StringView::NotFound)
+    size_t tokenIdx = curr.FindFirstIndex(':');
+
+    registryId = GetAssetRegistryIndex(StringHash(curr.Substr(0, tokenIdx)));
+    curr = curr.Substr(tokenIdx + 1, SIZE_MAX);
+
+    tokenIdx = curr.FindFirstIndex('/');
+
+    if (tokenIdx != ANSIStringView::NotFound)
     {
-        UTF8StringView bucketName = path.Substr(0, slashIdx);
+        ANSIStringView bucketName = curr.Substr(0, tokenIdx);
 
         const AssetBucket& bucket = GetAssetBucketByName(StringHash(bucketName));
         AssertDebug(bucket != AssetBuckets::None, "Invalid asset bucket {}", bucketName);
@@ -33,7 +76,7 @@ AssetPath::AssetPath(const UTF8StringView& path)
         bucketIndex = bucket.GetIndex();
     }
 
-    assetName = CreateNameFromDynamicString(ANSIString(path.Substr(slashIdx != UTF8StringView::NotFound ? slashIdx + 1 : 0, SIZE_MAX)));
+    assetName = CreateNameFromDynamicString(curr.Substr(tokenIdx != ANSIStringView::NotFound ? tokenIdx + 1 : 0, SIZE_MAX));
 }
 
 String AssetPath::ToString() const
@@ -49,6 +92,8 @@ String AssetPath::ToString() const
     String str;
     str.Reserve(32);
 
+    str += GetAssetRegistryName(registryId);
+    str += ':';
     str += bucketName;
     str += '/';
     str += *assetName;

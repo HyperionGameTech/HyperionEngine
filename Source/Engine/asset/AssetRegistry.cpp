@@ -693,7 +693,7 @@ void AssetRegistry::MarkAssetDirty(const AssetObject& assetObject)
         return;
     }
 
-    const AssetBucket& bucket = *AssetBuckets::AllBuckets[assetPath.bucketIndex];
+    const AssetBucket& bucket = assetPath.GetBucket();
 
     if (bucket == AssetBuckets::None)
     {

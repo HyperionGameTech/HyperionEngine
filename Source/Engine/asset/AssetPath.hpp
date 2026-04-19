@@ -23,6 +23,14 @@ namespace Hyperion {
 
 #pragma pack(push, 1)
 
+HYP_ENUM()
+enum class AssetRegistryId : uint8
+{
+    Game = 0,
+    Engine,
+    Editor
+};
+
 HYP_STRUCT()
 struct AssetPath
 {
@@ -30,19 +38,22 @@ struct AssetPath
 
     HYP_PROPERTY(Value, &AssetPath::ToString, &AssetPath::Set)
 
-    HYP_FIELD(NoScriptBindings, Transient)
     Name assetName;
+    AssetRegistryId registryId : 8;
+    uint32 bucketIndex : 24;
 
-    HYP_FIELD(NoScriptBindings, Transient)
-    uint32 bucketIndex = AssetBucket::InvalidIndex;
+    constexpr AssetPath()
+        : registryId(AssetRegistryId::Game),
+          bucketIndex(AssetBucket::InvalidIndex)
+    {
+    }
 
-    constexpr AssetPath() = default;
-
-    explicit AssetPath(const UTF8StringView& path);
+    explicit AssetPath(const ANSIStringView& path);
 
     constexpr AssetPath(const AssetBucket& bucket, Name assetName)
-        : bucketIndex(bucket.GetIndex()),
-          assetName(assetName)
+        : assetName(assetName),
+          registryId(AssetRegistryId::Game),
+          bucketIndex(bucket.GetIndex())
     {
     }
 
@@ -60,6 +71,12 @@ struct AssetPath
     {
         return assetName.IsValid()
             && bucketIndex != AssetBucket::InvalidIndex;
+    }
+
+    HYP_METHOD()
+    HYP_FORCE_INLINE const AssetBucket& GetBucket() const
+    {
+        return *AssetBuckets::AllBuckets[bucketIndex];
     }
 
     HYP_FORCE_INLINE explicit operator bool() const
@@ -80,7 +97,7 @@ struct AssetPath
 
     void Set(const String& path)
     {
-        *this = AssetPath(path);
+        *this = AssetPath(ANSIStringView(*path));
     }
 
     HYP_METHOD()
