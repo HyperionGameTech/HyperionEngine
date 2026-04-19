@@ -12,6 +12,8 @@
 
 #include <rendering/util/DeletionQueue.hpp>
 
+#include <asset/AssetRegistry.hpp>
+
 #include <engine/EngineDriver.hpp>
 
 #include <MaterialDefinition.generated.inl>
@@ -142,7 +144,7 @@ Handle<MaterialInstance> MaterialDefinition::CreateInstance() const
         m_defaultParameters,
         m_defaultTextures);
 
-    instance->Register("$Memory/MaterialInstances");
+    GetCurrentAssetRegistry()->PutAsset(instance);
 
     return instance;
 }
@@ -196,7 +198,7 @@ Handle<MaterialInstance> MaterialInstanceCache::Create(
         parameters,
         textures);
 
-    definition->Register("$Memory/MaterialDefinitions");
+    GetCurrentAssetRegistry()->PutAsset(definition);
     InitObject(definition);
 
     Handle<MaterialInstance> instance = definition->CreateInstance();
@@ -252,7 +254,7 @@ Handle<MaterialInstance> MaterialInstanceCache::GetOrCreate(
             parameters,
             textures);
 
-        definition->Register("$Memory/MaterialDefinitions");
+        GetCurrentAssetRegistry()->PutAsset(definition);
 
         strongRef = definition->CreateInstance();
 

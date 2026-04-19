@@ -151,7 +151,7 @@ void DefaultGame::OnLaunch_Impl()
 
     GetWorld()->AddScene(scene);
 
-    scene->Register("SampleGame");
+    GetCurrentAssetRegistry()->PutAsset(scene);
 
     // add sun
     Handle<Node> sunNode = scene->GetRoot()->AddChild();

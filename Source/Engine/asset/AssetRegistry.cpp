@@ -2329,6 +2329,46 @@ void AssetBucketData::AddAsset(
     dirtyIndices.Set(assetDesc.index, true);
 }
 
+void AssetBucketData::AllocateUniqueAssetName(
+    ANSIStringView inAssetName,
+    AssetDesc& outAssetDesc,
+    const ProcRef<bool(const AssetDesc&)>& comparator)
+{
+    TUniqueLock lock(mtx);
+
+    StringHash nameHash(inAssetName);
+
+    if (!assetDescs.Contains(nameHash))
+    {
+        outAssetDesc.name = CreateNameFromDynamicString(inAssetName);
+        outAssetDesc.index = usedIndices.FirstZeroBitIndex();
+
+        usedIndices.Set(outAssetDesc.index, true);
+
+        return;
+    }
+
+    uint32 suffix = 1;
+
+    while (true)
+    {
+        ANSIString uniqueName = HYP_FORMAT("{}_{}", inAssetName, suffix++);
+        StringHash uniqueNameHash(uniqueName);
+
+        auto existing = assetDescs.Find(uniqueNameHash);
+
+        if (existing != assetDescs.End() && (!comparator.IsValid() || !comparator(*existing)))
+        {
+            outAssetDesc.name = CreateNameFromDynamicString(uniqueName);
+            outAssetDesc.index = usedIndices.FirstZeroBitIndex();
+
+            usedIndices.Set(outAssetDesc.index, true);
+
+            return;
+        }
+    }
+}
+
 bool AssetBucketData::GetAssetDesc(StringHash nameHash, AssetDesc& outAssetDesc) const
 {
     TSharedLock lock(mtx);
@@ -2712,6 +2752,278 @@ void AssetRegistry::PutAsset(const AssetBucket& bucket, const Handle<AssetObject
     data.AddAsset(assetDesc, assetObject);
 }
 
+void AssetRegistry::PutAssetUnique(const Handle<AssetObject>& assetObject)
+{
+    if (!assetObject.IsValid())
+    {
+        return;
+    }
+
+    const AssetBucket& bucket = GetBucketForAsset(*assetObject);
+    AssertDebug(bucket != AssetBuckets::None);
+
+    if (bucket == AssetBuckets::None)
+    {
+        HYP_LOG(Assets, Warning, "Asset '{}' does not have a valid bucket, cannot be put in registry", assetObject->GetName());
+        return;
+    }
+
+    PutAssetUnique(bucket, assetObject);
+}
+
+void AssetRegistry::PutAssetUnique(const AssetBucket& bucket, const Handle<AssetObject>& assetObject)
+{
+    if (!assetObject.IsValid())
+    {
+        return;
+    }
+
+    AssetBucketData& data = m_assetBucketData[bucket.GetIndex()];
+
+    AssetDesc assetDesc;
+    assetDesc.index = AssetDesc::InvalidIndex;
+
+    data.AllocateUniqueAssetName(*assetObject->GetName(), assetDesc, [&assetObject](const AssetDesc& otherDesc) -> bool
+        {
+            return assetObject->m_assetIndex == otherDesc.index;
+        });
+
+    assetObject->m_name = assetDesc.name;
+
+    data.AddAsset(assetDesc, assetObject);
+}
+
+void AssetRegistry::PutAssetsDeep(const Handle<AssetObject>& targetAsset)
+{
+    if (!targetAsset.IsValid())
+    {
+        return;
+    }
+
+    // Recurse through the objects' fields, registering assets with their respective buckets
+    //// \todo : Change to a Stack, recursion could get impressively deep.
+
+    HashSet<const ObjectBase*> visited; // to avoid infinite recursion
+
+    bool shouldFollowAssetPaths = false;
+
+    auto HandleAssetReference = [this](const AssetReference& assetReference, AssetPackage& package)
+    {
+        Array<Name> chain = assetReference.GetAssetPath().GetChain();
+
+        if (chain.Size() > 1) // has at least one package in chain
+        {
+            chain.PopBack(); // remove asset name
+
+            const String packagePath = String::Join(chain, '/', &Name::ToString);
+            const Handle<AssetPackage> referencedPackage = GetPackageFromPath(packagePath, /* createIfNotExist */ false);
+
+            if (referencedPackage.IsValid() && !referencedPackage->IsSubpackageOf(package))
+            {
+                package.AddDependency(AssetPath(packagePath));
+            }
+        }
+    };
+
+    Proc<void(const BoxedValue&)> Iterate;
+    Iterate = [&](const BoxedValue& current) -> void
+    {
+        if (!current.IsValid() || current.IsNull())
+        {
+            return;
+        }
+
+        {
+            ObjectBase* object = current.TryGet<ObjectBase*>().GetOr(nullptr);
+            if (object && !visited.Insert(object).second)
+            {
+                HYP_LOG(Assets, Verbose, "Already visited {} with ID {}, skipping to avoid infinite recursion",
+                    object->InstanceClass() ? *object->InstanceClass()->GetName() : "<no class>", object->Id());
+
+                return;
+            }
+        }
+
+        Handle<AssetObject> assetObject;
+
+        Optional<AssetReference> tmpAssetReference;
+        const AssetReference* assetReference = nullptr;
+
+        if (current.Is<AssetObject>())
+        {
+            assetObject = MakeStrongRef(&current.Get<AssetObject>());
+            Assert(assetObject != nullptr);
+
+            assetReference = &tmpAssetReference.Emplace(assetObject);
+        }
+        else if (current.Is<AssetPath>() && shouldFollowAssetPaths)
+        {
+            assetReference = &tmpAssetReference.Emplace(current.Get<AssetPath>());
+        }
+        else if (current.Is<AssetReference>())
+        {
+            assetReference = &current.Get<AssetReference>();
+        }
+
+        if (assetReference && !assetReference->IsValid())
+        {
+            assetReference = nullptr;
+        }
+
+        if (assetReference && !assetObject)
+        {
+            assetObject = assetReference->Resolve();
+
+            if (!assetObject)
+            {
+                HYP_LOG(Assets, Warning, "AssetReference {} failed to resolve!", assetReference->GetAssetPath().ToString());
+            }
+        }
+
+        shouldFollowAssetPaths = false;
+
+        const TypeInfo& typeInfo = *current.GetTypeInfo();
+
+        bool walked = false;
+
+        WalkBoxedValue(current, [&](const BoxedValue& value)
+            {
+                Iterate(value);
+
+                walked = true;
+            });
+
+        if (walked)
+        {
+            return;
+        }
+
+        // Special handling for Entity: needs to collect from components
+        if (current.Is<Entity>())
+        {
+            const Entity& entity = current.Get<Entity>();
+
+            EntityManager* entityManager = entity.GetEntityManager();
+            if (entityManager != nullptr)
+            {
+                const auto componentIds = entityManager->GetAllComponents(&entity);
+                if (componentIds.HasValue())
+                {
+                    for (const auto& [typeId, componentId] : *componentIds)
+                    {
+                        const AnyRef componentRef = entityManager->TryGetComponent(typeId, &entity);
+                        if (!componentRef.HasValue())
+                        {
+                            continue;
+                        }
+
+                        Iterate(BoxedValue(componentRef));
+                    }
+                }
+            }
+            else
+            {
+                HYP_LOG(Assets, Warning, "Entity {} has no valid EntityManager, cannot iterate components", entity.Id());
+            }
+        }
+
+        if (current.Is<StreamingCell>())
+        {
+            const StreamingCell& streamingCell = current.Get<StreamingCell>();
+
+            for (const AssetReference& assetReference : streamingCell.GetAssetReferences())
+            {
+                if (IsRelocatable(assetReference.GetAssetPath()))
+                {
+                    HYP_LOG(Assets, Error, "StreamingCell contains a reference to the asset: {}, which is in an in-memory package or the $Temp package on the filesystem.\n"
+                        "This may result in issues with loading the asset later down the line.",
+                        assetReference.GetAssetPath().ToString());
+                }
+            }
+        }
+        
+        const Class* cls = GetClass(current.GetTypeId());
+
+        const BoxedValue* boxed = &current;
+        BoxedValue tmpBoxed;
+
+        if (assetObject != nullptr)
+        {
+            tmpBoxed = BoxedValue(assetObject);
+            boxed = &tmpBoxed;
+
+            cls = assetObject->InstanceClass();
+        }
+
+        if (!cls) // no Class; not an object we can iterate over.
+        {
+            return;
+        }
+
+        for (const IMember& member : cls->GetMembers(MemberType::Property | MemberType::Field, /* deep */ true))
+        {
+            if (member.IsDelegate())
+            {
+                continue;
+            }
+
+            if (member.GetMemberType() != MemberType::Property && member.GetAttribute(Attributes::g_attrProperty).IsValid())
+            {
+                // skip non-property members if they have the 'property' attribute (synthetic property)
+                continue;
+            }
+
+            if (member.GetAttribute(Attributes::g_attrTransient).GetBool() || !member.GetAttribute(Attributes::g_attrSerialize).GetBool(true))
+            {
+                continue;
+            }
+
+            BoxedValue memberData;
+            switch (member.GetMemberType())
+            {
+            case MemberType::Property:
+            {
+                const Property* property = static_cast<const Property*>(&member);
+                memberData = property->Get(*boxed);
+                break;
+            }
+            case MemberType::Field:
+            {
+                const Field* field = static_cast<const Field*>(&member);
+                memberData = field->Get(*boxed);
+                break;
+            }
+            default:
+                HYP_UNREACHABLE();
+                break;
+            }
+
+            if (!memberData.IsValid() || memberData.IsNull())
+            {
+                continue;
+            }
+
+            const Class* memberClass = memberData.GetTypeInfo()->GetClass();
+            if (memberClass != nullptr && !memberClass->GetAttribute(Attributes::g_attrSerialize).GetBool(true))
+            {
+                // skip members with Serialize=false on class
+                continue;
+            }
+
+            shouldFollowAssetPaths = member.GetAttribute(Attributes::g_attrFollowAssetPath).GetBool();
+
+            Iterate(memberData);
+        }
+
+        if (assetObject && assetObject->m_assetIndex == AssetDesc::InvalidIndex)
+        {
+            PutAsset(assetObject);
+        }
+    };
+
+    Iterate(BoxedValue(targetAsset));
+}
+
 void AssetRegistry::LoadAssetDescs(const FilePath& rootDirectory)
 {
     if (!rootDirectory.Exists() || !rootDirectory.IsDirectory())
@@ -2908,6 +3220,42 @@ void AssetRegistry::SaveDirtyAssets(const FilePath& rootDirectory)
 
             TUniqueLock lock(data.mtx);
             data.dirtyIndices.Set(index, false);
+        }
+    }
+}
+
+
+void AssetRegistry::RemoveCached()
+{
+    for (AssetBucketData& bucketData : m_assetBucketData)
+    {
+        TUniqueLock lock(bucketData.mtx);
+
+        for (AssetDesc& desc : bucketData.assetDescs)
+        {
+            const Handle<AssetObject>* pAssetObject = bucketData.assetObjectCache.TryGet(desc.index);
+
+            if (pAssetObject != nullptr)
+            {
+                bucketData.assetObjectCache.EraseAt(desc.index);
+            }
+        }
+    }
+}
+
+void AssetRegistry::RemoveCached(const AssetBucket& bucket)
+{
+    AssetBucketData& bucketData = m_assetBucketData[bucket.GetIndex()];
+
+    TUniqueLock lock(bucketData.mtx);
+
+    for (AssetDesc& desc : bucketData.assetDescs)
+    {
+        const Handle<AssetObject>* pAssetObject = bucketData.assetObjectCache.TryGet(desc.index);
+
+        if (pAssetObject != nullptr)
+        {
+            bucketData.assetObjectCache.EraseAt(desc.index);
         }
     }
 }

@@ -413,6 +413,15 @@ public:
         AssetDesc& assetDesc,
         const Handle<AssetObject>& assetObject = Handle<AssetObject>::Null());
 
+    /*! \brief Get a unique asset name within this bucket by appending an incrementing number to the base name until an unused name is found.
+     *   The returned AssetDesc has info about the allocated index/slot + the unique name that was generated.
+     *   \param comparator If provided, returning true from the comparator will indicate equality between assets,
+     *   meaning that new names will stop being generated from that point on, and the function will return. */
+    void AllocateUniqueAssetName(
+        ANSIStringView inAssetName,
+        AssetDesc& outAssetDesc,
+        const ProcRef<bool(const AssetDesc&)>& comparator = nullptr);
+
     bool GetAssetDesc(StringHash nameHash, AssetDesc& outAssetDesc) const;
 };
 
@@ -528,8 +537,16 @@ public:
     void PutAsset(const Handle<AssetObject>& asset);
     void PutAsset(const AssetBucket& bucket, const Handle<AssetObject>& asset);
 
+    void PutAssetUnique(const Handle<AssetObject>& asset);
+    void PutAssetUnique(const AssetBucket& bucket, const Handle<AssetObject>& asset);
+
+    void PutAssetsDeep(const Handle<AssetObject>& targetAsset);
+
     void LoadAssetDescs(const FilePath& rootDirectory);
     void SaveDirtyAssets(const FilePath& rootDirectory);
+
+    void RemoveCached();
+    void RemoveCached(const AssetBucket& bucket);
 
     /// End new assetbucket based stuff
 

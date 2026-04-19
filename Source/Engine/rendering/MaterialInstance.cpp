@@ -14,6 +14,8 @@
 #include <rendering/RenderConfig.hpp>
 #include <rendering/Bindless.hpp>
 
+#include <asset/AssetRegistry.hpp>
+
 #include <rendering/util/DeletionQueue.hpp>
 
 #include <Core/utilities/ByteUtil.hpp>
@@ -247,7 +249,7 @@ Handle<MaterialInstance> MaterialInstance::Clone() const
 
     instance->m_isDynamic = true;
 
-    instance->Register("$Memory/MaterialInstances");
+    GetCurrentAssetRegistry()->PutAsset(instance);
 
     return instance;
 }

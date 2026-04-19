@@ -11,6 +11,8 @@
 #include <ui/UIDataSource.hpp>
 #include <ui/UIScriptDelegate.hpp>
 
+#include <asset/AssetRegistry.hpp>
+
 #include <util/MeshBuilder.hpp>
 
 #include <Core/math/MathUtil.hpp>
@@ -1944,12 +1946,12 @@ Handle<MaterialInstance> UIObject::CreateMaterial() const
             GetMaterialParameters(),
             materialTextures);
 
-        definition->Register("$Memory/MaterialDefinitions");
+        GetCurrentAssetRegistry()->PutAsset(definition);
         InitObject(definition);
 
         Handle<MaterialInstance> instance = definition->CreateInstance();
         instance->SetIsDynamic(true);
-        instance->Register("$Memory/MaterialInstances");
+        GetCurrentAssetRegistry()->PutAsset(instance);
         InitObject(instance);
 
         return instance;
@@ -2470,11 +2472,7 @@ void UIObject::UpdateMeshData_Internal()
     {
         instancedMesh = MakeHandle<InstancedMeshData>(NAME_FMT("IMD_{}_{}", InstanceClass()->GetName(), GetName()));
 
-        Result registerResult = instancedMesh->Register("$Memory/Objects/Types/InstancedMeshData", AddAssetConflictMode::GenerateNewName);
-        if (registerResult.HasError())
-        {
-            HYP_LOG(UI, Error, "Failed to register UIObject InstancedMeshData: {}", registerResult.GetError().GetMessage());
-        }
+        GetCurrentAssetRegistry()->PutAssetUnique(instancedMesh);
 
         meshComponent->instanceData = AssetReference(instancedMesh);
     }

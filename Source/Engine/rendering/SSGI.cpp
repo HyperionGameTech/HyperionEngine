@@ -24,6 +24,8 @@
 #include <rendering/CBufferAllocator.hpp>
 #include <rendering/Texture.hpp>
 
+#include <asset/AssetRegistry.hpp>
+
 #include <rendering/shadows/ShadowMapCache.hpp>
 
 #include <rendering/renderers/DeferredRenderer.hpp>
@@ -140,7 +142,9 @@ void SSGI::Create()
     });
     m_ssgiTexture->SetIsTransient(true);
     m_ssgiTexture->SetName(NAME("SSGITexture"));
-    m_ssgiTexture->Register("$Memory/RenderTargets", AddAssetConflictMode::ReplaceExisting);
+    
+    GetCurrentAssetRegistry()->PutAsset(m_ssgiTexture);
+
     CheckResult(m_ssgiTexture->Create());
 
     for (uint32 i = 0; i < NumDownsamplePasses; i++)

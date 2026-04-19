@@ -53,12 +53,7 @@ void UpdateInstancedMeshData(Entity& entity, MeshComponent& meshComponent)
     {
         Handle<InstancedMeshData> imd = MakeHandle<InstancedMeshData>(NAME_FMT("IMD_{}", entity.GetName()));
 
-        Result registerResult = imd->Register("$Memory/Objects/Types/InstancedMeshData", AddAssetConflictMode::GenerateNewName);
-
-        if (registerResult.HasError())
-        {
-            HYP_LOG(Scene, Error, "Failed to register InstancedMeshData: {}", registerResult.GetError().GetMessage());
-        }
+        GetCurrentAssetRegistry()->PutAssetUnique(imd);
 
         meshComponent.instanceData = AssetReference(imd);
     }

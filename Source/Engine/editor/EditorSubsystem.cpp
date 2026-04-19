@@ -778,12 +778,15 @@ Handle<Node> TranslateEditorGizmo::Load_Internal() const
                 materialAttributes.bucket = RenderBucket::Debug;
 
                 {
-                    Handle<MaterialDefinition> materialDefinition = MakeHandle<MaterialDefinition>(Name::Unique("debug_material"), materialAttributes, materialParameters, MaterialTextures {});
-                    materialDefinition->Register("$Memory/MaterialDefinitions");
+                    Handle<MaterialDefinition> materialDefinition = MakeHandle<MaterialDefinition>(NAME("DebugMaterial"), materialAttributes, materialParameters, MaterialTextures {});
                     InitObject(materialDefinition);
+
+                    GetCurrentAssetRegistry()->PutAssetUnique(materialDefinition);
 
                     Handle<MaterialInstance> materialInstance = materialDefinition->CreateInstance();
                     materialInstance->SetIsDynamic(true);
+
+                    GetCurrentAssetRegistry()->PutAssetUnique(materialInstance);
 
                     meshComponent->material = std::move(materialInstance);
                 }
@@ -866,8 +869,8 @@ Handle<Node> RotateEditorGizmo::Load_Internal() const
                     materialAttributes.bucket = RenderBucket::Debug;
 
                     {
-                        Handle<MaterialDefinition> materialDefinition = MakeHandle<MaterialDefinition>(Name::Unique("debug_material"), materialAttributes, materialParameters, MaterialTextures {});
-                        materialDefinition->Register("$Memory/MaterialDefinitions");
+                        Handle<MaterialDefinition> materialDefinition = MakeHandle<MaterialDefinition>(NAME("DebugMaterial"), materialAttributes, materialParameters, MaterialTextures {});
+                        GetCurrentAssetRegistry()->PutAssetUnique(materialDefinition);
                         InitObject(materialDefinition);
                         
                         Handle<MaterialInstance> materialInstance = materialDefinition->CreateInstance();
@@ -2100,6 +2103,8 @@ void EditorSubsystem::StartSimulation()
     m_preSimulationProject = m_currentProject;
 
     CloseProject();
+    
+    m_currentProject->GetGame()->GetAssetRegistry()->RemoveCached();
 
     // Drop all cached strong refs in the old package, we want to force reload for loading the project for sim state.
     if (oldPackage.IsValid())
