@@ -43,7 +43,7 @@ EditorState::~EditorState()
 {
     if (m_currentProject.IsValid())
     {
-        PopCurrentAssetRegistry(/* global */ true);
+        PopCurrentAssetRegistry();
     }
 }
 
@@ -88,7 +88,7 @@ void EditorState::SetCurrentProject(const Handle<EditorProject>& project)
 
         if (m_currentProject.IsValid())
         {
-            PopCurrentAssetRegistry(/* global */ true);
+            PopCurrentAssetRegistry();
         }
 
         m_currentProject = project;
@@ -100,7 +100,7 @@ void EditorState::SetCurrentProject(const Handle<EditorProject>& project)
             Game* game = m_currentProject->GetGame();
             Assert(game != nullptr);
 
-            PushCurrentAssetRegistry(game->GetAssetRegistry(), /* global */ true);
+            PushCurrentAssetRegistry(game->GetAssetRegistry());
         }
         else
         {

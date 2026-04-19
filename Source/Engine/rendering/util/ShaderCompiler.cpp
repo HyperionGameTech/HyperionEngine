@@ -2196,7 +2196,7 @@ bool ShaderCompiler::LoadBundle(
         return LoadBundleFromAssetPath(path, outBundle);
     };
 
-    const AssetPath bundleAssetPath = AssetPath(AssetBuckets::ShaderBundles, name);
+    const AssetPath bundleAssetPath = AssetPath(AssetRegistryId::Engine, AssetBuckets::ShaderBundles, name);
 
     if (!LoadBundleFromAssetPath(bundleAssetPath, outBundle))
     {

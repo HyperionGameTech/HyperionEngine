@@ -24,7 +24,7 @@ namespace Hyperion {
 #pragma pack(push, 1)
 
 HYP_ENUM()
-enum class AssetRegistryId : uint8
+enum class AssetRegistryId : uint32
 {
     Game = 0,
     Engine,
@@ -39,8 +39,8 @@ struct AssetPath
     HYP_PROPERTY(Value, &AssetPath::ToString, &AssetPath::Set)
 
     Name assetName;
-    AssetRegistryId registryId : 8;
-    uint32 bucketIndex : 24;
+    AssetRegistryId registryId : 3;
+    uint32 bucketIndex : 29;
 
     constexpr AssetPath()
         : registryId(AssetRegistryId::Game),
@@ -49,6 +49,13 @@ struct AssetPath
     }
 
     explicit AssetPath(const ANSIStringView& path);
+
+    constexpr AssetPath(AssetRegistryId registryId, const AssetBucket& bucket, Name assetName)
+        : assetName(assetName),
+          registryId(registryId),
+          bucketIndex(bucket.GetIndex())
+    {
+    }
 
     constexpr AssetPath(const AssetBucket& bucket, Name assetName)
         : assetName(assetName),
@@ -103,9 +110,10 @@ struct AssetPath
     HYP_METHOD()
     String ToString() const;
 
-    HYP_FORCE_INLINE HashCode GetHashCode() const
+    HYP_FORCE_INLINE constexpr HashCode GetHashCode() const
     {
-        return ToString().GetHashCode();
+        return HashCode(assetName.hashCode)
+            .Combine(HashCode::ValueType((uint32(registryId) & 0x7) | (uint32(bucketIndex) << 3)));
     }
 };
 

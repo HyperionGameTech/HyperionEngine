@@ -59,10 +59,20 @@ AssetPath::AssetPath(const ANSIStringView& path)
 
     ANSIStringView curr = path;
 
-    size_t tokenIdx = curr.FindFirstIndex(':');
+    size_t tokenIdx;
+    
+    // if ':' is found, we assume registry id is contained in the string,
+    // (e.g Game://Materials/Barrel)
+    // otherwise, we use the default registry id (Game)
+    if (curr.Contains(':'))
+    {
+        tokenIdx = curr.FindFirstIndex(':');
 
-    registryId = GetAssetRegistryIndex(StringHash(curr.Substr(0, tokenIdx)));
-    curr = curr.Substr(tokenIdx + 1, SIZE_MAX);
+        registryId = GetAssetRegistryIndex(StringHash(curr.Substr(0, tokenIdx)));
+
+        // +3 handles "://"
+        curr = curr.Substr(tokenIdx + 3, SIZE_MAX);
+    }
 
     tokenIdx = curr.FindFirstIndex('/');
 
@@ -93,7 +103,7 @@ String AssetPath::ToString() const
     str.Reserve(32);
 
     str += GetAssetRegistryName(registryId);
-    str += ':';
+    str += "://";
     str += bucketName;
     str += '/';
     str += *assetName;

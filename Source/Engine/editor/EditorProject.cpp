@@ -294,7 +294,10 @@ TResult<Handle<EditorProject>> EditorProject::Load(const FilePath& filepath)
     const FilePath registryDir = dir;
 
     // create registry to load assets into
-    Handle<AssetRegistry> registry = MakeHandle<AssetRegistry>(registryDir);
+    Handle<AssetRegistry> registry = MakeHandle<AssetRegistry>(
+        AssetRegistryId::Game,
+        registryDir);
+        
     registry->Initialize();
 
     // Load asset descs for the registry before attempting to load the assets themselves

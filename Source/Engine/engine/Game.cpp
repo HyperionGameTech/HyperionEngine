@@ -64,14 +64,16 @@ void Game::Initialize()
 
     if (!m_assetRegistry)
     {
-        m_assetRegistry = MakeHandle<AssetRegistry>(GetLibraryDirectory() / *InstanceClass()->GetName());
+        m_assetRegistry = MakeHandle<AssetRegistry>(
+            AssetRegistryId::Game,
+            GetLibraryDirectory() / *InstanceClass()->GetName());
     }
 
     if (!m_assetRegistryActive)
     {
         m_assetRegistry->Initialize();
 
-        PushCurrentAssetRegistry(m_assetRegistry, true);
+        PushCurrentAssetRegistry(m_assetRegistry);
         m_assetRegistryActive = true;
     }
 
@@ -111,7 +113,7 @@ void Game::Shutdown()
     {
         m_assetRegistry->Shutdown();
 
-        PopCurrentAssetRegistry(true);
+        PopCurrentAssetRegistry();
 
         m_assetRegistryActive = false;
     }
@@ -130,7 +132,7 @@ void Game::SetAssetRegistry(const Handle<AssetRegistry>& assetRegistry)
     {
         m_assetRegistry->Shutdown();
 
-        PopCurrentAssetRegistry(true);
+        PopCurrentAssetRegistry();
     }
 
     m_assetRegistry = assetRegistry;
@@ -140,7 +142,7 @@ void Game::SetAssetRegistry(const Handle<AssetRegistry>& assetRegistry)
     {
         m_assetRegistry->Initialize();
 
-        PushCurrentAssetRegistry(m_assetRegistry, true);
+        PushCurrentAssetRegistry(m_assetRegistry);
 
         m_assetRegistryActive = true;
     }

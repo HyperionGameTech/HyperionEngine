@@ -112,7 +112,15 @@ void AssetObject::MarkDirty()
 {
     if (IsRegistered() && !IsTransient())
     {
-        GetCurrentAssetRegistry()->MarkAssetDirty(*this);
+        Handle<AssetRegistry> registry = GetAssetRegistry();
+        AssertDebug(registry.IsValid());
+
+        if (!registry.IsValid())
+        {
+            return;
+        }
+
+        registry->MarkAssetDirty(*this);
     }
 }
 
@@ -158,6 +166,8 @@ Result AssetObject::Rename(Name name)
         return {};
     }
 
+    // @TODO Need to invoke on AssetRegistry, so it updates the AssetDesc
+
     m_name = name;
     m_friendlyName = CreateFriendlyName(name);
 
@@ -199,11 +209,18 @@ Result AssetObject::SaveAs(const FilePath& manifestPath)
     {
         return HYP_MAKE_ERROR(Error, "Path '{}' is not a valid directory, cannot save asset", dir);
     }
+    
+    Handle<AssetRegistry> registry = GetAssetRegistry();
+    AssertDebug(registry.IsValid());
 
-    AssetRegistry& registry = *GetCurrentAssetRegistry();
-    registry.PutAssetsDeep(MakeStrongRef(this));
+    if (!registry.IsValid())
+    {
+        return HYP_MAKE_ERROR(Error, "No active asset registry for path: {}", m_assetPath.ToString());
+    }
 
-    BlobStorage& blobStorage = registry.GetBlobStorage();
+    registry->PutAssetsDeep(MakeStrongRef(this));
+
+    BlobStorage& blobStorage = registry->GetBlobStorage();
 
     Result saveBlobDataResult = SaveBlobData(blobStorage, dir);
     if (saveBlobDataResult.HasError())
@@ -633,6 +650,22 @@ void AssetObject::GetNumUsers(int64& outReaders, int64& outWriters) const
 
     outReaders = state >> 1;
     outWriters = state & 0x1;
+}
+
+Handle<AssetRegistry> AssetObject::GetAssetRegistry()
+{
+    Assert(IsRegistered());
+
+    switch (m_assetPath.registryId)
+    {
+    case AssetRegistryId::Game:
+        return GetCurrentAssetRegistry();
+    case AssetRegistryId::Engine: // Fallthrough
+    case AssetRegistryId::Editor:
+        return GetEngineAssetRegistry();
+    }
+
+    return Handle<AssetRegistry>::Null();
 }
 
 #pragma endregion AssetObject

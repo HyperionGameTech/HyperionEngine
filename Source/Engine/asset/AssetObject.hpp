@@ -191,6 +191,8 @@ public:
         Handle<AssetObject>& outAssetObject);
 
 protected:
+    Handle<AssetRegistry> GetAssetRegistry();
+
     virtual void OnLoaded()
     {
         // do nothing

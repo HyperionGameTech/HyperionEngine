@@ -144,7 +144,7 @@ void SSGI::Create()
     m_ssgiTexture->SetName(NAME("SSGITexture"));
     CheckResult(m_ssgiTexture->Create());
     
-    GetCurrentAssetRegistry()->PutAsset(m_ssgiTexture);
+    GetEngineAssetRegistry()->PutAsset(m_ssgiTexture);
 
     for (uint32 i = 0; i < NumDownsamplePasses; i++)
     {

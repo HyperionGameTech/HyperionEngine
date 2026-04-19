@@ -168,9 +168,17 @@ void Mesh::PageBlobData()
         && m_vertexData.key
         && m_vertexData.size != 0)
     {
+        Handle<AssetRegistry> registry = GetAssetRegistry();
+        AssertDebug(registry.IsValid());
+
+        if (!registry.IsValid())
+        {
+            return;
+        }
+
         bool needsSaveBlobData = false;
 
-        BlobStorage& blobStorage = GetCurrentAssetRegistry()->GetBlobStorage();
+        BlobStorage& blobStorage = registry->GetBlobStorage();
 
         if (!blobStorage.GetData(m_vertexData.key, m_vertexData.size, m_vertexData.raw))
         {
@@ -178,7 +186,7 @@ void Mesh::PageBlobData()
                 {
 #if HYP_EDITOR || HYP_ALLOW_INLINE_BLOBS
                     // check if failed; if so, try to import from raw data blob in project directory
-                    FileByteReader stream { GetCurrentAssetRegistry()->GetRootPath() / AssetBuckets::Meshes.GetName() / (String(*GetName()) + ".VB.raw.blob") };
+                    FileByteReader stream { registry->GetRootPath() / AssetBuckets::Meshes.GetName() / (String(*GetName()) + ".VB.raw.blob") };
                     if (!stream.Eof())
                     {
                         ByteBuffer buffer = stream.Read(stream.Max());
@@ -207,7 +215,7 @@ void Mesh::PageBlobData()
                 {
 #if HYP_EDITOR || HYP_ALLOW_INLINE_BLOBS
                     // check if failed; if so, try to import from raw data blob in project directory
-                    FileByteReader stream { GetCurrentAssetRegistry()->GetRootPath() / AssetBuckets::Meshes.GetName() / (String(*GetName()) + ".IB.raw.blob") };
+                    FileByteReader stream { registry->GetRootPath() / AssetBuckets::Meshes.GetName() / (String(*GetName()) + ".IB.raw.blob") };
                     if (!stream.Eof())
                     {
                         ByteBuffer buffer = stream.Read(stream.Max());
@@ -238,7 +246,7 @@ void Mesh::PageBlobData()
                 ([&]()
                     {
 #if HYP_EDITOR || HYP_ALLOW_INLINE_BLOBS
-                        FileByteReader stream { GetCurrentAssetRegistry()->GetRootPath() / AssetBuckets::Meshes.GetName() / (String(*GetName()) + ".BVH.raw.blob") };
+                        FileByteReader stream { registry->GetRootPath() / AssetBuckets::Meshes.GetName() / (String(*GetName()) + ".BVH.raw.blob") };
                         if (!stream.Eof())
                         {
                             ByteBuffer buffer = stream.Read(stream.Max());

@@ -3,12 +3,15 @@ using System.Runtime.InteropServices;
 namespace Hyperion
 {
     [ClassBinding(Name = "AssetPath")]
-    [StructLayout(LayoutKind.Sequential)]
+    [StructLayout(LayoutKind.Explicit, Size = 12, Pack = 4)]
     public struct AssetPath
     {
         public static readonly AssetPath Invalid = new AssetPath();
 
+        [FieldOffset(0)]
         private Name assetName;
+        
+        [FieldOffset(8)]
         private uint bucketIndexAndRegistryId;
 
         public AssetPath()
@@ -17,9 +20,10 @@ namespace Hyperion
             bucketIndexAndRegistryId = 0;
         }
 
+        public uint BucketIndex => (bucketIndexAndRegistryId >> 3);
+
         public bool Valid => assetName.Valid
-            // The bucket index is stored in the lower 24 bits, and the registry ID in the upper 8 bits.
-            && (bucketIndexAndRegistryId & 0xFFFFFF) != AssetBucket.InvalidBucket;
+            && BucketIndex != AssetBucket.InvalidBucket;
 
         public override string ToString()
         {
@@ -28,7 +32,7 @@ namespace Hyperion
             if (!Valid)
                 return "<Invalid>";
 
-            string bucketName = AssetBucket.GetAssetBucketName(bucketIndex);
+            string bucketName = AssetBucket.GetAssetBucketName(BucketIndex);
             return $"{bucketName}/{assetName}";
         }
     }

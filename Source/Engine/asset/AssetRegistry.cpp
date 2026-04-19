@@ -59,51 +59,26 @@ static Array<Handle<AssetRegistry>> s_currentAssetRegistryStack;
 
 HYP_API Handle<AssetRegistry> GetCurrentAssetRegistry()
 {
-    AssetRegistryContext* arc = GetGlobalContext<AssetRegistryContext>();
+    Mutex::Guard guard(s_currentAssetRegistryMtx);
 
-    if (arc)
+    if (s_currentAssetRegistryStack.Any())
     {
-        return arc->registry;
-    }
-    
-    {
-        Mutex::Guard guard(s_currentAssetRegistryMtx);
-
-        if (s_currentAssetRegistryStack.Any())
-        {
-            return s_currentAssetRegistryStack.Back();
-        }
+        return s_currentAssetRegistryStack.Back();
     }
 
-    AssertDebug(s_engineAssetRegistry.IsValid());
-
-    return s_engineAssetRegistry;
+    return Handle<AssetRegistry>::Null();
 }
 
-HYP_API void PushCurrentAssetRegistry(const Handle<AssetRegistry>& registry, bool global)
+HYP_API void PushCurrentAssetRegistry(const Handle<AssetRegistry>& registry)
 {
-    if (global)
-    {
-        Mutex::Guard guard(s_currentAssetRegistryMtx);
-        s_currentAssetRegistryStack.PushBack(registry);
-
-        return;
-    }
-
-    PushGlobalContext(AssetRegistryContext { registry });
+    Mutex::Guard guard(s_currentAssetRegistryMtx);
+    s_currentAssetRegistryStack.PushBack(registry);
 }
 
-HYP_API void PopCurrentAssetRegistry(bool global)
+HYP_API void PopCurrentAssetRegistry()
 {
-    if (global)
-    {
-        Mutex::Guard guard(s_currentAssetRegistryMtx);
-        s_currentAssetRegistryStack.PopBack();
-
-        return;
-    }
-
-    PopGlobalContext<AssetRegistryContext>();
+    Mutex::Guard guard(s_currentAssetRegistryMtx);
+    s_currentAssetRegistryStack.PopBack();
 }
 
 HYP_API Handle<AssetRegistry> GetEngineAssetRegistry()
@@ -341,7 +316,7 @@ void AssetBucketData::SetAsset(
     }
     
     assetObject->m_name = assetDesc.name;
-    assetObject->m_assetPath = AssetPath(*AssetBuckets::AllBuckets[bucketIndex], assetDesc.name);
+    assetObject->m_assetPath = AssetPath(registryId, *AssetBuckets::AllBuckets[bucketIndex], assetDesc.name);
 
     assetObjectCache.Set(assetDesc.index, assetObject);
 
@@ -414,8 +389,9 @@ bool AssetBucketData::GetAssetDesc(StringHash nameHash, AssetDesc& outAssetDesc)
 
 #pragma region AssetRegistry
 
-AssetRegistry::AssetRegistry(const FilePath& rootPath)
-    : m_rootPath(rootPath),
+AssetRegistry::AssetRegistry(AssetRegistryId registryId, const FilePath& rootPath)
+    : m_registryId(registryId),
+      m_rootPath(rootPath),
       m_isInitialized(false),
       m_scheduler(new Scheduler(s_assetRegistryThread)),
       m_pruneTimer { 5.0 }, // every 5 seconds
@@ -426,7 +402,10 @@ AssetRegistry::AssetRegistry(const FilePath& rootPath)
 {
     for (uint32 bucketIndex = 0; bucketIndex < uint32(m_assetBucketData.Size()); bucketIndex++)
     {
-        m_assetBucketData[bucketIndex].bucketIndex = bucketIndex;
+        AssetBucketData& bucketData = m_assetBucketData[bucketIndex];
+
+        bucketData.registryId = registryId;
+        bucketData.bucketIndex = bucketIndex;
     }
 }
 
@@ -654,7 +633,7 @@ Handle<AssetObject> AssetRegistry::GetAsset(const AssetBucket& bucket, StringHas
     }
 
     assetObject->m_assetIndex = index;
-    assetObject->m_assetPath = AssetPath(bucket, assetObject->m_name);
+    assetObject->m_assetPath = AssetPath(m_registryId, bucket, assetObject->m_name);
 
     { // set the asset in cache
         TUniqueLock packageLock(data.mtx);

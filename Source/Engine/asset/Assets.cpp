@@ -343,12 +343,12 @@ void AssetManager::Update(float delta)
     HYP_SCOPE;
     AssertOnThread(g_simThread);
 
-    if (Handle<AssetRegistry> engineRegistry = GetEngineAssetRegistry())
+    if (Handle<AssetRegistry> engineRegistry = GetEngineAssetRegistry(); engineRegistry.IsValid())
     {
         engineRegistry->Update();
     }
 
-    if (Handle<AssetRegistry> currentRegistry = GetCurrentAssetRegistry())
+    if (Handle<AssetRegistry> currentRegistry = GetCurrentAssetRegistry(); currentRegistry.IsValid())
     {
         currentRegistry->Update();
     }
