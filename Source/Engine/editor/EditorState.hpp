@@ -74,8 +74,6 @@ public:
 private:
     void Init() override;
 
-    void ImportAssetsOrSetCallback(const Handle<EditorProject>& project);
-
     Handle<EditorProject> m_currentProject;
 
     EditorTaskManager m_taskManager;
@@ -83,9 +81,6 @@ private:
     EditorPickCache m_pickCache;
 
     mutable Mutex m_mutex;
-
-    DelegateHandler m_onAssetObjectAddedHandle;
-    DelegateHandler m_onProjectPackageChangedHandle;
 };
 
 } // namespace Hyperion

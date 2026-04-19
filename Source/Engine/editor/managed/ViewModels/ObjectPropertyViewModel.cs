@@ -147,14 +147,14 @@ namespace Hyperion.Editor.ViewModels
         {
             var selected = ContentBrowserViewModel.Instance?.SelectedAsset;
 
-            if (selected?.Package == null)
+            if (selected?.Bucket == null)
             {
                 Dispatcher.UIThread.Post(() => CanSelectFromContentBrowser = false);
                 return;
             }
 
             var assetName = selected.AssetDesc.Name;
-            var package = selected.Package.Package;
+            var bucketIndex = selected.Bucket.BucketIndex;
 
             Class? expectedClass = _propertyTypeClass;
             Debug.Assert(expectedClass != null, "Expected class should not be null for asset object properties");
@@ -163,7 +163,7 @@ namespace Hyperion.Editor.ViewModels
             {
                 try
                 {
-                    AssetObject? obj = package.GetAssetObject(assetName);
+                    AssetObject? obj = AssetManager.Instance.AssetRegistry.GetAsset(bucketIndex, assetName);
                     bool compatible = false;
 
                     if (obj != null && obj.IsValid)
@@ -191,19 +191,19 @@ namespace Hyperion.Editor.ViewModels
 
             var selected = ContentBrowserViewModel.Instance?.SelectedAsset;
 
-            if (selected?.Package == null)
+            if (selected?.Bucket == null)
             {
                 return;
             }
 
             var assetName = selected.AssetDesc.Name;
-            var package = selected.Package.Package;
+            var bucketIndex = selected.Bucket.BucketIndex;
 
             _ = EngineManager.PostToSimThread(() =>
             {
                 try
                 {
-                    AssetObject? obj = package.GetAssetObject(assetName);
+                    AssetObject? obj = AssetManager.Instance.AssetRegistry.GetAsset(bucketIndex, assetName);
 
                     if (obj == null || !obj.IsValid)
                     {

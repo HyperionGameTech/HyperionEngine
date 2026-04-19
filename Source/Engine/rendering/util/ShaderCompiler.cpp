@@ -2197,7 +2197,7 @@ bool ShaderCompiler::LoadBundle(
         return LoadBundleFromAssetPath(path, outBundle);
     };
 
-    const AssetPath bundleAssetPath(HYP_FORMAT("Engine/Shaders/{}", name));
+    const AssetPath bundleAssetPath = AssetPath(AssetBuckets::ShaderBundles, name);
 
     if (!LoadBundleFromAssetPath(bundleAssetPath, outBundle))
     {
@@ -3833,30 +3833,15 @@ bool ShaderCompiler::CompileBundle(
         });
 
     { // register assets
-        Result registerResult;
-
         for (const Handle<Shader>& shader : outBundle->compiledShaders)
         {
-            GetEngineAssetRegistry()->PutAsset(shader);
-
-            if (registerResult.HasError())
-            {
-                HYP_LOG(ShaderCompiler, Warning, "Failed to register shader asset: {}", registerResult.GetError().GetMessage());
-            }
-            else
-            {
-                HYP_LOG(ShaderCompiler, Verbose, "Registered shader asset {}", shader->GetName());
-            }
+            GetEngineAssetRegistry()->PutAsset(AssetBuckets::Shaders, shader);
         }
         
-        outBundle->MarkDirty();
-        
-        GetEngineAssetRegistry()->PutAsset(outBundle->HandleFromThis());
-
-        HYP_LOG(ShaderCompiler, Verbose, "Shader bundle {} has {} shaders, is dirty? {}",
-            outBundle->GetName(),
-            outBundle->compiledShaders.Size(), outBundle->IsDirty());
+        GetEngineAssetRegistry()->PutAsset(AssetBuckets::ShaderBundles, outBundle->HandleFromThis());
     }
+
+    GetEngineAssetRegistry()->SaveDirtyAssets();
 
 #ifdef HYP_SHADER_COMPILER_LOGGING
     if (numCompiledPermutations.Get(MemoryOrder::RELAXED) != 0)

@@ -335,6 +335,8 @@ void AssetBucketData::SetAsset(
         oldAssetObject->m_assetIndex = AssetDesc::InvalidIndex;
     }
 
+    assetObject->m_assetPath = AssetPath(*AssetBuckets::AllBuckets[bucketIndex], assetObject->m_name);
+
     assetObjectCache.Set(assetDesc.index, assetObject);
     dirtyIndices.Set(assetDesc.index, true);
 }
@@ -367,7 +369,7 @@ void AssetBucketData::AllocateUniqueAssetName(
 
         auto existing = assetDescs.Find(uniqueNameHash);
 
-        if (existing != assetDescs.End() && (!comparator.IsValid() || !comparator(*existing)))
+        if (existing == assetDescs.End() || (comparator.IsValid() && comparator(*existing)))
         {
             outAssetDesc.name = CreateNameFromDynamicString(uniqueName);
             outAssetDesc.index = usedIndices.FirstZeroBitIndex();
@@ -576,6 +578,7 @@ Handle<AssetObject> AssetRegistry::GetAsset(const AssetBucket& bucket, StringHas
     }
 
     assetObject->m_assetIndex = index;
+    assetObject->m_assetPath = AssetPath(bucket, assetObject->m_name);
 
     { // set the asset in cache
         TUniqueLock packageLock(data.mtx);
@@ -1117,6 +1120,9 @@ void AssetRegistry::SaveDirtyAssets()
         {
             const Bitset::BitIndex index = pair.first;
             const Handle<AssetObject>& assetObject = pair.second;
+
+            // recursively register properties for this asset object
+            PutAssetsDeep(assetObject);
 
             const Name assetName = assetObject->GetName();
             if (!assetName.IsValid())

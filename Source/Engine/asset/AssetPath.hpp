@@ -40,6 +40,12 @@ struct AssetPath
 
     explicit AssetPath(const UTF8StringView& path);
 
+    constexpr AssetPath(const AssetBucket& bucket, Name assetName)
+        : bucketIndex(bucket.GetIndex()),
+          assetName(assetName)
+    {
+    }
+
     constexpr AssetPath(const AssetPath& other) = default;
     AssetPath& operator=(const AssetPath& other) = default;
 

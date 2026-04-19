@@ -39,8 +39,6 @@ EditorState::EditorState()
 
 EditorState::~EditorState()
 {
-    m_onProjectPackageChangedHandle.Reset();
-    m_onAssetObjectAddedHandle.Reset();
 }
 
 void EditorState::Init()
@@ -82,8 +80,6 @@ void EditorState::SetCurrentProject(const Handle<EditorProject>& project)
             return;
         }
 
-        m_onProjectPackageChangedHandle.Reset();
-
         m_currentProject = project;
 
         if (project.IsValid())
@@ -94,8 +90,6 @@ void EditorState::SetCurrentProject(const Handle<EditorProject>& project)
         {
             HYP_LOG(Editor, Verbose, "Current project cleared");
         }
-
-        ImportAssetsOrSetCallback(m_currentProject);
     }
 
     OnCurrentProjectChanged(project);
