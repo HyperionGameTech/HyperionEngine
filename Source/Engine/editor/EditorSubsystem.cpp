@@ -2097,20 +2097,11 @@ void EditorSubsystem::StartSimulation()
 
     m_simulationSnapshotPath = m_currentProject->GetFilePath();
 
-    Handle<AssetPackage> oldPackage = m_currentProject->GetPackage();
-    Assert(oldPackage.IsValid());
-
     m_preSimulationProject = m_currentProject;
 
     CloseProject();
     
     m_currentProject->GetGame()->GetAssetRegistry()->RemoveCached();
-
-    // Drop all cached strong refs in the old package, we want to force reload for loading the project for sim state.
-    if (oldPackage.IsValid())
-    {
-        oldPackage->UnloadAssetObjects(/* recursive */ true);
-    }
 
     FilePath snapshotPath = std::move(m_simulationSnapshotPath);
 
@@ -2214,12 +2205,6 @@ void EditorSubsystem::StopSimulation()
 
     // should be set in StartSimulation, but just in case.
     AssertDebug(m_preSimulationProject.IsValid());
-
-    Handle<AssetPackage> package = m_preSimulationProject->GetPackage();
-    Assert(package.IsValid());
-
-    // purge what is there
-    package->UnloadAssetObjects(/* recursive */ true);
 
     OpenProject(m_preSimulationProject);
 

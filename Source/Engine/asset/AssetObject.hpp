@@ -32,7 +32,6 @@ HYP_DECLARE_LOG_CHANNEL(Assets);
 
 enum class ChunkId : uint32;
 
-class AssetPackage;
 class AssetObject;
 class ByteWriter;
 class BlobStorage;
@@ -63,7 +62,6 @@ class HYP_API AssetObject : public ObjectBase
 
 public:
     friend class AssetRegistry;
-    friend class AssetPackage;
     friend class AssetBucketData;
 
     AssetObject();
@@ -132,12 +130,6 @@ public:
     }
 
     HYP_METHOD()
-    Handle<AssetPackage> GetPackage() const
-    {
-        return m_package.Lock();
-    }
-
-    HYP_METHOD()
     const AssetPath& GetPath() const
     {
         AssertDebug(IsRegistered(), "Calling GetPath() on an unregistered asset object");
@@ -183,12 +175,6 @@ public:
 
     HYP_METHOD()
     bool IsSaved() const;
-
-    /*! \brief Drops this asset object's strong reference from its package cache without removing
-     *   its AssetDesc. Clears the asset's package and path metadata. After calling this, the next
-     *   request for this asset by name will re-load it fresh from disk. */
-    HYP_METHOD()
-    void Unload();
 
     HYP_METHOD()
     Result Save();
@@ -275,9 +261,6 @@ protected:
 
     HYP_FIELD(Property = "AssetIndex", Transient, EditHide)
     uint32 m_assetIndex;
-
-    HYP_FIELD(Transient)
-    WeakHandle<AssetPackage> m_package;
 
     HYP_FIELD(Transient)
     AssetPath m_assetPath;

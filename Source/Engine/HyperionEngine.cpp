@@ -499,6 +499,7 @@ extern "C"
         g_streamingManager->Stop();
         g_streamingManager.Reset();
 
+        GetEngineAssetRegistry()->Shutdown();
         SetEngineAssetRegistry(Handle<AssetRegistry>::Null());
 
         g_assetManager.Reset();

@@ -1112,6 +1112,7 @@ DEFINE_EDITOR_COMMAND(ReparentNode);
 
 #pragma region ShowTexture
 
+#if 0
 class HYP_API EditorCommandShowTexture final : public EditorCommandBase
 {
     HYP_OBJECT_BODY(EditorCommandShowTexture);
@@ -1271,6 +1272,7 @@ EditorCommandShowTexture::WatchTextureState EditorCommandShowTexture::s_watchTex
 Mutex EditorCommandShowTexture::s_watchTextureStateMtx;
 
 DEFINE_EDITOR_COMMAND(ShowTexture);
+#endif
 
 #pragma endregion ShowTexture
 

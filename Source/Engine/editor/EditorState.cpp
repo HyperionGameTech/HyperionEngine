@@ -28,86 +28,6 @@ static constexpr size_t BlockSize = (16 * 1024 * 1024);
 Pool s_editorPickCachePool { BlockSize };
 HYP_API Pool* g_editorPickCachePool = &s_editorPickCachePool;
 
-static Handle<AssetPackage> GetImportsPackage()
-{
-    return GetCurrentAssetRegistry()->GetPackageFromPath("$Import", true);
-}
-
-static void RegisterImportedAsset(const Handle<EditorProject>& project, const Handle<AssetObject>& assetObject)
-{
-    Assert(project.IsValid() && assetObject.IsValid());
-
-    Handle<AssetPackage> projectPackage = project->GetPackage();
-    Assert(projectPackage.IsValid());
-
-    Handle<AssetRegistry> registry = projectPackage->GetRegistry().Lock();
-    Assert(registry.IsValid());
-
-    Array<Name> subpackageNames;
-
-    Handle<AssetPackage> previousPackage = assetObject->GetPackage();
-    Assert(previousPackage.IsValid());
-
-    // keep a copy around in case removing it from the package invalidates the reference
-    Handle<AssetObject> assetObjectCopy = assetObject;
-
-    // remove the asset from its current package
-    if (Result removeResult = previousPackage->RemoveAssetObject(assetObject); removeResult.HasError())
-    {
-        HYP_LOG(Editor, Error, "Failed to remove asset object '{}' from package '{}': {}", assetObject->GetName(), previousPackage->GetName(), removeResult.GetError().GetMessage());
-    }
-
-    AssetPackage* currentPackage = previousPackage;
-
-    while (currentPackage != nullptr && currentPackage->GetName() != "$Import"_sh)
-    {
-        subpackageNames.PushBack(currentPackage->GetName());
-        currentPackage = currentPackage->GetParentPackage();
-    }
-
-    subpackageNames.Reverse();
-
-    String newPath = projectPackage->BuildPackagePath() + '/' + String::Join(subpackageNames, '/', &Name::LookupString);
-    HYP_LOG(Editor, Verbose, "Adding imported asset '{}' to project package '{}'", *assetObject->GetName(), newPath);
-
-    if (Result registerAssetResult = registry->RegisterAsset(newPath, assetObject); registerAssetResult.HasError())
-    {
-        HYP_LOG(Editor, Error, "Failed to register imported asset '{}' at path '{}': {}", assetObject->GetName(), newPath, registerAssetResult.GetError().GetMessage());
-    }
-}
-
-static void RegisterPackageAssets(const Handle<EditorProject>& project, const Handle<AssetPackage>& package)
-{
-    Assert(project.IsValid() && package.IsValid());
-
-    Handle<AssetRegistry> registryStrong = package->GetRegistry().Lock();
-    Assert(registryStrong.IsValid());
-
-    AssetRegistry& registry = *registryStrong;
-
-    package->ForEachAssetDesc([&](const AssetDesc& assetDesc)
-        {
-            Handle<AssetObject> assetObject = registry.GetAssetFromPath(package->BuildAssetPath(assetDesc.name).ToString());
-            if (!assetObject.IsValid())
-            {
-                HYP_LOG(Editor, Warning, "Failed to load asset '{}' while registering package assets. Skipping.", assetDesc.name);
-                return IterationResult::CONTINUE;
-            }
-
-            RegisterImportedAsset(project, assetObject);
-
-            return IterationResult::CONTINUE;
-        });
-
-    // recursively register assets in subpackages
-    package->ForEachSubpackage([&](const Handle<AssetPackage>& subpackage)
-        {
-            RegisterPackageAssets(project, subpackage);
-
-            return IterationResult::CONTINUE;
-        });
-}
-
 const Handle<EditorState>& EditorState::GetInstance()
 {
     return g_editorState;
@@ -125,11 +45,6 @@ EditorState::~EditorState()
 
 void EditorState::Init()
 {
-   // Handle<AssetPackage> importsPackage = GetImportsPackage();
-   // Assert(importsPackage.IsValid());
-
-    //GetCurrentAssetRegistry()->LoadPackagesAsync();
-
     m_taskManager.OnTaskAdded.Bind([this]<class... Args>(Args&&... args) { OnTaskStarted(std::forward<Args>(args)...); }).Detach();
     m_taskManager.OnTaskRemoved.Bind([this]<class... Args>(Args&&... args) { OnTaskEnded(std::forward<Args>(args)...); }).Detach();
     m_taskManager.OnTaskProgressUpdated.Bind([this]<class... Args>(Args&&... args) { OnTaskProgressUpdated(std::forward<Args>(args)...); }).Detach();

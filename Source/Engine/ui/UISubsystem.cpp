@@ -109,9 +109,6 @@ static TResult<Handle<FontAtlas>> CreateFontAtlas()
         return HYP_MAKE_ERROR(Error, "Failed to load font face! Error: {}", fontFaceAsset.GetError().GetMessage());
     }
 
-    Handle<AssetPackage> package = registry.GetPackageFromPath("Engine/Fonts/Roboto", /* createIfNotExist */ true);
-    Assert(package.IsValid());
-
     // create new font atlas
     fontAtlas = MakeHandle<FontAtlas>(
         NAME("Roboto_Regular"),
@@ -122,13 +119,9 @@ static TResult<Handle<FontAtlas>> CreateFontAtlas()
     {
         return renderAtlasResult.GetError();
     }
-
-    // will save Engine package automatically.
-    Result addAssetResult = package->AddAssetObject(fontAtlas, /* replaceOnConflict */ true);
-    if (addAssetResult.HasError())
-    {
-        return HYP_MAKE_ERROR(Error, "Failed to add font face asset to package! Error: {}", fontFaceAsset.GetError().GetMessage());
-    }
+    
+    registry.PutAsset(fontAtlas);
+    registry.SaveDirtyAssets();
 
     // need to move in return since return type is wrapped result
     return fontAtlas;

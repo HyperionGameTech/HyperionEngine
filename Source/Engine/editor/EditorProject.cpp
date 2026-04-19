@@ -143,49 +143,6 @@ void EditorProject::SetGame(const Handle<Game>& gameInstance)
     }
 }
 
-Result EditorProject::CreatePackage()
-{
-    // only create if it isn't created yet
-    if (m_package.IsValid())
-    {
-        return {};
-    }
-
-    if (m_name.IsValid())
-    {
-        // if name is already set, use that
-        // @NOTE: if package already exists at this path it will be used
-        m_package = GetCurrentAssetRegistry()->GetPackageFromPath(*m_name, /* createIfNotExist */ true);
-
-        OnPackageCreated(m_package);
-
-        return {};
-    }
-
-    int currentCounter = 0;
-    String currentName = s_defaultProjectName;
-
-    do
-    {
-        Handle<AssetPackage> tmpPackage = GetCurrentAssetRegistry()->GetPackageFromPath(currentName, /* createIfNotExist */ false);
-
-        if (!tmpPackage)
-        {
-            m_package = GetCurrentAssetRegistry()->GetPackageFromPath(currentName, /* createIfNotExist */ true);
-            m_name = CreateNameFromDynamicString(currentName);
-
-            OnPackageCreated(m_package);
-
-            return {};
-        }
-
-        currentName = s_defaultProjectName + String::ToString(++currentCounter);
-    }
-    while (true);
-
-    return HYP_MAKE_ERROR(Error, "Failed to create package");
-}
-
 void EditorProject::AddScene(const Handle<Scene>& scene)
 {
     HYP_SCOPE;
@@ -237,14 +194,6 @@ Result EditorProject::Save()
 Result EditorProject::SaveAs(FilePath filepath)
 {
     HYP_SCOPE;
-
-    if (!m_package.IsValid())
-    {
-        if (Result createPackageResult = CreatePackage(); createPackageResult.HasError())
-        {
-            return createPackageResult.GetError();
-        }
-    }
 
     EditorTaskScope taskScope(
         TickableEditorTask::StaticClass(),
@@ -310,12 +259,7 @@ Result EditorProject::SaveAs(FilePath filepath)
     
     taskScope.GetEditorTask()->SetDescription("Saving package data");
 
-    // @TODO Need to save using new method.
-
-    if (Result packageSaveResult = m_package->Save(dir / *m_name); packageSaveResult.HasError())
-    {
-        return packageSaveResult;
-    };
+    GetCurrentAssetRegistry()->SaveDirtyAssets();
 
     if (Result saveManifestResult = GetCurrentAssetRegistry()->GetBlobStorage().SaveManifest(); saveManifestResult.HasError())
     {
@@ -404,28 +348,20 @@ TResult<Handle<EditorProject>> EditorProject::Load(const FilePath& filepath)
         project = std::move(boxed.Get<Handle<EditorProject>>());
     }
 
-    const FilePath packageDir = dir / FilePath(projectFilepath.StripExtension()).Basename();
-    const FilePath packageManifestPath = packageDir / "PackageManifest.json";
+    const FilePath registryDir = dir / FilePath(projectFilepath.StripExtension()).Basename();
 
     // create registry to load assets into
-    Handle<AssetRegistry> registry = MakeHandle<AssetRegistry>(packageDir);
+    Handle<AssetRegistry> registry = MakeHandle<AssetRegistry>(registryDir);
     registry->Initialize();
 
     GlobalContextScope contextScope { AssetRegistryContext { registry } };
 
-    TResult<Handle<AssetPackage>> loadPackageResult = registry->LoadPackageFromManifest(packageManifestPath, /* loadSubpackages */ true, /* forceLoad */ true);
-
-    if (loadPackageResult.HasError())
-    {
-        return loadPackageResult.GetError();
-    }
-
     Assert(project->m_gameInstance != nullptr);
+
+    registry->LoadAssetDescs(registryDir);
 
     // hand registry over to the game instance on the project
     project->m_gameInstance->m_assetRegistry = std::move(registry);
-
-    project->m_package = std::move(*loadPackageResult);
 
     // set transient properties
     project->m_lastSavedTime = projectFilepath.LastModifiedTimestamp();

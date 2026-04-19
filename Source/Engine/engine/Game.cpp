@@ -93,6 +93,8 @@ void Game::Shutdown()
 
     if (m_assetRegistry)
     {
+        m_assetRegistry->Shutdown();
+
         PopCurrentAssetRegistry(true);
 
         m_assetRegistry.Reset();

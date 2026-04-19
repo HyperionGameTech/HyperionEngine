@@ -272,18 +272,18 @@ bool DefaultGame::OnInputEvent(const Event& event)
             //         return HYP_FORMAT("Instances/{}", obj.InstanceClass()->GetName());
             //     });
 
-            // save package
-            Handle<AssetPackage> pkg = GetCurrentAssetRegistry()->GetPackageFromPath("SampleGame", /* createIfNotExist */ false, /* requireLoaded */ false);
-            if (pkg.IsValid())
-            {
-                Result result = pkg->Save(GetLibraryDirectory());
-                if (result.HasError())
-                {
-                    HYP_LOG(Game, Error, "Failed to save package: {}", result.GetError().GetMessage());
-                }
+            // // save package
+            // Handle<AssetPackage> pkg = GetCurrentAssetRegistry()->GetPackageFromPath("SampleGame", /* createIfNotExist */ false, /* requireLoaded */ false);
+            // if (pkg.IsValid())
+            // {
+            //     Result result = pkg->Save(GetLibraryDirectory());
+            //     if (result.HasError())
+            //     {
+            //         HYP_LOG(Game, Error, "Failed to save package: {}", result.GetError().GetMessage());
+            //     }
                 
-                s_isSaving = false;
-            }
+            //     s_isSaving = false;
+            // }
         }
 
         controller->GetInputHandler()->OnKeyDown(event.ToKeyboardEvent());

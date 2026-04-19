@@ -35,7 +35,6 @@ class EditorDelegates;
 class EditorSubsystem;
 class EditorProject;
 class EditorCommandBase;
-class AssetPackage;
 class ApplicationWindow;
 struct MouseEvent;
 struct KeyboardEvent;

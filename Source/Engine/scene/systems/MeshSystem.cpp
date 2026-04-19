@@ -111,19 +111,7 @@ void DestroyInstancedMeshData(Entity& entity, MeshComponent& meshComponent, bool
 
         if (obj.IsValid())
         {
-            Handle<AssetPackage> package = obj->GetPackage();
-            if (package.IsValid())
-            {
-                Result removeAssetResult = package->RemoveAssetObject(obj);
-
-                if (removeAssetResult.HasError())
-                {
-                    HYP_LOG(Scene, Error, "Failed to remove InstancedMeshData asset from package. Error was: {}",
-                        removeAssetResult.GetError().GetMessage());
-
-                    return;
-                }
-            }
+            GetCurrentAssetRegistry()->RemoveAsset(obj);
         }
     }
 }
