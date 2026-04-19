@@ -17,9 +17,17 @@ class Class;
 
 const char* GetAssetBucketName(const uint32 bucketIndex);
 
+HYP_STRUCT()
 class AssetBucket
 {
 public:
+    HYP_STRUCT_BODY(AssetBucket);
+
+private:
+    AssetBucket() = default;
+
+public:
+
     static constexpr uint32 InvalidIndex = 0;
 
     constexpr explicit AssetBucket(uint32 index)

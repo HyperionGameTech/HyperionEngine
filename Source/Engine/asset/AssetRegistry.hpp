@@ -248,10 +248,6 @@ public:
         TSharedLock guard(m_mutex);
         return m_packageDir;
     }
-
-    HYP_METHOD()
-    AssetPath BuildAssetPath(Name assetName) const;
-
     HYP_METHOD()
     bool HasAssetWithName(StringHash assetName) const;
 
@@ -330,22 +326,6 @@ private:
     Name GetUniqueAssetName_Internal(Name baseName) const;
     Name GetUniqueSubpackageName_Internal(Name baseName) const;
     
-    /// Serialization
-
-    /*! \brief Method to save dependencies as relative paths to this package rather than absolute
-     *   \warning Not thread-safe.
-     *  \return Array of relative dependency paths. */
-    HYP_METHOD(Property = "Dependencies", Serialize = true)
-    Array<String> GetRelativeDependencies() const;
-
-    /*! \brief Sets dependencies from relative paths to this package rather than absolute
-     *   \warning Not thread-safe.
-     *  \param relativePaths Array of relative dependency paths. */
-    HYP_METHOD(Property = "Dependencies", Serialize = true)
-    void SetRelativeDependencies(const Array<String>& relativePaths);
-
-    /// End Serialization
-
     HYP_FIELD()
     Name m_name;
 

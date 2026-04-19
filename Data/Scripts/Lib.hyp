@@ -1752,8 +1752,6 @@ extern class AssetPackage
     OnAssetObjectRemoved : any
     OnSubpackageAdded : any
     OnSubpackageRemoved : any
-    GetRelativeDependencies() -> Array<string>
-    SetRelativeDependencies(relativePaths : Array<string>) -> void
     Name : Name
     FriendlyName : Name
     Flags : AssetPackageFlags
@@ -1766,8 +1764,6 @@ end
 extern struct AssetPath
     IsValid() -> bool
     GetName() -> Name
-    GetChain() -> Array<Name>
-    SetChain(names : Array<Name>) -> void
     ToString() -> string
 end
 extern class AssetObject
@@ -2432,6 +2428,8 @@ extern enum PhysicsShapeType : uint8
     CAPSULE
 end
 extern class AssetLoaderBase
+end
+extern struct AssetBucket
 end
 extern struct UUID
     Data0 : uint64

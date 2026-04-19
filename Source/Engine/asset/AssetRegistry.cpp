@@ -1550,36 +1550,6 @@ String AssetPackage::BuildPackagePath() const
     return parentPackage->BuildPackagePath() + "/" + *m_name;
 }
 
-AssetPath AssetPackage::BuildAssetPath(Name assetName) const
-{
-    if (!assetName.IsValid())
-    {
-        return {};
-    }
-
-    Array<Name> chain;
-
-    AssetPackage* parentPackage = m_parentPackage;
-
-    while (parentPackage != nullptr)
-    {
-        chain.PushBack(parentPackage->m_name);
-
-        parentPackage = parentPackage->GetParentPackage();
-    }
-
-    chain.Reverse();
-    chain.PushBack(m_name);
-    chain.PushBack(assetName);
-
-    AssetPath assetPath;
-    assetPath.SetChain(chain);
-
-    AssertDebug(assetPath.IsValid());
-
-    return assetPath;
-}
-
 void AssetPackage::Rename(Name name)
 {
     if (m_name == name || !name.IsValid())
@@ -1995,70 +1965,6 @@ void AssetPackage::AddDependency(const AssetPath& dependency)
             m_dependencies.PushBack(dependency);
 
             HYP_LOG(Assets, Verbose, "Added dependency to package '{}': {}", m_name, dependency.ToString());
-        }
-    }
-
-    if (!IsLoading())
-        MarkDirty();
-}
-
-Array<String> AssetPackage::GetRelativeDependencies() const
-{
-    Array<String> result;
-
-    const AssetPath thisPackagePath = AssetPath(BuildPackagePath());
-
-    for (const AssetPath& dependency : m_dependencies)
-    {
-        result.PushBack(AssetPath::MakeRelativePath(thisPackagePath, dependency));
-    }
-
-    return result;
-}
-
-void AssetPackage::SetRelativeDependencies(const Array<String>& relativePaths)
-{
-    m_dependencies.Clear();
-
-    const AssetPath thisPackagePath = AssetPath(BuildPackagePath());
-
-    Handle<AssetRegistry> registry = m_registry.Lock();
-
-    for (const String& path : relativePaths)
-    {
-        const AssetPath dependencyPath = AssetPath::FromRelativePath(thisPackagePath, path);
-
-        if (dependencyPath.chain && dependencyPath.chain[0] != Name::Invalid() && dependencyPath != thisPackagePath)
-        {
-            // Check for circular dependency
-            bool isCircular = false;
-
-            if (registry.IsValid())
-            {
-                Handle<AssetPackage> dependencyPackage = registry->GetPackageFromPath(
-                    dependencyPath.ToString(),
-                    /* createIfNotExist */ false,
-                    /* requireLoaded */ false);
-
-                if (dependencyPackage.IsValid())
-                {
-                    // Check if the dependency package depends on us (circular dependency)
-                    for (const AssetPath& depOfDep : dependencyPackage->m_dependencies)
-                    {
-                        if (depOfDep == thisPackagePath)
-                        {
-                            HYP_LOG(Assets, Warning, "Circular dependency detected: Package '{}' and '{}' depend on each other. Skipping dependency.", thisPackagePath.ToString(), dependencyPath.ToString());
-                            isCircular = true;
-                            break;
-                        }
-                    }
-                }
-            }
-
-            if (!isCircular)
-            {
-                m_dependencies.PushBack(dependencyPath);
-            }
         }
     }
 
@@ -4118,6 +4024,7 @@ TResult<Handle<AssetPackage>> AssetRegistry::LoadPackageFromManifest(
 
     Handle<AssetPackage> parentPackage;
 
+#if 0
     {
         // Have to create package first so we can deserialize into it
         // we also need to load all parent packages until we reach a package that already exists.
@@ -4155,6 +4062,7 @@ TResult<Handle<AssetPackage>> AssetRegistry::LoadPackageFromManifest(
             }
         }
     }
+#endif
 
     bool loadingStateCleared = false;
     
@@ -4208,6 +4116,7 @@ TResult<Handle<AssetPackage>> AssetRegistry::LoadPackageFromManifest(
         }
     }
 
+#if 0
     // Load dependency packages first (always, regardless of loadSubpackages flag)
     // Dependencies must be loaded before assets to ensure all referenced assets via AssetReferences exist in the registry
     for (const AssetPath& dependencyPath : outPackage->GetDependencies())
@@ -4252,6 +4161,7 @@ TResult<Handle<AssetPackage>> AssetRegistry::LoadPackageFromManifest(
             continue;
         }
     }
+#endif
 
     // get asset manifest ifles
     Array<FilePath> assetFiles;

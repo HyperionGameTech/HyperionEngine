@@ -6,6 +6,8 @@
 
 #pragma once
 
+#include <asset/AssetBucket.hpp>
+
 #include <Core/reflection/ObjectFwd.hpp>
 
 #include <Core/name/Name.hpp>
@@ -19,158 +21,39 @@
 
 namespace Hyperion {
 
-HYP_STRUCT(Size = 8)
-struct HYP_API AssetPath
+#pragma pack(push, 1)
+
+HYP_STRUCT()
+struct AssetPath
 {
     HYP_STRUCT_BODY(AssetPath);
 
     HYP_PROPERTY(Value, &AssetPath::ToString, &AssetPath::Set)
 
     HYP_FIELD(NoScriptBindings, Transient)
-    Name* chain = nullptr;
+    Name assetName;
 
-    AssetPath() = default;
+    HYP_FIELD(NoScriptBindings, Transient)
+    uint32 bucketIndex = AssetBucket::InvalidIndex;
 
-    explicit AssetPath(const Array<Name>& names);
+    constexpr AssetPath() = default;
+
     explicit AssetPath(const UTF8StringView& path);
 
-    AssetPath(const AssetPath& other)
-        : chain(nullptr)
-    {
-        if (other.chain)
-        {
-            uint32 count = 0;
+    constexpr AssetPath(const AssetPath& other) = default;
+    AssetPath& operator=(const AssetPath& other) = default;
 
-            Name* curr = other.chain;
+    constexpr AssetPath(AssetPath&& other) noexcept = default;
+    AssetPath& operator=(AssetPath&& other) noexcept = default;
 
-            while (curr->IsValid())
-            {
-                ++count;
-                ++curr;
-            }
-
-            chain = new Name[count + 1];
-
-            for (uint32 i = 0; i < count; i++)
-            {
-                chain[i] = other.chain[i];
-            }
-
-            chain[count] = Name::Invalid();
-        }
-    }
-
-    AssetPath& operator=(const AssetPath& other)
-    {
-        if (this == &other)
-        {
-            return *this;
-        }
-
-        if (chain)
-        {
-            delete[] chain;
-        }
-
-        if (other.chain)
-        {
-            uint32 count = 0;
-
-            Name* curr = other.chain;
-
-            while (curr->IsValid())
-            {
-                ++count;
-                ++curr;
-            }
-
-            chain = new Name[count + 1];
-
-            for (uint32 i = 0; i < count; i++)
-            {
-                chain[i] = other.chain[i];
-            }
-
-            chain[count] = Name::Invalid();
-        }
-        else
-        {
-            chain = nullptr;
-        }
-
-        return *this;
-    }
-
-    AssetPath(AssetPath&& other) noexcept
-        : chain(other.chain)
-    {
-        other.chain = nullptr;
-    }
-
-    AssetPath& operator=(AssetPath&& other) noexcept
-    {
-        if (this == &other)
-        {
-            return *this;
-        }
-
-        if (chain)
-        {
-            delete[] chain;
-        }
-
-        chain = other.chain;
-        other.chain = nullptr;
-
-        return *this;
-    }
-
-    ~AssetPath()
-    {
-        if (chain)
-        {
-            delete[] chain;
-        }
-    }
-
-    bool operator==(const AssetPath& other) const
-    {
-        if (chain == nullptr && other.chain == nullptr)
-        {
-            return true;
-        }
-
-        if (chain == nullptr || other.chain == nullptr)
-        {
-            return false;
-        }
-
-        Name* a = chain;
-        Name* b = other.chain;
-
-        while (a->IsValid() && b->IsValid())
-        {
-            if (*a != *b)
-            {
-                return false;
-            }
-
-            ++a;
-            ++b;
-        }
-
-        return a->IsValid() == b->IsValid();
-    }
-
-    HYP_FORCE_INLINE bool operator!=(const AssetPath& other) const
-    {
-        return !(*this == other);
-    }
+    constexpr bool operator==(const AssetPath& other) const = default;
+    constexpr bool operator!=(const AssetPath& other) const = default;
 
     HYP_METHOD()
     HYP_FORCE_INLINE bool IsValid() const
     {
-        return chain && chain[0].IsValid();
+        return assetName.IsValid()
+            && bucketIndex != AssetBucket::InvalidIndex;
     }
 
     HYP_FORCE_INLINE explicit operator bool() const
@@ -186,37 +69,13 @@ struct HYP_API AssetPath
     HYP_METHOD()
     Name GetName() const
     {
-        // name is the last element in the chain
-        if (!chain)
-        {
-            return Name::Invalid();
-        }
-
-        Name* curr = chain;
-        Name* last = curr;
-
-        while (curr->IsValid())
-        {
-            last = curr;
-            ++curr;
-        }
-
-        return *last;
+        return assetName;
     }
 
     void Set(const String& path)
     {
         *this = AssetPath(path);
     }
-
-    HYP_METHOD()
-    Array<Name> GetChain() const;
-
-    HYP_METHOD()
-    void SetChain(const Array<Name>& names);
-
-    static String MakeRelativePath(const AssetPath& from, const AssetPath& to);
-    static AssetPath FromRelativePath(const AssetPath& from, const String& relativePath);
 
     HYP_METHOD()
     String ToString() const;
@@ -226,6 +85,8 @@ struct HYP_API AssetPath
         return ToString().GetHashCode();
     }
 };
+
+#pragma pack(pop)
 
 // Formatter for AssetPath
 namespace utilities {
