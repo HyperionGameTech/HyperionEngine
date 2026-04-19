@@ -121,13 +121,15 @@ public:
     ~AssetRegistry();
 
     HYP_METHOD()
-    HYP_FORCE_INLINE const FilePath& GetRootPath() const
-    {
-        return m_rootPath;
-    }
+    FilePath GetRootPath() const;
+
+    HYP_METHOD()
+    void SetRootPath(const FilePath& rootPath);
     
     /// Begin new assetbucket based stuff
     Handle<AssetObject> GetAsset(const AssetBucket& bucket, StringHash name);
+
+    void MarkAssetDirty(const AssetObject& assetObject);
 
     uint32 GetBucketAssetDescs(uint32 bucketIndex, Array<AssetDesc>& outDescs) const;
 
@@ -159,7 +161,7 @@ public:
     void Update();
 
 private:
-    void InitBlobStorage();
+    void InitBlobStorage(const FilePath& blobStorageDir);
 
     template <class Func, class FutureType = void>
     void PostTask(Func&& fn, Task<FutureType>* outFuture = nullptr);
@@ -168,6 +170,8 @@ private:
 
     HYP_FIELD(Serialize = true)
     FilePath m_rootPath;
+
+    bool m_isInitialized;
 
     SharedMutex m_mutex;
 

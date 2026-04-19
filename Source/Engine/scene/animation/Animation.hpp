@@ -37,7 +37,7 @@ public:
     friend class Animation;
 
     AnimationTrack();
-    explicit AnimationTrack(Name boneName);
+    AnimationTrack(Name name, Name boneName);
 
     AnimationTrack(const AnimationTrack& other) = delete;
     AnimationTrack& operator=(const AnimationTrack& other) = delete;

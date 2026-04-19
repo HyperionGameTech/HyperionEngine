@@ -118,8 +118,6 @@ public:
     ScriptableDelegate<void, const Handle<EditorProject>&> OnProjectSaved;
 
 private:
-    void Init() override;
-
     HYP_FORCE_INLINE void SetEditorSubsystem(const WeakHandle<EditorSubsystem>& editorSubsystem)
     {
         m_editorSubsystem = editorSubsystem;

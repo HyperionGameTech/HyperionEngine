@@ -48,14 +48,6 @@ namespace Hyperion
             }
         }
 
-        public bool Dirty
-        {
-            get
-            {
-                return this.IsDirty();
-            }
-        }
-
         public Transform LocalTransform
         {
             get

@@ -198,6 +198,7 @@ AssetLoadResult FontAtlasLoader::LoadAsset(LoaderState& state) const
         fontAtlasName,
         textureSet, cellDimensions, std::move(glyphMetrics), std::move(symbolList));
     
+    // @TODO use state.assetRegistry instead of global registry
     GetCurrentAssetRegistry()->PutAssetUnique(fontAtlas);
 
     return AssetLoadResult { LoadedAsset(fontAtlas) };

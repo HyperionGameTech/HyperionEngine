@@ -9,6 +9,8 @@
 #include <editor/EditorState.hpp>
 #include <editor/EditorProject.hpp>
 
+#include <engine/Game.hpp>
+
 #include <engine/threads/SimThread.hpp>
 
 #include <asset/Assets.hpp>
@@ -39,6 +41,10 @@ EditorState::EditorState()
 
 EditorState::~EditorState()
 {
+    if (m_currentProject.IsValid())
+    {
+        PopCurrentAssetRegistry(/* global */ true);
+    }
 }
 
 void EditorState::Init()
@@ -80,11 +86,21 @@ void EditorState::SetCurrentProject(const Handle<EditorProject>& project)
             return;
         }
 
+        if (m_currentProject.IsValid())
+        {
+            PopCurrentAssetRegistry(/* global */ true);
+        }
+
         m_currentProject = project;
 
         if (project.IsValid())
         {
             HYP_LOG(Editor, Verbose, "Current project set to '{}'", *project->GetName());
+
+            Game* game = m_currentProject->GetGame();
+            Assert(game != nullptr);
+
+            PushCurrentAssetRegistry(game->GetAssetRegistry(), /* global */ true);
         }
         else
         {

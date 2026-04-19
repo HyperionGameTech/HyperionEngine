@@ -1974,7 +1974,10 @@ Result BoxedFromJSON(const JSON::Value& jsonValue, const TypeInfo& typeInfo, Box
 
             if (derivedClass)
             {
-                if (instanceClass && !derivedClass->IsDerivedFrom(instanceClass))
+                if (instanceClass != nullptr
+                    && !(derivedClass->IsDerivedFrom(instanceClass)
+                        // We allow $Class to be 'AssetReference', but only for AssetObject classes. (if LoadAssetsFromReferencesContext is active)
+                        || (IsGlobalContextActive<LoadAssetsFromReferencesContext>() && derivedClass == AssetReference::StaticClass() && instanceClass->IsDerivedFrom(AssetObject::StaticClass()))))
                 {
                     HYP_LOG(Core, Warning, "Class '{}' is not derived from expected class '{}'", derivedClass->GetName(), instanceClass->GetName());
                 }

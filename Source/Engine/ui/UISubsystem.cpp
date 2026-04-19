@@ -96,7 +96,11 @@ static TResult<Handle<FontAtlas>> CreateFontAtlas()
     // some platforms build without freetype support so the atlas must already exist in the registry.
 
     AssetRegistry& registry = *GetEngineAssetRegistry();
+    
+    GlobalContextScope contextScope { AssetRegistryContext { MakeStrongRef(&registry) } };
+
     Handle<FontAtlas> fontAtlas = ObjCast<FontAtlas>(registry.GetAsset(AssetBuckets::FontAtlases, "Roboto_Regular"_sh));
+
     if (fontAtlas.IsValid())
     {
         return fontAtlas;
@@ -118,7 +122,7 @@ static TResult<Handle<FontAtlas>> CreateFontAtlas()
         return renderAtlasResult.GetError();
     }
     
-    registry.PutAsset(fontAtlas);
+    registry.PutAssetsDeep(fontAtlas);
     registry.SaveDirtyAssets();
 
     // need to move in return since return type is wrapped result

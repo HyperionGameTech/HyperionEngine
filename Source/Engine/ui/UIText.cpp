@@ -81,6 +81,11 @@ static void ForEachCharacter(
     const Handle<Texture>& mainTextureAtlas = fontAtlas.GetAtlasTextures().GetMainAtlas();
     AssertDebug(mainTextureAtlas.IsValid(), "Main texture atlas is invalid");
 
+    if (!mainTextureAtlas.IsValid())
+    {
+        return;
+    }
+
     Vec2f atlasPixelSize;
 
     if (mainTextureAtlas->GetExtent().Volume() != 0)

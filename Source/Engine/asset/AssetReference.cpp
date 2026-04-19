@@ -67,6 +67,7 @@ const AssetPath& AssetReference::GetAssetPath() const
     return s_invalidAssetPath;
 }
 
+HYP_DISABLE_OPTIMIZATION;
 const Handle<AssetObject>& AssetReference::Resolve() const
 {
     if (m_data.Is<Handle<AssetObject>>())
@@ -80,7 +81,9 @@ const Handle<AssetObject>& AssetReference::Resolve() const
 
     if (assetPath.IsValid())
     {
-        Handle<AssetObject> assetObject = GetCurrentAssetRegistry()->GetAsset(*AssetBuckets::AllBuckets[assetPath.bucketIndex], assetPath.assetName);
+        AssetRegistry& registry = *GetCurrentAssetRegistry();
+
+        Handle<AssetObject> assetObject = registry.GetAsset(*AssetBuckets::AllBuckets[assetPath.bucketIndex], assetPath.assetName);
 
         if (assetObject)
         {
@@ -92,6 +95,7 @@ const Handle<AssetObject>& AssetReference::Resolve() const
 
     return Handle<AssetObject>::Null();
 }
+HYP_ENABLE_OPTIMIZATION;
 
 void AssetReference::Reload()
 {

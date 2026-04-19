@@ -26,8 +26,9 @@ AnimationTrack::AnimationTrack()
 {
 }
 
-AnimationTrack::AnimationTrack(Name boneName)
-    : m_boneName(boneName)
+AnimationTrack::AnimationTrack(Name name, Name boneName)
+    : AssetObject(name),
+      m_boneName(boneName)
 {
 }
 

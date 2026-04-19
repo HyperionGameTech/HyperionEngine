@@ -65,7 +65,6 @@ static Name GetUniqueName(Name baseName, T&& elements)
 AssetObject::AssetObject()
     : m_flags(AssetObjectFlags::None),
       m_assetIndex(AssetDesc::InvalidIndex),
-      m_isDirty(0),
       m_rwState(0),
       m_isBlobLoaded(false)
 {
@@ -75,7 +74,6 @@ AssetObject::AssetObject(Name name)
     : m_name(SanitizeName(name)),
       m_flags(AssetObjectFlags::None),
       m_assetIndex(AssetDesc::InvalidIndex),
-      m_isDirty(0),
       m_rwState(0),
       m_isBlobLoaded(false)
 {
@@ -112,10 +110,9 @@ void AssetObject::SetAssetFlags(EnumFlags<AssetObjectFlags> flags)
 
 void AssetObject::MarkDirty()
 {
-    int32 expected = 0;
-    if (AtomicCompareExchange(&m_isDirty, expected, 1))
+    if (IsRegistered() && !IsTransient())
     {
-        OnDirtyStateChanged(true);
+        GetCurrentAssetRegistry()->MarkAssetDirty(*this);
     }
 }
 
@@ -136,24 +133,6 @@ void AssetObject::SetPersistentRequested(
 void AssetObject::SetIsTransient(bool isTransient)
 {
     m_flags[AssetObjectFlags::Transient] = isTransient;
-
-    if (IsTransient())
-    {
-        // needs to be kept in memory if transient
-        SetPersistentRequested(true, /* setFlag */ false);
-
-        // transient assets don't have a manifest filepath as they are not saved to disk.
-        m_manifestPath = FilePath();
-    }
-    else
-    {
-        SetPersistentRequested(false, /* setFlag */ false);
-    }
-}
-
-void AssetObject::SetIsTransientByProxy(bool isTransientByProxy)
-{
-    m_flags[AssetObjectFlags::TransientByProxy] = isTransientByProxy;
 
     if (IsTransient())
     {
@@ -256,11 +235,6 @@ Result AssetObject::SaveAs(const FilePath& manifestPath)
     // to save it somewhere else, we'll need the previous manifest path to still exist otherwise we'll try to load
     // something that doesn't exist.
     m_manifestPath = manifestPath;
-
-    // no longer dirty
-    AtomicExchange(&m_isDirty, 0);
-
-    OnDirtyStateChanged(false);
 
     return {};
 }

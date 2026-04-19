@@ -1678,8 +1678,7 @@ end
 extern enum AssetObjectFlags : uint8
     None = 0x0,
     Persistent = 0x1,
-    Transient = 0x2,
-    TransientByProxy = 0x4
+    Transient = 0x2
 end
 extern enum AssetPackageFlags : uint32
     None = 0x0,
@@ -1716,6 +1715,7 @@ extern enum AssetChangeType : uint32
 end
 extern class AssetRegistry
     GetRootPath() -> string
+    SetRootPath(rootPath : string) -> void
     RootPath : string
 end
 extern struct AssetReference
@@ -1731,7 +1731,6 @@ extern class AssetObject
     GetName() -> Name
     SetName(name : Name) -> void
     Rename(name : Name) -> Result
-    IsDirty() -> bool
     MarkDirty() -> void
     GetFriendlyName() -> Name
     SetFriendlyName(friendlyName : Name) -> void
@@ -1744,9 +1743,7 @@ extern class AssetObject
     SetAssetFlags(flags : AssetObjectFlags) -> void
     SetPersistentRequested(persistentlyLoaded : bool, setFlag : bool, markDirty : bool) -> void
     IsTransient() -> bool
-    IsTransientByProxy() -> bool
     SetIsTransient(isTransient : bool) -> void
-    SetIsTransientByProxy(isTransientByProxy : bool) -> void
     IsSaved() -> bool
     Save() -> Result
     SaveAs(manifestPath : string) -> Result

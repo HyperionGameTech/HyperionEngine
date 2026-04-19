@@ -42,8 +42,7 @@ enum class AssetObjectFlags : uint8
 {
     None = 0x0,
     Persistent = 0x1,       //!< Asset is persistently loaded in memory
-    Transient = 0x2,        //!< Asset is not saved to disk
-    TransientByProxy = 0x4  //!< Same as above, but is transient due to parent package being transient (will change if asset is moved to a non-transient package)
+    Transient = 0x2         //!< Asset is not saved to disk
 };
 
 HYP_MAKE_ENUM_FLAGS(AssetObjectFlags);
