@@ -102,7 +102,8 @@ namespace AssetBuckets {
     inline constexpr AssetBucket EnvProbes(15);
     inline constexpr AssetBucket LightmapVolumes(16);
     inline constexpr AssetBucket Shaders(17);
-    inline constexpr AssetBucket FontAtlases(18);
+    inline constexpr AssetBucket ShaderBundles(18);
+    inline constexpr AssetBucket FontAtlases(19);
 
     static constexpr const AssetBucket* AllBuckets[] = {
         &None,
@@ -123,6 +124,7 @@ namespace AssetBuckets {
         &EnvProbes,
         &LightmapVolumes,
         &Shaders,
+        &ShaderBundles,
         &FontAtlases
     };
 } // namespace AssetBuckets
@@ -150,6 +152,7 @@ inline constexpr const AssetBucket& GetAssetBucketByName(StringHash nameHash)
     constexpr HashCode::ValueType EnvProbesHash = ("EnvProbes"_sh).hashCode;
     constexpr HashCode::ValueType LightmapVolumesHash = ("LightmapVolumes"_sh).hashCode;
     constexpr HashCode::ValueType ShadersHash = ("Shaders"_sh).hashCode;
+    constexpr HashCode::ValueType ShaderBundlesHash = ("ShaderBundles"_sh).hashCode;
     constexpr HashCode::ValueType FontAtlasesHash = ("FontAtlases"_sh).hashCode;
 
     switch (nameHash.hashCode)
@@ -188,6 +191,8 @@ inline constexpr const AssetBucket& GetAssetBucketByName(StringHash nameHash)
         return AssetBuckets::LightmapVolumes;
     case ShadersHash:
         return AssetBuckets::Shaders;
+    case ShaderBundlesHash:
+        return AssetBuckets::ShaderBundles;
     case FontAtlasesHash:
         return AssetBuckets::FontAtlases;
     }
@@ -216,7 +221,8 @@ inline static const char* GetAssetBucketName(const uint32 bucketIndex)
         "EnvProbes",            // 15
         "LightmapVolumes",      // 16
         "Shaders",              // 17
-        "FontAtlases"           // 18
+        "ShaderBundles",        // 18
+        "FontAtlases"           // 19
     };
 
     if (bucketIndex == 0 || bucketIndex >= MaxAssetBuckets)

@@ -14,10 +14,10 @@ namespace Hyperion
         public AssetPath()
         {
             assetName = new Name();
-            bucketIndex = 0;
+            bucketIndex = AssetBucket.InvalidBucket;
         }
 
-        public bool Valid => assetName.Valid && bucketIndex != 0;
+        public bool Valid => assetName.Valid && bucketIndex != AssetBucket.InvalidBucket;
 
         public override string ToString()
         {

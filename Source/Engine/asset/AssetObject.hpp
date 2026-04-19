@@ -118,6 +118,13 @@ public:
     }
 
     HYP_METHOD()
+    bool IsRegistered() const
+    {
+        return m_assetIndex != AssetDesc::InvalidIndex
+            && m_assetPath.IsValid();
+    }
+
+    HYP_METHOD()
     const FilePath& GetOriginalFilepath() const
     {
         return m_originalFilepath;
@@ -132,15 +139,7 @@ public:
     HYP_METHOD()
     const AssetPath& GetPath() const
     {
-        AssertDebug(IsRegistered(), "Calling GetPath() on an unregistered asset object");
-
         return m_assetPath;
-    }
-
-    HYP_METHOD()
-    bool IsRegistered() const
-    {
-        return m_package.IsValid();
     }
 
     HYP_METHOD(Property = "AssetFlags", Editor = false)

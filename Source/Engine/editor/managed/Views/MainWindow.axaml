@@ -562,16 +562,16 @@
                                             </Grid>
                                         </Border>
                                         <Grid ColumnDefinitions="220, *">
-                                            <TreeView
+                                            <ListBox
                                                 Grid.Column="0"
-                                                ItemsSource="{Binding ContentBrowser.Packages}"
-                                                SelectedItem="{Binding ContentBrowser.CurrentPackage, Mode=TwoWay}">
-                                                <TreeView.ItemTemplate>
-                                                    <TreeDataTemplate x:DataType="vm:AssetPackageViewModel" ItemsSource="{Binding Subpackages}">
+                                                ItemsSource="{Binding ContentBrowser.Buckets}"
+                                                SelectedItem="{Binding ContentBrowser.CurrentBucket, Mode=TwoWay}">
+                                                <ListBox.ItemTemplate>
+                                                    <DataTemplate x:DataType="vm:AssetBucketViewModel">
                                                         <TextBlock Text="{Binding Name}" />
-                                                    </TreeDataTemplate>
-                                                </TreeView.ItemTemplate>
-                                            </TreeView>
+                                                    </DataTemplate>
+                                                </ListBox.ItemTemplate>
+                                            </ListBox>
                                             <ListBox Grid.Column="1" ItemsSource="{Binding ContentBrowser.Assets}" SelectedItem="{Binding ContentBrowser.SelectedAsset, Mode=TwoWay}">
                                                 <ListBox.ItemTemplate>
                                                     <DataTemplate x:DataType="vm:AssetObjectViewModel">

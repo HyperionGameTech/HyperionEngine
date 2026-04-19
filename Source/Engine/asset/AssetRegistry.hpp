@@ -62,6 +62,7 @@ using AssetObjectCache = SparsePagedArray<Handle<AssetObject>, 64, AssetAllocato
 class AssetBucketData
 {
 public:
+    uint32 bucketIndex;
     AssetDescSet assetDescs;
     AssetObjectCache assetObjectCache;
     Bitset dirtyIndices;
@@ -69,6 +70,7 @@ public:
     SharedMutex mtx;
 
     AssetBucketData()
+        : bucketIndex(0)
     {
         // reserve index 0 for invalid
         usedIndices.Set(0, true);
@@ -82,9 +84,9 @@ public:
 
     void MarkDirty(uint32 index);
 
-    void AddAsset(
+    void SetAsset(
         AssetDesc& assetDesc,
-        const Handle<AssetObject>& assetObject = Handle<AssetObject>::Null());
+        const Handle<AssetObject>& assetObject);
 
     /*! \brief Get a unique asset name within this bucket by appending an incrementing number to the base name until an unused name is found.
      *   The returned AssetDesc has info about the allocated index/slot + the unique name that was generated.
@@ -127,6 +129,8 @@ public:
     /// Begin new assetbucket based stuff
     Handle<AssetObject> GetAsset(const AssetBucket& bucket, StringHash name);
 
+    uint32 GetBucketAssetDescs(uint32 bucketIndex, Array<AssetDesc>& outDescs) const;
+
     void PutAsset(const Handle<AssetObject>& asset);
     void PutAsset(const AssetBucket& bucket, const Handle<AssetObject>& asset);
 
@@ -138,8 +142,8 @@ public:
     void RemoveAsset(const Handle<AssetObject>& asset);
     void RemoveAsset(const AssetBucket& bucket, StringHash name);
 
-    void LoadAssetDescs(const FilePath& rootDirectory);
-    void SaveDirtyAssets(const FilePath& rootDirectory);
+    void LoadAssetDescs();
+    void SaveDirtyAssets();
 
     void RemoveCached();
     void RemoveCached(const AssetBucket& bucket);

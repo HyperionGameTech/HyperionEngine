@@ -138,7 +138,7 @@ void DynamicSkySystem::Init()
         material->SetTexture(MaterialTextureKey::Diffuse, m_envProbe->GetPrefilteredEnvMap());
         InitObject(material);
 
-        GetCurrentAssetRegistry()->RegisterAsset("$Memory/MaterialInstances", material);
+        GetCurrentAssetRegistry()->PutAsset(material);
 
         // add MeshComponent to skybox entity
         m_skyboxEntity->AddComponent<MeshComponent>(MeshComponent { mesh, material });

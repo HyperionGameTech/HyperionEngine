@@ -74,14 +74,6 @@ EditorProject::~EditorProject()
 
 void EditorProject::Init()
 {
-    HYP_SCOPE;
-
-    if (Result createPackageResult = CreatePackage(); createPackageResult.HasError())
-    {
-        HYP_LOG(Editor, Error, "Failed to create asset package for project '{}': {}", m_name.IsValid() ? *m_name : "<unnamed project>", createPackageResult.GetError().GetMessage());
-    }
-
-    InitObject(m_package);
     InitObject(m_actionStack);
 
     if (!m_gameInstance)
@@ -96,24 +88,7 @@ void EditorProject::Init()
 
 void EditorProject::SetName(Name name)
 {
-    if (m_name == name)
-    {
-        return;
-    }
-
     m_name = name;
-
-    if (m_package.IsValid())
-    {
-        m_package->Rename(name);
-    }
-    else if (IsInitCalled())
-    {
-        if (Result createPackageResult = CreatePackage(); createPackageResult.HasError())
-        {
-            HYP_LOG(Editor, Error, "Failed to create asset package for project '{}': {}", m_name, createPackageResult.GetError().GetMessage());
-        }
-    }
 }
 
 const Handle<World>& EditorProject::GetWorld() const
@@ -358,7 +333,7 @@ TResult<Handle<EditorProject>> EditorProject::Load(const FilePath& filepath)
 
     Assert(project->m_gameInstance != nullptr);
 
-    registry->LoadAssetDescs(registryDir);
+    registry->LoadAssetDescs();
 
     // hand registry over to the game instance on the project
     project->m_gameInstance->m_assetRegistry = std::move(registry);

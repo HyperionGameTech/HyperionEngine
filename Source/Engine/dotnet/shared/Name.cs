@@ -43,6 +43,8 @@ namespace Hyperion
 
         public ulong HashCode => _value;
 
+        public bool Valid => _value != 0;
+
         public override string ToString()
         {
             return Marshal.PtrToStringAnsi(Name_LookupString(ref this));

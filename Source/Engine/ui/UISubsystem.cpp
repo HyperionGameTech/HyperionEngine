@@ -96,7 +96,7 @@ static TResult<Handle<FontAtlas>> CreateFontAtlas()
     // some platforms build without freetype support so the atlas must already exist in the registry.
 
     AssetRegistry& registry = *GetEngineAssetRegistry();
-    Handle<FontAtlas> fontAtlas = ObjCast<FontAtlas>(registry.GetAssetFromPath("Engine/Fonts/Roboto/Roboto_Regular"));
+    Handle<FontAtlas> fontAtlas = ObjCast<FontAtlas>(registry.GetAsset(AssetBuckets::FontAtlases, "Roboto_Regular"_sh));
     if (fontAtlas.IsValid())
     {
         return fontAtlas;
@@ -110,9 +110,7 @@ static TResult<Handle<FontAtlas>> CreateFontAtlas()
     }
 
     // create new font atlas
-    fontAtlas = MakeHandle<FontAtlas>(
-        NAME("Roboto_Regular"),
-        std::move(fontFaceAsset->Result()));
+    fontAtlas = MakeHandle<FontAtlas>(NAME("Roboto_Regular"), std::move(fontFaceAsset->Result()));
     
     // render atlas textures.
     if (Result renderAtlasResult = fontAtlas->RenderAtlasTextures(1.0f, 2.0f, 0.1f); renderAtlasResult.HasError())

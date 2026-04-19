@@ -284,11 +284,17 @@ void AssetBucketData::MarkDirty(uint32 index)
     dirtyIndices.Set(index, true);
 }
 
-void AssetBucketData::AddAsset(
+void AssetBucketData::SetAsset(
     AssetDesc& assetDesc,
     const Handle<AssetObject>& assetObject)
 {
     TUniqueLock lock(mtx);
+
+    auto existingAssetDescIt = assetDescs.Find(assetDesc.name);
+    if (existingAssetDescIt != assetDescs.End())
+    {
+        assetDesc = *existingAssetDescIt;
+    }
 
     if (assetObject.IsValid() && assetObject->m_assetIndex != AssetDesc::InvalidIndex)
     {
@@ -297,7 +303,7 @@ void AssetBucketData::AddAsset(
         {
             assetDesc.index = assetObject->m_assetIndex;
         }
-        // otherwise, free the old index and take the new one
+        // otherwise, free the old index and take the desc one.
         else
         {
             usedIndices.Set(assetObject->m_assetIndex, false);
@@ -320,6 +326,14 @@ void AssetBucketData::AddAsset(
 
     auto it = assetDescs.Emplace(assetDesc).first;
     assetDesc = *it; // update ref
+
+    if (const Handle<AssetObject>* pOldAssetObject = assetObjectCache.TryGet(assetDesc.index); pOldAssetObject && pOldAssetObject->IsValid())
+    {
+        const Handle<AssetObject>& oldAssetObject = *pOldAssetObject;
+
+        oldAssetObject->OnUnloaded();
+        oldAssetObject->m_assetIndex = AssetDesc::InvalidIndex;
+    }
 
     assetObjectCache.Set(assetDesc.index, assetObject);
     dirtyIndices.Set(assetDesc.index, true);
@@ -393,6 +407,10 @@ AssetRegistry::AssetRegistry(const FilePath& rootPath)
       m_saveBlobCacheBatch(nullptr),
       m_blobStorage(nullptr)
 {
+    for (uint32 bucketIndex = 0; bucketIndex < uint32(m_assetBucketData.Size()); bucketIndex++)
+    {
+        m_assetBucketData[bucketIndex].bucketIndex = bucketIndex;
+    }
 }
 
 AssetRegistry::~AssetRegistry()
@@ -579,6 +597,25 @@ Handle<AssetObject> AssetRegistry::GetAsset(const AssetBucket& bucket, StringHas
     return assetObject;
 }
 
+uint32 AssetRegistry::GetBucketAssetDescs(uint32 bucketIndex, Array<AssetDesc>& outDescs) const
+{
+    if (bucketIndex >= MaxAssetBuckets)
+    {
+        return 0;
+    }
+
+    const AssetBucketData& data = m_assetBucketData[bucketIndex];
+
+    TSharedLock lock(data.mtx);
+
+    for (const AssetDesc& desc : data.assetDescs)
+    {
+        outDescs.PushBack(desc);
+    }
+
+    return uint32(outDescs.Size());
+}
+
 void AssetRegistry::PutAsset(const Handle<AssetObject>& assetObject)
 {
     if (!assetObject.IsValid())
@@ -611,7 +648,17 @@ void AssetRegistry::PutAsset(const AssetBucket& bucket, const Handle<AssetObject
     assetDesc.name = assetObject->m_name;
     assetDesc.index = AssetDesc::InvalidIndex;
 
-    data.AddAsset(assetDesc, assetObject);
+    if (!assetObject->m_name.IsValid())
+    {
+        // no name; create one using the instance class's name. (e.g Mesh123)
+
+        data.AllocateUniqueAssetName(*assetObject->InstanceClass()->GetName(), assetDesc, [&assetObject](const AssetDesc& otherDesc) -> bool
+            {
+                return assetObject->m_assetIndex == otherDesc.index;
+            });
+    }
+
+    data.SetAsset(assetDesc, assetObject);
 }
 
 void AssetRegistry::PutAssetUnique(const Handle<AssetObject>& assetObject)
@@ -652,7 +699,7 @@ void AssetRegistry::PutAssetUnique(const AssetBucket& bucket, const Handle<Asset
 
     assetObject->m_name = assetDesc.name;
 
-    data.AddAsset(assetDesc, assetObject);
+    data.SetAsset(assetDesc, assetObject);
 }
 
 void AssetRegistry::PutAssetsDeep(const Handle<AssetObject>& targetAsset)
@@ -917,15 +964,15 @@ void AssetRegistry::RemoveAsset(const AssetBucket& bucket, StringHash name)
     data.assetObjectCache.EraseAt(index);
 }
 
-void AssetRegistry::LoadAssetDescs(const FilePath& rootDirectory)
+void AssetRegistry::LoadAssetDescs()
 {
-    if (!rootDirectory.Exists() || !rootDirectory.IsDirectory())
+    if (!m_rootPath.Exists() || !m_rootPath.IsDirectory())
     {
-        HYP_LOG(Assets, Warning, "LoadAssetDescs: root directory '{}' does not exist or is not a directory", rootDirectory);
+        HYP_LOG(Assets, Warning, "LoadAssetDescs: root directory '{}' does not exist or is not a directory", m_rootPath);
         return;
     }
 
-    for (const FilePath& subdirectory : rootDirectory.GetSubdirectories())
+    for (const FilePath& subdirectory : m_rootPath.GetSubdirectories())
     {
         const String bucketName = subdirectory.Basename();
         const AssetBucket& bucket = GetAssetBucketByName(StringHash(bucketName));
@@ -1008,11 +1055,11 @@ void AssetRegistry::LoadAssetDescs(const FilePath& rootDirectory)
     }
 }
 
-void AssetRegistry::SaveDirtyAssets(const FilePath& rootDirectory)
+void AssetRegistry::SaveDirtyAssets()
 {
-    if (!rootDirectory.Exists() || !rootDirectory.IsDirectory())
+    if (!m_rootPath.Exists() || !m_rootPath.IsDirectory())
     {
-        HYP_LOG(Assets, Warning, "SaveDirtyAssets: root directory '{}' does not exist or is not a directory", rootDirectory);
+        HYP_LOG(Assets, Warning, "Root directory '{}' does not exist or is not a directory", m_rootPath);
         return;
     }
 
@@ -1041,7 +1088,7 @@ void AssetRegistry::SaveDirtyAssets(const FilePath& rootDirectory)
 
                 if (!pAssetObject || !pAssetObject->IsValid())
                 {
-                    HYP_LOG(Assets, Warning, "SaveDirtyAssets: dirty index {} in bucket '{}' has no cached asset object, skipping",
+                    HYP_LOG(Assets, Warning, "Dirty index {} in bucket '{}' has no cached asset object, skipping",
                         index, bucketName);
                     continue;
                 }
@@ -1055,13 +1102,13 @@ void AssetRegistry::SaveDirtyAssets(const FilePath& rootDirectory)
             continue;
         }
 
-        const FilePath bucketDir = rootDirectory / bucketName;
+        const FilePath bucketDir = m_rootPath / bucketName;
 
         if (!bucketDir.Exists())
         {
             if (!bucketDir.MkDir())
             {
-                HYP_LOG(Assets, Error, "SaveDirtyAssets: failed to create bucket directory '{}'", bucketDir);
+                HYP_LOG(Assets, Error, "Failed to create bucket directory '{}'", bucketDir);
                 continue;
             }
         }
@@ -1074,7 +1121,7 @@ void AssetRegistry::SaveDirtyAssets(const FilePath& rootDirectory)
             const Name assetName = assetObject->GetName();
             if (!assetName.IsValid())
             {
-                HYP_LOG(Assets, Warning, "SaveDirtyAssets: asset at index {} in bucket '{}' has no name, skipping",
+                HYP_LOG(Assets, Warning, "Asset at index {} in bucket '{}' has no name, skipping",
                     index, bucketName);
                 continue;
             }
@@ -1083,7 +1130,7 @@ void AssetRegistry::SaveDirtyAssets(const FilePath& rootDirectory)
 
             if (Result saveBlobResult = assetObject->SaveBlobData(blobStorage, bucketDir); saveBlobResult.HasError())
             {
-                HYP_LOG(Assets, Error, "SaveDirtyAssets: failed to save blob data for asset '{}' in bucket '{}': {}",
+                HYP_LOG(Assets, Error, "Failed to save blob data for asset '{}' in bucket '{}': {}",
                     assetName, bucketName, saveBlobResult.GetError().GetMessage());
                 continue;
             }
@@ -1093,13 +1140,13 @@ void AssetRegistry::SaveDirtyAssets(const FilePath& rootDirectory)
 
                 if (!manifestWriter.IsOpen())
                 {
-                    HYP_LOG(Assets, Error, "SaveDirtyAssets: failed to open manifest file '{}' for writing", manifestPath);
+                    HYP_LOG(Assets, Error, "Failed to open manifest file '{}' for writing", manifestPath);
                     continue;
                 }
 
                 if (Result saveManifestResult = assetObject->SaveManifest(manifestWriter); saveManifestResult.HasError())
                 {
-                    HYP_LOG(Assets, Error, "SaveDirtyAssets: failed to save manifest for asset '{}' in bucket '{}': {}",
+                    HYP_LOG(Assets, Error, "Failed to save manifest for asset '{}' in bucket '{}': {}",
                         assetName, bucketName, saveManifestResult.GetError().GetMessage());
                     continue;
                 }
@@ -1109,7 +1156,7 @@ void AssetRegistry::SaveDirtyAssets(const FilePath& rootDirectory)
 
             assetObject->m_manifestPath = manifestPath;
 
-            HYP_LOG(Assets, Verbose, "SaveDirtyAssets: saved asset '{}' to '{}'", assetName, manifestPath);
+            HYP_LOG(Assets, Verbose, "Saved asset '{}' to '{}'", assetName, manifestPath);
 
             TUniqueLock lock(data.mtx);
             data.dirtyIndices.Set(index, false);
@@ -1204,7 +1251,7 @@ void AssetRegistry::Update()
     {
        m_pruneTimer.NextTick();
 
-       PruneTransientPackages();
+       // @TODO
     }
 
     if (!m_saveBlobCacheTimer.Waiting())

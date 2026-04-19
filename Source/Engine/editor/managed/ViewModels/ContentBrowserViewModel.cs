@@ -18,7 +18,7 @@ namespace Hyperion.Editor.ViewModels
 
         private readonly EditorSubsystem _editorSubsystem;
 
-        public ObservableCollection<AssetPackageViewModel> Packages { get; } = new ObservableCollection<AssetPackageViewModel>();
+        public ObservableCollection<AssetBucketViewModel> Buckets { get; } = new ObservableCollection<AssetBucketViewModel>();
         public ObservableCollection<AssetObjectViewModel> Assets { get; } = new ObservableCollection<AssetObjectViewModel>();
 
         private AssetObjectViewModel? _selectedAsset;
@@ -28,19 +28,17 @@ namespace Hyperion.Editor.ViewModels
             set => SetProperty(ref _selectedAsset, value);
         }
 
-        private AssetPackageViewModel? _currentPackage;
-        public AssetPackageViewModel? CurrentPackage
+        private AssetBucketViewModel? _currentBucket;
+        public AssetBucketViewModel? CurrentBucket
         {
-            get => _currentPackage;
+            get => _currentBucket;
             set
             {
-                _editorSubsystem.SetSelectedPackage(value?.Package ?? null);
+                _editorSubsystem.SetSelectedBucket(value?.BucketIndex ?? 0);
             }
         }
 
-        private DelegateHandler? _onSelectedPackageChangedHandler;
-        private DelegateHandler? _onPackageAddedHandler;
-        private DelegateHandler? _onPackageRemovedHandler;
+        private DelegateHandler? _onSelectedBucketChangedHandler;
 
         public ICommand ImportCommand { get; }
 
@@ -53,116 +51,67 @@ namespace Hyperion.Editor.ViewModels
             Instance = this;
         }
 
-        public void LoadPackages()
+        public void LoadBuckets()
         {
             Dispatcher.UIThread.VerifyAccess();
 
-            Logger.Log(LogLevel.Verbose, "Loading content browser packages...");
+            Logger.Log(LogLevel.Verbose, "Loading content browser buckets...");
 
-            Packages.Clear();
+            Buckets.Clear();
             Assets.Clear();
 
-            AssetManager mgr = AssetManager.Instance;
-            AssetRegistry registry = mgr.AssetRegistry;
-
-            foreach (AssetPackage pkg in registry.Packages)
+            foreach (AssetBucket bucket in AssetBucket.AllBuckets)
             {
-                Logger.Log(LogLevel.Verbose, "Found package: {0}", pkg.Name);
-
-                if (pkg.Hidden)
-                    continue;
-
-                Packages.Add(new AssetPackageViewModel(pkg));
+                Buckets.Add(new AssetBucketViewModel(bucket));
             }
 
-            OnPropertyChanged(nameof(Packages));
+            OnPropertyChanged(nameof(Buckets));
 
-            _onSelectedPackageChangedHandler = _editorSubsystem.GetOnSelectedPackageChangedDelegate().Bind((AssetPackage? package) =>
+            _onSelectedBucketChangedHandler = _editorSubsystem.GetOnSelectedBucketChangedDelegate().Bind((uint bucketIndex) =>
             {
-                Logger.Log(LogLevel.Verbose, "Selected package changed: {0}", package?.Name ?? "null");
-                
+                Logger.Log(LogLevel.Verbose, "Selected bucket changed: {0}", AssetBucket.GetAssetBucketName(bucketIndex));
+
                 Dispatcher.UIThread.Post(() =>
                 {
                     Assets.Clear();
                     SelectedAsset = null;
 
-                    if (package != null)
+                    if (bucketIndex != 0)
                     {
-                        AssetPackageViewModel pkgVm = new AssetPackageViewModel(package);
+                        AssetBucketViewModel? bucketVm = Buckets.FirstOrDefault(bvm => bvm.BucketIndex == bucketIndex);
 
-                        foreach (AssetDesc assetDesc in package.AssetDescs)
+                        if (bucketVm != null)
                         {
-                            Assets.Add(new AssetObjectViewModel(assetDesc, pkgVm));
-                        }
+                            AssetManager mgr = AssetManager.Instance;
+                            AssetRegistry registry = mgr.AssetRegistry;
 
-                        _currentPackage = pkgVm;
+                            foreach (AssetDesc assetDesc in registry.GetBucketAssetDescs(bucketIndex))
+                            {
+                                Assets.Add(new AssetObjectViewModel(assetDesc, bucketVm));
+                            }
+
+                            _currentBucket = bucketVm;
+                        }
+                        else
+                        {
+                            _currentBucket = null;
+                        }
                     }
                     else
                     {
-                        _currentPackage = null;
+                        _currentBucket = null;
                     }
 
                     OnPropertyChanged(nameof(Assets));
-                    OnPropertyChanged(nameof(CurrentPackage));
-                });
-            });
-
-            _onPackageAddedHandler = registry.GetOnPackageAddedDelegate().Bind((AssetPackage package) =>
-            {
-                Logger.Log(LogLevel.Verbose, "Package added: {0}", package.Name);
-
-                if (!package.Hidden && package.GetParentPackage() == null)
-                {
-                    WeakReference<AssetPackage> weakPackage = new(package);
-
-                    Dispatcher.UIThread.Post(() =>
-                    {
-                        AssetPackage? package = null;
-                        if (weakPackage.TryGetTarget(out package))
-                        {
-                            AssetPackageViewModel? packageViewModel = Packages.FirstOrDefault(pvm => pvm.Package.Id == package.Id);
-
-                            if (packageViewModel != null)
-                                return; // already exists
-
-                            Packages.Add(new AssetPackageViewModel(package));
-
-                            OnPropertyChanged(nameof(Packages));
-                        }
-                    });
-                }
-            });
-
-            _onPackageRemovedHandler = registry.GetOnPackageRemovedDelegate().Bind((AssetPackage package) =>
-            {
-                Logger.Log(LogLevel.Verbose, "Package removed: {0}", package.Name);
-
-                ObjIdBase removedPackageId = package.Id;
-
-                Dispatcher.UIThread.Post(() =>
-                {
-                    AssetPackageViewModel? packageViewModel = Packages.FirstOrDefault(pvm => pvm.Package.Id == removedPackageId);
-
-                    if (packageViewModel == null)
-                        return;
-
-                    Packages.Remove(packageViewModel);
-
-                    OnPropertyChanged(nameof(Packages));
+                    OnPropertyChanged(nameof(CurrentBucket));
                 });
             });
         }
 
         public void Dispose()
         {
-            _onSelectedPackageChangedHandler?.Remove();
-            _onSelectedPackageChangedHandler?.Dispose();
-
-            _onSelectedPackageChangedHandler?.Remove();
-            _onPackageAddedHandler?.Dispose();
-
-            _onPackageRemovedHandler?.Remove();
-            _onPackageRemovedHandler?.Dispose();
+            _onSelectedBucketChangedHandler?.Remove();
+            _onSelectedBucketChangedHandler?.Dispose();
         }
     }
 }

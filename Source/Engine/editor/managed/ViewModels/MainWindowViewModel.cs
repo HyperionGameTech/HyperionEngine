@@ -245,7 +245,7 @@ namespace Hyperion.Editor.ViewModels
             _editorSubsystem = editorSubsystem;
 
             ContentBrowser = new ContentBrowserViewModel(_editorSubsystem);
-            ContentBrowser.LoadPackages();
+            ContentBrowser.LoadBuckets();
             OnPropertyChanged(nameof(ContentBrowser));
             
             HandleCurrentProjectChanged(_editorSubsystem.CurrentProject);

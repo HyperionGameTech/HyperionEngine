@@ -171,8 +171,7 @@ void DefaultGame::OnLaunch_Impl()
     Handle<ScriptAsset> scriptAsset = MakeHandle<ScriptAsset>(NAME("NewScript"), ScriptDesc());
 
     // register the package
-    Result assetObjectResult = GetCurrentAssetRegistry()->RegisterAsset("SampleGame/Scripts", scriptAsset);
-    Assert(assetObjectResult, "Failed to register script asset: {}", assetObjectResult.GetError().GetMessage());
+    GetCurrentAssetRegistry()->PutAsset(scriptAsset);
 
     ScriptDesc& scriptDesc = scriptAsset->GetScriptDesc();
     scriptDesc.language = ScriptLanguage::HypScript;

@@ -49,74 +49,8 @@ void EditorState::Init()
     m_taskManager.OnTaskRemoved.Bind([this]<class... Args>(Args&&... args) { OnTaskEnded(std::forward<Args>(args)...); }).Detach();
     m_taskManager.OnTaskProgressUpdated.Bind([this]<class... Args>(Args&&... args) { OnTaskProgressUpdated(std::forward<Args>(args)...); }).Detach();
 
-#if 0
-    // add newly imported assets to the current project's asset registry
-    m_onAssetObjectAddedHandle = importsPackage->OnAssetObjectAdded
-        .Bind([weakThis = WeakHandleFromThis()](const AssetDesc& assetDesc, bool isDirect, AssetPackage* parentPackage)
-        {
-            Handle<EditorState> editorState = weakThis.Lock();
-
-            if (!editorState)
-            {
-                return;
-            }
-
-            Mutex::Guard guard(editorState->m_mutex);
-
-            if (editorState->m_currentProject && editorState->m_currentProject->GetPackage().IsValid())
-            {
-                Handle<AssetObject> assetObject = parentPackage->GetAssetObject(assetDesc.name);
-                AssertDebug(assetObject.IsValid());
-
-                if (!assetObject.IsValid())
-                {
-                    return;
-                }
-
-                RegisterImportedAsset(editorState->m_currentProject, assetObject);
-            }
-        });
-
-    Mutex::Guard guard(m_mutex);
-
-    ImportAssetsOrSetCallback(m_currentProject);
-#endif
 
     SetReady(true);
-}
-
-void EditorState::ImportAssetsOrSetCallback(const Handle<EditorProject>& project)
-{
-    m_onProjectPackageChangedHandle.Reset();
-
-    if (!IsInitCalled())
-    {
-        // defer until init
-        return;
-    }
-
-    if (!m_currentProject.IsValid())
-    {
-        return;
-    }
-
-    if (m_currentProject->GetPackage().IsValid())
-    {
-        RegisterPackageAssets(m_currentProject, GetImportsPackage());
-
-        return;
-    }
-
-    m_onProjectPackageChangedHandle = m_currentProject->OnPackageCreated.Bind([weakProject = m_currentProject.ToWeak()](const Handle<AssetPackage>&)
-        {
-            Handle<EditorProject> project = weakProject.Lock();
-            if (!project)
-            {
-                return;
-            }
-
-            RegisterPackageAssets(project, GetImportsPackage());
-        });
 }
 
 Handle<EditorSubsystem> EditorState::GetEditorSubsystem() const

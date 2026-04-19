@@ -2858,18 +2858,18 @@ void EditorSubsystem::InitActiveSceneSelection()
     }
 }
 
-void EditorSubsystem::SetSelectedPackage(const Handle<AssetPackage>& package)
+void EditorSubsystem::SetSelectedBucket(uint32 bucketIndex)
 {
     HYP_SCOPE;
 
-    if (m_selectedPackage == package)
+    if (m_selectedBucketIndex == bucketIndex)
     {
         return;
     }
 
-    m_selectedPackage = package;
+    m_selectedBucketIndex = bucketIndex;
 
-    OnSelectedPackageChanged(package);
+    OnSelectedBucketChanged(bucketIndex);
 }
 
 bool EditorSubsystem::ExecuteCommand(const Handle<EditorCommandBase>& command)
