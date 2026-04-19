@@ -26,8 +26,9 @@ AnimationTrack::AnimationTrack()
 {
 }
 
-AnimationTrack::AnimationTrack(Name boneName)
-    : m_boneName(boneName)
+AnimationTrack::AnimationTrack(Name name, Name boneName)
+    : AssetObject(name),
+      m_boneName(boneName)
 {
 }
 
@@ -42,13 +43,21 @@ void AnimationTrack::PageBlobData()
         && m_keyframeData.key
         && m_keyframeData.size != 0)
     {
-        BlobStorage& blobStorage = GetCurrentAssetRegistry()->GetBlobStorage();
+        Handle<AssetRegistry> registry = GetAssetRegistry();
+        AssertDebug(registry.IsValid());
+
+        if (!registry.IsValid())
+        {
+            return;
+        }
+
+        BlobStorage& blobStorage = registry->GetBlobStorage();
 
         if (!blobStorage.GetData(m_keyframeData.key, m_keyframeData.size, m_keyframeData.raw))
         {
 #if HYP_EDITOR || HYP_ALLOW_INLINE_BLOBS
             // check if failed; if so, try to import from raw data blob in project directory
-            FileByteReader stream { GetCurrentAssetRegistry()->GetRootPath() / AssetBuckets::AnimationTracks.GetName() / (String(*GetName()) + ".KEYF.raw.blob") };
+            FileByteReader stream { registry->GetRootPath() / AssetBuckets::AnimationTracks.GetName() / (String(*GetName()) + ".KEYF.raw.blob") };
             if (!stream.Eof())
             {
                 ByteBuffer buffer = stream.Read(stream.Max());

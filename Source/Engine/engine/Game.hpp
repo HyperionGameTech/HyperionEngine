@@ -39,16 +39,19 @@ public:
     virtual ~Game();
 
     HYP_METHOD(Property = "World")
-    HYP_FORCE_INLINE const Handle<World>& GetWorld() const
+    const Handle<World>& GetWorld() const
     {
         return m_world;
     }
 
     HYP_METHOD(Property = "AssetRegistry", Transient)
-    HYP_FORCE_INLINE const Handle<AssetRegistry>& GetAssetRegistry() const
+    const Handle<AssetRegistry>& GetAssetRegistry() const
     {
         return m_assetRegistry;
     }
+
+    HYP_METHOD(Property = "AssetRegistry", Transient)
+    void SetAssetRegistry(const Handle<AssetRegistry>& assetRegistry);
 
     HYP_METHOD(Property = "GameState")
     const GameState& GetGameState() const
@@ -129,6 +132,9 @@ protected:
 
     Handle<AssetRegistry> m_assetRegistry;
     Handle<UISubsystem> m_uiSubsystem;
+
+    bool m_assetRegistryActive;
+    bool m_isInitialized;
 
     AtomicVar<bool> m_isLaunched;
 };

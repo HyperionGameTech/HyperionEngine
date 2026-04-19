@@ -1672,10 +1672,9 @@ static void ForEachPermutation(
     }
 }
 
-static bool LoadBundleFromAssetPath(
-    const AssetPath& path, Handle<ShaderBundle>& outBundle)
+static bool LoadBundleFromAssetPath(const AssetPath& path, Handle<ShaderBundle>& outBundle)
 {
-    Handle<AssetObject> asset = GetEngineAssetRegistry()->GetAsset(*AssetBuckets::AllBuckets[path.bucketIndex], path.assetName);
+    Handle<AssetObject> asset = GetEngineAssetRegistry()->GetAsset(path.GetBucket(), path.assetName);
 
     if (!asset.IsValid() || !asset->IsA(ShaderBundle::StaticClass()))
     {
@@ -2197,7 +2196,7 @@ bool ShaderCompiler::LoadBundle(
         return LoadBundleFromAssetPath(path, outBundle);
     };
 
-    const AssetPath bundleAssetPath(HYP_FORMAT("Engine/Shaders/{}", name));
+    const AssetPath bundleAssetPath = AssetPath(AssetRegistryId::Engine, AssetBuckets::ShaderBundles, name);
 
     if (!LoadBundleFromAssetPath(bundleAssetPath, outBundle))
     {
@@ -3766,6 +3765,20 @@ bool ShaderCompiler::CompileBundle(
         },
         true);
 
+    if (existingShadersToRemove.Any())
+    {
+        for (Handle<Shader>& shader : existingShadersToRemove)
+        {
+            g_renderInterface->graphicsPipelineCache->ExpirePipelinesForShader(shader);
+            g_renderInterface->computePipelineCache->ExpirePipelinesForShader(shader);
+            g_renderInterface->rayTracingPipelineCache->ExpirePipelinesForShader(shader);
+            
+            GetEngineAssetRegistry()->RemoveAsset(shader);
+
+            EnqueueDeletion(std::move(shader));
+        }
+    }
+
     if (outBundle->HasErrors())
     {
         HYP_LOG(ShaderCompiler, Error,
@@ -3800,20 +3813,6 @@ bool ShaderCompiler::CompileBundle(
         shaderPropertyDbWriter.Close();
     }
 
-    if (existingShadersToRemove.Any())
-    {
-        for (Handle<Shader>& shader : existingShadersToRemove)
-        {
-            GetEngineAssetRegistry()->RemoveAsset(shader);
-
-            g_renderInterface->graphicsPipelineCache->ExpirePipelinesForShader(shader);
-            g_renderInterface->computePipelineCache->ExpirePipelinesForShader(shader);
-            g_renderInterface->rayTracingPipelineCache->ExpirePipelinesForShader(shader);
-        }
-
-        EnqueueDeletion(std::move(existingShadersToRemove));
-    }
-
     // keep compiled shaders sorted.
     // partially this is to minimize changes causing excessive diffing in source control,
     // but also sorting by the amount of bits in the flag mask lets us find more "specific" variants earlier on
@@ -3833,30 +3832,15 @@ bool ShaderCompiler::CompileBundle(
         });
 
     { // register assets
-        Result registerResult;
-
         for (const Handle<Shader>& shader : outBundle->compiledShaders)
         {
-            GetEngineAssetRegistry()->PutAsset(shader);
-
-            if (registerResult.HasError())
-            {
-                HYP_LOG(ShaderCompiler, Warning, "Failed to register shader asset: {}", registerResult.GetError().GetMessage());
-            }
-            else
-            {
-                HYP_LOG(ShaderCompiler, Verbose, "Registered shader asset {}", shader->GetName());
-            }
+            GetEngineAssetRegistry()->PutAsset(AssetBuckets::Shaders, shader);
         }
         
-        outBundle->MarkDirty();
-        
-        GetEngineAssetRegistry()->PutAsset(outBundle->HandleFromThis());
-
-        HYP_LOG(ShaderCompiler, Verbose, "Shader bundle {} has {} shaders, is dirty? {}",
-            outBundle->GetName(),
-            outBundle->compiledShaders.Size(), outBundle->IsDirty());
+        GetEngineAssetRegistry()->PutAsset(AssetBuckets::ShaderBundles, outBundle->HandleFromThis());
     }
+
+    GetEngineAssetRegistry()->SaveDirtyAssets();
 
 #ifdef HYP_SHADER_COMPILER_LOGGING
     if (numCompiledPermutations.Get(MemoryOrder::RELAXED) != 0)

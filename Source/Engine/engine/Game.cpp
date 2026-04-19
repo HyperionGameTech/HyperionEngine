@@ -43,26 +43,39 @@ static const Name s_nameMainWorld = NAME("World");
 HYP_API extern const FilePath& GetLibraryDirectory();
 
 Game::Game()
-    : m_isLaunched(false)
+    : m_isInitialized(false),
+      m_assetRegistryActive(false),
+      m_isLaunched(false)
 {
 }
 
 Game::~Game()
 {
-    Shutdown();
 }
 
 void Game::Initialize()
 {
     AssertOnThread(g_simThread);
 
-    if (!m_assetRegistry)
+    if (m_isInitialized)
     {
-        m_assetRegistry = MakeHandle<AssetRegistry>(GetLibraryDirectory() / *InstanceClass()->GetName());
-        m_assetRegistry->Initialize();
+        return;
     }
 
-    PushCurrentAssetRegistry(m_assetRegistry, true);
+    if (!m_assetRegistry)
+    {
+        m_assetRegistry = MakeHandle<AssetRegistry>(
+            AssetRegistryId::Game,
+            GetLibraryDirectory() / *InstanceClass()->GetName());
+    }
+
+    if (!m_assetRegistryActive)
+    {
+        m_assetRegistry->Initialize();
+
+        PushCurrentAssetRegistry(m_assetRegistry);
+        m_assetRegistryActive = true;
+    }
 
     if (!m_world)
     {
@@ -78,26 +91,60 @@ void Game::Initialize()
     {
         m_uiSubsystem = m_world->AddSubsystem(MakeHandle<UISubsystem>());
     }
+
+    m_isInitialized = true;
 }
 
 void Game::Shutdown()
 {
+    if (!m_isInitialized)
+    {
+        return;
+    }
+
     if (m_world)
     {
         m_world->m_gameInstance = nullptr;
 
         g_engineDriver->RemoveWorld(m_world);
-
-        m_world.Reset();
     }
 
-    if (m_assetRegistry)
+    if (m_assetRegistry && m_assetRegistryActive)
     {
         m_assetRegistry->Shutdown();
 
-        PopCurrentAssetRegistry(true);
+        PopCurrentAssetRegistry();
 
-        m_assetRegistry.Reset();
+        m_assetRegistryActive = false;
+    }
+
+    m_isInitialized = false;
+}
+
+void Game::SetAssetRegistry(const Handle<AssetRegistry>& assetRegistry)
+{
+    if (m_assetRegistry == assetRegistry)
+    {
+        return;
+    }
+
+    if (m_assetRegistry && m_assetRegistryActive)
+    {
+        m_assetRegistry->Shutdown();
+
+        PopCurrentAssetRegistry();
+    }
+
+    m_assetRegistry = assetRegistry;
+    m_assetRegistryActive = false;
+
+    if (m_assetRegistry)
+    {
+        m_assetRegistry->Initialize();
+
+        PushCurrentAssetRegistry(m_assetRegistry);
+
+        m_assetRegistryActive = true;
     }
 }
 

@@ -19,6 +19,8 @@ HYP_DECLARE_LOG_CHANNEL(Assets);
 
 static const AssetPath s_invalidAssetPath;
 
+static_assert(sizeof(AssetPath) == 12);
+
 const Handle<AssetObject>& ResolveAssetImpl(const AssetReference& assetReference)
 {
     return assetReference.Resolve();
@@ -80,7 +82,27 @@ const Handle<AssetObject>& AssetReference::Resolve() const
 
     if (assetPath.IsValid())
     {
-        Handle<AssetObject> assetObject = GetCurrentAssetRegistry()->GetAsset(*AssetBuckets::AllBuckets[assetPath.bucketIndex], assetPath.assetName);
+        Handle<AssetRegistry> registry;
+
+        switch (assetPath.registryId)
+        {
+        case AssetRegistryId::Game:
+            registry = GetCurrentAssetRegistry();
+            break;
+        case AssetRegistryId::Engine: // fallthrough
+        case AssetRegistryId::Editor:
+            registry = GetEngineAssetRegistry();
+            break;
+        }
+
+        AssertDebug(registry.IsValid());
+
+        if (!registry.IsValid())
+        {
+            return Handle<AssetObject>::Null();
+        }
+
+        Handle<AssetObject> assetObject = registry->GetAsset(assetPath.GetBucket(), assetPath.assetName);
 
         if (assetObject)
         {

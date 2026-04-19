@@ -142,10 +142,9 @@ void SSGI::Create()
     });
     m_ssgiTexture->SetIsTransient(true);
     m_ssgiTexture->SetName(NAME("SSGITexture"));
-    
-    GetCurrentAssetRegistry()->PutAsset(m_ssgiTexture);
-
     CheckResult(m_ssgiTexture->Create());
+    
+    GetEngineAssetRegistry()->PutAsset(m_ssgiTexture);
 
     for (uint32 i = 0; i < NumDownsamplePasses; i++)
     {

@@ -45,7 +45,7 @@ struct EditorProjectSaveContext { };
 
 HYP_DECLARE_LOG_CHANNEL(Editor);
 
-static const String s_defaultProjectName = "DefaultProject";
+static const ANSIString s_defaultProjectName = "Project";
 
 #pragma region EditorProject
 
@@ -69,21 +69,12 @@ EditorProject::EditorProject(Name name, const Handle<Game>& gameInstance)
 
 EditorProject::~EditorProject()
 {
-    EnqueueDeletion(std::move(m_gameInstance));
-}
-
-void EditorProject::Init()
-{
-    InitObject(m_actionStack);
-
-    if (!m_gameInstance)
+    if (m_gameInstance)
     {
-        m_gameInstance = MakeHandle<Game>(); // base game instance
+        m_gameInstance->Shutdown();
+
+        EnqueueDeletion(std::move(m_gameInstance));
     }
-
-    m_gameInstance->Initialize();
-
-    SetReady(true);
 }
 
 void EditorProject::SetName(Name name)
@@ -120,8 +111,6 @@ void EditorProject::SetGame(const Handle<Game>& gameInstance)
 
 void EditorProject::AddScene(const Handle<Scene>& scene)
 {
-    HYP_SCOPE;
-
     if (!scene)
     {
         return;
@@ -134,8 +123,6 @@ void EditorProject::AddScene(const Handle<Scene>& scene)
 
 void EditorProject::RemoveScene(Scene* scene)
 {
-    HYP_SCOPE;
-
     if (!scene)
     {
         return;
@@ -158,7 +145,6 @@ bool EditorProject::IsSaved() const
 
 void EditorProject::Close()
 {
-    HYP_SCOPE;
 }
 
 Result EditorProject::Save()
@@ -168,7 +154,53 @@ Result EditorProject::Save()
 
 Result EditorProject::SaveAs(FilePath filepath)
 {
-    HYP_SCOPE;
+    // Ensure we have a valid name, unique among existing project subdirs.
+    if (!m_name.IsValid())
+    {
+        const FilePath projectsDir = GetProjectsDirectory();
+        ANSIString candidateName = s_defaultProjectName;
+        uint32 counter = 0;
+
+        while ((projectsDir / candidateName).Exists())
+        {
+            ++counter;
+            candidateName = HYP_FORMAT("{}{}", s_defaultProjectName, counter);
+        }
+
+        m_name = CreateNameFromDynamicString(candidateName);
+    }
+
+    FilePath dir;
+
+    if (filepath.Empty())
+    {
+        dir = GetProjectsDirectory() / String(*m_name);
+        filepath = dir / (String(*m_name) + ".hypproject");
+    }
+    else if (filepath.GetExtension().Any())
+    {
+        dir = filepath.BasePath();
+    }
+    else
+    {
+        dir = filepath / String(*m_name);
+        filepath = dir / (String(*m_name) + ".hypproject");
+    }
+
+    if (!dir.Exists() && !dir.MkDir())
+    {
+        return HYP_MAKE_ERROR(Error, "Failed to create project directory '{}'", dir);
+    }
+
+    if (!dir.IsDirectory())
+    {
+        return HYP_MAKE_ERROR(Error, "Path '{}' is not a directory", dir);
+    }
+
+    AssetRegistry& registry = *m_gameInstance->GetAssetRegistry();
+    registry.SetRootPath(dir);
+
+    GlobalContextScope assetRegistryContextScope { AssetRegistryContext { MakeStrongRef(&registry) } };
 
     EditorTaskScope taskScope(
         TickableEditorTask::StaticClass(),
@@ -177,36 +209,9 @@ Result EditorProject::SaveAs(FilePath filepath)
         "Registering assets",
         /* isForegroundTask */ true);
         
-    GetCurrentAssetRegistry()->PutAssetsDeep(m_gameInstance->GetWorld());
+    registry.PutAssetsDeep(m_gameInstance->GetWorld());
 
-    if (filepath.Empty())
-    {
-        filepath = GetProjectsDirectory() / *m_name;
-    }
-
-    FilePath dir;
-
-    if (filepath.GetExtension().Any())
-    {
-        dir = filepath.BasePath();
-    }
-    else
-    {
-        dir = filepath;
-        filepath = filepath / (String(*m_name) + ".hypproject");
-    }
-
-    if (!dir.Exists() && !dir.MkDir())
-    {
-        return HYP_MAKE_ERROR(Error, "Failed to create directory");
-    }
-
-    if (!dir.IsDirectory())
-    {
-        return HYP_MAKE_ERROR(Error, "Path '{}' is not a directory", dir);
-    }
-
-    GlobalContextScope contextScope { EditorProjectSaveContext {} };
+    GlobalContextScope saveContextScope { EditorProjectSaveContext {} };
     
     taskScope.GetEditorTask()->SetDescription("Saving project metadata");
 
@@ -234,14 +239,14 @@ Result EditorProject::SaveAs(FilePath filepath)
     
     taskScope.GetEditorTask()->SetDescription("Saving package data");
 
-    GetCurrentAssetRegistry()->SaveDirtyAssets();
+    registry.SaveDirtyAssets();
 
-    if (Result saveManifestResult = GetCurrentAssetRegistry()->GetBlobStorage().SaveManifest(); saveManifestResult.HasError())
+    if (Result saveManifestResult = registry.GetBlobStorage().SaveManifest(); saveManifestResult.HasError())
     {
         return HYP_MAKE_ERROR(Error, "Failed to save BlobStorage manifest: {}", saveManifestResult.GetError().GetMessage());
     }
 
-    if (Result saveTOCResult = GetCurrentAssetRegistry()->GetBlobStorage().SaveTOC(); saveTOCResult.HasError())
+    if (Result saveTOCResult = registry.GetBlobStorage().SaveTOC(); saveTOCResult.HasError())
     {
         return HYP_MAKE_ERROR(Error, "Failed to save BlobStorage table of contents: {}", saveTOCResult.GetError().GetMessage());
     }
@@ -253,8 +258,6 @@ Result EditorProject::SaveAs(FilePath filepath)
 
 TResult<Handle<EditorProject>> EditorProject::Load(const FilePath& filepath)
 {
-    HYP_SCOPE;
-
     FilePath dir;
     FilePath projectFilepath;
 
@@ -288,61 +291,65 @@ TResult<Handle<EditorProject>> EditorProject::Load(const FilePath& filepath)
         return HYP_MAKE_ERROR(Error, "Project file does not exist: {}", projectFilepath);
     }
 
-    Handle<EditorProject> project;
-
-    {
-        FileByteReader stream { projectFilepath };
-
-        if (stream.Eof())
-        {
-            return HYP_MAKE_ERROR(Error, "Failed to open project file: {}", projectFilepath);
-        }
-
-        JSON::ParseResult parseResult = JSON::Parse(String(stream.Read().ToByteView()));
-
-        if (!parseResult.ok)
-        {
-            return HYP_MAKE_ERROR(Error, "Failed to parse project file at {}: {}", projectFilepath, parseResult.message);
-        }
-
-        JSON::Value projectJson = parseResult.value;
-
-        if (!projectJson.IsObject())
-        {
-            return HYP_MAKE_ERROR(Error, "Project file data is invalid!");
-        }
-
-        BoxedValue boxed;
-        if (!ObjectFromJSON(projectJson.AsObject(), EditorProject::StaticClass(), boxed))
-        {
-            return HYP_MAKE_ERROR(Error, "Project file data could not be imported. Check the log for details.");
-        }
-
-        Assert(boxed.Is<Handle<EditorProject>>());
-
-        project = std::move(boxed.Get<Handle<EditorProject>>());
-    }
-
-    const FilePath registryDir = dir / FilePath(projectFilepath.StripExtension()).Basename();
+    const FilePath registryDir = dir;
 
     // create registry to load assets into
-    Handle<AssetRegistry> registry = MakeHandle<AssetRegistry>(registryDir);
+    Handle<AssetRegistry> registry = MakeHandle<AssetRegistry>(
+        AssetRegistryId::Game,
+        registryDir);
+        
     registry->Initialize();
 
-    GlobalContextScope contextScope { AssetRegistryContext { registry } };
-
-    Assert(project->m_gameInstance != nullptr);
-
+    // Load asset descs for the registry before attempting to load the assets themselves
     registry->LoadAssetDescs();
+    
+    Handle<EditorProject> project;
+
+    { // load project and all its assets into the registry we just created.
+        GlobalContextScope assetRegistryContextScope { AssetRegistryContext { registry } };
+
+        {
+            FileByteReader stream { projectFilepath };
+
+            if (stream.Eof())
+            {
+                return HYP_MAKE_ERROR(Error, "Failed to open project file: {}", projectFilepath);
+            }
+
+            JSON::ParseResult parseResult = JSON::Parse(String(stream.Read().ToByteView()));
+
+            if (!parseResult.ok)
+            {
+                return HYP_MAKE_ERROR(Error, "Failed to parse project file at {}: {}", projectFilepath, parseResult.message);
+            }
+
+            JSON::Value projectJson = parseResult.value;
+
+            if (!projectJson.IsObject())
+            {
+                return HYP_MAKE_ERROR(Error, "Project file data is invalid!");
+            }
+
+            BoxedValue boxed;
+            if (!ObjectFromJSON(projectJson.AsObject(), EditorProject::StaticClass(), boxed))
+            {
+                return HYP_MAKE_ERROR(Error, "Project file data could not be imported. Check the log for details.");
+            }
+
+            Assert(boxed.Is<Handle<EditorProject>>());
+
+            project = std::move(boxed.Get<Handle<EditorProject>>());
+        }
+    }
 
     // hand registry over to the game instance on the project
-    project->m_gameInstance->m_assetRegistry = std::move(registry);
+    Assert(project->m_gameInstance != nullptr);
+
+    project->m_gameInstance->SetAssetRegistry(registry);
 
     // set transient properties
     project->m_lastSavedTime = projectFilepath.LastModifiedTimestamp();
     project->m_filepath = projectFilepath;
-
-    InitObject(project);
 
     return project;
 }

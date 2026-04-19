@@ -40,6 +40,14 @@ void InstancedMeshProxy_OnPostLoad(InstancedMeshData& instancedMesh)
 
 void InstancedMeshData::PageBlobData()
 {
+    Handle<AssetRegistry> registry = GetAssetRegistry();
+    AssertDebug(registry.IsValid());
+
+    if (!registry.IsValid())
+    {
+        return;
+    }
+
     bool needSaveBlobData = false;
 
     for (uint32 i = 0; i < uint32(buffers.Size()); i++)
@@ -48,12 +56,12 @@ void InstancedMeshData::PageBlobData()
 
         if (ref.raw == nullptr && ref.key && ref.size != 0)
         {
-            BlobStorage& blobStorage = GetCurrentAssetRegistry()->GetBlobStorage();
+            BlobStorage& blobStorage = registry->GetBlobStorage();
 
             if (!blobStorage.GetData(ref.key, ref.size, ref.raw))
             {
 #if HYP_EDITOR || HYP_ALLOW_INLINE_BLOBS
-                FileByteReader stream { GetCurrentAssetRegistry()->GetRootPath() / AssetBuckets::InstancedMeshData.GetName() / (String(*GetName()) + "." + BufferNames[i] + ".raw.blob") };
+                FileByteReader stream { registry->GetRootPath() / AssetBuckets::InstancedMeshData.GetName() / (String(*GetName()) + "." + BufferNames[i] + ".raw.blob") };
                 if (!stream.Eof())
                 {
                     ByteBuffer buffer = stream.Read(stream.Max());
@@ -77,7 +85,7 @@ void InstancedMeshData::PageBlobData()
 #if HYP_EDITOR
     if (needSaveBlobData)
     {    
-        BlobStorage& blobStorage = GetCurrentAssetRegistry()->GetBlobStorage();
+        BlobStorage& blobStorage = registry->GetBlobStorage();
 
         Result saveBlobDataResult = SaveBlobData(blobStorage);
 

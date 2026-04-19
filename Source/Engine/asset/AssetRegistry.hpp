@@ -51,6 +51,8 @@ class ByteWriter;
 class BlobStorage;
 class MemoryMappedFile;
 
+enum class AssetRegistryId : uint32;
+
 extern StringHash AssetDesc_KeyByFunction(const AssetDesc& assetDesc);
 extern StringHash AssetObject_KeyByFunction(const Handle<AssetObject>& assetObject);
 
@@ -62,7 +64,9 @@ using AssetObjectCache = SparsePagedArray<Handle<AssetObject>, 64, AssetAllocato
 class AssetBucketData
 {
 public:
-    uint32 bucketIndex;
+    AssetRegistryId registryId : 3;
+    uint32 bucketIndex : 29;
+    
     AssetDescSet assetDescs;
     AssetObjectCache assetObjectCache;
     Bitset dirtyIndices;
@@ -70,7 +74,6 @@ public:
     SharedMutex mtx;
 
     AssetBucketData()
-        : bucketIndex(0)
     {
         // reserve index 0 for invalid
         usedIndices.Set(0, true);
@@ -110,7 +113,7 @@ class HYP_API AssetRegistry final : public ObjectBase
 public:
     static Pool* GetAllocator() { return g_assetPool; }
 
-    explicit AssetRegistry(const FilePath& rootPath);
+    AssetRegistry(AssetRegistryId registryId, const FilePath& rootPath);
 
     AssetRegistry(const AssetRegistry& other) = delete;
     AssetRegistry& operator=(const AssetRegistry& other) = delete;
@@ -120,14 +123,21 @@ public:
 
     ~AssetRegistry();
 
-    HYP_METHOD()
-    HYP_FORCE_INLINE const FilePath& GetRootPath() const
+    HYP_FORCE_INLINE AssetRegistryId GetRegistryId() const
     {
-        return m_rootPath;
+        return m_registryId;
     }
+
+    HYP_METHOD()
+    FilePath GetRootPath() const;
+
+    HYP_METHOD()
+    void SetRootPath(const FilePath& rootPath);
     
     /// Begin new assetbucket based stuff
     Handle<AssetObject> GetAsset(const AssetBucket& bucket, StringHash name);
+
+    void MarkAssetDirty(const AssetObject& assetObject);
 
     uint32 GetBucketAssetDescs(uint32 bucketIndex, Array<AssetDesc>& outDescs) const;
 
@@ -150,6 +160,8 @@ public:
 
     /// End new assetbucket based stuff
 
+    FilePath GetManifestPath(const AssetPath& assetPath) const;
+
     BlobStorage& GetBlobStorage();
 
     void Initialize();
@@ -159,15 +171,17 @@ public:
     void Update();
 
 private:
-    void InitBlobStorage();
+    void InitBlobStorage(const FilePath& blobStorageDir);
 
     template <class Func, class FutureType = void>
     void PostTask(Func&& fn, Task<FutureType>* outFuture = nullptr);
 
     void SaveBlobCache(bool async);
 
-    HYP_FIELD(Serialize = true)
+    AssetRegistryId m_registryId;
     FilePath m_rootPath;
+
+    bool m_isInitialized;
 
     SharedMutex m_mutex;
 
@@ -196,8 +210,8 @@ struct AssetRegistryContext
 
 HYP_API Handle<AssetRegistry> GetCurrentAssetRegistry();
 
-HYP_API void PushCurrentAssetRegistry(const Handle<AssetRegistry>& registry, bool global = false);
-HYP_API void PopCurrentAssetRegistry(bool global = false);
+HYP_API void PushCurrentAssetRegistry(const Handle<AssetRegistry>& registry);
+HYP_API void PopCurrentAssetRegistry();
 
 HYP_API Handle<AssetRegistry> GetEngineAssetRegistry();
 HYP_API void SetEngineAssetRegistry(const Handle<AssetRegistry>& registry);

@@ -137,8 +137,6 @@ EntityManager::~EntityManager()
 
 void EntityManager::NotifySystemOfExistingEntities(SystemBase* system)
 {
-    HYP_SCOPE;
-
     Assert(m_world != nullptr, "EntityManager must be associated with a World before initializing systems.");
 
     Assert(system != nullptr);
@@ -178,8 +176,6 @@ void EntityManager::NotifySystemOfExistingEntities(SystemBase* system)
 
 void EntityManager::NotifySystemOfAllEntitiesRemoved(SystemBase* system)
 {
-    HYP_SCOPE;
-
     Assert(m_world != nullptr, "EntityManager must be associated with a World before shutting down systems.");
 
     Assert(system != nullptr);
@@ -257,8 +253,6 @@ void EntityManager::Init()
 
 void EntityManager::Shutdown()
 {
-    HYP_SCOPE;
-
     // Notify all entities that they're being removed from the world
     for (auto& subtypeData : m_entities.GetSubtypeData())
     {
@@ -353,8 +347,6 @@ void EntityManager::Shutdown()
 
 void EntityManager::SetWorld(World* world)
 {
-    HYP_SCOPE;
-
     AssertOnThread(m_ownerThreadId);
 
     if (world == m_world)
@@ -440,8 +432,6 @@ void EntityManager::SetWorld(World* world)
 
 Handle<Entity> EntityManager::AddBasicEntity()
 {
-    HYP_SCOPE;
-
     Assert(!IsLocked() && IsOnThread(m_ownerThreadId));
 
     Handle<Entity> entity = MakeHandle<Entity>();
@@ -480,8 +470,6 @@ Handle<Entity> EntityManager::AddBasicEntity()
 
 Handle<Entity> EntityManager::AddTypedEntity(const Class* cls)
 {
-    HYP_SCOPE;
-
     Assert(!IsLocked() && IsOnThread(m_ownerThreadId));
 
     Assert(cls != nullptr, "Class must not be null");
@@ -552,8 +540,6 @@ Handle<Entity> EntityManager::AddTypedEntity(const Class* cls)
 
 void EntityManager::AddExistingEntity_Internal(const Handle<Entity>& entity)
 {
-    HYP_SCOPE;
-
     if (!entity.IsValid())
     {
         return;
@@ -627,8 +613,6 @@ void EntityManager::AddExistingEntity_Internal(const Handle<Entity>& entity)
 /// so NotifySystemsOfEntityRemoved() is not called (it's expected that this is a non-world EntityManager so it wouldn't be called anyway).
 bool EntityManager::RemoveEntity(Entity* entity)
 {
-    HYP_SCOPE;
-
     Assert(!IsLocked() && IsOnThread(m_ownerThreadId));
 
     Assert(m_world == nullptr, "RemoveEntity() can only be called on non-world EntityManagers. Use MoveEntity() to move entities out of a world EntityManager on its owner thread.");
@@ -643,7 +627,7 @@ bool EntityManager::RemoveEntity(Entity* entity)
     const ObjId<Entity> entityId = entity->Id();
 
     // Components generically stored as BoxedValue by TypeId - to add to other EntityManager
-    TypeMap<BoxedValue> components;
+    HashMap<TypeId, BoxedValue> components;
 
     HYP_MT_CHECK_RW(m_entitiesDataRaceDetector);
 
@@ -668,7 +652,7 @@ bool EntityManager::RemoveEntity(Entity* entity)
             HYP_FAIL("Failed to get component of type '{}' as BoxedValue when moving between EntityManagers", *GetComponentTypeName(componentTypeId));
         }
 
-        components.Set(componentTypeId, std::move(component));
+        components[componentTypeId] = std::move(component);
 
         // Update iterator, erase the component from the entity's component map
         componentInfoPairIt = entityData->components.Erase(componentInfoPairIt);
@@ -701,8 +685,6 @@ bool EntityManager::RemoveEntity(Entity* entity)
 
 void EntityManager::MoveEntity(const Handle<Entity>& entity, const Handle<EntityManager>& other)
 {
-    HYP_SCOPE;
-
     Assert(entity.IsValid());
     AssertDebug(entity->GetEntityManager() == this);
 
@@ -1070,7 +1052,6 @@ void EntityManager::AddComponent(Entity* entity, BoxedValue&& componentData)
 
 bool EntityManager::RemoveComponent(TypeId componentTypeId, Entity* entity)
 {
-    HYP_SCOPE;
     EnsureValidComponentType(componentTypeId);
 
     Assert(!IsLocked() && IsOnThread(m_ownerThreadId));
@@ -1153,8 +1134,6 @@ bool EntityManager::RemoveComponent(TypeId componentTypeId, Entity* entity)
 
 bool EntityManager::HasTag(const Entity* entity, EntityTag tag) const
 {
-    HYP_SCOPE;
-
     Assert(IsLocked() || IsOnThread(m_ownerThreadId));
 
     if (!entity)
@@ -1190,8 +1169,6 @@ bool EntityManager::HasTag(const Entity* entity, EntityTag tag) const
 
 void EntityManager::AddTag(Entity* entity, EntityTag tag)
 {
-    HYP_SCOPE;
-
     Assert(!IsLocked() && IsOnThread(m_ownerThreadId));
 
     if (!entity)
@@ -1235,8 +1212,6 @@ void EntityManager::AddTag(Entity* entity, EntityTag tag)
 
 bool EntityManager::RemoveTag(Entity* entity, EntityTag tag)
 {
-    HYP_SCOPE;
-
     Assert(!IsLocked() && IsOnThread(m_ownerThreadId));
 
     if (!entity)
@@ -1260,8 +1235,6 @@ bool EntityManager::RemoveTag(Entity* entity, EntityTag tag)
 
 void EntityManager::NotifySystemsOfEntityAdded(const Handle<Entity>& entity, const ComponentMap& componentIds)
 {
-    HYP_SCOPE;
-
     if (!entity.IsValid())
     {
         return;
@@ -1302,8 +1275,6 @@ void EntityManager::NotifySystemsOfEntityAdded(const Handle<Entity>& entity, con
 
 void EntityManager::NotifySystemsOfEntityRemoved(Entity* entity, const ComponentMap& componentIds)
 {
-    HYP_SCOPE;
-
     if (!entity)
     {
         return;
@@ -1350,7 +1321,6 @@ void EntityManager::NotifySystemsOfEntityRemoved(Entity* entity, const Component
 
 void EntityManager::UpdateEntities(float delta)
 {
-    HYP_SCOPE;
     AssertOnThread(m_ownerThreadId);
 
     AssertDebug(GetWorld() != nullptr);
@@ -1399,8 +1369,6 @@ void EntityManager::AddPendingEntitySets()
 
 bool EntityManager::IsEntityInitializedForSystem(SystemBase* system, const Entity* entity) const
 {
-    HYP_SCOPE;
-
     if (!system)
     {
         return false;

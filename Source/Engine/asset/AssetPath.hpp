@@ -23,6 +23,14 @@ namespace Hyperion {
 
 #pragma pack(push, 1)
 
+HYP_ENUM()
+enum class AssetRegistryId : uint32
+{
+    Game = 0,
+    Engine,
+    Editor
+};
+
 HYP_STRUCT()
 struct AssetPath
 {
@@ -30,15 +38,31 @@ struct AssetPath
 
     HYP_PROPERTY(Value, &AssetPath::ToString, &AssetPath::Set)
 
-    HYP_FIELD(NoScriptBindings, Transient)
     Name assetName;
+    AssetRegistryId registryId : 3;
+    uint32 bucketIndex : 29;
 
-    HYP_FIELD(NoScriptBindings, Transient)
-    uint32 bucketIndex = AssetBucket::InvalidIndex;
+    constexpr AssetPath()
+        : registryId(AssetRegistryId::Game),
+          bucketIndex(AssetBucket::InvalidIndex)
+    {
+    }
 
-    constexpr AssetPath() = default;
+    explicit AssetPath(const ANSIStringView& path);
 
-    explicit AssetPath(const UTF8StringView& path);
+    constexpr AssetPath(AssetRegistryId registryId, const AssetBucket& bucket, Name assetName)
+        : assetName(assetName),
+          registryId(registryId),
+          bucketIndex(bucket.GetIndex())
+    {
+    }
+
+    constexpr AssetPath(const AssetBucket& bucket, Name assetName)
+        : assetName(assetName),
+          registryId(AssetRegistryId::Game),
+          bucketIndex(bucket.GetIndex())
+    {
+    }
 
     constexpr AssetPath(const AssetPath& other) = default;
     AssetPath& operator=(const AssetPath& other) = default;
@@ -54,6 +78,12 @@ struct AssetPath
     {
         return assetName.IsValid()
             && bucketIndex != AssetBucket::InvalidIndex;
+    }
+
+    HYP_METHOD()
+    HYP_FORCE_INLINE const AssetBucket& GetBucket() const
+    {
+        return *AssetBuckets::AllBuckets[bucketIndex];
     }
 
     HYP_FORCE_INLINE explicit operator bool() const
@@ -74,15 +104,16 @@ struct AssetPath
 
     void Set(const String& path)
     {
-        *this = AssetPath(path);
+        *this = AssetPath(ANSIStringView(*path));
     }
 
     HYP_METHOD()
     String ToString() const;
 
-    HYP_FORCE_INLINE HashCode GetHashCode() const
+    HYP_FORCE_INLINE constexpr HashCode GetHashCode() const
     {
-        return ToString().GetHashCode();
+        return HashCode(assetName.hashCode)
+            .Combine(HashCode::ValueType((uint32(registryId) & 0x7) | (uint32(bucketIndex) << 3)));
     }
 };
 

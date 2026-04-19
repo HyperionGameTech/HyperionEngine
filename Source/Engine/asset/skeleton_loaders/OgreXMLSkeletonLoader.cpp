@@ -311,7 +311,9 @@ AssetLoadResult OgreXMLSkeletonLoader::LoadAsset(LoaderState& state) const
 
         for (const auto& trackIt : animationIt.tracks)
         {
-            Handle<AnimationTrack> animationTrack = MakeHandle<AnimationTrack>(CreateNameFromDynamicString(trackIt.boneName));
+            Handle<AnimationTrack> animationTrack = MakeHandle<AnimationTrack>(
+                NAME_FMT("{}_{}", animationIt.name, trackIt.boneName),
+                CreateNameFromDynamicString(trackIt.boneName));
 
             Array<Keyframe> keyframes;
             keyframes.Reserve(trackIt.keyframes.Size());

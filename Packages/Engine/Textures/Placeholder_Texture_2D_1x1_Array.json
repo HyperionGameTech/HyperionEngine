@@ -12,7 +12,7 @@
     "MipOffsets": [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
   },
   "ImageData": {
-    "Key": "Engine/Textures/Placeholder_Texture_2D_1x1_Array.TEX",
+    "Key": "Engine://Textures/Placeholder_Texture_2D_1x1_Array.TEX",
     "Size": 64
   },
   "Name": "Placeholder_Texture_2D_1x1_Array",

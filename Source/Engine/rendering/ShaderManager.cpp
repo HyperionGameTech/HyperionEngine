@@ -434,9 +434,7 @@ public:
             }
             else
             {
-                HYP_LOG(Shader, Error,
-                    "Loaded shader from cache (Name: {}) does not contain the requested properties!",
-                    name);
+                HYP_LOG(Shader, Error, "Loaded shader from cache (Name: {}) does not contain the requested properties!", name);
             }
         }
 

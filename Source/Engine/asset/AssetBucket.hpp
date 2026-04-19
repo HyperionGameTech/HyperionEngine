@@ -23,25 +23,19 @@ class AssetBucket
 public:
     HYP_STRUCT_BODY(AssetBucket);
 
-private:
-    AssetBucket() = default;
-
 public:
 
     static constexpr uint32 InvalidIndex = 0;
+    
+    constexpr AssetBucket()
+        : m_index(InvalidIndex)
+    {
+    }
 
     constexpr explicit AssetBucket(uint32 index)
         : m_index(index)
     {
     }
-
-    AssetBucket(const AssetBucket& other) = delete;
-    AssetBucket& operator=(const AssetBucket& other) = delete;
-
-    AssetBucket(AssetBucket&& other) noexcept = delete;
-    AssetBucket& operator=(AssetBucket&& other) noexcept = delete;
-
-    ~AssetBucket() = default;
 
     HYP_FORCE_INLINE constexpr explicit operator bool() const
     {

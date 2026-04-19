@@ -76,7 +76,8 @@ namespace Hyperion.Editor.ViewModels
             set => SetProperty(ref _isDropTarget, value);
         }
 
-        public bool IsDirty => _node.Dirty;
+        // @TODO
+        public bool IsDirty => false;//_node.Dirty;
 
         private DelegateHandler? _onChildAdded;
         private DelegateHandler? _onChildRemoved;

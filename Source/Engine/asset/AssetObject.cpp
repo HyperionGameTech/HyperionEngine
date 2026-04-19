@@ -65,7 +65,6 @@ static Name GetUniqueName(Name baseName, T&& elements)
 AssetObject::AssetObject()
     : m_flags(AssetObjectFlags::None),
       m_assetIndex(AssetDesc::InvalidIndex),
-      m_isDirty(0),
       m_rwState(0),
       m_isBlobLoaded(false)
 {
@@ -75,7 +74,6 @@ AssetObject::AssetObject(Name name)
     : m_name(SanitizeName(name)),
       m_flags(AssetObjectFlags::None),
       m_assetIndex(AssetDesc::InvalidIndex),
-      m_isDirty(0),
       m_rwState(0),
       m_isBlobLoaded(false)
 {
@@ -112,10 +110,17 @@ void AssetObject::SetAssetFlags(EnumFlags<AssetObjectFlags> flags)
 
 void AssetObject::MarkDirty()
 {
-    int32 expected = 0;
-    if (AtomicCompareExchange(&m_isDirty, expected, 1))
+    if (IsRegistered() && !IsTransient())
     {
-        OnDirtyStateChanged(true);
+        Handle<AssetRegistry> registry = GetAssetRegistry();
+        AssertDebug(registry.IsValid());
+
+        if (!registry.IsValid())
+        {
+            return;
+        }
+
+        registry->MarkAssetDirty(*this);
     }
 }
 
@@ -141,27 +146,6 @@ void AssetObject::SetIsTransient(bool isTransient)
     {
         // needs to be kept in memory if transient
         SetPersistentRequested(true, /* setFlag */ false);
-
-        // transient assets don't have a manifest filepath as they are not saved to disk.
-        m_manifestPath = FilePath();
-    }
-    else
-    {
-        SetPersistentRequested(false, /* setFlag */ false);
-    }
-}
-
-void AssetObject::SetIsTransientByProxy(bool isTransientByProxy)
-{
-    m_flags[AssetObjectFlags::TransientByProxy] = isTransientByProxy;
-
-    if (IsTransient())
-    {
-        // needs to be kept in memory if transient
-        SetPersistentRequested(true, /* setFlag */ false);
-
-        // transient assets don't have a manifest filepath as they are not saved to disk.
-        m_manifestPath = FilePath();
     }
     else
     {
@@ -179,6 +163,8 @@ Result AssetObject::Rename(Name name)
         return {};
     }
 
+    // @TODO Need to invoke on AssetRegistry, so it updates the AssetDesc
+
     m_name = name;
     m_friendlyName = CreateFriendlyName(name);
 
@@ -189,14 +175,22 @@ Result AssetObject::Rename(Name name)
 
 bool AssetObject::IsSaved() const
 {
-    return m_manifestPath.Length() > 0;
+    return m_assetPath.IsValid() && !IsTransient();
 }
 
 Result AssetObject::Save()
 {
     AssertDebug(IsSaved());
 
-    return SaveAs(m_manifestPath);
+    Handle<AssetRegistry> registry = GetAssetRegistry();
+    AssertDebug(registry.IsValid());
+
+    if (!registry.IsValid())
+    {
+        return HYP_MAKE_ERROR(Error, "No active asset registry for path: {}", m_assetPath.ToString());
+    }
+
+    return SaveAs(registry->GetManifestPath(m_assetPath));
 }
 
 Result AssetObject::SaveAs(const FilePath& manifestPath)
@@ -220,11 +214,18 @@ Result AssetObject::SaveAs(const FilePath& manifestPath)
     {
         return HYP_MAKE_ERROR(Error, "Path '{}' is not a valid directory, cannot save asset", dir);
     }
+    
+    Handle<AssetRegistry> registry = GetAssetRegistry();
+    AssertDebug(registry.IsValid());
 
-    AssetRegistry& registry = *GetCurrentAssetRegistry();
-    registry.PutAssetsDeep(MakeStrongRef(this));
+    if (!registry.IsValid())
+    {
+        return HYP_MAKE_ERROR(Error, "No active asset registry for path: {}", m_assetPath.ToString());
+    }
 
-    BlobStorage& blobStorage = registry.GetBlobStorage();
+    registry->PutAssetsDeep(MakeStrongRef(this));
+
+    BlobStorage& blobStorage = registry->GetBlobStorage();
 
     Result saveBlobDataResult = SaveBlobData(blobStorage, dir);
     if (saveBlobDataResult.HasError())
@@ -251,16 +252,6 @@ Result AssetObject::SaveAs(const FilePath& manifestPath)
     }
 
     HYP_LOG(Assets, Verbose, "Saved asset manifest to '{}'", manifestPath);
-
-    // need to set manifest path after saving the resource, because if we need to load the data first in order
-    // to save it somewhere else, we'll need the previous manifest path to still exist otherwise we'll try to load
-    // something that doesn't exist.
-    m_manifestPath = manifestPath;
-
-    // no longer dirty
-    AtomicExchange(&m_isDirty, 0);
-
-    OnDirtyStateChanged(false);
 
     return {};
 }
@@ -659,6 +650,22 @@ void AssetObject::GetNumUsers(int64& outReaders, int64& outWriters) const
 
     outReaders = state >> 1;
     outWriters = state & 0x1;
+}
+
+Handle<AssetRegistry> AssetObject::GetAssetRegistry()
+{
+    Assert(IsRegistered());
+
+    switch (m_assetPath.registryId)
+    {
+    case AssetRegistryId::Game:
+        return GetCurrentAssetRegistry();
+    case AssetRegistryId::Engine: // Fallthrough
+    case AssetRegistryId::Editor:
+        return GetEngineAssetRegistry();
+    }
+
+    return Handle<AssetRegistry>::Null();
 }
 
 #pragma endregion AssetObject

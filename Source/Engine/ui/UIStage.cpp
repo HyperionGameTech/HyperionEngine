@@ -229,6 +229,7 @@ void UIStage::SetScene(const Handle<Scene>& scene)
         const ThreadId ownerThreadId = m_scene.IsValid() ? m_scene->GetOwnerThreadId() : ThreadId::Current();
 
         newScene = MakeHandle<Scene>(NAME_FMT("UIStage_{}_Scene", GetName()), ownerThreadId, SceneFlags::FOREGROUND | SceneFlags::UI);
+        newScene->SetIsTransient(true);
         newScene->SetRoot(MakeHandle<Entity>());
     }
 

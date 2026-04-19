@@ -586,6 +586,7 @@ void SkyProbe::Init()
     });
 
     m_texture->SetName(NAME_FMT("{}_SkyboxCubemap", Id()));
+    m_texture->SetIsTransient(true);
 
     EnvProbe::Init();
 }

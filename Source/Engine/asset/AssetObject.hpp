@@ -91,12 +91,6 @@ public:
     virtual Result Rename(Name name);
 
     HYP_METHOD()
-    bool IsDirty() const
-    {
-        return AtomicAdd(&m_isDirty, 0) != 0;
-    }
-
-    HYP_METHOD()
     void MarkDirty();
 
     HYP_METHOD(Property = "FriendlyName")
@@ -157,20 +151,11 @@ public:
     HYP_METHOD()
     bool IsTransient() const
     {
-        return bool(m_flags & (AssetObjectFlags::Transient | AssetObjectFlags::TransientByProxy));
-    }
-
-    HYP_METHOD()
-    bool IsTransientByProxy() const
-    {
-        return (m_flags & (AssetObjectFlags::Transient | AssetObjectFlags::TransientByProxy)) == AssetObjectFlags::TransientByProxy;
+        return bool(m_flags & AssetObjectFlags::Transient);
     }
 
     HYP_METHOD()
     void SetIsTransient(bool isTransient);
-
-    HYP_METHOD()
-    void SetIsTransientByProxy(bool isTransientByProxy);
 
     HYP_METHOD()
     bool IsSaved() const;
@@ -206,10 +191,7 @@ public:
         Handle<AssetObject>& outAssetObject);
 
 protected:
-    virtual void OnDirtyStateChanged(bool isDirty)
-    {
-        // do nothing by default
-    }
+    Handle<AssetRegistry> GetAssetRegistry();
 
     virtual void OnLoaded()
     {
@@ -264,12 +246,6 @@ protected:
     HYP_FIELD(Transient)
     AssetPath m_assetPath;
 
-    HYP_FIELD(Transient)
-    FilePath m_manifestPath;
-
-    HYP_FIELD(NoScriptBindings, Transient)
-    mutable volatile int32 m_isDirty;
-    
     mutable volatile int64 m_rwState;
 
     mutable Mutex m_initMutex;

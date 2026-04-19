@@ -75,6 +75,14 @@ int Shader::GetRevisionNumber() const
 
 void Shader::PageBlobData()
 {
+    Handle<AssetRegistry> registry = GetEngineAssetRegistry();
+    AssertDebug(registry.IsValid());
+
+    if (!registry.IsValid())
+    {
+        return;
+    }
+
     bool needSaveBlobData = false;
 
     for (uint32 i = 0; i < uint32(shaderBlobs.Size()); i++)
@@ -84,14 +92,14 @@ void Shader::PageBlobData()
 
         if (ref.raw == nullptr && ref.key && ref.size != 0)
         {
-            BlobStorage& blobStorage = GetEngineAssetRegistry()->GetBlobStorage();
+            BlobStorage& blobStorage = registry->GetBlobStorage();
 
             if (!blobStorage.GetData(ref.key, ref.size, ref.raw))
             {
 #if HYP_EDITOR || HYP_ALLOW_INLINE_BLOBS
                 const char* moduleTypeString = GetShaderHeaderPrefix(moduleType);
 
-                FileByteReader stream { GetCurrentAssetRegistry()->GetRootPath() / AssetBuckets::Shaders.GetName() / (String(*GetName()) + "." + moduleTypeString + ".raw.blob") };
+                FileByteReader stream { registry->GetRootPath() / AssetBuckets::Shaders.GetName() / (String(*GetName()) + "." + moduleTypeString + ".raw.blob") };
                 if (!stream.Eof())
                 {
                     ByteBuffer buffer = stream.Read(stream.Max());
@@ -109,13 +117,15 @@ void Shader::PageBlobData()
             {
                 ref.readOnly = true;
             }
+
+            Assert(ref.raw != nullptr);
         }
     }
 
 #if HYP_EDITOR
     if (needSaveBlobData)
     {    
-        BlobStorage& blobStorage = GetEngineAssetRegistry()->GetBlobStorage();
+        BlobStorage& blobStorage = registry->GetBlobStorage();
 
         Result saveBlobDataResult = SaveBlobData(blobStorage);
 

@@ -360,7 +360,10 @@ extern "C"
 
         // Create the engine-global asset registry for shared engine data (shaders, debug shapes, etc.)
         {
-            Handle<AssetRegistry> engineRegistry = MakeHandle<AssetRegistry>(GetLibraryDirectory() / "Engine");
+            Handle<AssetRegistry> engineRegistry = MakeHandle<AssetRegistry>(
+                AssetRegistryId::Engine,
+                GetLibraryDirectory() / "Engine");
+                
             engineRegistry->Initialize();
 
             SetEngineAssetRegistry(engineRegistry);

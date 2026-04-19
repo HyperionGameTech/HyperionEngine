@@ -63,7 +63,7 @@ void DynamicSkySystem::Init()
 
     { // atmospheric scattering capture setup
         m_renderScene = MakeHandle<Scene>(NAME("DynamicSkyRenderScene"), SceneFlags::NONE);
-        m_renderScene->SetAssetFlags(AssetObjectFlags::Transient); // don't save; it's generated at runtime
+        m_renderScene->SetIsTransient(true); // don't save; it's generated at runtime
         m_renderScene->SetOwnerThreadId(g_simThread);
         InitObject(m_renderScene);
 
@@ -126,7 +126,7 @@ void DynamicSkySystem::Init()
         m_visScene->GetRoot()->AddChild(m_skyboxEntity);
 
         m_envProbe = m_renderScene->GetEntityManager()->AddEntity<SkyProbe>(BoundingBox(Vec3f(-100.0f), Vec3f(100.0f)), m_dimensions);
-        m_envProbe->SetEnvProbeFlags(m_envProbe->GetEnvProbeFlags() & ~EPF_PARALLAX_CORRECTED); // sky env probes are not parallax corrected, obviously
+        m_envProbe->SetEnvProbeFlags(m_envProbe->GetEnvProbeFlags() & ~EPF_PARALLAX_CORRECTED);
         InitObject(m_envProbe);
         m_visScene->GetRoot()->AddChild(m_envProbe);
 

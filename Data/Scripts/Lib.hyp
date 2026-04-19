@@ -1386,6 +1386,7 @@ end
 extern class Game
     GetWorld() -> World
     GetAssetRegistry() -> AssetRegistry
+    SetAssetRegistry(assetRegistry : AssetRegistry) -> void
     GetGameState() -> GameState
     OnLaunch() -> void
     OnUpdate(delta : float) -> void
@@ -1678,8 +1679,7 @@ end
 extern enum AssetObjectFlags : uint8
     None = 0x0,
     Persistent = 0x1,
-    Transient = 0x2,
-    TransientByProxy = 0x4
+    Transient = 0x2
 end
 extern enum AssetPackageFlags : uint32
     None = 0x0,
@@ -1716,7 +1716,7 @@ extern enum AssetChangeType : uint32
 end
 extern class AssetRegistry
     GetRootPath() -> string
-    RootPath : string
+    SetRootPath(rootPath : string) -> void
 end
 extern struct AssetReference
     GetAssetPath() -> AssetPath
@@ -1724,14 +1724,19 @@ extern struct AssetReference
 end
 extern struct AssetPath
     IsValid() -> bool
+    GetBucket() -> AssetBucket
     GetName() -> Name
     ToString() -> string
+end
+extern enum AssetRegistryId : uint32
+    Game = 0,
+    Engine,
+    Editor
 end
 extern class AssetObject
     GetName() -> Name
     SetName(name : Name) -> void
     Rename(name : Name) -> Result
-    IsDirty() -> bool
     MarkDirty() -> void
     GetFriendlyName() -> Name
     SetFriendlyName(friendlyName : Name) -> void
@@ -1744,9 +1749,7 @@ extern class AssetObject
     SetAssetFlags(flags : AssetObjectFlags) -> void
     SetPersistentRequested(persistentlyLoaded : bool, setFlag : bool, markDirty : bool) -> void
     IsTransient() -> bool
-    IsTransientByProxy() -> bool
     SetIsTransient(isTransient : bool) -> void
-    SetIsTransientByProxy(isTransientByProxy : bool) -> void
     IsSaved() -> bool
     Save() -> Result
     SaveAs(manifestPath : string) -> Result
@@ -1756,7 +1759,6 @@ extern class AssetObject
     OriginalFilepath : string
     AssetIndex : uint32
     AssetPath : AssetPath
-    ManifestPath : string
 end
 extern struct FontAtlasTextureSet
     MainAtlas : Texture

@@ -148,7 +148,6 @@ GenerateLightmapsEditorTask::GenerateLightmapsEditorTask(const Array<Handle<Obje
 
 void GenerateLightmapsEditorTask::Start()
 {
-    HYP_SCOPE;
     AssertOnThread(g_simThread);
 
     if (m_sources.Empty())
@@ -216,7 +215,6 @@ bool GenerateLightmapsEditorTask::IsCompleted() const
 
 void GenerateLightmapsEditorTask::Tick()
 {
-    HYP_SCOPE;
     AssertOnThread(g_simThread);
 
     for (auto it = m_tasks.Begin(); it != m_tasks.End();)
@@ -1876,8 +1874,6 @@ EditorSubsystem::~EditorSubsystem()
 
 void EditorSubsystem::OnAddedToWorld()
 {
-    HYP_SCOPE;
-
     if (!GetWorld()->GetSubsystem<UISubsystem>())
     {
         HYP_FAIL("EditorSubsystem requires UISubsystem to be initialized");
@@ -1914,8 +1910,6 @@ void EditorSubsystem::OnAddedToWorld()
 
 void EditorSubsystem::OnRemovedFromWorld()
 {
-    HYP_SCOPE;
-
     for (const Handle<EditorViewport>& vp : m_editorViewports)
     {
         vp->OnSceneRemoved(m_editorScene);
@@ -1988,12 +1982,10 @@ void EditorSubsystem::Update(float delta)
 
 void EditorSubsystem::OnSceneAttached(const Handle<Scene>& scene)
 {
-    HYP_SCOPE;
 }
 
 void EditorSubsystem::OnSceneDetached(Scene* scene)
 {
-    HYP_SCOPE;
 }
 
 void EditorSubsystem::CreateHighlightNode()
@@ -2064,8 +2056,6 @@ void EditorSubsystem::CreateHighlightNode()
 
 void EditorSubsystem::StartSimulation()
 {
-    HYP_SCOPE;
-
     if (m_editorViewports.Empty() || !m_currentProject.IsValid())
     {
         return;
@@ -2094,14 +2084,11 @@ void EditorSubsystem::StartSimulation()
 
         return;
     }
-
-    m_simulationSnapshotPath = m_currentProject->GetFilePath();
-
+    
     m_preSimulationProject = m_currentProject;
+    m_simulationSnapshotPath = m_preSimulationProject->GetFilePath();
 
     CloseProject();
-    
-    m_currentProject->GetGame()->GetAssetRegistry()->RemoveCached();
 
     FilePath snapshotPath = std::move(m_simulationSnapshotPath);
 
@@ -2141,7 +2128,35 @@ void EditorSubsystem::StartSimulation()
         }
     }
 
-    if (!primaryCamera)
+    if (primaryCamera)
+    {
+        ViewDesc viewDesc {};
+        viewDesc.flags = ViewFlags::DEFAULT | ViewFlags::GBUFFER | ViewFlags::MATCH_CAMERA_DIMENSIONS;
+        viewDesc.framebufferDesc.extent = Vec2u(primaryCamera->GetDimensions());
+        viewDesc.camera = primaryCamera;
+
+        m_simulationView = MakeHandle<View>(viewDesc);
+        m_simulationView->SetName(NAME("SimulationView"));
+        InitObject(m_simulationView);
+
+        for (Scene* scene : m_currentProject->GetWorld()->GetScenes())
+        {
+            if (!scene)
+            {
+                continue;
+            }
+
+            if ((scene->GetSceneFlags() & (SceneFlags::FOREGROUND | SceneFlags::UI | SceneFlags::DETACHED)) != SceneFlags::FOREGROUND)
+            {
+                continue;
+            }
+
+            m_simulationView->AddScene(scene);
+        }
+
+        m_currentProject->GetWorld()->AddView(m_simulationView);
+    }
+    else
     {
         HYP_LOG(Editor, Warning, "no primary camera found!");
 
@@ -2153,49 +2168,21 @@ void EditorSubsystem::StartSimulation()
             .Text("No primary camera was found in any foreground scene. Simulation requires a primary camera in order to properly visualize the scene, without this you will just see a blank / not updating screen in your viewport. Ensure a camera exists with the PrimaryCamera EntityTag set!")
             .Show();
 
-        return;
     }
-
-    ViewDesc viewDesc {};
-    viewDesc.flags = ViewFlags::DEFAULT | ViewFlags::GBUFFER | ViewFlags::MATCH_CAMERA_DIMENSIONS;
-    viewDesc.framebufferDesc.extent = Vec2u(primaryCamera->GetDimensions());
-    viewDesc.camera = primaryCamera;
-
-    m_simulationView = MakeHandle<View>(viewDesc);
-    m_simulationView->SetName(NAME("SimulationView"));
-    InitObject(m_simulationView);
-
-    for (Scene* scene : m_currentProject->GetWorld()->GetScenes())
-    {
-        if (!scene)
-        {
-            continue;
-        }
-
-        if ((scene->GetSceneFlags() & (SceneFlags::FOREGROUND | SceneFlags::UI | SceneFlags::DETACHED)) != SceneFlags::FOREGROUND)
-        {
-            continue;
-        }
-
-        m_simulationView->AddScene(scene);
-    }
-
-    m_currentProject->GetWorld()->AddView(m_simulationView);
 
     m_currentProject->GetGame()->StartSimulating();
 }
 
 void EditorSubsystem::StopSimulation()
 {
-    HYP_SCOPE;
-
-    AssertDebug(m_simulationView.IsValid());
-
     if (m_currentProject)
     {
         Game* gameInstance = m_currentProject->GetGame();
 
-        gameInstance->GetWorld()->RemoveView(m_simulationView);
+        if (m_simulationView.IsValid())
+        {
+            gameInstance->GetWorld()->RemoveView(m_simulationView);
+        }
         
         gameInstance->StopSimulating();
         gameInstance->Shutdown();
@@ -2668,8 +2655,6 @@ void EditorSubsystem::StopWatchingNode(const Handle<Node>& node)
 
 void EditorSubsystem::ClearWatchedNodes()
 {
-    HYP_SCOPE;
-
     UISubsystem* uiSubsystem = GetWorld()->GetSubsystem<UISubsystem>();
     AssertDebug(uiSubsystem != nullptr);
 
@@ -2727,8 +2712,6 @@ void EditorSubsystem::UpdateWatchedNodes()
 
 void EditorSubsystem::InitActiveSceneSelection()
 {
-    HYP_SCOPE;
-
     UISubsystem* uiSubsystem = GetWorld()->GetSubsystem<UISubsystem>();
     Assert(uiSubsystem != nullptr);
 
@@ -2860,8 +2843,6 @@ void EditorSubsystem::InitActiveSceneSelection()
 
 void EditorSubsystem::SetSelectedBucket(uint32 bucketIndex)
 {
-    HYP_SCOPE;
-
     if (m_selectedBucketIndex == bucketIndex)
     {
         return;
@@ -2934,7 +2915,9 @@ bool EditorSubsystem::ExecuteCommandByName(Name name, const String& args)
 void EditorSubsystem::NewProject()
 {
     Handle<EditorProject> project = MakeHandle<EditorProject>();
-    InitObject(project);
+
+    Handle<Game> gameInstance = MakeHandle<Game>();
+    project->SetGame(gameInstance); // base game instance
 
     Handle<Scene> mainScene = MakeHandle<Scene>();
     mainScene->SetName(NAME("MainScene"));
@@ -2964,10 +2947,10 @@ void EditorSubsystem::NewProject()
 
     mainScene->GetRoot()->AddChild(camera);
 
-    Handle<Scene> streamedScene = MakeHandle<Scene>();
-    streamedScene->SetName(NAME("StreamedScene"));
-    streamedScene->SetSceneFlags(SceneFlags::DEFAULT);
-    project->AddScene(streamedScene);
+    // Handle<Scene> streamedScene = MakeHandle<Scene>();
+    // streamedScene->SetName(NAME("StreamedScene"));
+    // streamedScene->SetSceneFlags(SceneFlags::DEFAULT);
+    // project->AddScene(streamedScene);
 
     // add dynamic skybox
     project->GetWorld()->AddSystemT<DynamicSkySystem>();
@@ -2977,7 +2960,6 @@ void EditorSubsystem::NewProject()
 
 void EditorSubsystem::CloseProject()
 {
-    HYP_SCOPE;
     AssertOnThread(g_simThread);
 
     if (m_currentProject)
@@ -2993,7 +2975,6 @@ void EditorSubsystem::CloseProject()
 
 void EditorSubsystem::OpenProject(const Handle<EditorProject>& project)
 {
-    HYP_SCOPE;
     AssertOnThread(g_simThread);
 
     if (project == m_currentProject)
@@ -3014,10 +2995,10 @@ void EditorSubsystem::OpenProject(const Handle<EditorProject>& project)
 
     m_currentProject = project;
 
-    // if (Result saveResult = project->Save(); saveResult.HasError())
-    // {
-    //     HYP_LOG(Editor, Error, "Failed to save newly created project: {}", saveResult.GetError().GetMessage());
-    // }
+    Game* game = m_currentProject->GetGame();
+    Assert(game != nullptr);
+
+    game->Initialize();
 
     OnProjectOpened(m_currentProject);
 
@@ -3026,8 +3007,6 @@ void EditorSubsystem::OpenProject(const Handle<EditorProject>& project)
 
 void EditorSubsystem::ShowImportContentDialog()
 {
-    HYP_SCOPE;
-
     ShowOpenFileDialog(
         "Select the file(s) to import into the project",
         GetDataDirectory(),
@@ -3150,8 +3129,6 @@ Handle<Node> EditorSubsystem::GetFocusedNode() const
 
 Vec3f EditorSubsystem::CalculateSceneInsertionPoint(float desiredDistance, float offsetFromSurface) const
 {
-    HYP_SCOPE;
-
     EditorViewport* activeViewport = GetActiveViewport();
     if (activeViewport == nullptr)
     {
@@ -3232,8 +3209,6 @@ void EditorSubsystem::SetHoveredGizmo(
 
 void EditorSubsystem::SetActiveScene(const Handle<Scene>& scene)
 {
-    HYP_SCOPE;
-
     if (scene == m_activeScene)
     {
         return;
@@ -3253,8 +3228,6 @@ EditorViewport* EditorSubsystem::GetActiveViewport() const
 
 void EditorSubsystem::SetActiveViewport(EditorViewport* viewport)
 {
-    HYP_SCOPE;
-
     AssertOnThread(g_simThread);
 
     if (!viewport)
@@ -3286,7 +3259,6 @@ void EditorSubsystem::SetActiveViewport(EditorViewport* viewport)
 
 void EditorSubsystem::AddViewport(const Handle<EditorViewport>& viewport)
 {
-    HYP_SCOPE;
     AssertOnThread(g_simThread);
 
     AssertDebug(viewport != nullptr);
@@ -3335,7 +3307,6 @@ void EditorSubsystem::AddViewport(const Handle<EditorViewport>& viewport)
 
 void EditorSubsystem::RemoveViewport(EditorViewport* viewport)
 {
-    HYP_SCOPE;
     AssertOnThread(g_simThread);
 
     AssertDebug(viewport != nullptr);
