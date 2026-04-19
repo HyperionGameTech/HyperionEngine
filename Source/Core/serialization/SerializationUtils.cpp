@@ -86,12 +86,12 @@ Result BoxedToJSON(
     {
         // Serialize AssetObject deriving classes by their asset reference if we're saving an Editor project.
         const AssetObject& assetObject = value.Get<AssetObject>();
-        AssertDebug(assetObject.IsRegistered(), "Cannot serialize unregistered AssetObject {}", assetObject.GetName());
+        //AssertDebug(assetObject.IsRegistered(), "Cannot serialize unregistered AssetObject {}", assetObject.GetName());
 
-        if (!assetObject.IsRegistered())
-        {
-            return HYP_MAKE_ERROR(Error, "Cannot serialize unregistered AssetObject");
-        }
+        //if (!assetObject.IsRegistered())
+        //{
+        //    return HYP_MAKE_ERROR(Error, "Cannot serialize unregistered AssetObject");
+        //}
 
         assetReference = AssetReference(assetObject.HandleFromThis());
         isAssetObject = true;

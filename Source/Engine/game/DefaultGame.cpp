@@ -264,13 +264,13 @@ bool DefaultGame::OnInputEvent(const Event& event)
         {
             s_isSaving = true;
 
-            GetCurrentAssetRegistry()->RegisterAssetsRecursively("SampleGame", BoxedValue(m_defaultScene),
-                /* forceRelocation */ false,
-                /* appendExistingPackagePath */ true,
-                [](const AssetObject& obj) -> String
-                {
-                    return HYP_FORMAT("Instances/{}", obj.InstanceClass()->GetName());
-                });
+            // GetCurrentAssetRegistry()->RegisterAssetsRecursively("SampleGame", BoxedValue(m_defaultScene),
+            //     /* forceRelocation */ false,
+            //     /* appendExistingPackagePath */ true,
+            //     [](const AssetObject& obj) -> String
+            //     {
+            //         return HYP_FORMAT("Instances/{}", obj.InstanceClass()->GetName());
+            //     });
 
             // save package
             Handle<AssetPackage> pkg = GetCurrentAssetRegistry()->GetPackageFromPath("SampleGame", /* createIfNotExist */ false, /* requireLoaded */ false);

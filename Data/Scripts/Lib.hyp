@@ -1718,7 +1718,6 @@ extern enum AssetChangeType : uint32
 end
 extern class AssetRegistry
     GetRootPath() -> string
-    SetRootPath(rootPath : string) -> void
     RemovePackage(package : AssetPackage) -> void
     GetPackageFromPath(path : string, createIfNotExist : bool, requireLoaded : bool) -> AssetPackage
     GetPackage(parentPackage : AssetPackage, subpackageName : string, createIfNotExist : bool, requireLoaded : bool) -> AssetPackage
@@ -1796,7 +1795,6 @@ extern class AssetObject
     Unload() -> void
     Save() -> Result
     SaveAs(manifestPath : string) -> Result
-    Register(path : string, conflictMode : AddAssetConflictMode) -> Result
     Name : Name
     FriendlyName : Name
     Flags : AssetObjectFlags

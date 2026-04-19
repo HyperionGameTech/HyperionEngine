@@ -2807,24 +2807,6 @@ void AssetRegistry::PutAssetsDeep(const Handle<AssetObject>& targetAsset)
 
     bool shouldFollowAssetPaths = false;
 
-    auto HandleAssetReference = [this](const AssetReference& assetReference, AssetPackage& package)
-    {
-        Array<Name> chain = assetReference.GetAssetPath().GetChain();
-
-        if (chain.Size() > 1) // has at least one package in chain
-        {
-            chain.PopBack(); // remove asset name
-
-            const String packagePath = String::Join(chain, '/', &Name::ToString);
-            const Handle<AssetPackage> referencedPackage = GetPackageFromPath(packagePath, /* createIfNotExist */ false);
-
-            if (referencedPackage.IsValid() && !referencedPackage->IsSubpackageOf(package))
-            {
-                package.AddDependency(AssetPath(packagePath));
-            }
-        }
-    };
-
     Proc<void(const BoxedValue&)> Iterate;
     Iterate = [&](const BoxedValue& current) -> void
     {
@@ -3459,13 +3441,6 @@ void AssetRegistry::LoadPackagesAsync(bool loadSubpackages)
             }
         },
         TaskThreadPoolName::THREAD_POOL_BACKGROUND, TaskEnqueueFlags::FIRE_AND_FORGET);
-}
-
-void AssetRegistry::SetRootPath(const String& rootPath)
-{
-    TUniqueLock guard(m_mutex);
-
-    m_rootPath = rootPath;
 }
 
 void AssetRegistry::SetPackages(const AssetPackageSet& packages)

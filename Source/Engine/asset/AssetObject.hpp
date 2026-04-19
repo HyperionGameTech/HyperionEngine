@@ -207,15 +207,6 @@ public:
 
     void GetNumUsers(int64& outReaders, int64& outWriters) const;
 
-    HYP_METHOD()
-    Result Register(
-        const UTF8StringView& path,
-        AddAssetConflictMode conflictMode = AddAssetConflictMode::Default);
-
-    virtual void RegisterRecursive(
-        const UTF8StringView& path,
-        AddAssetConflictMode conflictMode = AddAssetConflictMode::Default);
-        
     virtual void Init() override
     {
         SetReady(true);

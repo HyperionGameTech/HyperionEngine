@@ -48,11 +48,7 @@ void AnimationTrack::PageBlobData()
         {
 #if HYP_EDITOR || HYP_ALLOW_INLINE_BLOBS
             // check if failed; if so, try to import from raw data blob in project directory
-            Handle<AssetPackage> package = GetPackage();
-            Assert(package.IsValid());
-            Assert(package->IsSaved());
-
-            FileByteReader stream { package->GetSavedDirectory() / (String(*GetName()) + ".KEYF.raw.blob") };
+            FileByteReader stream { GetCurrentAssetRegistry()->GetRootPath() / AssetBuckets::AnimationTracks.GetName() / (String(*GetName()) + ".KEYF.raw.blob") };
             if (!stream.Eof())
             {
                 ByteBuffer buffer = stream.Read(stream.Max());

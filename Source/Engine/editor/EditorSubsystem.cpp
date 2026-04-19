@@ -2221,21 +2221,6 @@ void EditorSubsystem::StopSimulation()
     // purge what is there
     package->UnloadAssetObjects(/* recursive */ true);
 
-    // re-register the pre-simulation package
-    GetCurrentAssetRegistry()->RegisterAssetsRecursively(
-        package->BuildPackagePath(),
-        BoxedValue(AnyRef(*m_preSimulationProject)),
-        /* forceRelocation */ false,
-        /* appendExistingPackagePath */ true, // to preserve structure.
-        [](const AssetObject& assetObject) -> String
-        {
-            // Instances of objects without a pre-defined path (e.g Media/Meshes) go under
-            //  PkgName/Objects/Types/<ObjectClassName>/ObjectName
-            return HYP_FORMAT("Objects/Types/{}", assetObject.InstanceClass()->GetName());
-        },
-        AddAssetConflictMode::ReplaceExisting,
-        /* recacheExisting */ true);
-
     OpenProject(m_preSimulationProject);
 
     m_preSimulationProject.Reset();

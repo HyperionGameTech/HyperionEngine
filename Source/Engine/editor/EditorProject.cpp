@@ -252,18 +252,8 @@ Result EditorProject::SaveAs(FilePath filepath)
         "Saving project",
         "Registering assets",
         /* isForegroundTask */ true);
-
-    GetCurrentAssetRegistry()->RegisterAssetsRecursively(
-        m_package->BuildPackagePath(),
-        BoxedValue(AnyRef(*this)),
-        /* forceRelocation */ false,
-        /* appendExistingPackagePath */ true, // to preserve structure.
-        [](const AssetObject& assetObject) -> String
-        {
-            // Instances of objects without a pre-defined path (e.g Media/Meshes) go under
-            //  PkgName/Objects/Types/<ObjectClassName>/ObjectName
-            return HYP_FORMAT("Objects/Types/{}", assetObject.InstanceClass()->GetName());
-        });
+        
+    GetCurrentAssetRegistry()->PutAssetsDeep(m_gameInstance->GetWorld());
 
     if (filepath.Empty())
     {
@@ -319,6 +309,8 @@ Result EditorProject::SaveAs(FilePath filepath)
     m_filepath = filepath;
     
     taskScope.GetEditorTask()->SetDescription("Saving package data");
+
+    // @TODO Need to save using new method.
 
     if (Result packageSaveResult = m_package->Save(dir / *m_name); packageSaveResult.HasError())
     {

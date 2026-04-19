@@ -53,11 +53,7 @@ void InstancedMeshData::PageBlobData()
             if (!blobStorage.GetData(ref.key, ref.size, ref.raw))
             {
 #if HYP_EDITOR || HYP_ALLOW_INLINE_BLOBS
-                Handle<AssetPackage> package = GetPackage();
-                Assert(package.IsValid());
-                Assert(package->IsSaved());
-
-                FileByteReader stream { package->GetSavedDirectory() / (String(*GetName()) + "." + BufferNames[i] + ".raw.blob") };
+                FileByteReader stream { GetCurrentAssetRegistry()->GetRootPath() / AssetBuckets::InstancedMeshData.GetName() / (String(*GetName()) + "." + BufferNames[i] + ".raw.blob") };
                 if (!stream.Eof())
                 {
                     ByteBuffer buffer = stream.Read(stream.Max());

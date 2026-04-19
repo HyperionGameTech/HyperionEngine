@@ -178,11 +178,7 @@ void Mesh::PageBlobData()
                 {
 #if HYP_EDITOR || HYP_ALLOW_INLINE_BLOBS
                     // check if failed; if so, try to import from raw data blob in project directory
-                    Handle<AssetPackage> package = GetPackage();
-                    Assert(package.IsValid());
-                    Assert(package->IsSaved());
-
-                    FileByteReader stream { package->GetSavedDirectory() / (String(*GetName()) + ".VB.raw.blob") };
+                    FileByteReader stream { GetCurrentAssetRegistry()->GetRootPath() / AssetBuckets::Meshes.GetName() / (String(*GetName()) + ".VB.raw.blob") };
                     if (!stream.Eof())
                     {
                         ByteBuffer buffer = stream.Read(stream.Max());
@@ -211,11 +207,7 @@ void Mesh::PageBlobData()
                 {
 #if HYP_EDITOR || HYP_ALLOW_INLINE_BLOBS
                     // check if failed; if so, try to import from raw data blob in project directory
-                    Handle<AssetPackage> package = GetPackage();
-                    Assert(package.IsValid());
-                    Assert(package->IsSaved());
-
-                    FileByteReader stream { package->GetSavedDirectory() / (String(*GetName()) + ".IB.raw.blob") };
+                    FileByteReader stream { GetCurrentAssetRegistry()->GetRootPath() / AssetBuckets::Meshes.GetName() / (String(*GetName()) + ".IB.raw.blob") };
                     if (!stream.Eof())
                     {
                         ByteBuffer buffer = stream.Read(stream.Max());
@@ -246,11 +238,7 @@ void Mesh::PageBlobData()
                 ([&]()
                     {
 #if HYP_EDITOR || HYP_ALLOW_INLINE_BLOBS
-                        Handle<AssetPackage> package = GetPackage();
-                        Assert(package.IsValid());
-                        Assert(package->IsSaved());
-
-                        FileByteReader stream { package->GetSavedDirectory() / (String(*GetName()) + ".BVH.raw.blob") };
+                        FileByteReader stream { GetCurrentAssetRegistry()->GetRootPath() / AssetBuckets::Meshes.GetName() / (String(*GetName()) + ".BVH.raw.blob") };
                         if (!stream.Eof())
                         {
                             ByteBuffer buffer = stream.Read(stream.Max());

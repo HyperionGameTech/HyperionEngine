@@ -448,14 +448,10 @@ public:
     ~AssetRegistry();
 
     HYP_METHOD()
-    HYP_FORCE_INLINE String GetRootPath() const
+    HYP_FORCE_INLINE const FilePath& GetRootPath() const
     {
-        TSharedLock guard(m_mutex);
         return m_rootPath;
     }
-
-    HYP_METHOD()
-    void SetRootPath(const String& rootPath);
 
     HYP_FORCE_INLINE const AssetPackageSet& GetPackages() const
     {

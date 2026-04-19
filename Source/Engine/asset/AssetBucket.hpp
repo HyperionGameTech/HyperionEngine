@@ -15,6 +15,8 @@ namespace Hyperion {
 
 class Class;
 
+const char* GetAssetBucketName(const uint32 bucketIndex);
+
 class AssetBucket
 {
 public:
@@ -58,6 +60,11 @@ public:
         return m_index;
     }
 
+    HYP_FORCE_INLINE const char* GetName() const
+    {
+        return GetAssetBucketName(m_index);
+    }
+
     HYP_FORCE_INLINE constexpr HashCode GetHashCode() const
     {
         return HashCode(HashCode::ValueType(m_index));
@@ -86,6 +93,8 @@ namespace AssetBuckets {
     inline constexpr AssetBucket Bones(14);
     inline constexpr AssetBucket EnvProbes(15);
     inline constexpr AssetBucket LightmapVolumes(16);
+    inline constexpr AssetBucket Shaders(17);
+    inline constexpr AssetBucket FontAtlases(18);
 
     static constexpr const AssetBucket* AllBuckets[] = {
         &None,
@@ -104,12 +113,14 @@ namespace AssetBuckets {
         &Entities,
         &Bones,
         &EnvProbes,
-        &LightmapVolumes
+        &LightmapVolumes,
+        &Shaders,
+        &FontAtlases
     };
 } // namespace AssetBuckets
 
 // adjust as needed
-static constexpr size_t MaxAssetBuckets = 17;
+static constexpr size_t MaxAssetBuckets = std::size(AssetBuckets::AllBuckets);
 
 /*! \brief Returns the predefined AssetBucket whose name matches \p nameHash, or nullptr. */
 inline constexpr const AssetBucket& GetAssetBucketByName(StringHash nameHash)
@@ -130,6 +141,8 @@ inline constexpr const AssetBucket& GetAssetBucketByName(StringHash nameHash)
     constexpr HashCode::ValueType BonesHash = ("Bones"_sh).hashCode;
     constexpr HashCode::ValueType EnvProbesHash = ("EnvProbes"_sh).hashCode;
     constexpr HashCode::ValueType LightmapVolumesHash = ("LightmapVolumes"_sh).hashCode;
+    constexpr HashCode::ValueType ShadersHash = ("Shaders"_sh).hashCode;
+    constexpr HashCode::ValueType FontAtlasesHash = ("FontAtlases"_sh).hashCode;
 
     switch (nameHash.hashCode)
     {
@@ -165,9 +178,13 @@ inline constexpr const AssetBucket& GetAssetBucketByName(StringHash nameHash)
         return AssetBuckets::EnvProbes;
     case LightmapVolumesHash:
         return AssetBuckets::LightmapVolumes;
-    default:
-        return AssetBuckets::None;
+    case ShadersHash:
+        return AssetBuckets::Shaders;
+    case FontAtlasesHash:
+        return AssetBuckets::FontAtlases;
     }
+
+    return AssetBuckets::None;
 }
 
 inline static const char* GetAssetBucketName(const uint32 bucketIndex)
@@ -189,7 +206,9 @@ inline static const char* GetAssetBucketName(const uint32 bucketIndex)
         "Entities",             // 13
         "Bones",                // 14
         "EnvProbes",            // 15
-        "LightmapVolumes"       // 16
+        "LightmapVolumes",      // 16
+        "Shaders",              // 17
+        "FontAtlases"           // 18
     };
 
     if (bucketIndex == 0 || bucketIndex >= MaxAssetBuckets)
