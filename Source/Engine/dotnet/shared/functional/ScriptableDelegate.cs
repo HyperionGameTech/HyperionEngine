@@ -8,6 +8,10 @@ namespace Hyperion
     public class DelegateHandler : IDisposable
     {
         internal IntPtr _ptr;
+        // Keeps the managed closure (DelegateWrapper) alive for as long as this handler
+        // is alive. Without this, the GC can collect the closure between Bind() and the
+        // first invocation, causing the weak GCHandle in ObjectReference to return null.
+        internal object? _closure;
 
         internal DelegateHandler(IntPtr ptr)
         {
@@ -30,6 +34,8 @@ namespace Hyperion
                 _ptr = IntPtr.Zero;
             }
 
+            _closure = null;
+
             GC.SuppressFinalize(this);
         }
 
@@ -44,6 +50,8 @@ namespace Hyperion
                 DelegateHandler_Destroy(_ptr);
                 _ptr = IntPtr.Zero;
             }
+
+            _closure = null;
         }
 
         public void Remove()
@@ -54,6 +62,8 @@ namespace Hyperion
                 DelegateHandler_Destroy(_ptr);
                 _ptr = IntPtr.Zero;
             }
+
+            _closure = null;
         }
 
         [DllImport("hyperion", EntryPoint = "DelegateHandler_Detach")]
@@ -125,7 +135,10 @@ namespace Hyperion
 
                 IntPtr delegateHandlerPtr = ScriptableDelegate_Bind(_ptr, pClass, objectReferencePtr);
 
-                return new DelegateHandler(delegateHandlerPtr);
+                return new DelegateHandler(delegateHandlerPtr)
+                {
+                    _closure = objectWrapper.obj  // strong ref keeps DelegateWrapper from being GC'd
+                };
             }
         }
 

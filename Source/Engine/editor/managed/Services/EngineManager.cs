@@ -165,6 +165,9 @@ namespace Hyperion.Editor
 
                 Logger.Log(LogLevel.Info, "Current project changed to: " + (CurrentProject != null ? CurrentProject.Name : "null"));
 
+                _onSceneAddedHandler?.Remove();
+                _onSceneRemovedHandler?.Remove();
+
                 if (CurrentProject != null)
                 {
                     _onSceneAddedHandler = CurrentProject.World.GetOnSceneAddedDelegate().Bind((World world, Scene scene) =>

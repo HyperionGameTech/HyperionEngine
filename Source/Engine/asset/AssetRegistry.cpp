@@ -1325,7 +1325,7 @@ void AssetRegistry::SaveDirtyAssets()
 
             readScope.Reset();
 
-            HYP_LOG(Assets, Verbose, "Saved asset '{}' to '{}'", assetName, manifestPath);
+            HYP_LOG(Assets, Debug, "Saved asset '{}' to '{}'", assetName, manifestPath);
         }
     }
 }

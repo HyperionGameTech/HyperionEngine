@@ -214,9 +214,6 @@ Result EditorProject::SaveAs(FilePath filepath)
     GlobalContextScope saveContextScope { EditorProjectSaveContext {} };
     
     taskScope.GetEditorTask()->SetDescription("Saving project metadata");
-
-    const Time previousLastSavedTime = m_lastSavedTime;
-    m_lastSavedTime = Time::Now();
     
     ToJSONOptions opts;
     opts.skipTransientProperties = true;
@@ -234,7 +231,6 @@ Result EditorProject::SaveAs(FilePath filepath)
     wri.WriteString(JSON::Value(projectJson).ToString(true));
     wri.Close();
 
-    m_lastSavedTime = previousLastSavedTime;
     m_filepath = filepath;
     
     taskScope.GetEditorTask()->SetDescription("Saving package data");
@@ -255,6 +251,8 @@ Result EditorProject::SaveAs(FilePath filepath)
     }
     
     OnProjectSaved(MakeStrongRef(this));
+    
+    m_lastSavedTime = Time::Now();
 
     return {};
 }

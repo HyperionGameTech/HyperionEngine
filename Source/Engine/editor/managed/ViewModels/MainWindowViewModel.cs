@@ -403,10 +403,15 @@ namespace Hyperion.Editor.ViewModels
                 return;
             }
 
+            WeakReference<EditorProject> weakProject = new WeakReference<EditorProject>(project);
+
             _ = EngineManager.PostToSimThread(() =>
             {
-                EditorActionBase? undoAction = project.ActionStack.GetUndoAction();
-                EditorActionBase? redoAction = project.ActionStack.GetRedoAction();
+                if (!weakProject.TryGetTarget(out EditorProject? p))
+                    return;
+
+                EditorActionBase? undoAction = p.ActionStack.GetUndoAction();
+                EditorActionBase? redoAction = p.ActionStack.GetRedoAction();
                 string? undoName = undoAction?.GetText();
                 string? redoName = redoAction?.GetText();
 
@@ -477,6 +482,8 @@ namespace Hyperion.Editor.ViewModels
                     });
                 });
 
+            WeakReference<EditorProject?> weakProjectForUI = new WeakReference<EditorProject?>(project);
+
             Dispatcher.UIThread.Post(() =>
             {
                 OnPropertyChanged(nameof(CanSetGameModePlaying));
@@ -491,9 +498,11 @@ namespace Hyperion.Editor.ViewModels
                 // Update scenes list
                 Scenes.Clear();
 
-                if (project != null)
+                weakProjectForUI.TryGetTarget(out EditorProject? p);
+
+                if (p != null)
                 {
-                    foreach (Scene scene in project.World.GetScenes())
+                    foreach (Scene scene in p.World.GetScenes())
                     {
                         // ONLY add scenes that have FOREGROUND flag.
                         if (!scene.SceneFlags.HasFlag(SceneFlags.Foreground))

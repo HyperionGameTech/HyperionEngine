@@ -2188,14 +2188,12 @@ void DeferredRenderer::ResizeView(Viewport viewport, View* view, DeferredRendere
     const FramebufferRef& opaquePassFramebuffer = view->GetOutputTarget().GetFramebuffer(RenderBucket::Opaque);
     const FramebufferRef& lightmapPassFramebuffer = view->GetOutputTarget().GetFramebuffer(RenderBucket::Lightmapped);
 
+    if (passData.deferredShadingFramebuffer.IsValid())
     {
-        if (passData.deferredShadingFramebuffer.IsValid())
-        {
-            EnqueueDeletion(std::move(passData.deferredShadingFramebuffer));
-        }
-
-        passData.deferredShadingFramebuffer = CreateDeferredShadingFramebuffer(gbuffer);
+        EnqueueDeletion(std::move(passData.deferredShadingFramebuffer));
     }
+
+    passData.deferredShadingFramebuffer = CreateDeferredShadingFramebuffer(gbuffer);
 
     passData.directPass->Resize(newSize);
     passData.indirectPass->Resize(newSize);

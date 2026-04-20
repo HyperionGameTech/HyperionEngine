@@ -135,6 +135,27 @@ ScriptObjectResource::~ScriptObjectResource()
         hypScriptData.Unset();
     }
 #endif
+
+#ifdef HYP_DOTNET
+    if (dotNetData.HasValue())
+    {
+        if (dotNetData->objectPtr)
+        {
+            const DotNETHost& dnh = DotNETHost::GetInstance();
+
+            if (dnh.IsInitialized() && !dnh.IsShuttingDown())
+            {
+                const bool result = dotNetData->objectPtr->SetKeepAlive(false);
+                Assert(result);
+            }
+
+           delete dotNetData->objectPtr;
+           dotNetData->objectPtr = nullptr;
+        }
+
+        dotNetData.Unset();
+    }
+#endif
 }
 
 uint32 ScriptObjectResource::GetScriptLanguageMask() const
@@ -258,6 +279,10 @@ void ScriptObjectResource::Destroy()
                 const bool result = dotNetData->objectPtr->SetKeepAlive(false);
                 Assert(result);
             }
+
+           // @NOTE: We do not delete the managed object here nor do we set it as null or unset dotNetData.
+           // Instead we just mark it as no longer needing to be kept alive, so it can be collected by the GC if needed.
+           // If ref count increments, we mark it as needing to be kept alive again, and if it was collected in the meantime, we recreate it in Initialize().
         }
     }
 #endif

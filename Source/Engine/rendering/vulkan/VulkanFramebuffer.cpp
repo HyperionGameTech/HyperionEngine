@@ -207,16 +207,16 @@ RendererResult VulkanFramebuffer::Create()
 
     VULKAN_CHECK(vkCreateFramebuffer(g_renderInterface->GetDevice()->GetDevice(), &framebufferCreateInfo, nullptr, &m_handle));
 
-    if (shouldClearFramebuffer)
-    {
-        CommandRecorder& cr = g_renderInterface->commandRecorderAllocator.GetCommandRecorder();
-
-        cr << SetCurrentFramebuffer(this);
-        cr << ClearFramebuffer(this);
-        cr << SetCurrentFramebuffer(nullptr);
-
-        cr.Done();
-    }
+    // if (shouldClearFramebuffer)
+    // {
+        // CommandRecorder& cr = g_renderInterface->commandRecorderAllocator.GetCommandRecorder();
+// 
+        // cr << SetCurrentFramebuffer(this);
+        // cr << ClearFramebuffer(this);
+        // cr << SetCurrentFramebuffer(nullptr);
+// 
+        // cr.Done();
+    // }
 
 #if HYP_DEBUG_MODE
     if (Name debugName = GetDebugName())

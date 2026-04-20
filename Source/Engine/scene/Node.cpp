@@ -715,9 +715,7 @@ void Node::SetLocalTransform(const Transform& transform, TransformChangeType cha
     m_localTransform = transform;
 
 #if HYP_EDITOR
-    World* world = GetWorld();
-
-    if (changeType != TransformChangeType::Simulation && world && world->GetGameState().IsEditMode())
+    if (changeType != TransformChangeType::Simulation)
     {
         MarkDirty();
     }
@@ -766,12 +764,7 @@ void Node::SetLocalBounds(const BoundingBox& aabb)
     m_localBounds = aabb;
 
 #if HYP_EDITOR
-    World* world = GetWorld();
-
-    if (world && world->GetGameState().IsEditMode())
-    {
-        MarkDirty();
-    }
+    MarkDirty();
 #endif
 }
 
@@ -1185,12 +1178,7 @@ void Node::AddTag(NodeTag&& value)
         m_tags.Add(std::move(value));
 
 #if HYP_EDITOR
-        World* world = GetWorld();
-
-        if (world && world->GetGameState().IsEditMode())
-        {
-            MarkDirty();
-        }
+        MarkDirty();
 #endif // HYP_EDITOR
     }
 }
@@ -1204,12 +1192,7 @@ bool Node::RemoveTag(StringHash key)
     if (removed)
     {
 #if HYP_EDITOR
-        World* world = GetWorld();
-
-        if (world && world->GetGameState().IsEditMode())
-        {
-            MarkDirty();
-        }
+        MarkDirty();
 #endif // HYP_EDITOR
 
         return true;
