@@ -377,21 +377,6 @@ static Optional<UIObjectSize> ParseUIObjectSize(const String& str)
     return {};
 }
 
-static JSON::ParseResult ParseJSON(FBOMLoadContext& context, const String& str, FBOMData& outData)
-{
-    // Read string as JSON
-    JSON::ParseResult parseResult = JSON::Parse(str);
-
-    if (!parseResult.ok)
-    {
-        return parseResult;
-    }
-
-    outData = FBOMData::FromJSON(parseResult.value);
-
-    return parseResult;
-}
-
 class UISAXHandler : public xml::SAXHandler
 {
 public:

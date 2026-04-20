@@ -11,7 +11,6 @@
 #include <asset/AssetRegistry.hpp>
 #include <asset/AssetLoader.hpp>
 
-#include <asset/model_loaders/FBOMModelLoader.hpp>
 #include <asset/model_loaders/FBXModelLoader.hpp>
 #include <asset/model_loaders/GLTFModelLoader.hpp>
 #include <asset/model_loaders/OBJModelLoader.hpp>
@@ -265,7 +264,6 @@ void AssetManager::RegisterDefaultLoaders()
         "png", "jpg", "jpeg", "tga",
         "bmp", "psd", "gif", "hdr", "tif");
     Register<WAVAudioLoader, AudioSource>("wav");
-    Register<FBOMModelLoader, Node>("hypmodel");
     Register<FBXModelLoader, Node>("fbx");
     Register<GLTFModelLoader, Node>("gltf", "glb");
     // Register<PLYModelLoader, PLYModel>("ply");

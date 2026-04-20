@@ -141,7 +141,6 @@ private:
     ClassAttributeSet m_attributes;
 
     Proc<BoxedValue()> m_getProc;
-    Proc<Result(FBOMData& out, EnumFlags<FBOMDataFlags> flags)> m_serializeProc;
 };
 
 } // namespace Hyperion

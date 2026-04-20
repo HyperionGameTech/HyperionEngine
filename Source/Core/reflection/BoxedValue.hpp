@@ -26,6 +26,7 @@
 #include <Core/utilities/EnumFlags.hpp>
 #include <Core/utilities/Float16.hpp>
 #include <Core/utilities/Result.hpp>
+#include <Core/utilities/Uuid.hpp>
 
 #include <Core/memory/Any.hpp>
 #include <Core/memory/RefCountedPtr.hpp>

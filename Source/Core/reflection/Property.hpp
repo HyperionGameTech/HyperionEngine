@@ -52,7 +52,6 @@ constexpr TypeId GetUnwrappedSerializationTypeId()
 struct PropertyGetter
 {
     Proc<BoxedValue(const BoxedValue& target)> getProc;
-    Proc<Result(const BoxedValue& target, FBOMData& out, EnumFlags<FBOMDataFlags> flags)> serializeProc;
     PropertyTypeInfo typeInfo;
 
     PropertyGetter() = default;
@@ -137,7 +136,6 @@ struct PropertyGetter
 struct PropertySetter
 {
     Proc<void(BoxedValue&, const BoxedValue&)> setProc;
-    Proc<Result(FBOMLoadContext&, BoxedValue&, const FBOMData&)> deserializeProc;
     PropertyTypeInfo typeInfo;
 
     PropertySetter() = default;

@@ -262,10 +262,6 @@ Property* MakeProperty(const Field* field)
     {
         return field->Get(target);
     };
-    result.m_getter.serializeProc = [field](const BoxedValue& target, FBOMData& out, EnumFlags<FBOMDataFlags> flags) -> Result
-    {
-        return field->Serialize(Span<BoxedValue> { const_cast<BoxedValue*>(&target), 1 }, out, flags);
-    };
 
     result.m_setter = PropertySetter();
     result.m_setter.typeInfo.targetTypeId = field->GetTargetTypeId();
@@ -273,10 +269,6 @@ Property* MakeProperty(const Field* field)
     result.m_setter.setProc = [field](BoxedValue& target, const BoxedValue& value) -> void
     {
         field->Set(target, value);
-    };
-    result.m_setter.deserializeProc = [field](FBOMLoadContext& context, BoxedValue& target, const FBOMData& value) -> Result
-    {
-        return field->Deserialize(context, target, value);
     };
 
     result.m_originalMember = field;
@@ -392,10 +384,7 @@ Property* MakeProperty(const Field* field, const Method* getter, const Method* s
         {
             return getter->Invoke(Span<BoxedValue> { const_cast<BoxedValue*>(&target), 1 });
         };
-        result.m_getter.serializeProc = [getter](const BoxedValue& target, FBOMData& out, EnumFlags<FBOMDataFlags> flags) -> Result
-        {
-            return getter->Serialize(Span<BoxedValue> { const_cast<BoxedValue*>(&target), 1 }, out, flags);
-        };
+
         result.m_originalMember = getter;
         result.m_ownerClass = getter->GetOwnerClass();
     }
@@ -407,10 +396,6 @@ Property* MakeProperty(const Field* field, const Method* getter, const Method* s
         result.m_getter.getProc = [field](const BoxedValue& target) -> BoxedValue
         {
             return field->Get(target);
-        };
-        result.m_getter.serializeProc = [field](const BoxedValue& target, FBOMData& out, EnumFlags<FBOMDataFlags> flags) -> Result
-        {
-            return field->Serialize(Span<BoxedValue> { const_cast<BoxedValue*>(&target), 1 }, out, flags);
         };
 
         if (!result.m_originalMember)
@@ -433,10 +418,6 @@ Property* MakeProperty(const Field* field, const Method* getter, const Method* s
         {
             setter->Invoke(Span<BoxedValue*> { { &target, const_cast<BoxedValue*>(&value) } });
         };
-        result.m_setter.deserializeProc = [setter](FBOMLoadContext& context, BoxedValue& target, const FBOMData& value) -> Result
-        {
-            return setter->Deserialize(context, target, value);
-        };
 
         if (!result.m_originalMember)
         {
@@ -456,10 +437,6 @@ Property* MakeProperty(const Field* field, const Method* getter, const Method* s
         result.m_setter.setProc = [field](BoxedValue& target, const BoxedValue& value) -> void
         {
             field->Set(target, value);
-        };
-        result.m_setter.deserializeProc = [field](FBOMLoadContext& context, BoxedValue& target, const FBOMData& value) -> Result
-        {
-            return field->Deserialize(context, target, value);
         };
 
         if (!result.m_originalMember)

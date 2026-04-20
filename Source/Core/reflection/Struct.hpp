@@ -15,10 +15,6 @@ namespace dotnet {
 class ManagedClass;
 } // namespace dotnet
 
-namespace serialization {
-class FBOMLoadContext;
-} // namespace serialization
-
 class Struct : public Class
 {
 public:

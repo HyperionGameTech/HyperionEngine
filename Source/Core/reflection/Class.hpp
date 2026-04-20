@@ -68,8 +68,8 @@ enum class ClassSerializationMode : uint8
 {
     NONE = 0x0,
 
-    MEMBERWISE = 0x1, // Use ObjectMarshal - Serialize members
-    BITWISE = 0x2,    // Use ObjectMarshal - Serialize as FBOMStruct (binary)
+    MEMBERWISE = 0x1,
+    BITWISE = 0x2,
 
     DEFAULT = MEMBERWISE
 };
