@@ -342,7 +342,7 @@
                                 </TreeView.ItemContainerTheme>
                                 <TreeView.ItemTemplate>
                                     <TreeDataTemplate x:DataType="vm:NodeViewModel" ItemsSource="{Binding Children}">
-                                        <Grid>
+                                        <Grid Background="Transparent" HorizontalAlignment="Stretch">
                                             <!--  Drop-target highlight: sits behind the label, shown during drag-over  -->
                                             <Border
                                                 Background="{DynamicResource Brush.Accent}"
@@ -354,6 +354,13 @@
                                                 <LucideIcon Kind="{Binding IconKind}" Size="14" Opacity="0.7" VerticalAlignment="Center" />
                                                 <TextBlock FontStyle="{Binding NameFontStyle}" Text="{Binding DisplayName}" VerticalAlignment="Center" />
                                             </StackPanel>
+                                            <Grid.ContextMenu>
+                                                <ContextMenu>
+                                                    <MenuItem Command="{Binding DataContext.TeleportToNode, ElementName=Root}" Header="Teleport to" />
+                                                    <Separator />
+                                                    <MenuItem Command="{Binding DataContext.DeleteNode, ElementName=Root}" Header="Delete" />
+                                                </ContextMenu>
+                                            </Grid.ContextMenu>
                                         </Grid>
                                     </TreeDataTemplate>
                                 </TreeView.ItemTemplate>

@@ -1945,6 +1945,7 @@ extern class Node : AssetObject
     CalculateDepth() -> uint32
     FindSelfIndex() -> uint32
     FindChildByName(name : any) -> Node
+    MarkDirty() -> void
     OnChildAdded : any
     OnChildRemoved : any
     NodeFlags : NodeFlags

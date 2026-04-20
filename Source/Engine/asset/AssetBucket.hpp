@@ -15,6 +15,28 @@ namespace Hyperion {
 
 class Class;
 
+#define HYP_FOR_EACH_ASSET_BUCKET(X) \
+    X(Meshes,               1)       \
+    X(MaterialDefinitions,  2)       \
+    X(MaterialInstances,    3)       \
+    X(Textures,             4)       \
+    X(Lights,               5)       \
+    X(InstancedMeshData,    6)       \
+    X(Animations,           7)       \
+    X(AnimationTracks,      8)       \
+    X(Skeletons,            9)       \
+    X(Worlds,               10)      \
+    X(Scenes,               11)      \
+    X(Nodes,                12)      \
+    X(Entities,             13)      \
+    X(Bones,                14)      \
+    X(EnvProbes,            15)      \
+    X(LightmapVolumes,      16)      \
+    X(Shaders,              17)      \
+    X(ShaderBundles,        18)      \
+    X(FontAtlases,          19)      \
+    X(PhysicsShapes,        20)
+
 const char* GetAssetBucketName(const uint32 bucketIndex);
 
 HYP_STRUCT()
@@ -79,116 +101,35 @@ private:
 namespace AssetBuckets {
     inline constexpr AssetBucket None(0);
 
-    inline constexpr AssetBucket Meshes(1);
-    inline constexpr AssetBucket MaterialDefinitions(2);
-    inline constexpr AssetBucket MaterialInstances(3);
-    inline constexpr AssetBucket Textures(4);
-    inline constexpr AssetBucket Lights(5);
-    inline constexpr AssetBucket InstancedMeshData(6);
-    inline constexpr AssetBucket Animations(7);
-    inline constexpr AssetBucket AnimationTracks(8);
-    inline constexpr AssetBucket Skeletons(9);
-    inline constexpr AssetBucket Worlds(10);
-    inline constexpr AssetBucket Scenes(11);
-    inline constexpr AssetBucket Nodes(12);
-    inline constexpr AssetBucket Entities(13);
-    inline constexpr AssetBucket Bones(14);
-    inline constexpr AssetBucket EnvProbes(15);
-    inline constexpr AssetBucket LightmapVolumes(16);
-    inline constexpr AssetBucket Shaders(17);
-    inline constexpr AssetBucket ShaderBundles(18);
-    inline constexpr AssetBucket FontAtlases(19);
+#define HYP_ASSET_BUCKET_DEF(Name, Index) \
+    inline constexpr AssetBucket Name(Index);
+    HYP_FOR_EACH_ASSET_BUCKET(HYP_ASSET_BUCKET_DEF)
+#undef HYP_ASSET_BUCKET_DEF
 
     static constexpr const AssetBucket* AllBuckets[] = {
         &None,
-        &Meshes,
-        &MaterialDefinitions,
-        &MaterialInstances,
-        &Textures,
-        &Lights,
-        &InstancedMeshData,
-        &Animations,
-        &AnimationTracks,
-        &Skeletons,
-        &Worlds,
-        &Scenes,
-        &Nodes,
-        &Entities,
-        &Bones,
-        &EnvProbes,
-        &LightmapVolumes,
-        &Shaders,
-        &ShaderBundles,
-        &FontAtlases
+#define HYP_ASSET_BUCKET_PTR(Name, Index) &Name,
+        HYP_FOR_EACH_ASSET_BUCKET(HYP_ASSET_BUCKET_PTR)
+#undef HYP_ASSET_BUCKET_PTR
     };
 } // namespace AssetBuckets
 
-// adjust as needed
 static constexpr size_t MaxAssetBuckets = std::size(AssetBuckets::AllBuckets);
 
 /*! \brief Returns the predefined AssetBucket whose name matches \p nameHash, or nullptr. */
 inline constexpr const AssetBucket& GetAssetBucketByName(StringHash nameHash)
 {
-    constexpr HashCode::ValueType MeshesHash = ("Meshes"_sh).hashCode;
-    constexpr HashCode::ValueType MaterialDefinitionsHash = ("MaterialDefinitions"_sh).hashCode;
-    constexpr HashCode::ValueType MaterialInstancesHash = ("MaterialInstances"_sh).hashCode;
-    constexpr HashCode::ValueType TexturesHash = ("Textures"_sh).hashCode;
-    constexpr HashCode::ValueType LightsHash = ("Lights"_sh).hashCode;
-    constexpr HashCode::ValueType InstancedMeshDataHash = ("InstancedMeshData"_sh).hashCode;
-    constexpr HashCode::ValueType AnimationsHash = ("Animations"_sh).hashCode;
-    constexpr HashCode::ValueType AnimationTracksHash = ("AnimationTracks"_sh).hashCode;
-    constexpr HashCode::ValueType SkeletonsHash = ("Skeletons"_sh).hashCode;
-    constexpr HashCode::ValueType WorldsHash = ("Worlds"_sh).hashCode;
-    constexpr HashCode::ValueType ScenesHash = ("Scenes"_sh).hashCode;
-    constexpr HashCode::ValueType NodesHash = ("Nodes"_sh).hashCode;
-    constexpr HashCode::ValueType EntitiesHash = ("Entities"_sh).hashCode;
-    constexpr HashCode::ValueType BonesHash = ("Bones"_sh).hashCode;
-    constexpr HashCode::ValueType EnvProbesHash = ("EnvProbes"_sh).hashCode;
-    constexpr HashCode::ValueType LightmapVolumesHash = ("LightmapVolumes"_sh).hashCode;
-    constexpr HashCode::ValueType ShadersHash = ("Shaders"_sh).hashCode;
-    constexpr HashCode::ValueType ShaderBundlesHash = ("ShaderBundles"_sh).hashCode;
-    constexpr HashCode::ValueType FontAtlasesHash = ("FontAtlases"_sh).hashCode;
+#define HYP_ASSET_BUCKET_HASH(Name, Index) \
+    constexpr HashCode::ValueType Name##Hash = StringHash(#Name).hashCode;
+    HYP_FOR_EACH_ASSET_BUCKET(HYP_ASSET_BUCKET_HASH)
+#undef HYP_ASSET_BUCKET_HASH
 
     switch (nameHash.hashCode)
     {
-    case MeshesHash:
-        return AssetBuckets::Meshes;
-    case MaterialDefinitionsHash:
-        return AssetBuckets::MaterialDefinitions;
-    case MaterialInstancesHash:
-        return AssetBuckets::MaterialInstances;
-    case TexturesHash:
-        return AssetBuckets::Textures;
-    case LightsHash:
-        return AssetBuckets::Lights;
-    case InstancedMeshDataHash:
-        return AssetBuckets::InstancedMeshData;
-    case AnimationsHash:
-        return AssetBuckets::Animations;
-    case AnimationTracksHash:
-        return AssetBuckets::AnimationTracks;
-    case SkeletonsHash:
-        return AssetBuckets::Skeletons;
-    case WorldsHash:
-        return AssetBuckets::Worlds;
-    case ScenesHash:
-        return AssetBuckets::Scenes;
-    case NodesHash:
-        return AssetBuckets::Nodes;
-    case EntitiesHash:
-        return AssetBuckets::Entities;
-    case BonesHash:
-        return AssetBuckets::Bones;
-    case EnvProbesHash:
-        return AssetBuckets::EnvProbes;
-    case LightmapVolumesHash:
-        return AssetBuckets::LightmapVolumes;
-    case ShadersHash:
-        return AssetBuckets::Shaders;
-    case ShaderBundlesHash:
-        return AssetBuckets::ShaderBundles;
-    case FontAtlasesHash:
-        return AssetBuckets::FontAtlases;
+#define HYP_ASSET_BUCKET_CASE(Name, Index) \
+    case Name##Hash: return AssetBuckets::Name;
+        HYP_FOR_EACH_ASSET_BUCKET(HYP_ASSET_BUCKET_CASE)
+#undef HYP_ASSET_BUCKET_CASE
     }
 
     return AssetBuckets::None;
@@ -197,26 +138,10 @@ inline constexpr const AssetBucket& GetAssetBucketByName(StringHash nameHash)
 inline static const char* GetAssetBucketName(const uint32 bucketIndex)
 {
     static constexpr const char* s_names[MaxAssetBuckets] = {
-        nullptr,                // 0 = None
-        "Meshes",               // 1
-        "MaterialDefinitions",  // 2
-        "MaterialInstances",    // 3
-        "Textures",             // 4
-        "Lights",               // 5
-        "InstancedMeshData",    // 6
-        "Animations",           // 7
-        "AnimationTracks",      // 8
-        "Skeletons",            // 9
-        "Worlds",               // 10
-        "Scenes",               // 11
-        "Nodes",                // 12
-        "Entities",             // 13
-        "Bones",                // 14
-        "EnvProbes",            // 15
-        "LightmapVolumes",      // 16
-        "Shaders",              // 17
-        "ShaderBundles",        // 18
-        "FontAtlases"           // 19
+        nullptr, // 0 = None
+#define HYP_ASSET_BUCKET_NAME(Name, Index) #Name,
+        HYP_FOR_EACH_ASSET_BUCKET(HYP_ASSET_BUCKET_NAME)
+#undef HYP_ASSET_BUCKET_NAME
     };
 
     if (bucketIndex == 0 || bucketIndex >= MaxAssetBuckets)
@@ -226,5 +151,7 @@ inline static const char* GetAssetBucketName(const uint32 bucketIndex)
 
     return s_names[bucketIndex];
 }
+
+#undef HYP_FOR_EACH_ASSET_BUCKET
 
 } // namespace Hyperion

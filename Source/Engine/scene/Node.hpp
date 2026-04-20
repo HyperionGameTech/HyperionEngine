@@ -863,6 +863,16 @@ public:
      *  \returns True if the tag exists, false otherwise. */
     bool HasTag(StringHash key) const;
 
+#if HYP_EDITOR
+    HYP_METHOD(EditorOnly)
+    void MarkDirty()
+    {
+        AssetObject::MarkDirty();
+    }
+#else // !HYP_EDITOR
+    static constexpr NoOpFunction<void> MarkDirty;
+#endif // HYP_EDITOR
+
     HYP_FIELD()
     ScriptableDelegate<void, Node*, bool /* direct */> OnChildAdded;
 

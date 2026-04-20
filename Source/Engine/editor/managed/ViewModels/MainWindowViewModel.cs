@@ -75,6 +75,9 @@ namespace Hyperion.Editor.ViewModels
         public EditorCommand AddParticleVolume => new EditorCommand("AddParticleVolume");
         public EditorCommand AddFogVolume => new EditorCommand("AddFogVolume");
 
+        public EditorCommand DeleteNode => new EditorCommand("DeleteNode");
+        public EditorCommand TeleportToNode => new EditorCommand("TeleportTo");
+
         public ICommand SelectTransformModeTranslate { get; private set; }
         public ICommand SelectTransformModeRotate { get; private set; }
         public ICommand SelectTransformModeScale { get; private set; }

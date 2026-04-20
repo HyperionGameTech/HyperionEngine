@@ -145,6 +145,10 @@ bool EditorProject::IsSaved() const
 
 void EditorProject::Close()
 {
+    if (m_gameInstance)
+    {
+        m_gameInstance->Shutdown();
+    }
 }
 
 Result EditorProject::Save()
