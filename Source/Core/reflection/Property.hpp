@@ -25,9 +25,6 @@
 #include <Core/memory/Any.hpp>
 #include <Core/memory/AnyRef.hpp>
 
-#include <Core/serialization/Serialization.hpp>
-#include <Core/serialization/SerializationWrapper.hpp>
-
 #include <Core/Types.hpp>
 
 namespace Hyperion {
@@ -55,7 +52,6 @@ constexpr TypeId GetUnwrappedSerializationTypeId()
 struct PropertyGetter
 {
     Proc<BoxedValue(const BoxedValue& target)> getProc;
-    Proc<Result(const BoxedValue& target, FBOMData& out, EnumFlags<FBOMDataFlags> flags)> serializeProc;
     PropertyTypeInfo typeInfo;
 
     PropertyGetter() = default;
@@ -65,16 +61,7 @@ struct PropertyGetter
         : getProc([memFn](const BoxedValue& target) -> BoxedValue
             {
                 return BoxedValue((static_cast<const TargetType*>(target.ToRef().GetPointer())->*memFn)());
-            }),
-          serializeProc([memFn](const BoxedValue& target, FBOMData& out, EnumFlags<FBOMDataFlags> flags) -> Result
-              {
-                  if (FBOMResult err = BoxedValueHelper<NormalizedType<ReturnType>>::Serialize((static_cast<const TargetType*>(target.ToRef().GetPointer())->*memFn)(), out, flags))
-                  {
-                      return HYP_MAKE_ERROR(Error, "Failed to serialize data: {}", err.message);
-                  }
-
-                  return {};
-              })
+            })
 
     {
         typeInfo.valueTypeInfo = &TypeOf<ReturnType>();
@@ -85,16 +72,7 @@ struct PropertyGetter
         : getProc([memFn](const BoxedValue& target) -> BoxedValue
             {
                 return BoxedValue((static_cast<const TargetType*>(target.ToRef().GetPointer())->*memFn)());
-            }),
-          serializeProc([memFn](const BoxedValue& target, FBOMData& out, EnumFlags<FBOMDataFlags> flags) -> Result
-              {
-                  if (FBOMResult err = BoxedValueHelper<NormalizedType<ReturnType>>::Serialize((static_cast<const TargetType*>(target.ToRef().GetPointer())->*memFn)(), out, flags))
-                  {
-                      return HYP_MAKE_ERROR(Error, "Failed to serialize data: {}", err.message);
-                  }
-
-                  return {};
-              })
+            })
     {
         typeInfo.valueTypeInfo = &TypeOf<ReturnType>();
     }
@@ -104,16 +82,7 @@ struct PropertyGetter
         : getProc([fnptr](const BoxedValue& target) -> BoxedValue
             {
                 return BoxedValue(fnptr(static_cast<const TargetType*>(target.ToRef().GetPointer())));
-            }),
-          serializeProc([fnptr](const BoxedValue& target, FBOMData& out, EnumFlags<FBOMDataFlags> flags) -> Result
-              {
-                  if (FBOMResult err = BoxedValueHelper<NormalizedType<ReturnType>>::Serialize(fnptr(static_cast<const TargetType*>(target.ToRef().GetPointer())), out, flags))
-                  {
-                      return HYP_MAKE_ERROR(Error, "Failed to serialize data: {}", err.message);
-                  }
-
-                  return {};
-              })
+            })
     {
         typeInfo.valueTypeInfo = &TypeOf<ReturnType>();
     }
@@ -124,16 +93,7 @@ struct PropertyGetter
         : getProc([fnptr](const BoxedValue& target) -> BoxedValue
             {
                 return BoxedValue(fnptr());
-            }),
-          serializeProc([fnptr](const BoxedValue& target, FBOMData& out, EnumFlags<FBOMDataFlags> flags) -> Result
-              {
-                  if (FBOMResult err = BoxedValueHelper<NormalizedType<ReturnType>>::Serialize(fnptr(), out, flags))
-                  {
-                      return HYP_MAKE_ERROR(Error, "Failed to serialize data: {}", err.message);
-                  }
-
-                  return {};
-              })
+            })
     {
         typeInfo.valueTypeInfo = &TypeOf<ReturnType>();
     }
@@ -143,16 +103,7 @@ struct PropertyGetter
         : getProc([member](const BoxedValue& target) -> BoxedValue
             {
                 return BoxedValue(static_cast<const TargetType*>(target.ToRef().GetPointer())->*member);
-            }),
-          serializeProc([member](const BoxedValue& target, FBOMData& out, EnumFlags<FBOMDataFlags> flags) -> Result
-              {
-                  if (FBOMResult err = BoxedValueHelper<NormalizedType<ValueType>>::Serialize(static_cast<const TargetType*>(target.ToRef().GetPointer())->*member, out, flags))
-                  {
-                      return HYP_MAKE_ERROR(Error, "Failed to serialize data: {}", err.message);
-                  }
-
-                  return {};
-              })
+            })
     {
         typeInfo.valueTypeInfo = &TypeOf<ValueType>();
     }
@@ -180,26 +131,11 @@ struct PropertyGetter
 
         return getProc(target);
     }
-
-    Result Serialize(const BoxedValue& target, FBOMData& out, EnumFlags<FBOMDataFlags> flags) const
-    {
-        HYP_CORE_ASSERT(IsValid());
-        HYP_CORE_ASSERT(!target.IsNull());
-
-        HYP_CORE_ASSERT(
-            target.ToRef().Is(TypeInfo_GetId(*typeInfo.targetTypeInfo)),
-            "Target type mismatch, expected %s, got %s",
-            *TypeInfo_GetName(*typeInfo.targetTypeInfo),
-            *TypeInfo_GetName(*target.GetTypeInfo()));
-
-        return serializeProc(target, out, flags);
-    }
 };
 
 struct PropertySetter
 {
     Proc<void(BoxedValue&, const BoxedValue&)> setProc;
-    Proc<Result(FBOMLoadContext&, BoxedValue&, const FBOMData&)> deserializeProc;
     PropertyTypeInfo typeInfo;
 
     PropertySetter() = default;
@@ -216,27 +152,7 @@ struct PropertySetter
                 {
                     (static_cast<TargetType*>(target.ToRef().GetPointer())->*memFn)(value.Get<NormalizedType<ValueType>>());
                 }
-            }),
-          deserializeProc([memFn](FBOMLoadContext& context, BoxedValue& target, const FBOMData& data) -> Result
-              {
-                  BoxedValue value;
-
-                  if (FBOMResult err = BoxedValueHelper<NormalizedType<ValueType>>::Deserialize(context, data, value))
-                  {
-                      return HYP_MAKE_ERROR(Error, "Failed to deserialize data: {}", err.message);
-                  }
-
-                  if (value.IsNull())
-                  {
-                      (static_cast<TargetType*>(target.ToRef().GetPointer())->*memFn)(NormalizedType<ValueType> {});
-                  }
-                  else
-                  {
-                      (static_cast<TargetType*>(target.ToRef().GetPointer())->*memFn)(value.Get<NormalizedType<ValueType>>());
-                  }
-
-                  return {};
-              })
+            })
     {
         typeInfo.valueTypeInfo = &TypeOf<ValueType>();
     }
@@ -253,27 +169,7 @@ struct PropertySetter
                 {
                     fnptr(static_cast<TargetType*>(target.ToRef().GetPointer()), value.Get<NormalizedType<ValueType>>());
                 }
-            }),
-          deserializeProc([fnptr](FBOMLoadContext& context, BoxedValue& target, const FBOMData& data) -> Result
-              {
-                  BoxedValue value;
-
-                  if (FBOMResult err = BoxedValueHelper<NormalizedType<ValueType>>::Deserialize(context, data, value))
-                  {
-                      return HYP_MAKE_ERROR(Error, "Failed to deserialize data: {}", err.message);
-                  }
-
-                  if (value.IsNull())
-                  {
-                      fnptr(static_cast<TargetType*>(target.ToRef().GetPointer()), NormalizedType<ValueType> {});
-                  }
-                  else
-                  {
-                      fnptr(static_cast<TargetType*>(target.ToRef().GetPointer()), value.Get<NormalizedType<ValueType>>());
-                  }
-
-                  return {};
-              })
+            })
     {
         typeInfo.valueTypeInfo = &TypeOf<ValueType>();
     }
@@ -290,27 +186,7 @@ struct PropertySetter
                 {
                     static_cast<TargetType*>(target.ToRef().GetPointer())->*member = value.Get<NormalizedType<ValueType>>();
                 }
-            }),
-          deserializeProc([member](FBOMLoadContext& context, BoxedValue& target, const FBOMData& data) -> Result
-              {
-                  BoxedValue value;
-
-                  if (FBOMResult err = BoxedValueHelper<NormalizedType<ValueType>>::Deserialize(context, data, value))
-                  {
-                      return HYP_MAKE_ERROR(Error, "Failed to deserialize data: {}", err.message);
-                  }
-
-                  if (value.IsNull())
-                  {
-                      static_cast<TargetType*>(target.ToRef().GetPointer())->*member = NormalizedType<ValueType> {};
-                  }
-                  else
-                  {
-                      static_cast<TargetType*>(target.ToRef().GetPointer())->*member = value.Get<NormalizedType<ValueType>>();
-                  }
-
-                  return {};
-              })
+            })
     {
         typeInfo.valueTypeInfo = &TypeOf<ValueType>();
     }
@@ -337,20 +213,6 @@ struct PropertySetter
             *TypeInfo_GetName(*target.GetTypeInfo()));
 
         setProc(target, value);
-    }
-
-    Result Deserialize(FBOMLoadContext& context, BoxedValue& target, const FBOMData& value) const
-    {
-        HYP_CORE_ASSERT(IsValid());
-        HYP_CORE_ASSERT(!target.IsNull());
-
-        HYP_CORE_ASSERT(
-            target.ToRef().Is(TypeInfo_GetId(*typeInfo.targetTypeInfo)),
-            "Target type mismatch, expected %s, got %s",
-            *TypeInfo_GetName(*typeInfo.targetTypeInfo),
-            *TypeInfo_GetName(*target.GetTypeInfo()));
-
-        return deserializeProc(context, target, value);
     }
 };
 
@@ -447,41 +309,6 @@ public:
             : (m_setter.IsValid()
                     ? *m_setter.typeInfo.targetTypeInfo
                     : TypeInfo_Void());
-    }
-
-    virtual bool CanSerialize() const override
-    {
-        return m_getter.IsValid();
-    }
-
-    virtual bool CanDeserialize() const override
-    {
-        return m_setter.IsValid();
-    }
-
-    virtual Result Serialize(Span<BoxedValue> args, FBOMData& out, EnumFlags<FBOMDataFlags> flags = FBOMDataFlags(0)) const override
-    {
-        if (!CanSerialize())
-        {
-            return HYP_MAKE_ERROR(Error, "Property cannot be serialized");
-        }
-
-        if (args.Size() != 1)
-        {
-            return HYP_MAKE_ERROR(Error, "Expected exactly one argument to serialize property, got {}", args.Size());
-        }
-
-        return m_getter.Serialize(*args.Data(), out, flags);
-    }
-
-    virtual Result Deserialize(FBOMLoadContext& context, BoxedValue& target, const FBOMData& serializedValue) const override
-    {
-        if (!CanDeserialize())
-        {
-            return HYP_MAKE_ERROR(Error, "Property cannot be deserialized");
-        }
-
-        return m_setter.Deserialize(context, target, serializedValue);
     }
 
     virtual const ClassAttributeSet& GetAttributes() const override

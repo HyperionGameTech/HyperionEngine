@@ -4,10 +4,6 @@
 
 #include <Lang/Instructions.hpp>
 
-#include <Core/serialization/fbom/FBOM.hpp>
-#include <Core/serialization/fbom/FBOMReader.hpp>
-#include <Core/serialization/fbom/FBOMLoadContext.hpp>
-
 #include <Core/io/BufferedByteReader.hpp>
 
 #include <Core/reflection/ClassAttribute.hpp>
@@ -1564,50 +1560,6 @@ void DecompilationUnit::DecodeNext(
                 << "u32(" << len << ")"
                 << "]"
                 << std::endl;
-        }
-
-        break;
-    }
-    case BINDATA:
-    {
-        uint8 dstReg;
-        bs.Read(&dstReg);
-
-        uint32 len;
-        bs.Read(&len);
-
-        ByteBuffer buffer(len);
-        bs.Read(buffer.Data(), len);
-
-        if (os != nullptr)
-        {
-
-            (*os)
-                << "BINDATA ["
-                << "%r" << (int)dstReg << ", "
-                << "u32(" << len << "), "
-                << "data(";
-
-            // try deserializing the data:
-            FBOMReader reader { FBOMReaderConfig {} };
-            FBOMLoadContext ctx;
-
-            MemoryBufferedReaderSource source { buffer };
-            BufferedReader br { &source };
-
-            FBOMData data;
-            if (FBOMResult err = reader.ReadData(ctx, &br, data))
-            {
-                // deserialization failed, just print raw data
-                (*os) << "\t; warning: failed to deserialize binary data: " << *err.message << std::endl;
-            }
-            else
-            {
-                // write data
-                (*os) << "\t" << *data.ToString(/* deep */ true);
-            }
-
-            (*os) << ")]" << std::endl;
         }
 
         break;

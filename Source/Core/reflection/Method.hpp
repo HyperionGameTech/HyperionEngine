@@ -20,8 +20,6 @@
 #include <Core/name/Name.hpp>
 #include <Core/utilities/FunctionTraits.hpp>
 
-#include <Core/serialization/Serialization.hpp>
-
 #include <Core/Types.hpp>
 
 namespace Hyperion {
@@ -220,72 +218,6 @@ public:
 
         m_params.Reserve(sizeof...(ArgTypes) + 1);
         InitMethodParams_Tuple<ReturnType, TargetType, Tuple<ArgTypes...>> {}(m_params);
-
-        m_serializeProc = [memFn](Span<BoxedValue> args, FBOMData& out, EnumFlags<FBOMDataFlags> flags) -> Result
-        {
-            if (args.Size() != sizeof...(ArgTypes) + 1)
-            {
-                return HYP_MAKE_ERROR(Error, "Invalid number of arguments for serialization");
-            }
-
-            const auto fn = HYP_METHOD_MEMBER_FN_WRAPPER(memFn);
-
-            BoxedValue** argPtrs = (BoxedValue**)StackAlloc(args.Size() * sizeof(BoxedValue*));
-            for (size_t i = 0; i < args.Size(); ++i)
-            {
-                argPtrs[i] = &args[i];
-            }
-
-            if constexpr (std::is_void_v<ReturnType> || sizeof...(ArgTypes) != 0)
-            {
-                return HYP_MAKE_ERROR(Error, "Cannot serialize void return type or non-zero number of arguments");
-            }
-            else
-            {
-                if (FBOMResult err = BoxedValueHelper<NormalizedType<ReturnType>>::Serialize(CallMethod<decltype(fn), ReturnType, TargetType, ArgTypes...>(fn, argPtrs), out, flags))
-                {
-                    return HYP_MAKE_ERROR(Error, "Failed to serialize data: {}", *err.message);
-                }
-            }
-
-            return {};
-        };
-
-        m_deserializeProc = [memFn](FBOMLoadContext& context, Span<BoxedValue> args, const FBOMData& data) -> Result
-        {
-            if (args.Size() != sizeof...(ArgTypes))
-            {
-                return HYP_MAKE_ERROR(Error, "Invalid number of arguments for deserialization");
-            }
-
-            if constexpr (sizeof...(ArgTypes) >= 1)
-            {
-                const auto fn = HYP_METHOD_MEMBER_FN_WRAPPER(memFn);
-
-                BoxedValue value;
-
-                if (FBOMResult err = BoxedValueHelper<NormalizedType<typename TupleElement<sizeof...(ArgTypes) - 1, ArgTypes...>::Type>>::Deserialize(context, data, value))
-                {
-                    return HYP_MAKE_ERROR(Error, "Failed to serialize data: {}", *err.message);
-                }
-
-                BoxedValue** argPtrs = (BoxedValue**)StackAlloc((args.Size() + 1) * sizeof(BoxedValue*));
-                for (size_t i = 0; i < args.Size(); ++i)
-                {
-                    argPtrs[i] = &args[i];
-                }
-
-                argPtrs[args.Size()] = &value;
-
-                CallMethod<decltype(fn), ReturnType, TargetType, ArgTypes...>(fn, argPtrs);
-            }
-            else
-            {
-                return HYP_MAKE_ERROR(Error, "Cannot deserialize using non-setter method");
-            }
-
-            return {};
-        };
     }
 
     template <class ReturnType, class TargetType, class... ArgTypes>
@@ -321,72 +253,6 @@ public:
 
         m_params.Reserve(sizeof...(ArgTypes) + 1);
         InitMethodParams_Tuple<ReturnType, TargetType, Tuple<ArgTypes...>> {}(m_params);
-
-        m_serializeProc = [memFn](Span<BoxedValue> args, FBOMData& out, EnumFlags<FBOMDataFlags> flags) -> Result
-        {
-            if (args.Size() != sizeof...(ArgTypes) + 1)
-            {
-                return HYP_MAKE_ERROR(Error, "Invalid number of arguments for serialization");
-            }
-
-            const auto fn = HYP_METHOD_MEMBER_FN_WRAPPER(memFn);
-
-            BoxedValue** argPtrs = (BoxedValue**)StackAlloc(args.Size() * sizeof(BoxedValue*));
-            for (size_t i = 0; i < args.Size(); ++i)
-            {
-                argPtrs[i] = &args[i];
-            }
-
-            if constexpr (std::is_void_v<ReturnType> || sizeof...(ArgTypes) != 0)
-            {
-                return HYP_MAKE_ERROR(Error, "Cannot serialize void return type or non-zero number of arguments");
-            }
-            else
-            {
-                if (FBOMResult err = BoxedValueHelper<NormalizedType<ReturnType>>::Serialize(CallMethod<decltype(fn), ReturnType, TargetType, ArgTypes...>(fn, argPtrs), out, flags))
-                {
-                    return HYP_MAKE_ERROR(Error, "Failed to serialize data: {}", *err.message);
-                }
-            }
-
-            return {};
-        };
-
-        m_deserializeProc = [memFn](FBOMLoadContext& context, Span<BoxedValue> args, const FBOMData& data) -> Result
-        {
-            if (args.Size() != sizeof...(ArgTypes))
-            {
-                return HYP_MAKE_ERROR(Error, "Invalid number of arguments for deserialization");
-            }
-
-            if constexpr (sizeof...(ArgTypes) >= 1)
-            {
-                const auto fn = HYP_METHOD_MEMBER_FN_WRAPPER(memFn);
-
-                BoxedValue value;
-
-                if (FBOMResult err = BoxedValueHelper<NormalizedType<typename TupleElement<sizeof...(ArgTypes) - 1, ArgTypes...>::Type>>::Deserialize(context, data, value))
-                {
-                    return HYP_MAKE_ERROR(Error, "Failed to serialize data: {}", *err.message);
-                }
-
-                BoxedValue** argPtrs = (BoxedValue**)StackAlloc((args.Size() + 1) * sizeof(BoxedValue*));
-                for (size_t i = 0; i < args.Size(); ++i)
-                {
-                    argPtrs[i] = &args[i];
-                }
-
-                argPtrs[args.Size()] = &value;
-
-                CallMethod<decltype(fn), ReturnType, TargetType, ArgTypes...>(fn, argPtrs);
-            }
-            else
-            {
-                return HYP_MAKE_ERROR(Error, "Cannot deserialize using non-setter method");
-            }
-
-            return {};
-        };
     }
 
     // Static method or free function
@@ -448,36 +314,6 @@ public:
     virtual const TypeInfo& GetTargetTypeInfo() const override
     {
         return *m_targetTypeInfo;
-    }
-
-    virtual bool CanSerialize() const override
-    {
-        return m_serializeProc.IsValid();
-    }
-
-    virtual bool CanDeserialize() const override
-    {
-        return m_deserializeProc.IsValid();
-    }
-
-    virtual Result Serialize(Span<BoxedValue> args, FBOMData& out, EnumFlags<FBOMDataFlags> flags = FBOMDataFlags(0)) const override
-    {
-        if (!CanSerialize())
-        {
-            return HYP_MAKE_ERROR(Error, "Method is not serializable");
-        }
-
-        return m_serializeProc(args, out, flags);
-    }
-
-    virtual Result Deserialize(FBOMLoadContext& context, BoxedValue& target, const FBOMData& data) const override
-    {
-        if (!m_deserializeProc.IsValid())
-        {
-            return HYP_MAKE_ERROR(Error, "Method is not deserializable");
-        }
-
-        return m_deserializeProc(context, Span<BoxedValue>(&target, 1), data);
     }
 
     virtual const ClassAttributeSet& GetAttributes() const override
@@ -552,9 +388,6 @@ private:
     ClassAttributeSet m_attributes;
 
     Proc<BoxedValue(BoxedValue**, size_t)> m_proc;
-
-    Proc<Result(Span<BoxedValue>, FBOMData& out, EnumFlags<FBOMDataFlags> flags)> m_serializeProc;
-    Proc<Result(FBOMLoadContext&, Span<BoxedValue>, const FBOMData&)> m_deserializeProc;
 
 #ifdef HYP_SCRIPT
     BytecodeAddress m_scriptAddress;

@@ -25,8 +25,6 @@
 #include <Core/memory/Any.hpp>
 #include <Core/memory/AnyRef.hpp>
 
-#include <Core/serialization/fbom/FBOMData.hpp>
-
 #include <Core/Types.hpp>
 
 namespace Hyperion {
@@ -56,16 +54,6 @@ public:
         {
             return BoxedValue(value);
         };
-
-        m_serializeProc = [value](FBOMData& out, EnumFlags<FBOMDataFlags> flags) -> Result
-        {
-            if (FBOMResult err = BoxedValueHelper<NormalizedType<ConstantType>>::Serialize(value, out, flags))
-            {
-                return HYP_MAKE_ERROR(Error, "Failed to serialize data: {}", err.message.Data());
-            }
-
-            return {};
-        };
     }
 
     template <class ConstantType, typename = std::enable_if_t<!std::is_reference_v<ConstantType>>>
@@ -78,18 +66,6 @@ public:
         m_getProc = [pValue]() -> BoxedValue
         {
             return BoxedValue(AnyRef(const_cast<NormalizedType<ConstantType>*>(pValue)));
-        };
-
-        m_serializeProc = [pValue](FBOMData& out, EnumFlags<FBOMDataFlags> flags) -> Result
-        {
-            HYP_CORE_ASSERT(pValue != nullptr);
-
-            if (FBOMResult err = BoxedValueHelper<NormalizedType<ConstantType>>::Serialize(*pValue, out, flags))
-            {
-                return HYP_MAKE_ERROR(Error, "Failed to serialize data: {}", err.message.Data());
-            }
-
-            return {};
         };
     }
 
@@ -124,41 +100,6 @@ public:
     HYP_FORCE_INLINE uint32 GetSize() const
     {
         return m_size;
-    }
-
-    virtual bool CanSerialize() const override
-    {
-        return IsValid() && m_serializeProc.IsValid();
-    }
-
-    virtual bool CanDeserialize() const override
-    {
-        return false;
-    }
-
-    HYP_FORCE_INLINE Result Serialize(FBOMData& out) const
-    {
-        return Serialize({}, out);
-    }
-
-    virtual Result Serialize(Span<BoxedValue> args, FBOMData& out, EnumFlags<FBOMDataFlags> flags = FBOMDataFlags(0)) const override
-    {
-        if (!CanSerialize())
-        {
-            return HYP_MAKE_ERROR(Error, "Static field '{}' cannot be serialized", m_name);
-        }
-
-        if (args.Size() != 0)
-        {
-            return HYP_MAKE_ERROR(Error, "Expected zero arguments to serialize static field, got {}", args.Size());
-        }
-
-        return m_serializeProc(out, flags);
-    }
-
-    virtual Result Deserialize(FBOMLoadContext& context, BoxedValue& target, const FBOMData& data) const override
-    {
-        return HYP_MAKE_ERROR(Error, "Static field cannot be deserialized");
     }
 
     virtual const ClassAttributeSet& GetAttributes() const override
@@ -200,7 +141,6 @@ private:
     ClassAttributeSet m_attributes;
 
     Proc<BoxedValue()> m_getProc;
-    Proc<Result(FBOMData& out, EnumFlags<FBOMDataFlags> flags)> m_serializeProc;
 };
 
 } // namespace Hyperion

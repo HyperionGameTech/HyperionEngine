@@ -27,18 +27,6 @@ struct ClassAttributeValue;
 struct BoxedValue;
 class Class;
 
-enum class FBOMDataFlags : uint32;
-
-namespace serialization {
-
-class FBOMData;
-class FBOMLoadContext;
-
-} // namespace serialization
-
-using serialization::FBOMData;
-using serialization::FBOMLoadContext;
-
 enum class MemberType : uint8
 {
     None = 0x0,
@@ -106,12 +94,6 @@ public:
     {
         return m_flags[MemberFlags::DelegateField];
     }
-
-    virtual bool CanSerialize() const = 0;
-    virtual bool CanDeserialize() const = 0;
-
-    virtual Result Serialize(Span<BoxedValue> args, FBOMData& out, EnumFlags<FBOMDataFlags> flags = FBOMDataFlags(0)) const = 0;
-    virtual Result Deserialize(FBOMLoadContext& context, BoxedValue& target, const FBOMData& value) const = 0;
 
     virtual const ClassAttributeSet& GetAttributes() const = 0;
     virtual const ClassAttributeValue& GetAttribute(StringHash key) const = 0;

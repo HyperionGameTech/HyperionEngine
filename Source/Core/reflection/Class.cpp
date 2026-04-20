@@ -37,10 +37,6 @@
 
 #include <Core/containers/ArrayMap.hpp>
 
-#include <Core/serialization/fbom/FBOM.hpp>
-#include <Core/serialization/fbom/FBOMData.hpp>
-#include <Core/serialization/fbom/FBOMMarshaler.hpp>
-
 namespace Hyperion {
 
 #ifdef HYP_SCRIPT
@@ -266,10 +262,6 @@ Property* MakeProperty(const Field* field)
     {
         return field->Get(target);
     };
-    result.m_getter.serializeProc = [field](const BoxedValue& target, FBOMData& out, EnumFlags<FBOMDataFlags> flags) -> Result
-    {
-        return field->Serialize(Span<BoxedValue> { const_cast<BoxedValue*>(&target), 1 }, out, flags);
-    };
 
     result.m_setter = PropertySetter();
     result.m_setter.typeInfo.targetTypeId = field->GetTargetTypeId();
@@ -277,10 +269,6 @@ Property* MakeProperty(const Field* field)
     result.m_setter.setProc = [field](BoxedValue& target, const BoxedValue& value) -> void
     {
         field->Set(target, value);
-    };
-    result.m_setter.deserializeProc = [field](FBOMLoadContext& context, BoxedValue& target, const FBOMData& value) -> Result
-    {
-        return field->Deserialize(context, target, value);
     };
 
     result.m_originalMember = field;
@@ -396,10 +384,7 @@ Property* MakeProperty(const Field* field, const Method* getter, const Method* s
         {
             return getter->Invoke(Span<BoxedValue> { const_cast<BoxedValue*>(&target), 1 });
         };
-        result.m_getter.serializeProc = [getter](const BoxedValue& target, FBOMData& out, EnumFlags<FBOMDataFlags> flags) -> Result
-        {
-            return getter->Serialize(Span<BoxedValue> { const_cast<BoxedValue*>(&target), 1 }, out, flags);
-        };
+
         result.m_originalMember = getter;
         result.m_ownerClass = getter->GetOwnerClass();
     }
@@ -411,10 +396,6 @@ Property* MakeProperty(const Field* field, const Method* getter, const Method* s
         result.m_getter.getProc = [field](const BoxedValue& target) -> BoxedValue
         {
             return field->Get(target);
-        };
-        result.m_getter.serializeProc = [field](const BoxedValue& target, FBOMData& out, EnumFlags<FBOMDataFlags> flags) -> Result
-        {
-            return field->Serialize(Span<BoxedValue> { const_cast<BoxedValue*>(&target), 1 }, out, flags);
         };
 
         if (!result.m_originalMember)
@@ -437,10 +418,6 @@ Property* MakeProperty(const Field* field, const Method* getter, const Method* s
         {
             setter->Invoke(Span<BoxedValue*> { { &target, const_cast<BoxedValue*>(&value) } });
         };
-        result.m_setter.deserializeProc = [setter](FBOMLoadContext& context, BoxedValue& target, const FBOMData& value) -> Result
-        {
-            return setter->Deserialize(context, target, value);
-        };
 
         if (!result.m_originalMember)
         {
@@ -460,10 +437,6 @@ Property* MakeProperty(const Field* field, const Method* getter, const Method* s
         result.m_setter.setProc = [field](BoxedValue& target, const BoxedValue& value) -> void
         {
             field->Set(target, value);
-        };
-        result.m_setter.deserializeProc = [field](FBOMLoadContext& context, BoxedValue& target, const FBOMData& value) -> Result
-        {
-            return field->Deserialize(context, target, value);
         };
 
         if (!result.m_originalMember)
@@ -864,7 +837,7 @@ void Class::Initialize()
                     HYP_FAIL("Cannot use \"bitwise\" serialization mode for non-POD type: {}", m_name);
                 }
 
-                m_serializationMode = ClassSerializationMode::BITWISE | ClassSerializationMode::USE_MARSHAL_CLASS;
+                m_serializationMode = ClassSerializationMode::BITWISE;
             }
             else
             {
@@ -874,17 +847,6 @@ void Class::Initialize()
         else if (!serializeAttribute.GetBool())
         {
             m_serializationMode = ClassSerializationMode::NONE;
-        }
-    }
-
-    // Disable USE_MARSHAL_CLASS if no marshal is registered by the time this Class is initialized
-    if (m_serializationMode & ClassSerializationMode::USE_MARSHAL_CLASS)
-    {
-        FBOMMarshalerBase* marshal = FBOM::GetInstance().GetMarshal(GetTypeId(), /* allowFallback */ false);
-
-        if (!marshal)
-        {
-            m_serializationMode &= ~ClassSerializationMode::USE_MARSHAL_CLASS;
         }
     }
 
@@ -975,11 +937,6 @@ bool Class::CanSerialize() const
     if (m_serializationMode == ClassSerializationMode::NONE)
     {
         return false;
-    }
-
-    if (m_serializationMode & ClassSerializationMode::USE_MARSHAL_CLASS)
-    {
-        return true;
     }
 
     if (m_serializationMode & ClassSerializationMode::MEMBERWISE)

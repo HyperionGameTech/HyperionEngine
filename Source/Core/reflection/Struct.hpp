@@ -9,19 +9,11 @@
 #include <Core/reflection/Class.hpp>
 #include <Core/reflection/BoxedValue.hpp>
 
-#include <Core/serialization/fbom/FBOMObject.hpp>
-#include <Core/serialization/fbom/FBOMData.hpp>
-#include <Core/serialization/fbom/FBOM.hpp>
-
 namespace Hyperion {
 
 namespace dotnet {
 class ManagedClass;
 } // namespace dotnet
-
-namespace serialization {
-class FBOMLoadContext;
-} // namespace serialization
 
 class Struct : public Class
 {
@@ -46,9 +38,6 @@ public:
     virtual bool CanCreateInstance() const override = 0;
 
     virtual bool ToBoxed(ByteView memory, BoxedValue& outBoxed) const override = 0;
-
-    virtual FBOMResult SerializeStruct(ConstAnyRef value, FBOMObject& out) const = 0;
-    virtual FBOMResult DeserializeStruct(FBOMLoadContext& context, const FBOMObject& in, BoxedValue& out) const = 0;
 
 protected:
     virtual void PostLoad_Internal(void* objectPtr) const override
@@ -142,95 +131,6 @@ public:
         }
     }
 
-    virtual FBOMResult SerializeStruct(ConstAnyRef in, FBOMObject& out) const override
-    {
-        HYP_SCOPE;
-        HYP_CORE_ASSERT(in.Is<T>());
-
-        const FBOMMarshalerBase* marshal = (GetSerializationMode() & ClassSerializationMode::USE_MARSHAL_CLASS)
-            ? FBOM::GetInstance().GetMarshal(GetTypeId(), /* allowFallback */ (GetSerializationMode() & ClassSerializationMode::MEMBERWISE))
-            : nullptr;
-
-        if (marshal)
-        {
-            if (FBOMResult err = marshal->Serialize(in, out))
-            {
-                return err;
-            }
-
-            return FBOMResult::FBOM_OK;
-        }
-
-        if (GetSerializationMode() & ClassSerializationMode::BITWISE)
-        {
-            if constexpr (std::is_abstract_v<T>)
-            {
-                return { FBOMResult::FBOM_ERR, "Cannot use bitwise serialization with abstract type!" };
-            }
-            else
-            {
-                FBOMData structData = FBOMData::FromStructUnchecked(in.Get<T>());
-
-                FBOMObject structWrapperObject(FBOMObjectType(this));
-                structWrapperObject.SetProperty("StructData", std::move(structData));
-
-                out = std::move(structWrapperObject);
-
-                return { FBOMResult::FBOM_OK };
-            }
-        }
-
-        return { FBOMResult::FBOM_ERR, "Type does not have an associated marshal class registered, and is not marked as bitwise serializable" };
-    }
-
-    virtual FBOMResult DeserializeStruct(FBOMLoadContext& context, const FBOMObject& in, BoxedValue& out) const override
-    {
-        HYP_SCOPE;
-
-        if (!in.GetType().IsType(FBOMObjectType(this)))
-        {
-            return { FBOMResult::FBOM_ERR, "Cannot deserialize object into struct - type mismatch" };
-        }
-
-        const FBOMMarshalerBase* marshal = (GetSerializationMode() & ClassSerializationMode::USE_MARSHAL_CLASS)
-            ? FBOM::GetInstance().GetMarshal(GetTypeId(), /* allowFallback */ (GetSerializationMode() & ClassSerializationMode::MEMBERWISE))
-            : nullptr;
-
-        if (marshal)
-        {
-            if (FBOMResult err = marshal->Deserialize(context, in, out))
-            {
-                return err;
-            }
-
-            return FBOMResult::FBOM_OK;
-        }
-
-        if (GetSerializationMode() & ClassSerializationMode::BITWISE)
-        {
-            if constexpr (std::is_abstract_v<T>)
-            {
-                return { FBOMResult::FBOM_ERR, "Cannot use bitwise serialization with abstract type!" };
-            }
-            else
-            {
-                // Read StructData property
-                T result {};
-
-                if (FBOMResult err = in.GetProperty("StructData").ReadStruct<T, /* CompileTimeChecked */ false>(&result))
-                {
-                    return err;
-                }
-
-                out = BoxedValue(std::move(result));
-
-                return { FBOMResult::FBOM_OK };
-            }
-        }
-
-        return { FBOMResult::FBOM_ERR, "Type does not have an associated marshal class registered, and is not marked as bitwise serializable" };
-    }
-
 protected:
     virtual void PostLoad_Internal(void* objectPtr) const override
     {
@@ -321,16 +221,6 @@ public:
     }
 
     virtual bool ToBoxed(ByteView memory, BoxedValue& out) const override;
-
-    virtual FBOMResult SerializeStruct(ConstAnyRef in, FBOMObject& out) const override
-    {
-        HYP_NOT_IMPLEMENTED();
-    }
-
-    virtual FBOMResult DeserializeStruct(FBOMLoadContext& context, const FBOMObject& in, BoxedValue& out) const override
-    {
-        HYP_NOT_IMPLEMENTED();
-    }
 
 protected:
     virtual void PostLoad_Internal(void* objectPtr) const override

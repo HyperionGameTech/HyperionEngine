@@ -26,16 +26,11 @@
 #include <Core/utilities/EnumFlags.hpp>
 #include <Core/utilities/Float16.hpp>
 #include <Core/utilities/Result.hpp>
+#include <Core/utilities/Uuid.hpp>
 
 #include <Core/memory/Any.hpp>
 #include <Core/memory/RefCountedPtr.hpp>
 #include <Core/memory/ByteBuffer.hpp>
-
-#include <Core/serialization/fbom/FBOMResult.hpp>
-#include <Core/serialization/fbom/FBOMData.hpp>
-#include <Core/serialization/fbom/FBOMObject.hpp>
-#include <Core/serialization/fbom/FBOMArray.hpp>
-#include <Core/serialization/fbom/FBOM.hpp>
 
 #include <Core/profiling/ProfileScope.hpp>
 
@@ -83,8 +78,6 @@ struct GetReturnTypeHelper<BoxedValue, true>
 {
     using Type = const BoxedValue&;
 };
-
-using BoxedValueSerializeFunction = FBOMResult (*)(const BoxedValue& data, FBOMData& out, EnumFlags<FBOMDataFlags> flags);
 
 HYP_API extern BoxedValueSerializeFunction GetBoxedValueSerializeFunction(TypeId typeId);
 HYP_API extern void RegisterBoxedValueSerializeFunction(TypeId typeId, BoxedValueSerializeFunction func);
@@ -433,66 +426,9 @@ struct BoxedValue
         }
     }
 
-    /*! \brief Serialize this instance to an FBOMData object.
-     *  \param out The FBOMData object to serialize to.
-     *  \return The result of the serialization operation.
-     */
-    FBOMResult Serialize(FBOMData& out, EnumFlags<FBOMDataFlags> flags = FBOMDataFlags::NONE) const
-    {
-        if (!IsValid())
-        {
-            out = FBOMData();
-
-            return {};
-        }
-
-        const BoxedValueSerializeFunction serializeFunction = GetBoxedValueSerializeFunction(GetTypeId());
-
-        if (!serializeFunction)
-        {
-            return { FBOMResult::FBOM_ERR, "No serialization function provided" };
-        }
-
-        return serializeFunction(*this, out, flags);
-    }
-
-    template <class T>
-    static FBOMResult Serialize(T&& value, FBOMData& out, EnumFlags<FBOMDataFlags> flags = FBOMDataFlags::NONE)
-    {
-        return BoxedValueHelper<NormalizedType<T>>::Serialize(value, out, flags);
-    }
-
-    template <class T>
-    static FBOMResult Deserialize(FBOMLoadContext& context, const FBOMData& data, T& out)
-    {
-        BoxedValue outData;
-
-        if (FBOMResult err = BoxedValueHelper<NormalizedType<T>>::Deserialize(context, data, outData))
-        {
-            return err;
-        }
-
-        out = std::move(outData.Get<T>());
-
-        return {};
-    }
-
     template <class T>
     void Set_Internal(T&& value)
     {
-        static struct InitializeSerializeFunction
-        {
-            InitializeSerializeFunction()
-            {
-                RegisterBoxedValueSerializeFunction(
-                    TypeId::ForType<NormalizedType<T>>(),
-                    [](const BoxedValue& data, FBOMData& out, EnumFlags<FBOMDataFlags> flags) -> FBOMResult
-                    {
-                        return BoxedValueHelper<NormalizedType<T>>::Serialize(data.Get<NormalizedType<T>>(), out, flags);
-                    });
-            }
-        } s_initializeSerializeFunction;
-
         this->value.Set<NormalizedType<T>>(std::forward<T>(value));
     }
 };
@@ -562,27 +498,6 @@ struct BoxedValueHelper<T, std::enable_if_t<std::is_fundamental_v<T>>>
     {
         boxed.Set_Internal(value);
     }
-
-    HYP_FORCE_INLINE static FBOMResult Serialize(T value, FBOMData& out, EnumFlags<FBOMDataFlags> flags = FBOMDataFlags::NONE)
-    {
-        out = FBOMData(value, flags);
-
-        return FBOMResult::FBOM_OK;
-    }
-
-    HYP_FORCE_INLINE static FBOMResult Deserialize(FBOMLoadContext& context, const FBOMData& data, BoxedValue& out)
-    {
-        T value;
-
-        if (FBOMResult err = data.Read(&value))
-        {
-            return err;
-        }
-
-        out = BoxedValue(value);
-
-        return FBOMResult::FBOM_OK;
-    }
 };
 
 #if !HYP_WINDOWS
@@ -637,27 +552,6 @@ struct BoxedValueHelper<T, std::enable_if_t<std::is_same_v<size_t, T> && !std::i
     {
         boxed.Set_Internal(static_cast<uint64>(value));
     }
-
-    HYP_FORCE_INLINE static FBOMResult Serialize(size_t value, FBOMData& out, EnumFlags<FBOMDataFlags> flags = FBOMDataFlags::NONE)
-    {
-        out = FBOMData(static_cast<uint64>(value), flags);
-
-        return FBOMResult::FBOM_OK;
-    }
-
-    HYP_FORCE_INLINE static FBOMResult Deserialize(FBOMLoadContext& context, const FBOMData& data, BoxedValue& out)
-    {
-        uint64 value;
-
-        if (FBOMResult err = data.Read(&value))
-        {
-            return err;
-        }
-
-        out = BoxedValue(static_cast<size_t>(value));
-
-        return FBOMResult::FBOM_OK;
-    }
 };
 
 #endif
@@ -702,27 +596,6 @@ struct BoxedValueHelper<Float16> : BoxedValueHelper<uint16>
     {
         boxed.Set_Internal(value);
     }
-
-    HYP_FORCE_INLINE static FBOMResult Serialize(Float16 value, FBOMData& out, EnumFlags<FBOMDataFlags> flags = FBOMDataFlags::NONE)
-    {
-        out = FBOMData(value.value, flags);
-
-        return FBOMResult::FBOM_OK;
-    }
-
-    HYP_FORCE_INLINE static FBOMResult Deserialize(FBOMLoadContext& context, const FBOMData& data, BoxedValue& out)
-    {
-        uint16 value;
-
-        if (FBOMResult err = data.Read(&value))
-        {
-            return err;
-        }
-
-        out = BoxedValue(Float16(value));
-
-        return FBOMResult::FBOM_OK;
-    }
 };
 
 template <class T>
@@ -757,27 +630,6 @@ struct BoxedValueHelper<T, std::enable_if_t<std::is_enum_v<T>>> : BoxedValueHelp
     HYP_FORCE_INLINE void Set(BoxedValue& boxed, T value) const
     {
         BoxedValueHelper<std::underlying_type_t<T>>::Set(boxed, static_cast<std::underlying_type_t<T>>(value));
-    }
-
-    HYP_FORCE_INLINE static FBOMResult Serialize(T value, FBOMData& out, EnumFlags<FBOMDataFlags> flags = FBOMDataFlags::NONE)
-    {
-        out = FBOMData(static_cast<std::underlying_type_t<T>>(value), flags);
-
-        return FBOMResult::FBOM_OK;
-    }
-
-    HYP_FORCE_INLINE static FBOMResult Deserialize(FBOMLoadContext& context, const FBOMData& data, BoxedValue& out)
-    {
-        std::underlying_type_t<T> value;
-
-        if (FBOMResult err = data.Read(&value))
-        {
-            return err;
-        }
-
-        out = BoxedValue(value);
-
-        return FBOMResult::FBOM_OK;
     }
 };
 
@@ -873,16 +725,6 @@ struct BoxedValueHelper<void*>
     {
         boxed.Set_Internal(value);
     }
-
-    HYP_FORCE_INLINE static FBOMResult Serialize(void* value, FBOMData& out, EnumFlags<FBOMDataFlags> flags = FBOMDataFlags::NONE)
-    {
-        return { FBOMResult::FBOM_ERR, "Cannot serialize a user pointer!" };
-    }
-
-    HYP_FORCE_INLINE static FBOMResult Deserialize(FBOMLoadContext& context, const FBOMData& data, BoxedValue& out)
-    {
-        return { FBOMResult::FBOM_ERR, "Cannot deserialize a user pointer!" };
-    }
 };
 
 /// ObjIdBase specialization - stores as ObjIdBase internally, ObjId<T> converts to/from this.
@@ -917,27 +759,6 @@ struct BoxedValueHelper<ObjIdBase>
     HYP_FORCE_INLINE void Set(BoxedValue& boxed, const ObjIdBase& value) const
     {
         boxed.Set_Internal(value);
-    }
-
-    HYP_FORCE_INLINE static FBOMResult Serialize(ObjIdBase value, FBOMData& outData, EnumFlags<FBOMDataFlags> flags = FBOMDataFlags::NONE)
-    {
-        outData = FBOMData::FromStruct<ObjIdBase>(value, flags);
-
-        return FBOMResult::FBOM_OK;
-    }
-
-    HYP_FORCE_INLINE static FBOMResult Deserialize(FBOMLoadContext& context, const FBOMData& data, BoxedValue& out)
-    {
-        ObjIdBase value;
-
-        if (FBOMResult err = data.ReadStruct<ObjIdBase>(&value))
-        {
-            return err;
-        }
-
-        out = BoxedValue(value);
-
-        return FBOMResult::FBOM_OK;
     }
 };
 
@@ -1018,16 +839,6 @@ struct BoxedValueHelper<ClassRef>
     {
         boxed.Set_Internal(std::move(value));
     }
-
-    HYP_FORCE_INLINE static FBOMResult Serialize(ClassRef value, FBOMData& outData, EnumFlags<FBOMDataFlags> flags = FBOMDataFlags::NONE)
-    {
-        return { FBOMResult::FBOM_ERR, "Cannot serialize ClassRef!" };
-    }
-
-    HYP_FORCE_INLINE static FBOMResult Deserialize(FBOMLoadContext& context, const FBOMData& data, BoxedValue& out)
-    {
-        return { FBOMResult::FBOM_ERR, "Cannot deserialize ClassRef!" };
-    }
 };
 
 /// Handle<ObjectBase> specialization - stores as Handle<ObjectBase> internally, serializable
@@ -1068,70 +879,6 @@ struct BoxedValueHelper<Handle<ObjectBase>>
     {
         boxed.Set_Internal(std::move(value));
     }
-
-    static FBOMResult Serialize(const Handle<ObjectBase>& value, FBOMData& outData, EnumFlags<FBOMDataFlags> flags = FBOMDataFlags::NONE)
-    {
-        HYP_SCOPE;
-
-        if (!value.IsValid())
-        {
-            // unset
-            outData = FBOMData();
-
-            return FBOMResult::FBOM_OK;
-        }
-
-        const FBOMMarshalerBase* marshal = FBOM::GetInstance().GetMarshal(value.GetTypeId());
-
-        if (!marshal)
-        {
-            return FBOMResult { FBOMResult::FBOM_ERR, "No marshal defined for handle type" };
-        }
-
-        FBOMObject object;
-
-        if (FBOMResult err = marshal->Serialize(value.ToRef(), object))
-        {
-            return err;
-        }
-
-        outData = FBOMData::FromObject(std::move(object));
-
-        return FBOMResult::FBOM_OK;
-    }
-
-    static FBOMResult Deserialize(FBOMLoadContext& context, const FBOMData& data, BoxedValue& out)
-    {
-        HYP_SCOPE;
-
-        if (!data)
-        {
-            out = BoxedValue(Handle<ObjectBase> {});
-
-            return FBOMResult::FBOM_OK;
-        }
-
-        const FBOMMarshalerBase* marshal = FBOM::GetInstance().GetMarshal(data.GetType().GetNativeTypeId());
-
-        if (!marshal)
-        {
-            return FBOMResult { FBOMResult::FBOM_ERR, "No marshal defined for handle type" };
-        }
-
-        FBOMObject object;
-
-        if (FBOMResult err = data.ReadObject(context, object, /* deserializeObject */ false))
-        {
-            return err;
-        }
-
-        if (FBOMResult err = marshal->Deserialize(context, object, out))
-        {
-            return err;
-        }
-
-        return FBOMResult::FBOM_OK;
-    }
 };
 
 /// Handle<T> specialization - stores as Handle<ObjectBase> internally, converts to/from Handle<ObjectBase>
@@ -1170,39 +917,6 @@ struct BoxedValueHelper<Handle<T>> : BoxedValueHelper<Handle<ObjectBase>, std::e
     HYP_FORCE_INLINE void Set(BoxedValue& boxed, Handle<T>&& value) const
     {
         BoxedValueHelper<Handle<ObjectBase>>::Set(boxed, reinterpret_cast<Handle<ObjectBase>&&>(std::move(value)));
-    }
-
-    static FBOMResult Deserialize(FBOMLoadContext& context, const FBOMData& data, BoxedValue& out)
-    {
-        HYP_SCOPE;
-
-        const FBOMMarshalerBase* marshal = FBOM::GetInstance().GetMarshal(TypeId::ForType<T>());
-
-        if (!marshal)
-        {
-            return FBOMResult { FBOMResult::FBOM_ERR, "No marshal defined for handle type" };
-        }
-
-        if (!data)
-        {
-            out = BoxedValue(Handle<T> {});
-
-            return FBOMResult::FBOM_OK;
-        }
-
-        FBOMObject object;
-
-        if (FBOMResult err = data.ReadObject(context, object, /* deserializeObject */ false))
-        {
-            return err;
-        }
-
-        if (FBOMResult err = marshal->Deserialize(context, object, out))
-        {
-            return err;
-        }
-
-        return FBOMResult::FBOM_OK;
     }
 };
 
@@ -1244,16 +958,6 @@ struct BoxedValueHelper<T, std::enable_if_t<std::is_base_of_v<ObjectBase, T>>> :
     HYP_FORCE_INLINE void Set(BoxedValue& boxed, const T& value) const
     {
         BoxedValueHelper<Handle<T>>::Set(boxed, value.HandleFromThis());
-    }
-
-    static FBOMResult Serialize(const T& value, FBOMData& outData, EnumFlags<FBOMDataFlags> flags = FBOMDataFlags::NONE)
-    {
-        return BoxedValueHelper<Handle<T>>::Serialize(value.HandleFromThis(), outData, flags);
-    }
-
-    static FBOMResult Deserialize(FBOMLoadContext& context, const FBOMData& data, BoxedValue& out)
-    {
-        return BoxedValueHelper<Handle<T>>::Deserialize(context, data, out);
     }
 };
 
@@ -1297,42 +1001,6 @@ struct BoxedValueHelper<RC<void>>
     {
         boxed.Set_Internal(std::move(value));
     }
-
-    static FBOMResult Serialize(const RC<void>& value, FBOMData& outData, EnumFlags<FBOMDataFlags> flags = FBOMDataFlags::NONE)
-    {
-        HYP_SCOPE;
-
-        const FBOMMarshalerBase* marshal = FBOM::GetInstance().GetMarshal(value.GetTypeId());
-
-        if (!marshal)
-        {
-            return FBOMResult { FBOMResult::FBOM_ERR, "No marshal registered for type" };
-        }
-
-        if (!value)
-        {
-            // unset
-            outData = FBOMData();
-
-            return FBOMResult::FBOM_OK;
-        }
-
-        FBOMObject object;
-
-        if (FBOMResult err = marshal->Serialize(value.ToRef(), object))
-        {
-            return err;
-        }
-
-        outData = FBOMData::FromObject(std::move(object));
-
-        return FBOMResult::FBOM_OK;
-    }
-
-    static FBOMResult Deserialize(FBOMLoadContext& context, const FBOMData& data, BoxedValue& out)
-    {
-        return { FBOMResult::FBOM_ERR, "Cannot deserialize RC<void>" };
-    }
 };
 
 template <class T>
@@ -1367,39 +1035,6 @@ struct BoxedValueHelper<RC<T>, std::enable_if_t<!std::is_void_v<T>>> : BoxedValu
     HYP_FORCE_INLINE void Set(BoxedValue& boxed, RC<T>&& value) const
     {
         BoxedValueHelper<RC<void>>::Set(boxed, std::move(value));
-    }
-
-    static FBOMResult Deserialize(FBOMLoadContext& context, const FBOMData& data, BoxedValue& out)
-    {
-        HYP_SCOPE;
-
-        const FBOMMarshalerBase* marshal = FBOM::GetInstance().GetMarshal(TypeId::ForType<T>());
-
-        if (!marshal)
-        {
-            return FBOMResult { FBOMResult::FBOM_ERR, "No marshal defined for type" };
-        }
-
-        if (!data)
-        {
-            out = BoxedValue(RC<T> {});
-
-            return FBOMResult::FBOM_OK;
-        }
-
-        FBOMObject object;
-
-        if (FBOMResult err = data.ReadObject(context, object, /* deserializeObject */ false))
-        {
-            return err;
-        }
-
-        if (FBOMResult err = marshal->Deserialize(context, object, out))
-        {
-            return err;
-        }
-
-        return FBOMResult::FBOM_OK;
     }
 };
 
@@ -1440,37 +1075,6 @@ struct BoxedValueHelper<AnyRef>
     HYP_FORCE_INLINE void Set(BoxedValue& boxed, AnyRef&& value) const
     {
         boxed.Set_Internal(std::move(value));
-    }
-
-    static FBOMResult Serialize(const AnyRef& value, FBOMData& outData, EnumFlags<FBOMDataFlags> flags = FBOMDataFlags::NONE)
-    {
-        HYP_SCOPE;
-
-        const FBOMMarshalerBase* marshal = FBOM::GetInstance().GetMarshal(value.GetTypeId());
-
-        if (!marshal)
-        {
-            return FBOMResult { FBOMResult::FBOM_ERR, "No marshal registered for type" };
-        }
-
-        if (!value.HasValue())
-        {
-            // unset
-            outData = FBOMData();
-
-            return FBOMResult::FBOM_OK;
-        }
-
-        FBOMObject object;
-
-        if (FBOMResult err = marshal->Serialize(value, object))
-        {
-            return err;
-        }
-
-        outData = FBOMData::FromObject(std::move(object));
-
-        return FBOMResult::FBOM_OK;
     }
 };
 
@@ -1539,39 +1143,6 @@ struct BoxedValueHelper<T*, std::enable_if_t<!is_const_pointer_v<T*> && !std::is
     HYP_FORCE_INLINE void Set(BoxedValue& boxed, T* value) const
     {
         BoxedValueHelper<AnyRef>::Set(boxed, AnyRef(&TypeOf<T>(), value));
-    }
-
-    static FBOMResult Deserialize(FBOMLoadContext& context, const FBOMData& data, BoxedValue& out)
-    {
-        HYP_SCOPE;
-
-        const FBOMMarshalerBase* marshal = FBOM::GetInstance().GetMarshal(TypeId::ForType<T>());
-
-        if (!marshal)
-        {
-            return FBOMResult { FBOMResult::FBOM_ERR, "No marshal defined for type" };
-        }
-
-        if (!data)
-        {
-            out = BoxedValue(static_cast<T*>(nullptr));
-
-            return FBOMResult::FBOM_OK;
-        }
-
-        FBOMObject object;
-
-        if (FBOMResult err = data.ReadObject(context, object, /* deserializeObject */ false))
-        {
-            return err;
-        }
-
-        if (FBOMResult err = marshal->Deserialize(context, object, out))
-        {
-            return err;
-        }
-
-        return FBOMResult::FBOM_OK;
     }
 };
 
@@ -1644,37 +1215,6 @@ struct BoxedValueHelper<Any>
     {
         boxed.Set_Internal(std::move(value));
     }
-
-    static FBOMResult Serialize(const Any& value, FBOMData& outData, EnumFlags<FBOMDataFlags> flags = FBOMDataFlags::NONE)
-    {
-        HYP_SCOPE;
-
-        const FBOMMarshalerBase* marshal = FBOM::GetInstance().GetMarshal(value.GetTypeId());
-
-        if (!marshal)
-        {
-            return FBOMResult { FBOMResult::FBOM_ERR, "No marshal registered for type" };
-        }
-
-        if (!value.HasValue())
-        {
-            // unset
-            outData = FBOMData();
-
-            return FBOMResult::FBOM_OK;
-        }
-
-        FBOMObject object;
-
-        if (FBOMResult err = marshal->Serialize(value.ToRef(), object))
-        {
-            return err;
-        }
-
-        outData = FBOMData::FromObject(std::move(object));
-
-        return FBOMResult::FBOM_OK;
-    }
 };
 
 template <>
@@ -1705,25 +1245,6 @@ struct BoxedValueHelper<GenericArrayWrapper> : BoxedValueHelper<Any>
     HYP_FORCE_INLINE void Set(BoxedValue& boxed, GenericArrayWrapper&& value) const
     {
         BoxedValueHelper<Any>::Set(boxed, Any::Construct<GenericArrayWrapper>(std::move(value)));
-    }
-
-    HYP_FORCE_INLINE static FBOMResult Serialize(const GenericArrayWrapper& value, FBOMData& outData, EnumFlags<FBOMDataFlags> flags = FBOMDataFlags::NONE)
-    {
-        HYP_SCOPE;
-
-        GenericArrayWrapper::SerializeFunction serializeFunction = value.functionTable.serializeFunction;
-
-        if (!serializeFunction)
-        {
-            return { FBOMResult::FBOM_ERR, "Cannot serialize GenericArrayWrapper without a serialize function!" };
-        }
-
-        if (FBOMResult err = serializeFunction(value, outData, flags))
-        {
-            return err;
-        }
-
-        return FBOMResult::FBOM_OK;
     }
 };
 
@@ -1758,16 +1279,6 @@ struct BoxedValueHelper<BoxedValue::InlineData>
     {
         boxed.Set_Internal(value);
     }
-
-    HYP_FORCE_INLINE static FBOMResult Serialize(const BoxedValue::InlineData& value, FBOMData& out, EnumFlags<FBOMDataFlags> flags = FBOMDataFlags::NONE)
-    {
-        return { FBOMResult::FBOM_ERR, "Cannot serialize user data!" };
-    }
-
-    HYP_FORCE_INLINE static FBOMResult Deserialize(FBOMLoadContext& context, const FBOMData& data, BoxedValue& out)
-    {
-        return { FBOMResult::FBOM_ERR, "Cannot deserialize user data!" };
-    }
 };
 
 /// String types
@@ -1800,29 +1311,6 @@ struct BoxedValueHelper<containers::String<StringType>> : BoxedValueHelper<Any>
     HYP_FORCE_INLINE void Set(BoxedValue& boxed, containers::String<StringType>&& value) const
     {
         BoxedValueHelper<Any>::Set(boxed, Any::Construct<containers::String<StringType>>(std::move(value)));
-    }
-
-    HYP_FORCE_INLINE static FBOMResult Serialize(const containers::String<StringType>& value, FBOMData& outData, EnumFlags<FBOMDataFlags> flags = FBOMDataFlags::NONE)
-    {
-        HYP_SCOPE;
-
-        outData = FBOMData::FromString(value);
-
-        return FBOMResult::FBOM_OK;
-    }
-
-    HYP_FORCE_INLINE static FBOMResult Deserialize(FBOMLoadContext& context, const FBOMData& data, BoxedValue& out)
-    {
-        containers::String<StringType> result;
-
-        if (FBOMResult err = data.ReadString(result))
-        {
-            return err;
-        }
-
-        out = BoxedValue(std::move(result));
-
-        return { FBOMResult::FBOM_OK };
     }
 };
 
@@ -1943,29 +1431,6 @@ struct BoxedValueHelper<Name>
     {
         boxed.Set_Internal(value);
     }
-
-    HYP_FORCE_INLINE static FBOMResult Serialize(const Name& value, FBOMData& outData, EnumFlags<FBOMDataFlags> flags = FBOMDataFlags::NONE)
-    {
-        HYP_SCOPE;
-
-        outData = FBOMData::FromName(value);
-
-        return FBOMResult::FBOM_OK;
-    }
-
-    HYP_FORCE_INLINE static FBOMResult Deserialize(FBOMLoadContext& context, const FBOMData& data, BoxedValue& out)
-    {
-        Name name;
-
-        if (FBOMResult err = data.ReadName(&name))
-        {
-            return err;
-        }
-
-        out = BoxedValue(name);
-
-        return { FBOMResult::FBOM_OK };
-    }
 };
 
 template <>
@@ -2012,25 +1477,6 @@ struct BoxedValueHelper<StringHash>
     HYP_FORCE_INLINE void Set(BoxedValue& boxed, const StringHash& value) const
     {
         boxed.Set_Internal(*reinterpret_cast<const Name*>(&value));
-    }
-
-    HYP_FORCE_INLINE static FBOMResult Serialize(const StringHash& value, FBOMData& outData, EnumFlags<FBOMDataFlags> flags = FBOMDataFlags::NONE)
-    {
-        return BoxedValueHelper<Name>::Serialize(*reinterpret_cast<const Name*>(&value), outData, flags);
-    }
-
-    HYP_FORCE_INLINE static FBOMResult Deserialize(FBOMLoadContext& context, const FBOMData& data, BoxedValue& out)
-    {
-        BoxedValue nameData;
-
-        if (FBOMResult err = BoxedValueHelper<Name>::Deserialize(context, data, nameData))
-        {
-            return err;
-        }
-
-        out = BoxedValue(StringHash(nameData.Get<Name>()));
-
-        return { FBOMResult::FBOM_OK };
     }
 };
 
@@ -2085,79 +1531,6 @@ struct BoxedValueHelper<Array<T, AllocatorType>, std::enable_if_t<!std::is_const
     HYP_FORCE_INLINE void Set(BoxedValue& boxed, Array<T, AllocatorType>&& value) const
     {
         BoxedValueHelper<GenericArrayWrapper>::Set(boxed, GenericArrayWrapper(GenericArrayWrapper::AS_COPY, std::move(value)));
-    }
-
-    static FBOMResult Serialize(const Array<T, AllocatorType>& value, FBOMData& outData, EnumFlags<FBOMDataFlags> flags = FBOMDataFlags::NONE)
-    {
-        HYP_SCOPE;
-
-        const size_t size = value.Size();
-
-        if (size == 0)
-        {
-            // If size is empty, serialize a placeholder value to get the element type
-            outData = FBOMData::FromArray(FBOMArray());
-
-            return FBOMResult::FBOM_OK;
-        }
-
-        Array<FBOMData> elements;
-        elements.Resize(size);
-
-        for (size_t i = 0; i < size; i++)
-        {
-            if constexpr (IsBoxedValueV<T>)
-            {
-                if (FBOMResult err = value[i].Serialize(elements[i], FBOMDataFlags::NONE))
-                {
-                    return err;
-                }
-            }
-            else
-            {
-                if (FBOMResult err = BoxedValueHelper<T>::Serialize(value[i], elements[i], FBOMDataFlags::NONE))
-                {
-                    return err;
-                }
-            }
-        }
-
-        outData = FBOMData::FromArray(FBOMArray(std::move(elements)));
-
-        return FBOMResult::FBOM_OK;
-    }
-
-    static FBOMResult Deserialize(FBOMLoadContext& context, const FBOMData& data, BoxedValue& out)
-    {
-        HYP_SCOPE;
-
-        FBOMArray array;
-
-        if (FBOMResult err = data.ReadArray(context, array))
-        {
-            return err;
-        }
-
-        const size_t size = array.Size();
-
-        Array<T, AllocatorType> result;
-        result.Reserve(size);
-
-        for (size_t i = 0; i < size; i++)
-        {
-            BoxedValue element;
-
-            if (FBOMResult err = BoxedValueHelper<T>::Deserialize(context, array.GetElement(i), element))
-            {
-                return err;
-            }
-
-            result.PushBack(std::move(element.Get<T>()));
-        }
-
-        BoxedValueHelper<Array<T, AllocatorType>> {}.Set(out, std::move(result));
-
-        return { FBOMResult::FBOM_OK };
     }
 };
 
@@ -2219,79 +1592,6 @@ struct BoxedValueHelper<FixedArray<T, Size>, std::enable_if_t<!std::is_const_v<T
     {
         BoxedValueHelper<GenericArrayWrapper>::Set(boxed, GenericArrayWrapper(GenericArrayWrapper::AS_COPY, std::move(value)));
     }
-
-    static FBOMResult Serialize(const FixedArray<T, Size>& value, FBOMData& outData, EnumFlags<FBOMDataFlags> flags = FBOMDataFlags::NONE)
-    {
-        HYP_SCOPE;
-
-        if (Size == 0)
-        {
-            // If size is empty, serialize a placeholder value to get the element type
-            outData = FBOMData::FromArray(FBOMArray());
-
-            return FBOMResult::FBOM_OK;
-        }
-
-        Array<FBOMData> elements;
-        elements.Resize(Size);
-
-        for (size_t i = 0; i < Size; i++)
-        {
-            if constexpr (IsBoxedValueV<T>)
-            {
-                if (FBOMResult err = value[i].Serialize(elements[i], FBOMDataFlags::NONE))
-                {
-                    return err;
-                }
-            }
-            else
-            {
-                if (FBOMResult err = BoxedValueHelper<T>::Serialize(value[i], elements[i], FBOMDataFlags::NONE))
-                {
-                    return err;
-                }
-            }
-        }
-
-        outData = FBOMData::FromArray(FBOMArray(std::move(elements)));
-
-        return FBOMResult::FBOM_OK;
-    }
-
-    static FBOMResult Deserialize(FBOMLoadContext& context, const FBOMData& data, BoxedValue& out)
-    {
-        HYP_SCOPE;
-
-        FBOMArray array;
-
-        if (FBOMResult err = data.ReadArray(context, array))
-        {
-            return err;
-        }
-
-        if (Size != array.Size())
-        {
-            return { FBOMResult::FBOM_ERR, "Failed to deserialize array - size does not match expected size" };
-        }
-
-        FixedArray<T, Size> result;
-
-        for (size_t i = 0; i < Size; i++)
-        {
-            BoxedValue element;
-
-            if (FBOMResult err = BoxedValueHelper<T>::Deserialize(context, array.GetElement(i), element))
-            {
-                return err;
-            }
-
-            result[i] = std::move(element.Get<T>());
-        }
-
-        BoxedValueHelper<FixedArray<T, Size>> {}.Set(out, std::move(result));
-
-        return { FBOMResult::FBOM_OK };
-    }
 };
 
 #if 0
@@ -2329,79 +1629,6 @@ struct BoxedValueHelper<T[Size], std::enable_if_t<!std::is_const_v<T>>> : BoxedV
     {
         BoxedValueHelper<FixedArray<T, Size>>::Set(boxed, MakeFixedArray(value));
     }
-
-    static FBOMResult Serialize(const T (&value)[Size], FBOMData& outData, EnumFlags<FBOMDataFlags> flags = FBOMDataFlags::NONE)
-    {
-        HYP_SCOPE;
-
-        if (Size == 0)
-        {
-            // If size is empty, serialize a placeholder value to get the element type
-            outData = FBOMData::FromArray(FBOMArray());
-
-            return FBOMResult::FBOM_OK;
-        }
-
-        Array<FBOMData> elements;
-        elements.Resize(Size);
-
-        for (size_t i = 0; i < Size; i++)
-        {
-            if constexpr (IsBoxedValueV<T>)
-            {
-                if (FBOMResult err = value[i].Serialize(elements[i], FBOMDataFlags::NONE))
-                {
-                    return err;
-                }
-            }
-            else
-            {
-                if (FBOMResult err = BoxedValueHelper<T>::Serialize(value[i], elements[i], FBOMDataFlags::NONE))
-                {
-                    return err;
-                }
-            }
-        }
-
-        outData = FBOMData::FromArray(FBOMArray(std::move(elements)));
-
-        return FBOMResult::FBOM_OK;
-    }
-
-    static FBOMResult Deserialize(FBOMLoadContext& context, const FBOMData& data, BoxedValue& out)
-    {
-        HYP_SCOPE;
-
-        FBOMArray array;
-
-        if (FBOMResult err = data.ReadArray(context, array))
-        {
-            return err;
-        }
-
-        if (Size != array.Size())
-        {
-            return { FBOMResult::FBOM_ERR, "Failed to deserialize array - size does not match expected size" };
-        }
-
-        FixedArray<T, Size> result;
-
-        for (size_t i = 0; i < Size; i++)
-        {
-            BoxedValue element;
-
-            if (FBOMResult err = BoxedValueHelper<T>::Deserialize(context, array.GetElement(i), element))
-            {
-                return err;
-            }
-
-            result[i] = std::move(element.Get<T>());
-        }
-
-        BoxedValueHelper<FixedArray<T, Size>> {}.Set(out, std::move(result));
-
-        return { FBOMResult::FBOM_OK };
-    }
 };
 #endif
 
@@ -2435,61 +1662,6 @@ struct BoxedValueHelper<Pair<K, V>> : BoxedValueHelper<Any>
     HYP_FORCE_INLINE void Set(BoxedValue& boxed, Pair<K, V>&& value) const
     {
         BoxedValueHelper<Any>::Set(boxed, Any::Construct<Pair<K, V>>(std::move(value)));
-    }
-
-    static FBOMResult Serialize(const Pair<K, V>& value, FBOMData& outData, EnumFlags<FBOMDataFlags> flags = FBOMDataFlags::NONE)
-    {
-        HYP_SCOPE;
-
-        FBOMData firstData;
-        FBOMData secondData;
-
-        if (FBOMResult err = BoxedValueHelper<K>::Serialize(value.first, firstData, FBOMDataFlags::NONE))
-        {
-            return err;
-        }
-
-        if (FBOMResult err = BoxedValueHelper<V>::Serialize(value.second, secondData, FBOMDataFlags::NONE))
-        {
-            return err;
-        }
-
-        FBOMObject object(FBOMObjectType(TypeWrapper<Pair<K, V>> {}, FBOMTypeFlags::DEFAULT, FBOMBaseObjectType()));
-        object.SetProperty("Key", std::move(firstData));
-        object.SetProperty("Value", std::move(secondData));
-
-        outData = FBOMData::FromObject(std::move(object));
-
-        return FBOMResult::FBOM_OK;
-    }
-
-    static FBOMResult Deserialize(FBOMLoadContext& context, const FBOMData& data, BoxedValue& out)
-    {
-        HYP_SCOPE;
-
-        FBOMObject object;
-
-        if (FBOMResult err = data.ReadObject(context, object, /* deserializeObject */ false))
-        {
-            return err;
-        }
-
-        BoxedValue first;
-        BoxedValue second;
-
-        if (FBOMResult err = BoxedValueHelper<K>::Deserialize(context, object.GetProperty("Key"), first))
-        {
-            return err;
-        }
-
-        if (FBOMResult err = BoxedValueHelper<V>::Deserialize(context, object.GetProperty("Value"), second))
-        {
-            return err;
-        }
-
-        BoxedValueHelper<Pair<K, V>> {}.Set(out, Pair<K, V> { first.Get<K>(), second.Get<V>() });
-
-        return { FBOMResult::FBOM_OK };
     }
 };
 
@@ -2551,72 +1723,6 @@ struct BoxedValueHelper<HashMap<K, V>> : BoxedValueHelper<GenericArrayWrapper>
     {
         BoxedValueHelper<GenericArrayWrapper>::Set(boxed, GenericArrayWrapper(GenericArrayWrapper::AS_COPY, std::move(value)));
     }
-
-    static FBOMResult Serialize(const HashMap<K, V>& value, FBOMData& outData, EnumFlags<FBOMDataFlags> flags = FBOMDataFlags::NONE)
-    {
-        HYP_SCOPE;
-
-        const size_t size = value.Size();
-
-        if (size == 0)
-        {
-            // If size is empty, serialize a placeholder value to get the element type
-            outData = FBOMData::FromArray(FBOMArray());
-
-            return FBOMResult::FBOM_OK;
-        }
-
-        Array<FBOMData> elements;
-        elements.Reserve(size);
-
-        uint32 elementIndex = 0;
-
-        for (const Pair<K, V>& pair : value)
-        {
-            FBOMData& element = elements.EmplaceBack();
-
-            if (FBOMResult err = BoxedValueHelper<Pair<K, V>>::Serialize(pair, element))
-            {
-                return err;
-            }
-        }
-
-        outData = FBOMData::FromArray(FBOMArray(std::move(elements)));
-
-        return FBOMResult::FBOM_OK;
-    }
-
-    static FBOMResult Deserialize(FBOMLoadContext& context, const FBOMData& data, BoxedValue& out)
-    {
-        HYP_SCOPE;
-
-        FBOMArray array;
-
-        if (FBOMResult err = data.ReadArray(context, array))
-        {
-            return err;
-        }
-
-        const size_t size = array.Size();
-
-        HashMap<K, V> result;
-
-        for (size_t i = 0; i < size; i++)
-        {
-            BoxedValue element;
-
-            if (FBOMResult err = BoxedValueHelper<Pair<K, V>>::Deserialize(context, array.GetElement(i), element))
-            {
-                return err;
-            }
-
-            result.Insert(std::move(element.Get<Pair<K, V>>()));
-        }
-
-        BoxedValueHelper<HashMap<K, V>> {}.Set(out, std::move(result));
-
-        return { FBOMResult::FBOM_OK };
-    }
 };
 
 /// FlatMap
@@ -2676,72 +1782,6 @@ struct BoxedValueHelper<FlatMap<K, V>> : BoxedValueHelper<GenericArrayWrapper>
     HYP_FORCE_INLINE void Set(BoxedValue& boxed, FlatMap<K, V>&& value) const
     {
         BoxedValueHelper<GenericArrayWrapper>::Set(boxed, GenericArrayWrapper(GenericArrayWrapper::AS_COPY, std::move(value)));
-    }
-
-    static FBOMResult Serialize(const FlatMap<K, V>& value, FBOMData& outData, EnumFlags<FBOMDataFlags> flags = FBOMDataFlags::NONE)
-    {
-        HYP_SCOPE;
-
-        const size_t size = value.Size();
-
-        if (size == 0)
-        {
-            // If size is empty, serialize a placeholder value to get the element type
-            outData = FBOMData::FromArray(FBOMArray());
-
-            return FBOMResult::FBOM_OK;
-        }
-
-        Array<FBOMData> elements;
-        elements.Reserve(size);
-
-        uint32 elementIndex = 0;
-
-        for (const Pair<K, V>& pair : value)
-        {
-            FBOMData& element = elements.EmplaceBack();
-
-            if (FBOMResult err = BoxedValueHelper<Pair<K, V>>::Serialize(pair, element))
-            {
-                return err;
-            }
-        }
-
-        outData = FBOMData::FromArray(FBOMArray(std::move(elements)));
-
-        return FBOMResult::FBOM_OK;
-    }
-
-    static FBOMResult Deserialize(FBOMLoadContext& context, const FBOMData& data, BoxedValue& out)
-    {
-        HYP_SCOPE;
-
-        FBOMArray array;
-
-        if (FBOMResult err = data.ReadArray(context, array))
-        {
-            return err;
-        }
-
-        const size_t size = array.Size();
-
-        FlatMap<K, V> result;
-
-        for (size_t i = 0; i < size; i++)
-        {
-            BoxedValue element;
-
-            if (FBOMResult err = BoxedValueHelper<Pair<K, V>>::Deserialize(context, array.GetElement(i), element))
-            {
-                return err;
-            }
-
-            result.Insert(std::move(element.Get<Pair<K, V>>()));
-        }
-
-        BoxedValueHelper<FlatMap<K, V>> {}.Set(out, std::move(result));
-
-        return { FBOMResult::FBOM_OK };
     }
 };
 
@@ -2803,72 +1843,6 @@ struct BoxedValueHelper<HashSet<ValueType>> : BoxedValueHelper<GenericArrayWrapp
     {
         BoxedValueHelper<GenericArrayWrapper>::Set(boxed, GenericArrayWrapper(GenericArrayWrapper::AS_COPY, std::move(value)));
     }
-
-    static FBOMResult Serialize(const HashSet<ValueType>& value, FBOMData& outData, EnumFlags<FBOMDataFlags> flags = FBOMDataFlags::NONE)
-    {
-        HYP_SCOPE;
-
-        const size_t size = value.Size();
-
-        if (size == 0)
-        {
-            // If size is empty, serialize a placeholder value to get the element type
-            outData = FBOMData::FromArray(FBOMArray());
-
-            return FBOMResult::FBOM_OK;
-        }
-
-        Array<FBOMData> elements;
-        elements.Reserve(size);
-
-        uint32 elementIndex = 0;
-
-        for (const ValueType& value : value)
-        {
-            FBOMData& element = elements.EmplaceBack();
-
-            if (FBOMResult err = BoxedValueHelper<ValueType>::Serialize(value, element, FBOMDataFlags::NONE))
-            {
-                return err;
-            }
-        }
-
-        outData = FBOMData::FromArray(FBOMArray(std::move(elements)));
-
-        return FBOMResult::FBOM_OK;
-    }
-
-    static FBOMResult Deserialize(FBOMLoadContext& context, const FBOMData& data, BoxedValue& out)
-    {
-        HYP_SCOPE;
-
-        FBOMArray array;
-
-        if (FBOMResult err = data.ReadArray(context, array))
-        {
-            return err;
-        }
-
-        const size_t size = array.Size();
-
-        HashSet<ValueType> result;
-
-        for (size_t i = 0; i < size; i++)
-        {
-            BoxedValue element;
-
-            if (FBOMResult err = BoxedValueHelper<ValueType>::Deserialize(context, array.GetElement(i), element))
-            {
-                return err;
-            }
-
-            result.Insert(std::move(element.Get<ValueType>()));
-        }
-
-        BoxedValueHelper<HashSet<ValueType>> {}.Set(out, std::move(result));
-
-        return { FBOMResult::FBOM_OK };
-    }
 };
 
 // FlatSet
@@ -2928,72 +1902,6 @@ struct BoxedValueHelper<FlatSet<T>> : BoxedValueHelper<GenericArrayWrapper>
     HYP_FORCE_INLINE void Set(BoxedValue& boxed, FlatSet<T>&& value) const
     {
         BoxedValueHelper<GenericArrayWrapper>::Set(boxed, GenericArrayWrapper(GenericArrayWrapper::AS_COPY, std::move(value)));
-    }
-
-    static FBOMResult Serialize(const FlatSet<T>& value, FBOMData& outData, EnumFlags<FBOMDataFlags> flags = FBOMDataFlags::NONE)
-    {
-        HYP_SCOPE;
-
-        const size_t size = value.Size();
-
-        if (size == 0)
-        {
-            // If size is empty, serialize a placeholder value to get the element type
-            outData = FBOMData::FromArray(FBOMArray());
-
-            return FBOMResult::FBOM_OK;
-        }
-
-        Array<FBOMData> elements;
-        elements.Reserve(size);
-
-        uint32 elementIndex = 0;
-
-        for (const T& value : value)
-        {
-            FBOMData& element = elements.EmplaceBack();
-
-            if (FBOMResult err = BoxedValueHelper<T>::Serialize(value, element, FBOMDataFlags::NONE))
-            {
-                return err;
-            }
-        }
-
-        outData = FBOMData::FromArray(FBOMArray(std::move(elements)));
-
-        return FBOMResult::FBOM_OK;
-    }
-
-    static FBOMResult Deserialize(FBOMLoadContext& context, const FBOMData& data, BoxedValue& out)
-    {
-        HYP_SCOPE;
-
-        FBOMArray array;
-
-        if (FBOMResult err = data.ReadArray(context, array))
-        {
-            return err;
-        }
-
-        const size_t size = array.Size();
-
-        FlatSet<T> result;
-
-        for (size_t i = 0; i < size; i++)
-        {
-            BoxedValue element;
-
-            if (FBOMResult err = BoxedValueHelper<T>::Deserialize(context, array.GetElement(i), element))
-            {
-                return err;
-            }
-
-            result.Insert(std::move(element.Get<T>()));
-        }
-
-        BoxedValueHelper<FlatSet<T>> {}.Set(out, std::move(result));
-
-        return { FBOMResult::FBOM_OK };
     }
 };
 
@@ -3055,82 +1963,6 @@ struct BoxedValueHelper<LinkedList<T>> : BoxedValueHelper<GenericArrayWrapper>
     {
         BoxedValueHelper<GenericArrayWrapper>::Set(boxed, GenericArrayWrapper(GenericArrayWrapper::AS_COPY, std::move(value)));
     }
-
-    static FBOMResult Serialize(const LinkedList<T>& value, FBOMData& outData, EnumFlags<FBOMDataFlags> flags = FBOMDataFlags::NONE)
-    {
-        HYP_SCOPE;
-
-        const size_t size = value.Size();
-
-        if (size == 0)
-        {
-            // If size is empty, serialize a placeholder value to get the element type
-            outData = FBOMData::FromArray(FBOMArray());
-
-            return FBOMResult::FBOM_OK;
-        }
-
-        Array<FBOMData> elements;
-        elements.Reserve(size);
-
-        uint32 elementIndex = 0;
-
-        for (const T& value : value)
-        {
-            FBOMData& element = elements.EmplaceBack();
-
-            if constexpr (IsBoxedValueV<T>)
-            {
-                if (FBOMResult err = value.Serialize(element, FBOMDataFlags::NONE))
-                {
-                    return err;
-                }
-            }
-            else
-            {
-                if (FBOMResult err = BoxedValueHelper<T>::Serialize(value, element, FBOMDataFlags::NONE))
-                {
-                    return err;
-                }
-            }
-        }
-
-        outData = FBOMData::FromArray(FBOMArray(std::move(elements)));
-
-        return FBOMResult::FBOM_OK;
-    }
-
-    static FBOMResult Deserialize(FBOMLoadContext& context, const FBOMData& data, BoxedValue& out)
-    {
-        HYP_SCOPE;
-
-        FBOMArray array;
-
-        if (FBOMResult err = data.ReadArray(context, array))
-        {
-            return err;
-        }
-
-        const size_t size = array.Size();
-
-        LinkedList<T> result;
-
-        for (size_t i = 0; i < size; i++)
-        {
-            BoxedValue element;
-
-            if (FBOMResult err = BoxedValueHelper<T>::Deserialize(context, array.GetElement(i), element))
-            {
-                return err;
-            }
-
-            result.PushBack(std::move(element.Get<T>()));
-        }
-
-        BoxedValueHelper<LinkedList<T>> {}.Set(out, std::move(result));
-
-        return { FBOMResult::FBOM_OK };
-    }
 };
 
 /// Matrix and Vector types
@@ -3172,29 +2004,6 @@ struct BoxedValueHelper<math::Vec2<T>> : BoxedValueHelper<Any>
     {
         BoxedValueHelper<Any>::Set(boxed, Any::Construct<math::Vec2<T>>(value));
     }
-
-    HYP_FORCE_INLINE static FBOMResult Serialize(const math::Vec2<T>& value, FBOMData& outData, EnumFlags<FBOMDataFlags> flags = FBOMDataFlags::NONE)
-    {
-        HYP_SCOPE;
-
-        outData = FBOMData(value);
-
-        return FBOMResult::FBOM_OK;
-    }
-
-    HYP_FORCE_INLINE static FBOMResult Deserialize(FBOMLoadContext& context, const FBOMData& data, BoxedValue& out)
-    {
-        math::Vec2<T> result;
-
-        if (FBOMResult err = data.Read(&result))
-        {
-            return err;
-        }
-
-        out = BoxedValue(std::move(result));
-
-        return { FBOMResult::FBOM_OK };
-    }
 };
 
 template <class T>
@@ -3220,31 +2029,6 @@ struct BoxedValueHelper<math::Vec3<T>> : BoxedValueHelper<Any>
     HYP_FORCE_INLINE void Set(BoxedValue& boxed, const math::Vec3<T>& value) const
     {
         BoxedValueHelper<Any>::Set(boxed, Any::Construct<math::Vec3<T>>(value));
-    }
-
-    HYP_FORCE_INLINE static FBOMResult Serialize(const math::Vec3<T>& value, FBOMData& outData, EnumFlags<FBOMDataFlags> flags = FBOMDataFlags::NONE)
-    {
-        HYP_SCOPE;
-
-        outData = FBOMData(value);
-
-        return FBOMResult::FBOM_OK;
-    }
-
-    HYP_FORCE_INLINE static FBOMResult Deserialize(FBOMLoadContext& context, const FBOMData& data, BoxedValue& out)
-    {
-        HYP_SCOPE;
-
-        math::Vec3<T> result;
-
-        if (FBOMResult err = data.Read(&result))
-        {
-            return err;
-        }
-
-        out = BoxedValue(std::move(result));
-
-        return { FBOMResult::FBOM_OK };
     }
 };
 
@@ -3272,31 +2056,6 @@ struct BoxedValueHelper<math::Vec4<T>> : BoxedValueHelper<Any>
     {
         BoxedValueHelper<Any>::Set(boxed, Any::Construct<math::Vec4<T>>(value));
     }
-
-    HYP_FORCE_INLINE static FBOMResult Serialize(const math::Vec4<T>& value, FBOMData& outData, EnumFlags<FBOMDataFlags> flags = FBOMDataFlags::NONE)
-    {
-        HYP_SCOPE;
-
-        outData = FBOMData(value);
-
-        return FBOMResult::FBOM_OK;
-    }
-
-    HYP_FORCE_INLINE static FBOMResult Deserialize(FBOMLoadContext& context, const FBOMData& data, BoxedValue& out)
-    {
-        HYP_SCOPE;
-
-        math::Vec4<T> result;
-
-        if (FBOMResult err = data.Read(&result))
-        {
-            return err;
-        }
-
-        out = BoxedValue(std::move(result));
-
-        return { FBOMResult::FBOM_OK };
-    }
 };
 
 template <>
@@ -3322,31 +2081,6 @@ struct BoxedValueHelper<Mat3f> : BoxedValueHelper<Any>
     HYP_FORCE_INLINE void Set(BoxedValue& boxed, const Mat3f& value) const
     {
         BoxedValueHelper<Any>::Set(boxed, Any::Construct<Mat3f>(value));
-    }
-
-    HYP_FORCE_INLINE static FBOMResult Serialize(const Mat3f& value, FBOMData& outData, EnumFlags<FBOMDataFlags> flags = FBOMDataFlags::NONE)
-    {
-        HYP_SCOPE;
-
-        outData = FBOMData(value);
-
-        return FBOMResult::FBOM_OK;
-    }
-
-    HYP_FORCE_INLINE static FBOMResult Deserialize(FBOMLoadContext& context, const FBOMData& data, BoxedValue& out)
-    {
-        HYP_SCOPE;
-
-        Mat3f result;
-
-        if (FBOMResult err = data.Read(&result))
-        {
-            return err;
-        }
-
-        out = BoxedValue(std::move(result));
-
-        return { FBOMResult::FBOM_OK };
     }
 };
 
@@ -3374,31 +2108,6 @@ struct BoxedValueHelper<Mat4f> : BoxedValueHelper<Any>
     {
         BoxedValueHelper<Any>::Set(boxed, Any::Construct<Mat4f>(value));
     }
-
-    HYP_FORCE_INLINE static FBOMResult Serialize(const Mat4f& value, FBOMData& outData, EnumFlags<FBOMDataFlags> flags = FBOMDataFlags::NONE)
-    {
-        HYP_SCOPE;
-
-        outData = FBOMData(value);
-
-        return FBOMResult::FBOM_OK;
-    }
-
-    HYP_FORCE_INLINE static FBOMResult Deserialize(FBOMLoadContext& context, const FBOMData& data, BoxedValue& out)
-    {
-        HYP_SCOPE;
-
-        Mat4f result;
-
-        if (FBOMResult err = data.Read(&result))
-        {
-            return err;
-        }
-
-        out = BoxedValue(std::move(result));
-
-        return { FBOMResult::FBOM_OK };
-    }
 };
 
 template <>
@@ -3425,31 +2134,6 @@ struct BoxedValueHelper<Quat4f> : BoxedValueHelper<Any>
     {
         BoxedValueHelper<Any>::Set(boxed, Any::Construct<Quat4f>(value));
     }
-
-    HYP_FORCE_INLINE static FBOMResult Serialize(const Quat4f& value, FBOMData& outData, EnumFlags<FBOMDataFlags> flags = FBOMDataFlags::NONE)
-    {
-        HYP_SCOPE;
-
-        outData = FBOMData(value);
-
-        return FBOMResult::FBOM_OK;
-    }
-
-    HYP_FORCE_INLINE static FBOMResult Deserialize(FBOMLoadContext& context, const FBOMData& data, BoxedValue& out)
-    {
-        HYP_SCOPE;
-
-        Quat4f result;
-
-        if (FBOMResult err = data.Read(&result))
-        {
-            return err;
-        }
-
-        out = BoxedValue(std::move(result));
-
-        return { FBOMResult::FBOM_OK };
-    }
 };
 
 template <>
@@ -3475,31 +2159,6 @@ struct BoxedValueHelper<UUID> : BoxedValueHelper<Any>
     HYP_FORCE_INLINE void Set(BoxedValue& boxed, const UUID& value) const
     {
         BoxedValueHelper<Any>::Set(boxed, Any::Construct<UUID>(value));
-    }
-
-    HYP_FORCE_INLINE static FBOMResult Serialize(const UUID& value, FBOMData& outData, EnumFlags<FBOMDataFlags> flags = FBOMDataFlags::NONE)
-    {
-        HYP_SCOPE;
-
-        outData = FBOMData::FromStruct<UUID>(value, flags);
-
-        return FBOMResult::FBOM_OK;
-    }
-
-    HYP_FORCE_INLINE static FBOMResult Deserialize(FBOMLoadContext& context, const FBOMData& data, BoxedValue& out)
-    {
-        HYP_SCOPE;
-
-        UUID result;
-
-        if (FBOMResult err = data.ReadStruct<UUID>(&result))
-        {
-            return err;
-        }
-
-        out = BoxedValue(std::move(result));
-
-        return { FBOMResult::FBOM_OK };
     }
 };
 
@@ -3532,31 +2191,6 @@ struct BoxedValueHelper<ByteBuffer> : BoxedValueHelper<Any>
     {
         BoxedValueHelper<Any>::Set(boxed, Any::Construct<ByteBuffer>(std::move(value)));
     }
-
-    HYP_FORCE_INLINE static FBOMResult Serialize(const ByteBuffer& value, FBOMData& outData, EnumFlags<FBOMDataFlags> flags = FBOMDataFlags::NONE)
-    {
-        HYP_SCOPE;
-
-        outData = FBOMData::FromByteBuffer(value, flags);
-
-        return FBOMResult::FBOM_OK;
-    }
-
-    HYP_FORCE_INLINE static FBOMResult Deserialize(FBOMLoadContext& context, const FBOMData& data, BoxedValue& out)
-    {
-        HYP_SCOPE;
-
-        ByteBuffer byteBuffer;
-
-        if (FBOMResult err = data.ReadByteBuffer(byteBuffer))
-        {
-            return err;
-        }
-
-        out = BoxedValue(std::move(byteBuffer));
-
-        return { FBOMResult::FBOM_OK };
-    }
 };
 
 template <class... Types>
@@ -3569,59 +2203,6 @@ struct BoxedValueHelper<Variant<Types...>> : BoxedValueHelper<Any>
 {
     using ConvertibleFrom = Tuple<>;
 
-    template <class T>
-    static FBOMResult VariantElementSerializeHelper(const Variant<Types...>& variant, FBOMData& outData)
-    {
-        return BoxedValueHelper<T>::Serialize(variant.template Get<T>(), outData);
-    }
-
-    template <class T>
-    static FBOMResult VariantElementDeserializeHelper(FBOMLoadContext& context, const FBOMData& data, BoxedValue& out)
-    {
-        BoxedValue tmp;
-        if (FBOMResult err = BoxedValueHelper<T>::Deserialize(context, data, tmp))
-        {
-            return err;
-        }
-
-        out = BoxedValue(Variant<Types...>(std::move(tmp).template Get<T>()));
-
-        return FBOMResult::FBOM_OK;
-    }
-
-    static constexpr std::add_pointer_t<FBOMResult(const Variant<Types...>&, FBOMData&)> ElementSerializeFunctions[] = { &VariantElementSerializeHelper<Types>... };
-    static constexpr std::add_pointer_t<FBOMResult(FBOMLoadContext&, const FBOMData&, BoxedValue&)> ElementDeserializeFunctions[] = { &VariantElementDeserializeHelper<Types>... };
-
-    HYP_FORCE_INLINE bool Is(const Any& value) const
-    {
-        return value.Is<Variant<Types...>>();
-    }
-
-    HYP_FORCE_INLINE Variant<Types...>& Get(const Any& value) const
-    {
-        return value.Get<Variant<Types...>>();
-    }
-
-    template <class T, typename = std::enable_if_t<!std::is_same_v<NormalizedType<T>, Variant<Types...>> && std::disjunction_v<std::is_same<NormalizedType<T>, Types>...>>>
-    HYP_FORCE_INLINE constexpr bool Is(const T& value) const
-    {
-        return true;
-    }
-
-#if 0
-    template <class T, typename = std::enable_if_t<!std::is_same_v<NormalizedType<T>, Variant<Types...>> && std::disjunction_v<std::is_same<NormalizedType<T>, Types>...>>>
-    HYP_FORCE_INLINE Variant<Types...> Get(const T& value) const
-    {
-        return Variant<Types...>(value);
-    }
-
-    template <class T, typename = std::enable_if_t<!std::is_same_v<NormalizedType<T>, Variant<Types...>> && std::disjunction_v<std::is_same<NormalizedType<T>, Types>...>>>
-    HYP_FORCE_INLINE Variant<Types...> Get(T&& value) const
-    {
-        return Variant<Types...>(std::forward<T>(value));
-    }
-#endif
-
     HYP_FORCE_INLINE void Set(BoxedValue& boxed, const Variant<Types...>& value) const
     {
         BoxedValueHelper<Any>::Set(boxed, Any::Construct<Variant<Types...>>(value));
@@ -3630,101 +2211,6 @@ struct BoxedValueHelper<Variant<Types...>> : BoxedValueHelper<Any>
     HYP_FORCE_INLINE void Set(BoxedValue& boxed, Variant<Types...>&& value) const
     {
         BoxedValueHelper<Any>::Set(boxed, Any::Construct<Variant<Types...>>(std::move(value)));
-    }
-
-    HYP_FORCE_INLINE static FBOMResult Serialize(const Variant<Types...>& value, FBOMData& outData, EnumFlags<FBOMDataFlags> flags = FBOMDataFlags::NONE)
-    {
-        HYP_SCOPE;
-
-        const int typeIndex = value.GetTypeIndex();
-
-        if (typeIndex == Variant<Types...>::invalidTypeIndex)
-        {
-            outData = FBOMData();
-
-            return FBOMResult::FBOM_OK;
-        }
-
-        return ElementSerializeFunctions[typeIndex](value, outData);
-    }
-
-    HYP_FORCE_INLINE static FBOMResult Deserialize(FBOMLoadContext& context, const FBOMData& data, BoxedValue& out)
-    {
-        HYP_SCOPE;
-
-        if (data.IsUnset())
-        {
-            out = BoxedValue(Variant<Types...>());
-
-            return FBOMResult::FBOM_OK;
-        }
-
-        int foundTypeIndex = Variant<Types...>::invalidTypeIndex;
-        int currTypeIndex = 0;
-
-        // start by looking for exact type matches (same TypeId)
-        StaticForEach<Tuple<Types...>>([&]<class T>(TypeWrapper<T>)
-            {
-                if (foundTypeIndex != Variant<Types...>::invalidTypeIndex)
-                {
-                    // already found
-                    return;
-                }
-
-                // check if same TypeId as this type
-                if (data.GetType().GetNativeTypeId() == TypeId::ForType<T>())
-                {
-                    foundTypeIndex = currTypeIndex;
-                    return;
-                }
-
-                currTypeIndex++;
-            });
-
-        // now, try compatible types if no exact match found
-        if (foundTypeIndex == Variant<Types...>::invalidTypeIndex)
-        {
-            currTypeIndex = 0;
-
-            StaticForEach<Tuple<Types...>>([&]<class T>(TypeWrapper<T>)
-                {
-                    if (foundTypeIndex != Variant<Types...>::invalidTypeIndex)
-                    {
-                        // already found
-                        return;
-                    }
-
-                    // check any types listed in BoxedValueHelper<T>::ConvertibleFrom
-                    bool matchedConvertible = false;
-                    StaticForEach<typename BoxedValueHelper<T>::ConvertibleFrom>([&]<class FromT>(TypeWrapper<FromT>)
-                        {
-                            if (matchedConvertible || foundTypeIndex != Variant<Types...>::invalidTypeIndex)
-                            {
-                                return;
-                            }
-
-                            if (data.GetType().GetNativeTypeId() == TypeId::ForType<FromT>())
-                            {
-                                foundTypeIndex = currTypeIndex;
-                                matchedConvertible = true;
-                            }
-                        });
-
-                    if (matchedConvertible)
-                    {
-                        return;
-                    }
-
-                    currTypeIndex++;
-                });
-        }
-
-        if (foundTypeIndex == Variant<Types...>::invalidTypeIndex)
-        {
-            return { FBOMResult::FBOM_ERR, "Cannot deserialize variant - type not found" };
-        }
-
-        return ElementDeserializeFunctions[foundTypeIndex](context, data, out);
     }
 };
 
@@ -3808,63 +2294,6 @@ struct BoxedValueHelper<T, std::enable_if_t<!BoxedValue::canStoreDirectly<T> && 
     HYP_FORCE_INLINE void Set(BoxedValue& boxed, T&& value) const
     {
         BoxedValueHelper<Any>::Set(boxed, Any::Construct<T>(std::move(value)));
-    }
-
-    static FBOMResult Serialize(const T& value, FBOMData& outData, EnumFlags<FBOMDataFlags> flags = FBOMDataFlags::NONE)
-    {
-        HYP_SCOPE;
-
-        const FBOMMarshalerBase* marshal = FBOM::GetInstance().GetMarshal(TypeId::ForType<NormalizedType<T>>());
-
-        if (!marshal)
-        {
-            HYP_BREAKPOINT;
-            return FBOMResult { FBOMResult::FBOM_ERR, "No marshal registered for type" };
-        }
-
-        FBOMObject object;
-
-        if (FBOMResult err = marshal->Serialize(ConstAnyRef(value), object))
-        {
-            return err;
-        }
-
-        outData = FBOMData::FromObject(std::move(object));
-
-        return FBOMResult::FBOM_OK;
-    }
-
-    static FBOMResult Deserialize(FBOMLoadContext& context, const FBOMData& data, BoxedValue& out)
-    {
-        HYP_SCOPE;
-
-        const FBOMMarshalerBase* marshal = FBOM::GetInstance().GetMarshal(TypeId::ForType<T>());
-
-        if (!marshal)
-        {
-            return FBOMResult { FBOMResult::FBOM_ERR, "No marshal defined for type" };
-        }
-
-        if (!data)
-        {
-            out = BoxedValue(T {});
-
-            return FBOMResult::FBOM_OK;
-        }
-
-        FBOMObject object;
-
-        if (FBOMResult err = data.ReadObject(context, object, /* deserializeObject */ false))
-        {
-            return err;
-        }
-
-        if (FBOMResult err = marshal->Deserialize(context, object, out))
-        {
-            return err;
-        }
-
-        return FBOMResult::FBOM_OK;
     }
 };
 #endif

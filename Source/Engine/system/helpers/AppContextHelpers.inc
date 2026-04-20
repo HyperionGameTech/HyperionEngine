@@ -27,15 +27,5 @@ struct BoxedValueHelper<HWND> : BoxedValueHelper<void*>
     {
         boxed.Set_Internal(static_cast<void*>(value));
     }
-
-    HYP_FORCE_INLINE static FBOMResult Serialize(HWND value, FBOMData& out, EnumFlags<FBOMDataFlags> flags = FBOMDataFlags::NONE)
-    {
-        return { FBOMResult::FBOM_ERR, "Serialization of HWND is not supported." };
-    }
-
-    HYP_FORCE_INLINE static FBOMResult Deserialize(FBOMLoadContext& context, const FBOMData& data, BoxedValue& out)
-    {
-        return { FBOMResult::FBOM_ERR, "Deserialization of HWND is not supported." };
-    }
 };
 #endif

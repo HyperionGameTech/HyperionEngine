@@ -35,7 +35,8 @@ class Class;
     X(Shaders,              17)      \
     X(ShaderBundles,        18)      \
     X(FontAtlases,          19)      \
-    X(PhysicsShapes,        20)
+    X(PhysicsShapes,        20)      \
+    X(Scripts,              21)
 
 const char* GetAssetBucketName(const uint32 bucketIndex);
 

@@ -12,19 +12,7 @@
 
 #include <Core/memory/AnyRef.hpp>
 
-#include <Core/serialization/fbom/FBOMResult.hpp>
-
 namespace Hyperion {
-
-enum class FBOMDataFlags : uint32;
-
-namespace serialization {
-class FBOMData;
-struct FBOMResult;
-} // namespace serialization
-
-using serialization::FBOMData;
-using serialization::FBOMResult;
 
 #pragma region GenericArrayWrapper
 
@@ -33,8 +21,6 @@ struct BoxedValue;
 
 struct GenericArrayWrapper
 {
-    using SerializeFunction = FBOMResult (*)(const GenericArrayWrapper& array, FBOMData& outData, EnumFlags<FBOMDataFlags> flags);
-
     enum AsReferenceTag
     {
         AS_REFERENCE
@@ -57,7 +43,6 @@ struct GenericArrayWrapper
     {
         void (*dtor)(void*);
         void (*copyCtor)(void** pDst, void* src);
-        SerializeFunction serializeFunction;
 
         AnyRef (*pushBack)(GenericArrayWrapper& array, BoxedValue&& value);
         AnyRef (*getElementAt)(GenericArrayWrapper& array, size_t index);

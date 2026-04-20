@@ -10,10 +10,8 @@
 
 #include <asset/AssetRegistry.hpp>
 #include <asset/Assets.hpp>
-#include <scripting/asset/ScriptAsset.hpp>
 
-#include <Core/serialization/fbom/FBOM.hpp>
-#include <Core/serialization/fbom/FBOMLoadContext.hpp>
+#include <scripting/asset/ScriptAsset.hpp>
 
 #ifdef HYP_DOTNET
 #include <dotnet/DotNETHost.hpp>
@@ -42,6 +40,7 @@
 
 #include <Core/reflection/Property.hpp>
 #include <Core/reflection/Field.hpp>
+
 #include <Core/serialization/SerializationUtils.hpp>
 
 #include <Core/functional/Delegate.hpp>
@@ -376,21 +375,6 @@ static Optional<UIObjectSize> ParseUIObjectSize(const String& str)
     }
 
     return {};
-}
-
-static JSON::ParseResult ParseJSON(FBOMLoadContext& context, const String& str, FBOMData& outData)
-{
-    // Read string as JSON
-    JSON::ParseResult parseResult = JSON::Parse(str);
-
-    if (!parseResult.ok)
-    {
-        return parseResult;
-    }
-
-    outData = FBOMData::FromJSON(parseResult.value);
-
-    return parseResult;
 }
 
 class UISAXHandler : public xml::SAXHandler

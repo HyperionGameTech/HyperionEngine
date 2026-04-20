@@ -15,10 +15,6 @@
 
 #include <Core/io/BufferedByteReader.hpp>
 
-#include <Core/serialization/fbom/FBOM.hpp>
-#include <Core/serialization/fbom/FBOMReader.hpp>
-#include <Core/serialization/fbom/FBOMLoadContext.hpp>
-
 #include <Core/reflection/TypeInfo.hpp>
 
 #include <Core/memory/pool/Pool.hpp>
@@ -3386,36 +3382,6 @@ SCRIPT_INLINE static void HandleInstruction(
 
         break;
     } // TRACEMAP
-    case BINDATA:
-    {
-        RegisterIndex reg;
-        bs->Read(&reg);
-
-        uint32 len;
-        bs->Read(&len);
-
-        ByteBuffer buffer(len, /* zeroize */ false);
-        bs->Read(buffer.Data(), len);
-
-        FBOMReader reader { FBOMReaderConfig {} };
-        FBOMLoadContext ctx;
-
-        MemoryBufferedReaderSource source { buffer };
-        BufferedReader bufferedReader { &source };
-
-        BoxedValue result;
-        if (FBOMResult err = reader.Deserialize(ctx, bufferedReader, result))
-        {
-            // throw exception for invalid data:
-            handler->vm->ThrowException(instance, Exception(err.message.Data()));
-
-            break;
-        }
-
-        handler->instance->thread.m_regs[reg] = MakeValue(std::move(result));
-
-        break;
-    } // BINDATA
     case REM:
     {
         uint32 len;
