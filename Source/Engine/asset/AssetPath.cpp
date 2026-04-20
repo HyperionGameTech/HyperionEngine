@@ -93,7 +93,7 @@ String AssetPath::ToString() const
 {
     if (!IsValid())
     {
-        return "<invalid asset path>";
+        return String::empty;
     }
 
     const char* bucketName = GetAssetBucketName(bucketIndex);

@@ -131,7 +131,15 @@ namespace Hyperion.Editor
 
         private void OnSceneTreePointerPressed(object? sender, PointerPressedEventArgs e)
         {
-            if (e.GetCurrentPoint(sender as Visual).Properties.IsLeftButtonPressed)
+            var point = e.GetCurrentPoint(sender as Visual);
+
+            if (point.Properties.IsRightButtonPressed)
+            {
+                e.Handled = true;
+                return;
+            }
+
+            if (point.Properties.IsLeftButtonPressed)
             {
                 _dragCandidate = FindNodeViewModelInEventSource(e.Source);
                 _dragStartPoint = e.GetPosition(sender as Visual);

@@ -628,25 +628,42 @@ namespace Hyperion
                 GCHandle gcHandleWeak = GCHandle.Alloc(obj, GCHandleType.Weak);
                 GCHandle? gcHandleStrong = null;
 
-                if (pCallback != IntPtr.Zero)
+                try
                 {
-                    if (!type.IsValueType)
-                        throw new InvalidOperationException("InitializeObjectCallback can only be used with value types");
+                    if (pCallback != IntPtr.Zero)
+                    {
+                        if (!type.IsValueType)
+                            throw new InvalidOperationException("InitializeObjectCallback can only be used with value types");
 
-                    gcHandleStrong = GCHandle.Alloc(obj, GCHandleType.Pinned);
+                        gcHandleStrong = GCHandle.Alloc(obj, GCHandleType.Pinned);
 
-                    InitializeObjectCallbackDelegate callbackDelegate = Marshal.GetDelegateForFunctionPointer<InitializeObjectCallbackDelegate>(pCallback);
-                    callbackDelegate(pCtx, ((GCHandle)gcHandleStrong).AddrOfPinnedObject(), (uint)Marshal.SizeOf(type));
+                        InitializeObjectCallbackDelegate callbackDelegate = Marshal.GetDelegateForFunctionPointer<InitializeObjectCallbackDelegate>(pCallback);
+                        callbackDelegate(pCtx, ((GCHandle)gcHandleStrong).AddrOfPinnedObject(), (uint)Marshal.SizeOf(type));
 
-                    if (!keepAlive)
+                        if (!keepAlive)
+                        {
+                            ((GCHandle)gcHandleStrong).Free();
+                            gcHandleStrong = null;
+                        }
+                    }
+                    else if (keepAlive)
+                    {
+                        gcHandleStrong = GCHandle.Alloc(obj, GCHandleType.Normal);
+                    }
+                }
+                catch (Exception)
+                {
+                    // Free the GCHandles in case of an exception to prevent memory leaks.
+
+                    if (gcHandleStrong.HasValue)
                     {
                         ((GCHandle)gcHandleStrong).Free();
                         gcHandleStrong = null;
                     }
-                }
-                else if (keepAlive)
-                {
-                    gcHandleStrong = GCHandle.Alloc(obj, GCHandleType.Normal);
+
+                    ((GCHandle)gcHandleWeak).Free();
+
+                    throw;
                 }
 
                 return new ObjectReference
@@ -841,7 +858,18 @@ namespace Hyperion
                 gcHandleStrong = GCHandle.Alloc(obj, GCHandleType.Normal);
 
 #if DEBUG
-            Debug.Assert(objectReferenceRef.WeakHandle == IntPtr.Zero && objectReferenceRef.StrongHandle == IntPtr.Zero, "ObjectReference already has handles assigned");
+            try
+            {
+                Debug.Assert(objectReferenceRef.WeakHandle == IntPtr.Zero && objectReferenceRef.StrongHandle == IntPtr.Zero, "ObjectReference already has handles assigned");
+            }
+            catch (Exception ex)
+            {
+                gcHandleWeak.Free();
+                if (gcHandleStrong.HasValue)
+                    ((GCHandle)gcHandleStrong).Free();
+
+                throw;
+            }
 #endif
 
             // @NOTE: reassign ref

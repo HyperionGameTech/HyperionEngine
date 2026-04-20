@@ -117,6 +117,7 @@ void AssetObject::MarkDirty()
 
         if (!registry.IsValid())
         {
+            HYP_LOG(Assets, Warning, "Cannot mark asset '{}' dirty: no active asset registry for path '{}'", m_name, m_assetPath.ToString());
             return;
         }
 

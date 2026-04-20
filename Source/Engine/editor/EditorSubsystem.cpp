@@ -717,7 +717,6 @@ Handle<Node> TranslateEditorGizmo::Load_Internal() const
         if (Handle<Node> node = result->Result(); node.IsValid())
         {
             node->SetName(NAME("TranslateGizmo"));
-
             node->SetWorldScale(2.5f);
 
             Handle<Node> axisX = node->FindChildByName("Mat_Translate_X"_sh);
@@ -779,12 +778,8 @@ Handle<Node> TranslateEditorGizmo::Load_Internal() const
                     Handle<MaterialDefinition> materialDefinition = MakeHandle<MaterialDefinition>(NAME("DebugMaterial"), materialAttributes, materialParameters, MaterialTextures {});
                     InitObject(materialDefinition);
 
-                    GetCurrentAssetRegistry()->PutAssetUnique(materialDefinition);
-
                     Handle<MaterialInstance> materialInstance = materialDefinition->CreateInstance();
                     materialInstance->SetIsDynamic(true);
-
-                    GetCurrentAssetRegistry()->PutAssetUnique(materialInstance);
 
                     meshComponent->material = std::move(materialInstance);
                 }
@@ -815,7 +810,6 @@ Handle<Node> RotateEditorGizmo::Load_Internal() const
         if (Handle<Node> node = result->Result(); node.IsValid())
         {
             node->SetName(NAME("RotateWidget"));
-
             node->SetWorldScale(2.5f);
 
             Handle<Node> axisX = node->FindChildByName("Rotate_X"_sh);
@@ -868,11 +862,11 @@ Handle<Node> RotateEditorGizmo::Load_Internal() const
 
                     {
                         Handle<MaterialDefinition> materialDefinition = MakeHandle<MaterialDefinition>(NAME("DebugMaterial"), materialAttributes, materialParameters, MaterialTextures {});
-                        GetCurrentAssetRegistry()->PutAssetUnique(materialDefinition);
                         InitObject(materialDefinition);
                         
                         Handle<MaterialInstance> materialInstance = materialDefinition->CreateInstance();
                         materialInstance->SetIsDynamic(true);
+
                         meshComponent->material = std::move(materialInstance);
                     }
 
@@ -1226,6 +1220,7 @@ Handle<Node> VolumeEditorGizmo::Load_Internal() const
 
     Handle<Node> rootNode = MakeHandle<Node>();
     rootNode->SetName(NAME("VolumeEditGizmo"));
+
     rootNode->UnlockTransform();
     rootNode->SetNodeFlags(rootNode->GetNodeFlags() | NodeFlags::HideInSceneOutline);
     rootNode->SetIsTransient(true);

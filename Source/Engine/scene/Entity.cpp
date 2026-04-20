@@ -262,7 +262,12 @@ void Entity::OnRemovedFromScene(Scene* scene)
 
 void Entity::OnComponentAdded(AnyRef component)
 {
-    HYP_SCOPE;
+#if HYP_EDITOR
+    if (const Class* componentClass = component.GetClass(); componentClass != nullptr && componentClass->CanSerialize())
+    {
+        MarkDirty();
+    }
+#endif // HYP_EDITOR
 
     if (MeshComponent* meshComponent = component.TryGet<MeshComponent>())
     {
@@ -314,14 +319,36 @@ void Entity::OnComponentAdded(AnyRef component)
 
 void Entity::OnComponentRemoved(AnyRef component)
 {
+#if HYP_EDITOR
+    if (const Class* componentClass = component.GetClass(); componentClass != nullptr && componentClass->CanSerialize())
+    {
+        MarkDirty();
+    }
+#endif // HYP_EDITOR
 }
 
 void Entity::OnTagAdded(EntityTag tag)
 {
+#if HYP_EDITOR
+    const bool isSerializableTag = (uint64(tag) & EntityTag::SerializableTagMask) != 0;
+
+    if (isSerializableTag)
+    {
+        MarkDirty();
+    }
+#endif // HYP_EDITOR
 }
 
 void Entity::OnTagRemoved(EntityTag tag)
 {
+#if HYP_EDITOR
+    const bool isSerializableTag = (uint64(tag) & EntityTag::SerializableTagMask) != 0;
+
+    if (isSerializableTag)
+    {
+        MarkDirty();
+    }
+#endif // HYP_EDITOR
 }
 
 void Entity::SetScene(Scene* scene)

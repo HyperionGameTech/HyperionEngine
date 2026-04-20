@@ -2,6 +2,7 @@
 #include <editor/EditorSubsystem.hpp>
 #include <editor/EditorProject.hpp>
 #include <editor/EditorState.hpp>
+#include <editor/EditorViewport.hpp>
 
 #include <scene/Scene.hpp>
 #include <scene/World.hpp>
@@ -1248,6 +1249,122 @@ DEFINE_EDITOR_COMMAND(ShowTexture);
 #endif
 
 #pragma endregion ShowTexture
+
+#pragma region DeleteNode
+
+class HYP_API EditorCommandDeleteNode final : public EditorCommandBase
+{
+    HYP_OBJECT_BODY(EditorCommandDeleteNode);
+
+public:
+    virtual ~EditorCommandDeleteNode() override = default;
+
+    virtual String GetText() const override
+    {
+        return "Delete Node";
+    }
+
+    virtual void Execute(EditorSubsystem* subsystem) override
+    {
+        const Handle<EditorProject>& currentProject = subsystem->GetCurrentProject();
+        if (!currentProject.IsValid())
+        {
+            HYP_LOG(Editor, Error, "EditorCommandDeleteNode: no project loaded");
+            return;
+        }
+
+        Handle<Node> node = subsystem->GetFocusedNode();
+        if (!node.IsValid())
+        {
+            HYP_LOG(Editor, Warning, "EditorCommandDeleteNode: no node focused");
+            return;
+        }
+
+        Node* parentRaw = node->GetParent();
+        if (!parentRaw)
+        {
+            HYP_LOG(Editor, Warning, "EditorCommandDeleteNode: focused node has no parent (cannot delete root)");
+            return;
+        }
+
+        Handle<Node> parent = MakeStrongRef(parentRaw);
+
+        Handle<FunctionalEditorAction> action = MakeHandle<FunctionalEditorAction>(
+            GetText(),
+            Proc<EditorActionFunctions()>([node, parent]() -> EditorActionFunctions
+                {
+                    return EditorActionFunctions {
+                        .execute = Proc<void(EditorSubsystem*, EditorProject*)>([node, parent](EditorSubsystem* editorSubsystem, EditorProject* project)
+                            {
+                                node->Remove();
+
+                                if (editorSubsystem->GetFocusedNode() == node)
+                                {
+                                    editorSubsystem->SetFocusedNode(nullptr, true);
+                                }
+                            }),
+                        .revert = Proc<void(EditorSubsystem*, EditorProject*)>([node, parent](EditorSubsystem* editorSubsystem, EditorProject* project)
+                            {
+                                parent->AddChild(node);
+                                editorSubsystem->SetFocusedNode(node, true);
+                            })
+                    };
+                }));
+
+        InitObject(action);
+
+        currentProject->GetActionStack()->PushAction(action);
+    }
+};
+
+DEFINE_EDITOR_COMMAND(DeleteNode);
+
+#pragma endregion DeleteNode
+
+#pragma region TeleportTo
+
+class HYP_API EditorCommandTeleportTo final : public EditorCommandBase
+{
+    HYP_OBJECT_BODY(EditorCommandTeleportTo);
+
+public:
+    virtual ~EditorCommandTeleportTo() override = default;
+
+    virtual String GetText() const override
+    {
+        return "Teleport To";
+    }
+
+    virtual void Execute(EditorSubsystem* subsystem) override
+    {
+        Handle<Node> node = subsystem->GetFocusedNode();
+        if (!node.IsValid())
+        {
+            HYP_LOG(Editor, Warning, "EditorCommandTeleportTo: no node focused");
+            return;
+        }
+
+        EditorViewport* activeViewport = subsystem->GetActiveViewport();
+        if (!activeViewport)
+        {
+            HYP_LOG(Editor, Warning, "EditorCommandTeleportTo: no active viewport");
+            return;
+        }
+
+        const Handle<Camera>& camera = activeViewport->GetCamera();
+        if (!camera.IsValid())
+        {
+            HYP_LOG(Editor, Warning, "EditorCommandTeleportTo: no camera in active viewport");
+            return;
+        }
+
+        camera->SetTranslation(node->GetWorldTranslation());
+    }
+};
+
+DEFINE_EDITOR_COMMAND(TeleportTo);
+
+#pragma endregion TeleportTo
 
 #undef DEFINE_EDITOR_COMMAND
 

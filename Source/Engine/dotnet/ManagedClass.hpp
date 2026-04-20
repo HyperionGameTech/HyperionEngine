@@ -375,6 +375,14 @@ public:
 
             SetArgsBoxed(std::make_index_sequence<sizeof...(args)>(), argsArray, argsArrayPtr, std::forward<Args>(args)...);
 
+            // BoxedValue elements are placement-new'd into alloca memory, so their destructors
+            // must be called explicitly to release any owned resources (e.g. Handle<> ref counts).
+            HYP_DEFER({
+                for (size_t i = 0; i < sizeof...(args); ++i) {
+                    argsArray[i].~BoxedValue();
+                }
+            });
+
             if constexpr (std::is_void_v<ReturnType>)
             {
                 InvokeStaticMethod_Internal(methodPtr, argsArrayPtr, nullptr);

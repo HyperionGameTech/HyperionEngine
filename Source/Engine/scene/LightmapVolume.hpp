@@ -178,10 +178,6 @@ protected:
 private:
     void Init() override;
 
-    void UpdateAtlasTextures(
-        uint16 atlasIndex,
-        HashMap<LightmapElementId, FixedArray<Handle<Texture>, NumAtlasTextureTypes>>&& elementTextures);
-
     HYP_FIELD(Property = "RadianceAtlasTextures")
     Array<Handle<Texture>, FixedAllocator<MaxAtlases>> m_radianceAtlasTextures;
 

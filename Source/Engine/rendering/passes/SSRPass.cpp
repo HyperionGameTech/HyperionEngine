@@ -224,15 +224,13 @@ void SSRPass::UpdatePipelineState(Frame* frame, const RenderSetup& renderSetup)
         m_uvsTexture = MakeHandle<Texture>(TextureDesc {
             TextureType::Texture2D,
             SSRTraceFormat,
-            Vec3u {
-                uint32(MathUtil::Ceil(m_currentExtent.x * TraceResolutionScale)),
-                uint32(MathUtil::Ceil(m_currentExtent.y * TraceResolutionScale)),
-                1 },
+            Vec3u { uint32(MathUtil::Ceil(m_currentExtent.x * TraceResolutionScale)), uint32(MathUtil::Ceil(m_currentExtent.y * TraceResolutionScale)), 1 },
             TFM_NEAREST,
             TFM_NEAREST,
             TWM_CLAMP_TO_EDGE,
             1,
-            IU_ATTACHMENT | IU_SAMPLED });
+            IU_ATTACHMENT | IU_SAMPLED
+        });
 
         m_uvsTexture->SetName(NAME("SSRTexture_UVs"));
         CheckResult(m_uvsTexture->Create());

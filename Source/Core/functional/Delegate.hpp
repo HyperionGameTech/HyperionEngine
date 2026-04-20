@@ -665,6 +665,31 @@ protected:
 
         entry->MarkForRemoval();
 
+        // Upgrade from shared to exclusive access so we can safely reset the proc.
+        //
+        // Setting ExclusiveAccessFlag prevents new shared-access attempts (e.g. a concurrent
+        // Broadcast spinning to acquire a read slot will see the flag and back off).
+        // We keep our own shared slot (+2) held throughout, which prevents the entry from
+        // being deleted by a concurrent Broadcast before we are done.
+        entry->mask.BitOr(ExclusiveAccessFlag, MemoryOrder::ACQUIRE);
+
+        // Wait until every OTHER shared reader has drained.
+        // (mask & SharedAccessMask) == 2 means only our own +2 slot remains.
+        // A concurrent Broadcast that already holds a read slot will call proc.Reset()
+        // itself once the proc returns (IsMarkedForRemoval() is now true), so this
+        // wait is expected to be very short.
+        while ((entry->mask.Get(MemoryOrder::ACQUIRE) & SharedAccessMask) > 2)
+        {
+            HYP_WAIT_IDLE();
+        }
+
+        // No other shared reader is active — safe to reset the proc and release
+        // any captured resources (e.g. managed-object GC handles) immediately,
+        // rather than waiting for the next Broadcast() call (which may never come).
+        static_cast<DelegateHandlerEntry<ProcType>*>(entry)->proc.Reset();
+
+        // Release exclusive flag first, then our shared slot.
+        entry->mask.BitAnd(~ExclusiveAccessFlag, MemoryOrder::RELEASE);
         entry->mask.Decrement(2, MemoryOrder::RELEASE);
 
         return true;

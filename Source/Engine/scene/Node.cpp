@@ -190,8 +190,6 @@ Node* Node::FindParentWithName(UTF8StringView name) const
 
 void Node::SetScene(Scene* scene)
 {
-    HYP_SCOPE;
-
     if (!scene)
     {
         scene = GetDetachedSceneForCurrentThread();
@@ -238,8 +236,6 @@ void Node::OnTransformUpdated()
 
 void Node::OnMobilityChanged(bool isStatic)
 {
-    HYP_SCOPE;
-
     if (isStatic)
     {
         for (const Handle<Node>& child : m_childNodes)
@@ -305,8 +301,6 @@ void Node::OnNodeDetached(Node* node)
 
 void Node::SetChildren(const NodeList& children)
 {
-    HYP_SCOPE;
-
     RemoveAllChildren();
 
     for (const Handle<Node>& child : children)
@@ -317,8 +311,6 @@ void Node::SetChildren(const NodeList& children)
 
 Handle<Node> Node::AddChild(const Handle<Node>& node)
 {
-    HYP_SCOPE;
-
     if (!node.IsValid())
     {
         return AddChild(Handle<Node>(MakeHandle<Node>()));
@@ -375,14 +367,14 @@ Handle<Node> Node::AddChild(const Handle<Node>& node)
 
         currentParent = currentParent->m_parentNode;
     }
+    
+    MarkDirty();
 
     return node;
 }
 
 bool Node::RemoveChild(const Node* node)
 {
-    HYP_SCOPE;
-
     if (!node)
     {
         return false;
@@ -437,14 +429,14 @@ bool Node::RemoveChild(const Node* node)
 
     UpdateWorldTransform();
     EnqueueDeletion(std::move(childNode));
+    
+    MarkDirty();
 
     return true;
 }
 
 bool Node::RemoveAt(uint32 index)
 {
-    HYP_SCOPE;
-
     if (index >= m_childNodes.Size())
     {
         return false;
@@ -457,8 +449,6 @@ bool Node::RemoveAt(uint32 index)
 
 bool Node::Remove()
 {
-    HYP_SCOPE;
-
     if (!m_parentNode)
     {
         SetScene(nullptr);
@@ -471,8 +461,6 @@ bool Node::Remove()
 
 void Node::RemoveAllChildren()
 {
-    HYP_SCOPE;
-
     for (auto it = m_childNodes.begin(); it != m_childNodes.end();)
     {
         if (const Handle<Node>& node = *it)
@@ -500,6 +488,8 @@ void Node::RemoveAllChildren()
     }
 
     UpdateWorldTransform();
+    
+    MarkDirty();
 }
 
 uint32 Node::NumChildren() const
@@ -519,8 +509,6 @@ Handle<Node> Node::GetChild(uint32 index) const
 
 Handle<Node> Node::Select(ANSIStringView selector) const
 {
-    HYP_SCOPE;
-
     Handle<Node> result;
 
     if (selector.Size() == 0)
@@ -714,14 +702,10 @@ void Node::SetLocalTransform(const Transform& transform, TransformChangeType cha
 
     m_localTransform = transform;
 
-#if HYP_EDITOR
-    World* world = GetWorld();
-
-    if (changeType != TransformChangeType::Simulation && world && world->GetGameState().IsEditMode())
+    if (changeType != TransformChangeType::Simulation)
     {
         MarkDirty();
     }
-#endif
 
     UpdateWorldTransform();
 }
@@ -765,14 +749,7 @@ void Node::SetLocalBounds(const BoundingBox& aabb)
 
     m_localBounds = aabb;
 
-#if HYP_EDITOR
-    World* world = GetWorld();
-
-    if (world && world->GetGameState().IsEditMode())
-    {
-        MarkDirty();
-    }
-#endif
+    MarkDirty();
 }
 
 BoundingBox Node::GetLocalBoundsWithChildren() const
@@ -892,8 +869,6 @@ void Node::SetWorldRotation(const Quat4f& rotation, TransformChangeType changeTy
 
 void Node::UpdateWorldTransform(bool updateChildTransforms)
 {
-    HYP_SCOPE;
-
     if (IsTransformLocked())
     {
         return;
@@ -1012,8 +987,6 @@ uint32 Node::FindSelfIndex() const
 
 bool Node::TestRay(const Ray& ray, RayTestResults& outResults, EnumFlags<RayTestFlags> flags) const
 {
-    HYP_SCOPE;
-
     const BoundingBox worldAabb = GetWorldBounds();
 
     bool hasEntityHit = false;
@@ -1147,8 +1120,6 @@ bool Node::TestRay(const Ray& ray, RayTestResults& outResults, EnumFlags<RayTest
 
 Handle<Node> Node::FindChildByName(StringHash name) const
 {
-    HYP_SCOPE;
-
     // breadth-first search
     Queue<const Node*> queue;
     queue.Push(this);
@@ -1178,39 +1149,21 @@ Handle<Node> Node::FindChildByName(StringHash name) const
 
 void Node::AddTag(NodeTag&& value)
 {
-    HYP_SCOPE;
-
     if (!m_tags.Contains(value.name))
     {
         m_tags.Add(std::move(value));
 
-#if HYP_EDITOR
-        World* world = GetWorld();
-
-        if (world && world->GetGameState().IsEditMode())
-        {
-            MarkDirty();
-        }
-#endif // HYP_EDITOR
+        MarkDirty();
     }
 }
 
 bool Node::RemoveTag(StringHash key)
 {
-    HYP_SCOPE;
-
     bool removed = m_tags.Remove(key);
 
     if (removed)
     {
-#if HYP_EDITOR
-        World* world = GetWorld();
-
-        if (world && world->GetGameState().IsEditMode())
-        {
-            MarkDirty();
-        }
-#endif // HYP_EDITOR
+        MarkDirty();
 
         return true;
     }
@@ -1220,8 +1173,6 @@ bool Node::RemoveTag(StringHash key)
 
 const NodeTag& Node::GetTag(StringHash key) const
 {
-    HYP_SCOPE;
-
     static const NodeTag emptyTag = NodeTag();
 
     const NodeTag* tag = m_tags.Get(key);
@@ -1231,8 +1182,6 @@ const NodeTag& Node::GetTag(StringHash key) const
 
 bool Node::HasTag(StringHash key) const
 {
-    HYP_SCOPE;
-
     return m_tags.Has(key);
 }
 

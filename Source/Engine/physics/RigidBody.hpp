@@ -39,7 +39,7 @@ enum class PhysicsShapeType : uint8
     CAPSULE
 };
 
-HYP_CLASS(Abstract)
+HYP_CLASS(Abstract, AssetBucket = "PhysicsShapes")
 class PhysicsShape : public AssetObject
 {
     HYP_OBJECT_BODY(PhysicsShape);
