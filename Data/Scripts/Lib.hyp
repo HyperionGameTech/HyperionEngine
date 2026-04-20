@@ -1386,6 +1386,7 @@ end
 extern class Game
     GetWorld() -> World
     GetAssetRegistry() -> AssetRegistry
+    SetAssetRegistry(assetRegistry : AssetRegistry) -> void
     GetGameState() -> GameState
     OnLaunch() -> void
     OnUpdate(delta : float) -> void
@@ -1716,7 +1717,6 @@ end
 extern class AssetRegistry
     GetRootPath() -> string
     SetRootPath(rootPath : string) -> void
-    RootPath : string
 end
 extern struct AssetReference
     GetAssetPath() -> AssetPath
@@ -1724,8 +1724,14 @@ extern struct AssetReference
 end
 extern struct AssetPath
     IsValid() -> bool
+    GetBucket() -> AssetBucket
     GetName() -> Name
     ToString() -> string
+end
+extern enum AssetRegistryId : uint32
+    Game = 0,
+    Engine,
+    Editor
 end
 extern class AssetObject
     GetName() -> Name
@@ -1753,7 +1759,6 @@ extern class AssetObject
     OriginalFilepath : string
     AssetIndex : uint32
     AssetPath : AssetPath
-    ManifestPath : string
 end
 extern struct FontAtlasTextureSet
     MainAtlas : Texture

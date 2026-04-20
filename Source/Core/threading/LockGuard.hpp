@@ -216,6 +216,16 @@ public:
         if (obj)
             obj->UnlockWriter();
     }
+    
+    HYP_FORCE_INLINE explicit operator bool() const
+    {
+        return obj != nullptr;
+    }
+
+    HYP_FORCE_INLINE bool operator!() const
+    {
+        return obj == nullptr;
+    }
 
     void Reset()
     {

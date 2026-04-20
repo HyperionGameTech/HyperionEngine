@@ -59,6 +59,14 @@ static Array<Handle<AssetRegistry>> s_currentAssetRegistryStack;
 
 HYP_API Handle<AssetRegistry> GetCurrentAssetRegistry()
 {
+    // try getting thread-local registry override.
+    AssetRegistryContext* ctx = GetGlobalContext<AssetRegistryContext>();
+
+    if (ctx != nullptr && ctx->registry.IsValid())
+    {
+        return ctx->registry;
+    }
+
     Mutex::Guard guard(s_currentAssetRegistryMtx);
 
     if (s_currentAssetRegistryStack.Any())
@@ -268,6 +276,8 @@ void AssetBucketData::SetAsset(
     AssetDesc& assetDesc,
     const Handle<AssetObject>& assetObject)
 {
+    AssertDebug(assetDesc.name.IsValid());
+
     TUniqueLock lock(mtx);
 
     auto existingAssetDescIt = assetDescs.Find(assetDesc.name);
@@ -296,18 +306,15 @@ void AssetBucketData::SetAsset(
     {
         assetDesc.index = usedIndices.FirstZeroBitIndex();
 
-        usedIndices.Set(assetDesc.index, true);
-    }
+        AssertDebug(assetDesc.index != AssetDesc::InvalidIndex);
 
-    if (assetObject.IsValid())
-    {
-        assetObject->m_assetIndex = assetDesc.index;
+        usedIndices.Set(assetDesc.index, true);
     }
 
     auto it = assetDescs.Emplace(assetDesc).first;
     assetDesc = *it; // update ref
 
-    if (const Handle<AssetObject>* pOldAssetObject = assetObjectCache.TryGet(assetDesc.index); pOldAssetObject && pOldAssetObject->IsValid())
+    if (const Handle<AssetObject>* pOldAssetObject = assetObjectCache.TryGet(assetDesc.index); pOldAssetObject && pOldAssetObject->IsValid() && (*pOldAssetObject) != assetObject)
     {
         const Handle<AssetObject>& oldAssetObject = *pOldAssetObject;
 
@@ -316,9 +323,10 @@ void AssetBucketData::SetAsset(
     }
     
     assetObject->m_name = assetDesc.name;
+    assetObject->m_assetIndex = assetDesc.index;
     assetObject->m_assetPath = AssetPath(registryId, *AssetBuckets::AllBuckets[bucketIndex], assetDesc.name);
 
-    assetObjectCache.Set(assetDesc.index, assetObject);
+    assetObjectCache[assetDesc.index] = assetObject;
 
     // transient assets are not saved, so they don't need to be marked dirty
     if (assetObject->IsTransient())
@@ -335,6 +343,8 @@ void AssetBucketData::AllocateUniqueAssetName(
     AssetDesc& outAssetDesc,
     const ProcRef<bool(const AssetDesc&)>& comparator)
 {
+    AssertDebug(inAssetName.Length() > 0);
+
     TUniqueLock lock(mtx);
 
     StringHash nameHash(inAssetName);
@@ -356,14 +366,20 @@ void AssetBucketData::AllocateUniqueAssetName(
         ANSIString uniqueName = HYP_FORMAT("{}_{}", inAssetName, suffix++);
         StringHash uniqueNameHash(uniqueName);
 
-        auto existing = assetDescs.Find(uniqueNameHash);
+        auto existingIt = assetDescs.Find(uniqueNameHash);
 
-        if (existing == assetDescs.End() || (comparator.IsValid() && comparator(*existing)))
+        if (existingIt == assetDescs.End())
         {
             outAssetDesc.name = CreateNameFromDynamicString(uniqueName);
             outAssetDesc.index = usedIndices.FirstZeroBitIndex();
 
             usedIndices.Set(outAssetDesc.index, true);
+
+            return;
+        }
+        else if (comparator.IsValid() && comparator(*existingIt))
+        {
+            outAssetDesc = *existingIt;
 
             return;
         }
@@ -611,7 +627,7 @@ Handle<AssetObject> AssetRegistry::GetAsset(const AssetBucket& bucket, StringHas
     // Load it into cache
     Handle<AssetObject> assetObject;
 
-    FilePath manifestPath = GetRootPath() / GetAssetBucketName(bucket.GetIndex()) / (strName + ".json");
+    const FilePath manifestPath = GetManifestPath(AssetPath(m_registryId, bucket, Name(name)));
     FileByteReader stream { manifestPath };
 
     JSON::Object manifestData;
@@ -738,11 +754,14 @@ void AssetRegistry::PutAsset(const AssetBucket& bucket, const Handle<AssetObject
     assetDesc.name = assetObject->m_name;
     assetDesc.index = AssetDesc::InvalidIndex;
 
-    if (!assetObject->m_name.IsValid())
+    if (!assetDesc.name.IsValid())
     {
         // no name; create one using the instance class's name. (e.g Mesh123)
 
-        data.AllocateUniqueAssetName(*assetObject->InstanceClass()->GetName(), assetDesc, [&assetObject](const AssetDesc& otherDesc) -> bool
+        data.AllocateUniqueAssetName(
+            *assetObject->InstanceClass()->GetName(),
+            assetDesc,
+            [&assetObject](const AssetDesc& otherDesc) -> bool
             {
                 return assetObject->m_assetIndex == otherDesc.index;
             });
@@ -780,9 +799,18 @@ void AssetRegistry::PutAssetUnique(const AssetBucket& bucket, const Handle<Asset
     AssetBucketData& data = m_assetBucketData[bucket.GetIndex()];
 
     AssetDesc assetDesc;
+    assetDesc.name = assetObject->m_name;
     assetDesc.index = AssetDesc::InvalidIndex;
 
-    data.AllocateUniqueAssetName(*assetObject->GetName(), assetDesc, [&assetObject](const AssetDesc& otherDesc) -> bool
+    if (!assetDesc.name.IsValid())
+    {
+        assetDesc.name = assetObject->InstanceClass()->GetName();
+    }
+
+    data.AllocateUniqueAssetName(
+        *assetDesc.name,
+        assetDesc,
+        [&assetObject](const AssetDesc& otherDesc) -> bool
         {
             return assetObject->m_assetIndex == otherDesc.index;
         });
@@ -1002,7 +1030,7 @@ void AssetRegistry::PutAssetsDeep(const Handle<AssetObject>& targetAsset)
         {
             if (assetObject->m_assetIndex == AssetDesc::InvalidIndex)
             {
-                PutAsset(assetObject);
+                PutAssetUnique(assetObject);
             }
 
             AssertDebug(assetObject->m_name.IsValid());
@@ -1054,6 +1082,12 @@ void AssetRegistry::RemoveAsset(const AssetBucket& bucket, StringHash name)
     }
 
     const uint32 index = it->index;
+    AssertDebug(index != AssetDesc::InvalidIndex);
+
+    if (index == AssetDesc::InvalidIndex)
+    {
+        return;
+    }
 
     data.assetDescs.Erase(it);
     data.usedIndices.Set(index, false);
@@ -1173,29 +1207,61 @@ void AssetRegistry::SaveDirtyAssets()
         const char* bucketName = GetAssetBucketName(bucketIndex);
         AssertDebug(bucketName != nullptr);
 
-        Array<Pair<Bitset::BitIndex, Handle<AssetObject>>> dirtyAssets;
+        HashSet<Handle<AssetObject>> dirtyAssets;
 
         {
-            TSharedLock lock(data.mtx);
+            TUniqueLock lock(data.mtx);
 
             if (!data.dirtyIndices.AnyBitsSet())
             {
                 continue;
             }
 
-            for (Bitset::BitIndex index = data.dirtyIndices.NextSetBitIndex(1); index != Bitset::NotFound; index = data.dirtyIndices.NextSetBitIndex(index + 1))
-            {
-                const Handle<AssetObject>* pAssetObject = data.assetObjectCache.TryGet(index);
+            Bitset seenIndices;
 
-                if (!pAssetObject || !pAssetObject->IsValid())
+            Bitset::BitIndex index;
+
+            do
+            {
+                index = data.dirtyIndices.NextSetBitIndex(1);
+
+                if (index == Bitset::NotFound)
                 {
-                    HYP_LOG(Assets, Warning, "Dirty index {} in bucket '{}' has no cached asset object, skipping",
-                        index, bucketName);
-                    continue;
+                    break;
                 }
 
-                dirtyAssets.EmplaceBack(index, *pAssetObject);
+                if (!seenIndices.Test(index))
+                {
+                    const Handle<AssetObject>* pAssetObject = data.assetObjectCache.TryGet(index);
+
+                    if (!pAssetObject || !pAssetObject->IsValid() || (*pAssetObject)->IsTransient())
+                    {
+                        data.dirtyIndices.Set(index, false);
+                        
+                        seenIndices.Set(index, true);
+
+                        continue;
+                    }
+
+                    Handle<AssetObject> assetObject = *pAssetObject;
+
+                    dirtyAssets.Add(assetObject);
+
+                    lock.Reset();
+
+                    // recursively register properties for this asset object
+                    PutAssetsDeep(*pAssetObject);
+
+                    // relock
+                    lock.Reset(data.mtx);
+
+                    seenIndices.Set(index, true);
+                }
+                
+                // mark this asset as no longer dirty so we don't keep looping over the same index.
+                data.dirtyIndices.Set(index, false);
             }
+            while (index != Bitset::NotFound);
         }
 
         if (dirtyAssets.Empty())
@@ -1214,38 +1280,25 @@ void AssetRegistry::SaveDirtyAssets()
             }
         }
 
-        Bitset clearedIndices;
-
-        for (const Pair<Bitset::BitIndex, Handle<AssetObject>>& pair : dirtyAssets)
+        for (const Handle<AssetObject>& assetObject : dirtyAssets)
         {
-            const Bitset::BitIndex index = pair.first;
-            const Handle<AssetObject>& assetObject = pair.second;
-
-            if (assetObject->IsTransient())
-            {
-                clearedIndices.Set(index, true);
-                continue;
-            }
-
-            // recursively register properties for this asset object
-            PutAssetsDeep(assetObject);
+            auto readScope = assetObject->GetReadScope();
 
             const Name assetName = assetObject->GetName();
             AssertDebug(assetName.IsValid());
 
             if (!assetName.IsValid())
             {
-                HYP_LOG(Assets, Warning, "Asset at index {} in bucket '{}' has an invalid name, skipping",
-                    index, bucketName);
                 continue;
             }
 
-            const FilePath manifestPath = bucketDir / (String(*assetName) + ".json");
+            const FilePath manifestPath = GetManifestPath(assetObject->GetPath());
 
             if (Result saveBlobResult = assetObject->SaveBlobData(blobStorage, bucketDir); saveBlobResult.HasError())
             {
                 HYP_LOG(Assets, Error, "Failed to save blob data for asset '{}' in bucket '{}': {}",
                     assetName, bucketName, saveBlobResult.GetError().GetMessage());
+
                 continue;
             }
 
@@ -1268,21 +1321,9 @@ void AssetRegistry::SaveDirtyAssets()
                 manifestWriter.Close();
             }
 
-            assetObject->m_manifestPath = manifestPath;
+            readScope.Reset();
 
             HYP_LOG(Assets, Verbose, "Saved asset '{}' to '{}'", assetName, manifestPath);
-
-            clearedIndices.Set(index, true);
-        }
-
-        // clear dirty flags for successfully saved assets
-        {
-            TUniqueLock lock(data.mtx);
-
-            for (Bitset::BitIndex index = clearedIndices.NextSetBitIndex(1); index != Bitset::NotFound; index = clearedIndices.NextSetBitIndex(index + 1))
-            {
-                data.dirtyIndices.Set(index, false);
-            }
         }
     }
 }
@@ -1445,6 +1486,14 @@ void AssetRegistry::PostTask(Func&& fn, Task<FutureType>* pOutFuture)
     {
         m_scheduler->Enqueue(std::forward<Func>(fn), TaskEnqueueFlags::FIRE_AND_FORGET);
     }
+}
+
+FilePath AssetRegistry::GetManifestPath(const AssetPath& assetPath) const
+{
+    const char* bucketName = GetAssetBucketName(assetPath.bucketIndex);
+    AssertDebug(bucketName != nullptr);
+
+    return GetRootPath() / bucketName / (String(*assetPath.assetName) + ".json");
 }
 
 #pragma endregion AssetRegistry

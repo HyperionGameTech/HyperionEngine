@@ -2947,10 +2947,10 @@ void EditorSubsystem::NewProject()
 
     mainScene->GetRoot()->AddChild(camera);
 
-    Handle<Scene> streamedScene = MakeHandle<Scene>();
-    streamedScene->SetName(NAME("StreamedScene"));
-    streamedScene->SetSceneFlags(SceneFlags::DEFAULT);
-    project->AddScene(streamedScene);
+    // Handle<Scene> streamedScene = MakeHandle<Scene>();
+    // streamedScene->SetName(NAME("StreamedScene"));
+    // streamedScene->SetSceneFlags(SceneFlags::DEFAULT);
+    // project->AddScene(streamedScene);
 
     // add dynamic skybox
     project->GetWorld()->AddSystemT<DynamicSkySystem>();

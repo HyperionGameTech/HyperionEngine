@@ -117,6 +117,8 @@ void Shader::PageBlobData()
             {
                 ref.readOnly = true;
             }
+
+            Assert(ref.raw != nullptr);
         }
     }
 

@@ -246,9 +246,6 @@ protected:
     HYP_FIELD(Transient)
     AssetPath m_assetPath;
 
-    HYP_FIELD(Transient)
-    FilePath m_manifestPath;
-
     mutable volatile int64 m_rwState;
 
     mutable Mutex m_initMutex;

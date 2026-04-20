@@ -3765,6 +3765,20 @@ bool ShaderCompiler::CompileBundle(
         },
         true);
 
+    if (existingShadersToRemove.Any())
+    {
+        for (Handle<Shader>& shader : existingShadersToRemove)
+        {
+            g_renderInterface->graphicsPipelineCache->ExpirePipelinesForShader(shader);
+            g_renderInterface->computePipelineCache->ExpirePipelinesForShader(shader);
+            g_renderInterface->rayTracingPipelineCache->ExpirePipelinesForShader(shader);
+            
+            GetEngineAssetRegistry()->RemoveAsset(shader);
+
+            EnqueueDeletion(std::move(shader));
+        }
+    }
+
     if (outBundle->HasErrors())
     {
         HYP_LOG(ShaderCompiler, Error,
@@ -3797,20 +3811,6 @@ bool ShaderCompiler::CompileBundle(
         FileByteWriter shaderPropertyDbWriter { shaderPropertyDbPath };
         WriteShaderPropertyDictionary(shaderPropertyDbWriter);
         shaderPropertyDbWriter.Close();
-    }
-
-    if (existingShadersToRemove.Any())
-    {
-        for (Handle<Shader>& shader : existingShadersToRemove)
-        {
-            GetEngineAssetRegistry()->RemoveAsset(shader);
-
-            g_renderInterface->graphicsPipelineCache->ExpirePipelinesForShader(shader);
-            g_renderInterface->computePipelineCache->ExpirePipelinesForShader(shader);
-            g_renderInterface->rayTracingPipelineCache->ExpirePipelinesForShader(shader);
-        }
-
-        EnqueueDeletion(std::move(existingShadersToRemove));
     }
 
     // keep compiled shaders sorted.

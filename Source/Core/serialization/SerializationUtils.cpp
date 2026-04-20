@@ -1169,6 +1169,8 @@ Result ObjectFromJSON(const JSON::Object& jsonObject, const Class* targetClass, 
                 continue;
             }
         }
+
+        instanceClass->PostLoad(target.ToRef().GetPointer());
     }
 
 #if defined(HYPERION_ENGINE) && HYPERION_ENGINE

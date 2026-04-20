@@ -160,6 +160,8 @@ public:
 
     /// End new assetbucket based stuff
 
+    FilePath GetManifestPath(const AssetPath& assetPath) const;
+
     BlobStorage& GetBlobStorage();
 
     void Initialize();

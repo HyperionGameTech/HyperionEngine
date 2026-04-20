@@ -146,9 +146,6 @@ void AssetObject::SetIsTransient(bool isTransient)
     {
         // needs to be kept in memory if transient
         SetPersistentRequested(true, /* setFlag */ false);
-
-        // transient assets don't have a manifest filepath as they are not saved to disk.
-        m_manifestPath = FilePath();
     }
     else
     {
@@ -178,14 +175,22 @@ Result AssetObject::Rename(Name name)
 
 bool AssetObject::IsSaved() const
 {
-    return m_manifestPath.Length() > 0;
+    return m_assetPath.IsValid() && !IsTransient();
 }
 
 Result AssetObject::Save()
 {
     AssertDebug(IsSaved());
 
-    return SaveAs(m_manifestPath);
+    Handle<AssetRegistry> registry = GetAssetRegistry();
+    AssertDebug(registry.IsValid());
+
+    if (!registry.IsValid())
+    {
+        return HYP_MAKE_ERROR(Error, "No active asset registry for path: {}", m_assetPath.ToString());
+    }
+
+    return SaveAs(registry->GetManifestPath(m_assetPath));
 }
 
 Result AssetObject::SaveAs(const FilePath& manifestPath)
@@ -247,11 +252,6 @@ Result AssetObject::SaveAs(const FilePath& manifestPath)
     }
 
     HYP_LOG(Assets, Verbose, "Saved asset manifest to '{}'", manifestPath);
-
-    // need to set manifest path after saving the resource, because if we need to load the data first in order
-    // to save it somewhere else, we'll need the previous manifest path to still exist otherwise we'll try to load
-    // something that doesn't exist.
-    m_manifestPath = manifestPath;
 
     return {};
 }
