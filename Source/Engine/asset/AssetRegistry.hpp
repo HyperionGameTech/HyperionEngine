@@ -45,11 +45,11 @@ HYP_API extern Pool* g_assetPool;
 using AssetAllocator = AllocatorInstance<Pool, &g_assetPool>;
 
 class AssetRegistry;
+class AssetBucketData;
 class AssetObject;
 struct BoxedValue;
 class ByteWriter;
 class BlobStorage;
-class MemoryMappedFile;
 
 enum class AssetRegistryId : uint32;
 
@@ -60,48 +60,6 @@ using AssetDescSet = IntrusiveMap<AssetDesc, &AssetDesc_KeyByFunction, AssetAllo
 
 // Maps from AssetDesc id -> AssetObject handle
 using AssetObjectCache = SparsePagedArray<Handle<AssetObject>, 64, AssetAllocator>;
-
-class AssetBucketData
-{
-public:
-    AssetRegistryId registryId : 3;
-    uint32 bucketIndex : 29;
-    
-    AssetDescSet assetDescs;
-    AssetObjectCache assetObjectCache;
-    Bitset dirtyIndices;
-    Bitset usedIndices;
-    SharedMutex mtx;
-
-    AssetBucketData()
-    {
-        // reserve index 0 for invalid
-        usedIndices.Set(0, true);
-    }
-
-    AssetBucketData(const AssetBucketData& other) = delete;
-    AssetBucketData& operator=(const AssetBucketData& other) = delete;
-
-    AssetBucketData(AssetBucketData&& other) noexcept = delete;
-    AssetBucketData& operator=(AssetBucketData&& other) noexcept = delete;
-
-    void MarkDirty(uint32 index);
-
-    void SetAsset(
-        AssetDesc& assetDesc,
-        const Handle<AssetObject>& assetObject);
-
-    /*! \brief Get a unique asset name within this bucket by appending an incrementing number to the base name until an unused name is found.
-     *   The returned AssetDesc has info about the allocated index/slot + the unique name that was generated.
-     *   \param comparator If provided, returning true from the comparator will indicate equality between assets,
-     *   meaning that new names will stop being generated from that point on, and the function will return. */
-    void AllocateUniqueAssetName(
-        ANSIStringView inAssetName,
-        AssetDesc& outAssetDesc,
-        const ProcRef<bool(const AssetDesc&)>& comparator = nullptr);
-
-    bool GetAssetDesc(StringHash nameHash, AssetDesc& outAssetDesc) const;
-};
 
 HYP_CLASS()
 class HYP_API AssetRegistry final : public ObjectBase
@@ -198,7 +156,7 @@ private:
     ClockTimer m_saveBlobCacheTimer;
     threading::TaskBatch* m_saveBlobCacheBatch;
 
-    FixedArray<AssetBucketData, MaxAssetBuckets> m_assetBucketData;
+    Array<AssetBucketData, AssetAllocator> m_assetBucketData;
 
     Scheduler* m_scheduler;
 

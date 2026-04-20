@@ -137,9 +137,6 @@ enum Instructions : Hyperion::uint8
     /* Binary to source trace map functionality */
     TRACEMAP, // tracemap [u32 length]
 
-    /* Data blob, uses FBOM serialization/deserialization utils */
-    BINDATA, // [% dst, u32 len, byte[len] data]
-
     /* Comment (for debugging) */
     REM, // rem [u32 len, byte[len] str]
     /* Export a symbol from register value by name */

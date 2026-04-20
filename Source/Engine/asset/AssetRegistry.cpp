@@ -266,6 +266,53 @@ static const AssetBucket& GetBucketForAsset(const AssetObject& assetObject)
     return AssetBuckets::None;
 }
 
+class AssetBucketData
+{
+public:
+    HYP_DEF_POOL_NEW_DELETE(g_assetPool);
+
+    AssetRegistryId registryId : 3;
+    uint32 bucketIndex : 29;
+    
+    AssetDescSet assetDescs;
+    AssetObjectCache assetObjectCache;
+    
+    TBitset<AssetAllocator> dirtyIndices;
+    TBitset<AssetAllocator> usedIndices;
+
+    SharedMutex mtx;
+
+    AssetBucketData()
+    {
+        registryId = AssetRegistryId::Game;
+        bucketIndex = AssetBucket::InvalidIndex;
+
+        // reserve index 0 for invalid
+        usedIndices.Set(0, true);
+    }
+
+    AssetBucketData(const AssetBucketData& other) = delete;
+    AssetBucketData& operator=(const AssetBucketData& other) = delete;
+
+    AssetBucketData(AssetBucketData&& other) noexcept = delete;
+    AssetBucketData& operator=(AssetBucketData&& other) noexcept = delete;
+
+    void MarkDirty(uint32 index);
+
+    void SetAsset(AssetDesc& assetDesc, const Handle<AssetObject>& assetObject);
+
+    /*! \brief Get a unique asset name within this bucket by appending an incrementing number to the base name until an unused name is found.
+     *   The returned AssetDesc has info about the allocated index/slot + the unique name that was generated.
+     *   \param comparator If provided, returning true from the comparator will indicate equality between assets,
+     *   meaning that new names will stop being generated from that point on, and the function will return. */
+    void AllocateUniqueAssetName(
+        ANSIStringView inAssetName,
+        AssetDesc& outAssetDesc,
+        const ProcRef<bool(const AssetDesc&)>& comparator = nullptr);
+
+    bool GetAssetDesc(StringHash nameHash, AssetDesc& outAssetDesc) const;
+};
+
 void AssetBucketData::MarkDirty(uint32 index)
 {
     TUniqueLock lock(mtx);
@@ -416,6 +463,8 @@ AssetRegistry::AssetRegistry(AssetRegistryId registryId, const FilePath& rootPat
       m_saveBlobCacheBatch(nullptr),
       m_blobStorage(nullptr)
 {
+    m_assetBucketData.Resize(MaxAssetBuckets);
+
     for (uint32 bucketIndex = 0; bucketIndex < uint32(m_assetBucketData.Size()); bucketIndex++)
     {
         AssetBucketData& bucketData = m_assetBucketData[bucketIndex];
@@ -1219,7 +1268,7 @@ void AssetRegistry::SaveDirtyAssets()
                 continue;
             }
 
-            Bitset seenIndices;
+            TBitset<AssetAllocator> seenIndices;
 
             Bitset::BitIndex index;
 

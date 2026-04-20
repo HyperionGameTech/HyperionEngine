@@ -71,9 +71,7 @@ enum class ClassSerializationMode : uint8
     MEMBERWISE = 0x1, // Use ObjectMarshal - Serialize members
     BITWISE = 0x2,    // Use ObjectMarshal - Serialize as FBOMStruct (binary)
 
-    USE_MARSHAL_CLASS = 0x80, // Use Marshal class as override
-
-    DEFAULT = MEMBERWISE | USE_MARSHAL_CLASS
+    DEFAULT = MEMBERWISE
 };
 
 HYP_MAKE_ENUM_FLAGS(ClassSerializationMode)
