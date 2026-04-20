@@ -51,9 +51,9 @@ void AnimationTrack::PageBlobData()
             return;
         }
 
-        BlobStorage& blobStorage = registry->GetBlobStorage();
+        BlobStorage* blobStorage = registry->HasBlobStorage() ? &registry->GetBlobStorage() : nullptr;
 
-        if (!blobStorage.GetData(m_keyframeData.key, m_keyframeData.size, m_keyframeData.raw))
+        if (!blobStorage || !blobStorage->GetData(m_keyframeData.key, m_keyframeData.size, m_keyframeData.raw))
         {
 #if HYP_EDITOR || HYP_ALLOW_INLINE_BLOBS
             // check if failed; if so, try to import from raw data blob in project directory

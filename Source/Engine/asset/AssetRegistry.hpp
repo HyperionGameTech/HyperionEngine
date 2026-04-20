@@ -164,6 +164,11 @@ public:
 
     BlobStorage& GetBlobStorage();
 
+    HYP_FORCE_INLINE bool HasBlobStorage() const
+    {
+        return m_blobStorage != nullptr;
+    }
+
     void Initialize();
     void Shutdown();
 

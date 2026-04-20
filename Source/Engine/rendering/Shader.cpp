@@ -85,6 +85,8 @@ void Shader::PageBlobData()
 
     bool needSaveBlobData = false;
 
+    BlobStorage* blobStorage = registry->HasBlobStorage() ? &registry->GetBlobStorage() : nullptr;
+
     for (uint32 i = 0; i < uint32(shaderBlobs.Size()); i++)
     {
         BlobDataReference& ref = shaderBlobs[i];
@@ -92,9 +94,7 @@ void Shader::PageBlobData()
 
         if (ref.raw == nullptr && ref.key && ref.size != 0)
         {
-            BlobStorage& blobStorage = registry->GetBlobStorage();
-
-            if (!blobStorage.GetData(ref.key, ref.size, ref.raw))
+            if (!blobStorage || !blobStorage->GetData(ref.key, ref.size, ref.raw))
             {
 #if HYP_EDITOR || HYP_ALLOW_INLINE_BLOBS
                 const char* moduleTypeString = GetShaderHeaderPrefix(moduleType);
@@ -125,8 +125,6 @@ void Shader::PageBlobData()
 #if HYP_EDITOR
     if (needSaveBlobData)
     {    
-        BlobStorage& blobStorage = registry->GetBlobStorage();
-
         Result saveBlobDataResult = SaveBlobData(blobStorage);
 
         if (saveBlobDataResult.HasError())

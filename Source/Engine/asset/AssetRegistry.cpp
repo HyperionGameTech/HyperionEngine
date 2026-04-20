@@ -482,7 +482,9 @@ void AssetRegistry::Initialize()
     Assert(blobStorageDir.Exists() ? blobStorageDir.IsDirectory() : blobStorageDir.MkDir(),
         "Failed to create blob storage directory for AssetRegistry: {}", blobStorageDir);
 
+#if !HYP_EDITOR
     InitBlobStorage(blobStorageDir);
+#endif
 
     m_isInitialized = true;
 }
@@ -1198,7 +1200,7 @@ void AssetRegistry::SaveDirtyAssets()
         return;
     }
 
-    BlobStorage& blobStorage = GetBlobStorage();
+    BlobStorage* blobStorage = HasBlobStorage() ? &GetBlobStorage() : nullptr;
 
     for (uint32 bucketIndex = 1; bucketIndex < MaxAssetBuckets; ++bucketIndex)
     {
