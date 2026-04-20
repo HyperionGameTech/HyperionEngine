@@ -225,8 +225,7 @@ protected:
 
     Result SaveManifest(ByteWriter& stream) const;
 
-    Result SaveBlobData(BlobStorage& storage,
-        const Optional<FilePath>& localBlobDirectory = {});
+    Result SaveBlobData(BlobStorage* storage, const Optional<FilePath>& localBlobDirectory = {});
 
     HYP_FIELD(Property = "Name")
     Name m_name;

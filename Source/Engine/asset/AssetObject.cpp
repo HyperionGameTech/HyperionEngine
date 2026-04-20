@@ -225,7 +225,7 @@ Result AssetObject::SaveAs(const FilePath& manifestPath)
 
     registry->PutAssetsDeep(MakeStrongRef(this));
 
-    BlobStorage& blobStorage = registry->GetBlobStorage();
+    BlobStorage* blobStorage = registry->HasBlobStorage() ? &registry->GetBlobStorage() : nullptr;
 
     Result saveBlobDataResult = SaveBlobData(blobStorage, dir);
     if (saveBlobDataResult.HasError())
@@ -271,9 +271,7 @@ Result AssetObject::SaveManifest(ByteWriter& stream) const
     return {};
 }
 
-Result AssetObject::SaveBlobData(
-    BlobStorage& storage,
-    const Optional<FilePath>& localBlobDirectory)
+Result AssetObject::SaveBlobData(BlobStorage* storage, const Optional<FilePath>& localBlobDirectory)
 {
     Array<Tuple<const char*, uint16, BlobDataReference*>> blobDataReferences;
     CollectBlobDataReferences(blobDataReferences);
@@ -301,11 +299,14 @@ Result AssetObject::SaveBlobData(
         // generate new key
         reference->key = CreateNameFromDynamicString(GetPath().ToString() + "." + magic);
 
-        if (!storage.PutData(StringHash(reference->key), header, reference->raw))
+        if (storage != nullptr)
         {
-            AssertDebug(false, "Failed to write blob data reference!");
+            if (!storage->PutData(StringHash(reference->key), header, reference->raw))
+            {
+                AssertDebug(false, "Failed to write blob data reference!");
 
-            return HYP_MAKE_ERROR(Error, "Failed to write blob data reference (magic: {}, version: {})", magic, version);
+                return HYP_MAKE_ERROR(Error, "Failed to write blob data reference (magic: {}, version: {})", magic, version);
+            }
         }
 
 #if HYP_EDITOR

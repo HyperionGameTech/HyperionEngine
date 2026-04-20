@@ -178,9 +178,9 @@ void Mesh::PageBlobData()
 
         bool needsSaveBlobData = false;
 
-        BlobStorage& blobStorage = registry->GetBlobStorage();
+        BlobStorage* blobStorage = registry->HasBlobStorage() ? &registry->GetBlobStorage() : nullptr;
 
-        if (!blobStorage.GetData(m_vertexData.key, m_vertexData.size, m_vertexData.raw))
+        if (!blobStorage || !blobStorage->GetData(m_vertexData.key, m_vertexData.size, m_vertexData.raw))
         {
             ([&]()
                 {
@@ -209,7 +209,7 @@ void Mesh::PageBlobData()
             m_vertexData.readOnly = true;
         }
 
-        if (!blobStorage.GetData(m_indexData.key, m_indexData.size, m_indexData.raw))
+        if (!blobStorage || !blobStorage->GetData(m_indexData.key, m_indexData.size, m_indexData.raw))
         {
             ([&]()
                 {
@@ -241,7 +241,7 @@ void Mesh::PageBlobData()
 
         if (m_bvhData.raw == nullptr && m_bvhData.key && m_bvhData.size != 0)
         {
-            if (!blobStorage.GetData(m_bvhData.key, m_bvhData.size, m_bvhData.raw))
+            if (!blobStorage || !blobStorage->GetData(m_bvhData.key, m_bvhData.size, m_bvhData.raw))
             {
                 ([&]()
                     {
