@@ -868,10 +868,7 @@ public:
 
 #if HYP_EDITOR
     HYP_METHOD(EditorOnly)
-    void MarkDirty()
-    {
-        AssetObject::MarkDirty();
-    }
+    void MarkDirty();
 #else // !HYP_EDITOR
     static constexpr NoOpFunction<void> MarkDirty;
 #endif // HYP_EDITOR

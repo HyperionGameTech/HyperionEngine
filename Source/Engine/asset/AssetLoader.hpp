@@ -23,8 +23,6 @@
 
 #include <Core/logging/LoggerFwd.hpp>
 
-#include <Core/serialization/SerializationWrapper.hpp>
-
 #include <Core/debug/Debug.hpp>
 
 #include <Core/Constants.hpp>

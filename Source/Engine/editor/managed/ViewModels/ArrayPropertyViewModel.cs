@@ -43,7 +43,6 @@ namespace Hyperion.Editor.ViewModels
         // Arrays span both label and value columns (like structs).
         public override bool ShowInlineLabel => false;
 
-        // ─────────────────── constructors ────────────────────
 
         public ArrayPropertyViewModel(ObjectBase target, Property property, bool isReadOnly, int depth = 0)
             : base(target, property, isReadOnly)
@@ -75,7 +74,6 @@ namespace Hyperion.Editor.ViewModels
             RemoveElementCommand = new RelayCommand<InspectorPropertyViewModelBase>(vm => RemoveElementAt(Elements.IndexOf(vm!)));
         }
 
-        // ─────────────────── element VM helpers ──────────────
 
         private BoxedValue GetElementValue(int index)
         {
@@ -102,7 +100,6 @@ namespace Hyperion.Editor.ViewModels
             SetPropertyValue(_currentArrayValue);
         }
 
-        // ─────────────────── element factory ─────────────────
 
         private InspectorPropertyViewModelBase CreateElementViewModel(int index)
         {
@@ -119,11 +116,13 @@ namespace Hyperion.Editor.ViewModels
                 postWriteCallback: WriteArrayToParent);
         }
 
-        // ─────────────────── add / remove ────────────────────
 
         public void AddElement()
         {
             if (_depth >= MaxDepth)
+                return;
+
+            if (_currentArrayValue == null)
                 return;
 
             _ = EngineManager.PostToSimThread(() =>
@@ -138,29 +137,31 @@ namespace Hyperion.Editor.ViewModels
                         return;
                     }
 
-                    // Always get a fresh authoritative copy from the engine. never use _currentArrayValue from the sim thread (it is written on the UI thread).
-                    BoxedValue current = GetPropertyValue();
-
                     using (newElem)
                     {
-                        current.PushBackArrayElement(newElem);
+                        _currentArrayValue!.PushBackArrayElement(newElem);
                     }
 
-                    SetPropertyValue(current);
+                    WriteArrayToParent();
 
-                    // Re-read to get the canonical engine copy.
+                    // Re-read the array to get the canonical copy from the engine.
                     BoxedValue refreshed = GetPropertyValue();
+
+                    int newIndex = refreshed.GetArraySize() - 1;
 
                     Dispatcher.UIThread.Post(() =>
                     {
                         _currentArrayValue = refreshed;
 
-                        // Always do a full rebuild so that a concurrent RefreshValue that
-                        // already ran cannot cause a duplicate element to appear.
-                        RebuildElementVMs(_currentArrayValue);
-
-                        foreach (var vm in Elements)
+                        if (newIndex >= 0)
+                        {
+                            var vm = CreateElementViewModel(newIndex);
+                            Elements.Add(vm);
                             vm.RefreshValue();
+                        }
+
+                        HasElements = Elements.Count > 0;
+                        Value = $"(array, {Elements.Count} elem{(Elements.Count != 1 ? "s" : "")})";
                     });
                 }
                 catch (Exception ex)
@@ -172,15 +173,14 @@ namespace Hyperion.Editor.ViewModels
 
         public void RemoveElementAt(int index)
         {
+            if (_currentArrayValue == null)
+                return;
+
             _ = EngineManager.PostToSimThread(() =>
             {
                 try
                 {
-                    // Always get a fresh authoritative copy from the engine. never use
-                    // _currentArrayValue from the sim thread (it is written on the UI thread).
-                    BoxedValue current = GetPropertyValue();
-
-                    int size = current.GetArraySize();
+                    int size = _currentArrayValue!.GetArraySize();
 
                     if (index < 0 || index >= size)
                         return;
@@ -188,12 +188,12 @@ namespace Hyperion.Editor.ViewModels
                     // Shift elements left by copying, then resize.
                     for (int i = index; i < size - 1; i++)
                     {
-                        using BoxedValue next = current.GetArrayElement(i + 1);
-                        current.SetArrayElement(i, next);
+                        using BoxedValue next = _currentArrayValue.GetArrayElement(i + 1);
+                        _currentArrayValue.SetArrayElement(i, next);
                     }
 
-                    current.ResizeArray(size - 1);
-                    SetPropertyValue(current);
+                    _currentArrayValue.ResizeArray(size - 1);
+                    WriteArrayToParent();
 
                     // Re-read canonical copy.
                     BoxedValue refreshed = GetPropertyValue();
@@ -205,8 +205,8 @@ namespace Hyperion.Editor.ViewModels
                         // Rebuild element VMs from scratch (indices shifted).
                         RebuildElementVMs(_currentArrayValue);
 
-                        foreach (var vm in Elements)
-                            vm.RefreshValue();
+                        HasElements = Elements.Count > 0;
+                        Value = $"(array, {Elements.Count} elem{(Elements.Count != 1 ? "s" : "")})";
                     });
                 }
                 catch (Exception ex)

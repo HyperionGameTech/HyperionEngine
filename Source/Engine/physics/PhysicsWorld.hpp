@@ -46,7 +46,9 @@ public:
         return m_rigidBodies;
     }
 
+    virtual void Initialize() = 0;
     virtual void Teardown() = 0;
+
     virtual void Tick(double delta) = 0;
 
     virtual void AddRigidBody(const Handle<RigidBody>& rigidBody) = 0;
@@ -69,7 +71,9 @@ class HYP_API TPhysicsWorld : public PhysicsWorldBase
 {
 public:
     TPhysicsWorld()
-        : PhysicsWorldBase()
+        : PhysicsWorldBase(),
+          m_adapter(),
+          m_isInitialized(false)
     {
     }
 
@@ -136,14 +140,28 @@ public:
         m_adapter.GetCharacterState(physicsHandle, outTranslation, outIsOnGround);
     }
 
-    void Init() override
+    void Initialize() override
     {
+        if (m_isInitialized)
+        {
+            return;
+        }
+
         m_adapter.Init(this);
+
+        m_isInitialized = true;
     }
 
     void Teardown() override
     {
+        if (!m_isInitialized)
+        {
+            return;
+        }
+
         m_adapter.Teardown(this);
+
+        m_isInitialized = false;
     }
 
     void Tick(double delta) override
@@ -153,6 +171,7 @@ public:
 
 private:
     Adapter m_adapter;
+    bool m_isInitialized;
 };
 
 } // namespace Hyperion

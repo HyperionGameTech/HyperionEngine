@@ -392,7 +392,7 @@ private:
     HYP_FIELD(Property = "GameInstance", Transient)
     Game* m_gameInstance;
 
-    HYP_FIELD(Property = "WorldFlags", Serialize)
+    HYP_FIELD(Property = "WorldFlags", Serialize, LoadOrder = 0)
     EnumFlags<WorldFlags> m_worldFlags;
 
     HYP_FIELD(Property = "Scenes", Transient)
@@ -407,7 +407,8 @@ private:
     HYP_FIELD(Property = "CSMState", Transient)
     CSMState m_csmState;
 
-    HYP_FIELD(Property = "Systems")
+    // systems must load after flags are set
+    HYP_FIELD(Property = "Systems", LoadOrder = 200)
     Array<Handle<SystemBase>> m_systems;
 
     Array<SystemExecutionGroup*> m_systemExecutionGroups;

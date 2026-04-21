@@ -8,6 +8,7 @@
 
 #include <physics/PhysicsWorld.hpp>
 #include <physics/RigidBody.hpp>
+#include <physics/PhysicsShape.hpp>
 
 #include <Core/memory/UniquePtr.hpp>
 

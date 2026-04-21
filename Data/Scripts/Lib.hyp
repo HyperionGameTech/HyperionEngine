@@ -1195,6 +1195,8 @@ extern enum AccelerationStructureType : uint8
     BOTTOM_LEVEL,
     TOP_LEVEL
 end
+extern class RigidBody
+end
 extern class PhysicsWorldBase
 end
 extern struct PhysicsMaterial
@@ -2380,8 +2382,6 @@ end
 extern class CapsulePhysicsShape : PhysicsShape
     Radius : float
     Height : float
-end
-extern class RigidBody
 end
 extern enum PhysicsShapeType : uint8
     BOX,
