@@ -158,12 +158,23 @@ struct DynamicAllocationBase : AllocationBase<T>
         {
             Memory::Copy(buffer + offset, begin, count * sizeof(T));
         }
-        else
+        else if constexpr (std::is_move_constructible_v<T>)
         {
             for (size_t i = 0; i < count; i++)
             {
                 new (buffer + offset + i) T(std::move(begin[i]));
             }
+        }
+        else if constexpr (std::is_copy_constructible_v<T>)
+        {
+            for (size_t i = 0; i < count; i++)
+            {
+                new (buffer + offset + i) T(begin[i]);
+            }
+        }
+        else
+        {
+            HYP_CORE_ASSERT(count == 0, "InitFromRangeMove: T is neither move nor copy constructible");
         }
     }
 
@@ -372,13 +383,25 @@ struct InlineAllocator : Allocator<InlineAllocator<Count, DynamicAllocatorType>>
                 {
                     Memory::Copy(storage.GetPointer() + offset, begin, count * sizeof(T));
                 }
-                else
+                else if constexpr (std::is_move_constructible_v<T>)
                 {
                     // placement new
                     for (size_t i = 0; i < count; i++)
                     {
                         new (storage.GetPointer() + offset + i) T(std::move(begin[i]));
                     }
+                }
+                else if constexpr (std::is_copy_constructible_v<T>)
+                {
+                    // placement new
+                    for (size_t i = 0; i < count; i++)
+                    {
+                        new (storage.GetPointer() + offset + i) T(begin[i]);
+                    }
+                }
+                else
+                {
+                    HYP_CORE_ASSERT(count == 0, "InitFromRangeMove: T is neither move nor copy constructible");
                 }
             }
 
@@ -564,13 +587,25 @@ struct FixedAllocator : Allocator<FixedAllocator<Count>>
             {
                 Memory::Copy(storage.GetPointer() + offset, begin, count * sizeof(T));
             }
-            else
+            else if constexpr (std::is_move_constructible_v<T>)
             {
                 // placement new
                 for (size_t i = 0; i < count; i++)
                 {
                     new (storage.GetPointer() + offset + i) T(std::move(begin[i]));
                 }
+            }
+            else if constexpr (std::is_copy_constructible_v<T>)
+            {
+                // placement new
+                for (size_t i = 0; i < count; i++)
+                {
+                    new (storage.GetPointer() + offset + i) T(begin[i]);
+                }
+            }
+            else
+            {
+                HYP_CORE_ASSERT(count == 0, "InitFromRangeMove: T is neither move nor copy constructible");
             }
 
             HYP_CORE_ASSERT(magic == 0xBADA55u, "stomp detected!");

@@ -156,7 +156,7 @@ private:
     ClockTimer m_saveBlobCacheTimer;
     threading::TaskBatch* m_saveBlobCacheBatch;
 
-    Array<AssetBucketData, AssetAllocator> m_assetBucketData;
+    AssetBucketData* m_assetBucketData;
 
     Scheduler* m_scheduler;
 

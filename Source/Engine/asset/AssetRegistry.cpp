@@ -463,12 +463,12 @@ AssetRegistry::AssetRegistry(AssetRegistryId registryId, const FilePath& rootPat
       m_saveBlobCacheBatch(nullptr),
       m_blobStorage(nullptr)
 {
-    m_assetBucketData.Resize(MaxAssetBuckets);
+    m_assetBucketData = (AssetBucketData*)g_assetPool->Allocate(sizeof(AssetBucketData) * MaxAssetBuckets);
+    Assert(m_assetBucketData != nullptr);
 
-    for (uint32 bucketIndex = 0; bucketIndex < uint32(m_assetBucketData.Size()); bucketIndex++)
+    for (uint32 bucketIndex = 0; bucketIndex < MaxAssetBuckets; bucketIndex++)
     {
-        AssetBucketData& bucketData = m_assetBucketData[bucketIndex];
-
+        AssetBucketData& bucketData = *(new (m_assetBucketData + bucketIndex) AssetBucketData);
         bucketData.registryId = registryId;
         bucketData.bucketIndex = bucketIndex;
     }
@@ -505,6 +505,14 @@ AssetRegistry::~AssetRegistry()
         m_blobStorage->Release();
         m_blobStorage = nullptr;
     }
+
+    for (uint32 bucketIndex = 0; bucketIndex < MaxAssetBuckets; bucketIndex++)
+    {
+        m_assetBucketData[bucketIndex].~AssetBucketData();
+    }
+
+    g_assetPool->Free(m_assetBucketData);
+    m_assetBucketData = nullptr;
 
     delete m_scheduler;
 }
@@ -622,8 +630,10 @@ void AssetRegistry::SetRootPath(const FilePath& rootPath)
     }
 
     // Mark all assets dirty so they get saved to the new location
-    for (AssetBucketData& bucketData : m_assetBucketData)
+    for (uint32 bucketIndex = 0; bucketIndex < MaxAssetBuckets; bucketIndex++)
     {
+        AssetBucketData& bucketData = m_assetBucketData[bucketIndex];
+
         TUniqueLock bucketLock(bucketData.mtx);
 
         for (const AssetDesc& assetDesc : bucketData.assetDescs)
@@ -633,7 +643,7 @@ void AssetRegistry::SetRootPath(const FilePath& rootPath)
             {
                 bucketLock.Reset();
 
-                Handle<AssetObject> assetObject = GetAsset(*AssetBuckets::AllBuckets[bucketData.bucketIndex], assetDesc.name);
+                Handle<AssetObject> assetObject = GetAsset(*AssetBuckets::AllBuckets[bucketIndex], assetDesc.name);
                 (void)assetObject; // silence unused variable warning
 
                 bucketLock.Reset(bucketData.mtx);
@@ -1382,8 +1392,10 @@ void AssetRegistry::SaveDirtyAssets()
 
 void AssetRegistry::RemoveCached()
 {
-    for (AssetBucketData& bucketData : m_assetBucketData)
+    for (uint32 bucketIndex = 0; bucketIndex < MaxAssetBuckets; bucketIndex++)
     {
+        AssetBucketData& bucketData = m_assetBucketData[bucketIndex];
+
         TUniqueLock lock(bucketData.mtx);
 
         for (AssetDesc& desc : bucketData.assetDescs)

@@ -26,6 +26,9 @@
 #include <Core/math/Transform.hpp>
 #include <Core/math/Ray.hpp>
 #include <Core/math/BoundingBox.hpp>
+#include <Core/math/Vector2.hpp>
+#include <Core/math/Vector3.hpp>
+#include <Core/math/Vector4.hpp>
 
 #include <Core/HashCode.hpp>
 #include <Core/Types.hpp>

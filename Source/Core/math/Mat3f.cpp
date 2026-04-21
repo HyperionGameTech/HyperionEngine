@@ -62,9 +62,11 @@ float Mat3f::Determinant() const
 
 Mat3f Mat3f::Transpose() const
 {
-    return Mat3f({ rows[0][0], rows[1][0], rows[2][0],
+    return Mat3f({
+        rows[0][0], rows[1][0], rows[2][0],
         rows[0][1], rows[1][1], rows[2][1],
-        rows[0][2], rows[1][2], rows[2][2] });
+        rows[0][2], rows[1][2], rows[2][2]
+    });
 }
 
 Mat3f Mat3f::Inverse() const
@@ -96,7 +98,8 @@ Mat3f Mat3f::Inverse() const
 
 Mat3f Mat3f::operator*(const Mat3f& other) const
 {
-    return Mat3f({ rows[0][0] * other.rows[0][0] + rows[0][1] * other.rows[1][0] + rows[0][2] * other.rows[2][0],
+    return Mat3f({
+        rows[0][0] * other.rows[0][0] + rows[0][1] * other.rows[1][0] + rows[0][2] * other.rows[2][0],
         rows[0][0] * other.rows[0][1] + rows[0][1] * other.rows[1][1] + rows[0][2] * other.rows[2][1],
         rows[0][0] * other.rows[0][2] + rows[0][1] * other.rows[1][2] + rows[0][2] * other.rows[2][2],
 
@@ -106,7 +109,8 @@ Mat3f Mat3f::operator*(const Mat3f& other) const
 
         rows[2][0] * other.rows[0][0] + rows[2][1] * other.rows[1][0] + rows[2][2] * other.rows[2][0],
         rows[2][0] * other.rows[0][1] + rows[2][1] * other.rows[1][1] + rows[2][2] * other.rows[2][1],
-        rows[2][0] * other.rows[0][2] + rows[2][1] * other.rows[1][2] + rows[2][2] * other.rows[2][2] });
+        rows[2][0] * other.rows[0][2] + rows[2][1] * other.rows[1][2] + rows[2][2] * other.rows[2][2]
+    });
 }
 
 Mat3f& Mat3f::operator*=(const Mat3f& other)
@@ -116,9 +120,9 @@ Mat3f& Mat3f::operator*=(const Mat3f& other)
 
 Mat3f Mat3f::Zeros()
 {
-    float zeroArray[9] = { 0.0f };
-
-    return Mat3f(zeroArray);
+    ValueStorage<Mat3f> m;
+    Memory::Zero(&m, sizeof(m));
+    return m.Get();
 }
 
 Mat3f Mat3f::Ones()

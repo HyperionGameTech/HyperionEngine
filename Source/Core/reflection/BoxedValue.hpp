@@ -79,9 +79,6 @@ struct GetReturnTypeHelper<BoxedValue, true>
     using Type = const BoxedValue&;
 };
 
-HYP_API extern BoxedValueSerializeFunction GetBoxedValueSerializeFunction(TypeId typeId);
-HYP_API extern void RegisterBoxedValueSerializeFunction(TypeId typeId, BoxedValueSerializeFunction func);
-
 struct GenericArrayWrapper;
 
 #ifdef HYP_SCRIPT
@@ -92,7 +89,7 @@ static constexpr GCIndex GARBAGE_GC_INDEX = GCIndex(1u << 30);
 
 // max 31 bits for index - this is the highest valid index
 static constexpr GCIndex MAX_GC_INDEX = GCIndex((1u << 31) - 1);
-#endif
+#endif // HYP_SCRIPT
 
 /*! \brief A type-safe union that can store multiple different types of run-time data, abstracting away internal engine structures such as Handle<T>, RC<T>, etc.
  *  Providing a unified way of accessing the data via Get<T>() and TryGet<T>() methods.
@@ -1965,234 +1962,6 @@ struct BoxedValueHelper<LinkedList<T>> : BoxedValueHelper<GenericArrayWrapper>
     }
 };
 
-/// Matrix and Vector types
-
-// fwd decl for math types
-namespace math {
-template <class T>
-struct Vec2;
-
-template <class T>
-struct Vec3;
-
-template <class T>
-struct Vec4;
-
-} // namespace math
-
-template <class T>
-struct BoxedValueHelperDecl<math::Vec2<T>>
-{
-};
-
-template <class T>
-struct BoxedValueHelper<math::Vec2<T>> : BoxedValueHelper<Any>
-{
-    using ConvertibleFrom = Tuple<>;
-
-    HYP_FORCE_INLINE bool Is(const Any& value) const
-    {
-        return value.Is<math::Vec2<T>>();
-    }
-
-    HYP_FORCE_INLINE math::Vec2<T>& Get(const Any& value) const
-    {
-        return value.Get<math::Vec2<T>>();
-    }
-
-    HYP_FORCE_INLINE void Set(BoxedValue& boxed, const math::Vec2<T>& value) const
-    {
-        BoxedValueHelper<Any>::Set(boxed, Any::Construct<math::Vec2<T>>(value));
-    }
-};
-
-template <class T>
-struct BoxedValueHelperDecl<math::Vec3<T>>
-{
-};
-
-template <class T>
-struct BoxedValueHelper<math::Vec3<T>> : BoxedValueHelper<Any>
-{
-    using ConvertibleFrom = Tuple<>;
-
-    HYP_FORCE_INLINE bool Is(const Any& value) const
-    {
-        return value.Is<math::Vec3<T>>();
-    }
-
-    HYP_FORCE_INLINE math::Vec3<T>& Get(const Any& value) const
-    {
-        return value.Get<math::Vec3<T>>();
-    }
-
-    HYP_FORCE_INLINE void Set(BoxedValue& boxed, const math::Vec3<T>& value) const
-    {
-        BoxedValueHelper<Any>::Set(boxed, Any::Construct<math::Vec3<T>>(value));
-    }
-};
-
-template <class T>
-struct BoxedValueHelperDecl<math::Vec4<T>>
-{
-};
-
-template <class T>
-struct BoxedValueHelper<math::Vec4<T>> : BoxedValueHelper<Any>
-{
-    using ConvertibleFrom = Tuple<>;
-
-    HYP_FORCE_INLINE bool Is(const Any& value) const
-    {
-        return value.Is<math::Vec4<T>>();
-    }
-
-    HYP_FORCE_INLINE math::Vec4<T>& Get(const Any& value) const
-    {
-        return value.Get<math::Vec4<T>>();
-    }
-
-    HYP_FORCE_INLINE void Set(BoxedValue& boxed, const math::Vec4<T>& value) const
-    {
-        BoxedValueHelper<Any>::Set(boxed, Any::Construct<math::Vec4<T>>(value));
-    }
-};
-
-template <>
-struct BoxedValueHelperDecl<Mat3f>
-{
-};
-
-template <>
-struct BoxedValueHelper<Mat3f> : BoxedValueHelper<Any>
-{
-    using ConvertibleFrom = Tuple<>;
-
-    HYP_FORCE_INLINE bool Is(const Any& value) const
-    {
-        return value.Is<Mat3f>();
-    }
-
-    HYP_FORCE_INLINE Mat3f& Get(const Any& value) const
-    {
-        return value.Get<Mat3f>();
-    }
-
-    HYP_FORCE_INLINE void Set(BoxedValue& boxed, const Mat3f& value) const
-    {
-        BoxedValueHelper<Any>::Set(boxed, Any::Construct<Mat3f>(value));
-    }
-};
-
-template <>
-struct BoxedValueHelperDecl<Mat4f>
-{
-};
-
-template <>
-struct BoxedValueHelper<Mat4f> : BoxedValueHelper<Any>
-{
-    using ConvertibleFrom = Tuple<>;
-
-    HYP_FORCE_INLINE bool Is(const Any& value) const
-    {
-        return value.Is<Mat4f>();
-    }
-
-    HYP_FORCE_INLINE Mat4f& Get(const Any& value) const
-    {
-        return value.Get<Mat4f>();
-    }
-
-    HYP_FORCE_INLINE void Set(BoxedValue& boxed, const Mat4f& value) const
-    {
-        BoxedValueHelper<Any>::Set(boxed, Any::Construct<Mat4f>(value));
-    }
-};
-
-template <>
-struct BoxedValueHelperDecl<Quat4f>
-{
-};
-
-template <>
-struct BoxedValueHelper<Quat4f> : BoxedValueHelper<Any>
-{
-    using ConvertibleFrom = Tuple<>;
-
-    HYP_FORCE_INLINE bool Is(const Any& value) const
-    {
-        return value.Is<Quat4f>();
-    }
-
-    HYP_FORCE_INLINE Quat4f& Get(const Any& value) const
-    {
-        return value.Get<Quat4f>();
-    }
-
-    HYP_FORCE_INLINE void Set(BoxedValue& boxed, const Quat4f& value) const
-    {
-        BoxedValueHelper<Any>::Set(boxed, Any::Construct<Quat4f>(value));
-    }
-};
-
-template <>
-struct BoxedValueHelperDecl<UUID>
-{
-};
-
-template <>
-struct BoxedValueHelper<UUID> : BoxedValueHelper<Any>
-{
-    using ConvertibleFrom = Tuple<>;
-
-    HYP_FORCE_INLINE bool Is(const Any& value) const
-    {
-        return value.Is<UUID>();
-    }
-
-    HYP_FORCE_INLINE UUID& Get(const Any& value) const
-    {
-        return value.Get<UUID>();
-    }
-
-    HYP_FORCE_INLINE void Set(BoxedValue& boxed, const UUID& value) const
-    {
-        BoxedValueHelper<Any>::Set(boxed, Any::Construct<UUID>(value));
-    }
-};
-
-template <>
-struct BoxedValueHelperDecl<ByteBuffer>
-{
-};
-
-template <>
-struct BoxedValueHelper<ByteBuffer> : BoxedValueHelper<Any>
-{
-    using ConvertibleFrom = Tuple<>;
-
-    HYP_FORCE_INLINE bool Is(const Any& value) const
-    {
-        return value.Is<ByteBuffer>();
-    }
-
-    HYP_FORCE_INLINE ByteBuffer& Get(const Any& value) const
-    {
-        return value.Get<ByteBuffer>();
-    }
-
-    HYP_FORCE_INLINE void Set(BoxedValue& boxed, const ByteBuffer& value) const
-    {
-        BoxedValueHelper<Any>::Set(boxed, Any::Construct<ByteBuffer>(value));
-    }
-
-    HYP_FORCE_INLINE void Set(BoxedValue& boxed, ByteBuffer&& value) const
-    {
-        BoxedValueHelper<Any>::Set(boxed, Any::Construct<ByteBuffer>(std::move(value)));
-    }
-};
-
 template <class... Types>
 struct BoxedValueHelperDecl<Variant<Types...>>
 {
@@ -2202,6 +1971,21 @@ template <class... Types>
 struct BoxedValueHelper<Variant<Types...>> : BoxedValueHelper<Any>
 {
     using ConvertibleFrom = Tuple<>;
+
+    HYP_FORCE_INLINE bool Is(const Any& value) const
+    {
+        return value.Is<Variant<Types...>>();
+    }
+
+    HYP_FORCE_INLINE Variant<Types...>& Get(Any& value) const
+    {
+        return value.Get<Variant<Types...>>();
+    }
+
+    HYP_FORCE_INLINE Variant<Types...>& Get(const Any& value) const
+    {
+        return value.Get<Variant<Types...>>();
+    }
 
     HYP_FORCE_INLINE void Set(BoxedValue& boxed, const Variant<Types...>& value) const
     {
