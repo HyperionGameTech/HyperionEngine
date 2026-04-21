@@ -349,8 +349,12 @@ void World::Init()
 
     if (m_worldFlags & WorldFlags::HAS_PHYSICS)
     {
-        m_physicsWorld = MakeHandle<PhysicsWorld>();
-        InitObject(m_physicsWorld);
+        if (!m_physicsWorld)
+        {
+            m_physicsWorld = MakeHandle<PhysicsWorld>();
+        }
+
+        m_physicsWorld->Initialize();
     }
 
     SetReady(true);
@@ -367,84 +371,83 @@ void World::SetWorldFlags(EnumFlags<WorldFlags> flags)
 
     m_worldFlags = flags;
 
-    const bool isInitialized = IsInitCalled();
-
-    if (isInitialized)
+    if (changedFlags & uint32(WorldFlags::HAS_PHYSICS))
     {
-        if (changedFlags & uint32(WorldFlags::HAS_PHYSICS))
+        if (m_worldFlags & WorldFlags::HAS_PHYSICS)
         {
-            if (m_worldFlags & WorldFlags::HAS_PHYSICS)
+            if (!m_physicsWorld)
             {
                 m_physicsWorld = MakeHandle<PhysicsWorld>();
-                InitObject(m_physicsWorld);
             }
-            else
-            {
-                if (m_physicsWorld)
-                {
-                    m_physicsWorld->Teardown();
-                    m_physicsWorld.Reset();
-                }
-            }
+
+            m_physicsWorld->Initialize();
         }
-
-        bool needToShutdownWorldGrid = false;
-
-        if (changedFlags & uint32(WorldFlags::HAS_STREAMING))
+        else
         {
-            if (m_worldFlags & WorldFlags::HAS_STREAMING)
+            if (m_physicsWorld)
             {
-                if (!m_worldGrid)
-                {
-                    m_worldGrid = MakeHandle<WorldGrid>(this);
-                    InitObject(m_worldGrid);
-                }
-            }
-            else
-            {
-                if (m_worldGrid)
-                {
-                    needToShutdownWorldGrid = true;
-
-                    // have to turn off all streaming layers
-                    const EnumFlags<WorldFlags> streamingLayerFlagsBefore = m_worldFlags & WorldFlags::ALL_STREAMING_LAYER_FLAGS;
-                    m_worldFlags &= ~WorldFlags::ALL_STREAMING_LAYER_FLAGS;
-
-                    // add changed flags for all streaming layers that were on before -  we handle them below
-                    changedFlags |= uint32(m_worldFlags & WorldFlags::ALL_STREAMING_LAYER_FLAGS) ^ uint32(streamingLayerFlagsBefore);
-                }
+                m_physicsWorld->Teardown();
+                m_physicsWorld.Reset();
             }
         }
+    }
 
-        if (changedFlags & uint32(WorldFlags::HAS_SCENE_STREAMING_LAYER))
+    bool needToShutdownWorldGrid = false;
+
+    if (changedFlags & uint32(WorldFlags::HAS_STREAMING))
+    {
+        if (m_worldFlags & WorldFlags::HAS_STREAMING)
         {
-            if (m_worldFlags & WorldFlags::HAS_SCENE_STREAMING_LAYER)
+            if (!m_worldGrid)
             {
-                Handle<WorldGridLayer> scenesStreamingLayer = GetOrCreateStreamingLayer(s_nameStreamingLayerScenes);
-                AssertDebug(scenesStreamingLayer != nullptr);
-
-                for (const Handle<Scene>& scene : m_scenes)
-                {
-                    if (!(scene->GetSceneFlags() & SceneFlags::STREAMED))
-                    {
-                        continue;
-                    }
-
-                    scenesStreamingLayer->AddStreamingObject(scene, scene->GetStreamingCentroid());
-                }
-            }
-            else
-            {
-                /// \todo Need to load all scenes from the streaming layer into the world before removing it
+                m_worldGrid = MakeHandle<WorldGrid>(this);
+                InitObject(m_worldGrid);
             }
         }
-
-        // shutdown after disabling layers
-        if (needToShutdownWorldGrid)
+        else
         {
-            m_worldGrid->Shutdown();
-            m_worldGrid.Reset();
+            if (m_worldGrid)
+            {
+                needToShutdownWorldGrid = true;
+
+                // have to turn off all streaming layers
+                const EnumFlags<WorldFlags> streamingLayerFlagsBefore = m_worldFlags & WorldFlags::ALL_STREAMING_LAYER_FLAGS;
+                m_worldFlags &= ~WorldFlags::ALL_STREAMING_LAYER_FLAGS;
+
+                // add changed flags for all streaming layers that were on before -  we handle them below
+                changedFlags |= uint32(m_worldFlags & WorldFlags::ALL_STREAMING_LAYER_FLAGS) ^ uint32(streamingLayerFlagsBefore);
+            }
         }
+    }
+
+    if (changedFlags & uint32(WorldFlags::HAS_SCENE_STREAMING_LAYER))
+    {
+        if (m_worldFlags & WorldFlags::HAS_SCENE_STREAMING_LAYER)
+        {
+            Handle<WorldGridLayer> scenesStreamingLayer = GetOrCreateStreamingLayer(s_nameStreamingLayerScenes);
+            AssertDebug(scenesStreamingLayer != nullptr);
+
+            for (const Handle<Scene>& scene : m_scenes)
+            {
+                if (!(scene->GetSceneFlags() & SceneFlags::STREAMED))
+                {
+                    continue;
+                }
+
+                scenesStreamingLayer->AddStreamingObject(scene, scene->GetStreamingCentroid());
+            }
+        }
+        else
+        {
+            /// \todo Need to load all scenes from the streaming layer into the world before removing it
+        }
+    }
+
+    // shutdown after disabling layers
+    if (needToShutdownWorldGrid)
+    {
+        m_worldGrid->Shutdown();
+        m_worldGrid.Reset();
     }
 }
 

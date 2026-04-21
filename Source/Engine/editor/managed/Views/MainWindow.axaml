@@ -543,7 +543,7 @@
                                 <Grid Grid.Column="0">
                                     <DockPanel x:Name="ContentBrowserPanel">
                                         <Border Classes="panel-header" DockPanel.Dock="Top" Height="36">
-                                            <Grid VerticalAlignment="Center" ColumnDefinitions="Auto, *, Auto">
+                                            <Grid VerticalAlignment="Center" ColumnDefinitions="Auto, *, Auto, Auto">
                                                 <Button
                                                     x:Name="CollapseContentBrowser"
                                                     Grid.Column="0"
@@ -559,8 +559,17 @@
                                                     Classes="header"
                                                     FontSize="12"
                                                     Text="Content Browser" />
-                                                <Button
+                                                <ComboBox
                                                     Grid.Column="2"
+                                                    Margin="0,0,4,0"
+                                                    Padding="6,2"
+                                                    FontSize="11"
+                                                    VerticalAlignment="Center"
+                                                    ToolTip.Tip="Sort order"
+                                                    ItemsSource="{Binding ContentBrowser.SortModeLabels}"
+                                                    SelectedIndex="{Binding ContentBrowser.SortModeIndex, Mode=TwoWay}" />
+                                                <Button
+                                                    Grid.Column="3"
                                                     Padding="8,2"
                                                     VerticalAlignment="Center"
                                                     Command="{Binding ContentBrowser.ImportCommand}"

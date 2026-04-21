@@ -12,6 +12,13 @@ using Hyperion.Editor.Commands;
 
 namespace Hyperion.Editor.ViewModels
 {
+    public enum AssetSortMode
+    {
+        Name,
+        DateModified,
+        Type,
+    }
+
     public class ContentBrowserViewModel : ViewModelBase, IDisposable
     {
         public static ContentBrowserViewModel? Instance { get; private set; }
@@ -37,6 +44,28 @@ namespace Hyperion.Editor.ViewModels
                 _editorSubsystem.SetSelectedBucket(value?.BucketIndex ?? 0);
             }
         }
+
+        // ── sort ──────────────────────────────────────────────────────────────
+
+        public IReadOnlyList<string> SortModeLabels { get; } = new[] { "Name", "Date Modified", "Type" };
+
+        private AssetSortMode _sortMode = AssetSortMode.Name;
+        private int _sortModeIndex = 0;
+
+        public int SortModeIndex
+        {
+            get => _sortModeIndex;
+            set
+            {
+                if (SetProperty(ref _sortModeIndex, value))
+                {
+                    _sortMode = (AssetSortMode)value;
+                    ApplySort();
+                }
+            }
+        }
+
+        // ─────────────────────────────────────────────────────────────────────
 
         private DelegateHandler? _onSelectedBucketChangedHandler;
 
@@ -84,10 +113,22 @@ namespace Hyperion.Editor.ViewModels
                         {
                             AssetManager mgr = AssetManager.Instance;
                             AssetRegistry registry = mgr.AssetRegistry;
+                            string rootPath = registry.GetRootPath();
 
                             foreach (AssetDesc assetDesc in registry.GetBucketAssetDescs(bucketIndex))
                             {
-                                Assets.Add(new AssetObjectViewModel(assetDesc, bucketVm));
+                                string manifestPath = Path.Combine(rootPath, bucketVm.Name, assetDesc.Name.ToString() + ".json");
+
+                                DateTime? dateModified = null;
+                                string? typeName = null;
+
+                                if (File.Exists(manifestPath))
+                                {
+                                    dateModified = File.GetLastWriteTime(manifestPath);
+                                    typeName = ExtractClassFromManifest(manifestPath);
+                                }
+
+                                Assets.Add(new AssetObjectViewModel(assetDesc, bucketVm, typeName, dateModified));
                             }
 
                             _currentBucket = bucketVm;
@@ -102,10 +143,86 @@ namespace Hyperion.Editor.ViewModels
                         _currentBucket = null;
                     }
 
+                    ApplySort();
+
                     OnPropertyChanged(nameof(Assets));
                     OnPropertyChanged(nameof(CurrentBucket));
                 });
             });
+        }
+
+        // ── sort helpers ──────────────────────────────────────────────────────
+
+        private void ApplySort()
+        {
+            if (Assets.Count == 0)
+                return;
+
+            var preserved = SelectedAsset;
+
+            List<AssetObjectViewModel> sorted = _sortMode switch
+            {
+                AssetSortMode.DateModified =>
+                    Assets.OrderByDescending(a => a.DateModified ?? DateTime.MinValue).ToList(),
+                AssetSortMode.Type =>
+                    Assets.OrderBy(a => a.TypeName ?? string.Empty, StringComparer.OrdinalIgnoreCase)
+                          .ThenBy(a => a.DisplayName, StringComparer.OrdinalIgnoreCase)
+                          .ToList(),
+                _ /* Name */ =>
+                    Assets.OrderBy(a => a.DisplayName, StringComparer.OrdinalIgnoreCase).ToList(),
+            };
+
+            Assets.Clear();
+            foreach (var vm in sorted)
+                Assets.Add(vm);
+
+            SelectedAsset = preserved;
+        }
+
+        /// <summary>
+        /// Quick-reads a manifest JSON file and extracts the value of the "$Class" key
+        /// without fully parsing the document. Returns null if not found or on any error.
+        /// </summary>
+        private static string? ExtractClassFromManifest(string filePath)
+        {
+            try
+            {
+                using var reader = new StreamReader(filePath);
+
+                // Read the first 4 KB — always enough to find "$Class" near the top.
+                char[] buffer = new char[4096];
+                int read = reader.ReadBlock(buffer, 0, buffer.Length);
+
+                if (read <= 0)
+                    return null;
+
+                string header = new string(buffer, 0, read);
+                int classIdx = header.IndexOf("\"$Class\"", StringComparison.Ordinal);
+
+                if (classIdx < 0)
+                    return null;
+
+                int colonIdx = header.IndexOf(':', classIdx + 8);
+
+                if (colonIdx < 0)
+                    return null;
+
+                int quoteStart = header.IndexOf('"', colonIdx + 1);
+
+                if (quoteStart < 0)
+                    return null;
+
+                int quoteEnd = header.IndexOf('"', quoteStart + 1);
+
+                if (quoteEnd <= quoteStart)
+                    return null;
+
+                return header.Substring(quoteStart + 1, quoteEnd - quoteStart - 1);
+            }
+            catch
+            {
+                return null;
+            }
         }
 
         public void Dispose()

@@ -8,6 +8,8 @@
 
 #include <scene/components/CharacterControllerComponent.hpp>
 
+#include <physics/PhysicsShape.hpp>
+
 #include <input/InputHandler.hpp>
 
 #include <CharacterControllerComponent.generated.inl>

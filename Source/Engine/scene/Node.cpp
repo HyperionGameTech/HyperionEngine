@@ -1185,6 +1185,18 @@ bool Node::HasTag(StringHash key) const
     return m_tags.Has(key);
 }
 
+#if HYP_EDITOR
+void Node::MarkDirty()
+{
+    if (World* world = GetWorld(); world && world->GetGameState().IsSimulating())
+    {
+        return;
+    }
+
+    AssetObject::MarkDirty();
+}
+#endif // HYP_EDITOR
+
 #pragma endregion Node
 
 } // namespace Hyperion

@@ -15,6 +15,7 @@
 #include <Core/reflection/Handle.hpp>
 
 #include <physics/PhysicsWorld.hpp>
+#include <physics/PhysicsShape.hpp>
 
 #include <asset/Assets.hpp>
 #include <asset/AssetRegistry.hpp>
@@ -58,7 +59,15 @@ void PhysicsSystem::OnEntityAdded(Entity* entity)
 
     rigidBody->SetTransform(transform);
 
-    entity->GetWorld()->GetPhysicsWorld()->AddRigidBody(rigidBodyComponent.rigidBody);
+    PhysicsWorldBase* physicsWorld = GetWorld()->GetPhysicsWorld();
+    AssertDebug(physicsWorld != nullptr);
+
+    if (!physicsWorld)
+    {
+        return;
+    }
+
+    physicsWorld->AddRigidBody(rigidBodyComponent.rigidBody);
 }
 
 void PhysicsSystem::OnEntityRemoved(Entity* entity)
@@ -71,7 +80,14 @@ void PhysicsSystem::OnEntityRemoved(Entity* entity)
 
     if (rigidBody.IsValid())
     {
-        entity->GetWorld()->GetPhysicsWorld()->RemoveRigidBody(rigidBody);
+
+        PhysicsWorldBase* physicsWorld = GetWorld()->GetPhysicsWorld();
+        AssertDebug(physicsWorld != nullptr);
+
+        if (physicsWorld)
+        {
+            physicsWorld->RemoveRigidBody(rigidBody);
+        }
 
         rigidBody->physicsMaterial = &GetDefaultPhysicsMaterial();
         rigidBody->shape = &GetDefaultPhysicsShape();

@@ -8,6 +8,7 @@
 
 #include <physics/RigidBody.hpp>
 #include <physics/PhysicsWorld.hpp>
+#include <physics/PhysicsShape.hpp>
 
 #include <scene/World.hpp>
 #include <scene/Scene.hpp>

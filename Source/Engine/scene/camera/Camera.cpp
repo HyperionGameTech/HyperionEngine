@@ -315,7 +315,7 @@ void Camera::SetCameraControllers(const Array<Handle<CameraController>>& cameraC
 
         for (size_t i = m_cameraControllers.Size(); i > 1; --i)
         {
-            m_cameraControllers[i]->OnRemoved();
+            m_cameraControllers[i - 1]->OnRemoved();
         }
 
         m_cameraControllers.Resize(1); // Keep the null camera controller
