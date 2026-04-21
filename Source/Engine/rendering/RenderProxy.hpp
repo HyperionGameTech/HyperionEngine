@@ -11,6 +11,7 @@
 #include <Core/containers/FixedArray.hpp>
 
 #include <Core/math/BoundingBox.hpp>
+#include <Core/math/Mat3f.hpp>
 #include <Core/math/Mat4f.hpp>
 #include <Core/math/Frustum.hpp>
 

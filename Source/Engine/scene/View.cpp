@@ -43,6 +43,8 @@
 
 #include <asset/AssetRegistry.hpp>
 
+#include <Core/math/Mat3f.hpp>
+
 #include <Core/threading/Task.hpp>
 
 #include <engine/EngineDriver.hpp>

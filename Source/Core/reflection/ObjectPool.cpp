@@ -13,7 +13,7 @@
 
 #if defined(HYPERION_ENGINE) && HYPERION_ENGINE
 #include <engine/EngineMemory.hpp>
-#endif
+#endif // HYPERION_ENGINE
 
 namespace Hyperion {
 

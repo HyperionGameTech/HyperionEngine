@@ -40,15 +40,6 @@ struct PropertyTypeInfo
     const TypeInfo* valueTypeInfo = &TypeInfo_Void(); // for getter or setter: getter is param type, setter is return type
 };
 
-template <class T>
-using UnwrappedSerializationType = NormalizedType<typename SerializationWrapperReverseMapping<NormalizedType<T>>::Type>;
-
-template <class T>
-constexpr TypeId GetUnwrappedSerializationTypeId()
-{
-    return TypeId::ForType<UnwrappedSerializationType<T>>();
-}
-
 struct PropertyGetter
 {
     Proc<BoxedValue(const BoxedValue& target)> getProc;

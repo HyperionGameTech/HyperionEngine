@@ -22,15 +22,15 @@
 #ifdef HYP_DOTNET
 #include <dotnet/ManagedClass.hpp>
 #include <dotnet/ManagedObject.hpp>
-#endif
+#endif // HYP_DOTNET
 
 #ifdef HYP_SCRIPT
 #include <Lang/HypScript.hpp>
-#endif
+#endif // HYP_SCRIPT
 
 #include <scripting/ScriptObjectResource.hpp>
 
-#endif
+#endif // HYP_DOTNET || HYP_SCRIPT
 
 namespace Hyperion {
 
