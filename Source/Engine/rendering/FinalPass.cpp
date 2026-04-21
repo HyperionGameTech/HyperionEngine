@@ -41,6 +41,12 @@ namespace Hyperion {
 
 HYP_DECLARE_LOG_CHANNEL(Rendering);
 
+#if HYP_DEBUG_MODE || HYP_EDITOR
+CVar<bool> cvShowDebugUI("ShowDebugUI", true);
+#else // HYP_DEBUG_MODE || HYP_EDITOR
+CVar<bool> cvShowDebugUI("ShowDebugUI", false);
+#endif // HYP_DEBUG_MODE || HYP_EDITOR
+
 #pragma region FinalPass
 
 FinalPass::FinalPass()
@@ -142,25 +148,28 @@ void FinalPass::Render(Frame* frame, const RenderSetup& rs)
         cr << DrawIndexed(6);
     }
 
-    // draw ui
-    UIRenderer* uiRenderer = static_cast<UIRenderer*>(g_renderInterface->globalRenderers[GRT_UI][0]);
-
-    if (uiRenderer != nullptr)
+    if (cvShowDebugUI.Get())
     {
-        for (World* world : GetActiveWorlds())
+        // draw ui
+        UIRenderer* uiRenderer = static_cast<UIRenderer*>(g_renderInterface->globalRenderers[GRT_UI][0]);
+
+        if (uiRenderer != nullptr)
         {
-            for (View* view : world->GetViews())
+            for (World* world : GetActiveWorlds())
             {
-                if (!(view->GetFlags() & ViewFlags::UI_VIEW))
+                for (View* view : world->GetViews())
                 {
-                    continue;
+                    if (!(view->GetFlags() & ViewFlags::UI_VIEW))
+                    {
+                        continue;
+                    }
+
+                    RenderSetup currentViewSetup = rs.Fork();
+                    currentViewSetup.world = world;
+                    currentViewSetup.view = view;
+
+                    uiRenderer->RenderFrame(frame, currentViewSetup);
                 }
-
-                RenderSetup currentViewSetup = rs.Fork();
-                currentViewSetup.world = world;
-                currentViewSetup.view = view;
-
-                uiRenderer->RenderFrame(frame, currentViewSetup);
             }
         }
     }

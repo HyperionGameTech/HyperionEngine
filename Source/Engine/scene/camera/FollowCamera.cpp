@@ -50,7 +50,7 @@ void FollowCameraController::UpdateLogic(double delta)
     const Vector3 origin = m_camera->GetTarget();
     const Vector3 normalizedOffsetDirection = (origin - (origin + m_realOffset)).Normalized();
 
-    m_camera->SetTranslation(origin + normalizedOffsetDirection * m_desiredDistance);
+    m_camera->SetWorldTranslation(origin + normalizedOffsetDirection * m_desiredDistance);
 }
 
 } // namespace Hyperion

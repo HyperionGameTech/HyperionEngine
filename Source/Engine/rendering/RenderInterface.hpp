@@ -290,8 +290,6 @@ public:
 
     virtual Frame* GetCurrentFrame() const = 0;
 
-    virtual Frame* PrepareNextFrame() = 0;
-
     virtual void BeginFrame(AtomicFlag* pCancelFlag);
     virtual void EndFrame();
 
@@ -412,7 +410,9 @@ public:
 
     Resources::ResourceContainer* resources;
 
-private:
+protected:
+    virtual Frame* PrepareNextFrame() = 0;
+
     void CreateBlueNoiseBuffer();
     void CreateSphereSamplesBuffer();
     void CreateEnvProbesTexture();

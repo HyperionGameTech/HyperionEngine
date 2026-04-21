@@ -53,6 +53,7 @@
 #include <ui/overlays/Overlay.hpp>
 
 #include <engine/EngineDriver.hpp>
+#include <engine/CVarManager.hpp>
 
 #include <UISubsystem.generated.inl>
 
@@ -61,6 +62,8 @@ namespace Hyperion {
 HYP_DECLARE_LOG_CHANNEL(UI);
 
 HYP_REGISTER_DRAW_BATCH_TYPE(UIEntityInstanceBatch);
+
+extern CVar<bool> cvShowDebugUI;
 
 #pragma region Render commands
 
@@ -251,6 +254,11 @@ void UISubsystem::PreUpdate(float delta)
 void UISubsystem::Update(float delta)
 {
     HYP_SCOPE;
+
+    if (!cvShowDebugUI.Get())
+    {
+        return;
+    }
 
     UpdateDebugOverlays();
 

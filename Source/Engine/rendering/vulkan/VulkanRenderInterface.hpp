@@ -109,8 +109,6 @@ public:
 
     VulkanFrame* GetCurrentFrame() const override;
 
-    VulkanFrame* PrepareNextFrame() override;
-
     VulkanSwapchainRef CreateSwapchain(ApplicationWindow* window, const Vec2u& extent) override;
 
     void PrepareSwapchain(VulkanSwapchain* swapchain) override;
@@ -191,6 +189,9 @@ public:
     RendererResult GetVkExtensions(Array<const char*>& outExtensions);
 
 private:
+public: // temp
+    VulkanFrame* PrepareNextFrame() override;
+
     VulkanInstance* m_instance;
 
     Pimpl<VulkanRenderConfig> m_renderConfig;

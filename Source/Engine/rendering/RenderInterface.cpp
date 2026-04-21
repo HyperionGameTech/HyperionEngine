@@ -847,6 +847,8 @@ void RenderInterface::BeginFrame(AtomicFlag* pCancelFlag)
     const uint32 slot = Framework::s_frameIndex[Framework::TT_FrameDataConsumer];
     const uint32 currFrame = GetFrameCounter();
 
+    //PrepareNextFrame();
+
     Framework::BufferedData& bufferedData = Framework::s_bufferedData[slot];
 
     cbufferAllocator->OnFrameStart();
@@ -1828,14 +1830,37 @@ void RenderInterface::FlushStructuredBuffers()
     HYP_SCOPE;
     AssertOnThread(g_renderThread);
 
+    // Check whether any buffer is actually dirty before acquiring a command buffer.
+    bool anyDirty = false;
+
     for (StructuredBuffer& sbuffer : namedBuffers)
     {
         if (sbuffer.IsDirty())
         {
-            sbuffer.Flush();
+            anyDirty = true;
+            break;
         }
     }
 
+    if (!anyDirty)
+    {
+        return;
+    }
+
+    // Batch all dirty structured-buffer copies into a single command buffer and
+    // submit once. Previously each Flush() issued its own vkQueueSubmit + fence,
+    // meaning up to 9 separate submissions per frame and 9 fence waits next frame.
+    CommandBuffer& cmdBuffer = GetTransientCommandBuffer();
+
+    for (StructuredBuffer& sbuffer : namedBuffers)
+    {
+        if (sbuffer.IsDirty())
+        {
+            sbuffer.FlushInto(cmdBuffer);
+        }
+    }
+
+    SubmitTransientCommandBuffer(cmdBuffer);
 }
 
 void RenderInterface::CreateBlueNoiseBuffer()

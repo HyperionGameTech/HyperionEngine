@@ -198,7 +198,6 @@ Camera::Camera(int width, int height)
       m_height(height),
       m_near(0.01f),
       m_far(1000.0f),
-      m_translation(Vec3f::Zero()),
       m_direction(Vec3f::UnitZ()),
       m_up(Vec3f::UnitY()),
       m_streamingVolumeAdded(false)
@@ -217,7 +216,6 @@ Camera::Camera(float fov, int width, int height, float _near, float _far)
       m_fov(fov),
       m_width(width),
       m_height(height),
-      m_translation(Vec3f::Zero()),
       m_direction(Vec3f::UnitZ()),
       m_up(Vec3f::UnitY())
 {
@@ -237,7 +235,6 @@ Camera::Camera(int width, int height, float left, float right, float bottom, flo
       m_fov(0.0f),
       m_width(width),
       m_height(height),
-      m_translation(Vec3f::Zero()),
       m_direction(Vec3f::UnitZ()),
       m_up(Vec3f::UnitY())
 {
@@ -269,16 +266,18 @@ void Camera::Init()
     HYP_SCOPE;
 
     Entity::Init();
+    
+    const Vec3f translation = GetWorldTranslation();
 
     m_streamingVolume = MakeHandle<CameraStreamingVolume>();
-    m_streamingVolume->SetBoundingBox(BoundingBox(m_translation - 10.0f, m_translation + 10.0f));
+    m_streamingVolume->SetBoundingBox(BoundingBox(translation - 10.0f, translation + 10.0f));
     InitObject(m_streamingVolume);
 
     if (m_cameraFlags & CameraFlags::MATCH_WINDOW_SIZE)
     {
         Handle<ApplicationWindow> window = m_window.Lock();
 
-        auto matchWindowSize = [this](Vec2i windowSize)
+        auto MatchWindowSize = [this](Vec2i windowSize)
         {
             windowSize = MathUtil::Max(Vec2i(MathUtil::Round(Vec2f(windowSize) * m_matchWindowSizeRatio)), Vec2i::One());
 
@@ -287,9 +286,9 @@ void Camera::Init()
 
         if (window.IsValid())
         {
-            matchWindowSize(window->GetDimensions());
+            MatchWindowSize(window->GetDimensions());
 
-            m_onWindowResizedHandle = window->OnWindowSizeChanged.BindThreaded(matchWindowSize, g_simThread);
+            m_onWindowResizedHandle = window->OnWindowSizeChanged.BindThreaded(MatchWindowSize, g_simThread);
         }
     }
 
@@ -490,11 +489,12 @@ void Camera::SetWindow(ApplicationWindow* window)
     }
 }
 
-void Camera::SetTranslation(const Vec3f& translation)
+void Camera::OnTransformUpdated()
 {
-    HYP_SCOPE;
+    Entity::OnTransformUpdated();
 
-    m_translation = translation;
+    const Vec3f translation = GetWorldTranslation();
+
     m_nextTranslation = translation;
 
     m_prevViewProjMat = m_viewProjMat;
@@ -677,14 +677,22 @@ void Camera::Update(float delta)
         }
     }
 
-    m_translation = m_nextTranslation;
+    if (m_nextTranslation != GetWorldTranslation())
+    {
+        SetWorldTranslation(m_nextTranslation);
+    }
+    else
+    {
+        UpdateMatrices();
+    }
 
-    UpdateMatrices();
-
+    
     if (m_streamingVolume.IsValid())
     {
+        const Vec3f translation = GetWorldTranslation();
+
         /// \todo: Set a proper bounding box for the streaming volume
-        m_streamingVolume->SetBoundingBox(BoundingBox(m_translation - 10.0f, m_translation + 10.0f));
+        m_streamingVolume->SetBoundingBox(BoundingBox(translation - 10.0f, translation + 10.0f));
     }
 
     SetNeedsRenderProxyUpdate();
@@ -807,7 +815,7 @@ void Camera::UpdateRenderProxy(RenderProxyCamera* proxy)
     
     bufferData.dimensions = Vec4u { uint32(MathUtil::Abs(m_width)), uint32(MathUtil::Abs(m_height)), 0, 1 };
     
-    bufferData.cameraPosition = Vec4f(m_translation, 1.0f);
+    bufferData.cameraPosition = Vec4f(GetWorldTranslation(), 1.0f);
     bufferData.cameraDirection = Vec4f(m_direction, 1.0f);
     
     bufferData.cameraNear = m_near;

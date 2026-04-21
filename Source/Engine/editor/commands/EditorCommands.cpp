@@ -1358,7 +1358,7 @@ public:
             return;
         }
 
-        camera->SetTranslation(node->GetWorldTranslation());
+        camera->SetWorldTranslation(node->GetWorldTranslation());
     }
 };
 

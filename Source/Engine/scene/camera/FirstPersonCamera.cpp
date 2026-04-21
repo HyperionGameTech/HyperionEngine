@@ -199,7 +199,7 @@ void FirstPersonCameraController::UpdateLogic(double delta)
 
     static constexpr float MovementSpeed = 15.0f;
 
-    Vec3f translation = m_camera->GetTranslation();
+    Vec3f translation = m_camera->GetWorldTranslation();
 
     const Vec3f direction = m_camera->GetDirection();
     const Vec3f dirCrossY = direction.Cross(m_camera->GetUpVector());

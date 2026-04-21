@@ -169,6 +169,7 @@ CVar<bool> cvHBAO { "Rendering.HBAO", true, "Rendering.HBAO.Enabled" };
 CVar<bool> cvEnableLightmapVolumes { "Rendering.LightmapVolumes", true };
 CVar<bool> cvClusteredShading { "Rendering.ClusteredShading", true };
 CVar<float> cvTonemapExposure { "Rendering.Tonemap.Exposure", 1.8f };
+CVar<bool> cvBypassDrawing { "Rendering.BypassDrawing", false };
 
 namespace DeferredRendererHelpers {
 
@@ -2507,6 +2508,11 @@ void DeferredRenderer::RenderFrameForView(Frame* frame, const RenderSetup& rs)
         view,
         passData.gridTilesBuffer,
         passData.gridIndexBuffer);
+
+    if (cvBypassDrawing.Get())
+    {
+        return;
+    }
 
     // Render shadows for shadow casting lights
     for (Light* light : rpl.GetLights())

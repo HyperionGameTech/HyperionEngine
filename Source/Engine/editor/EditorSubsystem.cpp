@@ -385,7 +385,7 @@ void TranslateEditorGizmo::OnDragStart(const Handle<Camera>& camera, const Mouse
     const Vec4f mouseWorld = camera->TransformScreenToWorld(mouseEvent.relativePos);
     const Vec4f rayDirection = mouseWorld.Normalized();
 
-    const Ray ray { camera->GetTranslation(), rayDirection.GetXYZ() };
+    const Ray ray { camera->GetWorldTranslation(), rayDirection.GetXYZ() };
 
     if (axis == -1)
     {
@@ -555,7 +555,7 @@ bool TranslateEditorGizmo::OnMouseMove(const Handle<Camera>& camera, const Mouse
     const Vec4f mouseWorld = camera->TransformScreenToWorld(Vec2f(inputMgr->GetVirtualMousePosition()) / Vec2f(camera->GetDimensions()));
     const Vec4f rayDirection = mouseWorld.Normalized();
 
-    const Ray ray { camera->GetTranslation(), rayDirection.GetXYZ() };
+    const Ray ray { camera->GetWorldTranslation(), rayDirection.GetXYZ() };
 
     // const Ray rayViewSpace { camera->GetViewMatrix() * ray.position, (camera->GetViewMatrix() * Vec4f(ray.direction, 0.0f)).GetXYZ() };
 
@@ -1073,9 +1073,9 @@ bool RotateEditorGizmo::OnMouseMove(const Handle<Camera>& camera, const MouseEve
     AssertDebug(inputMgr != nullptr);
 
     const Vec4f mouseWorld = camera->TransformScreenToWorld(Vec2f(inputMgr->GetVirtualMousePosition()) / Vec2f(camera->GetDimensions()));
-    const Vec4f rayDirection = (mouseWorld - Vec4f(camera->GetTranslation(), 1.0f)).Normalized();
+    const Vec4f rayDirection = (mouseWorld - Vec4f(camera->GetWorldTranslation(), 1.0f)).Normalized();
 
-    const Ray ray { camera->GetTranslation(), rayDirection.GetXYZ() };
+    const Ray ray { camera->GetWorldTranslation(), rayDirection.GetXYZ() };
 
     RayHit planeRayHit;
 
@@ -1486,7 +1486,7 @@ bool VolumeEditorGizmo::OnMouseMove(const Handle<Camera>& camera, const MouseEve
     const Vec4f mouseWorld = camera->TransformScreenToWorld(Vec2f(inputMgr->GetVirtualMousePosition()) / Vec2f(camera->GetDimensions()));
     const Vec4f rayDirection = mouseWorld.Normalized();
 
-    const Ray ray { camera->GetTranslation(), rayDirection.GetXYZ() };
+    const Ray ray { camera->GetWorldTranslation(), rayDirection.GetXYZ() };
 
     RayHit planeRayHit;
 
@@ -2251,7 +2251,7 @@ void EditorSubsystem::InitViewport()
                 const Vec4f mouseWorld = activeViewport->GetCamera()->TransformScreenToWorld(event.relativePos);
                 const Vec4f rayDirection = mouseWorld.Normalized();
 
-                const Ray ray { activeViewport->GetCamera()->GetTranslation(), rayDirection.GetXYZ() };
+                const Ray ray { activeViewport->GetCamera()->GetWorldTranslation(), rayDirection.GetXYZ() };
 
                 RayTestResults results;
 
@@ -2360,7 +2360,7 @@ void EditorSubsystem::InitViewport()
                 const Vec4f mouseWorld = activeViewport->GetCamera()->TransformScreenToWorld(event.relativePos);
                 const Vec4f rayDirection = mouseWorld.Normalized();
 
-                const Ray ray { activeViewport->GetCamera()->GetTranslation(), rayDirection.GetXYZ() };
+                const Ray ray { activeViewport->GetCamera()->GetWorldTranslation(), rayDirection.GetXYZ() };
 
                 RayTestResults results;
 
@@ -2422,7 +2422,7 @@ void EditorSubsystem::InitViewport()
                     const Vec4f mouseWorld = activeViewport->GetCamera()->TransformScreenToWorld(event.relativePos);
                     const Vec4f rayDirection = mouseWorld.Normalized();
 
-                    const Ray ray { activeViewport->GetCamera()->GetTranslation(), rayDirection.GetXYZ() };
+                    const Ray ray { activeViewport->GetCamera()->GetWorldTranslation(), rayDirection.GetXYZ() };
 
                     RayTestResults results;
 
@@ -2932,7 +2932,7 @@ void EditorSubsystem::NewProject()
     Handle<Camera> camera = MakeHandle<Camera>();
     camera->SetDimensions(Vec2i(1920, 1080)); // @TODO Match window size
     camera->SetName(NAME("Camera"));
-    camera->SetTranslation(Vec3f(0.0f, 1.0f, -5.0f));
+    camera->SetWorldTranslation(Vec3f(0.0f, 1.0f, -5.0f));
     camera->AddTag<EntityTag::PrimaryCamera>();
 
     Handle<FirstPersonCameraController> firstPersonController = MakeHandle<FirstPersonCameraController>();
@@ -3130,7 +3130,7 @@ Vec3f EditorSubsystem::CalculateSceneInsertionPoint(float desiredDistance, float
         return Vec3f::Zero();
     }
 
-    const Vec3f cameraPosition = activeViewport->GetCamera()->GetTranslation();
+    const Vec3f cameraPosition = activeViewport->GetCamera()->GetWorldTranslation();
     const Vec3f cameraDirection = activeViewport->GetCamera()->GetDirection();
 
     Vec3f insertionPoint = cameraPosition + cameraDirection * desiredDistance;

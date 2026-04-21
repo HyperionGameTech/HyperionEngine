@@ -37,6 +37,7 @@
 #include <Core/filesystem/FsUtil.hpp>
 
 #include <engine/EngineDriver.hpp>
+#include <engine/CVarManager.hpp>
 
 #include <UIRenderer.generated.inl>
 

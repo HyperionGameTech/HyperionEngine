@@ -43,18 +43,16 @@ void StructuredBuffer::Write(size_t offset, size_t count, const void* data)
     dirtyRangeEnd = MathUtil::Max(dirtyRangeEnd, offset + count);
 }
 
-void StructuredBuffer::Flush()
+void StructuredBuffer::FlushInto(CommandBuffer& cmdBuffer)
 {
     if (!IsDirty())
     {
         return;
     }
-    
+
     Assert(gpuBuffer && gpuBuffer->IsCreated());
 
     RenderInterface& ri = *g_renderInterface;
-
-    CommandBuffer& cmdBuffer = ri.GetTransientCommandBuffer();
 
     GpuBuffer* stagingBuffer = ri.stagingBufferPool->AcquireStagingBuffer(dirtyRangeEnd - dirtyRangeStart);
     Assert(stagingBuffer != nullptr);
@@ -66,10 +64,22 @@ void StructuredBuffer::Flush()
     gpuBuffer->CopyFrom(&cmdBuffer, stagingBuffer, 0, dirtyRangeStart, dirtyRangeEnd - dirtyRangeStart);
     gpuBuffer->InsertBarrier(&cmdBuffer, RS_SHADER_RESOURCE);
 
-    ri.SubmitTransientCommandBuffer(cmdBuffer);
-
     dirtyRangeStart = SIZE_MAX;
     dirtyRangeEnd = 0;
+}
+
+void StructuredBuffer::Flush()
+{
+    if (!IsDirty())
+    {
+        return;
+    }
+
+    RenderInterface& ri = *g_renderInterface;
+
+    CommandBuffer& cmdBuffer = ri.GetTransientCommandBuffer();
+    FlushInto(cmdBuffer);
+    ri.SubmitTransientCommandBuffer(cmdBuffer);
 }
 
 #pragma endregion StructuredBuffer
