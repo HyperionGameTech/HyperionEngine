@@ -28,6 +28,15 @@ namespace Hyperion.Editor.ViewModels
             BuildEnumEntries(enumClass.Value);
         }
 
+        public EnumPropertyViewModel(string label, TypeInfo typeInfo, Func<BoxedValue> getter, Action<BoxedValue> setter, Class? enumClass, bool isReadOnly)
+            : base(label, typeInfo, getter, setter, isReadOnly)
+        {
+            if (enumClass == null)
+                throw new ArgumentNullException(nameof(enumClass));
+
+            BuildEnumEntries(enumClass.Value);
+        }
+
         public IList<EnumEntry> EnumEntries => _enumEntries;
 
         public object? SelectedEnumValue

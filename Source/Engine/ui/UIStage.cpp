@@ -184,8 +184,10 @@ void UIStage::UpdateCameraControllerStack()
 
     Handle<UICameraController> newController = MakeHandle<UICameraController>(
         0.0f, -float(m_surfaceSize.x),
-        0.0f, float(m_surfaceSize.y),
-        float(MinDepth), float(MaxDepth));
+        0.0f, float(m_surfaceSize.y));
+
+    m_camera->SetNearClip(MinDepth);
+    m_camera->SetFarClip(MaxDepth);
 
     m_camera->AddCameraController(newController, controllerIndex);
 }
@@ -304,10 +306,13 @@ void UIStage::Init()
 
     m_camera = MakeHandle<Camera>();
     m_camera->SetName(NAME_FMT("{}_UIStage_Camera", GetName()));
+
     m_camera->AddCameraController(MakeHandle<UICameraController>(
         0.0f, -float(m_surfaceSize.x),
-        0.0f, float(m_surfaceSize.y),
-        float(MinDepth), float(MaxDepth)));
+        0.0f, float(m_surfaceSize.y)));
+
+    m_camera->SetNearClip(float(MinDepth));
+    m_camera->SetFarClip(float(MaxDepth));
 
     InitObject(m_camera);
 

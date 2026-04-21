@@ -29,6 +29,15 @@ namespace Hyperion.Editor.ViewModels
             BuildFlagEntries(enumClass.Value);
         }
 
+        public FlagsPropertyViewModel(string label, TypeInfo typeInfo, Func<BoxedValue> getter, Action<BoxedValue> setter, Class? enumClass, bool isReadOnly)
+            : base(label, typeInfo, getter, setter, isReadOnly)
+        {
+            if (enumClass == null)
+                throw new ArgumentNullException(nameof(enumClass));
+
+            BuildFlagEntries(enumClass.Value);
+        }
+
         public IList<EnumFlagEntry> EnumFlagEntries => _enumFlagEntries;
 
         public override bool IsEnumFlagsEditable => _enumFlagEntries.Count > 0;

@@ -19,6 +19,11 @@ namespace Hyperion.Editor.ViewModels
         {
         }
 
+        public BoolPropertyViewModel(string label, Func<BoxedValue> getter, Action<BoxedValue> setter, bool isReadOnly)
+            : base(label, default, getter, setter, isReadOnly)
+        {
+        }
+
         public override bool ShowInlineLabel => false;
 
         public bool IsChecked

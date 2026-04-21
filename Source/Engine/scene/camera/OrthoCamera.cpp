@@ -14,20 +14,17 @@ namespace Hyperion {
 OrthoCameraController::OrthoCameraController()
     : OrthoCameraController(
           -100.0f, 100.0f,
-          -100.0f, 100.0f,
           -100.0f, 100.0f)
 {
 }
 
-OrthoCameraController::OrthoCameraController(float left, float right, float bottom, float top, float _near, float _far)
-    : CameraController(CameraProjectionMode::ORTHOGRAPHIC),
-      m_left(left),
-      m_right(right),
-      m_bottom(bottom),
-      m_top(top),
-      m_near(_near),
-      m_far(_far)
+OrthoCameraController::OrthoCameraController(float left, float right, float bottom, float top)
+    : CameraController(CameraProjectionMode::ORTHOGRAPHIC)
 {
+    m_rect.left = left;
+    m_rect.right = right;
+    m_rect.bottom = bottom;
+    m_rect.top = top;
 }
 
 void OrthoCameraController::OnActivated()
@@ -37,9 +34,9 @@ void OrthoCameraController::OnActivated()
     CameraController::OnActivated();
 
     m_camera->SetToOrthographicProjection(
-        m_left, m_right,
-        m_bottom, m_top,
-        m_near, m_far);
+        m_rect.left, m_rect.right,
+        m_rect.bottom, m_rect.top,
+        m_camera->GetNearClip(), m_camera->GetFarClip());
 }
 
 void OrthoCameraController::OnDeactivated()
@@ -69,8 +66,8 @@ void OrthoCameraController::UpdateProjectionMatrix()
     HYP_SCOPE;
 
     m_camera->SetToOrthographicProjection(
-        m_camera->m_left, m_camera->m_right,
-        m_camera->m_bottom, m_camera->m_top,
-        m_camera->m_near, m_camera->m_far);
+        m_rect.left, m_rect.right,
+        m_rect.bottom, m_rect.top,
+        m_camera->GetNearClip(), m_camera->GetFarClip());
 }
 } // namespace Hyperion

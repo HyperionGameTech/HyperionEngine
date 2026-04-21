@@ -58,6 +58,26 @@ namespace Hyperion.Editor.ViewModels
             _components = new string[_componentCount];
         }
 
+        protected VectorPropertyViewModelBase(
+            string label,
+            TypeInfo typeInfo,
+            Func<BoxedValue> getter,
+            Action<BoxedValue> setter,
+            bool isReadOnly,
+            int componentCount,
+            Func<TStruct, int, float> getComponent,
+            Func<TStruct, int, float, TStruct> withComponent)
+            : base(label, typeInfo, getter, setter, isReadOnly)
+        {
+            _componentCount = componentCount;
+            _getComponent = getComponent;
+            _withComponent = withComponent;
+            _readStruct = ReadStructFromProperty;
+            _writeStruct = WriteStructToProperty;
+            _hasWriteOverride = false;
+            _components = new string[_componentCount];
+        }
+
         public string X
         {
             get => _components[0];

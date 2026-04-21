@@ -85,6 +85,41 @@
                     <local:InspectorPropertyItemsControl IsVisible="{Binding HasSubProperties}" ItemsSource="{Binding SubProperties}" />
                 </Expander>
             </DataTemplate>
+            <DataTemplate x:DataType="vm:ArrayPropertyViewModel">
+                <Expander Margin="0,1,0,1" IsExpanded="{Binding IsExpanded, Mode=TwoWay}">
+                    <Expander.Header>
+                        <StackPanel Orientation="Horizontal" Spacing="4">
+                            <TextBlock Classes="inspector-name" Text="{Binding Label}" />
+                            <TextBlock Opacity="0.55" Text="{Binding Value}" />
+                        </StackPanel>
+                    </Expander.Header>
+                    <StackPanel Spacing="2">
+                        <ItemsControl ItemsSource="{Binding Elements}">
+                            <ItemsControl.ItemTemplate>
+                                <DataTemplate>
+                                    <DockPanel LastChildFill="True" Margin="0,1,0,1">
+                                        <Button
+                                            DockPanel.Dock="Right"
+                                            Padding="4,1"
+                                            FontSize="10"
+                                            Content="✕"
+                                            Command="{ReflectionBinding DataContext.RemoveElementCommand, RelativeSource={RelativeSource AncestorType=ItemsControl}}"
+                                            CommandParameter="{ReflectionBinding}" />
+                                        <ContentControl Content="{Binding}" />
+                                    </DockPanel>
+                                </DataTemplate>
+                            </ItemsControl.ItemTemplate>
+                        </ItemsControl>
+                        <Button
+                            HorizontalAlignment="Left"
+                            Margin="4,2,0,0"
+                            Padding="8,2"
+                            FontSize="11"
+                            Content="Add"
+                            Command="{Binding AddElementCommand}" />
+                    </StackPanel>
+                </Expander>
+            </DataTemplate>
             <DataTemplate x:DataType="vm:ReadOnlyPropertyViewModel">
                 <TextBlock VerticalAlignment="Center" Text="{Binding Value}" TextTrimming="CharacterEllipsis" />
             </DataTemplate>

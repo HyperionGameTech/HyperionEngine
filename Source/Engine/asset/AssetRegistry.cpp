@@ -406,6 +406,17 @@ void AssetBucketData::AllocateUniqueAssetName(
         return;
     }
 
+    // Before generating a suffix, check if the existing entry with the original name is the same asset
+    {
+        auto existingIt = assetDescs.Find(nameHash);
+        if (comparator.IsValid() && comparator(*existingIt))
+        {
+            outAssetDesc = *existingIt;
+
+            return;
+        }
+    }
+
     uint32 suffix = 1;
 
     while (true)
@@ -822,9 +833,25 @@ void AssetRegistry::PutAsset(const AssetBucket& bucket, const Handle<AssetObject
         data.AllocateUniqueAssetName(
             *assetObject->InstanceClass()->GetName(),
             assetDesc,
-            [&assetObject](const AssetDesc& otherDesc) -> bool
+            [&assetObject, registryId = data.registryId, bucketIndex = data.bucketIndex](const AssetDesc& otherDesc) -> bool
             {
-                return assetObject->m_assetIndex == otherDesc.index;
+                if (assetObject->m_assetIndex == otherDesc.index)
+                {
+                    return true;
+                }
+
+                // When index is invalid (e.g. after RemoveCached), identify by asset path
+                if (assetObject->m_assetIndex == AssetDesc::InvalidIndex)
+                {
+                    const AssetPath& assetPath = assetObject->GetPath();
+
+                    return assetPath.IsValid()
+                        && assetPath.registryId == registryId
+                        && assetPath.bucketIndex == bucketIndex
+                        && assetPath.assetName == otherDesc.name;
+                }
+
+                return false;
             });
     }
 
@@ -871,9 +898,25 @@ void AssetRegistry::PutAssetUnique(const AssetBucket& bucket, const Handle<Asset
     data.AllocateUniqueAssetName(
         *assetDesc.name,
         assetDesc,
-        [&assetObject](const AssetDesc& otherDesc) -> bool
+        [&assetObject, registryId = data.registryId, bucketIndex = data.bucketIndex](const AssetDesc& otherDesc) -> bool
         {
-            return assetObject->m_assetIndex == otherDesc.index;
+            if (assetObject->m_assetIndex == otherDesc.index)
+            {
+                return true;
+            }
+
+            // When index is invalid (e.g. after RemoveCached), identify by asset path
+            if (assetObject->m_assetIndex == AssetDesc::InvalidIndex)
+            {
+                const AssetPath& assetPath = assetObject->GetPath();
+
+                return assetPath.IsValid()
+                    && assetPath.registryId == registryId
+                    && assetPath.bucketIndex == bucketIndex
+                    && assetPath.assetName == otherDesc.name;
+            }
+
+            return false;
         });
 
     assetObject->m_name = assetDesc.name;
@@ -1091,7 +1134,8 @@ void AssetRegistry::PutAssetsDeep(const Handle<AssetObject>& targetAsset)
         {
             if (assetObject->m_assetIndex == AssetDesc::InvalidIndex)
             {
-                PutAssetUnique(assetObject);
+                PutAsset(assetObject);
+                //PutAssetUnique(assetObject);
             }
 
             AssertDebug(assetObject->m_name.IsValid());

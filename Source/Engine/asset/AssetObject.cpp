@@ -110,6 +110,11 @@ void AssetObject::SetAssetFlags(EnumFlags<AssetObjectFlags> flags)
 
 void AssetObject::MarkDirty()
 {
+    if (IsGlobalContextActive<AssetLoadingContext>())
+    {
+        return;
+    }
+
     if (IsRegistered() && !IsTransient())
     {
         Handle<AssetRegistry> registry = GetAssetRegistry();
@@ -391,9 +396,13 @@ Result AssetObject::Load(
     // remove class property
     manifestData.Erase("$Class");
 
-    if (!ObjectFromJSON(manifestData, cls, targetData))
     {
-        return HYP_MAKE_ERROR(Error, "Failed to deserialize asset object from manifest JSON");
+        GlobalContextScope loadingContextScope { AssetLoadingContext {} };
+
+        if (!ObjectFromJSON(manifestData, cls, targetData))
+        {
+            return HYP_MAKE_ERROR(Error, "Failed to deserialize asset object from manifest JSON");
+        }
     }
 
     outAssetObject = MakeStrongRef(targetAssetObject);

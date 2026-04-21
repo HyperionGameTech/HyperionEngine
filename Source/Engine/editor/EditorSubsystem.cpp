@@ -430,7 +430,7 @@ void TranslateEditorGizmo::OnDragEnd(const Handle<Camera>& camera, const MouseEv
         if (Handle<Node> focusedNode = m_focusedNode.Lock(); focusedNode.IsValid())
         {
             project->GetActionStack()->PushAction(MakeHandle<FunctionalEditorAction>(
-                "Translate",
+                HYP_FORMAT("Translate {}", focusedNode->GetName()),
                 [focusedNode, node = m_node, finalPosition = focusedNode->GetWorldTranslation(), origin = m_dragData->nodeOrigin]() -> EditorActionFunctions
                 {
                     return {
@@ -967,7 +967,7 @@ void RotateEditorGizmo::OnDragEnd(const Handle<Camera>& camera, const MouseEvent
             const Quat4f originRotation = m_dragData->startRotation;
 
             project->GetActionStack()->PushAction(MakeHandle<FunctionalEditorAction>(
-                "Rotate",
+                HYP_FORMAT("Rotate {}", focusedNode->GetName()),
                 [focusedNode, finalRotation, originRotation]() -> EditorActionFunctions
                 {
                     return {

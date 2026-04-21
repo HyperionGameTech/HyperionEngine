@@ -555,6 +555,8 @@ HashMap<String, Handle<MaterialInstance>> MTLMaterialLoader::ParseMtl_Internal(L
             parameters,
             textures);
 
+        GetCurrentAssetRegistry()->PutAssetUnique(material);
+
         result.Set(item.tag, std::move(material));
     }
 

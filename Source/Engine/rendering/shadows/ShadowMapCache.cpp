@@ -125,8 +125,8 @@ static Camera* CreateShadowCamera(Light* light, uint32 cascadeIndex)
         break;
     case LightType::Point:
         shadowMapCamera->SetFOV(90.0f);
-        shadowMapCamera->SetNear(0.01f);
-        shadowMapCamera->SetFar(1000.0f);//light->GetRadius());
+        shadowMapCamera->SetNearClip(0.01f);
+        shadowMapCamera->SetFarClip(1000.0f);//light->GetRadius());
 
         shadowMapCamera->AddCameraController(MakeHandle<PerspectiveCameraController>());
         

@@ -18,7 +18,11 @@ namespace Hyperion.Editor.ViewModels
 
             InspectorPropertyViewModelBase vm;
 
-            if (typeInfo.IsString || isNameType)
+            if (typeInfo.IsArray)
+            {
+                vm = new ArrayPropertyViewModel(target, property, isReadOnly, depth);
+            }
+            else if (typeInfo.IsString || isNameType)
             {
                 vm = new TextPropertyViewModel(target, property, isReadOnly, isNameType);
             }
@@ -83,7 +87,11 @@ namespace Hyperion.Editor.ViewModels
 
             InspectorPropertyViewModelBase vm;
 
-            if (typeInfo.IsString || isNameType)
+            if (typeInfo.IsArray)
+            {
+                vm = new ArrayPropertyViewModel(classAddress, targetAddressResolver, property, isReadOnly, depth);
+            }
+            else if (typeInfo.IsString || isNameType)
             {
                 vm = new TextPropertyViewModel(classAddress, targetAddressResolver, property, isReadOnly, isNameType);
             }
@@ -131,6 +139,75 @@ namespace Hyperion.Editor.ViewModels
             {
                 Logger.Log(LogLevel.Debug, $"Inspector creating read-only property view model for property '{property.Name}' of type '{typeInfo.Name}'");
                 vm = new ReadOnlyPropertyViewModel(classAddress, targetAddressResolver, property, isReadOnly);
+            }
+
+            vm.PostWriteCallback = postWriteCallback;
+
+            return initialize ? Initialize(vm) : vm;
+        }
+
+        public static InspectorPropertyViewModelBase CreateForValue(
+            string label,
+            TypeInfo typeInfo,
+            Func<BoxedValue> getter,
+            Action<BoxedValue> setter,
+            bool isReadOnly = false,
+            int depth = 0,
+            bool initialize = true,
+            Action? postWriteCallback = null)
+        {
+            bool isNameType = InspectorPropertyViewModelBase.IsNameType(typeInfo);
+
+            InspectorPropertyViewModelBase vm;
+
+            if (typeInfo.IsArray)
+            {
+                vm = new ArrayPropertyViewModel(label, typeInfo, getter, setter, isReadOnly, depth);
+            }
+            else if (typeInfo.IsString || isNameType)
+            {
+                vm = new TextPropertyViewModel(label, typeInfo, getter, setter, isReadOnly, isNameType);
+            }
+            else if (typeInfo.IsEnumFlags)
+            {
+                vm = new FlagsPropertyViewModel(label, typeInfo, getter, setter, typeInfo.Class, isReadOnly);
+            }
+            else if (typeInfo.IsEnum)
+            {
+                vm = new EnumPropertyViewModel(label, typeInfo, getter, setter, typeInfo.Class, isReadOnly);
+            }
+            else if (typeInfo.IsVec2 && typeInfo.Class?.Name == "Vec2f")
+            {
+                vm = new Vec2fViewModel(label, typeInfo, getter, setter, isReadOnly);
+            }
+            else if (typeInfo.IsVec3 && typeInfo.Class?.Name == "Vec3f")
+            {
+                vm = new Vec3fViewModel(label, typeInfo, getter, setter, isReadOnly);
+            }
+            else if (typeInfo.IsVec4 && typeInfo.Class?.Name == "Vec4f")
+            {
+                vm = new Vec4fViewModel(label, typeInfo, getter, setter, isReadOnly);
+            }
+            else if (typeInfo.IsFundamental && typeInfo.IsIntegral && typeInfo.Name == "bool")
+            {
+                vm = new BoolPropertyViewModel(label, getter, setter, isReadOnly);
+            }
+            else if (typeInfo.IsFundamental && (typeInfo.IsIntegral || typeInfo.IsFloat))
+            {
+                vm = new NumericPropertyViewModel(label, typeInfo, getter, setter, isReadOnly);
+            }
+            else if (typeInfo.Class.HasValue && typeInfo.Class.Value.IsClassType)
+            {
+                vm = new ObjectPropertyViewModel(label, typeInfo, getter, setter, isReadOnly, depth);
+            }
+            else if (typeInfo.Class.HasValue && typeInfo.Class.Value.IsStructType)
+            {
+                vm = new StructPropertyViewModel(label, typeInfo, getter, setter, isReadOnly, depth);
+            }
+            else
+            {
+                Logger.Log(LogLevel.Debug, $"Inspector creating read-only value view model for label '{label}' of type '{typeInfo.Name}'");
+                vm = new ReadOnlyPropertyViewModel(label, getter, setter, isReadOnly);
             }
 
             vm.PostWriteCallback = postWriteCallback;

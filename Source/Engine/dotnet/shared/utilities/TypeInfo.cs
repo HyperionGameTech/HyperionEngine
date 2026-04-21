@@ -133,7 +133,25 @@ namespace Hyperion
         public bool IsIntegral => (Flags & TypeInfoFlags.IntegralType) != 0;
         public bool IsFloat => (Flags & TypeInfoFlags.FloatType) != 0;
         public bool IsHandle => (Flags & TypeInfoFlags.HandleType) != 0;
-        
+
+        public TypeInfo GetElementTypeInfo()
+        {
+            IntPtr pElemTypeInfo = TypeInfo_GetElementTypeInfo(_ptr);
+            return new TypeInfo(pElemTypeInfo);
+        }
+
+        /// <summary>
+        /// Creates a default BoxedValue for this TypeInfo.
+        /// Returns null if the type cannot be default-constructed.
+        /// </summary>
+        public unsafe BoxedValue? CreateDefaultValue()
+        {
+            BoxedValueInternal result;
+            if (!TypeInfo_CreateDefaultValue(_ptr, &result))
+                return null;
+
+            return BoxedValue.FromBuffer(result);
+        }
 
         [DllImport("hyperion", EntryPoint = "TypeInfo_IsValid")]
         [return: MarshalAs(UnmanagedType.I1)]
@@ -156,5 +174,12 @@ namespace Hyperion
 
         [DllImport("hyperion", EntryPoint = "TypeInfo_GetClass")]
         internal static extern IntPtr TypeInfo_GetClass(IntPtr typeInfo);
+
+        [DllImport("hyperion", EntryPoint = "TypeInfo_GetElementTypeInfo")]
+        internal static extern IntPtr TypeInfo_GetElementTypeInfo(IntPtr typeInfo);
+
+        [DllImport("hyperion", EntryPoint = "TypeInfo_CreateDefaultValue")]
+        [return: MarshalAs(UnmanagedType.I1)]
+        internal static extern unsafe bool TypeInfo_CreateDefaultValue(IntPtr typeInfo, BoxedValueInternal* pOutBoxed);
     }
 }

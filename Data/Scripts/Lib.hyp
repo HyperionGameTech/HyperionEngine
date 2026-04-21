@@ -2010,26 +2010,20 @@ extern class Camera : Entity
     RemoveCameraController(cameraController : CameraController) -> bool
     GetDimensions() -> Vec2i
     SetDimensions(dimensions : Vec2i) -> void
-    GetNear() -> float
-    SetNear(_near : float) -> void
-    GetFar() -> float
-    SetFar(_far : float) -> void
+    GetNearClip() -> float
+    SetNearClip(_near : float) -> void
+    GetFarClip() -> float
+    SetFarClip(_far : float) -> void
     GetFOV() -> float
     SetFOV(fov : float) -> void
-    GetLeft() -> float
-    SetLeft(left : float) -> void
-    GetRight() -> float
-    SetRight(right : float) -> void
-    GetBottom() -> float
-    SetBottom(bottom : float) -> void
-    GetTop() -> float
-    SetTop(top : float) -> void
     GetTranslation() -> Vec3f
     SetTranslation(translation : Vec3f) -> void
     GetDirection() -> Vec3f
     SetDirection(direction : Vec3f) -> void
     GetUpVector() -> Vec3f
     SetUpVector(up : Vec3f) -> void
+    GetOrthoRect() -> CameraOrthoRect
+    SetOrthoRect(orthoRect : CameraOrthoRect) -> void
     GetSideVector() -> Vec3f
     GetTarget() -> Vec3f
     SetTarget(target : Vec3f) -> void
@@ -2052,6 +2046,8 @@ extern class Camera : Entity
     GetPixelSize() -> Vec2f
     MatchWindowSizeRatio : float
     CameraControllers : Array<CameraController>
+    Fov : float
+    OrthoRect : CameraOrthoRect
     SetCameraControllers(cameraControllers : Array<CameraController>) -> void
 end
 extern class CameraController
@@ -2074,6 +2070,12 @@ end
 extern enum CameraFlags : uint32
     NONE = 0x0,
     MATCH_WINDOW_SIZE = 0x1
+end
+extern struct CameraOrthoRect
+    Left : float
+    Right : float
+    Bottom : float
+    Top : float
 end
 extern enum CameraProjectionMode : uint32
     NONE = 0,

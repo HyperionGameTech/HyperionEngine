@@ -560,4 +560,77 @@ extern "C"
         return true;
     }
 
+    HYP_EXPORT const TypeInfo* BoxedValue_GetArrayElemTypeInfo(const BoxedValue* pBoxed)
+    {
+        if (!pBoxed || !pBoxed->IsArray())
+        {
+            return nullptr;
+        }
+
+        return pBoxed->Get<GenericArrayWrapper>().elementTypeInfo;
+    }
+
+    HYP_EXPORT int8 BoxedValue_SetArrayElem(BoxedValue* pBoxed, int32 index, BoxedValue* pElem)
+    {
+        if (!pBoxed || !pElem)
+        {
+            return false;
+        }
+
+        if (!pBoxed->IsArray())
+        {
+            return false;
+        }
+
+        GenericArrayWrapper& arrayWrapper = pBoxed->Get<GenericArrayWrapper>();
+
+        return arrayWrapper.SetElementAt(size_t(index), std::move(*pElem)) ? 1 : 0;
+    }
+
+    HYP_EXPORT int8 BoxedValue_PushBackArrayElem(BoxedValue* pBoxed, BoxedValue* pElem)
+    {
+        if (!pBoxed || !pElem)
+        {
+            return false;
+        }
+
+        if (!pBoxed->IsArray())
+        {
+            return false;
+        }
+
+        GenericArrayWrapper& arrayWrapper = pBoxed->Get<GenericArrayWrapper>();
+
+        if (!arrayWrapper.CanPushBack())
+        {
+            return false;
+        }
+
+        arrayWrapper.PushBack(std::move(*pElem));
+
+        return true;
+    }
+
+    HYP_EXPORT int8 BoxedValue_ResizeArray(BoxedValue* pBoxed, int32 newSize)
+    {
+        if (!pBoxed || newSize < 0)
+        {
+            return false;
+        }
+
+        if (!pBoxed->IsArray())
+        {
+            return false;
+        }
+
+        GenericArrayWrapper& arrayWrapper = pBoxed->Get<GenericArrayWrapper>();
+
+        if (!arrayWrapper.CanResize())
+        {
+            return false;
+        }
+
+        return arrayWrapper.Resize(size_t(newSize)) ? 1 : 0;
+    }
+
 } // extern "C"

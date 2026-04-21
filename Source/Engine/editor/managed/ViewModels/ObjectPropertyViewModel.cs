@@ -74,6 +74,17 @@ namespace Hyperion.Editor.ViewModels
             HookContentBrowser();
         }
 
+        public ObjectPropertyViewModel(string label, TypeInfo typeInfo, Func<BoxedValue> getter, Action<BoxedValue> setter, bool isReadOnly, int depth = 0)
+            : base(label, typeInfo, getter, setter, isReadOnly)
+        {
+            _depth = depth;
+            _isAssetObjectType = DetectIsAssetObjectType(typeInfo);
+            _propertyTypeClass = GetPropertyTypeClass(typeInfo);
+            SelectCommand = new RelayCommand(OnSelect);
+            ClearCommand = new RelayCommand(OnClear);
+            HookContentBrowser();
+        }
+
         public override bool ShowInlineLabel => false;
 
         private static bool DetectIsAssetObjectType(TypeInfo typeInfo)

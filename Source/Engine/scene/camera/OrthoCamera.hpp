@@ -17,7 +17,7 @@ class OrthoCameraController : public CameraController
 
 public:
     OrthoCameraController();
-    OrthoCameraController(float left, float right, float bottom, float top, float _near, float _far);
+    OrthoCameraController(float left, float right, float bottom, float top);
     virtual ~OrthoCameraController() override = default;
 
     virtual void UpdateLogic(double delta) override;
@@ -28,12 +28,7 @@ protected:
     virtual void OnActivated() override;
     virtual void OnDeactivated() override;
 
-    float m_left,
-        m_right,
-        m_bottom,
-        m_top,
-        m_near,
-        m_far;
+    CameraOrthoRect m_rect;
 };
 
 } // namespace Hyperion
