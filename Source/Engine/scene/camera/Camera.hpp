@@ -43,7 +43,25 @@ enum class CameraFlags : uint32
     MATCH_WINDOW_SIZE = 0x1
 };
 
-HYP_MAKE_ENUM_FLAGS(CameraFlags)
+HYP_MAKE_ENUM_FLAGS(CameraFlags);
+
+HYP_STRUCT()
+struct CameraOrthoRect
+{
+    HYP_STRUCT_BODY(CameraOrthoRect);
+
+    HYP_FIELD()
+    float left = 0.0f;
+
+    HYP_FIELD()
+    float right = 0.0f;
+
+    HYP_FIELD()
+    float bottom = 0.0f;
+
+    HYP_FIELD()
+    float top = 0.0f;
+};
 
 struct CameraCommand
 {
@@ -104,7 +122,7 @@ public:
     virtual ~CameraController() = default;
 
     HYP_METHOD(Property = "InputHandler")
-    HYP_FORCE_INLINE const Handle<InputHandlerBase>& GetInputHandler() const
+    const Handle<InputHandlerBase>& GetInputHandler() const
     {
         return m_inputHandler;
     }
@@ -225,13 +243,13 @@ public:
     ~Camera() override;
 
     HYP_METHOD(Property = "Flags", Editor = true)
-    HYP_FORCE_INLINE EnumFlags<CameraFlags> GetCameraFlags() const
+    EnumFlags<CameraFlags> GetCameraFlags() const
     {
         return m_cameraFlags;
     }
 
     HYP_METHOD(Property = "Flags", Editor = true)
-    HYP_FORCE_INLINE void SetCameraFlags(EnumFlags<CameraFlags> flags)
+    void SetCameraFlags(EnumFlags<CameraFlags> flags)
     {
         m_cameraFlags = flags;
     }
@@ -240,19 +258,19 @@ public:
     void SetWindow(ApplicationWindow* window);
 
     HYP_METHOD(Property = "CameraControllers")
-    HYP_FORCE_INLINE const Array<Handle<CameraController>>& GetCameraControllers() const
+    const Array<Handle<CameraController>>& GetCameraControllers() const
     {
         return m_cameraControllers;
     }
 
     HYP_METHOD()
-    HYP_FORCE_INLINE const Handle<CameraController>& GetCameraController() const
+    const Handle<CameraController>& GetCameraController() const
     {
         return m_cameraControllers.Back();
     }
 
     HYP_METHOD()
-    HYP_FORCE_INLINE bool HasActiveCameraController() const
+    bool HasActiveCameraController() const
     {
         return m_cameraControllers.Size() > 1;
     }
@@ -283,29 +301,30 @@ public:
         float bottom, float top,
         float _near, float _far)
     {
-        m_left = left;
-        m_right = right;
-        m_bottom = bottom;
-        m_top = top;
+        m_orthoRect.left = left;
+        m_orthoRect.right = right;
+        m_orthoRect.bottom = bottom;
+        m_orthoRect.top = top;
+
         m_near = _near;
         m_far = _far;
 
         m_projMat = Mat4f::Orthographic(
-            m_left, m_right,
-            m_bottom, m_top,
+            m_orthoRect.left, m_orthoRect.right,
+            m_orthoRect.bottom, m_orthoRect.top,
             m_near, m_far);
 
         UpdateViewProjectionMatrix();
     }
 
     HYP_METHOD(Property = "Dimensions")
-    HYP_FORCE_INLINE Vec2i GetDimensions() const
+    Vec2i GetDimensions() const
     {
         return Vec2i { m_width, m_height };
     }
 
     HYP_METHOD(Property = "Dimensions")
-    HYP_FORCE_INLINE void SetDimensions(Vec2i dimensions)
+    void SetDimensions(Vec2i dimensions)
     {
         m_width = dimensions.x;
         m_height = dimensions.y;
@@ -313,102 +332,47 @@ public:
         UpdateProjectionMatrix();
     }
 
-    HYP_METHOD(Property = "Near", Editor = true)
-    HYP_FORCE_INLINE float GetNear() const
+    HYP_METHOD(Property = "NearClip", Editor = true)
+    float GetNearClip() const
     {
         return m_near;
     }
 
-    HYP_METHOD(Property = "Near", Editor = true)
-    HYP_FORCE_INLINE void SetNear(float _near)
+    HYP_METHOD(Property = "NearClip", Editor = true)
+    void SetNearClip(float _near)
     {
         m_near = _near;
     }
 
-    HYP_METHOD(Property = "Far", Editor = true)
-    HYP_FORCE_INLINE float GetFar() const
+    HYP_METHOD(Property = "FarClip", Editor = true)
+    float GetFarClip() const
     {
         return m_far;
     }
 
-    HYP_METHOD(Property = "Far", Editor = true)
-    HYP_FORCE_INLINE void SetFar(float _far)
+    HYP_METHOD(Property = "FarClip", Editor = true)
+    void SetFarClip(float _far)
     {
         m_far = _far;
     }
 
     // perspective only
     HYP_METHOD(Property = "FOV", Editor = true)
-    HYP_FORCE_INLINE float GetFOV() const
+    float GetFOV() const
     {
         return m_fov;
     }
 
     // perspective only
     HYP_METHOD(Property = "FOV", Editor = true)
-    HYP_FORCE_INLINE void SetFOV(float fov)
+    void SetFOV(float fov)
     {
         m_fov = fov;
     }
 
     // ortho only
-    HYP_METHOD(Property = "Left", Editor = true)
-    HYP_FORCE_INLINE float GetLeft() const
-    {
-        return m_left;
-    }
-
-    // ortho only
-    HYP_METHOD(Property = "Left", Editor = true)
-    HYP_FORCE_INLINE void SetLeft(float left)
-    {
-        m_left = left;
-    }
-
-    // ortho only
-    HYP_METHOD(Property = "Right", Editor = true)
-    HYP_FORCE_INLINE float GetRight() const
-    {
-        return m_right;
-    }
-
-    // ortho only
-    HYP_METHOD(Property = "Right", Editor = true)
-    HYP_FORCE_INLINE void SetRight(float right)
-    {
-        m_right = right;
-    }
-
-    // ortho only
-    HYP_METHOD(Property = "Bottom", Editor = true)
-    HYP_FORCE_INLINE float GetBottom() const
-    {
-        return m_bottom;
-    }
-
-    // ortho only
-    HYP_METHOD(Property = "Bottom", Editor = true)
-    HYP_FORCE_INLINE void SetBottom(float bottom)
-    {
-        m_bottom = bottom;
-    }
-
-    HYP_METHOD(Property = "Top", Editor = true)
-    HYP_FORCE_INLINE float GetTop() const
-    {
-        return m_top;
-    }
-
-    // ortho only
-    HYP_METHOD(Property = "Top", Editor = true)
-    HYP_FORCE_INLINE void SetTop(float top)
-    {
-        m_top = top;
-    }
-
-    // ortho only
     HYP_METHOD(Property = "Translation", Editor = true)
-    HYP_FORCE_INLINE const Vec3f& GetTranslation() const
+    const Vec3f& GetTranslation() const
     {
         return m_translation;
     }
@@ -419,7 +383,7 @@ public:
     void SetNextTranslation(const Vec3f& translation);
 
     HYP_METHOD(Property = "Direction", Editor = true)
-    HYP_FORCE_INLINE const Vec3f& GetDirection() const
+    const Vec3f& GetDirection() const
     {
         return m_direction;
     }
@@ -427,29 +391,42 @@ public:
     HYP_METHOD(Property = "Direction", Editor = true)
     void SetDirection(const Vec3f& direction);
 
-    HYP_METHOD(Property = "Up", Editor = true)
-    HYP_FORCE_INLINE const Vec3f& GetUpVector() const
+    HYP_METHOD(Property = "UpVector", Editor = true)
+    const Vec3f& GetUpVector() const
     {
         return m_up;
     }
 
-    HYP_METHOD(Property = "Up", Editor = true)
-    HYP_FORCE_INLINE void SetUpVector(const Vec3f& up);
+    HYP_METHOD(Property = "UpVector", Editor = true)
+    void SetUpVector(const Vec3f& up);
+
+    HYP_METHOD(Property = "OrthoRect", Editor = true)
+    const CameraOrthoRect& GetOrthoRect() const
+    {
+        return m_orthoRect;
+    }
+
+    HYP_METHOD(Property = "OrthoRect", Editor = true)
+    void SetOrthoRect(const CameraOrthoRect& orthoRect)
+    {
+        m_orthoRect = orthoRect;
+        UpdateProjectionMatrix();
+    }
 
     HYP_METHOD()
-    HYP_FORCE_INLINE Vec3f GetSideVector() const
+    Vec3f GetSideVector() const
     {
         return m_up.Cross(m_direction);
     }
 
     HYP_METHOD()
-    HYP_FORCE_INLINE Vec3f GetTarget() const
+    Vec3f GetTarget() const
     {
         return m_translation + m_direction;
     }
 
     HYP_METHOD()
-    HYP_FORCE_INLINE void SetTarget(const Vec3f& target)
+    void SetTarget(const Vec3f& target)
     {
         SetDirection(target - m_translation);
     }
@@ -457,25 +434,25 @@ public:
     HYP_METHOD()
     void Rotate(const Vec3f& axis, float radians);
 
-    HYP_FORCE_INLINE const Handle<CameraStreamingVolume>& GetStreamingVolume() const
+    const Handle<CameraStreamingVolume>& GetStreamingVolume() const
     {
         return m_streamingVolume;
     }
 
     HYP_METHOD(Property = "Frustum", Editor = true)
-    HYP_FORCE_INLINE const Frustum& GetFrustum() const
+    const Frustum& GetFrustum() const
     {
         return m_frustum;
     }
 
     HYP_METHOD(Property = "Frustum", Editor = true)
-    HYP_FORCE_INLINE void SetFrustum(const Frustum& frustum)
+    void SetFrustum(const Frustum& frustum)
     {
         m_frustum = frustum;
     }
 
     HYP_METHOD(Property = "ViewMatrix", Editor = true)
-    HYP_FORCE_INLINE const Mat4f& GetViewMatrix() const
+    const Mat4f& GetViewMatrix() const
     {
         return m_viewMat;
     }
@@ -484,7 +461,7 @@ public:
     void SetViewMatrix(const Mat4f& viewMat);
 
     HYP_METHOD(Property = "ViewMatrix", Editor = true)
-    HYP_FORCE_INLINE const Mat4f& GetProjectionMatrix() const
+    const Mat4f& GetProjectionMatrix() const
     {
         return m_projMat;
     }
@@ -493,7 +470,7 @@ public:
     void SetProjectionMatrix(const Mat4f& projMat);
 
     HYP_METHOD()
-    HYP_FORCE_INLINE const Mat4f& GetViewProjectionMatrix() const
+    const Mat4f& GetViewProjectionMatrix() const
     {
         return m_viewProjMat;
     }
@@ -502,7 +479,7 @@ public:
     void SetViewProjectionMatrix(const Mat4f& viewMat, const Mat4f& projMat);
 
     HYP_METHOD()
-    HYP_FORCE_INLINE const Mat4f& GetPreviousViewProjectionMatrix() const
+    const Mat4f& GetPreviousViewProjectionMatrix() const
     {
         return m_prevViewProjMat;
     }
@@ -562,10 +539,11 @@ protected:
     float m_near, m_far;
 
     // only for perspective
+    HYP_FIELD(Property = "FOV", Editor, Serialize)
     float m_fov;
 
-    // only for ortho
-    float m_left, m_right, m_bottom, m_top;
+    HYP_FIELD(Property = "OrthoRect", Editor, Serialize)
+    CameraOrthoRect m_orthoRect;
 
 private:
     /*! \internal For serialization only. */
@@ -583,6 +561,7 @@ private:
     InputMouseLockScope m_mouseLockScope;
 
     Handle<CameraStreamingVolume> m_streamingVolume;
+    bool m_streamingVolumeAdded;
 
     WeakHandle<ApplicationWindow> m_window;
 

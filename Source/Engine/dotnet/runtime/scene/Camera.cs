@@ -19,6 +19,16 @@ namespace Hyperion
         MatchWindowSize = 0x1
     }
 
+    [ClassBinding(Name="CameraOrthoRect")]
+    [StructLayout(LayoutKind.Sequential)]
+    public struct CameraOrthoRect
+    {
+        public float Left;
+        public float Right;
+        public float Bottom;
+        public float Top;
+    }
+
     [ClassBinding(Name="Camera")]
     public class Camera : Entity
     {

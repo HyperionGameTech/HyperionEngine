@@ -171,6 +171,11 @@ struct AssetRegistryContext
     Handle<AssetRegistry> registry;
 };
 
+/*! \brief Context struct used with GlobalContext to suppress MarkDirty() calls while an AssetObject is being deserialized. */
+struct AssetLoadingContext
+{
+};
+
 HYP_API Handle<AssetRegistry> GetCurrentAssetRegistry();
 
 HYP_API void PushCurrentAssetRegistry(const Handle<AssetRegistry>& registry);

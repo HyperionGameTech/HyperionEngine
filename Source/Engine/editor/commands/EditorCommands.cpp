@@ -1290,7 +1290,7 @@ public:
         Handle<Node> parent = MakeStrongRef(parentRaw);
 
         Handle<FunctionalEditorAction> action = MakeHandle<FunctionalEditorAction>(
-            GetText(),
+            HYP_FORMAT("Delete {}", node->GetName()),
             Proc<EditorActionFunctions()>([node, parent]() -> EditorActionFunctions
                 {
                     return EditorActionFunctions {

@@ -1117,6 +1117,21 @@ namespace Hyperion
         [return: MarshalAs(UnmanagedType.I1)]
         internal static extern bool BoxedValue_SetArray([In] ref BoxedValueInternal boxed, [In] IntPtr pClass, [In] IntPtr arrayPtr, uint arraySize);
 
+        [DllImport("hyperion", EntryPoint = "BoxedValue_GetArrayElemTypeInfo")]
+        internal static extern IntPtr BoxedValue_GetArrayElemTypeInfo([In] ref BoxedValueInternal boxed);
+
+        [DllImport("hyperion", EntryPoint = "BoxedValue_SetArrayElem")]
+        [return: MarshalAs(UnmanagedType.I1)]
+        internal static extern bool BoxedValue_SetArrayElem([In] ref BoxedValueInternal boxed, int index, [In] ref BoxedValueInternal elem);
+
+        [DllImport("hyperion", EntryPoint = "BoxedValue_PushBackArrayElem")]
+        [return: MarshalAs(UnmanagedType.I1)]
+        internal static extern bool BoxedValue_PushBackArrayElem([In] ref BoxedValueInternal boxed, [In] ref BoxedValueInternal elem);
+
+        [DllImport("hyperion", EntryPoint = "BoxedValue_ResizeArray")]
+        [return: MarshalAs(UnmanagedType.I1)]
+        internal static extern bool BoxedValue_ResizeArray([In] ref BoxedValueInternal boxed, int newSize);
+
         [DllImport("hyperion", EntryPoint = "BoxedValue_SetString")]
         [return: MarshalAs(UnmanagedType.I1)]
         internal static extern bool BoxedValue_SetString([In] ref BoxedValueInternal boxed, [In] IntPtr stringPtr);
@@ -1255,6 +1270,73 @@ namespace Hyperion
             }
 
             return GetValue()?.ToString() ?? "null";
+        }
+
+        public bool IsArray => BoxedValueInternal.BoxedValue_IsArray(ref _data);
+
+        public int GetArraySize()
+        {
+            if (_disposed)
+                throw new ObjectDisposedException(nameof(BoxedValue));
+
+            if (!BoxedValueInternal.BoxedValue_GetArraySize(ref _data, out int size))
+                throw new InvalidOperationException("BoxedValue is not an array");
+
+            return size;
+        }
+
+        public TypeInfo GetArrayElementTypeInfo()
+        {
+            if (_disposed)
+                throw new ObjectDisposedException(nameof(BoxedValue));
+
+            IntPtr pTypeInfo = BoxedValueInternal.BoxedValue_GetArrayElemTypeInfo(ref _data);
+            return new TypeInfo(pTypeInfo);
+        }
+
+        public unsafe BoxedValue GetArrayElement(int index)
+        {
+            if (_disposed)
+                throw new ObjectDisposedException(nameof(BoxedValue));
+
+            BoxedValueInternal elem;
+            if (!BoxedValueInternal.BoxedValue_GetArrayElem(ref _data, index, &elem))
+                throw new InvalidOperationException($"Failed to get array element at index {index}");
+
+            return FromBuffer(elem);
+        }
+
+        public void SetArrayElement(int index, BoxedValue value)
+        {
+            if (_disposed)
+                throw new ObjectDisposedException(nameof(BoxedValue));
+
+            if (value == null)
+                throw new ArgumentNullException(nameof(value));
+
+            if (!BoxedValueInternal.BoxedValue_SetArrayElem(ref _data, index, ref value._data))
+                throw new InvalidOperationException($"Failed to set array element at index {index}");
+        }
+
+        public void PushBackArrayElement(BoxedValue value)
+        {
+            if (_disposed)
+                throw new ObjectDisposedException(nameof(BoxedValue));
+
+            if (value == null)
+                throw new ArgumentNullException(nameof(value));
+
+            if (!BoxedValueInternal.BoxedValue_PushBackArrayElem(ref _data, ref value._data))
+                throw new InvalidOperationException("Failed to push back array element");
+        }
+
+        public void ResizeArray(int newSize)
+        {
+            if (_disposed)
+                throw new ObjectDisposedException(nameof(BoxedValue));
+
+            if (!BoxedValueInternal.BoxedValue_ResizeArray(ref _data, newSize))
+                throw new InvalidOperationException($"Failed to resize array to {newSize}");
         }
     }
 }

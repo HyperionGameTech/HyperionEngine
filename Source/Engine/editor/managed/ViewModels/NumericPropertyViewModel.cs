@@ -23,6 +23,12 @@ namespace Hyperion.Editor.ViewModels
             _typeName = property.TypeInfo.Name.ToString();
         }
 
+        public NumericPropertyViewModel(string label, TypeInfo typeInfo, Func<BoxedValue> getter, Action<BoxedValue> setter, bool isReadOnly)
+            : base(label, typeInfo, getter, setter, isReadOnly)
+        {
+            _typeName = typeInfo.Name.ToString();
+        }
+
         public override bool IsNumericEditable => true;
 
         public string EditableValue

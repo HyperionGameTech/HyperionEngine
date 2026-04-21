@@ -54,6 +54,15 @@ namespace Hyperion.Editor.ViewModels
             InitializeSubProperties();
         }
 
+        public StructPropertyViewModel(string label, TypeInfo typeInfo, Func<BoxedValue> getter, Action<BoxedValue> setter, bool isReadOnly, int depth = 0)
+            : base(label, typeInfo, getter, setter, isReadOnly)
+        {
+            _depth = depth;
+            _structClass = typeInfo.Class!.Value;
+            Value = _structClass.Name.ToString();
+            InitializeSubProperties();
+        }
+
         // Returns the address of the struct copy held in _currentStructValue,
         // or IntPtr.Zero if not yet loaded (sub-prop calls will fail gracefully until first RefreshValue).
         private IntPtr GetCurrentStructPointer()

@@ -16,6 +16,11 @@ namespace Hyperion.Editor.ViewModels
         private readonly IntPtr _componentClassAddress;
         private readonly Func<IntPtr>? _componentTargetResolver;
 
+        // Delegate-based path (used by e.g. array-element VMs where there is no Property).
+        private readonly Func<BoxedValue>? _valueGetter;
+        private readonly Action<BoxedValue>? _valueSetter;
+        protected readonly TypeInfo _typeInfoHint;
+
         private string _value = string.Empty;
         private string _label;
         protected int _isRefreshing;
@@ -67,6 +72,19 @@ namespace Hyperion.Editor.ViewModels
             InitializeLabel(property);
         }
 
+        /// <summary>Delegate-based constructor used when there is no backing Property (e.g. array elements).</summary>
+        protected InspectorPropertyViewModelBase(string label, TypeInfo typeInfoHint, Func<BoxedValue> getter, Action<BoxedValue> setter, bool isReadOnly = false)
+        {
+            _target = null;
+            _property = Property.Invalid;
+            _isReadOnly = isReadOnly;
+            _isRefreshing = 0;
+            _valueGetter = getter ?? throw new ArgumentNullException(nameof(getter));
+            _valueSetter = setter ?? throw new ArgumentNullException(nameof(setter));
+            _typeInfoHint = typeInfoHint;
+            _label = label;
+        }
+
         private void InitializeLabel(Property property)
         {
             ClassAttribute? attrLabel = property.GetAttribute("label");
@@ -83,6 +101,9 @@ namespace Hyperion.Editor.ViewModels
 
         protected BoxedValue GetPropertyValue()
         {
+            if (_valueGetter != null)
+                return _valueGetter();
+
             if (_componentTargetResolver != null)
             {
                 return _property.Get(_componentClassAddress, _componentTargetResolver());
@@ -93,6 +114,13 @@ namespace Hyperion.Editor.ViewModels
 
         protected void SetPropertyValue(BoxedValue value)
         {
+            if (_valueSetter != null)
+            {
+                _valueSetter(value);
+                PostWriteCallback?.Invoke();
+                return;
+            }
+
             if (_componentTargetResolver != null)
             {
                 _property.Set(_componentClassAddress, _componentTargetResolver(), value);
@@ -135,6 +163,8 @@ namespace Hyperion.Editor.ViewModels
             Func<IntPtr>? capturedResolver = _componentTargetResolver;
             ObjectBase? capturedTarget = _target;
             Property capturedProperty = _property;
+            Func<BoxedValue>? capturedGetter = _valueGetter;
+            Action<BoxedValue>? capturedSetter = _valueSetter;
             Action? capturedPostWrite = PostWriteCallback;
             InspectorPropertyViewModelBase capturedThis = this;
 
@@ -149,7 +179,11 @@ namespace Hyperion.Editor.ViewModels
                 {
                     using BoxedValue bv = new BoxedValue(valueObj);
 
-                    if (capturedResolver != null)
+                    if (capturedSetter != null)
+                    {
+                        capturedSetter(bv);
+                    }
+                    else if (capturedResolver != null)
                     {
                         capturedProperty.Set(capturedClassAddress, capturedResolver(), bv);
                     }
@@ -183,7 +217,7 @@ namespace Hyperion.Editor.ViewModels
         public ICommand CommitValueCommand => _commitValueCommand ??= new RelayCommand(CommitValue);
 
         protected bool IsTargetValid =>
-            _componentTargetResolver != null || (_target?.IsValid ?? false);
+            _valueGetter != null || _componentTargetResolver != null || (_target?.IsValid ?? false);
 
         public abstract void RefreshValue();
 

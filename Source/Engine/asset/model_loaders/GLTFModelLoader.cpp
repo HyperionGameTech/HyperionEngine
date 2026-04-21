@@ -295,8 +295,9 @@ Handle<Texture> AcquireTexture(GltfLoadContext& ctx, const cgltf_texture_view& t
                 srgb ? AssetLoadHint::TextureLoader_LoadAsSRGB : AssetLoadHint::NoHint); textureResult.HasValue())
             {
                 const Handle<Texture>& texture = textureResult->Result();
-                GetCurrentAssetRegistry()->PutAssetUnique(texture);
                 CheckResult(texture->Create());
+                
+                GetCurrentAssetRegistry()->PutAssetUnique(texture);
 
                 return texture;
             }
@@ -342,6 +343,8 @@ Handle<Texture> AcquireTexture(GltfLoadContext& ctx, const cgltf_texture_view& t
     {
         textureHandle->SetName(CreateNameFromDynamicString(image->name));
     }
+
+    GetCurrentAssetRegistry()->PutAssetUnique(textureHandle);
 
     ctx.textureCache.Set(textureView.texture, textureHandle);
 
@@ -564,13 +567,15 @@ SplitMetalnessRoughnessResult SplitMetalnessRoughnessTexture(
 
     Handle<Texture> roughnessTexture = MakeHandle<Texture>(channelDesc, roughnessData.ToByteView());
     roughnessTexture->SetName(NAME_FMT("{}_Roughness", baseName));
-    GetCurrentAssetRegistry()->PutAssetUnique(roughnessTexture);
     CheckResult(roughnessTexture->Create());
+
+    GetCurrentAssetRegistry()->PutAssetUnique(roughnessTexture);
 
     Handle<Texture> metalnessTexture = MakeHandle<Texture>(metalnessDesc, metalnessData.ToByteView());
     metalnessTexture->SetName(NAME_FMT("{}_Metalness", baseName));
-    GetCurrentAssetRegistry()->PutAssetUnique(metalnessTexture);
     CheckResult(metalnessTexture->Create());
+
+    GetCurrentAssetRegistry()->PutAssetUnique(metalnessTexture);
 
     return { metalnessTexture, roughnessTexture };
 }
@@ -952,8 +957,9 @@ bool BuildPrimitive(GltfLoadContext& ctx,
     }
 
     mesh->SetOriginalFilepath(FilePath::Relative(ctx.state.filepath, ctx.state.assetManager->GetBasePath()));
-    GetCurrentAssetRegistry()->PutAssetUnique(mesh);
     InitObject(mesh);
+
+    GetCurrentAssetRegistry()->PutAssetUnique(mesh);
 
     out.mesh = mesh;
 

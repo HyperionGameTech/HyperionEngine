@@ -190,7 +190,12 @@ public:
         if (!IsRunning() || IsOnThread(Id()))
         {
             auto it = m_volumes.FindAs(volume);
-            Assert(it != m_volumes.End(), "StreamingVolume not found in streaming manager!");
+
+            if (it == m_volumes.End())
+            {
+                HYP_LOG(Streaming, Warning, "StreamingVolume {} not found in streaming manager", volume->Id());
+                return;
+            }
 
             m_volumes.Erase(it);
         }
@@ -199,7 +204,12 @@ public:
             m_scheduler.Enqueue([this, volume]()
                 {
                     auto it = m_volumes.FindAs(volume);
-                    Assert(it != m_volumes.End(), "StreamingVolume not found in streaming manager!");
+
+                    if (it == m_volumes.End())
+                    {
+                        HYP_LOG(Streaming, Warning, "StreamingVolume {} not found in streaming manager", volume->Id());
+                        return;
+                    }
 
                     m_volumes.Erase(it);
                 },

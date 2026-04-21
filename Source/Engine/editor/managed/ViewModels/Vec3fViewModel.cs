@@ -88,5 +88,24 @@ namespace Hyperion.Editor.ViewModels
                   writeOverride)
         {
         }
+
+        public Vec3fViewModel(string label, TypeInfo typeInfo, Func<BoxedValue> getter, Action<BoxedValue> setter, bool isReadOnly)
+            : base(label, typeInfo, getter, setter, isReadOnly, 3,
+                  (v, i) => i switch
+                  {
+                      0 => v.x,
+                      1 => v.y,
+                      2 => v.z,
+                      _ => 0f
+                  },
+                  (v, i, val) => i switch
+                  {
+                      0 => new Vec3f(val, v.y, v.z),
+                      1 => new Vec3f(v.x, val, v.z),
+                      2 => new Vec3f(v.x, v.y, val),
+                      _ => v
+                  })
+        {
+        }
     }
 }

@@ -16,6 +16,11 @@ namespace Hyperion.Editor.ViewModels
         {
         }
 
+        public ReadOnlyPropertyViewModel(string label, Func<BoxedValue> getter, Action<BoxedValue> setter, bool isReadOnly)
+            : base(label, default, getter, setter, isReadOnly)
+        {
+        }
+
         public override void RefreshValue()
         {
             if (Interlocked.CompareExchange(ref _isRefreshing, 1, 0) == 1)

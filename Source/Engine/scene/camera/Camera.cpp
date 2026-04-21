@@ -198,13 +198,10 @@ Camera::Camera(int width, int height)
       m_height(height),
       m_near(0.01f),
       m_far(1000.0f),
-      m_left(0.0f),
-      m_right(0.0f),
-      m_bottom(0.0f),
-      m_top(0.0f),
       m_translation(Vec3f::Zero()),
       m_direction(Vec3f::UnitZ()),
-      m_up(Vec3f::UnitY())
+      m_up(Vec3f::UnitY()),
+      m_streamingVolumeAdded(false)
 {
     // make sure there is always at least 1 camera controller
     m_cameraControllers.PushBack(MakeStrongRef(GetNullCameraController()));
@@ -772,14 +769,22 @@ void Camera::OnAddedToWorld(World* world)
 {
     AssertDebug(GetStreamingVolume().IsValid());
 
-    g_streamingManager->AddStreamingVolume(GetStreamingVolume());
+    if (!m_streamingVolumeAdded)
+    {
+        g_streamingManager->AddStreamingVolume(GetStreamingVolume());
+        m_streamingVolumeAdded = true;
+    }
 
     Entity::OnAddedToWorld(world);
 }
 
 void Camera::OnRemovedFromWorld(World* world)
 {
-    g_streamingManager->RemoveStreamingVolume(GetStreamingVolume());
+    if (m_streamingVolumeAdded)
+    {
+        m_streamingVolumeAdded = false;
+        g_streamingManager->RemoveStreamingVolume(GetStreamingVolume());
+    }
 
     Entity::OnRemovedFromWorld(world);
 }

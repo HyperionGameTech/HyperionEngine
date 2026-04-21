@@ -21,6 +21,12 @@ namespace Hyperion.Editor.ViewModels
             _isNameProperty = isNameProperty;
         }
 
+        public TextPropertyViewModel(string label, TypeInfo typeInfo, Func<BoxedValue> getter, Action<BoxedValue> setter, bool isReadOnly, bool isNameProperty)
+            : base(label, typeInfo, getter, setter, isReadOnly)
+        {
+            _isNameProperty = isNameProperty;
+        }
+
         public override bool IsTextEditable => true;
 
         public bool IsStringEditable => !_isNameProperty;

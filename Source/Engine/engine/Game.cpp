@@ -69,14 +69,6 @@ void Game::Initialize()
             GetLibraryDirectory() / *InstanceClass()->GetName());
     }
 
-    if (!m_assetRegistryActive)
-    {
-        m_assetRegistry->Initialize();
-
-        PushCurrentAssetRegistry(m_assetRegistry);
-        m_assetRegistryActive = true;
-    }
-
     if (!m_world)
     {
         m_world = MakeHandle<World>(s_nameMainWorld, WorldFlags::DEFAULT);
@@ -84,8 +76,17 @@ void Game::Initialize()
 
     AssertDebug(m_world->m_gameInstance == nullptr || m_world->m_gameInstance == this);
     m_world->m_gameInstance = this;
-
     InitObject(m_world);
+
+    if (!m_assetRegistryActive)
+    {
+        m_assetRegistry->Initialize();
+
+        m_assetRegistry->PutAssetsDeep(m_world);
+
+        PushCurrentAssetRegistry(m_assetRegistry);
+        m_assetRegistryActive = true;
+    }
 
     if (!m_uiSubsystem)
     {

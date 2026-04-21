@@ -17,8 +17,8 @@ class UICameraController : public OrthoCameraController
 
 public:
     UICameraController() = default;
-    UICameraController(float left, float right, float bottom, float top, float _near, float _far)
-        : OrthoCameraController(left, right, bottom, top, _near, _far)
+    UICameraController(float left, float right, float bottom, float top)
+        : OrthoCameraController(left, right, bottom, top)
     {
     }
 
