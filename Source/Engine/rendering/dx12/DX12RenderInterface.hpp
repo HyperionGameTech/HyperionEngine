@@ -68,8 +68,6 @@ public:
     const IRenderConfig& GetRenderConfig() const override;
 
     DX12Frame* GetCurrentFrame() const override;
-
-    DX12Frame* PrepareNextFrame() override;
     
     DX12SwapchainRef CreateSwapchain(ApplicationWindow* window, const Vec2u& extent) override;
 
@@ -138,6 +136,8 @@ public:
     DX12DescriptorHeapManager* descriptorHeapManager;
 
 private:
+    DX12Frame* PrepareNextFrame() override;
+
     Pimpl<DX12RenderConfig> m_renderConfig;
 
     FixedArray<DX12FrameRef, NumFramesInFlight> m_frames;

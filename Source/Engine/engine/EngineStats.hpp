@@ -168,7 +168,8 @@ class HYP_API EngineStatTimer : public EngineStatBase
 public:
     explicit EngineStatTimer(UTF8StringView path, bool resetPerFrame = true)
         : EngineStatBase(EST_TIMER, path),
-          m_clock()
+          m_clock(),
+          m_totalMs(0.0)
     {
         EngineStatBase::resetPerFrame = resetPerFrame;
     }
@@ -185,25 +186,23 @@ public:
     void StopTiming()
     {
         m_clock.Stop();
-    }
-
-    double GetElapsedMs() const
-    {
-        return m_clock.ElapsedMs();
+        m_totalMs += m_clock.ElapsedMs();
     }
 
     virtual double GetValue() const override
     {
-        return GetElapsedMs();
+        return m_totalMs;
     }
 
     virtual void Reset() override
     {
         m_clock = PerformanceClock();
+        m_totalMs = 0.0;
     }
 
 private:
     PerformanceClock m_clock;
+    double m_totalMs;
 };
 
 struct EngineStatScope

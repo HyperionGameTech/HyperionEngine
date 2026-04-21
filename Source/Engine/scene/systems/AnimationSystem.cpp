@@ -87,7 +87,7 @@ void AnimationSystem::Process(float delta, Span<Handle<Scene>> scenes)
 
     if (!GetWorld()->GetGameState().IsSimulating())
     {
-        return;
+      //  return;
     }
 
     for (Scene* scene : scenes)

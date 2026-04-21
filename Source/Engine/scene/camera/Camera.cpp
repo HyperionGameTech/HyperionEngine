@@ -278,7 +278,7 @@ void Camera::Init()
     {
         Handle<ApplicationWindow> window = m_window.Lock();
 
-        auto matchWindowSize = [this](Vec2i windowSize)
+        auto MatchWindowSize = [this](Vec2i windowSize)
         {
             windowSize = MathUtil::Max(Vec2i(MathUtil::Round(Vec2f(windowSize) * m_matchWindowSizeRatio)), Vec2i::One());
 
@@ -287,9 +287,9 @@ void Camera::Init()
 
         if (window.IsValid())
         {
-            matchWindowSize(window->GetDimensions());
+            MatchWindowSize(window->GetDimensions());
 
-            m_onWindowResizedHandle = window->OnWindowSizeChanged.BindThreaded(matchWindowSize, g_simThread);
+            m_onWindowResizedHandle = window->OnWindowSizeChanged.BindThreaded(MatchWindowSize, g_simThread);
         }
     }
 

@@ -34,6 +34,8 @@
 
 #include <engine/config/EngineConfig.hpp>
 
+#include <engine/EngineStats.hpp>
+
 #include <Core/containers/SparsePagedArray.hpp>
 
 #include <rendering/Texture.hpp>
@@ -58,6 +60,8 @@ namespace Hyperion {
 
 static constexpr bool UseResetDescriptorPool = false;
 static constexpr uint32 MaxDescriptorPools = 32;
+
+static EngineStatTimer s_statVulkanWaitOnFences("Rendering/Vulkan/WaitOnFences");
 
 enum VulkanDescriptorPoolRequirements : uint8
 {
@@ -763,7 +767,12 @@ VulkanFrame* VulkanRenderInterface::PrepareNextFrame()
     const uint32 frameCounter = GetFrameCounter();
 
     VulkanFrame* frame = GetCurrentFrame();
-    frame->GetFence()->Wait(true);
+    {
+        ENGINE_STAT_SCOPE(&s_statVulkanWaitOnFences);
+
+        // HYP_LOG_TEMP("Preparing frame {} (frame counter : {})", frame->GetFrameIndex(), frameCounter % NumFramesInFlight);
+        frame->GetFence()->Wait(true);
+    }
 
     // call frame callbacks after fence is waited on
     if (frame->OnFrameEnd.AnyBound())
@@ -823,9 +832,15 @@ VulkanFrame* VulkanRenderInterface::PrepareNextFrame()
     for (auto it = fences.Begin(); it != fences.End();)
     {
         VulkanFence& fence = *it;
-        fence.Wait(true);
 
-        fence.Reset();
+        if (fence.isSubmitted)
+        {
+            ENGINE_STAT_SCOPE(&s_statVulkanWaitOnFences);
+
+            fence.Wait(true);
+
+            fence.Reset();
+        }
 
         m_recycledTransientCommandBufferFences.PushBack(std::move(fence));
 
@@ -920,6 +935,8 @@ void VulkanRenderInterface::PresentToSwapchain(VulkanSwapchain* swapchain)
 
         AssertDebug(waitSemaphore != nullptr && signalSemaphore != nullptr);
     }
+
+    // HYP_LOG_TEMP("Submitting frame {} to present queue", frame->GetFrameIndex());
     
     commandBuffer->Submit(
         presentQueue,
@@ -995,6 +1012,8 @@ void VulkanRenderInterface::SubmitTransientCommandBuffer(VulkanCommandBuffer& co
     {
         fence.Create();
     }
+
+    // HYP_LOG_TEMP("Submitting transient command buffer on thread {} for frame {}", renderThreadIndex, frameCounter % NumFramesInFlight);
 
     commandBuffer.Submit(graphicsQueue, &fence, {}, {});
 }
@@ -1252,6 +1271,8 @@ void VulkanRenderInterface::SubmitAsyncCompute(VulkanAsyncCompute* asyncCompute)
     
     Mutex::Guard guard(m_asyncComputesMutex);
     Assert(!m_submittedAsyncComputes.Contains(asyncCompute));
+
+    // HYP_LOG_TEMP("Submitting async compute task on thread {} for frame {}", CurrentRenderThreadIndex(), GetFrameCounter());
 
     asyncCompute->Submit();
 

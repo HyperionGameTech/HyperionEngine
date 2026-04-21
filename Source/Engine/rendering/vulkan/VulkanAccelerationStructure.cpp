@@ -374,6 +374,8 @@ RendererResult VulkanAccelerationStructureBase::CreateAccelerationStructure(
 
     commandBuffer->End();
 
+    // HYP_LOG_TEMP("Submitting acceleration structure build command buffer for frame {}, thread: {}", GetFrameCounter() % NumFramesInFlight, CurrentThreadId().GetName());
+
     CheckResultOrReturn(commandBuffer->Submit(g_renderInterface->GetDevice()->GetGraphicsQueue(), nullptr, nullptr, nullptr));
 
     EnqueueDeletion(std::move(commandBuffer));
