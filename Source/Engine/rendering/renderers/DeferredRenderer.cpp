@@ -146,7 +146,6 @@ EngineStatCounter<uint32> g_statDrawCalls("Rendering/DrawCalls");
 EngineStatCounter<uint32> g_statInstancedDrawCalls("Rendering/InstancedDrawCalls");
 EngineStatCounter<uint32> g_statTriangles("Rendering/Triangles");
 EngineStatCounter<uint32> g_statRenderGroups("Rendering/RenderGroups");
-EngineStatCounter<uint32> g_statViews("Rendering/Views");
 EngineStatCounter<uint32> g_statTextures("Rendering/Textures");
 EngineStatCounter<uint32> g_statMaterials("Rendering/Materials");
 EngineStatCounter<uint32> g_statLights("Rendering/Lights");
@@ -2446,7 +2445,6 @@ void DeferredRenderer::RenderFrame(Frame* frame, const RenderSetup& rs)
 
         RenderProxyList& rpl = GetConsumerProxyList(view);
 
-        g_statViews++;
         g_statTextures += rpl.GetTextures().NumCurrent();
         g_statMaterials += rpl.GetMaterials().NumCurrent();
         g_statLightmapVolumes += rpl.GetLightmapVolumes().NumCurrent();

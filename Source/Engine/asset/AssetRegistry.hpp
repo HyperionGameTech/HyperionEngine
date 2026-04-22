@@ -184,4 +184,9 @@ HYP_API void PopCurrentAssetRegistry();
 HYP_API Handle<AssetRegistry> GetEngineAssetRegistry();
 HYP_API void SetEngineAssetRegistry(const Handle<AssetRegistry>& registry);
 
+#if HYP_EDITOR
+HYP_API Handle<AssetRegistry> GetEditorAssetRegistry();
+HYP_API void SetEditorAssetRegistry(const Handle<AssetRegistry>& registry);
+#endif // HYP_EDITOR
+
 } // namespace Hyperion

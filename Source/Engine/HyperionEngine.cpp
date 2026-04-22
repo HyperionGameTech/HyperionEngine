@@ -369,6 +369,19 @@ extern "C"
             SetEngineAssetRegistry(engineRegistry);
         }
 
+#if HYP_EDITOR
+        // Create the editor asset registry
+        {
+            Handle<AssetRegistry> editorRegistry = MakeHandle<AssetRegistry>(
+                AssetRegistryId::Editor,
+                GetLibraryDirectory() / "Editor");
+
+            editorRegistry->Initialize();
+
+            SetEditorAssetRegistry(editorRegistry);
+        }
+#endif // HYP_EDITOR
+
         g_audioManager = MakeHandle<AudioManager>();
         InitObject(g_audioManager);
 
@@ -504,6 +517,11 @@ extern "C"
 
         GetEngineAssetRegistry()->Shutdown();
         SetEngineAssetRegistry(Handle<AssetRegistry>::Null());
+
+#if HYP_EDITOR
+        GetEditorAssetRegistry()->Shutdown();
+        SetEditorAssetRegistry(Handle<AssetRegistry>::Null());
+#endif // HYP_EDITOR
 
         g_assetManager.Reset();
         g_audioManager.Reset();

@@ -260,8 +260,8 @@ void Mesh::PageBlobData()
                             return;
                         }
 #endif
-
-                        HYP_LOG(Assets, Warning, "BVH blob data missing for mesh '{}' - BVH will not be available until rebuilt", GetName());
+                        
+                        HYP_FAIL("Blob data missing! Data corruption detected.");
                     })();
             }
             else

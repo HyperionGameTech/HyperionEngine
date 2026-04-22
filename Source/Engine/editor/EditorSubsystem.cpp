@@ -710,6 +710,8 @@ bool TranslateEditorGizmo::OnKeyPress(const Handle<Camera>& camera, const Keyboa
 
 Handle<Node> TranslateEditorGizmo::Load_Internal() const
 {
+    GlobalContextScope assetRegistryScope { AssetRegistryContext { GetEditorAssetRegistry() } };
+
     auto result = AssetManager::GetInstance()->Load<Node>("Editor/Models/translate_gizmo.obj");
 
     if (result.HasValue())
@@ -778,8 +780,13 @@ Handle<Node> TranslateEditorGizmo::Load_Internal() const
                     Handle<MaterialDefinition> materialDefinition = MakeHandle<MaterialDefinition>(NAME("DebugMaterial"), materialAttributes, materialParameters, MaterialTextures {});
                     InitObject(materialDefinition);
 
+                    GetCurrentAssetRegistry()->PutAssetsDeep(materialDefinition);
+
                     Handle<MaterialInstance> materialInstance = materialDefinition->CreateInstance();
                     materialInstance->SetIsDynamic(true);
+                    InitObject(materialInstance);
+
+                    GetCurrentAssetRegistry()->PutAssetsDeep(materialInstance);
 
                     meshComponent->material = std::move(materialInstance);
                 }
@@ -787,6 +794,9 @@ Handle<Node> TranslateEditorGizmo::Load_Internal() const
                 childEntity->SetNeedsRenderProxyUpdate();
                 childEntity->Node::AddTag(NodeTag(NAME("TransformWidgetElementColor"), Vec4f(materialParameters.albedo)));
             }
+
+            GetCurrentAssetRegistry()->PutAssetsDeep(node);
+            GetCurrentAssetRegistry()->SaveDirtyAssets();
 
             return node;
         }
@@ -803,6 +813,8 @@ Handle<Node> TranslateEditorGizmo::Load_Internal() const
 
 Handle<Node> RotateEditorGizmo::Load_Internal() const
 {
+    GlobalContextScope assetRegistryScope { AssetRegistryContext { GetEditorAssetRegistry() } };
+
     auto result = AssetManager::GetInstance()->Load<Node>("Editor/Models/rotate_gizmo.obj");
 
     if (result.HasValue())
@@ -864,8 +876,12 @@ Handle<Node> RotateEditorGizmo::Load_Internal() const
                         Handle<MaterialDefinition> materialDefinition = MakeHandle<MaterialDefinition>(NAME("DebugMaterial"), materialAttributes, materialParameters, MaterialTextures {});
                         InitObject(materialDefinition);
                         
+                        GetCurrentAssetRegistry()->PutAssetsDeep(materialDefinition);
+                        
                         Handle<MaterialInstance> materialInstance = materialDefinition->CreateInstance();
                         materialInstance->SetIsDynamic(true);
+                        
+                        GetCurrentAssetRegistry()->PutAssetsDeep(materialInstance);
 
                         meshComponent->material = std::move(materialInstance);
                     }
@@ -874,6 +890,9 @@ Handle<Node> RotateEditorGizmo::Load_Internal() const
                     childEntity->Node::AddTag(NodeTag(NAME("TransformWidgetElementColor"), Vec4f(materialParameters.albedo)));
                 }
             }
+            
+            GetCurrentAssetRegistry()->PutAssetsDeep(node);
+            GetCurrentAssetRegistry()->SaveDirtyAssets();
 
             return node;
         }
@@ -1216,6 +1235,8 @@ void VolumeEditorGizmo::UpdateFaceGeometry(const BoundingBox& localBounds, const
 
 Handle<Node> VolumeEditorGizmo::Load_Internal() const
 {
+    GlobalContextScope assetRegistryScope { AssetRegistryContext { GetEditorAssetRegistry() } };
+
     const Vec4f volumeColor = Vec4f(0.3f, 0.0f, 0.28f, 0.25f);
 
     Handle<Node> rootNode = MakeHandle<Node>();
@@ -1256,12 +1277,18 @@ Handle<Node> VolumeEditorGizmo::Load_Internal() const
         MaterialParameters materialParameters;
         materialParameters.albedo = volumeColor;
 
-        Handle<MaterialInstance> material = MakeHandle<MaterialDefinition>(Name::Unique("debug_volume_material"), materialAttributes, materialParameters, MaterialTextures {})->CreateInstance();
-        material->SetIsDynamic(true);
+        Handle<MaterialDefinition> materialDefinition = MakeHandle<MaterialDefinition>(NAME("debug_volume_material"), materialAttributes, materialParameters, MaterialTextures {});
+        InitObject(materialDefinition);
+        GetCurrentAssetRegistry()->PutAssetsDeep(materialDefinition);
+
+        Handle<MaterialInstance> materialInstance = materialDefinition->CreateInstance();
+        materialInstance->SetIsDynamic(true);
+        InitObject(materialInstance);
+        GetCurrentAssetRegistry()->PutAssetsDeep(materialInstance);
 
         rootNode->AddChild(faceEntity);
 
-        faceEntity->AddComponent<MeshComponent>(MeshComponent { quadMesh, material });
+        faceEntity->AddComponent<MeshComponent>(MeshComponent { quadMesh, materialInstance });
         faceEntity->SetLocalBounds(quadMesh->GetAABB());
 
         VisibilityStateComponent* visibilityState = faceEntity->TryGetComponent<VisibilityStateComponent>();
@@ -1279,6 +1306,9 @@ Handle<Node> VolumeEditorGizmo::Load_Internal() const
     }
 
     rootNode->SetLocalBounds(BoundingBox(Vec3f(-1.0), Vec3f(1.0f)));
+    
+    GetCurrentAssetRegistry()->PutAssetsDeep(rootNode);
+    GetCurrentAssetRegistry()->SaveDirtyAssets();
 
     return rootNode;
 }
@@ -1875,6 +1905,7 @@ void EditorSubsystem::OnAddedToWorld()
     }
 
     m_editorScene = MakeHandle<Scene>(NAME("EditorScene"), SceneFlags::FOREGROUND | SceneFlags::EDITOR);
+    m_editorScene->SetIsTransient(true);
     GetWorld()->AddScene(m_editorScene);
 
     InitViewport();

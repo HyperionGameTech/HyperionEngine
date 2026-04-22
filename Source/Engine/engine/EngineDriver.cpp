@@ -93,6 +93,7 @@ namespace Hyperion {
 void HandleSignal(int signum);
 
 EngineStatTimer g_statRenderUpdate("Render/Update");
+EngineStatCounter<uint32> g_statViews("Rendering/Views");
 
 ThreadSignal g_renderInitSignal { 0 };
 
@@ -506,6 +507,8 @@ void EngineDriver::UpdateSim(float delta)
         world->CollectScenes(scenes);
         world->CollectViews(views);
         world->CollectSubsystems(subsystems);
+
+        g_statViews += views.Size();
 
         // if (gameState.IsSimulating() || (world->GetWorldFlags() & WorldFlags::EDITOR_WORLD))
         // {

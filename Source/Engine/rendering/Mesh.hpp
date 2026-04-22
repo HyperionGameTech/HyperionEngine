@@ -169,6 +169,11 @@ public:
         return m_bvh;
     }
 
+    HYP_FORCE_INLINE const BlobDataReference& GetBVHDataReference() const
+    {
+        return m_bvhData;
+    }
+
     bool BuildBVH(int maxDepth = 3);
 
     void UploadGpuData();
@@ -216,6 +221,7 @@ protected:
 
         if (m_bvhData.size != 0)
         {
+            AssertDebug(m_bvhData.raw != nullptr);
             outReferences.EmplaceBack("BVH", 1, &m_bvhData);
         }
     }

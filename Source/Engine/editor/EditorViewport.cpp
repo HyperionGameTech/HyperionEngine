@@ -100,6 +100,7 @@ void EditorViewport::OnAdded(EditorSubsystem* editorSubsystem)
     m_view->AddScene(editorScene);
 
     const Handle<EditorProject>& currentProject = editorSubsystem->GetCurrentProject();
+    AssertDebug(currentProject.IsValid());
 
     if (!currentProject)
     {
@@ -132,6 +133,7 @@ void EditorViewport::OnRemoved(EditorSubsystem* editorSubsystem)
     m_view->RemoveScene(editorScene);
 
     const Handle<EditorProject>& currentProject = editorSubsystem->GetCurrentProject();
+    AssertDebug(currentProject.IsValid());
 
     if (!currentProject)
     {

@@ -54,6 +54,10 @@ HYP_API extern const FilePath& GetCacheDirectory();
 
 static Handle<AssetRegistry> s_engineAssetRegistry;
 
+#if HYP_EDITOR
+static Handle<AssetRegistry> s_editorAssetRegistry;
+#endif // HYP_EDITOR
+
 static Mutex s_currentAssetRegistryMtx;
 static Array<Handle<AssetRegistry>> s_currentAssetRegistryStack;
 
@@ -103,6 +107,25 @@ HYP_API void SetEngineAssetRegistry(const Handle<AssetRegistry>& registry)
     
     s_engineAssetRegistry = registry;
 }
+
+#if HYP_EDITOR
+
+HYP_API Handle<AssetRegistry> GetEditorAssetRegistry()
+{
+    return s_editorAssetRegistry;
+}
+
+HYP_API void SetEditorAssetRegistry(const Handle<AssetRegistry>& registry)
+{
+    if (registry.IsValid())
+    {
+        registry->LoadAssetDescs();
+    }
+    
+    s_editorAssetRegistry = registry;
+}
+
+#endif // HYP_EDITOR
 
 static const ThreadId& s_assetRegistryThread = g_simThread;
 

@@ -141,7 +141,6 @@ void DefaultGame::OnLaunch_Impl()
     };
 
     Handle<View> view = MakeHandle<View>(viewDesc);
-
     GetWorld()->AddView(view);
 
     Handle<Scene> scene = MakeHandle<Scene>(SceneFlags::FOREGROUND);
