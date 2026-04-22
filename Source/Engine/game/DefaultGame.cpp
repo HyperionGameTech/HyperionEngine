@@ -66,6 +66,7 @@ static bool s_isSaving = false;
 DefaultGame::DefaultGame()
     : Game()
 {
+    m_world = MakeHandle<World>(NAME("MainWorld"), WorldFlags::DEFAULT);
 }
 
 DefaultGame::~DefaultGame()
@@ -74,8 +75,6 @@ DefaultGame::~DefaultGame()
 
 void DefaultGame::OnLaunch_Impl()
 {
-    m_world = MakeHandle<World>(NAME("MainWorld"), WorldFlags::DEFAULT);
-
     //GetWorld()->GetWorldGrid()->AddLayer(MakeHandle<TerrainWorldGridLayer>());
 
 #if 0
