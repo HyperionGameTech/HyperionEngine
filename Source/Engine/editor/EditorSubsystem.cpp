@@ -2100,8 +2100,6 @@ void EditorSubsystem::StartSimulation()
 
     Assert(m_currentProject.IsValid() && m_currentProject->GetWorld() != nullptr);
 
-    // @TODO Stream in scenes.
-
     Camera* primaryCamera = nullptr;
 
     for (Scene* scene : m_currentProject->GetWorld()->GetScenes())
@@ -2909,10 +2907,7 @@ bool EditorSubsystem::ExecuteCommandByName(Name name, const String& args)
 
 void EditorSubsystem::NewProject()
 {
-    Handle<EditorProject> project = MakeHandle<EditorProject>();
-
-    Handle<Game> gameInstance = MakeHandle<Game>();
-    project->SetGame(gameInstance); // base game instance
+    Handle<EditorProject> project = EditorProject::CreateNew();
 
     Handle<Scene> mainScene = MakeHandle<Scene>();
     mainScene->SetName(NAME("MainScene"));
@@ -2986,14 +2981,12 @@ void EditorSubsystem::OpenProject(const Handle<EditorProject>& project)
 
     project->SetEditorSubsystem(MakeWeakRef(this));
 
-    InitObject(project);
-
     m_currentProject = project;
 
-    Game* game = m_currentProject->GetGame();
-    Assert(game != nullptr);
+    Game* gameInstance = m_currentProject->GetGame();
+    Assert(gameInstance != nullptr);
 
-    game->Initialize();
+    gameInstance->Initialize();
 
     OnProjectOpened(m_currentProject);
 

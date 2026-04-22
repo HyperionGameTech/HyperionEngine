@@ -95,6 +95,12 @@ float AnimationTrack::GetLength() const
     }
 
     Span<const Keyframe> keyframes = GetKeyframes();
+    AssertDebug(keyframes.Size() > 0);
+
+    if (HYP_UNLIKELY(keyframes.Size() == 0))
+    {
+        return 0.0f;
+    }
 
     return keyframes[keyframes.Size() - 1].time;
 }
@@ -118,7 +124,12 @@ Keyframe AnimationTrack::GetKeyframe(float time) const
 
     Span<const Keyframe> keyframes = GetKeyframes();
 
-    for (int i = 0; i < int(m_keyframeData.size - 1); i++)
+    if (HYP_UNLIKELY(keyframes.Size() == 0))
+    {
+        return { time, Transform() };
+    }
+
+    for (int i = 0; i < int(keyframes.Size()) - 1; i++)
     {
         if (MathUtil::InRange(time, { keyframes[i].time, keyframes[i + 1].time }))
         {

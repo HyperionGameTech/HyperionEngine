@@ -57,8 +57,8 @@ bool LightmapSystem::AssignLightmapVolume(
         LightmapVolume* lightmapVolume = ObjCast<LightmapVolume>(entity);
         Assert(lightmapVolume != nullptr);
 
-        if (boundingBoxComponent.worldAabb.Overlaps(lightmapVolume->GetWorldBounds())
-            && lightmapElementComponent.lightmapVolume.GetUnsafe() != lightmapVolume)
+        if (lightmapElementComponent.lightmapVolume.GetUnsafe() != lightmapVolume
+            && lightmapElementComponent.lightmapVolumePath == lightmapVolume->GetPath())
         {
             const LightmapElement* lightmapElement = lightmapVolume->GetElement(lightmapElementComponent.lightmapElementId);
 

@@ -619,6 +619,11 @@ void View::CollectMeshEntities(RenderProxyList& rpl)
                         continue;
                     }
 
+                    if (!meshComponent.mesh || !meshComponent.material)
+                    {
+                        continue;
+                    }
+
                     ++numCollectedEntities;
 
                     rpl.GetMeshEntities().Track(entity->Id(), entity, entity->GetRenderProxyVersionPtr());
@@ -680,6 +685,11 @@ void View::CollectMeshEntities(RenderProxyList& rpl)
 #endif
                     }
 
+                    if (!meshComponent.mesh || !meshComponent.material)
+                    {
+                        continue;
+                    }
+
                     ++numCollectedEntities;
 
                     rpl.GetMeshEntities().Track(entity->Id(), entity, entity->GetRenderProxyVersionPtr());
@@ -719,6 +729,11 @@ void View::CollectMeshEntities(RenderProxyList& rpl)
                 for (auto [entity, meshComponent, boundingBoxComponent, _] : scene->GetEntityManager()->GetEntitySet<MeshComponent, BoundingBoxComponent, TagComponent<EntityTag::MobStatic>>().GetScopedView(DataAccessFlags::ACCESS_READ, HYP_FUNCTION_NAME_LIT))
                 {
                     if (m_viewDesc.bounds.IsValid() && !m_viewDesc.bounds.Overlaps(boundingBoxComponent.worldAabb))
+                    {
+                        continue;
+                    }
+
+                    if (!meshComponent.mesh || !meshComponent.material)
                     {
                         continue;
                     }
@@ -784,6 +799,11 @@ void View::CollectMeshEntities(RenderProxyList& rpl)
 #endif
                     }
 
+                    if (!meshComponent.mesh || !meshComponent.material)
+                    {
+                        continue;
+                    }
+
                     ++numCollectedEntities;
 
                     rpl.GetMeshEntities().Track(entity->Id(), entity, entity->GetRenderProxyVersionPtr());
@@ -823,6 +843,11 @@ void View::CollectMeshEntities(RenderProxyList& rpl)
                 for (auto [entity, meshComponent, boundingBoxComponent, _] : scene->GetEntityManager()->GetEntitySet<MeshComponent, BoundingBoxComponent, TagComponent<EntityTag::MobDynamic>>().GetScopedView(DataAccessFlags::ACCESS_READ, HYP_FUNCTION_NAME_LIT))
                 {
                     if (m_viewDesc.bounds.IsValid() && !m_viewDesc.bounds.Overlaps(boundingBoxComponent.worldAabb))
+                    {
+                        continue;
+                    }
+
+                    if (!meshComponent.mesh || !meshComponent.material)
                     {
                         continue;
                     }
@@ -888,6 +913,11 @@ void View::CollectMeshEntities(RenderProxyList& rpl)
 #endif
                     }
 
+                    if (!meshComponent.mesh || !meshComponent.material)
+                    {
+                        continue;
+                    }
+
                     ++numCollectedEntities;
 
                     rpl.GetMeshEntities().Track(entity->Id(), entity, entity->GetRenderProxyVersionPtr());
@@ -944,10 +974,10 @@ void View::CollectMeshEntities(RenderProxyList& rpl)
             
             AssertDebug(meshComponent != nullptr);
 
-            RenderProxyMesh& meshProxy = *rpl.GetMeshEntities().SetProxy(entity->Id(), RenderProxyMesh());
-
             if (!meshComponent->mesh || !meshComponent->material)
                 continue;
+
+            RenderProxyMesh& meshProxy = *rpl.GetMeshEntities().SetProxy(entity->Id(), RenderProxyMesh());
 
             meshProxy.forceRebind = false;
             meshProxy.entity = MakeWeakRef(entity);

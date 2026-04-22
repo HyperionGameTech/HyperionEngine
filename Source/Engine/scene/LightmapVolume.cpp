@@ -263,23 +263,20 @@ void LightmapVolume::OnAddedToWorld(World* world)
 
     for (Scene* scene : world->GetScenes())
     {
-        // No two LightmapVolumes should overlap in the world
-        for (auto [entity, _] : scene->GetEntityManager()->GetEntitySet<EntityType<LightmapVolume>>().GetScopedView(DataAccessFlags::ACCESS_READ))
+        for (auto [entity, lightmapElementComponent] : scene->GetEntityManager()->GetEntitySet<LightmapElementComponent>().GetScopedView(DataAccessFlags::ACCESS_RW))
         {
-            LightmapVolume* otherLightmapVolume = static_cast<LightmapVolume*>(entity);
-
-            if (otherLightmapVolume->GetWorldBounds().Overlaps(worldBounds))
+            if (lightmapElementComponent.lightmapVolume.GetUnsafe() != this
+                && lightmapElementComponent.lightmapVolumePath == GetPath())
             {
-                HYP_LOG(Scene, Error, "LightmapVolume {} overlaps with other LightmapVolume {}! This could cause incorrect lightmaps to be applied to entities in the scene!",
-                    otherLightmapVolume->GetName(),
-                    GetName());
-            }
-        }
+                // Verify the element ID exists in this volume before assigning
+                const LightmapElement* lightmapElement = GetElement(lightmapElementComponent.lightmapElementId);
 
-        for (auto [entity, lightmapElementComponent, boundingBoxComponent] : scene->GetEntityManager()->GetEntitySet<LightmapElementComponent, BoundingBoxComponent>().GetScopedView(DataAccessFlags::ACCESS_RW))
-        {
-            if (!lightmapElementComponent.lightmapVolume.IsValid() && boundingBoxComponent.worldAabb.Overlaps(worldBounds))
-            {
+                if (!lightmapElement)
+                {
+                    HYP_LOG(Lightmap, Warning, "Lightmap element with ID {} does not exist in lightmap volume", lightmapElementComponent.lightmapElementId);
+                    continue;
+                }
+
                 lightmapElementComponent.lightmapVolume = MakeWeakRef(this);
 
                 entity->SetNeedsRenderProxyUpdate();

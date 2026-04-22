@@ -38,12 +38,6 @@ public:
     Game();
     virtual ~Game();
 
-    HYP_METHOD(Property = "World")
-    const Handle<World>& GetWorld() const
-    {
-        return m_world;
-    }
-
     HYP_METHOD(Property = "AssetRegistry", Transient)
     const Handle<AssetRegistry>& GetAssetRegistry() const
     {
@@ -52,6 +46,15 @@ public:
 
     HYP_METHOD(Property = "AssetRegistry", Transient)
     void SetAssetRegistry(const Handle<AssetRegistry>& assetRegistry);
+
+    HYP_METHOD(Property = "World")
+    const Handle<World>& GetWorld() const
+    {
+        return m_world;
+    }
+
+    HYP_METHOD(Property = "World")
+    void SetWorld(const Handle<World>& world);
 
     HYP_METHOD(Property = "GameState")
     const GameState& GetGameState() const

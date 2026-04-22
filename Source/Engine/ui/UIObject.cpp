@@ -1946,12 +1946,17 @@ Handle<MaterialInstance> UIObject::CreateMaterial() const
             GetMaterialParameters(),
             materialTextures);
 
+        definition->SetIsTransient(true);
+
         GetCurrentAssetRegistry()->PutAsset(definition);
         InitObject(definition);
 
         Handle<MaterialInstance> instance = definition->CreateInstance();
         instance->SetIsDynamic(true);
+        instance->SetIsTransient(true);
+
         GetCurrentAssetRegistry()->PutAsset(instance);
+
         InitObject(instance);
 
         return instance;
@@ -2471,6 +2476,7 @@ void UIObject::UpdateMeshData_Internal()
     if (!instancedMesh)
     {
         instancedMesh = MakeHandle<InstancedMeshData>(NAME_FMT("IMD_{}_{}", InstanceClass()->GetName(), GetName()));
+        instancedMesh->SetIsTransient(true);
 
         GetCurrentAssetRegistry()->PutAssetUnique(instancedMesh);
 

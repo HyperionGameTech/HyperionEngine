@@ -134,14 +134,21 @@ void DynamicSkySystem::Init()
 
         m_envProbe->GetView()->AddScene(m_renderScene);
 
-        Handle<MaterialInstance> material = g_materialInstanceCache->GetOrCreate(NAME("SkyboxMaterial"), materialAttributes);
-        material->SetTexture(MaterialTextureKey::Diffuse, m_envProbe->GetPrefilteredEnvMap());
-        InitObject(material);
+        Handle<MaterialDefinition> skyboxMaterialDefinition = MakeHandle<MaterialDefinition>(NAME("SkyboxMaterial"), materialAttributes);
+        skyboxMaterialDefinition->SetIsTransient(true);
+        InitObject(skyboxMaterialDefinition);
 
-        GetCurrentAssetRegistry()->PutAsset(material);
+        GetCurrentAssetRegistry()->PutAssetUnique(skyboxMaterialDefinition);
+
+        Handle<MaterialInstance> skyboxMaterialInstance = MakeHandle<MaterialInstance>(NAME("SkyboxMaterial"), skyboxMaterialDefinition);
+        skyboxMaterialInstance->SetTexture(MaterialTextureKey::Diffuse, m_envProbe->GetPrefilteredEnvMap());
+        skyboxMaterialInstance->SetIsTransient(true);
+        InitObject(skyboxMaterialInstance);
+
+        GetCurrentAssetRegistry()->PutAssetUnique(skyboxMaterialInstance);
 
         // add MeshComponent to skybox entity
-        m_skyboxEntity->AddComponent<MeshComponent>(MeshComponent { mesh, material });
+        m_skyboxEntity->AddComponent<MeshComponent>(MeshComponent { mesh, skyboxMaterialInstance });
     }
 }
 

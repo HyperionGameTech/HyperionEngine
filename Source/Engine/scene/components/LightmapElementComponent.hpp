@@ -12,6 +12,8 @@
 
 #include <Core/HashCode.hpp>
 
+#include <asset/AssetPath.hpp>
+
 namespace Hyperion {
 
 class LightmapVolume;
@@ -25,6 +27,9 @@ struct HYP_API LightmapElementComponent
 
     HYP_FIELD()
     LightmapElementId lightmapElementId;
+
+    HYP_FIELD()
+    AssetPath lightmapVolumePath;
 
     HYP_FIELD(Transient)
     WeakHandle<LightmapVolume> lightmapVolume;

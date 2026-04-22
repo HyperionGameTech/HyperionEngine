@@ -644,14 +644,13 @@ void AssetObject::UnlockReader()
 
     if (AtomicSub(&m_rwState, 2) == 2 && m_isBlobLoaded)
     {
-        if (m_flags[AssetObjectFlags::Persistent])
+        if (!m_flags[AssetObjectFlags::Persistent])
         {
             SetBlobDataResident(false);
+            UnpageBlobData();
+
+            m_isBlobLoaded = false;
         }
-
-        UnpageBlobData();
-
-        m_isBlobLoaded = false;
     }
 }
 
