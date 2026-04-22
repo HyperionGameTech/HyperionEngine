@@ -946,9 +946,9 @@ static void RenderAll(
         }
 
         prevMesh = instancedDrawCalls.meshes[i];
-
-        g_statDrawCalls++;
-        g_statInstancedDrawCalls++;
+            
+        // @NOTE For indirect rendering we would need to read back the number of drawn instances from the GPU to get correct stats.
+        g_statInstancedDrawCalls += entityInstanceBatch->numEntities;
         g_statTriangles += instancedDrawCalls.numIndices[i] / 3;
     }
 }

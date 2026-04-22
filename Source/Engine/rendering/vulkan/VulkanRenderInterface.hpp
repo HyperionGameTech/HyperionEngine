@@ -189,6 +189,7 @@ public:
     RendererResult GetVkExtensions(Array<const char*>& outExtensions);
 
 private:
+public: // temp
     VulkanFrame* PrepareNextFrame() override;
 
     VulkanInstance* m_instance;

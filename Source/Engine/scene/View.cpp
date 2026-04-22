@@ -461,7 +461,7 @@ void View::PrepareShadowViews(Array<View*, SceneTempAllocator>& outShadowViews)
                 case LightType::Point:
                     shadowBounds = light->GetWorldBounds();
 
-                    shadowCamera->SetTranslation(light->GetWorldTranslation());
+                    shadowCamera->SetWorldTranslation(light->GetWorldTranslation());
 
                     break;
                 default:

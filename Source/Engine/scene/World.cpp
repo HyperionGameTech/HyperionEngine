@@ -641,7 +641,7 @@ void World::UpdateCSMState()
 
                 found = true;
 
-                m_csmState.playerCenter = camera->GetTranslation();
+                m_csmState.playerCenter = camera->GetWorldTranslation();
 
                 break;
             }
@@ -665,7 +665,7 @@ void World::UpdateCSMState()
 
                 found = true;
 
-                m_csmState.playerCenter = camera->GetTranslation();
+                m_csmState.playerCenter = camera->GetWorldTranslation();
 
                 break;
             }

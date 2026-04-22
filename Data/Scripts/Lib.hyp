@@ -2018,8 +2018,6 @@ extern class Camera : Entity
     SetFarClip(_far : float) -> void
     GetFOV() -> float
     SetFOV(fov : float) -> void
-    GetTranslation() -> Vec3f
-    SetTranslation(translation : Vec3f) -> void
     GetDirection() -> Vec3f
     SetDirection(direction : Vec3f) -> void
     GetUpVector() -> Vec3f

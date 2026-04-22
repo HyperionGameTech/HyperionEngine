@@ -182,11 +182,11 @@ bool EditorCameraInputHandler::OnMouseDrag_Impl(const MouseEvent& evt)
         {
             if (MathUtil::Abs(mouseDeltaY) > MathUtil::Abs(mouseDeltaX))
             {
-                camera->SetTranslation(camera->GetTranslation() + camera->GetUpVector() * -deltaSign.y * moveMultiplier);
+                camera->SetWorldTranslation(camera->GetWorldTranslation() + camera->GetUpVector() * -deltaSign.y * moveMultiplier);
             }
             else
             {
-                camera->SetTranslation(camera->GetTranslation() + dirCrossY * deltaSign.x * moveMultiplier);
+                camera->SetWorldTranslation(camera->GetWorldTranslation() + dirCrossY * deltaSign.x * moveMultiplier);
             }
         }
     }
@@ -204,11 +204,11 @@ bool EditorCameraInputHandler::OnMouseDrag_Impl(const MouseEvent& evt)
         {
             if (MathUtil::Abs(mouseDeltaY) > MathUtil::Abs(mouseDeltaX))
             {
-                camera->SetTranslation(camera->GetTranslation() + forward * -deltaSign.y * moveMultiplier);
+                camera->SetWorldTranslation(camera->GetWorldTranslation() + forward * -deltaSign.y * moveMultiplier);
             }
             else
             {
-                camera->SetTranslation(camera->GetTranslation() + dirCrossY * deltaSign.x * moveMultiplier);
+                camera->SetWorldTranslation(camera->GetWorldTranslation() + dirCrossY * deltaSign.x * moveMultiplier);
             }
         }
     }

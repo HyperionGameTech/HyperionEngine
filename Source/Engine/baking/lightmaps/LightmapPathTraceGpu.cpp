@@ -150,6 +150,8 @@ void LightmapRenderer_GpuPathTracing::CreateBuffers(BakeJobBase* job)
 {
     JobData& jd = m_jobData[job];
 
+    AssertDebug(jd.raysBuffer == nullptr);
+
     jd.raysBuffer = g_renderInterface->MakeGpuBuffer(GpuBufferType::STORAGE_BUFFER, sizeof(Vec4f) * 2 * m_maxTexelsPerFrame, alignof(Vec4f));
     jd.raysBuffer->SetIsCpuAccessible(true);
 
@@ -504,17 +506,20 @@ void LightmapRenderer_GpuPathTracing::Render(Frame* frame, const RenderSetup& re
 
         struct UpdateRaysBuffer
         {
-            GpuBuffer* raysBuffer;
+            GpuBufferRef raysBuffer;
             Array<Vec4f, DynamicAllocator> rayData;
 
             void operator()(Frame*)
             {
+                Assert(raysBuffer != nullptr && raysBuffer->IsCreated());
                 Assert(raysBuffer->Size() >= rayData.ByteSize());
+
                 raysBuffer->Copy(rayData.ByteSize(), rayData.Data());
                 raysBuffer->Flush(0, rayData.ByteSize());
             }
         };
-
+        
+        Assert(raysBuffer != nullptr && raysBuffer->IsCreated());
         frame->OnFrameEnd.Bind(UpdateRaysBuffer { raysBuffer, std::move(rayData) }).Detach();
     }
 

@@ -847,7 +847,7 @@ void RenderInterface::BeginFrame(AtomicFlag* pCancelFlag)
     const uint32 slot = Framework::s_frameIndex[Framework::TT_FrameDataConsumer];
     const uint32 currFrame = GetFrameCounter();
 
-    PrepareNextFrame();
+    //PrepareNextFrame();
 
     Framework::BufferedData& bufferedData = Framework::s_bufferedData[slot];
 
