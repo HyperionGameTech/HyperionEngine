@@ -68,9 +68,5 @@ struct MeshEntityInstanceBatch
         #endif
     #endif
     #define entity (entities[OBJECT_INDEX])
-#else // !INSTANCING
-    #ifdef LANG_HLSL // for HLSL (non-instancing) we use a StructuredBuffer<Entity> that is offset, so we need to access the entity by the first element
-        #define entity (entities[0])
-    #endif // LANG_HLSL
 #endif // INSTANCING
 #endif // HYP_OBJECT_GLSL

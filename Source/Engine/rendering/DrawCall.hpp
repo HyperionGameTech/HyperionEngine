@@ -124,12 +124,9 @@ struct DrawCallStorage
     using AllocatorType = RenderAllocator;
 
     Array<DrawCallID, AllocatorType> ids;
-    Array<Mesh*, AllocatorType> meshes;
-    Array<MaterialInstance*, AllocatorType> materials;
-    Array<Skeleton*, AllocatorType> skeletons;
-    Array<uint32, AllocatorType> drawCommandIndices;
-    Array<uint32, AllocatorType> numIndices;
+    Array<const RenderProxyMesh*, AllocatorType> meshProxies;
     Array<uint32, AllocatorType> entityBindingIndices;
+    Array<uint32, AllocatorType> drawCommandIndices;
 
     HYP_FORCE_INLINE size_t Size() const
     {
@@ -149,25 +146,19 @@ struct DrawCallStorage
     void Clear()
     {
         ids.Clear();
-        meshes.Clear();
-        materials.Clear();
-        skeletons.Clear();
-        drawCommandIndices.Clear();
-        numIndices.Clear();
+        meshProxies.Clear();
         entityBindingIndices.Clear();
+        drawCommandIndices.Clear();
     }
 
-    size_t Push(DrawCallID id, Mesh* mesh, MaterialInstance* material, Skeleton* skeleton, uint32 entityBindingIndex, uint32 numIndicesValue)
+    size_t Push(DrawCallID id, const RenderProxyMesh* meshProxy, uint32 entityBindingIndex)
     {
         const size_t index = ids.Size();
 
         ids.PushBack(id);
-        meshes.PushBack(mesh);
-        materials.PushBack(material);
-        skeletons.PushBack(skeleton);
-        drawCommandIndices.PushBack(~0u);
-        numIndices.PushBack(numIndicesValue);
+        meshProxies.PushBack(meshProxy);
         entityBindingIndices.PushBack(entityBindingIndex);
+        drawCommandIndices.PushBack(0);
 
         return index;
     }
@@ -179,12 +170,9 @@ struct InstancedDrawCallStorage
     using AllocatorType = RenderAllocator; // Non temp allocator since we recycle the batches from the previous frame.
 
     Array<DrawCallID, AllocatorType> ids;
-    Array<Mesh*, AllocatorType> meshes;
-    Array<MaterialInstance*, AllocatorType> materials;
-    Array<Skeleton*, AllocatorType> skeletons;
-    Array<uint32, AllocatorType> drawCommandIndices;
-    Array<uint32, AllocatorType> numIndices;
+    Array<const RenderProxyMesh*, AllocatorType> meshProxies;
     Array<EntityInstanceBatch*, AllocatorType> batches;
+    Array<uint32, AllocatorType> drawCommandIndices;
     Array<uint32, AllocatorType> counts;
 
     HYP_FORCE_INLINE size_t Size() const
@@ -205,26 +193,20 @@ struct InstancedDrawCallStorage
     void Clear()
     {
         ids.Clear();
-        meshes.Clear();
-        materials.Clear();
-        skeletons.Clear();
-        drawCommandIndices.Clear();
-        numIndices.Clear();
+        meshProxies.Clear();
         batches.Clear();
+        drawCommandIndices.Clear();
         counts.Clear();
     }
 
-    size_t Push(DrawCallID id, Mesh* mesh, MaterialInstance* material, Skeleton* skeleton, EntityInstanceBatch* batch, uint32 numIndicesValue)
+    size_t Push(DrawCallID id, const RenderProxyMesh* renderProxy, EntityInstanceBatch* batch)
     {
         const size_t index = ids.Size();
 
         ids.PushBack(id);
-        meshes.PushBack(mesh);
-        materials.PushBack(material);
-        skeletons.PushBack(skeleton);
-        drawCommandIndices.PushBack(~0u);
-        numIndices.PushBack(numIndicesValue);
+        meshProxies.PushBack(renderProxy);
         batches.PushBack(batch);
+        drawCommandIndices.PushBack(0);
         counts.PushBack(0);
 
         return index;
@@ -302,8 +284,8 @@ struct DrawCallCollection
 
     ~DrawCallCollection();
 
-    void PushDrawCall(DrawCallID id, const RenderProxyMesh& renderProxy);
-    void PushInstancedDrawCall(EntityInstanceBatch* batch, DrawCallID id, const RenderProxyMesh& renderProxy);
+    void PushDrawCall(DrawCallID id, const RenderProxyMesh* renderProxy);
+    void PushInstancedDrawCall(DrawCallID id, const RenderProxyMesh* renderProxy, EntityInstanceBatch* batch);
 
     EntityInstanceBatch* RecycleDrawBatch(DrawCallID id);
 

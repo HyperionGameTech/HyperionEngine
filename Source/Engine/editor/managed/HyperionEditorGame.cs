@@ -23,17 +23,18 @@ namespace Hyperion.Editor
 
         public HyperionEditorGame()
         {
+            World = new World { Name = new Name("EditorWorld") };
+            World.WorldFlags |= WorldFlags.EditorWorld;
+            World.SetIsTransient(true); // Editor world should not be saved or loaded from disk.
         }
 
         protected override void OnLaunch()
         {
             Logger.Log(LogLevel.Debug, "HyperionEditorGame Launched");
 
-            World.Name = new Name("EditorWorld");
-            World.WorldFlags |= WorldFlags.EditorWorld;
-            World.SetIsTransient(true); // Editor world should not be saved or loaded from disk.
-
             this.SetToEditMode();
+
+            Debug.Assert(World != null);
 
             // get or create UISubsystem instance.
             UISubsystem? uiSubsystem = World.GetSubsystem<UISubsystem>();
@@ -124,6 +125,10 @@ namespace Hyperion.Editor
 
         private void HandleProjectOpened(EditorProject project)
         {
+            Debug.Assert(project.GameInstance != null && project.GameInstance.AssetRegistry != null);
+
+            AssetRegistry = project.GameInstance.AssetRegistry;
+
             WeakReference weakThis = new WeakReference(this);
 
             Logger.Log(LogLevel.Info, "Project opened: " + (project != null ? project.Name.ToString() : "null"));

@@ -18,15 +18,17 @@ DECLARE_SRV_DYNAMIC(Default, CurrentEnvProbe) StructuredBuffer<EnvProbe> current
 DECLARE_SRV(Default, EntitiesBuffer) StructuredBuffer<Entity> entities;
 DECLARE_SRV_DYNAMIC(Default, EntityInstanceBatchesBuffer) StructuredBuffer<MeshEntityInstanceBatch> entity_instance_batches;
 #define entity_instance_batch entity_instance_batches[0]
-#else // !INSTANCING
-DECLARE_SRV_DYNAMIC(Default, CurrentEntity) StructuredBuffer<Entity> entities;
 #endif // INSTANCING
 
 DECLARE_SRV_DYNAMIC(Default, CurrentLight) StructuredBuffer<Light> current_light_buffer;
 #define light current_light_buffer[0]
 
-DECLARE_SRV_DYNAMIC(Default, MaterialsBuffer) StructuredBuffer<Material> material_buffer;
-#define material material_buffer[0]
+#ifndef INSTANCING
+DECLARE_BUFFER_DYNAMIC(Default, CBuffer) cbuffer CBuffer
+{
+    Entity entity;
+};
+#endif // !INSTANCING
 
 #ifndef CURRENT_MATERIAL
 #define CURRENT_MATERIAL material

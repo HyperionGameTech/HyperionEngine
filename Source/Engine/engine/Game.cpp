@@ -69,24 +69,21 @@ void Game::Initialize()
             GetLibraryDirectory() / *InstanceClass()->GetName());
     }
 
-    if (!m_world)
-    {
-        m_world = MakeHandle<World>(s_nameMainWorld, WorldFlags::DEFAULT);
-    }
-
-    AssertDebug(m_world->m_gameInstance == nullptr || m_world->m_gameInstance == this);
-    m_world->m_gameInstance = this;
-    InitObject(m_world);
-
     if (!m_assetRegistryActive)
     {
         m_assetRegistry->Initialize();
 
-        m_assetRegistry->PutAssetsDeep(m_world);
-
         PushCurrentAssetRegistry(m_assetRegistry);
         m_assetRegistryActive = true;
     }
+
+    Assert(m_world != nullptr);
+
+    AssertDebug(m_world->m_gameInstance == nullptr || m_world->m_gameInstance == this);
+    m_world->m_gameInstance = this;
+    InitObject(m_world);
+    
+    m_assetRegistry->PutAssetsDeep(m_world);
 
     if (!m_uiSubsystem)
     {
@@ -139,13 +136,43 @@ void Game::SetAssetRegistry(const Handle<AssetRegistry>& assetRegistry)
     m_assetRegistry = assetRegistry;
     m_assetRegistryActive = false;
 
-    if (m_assetRegistry)
+    if (m_assetRegistry && m_isInitialized)
     {
         m_assetRegistry->Initialize();
 
         PushCurrentAssetRegistry(m_assetRegistry);
 
         m_assetRegistryActive = true;
+    }
+}
+
+void Game::SetWorld(const Handle<World>& world)
+{
+    if (m_world == world)
+    {
+        return;
+    }
+
+    const bool isLaunched = IsLaunched();
+
+    if (m_world)
+    {
+        m_world->m_gameInstance = nullptr;
+
+        if (isLaunched)
+        {
+            g_engineDriver->RemoveWorld(m_world);
+        }
+    }
+
+    m_world = world;
+
+    if (m_world && isLaunched)
+    {
+        AssertDebug(m_world->m_gameInstance == nullptr || m_world->m_gameInstance == this);
+        m_world->m_gameInstance = this;
+
+        g_engineDriver->AddWorld(m_world);
     }
 }
 

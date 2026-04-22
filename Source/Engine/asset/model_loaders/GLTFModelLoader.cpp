@@ -16,8 +16,6 @@
 #include <rendering/Shared.hpp>
 #include <rendering/MaterialDefinition.hpp>
 #include <rendering/MaterialInstance.hpp>
-
-#include <engine/EngineGlobals.hpp>
 #include <rendering/Mesh.hpp>
 #include <rendering/Texture.hpp>
 
@@ -589,14 +587,22 @@ Handle<MaterialInstance> AcquireMaterial(GltfLoadContext& ctx, const cgltf_mater
 
     if (material == nullptr)
     {
-        Handle<MaterialInstance> fallback = g_materialInstanceCache->GetOrCreate(
+        Handle<MaterialDefinition> fallbackDefinition = MakeHandle<MaterialDefinition>(
             NAME("BasicGLTFMaterial"),
             materialAttributes,
-            MaterialParameters {});
+            MaterialParameters {},
+            MaterialTextures {});
 
-        InitObject(fallback);
+        InitObject(fallbackDefinition);
 
-        return fallback;
+        GetCurrentAssetRegistry()->PutAsset(fallbackDefinition);
+
+        Handle<MaterialInstance> fallbackInstance = fallbackDefinition->CreateInstance();
+        InitObject(fallbackInstance);
+
+        GetCurrentAssetRegistry()->PutAsset(fallbackInstance);
+
+        return fallbackInstance;
     }
 
     if (const auto it = ctx.materialCache.Find(material); it != ctx.materialCache.End())
@@ -716,7 +722,16 @@ Handle<MaterialInstance> AcquireMaterial(GltfLoadContext& ctx, const cgltf_mater
         parameters.emissiveColor = Color(Vec4f(emissiveFactor / parameters.emissiveIntensity, 1.0f));
     }
 
-    Handle<MaterialInstance> materialHandle = g_materialInstanceCache->GetOrCreate(materialName, materialAttributes, parameters, textures);
+    Handle<MaterialDefinition> materialDefinition = MakeHandle<MaterialDefinition>(
+        materialName,
+        materialAttributes,
+        parameters,
+        textures);
+
+    GetCurrentAssetRegistry()->PutAsset(materialDefinition);
+    InitObject(materialDefinition);
+
+    Handle<MaterialInstance> materialHandle = materialDefinition->CreateInstance();
     InitObject(materialHandle);
 
     ctx.materialCache.Set(material, materialHandle);

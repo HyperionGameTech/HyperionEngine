@@ -87,8 +87,6 @@ void ShadowRendererBase::Shutdown()
 
 int ShadowRendererBase::RunCleanupCycle(int maxIter)
 {
-    static constexpr uint32 MaxFramesBeforeDiscard = 100;
-
     const uint32 currentFrame = GetFrameCounter();
 
     int numCycles = RendererBase::RunCleanupCycle(maxIter);
@@ -97,9 +95,9 @@ int ShadowRendererBase::RunCleanupCycle(int maxIter)
     {
         CachedShadowMapData& value = it->second;
 
-        if (int64(currentFrame) - int64(value.lastFrameUsed) >= MaxFramesBeforeDiscard)
+        if (int64(currentFrame) - int64(value.lastFrameUsed) >= RingBufferDepth)
         {
-            HYP_LOG(Rendering, Verbose, "Removing cached shadow map for Light {} + View {} as it has not been used in over {} frames", it->first.light->Id(), it->first.view->Id(), MaxFramesBeforeDiscard);
+            HYP_LOG(Rendering, Verbose, "Removing cached shadow map for Light {} + View {} as it has not been used in over {} frames", it->first.light->Id(), it->first.view->Id(), RingBufferDepth);
 
             bool removed = g_renderInterface->shadowMapCache->Remove(it->first.light, it->first.view);
 

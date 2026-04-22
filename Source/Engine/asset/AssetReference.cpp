@@ -89,10 +89,14 @@ const Handle<AssetObject>& AssetReference::Resolve() const
         case AssetRegistryId::Game:
             registry = GetCurrentAssetRegistry();
             break;
-        case AssetRegistryId::Engine: // fallthrough
-        case AssetRegistryId::Editor:
+        case AssetRegistryId::Engine:
             registry = GetEngineAssetRegistry();
             break;
+#if HYP_EDITOR
+        case AssetRegistryId::Editor:
+            registry = GetEditorAssetRegistry();
+            break;
+#endif // HYP_EDITOR
         }
 
         AssertDebug(registry.IsValid());

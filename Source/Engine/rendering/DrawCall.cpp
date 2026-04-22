@@ -42,26 +42,22 @@ DrawCallCollection::~DrawCallCollection()
     }
 }
 
-void DrawCallCollection::PushDrawCall(DrawCallID id, const RenderProxyMesh& renderProxy)
+void DrawCallCollection::PushDrawCall(DrawCallID id, const RenderProxyMesh* renderProxy)
 {
     HYP_SCOPE;
     AssertOnThread(g_renderThread);
 
-    AssertDebug(renderProxy.mesh != nullptr && renderProxy.material != nullptr);
+    AssertDebug(renderProxy != nullptr && renderProxy->mesh != nullptr && renderProxy->material != nullptr);
 
-    drawCalls.Push(
-        id,
-        renderProxy.mesh,
-        renderProxy.material,
-        renderProxy.skeleton,
-        Resources::GetBinding(renderProxy.entity.GetUnsafe()),
-        renderProxy.numIndices);
+    drawCalls.Push(id, renderProxy, Resources::GetBinding(renderProxy->entity.GetUnsafe()));
 }
 
-void DrawCallCollection::PushInstancedDrawCall(EntityInstanceBatch* batch, DrawCallID id, const RenderProxyMesh& renderProxy)
+void DrawCallCollection::PushInstancedDrawCall(DrawCallID id, const RenderProxyMesh* renderProxy, EntityInstanceBatch* batch)
 {
     HYP_SCOPE;
     AssertOnThread(g_renderThread);
+
+    Assert(renderProxy != nullptr);
 
     // Auto-instancing: check if we already have a drawcall we can use for the given DrawCallID.
     auto indexMapIt = indexMap.Find(uint64(id));
@@ -76,7 +72,7 @@ void DrawCallCollection::PushInstancedDrawCall(EntityInstanceBatch* batch, DrawC
     uint32 indexMapIndex = 0;
     uint32 instanceOffset = 0;
 
-    const uint32 initialNumInstances = renderProxy.numInstances;
+    const uint32 initialNumInstances = renderProxy->numInstances;
     uint32 numInstances = initialNumInstances;
 
     while (numInstances != 0)
@@ -101,13 +97,7 @@ void DrawCallCollection::PushInstancedDrawCall(EntityInstanceBatch* batch, DrawC
 
             AssertDebug(batch->batchIndex != ~0u);
 
-            drawCallIndex = instancedDrawCalls.Push(
-                id,
-                renderProxy.mesh,
-                renderProxy.material,
-                renderProxy.skeleton,
-                batch,
-                renderProxy.numIndices);
+            drawCallIndex = instancedDrawCalls.Push(id, renderProxy, batch);
 
             indexMapIt->second.PushBack(drawCallIndex);
 
@@ -117,8 +107,8 @@ void DrawCallCollection::PushInstancedDrawCall(EntityInstanceBatch* batch, DrawC
 
         const uint32 remainingInstances = PushEntityToBatch(
             drawCallIndex,
-            renderProxy.entity.GetUnsafe(),
-            renderProxy.instanceData,
+            renderProxy->entity.GetUnsafe(),
+            renderProxy->instanceData,
             numInstances,
             instanceOffset);
 

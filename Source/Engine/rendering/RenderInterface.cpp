@@ -420,10 +420,10 @@ IRenderProxy* GetRenderProxy(const ObjectBase* resource)
         return nullptr; // no proxy for this resource
     }
 
-    IRenderProxy* proxy = subtypeData.proxies.Get(resourceId.ToIndex());
+    const IRenderProxy* proxy = reinterpret_cast<const IRenderProxy*>(subtypeData.proxies.GetElementRaw(resourceId.ToIndex()));
     AssertDebug(proxy != nullptr);
 
-    return proxy;
+    return const_cast<IRenderProxy*>(proxy);
 }
 
 void UpdateGpuData(const ObjectBase* resource)
@@ -451,10 +451,10 @@ void UpdateGpuData(const ObjectBase* resource)
 
     const uint32 idx = resourceId.ToIndex();
 
-    IRenderProxy* proxy = subtypeData.proxies.Get(idx);
+    const IRenderProxy* proxy = reinterpret_cast<const IRenderProxy*>(subtypeData.proxies.GetElementRaw(idx));
     AssertDebug(proxy != nullptr);
 
-    subtypeData.SetGpuElem(bindingIndex, proxy);
+    subtypeData.SetGpuElem(bindingIndex, const_cast<IRenderProxy*>(proxy));
 
     // set it as no longer needing update next frame since we updated immediately
     subtypeData.indicesPendingUpdate.Set(idx, false);
@@ -847,7 +847,7 @@ void RenderInterface::BeginFrame(AtomicFlag* pCancelFlag)
     const uint32 slot = Framework::s_frameIndex[Framework::TT_FrameDataConsumer];
     const uint32 currFrame = GetFrameCounter();
 
-    //PrepareNextFrame();
+    PrepareNextFrame();
 
     Framework::BufferedData& bufferedData = Framework::s_bufferedData[slot];
 
@@ -936,18 +936,18 @@ void RenderInterface::BeginFrame(AtomicFlag* pCancelFlag)
                 AssertDebug(elem.resource != nullptr);
 
                 bool forceRebind = false;
-                IRenderProxy** ppProxy = nullptr;
+                IRenderProxy* pProxy = nullptr;
 
                 if (subtypeData.hasProxyData && subtypeData.indicesPendingUpdate.Test(elem.resource->Id().ToIndex()))
                 {
-                    ppProxy = subtypeData.proxies.TryGet(elem.resource->Id().ToIndex());
-                    AssertDebug(ppProxy != nullptr);
+                    pProxy = const_cast<IRenderProxy*>(reinterpret_cast<const IRenderProxy*>(subtypeData.proxies.GetElementRaw(elem.resource->Id().ToIndex())));
+                    AssertDebug(pProxy != nullptr);
 
-                    forceRebind = (*ppProxy)->forceRebind;
+                    forceRebind = pProxy->forceRebind;
 
                     if (forceRebind)
                     {
-                        (*ppProxy)->forceRebind = false; // swap
+                        pProxy->forceRebind = false; // swap
                     }
                 }
 
@@ -1014,10 +1014,10 @@ void RenderInterface::BeginFrame(AtomicFlag* pCancelFlag)
                     "Failed to retrieve binding for resource: {} in frame {}, but it is marked as bound (index: {})",
                     i, slot, i);
 
-                IRenderProxy* pProxy = subtypeData.proxies.Get(i);
+                const IRenderProxy* pProxy = reinterpret_cast<const IRenderProxy*>(subtypeData.proxies.GetElementRaw(i));
                 AssertDebug(pProxy != nullptr);
 
-                subtypeData.SetGpuElem(bindingIndex, pProxy);
+                subtypeData.SetGpuElem(bindingIndex, const_cast<IRenderProxy*>(pProxy));
                 subtypeData.indicesPendingUpdate.Set(i, false);
             }
         }
@@ -1067,7 +1067,6 @@ void RenderInterface::EndFrame()
 
     const uint32 currFrame = GetFrameCounter();
 
-    // cull ViewData that hasn't been written to for a while, as well as remove unused render groups.
     for (auto it = bufferedData.perViewData.Begin(); it != bufferedData.perViewData.End();)
     {
         Framework::BufferedViewData* bufferedViewData = it->second;
@@ -1080,7 +1079,7 @@ void RenderInterface::EndFrame()
             AssertDebug(view != nullptr);
 
             viewData->renderCollector.RemoveEmptyRenderGroups();
-
+            
             // Clear out data for views that haven't been written to for a while
             if (int64(currFrame) - int64(viewData->lastUsedFrame) >= MaxFramesBeforeDiscard)
             {
@@ -1092,6 +1091,24 @@ void RenderInterface::EndFrame()
                 AssertDebug(rplRenderIt != bufferedData.ownedLists.End());
 
                 const size_t rplIndex = std::distance(bufferedData.ownedLists.Begin(), rplRenderIt);
+
+                // Drain all tracked resources from the render-side list before discarding,
+                // so their useCount is properly decremented in ResourceSubtypeData.
+                // Without this, resources that were tracked in rplRender would remain in
+                // ResourceSubtypeData with useCount > 0, leaking into the ResourceBinder indefinitely.
+                {
+                    int resourceTrackerIndex = 0;
+                    StaticForEach<typename RenderProxyList::ResourceTrackerTypes>([&viewData, &resourceTrackerIndex]<class ResourceTrackerType>(TypeWrapper<ResourceTrackerType>)
+                        {
+                            ResourceTrackerType& resourceTracker = static_cast<ResourceTrackerType&>(*viewData->rplRender.resourceTrackers[resourceTrackerIndex]);
+                            resourceTracker.Advance();
+
+                            ++resourceTrackerIndex;
+                        });
+
+                    static RenderProxyList s_emptyRpl { g_renderPool, /* isShared */ false, /* useRefCounting */ false };
+                    CopyDependencies(*resources, viewData->rplRender, s_emptyRpl);
+                }
 
                 bufferedData.ownedLists.Erase(rplRenderIt);
 
@@ -1123,21 +1140,20 @@ void RenderInterface::EndFrame()
         ++it;
     }
 
-    int numCleanupCycles = FrameCleanupBudget;
-    for (uint32 i = 0; i < GRT_MAX && numCleanupCycles > 0; i++)
+    for (uint32 i = 0; i < GRT_MAX; i++)
     {
-        for (uint32 j = 0; j < globalRenderers[i].Size() && numCleanupCycles > 0; j++)
+        for (uint32 j = 0; j < globalRenderers[i].Size(); j++)
         {
             if (RendererBase* renderer = globalRenderers[i][j])
             {
-                numCleanupCycles -= renderer->RunCleanupCycle(numCleanupCycles);
+                renderer->RunCleanupCycle();
             }
         }
     }
 
-    numCleanupCycles -= graphicsPipelineCache->RunCleanupCycle(16);
-    numCleanupCycles -= computePipelineCache->RunCleanupCycle(4);
-    numCleanupCycles -= rayTracingPipelineCache->RunCleanupCycle(1);
+    graphicsPipelineCache->RunCleanupCycle(16);
+    computePipelineCache->RunCleanupCycle(4);
+    rayTracingPipelineCache->RunCleanupCycle(1);
 
     for (ResourceSubtypeData& subtypeData : resources->dataByType)
     {
@@ -1163,10 +1179,10 @@ void RenderInterface::EndFrame()
             {
                 AssertDebug(subtypeData.proxies.HasIndex(i));
 
-                IRenderProxy* pProxy = subtypeData.proxies.Get(i);
+                const IRenderProxy* pProxy = reinterpret_cast<const IRenderProxy*>(subtypeData.proxies.GetElementRaw(i));
                 AssertDebug(pProxy != nullptr);
 
-                subtypeData.proxies.EraseAt(i);
+                subtypeData.proxies.DeleteElementRaw(i, subtypeData.proxyDtor);
             }
         }
 

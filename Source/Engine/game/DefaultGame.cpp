@@ -66,6 +66,7 @@ static bool s_isSaving = false;
 DefaultGame::DefaultGame()
     : Game()
 {
+    m_world = MakeHandle<World>(NAME("MainWorld"), WorldFlags::DEFAULT);
 }
 
 DefaultGame::~DefaultGame()
@@ -139,7 +140,6 @@ void DefaultGame::OnLaunch_Impl()
     };
 
     Handle<View> view = MakeHandle<View>(viewDesc);
-
     GetWorld()->AddView(view);
 
     Handle<Scene> scene = MakeHandle<Scene>(SceneFlags::FOREGROUND);

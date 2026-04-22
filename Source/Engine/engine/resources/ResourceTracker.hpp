@@ -283,10 +283,10 @@ public:
     // use a sparse array so we can use IDs as indices
     // without worring about hashing for lookups and allowing us to
     // still iterate over the elements (mostly) linearly.
-    using ElementArrayType = SparsePagedArray<ElementType, 16, AllocatorType>;
-    using VersionArrayType = SparsePagedArray<int, 16, AllocatorType>; // mirrors elements array
+    using ElementArrayType = SparsePagedArray<ElementType, 256, AllocatorType>;
+    using VersionArrayType = SparsePagedArray<int, 256, AllocatorType>; // mirrors elements array
 
-    using ProxyArrayType = SparsePagedArray<ProxyType, 16, AllocatorType>;
+    using ProxyArrayType = SparsePagedArray<ProxyType, 256, AllocatorType>;
 
     static_assert(std::is_base_of_v<ObjIdBase, IdType>, "IdType must be derived from ObjIdBase (must use numeric id)");
 
@@ -308,7 +308,7 @@ public:
     ResourceTracker(ResourceTracker&& other) noexcept = delete;
     ResourceTracker& operator=(ResourceTracker&& other) noexcept = delete;
 
-    ~ResourceTracker() override = default;
+    virtual ~ResourceTracker() override = default;
 
     uint32 NumCurrent() const
     {

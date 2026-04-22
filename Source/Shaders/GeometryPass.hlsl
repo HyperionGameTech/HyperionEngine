@@ -47,6 +47,7 @@ DECLARE_SAMPLER(Default, SamplerNearest) SamplerState sampler_nearest;
 #include "include/Packing.hlsli"
 #include "include/EnvProbes.hlsli"
 #include "include/Gbuffer.hlsli"
+#include "include/Entity.hlsli"
 
 DECLARE_SRV_DYNAMIC(Default, CamerasBuffer) StructuredBuffer<Camera> _cameras_buffer;
 #define camera _cameras_buffer[0]
@@ -83,8 +84,15 @@ DECLARE_SRV(Default, ClusterIndexBuffer) ByteAddressBuffer ClusterIndexBuffer;
 #include "include/Shadows.hlsli"
 #endif // SHADING_TYPE_FORWARD
 
-DECLARE_SRV_DYNAMIC(Default, MaterialsBuffer) StructuredBuffer<Material> materials_buffer;
-#define material materials_buffer[0]
+DECLARE_BUFFER_DYNAMIC(Default, CBuffer) cbuffer CBuffer
+{
+#ifndef INSTANCING
+    Entity entity;
+#else // INSTANCING
+    Entity dummyEntity;
+#endif // !INSTANCING
+    Material material;
+};
 
 #ifndef CURRENT_MATERIAL
 #define CURRENT_MATERIAL material

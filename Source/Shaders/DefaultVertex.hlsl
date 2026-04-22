@@ -37,16 +37,19 @@ DECLARE_SRV_DYNAMIC(Default, CamerasBuffer) StructuredBuffer<Camera> _cameras_bu
     DECLARE_SRV_DYNAMIC(Default, EntityInstanceBatchesBuffer) StructuredBuffer<MeshEntityInstanceBatch> entity_instance_batches;
 
     #define entity_instance_batch entity_instance_batches[0]
-#else // !INSTANCING
-    DECLARE_SRV_DYNAMIC(Default, CurrentEntity) StructuredBuffer<Entity> entities;
 #endif // INSTANCING
 
 #ifdef SKINNING
-
 #include "include/Skeleton.hlsli"
 DECLARE_SRV_DYNAMIC(Default, SkeletonsBuffer) StructuredBuffer<Skeleton> skeletons;
-
 #endif // SKINNING
+
+#ifndef INSTANCING
+DECLARE_BUFFER_DYNAMIC(Default, CBuffer) cbuffer CBuffer
+{
+    Entity entity;
+};
+#endif // !INSTANCING
 
 VSOutput VSMain(VSInput input, uint instanceId : SV_InstanceID)
 {

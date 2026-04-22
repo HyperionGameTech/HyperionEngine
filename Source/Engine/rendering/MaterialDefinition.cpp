@@ -149,6 +149,17 @@ Handle<MaterialInstance> MaterialDefinition::CreateInstance() const
     return instance;
 }
 
+Handle<MaterialDefinition> MaterialDefinition::Clone(Name newName) const
+{
+    Handle<MaterialDefinition> clone = MakeHandle<MaterialDefinition>(
+        newName,
+        m_attributes,
+        m_defaultParameters,
+        m_defaultTextures);
+
+    return clone;
+}
+
 HashCode MaterialDefinition::GetHashCode() const
 {
     return GetMaterialDefinitionHashCode(m_attributes, m_defaultParameters, m_defaultTextures);

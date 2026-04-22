@@ -6,9 +6,16 @@ namespace Hyperion
     [ClassBinding(Name = "Game")]
     public class Game : ObjectBase
     {
-        public World World
+        public World? World
         {
             get => this.GetWorld();
+            set => this.SetWorld(value);
+        }
+
+        public AssetRegistry? AssetRegistry
+        {
+            get => this.GetAssetRegistry();
+            set => this.SetAssetRegistry(value);
         }
 
         protected virtual void OnLaunch()

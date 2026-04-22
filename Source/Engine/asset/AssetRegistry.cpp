@@ -54,6 +54,10 @@ HYP_API extern const FilePath& GetCacheDirectory();
 
 static Handle<AssetRegistry> s_engineAssetRegistry;
 
+#if HYP_EDITOR
+static Handle<AssetRegistry> s_editorAssetRegistry;
+#endif // HYP_EDITOR
+
 static Mutex s_currentAssetRegistryMtx;
 static Array<Handle<AssetRegistry>> s_currentAssetRegistryStack;
 
@@ -103,6 +107,25 @@ HYP_API void SetEngineAssetRegistry(const Handle<AssetRegistry>& registry)
     
     s_engineAssetRegistry = registry;
 }
+
+#if HYP_EDITOR
+
+HYP_API Handle<AssetRegistry> GetEditorAssetRegistry()
+{
+    return s_editorAssetRegistry;
+}
+
+HYP_API void SetEditorAssetRegistry(const Handle<AssetRegistry>& registry)
+{
+    if (registry.IsValid())
+    {
+        registry->LoadAssetDescs();
+    }
+    
+    s_editorAssetRegistry = registry;
+}
+
+#endif // HYP_EDITOR
 
 static const ThreadId& s_assetRegistryThread = g_simThread;
 
@@ -331,9 +354,13 @@ void AssetBucketData::SetAsset(
     if (existingAssetDescIt != assetDescs.End())
     {
         assetDesc = *existingAssetDescIt;
+
+        AssertDebug(usedIndices.Test(assetObject->m_assetIndex) == true);
     }
 
-    if (assetObject.IsValid() && assetObject->m_assetIndex != AssetDesc::InvalidIndex)
+    if (assetObject.IsValid()
+        && assetObject->m_assetIndex != AssetDesc::InvalidIndex
+        && assetDesc.index != assetObject->m_assetIndex)
     {
         // reuse the existing index, if we don't have one.
         if (assetDesc.index == AssetDesc::InvalidIndex)
@@ -343,6 +370,9 @@ void AssetBucketData::SetAsset(
         // otherwise, free the old index and take the desc one.
         else
         {
+            // should be set if we are freeing!!
+            AssertDebug(usedIndices.Test(assetObject->m_assetIndex) == true);
+
             usedIndices.Set(assetObject->m_assetIndex, false);
             
             assetObject->m_assetIndex = assetDesc.index;
@@ -352,7 +382,6 @@ void AssetBucketData::SetAsset(
     if (assetDesc.index == AssetDesc::InvalidIndex)
     {
         assetDesc.index = usedIndices.FirstZeroBitIndex();
-
         AssertDebug(assetDesc.index != AssetDesc::InvalidIndex);
 
         usedIndices.Set(assetDesc.index, true);
@@ -360,6 +389,8 @@ void AssetBucketData::SetAsset(
 
     auto it = assetDescs.Emplace(assetDesc).first;
     assetDesc = *it; // update ref
+
+    AssertDebug(usedIndices.Test(assetDesc.index) == true);
 
     if (const Handle<AssetObject>* pOldAssetObject = assetObjectCache.TryGet(assetDesc.index); pOldAssetObject && pOldAssetObject->IsValid() && (*pOldAssetObject) != assetObject)
     {
@@ -381,6 +412,8 @@ void AssetBucketData::SetAsset(
         dirtyIndices.Set(assetDesc.index, false);
         return;
     }
+
+    HYP_LOG_TEMP("Add asset '{}'", assetObject->GetPath().ToString());
 
     dirtyIndices.Set(assetDesc.index, true);
 }
@@ -413,6 +446,8 @@ void AssetBucketData::AllocateUniqueAssetName(
         {
             outAssetDesc = *existingIt;
 
+            AssertDebug(usedIndices.Test(outAssetDesc.index) == true);
+
             return;
         }
     }
@@ -438,6 +473,8 @@ void AssetBucketData::AllocateUniqueAssetName(
         else if (comparator.IsValid() && comparator(*existingIt))
         {
             outAssetDesc = *existingIt;
+
+            AssertDebug(usedIndices.Test(outAssetDesc.index) == true);
 
             return;
         }
@@ -683,6 +720,8 @@ Handle<AssetObject> AssetRegistry::GetAsset(const AssetBucket& bucket, StringHas
     }
 
     const uint32 index = it->index;
+    AssertDebug(index != AssetDesc::InvalidIndex);
+    AssertDebug(data.usedIndices.Test(index) == true);
 
     const Handle<AssetObject>* pAssetObject = data.assetObjectCache.TryGet(index);
 
@@ -1134,8 +1173,14 @@ void AssetRegistry::PutAssetsDeep(const Handle<AssetObject>& targetAsset)
         {
             if (assetObject->m_assetIndex == AssetDesc::InvalidIndex)
             {
-                PutAsset(assetObject);
-                //PutAssetUnique(assetObject);
+                //if (assetObject->GetPath().IsValid())
+                //{
+                    PutAsset(assetObject);
+                //}
+                //else
+                //{
+                //    PutAssetUnique(assetObject);
+                //}
             }
 
             AssertDebug(assetObject->m_name.IsValid());
@@ -1223,9 +1268,6 @@ void AssetRegistry::LoadAssetDescs()
 
         AssetBucketData& data = m_assetBucketData[bucket.GetIndex()];
 
-        // Reserve index 0 (== AssetDesc::InvalidIndex) so it is never assigned to a real asset.
-        data.usedIndices.Set(0, true);
-
         Array<FilePath> assetFiles;
 
         for (auto iter = subdirectory.OpenDirectory(); iter.HasNext(); iter.Advance())
@@ -1312,7 +1354,7 @@ void AssetRegistry::SaveDirtyAssets()
         const char* bucketName = GetAssetBucketName(bucketIndex);
         AssertDebug(bucketName != nullptr);
 
-        HashSet<Handle<AssetObject>> dirtyAssets;
+        HashSet<Handle<AssetObject>, AssetAllocator> dirtyAssets;
 
         {
             TUniqueLock lock(data.mtx);
@@ -1351,6 +1393,8 @@ void AssetRegistry::SaveDirtyAssets()
                     Handle<AssetObject> assetObject = *pAssetObject;
 
                     dirtyAssets.Add(assetObject);
+
+                    HYP_LOG_TEMP("Asset '{}' is dirty", assetObject->GetPath().ToString());
 
                     lock.Reset();
 

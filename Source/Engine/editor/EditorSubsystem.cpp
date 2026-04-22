@@ -710,6 +710,14 @@ bool TranslateEditorGizmo::OnKeyPress(const Handle<Camera>& camera, const Keyboa
 
 Handle<Node> TranslateEditorGizmo::Load_Internal() const
 {
+    GlobalContextScope assetRegistryScope { AssetRegistryContext { GetEditorAssetRegistry() } };
+
+    // Try to load from registry first:
+    if (Handle<Node> node = GetCurrentAssetRegistry()->GetAsset<Node>(AssetBuckets::Nodes, "TranslateGizmo"_sh); node.IsValid())
+    {
+        return node;
+    }
+
     auto result = AssetManager::GetInstance()->Load<Node>("Editor/Models/translate_gizmo.obj");
 
     if (result.HasValue())
@@ -775,11 +783,16 @@ Handle<Node> TranslateEditorGizmo::Load_Internal() const
                 materialAttributes.bucket = RenderBucket::Debug;
 
                 {
-                    Handle<MaterialDefinition> materialDefinition = MakeHandle<MaterialDefinition>(NAME("DebugMaterial"), materialAttributes, materialParameters, MaterialTextures {});
+                    Handle<MaterialDefinition> materialDefinition = MakeHandle<MaterialDefinition>(NAME_FMT("{}_Material", child->GetName()), materialAttributes, materialParameters, MaterialTextures {});
                     InitObject(materialDefinition);
+
+                    GetCurrentAssetRegistry()->PutAssetsDeep(materialDefinition);
 
                     Handle<MaterialInstance> materialInstance = materialDefinition->CreateInstance();
                     materialInstance->SetIsDynamic(true);
+                    InitObject(materialInstance);
+
+                    GetCurrentAssetRegistry()->PutAssetsDeep(materialInstance);
 
                     meshComponent->material = std::move(materialInstance);
                 }
@@ -787,6 +800,9 @@ Handle<Node> TranslateEditorGizmo::Load_Internal() const
                 childEntity->SetNeedsRenderProxyUpdate();
                 childEntity->Node::AddTag(NodeTag(NAME("TransformWidgetElementColor"), Vec4f(materialParameters.albedo)));
             }
+
+            GetCurrentAssetRegistry()->PutAssetsDeep(node);
+            GetCurrentAssetRegistry()->SaveDirtyAssets();
 
             return node;
         }
@@ -803,13 +819,21 @@ Handle<Node> TranslateEditorGizmo::Load_Internal() const
 
 Handle<Node> RotateEditorGizmo::Load_Internal() const
 {
+    GlobalContextScope assetRegistryScope { AssetRegistryContext { GetEditorAssetRegistry() } };
+
+    // Try to load from registry first:
+    if (Handle<Node> node = GetCurrentAssetRegistry()->GetAsset<Node>(AssetBuckets::Nodes, "RotateGizmo"_sh); node.IsValid())
+    {
+        return node;
+    }
+
     auto result = AssetManager::GetInstance()->Load<Node>("Editor/Models/rotate_gizmo.obj");
 
     if (result.HasValue())
     {
         if (Handle<Node> node = result->Result(); node.IsValid())
         {
-            node->SetName(NAME("RotateWidget"));
+            node->SetName(NAME("RotateGizmo"));
             node->SetWorldScale(2.5f);
 
             Handle<Node> axisX = node->FindChildByName("Rotate_X"_sh);
@@ -861,11 +885,15 @@ Handle<Node> RotateEditorGizmo::Load_Internal() const
                     materialAttributes.bucket = RenderBucket::Debug;
 
                     {
-                        Handle<MaterialDefinition> materialDefinition = MakeHandle<MaterialDefinition>(NAME("DebugMaterial"), materialAttributes, materialParameters, MaterialTextures {});
+                        Handle<MaterialDefinition> materialDefinition = MakeHandle<MaterialDefinition>(NAME_FMT("{}_Material", child->GetName()), materialAttributes, materialParameters, MaterialTextures {});
                         InitObject(materialDefinition);
+                        
+                        GetCurrentAssetRegistry()->PutAssetsDeep(materialDefinition);
                         
                         Handle<MaterialInstance> materialInstance = materialDefinition->CreateInstance();
                         materialInstance->SetIsDynamic(true);
+                        
+                        GetCurrentAssetRegistry()->PutAssetsDeep(materialInstance);
 
                         meshComponent->material = std::move(materialInstance);
                     }
@@ -874,6 +902,9 @@ Handle<Node> RotateEditorGizmo::Load_Internal() const
                     childEntity->Node::AddTag(NodeTag(NAME("TransformWidgetElementColor"), Vec4f(materialParameters.albedo)));
                 }
             }
+            
+            GetCurrentAssetRegistry()->PutAssetsDeep(node);
+            GetCurrentAssetRegistry()->SaveDirtyAssets();
 
             return node;
         }
@@ -1216,6 +1247,14 @@ void VolumeEditorGizmo::UpdateFaceGeometry(const BoundingBox& localBounds, const
 
 Handle<Node> VolumeEditorGizmo::Load_Internal() const
 {
+    GlobalContextScope assetRegistryScope { AssetRegistryContext { GetEditorAssetRegistry() } };
+
+    // Try to load from registry first:
+    if (Handle<Node> node = GetCurrentAssetRegistry()->GetAsset<Node>(AssetBuckets::Nodes, "VolumeEditGizmo"_sh); node.IsValid())
+    {
+        return node;
+    }
+
     const Vec4f volumeColor = Vec4f(0.3f, 0.0f, 0.28f, 0.25f);
 
     Handle<Node> rootNode = MakeHandle<Node>();
@@ -1238,6 +1277,24 @@ Handle<Node> VolumeEditorGizmo::Load_Internal() const
     Handle<Mesh> quadMesh = MeshBuilder::Quad();
     InitObject(quadMesh);
 
+    MaterialAttributes materialAttributes;
+    materialAttributes.bucket = RenderBucket::Debug;
+    materialAttributes.blendFunction = BlendFunction::Additive();
+    materialAttributes.cullFaces = FCM_NONE;
+    materialAttributes.flags = MAF_NONE;
+
+    MaterialParameters materialParameters;
+    materialParameters.albedo = volumeColor;
+
+    Handle<MaterialDefinition> materialDefinition = MakeHandle<MaterialDefinition>(NAME("VolumeEditMaterial"), materialAttributes, materialParameters, MaterialTextures {});
+    InitObject(materialDefinition);
+    GetCurrentAssetRegistry()->PutAssetsDeep(materialDefinition);
+
+    Handle<MaterialInstance> materialInstance = materialDefinition->CreateInstance();
+    materialInstance->SetIsDynamic(true);
+    InitObject(materialInstance);
+    GetCurrentAssetRegistry()->PutAssetsDeep(materialInstance);
+
     for (int i = 0; i < VEF_Max; i++)
     {
         Handle<Entity> faceEntity = MakeHandle<Entity>(NAME_FMT("VolumeFace_{}", i));
@@ -1247,21 +1304,9 @@ Handle<Node> VolumeEditorGizmo::Load_Internal() const
 
         faceEntity->Node::AddTag(NodeTag(NAME("VolumeFaceIndex"), i));
 
-        MaterialAttributes materialAttributes;
-        materialAttributes.bucket = RenderBucket::Debug;
-        materialAttributes.blendFunction = BlendFunction::Additive();
-        materialAttributes.cullFaces = FCM_NONE;
-        materialAttributes.flags = MAF_NONE;
-
-        MaterialParameters materialParameters;
-        materialParameters.albedo = volumeColor;
-
-        Handle<MaterialInstance> material = MakeHandle<MaterialDefinition>(Name::Unique("debug_volume_material"), materialAttributes, materialParameters, MaterialTextures {})->CreateInstance();
-        material->SetIsDynamic(true);
-
         rootNode->AddChild(faceEntity);
 
-        faceEntity->AddComponent<MeshComponent>(MeshComponent { quadMesh, material });
+        faceEntity->AddComponent<MeshComponent>(MeshComponent { quadMesh, materialInstance });
         faceEntity->SetLocalBounds(quadMesh->GetAABB());
 
         VisibilityStateComponent* visibilityState = faceEntity->TryGetComponent<VisibilityStateComponent>();
@@ -1279,6 +1324,9 @@ Handle<Node> VolumeEditorGizmo::Load_Internal() const
     }
 
     rootNode->SetLocalBounds(BoundingBox(Vec3f(-1.0), Vec3f(1.0f)));
+    
+    GetCurrentAssetRegistry()->PutAssetsDeep(rootNode);
+    GetCurrentAssetRegistry()->SaveDirtyAssets();
 
     return rootNode;
 }
@@ -1875,6 +1923,7 @@ void EditorSubsystem::OnAddedToWorld()
     }
 
     m_editorScene = MakeHandle<Scene>(NAME("EditorScene"), SceneFlags::FOREGROUND | SceneFlags::EDITOR);
+    m_editorScene->SetIsTransient(true);
     GetWorld()->AddScene(m_editorScene);
 
     InitViewport();
@@ -2099,8 +2148,6 @@ void EditorSubsystem::StartSimulation()
     OpenProject(*loadResult);
 
     Assert(m_currentProject.IsValid() && m_currentProject->GetWorld() != nullptr);
-
-    // @TODO Stream in scenes.
 
     Camera* primaryCamera = nullptr;
 
@@ -2909,10 +2956,7 @@ bool EditorSubsystem::ExecuteCommandByName(Name name, const String& args)
 
 void EditorSubsystem::NewProject()
 {
-    Handle<EditorProject> project = MakeHandle<EditorProject>();
-
-    Handle<Game> gameInstance = MakeHandle<Game>();
-    project->SetGame(gameInstance); // base game instance
+    Handle<EditorProject> project = EditorProject::CreateNew();
 
     Handle<Scene> mainScene = MakeHandle<Scene>();
     mainScene->SetName(NAME("MainScene"));
@@ -2986,14 +3030,12 @@ void EditorSubsystem::OpenProject(const Handle<EditorProject>& project)
 
     project->SetEditorSubsystem(MakeWeakRef(this));
 
-    InitObject(project);
-
     m_currentProject = project;
 
-    Game* game = m_currentProject->GetGame();
-    Assert(game != nullptr);
+    Game* gameInstance = m_currentProject->GetGame();
+    Assert(gameInstance != nullptr);
 
-    game->Initialize();
+    gameInstance->Initialize();
 
     OnProjectOpened(m_currentProject);
 

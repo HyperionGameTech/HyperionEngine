@@ -954,7 +954,7 @@ void Array<T, AllocatorType>::Resize(size_t newSize)
     {
         const size_t diff = newSize - currentSize;
 
-        if (m_size + diff >= Capacity())
+        if (m_size + diff > Capacity())
         {
             if (Capacity() >= currentSize + diff)
             {
@@ -989,7 +989,7 @@ void Array<T, AllocatorType>::Resize(size_t newSize)
 
         const size_t diff = currentSize - newSize;
 
-        for (size_t i = m_size; i > m_startOffset;)
+        for (size_t i = m_size; i > m_size - diff;)
         {
             Memory::Destruct(buffer[--i]);
         }
@@ -1012,7 +1012,7 @@ void Array<T, AllocatorType>::ResizeUninitialized(size_t newSize)
     {
         const size_t diff = newSize - currentSize;
 
-        if (m_size + diff >= Capacity())
+        if (m_size + diff > Capacity())
         {
             if (Capacity() >= currentSize + diff)
             {
@@ -1032,7 +1032,7 @@ void Array<T, AllocatorType>::ResizeUninitialized(size_t newSize)
 
         const size_t diff = currentSize - newSize;
 
-        for (size_t i = m_size; i > m_startOffset;)
+        for (size_t i = m_size; i > m_size - diff;)
         {
             Memory::Destruct(buffer[--i]);
         }

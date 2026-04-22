@@ -59,9 +59,14 @@ public:
         m_boneName = boneName;
     }
 
-    Span<const Keyframe> GetKeyframes() const
+    HYP_FORCE_INLINE Span<const Keyframe> GetKeyframes() const
     {
-        Assert(m_keyframeData.raw != nullptr, "Keyframe data not loaded!");
+        AssertDebug(m_keyframeData.raw != nullptr, "Keyframe data not loaded!");
+
+        if (!m_keyframeData.raw)
+        {
+            return {};
+        }
 
         return Span<const Keyframe>(reinterpret_cast<const Keyframe*>(m_keyframeData.raw), m_keyframeData.size / sizeof(Keyframe));
     }

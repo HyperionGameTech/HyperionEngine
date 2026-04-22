@@ -70,7 +70,7 @@ void AudioSystem::Process(float delta, Span<Handle<Scene>> scenes)
             if (Camera* camera = scene->GetPrimaryCamera())
             {
                 g_audioManager->SetListenerOrientation(camera->GetDirection(), camera->GetUpVector());
-                g_audioManager->SetListenerPosition(camera->GetTranslation());
+                g_audioManager->SetListenerPosition(camera->GetWorldTranslation());
             }
         }
 

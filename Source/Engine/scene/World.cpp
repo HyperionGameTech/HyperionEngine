@@ -269,6 +269,16 @@ void World::Init()
             scenesStreamingLayer->AddStreamingObject(scene, scene->GetStreamingCentroid());
         }
     }
+
+    if (m_worldFlags & WorldFlags::HAS_PHYSICS)
+    {
+        if (!m_physicsWorld)
+        {
+            m_physicsWorld = MakeHandle<PhysicsWorld>();
+        }
+
+        m_physicsWorld->Initialize();
+    }
     
     for (const Handle<SystemBase>& system : m_systems)
     {
@@ -345,16 +355,6 @@ void World::Init()
         }
 
         InitObject(view);
-    }
-
-    if (m_worldFlags & WorldFlags::HAS_PHYSICS)
-    {
-        if (!m_physicsWorld)
-        {
-            m_physicsWorld = MakeHandle<PhysicsWorld>();
-        }
-
-        m_physicsWorld->Initialize();
     }
 
     SetReady(true);

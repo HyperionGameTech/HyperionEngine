@@ -110,6 +110,7 @@ public:
     }
 
     static TResult<Handle<EditorProject>> Load(const FilePath& filepath);
+    static Handle<EditorProject> CreateNew();
 
     HYP_METHOD()
     void Close();

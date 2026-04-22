@@ -127,7 +127,7 @@ void RenderThread::Update()
         }
     }
 
-    Frame* frame = g_renderInterface->PrepareNextFrame(); // GetCurrentFrame();
+    Frame* frame = g_renderInterface->GetCurrentFrame();
     Assert(frame != nullptr);
 
     // Check if any swapchains need to be recreated

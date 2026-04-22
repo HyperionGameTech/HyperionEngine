@@ -3831,15 +3831,7 @@ bool ShaderCompiler::CompileBundle(
             return true;
         });
 
-    { // register assets
-        for (const Handle<Shader>& shader : outBundle->compiledShaders)
-        {
-            GetEngineAssetRegistry()->PutAsset(AssetBuckets::Shaders, shader);
-        }
-        
-        GetEngineAssetRegistry()->PutAsset(AssetBuckets::ShaderBundles, outBundle->HandleFromThis());
-    }
-
+    GetEngineAssetRegistry()->PutAssetsDeep(MakeStrongRef(outBundle));
     GetEngineAssetRegistry()->SaveDirtyAssets();
 
 #ifdef HYP_SHADER_COMPILER_LOGGING

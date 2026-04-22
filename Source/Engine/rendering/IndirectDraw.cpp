@@ -250,8 +250,8 @@ void IndirectDrawState::PushDrawCall(size_t drawCallIndex, const DrawCallStorage
     out.drawCommandIndex = drawCommandIndex;
 
     g_renderInterface->PopulateIndirectDrawCommandsBuffer(
-        drawCalls.meshes[drawCallIndex]->GetVertexBuffer(),
-        drawCalls.meshes[drawCallIndex]->GetIndexBuffer(),
+        drawCalls.meshProxies[drawCallIndex]->mesh->GetVertexBuffer(),
+        drawCalls.meshProxies[drawCallIndex]->mesh->GetIndexBuffer(),
         drawCommandIndex,
         m_drawCommandsBuffer);
 
@@ -278,8 +278,8 @@ void IndirectDrawState::PushInstancedDrawCall(size_t drawCallIndex, const Instan
     out.drawCommandIndex = drawCommandIndex;
 
     g_renderInterface->PopulateIndirectDrawCommandsBuffer(
-        drawCalls.meshes[drawCallIndex]->GetVertexBuffer(),
-        drawCalls.meshes[drawCallIndex]->GetIndexBuffer(),
+        drawCalls.meshProxies[drawCallIndex]->mesh->GetVertexBuffer(),
+        drawCalls.meshProxies[drawCallIndex]->mesh->GetIndexBuffer(),
         drawCommandIndex,
         m_drawCommandsBuffer);
 

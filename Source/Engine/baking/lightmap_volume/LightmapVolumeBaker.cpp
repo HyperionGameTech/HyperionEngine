@@ -268,7 +268,7 @@ void Baker<LightmapVolume>::Build()
 
         const BoundingBox& worldAabb = boundingBoxComponent.worldAabb;
 
-        if (!onlyOverlappingElements && !m_aabb.Overlaps(worldAabb))
+        if (onlyOverlappingElements && !m_aabb.Overlaps(worldAabb))
         {
             continue;
         }
@@ -331,6 +331,8 @@ void Baker<LightmapVolume>::OnCompleted_Internal()
     const LightmapElement* lightmapElement = m_volume->GetElement(m_lightmapElementId);
     Assert(lightmapElement != nullptr);
 
+    GetCurrentAssetRegistry()->PutAssetsDeep(m_volume);
+
     HYP_LOG(Lightmap, Verbose, "Lightmap baking complete! Building element with id {}, UV offset: {}, Scale: {}", m_lightmapElementId,
         lightmapElement->offsetUV, lightmapElement->scale);
 
@@ -370,65 +372,65 @@ void Baker<LightmapVolume>::OnCompleted_Internal()
             vertexArrayView.layoutDesc = newMeshDesc.meshAttributes.inputLayout;
             vertexArrayView.vertexCount = bakeMesh.vertices.Size();
 
+            // Currently seeing issue with `raw` ptr null on bvh - this assertion can be removed when that is fixed.
+            AssertDebug(mesh->GetBVHDataReference().raw != nullptr);
+
             mesh->SetMeshData(newMeshDesc, vertexArrayView, bakeMesh.indices.ToByteView());
         };
 
         UpdateMeshData();
 
+        // Update material to have the Lightmapped bucket (if it does not already)
+        AssertDebug(bakeEntity.material.IsValid());
+        
         bool isNewMaterial = false;
-
-        if (bakeEntity.material)
+#if 1
+        // update material info
+        if (bakeEntity.material && bakeEntity.material->GetBucket() != RenderBucket::Lightmapped)
         {
-            MaterialAttributes attributes = bakeEntity.material->GetAttributes();
-            attributes.bucket = RenderBucket::Lightmapped;
+            // @TODO Look for material definition that matches what we need rather than creating it right out of the gate.
 
-            Handle<MaterialDefinition> materialDefinition = MakeHandle<MaterialDefinition>(
-                NAME("LightmapMaterial"),
-                attributes,
-                bakeEntity.material->GetParameters(),
-                bakeEntity.material->GetTextures());
+            const Handle<MaterialDefinition>& currentMaterialDefinition = bakeEntity.material->GetDefinition();
 
-            InitObject(materialDefinition);
+            MaterialAttributes newAttributes = currentMaterialDefinition->GetAttributes();
+            newAttributes.bucket = RenderBucket::Lightmapped;
 
-            GetCurrentAssetRegistry()->PutAssetUnique(materialDefinition);
+            Handle<MaterialDefinition> newMaterialDefinition = MakeHandle<MaterialDefinition>(
+                NAME_FMT("{}_LM", currentMaterialDefinition->GetName()),
+                newAttributes,
+                currentMaterialDefinition->GetDefaultParameters(),
+                currentMaterialDefinition->GetDefaultTextures());
 
-            Handle<MaterialInstance> materialInstance = materialDefinition->CreateInstance();
-            materialInstance->SetIsDynamic(true);
+            Assert(newMaterialDefinition != nullptr);
+            
+            InitObject(newMaterialDefinition);
 
-            GetCurrentAssetRegistry()->PutAssetUnique(materialInstance);
+            GetCurrentAssetRegistry()->PutAssetsDeep(newMaterialDefinition);
+
+            Handle<MaterialInstance> newMaterialInstance = newMaterialDefinition->CreateInstance();
+            Assert(newMaterialInstance != nullptr);
+
+            newMaterialInstance->SetParameters(bakeEntity.material->GetParameters());
+            newMaterialInstance->SetTextures(bakeEntity.material->GetTextures());
 
             EnqueueDeletion(std::move(bakeEntity.material));
+
+            InitObject(newMaterialInstance);
+
+            GetCurrentAssetRegistry()->PutAssetsDeep(newMaterialInstance);
             
-            bakeEntity.material = std::move(materialInstance);
+            bakeEntity.material = newMaterialInstance;
+
+            isNewMaterial = true;
         }
-        else
-        {
-            MaterialAttributes attributes;
-            attributes.bucket = RenderBucket::Lightmapped;
-
-            Handle<MaterialDefinition> materialDefinition = MakeHandle<MaterialDefinition>(
-                NAME("LightmapMaterial"),
-                attributes);
-                
-            InitObject(materialDefinition);
-
-            GetCurrentAssetRegistry()->PutAssetUnique(materialDefinition);
-
-            Handle<MaterialInstance> materialInstance = materialDefinition->CreateInstance();
-            materialInstance->SetIsDynamic(true);
-        
-            GetCurrentAssetRegistry()->PutAssetUnique(materialInstance);
-
-            bakeEntity.material = std::move(materialInstance);
-        }
-
-        isNewMaterial = true;
+#endif
 
         auto UpdateMeshComponent = [entityManagerWeak = MakeWeakRef(m_scene->GetEntityManager()),
                                         lightmapElementId = m_lightmapElementId,
                                         volume = m_volume,
                                         bakeEntity = bakeEntity,
-                                        newMaterial = (isNewMaterial ? bakeEntity.material : Handle<MaterialInstance>::empty)]()
+                                        material = bakeEntity.material,
+                                        isNewMaterial]()
         {
             Handle<EntityManager> entityManager = entityManagerWeak.Lock();
 
@@ -443,45 +445,42 @@ void Baker<LightmapVolume>::OnCompleted_Internal()
             {
                 MeshComponent& meshComponent = entityManager->GetComponent<MeshComponent>(entity);
 
-                if (newMaterial.IsValid())
+                if (isNewMaterial)
                 {
-                    InitObject(newMaterial);
+                    GetCurrentAssetRegistry()->PutAssetUnique(bakeEntity.material);
 
                     EnqueueDeletion(std::move(meshComponent.material));
 
-                    meshComponent.material = std::move(newMaterial);
+                    meshComponent.material = bakeEntity.material;
+                    entity->MarkDirty();
                 }
             }
             else
             {
-                Assert(newMaterial.IsValid());
-                InitObject(newMaterial);
-
-                MeshComponent meshComponent {};
-                meshComponent.mesh = bakeEntity.mesh;
-                meshComponent.material = newMaterial;
-
-                entityManager->AddComponent<MeshComponent>(entity, std::move(meshComponent));
+                HYP_LOG(Lightmap, Warning, "Entity {} does not have a MeshComponent, cannot assign baked material", entity->Id());
             }
 
             if (entityManager->HasComponent<LightmapElementComponent>(entity))
             {
                 LightmapElementComponent& lightmapElementComponent = entityManager->GetComponent<LightmapElementComponent>(entity);
 
-                lightmapElementComponent.lightmapVolume = volume.ToWeak();
+                lightmapElementComponent.lightmapVolume = MakeWeakRef(volume);
+                lightmapElementComponent.lightmapVolumePath = volume->GetPath();
                 lightmapElementComponent.lightmapElementId = lightmapElementId;
             }
             else
             {
                 LightmapElementComponent lightmapElementComponent;
 
-                lightmapElementComponent.lightmapVolume = volume.ToWeak();
+                lightmapElementComponent.lightmapVolume = MakeWeakRef(volume);
+                lightmapElementComponent.lightmapVolumePath = volume->GetPath();
                 lightmapElementComponent.lightmapElementId = lightmapElementId;
 
                 entityManager->AddComponent<LightmapElementComponent>(entity, std::move(lightmapElementComponent));
             }
 
             entity->SetNeedsRenderProxyUpdate();
+            entity->MarkDirty();
         };
 
         if (IsOnThread(m_scene->GetEntityManager()->GetOwnerThreadId()))

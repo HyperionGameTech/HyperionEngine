@@ -236,6 +236,8 @@ class ResourceBinder : public ResourceBinderBase
 
             AssertDebug(after.Count() <= allocator->maxSize);
 
+            // HYP_LOG_TEMP("Num {} resources: {} (added {}, removed {}, unchanged {})", typeInfo->name, after.Count(), newlyAdded.Count(), removed.Count(), unchanged.Count());
+
             // NOTE: We do removed bits first, to free up slots for the newly added elements to claim a binding index.
             if (removed.AnyBitsSet())
             {

@@ -268,6 +268,7 @@ void MaterialInstance::UpdateRenderProxy(RenderProxyMaterial* proxy)
     proxy->attributes = m_definition->GetAttributes();
 
     MaterialShaderData& bufferData = proxy->bufferData;
+    bufferData = {};
 
     bufferData.albedo = m_parameters.albedo;
     bufferData.packedParams = Vec4u(
@@ -299,10 +300,10 @@ void MaterialInstance::UpdateRenderProxy(RenderProxyMaterial* proxy)
 
     uint32 remainingTextureSlots = numTextureSlots;
 
-    proxy->boundTextures.Clear();
-
     // unset all bound texture indices (~0u)
-    Memory::Fill(&proxy->boundTextureIndices[0], 0xFF, sizeof(proxy->boundTextureIndices));
+    Memory::Fill(&proxy->boundTextureIndices[0], 0xFFu, sizeof(proxy->boundTextureIndices));
+
+    proxy->boundTextures.Clear();
 
     for (uint32 slot = 0; slot < uint32(m_textures.Size()); slot++)
     {

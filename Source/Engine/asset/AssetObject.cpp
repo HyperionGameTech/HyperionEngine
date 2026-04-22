@@ -290,6 +290,12 @@ Result AssetObject::SaveBlobData(BlobStorage* storage, const Optional<FilePath>&
 
         AssertDebug(reference != nullptr && reference->raw != nullptr);
 
+        // should not happen, but just in case.
+        if (!reference->raw)
+        {
+            continue;
+        }
+
         const size_t magicLen = magic ? std::strlen(magic) : 0;
 
         AssertDebug(magicLen <= sizeof(BlobHeader::magic) && magicLen != 0,
@@ -644,14 +650,13 @@ void AssetObject::UnlockReader()
 
     if (AtomicSub(&m_rwState, 2) == 2 && m_isBlobLoaded)
     {
-        if (m_flags[AssetObjectFlags::Persistent])
+        if (!m_flags[AssetObjectFlags::Persistent])
         {
             SetBlobDataResident(false);
+            UnpageBlobData();
+
+            m_isBlobLoaded = false;
         }
-
-        UnpageBlobData();
-
-        m_isBlobLoaded = false;
     }
 }
 
@@ -671,9 +676,12 @@ Handle<AssetRegistry> AssetObject::GetAssetRegistry()
     {
     case AssetRegistryId::Game:
         return GetCurrentAssetRegistry();
-    case AssetRegistryId::Engine: // Fallthrough
-    case AssetRegistryId::Editor:
+    case AssetRegistryId::Engine:
         return GetEngineAssetRegistry();
+#if HYP_EDITOR
+    case AssetRegistryId::Editor:
+        return GetEditorAssetRegistry();
+#endif // HYP_EDITOR
     }
 
     return Handle<AssetRegistry>::Null();

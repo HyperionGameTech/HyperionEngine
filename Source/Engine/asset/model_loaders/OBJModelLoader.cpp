@@ -14,8 +14,6 @@
 
 #include <rendering/MaterialDefinition.hpp>
 #include <rendering/MaterialInstance.hpp>
-
-#include <engine/EngineGlobals.hpp>
 #include <rendering/Mesh.hpp>
 
 #include <scene/World.hpp>
@@ -466,10 +464,18 @@ LoadedAsset OBJModelLoader::BuildModel(LoaderState& state, OBJModel& model)
 
         if (!material.IsValid())
         {
-            material = g_materialInstanceCache->GetOrCreate(
+            Handle<MaterialDefinition> materialDefinition = MakeHandle<MaterialDefinition>(
                 NAME("BasicOBJMaterial"),
                 materialAttributes,
-                MaterialParameters {});
+                MaterialParameters {},
+                MaterialTextures {});
+
+            InitObject(materialDefinition);
+
+            GetCurrentAssetRegistry()->PutAsset(materialDefinition);
+
+            material = materialDefinition->CreateInstance();
+            GetCurrentAssetRegistry()->PutAsset(material);
         }
         else
         {

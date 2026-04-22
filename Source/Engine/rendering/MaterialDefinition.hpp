@@ -80,6 +80,8 @@ public:
     /*! \brief Create a new MaterialInstance from this definition */
     Handle<MaterialInstance> CreateInstance() const;
 
+    Handle<MaterialDefinition> Clone(Name newName) const;
+
     HashCode GetHashCode() const;
 
 private:

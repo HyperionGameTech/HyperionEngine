@@ -15,8 +15,6 @@
 #include <rendering/MaterialDefinition.hpp>
 #include <rendering/MaterialInstance.hpp>
 
-#include <engine/EngineGlobals.hpp>
-
 #include <Core/filesystem/FsUtil.hpp>
 
 #if HYP_EDITOR
@@ -549,15 +547,24 @@ HashMap<String, Handle<MaterialInstance>> MTLMaterialLoader::ParseMtl_Internal(L
             textures[it.mapping.key] = std::move(texture);
         }
 
-        Handle<MaterialInstance> material = g_materialInstanceCache->GetOrCreate(
-            CreateNameFromDynamicString(item.tag),
+        const Name materialName = CreateNameFromDynamicString(item.tag);
+
+        Handle<MaterialDefinition> materialDefinition = MakeHandle<MaterialDefinition>(
+            materialName,
             attributes,
             parameters,
             textures);
 
-        GetCurrentAssetRegistry()->PutAssetUnique(material);
+        InitObject(materialDefinition);
 
-        result.Set(item.tag, std::move(material));
+        GetCurrentAssetRegistry()->PutAssetUnique(materialDefinition);
+
+        Handle<MaterialInstance> materialInstance = materialDefinition->CreateInstance();
+        InitObject(materialInstance);
+        
+        GetCurrentAssetRegistry()->PutAssetUnique(materialInstance);
+
+        result.Set(item.tag, std::move(materialInstance));
     }
 
     return result;

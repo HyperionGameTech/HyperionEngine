@@ -61,6 +61,8 @@ void DynamicSkySystem::Init()
 {
     SystemBase::Init();
 
+    GlobalContextScope engineRegistryScope { AssetRegistryContext { GetEngineAssetRegistry() } };
+    
     { // atmospheric scattering capture setup
         m_renderScene = MakeHandle<Scene>(NAME("DynamicSkyRenderScene"), SceneFlags::NONE);
         m_renderScene->SetIsTransient(true); // don't save; it's generated at runtime
@@ -97,6 +99,7 @@ void DynamicSkySystem::Init()
         m_skyboxEntity = MakeHandle<Entity>();
         m_skyboxEntity->SetName(NAME("Skybox"));
         m_skyboxEntity->Scale(150.0f);
+        m_skyboxEntity->SetIsTransient(true);
         InitObject(m_skyboxEntity);
 
         if (VisibilityStateComponent* vis = m_skyboxEntity->TryGetComponent<VisibilityStateComponent>())
@@ -111,6 +114,7 @@ void DynamicSkySystem::Init()
         Handle<Mesh> mesh = MeshBuilder::Cube();
         mesh->SetFlags(MeshFlags::ViewIndependent);
         mesh->SetName(NAME("SkyboxMesh"));
+        mesh->SetIsTransient(true);
         InitObject(mesh);
 
         MaterialAttributes materialAttributes {};
@@ -122,7 +126,7 @@ void DynamicSkySystem::Init()
         materialAttributes.flags = MAF_DEPTH_TEST;
 
         m_visScene = MakeHandle<Scene>(NAME("SkyVisScene"), SceneFlags::FOREGROUND | SceneFlags::BACKDROP);
-        m_visScene->SetAssetFlags(AssetObjectFlags::Transient); // don't save; it's generated at runtime
+        m_visScene->SetIsTransient(true); // don't save; it's generated at runtime
         m_visScene->GetRoot()->AddChild(m_skyboxEntity);
 
         m_envProbe = m_renderScene->GetEntityManager()->AddEntity<SkyProbe>(BoundingBox(Vec3f(-100.0f), Vec3f(100.0f)), m_dimensions);
@@ -134,14 +138,21 @@ void DynamicSkySystem::Init()
 
         m_envProbe->GetView()->AddScene(m_renderScene);
 
-        Handle<MaterialInstance> material = g_materialInstanceCache->GetOrCreate(NAME("SkyboxMaterial"), materialAttributes);
-        material->SetTexture(MaterialTextureKey::Diffuse, m_envProbe->GetPrefilteredEnvMap());
-        InitObject(material);
+        Handle<MaterialDefinition> skyboxMaterialDefinition = MakeHandle<MaterialDefinition>(NAME("SkyboxMaterial"), materialAttributes);
+        skyboxMaterialDefinition->SetIsTransient(true);
+        InitObject(skyboxMaterialDefinition);
 
-        GetCurrentAssetRegistry()->PutAsset(material);
+        GetCurrentAssetRegistry()->PutAssetUnique(skyboxMaterialDefinition);
+
+        Handle<MaterialInstance> skyboxMaterialInstance = MakeHandle<MaterialInstance>(NAME("SkyboxMaterial"), skyboxMaterialDefinition);
+        skyboxMaterialInstance->SetTexture(MaterialTextureKey::Diffuse, m_envProbe->GetPrefilteredEnvMap());
+        skyboxMaterialInstance->SetIsTransient(true);
+        InitObject(skyboxMaterialInstance);
+
+        GetCurrentAssetRegistry()->PutAssetUnique(skyboxMaterialInstance);
 
         // add MeshComponent to skybox entity
-        m_skyboxEntity->AddComponent<MeshComponent>(MeshComponent { mesh, material });
+        m_skyboxEntity->AddComponent<MeshComponent>(MeshComponent { mesh, skyboxMaterialInstance });
     }
 }
 

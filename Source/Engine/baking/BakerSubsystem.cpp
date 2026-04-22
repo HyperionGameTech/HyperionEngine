@@ -56,6 +56,11 @@ void BakerSubsystem::OnRemovedFromWorld()
 {
     AssertOnThread(g_simThread);
 
+    for (auto& it : m_bakers)
+    {
+        GetWorld()->RemoveView(it.second->GetView());
+    }
+
     m_bakers.Clear();
 }
 

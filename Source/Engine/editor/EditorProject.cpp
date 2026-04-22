@@ -49,6 +49,22 @@ static const ANSIString s_defaultProjectName = "Project";
 
 #pragma region EditorProject
 
+static Name GetUniqueProjectName()
+{
+    const FilePath projectsDir = ::Hyperion::GetProjectsDirectory();
+
+    ANSIString candidateName = s_defaultProjectName;
+    uint32 counter = 0;
+
+    while ((projectsDir / candidateName).Exists())
+    {
+        ++counter;
+        candidateName = HYP_FORMAT("{}{}", s_defaultProjectName, counter);
+    }
+
+    return CreateNameFromDynamicString(candidateName);
+}
+
 EditorProject::EditorProject()
     : EditorProject(Handle<Game>::Null())
 {
@@ -96,17 +112,7 @@ void EditorProject::SetGame(const Handle<Game>& gameInstance)
         return;
     }
 
-    if (m_gameInstance.IsValid())
-    {
-        m_gameInstance->Shutdown();
-    }
-
     m_gameInstance = gameInstance;
-
-    if (m_gameInstance.IsValid())
-    {
-        m_gameInstance->Initialize();
-    }
 }
 
 void EditorProject::AddScene(const Handle<Scene>& scene)
@@ -300,8 +306,7 @@ TResult<Handle<EditorProject>> EditorProject::Load(const FilePath& filepath)
 
     // create registry to load assets into
     Handle<AssetRegistry> registry = MakeHandle<AssetRegistry>(
-        AssetRegistryId::Game,
-        registryDir);
+        AssetRegistryId::Game, registryDir);
         
     registry->Initialize();
 
@@ -355,6 +360,36 @@ TResult<Handle<EditorProject>> EditorProject::Load(const FilePath& filepath)
     // set transient properties
     project->m_lastSavedTime = projectFilepath.LastModifiedTimestamp();
     project->m_filepath = projectFilepath;
+
+    return project;
+}
+
+Handle<EditorProject> EditorProject::CreateNew()
+{
+    Name projectName = GetUniqueProjectName();
+
+    // Create Game instance
+    Handle<Game> gameInstance = MakeHandle<Game>();
+
+    // Create World
+    Handle<World> world = MakeHandle<World>(NAME("MainWorld"), WorldFlags::DEFAULT);
+    gameInstance->SetWorld(world);
+
+    // Create and set up AssetRegistry with proper project path for the new project.
+    const FilePath projectDir = ::Hyperion::GetProjectsDirectory() / *projectName;
+
+    if (!projectDir.MkDir())
+    {
+        HYP_LOG(Editor, Error, "Failed to create project directory: '{}'", projectDir);
+        return Handle<EditorProject>::Null();
+    }
+
+    Handle<AssetRegistry> registry = MakeHandle<AssetRegistry>(AssetRegistryId::Game, projectDir);
+    registry->Initialize();
+
+    gameInstance->SetAssetRegistry(registry);
+
+    Handle<EditorProject> project = MakeHandle<EditorProject>(projectName, gameInstance);
 
     return project;
 }

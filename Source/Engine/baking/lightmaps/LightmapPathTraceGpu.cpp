@@ -493,34 +493,25 @@ void LightmapRenderer_GpuPathTracing::Render(Frame* frame, const RenderSetup& re
     Assert(m_tlas && m_tlas->IsCreated());
 
     { // rays buffer
+        // PrepareNextFrame() (called at the start of BeginFrame) already waited the fence for
+        // this frame slot, so the GPU is done reading from raysBuffer. Write the current frame's
+        // ray data directly rather than deferring to OnFrameEnd: deferring fires 3 frames later
+        // (one full NumFramesInFlight cycle), which means the GPU would read stale data.
+        GpuBufferRef& raysBuffer = jd.raysBuffer;
+        Assert(raysBuffer != nullptr && raysBuffer->IsCreated());
+
         Array<Vec4f, DynamicAllocator> rayData;
         rayData.Resize(rays.Size() * 2);
 
         for (size_t i = 0; i < rays.Size(); i++)
         {
-            rayData[i * 2] = Vec4f(rays[i].ray.position, 1.0f);
+            rayData[i * 2]     = Vec4f(rays[i].ray.position, 1.0f);
             rayData[i * 2 + 1] = Vec4f(rays[i].ray.direction, 0.0f);
         }
-        
-        GpuBufferRef& raysBuffer = jd.raysBuffer;
 
-        struct UpdateRaysBuffer
-        {
-            GpuBufferRef raysBuffer;
-            Array<Vec4f, DynamicAllocator> rayData;
-
-            void operator()(Frame*)
-            {
-                Assert(raysBuffer != nullptr && raysBuffer->IsCreated());
-                Assert(raysBuffer->Size() >= rayData.ByteSize());
-
-                raysBuffer->Copy(rayData.ByteSize(), rayData.Data());
-                raysBuffer->Flush(0, rayData.ByteSize());
-            }
-        };
-        
-        Assert(raysBuffer != nullptr && raysBuffer->IsCreated());
-        frame->OnFrameEnd.Bind(UpdateRaysBuffer { raysBuffer, std::move(rayData) }).Detach();
+        Assert(raysBuffer->Size() >= rayData.ByteSize());
+        raysBuffer->Copy(rayData.ByteSize(), rayData.Data());
+        raysBuffer->Flush(0, rayData.ByteSize());
     }
 
     CommandRecorder& cr = frame->cr;
