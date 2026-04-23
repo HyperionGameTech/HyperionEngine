@@ -118,6 +118,11 @@ public:
         return m_accelerationStructureProperties;
     }
 
+    bool SupportsRayQueries() const
+    {
+        return m_rayQueryFeatures.rayQuery;
+    }
+
     const VkPhysicalDeviceScalarBlockLayoutFeatures& GetScalarBlockLayoutFeatures() const
     {
         return m_scalarBlockLayoutFeatures;

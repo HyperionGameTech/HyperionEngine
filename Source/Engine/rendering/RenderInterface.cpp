@@ -583,6 +583,8 @@ RendererResult RenderInterface::Initialize()
 
     Framework::s_threadFrameIndex = &Framework::s_frameIndex[Framework::TT_FrameDataConsumer];
 
+    InitDeviceDetails(deviceDetails);
+
     namedBuffers[NamedBuffer::Worlds] = StructuredBuffer(MaxBoundWorlds, sizeof(WorldShaderData));
     namedBuffers[NamedBuffer::Cameras] = StructuredBuffer(MaxBoundCameras, sizeof(CameraShaderData));
     namedBuffers[NamedBuffer::Lights] = StructuredBuffer(MaxBoundLights, sizeof(LightShaderData));

@@ -1487,6 +1487,26 @@ RendererResult VulkanRenderInterface::GetVkExtensions(Array<const char*>& outExt
 
 #pragma endregion VulkanRenderInterface
 
+void VulkanRenderInterface::InitDeviceDetails(DeviceDetails& deviceDetails)
+{
+    const VulkanFeatures& features = m_instance->GetDevice()->GetFeatures();
+    uint32 deviceId = features.GetDeviceId();
+    uint32 vendorId = deviceId >> 24;
+    uint32 deviceIdLower = deviceId & 0xFFFF;
+
+    GpuInfo info;
+    info.gpuType = features.IsDiscreteGpu() ? GpuType::Dedicated : GpuType::Integrated;
+    info.vendorId = vendorId;
+    info.deviceId = deviceIdLower;
+    info.gpuModel = String(features.GetDeviceName());
+    info.isDiscrete = features.IsDiscreteGpu();
+    info.supportsRayTracing = features.IsRayTracingSupported();
+    info.supportsRayQueries = features.SupportsRayQueries();
+    info.supportsBindless = features.SupportsBindlessTextures();
+
+    deviceDetails.Set(info);
+}
+
 } // namespace Hyperion
 
 #undef CHECK_FRAME_RESULT

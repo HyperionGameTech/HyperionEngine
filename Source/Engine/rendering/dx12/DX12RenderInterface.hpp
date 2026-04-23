@@ -136,6 +136,8 @@ public:
     DX12DescriptorHeapManager* descriptorHeapManager;
 
 private:
+    void InitDeviceDetails(DeviceDetails& deviceDetails) override;
+
     DX12Frame* PrepareNextFrame() override;
 
     Pimpl<DX12RenderConfig> m_renderConfig;

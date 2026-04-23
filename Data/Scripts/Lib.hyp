@@ -1429,6 +1429,33 @@ extern class EngineDriver
     SetGameInstance(gameInstance : Game) -> void
     GetGameInstance() -> Game
 end
+extern enum GpuType : uint8
+    Unknown = 0,
+    Integrated,
+    Dedicated
+end
+extern class DeviceDetails
+    GetGpuType() -> GpuType
+    GetGpuVendor() -> GpuVendor
+    GetGpuModel() -> string
+    GetGpuVendorName() -> string
+    GetDriverVersion() -> string
+    IsDiscreteGpu() -> bool
+    SupportsRayTracing() -> bool
+    SupportsRayQueries() -> bool
+    SupportsVariableRateShading() -> bool
+    SupportsSamplerFeedback() -> bool
+    SupportsBindless() -> bool
+end
+extern enum GpuVendor : uint8
+    Unknown = 0,
+    Nvidia,
+    Amd,
+    Intel,
+    Qualcomm,
+    Apple,
+    Microsoft
+end
 extern class EditorViewport
     GetCamera() -> Camera
     GetView() -> View

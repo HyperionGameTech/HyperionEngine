@@ -17,6 +17,8 @@
 #include <rendering/CommandRecorderAllocator.hpp>
 #include <rendering/StructuredBuffer.hpp>
 
+#include <engine/DeviceDetails.hpp>
+
 namespace Hyperion {
 
 class Entity;
@@ -408,6 +410,8 @@ public:
 
     CommandRecorderAllocator commandRecorderAllocator;
 
+    DeviceDetails deviceDetails;
+
     Resources::ResourceContainer* resources;
 
 protected:
@@ -416,6 +420,9 @@ protected:
     void CreateBlueNoiseBuffer();
     void CreateSphereSamplesBuffer();
     void CreateEnvProbesTexture();
+
+private:
+    virtual void InitDeviceDetails(DeviceDetails& deviceDetails) = 0;
 };
 
 } // namespace Hyperion
