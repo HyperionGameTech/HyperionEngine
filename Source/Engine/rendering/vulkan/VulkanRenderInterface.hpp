@@ -189,6 +189,8 @@ public:
     RendererResult GetVkExtensions(Array<const char*>& outExtensions);
 
 private:
+    void InitDeviceDetails(DeviceDetails& deviceDetails) override;
+
     VulkanFrame* PrepareNextFrame() override;
 
     VulkanInstance* m_instance;

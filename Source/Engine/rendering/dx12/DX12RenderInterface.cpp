@@ -24,6 +24,8 @@
 #include <rendering/Texture.hpp>
 #include <rendering/RenderableAttributes.hpp>
 
+#include <engine/DeviceDetails.hpp>
+
 #include <system/AppContext.hpp>
 
 #include <Core/logging/Logger.hpp>
@@ -683,5 +685,26 @@ void DX12RenderInterface::NextFrame()
 }
 
 #pragma endregion DX12RenderInterface
+
+void DX12RenderInterface::InitDeviceDetails(DeviceDetails& deviceDetails)
+{
+    DXGI_ADAPTER_DESC1 adapterDesc;
+    m_hardwareAdapter->GetDesc1(&adapterDesc);
+
+    D3D12_FEATURE_DATA_D3D12_OPTIONS7 options7 {};
+    m_device->CheckFeatureSupport(D3D12_FEATURE_D3D12_OPTIONS7, &options7, sizeof(options7));
+
+    bool isSoftware = (adapterDesc.Flags & DXGI_ADAPTER_FLAG_SOFTWARE) != 0;
+
+    GpuInfo info;
+    info.gpuType = isSoftware ? GpuType::Integrated : GpuType::Dedicated;
+    info.vendorId = adapterDesc.VendorId;
+    info.deviceId = adapterDesc.DeviceId;
+    info.gpuModel = String(adapterDesc.Description);
+    info.isDiscrete = !isSoftware;
+    info.supportsRayTracing = options7.RaytracingTier != D3D12_RAYTRACING_TIER_NOT_SUPPORTED;
+
+    deviceDetails.Set(info);
+}
 
 } // namespace Hyperion
