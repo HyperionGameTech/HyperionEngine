@@ -946,6 +946,70 @@ extern "C"
         }
     }
 #endif // HYP_ANDROID
+
+    HYP_EXPORT void Hyp_GetAllCVarNames(void* callback, void* userData)
+    {
+        using CallbackType = void(*)(const char*, void*);
+        auto callbackFn = reinterpret_cast<CallbackType>(callback);
+
+        const auto& cvars = CVarManager::GetInstance().cvars;
+        for (CVarBase* cvar : cvars)
+        {
+            if (!cvar)
+            {
+                continue;
+            }
+
+            callbackFn(cvar->name.LookupString(), userData);
+        }
+    }
+
+    HYP_EXPORT void Hyp_GetAllCommandletNames(void* callback, void* userData)
+    {
+        using CallbackType = void(*)(const char*, void*);
+        auto callbackFn = reinterpret_cast<CallbackType>(callback);
+
+        const Class* commandletBaseClass = ClassRegistry::GetInstance().GetClass("CommandletBase"_sh);
+        Assert(commandletBaseClass != nullptr);
+
+        ClassRegistry::GetInstance().ForEachClass([&](const Class* cls) -> IterationResult
+        {
+            if (cls->IsDerivedFrom(commandletBaseClass))
+            {
+                callbackFn(cls->GetName().LookupString(), userData);
+            }
+
+            return IterationResult::CONTINUE;
+        });
+    }
+
+#if HYP_EDITOR
+    HYP_EXPORT void Hyp_GetAllEditorCommandNames(void* callback, void* userData)
+    {
+        using CallbackType = void(*)(const char*, void*);
+        auto callbackFn = reinterpret_cast<CallbackType>(callback);
+
+        const Class* editorCommandBaseClass = ClassRegistry::GetInstance().GetClass("EditorCommandBase"_sh);
+        Assert(editorCommandBaseClass != nullptr);
+
+        ClassRegistry::GetInstance().ForEachClass([&](const Class* cls) -> IterationResult
+        {
+            if (cls->IsDerivedFrom(editorCommandBaseClass))
+            {
+                String str = cls->GetName().ToString();
+                if (str.StartsWith("EditorCommand"))
+                {
+                    str = str.Substr(std::size("EditorCommand") - 1);
+                    
+                    callbackFn(str.Data(), userData);
+                }
+            }
+
+            return IterationResult::CONTINUE;
+        });
+    }
+#endif // HYP_EDITOR
+
 }
 
 } // namespace Hyperion

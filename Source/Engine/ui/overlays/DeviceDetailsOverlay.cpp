@@ -108,10 +108,14 @@ void DeviceDetailsOverlay::Update_Impl(float delta)
 
     const int fps = MathUtil::Floor(snapshot[StatIdFps].avg);
     
-    char fpsStr[8] = { ' ', ' ', ' ', ' ', 'F', 'P', 'S', '\0' };
-    fpsStr[0] = char('0' + (fps / 100) % 10);
-    fpsStr[1] = char('0' + (fps / 10) % 10);
-    fpsStr[2] = char('0' + fps % 10);
+    char fpsStr[8] = { '9', '9', '9', ' ', 'F', 'P', 'S', '\0' };
+
+    if (HYP_LIKELY(fps < 1000))
+    {
+        fpsStr[0] = char('0' + (fps / 100) % 10);
+        fpsStr[1] = char('0' + (fps / 10) % 10);
+        fpsStr[2] = char('0' + fps % 10);
+    }
     
     m_fpsText->SetText(String(fpsStr));
 }

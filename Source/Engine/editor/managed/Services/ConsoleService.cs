@@ -99,6 +99,12 @@ namespace Hyperion.Editor.Services
         private List<LogEntry> _submittingEntries = new List<LogEntry>(256);
         private int _isSubmittingPendingEntries = 0; // atomic
 
+        private readonly List<string> _cvarNames = new List<string>(256);
+        private readonly List<string> _commandletNames = new List<string>(128);
+        private readonly List<string> _editorCommandNames = new List<string>(128);
+        private readonly List<string> _allCompletionNames = new List<string>(512);
+        private bool _completionNamesLoaded = false;
+
         public ConsoleService()
         {
             _logsSource.Connect()
@@ -209,6 +215,73 @@ namespace Hyperion.Editor.Services
                 toSubmit.Clear(); // return to pool for next swap
                 _isSubmittingPendingEntries = 0;
             });
+        }
+
+        public void LoadCompletionNames()
+        {
+            if (_completionNamesLoaded)
+                return;
+
+            try
+            {
+                NativeBindings.Hyp_GetAllCVarNames(OnCVarNameCallback, IntPtr.Zero);
+                NativeBindings.Hyp_GetAllCommandletNames(OnCommandletNameCallback, IntPtr.Zero);
+                NativeBindings.Hyp_GetAllEditorCommandNames(OnEditorCommandNameCallback, IntPtr.Zero);
+
+                _cvarNames.Sort();
+                _commandletNames.Sort();
+                _editorCommandNames.Sort();
+
+                _allCompletionNames.Clear();
+                _allCompletionNames.AddRange(_cvarNames);
+                _allCompletionNames.AddRange(_commandletNames);
+                _allCompletionNames.AddRange(_editorCommandNames);
+                _allCompletionNames.Sort();
+
+                _completionNamesLoaded = true;
+            }
+            catch (Exception ex)
+            {
+                Logger.Log(LogLevel.Error, $"Failed to load completion names: {ex.Message}");
+            }
+        }
+
+        private void OnCVarNameCallback(string name, IntPtr userData)
+        {
+            _cvarNames.Add(name);
+        }
+
+        private void OnCommandletNameCallback(string name, IntPtr userData)
+        {
+            _commandletNames.Add(name);
+        }
+
+        private void OnEditorCommandNameCallback(string name, IntPtr userData)
+        {
+            _editorCommandNames.Add(name);
+        }
+
+        public IReadOnlyList<string> GetCompletions(string prefix)
+        {
+            if (!_completionNamesLoaded)
+                LoadCompletionNames();
+
+            if (string.IsNullOrEmpty(prefix))
+                return _allCompletionNames;
+
+            var matches = new List<string>();
+            int prefixLen = prefix.Length;
+
+            foreach (var name in _allCompletionNames)
+            {
+                if (prefixLen <= name.Length &&
+                    string.Compare(name, 0, prefix, 0, prefixLen, StringComparison.OrdinalIgnoreCase) == 0)
+                {
+                    matches.Add(name);
+                }
+            }
+
+            return matches;
         }
 
         private sealed class LogEntryRingBuffer
