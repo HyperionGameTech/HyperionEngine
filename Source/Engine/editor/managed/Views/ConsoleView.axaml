@@ -15,7 +15,7 @@
         <vm:ConsoleViewModel />
     </UserControl.DataContext>
 
-    <Grid RowDefinitions="*, Auto">
+    <Grid RowDefinitions="*, Auto, Auto">
         <ScrollViewer
             Grid.Row="0"
             HorizontalScrollBarVisibility="Disabled"
@@ -23,8 +23,27 @@
             <controls:LogConsoleControl ItemsSource="{Binding Logs}" />
         </ScrollViewer>
 
-        <Grid
+        <ListBox
+            x:Name="CompletionListBox"
             Grid.Row="1"
+            Background="#1E1E1E"
+            BorderThickness="0"
+            MaxHeight="120"
+            IsVisible="{Binding HasCompletions}"
+            FontFamily="Menlo, Monaco, SFMono-Regular, Consolas, Courier New, monospace"
+            FontSize="10"
+            Foreground="White"
+            ItemsSource="{Binding Completions}"
+            SelectedIndex="{Binding SelectedCompletionIndex}">
+            <ListBox.ItemTemplate>
+                <DataTemplate>
+                    <TextBlock Text="{Binding}" />
+                </DataTemplate>
+            </ListBox.ItemTemplate>
+        </ListBox>
+
+        <Grid
+            Grid.Row="2"
             Background="#2D2D2D"
             ColumnDefinitions="Auto, *">
             <TextBlock
@@ -45,11 +64,7 @@
                 FontFamily="Menlo, Monaco, SFMono-Regular, Consolas, Courier New, monospace"
                 FontSize="10"
                 Foreground="White"
-                Text="{Binding CommandText}">
-                <TextBox.KeyBindings>
-                    <KeyBinding Command="{Binding ExecuteCommand}" Gesture="Enter" />
-                </TextBox.KeyBindings>
-            </TextBox>
+                Text="{Binding CommandText}" />
         </Grid>
     </Grid>
 </UserControl>

@@ -9,7 +9,6 @@ namespace Hyperion.Editor
     public unsafe delegate int InitializeAssemblyDelegate(IntPtr* pAssemblyGuid, IntPtr pAssembly, IntPtr pFilePath, int isCoreAssembly);
     public unsafe delegate void UnloadAssemblyDelegate(IntPtr pAssemblyGuid, IntPtr pResult);
 
-
     [UnmanagedFunctionPointer(CallingConvention.Cdecl)]
     public delegate void LogCallbackDelegate(
         [MarshalAs(UnmanagedType.LPStr)] string channel,
@@ -18,6 +17,11 @@ namespace Hyperion.Editor
         [MarshalAs(UnmanagedType.LPStr)] string fileName,
         int lineNumber,
         [MarshalAs(UnmanagedType.LPStr)] string text);
+
+    [UnmanagedFunctionPointer(CallingConvention.Cdecl)]
+    public delegate void CNameCallbackDelegate(
+        [MarshalAs(UnmanagedType.LPStr)] string name,
+        IntPtr userData);
 
 
     public unsafe struct ManagedDelegates
@@ -58,5 +62,14 @@ namespace Hyperion.Editor
 
         [DllImport("hyperion")]
         public static extern int Hyp_ExecuteConsoleCommand(int argc, IntPtr argv);
+
+        [DllImport("hyperion")]
+        public static extern void Hyp_GetAllCVarNames(CNameCallbackDelegate callback, IntPtr userData);
+
+        [DllImport("hyperion")]
+        public static extern void Hyp_GetAllCommandletNames(CNameCallbackDelegate callback, IntPtr userData);
+
+        [DllImport("hyperion")]
+        public static extern void Hyp_GetAllEditorCommandNames(CNameCallbackDelegate callback, IntPtr userData);
     }
 }

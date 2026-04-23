@@ -100,7 +100,7 @@ DECLARE_BUFFER_DYNAMIC(Default, CBuffer) cbuffer CBuffer
 
 #include "include/Parallax.hlsli"
 
-#define DEBUG_RAW_REFLECTIONS
+// #define DEBUG_RAW_REFLECTIONS
 
 PSOutput PSMain(PSInput input)
 {
