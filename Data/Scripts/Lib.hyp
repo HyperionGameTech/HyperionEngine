@@ -43,6 +43,12 @@ extern class StatsOverlay : OverlayBase
     Update_Impl(delta : float) -> void
     IsEnabled_Impl() -> bool
 end
+extern class DeviceDetailsOverlay : OverlayBase
+    CreateUIObject_Impl(spawnParent : UIObject) -> UIObject
+    GetPlacement_Impl() -> int
+    Update_Impl(delta : float) -> void
+    IsEnabled_Impl() -> bool
+end
 extern class ConsoleOverlay : OverlayBase
     CreateUIObject_Impl(spawnParent : UIObject) -> UIObject
     GetPlacement_Impl() -> int

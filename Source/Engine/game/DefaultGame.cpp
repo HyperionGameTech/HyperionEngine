@@ -93,7 +93,7 @@ void DefaultGame::OnLaunch_Impl()
             {
                 m_camera = ObjCast<Camera>(mainScene->GetRoot()->GetChild(0));
                 Assert(m_camera.IsValid());
-                
+
                 Vec2u viewportSize = Vec2u(m_camera->GetDimensions());
 
                 ViewDesc viewDesc {
@@ -195,7 +195,7 @@ void DefaultGame::OnLaunch_Impl()
     {
         HYP_LOG(Game, Error, "Failed to load test asset: {}", error->GetMessage());
     }
-    
+
     // sky
     GetWorld()->AddSystemT<DynamicSkySystem>();
 
@@ -280,7 +280,7 @@ bool DefaultGame::OnInputEvent(const Event& event)
             //     {
             //         HYP_LOG(Game, Error, "Failed to save package: {}", result.GetError().GetMessage());
             //     }
-                
+
             //     s_isSaving = false;
             // }
         }

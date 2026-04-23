@@ -47,6 +47,7 @@ namespace Hyperion.Editor
             }
 
             //uiSubsystem.AddDebugOverlay(new BaseStatsOverlay());
+            uiSubsystem.AddDebugOverlay(new DeviceDetailsOverlay());
             uiSubsystem.AddDebugOverlay(new StatsOverlay());
 
             _editorSubsystem = new EditorSubsystem();
