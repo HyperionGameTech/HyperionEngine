@@ -41,9 +41,14 @@ DECLARE_SRV(Default, EntitiesBuffer) StructuredBuffer<Entity> entities;
 DECLARE_SRV_DYNAMIC(Default, EntityInstanceBatchesBuffer) StructuredBuffer<MeshEntityInstanceBatch> entity_instance_batches;
 
 #define entity_instance_batch entity_instance_batches[0]
-#else
-DECLARE_SRV_DYNAMIC(Default, CurrentEntity) StructuredBuffer<Entity> entities;
-#endif
+#else // !INSTANCING
+
+DECLARE_BUFFER_DYNAMIC(Default, CBuffer) cbuffer CBuffer
+{
+    Entity entity;
+};
+
+#endif // INSTANCING
 
 #ifdef SKINNING
 #include "include/Skeleton.hlsli"
@@ -169,13 +174,14 @@ DECLARE_SAMPLER(Default, SamplerNearest) SamplerState sampler_nearest;
 #define HYP_CUBEMAP_AMBIENT 0.005
 
 #ifdef INSTANCING
-    DECLARE_SRV(Default, EntitiesBuffer) StructuredBuffer<Entity> entities;
-#else // !INSTANCING
-    DECLARE_SRV_DYNAMIC(Default, CurrentEntity) StructuredBuffer<Entity> entities;
+DECLARE_SRV(Default, EntitiesBuffer) StructuredBuffer<Entity> entities;
 #endif // INSTANCING
 
-DECLARE_SRV_DYNAMIC(Default, MaterialsBuffer) StructuredBuffer<Material> materials_buffer;
-#define material materials_buffer[0]
+DECLARE_BUFFER_DYNAMIC(Default, CBuffer) cbuffer CBuffer
+{
+    Entity entity;
+    Material material;
+};
 
 #ifndef CURRENT_MATERIAL
 #define CURRENT_MATERIAL material

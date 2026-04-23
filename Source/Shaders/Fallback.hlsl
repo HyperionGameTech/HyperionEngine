@@ -6,6 +6,7 @@
 #include "./include/Defines.hlsli"
 #include "./include/Shared.hlsli"
 #include "./include/Scene.hlsli"
+#include "./include/Material.hlsli"
 
 PERMUTE(INSTANCING);
 PERMUTE(SKINNING);
@@ -39,15 +40,20 @@ DECLARE_SRV_DYNAMIC(Default, CamerasBuffer) StructuredBuffer<Camera> _cameras_bu
     DECLARE_SRV(Default, EntitiesBuffer) StructuredBuffer<Entity> entities;
     DECLARE_SRV_DYNAMIC(Default, EntityInstanceBatchesBuffer) StructuredBuffer<MeshEntityInstanceBatch> entity_instance_batches;
     #define entity_instance_batch entity_instance_batches[0]
-#else
-    DECLARE_SRV_DYNAMIC(Default, CurrentEntity) StructuredBuffer<Entity> entities;
-#endif
+#endif // INSTANCING
 
 #if defined(SKINNING) && defined(HYP_ATTRIBUTE_a_bone_indices) && defined(HYP_ATTRIBUTE_a_bone_weights) && defined(HYP_ATTRIBUTE_a_position)
 
 #include "include/Skeleton.hlsli"
 DECLARE_SRV_DYNAMIC(Default, SkeletonsBuffer) StructuredBuffer<Skeleton> skeletons;
 #endif // SKINNING && bone attrs
+
+#ifndef INSTANCING
+DECLARE_BUFFER_DYNAMIC(Default, CBuffer) cbuffer CBuffer
+{
+    Entity entity;
+};
+#endif // !INSTANCING
 
 VSOutput VSMain(VSInput input, uint instanceId : SV_InstanceID)
 {

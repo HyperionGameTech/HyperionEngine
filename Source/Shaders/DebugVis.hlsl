@@ -26,7 +26,7 @@ struct VSOutput
     float4 color : TEXCOORD16;
     nointerpolation uint env_probe_index : TEXCOORD17;
     nointerpolation uint env_probe_type : TEXCOORD18;
-#endif
+#endif // IMMEDIATE_MODE
 };
 
 #define HYP_DO_NOT_DEFINE_DESCRIPTOR_SETS
@@ -52,7 +52,7 @@ DECLARE_SRV_DYNAMIC(DebugDrawerDescriptorSet, ImmediateDrawsBuffer) StructuredBu
 #define MODEL_MATRIX (immediateDraw.model_matrix)
 #define PREV_MODEL_MATRIX (immediateDraw.model_matrix)
 
-#else
+#else // !IMMEDIATE_MODE
 
 #include "./include/Entity.hlsli"
 
@@ -61,13 +61,16 @@ DECLARE_SRV(DebugDrawerDescriptorSet, EntitiesBuffer) StructuredBuffer<Entity> e
 
 DECLARE_SRV_DYNAMIC(DebugDrawerDescriptorSet, EntityInstanceBatchesBuffer) StructuredBuffer<MeshEntityInstanceBatch> entity_instance_batch_buffer;
 #define entity_instance_batch entity_instance_batch_buffer[0]
-#else
-DECLARE_SRV_DYNAMIC(DebugDrawerDescriptorSet, CurrentEntity) StructuredBuffer<Entity> entities;
-#endif
+#else // !INSTANCING
+DECLARE_BUFFER_DYNAMIC(DebugDrawerDescriptorSet, CBuffer) cbuffer CBuffer
+{
+    Entity entity;
+};
+#endif // INSTANCING
 
 #define MODEL_MATRIX (entity.model_matrix)
 #define PREV_MODEL_MATRIX (entity.previous_model_matrix)
-#endif
+#endif // IMMEDIATE_MODE
 
 #undef HYP_DO_NOT_DEFINE_DESCRIPTOR_SETS
 
@@ -80,7 +83,7 @@ VSOutput VSMain(VSInput input, uint instanceId : SV_InstanceID)
 
 #ifdef IMMEDIATE_MODE
     ImmediateDraw immediateDraw = immediateDraws[instanceId];
-#endif
+#endif // IMMEDIATE_MODE
 
     float4 position = mul(MODEL_MATRIX, float4(input.a_position, 1.0));
     float4 previous_position = mul(PREV_MODEL_MATRIX, float4(input.a_position, 1.0));
@@ -147,7 +150,7 @@ struct PSInput
     float4 color : TEXCOORD16;
     nointerpolation uint env_probe_index : TEXCOORD17;
     nointerpolation uint env_probe_type : TEXCOORD18;
-#endif
+#endif // IMMEDIATE_MODE
 };
 
 struct PSOutput
@@ -177,24 +180,31 @@ DECLARE_SRV(DebugDrawerDescriptorSet, WorldsBuffer) StructuredBuffer<WorldShader
 #define world_shader_data _worlds_buffer[0]
 
 #include "include/Entity.hlsli"
-
-#ifdef IMMEDIATE_MODE
-
 #include "include/BRDF.hlsli"
 
-#elif defined(INSTANCING)
+#ifndef IMMEDIATE_MODE
+
+#ifdef INSTANCING
 DECLARE_SRV(DebugDrawerDescriptorSet, EntitiesBuffer) StructuredBuffer<Entity> entities;
-#else
-DECLARE_SRV_DYNAMIC(DebugDrawerDescriptorSet, CurrentEntity) StructuredBuffer<Entity> entities;
-#endif
+#endif // INSTANCING
+
+DECLARE_BUFFER_DYNAMIC(DebugDrawerDescriptorSet, CBuffer) cbuffer CBuffer
+{
+#ifndef INSTANCING
+    Entity entity;
+#endif // !INSTANCING
+    Material material;
+};
+
+#endif // !IMMEDIATE_MODE
 
 #include "include/EnvProbes.hlsli"
 
 #if ENV_PROBE_CUBEMAP
 DECLARE_SRV(DebugDrawerDescriptorSet, EnvProbesTexture) TextureCubeArray envProbesTexture;
-#else
+#else // !ENV_PROBE_CUBEMAP
 DECLARE_SRV(DebugDrawerDescriptorSet, EnvProbesTexture) Texture2DArray envProbesTexture;
-#endif
+#endif // ENV_PROBE_CUBEMAP
 
 DECLARE_SRV(DebugDrawerDescriptorSet, EnvProbesBuffer) StructuredBuffer<EnvProbe> env_probes;
 

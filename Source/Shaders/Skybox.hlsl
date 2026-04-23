@@ -10,11 +10,18 @@ PERMUTE(SHADING_TYPE, FORWARD);
 #include "include/Material.hlsli"
 #undef HYP_DO_NOT_DEFINE_DESCRIPTOR_SETS
 
-DECLARE_SRV_DYNAMIC(Default, MaterialsBuffer) StructuredBuffer<Material> material_buffer;
-#define material material_buffer[0]
-
 DECLARE_SRV_DYNAMIC(Default, CamerasBuffer) StructuredBuffer<Camera> _cameras_buffer;
 #define camera _cameras_buffer[0]
+
+DECLARE_BUFFER_DYNAMIC(Default, CBuffer) cbuffer CBuffer
+{
+#ifndef INSTANCING
+    Entity entity;
+#else // INSTANCING
+    Entity dummyEntity;
+#endif // !INSTANCING
+    Material material;
+};
 
 #ifdef VERTEX_SHADER
 
@@ -38,9 +45,7 @@ struct VSOutput
 DECLARE_SRV(Default, EntitiesBuffer) StructuredBuffer<Entity> entities;
 DECLARE_SRV_DYNAMIC(Default, EntityInstanceBatchesBuffer) StructuredBuffer<MeshEntityInstanceBatch> entity_instance_batch_buffer;
 #define entity_instance_batch entity_instance_batch_buffer[0]
-#else
-DECLARE_SRV_DYNAMIC(Default, CurrentEntity) StructuredBuffer<Entity> entities;
-#endif
+#endif // INSTANCING
 
 VSOutput VSMain(VSInput input, uint instanceId : SV_InstanceID)
 {
@@ -92,9 +97,9 @@ DECLARE_SAMPLER(Default, SamplerLinear) SamplerState texture_sampler;
 
 #ifdef HYP_FEATURES_BINDLESS_TEXTURES
 DECLARE_SRV(BindlessResources0, Textures) TextureCube textures[]; // aliasing texture2D as textureCube
-#else
+#else // !HYP_FEATURES_BINDLESS_TEXTURES
 DECLARE_SRV(Default, DiffuseMap) TextureCube DiffuseMap;
-#endif
+#endif // HYP_FEATURES_BINDLESS_TEXTURES
 
 PSOutput PSMain(PSInput input)
 {

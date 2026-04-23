@@ -767,10 +767,10 @@ void DebugDrawer::Render(Frame* frame, const RenderSetup& renderSetup)
     cr << SetShaderUniform(2, "GBufferMipChain"_sh, g_renderInterface->textureViewCache->GetOrCreate(dpd->mipChain));
     cr << SetShaderUniform(3, "EnvProbesTexture"_sh, g_renderInterface->textureViewCache->GetOrCreate(g_renderInterface->envProbesTexture));
 
-    cr << SetShaderUniform(10, "CamerasBuffer"_sh, g_renderInterface->namedBuffers[NamedBuffer::Cameras].gpuBuffer, TShaderDataOffset<CameraShaderData>(renderSetup.view->GetCamera()));
-    cr << SetShaderUniform(11, "EntitiesBuffer"_sh, g_renderInterface->namedBuffers[NamedBuffer::Entities].gpuBuffer);
-    cr << SetShaderUniform(12, "WorldsBuffer"_sh, g_renderInterface->namedBuffers[NamedBuffer::Worlds].gpuBuffer);
-    cr << SetShaderUniform(13, "EnvProbesBuffer"_sh, g_renderInterface->namedBuffers[NamedBuffer::EnvProbes].gpuBuffer);
+    cr << SetShaderUniform(4, "CamerasBuffer"_sh, g_renderInterface->namedBuffers[NamedBuffer::Cameras].gpuBuffer, TShaderDataOffset<CameraShaderData>(renderSetup.view->GetCamera()));
+    cr << SetShaderUniform(5, "EntitiesBuffer"_sh, g_renderInterface->namedBuffers[NamedBuffer::Entities].gpuBuffer);
+    cr << SetShaderUniform(6, "WorldsBuffer"_sh, g_renderInterface->namedBuffers[NamedBuffer::Worlds].gpuBuffer);
+    cr << SetShaderUniform(7, "EnvProbesBuffer"_sh, g_renderInterface->namedBuffers[NamedBuffer::EnvProbes].gpuBuffer);
 
     for (uint32 shapeIdx = 0; shapeIdx < HYP_ARRAY_SIZE(partitionedShaderData); shapeIdx++)
     {
@@ -810,7 +810,7 @@ void DebugDrawer::Render(Frame* frame, const RenderSetup& renderSetup)
                     cr << SetStencilTest(bool(attributes.GetMaterialAttributes().flags & MAF_STENCIL_TEST));
                     cr << SetStencilFunction(attributes.GetMaterialAttributes().stencilFunction);
     
-                    cr << SetShaderUniform(15, "ImmediateDrawsBuffer"_sh, instanceBuffer, TShaderDataOffset<ImmediateDrawShaderData>(shaderDataOffset));
+                    cr << SetShaderUniform(8, "ImmediateDrawsBuffer"_sh, instanceBuffer, TShaderDataOffset<ImmediateDrawShaderData>(shaderDataOffset));
 
                     cr << CommitDrawState();
                     

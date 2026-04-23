@@ -181,6 +181,7 @@ void BakerBase::Initialize()
         Handle<Camera> camera = MakeHandle<Camera>();
         camera->SetName(NAME_FMT("{}_Camera", InstanceClass()->GetName()));
         camera->AddCameraController(MakeHandle<OrthoCameraController>());
+        camera->SetFarClip(1000.0f);
         InitObject(camera);
 
         // dummy output target
@@ -189,11 +190,17 @@ void BakerBase::Initialize()
         framebufferDesc.attachments[0] = { TextureType::Texture2D, TextureFormat::R8 };
         framebufferDesc.numAttachments = 1;
 
-        BoundingBox bounds = BoundingBox::Empty();
-        if (m_source->IsA(VolumeBase::StaticClass()))
+        BoundingBox bounds;
+        
+        if (OnlyOverlappingElements())
         {
-            VolumeBase* volume = static_cast<VolumeBase*>(m_source);
-            bounds = volume->GetWorldBounds();
+            bounds = m_aabb;
+
+            if (!bounds.IsValid() && m_source->IsA(VolumeBase::StaticClass()))
+            {
+                VolumeBase* volume = static_cast<VolumeBase*>(m_source);
+                bounds = volume->GetWorldBounds();
+            }
         }
 
         ViewDesc viewDesc {
@@ -324,9 +331,9 @@ void BakerBase::Build()
 
         const BoundingBox& worldAabb = boundingBoxComponent.worldAabb;
 
-        if (!onlyOverlappingElements && !m_aabb.Overlaps(worldAabb))
+        if (onlyOverlappingElements && !m_aabb.Overlaps(worldAabb))
         {
-            continue; // must be inside volume to be considered
+         //   continue; // must be inside volume to be considered
         }
 
         m_bakeEntities.PushBack(BakeEntity {

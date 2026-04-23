@@ -8,6 +8,7 @@
 #include <Core/reflection/Class.hpp>
 
 #include <Core/containers/SparsePagedArray.hpp>
+#include <Core/containers/StridedBuffer.hpp>
 
 #include <Core/threading/Thread.hpp>
 
@@ -70,7 +71,7 @@ void SetBinding(ObjectBase* resource, uint32 binding)
     ObjIdBase resourceId = resource->Id();
     AssertDebug(resourceId.IsValid());
 
-    if (binding == ~0u)
+    if (binding == UINT32_MAX)
     {
         bindings.bindingIndices.EraseAt(resourceId.ToIndex());
 
@@ -87,7 +88,7 @@ uint32 GetBinding(const ObjectBase* resource)
 
     if (!resource)
     {
-        return ~0u; // invalid resource
+        return UINT32_MAX; // invalid resource
     }
 
     const SubtypeResourceBindings& bindings = GetSubtypeBindings(resource->InstanceClass());
@@ -96,7 +97,7 @@ uint32 GetBinding(const ObjectBase* resource)
 
     const uint32* elem = bindings.bindingIndices.TryGet(resourceId.ToIndex());
 
-    return elem ? *elem : ~0u;
+    return elem ? *elem : UINT32_MAX;
 }
 
 #pragma endregion ResourceBindings
@@ -144,7 +145,8 @@ struct ResourceSubtypeData final
     WriteBufferDataFunction writeBufferDataFn;
 
     // == optional render proxy data ==
-    SparsePagedArray<IRenderProxy*, 1024, RenderAllocator> proxies;
+    StridedBuffer<RenderAllocator> proxies;
+    void (*proxyDtor)(void*);
     bool hasProxyData : 1;
 
     template <class ResourceType, class ProxyType, size_t NumResourceBinders>
@@ -155,6 +157,8 @@ struct ResourceSubtypeData final
         FixedArray<ResourceBinderBase*, NumResourceBinders> resourceBinders = {},
         WriteBufferDataFunction writeBufferDataFn = nullptr)
         : typeInfo(&TypeInfo::ForType<ResourceType>()),
+          proxies(sizeof(ProxyType), alignof(ProxyType), /* blocksPerSlab */ 256),
+          proxyDtor(&Memory::Destruct<ProxyType>),
           hasProxyData(false),
           sbuffer(sbuffer),
           resourceBinders { nullptr },
@@ -190,14 +194,17 @@ struct ResourceSubtypeData final
     ResourceSubtypeData(const ResourceSubtypeData& other) = delete;
     ResourceSubtypeData& operator=(const ResourceSubtypeData& other) = delete;
 
-    ResourceSubtypeData(ResourceSubtypeData&& other) noexcept = default;
-    ResourceSubtypeData& operator=(ResourceSubtypeData&& other) noexcept = default;
+    ResourceSubtypeData(ResourceSubtypeData&& other) noexcept = delete;
+    ResourceSubtypeData& operator=(ResourceSubtypeData&& other) noexcept = delete;
 
-    ~ResourceSubtypeData() = default;
+    ~ResourceSubtypeData()
+    {
+        proxies.Clear(proxyDtor);
+    }
 
     HYP_FORCE_INLINE void SetGpuElem(uint32 idx, IRenderProxy* proxy)
     {
-        AssertDebug(writeBufferDataFn != nullptr && sbuffer != nullptr && idx != ~0u);
+        AssertDebug(writeBufferDataFn != nullptr && sbuffer != nullptr && idx != UINT32_MAX);
 
         writeBufferDataFn(*sbuffer, idx, proxy);
     }
@@ -310,7 +317,7 @@ static HYP_FORCE_INLINE void CopyRenderProxy(ResourceSubtypeData& subtypeData, c
         LookupTypeName(id.GetTypeId()),
         subtypeData.typeInfo->name);
 
-    subtypeData.proxies.Set(idx, newProxy);
+    subtypeData.proxies.SetElement(idx, *newProxy);
     subtypeData.indicesPendingUpdate.Set(idx, true);
 }
 
@@ -353,10 +360,10 @@ static void SyncResources(
         return;
     }
 
-    Array<ElementType*, RenderTempAllocator> removed;
+    Array<ElementType*, RenderAllocator> removed;
     dst.GetRemoved(removed, false);
 
-    Array<ElementType*, RenderTempAllocator> added;
+    Array<ElementType*, RenderAllocator> added;
     dst.GetAdded(added, false);
 
     for (ElementType* pResource : added)
@@ -416,7 +423,7 @@ static void SyncResources(
         }
     }
 
-    Array<ElementType*, RenderTempAllocator> changed;
+    Array<ElementType*, RenderAllocator> changed;
 
     if constexpr (!std::is_same_v<ProxyType, NullProxy>)
     {

@@ -6,6 +6,8 @@
 PERMUTE(TEXTURED);
 PERMUTE(UI_TEXT);
 
+STATIC(INSTANCING);
+
 #ifdef VERTEX_SHADER
 
 struct VSInput
@@ -90,8 +92,6 @@ struct PSOutput
     float4 gbuffer_albedo : SV_Target0;
 };
 
-#define INSTANCING
-
 #define HYP_DO_NOT_DEFINE_DESCRIPTOR_SETS
 
 #include "../include/Gbuffer.hlsli"
@@ -108,8 +108,15 @@ DECLARE_SAMPLER(Default, SamplerNearest) SamplerState sampler_nearest;
 
 #define texture_sampler sampler_linear
 
-DECLARE_SRV_DYNAMIC(Default, MaterialsBuffer) StructuredBuffer<Material> materialBuffer;
-#define material materialBuffer[0]
+DECLARE_BUFFER_DYNAMIC(Default, CBuffer) cbuffer CBuffer
+{
+#ifndef INSTANCING
+    Entity entity;
+#else // INSTANCING
+    Entity dummyEntity;
+#endif // !INSTANCING
+    Material material;
+};
 
 #ifndef CURRENT_MATERIAL
 #define CURRENT_MATERIAL material

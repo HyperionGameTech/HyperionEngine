@@ -268,7 +268,7 @@ void Baker<LightmapVolume>::Build()
 
         const BoundingBox& worldAabb = boundingBoxComponent.worldAabb;
 
-        if (!onlyOverlappingElements && !m_aabb.Overlaps(worldAabb))
+        if (onlyOverlappingElements && !m_aabb.Overlaps(worldAabb))
         {
             continue;
         }
@@ -384,7 +384,7 @@ void Baker<LightmapVolume>::OnCompleted_Internal()
         AssertDebug(bakeEntity.material.IsValid());
         
         bool isNewMaterial = false;
-#if 0 // temp
+#if 1
         // update material info
         if (bakeEntity.material && bakeEntity.material->GetBucket() != RenderBucket::Lightmapped)
         {

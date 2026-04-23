@@ -35,6 +35,11 @@ public:
         return false;
     }
 
+    virtual bool OnlyOverlappingElements() const
+    {
+        return false;
+    }
+
     virtual uint32 GetShadingTypesMask() const override
     {
         return 1u << int(LightmapShadingType::FULL);

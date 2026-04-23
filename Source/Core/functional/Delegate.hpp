@@ -683,7 +683,7 @@ protected:
             HYP_WAIT_IDLE();
         }
 
-        // No other shared reader is active — safe to reset the proc and release
+        // No other shared reader is active - safe to reset the proc and release
         // any captured resources (e.g. managed-object GC handles) immediately,
         // rather than waiting for the next Broadcast() call (which may never come).
         static_cast<DelegateHandlerEntry<ProcType>*>(entry)->proc.Reset();

@@ -306,9 +306,11 @@ public:
 
     WeakHandle<MaterialInstance> material;
     MaterialAttributes attributes;
-    MaterialShaderData bufferData {};
+
     FixedArray<uint32, MaxBoundTextures> boundTextureIndices;
-    Array<Handle<Texture>> boundTextures;
+    Array<Handle<Texture>, RenderAllocator> boundTextures;
+    
+    MaterialShaderData bufferData {};
 };
 
 struct alignas(16) SkeletonShaderData

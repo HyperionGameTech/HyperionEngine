@@ -159,7 +159,7 @@ public:
 
                 static constexpr StringHash PropertiesToKeepForFallback[] = {
                     "SKINNING"_sh,
-                    "INSTANCED"_sh
+                    "INSTANCING"_sh
                 };
 
                 ShaderPropertySet fallbackProperties {};

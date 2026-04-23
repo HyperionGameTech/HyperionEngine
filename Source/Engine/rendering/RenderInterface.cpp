@@ -420,10 +420,10 @@ IRenderProxy* GetRenderProxy(const ObjectBase* resource)
         return nullptr; // no proxy for this resource
     }
 
-    IRenderProxy* proxy = subtypeData.proxies.Get(resourceId.ToIndex());
+    const IRenderProxy* proxy = reinterpret_cast<const IRenderProxy*>(subtypeData.proxies.GetElementRaw(resourceId.ToIndex()));
     AssertDebug(proxy != nullptr);
 
-    return proxy;
+    return const_cast<IRenderProxy*>(proxy);
 }
 
 void UpdateGpuData(const ObjectBase* resource)
@@ -451,10 +451,10 @@ void UpdateGpuData(const ObjectBase* resource)
 
     const uint32 idx = resourceId.ToIndex();
 
-    IRenderProxy* proxy = subtypeData.proxies.Get(idx);
+    const IRenderProxy* proxy = reinterpret_cast<const IRenderProxy*>(subtypeData.proxies.GetElementRaw(idx));
     AssertDebug(proxy != nullptr);
 
-    subtypeData.SetGpuElem(bindingIndex, proxy);
+    subtypeData.SetGpuElem(bindingIndex, const_cast<IRenderProxy*>(proxy));
 
     // set it as no longer needing update next frame since we updated immediately
     subtypeData.indicesPendingUpdate.Set(idx, false);
@@ -936,18 +936,18 @@ void RenderInterface::BeginFrame(AtomicFlag* pCancelFlag)
                 AssertDebug(elem.resource != nullptr);
 
                 bool forceRebind = false;
-                IRenderProxy** ppProxy = nullptr;
+                IRenderProxy* pProxy = nullptr;
 
                 if (subtypeData.hasProxyData && subtypeData.indicesPendingUpdate.Test(elem.resource->Id().ToIndex()))
                 {
-                    ppProxy = subtypeData.proxies.TryGet(elem.resource->Id().ToIndex());
-                    AssertDebug(ppProxy != nullptr);
+                    pProxy = const_cast<IRenderProxy*>(reinterpret_cast<const IRenderProxy*>(subtypeData.proxies.GetElementRaw(elem.resource->Id().ToIndex())));
+                    AssertDebug(pProxy != nullptr);
 
-                    forceRebind = (*ppProxy)->forceRebind;
+                    forceRebind = pProxy->forceRebind;
 
                     if (forceRebind)
                     {
-                        (*ppProxy)->forceRebind = false; // swap
+                        pProxy->forceRebind = false; // swap
                     }
                 }
 
@@ -1014,10 +1014,10 @@ void RenderInterface::BeginFrame(AtomicFlag* pCancelFlag)
                     "Failed to retrieve binding for resource: {} in frame {}, but it is marked as bound (index: {})",
                     i, slot, i);
 
-                IRenderProxy* pProxy = subtypeData.proxies.Get(i);
+                const IRenderProxy* pProxy = reinterpret_cast<const IRenderProxy*>(subtypeData.proxies.GetElementRaw(i));
                 AssertDebug(pProxy != nullptr);
 
-                subtypeData.SetGpuElem(bindingIndex, pProxy);
+                subtypeData.SetGpuElem(bindingIndex, const_cast<IRenderProxy*>(pProxy));
                 subtypeData.indicesPendingUpdate.Set(i, false);
             }
         }
@@ -1179,10 +1179,10 @@ void RenderInterface::EndFrame()
             {
                 AssertDebug(subtypeData.proxies.HasIndex(i));
 
-                IRenderProxy* pProxy = subtypeData.proxies.Get(i);
+                const IRenderProxy* pProxy = reinterpret_cast<const IRenderProxy*>(subtypeData.proxies.GetElementRaw(i));
                 AssertDebug(pProxy != nullptr);
 
-                subtypeData.proxies.EraseAt(i);
+                subtypeData.proxies.DeleteElementRaw(i, subtypeData.proxyDtor);
             }
         }
 

@@ -369,7 +369,7 @@ TaskThread* BackgroundWorkerPool::GetNextTaskThread()
         {
             TaskThread* taskThread = static_cast<TaskThread*>(thread.Get());
 
-            if (taskThread->IsRunning() && taskThread->IsFree())
+            if (!taskThread->IsStopping() && taskThread->IsFree())
             {
                 return taskThread;
             }
@@ -468,6 +468,12 @@ void BackgroundWorkerPool::CleanupIdleThreads()
 
         if (thread != nullptr)
         {
+            if (thread->IsRunning() || thread->GetScheduler().NumEnqueued() > 0)
+            {
+                // skip for now, stuff still running
+                continue;
+            }
+
             if (thread->CanJoin())
             {
                 thread->Join();

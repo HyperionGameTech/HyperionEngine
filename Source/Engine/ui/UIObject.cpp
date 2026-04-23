@@ -1907,14 +1907,13 @@ MaterialAttributes UIObject::GetMaterialAttributes() const
 {
     HYP_SCOPE;
 
-    return MaterialAttributes {
-        .shaderName = NAME("UIObject"),
-        .blendFunction = BlendFunction(
-            BMF_SRC_ALPHA, BMF_ONE_MINUS_SRC_ALPHA,
-            BMF_ONE, BMF_ONE_MINUS_SRC_ALPHA),
-        .cullFaces = FCM_BACK,
-        .flags = MAF_NONE
-    };
+    MaterialAttributes attrs;
+    attrs.shaderName = NAME("UIObject");
+    attrs.blendFunction = BlendFunction(BMF_SRC_ALPHA, BMF_ONE_MINUS_SRC_ALPHA, BMF_ONE, BMF_ONE_MINUS_SRC_ALPHA);
+    attrs.cullFaces = FCM_BACK;
+    attrs.flags = MAF_NONE;
+
+    return attrs;
 }
 
 MaterialParameters UIObject::GetMaterialParameters() const
