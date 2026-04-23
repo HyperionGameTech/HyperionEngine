@@ -891,7 +891,19 @@ extern "C"
                     if (editorSubsystem.IsValid())
                     {
                         command->SetArguments(Map(commandLine.Split(' '), &String::Trimmed));
-                        command->Execute(editorSubsystem);
+
+                        // Editor commands should be executed on the simulation thread
+                        if (IsOnThread(g_simThread))
+                        {
+                            command->Execute(editorSubsystem);
+                        }
+                        else
+                        {
+                            g_simThreadInstance->GetScheduler().Enqueue([editorSubsystem, command]()
+                                {
+                                    command->Execute(editorSubsystem);
+                                }, TaskEnqueueFlags::FIRE_AND_FORGET);
+                        }
 
                         return 0;
                     }

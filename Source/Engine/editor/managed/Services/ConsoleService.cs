@@ -278,6 +278,18 @@ namespace Hyperion.Editor.Services
                     string.Compare(name, 0, prefix, 0, prefixLen, StringComparison.OrdinalIgnoreCase) == 0)
                 {
                     matches.Add(name);
+                    continue;
+                }
+
+                var parts = name.Split('.');
+                foreach (var part in parts)
+                {
+                    if (prefixLen <= part.Length &&
+                        string.Compare(part, 0, prefix, 0, prefixLen, StringComparison.OrdinalIgnoreCase) == 0)
+                    {
+                        matches.Add(name);
+                        break;
+                    }
                 }
             }
 
