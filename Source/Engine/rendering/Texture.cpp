@@ -15,6 +15,7 @@
 #include <rendering/Frame.hpp>
 #include <rendering/PlaceholderData.hpp>
 #include <rendering/RenderHelpers.hpp>
+#include <rendering/TextureViewCache.hpp>
 
 #include <rendering/util/DeletionQueue.hpp>
 
@@ -276,7 +277,11 @@ Texture::~Texture()
     LockWriter(/* doInitialize */ false);
 
     if (m_gpuImage.IsValid())
+    {
         EnqueueDeletion(std::move(m_gpuImage));
+
+        g_renderInterface->textureViewCache->RemoveTexture(this);
+    }
 
     FreeBlobData(m_imageData);
 }
