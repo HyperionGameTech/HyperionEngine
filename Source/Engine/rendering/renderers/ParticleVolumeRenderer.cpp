@@ -188,7 +188,7 @@ void ParticleVolumeRenderer::RenderFrame(Frame* frame, const RenderSetup& render
 
     AssertDebug(renderSetup.world && renderSetup.view && renderSetup.volume);
 
-    ParticleVolume* particleVolume = ObjCast<ParticleVolume>(renderSetup.volume);
+    ParticleVolume* particleVolume = DynamicCast<ParticleVolume>(renderSetup.volume);
     AssertDebug(particleVolume != nullptr);
 
     EnsureStaging();

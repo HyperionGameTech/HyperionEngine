@@ -560,7 +560,7 @@ public:
     HYP_METHOD()
     HYP_FORCE_INLINE const Handle<Entity>& GetEntity() const
     {
-        return ObjCast<Entity>(m_node);
+        return DynamicCast<Entity>(m_node);
     }
 
     HYP_METHOD()
@@ -918,7 +918,7 @@ public:
     {
         static_assert(std::is_base_of_v<UIObject, T>, "T must be a subclass of UIObject");
 
-        return ObjCast<T>(GetClosestParentUIObject_Proc([](const UIObject* parent) -> bool
+        return DynamicCast<T>(GetClosestParentUIObject_Proc([](const UIObject* parent) -> bool
             {
                 return parent->IsA<T>();
             }));
@@ -929,7 +929,7 @@ public:
     {
         static_assert(std::is_base_of_v<UIObject, T>, "T must be a subclass of UIObject");
 
-        return ObjCast<T>(GetClosestSpawnParent_Proc([](const UIObject* parent) -> bool
+        return DynamicCast<T>(GetClosestSpawnParent_Proc([](const UIObject* parent) -> bool
             {
                 return parent->IsA<T>();
             }));
@@ -1217,7 +1217,7 @@ public:
 
         InitObject(uiObject);
 
-        Handle<T> result = ObjCast<T>(uiObject);
+        Handle<T> result = DynamicCast<T>(uiObject);
         Assert(result.IsValid(), "Failed to cast created UIObject to the requested type");
 
         return result;
@@ -1441,7 +1441,7 @@ private:
 
         Handle<UIObject> uiObject = MakeHandle<T>();
 
-        UIStage* stage = IsA<UIStage>() ? ObjCast<UIStage>(this) : GetStage();
+        UIStage* stage = IsA<UIStage>() ? DynamicCast<UIStage>(this) : GetStage();
 
         uiObject->m_spawnParent = WeakHandleFromThis();
         uiObject->m_stage = stage;

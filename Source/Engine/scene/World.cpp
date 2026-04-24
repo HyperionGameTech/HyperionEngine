@@ -1314,7 +1314,7 @@ static void BindStreamingDelegates(DelegateHandlerSet& set, World* world, WorldG
             {
                 if (obj->IsA(Scene::StaticClass()))
                 {
-                    const Scene* scene = ObjCast<Scene>(obj);
+                    const Scene* scene = DynamicCast<Scene>(obj);
 
                     world->AddScene(MakeStrongRef(scene), /* addToStreamingLayer */ false);
 
@@ -1330,7 +1330,7 @@ static void BindStreamingDelegates(DelegateHandlerSet& set, World* world, WorldG
             {
                 if (obj->IsA(Scene::StaticClass()))
                 {
-                    const Scene* scene = ObjCast<Scene>(obj);
+                    const Scene* scene = DynamicCast<Scene>(obj);
 
                     world->RemoveScene(const_cast<Scene*>(scene), /* removeFromStreamingLayer */ false);
 

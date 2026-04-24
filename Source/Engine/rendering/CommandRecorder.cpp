@@ -17,7 +17,6 @@
 #include <rendering/ShaderInstance.hpp>
 #include <rendering/Shader.hpp>
 #include <rendering/Mesh.hpp>
-#include <rendering/RenderGroup.hpp>
 
 #include <rendering/RayTracingPipeline.hpp>
 #include <rendering/AccelerationStructure.hpp>

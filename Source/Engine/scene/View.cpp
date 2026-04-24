@@ -115,7 +115,12 @@ const Handle<GBuffer>& ViewOutputTarget::GetGBuffer() const
         return Handle<GBuffer>::Null();
     }
 
-    return ObjCast<GBuffer>(m_impl);
+    if (m_impl->IsA<GBuffer>())
+    {
+        return StaticCast<GBuffer>(m_impl);
+    }
+
+    return Handle<GBuffer>::Null();
 }
 
 const FramebufferRef& ViewOutputTarget::GetFramebuffer() const
@@ -125,12 +130,12 @@ const FramebufferRef& ViewOutputTarget::GetFramebuffer() const
         return FramebufferRef::Null();
     }
 
-    if (m_impl->IsA(GBuffer::StaticClass()))
+    if (m_impl->IsA<GBuffer>())
     {
-        return static_cast<GBuffer&>(*m_impl).GetBucket(RenderBucket::Opaque).GetFramebuffer();
+        return StaticCast<GBuffer>(m_impl)->GetBucket(RenderBucket::Opaque).GetFramebuffer();
     }
 
-    return ObjCast<Framebuffer>(m_impl);
+    return StaticCast<Framebuffer>(m_impl);
 }
 
 const FramebufferRef& ViewOutputTarget::GetFramebuffer(RenderBucket rb) const
@@ -140,12 +145,12 @@ const FramebufferRef& ViewOutputTarget::GetFramebuffer(RenderBucket rb) const
         return FramebufferRef::Null();
     }
 
-    if (m_impl->IsA(GBuffer::StaticClass()))
+    if (m_impl->IsA<GBuffer>())
     {
-        return static_cast<GBuffer&>(*m_impl).GetBucket(rb).GetFramebuffer();
+        return StaticCast<GBuffer>(m_impl)->GetBucket(rb).GetFramebuffer();
     }
 
-    return ObjCast<Framebuffer>(m_impl);
+    return StaticCast<Framebuffer>(m_impl);
 }
 
 Span<const FramebufferRef> ViewOutputTarget::GetFramebuffers() const
@@ -157,10 +162,10 @@ Span<const FramebufferRef> ViewOutputTarget::GetFramebuffers() const
 
     if (m_impl->IsA(GBuffer::StaticClass()))
     {
-        return static_cast<GBuffer&>(*m_impl).GetFramebuffers();
+        return StaticCast<GBuffer>(m_impl)->GetFramebuffers();
     }
 
-    return { &ObjCast<Framebuffer>(m_impl), 1 };
+    return { &StaticCast<Framebuffer>(m_impl), 1 };
 }
 
 #pragma endregion ViewOutputTarget
@@ -999,7 +1004,7 @@ void View::CollectMeshEntities(RenderProxyList& rpl)
 
                 AssertDebug(meshComponent->instanceData.IsLoaded());
 
-                const Handle<InstancedMeshData>& imd = ObjCast<InstancedMeshData>(meshComponent->instanceData.Resolve());
+                const Handle<InstancedMeshData>& imd = DynamicCast<InstancedMeshData>(meshComponent->instanceData.Resolve());
                 AssertDebug(imd.IsValid());
 
                 if (imd.IsValid())
@@ -1149,7 +1154,7 @@ void View::CollectLightmapVolumes(RenderProxyList& rpl)
 
         for (auto [entity, _] : scene->GetEntityManager()->GetEntitySet<EntityType<LightmapVolume>>().GetScopedView(DataAccessFlags::ACCESS_READ, HYP_FUNCTION_NAME_LIT))
         {
-            LightmapVolume* lightmapVolume = ObjCast<LightmapVolume>(entity);
+            LightmapVolume* lightmapVolume = DynamicCast<LightmapVolume>(entity);
             Assert(lightmapVolume != nullptr);
 
             const BoundingBox worldBounds = lightmapVolume->GetWorldBounds();

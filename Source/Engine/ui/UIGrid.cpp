@@ -56,7 +56,7 @@ void UIGridRow::AddChildUIObject(const Handle<UIObject>& uiObject)
     {
         UIObject::AddChildUIObject(uiObject);
 
-        m_columns.PushBack(ObjCast<UIGridColumn>(uiObject));
+        m_columns.PushBack(DynamicCast<UIGridColumn>(uiObject));
 
         UpdateColumnSizes();
         UpdateColumnOffsets();
@@ -342,7 +342,7 @@ void UIGrid::AddChildUIObject(const Handle<UIObject>& uiObject)
         return;
     }
 
-    if (const Handle<UIGridRow>& row = ObjCast<UIGridRow>(uiObject))
+    if (const Handle<UIGridRow>& row = DynamicCast<UIGridRow>(uiObject))
     {
         row->SetNumColumns(m_numColumns);
 

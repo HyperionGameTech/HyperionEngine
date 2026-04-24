@@ -21,7 +21,6 @@
 #include <engine/threads/VisThread.hpp>
 
 #include <rendering/PostFX.hpp>
-#include <rendering/RenderGroup.hpp>
 #include <rendering/RenderInterface.hpp>
 #include <rendering/GBuffer.hpp>
 #include <rendering/FinalPass.hpp>
@@ -149,7 +148,7 @@ static void UpdateInstancedMeshEntities(Scene* scene, Array<Entity*, AllocatorTy
             meshComponent.instanceData = AssetReference(imd);
         }
 
-        const Handle<InstancedMeshData>& imd = ObjCast<InstancedMeshData>(meshComponent.instanceData.Resolve());
+        const Handle<InstancedMeshData>& imd = DynamicCast<InstancedMeshData>(meshComponent.instanceData.Resolve());
 
         if (!imd.IsValid())
         {

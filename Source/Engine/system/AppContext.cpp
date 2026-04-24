@@ -718,7 +718,7 @@ VkSurfaceKHR SDLAppContext::CreateVulkanSurface(
 
     VkSurfaceKHR surface = VK_NULL_HANDLE;
 
-    SDLApplicationWindow* sdlWindow = ObjCast<SDLApplicationWindow>(window);
+    SDLApplicationWindow* sdlWindow = DynamicCast<SDLApplicationWindow>(window);
     Assert(sdlWindow != nullptr);
 
     SDL_bool result = SDL_Vulkan_CreateSurface(
@@ -1593,7 +1593,7 @@ VkSurfaceKHR Win32AppContext::CreateVulkanSurface(
 
     if (window != nullptr)
     {
-        Win32ApplicationWindow* win32Window = ObjCast<Win32ApplicationWindow>(window);
+        Win32ApplicationWindow* win32Window = DynamicCast<Win32ApplicationWindow>(window);
         Assert(win32Window != nullptr);
 
         if (win32Window->GetVkSurface() != VK_NULL_HANDLE)

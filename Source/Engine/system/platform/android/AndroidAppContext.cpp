@@ -285,7 +285,7 @@ void AndroidAppContext::SetNativeWindow(void* nativeWindow)
         return;
     }
 
-    AndroidApplicationWindow* androidWindow = ObjCast<AndroidApplicationWindow>(m_mainWindow);
+    AndroidApplicationWindow* androidWindow = DynamicCast<AndroidApplicationWindow>(m_mainWindow);
     Assert(androidWindow != nullptr);
 
     androidWindow->SetNativeWindow(nativeWindow);

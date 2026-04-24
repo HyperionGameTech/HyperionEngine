@@ -330,7 +330,7 @@ void ShadowRendererBase::RenderFrame(Frame* frame, const RenderSetup& renderSetu
             rs.framebuffer = framebuffer;
             rs.viewport = Viewport { atlasElement.dimensions, Vec2i(atlasElement.offsetCoords) };
 
-            ShadowRendererPassData* pd = ObjCast<ShadowRendererPassData>(rs.passData);
+            ShadowRendererPassData* pd = DynamicCast<ShadowRendererPassData>(rs.passData);
             AssertDebug(pd != nullptr);
 
             RenderProxyList& rpl = GetConsumerProxyList(shadowView);
@@ -417,7 +417,7 @@ void ShadowRendererBase::RenderFrame(Frame* frame, const RenderSetup& renderSetu
             rs.framebuffer = framebuffer;
             rs.viewport = Viewport { atlasElement.dimensions, Vec2i(atlasElement.offsetCoords) };
 
-            ShadowRendererPassData* pd = ObjCast<ShadowRendererPassData>(rs.passData);
+            ShadowRendererPassData* pd = DynamicCast<ShadowRendererPassData>(rs.passData);
             AssertDebug(pd != nullptr);
 
             if (needsClearBeforeDraw)

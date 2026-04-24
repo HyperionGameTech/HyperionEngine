@@ -183,7 +183,7 @@ public:
     {
         static_assert(std::is_base_of_v<Subsystem, T>, "T must be a subclass of Subsystem");
 
-        return ObjCast<T>(AddSubsystem(TypeId::ForType<T>(), MakeHandle<T>()));
+        return DynamicCast<T>(AddSubsystem(TypeId::ForType<T>(), MakeHandle<T>()));
     }
 
     template <class T>
@@ -191,7 +191,7 @@ public:
     {
         static_assert(std::is_base_of_v<Subsystem, T>, "T must be a subclass of Subsystem");
 
-        return ObjCast<T>(AddSubsystem(TypeId::ForType<T>(), subsystem));
+        return DynamicCast<T>(AddSubsystem(TypeId::ForType<T>(), subsystem));
     }
 
     const Handle<Subsystem>& AddSubsystem(TypeId typeId, const Handle<Subsystem>& subsystem);
@@ -204,7 +204,7 @@ public:
     {
         static_assert(std::is_base_of_v<Subsystem, T>, "T must be a subclass of Subsystem");
 
-        return ObjCast<T>(GetSubsystem(TypeId::ForType<T>()));
+        return DynamicCast<T>(GetSubsystem(TypeId::ForType<T>()));
     }
 
     Subsystem* GetSubsystem(TypeId typeId) const;
@@ -303,7 +303,7 @@ public:
 
         if (it != m_systems.End())
         {
-            return ObjCast<SystemType>(*it);
+            return DynamicCast<SystemType>(*it);
         }
 
         it = m_systems.FindIf([](const Handle<SystemBase>& system)
@@ -313,7 +313,7 @@ public:
 
         if (it != m_systems.End())
         {
-            return ObjCast<SystemType>(*it);
+            return DynamicCast<SystemType>(*it);
         }
 
         return nullptr;

@@ -1163,7 +1163,7 @@ public:
         static const auto SetupWatch = [](UISubsystem* uiSubsystem, const AssetPath& path)
         {
             Handle<AssetObject> assetObject = GetCurrentAssetRegistry()->GetAssetFromPath(path.ToString());
-            Handle<Texture> texture = ObjCast<Texture>(assetObject);
+            Handle<Texture> texture = DynamicCast<Texture>(assetObject);
 
             if (!texture.IsValid())
             {
@@ -1210,7 +1210,7 @@ public:
                     if (!assetObject.IsValid())
                         return;
 
-                    Handle<Texture> texture = ObjCast<Texture>(assetObject);
+                    Handle<Texture> texture = DynamicCast<Texture>(assetObject);
                     if (!texture.IsValid())
                         return;
 

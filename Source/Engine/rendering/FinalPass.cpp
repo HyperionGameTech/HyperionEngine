@@ -9,7 +9,6 @@
 #include <rendering/FinalPass.hpp>
 #include <rendering/ShaderManager.hpp>
 #include <rendering/FullScreenPass.hpp>
-#include <rendering/RenderGroup.hpp>
 #include <rendering/PlaceholderData.hpp>
 #include <rendering/GBuffer.hpp>
 #include <rendering/RenderInterface.hpp>

@@ -8,7 +8,6 @@
 
 #include <rendering/passes/HBAOPass.hpp>
 #include <rendering/ShaderManager.hpp>
-#include <rendering/RenderGroup.hpp>
 #include <rendering/PlaceholderData.hpp>
 #include <rendering/GraphicsPipelineCache.hpp>
 #include <rendering/RenderInterface.hpp>
@@ -100,7 +99,7 @@ void HBAO::Render(Frame* frame, const RenderSetup& renderSetup)
 
     Begin(frame, renderSetup);
 
-    DeferredRendererPassData* dpd = ObjCast<DeferredRendererPassData>(renderSetup.passData);
+    DeferredRendererPassData* dpd = DynamicCast<DeferredRendererPassData>(renderSetup.passData);
     AssertDebug(dpd != nullptr);
 
     const FramebufferRef& inputsFramebuffer = dpd->view.GetUnsafe()->GetOutputTarget().GetFramebuffer(RenderBucket::Opaque);

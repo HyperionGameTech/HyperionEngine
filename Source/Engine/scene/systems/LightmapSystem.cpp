@@ -54,7 +54,7 @@ bool LightmapSystem::AssignLightmapVolume(
 {
     for (auto [entity, _] : scene->GetEntityManager()->GetEntitySet<EntityType<LightmapVolume>>().GetScopedView(GetComponentInfos()))
     {
-        LightmapVolume* lightmapVolume = ObjCast<LightmapVolume>(entity);
+        LightmapVolume* lightmapVolume = DynamicCast<LightmapVolume>(entity);
         Assert(lightmapVolume != nullptr);
 
         if (lightmapElementComponent.lightmapVolume.GetUnsafe() != lightmapVolume

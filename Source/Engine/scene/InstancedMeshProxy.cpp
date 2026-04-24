@@ -29,7 +29,7 @@ void InstancedMeshProxy::OnAttachedToNode(Node* node)
     Node::OnAttachedToNode(node);
 
     // If we are being attached to an entity, we want to make sure the new parent entity has the UpdateInstancedMeshData tag
-    if (Entity* entity = ObjCast<Entity>(node))
+    if (Entity* entity = DynamicCast<Entity>(node))
     {
         entity->AddTag<EntityTag::UpdateInstancedMeshData>();
     }
@@ -39,7 +39,7 @@ void InstancedMeshProxy::OnDetachedFromNode(Node* node)
 {
     Node::OnDetachedFromNode(node);
 
-    if (Entity* entity = ObjCast<Entity>(node))
+    if (Entity* entity = DynamicCast<Entity>(node))
     {
         entity->AddTag<EntityTag::UpdateInstancedMeshData>();
     }
@@ -49,7 +49,7 @@ void InstancedMeshProxy::OnTransformUpdated()
 {
     Node::OnTransformUpdated();
 
-    if (Entity* entity = ObjCast<Entity>(GetParent()))
+    if (Entity* entity = DynamicCast<Entity>(GetParent()))
     {
         entity->AddTag<EntityTag::UpdateInstancedMeshData>();
     }

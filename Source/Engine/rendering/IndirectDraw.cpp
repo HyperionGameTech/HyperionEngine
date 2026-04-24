@@ -457,7 +457,7 @@ void IndirectRenderer::ExecuteCullShaderInBatches(Frame* frame, const RenderSetu
         m_cachedCullDataUpdatedBits = 0xFF;
     }
 
-    DeferredRendererPassData* pd = ObjCast<DeferredRendererPassData>(renderSetup.passData);
+    DeferredRendererPassData* pd = DynamicCast<DeferredRendererPassData>(renderSetup.passData);
     AssertDebug(pd != nullptr);
 
     uint32 numShaderUniforms = 0;

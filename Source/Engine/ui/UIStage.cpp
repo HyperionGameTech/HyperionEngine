@@ -167,11 +167,11 @@ void UIStage::UpdateCameraControllerStack()
 
     for (int i = 0; i < int(controllers.Size()); i++)
     {
-        const auto& controller = controllers[i];
+        const Handle<CameraController>& controller = controllers[i];
 
         if (controller->IsA<UICameraController>())
         {
-            currentController = ObjCast<UICameraController>(controller);
+            currentController = DynamicCast<UICameraController>(controller);
             controllerIndex = i;
             break;
         }
@@ -480,7 +480,7 @@ bool UIStage::TestRay(const Vec2f& position, Array<Handle<UIObject>>& outObjects
 
     for (const RayHit& hit : rayTestResults)
     {
-        if (Entity* entity = ObjCast<Entity>(hit.node))
+        if (Entity* entity = DynamicCast<Entity>(hit.node))
         {
             UIComponent* uiComponent = entity->TryGetComponent<UIComponent>();
 

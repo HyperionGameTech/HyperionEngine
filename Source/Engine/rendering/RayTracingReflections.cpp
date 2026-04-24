@@ -94,7 +94,7 @@ void RayTracingReflections::Render(Frame* frame, const RenderSetup& renderSetup)
 
     AssertDebug(renderSetup.world && renderSetup.view);
 
-    RayTracingPassData* pd = ObjCast<RayTracingPassData>(renderSetup.passData);
+    RayTracingPassData* pd = DynamicCast<RayTracingPassData>(renderSetup.passData);
     AssertDebug(pd != nullptr);
 
     DeferredRendererPassData* parentPass = pd->parentPass;

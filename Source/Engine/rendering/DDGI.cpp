@@ -280,7 +280,7 @@ void DDGI::Render(Frame* frame, const RenderSetup& renderSetup)
 
     UpdateUniforms(frame, renderSetup);
 
-    RayTracingPassData* pd = ObjCast<RayTracingPassData>(renderSetup.passData);
+    RayTracingPassData* pd = DynamicCast<RayTracingPassData>(renderSetup.passData);
     Assert(pd != nullptr);
 
     const uint32 frameIndex = frame->GetFrameIndex();

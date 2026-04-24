@@ -1682,7 +1682,7 @@ static bool LoadBundleFromAssetPath(const AssetPath& path, Handle<ShaderBundle>&
         return false;
     }
 
-    outBundle = ObjCast<ShaderBundle>(asset);
+    outBundle = DynamicCast<ShaderBundle>(asset);
 
     return true;
 }

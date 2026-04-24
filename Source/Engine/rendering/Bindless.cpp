@@ -66,11 +66,11 @@ void BindlessStorage::AddResource(BindlessStorageSlot slot, uint32 index, const 
         const DescriptorSetRef& descriptorSet = g_renderInterface->globalDescriptorTable->GetDescriptorSet(BindlessStorageSlotNames[slot], frameIndex);
         AssertDebug(descriptorSet.IsValid());
 
-        if (GpuImageView* imageView = ObjCast<GpuImageView>(resource.Get()))
+        if (GpuImageView* imageView = DynamicCast<GpuImageView>(resource.Get()))
         {
             descriptorSet->SetElement(BindlessStorageDescriptorNames[slot], index, imageView);
         }
-        else if (GpuBuffer* buffer = ObjCast<GpuBuffer>(resource.Get()))
+        else if (GpuBuffer* buffer = DynamicCast<GpuBuffer>(resource.Get()))
         {
             descriptorSet->SetElement(BindlessStorageDescriptorNames[slot], index, buffer);
         }

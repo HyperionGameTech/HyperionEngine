@@ -204,7 +204,7 @@ void SSGI::Render(Frame* frame, const RenderSetup& renderSetup)
 
     const uint32 frameIndex = frame->GetFrameIndex();
 
-    DeferredRendererPassData* dpd = ObjCast<DeferredRendererPassData>(renderSetup.passData);
+    DeferredRendererPassData* dpd = DynamicCast<DeferredRendererPassData>(renderSetup.passData);
     AssertDebug(dpd != nullptr);
 
     const FramebufferRef& inputsFramebuffer = dpd->view.GetUnsafe()->GetOutputTarget().GetFramebuffer(RenderBucket::Opaque);

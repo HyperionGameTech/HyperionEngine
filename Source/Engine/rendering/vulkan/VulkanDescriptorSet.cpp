@@ -75,7 +75,7 @@ static inline void ValidateDynamicOffset(
         const auto firstValueIt = element->values.Begin();
         if (firstValueIt != element->values.End())
         {
-            VulkanGpuBuffer* buffer = ObjCast<VulkanGpuBuffer>(*firstValueIt);
+            VulkanGpuBuffer* buffer = DynamicCast<VulkanGpuBuffer>(*firstValueIt);
 
             if (buffer != nullptr)
             {
@@ -343,7 +343,7 @@ void VulkanDescriptorSet::UpdateDirtyState(bool* outIsDirty)
             {
                 ObjectBase* ptr = element.values[index];
 
-                VulkanGpuTlas* ref = ObjCast<VulkanGpuTlas>(ptr);
+                VulkanGpuTlas* ref = DynamicCast<VulkanGpuTlas>(ptr);
                 AssertDebug(ref != nullptr, "Invalid TLAS reference for descriptor set element: {}.{}[{}]", m_layout.GetName(), name, index);
                 AssertDebug(ref->GetVulkanHandle() != VK_NULL_HANDLE, "Invalid TLAS for descriptor set element: {}.{}[{}]", m_layout.GetName(), name, index);
 

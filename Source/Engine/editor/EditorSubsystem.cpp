@@ -115,12 +115,12 @@ static ShaderPropertyId s_propUniformScaling = InternShaderProperty(ShaderProper
 #pragma region GenerateLightmapsEditorTask
 
 GenerateLightmapsEditorTask::GenerateLightmapsEditorTask(const Handle<LightmapVolume>& volume)
-    : GenerateLightmapsEditorTask(Array<Handle<ObjectBase>> { { ObjCast<ObjectBase>(volume) } })
+    : GenerateLightmapsEditorTask(Array<Handle<ObjectBase>> { { StaticCast<ObjectBase>(volume) } })
 {
 }
 
 GenerateLightmapsEditorTask::GenerateLightmapsEditorTask(const Handle<ReflectionProbe>& probe)
-    : GenerateLightmapsEditorTask(Array<Handle<ObjectBase>> { { ObjCast<ObjectBase>(probe) } })
+    : GenerateLightmapsEditorTask(Array<Handle<ObjectBase>> { { StaticCast<ObjectBase>(probe) } })
 {
 }
 
@@ -177,17 +177,17 @@ void GenerateLightmapsEditorTask::Start()
     {
         Task<void> task;
 
-        if (source->IsA(LightmapVolume::StaticClass()))
+        if (source->IsA<LightmapVolume>())
         {
-            task = lightmapperSubsystem->EnqueueBake(ObjCast<LightmapVolume>(source));
+            task = lightmapperSubsystem->EnqueueBake(StaticCast<LightmapVolume>(source));
         }
-        else if (source->IsA(ReflectionProbe::StaticClass()))
+        else if (source->IsA<ReflectionProbe>())
         {
-            task = lightmapperSubsystem->EnqueueBake(ObjCast<ReflectionProbe>(source));
+            task = lightmapperSubsystem->EnqueueBake(StaticCast<ReflectionProbe>(source));
         }
-        else if (source->IsA(FogVolume::StaticClass()))
+        else if (source->IsA<FogVolume>())
         {
-            task = lightmapperSubsystem->EnqueueBake(ObjCast<FogVolume>(source));
+            task = lightmapperSubsystem->EnqueueBake(StaticCast<FogVolume>(source));
         }
 
         if (task.IsValid())
@@ -345,7 +345,7 @@ void TranslateEditorGizmo::OnDragStart(const Handle<Camera>& camera, const Mouse
 
     m_dragData.Unset();
 
-    Entity* entity = ObjCast<Entity>(node);
+    Entity* entity = DynamicCast<Entity>(node);
     if (!entity)
     {
         return;
@@ -475,7 +475,7 @@ void TranslateEditorGizmo::OnDragEnd(const Handle<Camera>& camera, const MouseEv
 
 bool TranslateEditorGizmo::OnMouseHover(const Handle<Camera>& camera, const MouseEvent& mouseEvent, const Handle<Node>& node)
 {
-    Entity* entity = ObjCast<Entity>(node);
+    Entity* entity = DynamicCast<Entity>(node);
     if (!entity)
     {
         return false;
@@ -498,7 +498,7 @@ bool TranslateEditorGizmo::OnMouseHover(const Handle<Camera>& camera, const Mous
 
 bool TranslateEditorGizmo::OnMouseLeave(const Handle<Camera>& camera, const MouseEvent& mouseEvent, const Handle<Node>& node)
 {
-    Entity* entity = ObjCast<Entity>(node);
+    Entity* entity = DynamicCast<Entity>(node);
     if (!entity)
     {
         return false;
@@ -534,7 +534,7 @@ bool TranslateEditorGizmo::OnMouseMove(const Handle<Camera>& camera, const Mouse
         return false;
     }
 
-    Entity* entity = ObjCast<Entity>(node);
+    Entity* entity = DynamicCast<Entity>(node);
     if (!entity)
     {
         return false;
@@ -928,7 +928,7 @@ void RotateEditorGizmo::OnDragStart(const Handle<Camera>& camera, const MouseEve
 
     m_dragData.Unset();
 
-    Entity* entity = ObjCast<Entity>(node);
+    Entity* entity = DynamicCast<Entity>(node);
     if (!entity)
     {
         return;
@@ -1040,7 +1040,7 @@ void RotateEditorGizmo::OnDragEnd(const Handle<Camera>& camera, const MouseEvent
 
 bool RotateEditorGizmo::OnMouseHover(const Handle<Camera>& camera, const MouseEvent& mouseEvent, const Handle<Node>& node)
 {
-    Entity* entity = ObjCast<Entity>(node);
+    Entity* entity = DynamicCast<Entity>(node);
     if (!entity)
     {
         return false;
@@ -1063,7 +1063,7 @@ bool RotateEditorGizmo::OnMouseHover(const Handle<Camera>& camera, const MouseEv
 
 bool RotateEditorGizmo::OnMouseLeave(const Handle<Camera>& camera, const MouseEvent& mouseEvent, const Handle<Node>& node)
 {
-    Entity* entity = ObjCast<Entity>(node);
+    Entity* entity = DynamicCast<Entity>(node);
     if (!entity)
     {
         return false;
@@ -1099,7 +1099,7 @@ bool RotateEditorGizmo::OnMouseMove(const Handle<Camera>& camera, const MouseEve
         return false;
     }
 
-    Entity* entity = ObjCast<Entity>(node);
+    Entity* entity = DynamicCast<Entity>(node);
     if (!entity)
     {
         return false;
@@ -1367,7 +1367,7 @@ void VolumeEditorGizmo::OnDragStart(const Handle<Camera>& camera, const MouseEve
 
     m_dragData.Unset();
 
-    Entity* entity = ObjCast<Entity>(node);
+    Entity* entity = DynamicCast<Entity>(node);
     if (!entity)
     {
         return;
@@ -1474,7 +1474,7 @@ void VolumeEditorGizmo::OnDragEnd(const Handle<Camera>& camera, const MouseEvent
 
 bool VolumeEditorGizmo::OnMouseHover(const Handle<Camera>& camera, const MouseEvent& mouseEvent, const Handle<Node>& node)
 {
-    Entity* entity = ObjCast<Entity>(node);
+    Entity* entity = DynamicCast<Entity>(node);
     if (!entity)
     {
         return false;
@@ -1496,7 +1496,7 @@ bool VolumeEditorGizmo::OnMouseHover(const Handle<Camera>& camera, const MouseEv
 
 bool VolumeEditorGizmo::OnMouseLeave(const Handle<Camera>& camera, const MouseEvent& mouseEvent, const Handle<Node>& node)
 {
-    Entity* entity = ObjCast<Entity>(node);
+    Entity* entity = DynamicCast<Entity>(node);
     if (!entity)
     {
         return false;
@@ -2617,7 +2617,7 @@ void EditorSubsystem::StartWatchingNode(const Handle<Node>& node)
     UISubsystem* uiSubsystem = GetWorld()->GetSubsystem<UISubsystem>();
     AssertDebug(uiSubsystem != nullptr);
 
-    Handle<UIListView> listView = ObjCast<UIListView>(uiSubsystem->GetUIStage()->FindChildUIObject(NAME("Outline_ListView")));
+    Handle<UIListView> listView = DynamicCast<UIListView>(uiSubsystem->GetUIStage()->FindChildUIObject(NAME("Outline_ListView")));
     AssertDebug(listView.IsValid());
 
     //    m_editorDelegates->AddNodeWatcher(
@@ -2696,7 +2696,7 @@ void EditorSubsystem::StopWatchingNode(const Handle<Node>& node)
     UISubsystem* uiSubsystem = GetWorld()->GetSubsystem<UISubsystem>();
     AssertDebug(uiSubsystem != nullptr);
 
-    Handle<UIListView> listView = ObjCast<UIListView>(uiSubsystem->GetUIStage()->FindChildUIObject(NAME("Outline_ListView")));
+    Handle<UIListView> listView = DynamicCast<UIListView>(uiSubsystem->GetUIStage()->FindChildUIObject(NAME("Outline_ListView")));
     AssertDebug(listView.IsValid());
 
 
@@ -2714,7 +2714,7 @@ void EditorSubsystem::ClearWatchedNodes()
     UISubsystem* uiSubsystem = GetWorld()->GetSubsystem<UISubsystem>();
     AssertDebug(uiSubsystem != nullptr);
 
-    Handle<UIListView> listView = ObjCast<UIListView>(uiSubsystem->GetUIStage()->FindChildUIObject(NAME("Outline_ListView")));
+    Handle<UIListView> listView = DynamicCast<UIListView>(uiSubsystem->GetUIStage()->FindChildUIObject(NAME("Outline_ListView")));
     AssertDebug(listView.IsValid());
 
     if (const Handle<UIDataSourceBase>& dataSource = listView->GetDataSource())
@@ -2778,7 +2778,7 @@ void EditorSubsystem::InitActiveSceneSelection()
         return;
     }
 
-    Handle<UIMenuItem> activeSceneMenuItem = ObjCast<UIMenuItem>(activeSceneSelection);
+    Handle<UIMenuItem> activeSceneMenuItem = DynamicCast<UIMenuItem>(activeSceneSelection);
 
     if (!activeSceneMenuItem.IsValid())
     {
@@ -3118,7 +3118,7 @@ void EditorSubsystem::SetFocusedNode(const Handle<Node>& focusedNode, bool shoul
     {
         if (focusedNode->GetScene() != nullptr)
         {
-            if (Entity* entity = ObjCast<Entity>(focusedNode))
+            if (Entity* entity = DynamicCast<Entity>(focusedNode))
             {
                 entity->AddTag<EntityTag::FocusedInEditor>();
             }
@@ -3157,7 +3157,7 @@ void EditorSubsystem::SetFocusedNode(const Handle<Node>& focusedNode, bool shoul
 
     if (previousFocusedNode != nullptr)
     {
-        if (Entity* entity = ObjCast<Entity>(previousFocusedNode))
+        if (Entity* entity = DynamicCast<Entity>(previousFocusedNode))
         {
             entity->RemoveTag<EntityTag::FocusedInEditor>();
         }

@@ -250,7 +250,7 @@ void DX12DescriptorSet::Update(bool force)
     //                continue;
     //            }
 
-    //            const DX12GpuBufferRef& ref = ObjCast<DX12GpuBuffer>(valuesIt.second);
+    //            const DX12GpuBufferRef& ref = DynamicCast<DX12GpuBuffer>(valuesIt.second);
     //            if (!ref.IsValid() || !ref->IsCreated())
     //            {
     //                continue;
@@ -301,7 +301,7 @@ void DX12DescriptorSet::Update(bool force)
     //                continue;
     //            }
 
-    //            const DX12GpuImageViewRef& ref = ObjCast<DX12GpuImageView>(valuesIt.second);
+    //            const DX12GpuImageViewRef& ref = DynamicCast<DX12GpuImageView>(valuesIt.second);
     //            if (!ref.IsValid() || !ref->IsCreated())
     //            {
     //                continue;
@@ -343,7 +343,7 @@ void DX12DescriptorSet::Update(bool force)
     //                continue;
     //            }
 
-    //            const DX12SamplerRef& ref = ObjCast<DX12Sampler>(valuesIt.second);
+    //            const DX12SamplerRef& ref = DynamicCast<DX12Sampler>(valuesIt.second);
     //            if (!ref.IsValid() || !ref->IsCreated())
     //            {
     //                continue;
@@ -379,7 +379,7 @@ void DX12DescriptorSet::Update(bool force)
     //                continue;
     //            }
 
-    //            const DX12GpuTlasRef& ref = ObjCast<DX12GpuTlas>(valuesIt.second);
+    //            const DX12GpuTlasRef& ref = DynamicCast<DX12GpuTlas>(valuesIt.second);
     //            if (!ref.IsValid() || !ref->IsCreated())
     //            {
     //                continue;

@@ -6,7 +6,6 @@
 
 #include <RenderingPch.hpp>
 
-#include <rendering/RenderGroup.hpp>
 #include <rendering/RenderInterface.hpp>
 #include <rendering/RenderConfig.hpp>
 #include <rendering/RenderProxyList.hpp>
@@ -19,6 +18,7 @@
 #include <rendering/Frame.hpp>
 #include <rendering/Mesh.hpp>
 #include <rendering/MaterialInstance.hpp>
+#include <rendering/RenderGroup.hpp>
 #include <rendering/RenderGroupCache.hpp>
 
 #include <rendering/renderers/DeferredRenderer.hpp>
@@ -258,7 +258,7 @@ void UIRenderer::RenderFrame(Frame* frame, const RenderSetup& renderSetup)
 
     Assert(renderSetup.view != nullptr);
 
-    UIRendererPassData* pd = ObjCast<UIRendererPassData>(FetchViewPassData(renderSetup.view));
+    UIRendererPassData* pd = DynamicCast<UIRendererPassData>(FetchViewPassData(renderSetup.view));
     AssertDebug(pd != nullptr);
 
     if (!pd->renderCollector.batchAllocator)

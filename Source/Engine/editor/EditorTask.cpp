@@ -233,12 +233,12 @@ void EditorTaskScope::Reset(bool shouldCancel)
             return;
         }*/
 
-        if (TickableEditorTask* tickableEditorTask = ObjCast<TickableEditorTask>(m_task.Get()))
+        if (TickableEditorTask* tickableEditorTask = DynamicCast<TickableEditorTask>(m_task.Get()))
         {
             Mutex::Guard guard(tickableEditorTask->m_mutex);
             tickableEditorTask->isComplete = true;
         }
-        else if (LongRunningEditorTask* longRunningEditorTask = ObjCast<LongRunningEditorTask>(m_task.Get()))
+        else if (LongRunningEditorTask* longRunningEditorTask = DynamicCast<LongRunningEditorTask>(m_task.Get()))
         {
             longRunningEditorTask->GetTask().Await();
         }

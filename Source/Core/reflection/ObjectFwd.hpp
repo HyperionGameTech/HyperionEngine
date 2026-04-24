@@ -286,9 +286,99 @@ const Class* GetClass()
 /// Casts ///
 
 template <class Other, class T>
-static inline Other* ObjCast(T* objectPtr)
+static inline Other* StaticCast(T* objectPtr)
 {
-    static_assert(std::is_class_v<Other>, "Other must be a class type to use with ObjCast");
+    static_assert(std::is_class_v<Other>, "Other must be a class type to use with StaticCast");
+
+    if constexpr (std::is_same_v<T, Other> || std::is_base_of_v<Other, T> || std::is_base_of_v<T, Other>)
+    {
+        return static_cast<Other*>(objectPtr);
+    }
+    else
+    {
+        static_assert(always_fail_v<T>, "Invalid StaticCast");
+    }
+}
+
+template <class Other, class T>
+static inline const Other* StaticCast(const T* objectPtr)
+{
+    static_assert(std::is_class_v<Other>, "Other must be a class type to use with StaticCast");
+
+    if constexpr (std::is_same_v<T, Other> || std::is_base_of_v<Other, T> || std::is_base_of_v<T, Other>)
+    {
+        return static_cast<const Other*>(objectPtr);
+    }
+    else
+    {
+        static_assert(always_fail_v<T>, "Invalid StaticCast");
+    }
+}
+
+template <class Other, class T>
+static inline const Handle<Other>& StaticCast(const Handle<T>& handle)
+{
+    static_assert(std::is_class_v<Other>, "Other must be a class type to use with StaticCast");
+
+    if constexpr (std::is_same_v<T, Other> || std::is_base_of_v<Other, T> || std::is_base_of_v<T, Other>)
+    {
+        return reinterpret_cast<const Handle<Other>&>(handle);
+    }
+    else
+    {
+        static_assert(always_fail_v<T>, "Invalid StaticCast");
+    }
+}
+
+template <class Other, class T>
+static inline Handle<Other> StaticCast(Handle<T>&& handle)
+{
+    static_assert(std::is_class_v<Other>, "Other must be a class type to use with StaticCast");
+
+    if constexpr (std::is_same_v<T, Other> || std::is_base_of_v<Other, T> || std::is_base_of_v<T, Other>)
+    {
+        return reinterpret_cast<Handle<Other>&&>(handle);
+    }
+    else
+    {
+        static_assert(always_fail_v<T>, "Invalid StaticCast");
+    }
+}
+
+template <class Other, class T>
+static inline const WeakHandle<Other>& StaticCast(const WeakHandle<T>& handle)
+{
+    static_assert(std::is_class_v<Other>, "Other must be a class type to use with StaticCast");
+
+    if constexpr (std::is_same_v<T, Other> || std::is_base_of_v<Other, T> || std::is_base_of_v<T, Other>)
+    {
+        return reinterpret_cast<const WeakHandle<Other>&>(handle);
+    }
+    else
+    {
+        static_assert(always_fail_v<T>, "Invalid StaticCast");
+    }
+}
+
+template <class Other, class T>
+static inline WeakHandle<Other> StaticCast(WeakHandle<T>&& handle)
+{
+    static_assert(std::is_class_v<Other>, "Other must be a class type to use with StaticCast");
+
+    if constexpr (std::is_same_v<T, Other> || std::is_base_of_v<Other, T> || std::is_base_of_v<T, Other>)
+    {
+        return reinterpret_cast<WeakHandle<Other>&&>(handle);
+    }
+    else
+    {
+        static_assert(always_fail_v<T>, "Invalid StaticCast");
+    }
+}
+
+template <class Other, class T>
+static inline Other* DynamicCast(T* objectPtr)
+{
+    static_assert(std::is_class_v<Other>, "Other must be a class type to use with DynamicCast");
 
     if constexpr (std::is_same_v<T, Other> || std::is_base_of_v<Other, T>)
     {
@@ -304,9 +394,9 @@ static inline Other* ObjCast(T* objectPtr)
 }
 
 template <class Other, class T>
-static inline const Other* ObjCast(const T* objectPtr)
+static inline const Other* DynamicCast(const T* objectPtr)
 {
-    static_assert(std::is_class_v<Other>, "Other must be a class type to use with ObjCast");
+    static_assert(std::is_class_v<Other>, "Other must be a class type to use with DynamicCast");
 
     if constexpr (std::is_same_v<T, Other> || std::is_base_of_v<Other, T>)
     {
@@ -322,9 +412,9 @@ static inline const Other* ObjCast(const T* objectPtr)
 }
 
 template <class Other, class T>
-static inline const Handle<Other>& ObjCast(const Handle<T>& handle)
+static inline const Handle<Other>& DynamicCast(const Handle<T>& handle)
 {
-    static_assert(std::is_class_v<Other>, "Other must be a class type to use with ObjCast");
+    static_assert(std::is_class_v<Other>, "Other must be a class type to use with DynamicCast");
 
     if (!handle.IsValid())
     {
@@ -340,9 +430,9 @@ static inline const Handle<Other>& ObjCast(const Handle<T>& handle)
 }
 
 template <class Other, class T>
-static inline Handle<Other> ObjCast(Handle<T>&& handle)
+static inline Handle<Other> DynamicCast(Handle<T>&& handle)
 {
-    static_assert(std::is_class_v<Other>, "Other must be a class type to use with ObjCast");
+    static_assert(std::is_class_v<Other>, "Other must be a class type to use with DynamicCast");
 
     if (!handle.IsValid())
     {
@@ -358,9 +448,9 @@ static inline Handle<Other> ObjCast(Handle<T>&& handle)
 }
 
 template <class Other, class T>
-static inline const WeakHandle<Other>& ObjCast(const WeakHandle<T>& handle)
+static inline const WeakHandle<Other>& DynamicCast(const WeakHandle<T>& handle)
 {
-    static_assert(std::is_class_v<Other>, "Other must be a class type to use with ObjCast");
+    static_assert(std::is_class_v<Other>, "Other must be a class type to use with DynamicCast");
 
     if (!handle.IsValid())
     {
@@ -376,9 +466,9 @@ static inline const WeakHandle<Other>& ObjCast(const WeakHandle<T>& handle)
 }
 
 template <class Other, class T>
-static inline WeakHandle<Other> ObjCast(WeakHandle<T>&& handle)
+static inline WeakHandle<Other> DynamicCast(WeakHandle<T>&& handle)
 {
-    static_assert(std::is_class_v<Other>, "Other must be a class type to use with ObjCast");
+    static_assert(std::is_class_v<Other>, "Other must be a class type to use with DynamicCast");
 
     if (!handle.IsValid())
     {

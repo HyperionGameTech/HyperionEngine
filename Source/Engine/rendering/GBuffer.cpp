@@ -7,7 +7,6 @@
 #include <RenderingPch.hpp>
 
 #include <rendering/GBuffer.hpp>
-#include <rendering/RenderGroup.hpp>
 #include <rendering/RenderInterface.hpp>
 #include <rendering/Swapchain.hpp>
 

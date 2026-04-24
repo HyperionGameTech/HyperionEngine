@@ -390,7 +390,7 @@ void DeferredPass::RenderToFramebuffer_Internal(Frame* frame, const RenderSetup&
 
     const Vec4f& cameraPosition = cameraProxy->bufferData.cameraPosition;
 
-    DeferredRendererPassData* dpd = ObjCast<DeferredRendererPassData>(rs.passData);
+    DeferredRendererPassData* dpd = DynamicCast<DeferredRendererPassData>(rs.passData);
     AssertDebug(dpd != nullptr);
 
     Framebuffer* opaquePassFramebuffer = dpd->view.GetUnsafe()->GetOutputTarget().GetFramebuffer(RenderBucket::Opaque);
@@ -787,7 +787,7 @@ void TonemapPass::Render(Frame* frame, const RenderSetup& rs)
 
     CommandRecorder& cr = frame->cr;
 
-    DeferredRendererPassData* dpd = ObjCast<DeferredRendererPassData>(rs.passData);
+    DeferredRendererPassData* dpd = DynamicCast<DeferredRendererPassData>(rs.passData);
     AssertDebug(dpd != nullptr);
 
     const uint32 frameIndex = frame->GetFrameIndex();
@@ -899,7 +899,7 @@ void LightmapPass::RenderToFramebuffer_Internal(Frame* frame, const RenderSetup&
 
     const uint32 frameIndex = frame->GetFrameIndex();
 
-    LightmapVolume* volume = ObjCast<LightmapVolume>(renderSetup.volume);
+    LightmapVolume* volume = DynamicCast<LightmapVolume>(renderSetup.volume);
     AssertDebug(volume != nullptr);
 
     RenderProxyLightmapVolume* proxy = static_cast<RenderProxyLightmapVolume*>(GetRenderProxy(volume));
@@ -910,7 +910,7 @@ void LightmapPass::RenderToFramebuffer_Internal(Frame* frame, const RenderSetup&
         return; // nothing to do
     }
 
-    DeferredRendererPassData* dpd = ObjCast<DeferredRendererPassData>(renderSetup.passData);
+    DeferredRendererPassData* dpd = DynamicCast<DeferredRendererPassData>(renderSetup.passData);
     AssertDebug(dpd != nullptr);
 
     Framebuffer* viewFramebuffer = dpd->view.GetUnsafe()->GetOutputTarget().GetFramebuffer(RenderBucket::Opaque);
@@ -1074,10 +1074,10 @@ void FogVolumePass::RenderToFramebuffer_Internal(Frame* frame, const RenderSetup
 
     AssertDebug(renderSetup.world && renderSetup.volume && renderSetup.view);
 
-    DeferredRendererPassData* dpd = ObjCast<DeferredRendererPassData>(renderSetup.passData);
+    DeferredRendererPassData* dpd = DynamicCast<DeferredRendererPassData>(renderSetup.passData);
     AssertDebug(dpd != nullptr);
 
-    FogVolume* volume = ObjCast<FogVolume>(renderSetup.volume);
+    FogVolume* volume = DynamicCast<FogVolume>(renderSetup.volume);
     AssertDebug(volume != nullptr);
 
     RenderProxyFogVolume* proxy = static_cast<RenderProxyFogVolume*>(GetRenderProxy(volume));
@@ -1362,7 +1362,7 @@ void ReflectionsPass::Render(Frame* frame, const RenderSetup& rs)
     cr << SetShaderUniform(0, "SamplerLinear"_sh, g_renderInterface->placeholderData->GetSamplerLinearMipmap());
     cr << SetShaderUniform(1, "SamplerNearest"_sh, g_renderInterface->placeholderData->GetSamplerNearest());
 
-    DeferredRendererPassData* dpd = ObjCast<DeferredRendererPassData>(rs.passData);
+    DeferredRendererPassData* dpd = DynamicCast<DeferredRendererPassData>(rs.passData);
     AssertDebug(dpd != nullptr);
 
     const FramebufferRef& opaquePassFramebuffer = dpd->view.GetUnsafe()->GetOutputTarget().GetFramebuffer(RenderBucket::Opaque);
@@ -2285,7 +2285,7 @@ void DeferredRenderer::RenderFrame(Frame* frame, const RenderSetup& rs)
                 PassData* pd = FetchViewPassData(view);
                 Assert(pd != nullptr);
 
-                DeferredRendererPassData* pdCasted = ObjCast<DeferredRendererPassData>(pd);
+                DeferredRendererPassData* pdCasted = DynamicCast<DeferredRendererPassData>(pd);
                 Assert(pdCasted != nullptr);
 
                 pdCasted->priority = view->GetPriority();
@@ -2301,7 +2301,7 @@ void DeferredRenderer::RenderFrame(Frame* frame, const RenderSetup& rs)
             PassData* pd = FetchViewPassData(view);
             Assert(pd != nullptr);
 
-            RayTracingPassData* pdCasted = ObjCast<RayTracingPassData>(pd);
+            RayTracingPassData* pdCasted = DynamicCast<RayTracingPassData>(pd);
             Assert(pdCasted != nullptr);
 
             RenderSetup newRenderSetup = rs.Fork();
@@ -2434,7 +2434,7 @@ void DeferredRenderer::RenderFrame(Frame* frame, const RenderSetup& rs)
             continue;
         }
 
-        DeferredRendererPassData* pd = ObjCast<DeferredRendererPassData>(FetchViewPassData(view));
+        DeferredRendererPassData* pd = DynamicCast<DeferredRendererPassData>(FetchViewPassData(view));
         AssertDebug(pd != nullptr);
 
         RenderSetup currentViewSetup = rs.Fork();
@@ -2494,7 +2494,7 @@ void DeferredRenderer::RenderFrameForView(Frame* frame, const RenderSetup& rs)
     renderCollector.BeginRecordDrawCalls(frame, rs, RenderBucketMask<
         RenderBucket::Opaque, RenderBucket::Translucent, RenderBucket::Lightmapped, RenderBucket::Sky>);
 
-    DeferredRendererPassData* passDataCasted = ObjCast<DeferredRendererPassData>(rs.passData);
+    DeferredRendererPassData* passDataCasted = DynamicCast<DeferredRendererPassData>(rs.passData);
     AssertDebug(passDataCasted != nullptr);
 
     DeferredRendererPassData& passData = *passDataCasted;
@@ -2643,7 +2643,7 @@ void DeferredRenderer::RenderFrameForView(Frame* frame, const RenderSetup& rs)
 
         if (rayTracingView != nullptr)
         {
-            RayTracingPassData* rayTracingPassData = ObjCast<RayTracingPassData>(FetchViewPassData(rayTracingView));
+            RayTracingPassData* rayTracingPassData = DynamicCast<RayTracingPassData>(FetchViewPassData(rayTracingView));
             Assert(rayTracingPassData != nullptr);
 
             const GpuTlasRef& tlas = rayTracingPassData->rayTracingTlases[frameIndex];
@@ -2887,7 +2887,7 @@ void DeferredRenderer::UpdateRayTracingView(Frame* frame, const RenderSetup& rs)
 
     const uint32 currentFrameIndex = frame->GetFrameIndex();
 
-    RayTracingPassData* pd = ObjCast<RayTracingPassData>(rs.passData);
+    RayTracingPassData* pd = DynamicCast<RayTracingPassData>(rs.passData);
 
     RenderProxyList& rpl = GetConsumerProxyList(rs.view);
     rpl.BeginRead();
@@ -3014,7 +3014,7 @@ void DeferredRenderer::GenerateMipChain(Frame* frame, const RenderSetup& rs, Ren
 
     const uint32 frameIndex = frame->GetFrameIndex();
 
-    DeferredRendererPassData* pd = ObjCast<DeferredRendererPassData>(rs.passData);
+    DeferredRendererPassData* pd = DynamicCast<DeferredRendererPassData>(rs.passData);
 
     const GpuImageRef& mipmappedResult = pd->mipChain->GetGpuImage();
     Assert(mipmappedResult.IsValid());

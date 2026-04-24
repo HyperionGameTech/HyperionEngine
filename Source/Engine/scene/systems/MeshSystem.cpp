@@ -58,7 +58,7 @@ void UpdateInstancedMeshData(Entity& entity, MeshComponent& meshComponent)
         meshComponent.instanceData = AssetReference(imd);
     }
     
-    const Handle<InstancedMeshData>& imd = ObjCast<InstancedMeshData>(meshComponent.instanceData.Resolve());
+    const Handle<InstancedMeshData>& imd = DynamicCast<InstancedMeshData>(meshComponent.instanceData.Resolve());
 
     if (!imd.IsValid())
     {

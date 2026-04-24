@@ -8,7 +8,6 @@
 
 #include <rendering/DebugDrawer.hpp>
 #include <rendering/RenderInterface.hpp>
-#include <rendering/RenderGroup.hpp>
 #include <rendering/GBuffer.hpp>
 #include <rendering/ShaderManager.hpp>
 #include <rendering/GraphicsPipelineCache.hpp>
@@ -758,7 +757,7 @@ void DebugDrawer::Render(Frame* frame, const RenderSetup& renderSetup)
         cr << SetFaceCullMode(FCM_BACK);    
     });
     
-    DeferredRendererPassData* dpd = ObjCast<DeferredRendererPassData>(renderSetup.passData);
+    DeferredRendererPassData* dpd = DynamicCast<DeferredRendererPassData>(renderSetup.passData);
     AssertDebug(dpd != nullptr);
     
     cr << SetShaderUniform(0, "SamplerNearest"_sh, g_renderInterface->placeholderData->GetSamplerNearest());

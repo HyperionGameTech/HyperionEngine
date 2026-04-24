@@ -150,7 +150,7 @@ void CharacterControllerSystem::Process(float delta, Span<Handle<Scene>> scenes)
 
             if (component.inputHandler)
             {
-                CharacterControllerInputHandler* inputHandler = ObjCast<CharacterControllerInputHandler>(component.inputHandler.Get());
+                CharacterControllerInputHandler* inputHandler = DynamicCast<CharacterControllerInputHandler>(component.inputHandler.Get());
 
                 if (inputHandler)
                 {

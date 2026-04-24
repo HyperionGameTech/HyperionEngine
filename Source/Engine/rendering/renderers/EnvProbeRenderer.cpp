@@ -668,7 +668,7 @@ void ReflectionProbeRenderer::RenderProbe(Frame* frame, const RenderSetup& rende
     View* view = renderSetup.view;
     AssertDebug(view != nullptr);
 
-    EnvProbeRendererPassData* pd = ObjCast<EnvProbeRendererPassData>(renderSetup.passData);
+    EnvProbeRendererPassData* pd = DynamicCast<EnvProbeRendererPassData>(renderSetup.passData);
     AssertDebug(pd != nullptr);
 
     RenderProxyList& rpl = GetConsumerProxyList(view);
@@ -756,7 +756,7 @@ void ReflectionProbeRenderer::RenderProbe(Frame* frame, const RenderSetup& rende
         ComputeSH(frame, envProbe);
     }
 
-    /*if (SkyProbe* skyProbe = ObjCast<SkyProbe>(envProbe))
+    /*if (SkyProbe* skyProbe = DynamicCast<SkyProbe>(envProbe))
     {
         Assert(skyProbe->GetSkyboxCubemap().IsValid());
 

@@ -102,7 +102,7 @@ static TResult<Handle<FontAtlas>> CreateFontAtlas()
     
     GlobalContextScope contextScope { AssetRegistryContext { MakeStrongRef(&registry) } };
 
-    Handle<FontAtlas> fontAtlas = ObjCast<FontAtlas>(registry.GetAsset(AssetBuckets::FontAtlases, "Roboto_Regular"_sh));
+    Handle<FontAtlas> fontAtlas = DynamicCast<FontAtlas>(registry.GetAsset(AssetBuckets::FontAtlases, "Roboto_Regular"_sh));
 
     if (fontAtlas.IsValid())
     {
@@ -359,7 +359,7 @@ void UISubsystem::RenderCollect(RenderProxyList& rpl)
 
             if ((meshComponent->enableAutoInstancing || meshComponent->numInstances) && meshComponent->instanceData.IsLoaded())
             {
-                const Handle<InstancedMeshData>& instancedMesh = ObjCast<InstancedMeshData>(meshComponent->instanceData.Resolve());
+                const Handle<InstancedMeshData>& instancedMesh = DynamicCast<InstancedMeshData>(meshComponent->instanceData.Resolve());
                 Assert(instancedMesh.IsValid());
 
                 for (uint32 i = 0; i < uint32(instancedMesh->buffers.Size()); i++)

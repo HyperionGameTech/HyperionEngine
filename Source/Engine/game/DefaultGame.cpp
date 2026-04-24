@@ -87,11 +87,11 @@ void DefaultGame::OnLaunch_Impl()
 
         if (mainSceneAsset.IsValid())
         {
-            Handle<Scene> mainScene = ObjCast<Scene>(mainSceneAsset);
+            Handle<Scene> mainScene = DynamicCast<Scene>(mainSceneAsset);
             Assert(mainScene.IsValid(), "Could not find main scene asset");
             if (mainScene.IsValid())
             {
-                m_camera = ObjCast<Camera>(mainScene->GetRoot()->GetChild(0));
+                m_camera = DynamicCast<Camera>(mainScene->GetRoot()->GetChild(0));
                 Assert(m_camera.IsValid());
 
                 Vec2u viewportSize = Vec2u(m_camera->GetDimensions());

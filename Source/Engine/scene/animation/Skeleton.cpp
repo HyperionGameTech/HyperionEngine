@@ -80,7 +80,7 @@ Bone* Skeleton::FindBone(StringHash name) const
             continue;
         }
 
-        Bone* bone = ObjCast<Bone>(node);
+        Bone* bone = DynamicCast<Bone>(node);
 
         if (!bone)
         {
@@ -121,7 +121,7 @@ uint32 Skeleton::FindBoneIndex(StringHash name) const
             continue;
         }
 
-        Bone* bone = ObjCast<Bone>(node);
+        Bone* bone = DynamicCast<Bone>(node);
 
         if (!bone)
         {
@@ -189,7 +189,7 @@ void Skeleton::UpdateRenderProxy(RenderProxySkeleton* proxy)
                 continue;
             }
 
-            Bone* bone = ObjCast<Bone>(descendant);
+            Bone* bone = DynamicCast<Bone>(descendant);
 
             if (!bone)
             {

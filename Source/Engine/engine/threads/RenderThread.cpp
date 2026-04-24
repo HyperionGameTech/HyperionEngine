@@ -15,7 +15,6 @@
 #include <rendering/DebugDrawer.hpp>
 
 #include <rendering/PostFX.hpp>
-#include <rendering/RenderGroup.hpp>
 #include <rendering/RenderInterface.hpp>
 #include <rendering/GBuffer.hpp>
 #include <rendering/FinalPass.hpp>

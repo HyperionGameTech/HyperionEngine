@@ -187,7 +187,7 @@ public:
     {
         const Handle<AssetObject>& assetObject = AssetReference::Resolve();
 
-        return ObjCast<T>(assetObject);
+        return DynamicCast<T>(assetObject);
     }
 };
 

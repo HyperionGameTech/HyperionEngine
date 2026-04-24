@@ -403,7 +403,7 @@ static inline void ForEachResourceTracker(Span<ResourceTrackerBase<AllocatorType
 template <class AllocatorType, class ElementType, class ProxyType>
 static inline void UpdateRefs_Impl(ResourceTracker<AllocatorType, ObjId<ElementType>, ElementType*, ProxyType>& resourceTracker)
 {
-    auto diff = resourceTracker.GetDiff();
+    const ResourceTrackerDiff& diff = resourceTracker.GetDiff();
     if (!diff.NeedsUpdate())
     {
         return;
@@ -448,7 +448,7 @@ static inline void UpdateRefs_Impl(ResourceTracker<AllocatorType, ObjId<ElementT
         Array<ObjId<ElementType>> changedIds;
         resourceTracker.GetChanged(changedIds);
 
-        for (const ObjId<ElementType>& id : changedIds)
+        for (const ObjId<ElementType> id : changedIds)
         {
             ElementType** ppResource = resourceTracker.GetElement(id);
             AssertDebug(ppResource && *ppResource);
@@ -712,8 +712,6 @@ static void SetForwardShadingUniforms(
     cr << SetShaderUniform(numShaderUniforms++, "FowardShadingConstants"_sh, cbuffer, ShaderDataOffset(cbufferOffset, cbufferSize));
 }
 
-HYP_DISABLE_OPTIMIZATION;
-
 template <bool UseIndirectRendering, class TCommandRecorder>
 static void RenderAll(
     Frame* frame,
@@ -783,7 +781,7 @@ static void RenderAll(
     // }
 
     // Will only be non-null if we are in a deferred rendering pass.
-    DeferredRendererPassData* dpd = ObjCast<DeferredRendererPassData>(renderSetup.passData);
+    DeferredRendererPassData* dpd = DynamicCast<DeferredRendererPassData>(renderSetup.passData);
 
     if (dpd != nullptr)
     {
@@ -977,8 +975,6 @@ static void RenderAll(
     }
 }
 
-HYP_ENABLE_OPTIMIZATION;
-
 template <class TCommandRecorder>
 static void PerformRenderingImpl(
     Frame* frame,
@@ -993,7 +989,7 @@ static void PerformRenderingImpl(
         && drawCallCollection.flags[RenderGroupFlags::INDIRECT_RENDERING]
         && (renderSetup.passData && renderSetup.passData->cullData.depthPyramidImageView);
 
-    DeferredRendererPassData* dpd = ObjCast<DeferredRendererPassData>(renderSetup.passData);
+    DeferredRendererPassData* dpd = DynamicCast<DeferredRendererPassData>(renderSetup.passData);
     // Not env probes or anything like that
     const bool isNormalDrawingPass = dpd != nullptr;
 
