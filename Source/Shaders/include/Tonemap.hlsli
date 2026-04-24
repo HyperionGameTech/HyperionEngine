@@ -7,12 +7,12 @@
 //#define HDR_TONEMAP_UNCHARTED 1
 //#define HDR_TONEMAP_FILMIC 1
 //#define HDR_TONEMAP_LOTTES 1
-//#define HDR_TONEMAP_UNREAL 1
+// #define HDR_TONEMAP_UNREAL 1
 //#define HDR_TONEMAP_REINHARD 1
 #define HDR_TONEMAP_ACES 1
 
 #ifndef EXPOSURE
-#define EXPOSURE 1.0
+#define EXPOSURE 1.25
 #endif
 
 // Source for some of these: https://dmnsgn.github.io/glsl-tone-map

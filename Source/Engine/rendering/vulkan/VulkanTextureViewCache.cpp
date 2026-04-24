@@ -25,15 +25,33 @@ static uint64 CalculateImageViewHash(const ImageSubResource& subResource, Textur
         .Value();
 }
 
+VulkanTextureViewCache::VulkanTextureViewCache()
+{
+    const size_t numSubtypes = GetNumDescendants(TypeId::ForType<Texture>()) + 1;
+    subtypeImpls.Resize(numSubtypes);
+}
+
 VulkanTextureViewCache::~VulkanTextureViewCache()
 {
-    for (auto& it : imageViews)
+    for (auto& subtype : subtypeImpls)
     {
-        for (auto& jt : it)
+        for (auto& it : subtype.imageViews)
         {
-            jt.second.Reset();
+            for (auto& jt : it)
+            {
+                jt.second.Reset();
+            }
         }
     }
+}
+
+VulkanTextureViewCache::SubtypeData& VulkanTextureViewCache::GetSubtypeData(ObjId<Texture> id)
+{
+    const int classIndex = GetSubclassIndex(TypeId::ForType<Texture>(), id.GetTypeId()) + 1;
+    AssertDebug(classIndex >= 0, "Invalid class index {}", classIndex);
+    AssertDebug(classIndex < int(subtypeImpls.Size()), "Invalid class index {}", classIndex);
+
+    return subtypeImpls[classIndex];
 }
 
 const VulkanGpuImageViewRef& VulkanTextureViewCache::GetOrCreate(
@@ -90,13 +108,15 @@ const VulkanGpuImageViewRef& VulkanTextureViewCache::GetOrCreate(
 
     TSharedLock sharedLock(mutex);
 
-    if (!imageViews.HasIndex(idx))
+    SubtypeData& subtypeData = GetSubtypeData(texture->Id());
+
+    if (!subtypeData.imageViews.HasIndex(idx))
     {
-        imageViews.Emplace(idx);
-        weakTextureHandles.Emplace(idx, MakeWeakRef(texture));
+        subtypeData.imageViews.Emplace(idx);
+        subtypeData.weakTextureHandles.Emplace(idx, MakeWeakRef(texture));
     }
 
-    auto& textureImageViews = imageViews.Get(idx);
+    auto& textureImageViews = subtypeData.imageViews.Get(idx);
 
     ValueStorage<TUniqueLock<SharedMutex>> uniqueLockStorage {};
     bool isLockUnique = false;
@@ -142,15 +162,17 @@ void VulkanTextureViewCache::RemoveTexture(const Texture* texture)
 
     TUniqueLock lock(mutex);
 
-    if (imageViews.HasIndex(idx))
+    SubtypeData& subtypeData = GetSubtypeData(texture->Id());
+
+    if (subtypeData.imageViews.HasIndex(idx))
     {
-        for (auto& it : imageViews.Get(idx))
+        for (auto& it : subtypeData.imageViews.Get(idx))
         {
-            it.second.Reset();
+            EnqueueDeletion(std::move(it.second));
         }
 
-        imageViews.EraseAt(idx);
-        weakTextureHandles.EraseAt(idx);
+        subtypeData.imageViews.EraseAt(idx);
+        subtypeData.weakTextureHandles.EraseAt(idx);
     }
 }
 
@@ -162,50 +184,46 @@ void VulkanTextureViewCache::CleanupUnusedTextures()
 
     constexpr uint32 MaxCycles = 32;
 
-    cleanupIterator = typename decltype(weakTextureHandles)::Iterator {
-        &weakTextureHandles,
-        cleanupIterator.page,
-        cleanupIterator.elem
-    };
-
-    if (cleanupIterator == weakTextureHandles.End())
-    {
-        cleanupIterator = weakTextureHandles.Begin();
-    }
-
     uint32 numRemoved = 0;
 
-    for (uint32 i = 0; cleanupIterator != weakTextureHandles.End() && i < MaxCycles; i++)
+    for (auto& subtype : subtypeImpls)
     {
-        auto& entry = *cleanupIterator;
+        auto it = subtype.weakTextureHandles.Begin();
 
-        if (entry.Expired())
+        for (uint32 i = 0; it != subtype.weakTextureHandles.End() && numRemoved < MaxCycles; i++)
         {
-            const size_t idx = weakTextureHandles.IndexOf(cleanupIterator);
-
-            Assert(imageViews.HasIndex(idx));
-            Assert(weakTextureHandles.HasIndex(idx));
-
-            for (auto& it : imageViews.Get(idx))
+            if (it->Expired())
             {
-                EnqueueDeletion(std::move(it.second));
+                const size_t idx = subtype.weakTextureHandles.IndexOf(it);
+
+                Assert(subtype.imageViews.HasIndex(idx));
+
+                for (auto& jt : subtype.imageViews.Get(idx))
+                {
+                    EnqueueDeletion(std::move(jt.second));
+                }
+
+                subtype.imageViews.EraseAt(idx);
+
+                it = subtype.weakTextureHandles.Erase(it);
+
+                ++numRemoved;
+
+                continue;
             }
 
-            imageViews.EraseAt(idx);
-
-            cleanupIterator = weakTextureHandles.Erase(cleanupIterator);
-
-            ++numRemoved;
-
-            continue;
+            ++it;
         }
 
-        ++cleanupIterator;
+        if (numRemoved >= MaxCycles)
+        {
+            break;
+        }
     }
 
     if (numRemoved != 0)
     {
-        HYP_LOG(RenderingBackend, Verbose, "VulkanTextureCache: Cleaned up {} unused textures", numRemoved);
+        HYP_LOG(RenderingBackend, Verbose, "VulkanTextureViewCache: Cleaned up {} unused textures", numRemoved);
     }
 }
 

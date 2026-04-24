@@ -14,6 +14,7 @@
 #undef INCLUDE_FROM_RHI
 #undef INCLUDE_FROM_RHI_BASE
 
+#include <Core/containers/Array.hpp>
 #include <Core/containers/SparsePagedArray.hpp>
 #include <Core/containers/HashMap.hpp>
 
@@ -22,17 +23,15 @@ namespace Hyperion {
 class DX12TextureViewCache final : public TextureViewCacheBase
 {
 public:
-    // map texture ID -> image views
-    SparsePagedArray<HashMap<ImageSubResource, DX12GpuImageViewRef>, 1024> imageViews;
-    // to keep texture IDs as valid
-    SparsePagedArray<WeakHandle<Texture>, 1024> weakTextureHandles;
-
-    typename decltype(weakTextureHandles)::Iterator cleanupIterator;
-
-    DX12TextureViewCache()
+    struct SubtypeData
     {
-        cleanupIterator = weakTextureHandles.End();
-    }
+        SparsePagedArray<HashMap<ImageSubResource, DX12GpuImageViewRef>, 1024> imageViews;
+        SparsePagedArray<WeakHandle<Texture>, 1024> weakTextureHandles;
+    };
+
+    Array<SubtypeData, DynamicAllocator> subtypeImpls;
+
+    DX12TextureViewCache();
 
     ~DX12TextureViewCache() override;
 
@@ -54,6 +53,9 @@ public:
     
     void RemoveTexture(const Texture* texture) override;
     void CleanupUnusedTextures() override;
+
+private:
+    SubtypeData& GetSubtypeData(ObjId<Texture> id);
 };
 
 } // namespace Hyperion

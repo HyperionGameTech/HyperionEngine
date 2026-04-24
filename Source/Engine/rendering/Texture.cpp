@@ -278,9 +278,9 @@ Texture::~Texture()
 
     if (m_gpuImage.IsValid())
     {
-        EnqueueDeletion(std::move(m_gpuImage));
-
         g_renderInterface->textureViewCache->RemoveTexture(this);
+
+        EnqueueDeletion(std::move(m_gpuImage));
     }
 
     FreeBlobData(m_imageData);

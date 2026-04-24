@@ -18,15 +18,33 @@ namespace Hyperion {
 
 extern DX12RenderInterface* g_renderInterface;
 
+DX12TextureViewCache::DX12TextureViewCache()
+{
+    const size_t numSubtypes = GetNumDescendants(TypeId::ForType<Texture>()) + 1;
+    subtypeImpls.Resize(numSubtypes);
+}
+
 DX12TextureViewCache::~DX12TextureViewCache()
 {
-    for (auto& it : imageViews)
+    for (auto& subtype : subtypeImpls)
     {
-        for (auto& jt : it)
+        for (auto& it : subtype.imageViews)
         {
-            EnqueueDeletion(std::move(jt.second));
+            for (auto& jt : it)
+            {
+                EnqueueDeletion(std::move(jt.second));
+            }
         }
     }
+}
+
+DX12TextureViewCache::SubtypeData& DX12TextureViewCache::GetSubtypeData(ObjId<Texture> id)
+{
+    const int classIndex = GetSubclassIndex(TypeId::ForType<Texture>(), id.GetTypeId()) + 1;
+    AssertDebug(classIndex >= 0, "Invalid class index {}", classIndex);
+    AssertDebug(classIndex < int(subtypeImpls.Size()), "Invalid class index {}", classIndex);
+
+    return subtypeImpls[classIndex];
 }
 
 const DX12GpuImageViewRef& DX12TextureViewCache::GetOrCreate(
@@ -73,13 +91,15 @@ const DX12GpuImageViewRef& DX12TextureViewCache::GetOrCreate(
 
     const size_t idx = texture->Id().ToIndex();
 
-    if (!imageViews.HasIndex(idx))
+    SubtypeData& subtypeData = GetSubtypeData(texture->Id());
+
+    if (!subtypeData.imageViews.HasIndex(idx))
     {
-        imageViews.Emplace(idx);
-        weakTextureHandles.Emplace(idx, MakeWeakRef(texture));
+        subtypeData.imageViews.Emplace(idx);
+        subtypeData.weakTextureHandles.Emplace(idx, MakeWeakRef(texture));
     }
 
-    auto& textureImageViews = imageViews.Get(idx);
+    auto& textureImageViews = subtypeData.imageViews.Get(idx);
 
     auto it = textureImageViews.Find(subResource);
 
@@ -110,15 +130,17 @@ void DX12TextureViewCache::RemoveTexture(const Texture* texture)
 
     const size_t idx = texture->Id().ToIndex();
 
-    if (imageViews.HasIndex(idx))
+    SubtypeData& subtypeData = GetSubtypeData(texture->Id());
+
+    if (subtypeData.imageViews.HasIndex(idx))
     {
-        for (auto& it : imageViews.Get(idx))
+        for (auto& it : subtypeData.imageViews.Get(idx))
         {
             EnqueueDeletion(std::move(it.second));
         }
 
-        imageViews.EraseAt(idx);
-        weakTextureHandles.EraseAt(idx);
+        subtypeData.imageViews.EraseAt(idx);
+        subtypeData.weakTextureHandles.EraseAt(idx);
     }
 }
 
@@ -128,45 +150,41 @@ void DX12TextureViewCache::CleanupUnusedTextures()
 
     constexpr uint32 maxCycles = 32;
 
-    cleanupIterator = typename decltype(weakTextureHandles)::Iterator {
-        &weakTextureHandles,
-        cleanupIterator.page,
-        cleanupIterator.elem
-    };
-
-    if (cleanupIterator == weakTextureHandles.End())
-    {
-        cleanupIterator = weakTextureHandles.Begin();
-    }
-
     uint32 numRemoved = 0;
 
-    for (uint32 i = 0; cleanupIterator != weakTextureHandles.End() && i < maxCycles; i++)
+    for (auto& subtype : subtypeImpls)
     {
-        auto& entry = *cleanupIterator;
+        auto it = subtype.weakTextureHandles.Begin();
 
-        if (!entry.Lock())
+        for (uint32 i = 0; it != subtype.weakTextureHandles.End() && numRemoved < maxCycles; i++)
         {
-            const size_t idx = weakTextureHandles.IndexOf(cleanupIterator);
-
-            Assert(imageViews.HasIndex(idx));
-            Assert(weakTextureHandles.HasIndex(idx));
-
-            for (auto& it : imageViews.Get(idx))
+            if (!it->Lock())
             {
-                EnqueueDeletion(std::move(it.second));
+                const size_t idx = subtype.weakTextureHandles.IndexOf(it);
+
+                Assert(subtype.imageViews.HasIndex(idx));
+
+                for (auto& jt : subtype.imageViews.Get(idx))
+                {
+                    EnqueueDeletion(std::move(jt.second));
+                }
+
+                subtype.imageViews.EraseAt(idx);
+
+                it = subtype.weakTextureHandles.Erase(it);
+
+                ++numRemoved;
+
+                continue;
             }
 
-            imageViews.EraseAt(idx);
-
-            cleanupIterator = weakTextureHandles.Erase(cleanupIterator);
-
-            ++numRemoved;
-
-            continue;
+            ++it;
         }
 
-        ++cleanupIterator;
+        if (numRemoved >= maxCycles)
+        {
+            break;
+        }
     }
 
     if (numRemoved != 0)

@@ -26,18 +26,16 @@ class VulkanTextureViewCache final : public TextureViewCacheBase
 public:
     using TextureImageViewMap = HashMap<uint64, VulkanGpuImageViewRef, VulkanAllocator>;
 
-    SharedMutex mutex;
-    // map texture ID -> image views
-    SparsePagedArray<TextureImageViewMap, 32, VulkanAllocator> imageViews;
-    // to keep texture IDs as valid
-    SparsePagedArray<WeakHandle<Texture>, 32, VulkanAllocator> weakTextureHandles;
-
-    typename decltype(weakTextureHandles)::Iterator cleanupIterator;
-
-    VulkanTextureViewCache()
+    struct SubtypeData
     {
-        cleanupIterator = weakTextureHandles.End();
-    }
+        SparsePagedArray<TextureImageViewMap, 32, VulkanAllocator> imageViews;
+        SparsePagedArray<WeakHandle<Texture>, 32, VulkanAllocator> weakTextureHandles;
+    };
+
+    SharedMutex mutex;
+    Array<SubtypeData, VulkanAllocator> subtypeImpls;
+
+    VulkanTextureViewCache();
 
     ~VulkanTextureViewCache() override;
 
@@ -59,6 +57,9 @@ public:
 
     void RemoveTexture(const Texture* texture) override;
     void CleanupUnusedTextures() override;
+
+private:
+    SubtypeData& GetSubtypeData(ObjId<Texture> id);
 };
 
 } // namespace Hyperion
