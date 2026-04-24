@@ -463,7 +463,7 @@ void AssetObject::SetBlobDataResident(bool resident)
     for (auto& tup : tuples)
     {
         const char* magic = tup.GetElement<0>();
-        uint16 version = tup.GetElement<1>();
+        [[maybe_unused]] uint16 version = tup.GetElement<1>();
         BlobDataReference* reference = tup.GetElement<2>();
 
         Assert(reference != nullptr);

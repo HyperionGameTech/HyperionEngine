@@ -151,7 +151,7 @@ void EditorDelegates::Update()
 
     Queue<Scheduler::ScheduledTask> tasks;
 
-    if (uint32 numEnqueued = m_scheduler.NumEnqueued())
+    if (m_scheduler.NumEnqueued() != 0)
     {
         m_scheduler.AcceptAll(tasks);
 

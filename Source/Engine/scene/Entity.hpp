@@ -42,8 +42,6 @@ class HYP_API Entity : public Node
 {
     HYP_OBJECT_BODY(Entity);
 
-    friend class EntityRenderProxySystem_Mesh;
-
 public:
     friend class EntityManager;
     friend class Node;

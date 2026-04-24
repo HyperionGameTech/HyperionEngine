@@ -365,7 +365,14 @@ void TranslateEditorGizmo::OnDragStart(const Handle<Camera>& camera, const Mouse
         return;
     }
 
-    int axis = axisTag.data.TryGet<int>(-1);
+    int axis = -1;
+    axisTag.data.Visit([&axis](auto&& value)
+        {
+            if constexpr (std::is_integral_v<NormalizedType<decltype(value)>>)
+            {
+                axis = static_cast<int>(value);
+            }
+        });
 
     Handle<Node> focusedNode = m_focusedNode.Lock();
 
@@ -940,10 +947,17 @@ void RotateEditorGizmo::OnDragStart(const Handle<Camera>& camera, const MouseEve
     {
         return;
     }
+    
+    int axis = -1;
+    axisTag.data.Visit([&axis](auto&& value)
+        {
+            if constexpr (std::is_integral_v<NormalizedType<decltype(value)>>)
+            {
+                axis = static_cast<int>(value);
+            }
+        });
 
-    const int axisIndex = axisTag.data.TryGet<int>(-1);
-
-    if (axisIndex < 0)
+    if (axis < 0)
     {
         return;
     }
@@ -958,7 +972,7 @@ void RotateEditorGizmo::OnDragStart(const Handle<Camera>& camera, const MouseEve
     DragData dragData {};
 
     dragData.axis = Vec3f::Zero();
-    dragData.axis[axisIndex] = 1.0f;
+    dragData.axis[axis] = 1.0f;
     dragData.axis = (focusedNode->GetWorldRotation() * dragData.axis).Normalize();
 
     dragData.planePoint = m_node->GetWorldTranslation();

@@ -800,8 +800,6 @@ struct Win32WindowRegistry
 
 } // namespace
 
-static constexpr const wchar_t* WindowClassName = L"HyperionRenderWindow";
-
 void Win32_RegisterWindowClass(const WideString& className)
 {
     Win32WindowRegistry::GetInstance().Register(className);

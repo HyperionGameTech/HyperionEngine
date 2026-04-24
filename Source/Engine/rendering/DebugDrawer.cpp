@@ -674,7 +674,6 @@ void DebugDrawer::Render(Frame* frame, const RenderSetup& renderSetup)
     const uint32 frameIndex = frame->GetFrameIndex();
 
     GpuBufferRef& instanceBuffer = m_instanceBuffers[frameIndex];
-    bool wasInstanceBufferRebuilt = false;
 
     if (!instanceBuffer || m_headers[idx].Size() * sizeof(ImmediateDrawShaderData) > instanceBuffer->Size())
     {

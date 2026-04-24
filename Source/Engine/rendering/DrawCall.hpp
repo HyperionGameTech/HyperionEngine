@@ -321,7 +321,9 @@ struct DrawCallCollection
     RenderableAttributeSet attributes;
     EnumFlags<RenderGroupFlags> flags = {};
     ParallelRenderingState* parallelRenderingState = nullptr;
-    bool isInit = false;
+    
+    bool isInit : 1 = false;
+    bool suppressStats : 1 = false;
 
     // map entity id to mesh proxy
     IndirectRenderer* indirectRenderer = nullptr;

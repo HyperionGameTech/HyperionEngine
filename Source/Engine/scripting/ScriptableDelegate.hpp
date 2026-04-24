@@ -31,7 +31,7 @@ namespace functional {
 
 HYP_API void LogScriptableDelegateError(const char* message, dotnet::ManagedObject* objectPtr);
 
-class IScriptableDelegate : public virtual IDelegate
+class IScriptableDelegate
 {
 public:
     virtual ~IScriptableDelegate() = default;
@@ -42,6 +42,10 @@ public:
 #ifdef HYP_DOTNET
     virtual HYP_NODISCARD DelegateHandler BindMethod(ANSIStringView methodName, UniquePtr<dotnet::ManagedObject>&& object) = 0;
 #endif
+
+    virtual int RemoveAllDetached() = 0;
+
+    virtual bool Remove(DelegateHandler&& handle) = 0;
 };
 
 class ScriptableDelegateHelper
@@ -151,7 +155,7 @@ public:
  *  \tparam ReturnType The return type of the delegate.
  *  \tparam Args The argument types of the delegate.*/
 template <class ReturnType, class... Args>
-class ScriptableDelegate final : public IScriptableDelegate, public virtual Delegate<ReturnType, Args...>
+class ScriptableDelegate final : public IScriptableDelegate, public Delegate<ReturnType, Args...>
 {
 public:
     using ProcType = Proc<ReturnType(Args...)>;
@@ -321,7 +325,17 @@ public:
                 return object->InvokeMethodByName<ReturnType>(methodName, std::forward<ArgTypes>(args)...);
             });
     }
-#endif
+#endif // HYP_DOTNET
+
+    virtual int RemoveAllDetached() override
+    {
+        return Delegate<ReturnType, Args...>::RemoveAllDetached();
+    }
+
+    virtual bool Remove(DelegateHandler&& handle) override
+    {
+        return Delegate<ReturnType, Args...>::Remove(std::move(handle));
+    }
 
     /*! \brief Call operator overload - alias method for Broadcast().
      *  \tparam ArgTypes The argument types to pass to the handlers.

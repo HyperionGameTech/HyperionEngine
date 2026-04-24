@@ -1030,10 +1030,7 @@ bool Node::TestRay(const Ray& ray, RayTestResults& outResults, EnumFlags<RayTest
                     }
                 }
 
-                if (TransformComponent* transformComponent = entity->TryGetComponent<TransformComponent>())
-                {
-                    modelMatrix = entity->GetWorldMatrix();
-                }
+                modelMatrix = entity->GetWorldMatrix();
             }
 
             if (bvh)

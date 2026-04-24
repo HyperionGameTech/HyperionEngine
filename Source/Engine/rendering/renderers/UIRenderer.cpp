@@ -138,6 +138,7 @@ static void BuildRenderGroupsOrdered(
             drawCallCollection.batchAllocator = renderCollector.batchAllocator;
 
             drawCallCollection.isInit = true;
+            drawCallCollection.suppressStats = true;
         }
 
         drawCallCollection.meshProxies.Set(meshProxy->entity.Id().ToIndex(), meshProxy);

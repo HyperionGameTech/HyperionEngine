@@ -878,8 +878,11 @@ static void RenderAll(
 
         prevMesh = meshProxy.mesh;
 
-        g_statDrawCalls++;
-        g_statTriangles += meshProxy.numIndices / 3;
+        if (!drawCallCollection.suppressStats)
+        {
+            g_statDrawCalls++;
+            g_statTriangles += meshProxy.numIndices / 3;
+        }
     }
 
     const InstancedDrawCallStorage& instancedDrawCalls = drawCallCollection.instancedDrawCalls;
@@ -966,8 +969,11 @@ static void RenderAll(
         prevMesh = meshProxy.mesh;
             
         // @NOTE For indirect rendering we would need to read back the number of drawn instances from the GPU to get correct stats.
-        g_statInstancedDrawCalls += entityInstanceBatch->numEntities;
-        g_statTriangles += meshProxy.numIndices / 3;
+        if (!drawCallCollection.suppressStats)
+        {
+            g_statInstancedDrawCalls += entityInstanceBatch->numEntities;
+            g_statTriangles += meshProxy.numIndices / 3;
+        }
     }
 }
 

@@ -45,8 +45,6 @@ using threading::ThreadSleep;
 
 namespace functional {
 
-class IDelegate;
-
 template <class ReturnType, class... Args>
 class Delegate;
 
@@ -235,17 +233,6 @@ struct DelegateHandler
 
         return false;
     }
-};
-
-class IDelegate
-{
-public:
-    virtual ~IDelegate() = default;
-
-    virtual bool AnyBound() const = 0;
-
-    virtual bool Remove(DelegateHandler&& handler) = 0;
-    virtual int RemoveAllDetached() = 0;
 };
 
 /*! \brief A Delegate object that can be used to bind handler functions to be called when a broadcast is sent.
@@ -767,7 +754,7 @@ protected:
 };
 
 template <class ReturnType, class... Args>
-class Delegate : public virtual IDelegate
+class Delegate
 {
 public:
     friend class DelegateHandlerSet;
@@ -788,7 +775,7 @@ public:
 
     Delegate& operator=(Delegate&& other) noexcept = delete;
 
-    virtual ~Delegate() override
+    ~Delegate()
     {
         // Ensure that the delegate is not being used by any threads before deleting it
         TUniqueLock guard(m_mtx);
@@ -811,7 +798,7 @@ public:
         return Delegate::AnyBound();
     }
 
-    virtual bool AnyBound() const override final
+    bool AnyBound() const
     {
         TSharedLock guard(m_mtx);
 
@@ -883,7 +870,7 @@ public:
     /*! \brief Remove all detached handlers from the Delegate.
      *  \note Only detached handlers are removed, as removing bound handlers would cause them to hold dangling pointers.
      *  \return The number of handlers removed. */
-    int RemoveAllDetached() override
+    int RemoveAllDetached()
     {
         TSharedLock guard(m_mtx);
 
@@ -895,7 +882,7 @@ public:
         return m_impl->RemoveAllDetached();
     }
 
-    bool Remove(DelegateHandler&& handle) override
+    bool Remove(DelegateHandler&& handle)
     {
         TSharedLock guard(m_mtx);
 
@@ -1064,7 +1051,6 @@ inline constexpr bool IsDelegateV = IsDelegate<T>::value;
 using functional::Delegate;
 using functional::DelegateHandler;
 using functional::DelegateHandlerSet;
-using functional::IDelegate;
 using functional::IsDelegate;
 using functional::IsDelegateV;
 
