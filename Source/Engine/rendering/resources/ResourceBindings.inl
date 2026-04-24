@@ -87,6 +87,10 @@ static ResourceBindingAllocator<MaxBoundSkeletons> s_skeletonBindingsAllocator;
 static ResourceBinder<Skeleton> s_skeletonBinder { &s_skeletonBindingsAllocator };
 ResourceBinderBase* g_skeletonBinder = &s_skeletonBinder;
 
+static ResourceBindingAllocator<MaxBoundSprites> s_spriteBindingsAllocator;
+static ResourceBinder<Sprite> s_spriteBinder { &s_spriteBindingsAllocator };
+ResourceBinderBase* g_spriteBinder = &s_spriteBinder;
+
 static ResourceBinderBase* s_resourceBinders[] = {
     &s_meshEntityBinder,
     &s_meshBinder,
@@ -100,5 +104,6 @@ static ResourceBinderBase* s_resourceBinders[] = {
     &s_fogVolumeBinder,
     &s_materialBinder,
     &s_textureBinder,
-    &s_skeletonBinder
+    &s_skeletonBinder,
+    &s_spriteBinder
 };

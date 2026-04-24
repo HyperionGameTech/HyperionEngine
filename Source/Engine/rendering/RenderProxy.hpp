@@ -35,6 +35,7 @@ class EnvProbe;
 class EnvGrid;
 class ShadowMap;
 class InstancedMeshData;
+class Sprite;
 
 enum AtlasTextureType : uint32;
 
@@ -368,6 +369,27 @@ public:
     WeakHandle<Camera> camera;
     CameraShaderData bufferData {};
     Frustum viewFrustum;
+};
+
+struct alignas(16) SpriteShaderData
+{
+    Vec4f positionSize;
+    Vec4f color;
+
+    uint32 spriteType;
+    float opacity;
+    uint32 textureIndex;
+    uint32 alwaysFaceCamera;
+
+    Vec4f _pad0;
+};
+
+class RenderProxySprite final : public IRenderProxy
+{
+public:
+    WeakHandle<class Sprite> sprite;
+    Texture* texture = nullptr;
+    SpriteShaderData bufferData {};
 };
 
 struct ProbeRayData

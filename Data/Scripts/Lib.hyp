@@ -2218,6 +2218,18 @@ extern enum EnvProbeFlags : uint32
     EPF_PARALLAX_CORRECTED = 0x1,
     EPF_BAKED = 0x2
 end
+extern class Sprite : Entity
+end
+extern enum SpriteType : uint32
+    None = 0,
+    Point2D,
+    Spot3D,
+    Crosshair,
+    EnvProbe,
+    LightmapVolume,
+    Camera,
+    Max
+end
 extern class Light : Entity
     GetLightType() -> LightType
     GetLightFlags() -> LightFlags

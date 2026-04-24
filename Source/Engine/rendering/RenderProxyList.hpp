@@ -37,6 +37,7 @@ class FogVolume;
 class MaterialInstance;
 class Texture;
 class Skeleton;
+class Sprite;
 
 struct RenderProxyCamera;
 struct RenderProxyMesh;
@@ -48,6 +49,7 @@ struct RenderProxyParticleVolume;
 struct RenderProxyFogVolume;
 struct RenderProxyMaterial;
 struct RenderProxySkeleton;
+struct RenderProxySprite;
 
 HYP_MAKE_HAS_METHOD(UpdateRenderProxy);
 
@@ -79,7 +81,8 @@ public:
         FogVolume,
         MaterialInstance,
         Skeleton,
-        Texture>;
+        Texture,
+        Sprite>;
 
     using ResourceTrackerTypes = Tuple<
         ResourceTracker<AllocatorType, ObjId<Entity>, Entity*, RenderProxyMesh>,
@@ -93,7 +96,8 @@ public:
         ResourceTracker<AllocatorType, ObjId<FogVolume>, FogVolume*, RenderProxyFogVolume>,
         ResourceTracker<AllocatorType, ObjId<MaterialInstance>, MaterialInstance*, RenderProxyMaterial>,
         ResourceTracker<AllocatorType, ObjId<Skeleton>, Skeleton*, RenderProxySkeleton>,
-        ResourceTracker<AllocatorType, ObjId<Texture>, Texture*>>;
+        ResourceTracker<AllocatorType, ObjId<Texture>, Texture*>,
+        ResourceTracker<AllocatorType, ObjId<Sprite>, Sprite*, RenderProxySprite>>;
 
     static_assert(TupleSize<ResourceTrackerTypes>::value == TupleSize<TrackedResourceTypes>::value, "Tuple sizes must match");
 
@@ -176,6 +180,7 @@ public:
     DEF_RESOURCE_TRACKER_GETTER(Materials, MaterialInstance);
     DEF_RESOURCE_TRACKER_GETTER(Skeletons, Skeleton);
     DEF_RESOURCE_TRACKER_GETTER(Textures, Texture);
+    DEF_RESOURCE_TRACKER_GETTER(Sprites, Sprite);
 
 #undef DEF_RESOURCE_TRACKER_GETTER
 

@@ -28,15 +28,16 @@ class Class;
     X(Worlds,               10)      \
     X(Scenes,               11)      \
     X(Nodes,                12)      \
-    X(Entities,             13)      \
+    X(Entities,             13)     \
     X(Bones,                14)      \
     X(EnvProbes,            15)      \
     X(LightmapVolumes,      16)      \
-    X(Shaders,              17)      \
-    X(ShaderBundles,        18)      \
+    X(Shaders,              17)     \
+    X(ShaderBundles,        18)     \
     X(FontAtlases,          19)      \
     X(PhysicsShapes,        20)      \
-    X(Scripts,              21)
+    X(Scripts,              21)      \
+    X(Sprites,              22)
 
 const char* GetAssetBucketName(const uint32 bucketIndex);
 

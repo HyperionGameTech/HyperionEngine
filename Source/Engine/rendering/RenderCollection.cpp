@@ -45,6 +45,7 @@
 #include <scene/FogVolume.hpp>
 #include <scene/ParticleVolume.hpp>
 #include <scene/LightmapVolume.hpp>
+#include <scene/Sprite.hpp>
 
 #include <scene/camera/Camera.hpp>
 

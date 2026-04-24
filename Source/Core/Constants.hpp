@@ -50,6 +50,7 @@ constexpr uint32 MaxBoundCameras = 1024;
 constexpr uint32 MaxBoundLights = 1024;
 constexpr uint32 MaxBoundEntities = 1u << 15; // 32768
 constexpr uint32 MaxBoundMaterials = 1u << 10; // 1024
+constexpr uint32 MaxBoundSprites = 1u << 14; // 16384
 constexpr uint32 MaxBoundSkeletons = 64;
 constexpr uint32 MaxBoundEnvProbes = 256;
 constexpr uint32 MaxBoundReflectionProbes = 16;

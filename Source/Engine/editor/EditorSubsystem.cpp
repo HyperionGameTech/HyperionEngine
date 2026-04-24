@@ -36,6 +36,7 @@
 
 #include <scene/LightmapVolume.hpp>
 #include <scene/Volume.hpp>
+#include <scene/Sprite.hpp>
 
 #include <asset/Assets.hpp>
 #include <asset/AssetRegistry.hpp>

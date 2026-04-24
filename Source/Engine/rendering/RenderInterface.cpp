@@ -67,6 +67,7 @@
 #include <scene/ParticleVolume.hpp>
 #include <scene/FogVolume.hpp>
 #include <scene/LightmapVolume.hpp>
+#include <scene/Sprite.hpp>
 
 #include <scene/animation/Skeleton.hpp>
 
@@ -1988,6 +1989,8 @@ DECLARE_RENDER_DATA_CONTAINER(LightmapVolume, RenderProxyLightmapVolume, NamedBu
 
 DECLARE_RENDER_DATA_CONTAINER(ParticleVolume, RenderProxyParticleVolume, NamedBuffer::Invalid, nullptr, &s_particleVolumeBinder);
 DECLARE_RENDER_DATA_CONTAINER(FogVolume, RenderProxyFogVolume, NamedBuffer::Invalid, nullptr, &s_fogVolumeBinder);
+
+DECLARE_RENDER_DATA_CONTAINER(Sprite, RenderProxySprite, NamedBuffer::Invalid, nullptr, &s_spriteBinder);
 
 DECLARE_RENDER_DATA_CONTAINER(MaterialInstance, RenderProxyMaterial, NamedBuffer::Materials, nullptr, &s_materialBinder);
 
