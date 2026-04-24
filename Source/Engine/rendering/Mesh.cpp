@@ -164,22 +164,27 @@ void Mesh::SetIndexData(Span<const ubyte> indexData)
 
 void Mesh::PageBlobData()
 {
+    if (IsTransient() || !IsRegistered())
+    {
+        return;
+    }
+
+    Handle<AssetRegistry> registry = GetAssetRegistry();
+    AssertDebug(registry.IsValid());
+
+    if (!registry.IsValid())
+    {
+        return;
+    }
+
+    bool needsSaveBlobData = false;
+
+    BlobStorage* blobStorage = registry->HasBlobStorage() ? &registry->GetBlobStorage() : nullptr;
+
     if (m_vertexData.raw == nullptr
         && m_vertexData.key
         && m_vertexData.size != 0)
     {
-        Handle<AssetRegistry> registry = GetAssetRegistry();
-        AssertDebug(registry.IsValid());
-
-        if (!registry.IsValid())
-        {
-            return;
-        }
-
-        bool needsSaveBlobData = false;
-
-        BlobStorage* blobStorage = registry->HasBlobStorage() ? &registry->GetBlobStorage() : nullptr;
-
         if (!blobStorage || !blobStorage->GetData(m_vertexData.key, m_vertexData.size, m_vertexData.raw))
         {
             ([&]()
@@ -238,54 +243,57 @@ void Mesh::PageBlobData()
         {
             m_indexData.readOnly = true;
         }
-
-        if (m_bvhData.raw == nullptr && m_bvhData.key && m_bvhData.size != 0)
+    }
+    
+    // Keep BVH data separate from vertex and index data because it is mutually exclusive from them
+    if (m_bvhData.raw == nullptr
+        && m_bvhData.key
+        && m_bvhData.size != 0)
+    {
+        if (!blobStorage || !blobStorage->GetData(m_bvhData.key, m_bvhData.size, m_bvhData.raw))
         {
-            if (!blobStorage || !blobStorage->GetData(m_bvhData.key, m_bvhData.size, m_bvhData.raw))
-            {
-                ([&]()
-                    {
+            ([&]()
+                {
 #if HYP_EDITOR || HYP_ALLOW_INLINE_BLOBS
-                        FileByteReader stream { registry->GetRootPath() / AssetBuckets::Meshes.GetName() / (String(*GetName()) + ".BVH.raw.blob") };
-                        if (!stream.Eof())
-                        {
-                            ByteBuffer buffer = stream.Read(stream.Max());
+                    FileByteReader stream { registry->GetRootPath() / AssetBuckets::Meshes.GetName() / (String(*GetName()) + ".BVH.raw.blob") };
+                    if (!stream.Eof())
+                    {
+                        ByteBuffer buffer = stream.Read(stream.Max());
 
-                            AllocateBlobData(m_bvhData, buffer.Data(), buffer.Size(), alignof(uint32));
+                        AllocateBlobData(m_bvhData, buffer.Data(), buffer.Size(), alignof(uint32));
 
-                            needsSaveBlobData = true;
+                        needsSaveBlobData = true;
 
-                            MarkDirty();
+                        MarkDirty();
 
-                            return;
-                        }
+                        return;
+                    }
 #endif
                         
-                        HYP_FAIL("Blob data missing! Data corruption detected.");
-                    })();
-            }
-            else
-            {
-                m_bvhData.readOnly = true;
-            }
-
-            if (m_bvhData.raw != nullptr)
-            {
-                BVHNode::Deserialize(m_bvh, m_bvhData.raw, m_bvhData.size);
-            }
+                    HYP_FAIL("Blob data missing! Data corruption detected.");
+                })();
         }
+        else
+        {
+            m_bvhData.readOnly = true;
+        }
+
+        if (m_bvhData.raw != nullptr)
+        {
+            BVHNode::Deserialize(m_bvh, m_bvhData.raw, m_bvhData.size);
+        }
+    }
 
 #if HYP_EDITOR
-        if (needsSaveBlobData)
+    if (needsSaveBlobData)
+    {
+        Result saveBlobDataResult = SaveBlobData(blobStorage);
+        if (saveBlobDataResult.HasError())
         {
-            Result saveBlobDataResult = SaveBlobData(blobStorage);
-            if (saveBlobDataResult.HasError())
-            {
-                HYP_LOG(Assets, Error, "Failed to save local blob data: {}", saveBlobDataResult.GetError().GetMessage());
-            }
+            HYP_LOG(Assets, Error, "Failed to save local blob data: {}", saveBlobDataResult.GetError().GetMessage());
         }
-#endif
     }
+#endif
 }
 
 void Mesh::UnpageBlobData()

@@ -97,7 +97,15 @@ void BindlessStorage::RemoveResource(BindlessStorageSlot slot, uint32 index)
         const DescriptorSetRef& descriptorSet = g_renderInterface->globalDescriptorTable->GetDescriptorSet(BindlessStorageSlotNames[slot], frameIndex);
         AssertDebug(descriptorSet.IsValid());
 
-        descriptorSet->DeleteElement(BindlessStorageDescriptorNames[slot], index);
+        if (slot == BindlessStorage_Textures)
+        {
+            GpuImageView* placeholder_view = g_renderInterface->placeholderData->GetImageView2D1x1R8();
+            descriptorSet->SetElement(BindlessStorageDescriptorNames[slot], index, placeholder_view);
+        }
+        else
+        {
+            descriptorSet->DeleteElement(BindlessStorageDescriptorNames[slot], index);
+        }
     }
 
     resources.EraseAt(index);

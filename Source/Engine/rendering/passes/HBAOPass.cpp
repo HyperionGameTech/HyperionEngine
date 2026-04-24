@@ -97,14 +97,6 @@ void HBAO::Render(Frame* frame, const RenderSetup& renderSetup)
         m_cbuffer->Flush(0, sizeof(constants));
     }
 
-    Begin(frame, renderSetup);
-
-    DeferredRendererPassData* dpd = DynamicCast<DeferredRendererPassData>(renderSetup.passData);
-    AssertDebug(dpd != nullptr);
-
-    const FramebufferRef& inputsFramebuffer = dpd->view.GetUnsafe()->GetOutputTarget().GetFramebuffer(RenderBucket::Opaque);
-    AssertDebug(inputsFramebuffer.IsValid());
-
     ShaderPropertySet shaderProperties;
 
     if (ShouldRenderHalfRes())
@@ -112,7 +104,15 @@ void HBAO::Render(Frame* frame, const RenderSetup& renderSetup)
         shaderProperties.Add(s_propHalfRes);
     }
 
-    cr << SetCurrentShader(ShaderDesc(NAME("HBAO"), shaderProperties));
+    m_shaderDesc = ShaderDesc(NAME("HBAO"), shaderProperties);
+
+    Begin(frame, renderSetup);
+
+    DeferredRendererPassData* dpd = DynamicCast<DeferredRendererPassData>(renderSetup.passData);
+    AssertDebug(dpd != nullptr);
+
+    const FramebufferRef& inputsFramebuffer = dpd->view.GetUnsafe()->GetOutputTarget().GetFramebuffer(RenderBucket::Opaque);
+    AssertDebug(inputsFramebuffer.IsValid());
 
     uint32 numShaderUniforms = 0;
 

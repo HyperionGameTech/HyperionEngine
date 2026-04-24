@@ -27,7 +27,6 @@ VSOutput VSMain(VSInput input)
 
     output.position = position.xyz;
     output.texcoord = input.a_texcoord0;
-
     output.position_cs = position;
 
     return output;
@@ -50,6 +49,7 @@ struct PSOutput
 };
 
 DECLARE_SRV(Tonemap, DeferredResult) Texture2D DeferredResult;
+DECLARE_SRV(Tonemap, BloomResultTexture) Texture2D BloomResultTexture;
 
 DECLARE_SAMPLER(Tonemap, SamplerNearest) SamplerState sampler_nearest;
 DECLARE_SAMPLER(Tonemap, SamplerLinear) SamplerState sampler_linear;
@@ -63,8 +63,11 @@ PSOutput PSMain(PSInput input)
     float2 texcoord = input.texcoord;
 
     float4 shaded_result = SAMPLE_TEXTURE_2D(sampler_linear, DeferredResult, texcoord);
+    float4 bloom_result = SAMPLE_TEXTURE_2D(sampler_linear, BloomResultTexture, texcoord);
 
-    float4 color_output = float4(Tonemap(shaded_result.rgb), 1.0);
+    float4 color_with_bloom = shaded_result + bloom_result;
+
+    float4 color_output = float4(Tonemap(color_with_bloom.rgb), 1.0);
 
 #ifdef OUTPUT_PQ_HDR
     const float peakNits = 1000.0;

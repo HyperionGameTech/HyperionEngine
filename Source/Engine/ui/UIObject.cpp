@@ -79,10 +79,10 @@ const Handle<Mesh>& UIObjectQuadMeshHelper::GetQuadMesh()
         {
             quad = MeshBuilder::Quad();
             quad->SetFlags(MeshFlags::ViewIndependent);
+            quad->SetName(NAME("UIObject_QuadMesh"));
+            quad->SetIsTransient(true);
 
             // Hack to make vertices be from 0..1 rather than -1..1
-
-            auto readScope = quad->GetReadScope();
 
             VertexArrayView vd = quad->GetVertexData();
             ByteView id = quad->GetIndexData();
@@ -106,17 +106,16 @@ const Handle<Mesh>& UIObjectQuadMeshHelper::GetQuadMesh()
                 vert.posY = (vert.posY + 1.0f) * 0.5f;
             }
 
-            readScope.Reset();
-
             VertexArrayView vertexArrayView {};
             vertexArrayView.floatData = reinterpret_cast<const float*>(newVertices.Data());
             vertexArrayView.vertexCount = newVertices.Size();
             vertexArrayView.layoutDesc = { VT_Simple };
 
             quad->SetMeshData(meshDesc, vertexArrayView, indexData);
-            quad->SetName(NAME("UIObject_QuadMesh"));
 
             InitObject(quad);
+
+            GetEngineAssetRegistry()->PutAsset(quad);
 
             // clean up on engine shutdown
             onShutdownHandle = g_engineDriver->GetDelegates().OnShutdown.Bind([q = &quad]()

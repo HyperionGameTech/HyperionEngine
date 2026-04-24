@@ -20,6 +20,7 @@
 #include <rendering/passes/SSRPass.hpp>
 #include <rendering/SSGI.hpp>
 #include <rendering/passes/HBAOPass.hpp>
+#include <rendering/passes/BloomPass.hpp>
 #include <rendering/DepthOfField.hpp>
 #include <rendering/Mesh.hpp>
 #include <rendering/MaterialInstance.hpp>
@@ -165,6 +166,7 @@ CVar<bool> cvSSGI { "Rendering.SSGI", true };
 CVar<bool> cvSSR { "Rendering.SSR", true, "Rendering.SSR.Enabled" };
 CVar<bool> cvTAA { "Rendering.TAA", true };
 CVar<bool> cvHBAO { "Rendering.HBAO", true, "Rendering.HBAO.Enabled" };
+CVar<bool> cvBloom { "Rendering.Bloom", true, "Rendering.Bloom.Enabled" };
 CVar<bool> cvEnableLightmapVolumes { "Rendering.LightmapVolumes", true };
 CVar<bool> cvClusteredShading { "Rendering.ClusteredShading", true };
 CVar<float> cvTonemapExposure { "Rendering.Tonemap.Exposure", 1.8f };
@@ -812,6 +814,15 @@ void TonemapPass::Render(Frame* frame, const RenderSetup& rs)
 
     cr << SetShaderUniform(numShaderUniforms++, "SamplerNearest"_sh, g_renderInterface->placeholderData->GetSamplerNearest());
     cr << SetShaderUniform(numShaderUniforms++, "SamplerLinear"_sh, g_renderInterface->placeholderData->GetSamplerLinear());
+
+    if (cvBloom.Get() && dpd->bloomPass)
+    {
+        cr << SetShaderUniform(numShaderUniforms++, "BloomResultTexture"_sh, g_renderInterface->textureViewCache->GetOrCreate(dpd->bloomPass->GetBloomResult()));
+    }
+    else
+    {
+        cr << SetShaderUniform(numShaderUniforms++, "BloomResultTexture"_sh, g_renderInterface->placeholderData->GetImageView2D1x1R8());
+    }
 
     if (dpd->rayTracingReflections)
     {
@@ -2040,6 +2051,9 @@ PassData* DeferredRenderer::CreateViewPassData(View* view, PassDataExt&)
         passData.ssgi = MakeUnique<SSGI>(gbuffer);
         passData.ssgi->Create();
 
+        passData.bloomPass = MakeUnique<BloomPass>(gbuffer->GetExtent(), gbuffer);
+        passData.bloomPass->Create();
+
         passData.postProcessing = MakeUnique<PostProcessing>();
         passData.postProcessing->Create();
 
@@ -2204,6 +2218,10 @@ void DeferredRenderer::ResizeView(Viewport viewport, View* view, DeferredRendere
     passData.ssgi.Reset();
     passData.ssgi = MakeUnique<SSGI>(gbuffer);
     passData.ssgi->Create();
+
+    passData.bloomPass.Reset();
+    passData.bloomPass = MakeUnique<BloomPass>(viewport.extent, gbuffer);
+    passData.bloomPass->Create();
 
     passData.reflectionsPass.Reset();
     passData.reflectionsPass = MakeUnique<ReflectionsPass>(
@@ -2709,7 +2727,6 @@ void DeferredRenderer::RenderFrameForView(Frame* frame, const RenderSetup& rs)
 
         if (Texture* ssrResultTexture = passData.reflectionsPass->ssrPass->GetFinalResultTexture())
         {
-            // make sure it is in a state for reading, we don't want any transitions between lightmap -> deferred indirect pass.
             frame->cr << InsertBarrier(
                 ssrResultTexture->GetGpuImage(),
                 RS_SHADER_RESOURCE,
@@ -2829,6 +2846,11 @@ void DeferredRenderer::RenderFrameForView(Frame* frame, const RenderSetup& rs)
         }
 
         frame->cr << SetCurrentFramebuffer(nullptr);
+    }
+
+    if (cvBloom.Get())
+    {
+        passData.bloomPass->Render(frame, rs);
     }
 
     // debug draw

@@ -372,9 +372,6 @@ void Baker<LightmapVolume>::OnCompleted_Internal()
             vertexArrayView.layoutDesc = newMeshDesc.meshAttributes.inputLayout;
             vertexArrayView.vertexCount = bakeMesh.vertices.Size();
 
-            // Currently seeing issue with `raw` ptr null on bvh - this assertion can be removed when that is fixed.
-            AssertDebug(mesh->GetBVHDataReference().raw != nullptr);
-
             mesh->SetMeshData(newMeshDesc, vertexArrayView, bakeMesh.indices.ToByteView());
         };
 

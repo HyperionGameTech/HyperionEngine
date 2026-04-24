@@ -692,7 +692,7 @@ void FullScreenPass::Begin(Frame* frame, const RenderSetup& renderSetup)
 
     cr << SetInputLayout(StaticVertexInputLayout<VT_Simple>);
     cr << SetTopology(TOP_TRIANGLES);
-    
+
     cr << SetCurrentShader(m_shaderDesc);
 
     cr << SetDepthTest(false);

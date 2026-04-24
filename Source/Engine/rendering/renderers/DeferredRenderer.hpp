@@ -36,6 +36,7 @@ class FullScreenPass;
 class TAAPass;
 class PostProcessing;
 class HBAO;
+class BloomPass;
 class SSAO;
 class DOFBlur;
 class Texture;
@@ -301,6 +302,7 @@ public:
     UniquePtr<PostProcessing> postProcessing;
     UniquePtr<TAAPass> taaPass;
     UniquePtr<SSGI> ssgi;
+    UniquePtr<BloomPass> bloomPass;
     UniquePtr<DepthPyramidRenderer> depthPyramidRenderer;
     UniquePtr<DOFBlur> dofBlur;
 

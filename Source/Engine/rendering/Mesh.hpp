@@ -221,7 +221,6 @@ protected:
 
         if (m_bvhData.size != 0)
         {
-            AssertDebug(m_bvhData.raw != nullptr);
             outReferences.EmplaceBack("BVH", 1, &m_bvhData);
         }
     }
