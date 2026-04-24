@@ -1490,6 +1490,8 @@ DeferredRendererPassData::~DeferredRendererPassData()
 
     ssgi.Reset();
 
+    bloomPass.Reset();
+
     postProcessing->Destroy();
     postProcessing.Reset();
 

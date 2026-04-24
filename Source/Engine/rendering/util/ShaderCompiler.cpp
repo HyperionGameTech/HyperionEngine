@@ -387,6 +387,40 @@ static String ShaderPropertyValueToString(const ShaderProperty::Value& v)
     return str;
 }
 
+static bool AreShaderPropertyValuesEquivalent(const ShaderProperty::Value& a, const ShaderProperty::Value& b)
+{
+    if (a.Is<int>() && b.Is<int>())
+    {
+        return a.GetUnchecked<int>() == b.GetUnchecked<int>();
+    }
+
+    if (a.Is<float>() && b.Is<float>())
+    {
+        return a.GetUnchecked<float>() == b.GetUnchecked<float>();
+    }
+
+    if (a.Is<int>() && b.Is<float>())
+    {
+        const int intVal = a.GetUnchecked<int>();
+        const float floatVal = b.GetUnchecked<float>();
+        return float(intVal) == floatVal && MathUtil::Fract(floatVal) == 0.0f;
+    }
+
+    if (a.Is<float>() && b.Is<int>())
+    {
+        const float floatVal = a.GetUnchecked<float>();
+        const int intVal = b.GetUnchecked<int>();
+        return floatVal == float(intVal) && MathUtil::Fract(floatVal) == 0.0f;
+    }
+
+    if (a.Is<Name>() && b.Is<Name>())
+    {
+        return a.GetUnchecked<Name>() == b.GetUnchecked<Name>();
+    }
+
+    return false;
+}
+
 void MergeGlobalShaderProperties(ShaderPropertySet& out)
 {
 #if HYP_VULKAN
@@ -1452,7 +1486,7 @@ static bool IsShaderRequestCoveredByPerms(
 
             if (bundleIt->IsStatic())
             {
-                if (bundleIt->currentValue == requested.currentValue)
+                if (AreShaderPropertyValuesEquivalent(bundleIt->currentValue, requested.currentValue))
                 {
                     // match, ok
                     continue;
@@ -1475,7 +1509,7 @@ static bool IsShaderRequestCoveredByPerms(
                 const bool found = bundleIt->enumValues.FindIf(
                                        [&requested](const ShaderProperty::Value& v)
                                        {
-                                           return v == requested.currentValue;
+                                           return AreShaderPropertyValuesEquivalent(v, requested.currentValue);
                                        })
                     != bundleIt->enumValues.End();
 

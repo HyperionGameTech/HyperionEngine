@@ -10,6 +10,7 @@
 #include <rendering/ShaderManager.hpp>
 #include <rendering/PlaceholderData.hpp>
 #include <rendering/GraphicsPipelineCache.hpp>
+#include <rendering/SamplerCache.hpp>
 #include <rendering/RenderInterface.hpp>
 #include <rendering/RenderObject.hpp>
 #include <rendering/Frame.hpp>
@@ -72,7 +73,8 @@ CVar<float> cvBloomIntensity { "Rendering.BloomIntensity", 1.0f, "Rendering.Bloo
 CVar<float> cvBloomSoftKnee { "Rendering.BloomSoftKnee", 0.5f, "Rendering.Bloom.SoftKnee" };
 
 BloomPass::BloomPass(Vec2u extent, GBuffer* gbuffer)
-    : FullScreenPass(TextureFormat::RGBA16F, extent, gbuffer)
+    : FullScreenPass(TextureFormat::RGBA16F, extent, gbuffer),
+      m_samplerClampToEdge(g_renderInterface->samplerCache->GetOrCreate(SamplerDesc { TFM_LINEAR, TFM_LINEAR, TWM_CLAMP_TO_EDGE }))
 {
 }
 
@@ -260,7 +262,7 @@ void BloomPass::ExtractBrightAreas(Frame* frame, const RenderSetup& renderSetup,
 
     cr << SetShaderUniform(numShaderUniforms++, "DeferredShadingTexture"_sh, dpd->deferredShadingFramebuffer->GetAttachment(0)->GetImageView());
 
-    cr << SetShaderUniform(numShaderUniforms++, "SamplerLinear"_sh, g_renderInterface->placeholderData->GetSamplerLinear());
+    cr << SetShaderUniform(numShaderUniforms++, "SamplerLinear"_sh, m_samplerClampToEdge);
     cr << SetShaderUniform(numShaderUniforms++, "SamplerNearest"_sh, g_renderInterface->placeholderData->GetSamplerNearest());
 
     cr << DispatchCompute(Vec3u { numGroups.x, numGroups.y, 1 });
@@ -300,7 +302,7 @@ void BloomPass::Downsample(Frame* frame, const RenderSetup& renderSetup)
         uint32 numShaderUniforms = 0;
 
         cr << SetShaderUniform(numShaderUniforms++, "InputTexture"_sh, g_renderInterface->textureViewCache->GetOrCreate(srcTexture));
-        cr << SetShaderUniform(numShaderUniforms++, "SamplerLinear"_sh, g_renderInterface->placeholderData->GetSamplerLinear());
+        cr << SetShaderUniform(numShaderUniforms++, "SamplerLinear"_sh, m_samplerClampToEdge);
         cr << SetShaderUniform(numShaderUniforms++, "SamplerNearest"_sh, g_renderInterface->placeholderData->GetSamplerNearest());
         cr << SetShaderUniform(numShaderUniforms++, "CBuffer"_sh, cbuffer, ShaderDataOffset(cbufferOffset, cbufferSize));
 
@@ -356,7 +358,7 @@ void BloomPass::Upsample(Frame* frame, const RenderSetup& renderSetup)
 
         cr << SetShaderUniform(numShaderUniforms++, "PrevPassTexture"_sh, g_renderInterface->textureViewCache->GetOrCreate(prevTexture));
         cr << SetShaderUniform(numShaderUniforms++, "InputTexture"_sh, g_renderInterface->textureViewCache->GetOrCreate(blendTexture));
-        cr << SetShaderUniform(numShaderUniforms++, "SamplerLinear"_sh, g_renderInterface->placeholderData->GetSamplerLinear());
+        cr << SetShaderUniform(numShaderUniforms++, "SamplerLinear"_sh, m_samplerClampToEdge);
         cr << SetShaderUniform(numShaderUniforms++, "SamplerNearest"_sh, g_renderInterface->placeholderData->GetSamplerNearest());
         cr << SetShaderUniform(numShaderUniforms++, "CBuffer"_sh, cbuffer, ShaderDataOffset(cbufferOffset, cbufferSize));
 

@@ -11,6 +11,8 @@
 
 #include <Core/reflection/Handle.hpp>
 
+#include <rendering/Sampler.hpp>
+
 namespace Hyperion {
 
 class Texture;
@@ -57,6 +59,7 @@ private:
     FixedArray<UniquePtr<FullScreenPass>, NumMipLevels - 1>  m_upsamplePasses;
 
     Handle<Texture> m_bloomResult;
+    Sampler* m_samplerClampToEdge;
 };
 
 } // namespace Hyperion

@@ -33,7 +33,7 @@ static const float2 LUMINANCE_WEIGHTS = float2(0.2126f, 0.7152f);
 float KarisWeight(float4 c)
 {
     float luma = dot(c.rgb, float3(0.2126f, 0.7152f, 0.0722f));
-    return 1.0f / (1.0f + luma);
+    return 1.0f / (1.0f + max(luma, 1e-5f));
 }
 
 [numthreads(16, 16, 1)]
@@ -74,4 +74,10 @@ void CSMain(uint3 dispatchThreadID : SV_DispatchThreadID)
     contribution = max(contribution, luminance - bloomConstants.threshold);
 
     out_image[coord] = color * (contribution / max(luminance, 1e-5f)) * bloomConstants.intensity;
+    
+    // YUCKY YUCKY YUCK! nans showing up! TODO: track down root cause and fix instead of this band-aid
+    if (any(isnan(out_image[coord])))
+    {
+        out_image[coord] = float4(0.0f, 0.0f, 0.0f, 0.0f);
+    }
 }

@@ -295,14 +295,12 @@ void Entity::OnComponentAdded(AnyRef component)
             return;
         }
 
-        if (m_entityInitInfo.bvhDepth > 0)
+        AddTag<EntityTag::UpdateRenderProxy>();
+        
+        // build mesh BVH if there is no existing one. (size != 0)
+        if (m_entityInitInfo.bvhDepth > 0
+            && meshComponent->mesh->GetBVHDataReference().size == 0)
         {
-            if (meshComponent->mesh->GetBVH().IsValid())
-            {
-                // already has a BVH, skip
-                return;
-            }
-
             if (!meshComponent->mesh->BuildBVH(m_entityInitInfo.bvhDepth))
             {
                 HYP_LOG(Entity, Error, "Failed to build BVH for MeshComponent on Entity {}!", Id());
@@ -310,8 +308,6 @@ void Entity::OnComponentAdded(AnyRef component)
                 return;
             }
         }
-
-        AddTag<EntityTag::UpdateRenderProxy>();
 
         return;
     }
