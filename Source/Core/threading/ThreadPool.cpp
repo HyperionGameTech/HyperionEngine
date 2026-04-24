@@ -113,7 +113,7 @@ ThreadBase* ThreadPoolBase::GetNextThread()
 
 ThreadId ThreadPoolBase::CreateTaskThreadId(ANSIStringView baseName, uint32 threadIndex)
 {
-    return ThreadId(Name::Unique(HYP_FORMAT("{}{}", baseName, threadIndex).Data()), THREAD_CATEGORY_TASK);
+    return ThreadId(NAME_FMT("{}{}", baseName, threadIndex), THREAD_CATEGORY_TASK);
 }
 
 #pragma endregion ThreadPoolBase

@@ -431,13 +431,18 @@ void UIText::UpdateMeshData_Internal()
         meshComponent.instanceData = AssetReference(instancedMesh);
     }
 
-    auto writeScope = instancedMesh->GetWriteScope();
+    // Only update the buffer data if we have any data -- otherwise, setting data to 0 will free all data
+    // and force us to realloc a lot which can chew up a lot of resources doing that at a high frequency
+    if (instanceTransforms.Any())
+    {
+        auto writeScope = instancedMesh->GetWriteScope();
 
-    instancedMesh->SetBufferData(0, instanceTransforms.Data(), instanceTransforms.Size());
-    instancedMesh->SetBufferData(1, instanceTexcoords.Data(), instanceTexcoords.Size());
-    instancedMesh->SetBufferData(2, instanceOffsets.Data(), instanceOffsets.Size());
-    instancedMesh->SetBufferData(3, instanceSizes.Data(), instanceSizes.Size());
-    instancedMesh->SetBufferData(4, instanceProperties.Data(), instanceProperties.Size());
+        instancedMesh->SetBufferData(0, instanceTransforms.Data(), instanceTransforms.Size());
+        instancedMesh->SetBufferData(1, instanceTexcoords.Data(), instanceTexcoords.Size());
+        instancedMesh->SetBufferData(2, instanceOffsets.Data(), instanceOffsets.Size());
+        instancedMesh->SetBufferData(3, instanceSizes.Data(), instanceSizes.Size());
+        instancedMesh->SetBufferData(4, instanceProperties.Data(), instanceProperties.Size());
+    }
 
     GetEntity()->SetNeedsRenderProxyUpdate();
 }

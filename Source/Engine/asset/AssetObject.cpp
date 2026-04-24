@@ -110,24 +110,26 @@ void AssetObject::SetAssetFlags(EnumFlags<AssetObjectFlags> flags)
 
 void AssetObject::MarkDirty()
 {
+    if (IsTransient() || !IsRegistered())
+    {
+        return;
+    }
+
     if (IsGlobalContextActive<AssetLoadingContext>())
     {
         return;
     }
 
-    if (IsRegistered() && !IsTransient())
+    Handle<AssetRegistry> registry = GetAssetRegistry();
+    AssertDebug(registry.IsValid());
+
+    if (!registry.IsValid())
     {
-        Handle<AssetRegistry> registry = GetAssetRegistry();
-        AssertDebug(registry.IsValid());
-
-        if (!registry.IsValid())
-        {
-            HYP_LOG(Assets, Warning, "Cannot mark asset '{}' dirty: no active asset registry for path '{}'", m_name, m_assetPath.ToString());
-            return;
-        }
-
-        registry->MarkAssetDirty(*this);
+        HYP_LOG(Assets, Warning, "Cannot mark asset '{}' dirty: no active asset registry for path '{}'", m_name, m_assetPath.ToString());
+        return;
     }
+
+    registry->MarkAssetDirty(*this);
 }
 
 void AssetObject::SetPersistentRequested(
@@ -429,7 +431,7 @@ void AssetObject::AllocateBlobData(BlobDataReference& reference, const void* inD
 
         const size_t countAligned = ByteUtil::AlignAs(count, alignment);
 
-        reference.raw = HYP_ALLOC_ALIGNED(countAligned, alignment);
+        reference.raw = g_assetPool->Allocate(countAligned, alignment);
         Assert(reference.raw != nullptr);
 
         if (inData != nullptr)
@@ -449,7 +451,7 @@ void AssetObject::FreeBlobData(BlobDataReference& reference)
         return;
     }
 
-    HYP_FREE_ALIGNED(reference.raw);
+    g_assetPool->Free(reference.raw);
     reference.raw = nullptr;
 }
 
