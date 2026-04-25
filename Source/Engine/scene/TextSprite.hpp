@@ -59,12 +59,18 @@ public:
         return m_fontAtlas;
     }
 
+    const Handle<Texture>& GetFontAtlasTexture() const
+    {
+        return m_currentFontAtlasTexture;
+    }
+
     const Handle<FontAtlas>& GetFontAtlasOrDefault() const;
 
 protected:
     void Init() override;
 
     void UpdateTextAABB();
+    void UpdateFontAtlasTexture();
 
     void UpdateRenderProxy(class RenderProxySprite* proxy) override;
 

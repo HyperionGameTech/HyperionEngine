@@ -219,12 +219,27 @@ void TextSprite::Init()
 
     auto& bem = GetComponent<BoundingBoxComponent>();
     bem.worldAabb = m_textAabb;
+
+    UpdateFontAtlasTexture();
+}
+
+void TextSprite::UpdateFontAtlasTexture()
+{
+    if (const Handle<FontAtlas>& fontAtlas = GetFontAtlasOrDefault())
+    {
+        m_currentFontAtlasTexture = fontAtlas->GetAtlasTextures().GetAtlasForPixelSize(m_textSize);
+    }
+    else
+    {
+        m_currentFontAtlasTexture = nullptr;
+    }
 }
 
 void TextSprite::SetText(const String& text)
 {
     m_text = text;
     UpdateTextAABB();
+    UpdateFontAtlasTexture();
 
     auto& bem = GetComponent<BoundingBoxComponent>();
     bem.worldAabb = m_textAabb;
@@ -242,6 +257,7 @@ void TextSprite::SetTextSize(float textSize)
 {
     m_textSize = textSize;
     UpdateTextAABB();
+    UpdateFontAtlasTexture();
 
     auto& bem = GetComponent<BoundingBoxComponent>();
     bem.worldAabb = m_textAabb;
@@ -273,17 +289,8 @@ void TextSprite::UpdateRenderProxy(RenderProxySprite* proxy)
     proxy->textColor = m_textColor;
     proxy->textSize = m_textSize;
     proxy->textAabb = m_textAabb;
-
-    if (const Handle<FontAtlas>& fontAtlas = GetFontAtlasOrDefault())
-    {
-        proxy->fontAtlas = fontAtlas.Get();
-        proxy->texture = fontAtlas->GetAtlasTextures().GetAtlasForPixelSize(m_textSize);
-    }
-    else
-    {
-        proxy->fontAtlas = nullptr;
-        proxy->texture = nullptr;
-    }
+    proxy->fontAtlas = m_fontAtlas.Get();
+    proxy->texture = m_currentFontAtlasTexture.Get();
 }
 
 void TextSprite::UpdateTextAABB()

@@ -17,6 +17,7 @@
 #include <scene/FogVolume.hpp>
 #include <scene/LightmapVolume.hpp>
 #include <scene/Sprite.hpp>
+#include <scene/TextSprite.hpp>
 
 #include <scene/camera/Camera.hpp>
 #include <scene/animation/Skeleton.hpp>
@@ -1354,6 +1355,16 @@ void View::CollectSprites(RenderProxyList& rpl)
             Sprite* sprite = static_cast<Sprite*>(entity);
 
             rpl.GetSprites().Track(sprite->Id(), sprite, sprite->GetRenderProxyVersionPtr());
+
+            if (sprite->IsA<TextSprite>())
+            {
+                TextSprite* textSprite = static_cast<TextSprite*>(sprite);
+
+                if (Texture* fontAtlasTexture = textSprite->GetFontAtlasTexture())
+                {
+                    rpl.GetTextures().Track(fontAtlasTexture->Id(), fontAtlasTexture);
+                }
+            }
         }
     }
 }

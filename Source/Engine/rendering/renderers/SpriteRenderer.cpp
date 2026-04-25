@@ -58,6 +58,8 @@ struct TextSpriteInstanceData
     Vec4f color;
     Vec4f texcoordStart;
     Vec4f texcoordEnd;
+    uint32 textureIndex;
+    Vec2f pad;
 };
 
 struct FontAtlasCharacterIterator
@@ -69,6 +71,7 @@ struct FontAtlasCharacterIterator
     Vec2i charOffset;
 
     Vec2f glyphDimensions;
+    Vec2f glyphScaling;
 
     float bearingY;
     float charWidth;
@@ -207,7 +210,7 @@ void SpriteRenderer::RenderFrame(Frame* frame, const RenderSetup& renderSetup)
     }
 
     uint32 numSprites = 0;
-    uint32 numTextSprites = 0;
+    uint32 numTextCharacters = 0;
     for (Sprite* sprite : rpl.GetSprites())
     {
         if (!sprite)
@@ -217,7 +220,18 @@ void SpriteRenderer::RenderFrame(Frame* frame, const RenderSetup& renderSetup)
 
         if (sprite->IsA<TextSprite>())
         {
-            numTextSprites++;
+            RenderProxySprite* spriteProxy = rpl.GetSprites().GetProxy(sprite->Id());
+            if (spriteProxy && !spriteProxy->text.Empty())
+            {
+                for (size_t i = 0; i < spriteProxy->text.Length(); i++)
+                {
+                    utf::Char32 ch = spriteProxy->text.GetChar(i);
+                    if (ch != utf::Char32(' ') && ch != utf::Char32('\n'))
+                    {
+                        numTextCharacters++;
+                    }
+                }
+            }
         }
         else
         {
@@ -225,7 +239,7 @@ void SpriteRenderer::RenderFrame(Frame* frame, const RenderSetup& renderSetup)
         }
     }
 
-    if (numSprites == 0 && numTextSprites == 0)
+    if (numSprites == 0 && numTextCharacters == 0)
     {
         return;
     }
@@ -298,11 +312,10 @@ void SpriteRenderer::RenderFrame(Frame* frame, const RenderSetup& renderSetup)
         cr << DrawIndexed(quadMesh->NumIndices(), numSprites);
     }
 
-    if (numTextSprites > 0)
+    if (numTextCharacters > 0)
     {
-        StructuredBuffer& textInstanceBuffer = g_renderInterface->sbufferAllocator->AcquireBuffer(numTextSprites, sizeof(TextSpriteInstanceData));
-
-        size_t textOffset = 0;
+        Array<TextSpriteInstanceData> charData;
+        charData.Reserve(numTextCharacters);
 
         for (Sprite* sprite : rpl.GetSprites())
         {
@@ -321,21 +334,23 @@ void SpriteRenderer::RenderFrame(Frame* frame, const RenderSetup& renderSetup)
 
             const Vec3f worldPos = textSprite->GetWorldTranslation();
             const float textSize = textSprite->GetTextSize();
+            
+            const uint32 textureIndex = spriteProxy->texture ? spriteProxy->texture->Id().ToIndex() : uint32(-1);
 
             ForEachCharacter(*spriteProxy->fontAtlas, spriteProxy->text, textSize, [&](const FontAtlasCharacterIterator& iter)
                 {
-                    Transform characterTransform;
-                    characterTransform.scale = Vec3f(iter.glyphDimensions.x * textSize, iter.glyphDimensions.y * textSize, 0.01f);
-                    characterTransform.translation.y += (iter.cellDimensions.y - iter.glyphDimensions.y) * textSize;
-                    characterTransform.translation.y += iter.bearingY * textSize;
-                    characterTransform.translation += Vec3f(iter.placement.x * textSize, iter.placement.y * textSize, 0.0f);
-                    characterTransform.translation += worldPos;
+                    Vec3f charTranslation = worldPos;
+                    charTranslation.y += (iter.cellDimensions.y - iter.glyphDimensions.y) * textSize;
+                    charTranslation.y += iter.bearingY * textSize;
+                    charTranslation.x += iter.placement.x * textSize;
+                    charTranslation.y += iter.placement.y * textSize;
 
-                    Mat4f finalTransform = Mat4f::Translation(characterTransform.translation) * Mat4f::Scaling(characterTransform.scale);
+                    Mat4f finalTransform = Mat4f::Translation(charTranslation) * Mat4f::Scaling(Vec3f(iter.glyphDimensions.x * textSize, iter.glyphDimensions.y * textSize, 0.01f));
 
                     TextSpriteInstanceData data {};
                     data.transform = finalTransform;
                     data.color = Vec4f(spriteProxy->textColor);
+                    data.textureIndex = textureIndex;
 
                     Vec2f atlasPixelSize;
                     if (spriteProxy->texture && spriteProxy->texture->GetExtent().Volume() != 0)
@@ -347,9 +362,17 @@ void SpriteRenderer::RenderFrame(Frame* frame, const RenderSetup& renderSetup)
                     data.texcoordStart = Vec4f(charOffsetF * atlasPixelSize, 0.0f, 0.0f);
                     data.texcoordEnd = Vec4f((charOffsetF + (iter.glyphDimensions * 64.0f)) * atlasPixelSize, 0.0f, 0.0f);
 
-                    textInstanceBuffer.Write(textOffset, sizeof(TextSpriteInstanceData), &data);
-                    textOffset += sizeof(TextSpriteInstanceData);
+                    charData.PushBack(data);
                 });
+        }
+
+        StructuredBuffer& textInstanceBuffer = g_renderInterface->sbufferAllocator->AcquireBuffer(charData.Size(), sizeof(TextSpriteInstanceData));
+
+        size_t textOffset = 0;
+        for (const auto& data : charData)
+        {
+            textInstanceBuffer.Write(textOffset, sizeof(TextSpriteInstanceData), &data);
+            textOffset += sizeof(TextSpriteInstanceData);
         }
 
         textInstanceBuffer.Flush();
@@ -359,6 +382,7 @@ void SpriteRenderer::RenderFrame(Frame* frame, const RenderSetup& renderSetup)
 
         cr << SetCurrentShader(textShaderDesc);
 
+        // @TODO We should use one big instance buffer and use dynamic offsets to reduce the number of flushes and allocations.
         cr << SetShaderUniform(0, "TextSpriteInstanceBuffer"_sh, textInstanceBuffer.gpuBuffer);
         cr << SetShaderUniform(1, "CBuffer"_sh, cbuffer, ShaderDataOffset(cbufferOffset, cbufferSize));
 
@@ -372,7 +396,7 @@ void SpriteRenderer::RenderFrame(Frame* frame, const RenderSetup& renderSetup)
         cr << BindVertexBuffer(quadMesh->GetVertexBuffer());
         cr << BindIndexBuffer(quadMesh->GetIndexBuffer());
 
-        cr << DrawIndexed(quadMesh->NumIndices(), numTextSprites);
+        cr << DrawIndexed(quadMesh->NumIndices(), charData.Size());
     }
 }
 
