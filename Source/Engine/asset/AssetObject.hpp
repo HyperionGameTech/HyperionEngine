@@ -119,18 +119,6 @@ public:
     }
 
     HYP_METHOD()
-    const FilePath& GetOriginalFilepath() const
-    {
-        return m_originalFilepath;
-    }
-
-    HYP_METHOD()
-    void SetOriginalFilepath(const FilePath& originalFilepath)
-    {
-        m_originalFilepath = originalFilepath;
-    }
-
-    HYP_METHOD()
     const AssetPath& GetPath() const
     {
         return m_assetPath;
@@ -235,9 +223,6 @@ protected:
 
     HYP_FIELD(Property = "AssetFlags", Transient, EditHide)
     EnumFlags<AssetObjectFlags> m_flags;
-
-    HYP_FIELD(EditEnabled = false)
-    FilePath m_originalFilepath; // used to determine if we should skip importing an asset
 
     HYP_FIELD(Property = "AssetIndex", Transient, EditHide)
     uint32 m_assetIndex;

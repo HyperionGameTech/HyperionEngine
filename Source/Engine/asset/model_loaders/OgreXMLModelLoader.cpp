@@ -333,7 +333,7 @@ AssetLoadResult OgreXMLModelLoader::LoadAsset(LoaderState& state) const
 
         mesh->SetMeshData(meshDesc, vertexArrayView, subMesh.indices.ToByteView());
         mesh->CalculateNormals();
-        mesh->SetOriginalFilepath(FilePath::Relative(state.filepath, state.assetManager->GetBasePath()));
+        //mesh->SetOriginalFilepath(FilePath::Relative(state.filepath, state.assetManager->GetBasePath()));
 
         GetCurrentAssetRegistry()->PutAsset(mesh);
 

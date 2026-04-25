@@ -389,6 +389,11 @@ class RenderProxySprite final : public IRenderProxy
 public:
     WeakHandle<class Sprite> sprite;
     Texture* texture = nullptr;
+    class FontAtlas* fontAtlas = nullptr;
+    String text;
+    Color textColor;
+    float textSize;
+    BoundingBox textAabb;
     SpriteShaderData bufferData {};
 };
 

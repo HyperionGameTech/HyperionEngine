@@ -971,7 +971,7 @@ bool BuildPrimitive(GltfLoadContext& ctx,
         mesh->CalculateNormals();
     }
 
-    mesh->SetOriginalFilepath(FilePath::Relative(ctx.state.filepath, ctx.state.assetManager->GetBasePath()));
+   // mesh->SetOriginalFilepath(FilePath::Relative(ctx.state.filepath, ctx.state.assetManager->GetBasePath()));
     InitObject(mesh);
 
     GetCurrentAssetRegistry()->PutAssetUnique(mesh);

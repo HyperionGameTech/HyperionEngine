@@ -149,7 +149,7 @@ AssetLoadResult TextureLoader::LoadAsset(LoaderState& state) const
     stbi_image_free(imageBytes);
 
     texture->SetName(assetName);
-    texture->SetOriginalFilepath(FilePath::Relative(state.filepath, state.assetManager->GetBasePath()));
+    //texture->SetOriginalFilepath(FilePath::Relative(state.filepath, state.assetManager->GetBasePath()));
     
     GetCurrentAssetRegistry()->PutAssetUnique(texture);
     

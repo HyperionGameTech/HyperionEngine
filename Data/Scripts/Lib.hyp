@@ -693,8 +693,9 @@ extern enum ViewFlags : uint32
     SKIP_PARTICLE_VOLUMES = 0x200,
     SKIP_FOG_VOLUMES = 0x400,
     SKIP_CAMERAS = 0x800,
-    NOT_MULTI_BUFFERED = 0x1000,
-    NO_DRAW_CALLS = 0x2000,
+    SKIP_SPRITES = 0x1000,
+    NOT_MULTI_BUFFERED = 0x2000,
+    NO_DRAW_CALLS = 0x4000,
     RAY_TRACING = 0x100000,
     MATCH_CAMERA_DIMENSIONS = 0x200000,
     SHADOW_VIEW = 0x400000,
@@ -1779,8 +1780,6 @@ extern class AssetObject
     SetFriendlyName(friendlyName : Name) -> void
     GetAssetIndex() -> uint32
     IsRegistered() -> bool
-    GetOriginalFilepath() -> string
-    SetOriginalFilepath(originalFilepath : string) -> void
     GetPath() -> AssetPath
     GetAssetFlags() -> AssetObjectFlags
     SetAssetFlags(flags : AssetObjectFlags) -> void
@@ -1793,7 +1792,6 @@ extern class AssetObject
     Name : Name
     FriendlyName : Name
     Flags : AssetObjectFlags
-    OriginalFilepath : string
     AssetIndex : uint32
     AssetPath : AssetPath
 end
@@ -2229,7 +2227,10 @@ extern enum SpriteType : uint32
     EnvProbe,
     LightmapVolume,
     Camera,
+    Text,
     Max
+end
+extern class TextSprite : Sprite
 end
 extern class Light : Entity
     GetLightType() -> LightType

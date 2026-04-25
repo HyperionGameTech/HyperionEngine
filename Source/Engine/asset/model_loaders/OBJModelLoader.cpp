@@ -437,7 +437,7 @@ LoadedAsset OBJModelLoader::BuildModel(LoaderState& state, OBJModel& model)
 
         //mesh->CalculateNormals();
 
-        mesh->SetOriginalFilepath(FilePath::Relative(state.filepath, state.assetManager->GetBasePath()));
+        //mesh->SetOriginalFilepath(FilePath::Relative(state.filepath, state.assetManager->GetBasePath()));
 
         GetCurrentAssetRegistry()->PutAssetUnique(mesh);
 

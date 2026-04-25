@@ -15,6 +15,7 @@
 #include <scene/World.hpp>
 #include <scene/EnvProbe.hpp>
 #include <scene/LightmapVolume.hpp>
+#include <scene/TextSprite.hpp>
 
 #include <scene/camera/Camera.hpp>
 
@@ -77,7 +78,8 @@ void EditorSpriteSystem::OnEntityAdded(Entity* entity)
     {
         if (!camera->HasTag<EntityTag::EditorCamera>())
         {
-            sprite = Sprite::CreateCameraSprite(scene, camera);
+            sprite = MakeHandle<TextSprite>(NAME_FMT("{}_Sprite_Text", camera->GetName()), *camera->GetName());
+            scene->GetRoot()->AddChild(sprite);
         }
     }
 

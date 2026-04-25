@@ -32,6 +32,7 @@ enum class SpriteType : uint32
     EnvProbe,
     LightmapVolume,
     Camera,
+    Text,
 
     Max
 };
@@ -50,7 +51,7 @@ public:
 
     ~Sprite() override;
 
-    void UpdateRenderProxy(class RenderProxySprite* proxy);
+    virtual void UpdateRenderProxy(class RenderProxySprite* proxy);
 
     static Handle<Sprite> CreateEnvProbeSprite(Scene* scene, EnvProbe* envProbe);
     static Handle<Sprite> CreateLightmapVolumeSprite(Scene* scene, LightmapVolume* lightmapVolume);
@@ -63,6 +64,7 @@ public:
     float opacity = 1.0f;
     bool alwaysFaceCamera = true;
 
+    // @TODO Move to EditorSprite class? Use Handle<ObjectBase> to reduce memory usage
     Handle<EnvProbe> m_envProbe;
     Handle<LightmapVolume> m_lightmapVolume;
     Handle<Camera> m_camera;

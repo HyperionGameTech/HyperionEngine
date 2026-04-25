@@ -44,10 +44,8 @@
 #include <rendering/StructuredBufferAllocator.hpp>
 
 #include <engine/resources/ResourceTracker.hpp>
-#include <rendering/util/DeletionQueue.hpp>
-#include <rendering/util/ShaderPropertyDictionary.hpp>
-#include <rendering/util/ShaderCompiler.hpp>
 #include <engine/resources/ResourceBinder.hpp>
+#include <rendering/resources/ResourceBindings.hpp>
 
 #include <rendering/renderers/EnvProbeRenderer.hpp>
 #include <rendering/renderers/DeferredRenderer.hpp>
@@ -58,7 +56,9 @@
 
 #include <rendering/shadows/ShadowMapCache.hpp>
 
-#include <rendering/resources/ResourceBindings.hpp>
+#include <rendering/util/DeletionQueue.hpp>
+#include <rendering/util/ShaderPropertyDictionary.hpp>
+#include <rendering/util/ShaderCompiler.hpp>
 
 #include <scene/View.hpp>
 #include <scene/World.hpp>
@@ -69,6 +69,7 @@
 #include <scene/FogVolume.hpp>
 #include <scene/LightmapVolume.hpp>
 #include <scene/Sprite.hpp>
+#include <scene/TextSprite.hpp>
 
 #include <scene/animation/Skeleton.hpp>
 
@@ -1997,6 +1998,7 @@ DECLARE_RENDER_DATA_CONTAINER(ParticleVolume, RenderProxyParticleVolume, NamedBu
 DECLARE_RENDER_DATA_CONTAINER(FogVolume, RenderProxyFogVolume, NamedBuffer::Invalid, nullptr, &s_fogVolumeBinder);
 
 DECLARE_RENDER_DATA_CONTAINER(Sprite, RenderProxySprite, NamedBuffer::Invalid, nullptr, &s_spriteBinder);
+DECLARE_RENDER_DATA_CONTAINER(TextSprite, RenderProxySprite, NamedBuffer::Invalid, nullptr, &s_spriteBinder);
 
 DECLARE_RENDER_DATA_CONTAINER(MaterialInstance, RenderProxyMaterial, NamedBuffer::Materials, nullptr, &s_materialBinder);
 
