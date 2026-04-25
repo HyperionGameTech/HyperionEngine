@@ -47,6 +47,7 @@ struct SpriteInstanceData
 {
     Vec4f positionSize;
     Vec4f color;
+    Vec4u flags; // x = alwaysFaceCamera
 };
 
 #pragma region SpriteRenderer
@@ -131,6 +132,7 @@ void SpriteRenderer::RenderFrame(Frame* frame, const RenderSetup& renderSetup)
         SpriteInstanceData data {};
         data.positionSize = Vec4f(sprite->GetWorldTranslation(), sprite->size);
         data.color = Vec4f(sprite->color);
+        data.flags = Vec4u(spriteProxy->bufferData.alwaysFaceCamera, 0u, 0u, 0u);
 
         instanceBuffer.Write(offset, sizeof(SpriteInstanceData), &data);
         offset += sizeof(SpriteInstanceData);

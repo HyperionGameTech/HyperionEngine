@@ -30,6 +30,7 @@ struct SpriteInstanceData
 {
     float4 positionSize;
     float4 color;
+    uint4 flags; // x = alwaysFaceCamera
 };
 
 DECLARE_SRV(Sprite, SpriteInstanceBuffer) StructuredBuffer<SpriteInstanceData> SpriteInstanceBuffer;
@@ -43,13 +44,24 @@ VSOutput VSMain(VSInput input, uint instanceId : SV_InstanceID)
     float3 center = instance.positionSize.xyz;
     float size = instance.positionSize.w;
 
-    float3 localPos = float3((input.a_position.x - 0.5f) * size, (input.a_position.y - 0.5f) * size, 0.0f);
+    float3 worldPos;
 
-    float3 worldPos = center + localPos;
+    if (instance.flags.x != 0u)
+    {
+        float3 camRight = float3(camera.view[0][0], camera.view[0][1], camera.view[0][2]);
+        float3 camUp = float3(camera.view[1][0], camera.view[1][1], camera.view[1][2]);
 
-    float4 ndcPos = mul(camera.viewProjMat, float4(worldPos, 1.0));
+        worldPos = center
+            + camRight * (input.a_position.x - 0.5f) * size
+            + camUp * (input.a_position.y - 0.5f) * size;
+    }
+    else
+    {
+        float3 localPos = float3((input.a_position.x - 0.5f) * size, (input.a_position.y - 0.5f) * size, 0.0f);
+        worldPos = center + localPos;
+    }
 
-    output.position_cs = ndcPos;
+    output.position_cs = mul(camera.viewProjMat, float4(worldPos, 1.0));
     output.texcoord0 = input.a_texcoord0;
     output.color = instance.color;
 
