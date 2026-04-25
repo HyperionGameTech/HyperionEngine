@@ -30,7 +30,6 @@
 #include <scene/System.hpp>
 #include <scene/systems/ScriptSystem.hpp>
 #include <scene/systems/MeshSystem.hpp>
-#include <scene/systems/editor/EditorSpriteSystem.hpp>
 
 #include <scene/sky/DynamicSkySystem.hpp>
 
@@ -1942,11 +1941,6 @@ void EditorSubsystem::OnAddedToWorld()
     if (!GetWorld()->GetSubsystem<UISubsystem>())
     {
         HYP_FAIL("EditorSubsystem requires UISubsystem to be initialized");
-    }
-
-    if (!GetWorld()->HasSystem<EditorSpriteSystem>())
-    {
-        GetWorld()->AddSystem(MakeHandle<EditorSpriteSystem>());
     }
 
     m_editorScene = MakeHandle<Scene>(NAME("EditorScene"), SceneFlags::FOREGROUND | SceneFlags::EDITOR);

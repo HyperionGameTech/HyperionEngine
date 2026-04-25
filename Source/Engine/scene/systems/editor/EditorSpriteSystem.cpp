@@ -15,12 +15,16 @@
 #include <scene/World.hpp>
 #include <scene/EnvProbe.hpp>
 #include <scene/LightmapVolume.hpp>
+
 #include <scene/camera/Camera.hpp>
+
 #include <editor/EditorSubsystem.hpp>
 
 #include <EditorSpriteSystem.generated.inl>
 
 namespace Hyperion {
+
+HYP_DECLARE_LOG_CHANNEL(Editor);
 
 void EditorSpriteSystem::OnEntityAdded(Entity* entity)
 {
@@ -32,17 +36,33 @@ void EditorSpriteSystem::OnEntityAdded(Entity* entity)
         return;
     }
 
-    // Must be both foreground scene and editor scene.
-    if ((scene->GetSceneFlags() & (SceneFlags::FOREGROUND | SceneFlags::EDITOR)) != (SceneFlags::FOREGROUND | SceneFlags::EDITOR))
+    if (!(scene->GetSceneFlags() & SceneFlags::FOREGROUND)
+        || (scene->GetSceneFlags() & (SceneFlags::UI | SceneFlags::EDITOR)))
     {
         return;
     }
+
+    //Scene* editorScene = nullptr;
+
+    //auto editorSceneIt = GetWorld()->GetScenes().FindIf([](const Handle<Scene>& scene)
+    //    {
+    //        return scene->GetSceneFlags() & SceneFlags::EDITOR;
+    //    });
+
+    //if (editorSceneIt == GetWorld()->GetScenes().End())
+    //{
+    //    HYP_LOG(Editor, Error, "No Editor scene found! Cannot add editor sprite");
+
+    //    return;
+    //}
+
+    //editorScene = *editorSceneIt;
 
     Handle<Sprite> sprite;
     
     if (EnvProbe* envProbe = DynamicCast<EnvProbe>(entity))
     {
-        if (envProbe->IsSkyProbe())
+        if (envProbe->IsA<SkyProbe>())
         {
             return;
         }
@@ -55,7 +75,10 @@ void EditorSpriteSystem::OnEntityAdded(Entity* entity)
     }
     else if (Camera* camera = DynamicCast<Camera>(entity))
     {
-        sprite = Sprite::CreateCameraSprite(scene, camera);
+        if (!camera->HasTag<EntityTag::EditorCamera>())
+        {
+            sprite = Sprite::CreateCameraSprite(scene, camera);
+        }
     }
 
     if (sprite.IsValid())

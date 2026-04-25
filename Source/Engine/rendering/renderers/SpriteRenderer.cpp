@@ -18,6 +18,7 @@
 #include <rendering/Mesh.hpp>
 #include <rendering/MaterialInstance.hpp>
 #include <rendering/Shader.hpp>
+#include <rendering/CBufferAllocator.hpp>
 #include <rendering/StructuredBufferAllocator.hpp>
 
 #include <rendering/renderers/SpriteRenderer.hpp>
@@ -26,6 +27,7 @@
 
 #include <scene/View.hpp>
 #include <scene/Sprite.hpp>
+#include <scene/camera/Camera.hpp> // Needed for .Get()
 
 #include <asset/AssetRegistry.hpp>
 
@@ -139,6 +141,16 @@ void SpriteRenderer::RenderFrame(Frame* frame, const RenderSetup& renderSetup)
     CommandRecorder& cr = frame->cr;
     View* view = renderSetup.view;
 
+    RenderProxyCamera* cameraProxy = static_cast<RenderProxyCamera*>(GetRenderProxy(view->GetCamera().Get()));
+    Assert(cameraProxy != nullptr);
+
+    GpuBuffer* cbuffer = nullptr;
+    size_t cbufferOffset = 0;
+    size_t cbufferSize = 0;
+
+    g_renderInterface->cbufferAllocator->Write(&cameraProxy->bufferData);
+    g_renderInterface->cbufferAllocator->Commit(cbuffer, cbufferOffset, cbufferSize);
+
     cr << SetCurrentViewport(renderSetup.viewport);
     cr << SetTopology(Topology::TOP_TRIANGLES);
     cr << SetInputLayout(StaticVertexInputLayout<VT_Simple>);
@@ -149,6 +161,7 @@ void SpriteRenderer::RenderFrame(Frame* frame, const RenderSetup& renderSetup)
     cr << SetCurrentShader(shaderDesc);
 
     cr << SetShaderUniform(0, "SpriteInstanceBuffer"_sh, instanceBuffer.gpuBuffer);
+    cr << SetShaderUniform(1, "CBuffer"_sh, cbuffer, ShaderDataOffset(cbufferOffset, cbufferSize));
 
     cr << SetCurrentBlendFunction(BlendFunction::AlphaBlending()); // @TODO premul?
     cr << SetDepthTest(true);

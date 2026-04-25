@@ -9,6 +9,7 @@
 #include <rendering/renderers/DeferredRenderer.hpp>
 #include <rendering/renderers/EnvProbeRenderer.hpp>
 #include <rendering/renderers/UIRenderer.hpp>
+#include <rendering/renderers/SpriteRenderer.hpp>
 
 #include <rendering/RenderGroup.hpp>
 #include <rendering/MaterialTextureCache.hpp>
@@ -2844,6 +2845,15 @@ void DeferredRenderer::RenderFrameForView(Frame* frame, const RenderSetup& rs)
                 particleVolumeRS.volume = particleVolume;
 
                 g_renderInterface->globalRenderers[GRT_PARTICLE_VOLUME][0]->RenderFrame(frame, particleVolumeRS);
+            }
+        }
+
+        { // draw sprites
+            SpriteRenderer* spriteRenderer = static_cast<SpriteRenderer*>(g_renderInterface->globalRenderers[GRT_SPRITE][0]);
+
+            if (spriteRenderer != nullptr)
+            {
+                spriteRenderer->RenderFrame(frame, rs);
             }
         }
 

@@ -2,11 +2,8 @@
 #include "../include/Shared.hlsli"
 #include "../include/Entity.hlsli"
 #include "../include/GBuffer.hlsli"
+#include "../include/Scene.hlsli"
 #include "./Sprite.hlsli"
-
-PERMUTE(SPRITE);
-
-STATIC(INSTANCING);
 
 #ifdef VERTEX_SHADER
 
@@ -24,23 +21,18 @@ struct VSOutput
     float4 color : TEXCOORD1;
 };
 
-#include "../include/Scene.hlsli"
-
-DECLARE_SRV_DYNAMIC(Default, CamerasBuffer) StructuredBuffer<Camera> _cameras_buffer;
-#define camera _cameras_buffer[0]
-
-DECLARE_BUFFER_DYNAMIC(Default, CBuffer) cbuffer CBuffer
+DECLARE_BUFFER_DYNAMIC(Sprite, CBuffer) cbuffer CBuffer
 {
-    Entity entity;
+    Camera camera;
 };
-
-DECLARE_SRV_DYNAMIC(Default, SpriteInstanceBuffer) StructuredBuffer<SpriteInstanceData> SpriteInstanceBuffer;
 
 struct SpriteInstanceData
 {
     float4 positionSize;
     float4 color;
 };
+
+DECLARE_SRV(Sprite, SpriteInstanceBuffer) StructuredBuffer<SpriteInstanceData> SpriteInstanceBuffer;
 
 VSOutput VSMain(VSInput input, uint instanceId : SV_InstanceID)
 {
@@ -83,16 +75,11 @@ struct PSOutput
     float2 gbuffer_velocity : SV_Target3;
 };
 
-DECLARE_BUFFER_DYNAMIC(Default, CBuffer) cbuffer CBuffer
-{
-    Material material;
-};
-
 PSOutput PSMain(PSInput input)
 {
     PSOutput output;
 
-    output.gbuffer_albedo = float4(1.0, 0.0, 0.0, 1.0);//input.color * material.albedo;
+    output.gbuffer_albedo = input.color;
     output.gbuffer_normals = GBufferPackNormal(float3(0.5f, 0.5f, 1.0f));
     output.gbuffer_material = uint4(0, 0, 0, 0);
     output.gbuffer_velocity = float2(0.0f, 0.0f);
