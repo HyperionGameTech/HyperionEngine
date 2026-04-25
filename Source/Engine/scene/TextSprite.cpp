@@ -172,14 +172,55 @@ static BoundingBox CalculateTextAABB(const FontAtlas& fontAtlas, const String& t
 
     BoundingBox aabb = BoundingBox::Zero();
 
-    ForEachCharacter(fontAtlas, text, textSize, [textSize, &aabb](const FontAtlasCharacterIterator& iter)
+    Vec2f totalSize = Vec2f::Zero();
+    Vec2f placement = Vec2f::Zero();
+    const Vec2f cellDimensions = Vec2f(fontAtlas.GetCellDimensions()) / 64.0f;
+
+    const size_t length = text.Length();
+    for (size_t i = 0; i < length; i++)
+    {
+        const utf::Char32 ch = text.GetChar(i);
+
+        if (ch == utf::Char32(' '))
+        {
+            placement.x += cellDimensions.x * 0.5f;
+            continue;
+        }
+
+        if (ch == utf::Char32('\n'))
+        {
+            totalSize.x = MathUtil::Max(totalSize.x, placement.x);
+            placement.x = 0.0f;
+            placement.y += cellDimensions.y;
+            continue;
+        }
+
+        Optional<const GlyphMetrics&> glyphMetrics = fontAtlas.GetGlyphMetricsForChar(ch);
+        if (!glyphMetrics.HasValue() || (glyphMetrics->width == 0 || glyphMetrics->height == 0))
+        {
+            continue;
+        }
+
+        const Vec2f glyphDimensions = Vec2f(float(glyphMetrics->width), float(glyphMetrics->height)) / 64.0f;
+        const float charWidth = float(glyphMetrics->advance / 64) / 64.0f;
+        const float bearingY = float(glyphMetrics->height - glyphMetrics->bearingY) / 64.0f;
+
+        const float charHeight = glyphDimensions.y + bearingY;
+        totalSize.y = MathUtil::Max(totalSize.y, placement.y + charHeight);
+
+        placement.x += charWidth;
+    }
+
+    totalSize.x = MathUtil::Max(totalSize.x, placement.x);
+
+    ForEachCharacter(fontAtlas, text, textSize, [textSize, &aabb, &totalSize](const FontAtlasCharacterIterator& iter)
         {
             BoundingBox characterAabb = BoundingBox::Zero();
 
-            const float offsetY = (iter.cellDimensions.y - iter.glyphDimensions.y) + iter.bearingY;
+            const float offsetY = -iter.bearingY;
 
-            characterAabb = characterAabb.Union(Vec3f(iter.placement.x, iter.placement.y + offsetY, 0.0f));
-            characterAabb = characterAabb.Union(Vec3f(iter.placement.x + iter.glyphDimensions.x, iter.placement.y + offsetY + iter.cellDimensions.y, 0.0f));
+            characterAabb = characterAabb.Union(Vec3f(iter.placement.x - totalSize.x * 0.5f, iter.placement.y + offsetY - totalSize.y * 0.5f, 0.0f));
+            characterAabb = characterAabb.Union(Vec3f(iter.placement.x + iter.glyphDimensions.x - totalSize.x * 0.5f, iter.placement.y + offsetY + iter.glyphDimensions.y - totalSize.y * 0.5f, 0.0f));
 
             aabb = aabb.Union(characterAabb);
         });

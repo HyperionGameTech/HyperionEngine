@@ -77,6 +77,63 @@ struct FontAtlasCharacterIterator
     float charWidth;
 };
 
+struct TextMetrics
+{
+    Vec2f size;
+};
+
+static TextMetrics MeasureText(
+    const FontAtlas& fontAtlas,
+    const String& text,
+    float textSize)
+{
+    HYP_SCOPE;
+
+    Vec2f placement = Vec2f::Zero();
+    Vec2f totalSize = Vec2f::Zero();
+
+    const size_t length = text.Length();
+    const Vec2f cellDimensions = Vec2f(fontAtlas.GetCellDimensions()) / 64.0f;
+
+    for (size_t i = 0; i < length; i++)
+    {
+        const utf::Char32 ch = text.GetChar(i);
+
+        if (ch == utf::Char32(' '))
+        {
+            placement.x += cellDimensions.x * 0.5f;
+            continue;
+        }
+
+        if (ch == utf::Char32('\n'))
+        {
+            totalSize.x = MathUtil::Max(totalSize.x, placement.x);
+            placement.x = 0.0f;
+            placement.y += cellDimensions.y;
+            continue;
+        }
+
+        Optional<const GlyphMetrics&> glyphMetrics = fontAtlas.GetGlyphMetricsForChar(ch);
+        if (!glyphMetrics.HasValue() || (glyphMetrics->width == 0 || glyphMetrics->height == 0))
+        {
+            continue;
+        }
+
+        const Vec2f glyphDimensions = Vec2f(float(glyphMetrics->width), float(glyphMetrics->height)) / 64.0f;
+        const float charWidth = float(glyphMetrics->advance / 64) / 64.0f;
+        const float bearingY = float(glyphMetrics->height - glyphMetrics->bearingY) / 64.0f;
+
+        const float charHeight = glyphDimensions.y + bearingY;
+        totalSize.y = MathUtil::Max(totalSize.y, placement.y + charHeight);
+
+        placement.x += charWidth;
+    }
+
+    totalSize.x = MathUtil::Max(totalSize.x, placement.x);
+
+    return { totalSize * textSize };
+}
+
 template <class Callback>
 static void ForEachCharacter(
     const FontAtlas& fontAtlas,
@@ -362,18 +419,20 @@ void SpriteRenderer::RenderFrame(Frame* frame, const RenderSetup& renderSetup)
 
             const Vec3f worldPos = sprite->GetWorldTranslation(); // spriteProxy->bufferData.positionSize.GetXYZ();
             const float textSize = spriteProxy->bufferData.positionSize.w;
-            
+
             const uint32 textureIndex = spriteProxy->texture ? spriteProxy->texture->Id().ToIndex() : uint32(-1);
+
+            const TextMetrics metrics = MeasureText(*spriteProxy->fontAtlas, spriteProxy->text, textSize);
 
             ForEachCharacter(*spriteProxy->fontAtlas, spriteProxy->text, textSize, [&](const FontAtlasCharacterIterator& iter)
                 {
                     const float scaleX = iter.glyphDimensions.x * textSize;
                     const float scaleY = iter.glyphDimensions.y * textSize;
 
-                    const float offsetY = ((iter.cellDimensions.y - iter.glyphDimensions.y) + iter.bearingY) * textSize;
+                    const float offsetY = -iter.bearingY * textSize;
                     const Vec3f charTranslation(
-                        worldPos.x + iter.placement.x * textSize,
-                        worldPos.y + iter.placement.y * textSize + offsetY,
+                        worldPos.x + iter.placement.x * textSize - metrics.size.x * 0.5f,
+                        worldPos.y + iter.placement.y * textSize + offsetY - metrics.size.y * 0.5f,
                         worldPos.z
                     );
 
