@@ -53,7 +53,7 @@ VSOutput VSMain(VSInput input, uint instanceId : SV_InstanceID)
 
     TextSpriteInstanceData instance = TextSpriteInstanceBuffer[instanceId];
 
-    float3 localPos = float3(input.a_position.x - 0.5f, input.a_position.y - 0.5f, 0.0f);
+    float3 localPos = input.a_position;
 
     float4 worldPos = mul(instance.transform, float4(localPos, 1.0f));
     output.position_cs = mul(camera.viewProjMat, worldPos);
@@ -109,22 +109,26 @@ PSOutput PSMain(PSInput input)
     {
         texColor = fontTextures[instance.textureIndex].Sample(sampler_linear, input.texcoord0);
     }
+    else
+    {
+        texColor = float4(1.0f, 0.0f, 1.0f, 1.0f); // jsut so we can see when something is wrong with the texture index
+    }
 #else
     float4 texColor = FontTexture.Sample(sampler_linear, input.texcoord0);
 #endif
 
     float4 color = input.color;
-    // color.rgb *= texColor.a;
+    color *= texColor.r;
 
-    if (texColor.a < 0.01f)
+    if (color.a < 0.01f)
     {
-        // discard;
+        discard;
     }
 
     output.gbuffer_albedo = color;
     output.gbuffer_normals = GBufferPackNormal(float3(0.5f, 0.5f, 1.0f));
     output.gbuffer_material = uint4(0, 0, 0, 0);
-    output.gbuffer_velocity = float2(0.0f, 0.0f);
+    output.gbuffer_velocity = float2(0, 0);
 
     return output;
 }

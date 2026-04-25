@@ -291,8 +291,6 @@ void TextSprite::UpdateRenderProxy(RenderProxySprite* proxy)
     proxy->textAabb = m_textAabb;
     proxy->fontAtlas = m_fontAtlas.Get();
     proxy->texture = m_currentFontAtlasTexture.Get();
-
-    proxy->bufferData.positionSize = Vec4f(GetWorldTranslation(), m_textSize);
 }
 
 void TextSprite::UpdateTextAABB()

@@ -21,6 +21,7 @@
 #include <rendering/Texture.hpp>
 #include <rendering/CBufferAllocator.hpp>
 #include <rendering/StructuredBufferAllocator.hpp>
+#include <rendering/SamplerCache.hpp>
 
 #include <rendering/renderers/SpriteRenderer.hpp>
 
@@ -168,10 +169,37 @@ SpriteRenderer::SpriteRenderer()
 
 void SpriteRenderer::Initialize()
 {
-    m_quadMesh = MeshBuilder::Cube(); // Quad();
+    m_quadMesh = MeshBuilder::Quad();
     m_quadMesh->SetName(NAME("SpriteMesh"));
     m_quadMesh->SetFlags(MeshFlags::ViewIndependent);
     m_quadMesh->SetIsTransient(true);
+
+    {
+        VertexArrayView vd = m_quadMesh->GetVertexData();
+        ByteView id = m_quadMesh->GetIndexData();
+
+        Array<SimpleVertex> newVertices;
+        newVertices.Resize(vd.vertexCount);
+        Memory::Copy(newVertices.Data(), vd.floatData, vd.vertexCount * sizeof(SimpleVertex));
+
+        for (SimpleVertex& vert : newVertices)
+        {
+            vert.posX = (vert.posX + 1.0f) * 0.5f;
+            vert.posY = (vert.posY + 1.0f) * 0.5f;
+        }
+
+        VertexArrayView vertexArrayView {};
+        vertexArrayView.floatData = reinterpret_cast<const float*>(newVertices.Data());
+        vertexArrayView.vertexCount = newVertices.Size();
+        vertexArrayView.layoutDesc = { VT_Simple };
+
+        Array<ubyte> indexData;
+        indexData.Resize(id.Size());
+        Memory::Copy(indexData.Data(), id.Data(), id.Size());
+
+        m_quadMesh->SetMeshData(m_quadMesh->GetMeshDesc(), vertexArrayView, indexData);
+    }
+
     InitObject(m_quadMesh);
 
     GetEngineAssetRegistry()->PutAsset(m_quadMesh);
@@ -332,31 +360,30 @@ void SpriteRenderer::RenderFrame(Frame* frame, const RenderSetup& renderSetup)
                 continue;
             }
 
-            const Vec3f worldPos = spriteProxy->bufferData.positionSize.GetXYZ();
+            const Vec3f worldPos = sprite->GetWorldTranslation(); // spriteProxy->bufferData.positionSize.GetXYZ();
             const float textSize = spriteProxy->bufferData.positionSize.w;
             
             const uint32 textureIndex = spriteProxy->texture ? spriteProxy->texture->Id().ToIndex() : uint32(-1);
 
             ForEachCharacter(*spriteProxy->fontAtlas, spriteProxy->text, textSize, [&](const FontAtlasCharacterIterator& iter)
                 {
-                    Vec3f charTranslation = worldPos;
-                    charTranslation.y += (iter.cellDimensions.y - iter.glyphDimensions.y) * textSize;
-                    charTranslation.y += iter.bearingY * textSize;
-                    charTranslation.x += iter.placement.x * textSize;
-                    charTranslation.y += iter.placement.y * textSize;
-
                     const float scaleX = iter.glyphDimensions.x * textSize;
                     const float scaleY = iter.glyphDimensions.y * textSize;
 
+                    const float offsetY = ((iter.cellDimensions.y - iter.glyphDimensions.y) + iter.bearingY) * textSize;
+                    const Vec3f charTranslation(
+                        worldPos.x + iter.placement.x * textSize,
+                        worldPos.y + iter.placement.y * textSize + offsetY,
+                        worldPos.z
+                    );
+
                     TextSpriteInstanceData data {};
 
-                    data.transform = Mat4f::Identity();
-                    data.transform[0][0] = scaleX;
-                    data.transform[1][1] = scaleY;
-                    data.transform[2][2] = 0.01f;
-                    data.transform[0][3] = charTranslation.x;
-                    data.transform[1][3] = charTranslation.y;
-                    data.transform[2][3] = charTranslation.z;
+                    Transform t;
+                    t.SetScale(Vec3f(scaleX, scaleY, 0.1f));
+                    t.SetTranslation(charTranslation);
+
+                    data.transform = t.GetMatrix();
 
                     data.textureIndex = textureIndex;
                     data.colorPacked = spriteProxy->textColor.Packed();
@@ -386,12 +413,20 @@ void SpriteRenderer::RenderFrame(Frame* frame, const RenderSetup& renderSetup)
 
         textInstanceBuffer.Flush();
 
+        static Sampler* s_textSpriteSampler = g_renderInterface->samplerCache->GetOrCreate(SamplerDesc {
+            TFM_LINEAR,
+            TFM_LINEAR,
+            TWM_CLAMP_TO_EDGE,
+            SamplerCompareOp::None
+        });
+
         ShaderDesc textShaderDesc;
         textShaderDesc.name = NAME("TextSprite");
 
         cr << SetCurrentShader(textShaderDesc);
 
-        cr << SetShaderUniform(0, "SamplerLinear"_sh, g_renderInterface->placeholderData->GetSamplerLinear());
+        cr << SetShaderUniform(0, "SamplerLinear"_sh, s_textSpriteSampler);
+
         cr << SetShaderUniform(1, "TextSpriteInstanceBuffer"_sh, textInstanceBuffer.gpuBuffer);
         cr << SetShaderUniform(2, "CBuffer"_sh, cbuffer, ShaderDataOffset(cbufferOffset, cbufferSize));
 
