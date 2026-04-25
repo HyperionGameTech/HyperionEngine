@@ -7,12 +7,20 @@
 
 struct TextSpriteInstanceData
 {
+    // 0
     float4x4 transform;
-    float4 color;
-    float4 texcoordStart;
-    float4 texcoordEnd;
+    // 64
+    float2 texcoordStart;
+    // 72
+    float2 texcoordEnd;
+    // 80
     uint textureIndex;
-    float2 _pad;
+    // 84
+    uint colorPacked;
+    uint _pad1;
+    uint _pad2;
+
+    // 96
 };
 
 DECLARE_SRV(TextSprite, TextSpriteInstanceBuffer) StructuredBuffer<TextSpriteInstanceData> TextSpriteInstanceBuffer;
@@ -31,6 +39,7 @@ struct VSOutput
     float4 position_cs : SV_POSITION;
     float2 texcoord0 : TEXCOORD0;
     float4 color : TEXCOORD1;
+    uint instanceId : TEXCOORD2;
 };
 
 DECLARE_BUFFER_DYNAMIC(TextSprite, CBuffer) cbuffer CBuffer
@@ -45,14 +54,16 @@ VSOutput VSMain(VSInput input, uint instanceId : SV_InstanceID)
     TextSpriteInstanceData instance = TextSpriteInstanceBuffer[instanceId];
 
     float3 localPos = float3(input.a_position.x - 0.5f, input.a_position.y - 0.5f, 0.0f);
-    float3 worldPos = mul(instance.transform, float4(localPos, 1.0f)).xyz;
 
-    output.position_cs = mul(camera.viewProjMat, float4(worldPos, 1.0f));
+    float4 worldPos = mul(instance.transform, float4(localPos, 1.0f));
+    output.position_cs = mul(camera.viewProjMat, worldPos);
+
     output.texcoord0 = float2(
         lerp(instance.texcoordStart.x, instance.texcoordEnd.x, input.a_texcoord0.x),
         lerp(instance.texcoordStart.y, instance.texcoordEnd.y, input.a_texcoord0.y)
     );
-    output.color = instance.color;
+    output.color = UINT_TO_VEC4(instance.colorPacked);
+    output.instanceId = instanceId;
 
     return output;
 }
@@ -68,6 +79,7 @@ struct PSInput
     float4 position_cs : SV_POSITION;
     float2 texcoord0 : TEXCOORD0;
     float4 color : TEXCOORD1;
+    uint instanceId : TEXCOORD2;
 };
 
 struct PSOutput
@@ -84,11 +96,11 @@ DECLARE_SRV(BindlessResources0, Textures) Texture2D<float4> fontTextures[];
 DECLARE_SRV(TextSprite, FontTexture) Texture2D<float4> FontTexture;
 #endif
 
-PSOutput PSMain(PSInput input, uint instanceId : SV_InstanceID)
+PSOutput PSMain(PSInput input)
 {
     PSOutput output;
 
-    TextSpriteInstanceData instance = TextSpriteInstanceBuffer[instanceId];
+    TextSpriteInstanceData instance = TextSpriteInstanceBuffer[input.instanceId];
 
 #ifdef HYP_FEATURES_BINDLESS_TEXTURES
     float4 texColor = (float4)0;

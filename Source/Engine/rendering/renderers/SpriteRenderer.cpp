@@ -52,14 +52,13 @@ struct SpriteInstanceData
     Vec4u flags; // x = alwaysFaceCamera
 };
 
-struct TextSpriteInstanceData
+struct alignas(16) TextSpriteInstanceData
 {
     Mat4f transform;
-    Vec4f color;
-    Vec4f texcoordStart;
-    Vec4f texcoordEnd;
+    Vec2f texcoordStart;
+    Vec2f texcoordEnd;
     uint32 textureIndex;
-    Vec2f pad;
+    uint32 colorPacked;
 };
 
 struct FontAtlasCharacterIterator
@@ -295,9 +294,10 @@ void SpriteRenderer::RenderFrame(Frame* frame, const RenderSetup& renderSetup)
         shaderDesc.name = NAME("Sprite");
 
         cr << SetCurrentShader(shaderDesc);
-
-        cr << SetShaderUniform(0, "SpriteInstanceBuffer"_sh, instanceBuffer.gpuBuffer);
-        cr << SetShaderUniform(1, "CBuffer"_sh, cbuffer, ShaderDataOffset(cbufferOffset, cbufferSize));
+        
+        cr << SetShaderUniform(0, "SamplerLinear"_sh, g_renderInterface->placeholderData->GetSamplerLinear());
+        cr << SetShaderUniform(1, "SpriteInstanceBuffer"_sh, instanceBuffer.gpuBuffer);
+        cr << SetShaderUniform(2, "CBuffer"_sh, cbuffer, ShaderDataOffset(cbufferOffset, cbufferSize));
 
         cr << SetCurrentBlendFunction(BlendFunction::AlphaBlending());
         cr << SetDepthTest(true);
@@ -332,8 +332,8 @@ void SpriteRenderer::RenderFrame(Frame* frame, const RenderSetup& renderSetup)
                 continue;
             }
 
-            const Vec3f worldPos = textSprite->GetWorldTranslation();
-            const float textSize = textSprite->GetTextSize();
+            const Vec3f worldPos = spriteProxy->bufferData.positionSize.GetXYZ();
+            const float textSize = spriteProxy->bufferData.positionSize.w;
             
             const uint32 textureIndex = spriteProxy->texture ? spriteProxy->texture->Id().ToIndex() : uint32(-1);
 
@@ -345,12 +345,21 @@ void SpriteRenderer::RenderFrame(Frame* frame, const RenderSetup& renderSetup)
                     charTranslation.x += iter.placement.x * textSize;
                     charTranslation.y += iter.placement.y * textSize;
 
-                    Mat4f finalTransform = Mat4f::Translation(charTranslation) * Mat4f::Scaling(Vec3f(iter.glyphDimensions.x * textSize, iter.glyphDimensions.y * textSize, 0.01f));
+                    const float scaleX = iter.glyphDimensions.x * textSize;
+                    const float scaleY = iter.glyphDimensions.y * textSize;
 
                     TextSpriteInstanceData data {};
-                    data.transform = finalTransform;
-                    data.color = Vec4f(spriteProxy->textColor);
+
+                    data.transform = Mat4f::Identity();
+                    data.transform[0][0] = scaleX;
+                    data.transform[1][1] = scaleY;
+                    data.transform[2][2] = 0.01f;
+                    data.transform[0][3] = charTranslation.x;
+                    data.transform[1][3] = charTranslation.y;
+                    data.transform[2][3] = charTranslation.z;
+
                     data.textureIndex = textureIndex;
+                    data.colorPacked = spriteProxy->textColor.Packed();
 
                     Vec2f atlasPixelSize;
                     if (spriteProxy->texture && spriteProxy->texture->GetExtent().Volume() != 0)
@@ -359,8 +368,8 @@ void SpriteRenderer::RenderFrame(Frame* frame, const RenderSetup& renderSetup)
                     }
 
                     Vec2f charOffsetF = Vec2f(iter.charOffset);
-                    data.texcoordStart = Vec4f(charOffsetF * atlasPixelSize, 0.0f, 0.0f);
-                    data.texcoordEnd = Vec4f((charOffsetF + (iter.glyphDimensions * 64.0f)) * atlasPixelSize, 0.0f, 0.0f);
+                    data.texcoordStart = Vec2f(charOffsetF * atlasPixelSize);
+                    data.texcoordEnd = Vec2f((charOffsetF + (iter.glyphDimensions * 64.0f)) * atlasPixelSize);
 
                     charData.PushBack(data);
                 });
@@ -382,9 +391,9 @@ void SpriteRenderer::RenderFrame(Frame* frame, const RenderSetup& renderSetup)
 
         cr << SetCurrentShader(textShaderDesc);
 
-        // @TODO We should use one big instance buffer and use dynamic offsets to reduce the number of flushes and allocations.
-        cr << SetShaderUniform(0, "TextSpriteInstanceBuffer"_sh, textInstanceBuffer.gpuBuffer);
-        cr << SetShaderUniform(1, "CBuffer"_sh, cbuffer, ShaderDataOffset(cbufferOffset, cbufferSize));
+        cr << SetShaderUniform(0, "SamplerLinear"_sh, g_renderInterface->placeholderData->GetSamplerLinear());
+        cr << SetShaderUniform(1, "TextSpriteInstanceBuffer"_sh, textInstanceBuffer.gpuBuffer);
+        cr << SetShaderUniform(2, "CBuffer"_sh, cbuffer, ShaderDataOffset(cbufferOffset, cbufferSize));
 
         cr << SetCurrentBlendFunction(BlendFunction::AlphaBlending());
         cr << SetDepthTest(true);
