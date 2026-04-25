@@ -35,7 +35,7 @@
 
 #include <engine/EngineDriver.hpp>
 #include <engine/CVarManager.hpp>
-#include <Engine/EngineGlobals.hpp>
+#include <engine/EngineGlobals.hpp>
 
 #include <SpriteRenderer.generated.inl>
 
