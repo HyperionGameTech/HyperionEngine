@@ -1110,6 +1110,7 @@ extern enum GlobalRendererType : uint32
     GRT_ENV_GRID,
     GRT_SHADOW_MAP,
     GRT_PARTICLE_VOLUME,
+    GRT_SPRITE,
     GRT_SSAO,
     GRT_MAX
 end

@@ -29,6 +29,7 @@ class MaterialInstance;
 class Skeleton;
 class Entity;
 class RenderProxyMesh;
+class RenderProxySprite;
 struct DrawCommandData;
 class IndirectDrawState;
 struct InstanceData;

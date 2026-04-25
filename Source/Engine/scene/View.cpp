@@ -16,6 +16,7 @@
 #include <scene/ParticleVolume.hpp>
 #include <scene/FogVolume.hpp>
 #include <scene/LightmapVolume.hpp>
+#include <scene/Sprite.hpp>
 
 #include <scene/camera/Camera.hpp>
 #include <scene/animation/Skeleton.hpp>
@@ -363,8 +364,6 @@ void View::PrepareShadowViews(Array<View*, SceneTempAllocator>& outShadowViews)
 
     for (Scene* scene : m_scenes)
     {
-        AssertDebug(scene && scene->IsReady());
-
         for (auto [entity, _] : scene->GetEntityManager()->GetEntitySet<EntityType<Light>>().GetScopedView(DataAccessFlags::ACCESS_READ, HYP_FUNCTION_NAME_LIT))
         {
             Light* light = static_cast<Light*>(entity);
@@ -521,6 +520,7 @@ void View::BeginAsyncCollection(TaskBatch& batch)
             CollectFogVolumes(rpl);
             CollectEnvGrids(rpl);
             CollectEnvProbes(rpl);
+            CollectSprites(rpl);
             CollectMeshEntities(rpl);
 
             rpl.EndWrite();
@@ -598,8 +598,6 @@ void View::CollectMeshEntities(RenderProxyList& rpl)
 
     for (Scene* scene : m_scenes)
     {
-        AssertDebug(scene && scene->IsReady());
-
         if (scene->GetSceneFlags() & SceneFlags::DETACHED)
         {
             HYP_LOG(Scene, Warning, "Scene \"{}\" has DETACHED flag set, cannot collect entities for render collector!", scene->GetName());
@@ -1059,8 +1057,6 @@ void View::CollectCameras(RenderProxyList& rpl)
 
     for (Scene* scene : m_scenes)
     {
-        AssertDebug(scene != nullptr && scene->IsReady());
-
         for (auto [entity, _] : scene->GetEntityManager()->GetEntitySet<EntityType<Camera>>().GetScopedView(DataAccessFlags::ACCESS_READ, HYP_FUNCTION_NAME_LIT))
         {
             Camera* camera = static_cast<Camera*>(entity);
@@ -1081,8 +1077,6 @@ void View::CollectLights(RenderProxyList& rpl)
 
     for (Scene* scene : m_scenes)
     {
-        AssertDebug(scene && scene->IsReady());
-
         for (auto [entity, _] : scene->GetEntityManager()->GetEntitySet<EntityType<Light>>().GetScopedView(DataAccessFlags::ACCESS_READ, HYP_FUNCTION_NAME_LIT))
         {
             Light* light = static_cast<Light*>(entity);
@@ -1150,8 +1144,6 @@ void View::CollectLightmapVolumes(RenderProxyList& rpl)
 
     for (Scene* scene : m_scenes)
     {
-        AssertDebug(scene && scene->IsReady());
-
         for (auto [entity, _] : scene->GetEntityManager()->GetEntitySet<EntityType<LightmapVolume>>().GetScopedView(DataAccessFlags::ACCESS_READ, HYP_FUNCTION_NAME_LIT))
         {
             LightmapVolume* lightmapVolume = DynamicCast<LightmapVolume>(entity);
@@ -1192,8 +1184,6 @@ void View::CollectParticleVolumes(RenderProxyList& rpl)
 
     for (Scene* scene : m_scenes)
     {
-        AssertDebug(scene && scene->IsReady());
-
         for (auto [entity, _] : scene->GetEntityManager()->GetEntitySet<EntityType<ParticleVolume>>().GetScopedView(DataAccessFlags::ACCESS_READ, HYP_FUNCTION_NAME_LIT))
         {
             ParticleVolume* volume = static_cast<ParticleVolume*>(entity);
@@ -1235,8 +1225,6 @@ void View::CollectFogVolumes(RenderProxyList& rpl)
 
     for (Scene* scene : m_scenes)
     {
-        AssertDebug(scene && scene->IsReady());
-
         for (auto [entity, _] : scene->GetEntityManager()->GetEntitySet<EntityType<FogVolume>>().GetScopedView(DataAccessFlags::ACCESS_READ, HYP_FUNCTION_NAME_LIT))
         {
             FogVolume* volume = static_cast<FogVolume*>(entity);
@@ -1278,8 +1266,6 @@ void View::CollectEnvGrids(RenderProxyList& rpl)
 
     for (Scene* scene : m_scenes)
     {
-        AssertDebug(scene && scene->IsReady());
-
         for (auto [entity, _] : scene->GetEntityManager()->GetEntitySet<EntityType<EnvGrid>>().GetScopedView(DataAccessFlags::ACCESS_READ, HYP_FUNCTION_NAME_LIT))
         {
             EnvGrid* envGrid = static_cast<EnvGrid*>(entity);
@@ -1321,8 +1307,6 @@ void View::CollectEnvProbes(RenderProxyList& rpl)
 
     for (Scene* scene : m_scenes)
     {
-        AssertDebug(scene && scene->IsReady());
-
         for (auto [entity, _] : scene->GetEntityManager()->GetEntitySet<EntityType<EnvProbe>>().GetScopedView(DataAccessFlags::ACCESS_READ, HYP_FUNCTION_NAME_LIT))
         {
             EnvProbe* probe = static_cast<EnvProbe*>(entity);
@@ -1350,6 +1334,26 @@ void View::CollectEnvProbes(RenderProxyList& rpl)
             }
 
             rpl.GetEnvProbes().Track(probe->Id(), probe, probe->GetRenderProxyVersionPtr());
+        }
+    }
+}
+
+void View::CollectSprites(RenderProxyList& rpl)
+{
+    HYP_SCOPE;
+
+    if (m_flags & ViewFlags::SKIP_SPRITES)
+    {
+        return;
+    }
+
+    for (Scene* scene : m_scenes)
+    {
+        for (auto [entity, _] : scene->GetEntityManager()->GetEntitySet<EntityType<Sprite>>().GetScopedView(DataAccessFlags::ACCESS_READ, HYP_FUNCTION_NAME_LIT))
+        {
+            Sprite* sprite = static_cast<Sprite*>(entity);
+
+            rpl.GetSprites().Track(sprite->Id(), sprite, sprite->GetRenderProxyVersionPtr());
         }
     }
 }

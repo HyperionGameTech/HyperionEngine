@@ -7,11 +7,12 @@
 #pragma once
 
 #include <scene/System.hpp>
-
 #include <scene/Sprite.hpp>
-
 #include <scene/EnvProbe.hpp>
 #include <scene/LightmapVolume.hpp>
+
+#include <scene/components/TransformComponent.hpp>
+
 #include <scene/camera/Camera.hpp>
 
 namespace Hyperion {
@@ -32,7 +33,9 @@ public:
 private:
     SystemComponentDescriptors GetComponentDescriptors() const override
     {
-        return {};
+        return {
+            ComponentDescriptor<TransformComponent, ComponentAccess::READ> {}
+        };
     }
 
     struct SpriteMapping

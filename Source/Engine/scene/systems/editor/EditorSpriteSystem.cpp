@@ -12,9 +12,11 @@
 
 #include <scene/EntityManager.hpp>
 #include <scene/Scene.hpp>
+#include <scene/World.hpp>
 #include <scene/EnvProbe.hpp>
 #include <scene/LightmapVolume.hpp>
 #include <scene/camera/Camera.hpp>
+#include <editor/EditorSubsystem.hpp>
 
 #include <EditorSpriteSystem.generated.inl>
 
@@ -26,6 +28,12 @@ void EditorSpriteSystem::OnEntityAdded(Entity* entity)
 
     Scene* scene = entity->GetScene();
     if (!scene)
+    {
+        return;
+    }
+
+    // Must be both foreground scene and editor scene.
+    if ((scene->GetSceneFlags() & (SceneFlags::FOREGROUND | SceneFlags::EDITOR)) != (SceneFlags::FOREGROUND | SceneFlags::EDITOR))
     {
         return;
     }
@@ -76,6 +84,7 @@ void EditorSpriteSystem::OnEntityRemoved(Entity* entity)
 
 void EditorSpriteSystem::Process(float delta, Span<Handle<Scene>> scenes)
 {
+#if 0
     for (auto& mapping : m_spriteMappings)
     {
         if (mapping.sprite.IsValid() && mapping.trackedEntity)
@@ -94,6 +103,7 @@ void EditorSpriteSystem::Process(float delta, Span<Handle<Scene>> scenes)
             }
         }
     }
+#endif
 }
 
 } // namespace Hyperion

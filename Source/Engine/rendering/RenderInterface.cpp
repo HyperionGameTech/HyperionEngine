@@ -53,6 +53,7 @@
 #include <rendering/renderers/DeferredRenderer.hpp>
 #include <rendering/renderers/ShadowRenderer.hpp>
 #include <rendering/renderers/ParticleVolumeRenderer.hpp>
+#include <rendering/renderers/SpriteRenderer.hpp>
 #include <rendering/renderers/UIRenderer.hpp>
 
 #include <rendering/shadows/ShadowMapCache.hpp>
@@ -700,6 +701,11 @@ RendererResult RenderInterface::Initialize()
     // one global particle volume renderer
     globalRenderers[GRT_PARTICLE_VOLUME].ResizeZeroed(1);
     globalRenderers[GRT_PARTICLE_VOLUME][0] = new ParticleVolumeRenderer;
+
+    // one global sprite renderer
+    globalRenderers[GRT_SPRITE].ResizeZeroed(1);
+    globalRenderers[GRT_SPRITE][0] = new SpriteRenderer;
+    globalRenderers[GRT_SPRITE][0]->Initialize();
 
     return {};
 }

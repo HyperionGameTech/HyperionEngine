@@ -20,14 +20,14 @@
 namespace Hyperion {
 
 Sprite::Sprite()
-    : Sprite(SpriteType::None)
+    : Sprite(Name::Invalid(), SpriteType::None)
 {
 }
 
-Sprite::Sprite(SpriteType spriteType)
-    : Entity(NAME("Sprite"))
+Sprite::Sprite(Name name, SpriteType spriteType)
+    : Entity(name),
+      spriteType(spriteType)
 {
-    spriteType = spriteType;
 }
 
 Sprite::~Sprite() = default;
@@ -53,7 +53,7 @@ void Sprite::UpdateRenderProxy(RenderProxySprite* proxy)
 
 Handle<Sprite> Sprite::CreateEnvProbeSprite(Scene* scene, EnvProbe* envProbe)
 {
-    Handle<Sprite> sprite = MakeHandle<Sprite>(SpriteType::EnvProbe);
+    Handle<Sprite> sprite = MakeHandle<Sprite>(NAME_FMT("{}_Sprite", envProbe->GetName()), SpriteType::EnvProbe);
     InitObject(sprite);
 
     sprite->size = 2.0f;
@@ -74,7 +74,7 @@ Handle<Sprite> Sprite::CreateEnvProbeSprite(Scene* scene, EnvProbe* envProbe)
 
 Handle<Sprite> Sprite::CreateLightmapVolumeSprite(Scene* scene, LightmapVolume* lightmapVolume)
 {
-    Handle<Sprite> sprite = MakeHandle<Sprite>(SpriteType::LightmapVolume);
+    Handle<Sprite> sprite = MakeHandle<Sprite>(NAME_FMT("{}_Sprite", lightmapVolume->GetName()), SpriteType::LightmapVolume);
     InitObject(sprite);
 
     sprite->size = 2.0f;
@@ -95,7 +95,7 @@ Handle<Sprite> Sprite::CreateLightmapVolumeSprite(Scene* scene, LightmapVolume* 
 
 Handle<Sprite> Sprite::CreateCameraSprite(Scene* scene, Camera* camera)
 {
-    Handle<Sprite> sprite = MakeHandle<Sprite>(SpriteType::Camera);
+    Handle<Sprite> sprite = MakeHandle<Sprite>(NAME_FMT("{}_Sprite", camera->GetName()), SpriteType::Camera);
     InitObject(sprite);
 
     sprite->size = 1.5f;

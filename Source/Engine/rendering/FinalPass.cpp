@@ -20,6 +20,7 @@
 
 #include <rendering/renderers/DeferredRenderer.hpp>
 #include <rendering/renderers/UIRenderer.hpp>
+#include <rendering/renderers/SpriteRenderer.hpp>
 
 #include <rendering/util/DeletionQueue.hpp>
 
@@ -172,6 +173,27 @@ void FinalPass::Render(Frame* frame, const RenderSetup& rs)
             }
         }
     }
+
+#if HYP_EDITOR
+    {
+        SpriteRenderer* spriteRenderer = static_cast<SpriteRenderer*>(g_renderInterface->globalRenderers[GRT_SPRITE][0]);
+
+        if (spriteRenderer != nullptr)
+        {
+            for (World* world : GetActiveWorlds())
+            {
+                for (View* view : world->GetViews())
+                {
+                    RenderSetup currentViewSetup = rs.Fork();
+                    currentViewSetup.world = world;
+                    currentViewSetup.view = view;
+
+                    spriteRenderer->RenderFrame(frame, currentViewSetup);
+                }
+            }
+        }
+    }
+#endif
 
     cr << SetCurrentFramebuffer(nullptr);
 

@@ -153,6 +153,7 @@ enum GlobalRendererType : uint32
     GRT_ENV_GRID,        //!< Global renderer instance for EnvGrids
     GRT_SHADOW_MAP,      //!< Shadow map renderers, e.g. PointLightShadowRenderer, DirectionalLightShadowRenderer
     GRT_PARTICLE_VOLUME, //!< Global renderer instance for ParticleVolumes
+    GRT_SPRITE,          //!< Sprite rendering for editor sprites
 
     GRT_SSAO,
 

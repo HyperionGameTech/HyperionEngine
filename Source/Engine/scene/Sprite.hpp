@@ -43,7 +43,7 @@ class HYP_API Sprite : public Entity
 
 public:
     Sprite();
-    explicit Sprite(SpriteType spriteType);
+    Sprite(Name name, SpriteType spriteType);
 
     Sprite(const Sprite& other) = delete;
     Sprite& operator=(const Sprite& other) = delete;

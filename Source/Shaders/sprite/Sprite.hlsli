@@ -1,0 +1,6 @@
+#ifndef SPRITE_HLSLI
+#define SPRITE_HLSLI
+
+#define PROPERTY_SPRITE 0
+
+#endif // SPRITE_HLSLI

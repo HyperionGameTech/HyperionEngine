@@ -27,12 +27,19 @@
 #include <scene/FogVolume.hpp>
 #include <scene/EntityManager.hpp>
 
+#include <scene/System.hpp>
+#include <scene/systems/ScriptSystem.hpp>
+#include <scene/systems/MeshSystem.hpp>
+#include <scene/systems/editor/EditorSpriteSystem.hpp>
+
+#include <scene/sky/DynamicSkySystem.hpp>
+
+#include <scene/camera/Camera.hpp>
+
 #include <scene/components/MeshComponent.hpp>
 #include <scene/components/VisibilityStateComponent.hpp>
 #include <scene/components/BoundingBoxComponent.hpp>
 #include <scene/components/TransformComponent.hpp>
-
-#include <scene/sky/DynamicSkySystem.hpp>
 
 #include <scene/LightmapVolume.hpp>
 #include <scene/Volume.hpp>
@@ -1935,6 +1942,11 @@ void EditorSubsystem::OnAddedToWorld()
     if (!GetWorld()->GetSubsystem<UISubsystem>())
     {
         HYP_FAIL("EditorSubsystem requires UISubsystem to be initialized");
+    }
+
+    if (!GetWorld()->HasSystem<EditorSpriteSystem>())
+    {
+        GetWorld()->AddSystem(MakeHandle<EditorSpriteSystem>());
     }
 
     m_editorScene = MakeHandle<Scene>(NAME("EditorScene"), SceneFlags::FOREGROUND | SceneFlags::EDITOR);

@@ -69,11 +69,12 @@ enum class ViewFlags : uint32
     SKIP_PARTICLE_VOLUMES = 0x200,      //!< If set, the view will not collect ParticleVolumes.
     SKIP_FOG_VOLUMES = 0x400,           //!< If set, the view will not collect FogVolumes.
     SKIP_CAMERAS = 0x800,               //!< If set, the view will not collect Cameras.
+    SKIP_SPRITES = 0x1000,              //!< If set, the view will not collect Sprites.
 
-    NOT_MULTI_BUFFERED = 0x1000,        //!< Disables double / triple buffering for the RenderProxyList this View writes to.
+    NOT_MULTI_BUFFERED = 0x2000,        //!< Disables double / triple buffering for the RenderProxyList this View writes to.
                                         //  --- Use ONLY for Views that are not written to every frame, and instead are written to and read once (or infrequently); e.g EnvProbes.
                                         //  --- Use of these is still threadsafe, however it uses a spinlock instead of multiple buffering so contentions will eat up cpu cycles.
-    NO_DRAW_CALLS = 0x2000,             //!< If set, no draw calls will be built for any mesh entities that this View collects.
+    NO_DRAW_CALLS = 0x4000,             //!< If set, no draw calls will be built for any mesh entities that this View collects.
 
     // enable flags
     RAY_TRACING = 0x100000,             //!< Does this View contain rayTracing data (acceleration structures)? (RayTracing must be enabled in the global config and must have RT hardware support)
@@ -267,6 +268,7 @@ protected:
     void CollectFogVolumes(RenderProxyList& rpl);
     void CollectEnvGrids(RenderProxyList& rpl);
     void CollectEnvProbes(RenderProxyList& rpl);
+    void CollectSprites(RenderProxyList& rpl);
     void CollectMeshEntities(RenderProxyList& rpl);
 
     ViewDesc m_viewDesc;
