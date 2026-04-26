@@ -20,6 +20,8 @@
 
 #include <util/EnumOptions.hpp>
 
+#include <initializer_list>
+
 namespace Hyperion {
 
 class Texture;

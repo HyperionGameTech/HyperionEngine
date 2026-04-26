@@ -34,6 +34,7 @@ struct CSharpTypeMapping
 {
     String typeName;                   // Name of the type in C#
     Optional<String> getValueOverload; // Method to use instead of GetValue() if a specific one is defined in BoxedValue.cs
+    bool isNullable = false;           // Whether the type should be nullable in C#
 };
 
 struct HypScriptTypeMapping

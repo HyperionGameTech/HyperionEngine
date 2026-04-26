@@ -43,6 +43,8 @@ TResult<CSharpTypeMapping> MapToCSharpType(const Analyzer& analyzer, const ASTTy
         return CSharpTypeMapping { "IntPtr", "ReadIntPtr" };
     }
 
+    bool isPointerNullable = type->isPointer && !type->ptrTo->IsVoid();
+
     if (type->isArray)
     {
         if (!type->arrayOf)
@@ -127,9 +129,30 @@ TResult<CSharpTypeMapping> MapToCSharpType(const Analyzer& analyzer, const ASTTy
             //     return
             // }
 
-            if (templateName == "RC"
-                || templateName == "Handle"
-                || templateName == "EnumFlags")
+            if (templateName == "RC" || templateName == "Handle")
+            {
+                if (type->templateArguments.Empty())
+                {
+                    return HYP_MAKE_ERROR(Error, "Type missing template argument");
+                }
+
+                if (!type->templateArguments[0]->type)
+                {
+                    return HYP_MAKE_ERROR(Error, "Type template argument is not a type");
+                }
+
+                auto res = MapToCSharpType(analyzer, type->templateArguments[0]->type.Get());
+                if (res.HasError())
+                {
+                    return res.GetError();
+                }
+
+                CSharpTypeMapping mapping = res.GetValue();
+                mapping.isNullable = true;
+                return mapping;
+            }
+
+            if (templateName == "EnumFlags")
             {
                 if (type->templateArguments.Empty())
                 {
@@ -157,15 +180,15 @@ TResult<CSharpTypeMapping> MapToCSharpType(const Analyzer& analyzer, const ASTTy
         {
             if (definition->type == ClassDefinitionType::Class)
             {
-                return CSharpTypeMapping { typeNameString, HYP_FORMAT("ReadObject<{}>", definition->name) };
+                return CSharpTypeMapping { typeNameString, HYP_FORMAT("ReadObject<{}>", definition->name), isPointerNullable };
             }
             else if (definition->type == ClassDefinitionType::Struct)
             {
-                return CSharpTypeMapping { typeNameString, HYP_FORMAT("ReadStruct<{}>", definition->name) };
+                return CSharpTypeMapping { typeNameString, HYP_FORMAT("ReadStruct<{}>", definition->name), isPointerNullable };
             }
         }
 
-        return CSharpTypeMapping { typeNameString };
+        return CSharpTypeMapping { typeNameString, Optional<String>::empty, isPointerNullable };
     }
 
     HYP_LOG(Parser, Error, "Type is unable to be mapped to a C# type: {}", type->Format());

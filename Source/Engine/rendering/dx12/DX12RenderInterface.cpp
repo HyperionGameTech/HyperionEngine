@@ -389,7 +389,7 @@ void DX12RenderInterface::PrepareSwapchain(DX12Swapchain* swapchain)
     swapchain->PrepareForFrame(GetCurrentFrame());
 }
 
-void DX12RenderInterface::SubmitCommandBuffers(DX12Swapchain* swapchain)
+void DX12RenderInterface::PresentToSwapchain(DX12Swapchain* swapchain)
 {
     DX12QueueData& queueData = m_queueData[D3D12_COMMAND_LIST_TYPE_DIRECT];
 
@@ -399,12 +399,8 @@ void DX12RenderInterface::SubmitCommandBuffers(DX12Swapchain* swapchain)
     }
 
     ID3D12CommandList* commandLists[] = { m_commandBuffer->GetCommandList() };
-
     queueData.commandQueue->ExecuteCommandLists(ArraySize(commandLists), commandLists);
-}
 
-void DX12RenderInterface::PresentToSwapchain(DX12Swapchain* swapchain)
-{
     swapchain->PresentFrame(GetCurrentFrame());
 }
 
@@ -620,24 +616,77 @@ DX12GpuTlasRef DX12RenderInterface::MakeTLAS()
 
 void DX12RenderInterface::PopulateIndirectDrawCommandsBuffer(const DX12GpuBufferRef& vertexBuffer, const DX12GpuBufferRef& indexBuffer, uint32 instanceOffset, TByteBuffer<RenderAllocator>& outByteBuffer)
 {
-    // @TODO: Implement indirect draw command buffer population for DX12
+    const size_t requiredSize = (size_t(instanceOffset) + 1) * sizeof(D3D12_DRAW_INDEXED_ARGUMENTS);
+
+    if (outByteBuffer.Size() < requiredSize)
+    {
+        outByteBuffer.Resize(requiredSize);
+    }
+
+    uint32 numIndices = 0;
+
+    if (indexBuffer.IsValid())
+    {
+        numIndices = uint32(indexBuffer->Size() / sizeof(uint32));
+    }
+
+    D3D12_DRAW_INDEXED_ARGUMENTS* commandPtr = reinterpret_cast<D3D12_DRAW_INDEXED_ARGUMENTS*>(outByteBuffer.Data()) + instanceOffset;
+    *commandPtr = D3D12_DRAW_INDEXED_ARGUMENTS {};
+    commandPtr->IndexCountPerInstance = numIndices;
+    commandPtr->InstanceCount = 1;
+    commandPtr->StartIndexLocation = 0;
+    commandPtr->BaseVertexLocation = 0;
+    commandPtr->StartInstanceLocation = 0;
 }
 
 bool DX12RenderInterface::IsSupportedFormat(TextureFormat format, ImageSupport supportType) const
 {
-    // @TODO: Implement format support checking for DX12
-    return false;
+    DXGI_FORMAT dxgiFormat = ToDXGIFormat(format);
+
+    D3D12_FEATURE_DATA_FORMAT_SUPPORT formatSupport {};
+    formatSupport.Format = dxgiFormat;
+
+    HRESULT hr = m_device->CheckFeatureSupport(D3D12_FEATURE_FORMAT_SUPPORT, &formatSupport, sizeof(formatSupport));
+    if (!SUCCEEDED(hr))
+    {
+        return false;
+    }
+
+    D3D12_FORMAT_SUPPORT1 support1 = formatSupport.Support1;
+    D3D12_FORMAT_SUPPORT2 support2 = formatSupport.Support2;
+
+    switch (supportType)
+    {
+    case ImageSupport::Texture:
+        return (support1 & D3D12_FORMAT_SUPPORT1_TEXTURE2D) != 0 ||
+               (support1 & D3D12_FORMAT_SUPPORT1_TEXTURE3D) != 0 ||
+               (support1 & D3D12_FORMAT_SUPPORT1_TEXTURECUBE) != 0;
+    case ImageSupport::RenderTarget:
+        return (support1 & D3D12_FORMAT_SUPPORT1_RENDER_TARGET) != 0;
+    case ImageSupport::DepthStencil:
+        return (support1 & D3D12_FORMAT_SUPPORT1_DEPTH_STENCIL) != 0;
+    case ImageSupport::Blendable:
+        return (support2 & D3D12_FORMAT_SUPPORT2_BLENDABLE) != 0;
+    case ImageSupport::Storage:
+        return (support1 & D3D12_FORMAT_SUPPORT1_TILE) != 0;
+    case ImageSupport::AccelerationStructure:
+        return (support2 & D3D12_FORMAT_SUPPORT2_RAY_TRACING) != 0;
+    default:
+        return false;
+    }
 }
 
 TextureFormat DX12RenderInterface::FindSupportedFormat(Span<TextureFormat> possibleFormats, ImageSupport supportType) const
 {
-    // @TODO: Implement supported format finding for DX12
-    if (possibleFormats.Size() == 0)
+    for (TextureFormat format : possibleFormats)
     {
-        return InvalidTextureFormat;
+        if (IsSupportedFormat(format, supportType))
+        {
+            return format;
+        }
     }
 
-    return possibleFormats[0];
+    return TextureFormat::Invalid;
 }
 
 UniquePtr<SingleTimeCommands> DX12RenderInterface::GetSingleTimeCommands()
@@ -676,7 +725,7 @@ void DX12RenderInterface::SubmitAsyncCompute(DX12AsyncCompute* asyncCompute)
 
 void DX12RenderInterface::ReleaseTransientMemory()
 {
-    // @TODO: Implement transient memory release for DX12
+    GetCurrentFrame()->ResetTransientStates();
 }
 
 void DX12RenderInterface::NextFrame()

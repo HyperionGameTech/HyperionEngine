@@ -15,6 +15,7 @@
 #undef INCLUDE_FROM_RHI_BASE
 
 #include <rendering/dx12/DX12CommandBuffer.hpp>
+#include <rendering/dx12/DX12GpuBuffer.hpp>
 
 // Fwd declaration
 namespace D3D12MA { class Allocation; }
@@ -48,9 +49,7 @@ public:
 
     RendererResult Resize(const Vec3u& extent) override;
 
-    HANDLE GetNativeHandle() const override;
-
-    void SetResourceState(ResourceState newState) override;
+HANDLE GetNativeHandle() const override;
 
     ResourceState GetSubResourceState(const ImageSubResource& subResource) const;
     void SetSubResourceState(const ImageSubResource& subResource, ResourceState newState);
@@ -70,21 +69,21 @@ public:
         bool onlyDepth = false,
         bool onlyStencil = false) override;
 
-    RendererResult Blit(
+    void Blit(
         DX12CommandBuffer* commandBuffer,
         const DX12GpuImage* srcImage) override;
 
-    RendererResult Blit(
+    void Blit(
         DX12CommandBuffer* commandBuffer,
         const DX12GpuImage* srcImage,
-        Rect<uint32> srcRect,
-        Rect<uint32> dstRect) override;
+        const Rect<uint32>& srcRect,
+        const Rect<uint32>& dstRect) override;
         
-    RendererResult Blit(
+    void Blit(
         DX12CommandBuffer* commandBuffer,
         const DX12GpuImage* srcImage,
-        Rect<uint32> srcRect,
-        Rect<uint32> dstRect,
+        const Rect<uint32>& srcRect,
+        const Rect<uint32>& dstRect,
         const ImageSubResource& srcSubResource,
         const ImageSubResource& dstSubResource) override;
 
@@ -99,7 +98,17 @@ public:
 
     void CopyToBuffer(
         DX12CommandBuffer* commandBuffer,
-        DX12GpuBuffer* dstBuffer) const override;
+        DX12GpuBuffer* dstBuffer,
+        const ImageSubResource& subResource) const override;
+
+    void CopyFrom(
+        DX12CommandBuffer* commandBuffer,
+        const DX12GpuImage* srcImage,
+        const Vec3u& srcOffset,
+        const Vec3u& dstOffset,
+        const Vec3u& extent,
+        const ImageSubResource& srcSubResource,
+        const ImageSubResource& dstSubResource) override;
 
     DX12GpuImageViewRef MakeLayerImageView(uint32 layerIndex) const override;
 
@@ -110,6 +119,9 @@ public:
 private:
     ComPtr<ID3D12Resource> m_resource;
     ComPtr<D3D12MA::Allocation> m_allocation;
+
+    bool m_isHandleOwned = true;
+    size_t m_size;
 };
 
 } // namespace Hyperion

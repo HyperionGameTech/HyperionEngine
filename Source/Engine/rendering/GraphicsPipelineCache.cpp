@@ -16,6 +16,7 @@
 #include <rendering/RenderMemory.hpp>
 #include <rendering/ShaderManager.hpp>
 #include <rendering/Shader.hpp>
+#include <rendering/ShaderInstance.hpp>
 
 // For Shader
 #include <rendering/util/ShaderCompiler.hpp>

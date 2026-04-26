@@ -55,7 +55,7 @@ public:
         DX12CommandBuffer* commandBuffer,
         uint8 attachmentsMask = uint8(-1)) override;
 
-    void ClearAttachment(
+    void Clear(
         DX12CommandBuffer* commandBuffer,
         const Rect<uint32>& rect,
         uint8 attachmentsMask = uint8(-1)) override;

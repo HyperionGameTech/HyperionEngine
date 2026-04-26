@@ -232,13 +232,18 @@ Result CSharpModuleGenerator::Generate(const Analyzer& analyzer, const Module& m
                         parameterTypeMapping = res.GetValue();
                     }
 
+                    auto AppendNullable = [](const String& typeName, bool isNullable) -> String
+                    {
+                        return isNullable ? typeName + "?" : typeName;
+                    };
+
                     const String parameterName = MapParameterName(parameter->name);
 
-                    methodArgDecls.PushBack(HYP_FORMAT("{} {}", parameterTypeMapping.typeName, parameterName));
+                    methodArgDecls.PushBack(HYP_FORMAT("{} {}", AppendNullable(parameterTypeMapping.typeName, parameterTypeMapping.isNullable), parameterName));
                     methodArgNames.PushBack(parameterName);
                 }
 
-                writer.WriteString(HYP_FORMAT("        public static {} {}(this {} obj{})\n", returnTypeMapping.typeName, managedName, cls.name, methodArgDecls.Any() ? ", " + String::Join(methodArgDecls, ", ") : ""));
+                writer.WriteString(HYP_FORMAT("        public static {} {}(this {} obj{})\n", AppendNullable(returnTypeMapping.typeName, returnTypeMapping.isNullable), managedName, cls.name, methodArgDecls.Any() ? ", " + String::Join(methodArgDecls, ", ") : ""));
                 writer.WriteString("        {\n");
 
                 if (functionType->returnType->IsVoid())

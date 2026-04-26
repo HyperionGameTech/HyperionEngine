@@ -23,6 +23,8 @@
 #include <rendering/RenderInterface.hpp>
 #include <rendering/Device.hpp>
 
+#include <rendering/util/DeletionQueue.hpp>
+
 #if HYP_VULKAN
 #include <vulkan/vulkan.h>
 #if HYP_WINDOWS
