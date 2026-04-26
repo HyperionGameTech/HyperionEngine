@@ -17,6 +17,7 @@
 #include <rendering/dx12/DX12AccelerationStructure.hpp>
 #include <rendering/dx12/DX12DescriptorSet.hpp>
 #include <rendering/dx12/DX12GraphicsPipeline.hpp>
+#include <rendering/dx12/DX12ComputePipeline.hpp>
 #include <rendering/dx12/DX12ShaderInstance.hpp>
 #include <rendering/dx12/DX12Helpers.hpp>
 
@@ -553,8 +554,7 @@ DX12GraphicsPipelineRef DX12RenderInterface::MakeGraphicsPipeline(
 
 DX12ComputePipelineRef DX12RenderInterface::MakeComputePipeline(const DX12ShaderInstanceRef& shaderInstance)
 {
-    // @TODO: Implement compute pipeline creation for DX12
-    return ComputePipelineRef();
+    return MakeHandle<DX12ComputePipeline>(shaderInstance);
 }
 
 DX12RayTracingPipelineRef DX12RenderInterface::MakeRayTracingPipeline(const DX12ShaderInstanceRef& shaderInstance)

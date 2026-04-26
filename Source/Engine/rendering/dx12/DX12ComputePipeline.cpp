@@ -2,14 +2,22 @@
  *  @author: The Hyperion Contributors
  *  @date 2016-2026
  *  @licence MIT
-*/
+ */
 
 #include <DX12Pch.hpp>
 
 #include <rendering/dx12/DX12GpuBuffer.hpp>
 #include <rendering/dx12/DX12GpuImage.hpp>
 #include <rendering/dx12/DX12ComputePipeline.hpp>
+#include <rendering/dx12/DX12CommandBuffer.hpp>
 #include <rendering/dx12/DX12RenderInterface.hpp>
+#include <rendering/dx12/DX12ShaderInstance.hpp>
+#include <rendering/dx12/DX12Helpers.hpp>
+
+#include <rendering/Shader.hpp>
+#include <rendering/Shared.hpp>
+
+#include <Core/math/MathUtil.hpp>
 
 #include <DX12ComputePipeline.generated.inl>
 
@@ -31,27 +39,218 @@ DX12ComputePipeline::DX12ComputePipeline(const DX12ShaderInstanceRef& shaderInst
 
 DX12ComputePipeline::~DX12ComputePipeline()
 {
+    m_shaderInstance.Reset();
 }
 
 bool DX12ComputePipeline::IsCreated() const
 {
-    return false;
+    return m_pipelineState != nullptr && m_rootSignature != nullptr;
 }
 
 RendererResult DX12ComputePipeline::Create()
 {
-    // @TODO
+    if (!m_shaderInstance)
+    {
+        return HYP_MAKE_ERROR(RendererError, "Compute shader not provided to pipeline");
+    }
+
+    DX12ShaderInstance* shaderInstance = static_cast<DX12ShaderInstance*>(m_shaderInstance.Get());
+    Assert(shaderInstance != nullptr && shaderInstance->GetShader() != nullptr);
+
+    if (!shaderInstance->IsCreated())
+    {
+        CheckResultOrReturn(shaderInstance->Create());
+    }
+
+    CheckResultOrReturn(BuildRootSignature());
+
+    D3D12_COMPUTE_PIPELINE_STATE_DESC psoDesc {};
+    psoDesc.pRootSignature = m_rootSignature.Get();
+    psoDesc.CS = shaderInstance->GetShaderBytecode(ShaderModuleType::Compute);
+
+    if (psoDesc.CS.BytecodeLength == 0)
+    {
+        return HYP_MAKE_ERROR(RendererError, "Compute shader bytecode not available");
+    }
+
+    HRESULT res = g_renderInterface->GetDevice()->CreateComputePipelineState(&psoDesc, IID_PPV_ARGS(&m_pipelineState));
+
+    if (FAILED(res))
+    {
+        return HYP_MAKE_ERROR(RendererError, "Failed to create compute pipeline state", res);
+    }
+
+#if HYP_DEBUG_MODE
+    if (Name debugName = GetDebugName())
+    {
+        WideString ws = *debugName;
+        m_pipelineState->SetName(ws.Data());
+    }
+#endif
+
+    return {};
+}
+
+RendererResult DX12ComputePipeline::BuildRootSignature()
+{
+    m_rootSignature.Reset();
+
+    Assert(m_shaderInstance != nullptr && m_shaderInstance->GetShader() != nullptr);
+
+    const ShaderInputGroup* decl = m_shaderInstance->GetShader()->GetDescriptorTableDeclaration();
+    Assert(decl != nullptr);
+
+    Array<D3D12_ROOT_PARAMETER> rootParams;
+
+    // use LL so we never invalid ptrs
+    LinkedList<Array<D3D12_DESCRIPTOR_RANGE>> rangeAllocations;
+
+    auto AllocateRangeStorage = [&](const Array<D3D12_DESCRIPTOR_RANGE>& newRanges) -> const D3D12_DESCRIPTOR_RANGE*
+    {
+        if (newRanges.Empty())
+            return nullptr;
+
+        rangeAllocations.PushBack(newRanges);
+        return rangeAllocations.Back().Data();
+    };
+
+    for (size_t setIndex = 0; setIndex < decl->elements.Size(); ++setIndex)
+    {
+        const ShaderInputSet& setDecl = decl->elements[setIndex];
+
+        Array<D3D12_DESCRIPTOR_RANGE> viewRanges;
+        Array<D3D12_DESCRIPTOR_RANGE> samplerRanges;
+
+        for (uint32 shaderRegisterType = uint32(ShaderRegister::NONE) + 1; shaderRegisterType < uint32(ShaderRegister::MAX); ++shaderRegisterType)
+        {
+            const ShaderRegister reg = ShaderRegister(shaderRegisterType);
+
+            const auto& declarations = setDecl.slots[shaderRegisterType - 1];
+            
+            if (declarations.Empty())
+            {
+                continue;
+            }
+            
+            D3D12_DESCRIPTOR_RANGE_TYPE rangeType;
+
+            switch (reg)
+            {
+            case ShaderRegister::SRV:
+                rangeType = D3D12_DESCRIPTOR_RANGE_TYPE_SRV; 
+                break;
+            case ShaderRegister::UAV:
+                rangeType = D3D12_DESCRIPTOR_RANGE_TYPE_UAV;
+                break;
+            case ShaderRegister::BUFFER:
+                rangeType = D3D12_DESCRIPTOR_RANGE_TYPE_CBV;
+                break;
+            case ShaderRegister::SAMPLER:
+                rangeType = D3D12_DESCRIPTOR_RANGE_TYPE_SAMPLER;
+                break;
+            default:
+                HYP_UNREACHABLE();
+            }
+
+            for (const ShaderInput& descDecl : declarations)
+            {
+                D3D12_DESCRIPTOR_RANGE range {};
+                range.RangeType = rangeType;
+                range.NumDescriptors = descDecl.count;
+                range.BaseShaderRegister = descDecl.index;
+                range.RegisterSpace = (UINT)setIndex;
+                range.OffsetInDescriptorsFromTableStart = D3D12_DESCRIPTOR_RANGE_OFFSET_APPEND;
+
+                if (reg == ShaderRegister::SAMPLER)
+                {
+                    samplerRanges.PushBack(range);
+                }
+                else
+                {
+                    viewRanges.PushBack(range);
+                }
+            }
+        }
+
+        if (viewRanges.Any())
+        {
+            D3D12_ROOT_PARAMETER& param = rootParams.EmplaceBack();
+            param.ParameterType = D3D12_ROOT_PARAMETER_TYPE_DESCRIPTOR_TABLE;
+            param.ShaderVisibility = D3D12_SHADER_VISIBILITY_ALL;
+            param.DescriptorTable.NumDescriptorRanges = (UINT)viewRanges.Size();
+            param.DescriptorTable.pDescriptorRanges = AllocateRangeStorage(viewRanges);
+        }
+
+        if (samplerRanges.Any())
+        {
+            D3D12_ROOT_PARAMETER& param = rootParams.EmplaceBack();
+            param.ParameterType = D3D12_ROOT_PARAMETER_TYPE_DESCRIPTOR_TABLE;
+            param.ShaderVisibility = D3D12_SHADER_VISIBILITY_ALL;
+            param.DescriptorTable.NumDescriptorRanges = (UINT)samplerRanges.Size();
+            param.DescriptorTable.pDescriptorRanges = AllocateRangeStorage(samplerRanges);
+        }
+    }
+
+    D3D12_ROOT_SIGNATURE_DESC sigDesc = {};
+    sigDesc.NumParameters = (UINT)rootParams.Size();
+    sigDesc.pParameters = rootParams.Data();
+    sigDesc.NumStaticSamplers = 0;
+    sigDesc.pStaticSamplers = nullptr;
+    sigDesc.Flags = D3D12_ROOT_SIGNATURE_FLAG_NONE;
+
+    ComPtr<ID3DBlob> signature;
+    ComPtr<ID3DBlob> error;
+    
+    HRESULT res = D3D12SerializeRootSignature(&sigDesc, D3D_ROOT_SIGNATURE_VERSION_1, &signature, &error);
+
+    if (FAILED(res))
+    {
+        const char* errStr = error ? (const char*)error->GetBufferPointer() : "Unknown";
+
+        return HYP_MAKE_ERROR(RendererError, "Root Signature Serialization Failed! Error: {}", res, errStr);
+    }
+
+    res = g_renderInterface->GetDevice()->CreateRootSignature(
+        0,
+        signature->GetBufferPointer(),
+        signature->GetBufferSize(),
+        __uuidof(ID3D12RootSignature),
+        &m_rootSignature);
+
+    if (FAILED(res))
+    {
+        return HYP_MAKE_ERROR(RendererError, "CreateRootSignature failed", res);
+    }
+
     return {};
 }
 
 void DX12ComputePipeline::Bind(CommandBuffer* commandBuffer)
 {
-    // @TODO
+    Assert(m_pipelineState != nullptr);
+    Assert(m_rootSignature != nullptr);
+
+    DX12CommandBuffer* dx12CommandBuffer = static_cast<DX12CommandBuffer*>(commandBuffer);
+    Assert(dx12CommandBuffer != nullptr);
+
+    ID3D12GraphicsCommandList* cmdList = dx12CommandBuffer->GetCommandList();
+    Assert(cmdList != nullptr);
+
+    cmdList->SetPipelineState(m_pipelineState.Get());
+    cmdList->SetComputeRootSignature(m_rootSignature.Get());
 }
 
 void DX12ComputePipeline::Dispatch(CommandBuffer* commandBuffer, const Vec3u& groupSize) const
 {
-    // @TODO
+    Assert(m_pipelineState != nullptr);
+
+    DX12CommandBuffer* dx12CommandBuffer = static_cast<DX12CommandBuffer*>(commandBuffer);
+    Assert(dx12CommandBuffer != nullptr);
+
+    ID3D12GraphicsCommandList* cmdList = dx12CommandBuffer->GetCommandList();
+    Assert(cmdList != nullptr);
+
+    cmdList->Dispatch(groupSize.x, groupSize.y, groupSize.z);
 }
 
 void DX12ComputePipeline::DispatchIndirect(
@@ -59,18 +258,71 @@ void DX12ComputePipeline::DispatchIndirect(
     const DX12GpuBufferRef& indirectBuffer,
     size_t offset) const
 {
-    // @TODO
+    Assert(m_pipelineState != nullptr);
+    Assert(indirectBuffer != nullptr);
+
+    DX12CommandBuffer* dx12CommandBuffer = static_cast<DX12CommandBuffer*>(commandBuffer);
+    Assert(dx12CommandBuffer != nullptr);
+
+    ID3D12GraphicsCommandList* cmdList = dx12CommandBuffer->GetCommandList();
+    Assert(cmdList != nullptr);
+
+    // Create command signature for dispatch if not already created
+    // The indirect buffer should contain three uint32 values: (groupCountX, groupCountY, groupCountZ)
+    static ID3D12CommandSignature* s_dispatchCommandSignature = nullptr;
+    
+    if (s_dispatchCommandSignature == nullptr)
+    {
+        D3D12_INDIRECT_ARGUMENT_DESC argDesc = {};
+        argDesc.Type = D3D12_INDIRECT_ARGUMENT_TYPE_DISPATCH;
+
+        D3D12_COMMAND_SIGNATURE_DESC sigDesc = {};
+        sigDesc.ByteStride = sizeof(D3D12_DISPATCH_ARGUMENTS);
+        sigDesc.NumArgumentDescs = 1;
+        sigDesc.pArgumentDescs = &argDesc;
+
+        g_renderInterface->GetDevice()->CreateCommandSignature(
+            &sigDesc,
+            m_rootSignature.Get(),
+            IID_PPV_ARGS(&s_dispatchCommandSignature));
+    }
+
+    cmdList->ExecuteIndirect(
+        s_dispatchCommandSignature,
+        1,
+        indirectBuffer->GetResource(),
+        offset,
+        nullptr,
+        0);
 }
 
 void DX12ComputePipeline::SetPushConstants(const void* data, size_t size)
 {
-    // @TODO
+    // @TODO: Implement push constants if needed for compute shaders
+    // D3D12 doesn't have direct push constants; use root constants instead
 }
 
 #ifdef HYP_DEBUG_MODE
 void DX12ComputePipeline::SetDebugName(Name name)
 {
     ComputePipelineBase::SetDebugName(name);
+
+    if (!IsCreated())
+    {
+        return;
+    }
+    
+    WideString ws = *name;
+
+    if (m_pipelineState)
+    {
+        m_pipelineState->SetName(ws.Data());
+    }
+
+    if (m_rootSignature)
+    {
+        m_rootSignature->SetName(ws.Data());
+    }
 }
 #endif
 

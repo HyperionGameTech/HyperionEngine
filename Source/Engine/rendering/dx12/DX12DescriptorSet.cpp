@@ -127,8 +127,6 @@ RendererResult DX12DescriptorSet::Create()
         {
             return HYP_MAKE_ERROR(RendererError, "Failed to allocate {} view descriptors for descriptor set: {}", 0, viewCount, m_layout.GetName());
         }
-
-        m_viewDescriptorHeap = g_renderInterface->descriptorHeapManager->GetDescriptorHeap(DX12DescriptorHeapType::CBV_SRV_UAV);
     }
 
     if (samplerCount > 0)
@@ -145,8 +143,6 @@ RendererResult DX12DescriptorSet::Create()
 
             return HYP_MAKE_ERROR(RendererError, "Failed to allocate {} sampler descriptors for descriptor set: {}", 0, samplerCount, m_layout.GetName());
         }
-
-        m_samplerDescriptorHeap = g_renderInterface->descriptorHeapManager->GetDescriptorHeap(DX12DescriptorHeapType::SAMPLER);
     }
 
     for (const auto& it : m_elements)
@@ -555,13 +551,17 @@ void DX12DescriptorSet::Bind(DX12CommandBuffer* commandBuffer, const DX12Graphic
     uint32 numHeaps = 0;
 
     ID3D12DescriptorHeap* heaps[2] {};
-    if (m_viewDescriptorHeap != nullptr)
+    
+    ID3D12DescriptorHeap* viewHeap = g_renderInterface->descriptorHeapManager->GetDescriptorHeap(DX12DescriptorHeapType::CBV_SRV_UAV);
+    if (viewHeap != nullptr && m_viewDescriptorHandle.IsValid())
     {
-        heaps[numHeaps++] = m_viewDescriptorHeap;
+        heaps[numHeaps++] = viewHeap;
     }
-    if (m_samplerDescriptorHeap != nullptr)
+    
+    ID3D12DescriptorHeap* samplerHeap = g_renderInterface->descriptorHeapManager->GetDescriptorHeap(DX12DescriptorHeapType::SAMPLER);
+    if (samplerHeap != nullptr && m_samplerDescriptorHandle.IsValid())
     {
-        heaps[numHeaps++] = m_samplerDescriptorHeap;
+        heaps[numHeaps++] = samplerHeap;
     }
 
     if (numHeaps == 0)
@@ -597,13 +597,17 @@ void DX12DescriptorSet::Bind(DX12CommandBuffer* commandBuffer, const DX12Compute
     uint32 numHeaps = 0;
 
     ID3D12DescriptorHeap* heaps[2] {};
-    if (m_viewDescriptorHeap != nullptr)
+    
+    ID3D12DescriptorHeap* viewHeap = g_renderInterface->descriptorHeapManager->GetDescriptorHeap(DX12DescriptorHeapType::CBV_SRV_UAV);
+    if (viewHeap != nullptr && m_viewDescriptorHandle.IsValid())
     {
-        heaps[numHeaps++] = m_viewDescriptorHeap;
+        heaps[numHeaps++] = viewHeap;
     }
-    if (m_samplerDescriptorHeap != nullptr)
+    
+    ID3D12DescriptorHeap* samplerHeap = g_renderInterface->descriptorHeapManager->GetDescriptorHeap(DX12DescriptorHeapType::SAMPLER);
+    if (samplerHeap != nullptr && m_samplerDescriptorHandle.IsValid())
     {
-        heaps[numHeaps++] = m_samplerDescriptorHeap;
+        heaps[numHeaps++] = samplerHeap;
     }
 
     if (numHeaps == 0)
@@ -639,13 +643,17 @@ void DX12DescriptorSet::Bind(DX12CommandBuffer* commandBuffer, const DX12RayTrac
     uint32 numHeaps = 0;
 
     ID3D12DescriptorHeap* heaps[2] {};
-    if (m_viewDescriptorHeap != nullptr)
+    
+    ID3D12DescriptorHeap* viewHeap = g_renderInterface->descriptorHeapManager->GetDescriptorHeap(DX12DescriptorHeapType::CBV_SRV_UAV);
+    if (viewHeap != nullptr && m_viewDescriptorHandle.IsValid())
     {
-        heaps[numHeaps++] = m_viewDescriptorHeap;
+        heaps[numHeaps++] = viewHeap;
     }
-    if (m_samplerDescriptorHeap != nullptr)
+    
+    ID3D12DescriptorHeap* samplerHeap = g_renderInterface->descriptorHeapManager->GetDescriptorHeap(DX12DescriptorHeapType::SAMPLER);
+    if (samplerHeap != nullptr && m_samplerDescriptorHandle.IsValid())
     {
-        heaps[numHeaps++] = m_samplerDescriptorHeap;
+        heaps[numHeaps++] = samplerHeap;
     }
 
     if (numHeaps == 0)
@@ -654,12 +662,12 @@ void DX12DescriptorSet::Bind(DX12CommandBuffer* commandBuffer, const DX12RayTrac
     }
     
     commandList->SetDescriptorHeaps(numHeaps, heaps);
-    
+
     if (m_viewDescriptorHandle.IsValid())
     {
         commandList->SetComputeRootDescriptorTable(bindIndex * 2, m_viewDescriptorHandle.gpuHandle);
     }
-    
+
     if (m_samplerDescriptorHandle.IsValid())
     {
         commandList->SetComputeRootDescriptorTable(bindIndex * 2 + 1, m_samplerDescriptorHandle.gpuHandle);

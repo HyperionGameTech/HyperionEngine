@@ -66,18 +66,6 @@ public:
     explicit DX12DescriptorSet(const DescriptorSetLayout& layout);
     ~DX12DescriptorSet() override;
 
-    // @TODO Move heaps to DX12RenderInterface not individual descriptor sets!!!
-
-    HYP_FORCE_INLINE ID3D12DescriptorHeap* GetViewHeap() const
-    {
-        return m_viewDescriptorHeap;
-    }
-
-    HYP_FORCE_INLINE ID3D12DescriptorHeap* GetSamplerHeap() const
-    {
-        return m_samplerDescriptorHeap;
-    }
-
     bool IsCreated() const override;
     RendererResult Create() override;
 
@@ -114,8 +102,6 @@ private:
     // Allocated descriptor handles
     DX12DescriptorHandle m_viewDescriptorHandle;
     DX12DescriptorHandle m_samplerDescriptorHandle;
-    ID3D12DescriptorHeap* m_viewDescriptorHeap = nullptr;
-    ID3D12DescriptorHeap* m_samplerDescriptorHeap = nullptr;
 
     bool m_isCreated = false;
 };

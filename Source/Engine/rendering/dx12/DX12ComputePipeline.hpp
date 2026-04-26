@@ -2,7 +2,7 @@
  *  @author: The Hyperion Contributors
  *  @date 2016-2026
  *  @licence MIT
-*/
+ */
 
 #pragma once
 
@@ -13,6 +13,8 @@
 
 #undef INCLUDE_FROM_RHI
 #undef INCLUDE_FROM_RHI_BASE
+
+#include <rendering/dx12/DX12Shared.hpp>
 
 namespace Hyperion {
 
@@ -25,6 +27,16 @@ public:
     DX12ComputePipeline();
     explicit DX12ComputePipeline(const DX12ShaderInstanceRef& shaderInstance);
     ~DX12ComputePipeline() override;
+
+    HYP_FORCE_INLINE ID3D12RootSignature* GetRootSignature() const
+    {
+        return m_rootSignature.Get();
+    }
+
+    HYP_FORCE_INLINE ID3D12PipelineState* GetPipelineState() const
+    {
+        return m_pipelineState.Get();
+    }
 
     bool IsCreated() const override;
 
@@ -43,6 +55,12 @@ public:
 #ifdef HYP_DEBUG_MODE
     void SetDebugName(Name name) override;
 #endif
+
+private:
+    RendererResult BuildRootSignature();
+
+    ComPtr<ID3D12RootSignature> m_rootSignature;
+    ComPtr<ID3D12PipelineState> m_pipelineState;
 };
 
 } // namespace Hyperion
