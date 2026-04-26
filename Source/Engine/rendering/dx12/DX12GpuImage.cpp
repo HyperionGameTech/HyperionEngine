@@ -480,45 +480,48 @@ void DX12GpuImage::Blit(
     const ImageSubResource& srcSubResource,
     const ImageSubResource& dstSubResource)
 {
-    const bool srcIsDepthStencil = srcImage->GetTextureDesc().IsDepthStencil();
-    const bool dstIsDepthStencil = m_textureDesc.IsDepthStencil();
+    // @TODO Needs to be implemented with a custom shader!
 
-    D3D12_RESOURCE_STATES srcState = srcIsDepthStencil ? D3D12_RESOURCE_STATE_DEPTH_READ : D3D12_RESOURCE_STATE_COPY_SOURCE;
-    D3D12_RESOURCE_STATES dstState = dstIsDepthStencil ? D3D12_RESOURCE_STATE_DEPTH_WRITE : D3D12_RESOURCE_STATE_COPY_DEST;
 
-    D3D12_TEXTURE_COPY_LOCATION srcLocation {};
-    srcLocation.pResource = srcImage->GetResource();
-    srcLocation.Type = D3D12_TEXTURE_COPY_TYPE_SUBRESOURCE_INDEX;
-    srcLocation.SubresourceIndex = D3D12CalcSubresource(
-        srcSubResource.baseMipLevel,
-        srcSubResource.baseArrayLayer,
-        0,
-        srcImage->NumMips(),
-        srcImage->NumArrayLayers());
+    //const bool srcIsDepthStencil = srcImage->GetTextureDesc().IsDepthStencil();
+    //const bool dstIsDepthStencil = m_textureDesc.IsDepthStencil();
 
-    D3D12_TEXTURE_COPY_LOCATION dstLocation {};
-    dstLocation.pResource = m_resource.Get();
-    dstLocation.Type = D3D12_TEXTURE_COPY_TYPE_SUBRESOURCE_INDEX;
-    dstLocation.SubresourceIndex = D3D12CalcSubresource(
-        dstSubResource.baseMipLevel,
-        dstSubResource.baseArrayLayer,
-        0,
-        NumMips(),
-        NumArrayLayers());
+    //D3D12_RESOURCE_STATES srcState = srcIsDepthStencil ? D3D12_RESOURCE_STATE_DEPTH_READ : D3D12_RESOURCE_STATE_COPY_SOURCE;
+    //D3D12_RESOURCE_STATES dstState = dstIsDepthStencil ? D3D12_RESOURCE_STATE_DEPTH_WRITE : D3D12_RESOURCE_STATE_COPY_DEST;
 
-    D3D12_BOX srcBox {};
-    srcBox.left = srcRect.x0;
-    srcBox.top = srcRect.y0;
-    srcBox.front = 0;
-    srcBox.right = srcRect.x1;
-    srcBox.bottom = srcRect.y1;
-    srcBox.back = 1;
+    //D3D12_TEXTURE_COPY_LOCATION srcLocation {};
+    //srcLocation.pResource = srcImage->GetResource();
+    //srcLocation.Type = D3D12_TEXTURE_COPY_TYPE_SUBRESOURCE_INDEX;
+    //srcLocation.SubresourceIndex = D3D12CalcSubresource(
+    //    srcSubResource.baseMipLevel,
+    //    srcSubResource.baseArrayLayer,
+    //    0,
+    //    srcImage->NumMips(),
+    //    srcImage->NumArrayLayers());
 
-    commandBuffer->GetCommandList()->CopyTextureRegion(
-        &dstLocation,
-        dstRect.x0, dstRect.y0, 0,
-        &srcLocation,
-        &srcBox);
+    //D3D12_TEXTURE_COPY_LOCATION dstLocation {};
+    //dstLocation.pResource = m_resource.Get();
+    //dstLocation.Type = D3D12_TEXTURE_COPY_TYPE_SUBRESOURCE_INDEX;
+    //dstLocation.SubresourceIndex = D3D12CalcSubresource(
+    //    dstSubResource.baseMipLevel,
+    //    dstSubResource.baseArrayLayer,
+    //    0,
+    //    NumMips(),
+    //    NumArrayLayers());
+
+    //D3D12_BOX srcBox {};
+    //srcBox.left = srcRect.x0;
+    //srcBox.top = srcRect.y0;
+    //srcBox.front = 0;
+    //srcBox.right = srcRect.x1;
+    //srcBox.bottom = srcRect.y1;
+    //srcBox.back = 1;
+
+    //commandBuffer->GetCommandList()->CopyTextureRegion(
+    //    &dstLocation,
+    //    dstRect.x0, dstRect.y0, 0,
+    //    &srcLocation,
+    //    &srcBox);
 }
 
 RendererResult DX12GpuImage::GenerateMipmaps(DX12CommandBuffer* commandBuffer)
@@ -744,6 +747,11 @@ void DX12GpuImage::CopyFrom(
     const ImageSubResource& srcSubResource,
     const ImageSubResource& dstSubResource)
 {
+    AssertDebug(srcImage->GetTextureFormat() == GetTextureFormat(),
+        "Formats do not match: {} != {}",
+        EnumToString(srcImage->GetTextureFormat()),
+        EnumToString(GetTextureFormat()));
+
     const bool srcIsDepthStencil = srcImage->GetTextureDesc().IsDepthStencil();
     const bool dstIsDepthStencil = m_textureDesc.IsDepthStencil();
 
