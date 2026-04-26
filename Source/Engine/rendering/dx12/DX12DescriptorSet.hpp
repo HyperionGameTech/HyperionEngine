@@ -2,7 +2,7 @@
  *  @author: The Hyperion Contributors
  *  @date 2016-2026
  *  @licence MIT
-*/
+ */
 
 #pragma once
 
@@ -14,22 +14,67 @@
 #undef INCLUDE_FROM_RHI
 #undef INCLUDE_FROM_RHI_BASE
 
+#include <Core/name/Name.hpp>
+#include <Core/utilities/Optional.hpp>
+#include <Core/containers/ArrayMap.hpp>
+#include <Core/Defines.hpp>
+
 #include <rendering/RenderObject.hpp>
 
 #include <rendering/dx12/DX12DescriptorHeaps.hpp>
 
 namespace Hyperion {
 
+struct DX12CachedDescriptor
+{
+    uint32 binding;
+    uint32 index;
+    D3D12_DESCRIPTOR_HEAP_TYPE heapType;
+
+    union
+    {
+        ObjectBase* object_ptr;
+        uint64 gpu_address;
+    };
+
+    bool operator==(const DX12CachedDescriptor& other) const
+    {
+        if (binding != other.binding
+            || index != other.index
+            || heapType != other.heapType)
+        {
+            return false;
+        }
+
+        return object_ptr == other.object_ptr;
+    }
+
+    HYP_FORCE_INLINE bool operator!=(const DX12CachedDescriptor& other) const
+    {
+        return !(*this == other);
+    }
+};
+
 HYP_CLASS(NoScriptBindings)
 class DX12DescriptorSet final : public DescriptorSetBase
 {
     HYP_OBJECT_BODY(DX12DescriptorSet);
-    
-    using ElementCache = HashMap<Name, Array<DX12DescriptorHandle>>;
+
+    using ElementCache = HashMap<Name, Array<DX12CachedDescriptor, RHIAllocator>, RHIAllocator>;
 
 public:
     explicit DX12DescriptorSet(const DescriptorSetLayout& layout);
     ~DX12DescriptorSet() override;
+
+    HYP_FORCE_INLINE ID3D12DescriptorHeap* GetViewHeap() const
+    {
+        return m_viewDescriptorHeap;
+    }
+
+    HYP_FORCE_INLINE ID3D12DescriptorHeap* GetSamplerHeap() const
+    {
+        return m_samplerDescriptorHeap;
+    }
 
     bool IsCreated() const override;
     RendererResult Create() override;
@@ -56,7 +101,8 @@ public:
 #endif
 
 private:
-    ElementCache m_elementCache;
+    ElementCache m_cachedElements;
+    Array<DX12CachedDescriptor, RHIAllocator> m_pendingDescriptors;
 
     // Binding index -> heap offset (packed) for views (CBV/SRV/UAV)
     HashMap<uint32, uint32> m_viewBindingToHeapOffset;
@@ -66,6 +112,8 @@ private:
     // Allocated descriptor handles
     DX12DescriptorHandle m_viewDescriptorHandle;
     DX12DescriptorHandle m_samplerDescriptorHandle;
+    ID3D12DescriptorHeap* m_viewDescriptorHeap = nullptr;
+    ID3D12DescriptorHeap* m_samplerDescriptorHeap = nullptr;
 
     bool m_isCreated = false;
 };

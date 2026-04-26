@@ -18,6 +18,8 @@
 #include <Core/containers/SparsePagedArray.hpp>
 #include <Core/containers/HashMap.hpp>
 
+#include <Core/threading/SharedMutex.hpp>
+
 namespace Hyperion {
 
 class DX12TextureViewCache final : public TextureViewCacheBase
@@ -25,11 +27,12 @@ class DX12TextureViewCache final : public TextureViewCacheBase
 public:
     struct SubtypeData
     {
-        SparsePagedArray<HashMap<ImageSubResource, DX12GpuImageViewRef>, 1024> imageViews;
-        SparsePagedArray<WeakHandle<Texture>, 1024> weakTextureHandles;
+        SparsePagedArray<HashMap<uint64, DX12GpuImageViewRef, RenderAllocator>, 32, RenderAllocator> imageViews;
+        SparsePagedArray<WeakHandle<Texture>, 32, RenderAllocator> weakTextureHandles;
     };
 
-    Array<SubtypeData, DynamicAllocator> subtypeImpls;
+    SharedMutex mutex;
+    Array<SubtypeData, RenderAllocator> subtypeImpls;
 
     DX12TextureViewCache();
 

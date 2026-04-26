@@ -79,7 +79,11 @@ void DX12CommandBuffer::End()
     Assert(m_commandList != nullptr);
     Assert(m_isRecording, "Command buffer is not recording!");
 
-    Assert(SUCCEEDED(m_commandList->Close()));
+    HRESULT closeResult = m_commandList->Close();
+    if (FAILED(closeResult))
+    {
+        HYP_FAIL("Failed to close command buffer! Code: {}", closeResult);
+    }
 
     m_isRecording = false;
 }
@@ -111,6 +115,29 @@ void DX12CommandBuffer::DrawIndexedIndirect(
 {
     // @TODO
     HYP_LOG(RenderingBackend, Warning, "DX12CommandBuffer::DrawIndexedIndirect() not implemented");
+}
+
+void DX12CommandBuffer::Submit(
+    ID3D12CommandQueue* commandQueue,
+    ID3D12Fence* fence,
+    uint64 fenceValue)
+{
+    AssertOnThread(g_renderThread);
+
+    Assert(commandQueue != nullptr);
+
+    if (m_isRecording)
+    {
+        End();
+    }
+
+    ID3D12CommandList* commandLists[] = { m_commandList.Get() };
+    commandQueue->ExecuteCommandLists(ArraySize(commandLists), commandLists);
+
+    if (fence != nullptr)
+    {
+        commandQueue->Signal(fence, fenceValue);
+    }
 }
 
 } // namespace Hyperion

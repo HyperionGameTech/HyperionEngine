@@ -392,17 +392,31 @@ void DX12RenderInterface::PrepareSwapchain(DX12Swapchain* swapchain)
 
 void DX12RenderInterface::PresentToSwapchain(DX12Swapchain* swapchain)
 {
-    DX12QueueData& queueData = m_queueData[D3D12_COMMAND_LIST_TYPE_DIRECT];
+    DX12CommandBuffer* commandBuffer = GetCurrentCommandBuffer();
 
-    if (m_commandBuffer->IsRecording())
+    if (swapchain != nullptr)
     {
-        m_commandBuffer->End();
+        AssertDebug(commandBuffer != nullptr);
+    }
+    else
+    {
+        if (!commandBuffer)
+        {
+            commandBuffer = m_commandBuffer.Get();
+        }
     }
 
-    ID3D12CommandList* commandLists[] = { m_commandBuffer->GetCommandList() };
-    queueData.commandQueue->ExecuteCommandLists(ArraySize(commandLists), commandLists);
+    AssertDebug(commandBuffer->IsRecording());
 
-    swapchain->PresentFrame(GetCurrentFrame());
+    DX12Frame* frame = GetCurrentFrame();
+    Assert(frame != nullptr);
+
+    frame->WriteCommandBuffer(commandBuffer);
+
+    if (swapchain != nullptr)
+    {
+        swapchain->PresentFrame(frame);
+    }
 }
 
 DX12CommandBuffer* DX12RenderInterface::GetCurrentCommandBuffer() const
@@ -642,7 +656,14 @@ void DX12RenderInterface::PopulateIndirectDrawCommandsBuffer(const DX12GpuBuffer
 
 bool DX12RenderInterface::IsSupportedFormat(TextureFormat format, ImageSupport supportType) const
 {
-    DXGI_FORMAT dxgiFormat = ToDXGIFormat(format);
+    DX12ViewType viewType = DX12ViewType::SRV_UAV;
+
+    if (supportType == ImageSupport::Attachment)
+    {
+        viewType = DX12ViewType::RTV_DSV;
+    }
+
+    DXGI_FORMAT dxgiFormat = ToDXGIFormat(format, viewType);
 
     D3D12_FEATURE_DATA_FORMAT_SUPPORT formatSupport {};
     formatSupport.Format = dxgiFormat;
@@ -739,6 +760,9 @@ void DX12RenderInterface::InitDeviceDetails(DeviceDetails& deviceDetails)
     D3D12_FEATURE_DATA_D3D12_OPTIONS7 options7 {};
     m_device->CheckFeatureSupport(D3D12_FEATURE_D3D12_OPTIONS7, &options7, sizeof(options7));
 
+    D3D12_FEATURE_DATA_D3D12_OPTIONS5 options5 {};
+    m_device->CheckFeatureSupport(D3D12_FEATURE_D3D12_OPTIONS5, &options5, sizeof(options5));
+
     bool isSoftware = (adapterDesc.Flags & DXGI_ADAPTER_FLAG_SOFTWARE) != 0;
 
     GpuInfo info;
@@ -747,7 +771,7 @@ void DX12RenderInterface::InitDeviceDetails(DeviceDetails& deviceDetails)
     info.deviceId = adapterDesc.DeviceId;
     info.gpuModel = String(adapterDesc.Description);
     info.isDiscrete = !isSoftware;
-    info.supportsRayTracing = options7.RaytracingTier != D3D12_RAYTRACING_TIER_NOT_SUPPORTED;
+    info.supportsRayTracing = options5.RaytracingTier != D3D12_RAYTRACING_TIER_NOT_SUPPORTED;
 
     deviceDetails.Set(info);
 }

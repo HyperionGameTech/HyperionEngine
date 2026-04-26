@@ -32,7 +32,7 @@ namespace Hyperion {
 #pragma region CommandRecorder
 
 template <>
-void CommandRecorder::Prepare(Frame* frame)
+void TCommandRecorder<RenderAllocator>::Prepare(Frame* frame)
 {
     Assert(frame != nullptr);
 
@@ -49,7 +49,7 @@ void CommandRecorder::Prepare(Frame* frame)
 }
 
 template <>
-void CommandRecorder::Execute(CommandBuffer* commandBuffer)
+void TCommandRecorder<RenderAllocator>::Execute(CommandBuffer* commandBuffer)
 {
     AssertDebug(commandBuffer != nullptr);
     
@@ -79,6 +79,150 @@ void CommandRecorder::Execute(CommandBuffer* commandBuffer)
 }
 
 #pragma endregion CommandRecorder
+
+#pragma region BindVertexBuffer
+
+void BindVertexBuffer::InvokeStatic(CmdBase* cmd, CommandBuffer* commandBuffer)
+{
+    BindVertexBuffer* cmdCasted = static_cast<BindVertexBuffer*>(cmd);
+    commandBuffer->BindVertexBuffer(cmdCasted->m_buffer);
+}
+
+#pragma endregion BindVertexBuffer
+
+#pragma region BindIndexBuffer
+
+void BindIndexBuffer::InvokeStatic(CmdBase* cmd, CommandBuffer* commandBuffer)
+{
+    BindIndexBuffer* cmdCasted = static_cast<BindIndexBuffer*>(cmd);
+    commandBuffer->BindIndexBuffer(cmdCasted->m_buffer);
+}
+
+#pragma endregion BindIndexBuffer
+
+#pragma region DrawIndexed
+
+void DrawIndexed::InvokeStatic(CmdBase* cmd, CommandBuffer* commandBuffer)
+{
+    DrawIndexed* cmdCasted = static_cast<DrawIndexed*>(cmd);
+    commandBuffer->DrawIndexed(cmdCasted->m_numIndices, cmdCasted->m_numInstances, cmdCasted->m_instanceIndex);
+}
+
+#pragma endregion DrawIndexed
+
+#pragma region DrawIndexedIndirect
+
+void DrawIndexedIndirect::InvokeStatic(CmdBase* cmd, CommandBuffer* commandBuffer)
+{
+    DrawIndexedIndirect* cmdCasted = static_cast<DrawIndexedIndirect*>(cmd);
+
+#if HYP_VULKAN
+    AssertDebug(cmdCasted->m_bufferOffset + 20 <= cmdCasted->m_buffer->Size());
+#endif
+
+    commandBuffer->DrawIndexedIndirect(cmdCasted->m_buffer, cmdCasted->m_bufferOffset);
+}
+
+#pragma endregion DrawIndexedIndirect
+
+#pragma region Blit
+
+void Blit::InvokeStatic(CmdBase* cmd, CommandBuffer* commandBuffer)
+{
+    Blit* cmdCasted = static_cast<Blit*>(cmd);
+
+    if (cmdCasted->m_hasSubResource)
+    {
+        cmdCasted->m_dstImage->Blit(
+            commandBuffer, 
+            cmdCasted->m_srcImage,
+            cmdCasted->m_srcRect, cmdCasted->m_dstRect,
+            cmdCasted->m_srcSubResource, cmdCasted->m_dstSubResource);
+    }
+    else
+    {
+        if (cmdCasted->m_hasRect)
+        {
+            cmdCasted->m_dstImage->Blit(commandBuffer, cmdCasted->m_srcImage, cmdCasted->m_srcRect, cmdCasted->m_dstRect);
+        }
+        else
+        {
+            cmdCasted->m_dstImage->Blit(commandBuffer, cmdCasted->m_srcImage);
+        }
+    }
+}
+
+#pragma endregion Blit
+
+#pragma region BlitRect
+
+void BlitRect::InvokeStatic(CmdBase* cmd, CommandBuffer* commandBuffer)
+{
+    BlitRect* cmdCasted = static_cast<BlitRect*>(cmd);
+
+    cmdCasted->m_dstImage->Blit(
+        commandBuffer,
+        cmdCasted->m_srcImage,
+        cmdCasted->m_srcRect, cmdCasted->m_dstRect);
+}
+
+#pragma endregion BlitRect
+
+#pragma region CopyImage
+
+void CopyImage::InvokeStatic(CmdBase* cmd, CommandBuffer* commandBuffer)
+{
+    CopyImage* cmdCasted = static_cast<CopyImage*>(cmd);
+
+    cmdCasted->dstImage->CopyFrom(
+        commandBuffer,
+        cmdCasted->srcImage,
+        cmdCasted->srcOffset,
+        cmdCasted->dstOffset,
+        cmdCasted->extent,
+        cmdCasted->srcSubResource,
+        cmdCasted->dstSubResource);
+}
+
+#pragma endregion CopyImage
+
+#pragma region CopyImageToBuffer
+
+void CopyImageToBuffer::InvokeStatic(CmdBase* cmd, CommandBuffer* commandBuffer)
+{
+    CopyImageToBuffer* cmdCasted = static_cast<CopyImageToBuffer*>(cmd);
+
+    cmdCasted->m_image->CopyToBuffer(commandBuffer, cmdCasted->m_buffer, cmdCasted->m_subResource);
+}
+
+#pragma endregion CopyImageToBuffer
+
+#pragma region CopyBufferToImage
+
+void CopyBufferToImage::InvokeStatic(CmdBase* cmd, CommandBuffer* commandBuffer)
+{
+    CopyBufferToImage* cmdCasted = static_cast<CopyBufferToImage*>(cmd);
+
+    cmdCasted->m_dstImage->CopyFromBuffer(
+        commandBuffer,
+        cmdCasted->m_srcBuffer,
+        cmdCasted->m_srcBufferOffset,
+        cmdCasted->m_dstMipIndex,
+        cmdCasted->m_dstArrayLayer);
+}
+
+#pragma endregion CopyBufferToImage
+
+#pragma region GenerateMipmaps
+
+void GenerateMipmaps::InvokeStatic(CmdBase* cmd, CommandBuffer* commandBuffer)
+{
+    GenerateMipmaps* cmdCasted = static_cast<GenerateMipmaps*>(cmd);
+
+    cmdCasted->m_image->GenerateMipmaps(commandBuffer);
+}
+
+#pragma endregion GenerateMipmaps
 
 #pragma region BindDescriptorSet
 
@@ -203,6 +347,42 @@ void InsertBarrier::CheckNotInRenderPass(CommandBuffer* commandBuffer) const
     Assert(!commandBuffer->IsInRenderPass());
 }
 #endif
+
+void InsertBarrier::InvokeStatic(CmdBase* cmd, CommandBuffer* commandBuffer)
+{
+    InsertBarrier* cmdCasted = static_cast<InsertBarrier*>(cmd);
+
+#if defined(HYP_VULKAN) && defined(HYP_DEBUG_MODE)
+    cmdCasted->CheckNotInRenderPass(commandBuffer);
+#endif
+
+    if (cmdCasted->m_buffer)
+    {
+        cmdCasted->m_buffer->InsertBarrier(commandBuffer, cmdCasted->m_state, cmdCasted->m_shaderModuleType);
+    }
+    else if (cmdCasted->m_image)
+    {
+        if (cmdCasted->m_hasSubResource)
+        {
+            cmdCasted->m_image->InsertBarrier(
+                commandBuffer,
+                cmdCasted->m_subResource,
+                cmdCasted->m_state,
+                cmdCasted->m_shaderModuleType,
+                cmdCasted->m_onlyDepth,
+                cmdCasted->m_onlyStencil);
+        }
+        else
+        {
+            cmdCasted->m_image->InsertBarrier(
+                commandBuffer,
+                cmdCasted->m_state,
+                cmdCasted->m_shaderModuleType,
+                cmdCasted->m_onlyDepth,
+                cmdCasted->m_onlyStencil);
+        }
+    }
+}
 
 #pragma endregion InsertBarrier
 

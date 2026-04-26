@@ -774,8 +774,9 @@ void RenderInterface::Shutdown()
         grb.Shutdown();
     }
 
-    blueNoiseBuffer.Reset();
-    sphereSamplesBuffer.Reset();
+    blueNoiseBuffer.Shutdown();
+    sphereSamplesBuffer.Shutdown();
+
     envProbesTexture.Reset();
 
     shadowMapCache->Shutdown();
@@ -1910,30 +1911,22 @@ void RenderInterface::CreateBlueNoiseBuffer()
             + ((scramblingTileOffset - (sobol256spp256dOffset + sobol256spp256dSize)) + scramblingTileSize)
             + ((rankingTileOffset - (scramblingTileOffset + scramblingTileSize)) + rankingTileSize));
 
-    blueNoiseBuffer = MakeGpuBuffer(GpuBufferType::STORAGE_BUFFER, sizeof(BlueNoiseBuffer));
-#if HYP_DEBUG_MODE
-    blueNoiseBuffer->SetDebugName(NAME("BlueNoiseBuffer"));
-#endif
+    blueNoiseBuffer = StructuredBuffer(1, sizeof(BlueNoiseBuffer));
+    blueNoiseBuffer.Initialize();
 
-    blueNoiseBuffer->SetIsCpuAccessible(true);
-    CheckResult(blueNoiseBuffer->Create());
+    blueNoiseBuffer.Write(sobol256spp256dOffset, sobol256spp256dSize, &BlueNoise::sobol256spp256d[0]);
+    blueNoiseBuffer.Write(scramblingTileOffset, scramblingTileSize, &BlueNoise::scramblingTile[0]);
+    blueNoiseBuffer.Write(rankingTileOffset, rankingTileSize, &BlueNoise::rankingTile[0]);
 
-    blueNoiseBuffer->Copy(sobol256spp256dOffset, sobol256spp256dSize, &BlueNoise::sobol256spp256d[0]);
-    blueNoiseBuffer->Copy(scramblingTileOffset, scramblingTileSize, &BlueNoise::scramblingTile[0]);
-    blueNoiseBuffer->Copy(rankingTileOffset, rankingTileSize, &BlueNoise::rankingTile[0]);
+    blueNoiseBuffer.Flush();
 }
 
 void RenderInterface::CreateSphereSamplesBuffer()
 {
     HYP_SCOPE;
 
-    sphereSamplesBuffer = MakeGpuBuffer(GpuBufferType::STORAGE_BUFFER, sizeof(Vec4f) * 4096);
-#if HYP_DEBUG_MODE
-    sphereSamplesBuffer->SetDebugName(NAME("SphereSamplesBuffer"));
-#endif
-
-    sphereSamplesBuffer->SetIsCpuAccessible(true);
-    CheckResult(sphereSamplesBuffer->Create());
+    sphereSamplesBuffer = StructuredBuffer(4096, sizeof(Vec4f));
+    sphereSamplesBuffer.Initialize();
 
     Vec4f* sphereSamples = new Vec4f[4096];
 
@@ -1947,8 +1940,8 @@ void RenderInterface::CreateSphereSamplesBuffer()
         sphereSamples[i] = Vec4f(sample, 0.0f);
     }
 
-    sphereSamplesBuffer->Copy(sizeof(Vec4f) * 4096, sphereSamples);
-    sphereSamplesBuffer->Flush(0, sizeof(Vec4f) * 4096);
+    sphereSamplesBuffer.Write(0, sizeof(Vec4f) * 4096, sphereSamples);
+    sphereSamplesBuffer.Flush();
 
     delete[] sphereSamples;
 }

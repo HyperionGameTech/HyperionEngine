@@ -10,8 +10,6 @@
 #error Rendering backend undefined
 #endif // !HYP_VULKAN && !HYP_DX12
 
-#include <rendering/GpuBuffer.hpp>
-#include <rendering/GpuImage.hpp>
 #include <rendering/Framebuffer.hpp>
 #include <rendering/CommandBuffer.hpp>
 #include <rendering/RenderObject.hpp>
@@ -54,18 +52,10 @@ public:
     BindVertexBuffer(GpuBuffer* buffer)
         : m_buffer(buffer)
     {
-        Assert(buffer && buffer->IsCreated());
+        Assert(buffer);
     }
 
-    static inline void InvokeStatic(CmdBase* cmd, CommandBuffer* commandBuffer)
-    {
-        BindVertexBuffer* cmdCasted = static_cast<BindVertexBuffer*>(cmd);
-
-        commandBuffer->BindVertexBuffer(cmdCasted->m_buffer);
-
-        static_assert(std::is_trivially_destructible_v<BindVertexBuffer>);
-        // cmdCasted->~BindVertexBuffer();
-    }
+    static void InvokeStatic(CmdBase* cmd, CommandBuffer* commandBuffer);
 
 private:
     GpuBuffer* m_buffer;
@@ -77,18 +67,10 @@ public:
     BindIndexBuffer(GpuBuffer* buffer)
         : m_buffer(buffer)
     {
-        Assert(buffer && buffer->IsCreated());
+        Assert(buffer);
     }
 
-    static inline void InvokeStatic(CmdBase* cmd, CommandBuffer* commandBuffer)
-    {
-        BindIndexBuffer* cmdCasted = static_cast<BindIndexBuffer*>(cmd);
-
-        commandBuffer->BindIndexBuffer(cmdCasted->m_buffer);
-
-        static_assert(std::is_trivially_destructible_v<BindIndexBuffer>);
-        // cmdCasted->~BindIndexBuffer();
-    }
+    static void InvokeStatic(CmdBase* cmd, CommandBuffer* commandBuffer);
 
 private:
     GpuBuffer* m_buffer;
@@ -104,15 +86,7 @@ public:
     {
     }
 
-    static inline void InvokeStatic(CmdBase* cmd, CommandBuffer* commandBuffer)
-    {
-        DrawIndexed* cmdCasted = static_cast<DrawIndexed*>(cmd);
-
-        commandBuffer->DrawIndexed(cmdCasted->m_numIndices, cmdCasted->m_numInstances, cmdCasted->m_instanceIndex);
-
-        static_assert(std::is_trivially_destructible_v<DrawIndexed>);
-        // cmdCasted->~DrawIndexed();
-    }
+    static void InvokeStatic(CmdBase* cmd, CommandBuffer* commandBuffer);
 
 private:
     uint32 m_numIndices;
@@ -127,22 +101,10 @@ public:
         : m_buffer(buffer),
           m_bufferOffset(bufferOffset)
     {
-        Assert(buffer != nullptr && buffer->IsCreated());
+        Assert(buffer);
     }
 
-    static inline void InvokeStatic(CmdBase* cmd, CommandBuffer* commandBuffer)
-    {
-        DrawIndexedIndirect* cmdCasted = static_cast<DrawIndexedIndirect*>(cmd);
-
-#if HYP_VULKAN
-        AssertDebug(cmdCasted->m_bufferOffset + /*sizeof(VkDrawIndexedIndirectCommand)*/ 20 <= cmdCasted->m_buffer->Size());
-#endif
-
-        commandBuffer->DrawIndexedIndirect(cmdCasted->m_buffer, cmdCasted->m_bufferOffset);
-
-        static_assert(std::is_trivially_destructible_v<DrawIndexedIndirect>);
-        // cmdCasted->~DrawIndexedIndirect();
-    }
+    static void InvokeStatic(CmdBase* cmd, CommandBuffer* commandBuffer);
 
 private:
     GpuBuffer* m_buffer;
@@ -327,44 +289,7 @@ public:
     HYP_API void CheckNotInRenderPass(CommandBuffer* commandBuffer) const;
 #endif
 
-    static inline void InvokeStatic(CmdBase* cmd, CommandBuffer* commandBuffer)
-    {
-        InsertBarrier* cmdCasted = static_cast<InsertBarrier*>(cmd);
-
-#if defined(HYP_VULKAN) && defined(HYP_DEBUG_MODE)
-        cmdCasted->CheckNotInRenderPass(commandBuffer);
-#endif
-
-        if (cmdCasted->m_buffer)
-        {
-            cmdCasted->m_buffer->InsertBarrier(commandBuffer, cmdCasted->m_state, cmdCasted->m_shaderModuleType);
-        }
-        else if (cmdCasted->m_image)
-        {
-            if (cmdCasted->m_hasSubResource)
-            {
-                cmdCasted->m_image->InsertBarrier(
-                    commandBuffer,
-                    cmdCasted->m_subResource,
-                    cmdCasted->m_state,
-                    cmdCasted->m_shaderModuleType,
-                    cmdCasted->m_onlyDepth,
-                    cmdCasted->m_onlyStencil);
-            }
-            else
-            {
-                cmdCasted->m_image->InsertBarrier(
-                    commandBuffer,
-                    cmdCasted->m_state,
-                    cmdCasted->m_shaderModuleType,
-                    cmdCasted->m_onlyDepth,
-                    cmdCasted->m_onlyStencil);
-            }
-        }
-
-        static_assert(std::is_trivially_destructible_v<InsertBarrier>);
-        // cmdCasted->~InsertBarrier();
-    }
+    static void InvokeStatic(CmdBase* cmd, CommandBuffer* commandBuffer);
 
 private:
     GpuBuffer* m_buffer;
@@ -413,33 +338,7 @@ public:
     {
     }
 
-    static inline void InvokeStatic(CmdBase* cmd, CommandBuffer* commandBuffer)
-    {
-        Blit* cmdCasted = static_cast<Blit*>(cmd);
-
-        if (cmdCasted->m_hasSubResource)
-        {
-            cmdCasted->m_dstImage->Blit(
-                commandBuffer, 
-                cmdCasted->m_srcImage,
-                cmdCasted->m_srcRect, cmdCasted->m_dstRect,
-                cmdCasted->m_srcSubResource, cmdCasted->m_dstSubResource);
-        }
-        else
-        {
-            if (cmdCasted->m_hasRect)
-            {
-                cmdCasted->m_dstImage->Blit(commandBuffer, cmdCasted->m_srcImage, cmdCasted->m_srcRect, cmdCasted->m_dstRect);
-            }
-            else
-            {
-                cmdCasted->m_dstImage->Blit(commandBuffer, cmdCasted->m_srcImage);
-            }
-        }
-
-        static_assert(std::is_trivially_destructible_v<Blit>);
-        // cmdCasted->~Blit();
-    }
+    static void InvokeStatic(CmdBase* cmd, CommandBuffer* commandBuffer);
 
 private:
     GpuImage* m_srcImage;
@@ -466,18 +365,7 @@ public:
     {
     }
 
-    static inline void InvokeStatic(CmdBase* cmd, CommandBuffer* commandBuffer)
-    {
-        BlitRect* cmdCasted = static_cast<BlitRect*>(cmd);
-
-        cmdCasted->m_dstImage->Blit(
-            commandBuffer,
-            cmdCasted->m_srcImage,
-            cmdCasted->m_srcRect, cmdCasted->m_dstRect);
-
-        static_assert(std::is_trivially_destructible_v<BlitRect>);
-        // cmdCasted->~BlitRect();
-    }
+    static void InvokeStatic(CmdBase* cmd, CommandBuffer* commandBuffer);
 
 private:
     GpuImage* m_srcImage;
@@ -532,22 +420,7 @@ public:
     {
     }
 
-    static inline void InvokeStatic(CmdBase* cmd, CommandBuffer* commandBuffer)
-    {
-        CopyImage* cmdCasted = static_cast<CopyImage*>(cmd);
-
-        cmdCasted->dstImage->CopyFrom(
-            commandBuffer,
-            cmdCasted->srcImage,
-            cmdCasted->srcOffset,
-            cmdCasted->dstOffset,
-            cmdCasted->extent,
-            cmdCasted->srcSubResource,
-            cmdCasted->dstSubResource);
-
-        static_assert(std::is_trivially_destructible_v<CopyImage>);
-        // cmdCasted->~CopyImage();
-    }
+    static void InvokeStatic(CmdBase* cmd, CommandBuffer* commandBuffer);
 
 private:
     GpuImage* srcImage;
@@ -635,15 +508,7 @@ public:
     {
     }
 
-    static inline void InvokeStatic(CmdBase* cmd, CommandBuffer* commandBuffer)
-    {
-        CopyImageToBuffer* cmdCasted = static_cast<CopyImageToBuffer*>(cmd);
-
-        cmdCasted->m_image->CopyToBuffer(commandBuffer, cmdCasted->m_buffer, cmdCasted->m_subResource);
-
-        static_assert(std::is_trivially_destructible_v<CopyImageToBuffer>);
-        // cmdCasted->~CopyImageToBuffer();
-    }
+    static void InvokeStatic(CmdBase* cmd, CommandBuffer* commandBuffer);
 
 private:
     GpuImage* m_image;
@@ -672,20 +537,7 @@ public:
     {
     }
 
-    static inline void InvokeStatic(CmdBase* cmd, CommandBuffer* commandBuffer)
-    {
-        CopyBufferToImage* cmdCasted = static_cast<CopyBufferToImage*>(cmd);
-
-        cmdCasted->m_dstImage->CopyFromBuffer(
-            commandBuffer,
-            cmdCasted->m_srcBuffer,
-            cmdCasted->m_srcBufferOffset,
-            cmdCasted->m_dstMipIndex,
-            cmdCasted->m_dstArrayLayer);
-
-        static_assert(std::is_trivially_destructible_v<CopyBufferToImage>);
-        // cmdCasted->~CopyBufferToImage();
-    }
+    static void InvokeStatic(CmdBase* cmd, CommandBuffer* commandBuffer);
 
 private:
     GpuBuffer* m_srcBuffer;
@@ -758,15 +610,7 @@ public:
     {
     }
 
-    static inline void InvokeStatic(CmdBase* cmd, CommandBuffer* commandBuffer)
-    {
-        GenerateMipmaps* cmdCasted = static_cast<GenerateMipmaps*>(cmd);
-
-        cmdCasted->m_image->GenerateMipmaps(commandBuffer);
-
-        static_assert(std::is_trivially_destructible_v<GenerateMipmaps>);
-        // cmdCasted->~GenerateMipmaps();
-    }
+    static void InvokeStatic(CmdBase* cmd, CommandBuffer* commandBuffer);
 
 private:
     GpuImage* m_image;

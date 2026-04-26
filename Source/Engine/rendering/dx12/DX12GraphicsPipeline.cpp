@@ -11,6 +11,7 @@
 #include <rendering/dx12/DX12RenderInterface.hpp>
 #include <rendering/dx12/DX12DescriptorSet.hpp>
 #include <rendering/dx12/DX12Framebuffer.hpp>
+#include <rendering/dx12/DX12GpuImage.hpp>
 #include <rendering/dx12/DX12Attachment.hpp>
 #include <rendering/dx12/DX12Helpers.hpp>
 

@@ -11,6 +11,8 @@
 #include <rendering/Sampler.hpp>
 #endif
 
+#include <rendering/dx12/DX12Shared.hpp>
+
 #undef INCLUDE_FROM_RHI
 #undef INCLUDE_FROM_RHI_BASE
 
@@ -22,8 +24,13 @@ class DX12Sampler final : public SamplerBase
     HYP_OBJECT_BODY(DX12Sampler);
 
 public:
-    DX12Sampler(const SamplerDesc& desc);
+    explicit DX12Sampler(const SamplerDesc& desc);
     ~DX12Sampler() override;
+
+    HYP_FORCE_INLINE const D3D12_SAMPLER_DESC& GetD3D12SamplerDesc() const
+    {
+        return m_samplerDesc;
+    }
 
     bool IsCreated() const override;
 
@@ -32,6 +39,10 @@ public:
 #ifdef HYP_DEBUG_MODE
     void SetDebugName(Name name) override;
 #endif
+
+private:
+    D3D12_SAMPLER_DESC m_samplerDesc;
+    bool m_isCreated = false;
 };
 
 } // namespace Hyperion

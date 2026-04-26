@@ -18,6 +18,13 @@ namespace Hyperion {
 
 extern DX12RenderInterface* g_renderInterface;
 
+static uint64 CalculateImageViewHash(const ImageSubResource& subResource, TextureType viewTextureType)
+{
+    return subResource.GetHashCode()
+        .Combine(viewTextureType)
+        .Value();
+}
+
 DX12TextureViewCache::DX12TextureViewCache()
 {
     const size_t numSubtypes = GetNumDescendants(TypeId::ForType<Texture>()) + 1;
@@ -32,7 +39,7 @@ DX12TextureViewCache::~DX12TextureViewCache()
         {
             for (auto& jt : it)
             {
-                EnqueueDeletion(std::move(jt.second));
+                jt.second.Reset();
             }
         }
     }
@@ -54,8 +61,18 @@ const DX12GpuImageViewRef& DX12TextureViewCache::GetOrCreate(
     uint32 layerIndex,
     uint32 numLayers)
 {
-    const uint32 maxMipLevel = texture->GetTextureDesc().NumMips() - 1;
-    const uint32 maxArrayLayer = texture->GetTextureDesc().NumArrayLayers() - 1;
+    if (!texture)
+    {
+        return DX12GpuImageViewRef::Null();
+    }
+
+    DX12GpuImage* gpuImage = texture->GetGpuImage();
+    AssertDebug(gpuImage != nullptr);
+
+    const TextureDesc& textureDesc = gpuImage->GetTextureDesc();
+
+    const uint32 maxMipLevel = textureDesc.NumMips() - 1;
+    const uint32 maxArrayLayer = textureDesc.NumArrayLayers() - 1;
 
     ImageSubResource subResource {};
     subResource.numLevels = MathUtil::Min(numMips, maxMipLevel + 1);
@@ -63,7 +80,7 @@ const DX12GpuImageViewRef& DX12TextureViewCache::GetOrCreate(
     subResource.numLayers = MathUtil::Min(numLayers, maxArrayLayer + 1);
     subResource.baseArrayLayer = MathUtil::Min(layerIndex, maxArrayLayer);
 
-    return GetOrCreate(texture, subResource);
+    return GetOrCreate(texture, subResource, textureDesc.type);
 }
 
 const DX12GpuImageViewRef& DX12TextureViewCache::GetOrCreate(
@@ -76,20 +93,19 @@ const DX12GpuImageViewRef& DX12TextureViewCache::GetOrCreate(
 
     const TextureDesc& textureDesc = gpuImage->GetTextureDesc();
 
-    // Create view to match texture type
     return GetOrCreate(texture, subResource, textureDesc.type);
 }
 
 const DX12GpuImageViewRef& DX12TextureViewCache::GetOrCreate(
     Texture* texture,
     const ImageSubResource& subResource,
-    TextureType textureType)
+    TextureType viewTextureType)
 {
-    AssertOnThread(g_renderThread);
-
     Assert(texture != nullptr);
 
     const size_t idx = texture->Id().ToIndex();
+
+    TSharedLock sharedLock(mutex);
 
     SubtypeData& subtypeData = GetSubtypeData(texture->Id());
 
@@ -101,7 +117,13 @@ const DX12GpuImageViewRef& DX12TextureViewCache::GetOrCreate(
 
     auto& textureImageViews = subtypeData.imageViews.Get(idx);
 
-    auto it = textureImageViews.Find(subResource);
+    ValueStorage<TUniqueLock<SharedMutex>> uniqueLockStorage {};
+    bool isLockUnique = false;
+    HYP_DEFER({ if (isLockUnique) uniqueLockStorage.Destruct(); });
+
+    const uint64 key = CalculateImageViewHash(subResource, viewTextureType);
+
+    auto it = textureImageViews.Find(key);
 
     if (it == textureImageViews.End())
     {
@@ -111,7 +133,13 @@ const DX12GpuImageViewRef& DX12TextureViewCache::GetOrCreate(
 
         CheckResult(imageView->Create());
 
-        it = textureImageViews.Set(subResource, imageView).first;
+        sharedLock.Reset();
+
+        uniqueLockStorage.Construct(mutex);
+
+        isLockUnique = true;
+
+        it = textureImageViews.Set(key, imageView).first;
     }
 
     Assert(it->second.IsValid());
@@ -121,14 +149,14 @@ const DX12GpuImageViewRef& DX12TextureViewCache::GetOrCreate(
 
 void DX12TextureViewCache::RemoveTexture(const Texture* texture)
 {
-    AssertOnThread(g_renderThread);
-
     if (!texture)
     {
         return;
     }
 
     const size_t idx = texture->Id().ToIndex();
+
+    TUniqueLock lock(mutex);
 
     SubtypeData& subtypeData = GetSubtypeData(texture->Id());
 
@@ -148,7 +176,9 @@ void DX12TextureViewCache::CleanupUnusedTextures()
 {
     AssertOnThread(g_renderThread);
 
-    constexpr uint32 maxCycles = 32;
+    TUniqueLock lock(mutex);
+
+    constexpr uint32 MaxCycles = 32;
 
     uint32 numRemoved = 0;
 
@@ -156,9 +186,9 @@ void DX12TextureViewCache::CleanupUnusedTextures()
     {
         auto it = subtype.weakTextureHandles.Begin();
 
-        for (uint32 i = 0; it != subtype.weakTextureHandles.End() && numRemoved < maxCycles; i++)
+        for (uint32 i = 0; it != subtype.weakTextureHandles.End() && numRemoved < MaxCycles; i++)
         {
-            if (!it->Lock())
+            if (it->Expired())
             {
                 const size_t idx = subtype.weakTextureHandles.IndexOf(it);
 
@@ -181,7 +211,7 @@ void DX12TextureViewCache::CleanupUnusedTextures()
             ++it;
         }
 
-        if (numRemoved >= maxCycles)
+        if (numRemoved >= MaxCycles)
         {
             break;
         }

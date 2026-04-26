@@ -300,15 +300,6 @@ void DX12GpuImage::SetSubResourceState(const ImageSubResource& subResource, Reso
     m_subResourceStates.Set(subResourceIndex, newState);
 }
 
-ResourceState DX12GpuImage::GetSubResourceState(const ImageSubResource& subResource) const
-{
-    return m_resourceState;
-}
-
-void DX12GpuImage::SetSubResourceState(const ImageSubResource& subResource, ResourceState newState)
-{
-}
-
 void DX12GpuImage::InsertBarrier(
     DX12CommandBuffer* commandBuffer,
     ResourceState newState,
@@ -596,21 +587,21 @@ void DX12GpuImage::CopyFromBuffer(
 
     D3D12_RESOURCE_STATES state = isDepthStencil ? D3D12_RESOURCE_STATE_DEPTH_WRITE : D3D12_RESOURCE_STATE_COPY_DEST;
 
+    const uint8 mipIdx = dstMipIndex != UINT8_MAX ? dstMipIndex : 0;
+    const Vec3u mipExtent = m_textureDesc.GetMipExtent(mipIdx);
+
     D3D12_PLACED_SUBRESOURCE_FOOTPRINT placedFootprint {};
     placedFootprint.Offset = srcBufferOffset;
-    placedFootprint.Footprint.Depth = 1;
-    placedFootprint.Footprint.Height = 1;
-    placedFootprint.Footprint.Width = 1;
+    placedFootprint.Footprint.Depth = mipExtent.z;
+    placedFootprint.Footprint.Height = mipExtent.y;
+    placedFootprint.Footprint.Width = mipExtent.x;
     placedFootprint.Footprint.Format = ToDXGIFormat(m_textureDesc.format);
-    placedFootprint.Footprint.RowPitch = m_textureDesc.extent.x * TextureUtils::BytesPerComponent(m_textureDesc.format) * TextureUtils::NumComponents(m_textureDesc.format);
+    placedFootprint.Footprint.RowPitch = mipExtent.x * TextureUtils::BytesPerComponent(m_textureDesc.format) * TextureUtils::NumComponents(m_textureDesc.format);
 
     D3D12_TEXTURE_COPY_LOCATION srcLocation {};
     srcLocation.pResource = srcBuffer->GetResource();
     srcLocation.Type = D3D12_TEXTURE_COPY_TYPE_PLACED_FOOTPRINT;
     srcLocation.PlacedFootprint = placedFootprint;
-
-    const uint8 mipIdx = dstMipIndex != UINT8_MAX ? dstMipIndex : 0;
-    const Vec3u mipExtent = m_textureDesc.GetMipExtent(mipIdx);
 
     D3D12_TEXTURE_COPY_LOCATION dstLocation {};
     dstLocation.pResource = m_resource.Get();
@@ -724,45 +715,87 @@ void DX12GpuImage::CopyFrom(
     const bool srcIsDepthStencil = srcImage->GetTextureDesc().IsDepthStencil();
     const bool dstIsDepthStencil = m_textureDesc.IsDepthStencil();
 
-    ResourceState srcState = srcIsDepthStencil ? RS_DEPTH_STENCIL : RS_COPY_SRC;
-    ResourceState dstState = dstIsDepthStencil ? RS_DEPTH_STENCIL : RS_COPY_DST;
+    const bool srcIsAttachment = srcImage->GetTextureDesc().imageUsage[IU_ATTACHMENT];
+    const bool dstIsAttachment = m_textureDesc.imageUsage[IU_ATTACHMENT];
 
-    srcImage->InsertBarrier(commandBuffer, srcState, ShaderModuleType::NONE);
-    InsertBarrier(commandBuffer, dstState, ShaderModuleType::NONE);
+    if (!HasSubResourceStates() && !srcImage->HasSubResourceStates())
+    {
+        D3D12_TEXTURE_COPY_LOCATION srcLocation {};
+        srcLocation.pResource = srcImage->GetResource();
+        srcLocation.Type = D3D12_TEXTURE_COPY_TYPE_SUBRESOURCE_INDEX;
+        srcLocation.SubresourceIndex = D3D12CalcSubresource(
+            srcSubResource.baseMipLevel,
+            srcSubResource.baseArrayLayer,
+            0,
+            srcImage->NumMips(),
+            srcImage->NumArrayLayers());
 
-    D3D12_TEXTURE_COPY_LOCATION srcLocation {};
-    srcLocation.pResource = srcImage->GetResource();
-    srcLocation.Type = D3D12_TEXTURE_COPY_TYPE_SUBRESOURCE_INDEX;
-    srcLocation.SubresourceIndex = D3D12CalcSubresource(
-        srcSubResource.baseMipLevel,
-        srcSubResource.baseArrayLayer,
-        0,
-        srcImage->NumMips(),
-        srcImage->NumArrayLayers());
+        D3D12_TEXTURE_COPY_LOCATION dstLocation {};
+        dstLocation.pResource = m_resource.Get();
+        dstLocation.Type = D3D12_TEXTURE_COPY_TYPE_SUBRESOURCE_INDEX;
+        dstLocation.SubresourceIndex = D3D12CalcSubresource(
+            dstSubResource.baseMipLevel,
+            dstSubResource.baseArrayLayer,
+            0,
+            NumMips(),
+            NumArrayLayers());
 
-    D3D12_TEXTURE_COPY_LOCATION dstLocation {};
-    dstLocation.pResource = m_resource.Get();
-    dstLocation.Type = D3D12_TEXTURE_COPY_TYPE_SUBRESOURCE_INDEX;
-    dstLocation.SubresourceIndex = D3D12CalcSubresource(
-        dstSubResource.baseMipLevel,
-        dstSubResource.baseArrayLayer,
-        0,
-        NumMips(),
-        NumArrayLayers());
+        D3D12_BOX srcBox {};
+        srcBox.left = srcOffset.x;
+        srcBox.top = srcOffset.y;
+        srcBox.front = srcOffset.z;
+        srcBox.right = srcOffset.x + extent.x;
+        srcBox.bottom = srcOffset.y + extent.y;
+        srcBox.back = srcOffset.z + extent.z;
 
-    D3D12_BOX srcBox {};
-    srcBox.left = srcOffset.x;
-    srcBox.top = srcOffset.y;
-    srcBox.front = srcOffset.z;
-    srcBox.right = srcOffset.x + extent.x;
-    srcBox.bottom = srcOffset.y + extent.y;
-    srcBox.back = srcOffset.z + extent.z;
+        commandBuffer->GetCommandList()->CopyTextureRegion(
+            &dstLocation,
+            dstOffset.x, dstOffset.y, dstOffset.z,
+            &srcLocation,
+            &srcBox);
+    }
+    else
+    {
+        for (uint16 layerIndex = 0; layerIndex < MathUtil::Min(srcSubResource.numLayers, srcImage->NumArrayLayers() - srcSubResource.baseArrayLayer); layerIndex++)
+        {
+            for (uint8 mipLevel = 0; mipLevel < MathUtil::Min(srcSubResource.numLevels, srcImage->NumMips() - srcSubResource.baseMipLevel); mipLevel++)
+            {
+                D3D12_TEXTURE_COPY_LOCATION srcLocation {};
+                srcLocation.pResource = srcImage->GetResource();
+                srcLocation.Type = D3D12_TEXTURE_COPY_TYPE_SUBRESOURCE_INDEX;
+                srcLocation.SubresourceIndex = D3D12CalcSubresource(
+                    srcSubResource.baseMipLevel + mipLevel,
+                    srcSubResource.baseArrayLayer + layerIndex,
+                    0,
+                    srcImage->NumMips(),
+                    srcImage->NumArrayLayers());
 
-    commandBuffer->GetCommandList()->CopyTextureRegion(
-        &dstLocation,
-        dstOffset.x, dstOffset.y, dstOffset.z,
-        &srcLocation,
-        &srcBox);
+                D3D12_TEXTURE_COPY_LOCATION dstLocation {};
+                dstLocation.pResource = m_resource.Get();
+                dstLocation.Type = D3D12_TEXTURE_COPY_TYPE_SUBRESOURCE_INDEX;
+                dstLocation.SubresourceIndex = D3D12CalcSubresource(
+                    dstSubResource.baseMipLevel + mipLevel,
+                    dstSubResource.baseArrayLayer + layerIndex,
+                    0,
+                    NumMips(),
+                    NumArrayLayers());
+
+                D3D12_BOX srcBox {};
+                srcBox.left = srcOffset.x;
+                srcBox.top = srcOffset.y;
+                srcBox.front = srcOffset.z;
+                srcBox.right = srcOffset.x + extent.x;
+                srcBox.bottom = srcOffset.y + extent.y;
+                srcBox.back = srcOffset.z + extent.z;
+
+                commandBuffer->GetCommandList()->CopyTextureRegion(
+                    &dstLocation,
+                    dstOffset.x, dstOffset.y, dstOffset.z,
+                    &srcLocation,
+                    &srcBox);
+            }
+        }
+    }
 }
 
 DX12GpuImageViewRef DX12GpuImage::MakeLayerImageView(uint32 layerIndex) const

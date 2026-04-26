@@ -27,6 +27,13 @@ class DX12GpuBuffer final : public GpuBufferBase
 
 public:
     DX12GpuBuffer(GpuBufferType type, size_t size, size_t alignment = 0);
+    
+    DX12GpuBuffer(const DX12GpuBuffer& other) = delete;
+    DX12GpuBuffer& operator=(const DX12GpuBuffer& other) = delete;
+
+    DX12GpuBuffer(DX12GpuBuffer&& other) noexcept;
+    DX12GpuBuffer& operator=(DX12GpuBuffer&& other) noexcept;
+
     ~DX12GpuBuffer() override;
 
     HYP_FORCE_INLINE ID3D12Resource* GetResource() const
@@ -38,7 +45,9 @@ public:
     {
         return m_allocation.Get();
     }
-    
+
+    uint64 GetBufferDeviceAddress() const;
+
     RendererResult Create() override;
 
     bool IsCreated() const override;
@@ -87,6 +96,8 @@ public:
 private:
     ComPtr<ID3D12Resource> m_resource;
     ComPtr<D3D12MA::Allocation> m_allocation;
+
+    mutable void* m_mapping = nullptr;
 };
 
 } // namespace Hyperion

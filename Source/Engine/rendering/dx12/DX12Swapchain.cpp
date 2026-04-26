@@ -76,7 +76,7 @@ RendererResult DX12Swapchain::Create()
     swapChainDesc.BufferCount = 3;
     swapChainDesc.Width = m_extent.x;
     swapChainDesc.Height = m_extent.y;
-    swapChainDesc.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
+    swapChainDesc.Format = DXGI_FORMAT_R8G8B8A8_UNORM; // @TODO Use proper swapchain format!!!
     swapChainDesc.BufferUsage = DXGI_USAGE_RENDER_TARGET_OUTPUT;
     swapChainDesc.SwapEffect = DXGI_SWAP_EFFECT_FLIP_DISCARD;
     swapChainDesc.SampleDesc.Count = 1;

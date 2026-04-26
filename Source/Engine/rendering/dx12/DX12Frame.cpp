@@ -20,27 +20,43 @@ extern DX12RenderInterface* g_renderInterface;
 #pragma region DX12Frame
 
 DX12Frame::DX12Frame()
-    : FrameBase(0)
+    : FrameBase(0),
+      m_queueSubmitFence(nullptr)
 {
 }
 
 DX12Frame::DX12Frame(uint32 frameIndex)
-    : FrameBase(frameIndex)
+    : FrameBase(frameIndex),
+      m_queueSubmitFence(nullptr)
 {
 }
 
 DX12Frame::~DX12Frame()
 {
+    delete m_queueSubmitFence;
 }
 
 bool DX12Frame::IsCreated() const
 {
-    return true;
+    return m_queueSubmitFence != nullptr;
 }
 
 RendererResult DX12Frame::Create()
 {
-    return {};
+    if (m_queueSubmitFence != nullptr)
+    {
+        return {};
+    }
+
+    m_queueSubmitFence = new DX12Fence();
+    RendererResult result = m_queueSubmitFence->Create(/* createSignalled */ true);
+    if (!result)
+    {
+        delete m_queueSubmitFence;
+        m_queueSubmitFence = nullptr;
+    }
+
+    return result;
 }
 
 void DX12Frame::OnFrameStart()
@@ -50,20 +66,53 @@ void DX12Frame::OnFrameStart()
 
 void DX12Frame::WriteCommandBuffer(CommandBuffer* commandBuffer)
 {
-    DX12CommandBuffer* dx12CommandBuffer = static_cast<DX12CommandBuffer*>(commandBuffer);
+    AssertOnThread(g_renderThread);
 
-    if (dx12CommandBuffer->IsRecording())
+    Array<CommandRecorder*, RenderAllocator> commandRecorders;
+    commandRecorders.Reserve(4);
+
+    commandRecorders.PushBack(&preRenderCommands);
+    commandRecorders.PushBack(&cr);
+    commandRecorders.PushBack(&g_renderInterface->commandRecorderAllocator.GetCommandRecorder());
+    commandRecorders.PushBack(&postRenderCommands);
+    
+    for (CommandRecorder* commandRecorder : commandRecorders)
     {
-        dx12CommandBuffer->End();
+        commandRecorder->Prepare(this);
+    }
+
+    if (OnPresent.AnyBound())
+    {
+        OnPresent(this);
+        OnPresent.RemoveAllDetached();
+    }
+
+    {
+        for (CommandRecorder* commandRecorder : commandRecorders)
+        {
+            commandRecorder->Execute(commandBuffer);
+            commandRecorder->Reset(/* freeMemory */ false);
+        }
+    }
+
+    if (commandBuffer->IsRecording())
+    {
+        commandBuffer->End();
     }
 
     DX12RenderInterface& ri = *g_renderInterface;
 
     const DX12QueueData* queueData = ri.GetQueueData(D3D12_COMMAND_LIST_TYPE_DIRECT);
     Assert(queueData != nullptr);
-
-    ID3D12CommandList* commandLists[] = { dx12CommandBuffer->GetCommandList() };
+    
+    ID3D12CommandList* commandLists[] = { commandBuffer->GetCommandList() };
     queueData->commandQueue->ExecuteCommandLists(ArraySize(commandLists), commandLists);
+
+    if (m_queueSubmitFence != nullptr)
+    {
+        m_queueSubmitFence->Reset();
+        queueData->commandQueue->Signal(m_queueSubmitFence->GetD3D12Fence(), m_queueSubmitFence->GetValue() + 1);
+    }
 }
 
 void DX12Frame::ResetTransientStates()

@@ -10,6 +10,7 @@
 #include <rendering/dx12/DX12RenderInterface.hpp>
 #include <rendering/dx12/DX12GpuImage.hpp>
 #include <rendering/dx12/DX12Helpers.hpp>
+#include <rendering/Shared.hpp>
 
 #include <DX12Framebuffer.generated.inl>
 
@@ -21,9 +22,10 @@ extern DX12RenderInterface* g_renderInterface;
 
 DX12Framebuffer::DX12Framebuffer(const FramebufferDesc& framebufferDesc)
     : FramebufferBase(framebufferDesc),
-      m_isCreated(false),
-      m_attachments()
+      m_isRecording(false),
+      m_attachmentMap()
 {
+    m_attachmentMap.framebufferWeak = MakeWeakRef(this);
 }
 
 DX12Framebuffer::~DX12Framebuffer()
@@ -31,17 +33,12 @@ DX12Framebuffer::~DX12Framebuffer()
     g_renderInterface->descriptorHeapManager->Free(DX12DescriptorHeapType::RTV, std::move(m_rtvDescriptorHandle));
     g_renderInterface->descriptorHeapManager->Free(DX12DescriptorHeapType::DSV, std::move(m_dsvDescriptorHandle));
 
-    for (auto& it : m_attachments)
-    {
-        it.second->Release();
-    }
-
-    m_attachments.Clear();
+    m_attachmentMap.Reset();
 }
 
 bool DX12Framebuffer::IsCreated() const
 {
-    return m_isCreated;
+    return m_attachmentMap.Size() > 0;
 }
 
 RendererResult DX12Framebuffer::Create()
@@ -52,7 +49,7 @@ RendererResult DX12Framebuffer::Create()
     }
 
     // Initialize all attachments
-    for (auto& it : m_attachments)
+    for (auto& it : m_attachmentMap)
     {
         DX12Attachment* attachment = it.second;
         Assert(attachment != nullptr);
@@ -81,7 +78,7 @@ RendererResult DX12Framebuffer::Create()
     uint32 numRTVs = 0;
     bool hasDepth = false;
 
-    for (const auto& it : m_attachments)
+    for (const auto& it : m_attachmentMap)
     {
         if (it.second->IsDepthAttachment())
         {
@@ -116,7 +113,7 @@ RendererResult DX12Framebuffer::Create()
     
     uint32 rtvIndex = 0;
 
-    for (auto& it : m_attachments)
+    for (auto& it : m_attachmentMap)
     {
         DX12Attachment* attachment = it.second;
         DX12GpuImage* image = attachment->GetGpuImage();
@@ -148,27 +145,12 @@ RendererResult DX12Framebuffer::Create()
         }
     }
 
-    m_isCreated = true;
-
     return {};
 }
 
 DX12Attachment* DX12Framebuffer::AddAttachment(DX12Attachment* attachment)
 {
-
-    auto it = m_attachments.Find(attachment->GetBinding());
-    if (it != m_attachments.End())
-    {
-        it->second->Release();
-        it->second = attachment;
-    }
-    else
-    {
-        attachment->AddRef();
-        m_attachments[attachment->GetBinding()] = attachment;
-    }
-
-    return attachment;
+    return m_attachmentMap.AddAttachment(attachment);
 }
 
 DX12Attachment* DX12Framebuffer::AddAttachment(
@@ -182,20 +164,11 @@ DX12Attachment* DX12Framebuffer::AddAttachment(
         imageView->GetImage(),
         imageView,
         MakeWeakRef(this),
+        m_framebufferDesc.renderPassMode,
         desc);
 
     attachment->SetBinding(binding);
-
-    auto it = m_attachments.Find(binding);
-    if (it != m_attachments.End())
-    {
-        it->second->Release();
-        it->second = attachment;
-    }
-    else
-    {
-        m_attachments[binding] = attachment;
-    }
+    m_attachmentMap.AddAttachment(attachment);
 
     return attachment;
 }
@@ -214,72 +187,49 @@ DX12Attachment* DX12Framebuffer::AddAttachment(
     };
     textureDesc.imageUsage = IU_SAMPLED | IU_ATTACHMENT;
 
-    DX12GpuImageRef image = MakeHandle<DX12GpuImage>(textureDesc);
-
     DX12Attachment* attachment = new DX12Attachment(
-        image,
+        textureDesc,
         MakeWeakRef(this),
+        m_framebufferDesc.renderPassMode,
         desc);
 
     attachment->SetBinding(binding);
-
-    auto it = m_attachments.Find(binding);
-    if (it != m_attachments.End())
-    {
-        it->second->Release();
-        it->second = attachment;
-    }
-    else
-    {
-        m_attachments[binding] = attachment;
-    }
+    m_attachmentMap.AddAttachment(attachment);
 
     return attachment;
 }
 
 bool DX12Framebuffer::RemoveAttachment(uint32 binding)
 {
-    const auto it = m_attachments.Find(binding);
-
-    if (it == m_attachments.End())
+    DX12Attachment* attachment = m_attachmentMap.GetAttachment(binding);
+    if (!attachment)
     {
         return false;
     }
 
-    it->second->Release();
-
-    m_attachments.Erase(it);
+    attachment->Release();
+    m_attachmentMap.attachments.Erase(binding);
 
     return true;
 }
 
 DX12Attachment* DX12Framebuffer::GetAttachment(uint32 binding) const
 {
-    const auto it = m_attachments.Find(binding);
-
-    if (it == m_attachments.End())
-    {
-        return nullptr;
-    }
-
-    return it->second;
-}
-
-int DX12Framebuffer::NumAttachments() const
-{
-    return int(m_attachments.Size());
+    return m_attachmentMap.GetAttachment(binding);
 }
 
 void DX12Framebuffer::BeginCapture(DX12CommandBuffer* commandBuffer)
 {
-    // @TODO
+    Assert(!m_isRecording);
+
+    m_isRecording = true;
 }
 
 void DX12Framebuffer::EndCapture(DX12CommandBuffer* commandBuffer)
 {
-    // @TODO
+    Assert(m_isRecording);
 
-    // @TODO: Remember the transition is not implicit like vulkan with renderpass
+    m_isRecording = false;
 }
 
 void DX12Framebuffer::Clear(
@@ -287,21 +237,82 @@ void DX12Framebuffer::Clear(
     uint8 attachmentsMask)
 {
     Rect<uint32> rect {};
-    rect.x0 = 0;
-    rect.y0 = 0;
-    rect.x1 = m_framebufferDesc.extent.x;
-    rect.y1 = m_framebufferDesc.extent.y;
+    rect.x0 = m_framebufferDesc.offset.x;
+    rect.y0 = m_framebufferDesc.offset.y;
+    rect.x1 = m_framebufferDesc.offset.x + m_framebufferDesc.extent.x;
+    rect.y1 = m_framebufferDesc.offset.y + m_framebufferDesc.extent.y;
 
     Clear(commandBuffer, rect, attachmentsMask);
 }
 
-void DX12Framebuffer::ClearAttachment(
+void DX12Framebuffer::Clear(
     DX12CommandBuffer* commandBuffer,
     const Rect<uint32>& rect,
     uint8 attachmentsMask)
 {
-    // @TODO
+    if (m_attachmentMap.Size() == 0 || attachmentsMask == 0)
+    {
+        return;
+    }
+
+    Assert(m_isRecording);
+
+    ID3D12GraphicsCommandList* commandList = commandBuffer->GetCommandList();
+    ID3D12Device* device = g_renderInterface->GetDevice();
+
+    const uint32 rtvIncrement = device->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_RTV);
+
+    uint32 colorAttachmentIndex = 0;
+
+    for (const auto& it : m_attachmentMap)
+    {
+        const uint32 binding = it.first;
+
+        if (attachmentsMask != uint8(-1) && !(attachmentsMask & (1u << binding)))
+            continue;
+
+        DX12Attachment* attachment = it.second;
+        Assert(attachment != nullptr && attachment->IsCreated());
+
+        DX12GpuImage* image = attachment->GetGpuImage();
+
+        if (image->GetTextureDesc().IsDepthStencil())
+        {
+            D3D12_CLEAR_VALUE clearValue {};
+            clearValue.Format = ToDXGIFormat(image->GetTextureFormat(), DX12ViewType::RTV_DSV);
+            clearValue.DepthStencil.Depth = 1.0f;
+            clearValue.DepthStencil.Stencil = 0;
+
+            D3D12_CPU_DESCRIPTOR_HANDLE dsvHandle = m_dsvDescriptorHandle.cpuHandle;
+            commandList->ClearDepthStencilView(dsvHandle, D3D12_CLEAR_FLAG_DEPTH, 1.0f, 0, 0, nullptr);
+        }
+        else
+        {
+            D3D12_CPU_DESCRIPTOR_HANDLE rtvHandle = m_rtvDescriptorHandle.cpuHandle;
+            rtvHandle.ptr += colorAttachmentIndex * rtvIncrement;
+
+            Vec4f clearColor = attachment->GetClearColor();
+
+            D3D12_CLEAR_VALUE clearValue {};
+            clearValue.Format = ToDXGIFormat(image->GetTextureFormat(), DX12ViewType::RTV_DSV);
+            clearValue.Color[0] = clearColor.x;
+            clearValue.Color[1] = clearColor.y;
+            clearValue.Color[2] = clearColor.z;
+            clearValue.Color[3] = clearColor.w;
+
+            commandList->ClearRenderTargetView(rtvHandle, clearColor.values, 0, nullptr);
+
+            colorAttachmentIndex++;
+        }
+    }
 }
+
+#ifdef HYP_DEBUG_MODE
+void DX12Framebuffer::SetDebugName(Name name)
+{
+    FramebufferBase::SetDebugName(name);
+}
+#endif
 
 #pragma endregion DX12Framebuffer
 

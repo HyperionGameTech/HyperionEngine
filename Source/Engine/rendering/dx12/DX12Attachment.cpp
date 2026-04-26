@@ -70,10 +70,12 @@ RendererResult DX12Attachment::Create()
 
     if (!m_gpuImage->IsCreated())
     {
-        return HYP_MAKE_ERROR(RendererError, "Image is expected to be initialized before initializing attachment");
+        CheckResult(m_gpuImage->Create());
     }
 
-    return m_imageView->Create();
+    CheckResult(m_imageView->Create());
+
+    return Texture::Create();
 }
 
 #pragma endregion DX12Attachment

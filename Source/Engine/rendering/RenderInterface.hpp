@@ -12,7 +12,6 @@
 
 #include <rendering/RenderableAttributes.hpp>
 #include <rendering/RenderObject.hpp>
-#include <rendering/GpuBuffer.hpp>
 #include <rendering/RenderConfig.hpp>
 #include <rendering/CommandRecorderAllocator.hpp>
 #include <rendering/StructuredBuffer.hpp>
@@ -384,8 +383,8 @@ public:
 
     StructuredBuffer namedBuffers[NumNamedBuffers];
 
-    GpuBufferRef blueNoiseBuffer;
-    GpuBufferRef sphereSamplesBuffer;
+    StructuredBuffer blueNoiseBuffer;
+    StructuredBuffer sphereSamplesBuffer;
 
     Handle<Texture> envProbesTexture;
 

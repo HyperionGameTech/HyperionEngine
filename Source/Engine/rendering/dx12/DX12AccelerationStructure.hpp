@@ -20,6 +20,7 @@
 
 namespace Hyperion {
 
+HYP_CLASS(NoScriptBindings)
 class DX12AccelerationGeometry final : public ObjectBase
 {
     HYP_OBJECT_BODY(DX12AccelerationGeometry);

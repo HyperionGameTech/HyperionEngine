@@ -8,6 +8,7 @@
 
 #include <rendering/dx12/DX12Sampler.hpp>
 #include <rendering/dx12/DX12RenderInterface.hpp>
+#include <rendering/dx12/DX12Helpers.hpp>
 
 #include <DX12Sampler.generated.inl>
 
@@ -18,7 +19,9 @@ extern DX12RenderInterface* g_renderInterface;
 #pragma region DX12Sampler
 
 DX12Sampler::DX12Sampler(const SamplerDesc& desc)
-    : SamplerBase(desc)
+    : SamplerBase(desc),
+      m_samplerDesc {},
+      m_isCreated(false)
 {
 }
 
@@ -28,12 +31,19 @@ DX12Sampler::~DX12Sampler()
 
 bool DX12Sampler::IsCreated() const
 {
-    return false;
+    return m_isCreated;
 }
 
 RendererResult DX12Sampler::Create()
 {
-    // @TODO
+    if (m_isCreated)
+    {
+        return HYP_MAKE_ERROR(RendererError, "Sampler already created");
+    }
+
+    m_samplerDesc = GetSamplerDesc(this);
+    m_isCreated = true;
+
     return {};
 }
 

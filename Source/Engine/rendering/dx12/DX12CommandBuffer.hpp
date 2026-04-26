@@ -61,6 +61,11 @@ public:
         const DX12GpuBuffer* buffer,
         uint32 bufferOffset) const override;
 
+    void Submit(
+        ID3D12CommandQueue* commandQueue,
+        ID3D12Fence* fence = nullptr,
+        uint64 fenceValue = 0);
+
     DX12GraphicsPipeline* m_boundGraphicsPipeline;
 
 private:
