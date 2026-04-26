@@ -132,6 +132,8 @@ public:
     void SetDebugName(Name name) override;
 #endif
 
+    RendererResult Create() override;
+
     DX12Attachment* AddAttachment(DX12Attachment* attachment) override;
 
     DX12Attachment* AddAttachment(uint32 binding, const AttachmentDesc& desc) override;
@@ -146,9 +148,10 @@ public:
         return int(m_attachmentMap.Size());
     }
     
-    bool IsCreated() const override;
-
-    RendererResult Create() override;
+    bool IsCreated() const override
+    {
+        return m_isCreated;
+    }
 
     void BeginCapture(DX12CommandBuffer* commandBuffer) override;
     void EndCapture(DX12CommandBuffer* commandBuffer) override;
@@ -163,12 +166,13 @@ public:
         uint8 attachmentsMask = uint8(-1)) override;
 
 private:
-    bool m_isRecording;
-
     DX12AttachmentMap m_attachmentMap;
 
     DX12DescriptorHandle m_rtvDescriptorHandle;
     DX12DescriptorHandle m_dsvDescriptorHandle;
+
+    bool m_isRecording;
+    bool m_isCreated;
 };
 
 } // namespace Hyperion

@@ -77,6 +77,11 @@ RendererResult DX12GpuImage::Create()
 HYP_DISABLE_OPTIMIZATION;
 RendererResult DX12GpuImage::Create(ResourceState initialState)
 {
+    if (IsCreated())
+    {
+        return {};
+    }
+
     D3D12_RESOURCE_STATES resourceStates = ToDX12ResourceStates(initialState);
 
     const Vec3u extent = GetExtent();
@@ -107,7 +112,7 @@ RendererResult DX12GpuImage::Create(ResourceState initialState)
     resourceDesc.Height = extent.y;
     resourceDesc.DepthOrArraySize = extent.z;
     resourceDesc.MipLevels = m_textureDesc.HasMipMaps() ? m_textureDesc.NumMips() : 1;
-    resourceDesc.Format = ToDXGIFormat(m_textureDesc.format);
+    resourceDesc.Format = ToDXGIFormat(m_textureDesc.format, isAttachmentTexture ? DX12ViewType::RTV_DSV : DX12ViewType::SRV_UAV);
     resourceDesc.SampleDesc.Count = 1;
     resourceDesc.SampleDesc.Quality = 0;
     resourceDesc.Layout = D3D12_TEXTURE_LAYOUT_UNKNOWN;

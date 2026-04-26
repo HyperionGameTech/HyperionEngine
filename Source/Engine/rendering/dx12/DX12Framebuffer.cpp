@@ -22,8 +22,9 @@ extern DX12RenderInterface* g_renderInterface;
 
 DX12Framebuffer::DX12Framebuffer(const FramebufferDesc& framebufferDesc)
     : FramebufferBase(framebufferDesc),
+      m_attachmentMap(),
       m_isRecording(false),
-      m_attachmentMap()
+      m_isCreated(false)
 {
     m_attachmentMap.framebufferWeak = MakeWeakRef(this);
 }
@@ -36,16 +37,31 @@ DX12Framebuffer::~DX12Framebuffer()
     m_attachmentMap.Reset();
 }
 
-bool DX12Framebuffer::IsCreated() const
-{
-    return m_attachmentMap.Size() > 0;
-}
-
 RendererResult DX12Framebuffer::Create()
 {
     if (IsCreated())
     {
         return {};
+    }
+    
+    Vec2u imageExtent;
+
+    m_framebufferDesc.numAttachments = 0;
+
+    for (const auto& it : m_attachmentMap.attachments)
+    {
+        DX12Attachment* attachment = it.second;
+        Assert(attachment != nullptr);
+
+        DX12GpuImage* image = attachment->GetGpuImage();
+        Assert(image != nullptr);
+
+        Assert(imageExtent == Vec2u::Zero() || imageExtent == image->GetExtent().GetXY(),
+            "Attachment dimensions do not match!");
+
+        imageExtent = image->GetExtent().GetXY();
+
+        m_framebufferDesc.AddAttachment(attachment->GetAttachmentDesc());
     }
 
     // Initialize all attachments
@@ -145,6 +161,8 @@ RendererResult DX12Framebuffer::Create()
         }
     }
 
+    m_isCreated = true;
+
     return {};
 }
 
@@ -180,11 +198,7 @@ DX12Attachment* DX12Framebuffer::AddAttachment(
     TextureDesc textureDesc;
     textureDesc.type = desc.imageType;
     textureDesc.format = desc.format;
-    textureDesc.extent = Vec3u {
-        m_framebufferDesc.extent.x,
-        m_framebufferDesc.extent.y,
-        1
-    };
+    textureDesc.extent = Vec3u { m_framebufferDesc.extent.x, m_framebufferDesc.extent.y, 1 };
     textureDesc.imageUsage = IU_SAMPLED | IU_ATTACHMENT;
 
     DX12Attachment* attachment = new DX12Attachment(

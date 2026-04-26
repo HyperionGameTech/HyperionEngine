@@ -409,9 +409,11 @@ RendererResult DX12GraphicsPipeline::BuildRootSignature()
         Array<D3D12_DESCRIPTOR_RANGE> viewRanges;
         Array<D3D12_DESCRIPTOR_RANGE> samplerRanges;
 
-        for (uint32 slotTypeIndex = uint32(ShaderRegister::NONE) + 1; slotTypeIndex < uint32(ShaderRegister::MAX); ++slotTypeIndex)
+        for (uint32 shaderRegisterType = uint32(ShaderRegister::NONE) + 1; shaderRegisterType < uint32(ShaderRegister::MAX); ++shaderRegisterType)
         {
-            const auto& declarations = setDecl.slots[slotTypeIndex];
+            const ShaderRegister reg = ShaderRegister(shaderRegisterType);
+
+            const auto& declarations = setDecl.slots[shaderRegisterType - 1];
             
             if (declarations.Empty())
             {
@@ -420,7 +422,7 @@ RendererResult DX12GraphicsPipeline::BuildRootSignature()
             
             D3D12_DESCRIPTOR_RANGE_TYPE rangeType;
 
-            switch (ShaderRegister(slotTypeIndex))
+            switch (reg)
             {
             case ShaderRegister::SRV:
                 rangeType = D3D12_DESCRIPTOR_RANGE_TYPE_SRV; 
@@ -447,7 +449,7 @@ RendererResult DX12GraphicsPipeline::BuildRootSignature()
                 range.RegisterSpace = (UINT)setIndex;
                 range.OffsetInDescriptorsFromTableStart = D3D12_DESCRIPTOR_RANGE_OFFSET_APPEND;
 
-                if (ShaderRegister(slotTypeIndex) == ShaderRegister::SAMPLER)
+                if (reg == ShaderRegister::SAMPLER)
                 {
                     samplerRanges.PushBack(range);
                 }

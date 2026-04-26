@@ -9,6 +9,7 @@
 #include <baking/Baker.hpp>
 
 #include <rendering/RenderObject.hpp>
+#include <rendering/StructuredBuffer.hpp>
 
 #include <Core/memory/RefCountedPtr.hpp>
 
@@ -54,7 +55,7 @@ private:
     struct JobData
     {
         GpuBufferRef raysBuffer;
-        GpuBufferRef hitsBufferGpu;
+        StructuredBuffer hitsBufferGpu;
         bool isCreated = false;
     };
 

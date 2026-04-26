@@ -24,6 +24,7 @@
 #include <rendering/RenderConfig.hpp>
 #include <rendering/Texture.hpp>
 #include <rendering/RenderableAttributes.hpp>
+#include <rendering/CBufferAllocator.hpp>
 
 #include <engine/DeviceDetails.hpp>
 
@@ -222,9 +223,10 @@ RendererResult DX12RenderInterface::Initialize()
 
     descriptorHeapManager->Initialize();
     
-    CheckResultOrReturn(RenderInterface::Initialize());
+    // In Direct3D, 256 is the minimum constant buffer alignment
+    cbufferAllocator->Initialize(256);
 
-    return {};
+    return RenderInterface::Initialize();
 }
 
 void DX12RenderInterface::Shutdown()

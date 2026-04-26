@@ -142,7 +142,6 @@ LightmapRenderer_GpuPathTracing::~LightmapRenderer_GpuPathTracing()
     for (KeyValuePair<BakeJobBase*, JobData>& it : m_jobData)
     {
         EnqueueDeletion(std::move(it.second.raysBuffer));
-        EnqueueDeletion(std::move(it.second.hitsBufferGpu));
     }
 }
 
@@ -155,10 +154,11 @@ void LightmapRenderer_GpuPathTracing::CreateBuffers(BakeJobBase* job)
     jd.raysBuffer = g_renderInterface->MakeGpuBuffer(GpuBufferType::STORAGE_BUFFER, sizeof(Vec4f) * 2 * m_maxTexelsPerFrame, alignof(Vec4f));
     jd.raysBuffer->SetIsCpuAccessible(true);
 
-    // READBACK_BUFFER type allows readback to cpu.
-    jd.hitsBufferGpu = g_renderInterface->MakeGpuBuffer(GpuBufferType::READBACK_BUFFER, sizeof(LightmapHit) * m_maxTexelsPerFrame, alignof(Vec4f));
+    jd.hitsBufferGpu = StructuredBuffer(m_maxTexelsPerFrame, sizeof(LightmapHit));
+    jd.hitsBufferGpu.Initialize();
 
-    CheckResult(jd.hitsBufferGpu->Create());
+    // @TODO Maybe need EnqueueDeletion for hits buffer gpu? we will see
+
     CheckResult(jd.raysBuffer->Create());
 }
 
@@ -285,14 +285,14 @@ void LightmapRenderer_GpuPathTracing::ReadHitsBuffer(Frame* frame, BakeJobBase* 
 
     JobData& jd = m_jobData[job];
 
-    const GpuBufferRef& hitsBuffer = jd.hitsBufferGpu;
+    StructuredBuffer& hitsBuffer = jd.hitsBufferGpu;
 
-    if (!hitsBuffer || !hitsBuffer->IsCreated())
+    if (!hitsBuffer.cpuBuffer.Size())
     {
         return; // no hit data
     }
 
-    Assert(hitsBuffer->Size() >= outHits.Size() * sizeof(LightmapHit));
+    Assert(hitsBuffer.cpuBuffer.Size() >= outHits.Size() * sizeof(LightmapHit));
 
     GpuBufferRef stagingBuffer = g_renderInterface->MakeGpuBuffer(GpuBufferType::STAGING_BUFFER, outHits.Size() * sizeof(LightmapHit));
     Assert(stagingBuffer->Create());
@@ -301,15 +301,15 @@ void LightmapRenderer_GpuPathTracing::ReadHitsBuffer(Frame* frame, BakeJobBase* 
 
     singleTimeCommands->Push([&](CommandRecorder& cr)
         {
-            const ResourceState previousResourceState = hitsBuffer->GetResourceState();
+            const ResourceState previousResourceState = hitsBuffer.gpuBuffer->GetResourceState();
 
-            cr << InsertBarrier(hitsBuffer, RS_COPY_SRC);
+            cr << InsertBarrier(hitsBuffer.gpuBuffer, RS_COPY_SRC);
             cr << InsertBarrier(stagingBuffer, RS_COPY_DST);
 
-            cr << CopyBuffer(hitsBuffer, stagingBuffer, uint32(outHits.Size() * sizeof(LightmapHit)));
+            cr << CopyBuffer(hitsBuffer.gpuBuffer, stagingBuffer, uint32(outHits.Size() * sizeof(LightmapHit)));
 
             cr << InsertBarrier(stagingBuffer, RS_COPY_SRC);
-            cr << InsertBarrier(hitsBuffer, previousResourceState);
+            cr << InsertBarrier(hitsBuffer.gpuBuffer, previousResourceState);
         });
 
     Assert(singleTimeCommands->Execute());
@@ -520,7 +520,7 @@ void LightmapRenderer_GpuPathTracing::Render(Frame* frame, const RenderSetup& re
 
     cr << SetShaderUniform(0, "TLAS"_sh, m_tlas);
     cr << SetShaderUniform(1, "MeshDescriptionsBuffer"_sh, m_tlas->GetMeshDescriptionsBuffer());
-    cr << SetShaderUniform(2, "HitsBuffer"_sh, jd.hitsBufferGpu);
+    cr << SetShaderUniform(2, "HitsBuffer"_sh, jd.hitsBufferGpu.gpuBuffer);
     cr << SetShaderUniform(3, "RaysBuffer"_sh, jd.raysBuffer);
     cr << SetShaderUniform(5, "MaterialsBuffer"_sh, g_renderInterface->namedBuffers[NamedBuffer::Materials].gpuBuffer);
     cr << SetShaderUniform(6, "CBuffer"_sh, cbuffer, ShaderDataOffset(cbufferOffset, cbufferSize));
@@ -535,9 +535,9 @@ void LightmapRenderer_GpuPathTracing::Render(Frame* frame, const RenderSetup& re
     
     cr << SetShaderUniform(12, "EnvProbesTexture"_sh, g_renderInterface->textureViewCache->GetOrCreate(g_renderInterface->envProbesTexture));
 
-    frame->cr << InsertBarrier(jd.hitsBufferGpu, RS_UNORDERED_ACCESS);
+    frame->cr << InsertBarrier(jd.hitsBufferGpu.gpuBuffer, RS_UNORDERED_ACCESS);
     frame->cr << TraceRays(Vec3u { uint32(rays.Size()), 1, 1 });
-    frame->cr << InsertBarrier(jd.hitsBufferGpu, RS_UNORDERED_ACCESS);
+    frame->cr << InsertBarrier(jd.hitsBufferGpu.gpuBuffer, RS_UNORDERED_ACCESS);
 }
 
 #pragma endregion LightmapRenderer_GpuPathTracing

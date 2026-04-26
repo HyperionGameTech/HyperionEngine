@@ -406,14 +406,13 @@ void ComputeEnvProbeSphericalHarmonics(
 
     static constexpr uint32 ShDataSize = sizeof(EnvProbeShaderData::shData);
 
-    GpuBufferRef shReadbackBuffer = g_renderInterface->MakeGpuBuffer(GpuBufferType::READBACK_BUFFER, MathUtil::NextPowerOf2(ShDataSize));
-    shReadbackBuffer->SetIsCpuAccessible(true);
-    CheckResult(shReadbackBuffer->Create());
+    GpuBufferRef shBuffer = g_renderInterface->MakeGpuBuffer(GpuBufferType::STORAGE_BUFFER, MathUtil::NextPowerOf2(ShDataSize));
+    CheckResult(shBuffer->Create());
 
     Array<GpuBufferRef> uniformBuffers;
 
     cr << InsertBarrier(shTilesBuffers[0].gpuBuffer, RS_UNORDERED_ACCESS, ShaderModuleType::Compute);
-    cr << InsertBarrier(shReadbackBuffer, RS_UNORDERED_ACCESS, ShaderModuleType::Compute);
+    cr << InsertBarrier(shBuffer, RS_UNORDERED_ACCESS, ShaderModuleType::Compute);
     
     ShaderPropertySet shaderProperties;
 
@@ -436,7 +435,7 @@ void ComputeEnvProbeSphericalHarmonics(
         cr << SetShaderUniform(1, "SamplerNearest"_sh, g_renderInterface->placeholderData->GetSamplerNearest());
         cr << SetShaderUniform(3, "EnvProbesBuffer"_sh, g_renderInterface->namedBuffers[NamedBuffer::EnvProbes].gpuBuffer);
 
-        cr << SetShaderUniform(4, "OutSHBuffer"_sh, shReadbackBuffer);
+        cr << SetShaderUniform(4, "OutSHBuffer"_sh, shBuffer);
 
         cr << SetShaderUniform(8, "InColorCubemap"_sh, g_renderInterface->textureViewCache->GetOrCreate(const_cast<Texture*>(&inColorTexture)));
         cr << SetShaderUniform(11, "InputSHTilesBuffer"_sh, inputBuffer.gpuBuffer);
@@ -496,7 +495,7 @@ void ComputeEnvProbeSphericalHarmonics(
 
     // Finalize - build into final buffer
     cr << InsertBarrier(shTilesBuffers[finalizeShBufferIndex].gpuBuffer, RS_UNORDERED_ACCESS, ShaderModuleType::Compute);
-    cr << InsertBarrier(shReadbackBuffer, RS_UNORDERED_ACCESS, ShaderModuleType::Compute);
+    cr << InsertBarrier(shBuffer, RS_UNORDERED_ACCESS, ShaderModuleType::Compute);
 
     // MODE_FINALIZE
     RunPass(
@@ -506,12 +505,21 @@ void ComputeEnvProbeSphericalHarmonics(
         shTilesBuffers[finalizeShBufferIndex],
         shTilesBuffers[finalizeShBufferIndex]);
 
-    cr << InsertBarrier(shReadbackBuffer, RS_UNORDERED_ACCESS, ShaderModuleType::Compute);
+    cr << InsertBarrier(shBuffer, RS_COPY_SRC, ShaderModuleType::Compute);
+
+    GpuBufferRef readbackBuffer = g_renderInterface->MakeGpuBuffer(GpuBufferType::READBACK_BUFFER, shBuffer->Size());
+    readbackBuffer->SetIsCpuAccessible(true);
+    CheckResult(readbackBuffer->Create());
+    
+    // Copy to readback buffer
+    cr << InsertBarrier(readbackBuffer, RS_COPY_DST, ShaderModuleType::Compute);
+    cr << CopyBuffer(shBuffer, readbackBuffer, shBuffer->Size());
 
     struct ReadbackSphericalHarmonicsPayload
     {
         Handle<EnvProbe> envProbe;
-        GpuBufferRef shReadbackBuffer;
+        GpuBufferRef shBuffer;
+        GpuBufferRef readbackBuffer;
         FixedArray<StructuredBuffer, ShNumLevels> shTilesBuffers;
         Array<GpuBufferRef> uniformBuffers;
     };
@@ -544,8 +552,8 @@ void ComputeEnvProbeSphericalHarmonics(
                     // Read back the SH coefficients from the GPU buffer and store on the EnvProbe.
                     EnvProbeSphericalHarmonics shData {};
 
-                    Assert(payload.shReadbackBuffer.IsValid() && payload.shReadbackBuffer->Size() >= sizeof(shData.values));
-                    payload.shReadbackBuffer->Read(sizeof(shData.values), &shData.values[0]);
+                    Assert(payload.readbackBuffer.IsValid() && payload.readbackBuffer->Size() >= sizeof(shData.values));
+                    payload.readbackBuffer->Read(sizeof(shData.values), &shData.values[0]);
 
                     {
                         // SetSphericalHarmonicsData() marks it dirty so we don't need to do that here.
@@ -553,7 +561,8 @@ void ComputeEnvProbeSphericalHarmonics(
                         payload.envProbe->SetSphericalHarmonicsData(shData);
                     }
 
-                    EnqueueDeletion(std::move(payload.shReadbackBuffer));
+                    EnqueueDeletion(std::move(payload.shBuffer));
+                    EnqueueDeletion(std::move(payload.readbackBuffer));
                     EnqueueDeletion(std::move(payload.uniformBuffers));
 
                     delete pPayload;
@@ -567,7 +576,7 @@ void ComputeEnvProbeSphericalHarmonics(
 
     ReadbackSphericalHarmonicsPayload* payload = new ReadbackSphericalHarmonicsPayload;
     payload->envProbe = MakeStrongRef(&envProbe);
-    payload->shReadbackBuffer = std::move(shReadbackBuffer);
+    payload->shBuffer = std::move(shBuffer);
     payload->shTilesBuffers = std::move(shTilesBuffers);
     payload->uniformBuffers = uniformBuffers;
 
@@ -818,10 +827,10 @@ void ReflectionProbeRenderer::ComputeSH(Frame* frame, EnvProbe* envProbe)
     const ViewOutputTarget& outputTarget = envProbe->GetView()->GetOutputTarget();
 
     const FramebufferRef& framebuffer = outputTarget.GetFramebuffer();
-    AssertDebug(framebuffer.IsValid());
+    AssertDebug(framebuffer.IsValid() && framebuffer->IsCreated());
 
     AttachmentBase* colorAttachment = framebuffer->GetAttachment(0);
-    Assert(colorAttachment != nullptr);
+    Assert(colorAttachment != nullptr && colorAttachment->IsCreated());
 
     ComputeSH::ComputeEnvProbeSphericalHarmonics(*envProbe, *colorAttachment);
 }

@@ -232,6 +232,7 @@ void* CBufferAllocator::Allocate(size_t count, size_t alignment, GpuBuffer*& out
     outStartOffset = 0;
 
     void* ptr = newBlock->buffer->Map();
+    Assert(ptr != nullptr);
 
     newBlock->offset += count;
 

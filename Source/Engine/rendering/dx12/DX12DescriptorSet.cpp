@@ -16,6 +16,9 @@
 #include <rendering/dx12/DX12Sampler.hpp>
 #include <rendering/dx12/DX12AccelerationStructure.hpp>
 #include <rendering/dx12/DX12Helpers.hpp>
+#include <rendering/dx12/DX12GraphicsPipeline.hpp>
+#include <rendering/dx12/DX12ComputePipeline.hpp>
+#include <rendering/dx12/DX12RayTracingPipeline.hpp>
 
 #include <DX12DescriptorSet.generated.inl>
 
@@ -549,6 +552,25 @@ void DX12DescriptorSet::Bind(DX12CommandBuffer* commandBuffer, const DX12Graphic
 
     ID3D12GraphicsCommandList* commandList = commandBuffer->GetCommandList();
     
+    uint32 numHeaps = 0;
+
+    ID3D12DescriptorHeap* heaps[2] {};
+    if (m_viewDescriptorHeap != nullptr)
+    {
+        heaps[numHeaps++] = m_viewDescriptorHeap;
+    }
+    if (m_samplerDescriptorHeap != nullptr)
+    {
+        heaps[numHeaps++] = m_samplerDescriptorHeap;
+    }
+
+    if (numHeaps == 0)
+    {
+        return;
+    }
+    
+    commandList->SetDescriptorHeaps(numHeaps, heaps);
+
     if (m_viewDescriptorHandle.IsValid())
     {
         commandList->SetGraphicsRootDescriptorTable(bindIndex * 2, m_viewDescriptorHandle.gpuHandle);
@@ -572,6 +594,25 @@ void DX12DescriptorSet::Bind(DX12CommandBuffer* commandBuffer, const DX12Compute
 
     ID3D12GraphicsCommandList* commandList = commandBuffer->GetCommandList();
     
+    uint32 numHeaps = 0;
+
+    ID3D12DescriptorHeap* heaps[2] {};
+    if (m_viewDescriptorHeap != nullptr)
+    {
+        heaps[numHeaps++] = m_viewDescriptorHeap;
+    }
+    if (m_samplerDescriptorHeap != nullptr)
+    {
+        heaps[numHeaps++] = m_samplerDescriptorHeap;
+    }
+
+    if (numHeaps == 0)
+    {
+        return;
+    }
+    
+    commandList->SetDescriptorHeaps(numHeaps, heaps);
+    
     if (m_viewDescriptorHandle.IsValid())
     {
         commandList->SetComputeRootDescriptorTable(bindIndex * 2, m_viewDescriptorHandle.gpuHandle);
@@ -594,6 +635,25 @@ void DX12DescriptorSet::Bind(DX12CommandBuffer* commandBuffer, const DX12RayTrac
     Assert(m_isCreated);
 
     ID3D12GraphicsCommandList* commandList = commandBuffer->GetCommandList();
+    
+    uint32 numHeaps = 0;
+
+    ID3D12DescriptorHeap* heaps[2] {};
+    if (m_viewDescriptorHeap != nullptr)
+    {
+        heaps[numHeaps++] = m_viewDescriptorHeap;
+    }
+    if (m_samplerDescriptorHeap != nullptr)
+    {
+        heaps[numHeaps++] = m_samplerDescriptorHeap;
+    }
+
+    if (numHeaps == 0)
+    {
+        return;
+    }
+    
+    commandList->SetDescriptorHeaps(numHeaps, heaps);
     
     if (m_viewDescriptorHandle.IsValid())
     {

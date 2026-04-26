@@ -20,9 +20,15 @@ extern DX12RenderInterface* g_renderInterface;
 
 static D3D12_HEAP_TYPE GetHeapType(GpuBufferType bufferType, bool cpuAccessible)
 {
-    if (bufferType == GpuBufferType::STAGING_BUFFER)
+    switch (bufferType)
     {
+    case GpuBufferType::STAGING_BUFFER:  // fallthrough
+    case GpuBufferType::CONSTANT_BUFFER:
         return D3D12_HEAP_TYPE_UPLOAD;
+    case GpuBufferType::READBACK_BUFFER:
+        return D3D12_HEAP_TYPE_READBACK;
+    default:
+        break;
     }
 
     if (cpuAccessible)
@@ -34,7 +40,8 @@ static D3D12_HEAP_TYPE GetHeapType(GpuBufferType bufferType, bool cpuAccessible)
 }
 
 DX12GpuBuffer::DX12GpuBuffer(GpuBufferType type, size_t size, size_t alignment)
-    : GpuBufferBase(type, size, alignment)
+    : GpuBufferBase(type, size, alignment),
+      m_mapping(nullptr)
 {
 }
 
@@ -119,7 +126,6 @@ RendererResult DX12GpuBuffer::Create()
     switch (m_type)
     {
         case GpuBufferType::STORAGE_BUFFER:                 // fallthrough
-        case GpuBufferType::READBACK_BUFFER:                // fallthrough
         case GpuBufferType::SCRATCH_BUFFER:                 // fallthrough
         case GpuBufferType::ACCELERATION_STRUCTURE_BUFFER:  // fallthrough
             flags |= D3D12_RESOURCE_FLAG_ALLOW_UNORDERED_ACCESS;

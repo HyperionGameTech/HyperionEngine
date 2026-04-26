@@ -66,6 +66,8 @@ public:
     explicit DX12DescriptorSet(const DescriptorSetLayout& layout);
     ~DX12DescriptorSet() override;
 
+    // @TODO Move heaps to DX12RenderInterface not individual descriptor sets!!!
+
     HYP_FORCE_INLINE ID3D12DescriptorHeap* GetViewHeap() const
     {
         return m_viewDescriptorHeap;
@@ -82,16 +84,16 @@ public:
     void UpdateDirtyState(bool* outIsDirty = nullptr) override;
     void Update(bool force = false) override;
 
-    void Bind(CommandBuffer* commandBuffer, const GraphicsPipeline* pipeline, uint32 bindIndex) const override;
-    void Bind(CommandBuffer* commandBuffer, const GraphicsPipeline* pipeline, const DescriptorSetOffsetMap& offsets, uint32 bindIndex) const override;
+    void Bind(DX12CommandBuffer* commandBuffer, const DX12GraphicsPipeline* pipeline, uint32 bindIndex) const override;
+    void Bind(DX12CommandBuffer* commandBuffer, const DX12GraphicsPipeline* pipeline, const DescriptorSetOffsetMap& offsets, uint32 bindIndex) const override;
 
-    void Bind(CommandBuffer* commandBuffer, const ComputePipeline* pipeline, uint32 bindIndex) const override;
-    void Bind(CommandBuffer* commandBuffer, const ComputePipeline* pipeline, const DescriptorSetOffsetMap& offsets, uint32 bindIndex) const override;
+    void Bind(DX12CommandBuffer* commandBuffer, const DX12ComputePipeline* pipeline, uint32 bindIndex) const override;
+    void Bind(DX12CommandBuffer* commandBuffer, const DX12ComputePipeline* pipeline, const DescriptorSetOffsetMap& offsets, uint32 bindIndex) const override;
 
-    void Bind(CommandBuffer* commandBuffer, const RayTracingPipeline* pipeline, uint32 bindIndex) const override;
-    void Bind(CommandBuffer* commandBuffer, const RayTracingPipeline* pipeline, const DescriptorSetOffsetMap& offsets, uint32 bindIndex) const override;
+    void Bind(DX12CommandBuffer* commandBuffer, const DX12RayTracingPipeline* pipeline, uint32 bindIndex) const override;
+    void Bind(DX12CommandBuffer* commandBuffer, const DX12RayTracingPipeline* pipeline, const DescriptorSetOffsetMap& offsets, uint32 bindIndex) const override;
 
-    DescriptorSetRef Clone() const override;
+    DX12DescriptorSetRef Clone() const override;
 
     D3D12_CPU_DESCRIPTOR_HANDLE GetViewCpuHandle(uint32 binding) const;
     D3D12_CPU_DESCRIPTOR_HANDLE GetSamplerCpuHandle(uint32 binding) const;
@@ -105,9 +107,9 @@ private:
     Array<DX12CachedDescriptor, RHIAllocator> m_pendingDescriptors;
 
     // Binding index -> heap offset (packed) for views (CBV/SRV/UAV)
-    HashMap<uint32, uint32> m_viewBindingToHeapOffset;
+    HashMap<uint32, uint32, RHIAllocator> m_viewBindingToHeapOffset;
     // Binding index -> heap offset (packed) for samplers
-    HashMap<uint32, uint32> m_samplerBindingToHeapOffset;
+    HashMap<uint32, uint32, RHIAllocator> m_samplerBindingToHeapOffset;
 
     // Allocated descriptor handles
     DX12DescriptorHandle m_viewDescriptorHandle;
