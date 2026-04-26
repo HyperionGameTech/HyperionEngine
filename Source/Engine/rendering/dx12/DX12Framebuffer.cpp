@@ -58,7 +58,7 @@ RendererResult DX12Framebuffer::Create()
         Assert(attachment != nullptr);
         
         // Ensure image is created
-        DX12GpuImageRef image = attachment->GetImage();
+        DX12GpuImageRef image = attachment->GetGpuImage();
 
         if (!image->IsCreated())
         {
@@ -119,7 +119,7 @@ RendererResult DX12Framebuffer::Create()
     for (auto& it : m_attachments)
     {
         DX12Attachment* attachment = it.second;
-        DX12GpuImage* image = attachment->GetImage();
+        DX12GpuImage* image = attachment->GetGpuImage();
 
         if (attachment->IsDepthAttachment())
         {
@@ -286,13 +286,13 @@ void DX12Framebuffer::Clear(
     DX12CommandBuffer* commandBuffer,
     uint8 attachmentsMask)
 {
-    Rect<uint32> rect;
+    Rect<uint32> rect {};
     rect.x0 = 0;
     rect.y0 = 0;
     rect.x1 = m_framebufferDesc.extent.x;
     rect.y1 = m_framebufferDesc.extent.y;
 
-    ClearAttachment(commandBuffer, rect, attachmentsMask);
+    Clear(commandBuffer, rect, attachmentsMask);
 }
 
 void DX12Framebuffer::ClearAttachment(

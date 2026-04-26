@@ -25,6 +25,8 @@
 
 #include <rendering/renderers/SpriteRenderer.hpp>
 
+#include <rendering/util/DeletionQueue.hpp>
+
 #include <util/MeshBuilder.hpp>
 
 #include <scene/View.hpp>

@@ -16,6 +16,8 @@
 
 namespace Hyperion {
 
+class DX12GraphicsPipeline;
+
 HYP_CLASS(NoScriptBindings)
 class DX12CommandBuffer final : public CommandBufferBase
 {
@@ -58,6 +60,8 @@ public:
     void DrawIndexedIndirect(
         const DX12GpuBuffer* buffer,
         uint32 bufferOffset) const override;
+
+    DX12GraphicsPipeline* m_boundGraphicsPipeline;
 
 private:
     D3D12_COMMAND_LIST_TYPE m_type;

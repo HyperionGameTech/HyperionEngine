@@ -15,6 +15,7 @@
 #include <rendering/dx12/DX12CommandBuffer.hpp>
 #include <rendering/dx12/DX12GpuBuffer.hpp>
 #include <rendering/dx12/DX12Helpers.hpp>
+
 #include <rendering/Shared.hpp>
 #include <rendering/RenderHelpers.hpp>
 
@@ -595,15 +596,18 @@ void DX12GpuImage::CopyFromBuffer(
 
     D3D12_RESOURCE_STATES state = isDepthStencil ? D3D12_RESOURCE_STATE_DEPTH_WRITE : D3D12_RESOURCE_STATE_COPY_DEST;
 
+    D3D12_PLACED_SUBRESOURCE_FOOTPRINT placedFootprint {};
+    placedFootprint.Offset = srcBufferOffset;
+    placedFootprint.Footprint.Depth = 1;
+    placedFootprint.Footprint.Height = 1;
+    placedFootprint.Footprint.Width = 1;
+    placedFootprint.Footprint.Format = ToDXGIFormat(m_textureDesc.format);
+    placedFootprint.Footprint.RowPitch = m_textureDesc.extent.x * TextureUtils::BytesPerComponent(m_textureDesc.format) * TextureUtils::NumComponents(m_textureDesc.format);
+
     D3D12_TEXTURE_COPY_LOCATION srcLocation {};
     srcLocation.pResource = srcBuffer->GetResource();
-    srcLocation.Type = D3D12_TEXTURE_COPY_TYPE_BUFFER;
-    srcLocation.Buffer.Location = srcBuffer->GetResource()->GetGPUVirtualAddress() + srcBufferOffset;
-    srcLocation.Buffer.RowPitch = 0;
-    srcLocation.Buffer.PlacedFootprint.Footprint.Depth = 1;
-    srcLocation.Buffer.PlacedFootprint.Footprint.Height = 1;
-    srcLocation.Buffer.PlacedFootprint.Footprint.Width = 1;
-    srcLocation.Buffer.PlacedFootprint.Offset = 0;
+    srcLocation.Type = D3D12_TEXTURE_COPY_TYPE_PLACED_FOOTPRINT;
+    srcLocation.PlacedFootprint = placedFootprint;
 
     const uint8 mipIdx = dstMipIndex != UINT8_MAX ? dstMipIndex : 0;
     const Vec3u mipExtent = m_textureDesc.GetMipExtent(mipIdx);
@@ -653,10 +657,14 @@ void DX12GpuImage::CopyToBuffer(
     srcLocation.pResource = m_resource.Get();
     srcLocation.Type = D3D12_TEXTURE_COPY_TYPE_SUBRESOURCE_INDEX;
 
+    D3D12_PLACED_SUBRESOURCE_FOOTPRINT placedFootprint {};
+    placedFootprint.Footprint.Format = ToDXGIFormat(m_textureDesc.format);
+    placedFootprint.Offset = 0;
+
     D3D12_TEXTURE_COPY_LOCATION dstLocation {};
     dstLocation.pResource = dstBuffer->GetResource();
-    dstLocation.Type = D3D12_TEXTURE_COPY_TYPE_BUFFER;
-    dstLocation.Buffer.Location = dstBuffer->GetResource()->GetGPUVirtualAddress();
+    dstLocation.Type = D3D12_TEXTURE_COPY_TYPE_PLACED_FOOTPRINT;
+    dstLocation.PlacedFootprint = placedFootprint;
 
     size_t bufferOffset = 0;
 
@@ -683,7 +691,7 @@ void DX12GpuImage::CopyToBuffer(
             footprint.Footprint.Format = ToDXGIFormat(m_textureDesc.format);
             footprint.Offset = bufferOffset + (layerIndex * layerStep);
 
-            dstLocation.Buffer.PlacedFootprint = footprint;
+            dstLocation.PlacedFootprint = footprint;
 
             D3D12_BOX dstBox {};
             dstBox.left = 0;
@@ -716,8 +724,11 @@ void DX12GpuImage::CopyFrom(
     const bool srcIsDepthStencil = srcImage->GetTextureDesc().IsDepthStencil();
     const bool dstIsDepthStencil = m_textureDesc.IsDepthStencil();
 
-    D3D12_RESOURCE_STATES srcState = srcIsDepthStencil ? D3D12_RESOURCE_STATE_DEPTH_READ : D3D12_RESOURCE_STATE_COPY_SOURCE;
-    D3D12_RESOURCE_STATES dstState = dstIsDepthStencil ? D3D12_RESOURCE_STATE_DEPTH_WRITE : D3D12_RESOURCE_STATE_COPY_DEST;
+    ResourceState srcState = srcIsDepthStencil ? RS_DEPTH_STENCIL : RS_COPY_SRC;
+    ResourceState dstState = dstIsDepthStencil ? RS_DEPTH_STENCIL : RS_COPY_DST;
+
+    srcImage->InsertBarrier(commandBuffer, srcState, ShaderModuleType::NONE);
+    InsertBarrier(commandBuffer, dstState, ShaderModuleType::NONE);
 
     D3D12_TEXTURE_COPY_LOCATION srcLocation {};
     srcLocation.pResource = srcImage->GetResource();

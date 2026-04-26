@@ -2,7 +2,7 @@
  *  @author: The Hyperion Contributors
  *  @date 2016-2026
  *  @licence MIT
-*/
+ */
 
 #include <DX12Pch.hpp>
 
@@ -23,29 +23,52 @@ extern DX12RenderInterface* g_renderInterface;
 
 DX12Attachment::DX12Attachment(
     const DX12GpuImageRef& image,
+    const DX12GpuImageViewRef& imageView,
     const DX12FramebufferWeakRef& framebuffer,
+    RenderPassMode renderPassMode,
     const AttachmentDesc& attachmentDesc)
-    : AttachmentBase(image, framebuffer, attachmentDesc)
+    : AttachmentBase(image, imageView, framebuffer, attachmentDesc),
+      m_renderPassMode(renderPassMode)
 {
-    m_imageView = MakeHandle<DX12GpuImageView>(image);
+    Assert(m_gpuImage.IsValid());
+
+    if (!m_imageView.IsValid())
+    {
+        m_imageView = MakeHandle<DX12GpuImageView>(m_gpuImage);
+    }
+}
+
+DX12Attachment::DX12Attachment(
+    const TextureDesc& textureDesc,
+    const DX12FramebufferWeakRef& framebuffer,
+    RenderPassMode renderPassMode,
+    const AttachmentDesc& attachmentDesc)
+    : AttachmentBase(textureDesc, framebuffer, attachmentDesc),
+      m_renderPassMode(renderPassMode)
+{
+    Assert(m_gpuImage.IsValid());
+
+    if (!m_imageView.IsValid())
+    {
+        m_imageView = MakeHandle<DX12GpuImageView>(m_gpuImage);
+    }
 }
 
 DX12Attachment::~DX12Attachment()
 {
-    EnqueueDeletion(std::move(m_image));
-    EnqueueDeletion(std::move(m_imageView));
+    m_imageView.Reset();
 }
 
 bool DX12Attachment::IsCreated() const
 {
-    return m_imageView != nullptr && m_imageView->IsCreated();
+    return Texture::IsCreated() && m_imageView != nullptr && m_imageView->IsCreated();
 }
 
 RendererResult DX12Attachment::Create()
 {
-    Assert(m_image != nullptr && m_imageView != nullptr);
+    Assert(m_gpuImage != nullptr && m_imageView != nullptr);
 
-    if (!m_image->IsCreated())
+    if (!m_gpuImage->IsCreated())
     {
         return HYP_MAKE_ERROR(RendererError, "Image is expected to be initialized before initializing attachment");
     }

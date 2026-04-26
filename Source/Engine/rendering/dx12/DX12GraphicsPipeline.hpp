@@ -17,6 +17,7 @@
 #include <rendering/RenderPipeline.hpp>
 
 #include <rendering/dx12/DX12Shared.hpp>
+#include <rendering/dx12/DX12CommandBuffer.hpp>
 
 namespace Hyperion {
 
@@ -44,8 +45,8 @@ public:
 
     RendererResult Create() override;
 
-    void Bind(CommandBuffer* cmd) override;
-    void Bind(CommandBuffer* cmd, Vec2i viewportOffset, Vec2u viewportExtent) override;
+    void Bind(DX12CommandBuffer* cmd) override;
+    void Bind(DX12CommandBuffer* cmd, Vec2i viewportOffset, Vec2u viewportExtent) override;
 
     void SetPushConstants(const void* data, size_t size) override;
 
@@ -56,7 +57,15 @@ public:
 private:
     RendererResult Rebuild() override;
 
+    void BuildVertexAttributes(
+        Array<D3D12_INPUT_ELEMENT_DESC>& outInputElementDescs,
+        Array<uint32>& outBindingStrides);
+
+    void UpdateViewport(DX12CommandBuffer* commandBuffer, const Viewport& viewport);
+
     RendererResult BuildRootSignature();
+
+    Viewport m_viewport;
 
     ComPtr<ID3D12RootSignature> m_rootSignature;
     ComPtr<ID3D12PipelineState> m_pipelineState;

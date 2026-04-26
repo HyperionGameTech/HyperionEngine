@@ -7,6 +7,8 @@
 #pragma once
 
 #include <rendering/RenderObject.hpp>
+#include <rendering/RenderResult.hpp>
+
 #include <rendering/dx12/DX12Shared.hpp>
 
 namespace Hyperion {

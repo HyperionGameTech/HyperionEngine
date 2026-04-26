@@ -21,7 +21,8 @@ extern DX12RenderInterface* g_renderInterface;
 
 DX12CommandBuffer::DX12CommandBuffer(D3D12_COMMAND_LIST_TYPE type)
     : m_type(type),
-      m_isRecording(false)
+      m_isRecording(false),
+      m_boundGraphicsPipeline(nullptr)
 {
 }
 

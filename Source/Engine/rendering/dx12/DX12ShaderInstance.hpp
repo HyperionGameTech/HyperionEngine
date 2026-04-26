@@ -29,6 +29,7 @@ class DX12ShaderInstance final : public ShaderInstanceBase
     {
         ShaderModuleType type;
         D3D12_SHADER_BYTECODE bytecode;
+        const void* ownedBytecode = nullptr;
     };
 
 public:

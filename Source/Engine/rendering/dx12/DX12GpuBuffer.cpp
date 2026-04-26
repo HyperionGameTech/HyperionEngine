@@ -54,7 +54,7 @@ RendererResult DX12GpuBuffer::Create()
     switch (m_type)
     {
         case GpuBufferType::STORAGE_BUFFER:                 // fallthrough
-        case GpuBufferType::ATOMIC_COUNTER:                 // fallthrough
+        case GpuBufferType::READBACK_BUFFER:                // fallthrough
         case GpuBufferType::SCRATCH_BUFFER:                 // fallthrough
         case GpuBufferType::ACCELERATION_STRUCTURE_BUFFER:  // fallthrough
             flags |= D3D12_RESOURCE_FLAG_ALLOW_UNORDERED_ACCESS;

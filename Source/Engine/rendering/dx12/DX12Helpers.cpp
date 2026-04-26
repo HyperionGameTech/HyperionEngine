@@ -26,6 +26,102 @@ DXGI_FORMAT ToDXGIFormat(TextureFormat format, DX12ViewType getForViewType)
         return DXGI_FORMAT_R8G8B8A8_UNORM;
     case TextureFormat::RGBA8:
         return DXGI_FORMAT_R8G8B8A8_UNORM;
+    case TextureFormat::B8:
+        return DXGI_FORMAT_B8G8R8A8_UNORM;
+    case TextureFormat::BG8:
+        return DXGI_FORMAT_B8G8R8A8_UNORM;
+    case TextureFormat::BGR8:
+        return DXGI_FORMAT_B8G8R8A8_UNORM;
+    case TextureFormat::BGRA8:
+        return DXGI_FORMAT_B8G8R8A8_UNORM;
+    case TextureFormat::R16:
+        return DXGI_FORMAT_R16_UINT;
+    case TextureFormat::RG16:
+        return DXGI_FORMAT_R16G16_UINT;
+    case TextureFormat::RGB16:
+        return DXGI_FORMAT_R16G16B16A16_UINT;
+    case TextureFormat::RGBA16:
+        return DXGI_FORMAT_R16G16B16A16_UINT;
+    case TextureFormat::R32:
+        return DXGI_FORMAT_R32_UINT;
+    case TextureFormat::RG32:
+        return DXGI_FORMAT_R32G32_UINT;
+    case TextureFormat::RGB32:
+        return DXGI_FORMAT_R32G32B32A32_UINT;
+    case TextureFormat::RGBA32:
+        return DXGI_FORMAT_R32G32B32A32_UINT;
+    case TextureFormat::R11G11B10F:
+        return DXGI_FORMAT_R11G11B10_FLOAT;
+    case TextureFormat::R10G10B10A2:
+        return DXGI_FORMAT_R10G10B10A2_UNORM;
+    case TextureFormat::R16F:
+        return DXGI_FORMAT_R16_FLOAT;
+    case TextureFormat::RG16F:
+        return DXGI_FORMAT_R16G16_FLOAT;
+    case TextureFormat::RGB16F:
+        return DXGI_FORMAT_R16G16B16A16_FLOAT;
+    case TextureFormat::RGBA16F:
+        return DXGI_FORMAT_R16G16B16A16_FLOAT;
+    case TextureFormat::R32F:
+        return DXGI_FORMAT_R32_FLOAT;
+    case TextureFormat::RG32F:
+        return DXGI_FORMAT_R32G32_FLOAT;
+    case TextureFormat::RGB32F:
+        return DXGI_FORMAT_R32G32B32_FLOAT;
+    case TextureFormat::RGBA32F:
+        return DXGI_FORMAT_R32G32B32A32_FLOAT;
+    case TextureFormat::R8_SRGB:
+        return DXGI_FORMAT_R8_UNORM;
+    case TextureFormat::RG8_SRGB:
+        return DXGI_FORMAT_R8G8_UNORM;
+    case TextureFormat::RGB8_SRGB:
+        return DXGI_FORMAT_R8G8B8A8_UNORM_SRGB;
+    case TextureFormat::RGBA8_SRGB:
+        return DXGI_FORMAT_R8G8B8A8_UNORM_SRGB;
+    case TextureFormat::B8_SRGB:
+        return DXGI_FORMAT_B8G8R8A8_UNORM;
+    case TextureFormat::BG8_SRGB:
+        return DXGI_FORMAT_B8G8R8A8_UNORM;
+    case TextureFormat::BGR8_SRGB:
+        return DXGI_FORMAT_B8G8R8A8_UNORM_SRGB;
+    case TextureFormat::BGRA8_SRGB:
+        return DXGI_FORMAT_B8G8R8A8_UNORM_SRGB;
+    case TextureFormat::D16:
+        if (getForViewType == DX12ViewType::RTV_DSV)
+            return DXGI_FORMAT_D16_UNORM;
+        return DXGI_FORMAT_R16_TYPELESS;
+    case TextureFormat::D24_S8:
+        if (getForViewType == DX12ViewType::RTV_DSV)
+            return DXGI_FORMAT_D24_UNORM_S8_UINT;
+        return DXGI_FORMAT_R24_UNORM_X8_TYPELESS;
+    case TextureFormat::D32F:
+        if (getForViewType == DX12ViewType::SRV_UAV || getForViewType == DX12ViewType::RTV_DSV)
+            return DXGI_FORMAT_D32_FLOAT;
+        return DXGI_FORMAT_R32_FLOAT;
+    case TextureFormat::D32F_S8:
+        if (getForViewType == DX12ViewType::SRV_UAV)
+            return DXGI_FORMAT_R32_FLOAT_X8X24_TYPELESS;
+        if (getForViewType == DX12ViewType::RTV_DSV)
+            return DXGI_FORMAT_D32_FLOAT_S8X24_UINT;
+        return DXGI_FORMAT_R32G8X24_TYPELESS;
+    default:
+        HYP_LOG(RenderingBackend, Warning, "Unknown TextureFormat: {}", static_cast<uint32>(format));
+        return DXGI_FORMAT_UNKNOWN;
+    }
+}
+
+DXGI_FORMAT ToDXGIFormat(TextureFormat format, DX12ViewType getForViewType)
+{
+    switch (format)
+    {
+    case TextureFormat::R8:
+        return DXGI_FORMAT_R8_UNORM;
+    case TextureFormat::RG8:
+        return DXGI_FORMAT_R8G8_UNORM;
+    case TextureFormat::RGB8:
+        return DXGI_FORMAT_R8G8B8A8_UNORM;
+    case TextureFormat::RGBA8:
+        return DXGI_FORMAT_R8G8B8A8_UNORM;
     case TextureFormat::R8_SRGB:
         return DXGI_FORMAT_R8_UNORM;
     case TextureFormat::RG8_SRGB:

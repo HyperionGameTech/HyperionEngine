@@ -15,8 +15,12 @@
 #include <rendering/dx12/DX12Helpers.hpp>
 
 #include <rendering/Vertex.hpp>
+#include <rendering/Shared.hpp>
+#include <rendering/Shader.hpp>
 
 #include <rendering/util/ShaderCompiler.hpp>
+
+#include <Core/math/MathUtil.hpp>
 
 #include <DX12GraphicsPipeline.generated.inl>
 
@@ -63,116 +67,114 @@ static D3D12_DEPTH_STENCIL_DESC GetDefaultDepthStencilDesc()
     return desc;
 }
 
-static bool GetSemanticNameAndIndex(const VertexAttribute& attribute, const char*& outNameStr, int& outIndex)
+void DX12GraphicsPipeline::BuildVertexAttributes(
+    Array<D3D12_INPUT_ELEMENT_DESC>& outInputElementDescs,
+    Array<uint32>& outBindingStrides)
 {
-    outNameStr = nullptr;
-    outIndex = 0;
+    static constexpr DXGI_FORMAT SizeToFormat[] = {
+        DXGI_FORMAT_UNKNOWN,
+        DXGI_FORMAT_R32_FLOAT,
+        DXGI_FORMAT_R32G32_FLOAT,
+        DXGI_FORMAT_R32G32B32_FLOAT,
+        DXGI_FORMAT_R32G32B32A32_FLOAT
+    };
 
-    DXGI_FORMAT format = DXGI_FORMAT_UNKNOWN;
+    FlatMap<uint32, uint32> bindingSizes {};
 
-    if (std::strcmp(attribute.name, VertexAttribute::Position.name) == 0)
+    const uint8 mask = m_inputLayout.mask;
+    const uint32 bits = uint32(ByteUtil::BitCount(mask));
+    Assert(bits != 0);
+
+    outInputElementDescs.Resize(bits);
+
+    uint32 attrIndex = 0;
+
+    FOR_EACH_BIT(mask, bit)
     {
-        outNameStr = "POSITION";
-        return true;
-    }
-    else if (std::strcmp(attribute.name, VertexAttribute::Normal.name) == 0)
-    {
-        outNameStr = "NORMAL";
-        return true;
-    }
-    else if (std::strcmp(attribute.name, VertexAttribute::TexCoord0.name) == 0)
-    {
-        outNameStr = "TEXCOORD";
-        return true;
-    }
-    else if (std::strcmp(attribute.name, VertexAttribute::TexCoord1.name) == 0)
-    {
-        outNameStr = "TEXCOORD";
-        outIndex = 1;
-        return true;
-    }
-    else if (std::strcmp(attribute.name, VertexAttribute::Tangent.name) == 0)
-    {
-        outNameStr = "TANGENT";
-        return true;
-    }
-    else if (std::strcmp(attribute.name, VertexAttribute::Bitangent.name) == 0)
-    {
-        outNameStr = "BINORMAL";
-        return true;
-    }
-    else if (std::strcmp(attribute.name, VertexAttribute::BoneIndices.name) == 0)
-    {
-        outNameStr = "BLENDINDICES";
-        return true;
-    }
-    else if (std::strcmp(attribute.name, VertexAttribute::BoneWeights.name) == 0)
-    {
-        outNameStr = "BLENDWEIGHT";
-        return true;
-    }
+        VertexType vertexType = VertexType(1 << bit);
 
-    return false;
-}
+        const uint32 binding = 0;
 
-static DXGI_FORMAT VertexAttributeTypeToDXGIFormat(const VertexAttribute& attribute)
-{
-    if (std::strcmp(attribute.name, VertexAttribute::BoneIndices.name) == 0)
-    {
-        return DXGI_FORMAT_R32G32B32A32_UINT;
-    }
+        if (vertexType == VT_Skeletal)
+        {
+            outInputElementDescs.Resize(outInputElementDescs.Size() + 1);
 
-    switch (attribute.size)
-    {
-    case 16:
-        return DXGI_FORMAT_R32G32B32A32_FLOAT;
-    case 12:
-        return DXGI_FORMAT_R32G32B32_FLOAT;
-    case 8:
-        return DXGI_FORMAT_R32G32_FLOAT;
-    case 4:
-        return DXGI_FORMAT_R32_FLOAT;
-    default:
-        return DXGI_FORMAT_UNKNOWN;
-    }
-}
+            outInputElementDescs[attrIndex] = {
+                .SemanticName = "BLENDINDICES",
+                .SemanticIndex = 0,
+                .Format = DXGI_FORMAT_R32_UINT,
+                .InputSlot = binding,
+                .AlignedByteOffset = bindingSizes[binding],
+                .InputSlotClass = D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA,
+                .InstanceDataStepRate = 0
+            };
 
-static RendererResult BuildInputElementDesc(const VertexAttributeSet& vertexAttributes, Array<D3D12_INPUT_ELEMENT_DESC>& outInputElementDescs)
-{
-    outInputElementDescs.Clear();
+            bindingSizes[binding] += sizeof(uint32);
 
-    if (vertexAttributes == 0)
-        return HYP_MAKE_ERROR(RendererError, "VertexAttributes empty! Cannot create input element descs");
+            ++attrIndex;
 
-    const Array<const VertexAttribute*> attributes = vertexAttributes.BuildAttributes();
+            outInputElementDescs[attrIndex] = {
+                .SemanticName = "BLENDWEIGHT",
+                .SemanticIndex = 0,
+                .Format = DXGI_FORMAT_R32G32B32A32_FLOAT,
+                .InputSlot = binding,
+                .AlignedByteOffset = bindingSizes[binding],
+                .InputSlotClass = D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA,
+                .InstanceDataStepRate = 0
+            };
 
-    FlatMap<uint32, uint32> bindingOffsets;
+            bindingSizes[binding] += sizeof(float) * 4;
 
-    for (const VertexAttribute* attribute : attributes)
-    {
-        AssertDebug(attribute != nullptr);
+            ++attrIndex;
 
-        const char* semanticName = nullptr;
-        int semanticIndex = -1;
+            continue;
+        }
 
-        if (!GetSemanticNameAndIndex(*attribute, semanticName, semanticIndex))
-            return HYP_MAKE_ERROR(RendererError, "Failed to get semantic name/index for attribute type {}", 0, attribute->name);
+        size_t attributeSize = VertexUtils::PacketSize(vertexType);
+        AssertDebug(attributeSize <= 16);
 
-        AssertDebug(semanticName != nullptr && semanticIndex >= 0);
+        const char* semanticName;
+        switch (vertexType)
+        {
+        case VT_Position:
+            semanticName = "POSITION";
+            break;
+        case VT_Normal:
+            semanticName = "NORMAL";
+            break;
+        case VT_UV0:
+            semanticName = "TEXCOORD";
+            break;
+        case VT_UV1:
+            semanticName = "TEXCOORD";
+            break;
+        default:
+            semanticName = "TEXCOORD";
+            break;
+        }
 
-        D3D12_INPUT_ELEMENT_DESC& desc = outInputElementDescs.EmplaceBack();
-        desc.SemanticName = semanticName;
-        desc.SemanticIndex = UINT(semanticIndex);
-        desc.Format = VertexAttributeTypeToDXGIFormat(*attribute);
-        desc.InputSlot = attribute->binding;
-        desc.AlignedByteOffset = bindingOffsets[attribute->binding];
-        desc.InputSlotClass = D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA;
-        desc.InstanceDataStepRate = 0;
+        outInputElementDescs[attrIndex] = {
+            .SemanticName = semanticName,
+            .SemanticIndex = (vertexType == VT_UV1) ? 1u : 0u,
+            .Format = SizeToFormat[attributeSize / sizeof(float)],
+            .InputSlot = binding,
+            .AlignedByteOffset = bindingSizes[binding],
+            .InputSlotClass = D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA,
+            .InstanceDataStepRate = 0
+        };
 
-        bindingOffsets[attribute->binding] += attribute->size;
+        bindingSizes[binding] += attributeSize;
+
+        ++attrIndex;
     }
 
-    return {};
+    outBindingStrides.Clear();
+    outBindingStrides.Reserve(bindingSizes.Size());
+
+    for (const auto& it : bindingSizes)
+    {
+        outBindingStrides.PushBack(it.second);
+    }
 }
 
 #pragma region DX12GraphicsPipeline
@@ -190,11 +192,12 @@ DX12GraphicsPipeline::DX12GraphicsPipeline(const DX12ShaderInstanceRef& shaderIn
 
 DX12GraphicsPipeline::~DX12GraphicsPipeline()
 {
+    m_shaderInstance.Reset();
 }
 
 bool DX12GraphicsPipeline::IsCreated() const
 {
-    return false;
+    return m_pipelineState != nullptr && m_rootSignature != nullptr;
 }
 
 RendererResult DX12GraphicsPipeline::Create()
@@ -202,30 +205,79 @@ RendererResult DX12GraphicsPipeline::Create()
     return Rebuild();
 }
 
-void DX12GraphicsPipeline::Bind(CommandBuffer* cmd)
+void DX12GraphicsPipeline::Bind(DX12CommandBuffer* cmd)
 {
-    // @TODO
+    Vec2i viewportOffset = Vec2i::Zero();
+    Vec2u viewportExtent = m_framebufferDesc.extent;
+
+    Bind(cmd, viewportOffset, viewportExtent);
 }
 
-void DX12GraphicsPipeline::Bind(CommandBuffer* cmd, Vec2i viewportOffset, Vec2u viewportExtent)
+void DX12GraphicsPipeline::Bind(DX12CommandBuffer* commandBuffer, Vec2i viewportOffset, Vec2u viewportExtent)
 {
-    // @TODO
+    Assert(m_pipelineState != nullptr);
+
+    commandBuffer->m_boundGraphicsPipeline = this;
+
+    commandBuffer->GetCommandList()->SetPipelineState(m_pipelineState.Get());
+    commandBuffer->GetCommandList()->SetGraphicsRootSignature(m_rootSignature.Get());
+
+    if (viewportExtent != Vec2u::Zero())
+    {
+        Viewport viewport;
+        viewport.position = viewportOffset;
+        viewport.extent = viewportExtent;
+
+        UpdateViewport(commandBuffer, viewport);
+    }
+
+    if (m_stencilWrite || m_stencilFunction.HasValue())
+    {
+        commandBuffer->GetCommandList()->OMSetStencilRef(g_renderInterface->state.stencilReference);
+    }
 }
 
 void DX12GraphicsPipeline::SetPushConstants(const void* data, size_t size)
 {
-    // @TODO
+    HYP_NOT_IMPLEMENTED();
+}
+
+void DX12GraphicsPipeline::UpdateViewport(DX12CommandBuffer* commandBuffer, const Viewport& viewport)
+{
+    D3D12_VIEWPORT d3dViewport {};
+    d3dViewport.TopLeftX = float(viewport.position.x);
+    d3dViewport.TopLeftY = float(viewport.position.y);
+    d3dViewport.Width = float(viewport.extent.x);
+    d3dViewport.Height = float(viewport.extent.y);
+    d3dViewport.MinDepth = 0.0f;
+    d3dViewport.MaxDepth = 1.0f;
+
+    commandBuffer->GetCommandList()->RSSetViewports(1, &d3dViewport);
+
+    D3D12_RECT scissorRect {};
+    scissorRect.left = viewport.position.x;
+    scissorRect.top = viewport.position.y;
+    scissorRect.right = viewport.position.x + int32(viewport.extent.x);
+    scissorRect.bottom = viewport.position.y + int32(viewport.extent.y);
+
+    commandBuffer->GetCommandList()->RSSetScissorRects(1, &scissorRect);
+
+    m_viewport = viewport;
 }
 
 RendererResult DX12GraphicsPipeline::Rebuild()
 {
+    Array<D3D12_INPUT_ELEMENT_DESC> inputElementDescs;
+    Array<uint32> bindingStrides;
+
+    BuildVertexAttributes(inputElementDescs, bindingStrides);
+
     CheckResultOrReturn(BuildRootSignature());
 
     Assert(m_rootSignature != nullptr);
     Assert(m_shaderInstance != nullptr);
 
-    Array<D3D12_INPUT_ELEMENT_DESC> inputElementDescs;
-    CheckResultOrReturn(BuildInputElementDesc(m_vertexAttributes, inputElementDescs));
+    m_viewport = Viewport { m_framebufferDesc.extent, Vec2i::Zero() };
 
     D3D12_GRAPHICS_PIPELINE_STATE_DESC psoDesc {};
     psoDesc.pRootSignature = m_rootSignature.Get();
@@ -244,7 +296,7 @@ RendererResult DX12GraphicsPipeline::Rebuild()
     psoDesc.RasterizerState = GetDefaultRasterizerDesc(); 
     psoDesc.RasterizerState.CullMode = ToDX12CullMode(m_faceCullMode);
     psoDesc.RasterizerState.FillMode = (m_fillMode == FM_LINE) ? D3D12_FILL_MODE_WIREFRAME : D3D12_FILL_MODE_SOLID;
-    psoDesc.RasterizerState.FrontCounterClockwise = TRUE; 
+    psoDesc.RasterizerState.FrontCounterClockwise = TRUE;
 
     psoDesc.DepthStencilState = GetDefaultDepthStencilDesc();
     psoDesc.DepthStencilState.DepthEnable = m_depthTest;
@@ -351,7 +403,7 @@ RendererResult DX12GraphicsPipeline::BuildRootSignature()
 
     for (size_t setIndex = 0; setIndex < decl->elements.Size(); ++setIndex)
     {
-        const DescriptorSetDeclaration& setDecl = decl->elements[setIndex];
+        const ShaderInputSet& setDecl = decl->elements[setIndex];
 
         Array<D3D12_DESCRIPTOR_RANGE> viewRanges;
         Array<D3D12_DESCRIPTOR_RANGE> samplerRanges;

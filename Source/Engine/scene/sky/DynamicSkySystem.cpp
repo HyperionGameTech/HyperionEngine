@@ -38,6 +38,8 @@
 
 namespace Hyperion {
 
+extern uint32 GetFrameCounter();
+
 static constexpr Vec2u DefaultSkyCubemapDimensions = Vec2u { 128, 128 };
 static constexpr ClockTimer::TickUnit DynamicSkyUpdateTimer = ClockTimer::TickUnit(1.0f); // update every second
 

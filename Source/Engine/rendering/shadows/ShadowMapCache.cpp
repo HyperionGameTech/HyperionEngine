@@ -13,6 +13,8 @@
 #include <rendering/RenderInterface.hpp>
 #include <rendering/TextureViewCache.hpp>
 
+#include <rendering/util/DeletionQueue.hpp>
+
 #include <Core/containers/HashMap.hpp>
 
 #include <Core/threading/SharedMutex.hpp>

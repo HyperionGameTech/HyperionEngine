@@ -57,11 +57,13 @@ void DX12Frame::WriteCommandBuffer(CommandBuffer* commandBuffer)
         dx12CommandBuffer->End();
     }
 
-    DX12RenderInterface* renderInterface = g_renderInterface;
-    DX12QueueData& queueData = renderInterface->GetQueueData(D3D12_COMMAND_LIST_TYPE_DIRECT);
+    DX12RenderInterface& ri = *g_renderInterface;
+
+    const DX12QueueData* queueData = ri.GetQueueData(D3D12_COMMAND_LIST_TYPE_DIRECT);
+    Assert(queueData != nullptr);
 
     ID3D12CommandList* commandLists[] = { dx12CommandBuffer->GetCommandList() };
-    queueData.commandQueue->ExecuteCommandLists(ArraySize(commandLists), commandLists);
+    queueData->commandQueue->ExecuteCommandLists(ArraySize(commandLists), commandLists);
 }
 
 void DX12Frame::ResetTransientStates()

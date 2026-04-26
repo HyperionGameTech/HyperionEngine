@@ -18,6 +18,7 @@
 #include <rendering/dx12/DX12DescriptorSet.hpp>
 #include <rendering/dx12/DX12GraphicsPipeline.hpp>
 #include <rendering/dx12/DX12ShaderInstance.hpp>
+#include <rendering/dx12/DX12Helpers.hpp>
 
 #include <rendering/RenderHelpers.hpp>
 #include <rendering/RenderConfig.hpp>
@@ -620,7 +621,7 @@ void DX12RenderInterface::PopulateIndirectDrawCommandsBuffer(const DX12GpuBuffer
 
     if (outByteBuffer.Size() < requiredSize)
     {
-        outByteBuffer.Resize(requiredSize);
+        outByteBuffer.SetSize(requiredSize);
     }
 
     uint32 numIndices = 0;
@@ -657,20 +658,15 @@ bool DX12RenderInterface::IsSupportedFormat(TextureFormat format, ImageSupport s
 
     switch (supportType)
     {
-    case ImageSupport::Texture:
+    case ImageSupport::ShaderResource:
         return (support1 & D3D12_FORMAT_SUPPORT1_TEXTURE2D) != 0 ||
                (support1 & D3D12_FORMAT_SUPPORT1_TEXTURE3D) != 0 ||
                (support1 & D3D12_FORMAT_SUPPORT1_TEXTURECUBE) != 0;
-    case ImageSupport::RenderTarget:
-        return (support1 & D3D12_FORMAT_SUPPORT1_RENDER_TARGET) != 0;
-    case ImageSupport::DepthStencil:
-        return (support1 & D3D12_FORMAT_SUPPORT1_DEPTH_STENCIL) != 0;
-    case ImageSupport::Blendable:
-        return (support2 & D3D12_FORMAT_SUPPORT2_BLENDABLE) != 0;
-    case ImageSupport::Storage:
-        return (support1 & D3D12_FORMAT_SUPPORT1_TILE) != 0;
-    case ImageSupport::AccelerationStructure:
-        return (support2 & D3D12_FORMAT_SUPPORT2_RAY_TRACING) != 0;
+    case ImageSupport::Attachment:
+        return (support1 & D3D12_FORMAT_SUPPORT1_RENDER_TARGET) != 0 ||
+               (support1 & D3D12_FORMAT_SUPPORT1_DEPTH_STENCIL) != 0;
+    case ImageSupport::UnorderedAccess:
+        return (support1 & D3D12_FORMAT_SUPPORT1_TYPED_UNORDERED_ACCESS_VIEW) != 0;
     default:
         return false;
     }
@@ -686,7 +682,7 @@ TextureFormat DX12RenderInterface::FindSupportedFormat(Span<TextureFormat> possi
         }
     }
 
-    return TextureFormat::Invalid;
+    return InvalidTextureFormat;
 }
 
 UniquePtr<SingleTimeCommands> DX12RenderInterface::GetSingleTimeCommands()

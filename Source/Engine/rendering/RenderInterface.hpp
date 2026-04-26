@@ -19,6 +19,12 @@
 
 #include <engine/DeviceDetails.hpp>
 
+#ifdef HYP_VULKAN
+#include <rendering/vulkan/VulkanStructs.hpp>
+#elif defined(HYP_DX12)
+#include <rendering/dx12/DX12Structs.hpp>
+#endif
+
 namespace Hyperion {
 
 class Entity;

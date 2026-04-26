@@ -189,8 +189,6 @@ Result FontAtlas::RenderAtlasTextures(float mainAtlasScale, float maxScale, floa
             MathUtil::Ceil<float, int>(float(m_cellDimensions.y) * scale)
         };
 
-        HYP_LOG(Font, Verbose, "Rendering font atlas for pixel size {}", scaledExtent.y);
-
         UniquePtr<FontAtlasBitmap> atlasBitmap = MakeUnique<FontAtlasBitmap>(uint32(scaledExtent.x * SymbolColumns), uint32(scaledExtent.y * SymbolRows));
 
         for (size_t i = 0; i < m_symbolList.Size(); i++)

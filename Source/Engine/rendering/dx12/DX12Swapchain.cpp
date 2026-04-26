@@ -8,6 +8,7 @@
 
 #include <rendering/dx12/DX12Swapchain.hpp>
 #include <rendering/dx12/DX12RenderInterface.hpp>
+#include <rendering/dx12/DX12GpuImage.hpp>
 
 #include <DX12Swapchain.generated.inl>
 

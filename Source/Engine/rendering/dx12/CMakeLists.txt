@@ -15,12 +15,17 @@ set(CMAKE_CXX_STANDARD 20 CACHE STRING "C++ standard to be used")
 add_definitions(-DHYP_BUILD_LIBRARY=1)
 add_definitions(-DHYP_DX12=1)
 
+if(HYP_AFTERMATH)
+    add_definitions(-DHYP_AFTERMATH=1)
+endif()
+
 include_directories(
+    ${CMAKE_SOURCE_DIR}
+    ${THIRD_PARTY_INCLUDE_DIR}
     ${CMAKE_SOURCE_DIR}/Generated
-    ${CMAKE_SOURCE_DIR}/Source/Engine
-    ${CMAKE_SOURCE_DIR}/Core
-    ${CMAKE_SOURCE_DIR}/Source/Engine/rendering
-    ${CMAKE_SOURCE_DIR}/Source/Engine/rendering/dx12
+    ${CMAKE_SOURCE_DIR}/Engine
+    ${CMAKE_SOURCE_DIR}/Engine/rendering
+    ${CMAKE_SOURCE_DIR}/Engine/rendering/dx12
 )
 
 # Normalize sources/headers to absolute paths under the root
