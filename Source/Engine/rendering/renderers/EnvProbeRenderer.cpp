@@ -509,6 +509,9 @@ void ComputeEnvProbeSphericalHarmonics(
 
     GpuBufferRef readbackBuffer = g_renderInterface->MakeGpuBuffer(GpuBufferType::READBACK_BUFFER, shBuffer->Size());
     readbackBuffer->SetIsCpuAccessible(true);
+#if HYP_DEBUG_MODE
+    readbackBuffer->SetDebugName(NAME("ComputeEnvProbeSphericalHarmonics_ReadbackBuffer"));
+#endif // HYP_DEBUG_MODE
     CheckResult(readbackBuffer->Create());
     
     // Copy to readback buffer
@@ -577,6 +580,7 @@ void ComputeEnvProbeSphericalHarmonics(
     ReadbackSphericalHarmonicsPayload* payload = new ReadbackSphericalHarmonicsPayload;
     payload->envProbe = MakeStrongRef(&envProbe);
     payload->shBuffer = std::move(shBuffer);
+    payload->readbackBuffer = std::move(readbackBuffer);
     payload->shTilesBuffers = std::move(shTilesBuffers);
     payload->uniformBuffers = uniformBuffers;
 

@@ -112,7 +112,21 @@ RendererResult DX12GpuImage::Create(ResourceState initialState)
     resourceDesc.Height = extent.y;
     resourceDesc.DepthOrArraySize = extent.z;
     resourceDesc.MipLevels = m_textureDesc.HasMipMaps() ? m_textureDesc.NumMips() : 1;
-    resourceDesc.Format = ToDXGIFormat(m_textureDesc.format, isAttachmentTexture ? DX12ViewType::RTV_DSV : DX12ViewType::SRV_UAV);
+    
+    // For depth textures that will be sampled, use TYPELESS format for the resource
+    // Views will use the appropriate typed format (D16_UNORM for DSV, R16_UNORM for SRV)
+    DX12ViewType resourceFormatType = DX12ViewType::SRV_UAV;
+    if (isDepthStencil && (m_textureDesc.imageUsage & IU_SAMPLED))
+    {
+        resourceFormatType = DX12ViewType::None;  // Returns TYPELESS format
+    }
+    else if (isAttachmentTexture)
+    {
+        resourceFormatType = DX12ViewType::RTV_DSV;
+    }
+    
+    resourceDesc.Format = ToDXGIFormat(m_textureDesc.format, resourceFormatType);
+    
     resourceDesc.SampleDesc.Count = 1;
     resourceDesc.SampleDesc.Quality = 0;
     resourceDesc.Layout = D3D12_TEXTURE_LAYOUT_UNKNOWN;
@@ -170,6 +184,7 @@ RendererResult DX12GpuImage::Create(ResourceState initialState)
         clearValue.DepthStencil.Depth = 1.0f;
         clearValue.DepthStencil.Stencil = 0;
 
+        // Clear value format must match the typed format for depth/stencil views
         switch (m_textureDesc.format)
         {
         case TextureFormat::D16:
@@ -351,8 +366,20 @@ void DX12GpuImage::InsertBarrier(
     onlyDepth &= hasStencil;
     onlyStencil &= hasStencil;
 
+    // Fix: If this is a depth/stencil image and we're trying to transition to RENDER_TARGET, use DEPTH_STENCIL instead
+    if (isDepthStencil && newState == RS_RENDER_TARGET)
+    {
+        newState = RS_DEPTH_STENCIL;
+    }
+
     D3D12_RESOURCE_STATES stateBefore = ToDX12ResourceStates(m_resourceState);
     D3D12_RESOURCE_STATES stateAfter = ToDX12ResourceStates(newState);
+
+    // Skip redundant barriers
+    if (stateBefore == stateAfter)
+    {
+        return;
+    }
 
     uint32 subResourceIndex = D3D12CalcSubresource(
         subResource.baseMipLevel,

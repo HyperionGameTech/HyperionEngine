@@ -82,18 +82,26 @@ DXGI_FORMAT ToDXGIFormat(TextureFormat format, DX12ViewType getForViewType)
         if (getForViewType == DX12ViewType::RTV_DSV)
             return DXGI_FORMAT_D16_UNORM;
 
+        if (getForViewType == DX12ViewType::SRV_UAV)
+            return DXGI_FORMAT_R16_UNORM;
+
         return DXGI_FORMAT_R16_TYPELESS;
     case TextureFormat::D24_S8:
+        if (getForViewType == DX12ViewType::SRV_UAV)
+            return DXGI_FORMAT_R24_UNORM_X8_TYPELESS;
+
         if (getForViewType == DX12ViewType::RTV_DSV)
             return DXGI_FORMAT_D24_UNORM_S8_UINT;
-
-        return DXGI_FORMAT_R24_UNORM_X8_TYPELESS;
+        
+        return DXGI_FORMAT_R24G8_TYPELESS;
     case TextureFormat::D32F:
-        if (getForViewType == DX12ViewType::SRV_UAV
-            || getForViewType == DX12ViewType::RTV_DSV)
+        if (getForViewType == DX12ViewType::SRV_UAV)
+            return DXGI_FORMAT_R32_FLOAT;
+
+        if (getForViewType == DX12ViewType::RTV_DSV)
             return DXGI_FORMAT_D32_FLOAT;
 
-        return DXGI_FORMAT_R32_FLOAT;
+        return DXGI_FORMAT_R32_TYPELESS;
     case TextureFormat::D32F_S8:
         if (getForViewType == DX12ViewType::SRV_UAV)
             return DXGI_FORMAT_R32_FLOAT_X8X24_TYPELESS;

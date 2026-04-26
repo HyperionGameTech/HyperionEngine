@@ -558,9 +558,9 @@ public:
           m_dstOffset(0),
           m_count(count)
     {
-        AssertDebug(srcBuffer && dstBuffer);
-        AssertDebug(count <= srcBuffer->Size(), "Source buffer copy range out of bounds");
-        AssertDebug(count <= dstBuffer->Size(), "Destination buffer copy range out of bounds");
+        AssertDebug(m_srcBuffer && m_dstBuffer);
+        AssertDebug(m_srcOffset + m_count <= m_srcBuffer->Size(), "Source buffer copy range out of bounds: {}", m_srcOffset + m_count);
+        AssertDebug(m_dstOffset + m_count <= m_dstBuffer->Size(), "Destination buffer copy range out of bounds {}", m_dstOffset + m_count);
     }
 
     CopyBuffer(GpuBuffer* srcBuffer, GpuBuffer* dstBuffer, uint32 srcOffset, uint32 dstOffset, uint32 count)
@@ -570,18 +570,15 @@ public:
           m_dstOffset(dstOffset),
           m_count(count)
     {
-        AssertDebug(srcBuffer && dstBuffer);
-        AssertDebug(srcOffset + count <= srcBuffer->Size(), "Source buffer copy range out of bounds");
-        AssertDebug(dstOffset + count <= dstBuffer->Size(), "Destination buffer copy range out of bounds");
+        AssertDebug(m_srcBuffer && m_dstBuffer);
+        AssertDebug(m_srcOffset + m_count <= m_srcBuffer->Size(), "Source buffer copy range out of bounds: {}", m_srcOffset + m_count);
+        AssertDebug(m_dstOffset + m_count <= m_dstBuffer->Size(), "Destination buffer copy range out of bounds {}", m_dstOffset + m_count);
+
     }
 
     static inline void InvokeStatic(CmdBase* cmd, CommandBuffer* commandBuffer)
     {
         CopyBuffer* cmdCasted = static_cast<CopyBuffer*>(cmd);
-
-        AssertDebug(cmdCasted->m_srcBuffer && cmdCasted->m_dstBuffer);
-        AssertDebug(cmdCasted->m_srcOffset + cmdCasted->m_count <= cmdCasted->m_srcBuffer->Size(), "Source buffer copy range out of bounds: {}", cmdCasted->m_srcOffset + cmdCasted->m_count);
-        AssertDebug(cmdCasted->m_dstOffset + cmdCasted->m_count <= cmdCasted->m_dstBuffer->Size(), "Destination buffer copy range out of bounds {}", cmdCasted->m_dstOffset + cmdCasted->m_count);
 
         cmdCasted->m_dstBuffer->CopyFrom(
             commandBuffer,

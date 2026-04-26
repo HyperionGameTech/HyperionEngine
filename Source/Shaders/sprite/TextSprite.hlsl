@@ -93,7 +93,7 @@ struct PSOutput
 #ifdef HYP_FEATURES_BINDLESS_TEXTURES
 DECLARE_SRV(BindlessResources0, Textures) Texture2D<float4> fontTextures[];
 #else
-DECLARE_SRV(TextSprite, FontTexture) Texture2D<float4> FontTexture;
+//DECLARE_SRV(TextSprite, FontTexture) Texture2D<float4> FontTexture;
 #endif
 
 PSOutput PSMain(PSInput input)
@@ -114,7 +114,7 @@ PSOutput PSMain(PSInput input)
         texColor = float4(1.0f, 0.0f, 1.0f, 1.0f); // jsut so we can see when something is wrong with the texture index
     }
 #else
-    float4 texColor = FontTexture.Sample(sampler_linear, input.texcoord0);
+    float4 texColor = (float4)0.0;//FontTexture.Sample(sampler_linear, input.texcoord0);
 #endif
 
     float4 color = input.color;

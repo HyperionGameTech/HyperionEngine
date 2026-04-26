@@ -280,12 +280,15 @@ RendererResult DX12GraphicsPipeline::Rebuild()
 
     m_viewport = Viewport { m_framebufferDesc.extent, Vec2i::Zero() };
 
+    const bool enableBlend = m_blendFunction != BlendFunction::None();
+
     D3D12_GRAPHICS_PIPELINE_STATE_DESC psoDesc {};
     psoDesc.pRootSignature = m_rootSignature.Get();
     psoDesc.PrimitiveTopologyType = ToDX12TopologyType(m_topology);
 
     psoDesc.SampleDesc.Count = 1;
     psoDesc.SampleDesc.Quality = 0;
+    psoDesc.SampleMask = UINT_MAX;
 
     DX12ShaderInstance* dxShader = static_cast<DX12ShaderInstance*>(m_shaderInstance.Get());
     psoDesc.VS = dxShader->GetShaderBytecode(ShaderModuleType::Vertex);
@@ -323,7 +326,7 @@ RendererResult DX12GraphicsPipeline::Rebuild()
     psoDesc.DSVFormat = DXGI_FORMAT_UNKNOWN;
 
     psoDesc.BlendState.AlphaToCoverageEnable = FALSE;
-    psoDesc.BlendState.IndependentBlendEnable = FALSE;
+    psoDesc.BlendState.IndependentBlendEnable = enableBlend;
 
     if (m_framebufferDesc.numAttachments > 0)
     {
@@ -347,21 +350,24 @@ RendererResult DX12GraphicsPipeline::Rebuild()
             if (psoDesc.NumRenderTargets >= 8)
                 return HYP_MAKE_ERROR(RendererError, "To many render targets for pipeline {}!", 0, GetDebugName());
 
-            const bool blendEnabled = (m_blendFunction != BlendFunction::None());
 
             const uint32 rtIndex = psoDesc.NumRenderTargets++;
 
             D3D12_RENDER_TARGET_BLEND_DESC& rtBlend = psoDesc.BlendState.RenderTarget[rtIndex];
             rtBlend = {};
-            rtBlend.BlendEnable = blendEnabled;
-            rtBlend.SrcBlend = ToDX12Blend(m_blendFunction.GetSrcColor());
-            rtBlend.DestBlend = ToDX12Blend(m_blendFunction.GetDstColor());
-            rtBlend.BlendOp = D3D12_BLEND_OP_ADD;
-            rtBlend.SrcBlendAlpha = ToDX12Blend(m_blendFunction.GetSrcAlpha());
-            rtBlend.DestBlendAlpha = ToDX12Blend(m_blendFunction.GetDstAlpha());
-            rtBlend.BlendOpAlpha = D3D12_BLEND_OP_ADD;
-            rtBlend.LogicOpEnable = FALSE;
-            rtBlend.RenderTargetWriteMask = D3D12_COLOR_WRITE_ENABLE_ALL;
+
+            if (enableBlend && TextureUtils::FormatSupportsBlending(attachmentDesc.format))
+            {
+                rtBlend.BlendEnable = TRUE;
+                rtBlend.SrcBlend = ToDX12Blend(m_blendFunction.GetSrcColor());
+                rtBlend.DestBlend = ToDX12Blend(m_blendFunction.GetDstColor());
+                rtBlend.BlendOp = D3D12_BLEND_OP_ADD;
+                rtBlend.SrcBlendAlpha = ToDX12Blend(m_blendFunction.GetSrcAlpha());
+                rtBlend.DestBlendAlpha = ToDX12Blend(m_blendFunction.GetDstAlpha());
+                rtBlend.BlendOpAlpha = D3D12_BLEND_OP_ADD;
+                rtBlend.LogicOpEnable = FALSE;
+                rtBlend.RenderTargetWriteMask = D3D12_COLOR_WRITE_ENABLE_ALL;
+            }
 
             psoDesc.RTVFormats[rtIndex] = ToDXGIFormat(attachmentDesc.format, DX12ViewType::RTV_DSV);
         }
