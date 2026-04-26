@@ -137,7 +137,7 @@ inline constexpr const AssetBucket& GetAssetBucketByName(StringHash nameHash)
     return AssetBuckets::None;
 }
 
-inline static const char* GetAssetBucketName(const uint32 bucketIndex)
+inline const char* GetAssetBucketName(const uint32 bucketIndex)
 {
     static constexpr const char* s_names[MaxAssetBuckets] = {
         nullptr, // 0 = None

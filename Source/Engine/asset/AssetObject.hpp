@@ -33,6 +33,7 @@ HYP_DECLARE_LOG_CHANNEL(Assets);
 enum class ChunkId : uint32;
 
 class AssetObject;
+class AssetRegistry;
 class ByteWriter;
 class BlobStorage;
 

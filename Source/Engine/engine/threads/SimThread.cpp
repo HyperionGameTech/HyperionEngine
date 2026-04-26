@@ -11,16 +11,14 @@
 #include <engine/EngineGlobals.hpp>
 #include <engine/EngineDriver.hpp>
 #include <engine/EngineStats.hpp>
+#include <engine/Game.hpp>
 
 #include <Core/threading/Threads.hpp>
+#include <Core/threading/ThreadSignal.hpp>
 
 #include <Core/math/MathUtil.hpp>
 
 #include <Core/cli/CommandLine.hpp>
-
-#include <engine/Game.hpp>
-#include <engine/EngineDriver.hpp>
-#include <engine/EngineGlobals.hpp>
 
 #include <system/AppContext.hpp>
 
@@ -55,6 +53,8 @@ extern const CommandLineArguments& GetCommandLineArguments();
 } // namespace CoreApi
 
 extern void DestroyDetachedScenes();
+
+extern ThreadSignal g_renderInitSignal;
 
 struct LaunchGameAsync
 {
@@ -211,10 +211,14 @@ void SimThread::operator()()
 #if HYP_SCRIPT
     HypScript::GetInstance().Initialize();
 #endif
+    
+    // Wait for render thread to be ready
+    g_renderInitSignal.Wait();
 
     // create fallback world
     Handle<World> defaultWorld = MakeHandle<World>(NAME("DefaultWorld"), WorldFlags::NONE);
     InitObject(defaultWorld);
+    
     g_engineDriver->SetDefaultWorld(defaultWorld);
 
     // Handle -SimulateOnMainThread

@@ -34,7 +34,7 @@ public:
     {
         m_debugName = name;
     }
-#endif
+#endif // HYP_DEBUG_MODE
 
     HYP_FORCE_INLINE const GpuImageRef& GetImage() const
     {

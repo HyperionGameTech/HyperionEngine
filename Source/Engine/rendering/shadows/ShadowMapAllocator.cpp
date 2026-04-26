@@ -16,6 +16,8 @@
 #include <rendering/Frame.hpp>
 #include <rendering/Texture.hpp>
 
+#include <rendering/CommandRecorder.hpp>
+
 #include <rendering/TextureViewCache.hpp>
 
 #include <rendering/util/DeletionQueue.hpp>
@@ -72,6 +74,7 @@ ShadowMapAllocator::~ShadowMapAllocator()
 {
     EnqueueDeletion(std::move(m_atlasTextureArray));
     EnqueueDeletion(std::move(m_pointLightTextureArray));
+    EnqueueDeletion(std::move(m_clearTexture));
 }
 
 void ShadowMapAllocator::Initialize()
@@ -103,6 +106,29 @@ void ShadowMapAllocator::Initialize()
     
     m_pointLightTextureArray->SetName(NAME("PointLightShadowMapImage"));
     CheckResult(m_pointLightTextureArray->Create());
+
+    m_clearTexture = MakeHandle<Texture>(TextureDesc {
+        TextureType::Texture2DArray,
+        TextureFormat::D16,
+        Vec3u { m_atlasDimensions, 1 },
+        TFM_NEAREST,
+        TFM_NEAREST,
+        TWM_CLAMP_TO_EDGE,
+        1,
+        IU_SAMPLED | IU_ATTACHMENT
+    });
+    m_clearTexture->SetName(NAME("ShadowMapClearTexture"));
+    CheckResult(m_clearTexture->Create());
+
+    { // Clear that clear texture
+        CommandRecorder& cr = g_renderInterface->commandRecorderAllocator.GetCommandRecorder();
+
+        cr << InsertBarrier(m_clearTexture->GetGpuImage(), RS_COPY_DST);
+        cr << FillImage(m_clearTexture->GetGpuImage(), 1.0f, ImageSubResource {});
+        cr << InsertBarrier(m_clearTexture->GetGpuImage(), RS_COPY_SRC);
+
+        cr.Done();
+    }
 }
 
 void ShadowMapAllocator::Shutdown()
@@ -228,6 +254,41 @@ bool ShadowMapAllocator::FreeShadowMap(ShadowMap* shadowMap)
             if (!result)
             {
                 HYP_LOG(Rendering, Error, "Failed to remove shadow map from atlas - not found! (atlas index: {})", atlasElement.layerIndex);
+            }
+            else
+            {
+                Frame* frame = g_renderInterface->GetCurrentFrame();
+                if (frame != nullptr)
+                {
+                    ImageSubResource srcSubResource {};
+                    srcSubResource.baseArrayLayer = 0;
+                    srcSubResource.numLayers = 1;
+                    srcSubResource.baseMipLevel = 0;
+                    srcSubResource.numLevels = 1;
+
+                    ImageSubResource dstSubResource {};
+                    dstSubResource.baseArrayLayer = atlasElement.layerIndex;
+                    dstSubResource.numLayers = 1;
+                    dstSubResource.baseMipLevel = 0;
+                    dstSubResource.numLevels = 1;
+
+                    Vec3u srcOffset = Vec3u(atlasElement.offsetCoords, 0);
+                    Vec3u extent = Vec3u(atlasElement.dimensions, 1);
+
+                    frame->cr << InsertBarrier(
+                        m_atlasTextureArray->GetGpuImage(),
+                        RS_COPY_DST,
+                        dstSubResource);
+
+                    frame->cr << CopyImage(
+                        m_clearTexture->GetGpuImage(),
+                        m_atlasTextureArray->GetGpuImage(),
+                        srcOffset,
+                        Vec3u::Zero(),
+                        extent,
+                        srcSubResource,
+                        dstSubResource);
+                }
             }
         }
     }

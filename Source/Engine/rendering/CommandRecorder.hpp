@@ -562,6 +562,57 @@ private:
     ImageSubResource dstSubResource;
 };
 
+class FillImage final : public CmdBase
+{
+public:
+    FillImage(GpuImage* image, float value)
+        : m_image(image),
+          m_value(value),
+          m_offset(Vec3u::Zero()),
+          m_extent(image ? image->GetTextureDesc().extent : Vec3u::One())
+    {
+    }
+
+    FillImage(GpuImage* image, float value, const ImageSubResource& subResource)
+        : m_image(image),
+          m_value(value),
+          m_subResource(subResource),
+          m_offset(Vec3u::Zero()),
+          m_extent(image ? image->GetTextureDesc().extent : Vec3u::One())
+    {
+    }
+
+    FillImage(GpuImage* image, float value, const ImageSubResource& subResource, const Vec3u& offset, const Vec3u& extent)
+        : m_image(image),
+          m_value(value),
+          m_subResource(subResource),
+          m_offset(offset),
+          m_extent(extent)
+    {
+    }
+
+    static inline void InvokeStatic(CmdBase* cmd, CommandBuffer* commandBuffer)
+    {
+        FillImage* cmdCasted = static_cast<FillImage*>(cmd);
+
+        cmdCasted->m_image->Fill(
+            commandBuffer,
+            cmdCasted->m_value,
+            cmdCasted->m_subResource,
+            cmdCasted->m_offset,
+            cmdCasted->m_extent);
+
+        static_assert(std::is_trivially_destructible_v<FillImage>);
+    }
+
+private:
+    GpuImage* m_image;
+    float m_value;
+    ImageSubResource m_subResource;
+    Vec3u m_offset;
+    Vec3u m_extent;
+};
+
 class CopyImageToBuffer final : public CmdBase
 {
 public:

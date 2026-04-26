@@ -93,6 +93,13 @@ public:
         VulkanGpuBuffer* dstBuffer,
         const ImageSubResource& subResource) const override;
 
+    void Fill(
+        VulkanCommandBuffer* commandBuffer,
+        float value,
+        const ImageSubResource& subResource,
+        const Vec3u& offset = Vec3u::Zero(),
+        const Vec3u& extent = Vec3u::One()) override;
+
     void CopyFrom(
         VulkanCommandBuffer* commandBuffer,
         const VulkanGpuImage* srcImage,

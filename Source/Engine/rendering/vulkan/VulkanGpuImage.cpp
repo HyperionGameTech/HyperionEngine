@@ -976,8 +976,6 @@ void VulkanGpuImage::Blit(
                 ToVkFilter(GetMinFilterMode()));
         }
     }
-
-    return;
 }
 
 void VulkanGpuImage::CopyFromBuffer(
@@ -1143,6 +1141,66 @@ void VulkanGpuImage::CopyToBuffer(
         }
 
         bufferOffset += mipByteSize;
+    }
+}
+
+void VulkanGpuImage::Fill(
+    VulkanCommandBuffer* commandBuffer,
+    float value,
+    const ImageSubResource& subResource,
+    const Vec3u& offset,
+    const Vec3u& extent)
+{
+    const bool isDepthStencil = m_textureDesc.IsDepthStencil();
+
+    VkImageAspectFlags aspectFlagBits = 0;
+
+    if (isDepthStencil)
+    {
+        aspectFlagBits |= VK_IMAGE_ASPECT_DEPTH_BIT;
+
+        if (TextureUtils::HasStencilComponent(m_textureDesc.format))
+        {
+            aspectFlagBits |= VK_IMAGE_ASPECT_STENCIL_BIT;
+        }
+    }
+    else
+    {
+        aspectFlagBits |= VK_IMAGE_ASPECT_COLOR_BIT;
+    }
+
+    VkImageSubresourceRange subresourceRange {};
+    subresourceRange.aspectMask = aspectFlagBits;
+    subresourceRange.baseMipLevel = subResource.baseMipLevel;
+    subresourceRange.levelCount = subResource.numLevels != UINT8_MAX ? subResource.numLevels : 1;
+    subresourceRange.baseArrayLayer = subResource.baseArrayLayer;
+    subresourceRange.layerCount = subResource.numLayers != UINT16_MAX ? subResource.numLayers : 1;
+
+    InsertBarrier(commandBuffer, subResource, RS_COPY_DST, ShaderModuleType::None);
+
+    if (isDepthStencil)
+    {
+        VkClearDepthStencilValue clearValue = { .depth = value, .stencil = 0 };
+
+        vkCmdClearDepthStencilImage(
+            commandBuffer->GetVulkanHandle(),
+            m_handle,
+            VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
+            &clearValue,
+            1,
+            &subresourceRange);
+    }
+    else
+    {
+        VkClearColorValue clearValue = { .float32 = { value, value, value, value } };
+
+        vkCmdClearColorImage(
+            commandBuffer->GetVulkanHandle(),
+            m_handle,
+            VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
+            &clearValue,
+            1,
+            &subresourceRange);
     }
 }
 

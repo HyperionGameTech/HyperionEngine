@@ -57,7 +57,7 @@ static RendererResult AcquireNextImage(
         VK_NULL_HANDLE,
         index);
 
-    if (pOutNeedsRecreate != nullptr && (vkResult == VK_ERROR_OUT_OF_DATE_KHR || vkResult == VK_SUBOPTIMAL_KHR))
+    if (pOutNeedsRecreate != nullptr && vkResult == VK_ERROR_OUT_OF_DATE_KHR)
     {
         *pOutNeedsRecreate = true;
     }
@@ -161,7 +161,7 @@ void VulkanSwapchain::PresentFrame(VulkanFrame* frame, VulkanDeviceQueue* queue)
 
     VkResult result = vkQueuePresentKHR(queue->queue, &presentInfo);
 
-    if (result == VK_ERROR_OUT_OF_DATE_KHR || result == VK_SUBOPTIMAL_KHR)
+    if (result == VK_ERROR_OUT_OF_DATE_KHR)
     {
         HYP_LOG(RenderingBackend, Verbose, "Got out of date swapchain present result ({}), calling Recreate()", result);
 

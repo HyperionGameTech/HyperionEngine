@@ -171,6 +171,7 @@ private:
 
     Handle<Texture> m_atlasTextureArray;
     Handle<Texture> m_pointLightTextureArray;
+    Handle<Texture> m_clearTexture;
 
     IdGenerator m_pointLightShadowMapIdGenerator;
 };

@@ -214,6 +214,13 @@ public:
         GpuBuffer* dstBuffer,
         const ImageSubResource& subResource) const = 0;
 
+    virtual void Fill(
+        CommandBuffer* commandBuffer,
+        float value,
+        const ImageSubResource& subResource,
+        const Vec3u& offset = Vec3u::Zero(),
+        const Vec3u& extent = Vec3u::One()) = 0;
+
     virtual void CopyFrom(
         CommandBuffer* commandBuffer,
         const GpuImage* srcImage,
