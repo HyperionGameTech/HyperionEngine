@@ -21,6 +21,11 @@
 #include <rendering/RayTracingPipeline.hpp>
 #include <rendering/AccelerationStructure.hpp>
 
+#include <rendering/GpuImageView.hpp>
+#include <rendering/GpuBuffer.hpp>
+#include <rendering/SamplerCache.hpp>
+#include <rendering/Sampler.hpp>
+
 #include <rendering/util/ShaderCompiler.hpp>
 
 #include <scene/View.hpp>
@@ -127,29 +132,255 @@ void DrawIndexedIndirect::InvokeStatic(CmdBase* cmd, CommandBuffer* commandBuffe
 
 #pragma region Blit
 
+static void BlitImages(
+    GpuImage* srcImage,
+    GpuImage* dstImage,
+    const Rect<uint32>& srcRect,
+    const Rect<uint32>& dstRect,
+    const ImageSubResource& srcSubResource,
+    const ImageSubResource& dstSubResource,
+    CommandBuffer* commandBuffer)
+{
+    if (!srcImage || !dstImage || !srcImage->IsCreated() || !dstImage->IsCreated())
+    {
+        HYP_LOG(RenderingBackend, Warning, "BlitImages: source or destination image is null or not created");
+
+        return;
+    }
+
+    const TextureDesc& srcDesc = srcImage->GetTextureDesc();
+    const TextureDesc& dstDesc = dstImage->GetTextureDesc();
+
+    const uint8 srcMipCount = MathUtil::Min(srcSubResource.numLevels, uint8(srcDesc.NumMips() - srcSubResource.baseMipLevel));
+    const uint16 srcLayerCount = MathUtil::Min(srcSubResource.numLayers, uint16(srcDesc.NumArrayLayers() - srcSubResource.baseArrayLayer));
+
+    const uint8 dstMipCount = MathUtil::Min(dstSubResource.numLevels, uint8(dstDesc.NumMips() - dstSubResource.baseMipLevel));
+    const uint16 dstLayerCount = MathUtil::Min(dstSubResource.numLayers, uint16(dstDesc.NumArrayLayers() - dstSubResource.baseArrayLayer));
+
+    const uint8 mipIterCount = MathUtil::Min(srcMipCount, dstMipCount);
+    const uint16 layerIterCount = MathUtil::Min(srcLayerCount, dstLayerCount);
+
+    if (mipIterCount == 0 || layerIterCount == 0)
+    {
+        return;
+    }
+
+    const uint32 dstW = dstRect.x1 - dstRect.x0;
+    const uint32 dstH = dstRect.y1 - dstRect.y0;
+
+    if (dstW == 0 || dstH == 0)
+    {
+        return;
+    }
+
+    /* Create a temporary image with IU_STORAGE so we can write to it via compute.
+       The temp image has the destination format and is sized to the destination rect.
+       After the compute blit, we issue a CopyFrom (1:1, no scaling) to the real destination. */
+    GpuImageRef tempImage = g_renderInterface->MakeImage(TextureDesc {
+        TextureType::Texture2D,
+        dstDesc.format,
+        Vec3u { dstW, dstH, 1 },
+        TFM_LINEAR,
+        TFM_LINEAR,
+        TWM_CLAMP_TO_EDGE,
+        1, // numLayers
+        IU_SAMPLED | IU_STORAGE
+    });
+    tempImage->Create();
+
+    /* Set the shader */
+    RenderInterface::State& state = g_renderInterface->state;
+    state.attributes.SetShaderName(NAME("BlitCompute"));
+    state.attributes.SetShaderProperties(ShaderPropertySet {});
+
+    /* Get a linear sampler */
+    Sampler* linearSampler = g_renderInterface->samplerCache->GetOrCreate(
+        SamplerDesc { TFM_LINEAR, TFM_LINEAR, TWM_CLAMP_TO_EDGE });
+
+    for (uint16 layerIndex = 0; layerIndex < layerIterCount; layerIndex++)
+    {
+        for (uint8 mipOffset = 0; mipOffset < mipIterCount; mipOffset++)
+        {
+            const uint8 srcMip = uint8(srcSubResource.baseMipLevel + mipOffset);
+            const uint8 dstMip = uint8(dstSubResource.baseMipLevel + mipOffset);
+            const uint16 srcLayer = uint16(srcSubResource.baseArrayLayer + layerIndex);
+            const uint16 dstLayer = uint16(dstSubResource.baseArrayLayer + layerIndex);
+
+            /* Create SRV view for the source subresource */
+            GpuImageViewRef srcView = g_renderInterface->MakeImageView(
+                MakeStrongRef(srcImage), srcMip, 1, srcLayer, 1);
+            srcView->Create();
+
+            /* Create UAV view for the temp image (single mip 0, layer 0) */
+            GpuImageViewRef tempView = g_renderInterface->MakeImageView(
+                tempImage, 0, 1, 0, 1);
+            tempView->Create();
+
+            /* Transition source to shader-readable state */
+            srcImage->InsertBarrier(
+                commandBuffer,
+                ImageSubResource { .baseMipLevel = srcMip, .numLevels = 1, .baseArrayLayer = srcLayer, .numLayers = 1 },
+                RS_SHADER_RESOURCE,
+                ShaderModuleType::None);
+
+            /* Transition temp to UAV state */
+            tempImage->InsertBarrier(
+                commandBuffer,
+                RS_UNORDERED_ACCESS,
+                ShaderModuleType::None);
+
+            /* Build uniform data — the dst rect for the compute shader
+               spans the full temp image (0,0 – dstW,dstH). */
+            struct BlitUniformData
+            {
+                uint32 srcRectMin[2];
+                uint32 srcRectMax[2];
+                uint32 dstRectMin[2];
+                uint32 dstRectMax[2];
+                uint32 srcDimensions[2];
+                uint32 srcMipLevel;
+                uint32 _padding;
+            } uniforms;
+
+            uniforms.srcRectMin[0] = srcRect.x0;
+            uniforms.srcRectMin[1] = srcRect.y0;
+            uniforms.srcRectMax[0] = srcRect.x1;
+            uniforms.srcRectMax[1] = srcRect.y1;
+            uniforms.dstRectMin[0] = 0;
+            uniforms.dstRectMin[1] = 0;
+            uniforms.dstRectMax[0] = dstW;
+            uniforms.dstRectMax[1] = dstH;
+
+            const Vec3u srcExtent = srcDesc.GetMipExtent(srcMip);
+            uniforms.srcDimensions[0] = srcExtent.x;
+            uniforms.srcDimensions[1] = srcExtent.y;
+            uniforms.srcMipLevel = srcMip;
+
+            /* Create and fill uniform buffer */
+            GpuBufferRef uniformBuffer = g_renderInterface->MakeGpuBuffer(
+                GpuBufferType::CONSTANT_BUFFER, sizeof(BlitUniformData));
+            uniformBuffer->Create();
+            uniformBuffer->Copy(sizeof(BlitUniformData), &uniforms);
+            uniformBuffer->Flush(0, sizeof(BlitUniformData));
+
+            /* Bind SRV input */
+            ShaderUniform& inputUniform = state.shaderUniforms[0];
+            inputUniform = ShaderUniform("InputTexture"_sh, srcView.Get());
+            state.dirtyUniforms |= 1u << 0;
+
+            /* Bind UAV output (temp image) */
+            ShaderUniform& outputUniform = state.shaderUniforms[1];
+            outputUniform = ShaderUniform("OutputTexture"_sh, tempView.Get());
+            state.dirtyUniforms |= 1u << 1;
+
+            /* Bind uniform buffer */
+            ShaderUniform& ubUniform = state.shaderUniforms[2];
+            ubUniform = ShaderUniform("UniformBuffer"_sh, uniformBuffer.Get());
+            state.dirtyUniforms |= 1u << 2;
+
+            /* Bind sampler */
+            ShaderUniform& samplerUniform = state.shaderUniforms[3];
+            samplerUniform = ShaderUniform("LinearSampler"_sh, linearSampler);
+            state.dirtyUniforms |= 1u << 3;
+
+            /* Commit compute pipeline and dispatch */
+            g_renderInterface->CommitPipelineState(PSO_Compute, commandBuffer);
+
+            ComputePipeline* pipeline = state.boundComputePipeline;
+            AssertDebug(pipeline != nullptr);
+
+            pipeline->Dispatch(commandBuffer, {
+                (dstW + 7) / 8,
+                (dstH + 7) / 8,
+                1
+            });
+
+            /* Transition temp to copy-source */
+            tempImage->InsertBarrier(
+                commandBuffer,
+                RS_COPY_SRC,
+                ShaderModuleType::None);
+
+            /* Transition destination subresource to copy-dest */
+            dstImage->InsertBarrier(
+                commandBuffer,
+                ImageSubResource { .baseMipLevel = dstMip, .numLevels = 1, .baseArrayLayer = dstLayer, .numLayers = 1 },
+                RS_COPY_DST,
+                ShaderModuleType::None);
+
+            /* Copy from temp to the actual destination (1:1, same format & size) */
+            dstImage->CopyFrom(
+                commandBuffer,
+                tempImage.Get(),
+                Vec3u::Zero(),
+                Vec3u { dstRect.x0, dstRect.y0, 0 },
+                Vec3u { dstW, dstH, 1 },
+                ImageSubResource { .baseMipLevel = 0, .numLevels = 1, .baseArrayLayer = 0, .numLayers = 1 },
+                ImageSubResource { .baseMipLevel = dstMip, .numLevels = 1, .baseArrayLayer = dstLayer, .numLayers = 1 });
+
+            /* Transition destination back to shader-readable */
+            dstImage->InsertBarrier(
+                commandBuffer,
+                ImageSubResource { .baseMipLevel = dstMip, .numLevels = 1, .baseArrayLayer = dstLayer, .numLayers = 1 },
+                RS_SHADER_RESOURCE,
+                ShaderModuleType::None);
+
+            /* Transfer transient resources to the deletion queue */
+            EnqueueDeletion(std::move(srcView));
+            EnqueueDeletion(std::move(tempView));
+            EnqueueDeletion(std::move(uniformBuffer));
+        }
+    }
+
+    /* Transition any remaining source mips to shader-readable */
+    srcImage->InsertBarrier(
+        commandBuffer,
+        RS_SHADER_RESOURCE,
+        ShaderModuleType::None);
+
+    /* Clean up the temp image */
+    EnqueueDeletion(std::move(tempImage));
+}
+
 void Blit::InvokeStatic(CmdBase* cmd, CommandBuffer* commandBuffer)
 {
     Blit* cmdCasted = static_cast<Blit*>(cmd);
 
-    if (cmdCasted->m_hasSubResource)
+    GpuImage* srcImage = cmdCasted->m_srcImage;
+    GpuImage* dstImage = cmdCasted->m_dstImage;
+
+    /* Resolve defaults */
+    ImageSubResource srcSubResource = cmdCasted->m_srcSubResource;
+    ImageSubResource dstSubResource = cmdCasted->m_dstSubResource;
+
+    Rect<uint32> srcRect = cmdCasted->m_srcRect;
+    Rect<uint32> dstRect = cmdCasted->m_dstRect;
+
+    if (!cmdCasted->m_hasRect)
     {
-        cmdCasted->m_dstImage->Blit(
-            commandBuffer, 
-            cmdCasted->m_srcImage,
-            cmdCasted->m_srcRect, cmdCasted->m_dstRect,
-            cmdCasted->m_srcSubResource, cmdCasted->m_dstSubResource);
+        /* Default rects = full extent */
+        const Vec3u srcExtent = srcImage->GetExtent();
+        const Vec3u dstExtent = dstImage->GetExtent();
+
+        srcRect = Rect<uint32> { 0, 0, srcExtent.x, srcExtent.y };
+        dstRect = Rect<uint32> { 0, 0, dstExtent.x, dstExtent.y };
     }
-    else
+
+    if (!cmdCasted->m_hasSubResource)
     {
-        if (cmdCasted->m_hasRect)
-        {
-            cmdCasted->m_dstImage->Blit(commandBuffer, cmdCasted->m_srcImage, cmdCasted->m_srcRect, cmdCasted->m_dstRect);
-        }
-        else
-        {
-            cmdCasted->m_dstImage->Blit(commandBuffer, cmdCasted->m_srcImage);
-        }
+        /* Default subresource = all mips and layers */
+        srcSubResource.baseMipLevel = 0;
+        srcSubResource.numLevels = uint8(srcImage->NumMips());
+        srcSubResource.baseArrayLayer = 0;
+        srcSubResource.numLayers = srcImage->NumArrayLayers();
+
+        dstSubResource.baseMipLevel = 0;
+        dstSubResource.numLevels = uint8(dstImage->NumMips());
+        dstSubResource.baseArrayLayer = 0;
+        dstSubResource.numLayers = dstImage->NumArrayLayers();
     }
+
+    BlitImages(srcImage, dstImage, srcRect, dstRect, srcSubResource, dstSubResource, commandBuffer);
 }
 
 #pragma endregion Blit
@@ -160,10 +391,26 @@ void BlitRect::InvokeStatic(CmdBase* cmd, CommandBuffer* commandBuffer)
 {
     BlitRect* cmdCasted = static_cast<BlitRect*>(cmd);
 
-    cmdCasted->m_dstImage->Blit(
-        commandBuffer,
+    ImageSubResource srcSubResource;
+    srcSubResource.baseMipLevel = 0;
+    srcSubResource.numLevels = uint8(cmdCasted->m_srcImage->NumMips());
+    srcSubResource.baseArrayLayer = 0;
+    srcSubResource.numLayers = cmdCasted->m_srcImage->NumArrayLayers();
+
+    ImageSubResource dstSubResource;
+    dstSubResource.baseMipLevel = 0;
+    dstSubResource.numLevels = uint8(cmdCasted->m_dstImage->NumMips());
+    dstSubResource.baseArrayLayer = 0;
+    dstSubResource.numLayers = cmdCasted->m_dstImage->NumArrayLayers();
+
+    BlitImages(
         cmdCasted->m_srcImage,
-        cmdCasted->m_srcRect, cmdCasted->m_dstRect);
+        cmdCasted->m_dstImage,
+        cmdCasted->m_srcRect,
+        cmdCasted->m_dstRect,
+        srcSubResource,
+        dstSubResource,
+        commandBuffer);
 }
 
 #pragma endregion BlitRect
@@ -219,7 +466,214 @@ void GenerateMipmaps::InvokeStatic(CmdBase* cmd, CommandBuffer* commandBuffer)
 {
     GenerateMipmaps* cmdCasted = static_cast<GenerateMipmaps*>(cmd);
 
-    cmdCasted->m_image->GenerateMipmaps(commandBuffer);
+    GpuImage* image = cmdCasted->m_image;
+
+    if (!image || !image->IsCreated())
+    {
+        HYP_LOG(RenderingBackend, Warning, "GenerateMipmaps::InvokeStatic: Image is null or not created");
+
+        return;
+    }
+
+    const TextureDesc& desc = image->GetTextureDesc();
+    const uint8 numMips = uint8(desc.NumMips());
+    const uint16 numLayers = desc.NumArrayLayers();
+
+    if (numMips < 2)
+    {
+        return;
+    }
+
+    /* Set the shader */
+    RenderInterface::State& state = g_renderInterface->state;
+    state.attributes.SetShaderName(NAME("GenerateMipmap"));
+    state.attributes.SetShaderProperties(ShaderPropertySet {});
+
+    /* Get a linear sampler */
+    Sampler* linearSampler = g_renderInterface->samplerCache->GetOrCreate(
+        SamplerDesc { TFM_LINEAR, TFM_LINEAR, TWM_REPEAT });
+
+    for (uint16 layer = 0; layer < numLayers; layer++)
+    {
+        /* Create a temporary 2D image with IU_STORAGE | IU_SAMPLED so we
+           can generate mips via compute dispatch without requiring the
+           source image to have IU_STORAGE. */
+        GpuImageRef tempImage = g_renderInterface->MakeImage(TextureDesc {
+            TextureType::Texture2D,
+            desc.format,
+            desc.extent,
+            TFM_LINEAR_MIPMAP,
+            TFM_LINEAR,
+            TWM_CLAMP_TO_EDGE,
+            1, // numLayers
+            IU_SAMPLED | IU_STORAGE
+        });
+        tempImage->Create();
+
+        /* Copy mip 0 of this layer from the source to the temp image.
+           Transition source mip 0 → COPY_SRC, temp → COPY_DST first. */
+        image->InsertBarrier(
+            commandBuffer,
+            ImageSubResource { .baseMipLevel = 0, .numLevels = 1, .baseArrayLayer = layer, .numLayers = 1 },
+            RS_COPY_SRC,
+            ShaderModuleType::None);
+
+        tempImage->InsertBarrier(
+            commandBuffer,
+            RS_COPY_DST,
+            ShaderModuleType::None);
+
+        tempImage->CopyFrom(
+            commandBuffer,
+            image,
+            Vec3u::Zero(),
+            Vec3u::Zero(),
+            desc.extent,
+            ImageSubResource { .baseMipLevel = 0, .numLevels = 1, .baseArrayLayer = layer, .numLayers = 1 },
+            ImageSubResource { .baseMipLevel = 0, .numLevels = 1, .baseArrayLayer = 0, .numLayers = 1 });
+
+        /* Allocate per-mip views and uniforms for the temp image */
+        Array<GpuImageViewRef> inputViews;
+        Array<GpuImageViewRef> outputViews;
+        Array<GpuBufferRef> uniformBuffers;
+
+        inputViews.Reserve(numMips - 1);
+        outputViews.Reserve(numMips - 1);
+        uniformBuffers.Reserve(numMips - 1);
+
+        for (uint8 mip = 1; mip < numMips; mip++)
+        {
+            const uint8 srcMip = mip - 1;
+
+            GpuImageViewRef inputView = g_renderInterface->MakeImageView(
+                tempImage, srcMip, 1, 0, 1);
+            inputView->Create();
+            inputViews.PushBack(std::move(inputView));
+
+            GpuImageViewRef outputView = g_renderInterface->MakeImageView(
+                tempImage, mip, 1, 0, 1);
+            outputView->Create();
+            outputViews.PushBack(std::move(outputView));
+
+            const Vec3u srcExtent = desc.GetMipExtent(srcMip);
+            const Vec3u dstExtent = desc.GetMipExtent(mip);
+
+            struct MipGenUniforms
+            {
+                Vec2u srcDimensions;
+                Vec2u dstDimensions;
+                uint32 srcMipLevel;
+                uint32 _padding[3];
+            } uniforms;
+
+            uniforms.srcDimensions = { srcExtent.x, srcExtent.y };
+            uniforms.dstDimensions = { dstExtent.x, dstExtent.y };
+            uniforms.srcMipLevel = srcMip;
+
+            GpuBufferRef uniformBuffer = g_renderInterface->MakeGpuBuffer(
+                GpuBufferType::CONSTANT_BUFFER, sizeof(MipGenUniforms));
+            uniformBuffer->Create();
+            uniformBuffer->Copy(sizeof(MipGenUniforms), &uniforms);
+            uniformBuffer->Flush(0, sizeof(MipGenUniforms));
+
+            uniformBuffers.PushBack(std::move(uniformBuffer));
+        }
+
+        /* Dispatch compute mip generation on the temp image */
+        for (uint8 mip = 1; mip < numMips; mip++)
+        {
+            const uint8 srcMip = mip - 1;
+            const Vec3u dstExtent = desc.GetMipExtent(mip);
+
+            tempImage->InsertBarrier(
+                commandBuffer,
+                ImageSubResource { .baseMipLevel = srcMip, .numLevels = 1, .baseArrayLayer = 0, .numLayers = 1 },
+                RS_SHADER_RESOURCE,
+                ShaderModuleType::None);
+
+            tempImage->InsertBarrier(
+                commandBuffer,
+                ImageSubResource { .baseMipLevel = mip, .numLevels = 1, .baseArrayLayer = 0, .numLayers = 1 },
+                RS_UNORDERED_ACCESS,
+                ShaderModuleType::None);
+
+            ShaderUniform& inputUniform = state.shaderUniforms[0];
+            inputUniform = ShaderUniform("InputTexture"_sh, inputViews[srcMip].Get());
+            state.dirtyUniforms |= 1u << 0;
+
+            ShaderUniform& outputUniform = state.shaderUniforms[1];
+            outputUniform = ShaderUniform("OutputTexture"_sh, outputViews[srcMip].Get());
+            state.dirtyUniforms |= 1u << 1;
+
+            ShaderUniform& ubUniform = state.shaderUniforms[2];
+            ubUniform = ShaderUniform("Constants"_sh, uniformBuffers[srcMip].Get());
+            state.dirtyUniforms |= 1u << 2;
+
+            ShaderUniform& samplerUniform = state.shaderUniforms[3];
+            samplerUniform = ShaderUniform("SamplerLinear"_sh, linearSampler);
+            state.dirtyUniforms |= 1u << 3;
+
+            g_renderInterface->CommitPipelineState(PSO_Compute, commandBuffer);
+
+            ComputePipeline* pipeline = state.boundComputePipeline;
+            AssertDebug(pipeline != nullptr);
+
+            pipeline->Dispatch(commandBuffer, {
+                (dstExtent.x + 7) / 8,
+                (dstExtent.y + 7) / 8,
+                1
+            });
+        }
+
+        /* Copy each generated mip from the temp image back to the source */
+        for (uint8 mip = 1; mip < numMips; mip++)
+        {
+            const Vec3u mipExtent = desc.GetMipExtent(mip);
+
+            tempImage->InsertBarrier(
+                commandBuffer,
+                ImageSubResource { .baseMipLevel = mip, .numLevels = 1, .baseArrayLayer = 0, .numLayers = 1 },
+                RS_COPY_SRC,
+                ShaderModuleType::None);
+
+            image->InsertBarrier(
+                commandBuffer,
+                ImageSubResource { .baseMipLevel = mip, .numLevels = 1, .baseArrayLayer = layer, .numLayers = 1 },
+                RS_COPY_DST,
+                ShaderModuleType::None);
+
+            image->CopyFrom(
+                commandBuffer,
+                tempImage.Get(),
+                Vec3u::Zero(),
+                Vec3u::Zero(),
+                mipExtent,
+                ImageSubResource { .baseMipLevel = mip, .numLevels = 1, .baseArrayLayer = 0, .numLayers = 1 },
+                ImageSubResource { .baseMipLevel = mip, .numLevels = 1, .baseArrayLayer = layer, .numLayers = 1 });
+
+            image->InsertBarrier(
+                commandBuffer,
+                ImageSubResource { .baseMipLevel = mip, .numLevels = 1, .baseArrayLayer = layer, .numLayers = 1 },
+                RS_SHADER_RESOURCE,
+                ShaderModuleType::None);
+        }
+
+        /* Clean up the temp image and its views */
+        for (auto& view : inputViews)
+            EnqueueDeletion(std::move(view));
+        for (auto& view : outputViews)
+            EnqueueDeletion(std::move(view));
+        for (auto& buf : uniformBuffers)
+            EnqueueDeletion(std::move(buf));
+
+        EnqueueDeletion(std::move(tempImage));
+    }
+
+    /* Final barrier — all source mips back to shader-readable */
+    image->InsertBarrier(
+        commandBuffer,
+        RS_SHADER_RESOURCE,
+        ShaderModuleType::None);
 }
 
 #pragma endregion GenerateMipmaps

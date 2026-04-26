@@ -183,6 +183,7 @@ static RendererResult CreateGpuImage(Texture& texture, GpuImage& image, Resource
 
         HYP_DEFER({ EnqueueDeletion(std::move(stagingBuffer)); });
 
+        cr << InsertBarrier(stagingBuffer, RS_COPY_SRC);
         cr << InsertBarrier(&image, RS_COPY_DST);
 
         bool hasMips = textureDesc.HasMipMaps() && !placeholderBuffer.HasValue();

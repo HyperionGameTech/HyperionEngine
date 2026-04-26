@@ -122,10 +122,10 @@ void DX12DescriptorHeapManager::Initialize()
 
     // placeholder
     static constexpr uint32 MaxDescriptorsByHeapType[MaxDescriptorHeapType] = {
-        1000,   // CBV_SRV_UAV
-        1000,     // SAMPLER
-        1000,    // RTV
-        1000     // DSV
+        65536,  // CBV_SRV_UAV
+        2048,   // SAMPLER
+        16384,  // RTV
+        16384   // DSV
     };
 
     for (uint32 heapIndex = 0; heapIndex < MaxDescriptorHeapType; heapIndex++)

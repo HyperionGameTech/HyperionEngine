@@ -350,6 +350,8 @@ void DX12GpuImage::InsertBarrier(
     bool onlyDepth,
     bool onlyStencil)
 {
+    AssertDebug(newState != RS_UNDEFINED && newState != RS_PRE_INITIALIZED);
+
     if (m_resource == nullptr)
     {
         HYP_LOG(
@@ -360,20 +362,144 @@ void DX12GpuImage::InsertBarrier(
         return;
     }
 
+    AssertDebug((subResource.baseArrayLayer + subResource.numLayers) <= NumArrayLayers()
+        || (subResource.baseArrayLayer == 0 && subResource.numLayers == uint16(-1)));
+
+    AssertDebug((subResource.baseMipLevel + subResource.numLevels) <= NumMips()
+        || (subResource.baseMipLevel == 0 && subResource.numLevels == uint8(-1)));
+
+    const uint16 maxArrayLayers = uint16(subResource.baseArrayLayer + MathUtil::Min(subResource.numLayers, NumArrayLayers()));
+    const uint8 maxMipLevels = uint8(subResource.baseMipLevel + MathUtil::Min(subResource.numLevels, NumMips()));
+
+    const bool isAttachmentTexture = m_textureDesc.imageUsage[IU_ATTACHMENT];
+
     const bool isDepthStencil = m_textureDesc.IsDepthStencil();
     const bool hasStencil = TextureUtils::HasStencilComponent(m_textureDesc.format);
 
+    // can only use these if we actually do have a stencil component,
+    // otherwise use default/main path
     onlyDepth &= hasStencil;
     onlyStencil &= hasStencil;
 
-    // Fix: If this is a depth/stencil image and we're trying to transition to RENDER_TARGET, use DEPTH_STENCIL instead
-    if (isDepthStencil && newState == RS_RENDER_TARGET)
+    ResourceState currResourceState = m_resourceState;
+    const ResourceState currStencilState = m_stencilState;
+
+    if (HasSubResourceStates())
     {
-        newState = RS_DEPTH_STENCIL;
+        currResourceState = RS_UNDEFINED;
+
+        bool firstSubResource = true;
+        bool breakLoop = false;
+
+        for (uint8 mipLevel = subResource.baseMipLevel; mipLevel < maxMipLevels; mipLevel++)
+        {
+            if (breakLoop)
+                break;
+
+            for (uint16 arrayLayer = subResource.baseArrayLayer; arrayLayer < maxArrayLayers; arrayLayer++)
+            {
+                const uint32 subResourceIndex = D3D12CalcSubresource(
+                    mipLevel,
+                    arrayLayer,
+                    0,
+                    NumMips(),
+                    NumArrayLayers());
+
+                ResourceState foundResourceState;
+
+                auto it = m_subResourceStates.Find(subResourceIndex);
+
+                if (it != m_subResourceStates.End())
+                {
+                    foundResourceState = it->second;
+                }
+                else
+                {
+                    foundResourceState = GetResourceState();
+                }
+
+                // needs to match expected state we're transitioning from. (currResourceState)
+                if (firstSubResource)
+                {
+                    currResourceState = foundResourceState;
+                    firstSubResource = false;
+                }
+                else if (foundResourceState != currResourceState)
+                {
+                    currResourceState = RS_UNDEFINED;
+                    breakLoop = true;
+
+                    break;
+                }
+            }
+        }
     }
 
-    D3D12_RESOURCE_STATES stateBefore = ToDX12ResourceStates(m_resourceState);
-    D3D12_RESOURCE_STATES stateAfter = ToDX12ResourceStates(newState);
+#if HYP_DEBUG_MODE
+    if (hasStencil && currResourceState != currStencilState)
+    {
+        // Depth/stencil separate states sanity checks.
+        if (currResourceState == newState)
+        {
+            Assert(onlyStencil);
+
+            if (newState == RS_SHADER_RESOURCE)
+            {
+                Assert(currStencilState == RS_RENDER_TARGET);
+            }
+            else if (newState == RS_RENDER_TARGET)
+            {
+                Assert(currStencilState == RS_SHADER_RESOURCE);
+            }
+        }
+        else if (currStencilState == newState)
+        {
+            Assert(onlyDepth);
+
+            if (newState == RS_SHADER_RESOURCE)
+            {
+                Assert(currResourceState == RS_RENDER_TARGET);
+            }
+            else if (newState == RS_RENDER_TARGET)
+            {
+                Assert(currResourceState == RS_SHADER_RESOURCE);
+            }
+        }
+    }
+#endif
+
+    if (onlyDepth && currStencilState == newState)
+    {
+        onlyDepth = false;
+    }
+
+    if (onlyStencil && currResourceState == newState)
+    {
+        onlyStencil = false;
+    }
+
+    const bool adjustForDepthStencil = isDepthStencil && isAttachmentTexture;
+
+    auto GetDX12State = [adjustForDepthStencil](ResourceState state) -> D3D12_RESOURCE_STATES
+    {
+        if (adjustForDepthStencil)
+        {
+            if (state == RS_RENDER_TARGET)
+            {
+                return D3D12_RESOURCE_STATE_DEPTH_WRITE;
+            }
+
+            if (state == RS_SHADER_RESOURCE)
+            {
+                return D3D12_RESOURCE_STATE_DEPTH_READ;
+            }
+        }
+
+        return ToDX12ResourceStates(state);
+    };
+
+    D3D12_RESOURCE_STATES stateBefore = GetDX12State(currResourceState);
+    D3D12_RESOURCE_STATES stateAfter = GetDX12State(newState);
 
     // Skip redundant barriers
     if (stateBefore == stateAfter)
@@ -381,36 +507,91 @@ void DX12GpuImage::InsertBarrier(
         return;
     }
 
-    uint32 subResourceIndex = D3D12CalcSubresource(
-        subResource.baseMipLevel,
-        subResource.baseArrayLayer,
-        0,
-        NumMips(),
-        NumArrayLayers());
-
-    D3D12_RESOURCE_BARRIER barrier {};
-    barrier.Type = D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
-    barrier.Flags = D3D12_RESOURCE_BARRIER_FLAG_NONE;
-    barrier.Transition.pResource = m_resource.Get();
-    barrier.Transition.Subresource = D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES;
-
+    // Full-image transition: single ALL_SUBRESOURCES barrier
     if (subResource.baseMipLevel == 0 && subResource.numLevels >= NumMips()
         && subResource.baseArrayLayer == 0 && subResource.numLayers >= NumArrayLayers())
     {
+        D3D12_RESOURCE_BARRIER barrier {};
+        barrier.Type = D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
+        barrier.Flags = D3D12_RESOURCE_BARRIER_FLAG_NONE;
+        barrier.Transition.pResource = m_resource.Get();
+        barrier.Transition.Subresource = D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES;
         barrier.Transition.StateBefore = stateBefore;
         barrier.Transition.StateAfter = stateAfter;
+
+        commandBuffer->GetCommandList()->ResourceBarrier(1, &barrier);
+
+        if (onlyStencil)
+        {
+            m_stencilState = newState;
+        }
+        else
+        {
+            SetResourceState(newState);
+
+            if (onlyDepth)
+            {
+                m_stencilState = currStencilState;
+            }
+        }
+
+        return;
     }
-    else
+
+    // Partial subresource range: D3D12 does NOT support ranged subresource barriers,
+    // so we must issue one barrier per subresource (mip + array layer).
+    for (uint8 mipLevel = subResource.baseMipLevel; mipLevel < maxMipLevels; mipLevel++)
     {
-        barrier.Transition.Subresource = subResourceIndex;
-        barrier.Transition.StateBefore = stateBefore;
-        barrier.Transition.StateAfter = stateAfter;
+        for (uint16 arrayLayer = subResource.baseArrayLayer; arrayLayer < maxArrayLayers; arrayLayer++)
+        {
+            const uint32 subResourceIndex = D3D12CalcSubresource(
+                mipLevel,
+                arrayLayer,
+                0,
+                NumMips(),
+                NumArrayLayers());
+
+            // Determine current per-subresource state
+            auto stateIt = m_subResourceStates.Find(subResourceIndex);
+            const ResourceState subResCurrentState = (stateIt != m_subResourceStates.End())
+                ? stateIt->second
+                : GetResourceState();
+
+            const D3D12_RESOURCE_STATES subResStateBefore = GetDX12State(subResCurrentState);
+
+            if (subResStateBefore != stateAfter)
+            {
+                D3D12_RESOURCE_BARRIER barrier {};
+                barrier.Type = D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
+                barrier.Flags = D3D12_RESOURCE_BARRIER_FLAG_NONE;
+                barrier.Transition.pResource = m_resource.Get();
+                barrier.Transition.Subresource = subResourceIndex;
+                barrier.Transition.StateBefore = subResStateBefore;
+                barrier.Transition.StateAfter = stateAfter;
+
+                commandBuffer->GetCommandList()->ResourceBarrier(1, &barrier);
+            }
+
+            // Update state tracking
+            if (stateIt != m_subResourceStates.End())
+            {
+                stateIt->second = newState;
+
+                if (stateIt->second == m_resourceState)
+                {
+                    // same state as overall image, remove from set
+                    m_subResourceStates.Erase(stateIt);
+                }
+            }
+            else if (newState != m_resourceState)
+            {
+                m_subResourceStates.Set(subResourceIndex, newState);
+            }
+        }
     }
 
-    commandBuffer->GetCommandList()->ResourceBarrier(1, &barrier);
-
-    if (subResource.baseMipLevel == 0 && subResource.numLevels >= NumMips()
-        && subResource.baseArrayLayer == 0 && subResource.numLayers >= NumArrayLayers())
+    // No more remaining subresources, entire image was transitioned
+    if (m_subResourceStates.Empty())
     {
         if (onlyStencil)
         {
@@ -422,13 +603,9 @@ void DX12GpuImage::InsertBarrier(
 
             if (onlyDepth)
             {
-                m_stencilState = newState;
+                m_stencilState = currStencilState;
             }
         }
-    }
-    else
-    {
-        m_subResourceStates.Set(subResourceIndex, newState);
     }
 }
 
@@ -531,84 +708,13 @@ RendererResult DX12GpuImage::GenerateMipmaps(DX12CommandBuffer* commandBuffer)
         return HYP_MAKE_ERROR(RendererError, "Cannot generate mipmaps on uninitialized image");
     }
 
-    const uint16 numLayers = NumArrayLayers();
-    const uint8 numMipmaps = NumMips();
+    HYP_LOG(RenderingBackend, Error,
+        "DX12 GenerateMipmaps not yet implemented. "
+        "D3D12 has no built-in equivalent to Vulkan's vkCmdBlitImage; "
+        "this requires a compute shader that samples from the larger mip "
+        "with linear filtering and writes to the smaller mip.");
 
-    for (uint16 face = 0; face < numLayers; face++)
-    {
-        for (int32 i = 1; i < int32(numMipmaps + 1); i++)
-        {
-            const int mipWidth = int(helpers::MipmapSize(m_textureDesc.extent.x, i)),
-                      mipHeight = int(helpers::MipmapSize(m_textureDesc.extent.y, i)),
-                      mipDepth = int(helpers::MipmapSize(m_textureDesc.extent.z, i));
-
-            const ImageSubResource src {
-                .baseMipLevel = uint8(i - 1),
-                .numLevels = 1,
-                .baseArrayLayer = face,
-                .numLayers = 1
-            };
-
-            const ImageSubResource dst {
-                .baseMipLevel = uint8(i),
-                .numLevels = 1,
-                .baseArrayLayer = src.baseArrayLayer,
-                .numLayers = 1
-            };
-
-            InsertBarrier(
-                commandBuffer,
-                src,
-                RS_COPY_SRC,
-                ShaderModuleType::None);
-
-            if (i == int32(numMipmaps))
-            {
-                if (face == numLayers - 1)
-                {
-                    SetResourceState(RS_COPY_SRC);
-                }
-
-                break;
-            }
-
-            D3D12_TEXTURE_COPY_LOCATION srcLocation {};
-            srcLocation.pResource = m_resource.Get();
-            srcLocation.Type = D3D12_TEXTURE_COPY_TYPE_SUBRESOURCE_INDEX;
-            srcLocation.SubresourceIndex = D3D12CalcSubresource(
-                src.baseMipLevel,
-                src.baseArrayLayer,
-                0,
-                NumMips(),
-                NumArrayLayers());
-
-            D3D12_TEXTURE_COPY_LOCATION dstLocation {};
-            dstLocation.pResource = m_resource.Get();
-            dstLocation.Type = D3D12_TEXTURE_COPY_TYPE_SUBRESOURCE_INDEX;
-            dstLocation.SubresourceIndex = D3D12CalcSubresource(
-                dst.baseMipLevel,
-                dst.baseArrayLayer,
-                0,
-                NumMips(),
-                NumArrayLayers());
-
-            D3D12_BOX srcBox {};
-            srcBox.left = 0;
-            srcBox.top = 0;
-            srcBox.front = 0;
-            srcBox.right = uint32(helpers::MipmapSize(m_textureDesc.extent.x, i - 1));
-            srcBox.bottom = uint32(helpers::MipmapSize(m_textureDesc.extent.y, i - 1));
-            srcBox.back = uint32(helpers::MipmapSize(m_textureDesc.extent.z, i - 1));
-
-            commandBuffer->GetCommandList()->CopyTextureRegion(
-                &dstLocation,
-                0, 0, 0,
-                &srcLocation,
-                &srcBox);
-        }
-    }
-
-    return {};
+    return HYP_MAKE_ERROR(RendererError, "GenerateMipmaps not implemented for DX12 backend");
 }
 
 void DX12GpuImage::CopyFromBuffer(
@@ -618,11 +724,22 @@ void DX12GpuImage::CopyFromBuffer(
     uint8 dstMipIndex,
     uint16 dstArrayLayer) const
 {
+    AssertDebug(GetResourceState() == RS_COPY_DST && srcBuffer->GetResourceState() == RS_COPY_SRC);
+
+    const uint8 mipIdx = dstMipIndex != UINT8_MAX ? dstMipIndex : 0;
+
+    ResourceState subResourceState = GetSubResourceState(ImageSubResource {
+        .baseMipLevel = mipIdx,
+        .numLevels = 1,
+        .baseArrayLayer = dstArrayLayer == UINT16_MAX ? uint16(0) : dstArrayLayer,
+        .numLayers = 1
+    });
+
+    AssertDebug(subResourceState == RS_COPY_DST);
+
     const bool isDepthStencil = m_textureDesc.IsDepthStencil();
 
     D3D12_RESOURCE_STATES state = isDepthStencil ? D3D12_RESOURCE_STATE_DEPTH_WRITE : D3D12_RESOURCE_STATE_COPY_DEST;
-
-    const uint8 mipIdx = dstMipIndex != UINT8_MAX ? dstMipIndex : 0;
     const Vec3u mipExtent = m_textureDesc.GetMipExtent(mipIdx);
 
     D3D12_PLACED_SUBRESOURCE_FOOTPRINT placedFootprint {};
@@ -668,6 +785,8 @@ void DX12GpuImage::CopyToBuffer(
     DX12GpuBuffer* dstBuffer,
     const ImageSubResource& subResource) const
 {
+    AssertDebug(GetSubResourceState(subResource) == RS_COPY_SRC && dstBuffer->GetResourceState() == RS_COPY_DST);
+
     Assert(dstBuffer != nullptr && dstBuffer->IsCreated(), "Destination buffer is null or invalid!");
     Assert(dstBuffer->Size() >= m_size, "Destination buffer is too small to hold image data!");
 
@@ -703,6 +822,14 @@ void DX12GpuImage::CopyToBuffer(
 
         for (uint16 layerIndex = newSubResource.baseArrayLayer; layerIndex < newSubResource.baseArrayLayer + newSubResource.numLayers; layerIndex++)
         {
+            ResourceState subResourceState = GetSubResourceState(ImageSubResource {
+                .baseMipLevel = mipIndex,
+                .numLevels = 1,
+                .baseArrayLayer = layerIndex,
+                .numLayers = 1
+            });
+            AssertDebug(subResourceState == RS_COPY_SRC);
+
             srcLocation.SubresourceIndex = D3D12CalcSubresource(
                 mipIndex,
                 layerIndex,
@@ -760,6 +887,8 @@ void DX12GpuImage::CopyFrom(
 
     if (!HasSubResourceStates() && !srcImage->HasSubResourceStates())
     {
+        AssertDebug(GetResourceState() == RS_COPY_DST && srcImage->GetResourceState() == RS_COPY_SRC);
+
         D3D12_TEXTURE_COPY_LOCATION srcLocation {};
         srcLocation.pResource = srcImage->GetResource();
         srcLocation.Type = D3D12_TEXTURE_COPY_TYPE_SUBRESOURCE_INDEX;
@@ -800,6 +929,23 @@ void DX12GpuImage::CopyFrom(
         {
             for (uint8 mipLevel = 0; mipLevel < MathUtil::Min(srcSubResource.numLevels, srcImage->NumMips() - srcSubResource.baseMipLevel); mipLevel++)
             {
+                const ResourceState srcResourceState = srcImage->GetSubResourceState(ImageSubResource {
+                    .baseMipLevel = uint8(srcSubResource.baseMipLevel + mipLevel),
+                    .numLevels = 1,
+                    .baseArrayLayer = uint16(srcSubResource.baseArrayLayer + layerIndex),
+                    .numLayers = 1
+                });
+
+                const ResourceState dstResourceState = GetSubResourceState(ImageSubResource {
+                    .baseMipLevel = uint8(dstSubResource.baseMipLevel + mipLevel),
+                    .numLevels = 1,
+                    .baseArrayLayer = uint16(dstSubResource.baseArrayLayer + layerIndex),
+                    .numLayers = 1
+                });
+
+                AssertDebug(srcResourceState == RS_COPY_SRC);
+                AssertDebug(dstResourceState == RS_COPY_DST);
+
                 D3D12_TEXTURE_COPY_LOCATION srcLocation {};
                 srcLocation.pResource = srcImage->GetResource();
                 srcLocation.Type = D3D12_TEXTURE_COPY_TYPE_SUBRESOURCE_INDEX;
