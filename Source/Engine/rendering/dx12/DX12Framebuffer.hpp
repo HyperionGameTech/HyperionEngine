@@ -134,6 +134,21 @@ public:
 
     RendererResult Create() override;
 
+    void SetExternalRTVHandle(const D3D12_CPU_DESCRIPTOR_HANDLE& handle, ID3D12Resource* resource, uint32 extentX, uint32 extentY)
+    {
+        m_rtvDescriptorHandle.cpuHandle = handle;
+        m_rtvDescriptorHandle.count = 1;
+        m_isExternalRTV = true;
+        m_externalRTResource = resource;
+
+        // Populate framebufferDesc so the graphics pipeline sees at least 1 attachment
+        m_framebufferDesc.numAttachments = 1;
+        m_framebufferDesc.extent = Vec2u(extentX, extentY);
+        m_framebufferDesc.attachments[0] = AttachmentDesc(
+            TextureType::Texture2D,
+            TextureFormat::RGBA8);
+    }
+
     DX12Attachment* AddAttachment(DX12Attachment* attachment) override;
 
     DX12Attachment* AddAttachment(uint32 binding, const AttachmentDesc& desc) override;
@@ -174,6 +189,8 @@ private:
     bool m_isRecording;
     bool m_isCreated;
     bool m_hasBeenCleared;
+    bool m_isExternalRTV = false;
+    ID3D12Resource* m_externalRTResource = nullptr;
 };
 
 } // namespace Hyperion

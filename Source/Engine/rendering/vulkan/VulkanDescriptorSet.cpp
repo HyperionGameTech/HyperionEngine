@@ -270,7 +270,7 @@ void VulkanDescriptorSet::UpdateDirtyState(bool* outIsDirty)
                 descriptor.bufferInfo = VkDescriptorBufferInfo {
                     .buffer = ref->GetVulkanHandle(),
                     .offset = 0,
-                    .range = element.bufferStride != ~0u ? VkDeviceSize(element.bufferStride) : VK_WHOLE_SIZE
+                    .range = (element.bufferStride != ~0u && element.bufferStride != 0) ? VkDeviceSize(element.bufferStride) : VK_WHOLE_SIZE
                 };
             }
 

@@ -41,7 +41,7 @@ DECLARE_SRV(ComputeVisibility, ObjectInstancesBuffer) StructuredBuffer<ObjectIns
 
 DECLARE_UAV(ComputeVisibility, IndirectDrawCommandsBuffer) RWStructuredBuffer<IndirectDrawCommand> drawCommands;
 
-DECLARE_UAV(ComputeVisibility, EntityInstanceBatchesBuffer) RWStructuredBuffer<uint4> entityInstanceBatchData;
+DECLARE_UAV(ComputeVisibility, EntityInstanceBatchesBuffer) RWByteAddressBuffer entityInstanceBatchData;
 
 DECLARE_BUFFER(ComputeVisibility, ComputeVisibilityConstants) cbuffer ComputeVisibilityConstants
 {
@@ -170,7 +170,7 @@ void CSMain(uint3 dispatchThreadID : SV_DispatchThreadID)
             uint indicesOffsetWords = bufferOffsetWords + 4 + instance_index;
 
             uint oldValue;
-            InterlockedExchange(entityInstanceBatchData[indicesOffsetWords >> 2][indicesOffsetWords & 3], entity_binding_index, oldValue);
+            InterlockedExchange(entityInstanceBatchData, indicesOffsetWords * 4, entity_binding_index, oldValue);
         }
     }
 }

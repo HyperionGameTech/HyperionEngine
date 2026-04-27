@@ -129,6 +129,16 @@ public:
     void ReleaseTransientMemory() override;
 
     void NextFrame() override;
+
+    HYP_FORCE_INLINE uint64 GetCurrentFrameFenceValue() const
+    {
+        return m_frameFenceValues[m_currentFrameIndex];
+    }
+
+    HYP_FORCE_INLINE ID3D12Fence* GetFrameFence() const
+    {
+        return m_frameFence.Get();
+    }
     
     ComPtr<IDXGIFactory4> dxgiFactory;
 
@@ -161,6 +171,13 @@ private:
     ComPtr<ID3D12Device> m_device;
 
     FlatMap<D3D12_COMMAND_LIST_TYPE, DX12QueueData> m_queueData;
+
+    // Single fence for frame synchronization (Microsoft-style)
+    // One fence object with per-frame values (instead of one fence per frame)
+    ComPtr<ID3D12Fence> m_frameFence;
+    HANDLE m_frameFenceEvent;
+    FixedArray<uint64, NumFramesInFlight> m_frameFenceValues;
+    FixedArray<bool, NumFramesInFlight> m_frameFenceSubmitted;  // Track if frame has been submitted
 
     ComPtr<ID3D12DeviceRemovedExtendedDataSettings> m_dredSettings;
 

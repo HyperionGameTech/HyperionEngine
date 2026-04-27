@@ -13,12 +13,11 @@
 #include <Core/math/MathUtil.hpp>
 
 #include <rendering/GpuBuffer.hpp>
+#include <rendering/BufferCache.hpp>
 
 #include <engine/EngineMemory.hpp>
 
 namespace Hyperion {
-
-extern uint32 GetFrameCounter();
 
 template <GpuBufferType BufferType>
 class TBufferAllocator
@@ -55,15 +54,7 @@ public:
     void OnFrameStart()
     {
         auto& used = usedBuffers[GetFrameCounter() % NumFramesInFlight];
-
-        // recycle it
-        for (Entry& usedBuffer : used)
-        {
-            auto lowerBoundIt = cachedBuffers.LowerBound(usedBuffer);
-            cachedBuffers.Insert(lowerBoundIt, std::move(usedBuffer));
-        }
-
-        used.Clear();
+        TBufferCache<Entry, GpuBufferRef>::RecycleUsedBuffers(used, cachedBuffers);
     }
 
     void OnFrameEnd()
@@ -94,38 +85,25 @@ public:
 
         const uint32 currFrame = GetFrameCounter();
 
-        auto lowerBoundIt = cachedBuffers.LowerBound(Entry { bufferSize });
+        Entry bestMatchEntry;
+        auto bestMatchIt = TBufferCache<Entry, GpuBufferRef>::FindBestMatch(
+            cachedBuffers, bufferSize, bestMatchEntry);
 
-        // unused one (different frame)
-        for (auto it = lowerBoundIt != cachedBuffers.End() ? lowerBoundIt : cachedBuffers.Begin();
-            it != cachedBuffers.End();)
+        // Use the best match if found
+        if (bestMatchIt != cachedBuffers.End())
         {
-            auto& cachedBuffer = *it;
+            bestMatchEntry.lastUsedFrame = currFrame;
 
-            // find first that fits to reuse and is not too big (don't want to waste space creating more larger buffers for those that need it after us)
-            if (cachedBuffer.size >= bufferSize && cachedBuffer.size < bufferSize * 2)
-            {
-                cachedBuffer.size = bufferSize;
-                cachedBuffer.lastUsedFrame = currFrame;
+            Assert(bestMatchEntry.buffer != nullptr
+                && bestMatchEntry.buffer->IsCreated()
+                && bestMatchEntry.buffer->Size() >= bestMatchEntry.size);
 
-                GpuBuffer* buffer = cachedBuffer.buffer.Get();
-
-                Assert(buffer != nullptr
-                    && buffer->IsCreated()
-                    && buffer->Size() >= bufferSize);
-            
-                auto& used = usedBuffers[currFrame % NumFramesInFlight];
-                auto cached = std::move(cachedBuffer);
-
-                cachedBuffers.Erase(it);
-
-                return used.PushBack(std::move(cached)).buffer.Get();
-            }
-
-            ++it;
+            auto& used = usedBuffers[currFrame % NumFramesInFlight];
+            return TBufferCache<Entry, GpuBufferRef>::MoveToUsed(
+                cachedBuffers, &used, bestMatchIt, bestMatchEntry);
         }
 
-        // bump it up a bit
+        // Round up to minimum alignment
         bufferSize = MathUtil::NextMultiple(bufferSize, 256);
 
         // create new one if none found

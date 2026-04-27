@@ -20,48 +20,32 @@ extern DX12RenderInterface* g_renderInterface;
 #pragma region DX12Frame
 
 DX12Frame::DX12Frame()
-    : FrameBase(0),
-      m_queueSubmitFence(nullptr)
+    : FrameBase(0)
 {
 }
 
 DX12Frame::DX12Frame(uint32 frameIndex)
-    : FrameBase(frameIndex),
-      m_queueSubmitFence(nullptr)
+    : FrameBase(frameIndex)
 {
 }
 
 DX12Frame::~DX12Frame()
 {
-    delete m_queueSubmitFence;
 }
 
 bool DX12Frame::IsCreated() const
 {
-    return m_queueSubmitFence != nullptr;
+    return true;
 }
 
 RendererResult DX12Frame::Create()
 {
-    if (m_queueSubmitFence != nullptr)
-    {
-        return {};
-    }
-
-    m_queueSubmitFence = new DX12Fence();
-    RendererResult result = m_queueSubmitFence->Create(/* createSignalled */ true);
-    if (!result)
-    {
-        delete m_queueSubmitFence;
-        m_queueSubmitFence = nullptr;
-    }
-
-    return result;
+    return {};
 }
 
 void DX12Frame::OnFrameStart()
 {
-    m_frameCounter++;
+    FrameBase::OnFrameStart();
 }
 
 void DX12Frame::WriteCommandBuffer(CommandBuffer* commandBuffer)
@@ -106,15 +90,8 @@ void DX12Frame::WriteCommandBuffer(CommandBuffer* commandBuffer)
     Assert(queueData != nullptr);
     
     ID3D12CommandList* commandLists[] = { commandBuffer->GetCommandList() };
-    queueData->commandQueue->ExecuteCommandLists(ArraySize(commandLists), commandLists);
+    queueData->commandQueue->ExecuteCommandLists(1, commandLists);
 
-    if (m_queueSubmitFence != nullptr)
-    {
-        // Increment fence value for this frame's submission
-        m_queueSubmitFence->Reset();
-        // Signal the fence with the new value
-        queueData->commandQueue->Signal(m_queueSubmitFence->GetD3D12Fence(), m_queueSubmitFence->GetValue());
-    }
 }
 
 void DX12Frame::ResetTransientStates()

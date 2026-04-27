@@ -16,8 +16,6 @@
 
 #include <rendering/RenderObject.hpp>
 
-#include <rendering/dx12/DX12Fence.hpp>
-
 namespace Hyperion {
 
 HYP_CLASS(NoScriptBindings)
@@ -39,13 +37,7 @@ public:
 
     void ResetTransientStates();
 
-    HYP_FORCE_INLINE DX12Fence* GetQueueSubmitFence() const
-    {
-        return m_queueSubmitFence;
-    }
-
 private:
-    DX12Fence* m_queueSubmitFence;
 };
 
 } // namespace Hyperion

@@ -85,8 +85,15 @@ DX12RenderInterface::DX12RenderInterface()
     : descriptorHeapManager(PoolNew<DX12DescriptorHeapManager>(*g_renderPool)),
       m_renderConfig(MakePimpl<DX12RenderConfig>()),
       m_currentFrameIndex(0),
-      m_allocator(nullptr)
+      m_allocator(nullptr),
+      m_frameFenceEvent(nullptr)
 {
+    // Initialize fence values to 0 (no submissions yet)
+    for (uint32 i = 0; i < NumFramesInFlight; i++)
+    {
+        m_frameFenceValues[i] = 0;
+        m_frameFenceSubmitted[i] = false;
+    }
 }
 
 DX12RenderInterface::~DX12RenderInterface()
@@ -144,16 +151,20 @@ RendererResult DX12RenderInterface::Initialize()
         }
     }
 
+#ifdef HYP_DEBUG_MODE
+#if 0
     if (SUCCEEDED(D3D12GetDebugInterface(__uuidof(ID3D12DeviceRemovedExtendedDataSettings), &m_dredSettings)))
     {
         m_dredSettings->SetAutoBreadcrumbsEnablement(D3D12_DRED_ENABLEMENT_FORCED_ON);
         m_dredSettings->SetPageFaultEnablement(D3D12_DRED_ENABLEMENT_FORCED_ON);
     }
 
-#ifdef HYP_DEBUG_MODE
     ComPtr<ID3D12Debug> debugController;
     if (SUCCEEDED(D3D12GetDebugInterface(__uuidof(ID3D12Debug), &debugController)))
+    {
         debugController->EnableDebugLayer();
+    }
+#endif // 
 #endif
 
     // create device
@@ -217,6 +228,22 @@ RendererResult DX12RenderInterface::Initialize()
         frame = MakeHandle<DX12Frame>(frameIndex);
         CheckResultOrReturn(frame->Create());
     }
+
+    // create frame synchronization fence (single fence with per-frame values)
+    HRESULT hr = m_device->CreateFence(0, D3D12_FENCE_FLAG_NONE, IID_PPV_ARGS(&m_frameFence));
+    if (FAILED(hr))
+    {
+        return HYP_MAKE_ERROR(RendererError, "Failed to create frame fence", hr);
+    }
+
+    m_frameFenceEvent = CreateEvent(nullptr, FALSE, FALSE, nullptr);
+    if (m_frameFenceEvent == nullptr)
+    {
+        return HYP_MAKE_ERROR(RendererError, "Failed to create frame fence event");
+    }
+
+    // Fence values start at 0 (no submissions yet)
+    // m_frameFenceSubmitted[] tracks whether each frame has been submitted
 
     // create main commandlist
     m_commandBuffer = MakeHandle<DX12CommandBuffer>(D3D12_COMMAND_LIST_TYPE_DIRECT);
@@ -283,6 +310,14 @@ void DX12RenderInterface::Shutdown()
         frame.Reset();
     }
 
+    // cleanup frame fence
+    if (m_frameFenceEvent != nullptr)
+    {
+        CloseHandle(m_frameFenceEvent);
+        m_frameFenceEvent = nullptr;
+    }
+    m_frameFence.Reset();
+
     m_queueData = {};
 
     RenderInterface::Shutdown();
@@ -314,9 +349,18 @@ DX12Frame* DX12RenderInterface::PrepareNextFrame()
 
     // Wait for the GPU to finish executing commands from this frame's previous use
     // before we reset the command allocator and start recording new commands.
-    if (frame != nullptr && frame->GetQueueSubmitFence() != nullptr)
+    // Using single fence with per-frame values (Microsoft-style).
+    if (m_frameFenceSubmitted[m_currentFrameIndex])
     {
-        frame->GetQueueSubmitFence()->Wait(true);
+        const uint64 currentFenceValue = m_frameFenceValues[m_currentFrameIndex];
+        if (m_frameFence->GetCompletedValue() < currentFenceValue)
+        {
+            HRESULT hr = m_frameFence->SetEventOnCompletion(currentFenceValue, m_frameFenceEvent);
+            Assert(SUCCEEDED(hr));
+
+            DWORD waitResult = WaitForSingleObject(m_frameFenceEvent, INFINITE);
+            Assert(waitResult == WAIT_OBJECT_0);
+        }
     }
 
     // call frame callbacks after fence is waited on
@@ -410,8 +454,16 @@ DX12Frame* DX12RenderInterface::PrepareNextFrame()
 DX12SwapchainRef DX12RenderInterface::CreateSwapchain(ApplicationWindow* window, const Vec2u& extent)
 {
     Assert(window != nullptr);
+
+    DX12SwapchainRef swapchain = MakeHandle<DX12Swapchain>(window->GetHWND(), extent);
+    RendererResult result = swapchain->Create();
+
+    if (!result)
+    {
+        HYP_FAIL("Failed to create DX12 swapchain: {}", result.GetError().GetMessage());
+    }
     
-    return MakeHandle<DX12Swapchain>(window->GetHWND(), extent);
+    return swapchain;
 }
 
 void DX12RenderInterface::PrepareSwapchain(DX12Swapchain* swapchain)
@@ -441,6 +493,17 @@ void DX12RenderInterface::PresentToSwapchain(DX12Swapchain* swapchain)
     Assert(frame != nullptr);
 
     frame->WriteCommandBuffer(commandBuffer);
+
+    // Increment fence value BEFORE signaling (Microsoft-style pattern)
+    // This ensures we never signal with the same value twice
+    const uint64 fenceValue = ++m_frameFenceValues[m_currentFrameIndex];
+    m_frameFenceSubmitted[m_currentFrameIndex] = true;
+
+    // Signal the frame fence - marks the point in the queue when the frame's commands complete
+    const DX12QueueData* queueData = GetQueueData(D3D12_COMMAND_LIST_TYPE_DIRECT);
+    Assert(queueData != nullptr);
+    HRESULT hr = queueData->commandQueue->Signal(m_frameFence.Get(), fenceValue);
+    Assert(SUCCEEDED(hr));
 
     if (swapchain != nullptr)
     {

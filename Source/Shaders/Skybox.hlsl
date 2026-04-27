@@ -43,8 +43,8 @@ struct VSOutput
 
 #ifdef INSTANCING
 DECLARE_SRV(Default, EntitiesBuffer) StructuredBuffer<Entity> entities;
-DECLARE_SRV_DYNAMIC(Default, EntityInstanceBatchesBuffer) StructuredBuffer<MeshEntityInstanceBatch> entity_instance_batch_buffer;
-#define entity_instance_batch entity_instance_batch_buffer[0]
+DECLARE_SRV_DYNAMIC(Default, EntityInstanceBatchesBuffer) ByteAddressBuffer entity_instance_batch_buffer;
+#define entity_instance_batch entity_instance_batch_buffer.Load<MeshEntityInstanceBatch>(0)
 #endif // INSTANCING
 
 VSOutput VSMain(VSInput input, uint instanceId : SV_InstanceID)

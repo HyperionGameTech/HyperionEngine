@@ -229,8 +229,6 @@ static void BlitImages(
                 RS_UNORDERED_ACCESS,
                 ShaderModuleType::None);
 
-            /* Build uniform data — the dst rect for the compute shader
-               spans the full temp image (0,0 – dstW,dstH). */
             struct BlitUniformData
             {
                 uint32 srcRectMin[2];
@@ -510,8 +508,6 @@ void GenerateMipmaps::InvokeStatic(CmdBase* cmd, CommandBuffer* commandBuffer)
         });
         tempImage->Create();
 
-        /* Copy mip 0 of this layer from the source to the temp image.
-           Transition source mip 0 → COPY_SRC, temp → COPY_DST first. */
         image->InsertBarrier(
             commandBuffer,
             ImageSubResource { .baseMipLevel = 0, .numLevels = 1, .baseArrayLayer = layer, .numLayers = 1 },
@@ -669,7 +665,6 @@ void GenerateMipmaps::InvokeStatic(CmdBase* cmd, CommandBuffer* commandBuffer)
         EnqueueDeletion(std::move(tempImage));
     }
 
-    /* Final barrier — all source mips back to shader-readable */
     image->InsertBarrier(
         commandBuffer,
         RS_SHADER_RESOURCE,

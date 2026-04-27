@@ -405,6 +405,11 @@ D3D12_SHADER_RESOURCE_VIEW_DESC GetSRVDesc(DX12GpuBuffer* buffer, uint32 structu
     {
         numElements = (numElements == UINT32_MAX) ? uint32(buffer->Size() / structureStride) : numElements;
     }
+    else if (numElements == UINT32_MAX)
+    {
+        // For raw (byte address) buffers, elements are 4-byte R32_TYPELESS units
+        numElements = uint32(buffer->Size() / 4) - firstElement;
+    }
 
     D3D12_SHADER_RESOURCE_VIEW_DESC desc {};
     desc.ViewDimension = D3D12_SRV_DIMENSION_BUFFER;
@@ -428,6 +433,11 @@ D3D12_UNORDERED_ACCESS_VIEW_DESC GetUAVDesc(DX12GpuBuffer* buffer, uint32 struct
     if (!useByteAddressBuffer)
     {
         numElements = (numElements == UINT32_MAX) ? uint32(buffer->Size() / structureStride) : numElements;
+    }
+    else if (numElements == UINT32_MAX)
+    {
+        // For raw (byte address) buffers, elements are 4-byte R32_TYPELESS units
+        numElements = uint32(buffer->Size() / 4) - firstElement;
     }
 
     D3D12_UNORDERED_ACCESS_VIEW_DESC desc {};

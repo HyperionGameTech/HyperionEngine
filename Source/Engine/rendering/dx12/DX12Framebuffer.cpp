@@ -34,7 +34,10 @@ DX12Framebuffer::DX12Framebuffer(const FramebufferDesc& framebufferDesc)
 
 DX12Framebuffer::~DX12Framebuffer()
 {
-    g_renderInterface->descriptorHeapManager->Free(DX12DescriptorHeapType::RTV, std::move(m_rtvDescriptorHandle));
+    if (!m_isExternalRTV)
+    {
+        g_renderInterface->descriptorHeapManager->Free(DX12DescriptorHeapType::RTV, std::move(m_rtvDescriptorHandle));
+    }
     g_renderInterface->descriptorHeapManager->Free(DX12DescriptorHeapType::DSV, std::move(m_dsvDescriptorHandle));
 
     m_attachmentMap.Reset();
@@ -49,7 +52,10 @@ RendererResult DX12Framebuffer::Create()
     
     Vec2u imageExtent;
 
-    m_framebufferDesc.numAttachments = 0;
+    if (!m_isExternalRTV)
+    {
+        m_framebufferDesc.numAttachments = 0;
+    }
 
     for (const auto& it : m_attachmentMap.attachments)
     {
@@ -288,6 +294,28 @@ void DX12Framebuffer::BeginCapture(DX12CommandBuffer* commandBuffer)
         // Depth only rendering
         commandList->OMSetRenderTargets(0, nullptr, FALSE, &dsvHandle);
     }
+    else if (m_rtvDescriptorHandle.IsValid() && m_attachmentMap.Size() == 0)
+    {
+        // External RTV handle (e.g. from swapchain back buffer) with no managed attachments
+        if (m_externalRTResource != nullptr)
+        {
+            D3D12_RESOURCE_BARRIER barrier {};
+            barrier.Type = D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
+            barrier.Flags = D3D12_RESOURCE_BARRIER_FLAG_NONE;
+            barrier.Transition.pResource = m_externalRTResource;
+            barrier.Transition.Subresource = D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES;
+            barrier.Transition.StateBefore = D3D12_RESOURCE_STATE_PRESENT;
+            barrier.Transition.StateAfter = D3D12_RESOURCE_STATE_RENDER_TARGET;
+            commandList->ResourceBarrier(1, &barrier);
+        }
+
+        commandList->OMSetRenderTargets(
+            1,
+            &m_rtvDescriptorHandle.cpuHandle,
+            FALSE,
+            nullptr
+        );
+    }
 
     m_isRecording = true;
 }
@@ -312,6 +340,19 @@ void DX12Framebuffer::EndCapture(DX12CommandBuffer* commandBuffer)
             // Transition color attachment to shader readable state
             image->InsertBarrier(commandBuffer, RS_SHADER_RESOURCE, ShaderModuleType::Pixel);
         }
+    }
+
+    // Transition external RTV (swapchain back buffer) back to present state
+    if (m_externalRTResource != nullptr && m_attachmentMap.Size() == 0)
+    {
+        D3D12_RESOURCE_BARRIER barrier {};
+        barrier.Type = D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
+        barrier.Flags = D3D12_RESOURCE_BARRIER_FLAG_NONE;
+        barrier.Transition.pResource = m_externalRTResource;
+        barrier.Transition.Subresource = D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES;
+        barrier.Transition.StateBefore = D3D12_RESOURCE_STATE_RENDER_TARGET;
+        barrier.Transition.StateAfter = D3D12_RESOURCE_STATE_PRESENT;
+        commandBuffer->GetCommandList()->ResourceBarrier(1, &barrier);
     }
 
     m_isRecording = false;

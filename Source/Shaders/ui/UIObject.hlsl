@@ -35,15 +35,15 @@ struct VSOutput
 DECLARE_SRV_DYNAMIC(Default, CamerasBuffer) StructuredBuffer<Camera> _cameras_buffer;
 #define camera _cameras_buffer[0]
 
-DECLARE_SRV_DYNAMIC(Default, EntityInstanceBatchesBuffer) StructuredBuffer<UIEntityInstanceBatch> currentBatchBuffer;
-#define currentBatch currentBatchBuffer[0]
-
+DECLARE_SRV_DYNAMIC(Default, EntityInstanceBatchesBuffer) ByteAddressBuffer currentBatchBuffer;
 #undef OBJECT_INDEX
 #define OBJECT_INDEX (currentBatch.indices[instanceId >> 2][instanceId & 3])
 
 VSOutput VSMain(VSInput input, uint instanceId : SV_InstanceID)
 {
     VSOutput output;
+    
+    UIEntityInstanceBatch currentBatch = currentBatchBuffer.Load<UIEntityInstanceBatch>(0);
 
     float2 clamped_offset = currentBatch.offsets[instanceId].xy;
     float2 size = currentBatch.sizes[instanceId].xy;

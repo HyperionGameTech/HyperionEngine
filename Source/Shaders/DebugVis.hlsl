@@ -59,8 +59,8 @@ DECLARE_SRV_DYNAMIC(DebugDrawerDescriptorSet, ImmediateDrawsBuffer) StructuredBu
 #ifdef INSTANCING
 DECLARE_SRV(DebugDrawerDescriptorSet, EntitiesBuffer) StructuredBuffer<Entity> entities;
 
-DECLARE_SRV_DYNAMIC(DebugDrawerDescriptorSet, EntityInstanceBatchesBuffer) StructuredBuffer<MeshEntityInstanceBatch> entity_instance_batch_buffer;
-#define entity_instance_batch entity_instance_batch_buffer[0]
+DECLARE_SRV_DYNAMIC(DebugDrawerDescriptorSet, EntityInstanceBatchesBuffer) ByteAddressBuffer entity_instance_batch_buffer;
+#define entity_instance_batch entity_instance_batch_buffer.Load<MeshEntityInstanceBatch>(0)
 #else // !INSTANCING
 DECLARE_BUFFER_DYNAMIC(DebugDrawerDescriptorSet, CBuffer) cbuffer CBuffer
 {

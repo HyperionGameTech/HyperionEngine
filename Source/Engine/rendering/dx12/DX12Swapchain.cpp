@@ -9,6 +9,7 @@
 #include <rendering/dx12/DX12Swapchain.hpp>
 #include <rendering/dx12/DX12RenderInterface.hpp>
 #include <rendering/dx12/DX12GpuImage.hpp>
+#include <rendering/dx12/DX12Framebuffer.hpp>
 
 #include <DX12Swapchain.generated.inl>
 
@@ -16,19 +17,24 @@ namespace Hyperion {
 
 extern DX12RenderInterface* g_renderInterface;
 
+static constexpr bool AllowTearingDefault = true;
+static constexpr bool VSyncDefault = false;
+
 #pragma region DX12Swapchain
 
 DX12Swapchain::DX12Swapchain(HWND hwnd, const Vec2u& extent)
     : SwapchainBase(extent),
       m_hwnd(hwnd),
       m_currentBackBufferIndex(0),
-      m_allowTearing(false),
-      m_vsync(true)
+      m_allowTearing(AllowTearingDefault),
+      m_vsync(VSyncDefault)
 {
 }
 
 DX12Swapchain::~DX12Swapchain()
 {
+    m_framebuffers.Clear();
+
     if (m_rtvDescriptorHandle.IsValid())
     {
         g_renderInterface->descriptorHeapManager->Free(DX12DescriptorHeapType::RTV, std::move(m_rtvDescriptorHandle));
@@ -70,6 +76,21 @@ RendererResult DX12Swapchain::Create()
         {
             m_allowTearing = (allowTearing == TRUE);
         }
+        else
+        {
+            m_allowTearing = false;
+        }
+    }
+    else
+    {
+        m_allowTearing = false;
+    }
+
+    HYP_LOG(RenderingBackend, Info, "DX12 swapchain tearing support: {}", m_allowTearing);
+
+    if (m_extent.Volume() == 0)
+    {
+        return HYP_MAKE_ERROR(RendererError, "Cannot create swapchain with zero extent");
     }
 
     DXGI_SWAP_CHAIN_DESC1 swapChainDesc {};
@@ -132,17 +153,51 @@ RendererResult DX12Swapchain::Create()
         rtvHandle.ptr += rtvIncrement;
     }
 
+    // Create framebuffers for each back buffer
+    m_framebuffers.Clear();
+    m_framebuffers.Resize(swapChainDesc.BufferCount);
+
+    for (uint32 i = 0; i < swapChainDesc.BufferCount; i++)
+    {
+        FramebufferDesc framebufferDesc {};
+        framebufferDesc.extent = m_extent;
+        framebufferDesc.renderPassMode = RenderPassMode::Present;
+
+        DX12FramebufferRef framebuffer = g_renderInterface->MakeFramebuffer(framebufferDesc);
+        Assert(framebuffer.IsValid());
+
+        framebuffer->SetExternalRTVHandle(m_rtvHandles[i], m_backBuffers[i], m_extent.x, m_extent.y);
+        CheckResultOrReturn(framebuffer->Create());
+
+        m_framebuffers[i] = framebuffer;
+    }
+
+    m_acquiredImageIndex = m_currentBackBufferIndex;
+
     return {};
 }
 
 void DX12Swapchain::SetExtent(Vec2u newExtent)
 {
+    if (m_extent == newExtent)
+    {
+        return;
+    }
+
     m_extent = newExtent;
+    m_needsRecreate = true;
 }
 
 void DX12Swapchain::Recreate()
 {
     if (!IsCreated())
+    {
+        return;
+    }
+
+    // Don't release or resize if extent is zero (e.g. window is minimized).
+    // Wait for a valid extent before proceeding.
+    if (m_extent.Volume() == 0)
     {
         return;
     }
@@ -196,6 +251,33 @@ void DX12Swapchain::Recreate()
 
         rtvHandle.ptr += rtvIncrement;
     }
+
+    // Recreate framebuffers for each back buffer
+    m_framebuffers.Clear();
+    m_framebuffers.Resize(desc.BufferCount);
+
+    for (uint32 i = 0; i < desc.BufferCount; i++)
+    {
+        FramebufferDesc framebufferDesc {};
+        framebufferDesc.extent = m_extent;
+        framebufferDesc.renderPassMode = RenderPassMode::Present;
+
+        DX12FramebufferRef framebuffer = g_renderInterface->MakeFramebuffer(framebufferDesc);
+        Assert(framebuffer.IsValid());
+
+        framebuffer->SetExternalRTVHandle(m_rtvHandles[i], m_backBuffers[i], m_extent.x, m_extent.y);
+        if (!framebuffer->Create())
+        {
+            HYP_LOG(RenderingBackend, Error, "Failed to create swapchain framebuffer during recreation");
+            return;
+        }
+
+        m_framebuffers[i] = framebuffer;
+    }
+
+    m_acquiredImageIndex = m_currentBackBufferIndex;
+
+    m_needsRecreate = false;
 }
 
 void DX12Swapchain::PrepareForFrame(DX12Frame* frame)
@@ -214,17 +296,31 @@ void DX12Swapchain::PresentFrame(DX12Frame* frame)
     }
 
     UINT syncInterval = m_vsync ? 1 : 0;
-    UINT flags = (m_allowTearing && !m_vsync) ? DXGI_PRESENT_ALLOW_TEARING : 0;
+    UINT flags = 0;
+
+    if (m_allowTearing && !m_vsync)
+    {
+        flags = DXGI_PRESENT_ALLOW_TEARING;
+    }
+
+    static bool s_loggedPresentInfo = false;
+    if (!s_loggedPresentInfo)
+    {
+        HYP_LOG(RenderingBackend, Info, "DX12 Present params — vsync: {}, tearing: {}, syncInterval: {}, flags: {}",
+            m_vsync, m_allowTearing, syncInterval, flags);
+        s_loggedPresentInfo = true;
+    }
 
     HRESULT hr = m_swapChain->Present(syncInterval, flags);
 
-    if (FAILED(hr))
+    if (FAILED(hr) && hr != DXGI_ERROR_WAS_STILL_DRAWING)
     {
         HYP_LOG(RenderingBackend, Error, "Failed to present swapchain! Error: {}", hr);
-        // Handle device lost etc?
+        return;
     }
 
     m_currentBackBufferIndex = m_swapChain->GetCurrentBackBufferIndex();
+    m_acquiredImageIndex = m_currentBackBufferIndex;
 }
 
 #pragma endregion DX12Swapchain

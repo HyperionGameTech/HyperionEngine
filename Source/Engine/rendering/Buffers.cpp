@@ -9,6 +9,7 @@
 #include <rendering/RenderInterface.hpp>
 #include <rendering/CommandRecorder.hpp>
 #include <rendering/Buffers.hpp>
+#include <rendering/BufferCache.hpp>
 #include <rendering/Frame.hpp>
 
 #include <rendering/util/DeletionQueue.hpp>
@@ -60,15 +61,7 @@ struct StagingBufferPoolImpl
     void OnFrameStart()
     {
         auto& used = usedBuffers[GetFrameCounter() % NumFramesInFlight];
-
-        // recycle it
-        for (CachedStagingBuffer& usedBuffer : used)
-        {
-            auto lowerBoundIt = cachedBuffers.LowerBound(usedBuffer);
-            cachedBuffers.Insert(lowerBoundIt, std::move(usedBuffer));
-        }
-
-        used.Clear();
+        TBufferCache<CachedStagingBuffer, GpuBufferRef>::RecycleUsedBuffers(used, cachedBuffers);
     }
 
     void OnFrameEnd()
@@ -103,38 +96,25 @@ struct StagingBufferPoolImpl
 
         const uint32 currFrame = GetFrameCounter();
 
-        auto lowerBoundIt = cachedBuffers.LowerBound(CachedStagingBuffer { bufferSize });
+        CachedStagingBuffer bestMatchEntry;
+        auto bestMatchIt = TBufferCache<CachedStagingBuffer, GpuBufferRef>::FindBestMatch(
+            cachedBuffers, bufferSize, bestMatchEntry);
 
-        // unused one (different frame)
-        for (auto it = lowerBoundIt != cachedBuffers.End() ? lowerBoundIt : cachedBuffers.Begin();
-            it != cachedBuffers.End();)
+        // Use the best match if found
+        if (bestMatchIt != cachedBuffers.End())
         {
-            auto& cachedBuffer = *it;
+            bestMatchEntry.lastUsedFrame = currFrame;
 
-            // find first that fits to reuse and is not too big (don't want to waste space creating more larger buffers for those that need it after us)
-            if (cachedBuffer.size >= bufferSize && cachedBuffer.size < bufferSize * 2)
-            {
-                cachedBuffer.size = bufferSize;
-                cachedBuffer.lastUsedFrame = currFrame;
+            Assert(bestMatchEntry.buffer != nullptr
+                && bestMatchEntry.buffer->IsCreated()
+                && bestMatchEntry.buffer->Size() >= bestMatchEntry.size);
 
-                GpuBuffer* buffer = cachedBuffer.buffer.Get();
-
-                Assert(buffer != nullptr
-                    && buffer->IsCreated()
-                    && buffer->Size() >= bufferSize);
-                
-                auto& used = usedBuffers[currFrame % NumFramesInFlight];
-                auto cached = std::move(cachedBuffer);
-
-                cachedBuffers.Erase(it);
-
-                return used.PushBack(std::move(cached)).buffer.Get();
-            }
-
-            ++it;
+            auto& used = usedBuffers[currFrame % NumFramesInFlight];
+            return TBufferCache<CachedStagingBuffer, GpuBufferRef>::MoveToUsed(
+                cachedBuffers, &used, bestMatchIt, bestMatchEntry);
         }
 
-        // bump it up a bit
+        // Round up to minimum alignment
         bufferSize = MathUtil::NextMultiple(bufferSize, 256);
 
         // create new one if none found

@@ -13,9 +13,9 @@ int main(int argc, char** argv)
         return 1;
     }
 
-    game::DefaultGame defaultGame;
+    auto defaultGame = MakeUnique<game::DefaultGame>();
 
-    Hyp_SetGame(&defaultGame);
+    Hyp_SetGame(defaultGame.Get());
 
     if (!Hyp_LaunchThreads())
     {
