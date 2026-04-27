@@ -9,6 +9,8 @@
 #include <rendering/dx12/DX12Swapchain.hpp>
 #include <rendering/dx12/DX12RenderInterface.hpp>
 #include <rendering/dx12/DX12GpuImage.hpp>
+#include <rendering/dx12/DX12Framebuffer.hpp>
+#include <rendering/dx12/DX12CommandBuffer.hpp>
 
 #include <DX12Swapchain.generated.inl>
 
@@ -34,11 +36,15 @@ DX12Swapchain::~DX12Swapchain()
         g_renderInterface->descriptorHeapManager->Free(DX12DescriptorHeapType::RTV, std::move(m_rtvDescriptorHandle));
     }
 
-    for (ID3D12Resource* backBuffer : m_backBuffers)
-    {
-        /// since we don't use ComPtr for the backbuffers we need to call Release()
-        backBuffer->Release();
-    }
+    // Clear framebuffers first (they reference the images)
+    m_framebuffers.Clear();
+    
+    // Clear images (they hold references to the back buffer resources)
+    m_images.Clear();
+    
+    // Note: We don't need to manually Release() back buffers anymore
+    // because the DX12GpuImage wrappers now own them via ComPtr
+    m_backBuffers.Clear();
 }
 
 bool DX12Swapchain::IsCreated() const
@@ -112,9 +118,11 @@ RendererResult DX12Swapchain::Create()
         return HYP_MAKE_ERROR(RendererError, "Failed to allocate RTV descriptors for swapchain");
     }
 
-    // Create RTVs
+    // Create RTVs, GpuImages, and Framebuffers
     m_backBuffers.Resize(swapChainDesc.BufferCount);
     m_rtvHandles.Resize(swapChainDesc.BufferCount);
+    m_images.Clear();
+    m_framebuffers.Clear();
 
     const uint32 rtvIncrement = device->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_RTV);
     D3D12_CPU_DESCRIPTOR_HANDLE rtvHandle = m_rtvDescriptorHandle.cpuHandle;
@@ -128,6 +136,53 @@ RendererResult DX12Swapchain::Create()
 
         device->CreateRenderTargetView(m_backBuffers[i], nullptr, rtvHandle);
         m_rtvHandles[i] = rtvHandle;
+
+        // Create GpuImage wrapper for state tracking
+        TextureDesc textureDesc;
+        textureDesc.type = TextureType::Texture2D;
+        textureDesc.format = TextureFormat::RGBA8;
+        textureDesc.extent = Vec3u { m_extent.x, m_extent.y, 1 };
+        textureDesc.imageUsage = IU_ATTACHMENT | IU_SAMPLED;
+        
+        DX12GpuImageRef gpuImage = MakeHandle<DX12GpuImage>(textureDesc);
+        gpuImage->SetDebugName(NAME_FMT("SwapchainBackBuffer_{}", i));
+        
+        // Set the existing resource and mark as created
+        gpuImage->SetResource(m_backBuffers[i]);
+        //gpuImage->MarkAsCreated();
+        
+        // Set initial state to PRESENT (swapchain back buffers start in this state)
+        gpuImage->SetResourceState(ResourceState::RS_PRESENT);
+        
+        m_images.PushBack(gpuImage);
+
+        // Create framebuffer for this back buffer
+        FramebufferDesc framebufferDesc {};
+        framebufferDesc.extent = m_extent;
+        framebufferDesc.renderPassMode = RenderPassMode::Present;
+
+        DX12FramebufferRef framebuffer = MakeHandle<DX12Framebuffer>(framebufferDesc);
+        
+        // Create image view for the attachment
+        DX12GpuImageViewRef imageView = g_renderInterface->MakeImageView(gpuImage);
+        
+        framebuffer->AddAttachment(
+            0,
+            AttachmentDesc {
+                TextureType::Texture2D,
+                textureDesc.format,
+                LoadOperation::CLEAR,
+                StoreOperation::STORE
+            },
+            imageView);
+
+        RendererResult fbResult = framebuffer->Create();
+        if (!fbResult)
+        {
+            return HYP_MAKE_ERROR(RendererError, "Failed to create swapchain framebuffer");
+        }
+
+        m_framebuffers.PushBack(framebuffer);
 
         rtvHandle.ptr += rtvIncrement;
     }
@@ -147,12 +202,10 @@ void DX12Swapchain::Recreate()
         return;
     }
 
-    // Release back buffers before resizing
-    for (ID3D12Resource* buffer : m_backBuffers)
-    {
-        buffer->Release();
-    }
-
+    // Clear framebuffers and images before resizing
+    // (they hold references to the back buffer resources)
+    m_framebuffers.Clear();
+    m_images.Clear();
     m_backBuffers.Clear();
 
     HRESULT hr = m_swapChain->ResizeBuffers(
@@ -171,8 +224,7 @@ void DX12Swapchain::Recreate()
 
     m_currentBackBufferIndex = m_swapChain->GetCurrentBackBufferIndex();
 
-    // Re-create RTVs
-    // We can reuse the existing allocation since count didn't change
+    // Re-create RTVs, GpuImages, and Framebuffers
     ID3D12Device* device = g_renderInterface->GetDevice();
     const uint32 rtvIncrement = device->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_RTV);
     D3D12_CPU_DESCRIPTOR_HANDLE rtvHandle = m_rtvDescriptorHandle.cpuHandle;
@@ -193,6 +245,53 @@ void DX12Swapchain::Recreate()
 
         device->CreateRenderTargetView(m_backBuffers[i], nullptr, rtvHandle);
         m_rtvHandles[i] = rtvHandle;
+
+        // Create GpuImage wrapper for state tracking
+        TextureDesc textureDesc;
+        textureDesc.type = TextureType::Texture2D;
+        textureDesc.format = TextureFormat::RGBA8;
+        textureDesc.extent = Vec3u { m_extent.x, m_extent.y, 1 };
+        textureDesc.imageUsage = IU_ATTACHMENT | IU_SAMPLED;
+        
+        DX12GpuImageRef gpuImage = MakeHandle<DX12GpuImage>(textureDesc);
+        gpuImage->SetDebugName(NAME_FMT("SwapchainBackBuffer_{}", i));
+        
+        // Set the existing resource and mark as created
+        gpuImage->SetResource(m_backBuffers[i]);
+        
+        // Set initial state to PRESENT (swapchain back buffers start in this state)
+        gpuImage->SetResourceState(ResourceState::RS_PRESENT);
+        
+        m_images.PushBack(gpuImage);
+
+        // Create framebuffer for this back buffer
+        FramebufferDesc framebufferDesc {};
+        framebufferDesc.extent = m_extent;
+        framebufferDesc.renderPassMode = RenderPassMode::Present;
+
+        DX12FramebufferRef framebuffer = MakeHandle<DX12Framebuffer>(framebufferDesc);
+        
+        // Create image view for the attachment
+        DX12GpuImageViewRef imageView = g_renderInterface->MakeImageView(gpuImage);
+        
+        framebuffer->AddAttachment(
+            0,
+            AttachmentDesc {
+                TextureType::Texture2D,
+                textureDesc.format,
+                LoadOperation::CLEAR,
+                StoreOperation::STORE
+            },
+            imageView);
+
+        RendererResult fbResult = framebuffer->Create();
+        if (!fbResult)
+        {
+            HYP_LOG(RenderingBackend, Error, "Failed to create swapchain framebuffer during recreation");
+            return;
+        }
+
+        m_framebuffers.PushBack(framebuffer);
 
         rtvHandle.ptr += rtvIncrement;
     }

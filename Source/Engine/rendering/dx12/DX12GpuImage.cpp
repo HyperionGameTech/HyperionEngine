@@ -49,7 +49,17 @@ DX12GpuImage::~DX12GpuImage()
                 }));
         }
 
-        m_resource.Reset();
+        // Only reset the resource if we own it
+        // (for swapchain back buffers, DXGI manages the lifetime)
+        if (m_isHandleOwned)
+        {
+            m_resource.Reset();
+        }
+        else
+        {
+            // Just detach without releasing
+            m_resource.Detach();
+        }
 
         m_isHandleOwned = true;
 
@@ -62,6 +72,17 @@ DX12GpuImage::~DX12GpuImage()
 bool DX12GpuImage::IsCreated() const
 {
     return m_resource != nullptr;
+}
+
+void DX12GpuImage::SetResource(ID3D12Resource* resource)
+{
+    Assert(!IsCreated(), "Cannot SetResource on an already created GpuImage");
+    Assert(resource != nullptr, "Cannot set null resource");
+
+    m_resource = resource;
+    // Mark as not owned since we're wrapping an existing resource
+    // (e.g., swapchain back buffer that DXGI manages)
+    m_isHandleOwned = false;
 }
 
 bool DX12GpuImage::IsOwned() const

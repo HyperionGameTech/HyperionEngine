@@ -41,6 +41,8 @@ public:
         return m_allocation.Get();
     }
 
+    void SetResource(ID3D12Resource* resource);
+
     bool IsCreated() const override;
     bool IsOwned() const override;
 
