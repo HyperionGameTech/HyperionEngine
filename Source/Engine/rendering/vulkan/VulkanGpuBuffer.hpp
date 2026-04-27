@@ -41,6 +41,11 @@ public:
         return m_handle;
     }
 
+    HYP_FORCE_INLINE VkBufferUsageFlags GetBufferUsageFlags() const
+    {
+        return m_vkBufferUsageFlags;
+    }
+
     bool IsCreated() const override;
     bool IsCpuAccessible() const override;
 
@@ -101,7 +106,7 @@ private:
 
     VkBuffer m_handle = VK_NULL_HANDLE;
 
-    VkBufferUsageFlags m_vkBufferUsageFlags = 0;
+    VkBufferUsageFlags m_vkBufferUsageFlags = VK_BUFFER_USAGE_TRANSFER_DST_BIT;
     VmaMemoryUsage m_vmaUsage = VMA_MEMORY_USAGE_UNKNOWN;
     VmaAllocationCreateFlags m_vmaAllocationCreateFlags = 0;
     VmaAllocation m_vmaAllocation = VK_NULL_HANDLE;

@@ -355,6 +355,9 @@ void VulkanGpuBuffer::CopyFrom(
         return;
     }
 
+    AssertDebug(srcBuffer->GetBufferUsageFlags() & VK_BUFFER_USAGE_TRANSFER_SRC_BIT);
+    AssertDebug(GetBufferUsageFlags() & VK_BUFFER_USAGE_TRANSFER_DST_BIT);
+
     VkBufferCopy region {};
     region.size = count;
 
@@ -389,6 +392,9 @@ void VulkanGpuBuffer::CopyFrom(
     }
 
     Assert((srcOffset + count <= srcBuffer->Size()) && (dstOffset + count <= Size()), "Copy out of bounds!");
+
+    //AssertDebug(srcBuffer->GetBufferUsageFlags() & VK_BUFFER_USAGE_TRANSFER_SRC_BIT);
+    //AssertDebug(GetBufferUsageFlags() & VK_BUFFER_USAGE_TRANSFER_DST_BIT);
 
     VkBufferCopy region {};
     region.size = count;
@@ -540,7 +546,7 @@ VkBufferCreateInfo VulkanGpuBuffer::GetBufferCreateInfo() const
 
     VkBufferCreateInfo vkBufferInfo { VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO };
     vkBufferInfo.size = m_size;
-    vkBufferInfo.usage = m_vkBufferUsageFlags | VK_BUFFER_USAGE_TRANSFER_DST_BIT;
+    vkBufferInfo.usage = m_vkBufferUsageFlags;
     vkBufferInfo.pQueueFamilyIndices = bufferFamilyIndices;
     vkBufferInfo.queueFamilyIndexCount = ArraySize(bufferFamilyIndices);
 

@@ -3,8 +3,8 @@
 
 DECLARE_SRV(BlitDescriptorSet, InputTexture) Texture2D<float4> src_image;
 DECLARE_UAV(BlitDescriptorSet, OutputTexture) RWTexture2D<float4> dst_image;
-DECLARE_SAMPLER(BlitDescriptorSet, LinearSampler) SamplerState linear_sampler;
-DECLARE_BUFFER(BlitDescriptorSet, UniformBuffer) cbuffer BlitUniforms
+DECLARE_SAMPLER(BlitDescriptorSet, SamplerLinear) SamplerState SamplerLinear;
+DECLARE_BUFFER_DYNAMIC(BlitDescriptorSet, BlitConstants) cbuffer BlitConstants
 {
     uint2 src_rect_min;
     uint2 src_rect_max;
@@ -32,7 +32,7 @@ void CSMain(uint3 dispatchThreadID : SV_DispatchThreadID)
         src_rect_min.y + (float(dst_coord.y - dst_rect_min.y) + 0.5) * float(src_rect_size.y) / float(dst_rect_size.y)
     ) / float2(src_dimensions);
 
-    const float4 color = src_image.SampleLevel(linear_sampler, uv, src_mip_level);
+    const float4 color = src_image.SampleLevel(SamplerLinear, uv, src_mip_level);
 
     dst_image[dst_coord] = color;
 }

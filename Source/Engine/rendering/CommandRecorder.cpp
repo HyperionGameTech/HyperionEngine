@@ -17,7 +17,7 @@
 #include <rendering/ShaderInstance.hpp>
 #include <rendering/Shader.hpp>
 #include <rendering/Mesh.hpp>
-
+#include <rendering/CBufferAllocator.hpp>
 #include <rendering/RayTracingPipeline.hpp>
 #include <rendering/AccelerationStructure.hpp>
 
@@ -132,6 +132,9 @@ void DrawIndexedIndirect::InvokeStatic(CmdBase* cmd, CommandBuffer* commandBuffe
 
 #pragma region Blit
 
+#ifndef HYP_VULKAN
+
+/// Generic blit pass for D3D since it doesn't have something analogous to vkCmdBlitImage().
 static void BlitImages(
     GpuImage* srcImage,
     GpuImage* dstImage,
@@ -255,11 +258,12 @@ static void BlitImages(
             uniforms.srcMipLevel = srcMip;
 
             /* Create and fill uniform buffer */
-            GpuBufferRef uniformBuffer = g_renderInterface->MakeGpuBuffer(
-                GpuBufferType::CONSTANT_BUFFER, sizeof(BlitUniformData));
-            uniformBuffer->Create();
-            uniformBuffer->Copy(sizeof(BlitUniformData), &uniforms);
-            uniformBuffer->Flush(0, sizeof(BlitUniformData));
+            GpuBuffer* cbuffer = nullptr;
+            size_t cbufferOffset = 0;
+            size_t cbufferSize = 0;
+
+            g_renderInterface->cbufferAllocator->Write(&uniforms);
+            g_renderInterface->cbufferAllocator->Commit(cbuffer, cbufferOffset, cbufferSize);
 
             /* Bind SRV input */
             ShaderUniform& inputUniform = state.shaderUniforms[0];
@@ -273,12 +277,15 @@ static void BlitImages(
 
             /* Bind uniform buffer */
             ShaderUniform& ubUniform = state.shaderUniforms[2];
-            ubUniform = ShaderUniform("UniformBuffer"_sh, uniformBuffer.Get());
+            ubUniform = ShaderUniform("BlitConstants"_sh, cbuffer);
+            state.shaderUniformBufferOffsets[2] = uint32(cbufferOffset);
+            state.shaderUniformBufferOffsetStrides[2] = uint32(cbufferSize);
             state.dirtyUniforms |= 1u << 2;
+            state.dirtyBufferOffsets |= 1u << 2;
 
             /* Bind sampler */
             ShaderUniform& samplerUniform = state.shaderUniforms[3];
-            samplerUniform = ShaderUniform("LinearSampler"_sh, linearSampler);
+            samplerUniform = ShaderUniform("SamplerLinear"_sh, linearSampler);
             state.dirtyUniforms |= 1u << 3;
 
             /* Commit compute pipeline and dispatch */
@@ -326,7 +333,6 @@ static void BlitImages(
             /* Transfer transient resources to the deletion queue */
             EnqueueDeletion(std::move(srcView));
             EnqueueDeletion(std::move(tempView));
-            EnqueueDeletion(std::move(uniformBuffer));
         }
     }
 
@@ -339,6 +345,7 @@ static void BlitImages(
     /* Clean up the temp image */
     EnqueueDeletion(std::move(tempImage));
 }
+#endif
 
 void Blit::InvokeStatic(CmdBase* cmd, CommandBuffer* commandBuffer)
 {
@@ -378,7 +385,11 @@ void Blit::InvokeStatic(CmdBase* cmd, CommandBuffer* commandBuffer)
         dstSubResource.numLayers = dstImage->NumArrayLayers();
     }
 
+#ifdef HYP_VULKAN
+    dstImage->Blit(commandBuffer, srcImage, srcRect, dstRect, srcSubResource, dstSubResource);
+#else
     BlitImages(srcImage, dstImage, srcRect, dstRect, srcSubResource, dstSubResource, commandBuffer);
+#endif
 }
 
 #pragma endregion Blit
@@ -388,6 +399,12 @@ void Blit::InvokeStatic(CmdBase* cmd, CommandBuffer* commandBuffer)
 void BlitRect::InvokeStatic(CmdBase* cmd, CommandBuffer* commandBuffer)
 {
     BlitRect* cmdCasted = static_cast<BlitRect*>(cmd);
+
+    GpuImage* srcImage = cmdCasted->m_srcImage;
+    GpuImage* dstImage = cmdCasted->m_dstImage;
+
+    Rect<uint32> srcRect = cmdCasted->m_srcRect;
+    Rect<uint32> dstRect = cmdCasted->m_dstRect;
 
     ImageSubResource srcSubResource;
     srcSubResource.baseMipLevel = 0;
@@ -400,7 +417,10 @@ void BlitRect::InvokeStatic(CmdBase* cmd, CommandBuffer* commandBuffer)
     dstSubResource.numLevels = uint8(cmdCasted->m_dstImage->NumMips());
     dstSubResource.baseArrayLayer = 0;
     dstSubResource.numLayers = cmdCasted->m_dstImage->NumArrayLayers();
-
+    
+#ifdef HYP_VULKAN
+    dstImage->Blit(commandBuffer, srcImage, srcRect, dstRect, srcSubResource, dstSubResource);
+#else
     BlitImages(
         cmdCasted->m_srcImage,
         cmdCasted->m_dstImage,
@@ -409,6 +429,7 @@ void BlitRect::InvokeStatic(CmdBase* cmd, CommandBuffer* commandBuffer)
         srcSubResource,
         dstSubResource,
         commandBuffer);
+#endif
 }
 
 #pragma endregion BlitRect

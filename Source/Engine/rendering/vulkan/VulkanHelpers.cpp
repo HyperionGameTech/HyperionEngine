@@ -414,13 +414,16 @@ VkBufferUsageFlags GetVkUsageFlags(GpuBufferType type)
     switch (type)
     {
     case GpuBufferType::MESH_VERTEX_BUFFER:
-        return VK_BUFFER_USAGE_VERTEX_BUFFER_BIT;
+        return VK_BUFFER_USAGE_VERTEX_BUFFER_BIT
+            | VK_BUFFER_USAGE_TRANSFER_DST_BIT;
     case GpuBufferType::MESH_INDEX_BUFFER:
-        return VK_BUFFER_USAGE_INDEX_BUFFER_BIT;
+        return VK_BUFFER_USAGE_INDEX_BUFFER_BIT
+            | VK_BUFFER_USAGE_TRANSFER_DST_BIT;
     case GpuBufferType::CONSTANT_BUFFER:
         return VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT;
     case GpuBufferType::STORAGE_BUFFER:
-        return VK_BUFFER_USAGE_STORAGE_BUFFER_BIT;
+        return VK_BUFFER_USAGE_STORAGE_BUFFER_BIT
+            | VK_BUFFER_USAGE_TRANSFER_DST_BIT;
     case GpuBufferType::READBACK_BUFFER:
         return VK_BUFFER_USAGE_STORAGE_BUFFER_BIT
             | VK_BUFFER_USAGE_TRANSFER_SRC_BIT
@@ -442,14 +445,17 @@ VkBufferUsageFlags GetVkUsageFlags(GpuBufferType type)
         return VK_BUFFER_USAGE_VERTEX_BUFFER_BIT
             | VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT                            /* for rt */
             | VK_BUFFER_USAGE_ACCELERATION_STRUCTURE_BUILD_INPUT_READ_ONLY_BIT_KHR /* for rt */
-            | VK_BUFFER_USAGE_STORAGE_BUFFER_BIT;
+            | VK_BUFFER_USAGE_STORAGE_BUFFER_BIT
+            | VK_BUFFER_USAGE_TRANSFER_DST_BIT;
     case GpuBufferType::RT_MESH_INDEX_BUFFER:
         return VK_BUFFER_USAGE_INDEX_BUFFER_BIT
             | VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT                            /* for rt */
             | VK_BUFFER_USAGE_ACCELERATION_STRUCTURE_BUILD_INPUT_READ_ONLY_BIT_KHR /* for rt */
-            | VK_BUFFER_USAGE_STORAGE_BUFFER_BIT;
+            | VK_BUFFER_USAGE_STORAGE_BUFFER_BIT
+            | VK_BUFFER_USAGE_TRANSFER_DST_BIT;
     case GpuBufferType::SCRATCH_BUFFER:
-        return VK_BUFFER_USAGE_STORAGE_BUFFER_BIT | VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT;
+        return VK_BUFFER_USAGE_STORAGE_BUFFER_BIT
+            | VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT;
     default:
         return 0;
     }

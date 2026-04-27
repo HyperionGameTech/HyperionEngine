@@ -911,7 +911,7 @@ static void RenderAll(
 
         cr << SetShaderUniform(numDrawCallUniforms++, "EntityInstanceBatchesBuffer"_sh,
             drawCallCollection.batchAllocator->GetStructuredBuffer().gpuBuffer,
-            ShaderDataOffset(entityInstanceBatch->batchIndex * stride, 0));
+            ShaderDataOffset(entityInstanceBatch->batchIndex * stride, stride));
                         
         if (meshProxy.skeleton != nullptr)
         {

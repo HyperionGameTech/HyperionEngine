@@ -266,6 +266,7 @@ void VulkanDescriptorSet::UpdateDirtyState(bool* outIsDirty)
                 descriptor.descriptorType = ToVkDescriptorType(layoutElement->type);
 
                 AssertDebug(ref->IsCreated(), "Buffer not initialized for descriptor set element: {}.{}[{}]", m_layout.GetName(), name, index);
+                AssertDebug(element.bufferStride != 0, "Buffer descriptor set element is zero sized: {}.{}[{}]", m_layout.GetName(), name, index);
 
                 descriptor.bufferInfo = VkDescriptorBufferInfo {
                     .buffer = ref->GetVulkanHandle(),

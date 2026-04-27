@@ -489,7 +489,7 @@ void FullScreenPass::CopyResultToPreviousTexture(Frame* frame, const RenderSetup
     cr << InsertBarrier(srcImage, RS_COPY_SRC);
     cr << InsertBarrier(dstImage, RS_COPY_DST);
 
-    cr << Blit(srcImage, dstImage);
+    cr << CopyImage(srcImage, dstImage, srcImage->GetTextureDesc().extent);
 
     cr << InsertBarrier(srcImage, RS_SHADER_RESOURCE);
     cr << InsertBarrier(dstImage, RS_SHADER_RESOURCE);
