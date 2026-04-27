@@ -141,13 +141,13 @@ struct StagingBufferPoolImpl
         CachedStagingBuffer newBuffer;
         newBuffer.size = bufferSize;
         newBuffer.lastUsedFrame = currFrame;
-        newBuffer.buffer = g_renderInterface->MakeGpuBuffer(GpuBufferType::STAGING_BUFFER, bufferSize, 256);
+        newBuffer.buffer = g_renderInterface->MakeGpuBuffer(GpuBufferType::STAGING_BUFFER, bufferSize);
 
 #if HYP_DEBUG_MODE
         newBuffer.buffer->SetDebugName(NAME("StagingBufferPoolTempBuffer"));
 #endif
 
-        Assert(newBuffer.buffer->Create());
+        CheckResult(newBuffer.buffer->Create());
 
         void* dataPtr = newBuffer.buffer->Map();
         Assert(dataPtr != nullptr);

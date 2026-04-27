@@ -84,6 +84,7 @@ DX12DescriptorHandle DX12DescriptorAllocator::Allocate(uint8 frameIndex, uint32 
 
     DX12DescriptorHandle descriptorHandle;
     descriptorHandle.count = count;
+    descriptorHandle.frameIndex = frameIndex;
     descriptorHandle.cpuHandle = { cpuStart.ptr + (incrementSize * allocationOffset) };
 
     if (gpuStart.ptr != 0)

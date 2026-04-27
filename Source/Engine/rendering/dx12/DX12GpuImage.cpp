@@ -164,16 +164,7 @@ RendererResult DX12GpuImage::Create(ResourceState initialState)
     D3D12_CLEAR_VALUE clearValue {};
     D3D12_CLEAR_VALUE* pClearValue = nullptr;
 
-    if (resourceDesc.Flags & D3D12_RESOURCE_FLAG_ALLOW_RENDER_TARGET)
-    {
-        clearValue.Format = resourceDesc.Format;
-        clearValue.Color[0] = 0.0f;
-        clearValue.Color[1] = 0.0f;
-        clearValue.Color[2] = 0.0f;
-        clearValue.Color[3] = 1.0f;
-        pClearValue = &clearValue;
-    }
-    else if (resourceDesc.Flags & D3D12_RESOURCE_FLAG_ALLOW_DEPTH_STENCIL)
+    if (resourceDesc.Flags & D3D12_RESOURCE_FLAG_ALLOW_DEPTH_STENCIL)
     {
         clearValue.DepthStencil.Depth = 1.0f;
         clearValue.DepthStencil.Stencil = 0;
@@ -198,6 +189,14 @@ RendererResult DX12GpuImage::Create(ResourceState initialState)
         }
 
         pClearValue = &clearValue;
+    }
+    // NOTE: Render targets omit the optimized clear value because the actual clear
+    // color used by ClearRenderTargetView varies per attachment (determined by
+    // AttachmentDesc::clearColor). Specifying a mismatched value triggers warning #820.
+    else if (resourceDesc.Flags & D3D12_RESOURCE_FLAG_ALLOW_RENDER_TARGET)
+    {
+        // Intentionally leave pClearValue as nullptr to avoid mismatched clear value warning.
+        // Fast clear optimization is not used; clear cost is acceptable.
     }
 
     D3D12MA::ALLOCATION_DESC allocDesc {};
@@ -495,17 +494,21 @@ void DX12GpuImage::InsertBarrier(
     D3D12_RESOURCE_STATES stateBefore = GetDX12State(effectiveCurrState);
     D3D12_RESOURCE_STATES stateAfter = GetDX12State(newState);
 
-    // If we don't know the current state (UNDEFINED), we can't issue a valid barrier.
-    // This happens when subresources have divergent states (some have different states than others).
-    // In this case, we can't update our tracking either since we don't know the actual GPU state.
-    // Just return and hope the caller knows what they're doing (e.g., initializing a resource).
-    // Note: RS_COMMON is a valid state we can transition from (freshly created resources).
-    if (effectiveCurrState == RS_UNDEFINED)
-    {
-        return;
-    }
+    // If we don't know the current state (UNDEFINED), we can't issue a single
+    // ALL_SUBRESOURCES barrier because subresources have divergent states.
+    // Instead, fall through to the per-subresource barrier loop below which
+    // transitions each subresource individually using the correct tracked state.
+    // Same applies when depth and stencil states have diverged — ALL_SUBRESOURCES
+    // would use the wrong before-state for one of the planes.
+    const bool stencilDiverged = (hasStencil && !onlyDepth && !onlyStencil
+        && currResourceState != RS_UNDEFINED
+        && currStencilState != currResourceState);
 
-    if (subResource.baseMipLevel == 0 && subResource.numLevels >= NumMips()
+    if (effectiveCurrState == RS_UNDEFINED || stencilDiverged)
+    {
+        // Fall through to per-subresource barrier processing
+    }
+    else if (subResource.baseMipLevel == 0 && subResource.numLevels >= NumMips()
         && subResource.baseArrayLayer == 0 && subResource.numLayers >= NumArrayLayers()
         && !onlyDepth && !onlyStencil)
     {
@@ -513,7 +516,7 @@ void DX12GpuImage::InsertBarrier(
         {
             return;
         }
-        
+         
         D3D12_RESOURCE_BARRIER barrier {};
         barrier.Type = D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
         barrier.Flags = D3D12_RESOURCE_BARRIER_FLAG_NONE;
@@ -609,8 +612,41 @@ void DX12GpuImage::InsertBarrier(
         }
     }
 
+    // If stencil and depth states diverged, we need to transition stencil
+    // subresources individually since we couldn't use ALL_SUBRESOURCES above.
+    if (stencilDiverged && !onlyStencil)
+    {
+        const D3D12_RESOURCE_STATES stencilStateBefore = GetDX12State(currStencilState);
+
+        if (stencilStateBefore != stateAfter)
+        {
+            for (uint8 mipLevel = subResource.baseMipLevel; mipLevel < maxMipLevels; mipLevel++)
+            {
+                for (uint16 arrayLayer = subResource.baseArrayLayer; arrayLayer < maxArrayLayers; arrayLayer++)
+                {
+                    const uint32 subResourceIndex = D3D12CalcSubresource(
+                        mipLevel,
+                        arrayLayer,
+                        1u,  // stencil plane
+                        NumMips(),
+                        NumArrayLayers());
+
+                    D3D12_RESOURCE_BARRIER barrier {};
+                    barrier.Type = D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
+                    barrier.Flags = D3D12_RESOURCE_BARRIER_FLAG_NONE;
+                    barrier.Transition.pResource = m_resource.Get();
+                    barrier.Transition.Subresource = subResourceIndex;
+                    barrier.Transition.StateBefore = stencilStateBefore;
+                    barrier.Transition.StateAfter = stateAfter;
+
+                    commandBuffer->GetCommandList()->ResourceBarrier(1, &barrier);
+                }
+            }
+        }
+    }
+
     // Update state tracking
-    if (onlyStencil)
+    if (onlyStencil || stencilDiverged)
     {
         m_stencilState = newState;
     }

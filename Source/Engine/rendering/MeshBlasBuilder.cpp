@@ -101,8 +101,16 @@ struct BuildMeshBlas : public RenderCommand
 
         singleTimeCommands->Push([this, packedVerticesSize, packedIndicesSize](CommandRecorder& cr)
             {
+                cr << InsertBarrier(verticesStagingBuffer.Get(), RS_COPY_SRC);
+                cr << InsertBarrier(indicesStagingBuffer.Get(), RS_COPY_SRC);
+                cr << InsertBarrier(packedVerticesBuffer.Get(), RS_COPY_DST);
+                cr << InsertBarrier(packedIndicesBuffer.Get(), RS_COPY_DST);
+
                 cr << CopyBuffer(verticesStagingBuffer, packedVerticesBuffer, packedVerticesSize);
                 cr << CopyBuffer(indicesStagingBuffer, packedIndicesBuffer, packedIndicesSize);
+
+                cr << InsertBarrier(packedVerticesBuffer.Get(), RS_SHADER_RESOURCE);
+                cr << InsertBarrier(packedIndicesBuffer.Get(), RS_SHADER_RESOURCE);
             });
 
         CheckResultOrReturn(singleTimeCommands->Execute());

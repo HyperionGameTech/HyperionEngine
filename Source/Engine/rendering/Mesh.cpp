@@ -450,8 +450,15 @@ void Mesh::UploadGpuData()
             // use prerender queue to copy from staging buffers to gpu buffers
             CommandRecorder& cr = frame->preRenderCommands;
 
+            cr << InsertBarrier(stagingBuffer, RS_COPY_SRC);
+            cr << InsertBarrier(vertexBuffer, RS_COPY_DST);
+            cr << InsertBarrier(indexBuffer, RS_COPY_DST);
+
             cr << CopyBuffer(stagingBuffer, vertexBuffer, packedVerticesSize);
             cr << CopyBuffer(stagingBuffer, indexBuffer, ByteUtil::AlignAs(packedVerticesSize, StagingBufferAlignment), 0, packedIndicesSize);
+
+            cr << InsertBarrier(vertexBuffer, RS_VERTEX_BUFFER);
+            cr << InsertBarrier(indexBuffer, RS_INDEX_BUFFER);
 
             if (mesh->m_vertexBuffer != vertexBuffer)
             {

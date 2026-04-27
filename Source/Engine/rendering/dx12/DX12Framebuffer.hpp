@@ -173,6 +173,7 @@ private:
 
     bool m_isRecording;
     bool m_isCreated;
+    bool m_hasBeenCleared;
 };
 
 } // namespace Hyperion

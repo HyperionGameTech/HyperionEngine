@@ -26,7 +26,8 @@ DX12Framebuffer::DX12Framebuffer(const FramebufferDesc& framebufferDesc)
     : FramebufferBase(framebufferDesc),
       m_attachmentMap(),
       m_isRecording(false),
-      m_isCreated(false)
+      m_isCreated(false),
+      m_hasBeenCleared(false)
 {
     m_attachmentMap.framebufferWeak = MakeWeakRef(this);
 }

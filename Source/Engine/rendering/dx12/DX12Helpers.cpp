@@ -614,7 +614,21 @@ D3D12_SAMPLER_DESC GetSamplerDesc(const DX12Sampler* sampler)
 
     desc.MipLODBias = 0.0f;
     desc.MaxAnisotropy = 1;
-    desc.ComparisonFunc = ToDX12SamplerCompareOp(sampler->GetCompareOp());
+
+    const SamplerCompareOp compareOp = sampler->GetCompareOp();
+    if (compareOp == SamplerCompareOp::None)
+    {
+        // Non-comparison sampler: leave filter as-is and skip ComparisonFunc.
+        // ComparisonFunc stays at 0 from zero-initialization, which D3D12
+        // validation ignores for non-comparison filters.
+    }
+    else
+    {
+        // Upgrade the filter to a comparison type
+        desc.Filter = D3D12_FILTER(static_cast<UINT>(desc.Filter) | 0x80);
+        desc.ComparisonFunc = ToDX12SamplerCompareOp(compareOp);
+    }
+
     desc.MinLOD = 0.0f;
     desc.MaxLOD = D3D12_FLOAT32_MAX;
 

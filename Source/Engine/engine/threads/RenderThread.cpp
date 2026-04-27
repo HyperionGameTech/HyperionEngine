@@ -165,7 +165,8 @@ void RenderThread::Update()
             renderSetup.swapchain = swapchain;
             renderSetup.viewport = Viewport { swapchain->GetExtent() };
         }
-
+        
+#if 0
         for (World* world : worldsToRender)
         {
             AssertDebug(world != nullptr && world->IsReady());
@@ -177,6 +178,7 @@ void RenderThread::Update()
                 mainRenderer->RenderFrame(frame, renderSetup);
             }
         }
+#endif
 
         renderSetup.world = nullptr;
 
