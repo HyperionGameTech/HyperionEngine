@@ -325,6 +325,24 @@ void DX12Framebuffer::Clear(
 void DX12Framebuffer::SetDebugName(Name name)
 {
     FramebufferBase::SetDebugName(name);
+
+    if (!name.IsValid())
+    {
+        return;
+    }
+
+    // Propagate debug name to all attachments
+    for (const auto& it : m_attachmentMap)
+    {
+        DX12Attachment* attachment = it.second;
+        if (attachment != nullptr)
+        {
+            if (DX12GpuImageRef image = attachment->GetGpuImage(); image.IsValid())
+            {
+                image->SetDebugName(NAME_FMT("{}_RT_{}", *name, it.first));
+            }
+        }
+    }
 }
 #endif
 

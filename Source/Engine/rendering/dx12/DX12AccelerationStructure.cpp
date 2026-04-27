@@ -129,6 +129,21 @@ void DX12AccelerationStructureBase::RemoveGeometry(const DX12AccelerationGeometr
 void DX12AccelerationStructureBase::SetDebugName(Name name)
 {
     m_debugName = name;
+
+    if (!name.IsValid())
+    {
+        return;
+    }
+
+    if (m_buffer)
+    {
+        m_buffer->SetDebugName(name);
+    }
+
+    if (m_scratchBuffer)
+    {
+        m_scratchBuffer->SetDebugName(NAME_FMT("{}_scratch", *name));
+    }
 }
 
 #pragma endregion DX12AccelerationStructureBase

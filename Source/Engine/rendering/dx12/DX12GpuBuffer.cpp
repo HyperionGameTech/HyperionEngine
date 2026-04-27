@@ -467,6 +467,23 @@ void DX12GpuBuffer::Flush(size_t offset, size_t count)
 void DX12GpuBuffer::SetDebugName(Name name)
 {
     GpuBufferBase::SetDebugName(name);
+
+    if (!name.IsValid())
+    {
+        return;
+    }
+
+    WideString ws = *name;
+
+    if (m_resource)
+    {
+        m_resource->SetName(ws.Data());
+    }
+
+    if (m_allocation)
+    {
+        m_allocation->SetName(ws.Data());
+    }
 }
 #endif
 

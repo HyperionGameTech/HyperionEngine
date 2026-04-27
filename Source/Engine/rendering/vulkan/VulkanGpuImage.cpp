@@ -626,7 +626,6 @@ void VulkanGpuImage::InsertBarrier(
             }
         }
     }
-    
 #if HYP_DEBUG_MODE
     if (hasStencil && currResourceState != currStencilState)
     {

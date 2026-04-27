@@ -523,6 +523,23 @@ RendererResult DX12GraphicsPipeline::BuildRootSignature()
 void DX12GraphicsPipeline::SetDebugName(Name name)
 {
     GraphicsPipelineBase::SetDebugName(name);
+
+    if (!name.IsValid())
+    {
+        return;
+    }
+
+    WideString ws = *name;
+
+    if (m_pipelineState)
+    {
+        m_pipelineState->SetName(ws.Data());
+    }
+
+    if (m_rootSignature)
+    {
+        m_rootSignature->SetName(ws.Data());
+    }
 }
 #endif
 

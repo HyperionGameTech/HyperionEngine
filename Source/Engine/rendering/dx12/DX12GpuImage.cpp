@@ -222,6 +222,18 @@ RendererResult DX12GpuImage::Create(ResourceState initialState)
     if (!SUCCEEDED(hr))
         return HYP_MAKE_ERROR(RendererError, "Failed to create image resource!", hr);
 
+    // Set the initial resource state to match the actual GPU state
+    // RS_UNDEFINED/RS_PRE_INITIALIZED map to D3D12_RESOURCE_STATE_COMMON
+    if (initialState != RS_UNDEFINED && initialState != RS_PRE_INITIALIZED)
+    {
+        SetResourceState(initialState);
+    }
+    else
+    {
+        // When created with COMMON state, track it as RS_COMMON
+        SetResourceState(RS_COMMON);
+    }
+
     return {};
 }
 
@@ -284,14 +296,7 @@ HANDLE DX12GpuImage::GetNativeHandle() const
 
 ResourceState DX12GpuImage::GetSubResourceState(const ImageSubResource& subResource) const
 {
-    const uint32 subResourceIndex = D3D12CalcSubresource(
-        subResource.baseMipLevel,
-        subResource.baseArrayLayer,
-        0,
-        NumMips(),
-        NumArrayLayers());
-
-    auto it = m_subResourceStates.Find(subResourceIndex);
+    auto it = m_subResourceStates.Find(GetImageSubResourceKey(subResource));
     if (it != m_subResourceStates.End())
     {
         return it->second;
@@ -310,14 +315,7 @@ void DX12GpuImage::SetSubResourceState(const ImageSubResource& subResource, Reso
         return;
     }
 
-    const uint32 subResourceIndex = D3D12CalcSubresource(
-        subResource.baseMipLevel,
-        subResource.baseArrayLayer,
-        0,
-        NumMips(),
-        NumArrayLayers());
-
-    m_subResourceStates.Set(subResourceIndex, newState);
+    m_subResourceStates.Set(GetImageSubResourceKey(subResource), newState);
 }
 
 void DX12GpuImage::InsertBarrier(
@@ -350,6 +348,10 @@ void DX12GpuImage::InsertBarrier(
     bool onlyDepth,
     bool onlyStencil)
 {
+    // TEMP
+    onlyDepth = false;
+    onlyStencil = false;
+
     AssertDebug(newState != RS_UNDEFINED && newState != RS_PRE_INITIALIZED);
 
     if (m_resource == nullptr)
@@ -398,16 +400,17 @@ void DX12GpuImage::InsertBarrier(
 
             for (uint16 arrayLayer = subResource.baseArrayLayer; arrayLayer < maxArrayLayers; arrayLayer++)
             {
-                const uint32 subResourceIndex = D3D12CalcSubresource(
-                    mipLevel,
-                    arrayLayer,
-                    0,
-                    NumMips(),
-                    NumArrayLayers());
+                ImageSubResource currSubResource {};
+                currSubResource.baseMipLevel = uint8(mipLevel);
+                currSubResource.numLevels = 1;
+                currSubResource.baseArrayLayer = uint16(arrayLayer);
+                currSubResource.numLayers = 1;
+
+                const uint64 subResourceKey = GetImageSubResourceKey(currSubResource);
 
                 ResourceState foundResourceState;
 
-                auto it = m_subResourceStates.Find(subResourceIndex);
+                auto it = m_subResourceStates.Find(subResourceKey);
 
                 if (it != m_subResourceStates.End())
                 {
@@ -501,16 +504,24 @@ void DX12GpuImage::InsertBarrier(
     D3D12_RESOURCE_STATES stateBefore = GetDX12State(currResourceState);
     D3D12_RESOURCE_STATES stateAfter = GetDX12State(newState);
 
-    // Skip redundant barriers
-    if (stateBefore == stateAfter)
+    // If we don't know the current state (UNDEFINED), we can't issue a valid barrier.
+    // This happens when subresources have divergent states (some have different states than others).
+    // In this case, we can't update our tracking either since we don't know the actual GPU state.
+    // Just return and hope the caller knows what they're doing (e.g., initializing a resource).
+    // Note: RS_COMMON is a valid state we can transition from (freshly created resources).
+    if (currResourceState == RS_UNDEFINED)
     {
         return;
     }
 
-    // Full-image transition: single ALL_SUBRESOURCES barrier
     if (subResource.baseMipLevel == 0 && subResource.numLevels >= NumMips()
         && subResource.baseArrayLayer == 0 && subResource.numLayers >= NumArrayLayers())
     {
+        if (stateBefore == stateAfter)
+        {
+            return;
+        }
+        
         D3D12_RESOURCE_BARRIER barrier {};
         barrier.Type = D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
         barrier.Flags = D3D12_RESOURCE_BARRIER_FLAG_NONE;
@@ -538,12 +549,23 @@ void DX12GpuImage::InsertBarrier(
         return;
     }
 
-    // Partial subresource range: D3D12 does NOT support ranged subresource barriers,
-    // so we must issue one barrier per subresource (mip + array layer).
     for (uint8 mipLevel = subResource.baseMipLevel; mipLevel < maxMipLevels; mipLevel++)
     {
         for (uint16 arrayLayer = subResource.baseArrayLayer; arrayLayer < maxArrayLayers; arrayLayer++)
         {
+            ImageSubResource currSubResource {};
+            currSubResource.baseMipLevel = uint8(mipLevel);
+            currSubResource.numLevels = 1;
+            currSubResource.baseArrayLayer = uint16(arrayLayer);
+            currSubResource.numLayers = 1;
+
+            const uint64 subResourceKey = GetImageSubResourceKey(currSubResource);
+
+            // Determine current per-subresource state
+            auto stateIt = m_subResourceStates.Find(subResourceKey);
+            const ResourceState subResCurrentState = (stateIt != m_subResourceStates.End())
+                ? stateIt->second : GetResourceState();
+            
             const uint32 subResourceIndex = D3D12CalcSubresource(
                 mipLevel,
                 arrayLayer,
@@ -551,41 +573,39 @@ void DX12GpuImage::InsertBarrier(
                 NumMips(),
                 NumArrayLayers());
 
-            // Determine current per-subresource state
-            auto stateIt = m_subResourceStates.Find(subResourceIndex);
-            const ResourceState subResCurrentState = (stateIt != m_subResourceStates.End())
-                ? stateIt->second
-                : GetResourceState();
-
-            const D3D12_RESOURCE_STATES subResStateBefore = GetDX12State(subResCurrentState);
-
-            if (subResStateBefore != stateAfter)
+            // Only issue barrier and update tracking if we know the current state
+            if (subResCurrentState != RS_UNDEFINED && subResCurrentState != RS_COMMON)
             {
-                D3D12_RESOURCE_BARRIER barrier {};
-                barrier.Type = D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
-                barrier.Flags = D3D12_RESOURCE_BARRIER_FLAG_NONE;
-                barrier.Transition.pResource = m_resource.Get();
-                barrier.Transition.Subresource = subResourceIndex;
-                barrier.Transition.StateBefore = subResStateBefore;
-                barrier.Transition.StateAfter = stateAfter;
+                const D3D12_RESOURCE_STATES subResStateBefore = GetDX12State(subResCurrentState);
 
-                commandBuffer->GetCommandList()->ResourceBarrier(1, &barrier);
-            }
-
-            // Update state tracking
-            if (stateIt != m_subResourceStates.End())
-            {
-                stateIt->second = newState;
-
-                if (stateIt->second == m_resourceState)
+                if (subResStateBefore != stateAfter)
                 {
-                    // same state as overall image, remove from set
-                    m_subResourceStates.Erase(stateIt);
+                    D3D12_RESOURCE_BARRIER barrier {};
+                    barrier.Type = D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
+                    barrier.Flags = D3D12_RESOURCE_BARRIER_FLAG_NONE;
+                    barrier.Transition.pResource = m_resource.Get();
+                    barrier.Transition.Subresource = subResourceIndex;
+                    barrier.Transition.StateBefore = subResStateBefore;
+                    barrier.Transition.StateAfter = stateAfter;
+
+                    commandBuffer->GetCommandList()->ResourceBarrier(1, &barrier);
                 }
-            }
-            else if (newState != m_resourceState)
-            {
-                m_subResourceStates.Set(subResourceIndex, newState);
+
+                // Update state tracking (only if we know the actual state)
+                if (stateIt != m_subResourceStates.End())
+                {
+                    stateIt->second = newState;
+
+                    if (stateIt->second == m_resourceState)
+                    {
+                        // same state as overall image, remove from set
+                        m_subResourceStates.Erase(stateIt);
+                    }
+                }
+                else if (newState != m_resourceState)
+                {
+                    m_subResourceStates.Set(subResourceKey, newState);
+                }
             }
         }
     }
@@ -724,8 +744,6 @@ void DX12GpuImage::CopyFromBuffer(
     uint8 dstMipIndex,
     uint16 dstArrayLayer) const
 {
-    AssertDebug(GetResourceState() == RS_COPY_DST && srcBuffer->GetResourceState() == RS_COPY_SRC);
-
     const uint8 mipIdx = dstMipIndex != UINT8_MAX ? dstMipIndex : 0;
 
     ResourceState subResourceState = GetSubResourceState(ImageSubResource {
@@ -736,6 +754,7 @@ void DX12GpuImage::CopyFromBuffer(
     });
 
     AssertDebug(subResourceState == RS_COPY_DST);
+    AssertDebug(srcBuffer->GetResourceState() == RS_COPY_SRC);
 
     const bool isDepthStencil = m_textureDesc.IsDepthStencil();
 
@@ -1008,6 +1027,23 @@ DX12GpuImageViewRef DX12GpuImage::MakeLayerImageView(uint32 layerIndex) const
 void DX12GpuImage::SetDebugName(Name name)
 {
     GpuImageBase::SetDebugName(name);
+
+    if (!name.IsValid())
+    {
+        return;
+    }
+
+    WideString ws = *name;
+
+    if (m_resource)
+    {
+        m_resource->SetName(ws.Data());
+    }
+
+    if (m_allocation)
+    {
+        m_allocation->SetName(ws.Data());
+    }
 }
 #endif
 
