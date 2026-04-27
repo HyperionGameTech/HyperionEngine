@@ -39,6 +39,11 @@ public:
 
     void ResetTransientStates();
 
+    HYP_FORCE_INLINE DX12Fence* GetQueueSubmitFence() const
+    {
+        return m_queueSubmitFence;
+    }
+
 private:
     DX12Fence* m_queueSubmitFence;
 };

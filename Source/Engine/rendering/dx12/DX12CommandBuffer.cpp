@@ -9,7 +9,11 @@
 #include <rendering/dx12/DX12GpuBuffer.hpp>
 #include <rendering/dx12/DX12GpuImage.hpp>
 #include <rendering/dx12/DX12CommandBuffer.hpp>
+#include <rendering/dx12/DX12GraphicsPipeline.hpp>
 #include <rendering/dx12/DX12RenderInterface.hpp>
+#include <rendering/dx12/DX12Helpers.hpp>
+
+#include <rendering/Vertex.hpp>
 
 #include <DX12CommandBuffer.generated.inl>
 
@@ -22,6 +26,7 @@ extern DX12RenderInterface* g_renderInterface;
 DX12CommandBuffer::DX12CommandBuffer(D3D12_COMMAND_LIST_TYPE type)
     : m_type(type),
       m_isRecording(false),
+      m_currentAllocatorIndex(0),
       m_boundGraphicsPipeline(nullptr)
 {
 }
@@ -32,7 +37,7 @@ DX12CommandBuffer::~DX12CommandBuffer()
 
 bool DX12CommandBuffer::IsCreated() const
 {
-    return m_commandAllocator != nullptr && m_commandList != nullptr;
+    return m_commandAllocators[0] != nullptr && m_commandList != nullptr;
 }
 
 RendererResult DX12CommandBuffer::Create()
@@ -44,16 +49,19 @@ RendererResult DX12CommandBuffer::Create()
 
     ID3D12Device* device = g_renderInterface->GetDevice();
 
-    if (m_commandAllocator == nullptr)
+    for (uint32 i = 0; i < NumFramesInFlight; i++)
     {
-        HRESULT res = device->CreateCommandAllocator(m_type, IID_PPV_ARGS(&m_commandAllocator));
-        if (!SUCCEEDED(res))
+        if (m_commandAllocators[i] == nullptr)
         {
-            return HYP_MAKE_ERROR(RendererError, "Failed to create command allocator!", res);
+            HRESULT res = device->CreateCommandAllocator(m_type, IID_PPV_ARGS(&m_commandAllocators[i]));
+            if (!SUCCEEDED(res))
+            {
+                return HYP_MAKE_ERROR(RendererError, "Failed to create command allocator!", res);
+            }
         }
     }
 
-    HRESULT res = device->CreateCommandList(0, m_type, m_commandAllocator.Get(), nullptr, IID_PPV_ARGS(&m_commandList));
+    HRESULT res = device->CreateCommandList(0, m_type, m_commandAllocators[0].Get(), nullptr, IID_PPV_ARGS(&m_commandList));
     if (!SUCCEEDED(res))
         return HYP_MAKE_ERROR(RendererError, "Failed to create command list!", res);
 
@@ -64,12 +72,16 @@ RendererResult DX12CommandBuffer::Create()
 
 void DX12CommandBuffer::Begin()
 {
-    Assert(m_commandAllocator != nullptr);
     Assert(m_commandList != nullptr);
     Assert(!m_isRecording, "Command buffer is already recording!");
 
-    Assert(SUCCEEDED(m_commandAllocator->Reset()));
-    Assert(SUCCEEDED(m_commandList->Reset(m_commandAllocator.Get(), nullptr)));
+    const uint32 allocatorIndex = m_currentAllocatorIndex;
+    m_currentAllocatorIndex = (m_currentAllocatorIndex + 1) % NumFramesInFlight;
+
+    Assert(m_commandAllocators[allocatorIndex] != nullptr);
+
+    Assert(SUCCEEDED(m_commandAllocators[allocatorIndex]->Reset()));
+    Assert(SUCCEEDED(m_commandList->Reset(m_commandAllocators[allocatorIndex].Get(), nullptr)));
 
     m_isRecording = true;
 }
@@ -90,14 +102,34 @@ void DX12CommandBuffer::End()
 
 void DX12CommandBuffer::BindVertexBuffer(const DX12GpuBuffer* buffer)
 {
-    // @TODO
-    HYP_LOG(RenderingBackend, Warning, "DX12CommandBuffer::BindVertexBuffer() not implemented");
+    AssertDebug(buffer != nullptr);
+    AssertDebug(buffer->GetBufferType() == GpuBufferType::MESH_VERTEX_BUFFER,
+        "Not a vertex buffer! Got buffer type: %u", uint32(buffer->GetBufferType()));
+
+    D3D12_VERTEX_BUFFER_VIEW vbView = {};
+    vbView.BufferLocation = buffer->GetResource()->GetGPUVirtualAddress();
+    vbView.SizeInBytes = buffer->Size();
+
+    if (m_boundGraphicsPipeline != nullptr)
+    {
+        vbView.StrideInBytes = static_cast<UINT>(m_boundGraphicsPipeline->GetInputLayout().VertexSize());
+    }
+
+    m_commandList->IASetVertexBuffers(0, 1, &vbView);
 }
 
 void DX12CommandBuffer::BindIndexBuffer(const DX12GpuBuffer* buffer, GpuElemType elemType)
 {
-    // @TODO
-    HYP_LOG(RenderingBackend, Warning, "DX12CommandBuffer::BindIndexBuffer() not implemented");
+    AssertDebug(buffer != nullptr);
+    AssertDebug(buffer->GetBufferType() == GpuBufferType::MESH_INDEX_BUFFER,
+        "Not an index buffer! Got buffer type: %u", uint32(buffer->GetBufferType()));
+
+    D3D12_INDEX_BUFFER_VIEW ibView = {};
+    ibView.BufferLocation = buffer->GetResource()->GetGPUVirtualAddress();
+    ibView.SizeInBytes = buffer->Size();
+    ibView.Format = ToDXGIFormat(elemType);
+
+    m_commandList->IASetIndexBuffer(&ibView);
 }
 
 void DX12CommandBuffer::DrawIndexed(
@@ -105,16 +137,53 @@ void DX12CommandBuffer::DrawIndexed(
     uint32 numInstances,
     uint32 instanceIndex) const
 {
-    // @TODO
-    HYP_LOG(RenderingBackend, Warning, "DX12CommandBuffer::DrawIndexed() not implemented");
+    AssertDebug(m_boundGraphicsPipeline != nullptr);
+
+    m_commandList->DrawIndexedInstanced(
+        numIndices,
+        numInstances,
+        0,
+        0,
+        instanceIndex);
 }
 
 void DX12CommandBuffer::DrawIndexedIndirect(
     const DX12GpuBuffer* buffer,
     uint32 bufferOffset) const
 {
-    // @TODO
-    HYP_LOG(RenderingBackend, Warning, "DX12CommandBuffer::DrawIndexedIndirect() not implemented");
+    AssertDebug(m_boundGraphicsPipeline != nullptr);
+
+    static ID3D12CommandSignature* s_drawIndexedCommandSignature = nullptr;
+
+    if (s_drawIndexedCommandSignature == nullptr)
+    {
+        D3D12_INDIRECT_ARGUMENT_DESC argDesc = {};
+        argDesc.Type = D3D12_INDIRECT_ARGUMENT_TYPE_DRAW_INDEXED;
+
+        D3D12_COMMAND_SIGNATURE_DESC sigDesc = {};
+        sigDesc.ByteStride = sizeof(D3D12_DRAW_INDEXED_ARGUMENTS);
+        sigDesc.NumArgumentDescs = 1;
+        sigDesc.pArgumentDescs = &argDesc;
+
+        HRESULT hr = g_renderInterface->GetDevice()->CreateCommandSignature(
+            &sigDesc,
+            nullptr,
+            IID_PPV_ARGS(&s_drawIndexedCommandSignature));
+
+        if (FAILED(hr))
+        {
+            HYP_LOG(RenderingBackend, Error, "Failed to create draw indexed command signature!");
+            return;
+        }
+    }
+
+    m_commandList->ExecuteIndirect(
+        s_drawIndexedCommandSignature,
+        1,
+        buffer->GetResource(),
+        bufferOffset,
+        nullptr,
+        0);
 }
 
 void DX12CommandBuffer::Submit(

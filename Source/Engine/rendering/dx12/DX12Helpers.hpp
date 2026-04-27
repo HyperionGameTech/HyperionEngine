@@ -20,6 +20,7 @@ enum Topology : uint8;
 enum BlendModeFactor : uint8;
 enum StencilOp : uint8;
 enum StencilCompareOp : uint8;
+enum GpuElemType : uint8;
 
 class DX12GpuBuffer;
 class DX12GpuImage;
@@ -36,6 +37,8 @@ D3D12_RESOURCE_STATES ToDX12ResourceStates(ResourceState state);
 D3D12_BLEND ToDX12Blend(BlendModeFactor factor);
 D3D12_CULL_MODE ToDX12CullMode(FaceCullMode mode);
 D3D12_PRIMITIVE_TOPOLOGY_TYPE ToDX12TopologyType(Topology topology);
+D3D12_PRIMITIVE_TOPOLOGY ToDX12PrimitiveTopology(Topology topology);
+DXGI_FORMAT ToDXGIFormat(GpuElemType elemType);
 D3D12_STENCIL_OP ToDX12StencilOp(StencilOp op);
 D3D12_COMPARISON_FUNC ToDX12ComparisonFunction(StencilCompareOp compareOp);
 D3D12_SRV_DIMENSION ToDX12SRVDimension(TextureType textureType);

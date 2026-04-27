@@ -308,6 +308,24 @@ DX12Frame* DX12RenderInterface::GetCurrentFrame() const
 
 DX12Frame* DX12RenderInterface::PrepareNextFrame()
 {
+    const uint32 frameCounter = GetFrameCounter();
+
+    DX12Frame* frame = GetCurrentFrame();
+
+    // Wait for the GPU to finish executing commands from this frame's previous use
+    // before we reset the command allocator and start recording new commands.
+    if (frame != nullptr && frame->GetQueueSubmitFence() != nullptr)
+    {
+        frame->GetQueueSubmitFence()->Wait(true);
+    }
+
+    // call frame callbacks after fence is waited on
+    if (frame->OnFrameEnd.AnyBound())
+    {
+        frame->OnFrameEnd(frame);
+        frame->OnFrameEnd.RemoveAllDetached();
+    }
+
     for (auto it = m_submittedAsyncComputes.Begin(); it != m_submittedAsyncComputes.End();)
     {
         DX12AsyncCompute* elem = *it;
@@ -315,7 +333,12 @@ DX12Frame* DX12RenderInterface::PrepareNextFrame()
         if (elem->CheckStatus())
         {
             elem->OnCompleted();
+            elem->OnCompleted.RemoveAllDetached();
 
+            AssertDebug(!elem->OnCompleted.AnyBound());
+
+            // @NOTE Don't need to lock mutex since we'll only be using CreateAsyncCompute() from main render thread and render task / workers.
+            // And workers wouldn't be kicked off at this point in the frame.
             m_asyncComputePool.PushBack(elem);
 
             it = m_submittedAsyncComputes.Erase(it);
@@ -326,6 +349,7 @@ DX12Frame* DX12RenderInterface::PrepareNextFrame()
         ++it;
     }
 
+    // trim async compute pool if > 10 items
     if (m_asyncComputePool.Size() > 10)
     {
         static constexpr uint32 MaxFramesBeforeDiscard = 100;
@@ -349,14 +373,14 @@ DX12Frame* DX12RenderInterface::PrepareNextFrame()
         }
     }
 
-    const uint32 frameCounter = GetFrameCounter();
-
     for (uint32 threadIndex = 0; threadIndex < NumRendererWorkerThreads + 1; threadIndex++)
     {
         Array<DX12Fence*, RenderAllocator>& fences = m_transientCommandBufferFences[threadIndex][frameCounter % NumFramesInFlight];
         for (DX12Fence* fence : fences)
         {
             fence->Wait(true);
+
+            fence->Reset();
 
             m_recycledTransientCommandBufferFences.PushBack(fence);
         }
@@ -376,7 +400,9 @@ DX12Frame* DX12RenderInterface::PrepareNextFrame()
         pendingList.Clear();
     }
 
-    DX12Frame* frame = GetCurrentFrame();
+    frame->OnFrameStart();
+
+    AssertDebug(frame != nullptr);
 
     return frame;
 }

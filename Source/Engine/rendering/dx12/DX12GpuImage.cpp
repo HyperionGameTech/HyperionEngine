@@ -39,17 +39,11 @@ DX12GpuImage::~DX12GpuImage()
 {
     if (IsCreated())
     {
-        if (m_allocation != nullptr)
-        {
-            Assert(m_isHandleOwned, "If allocation is not null, m_isHandleOwned should be true");
-
-            EnqueueDeletion(FunctionWrapper<Proc<void()>>([allocation = m_allocation]() -> void
-                {
-                    allocation->Release();
-                }));
-        }
-
-        m_resource.Reset();
+        EnqueueDeletion(FunctionWrapper<Proc<void()>>([allocation = std::move(m_allocation), resource = std::move(m_resource)]() mutable
+            {
+                allocation.Reset();
+                resource.Reset();
+            }));
 
         m_isHandleOwned = true;
 

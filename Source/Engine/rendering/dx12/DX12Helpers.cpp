@@ -239,6 +239,48 @@ D3D12_PRIMITIVE_TOPOLOGY_TYPE ToDX12TopologyType(Topology topology)
     }
 }
 
+D3D12_PRIMITIVE_TOPOLOGY ToDX12PrimitiveTopology(Topology topology)
+{
+    switch (topology)
+    {
+    case TOP_TRIANGLES:
+        return D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST;
+    case TOP_TRIANGLE_STRIP:
+        return D3D_PRIMITIVE_TOPOLOGY_TRIANGLESTRIP;
+    case TOP_TRIANGLE_FAN:
+        return D3D_PRIMITIVE_TOPOLOGY_TRIANGLESTRIP;
+    case TOP_LINES:
+        return D3D_PRIMITIVE_TOPOLOGY_LINELIST;
+    case TOP_POINTS:
+        return D3D_PRIMITIVE_TOPOLOGY_POINTLIST;
+    default:
+        return D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST;
+    }
+}
+
+DXGI_FORMAT ToDXGIFormat(GpuElemType elemType)
+{
+    switch (elemType)
+    {
+    case GET_UNSIGNED_BYTE:
+        return DXGI_FORMAT_R8_UINT;
+    case GET_SIGNED_BYTE:
+        return DXGI_FORMAT_R8_SINT;
+    case GET_UNSIGNED_SHORT:
+        return DXGI_FORMAT_R16_UINT;
+    case GET_SIGNED_SHORT:
+        return DXGI_FORMAT_R16_SINT;
+    case GET_UNSIGNED_INT:
+        return DXGI_FORMAT_R32_UINT;
+    case GET_SIGNED_INT:
+        return DXGI_FORMAT_R32_SINT;
+    case GET_FLOAT:
+        return DXGI_FORMAT_R32_FLOAT;
+    default:
+        return DXGI_FORMAT_R32_UINT;
+    }
+}
+
 D3D12_STENCIL_OP ToDX12StencilOp(StencilOp op)
 {
     switch (op)

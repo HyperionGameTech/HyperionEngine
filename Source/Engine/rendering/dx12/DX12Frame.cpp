@@ -110,8 +110,10 @@ void DX12Frame::WriteCommandBuffer(CommandBuffer* commandBuffer)
 
     if (m_queueSubmitFence != nullptr)
     {
+        // Increment fence value for this frame's submission
         m_queueSubmitFence->Reset();
-        queueData->commandQueue->Signal(m_queueSubmitFence->GetD3D12Fence(), m_queueSubmitFence->GetValue() + 1);
+        // Signal the fence with the new value
+        queueData->commandQueue->Signal(m_queueSubmitFence->GetD3D12Fence(), m_queueSubmitFence->GetValue());
     }
 }
 

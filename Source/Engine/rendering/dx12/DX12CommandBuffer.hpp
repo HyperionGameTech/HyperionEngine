@@ -70,9 +70,10 @@ public:
 
 private:
     D3D12_COMMAND_LIST_TYPE m_type;
-    ComPtr<ID3D12CommandAllocator> m_commandAllocator;
+    FixedArray<ComPtr<ID3D12CommandAllocator>, NumFramesInFlight> m_commandAllocators;
     ComPtr<ID3D12GraphicsCommandList> m_commandList;
     bool m_isRecording;
+    uint32 m_currentAllocatorIndex;
 };
 
 } // namespace Hyperion

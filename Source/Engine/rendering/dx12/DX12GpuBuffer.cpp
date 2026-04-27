@@ -455,18 +455,7 @@ uint64 DX12GpuBuffer::GetBufferDeviceAddress() const
 
 void DX12GpuBuffer::Flush(size_t offset, size_t count)
 {
-    if (!IsCreated())
-    {
-        return;
-    }
-
-    AssertDebug(offset + count <= Size());
-
-    D3D12_RANGE writtenRange {};
-    writtenRange.Begin = offset;
-    writtenRange.End = offset + count;
-
-    m_resource->Unmap(0, &writtenRange);
+    /* no-op in D3D */
 }
 
 #ifdef HYP_DEBUG_MODE

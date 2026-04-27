@@ -222,6 +222,7 @@ void DX12GraphicsPipeline::Bind(DX12CommandBuffer* commandBuffer, Vec2i viewport
 
     commandBuffer->GetCommandList()->SetPipelineState(m_pipelineState.Get());
     commandBuffer->GetCommandList()->SetGraphicsRootSignature(m_rootSignature.Get());
+    commandBuffer->GetCommandList()->IASetPrimitiveTopology(ToDX12PrimitiveTopology(m_topology));
 
     if (viewportExtent != Vec2u::Zero())
     {

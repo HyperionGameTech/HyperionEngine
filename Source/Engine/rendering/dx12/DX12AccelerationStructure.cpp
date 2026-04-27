@@ -428,9 +428,7 @@ RendererResult DX12GpuTlas::Rebuild(RTUpdateStateFlags& outUpdateStateFlags)
         CheckResultOrReturn(m_instancesBuffer->Create());
     }
 
-    D3D12_RAYTRACING_INSTANCE_DESC* instanceDescs = nullptr;
-    D3D12_RANGE readRange = { 0, 0 };
-    m_instancesBuffer->GetResource()->Map(0, &readRange, reinterpret_cast<void**>(&instanceDescs));
+    D3D12_RAYTRACING_INSTANCE_DESC* instanceDescs = static_cast<D3D12_RAYTRACING_INSTANCE_DESC*>(m_instancesBuffer->Map());
 
     for (size_t i = 0; i < m_blases.Size(); i++)
     {
@@ -447,8 +445,7 @@ RendererResult DX12GpuTlas::Rebuild(RTUpdateStateFlags& outUpdateStateFlags)
         instanceDescs[i].InstanceID = i;
     }
 
-    D3D12_RANGE writeRange = { 0, instancesBufferSize };
-    m_instancesBuffer->GetResource()->Unmap(0, &writeRange);
+    m_instancesBuffer->Unmap();
 
     D3D12_BUILD_RAYTRACING_ACCELERATION_STRUCTURE_INPUTS inputs {};
     inputs.Type = D3D12_RAYTRACING_ACCELERATION_STRUCTURE_TYPE_TOP_LEVEL;

@@ -15,4 +15,9 @@ struct IndirectDrawCommand
     D3D12_DRAW_ARGUMENTS command;
 };
 
+struct IndirectDrawIndexedCommand
+{
+    D3D12_DRAW_INDEXED_ARGUMENTS command;
+};
+
 } // namespace Hyperion
