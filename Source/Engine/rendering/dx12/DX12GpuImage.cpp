@@ -49,17 +49,7 @@ DX12GpuImage::~DX12GpuImage()
                 }));
         }
 
-        // Only reset the resource if we own it
-        // (for swapchain back buffers, DXGI manages the lifetime)
-        if (m_isHandleOwned)
-        {
-            m_resource.Reset();
-        }
-        else
-        {
-            // Just detach without releasing
-            m_resource.Detach();
-        }
+        m_resource.Reset();
 
         m_isHandleOwned = true;
 
@@ -72,17 +62,6 @@ DX12GpuImage::~DX12GpuImage()
 bool DX12GpuImage::IsCreated() const
 {
     return m_resource != nullptr;
-}
-
-void DX12GpuImage::SetResource(ID3D12Resource* resource)
-{
-    Assert(!IsCreated(), "Cannot SetResource on an already created GpuImage");
-    Assert(resource != nullptr, "Cannot set null resource");
-
-    m_resource = resource;
-    // Mark as not owned since we're wrapping an existing resource
-    // (e.g., swapchain back buffer that DXGI manages)
-    m_isHandleOwned = false;
 }
 
 bool DX12GpuImage::IsOwned() const
@@ -369,10 +348,6 @@ void DX12GpuImage::InsertBarrier(
     bool onlyDepth,
     bool onlyStencil)
 {
-    // TEMP
-    onlyDepth = false;
-    onlyStencil = false;
-
     AssertDebug(newState != RS_UNDEFINED && newState != RS_PRE_INITIALIZED);
 
     if (m_resource == nullptr)
@@ -508,7 +483,7 @@ void DX12GpuImage::InsertBarrier(
     {
         if (adjustForDepthStencil)
         {
-            if (state == RS_RENDER_TARGET)
+            if (state == RS_RENDER_TARGET || state == RS_DEPTH_STENCIL)
             {
                 return D3D12_RESOURCE_STATE_DEPTH_WRITE;
             }
@@ -522,7 +497,8 @@ void DX12GpuImage::InsertBarrier(
         return ToDX12ResourceStates(state);
     };
 
-    D3D12_RESOURCE_STATES stateBefore = GetDX12State(currResourceState);
+    const ResourceState effectiveCurrState = onlyStencil ? currStencilState : currResourceState;
+    D3D12_RESOURCE_STATES stateBefore = GetDX12State(effectiveCurrState);
     D3D12_RESOURCE_STATES stateAfter = GetDX12State(newState);
 
     // If we don't know the current state (UNDEFINED), we can't issue a valid barrier.
@@ -530,13 +506,14 @@ void DX12GpuImage::InsertBarrier(
     // In this case, we can't update our tracking either since we don't know the actual GPU state.
     // Just return and hope the caller knows what they're doing (e.g., initializing a resource).
     // Note: RS_COMMON is a valid state we can transition from (freshly created resources).
-    if (currResourceState == RS_UNDEFINED)
+    if (effectiveCurrState == RS_UNDEFINED)
     {
         return;
     }
 
     if (subResource.baseMipLevel == 0 && subResource.numLevels >= NumMips()
-        && subResource.baseArrayLayer == 0 && subResource.numLayers >= NumArrayLayers())
+        && subResource.baseArrayLayer == 0 && subResource.numLayers >= NumArrayLayers()
+        && !onlyDepth && !onlyStencil)
     {
         if (stateBefore == stateAfter)
         {
@@ -584,13 +561,15 @@ void DX12GpuImage::InsertBarrier(
 
             // Determine current per-subresource state
             auto stateIt = m_subResourceStates.Find(subResourceKey);
-            const ResourceState subResCurrentState = (stateIt != m_subResourceStates.End())
-                ? stateIt->second : GetResourceState();
+            const ResourceState subResCurrentState = onlyStencil
+                ? currStencilState
+                : (stateIt != m_subResourceStates.End() ? stateIt->second : GetResourceState());
             
+            const uint32 planeSlice = onlyStencil ? 1u : 0u;
             const uint32 subResourceIndex = D3D12CalcSubresource(
                 mipLevel,
                 arrayLayer,
-                0,
+                planeSlice,
                 NumMips(),
                 NumArrayLayers());
 
@@ -613,7 +592,12 @@ void DX12GpuImage::InsertBarrier(
                 }
 
                 // Update state tracking (only if we know the actual state)
-                if (stateIt != m_subResourceStates.End())
+                if (onlyStencil)
+                {
+                    // Stencil-only transitions: don't update per-subresource state
+                    // (per-subresource tracking is for depth state only)
+                }
+                else if (stateIt != m_subResourceStates.End())
                 {
                     stateIt->second = newState;
 
@@ -631,21 +615,18 @@ void DX12GpuImage::InsertBarrier(
         }
     }
 
-    // No more remaining subresources, entire image was transitioned
-    if (m_subResourceStates.Empty())
+    // Update state tracking
+    if (onlyStencil)
     {
-        if (onlyStencil)
-        {
-            m_stencilState = newState;
-        }
-        else
-        {
-            SetResourceState(newState);
+        m_stencilState = newState;
+    }
+    else if (m_subResourceStates.Empty())
+    {
+        SetResourceState(newState);
 
-            if (onlyDepth)
-            {
-                m_stencilState = currStencilState;
-            }
+        if (onlyDepth)
+        {
+            m_stencilState = currStencilState;
         }
     }
 }
@@ -969,17 +950,22 @@ void DX12GpuImage::CopyFrom(
         {
             for (uint8 mipLevel = 0; mipLevel < MathUtil::Min(srcSubResource.numLevels, srcImage->NumMips() - srcSubResource.baseMipLevel); mipLevel++)
             {
+                const uint8 actualSrcMip = srcSubResource.baseMipLevel + mipLevel;
+                const uint8 actualDstMip = dstSubResource.baseMipLevel + mipLevel;
+                const uint16 actualSrcLayer = srcSubResource.baseArrayLayer + layerIndex;
+                const uint16 actualDstLayer = dstSubResource.baseArrayLayer + layerIndex;
+
                 const ResourceState srcResourceState = srcImage->GetSubResourceState(ImageSubResource {
-                    .baseMipLevel = uint8(srcSubResource.baseMipLevel + mipLevel),
+                    .baseMipLevel = actualSrcMip,
                     .numLevels = 1,
-                    .baseArrayLayer = uint16(srcSubResource.baseArrayLayer + layerIndex),
+                    .baseArrayLayer = actualSrcLayer,
                     .numLayers = 1
                 });
 
                 const ResourceState dstResourceState = GetSubResourceState(ImageSubResource {
-                    .baseMipLevel = uint8(dstSubResource.baseMipLevel + mipLevel),
+                    .baseMipLevel = actualDstMip,
                     .numLevels = 1,
-                    .baseArrayLayer = uint16(dstSubResource.baseArrayLayer + layerIndex),
+                    .baseArrayLayer = actualDstLayer,
                     .numLayers = 1
                 });
 
@@ -990,8 +976,8 @@ void DX12GpuImage::CopyFrom(
                 srcLocation.pResource = srcImage->GetResource();
                 srcLocation.Type = D3D12_TEXTURE_COPY_TYPE_SUBRESOURCE_INDEX;
                 srcLocation.SubresourceIndex = D3D12CalcSubresource(
-                    srcSubResource.baseMipLevel + mipLevel,
-                    srcSubResource.baseArrayLayer + layerIndex,
+                    actualSrcMip,
+                    actualSrcLayer,
                     0,
                     srcImage->NumMips(),
                     srcImage->NumArrayLayers());
@@ -1000,19 +986,28 @@ void DX12GpuImage::CopyFrom(
                 dstLocation.pResource = m_resource.Get();
                 dstLocation.Type = D3D12_TEXTURE_COPY_TYPE_SUBRESOURCE_INDEX;
                 dstLocation.SubresourceIndex = D3D12CalcSubresource(
-                    dstSubResource.baseMipLevel + mipLevel,
-                    dstSubResource.baseArrayLayer + layerIndex,
+                    actualDstMip,
+                    actualDstLayer,
                     0,
                     NumMips(),
                     NumArrayLayers());
+
+                // Calculate the proper extent for this mip level
+                const Vec3u srcMipExtent = srcImage->GetTextureDesc().GetMipExtent(actualSrcMip);
+                const Vec3u dstMipExtent = m_textureDesc.GetMipExtent(actualDstMip);
+
+                // Clamp the copy extent to the mip level dimensions
+                const uint32 copyWidth = MathUtil::Min(extent.x, MathUtil::Min(srcMipExtent.x, dstMipExtent.x));
+                const uint32 copyHeight = MathUtil::Min(extent.y, MathUtil::Min(srcMipExtent.y, dstMipExtent.y));
+                const uint32 copyDepth = MathUtil::Min(extent.z, MathUtil::Min(srcMipExtent.z, dstMipExtent.z));
 
                 D3D12_BOX srcBox {};
                 srcBox.left = srcOffset.x;
                 srcBox.top = srcOffset.y;
                 srcBox.front = srcOffset.z;
-                srcBox.right = srcOffset.x + extent.x;
-                srcBox.bottom = srcOffset.y + extent.y;
-                srcBox.back = srcOffset.z + extent.z;
+                srcBox.right = srcOffset.x + copyWidth;
+                srcBox.bottom = srcOffset.y + copyHeight;
+                srcBox.back = srcOffset.z + copyDepth;
 
                 commandBuffer->GetCommandList()->CopyTextureRegion(
                     &dstLocation,

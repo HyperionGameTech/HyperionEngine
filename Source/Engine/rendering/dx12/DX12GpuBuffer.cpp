@@ -123,12 +123,18 @@ RendererResult DX12GpuBuffer::Create()
 
     D3D12_RESOURCE_FLAGS flags = D3D12_RESOURCE_FLAG_NONE;
 
+    // Buffers on UPLOAD or READBACK heaps cannot have ALLOW_UNORDERED_ACCESS or ALLOW_RENDER_TARGET flags
+    const bool canHaveUAV = (heapType != D3D12_HEAP_TYPE_UPLOAD && heapType != D3D12_HEAP_TYPE_READBACK);
+
     switch (m_type)
     {
         case GpuBufferType::STORAGE_BUFFER:                 // fallthrough
         case GpuBufferType::SCRATCH_BUFFER:                 // fallthrough
         case GpuBufferType::ACCELERATION_STRUCTURE_BUFFER:  // fallthrough
-            flags |= D3D12_RESOURCE_FLAG_ALLOW_UNORDERED_ACCESS;
+            if (canHaveUAV)
+            {
+                flags |= D3D12_RESOURCE_FLAG_ALLOW_UNORDERED_ACCESS;
+            }
             break;
         case GpuBufferType::CONSTANT_BUFFER: // fallthrough
         default:

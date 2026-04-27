@@ -6,6 +6,8 @@
 
 #include <DX12Pch.hpp>
 
+#include <Core/containers/Array.hpp>
+
 #include <rendering/dx12/DX12Framebuffer.hpp>
 #include <rendering/dx12/DX12RenderInterface.hpp>
 #include <rendering/dx12/DX12GpuImage.hpp>
@@ -236,12 +238,80 @@ void DX12Framebuffer::BeginCapture(DX12CommandBuffer* commandBuffer)
 {
     Assert(!m_isRecording);
 
+    ID3D12GraphicsCommandList* commandList = commandBuffer->GetCommandList();
+    ID3D12Device* device = g_renderInterface->GetDevice();
+    const uint32 rtvIncrement = device->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_RTV);
+
+    // Transition attachments to render target/depth write state and collect handles
+    Array<D3D12_CPU_DESCRIPTOR_HANDLE> rtvHandles;
+    D3D12_CPU_DESCRIPTOR_HANDLE dsvHandle = {};
+    bool hasDSV = false;
+
+    uint32 colorAttachmentIndex = 0;
+    for (auto& it : m_attachmentMap)
+    {
+        DX12Attachment* attachment = it.second;
+        DX12GpuImage* image = attachment->GetGpuImage();
+
+        if (attachment->IsDepthAttachment())
+        {
+            // Transition depth attachment to DEPTH_WRITE state
+            image->InsertBarrier(commandBuffer, RS_DEPTH_STENCIL, ShaderModuleType::Pixel);
+            dsvHandle = m_dsvDescriptorHandle.cpuHandle;
+            hasDSV = true;
+        }
+        else
+        {
+            // Transition color attachment to RENDER_TARGET state
+            image->InsertBarrier(commandBuffer, RS_RENDER_TARGET, ShaderModuleType::Pixel);
+            
+            D3D12_CPU_DESCRIPTOR_HANDLE rtvHandle = m_rtvDescriptorHandle.cpuHandle;
+            rtvHandle.ptr += colorAttachmentIndex * rtvIncrement;
+            rtvHandles.PushBack(rtvHandle);
+            colorAttachmentIndex++;
+        }
+    }
+
+    // Set render targets
+    if (rtvHandles.Any())
+    {
+        commandList->OMSetRenderTargets(
+            uint32(rtvHandles.Size()),
+            rtvHandles.Data(),
+            FALSE,  // Descriptors are not contiguous in array (we're using our array)
+            hasDSV ? &dsvHandle : nullptr
+        );
+    }
+    else if (hasDSV)
+    {
+        // Depth only rendering
+        commandList->OMSetRenderTargets(0, nullptr, FALSE, &dsvHandle);
+    }
+
     m_isRecording = true;
 }
 
 void DX12Framebuffer::EndCapture(DX12CommandBuffer* commandBuffer)
 {
     Assert(m_isRecording);
+
+    // Transition attachments back to shader readable state
+    for (auto& it : m_attachmentMap)
+    {
+        DX12Attachment* attachment = it.second;
+        DX12GpuImage* image = attachment->GetGpuImage();
+
+        if (attachment->IsDepthAttachment())
+        {
+            // Transition depth attachment to shader readable state
+            image->InsertBarrier(commandBuffer, RS_SHADER_RESOURCE, ShaderModuleType::Pixel);
+        }
+        else
+        {
+            // Transition color attachment to shader readable state
+            image->InsertBarrier(commandBuffer, RS_SHADER_RESOURCE, ShaderModuleType::Pixel);
+        }
+    }
 
     m_isRecording = false;
 }
