@@ -44,8 +44,6 @@ public:
 
     RendererResult Resize(const Vec3u& extent) override;
 
-    HANDLE GetNativeHandle() const override;
-
     void InsertBarrier(
         VulkanCommandBuffer* commandBuffer,
         ResourceState newState,

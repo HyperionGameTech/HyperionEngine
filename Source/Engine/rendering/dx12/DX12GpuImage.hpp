@@ -49,8 +49,6 @@ public:
 
     RendererResult Resize(const Vec3u& extent) override;
 
-HANDLE GetNativeHandle() const override;
-
     ResourceState GetSubResourceState(const ImageSubResource& subResource) const;
     void SetSubResourceState(const ImageSubResource& subResource, ResourceState newState);
 

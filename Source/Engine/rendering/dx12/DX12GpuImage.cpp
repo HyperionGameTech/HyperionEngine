@@ -282,11 +282,6 @@ RendererResult DX12GpuImage::Resize(const Vec3u& extent)
     return {};
 }
 
-HANDLE DX12GpuImage::GetNativeHandle() const
-{
-    return nullptr;
-}
-
 ResourceState DX12GpuImage::GetSubResourceState(const ImageSubResource& subResource) const
 {
     auto it = m_subResourceStates.Find(GetImageSubResourceKey(subResource));

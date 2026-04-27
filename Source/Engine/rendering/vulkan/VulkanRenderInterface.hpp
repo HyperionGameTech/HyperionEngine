@@ -70,12 +70,6 @@ struct VulkanDynamicFunctions
     HYP_DECL_FN(vkSetMoltenVKConfigurationMVK);
 #endif
 
-#ifdef HYP_WINDOWS
-    HYP_DECL_FN(vkGetMemoryWin32HandleKHR);
-#else
-    HYP_DECL_FN(vkGetMemoryFdKHR);
-#endif
-
 #undef HYP_DECL_FN
 };
 

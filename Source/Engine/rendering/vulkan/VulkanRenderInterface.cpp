@@ -226,12 +226,6 @@ void VulkanDynamicFunctions::Load(VulkanDevice* device)
     HYP_LOAD_FN(vkSetMoltenVKConfigurationMVK);
 #endif
 
-#ifdef HYP_WINDOWS
-    HYP_LOAD_FN(vkGetMemoryWin32HandleKHR);
-#else
-    HYP_LOAD_FN(vkGetMemoryFdKHR);
-#endif
-
 #undef HYP_LOAD_FN
 }
 

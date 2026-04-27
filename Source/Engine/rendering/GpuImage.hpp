@@ -163,10 +163,6 @@ public:
 
     virtual RendererResult Resize(const Vec3u& extent) = 0;
 
-    /*! \brief Returns the native handle of the underlying GPU image.
-     *   Only valid on images created with IU_EXTERNAL usage flag. */
-    virtual HANDLE GetNativeHandle() const = 0;
-
     virtual void InsertBarrier(
         CommandBuffer* commandBuffer,
         ResourceState newState,

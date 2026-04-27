@@ -462,50 +462,6 @@ RendererResult VulkanGpuImage::Resize(const Vec3u& extent)
     return {};
 }
 
-auto VulkanGpuImage::GetNativeHandle() const -> HANDLE
-{
-    Assert(IsCreated());
-    Assert(m_textureDesc.imageUsage & IU_EXTERNAL);
-
-#ifdef HYP_WINDOWS
-    VkMemoryGetWin32HandleInfoKHR getHandleInfo { VK_STRUCTURE_TYPE_MEMORY_GET_WIN32_HANDLE_INFO_KHR };
-    getHandleInfo.handleType = VK_EXTERNAL_MEMORY_HANDLE_TYPE_OPAQUE_WIN32_BIT_KHR;
-
-    VmaAllocationInfo allocInfo;
-    vmaGetAllocationInfo(g_renderInterface->GetDevice()->GetVmaAllocator(), m_allocation, &allocInfo);
-    getHandleInfo.memory = allocInfo.deviceMemory;
-
-    HANDLE handle;
-
-    VkResult res = g_vulkanDynamicFunctions->vkGetMemoryWin32HandleKHR(
-        g_renderInterface->GetDevice()->GetDevice(),
-        &getHandleInfo,
-        &handle);
-
-    Assert(res == VK_SUCCESS, "Failed to get external memory handle for image! VkResult: %d", res);
-
-    return handle;
-#else
-    VkMemoryGetFdInfoKHR getFdInfo { VK_STRUCTURE_TYPE_MEMORY_GET_FD_INFO_KHR };
-    getFdInfo.handleType = VK_EXTERNAL_MEMORY_HANDLE_TYPE_OPAQUE_FD_BIT_KHR;
-
-    VmaAllocationInfo allocInfo;
-    vmaGetAllocationInfo(g_renderInterface->GetDevice()->GetVmaAllocator(), m_allocation, &allocInfo);
-    getFdInfo.memory = allocInfo.deviceMemory;
-
-    int fd;
-
-    VkResult res = g_vulkanDynamicFunctions->vkGetMemoryFdKHR(
-        g_renderInterface->GetDevice()->GetDevice(),
-        &getFdInfo,
-        &fd);
-
-    Assert(res == VK_SUCCESS, "Failed to get external memory fd for image! VkResult: %d", res);
-
-    return reinterpret_cast<HANDLE>(fd);
-#endif
-}
-
 void VulkanGpuImage::InsertBarrier(
     VulkanCommandBuffer* commandBuffer,
     ResourceState newState,
