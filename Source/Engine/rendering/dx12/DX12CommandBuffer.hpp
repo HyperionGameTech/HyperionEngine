@@ -37,6 +37,11 @@ public:
         return m_commandList.Get();
     }
 
+    HYP_FORCE_INLINE ID3D12CommandAllocator* GetCommandAllocator() const
+    {
+        return m_allocator;
+    }
+
     bool IsCreated() const override;
 
     RendererResult Create() override;
