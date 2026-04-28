@@ -33,6 +33,52 @@ DX12CommandBuffer::DX12CommandBuffer(D3D12_COMMAND_LIST_TYPE type, ID3D12Command
 {
 }
 
+DX12CommandBuffer::DX12CommandBuffer(DX12CommandBuffer&& other) noexcept
+    : m_type(other.m_type),
+      m_commandList(std::move(other.m_commandList)),
+      m_allocator(other.m_allocator),
+      m_isRecording(other.m_isRecording),
+      m_boundViewHeap(other.m_boundViewHeap),
+      m_boundSamplerHeap(other.m_boundSamplerHeap),
+      m_boundGraphicsPipeline(other.m_boundGraphicsPipeline)
+{
+    other.m_allocator = nullptr;
+    other.m_isRecording = false;
+    other.m_boundViewHeap = nullptr;
+    other.m_boundSamplerHeap = nullptr;
+    other.m_boundGraphicsPipeline = nullptr;
+}
+
+DX12CommandBuffer& DX12CommandBuffer::operator=(DX12CommandBuffer&& other) noexcept
+{
+    if (this == &other)
+    {
+        return *this;
+    }
+
+    if (m_commandList != nullptr)
+    {
+        m_commandList->Close();
+        m_commandList.Reset();
+    }
+
+    m_type = other.m_type;
+    m_commandList = std::move(other.m_commandList);
+    m_allocator = other.m_allocator;
+    m_isRecording = other.m_isRecording;
+    m_boundViewHeap = other.m_boundViewHeap;
+    m_boundSamplerHeap = other.m_boundSamplerHeap;
+    m_boundGraphicsPipeline = other.m_boundGraphicsPipeline;
+
+    other.m_allocator = nullptr;
+    other.m_isRecording = false;
+    other.m_boundViewHeap = nullptr;
+    other.m_boundSamplerHeap = nullptr;
+    other.m_boundGraphicsPipeline = nullptr;
+
+    return *this;
+}
+
 DX12CommandBuffer::~DX12CommandBuffer()
 {
     if (m_commandList != nullptr)

@@ -162,11 +162,8 @@ private:
 
     FixedArray<DX12CommandBufferRef, NumFramesInFlight> m_commandBuffers;
 
-    Array<DX12CommandBuffer*, RenderAllocator> m_transientCommandBuffers[NumRendererWorkerThreads + 1][NumFramesInFlight];
-    Array<DX12CommandBuffer*, RenderAllocator> m_pendingTransientCommandBuffers[NumRendererWorkerThreads + 1][NumFramesInFlight];
-
-    Array<DX12CommandBuffer*, RenderAllocator> m_ownedTransientCommandBuffers;
-    Mutex m_transientCommandBuffersMutex;
+    Array<DX12CommandBuffer, RenderAllocator> m_transientCommandBuffers[NumRendererWorkerThreads + 1][NumFramesInFlight];
+    Array<DX12CommandBuffer, RenderAllocator> m_pendingTransientCommandBuffers[NumRendererWorkerThreads + 1][NumFramesInFlight];
     
     ComPtr<IDXGIAdapter1> m_hardwareAdapter;
 

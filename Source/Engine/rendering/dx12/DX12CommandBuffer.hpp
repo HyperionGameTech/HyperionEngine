@@ -25,6 +25,10 @@ class DX12CommandBuffer final : public CommandBufferBase
 
 public:
     DX12CommandBuffer(D3D12_COMMAND_LIST_TYPE type, ID3D12CommandAllocator* allocator);
+
+    DX12CommandBuffer(DX12CommandBuffer&& other) noexcept;
+    DX12CommandBuffer& operator=(DX12CommandBuffer&& other) noexcept;
+
     ~DX12CommandBuffer();
 
     HYP_FORCE_INLINE D3D12_COMMAND_LIST_TYPE GetType() const
@@ -40,6 +44,11 @@ public:
     HYP_FORCE_INLINE ID3D12CommandAllocator* GetCommandAllocator() const
     {
         return m_allocator;
+    }
+
+    HYP_FORCE_INLINE void SetCommandAllocator(ID3D12CommandAllocator* allocator)
+    {
+        m_allocator = allocator;
     }
 
     bool IsCreated() const override;
