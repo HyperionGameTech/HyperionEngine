@@ -141,6 +141,9 @@ public:
         m_isExternalRTV = true;
         m_externalRTResource = resource;
 
+        // New swapchain back buffer starts in PRESENT state after Present()
+        m_externalRTResourceState = D3D12_RESOURCE_STATE_PRESENT;
+
         // Populate framebufferDesc so the graphics pipeline sees at least 1 attachment
         m_framebufferDesc.numAttachments = 1;
         m_framebufferDesc.extent = Vec2u(extentX, extentY);
@@ -171,6 +174,14 @@ public:
     void BeginCapture(DX12CommandBuffer* commandBuffer) override;
     void EndCapture(DX12CommandBuffer* commandBuffer) override;
 
+    void ResetExternalRTResourceState()
+    {
+        if (m_externalRTResource != nullptr)
+        {
+            m_externalRTResourceState = D3D12_RESOURCE_STATE_PRESENT;
+        }
+    }
+
     void Clear(
         DX12CommandBuffer* commandBuffer,
         uint8 attachmentsMask = uint8(-1)) override;
@@ -191,6 +202,7 @@ private:
     bool m_hasBeenCleared;
     bool m_isExternalRTV = false;
     ID3D12Resource* m_externalRTResource = nullptr;
+    D3D12_RESOURCE_STATES m_externalRTResourceState = D3D12_RESOURCE_STATE_COMMON;
 };
 
 } // namespace Hyperion

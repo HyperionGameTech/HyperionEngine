@@ -286,6 +286,14 @@ void DX12Swapchain::PrepareForFrame(DX12Frame* frame)
     {
         Recreate();
     }
+
+    m_currentBackBufferIndex = m_swapChain->GetCurrentBackBufferIndex();
+    m_acquiredImageIndex = m_currentBackBufferIndex;
+
+    for (uint32 i = 0; i < uint32(m_framebuffers.Size()); i++)
+    {
+        m_framebuffers[i]->ResetExternalRTResourceState();
+    }
 }
 
 void DX12Swapchain::PresentFrame(DX12Frame* frame)

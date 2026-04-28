@@ -1660,7 +1660,22 @@ void RenderInterface::CommitPipelineState(PSOType psoType, CommandBuffer* comman
 
     if (psoType == PSO_Graphics)
     {
-        if (state.boundFramebuffer == nullptr)
+        if (state.framebuffer != state.boundFramebuffer)
+        {
+            if (state.boundFramebuffer != nullptr)
+            {
+                state.boundFramebuffer->EndCapture(commandBuffer);
+                state.boundFramebuffer = nullptr;
+            }
+
+            AssertDebug(state.framebuffer != nullptr,
+                "No framebuffer bound at the time of CommitDrawState!");
+
+            state.framebuffer->BeginCapture(commandBuffer);
+
+            state.boundFramebuffer = state.framebuffer;
+        }
+        else if (state.boundFramebuffer == nullptr)
         {
             AssertDebug(state.framebuffer != nullptr,
                 "No framebuffer bound at the time of CommitDrawState!");

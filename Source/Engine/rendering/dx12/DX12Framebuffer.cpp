@@ -285,7 +285,7 @@ void DX12Framebuffer::BeginCapture(DX12CommandBuffer* commandBuffer)
         commandList->OMSetRenderTargets(
             uint32(rtvHandles.Size()),
             rtvHandles.Data(),
-            FALSE,  // Descriptors are not contiguous in array (we're using our array)
+            FALSE,
             hasDSV ? &dsvHandle : nullptr
         );
     }
@@ -299,14 +299,22 @@ void DX12Framebuffer::BeginCapture(DX12CommandBuffer* commandBuffer)
         // External RTV handle (e.g. from swapchain back buffer) with no managed attachments
         if (m_externalRTResource != nullptr)
         {
-            D3D12_RESOURCE_BARRIER barrier {};
-            barrier.Type = D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
-            barrier.Flags = D3D12_RESOURCE_BARRIER_FLAG_NONE;
-            barrier.Transition.pResource = m_externalRTResource;
-            barrier.Transition.Subresource = D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES;
-            barrier.Transition.StateBefore = D3D12_RESOURCE_STATE_PRESENT;
-            barrier.Transition.StateAfter = D3D12_RESOURCE_STATE_RENDER_TARGET;
-            commandList->ResourceBarrier(1, &barrier);
+            const D3D12_RESOURCE_STATES stateBefore = m_externalRTResourceState;
+            const D3D12_RESOURCE_STATES stateAfter = D3D12_RESOURCE_STATE_RENDER_TARGET;
+
+            if (stateBefore != stateAfter)
+            {
+                D3D12_RESOURCE_BARRIER barrier {};
+                barrier.Type = D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
+                barrier.Flags = D3D12_RESOURCE_BARRIER_FLAG_NONE;
+                barrier.Transition.pResource = m_externalRTResource;
+                barrier.Transition.Subresource = D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES;
+                barrier.Transition.StateBefore = stateBefore;
+                barrier.Transition.StateAfter = stateAfter;
+                commandList->ResourceBarrier(1, &barrier);
+
+                m_externalRTResourceState = stateAfter;
+            }
         }
 
         commandList->OMSetRenderTargets(
@@ -345,14 +353,22 @@ void DX12Framebuffer::EndCapture(DX12CommandBuffer* commandBuffer)
     // Transition external RTV (swapchain back buffer) back to present state
     if (m_externalRTResource != nullptr && m_attachmentMap.Size() == 0)
     {
-        D3D12_RESOURCE_BARRIER barrier {};
-        barrier.Type = D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
-        barrier.Flags = D3D12_RESOURCE_BARRIER_FLAG_NONE;
-        barrier.Transition.pResource = m_externalRTResource;
-        barrier.Transition.Subresource = D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES;
-        barrier.Transition.StateBefore = D3D12_RESOURCE_STATE_RENDER_TARGET;
-        barrier.Transition.StateAfter = D3D12_RESOURCE_STATE_PRESENT;
-        commandBuffer->GetCommandList()->ResourceBarrier(1, &barrier);
+        const D3D12_RESOURCE_STATES stateBefore = m_externalRTResourceState;
+        const D3D12_RESOURCE_STATES stateAfter = D3D12_RESOURCE_STATE_PRESENT;
+
+        if (stateBefore != stateAfter)
+        {
+            D3D12_RESOURCE_BARRIER barrier {};
+            barrier.Type = D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
+            barrier.Flags = D3D12_RESOURCE_BARRIER_FLAG_NONE;
+            barrier.Transition.pResource = m_externalRTResource;
+            barrier.Transition.Subresource = D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES;
+            barrier.Transition.StateBefore = stateBefore;
+            barrier.Transition.StateAfter = stateAfter;
+            commandBuffer->GetCommandList()->ResourceBarrier(1, &barrier);
+
+            m_externalRTResourceState = stateAfter;
+        }
     }
 
     m_isRecording = false;

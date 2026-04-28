@@ -152,7 +152,7 @@ RendererResult DX12RenderInterface::Initialize()
     }
 
 #ifdef HYP_DEBUG_MODE
-#if 0
+#if 1
     if (SUCCEEDED(D3D12GetDebugInterface(__uuidof(ID3D12DeviceRemovedExtendedDataSettings), &m_dredSettings)))
     {
         m_dredSettings->SetAutoBreadcrumbsEnablement(D3D12_DRED_ENABLEMENT_FORCED_ON);

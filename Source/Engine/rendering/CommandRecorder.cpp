@@ -888,6 +888,13 @@ void SetCurrentFramebuffer::InvokeStatic(CmdBase* cmd, CommandBuffer* commandBuf
 
     if (cmdCasted->m_framebuffer != state.boundFramebuffer)
     {
+        if (state.boundFramebuffer != nullptr)
+        {
+            // end current render pass before switching to a new framebuffer
+            state.boundFramebuffer->EndCapture(commandBuffer);
+            state.boundFramebuffer = nullptr;
+        }
+
         // @NOTE: Vulkan validation layers complain that there is no
         // graphics pipeline bound when drawing when we start a new render pass and
         // expect the bound graphics pipeline to stay active.
@@ -897,12 +904,9 @@ void SetCurrentFramebuffer::InvokeStatic(CmdBase* cmd, CommandBuffer* commandBuf
         // For now, just rebind the graphics pipeline when we change render passes. (setting it to null will do this)
         state.boundGraphicsPipeline = nullptr;
     }
-
-    if (cmdCasted->m_framebuffer == nullptr && state.boundFramebuffer != nullptr)
+    else if (cmdCasted->m_framebuffer == nullptr && state.boundFramebuffer != nullptr)
     {
-        // end render pass if we are in one.
-        // otherwise, we don't call BeginCapture() until CommitDrawState...
-        // this lets us transition textures before we actually begin the pass
+        // end render pass if we are setting to nullptr and we are currently in a pass
         state.boundFramebuffer->EndCapture(commandBuffer);
         state.boundFramebuffer = nullptr;
     }

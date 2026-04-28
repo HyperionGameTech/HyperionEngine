@@ -90,3 +90,4 @@ Source/Generated/**/*
 .opencode
 
 compile_commands.json
+AGENTS.md

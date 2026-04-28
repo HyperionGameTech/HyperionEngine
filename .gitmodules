@@ -1,7 +1,3 @@
-[submodule "External/Submodules/glslang"]
-	path = External/Submodules/glslang
-	url = https://github.com/notomorrow/glslang
-	branch = hyp-modifications
 [submodule "External/Submodules/libdatachannel"]
 	path = External/Submodules/libdatachannel
 	url = https://github.com/paullouisageneau/libdatachannel

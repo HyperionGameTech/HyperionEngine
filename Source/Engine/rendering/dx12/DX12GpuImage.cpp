@@ -190,13 +190,17 @@ RendererResult DX12GpuImage::Create(ResourceState initialState)
 
         pClearValue = &clearValue;
     }
-    // NOTE: Render targets omit the optimized clear value because the actual clear
-    // color used by ClearRenderTargetView varies per attachment (determined by
-    // AttachmentDesc::clearColor). Specifying a mismatched value triggers warning #820.
+    // NOTE: Render targets need a clear value to avoid D3D12 warning #820
+    // during ClearRenderTargetView. Use transparent black as default.
     else if (resourceDesc.Flags & D3D12_RESOURCE_FLAG_ALLOW_RENDER_TARGET)
     {
-        // Intentionally leave pClearValue as nullptr to avoid mismatched clear value warning.
-        // Fast clear optimization is not used; clear cost is acceptable.
+        clearValue.Format = resourceDesc.Format;
+        clearValue.Color[0] = 0.0f;
+        clearValue.Color[1] = 0.0f;
+        clearValue.Color[2] = 0.0f;
+        clearValue.Color[3] = 0.0f;
+
+        pClearValue = &clearValue;
     }
 
     D3D12MA::ALLOCATION_DESC allocDesc {};

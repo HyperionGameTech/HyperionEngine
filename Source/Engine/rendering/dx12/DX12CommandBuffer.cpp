@@ -27,6 +27,7 @@ DX12CommandBuffer::DX12CommandBuffer(D3D12_COMMAND_LIST_TYPE type)
     : m_type(type),
       m_isRecording(false),
       m_currentAllocatorIndex(0),
+      m_currentCommandListIndex(0),
       m_boundGraphicsPipeline(nullptr)
 {
 }
@@ -37,7 +38,7 @@ DX12CommandBuffer::~DX12CommandBuffer()
 
 bool DX12CommandBuffer::IsCreated() const
 {
-    return m_commandAllocators[0] != nullptr && m_commandList != nullptr;
+    return m_commandAllocators[0] != nullptr && m_commandLists[0] != nullptr;
 }
 
 RendererResult DX12CommandBuffer::Create()
@@ -61,37 +62,48 @@ RendererResult DX12CommandBuffer::Create()
         }
     }
 
-    HRESULT res = device->CreateCommandList(0, m_type, m_commandAllocators[0].Get(), nullptr, IID_PPV_ARGS(&m_commandList));
-    if (!SUCCEEDED(res))
-        return HYP_MAKE_ERROR(RendererError, "Failed to create command list!", res);
+    for (uint32 i = 0; i < NumFramesInFlight; i++)
+    {
+        if (m_commandLists[i] == nullptr)
+        {
+            HRESULT res = device->CreateCommandList(0, m_type, m_commandAllocators[i].Get(), nullptr, IID_PPV_ARGS(&m_commandLists[i]));
+            if (!SUCCEEDED(res))
+            {
+                return HYP_MAKE_ERROR(RendererError, "Failed to create command list!", res);
+            }
 
-    m_commandList->Close();
+            m_commandLists[i]->Close();
+        }
+    }
 
     return {};
 }
 
 void DX12CommandBuffer::Begin()
 {
-    Assert(m_commandList != nullptr);
+    Assert(m_commandLists[m_currentCommandListIndex] != nullptr);
     Assert(!m_isRecording, "Command buffer is already recording!");
 
-    const uint32 allocatorIndex = m_currentAllocatorIndex;
+    const uint32 index = m_currentAllocatorIndex;
     m_currentAllocatorIndex = (m_currentAllocatorIndex + 1) % NumFramesInFlight;
+    m_currentCommandListIndex = index;
 
-    Assert(m_commandAllocators[allocatorIndex] != nullptr);
+    Assert(m_commandAllocators[index] != nullptr);
 
-    Assert(SUCCEEDED(m_commandAllocators[allocatorIndex]->Reset()));
-    Assert(SUCCEEDED(m_commandList->Reset(m_commandAllocators[allocatorIndex].Get(), nullptr)));
+    Assert(SUCCEEDED(m_commandAllocators[index]->Reset()));
+    Assert(SUCCEEDED(m_commandLists[index]->Reset(m_commandAllocators[index].Get(), nullptr)));
 
     m_isRecording = true;
 }
 
 void DX12CommandBuffer::End()
 {
-    Assert(m_commandList != nullptr);
+    Assert(m_commandLists[m_currentCommandListIndex] != nullptr);
     Assert(m_isRecording, "Command buffer is not recording!");
 
-    HRESULT closeResult = m_commandList->Close();
+    ID3D12GraphicsCommandList* commandList = m_commandLists[m_currentCommandListIndex].Get();
+    
+    HRESULT closeResult = commandList->Close();
     if (FAILED(closeResult))
     {
         HYP_FAIL("Failed to close command buffer! Code: {}", closeResult);
@@ -104,7 +116,7 @@ void DX12CommandBuffer::BindVertexBuffer(const DX12GpuBuffer* buffer)
 {
     AssertDebug(buffer != nullptr);
     AssertDebug(buffer->GetBufferType() == GpuBufferType::MESH_VERTEX_BUFFER,
-        "Not a vertex buffer! Got buffer type: %u", uint32(buffer->GetBufferType()));
+        "Not a vertex buffer! Got buffer type: {}", buffer->GetBufferType());
 
     D3D12_VERTEX_BUFFER_VIEW vbView = {};
     vbView.BufferLocation = buffer->GetResource()->GetGPUVirtualAddress();
@@ -115,21 +127,21 @@ void DX12CommandBuffer::BindVertexBuffer(const DX12GpuBuffer* buffer)
         vbView.StrideInBytes = static_cast<UINT>(m_boundGraphicsPipeline->GetInputLayout().VertexSize());
     }
 
-    m_commandList->IASetVertexBuffers(0, 1, &vbView);
+    m_commandLists[m_currentCommandListIndex]->IASetVertexBuffers(0, 1, &vbView);
 }
 
 void DX12CommandBuffer::BindIndexBuffer(const DX12GpuBuffer* buffer, GpuElemType elemType)
 {
     AssertDebug(buffer != nullptr);
     AssertDebug(buffer->GetBufferType() == GpuBufferType::MESH_INDEX_BUFFER,
-        "Not an index buffer! Got buffer type: %u", uint32(buffer->GetBufferType()));
+        "Not an index buffer! Got buffer type: {}", buffer->GetBufferType());
 
     D3D12_INDEX_BUFFER_VIEW ibView = {};
     ibView.BufferLocation = buffer->GetResource()->GetGPUVirtualAddress();
     ibView.SizeInBytes = buffer->Size();
     ibView.Format = ToDXGIFormat(elemType);
 
-    m_commandList->IASetIndexBuffer(&ibView);
+    m_commandLists[m_currentCommandListIndex]->IASetIndexBuffer(&ibView);
 }
 
 void DX12CommandBuffer::DrawIndexed(
@@ -139,7 +151,7 @@ void DX12CommandBuffer::DrawIndexed(
 {
     AssertDebug(m_boundGraphicsPipeline != nullptr);
 
-    m_commandList->DrawIndexedInstanced(
+    m_commandLists[m_currentCommandListIndex]->DrawIndexedInstanced(
         numIndices,
         numInstances,
         0,
@@ -177,7 +189,7 @@ void DX12CommandBuffer::DrawIndexedIndirect(
         }
     }
 
-    m_commandList->ExecuteIndirect(
+    m_commandLists[m_currentCommandListIndex]->ExecuteIndirect(
         s_drawIndexedCommandSignature,
         1,
         buffer->GetResource(),
@@ -200,7 +212,7 @@ void DX12CommandBuffer::Submit(
         End();
     }
 
-    ID3D12CommandList* commandLists[] = { m_commandList.Get() };
+    ID3D12CommandList* commandLists[] = { m_commandLists[m_currentCommandListIndex].Get() };
     commandQueue->ExecuteCommandLists(ArraySize(commandLists), commandLists);
 
     if (fence != nullptr)
