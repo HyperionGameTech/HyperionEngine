@@ -28,7 +28,9 @@ DX12CommandBuffer::DX12CommandBuffer(D3D12_COMMAND_LIST_TYPE type)
       m_isRecording(false),
       m_currentAllocatorIndex(0),
       m_currentCommandListIndex(0),
-      m_boundGraphicsPipeline(nullptr)
+      m_boundGraphicsPipeline(nullptr),
+      m_boundViewHeap(nullptr),
+      m_boundSamplerHeap(nullptr)
 {
 }
 
@@ -92,6 +94,9 @@ void DX12CommandBuffer::Begin()
 
     Assert(SUCCEEDED(m_commandAllocators[index]->Reset()));
     Assert(SUCCEEDED(m_commandLists[index]->Reset(m_commandAllocators[index].Get(), nullptr)));
+
+    // Reset bound descriptor heaps tracking since the command list has been reset
+    ResetBoundDescriptorHeaps();
 
     m_isRecording = true;
 }

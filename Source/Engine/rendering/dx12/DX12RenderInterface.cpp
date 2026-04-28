@@ -27,6 +27,8 @@
 #include <rendering/RenderableAttributes.hpp>
 #include <rendering/CBufferAllocator.hpp>
 
+#include <Core/threading/AtomicFlag.hpp>
+
 #include <engine/DeviceDetails.hpp>
 
 #include <system/AppContext.hpp>
@@ -561,6 +563,8 @@ DX12CommandBuffer& DX12RenderInterface::GetTransientCommandBuffer()
 
     commandBuffer->Begin();
 
+    BindDescriptorHeaps(*commandBuffer);
+
     return *commandBuffer;
 }
 
@@ -605,6 +609,24 @@ void DX12RenderInterface::SubmitTransientCommandBuffer(DX12CommandBuffer& comman
     Assert(SUCCEEDED(hr));
 
     m_transientCommandBufferFences[renderThreadIndex][frameCounter % NumFramesInFlight].PushBack(fence);
+}
+
+void DX12RenderInterface::BindDescriptorHeaps(DX12CommandBuffer& commandBuffer)
+{
+    ID3D12DescriptorHeap* viewHeap = descriptorHeapManager->GetDescriptorHeap(DX12DescriptorHeapType::CBV_SRV_UAV);
+    Assert(viewHeap != nullptr);
+
+    ID3D12DescriptorHeap* samplerHeap = descriptorHeapManager->GetDescriptorHeap(DX12DescriptorHeapType::SAMPLER);
+    Assert(samplerHeap != nullptr);
+
+    // Only bind descriptor heaps if they have changed to avoid unnecessary API calls
+    if (commandBuffer.GetBoundViewHeap() != viewHeap || commandBuffer.GetBoundSamplerHeap() != samplerHeap)
+    {
+        ID3D12DescriptorHeap* heaps[] = { viewHeap, samplerHeap };
+        commandBuffer.GetCommandList()->SetDescriptorHeaps(UINT(std::size(heaps)), heaps);
+
+        commandBuffer.SetBoundDescriptorHeaps(viewHeap, samplerHeap);
+    }
 }
 
 DX12DescriptorSetRef DX12RenderInterface::MakeDescriptorSet(const DescriptorSetLayout& layout)
@@ -851,6 +873,14 @@ void DX12RenderInterface::SubmitAsyncCompute(DX12AsyncCompute* asyncCompute)
 void DX12RenderInterface::ReleaseTransientMemory()
 {
     GetCurrentFrame()->ResetTransientStates();
+}
+
+void DX12RenderInterface::BeginFrame(AtomicFlag* pCancelFlag)
+{
+    RenderInterface::BeginFrame(pCancelFlag);
+
+    // Rebind descriptor heaps after command buffer reset in BeginFrame()
+    BindDescriptorHeaps(*GetCurrentCommandBuffer());
 }
 
 void DX12RenderInterface::NextFrame()

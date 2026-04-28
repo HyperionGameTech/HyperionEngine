@@ -13,14 +13,16 @@
 namespace Hyperion {
 
 enum ResourceState : uint8;
-enum class TextureFormat : uint8;
-enum class TextureType : uint8;
 enum FaceCullMode : uint8;
 enum Topology : uint8;
 enum BlendModeFactor : uint8;
 enum StencilOp : uint8;
 enum StencilCompareOp : uint8;
 enum GpuElemType : uint8;
+
+enum class TextureFormat : uint8;
+enum class TextureType : uint8;
+enum class ShaderRegister : uint8;
 
 class DX12GpuBuffer;
 class DX12GpuImage;
@@ -52,5 +54,7 @@ D3D12_SAMPLER_DESC GetSamplerDesc(const class DX12Sampler* sampler);
 
 D3D12_SHADER_RESOURCE_VIEW_DESC GetSRVDesc(DX12GpuImage* image, uint32 mipIndex, uint32 numMips, uint32 layerIndex, uint32 numLayers);
 D3D12_UNORDERED_ACCESS_VIEW_DESC GetUAVDesc(DX12GpuImage* image, uint32 mipIndex, uint32 numMips, uint32 layerIndex, uint32 numLayers);
+
+D3D12_DESCRIPTOR_RANGE_TYPE ToDX12DescriptorRangeType(ShaderRegister reg);
 
 } // namespace Hyperion

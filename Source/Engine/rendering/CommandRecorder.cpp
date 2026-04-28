@@ -388,7 +388,7 @@ void Blit::InvokeStatic(CmdBase* cmd, CommandBuffer* commandBuffer)
 #ifdef HYP_VULKAN
     dstImage->Blit(commandBuffer, srcImage, srcRect, dstRect, srcSubResource, dstSubResource);
 #else
-    BlitImages(srcImage, dstImage, srcRect, dstRect, srcSubResource, dstSubResource, commandBuffer);
+    //BlitImages(srcImage, dstImage, srcRect, dstRect, srcSubResource, dstSubResource, commandBuffer);
 #endif
 }
 
@@ -421,14 +421,14 @@ void BlitRect::InvokeStatic(CmdBase* cmd, CommandBuffer* commandBuffer)
 #ifdef HYP_VULKAN
     dstImage->Blit(commandBuffer, srcImage, srcRect, dstRect, srcSubResource, dstSubResource);
 #else
-    BlitImages(
-        cmdCasted->m_srcImage,
-        cmdCasted->m_dstImage,
-        cmdCasted->m_srcRect,
-        cmdCasted->m_dstRect,
-        srcSubResource,
-        dstSubResource,
-        commandBuffer);
+    //BlitImages(
+    //    cmdCasted->m_srcImage,
+    //    cmdCasted->m_dstImage,
+    //    cmdCasted->m_srcRect,
+    //    cmdCasted->m_dstRect,
+    //    srcSubResource,
+    //    dstSubResource,
+    //    commandBuffer);
 #endif
 }
 

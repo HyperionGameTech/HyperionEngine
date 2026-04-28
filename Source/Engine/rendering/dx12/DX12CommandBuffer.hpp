@@ -66,6 +66,28 @@ public:
         ID3D12Fence* fence = nullptr,
         uint64 fenceValue = 0);
 
+    HYP_FORCE_INLINE ID3D12DescriptorHeap* GetBoundViewHeap() const
+    {
+        return m_boundViewHeap;
+    }
+
+    HYP_FORCE_INLINE ID3D12DescriptorHeap* GetBoundSamplerHeap() const
+    {
+        return m_boundSamplerHeap;
+    }
+
+    HYP_FORCE_INLINE void SetBoundDescriptorHeaps(ID3D12DescriptorHeap* viewHeap, ID3D12DescriptorHeap* samplerHeap)
+    {
+        m_boundViewHeap = viewHeap;
+        m_boundSamplerHeap = samplerHeap;
+    }
+
+    void ResetBoundDescriptorHeaps()
+    {
+        m_boundViewHeap = nullptr;
+        m_boundSamplerHeap = nullptr;
+    }
+
     DX12GraphicsPipeline* m_boundGraphicsPipeline;
 
 private:
@@ -75,6 +97,10 @@ private:
     bool m_isRecording;
     uint32 m_currentAllocatorIndex;
     uint32 m_currentCommandListIndex;
+
+    // Track bound descriptor heaps to avoid redundant SetDescriptorHeaps() calls
+    ID3D12DescriptorHeap* m_boundViewHeap;
+    ID3D12DescriptorHeap* m_boundSamplerHeap;
 };
 
 } // namespace Hyperion

@@ -41,6 +41,20 @@ public:
         return m_pipelineState.Get();
     }
 
+    /*! \brief Get the root parameter indices for a descriptor set at the given bind index.
+     *  \param bindIndex The descriptor set index (as used in Bind()). This corresponds to the HLSL register space.
+     *  \return The root parameter indices for views and samplers.
+     *
+     *  @note The bindIndex corresponds to the descriptor set index which maps to HLSL register spaces.
+     *  In ShaderCompiler.cpp, descriptor set indices are mapped to HLSL register spaces via
+     *  #define _{SetName}_SPACE space{N} where N is the set index. The root signature is built
+     *  with RegisterSpace = setIndex to match this mapping. */
+    HYP_FORCE_INLINE const DescriptorSetRootIndices& GetDescriptorSetRootIndices(uint32 bindIndex) const
+    {
+        Assert(bindIndex < m_descriptorSetRootIndices.Size());
+        return m_descriptorSetRootIndices[bindIndex];
+    }
+
     bool IsCreated() const override;
 
     RendererResult Create() override;
@@ -69,6 +83,11 @@ private:
 
     ComPtr<ID3D12RootSignature> m_rootSignature;
     ComPtr<ID3D12PipelineState> m_pipelineState;
+
+    // Maps descriptor set index (bindIndex) to root parameter indices.
+    // The descriptor set index corresponds to the HLSL register space (spaceN).
+    // This mapping aligns with ShaderCompiler.cpp where #define _{SetName}_SPACE space{N} is generated.
+    Array<DescriptorSetRootIndices> m_descriptorSetRootIndices;
 };
 
 } // namespace Hyperion

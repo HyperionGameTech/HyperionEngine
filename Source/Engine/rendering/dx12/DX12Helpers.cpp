@@ -12,6 +12,7 @@
 #include <rendering/dx12/DX12Sampler.hpp>
 
 #include <rendering/Shared.hpp>
+#include <rendering/util/ShaderCompiler.hpp> // For ShaderCompiler
 
 namespace Hyperion {
 
@@ -474,6 +475,13 @@ D3D12_SHADER_RESOURCE_VIEW_DESC GetSRVDesc(DX12GpuImage* image, uint32 mipIndex,
     srvDesc.Format = ToDXGIFormat(textureDesc.format, DX12ViewType::SRV_UAV);
     srvDesc.ViewDimension = ToDX12SRVDimension(textureDesc.type);
 
+    // When viewing a single face of a cubemap as a 2D texture, use TEXTURE2D dimension
+    const bool isCubemap = textureDesc.IsTextureCube() || textureDesc.IsTextureCubeArray();
+    if (isCubemap && numLayers == 1)
+    {
+        srvDesc.ViewDimension = D3D12_SRV_DIMENSION_TEXTURE2D;
+    }
+
     switch (srvDesc.ViewDimension)
     {
     case D3D12_SRV_DIMENSION_TEXTURE2D:
@@ -535,6 +543,13 @@ D3D12_UNORDERED_ACCESS_VIEW_DESC GetUAVDesc(DX12GpuImage* image, uint32 mipIndex
     D3D12_UNORDERED_ACCESS_VIEW_DESC uavDesc {};
     uavDesc.Format = ToDXGIFormat(textureDesc.format, DX12ViewType::SRV_UAV);
     uavDesc.ViewDimension = ToDX12UAVDimension(textureDesc.type);
+
+    // When viewing a single face of a cubemap as a 2D texture, use TEXTURE2D dimension
+    const bool isCubemapUav = textureDesc.IsTextureCube() || textureDesc.IsTextureCubeArray();
+    if (isCubemapUav && numLayers == 1)
+    {
+        uavDesc.ViewDimension = D3D12_UAV_DIMENSION_TEXTURE2D;
+    }
 
     switch (uavDesc.ViewDimension)
     {
@@ -643,6 +658,23 @@ D3D12_SAMPLER_DESC GetSamplerDesc(const DX12Sampler* sampler)
     desc.MaxLOD = D3D12_FLOAT32_MAX;
 
     return desc;
+}
+
+D3D12_DESCRIPTOR_RANGE_TYPE ToDX12DescriptorRangeType(ShaderRegister reg)
+{
+    switch (reg)
+    {
+    case ShaderRegister::SRV:
+        return D3D12_DESCRIPTOR_RANGE_TYPE_SRV;
+    case ShaderRegister::UAV:
+        return D3D12_DESCRIPTOR_RANGE_TYPE_UAV;
+    case ShaderRegister::BUFFER:
+        return D3D12_DESCRIPTOR_RANGE_TYPE_CBV;
+    case ShaderRegister::SAMPLER:
+        return D3D12_DESCRIPTOR_RANGE_TYPE_SAMPLER;
+    default:
+        HYP_UNREACHABLE();
+    }
 }
 
 } // namespace Hyperion

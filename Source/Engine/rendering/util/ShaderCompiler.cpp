@@ -200,13 +200,7 @@ static String BuildDescriptorTableDefines(ShaderLanguage language, const ShaderI
         }
         else if (language == ShaderLanguage::HLSL)
         {
-            // @TODO: Make this configurable so we can build for dx/vulkan using PrecompileShaders with a cli arg?
-#if HYP_VULKAN
             descriptorTableDefines += "#define _" + String(*inputSet.name) + "_SPACE" + " " + ("space" + String::ToString(setIndex)) + "\n";
-#else
-            // for DX we always use space0.
-            descriptorTableDefines += "#define _" + String(*inputSet.name) + "_SPACE space0\n";
-#endif
         }
 
         if (inputSet.flags[ShaderInputSetFlags::Reference])

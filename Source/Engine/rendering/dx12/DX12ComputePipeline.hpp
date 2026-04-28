@@ -18,6 +18,8 @@
 
 namespace Hyperion {
 
+// DescriptorSetRootIndices is defined in DX12Shared.hpp
+
 HYP_CLASS(NoScriptBindings)
 class DX12ComputePipeline final : public ComputePipelineBase
 {
@@ -36,6 +38,15 @@ public:
     HYP_FORCE_INLINE ID3D12PipelineState* GetPipelineState() const
     {
         return m_pipelineState.Get();
+    }
+
+    /*! \brief Get the root parameter indices for a descriptor set at the given bind index.
+     *  \param bindIndex The descriptor set index (as used in Bind()).
+     *  \return The root parameter indices for views and samplers. */
+    HYP_FORCE_INLINE const DescriptorSetRootIndices& GetDescriptorSetRootIndices(uint32 bindIndex) const
+    {
+        Assert(bindIndex < m_descriptorSetRootIndices.Size());
+        return m_descriptorSetRootIndices[bindIndex];
     }
 
     bool IsCreated() const override;
@@ -61,6 +72,9 @@ private:
 
     ComPtr<ID3D12RootSignature> m_rootSignature;
     ComPtr<ID3D12PipelineState> m_pipelineState;
+
+    // Maps descriptor set index (bindIndex) to root parameter indices
+    Array<DescriptorSetRootIndices> m_descriptorSetRootIndices;
 };
 
 } // namespace Hyperion

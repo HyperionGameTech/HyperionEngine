@@ -130,6 +130,8 @@ public:
 
     void NextFrame() override;
 
+    void BeginFrame(AtomicFlag* pCancelFlag) override;
+
     HYP_FORCE_INLINE uint64 GetCurrentFrameFenceValue() const
     {
         return m_frameFenceValues[m_currentFrameIndex];
@@ -146,6 +148,8 @@ public:
 
 private:
     void InitDeviceDetails(DeviceDetails& deviceDetails) override;
+
+    void BindDescriptorHeaps(DX12CommandBuffer& commandBuffer);
 
     DX12Frame* PrepareNextFrame() override;
 

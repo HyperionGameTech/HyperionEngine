@@ -14,7 +14,11 @@
 #undef INCLUDE_FROM_RHI
 #undef INCLUDE_FROM_RHI_BASE
 
+#include <rendering/dx12/DX12Shared.hpp>
+
 namespace Hyperion {
+
+// DescriptorSetRootIndices is defined in DX12Shared.hpp
 
 HYP_CLASS(NoScriptBindings)
 class DX12RayTracingPipeline final : public RayTracingPipelineBase
@@ -25,6 +29,15 @@ public:
     DX12RayTracingPipeline();
     DX12RayTracingPipeline(const DX12ShaderInstanceRef& shaderInstance);
     ~DX12RayTracingPipeline() override;
+
+    /*! \brief Get the root parameter indices for a descriptor set at the given bind index.
+     *  \param bindIndex The descriptor set index (as used in Bind()).
+     *  \return The root parameter indices for views and samplers. */
+    HYP_FORCE_INLINE const DescriptorSetRootIndices& GetDescriptorSetRootIndices(uint32 bindIndex) const
+    {
+        Assert(bindIndex < m_descriptorSetRootIndices.Size());
+        return m_descriptorSetRootIndices[bindIndex];
+    }
 
     bool IsCreated() const override;
 
@@ -38,6 +51,10 @@ public:
 #ifdef HYP_DEBUG_MODE
     void SetDebugName(Name name) override;
 #endif
+
+private:
+    // Maps descriptor set index (bindIndex) to root parameter indices
+    Array<DescriptorSetRootIndices> m_descriptorSetRootIndices;
 };
 
 } // namespace Hyperion

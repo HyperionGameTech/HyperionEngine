@@ -20,6 +20,8 @@
 #include <rendering/dx12/DX12ComputePipeline.hpp>
 #include <rendering/dx12/DX12RayTracingPipeline.hpp>
 
+#include <rendering/Bindless.hpp>
+
 #include <DX12DescriptorSet.generated.inl>
 
 namespace Hyperion {
@@ -98,6 +100,13 @@ RendererResult DX12DescriptorSet::Create()
     {
         const DescriptorSetLayoutElement& element = it.second;
 
+        // For bindless elements, use the MaxBindlessResources limit instead of ~0u
+        const uint32 elementCount = element.IsBindless()
+            ? (element.IsBuffer()
+                ? MaxBindlessResources[BindlessStorage_Buffers]
+                : MaxBindlessResources[BindlessStorage_Textures])
+            : element.count;
+
         switch (element.type)
         {
         case ShaderInputType::UNIFORM_BUFFER:
@@ -108,11 +117,11 @@ RendererResult DX12DescriptorSet::Create()
         case ShaderInputType::IMAGE_STORAGE:
         case ShaderInputType::TLAS:
             m_viewBindingToHeapOffset.Set(element.binding, viewCount);
-            viewCount += element.count;
+            viewCount += elementCount;
             break;
         case ShaderInputType::SAMPLER:
             m_samplerBindingToHeapOffset.Set(element.binding, samplerCount);
-            samplerCount += element.count;
+            samplerCount += elementCount;
             break;
         default:
             HYP_UNREACHABLE();
@@ -547,38 +556,18 @@ void DX12DescriptorSet::Bind(DX12CommandBuffer* commandBuffer, const DX12Graphic
     Assert(m_isCreated);
 
     ID3D12GraphicsCommandList* commandList = commandBuffer->GetCommandList();
-    
-    uint32 numHeaps = 0;
 
-    ID3D12DescriptorHeap* heaps[2] {};
-    
-    ID3D12DescriptorHeap* viewHeap = g_renderInterface->descriptorHeapManager->GetDescriptorHeap(DX12DescriptorHeapType::CBV_SRV_UAV);
-    if (viewHeap != nullptr && m_viewDescriptorHandle.IsValid())
-    {
-        heaps[numHeaps++] = viewHeap;
-    }
-    
-    ID3D12DescriptorHeap* samplerHeap = g_renderInterface->descriptorHeapManager->GetDescriptorHeap(DX12DescriptorHeapType::SAMPLER);
-    if (samplerHeap != nullptr && m_samplerDescriptorHandle.IsValid())
-    {
-        heaps[numHeaps++] = samplerHeap;
-    }
+    // Get the actual root parameter indices from the pipeline
+    const DescriptorSetRootIndices& rootIndices = pipeline->GetDescriptorSetRootIndices(bindIndex);
 
-    if (numHeaps == 0)
+    if (m_viewDescriptorHandle.IsValid() && rootIndices.viewRootIndex != ~0u)
     {
-        return;
+        commandList->SetGraphicsRootDescriptorTable(rootIndices.viewRootIndex, m_viewDescriptorHandle.gpuHandle);
     }
     
-    commandList->SetDescriptorHeaps(numHeaps, heaps);
-
-    if (m_viewDescriptorHandle.IsValid())
+    if (m_samplerDescriptorHandle.IsValid() && rootIndices.samplerRootIndex != ~0u)
     {
-        commandList->SetGraphicsRootDescriptorTable(bindIndex * 2, m_viewDescriptorHandle.gpuHandle);
-    }
-    
-    if (m_samplerDescriptorHandle.IsValid())
-    {
-        commandList->SetGraphicsRootDescriptorTable(bindIndex * 2 + 1, m_samplerDescriptorHandle.gpuHandle);
+        commandList->SetGraphicsRootDescriptorTable(rootIndices.samplerRootIndex, m_samplerDescriptorHandle.gpuHandle);
     }
 }
 
@@ -594,37 +583,17 @@ void DX12DescriptorSet::Bind(DX12CommandBuffer* commandBuffer, const DX12Compute
 
     ID3D12GraphicsCommandList* commandList = commandBuffer->GetCommandList();
     
-    uint32 numHeaps = 0;
-
-    ID3D12DescriptorHeap* heaps[2] {};
+    // Get the actual root parameter indices from the pipeline
+    const DescriptorSetRootIndices& rootIndices = pipeline->GetDescriptorSetRootIndices(bindIndex);
     
-    ID3D12DescriptorHeap* viewHeap = g_renderInterface->descriptorHeapManager->GetDescriptorHeap(DX12DescriptorHeapType::CBV_SRV_UAV);
-    if (viewHeap != nullptr && m_viewDescriptorHandle.IsValid())
+    if (m_viewDescriptorHandle.IsValid() && rootIndices.viewRootIndex != ~0u)
     {
-        heaps[numHeaps++] = viewHeap;
+        commandList->SetComputeRootDescriptorTable(rootIndices.viewRootIndex, m_viewDescriptorHandle.gpuHandle);
     }
     
-    ID3D12DescriptorHeap* samplerHeap = g_renderInterface->descriptorHeapManager->GetDescriptorHeap(DX12DescriptorHeapType::SAMPLER);
-    if (samplerHeap != nullptr && m_samplerDescriptorHandle.IsValid())
+    if (m_samplerDescriptorHandle.IsValid() && rootIndices.samplerRootIndex != ~0u)
     {
-        heaps[numHeaps++] = samplerHeap;
-    }
-
-    if (numHeaps == 0)
-    {
-        return;
-    }
-    
-    commandList->SetDescriptorHeaps(numHeaps, heaps);
-    
-    if (m_viewDescriptorHandle.IsValid())
-    {
-        commandList->SetComputeRootDescriptorTable(bindIndex * 2, m_viewDescriptorHandle.gpuHandle);
-    }
-    
-    if (m_samplerDescriptorHandle.IsValid())
-    {
-        commandList->SetComputeRootDescriptorTable(bindIndex * 2 + 1, m_samplerDescriptorHandle.gpuHandle);
+        commandList->SetComputeRootDescriptorTable(rootIndices.samplerRootIndex, m_samplerDescriptorHandle.gpuHandle);
     }
 }
 
@@ -639,38 +608,18 @@ void DX12DescriptorSet::Bind(DX12CommandBuffer* commandBuffer, const DX12RayTrac
     Assert(m_isCreated);
 
     ID3D12GraphicsCommandList* commandList = commandBuffer->GetCommandList();
-    
-    uint32 numHeaps = 0;
 
-    ID3D12DescriptorHeap* heaps[2] {};
-    
-    ID3D12DescriptorHeap* viewHeap = g_renderInterface->descriptorHeapManager->GetDescriptorHeap(DX12DescriptorHeapType::CBV_SRV_UAV);
-    if (viewHeap != nullptr && m_viewDescriptorHandle.IsValid())
+    // Get the actual root parameter indices from the pipeline
+    const DescriptorSetRootIndices& rootIndices = pipeline->GetDescriptorSetRootIndices(bindIndex);
+
+    if (m_viewDescriptorHandle.IsValid() && rootIndices.viewRootIndex != ~0u)
     {
-        heaps[numHeaps++] = viewHeap;
-    }
-    
-    ID3D12DescriptorHeap* samplerHeap = g_renderInterface->descriptorHeapManager->GetDescriptorHeap(DX12DescriptorHeapType::SAMPLER);
-    if (samplerHeap != nullptr && m_samplerDescriptorHandle.IsValid())
-    {
-        heaps[numHeaps++] = samplerHeap;
+        commandList->SetComputeRootDescriptorTable(rootIndices.viewRootIndex, m_viewDescriptorHandle.gpuHandle);
     }
 
-    if (numHeaps == 0)
+    if (m_samplerDescriptorHandle.IsValid() && rootIndices.samplerRootIndex != ~0u)
     {
-        return;
-    }
-    
-    commandList->SetDescriptorHeaps(numHeaps, heaps);
-
-    if (m_viewDescriptorHandle.IsValid())
-    {
-        commandList->SetComputeRootDescriptorTable(bindIndex * 2, m_viewDescriptorHandle.gpuHandle);
-    }
-
-    if (m_samplerDescriptorHandle.IsValid())
-    {
-        commandList->SetComputeRootDescriptorTable(bindIndex * 2 + 1, m_samplerDescriptorHandle.gpuHandle);
+        commandList->SetComputeRootDescriptorTable(rootIndices.samplerRootIndex, m_samplerDescriptorHandle.gpuHandle);
     }
 }
 

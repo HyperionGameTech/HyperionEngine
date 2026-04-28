@@ -97,7 +97,13 @@ RendererResult VulkanGpuImageView::Create()
     {
         m_viewType = ToVkImageViewType(m_image->GetType());
 
-        // @TODO Check compatibility between view type and image type?
+        // When viewing a single face of a cubemap as a 2D texture, use VIEW_TYPE_2D
+        const TextureType imageType = m_image->GetType();
+        if ((imageType == TextureType::Cubemap || imageType == TextureType::CubemapArray)
+            && m_subResource.numLayers == 1)
+        {
+            m_viewType = VK_IMAGE_VIEW_TYPE_2D;
+        }
     }
 
     VkImageViewCreateInfo viewInfo { VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO };

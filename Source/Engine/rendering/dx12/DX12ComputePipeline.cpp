@@ -12,6 +12,7 @@
 #include <rendering/dx12/DX12CommandBuffer.hpp>
 #include <rendering/dx12/DX12RenderInterface.hpp>
 #include <rendering/dx12/DX12ShaderInstance.hpp>
+#include <rendering/dx12/DX12DescriptorSet.hpp>
 #include <rendering/dx12/DX12Helpers.hpp>
 
 #include <rendering/Shader.hpp>
@@ -94,6 +95,7 @@ RendererResult DX12ComputePipeline::Create()
 RendererResult DX12ComputePipeline::BuildRootSignature()
 {
     m_rootSignature.Reset();
+    m_descriptorSetRootIndices.Clear();
 
     Assert(m_shaderInstance != nullptr && m_shaderInstance->GetShader() != nullptr);
 
@@ -105,98 +107,115 @@ RendererResult DX12ComputePipeline::BuildRootSignature()
     // use LL so we never invalid ptrs
     LinkedList<Array<D3D12_DESCRIPTOR_RANGE>> rangeAllocations;
 
-    auto AllocateRangeStorage = [&](const Array<D3D12_DESCRIPTOR_RANGE>& newRanges) -> const D3D12_DESCRIPTOR_RANGE*
+    auto AllocateRangeStorage = [&](Array<D3D12_DESCRIPTOR_RANGE>&& newRanges) -> const D3D12_DESCRIPTOR_RANGE*
     {
         if (newRanges.Empty())
             return nullptr;
 
-        rangeAllocations.PushBack(newRanges);
+        rangeAllocations.PushBack(std::move(newRanges));
         return rangeAllocations.Back().Data();
     };
 
+    // Reserve space for root indices mapping
+    // Each descriptor set index maps to an HLSL register space (setIndex -> spaceN)
+    // This aligns with how ShaderCompiler.cpp generates #define _{SetName}_SPACE space{N}
+    // Find the maximum set index to size the array appropriately
+    uint32 maxSetIndex = 0;
+    for (const ShaderInputSet& setDecl : decl->elements)
+    {
+        if (setDecl.setIndex != ~0u && setDecl.setIndex > maxSetIndex)
+        {
+            maxSetIndex = setDecl.setIndex;
+        }
+    }
+
+    m_descriptorSetRootIndices.Resize(maxSetIndex + 1);
+
+    // Iterate over each descriptor set and create descriptor ranges
+    // In HLSL, each descriptor set corresponds to a register space (space0, space1, etc.)
     for (size_t setIndex = 0; setIndex < decl->elements.Size(); ++setIndex)
     {
         const ShaderInputSet& setDecl = decl->elements[setIndex];
+        // pointer to the "real" descriptor set (since we can use `Reference` flag to indicate we should grab one of the global descriptor sets)
+        const ShaderInputSet* pSetDecl = &setDecl;
+
+        // Skip empty slots in the elements array
+        if (setDecl.setIndex == ~0u)
+        {
+            continue;
+        }
+
+        if (setDecl.flags & ShaderInputSetFlags::Reference)
+        {
+            AssertDebug(!(setDecl.flags & ShaderInputSetFlags::Template), "Not supported");
+
+            // it's a reference to a global descriptor set -- we need to grab that one.
+            const ShaderInputSet* refSetDecl = g_renderInterface->globalDescriptorTable->GetDeclaration()->FindDescriptorSetDeclaration(setDecl.name);
+            AssertDebug(refSetDecl != nullptr, "Invalid reference to global set: {}", setDecl.name);
+
+            pSetDecl = refSetDecl;
+        }
 
         Array<D3D12_DESCRIPTOR_RANGE> viewRanges;
         Array<D3D12_DESCRIPTOR_RANGE> samplerRanges;
-
-        for (uint32 shaderRegisterType = uint32(ShaderRegister::NONE) + 1; shaderRegisterType < uint32(ShaderRegister::MAX); ++shaderRegisterType)
+        
+        for (uint8 slotIndex = 0; slotIndex < NumDescriptorSlots; slotIndex++)
         {
-            const ShaderRegister reg = ShaderRegister(shaderRegisterType);
-
-            const auto& declarations = setDecl.slots[shaderRegisterType - 1];
+            const auto& declarations = pSetDecl->slots[slotIndex];
             
             if (declarations.Empty())
             {
                 continue;
             }
-            
-            D3D12_DESCRIPTOR_RANGE_TYPE rangeType;
-
-            switch (reg)
-            {
-            case ShaderRegister::SRV:
-                rangeType = D3D12_DESCRIPTOR_RANGE_TYPE_SRV; 
-                break;
-            case ShaderRegister::UAV:
-                rangeType = D3D12_DESCRIPTOR_RANGE_TYPE_UAV;
-                break;
-            case ShaderRegister::BUFFER:
-                rangeType = D3D12_DESCRIPTOR_RANGE_TYPE_CBV;
-                break;
-            case ShaderRegister::SAMPLER:
-                rangeType = D3D12_DESCRIPTOR_RANGE_TYPE_SAMPLER;
-                break;
-            default:
-                HYP_UNREACHABLE();
-            }
 
             for (const ShaderInput& descDecl : declarations)
             {
-                D3D12_DESCRIPTOR_RANGE range {};
-                range.RangeType = rangeType;
+                Array<D3D12_DESCRIPTOR_RANGE>* currRanges = (descDecl.slot == ShaderRegister::SAMPLER ? &samplerRanges : &viewRanges);
+
+                D3D12_DESCRIPTOR_RANGE& range = currRanges->EmplaceBack();
+                range.RangeType = ToDX12DescriptorRangeType(descDecl.slot);
                 range.NumDescriptors = descDecl.count;
                 range.BaseShaderRegister = descDecl.index;
-                range.RegisterSpace = (UINT)setIndex;
+                range.RegisterSpace = (UINT)setDecl.setIndex;
                 range.OffsetInDescriptorsFromTableStart = D3D12_DESCRIPTOR_RANGE_OFFSET_APPEND;
-
-                if (reg == ShaderRegister::SAMPLER)
-                {
-                    samplerRanges.PushBack(range);
-                }
-                else
-                {
-                    viewRanges.PushBack(range);
-                }
             }
         }
 
+        DescriptorSetRootIndices& rootIndices = m_descriptorSetRootIndices[setDecl.setIndex];
+        rootIndices.viewRootIndex = ~0u;
+        rootIndices.samplerRootIndex = ~0u;
+
         if (viewRanges.Any())
         {
+            rootIndices.viewRootIndex = (uint32)rootParams.Size();
+
             D3D12_ROOT_PARAMETER& param = rootParams.EmplaceBack();
+            param = {};
             param.ParameterType = D3D12_ROOT_PARAMETER_TYPE_DESCRIPTOR_TABLE;
             param.ShaderVisibility = D3D12_SHADER_VISIBILITY_ALL;
             param.DescriptorTable.NumDescriptorRanges = (UINT)viewRanges.Size();
-            param.DescriptorTable.pDescriptorRanges = AllocateRangeStorage(viewRanges);
+            param.DescriptorTable.pDescriptorRanges = AllocateRangeStorage(std::move(viewRanges));
         }
 
         if (samplerRanges.Any())
         {
+            rootIndices.samplerRootIndex = (uint32)rootParams.Size();
+
             D3D12_ROOT_PARAMETER& param = rootParams.EmplaceBack();
+            param = {};
             param.ParameterType = D3D12_ROOT_PARAMETER_TYPE_DESCRIPTOR_TABLE;
             param.ShaderVisibility = D3D12_SHADER_VISIBILITY_ALL;
             param.DescriptorTable.NumDescriptorRanges = (UINT)samplerRanges.Size();
-            param.DescriptorTable.pDescriptorRanges = AllocateRangeStorage(samplerRanges);
+            param.DescriptorTable.pDescriptorRanges = AllocateRangeStorage(std::move(samplerRanges));
         }
     }
 
-    D3D12_ROOT_SIGNATURE_DESC sigDesc = {};
+    D3D12_ROOT_SIGNATURE_DESC sigDesc {};
     sigDesc.NumParameters = (UINT)rootParams.Size();
     sigDesc.pParameters = rootParams.Data();
     sigDesc.NumStaticSamplers = 0;
     sigDesc.pStaticSamplers = nullptr;
-    sigDesc.Flags = D3D12_ROOT_SIGNATURE_FLAG_NONE;
+    sigDesc.Flags = D3D12_ROOT_SIGNATURE_FLAG_ALLOW_INPUT_ASSEMBLER_INPUT_LAYOUT;
 
     ComPtr<ID3DBlob> signature;
     ComPtr<ID3DBlob> error;
@@ -207,7 +226,7 @@ RendererResult DX12ComputePipeline::BuildRootSignature()
     {
         const char* errStr = error ? (const char*)error->GetBufferPointer() : "Unknown";
 
-        return HYP_MAKE_ERROR(RendererError, "Root Signature Serialization Failed! Error: {}", res, errStr);
+        return HYP_MAKE_ERROR(RendererError, "Root Signature Serialization Failed! {}", res, errStr);
     }
 
     res = g_renderInterface->GetDevice()->CreateRootSignature(
