@@ -260,16 +260,17 @@ void DX12Framebuffer::BeginCapture(DX12CommandBuffer* commandBuffer)
         DX12Attachment* attachment = it.second;
         DX12GpuImage* image = attachment->GetGpuImage();
 
+        // Reset tracked state before transition - ensures barrier is always emitted
         if (attachment->IsDepthAttachment())
         {
-            // Transition depth attachment to DEPTH_WRITE state
+            image->ResetToAttachmentState();
             image->InsertBarrier(commandBuffer, RS_DEPTH_STENCIL, ShaderModuleType::Pixel);
             dsvHandle = m_dsvDescriptorHandle.cpuHandle;
             hasDSV = true;
         }
         else
         {
-            // Transition color attachment to RENDER_TARGET state
+            image->ResetToAttachmentState();
             image->InsertBarrier(commandBuffer, RS_RENDER_TARGET, ShaderModuleType::Pixel);
             
             D3D12_CPU_DESCRIPTOR_HANDLE rtvHandle = m_rtvDescriptorHandle.cpuHandle;

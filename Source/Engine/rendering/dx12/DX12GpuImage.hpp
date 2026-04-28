@@ -52,6 +52,16 @@ public:
     ResourceState GetSubResourceState(const ImageSubResource& subResource) const;
     void SetSubResourceState(const ImageSubResource& subResource, ResourceState newState);
 
+    void ResetToAttachmentState()
+    {
+        const ResourceState attachmentState = m_textureDesc.IsDepthStencil()
+            ? RS_DEPTH_STENCIL
+            : RS_RENDER_TARGET;
+        m_resourceState = attachmentState;
+        m_stencilState = attachmentState;
+        m_subResourceStates.Clear();
+    }
+
     void InsertBarrier(
         DX12CommandBuffer* commandBuffer,
         ResourceState newState,

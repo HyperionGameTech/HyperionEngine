@@ -678,7 +678,7 @@ RendererResult RenderInterface::Initialize()
     CreateBlueNoiseBuffer();
     CreateEnvProbesTexture();
 
-    globalDescriptorTable->Create();
+    CheckResultOrReturn(globalDescriptorTable->Create());
 
     for (uint32 i = 0; i < GRT_MAX; i++)
     {

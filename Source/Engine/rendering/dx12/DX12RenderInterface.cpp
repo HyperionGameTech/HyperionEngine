@@ -55,6 +55,20 @@ public:
         parallelRendering = false;
         dynamicDescriptorIndexing = false;
     }
+
+    void InitializeBindless(DX12RenderInterface* renderInterface)
+    {
+        ID3D12Device* device = renderInterface->GetDevice();
+
+        // Resource Binding Tier 3 = unbounded descriptor tables (full bindless support)
+        D3D12_FEATURE_DATA_D3D12_OPTIONS options {};
+        HRESULT hr = device->CheckFeatureSupport(D3D12_FEATURE_D3D12_OPTIONS, &options, sizeof(options));
+        if (SUCCEEDED(hr))
+        {
+            bindlessTextures = (options.ResourceBindingTier >= D3D12_RESOURCE_BINDING_TIER_3);
+            dynamicDescriptorIndexing = (options.ResourceBindingTier >= D3D12_RESOURCE_BINDING_TIER_2);
+        }
+    }
 };
 
 #pragma endregion DX12RenderConfig
@@ -171,6 +185,9 @@ RendererResult DX12RenderInterface::Initialize()
     res = D3D12CreateDevice(m_hardwareAdapter.Get(), D3D_FEATURE_LEVEL_12_0, IID_PPV_ARGS(&m_device));
     if (!SUCCEEDED(res))
         return HYP_MAKE_ERROR(RendererError, "Failed to create D3D device!", res);
+
+    // Initialize render config features based on device capabilities
+    static_cast<DX12RenderConfig*>(m_renderConfig.Get())->InitializeBindless(this);
     
     m_queueData.Reserve(10);
 
