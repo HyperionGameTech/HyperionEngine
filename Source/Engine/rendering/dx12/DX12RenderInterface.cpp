@@ -100,7 +100,6 @@ public:
 DX12RenderInterface::DX12RenderInterface()
     : descriptorHeapManager(PoolNew<DX12DescriptorHeapManager>(*g_renderPool)),
       m_renderConfig(MakePimpl<DX12RenderConfig>()),
-      m_currentFrameIndex(0),
       m_allocator(nullptr),
       m_frameFenceEvent(nullptr)
 {
@@ -217,18 +216,22 @@ RendererResult DX12RenderInterface::Initialize()
     DX12QueueData& copyQueueData = m_queueData[D3D12_COMMAND_LIST_TYPE_COPY];
     m_device->CreateCommandQueue(&copyDesc, __uuidof(ID3D12CommandQueue), &copyQueueData.commandQueue);
     
-    // Create one command allocator per thread (main + workers) for each queue type
-    for (uint32 threadIndex = 0; threadIndex < NumRendererWorkerThreads + 1; threadIndex++)
+    // Create command allocators for [threadIndex][frameIndex]
+    
+    for (uint32 commandListTypeIndex = 0; commandListTypeIndex < uint32(m_queueData.Size()); commandListTypeIndex++)
     {
-        for (uint32 commandListTypeIndex = 0; commandListTypeIndex < uint32(m_queueData.Size()); commandListTypeIndex++)
+        D3D12_COMMAND_LIST_TYPE commandListType = static_cast<D3D12_COMMAND_LIST_TYPE>(commandListTypeIndex);
+        DX12QueueData& queueData = m_queueData[commandListTypeIndex];
+        
+        for (uint32 frameIndex = 0; frameIndex < NumFramesInFlight; frameIndex++)
         {
-            D3D12_COMMAND_LIST_TYPE commandListType = static_cast<D3D12_COMMAND_LIST_TYPE>(commandListTypeIndex);
-            DX12QueueData& queueData = m_queueData[commandListTypeIndex];
+            for (uint32 threadIndex = 0; threadIndex < NumRendererWorkerThreads + 1; threadIndex++)
+            {
+                res = m_device->CreateCommandAllocator(commandListType, __uuidof(ID3D12CommandAllocator), &queueData.commandAllocators[threadIndex][frameIndex]);
 
-            res = m_device->CreateCommandAllocator(commandListType, __uuidof(ID3D12CommandAllocator), &queueData.commandAllocators[threadIndex]);
-
-            if (!SUCCEEDED(res))
-                return HYP_MAKE_ERROR(RendererError, "Failed to create command allocator for queue {}!", res, commandListType);
+                if (!SUCCEEDED(res))
+                    return HYP_MAKE_ERROR(RendererError, "Failed to create command allocator for queue {}!", res, commandListType);
+            }
         }
     }
 
@@ -262,14 +265,13 @@ RendererResult DX12RenderInterface::Initialize()
         return HYP_MAKE_ERROR(RendererError, "Failed to create frame fence event");
     }
 
-    // Fence values start at 0 (no submissions yet)
-    // m_frameFenceSubmitted[] tracks whether each frame has been submitted
-
-    // Create command buffers for each frame-in-flight (all use main thread's allocator)
-    ID3D12CommandAllocator* mainThreadAllocator = m_queueData[D3D12_COMMAND_LIST_TYPE_DIRECT].commandAllocators[0].Get();
+    // Create command buffers for each frame in flight
     for (uint32 frameIndex = 0; frameIndex < NumFramesInFlight; frameIndex++)
     {
-        m_commandBuffers[frameIndex] = MakeHandle<DX12CommandBuffer>(D3D12_COMMAND_LIST_TYPE_DIRECT, mainThreadAllocator);
+        ID3D12CommandAllocator* allocator = m_queueData[D3D12_COMMAND_LIST_TYPE_DIRECT].commandAllocators[0][frameIndex].Get();
+        AssertDebug(allocator != nullptr);
+
+        m_commandBuffers[frameIndex] = MakeHandle<DX12CommandBuffer>(D3D12_COMMAND_LIST_TYPE_DIRECT, allocator);
         CheckResultOrReturn(m_commandBuffers[frameIndex]->Create());
     }
 
@@ -365,18 +367,18 @@ const IRenderConfig& DX12RenderInterface::GetRenderConfig() const
 
 DX12Frame* DX12RenderInterface::GetCurrentFrame() const
 {
-    return m_frames[m_currentFrameIndex].Get();
+    return m_frames[GetFrameCounter() % NumFramesInFlight].Get();
 }
 
-DX12Frame* DX12RenderInterface::PrepareNextFrame()
+void DX12RenderInterface::PrepareFrame(DX12Frame* frame)
 {
     const uint32 frameCounter = GetFrameCounter();
+    const uint32 frameIndex = frameCounter % NumFramesInFlight;
 
-    DX12Frame* frame = GetCurrentFrame();
-
-    if (m_frameFenceSubmitted[m_currentFrameIndex])
+    if (m_frameFenceSubmitted[frameIndex])
     {
-        const uint64 currentFenceValue = m_frameFenceValues[m_currentFrameIndex];
+        const uint64 currentFenceValue = m_frameFenceValues[frameIndex];
+
         if (m_frameFence->GetCompletedValue() < currentFenceValue)
         {
             HRESULT hr = m_frameFence->SetEventOnCompletion(currentFenceValue, m_frameFenceEvent);
@@ -468,20 +470,17 @@ DX12Frame* DX12RenderInterface::PrepareNextFrame()
         pendingList.Clear();
     }
 
-    // Reset the direct queue's command allocators for all threads before any command buffer begins recording
+    // Reset the direct queue's command allocators for the current frame across all threads
     {
         DX12QueueData& queueData = m_queueData[D3D12_COMMAND_LIST_TYPE_DIRECT];
+
         for (uint32 threadIndex = 0; threadIndex < NumRendererWorkerThreads + 1; threadIndex++)
         {
-            Assert(SUCCEEDED(queueData.commandAllocators[threadIndex]->Reset()));
+            Assert(SUCCEEDED(queueData.commandAllocators[threadIndex][frameIndex]->Reset()));
         }
     }
 
     frame->OnFrameStart();
-
-    AssertDebug(frame != nullptr);
-
-    return frame;
 }
 
 DX12SwapchainRef DX12RenderInterface::CreateSwapchain(ApplicationWindow* window, const Vec2u& extent)
@@ -513,10 +512,12 @@ void DX12RenderInterface::PresentToSwapchain(DX12Swapchain* swapchain)
     DX12Frame* frame = GetCurrentFrame();
     Assert(frame != nullptr);
 
+    const uint32 frameIndex = GetFrameCounter() % NumFramesInFlight;
+
     frame->WriteCommandBuffer(commandBuffer);
 
-    const uint64 fenceValue = ++m_frameFenceValues[m_currentFrameIndex];
-    m_frameFenceSubmitted[m_currentFrameIndex] = true;
+    const uint64 fenceValue = ++m_frameFenceValues[frameIndex];
+    m_frameFenceSubmitted[frameIndex] = true;
 
     const DX12QueueData* queueData = GetQueueData(D3D12_COMMAND_LIST_TYPE_DIRECT);
     AssertDebug(queueData != nullptr);
@@ -530,20 +531,16 @@ void DX12RenderInterface::PresentToSwapchain(DX12Swapchain* swapchain)
     }
 }
 
-DX12CommandBuffer* DX12RenderInterface::GetCurrentCommandBuffer() const
-{
-    return m_commandBuffers[m_currentFrameIndex].Get();
-}
-
 DX12CommandBuffer& DX12RenderInterface::GetTransientCommandBuffer()
 {
     // usable from main render thread or renderer worker threads.
     const uint32 frameCounter = GetFrameCounter();
+    const uint32 frameIndex = frameCounter % NumFramesInFlight;
+
     const uint32 renderThreadIndex = CurrentRenderThreadIndex();
 
-    const uint32 frameIndex = frameCounter % NumFramesInFlight;
-    // Use the thread-indexed allocator (same pattern as Vulkan's command pools)
-    ID3D12CommandAllocator* allocator = m_queueData[D3D12_COMMAND_LIST_TYPE_DIRECT].commandAllocators[renderThreadIndex].Get();
+    // Use the [frameIndex][threadIndex] allocator
+    ID3D12CommandAllocator* allocator = m_queueData[D3D12_COMMAND_LIST_TYPE_DIRECT].commandAllocators[renderThreadIndex][frameIndex].Get();
 
     Array<DX12CommandBuffer*, RenderAllocator>& freeList = m_transientCommandBuffers[renderThreadIndex][frameIndex];
     Array<DX12CommandBuffer*, RenderAllocator>& pendingList = m_pendingTransientCommandBuffers[renderThreadIndex][frameIndex];
@@ -884,11 +881,6 @@ void DX12RenderInterface::BeginFrame(AtomicFlag* pCancelFlag)
 
     // Rebind descriptor heaps after command buffer reset in BeginFrame()
     BindDescriptorHeaps(*GetCurrentCommandBuffer());
-}
-
-void DX12RenderInterface::NextFrame()
-{
-    m_currentFrameIndex = (m_currentFrameIndex + 1) % NumFramesInFlight;
 }
 
 #pragma endregion DX12RenderInterface

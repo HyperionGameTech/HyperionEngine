@@ -493,7 +493,7 @@ void LightmapRenderer_GpuPathTracing::Render(Frame* frame, const RenderSetup& re
     Assert(m_tlas && m_tlas->IsCreated());
 
     { // rays buffer
-        // PrepareNextFrame() (called at the start of BeginFrame) already waited the fence for
+        // PrepareFrame() (called at the start of BeginFrame) already waited the fence for
         // this frame slot, so the GPU is done reading from raysBuffer. Write the current frame's
         // ray data directly rather than deferring to OnFrameEnd: deferring fires 3 frames later
         // (one full NumFramesInFlight cycle), which means the GPU would read stale data.

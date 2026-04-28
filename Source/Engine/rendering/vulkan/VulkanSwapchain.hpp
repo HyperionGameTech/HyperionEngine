@@ -65,8 +65,6 @@ public:
 
     bool IsCreated() const override;
 
-    void NextFrame();
-
     void PrepareForFrame(VulkanFrame* frame);
     void PresentFrame(VulkanFrame* frame, VulkanDeviceQueue* queue);
 

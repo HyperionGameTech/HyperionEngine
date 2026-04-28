@@ -363,9 +363,6 @@ public:
     virtual AsyncCompute* CreateAsyncCompute() = 0;
     virtual void SubmitAsyncCompute(AsyncCompute* asyncCompute) = 0;
 
-    virtual void ReleaseTransientMemory() = 0;
-    virtual void NextFrame() = 0;
-
     ShaderManager* shaderManager;
 
     BindlessStorage* bindlessStorage;
@@ -421,7 +418,10 @@ public:
     Resources::ResourceContainer* resources;
 
 protected:
-    virtual Frame* PrepareNextFrame() = 0;
+    virtual void NewFrameIndex() {}
+    virtual void PrepareFrame(Frame* frame) = 0;
+
+    virtual void ReleaseTransientMemory() = 0;
 
     void CreateBlueNoiseBuffer();
     void CreateSphereSamplesBuffer();

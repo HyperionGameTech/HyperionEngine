@@ -68,9 +68,7 @@ RendererResult DX12CommandBuffer::Create()
             IID_PPV_ARGS(&m_commandList));
 
         if (!SUCCEEDED(res))
-        {
             return HYP_MAKE_ERROR(RendererError, "Failed to create command list!", res);
-        }
 
         m_commandList->Close();
     }

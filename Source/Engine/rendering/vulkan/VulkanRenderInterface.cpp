@@ -756,11 +756,10 @@ VulkanFrame* VulkanRenderInterface::GetCurrentFrame() const
     return m_frames[m_currentFrameIndex];
 }
 
-VulkanFrame* VulkanRenderInterface::PrepareNextFrame()
+void VulkanRenderInterface::PrepareFrame(VulkanFrame* frame)
 {
     const uint32 frameCounter = GetFrameCounter();
-
-    VulkanFrame* frame = GetCurrentFrame();
+    
     {
         ENGINE_STAT_SCOPE(&s_statVulkanWaitOnFences);
 
@@ -861,10 +860,6 @@ VulkanFrame* VulkanRenderInterface::PrepareNextFrame()
     frame->OnFrameStart();
 
     m_descriptorSetManager->OnFrameStart();
-
-    AssertDebug(frame != nullptr);
-
-    return frame;
 }
 
 VulkanSwapchainRef VulkanRenderInterface::CreateSwapchain(ApplicationWindow* window, const Vec2u& extent)

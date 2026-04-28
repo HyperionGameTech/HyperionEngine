@@ -35,9 +35,7 @@ class DX12Fence;
 struct DX12QueueData
 {
     ComPtr<ID3D12CommandQueue> commandQueue;
-
-    // One allocator per thread (main + workers)
-    FixedArray<ComPtr<ID3D12CommandAllocator>, NumRendererWorkerThreads + 1> commandAllocators;
+    ComPtr<ID3D12CommandAllocator> commandAllocators[NumRendererWorkerThreads + 1][NumFramesInFlight];
 };
 
 class DX12RenderInterface final : public RenderInterface
@@ -78,7 +76,20 @@ public:
     void PrepareSwapchain(DX12Swapchain* swapchain) override;
     void PresentToSwapchain(DX12Swapchain* swapchain) override;
 
-    DX12CommandBuffer* GetCurrentCommandBuffer() const override;
+    DX12CommandBuffer* GetCurrentCommandBuffer() const override
+    {
+        return m_commandBuffers[GetFrameCounter() % NumFramesInFlight].Get();
+    }
+
+    HYP_FORCE_INLINE uint32 GetCurrentFrameIndex() const
+    {
+        return GetFrameCounter() % NumFramesInFlight;
+    }
+
+    HYP_FORCE_INLINE ID3D12Fence* GetFrameFence() const
+    {
+        return m_frameFence.Get();
+    }
 
     DX12CommandBuffer& GetTransientCommandBuffer() override;
     void SubmitTransientCommandBuffer(DX12CommandBuffer& commandBuffer) override;
@@ -132,24 +143,7 @@ public:
 
     void ReleaseTransientMemory() override;
 
-    void NextFrame() override;
-
     void BeginFrame(AtomicFlag* pCancelFlag) override;
-
-    HYP_FORCE_INLINE uint32 GetCurrentFrameIndex() const
-    {
-        return m_currentFrameIndex;
-    }
-
-    HYP_FORCE_INLINE uint64 GetCurrentFrameFenceValue() const
-    {
-        return m_frameFenceValues[m_currentFrameIndex];
-    }
-
-    HYP_FORCE_INLINE ID3D12Fence* GetFrameFence() const
-    {
-        return m_frameFence.Get();
-    }
     
     ComPtr<IDXGIFactory4> dxgiFactory;
 
@@ -160,12 +154,11 @@ private:
 
     void BindDescriptorHeaps(DX12CommandBuffer& commandBuffer);
 
-    DX12Frame* PrepareNextFrame() override;
+    void PrepareFrame(DX12Frame* frame) override;
 
     Pimpl<DX12RenderConfig> m_renderConfig;
 
     FixedArray<DX12FrameRef, NumFramesInFlight> m_frames;
-    uint32 m_currentFrameIndex;
 
     FixedArray<DX12CommandBufferRef, NumFramesInFlight> m_commandBuffers;
 
