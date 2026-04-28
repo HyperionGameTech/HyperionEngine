@@ -35,7 +35,6 @@ class DX12Fence;
 struct DX12QueueData
 {
     ComPtr<ID3D12CommandQueue> commandQueue;
-    ComPtr<ID3D12CommandAllocator> commandAllocators[NumRendererWorkerThreads + 1][NumFramesInFlight];
 };
 
 class DX12RenderInterface final : public RenderInterface

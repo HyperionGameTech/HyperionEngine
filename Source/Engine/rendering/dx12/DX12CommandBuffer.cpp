@@ -2,7 +2,7 @@
  *  @author: The Hyperion Contributors
  *  @date 2016-2026
  *  @licence MIT
-*/
+ */
 
 #include <DX12Pch.hpp>
 
@@ -23,9 +23,8 @@ HYP_DECLARE_LOG_CHANNEL(RenderingBackend);
 
 extern DX12RenderInterface* g_renderInterface;
 
-DX12CommandBuffer::DX12CommandBuffer(D3D12_COMMAND_LIST_TYPE type, ID3D12CommandAllocator* allocator)
+DX12CommandBuffer::DX12CommandBuffer(D3D12_COMMAND_LIST_TYPE type)
     : m_type(type),
-      m_allocator(allocator),
       m_isRecording(false),
       m_boundGraphicsPipeline(nullptr),
       m_boundViewHeap(nullptr),
@@ -36,13 +35,12 @@ DX12CommandBuffer::DX12CommandBuffer(D3D12_COMMAND_LIST_TYPE type, ID3D12Command
 DX12CommandBuffer::DX12CommandBuffer(DX12CommandBuffer&& other) noexcept
     : m_type(other.m_type),
       m_commandList(std::move(other.m_commandList)),
-      m_allocator(other.m_allocator),
+      m_allocator(std::move(other.m_allocator)),
       m_isRecording(other.m_isRecording),
       m_boundViewHeap(other.m_boundViewHeap),
       m_boundSamplerHeap(other.m_boundSamplerHeap),
       m_boundGraphicsPipeline(other.m_boundGraphicsPipeline)
 {
-    other.m_allocator = nullptr;
     other.m_isRecording = false;
     other.m_boundViewHeap = nullptr;
     other.m_boundSamplerHeap = nullptr;
@@ -62,15 +60,16 @@ DX12CommandBuffer& DX12CommandBuffer::operator=(DX12CommandBuffer&& other) noexc
         m_commandList.Reset();
     }
 
+    m_allocator.Reset();
+
     m_type = other.m_type;
     m_commandList = std::move(other.m_commandList);
-    m_allocator = other.m_allocator;
+    m_allocator = std::move(other.m_allocator);
     m_isRecording = other.m_isRecording;
     m_boundViewHeap = other.m_boundViewHeap;
     m_boundSamplerHeap = other.m_boundSamplerHeap;
     m_boundGraphicsPipeline = other.m_boundGraphicsPipeline;
 
-    other.m_allocator = nullptr;
     other.m_isRecording = false;
     other.m_boundViewHeap = nullptr;
     other.m_boundSamplerHeap = nullptr;
@@ -83,10 +82,11 @@ DX12CommandBuffer::~DX12CommandBuffer()
 {
     if (m_commandList != nullptr)
     {
-        // Ensure the command list is closed before releasing its references
         m_commandList->Close();
         m_commandList.Reset();
     }
+
+    m_allocator.Reset();
 }
 
 bool DX12CommandBuffer::IsCreated() const
@@ -101,23 +101,37 @@ RendererResult DX12CommandBuffer::Create()
         return {};
     }
 
-    if (m_commandList == nullptr)
-    {
-        AssertDebug(m_allocator != nullptr);
+    ID3D12Device* device = g_renderInterface->GetDevice();
 
-        ID3D12Device* device = g_renderInterface->GetDevice();
+    // Create allocator
+    HRESULT res = device->CreateCommandAllocator(m_type, __uuidof(ID3D12CommandAllocator), &m_allocator);
 
-        HRESULT res = device->CreateCommandList(
-            0, m_type,
-            m_allocator,
-            nullptr,
-            IID_PPV_ARGS(&m_commandList));
+    if (!SUCCEEDED(res))
+        return HYP_MAKE_ERROR(RendererError, "Failed to create command allocator!", res);
 
-        if (!SUCCEEDED(res))
-            return HYP_MAKE_ERROR(RendererError, "Failed to create command list!", res);
+#ifdef HYP_DEBUG_MODE
+    const wchar_t* typeName = (m_type == D3D12_COMMAND_LIST_TYPE_DIRECT)
+        ? L"Direct" : (m_type == D3D12_COMMAND_LIST_TYPE_COMPUTE) ? L"Compute" : L"Copy";
+    std::wstring name = std::wstring(L"D3D12 Command Allocator [") + typeName + L"]";
+    m_allocator->SetName(name.c_str());
+#endif
 
-        m_commandList->Close();
-    }
+    // Create command list
+    res = device->CreateCommandList(
+        0, m_type,
+        m_allocator.Get(),
+        nullptr,
+        IID_PPV_ARGS(&m_commandList));
+
+    if (!SUCCEEDED(res))
+        return HYP_MAKE_ERROR(RendererError, "Failed to create command list!", res);
+
+#ifdef HYP_DEBUG_MODE
+    name = std::wstring(L"D3D12 Command List [") + typeName + L"]";
+    m_commandList->SetName(name.c_str());
+#endif
+
+    m_commandList->Close();
 
     return {};
 }
@@ -128,7 +142,9 @@ void DX12CommandBuffer::Begin()
     AssertDebug(m_allocator != nullptr);
     AssertDebug(!m_isRecording, "Command buffer is already recording!");
 
-    Assert(SUCCEEDED(m_commandList->Reset(m_allocator, nullptr)));
+    // Reset allocator before resetting command list
+    Assert(SUCCEEDED(m_allocator->Reset()));
+    Assert(SUCCEEDED(m_commandList->Reset(m_allocator.Get(), nullptr)));
 
     m_isRecording = true;
 }

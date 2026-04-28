@@ -2,7 +2,7 @@
  *  @author: The Hyperion Contributors
  *  @date 2016-2026
  *  @licence MIT
-*/
+ */
 
 #pragma once
 
@@ -64,6 +64,9 @@ public:
     }
 
 private:
+    void Destroy();
+    void FlushGPU();
+
     HWND m_hwnd;
     ComPtr<IDXGISwapChain4> m_swapChain;
     Array<ID3D12Resource*> m_backBuffers;
@@ -75,6 +78,13 @@ private:
 
     bool m_allowTearing;
     bool m_vsync;
+
+    // GPU flush resources for safe swapchain recreation
+    ComPtr<ID3D12CommandAllocator> m_flushAllocator;
+    ComPtr<ID3D12GraphicsCommandList> m_flushCommandList;
+    ComPtr<ID3D12Fence> m_flushFence;
+    HANDLE m_flushEvent = nullptr;
+    uint64 m_flushFenceValue = 0;
 };
 
 } // namespace Hyperion

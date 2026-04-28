@@ -54,7 +54,6 @@ private:
 
     DX12CommandBuffer* m_commandBuffer;
     DX12Fence* m_fence;
-    ComPtr<ID3D12CommandAllocator> m_commandAllocator;
     D3D12_COMMAND_LIST_TYPE m_commandListType;
 
     bool m_isSupported : 1;

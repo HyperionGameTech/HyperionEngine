@@ -187,6 +187,10 @@ RendererResult DX12RenderInterface::Initialize()
     if (!SUCCEEDED(res))
         return HYP_MAKE_ERROR(RendererError, "Failed to create D3D device!", res);
 
+#ifdef HYP_DEBUG_MODE
+    m_device->SetName(L"D3D12 Device");
+#endif
+
     // Initialize render config features based on device capabilities
     static_cast<DX12RenderConfig*>(m_renderConfig.Get())->InitializeBindless(this);
 
@@ -195,13 +199,16 @@ RendererResult DX12RenderInterface::Initialize()
 
     Memory::Zero(&m_queueData, sizeof(m_queueData));
 
-    // create queues and command allocators
+    // create queues
     D3D12_COMMAND_QUEUE_DESC directDesc {};
     directDesc.Type = D3D12_COMMAND_LIST_TYPE_DIRECT;
     directDesc.Priority = D3D12_COMMAND_QUEUE_PRIORITY_NORMAL;
 
     DX12QueueData& directQueueData = m_queueData[D3D12_COMMAND_LIST_TYPE_DIRECT];
     m_device->CreateCommandQueue(&directDesc, __uuidof(ID3D12CommandQueue), &directQueueData.commandQueue);
+#ifdef HYP_DEBUG_MODE
+    directQueueData.commandQueue->SetName(L"D3D12 Direct Command Queue");
+#endif
 
     D3D12_COMMAND_QUEUE_DESC computeDesc {};
     computeDesc.Type = D3D12_COMMAND_LIST_TYPE_COMPUTE;
@@ -209,32 +216,19 @@ RendererResult DX12RenderInterface::Initialize()
 
     DX12QueueData& computeQueueData = m_queueData[D3D12_COMMAND_LIST_TYPE_COMPUTE];
     m_device->CreateCommandQueue(&computeDesc, __uuidof(ID3D12CommandQueue), &computeQueueData.commandQueue);
+#ifdef HYP_DEBUG_MODE
+    computeQueueData.commandQueue->SetName(L"D3D12 Compute Command Queue");
+#endif
 
     D3D12_COMMAND_QUEUE_DESC copyDesc {};
     copyDesc.Type = D3D12_COMMAND_LIST_TYPE_COPY;
 
     DX12QueueData& copyQueueData = m_queueData[D3D12_COMMAND_LIST_TYPE_COPY];
     m_device->CreateCommandQueue(&copyDesc, __uuidof(ID3D12CommandQueue), &copyQueueData.commandQueue);
+#ifdef HYP_DEBUG_MODE
+    copyQueueData.commandQueue->SetName(L"D3D12 Copy Command Queue");
+#endif
     
-    // Create command allocators for [threadIndex][frameIndex]
-    
-    for (uint32 commandListTypeIndex = 0; commandListTypeIndex < uint32(m_queueData.Size()); commandListTypeIndex++)
-    {
-        D3D12_COMMAND_LIST_TYPE commandListType = static_cast<D3D12_COMMAND_LIST_TYPE>(commandListTypeIndex);
-        DX12QueueData& queueData = m_queueData[commandListTypeIndex];
-        
-        for (uint32 frameIndex = 0; frameIndex < NumFramesInFlight; frameIndex++)
-        {
-            for (uint32 threadIndex = 0; threadIndex < NumRendererWorkerThreads + 1; threadIndex++)
-            {
-                res = m_device->CreateCommandAllocator(commandListType, __uuidof(ID3D12CommandAllocator), &queueData.commandAllocators[threadIndex][frameIndex]);
-
-                if (!SUCCEEDED(res))
-                    return HYP_MAKE_ERROR(RendererError, "Failed to create command allocator for queue {}!", res, commandListType);
-            }
-        }
-    }
-
     D3D12MA::ALLOCATOR_DESC allocatorDesc {};
     allocatorDesc.pDevice = m_device.Get();
     allocatorDesc.pAdapter = m_hardwareAdapter.Get();
@@ -259,19 +253,20 @@ RendererResult DX12RenderInterface::Initialize()
         return HYP_MAKE_ERROR(RendererError, "Failed to create frame fence", hr);
     }
 
+#ifdef HYP_DEBUG_MODE
+    m_frameFence->SetName(L"D3D12 Frame Fence");
+#endif
+
     m_frameFenceEvent = CreateEvent(nullptr, FALSE, FALSE, nullptr);
     if (m_frameFenceEvent == nullptr)
     {
         return HYP_MAKE_ERROR(RendererError, "Failed to create frame fence event");
     }
 
-    // Create command buffers for each frame in flight
+    // Create command buffers for each frame in flight - each owns its own allocator
     for (uint32 frameIndex = 0; frameIndex < NumFramesInFlight; frameIndex++)
     {
-        ID3D12CommandAllocator* allocator = m_queueData[D3D12_COMMAND_LIST_TYPE_DIRECT].commandAllocators[0][frameIndex].Get();
-        AssertDebug(allocator != nullptr);
-
-        m_commandBuffers[frameIndex] = MakeHandle<DX12CommandBuffer>(D3D12_COMMAND_LIST_TYPE_DIRECT, allocator);
+        m_commandBuffers[frameIndex] = MakeHandle<DX12CommandBuffer>(D3D12_COMMAND_LIST_TYPE_DIRECT);
         CheckResultOrReturn(m_commandBuffers[frameIndex]->Create());
     }
 
@@ -372,6 +367,8 @@ void DX12RenderInterface::PrepareFrame(DX12Frame* frame)
             DWORD waitResult = WaitForSingleObject(m_frameFenceEvent, INFINITE);
             Assert(waitResult == WAIT_OBJECT_0);
         }
+
+        m_submissionFrames[frameIndex] = -1;
     }
 
     // call frame callbacks after fence is waited on
@@ -429,8 +426,8 @@ void DX12RenderInterface::PrepareFrame(DX12Frame* frame)
     }
 
     // Transient command buffers are synchronized via the main frame fence waited on above.
-    // Since all transient work is guaranteed to complete before EndFrame(), we can safely
-    // recycle them when the frame fence signals completion.
+    // Since the main fence signals after all prior queue submissions complete, all transient
+    // command buffers for this frame slot are guaranteed GPU-complete by here.
     for (uint32 threadIndex = 0; threadIndex < NumRendererWorkerThreads + 1; threadIndex++)
     {
         Array<DX12CommandBuffer, RenderAllocator>& freeList = m_transientCommandBuffers[threadIndex][frameCounter % NumFramesInFlight];
@@ -444,16 +441,6 @@ void DX12RenderInterface::PrepareFrame(DX12Frame* frame)
         }
 
         pendingList.Clear();
-    }
-
-    // Reset the direct queue's command allocators for the current frame across all threads
-    {
-        DX12QueueData& queueData = m_queueData[D3D12_COMMAND_LIST_TYPE_DIRECT];
-
-        for (uint32 threadIndex = 0; threadIndex < NumRendererWorkerThreads + 1; threadIndex++)
-        {
-            Assert(SUCCEEDED(queueData.commandAllocators[threadIndex][frameIndex]->Reset()));
-        }
     }
 
     frame->OnFrameStart();
@@ -516,9 +503,6 @@ DX12CommandBuffer& DX12RenderInterface::GetTransientCommandBuffer()
 
     const uint32 renderThreadIndex = CurrentRenderThreadIndex();
 
-    // Use the [threadIndex][frameIndex] allocator
-    ID3D12CommandAllocator* allocator = m_queueData[D3D12_COMMAND_LIST_TYPE_DIRECT].commandAllocators[renderThreadIndex][frameIndex].Get();
-
     Array<DX12CommandBuffer, RenderAllocator>& freeList = m_transientCommandBuffers[renderThreadIndex][frameIndex];
     Array<DX12CommandBuffer, RenderAllocator>& pendingList = m_pendingTransientCommandBuffers[renderThreadIndex][frameIndex];
 
@@ -527,13 +511,10 @@ DX12CommandBuffer& DX12RenderInterface::GetTransientCommandBuffer()
     if (freeList.Any())
     {
         pCommandBuffer = &pendingList.PushBack(freeList.PopBack());
-
-        // set allocator to current for this frame/thread
-        pCommandBuffer->SetCommandAllocator(allocator);
     }
     else
     {
-        pCommandBuffer = &pendingList.EmplaceBack(D3D12_COMMAND_LIST_TYPE_DIRECT, allocator);
+        pCommandBuffer = &pendingList.EmplaceBack(D3D12_COMMAND_LIST_TYPE_DIRECT);
         CheckResult(pCommandBuffer->Create());
     }
 
@@ -550,21 +531,13 @@ void DX12RenderInterface::SubmitTransientCommandBuffer(DX12CommandBuffer& comman
         commandBuffer.End();
     }
 
-    DX12QueueData& queueData = m_queueData[D3D12_COMMAND_LIST_TYPE_DIRECT];
+    const DX12QueueData* queueData = GetQueueData(D3D12_COMMAND_LIST_TYPE_DIRECT);
+    AssertDebug(queueData != nullptr);
 
     ID3D12CommandList* commandLists[] = { commandBuffer.GetCommandList() };
-    queueData.commandQueue->ExecuteCommandLists(ArraySize(commandLists), commandLists);
+    queueData->commandQueue->ExecuteCommandLists(ArraySize(commandLists), commandLists);
 
-    // @NOTE we just use the main fence to wait on the transient cmds - we signal after submitting all transient
-    // cmds for the current frame, meaning they'd be completed after the main fence is waited on.
-    
-    const uint32 frameCounter = GetFrameCounter();
-    const uint32 frameIndex = frameCounter % NumFramesInFlight;
-
-    const uint32 renderThreadIndex = CurrentRenderThreadIndex();
-
-    // Just to make sure we aren't submitting a command buffer for the wrong frame.
-    AssertDebug(commandBuffer.GetCommandAllocator() == queueData.commandAllocators[renderThreadIndex][frameIndex].Get());
+    // Synchronized via the main frame fence — all queue submissions are serialized.
 }
 
 void DX12RenderInterface::BindDescriptorHeaps(DX12CommandBuffer& commandBuffer)
@@ -611,6 +584,8 @@ DX12GraphicsPipelineRef DX12RenderInterface::MakeGraphicsPipeline(
 #endif
     }
 
+    graphicsPipeline->SetFramebufferDesc(framebufferDesc);
+
     graphicsPipeline->SetInputLayout(attributes.GetMeshAttributes().inputLayout);
     graphicsPipeline->SetTopology(attributes.GetMeshAttributes().topology);
 
@@ -619,6 +594,13 @@ DX12GraphicsPipelineRef DX12RenderInterface::MakeGraphicsPipeline(
     graphicsPipeline->SetBlendFunction(attributes.GetMaterialAttributes().blendFunction);
     graphicsPipeline->SetDepthTest(bool(attributes.GetMaterialAttributes().flags & MAF_DEPTH_TEST));
     graphicsPipeline->SetDepthWrite(bool(attributes.GetMaterialAttributes().flags & MAF_DEPTH_WRITE));
+    graphicsPipeline->SetDepthClamp(bool(attributes.GetMaterialAttributes().flags & MAF_DEPTH_CLAMP));
+
+    if (attributes.GetMaterialAttributes().flags & MAF_DEPTH_BIAS)
+    {
+        graphicsPipeline->SetDepthBias(attributes.GetMaterialAttributes().depthBias);
+        graphicsPipeline->SetDepthBiasSlope(attributes.GetMaterialAttributes().depthBiasSlope);
+    }
     
     if (attributes.GetMaterialAttributes().flags & MAF_STENCIL_TEST)  
     {
@@ -630,8 +612,6 @@ DX12GraphicsPipelineRef DX12RenderInterface::MakeGraphicsPipeline(
     {
         graphicsPipeline->SetStencilWrite(true);
     }
-
-    graphicsPipeline->SetFramebufferDesc(framebufferDesc);
 
     return graphicsPipeline;
 }

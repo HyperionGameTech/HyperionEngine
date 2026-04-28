@@ -2,7 +2,7 @@
  *  @author: The Hyperion Contributors
  *  @date 2016-2026
  *  @licence MIT
-*/
+ */
 
 #include <DX12Pch.hpp>
 
@@ -33,6 +33,11 @@ DX12Swapchain::DX12Swapchain(HWND hwnd, const Vec2u& extent)
 
 DX12Swapchain::~DX12Swapchain()
 {
+    Destroy();
+}
+
+void DX12Swapchain::Destroy()
+{
     m_framebuffers.Clear();
 
     if (m_rtvDescriptorHandle.IsValid())
@@ -42,9 +47,25 @@ DX12Swapchain::~DX12Swapchain()
 
     for (ID3D12Resource* backBuffer : m_backBuffers)
     {
-        /// since we don't use ComPtr for the backbuffers we need to call Release()
         backBuffer->Release();
     }
+
+    m_backBuffers.Clear();
+    m_rtvHandles.Clear();
+
+    // Release the swapchain itself so Create() can make a fresh one
+    m_swapChain.Reset();
+    m_currentBackBufferIndex = 0;
+
+    if (m_flushEvent != nullptr)
+    {
+        CloseHandle(m_flushEvent);
+        m_flushEvent = nullptr;
+    }
+
+    m_flushFence.Reset();
+    m_flushCommandList.Reset();
+    m_flushAllocator.Reset();
 }
 
 bool DX12Swapchain::IsCreated() const
@@ -124,7 +145,18 @@ RendererResult DX12Swapchain::Create()
         return HYP_MAKE_ERROR(RendererError, "Failed to query IDXGISwapChain4");
     }
 
+    // IDXGISwapChain4 doesn't inherit ID3D12Object, so no SetName. The back buffers get debug names instead.
+
     m_currentBackBufferIndex = m_swapChain->GetCurrentBackBufferIndex();
+
+    // Create flush fence (used when resizing to wait for GPU to finish)
+    {
+        HRESULT hr = device->CreateFence(0, D3D12_FENCE_FLAG_NONE, IID_PPV_ARGS(&m_flushFence));
+        Assert(SUCCEEDED(hr));
+
+        m_flushEvent = CreateEvent(nullptr, FALSE, FALSE, nullptr);
+        Assert(m_flushEvent != nullptr);
+    }
 
     // Allocate RTV descriptors
     m_rtvDescriptorHandle = g_renderInterface->descriptorHeapManager->Allocate(DX12DescriptorHeapType::RTV, swapChainDesc.BufferCount);
@@ -146,6 +178,11 @@ RendererResult DX12Swapchain::Create()
         {
             return HYP_MAKE_ERROR(RendererError, "Failed to get swapchain back buffer");
         }
+
+#ifdef HYP_DEBUG_MODE
+        std::wstring name = L"D3D12 SwapChain Back Buffer " + std::to_wstring(i);
+        m_backBuffers[i]->SetName(name.c_str());
+#endif
 
         device->CreateRenderTargetView(m_backBuffers[i], nullptr, rtvHandle);
         m_rtvHandles[i] = rtvHandle;
@@ -202,82 +239,59 @@ void DX12Swapchain::Recreate()
         return;
     }
 
-    // Release back buffers before resizing
-    for (ID3D12Resource* buffer : m_backBuffers)
+    // Flush the GPU and wait for all pending operations before releasing resources.
+    // This prevents ERROR #921 OBJECT_DELETED_WHILE_STILL_IN_USE.
+    FlushGPU();
+
+    // Destroy old resources
+    Destroy();
+
+    // Now recreate
+    Create();
+
+    m_needsRecreate = false;
+}
+
+void DX12Swapchain::FlushGPU()
+{
+    const DX12QueueData* queueData = g_renderInterface->GetQueueData(D3D12_COMMAND_LIST_TYPE_DIRECT);
+    if (!queueData || !queueData->commandQueue)
     {
-        buffer->Release();
-    }
-
-    m_backBuffers.Clear();
-
-    HRESULT hr = m_swapChain->ResizeBuffers(
-        0, // Preserve buffer count
-        m_extent.x,
-        m_extent.y,
-        DXGI_FORMAT_UNKNOWN,
-        m_allowTearing ? DXGI_SWAP_CHAIN_FLAG_ALLOW_TEARING : 0
-    );
-
-    if (FAILED(hr))
-    {
-        HYP_LOG(RenderingBackend, Error, "Failed to resize swapchain buffers: {}", hr);
         return;
     }
 
-    m_currentBackBufferIndex = m_swapChain->GetCurrentBackBufferIndex();
+    HRESULT hr = g_renderInterface->GetDevice()->CreateCommandAllocator(
+        D3D12_COMMAND_LIST_TYPE_DIRECT,
+        __uuidof(ID3D12CommandAllocator),
+        &m_flushAllocator);
+    Assert(SUCCEEDED(hr));
 
-    // Re-create RTVs
-    // We can reuse the existing allocation since count didn't change
-    ID3D12Device* device = g_renderInterface->GetDevice();
-    const uint32 rtvIncrement = device->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_RTV);
-    D3D12_CPU_DESCRIPTOR_HANDLE rtvHandle = m_rtvDescriptorHandle.cpuHandle;
+    hr = g_renderInterface->GetDevice()->CreateCommandList(
+        0, D3D12_COMMAND_LIST_TYPE_DIRECT,
+        m_flushAllocator.Get(),
+        nullptr,
+        IID_PPV_ARGS(&m_flushCommandList));
+    Assert(SUCCEEDED(hr));
 
-    DXGI_SWAP_CHAIN_DESC1 desc = {};
-    m_swapChain->GetDesc1(&desc);
+    m_flushCommandList->Close();
 
-    m_backBuffers.Resize(desc.BufferCount);
-    // m_rtvHandles is already sized, but we refresh values just in case
-    
-    for (uint32 i = 0; i < desc.BufferCount; i++)
+    ID3D12CommandList* commandLists[] = { m_flushCommandList.Get() };
+    queueData->commandQueue->ExecuteCommandLists(1, commandLists);
+
+    hr = queueData->commandQueue->Signal(m_flushFence.Get(), m_flushFenceValue + 1);
+    Assert(SUCCEEDED(hr));
+    m_flushFenceValue++;
+
+    if (m_flushFence->GetCompletedValue() < m_flushFenceValue)
     {
-        if (FAILED(m_swapChain->GetBuffer(i, IID_PPV_ARGS(&m_backBuffers[i]))))
-        {
-            HYP_LOG(RenderingBackend, Error, "Failed to get swapchain back buffer during recreation");
-            return;
-        }
+        hr = m_flushFence->SetEventOnCompletion(m_flushFenceValue, m_flushEvent);
+        Assert(SUCCEEDED(hr));
 
-        device->CreateRenderTargetView(m_backBuffers[i], nullptr, rtvHandle);
-        m_rtvHandles[i] = rtvHandle;
-
-        rtvHandle.ptr += rtvIncrement;
+        WaitForSingleObject(m_flushEvent, INFINITE);
     }
 
-    // Recreate framebuffers for each back buffer
-    m_framebuffers.Clear();
-    m_framebuffers.Resize(desc.BufferCount);
-
-    for (uint32 i = 0; i < desc.BufferCount; i++)
-    {
-        FramebufferDesc framebufferDesc {};
-        framebufferDesc.extent = m_extent;
-        framebufferDesc.renderPassMode = RenderPassMode::Present;
-
-        DX12FramebufferRef framebuffer = g_renderInterface->MakeFramebuffer(framebufferDesc);
-        Assert(framebuffer.IsValid());
-
-        framebuffer->SetExternalRTVHandle(m_rtvHandles[i], m_backBuffers[i], m_extent.x, m_extent.y);
-        if (!framebuffer->Create())
-        {
-            HYP_LOG(RenderingBackend, Error, "Failed to create swapchain framebuffer during recreation");
-            return;
-        }
-
-        m_framebuffers[i] = framebuffer;
-    }
-
-    m_acquiredImageIndex = m_currentBackBufferIndex;
-
-    m_needsRecreate = false;
+    m_flushCommandList.Reset();
+    m_flushAllocator.Reset();
 }
 
 void DX12Swapchain::PrepareForFrame(DX12Frame* frame)

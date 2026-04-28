@@ -2,7 +2,7 @@
  *  @author: The Hyperion Contributors
  *  @date 2016-2026
  *  @licence MIT
-*/
+ */
 
 #include <DX12Pch.hpp>
 
@@ -85,20 +85,15 @@ void DX12AsyncCompute::Create()
         m_commandListType = D3D12_COMMAND_LIST_TYPE_DIRECT;
     }
 
-    // Create the allocator first, then the command buffer with it
-    HRESULT res = g_renderInterface->GetDevice()->CreateCommandAllocator(m_commandListType, IID_PPV_ARGS(&m_commandAllocator));
-    Assert(SUCCEEDED(res));
-
     CheckResult(m_fence->Create(/* createSignalled */ true));
 
-    m_commandBuffer = new DX12CommandBuffer(m_commandListType, m_commandAllocator.Get());
+    m_commandBuffer = new DX12CommandBuffer(m_commandListType);
     CheckResult(m_commandBuffer->Create());
 }
 
 void DX12AsyncCompute::Submit()
 {
     Assert(CheckStatus(), "GPU work must be completed from previous submission before DX12AsyncCompute::Submit() is ever called!");
-    Assert(m_commandAllocator != nullptr);
 
     CheckResult(m_fence->Wait(true));
     CheckResult(m_fence->Reset());
@@ -106,17 +101,14 @@ void DX12AsyncCompute::Submit()
     const DX12QueueData* queueData = g_renderInterface->GetQueueData(m_commandListType);
     Assert(queueData != nullptr && queueData->commandQueue != nullptr);
 
-    ID3D12GraphicsCommandList* commandList = m_commandBuffer->GetCommandList();
-    Assert(commandList != nullptr);
-    
-    Assert(SUCCEEDED(m_commandAllocator->Reset()));
-    Assert(SUCCEEDED(commandList->Reset(m_commandAllocator.Get(), nullptr)));
+    // Begin resets the allocator and opens the command list for recording
+    m_commandBuffer->Begin();
 
     cr.Execute(m_commandBuffer);
 
-    Assert(SUCCEEDED(commandList->Close()));
+    m_commandBuffer->End();
 
-    ID3D12CommandList* commandLists[] = { commandList };
+    ID3D12CommandList* commandLists[] = { m_commandBuffer->GetCommandList() };
     queueData->commandQueue->ExecuteCommandLists(UINT(std::size(commandLists)), commandLists);
 
     HRESULT res = queueData->commandQueue->Signal(m_fence->GetD3D12Fence(), m_fence->GetValue());

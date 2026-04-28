@@ -45,7 +45,7 @@ DECLARE_SRV_DYNAMIC(Default, CamerasBuffer) StructuredBuffer<Camera> _cameras_bu
 #if defined(SKINNING) && defined(HYP_ATTRIBUTE_a_bone_indices) && defined(HYP_ATTRIBUTE_a_bone_weights) && defined(HYP_ATTRIBUTE_a_position)
 
 #include "include/Skeleton.hlsli"
-DECLARE_SRV_DYNAMIC(Default, SkeletonsBuffer) StructuredBuffer<Skeleton> skeletons;
+DECLARE_SRV_DYNAMIC(Default, SkeletonsBuffer) ByteAddressBuffer SkeletonsBuffer;
 #endif // SKINNING && bone attrs
 
 #ifndef INSTANCING
@@ -71,10 +71,11 @@ VSOutput VSMain(VSInput input, uint instanceId : SV_InstanceID)
 #ifdef HYP_ATTRIBUTE_a_position
     float4 position = float4(input.a_position, 1.0);
 
-    #if defined(SKINNING) && defined(HYP_ATTRIBUTE_a_bone_indices) && defined(HYP_ATTRIBUTE_a_bone_weights)
-        float4x4 skinning_matrix = CreateSkinningMatrix(skeletons[0], input.a_bone_indices, input.a_bone_weights);
-        position = mul(skinning_matrix, position);
-    #endif
+#if defined(SKINNING) && defined(HYP_ATTRIBUTE_a_bone_indices) && defined(HYP_ATTRIBUTE_a_bone_weights)
+    Skeleton skeleton = SkeletonsBuffer.Load<Skeleton>(0);
+    float4x4 skinning_matrix = CreateSkinningMatrix(skeleton, input.a_bone_indices, input.a_bone_weights);
+    position = mul(skinning_matrix, position);
+#endif
 
     position = mul(model_matrix, position);
 #else

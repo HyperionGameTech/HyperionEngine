@@ -2,7 +2,7 @@
  *  @author: The Hyperion Contributors
  *  @date 2016-2026
  *  @licence MIT
-*/
+ */
 
 #pragma once
 
@@ -24,7 +24,7 @@ class DX12CommandBuffer final : public CommandBufferBase
     HYP_OBJECT_BODY(DX12CommandBuffer);
 
 public:
-    DX12CommandBuffer(D3D12_COMMAND_LIST_TYPE type, ID3D12CommandAllocator* allocator);
+    DX12CommandBuffer(D3D12_COMMAND_LIST_TYPE type);
 
     DX12CommandBuffer(DX12CommandBuffer&& other) noexcept;
     DX12CommandBuffer& operator=(DX12CommandBuffer&& other) noexcept;
@@ -43,12 +43,7 @@ public:
 
     HYP_FORCE_INLINE ID3D12CommandAllocator* GetCommandAllocator() const
     {
-        return m_allocator;
-    }
-
-    HYP_FORCE_INLINE void SetCommandAllocator(ID3D12CommandAllocator* allocator)
-    {
-        m_allocator = allocator;
+        return m_allocator.Get();
     }
 
     bool IsCreated() const override;
@@ -107,7 +102,7 @@ public:
 private:
     D3D12_COMMAND_LIST_TYPE m_type;
     ComPtr<ID3D12GraphicsCommandList> m_commandList;
-    ID3D12CommandAllocator* m_allocator;
+    ComPtr<ID3D12CommandAllocator> m_allocator;
     bool m_isRecording;
 
     // Track bound descriptor heaps to avoid redundant SetDescriptorHeaps() calls
