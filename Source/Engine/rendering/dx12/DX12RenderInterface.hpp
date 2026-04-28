@@ -35,7 +35,9 @@ class DX12Fence;
 struct DX12QueueData
 {
     ComPtr<ID3D12CommandQueue> commandQueue;
-    FixedArray<ComPtr<ID3D12CommandAllocator>, NumFramesInFlight> commandAllocators;
+
+    // One allocator per thread (main + workers)
+    FixedArray<ComPtr<ID3D12CommandAllocator>, NumRendererWorkerThreads + 1> commandAllocators;
 };
 
 class DX12RenderInterface final : public RenderInterface
@@ -51,10 +53,12 @@ public:
 
     HYP_FORCE_INLINE const DX12QueueData* GetQueueData(D3D12_COMMAND_LIST_TYPE commandListType) const
     {
-        auto it = m_queueData.Find(commandListType);
-        if (it != m_queueData.End())
-            return &it->second;
-        return nullptr;
+        if (HYP_UNLIKELY(commandListType) >= m_queueData.Size())
+        {
+            return nullptr;
+        }
+
+        return &m_queueData[uint32(commandListType)];
     }
 
     HYP_FORCE_INLINE D3D12MA::Allocator* GetAllocator() const
@@ -132,6 +136,11 @@ public:
 
     void BeginFrame(AtomicFlag* pCancelFlag) override;
 
+    HYP_FORCE_INLINE uint32 GetCurrentFrameIndex() const
+    {
+        return m_currentFrameIndex;
+    }
+
     HYP_FORCE_INLINE uint64 GetCurrentFrameFenceValue() const
     {
         return m_frameFenceValues[m_currentFrameIndex];
@@ -158,7 +167,7 @@ private:
     FixedArray<DX12FrameRef, NumFramesInFlight> m_frames;
     uint32 m_currentFrameIndex;
 
-    DX12CommandBufferRef m_commandBuffer;
+    FixedArray<DX12CommandBufferRef, NumFramesInFlight> m_commandBuffers;
 
     Array<DX12CommandBuffer*, RenderAllocator> m_transientCommandBuffers[NumRendererWorkerThreads + 1][NumFramesInFlight];
     Array<DX12CommandBuffer*, RenderAllocator> m_pendingTransientCommandBuffers[NumRendererWorkerThreads + 1][NumFramesInFlight];
@@ -174,10 +183,8 @@ private:
 
     ComPtr<ID3D12Device> m_device;
 
-    FlatMap<D3D12_COMMAND_LIST_TYPE, DX12QueueData> m_queueData;
+    FixedArray<DX12QueueData, 4> m_queueData;
 
-    // Single fence for frame synchronization (Microsoft-style)
-    // One fence object with per-frame values (instead of one fence per frame)
     ComPtr<ID3D12Fence> m_frameFence;
     HANDLE m_frameFenceEvent;
     FixedArray<uint64, NumFramesInFlight> m_frameFenceValues;

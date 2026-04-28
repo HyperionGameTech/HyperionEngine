@@ -24,7 +24,7 @@ class DX12CommandBuffer final : public CommandBufferBase
     HYP_OBJECT_BODY(DX12CommandBuffer);
 
 public:
-    explicit DX12CommandBuffer(D3D12_COMMAND_LIST_TYPE type);
+    DX12CommandBuffer(D3D12_COMMAND_LIST_TYPE type, ID3D12CommandAllocator* allocator);
     ~DX12CommandBuffer();
 
     HYP_FORCE_INLINE D3D12_COMMAND_LIST_TYPE GetType() const
@@ -34,7 +34,7 @@ public:
 
     HYP_FORCE_INLINE ID3D12GraphicsCommandList* GetCommandList() const
     {
-        return m_commandLists[m_currentCommandListIndex].Get();
+        return m_commandList.Get();
     }
 
     bool IsCreated() const override;
@@ -92,11 +92,9 @@ public:
 
 private:
     D3D12_COMMAND_LIST_TYPE m_type;
-    FixedArray<ComPtr<ID3D12CommandAllocator>, NumFramesInFlight> m_commandAllocators;
-    FixedArray<ComPtr<ID3D12GraphicsCommandList>, NumFramesInFlight> m_commandLists;
+    ComPtr<ID3D12GraphicsCommandList> m_commandList;
+    ID3D12CommandAllocator* m_allocator;
     bool m_isRecording;
-    uint32 m_currentAllocatorIndex;
-    uint32 m_currentCommandListIndex;
 
     // Track bound descriptor heaps to avoid redundant SetDescriptorHeaps() calls
     ID3D12DescriptorHeap* m_boundViewHeap;

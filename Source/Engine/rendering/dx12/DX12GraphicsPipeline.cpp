@@ -304,6 +304,10 @@ RendererResult DX12GraphicsPipeline::Rebuild()
     psoDesc.RasterizerState.CullMode = ToDX12CullMode(m_faceCullMode);
     psoDesc.RasterizerState.FillMode = (m_fillMode == FM_LINE) ? D3D12_FILL_MODE_WIREFRAME : D3D12_FILL_MODE_SOLID;
     psoDesc.RasterizerState.FrontCounterClockwise = TRUE;
+    psoDesc.RasterizerState.DepthBias = m_depthBias;
+    psoDesc.RasterizerState.DepthBiasClamp = 0.0f;
+    psoDesc.RasterizerState.SlopeScaledDepthBias = m_depthBiasSlope;
+    psoDesc.RasterizerState.DepthClipEnable = m_depthClamp ? FALSE : TRUE;
 
     psoDesc.DepthStencilState = GetDefaultDepthStencilDesc();
     psoDesc.DepthStencilState.DepthEnable = m_depthTest;
@@ -523,11 +527,6 @@ RendererResult DX12GraphicsPipeline::BuildRootSignature()
         const char* errStr = error ? (const char*)error->GetBufferPointer() : "Unknown";
 
         return HYP_MAKE_ERROR(RendererError, "Root Signature Serialization Failed! {}", res, errStr);
-    }
-
-    if (m_shaderInstance->GetShader()->baseName == "Skybox"_sh)
-    {
-        HYP_BREAKPOINT;
     }
 
     res = g_renderInterface->GetDevice()->CreateRootSignature(

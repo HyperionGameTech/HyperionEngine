@@ -23,7 +23,7 @@ HYP_DECLARE_LOG_CHANNEL(RenderingBackend);
 extern DX12RenderInterface* g_renderInterface;
 
 DX12AsyncCompute::DX12AsyncCompute()
-    : m_commandBuffer(new DX12CommandBuffer(D3D12_COMMAND_LIST_TYPE_COMPUTE)),
+    : m_commandBuffer(nullptr),
       m_fence(new DX12Fence()),
       m_commandListType(D3D12_COMMAND_LIST_TYPE_COMPUTE),
       m_isSupported(false),
@@ -42,7 +42,10 @@ DX12AsyncCompute::~DX12AsyncCompute()
 
         m_fence->Release();
         m_fence = nullptr;
+    }
 
+    if (m_commandBuffer != nullptr)
+    {
         m_commandBuffer->Release();
         m_commandBuffer = nullptr;
     }
@@ -80,22 +83,21 @@ void DX12AsyncCompute::Create()
         HYP_LOG(RenderingBackend, Warning, "Dedicated compute queue not supported, using graphics queue for compute operations");
 
         m_commandListType = D3D12_COMMAND_LIST_TYPE_DIRECT;
-
-        m_commandBuffer->Release();
-        m_commandBuffer = new DX12CommandBuffer(D3D12_COMMAND_LIST_TYPE_DIRECT);
     }
 
-    CheckResult(m_commandBuffer->Create());
+    // Create the allocator first, then the command buffer with it
+    HRESULT res = g_renderInterface->GetDevice()->CreateCommandAllocator(m_commandListType, IID_PPV_ARGS(&m_commandAllocator));
+    Assert(SUCCEEDED(res));
 
     CheckResult(m_fence->Create(/* createSignalled */ true));
 
-    HRESULT res = g_renderInterface->GetDevice()->CreateCommandAllocator(m_commandListType, IID_PPV_ARGS(&m_commandAllocator));
-    Assert(SUCCEEDED(res));
+    m_commandBuffer = new DX12CommandBuffer(m_commandListType, m_commandAllocator.Get());
+    CheckResult(m_commandBuffer->Create());
 }
 
 void DX12AsyncCompute::Submit()
 {
-    Assert(CheckStatus());
+    Assert(CheckStatus(), "GPU work must be completed from previous submission before DX12AsyncCompute::Submit() is ever called!");
     Assert(m_commandAllocator != nullptr);
 
     CheckResult(m_fence->Wait(true));
@@ -106,7 +108,7 @@ void DX12AsyncCompute::Submit()
 
     ID3D12GraphicsCommandList* commandList = m_commandBuffer->GetCommandList();
     Assert(commandList != nullptr);
-
+    
     Assert(SUCCEEDED(m_commandAllocator->Reset()));
     Assert(SUCCEEDED(commandList->Reset(m_commandAllocator.Get(), nullptr)));
 
@@ -115,7 +117,7 @@ void DX12AsyncCompute::Submit()
     Assert(SUCCEEDED(commandList->Close()));
 
     ID3D12CommandList* commandLists[] = { commandList };
-    queueData->commandQueue->ExecuteCommandLists(ArraySize(commandLists), commandLists);
+    queueData->commandQueue->ExecuteCommandLists(UINT(std::size(commandLists)), commandLists);
 
     HRESULT res = queueData->commandQueue->Signal(m_fence->GetD3D12Fence(), m_fence->GetValue());
     Assert(SUCCEEDED(res));
