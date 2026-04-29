@@ -126,7 +126,7 @@ static VkDescriptorSetLayout CreateVkDescriptorSetLayout(VulkanDevice* device, c
 
         VkDescriptorSetLayoutBinding binding {};
         binding.descriptorCount = descriptorCount;
-        binding.descriptorType = ToVkDescriptorType(element.type);
+        binding.descriptorType = ToVkDescriptorType(element.type, element.category);
         binding.pImmutableSamplers = nullptr;
         binding.stageFlags = VK_SHADER_STAGE_ALL;
         binding.binding = element.binding;

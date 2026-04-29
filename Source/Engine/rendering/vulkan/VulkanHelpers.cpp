@@ -196,26 +196,42 @@ VkImageViewType ToVkImageViewType(TextureType type)
     }
 }
 
-VkDescriptorType ToVkDescriptorType(ShaderInputType type)
+VkDescriptorType ToVkDescriptorType(ShaderInputType type, ShaderResourceCategory category)
 {
     switch (type)
     {
-    case ShaderInputType::UniformBuffer:
+    case ShaderInputType::CBV:
         return VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-    case ShaderInputType::UniformBufferDynamic:
+    case ShaderInputType::CBV_Dynamic:
         return VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC;
-    case ShaderInputType::StorageBuffer:
-        return VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
-    case ShaderInputType::StorageBufferDynamic:
+    case ShaderInputType::SRV:
+        switch (category)
+        {
+        case ShaderResourceCategory::Buffer:
+            return VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
+        case ShaderResourceCategory::Image:
+            return VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE;
+        case ShaderResourceCategory::AccelerationStructure:
+            return VK_DESCRIPTOR_TYPE_ACCELERATION_STRUCTURE_KHR;
+        default:
+            HYP_UNREACHABLE();
+        }
+    case ShaderInputType::SRV_Dynamic:
         return VK_DESCRIPTOR_TYPE_STORAGE_BUFFER_DYNAMIC;
-    case ShaderInputType::Image:
-        return VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE;
+    case ShaderInputType::UAV:
+        switch (category)
+        {
+        case ShaderResourceCategory::Buffer:
+            return VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
+        case ShaderResourceCategory::Image:
+            return VK_DESCRIPTOR_TYPE_STORAGE_IMAGE;
+        default:
+            HYP_UNREACHABLE();
+        }
+    case ShaderInputType::UAV_Dynamic:
+        return VK_DESCRIPTOR_TYPE_STORAGE_BUFFER_DYNAMIC;
     case ShaderInputType::Sampler:
         return VK_DESCRIPTOR_TYPE_SAMPLER;
-    case ShaderInputType::ImageStorage:
-        return VK_DESCRIPTOR_TYPE_STORAGE_IMAGE;
-    case ShaderInputType::Tlas:
-        return VK_DESCRIPTOR_TYPE_ACCELERATION_STRUCTURE_KHR;
     default:
         HYP_UNREACHABLE();
     }

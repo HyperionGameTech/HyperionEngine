@@ -33,8 +33,8 @@ struct DX12CachedDescriptor
 
     union
     {
-        ObjectBase* object_ptr;
-        uint64 gpu_address;
+        ObjectBase* objectPtr;
+        uint64 deviceAddress;
     };
 
     bool operator==(const DX12CachedDescriptor& other) const
@@ -46,7 +46,7 @@ struct DX12CachedDescriptor
             return false;
         }
 
-        return object_ptr == other.object_ptr;
+        return objectPtr == other.objectPtr;
     }
 
     HYP_FORCE_INLINE bool operator!=(const DX12CachedDescriptor& other) const

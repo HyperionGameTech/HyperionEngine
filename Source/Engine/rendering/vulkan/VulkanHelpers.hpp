@@ -40,7 +40,7 @@ VkSamplerAddressMode ToVkSamplerAddressMode(TextureWrapMode);
 VkImageAspectFlags ToVkImageAspect(TextureFormat);
 VkImageType ToVkImageType(TextureType);
 VkImageViewType ToVkImageViewType(TextureType);
-VkDescriptorType ToVkDescriptorType(ShaderInputType);
+VkDescriptorType ToVkDescriptorType(ShaderInputType, ShaderResourceCategory);
 VkImageLayout GetVkImageLayout(ResourceState state, bool isDepthStencil = false, bool onlyDepth = false, bool onlyStencil = false);
 VkAccessFlags GetVkAccessMask(ResourceState state, bool isDepthStencil = false);
 VkPipelineStageFlags GetVkShaderStageMask(ResourceState state, bool isSrc, bool isDepthStencil, ShaderModuleType shaderType = (ShaderModuleType)0);

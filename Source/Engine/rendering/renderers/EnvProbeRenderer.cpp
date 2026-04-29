@@ -389,11 +389,11 @@ void ComputeEnvProbeSphericalHarmonics(
 
     CommandRecorder& cr = useAsyncCompute ? asyncCompute->cr : g_renderInterface->commandRecorderAllocator.GetCommandRecorder();
 
-    FixedArray<StructuredBuffer, ShNumLevels> shTilesBuffers;
+    FixedArray<RWStructuredBuffer, ShNumLevels> shTilesBuffers;
 
     for (uint32 i = 0; i < ShNumLevels; i++)
     {
-        shTilesBuffers[i] = StructuredBuffer((ShNumTiles.x >> i) * (ShNumTiles.y >> i), sizeof(SHTile));
+        shTilesBuffers[i] = RWStructuredBuffer((ShNumTiles.x >> i) * (ShNumTiles.y >> i), sizeof(SHTile));
         shTilesBuffers[i].Initialize();
     }
 
@@ -523,7 +523,7 @@ void ComputeEnvProbeSphericalHarmonics(
         Handle<EnvProbe> envProbe;
         GpuBufferRef shBuffer;
         GpuBufferRef readbackBuffer;
-        FixedArray<StructuredBuffer, ShNumLevels> shTilesBuffers;
+        FixedArray<RWStructuredBuffer, ShNumLevels> shTilesBuffers;
         Array<GpuBufferRef> uniformBuffers;
     };
 

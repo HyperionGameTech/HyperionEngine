@@ -713,14 +713,13 @@ extern struct ShaderVariantPerms
 end
 extern enum ShaderInputType : uint8
     Unset,
-    UniformBuffer,
-    UniformBufferDynamic,
-    StorageBuffer,
-    StorageBufferDynamic,
-    Image,
-    ImageStorage,
+    CBV,
+    CBV_Dynamic,
+    SRV,
+    SRV_Dynamic,
+    UAV,
+    UAV_Dynamic,
     Sampler,
-    Tlas,
     MAX
 end
 extern struct StencilFunction
@@ -935,6 +934,13 @@ extern enum ShaderModuleType : uint8
     Miss,
     Max
 end
+extern enum ShaderResourceCategory : uint8
+    Unknown,
+    Buffer,
+    Image,
+    Sampler,
+    AccelerationStructure
+end
 extern enum BlendModeFactor : uint8
     BMF_NONE,
     BMF_ONE,
@@ -972,6 +978,12 @@ end
 extern class UISubsystem : Subsystem
     AddDebugOverlay(debugOverlay : OverlayBase) -> void
     RemoveDebugOverlay(debugOverlay : OverlayBase) -> bool
+end
+extern struct DescriptorSetLayoutElement
+    Type : ShaderInputType
+    Binding : uint32
+    Count : uint32
+    Category : ShaderResourceCategory
 end
 extern struct DebugDrawerConfig
     Enabled : bool
@@ -1943,6 +1955,7 @@ extern struct ShaderInput
     Size : uint32
     IsDynamic : bool
     StructInfo : ShaderStruct
+    Category : ShaderResourceCategory
     Index : uint32
 end
 extern enum ShaderInputSetFlags : uint8

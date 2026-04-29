@@ -535,9 +535,12 @@ void DescriptorUsageSet::BuildDescriptorTableDeclaration(ShaderInputGroup& table
             inputSet = table.AddDescriptorSetDeclaration(ShaderInputSet(setIndex, descriptorUsage.setName));
         }
 
+        AssertDebug(descriptorUsage.category != ShaderResourceCategory::Unknown);
+
         ShaderInput desc {};
         desc.slot = descriptorUsage.slot;
         desc.type = descriptorUsage.type;
+        desc.category = descriptorUsage.category;
         desc.name = descriptorUsage.descriptorName;
         desc.count = descriptorUsage.GetCount();
         desc.size = descriptorUsage.GetSize();
@@ -2398,55 +2401,67 @@ static bool MatchesAnyToken(const String& token, std::initializer_list<const cha
     return false;
 }
 
-static TResult<ShaderInputType> ParseDescriptorTypeFromDeclaration(ShaderLanguage language, const String& declaration, EnumFlags<DescriptorUsageFlags> flags)
+static TResult<Pair<ShaderInputType, ShaderResourceCategory>> ParseDescriptorTypeFromDeclaration(ShaderLanguage language, const String& declaration, EnumFlags<DescriptorUsageFlags> flags)
 {
     const String trimmed = declaration.TrimmedLeft();
     const String firstToken = ExtractFirstToken(trimmed);
 
-    auto MakeUniformBufferType = [flags]() -> ShaderInputType
+    auto MakeCBVType = [flags]() -> ShaderInputType
     {
         return (flags & DescriptorUsageFlags::DYNAMIC)
-            ? ShaderInputType::UniformBufferDynamic
-            : ShaderInputType::UniformBuffer;
+            ? ShaderInputType::CBV_Dynamic
+            : ShaderInputType::CBV;
     };
 
-    auto MakeStorageBufferType = [flags]() -> ShaderInputType
+    auto MakeSRVType = [flags]() -> ShaderInputType
     {
         return (flags & DescriptorUsageFlags::DYNAMIC)
-            ? ShaderInputType::StorageBufferDynamic
-            : ShaderInputType::StorageBuffer;
+            ? ShaderInputType::SRV_Dynamic
+            : ShaderInputType::SRV;
+    };
+
+    auto MakeUAVType = [flags]() -> ShaderInputType
+    {
+        return (flags & DescriptorUsageFlags::DYNAMIC)
+            ? ShaderInputType::UAV_Dynamic
+            : ShaderInputType::UAV;
     };
 
     if (language == ShaderLanguage::HLSL)
     {
         if (MatchesAnyToken(firstToken, { "cbuffer" }))
         {
-            return MakeUniformBufferType();
+            return Pair<ShaderInputType, ShaderResourceCategory> { MakeCBVType(), ShaderResourceCategory::Buffer };
         }
 
-        if (MatchesAnyToken(firstToken, { "StructuredBuffer", "RWStructuredBuffer", "ByteAddressBuffer", "RWByteAddressBuffer", "AppendStructuredBuffer", "ConsumeStructuredBuffer", "Buffer", "RWBuffer" }))
+        if (MatchesAnyToken(firstToken, { "StructuredBuffer", "ByteAddressBuffer", "Buffer" }))
         {
-            return MakeStorageBufferType();
+            return Pair<ShaderInputType, ShaderResourceCategory> { MakeSRVType(), ShaderResourceCategory::Buffer };
+        }
+
+        if (MatchesAnyToken(firstToken, { "RWStructuredBuffer", "RWByteAddressBuffer", "AppendStructuredBuffer", "ConsumeStructuredBuffer", "RWBuffer" }))
+        {
+            return Pair<ShaderInputType, ShaderResourceCategory> { MakeUAVType(), ShaderResourceCategory::Buffer };
         }
 
         if (MatchesAnyToken(firstToken, { "RWTexture1D", "RWTexture2D", "RWTexture3D", "RWTexture1DArray", "RWTexture2DArray" }))
         {
-            return ShaderInputType::ImageStorage;
+            return Pair<ShaderInputType, ShaderResourceCategory> { ShaderInputType::UAV, ShaderResourceCategory::Image };
         }
 
         if (MatchesAnyToken(firstToken, { "Texture1D", "Texture2D", "Texture3D", "TextureCube", "Texture1DArray", "Texture2DArray", "TextureCubeArray" }))
         {
-            return ShaderInputType::Image;
+            return Pair<ShaderInputType, ShaderResourceCategory> { ShaderInputType::SRV, ShaderResourceCategory::Image };
         }
 
         if (MatchesAnyToken(firstToken, { "SamplerState", "SamplerComparisonState", "sampler" }))
         {
-            return ShaderInputType::Sampler;
+            return Pair<ShaderInputType, ShaderResourceCategory> { ShaderInputType::Sampler, ShaderResourceCategory::Sampler };
         }
 
         if (firstToken == "RaytracingAccelerationStructure")
         {
-            return ShaderInputType::Tlas;
+            return Pair<ShaderInputType, ShaderResourceCategory> { ShaderInputType::SRV, ShaderResourceCategory::AccelerationStructure };
         }
 
         return HYP_MAKE_ERROR(Error, "Unable to determine descriptor type from HLSL declaration: '{}'", trimmed);
@@ -2461,7 +2476,11 @@ static TResult<ShaderInputType> ParseDescriptorTypeFromDeclaration(ShaderLanguag
 
             if (secondToken == "buffer")
             {
-                return MakeStorageBufferType();
+                const bool isReadOnly = (firstToken == "readonly");
+                return Pair<ShaderInputType, ShaderResourceCategory> {
+                    isReadOnly ? MakeSRVType() : MakeUAVType(),
+                    ShaderResourceCategory::Buffer
+                };
             }
 
             return HYP_MAKE_ERROR(Error, "Unable to determine descriptor type from GLSL declaration: '{}'", trimmed);
@@ -2470,7 +2489,7 @@ static TResult<ShaderInputType> ParseDescriptorTypeFromDeclaration(ShaderLanguag
         // r/w buffer
         if (firstToken == "buffer")
         {
-            return MakeStorageBufferType();
+            return Pair<ShaderInputType, ShaderResourceCategory> { MakeSRVType(), ShaderResourceCategory::Buffer };
         }
 
         if (firstToken == "uniform")
@@ -2481,13 +2500,13 @@ static TResult<ShaderInputType> ParseDescriptorTypeFromDeclaration(ShaderLanguag
             // uniform sampler
             if (secondToken.StartsWith("sampler"))
             {
-                return ShaderInputType::Sampler;
+                return Pair<ShaderInputType, ShaderResourceCategory> { ShaderInputType::Sampler, ShaderResourceCategory::Sampler };
             }
 
             // uniform texture (sampled image)
             if (MatchesAnyToken(secondToken, { "texture1D", "texture2D", "texture3D", "textureCube", "texture1DArray", "texture2DArray", "textureCubeArray", "textureBuffer", "itexture1D", "itexture2D", "itexture3D", "itextureCube", "itextureBuffer", "utexture1D", "utexture2D", "utexture3D", "utextureCube", "utextureBuffer" }))
             {
-                return ShaderInputType::Image;
+                return Pair<ShaderInputType, ShaderResourceCategory> { ShaderInputType::SRV, ShaderResourceCategory::Image };
             }
 
             // uniform (write/read)only image (storage image)
@@ -2499,7 +2518,7 @@ static TResult<ShaderInputType> ParseDescriptorTypeFromDeclaration(ShaderLanguag
                     || thirdToken.StartsWith("iimage")
                     || thirdToken.StartsWith("uimage"))
                 {
-                    return ShaderInputType::ImageStorage;
+                    return Pair<ShaderInputType, ShaderResourceCategory> { ShaderInputType::UAV, ShaderResourceCategory::Image };
                 }
 
                 return HYP_MAKE_ERROR(Error, "Unable to determine descriptor type from GLSL declaration: '{}'", trimmed);
@@ -2508,17 +2527,17 @@ static TResult<ShaderInputType> ParseDescriptorTypeFromDeclaration(ShaderLanguag
             // uniform image
             if (MatchesAnyToken(secondToken, { "image1D", "image2D", "image3D", "imageCube", "image1DArray", "image2DArray", "imageCubeArray", "imageBuffer", "iimage1D", "iimage2D", "iimage3D", "iimageBuffer", "iimageCube", "uimage1D", "uimage2D", "uimage3D", "uimageBuffer", "uimageCube" }))
             {
-                return ShaderInputType::ImageStorage;
+                return Pair<ShaderInputType, ShaderResourceCategory> { ShaderInputType::UAV, ShaderResourceCategory::Image };
             }
 
             // uniform accelerationStructureEXT
             if (secondToken == "accelerationStructureEXT")
             {
-                return ShaderInputType::Tlas;
+                return Pair<ShaderInputType, ShaderResourceCategory> { ShaderInputType::SRV, ShaderResourceCategory::AccelerationStructure };
             }
 
-            // uniform [StructName] - contant buffer
-            return MakeUniformBufferType();
+            // uniform [StructName] - constant buffer
+            return Pair<ShaderInputType, ShaderResourceCategory> { MakeCBVType(), ShaderResourceCategory::Buffer };
         }
 
         return HYP_MAKE_ERROR(Error, "Unable to determine descriptor type from GLSL declaration: '{}'", trimmed);
@@ -3018,7 +3037,7 @@ ShaderCompiler::ProcessResult ShaderCompiler::ProcessShaderSource(
                     }
                 }
 
-                TResult<ShaderInputType> descriptorTypeResult = ParseDescriptorTypeFromDeclaration(language, parseResult.remaining, flags);
+                TResult<Pair<ShaderInputType, ShaderResourceCategory>> descriptorTypeResult = ParseDescriptorTypeFromDeclaration(language, parseResult.remaining, flags);
 
                 if (!descriptorTypeResult)
                 {
@@ -3029,11 +3048,14 @@ ShaderCompiler::ProcessResult ShaderCompiler::ProcessShaderSource(
 
                 DescriptorUsage usage {};
                 usage.slot = slot;
-                usage.type = descriptorTypeResult.GetValue();
+                usage.type = descriptorTypeResult.GetValue().first;
+                usage.category = descriptorTypeResult.GetValue().second;
                 usage.setName = CreateNameFromDynamicString(ANSIString(setName));
                 usage.descriptorName = CreateNameFromDynamicString(ANSIString(descriptorName));
                 usage.flags = flags;
                 usage.params = std::move(params);
+
+                AssertDebug(usage.category != ShaderResourceCategory::Unknown);
 
                 Array<String> additionalParams;
                 String stdVersion;

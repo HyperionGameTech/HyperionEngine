@@ -281,6 +281,9 @@ struct ShaderInput
     HYP_FIELD(Property = "StructInfo", Serialize = true)
     ShaderStruct structInfo;
 
+    HYP_FIELD(Property = "Category", Serialize = true)
+    ShaderResourceCategory category = ShaderResourceCategory::Unknown;
+
     HYP_FIELD(Property = "Index", Transient = true, Serialize = false)
     uint32 index = ~0u;
 
@@ -435,7 +438,7 @@ struct ShaderInputGroup
 
     struct DeclareDescriptor
     {
-        DeclareDescriptor(ShaderInputGroup* table, Name setName, ShaderInputType type, ShaderRegister slotType, Name descriptorName, ShaderInput::ConditionFunction cond = nullptr, uint32 count = 1, uint32 size = ~0u, bool isDynamic = false)
+        DeclareDescriptor(ShaderInputGroup* table, Name setName, ShaderInputType type, ShaderRegister slotType, Name descriptorName, ShaderInput::ConditionFunction cond = nullptr, uint32 count = 1, uint32 size = ~0u, bool isDynamic = false, ShaderResourceCategory category = ShaderResourceCategory::Unknown)
         {
             AssertDebug(table != nullptr);
 
@@ -469,6 +472,19 @@ struct ShaderInputGroup
             shaderInput.size = size;
             shaderInput.count = count;
             shaderInput.isDynamic = isDynamic;
+
+            if (category != ShaderResourceCategory::Unknown)
+            {
+                shaderInput.category = category;
+            }
+            else if (type == ShaderInputType::CBV || type == ShaderInputType::CBV_Dynamic)
+            {
+                shaderInput.category = ShaderResourceCategory::Buffer;
+            }
+            else if (type == ShaderInputType::Sampler)
+            {
+                shaderInput.category = ShaderResourceCategory::Sampler;
+            }
         }
     };
 };

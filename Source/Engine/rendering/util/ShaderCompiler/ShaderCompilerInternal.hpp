@@ -12,96 +12,20 @@ HYP_MAKE_ENUM_FLAGS(DescriptorUsageFlags)
 
 struct DescriptorUsage
 {
-    ShaderRegister slot;
-    ShaderInputType type;
+    ShaderRegister slot = ShaderRegister::NONE;
+    ShaderInputType type = ShaderInputType::Unset;
+    ShaderResourceCategory category = ShaderResourceCategory::Unknown;
     Name setName;
     Name descriptorName;
     ShaderStruct shaderStruct;
     EnumFlags<DescriptorUsageFlags> flags;
     HashMap<String, String> params;
 
-    DescriptorUsage()
-        : slot(ShaderRegister::NONE),
-          type(ShaderInputType::Unset),
-          setName(Name::Invalid()),
-          flags(DescriptorUsageFlags::NONE)
-    {
-    }
-
-    DescriptorUsage(ShaderRegister slot, ShaderInputType type, Name setName, Name descriptorName, EnumFlags<DescriptorUsageFlags> flags = DescriptorUsageFlags::NONE, HashMap<String, String> params = {})
-        : slot(slot),
-          type(type),
-          setName(setName),
-          descriptorName(descriptorName),
-          flags(flags),
-          params(std::move(params))
-    {
-    }
-
-    DescriptorUsage(const DescriptorUsage& other)
-        : slot(other.slot),
-          type(other.type),
-          setName(other.setName),
-          descriptorName(other.descriptorName),
-          shaderStruct(other.shaderStruct),
-          flags(other.flags),
-          params(other.params)
-    {
-    }
-
-    DescriptorUsage& operator=(const DescriptorUsage& other)
-    {
-        if (this == &other)
-        {
-            return *this;
-        }
-
-        slot = other.slot;
-        type = other.type;
-        setName = other.setName;
-        descriptorName = other.descriptorName;
-        shaderStruct = other.shaderStruct;
-        flags = other.flags;
-        params = other.params;
-
-        return *this;
-    }
-
-    DescriptorUsage(DescriptorUsage&& other) noexcept
-        : slot(other.slot),
-          type(other.type),
-          setName(std::move(other.setName)),
-          descriptorName(std::move(other.descriptorName)),
-          shaderStruct(std::move(other.shaderStruct)),
-          flags(other.flags),
-          params(std::move(other.params))
-    {
-    }
-
-    DescriptorUsage& operator=(DescriptorUsage&& other) noexcept
-    {
-        if (this == &other)
-        {
-            return *this;
-        }
-
-        slot = other.slot;
-        type = other.type;
-        setName = std::move(other.setName);
-        descriptorName = std::move(other.descriptorName);
-        shaderStruct = std::move(other.shaderStruct);
-        flags = other.flags;
-        params = std::move(other.params);
-
-        return *this;
-    }
-
-    ~DescriptorUsage() = default;
-
     HYP_FORCE_INLINE bool operator==(const DescriptorUsage& other) const
     {
         return slot == other.slot
             && type == other.type
+            && category == other.category
             && setName == other.setName
             && descriptorName == other.descriptorName
             && shaderStruct == other.shaderStruct
@@ -113,6 +37,7 @@ struct DescriptorUsage
     {
         return slot != other.slot
             || type != other.type
+            || category != other.category
             || setName != other.setName
             || descriptorName != other.descriptorName
             || shaderStruct != other.shaderStruct
@@ -130,6 +55,11 @@ struct DescriptorUsage
         if (type != other.type)
         {
             return type < other.type;
+        }
+
+        if (category != other.category)
+        {
+            return category < other.category;
         }
 
         if (setName != other.setName)
@@ -158,10 +88,7 @@ struct DescriptorUsage
     /*! \brief Returns true if this is a constant buffer or storage buffer. */
     HYP_FORCE_INLINE bool IsBuffer() const
     {
-        return type == ShaderInputType::UniformBuffer
-            || type == ShaderInputType::UniformBufferDynamic
-            || type == ShaderInputType::StorageBuffer
-            || type == ShaderInputType::StorageBufferDynamic;
+        return category == ShaderResourceCategory::Buffer;
     }
 
     HYP_FORCE_INLINE uint32 GetCount() const
@@ -212,6 +139,7 @@ struct DescriptorUsage
         HashCode hc;
         hc.Add(slot);
         hc.Add(type);
+        hc.Add(category);
         hc.Add(setName.GetHashCode());
         hc.Add(descriptorName.GetHashCode());
         hc.Add(shaderStruct);

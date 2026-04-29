@@ -19,8 +19,18 @@ namespace Hyperion {
 template <class AllocatorType>
 class TCommandRecorder;
 
-class StructuredBuffer final
+class StructuredBuffer
 {
+protected:
+    StructuredBuffer(GpuBufferType bufferType, size_t numElements, size_t elementSize)
+        : gpuBuffer(new GpuBuffer(bufferType, numElements * elementSize, 16)),
+          elementSize(elementSize),
+          dirtyRangeStart(SIZE_MAX),
+          dirtyRangeEnd(0)
+    {
+        cpuBuffer.SetSize(numElements * elementSize);
+    }
+
 public:
     StructuredBuffer()
         : gpuBuffer(nullptr),
@@ -30,13 +40,9 @@ public:
     {
     }
 
-    explicit StructuredBuffer(size_t numElements, size_t elementSize, bool isRW = false)
-        : gpuBuffer(new GpuBuffer(isRW ? GpuBufferType::RWStructuredBuffer : GpuBufferType::StructuredBuffer, numElements * elementSize, 16)),
-          elementSize(elementSize),
-          dirtyRangeStart(SIZE_MAX),
-          dirtyRangeEnd(0)
+    explicit StructuredBuffer(size_t numElements, size_t elementSize)
+        : StructuredBuffer(GpuBufferType::StructuredBuffer, numElements, elementSize)
     {
-        cpuBuffer.SetSize(numElements * elementSize);
     }
 
     StructuredBuffer(const StructuredBuffer& other) = delete;
@@ -114,6 +120,30 @@ public:
 
     size_t dirtyRangeStart;
     size_t dirtyRangeEnd;
+};
+
+class RWStructuredBuffer : public StructuredBuffer
+{
+public:
+    RWStructuredBuffer() = default;
+
+    RWStructuredBuffer(size_t numElements, size_t elementSize)
+        : StructuredBuffer(GpuBufferType::RWStructuredBuffer, numElements, elementSize)
+    {
+    }
+
+    RWStructuredBuffer(const RWStructuredBuffer& other) = delete;
+    RWStructuredBuffer& operator=(const RWStructuredBuffer& other) = delete;
+
+    RWStructuredBuffer(RWStructuredBuffer&& other) noexcept
+        : StructuredBuffer(static_cast<StructuredBuffer&&>(other))
+    {
+    }
+
+    RWStructuredBuffer& operator=(RWStructuredBuffer&& other) noexcept
+    {
+        return static_cast<RWStructuredBuffer&>(static_cast<StructuredBuffer&>(*this) = static_cast<StructuredBuffer&&>(other));
+    }
 };
 
 } // namespace Hyperion

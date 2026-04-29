@@ -1094,17 +1094,26 @@ struct Viewport
 };
 
 HYP_ENUM()
+enum class ShaderResourceCategory : uint8
+{
+    Unknown,
+    Buffer,
+    Image,
+    Sampler,
+    AccelerationStructure
+};
+
+HYP_ENUM()
 enum class ShaderInputType : uint8
 {
     Unset,
-    UniformBuffer,
-    UniformBufferDynamic,
-    StorageBuffer,
-    StorageBufferDynamic,
-    Image,
-    ImageStorage,
+    CBV,
+    CBV_Dynamic,
+    SRV,
+    SRV_Dynamic,
+    UAV,
+    UAV_Dynamic,
     Sampler,
-    Tlas,
     MAX
 };
 

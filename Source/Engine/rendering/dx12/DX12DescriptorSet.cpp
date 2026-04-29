@@ -41,24 +41,34 @@ DX12DescriptorSet::DX12DescriptorSet(const DescriptorSetLayout& layout)
 
         switch (element.type)
         {
-        case ShaderInputType::UniformBuffer:
-        case ShaderInputType::UniformBufferDynamic:
-        case ShaderInputType::StorageBuffer:
-        case ShaderInputType::StorageBufferDynamic:
+        case ShaderInputType::CBV:
+        case ShaderInputType::CBV_Dynamic:
             PrefillElements<DX12GpuBuffer>(name, element.count);
             break;
-        case ShaderInputType::Image:
-        case ShaderInputType::ImageStorage:
-            PrefillElements<DX12GpuImageView>(name, element.count);
+        case ShaderInputType::SRV:
+        case ShaderInputType::SRV_Dynamic:
+        case ShaderInputType::UAV:
+        case ShaderInputType::UAV_Dynamic:
+            if (element.category == ShaderResourceCategory::Buffer)
+            {
+                PrefillElements<DX12GpuBuffer>(name, element.count);
+            }
+            else if (element.category == ShaderResourceCategory::Image)
+            {
+                PrefillElements<DX12GpuImageView>(name, element.count);
+            }
+            else if (element.category == ShaderResourceCategory::AccelerationStructure)
+            {
+                PrefillElements<DX12GpuTlas>(name, element.count);
+            }
+            else
+            {
+                HYP_UNREACHABLE();
+            }
             break;
         case ShaderInputType::Sampler:
             PrefillElements<DX12Sampler>(name, element.count);
             break;
-        case ShaderInputType::Tlas:
-            PrefillElements<DX12GpuTlas>(name, element.count);
-            break;
-        default:
-            HYP_UNREACHABLE();
         }
     }
 }
@@ -109,13 +119,12 @@ RendererResult DX12DescriptorSet::Create()
 
         switch (element.type)
         {
-        case ShaderInputType::UniformBuffer:
-        case ShaderInputType::UniformBufferDynamic:
-        case ShaderInputType::StorageBuffer:
-        case ShaderInputType::StorageBufferDynamic:
-        case ShaderInputType::Image:
-        case ShaderInputType::ImageStorage:
-        case ShaderInputType::Tlas:
+        case ShaderInputType::CBV:
+        case ShaderInputType::CBV_Dynamic:
+        case ShaderInputType::SRV:
+        case ShaderInputType::SRV_Dynamic:
+        case ShaderInputType::UAV:
+        case ShaderInputType::UAV_Dynamic:
             m_viewBindingToHeapOffset.Set(element.binding, viewCount);
             viewCount += elementCount;
             break;
@@ -123,8 +132,6 @@ RendererResult DX12DescriptorSet::Create()
             m_samplerBindingToHeapOffset.Set(element.binding, samplerCount);
             samplerCount += elementCount;
             break;
-        default:
-            HYP_UNREACHABLE();
         }
     }
 
@@ -215,54 +222,70 @@ void DX12DescriptorSet::UpdateDirtyState(bool* outIsDirty)
 
         switch (layoutElement->type)
         {
-        case ShaderInputType::UniformBuffer:
-        case ShaderInputType::UniformBufferDynamic:
-        case ShaderInputType::StorageBuffer:
-        case ShaderInputType::StorageBufferDynamic:
+        case ShaderInputType::CBV:
+        case ShaderInputType::CBV_Dynamic:
+        case ShaderInputType::SRV:
+        case ShaderInputType::SRV_Dynamic:
+        case ShaderInputType::UAV:
+        case ShaderInputType::UAV_Dynamic:
         {
             for (uint32 index : element.occupiedArrayElems)
             {
                 ObjectBase* ptr = element.values[index];
 
-                AssertDebug(ptr && Hyperion::IsA<DX12GpuBuffer>(ptr), "Invalid buffer descriptor: {}", name);
+                if (layoutElement->category == ShaderResourceCategory::Buffer)
+                {
+                    AssertDebug(ptr && ptr->IsA<DX12GpuBuffer>(), "Invalid buffer descriptor: {}", name);
 
-                DX12GpuBuffer* ref = static_cast<DX12GpuBuffer*>(ptr);
-                AssertDebug(ref != nullptr);
+                    DX12GpuBuffer* ref = StaticCast<DX12GpuBuffer>(ptr);
+                    AssertDebug(ref != nullptr);
 
-                DX12CachedDescriptor& descriptor = localDescriptors.EmplaceBack();
-                Memory::Fill(&descriptor, 0, sizeof(DX12CachedDescriptor));
-                descriptor.binding = layoutElement->binding;
-                descriptor.index = index;
-                descriptor.heapType = D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV;
+                    DX12CachedDescriptor& descriptor = localDescriptors.EmplaceBack();
+                    Memory::Fill(&descriptor, 0, sizeof(DX12CachedDescriptor));
+                    descriptor.binding = layoutElement->binding;
+                    descriptor.index = index;
+                    descriptor.heapType = D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV;
 
-                AssertDebug(ref->IsCreated(), "Buffer not initialized for descriptor set element: {}.{}[{}]", m_layout.GetName(), name, index);
+                    AssertDebug(ref->IsCreated(), "Buffer not initialized for descriptor set element: {}.{}[{}]", m_layout.GetName(), name, index);
 
-                descriptor.object_ptr = ref;
-            }
+                    descriptor.objectPtr = ref;
+                }
+                else if (layoutElement->category == ShaderResourceCategory::Image)
+                {
+                    AssertDebug(ptr && ptr->IsA<DX12GpuImageView>(), "Invalid image descriptor: {}", name);
 
-            break;
-        }
-        case ShaderInputType::Image:
-        case ShaderInputType::ImageStorage:
-        {
-            for (uint32 index : element.occupiedArrayElems)
-            {
-                ObjectBase* ptr = element.values[index];
+                    DX12GpuImageView* ref = StaticCast<DX12GpuImageView>(ptr);
+                    AssertDebug(ref != nullptr);
 
-                AssertDebug(ptr && Hyperion::IsA<DX12GpuImageView>(ptr), "Invalid image descriptor: {}", name);
+                    DX12CachedDescriptor& descriptor = localDescriptors.EmplaceBack();
+                    Memory::Fill(&descriptor, 0, sizeof(DX12CachedDescriptor));
+                    descriptor.binding = layoutElement->binding;
+                    descriptor.index = index;
+                    descriptor.heapType = D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV;
 
-                DX12GpuImageView* ref = static_cast<DX12GpuImageView*>(ptr);
-                AssertDebug(ref != nullptr);
+                    AssertDebug(ref->IsCreated(), "Image view not initialized for descriptor set element: {}.{}[{}]", m_layout.GetName(), name, index);
 
-                DX12CachedDescriptor& descriptor = localDescriptors.EmplaceBack();
-                Memory::Fill(&descriptor, 0, sizeof(DX12CachedDescriptor));
-                descriptor.binding = layoutElement->binding;
-                descriptor.index = index;
-                descriptor.heapType = D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV;
+                    descriptor.objectPtr = ref;
+                }
+                else if (layoutElement->category == ShaderResourceCategory::AccelerationStructure)
+                {
+                    AssertDebug(ptr && ptr->IsA<DX12GpuTlas>(), "Invalid TLAS descriptor: {}", name);
 
-                AssertDebug(ref->GetImage() != nullptr && ref->GetImage()->GetResource() != nullptr, "Invalid image view for descriptor set element: {}.{}[{}]", m_layout.GetName(), name, index);
+                    DX12GpuTlas* ref = StaticCast<DX12GpuTlas>(ptr);
+                    AssertDebug(ref != nullptr);
 
-                descriptor.object_ptr = ref;
+                    DX12CachedDescriptor& descriptor = localDescriptors.EmplaceBack();
+                    Memory::Fill(&descriptor, 0, sizeof(DX12CachedDescriptor));
+                    descriptor.binding = layoutElement->binding;
+                    descriptor.index = index;
+                    descriptor.heapType = D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV;
+
+                    descriptor.objectPtr = ref;
+                }
+                else
+                {
+                    HYP_UNREACHABLE();
+                }
             }
 
             break;
@@ -273,9 +296,9 @@ void DX12DescriptorSet::UpdateDirtyState(bool* outIsDirty)
             {
                 ObjectBase* ptr = element.values[index];
 
-                AssertDebug(ptr && Hyperion::IsA<DX12Sampler>(ptr), "Invalid sampler descriptor: {}", name);
+                AssertDebug(ptr && ptr->IsA<DX12Sampler>(), "Invalid sampler descriptor: {}", name);
 
-                DX12Sampler* ref = static_cast<DX12Sampler*>(ptr);
+                DX12Sampler* ref = StaticCast<DX12Sampler>(ptr);
                 AssertDebug(ref != nullptr);
 
                 DX12CachedDescriptor& descriptor = localDescriptors.EmplaceBack();
@@ -286,34 +309,11 @@ void DX12DescriptorSet::UpdateDirtyState(bool* outIsDirty)
 
                 AssertDebug(ref->IsCreated(), "Invalid sampler for descriptor set element: {}.{}[{}]", m_layout.GetName(), name, index);
 
-                descriptor.object_ptr = ref;
+                descriptor.objectPtr = ref;
             }
 
             break;
         }
-        case ShaderInputType::Tlas:
-        {
-            for (uint32 index : element.occupiedArrayElems)
-            {
-                ObjectBase* ptr = element.values[index];
-
-                DX12GpuTlas* ref = DynamicCast<DX12GpuTlas>(ptr);
-                AssertDebug(ref != nullptr, "Invalid TLAS reference for descriptor set element: {}.{}[{}]", m_layout.GetName(), name, index);
-                AssertDebug(ref->IsCreated(), "Invalid TLAS for descriptor set element: {}.{}[{}]", m_layout.GetName(), name, index);
-
-                DX12CachedDescriptor& descriptor = localDescriptors.EmplaceBack();
-                Memory::Fill(&descriptor, 0, sizeof(DX12CachedDescriptor));
-                descriptor.binding = layoutElement->binding;
-                descriptor.index = index;
-                descriptor.heapType = D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV;
-
-                descriptor.object_ptr = ref;
-            }
-
-            break;
-        }
-        default:
-            HYP_UNREACHABLE();
         }
 
         Assert(localDescriptors.Size() <= cachedValues.Size(), "Index out of range for cached values");
@@ -422,10 +422,12 @@ void DX12DescriptorSet::Update(bool force)
 
         switch (layoutElement->type)
         {
-        case ShaderInputType::UniformBuffer:
-        case ShaderInputType::UniformBufferDynamic:
+        case ShaderInputType::CBV:
+        case ShaderInputType::CBV_Dynamic:
         {
-            DX12GpuBuffer* buffer = static_cast<DX12GpuBuffer*>(ptr);
+            AssertDebug(ptr && ptr->IsA<DX12GpuBuffer>());
+
+            DX12GpuBuffer* buffer = StaticCast<DX12GpuBuffer>(ptr);
             if (!buffer->IsCreated())
             {
                 continue;
@@ -435,50 +437,98 @@ void DX12DescriptorSet::Update(bool force)
             device->CreateConstantBufferView(&cbvDesc, destHandle);
             break;
         }
-        case ShaderInputType::StorageBuffer:
-        case ShaderInputType::StorageBufferDynamic:
+        case ShaderInputType::SRV:
+        case ShaderInputType::SRV_Dynamic:
         {
-            DX12GpuBuffer* buffer = static_cast<DX12GpuBuffer*>(ptr);
-            if (!buffer->IsCreated())
+            if (layoutElement->category == ShaderResourceCategory::Buffer)
             {
-                continue;
+                AssertDebug(ptr && ptr->IsA<DX12GpuBuffer>());
+
+                DX12GpuBuffer* buffer = StaticCast<DX12GpuBuffer>(ptr);
+                if (!buffer->IsCreated())
+                {
+                    continue;
+                }
+
+                const uint32 structureStride = element->bufferStride != ~0u ? element->bufferStride : uint32(buffer->Size());
+                D3D12_SHADER_RESOURCE_VIEW_DESC srvDesc = GetSRVDesc(buffer, structureStride);
+                device->CreateShaderResourceView(buffer->GetResource(), &srvDesc, destHandle);
+            }
+            else if (layoutElement->category == ShaderResourceCategory::Image)
+            {
+                AssertDebug(ptr && ptr->IsA<DX12GpuImageView>());
+
+                DX12GpuImageView* imageView = StaticCast<DX12GpuImageView>(ptr);
+                if (!imageView->IsCreated())
+                {
+                    continue;
+                }
+
+                const D3D12_SHADER_RESOURCE_VIEW_DESC srvDesc = GetSRVDesc(
+                    imageView->GetImage(),
+                    imageView->GetMipIndex(), imageView->NumMips(),
+                    imageView->GetLayerIndex(), imageView->NumArrayLayers());
+
+                device->CreateShaderResourceView(imageView->GetImage()->GetResource(), &srvDesc, destHandle);
+            }
+            else if (layoutElement->category == ShaderResourceCategory::AccelerationStructure)
+            {
+                AssertDebug(ptr && ptr->IsA<DX12GpuTlas>());
+
+                DX12GpuTlas* tlas = StaticCast<DX12GpuTlas>(ptr);
+                if (!tlas || !tlas->IsCreated())
+                {
+                    continue;
+                }
+
+                D3D12_SHADER_RESOURCE_VIEW_DESC srvDesc = {};
+                srvDesc.ViewDimension = D3D12_SRV_DIMENSION_RAYTRACING_ACCELERATION_STRUCTURE;
+                srvDesc.RaytracingAccelerationStructure.Location = tlas->GetBuffer()->GetBufferDeviceAddress();
+
+                device->CreateShaderResourceView(tlas->GetBuffer()->GetResource(), &srvDesc, destHandle);
+            }
+            else
+            {
+                HYP_UNREACHABLE();
             }
 
-            const uint32 structureStride = element->bufferStride != ~0u ? element->bufferStride : uint32(buffer->Size());
-            D3D12_UNORDERED_ACCESS_VIEW_DESC uavDesc = GetUAVDesc(buffer, structureStride);
-            device->CreateUnorderedAccessView(buffer->GetResource(), nullptr, &uavDesc, destHandle);
             break;
         }
-        case ShaderInputType::Image:
+        case ShaderInputType::UAV:
+        case ShaderInputType::UAV_Dynamic:
         {
-            DX12GpuImageView* imageView = static_cast<DX12GpuImageView*>(ptr);
-            if (!imageView->IsCreated())
+            if (layoutElement->category == ShaderResourceCategory::Buffer)
             {
-                continue;
+                DX12GpuBuffer* buffer = static_cast<DX12GpuBuffer*>(ptr);
+                if (!buffer->IsCreated())
+                {
+                    continue;
+                }
+
+                const uint32 structureStride = element->bufferStride != ~0u ? element->bufferStride : uint32(buffer->Size());
+                D3D12_UNORDERED_ACCESS_VIEW_DESC uavDesc = GetUAVDesc(buffer, structureStride);
+                device->CreateUnorderedAccessView(buffer->GetResource(), nullptr, &uavDesc, destHandle);
+            }
+            else if (layoutElement->category == ShaderResourceCategory::Image)
+            {
+                DX12GpuImageView* imageView = static_cast<DX12GpuImageView*>(ptr);
+                if (!imageView->IsCreated())
+                {
+                    continue;
+                }
+
+                const D3D12_UNORDERED_ACCESS_VIEW_DESC uavDesc = GetUAVDesc(
+                    imageView->GetImage(),
+                    imageView->GetMipIndex(), imageView->NumMips(),
+                    imageView->GetLayerIndex(), imageView->NumArrayLayers());
+
+                device->CreateUnorderedAccessView(imageView->GetImage()->GetResource(), nullptr, &uavDesc, destHandle);
+            }
+            else
+            {
+                HYP_UNREACHABLE();
             }
 
-            const D3D12_SHADER_RESOURCE_VIEW_DESC srvDesc = GetSRVDesc(
-                imageView->GetImage(),
-                imageView->GetMipIndex(), imageView->NumMips(),
-                imageView->GetLayerIndex(), imageView->NumArrayLayers());
-
-            device->CreateShaderResourceView(imageView->GetImage()->GetResource(), &srvDesc, destHandle);
-            break;
-        }
-        case ShaderInputType::ImageStorage:
-        {
-            DX12GpuImageView* imageView = static_cast<DX12GpuImageView*>(ptr);
-            if (!imageView->IsCreated())
-            {
-                continue;
-            }
-
-            const D3D12_UNORDERED_ACCESS_VIEW_DESC uavDesc = GetUAVDesc(
-                imageView->GetImage(),
-                imageView->GetMipIndex(), imageView->NumMips(),
-                imageView->GetLayerIndex(), imageView->NumArrayLayers());
-
-            device->CreateUnorderedAccessView(imageView->GetImage()->GetResource(), nullptr, &uavDesc, destHandle);
             break;
         }
         case ShaderInputType::Sampler:
@@ -494,23 +544,6 @@ void DX12DescriptorSet::Update(bool force)
             device->CreateSampler(&samplerDesc, destHandle);
             break;
         }
-        case ShaderInputType::Tlas:
-        {
-            DX12GpuTlas* tlas = DynamicCast<DX12GpuTlas>(ptr);
-            if (!tlas || !tlas->IsCreated())
-            {
-                continue;
-            }
-
-            D3D12_SHADER_RESOURCE_VIEW_DESC srvDesc = {};
-            srvDesc.ViewDimension = D3D12_SRV_DIMENSION_RAYTRACING_ACCELERATION_STRUCTURE;
-            srvDesc.RaytracingAccelerationStructure.Location = tlas->GetBuffer()->GetBufferDeviceAddress();
-
-            device->CreateShaderResourceView(tlas->GetBuffer()->GetResource(), &srvDesc, destHandle);
-            break;
-        }
-        default:
-            HYP_UNREACHABLE();
         }
     }
 

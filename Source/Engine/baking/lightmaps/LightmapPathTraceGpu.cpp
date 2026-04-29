@@ -154,7 +154,7 @@ void LightmapRenderer_GpuPathTracing::CreateBuffers(BakeJobBase* job)
     jd.raysBuffer = g_renderInterface->MakeGpuBuffer(GpuBufferType::StructuredBuffer, sizeof(Vec4f) * 2 * m_maxTexelsPerFrame, alignof(Vec4f));
     jd.raysBuffer->SetIsCpuAccessible(true);
 
-    jd.hitsBufferGpu = StructuredBuffer(m_maxTexelsPerFrame, sizeof(LightmapHit), true);
+    jd.hitsBufferGpu = RWStructuredBuffer(m_maxTexelsPerFrame, sizeof(LightmapHit));
     jd.hitsBufferGpu.Initialize();
 
     // @TODO Maybe need EnqueueDeletion for hits buffer gpu? we will see
@@ -285,7 +285,7 @@ void LightmapRenderer_GpuPathTracing::ReadHitsBuffer(Frame* frame, BakeJobBase* 
 
     JobData& jd = m_jobData[job];
 
-    StructuredBuffer& hitsBuffer = jd.hitsBufferGpu;
+    RWStructuredBuffer& hitsBuffer = jd.hitsBufferGpu;
 
     if (!hitsBuffer.cpuBuffer.Size())
     {

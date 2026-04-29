@@ -55,7 +55,7 @@ private:
     struct JobData
     {
         GpuBufferRef raysBuffer;
-        StructuredBuffer hitsBufferGpu;
+        RWStructuredBuffer hitsBufferGpu;
         bool isCreated = false;
     };
 
