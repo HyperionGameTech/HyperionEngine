@@ -412,7 +412,7 @@ void FullScreenPass::CreateMergeCheckerboardPass()
 
     if (!m_mergeCheckerboardUniformBuffer)
     {
-        m_mergeCheckerboardUniformBuffer = g_renderInterface->MakeGpuBuffer(GpuBufferType::CONSTANT_BUFFER, sizeof(uniforms));
+        m_mergeCheckerboardUniformBuffer = g_renderInterface->MakeGpuBuffer(GpuBufferType::ConstantBuffer, sizeof(uniforms));
         CheckResult(m_mergeCheckerboardUniformBuffer->Create());
     }
 

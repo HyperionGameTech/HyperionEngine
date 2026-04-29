@@ -36,7 +36,7 @@ public:
         return m_holders;
     }
 
-    template <class T, GpuBufferType BufferType = GpuBufferType::STORAGE_BUFFER>
+    template <class T, GpuBufferType BufferType = GpuBufferType::StructuredBuffer>
     GpuBufferHolder<T, BufferType>* GetOrCreate(uint32 initialCount, bool cpuAccessible)
     {
         auto it = m_holders.Find<T>();

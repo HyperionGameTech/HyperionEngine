@@ -384,7 +384,7 @@ D3D12_UAV_DIMENSION ToDX12UAVDimension(TextureType textureType)
 D3D12_CONSTANT_BUFFER_VIEW_DESC GetCBVDesc(DX12GpuBuffer* buffer)
 {
     AssertDebug(buffer != nullptr);
-    AssertDebug(buffer->GetBufferType() == GpuBufferType::CONSTANT_BUFFER);
+    AssertDebug(buffer->GetBufferType() == GpuBufferType::ConstantBuffer);
 
     D3D12_CONSTANT_BUFFER_VIEW_DESC desc {};
     desc.BufferLocation = buffer->GetResource()->GetGPUVirtualAddress();
@@ -427,7 +427,7 @@ D3D12_SHADER_RESOURCE_VIEW_DESC GetSRVDesc(DX12GpuBuffer* buffer, uint32 structu
 D3D12_UNORDERED_ACCESS_VIEW_DESC GetUAVDesc(DX12GpuBuffer* buffer, uint32 structureStride, uint32 firstElement, uint32 numElements)
 {
     AssertDebug(buffer != nullptr);
-    AssertDebug(buffer->GetBufferType() != GpuBufferType::CONSTANT_BUFFER);
+    AssertDebug(buffer->GetBufferType() != GpuBufferType::ConstantBuffer);
 
     const bool useByteAddressBuffer = (structureStride == 0);
 

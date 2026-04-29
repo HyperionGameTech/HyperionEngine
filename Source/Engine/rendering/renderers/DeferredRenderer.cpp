@@ -1013,7 +1013,7 @@ void LightmapPass::RenderToFramebuffer_Internal(Frame* frame, const RenderSetup&
 
         if (!uniformBuffer)
         {
-            uniformBuffer = g_renderInterface->MakeGpuBuffer(GpuBufferType::CONSTANT_BUFFER, sizeof(LightmapVolumeUniforms));
+            uniformBuffer = g_renderInterface->MakeGpuBuffer(GpuBufferType::ConstantBuffer, sizeof(LightmapVolumeUniforms));
             CheckResult(uniformBuffer->Create());
         }
 

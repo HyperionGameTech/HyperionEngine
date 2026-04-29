@@ -187,7 +187,7 @@ void ConvolveEnvProbeCubemap(
 
         GpuBufferRef& uniformBuffer = buffers[mipIndex];
 
-        uniformBuffer = g_renderInterface->MakeGpuBuffer(GpuBufferType::CONSTANT_BUFFER, sizeof(uniforms));
+        uniformBuffer = g_renderInterface->MakeGpuBuffer(GpuBufferType::ConstantBuffer, sizeof(uniforms));
         Assert(uniformBuffer->Create());
 
         uniforms.outImageDimensions = mipExtent;
@@ -406,7 +406,7 @@ void ComputeEnvProbeSphericalHarmonics(
 
     static constexpr uint32 ShDataSize = sizeof(EnvProbeShaderData::shData);
 
-    GpuBufferRef shBuffer = g_renderInterface->MakeGpuBuffer(GpuBufferType::STORAGE_BUFFER, MathUtil::NextPowerOf2(ShDataSize));
+    GpuBufferRef shBuffer = g_renderInterface->MakeGpuBuffer(GpuBufferType::RWStructuredBuffer, MathUtil::NextPowerOf2(ShDataSize));
     CheckResult(shBuffer->Create());
 
     Array<GpuBufferRef> uniformBuffers;
@@ -426,7 +426,7 @@ void ComputeEnvProbeSphericalHarmonics(
         ShaderDesc shaderDesc(NAME("ComputeSH"), passShaderProperties);
         cr << SetCurrentShader(shaderDesc);
 
-        GpuBufferRef ub = g_renderInterface->MakeGpuBuffer(GpuBufferType::CONSTANT_BUFFER, sizeof(SHUniforms));
+        GpuBufferRef ub = g_renderInterface->MakeGpuBuffer(GpuBufferType::ConstantBuffer, sizeof(SHUniforms));
         ub->Create();
         ub->Copy(sizeof(SHUniforms), &passUniforms);
         uniformBuffers.PushBack(ub);
@@ -507,7 +507,7 @@ void ComputeEnvProbeSphericalHarmonics(
 
     cr << InsertBarrier(shBuffer, RS_COPY_SRC, ShaderModuleType::Compute);
 
-    GpuBufferRef readbackBuffer = g_renderInterface->MakeGpuBuffer(GpuBufferType::READBACK_BUFFER, shBuffer->Size());
+    GpuBufferRef readbackBuffer = g_renderInterface->MakeGpuBuffer(GpuBufferType::ReadbackBuffer, shBuffer->Size());
     readbackBuffer->SetIsCpuAccessible(true);
 #if HYP_DEBUG_MODE
     readbackBuffer->SetDebugName(NAME("ComputeEnvProbeSphericalHarmonics_ReadbackBuffer"));

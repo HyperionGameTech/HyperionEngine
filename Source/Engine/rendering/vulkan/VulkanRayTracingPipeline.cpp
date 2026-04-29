@@ -283,7 +283,7 @@ RendererResult VulkanRayTracingPipeline::CreateShaderBindingTableEntry(
     const uint32 handleSize = g_renderInterface->GetDevice()->GetFeatures().PaddedSize(properties.shaderGroupHandleSize, properties.shaderGroupHandleAlignment);
 
     // Buffer device address must be a multiple of shaderGroupBaseAlignment (VUID-vkCmdTraceRaysKHR-pRayGenShaderBindingTable-03682)
-    out.buffer = MakeHandle<VulkanGpuBuffer>(GpuBufferType::SHADER_BINDING_TABLE, numShaders * handleSize, properties.shaderGroupBaseAlignment);
+    out.buffer = MakeHandle<VulkanGpuBuffer>(GpuBufferType::ShaderBindingTable, numShaders * handleSize, properties.shaderGroupBaseAlignment);
 #if HYP_DEBUG_MODE
     out.buffer->SetDebugName(NAME("ShaderBindingTable"));
 #endif

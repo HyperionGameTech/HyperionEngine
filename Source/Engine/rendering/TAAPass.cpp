@@ -109,7 +109,7 @@ void TAAPass::Render(Frame* frame, const RenderSetup& renderSetup)
 
     if (!m_cbuffers[frameIndex])
     {
-        m_cbuffers[frameIndex] = g_renderInterface->MakeGpuBuffer(GpuBufferType::CONSTANT_BUFFER, sizeof(TAAConstants));
+        m_cbuffers[frameIndex] = g_renderInterface->MakeGpuBuffer(GpuBufferType::ConstantBuffer, sizeof(TAAConstants));
 #if HYP_DEBUG_MODE
         m_cbuffers[frameIndex]->SetDebugName(NAME("TAAConstants"));
 #endif

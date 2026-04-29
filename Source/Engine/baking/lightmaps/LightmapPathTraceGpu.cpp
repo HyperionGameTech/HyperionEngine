@@ -151,10 +151,10 @@ void LightmapRenderer_GpuPathTracing::CreateBuffers(BakeJobBase* job)
 
     AssertDebug(jd.raysBuffer == nullptr);
 
-    jd.raysBuffer = g_renderInterface->MakeGpuBuffer(GpuBufferType::STORAGE_BUFFER, sizeof(Vec4f) * 2 * m_maxTexelsPerFrame, alignof(Vec4f));
+    jd.raysBuffer = g_renderInterface->MakeGpuBuffer(GpuBufferType::StructuredBuffer, sizeof(Vec4f) * 2 * m_maxTexelsPerFrame, alignof(Vec4f));
     jd.raysBuffer->SetIsCpuAccessible(true);
 
-    jd.hitsBufferGpu = StructuredBuffer(m_maxTexelsPerFrame, sizeof(LightmapHit));
+    jd.hitsBufferGpu = StructuredBuffer(m_maxTexelsPerFrame, sizeof(LightmapHit), true);
     jd.hitsBufferGpu.Initialize();
 
     // @TODO Maybe need EnqueueDeletion for hits buffer gpu? we will see
@@ -294,7 +294,7 @@ void LightmapRenderer_GpuPathTracing::ReadHitsBuffer(Frame* frame, BakeJobBase* 
 
     Assert(hitsBuffer.cpuBuffer.Size() >= outHits.Size() * sizeof(LightmapHit));
 
-    GpuBufferRef stagingBuffer = g_renderInterface->MakeGpuBuffer(GpuBufferType::STAGING_BUFFER, outHits.Size() * sizeof(LightmapHit));
+    GpuBufferRef stagingBuffer = g_renderInterface->MakeGpuBuffer(GpuBufferType::StagingBuffer, outHits.Size() * sizeof(LightmapHit));
     Assert(stagingBuffer->Create());
 
     UniquePtr<SingleTimeCommands> singleTimeCommands = g_renderInterface->GetSingleTimeCommands();

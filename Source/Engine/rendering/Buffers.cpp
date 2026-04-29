@@ -121,7 +121,7 @@ struct StagingBufferPoolImpl
         CachedStagingBuffer newBuffer;
         newBuffer.size = bufferSize;
         newBuffer.lastUsedFrame = currFrame;
-        newBuffer.buffer = g_renderInterface->MakeGpuBuffer(GpuBufferType::STAGING_BUFFER, bufferSize);
+        newBuffer.buffer = g_renderInterface->MakeGpuBuffer(GpuBufferType::StagingBuffer, bufferSize);
 
 #if HYP_DEBUG_MODE
         newBuffer.buffer->SetDebugName(NAME("StagingBufferPoolTempBuffer"));
@@ -250,7 +250,8 @@ void GpuBufferHolderBase::CopyStagingToGpu(
         cr << CopyBuffer(stagingBuffer, m_gpuBuffer, 0, chunkStart, (chunkEnd - chunkStart));
     }
 
-    cr << InsertBarrier(m_gpuBuffer, m_gpuBuffer->GetBufferType() == GpuBufferType::STORAGE_BUFFER ? RS_UNORDERED_ACCESS : RS_SHADER_RESOURCE);
+    cr << InsertBarrier(m_gpuBuffer, (m_gpuBuffer->GetBufferType() == GpuBufferType::RWStructuredBuffer
+        || m_gpuBuffer->GetBufferType() == GpuBufferType::RWByteAddressBuffer) ? RS_UNORDERED_ACCESS : RS_SHADER_RESOURCE);
 }
 
 #pragma endregion GpuBufferHolderBase

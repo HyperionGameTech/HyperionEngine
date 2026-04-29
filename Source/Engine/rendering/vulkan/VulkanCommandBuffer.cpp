@@ -255,7 +255,7 @@ void VulkanCommandBuffer::BindVertexBuffer(const VulkanGpuBuffer* buffer)
     static constexpr VkDeviceSize BindingOffsets[] = { 0 };
 
     AssertDebug(buffer != nullptr);
-    AssertDebug(buffer->GetBufferType() == GpuBufferType::MESH_VERTEX_BUFFER, "Not a vertex buffer! Got buffer type: %u", uint32(buffer->GetBufferType()));
+    AssertDebug(buffer->GetBufferType() == GpuBufferType::VertexBuffer, "Not a vertex buffer! Got buffer type: %u", uint32(buffer->GetBufferType()));
 
     const VkBuffer vertexBuffers[] = { buffer->GetVulkanHandle() };
     
@@ -265,7 +265,7 @@ void VulkanCommandBuffer::BindVertexBuffer(const VulkanGpuBuffer* buffer)
 void VulkanCommandBuffer::BindIndexBuffer(const VulkanGpuBuffer* buffer, GpuElemType elemType)
 {
     AssertDebug(buffer != nullptr);
-    AssertDebug(buffer->GetBufferType() == GpuBufferType::MESH_INDEX_BUFFER, "Not an index buffer! Got buffer type: %u", uint32(buffer->GetBufferType()));
+    AssertDebug(buffer->GetBufferType() == GpuBufferType::IndexBuffer, "Not an index buffer! Got buffer type: %u", uint32(buffer->GetBufferType()));
 
     vkCmdBindIndexBuffer(
         m_handle,

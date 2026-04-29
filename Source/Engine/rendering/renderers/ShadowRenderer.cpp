@@ -153,7 +153,7 @@ void ShadowRendererBase::RenderFrame(Frame* frame, const RenderSetup& renderSetu
             {
                 GpuBufferRef& buffer = cachedData->blurUniformBuffers[frameIndex];
 
-                buffer = g_renderInterface->MakeGpuBuffer(GpuBufferType::CONSTANT_BUFFER, sizeof(Vec2u) * 3);
+                buffer = g_renderInterface->MakeGpuBuffer(GpuBufferType::ConstantBuffer, sizeof(Vec2u) * 3);
 
 #if HYP_DEBUG_MODE
                 buffer->SetDebugName(NAME_FMT("BlurShadowMap_UniformBuffer_Frame{}", frameIndex));

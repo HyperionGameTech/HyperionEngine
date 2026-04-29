@@ -681,7 +681,7 @@ void DebugDrawer::Render(Frame* frame, const RenderSetup& renderSetup)
             EnqueueDeletion(std::move(instanceBuffer));
         }
 
-        instanceBuffer = g_renderInterface->MakeGpuBuffer(GpuBufferType::STORAGE_BUFFER, sizeof(ImmediateDrawShaderData) * m_headers[idx].Size());
+        instanceBuffer = g_renderInterface->MakeGpuBuffer(GpuBufferType::StructuredBuffer, sizeof(ImmediateDrawShaderData) * m_headers[idx].Size());
         instanceBuffer->SetIsCpuAccessible(true);
         CheckResult(instanceBuffer->Create());
 

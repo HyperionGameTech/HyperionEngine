@@ -22,10 +22,10 @@ static D3D12_HEAP_TYPE GetHeapType(GpuBufferType bufferType, bool cpuAccessible)
 {
     switch (bufferType)
     {
-    case GpuBufferType::STAGING_BUFFER:  // fallthrough
-    case GpuBufferType::CONSTANT_BUFFER:
+    case GpuBufferType::StagingBuffer:  // fallthrough
+    case GpuBufferType::ConstantBuffer:
         return D3D12_HEAP_TYPE_UPLOAD;
-    case GpuBufferType::READBACK_BUFFER:
+    case GpuBufferType::ReadbackBuffer:
         return D3D12_HEAP_TYPE_READBACK;
     default:
         break;
@@ -128,21 +128,23 @@ RendererResult DX12GpuBuffer::Create()
 
     switch (m_type)
     {
-        case GpuBufferType::STORAGE_BUFFER:                 // fallthrough
-        case GpuBufferType::SCRATCH_BUFFER:                 // fallthrough
-        case GpuBufferType::ACCELERATION_STRUCTURE_BUFFER:  // fallthrough
+        case GpuBufferType::RWStructuredBuffer:             // fallthrough
+        case GpuBufferType::RWByteAddressBuffer:            // fallthrough
+        case GpuBufferType::ScratchBuffer:                 // fallthrough
+        case GpuBufferType::AccelerationStructureBuffer:   // fallthrough
+        case GpuBufferType::IndirectArgsBuffer:
             if (canHaveUAV)
             {
                 flags |= D3D12_RESOURCE_FLAG_ALLOW_UNORDERED_ACCESS;
             }
             break;
-        case GpuBufferType::CONSTANT_BUFFER: // fallthrough
+        case GpuBufferType::ConstantBuffer: // fallthrough
         default:
             break;
     }
 
     UINT64 finalSize = m_size;
-    if (m_type == GpuBufferType::CONSTANT_BUFFER)
+    if (m_type == GpuBufferType::ConstantBuffer)
     {
         finalSize = ByteUtil::AlignAs(m_size, 256);
     }
@@ -153,7 +155,7 @@ RendererResult DX12GpuBuffer::Create()
     {
         finalState = D3D12_RESOURCE_STATE_GENERIC_READ;
     }
-    else if (m_type == GpuBufferType::ACCELERATION_STRUCTURE_BUFFER)
+    else if (m_type == GpuBufferType::AccelerationStructureBuffer)
     {
         finalState = D3D12_RESOURCE_STATE_RAYTRACING_ACCELERATION_STRUCTURE;
     }

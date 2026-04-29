@@ -106,7 +106,7 @@ void ParticleVolumeRenderer::EnsureStaging()
             m_staging.quadMesh->GetIndexBuffer(),
             0, indirectDrawCommandsBuffer);
 
-        m_staging.zeroIndirectArgs = g_renderInterface->MakeGpuBuffer(GpuBufferType::STAGING_BUFFER, indirectDrawCommandsBuffer.Size());
+        m_staging.zeroIndirectArgs = g_renderInterface->MakeGpuBuffer(GpuBufferType::StagingBuffer, indirectDrawCommandsBuffer.Size());
         CheckResult(m_staging.zeroIndirectArgs->Create());
 
         m_staging.zeroIndirectArgs->Copy(indirectDrawCommandsBuffer.Size(), indirectDrawCommandsBuffer.Data());
@@ -148,10 +148,10 @@ ParticleVolumeRenderer::VolumeState& ParticleVolumeRenderer::EnsureVolumeState(R
 
     state.maxParticles = proxy->bufferData.maxParticles;
 
-    state.particleBuffer = g_renderInterface->MakeGpuBuffer(GpuBufferType::STORAGE_BUFFER, state.maxParticles * sizeof(ParticleShaderData));
+    state.particleBuffer = g_renderInterface->MakeGpuBuffer(GpuBufferType::RWStructuredBuffer, state.maxParticles * sizeof(ParticleShaderData));
     CheckResult(state.particleBuffer->Create());
 
-    state.indirectBuffer = g_renderInterface->MakeGpuBuffer(GpuBufferType::INDIRECT_ARGS_BUFFER, sizeof(IndirectDrawCommand));
+    state.indirectBuffer = g_renderInterface->MakeGpuBuffer(GpuBufferType::IndirectArgsBuffer, sizeof(IndirectDrawCommand));
     CheckResult(state.indirectBuffer->Create());
 
     CreateNoiseMap(state.noiseMap);

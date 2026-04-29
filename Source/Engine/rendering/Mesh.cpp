@@ -358,8 +358,8 @@ void Mesh::UploadGpuData()
     // don't assign m_vertexBuffer and m_indexBuffer when render thread could be reading it.
     if (IsReady() && !IsOnThread(g_renderThread))
     {
-        vertexBuffer = g_renderInterface->MakeGpuBuffer(GpuBufferType::MESH_VERTEX_BUFFER, packedBufferSize);
-        indexBuffer = g_renderInterface->MakeGpuBuffer(GpuBufferType::MESH_INDEX_BUFFER, packedIndicesSize);
+        vertexBuffer = g_renderInterface->MakeGpuBuffer(GpuBufferType::VertexBuffer, packedBufferSize);
+        indexBuffer = g_renderInterface->MakeGpuBuffer(GpuBufferType::IndexBuffer, packedIndicesSize);
 
 #if HYP_DEBUG_MODE
         vertexBuffer->SetDebugName(NAME_FMT("{}_VBO", GetName()));
@@ -373,7 +373,7 @@ void Mesh::UploadGpuData()
     {
         if (!m_vertexBuffer.IsValid() || m_vertexBuffer->Size() != packedBufferSize)
         {
-            m_vertexBuffer = g_renderInterface->MakeGpuBuffer(GpuBufferType::MESH_VERTEX_BUFFER, packedBufferSize);
+            m_vertexBuffer = g_renderInterface->MakeGpuBuffer(GpuBufferType::VertexBuffer, packedBufferSize);
 
 #if HYP_DEBUG_MODE
             m_vertexBuffer->SetDebugName(NAME_FMT("{}_VBO", GetName()));
@@ -384,7 +384,7 @@ void Mesh::UploadGpuData()
 
         if (!m_indexBuffer.IsValid() || m_indexBuffer->Size() != packedIndicesSize)
         {
-            m_indexBuffer = g_renderInterface->MakeGpuBuffer(GpuBufferType::MESH_INDEX_BUFFER, packedIndicesSize);
+            m_indexBuffer = g_renderInterface->MakeGpuBuffer(GpuBufferType::IndexBuffer, packedIndicesSize);
 
 #if HYP_DEBUG_MODE
             m_indexBuffer->SetDebugName(NAME_FMT("{}_IBO", GetName()));

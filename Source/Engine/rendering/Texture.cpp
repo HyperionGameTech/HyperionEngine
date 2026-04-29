@@ -173,7 +173,7 @@ static RendererResult CreateGpuImage(Texture& texture, GpuImage& image, Resource
 
         // @TODO use staging buffer pool. change staging buffer pool to use GetFrameCounter(), make it thread-safe.
         // should recycle same way constants allocator recycles blocks etc.
-        GpuBufferRef stagingBuffer = g_renderInterface->MakeGpuBuffer(GpuBufferType::STAGING_BUFFER, imageData.Size());
+        GpuBufferRef stagingBuffer = g_renderInterface->MakeGpuBuffer(GpuBufferType::StagingBuffer, imageData.Size());
 #if HYP_DEBUG_MODE
         stagingBuffer->SetDebugName(NAME_FMT("Texture_StagingBuffer_{}", texture.GetName().IsValid() ? texture.GetName() : NAME("Invalid")));
 #endif
@@ -609,7 +609,7 @@ void Texture::Readback(GpuBufferRef& outBuffer, bool allMips)
         return;
     }
 
-    outBuffer = g_renderInterface->MakeGpuBuffer(GpuBufferType::READBACK_BUFFER, m_gpuImage->GetTextureDesc().GetByteSize(allMips));
+    outBuffer = g_renderInterface->MakeGpuBuffer(GpuBufferType::ReadbackBuffer, m_gpuImage->GetTextureDesc().GetByteSize(allMips));
     outBuffer->SetIsCpuAccessible(true);
 #if HYP_DEBUG_MODE
     outBuffer->SetDebugName(NAME("Texture_ReadbackBuffer"));
@@ -675,7 +675,7 @@ void Texture::EnqueueReadback(Proc<void(GpuBuffer&)>&& callback, bool allMips)
 
     const ResourceState previousResourceState = m_gpuImage->GetResourceState();
 
-    GpuBufferRef readbackBuffer = g_renderInterface->MakeGpuBuffer(GpuBufferType::READBACK_BUFFER, m_gpuImage->GetTextureDesc().GetByteSize(allMips));
+    GpuBufferRef readbackBuffer = g_renderInterface->MakeGpuBuffer(GpuBufferType::ReadbackBuffer, m_gpuImage->GetTextureDesc().GetByteSize(allMips));
     readbackBuffer->SetIsCpuAccessible(true);
 #if HYP_DEBUG_MODE
     readbackBuffer->SetDebugName(NAME("Texture_EnqueueReadbackBuffer"));

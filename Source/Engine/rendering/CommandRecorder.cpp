@@ -588,7 +588,7 @@ void GenerateMipmaps::InvokeStatic(CmdBase* cmd, CommandBuffer* commandBuffer)
             uniforms.srcMipLevel = srcMip;
 
             GpuBufferRef uniformBuffer = g_renderInterface->MakeGpuBuffer(
-                GpuBufferType::CONSTANT_BUFFER, sizeof(MipGenUniforms));
+                GpuBufferType::ConstantBuffer, sizeof(MipGenUniforms));
             uniformBuffer->Create();
             uniformBuffer->Copy(sizeof(MipGenUniforms), &uniforms);
             uniformBuffer->Flush(0, sizeof(MipGenUniforms));

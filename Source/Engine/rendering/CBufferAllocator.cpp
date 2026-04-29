@@ -24,7 +24,7 @@ struct CBufferAllocatorBlock
     uint32 lastUsedFrame;
 
     CBufferAllocatorBlock()
-        : buffer(new GpuBuffer{ GpuBufferType::CONSTANT_BUFFER, CBufferSize, 256 }),
+        : buffer(new GpuBuffer{ GpuBufferType::ConstantBuffer, CBufferSize, 256 }),
           offset(0),
           lastUsedFrame(UINT32_MAX)
     {

@@ -234,7 +234,7 @@ RendererResult VulkanAccelerationStructureBase::CreateAccelerationStructure(
 
     if (!m_buffer)
     {
-        m_buffer = g_renderInterface->MakeGpuBuffer(GpuBufferType::ACCELERATION_STRUCTURE_BUFFER, accelerationStructureSize);
+        m_buffer = g_renderInterface->MakeGpuBuffer(GpuBufferType::AccelerationStructureBuffer, accelerationStructureSize);
 
 #if HYP_DEBUG_MODE
         m_buffer->SetDebugName(NAME("ASBuffer"));
@@ -314,7 +314,7 @@ RendererResult VulkanAccelerationStructureBase::CreateAccelerationStructure(
 
     if (!m_scratchBuffer)
     {
-        m_scratchBuffer = g_renderInterface->MakeGpuBuffer(GpuBufferType::SCRATCH_BUFFER, scratchSize, scratchBufferAlignment);
+        m_scratchBuffer = g_renderInterface->MakeGpuBuffer(GpuBufferType::ScratchBuffer, scratchSize, scratchBufferAlignment);
 
 #if HYP_DEBUG_MODE
         m_scratchBuffer->SetDebugName(NAME("ASScratchBuffer"));
@@ -657,7 +657,7 @@ RendererResult VulkanGpuTlas::BuildInstancesBuffer(uint32 first, uint32 last)
 
     if (!m_instancesBuffer)
     {
-        m_instancesBuffer = g_renderInterface->MakeGpuBuffer(GpuBufferType::ACCELERATION_STRUCTURE_INSTANCE_BUFFER, instancesBufferSize);
+        m_instancesBuffer = g_renderInterface->MakeGpuBuffer(GpuBufferType::AccelerationStructureInstanceBuffer, instancesBufferSize);
 #if HYP_DEBUG_MODE
         m_instancesBuffer->SetDebugName(NAME("ASInstancesBuffer"));
 #endif
@@ -735,7 +735,7 @@ RendererResult VulkanGpuTlas::BuildMeshDescriptionsBuffer(uint32 first, uint32 l
 
     if (!m_meshDescriptionsBuffer)
     {
-        m_meshDescriptionsBuffer = g_renderInterface->MakeGpuBuffer(GpuBufferType::STORAGE_BUFFER, meshDescriptionsBufferSize);
+        m_meshDescriptionsBuffer = g_renderInterface->MakeGpuBuffer(GpuBufferType::StructuredBuffer, meshDescriptionsBufferSize);
 #if HYP_DEBUG_MODE
         m_meshDescriptionsBuffer->SetDebugName(NAME("ASMeshDescriptionsBuffer"));
 #endif

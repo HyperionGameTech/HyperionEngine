@@ -276,13 +276,13 @@ RendererResult DX12GpuBlas::Rebuild(RTUpdateStateFlags& outUpdateStateFlags)
 
     if (!m_buffer || m_buffer->Size() < accelerationStructureSize)
     {
-        m_buffer = g_renderInterface->MakeGpuBuffer(GpuBufferType::ACCELERATION_STRUCTURE_BUFFER, accelerationStructureSize);
+        m_buffer = g_renderInterface->MakeGpuBuffer(GpuBufferType::AccelerationStructureBuffer, accelerationStructureSize);
         CheckResultOrReturn(m_buffer->Create());
     }
 
     if (!m_scratchBuffer || m_scratchBuffer->Size() < scratchBufferSize)
     {
-        m_scratchBuffer = g_renderInterface->MakeGpuBuffer(GpuBufferType::SCRATCH_BUFFER, scratchBufferSize);
+        m_scratchBuffer = g_renderInterface->MakeGpuBuffer(GpuBufferType::ScratchBuffer, scratchBufferSize);
         CheckResultOrReturn(m_scratchBuffer->Create());
     }
 
@@ -424,7 +424,7 @@ RendererResult DX12GpuTlas::Rebuild(RTUpdateStateFlags& outUpdateStateFlags)
 
     if (!m_instancesBuffer || m_instancesBuffer->Size() < instancesBufferSize)
     {
-        m_instancesBuffer = g_renderInterface->MakeGpuBuffer(GpuBufferType::ACCELERATION_STRUCTURE_INSTANCE_BUFFER, instancesBufferSize);
+        m_instancesBuffer = g_renderInterface->MakeGpuBuffer(GpuBufferType::AccelerationStructureInstanceBuffer, instancesBufferSize);
         CheckResultOrReturn(m_instancesBuffer->Create());
     }
 
@@ -471,13 +471,13 @@ RendererResult DX12GpuTlas::Rebuild(RTUpdateStateFlags& outUpdateStateFlags)
 
     if (!m_buffer || m_buffer->Size() < accelerationStructureSize)
     {
-        m_buffer = g_renderInterface->MakeGpuBuffer(GpuBufferType::ACCELERATION_STRUCTURE_BUFFER, accelerationStructureSize);
+        m_buffer = g_renderInterface->MakeGpuBuffer(GpuBufferType::AccelerationStructureBuffer, accelerationStructureSize);
         CheckResultOrReturn(m_buffer->Create());
     }
 
     if (!m_scratchBuffer || m_scratchBuffer->Size() < scratchBufferSize)
     {
-        m_scratchBuffer = g_renderInterface->MakeGpuBuffer(GpuBufferType::SCRATCH_BUFFER, scratchBufferSize);
+        m_scratchBuffer = g_renderInterface->MakeGpuBuffer(GpuBufferType::ScratchBuffer, scratchBufferSize);
         CheckResultOrReturn(m_scratchBuffer->Create());
     }
 

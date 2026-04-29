@@ -30,8 +30,8 @@ public:
     {
     }
 
-    explicit StructuredBuffer(size_t numElements, size_t elementSize)
-        : gpuBuffer(new GpuBuffer(GpuBufferType::STORAGE_BUFFER, numElements * elementSize, 16)),
+    explicit StructuredBuffer(size_t numElements, size_t elementSize, bool isRW = false)
+        : gpuBuffer(new GpuBuffer(isRW ? GpuBufferType::RWStructuredBuffer : GpuBufferType::StructuredBuffer, numElements * elementSize, 16)),
           elementSize(elementSize),
           dirtyRangeStart(SIZE_MAX),
           dirtyRangeEnd(0)

@@ -90,7 +90,7 @@ void HBAO::Render(Frame* frame, const RenderSetup& renderSetup)
         constants.radius = cvHBAORadius.Get();
         constants.power = cvHBAOPower.Get();
 
-        m_cbuffer = g_renderInterface->MakeGpuBuffer(GpuBufferType::CONSTANT_BUFFER, sizeof(constants));
+        m_cbuffer = g_renderInterface->MakeGpuBuffer(GpuBufferType::ConstantBuffer, sizeof(constants));
         CheckResult(m_cbuffer->Create());
 
         m_cbuffer->Copy(sizeof(constants), &constants);

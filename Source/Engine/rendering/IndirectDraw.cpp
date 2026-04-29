@@ -208,14 +208,14 @@ void IndirectDrawState::Create()
 
     for (uint32 frameIndex = 0; frameIndex < NumFramesInFlight; frameIndex++)
     {
-        m_instanceBuffers[frameIndex] = g_renderInterface->MakeGpuBuffer(GpuBufferType::STORAGE_BUFFER, sizeof(ObjectInstance));
+        m_instanceBuffers[frameIndex] = g_renderInterface->MakeGpuBuffer(GpuBufferType::StructuredBuffer, sizeof(ObjectInstance));
         m_instanceBuffers[frameIndex]->SetIsCpuAccessible(true);
 #if HYP_DEBUG_MODE
         m_instanceBuffers[frameIndex]->SetDebugName(NAME_FMT("IndirectDraw_InstancesBuffer_Frame{}", frameIndex));
 #endif
         CheckResult(m_instanceBuffers[frameIndex]->Create());
 
-        m_indirectBuffers[frameIndex] = g_renderInterface->MakeGpuBuffer(GpuBufferType::INDIRECT_ARGS_BUFFER, drawCommandsBuffer.Size());
+        m_indirectBuffers[frameIndex] = g_renderInterface->MakeGpuBuffer(GpuBufferType::IndirectArgsBuffer, drawCommandsBuffer.Size());
 #if HYP_DEBUG_MODE
         m_indirectBuffers[frameIndex]->SetDebugName(NAME_FMT("IndirectDraw_IndirectBuffer_Frame{}", frameIndex));
 #endif
@@ -224,7 +224,7 @@ void IndirectDrawState::Create()
 
         if (!m_indirectBuffers[frameIndex]->IsCpuAccessible())
         {
-            m_stagingBuffers[frameIndex] = g_renderInterface->MakeGpuBuffer(GpuBufferType::STAGING_BUFFER, drawCommandsBuffer.Size());
+            m_stagingBuffers[frameIndex] = g_renderInterface->MakeGpuBuffer(GpuBufferType::StagingBuffer, drawCommandsBuffer.Size());
 #if HYP_DEBUG_MODE
             m_stagingBuffers[frameIndex]->SetDebugName(NAME_FMT("IndirectDraw_StagingBuffer_Frame{}", frameIndex));
 #endif
@@ -383,7 +383,7 @@ void IndirectRenderer::Create(EntityBatchAllocatorBase* batchAllocator)
 
     for (uint32 frameIndex = 0; frameIndex < NumFramesInFlight; frameIndex++)
     {
-        m_cbuffers[frameIndex] = g_renderInterface->MakeGpuBuffer(GpuBufferType::CONSTANT_BUFFER, sizeof(ComputeVisibilityConstants));
+        m_cbuffers[frameIndex] = g_renderInterface->MakeGpuBuffer(GpuBufferType::ConstantBuffer, sizeof(ComputeVisibilityConstants));
 #if HYP_DEBUG_MODE
         m_cbuffers[frameIndex]->SetDebugName(NAME_FMT("IndirectRenderer_UniformBuffer_Frame{}", frameIndex));
 #endif

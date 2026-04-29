@@ -46,8 +46,8 @@ struct BuildMeshBlas : public RenderCommand
         const size_t packedVerticesSize = this->packedVertices.ByteSize();
         const size_t packedIndicesSize = this->packedIndices.ByteSize();
 
-        packedVerticesBuffer = g_renderInterface->MakeGpuBuffer(GpuBufferType::RT_MESH_VERTEX_BUFFER, packedVerticesSize);
-        packedIndicesBuffer = g_renderInterface->MakeGpuBuffer(GpuBufferType::RT_MESH_INDEX_BUFFER, packedIndicesSize);
+        packedVerticesBuffer = g_renderInterface->MakeGpuBuffer(GpuBufferType::RTMeshVertexBuffer, packedVerticesSize);
+        packedIndicesBuffer = g_renderInterface->MakeGpuBuffer(GpuBufferType::RTMeshIndexBuffer, packedIndicesSize);
 
         blas = g_renderInterface->MakeGpuBlas(
             packedVerticesBuffer,
@@ -81,7 +81,7 @@ struct BuildMeshBlas : public RenderCommand
         CheckResultOrReturn(packedVerticesBuffer->Create());
         CheckResultOrReturn(packedIndicesBuffer->Create());
 
-        verticesStagingBuffer = g_renderInterface->MakeGpuBuffer(GpuBufferType::STAGING_BUFFER, packedVerticesSize);
+        verticesStagingBuffer = g_renderInterface->MakeGpuBuffer(GpuBufferType::StagingBuffer, packedVerticesSize);
 #if HYP_DEBUG_MODE
         verticesStagingBuffer->SetDebugName(NAME_FMT("StagingBuffer_VB_GpuBlas_{}", blas->GetDebugName()));
 #endif
@@ -89,7 +89,7 @@ struct BuildMeshBlas : public RenderCommand
         verticesStagingBuffer->Memset(packedVerticesSize, 0); // zero out
         verticesStagingBuffer->Copy(packedVerticesSize, packedVertices.Data());
 
-        indicesStagingBuffer = g_renderInterface->MakeGpuBuffer(GpuBufferType::STAGING_BUFFER, packedIndicesSize);
+        indicesStagingBuffer = g_renderInterface->MakeGpuBuffer(GpuBufferType::StagingBuffer, packedIndicesSize);
 #if HYP_DEBUG_MODE
         indicesStagingBuffer->SetDebugName(NAME_FMT("StagingBuffer_IB_GpuBlas_{}", blas->GetDebugName()));
 #endif

@@ -114,7 +114,7 @@ void DDGI::CreateConstantBuffers()
 {
     for (uint32 frameIndex = 0; frameIndex < NumFramesInFlight; frameIndex++)
     {
-        m_cbuffers[frameIndex] = g_renderInterface->MakeGpuBuffer(GpuBufferType::CONSTANT_BUFFER, sizeof(DDGIConstants));
+        m_cbuffers[frameIndex] = g_renderInterface->MakeGpuBuffer(GpuBufferType::ConstantBuffer, sizeof(DDGIConstants));
         Assert(m_cbuffers[frameIndex]->Create());
         m_cbuffers[frameIndex]->Memset(sizeof(DDGIConstants), 0);
     }
@@ -124,7 +124,7 @@ void DDGI::CreateStorageBuffers()
 {
     const Vec3u probeCounts = NumProbesPerDimension(m_gridInfo);
 
-    m_radianceBuffer = g_renderInterface->MakeGpuBuffer(GpuBufferType::STORAGE_BUFFER, GetImageDimensions(m_gridInfo).x * GetImageDimensions(m_gridInfo).y * sizeof(ProbeRayData));
+    m_radianceBuffer = g_renderInterface->MakeGpuBuffer(GpuBufferType::RWStructuredBuffer, GetImageDimensions(m_gridInfo).x * GetImageDimensions(m_gridInfo).y * sizeof(ProbeRayData));
     m_radianceBuffer->SetIsCpuAccessible(true);
     Assert(m_radianceBuffer->Create());
     m_radianceBuffer->Memset(m_radianceBuffer->Size(), 0);

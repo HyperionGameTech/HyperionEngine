@@ -45,25 +45,31 @@ class ObjectBase;
 
 constexpr uint32 ElementTypeToBufferType[uint32(ShaderInputType::MAX)] = {
     0,                                    // UNSET
-    (1u << uint32(GpuBufferType::CONSTANT_BUFFER)), // UNIFORM_BUFFER
-    (1u << uint32(GpuBufferType::CONSTANT_BUFFER)), // UNIFORM_BUFFER_DYNAMIC
-    (1u << uint32(GpuBufferType::STORAGE_BUFFER))
-        | (1u << uint32(GpuBufferType::READBACK_BUFFER))
-        | (1u << uint32(GpuBufferType::STAGING_BUFFER))
-        | (1u << uint32(GpuBufferType::INDIRECT_ARGS_BUFFER))
-        | (1u << uint32(GpuBufferType::RT_MESH_INDEX_BUFFER))
-        | (1u << uint32(GpuBufferType::RT_MESH_VERTEX_BUFFER)), // STORAGE_BUFFER
+    (1u << uint32(GpuBufferType::ConstantBuffer)), // UNIFORM_BUFFER
+    (1u << uint32(GpuBufferType::ConstantBuffer)), // UNIFORM_BUFFER_DYNAMIC
+    (1u << uint32(GpuBufferType::StructuredBuffer))
+        | (1u << uint32(GpuBufferType::RWStructuredBuffer))
+        | (1u << uint32(GpuBufferType::ByteAddressBuffer))
+        | (1u << uint32(GpuBufferType::RWByteAddressBuffer))
+        | (1u << uint32(GpuBufferType::ReadbackBuffer))
+        | (1u << uint32(GpuBufferType::StagingBuffer))
+        | (1u << uint32(GpuBufferType::IndirectArgsBuffer))
+        | (1u << uint32(GpuBufferType::RTMeshIndexBuffer))
+        | (1u << uint32(GpuBufferType::RTMeshVertexBuffer)), // StructuredBuffer
 
-    (1u << uint32(GpuBufferType::STORAGE_BUFFER))
-        | (1u << uint32(GpuBufferType::READBACK_BUFFER))
-        | (1u << uint32(GpuBufferType::STAGING_BUFFER))
-        | (1u << uint32(GpuBufferType::INDIRECT_ARGS_BUFFER))
-        | (1u << uint32(GpuBufferType::RT_MESH_INDEX_BUFFER))
-        | (1u << uint32(GpuBufferType::RT_MESH_VERTEX_BUFFER)),  // STORAGE_BUFFER_DYNAMIC
+    (1u << uint32(GpuBufferType::StructuredBuffer))
+        | (1u << uint32(GpuBufferType::RWStructuredBuffer))
+        | (1u << uint32(GpuBufferType::ByteAddressBuffer))
+        | (1u << uint32(GpuBufferType::RWByteAddressBuffer))
+        | (1u << uint32(GpuBufferType::ReadbackBuffer))
+        | (1u << uint32(GpuBufferType::StagingBuffer))
+        | (1u << uint32(GpuBufferType::IndirectArgsBuffer))
+        | (1u << uint32(GpuBufferType::RTMeshIndexBuffer))
+        | (1u << uint32(GpuBufferType::RTMeshVertexBuffer)),  // StructuredBuffer_DYNAMIC
     0,                                                           // IMAGE
     0,                                                           // IMAGE_STORAGE
     0,                                                           // SAMPLER
-    (1u << uint32(GpuBufferType::ACCELERATION_STRUCTURE_BUFFER)) // ACCELERATION_STRUCTURE
+    (1u << uint32(GpuBufferType::AccelerationStructureBuffer))   // TLAS
 };
 
 template <class T>
