@@ -96,7 +96,6 @@ void DX12AsyncCompute::Submit()
     Assert(CheckStatus(), "GPU work must be completed from previous submission before DX12AsyncCompute::Submit() is ever called!");
 
     CheckResult(m_fence->Wait(true));
-    CheckResult(m_fence->Reset());
 
     const DX12QueueData* queueData = g_renderInterface->GetQueueData(m_commandListType);
     Assert(queueData != nullptr && queueData->commandQueue != nullptr);
@@ -110,6 +109,9 @@ void DX12AsyncCompute::Submit()
 
     ID3D12CommandList* commandLists[] = { m_commandBuffer->GetCommandList() };
     queueData->commandQueue->ExecuteCommandLists(UINT(std::size(commandLists)), commandLists);
+
+    m_fence->Reset();
+    m_fence->isSubmitted = true;
 
     HRESULT res = queueData->commandQueue->Signal(m_fence->GetD3D12Fence(), m_fence->GetValue());
     Assert(SUCCEEDED(res));

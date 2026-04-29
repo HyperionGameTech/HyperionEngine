@@ -263,7 +263,6 @@ RendererResult DX12RenderInterface::Initialize()
         return HYP_MAKE_ERROR(RendererError, "Failed to create frame fence event");
     }
 
-    // Create command buffers for each frame in flight - each owns its own allocator
     for (uint32 frameIndex = 0; frameIndex < NumFramesInFlight; frameIndex++)
     {
         m_commandBuffers[frameIndex] = MakeHandle<DX12CommandBuffer>(D3D12_COMMAND_LIST_TYPE_DIRECT);
@@ -303,6 +302,13 @@ void DX12RenderInterface::Shutdown()
             m_pendingTransientCommandBuffers[threadIndex][frameIndex].Clear();
         }
     }
+
+    for (uint32 frameIndex = 0; frameIndex < NumFramesInFlight; frameIndex++)
+    {
+        m_transientCommandBufferFences[frameIndex].Clear();
+    }
+
+    m_recycledTransientCommandBufferFences.Clear();
 
     descriptorHeapManager->Shutdown();
 
@@ -425,9 +431,23 @@ void DX12RenderInterface::PrepareFrame(DX12Frame* frame)
         }
     }
 
-    // Transient command buffers are synchronized via the main frame fence waited on above.
-    // Since the main fence signals after all prior queue submissions complete, all transient
-    // command buffers for this frame slot are guaranteed GPU-complete by here.
+    // Wait on all fences for the frame that is about to be reused (the frame that was submitted NumFramesInFlight frames ago).
+    auto& fences = m_transientCommandBufferFences[frameIndex];
+    for (auto it = fences.Begin(); it != fences.End();)
+    {
+        DX12Fence& fence = *it;
+
+        if (fence.isSubmitted)
+        {
+            fence.Wait(true);
+            fence.Reset();
+        }
+
+        m_recycledTransientCommandBufferFences.PushBack(std::move(fence));
+
+        it = fences.Erase(it);
+    }
+
     for (uint32 threadIndex = 0; threadIndex < NumRendererWorkerThreads + 1; threadIndex++)
     {
         Array<DX12CommandBuffer, RenderAllocator>& freeList = m_transientCommandBuffers[threadIndex][frameCounter % NumFramesInFlight];
@@ -526,6 +546,9 @@ DX12CommandBuffer& DX12RenderInterface::GetTransientCommandBuffer()
 
 void DX12RenderInterface::SubmitTransientCommandBuffer(DX12CommandBuffer& commandBuffer)
 {
+    const uint32 frameCounter = GetFrameCounter();
+    const uint32 frameIndex = frameCounter % NumFramesInFlight;
+
     if (commandBuffer.IsRecording())
     {
         commandBuffer.End();
@@ -534,10 +557,27 @@ void DX12RenderInterface::SubmitTransientCommandBuffer(DX12CommandBuffer& comman
     const DX12QueueData* queueData = GetQueueData(D3D12_COMMAND_LIST_TYPE_DIRECT);
     AssertDebug(queueData != nullptr);
 
+    DX12Fence& fence = m_transientCommandBufferFences[frameIndex].EmplaceBack();
+
+    Mutex::Guard guard(m_transientCommandBuffersMutex);
+    if (m_recycledTransientCommandBufferFences.Any())
+    {
+        fence = std::move(m_recycledTransientCommandBufferFences.PopFront());
+    }
+    else
+    {
+        fence.Create();
+    }
+
     ID3D12CommandList* commandLists[] = { commandBuffer.GetCommandList() };
     queueData->commandQueue->ExecuteCommandLists(ArraySize(commandLists), commandLists);
 
-    // Synchronized via the main frame fence — all queue submissions are serialized.
+    // Signal the fence to track completion of this submission.
+    // Increment the fence value first so the signal sets it to a new unique value.
+    fence.Reset();
+    fence.isSubmitted = true;
+    
+    queueData->commandQueue->Signal(fence.GetD3D12Fence(), fence.GetValue());
 }
 
 void DX12RenderInterface::BindDescriptorHeaps(DX12CommandBuffer& commandBuffer)
@@ -777,7 +817,7 @@ UniquePtr<SingleTimeCommands> DX12RenderInterface::GetSingleTimeCommands()
     return MakeUnique<DX12SingleTimeCommands>();
 }
 
-DX12AsyncCompute* DX12RenderInterface::CreateAsyncCompute()
+HYP_NODISCARD DX12AsyncCompute* DX12RenderInterface::CreateAsyncCompute()
 {
     {
         Mutex::Guard guard(m_asyncComputesMutex);

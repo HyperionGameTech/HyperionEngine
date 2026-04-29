@@ -19,8 +19,43 @@ extern DX12RenderInterface* g_renderInterface;
 
 DX12Fence::DX12Fence()
     : m_eventHandle(nullptr),
-      m_value(0)
+      m_value(0),
+      isSubmitted(false)
 {
+}
+DX12Fence::DX12Fence(DX12Fence&& other) noexcept
+    : m_fence(other.m_fence),
+      m_eventHandle(other.m_eventHandle),
+      m_value(other.m_value),
+      isSubmitted(other.isSubmitted)
+{
+    other.m_fence = nullptr;
+    other.m_eventHandle = nullptr;
+    other.m_value = 0;
+    other.isSubmitted = false;
+}
+
+DX12Fence& DX12Fence::operator=(DX12Fence&& other) noexcept
+{
+    if (this != &other)
+    {
+        if (m_eventHandle != nullptr)
+        {
+            CloseHandle(m_eventHandle);
+        }
+
+        m_fence = other.m_fence;
+        m_eventHandle = other.m_eventHandle;
+        m_value = other.m_value;
+        isSubmitted = other.isSubmitted;
+
+        other.m_fence = nullptr;
+        other.m_eventHandle = nullptr;
+        other.m_value = 0;
+        other.isSubmitted = false;
+    }
+
+    return *this;
 }
 
 DX12Fence::~DX12Fence()
@@ -69,8 +104,14 @@ RendererResult DX12Fence::Wait(bool timeoutLoop)
     Assert(m_fence != nullptr);
     Assert(m_eventHandle != nullptr);
 
+    if (!isSubmitted)
+    {
+        return {};
+    }
+
     if (m_fence->GetCompletedValue() >= m_value)
     {
+        isSubmitted = false;
         return {};
     }
 
@@ -94,16 +135,16 @@ RendererResult DX12Fence::Wait(bool timeoutLoop)
         return HYP_MAKE_ERROR(RendererError, "Failed while waiting for D3D12 fence completion");
     }
 
+    isSubmitted = false;
+    
     return {};
 }
 
-RendererResult DX12Fence::Reset()
+void DX12Fence::Reset()
 {
     Assert(m_fence != nullptr);
 
     ++m_value;
-
-    return {};
 }
 
 #pragma endregion DX12Fence

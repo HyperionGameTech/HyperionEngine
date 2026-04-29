@@ -175,6 +175,10 @@ private:
     FixedArray<uint64, NumFramesInFlight> m_frameFenceValues;
     FixedArray<int64, NumFramesInFlight> m_submissionFrames;
 
+    LinkedList<DX12Fence, RenderAllocator> m_transientCommandBufferFences[NumFramesInFlight];
+    LinkedList<DX12Fence, RenderAllocator> m_recycledTransientCommandBufferFences;
+    Mutex m_transientCommandBuffersMutex;
+
     ComPtr<ID3D12DeviceRemovedExtendedDataSettings> m_dredSettings;
 
     D3D12MA::Allocator* m_allocator;
