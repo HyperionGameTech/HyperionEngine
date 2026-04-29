@@ -43,8 +43,8 @@ static inline void ValidateDynamicOffset(
     const DescriptorSetLayoutElement* layoutElement,
     const DescriptorSetElement* element)
 {
-    if (layoutElement->type != ShaderInputType::UNIFORM_BUFFER_DYNAMIC
-        && layoutElement->type != ShaderInputType::STORAGE_BUFFER_DYNAMIC)
+    if (layoutElement->type != ShaderInputType::UniformBufferDynamic
+        && layoutElement->type != ShaderInputType::StorageBufferDynamic)
     {
         return;
     }
@@ -56,13 +56,13 @@ static inline void ValidateDynamicOffset(
     const VkPhysicalDeviceLimits& limits = g_renderInterface->GetDevice()->GetFeatures().GetPhysicalDeviceProperties().limits;
 
     // Validate alignment based on buffer type
-    if (layoutElement->type == ShaderInputType::UNIFORM_BUFFER_DYNAMIC)
+    if (layoutElement->type == ShaderInputType::UniformBufferDynamic)
     {
         AssertDebug(offset % limits.minUniformBufferOffsetAlignment == 0,
             "Dynamic uniform buffer offset {} for element {} is not aligned to minUniformBufferOffsetAlignment ({})",
             offset, Name(dynamicElementName), limits.minUniformBufferOffsetAlignment);
     }
-    else if (layoutElement->type == ShaderInputType::STORAGE_BUFFER_DYNAMIC)
+    else if (layoutElement->type == ShaderInputType::StorageBufferDynamic)
     {
         AssertDebug(offset % limits.minStorageBufferOffsetAlignment == 0,
             "Dynamic storage buffer offset {} for element {} is not aligned to minStorageBufferOffsetAlignment ({})",
@@ -155,27 +155,27 @@ VulkanDescriptorSet::VulkanDescriptorSet(const DescriptorSetLayout& layout)
 
         switch (element.type)
         {
-        case ShaderInputType::UNIFORM_BUFFER:         // fallthrough
-        case ShaderInputType::UNIFORM_BUFFER_DYNAMIC: // fallthrough
-        case ShaderInputType::STORAGE_BUFFER:                   // fallthrough
-        case ShaderInputType::STORAGE_BUFFER_DYNAMIC: // fallthrough
+        case ShaderInputType::UniformBuffer:         // fallthrough
+        case ShaderInputType::UniformBufferDynamic: // fallthrough
+        case ShaderInputType::StorageBuffer:                   // fallthrough
+        case ShaderInputType::StorageBufferDynamic: // fallthrough
             PrefillElements<VulkanGpuBuffer>(name, element.count);
 
             break;
-        case ShaderInputType::IMAGE:
+        case ShaderInputType::Image:
             PrefillElements<VulkanGpuImageView>(name, element.count, g_renderInterface->placeholderData->GetImageView2D1x1R8());
 
             break;
-        case ShaderInputType::IMAGE_STORAGE:
+        case ShaderInputType::ImageStorage:
             // leave empty to avoid overwriting default image view or causing out of bounds access/write
             PrefillElements<VulkanGpuImageView>(name, element.count);
 
             break;
-        case ShaderInputType::SAMPLER:
+        case ShaderInputType::Sampler:
             PrefillElements<VulkanSampler>(name, element.count, g_renderInterface->placeholderData->GetSamplerLinear());
 
             break;
-        case ShaderInputType::TLAS:
+        case ShaderInputType::Tlas:
             PrefillElements<VulkanGpuTlas>(name, element.count);
 
             break;
@@ -245,10 +245,10 @@ void VulkanDescriptorSet::UpdateDirtyState(bool* outIsDirty)
 
         switch (layoutElement->type)
         {
-        case ShaderInputType::UNIFORM_BUFFER:
-        case ShaderInputType::UNIFORM_BUFFER_DYNAMIC:
-        case ShaderInputType::STORAGE_BUFFER:
-        case ShaderInputType::STORAGE_BUFFER_DYNAMIC:
+        case ShaderInputType::UniformBuffer:
+        case ShaderInputType::UniformBufferDynamic:
+        case ShaderInputType::StorageBuffer:
+        case ShaderInputType::StorageBufferDynamic:
         {
             for (uint32 index : element.occupiedArrayElems) // @TODO use dirtyRange to skip bits / end loop early?
             {
@@ -277,10 +277,10 @@ void VulkanDescriptorSet::UpdateDirtyState(bool* outIsDirty)
 
             break;
         }
-        case ShaderInputType::IMAGE:
-        case ShaderInputType::IMAGE_STORAGE:
+        case ShaderInputType::Image:
+        case ShaderInputType::ImageStorage:
         {
-            const bool isStorageImage = layoutElement->type == ShaderInputType::IMAGE_STORAGE;
+            const bool isStorageImage = layoutElement->type == ShaderInputType::ImageStorage;
             
             for (uint32 index : element.occupiedArrayElems)
             {
@@ -310,7 +310,7 @@ void VulkanDescriptorSet::UpdateDirtyState(bool* outIsDirty)
 
             break;
         }
-        case ShaderInputType::SAMPLER:
+        case ShaderInputType::Sampler:
         {
             for (uint32 index : element.occupiedArrayElems)
             {
@@ -338,7 +338,7 @@ void VulkanDescriptorSet::UpdateDirtyState(bool* outIsDirty)
 
             break;
         }
-        case ShaderInputType::TLAS:
+        case ShaderInputType::Tlas:
         {
             for (uint32 index : element.occupiedArrayElems)
             {
@@ -502,9 +502,9 @@ RendererResult VulkanDescriptorSet::Create()
 
     for (const KeyValuePair<Name, DescriptorSetLayoutElement>& pair : m_layout.GetElements())
     {
-        isBindlessTextures |= (pair.second.type == ShaderInputType::IMAGE && pair.second.IsBindless());
+        isBindlessTextures |= (pair.second.type == ShaderInputType::Image && pair.second.IsBindless());
         isBindlessBuffers |= (pair.second.IsBuffer() && pair.second.IsBindless());
-        isRayTracing |= (pair.second.type == ShaderInputType::TLAS);
+        isRayTracing |= (pair.second.type == ShaderInputType::Tlas);
     }
 
     CheckResultOrReturn(g_renderInterface->CreateDescriptorSet(

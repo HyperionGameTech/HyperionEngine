@@ -144,8 +144,8 @@ DescriptorSetLayout::DescriptorSetLayout(const ShaderInputSet* decl)
     // Add to list of dynamic buffer names
     for (const auto& it : m_elements)
     {
-        if (it.second.type == ShaderInputType::UNIFORM_BUFFER_DYNAMIC
-            || it.second.type == ShaderInputType::STORAGE_BUFFER_DYNAMIC)
+        if (it.second.type == ShaderInputType::UniformBufferDynamic
+            || it.second.type == ShaderInputType::StorageBufferDynamic)
         {
             dynamicElementsWithIndex.PushBack({ it.first, it.second.binding });
         }
@@ -191,10 +191,10 @@ DescriptorSetElement& DescriptorSetBase::SetElementT(StringHash name, uint32 ind
 
     if constexpr (std::is_base_of_v<GpuBufferBase, T>)
     {
-        static constexpr uint32 Mask = (1u << uint32(ShaderInputType::UNIFORM_BUFFER))
-            | (1u << uint32(ShaderInputType::UNIFORM_BUFFER_DYNAMIC))
-            | (1u << uint32(ShaderInputType::STORAGE_BUFFER))
-            | (1u << uint32(ShaderInputType::STORAGE_BUFFER_DYNAMIC));
+        static constexpr uint32 Mask = (1u << uint32(ShaderInputType::UniformBuffer))
+            | (1u << uint32(ShaderInputType::UniformBufferDynamic))
+            | (1u << uint32(ShaderInputType::StorageBuffer))
+            | (1u << uint32(ShaderInputType::StorageBufferDynamic));
 
         AssertDebug(Mask & (1u << uint32(layoutElement->type)), "Layout type for {} does not match given type", Name(name));
 
@@ -211,20 +211,20 @@ DescriptorSetElement& DescriptorSetBase::SetElementT(StringHash name, uint32 ind
     }
     else if constexpr (std::is_base_of_v<GpuImageViewBase, T>)
     {
-        static constexpr uint32 Mask = (1u << uint32(ShaderInputType::IMAGE))
-            | (1u << uint32(ShaderInputType::IMAGE_STORAGE));
+        static constexpr uint32 Mask = (1u << uint32(ShaderInputType::Image))
+            | (1u << uint32(ShaderInputType::ImageStorage));
 
         AssertDebug(Mask & (1u << uint32(layoutElement->type)), "Layout type for {} does not match given type", Name(name));
     }
     else if constexpr (std::is_base_of_v<SamplerBase, T>)
     {
-        static constexpr uint32 Mask = (1u << uint32(ShaderInputType::SAMPLER));
+        static constexpr uint32 Mask = (1u << uint32(ShaderInputType::Sampler));
 
         AssertDebug(Mask & (1u << uint32(layoutElement->type)), "Layout type for {} does not match given type", Name(name));
     }
     else if constexpr (std::is_base_of_v<GpuTlasBase, T>)
     {
-        static constexpr uint32 Mask = (1u << uint32(ShaderInputType::TLAS));
+        static constexpr uint32 Mask = (1u << uint32(ShaderInputType::Tlas));
 
         AssertDebug(Mask & (1u << uint32(layoutElement->type)), "Layout type for {} does not match given type", Name(name));
     }

@@ -264,7 +264,7 @@ struct ShaderInput
     ShaderRegister slot = ShaderRegister::NONE;
 
     HYP_FIELD(Property = "ElementType", Serialize = true)
-    ShaderInputType type = ShaderInputType::UNSET;
+    ShaderInputType type = ShaderInputType::Unset;
 
     HYP_FIELD(Property = "Name", Serialize = true)
     Name name;

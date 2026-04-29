@@ -41,20 +41,20 @@ DX12DescriptorSet::DX12DescriptorSet(const DescriptorSetLayout& layout)
 
         switch (element.type)
         {
-        case ShaderInputType::UNIFORM_BUFFER:
-        case ShaderInputType::UNIFORM_BUFFER_DYNAMIC:
-        case ShaderInputType::STORAGE_BUFFER:
-        case ShaderInputType::STORAGE_BUFFER_DYNAMIC:
+        case ShaderInputType::UniformBuffer:
+        case ShaderInputType::UniformBufferDynamic:
+        case ShaderInputType::StorageBuffer:
+        case ShaderInputType::StorageBufferDynamic:
             PrefillElements<DX12GpuBuffer>(name, element.count);
             break;
-        case ShaderInputType::IMAGE:
-        case ShaderInputType::IMAGE_STORAGE:
+        case ShaderInputType::Image:
+        case ShaderInputType::ImageStorage:
             PrefillElements<DX12GpuImageView>(name, element.count);
             break;
-        case ShaderInputType::SAMPLER:
+        case ShaderInputType::Sampler:
             PrefillElements<DX12Sampler>(name, element.count);
             break;
-        case ShaderInputType::TLAS:
+        case ShaderInputType::Tlas:
             PrefillElements<DX12GpuTlas>(name, element.count);
             break;
         default:
@@ -109,17 +109,17 @@ RendererResult DX12DescriptorSet::Create()
 
         switch (element.type)
         {
-        case ShaderInputType::UNIFORM_BUFFER:
-        case ShaderInputType::UNIFORM_BUFFER_DYNAMIC:
-        case ShaderInputType::STORAGE_BUFFER:
-        case ShaderInputType::STORAGE_BUFFER_DYNAMIC:
-        case ShaderInputType::IMAGE:
-        case ShaderInputType::IMAGE_STORAGE:
-        case ShaderInputType::TLAS:
+        case ShaderInputType::UniformBuffer:
+        case ShaderInputType::UniformBufferDynamic:
+        case ShaderInputType::StorageBuffer:
+        case ShaderInputType::StorageBufferDynamic:
+        case ShaderInputType::Image:
+        case ShaderInputType::ImageStorage:
+        case ShaderInputType::Tlas:
             m_viewBindingToHeapOffset.Set(element.binding, viewCount);
             viewCount += elementCount;
             break;
-        case ShaderInputType::SAMPLER:
+        case ShaderInputType::Sampler:
             m_samplerBindingToHeapOffset.Set(element.binding, samplerCount);
             samplerCount += elementCount;
             break;
@@ -215,10 +215,10 @@ void DX12DescriptorSet::UpdateDirtyState(bool* outIsDirty)
 
         switch (layoutElement->type)
         {
-        case ShaderInputType::UNIFORM_BUFFER:
-        case ShaderInputType::UNIFORM_BUFFER_DYNAMIC:
-        case ShaderInputType::STORAGE_BUFFER:
-        case ShaderInputType::STORAGE_BUFFER_DYNAMIC:
+        case ShaderInputType::UniformBuffer:
+        case ShaderInputType::UniformBufferDynamic:
+        case ShaderInputType::StorageBuffer:
+        case ShaderInputType::StorageBufferDynamic:
         {
             for (uint32 index : element.occupiedArrayElems)
             {
@@ -242,8 +242,8 @@ void DX12DescriptorSet::UpdateDirtyState(bool* outIsDirty)
 
             break;
         }
-        case ShaderInputType::IMAGE:
-        case ShaderInputType::IMAGE_STORAGE:
+        case ShaderInputType::Image:
+        case ShaderInputType::ImageStorage:
         {
             for (uint32 index : element.occupiedArrayElems)
             {
@@ -267,7 +267,7 @@ void DX12DescriptorSet::UpdateDirtyState(bool* outIsDirty)
 
             break;
         }
-        case ShaderInputType::SAMPLER:
+        case ShaderInputType::Sampler:
         {
             for (uint32 index : element.occupiedArrayElems)
             {
@@ -291,7 +291,7 @@ void DX12DescriptorSet::UpdateDirtyState(bool* outIsDirty)
 
             break;
         }
-        case ShaderInputType::TLAS:
+        case ShaderInputType::Tlas:
         {
             for (uint32 index : element.occupiedArrayElems)
             {
@@ -422,8 +422,8 @@ void DX12DescriptorSet::Update(bool force)
 
         switch (layoutElement->type)
         {
-        case ShaderInputType::UNIFORM_BUFFER:
-        case ShaderInputType::UNIFORM_BUFFER_DYNAMIC:
+        case ShaderInputType::UniformBuffer:
+        case ShaderInputType::UniformBufferDynamic:
         {
             DX12GpuBuffer* buffer = static_cast<DX12GpuBuffer*>(ptr);
             if (!buffer->IsCreated())
@@ -435,8 +435,8 @@ void DX12DescriptorSet::Update(bool force)
             device->CreateConstantBufferView(&cbvDesc, destHandle);
             break;
         }
-        case ShaderInputType::STORAGE_BUFFER:
-        case ShaderInputType::STORAGE_BUFFER_DYNAMIC:
+        case ShaderInputType::StorageBuffer:
+        case ShaderInputType::StorageBufferDynamic:
         {
             DX12GpuBuffer* buffer = static_cast<DX12GpuBuffer*>(ptr);
             if (!buffer->IsCreated())
@@ -449,7 +449,7 @@ void DX12DescriptorSet::Update(bool force)
             device->CreateUnorderedAccessView(buffer->GetResource(), nullptr, &uavDesc, destHandle);
             break;
         }
-        case ShaderInputType::IMAGE:
+        case ShaderInputType::Image:
         {
             DX12GpuImageView* imageView = static_cast<DX12GpuImageView*>(ptr);
             if (!imageView->IsCreated())
@@ -465,7 +465,7 @@ void DX12DescriptorSet::Update(bool force)
             device->CreateShaderResourceView(imageView->GetImage()->GetResource(), &srvDesc, destHandle);
             break;
         }
-        case ShaderInputType::IMAGE_STORAGE:
+        case ShaderInputType::ImageStorage:
         {
             DX12GpuImageView* imageView = static_cast<DX12GpuImageView*>(ptr);
             if (!imageView->IsCreated())
@@ -481,7 +481,7 @@ void DX12DescriptorSet::Update(bool force)
             device->CreateUnorderedAccessView(imageView->GetImage()->GetResource(), nullptr, &uavDesc, destHandle);
             break;
         }
-        case ShaderInputType::SAMPLER:
+        case ShaderInputType::Sampler:
         {
             DX12Sampler* sampler = static_cast<DX12Sampler*>(ptr);
             if (!sampler->IsCreated())
@@ -494,7 +494,7 @@ void DX12DescriptorSet::Update(bool force)
             device->CreateSampler(&samplerDesc, destHandle);
             break;
         }
-        case ShaderInputType::TLAS:
+        case ShaderInputType::Tlas:
         {
             DX12GpuTlas* tlas = DynamicCast<DX12GpuTlas>(ptr);
             if (!tlas || !tlas->IsCreated())

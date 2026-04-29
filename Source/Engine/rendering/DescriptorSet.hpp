@@ -78,29 +78,29 @@ struct DescriptorSetElementTypeInfo;
 template <>
 struct DescriptorSetElementTypeInfo<GpuBuffer>
 {
-    static constexpr uint32 mask = (1u << uint32(ShaderInputType::UNIFORM_BUFFER))
-        | (1u << uint32(ShaderInputType::UNIFORM_BUFFER_DYNAMIC))
-        | (1u << uint32(ShaderInputType::STORAGE_BUFFER))
-        | (1u << uint32(ShaderInputType::STORAGE_BUFFER_DYNAMIC));
+    static constexpr uint32 mask = (1u << uint32(ShaderInputType::UniformBuffer))
+        | (1u << uint32(ShaderInputType::UniformBufferDynamic))
+        | (1u << uint32(ShaderInputType::StorageBuffer))
+        | (1u << uint32(ShaderInputType::StorageBufferDynamic));
 };
 
 template <>
 struct DescriptorSetElementTypeInfo<GpuImageView>
 {
-    static constexpr uint32 mask = (1u << uint32(ShaderInputType::IMAGE))
-        | (1u << uint32(ShaderInputType::IMAGE_STORAGE));
+    static constexpr uint32 mask = (1u << uint32(ShaderInputType::Image))
+        | (1u << uint32(ShaderInputType::ImageStorage));
 };
 
 template <>
 struct DescriptorSetElementTypeInfo<Sampler>
 {
-    static constexpr uint32 mask = (1u << uint32(ShaderInputType::SAMPLER));
+    static constexpr uint32 mask = (1u << uint32(ShaderInputType::Sampler));
 };
 
 template <>
 struct DescriptorSetElementTypeInfo<GpuTlas>
 {
-    static constexpr uint32 mask = (1u << uint32(ShaderInputType::TLAS));
+    static constexpr uint32 mask = (1u << uint32(ShaderInputType::Tlas));
 };
 
 HYP_STRUCT()
@@ -109,7 +109,7 @@ struct DescriptorSetLayoutElement
     HYP_STRUCT_BODY(DescriptorSetLayoutElement);
 
     HYP_FIELD()
-    ShaderInputType type = ShaderInputType::UNSET;
+    ShaderInputType type = ShaderInputType::Unset;
 
     HYP_FIELD()
     uint32 binding = ~0u; // has to be set
@@ -119,10 +119,10 @@ struct DescriptorSetLayoutElement
 
     HYP_FORCE_INLINE bool IsBuffer() const
     {
-        return type == ShaderInputType::UNIFORM_BUFFER
-            || type == ShaderInputType::UNIFORM_BUFFER_DYNAMIC
-            || type == ShaderInputType::STORAGE_BUFFER
-            || type == ShaderInputType::STORAGE_BUFFER_DYNAMIC;
+        return type == ShaderInputType::UniformBuffer
+            || type == ShaderInputType::UniformBufferDynamic
+            || type == ShaderInputType::StorageBuffer
+            || type == ShaderInputType::StorageBufferDynamic;
     }
 
     HYP_FORCE_INLINE bool IsBindless() const

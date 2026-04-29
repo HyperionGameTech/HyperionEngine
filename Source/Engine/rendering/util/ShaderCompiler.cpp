@@ -2406,15 +2406,15 @@ static TResult<ShaderInputType> ParseDescriptorTypeFromDeclaration(ShaderLanguag
     auto MakeUniformBufferType = [flags]() -> ShaderInputType
     {
         return (flags & DescriptorUsageFlags::DYNAMIC)
-            ? ShaderInputType::UNIFORM_BUFFER_DYNAMIC
-            : ShaderInputType::UNIFORM_BUFFER;
+            ? ShaderInputType::UniformBufferDynamic
+            : ShaderInputType::UniformBuffer;
     };
 
     auto MakeStorageBufferType = [flags]() -> ShaderInputType
     {
         return (flags & DescriptorUsageFlags::DYNAMIC)
-            ? ShaderInputType::STORAGE_BUFFER_DYNAMIC
-            : ShaderInputType::STORAGE_BUFFER;
+            ? ShaderInputType::StorageBufferDynamic
+            : ShaderInputType::StorageBuffer;
     };
 
     if (language == ShaderLanguage::HLSL)
@@ -2431,22 +2431,22 @@ static TResult<ShaderInputType> ParseDescriptorTypeFromDeclaration(ShaderLanguag
 
         if (MatchesAnyToken(firstToken, { "RWTexture1D", "RWTexture2D", "RWTexture3D", "RWTexture1DArray", "RWTexture2DArray" }))
         {
-            return ShaderInputType::IMAGE_STORAGE;
+            return ShaderInputType::ImageStorage;
         }
 
         if (MatchesAnyToken(firstToken, { "Texture1D", "Texture2D", "Texture3D", "TextureCube", "Texture1DArray", "Texture2DArray", "TextureCubeArray" }))
         {
-            return ShaderInputType::IMAGE;
+            return ShaderInputType::Image;
         }
 
         if (MatchesAnyToken(firstToken, { "SamplerState", "SamplerComparisonState", "sampler" }))
         {
-            return ShaderInputType::SAMPLER;
+            return ShaderInputType::Sampler;
         }
 
         if (firstToken == "RaytracingAccelerationStructure")
         {
-            return ShaderInputType::TLAS;
+            return ShaderInputType::Tlas;
         }
 
         return HYP_MAKE_ERROR(Error, "Unable to determine descriptor type from HLSL declaration: '{}'", trimmed);
@@ -2481,13 +2481,13 @@ static TResult<ShaderInputType> ParseDescriptorTypeFromDeclaration(ShaderLanguag
             // uniform sampler
             if (secondToken.StartsWith("sampler"))
             {
-                return ShaderInputType::SAMPLER;
+                return ShaderInputType::Sampler;
             }
 
             // uniform texture (sampled image)
             if (MatchesAnyToken(secondToken, { "texture1D", "texture2D", "texture3D", "textureCube", "texture1DArray", "texture2DArray", "textureCubeArray", "textureBuffer", "itexture1D", "itexture2D", "itexture3D", "itextureCube", "itextureBuffer", "utexture1D", "utexture2D", "utexture3D", "utextureCube", "utextureBuffer" }))
             {
-                return ShaderInputType::IMAGE;
+                return ShaderInputType::Image;
             }
 
             // uniform (write/read)only image (storage image)
@@ -2499,7 +2499,7 @@ static TResult<ShaderInputType> ParseDescriptorTypeFromDeclaration(ShaderLanguag
                     || thirdToken.StartsWith("iimage")
                     || thirdToken.StartsWith("uimage"))
                 {
-                    return ShaderInputType::IMAGE_STORAGE;
+                    return ShaderInputType::ImageStorage;
                 }
 
                 return HYP_MAKE_ERROR(Error, "Unable to determine descriptor type from GLSL declaration: '{}'", trimmed);
@@ -2508,13 +2508,13 @@ static TResult<ShaderInputType> ParseDescriptorTypeFromDeclaration(ShaderLanguag
             // uniform image
             if (MatchesAnyToken(secondToken, { "image1D", "image2D", "image3D", "imageCube", "image1DArray", "image2DArray", "imageCubeArray", "imageBuffer", "iimage1D", "iimage2D", "iimage3D", "iimageBuffer", "iimageCube", "uimage1D", "uimage2D", "uimage3D", "uimageBuffer", "uimageCube" }))
             {
-                return ShaderInputType::IMAGE_STORAGE;
+                return ShaderInputType::ImageStorage;
             }
 
             // uniform accelerationStructureEXT
             if (secondToken == "accelerationStructureEXT")
             {
-                return ShaderInputType::TLAS;
+                return ShaderInputType::Tlas;
             }
 
             // uniform [StructName] - contant buffer

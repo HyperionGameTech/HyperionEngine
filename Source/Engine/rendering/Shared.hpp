@@ -1096,15 +1096,15 @@ struct Viewport
 HYP_ENUM()
 enum class ShaderInputType : uint8
 {
-    UNSET,
-    UNIFORM_BUFFER,
-    UNIFORM_BUFFER_DYNAMIC,
-    STORAGE_BUFFER,
-    STORAGE_BUFFER_DYNAMIC,
-    IMAGE,
-    IMAGE_STORAGE,
-    SAMPLER,
-    TLAS,
+    Unset,
+    UniformBuffer,
+    UniformBufferDynamic,
+    StorageBuffer,
+    StorageBufferDynamic,
+    Image,
+    ImageStorage,
+    Sampler,
+    Tlas,
     MAX
 };
 

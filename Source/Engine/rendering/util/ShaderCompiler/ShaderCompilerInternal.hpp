@@ -22,7 +22,7 @@ struct DescriptorUsage
 
     DescriptorUsage()
         : slot(ShaderRegister::NONE),
-          type(ShaderInputType::UNSET),
+          type(ShaderInputType::Unset),
           setName(Name::Invalid()),
           flags(DescriptorUsageFlags::NONE)
     {
@@ -158,10 +158,10 @@ struct DescriptorUsage
     /*! \brief Returns true if this is a constant buffer or storage buffer. */
     HYP_FORCE_INLINE bool IsBuffer() const
     {
-        return type == ShaderInputType::UNIFORM_BUFFER
-            || type == ShaderInputType::UNIFORM_BUFFER_DYNAMIC
-            || type == ShaderInputType::STORAGE_BUFFER
-            || type == ShaderInputType::STORAGE_BUFFER_DYNAMIC;
+        return type == ShaderInputType::UniformBuffer
+            || type == ShaderInputType::UniformBufferDynamic
+            || type == ShaderInputType::StorageBuffer
+            || type == ShaderInputType::StorageBufferDynamic;
     }
 
     HYP_FORCE_INLINE uint32 GetCount() const
