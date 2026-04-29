@@ -338,11 +338,7 @@ void VulkanDescriptorSet::UpdateDirtyState(bool* outIsDirty)
                     descriptor.index = index;
                     descriptor.descriptorType = ToVkDescriptorType(layoutElement->type, layoutElement->category);
 
-                    descriptor.accelerationStructureInfo = VkWriteDescriptorSetAccelerationStructureKHR {
-                        .sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET_ACCELERATION_STRUCTURE_KHR,
-                        .accelerationStructureCount = 1,
-                        .pAccelerationStructures = &ref->GetVulkanHandle()
-                    };
+                    descriptor.accelerationStructure = ref->GetVulkanHandle();
                 }
                 else
                 {

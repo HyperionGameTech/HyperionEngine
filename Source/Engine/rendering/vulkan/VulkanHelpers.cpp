@@ -492,10 +492,10 @@ VmaMemoryUsage GetVmaMemoryUsage(GpuBufferType type, bool cpuAccessible)
         return (cpuAccessible ? VMA_MEMORY_USAGE_CPU_TO_GPU : VMA_MEMORY_USAGE_GPU_ONLY);
     case GpuBufferType::ConstantBuffer:
         return VMA_MEMORY_USAGE_CPU_ONLY;
-    case GpuBufferType::StructuredBuffer:
-    case GpuBufferType::ByteAddressBuffer:
-    case GpuBufferType::RWStructuredBuffer:
-    case GpuBufferType::RWByteAddressBuffer:
+    case GpuBufferType::StructuredBuffer:       // fallthrough
+    case GpuBufferType::RWStructuredBuffer:     // fallthrough
+    case GpuBufferType::ByteAddressBuffer:      // fallthrough
+    case GpuBufferType::RWByteAddressBuffer:    // fallthrough
         return (cpuAccessible ? VMA_MEMORY_USAGE_CPU_TO_GPU : VMA_MEMORY_USAGE_GPU_ONLY);
     case GpuBufferType::ReadbackBuffer:
         return (cpuAccessible ? VMA_MEMORY_USAGE_CPU_TO_GPU : VMA_MEMORY_USAGE_GPU_ONLY);
@@ -511,10 +511,10 @@ VmaMemoryUsage GetVmaMemoryUsage(GpuBufferType type, bool cpuAccessible)
     case GpuBufferType::AccelerationStructureInstanceBuffer:
         return VMA_MEMORY_USAGE_CPU_TO_GPU;
     case GpuBufferType::RTMeshVertexBuffer:
-        // ignore cpuAccessible for RT mesh vertex buffer, as it cannot be CPU accessible regardless
+        // ignore cpuAccessible for RT mesh vertex buffer
         return VMA_MEMORY_USAGE_GPU_ONLY;
     case GpuBufferType::RTMeshIndexBuffer:
-        // ignore cpuAccessible for RT mesh index buffer, as it cannot be CPU accessible regardless
+        // ignore cpuAccessible for RT mesh index buffer
         return VMA_MEMORY_USAGE_GPU_ONLY;
     case GpuBufferType::ScratchBuffer:
         return VMA_MEMORY_USAGE_CPU_TO_GPU;

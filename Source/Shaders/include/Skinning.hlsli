@@ -1,14 +1,11 @@
-#ifndef HYP_SKELETON
-#define HYP_SKELETON
+#ifndef HYP_SKINNING
+#define HYP_SKINNING
 
 #define HYP_MAX_BONES 256
 
-struct Skeleton
-{
-    float4x4 bones[HYP_MAX_BONES];
-};
+// SkeletonsBuffer is presumed to exist and be a StructuredBuffer<float4x4>.
 
-float4x4 CreateSkinningMatrix(in Skeleton skeleton, uint boneIndicesPacked, float4 boneWeights)
+float4x4 CreateSkinningMatrix(uint boneIndicesPacked, float4 boneWeights)
 {
     float4x4 skinning = (float4x4)0;
 
@@ -19,15 +16,15 @@ float4x4 CreateSkinningMatrix(in Skeleton skeleton, uint boneIndicesPacked, floa
     boneIndices.w = (boneIndicesPacked >> 24) & 0xFF;
 
     int index0 = min(boneIndices.x, HYP_MAX_BONES - 1);
-    skinning += boneWeights.x * skeleton.bones[index0];
+    skinning += boneWeights.x * SkeletonsBuffer.Load(index0);
     int index1 = min(boneIndices.y, HYP_MAX_BONES - 1);
-    skinning += boneWeights.y * skeleton.bones[index1];
+    skinning += boneWeights.y * SkeletonsBuffer.Load(index1);
     int index2 = min(boneIndices.z, HYP_MAX_BONES - 1);
-    skinning += boneWeights.z * skeleton.bones[index2];
+    skinning += boneWeights.z * SkeletonsBuffer.Load(index2);
     int index3 = min(boneIndices.w, HYP_MAX_BONES - 1);
-    skinning += boneWeights.w * skeleton.bones[index3];
+    skinning += boneWeights.w * SkeletonsBuffer.Load(index3);
 
     return skinning;
 }
 
-#endif
+#endif // HYP_SKINNING

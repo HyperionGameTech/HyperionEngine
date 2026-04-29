@@ -40,37 +40,7 @@ class RenderResourceBase;
 
 enum class GpuBufferType : uint8;
 
-class IRenderProxy;
 class ObjectBase;
-
-constexpr uint32 ElementTypeToBufferType[uint32(ShaderInputType::MAX)] = {
-    0,                                    // Unset
-    (1u << uint32(GpuBufferType::ConstantBuffer)), // CBV
-    (1u << uint32(GpuBufferType::ConstantBuffer)), // CBV_Dynamic
-    (1u << uint32(GpuBufferType::StructuredBuffer))
-        | (1u << uint32(GpuBufferType::ByteAddressBuffer))
-        | (1u << uint32(GpuBufferType::RWStructuredBuffer))
-        | (1u << uint32(GpuBufferType::RWByteAddressBuffer))
-        | (1u << uint32(GpuBufferType::ReadbackBuffer))
-        | (1u << uint32(GpuBufferType::StagingBuffer))
-        | (1u << uint32(GpuBufferType::IndirectArgsBuffer))
-        | (1u << uint32(GpuBufferType::RTMeshIndexBuffer))
-        | (1u << uint32(GpuBufferType::RTMeshVertexBuffer)), // SRV
-    (1u << uint32(GpuBufferType::StructuredBuffer))
-        | (1u << uint32(GpuBufferType::ByteAddressBuffer))
-        | (1u << uint32(GpuBufferType::RWStructuredBuffer))
-        | (1u << uint32(GpuBufferType::RWByteAddressBuffer))
-        | (1u << uint32(GpuBufferType::ReadbackBuffer))
-        | (1u << uint32(GpuBufferType::StagingBuffer))
-        | (1u << uint32(GpuBufferType::IndirectArgsBuffer))
-        | (1u << uint32(GpuBufferType::RTMeshIndexBuffer))
-        | (1u << uint32(GpuBufferType::RTMeshVertexBuffer)), // SRV_Dynamic
-    (1u << uint32(GpuBufferType::RWStructuredBuffer))
-        | (1u << uint32(GpuBufferType::RWByteAddressBuffer)), // UAV
-    (1u << uint32(GpuBufferType::RWStructuredBuffer))
-        | (1u << uint32(GpuBufferType::RWByteAddressBuffer)), // UAV_Dynamic
-    0                                                          // Sampler
-};
 
 template <class T>
 struct DescriptorSetElementTypeInfo;

@@ -73,8 +73,8 @@ struct VSOutput
 };
 
 #ifdef SKINNING
-#include "include/Skeleton.hlsli"
-DECLARE_SRV_DYNAMIC(Default, SkeletonsBuffer) ByteAddressBuffer SkeletonsBuffer;
+DECLARE_SRV_DYNAMIC(Default, SkeletonsBuffer) StructuredBuffer<float4x4> SkeletonsBuffer;
+#include "include/Skinning.hlsli"
 #endif // SKINNING
 
 VSOutput VSMain(VSInput input, uint instanceId : SV_InstanceID)
@@ -91,9 +91,7 @@ VSOutput VSMain(VSInput input, uint instanceId : SV_InstanceID)
 #endif
 
 #if defined(SKINNING) && defined(HYP_ATTRIBUTE_a_bone_indices) && defined(HYP_ATTRIBUTE_a_bone_weights)
-    Skeleton skeleton = SkeletonsBuffer.Load<Skeleton>(0);
-
-    float4x4 skinning_matrix = CreateSkinningMatrix(skeleton, input.a_bone_indices, input.a_bone_weights);
+    float4x4 skinning_matrix = CreateSkinningMatrix(input.a_bone_indices, input.a_bone_weights);
 
     position = mul(model_matrix, mul(skinning_matrix, float4(input.a_position, 1.0)));
 #else

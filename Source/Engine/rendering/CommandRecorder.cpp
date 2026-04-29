@@ -624,7 +624,10 @@ void GenerateMipmaps::InvokeStatic(CmdBase* cmd, CommandBuffer* commandBuffer)
 
             ShaderUniform& ubUniform = state.shaderUniforms[2];
             ubUniform = ShaderUniform("Constants"_sh, uniformBuffers[srcMip].Get());
+            state.shaderUniformBufferOffsets[2] = 0;
+            state.shaderUniformBufferOffsetStrides[2] = uint32(uniformBuffers[srcMip]->Size());
             state.dirtyUniforms |= 1u << 2;
+            state.dirtyBufferOffsets |= 1u << 2;
 
             ShaderUniform& samplerUniform = state.shaderUniforms[3];
             samplerUniform = ShaderUniform("SamplerLinear"_sh, linearSampler);

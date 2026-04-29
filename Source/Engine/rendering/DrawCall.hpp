@@ -235,12 +235,12 @@ public:
         return m_structAlignment;
     }
 
-    HYP_FORCE_INLINE StructuredBuffer& GetStructuredBuffer()
+    HYP_FORCE_INLINE RWStructuredBuffer& GetStructuredBuffer()
     {
         return m_sbuffer;
     }
 
-    HYP_FORCE_INLINE const StructuredBuffer& GetStructuredBuffer() const
+    HYP_FORCE_INLINE const RWStructuredBuffer& GetStructuredBuffer() const
     {
         return m_sbuffer;
     }
@@ -264,7 +264,7 @@ public:
 protected:
     explicit EntityBatchAllocatorBase(const TypeInfo* structTypeInfo, uint32 maxBatches);
 
-    StructuredBuffer m_sbuffer;
+    RWStructuredBuffer m_sbuffer;
     mutable IdGenerator m_idGenerator;
     size_t m_structSize;
     size_t m_structAlignment;

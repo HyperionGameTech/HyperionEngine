@@ -21,10 +21,12 @@ class GpuBufferHolderBase;
 template <class StructType, GpuBufferType BufferType>
 class GpuBufferHolder;
 
+
+/** DEPRECATED **/
 class GpuBufferHolderMap
 {
 public:
-    GpuBufferHolderMap() = default;
+    HYP_DEPRECATED GpuBufferHolderMap() = default;
 
     GpuBufferHolderMap(const GpuBufferHolderMap& other) = delete;
     GpuBufferHolderMap& operator=(const GpuBufferHolderMap& other) = delete;

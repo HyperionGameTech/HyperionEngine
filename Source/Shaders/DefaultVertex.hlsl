@@ -40,8 +40,8 @@ DECLARE_SRV_DYNAMIC(Default, CamerasBuffer) StructuredBuffer<Camera> _cameras_bu
 #endif // INSTANCING
 
 #ifdef SKINNING
-#include "include/Skeleton.hlsli"
-DECLARE_SRV_DYNAMIC(Default, SkeletonsBuffer) ByteAddressBuffer SkeletonsBuffer;
+DECLARE_SRV_DYNAMIC(Default, SkeletonsBuffer) StructuredBuffer<float4x4> SkeletonsBuffer;
+#include "include/Skinning.hlsli"
 #endif // SKINNING
 
 #ifndef INSTANCING
@@ -69,9 +69,7 @@ VSOutput VSMain(VSInput input, uint instanceId : SV_InstanceID)
 #endif // INSTANCING
 
 #if defined(SKINNING) && defined(VT_Skeletal)
-    Skeleton skeleton = SkeletonsBuffer.Load<Skeleton>(0);
-
-    float4x4 skinning_matrix = CreateSkinningMatrix(skeleton, input.a_bone_indices, input.a_bone_weights);
+    float4x4 skinning_matrix = CreateSkinningMatrix(input.a_bone_indices, input.a_bone_weights);
 
     position = mul(model_matrix, mul(skinning_matrix, float4(input.a_position, 1.0)));
     previous_position = mul(currentEntity.previous_model_matrix, mul(skinning_matrix, float4(input.a_position, 1.0)));
