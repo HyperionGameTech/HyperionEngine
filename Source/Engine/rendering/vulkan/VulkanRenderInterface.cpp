@@ -759,7 +759,7 @@ VulkanFrame* VulkanRenderInterface::GetCurrentFrame() const
 void VulkanRenderInterface::PrepareFrame(VulkanFrame* frame)
 {
     const uint32 frameCounter = GetFrameCounter();
-    
+
     {
         ENGINE_STAT_SCOPE(&s_statVulkanWaitOnFences);
 
@@ -990,21 +990,28 @@ void VulkanRenderInterface::SubmitTransientCommandBuffer(VulkanCommandBuffer& co
     VulkanDeviceQueue* graphicsQueue = m_instance->GetDevice()->GetGraphicsQueue();
     Assert(graphicsQueue != nullptr);
 
-    VulkanFence& fence = m_transientCommandBufferFences[frameCounter % NumFramesInFlight].EmplaceBack();
+    VulkanFence* pFence = nullptr;
 
-    Mutex::Guard guard(m_transientCommandBuffersMutex);
-    if (m_recycledTransientCommandBufferFences.Any())
     {
-        fence = std::move(m_recycledTransientCommandBufferFences.PopFront());
-    }
-    else
-    {
-        fence.Create();
+        Mutex::Guard guard(m_transientCommandBuffersMutex);
+
+        VulkanFence& fence = m_transientCommandBufferFences[frameCounter % NumFramesInFlight].EmplaceBack();
+
+        if (m_recycledTransientCommandBufferFences.Any())
+        {
+            fence = std::move(m_recycledTransientCommandBufferFences.PopFront());
+        }
+        else
+        {
+            fence.Create();
+        }
+
+        pFence = &fence;
     }
 
     // HYP_LOG_TEMP("Submitting transient command buffer on thread {} for frame {}", renderThreadIndex, frameCounter % NumFramesInFlight);
 
-    commandBuffer.Submit(graphicsQueue, &fence, {}, {});
+    commandBuffer.Submit(graphicsQueue, pFence, {}, {});
 }
 
 VulkanDescriptorSetRef VulkanRenderInterface::MakeDescriptorSet(const DescriptorSetLayout& layout)

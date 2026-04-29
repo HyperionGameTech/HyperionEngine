@@ -267,6 +267,12 @@ RendererResult DX12RenderInterface::Initialize()
     {
         m_commandBuffers[frameIndex] = MakeHandle<DX12CommandBuffer>(D3D12_COMMAND_LIST_TYPE_DIRECT);
         CheckResultOrReturn(m_commandBuffers[frameIndex]->Create());
+
+#ifdef HYP_DEBUG_MODE
+        wchar_t nameBuf[64];
+        swprintf(nameBuf, std::size(nameBuf), L"Main CommandBuffer [frame=%u]", frameIndex);
+        m_commandBuffers[frameIndex]->SetDebugName(nameBuf);
+#endif
     }
 
     descriptorHeapManager->Initialize();
@@ -436,12 +442,7 @@ void DX12RenderInterface::PrepareFrame(DX12Frame* frame)
     for (auto it = fences.Begin(); it != fences.End();)
     {
         DX12Fence& fence = *it;
-
-        if (fence.isSubmitted)
-        {
-            fence.Wait(true);
-            fence.Reset();
-        }
+        fence.Wait(true);
 
         m_recycledTransientCommandBufferFences.PushBack(std::move(fence));
 
@@ -450,17 +451,18 @@ void DX12RenderInterface::PrepareFrame(DX12Frame* frame)
 
     for (uint32 threadIndex = 0; threadIndex < NumRendererWorkerThreads + 1; threadIndex++)
     {
-        Array<DX12CommandBuffer, RenderAllocator>& freeList = m_transientCommandBuffers[threadIndex][frameCounter % NumFramesInFlight];
-        Array<DX12CommandBuffer, RenderAllocator>& pendingList = m_pendingTransientCommandBuffers[threadIndex][frameCounter % NumFramesInFlight];
-
-        for (DX12CommandBuffer& commandBuffer : pendingList)
+        LinkedList<DX12CommandBuffer, RenderAllocator>& freeList = m_transientCommandBuffers[threadIndex][frameIndex];
+        LinkedList<DX12CommandBuffer, RenderAllocator>& pendingList = m_pendingTransientCommandBuffers[threadIndex][frameIndex];
+        
+        for (auto it = pendingList.Begin(); it != pendingList.End();)
         {
+            DX12CommandBuffer& commandBuffer = *it;
             Assert(!commandBuffer.IsRecording());
 
-            freeList.PushBack(std::move(commandBuffer));
-        }
+            freeList.EmplaceBack(std::move(*it));
 
-        pendingList.Clear();
+            it = pendingList.Erase(it);
+        }
     }
 
     frame->OnFrameStart();
@@ -523,8 +525,8 @@ DX12CommandBuffer& DX12RenderInterface::GetTransientCommandBuffer()
 
     const uint32 renderThreadIndex = CurrentRenderThreadIndex();
 
-    Array<DX12CommandBuffer, RenderAllocator>& freeList = m_transientCommandBuffers[renderThreadIndex][frameIndex];
-    Array<DX12CommandBuffer, RenderAllocator>& pendingList = m_pendingTransientCommandBuffers[renderThreadIndex][frameIndex];
+    LinkedList<DX12CommandBuffer, RenderAllocator>& freeList = m_transientCommandBuffers[renderThreadIndex][frameIndex];
+    LinkedList<DX12CommandBuffer, RenderAllocator>& pendingList = m_pendingTransientCommandBuffers[renderThreadIndex][frameIndex];
 
     DX12CommandBuffer* pCommandBuffer = nullptr;
 
@@ -540,6 +542,15 @@ DX12CommandBuffer& DX12RenderInterface::GetTransientCommandBuffer()
 
     pCommandBuffer->Begin();
     BindDescriptorHeaps(*pCommandBuffer);
+
+#ifdef HYP_DEBUG_MODE
+    {
+        wchar_t nameBuf[128];
+        swprintf(nameBuf, std::size(nameBuf), L"Transient CommandBuffer [thread=%u][frame=%u]",
+            renderThreadIndex, frameIndex);
+        pCommandBuffer->SetDebugName(nameBuf);
+    }
+#endif
 
     return *pCommandBuffer;
 }
@@ -557,27 +568,36 @@ void DX12RenderInterface::SubmitTransientCommandBuffer(DX12CommandBuffer& comman
     const DX12QueueData* queueData = GetQueueData(D3D12_COMMAND_LIST_TYPE_DIRECT);
     AssertDebug(queueData != nullptr);
 
-    DX12Fence& fence = m_transientCommandBufferFences[frameIndex].EmplaceBack();
+    DX12Fence* pFence = nullptr;
 
-    Mutex::Guard guard(m_transientCommandBuffersMutex);
-    if (m_recycledTransientCommandBufferFences.Any())
     {
-        fence = std::move(m_recycledTransientCommandBufferFences.PopFront());
-    }
-    else
-    {
-        fence.Create();
+        Mutex::Guard guard(m_transientCommandBuffersMutex);
+
+        DX12Fence& fence = m_transientCommandBufferFences[frameIndex].EmplaceBack();
+
+        if (m_recycledTransientCommandBufferFences.Any())
+        {
+            fence = std::move(m_recycledTransientCommandBufferFences.PopFront());
+        }
+        else
+        {
+            fence.Create();
+        }
+
+        pFence = &fence;
+
+#ifdef HYP_DEBUG_MODE
+        wchar_t fenceNameBuf[64];
+        swprintf(fenceNameBuf, std::size(fenceNameBuf), L"Transient Fence [frame=%u]", frameIndex);
+        fence.SetDebugName(fenceNameBuf);
+#endif
     }
 
     ID3D12CommandList* commandLists[] = { commandBuffer.GetCommandList() };
     queueData->commandQueue->ExecuteCommandLists(ArraySize(commandLists), commandLists);
-
-    // Signal the fence to track completion of this submission.
-    // Increment the fence value first so the signal sets it to a new unique value.
-    fence.Reset();
-    fence.isSubmitted = true;
     
-    queueData->commandQueue->Signal(fence.GetD3D12Fence(), fence.GetValue());
+    pFence->Increment();
+    queueData->commandQueue->Signal(pFence->GetD3D12Fence(), pFence->GetValue());
 }
 
 void DX12RenderInterface::BindDescriptorHeaps(DX12CommandBuffer& commandBuffer)

@@ -136,6 +136,21 @@ RendererResult DX12CommandBuffer::Create()
     return {};
 }
 
+void DX12CommandBuffer::SetDebugName(const wchar_t* name)
+{
+#ifdef HYP_DEBUG_MODE
+    if (m_allocator != nullptr)
+    {
+        m_allocator->SetName(name);
+    }
+
+    if (m_commandList != nullptr)
+    {
+        m_commandList->SetName(name);
+    }
+#endif
+}
+
 void DX12CommandBuffer::Begin()
 {
     AssertDebug(m_commandList != nullptr);

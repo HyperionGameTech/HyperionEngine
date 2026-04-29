@@ -67,7 +67,7 @@ DX12Fence::~DX12Fence()
     }
 }
 
-RendererResult DX12Fence::Create(bool createSignalled)
+RendererResult DX12Fence::Create()
 {
     Assert(m_fence == nullptr);
     Assert(m_eventHandle == nullptr);
@@ -82,7 +82,7 @@ RendererResult DX12Fence::Create(bool createSignalled)
     }
 
     HRESULT hr = g_renderInterface->GetDevice()->CreateFence(
-        createSignalled ? 1 : 0,
+        m_value,
         D3D12_FENCE_FLAG_NONE,
         IID_PPV_ARGS(&m_fence));
 
@@ -94,8 +94,6 @@ RendererResult DX12Fence::Create(bool createSignalled)
         return HYP_MAKE_ERROR(RendererError, "Failed to create D3D12 fence", hr);
     }
 
-    m_value = createSignalled ? 1 : 0;
-
     return {};
 }
 
@@ -103,11 +101,7 @@ RendererResult DX12Fence::Wait(bool timeoutLoop)
 {
     Assert(m_fence != nullptr);
     Assert(m_eventHandle != nullptr);
-
-    if (!isSubmitted)
-    {
-        return {};
-    }
+    Assert(isSubmitted);
 
     if (m_fence->GetCompletedValue() >= m_value)
     {
@@ -136,15 +130,27 @@ RendererResult DX12Fence::Wait(bool timeoutLoop)
     }
 
     isSubmitted = false;
-    
+
     return {};
 }
 
-void DX12Fence::Reset()
+void DX12Fence::Increment()
 {
-    Assert(m_fence != nullptr);
+    Assert(!isSubmitted);
 
     ++m_value;
+
+    isSubmitted = true;
+}
+
+void DX12Fence::SetDebugName(const wchar_t* name)
+{
+#ifdef HYP_DEBUG_MODE
+    if (m_fence != nullptr)
+    {
+        m_fence->SetName(name);
+    }
+#endif
 }
 
 #pragma endregion DX12Fence

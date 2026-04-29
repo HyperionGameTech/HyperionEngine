@@ -161,8 +161,12 @@ private:
 
     FixedArray<DX12CommandBufferRef, NumFramesInFlight> m_commandBuffers;
 
-    Array<DX12CommandBuffer, RenderAllocator> m_transientCommandBuffers[NumRendererWorkerThreads + 1][NumFramesInFlight];
-    Array<DX12CommandBuffer, RenderAllocator> m_pendingTransientCommandBuffers[NumRendererWorkerThreads + 1][NumFramesInFlight];
+    LinkedList<DX12CommandBuffer, RenderAllocator> m_transientCommandBuffers[NumRendererWorkerThreads + 1][NumFramesInFlight];
+    LinkedList<DX12CommandBuffer, RenderAllocator> m_pendingTransientCommandBuffers[NumRendererWorkerThreads + 1][NumFramesInFlight];
+
+    LinkedList<DX12Fence, RenderAllocator> m_transientCommandBufferFences[NumFramesInFlight];
+    LinkedList<DX12Fence, RenderAllocator> m_recycledTransientCommandBufferFences;
+    Mutex m_transientCommandBuffersMutex;
     
     ComPtr<IDXGIAdapter1> m_hardwareAdapter;
 
@@ -174,10 +178,6 @@ private:
     HANDLE m_frameFenceEvent;
     FixedArray<uint64, NumFramesInFlight> m_frameFenceValues;
     FixedArray<int64, NumFramesInFlight> m_submissionFrames;
-
-    LinkedList<DX12Fence, RenderAllocator> m_transientCommandBufferFences[NumFramesInFlight];
-    LinkedList<DX12Fence, RenderAllocator> m_recycledTransientCommandBufferFences;
-    Mutex m_transientCommandBuffersMutex;
 
     ComPtr<ID3D12DeviceRemovedExtendedDataSettings> m_dredSettings;
 

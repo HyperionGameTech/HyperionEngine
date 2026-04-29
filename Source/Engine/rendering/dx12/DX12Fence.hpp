@@ -41,9 +41,11 @@ public:
         return m_value;
     }
 
-    RendererResult Create(bool createSignalled = false);
+    RendererResult Create();
     RendererResult Wait(bool timeoutLoop = false);
-    void Reset();
+    void Increment();
+
+    void SetDebugName(const wchar_t* name);
 
     ComPtr<ID3D12Fence> m_fence;
     HANDLE m_eventHandle;

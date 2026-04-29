@@ -50,6 +50,8 @@ public:
 
     RendererResult Create() override;
 
+    void SetDebugName(const wchar_t* name);
+
     bool IsRecording() const override
     {
         return m_isRecording;

@@ -85,7 +85,7 @@ void DX12AsyncCompute::Create()
         m_commandListType = D3D12_COMMAND_LIST_TYPE_DIRECT;
     }
 
-    CheckResult(m_fence->Create(/* createSignalled */ true));
+    CheckResult(m_fence->Create());
 
     m_commandBuffer = new DX12CommandBuffer(m_commandListType);
     CheckResult(m_commandBuffer->Create());
@@ -95,7 +95,10 @@ void DX12AsyncCompute::Submit()
 {
     Assert(CheckStatus(), "GPU work must be completed from previous submission before DX12AsyncCompute::Submit() is ever called!");
 
-    CheckResult(m_fence->Wait(true));
+    if (m_fence->isSubmitted)
+    {
+        CheckResult(m_fence->Wait(true));
+    }
 
     const DX12QueueData* queueData = g_renderInterface->GetQueueData(m_commandListType);
     Assert(queueData != nullptr && queueData->commandQueue != nullptr);
@@ -110,12 +113,11 @@ void DX12AsyncCompute::Submit()
     ID3D12CommandList* commandLists[] = { m_commandBuffer->GetCommandList() };
     queueData->commandQueue->ExecuteCommandLists(UINT(std::size(commandLists)), commandLists);
 
-    m_fence->Reset();
-    m_fence->isSubmitted = true;
+    m_fence->Increment();
 
     HRESULT res = queueData->commandQueue->Signal(m_fence->GetD3D12Fence(), m_fence->GetValue());
     Assert(SUCCEEDED(res));
-
+    
     m_isSubmitted = true;
 }
 
