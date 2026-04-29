@@ -647,6 +647,21 @@ void DX12GpuImage::InsertBarrier(
     }
 }
 
+void DX12GpuImage::InsertUAVBarrier(CommandBuffer* commandBuffer)
+{
+    AssertDebug(m_resource != nullptr);
+
+    DX12CommandBuffer* dx12CommandBuffer = static_cast<DX12CommandBuffer*>(commandBuffer);
+    Assert(dx12CommandBuffer != nullptr);
+
+    D3D12_RESOURCE_BARRIER barrier {};
+    barrier.Type = D3D12_RESOURCE_BARRIER_TYPE_UAV;
+    barrier.Flags = D3D12_RESOURCE_BARRIER_FLAG_NONE;
+    barrier.UAV.pResource = m_resource.Get();
+
+    dx12CommandBuffer->GetCommandList()->ResourceBarrier(1, &barrier);
+}
+
 void DX12GpuImage::Blit(
     DX12CommandBuffer* commandBuffer,
     const DX12GpuImage* srcImage)
@@ -762,22 +777,42 @@ void DX12GpuImage::CopyFromBuffer(
     uint8 dstMipIndex,
     uint16 dstArrayLayer) const
 {
+    AssertDebug(srcBuffer != nullptr, "Source buffer is null");
+    AssertDebug(srcBuffer->IsCreated(), "Source buffer is not created");
+    AssertDebug(IsCreated(), "Destination image is not created");
+
     const uint8 mipIdx = dstMipIndex != UINT8_MAX ? dstMipIndex : 0;
+    const uint16 arrayIdx = dstArrayLayer != UINT16_MAX ? dstArrayLayer : 0;
+
+    // Validate subresource indices
+    AssertDebug(mipIdx < NumMips(),
+        "Destination mip level {} out of range (max: {})",
+        mipIdx, NumMips() - 1);
+    AssertDebug(arrayIdx < NumArrayLayers(),
+        "Destination array layer {} out of range (max: {})",
+        arrayIdx, NumArrayLayers() - 1);
 
     ResourceState subResourceState = GetSubResourceState(ImageSubResource {
         .baseMipLevel = mipIdx,
         .numLevels = 1,
-        .baseArrayLayer = dstArrayLayer == UINT16_MAX ? uint16(0) : dstArrayLayer,
+        .baseArrayLayer = arrayIdx,
         .numLayers = 1
     });
 
     AssertDebug(subResourceState == RS_COPY_DST);
     AssertDebug(srcBuffer->GetResourceState() == RS_COPY_SRC);
 
+    const Vec3u mipExtent = m_textureDesc.GetMipExtent(mipIdx);
+    const uint32 bytesPerPixel = TextureUtils::BytesPerComponent(m_textureDesc.format) * TextureUtils::NumComponents(m_textureDesc.format);
+    const size_t requiredBufferSize = static_cast<size_t>(srcBufferOffset) + (static_cast<size_t>(mipExtent.x) * mipExtent.y * mipExtent.z * bytesPerPixel);
+
+    AssertDebug(srcBuffer->Size() >= requiredBufferSize,
+        "Source buffer size ({}) is too small for copy operation. Required: {} bytes from offset {}",
+        srcBuffer->Size(), requiredBufferSize, srcBufferOffset);
+
     const bool isDepthStencil = m_textureDesc.IsDepthStencil();
 
     D3D12_RESOURCE_STATES state = isDepthStencil ? D3D12_RESOURCE_STATE_DEPTH_WRITE : D3D12_RESOURCE_STATE_COPY_DEST;
-    const Vec3u mipExtent = m_textureDesc.GetMipExtent(mipIdx);
 
     D3D12_PLACED_SUBRESOURCE_FOOTPRINT placedFootprint {};
     placedFootprint.Offset = srcBufferOffset;
@@ -822,14 +857,56 @@ void DX12GpuImage::CopyToBuffer(
     DX12GpuBuffer* dstBuffer,
     const ImageSubResource& subResource) const
 {
+    AssertDebug(IsCreated(), "Source image is not created");
+    AssertDebug(dstBuffer != nullptr, "Destination buffer is null");
+    AssertDebug(dstBuffer->IsCreated(), "Destination buffer is not created");
+
+    // Validate subresource ranges
+    AssertDebug(subResource.baseMipLevel < NumMips(),
+        "Source mip level {} out of range (max: {})",
+        subResource.baseMipLevel, NumMips() - 1);
+    AssertDebug(subResource.baseArrayLayer < NumArrayLayers(),
+        "Source array layer {} out of range (max: {})",
+        subResource.baseArrayLayer, NumArrayLayers() - 1);
+
+    // numLevels == UINT8_MAX means "use all remaining mip levels"
+    // numLayers == UINT16_MAX means "use all remaining array layers"
+    const uint8 numLevels = (subResource.numLevels == UINT8_MAX)
+        ? uint8(NumMips() - subResource.baseMipLevel)
+        : subResource.numLevels;
+    const uint16 numLayers = (subResource.numLayers == UINT16_MAX)
+        ? uint16(NumArrayLayers() - subResource.baseArrayLayer)
+        : subResource.numLayers;
+
+    AssertDebug(numLevels > 0 && subResource.baseMipLevel + numLevels <= NumMips(),
+        "Invalid mip level count: {} (base: {}, max: {})",
+        numLevels, subResource.baseMipLevel, NumMips());
+    AssertDebug(numLayers > 0 && subResource.baseArrayLayer + numLayers <= NumArrayLayers(),
+        "Invalid array layer count: {} (base: {}, max: {})",
+        numLayers, subResource.baseArrayLayer, NumArrayLayers());
+
     AssertDebug(GetSubResourceState(subResource) == RS_COPY_SRC && dstBuffer->GetResourceState() == RS_COPY_DST);
 
-    Assert(dstBuffer != nullptr && dstBuffer->IsCreated(), "Destination buffer is null or invalid!");
-    Assert(dstBuffer->Size() >= m_size, "Destination buffer is too small to hold image data!");
+    // Calculate total size required for the specified subresources
+    size_t totalSubResourceSize = 0;
+    for (uint8 mipIndex = subResource.baseMipLevel; mipIndex < subResource.baseMipLevel + numLevels; mipIndex++)
+    {
+        for (uint16 layerIndex = subResource.baseArrayLayer; layerIndex < subResource.baseArrayLayer + numLayers; layerIndex++)
+        {
+            totalSubResourceSize += m_textureDesc.GetMipByteSize(mipIndex, /* includeArrayLayers */ false);
+        }
+    }
+
+    AssertDebug(dstBuffer->Size() >= totalSubResourceSize,
+        "Destination buffer size ({}) is too small to hold subresource data ({} bytes). "
+        "Subresources: {} mip levels x {} array layers starting at mip {} layer {}",
+        dstBuffer->Size(), totalSubResourceSize,
+        numLevels, numLayers,
+        subResource.baseMipLevel, subResource.baseArrayLayer);
 
     ImageSubResource newSubResource = subResource;
-    newSubResource.numLayers = MathUtil::Min(subResource.numLayers, NumArrayLayers() - subResource.baseArrayLayer);
-    newSubResource.numLevels = MathUtil::Min(subResource.numLevels, NumMips() - subResource.baseMipLevel);
+    newSubResource.numLayers = numLayers;
+    newSubResource.numLevels = numLevels;
 
     const bool isDepthStencil = m_textureDesc.IsDepthStencil();
 
@@ -911,10 +988,59 @@ void DX12GpuImage::CopyFrom(
     const ImageSubResource& srcSubResource,
     const ImageSubResource& dstSubResource)
 {
+    AssertDebug(srcImage != nullptr, "Source image is null");
+    AssertDebug(srcImage->IsCreated(), "Source image is not created");
+    AssertDebug(IsCreated(), "Destination image is not created");
     AssertDebug(srcImage->GetTextureFormat() == GetTextureFormat(),
         "Formats do not match: {} != {}",
         EnumToString(srcImage->GetTextureFormat()),
         EnumToString(GetTextureFormat()));
+
+    // Validate subresource ranges
+    AssertDebug(srcSubResource.baseMipLevel < srcImage->NumMips(),
+        "Source mip level {} out of range (max: {})",
+        srcSubResource.baseMipLevel, srcImage->NumMips() - 1);
+    AssertDebug(dstSubResource.baseMipLevel < NumMips(),
+        "Destination mip level {} out of range (max: {})",
+        dstSubResource.baseMipLevel, NumMips() - 1);
+    AssertDebug(srcSubResource.baseArrayLayer < srcImage->NumArrayLayers(),
+        "Source array layer {} out of range (max: {})",
+        srcSubResource.baseArrayLayer, srcImage->NumArrayLayers() - 1);
+    AssertDebug(dstSubResource.baseArrayLayer < NumArrayLayers(),
+        "Destination array layer {} out of range (max: {})",
+        dstSubResource.baseArrayLayer, NumArrayLayers() - 1);
+
+    // numLevels == UINT8_MAX means "use all remaining mip levels"
+    // numLayers == UINT16_MAX means "use all remaining array layers"
+    const uint8 srcNumLevels = (srcSubResource.numLevels == UINT8_MAX)
+        ? uint8(srcImage->NumMips() - srcSubResource.baseMipLevel)
+        : srcSubResource.numLevels;
+    const uint8 dstNumLevels = (dstSubResource.numLevels == UINT8_MAX)
+        ? uint8(NumMips() - dstSubResource.baseMipLevel)
+        : dstSubResource.numLevels;
+    const uint16 srcNumLayers = (srcSubResource.numLayers == UINT16_MAX)
+        ? uint16(srcImage->NumArrayLayers() - srcSubResource.baseArrayLayer)
+        : srcSubResource.numLayers;
+    const uint16 dstNumLayers = (dstSubResource.numLayers == UINT16_MAX)
+        ? uint16(NumArrayLayers() - dstSubResource.baseArrayLayer)
+        : dstSubResource.numLayers;
+
+    AssertDebug(srcNumLevels > 0 && srcSubResource.baseMipLevel + srcNumLevels <= srcImage->NumMips(),
+        "Invalid source mip level count: {} (base: {}, max: {})",
+        srcNumLevels, srcSubResource.baseMipLevel, srcImage->NumMips());
+    AssertDebug(dstNumLevels > 0 && dstSubResource.baseMipLevel + dstNumLevels <= NumMips(),
+        "Invalid destination mip level count: {} (base: {}, max: {})",
+        dstNumLevels, dstSubResource.baseMipLevel, NumMips());
+    AssertDebug(srcNumLayers > 0 && srcSubResource.baseArrayLayer + srcNumLayers <= srcImage->NumArrayLayers(),
+        "Invalid source array layer count: {} (base: {}, max: {})",
+        srcNumLayers, srcSubResource.baseArrayLayer, srcImage->NumArrayLayers());
+    AssertDebug(dstNumLayers > 0 && dstSubResource.baseArrayLayer + dstNumLayers <= NumArrayLayers(),
+        "Invalid destination array layer count: {} (base: {}, max: {})",
+        dstNumLayers, dstSubResource.baseArrayLayer, NumArrayLayers());
+
+    // Validate copy extent is non-zero
+    AssertDebug(extent.x > 0 && extent.y > 0 && extent.z > 0,
+        "Copy extent must be non-zero: ({}, {}, {})", extent.x, extent.y, extent.z);
 
     const bool srcIsDepthStencil = srcImage->GetTextureDesc().IsDepthStencil();
     const bool dstIsDepthStencil = m_textureDesc.IsDepthStencil();
@@ -946,6 +1072,29 @@ void DX12GpuImage::CopyFrom(
             NumMips(),
             NumArrayLayers());
 
+        // Validate offset and extent are within bounds for the base mip level
+        const Vec3u srcMipExtent = srcImage->GetTextureDesc().GetMipExtent(srcSubResource.baseMipLevel);
+        const Vec3u dstMipExtent = m_textureDesc.GetMipExtent(dstSubResource.baseMipLevel);
+
+        AssertDebug(srcOffset.x + extent.x <= srcMipExtent.x,
+            "Source copy region exceeds image bounds: offset.x({}) + extent.x({}) > mipWidth({})",
+            srcOffset.x, extent.x, srcMipExtent.x);
+        AssertDebug(srcOffset.y + extent.y <= srcMipExtent.y,
+            "Source copy region exceeds image bounds: offset.y({}) + extent.y({}) > mipHeight({})",
+            srcOffset.y, extent.y, srcMipExtent.y);
+        AssertDebug(srcOffset.z + extent.z <= srcMipExtent.z,
+            "Source copy region exceeds image bounds: offset.z({}) + extent.z({}) > mipDepth({})",
+            srcOffset.z, extent.z, srcMipExtent.z);
+        AssertDebug(dstOffset.x + extent.x <= dstMipExtent.x,
+            "Destination copy region exceeds image bounds: offset.x({}) + extent.x({}) > mipWidth({})",
+            dstOffset.x, extent.x, dstMipExtent.x);
+        AssertDebug(dstOffset.y + extent.y <= dstMipExtent.y,
+            "Destination copy region exceeds image bounds: offset.y({}) + extent.y({}) > mipHeight({})",
+            dstOffset.y, extent.y, dstMipExtent.y);
+        AssertDebug(dstOffset.z + extent.z <= dstMipExtent.z,
+            "Destination copy region exceeds image bounds: offset.z({}) + extent.z({}) > mipDepth({})",
+            dstOffset.z, extent.z, dstMipExtent.z);
+
         D3D12_BOX srcBox {};
         srcBox.left = srcOffset.x;
         srcBox.top = srcOffset.y;
@@ -962,9 +1111,13 @@ void DX12GpuImage::CopyFrom(
     }
     else
     {
-        for (uint16 layerIndex = 0; layerIndex < MathUtil::Min(srcSubResource.numLayers, srcImage->NumArrayLayers() - srcSubResource.baseArrayLayer); layerIndex++)
+        // Use resolved counts for iteration (handles UINT8_MAX/UINT16_MAX sentinel values)
+        const uint8 numLevelsToCopy = MathUtil::Min(srcNumLevels, dstNumLevels);
+        const uint16 numLayersToCopy = MathUtil::Min(srcNumLayers, dstNumLayers);
+
+        for (uint16 layerIndex = 0; layerIndex < numLayersToCopy; layerIndex++)
         {
-            for (uint8 mipLevel = 0; mipLevel < MathUtil::Min(srcSubResource.numLevels, srcImage->NumMips() - srcSubResource.baseMipLevel); mipLevel++)
+            for (uint8 mipLevel = 0; mipLevel < numLevelsToCopy; mipLevel++)
             {
                 const uint8 actualSrcMip = srcSubResource.baseMipLevel + mipLevel;
                 const uint8 actualDstMip = dstSubResource.baseMipLevel + mipLevel;
@@ -1012,10 +1165,38 @@ void DX12GpuImage::CopyFrom(
                 const Vec3u srcMipExtent = srcImage->GetTextureDesc().GetMipExtent(actualSrcMip);
                 const Vec3u dstMipExtent = m_textureDesc.GetMipExtent(actualDstMip);
 
+                // Validate offsets are within mip level bounds
+                AssertDebug(srcOffset.x < srcMipExtent.x,
+                    "Source offset.x({}) exceeds mip level {} width({})",
+                    srcOffset.x, actualSrcMip, srcMipExtent.x);
+                AssertDebug(srcOffset.y < srcMipExtent.y,
+                    "Source offset.y({}) exceeds mip level {} height({})",
+                    srcOffset.y, actualSrcMip, srcMipExtent.y);
+                AssertDebug(srcOffset.z < srcMipExtent.z,
+                    "Source offset.z({}) exceeds mip level {} depth({})",
+                    srcOffset.z, actualSrcMip, srcMipExtent.z);
+                AssertDebug(dstOffset.x < dstMipExtent.x,
+                    "Destination offset.x({}) exceeds mip level {} width({})",
+                    dstOffset.x, actualDstMip, dstMipExtent.x);
+                AssertDebug(dstOffset.y < dstMipExtent.y,
+                    "Destination offset.y({}) exceeds mip level {} height({})",
+                    dstOffset.y, actualDstMip, dstMipExtent.y);
+                AssertDebug(dstOffset.z < dstMipExtent.z,
+                    "Destination offset.z({}) exceeds mip level {} depth({})",
+                    dstOffset.z, actualDstMip, dstMipExtent.z);
+
                 // Clamp the copy extent to the mip level dimensions
-                const uint32 copyWidth = MathUtil::Min(extent.x, MathUtil::Min(srcMipExtent.x, dstMipExtent.x));
-                const uint32 copyHeight = MathUtil::Min(extent.y, MathUtil::Min(srcMipExtent.y, dstMipExtent.y));
-                const uint32 copyDepth = MathUtil::Min(extent.z, MathUtil::Min(srcMipExtent.z, dstMipExtent.z));
+                const uint32 copyWidth = MathUtil::Min(extent.x, MathUtil::Min(srcMipExtent.x - srcOffset.x, dstMipExtent.x - dstOffset.x));
+                const uint32 copyHeight = MathUtil::Min(extent.y, MathUtil::Min(srcMipExtent.y - srcOffset.y, dstMipExtent.y - dstOffset.y));
+                const uint32 copyDepth = MathUtil::Min(extent.z, MathUtil::Min(srcMipExtent.z - srcOffset.z, dstMipExtent.z - dstOffset.z));
+
+                // Warn if extent was clamped (may indicate incorrect copy parameters)
+                AssertDebug(copyWidth == extent.x && copyHeight == extent.y && copyDepth == extent.z,
+                    "Copy extent was clamped from ({}, {}, {}) to ({}, {}, {}) for mip {}. "
+                    "Source mip extent: ({}, {}, {}), Dest mip extent: ({}, {}, {})",
+                    extent.x, extent.y, extent.z, copyWidth, copyHeight, copyDepth, actualSrcMip,
+                    srcMipExtent.x, srcMipExtent.y, srcMipExtent.z,
+                    dstMipExtent.x, dstMipExtent.y, dstMipExtent.z);
 
                 D3D12_BOX srcBox {};
                 srcBox.left = srcOffset.x;

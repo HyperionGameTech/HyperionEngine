@@ -101,12 +101,13 @@ DX12RenderInterface::DX12RenderInterface()
     : descriptorHeapManager(PoolNew<DX12DescriptorHeapManager>(*g_renderPool)),
       m_renderConfig(MakePimpl<DX12RenderConfig>()),
       m_allocator(nullptr),
-      m_frameFenceEvent(nullptr)
+      m_frameFenceEvent(nullptr),
+      m_frameFenceIndex(0)
 {
     // Initialize fence values to 0 (no submissions yet)
     for (uint32 i = 0; i < NumFramesInFlight; i++)
     {
-        m_frameFenceValues[i] = 0;
+        m_frameFenceValues[i] = 1;
         m_submissionFrames[i] = -1;
     }
 }
@@ -354,6 +355,11 @@ const IRenderConfig& DX12RenderInterface::GetRenderConfig() const
     return *m_renderConfig;
 }
 
+bool DX12RenderInterface::CheckDeviceRemoved() const
+{
+    return CheckDeviceRemovedReason(m_device.Get());
+}
+
 DX12Frame* DX12RenderInterface::GetCurrentFrame() const
 {
     return m_frames[GetFrameCounter() % NumFramesInFlight].Get();
@@ -368,19 +374,27 @@ void DX12RenderInterface::PrepareFrame(DX12Frame* frame)
 
     if (m_submissionFrames[frameIndex] >= 0)
     {
-        uint64 currValue = m_frameFence->GetCompletedValue();
-        const uint64 waitForValue = m_frameFenceValues[frameIndex];
+        const uint64 waitForValue = uint64(m_submissionFrames[frameIndex]) + 1;
+        const uint64 currValue = m_frameFence->GetCompletedValue();
 
         if (currValue < waitForValue)
         {
             HRESULT hr = m_frameFence->SetEventOnCompletion(waitForValue, m_frameFenceEvent);
-            Assert(SUCCEEDED(hr));
+            if (FAILED(hr))
+            {
+                HYP_LOG(RenderingBackend, Error, "Failed to set fence completion event! Error: {}", hr);
+                CheckDeviceRemovedReason(m_device.Get());
+            }
 
             DWORD waitResult = WaitForSingleObject(m_frameFenceEvent, INFINITE);
-            Assert(waitResult == WAIT_OBJECT_0);
+            if (waitResult != WAIT_OBJECT_0)
+            {
+                HYP_LOG(RenderingBackend, Error, "Failed to wait for fence! Result: {}", waitResult);
+                CheckDeviceRemovedReason(m_device.Get());
+            }
         }
 
-        m_submissionFrames[frameIndex] = -1;
+        HYP_LOG_TEMP("Waited on {} on frame {}", waitForValue, frameIndex);
     }
 
     // call frame callbacks after fence is waited on
@@ -502,14 +516,21 @@ void DX12RenderInterface::PresentToSwapchain(DX12Swapchain* swapchain)
 
     frame->WriteCommandBuffer(commandBuffer);
 
-    const uint64 fenceValue = ++m_frameFenceValues[frameIndex];
-    m_submissionFrames[frameIndex] = int64(frameCounter);
-
     const DX12QueueData* queueData = GetQueueData(D3D12_COMMAND_LIST_TYPE_DIRECT);
     AssertDebug(queueData != nullptr);
 
-    HRESULT hr = queueData->commandQueue->Signal(m_frameFence.Get(), fenceValue);
-    Assert(SUCCEEDED(hr));
+    const uint64 signalValue = uint64(frameCounter) + 1;
+
+    HRESULT hr = queueData->commandQueue->Signal(m_frameFence.Get(), signalValue);
+    if (FAILED(hr))
+    {
+        HYP_LOG(RenderingBackend, Error, "Failed to signal frame fence! Error: {}", hr);
+        CheckDeviceRemovedReason(m_device.Get());
+    }
+
+    HYP_LOG_TEMP("Signalling {} on frame {}", signalValue, frameIndex);
+
+    m_submissionFrames[frameIndex] = int64(frameCounter);
 
     if (swapchain != nullptr)
     {
@@ -595,9 +616,14 @@ void DX12RenderInterface::SubmitTransientCommandBuffer(DX12CommandBuffer& comman
 
     ID3D12CommandList* commandLists[] = { commandBuffer.GetCommandList() };
     queueData->commandQueue->ExecuteCommandLists(ArraySize(commandLists), commandLists);
-    
+
     pFence->Increment();
-    queueData->commandQueue->Signal(pFence->GetD3D12Fence(), pFence->GetValue());
+    HRESULT hr = queueData->commandQueue->Signal(pFence->GetD3D12Fence(), pFence->GetValue());
+    if (FAILED(hr))
+    {
+        HYP_LOG(RenderingBackend, Error, "Failed to signal fence after executing command lists! Error: {}", hr);
+        CheckDeviceRemovedReason(m_device.Get());
+    }
 }
 
 void DX12RenderInterface::BindDescriptorHeaps(DX12CommandBuffer& commandBuffer)

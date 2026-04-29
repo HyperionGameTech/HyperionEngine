@@ -77,6 +77,11 @@ public:
         bool onlyDepth = false,
         bool onlyStencil = false) override;
 
+    /*! \brief Inserts a UAV barrier to ensure all UAV writes complete before subsequent reads.
+     *  Required in DX12 when reading from a subresource that was previously written as a UAV.
+     *  \param commandBuffer The command buffer to insert the barrier into. */
+    void InsertUAVBarrier(CommandBuffer* commandBuffer) override;
+
     void Blit(
         DX12CommandBuffer* commandBuffer,
         const DX12GpuImage* srcImage) override;

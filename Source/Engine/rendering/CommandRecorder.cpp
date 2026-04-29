@@ -28,6 +28,8 @@
 
 #include <rendering/util/ShaderCompiler.hpp>
 
+#include <Core/reflection/Enum.hpp>
+
 #include <scene/View.hpp>
 
 #include <util/MeshBuilder.hpp>
@@ -403,32 +405,45 @@ void BlitRect::InvokeStatic(CmdBase* cmd, CommandBuffer* commandBuffer)
     GpuImage* srcImage = cmdCasted->m_srcImage;
     GpuImage* dstImage = cmdCasted->m_dstImage;
 
+    // Validate inputs
+    if (!srcImage || !dstImage)
+    {
+        HYP_LOG(RenderingBackend, Warning, "BlitRect: Source or destination image is null");
+        return;
+    }
+
+    if (!srcImage->IsCreated() || !dstImage->IsCreated())
+    {
+        HYP_LOG(RenderingBackend, Warning, "BlitRect: Source or destination image is not created");
+        return;
+    }
+
+    // Check for format compatibility
+    if (srcImage->GetTextureFormat() != dstImage->GetTextureFormat())
+    {
+        HYP_LOG(RenderingBackend, Warning, "BlitRect: Source and destination formats do not match ({} != {})",
+            EnumToString(srcImage->GetTextureFormat()),
+            EnumToString(dstImage->GetTextureFormat()));
+        return;
+    }
+
     Rect<uint32> srcRect = cmdCasted->m_srcRect;
     Rect<uint32> dstRect = cmdCasted->m_dstRect;
 
     ImageSubResource srcSubResource;
     srcSubResource.baseMipLevel = 0;
-    srcSubResource.numLevels = uint8(cmdCasted->m_srcImage->NumMips());
+    srcSubResource.numLevels = 1; // Only copy mip 0 for BlitRect
     srcSubResource.baseArrayLayer = 0;
-    srcSubResource.numLayers = cmdCasted->m_srcImage->NumArrayLayers();
+    srcSubResource.numLayers = 1; // Only copy layer 0 for BlitRect
 
     ImageSubResource dstSubResource;
     dstSubResource.baseMipLevel = 0;
-    dstSubResource.numLevels = uint8(cmdCasted->m_dstImage->NumMips());
+    dstSubResource.numLevels = 1; // Only copy mip 0 for BlitRect
     dstSubResource.baseArrayLayer = 0;
-    dstSubResource.numLayers = cmdCasted->m_dstImage->NumArrayLayers();
-    
+    dstSubResource.numLayers = 1; // Only copy layer 0 for BlitRect
+
 #ifdef HYP_VULKAN
     dstImage->Blit(commandBuffer, srcImage, srcRect, dstRect, srcSubResource, dstSubResource);
-#else
-    //BlitImages(
-    //    cmdCasted->m_srcImage,
-    //    cmdCasted->m_dstImage,
-    //    cmdCasted->m_srcRect,
-    //    cmdCasted->m_dstRect,
-    //    srcSubResource,
-    //    dstSubResource,
-    //    commandBuffer);
 #endif
 }
 
@@ -504,6 +519,16 @@ void GenerateMipmaps::InvokeStatic(CmdBase* cmd, CommandBuffer* commandBuffer)
     const uint8 numMips = uint8(desc.NumMips());
     const uint16 numLayers = desc.NumArrayLayers();
 
+    if (!g_renderInterface->IsSupportedFormat(desc.format, ImageSupport::UnorderedAccess))
+    {
+        HYP_LOG(RenderingBackend, Warning, "Image format {} does not support UnorderedAccess, cannot generate mipmaps as it requires using a compute shader!",
+            EnumToString(desc.format));
+
+        return;
+    }
+
+    HYP_LOG_TEMP("Generate mipmaps for texture of type {}", EnumToString(desc.format));
+
     if (numMips < 2)
     {
         return;
@@ -517,6 +542,12 @@ void GenerateMipmaps::InvokeStatic(CmdBase* cmd, CommandBuffer* commandBuffer)
     /* Get a linear sampler */
     Sampler* linearSampler = g_renderInterface->samplerCache->GetOrCreate(
         SamplerDesc { TFM_LINEAR, TFM_LINEAR, TWM_REPEAT });
+
+    if (!linearSampler)
+    {
+        HYP_LOG(RenderingBackend, Error, "GenerateMipmaps: Failed to get linear sampler");
+        return;
+    }
 
     for (uint16 layer = 0; layer < numLayers; layer++)
     {
@@ -534,7 +565,13 @@ void GenerateMipmaps::InvokeStatic(CmdBase* cmd, CommandBuffer* commandBuffer)
             IU_SAMPLED | IU_STORAGE
         });
 
-        CheckResult(tempImage->Create());
+        RendererResult createResult = tempImage->Create();
+        if (!createResult)
+        {
+            HYP_LOG(RenderingBackend, Error, "GenerateMipmaps: Failed to create temp image: {}",
+                createResult.HasError() ? createResult.GetError().GetMessage() : "Unknown error");
+            continue;
+        }
 
         image->InsertBarrier(
             commandBuffer,
@@ -556,51 +593,76 @@ void GenerateMipmaps::InvokeStatic(CmdBase* cmd, CommandBuffer* commandBuffer)
             ImageSubResource { .baseMipLevel = 0, .numLevels = 1, .baseArrayLayer = layer, .numLayers = 1 },
             ImageSubResource { .baseMipLevel = 0, .numLevels = 1, .baseArrayLayer = 0, .numLayers = 1 });
 
-        /* Allocate per-mip views and uniforms for the temp image */
+        /* Allocate per-mip views and cbuffers for the temp image */
         Array<GpuImageViewRef> inputViews;
         Array<GpuImageViewRef> outputViews;
-        Array<GpuBufferRef> uniformBuffers;
+        Array<GpuBuffer*> cbuffers;
+        Array<size_t> cbufferOffsets;
+        Array<size_t> cbufferSizes;
 
         inputViews.Reserve(numMips - 1);
         outputViews.Reserve(numMips - 1);
-        uniformBuffers.Reserve(numMips - 1);
+        cbuffers.Reserve(numMips - 1);
+        cbufferOffsets.Reserve(numMips - 1);
+        cbufferSizes.Reserve(numMips - 1);
 
+        struct MipGenUniforms
+        {
+            Vec2u srcDimensions;
+            Vec2u dstDimensions;
+            uint32 srcMipLevel;
+            uint32 _padding[3]; // Ensure 256-byte alignment for DX12
+        };
+
+        // Allocate each mip's uniforms separately - each gets its own cbuffer
         for (uint8 mip = 1; mip < numMips; mip++)
         {
             const uint8 srcMip = mip - 1;
 
             GpuImageViewRef inputView = g_renderInterface->MakeImageView(
                 tempImage, srcMip, 1, 0, 1);
-            inputView->Create();
+            RendererResult inputViewResult = inputView->Create();
+            if (!inputViewResult)
+            {
+                HYP_LOG(RenderingBackend, Error, "GenerateMipmaps: Failed to create input view for mip {}: {}",
+                    srcMip, inputViewResult.HasError() ? inputViewResult.GetError().GetMessage() : "Unknown error");
+                // Continue anyway, will check validity before use
+            }
             inputViews.PushBack(std::move(inputView));
 
             GpuImageViewRef outputView = g_renderInterface->MakeImageView(
                 tempImage, mip, 1, 0, 1);
-            outputView->Create();
+            RendererResult outputViewResult = outputView->Create();
+            if (!outputViewResult)
+            {
+                HYP_LOG(RenderingBackend, Error, "GenerateMipmaps: Failed to create output view for mip {}: {}",
+                    mip, outputViewResult.HasError() ? outputViewResult.GetError().GetMessage() : "Unknown error");
+                // Continue anyway, will check validity before use
+            }
             outputViews.PushBack(std::move(outputView));
 
             const Vec3u srcExtent = desc.GetMipExtent(srcMip);
             const Vec3u dstExtent = desc.GetMipExtent(mip);
 
-            struct MipGenUniforms
-            {
-                Vec2u srcDimensions;
-                Vec2u dstDimensions;
-                uint32 srcMipLevel;
-                uint32 _padding[3];
-            } uniforms;
-
+            MipGenUniforms uniforms;
             uniforms.srcDimensions = { srcExtent.x, srcExtent.y };
             uniforms.dstDimensions = { dstExtent.x, dstExtent.y };
             uniforms.srcMipLevel = srcMip;
+            uniforms._padding[0] = 0;
+            uniforms._padding[1] = 0;
+            uniforms._padding[2] = 0;
 
-            GpuBufferRef uniformBuffer = g_renderInterface->MakeGpuBuffer(
-                GpuBufferType::ConstantBuffer, sizeof(MipGenUniforms));
-            uniformBuffer->Create();
-            uniformBuffer->Copy(sizeof(MipGenUniforms), &uniforms);
-            uniformBuffer->Flush(0, sizeof(MipGenUniforms));
-
-            uniformBuffers.PushBack(std::move(uniformBuffer));
+            // Write uniform data to cbuffer allocator and get this mip's cbuffer
+            g_renderInterface->cbufferAllocator->Write(&uniforms);
+            
+            GpuBuffer* mipCBuffer = nullptr;
+            size_t mipCBufferOffset = 0;
+            size_t mipCBufferSize = 0;
+            g_renderInterface->cbufferAllocator->Commit(mipCBuffer, mipCBufferOffset, mipCBufferSize);
+            
+            cbuffers.PushBack(mipCBuffer);
+            cbufferOffsets.PushBack(mipCBufferOffset);
+            cbufferSizes.PushBack(mipCBufferSize);
         }
 
         /* Dispatch compute mip generation on the temp image */
@@ -621,6 +683,13 @@ void GenerateMipmaps::InvokeStatic(CmdBase* cmd, CommandBuffer* commandBuffer)
                 RS_UNORDERED_ACCESS,
                 ShaderModuleType::None);
 
+            // Validate that the image view and cbuffer are valid before using
+            if (!inputViews[srcMip].IsValid() || !outputViews[srcMip].IsValid() || cbuffers[srcMip] == nullptr)
+            {
+                HYP_LOG(RenderingBackend, Error, "GenerateMipmaps: Invalid view or cbuffer at mip {}", mip);
+                continue;
+            }
+
             ShaderUniform& inputUniform = state.shaderUniforms[0];
             inputUniform = ShaderUniform("InputTexture"_sh, inputViews[srcMip].Get());
             state.dirtyUniforms |= 1u << 0;
@@ -629,10 +698,11 @@ void GenerateMipmaps::InvokeStatic(CmdBase* cmd, CommandBuffer* commandBuffer)
             outputUniform = ShaderUniform("OutputTexture"_sh, outputViews[srcMip].Get());
             state.dirtyUniforms |= 1u << 1;
 
+            // Use this mip's own cbuffer with dynamic offset
             ShaderUniform& ubUniform = state.shaderUniforms[2];
-            ubUniform = ShaderUniform("Constants"_sh, uniformBuffers[srcMip].Get());
-            state.shaderUniformBufferOffsets[2] = 0;
-            state.shaderUniformBufferOffsetStrides[2] = uint32(uniformBuffers[srcMip]->Size());
+            ubUniform = ShaderUniform("Constants"_sh, cbuffers[srcMip]);
+            state.shaderUniformBufferOffsets[2] = uint32(cbufferOffsets[srcMip]);
+            state.shaderUniformBufferOffsetStrides[2] = uint32(cbufferSizes[srcMip]);
             state.dirtyUniforms |= 1u << 2;
             state.dirtyBufferOffsets |= 1u << 2;
 
@@ -643,14 +713,27 @@ void GenerateMipmaps::InvokeStatic(CmdBase* cmd, CommandBuffer* commandBuffer)
             g_renderInterface->CommitPipelineState(PSO_Compute, commandBuffer);
 
             ComputePipeline* pipeline = state.boundComputePipeline;
-            AssertDebug(pipeline != nullptr);
+            if (!pipeline)
+            {
+                HYP_LOG(RenderingBackend, Error, "GenerateMipmaps: Failed to get compute pipeline for mip {}. "
+                    "Shader 'GenerateMipmap' may not be compiled or available.", mip);
+                continue;
+            }
 
             pipeline->Dispatch(commandBuffer, {
                 (dstExtent.x + 7) / 8,
                 (dstExtent.y + 7) / 8,
                 1
             });
+
+#ifdef HYP_DX12
+            tempImage->InsertUAVBarrier(commandBuffer);
+#endif
         }
+        
+#ifdef HYP_DX12
+        tempImage->InsertUAVBarrier(commandBuffer);
+#endif
 
         /* Copy each generated mip from the temp image back to the source */
         for (uint8 mip = 1; mip < numMips; mip++)
@@ -685,14 +768,8 @@ void GenerateMipmaps::InvokeStatic(CmdBase* cmd, CommandBuffer* commandBuffer)
                 ShaderModuleType::None);
         }
 
-        /* Clean up the temp image and its views */
-        for (auto& view : inputViews)
-            EnqueueDeletion(std::move(view));
-        for (auto& view : outputViews)
-            EnqueueDeletion(std::move(view));
-        for (auto& buf : uniformBuffers)
-            EnqueueDeletion(std::move(buf));
-
+        EnqueueDeletion(std::move(inputViews));
+        EnqueueDeletion(std::move(outputViews));
         EnqueueDeletion(std::move(tempImage));
     }
 

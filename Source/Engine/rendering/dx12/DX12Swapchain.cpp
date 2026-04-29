@@ -10,6 +10,7 @@
 #include <rendering/dx12/DX12RenderInterface.hpp>
 #include <rendering/dx12/DX12GpuImage.hpp>
 #include <rendering/dx12/DX12Framebuffer.hpp>
+#include <rendering/dx12/DX12Helpers.hpp>
 
 #include <DX12Swapchain.generated.inl>
 
@@ -304,10 +305,7 @@ void DX12Swapchain::PrepareForFrame(DX12Frame* frame)
     m_currentBackBufferIndex = m_swapChain->GetCurrentBackBufferIndex();
     m_acquiredImageIndex = m_currentBackBufferIndex;
 
-    for (uint32 i = 0; i < uint32(m_framebuffers.Size()); i++)
-    {
-        m_framebuffers[i]->ResetExternalRTResourceState();
-    }
+    m_framebuffers[m_currentBackBufferIndex]->ResetExternalRTResourceState();
 }
 
 void DX12Swapchain::PresentFrame(DX12Frame* frame)
@@ -338,6 +336,13 @@ void DX12Swapchain::PresentFrame(DX12Frame* frame)
     if (FAILED(hr) && hr != DXGI_ERROR_WAS_STILL_DRAWING)
     {
         HYP_LOG(RenderingBackend, Error, "Failed to present swapchain! Error: {}", hr);
+
+        // Check for device removal on device-related errors
+        if (hr == DXGI_ERROR_DEVICE_REMOVED || hr == DXGI_ERROR_DEVICE_RESET || hr == DXGI_ERROR_DEVICE_HUNG)
+        {
+            CheckDeviceRemovedReason(g_renderInterface->GetDevice());
+        }
+
         return;
     }
 

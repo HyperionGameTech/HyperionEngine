@@ -90,6 +90,10 @@ public:
         return m_frameFence.Get();
     }
 
+    /*! \brief Checks if the D3D12 device has been removed and logs the reason.
+     *  \return true if the device has been removed, false otherwise. */
+    bool CheckDeviceRemoved() const;
+
     DX12CommandBuffer& GetTransientCommandBuffer() override;
     void SubmitTransientCommandBuffer(DX12CommandBuffer& commandBuffer) override;
 
@@ -176,7 +180,10 @@ private:
 
     ComPtr<ID3D12Fence> m_frameFence;
     HANDLE m_frameFenceEvent;
+
     FixedArray<uint64, NumFramesInFlight> m_frameFenceValues;
+    uint8 m_frameFenceIndex;
+
     FixedArray<int64, NumFramesInFlight> m_submissionFrames;
 
     ComPtr<ID3D12DeviceRemovedExtendedDataSettings> m_dredSettings;

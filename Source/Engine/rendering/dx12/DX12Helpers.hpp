@@ -57,4 +57,9 @@ D3D12_UNORDERED_ACCESS_VIEW_DESC GetUAVDesc(DX12GpuImage* image, uint32 mipIndex
 
 D3D12_DESCRIPTOR_RANGE_TYPE ToDX12DescriptorRangeType(ShaderRegister reg);
 
+/*! \brief Checks if the device has been removed and logs the reason.
+ *  \param device The D3D12 device to check.
+ *  \return true if the device has been removed, false otherwise. */
+bool CheckDeviceRemovedReason(ID3D12Device* device);
+
 } // namespace Hyperion

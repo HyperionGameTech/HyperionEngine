@@ -215,7 +215,7 @@ RendererResult DX12ComputePipeline::BuildRootSignature()
     sigDesc.pParameters = rootParams.Data();
     sigDesc.NumStaticSamplers = 0;
     sigDesc.pStaticSamplers = nullptr;
-    sigDesc.Flags = D3D12_ROOT_SIGNATURE_FLAG_ALLOW_INPUT_ASSEMBLER_INPUT_LAYOUT;
+    sigDesc.Flags = D3D12_ROOT_SIGNATURE_FLAG_NONE;
 
     ComPtr<ID3DBlob> signature;
     ComPtr<ID3DBlob> error;

@@ -677,4 +677,49 @@ D3D12_DESCRIPTOR_RANGE_TYPE ToDX12DescriptorRangeType(ShaderRegister reg)
     }
 }
 
+bool CheckDeviceRemovedReason(ID3D12Device* device)
+{
+    if (device == nullptr)
+    {
+        return false;
+    }
+
+    HRESULT hr = device->GetDeviceRemovedReason();
+    if (SUCCEEDED(hr))
+    {
+        return false;
+    }
+
+    const char* reasonStr = "Unknown";
+
+    switch (hr)
+    {
+    case DXGI_ERROR_DEVICE_HUNG:
+        reasonStr = "DEVICE_HUNG - The device took too long to execute commands (GPU timeout/TDR)";
+        break;
+    case DXGI_ERROR_DEVICE_REMOVED:
+        reasonStr = "DEVICE_REMOVED - The device was physically removed or driver was upgraded";
+        break;
+    case DXGI_ERROR_DEVICE_RESET:
+        reasonStr = "DEVICE_RESET - The device was reset due to a driver error or GPU hang";
+        break;
+    case DXGI_ERROR_DRIVER_INTERNAL_ERROR:
+        reasonStr = "DRIVER_INTERNAL_ERROR - The driver encountered an internal error";
+        break;
+    case DXGI_ERROR_INVALID_CALL:
+        reasonStr = "INVALID_CALL - An invalid API call was made";
+        break;
+    case E_OUTOFMEMORY:
+        reasonStr = "OUT_OF_MEMORY - The GPU or system ran out of memory";
+        break;
+    default:
+        reasonStr = "Unknown device removal reason";
+        break;
+    }
+
+    HYP_LOG(RenderingBackend, Error, "D3D12 Device Removed! Reason: {} (HRESULT: {})", reasonStr, hr);
+
+    return true;
+}
+
 } // namespace Hyperion

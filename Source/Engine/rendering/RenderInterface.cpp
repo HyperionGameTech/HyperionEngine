@@ -1595,8 +1595,9 @@ void RenderInterface::CommitPipelineState(PSOType psoType, CommandBuffer* comman
         subResource.numLayers = MathUtil::Min(subResource.numLayers, image->NumArrayLayers() - subResource.baseArrayLayer);
         subResource.numLevels = MathUtil::Min(subResource.numLevels, image->NumMips() - subResource.baseMipLevel);
 
-        /*HYP_LOG_TEMP("Desire {} (mip: {} : {}) in resource state {} for {} shader input {}.", image->GetDebugName(), subResource.baseMipLevel, subResource.numLevels, EnumToString(desiredResourceState),
-            EnumToString(inputType), uniform.name);*/
+        //HYP_LOG_TEMP("Shader: {}  Desire {} (mip: {} : {}) in resource state {} for {} shader input {}.",
+        //    state.attributes.GetShaderName(),
+        //    image->GetDebugName(), subResource.baseMipLevel, subResource.numLevels, EnumToString(desiredResourceState), EnumToString(reg), uniform.name);
 
         if (image->GetResourceState() != desiredResourceState || image->HasSubResourceStates())
         {

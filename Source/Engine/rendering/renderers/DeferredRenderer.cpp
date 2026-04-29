@@ -3050,7 +3050,7 @@ void DeferredRenderer::GenerateMipChain(Frame* frame, const RenderSetup& rs, Ren
     frame->cr << InsertBarrier(mipmappedResult, RS_COPY_DST);
 
     // Blit into the mipmap chain img
-    frame->cr << BlitRect(
+    frame->cr << Blit(
         srcImage,
         mipmappedResult,
         Rect<uint32> { 0, 0, srcImage->GetExtent().x, srcImage->GetExtent().y },

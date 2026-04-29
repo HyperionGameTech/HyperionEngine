@@ -198,6 +198,11 @@ public:
 
     virtual RendererResult GenerateMipmaps(CommandBuffer* commandBuffer) = 0;
 
+    /*! \brief Inserts a UAV barrier to ensure UAV writes complete before subsequent reads.
+     *  Only required on some backends (DX12). Default implementation does nothing.
+     *  \param commandBuffer The command buffer to insert the barrier into. */
+    virtual void InsertUAVBarrier(CommandBuffer* commandBuffer) {}
+
     virtual void CopyFromBuffer(
         CommandBuffer* commandBuffer,
         const GpuBuffer* srcBuffer,
