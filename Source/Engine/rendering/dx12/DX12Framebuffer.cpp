@@ -249,7 +249,7 @@ void DX12Framebuffer::BeginCapture(DX12CommandBuffer* commandBuffer)
     ID3D12Device* device = g_renderInterface->GetDevice();
     const uint32 rtvIncrement = device->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_RTV);
 
-    // Transition attachments to render target/depth write state and collect handles
+        // Transition attachments to render target/depth write state and collect handles
     Array<D3D12_CPU_DESCRIPTOR_HANDLE> rtvHandles;
     D3D12_CPU_DESCRIPTOR_HANDLE dsvHandle = {};
     bool hasDSV = false;
@@ -260,17 +260,16 @@ void DX12Framebuffer::BeginCapture(DX12CommandBuffer* commandBuffer)
         DX12Attachment* attachment = it.second;
         DX12GpuImage* image = attachment->GetGpuImage();
 
-        // Reset tracked state before transition - ensures barrier is always emitted
+        // InsertBarrier transitions from the actual tracked state to the desired state
+        // and updates the tracked state to the target — do NOT reset beforehand
         if (attachment->IsDepthAttachment())
         {
-            image->ResetToAttachmentState();
             image->InsertBarrier(commandBuffer, RS_DEPTH_STENCIL, ShaderModuleType::Pixel);
             dsvHandle = m_dsvDescriptorHandle.cpuHandle;
             hasDSV = true;
         }
         else
         {
-            image->ResetToAttachmentState();
             image->InsertBarrier(commandBuffer, RS_RENDER_TARGET, ShaderModuleType::Pixel);
             
             D3D12_CPU_DESCRIPTOR_HANDLE rtvHandle = m_rtvDescriptorHandle.cpuHandle;
@@ -289,11 +288,35 @@ void DX12Framebuffer::BeginCapture(DX12CommandBuffer* commandBuffer)
             FALSE,
             hasDSV ? &dsvHandle : nullptr
         );
+
+        colorAttachmentIndex = 0;
+        for (auto& it : m_attachmentMap)
+        {
+            DX12Attachment* attachment = it.second;
+            if (attachment->IsDepthAttachment())
+            {
+                continue;
+            }
+
+            D3D12_CPU_DESCRIPTOR_HANDLE rtvHandle = m_rtvDescriptorHandle.cpuHandle;
+            rtvHandle.ptr += colorAttachmentIndex * rtvIncrement;
+
+            const Vec4f clearColor = attachment->GetClearColor();
+            commandList->ClearRenderTargetView(rtvHandle, clearColor.values, 0, nullptr);
+
+            colorAttachmentIndex++;
+        }
+
+        if (hasDSV)
+        {
+            commandList->ClearDepthStencilView(dsvHandle, D3D12_CLEAR_FLAG_DEPTH | D3D12_CLEAR_FLAG_STENCIL, 1.0f, 0, 0, nullptr);
+        }
     }
     else if (hasDSV)
     {
         // Depth only rendering
         commandList->OMSetRenderTargets(0, nullptr, FALSE, &dsvHandle);
+        commandList->ClearDepthStencilView(dsvHandle, D3D12_CLEAR_FLAG_DEPTH | D3D12_CLEAR_FLAG_STENCIL, 1.0f, 0, 0, nullptr);
     }
     else if (m_rtvDescriptorHandle.IsValid() && m_attachmentMap.Size() == 0)
     {

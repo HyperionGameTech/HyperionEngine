@@ -569,44 +569,40 @@ void DX12GpuImage::InsertBarrier(
                 NumMips(),
                 NumArrayLayers());
 
-            // Only issue barrier and update tracking if we know the current state
-            if (subResCurrentState != RS_UNDEFINED && subResCurrentState != RS_COMMON)
+            const D3D12_RESOURCE_STATES subResStateBefore = GetDX12State(subResCurrentState);
+
+            if (subResStateBefore != stateAfter)
             {
-                const D3D12_RESOURCE_STATES subResStateBefore = GetDX12State(subResCurrentState);
+                D3D12_RESOURCE_BARRIER barrier {};
+                barrier.Type = D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
+                barrier.Flags = D3D12_RESOURCE_BARRIER_FLAG_NONE;
+                barrier.Transition.pResource = m_resource.Get();
+                barrier.Transition.Subresource = subResourceIndex;
+                barrier.Transition.StateBefore = subResStateBefore;
+                barrier.Transition.StateAfter = stateAfter;
 
-                if (subResStateBefore != stateAfter)
-                {
-                    D3D12_RESOURCE_BARRIER barrier {};
-                    barrier.Type = D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
-                    barrier.Flags = D3D12_RESOURCE_BARRIER_FLAG_NONE;
-                    barrier.Transition.pResource = m_resource.Get();
-                    barrier.Transition.Subresource = subResourceIndex;
-                    barrier.Transition.StateBefore = subResStateBefore;
-                    barrier.Transition.StateAfter = stateAfter;
+                commandBuffer->GetCommandList()->ResourceBarrier(1, &barrier);
+            }
 
-                    commandBuffer->GetCommandList()->ResourceBarrier(1, &barrier);
-                }
+            // Update state tracking
+            if (onlyStencil)
+            {
+                // Stencil-only transitions: don't update per-subresource state
+                // (per-subresource tracking is for depth state only)
+            }
+            else if (stateIt != m_subResourceStates.End())
+            {
+                stateIt->second = newState;
 
-                // Update state tracking (only if we know the actual state)
-                if (onlyStencil)
+                if (stateIt->second == m_resourceState)
                 {
-                    // Stencil-only transitions: don't update per-subresource state
-                    // (per-subresource tracking is for depth state only)
+                    // same state as overall image, remove from set
+                    m_subResourceStates.Erase(stateIt);
                 }
-                else if (stateIt != m_subResourceStates.End())
-                {
-                    stateIt->second = newState;
-
-                    if (stateIt->second == m_resourceState)
-                    {
-                        // same state as overall image, remove from set
-                        m_subResourceStates.Erase(stateIt);
-                    }
-                }
-                else if (newState != m_resourceState)
-                {
-                    m_subResourceStates.Set(subResourceKey, newState);
-                }
+            }
+            else if (newState != m_resourceState)
+            {
+                m_subResourceStates.Set(subResourceKey, newState);
             }
         }
     }
