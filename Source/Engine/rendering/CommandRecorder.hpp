@@ -602,10 +602,7 @@ private:
 class GenerateMipmaps final : public CmdBase
 {
 public:
-    GenerateMipmaps(GpuImage* image)
-        : m_image(image)
-    {
-    }
+    GenerateMipmaps(GpuImage* image);
 
     static void InvokeStatic(CmdBase* cmd, CommandBuffer* commandBuffer);
 

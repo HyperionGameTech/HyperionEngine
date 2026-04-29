@@ -2074,8 +2074,9 @@ PassData* DeferredRenderer::CreateViewPassData(View* view, PassDataExt&)
             Vec3u(opaquePassFramebuffer->GetExtent(), 1),
             TFM_LINEAR_MIPMAP,
             TFM_LINEAR_MIPMAP,
-            TWM_CLAMP_TO_EDGE });
-
+            TWM_CLAMP_TO_EDGE
+        });
+        passData.mipChain->SetName(NAME("DeferredPassMipChain"));
         CheckResult(passData.mipChain->Create());
 
         passData.hbao = MakeUnique<HBAO>(gbuffer->GetExtent(), gbuffer);
@@ -3042,8 +3043,8 @@ void DeferredRenderer::GenerateMipChain(Frame* frame, const RenderSetup& rs, Ren
 
     DeferredRendererPassData* pd = DynamicCast<DeferredRendererPassData>(rs.passData);
 
-    const GpuImageRef& mipmappedResult = pd->mipChain->GetGpuImage();
-    Assert(mipmappedResult.IsValid());
+    GpuImage* mipmappedResult = pd->mipChain->GetGpuImage();
+    Assert(mipmappedResult != nullptr && mipmappedResult->IsCreated());
 
     frame->cr << InsertBarrier(srcImage, RS_COPY_SRC);
     frame->cr << InsertBarrier(mipmappedResult, RS_COPY_DST);

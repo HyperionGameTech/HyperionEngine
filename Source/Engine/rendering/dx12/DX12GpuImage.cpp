@@ -341,16 +341,7 @@ void DX12GpuImage::InsertBarrier(
     bool onlyStencil)
 {
     AssertDebug(newState != RS_UNDEFINED && newState != RS_PRE_INITIALIZED);
-
-    if (m_resource == nullptr)
-    {
-        HYP_LOG(
-            RenderingBackend,
-            Warning,
-            "Attempt to insert a resource barrier but image was not defined");
-
-        return;
-    }
+    AssertDebug(m_resource != nullptr);
 
     AssertDebug((subResource.baseArrayLayer + subResource.numLayers) <= NumArrayLayers()
         || (subResource.baseArrayLayer == 0 && subResource.numLayers == uint16(-1)));

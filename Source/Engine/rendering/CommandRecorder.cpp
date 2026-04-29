@@ -481,6 +481,12 @@ void CopyBufferToImage::InvokeStatic(CmdBase* cmd, CommandBuffer* commandBuffer)
 
 #pragma region GenerateMipmaps
 
+GenerateMipmaps::GenerateMipmaps(GpuImage* image)
+    : m_image(image)
+{
+    AssertDebug(image && image->IsCreated());
+}
+
 void GenerateMipmaps::InvokeStatic(CmdBase* cmd, CommandBuffer* commandBuffer)
 {
     GenerateMipmaps* cmdCasted = static_cast<GenerateMipmaps*>(cmd);
@@ -527,7 +533,8 @@ void GenerateMipmaps::InvokeStatic(CmdBase* cmd, CommandBuffer* commandBuffer)
             1, // numLayers
             IU_SAMPLED | IU_STORAGE
         });
-        tempImage->Create();
+
+        CheckResult(tempImage->Create());
 
         image->InsertBarrier(
             commandBuffer,
