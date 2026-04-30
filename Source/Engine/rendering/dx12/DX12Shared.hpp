@@ -18,8 +18,15 @@ using Microsoft::WRL::ComPtr;
  *  If a descriptor set doesn't have views or samplers, the corresponding index is ~0u. */
 struct DescriptorSetRootIndices
 {
+    static constexpr uint32 MaxDynamicEntries = 8;
+
     uint32 viewRootIndex = ~0u;     // Root parameter index for CBV/SRV/UAV descriptor table
     uint32 samplerRootIndex = ~0u;  // Root parameter index for sampler descriptor table
+
+    // Dynamic entries: root parameter indices for SetGraphicsRootConstantBufferView / SetGraphicsRootShaderResourceView / SetGraphicsRootUnorderedAccessView
+    // Stored in the same order as DescriptorSetLayout::GetDynamicElements() (sorted by binding)
+    uint32 dynamicEntryCount = 0;
+    uint32 dynamicEntryRootParamIndices[MaxDynamicEntries];
 };
 
 } // namespace Hyperion

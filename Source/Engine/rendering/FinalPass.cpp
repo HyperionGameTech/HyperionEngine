@@ -17,6 +17,8 @@
 #include <rendering/GraphicsPipeline.hpp>
 #include <rendering/DescriptorSet.hpp>
 #include <rendering/TextureViewCache.hpp>
+#include <rendering/CBufferAllocator.hpp>
+#include <rendering/StructuredBufferAllocator.hpp>
 
 #include <rendering/renderers/DeferredRenderer.hpp>
 #include <rendering/renderers/UIRenderer.hpp>
@@ -112,7 +114,7 @@ void FinalPass::Render(Frame* frame, const RenderSetup& rs)
 
     cr << SetInputLayout(StaticVertexInputLayout<VT_Simple>);
 
-    cr << SetCurrentShader(ShaderDesc(NAME("BlitTexture")));
+    cr << SetCurrentShader(ShaderDesc(NAME("FinalPass")));
 
     // Need blending to composite passes and ui
     cr << SetCurrentBlendFunction(BlendFunction(
@@ -130,12 +132,36 @@ void FinalPass::Render(Frame* frame, const RenderSetup& rs)
     cr << SetShaderUniform(0, "SamplerLinear"_sh, g_renderInterface->placeholderData->GetSamplerLinear());
     cr << SetShaderUniform(1, "WorldsBuffer"_sh, g_renderInterface->namedBuffers[NamedBuffer::Worlds].gpuBuffer);
 
+    {
+        struct FinalPassConstants
+        {
+            Vec4f color;
+        };
+
+        FinalPassConstants constants {};
+        constants.color = Vec4f(1.0f, 0.0f, 0.0f, 1.0f);
+
+        // GpuBuffer* cbuffer = nullptr;
+        // size_t cbufferOffset = 0;
+        // size_t cbufferSize = 0;
+
+        // g_renderInterface->cbufferAllocator->Write(&constants);
+        // g_renderInterface->cbufferAllocator->Commit(cbuffer, cbufferOffset, cbufferSize);
+
+        // cr << SetShaderUniform(2, "Constants"_sh, cbuffer, ShaderDataOffset(cbufferOffset, cbufferSize));
+
+        StructuredBuffer& sbuffer = g_renderInterface->sbufferAllocator->AcquireBuffer(1, sizeof(FinalPassConstants));
+        sbuffer.Write(0, sizeof(FinalPassConstants), &constants);
+        sbuffer.Flush();
+        cr << SetShaderUniform(2, "Constants"_sh, sbuffer.gpuBuffer);
+    }
+
     DeferredRenderer* dr = static_cast<DeferredRenderer*>(g_renderInterface->globalRenderers[GRT_MAIN][0]);
     AssertDebug(dr != nullptr);
 
     for (const DeferredRenderer::RenderedViewOutput& output : dr->GetRenderedViewOutputs().items)
     {
-        cr << SetShaderUniform(2, "InTexture"_sh, output.finalImageView);
+        cr << SetShaderUniform(3, "InTexture"_sh, output.finalImageView);
 
         cr << CommitDrawState();
 

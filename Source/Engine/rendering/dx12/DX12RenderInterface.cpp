@@ -456,6 +456,8 @@ void DX12RenderInterface::PrepareFrame(DX12Frame* frame)
     for (auto it = fences.Begin(); it != fences.End();)
     {
         DX12Fence& fence = *it;
+        HYP_LOG_TEMP("Waiting on transient command buffer {}, wait for fence value {} on frame {}", fence.GetDebugName(), fence.GetValue(), frameIndex);
+
         fence.Wait(true);
 
         m_recycledTransientCommandBufferFences.PushBack(std::move(fence));
@@ -603,21 +605,24 @@ void DX12RenderInterface::SubmitTransientCommandBuffer(DX12CommandBuffer& comman
         else
         {
             fence.Create();
+
+#ifdef HYP_DEBUG_MODE
+            wchar_t fenceNameBuf[64];
+            swprintf(fenceNameBuf, std::size(fenceNameBuf), L"Transient Fence [frame=%u]", frameIndex);
+            fence.SetDebugName(fenceNameBuf);
+#endif
         }
 
         pFence = &fence;
-
-#ifdef HYP_DEBUG_MODE
-        wchar_t fenceNameBuf[64];
-        swprintf(fenceNameBuf, std::size(fenceNameBuf), L"Transient Fence [frame=%u]", frameIndex);
-        fence.SetDebugName(fenceNameBuf);
-#endif
     }
 
     ID3D12CommandList* commandLists[] = { commandBuffer.GetCommandList() };
     queueData->commandQueue->ExecuteCommandLists(ArraySize(commandLists), commandLists);
 
     pFence->Increment();
+    
+    HYP_LOG_TEMP("Submitting transient command buffer {} with value {} on frame {}", pFence->GetDebugName(), pFence->GetValue(), frameIndex);
+
     HRESULT hr = queueData->commandQueue->Signal(pFence->GetD3D12Fence(), pFence->GetValue());
     if (FAILED(hr))
     {

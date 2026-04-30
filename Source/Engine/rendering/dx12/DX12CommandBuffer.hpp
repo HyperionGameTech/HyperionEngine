@@ -21,7 +21,11 @@ class DX12DescriptorSet;
 
 struct DX12CachedDescriptorSetBinding
 {
+    static constexpr uint32 MaxDynamicEntries = 4;
+
     const DX12DescriptorSet* descriptorSet = nullptr;
+    uint32 dynamicEntryCount = 0;
+    UINT64 dynamicEntryAddresses[MaxDynamicEntries];
 };
 
 HYP_CLASS(NoScriptBindings)

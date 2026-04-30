@@ -101,7 +101,7 @@ RendererResult DX12ShaderInstance::Create()
 #ifdef HYP_DEBUG_MODE
 void DX12ShaderInstance::SetDebugName(Name name)
 {
-    // @TODO
+    ShaderInstanceBase::SetDebugName(name);
 }
 #endif
 

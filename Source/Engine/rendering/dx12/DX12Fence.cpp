@@ -33,6 +33,10 @@ DX12Fence::DX12Fence(DX12Fence&& other) noexcept
     other.m_eventHandle = nullptr;
     other.m_value = 0;
     other.isSubmitted = false;
+
+#if HYP_DEBUG_MODE
+    m_debugName = std::move(other.m_debugName);
+#endif
 }
 
 DX12Fence& DX12Fence::operator=(DX12Fence&& other) noexcept
@@ -53,6 +57,10 @@ DX12Fence& DX12Fence::operator=(DX12Fence&& other) noexcept
         other.m_eventHandle = nullptr;
         other.m_value = 0;
         other.isSubmitted = false;
+
+#if HYP_DEBUG_MODE
+        m_debugName = std::move(other.m_debugName);
+#endif
     }
 
     return *this;
@@ -93,6 +101,13 @@ RendererResult DX12Fence::Create()
 
         return HYP_MAKE_ERROR(RendererError, "Failed to create D3D12 fence", hr);
     }
+
+#if HYP_DEBUG_MODE
+    if (m_debugName.Length() > 0)
+    {
+        m_fence->SetName(*m_debugName);
+    }
+#endif
 
     return {};
 }
@@ -143,15 +158,17 @@ void DX12Fence::Increment()
     isSubmitted = true;
 }
 
-void DX12Fence::SetDebugName(const wchar_t* name)
+#if HYP_DEBUG_MODE
+void DX12Fence::SetDebugName(const WideString& debugName)
 {
-#ifdef HYP_DEBUG_MODE
+    m_debugName = debugName;
+
     if (m_fence != nullptr)
     {
-        m_fence->SetName(name);
+        m_fence->SetName(*debugName);
     }
-#endif
 }
+#endif
 
 #pragma endregion DX12Fence
 

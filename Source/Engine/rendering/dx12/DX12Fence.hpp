@@ -45,12 +45,25 @@ public:
     RendererResult Wait(bool timeoutLoop = false);
     void Increment();
 
-    void SetDebugName(const wchar_t* name);
+#if HYP_DEBUG_MODE
+    void SetDebugName(const WideString& debugName);
 
+    HYP_FORCE_INLINE const WideString& GetDebugName() const
+    {
+        return m_debugName;
+    }
+#endif
+    
+    bool isSubmitted;
+
+private:
     ComPtr<ID3D12Fence> m_fence;
     HANDLE m_eventHandle;
     uint64 m_value;
-    bool isSubmitted;
+    
+#if HYP_DEBUG_MODE
+    WideString m_debugName;
+#endif
 };
 
 } // namespace Hyperion

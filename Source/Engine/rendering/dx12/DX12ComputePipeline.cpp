@@ -20,6 +20,8 @@
 
 #include <Core/math/MathUtil.hpp>
 
+#include <algorithm>
+
 #include <DX12ComputePipeline.generated.inl>
 
 namespace Hyperion {
@@ -158,6 +160,9 @@ RendererResult DX12ComputePipeline::BuildRootSignature()
 
         Array<D3D12_DESCRIPTOR_RANGE> viewRanges;
         Array<D3D12_DESCRIPTOR_RANGE> samplerRanges;
+
+        // Collect dynamic buffer entries (CBV_Dynamic / SRV_Dynamic / UAV_Dynamic) to create as root descriptor params
+        Array<const ShaderInput*> dynamicDeclarations;
         
         for (uint8 slotIndex = 0; slotIndex < NumDescriptorSlots; slotIndex++)
         {
@@ -170,6 +175,12 @@ RendererResult DX12ComputePipeline::BuildRootSignature()
 
             for (const ShaderInput& descDecl : declarations)
             {
+                if (descDecl.isDynamic && descDecl.category == ShaderResourceCategory::Buffer && descDecl.slot != ShaderRegister::SAMPLER)
+                {
+                    dynamicDeclarations.PushBack(&descDecl);
+                    continue;
+                }
+
                 Array<D3D12_DESCRIPTOR_RANGE>* currRanges = (descDecl.slot == ShaderRegister::SAMPLER ? &samplerRanges : &viewRanges);
 
                 D3D12_DESCRIPTOR_RANGE& range = currRanges->EmplaceBack();
@@ -181,9 +192,39 @@ RendererResult DX12ComputePipeline::BuildRootSignature()
             }
         }
 
+        // Sort dynamic declarations by flat index to match DescriptorSetLayout::GetDynamicElements() order
+        std::sort(dynamicDeclarations.Begin(), dynamicDeclarations.End(),
+            [pSetDecl](const ShaderInput* a, const ShaderInput* b)
+            {
+                return pSetDecl->CalculateFlatIndex(a->slot, a->name) < pSetDecl->CalculateFlatIndex(b->slot, b->name);
+            });
+
         DescriptorSetRootIndices& rootIndices = m_descriptorSetRootIndices[setDecl.setIndex];
         rootIndices.viewRootIndex = ~0u;
         rootIndices.samplerRootIndex = ~0u;
+        rootIndices.dynamicEntryCount = 0;
+
+        // Create root descriptor params for dynamic entries (before descriptor tables)
+        for (size_t i = 0; i < dynamicDeclarations.Size() && i < DescriptorSetRootIndices::MaxDynamicEntries; i++)
+        {
+            const ShaderInput* descDecl = dynamicDeclarations[i];
+
+            const D3D12_ROOT_PARAMETER_TYPE rootParamType = descDecl->type == ShaderInputType::CBV_Dynamic
+                ? D3D12_ROOT_PARAMETER_TYPE_CBV
+                : descDecl->type == ShaderInputType::UAV_Dynamic
+                    ? D3D12_ROOT_PARAMETER_TYPE_UAV
+                    : D3D12_ROOT_PARAMETER_TYPE_SRV;
+
+            D3D12_ROOT_PARAMETER& param = rootParams.EmplaceBack();
+            param = {};
+            param.ParameterType = rootParamType;
+            param.ShaderVisibility = D3D12_SHADER_VISIBILITY_ALL;
+            param.Descriptor.ShaderRegister = descDecl->index;
+            param.Descriptor.RegisterSpace = (UINT)setDecl.setIndex;
+
+            rootIndices.dynamicEntryRootParamIndices[i] = (uint32)(rootParams.Size() - 1);
+            rootIndices.dynamicEntryCount++;
+        }
 
         if (viewRanges.Any())
         {

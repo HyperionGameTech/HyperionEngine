@@ -125,9 +125,20 @@ RendererResult DX12DescriptorSet::Create()
         case ShaderInputType::SRV_Dynamic:
         case ShaderInputType::UAV:
         case ShaderInputType::UAV_Dynamic:
+        {
+            // Dynamic buffer entries are handled via root descriptors (SetGraphicsRootConstantBufferView etc.)
+            // and do not participate in the descriptor table
+            if (element.type == ShaderInputType::CBV_Dynamic
+                || element.type == ShaderInputType::SRV_Dynamic
+                || element.type == ShaderInputType::UAV_Dynamic)
+            {
+                break;
+            }
+
             m_viewBindingToHeapOffset.Set(element.binding, viewCount);
             viewCount += elementCount;
             break;
+        }
         case ShaderInputType::Sampler:
             m_samplerBindingToHeapOffset.Set(element.binding, samplerCount);
             samplerCount += elementCount;
@@ -403,6 +414,15 @@ void DX12DescriptorSet::Update(bool force)
             continue;
         }
 
+        // Dynamic buffer entries are handled via root descriptors at bind time,
+        // they do not participate in the descriptor table
+        if (layoutElement->type == ShaderInputType::CBV_Dynamic
+            || layoutElement->type == ShaderInputType::SRV_Dynamic
+            || layoutElement->type == ShaderInputType::UAV_Dynamic)
+        {
+            continue;
+        }
+
         D3D12_CPU_DESCRIPTOR_HANDLE destHandle {};
         destHandle.ptr = 0;
 
@@ -586,24 +606,99 @@ D3D12_CPU_DESCRIPTOR_HANDLE DX12DescriptorSet::GetSamplerCpuHandle(uint32 bindin
 
 void DX12DescriptorSet::Bind(DX12CommandBuffer* commandBuffer, const DX12GraphicsPipeline* pipeline, uint32 bindIndex) const
 {
+    DescriptorSetOffsetMap offsets {};
+    Bind(commandBuffer, pipeline, offsets, bindIndex);
+}
+
+void DX12DescriptorSet::Bind(DX12CommandBuffer* commandBuffer, const DX12GraphicsPipeline* pipeline, const DescriptorSetOffsetMap& offsets, uint32 bindIndex) const
+{
     Assert(m_isCreated);
 
+    const DescriptorSetRootIndices& rootIndices = pipeline->GetDescriptorSetRootIndices(bindIndex);
+
+    ID3D12GraphicsCommandList* commandList = commandBuffer->GetCommandList();
+
+    // Compute dynamic buffer addresses and apply via root descriptors
+    UINT64 dynamicEntryAddresses[DescriptorSetRootIndices::MaxDynamicEntries];
+    uint32 dynamicEntryCount = 0;
+
+    for (const Name& elementName : m_layout.GetDynamicElements())
+    {
+        const DescriptorSetLayoutElement* layoutElement = m_layout.GetElement(elementName);
+        Assert(layoutElement != nullptr);
+
+        if (layoutElement->type != ShaderInputType::CBV_Dynamic
+            && layoutElement->type != ShaderInputType::SRV_Dynamic
+            && layoutElement->type != ShaderInputType::UAV_Dynamic)
+        {
+            continue;
+        }
+
+        auto elementIt = m_elements.Find(elementName);
+        if (elementIt == m_elements.End())
+        {
+            continue;
+        }
+
+        const DescriptorSetElement& element = elementIt->second;
+        if (element.values.Empty())
+        {
+            continue;
+        }
+
+        DX12GpuBuffer* buffer = StaticCast<DX12GpuBuffer>(element.values[0]);
+        if (buffer == nullptr || !buffer->IsCreated())
+        {
+            continue;
+        }
+
+        uint32 offset = 0;
+        for (uint32 j = 0; j < offsets.count; j++)
+        {
+            if (offsets.keys[j] == StringHash(elementName))
+            {
+                offset = offsets.values[j];
+                break;
+            }
+        }
+
+        if (dynamicEntryCount < rootIndices.dynamicEntryCount)
+        {
+            const uint32 rootParamIndex = rootIndices.dynamicEntryRootParamIndices[dynamicEntryCount];
+            D3D12_GPU_VIRTUAL_ADDRESS gpuAddress = buffer->GetResource()->GetGPUVirtualAddress() + offset;
+            dynamicEntryAddresses[dynamicEntryCount] = gpuAddress;
+
+            switch (layoutElement->type)
+            {
+            case ShaderInputType::CBV_Dynamic:
+                commandList->SetGraphicsRootConstantBufferView(rootParamIndex, gpuAddress);
+                break;
+            case ShaderInputType::SRV_Dynamic:
+                commandList->SetGraphicsRootShaderResourceView(rootParamIndex, gpuAddress);
+                break;
+            case ShaderInputType::UAV_Dynamic:
+                commandList->SetGraphicsRootUnorderedAccessView(rootParamIndex, gpuAddress);
+                break;
+            }
+            dynamicEntryCount++;
+        }
+    }
+
+    // Check if the same descriptor set + offsets are already bound
     auto& boundDescriptorSets = commandBuffer->m_boundDescriptorSets;
 
     if (boundDescriptorSets.Size() <= bindIndex)
     {
         boundDescriptorSets.Resize(bindIndex + 1);
     }
-    else if (boundDescriptorSets[bindIndex].descriptorSet == this)
+    else if (boundDescriptorSets[bindIndex].descriptorSet == this
+             && boundDescriptorSets[bindIndex].dynamicEntryCount == dynamicEntryCount
+             && Memory::Compare(boundDescriptorSets[bindIndex].dynamicEntryAddresses, dynamicEntryAddresses, dynamicEntryCount * sizeof(UINT64)) == 0)
     {
         return;
     }
 
-    ID3D12GraphicsCommandList* commandList = commandBuffer->GetCommandList();
-
-    // Get the actual root parameter indices from the pipeline
-    const DescriptorSetRootIndices& rootIndices = pipeline->GetDescriptorSetRootIndices(bindIndex);
-
+    // Bind descriptor tables (view + sampler)
     if (m_viewDescriptorHandle.IsValid() && rootIndices.viewRootIndex != ~0u)
     {
         commandList->SetGraphicsRootDescriptorTable(rootIndices.viewRootIndex, m_viewDescriptorHandle.gpuHandle);
@@ -614,74 +709,218 @@ void DX12DescriptorSet::Bind(DX12CommandBuffer* commandBuffer, const DX12Graphic
         commandList->SetGraphicsRootDescriptorTable(rootIndices.samplerRootIndex, m_samplerDescriptorHandle.gpuHandle);
     }
 
+    // Update cache
     boundDescriptorSets[bindIndex].descriptorSet = this;
-}
-
-void DX12DescriptorSet::Bind(DX12CommandBuffer* commandBuffer, const DX12GraphicsPipeline* pipeline, const DescriptorSetOffsetMap& offsets, uint32 bindIndex) const
-{
-    // @TODO: Support dynamic offsets
-    Bind(commandBuffer, pipeline, bindIndex);
+    boundDescriptorSets[bindIndex].dynamicEntryCount = dynamicEntryCount;
+    Memory::Copy(boundDescriptorSets[bindIndex].dynamicEntryAddresses, dynamicEntryAddresses, dynamicEntryCount * sizeof(UINT64));
 }
 
 void DX12DescriptorSet::Bind(DX12CommandBuffer* commandBuffer, const DX12ComputePipeline* pipeline, uint32 bindIndex) const
 {
-    Assert(m_isCreated);
-
-    auto& boundDescriptorSets = commandBuffer->m_boundDescriptorSets;
-
-    if (boundDescriptorSets.Size() <= bindIndex)
-    {
-        boundDescriptorSets.Resize(bindIndex + 1);
-    }
-    else if (boundDescriptorSets[bindIndex].descriptorSet == this)
-    {
-        return;
-    }
-
-    ID3D12GraphicsCommandList* commandList = commandBuffer->GetCommandList();
-    
-    // Get the actual root parameter indices from the pipeline
-    const DescriptorSetRootIndices& rootIndices = pipeline->GetDescriptorSetRootIndices(bindIndex);
-    
-    if (m_viewDescriptorHandle.IsValid() && rootIndices.viewRootIndex != ~0u)
-    {
-        commandList->SetComputeRootDescriptorTable(rootIndices.viewRootIndex, m_viewDescriptorHandle.gpuHandle);
-    }
-    
-    if (m_samplerDescriptorHandle.IsValid() && rootIndices.samplerRootIndex != ~0u)
-    {
-        commandList->SetComputeRootDescriptorTable(rootIndices.samplerRootIndex, m_samplerDescriptorHandle.gpuHandle);
-    }
-
-    boundDescriptorSets[bindIndex].descriptorSet = this;
+    DescriptorSetOffsetMap offsets {};
+    Bind(commandBuffer, pipeline, offsets, bindIndex);
 }
 
 void DX12DescriptorSet::Bind(DX12CommandBuffer* commandBuffer, const DX12ComputePipeline* pipeline, const DescriptorSetOffsetMap& offsets, uint32 bindIndex) const
 {
-    // @TODO: Support dynamic offsets
-    Bind(commandBuffer, pipeline, bindIndex);
-}
-
-void DX12DescriptorSet::Bind(DX12CommandBuffer* commandBuffer, const DX12RayTracingPipeline* pipeline, uint32 bindIndex) const
-{
     Assert(m_isCreated);
 
+    const DescriptorSetRootIndices& rootIndices = pipeline->GetDescriptorSetRootIndices(bindIndex);
+
+    ID3D12GraphicsCommandList* commandList = commandBuffer->GetCommandList();
+
+    // Compute dynamic buffer addresses and apply via root descriptors
+    UINT64 dynamicEntryAddresses[DescriptorSetRootIndices::MaxDynamicEntries];
+    uint32 dynamicEntryCount = 0;
+
+    for (const Name& elementName : m_layout.GetDynamicElements())
+    {
+        const DescriptorSetLayoutElement* layoutElement = m_layout.GetElement(elementName);
+        Assert(layoutElement != nullptr);
+
+        if (layoutElement->type != ShaderInputType::CBV_Dynamic
+            && layoutElement->type != ShaderInputType::SRV_Dynamic
+            && layoutElement->type != ShaderInputType::UAV_Dynamic)
+        {
+            continue;
+        }
+
+        auto elementIt = m_elements.Find(elementName);
+        if (elementIt == m_elements.End())
+        {
+            continue;
+        }
+
+        const DescriptorSetElement& element = elementIt->second;
+        if (element.values.Empty())
+        {
+            continue;
+        }
+
+        DX12GpuBuffer* buffer = StaticCast<DX12GpuBuffer>(element.values[0]);
+        if (buffer == nullptr || !buffer->IsCreated())
+        {
+            continue;
+        }
+
+        uint32 offset = 0;
+        for (uint32 j = 0; j < offsets.count; j++)
+        {
+            if (offsets.keys[j] == StringHash(elementName))
+            {
+                offset = offsets.values[j];
+                break;
+            }
+        }
+
+        if (dynamicEntryCount < rootIndices.dynamicEntryCount)
+        {
+            const uint32 rootParamIndex = rootIndices.dynamicEntryRootParamIndices[dynamicEntryCount];
+            D3D12_GPU_VIRTUAL_ADDRESS gpuAddress = buffer->GetResource()->GetGPUVirtualAddress() + offset;
+            dynamicEntryAddresses[dynamicEntryCount] = gpuAddress;
+
+            switch (layoutElement->type)
+            {
+            case ShaderInputType::CBV_Dynamic:
+                commandList->SetComputeRootConstantBufferView(rootParamIndex, gpuAddress);
+                break;
+            case ShaderInputType::SRV_Dynamic:
+                commandList->SetComputeRootShaderResourceView(rootParamIndex, gpuAddress);
+                break;
+            case ShaderInputType::UAV_Dynamic:
+                commandList->SetComputeRootUnorderedAccessView(rootParamIndex, gpuAddress);
+                break;
+            }
+            dynamicEntryCount++;
+        }
+    }
+
+    // Check if the same descriptor set + offsets are already bound
     auto& boundDescriptorSets = commandBuffer->m_boundDescriptorSets;
 
     if (boundDescriptorSets.Size() <= bindIndex)
     {
         boundDescriptorSets.Resize(bindIndex + 1);
     }
-    else if (boundDescriptorSets[bindIndex].descriptorSet == this)
+    else if (boundDescriptorSets[bindIndex].descriptorSet == this
+             && boundDescriptorSets[bindIndex].dynamicEntryCount == dynamicEntryCount
+             && Memory::Compare(boundDescriptorSets[bindIndex].dynamicEntryAddresses, dynamicEntryAddresses, dynamicEntryCount * sizeof(UINT64)) == 0)
     {
         return;
     }
 
-    ID3D12GraphicsCommandList* commandList = commandBuffer->GetCommandList();
+    // Bind descriptor tables (view + sampler) for compute
+    if (m_viewDescriptorHandle.IsValid() && rootIndices.viewRootIndex != ~0u)
+    {
+        commandList->SetComputeRootDescriptorTable(rootIndices.viewRootIndex, m_viewDescriptorHandle.gpuHandle);
+    }
+    
+    if (m_samplerDescriptorHandle.IsValid() && rootIndices.samplerRootIndex != ~0u)
+    {
+        commandList->SetComputeRootDescriptorTable(rootIndices.samplerRootIndex, m_samplerDescriptorHandle.gpuHandle);
+    }
 
-    // Get the actual root parameter indices from the pipeline
+    // Update cache
+    boundDescriptorSets[bindIndex].descriptorSet = this;
+    boundDescriptorSets[bindIndex].dynamicEntryCount = dynamicEntryCount;
+    Memory::Copy(boundDescriptorSets[bindIndex].dynamicEntryAddresses, dynamicEntryAddresses, dynamicEntryCount * sizeof(UINT64));
+}
+
+void DX12DescriptorSet::Bind(DX12CommandBuffer* commandBuffer, const DX12RayTracingPipeline* pipeline, uint32 bindIndex) const
+{
+    DescriptorSetOffsetMap offsets {};
+    Bind(commandBuffer, pipeline, offsets, bindIndex);
+}
+
+void DX12DescriptorSet::Bind(DX12CommandBuffer* commandBuffer, const DX12RayTracingPipeline* pipeline, const DescriptorSetOffsetMap& offsets, uint32 bindIndex) const
+{
+    Assert(m_isCreated);
+
     const DescriptorSetRootIndices& rootIndices = pipeline->GetDescriptorSetRootIndices(bindIndex);
 
+    ID3D12GraphicsCommandList* commandList = commandBuffer->GetCommandList();
+
+    // Compute dynamic buffer addresses and apply via root descriptors
+    UINT64 dynamicEntryAddresses[DescriptorSetRootIndices::MaxDynamicEntries];
+    uint32 dynamicEntryCount = 0;
+
+    for (const Name& elementName : m_layout.GetDynamicElements())
+    {
+        const DescriptorSetLayoutElement* layoutElement = m_layout.GetElement(elementName);
+        Assert(layoutElement != nullptr);
+
+        if (layoutElement->type != ShaderInputType::CBV_Dynamic
+            && layoutElement->type != ShaderInputType::SRV_Dynamic
+            && layoutElement->type != ShaderInputType::UAV_Dynamic)
+        {
+            continue;
+        }
+
+        auto elementIt = m_elements.Find(elementName);
+        if (elementIt == m_elements.End())
+        {
+            continue;
+        }
+
+        const DescriptorSetElement& element = elementIt->second;
+        if (element.values.Empty())
+        {
+            continue;
+        }
+
+        DX12GpuBuffer* buffer = StaticCast<DX12GpuBuffer>(element.values[0]);
+        if (buffer == nullptr || !buffer->IsCreated())
+        {
+            continue;
+        }
+
+        uint32 offset = 0;
+        for (uint32 j = 0; j < offsets.count; j++)
+        {
+            if (offsets.keys[j] == StringHash(elementName))
+            {
+                offset = offsets.values[j];
+                break;
+            }
+        }
+
+        if (dynamicEntryCount < rootIndices.dynamicEntryCount)
+        {
+            const uint32 rootParamIndex = rootIndices.dynamicEntryRootParamIndices[dynamicEntryCount];
+            D3D12_GPU_VIRTUAL_ADDRESS gpuAddress = buffer->GetResource()->GetGPUVirtualAddress() + offset;
+            dynamicEntryAddresses[dynamicEntryCount] = gpuAddress;
+
+            switch (layoutElement->type)
+            {
+            case ShaderInputType::CBV_Dynamic:
+                commandList->SetComputeRootConstantBufferView(rootParamIndex, gpuAddress);
+                break;
+            case ShaderInputType::SRV_Dynamic:
+                commandList->SetComputeRootShaderResourceView(rootParamIndex, gpuAddress);
+                break;
+            case ShaderInputType::UAV_Dynamic:
+                commandList->SetComputeRootUnorderedAccessView(rootParamIndex, gpuAddress);
+                break;
+            }
+            dynamicEntryCount++;
+        }
+    }
+
+    // Check if the same descriptor set + offsets are already bound
+    auto& boundDescriptorSets = commandBuffer->m_boundDescriptorSets;
+
+    if (boundDescriptorSets.Size() <= bindIndex)
+    {
+        boundDescriptorSets.Resize(bindIndex + 1);
+    }
+    else if (boundDescriptorSets[bindIndex].descriptorSet == this
+             && boundDescriptorSets[bindIndex].dynamicEntryCount == dynamicEntryCount
+             && Memory::Compare(boundDescriptorSets[bindIndex].dynamicEntryAddresses, dynamicEntryAddresses, dynamicEntryCount * sizeof(UINT64)) == 0)
+    {
+        return;
+    }
+
+    // Bind descriptor tables (view + sampler) for compute (ray tracing uses compute queues)
     if (m_viewDescriptorHandle.IsValid() && rootIndices.viewRootIndex != ~0u)
     {
         commandList->SetComputeRootDescriptorTable(rootIndices.viewRootIndex, m_viewDescriptorHandle.gpuHandle);
@@ -692,13 +931,10 @@ void DX12DescriptorSet::Bind(DX12CommandBuffer* commandBuffer, const DX12RayTrac
         commandList->SetComputeRootDescriptorTable(rootIndices.samplerRootIndex, m_samplerDescriptorHandle.gpuHandle);
     }
 
+    // Update cache
     boundDescriptorSets[bindIndex].descriptorSet = this;
-}
-
-void DX12DescriptorSet::Bind(DX12CommandBuffer* commandBuffer, const DX12RayTracingPipeline* pipeline, const DescriptorSetOffsetMap& offsets, uint32 bindIndex) const
-{
-    // @TODO: Support dynamic offsets
-    Bind(commandBuffer, pipeline, bindIndex);
+    boundDescriptorSets[bindIndex].dynamicEntryCount = dynamicEntryCount;
+    Memory::Copy(boundDescriptorSets[bindIndex].dynamicEntryAddresses, dynamicEntryAddresses, dynamicEntryCount * sizeof(UINT64));
 }
 
 DescriptorSetRef DX12DescriptorSet::Clone() const
