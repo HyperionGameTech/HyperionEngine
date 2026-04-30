@@ -151,9 +151,10 @@ void FinalPass::Render(Frame* frame, const RenderSetup& rs)
         // cr << SetShaderUniform(2, "Constants"_sh, cbuffer, ShaderDataOffset(cbufferOffset, cbufferSize));
 
         StructuredBuffer& sbuffer = g_renderInterface->sbufferAllocator->AcquireBuffer(1, sizeof(FinalPassConstants));
+        sbuffer.gpuBuffer->SetDebugName(NAME("FinalPass_Buffer"));
         sbuffer.Write(0, sizeof(FinalPassConstants), &constants);
         sbuffer.Flush();
-        cr << SetShaderUniform(2, "Constants"_sh, sbuffer.gpuBuffer);
+        cr << SetShaderUniform(2, "Constants"_sh, sbuffer.gpuBuffer, ShaderDataOffset(0, sbuffer.gpuBuffer->Size()));
     }
 
     DeferredRenderer* dr = static_cast<DeferredRenderer*>(g_renderInterface->globalRenderers[GRT_MAIN][0]);

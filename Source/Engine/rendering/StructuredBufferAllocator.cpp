@@ -97,6 +97,9 @@ struct StructuredBufferAllocatorImpl
             {
                 CachedStructuredBuffer& entry = usedBuffers.PushBack(std::move(*it));
                 entry.lastUsedFrame = GetFrameCounter();
+#if HYP_DEBUG_MODE
+                entry.buffer.gpuBuffer->SetDebugName(NAME("StructuredBuffer"));
+#endif
 
                 cachedBuffers.Erase(it);
 
@@ -114,6 +117,10 @@ struct StructuredBufferAllocatorImpl
 
         newEntry.buffer = StructuredBuffer(numElementsAligned, elementSize);
         newEntry.buffer.Initialize();
+
+#if HYP_DEBUG_MODE
+        newEntry.buffer.gpuBuffer->SetDebugName(NAME("StructuredBuffer"));
+#endif
 
         return newEntry.buffer;
     }

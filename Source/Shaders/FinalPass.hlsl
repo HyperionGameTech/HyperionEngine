@@ -17,7 +17,7 @@ struct InConstants
     float4 DebugColor;
 };
 
-DECLARE_SRV(FinalPass, Constants) StructuredBuffer<InConstants> Constants;
+DECLARE_SRV_DYNAMIC(FinalPass, Constants) StructuredBuffer<InConstants> Constants;
 
 #ifdef VERTEX_SHADER
 
@@ -68,7 +68,8 @@ PSOutput PSMain(PSInput input)
 
     float2 texcoord = input.texcoord;
 
-    output.color_output = Constants[0].DebugColor;//SAMPLE_TEXTURE_2D_LOD(sampler_linear, src_image, texcoord, 0.0);
+    output.color_output = Constants[0].DebugColor;
+    // output.color_output = SAMPLE_TEXTURE_2D_LOD(sampler_linear, src_image, texcoord, 0.0);
 
     return output;
 }

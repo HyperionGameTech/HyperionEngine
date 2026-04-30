@@ -527,8 +527,6 @@ void GenerateMipmaps::InvokeStatic(CmdBase* cmd, CommandBuffer* commandBuffer)
         return;
     }
 
-    HYP_LOG_TEMP("Generate mipmaps for texture of type {}", EnumToString(desc.format));
-
     if (numMips < 2)
     {
         return;
@@ -611,7 +609,6 @@ void GenerateMipmaps::InvokeStatic(CmdBase* cmd, CommandBuffer* commandBuffer)
             Vec2u srcDimensions;
             Vec2u dstDimensions;
             uint32 srcMipLevel;
-            uint32 _padding[3]; // Ensure 256-byte alignment for DX12
         };
 
         // Allocate each mip's uniforms separately - each gets its own cbuffer
@@ -648,9 +645,6 @@ void GenerateMipmaps::InvokeStatic(CmdBase* cmd, CommandBuffer* commandBuffer)
             uniforms.srcDimensions = { srcExtent.x, srcExtent.y };
             uniforms.dstDimensions = { dstExtent.x, dstExtent.y };
             uniforms.srcMipLevel = srcMip;
-            uniforms._padding[0] = 0;
-            uniforms._padding[1] = 0;
-            uniforms._padding[2] = 0;
 
             // Write uniform data to cbuffer allocator and get this mip's cbuffer
             g_renderInterface->cbufferAllocator->Write(&uniforms);
