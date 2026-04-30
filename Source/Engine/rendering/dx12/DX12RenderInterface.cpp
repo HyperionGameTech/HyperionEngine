@@ -394,7 +394,7 @@ void DX12RenderInterface::PrepareFrame(DX12Frame* frame)
             }
         }
 
-        HYP_LOG_TEMP("Waited on {} on frame {}", waitForValue, frameIndex);
+        // HYP_LOG_TEMP("Waited on {} on frame {}", waitForValue, frameIndex);
     }
 
     // call frame callbacks after fence is waited on
@@ -456,7 +456,7 @@ void DX12RenderInterface::PrepareFrame(DX12Frame* frame)
     for (auto it = fences.Begin(); it != fences.End();)
     {
         DX12Fence& fence = *it;
-        HYP_LOG_TEMP("Waiting on transient command buffer {}, wait for fence value {} on frame {}", fence.GetDebugName(), fence.GetValue(), frameIndex);
+        //HYP_LOG_TEMP("Waiting on transient command buffer {}, wait for fence value {} on frame {}", fence.GetDebugName(), fence.GetValue(), frameIndex);
 
         fence.Wait(true);
 
@@ -530,7 +530,7 @@ void DX12RenderInterface::PresentToSwapchain(DX12Swapchain* swapchain)
         CheckDeviceRemovedReason(m_device.Get());
     }
 
-    HYP_LOG_TEMP("Signalling {} on frame {}", signalValue, frameIndex);
+    // HYP_LOG_TEMP("Signalling {} on frame {}", signalValue, frameIndex);
 
     m_submissionFrames[frameIndex] = int64(frameCounter);
 
@@ -621,7 +621,7 @@ void DX12RenderInterface::SubmitTransientCommandBuffer(DX12CommandBuffer& comman
 
     pFence->Increment();
     
-    HYP_LOG_TEMP("Submitting transient command buffer {} with value {} on frame {}", pFence->GetDebugName(), pFence->GetValue(), frameIndex);
+    // HYP_LOG_TEMP("Submitting transient command buffer {} with value {} on frame {}", pFence->GetDebugName(), pFence->GetValue(), frameIndex);
 
     HRESULT hr = queueData->commandQueue->Signal(pFence->GetD3D12Fence(), pFence->GetValue());
     if (FAILED(hr))

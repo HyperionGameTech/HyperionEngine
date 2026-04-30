@@ -368,6 +368,8 @@ RendererResult DX12GraphicsPipeline::Rebuild()
             D3D12_RENDER_TARGET_BLEND_DESC& rtBlend = psoDesc.BlendState.RenderTarget[rtIndex];
             rtBlend = {};
 
+            rtBlend.RenderTargetWriteMask = D3D12_COLOR_WRITE_ENABLE_ALL;
+
             if (enableBlend && TextureUtils::FormatSupportsBlending(attachmentDesc.format))
             {
                 rtBlend.BlendEnable = TRUE;
@@ -378,7 +380,6 @@ RendererResult DX12GraphicsPipeline::Rebuild()
                 rtBlend.DestBlendAlpha = ToDX12Blend(m_blendFunction.GetDstAlpha());
                 rtBlend.BlendOpAlpha = D3D12_BLEND_OP_ADD;
                 rtBlend.LogicOpEnable = FALSE;
-                rtBlend.RenderTargetWriteMask = D3D12_COLOR_WRITE_ENABLE_ALL;
             }
 
             psoDesc.RTVFormats[rtIndex] = ToDXGIFormat(attachmentDesc.format, DX12ViewType::RTV_DSV);

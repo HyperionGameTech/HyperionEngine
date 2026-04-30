@@ -42,6 +42,7 @@ PostFXPass::PostFXPass(
       m_stage(stage),
       m_effectIndex(effectIndex)
 {
+    SetPassName(NAME("PostFX"));
 }
 
 PostFXPass::~PostFXPass()

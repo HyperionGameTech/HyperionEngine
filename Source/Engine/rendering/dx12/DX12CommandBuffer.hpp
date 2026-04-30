@@ -24,6 +24,7 @@ struct DX12CachedDescriptorSetBinding
     static constexpr uint32 MaxDynamicEntries = 4;
 
     const DX12DescriptorSet* descriptorSet = nullptr;
+    uint16 updateVersion = 0;
     uint32 dynamicEntryCount = 0;
     UINT64 dynamicEntryAddresses[MaxDynamicEntries];
 };

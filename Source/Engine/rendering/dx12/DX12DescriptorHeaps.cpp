@@ -146,8 +146,7 @@ void DX12DescriptorHeapManager::Shutdown()
 
 DX12DescriptorHandle DX12DescriptorHeapManager::Allocate(DX12DescriptorHeapType heapType, uint32 count)
 {
-    const DX12Frame* currentFrame = g_renderInterface->GetCurrentFrame();
-    const uint8 currentFrameIndex = currentFrame ? (uint8)currentFrame->GetFrameIndex() : 0;
+    const uint8 currentFrameIndex = (uint8)(GetFrameCounter() % NumFramesInFlight);
 
     return m_descriptorAllocators[uint32(heapType)]->Allocate(currentFrameIndex, count);
 }

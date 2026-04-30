@@ -53,6 +53,7 @@ CVar<float> cvHBAOPower { "Rendering.HBAOPower", 2.5f, "Rendering.HBAO.Power" };
 HBAO::HBAO(Vec2u extent, GBuffer* gbuffer)
     : FullScreenPass(TextureFormat::R16F, extent, gbuffer)
 {
+    SetPassName(NAME("HBAO"));
 }
 
 HBAO::~HBAO()

@@ -12,13 +12,6 @@ DECLARE_SRV(FinalPass, WorldsBuffer) StructuredBuffer<WorldShaderData> _worlds_b
 
 DECLARE_SRV(FinalPass, InTexture) Texture2D src_image;
 
-struct InConstants
-{
-    float4 DebugColor;
-};
-
-DECLARE_SRV_DYNAMIC(FinalPass, Constants) StructuredBuffer<InConstants> Constants;
-
 #ifdef VERTEX_SHADER
 
 struct VSInput
@@ -68,8 +61,7 @@ PSOutput PSMain(PSInput input)
 
     float2 texcoord = input.texcoord;
 
-    output.color_output = Constants[0].DebugColor;
-    // output.color_output = SAMPLE_TEXTURE_2D_LOD(sampler_linear, src_image, texcoord, 0.0);
+    output.color_output = SAMPLE_TEXTURE_2D_LOD(sampler_linear, src_image, texcoord, 0.0);
 
     return output;
 }

@@ -311,6 +311,7 @@ DeferredPass::DeferredPass(DeferredPassMode mode, Vec2u extent, GBuffer* gbuffer
       m_mode(mode),
       m_ltcSampler(nullptr)
 {
+    SetPassName(NAME("Deferred"));
     Assert(m_framebuffer.IsValid());
 
     SetBlendFunction(BlendFunction(BMF_ONE, BMF_ONE, BMF_ONE, BMF_ONE));
@@ -764,6 +765,7 @@ void DeferredPass::RenderToFramebuffer_Internal(Frame* frame, const RenderSetup&
 TonemapPass::TonemapPass(Vec2u extent, GBuffer* gbuffer)
     : FullScreenPass(TextureFormat::R11G11B10F, extent, gbuffer)
 {
+    SetPassName(NAME("Tonemap"));
 }
 
 TonemapPass::~TonemapPass()
@@ -875,6 +877,7 @@ struct LightmapVolumeUniforms
 LightmapPass::LightmapPass()
     : FullScreenPass(TextureFormat::RGBA16F, nullptr, FSP_EXTERNAL_RENDERTARGET)
 {
+    SetPassName(NAME("Lightmap"));
     m_shaderDesc = ShaderDesc(NAME("ApplyLightmap"));
 }
 
@@ -1047,6 +1050,7 @@ static constexpr uint32 MaxBoundLightsPerFogVolume = 4;
 FogVolumePass::FogVolumePass()
     : FullScreenPass(TextureFormat::RGBA16F, nullptr, FSP_EXTERNAL_RENDERTARGET)
 {
+    SetPassName(NAME("FogVolume"));
 }
 
 FogVolumePass::~FogVolumePass()
@@ -1253,6 +1257,7 @@ ReflectionsPass::ReflectionsPass(Vec2u extent, GBuffer* gbuffer, const GpuImageV
       m_mipChainImageView(mipChainImageView),
       m_isFirstFrame(true)
 {
+    SetPassName(NAME("Reflections"));
     m_shaderDesc = ShaderDesc(NAME("ApplyReflectionProbe"));
 
     SetBlendFunction(BlendFunction(

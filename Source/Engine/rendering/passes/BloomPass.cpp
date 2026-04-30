@@ -76,6 +76,7 @@ BloomPass::BloomPass(Vec2u extent, GBuffer* gbuffer)
     : FullScreenPass(TextureFormat::RGBA16F, extent, gbuffer),
       m_samplerClampToEdge(g_renderInterface->samplerCache->GetOrCreate(SamplerDesc { TFM_LINEAR, TFM_LINEAR, TWM_CLAMP_TO_EDGE }))
 {
+    SetPassName(NAME("Bloom"));
 }
 
 BloomPass::~BloomPass() = default;

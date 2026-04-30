@@ -249,7 +249,7 @@ void DX12Framebuffer::BeginCapture(DX12CommandBuffer* commandBuffer)
     ID3D12Device* device = g_renderInterface->GetDevice();
     const uint32 rtvIncrement = device->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_RTV);
 
-        // Transition attachments to render target/depth write state and collect handles
+    // Transition attachments to render target state and collect handles
     Array<D3D12_CPU_DESCRIPTOR_HANDLE> rtvHandles;
     D3D12_CPU_DESCRIPTOR_HANDLE dsvHandle = {};
     bool hasDSV = false;
@@ -260,24 +260,56 @@ void DX12Framebuffer::BeginCapture(DX12CommandBuffer* commandBuffer)
     {
         DX12Attachment* attachment = it.second;
         DX12GpuImage* image = attachment->GetGpuImage();
+        const AttachmentDesc& attachmentDesc = attachment->GetAttachmentDesc();
 
-        // InsertBarrier transitions from the actual tracked state to the desired state
-        // and updates the tracked state to the target - do NOT reset beforehand
         if (attachment->IsDepthAttachment())
         {
-            image->InsertBarrier(commandBuffer, RS_DEPTH_STENCIL, ShaderModuleType::Pixel);
             dsvHandle = m_dsvDescriptorHandle.cpuHandle;
             hasDSV = true;
             depthLoadOp = attachment->GetLoadOperation();
         }
         else
         {
-            image->InsertBarrier(commandBuffer, RS_RENDER_TARGET, ShaderModuleType::Pixel);
-            
             D3D12_CPU_DESCRIPTOR_HANDLE rtvHandle = m_rtvDescriptorHandle.cpuHandle;
             rtvHandle.ptr += colorAttachmentIndex * rtvIncrement;
             rtvHandles.PushBack(rtvHandle);
             colorAttachmentIndex++;
+        }
+
+        // Transition to render target state - matching VulkanRenderPass::Begin() logic.
+        // Uses RS_RENDER_TARGET for all attachments; InsertBarrier internally remaps
+        // depth attachments to DEPTH_WRITE.
+        const GpuImageViewRef& imageView = attachment->GetImageView();
+        const ImageSubResource& subResource = imageView->GetImageSubResource();
+        const TextureDesc& textureDesc = image->GetTextureDesc();
+
+        const bool hasStencil = TextureUtils::HasStencilComponent(textureDesc.format);
+        const bool fullSubResource = image->IsFullSubResource(subResource);
+
+        if (hasStencil && fullSubResource)
+        {
+            const bool transitionDepth = !attachmentDesc.onlyStencil && image->GetResourceState() != RS_RENDER_TARGET;
+            const bool transitionStencil = !attachmentDesc.onlyDepth && image->GetStencilState() != RS_RENDER_TARGET;
+
+            if (transitionDepth ^ transitionStencil)
+            {
+                if (transitionDepth)
+                    image->InsertBarrier(commandBuffer, RS_RENDER_TARGET, ShaderModuleType::Pixel, /* onlyDepth */ true, /* onlyStencil */ false);
+                if (transitionStencil)
+                    image->InsertBarrier(commandBuffer, RS_RENDER_TARGET, ShaderModuleType::Pixel, /* onlyDepth */ false, /* onlyStencil */ true);
+            }
+            else if (transitionDepth && transitionStencil)
+            {
+                image->InsertBarrier(commandBuffer, RS_RENDER_TARGET, ShaderModuleType::Pixel);
+            }
+        }
+        else if (fullSubResource)
+        {
+            image->InsertBarrier(commandBuffer, RS_RENDER_TARGET, ShaderModuleType::Pixel);
+        }
+        else if (image->GetSubResourceState(subResource) != RS_RENDER_TARGET)
+        {
+            image->InsertBarrier(commandBuffer, subResource, RS_RENDER_TARGET, ShaderModuleType::Pixel);
         }
     }
 
@@ -365,23 +397,9 @@ void DX12Framebuffer::EndCapture(DX12CommandBuffer* commandBuffer)
 {
     Assert(m_isRecording);
 
-    // Transition attachments back to shader readable state
-    for (auto& it : m_attachmentMap)
-    {
-        DX12Attachment* attachment = it.second;
-        DX12GpuImage* image = attachment->GetGpuImage();
-
-        if (attachment->IsDepthAttachment())
-        {
-            // Transition depth attachment to shader readable state
-            image->InsertBarrier(commandBuffer, RS_SHADER_RESOURCE, ShaderModuleType::Pixel);
-        }
-        else
-        {
-            // Transition color attachment to shader readable state
-            image->InsertBarrier(commandBuffer, RS_SHADER_RESOURCE, ShaderModuleType::Pixel);
-        }
-    }
+    // Attachments stay in RS_RENDER_TARGET state -- no barriers needed here.
+    // SRV transitions are handled by DX12RenderInterface when the images
+    // are bound as shader resources later in the frame.
 
     // Transition external RTV (swapchain back buffer) back to present state
     if (m_externalRTResource != nullptr && m_attachmentMap.Size() == 0)

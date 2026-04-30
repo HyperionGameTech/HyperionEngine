@@ -32,6 +32,7 @@ extern DX12RenderInterface* g_renderInterface;
 
 DX12DescriptorSet::DX12DescriptorSet(const DescriptorSetLayout& layout)
     : DescriptorSetBase(layout),
+      m_updateVersion(0),
       m_isCreated(false)
 {
     for (auto& it : m_layout.GetElements())
@@ -542,6 +543,7 @@ void DX12DescriptorSet::Update(bool force)
                     imageView->GetMipIndex(), imageView->NumMips(),
                     imageView->GetLayerIndex(), imageView->NumArrayLayers());
 
+                // @TODO needs atomic count resource
                 device->CreateUnorderedAccessView(imageView->GetImage()->GetResource(), nullptr, &uavDesc, destHandle);
             }
             else
@@ -572,6 +574,8 @@ void DX12DescriptorSet::Update(bool force)
         DescriptorSetElement& element = it.second;
         element.dirtyRange = Range<uint32>::Invalid();
     }
+
+    ++m_updateVersion;
 
     m_pendingDescriptors.Clear();
 }
@@ -692,8 +696,9 @@ void DX12DescriptorSet::Bind(DX12CommandBuffer* commandBuffer, const DX12Graphic
         boundDescriptorSets.Resize(bindIndex + 1);
     }
     else if (boundDescriptorSets[bindIndex].descriptorSet == this
-             && boundDescriptorSets[bindIndex].dynamicEntryCount == dynamicEntryCount
-             && Memory::Compare(boundDescriptorSets[bindIndex].dynamicEntryAddresses, dynamicEntryAddresses, dynamicEntryCount * sizeof(UINT64)) == 0)
+        && boundDescriptorSets[bindIndex].dynamicEntryCount == dynamicEntryCount
+        && boundDescriptorSets[bindIndex].updateVersion == m_updateVersion
+        && Memory::Compare(boundDescriptorSets[bindIndex].dynamicEntryAddresses, dynamicEntryAddresses, dynamicEntryCount * sizeof(UINT64)) == 0)
     {
         return;
     }
@@ -711,6 +716,7 @@ void DX12DescriptorSet::Bind(DX12CommandBuffer* commandBuffer, const DX12Graphic
 
     // Update cache
     boundDescriptorSets[bindIndex].descriptorSet = this;
+    boundDescriptorSets[bindIndex].updateVersion = m_updateVersion;
     boundDescriptorSets[bindIndex].dynamicEntryCount = dynamicEntryCount;
     Memory::Copy(boundDescriptorSets[bindIndex].dynamicEntryAddresses, dynamicEntryAddresses, dynamicEntryCount * sizeof(UINT64));
 }
@@ -803,8 +809,9 @@ void DX12DescriptorSet::Bind(DX12CommandBuffer* commandBuffer, const DX12Compute
         boundDescriptorSets.Resize(bindIndex + 1);
     }
     else if (boundDescriptorSets[bindIndex].descriptorSet == this
-             && boundDescriptorSets[bindIndex].dynamicEntryCount == dynamicEntryCount
-             && Memory::Compare(boundDescriptorSets[bindIndex].dynamicEntryAddresses, dynamicEntryAddresses, dynamicEntryCount * sizeof(UINT64)) == 0)
+        && boundDescriptorSets[bindIndex].dynamicEntryCount == dynamicEntryCount
+        && boundDescriptorSets[bindIndex].updateVersion == m_updateVersion
+        && Memory::Compare(boundDescriptorSets[bindIndex].dynamicEntryAddresses, dynamicEntryAddresses, dynamicEntryCount * sizeof(UINT64)) == 0)
     {
         return;
     }
@@ -822,6 +829,7 @@ void DX12DescriptorSet::Bind(DX12CommandBuffer* commandBuffer, const DX12Compute
 
     // Update cache
     boundDescriptorSets[bindIndex].descriptorSet = this;
+    boundDescriptorSets[bindIndex].updateVersion = m_updateVersion;
     boundDescriptorSets[bindIndex].dynamicEntryCount = dynamicEntryCount;
     Memory::Copy(boundDescriptorSets[bindIndex].dynamicEntryAddresses, dynamicEntryAddresses, dynamicEntryCount * sizeof(UINT64));
 }
@@ -914,8 +922,9 @@ void DX12DescriptorSet::Bind(DX12CommandBuffer* commandBuffer, const DX12RayTrac
         boundDescriptorSets.Resize(bindIndex + 1);
     }
     else if (boundDescriptorSets[bindIndex].descriptorSet == this
-             && boundDescriptorSets[bindIndex].dynamicEntryCount == dynamicEntryCount
-             && Memory::Compare(boundDescriptorSets[bindIndex].dynamicEntryAddresses, dynamicEntryAddresses, dynamicEntryCount * sizeof(UINT64)) == 0)
+        && boundDescriptorSets[bindIndex].dynamicEntryCount == dynamicEntryCount
+        && boundDescriptorSets[bindIndex].updateVersion == m_updateVersion
+        && Memory::Compare(boundDescriptorSets[bindIndex].dynamicEntryAddresses, dynamicEntryAddresses, dynamicEntryCount * sizeof(UINT64)) == 0)
     {
         return;
     }
@@ -933,6 +942,7 @@ void DX12DescriptorSet::Bind(DX12CommandBuffer* commandBuffer, const DX12RayTrac
 
     // Update cache
     boundDescriptorSets[bindIndex].descriptorSet = this;
+    boundDescriptorSets[bindIndex].updateVersion = m_updateVersion;
     boundDescriptorSets[bindIndex].dynamicEntryCount = dynamicEntryCount;
     Memory::Copy(boundDescriptorSets[bindIndex].dynamicEntryAddresses, dynamicEntryAddresses, dynamicEntryCount * sizeof(UINT64));
 }

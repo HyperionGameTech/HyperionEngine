@@ -103,7 +103,8 @@ private:
     DX12DescriptorHandle m_viewDescriptorHandle;
     DX12DescriptorHandle m_samplerDescriptorHandle;
 
-    bool m_isCreated = false;
+    uint16 m_updateVersion;
+    bool m_isCreated : 1;
 };
 
 HYP_CLASS(NoScriptBindings)

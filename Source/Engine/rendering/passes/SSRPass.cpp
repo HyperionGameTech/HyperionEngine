@@ -74,6 +74,7 @@ SSRPass::SSRPass(GBuffer* gbuffer, const GpuImageViewRef& mipChainImageView)
       m_sampleGbuffer(nullptr),
       m_isRendered(false)
 {
+    SetPassName(NAME("SSR"));
 }
 
 SSRPass::~SSRPass()

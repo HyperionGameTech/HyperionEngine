@@ -78,7 +78,15 @@ public:
 
     virtual ~FullScreenPass();
 
-    virtual Name GetName() const;
+    virtual Name GetName() const
+    {
+        return m_passName;
+    }
+
+    HYP_FORCE_INLINE void SetPassName(Name name)
+    {
+        m_passName = name;
+    }
 
     HYP_FORCE_INLINE const Vec2u& GetExtent() const
     {
@@ -181,6 +189,8 @@ protected:
     ShaderDesc m_shaderDesc;
 
     bool m_isFirstFrame;
+
+    Name m_passName = NAME("FullScreenPass");
 
 private:
     void CreateTemporalBlending();

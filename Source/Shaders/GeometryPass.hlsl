@@ -354,6 +354,9 @@ PSOutput PSMain(PSInput input)
 
     uint mask = input.object_mask;
 
+    // temp debug
+    output.gbuffer_albedo = float4(1.0, 0.0, 0.0, 1.0);
+
     GBufferMaterialParams materialParams;
     materialParams.roughness = roughness;
     materialParams.metalness = metalness;

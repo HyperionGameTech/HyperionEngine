@@ -132,31 +132,6 @@ void FinalPass::Render(Frame* frame, const RenderSetup& rs)
     cr << SetShaderUniform(0, "SamplerLinear"_sh, g_renderInterface->placeholderData->GetSamplerLinear());
     cr << SetShaderUniform(1, "WorldsBuffer"_sh, g_renderInterface->namedBuffers[NamedBuffer::Worlds].gpuBuffer);
 
-    {
-        struct FinalPassConstants
-        {
-            Vec4f color;
-        };
-
-        FinalPassConstants constants {};
-        constants.color = Vec4f(1.0f, 0.0f, 0.0f, 1.0f);
-
-        // GpuBuffer* cbuffer = nullptr;
-        // size_t cbufferOffset = 0;
-        // size_t cbufferSize = 0;
-
-        // g_renderInterface->cbufferAllocator->Write(&constants);
-        // g_renderInterface->cbufferAllocator->Commit(cbuffer, cbufferOffset, cbufferSize);
-
-        // cr << SetShaderUniform(2, "Constants"_sh, cbuffer, ShaderDataOffset(cbufferOffset, cbufferSize));
-
-        StructuredBuffer& sbuffer = g_renderInterface->sbufferAllocator->AcquireBuffer(1, sizeof(FinalPassConstants));
-        sbuffer.gpuBuffer->SetDebugName(NAME("FinalPass_Buffer"));
-        sbuffer.Write(0, sizeof(FinalPassConstants), &constants);
-        sbuffer.Flush();
-        cr << SetShaderUniform(2, "Constants"_sh, sbuffer.gpuBuffer, ShaderDataOffset(0, sbuffer.gpuBuffer->Size()));
-    }
-
     DeferredRenderer* dr = static_cast<DeferredRenderer*>(g_renderInterface->globalRenderers[GRT_MAIN][0]);
     AssertDebug(dr != nullptr);
 

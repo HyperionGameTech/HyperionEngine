@@ -114,6 +114,7 @@ struct SSGIConstants
 SSGI::SSGI(GBuffer* gbuffer)
     : FullScreenPass(SSGIFormat, gbuffer, FSP_EXTERNAL_RENDERTARGET)
 {
+    SetPassName(NAME("SSGI"));
 }
 
 SSGI::~SSGI()

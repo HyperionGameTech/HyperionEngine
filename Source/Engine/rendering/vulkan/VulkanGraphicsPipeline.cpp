@@ -200,9 +200,10 @@ RendererResult VulkanGraphicsPipeline::Rebuild()
 
     VkViewport vkViewport {};
     vkViewport.x = float(m_viewport.position.x);
-    vkViewport.y = float(m_viewport.position.y);
+    // Use negative height and adjust y to flip Y coordinate to match DX12's NDC (Y-up)
+    vkViewport.y = float(m_viewport.position.y) + float(m_viewport.extent.y);
     vkViewport.width = float(m_viewport.extent.x);
-    vkViewport.height = float(m_viewport.extent.y);
+    vkViewport.height = -float(m_viewport.extent.y);
     vkViewport.minDepth = 0.0f;
     vkViewport.maxDepth = 1.0f;
 
@@ -219,7 +220,9 @@ RendererResult VulkanGraphicsPipeline::Rebuild()
     VkPipelineRasterizationStateCreateInfo rasterizer { VK_STRUCTURE_TYPE_PIPELINE_RASTERIZATION_STATE_CREATE_INFO };
     rasterizer.depthClampEnable = m_depthClamp ? VK_TRUE : VK_FALSE;
     rasterizer.rasterizerDiscardEnable = VK_FALSE;
-    rasterizer.frontFace = VK_FRONT_FACE_COUNTER_CLOCKWISE;
+    // Use clockwise winding to account for the Y-flip (negative viewport height)
+    // which reverses the apparent winding of triangles to match DX12
+    rasterizer.frontFace = VK_FRONT_FACE_CLOCKWISE;
 
     switch (m_faceCullMode)
     {
@@ -460,9 +463,10 @@ void VulkanGraphicsPipeline::UpdateViewport(
 
     VkViewport vkViewport {};
     vkViewport.x = float(viewport.position.x);
-    vkViewport.y = float(viewport.position.y);
+    // Use negative height and adjust y to flip Y coordinate to match DX12's NDC (Y-up)
+    vkViewport.y = float(viewport.position.y) + float(viewport.extent.y);
     vkViewport.width = float(viewport.extent.x);
-    vkViewport.height = float(viewport.extent.y);
+    vkViewport.height = -float(viewport.extent.y);
     vkViewport.minDepth = 0.0f;
     vkViewport.maxDepth = 1.0f;
     vkCmdSetViewport(commandBuffer->GetVulkanHandle(), 0, 1, &vkViewport);

@@ -116,7 +116,7 @@ Mat4f Mat4f::Perspective(float fov, int w, int h, float n, float f)
 
     mat[0][0] = 1.0f / (tanHalfFov * ar);
 
-    mat[1][1] = -(1.0f / (tanHalfFov));
+    mat[1][1] = 1.0f / tanHalfFov;
 
     mat[2][2] = (-n - f) / range;
     mat[2][3] = (2.0f * f * n) / range;
