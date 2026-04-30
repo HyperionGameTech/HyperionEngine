@@ -8,6 +8,7 @@
 
 #include <rendering/dx12/DX12RayTracingPipeline.hpp>
 #include <rendering/dx12/DX12RenderInterface.hpp>
+#include <rendering/dx12/DX12CommandBuffer.hpp>
 
 #include <DX12RayTracingPipeline.generated.inl>
 
@@ -44,6 +45,11 @@ RendererResult DX12RayTracingPipeline::Create()
 
 void DX12RayTracingPipeline::Bind(CommandBuffer* commandBuffer)
 {
+    DX12CommandBuffer* dx12CommandBuffer = static_cast<DX12CommandBuffer*>(commandBuffer);
+    Assert(dx12CommandBuffer != nullptr);
+
+    dx12CommandBuffer->ResetBoundDescriptorSets();
+
     // @TODO
 }
 

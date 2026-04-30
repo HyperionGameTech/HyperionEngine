@@ -225,6 +225,8 @@ void DX12GraphicsPipeline::Bind(DX12CommandBuffer* commandBuffer, Vec2i viewport
     
     commandBuffer->GetCommandList()->SetGraphicsRootSignature(m_rootSignature.Get());
 
+    commandBuffer->ResetBoundDescriptorSets();
+
     if (viewportExtent != Vec2u::Zero())
     {
         Viewport viewport;

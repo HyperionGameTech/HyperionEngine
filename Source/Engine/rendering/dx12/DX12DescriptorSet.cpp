@@ -588,6 +588,17 @@ void DX12DescriptorSet::Bind(DX12CommandBuffer* commandBuffer, const DX12Graphic
 {
     Assert(m_isCreated);
 
+    auto& boundDescriptorSets = commandBuffer->m_boundDescriptorSets;
+
+    if (boundDescriptorSets.Size() <= bindIndex)
+    {
+        boundDescriptorSets.Resize(bindIndex + 1);
+    }
+    else if (boundDescriptorSets[bindIndex].descriptorSet == this)
+    {
+        return;
+    }
+
     ID3D12GraphicsCommandList* commandList = commandBuffer->GetCommandList();
 
     // Get the actual root parameter indices from the pipeline
@@ -602,6 +613,8 @@ void DX12DescriptorSet::Bind(DX12CommandBuffer* commandBuffer, const DX12Graphic
     {
         commandList->SetGraphicsRootDescriptorTable(rootIndices.samplerRootIndex, m_samplerDescriptorHandle.gpuHandle);
     }
+
+    boundDescriptorSets[bindIndex].descriptorSet = this;
 }
 
 void DX12DescriptorSet::Bind(DX12CommandBuffer* commandBuffer, const DX12GraphicsPipeline* pipeline, const DescriptorSetOffsetMap& offsets, uint32 bindIndex) const
@@ -614,6 +627,17 @@ void DX12DescriptorSet::Bind(DX12CommandBuffer* commandBuffer, const DX12Compute
 {
     Assert(m_isCreated);
 
+    auto& boundDescriptorSets = commandBuffer->m_boundDescriptorSets;
+
+    if (boundDescriptorSets.Size() <= bindIndex)
+    {
+        boundDescriptorSets.Resize(bindIndex + 1);
+    }
+    else if (boundDescriptorSets[bindIndex].descriptorSet == this)
+    {
+        return;
+    }
+
     ID3D12GraphicsCommandList* commandList = commandBuffer->GetCommandList();
     
     // Get the actual root parameter indices from the pipeline
@@ -628,6 +652,8 @@ void DX12DescriptorSet::Bind(DX12CommandBuffer* commandBuffer, const DX12Compute
     {
         commandList->SetComputeRootDescriptorTable(rootIndices.samplerRootIndex, m_samplerDescriptorHandle.gpuHandle);
     }
+
+    boundDescriptorSets[bindIndex].descriptorSet = this;
 }
 
 void DX12DescriptorSet::Bind(DX12CommandBuffer* commandBuffer, const DX12ComputePipeline* pipeline, const DescriptorSetOffsetMap& offsets, uint32 bindIndex) const
@@ -640,6 +666,17 @@ void DX12DescriptorSet::Bind(DX12CommandBuffer* commandBuffer, const DX12RayTrac
 {
     Assert(m_isCreated);
 
+    auto& boundDescriptorSets = commandBuffer->m_boundDescriptorSets;
+
+    if (boundDescriptorSets.Size() <= bindIndex)
+    {
+        boundDescriptorSets.Resize(bindIndex + 1);
+    }
+    else if (boundDescriptorSets[bindIndex].descriptorSet == this)
+    {
+        return;
+    }
+
     ID3D12GraphicsCommandList* commandList = commandBuffer->GetCommandList();
 
     // Get the actual root parameter indices from the pipeline
@@ -654,6 +691,8 @@ void DX12DescriptorSet::Bind(DX12CommandBuffer* commandBuffer, const DX12RayTrac
     {
         commandList->SetComputeRootDescriptorTable(rootIndices.samplerRootIndex, m_samplerDescriptorHandle.gpuHandle);
     }
+
+    boundDescriptorSets[bindIndex].descriptorSet = this;
 }
 
 void DX12DescriptorSet::Bind(DX12CommandBuffer* commandBuffer, const DX12RayTracingPipeline* pipeline, const DescriptorSetOffsetMap& offsets, uint32 bindIndex) const

@@ -253,6 +253,7 @@ void DX12Framebuffer::BeginCapture(DX12CommandBuffer* commandBuffer)
     Array<D3D12_CPU_DESCRIPTOR_HANDLE> rtvHandles;
     D3D12_CPU_DESCRIPTOR_HANDLE dsvHandle = {};
     bool hasDSV = false;
+    LoadOperation depthLoadOp = LoadOperation::UNDEFINED;
 
     uint32 colorAttachmentIndex = 0;
     for (auto& it : m_attachmentMap)
@@ -261,12 +262,13 @@ void DX12Framebuffer::BeginCapture(DX12CommandBuffer* commandBuffer)
         DX12GpuImage* image = attachment->GetGpuImage();
 
         // InsertBarrier transitions from the actual tracked state to the desired state
-        // and updates the tracked state to the target — do NOT reset beforehand
+        // and updates the tracked state to the target - do NOT reset beforehand
         if (attachment->IsDepthAttachment())
         {
             image->InsertBarrier(commandBuffer, RS_DEPTH_STENCIL, ShaderModuleType::Pixel);
             dsvHandle = m_dsvDescriptorHandle.cpuHandle;
             hasDSV = true;
+            depthLoadOp = attachment->GetLoadOperation();
         }
         else
         {
@@ -301,13 +303,16 @@ void DX12Framebuffer::BeginCapture(DX12CommandBuffer* commandBuffer)
             D3D12_CPU_DESCRIPTOR_HANDLE rtvHandle = m_rtvDescriptorHandle.cpuHandle;
             rtvHandle.ptr += colorAttachmentIndex * rtvIncrement;
 
-            const Vec4f clearColor = attachment->GetClearColor();
-            commandList->ClearRenderTargetView(rtvHandle, clearColor.values, 0, nullptr);
+            if (attachment->GetLoadOperation() == LoadOperation::CLEAR)
+            {
+                const Vec4f clearColor = attachment->GetClearColor();
+                commandList->ClearRenderTargetView(rtvHandle, clearColor.values, 0, nullptr);
+            }
 
             colorAttachmentIndex++;
         }
 
-        if (hasDSV)
+        if (hasDSV && depthLoadOp == LoadOperation::CLEAR)
         {
             commandList->ClearDepthStencilView(dsvHandle, D3D12_CLEAR_FLAG_DEPTH | D3D12_CLEAR_FLAG_STENCIL, 1.0f, 0, 0, nullptr);
         }
@@ -316,7 +321,11 @@ void DX12Framebuffer::BeginCapture(DX12CommandBuffer* commandBuffer)
     {
         // Depth only rendering
         commandList->OMSetRenderTargets(0, nullptr, FALSE, &dsvHandle);
-        commandList->ClearDepthStencilView(dsvHandle, D3D12_CLEAR_FLAG_DEPTH | D3D12_CLEAR_FLAG_STENCIL, 1.0f, 0, 0, nullptr);
+
+        if (depthLoadOp == LoadOperation::CLEAR)
+        {
+            commandList->ClearDepthStencilView(dsvHandle, D3D12_CLEAR_FLAG_DEPTH | D3D12_CLEAR_FLAG_STENCIL, 1.0f, 0, 0, nullptr);
+        }
     }
     else if (m_rtvDescriptorHandle.IsValid() && m_attachmentMap.Size() == 0)
     {

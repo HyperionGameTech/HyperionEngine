@@ -17,11 +17,19 @@
 namespace Hyperion {
 
 class DX12GraphicsPipeline;
+class DX12DescriptorSet;
+
+struct DX12CachedDescriptorSetBinding
+{
+    const DX12DescriptorSet* descriptorSet = nullptr;
+};
 
 HYP_CLASS(NoScriptBindings)
 class DX12CommandBuffer final : public CommandBufferBase
 {
     HYP_OBJECT_BODY(DX12CommandBuffer);
+
+    friend class DX12DescriptorSet;
 
 public:
     DX12CommandBuffer(D3D12_COMMAND_LIST_TYPE type);
@@ -99,6 +107,11 @@ public:
         m_boundSamplerHeap = nullptr;
     }
 
+    void ResetBoundDescriptorSets()
+    {
+        m_boundDescriptorSets.Clear();
+    }
+
     DX12GraphicsPipeline* m_boundGraphicsPipeline;
 
 private:
@@ -110,6 +123,9 @@ private:
     // Track bound descriptor heaps to avoid redundant SetDescriptorHeaps() calls
     ID3D12DescriptorHeap* m_boundViewHeap;
     ID3D12DescriptorHeap* m_boundSamplerHeap;
+
+    // Track bound descriptor sets to avoid redundant SetGraphicsRootDescriptorTable() calls
+    Array<DX12CachedDescriptorSetBinding> m_boundDescriptorSets;
 };
 
 } // namespace Hyperion

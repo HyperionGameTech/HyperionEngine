@@ -257,6 +257,8 @@ void DX12ComputePipeline::Bind(CommandBuffer* commandBuffer)
 
     cmdList->SetPipelineState(m_pipelineState.Get());
     cmdList->SetComputeRootSignature(m_rootSignature.Get());
+
+    dx12CommandBuffer->ResetBoundDescriptorSets();
 }
 
 void DX12ComputePipeline::Dispatch(CommandBuffer* commandBuffer, const Vec3u& groupSize) const
