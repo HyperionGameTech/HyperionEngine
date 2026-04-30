@@ -28,6 +28,12 @@
 #define HYP_MAT4F_USE_AVX 0
 #endif
 
+#if defined(HYPERION_ENGINE) && HYPERION_ENGINE && defined(HYP_VULKAN)
+static constexpr float PerspectiveMat11Div = -1.0f;
+#else
+static constexpr float PerspectiveMat11Div = 1.0f;
+#endif
+
 namespace {
 
 #if HYP_MAT4F_USE_SSE
@@ -116,7 +122,7 @@ Mat4f Mat4f::Perspective(float fov, int w, int h, float n, float f)
 
     mat[0][0] = 1.0f / (tanHalfFov * ar);
 
-    mat[1][1] = 1.0f / tanHalfFov;
+    mat[1][1] = (PerspectiveMat11Div / tanHalfFov);
 
     mat[2][2] = (-n - f) / range;
     mat[2][3] = (2.0f * f * n) / range;

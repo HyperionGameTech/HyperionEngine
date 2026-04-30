@@ -105,7 +105,7 @@ DECLARE_BUFFER_DYNAMIC(Default, CBuffer) cbuffer CBuffer
 PSOutput PSMain(PSInput input)
 {
     PSOutput output;
-    
+
     float3x3 tbn_matrix = float3x3(normalize(input.tangent), normalize(input.bitangent), normalize(input.normal));
     float3 view_vector = normalize(input.camera_position - input.position);
 
@@ -126,7 +126,7 @@ PSOutput PSMain(PSInput input)
 
     if (HAS_TEXTURE(CURRENT_MATERIAL, ParallaxMap))
     {
-        float3 tangent_view = mul(tbn_matrix, view_vector); 
+        float3 tangent_view = mul(tbn_matrix, view_vector);
         float2 parallax_texcoord = ParallaxMappedTexCoords(
             CURRENT_MATERIAL.parallax_height,
             texcoord,
@@ -196,7 +196,7 @@ PSOutput PSMain(PSInput input)
             const float NdotV = max(HYP_FMATH_EPSILON, dot(N, V));
 
             const float3 R = normalize(reflect(-V, N));
-            
+
             const float3 F0 = CalculateF0(albedo, metalness);
             const float3 F = CalculateFresnelTerm(F0, perceptualRoughness, NdotV);
             const float3 dfg = CalculateDFG(F, perceptualRoughness, NdotV);
@@ -214,7 +214,7 @@ PSOutput PSMain(PSInput input)
                 float3 Ft = CalculateRefraction(
                     mipChainDimensions,
                     P, N, V,
-                    texcoord, 
+                    texcoord,
                     F0, E,
                     transmission, perceptualRoughness,
                     float4(0.0, 0.0, 0.0, 0.0),
@@ -222,7 +222,7 @@ PSOutput PSMain(PSInput input)
                     float3(ao, ao, ao));
 
                 // @TODO
-                // Select env probes - add reflection + irradiance using CalculateEnvProbesContribution 
+                // Select env probes - add reflection + irradiance using CalculateEnvProbesContribution
                 // Calc Fr + Fd
                 // Bada bing badaboom
 
@@ -253,7 +253,7 @@ PSOutput PSMain(PSInput input)
                 camera.near, camera.far);
 
             const uint2 clusterData = ClusterGridBuffer[gridIndex];
-            
+
             const uint clusterIndexOffset = clusterData.x;
 
             const uint numLights = (clusterData.y & 0xFFFF);
@@ -262,7 +262,7 @@ PSOutput PSMain(PSInput input)
             for (uint i = 0; i < numLights; ++i)
             {
                 const uint lightIndex = Cluster_LoadLightIndex(clusterIndexOffset, i);
-                
+
                 Light currentLight = LightsBuffer.Load(lightIndex);
 
                 float3 L = currentLight.position_intensity.xyz;
@@ -305,9 +305,9 @@ PSOutput PSMain(PSInput input)
                             float2 spot_angles = currentLight.area_size.xy;
 
                             attenuation *= saturate((theta - spot_angles[0]) / (spot_angles[1] - spot_angles[0])) * step(spot_angles[0], theta);
-                            
+
                             // @TODO Spot shadows - add here when adding to DeferredDirect.hlsl
-                            
+
                         }
                         else
                         {
@@ -354,8 +354,10 @@ PSOutput PSMain(PSInput input)
 
     uint mask = input.object_mask;
 
-    // temp debug
-    output.gbuffer_albedo = float4(N * 0.5 + 0.5 , 1.0);//float4(1.0, 0.0, 0.0, 1.0);
+    // // temp debug
+    // output.gbuffer_albedo = float4(1.0, 0.0, 0.0, 1.0);
+    //
+    output.gbuffer_albedo = float4(input.texcoord0, 0.0, 1.0);
 
     GBufferMaterialParams materialParams;
     materialParams.roughness = roughness;
@@ -367,7 +369,7 @@ PSOutput PSMain(PSInput input)
     float roughnessAndMetalPacked;
     uint maskPacked;
     GBufferPackMaterialParams(materialParams, roughnessAndMetalPacked, maskPacked);
-    
+
     output.gbuffer_normals.x = roughnessAndMetalPacked;
     output.gbuffer_material.x = maskPacked;
     output.gbuffer_material.y = 0u;

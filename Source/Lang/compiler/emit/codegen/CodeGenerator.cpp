@@ -24,9 +24,11 @@ void CodeGenerator::Visit(BytecodeChunk* chunk)
 
     for (const LabelId labelId : chunk->labels)
     {
-        newParams.labels.Insert({ labelId,
+        newParams.labels.Insert({
+            labelId,
             LabelPosition(-1),
-            HYP_NAME(LabelNameRemoved) });
+            HYP_NAME(LabelNameRemoved)
+        });
     }
 
     CodeGenerator codeGenerator(newParams);
@@ -70,7 +72,7 @@ void CodeGenerator::Visit(LabelMarker* node)
             return labelInfo.labelId == labelId;
         });
 
-    Assert(it != buildParams.labels.End(), "Label with ID %d not found", labelId);
+    Assert(it != buildParams.labels.End(), "Label with ID {} not found", labelId);
 
     Assert(it->position == LabelPosition(-1), "Label position already set");
 
