@@ -648,30 +648,6 @@ if(WIN32)
     endif()
 endif()
 
-# setup SPIRV-Reflect
-if(EXISTS "${SUBMODULES_DIR}/SPIRV-Reflect/spirv_reflect.h")
-    message(STATUS "SPIRV-Reflect found, setting up SPIRV-Reflect")
-
-    set(HYP_SPIRV_REFLECT 1)
-    add_definitions(-DHYP_SPIRV_REFLECT=1)
-
-    set(SPIRV_REFLECT_EXECUTABLE OFF CACHE BOOL "" FORCE)
-    set(SPIRV_REFLECT_STATIC_LIB ON CACHE BOOL "" FORCE)
-    set(SPIRV_REFLECT_BUILD_TESTS OFF CACHE BOOL "" FORCE)
-    set(SPIRV_REFLECT_ENABLE_ASSERTS OFF CACHE BOOL "" FORCE)
-
-    add_subdirectory(${SUBMODULES_DIR}/SPIRV-Reflect ${CMAKE_BINARY_DIR}/SPIRV-Reflect EXCLUDE_FROM_ALL)
-
-    include_directories(BEFORE ${SUBMODULES_DIR}/SPIRV-Reflect)
-
-    set(RENDERER_LIBRARIES
-        ${RENDERER_LIBRARIES}
-        spirv-reflect-static
-    )
-else()
-    message(STATUS "SPIRV-Reflect not found, skipping SPIRV-Reflect setup")
-endif()
-
 add_subdirectory(${CMAKE_SOURCE_DIR}/Core ${CMAKE_BINARY_DIR}/Core)
 add_subdirectory(${CMAKE_SOURCE_DIR}/Lang ${CMAKE_BINARY_DIR}/Lang)
 

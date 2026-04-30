@@ -29,6 +29,8 @@
 
 namespace Hyperion {
 
+HYP_DECLARE_LOG_CHANNEL(RenderingBackend);
+
 extern DX12RenderInterface* g_renderInterface;
 
 static D3D12_RASTERIZER_DESC GetDefaultRasterizerDesc()
@@ -82,9 +84,9 @@ void DX12GraphicsPipeline::BuildVertexAttributes(
         DXGI_FORMAT_R32G32B32A32_FLOAT
     };
 
-    FlatMap<uint32, uint32> bindingSizes {};
-
     const uint8 mask = m_inputLayout.mask;
+    size_t vertexSize = m_inputLayout.VertexSize();
+
     const uint32 bits = uint32(ByteUtil::BitCount(mask));
     Assert(bits != 0);
 
@@ -92,11 +94,11 @@ void DX12GraphicsPipeline::BuildVertexAttributes(
 
     uint32 attrIndex = 0;
 
+    size_t offset = 0;
+
     FOR_EACH_BIT(mask, bit)
     {
         VertexType vertexType = VertexType(1 << bit);
-
-        const uint32 binding = 0;
 
         if (vertexType == VT_Skeletal)
         {
@@ -106,13 +108,13 @@ void DX12GraphicsPipeline::BuildVertexAttributes(
                 .SemanticName = "BLENDINDICES",
                 .SemanticIndex = 0,
                 .Format = DXGI_FORMAT_R32_UINT,
-                .InputSlot = binding,
-                .AlignedByteOffset = bindingSizes[binding],
+                .InputSlot = 0,
+                .AlignedByteOffset = UINT(offset),
                 .InputSlotClass = D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA,
                 .InstanceDataStepRate = 0
             };
 
-            bindingSizes[binding] += sizeof(uint32);
+            offset += sizeof(uint32);
 
             ++attrIndex;
 
@@ -120,13 +122,13 @@ void DX12GraphicsPipeline::BuildVertexAttributes(
                 .SemanticName = "BLENDWEIGHT",
                 .SemanticIndex = 0,
                 .Format = DXGI_FORMAT_R32G32B32A32_FLOAT,
-                .InputSlot = binding,
-                .AlignedByteOffset = bindingSizes[binding],
+                .InputSlot = 0,
+                .AlignedByteOffset = UINT(offset),
                 .InputSlotClass = D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA,
                 .InstanceDataStepRate = 0
             };
 
-            bindingSizes[binding] += sizeof(float) * 4;
+            offset += sizeof(float) * 4;
 
             ++attrIndex;
 
@@ -137,47 +139,55 @@ void DX12GraphicsPipeline::BuildVertexAttributes(
         AssertDebug(attributeSize <= 16);
 
         const char* semanticName;
+        uint32 semanticIndex = 0;
         switch (vertexType)
         {
         case VT_Position:
             semanticName = "POSITION";
+            semanticIndex = 0;
             break;
         case VT_Normal:
             semanticName = "NORMAL";
+            semanticIndex = 0;
             break;
         case VT_UV0:
             semanticName = "TEXCOORD";
+            semanticIndex = 0;
             break;
         case VT_UV1:
             semanticName = "TEXCOORD";
+            semanticIndex = 1;
             break;
         default:
-            semanticName = "TEXCOORD";
-            break;
+            HYP_UNREACHABLE();
         }
 
         outInputElementDescs[attrIndex] = {
             .SemanticName = semanticName,
-            .SemanticIndex = (vertexType == VT_UV1) ? 1u : 0u,
+            .SemanticIndex = semanticIndex,
             .Format = SizeToFormat[attributeSize / sizeof(float)],
-            .InputSlot = binding,
-            .AlignedByteOffset = bindingSizes[binding],
+            .InputSlot = 0,
+            .AlignedByteOffset = UINT(offset),
             .InputSlotClass = D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA,
             .InstanceDataStepRate = 0
         };
 
-        bindingSizes[binding] += attributeSize;
+        HYP_LOG(RenderingBackend, Debug, "DX12 Input Element [{}]: Semantic={}{}, Format={}, Offset={}",
+            attrIndex,
+            semanticName,
+            semanticIndex,
+            (int)SizeToFormat[attributeSize / sizeof(float)],
+            offset);
+
+        offset += (uint32)attributeSize;
 
         ++attrIndex;
     }
 
-    outBindingStrides.Clear();
-    outBindingStrides.Reserve(bindingSizes.Size());
+    Assert(offset == vertexSize);
 
-    for (const auto& it : bindingSizes)
-    {
-        outBindingStrides.PushBack(it.second);
-    }
+    outBindingStrides.Clear();
+    outBindingStrides.PushBack(uint32(offset));
 }
 
 #pragma region DX12GraphicsPipeline

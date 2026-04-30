@@ -59,10 +59,6 @@
 #include <dxcapi.h>
 #endif
 
-#if HYP_SPIRV_REFLECT
-#include <spirv_reflect.h>
-#endif
-
 #if HYP_VULKAN
 #include <vulkan/vulkan.h>
 #endif
@@ -1277,10 +1273,10 @@ static ByteBuffer CompileHLSL(
 
         args.PushBack(L"-fvk-use-scalar-layout");
     }
-#endif
-
+#elif HYP_DX12
 #if HYP_DEBUG_MODE
-    args.PushBack(L"-Zsb");
+    args.PushBack(L"-Qembed_debug");
+#endif
 #endif
 
     DxcBuffer sourceBuffer = { pSource->GetBufferPointer(), pSource->GetBufferSize(), 0 };
@@ -3696,10 +3692,10 @@ bool ShaderCompiler::CompileBundle(
 #if HYP_DXC
                     HLSLOutputType outputType = HLSLOutputType::SPIRV;
 
-#if HYP_VULKAN
-                    outputType = HLSLOutputType::SPIRV;
-#elif HYP_DX12
+#if HYP_DX12
                     outputType = HLSLOutputType::DXIL;
+#elif HYP_VULKAN
+                    outputType = HLSLOutputType::SPIRV;
 #endif
 
                     byteBuffer = CompileHLSL(

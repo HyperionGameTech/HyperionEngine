@@ -67,7 +67,7 @@ extern FilePath GetExecutablePath();
 
 namespace {
 
-using FatVertex = TVertex<VT_Simple | VT_UV1 | VT_Skeletal>;
+using FatVertex = TVertex<VT_Simple | VT_Skeletal>;
 
 static constexpr bool SeparateMetalnessRoughnessTextures = true;
 
@@ -893,11 +893,13 @@ bool BuildPrimitive(GltfLoadContext& ctx,
             vertex.SetUV0(Vec2f(texcoord0Data[base], 1.0f - texcoord0Data[base + 1]));
         }
 
-        if (hasTexcoord1)
-        {
-            const cgltf_size base = vertexIndex * 2;
-            vertex.SetUV1(Vec2f(texcoord1Data[base], 1.0f - texcoord1Data[base + 1]));
-        }
+        // Disabled UV1 in loader for now.
+
+        //if (hasTexcoord1)
+        //{
+        //    const cgltf_size base = vertexIndex * 2;
+        //    vertex.SetUV1(Vec2f(texcoord1Data[base], 1.0f - texcoord1Data[base + 1]));
+        //}
 
         if (hasSkinning)
         {
@@ -948,7 +950,7 @@ bool BuildPrimitive(GltfLoadContext& ctx,
     }
 
     MeshDesc meshDesc;
-    meshDesc.meshAttributes.inputLayout = VertexInputLayoutDesc { VT_Simple | VT_UV1 | VT_Skeletal };
+    meshDesc.meshAttributes.inputLayout = VertexInputLayoutDesc { VT_Simple | VT_Skeletal };
     meshDesc.meshAttributes.topology = topology;
     meshDesc.meshAttributes.indexBufferElemType = GET_UNSIGNED_INT;
     meshDesc.numVertices = uint32(vertices.Size());
