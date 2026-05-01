@@ -30,7 +30,6 @@ struct DX12DescriptorHandle
     D3D12_CPU_DESCRIPTOR_HANDLE cpuHandle { 0 };
     D3D12_GPU_DESCRIPTOR_HANDLE gpuHandle { 0 };
     uint32 count = 0;
-    uint8 frameIndex = 0; // frame this was allocated on (0..NumFramesInFlight)
     
     bool IsValid() const
     {
@@ -176,7 +175,7 @@ public:
 
     ~DX12DescriptorAllocator();
 
-    DX12DescriptorHandle Allocate(uint8 frameIndex, uint32 count);
+    HYP_NODISCARD DX12DescriptorHandle Allocate(uint32 count);
     void Free(DX12DescriptorHandle&& handle);
 
     DX12DescriptorHeapType type;
@@ -186,7 +185,7 @@ public:
     D3D12_GPU_DESCRIPTOR_HANDLE gpuStart;
 
 private:
-    FixedArray<DX12DescriptorIndexAllocator*, NumFramesInFlight> m_indexAllocators;
+    DX12DescriptorIndexAllocator m_indexAllocator;
 };
 
 class DX12DescriptorHeapManager final

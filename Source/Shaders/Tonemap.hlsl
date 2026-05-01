@@ -74,7 +74,7 @@ PSOutput PSMain(PSInput input)
     color_output.rgb = LinearToPQ(color_output.rgb, peakNits);
 #endif
 
-    output.color_output = color_output;
+    output.color_output = shaded_result;//color_output;
 
     return output;
 }

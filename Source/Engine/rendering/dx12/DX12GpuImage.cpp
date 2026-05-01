@@ -636,6 +636,15 @@ void DX12GpuImage::InsertBarrier(
     {
         m_stencilState = newState;
     }
+    else if (onlyDepth)
+    {
+        // Depth plane was transitioned -- update the main resource state
+        // and clear per-subresource tracking to prevent stale per-subresource
+        // states from blocking future transitions.
+        SetResourceState(newState);
+        m_stencilState = currStencilState;
+        m_subResourceStates.Clear();
+    }
     else if (m_subResourceStates.Empty())
     {
         SetResourceState(newState);

@@ -223,6 +223,11 @@ void DX12GraphicsPipeline::Bind(DX12CommandBuffer* commandBuffer, Vec2i viewport
 
     if (viewportExtent != Vec2u::Zero())
     {
+        // Clamp viewport to framebuffer extent to prevent D3D12 validation warning
+        // about viewport / scissor exceeding render target dimensions (#1378).
+        viewportExtent.x = MathUtil::Min(viewportExtent.x, m_framebufferDesc.extent.x);
+        viewportExtent.y = MathUtil::Min(viewportExtent.y, m_framebufferDesc.extent.y);
+
         Viewport viewport;
         viewport.position = viewportOffset;
         viewport.extent = viewportExtent;
