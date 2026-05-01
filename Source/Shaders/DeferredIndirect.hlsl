@@ -135,6 +135,7 @@ DECLARE_BUFFER_DYNAMIC(DeferredPass, CBuffer) cbuffer CBuffer
 PSOutput PSMain(PSInput input)
 {
     PSOutput output;
+    float3 result = (float3)0.0;
 
     float2 texcoord = input.texcoord;
 
@@ -148,9 +149,9 @@ PSOutput PSMain(PSInput input)
     float3 normal = GBufferUnpackNormal(normalSample);
 
     float depth = SAMPLE_TEXTURE_2D_LOD(sampler_nearest, gbuffer_depth_texture, texcoord, 0).r;
-    
+
     float4 positionVS = ReconstructViewSpacePositionFromDepth(camera.invProjMat, texcoord, depth);
-    
+
     float4 positionWS = mul(camera.invViewMat, positionVS);
     positionWS /= positionWS.w;
 
@@ -162,10 +163,8 @@ PSOutput PSMain(PSInput input)
     const float roughness = materialParams.roughness;
     const float metalness = materialParams.metalness;
     const uint mask = materialParams.mask;
-    
-    const float perceptualRoughness = sqrt(roughness);
 
-    float3 result = (float3)0.0;
+    const float perceptualRoughness = sqrt(roughness);
 
     float3 N = normalize(normal);
     float3 V = normalize(camera.position.xyz - positionWS.xyz);
@@ -182,7 +181,7 @@ PSOutput PSMain(PSInput input)
 #endif
 
     const float3 diffuse_color = CalculateDiffuseColor(albedo.rgb, metalness);
-    
+
     CalculateEnvProbesContribution(
         positionVS.xyz, positionWS.xyz,
         N, V, R,
@@ -194,6 +193,7 @@ PSOutput PSMain(PSInput input)
 
     irradiance *= 1.0 - min(1.0, float(mask & OBJECT_MASK_LIGHTMAPPED));
 
+    #if 0
 #ifdef SSR_ENABLED
     float4 ssrResult = SAMPLE_TEXTURE_2D_LOD(sampler_linear, SSRResultTexture, texcoord, 0);
     reflections = (reflections * (1.0 - ssrResult.a)) + (ssrResult * ssrResult.a);
@@ -253,8 +253,9 @@ PSOutput PSMain(PSInput input)
 #elif defined(DEBUG_AO)
     result = float3(ao, ao, ao);
 #endif
+#endif
 
-    output.output_color = float4(result, 1.0);
+    output.output_color = irradiance;//float4(result, 1.0);
 
     return output;
 }

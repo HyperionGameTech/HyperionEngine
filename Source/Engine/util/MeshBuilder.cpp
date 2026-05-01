@@ -54,21 +54,53 @@ static Pair<Array<SimpleVertex>, Array<uint32>> CalculateIndices(const Array<Sim
 
 Array<SimpleVertex> GetQuadVertices()
 {
-    Array<SimpleVertex> vertices = {
-        SimpleVertex { Vec3f { -1.0f,  1.0f, 0.0f }, Vec3f { 0.0f, 0.0f, -1.0f }, Vec2f { 0.0f, 0.0f } }, // Index 0: Top-Left
-        SimpleVertex { Vec3f {  1.0f,  1.0f, 0.0f }, Vec3f { 0.0f, 0.0f, -1.0f }, Vec2f { 1.0f, 0.0f } }, // Index 1: Top-Right
-        SimpleVertex { Vec3f { -1.0f, -1.0f, 0.0f }, Vec3f { 0.0f, 0.0f, -1.0f }, Vec2f { 0.0f, 1.0f } }, // Index 2: Bottom-Left
-        SimpleVertex { Vec3f {  1.0f, -1.0f, 0.0f }, Vec3f { 0.0f, 0.0f, -1.0f }, Vec2f { 1.0f, 1.0f } }  // Index 3: Bottom-Right
-    };
+    Array<SimpleVertex> vertices;
+    vertices.Resize(4);
 
+    vertices[0].posX = -1.0f;
+    vertices[0].posY = -1.0f;
+    vertices[0].posZ = 0.0f;
+    vertices[0].normalX = 0.0f;
+    vertices[0].normalY = 0.0f;
+    vertices[0].normalZ = -1.0f;
+    vertices[0].uv0[0] = 0.0f;
+    vertices[0].uv0[1] = 0.0f;
+
+    vertices[1].posX = 1.0f;
+    vertices[1].posY = -1.0f;
+    vertices[1].posZ = 0.0f;
+    vertices[1].normalX = 0.0f;
+    vertices[1].normalY = 0.0f;
+    vertices[1].normalZ = -1.0f;
+    vertices[1].uv0[0] = 1.0f;
+    vertices[1].uv0[1] = 0.0f;
+
+    vertices[2].posX = 1.0f;
+    vertices[2].posY = 1.0f;
+    vertices[2].posZ = 0.0f;
+    vertices[2].normalX = 0.0f;
+    vertices[2].normalY = 0.0f;
+    vertices[2].normalZ = -1.0f;
+    vertices[2].uv0[0] = 1.0f;
+    vertices[2].uv0[1] = 1.0f;
+
+    vertices[3].posX = -1.0f;
+    vertices[3].posY = 1.0f;
+    vertices[3].posZ = 0.0f;
+    vertices[3].normalX = 0.0f;
+    vertices[3].normalY = 0.0f;
+    vertices[3].normalZ = -1.0f;
+    vertices[3].uv0[0] = 0.0f;
+    vertices[3].uv0[1] = 1.0f;
+    
     return vertices;
 }
 
 Array<uint32> GetQuadIndices()
 {
     return {
-        0, 1, 2,
-        2, 1, 3
+        0, 3, 2,
+        0, 2, 1
     };
 }
 

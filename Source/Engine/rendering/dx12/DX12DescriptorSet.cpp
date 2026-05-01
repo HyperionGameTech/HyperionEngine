@@ -22,6 +22,8 @@
 
 #include <rendering/Bindless.hpp>
 
+#include <algorithm>
+
 #include <DX12DescriptorSet.generated.inl>
 
 namespace Hyperion {
@@ -104,47 +106,100 @@ RendererResult DX12DescriptorSet::Create()
         return {};
     }
 
-    uint32 viewCount = 0;      // CBV/SRV/UAV or acceleration structures.
-    uint32 samplerCount = 0;
+    const ShaderInputSet* decl = m_layout.GetDeclaration();
 
-    for (const auto& it : m_layout.GetElements())
+    // Build sorted entries that match D3D12 descriptor range ordering from BuildRootSignature.
+    // View ranges are sorted by (RangeType, BaseShaderRegister).
+    // Sampler ranges are sorted by (BaseShaderRegister).
+    // This ordering must match the D3D12 descriptor table layout so that
+    // D3D12_DESCRIPTOR_RANGE_OFFSET_APPEND resolves each range to the correct heap offset.
+    struct ViewEntry
     {
-        const DescriptorSetLayoutElement& element = it.second;
+        uint32 binding;
+        uint32 count;
+        D3D12_DESCRIPTOR_RANGE_TYPE rangeType;
+        uint32 baseShaderRegister;
+    };
 
-        // For bindless elements, use the MaxBindlessResources limit instead of ~0u
-        const uint32 elementCount = element.IsBindless()
-            ? (element.IsBuffer()
-                ? MaxBindlessResources[BindlessStorage_Buffers]
-                : MaxBindlessResources[BindlessStorage_Textures])
-            : element.count;
+    struct SamplerEntry
+    {
+        uint32 binding;
+        uint32 count;
+        uint32 baseShaderRegister;
+    };
 
-        switch (element.type)
+    Array<ViewEntry> viewEntries;
+    Array<SamplerEntry> samplerEntries;
+
+    for (uint8 slotIndex = 0; slotIndex < NumDescriptorSlots; slotIndex++)
+    {
+        for (const ShaderInput& desc : decl->slots[slotIndex])
         {
-        case ShaderInputType::CBV:
-        case ShaderInputType::CBV_Dynamic:
-        case ShaderInputType::SRV:
-        case ShaderInputType::SRV_Dynamic:
-        case ShaderInputType::UAV:
-        case ShaderInputType::UAV_Dynamic:
-        {
-            // Dynamic buffer entries are handled via root descriptors (SetGraphicsRootConstantBufferView etc.)
-            // and do not participate in the descriptor table
-            if (element.type == ShaderInputType::CBV_Dynamic
-                || element.type == ShaderInputType::SRV_Dynamic
-                || element.type == ShaderInputType::UAV_Dynamic)
+            // Skip descriptors excluded by compile-time conditions (matches DescriptorSetLayout constructor behavior)
+            if (desc.cond != nullptr && !desc.cond())
             {
-                break;
+                continue;
             }
 
-            m_viewBindingToHeapOffset.Set(element.binding, viewCount);
-            viewCount += elementCount;
-            break;
+            const DescriptorSetLayoutElement* layoutElement = m_layout.GetElement(desc.name);
+            if (layoutElement == nullptr)
+            {
+                continue;
+            }
+
+            // Dynamic buffer entries are handled via root descriptors and do not participate in the descriptor table
+            if (desc.isDynamic && desc.category == ShaderResourceCategory::Buffer && desc.slot != ShaderRegister::SAMPLER)
+            {
+                continue;
+            }
+
+            // For bindless elements, use the MaxBindlessResources limit instead of ~0u
+            const uint32 elementCount = layoutElement->IsBindless()
+                ? (layoutElement->IsBuffer()
+                    ? MaxBindlessResources[BindlessStorage_Buffers]
+                    : MaxBindlessResources[BindlessStorage_Textures])
+                : layoutElement->count;
+
+            if (desc.slot == ShaderRegister::SAMPLER)
+            {
+                samplerEntries.PushBack({ layoutElement->binding, elementCount, desc.index });
+            }
+            else
+            {
+                viewEntries.PushBack({ layoutElement->binding, elementCount, ToDX12DescriptorRangeType(desc.slot), desc.index });
+            }
         }
-        case ShaderInputType::Sampler:
-            m_samplerBindingToHeapOffset.Set(element.binding, samplerCount);
-            samplerCount += elementCount;
-            break;
-        }
+    }
+
+    // Sort view entries to match D3D12 descriptor range ordering used in BuildRootSignature
+    std::sort(viewEntries.Begin(), viewEntries.End(),
+        [](const ViewEntry& a, const ViewEntry& b) {
+            if (a.rangeType != b.rangeType)
+            {
+                return a.rangeType < b.rangeType;
+            }
+            return a.baseShaderRegister < b.baseShaderRegister;
+        });
+
+    // Sort sampler entries to match D3D12 descriptor range ordering
+    std::sort(samplerEntries.Begin(), samplerEntries.End(),
+        [](const SamplerEntry& a, const SamplerEntry& b) {
+            return a.baseShaderRegister < b.baseShaderRegister;
+        });
+
+    // Assign heap offsets in sorted order matching the D3D12 descriptor table layout
+    uint32 viewCount = 0;
+    for (const ViewEntry& entry : viewEntries)
+    {
+        m_viewBindingToHeapOffset.Set(entry.binding, viewCount);
+        viewCount += entry.count;
+    }
+
+    uint32 samplerCount = 0;
+    for (const SamplerEntry& entry : samplerEntries)
+    {
+        m_samplerBindingToHeapOffset.Set(entry.binding, samplerCount);
+        samplerCount += entry.count;
     }
 
     if (viewCount > 0)

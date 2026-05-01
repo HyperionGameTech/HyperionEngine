@@ -75,6 +75,9 @@ private:
 
     // Maps descriptor set index (bindIndex) to root parameter indices
     Array<DescriptorSetRootIndices> m_descriptorSetRootIndices;
+
+    // Lazy-created command signature for DispatchIndirect
+    mutable ComPtr<ID3D12CommandSignature> m_dispatchCommandSignature;
 };
 
 } // namespace Hyperion

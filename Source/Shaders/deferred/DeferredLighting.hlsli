@@ -141,7 +141,7 @@ float4 CalculateReflectionProbe(in EnvProbe probe, float3 P, float3 N, float3 R,
 }
 
 float CalculateEnvProbeWeight(float3 positionWS, float3 aabbMin, float3 aabbMax)
-{   
+{
     const float3 aabbExtent = aabbMax - aabbMin;
 
     const float3 blend = aabbExtent * s_envProbeBlendFactor;
@@ -166,7 +166,7 @@ void CalculateEnvProbesContribution(
     inout float4 reflections, inout float4 irradiance)
 {
     const uint2 pixelCoord = uint2(texcoordSS * max(0, int2(gbufferDimensions) - 1));
-    
+
     const uint gridIndex = Cluster_GetGridIndex(
         gbufferDimensions, pixelCoord,
         positionVS.z,
@@ -175,10 +175,10 @@ void CalculateEnvProbesContribution(
     const uint2 clusterData = ClusterGridBuffer[gridIndex];
 
     const uint clusterIndexOffset = clusterData.x;
-    
+
     const uint numLights = (clusterData.y & 0xFFFF);
     const uint numEnvProbes = (clusterData.y >> 16) & 0xFFFF;
-    
+
 #ifndef HYP_ENV_PROBES_NO_REFLECTIONS
     float accumWeightReflections = 0.0;
     for (uint i = 0; i < numEnvProbes && accumWeightReflections < 1.0; ++i)
@@ -186,15 +186,15 @@ void CalculateEnvProbesContribution(
         const uint envProbeIndex = Cluster_LoadEnvProbeIndex(clusterIndexOffset, numLights, i);
 
         EnvProbe currentEnvProbe = EnvProbesBuffer.Load(envProbeIndex);
-        
+
         const float numMips = 7.0; // assuming 128x128 cubemap size for reflection probes
         const float lod = perceptualRoughness * numMips;
-        
+
         const float3 aabbMin = currentEnvProbe.aabb_min.xyz;
         const float3 aabbMax = currentEnvProbe.aabb_max.xyz;
-        
+
         float4 currentReflections = (float4)0;
-        
+
         ApplyReflectionProbe(
             currentEnvProbe.texture_index,
             currentEnvProbe.world_position.xyz,
@@ -204,7 +204,7 @@ void CalculateEnvProbesContribution(
             R,
             lod,
             currentReflections);
-        
+
         float weight = CalculateEnvProbeWeight(positionWS, aabbMin, aabbMax);
 
         reflections += currentReflections * weight * (1.0 - accumWeightReflections);
@@ -212,7 +212,7 @@ void CalculateEnvProbesContribution(
         accumWeightReflections += weight * (1.0 - accumWeightReflections);
     }
 #endif // HYP_ENV_PROBES_NO_REFLECTIONS
-    
+
 #ifndef HYP_ENV_PROBES_NO_IRRADIANCE
     float accumWeightIrradiance = 0.0;
     for (uint i = 0; i < numEnvProbes && accumWeightIrradiance < 1.0; ++i)
@@ -220,15 +220,16 @@ void CalculateEnvProbesContribution(
         const uint envProbeIndex = Cluster_LoadEnvProbeIndex(clusterIndexOffset, numLights, i);
 
         EnvProbe currentEnvProbe = EnvProbesBuffer.Load(envProbeIndex);
-        
         const float3 aabbMin = currentEnvProbe.aabb_min.xyz;
         const float3 aabbMax = currentEnvProbe.aabb_max.xyz;
-
         const float weight = CalculateEnvProbeWeight(positionWS, aabbMin, aabbMax);
-        
+
         float3 currentIrradiance = EnvProbeSH(currentEnvProbe, N, /* order */ 2);
         irradiance += float4(currentIrradiance, 1.0) * weight * (1.0 - accumWeightIrradiance);
         accumWeightIrradiance += weight * (1.0 - accumWeightIrradiance);
+
+        // temp
+        break;
     }
 #endif // HYP_ENV_PROBES_NO_IRRADIANCE
 }

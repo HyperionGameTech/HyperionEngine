@@ -175,6 +175,12 @@ RendererResult DX12ComputePipeline::BuildRootSignature()
 
             for (const ShaderInput& descDecl : declarations)
             {
+                // Skip descriptors excluded by compile-time conditions (matches DescriptorSetLayout constructor behavior)
+                if (descDecl.cond != nullptr && !descDecl.cond())
+                {
+                    continue;
+                }
+
                 if (descDecl.isDynamic && descDecl.category == ShaderResourceCategory::Buffer && descDecl.slot != ShaderRegister::SAMPLER)
                 {
                     dynamicDeclarations.PushBack(&descDecl);
@@ -191,6 +197,20 @@ RendererResult DX12ComputePipeline::BuildRootSignature()
                 range.OffsetInDescriptorsFromTableStart = D3D12_DESCRIPTOR_RANGE_OFFSET_APPEND;
             }
         }
+
+        std::sort(viewRanges.Begin(), viewRanges.End(),
+            [](const D3D12_DESCRIPTOR_RANGE& a, const D3D12_DESCRIPTOR_RANGE& b) {
+                if (a.RangeType != b.RangeType)
+                {
+                    return a.RangeType < b.RangeType;
+                }
+                return a.BaseShaderRegister < b.BaseShaderRegister;
+            });
+
+        std::sort(samplerRanges.Begin(), samplerRanges.End(),
+            [](const D3D12_DESCRIPTOR_RANGE& a, const D3D12_DESCRIPTOR_RANGE& b) {
+                return a.BaseShaderRegister < b.BaseShaderRegister;
+            });
 
         // Sort dynamic declarations by flat index to match DescriptorSetLayout::GetDynamicElements() order
         std::sort(dynamicDeclarations.Begin(), dynamicDeclarations.End(),
@@ -329,11 +349,8 @@ void DX12ComputePipeline::DispatchIndirect(
     ID3D12GraphicsCommandList* cmdList = dx12CommandBuffer->GetCommandList();
     Assert(cmdList != nullptr);
 
-    // Create command signature for dispatch if not already created
-    // The indirect buffer should contain three uint32 values: (groupCountX, groupCountY, groupCountZ)
-    static ID3D12CommandSignature* s_dispatchCommandSignature = nullptr;
-    
-    if (s_dispatchCommandSignature == nullptr)
+    // Create command signature lazily per-instance so each pipeline uses its own root signature.
+    if (m_dispatchCommandSignature == nullptr)
     {
         D3D12_INDIRECT_ARGUMENT_DESC argDesc = {};
         argDesc.Type = D3D12_INDIRECT_ARGUMENT_TYPE_DISPATCH;
@@ -346,11 +363,11 @@ void DX12ComputePipeline::DispatchIndirect(
         g_renderInterface->GetDevice()->CreateCommandSignature(
             &sigDesc,
             m_rootSignature.Get(),
-            IID_PPV_ARGS(&s_dispatchCommandSignature));
+            IID_PPV_ARGS(&m_dispatchCommandSignature));
     }
 
     cmdList->ExecuteIndirect(
-        s_dispatchCommandSignature,
+        m_dispatchCommandSignature.Get(),
         1,
         indirectBuffer->GetResource(),
         offset,
