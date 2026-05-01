@@ -38,16 +38,12 @@ DECLARE_SRV_DYNAMIC(Default, CamerasBuffer) StructuredBuffer<Camera> _cameras_bu
 
 #ifdef INSTANCING
 DECLARE_SRV(Default, EntitiesBuffer) StructuredBuffer<Entity> entities;
-DECLARE_SRV_DYNAMIC(Default, EntityInstanceBatchesBuffer) ByteAddressBuffer entity_instance_batches;
-
-#define entity_instance_batch entity_instance_batches.Load<MeshEntityInstanceBatch>(0)
+DECLARE_SRV_DYNAMIC(Default, EntityInstanceBatchesBuffer) ByteAddressBuffer EntityInstanceBatchBuffer;
 #else // !INSTANCING
-
 DECLARE_BUFFER_DYNAMIC(Default, CBuffer) cbuffer CBuffer
 {
     Entity entity;
 };
-
 #endif // INSTANCING
 
 #ifdef SKINNING
@@ -72,12 +68,14 @@ float4x4 LookAt(float3 pos, float3 target, float3 up)
 VSOutput VSMain(VSInput input, uint ViewId : SV_ViewID, uint instanceId : SV_InstanceID)
 {
     VSOutput output;
-    
+
     float4 position;
 
 #ifdef INSTANCING
-    Entity currentEntity = entities[entity_instance_batch.indices[instanceId / 4][instanceId % 4]];
-    float4x4 model_matrix = mul(entity_instance_batch.transforms[instanceId], currentEntity.model_matrix);
+    MeshEntityInstanceBatch batch = EntityInstanceBatchBuffer.Load<MeshEntityInstanceBatch>(0);
+
+    Entity currentEntity = entities[batch.indices[instanceId / 4][instanceId % 4]];
+    float4x4 model_matrix = mul(batch.transforms[instanceId], currentEntity.model_matrix);
     float3x3 normal_matrix = transpose(inverse((float3x3)model_matrix));
 #else
     Entity currentEntity = entity;
@@ -104,7 +102,7 @@ VSOutput VSMain(VSInput input, uint ViewId : SV_ViewID, uint instanceId : SV_Ins
     float4x4 projection_matrix = camera.projection;
 
     float4x4 view_matrix;
-    
+
     output.camera_position = camera.position.xyz;
     view_matrix = LookAt(output.camera_position, output.camera_position + forward_direction, up_direction);
 
@@ -177,7 +175,11 @@ DECLARE_SRV(Default, EntitiesBuffer) StructuredBuffer<Entity> entities;
 
 DECLARE_BUFFER_DYNAMIC(Default, CBuffer) cbuffer CBuffer
 {
+#ifndef INSTANCING
     Entity entity;
+#else // INSTANCING
+    Entity dummyEntity;
+#endif // INSTANCING
     Material material;
 };
 
@@ -210,7 +212,7 @@ PSOutput PSMain(PSInput input)
 #ifdef WRITE_MOMENTS
     const float dist = distance(input.position, input.camera_position);
     float2 moments = float2(dist, HYP_FMATH_SQR(dist));
-    
+
 #ifdef MODE_SHADOWS
     float dx = ddx(dist);
     float dy = ddy(dist);

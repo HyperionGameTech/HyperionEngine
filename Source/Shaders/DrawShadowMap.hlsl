@@ -33,8 +33,7 @@ DECLARE_SRV_DYNAMIC(Default, CamerasBuffer) StructuredBuffer<Camera> _cameras_bu
 
 #ifdef INSTANCING
 DECLARE_SRV(Default, EntitiesBuffer) StructuredBuffer<Entity> entities;
-DECLARE_SRV_DYNAMIC(Default, EntityInstanceBatchesBuffer) ByteAddressBuffer entity_instance_batches;
-#define entity_instance_batch entity_instance_batches.Load<MeshEntityInstanceBatch>(0)
+DECLARE_SRV_DYNAMIC(Default, EntityInstanceBatchesBuffer) ByteAddressBuffer EntityInstanceBatchBuffer;
 #endif // INSTANCING
 
 DECLARE_BUFFER_DYNAMIC(Default, CBuffer) cbuffer CBuffer
@@ -80,12 +79,19 @@ DECLARE_SRV_DYNAMIC(Default, SkeletonsBuffer) StructuredBuffer<float4x4> Skeleto
 VSOutput VSMain(VSInput input, uint instanceId : SV_InstanceID)
 {
     VSOutput output;
-    
+
     float4 position;
 
 #ifdef INSTANCING
-    Entity currentEntity = entities[entity_instance_batch.indices[instanceId / 4][instanceId % 4]];
-    float4x4 model_matrix = mul(entity_instance_batch.transforms[instanceId], currentEntity.model_matrix);
+    MeshEntityInstanceBatch batch = EntityInstanceBatchBuffer.Load<MeshEntityInstanceBatch>(0);
+
+    float4x4 transform = batch.transforms[instanceId];
+#ifdef HYP_VULKAN
+    transform = transpose(transform);
+#endif
+
+    Entity currentEntity = entities[batch.indices[instanceId / 4][instanceId % 4]];
+    float4x4 model_matrix = mul(transform, currentEntity.model_matrix);
 #else
     float4x4 model_matrix = entity.model_matrix;
 #endif

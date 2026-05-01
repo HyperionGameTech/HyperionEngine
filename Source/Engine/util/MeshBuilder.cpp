@@ -92,7 +92,7 @@ Array<SimpleVertex> GetQuadVertices()
     vertices[3].normalZ = -1.0f;
     vertices[3].uv0[0] = 0.0f;
     vertices[3].uv0[1] = 1.0f;
-    
+
     return vertices;
 }
 

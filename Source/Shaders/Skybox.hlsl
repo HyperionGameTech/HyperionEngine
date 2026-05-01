@@ -43,8 +43,7 @@ struct VSOutput
 
 #ifdef INSTANCING
 DECLARE_SRV(Default, EntitiesBuffer) StructuredBuffer<Entity> entities;
-DECLARE_SRV_DYNAMIC(Default, EntityInstanceBatchesBuffer) ByteAddressBuffer entity_instance_batch_buffer;
-#define entity_instance_batch entity_instance_batch_buffer.Load<MeshEntityInstanceBatch>(0)
+DECLARE_SRV_DYNAMIC(Default, EntityInstanceBatchesBuffer) ByteAddressBuffer EntityInstanceBatchBuffer;
 #endif // INSTANCING
 
 VSOutput VSMain(VSInput input, uint instanceId : SV_InstanceID)
@@ -52,7 +51,7 @@ VSOutput VSMain(VSInput input, uint instanceId : SV_InstanceID)
     VSOutput output;
 
     float4 position = mul(entity.model_matrix, float4(input.a_position, 1.0));
-    
+
 #ifdef HYP_VULKAN
     float4x3 normal_matrix = entity.normal_matrix;
 #else
@@ -120,7 +119,7 @@ PSOutput PSMain(PSInput input)
     output.gbuffer_material.y = 0u;
     output.gbuffer_material.z = 0u;
     output.gbuffer_material.w = 0u;
-    
+
     output.gbuffer_velocity = float2(0.0, 0.0);
 
     return output;

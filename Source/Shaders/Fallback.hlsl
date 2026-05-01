@@ -37,9 +37,8 @@ DECLARE_SRV_DYNAMIC(Default, CamerasBuffer) StructuredBuffer<Camera> _cameras_bu
 #include "include/Entity.hlsli"
 
 #ifdef INSTANCING
-    DECLARE_SRV(Default, EntitiesBuffer) StructuredBuffer<Entity> entities;
-    DECLARE_SRV_DYNAMIC(Default, EntityInstanceBatchesBuffer) ByteAddressBuffer entity_instance_batches;
-    #define entity_instance_batch entity_instance_batches.Load<MeshEntityInstanceBatch>(0)
+DECLARE_SRV(Default, EntitiesBuffer) StructuredBuffer<Entity> entities;
+DECLARE_SRV_DYNAMIC(Default, EntityInstanceBatchesBuffer) ByteAddressBuffer EntityInstanceBatchBuffer;
 #endif // INSTANCING
 
 #if defined(SKINNING) && defined(HYP_ATTRIBUTE_a_bone_indices) && defined(HYP_ATTRIBUTE_a_bone_weights) && defined(HYP_ATTRIBUTE_a_position)
@@ -59,8 +58,15 @@ VSOutput VSMain(VSInput input, uint instanceId : SV_InstanceID)
     VSOutput output = (VSOutput)0;
 
 #ifdef INSTANCING
+    MeshEntityInstanceBatch batch = EntityInstanceBatchBuffer.Load<MeshEntityInstanceBatch>(0);
+
+    float4x4 transform = batch.transforms[instanceId];
+#ifdef HYP_VULKAN
+    transform = transpose(transform);
+#endif
+
     const uint objectIndex = OBJECT_INDEX;
-    float4x4 model_matrix = mul(entity_instance_batch.transforms[instanceId], entities[objectIndex].model_matrix);
+    float4x4 model_matrix = mul(transform, entities[objectIndex].model_matrix);
     output.object_index = objectIndex;
 #else
     float4x4 model_matrix = entity.model_matrix;

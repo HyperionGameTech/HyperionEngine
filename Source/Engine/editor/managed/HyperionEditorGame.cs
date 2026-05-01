@@ -82,7 +82,7 @@ namespace Hyperion.Editor
 
         protected override void OnUpdate(float deltaTime)
         {
-            if (false && _assetBatchTask != null && _assetBatchTask.IsCompleted)
+            if (_assetBatchTask != null && _assetBatchTask.IsCompleted)
             {
                 AssetMap assetMap = _assetBatchTask.Result;
 

@@ -7,7 +7,7 @@ struct Entity
 {
     float4x4 model_matrix;
     float4x4 previous_model_matrix;
-    
+
 #ifdef HYP_VULKAN
     float4x3 normal_matrix;
 #else
@@ -55,14 +55,14 @@ struct MeshEntityInstanceBatch
     uint4 _pad[3]; // pad 48 bytes so struct size % 64 == 0
 
     uint4 indices[MAX_ENTITIES_PER_INSTANCE_BATCH / 4];
-    
+
     float4x4 transforms[MAX_ENTITIES_PER_INSTANCE_BATCH];
     float4x4 previousTransforms[MAX_ENTITIES_PER_INSTANCE_BATCH];
 };
 
 #ifdef INSTANCING
 #ifdef VERTEX_SHADER
-#define OBJECT_INDEX (entity_instance_batch.indices[instanceId >> 2][instanceId & 3])
+#define OBJECT_INDEX (batch.indices[instanceId >> 2][instanceId & 3])
 #endif // VERTEX_SHADER
 #define entity (entities[OBJECT_INDEX])
 #endif // INSTANCING

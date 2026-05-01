@@ -36,9 +36,7 @@ DECLARE_SRV_DYNAMIC(Default, CamerasBuffer) StructuredBuffer<Camera> _cameras_bu
 
 #ifdef INSTANCING
 DECLARE_SRV(Default, EntitiesBuffer) StructuredBuffer<Entity> entities;
-DECLARE_SRV_DYNAMIC(Default, EntityInstanceBatchesBuffer) ByteAddressBuffer entity_instance_batches;
-
-#define entity_instance_batch entity_instance_batches.Load<MeshEntityInstanceBatch>(0)
+DECLARE_SRV_DYNAMIC(Default, EntityInstanceBatchesBuffer) ByteAddressBuffer EntityInstanceBatchBuffer;
 #endif // INSTANCING
 
 #ifdef SKINNING
@@ -58,14 +56,22 @@ DECLARE_BUFFER_DYNAMIC(Default, CBuffer) cbuffer CBuffer
 
 VSOutput VSMain(VSInput input, uint instanceId : SV_InstanceID)
 {
+
     VSOutput output;
-    
+
     float4 position;
     float4 previous_position;
 
 #ifdef INSTANCING
-    Entity currentEntity = entities[entity_instance_batch.indices[instanceId / 4][instanceId % 4]];
-    float4x4 model_matrix = mul(currentEntity.model_matrix, entity_instance_batch.transforms[instanceId]); //entity_instance_batch.transforms[instanceId];
+    MeshEntityInstanceBatch batch = EntityInstanceBatchBuffer.Load<MeshEntityInstanceBatch>(0);
+
+    float4x4 transform = batch.transforms[instanceId];
+#ifdef HYP_VULKAN
+    transform = transpose(transform);
+#endif // HYP_VULKAN
+
+    Entity currentEntity = entities[batch.indices[instanceId / 4][instanceId % 4]];
+    float4x4 model_matrix = mul(currentEntity.model_matrix, transform);
     float3x3 normal_matrix = transpose(inverse((float3x3)model_matrix));
 #else // !INSTANCING
     Entity currentEntity = entity;
@@ -83,7 +89,7 @@ VSOutput VSMain(VSInput input, uint instanceId : SV_InstanceID)
     position = mul(model_matrix, float4(input.a_position, 1.0));
 
 #ifdef INSTANCING
-    previous_position = mul(mul(entity_instance_batch.previousTransforms[instanceId], currentEntity.previous_model_matrix), float4(input.a_position, 1.0));
+    previous_position = mul(mul(batch.previousTransforms[instanceId], currentEntity.previous_model_matrix), float4(input.a_position, 1.0));
 #else // !INSTANCING
     previous_position = mul(currentEntity.previous_model_matrix, float4(input.a_position, 1.0));
 #endif // !SKINNING || !VT_Skeletal
@@ -112,11 +118,11 @@ VSOutput VSMain(VSInput input, uint instanceId : SV_InstanceID)
     output.previous_position_ndc = mul(camera.prevViewProjMat, previous_position);
 
     // Jitter
-    float4x4 jitterMat = { 
+    float4x4 jitterMat = {
         1, 0, 0, 0,
         0, 1, 0, 0,
         0, 0, 1, 0,
-        0, 0, 0, 1 
+        0, 0, 0, 1
     };
     jitterMat[0][3] += camera.jitter.x;
     jitterMat[1][3] += camera.jitter.y;
