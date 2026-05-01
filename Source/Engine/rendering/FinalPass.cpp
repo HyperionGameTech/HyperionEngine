@@ -147,31 +147,31 @@ void FinalPass::Render(Frame* frame, const RenderSetup& rs)
         cr << DrawIndexed(6);
     }
 
-    // if (cvShowDebugUI.Get())
-    // {
-    //     // draw ui
-    //     UIRenderer* uiRenderer = static_cast<UIRenderer*>(g_renderInterface->globalRenderers[GRT_UI][0]);
+    if (cvShowDebugUI.Get())
+    {
+        // draw ui
+        UIRenderer* uiRenderer = static_cast<UIRenderer*>(g_renderInterface->globalRenderers[GRT_UI][0]);
 
-    //     if (uiRenderer != nullptr)
-    //     {
-    //         for (World* world : GetActiveWorlds())
-    //         {
-    //             for (View* view : world->GetViews())
-    //             {
-    //                 if (!(view->GetFlags() & ViewFlags::UI_VIEW))
-    //                 {
-    //                     continue;
-    //                 }
+        if (uiRenderer != nullptr)
+        {
+            for (World* world : GetActiveWorlds())
+            {
+                for (View* view : world->GetViews())
+                {
+                    if (!(view->GetFlags() & ViewFlags::UI_VIEW))
+                    {
+                        continue;
+                    }
 
-    //                 RenderSetup currentViewSetup = rs.Fork();
-    //                 currentViewSetup.world = world;
-    //                 currentViewSetup.view = view;
+                    RenderSetup currentViewSetup = rs.Fork();
+                    currentViewSetup.world = world;
+                    currentViewSetup.view = view;
 
-    //                 uiRenderer->RenderFrame(frame, currentViewSetup);
-    //             }
-    //         }
-    //     }
-    // }
+                    uiRenderer->RenderFrame(frame, currentViewSetup);
+                }
+            }
+        }
+    }
 
     cr << SetCurrentFramebuffer(nullptr);
 

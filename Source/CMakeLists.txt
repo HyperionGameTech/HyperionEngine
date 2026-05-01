@@ -106,7 +106,7 @@ elseif(${HYP_PLATFORM_NAME} STREQUAL "Linux")
     set(CSHARP_CONSTANTS "HYP_LINUX;HYP_UNIX")
     add_definitions(-DHYP_LINUX=1)
     add_definitions(-DHYP_UNIX=1)
-    
+
     set(HYP_LINUX 1)
     set(HYP_UNIX 1)
 endif()
@@ -239,13 +239,13 @@ else()
     endif()
 
     if(HYP_DEBUG_MODE)
-        set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -O2 -g -Werror=return-type -Werror=address") #-Werror=non-virtual-dtor 
+        set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -O2 -g -Werror=return-type -Werror=address") #-Werror=non-virtual-dtor
     else()
         set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -O3")
     endif()
 
     # set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -g")
-    
+
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++20")
 
     # no exceptions
@@ -342,7 +342,7 @@ if(NOT HYP_ANDROID)
     endif()
 
     add_definitions(-DHYP_ROOT_DIR="${HYP_ROOT_DIR_ESCAPED}")
-    
+
     set(HYP_EDITOR 1)
     add_definitions(-DHYP_EDITOR=1)
 
@@ -391,7 +391,7 @@ endif()
 
 set(RENDERING_BACKEND "Vulkan")
 
-set(ENABLE_EXPERIMENTAL_DX12_RENDERING_BACKEND true) # TEMP - do not commit to dev branch with this set to true, only for testing the DX12 rendering backend before it's ready to be merged into dev
+# set(ENABLE_EXPERIMENTAL_DX12_RENDERING_BACKEND true) # TEMP - do not commit to dev branch with this set to true, only for testing the DX12 rendering backend before it's ready to be merged into dev
 
 if(ENABLE_EXPERIMENTAL_DX12_RENDERING_BACKEND AND WIN32)
     set(RENDERING_BACKEND "DX12")
@@ -755,7 +755,7 @@ function(collect_sources_and_modules dir out_sources out_headers out_modules)
         if(NOT TARGET ${sub_library_name})
             set("${sub_library_name}_SOURCES" ${local_sources})
             set("${sub_library_name}_HEADERS" ${local_headers})
-            
+
             # debugging android build intellisense errors:
             if(NOT HYP_ANDROID)
                 set("${sub_library_name}_PCH" ${local_pchs})

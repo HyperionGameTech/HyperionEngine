@@ -1909,7 +1909,7 @@ MaterialAttributes UIObject::GetMaterialAttributes() const
     MaterialAttributes attrs;
     attrs.shaderName = NAME("UIObject");
     attrs.blendFunction = BlendFunction(BMF_SRC_ALPHA, BMF_ONE_MINUS_SRC_ALPHA, BMF_ONE, BMF_ONE_MINUS_SRC_ALPHA);
-    attrs.cullFaces = FCM_BACK;
+    attrs.cullFaces = FCM_NONE;//FCM_BACK;
     attrs.flags = MAF_NONE;
 
     return attrs;

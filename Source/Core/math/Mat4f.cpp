@@ -114,19 +114,35 @@ Mat4f Mat4f::Scaling(const Vec3f& scale)
 
 Mat4f Mat4f::Perspective(float fov, int w, int h, float n, float f)
 {
+    // Mat4f mat = zeros;
+
+    // float ar = (float)w / (float)h;
+    // float tanHalfFov = MathUtil::Tan(MathUtil::DegToRad(fov / 2.0f));
+
+    // mat[0][0] = 1.0f / (tanHalfFov * ar);
+
+    // mat[1][1] = (PerspectiveMat11Div / tanHalfFov);
+
+    // mat[2][2] = f / (f - n);
+    // mat[2][3] = -(f * n) / (f - n);
+
+    // mat[3][2] = 1.0f;
+    // mat[3][3] = 0.0f;
+
     Mat4f mat = zeros;
 
     float ar = (float)w / (float)h;
     float tanHalfFov = MathUtil::Tan(MathUtil::DegToRad(fov / 2.0f));
+    float range = n - f;
 
     mat[0][0] = 1.0f / (tanHalfFov * ar);
 
-    mat[1][1] = (PerspectiveMat11Div / tanHalfFov);
+    mat[1][1] = -(1.0f / (tanHalfFov));
 
-    mat[2][2] = f / (f - n);
-    mat[2][3] = -(f * n) / (f - n);
+    mat[2][2] = (-n - f) / range;
+    mat[2][3] = (2.0f * f * n) / range;
 
-    mat[3][2] = 1.0f; 
+    mat[3][2] = 1.0f;
     mat[3][3] = 0.0f;
 
     return mat;

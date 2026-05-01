@@ -193,7 +193,6 @@ PSOutput PSMain(PSInput input)
 
     irradiance *= 1.0 - min(1.0, float(mask & OBJECT_MASK_LIGHTMAPPED));
 
-    #if 0
 #ifdef SSR_ENABLED
     float4 ssrResult = SAMPLE_TEXTURE_2D_LOD(sampler_linear, SSRResultTexture, texcoord, 0);
     reflections = (reflections * (1.0 - ssrResult.a)) + (ssrResult * ssrResult.a);
@@ -252,7 +251,6 @@ PSOutput PSMain(PSInput input)
     result = normal * 0.5 + 0.5;
 #elif defined(DEBUG_AO)
     result = float3(ao, ao, ao);
-#endif
 #endif
 
     output.output_color = float4(result, 1.0);

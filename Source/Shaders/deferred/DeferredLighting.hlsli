@@ -227,9 +227,6 @@ void CalculateEnvProbesContribution(
         float3 currentIrradiance = EnvProbeSH(currentEnvProbe, N, /* order */ 2);
         irradiance += float4(currentIrradiance, 1.0) * weight * (1.0 - accumWeightIrradiance);
         accumWeightIrradiance += weight * (1.0 - accumWeightIrradiance);
-
-        // temp
-        break;
     }
 #endif // HYP_ENV_PROBES_NO_IRRADIANCE
 }
