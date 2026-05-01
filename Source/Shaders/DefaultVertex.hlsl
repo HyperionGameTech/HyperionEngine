@@ -1,5 +1,6 @@
 #include "./include/Shared.hlsli"
 #include "./include/Scene.hlsli"
+#include "./include/Material.hlsli"
 
 struct VSInput
 {
@@ -20,6 +21,7 @@ struct VSOutput
     float2 texcoord1 : TEXCOORD1;
     float3 tangent : TANGENT;
     float3 bitangent : BINORMAL;
+    float4 color : TEXCOORD2;
     nointerpolation float3 camera_position : TEXCOORD3;
     float4 position_ndc : TEXCOORD4;
     float4 previous_position_ndc : TEXCOORD5;
@@ -33,10 +35,10 @@ DECLARE_SRV_DYNAMIC(Default, CamerasBuffer) StructuredBuffer<Camera> _cameras_bu
 #include "include/Entity.hlsli"
 
 #ifdef INSTANCING
-    DECLARE_SRV(Default, EntitiesBuffer) StructuredBuffer<Entity> entities;
-    DECLARE_SRV_DYNAMIC(Default, EntityInstanceBatchesBuffer) ByteAddressBuffer entity_instance_batches;
+DECLARE_SRV(Default, EntitiesBuffer) StructuredBuffer<Entity> entities;
+DECLARE_SRV_DYNAMIC(Default, EntityInstanceBatchesBuffer) ByteAddressBuffer entity_instance_batches;
 
-    #define entity_instance_batch entity_instance_batches.Load<MeshEntityInstanceBatch>(0)
+#define entity_instance_batch entity_instance_batches.Load<MeshEntityInstanceBatch>(0)
 #endif // INSTANCING
 
 #ifdef SKINNING
@@ -44,12 +46,15 @@ DECLARE_SRV_DYNAMIC(Default, SkeletonsBuffer) StructuredBuffer<float4x4> Skeleto
 #include "include/Skinning.hlsli"
 #endif // SKINNING
 
-#ifndef INSTANCING
 DECLARE_BUFFER_DYNAMIC(Default, CBuffer) cbuffer CBuffer
 {
+#ifndef INSTANCING
     Entity entity;
-};
+#else // INSTANCING
+    Entity dummyEntity;
 #endif // !INSTANCING
+    Material material;
+};
 
 VSOutput VSMain(VSInput input, uint instanceId : SV_InstanceID)
 {
@@ -117,6 +122,8 @@ VSOutput VSMain(VSInput input, uint instanceId : SV_InstanceID)
     jitterMat[1][3] += camera.jitter.y;
 
     output.position_cs = mul(jitterMat, output.position_ndc);
+
+    output.color = material.albedo;
 
 #ifdef INSTANCING
     output.object_index = OBJECT_INDEX;

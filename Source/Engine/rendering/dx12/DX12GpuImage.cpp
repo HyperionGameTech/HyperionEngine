@@ -15,6 +15,7 @@
 #include <rendering/dx12/DX12CommandBuffer.hpp>
 #include <rendering/dx12/DX12GpuBuffer.hpp>
 #include <rendering/dx12/DX12Helpers.hpp>
+#include <rendering/dx12/DX12DescriptorHeaps.hpp>
 
 #include <rendering/Shared.hpp>
 #include <rendering/RenderHelpers.hpp>
@@ -68,7 +69,6 @@ RendererResult DX12GpuImage::Create()
     return Create(RS_UNDEFINED);
 }
 
-HYP_DISABLE_OPTIMIZATION;
 RendererResult DX12GpuImage::Create(ResourceState initialState)
 {
     if (IsCreated())
@@ -1213,6 +1213,141 @@ void DX12GpuImage::CopyFrom(
                     &srcBox);
             }
         }
+    }
+}
+
+void DX12GpuImage::Fill(
+    DX12CommandBuffer* commandBuffer,
+    float value,
+    const ImageSubResource& subResource,
+    const Vec3u& offset,
+    const Vec3u& extent)
+{
+    AssertDebug(IsCreated(), "Image is not created");
+    AssertDebug(commandBuffer != nullptr, "Command buffer is null");
+
+    const bool isDepthStencil = m_textureDesc.IsDepthStencil();
+
+    // Transition to appropriate state for clearing
+    if (isDepthStencil)
+    {
+        InsertBarrier(commandBuffer, subResource, RS_DEPTH_STENCIL, ShaderModuleType::None);
+    }
+    else
+    {
+        InsertBarrier(commandBuffer, subResource, RS_RENDER_TARGET, ShaderModuleType::None);
+    }
+
+    // Get the device and command list
+    ID3D12Device* device = g_renderInterface->GetDevice();
+    ID3D12GraphicsCommandList* commandList = commandBuffer->GetCommandList();
+
+    // Determine the number of mip levels and array layers to clear
+    const uint8 numLevels = (subResource.numLevels == UINT8_MAX)
+        ? uint8(NumMips() - subResource.baseMipLevel)
+        : subResource.numLevels;
+
+    const uint16 numLayers = (subResource.numLayers == UINT16_MAX)
+        ? uint16(NumArrayLayers() - subResource.baseArrayLayer)
+        : subResource.numLayers;
+
+    if (isDepthStencil)
+    {
+        // For depth/stencil, create a temporary DSV and clear it
+        D3D12_DEPTH_STENCIL_VIEW_DESC dsvDesc {};
+        dsvDesc.Format = ToDXGIFormat(m_textureDesc.format, DX12ViewType::RTV_DSV);
+
+        switch (m_textureDesc.type)
+        {
+        case TextureType::Texture2D:
+            dsvDesc.ViewDimension = D3D12_DSV_DIMENSION_TEXTURE2D;
+            dsvDesc.Texture2D.MipSlice = subResource.baseMipLevel;
+            break;
+        case TextureType::Texture2DArray:
+        case TextureType::Cubemap:
+            dsvDesc.ViewDimension = D3D12_DSV_DIMENSION_TEXTURE2DARRAY;
+            dsvDesc.Texture2DArray.ArraySize = numLayers;
+            dsvDesc.Texture2DArray.FirstArraySlice = subResource.baseArrayLayer;
+            dsvDesc.Texture2DArray.MipSlice = subResource.baseMipLevel;
+            break;
+        default:
+            HYP_UNREACHABLE();
+        }
+
+        // Get a temporary descriptor from the render interface's DSV heap
+        DX12DescriptorHandle dsvHandle = g_renderInterface->descriptorHeapManager->Allocate(DX12DescriptorHeapType::DSV, 1);
+        AssertDebug(dsvHandle.IsValid(), "Failed to allocate DSV descriptor");
+
+        device->CreateDepthStencilView(
+            m_resource.Get(),
+            &dsvDesc,
+            dsvHandle.cpuHandle);
+
+        D3D12_CLEAR_FLAGS clearFlags = D3D12_CLEAR_FLAG_DEPTH;
+        if (TextureUtils::HasStencilComponent(m_textureDesc.format))
+        {
+            clearFlags |= D3D12_CLEAR_FLAG_STENCIL;
+        }
+
+        commandList->ClearDepthStencilView(
+            dsvHandle.cpuHandle,
+            clearFlags,
+            value,
+            0,  // stencil
+            0,
+            nullptr);
+
+        EnqueueDeletion(FunctionWrapper<Proc<void()>>([dsvHandle = std::move(dsvHandle)]() mutable
+            {
+                // Release the descriptor back to the heap
+                g_renderInterface->descriptorHeapManager->Free(DX12DescriptorHeapType::DSV, std::move(dsvHandle));
+            }));
+    }
+    else
+    {
+        // For color, create a temporary RTV and clear it
+        D3D12_RENDER_TARGET_VIEW_DESC rtvDesc {};
+        rtvDesc.Format = ToDXGIFormat(m_textureDesc.format, DX12ViewType::RTV_DSV);
+
+        switch (m_textureDesc.type)
+        {
+        case TextureType::Texture2D:
+            rtvDesc.ViewDimension = D3D12_RTV_DIMENSION_TEXTURE2D;
+            rtvDesc.Texture2D.MipSlice = subResource.baseMipLevel;
+            break;
+        case TextureType::Texture2DArray:
+        case TextureType::Cubemap:
+            rtvDesc.ViewDimension = D3D12_RTV_DIMENSION_TEXTURE2DARRAY;
+            rtvDesc.Texture2DArray.ArraySize = numLayers;
+            rtvDesc.Texture2DArray.FirstArraySlice = subResource.baseArrayLayer;
+            rtvDesc.Texture2DArray.MipSlice = subResource.baseMipLevel;
+            break;
+        default:
+            HYP_UNREACHABLE();
+        }
+
+        // Get a temporary descriptor from the render interface's RTV heap
+        DX12DescriptorHandle rtvHandle = g_renderInterface->descriptorHeapManager->Allocate(DX12DescriptorHeapType::RTV, 1);
+        AssertDebug(rtvHandle.IsValid(), "Failed to allocate RTV descriptor");
+
+        device->CreateRenderTargetView(
+            m_resource.Get(),
+            &rtvDesc,
+            rtvHandle.cpuHandle);
+
+        float clearColor[4] = { value, value, value, value };
+
+        commandList->ClearRenderTargetView(
+            rtvHandle.cpuHandle,
+            clearColor,
+            0,
+            nullptr);
+
+        EnqueueDeletion(FunctionWrapper<Proc<void()>>([rtvHandle = std::move(rtvHandle)]() mutable
+            {
+                // Release the descriptor back to the heap
+                g_renderInterface->descriptorHeapManager->Free(DX12DescriptorHeapType::RTV, std::move(rtvHandle));
+            }));
     }
 }
 

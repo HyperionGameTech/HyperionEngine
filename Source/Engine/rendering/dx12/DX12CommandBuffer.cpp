@@ -192,7 +192,7 @@ void DX12CommandBuffer::BindVertexBuffer(const DX12GpuBuffer* buffer)
     AssertDebug(buffer->GetBufferType() == GpuBufferType::VertexBuffer,
         "Not a vertex buffer! Got buffer type: {}", buffer->GetBufferType());
 
-    D3D12_VERTEX_BUFFER_VIEW vbView = {};
+    D3D12_VERTEX_BUFFER_VIEW vbView {};
     vbView.BufferLocation = buffer->GetResource()->GetGPUVirtualAddress();
     vbView.SizeInBytes = buffer->Size();
 
@@ -201,15 +201,12 @@ void DX12CommandBuffer::BindVertexBuffer(const DX12GpuBuffer* buffer)
     // binding vertex buffers to ensure proper vertex attribute interpretation.
     if (m_boundGraphicsPipeline == nullptr)
     {
-        HYP_LOG(RenderingBackend, Error, "Graphics pipeline must be bound before binding vertex buffer to ensure correct stride!");
-        AssertDebug(false, "Graphics pipeline must be bound before binding vertex buffer to ensure correct stride!");
+        HYP_FAIL("Graphics pipeline must be bound before binding vertex buffer to ensure correct stride!");
         return;
     }
 
     vbView.StrideInBytes = static_cast<UINT>(m_boundGraphicsPipeline->GetInputLayout().VertexSize());
     AssertDebug(vbView.StrideInBytes > 0, "Vertex stride must be greater than 0!");
-
-    HYP_LOG(RenderingBackend, Debug, "Binding vertex buffer with stride={}, size={}, bits = {}", vbView.StrideInBytes, vbView.SizeInBytes, m_boundGraphicsPipeline->GetInputLayout().mask);
 
     m_commandList->IASetVertexBuffers(0, 1, &vbView);
 }
@@ -220,7 +217,7 @@ void DX12CommandBuffer::BindIndexBuffer(const DX12GpuBuffer* buffer, GpuElemType
     AssertDebug(buffer->GetBufferType() == GpuBufferType::IndexBuffer,
         "Not an index buffer! Got buffer type: {}", buffer->GetBufferType());
 
-    D3D12_INDEX_BUFFER_VIEW ibView = {};
+    D3D12_INDEX_BUFFER_VIEW ibView {};
     ibView.BufferLocation = buffer->GetResource()->GetGPUVirtualAddress();
     ibView.SizeInBytes = buffer->Size();
     ibView.Format = ToDXGIFormat(elemType);

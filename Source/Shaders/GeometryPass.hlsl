@@ -19,6 +19,7 @@ struct PSInput
     float2 texcoord1 : TEXCOORD1;
     float3 tangent : TANGENT;
     float3 bitangent : BINORMAL;
+    float4 color : TEXCOORD2;
     nointerpolation float3 camera_position : TEXCOORD3;
     float4 position_ndc : TEXCOORD4;
     float4 previous_position_ndc : TEXCOORD5;
@@ -354,10 +355,8 @@ PSOutput PSMain(PSInput input)
 
     uint mask = input.object_mask;
 
-    // // temp debug
-    // output.gbuffer_albedo = float4(1.0, 0.0, 0.0, 1.0);
-    //
-    output.gbuffer_albedo = float4(input.texcoord0, 0.0, 1.0);
+    // temp debug
+    output.gbuffer_albedo = material.albedo;
 
     GBufferMaterialParams materialParams;
     materialParams.roughness = roughness;

@@ -52,7 +52,7 @@ VSOutput VSMain(VSInput input, uint instanceId : SV_InstanceID)
     VSOutput output;
 
     float4 position = mul(entity.model_matrix, float4(input.a_position, 1.0));
-    float3x3 normal_matrix = (float3x3)entity.model_matrix;
+    float3x3 normal_matrix = entity.normal_matrix;
 
     output.position = input.a_position.xyz;
     output.normal = mul(normal_matrix, input.a_normal);

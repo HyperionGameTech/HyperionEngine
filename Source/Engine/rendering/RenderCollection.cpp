@@ -822,7 +822,6 @@ static void RenderAll(
             cba.Write(&materialProxy->bufferData);
             cba.Commit(cbuffer, cbufferOffset, cbufferSize);
         }
-
         cr << SetShaderUniform(cbufferBinding, "CBuffer"_sh, cbuffer, ShaderDataOffset(cbufferOffset, cbufferSize));
 
         if (meshProxy.skeleton != nullptr)
@@ -894,14 +893,13 @@ static void RenderAll(
 
         const RenderProxyMaterial* materialProxy = static_cast<const RenderProxyMaterial*>(GetRenderProxy(meshProxy.material));
         AssertDebug(materialProxy != nullptr);
-
+        
         { // Write constants for the draw
             CBufferAllocator& cba = *g_renderInterface->cbufferAllocator;
             cba.Write(&meshProxy.bufferData);
             cba.Write(&materialProxy->bufferData);
             cba.Commit(cbuffer, cbufferOffset, cbufferSize);
         }
-
         cr << SetShaderUniform(cbufferBinding, "CBuffer"_sh, cbuffer, ShaderDataOffset(cbufferOffset, cbufferSize));
 
         EntityInstanceBatch* entityInstanceBatch = instancedDrawCalls.batches[i];
