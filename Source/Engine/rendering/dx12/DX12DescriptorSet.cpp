@@ -21,6 +21,7 @@
 #include <rendering/dx12/DX12RayTracingPipeline.hpp>
 
 #include <rendering/Bindless.hpp>
+#include <rendering/PlaceholderData.hpp>
 
 #include <algorithm>
 
@@ -58,7 +59,15 @@ DX12DescriptorSet::DX12DescriptorSet(const DescriptorSetLayout& layout)
             }
             else if (element.category == ShaderResourceCategory::Image)
             {
-                PrefillElements<DX12GpuImageView>(name, element.count);
+                if (element.type == ShaderInputType::SRV || element.type == ShaderInputType::SRV_Dynamic)
+                {
+                    PrefillElements<DX12GpuImageView>(name, element.count, g_renderInterface->placeholderData->GetImageView2D1x1R8());
+                }
+                else
+                {
+                    // leave empty to avoid overwriting default image view for UAV
+                    PrefillElements<DX12GpuImageView>(name, element.count);
+                }
             }
             else if (element.category == ShaderResourceCategory::AccelerationStructure)
             {

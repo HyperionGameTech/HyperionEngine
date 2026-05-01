@@ -2771,11 +2771,11 @@ void DeferredRenderer::RenderFrameForView(Frame* frame, const RenderSetup& rs)
         }
 
         passData.indirectPass->RenderToFramebuffer(frame, rs, passData.deferredShadingFramebuffer);
-       // passData.directPass->RenderToFramebuffer(frame, rs, passData.deferredShadingFramebuffer);
+        passData.directPass->RenderToFramebuffer(frame, rs, passData.deferredShadingFramebuffer);
 
         frame->cr << SetCurrentFramebuffer(nullptr);
     }
-    
+
     { // generate mipchain after rendering opaque objects' lighting, now we can use it for transmission
         const GpuImageRef& srcImage = passData.deferredShadingFramebuffer->GetAttachment(0)->GetGpuImage();
         GenerateMipChain(frame, rs, renderCollector, srcImage);

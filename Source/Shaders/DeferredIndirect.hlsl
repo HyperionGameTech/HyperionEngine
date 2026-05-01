@@ -255,7 +255,7 @@ PSOutput PSMain(PSInput input)
 #endif
 #endif
 
-    output.output_color = irradiance;//float4(result, 1.0);
+    output.output_color = float4(result, 1.0);
 
     return output;
 }

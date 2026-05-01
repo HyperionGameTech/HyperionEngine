@@ -22,13 +22,9 @@ DX12DescriptorAllocator::DX12DescriptorAllocator(DX12DescriptorHeapType type, ui
     : type(type),
       incrementSize(0),
       cpuStart {},
-      gpuStart {}
+      gpuStart {},
+      m_indexAllocator { descriptorSize }
 {
-    for (uint32 frameIndex = 0; frameIndex < NumFramesInFlight; frameIndex++)
-    {
-        m_indexAllocators[frameIndex] = PoolNew<DX12DescriptorIndexAllocator>(*g_renderPool, descriptorSize);
-    }
-
     D3D12_DESCRIPTOR_HEAP_DESC heapDesc {};
     heapDesc.NumDescriptors = descriptorSize;
     heapDesc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_NONE;
@@ -66,25 +62,17 @@ DX12DescriptorAllocator::DX12DescriptorAllocator(DX12DescriptorHeapType type, ui
     }
 }
 
-DX12DescriptorAllocator::~DX12DescriptorAllocator()
-{
-    for (uint32 frameIndex = 0; frameIndex < NumFramesInFlight; frameIndex++)
-    {
-        PoolDelete(*g_renderPool, m_indexAllocators[frameIndex]);
-        m_indexAllocators[frameIndex] = nullptr;
-    }
-}
+DX12DescriptorAllocator::~DX12DescriptorAllocator() = default;
 
-DX12DescriptorHandle DX12DescriptorAllocator::Allocate(uint8 frameIndex, uint32 count)
+DX12DescriptorHandle DX12DescriptorAllocator::Allocate(uint32 count)
 {
-    uint32 allocationOffset = m_indexAllocators[frameIndex]->Allocate(count);
+    uint32 allocationOffset = m_indexAllocator.Allocate(count);
 
     if (allocationOffset == DX12DescriptorIndexAllocator::InvalidIndex)
         return DX12DescriptorHandle();
 
     DX12DescriptorHandle descriptorHandle;
     descriptorHandle.count = count;
-    descriptorHandle.frameIndex = frameIndex;
     descriptorHandle.cpuHandle = { cpuStart.ptr + (incrementSize * allocationOffset) };
 
     if (gpuStart.ptr != 0)
@@ -101,9 +89,9 @@ void DX12DescriptorAllocator::Free(DX12DescriptorHandle&& handle)
         return;
 
     ptrdiff_t startIndex = (handle.cpuHandle.ptr - cpuStart.ptr) / incrementSize;
-    Assert(startIndex >= 0 && startIndex + handle.count <= m_indexAllocators[handle.frameIndex]->maxSize);
+    Assert(startIndex >= 0 && startIndex + handle.count <= m_indexAllocator.maxSize);
 
-    m_indexAllocators[handle.frameIndex]->Free(uint32(startIndex), handle.count);
+    m_indexAllocator.Free(uint32(startIndex), handle.count);
 
     handle = {};
 }
@@ -144,11 +132,9 @@ void DX12DescriptorHeapManager::Shutdown()
     }
 }
 
-DX12DescriptorHandle DX12DescriptorHeapManager::Allocate(DX12DescriptorHeapType heapType, uint32 count)
+HYP_NODISCARD DX12DescriptorHandle DX12DescriptorHeapManager::Allocate(DX12DescriptorHeapType heapType, uint32 count)
 {
-    const uint8 currentFrameIndex = (uint8)(GetFrameCounter() % NumFramesInFlight);
-
-    return m_descriptorAllocators[uint32(heapType)]->Allocate(currentFrameIndex, count);
+    return m_descriptorAllocators[uint32(heapType)]->Allocate(count);
 }
 
 void DX12DescriptorHeapManager::Free(DX12DescriptorHeapType heapType, DX12DescriptorHandle&& handle)

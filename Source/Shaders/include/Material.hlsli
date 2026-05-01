@@ -9,16 +9,16 @@
 #ifndef HYP_DO_NOT_DEFINE_DESCRIPTOR_SETS
 
 #ifdef HYP_FEATURES_BINDLESS_TEXTURES
-    DECLARE_SRV(BindlessResources0, Textures) uniform texture2D textures[];
-#else
-    DECLARE_SRV(Material, DiffuseMap) uniform texture2D DiffuseMap;
-    DECLARE_SRV(Material, NormalMap) uniform texture2D NormalMap;
-    DECLARE_SRV(Material, ParallaxMap) uniform texture2D ParallaxMap;
-    DECLARE_SRV(Material, MetalnessMap) uniform texture2D MetalnessMap;
-    DECLARE_SRV(Material, RoughnessMap) uniform texture2D RoughnessMap;
-#endif
+DECLARE_SRV(BindlessResources0, Textures) Texture2D textures[];
+#else // !HYP_FEATURES_BINDLESS_TEXTURES
+DECLARE_SRV(Material, DiffuseMap) Texture2D DiffuseMap;
+DECLARE_SRV(Material, NormalMap) Texture2D NormalMap;
+DECLARE_SRV(Material, ParallaxMap) Texture2D ParallaxMap;
+DECLARE_SRV(Material, MetalnessMap) Texture2D MetalnessMap;
+DECLARE_SRV(Material, RoughnessMap) Texture2D RoughnessMap;
+#endif // HYP_FEATURES_BINDLESS_TEXTURES
 
-#endif
+#endif // !HYP_DO_NOT_DEFINE_DESCRIPTOR_SETS
 
 struct Material
 {
@@ -87,9 +87,9 @@ float4 UnpackMaterialParamFloat4(uint4 uValue, uint index)
 
 #if defined(HYP_FEATURES_BINDLESS_TEXTURES) && !defined(LIGHT_TYPE_AREA_RECT) // area rect light uses DiffuseMap in any case
 #define GET_TEXTURE(mat, name) textures[(mat).texture_indices[(MATERIAL_TEXTURE_##name) / 4][(MATERIAL_TEXTURE_##name) % 4]]
-#else
+#else // !(defined(HYP_FEATURES_BINDLESS_TEXTURES) && !defined(LIGHT_TYPE_AREA_RECT))
 #define GET_TEXTURE(mat, name) name
-#endif
+#endif // !(defined(HYP_FEATURES_BINDLESS_TEXTURES) && !defined(LIGHT_TYPE_AREA_RECT))
 
 
 #if defined(PIXEL_SHADER) || defined(COMPUTE_SHADER)
@@ -113,9 +113,9 @@ float4 UnpackMaterialParamFloat4(uint4 uValue, uint index)
 #define SAMPLE_MATERIAL_TEXTURE_CUBE(mat, name, texcoord) \
     SAMPLE_TEXTURE_CUBE_LOD(texture_sampler, GET_TEXTURE(mat, name), (texcoord), 0.0)
 
-#endif
+#endif // !(defined(PIXEL_SHADER) || defined(COMPUTE_SHADER))
 
 #define SAMPLE_MATERIAL_TEXTURE_LOD(mat, name, texcoord, lod) \
     SAMPLE_TEXTURE_2D_LOD(texture_sampler, GET_TEXTURE(mat, name), (texcoord), (lod))
 
-#endif
+#endif // !HYP_MATERIAL
