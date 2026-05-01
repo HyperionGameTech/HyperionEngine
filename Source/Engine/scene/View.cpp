@@ -371,7 +371,7 @@ void View::PrepareShadowViews(Array<View*, SceneTempAllocator>& outShadowViews)
 
             if (!(light->GetLightFlags() & LightFlags::ShadowCaster))
                 continue;
-            
+
             bool isLightInFrustum = false;
 
             if (m_flags & ViewFlags::NO_FRUSTUM_CULLING)
@@ -415,7 +415,7 @@ void View::PrepareShadowViews(Array<View*, SceneTempAllocator>& outShadowViews)
 
         View* shadowViewsStatic[MaxShadowMapCascades] {};
         View* shadowViewsDynamic[MaxShadowMapCascades] {};
-                    
+
         for (uint32 cascadeIndex = 0; cascadeIndex < light->GetNumShadowMapCascades(); cascadeIndex++)
         {
             shadowViewsDynamic[cascadeIndex] = g_renderInterface->shadowMapCache->GetOrCreateShadowView(
@@ -975,7 +975,7 @@ void View::CollectMeshEntities(RenderProxyList& rpl)
             AssertDebug(entity->InstanceClass() == Entity::StaticClass());
 
             auto&& [meshComponent, transformComponent, boundingBoxComponent, lightmapElementComponent] = entity->GetEntityManager()->TryGetComponents<MeshComponent, TransformComponent, BoundingBoxComponent, LightmapElementComponent>(entity);
-            
+
             AssertDebug(meshComponent != nullptr);
 
             if (!meshComponent->mesh || !meshComponent->material)
@@ -996,7 +996,7 @@ void View::CollectMeshEntities(RenderProxyList& rpl)
             meshProxy.attributes = RenderableAttributeSet(meshComponent->mesh->GetMeshAttributes(), meshComponent->material->GetAttributes());
 
             Mat4f transformMatrix = transformComponent->GetMatrix();
-            
+
             if (meshComponent->enableAutoInstancing || meshComponent->numInstances)
             {
                 AssertDebug(m_viewDesc.entityBatchClass == nullptr || m_viewDesc.entityBatchClass == MeshEntityInstanceBatch::StaticClass());
@@ -1032,7 +1032,7 @@ void View::CollectMeshEntities(RenderProxyList& rpl)
 
             meshProxy.bufferData.worldAabbMax = boundingBoxComponent ? boundingBoxComponent->worldAabb.max : MathUtil::MinSafeValue<Vec3f>();
             meshProxy.bufferData.worldAabbMin = boundingBoxComponent ? boundingBoxComponent->worldAabb.min : MathUtil::MaxSafeValue<Vec3f>();
-            
+
             meshProxy.bufferData.modelMatrix = transformMatrix;
             meshProxy.bufferData.previousModelMatrix = meshComponent->previousModelMatrix;
             meshProxy.bufferData.normalMatrix = Mat3f(transformMatrix).Inverse().Transpose();

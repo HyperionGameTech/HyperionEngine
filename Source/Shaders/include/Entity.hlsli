@@ -7,7 +7,7 @@ struct Entity
 {
     float4x4 model_matrix;
     float4x4 previous_model_matrix;
-    float4x3 normal_matrix;
+    float3x3 normal_matrix;
 
     float4 world_aabb_max;
     float4 world_aabb_min;

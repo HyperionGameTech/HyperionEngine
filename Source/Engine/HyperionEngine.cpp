@@ -99,6 +99,11 @@ struct AAssetManager* g_androidAssetManager;
 // defined in ClassDecls.cpp
 extern void InitClassDecls();
 
+// defined in PlatformUtils.[cpp|mm]
+namespace PlatformUtils {
+extern PlatformString GetExecutableAbsolutePath();
+} // namespace PlatformUtils
+
 Handle<EngineDriver> g_engineDriver;
 Handle<AssetManager> g_assetManager;
 Handle<AudioManager> g_audioManager;
@@ -328,7 +333,7 @@ extern "C"
         // use asset manager for all assets
         const FilePath basePath = FilePath(AndroidAssetPathPrefix);
 #else // !HYP_ANDROID
-        const FilePath basePath = FilePath(cliArgs.GetCommand().ToUtf8()).BasePath();
+        const FilePath basePath = FilePath(PlatformUtils::GetExecutableAbsolutePath().ToUtf8()).BasePath();
 #endif // HYP_ANDROID
 
         CoreApi::SetExecutablePath(basePath);
