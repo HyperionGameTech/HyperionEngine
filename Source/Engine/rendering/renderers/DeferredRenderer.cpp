@@ -1990,7 +1990,14 @@ public:
         allocation.lastUsedFrame = GetFrameCounter();
 
         StructuredBuffer& gridBuffer = g_renderInterface->sbufferAllocator->AcquireBuffer(gridData.Size(), sizeof(TileGridData));
+#if HYP_DEBUG_MODE
+        gridBuffer.gpuBuffer->SetDebugName(NAME("ClusterGridBuffer"));
+#endif
+
         StructuredBuffer& indexBuffer = g_renderInterface->sbufferAllocator->AcquireBuffer(flatIndexData.Size(), sizeof(uint16));
+#if HYP_DEBUG_MODE
+        indexBuffer.gpuBuffer->SetDebugName(NAME("ClusterIndexBuffer"));
+#endif
 
         allocation.gridBufferSize = gridBuffer.gpuBuffer->Size();
         allocation.indexBufferSize = indexBuffer.gpuBuffer->Size();
@@ -2764,11 +2771,11 @@ void DeferredRenderer::RenderFrameForView(Frame* frame, const RenderSetup& rs)
         }
 
         passData.indirectPass->RenderToFramebuffer(frame, rs, passData.deferredShadingFramebuffer);
-        passData.directPass->RenderToFramebuffer(frame, rs, passData.deferredShadingFramebuffer);
+       // passData.directPass->RenderToFramebuffer(frame, rs, passData.deferredShadingFramebuffer);
 
         frame->cr << SetCurrentFramebuffer(nullptr);
     }
-
+    
     { // generate mipchain after rendering opaque objects' lighting, now we can use it for transmission
         const GpuImageRef& srcImage = passData.deferredShadingFramebuffer->GetAttachment(0)->GetGpuImage();
         GenerateMipChain(frame, rs, renderCollector, srcImage);

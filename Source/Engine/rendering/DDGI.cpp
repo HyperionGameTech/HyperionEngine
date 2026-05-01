@@ -114,8 +114,9 @@ void DDGI::CreateConstantBuffers()
 {
     for (uint32 frameIndex = 0; frameIndex < NumFramesInFlight; frameIndex++)
     {
-        m_cbuffers[frameIndex] = g_renderInterface->MakeGpuBuffer(GpuBufferType::ConstantBuffer, sizeof(DDGIConstants));
+        m_cbuffers[frameIndex] = g_renderInterface->MakeGpuBuffer(GpuBufferType::ConstantBuffer, ByteUtil::AlignAs(sizeof(DDGIConstants), 256));
         Assert(m_cbuffers[frameIndex]->Create());
+
         m_cbuffers[frameIndex]->Memset(sizeof(DDGIConstants), 0);
     }
 }

@@ -362,6 +362,8 @@ static constexpr uint32 HYP_VULKAN_API_VERSION = VK_API_VERSION_1_2;
 
 static const ShaderPropertyId s_propVulkan = InternShaderProperty(ShaderProperty(NAME("HYP_VULKAN"), int(HYP_VULKAN_API_VERSION)));
 
+static const ShaderPropertyId s_propDX12 = InternShaderProperty(ShaderProperty(NAME("HYP_DX12")));
+
 static const ShaderPropertyId s_propNumGBufferTextures = InternShaderProperty(ShaderProperty(NAME("NUM_GBUFFER_TEXTURES"), int(NumGBufferTargets)));
 
 static const ShaderPropertyId s_propBindlessTextures = InternShaderProperty(ShaderProperty(NAME("HYP_FEATURES_BINDLESS_TEXTURES")));
@@ -419,9 +421,11 @@ static bool AreShaderPropertyValuesEquivalent(const ShaderProperty::Value& a, co
 
 void MergeGlobalShaderProperties(ShaderPropertySet& out)
 {
-#if HYP_VULKAN
+#if HYP_DX12
+    out.Add(s_propDX12);
+#elif HYP_VULKAN
     out.Add(s_propVulkan);
-#endif // HYP_VULKAN
+#endif // HYP_DX12 || HYP_VULKAN
 
     out.Add(s_propNumGBufferTextures);
 
@@ -1238,6 +1242,7 @@ static ByteBuffer CompileHLSL(
     // enable debug info in HYP_DEBUG_MODE.
 #if HYP_DEBUG_MODE
     args.PushBack(L"-Zi");
+    args.PushBack(L"-Od");
 #endif
 
 #if HYP_VULKAN
@@ -1393,7 +1398,7 @@ static bool FindVertexType(const UTF8StringView& str, VertexType& outType)
         outType = VT_Position;
         return true;
     }
-    
+
     if (str == "a_normal")
     {
         outType = VT_Normal;
@@ -1411,7 +1416,7 @@ static bool FindVertexType(const UTF8StringView& str, VertexType& outType)
         outType = VT_UV1;
         return true;
     }
-    
+
     if (str == "a_bone_indices" || str == "a_bone_weights")
     {
         outType = VT_Skeletal;
@@ -1500,7 +1505,7 @@ static bool IsShaderRequestCoveredByPerms(
                         requested.name,
                         ShaderPropertyValueToString(bundleIt->currentValue));
                 }
-                
+
                 return false;
             }
             else if (bundleIt->IsValueGroup())
@@ -2116,7 +2121,7 @@ bool ShaderCompiler::HandleBundle(
             return CompileBundle(decl, shaderRequest, inOutBundle);
         }
     }
-    
+
     const bool requestedFound = shaderRequest.HasValue() &&
         inOutBundle->compiledShaders.FindIf([&](const Handle<Shader>& shader)
             {
@@ -3287,7 +3292,7 @@ bool ShaderCompiler::CompileBundle(
 
         return false;
     }
-    
+
     static const auto MergeProperty = [](ShaderVariantPerms& target, const ShaderProperty& prop) -> Result
     {
         auto targetIt = target.Find(StringHash(prop.name));
@@ -3604,7 +3609,7 @@ bool ShaderCompiler::CompileBundle(
             }
 
             descriptorUsageSetsPerFile.Clear();
-            
+
             // for logging
             String variablePropertiesString;
             String staticPropertiesString;
@@ -3630,7 +3635,7 @@ bool ShaderCompiler::CompileBundle(
                     staticPropertiesString += property.ToString();
                 }
             }
-            
+
             HYP_LOG(
                 ShaderCompiler,
                 Verbose,
@@ -3824,7 +3829,7 @@ bool ShaderCompiler::CompileBundle(
             g_renderInterface->graphicsPipelineCache->ExpirePipelinesForShader(shader);
             g_renderInterface->computePipelineCache->ExpirePipelinesForShader(shader);
             g_renderInterface->rayTracingPipelineCache->ExpirePipelinesForShader(shader);
-            
+
             GetEngineAssetRegistry()->RemoveAsset(shader);
 
             EnqueueDeletion(std::move(shader));

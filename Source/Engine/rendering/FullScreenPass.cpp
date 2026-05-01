@@ -629,7 +629,7 @@ void FullScreenPass::RenderToFramebuffer_Internal(Frame* frame, const RenderSetu
 
     cr << SetDepthTest(false);
     cr << SetDepthWrite(false);
-    cr << SetFaceCullMode(FCM_BACK);
+    cr << SetFaceCullMode(FCM_NONE); // FCM_BACK);
     cr << SetFillMode(FM_FILL);
     cr << SetTopology(TOP_TRIANGLES);
     cr << SetCurrentBlendFunction(m_blendFunction);
@@ -690,7 +690,7 @@ void FullScreenPass::Begin(Frame* frame, const RenderSetup& renderSetup)
 
     cr << SetDepthTest(false);
     cr << SetDepthWrite(false);
-    cr << SetFaceCullMode(FCM_BACK);
+    cr << SetFaceCullMode(FCM_NONE);//FCM_BACK);
     cr << SetFillMode(FM_FILL);
     cr << SetCurrentBlendFunction(m_blendFunction);
 }
