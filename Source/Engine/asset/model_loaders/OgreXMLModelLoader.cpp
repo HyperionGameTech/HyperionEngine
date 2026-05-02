@@ -308,6 +308,12 @@ AssetLoadResult OgreXMLModelLoader::LoadAsset(LoaderState& state) const
             continue;
         }
 
+        // Reverse triangle winding: convert right-handed CCW to left-handed CW
+        for (uint32 i = 0; i + 2 < subMesh.indices.Size(); i += 3)
+        {
+            std::swap(subMesh.indices[i + 1], subMesh.indices[i + 2]);
+        }
+
         Scene* scene = GetDetachedSceneForCurrentThread();
 
         const Handle<Entity> entity = scene->GetEntityManager()->AddEntity();
@@ -338,15 +344,15 @@ AssetLoadResult OgreXMLModelLoader::LoadAsset(LoaderState& state) const
         GetCurrentAssetRegistry()->PutAsset(mesh);
 
         MaterialAttributes attributes {};
-        // attributes.bucket = RenderBucket::Translucent;
-        // attributes.blendFunction = BlendFunction::AlphaBlending();
+        attributes.bucket = RenderBucket::Translucent;
+        attributes.blendFunction = BlendFunction::AlphaBlending();
         attributes.shaderName = NAME("GeometryPass");
         attributes.shaderProperties = {};
 
         MaterialParameters parameters;
         parameters.albedo = Vec4f(1.0f, 1.0f, 1.0f, 1.0f);
-        // parameters.transmission = 0.9f;
-        // parameters.roughness = 0.2f;
+        parameters.transmission = 0.9f;
+        parameters.roughness = 0.2f;
 
         Handle<MaterialDefinition> materialDef = MakeHandle<MaterialDefinition>(CreateNameFromDynamicString(ANSIString(subMesh.name.Data())), attributes, parameters, MaterialTextures {});
         GetCurrentAssetRegistry()->PutAsset(materialDef);

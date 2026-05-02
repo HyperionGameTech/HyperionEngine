@@ -60,21 +60,21 @@ float3 CalculateRefraction(
     const uint max_dimension = max(image_dimensions.x, image_dimensions.y);
 
     const float IOR = 1.5;
-
-    const float sqrt_F0 = sqrt(F0.y);
-    const float material_ior = (1.0 + sqrt_F0) / (1.0 - sqrt_F0);
     const float air_ior = 1.0;
-    const float eta_ir = air_ior / material_ior;
-    const float eta_ri = material_ior / air_ior;
+
+    // Use the base dielectric IOR directly for the refraction direction,
+    // not derived from the metal-influenced F0 which would give nonsensical IORs for metals.
+    const float eta_ir = air_ior / IOR;
 
     Refraction refraction;
     RefractionSolidSphere(P, N, V, eta_ir, refraction);
 
     float4 refraction_pos = mul(camera.viewProjMat, float4(refraction.position, 1.0));
-
     refraction_pos /= refraction_pos.w;
 
-    float2 refraction_texcoord = refraction_pos.xy * 0.5 + 0.5;
+    // NDC -> UV: Y needs negation because our convention maps UV Y=0 -> NDC Y=+1 (top),
+    // UV Y=1 -> NDC Y=-1 (bottom), as used in ReconstructViewSpacePositionFromDepth().
+    float2 refraction_texcoord = float2(refraction_pos.x * 0.5 + 0.5, (-refraction_pos.y) * 0.5 + 0.5);
 
     const float lod = ApplyIORToRoughness(IOR, roughness) * log2(float(max_dimension));
 
@@ -83,7 +83,7 @@ float3 CalculateRefraction(
 
     float3 Ft = SAMPLE_TEXTURE_2D_LOD(sampler_linear, gbuffer_mip_chain, refraction_texcoord, lod).rgb;
     Ft *= translucent_color.rgb;
-    Ft *= 1.0 - E;
+    Ft *= 1.0 - E; // energy conservation: subtract the fraction already lost to reflection
     Ft *= T;
 
     return Ft;

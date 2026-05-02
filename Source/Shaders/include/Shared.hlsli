@@ -242,7 +242,7 @@ float ViewDepth(float depth, float near, float far)
 
 float4 ReconstructWorldSpacePositionFromDepth(float4x4 inverse_projection, float4x4 inverse_view, float2 coord, float depth)
 {
-    float4 ndc = float4(coord.x * 2.0 - 1.0, 1.0 - (coord.y * 2.0), depth, 1.0);
+    float4 ndc = float4(coord.x * 2.0 - 1.0, 1.0 - coord.y * 2.0, depth, 1.0);
 
     float4 inversed = mul(inverse_projection, ndc);
     inversed /= inversed.w;
@@ -254,7 +254,7 @@ float4 ReconstructWorldSpacePositionFromDepth(float4x4 inverse_projection, float
 
 float4 ReconstructViewSpacePositionFromDepth(float4x4 inverse_projection, float2 coord, float depth)
 {
-    float4 ndc = float4(coord.x * 2.0 - 1.0, 1.0 - (coord.y * 2.0), depth, 1.0);
+    float4 ndc = float4(coord.x * 2.0 - 1.0, 1.0 - coord.y * 2.0, depth, 1.0);
 
     float4 inversed = mul(inverse_projection, ndc);
     inversed /= inversed.w;
@@ -262,22 +262,13 @@ float4 ReconstructViewSpacePositionFromDepth(float4x4 inverse_projection, float2
     return inversed;
 }
 
-float2 GetProjectedPositionFromWorld(in float4x4 projection, in float4x4 view, in float3 world_space_position)
-{
-    float4 sample_position = mul(projection, mul(view, float4(world_space_position, 1.0)));
-    return (sample_position.xy / sample_position.w) * 0.5 + 0.5;
-}
-
-float2 GetProjectedPositionFromWorld(in float4x4 view_projection, in float3 world_space_position)
-{
-    float4 sample_position = mul(view_projection, float4(world_space_position, 1.0));
-    return (sample_position.xy / sample_position.w) * 0.5 + 0.5;
-}
-
 float2 GetProjectedPositionFromView(in float4x4 projection, in float3 view_space_position)
 {
     float4 sample_position = mul(projection, float4(view_space_position, 1.0));
-    return (sample_position.xy / sample_position.w) * 0.5 + 0.5;
+    sample_position /= sample_position.w;
+    sample_position.x = sample_position.x * 0.5 + 0.5;
+    sample_position.y = (-sample_position.y) * 0.5 + 0.5;
+    return sample_position.xy;
 }
 
 float3x3 inverse(float3x3 m)
