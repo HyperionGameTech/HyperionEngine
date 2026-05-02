@@ -375,8 +375,6 @@ void DeferredPass::Resize_Internal(Vec2u newSize)
 
 void DeferredPass::RenderToFramebuffer_Internal(Frame* frame, const RenderSetup& rs, Framebuffer* framebuffer)
 {
-    HYP_SCOPE;
-
     AssertDebug(rs.world && rs.view);
     AssertDebug(rs.passData != nullptr);
 
@@ -904,9 +902,6 @@ void LightmapPass::Resize_Internal(Vec2u newSize)
 
 void LightmapPass::RenderToFramebuffer_Internal(Frame* frame, const RenderSetup& renderSetup, Framebuffer* framebuffer)
 {
-    HYP_SCOPE;
-    AssertOnThread(g_renderThread);
-
     AssertDebug(renderSetup.world && renderSetup.volume && renderSetup.view);
 
     const uint32 frameIndex = frame->GetFrameIndex();
@@ -1082,9 +1077,6 @@ void FogVolumePass::Resize_Internal(Vec2u newSize)
 
 void FogVolumePass::RenderToFramebuffer_Internal(Frame* frame, const RenderSetup& renderSetup, Framebuffer* framebuffer)
 {
-    HYP_SCOPE;
-    AssertOnThread(g_renderThread);
-
     AssertDebug(renderSetup.world && renderSetup.volume && renderSetup.view);
 
     DeferredRendererPassData* dpd = DynamicCast<DeferredRendererPassData>(renderSetup.passData);
@@ -1275,8 +1267,6 @@ ReflectionsPass::~ReflectionsPass()
 
 void ReflectionsPass::Create()
 {
-    HYP_SCOPE;
-
     FullScreenPass::Create();
 
     CreateSSRPass();
@@ -1295,16 +1285,11 @@ void ReflectionsPass::CreateSSRPass()
 
 void ReflectionsPass::Resize_Internal(Vec2u newSize)
 {
-    HYP_SCOPE;
-
     FullScreenPass::Resize_Internal(newSize);
 }
 
 void ReflectionsPass::Render(Frame* frame, const RenderSetup& rs)
 {
-    HYP_SCOPE;
-    AssertOnThread(g_renderThread);
-
     AssertDebug(rs.world && rs.view);
     AssertDebug(rs.passData != nullptr);
 
@@ -2034,9 +2019,6 @@ void DeferredRenderer::Shutdown()
 
 PassData* DeferredRenderer::CreateViewPassData(View* view, PassDataExt&)
 {
-    HYP_SCOPE;
-    AssertOnThread(g_renderThread);
-
     Assert(view != nullptr);
 
     if (view->GetFlags() & ViewFlags::GBUFFER)
@@ -2195,7 +2177,6 @@ void DeferredRenderer::CreateViewTopLevelAccelerationStructures(View* view, RayT
 
 void DeferredRenderer::ResizeView(Viewport viewport, View* view, DeferredRendererPassData& passData)
 {
-    HYP_SCOPE;
     AssertOnThread(g_renderThread);
 
     HYP_LOG(Rendering, Verbose, "Resizing View '{}' to {}x{}", view->Id(), viewport.extent.x, viewport.extent.y);
@@ -2263,8 +2244,6 @@ void DeferredRenderer::ResizeView(Viewport viewport, View* view, DeferredRendere
 
 void DeferredRenderer::RenderFrame(Frame* frame, const RenderSetup& rs)
 {
-    HYP_SCOPE;
-
     AssertDebug(rs.world);
 
     Array<RenderProxyList*, InlineAllocator<8, RenderAllocator>> renderProxyLists;
@@ -2496,8 +2475,6 @@ void DeferredRenderer::RenderFrame(Frame* frame, const RenderSetup& rs)
 
 void DeferredRenderer::RenderFrameForView(Frame* frame, const RenderSetup& rs)
 {
-    HYP_SCOPE;
-
     AssertDebug(rs.world && rs.view);
 
     uint32 slot = GetRingIndex();
@@ -2748,12 +2725,18 @@ void DeferredRenderer::RenderFrameForView(Frame* frame, const RenderSetup& rs)
     { // deferred lighting on opaque objects
         ENGINE_STAT_SCOPE(&s_statDeferredPass);
 
+        // Pre-transition resources to avoid breaking the render pass for barriers
         frame->cr << InsertBarrier(
             passData.deferredShadingFramebuffer->GetAttachment(1)->GetGpuImage(),
             RS_RENDER_TARGET,
             ShaderModuleType::Pixel,
             /* onlyDepth */ false,
             /* onlyStencil */ true);
+
+        // Transition shadow map atlas to shader resource before the pass
+        frame->cr << InsertBarrier(g_renderInterface->shadowMapCache->GetAtlasImage(), RS_SHADER_RESOURCE, ShaderModuleType::Pixel);
+        // Transition point light shadow map atlas to shader resource before the pass
+        frame->cr << InsertBarrier(g_renderInterface->shadowMapCache->GetPointLightShadowMapImage(), RS_SHADER_RESOURCE, ShaderModuleType::Pixel);
 
         frame->cr << SetCurrentFramebuffer(passData.deferredShadingFramebuffer);
 
@@ -2915,8 +2898,6 @@ void DeferredRenderer::RenderFrameForView(Frame* frame, const RenderSetup& rs)
 
 void DeferredRenderer::UpdateRayTracingView(Frame* frame, const RenderSetup& rs)
 {
-    HYP_SCOPE;
-
     View* view = rs.view;
     AssertDebug(view != nullptr);
 
@@ -3032,8 +3013,6 @@ void DeferredRenderer::UpdateRayTracingView(Frame* frame, const RenderSetup& rs)
 
 void DeferredRenderer::PerformOcclusionCulling(Frame* frame, const RenderSetup& rs, RenderCollector& renderCollector)
 {
-    HYP_SCOPE;
-
     renderCollector.PerformOcclusionCulling(frame, rs, AllRenderBucketsMask);
 }
 
@@ -3043,35 +3022,25 @@ void DeferredRenderer::ExecuteDrawCalls(
     RenderCollector& renderCollector,
     uint32 bucketMask)
 {
-    HYP_SCOPE;
-
     renderCollector.ExecuteDrawCalls(frame, rs, bucketMask);
 }
 
 void DeferredRenderer::GenerateMipChain(Frame* frame, const RenderSetup& rs, RenderCollector& renderCollector, const GpuImageRef& srcImage)
 {
-    HYP_SCOPE;
-
-    const uint32 frameIndex = frame->GetFrameIndex();
-
     DeferredRendererPassData* pd = DynamicCast<DeferredRendererPassData>(rs.passData);
 
     GpuImage* mipmappedResult = pd->mipChain->GetGpuImage();
-    Assert(mipmappedResult != nullptr && mipmappedResult->IsCreated());
+    AssertDebug(mipmappedResult != nullptr && mipmappedResult->IsCreated());
+    AssertDebug(mipmappedResult->GetTextureDesc().extent == srcImage->GetTextureDesc().extent);
 
     frame->cr << InsertBarrier(srcImage, RS_COPY_SRC);
     frame->cr << InsertBarrier(mipmappedResult, RS_COPY_DST);
 
-    // Blit into the mipmap chain img
-    frame->cr << Blit(
-        srcImage,
-        mipmappedResult,
-        Rect<uint32> { 0, 0, srcImage->GetExtent().x, srcImage->GetExtent().y },
-        Rect<uint32> { 0, 0, mipmappedResult->GetExtent().x, mipmappedResult->GetExtent().y });
-
+    frame->cr << CopyImage(srcImage, mipmappedResult, mipmappedResult->GetTextureDesc().extent);
     frame->cr << GenerateMipmaps(mipmappedResult);
-
-    frame->cr << InsertBarrier(srcImage, RS_SHADER_RESOURCE);
+    
+    frame->cr << InsertBarrier(mipmappedResult, RS_SHADER_RESOURCE);
+    frame->cr << InsertBarrier(srcImage, RS_RENDER_TARGET);
 }
 
 #pragma endregion DeferredRenderer

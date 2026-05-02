@@ -115,6 +115,7 @@ VSOutput VSMain(VSInput input, uint instanceId : SV_InstanceID)
 #endif
 
     float4 position_ndc = mul(camera.viewProjMat, position);
+    position_ndc /= position_ndc.w;
 
     output.position_cs = position_ndc;
 

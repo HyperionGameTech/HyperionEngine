@@ -223,7 +223,7 @@ static ViewData* GetViewData(View* view, bool createIfNotExist)
         {
             return nullptr;
         }
-        
+
         ENGINE_STAT_SCOPE(&s_statViewDataAllocTime);
 
         ViewData* viewData = HYP_POOL_NEW(g_renderPool, ViewData);
@@ -390,13 +390,13 @@ RenderCollector& GetRenderCollector(View* view)
     AssertOnThread(g_renderThread);
 
     Framework::ViewData* vd = Framework::GetViewData(view, false);
-    
+
     if (vd == nullptr)
     {
         static RenderCollector s_fallbackRenderCollector;
         return s_fallbackRenderCollector;
     }
-    
+
     return vd->renderCollector;
 }
 
@@ -650,7 +650,7 @@ RendererResult RenderInterface::Initialize()
         {
             engineConfig.Save();
         }
-        
+
         CVarManager::GetInstance().InitFromConfig(engineConfig);
 
         for (uint32 i = 1; i < RingBufferDepth; i++)
@@ -766,7 +766,7 @@ void RenderInterface::Shutdown()
             }
         }
     }
-    
+
     DebugDrawer::GetInstance().Shutdown();
 
     for (StructuredBuffer& grb : namedBuffers)
@@ -804,10 +804,10 @@ void RenderInterface::Shutdown()
 
     PoolDelete(*g_renderPool, finalPass);
     finalPass = nullptr;
-    
+
     PoolDelete(*g_renderPool, cbufferAllocator);
     cbufferAllocator = nullptr;
-    
+
     PoolDelete(*g_renderPool, sbufferAllocator);
     sbufferAllocator = nullptr;
 
@@ -828,7 +828,7 @@ void RenderInterface::Shutdown()
 
     PoolDelete(*g_renderPool, rayTracingPipelineCache);
     rayTracingPipelineCache = nullptr;
-    
+
     PoolDelete(*g_renderPool, crashHandler);
     crashHandler = nullptr;
 
@@ -871,13 +871,13 @@ void RenderInterface::BeginFrame(AtomicFlag* pCancelFlag)
     RenderCommands::Flush();
 
     Span<View* const> activeViews = g_engineDriver->GetCurrentFrameViews();
-    
+
     for (View* view : activeViews)
     {
         // ensure BufferedViewData exists
         Framework::BufferedViewData& bufferedViewData = *Framework::GetBufferedViewData(view, slot);
         AssertDebug(bufferedViewData.rplShared != nullptr);
-        
+
         if (!bufferedViewData.viewData)
         {
             bufferedViewData.viewData = Framework::GetViewData(view, /* createIfNotExist */ true);
@@ -975,7 +975,7 @@ void RenderInterface::BeginFrame(AtomicFlag* pCancelFlag)
     {
         resourceBinder->ApplyUpdates();
     }
-    
+
     TBitset<RenderAllocator> currentBoundIndices;
 
     for (ResourceSubtypeData& subtypeData : resources->dataByType)
@@ -1057,7 +1057,7 @@ void RenderInterface::BeginFrame(AtomicFlag* pCancelFlag)
 
         vd.rplRender.EndRead();
     }
-    
+
     GetCurrentCommandBuffer()->Begin();
 }
 
@@ -1087,7 +1087,7 @@ void RenderInterface::EndFrame()
             AssertDebug(view != nullptr);
 
             viewData->renderCollector.RemoveEmptyRenderGroups();
-            
+
             // Clear out data for views that haven't been written to for a while
             if (int64(currFrame) - int64(viewData->lastUsedFrame) >= MaxFramesBeforeDiscard)
             {
@@ -1288,7 +1288,7 @@ void RenderInterface::CommitPipelineState(PSOType psoType, CommandBuffer* comman
     case PSO_Graphics:
     {
         AssertDebug(state.framebuffer != nullptr);
-        
+
         GraphicsPipeline* pipeline = nullptr;
 
         if (!state.boundGraphicsPipeline
@@ -1488,7 +1488,7 @@ void RenderInterface::CommitPipelineState(PSOType psoType, CommandBuffer* comman
             state.validUniforms &= ~(1u << uniformIndex);
             state.dirtyUniforms &= ~(1u << uniformIndex);
             state.dirtyBufferOffsets &= ~(1u << uniformIndex);
-            
+
             bits.Set(currBit, false);
 
             continue;
@@ -1603,14 +1603,19 @@ void RenderInterface::CommitPipelineState(PSOType psoType, CommandBuffer* comman
         {
             if (image->IsFullSubResource(subResource))
             {
+                HYP_LOG_TEMP("Shader: {} needs to transition target {} from state {} to state {}", state.attributes.GetShaderName(), image->GetDebugName(), EnumToString(image->GetResourceState()), EnumToString(desiredResourceState));
+
                 if (psoType == PSO_Graphics && state.boundFramebuffer != nullptr)
                 {
+                    HYP_LOG_TEMP("Breaking framebuffer {} (bound to shader {})", state.boundFramebuffer->GetDebugName(), state.attributes.GetShaderName());
                     // have to end render pass if we are going to insert a barrier
                     state.boundFramebuffer->EndCapture(commandBuffer);
                     state.boundFramebuffer = nullptr;
                 }
 
                 image->InsertBarrier(commandBuffer, desiredResourceState, ShaderModuleType::None);
+
+                AssertDebug(image->GetResourceState() == desiredResourceState);
             }
             else
             {
@@ -1630,10 +1635,13 @@ void RenderInterface::CommitPipelineState(PSOType psoType, CommandBuffer* comman
 
                         if (currResourceState != desiredResourceState)
                         {
+                            HYP_LOG_TEMP("Shader: {} needs to transition target {} from state {} to state {} (subresource: {}/{}/{})", state.attributes.GetShaderName(), image->GetDebugName(), EnumToString(image->GetResourceState()), EnumToString(desiredResourceState), mipIndex, layerIndex, subResource.baseArrayLayer + subResource.numLayers - 1);
+
                             needsTransition = true;
 
                             if (psoType == PSO_Graphics && state.boundFramebuffer != nullptr)
                             {
+                                HYP_LOG_TEMP("Breaking framebuffer {} (bound to shader {})", state.boundFramebuffer->GetDebugName(), state.attributes.GetShaderName());
                                 // have to end render pass if we are going to insert a barrier
                                 state.boundFramebuffer->EndCapture(commandBuffer);
                                 state.boundFramebuffer = nullptr;
@@ -1652,6 +1660,8 @@ void RenderInterface::CommitPipelineState(PSOType psoType, CommandBuffer* comman
                 if (needsTransition)
                 {
                     image->InsertBarrier(commandBuffer, subResource, desiredResourceState, ShaderModuleType::None);
+
+                    AssertDebug(image->GetSubResourceState(subResource) == desiredResourceState);
                 }
             }
         }
@@ -1692,7 +1702,7 @@ void RenderInterface::CommitPipelineState(PSOType psoType, CommandBuffer* comman
             reinterpret_cast<CmdBase*>(&deferredBindCommandMemory),
             commandBuffer);
     }
-    
+
     AssertDebug(state.boundGraphicsPipeline != nullptr, "Pipeline not bound");
 
     if (state.dirtyUniforms)

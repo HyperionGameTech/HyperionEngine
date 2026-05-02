@@ -59,8 +59,6 @@ DECLARE_SRV(DeferredPass, GBufferVelocityTexture) Texture2D gbuffer_velocity_tex
 
 DECLARE_SRV(DeferredPass, GBufferDepthTexture) Texture2D gbuffer_depth_texture;
 
-DECLARE_SRV(DeferredPass, GBufferMipChain) Texture2D gbuffer_mip_chain;
-
 DECLARE_SAMPLER(DeferredPass, SamplerNearest) SamplerState sampler_nearest;
 DECLARE_SAMPLER(DeferredPass, SamplerLinear) SamplerState sampler_linear;
 DECLARE_SAMPLER(DeferredPass, SamplerShadow) SamplerComparisonState SamplerShadow;
@@ -328,7 +326,7 @@ PSOutput PSMain(PSInput input)
         lightHit = true;
     }
 
-    // // Debug clustering
+    // Debug clustering
     // if (lightHit)
     // {
     //     result = float4(1.0, 0.0, 0.0, 1.0);

@@ -77,53 +77,59 @@ static const FixedArray<uint32, 6>& GetQuadIndices()
 static const Array<SimpleVertex>& GetCubeVertices()
 {
     static const Array<SimpleVertex> s_cubeVertices = {
-        SimpleVertex { Vec3f { -1.0f, 1.0f, 1.0f }, Vec3f { -1.0f, 0.0f, 0.0f }, Vec2f { 1.0f, 1.0f } },
+        // Face 1
+        SimpleVertex { Vec3f { -1.0f, -1.0f, -1.0f }, Vec3f { -1.0f, 0.0f, 0.0f }, Vec2f { 0.0f, 0.0f } },
         SimpleVertex { Vec3f { -1.0f, 1.0f, -1.0f }, Vec3f { -1.0f, 0.0f, 0.0f }, Vec2f { 0.0f, 1.0f } },
-        SimpleVertex { Vec3f { -1.0f, -1.0f, -1.0f }, Vec3f { -1.0f, 0.0f, 0.0f }, Vec2f { 0.0f, 0.0f } },
-
-        SimpleVertex { Vec3f { -1.0f, -1.0f, -1.0f }, Vec3f { -1.0f, 0.0f, 0.0f }, Vec2f { 0.0f, 0.0f } },
-        SimpleVertex { Vec3f { -1.0f, -1.0f, 1.0f }, Vec3f { -1.0f, 0.0f, 0.0f }, Vec2f { 1.0f, 0.0f } },
         SimpleVertex { Vec3f { -1.0f, 1.0f, 1.0f }, Vec3f { -1.0f, 0.0f, 0.0f }, Vec2f { 1.0f, 1.0f } },
 
-        SimpleVertex { Vec3f { 1.0f, 1.0f, 1.0f }, Vec3f { 0.0f, 0.0f, 1.0f }, Vec2f { 1.0f, 1.0f } },
+        SimpleVertex { Vec3f { -1.0f, 1.0f, 1.0f }, Vec3f { -1.0f, 0.0f, 0.0f }, Vec2f { 1.0f, 1.0f } },
+        SimpleVertex { Vec3f { -1.0f, -1.0f, 1.0f }, Vec3f { -1.0f, 0.0f, 0.0f }, Vec2f { 1.0f, 0.0f } },
+        SimpleVertex { Vec3f { -1.0f, -1.0f, -1.0f }, Vec3f { -1.0f, 0.0f, 0.0f }, Vec2f { 0.0f, 0.0f } },
+
+        // Face 2
+        SimpleVertex { Vec3f { -1.0f, -1.0f, 1.0f }, Vec3f { 0.0f, 0.0f, 1.0f }, Vec2f { 0.0f, 0.0f } },
         SimpleVertex { Vec3f { -1.0f, 1.0f, 1.0f }, Vec3f { 0.0f, 0.0f, 1.0f }, Vec2f { 0.0f, 1.0f } },
-        SimpleVertex { Vec3f { -1.0f, -1.0f, 1.0f }, Vec3f { 0.0f, 0.0f, 1.0f }, Vec2f { 0.0f, 0.0f } },
-
-        SimpleVertex { Vec3f { -1.0f, -1.0f, 1.0f }, Vec3f { 0.0f, 0.0f, 1.0f }, Vec2f { 0.0f, 0.0f } },
-        SimpleVertex { Vec3f { 1.0f, -1.0f, 1.0f }, Vec3f { 0.0f, 0.0f, 1.0f }, Vec2f { 1.0f, 0.0f } },
         SimpleVertex { Vec3f { 1.0f, 1.0f, 1.0f }, Vec3f { 0.0f, 0.0f, 1.0f }, Vec2f { 1.0f, 1.0f } },
 
-        SimpleVertex { Vec3f { 1.0f, -1.0f, -1.0f }, Vec3f { 1.0f, 0.0f, 0.0f }, Vec2f { 0.0f, 0.0f } },
+        SimpleVertex { Vec3f { 1.0f, 1.0f, 1.0f }, Vec3f { 0.0f, 0.0f, 1.0f }, Vec2f { 1.0f, 1.0f } },
+        SimpleVertex { Vec3f { 1.0f, -1.0f, 1.0f }, Vec3f { 0.0f, 0.0f, 1.0f }, Vec2f { 1.0f, 0.0f } },
+        SimpleVertex { Vec3f { -1.0f, -1.0f, 1.0f }, Vec3f { 0.0f, 0.0f, 1.0f }, Vec2f { 0.0f, 0.0f } },
+
+        // Face 3
+        SimpleVertex { Vec3f { 1.0f, 1.0f, 1.0f }, Vec3f { 1.0f, 0.0f, 0.0f }, Vec2f { 1.0f, 1.0f } },
         SimpleVertex { Vec3f { 1.0f, 1.0f, -1.0f }, Vec3f { 1.0f, 0.0f, 0.0f }, Vec2f { 0.0f, 1.0f } },
-        SimpleVertex { Vec3f { 1.0f, 1.0f, 1.0f }, Vec3f { 1.0f, 0.0f, 0.0f }, Vec2f { 1.0f, 1.0f } },
-
-        SimpleVertex { Vec3f { 1.0f, 1.0f, 1.0f }, Vec3f { 1.0f, 0.0f, 0.0f }, Vec2f { 1.0f, 1.0f } },
-        SimpleVertex { Vec3f { 1.0f, -1.0f, 1.0f }, Vec3f { 1.0f, 0.0f, 0.0f }, Vec2f { 1.0f, 0.0f } },
         SimpleVertex { Vec3f { 1.0f, -1.0f, -1.0f }, Vec3f { 1.0f, 0.0f, 0.0f }, Vec2f { 0.0f, 0.0f } },
 
-        SimpleVertex { Vec3f { -1.0f, -1.0f, -1.0f }, Vec3f { 0.0f, 0.0f, -1.0f }, Vec2f { 0.0f, 0.0f } },
+        SimpleVertex { Vec3f { 1.0f, -1.0f, -1.0f }, Vec3f { 1.0f, 0.0f, 0.0f }, Vec2f { 0.0f, 0.0f } },
+        SimpleVertex { Vec3f { 1.0f, -1.0f, 1.0f }, Vec3f { 1.0f, 0.0f, 0.0f }, Vec2f { 1.0f, 0.0f } },
+        SimpleVertex { Vec3f { 1.0f, 1.0f, 1.0f }, Vec3f { 1.0f, 0.0f, 0.0f }, Vec2f { 1.0f, 1.0f } },
+
+        // Face 4
+        SimpleVertex { Vec3f { 1.0f, 1.0f, -1.0f }, Vec3f { 0.0f, 0.0f, -1.0f }, Vec2f { 1.0f, 1.0f } },
         SimpleVertex { Vec3f { -1.0f, 1.0f, -1.0f }, Vec3f { 0.0f, 0.0f, -1.0f }, Vec2f { 0.0f, 1.0f } },
-        SimpleVertex { Vec3f { 1.0f, 1.0f, -1.0f }, Vec3f { 0.0f, 0.0f, -1.0f }, Vec2f { 1.0f, 1.0f } },
-
-        SimpleVertex { Vec3f { 1.0f, 1.0f, -1.0f }, Vec3f { 0.0f, 0.0f, -1.0f }, Vec2f { 1.0f, 1.0f } },
-        SimpleVertex { Vec3f { 1.0f, -1.0f, -1.0f }, Vec3f { 0.0f, 0.0f, -1.0f }, Vec2f { 1.0f, 0.0f } },
         SimpleVertex { Vec3f { -1.0f, -1.0f, -1.0f }, Vec3f { 0.0f, 0.0f, -1.0f }, Vec2f { 0.0f, 0.0f } },
 
-        SimpleVertex { Vec3f { 1.0f, 1.0f, -1.0f }, Vec3f { 0.0f, 1.0f, 0.0f }, Vec2f { 0.0f, 0.0f } },
+        SimpleVertex { Vec3f { -1.0f, -1.0f, -1.0f }, Vec3f { 0.0f, 0.0f, -1.0f }, Vec2f { 0.0f, 0.0f } },
+        SimpleVertex { Vec3f { 1.0f, -1.0f, -1.0f }, Vec3f { 0.0f, 0.0f, -1.0f }, Vec2f { 1.0f, 0.0f } },
+        SimpleVertex { Vec3f { 1.0f, 1.0f, -1.0f }, Vec3f { 0.0f, 0.0f, -1.0f }, Vec2f { 1.0f, 1.0f } },
+
+        // Face 5
+        SimpleVertex { Vec3f { -1.0f, 1.0f, 1.0f }, Vec3f { 0.0f, 1.0f, 0.0f }, Vec2f { 1.0f, 1.0f } },
         SimpleVertex { Vec3f { -1.0f, 1.0f, -1.0f }, Vec3f { 0.0f, 1.0f, 0.0f }, Vec2f { 0.0f, 1.0f } },
+        SimpleVertex { Vec3f { 1.0f, 1.0f, -1.0f }, Vec3f { 0.0f, 1.0f, 0.0f }, Vec2f { 0.0f, 0.0f } },
+
+        SimpleVertex { Vec3f { 1.0f, 1.0f, -1.0f }, Vec3f { 0.0f, 1.0f, 0.0f }, Vec2f { 0.0f, 0.0f } },
+        SimpleVertex { Vec3f { 1.0f, 1.0f, 1.0f }, Vec3f { 0.0f, 1.0f, 0.0f }, Vec2f { 1.0f, 0.0f } },
         SimpleVertex { Vec3f { -1.0f, 1.0f, 1.0f }, Vec3f { 0.0f, 1.0f, 0.0f }, Vec2f { 1.0f, 1.0f } },
 
-        SimpleVertex { Vec3f { -1.0f, 1.0f, 1.0f }, Vec3f { 0.0f, 1.0f, 0.0f }, Vec2f { 1.0f, 1.0f } },
-        SimpleVertex { Vec3f { 1.0f, 1.0f, 1.0f }, Vec3f { 0.0f, 1.0f, 0.0f }, Vec2f { 1.0f, 0.0f } },
-        SimpleVertex { Vec3f { 1.0f, 1.0f, -1.0f }, Vec3f { 0.0f, 1.0f, 0.0f }, Vec2f { 0.0f, 0.0f } },
+        // Face 6
+        SimpleVertex { Vec3f { 1.0f, -1.0f, -1.0f }, Vec3f { 0.0f, -1.0f, 0.0f }, Vec2f { 0.0f, 0.0f } },
+        SimpleVertex { Vec3f { -1.0f, -1.0f, -1.0f }, Vec3f { 0.0f, -1.0f, 0.0f }, Vec2f { 0.0f, 1.0f } },
+        SimpleVertex { Vec3f { -1.0f, -1.0f, 1.0f }, Vec3f { 0.0f, -1.0f, 0.0f }, Vec2f { 1.0f, 1.0f } },
 
         SimpleVertex { Vec3f { -1.0f, -1.0f, 1.0f }, Vec3f { 0.0f, -1.0f, 0.0f }, Vec2f { 1.0f, 1.0f } },
-        SimpleVertex { Vec3f { -1.0f, -1.0f, -1.0f }, Vec3f { 0.0f, -1.0f, 0.0f }, Vec2f { 0.0f, 1.0f } },
-        SimpleVertex { Vec3f { 1.0f, -1.0f, -1.0f }, Vec3f { 0.0f, -1.0f, 0.0f }, Vec2f { 0.0f, 0.0f } },
-
-        SimpleVertex { Vec3f { 1.0f, -1.0f, -1.0f }, Vec3f { 0.0f, -1.0f, 0.0f }, Vec2f { 0.0f, 0.0f } },
         SimpleVertex { Vec3f { 1.0f, -1.0f, 1.0f }, Vec3f { 0.0f, -1.0f, 0.0f }, Vec2f { 1.0f, 0.0f } },
-        SimpleVertex { Vec3f { -1.0f, -1.0f, 1.0f }, Vec3f { 0.0f, -1.0f, 0.0f }, Vec2f { 1.0f, 1.0f } }
+        SimpleVertex { Vec3f { 1.0f, -1.0f, -1.0f }, Vec3f { 0.0f, -1.0f, 0.0f }, Vec2f { 0.0f, 0.0f } }
     };
 
     return s_cubeVertices;
@@ -191,9 +197,7 @@ Handle<Mesh> MeshBuilder::Cube(bool originOnBottom)
 
     return mesh;
 }
-
-Handle<Mesh> MeshBuilder::NormalizedCubeSphere(uint32 numDivisions)
-{
+Handle<Mesh> MeshBuilder::NormalizedCubeSphere(uint32 numDivisions){
     const float step = 1.0f / float(numDivisions);
 
     static const Vec3f origins[6] = {
@@ -225,6 +229,12 @@ Handle<Mesh> MeshBuilder::NormalizedCubeSphere(uint32 numDivisions)
 
     Array<SimpleVertex> vertices;
     Array<uint32> indices;
+
+    const uint32 expectedVertices = 6 * (numDivisions + 1) * (numDivisions + 1);
+    const uint32 expectedIndices = 36 * numDivisions * numDivisions;
+    
+    vertices.Reserve(expectedVertices);
+    indices.Reserve(expectedIndices);
 
     for (uint32 face = 0; face < 6; face++)
     {
@@ -269,20 +279,20 @@ Handle<Mesh> MeshBuilder::NormalizedCubeSphere(uint32 numDivisions)
                 if (isBottom ^ isLeft)
                 {
                     indices.PushBack(a);
-                    indices.PushBack(c);
                     indices.PushBack(b);
                     indices.PushBack(c);
+                    indices.PushBack(c);
+                    indices.PushBack(b);
                     indices.PushBack(d);
-                    indices.PushBack(b);
                 }
                 else
                 {
                     indices.PushBack(a);
+                    indices.PushBack(d);
                     indices.PushBack(c);
-                    indices.PushBack(d);
                     indices.PushBack(a);
-                    indices.PushBack(d);
                     indices.PushBack(b);
+                    indices.PushBack(d);
                 }
             }
         }
@@ -302,8 +312,6 @@ Handle<Mesh> MeshBuilder::NormalizedCubeSphere(uint32 numDivisions)
     vertexArrayView.layoutDesc = { VT_Simple };
 
     mesh->SetMeshData(meshDesc, vertexArrayView, indices.ToByteView());
-
-    mesh->CalculateNormals(true);
 
     return mesh;
 }

@@ -122,6 +122,11 @@ DECLARE_SRV(DeferredPass, LightsBuffer) StructuredBuffer<Light> LightsBuffer;
 DECLARE_SRV(DeferredPass, ClusterGridBuffer) StructuredBuffer<uint2> ClusterGridBuffer;
 DECLARE_SRV(DeferredPass, ClusterIndexBuffer) ByteAddressBuffer ClusterIndexBuffer;
 
+// Keep here even if unused; Having shadow maps here means the render pass won't need to be broken between
+// the indirect and direct passes.
+DECLARE_SRV(DeferredPass, ShadowMapsTextureArray) Texture2DArray<float> shadow_maps;
+DECLARE_SRV(DeferredPass, PointLightShadowMapsTextureArray) TextureCubeArray point_shadow_maps;
+
 #include "./deferred/ClusteredShading.hlsli"
 #include "./deferred/DeferredLighting.hlsli"
 

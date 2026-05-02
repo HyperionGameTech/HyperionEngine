@@ -654,6 +654,14 @@ void DX12GpuImage::InsertBarrier(
             m_stencilState = currStencilState;
         }
     }
+    else if (subResource.baseMipLevel == 0 && subResource.numLevels >= NumMips()
+        && subResource.baseArrayLayer == 0 && subResource.numLayers >= NumArrayLayers())
+    {
+        // Full resource was transitioned -- all subresources are now in the same state.
+        // Clear per-subresource tracking and update global state.
+        SetResourceState(newState);
+        m_subResourceStates.Clear();
+    }
 }
 
 void DX12GpuImage::InsertUAVBarrier(CommandBuffer* commandBuffer)
