@@ -52,15 +52,8 @@ struct PSInput
     float2 texcoord : TEXCOORD0;
 };
 
-struct PSOutput
+float4 PSMain(PSInput input) : SV_Target0
 {
-    float4 color_output : SV_Target0;
-};
-
-PSOutput PSMain(PSInput input)
-{
-    PSOutput output;
-
     float2 texcoord = input.texcoord;
 
 #ifdef CHECKERBOARDED
@@ -68,9 +61,7 @@ PSOutput PSMain(PSInput input)
     texcoord = (texcoord * 0.5) + float2(0.5 * float((world_shader_data.frame_counter - 1u) & 1u), 0.0);
 #endif
 
-    output.color_output = SAMPLE_TEXTURE_2D_LOD(sampler_linear, src_image, texcoord, 0.0);
-
-    return output;
+    return SAMPLE_TEXTURE_2D_LOD(sampler_linear, src_image, texcoord, 0.0);
 }
 
 #endif // PIXEL_SHADER

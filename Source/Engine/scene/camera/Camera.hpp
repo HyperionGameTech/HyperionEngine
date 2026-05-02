@@ -309,10 +309,20 @@ public:
         m_near = _near;
         m_far = _far;
 
+        // For DX12, we need to flip the Y-axis in the orthographic projection
+        // to maintain the same screen-space coordinate convention as Vulkan (top-left origin)
+        // Vulkan uses negative viewport height to achieve this, but DX12 doesn't support that.
+#if HYP_DX12
+        m_projMat = Mat4f::Orthographic(
+            m_orthoRect.left, m_orthoRect.right,
+            m_orthoRect.top, m_orthoRect.bottom, // Swap top and bottom for DX12
+            m_near, m_far);
+#else
         m_projMat = Mat4f::Orthographic(
             m_orthoRect.left, m_orthoRect.right,
             m_orthoRect.bottom, m_orthoRect.top,
             m_near, m_far);
+#endif
 
         UpdateViewProjectionMatrix();
     }

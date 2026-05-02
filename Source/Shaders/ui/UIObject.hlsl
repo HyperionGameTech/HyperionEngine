@@ -63,7 +63,7 @@ VSOutput VSMain(VSInput input, uint instanceId : SV_InstanceID)
     float2 instance_texcoord_size = instance_texcoords.zw - instance_texcoords.xy;
     float2 clamped_instance_texcoord_size = instance_texcoord_size * (clamped_size / size);
 
-    output.texcoord0 = instance_texcoords.xy - (clamped_offset / clamped_size * clamped_instance_texcoord_size) + (input.a_texcoord0 * clamped_instance_texcoord_size);
+    output.texcoord0 = instance_texcoords.xy - (clamped_offset / clamped_size * clamped_instance_texcoord_size) + (float2(input.a_texcoord0.x, 1.0 - input.a_texcoord0.y) * clamped_instance_texcoord_size);
 
     output.object_index = OBJECT_INDEX;
     output.properties = currentBatch.properties[instanceId];

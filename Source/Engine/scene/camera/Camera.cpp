@@ -266,7 +266,7 @@ void Camera::Init()
     HYP_SCOPE;
 
     Entity::Init();
-    
+
     const Vec3f translation = GetWorldTranslation();
 
     m_streamingVolume = MakeHandle<CameraStreamingVolume>();
@@ -614,10 +614,16 @@ void Camera::UpdateViewProjectionMatrix()
 Vec3f Camera::TransformScreenToNDC(const Vec2f& screen) const
 {
     // [0, 1] -> [-1, 1]
+    // Note: Vulkan uses negative viewport height so NDC Y=-1 is at the top
+    // DX12 uses standard convention where NDC Y=-1 is at the bottom
 
     return {
-        screen.x * 2.0f - 1.0f, // 1.0f - (2.0f * screen.x),
-        screen.y * 2.0f - 1.0f, // 1.0f - (2.0f * screen.y),
+        screen.x * 2.0f - 1.0f,
+#if HYP_DX12
+        1.0f - screen.y * 2.0f, // Flip Y for DX12
+#else
+        screen.y * 2.0f - 1.0f, // Standard mapping for Vulkan (with negative viewport)
+#endif
         1.0f
     };
 }
@@ -645,9 +651,17 @@ Vec2f Camera::TransformWorldToScreen(const Vec3f& world) const
 
 Vec2f Camera::TransformNDCToScreen(const Vec3f& ndc) const
 {
+    // [-1, 1] -> [0, 1]
+    // Note: Vulkan uses negative viewport height so NDC Y=-1 is at the top
+    // DX12 uses standard convention where NDC Y=-1 is at the bottom
+
     return {
         (0.5f * ndc.x) + 0.5f,
-        (0.5f * ndc.y) + 0.5f
+#if HYP_DX12
+        0.5f - (0.5f * ndc.y) // Flip Y for DX12
+#else
+        (0.5f * ndc.y) + 0.5f // Standard mapping for Vulkan (with negative viewport)
+#endif
     };
 }
 
@@ -663,9 +677,7 @@ Vec2f Camera::GetPixelSize() const
 
 void Camera::Update(float delta)
 {
-    HYP_SCOPE;
     AssertOnThread(g_simThread | ThreadCategory::THREAD_CATEGORY_TASK);
-    AssertReady();
 
     if (HasActiveCameraController())
     {
@@ -686,7 +698,7 @@ void Camera::Update(float delta)
         UpdateMatrices();
     }
 
-    
+
     if (m_streamingVolume.IsValid())
     {
         const Vec3f translation = GetWorldTranslation();
@@ -812,15 +824,15 @@ void Camera::UpdateRenderProxy(RenderProxyCamera* proxy)
 
     bufferData.viewProjMat = m_viewProjMat;
     bufferData.prevViewProjMat = m_prevViewProjMat;
-    
+
     bufferData.dimensions = Vec4u { uint32(MathUtil::Abs(m_width)), uint32(MathUtil::Abs(m_height)), 0, 1 };
-    
+
     bufferData.cameraPosition = Vec4f(GetWorldTranslation(), 1.0f);
     bufferData.cameraDirection = Vec4f(m_direction, 1.0f);
-    
+
     bufferData.cameraNear = m_near;
     bufferData.cameraFar = m_far;
-    
+
     bufferData.cameraFov = m_fov;
 }
 

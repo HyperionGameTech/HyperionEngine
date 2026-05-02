@@ -200,9 +200,10 @@ RendererResult VulkanGraphicsPipeline::Rebuild()
 
     VkViewport vkViewport {};
     vkViewport.x = float(m_viewport.position.x);
-    vkViewport.y = float(m_viewport.position.y);
+    // Use negative viewport height to match DirectX coordinate system (Y-up in NDC)
+    vkViewport.y = float(m_viewport.position.y) + float(m_viewport.extent.y);
     vkViewport.width = float(m_viewport.extent.x);
-    vkViewport.height = float(m_viewport.extent.y);
+    vkViewport.height = -float(m_viewport.extent.y);
     vkViewport.minDepth = 0.0f;
     vkViewport.maxDepth = 1.0f;
 
@@ -460,9 +461,10 @@ void VulkanGraphicsPipeline::UpdateViewport(
 
     VkViewport vkViewport {};
     vkViewport.x = float(viewport.position.x);
-    vkViewport.y = float(viewport.position.y);
+    // Use negative viewport height to match DirectX coordinate system (Y-up in NDC)
+    vkViewport.y = float(viewport.position.y) + float(viewport.extent.y);
     vkViewport.width = float(viewport.extent.x);
-    vkViewport.height = float(viewport.extent.y);
+    vkViewport.height = -float(viewport.extent.y);
     vkViewport.minDepth = 0.0f;
     vkViewport.maxDepth = 1.0f;
     vkCmdSetViewport(commandBuffer->GetVulkanHandle(), 0, 1, &vkViewport);

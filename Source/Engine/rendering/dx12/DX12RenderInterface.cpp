@@ -144,17 +144,17 @@ RendererResult DX12RenderInterface::Initialize()
         {
             DXGI_ADAPTER_DESC1 desc;
             m_hardwareAdapter->GetDesc1(&desc);
-        
+
             if (desc.Flags & DXGI_ADAPTER_FLAG_SOFTWARE)
                 continue;
 
             if (SUCCEEDED(D3D12CreateDevice(m_hardwareAdapter.Get(),  D3D_FEATURE_LEVEL_12_0, __uuidof(ID3D12Device), nullptr)))
                 break;
         }
-    } 
+    }
     else
     {
-        for (UINT i = 0; SUCCEEDED(dxgiFactory->EnumAdapters1(i, &m_hardwareAdapter)); ++i) 
+        for (UINT i = 0; SUCCEEDED(dxgiFactory->EnumAdapters1(i, &m_hardwareAdapter)); ++i)
         {
             DXGI_ADAPTER_DESC1 desc;
             m_hardwareAdapter->GetDesc1(&desc);
@@ -168,7 +168,7 @@ RendererResult DX12RenderInterface::Initialize()
     }
 
 #ifdef HYP_DEBUG_MODE
-#if 1
+#if 0
     if (SUCCEEDED(D3D12GetDebugInterface(__uuidof(ID3D12DeviceRemovedExtendedDataSettings), &m_dredSettings)))
     {
         m_dredSettings->SetAutoBreadcrumbsEnablement(D3D12_DRED_ENABLEMENT_FORCED_ON);
@@ -180,7 +180,7 @@ RendererResult DX12RenderInterface::Initialize()
     {
         debugController->EnableDebugLayer();
     }
-#endif // 
+#endif //
 #endif
 
     // create device
@@ -229,7 +229,7 @@ RendererResult DX12RenderInterface::Initialize()
 #ifdef HYP_DEBUG_MODE
     copyQueueData.commandQueue->SetName(L"D3D12 Copy Command Queue");
 #endif
-    
+
     D3D12MA::ALLOCATOR_DESC allocatorDesc {};
     allocatorDesc.pDevice = m_device.Get();
     allocatorDesc.pAdapter = m_hardwareAdapter.Get();
@@ -277,7 +277,7 @@ RendererResult DX12RenderInterface::Initialize()
     }
 
     descriptorHeapManager->Initialize();
-    
+
     // In Direct3D, 256 is the minimum constant buffer alignment
     cbufferAllocator->Initialize(256);
 
@@ -346,7 +346,7 @@ void DX12RenderInterface::Shutdown()
 
     m_device.Reset();
     m_hardwareAdapter.Reset();
-    
+
     dxgiFactory.Reset();
 }
 
@@ -469,7 +469,7 @@ void DX12RenderInterface::PrepareFrame(DX12Frame* frame)
     {
         LinkedList<DX12CommandBuffer, RenderAllocator>& freeList = m_transientCommandBuffers[threadIndex][frameIndex];
         LinkedList<DX12CommandBuffer, RenderAllocator>& pendingList = m_pendingTransientCommandBuffers[threadIndex][frameIndex];
-        
+
         for (auto it = pendingList.Begin(); it != pendingList.End();)
         {
             DX12CommandBuffer& commandBuffer = *it;
@@ -495,7 +495,7 @@ DX12SwapchainRef DX12RenderInterface::CreateSwapchain(ApplicationWindow* window,
     {
         HYP_FAIL("Failed to create DX12 swapchain: {}", result.GetError().GetMessage());
     }
-    
+
     return swapchain;
 }
 
@@ -620,7 +620,7 @@ void DX12RenderInterface::SubmitTransientCommandBuffer(DX12CommandBuffer& comman
     queueData->commandQueue->ExecuteCommandLists(ArraySize(commandLists), commandLists);
 
     pFence->Increment();
-    
+
     // HYP_LOG_TEMP("Submitting transient command buffer {} with value {} on frame {}", pFence->GetDebugName(), pFence->GetValue(), frameIndex);
 
     HRESULT hr = queueData->commandQueue->Signal(pFence->GetD3D12Fence(), pFence->GetValue());
@@ -692,8 +692,8 @@ DX12GraphicsPipelineRef DX12RenderInterface::MakeGraphicsPipeline(
         graphicsPipeline->SetDepthBias(attributes.GetMaterialAttributes().depthBias);
         graphicsPipeline->SetDepthBiasSlope(attributes.GetMaterialAttributes().depthBiasSlope);
     }
-    
-    if (attributes.GetMaterialAttributes().flags & MAF_STENCIL_TEST)  
+
+    if (attributes.GetMaterialAttributes().flags & MAF_STENCIL_TEST)
     {
         graphicsPipeline->SetStencilFunction(attributes.GetMaterialAttributes().stencilFunction);
     }

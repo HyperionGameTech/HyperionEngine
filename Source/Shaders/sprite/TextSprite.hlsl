@@ -58,9 +58,10 @@ VSOutput VSMain(VSInput input, uint instanceId : SV_InstanceID)
     float4 worldPos = mul(instance.transform, float4(localPos, 1.0f));
     output.position_cs = mul(camera.viewProjMat, worldPos);
 
+    // DirectX coordinate system - no UV flip needed
     output.texcoord0 = float2(
         lerp(instance.texcoordStart.x, instance.texcoordEnd.x, input.a_texcoord0.x),
-        lerp(instance.texcoordEnd.y, instance.texcoordStart.y, input.a_texcoord0.y)
+        lerp(instance.texcoordStart.y, instance.texcoordEnd.y, input.a_texcoord0.y)
     );
     output.color = UINT_TO_VEC4(instance.colorPacked);
     output.instanceId = instanceId;

@@ -437,6 +437,11 @@ bool UIStage::TestRay(const Vec2f& position, Array<Handle<UIObject>>& outObjects
     HYP_SCOPE;
     AssertOnOwnerThread();
 
+    // Note: The orthographic projection for DX12 flips the Y-axis to maintain top-left origin,
+    // but the UI objects' AABB coordinates remain in screen-space (Y increasing downward).
+    // The position input is normalized screen coordinates [0,1] with (0,0) at top-left.
+    // No coordinate flipping is needed here because the ortho projection handles the
+    // transformation to clip space, while AABB remains in world space with consistent coordinates.
     const Vec4f worldPosition = Vec4f(position.x * float(GetSurfaceSize().x), position.y * float(GetSurfaceSize().y), 0.0f, 1.0f);
     const Vec3f direction { worldPosition.x / worldPosition.w, worldPosition.y / worldPosition.w, 0.0f };
 
