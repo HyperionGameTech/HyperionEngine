@@ -114,35 +114,19 @@ Mat4f Mat4f::Scaling(const Vec3f& scale)
 
 Mat4f Mat4f::Perspective(float fov, int w, int h, float n, float f)
 {
-    // Mat4f mat = zeros;
-
-    // float ar = (float)w / (float)h;
-    // float tanHalfFov = MathUtil::Tan(MathUtil::DegToRad(fov / 2.0f));
-
-    // mat[0][0] = 1.0f / (tanHalfFov * ar);
-
-    // mat[1][1] = (PerspectiveMat11Div / tanHalfFov);
-
-    // mat[2][2] = f / (f - n);
-    // mat[2][3] = -(f * n) / (f - n);
-
-    // mat[3][2] = 1.0f;
-    // mat[3][3] = 0.0f;
-
     Mat4f mat = zeros;
 
     float ar = (float)w / (float)h;
     float tanHalfFov = MathUtil::Tan(MathUtil::DegToRad(fov / 2.0f));
-    float range = n - f;
 
-    mat[0][0] = 1.0f / (tanHalfFov * ar);
+    mat[0][0] = 1.0f / (ar * tanHalfFov);
 
-    mat[1][1] = -(1.0f / (tanHalfFov));
+    mat[1][1] = 1.0f / tanHalfFov;
 
-    mat[2][2] = (-n - f) / range;
-    mat[2][3] = (2.0f * f * n) / range;
+    mat[2][2] = f / (f - n);
+    mat[2][3] = -(f * n) / (f - n);
 
-    mat[3][2] = 1.0f;
+    mat[3][2] = 1.0f; 
     mat[3][3] = 0.0f;
 
     return mat;
@@ -153,11 +137,14 @@ Mat4f Mat4f::Orthographic(float l, float r, float b, float t, float n, float f)
     Mat4f mat = zeros;
 
     float xOrth = 2.0f / (r - l);
-    float yOrth = 2.0f / (t - b);
-    float zOrth = 1.0f / (n - f);
-    float tx = -((r + l) / (r - l));
-    float ty = -((t + b) / (t - b));
-    float tz = ((n) / (n - f));
+    float yOrth = 2.0f / (t - b); 
+    
+    float zOrth = 1.0f / (f - n); 
+    
+    float tx = -(r + l) / (r - l);
+    float ty = -(t + b) / (t - b);
+    
+    float tz = -n / (f - n); 
 
     mat[0][0] = xOrth;
     mat[0][1] = 0.0f;

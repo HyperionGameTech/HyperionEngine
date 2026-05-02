@@ -202,7 +202,6 @@ struct alignas(16) LightShaderData
 
     Vec2f areaSize; // also angles for spot lights
     Vec2f _pad0;
-    Vec4f _pad1[3];
 };
 
 class RenderProxyLight final : public IRenderProxy
@@ -310,7 +309,7 @@ public:
 
     FixedArray<uint32, MaxBoundTextures> boundTextureIndices;
     Array<Handle<Texture>, RenderAllocator> boundTextures;
-    
+
     MaterialShaderData bufferData {};
 };
 
@@ -357,10 +356,6 @@ struct alignas(16) CameraShaderData
     float cameraFar;
     float cameraFov;
     float _pad;
-
-    Vec4f _pad1;
-    Vec4f _pad2;
-    Vec4f _pad3;
 };
 
 class RenderProxyCamera final : public IRenderProxy

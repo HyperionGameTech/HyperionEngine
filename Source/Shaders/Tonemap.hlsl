@@ -56,10 +56,8 @@ DECLARE_SAMPLER(Tonemap, SamplerLinear) SamplerState sampler_linear;
 
 #include "include/Tonemap.hlsli"
 
-PSOutput PSMain(PSInput input)
+float4 PSMain(PSInput input) : SV_Target0
 {
-    PSOutput output;
-
     float2 texcoord = input.texcoord;
 
     float4 shaded_result = SAMPLE_TEXTURE_2D(sampler_linear, DeferredResult, texcoord);
@@ -74,9 +72,7 @@ PSOutput PSMain(PSInput input)
     color_output.rgb = LinearToPQ(color_output.rgb, peakNits);
 #endif
 
-    output.color_output = color_output;
-
-    return output;
+    return color_output;
 }
 
 #endif // PIXEL_SHADER

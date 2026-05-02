@@ -52,56 +52,26 @@ static Pair<Array<SimpleVertex>, Array<uint32>> CalculateIndices(const Array<Sim
     return { std::move(newVertices), std::move(indices) };
 }
 
-Array<SimpleVertex> GetQuadVertices()
+static const FixedArray<SimpleVertex, 4>& GetQuadVertices()
 {
-    Array<SimpleVertex> vertices;
-    vertices.Resize(4);
+    static const FixedArray<SimpleVertex, 4> s_vertices = {
+        SimpleVertex { Vec3f { -1.0f, 1.0f, 0.0f }, Vec3f { 0.0f, 0.0f, -1.0f }, Vec2f { 0.0f, 0.0f } },
+        SimpleVertex { Vec3f { 1.0f, 1.0f, 0.0f }, Vec3f { 0.0f, 0.0f, -1.0f }, Vec2f { 1.0f, 0.0f } },
+        SimpleVertex { Vec3f { 1.0f, -1.0f, 0.0f }, Vec3f { 0.0f, 0.0f, -1.0f }, Vec2f { 1.0f, 1.0f } },
+        SimpleVertex { Vec3f { -1.0f, -1.0f, 0.0f }, Vec3f { 0.0f, 0.0f, -1.0f }, Vec2f { 0.0f, 1.0f } }
+    };
 
-    vertices[0].posX = -1.0f;
-    vertices[0].posY = -1.0f;
-    vertices[0].posZ = 0.0f;
-    vertices[0].normalX = 0.0f;
-    vertices[0].normalY = 0.0f;
-    vertices[0].normalZ = -1.0f;
-    vertices[0].uv0[0] = 0.0f;
-    vertices[0].uv0[1] = 0.0f;
-
-    vertices[1].posX = 1.0f;
-    vertices[1].posY = -1.0f;
-    vertices[1].posZ = 0.0f;
-    vertices[1].normalX = 0.0f;
-    vertices[1].normalY = 0.0f;
-    vertices[1].normalZ = -1.0f;
-    vertices[1].uv0[0] = 1.0f;
-    vertices[1].uv0[1] = 0.0f;
-
-    vertices[2].posX = 1.0f;
-    vertices[2].posY = 1.0f;
-    vertices[2].posZ = 0.0f;
-    vertices[2].normalX = 0.0f;
-    vertices[2].normalY = 0.0f;
-    vertices[2].normalZ = -1.0f;
-    vertices[2].uv0[0] = 1.0f;
-    vertices[2].uv0[1] = 1.0f;
-
-    vertices[3].posX = -1.0f;
-    vertices[3].posY = 1.0f;
-    vertices[3].posZ = 0.0f;
-    vertices[3].normalX = 0.0f;
-    vertices[3].normalY = 0.0f;
-    vertices[3].normalZ = -1.0f;
-    vertices[3].uv0[0] = 0.0f;
-    vertices[3].uv0[1] = 1.0f;
-
-    return vertices;
+    return s_vertices;
 }
 
-Array<uint32> GetQuadIndices()
+static const FixedArray<uint32, 6>& GetQuadIndices()
 {
-    return {
-        0, 3, 2,
-        0, 2, 1
+    static const FixedArray<uint32, 6> s_indices = {
+        0, 1, 2,
+        0, 2, 3
     };
+
+    return s_indices;
 }
 
 static const Array<SimpleVertex>& GetCubeVertices()
@@ -161,8 +131,8 @@ static const Array<SimpleVertex>& GetCubeVertices()
 
 Handle<Mesh> MeshBuilder::Quad()
 {
-    const Array<SimpleVertex> vertices = GetQuadVertices();
-    const Array<uint32> indices = GetQuadIndices();
+    const auto& vertices = GetQuadVertices();
+    const auto& indices = GetQuadIndices();
 
     MeshDesc meshDesc {};
     meshDesc.meshAttributes.inputLayout = { VT_Simple };
@@ -177,7 +147,11 @@ Handle<Mesh> MeshBuilder::Quad()
     vertexArrayView.layoutDesc = meshDesc.meshAttributes.inputLayout;
     vertexArrayView.vertexCount = vertices.Size();
 
-    mesh->SetMeshData(meshDesc, vertexArrayView, indices.ToByteView());
+    const ConstByteView indicesByteView = ConstByteView(
+        reinterpret_cast<const ubyte*>(indices.Data()),
+        reinterpret_cast<const ubyte*>(indices.Data() + indices.Size()));
+
+    mesh->SetMeshData(meshDesc, vertexArrayView, indicesByteView);
 
     return mesh;
 }

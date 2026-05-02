@@ -92,6 +92,7 @@ void ShadowMapAllocator::Initialize()
     
     m_atlasTextureArray->SetName(NAME("ShadowMapAtlas"));
     CheckResult(m_atlasTextureArray->Create());
+    m_atlasTextureArray->GetGpuImage()->SetDebugName(NAME("ShadowMapAtlas"));
 
     m_pointLightTextureArray = MakeHandle<Texture>(TextureDesc {
         TextureType::CubemapArray,
@@ -106,6 +107,7 @@ void ShadowMapAllocator::Initialize()
     
     m_pointLightTextureArray->SetName(NAME("PointLightShadowMapImage"));
     CheckResult(m_pointLightTextureArray->Create());
+    m_pointLightTextureArray->GetGpuImage()->SetDebugName(NAME("PointLightShadowMapImage"));
 
     m_clearTexture = MakeHandle<Texture>(TextureDesc {
         TextureType::Texture2DArray,
@@ -119,6 +121,7 @@ void ShadowMapAllocator::Initialize()
     });
     m_clearTexture->SetName(NAME("ShadowMapClearTexture"));
     CheckResult(m_clearTexture->Create());
+    m_clearTexture->GetGpuImage()->SetDebugName(NAME("ShadowMapClearTexture"));
 
     { // Clear that clear texture
         CommandRecorder& cr = g_renderInterface->commandRecorderAllocator.GetCommandRecorder();

@@ -678,6 +678,7 @@ void DeferredPass::RenderToFramebuffer_Internal(Frame* frame, const RenderSetup&
 
                 ShadowMapData shadowMapData[MaxShadowMapCascades];
 
+                // Directional light writes out all cascades (4), other light types write only one.
                 const uint32 numCascadesToWrite = (lightType == LightType::Directional) ? MaxShadowMapCascades : 1;
 
                 for (uint32 cascadeIndex = 0; cascadeIndex < numCascadesToWrite; cascadeIndex++)
@@ -697,13 +698,13 @@ void DeferredPass::RenderToFramebuffer_Internal(Frame* frame, const RenderSetup&
                     if (shadowMap != nullptr)
                     {
                         DeferredRendererHelpers::FillShadowMapData(
-                            shadowMapData[cascadeIndex],
+                            currShadowMapData,
                             *shadowMap,
                             shadowMapViewDynamic,
                             shadowMapViewStatic);
                     }
 
-                    g_renderInterface->cbufferAllocator->Write(&shadowMapData[cascadeIndex]);
+                    g_renderInterface->cbufferAllocator->Write(&currShadowMapData);
                 }
 
                 g_renderInterface->cbufferAllocator->Commit(cbuffer, cbufferOffset, cbufferSize);
@@ -763,7 +764,7 @@ void DeferredPass::RenderToFramebuffer_Internal(Frame* frame, const RenderSetup&
 #pragma region TonemapPass
 
 TonemapPass::TonemapPass(Vec2u extent, GBuffer* gbuffer)
-    : FullScreenPass(TextureFormat::R11G11B10F, extent, gbuffer)
+    : FullScreenPass(TextureFormat::RGBA16F, extent, gbuffer)
 {
     SetPassName(NAME("Tonemap"));
 }

@@ -56,14 +56,19 @@ VSOutput VSMain(VSInput input, uint instanceId : SV_InstanceID)
     float2 clamped_size = currentBatch.sizes[instanceId].zw;
 
     float4 position = mul(transform, float4(input.a_position, 1.0));
+
     float4 ndc_position = mul(camera.viewProjMat, position);
+    ndc_position.y = -ndc_position.y;
+
+    float2 texcoord = input.a_texcoord0;
+    texcoord.y = 1.0 - texcoord.y;
 
     float4 instance_texcoords = currentBatch.texcoords[instanceId];
 
     float2 instance_texcoord_size = instance_texcoords.zw - instance_texcoords.xy;
     float2 clamped_instance_texcoord_size = instance_texcoord_size * (clamped_size / size);
 
-    output.texcoord0 = instance_texcoords.xy - (clamped_offset / clamped_size * clamped_instance_texcoord_size) + (input.a_texcoord0 * clamped_instance_texcoord_size);
+    output.texcoord0 = instance_texcoords.xy - (clamped_offset / clamped_size * clamped_instance_texcoord_size) + (texcoord * clamped_instance_texcoord_size);
 
     output.object_index = OBJECT_INDEX;
     output.properties = currentBatch.properties[instanceId];

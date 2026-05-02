@@ -50,7 +50,7 @@ static const float4x4 s_shadowBiasMatrix = float4x4(
 float3 GetShadowCoord(in float4x4 shadowMatrix, float3 pos)
 {
     float4x4 shadowMatrixBiased = mul(s_shadowBiasMatrix, shadowMatrix);
-    
+
     float4 shadowPosition = mul(shadowMatrixBiased, float4(pos, 1.0));
     shadowPosition.xyz /= shadowPosition.w;
 
@@ -114,7 +114,7 @@ float GetShadowPCF(in ShadowMap shadowMap, float3 pos, float2 texcoord, float2 s
     aabb.max = shadowMap.aabbMax.xyz;
 
     const float4x4 shadowMatrix = shadowMap.viewProjMat;
-    
+
     const float2 offsetUV = float2(shadowMap.aabbMin.w, shadowMap.aabbMax.w);
 
     const float2 dimensions = shadowMap.dimensionsScale.xy;
@@ -128,9 +128,9 @@ float GetShadowPCF(in ShadowMap shadowMap, float3 pos, float2 texcoord, float2 s
     const float3 coord = GetShadowCoord(shadowMatrix, pos);
 
     const float shadow_filter_size = 0.001;
-    
+
     float noise = InterleavedGradientNoise(texcoord * screen_dimensions - 0.5) * HYP_FMATH_TWO_PI;
-    
+
     float s, c;
     sincos(noise, s, c);
     float2x2 rotationMatrix = float2x2(c, -s, s, c);
@@ -209,7 +209,7 @@ float GetShadowPCF(in ShadowMap shadowMap, float3 pos, float2 texcoord, float2 s
     }
 
     HYP_FETCH_SHADOW_SAMPLE(0); HYP_FETCH_SHADOW_SAMPLE(1); HYP_FETCH_SHADOW_SAMPLE(2); HYP_FETCH_SHADOW_SAMPLE(3);
-    
+
 #if defined(HYP_SHADOW_SAMPLES_8) || defined(HYP_SHADOW_SAMPLES_16)
     HYP_FETCH_SHADOW_SAMPLE(4); HYP_FETCH_SHADOW_SAMPLE(5); HYP_FETCH_SHADOW_SAMPLE(6); HYP_FETCH_SHADOW_SAMPLE(7);
 #endif // HYP_SHADOW_SAMPLES_8 || HYP_SHADOW_SAMPLES_16
@@ -296,16 +296,6 @@ float GetShadowContactHardened(in ShadowMap shadowMap, float3 pos, float2 texcoo
 
 #undef HYP_DEF_VOGEL_DISK
 
-    // // temp debug
-                                                                                                                                                                                                                        
-    // float4 shadowSamples = float4(                                                                                                                                                                                    
-    //     SAMPLE_TEXTURE_2D_ARRAY_LOD(HYP_SAMPLER_LINEAR, shadow_maps, float3(((coord.xy + (vogel_0 * s_pcfKernel[0] * penumbra_filter_size)) * uv_scale) + offsetUV, float(layerIndex)), 0).r,
-    //     SAMPLE_TEXTURE_2D_ARRAY_LOD(HYP_SAMPLER_LINEAR, shadow_maps, float3(((coord.xy + (vogel_2 * s_pcfKernel[2] * penumbra_filter_size)) * uv_scale) + offsetUV, float(layerIndex)), 0).r,
-    //     SAMPLE_TEXTURE_2D_ARRAY_LOD(HYP_SAMPLER_LINEAR, shadow_maps, float3(((coord.xy + (vogel_4 * s_pcfKernel[4] * penumbra_filter_size)) * uv_scale) + offsetUV, float(layerIndex)), 0).r,
-    //     SAMPLE_TEXTURE_2D_ARRAY_LOD(HYP_SAMPLER_LINEAR, shadow_maps, float3(((coord.xy + (vogel_6 * s_pcfKernel[6] * penumbra_filter_size)) * uv_scale) + offsetUV, float(layerIndex)), 0).r);
-    // return (shadowSamples.x + shadowSamples.y + shadowSamples.z + shadowSamples.w) * 0.25;
-
-
 #if defined(HYP_SHADOW_PENUMBRA) && HYP_SHADOW_PENUMBRA
 
 // vectorization
@@ -383,7 +373,7 @@ float GetShadowContactHardened(in ShadowMap shadowMap, float3 pos, float2 texcoo
 float GetPointShadowVariance(in ShadowMap shadowMap, float3 worldToLight, float NdotL)
 {
     const uint layerIndex = shadowMap.layerIndex;
-    
+
     const float2 moments = SAMPLE_TEXTURE_CUBE_ARRAY_LOD(HYP_SAMPLER_LINEAR, point_shadow_maps, float4(worldToLight, float(layerIndex)), 0).rg;
     const float current_depth = length(worldToLight);
 
@@ -398,7 +388,7 @@ float GetPointShadowVariance(in ShadowMap shadowMap, float3 worldToLight, float 
 float GetPointShadowStandard(in ShadowMap shadowMap, float3 worldToLight, float NdotL)
 {
     const uint layerIndex = shadowMap.layerIndex;
-    
+
     const float shadowDepth = SAMPLE_TEXTURE_CUBE_ARRAY_LOD(HYP_SAMPLER_LINEAR, point_shadow_maps, float4(normalize(worldToLight), float(layerIndex)), 0).r;
     const float4 shadowPosVS = ReconstructViewSpacePositionFromDepth(shadowMap.invProjMat, float2(0.5, 0.5), shadowDepth);
 
@@ -480,10 +470,6 @@ float GetPointShadow(in ShadowMap shadowMap, uint lightFlags, float3 worldToLigh
 
 float GetShadow(in ShadowMap shadowMap, uint lightFlags, float3 position, float2 texcoord, float2 screen_dimensions, float NdotL)
 {
-    // temp
-    
-        // return GetShadowContactHardened(shadowMap, position, texcoord, screen_dimensions, NdotL);
-        
     switch (lightFlags & LF_SHADOW_FILTER_MASK)
     {
     case LF_SHADOW_CONTACT_HARDENING:

@@ -304,8 +304,8 @@ RendererResult DX12GraphicsPipeline::Rebuild()
     psoDesc.RasterizerState = {};
     psoDesc.RasterizerState.CullMode = ToDX12CullMode(m_faceCullMode);
     psoDesc.RasterizerState.FillMode = (m_fillMode == FM_LINE) ? D3D12_FILL_MODE_WIREFRAME : D3D12_FILL_MODE_SOLID;
-    psoDesc.RasterizerState.FrontCounterClockwise = TRUE;
-    psoDesc.RasterizerState.DepthBias = 0.0;//m_depthBias;
+    psoDesc.RasterizerState.FrontCounterClockwise = FALSE;
+    psoDesc.RasterizerState.DepthBias = m_depthBias;
     psoDesc.RasterizerState.DepthBiasClamp = 0.0f;
     psoDesc.RasterizerState.SlopeScaledDepthBias = m_depthBiasSlope;
     psoDesc.RasterizerState.DepthClipEnable = m_depthClamp ? FALSE : TRUE;
@@ -381,6 +381,8 @@ RendererResult DX12GraphicsPipeline::Rebuild()
             psoDesc.RTVFormats[rtIndex] = ToDXGIFormat(attachmentDesc.format, DX12ViewType::RTV_DSV);
         }
     }
+
+    // @TODO: add D3D12_VIEW_INSTANCING_DESC for view instancing to fulfill the role multiview was taking in the Vulkan impl.
 
     HRESULT res = g_renderInterface->GetDevice()->CreateGraphicsPipelineState(
         &psoDesc,

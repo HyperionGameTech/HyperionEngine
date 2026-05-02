@@ -198,7 +198,7 @@ PSOutput PSMain(PSInput input)
     const float perceptualRoughness = sqrt(roughness);
 
     float4 result = (float4)0;
-    
+
     const float material_reflectance = 0.5;
     const float reflectance = 0.16 * material_reflectance * material_reflectance;
     float4 F0 = float4(albedo.rgb * metalness + (reflectance * (1.0 - metalness)), 1.0);
@@ -222,7 +222,7 @@ PSOutput PSMain(PSInput input)
 #endif
 
     float4 area_light_radiance;
-    
+
 #ifdef LIGHT_TYPE_CLUSTERED
     // Cluster data
     const uint gridIndex = Cluster_GetGridIndex(
@@ -231,7 +231,7 @@ PSOutput PSMain(PSInput input)
         camera.near, camera.far);
 
     const uint2 clusterData = ClusterGridBuffer[gridIndex];
-    
+
     const uint clusterIndexOffset = clusterData.x;
 
     const uint numLights = (clusterData.y & 0xFFFF);
@@ -243,7 +243,7 @@ PSOutput PSMain(PSInput input)
     for (uint i = 0; i < numLights; ++i)
     {
         const uint lightIndex = Cluster_LoadLightIndex(clusterIndexOffset, i);
-        
+
         // We handle area lights in a specialized version of the deferred pass, so we skip
         // them for clustered deferred shading.
 
@@ -294,9 +294,9 @@ PSOutput PSMain(PSInput input)
                     float2 spot_angles = currentLight.area_size.xy;
 
                     attenuation *= saturate((theta - spot_angles[0]) / (spot_angles[1] - spot_angles[0])) * step(spot_angles[0], theta);
-                    
+
                     // @TODO Spot shadows for clustered deferred
-                    
+
                 }
                 else
                 {

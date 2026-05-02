@@ -129,9 +129,17 @@ float3 TonemapACES(float3 color)
 {
     color *= EXPOSURE;
     color /= 0.6;
+#ifdef HYP_DX12
+    // DX12 matrix layout with row_major packing results in transposed matrices
+    // compared to Vulkan. Using reversed multiplication order to compensate.
+    color = mul(color, ACESInputMat);
+    color = _RRTAndODTFit(color);
+    color = mul(color, ACESOutputMat);
+#else
     color = mul(ACESInputMat, color);
     color = _RRTAndODTFit(color);
     color = mul(ACESOutputMat, color);
+#endif
     return clamp(color, 0.0, 1.0);
 }
 
