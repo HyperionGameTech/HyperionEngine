@@ -43,7 +43,7 @@ static const float2 s_pcfKernel[16] = {
 
 static const float4x4 s_shadowBiasMatrix = float4x4(
     0.5, 0.0, 0.0, 0.5,
-    0.0, 0.5, 0.0, 0.5,
+    0.0, -0.5, 0.0, 0.5,
     0.0, 0.0, 1.0, 0.0,
     0.0, 0.0, 0.0, 1.0);
 
@@ -55,13 +55,6 @@ float3 GetShadowCoord(in float4x4 shadowMatrix, float3 pos)
     shadowPosition.xyz /= shadowPosition.w;
 
     return shadowPosition.xyz;
-}
-
-float3 ShadowDepthToViewSpace(in ShadowMap shadowMap, float2 shadowCoordXY, float depth)
-{
-    float4 ndc = float4(shadowCoordXY * 2.0 - 1.0, depth, 1.0);
-    float4 posVS = mul(shadowMap.invProjMat, ndc);
-    return posVS.xyz / posVS.w;
 }
 
 float GetShadowStandard(in ShadowMap shadowMap, float3 pos, float2 offset, float NdotL)

@@ -338,15 +338,15 @@ AssetLoadResult OgreXMLModelLoader::LoadAsset(LoaderState& state) const
         GetCurrentAssetRegistry()->PutAsset(mesh);
 
         MaterialAttributes attributes {};
-        attributes.bucket = RenderBucket::Translucent;
-        attributes.blendFunction = BlendFunction::AlphaBlending();
+        // attributes.bucket = RenderBucket::Translucent;
+        // attributes.blendFunction = BlendFunction::AlphaBlending();
         attributes.shaderName = NAME("GeometryPass");
         attributes.shaderProperties = {};
 
         MaterialParameters parameters;
         parameters.albedo = Vec4f(1.0f, 1.0f, 1.0f, 1.0f);
-        parameters.transmission = 0.9f;
-        parameters.roughness = 0.2f;
+        // parameters.transmission = 0.9f;
+        // parameters.roughness = 0.2f;
 
         Handle<MaterialDefinition> materialDef = MakeHandle<MaterialDefinition>(CreateNameFromDynamicString(ANSIString(subMesh.name.Data())), attributes, parameters, MaterialTextures {});
         GetCurrentAssetRegistry()->PutAsset(materialDef);

@@ -123,6 +123,8 @@ void CSMain(uint3 dispatchThreadID : SV_DispatchThreadID)
         for (int i = 0; i < 8; i++)
         {
             float4 projected_corner = mul(proj, mul(view, float4(AABBGetCorner(aabb, i), 1.0)));
+            projected_corner.y = -projected_corner.y;
+
             cull_bits &= GetCullBits(projected_corner);
 
             clip_pos = projected_corner;

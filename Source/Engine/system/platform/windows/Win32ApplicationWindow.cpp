@@ -20,6 +20,7 @@
 #include <engine/EngineGlobals.hpp>
 
 #include <rendering/Swapchain.hpp>
+#include <rendering/RenderInterface.hpp>
 
 #if HYP_VULKAN
 #include <vulkan/vulkan.h>

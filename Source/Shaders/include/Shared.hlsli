@@ -51,8 +51,8 @@ uint packHalf2x16(float2 v)
 
 struct Ray
 {
-    vec3 origin;
-    vec3 direction;
+    float3 origin;
+    float3 direction;
 };
 
 int imod(int a, int b)
@@ -60,17 +60,17 @@ int imod(int a, int b)
     return (a % b + b) % b;
 }
 
-ivec2 imod(ivec2 a, ivec2 b)
+int2 imod(int2 a, int2 b)
 {
     return (a % b + b) % b;
 }
 
-ivec3 imod(ivec3 a, ivec3 b)
+int3 imod(int3 a, int3 b)
 {
     return (a % b + b) % b;
 }
 
-ivec4 imod(ivec4 a, ivec4 b)
+int4 imod(int4 a, int4 b)
 {
     return (a % b + b) % b;
 }
@@ -81,31 +81,31 @@ ivec4 imod(ivec4 a, ivec4 b)
 
 // #define rcp(x) (1.0 / (x))
 
-float Luminance(vec3 color)
+float Luminance(float3 color)
 {
     return color.r * 0.2125 + color.g * 0.715 + color.b * 0.0721;
 }
 
 #define AngleBetweenVectors(a, b) (acos(dot((a), (b))))
 
-mat4 CreateRotationMatrix(vec3 axis, float angle)
+float4x4 CreateRotationMatrix(float3 axis, float angle)
 {
     axis = normalize(axis);
     float s = sin(angle);
     float c = cos(angle);
     float oc = 1.0 - c;
 
-    return mat4(oc * axis.x * axis.x + c, oc * axis.x * axis.y - axis.z * s, oc * axis.z * axis.x + axis.y * s, 0.0,
+    return float4x4(oc * axis.x * axis.x + c, oc * axis.x * axis.y - axis.z * s, oc * axis.z * axis.x + axis.y * s, 0.0,
         oc * axis.x * axis.y + axis.z * s, oc * axis.y * axis.y + c, oc * axis.y * axis.z - axis.x * s, 0.0,
         oc * axis.z * axis.x - axis.y * s, oc * axis.y * axis.z + axis.x * s, oc * axis.z * axis.z + c, 0.0,
         0.0, 0.0, 0.0, 1.0);
 }
 
-void ComputeOrthonormalBasis(in vec3 normal, out vec3 tangent, out vec3 bitangent)
+void ComputeOrthonormalBasis(in float3 normal, out float3 tangent, out float3 bitangent)
 {
-    vec3 T;
-    T = cross(normal, vec3(0.0, 1.0, 0.0));
-    T = lerp(cross(normal, vec3(1.0, 0.0, 0.0)), T, step(HYP_FMATH_EPSILON, dot(T, T)));
+    float3 T;
+    T = cross(normal, float3(0.0, 1.0, 0.0));
+    T = lerp(cross(normal, float3(1.0, 0.0, 0.0)), T, step(HYP_FMATH_EPSILON, dot(T, T)));
 
     T = normalize(T);
 
@@ -113,9 +113,9 @@ void ComputeOrthonormalBasis(in vec3 normal, out vec3 tangent, out vec3 bitangen
     bitangent = normalize(cross(normal, T));
 }
 
-vec3 GetTriplanarBlend(vec3 normal)
+float3 GetTriplanarBlend(float3 normal)
 {
-    vec3 blending = normalize(max(abs(normal), 0.0001));
+    float3 blending = normalize(max(abs(normal), 0.0001));
     blending /= (blending.x + blending.y + blending.z);
 
     return blending;
@@ -125,13 +125,13 @@ vec3 GetTriplanarBlend(vec3 normal)
 
 #ifdef LANG_GLSL
 
-vec4 SampleTextureTriplanar(sampler samp, texture2D tex, vec3 position, vec3 normal)
+float4 SampleTextureTriplanar(sampler samp, texture2D tex, float3 position, float3 normal)
 {
-    vec3 blending = GetTriplanarBlend(normal);
+    float3 blending = GetTriplanarBlend(normal);
 
-    vec4 sample_x = SAMPLE_TEXTURE_2D(samp, tex, position.zy * 0.01);
-    vec4 sample_y = SAMPLE_TEXTURE_2D(samp, tex, position.xz * 0.01);
-    vec4 sample_z = SAMPLE_TEXTURE_2D(samp, tex, position.xy * 0.01);
+    float4 sample_x = SAMPLE_TEXTURE_2D(samp, tex, position.zy * 0.01);
+    float4 sample_y = SAMPLE_TEXTURE_2D(samp, tex, position.xz * 0.01);
+    float4 sample_z = SAMPLE_TEXTURE_2D(samp, tex, position.xy * 0.01);
 
     return sample_x * blending.x + sample_y * blending.y + sample_z * blending.z;
 }
@@ -155,25 +155,6 @@ float4 SampleTextureTriplanar(sampler samp, Texture2D tex, float3 position, floa
 
 #define GAUSS_TABLE_SIZE 15
 
-#ifdef LANG_GLSL
-const float gauss_table[GAUSS_TABLE_SIZE + 1] = float[](
-    0.1847392078702266,
-    0.16595854345772326,
-    0.12031364177766891,
-    0.07038755277896766,
-    0.03322925565155569,
-    0.012657819729901945,
-    0.0038903040680094217,
-    0.0009646503390864025,
-    0.00019297087402915717,
-    0.000031139936308099136,
-    0.000004053309048174758,
-    4.255228059965837e-7,
-    3.602517634249573e-8,
-    2.4592560765896795e-9,
-    1.3534945386863618e-10,
-    0.0);
-#elif defined(LANG_HLSL)
 static const float gauss_table[GAUSS_TABLE_SIZE + 1] = {
     0.1847392078702266,
     0.16595854345772326,
@@ -191,9 +172,6 @@ static const float gauss_table[GAUSS_TABLE_SIZE + 1] = {
     2.4592560765896795e-9,
     1.3534945386863618e-10,
     0.0 };
-#else
-#error "No LANG_* preprocessor define provided"
-#endif
 
 float GaussianWeight(float value)
 {
@@ -208,15 +186,15 @@ float GaussianWeight(float value)
     return lerp(gauss_table[idx], gauss_table[idx + 1], c);
 }
 
-vec4 GaussianBlur9(
+float4 GaussianBlur9(
     texture2D tex, sampler samp,
-    vec2 uv,
-    vec2 direction,
+    float2 uv,
+    float2 direction,
     float radius)
 {
-    vec4 color = vec4(0.0, 0.0, 0.0, 0.0);
-    vec2 offset1 = vec2(1.3846153846, 1.3846153846) * direction;
-    vec2 offset2 = vec2(3.2307692308, 3.2307692308) * direction;
+    float4 color = float4(0.0, 0.0, 0.0, 0.0);
+    float2 offset1 = float2(1.3846153846, 1.3846153846) * direction;
+    float2 offset2 = float2(3.2307692308, 3.2307692308) * direction;
     color += SAMPLE_TEXTURE_2D(samp, tex, uv) * 0.2270270270;
     color += SAMPLE_TEXTURE_2D(samp, tex, uv + (offset1 * radius)) * 0.3162162162;
     color += SAMPLE_TEXTURE_2D(samp, tex, uv - (offset1 * radius)) * 0.3162162162;
@@ -225,14 +203,14 @@ vec4 GaussianBlur9(
     return color;
 }
 
-vec4 GaussianBlur5(
+float4 GaussianBlur5(
     texture2D tex, sampler samp,
-    vec2 uv,
-    vec2 direction,
+    float2 uv,
+    float2 direction,
     float radius)
 {
-    vec4 color = vec4(0.0, 0.0, 0.0, 0.0);
-    vec2 offset = vec2(1.333, 1.333) * direction;
+    float4 color = float4(0.0, 0.0, 0.0, 0.0);
+    float2 offset = float2(1.333, 1.333) * direction;
     color += SAMPLE_TEXTURE_2D(samp, tex, uv) * 0.29411764705882354;
     color += SAMPLE_TEXTURE_2D(samp, tex, uv + (offset * radius)) * 0.35294117647058826;
     color += SAMPLE_TEXTURE_2D(samp, tex, uv - (offset * radius)) * 0.35294117647058826;
@@ -262,71 +240,46 @@ float ViewDepth(float depth, float near, float far)
     // return (far * near) / (far - depth * (far - near));
 }
 
-vec4 ReconstructWorldSpacePositionFromDepth(mat4 inverse_projection, mat4 inverse_view, vec2 coord, float depth)
+float4 ReconstructWorldSpacePositionFromDepth(float4x4 inverse_projection, float4x4 inverse_view, float2 coord, float depth)
 {
-    vec4 ndc = vec4(coord * 2.0 - 1.0, depth, 1.0);
+    float4 ndc = float4(coord.x * 2.0 - 1.0, 1.0 - (coord.y * 2.0), depth, 1.0);
 
-#ifdef LANG_HLSL
-    vec4 inversed = mul(inverse_projection, ndc);
-#else
-    vec4 inversed = inverse_projection * ndc;
-#endif
+    float4 inversed = mul(inverse_projection, ndc);
     inversed /= inversed.w;
 
-#ifdef LANG_HLSL
     inversed = mul(inverse_view, inversed);
-#else
-    inversed = inverse_view * inversed;
-#endif
 
     return inversed;
 }
 
-vec4 ReconstructViewSpacePositionFromDepth(mat4 inverse_projection, vec2 coord, float depth)
+float4 ReconstructViewSpacePositionFromDepth(float4x4 inverse_projection, float2 coord, float depth)
 {
-    vec4 ndc = vec4(coord * 2.0 - 1.0, depth, 1.0);
+    float4 ndc = float4(coord.x * 2.0 - 1.0, 1.0 - (coord.y * 2.0), depth, 1.0);
 
-#ifdef LANG_HLSL
-    vec4 inversed = mul(inverse_projection, ndc);
-#else
-    vec4 inversed = inverse_projection * ndc;
-#endif
+    float4 inversed = mul(inverse_projection, ndc);
     inversed /= inversed.w;
 
     return inversed;
 }
 
-vec2 GetProjectedPositionFromWorld(in mat4 projection, in mat4 view, in vec3 world_space_position)
+float2 GetProjectedPositionFromWorld(in float4x4 projection, in float4x4 view, in float3 world_space_position)
 {
-#ifdef LANG_HLSL
-    vec4 sample_position = mul(projection, mul(view, vec4(world_space_position, 1.0)));
-#else
-    vec4 sample_position = projection * view * vec4(world_space_position, 1.0);
-#endif
+    float4 sample_position = mul(projection, mul(view, float4(world_space_position, 1.0)));
     return (sample_position.xy / sample_position.w) * 0.5 + 0.5;
 }
 
-vec2 GetProjectedPositionFromWorld(in mat4 view_projection, in vec3 world_space_position)
+float2 GetProjectedPositionFromWorld(in float4x4 view_projection, in float3 world_space_position)
 {
-#ifdef LANG_HLSL
-    vec4 sample_position = mul(view_projection, vec4(world_space_position, 1.0));
-#else
-    vec4 sample_position = view_projection * vec4(world_space_position, 1.0);
-#endif
+    float4 sample_position = mul(view_projection, float4(world_space_position, 1.0));
     return (sample_position.xy / sample_position.w) * 0.5 + 0.5;
 }
 
-vec2 GetProjectedPositionFromView(in mat4 projection, in vec3 view_space_position)
+float2 GetProjectedPositionFromView(in float4x4 projection, in float3 view_space_position)
 {
-#ifdef LANG_HLSL
-    vec4 sample_position = mul(projection, vec4(view_space_position, 1.0));
-#else
-    vec4 sample_position = projection * vec4(view_space_position, 1.0);
-#endif
+    float4 sample_position = mul(projection, float4(view_space_position, 1.0));
     return (sample_position.xy / sample_position.w) * 0.5 + 0.5;
 }
 
-#ifdef LANG_HLSL
 float3x3 inverse(float3x3 m)
 {
     float3 a = m[0];
@@ -343,31 +296,7 @@ float3x3 inverse(float3x3 m)
     return float3x3(r0 * invDet, r1 * invDet, r2 * invDet);
 }
 
-#endif
-
-#ifndef LANG_HLSL
-float saturate(float val)
-{
-    return min(max(val, 0.0), 1.0);
-}
-
-vec2 saturate(vec2 val)
-{
-    return min(max(val, vec2(0.0)), vec2(1.0));
-}
-
-vec3 saturate(vec3 val)
-{
-    return min(max(val, vec3(0.0)), vec3(1.0));
-}
-
-vec4 saturate(vec4 val)
-{
-    return min(max(val, vec4(0.0)), vec4(1.0));
-}
-#endif
-
-vec4 CalculateFogExp(in vec4 start_color, in vec4 end_color, vec3 world_position, vec3 camera_position, float fog_start, float fog_end)
+float4 CalculateFogExp(in float4 start_color, in float4 end_color, float3 world_position, float3 camera_position, float fog_start, float fog_end)
 {
     const float dist = distance(world_position, camera_position);
     const float density = 0.00003;
@@ -377,7 +306,7 @@ vec4 CalculateFogExp(in vec4 start_color, in vec4 end_color, vec3 world_position
     return lerp(start_color, end_color, 1.0 - fog_factor);
 }
 
-vec4 CalculateFogLinear(in vec4 start_color, in vec4 end_color, vec3 world_position, vec3 camera_position, float fog_start, float fog_end)
+float4 CalculateFogLinear(in float4 start_color, in float4 end_color, float3 world_position, float3 camera_position, float fog_start, float fog_end)
 {
     const float dist = distance(world_position, camera_position);
 
@@ -400,54 +329,44 @@ float linstep(float min, float max, float v)
     return clamp((v - min) / (max - min), 0.0, 1.0);
 }
 
-vec3 RGBToYCoCg(in vec3 rgb)
+float3 RGBToYCoCg(in float3 rgb)
 {
     float co = rgb.r - rgb.b;
     float t = rgb.b + co / 2.0;
     float cg = rgb.g - t;
     float y = t + cg / 2.0;
-    return vec3(y, co, cg);
+    return float3(y, co, cg);
 }
 
-vec4 RGBToYCoCg(in vec4 rgb)
+float4 RGBToYCoCg(in float4 rgb)
 {
     float co = rgb.r - rgb.b;
     float t = rgb.b + co / 2.0;
     float cg = rgb.g - t;
     float y = t + cg / 2.0;
-    return vec4(y, co, cg, rgb.a);
+    return float4(y, co, cg, rgb.a);
 }
 
-vec3 YCoCgToRGB(in vec3 ycocg)
+float3 YCoCgToRGB(in float3 ycocg)
 {
     float t = ycocg.r - ycocg.b / 2.0;
     float g = ycocg.b + t;
     float b = t - ycocg.g / 2.0;
     float r = ycocg.g + b;
-    return vec3(r, g, b);
+    return float3(r, g, b);
 }
 
-vec4 YCoCgToRGB(in vec4 ycocg)
+float4 YCoCgToRGB(in float4 ycocg)
 {
     float t = ycocg.r - ycocg.b / 2.0;
     float g = ycocg.b + t;
     float b = t - ycocg.g / 2.0;
     float r = ycocg.g + b;
-    return vec4(r, g, b, ycocg.a);
+    return float4(r, g, b, ycocg.a);
 }
 
 //// Cubemap utilities
 
-#ifdef LANG_GLSL
-// pairs of cubemap forward direction and up direction (interleaved order)
-const vec3 g_cubemapDirections[12] = vec3[](
-    vec3(1.0, 0.0, 0.0), vec3(0.0, 1.0, 0.0),
-    vec3(-1.0, 0.0, 0.0), vec3(0.0, 1.0, 0.0),
-    vec3(0.0, 1.0, 0.0), vec3(0.0, 0.0, -1.0),
-    vec3(0.0, -1.0, 0.0), vec3(0.0, 0.0, 1.0),
-    vec3(0.0, 0.0, 1.0), vec3(0.0, 1.0, 0.0),
-    vec3(0.0, 0.0, -1.0), vec3(0.0, 1.0, 0.0));
-#elif defined(LANG_HLSL)
 // pairs of cubemap forward direction and up direction (interleaved order)
 static const float3 g_cubemapDirections[12] = {
     float3(1.0, 0.0, 0.0), float3(0.0, 1.0, 0.0),
@@ -457,20 +376,19 @@ static const float3 g_cubemapDirections[12] = {
     float3(0.0, 0.0, 1.0), float3(0.0, 1.0, 0.0),
     float3(0.0, 0.0, -1.0), float3(0.0, 1.0, 0.0)
 };
-#endif
 
-vec3 GetCubemapCoord(uint face, vec2 uv)
+float3 GetCubemapCoord(uint face, float2 uv)
 {
-    vec3 forward = g_cubemapDirections[face * 2];
-    vec3 up = g_cubemapDirections[face * 2 + 1];
-    vec3 right = cross(forward, up);
+    float3 forward = g_cubemapDirections[face * 2];
+    float3 up = g_cubemapDirections[face * 2 + 1];
+    float3 right = cross(forward, up);
 
-    vec2 coord = uv * 2.0 - 1.0;
+    float2 coord = uv * 2.0 - 1.0;
 
     return normalize(forward - right * coord.x - up * coord.y);
 }
 
-uint GetCubemapFaceIndex(vec3 dir)
+uint GetCubemapFaceIndex(float3 dir)
 {
     uint face = 0u;
     float ax = abs(dir.x);

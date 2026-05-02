@@ -68,7 +68,7 @@ static FramebufferDesc GetFramebufferDesc(
     framebufferDesc.offset = Vec2i(atlasElement.offsetCoords);
 
     const ShadowMapFilter shadowMapFilter = light->GetShadowMapFilter();
-    
+
     outShaderDesc.name = NAME("DrawShadowMap");
     outShaderDesc.properties.Add(s_shadowMapFilterProperties[shadowMapFilter]);
 
@@ -131,7 +131,7 @@ static Camera* CreateShadowCamera(Light* light, uint32 cascadeIndex)
         shadowMapCamera->SetFarClip(1000.0f);//light->GetRadius());
 
         shadowMapCamera->AddCameraController(MakeHandle<PerspectiveCameraController>());
-        
+
         break;
     default:
         break;
@@ -184,7 +184,7 @@ struct CachedShadowMapData
     Array<ShadowMap*, RenderAllocator> shadowMaps;
 
     Camera* camera = nullptr;
-    
+
     Array<View*, FixedAllocator<MaxShadowMapCascades>> shadowViewsDynamic;
     Array<View*, FixedAllocator<MaxShadowMapCascades>> shadowViewsStatic;
 
@@ -257,7 +257,7 @@ public:
             }
         }
     }
-    
+
     ShadowMapAllocator allocator;
 
     /// Cached (per-light/view combination) shadow map rendering data that is cleaned up when no longer used
@@ -534,7 +534,7 @@ ShadowMap* ShadowMapCache::GetShadowMap(
         {
             outShadowViewDynamic = entry.shadowViewsDynamic[cascadeIndex];
             outShadowViewStatic = entry.shadowViewsStatic[cascadeIndex];
-            
+
             AtomicExchange(&entry.lastFrameUsed, int64(GetFrameCounter()));
 
             return entry.shadowMaps[cascadeIndex];
@@ -565,7 +565,7 @@ bool ShadowMapCache::Remove(Light* light, View* view)
     }
 
     CachedShadowMapData& entry = it->second;
-    
+
     Array<View*, FixedAllocator<MaxShadowMapCascades * 2>> allViews;
 
     for (View* view : entry.shadowViewsStatic)

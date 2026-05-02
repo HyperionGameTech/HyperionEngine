@@ -28,6 +28,10 @@
 
 namespace Hyperion {
 
+extern void Win32_RegisterWindowClass(const WideString& className);
+extern void Win32_UnregisterWindowClass(const WideString& className);
+extern void Win32_CleanupWindowClasses();
+
 Win32AppContext::Win32AppContext(ANSIString name, const CommandLineArguments& arguments)
     : AppContextBase(std::move(name), arguments)
 {

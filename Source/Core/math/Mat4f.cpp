@@ -28,12 +28,6 @@
 #define HYP_MAT4F_USE_AVX 0
 #endif
 
-#if defined(HYPERION_ENGINE) && HYPERION_ENGINE && defined(HYP_VULKAN)
-static constexpr float PerspectiveMat11Div = -1.0f;
-#else
-static constexpr float PerspectiveMat11Div = 1.0f;
-#endif
-
 namespace {
 
 #if HYP_MAT4F_USE_SSE
@@ -126,7 +120,7 @@ Mat4f Mat4f::Perspective(float fov, int w, int h, float n, float f)
     mat[2][2] = f / (f - n);
     mat[2][3] = -(f * n) / (f - n);
 
-    mat[3][2] = 1.0f; 
+    mat[3][2] = 1.0f;
     mat[3][3] = 0.0f;
 
     return mat;
@@ -137,14 +131,14 @@ Mat4f Mat4f::Orthographic(float l, float r, float b, float t, float n, float f)
     Mat4f mat = zeros;
 
     float xOrth = 2.0f / (r - l);
-    float yOrth = 2.0f / (t - b); 
-    
-    float zOrth = 1.0f / (f - n); 
-    
+    float yOrth = 2.0f / (t - b);
+
+    float zOrth = 1.0f / (f - n);
+
     float tx = -(r + l) / (r - l);
     float ty = -(t + b) / (t - b);
-    
-    float tz = -n / (f - n); 
+
+    float tz = -n / (f - n);
 
     mat[0][0] = xOrth;
     mat[0][1] = 0.0f;
