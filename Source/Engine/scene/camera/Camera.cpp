@@ -616,8 +616,8 @@ Vec3f Camera::TransformScreenToNDC(const Vec2f& screen) const
     // [0, 1] -> [-1, 1]
 
     return {
-        screen.x * 2.0f - 1.0f, // 1.0f - (2.0f * screen.x),
-        screen.y * 2.0f - 1.0f, // 1.0f - (2.0f * screen.y),
+        screen.x * 2.0f - 1.0f,
+        1.0f - (2.0f * screen.y),
         1.0f
     };
 }
@@ -628,7 +628,6 @@ Vec4f Camera::TransformNDCToWorld(const Vec3f& ndc) const
 
     Vec4f eye = m_projMat.Inverse() * clip;
     eye /= eye.w;
-    // eye = Vec4f(eye.x, eye.y, -1.0f, 0.0f);
 
     return m_viewMat.Inverse() * eye;
 }
