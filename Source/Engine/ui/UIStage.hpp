@@ -93,7 +93,7 @@ public:
     static constexpr int MaxDepth = 10000;
 
     UIStage();
-    UIStage(ThreadId ownerThreadId);
+    UIStage(World* world, ThreadId ownerThreadId);
     UIStage(const UIStage& other) = delete;
     UIStage& operator=(const UIStage& other) = delete;
     virtual ~UIStage() override;
@@ -122,6 +122,13 @@ public:
      *  \param scene The scene to set. */
     HYP_METHOD()
     void SetScene(const Handle<Scene>& scene);
+
+    HYP_FORCE_INLINE World* GetWorld() const
+    {
+        return m_world;
+    }
+
+    void SetWorld(World* world);
 
     HYP_METHOD()
     const Handle<Camera>& GetCamera() const
@@ -197,6 +204,8 @@ private:
     bool Remove(const Entity* entity);
 
     Vec2i m_surfaceSize;
+
+    World* m_world;
 
     Handle<Scene> m_scene;
     Handle<Camera> m_camera;

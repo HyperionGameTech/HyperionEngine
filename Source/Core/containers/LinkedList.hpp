@@ -202,12 +202,10 @@ public:
     
     template <bool ConditionalEnable = HasDefaultAllocatorInstance<AllocatorType>, typename = std::enable_if_t<ConditionalEnable>>
     LinkedList()
-        : m_pAllocator(GetDefaultAllocatorInstance<AllocatorType>()),
-          m_head(nullptr),
+        : m_head(nullptr),
           m_tail(nullptr),
           m_size(0)
     {
-        HYP_CORE_ASSERT(m_pAllocator != nullptr);
     }
 
     LinkedList(const LinkedList& other);
@@ -284,7 +282,7 @@ public:
     template <class... Args>
     ValueType& EmplaceBack(Args&&... args)
     {
-        Node* newNode = (Node*)m_pAllocator->Allocate(sizeof(Node), alignof(Node));
+        Node* newNode = (Node*)GetAllocator()->Allocate(sizeof(Node), alignof(Node));
         newNode->previous = m_tail;
         newNode->next = nullptr;
         newNode->value.Construct(std::forward<Args>(args)...);
@@ -308,7 +306,7 @@ public:
     template <class... Args>
     ValueType& EmplaceFront(Args&&... args)
     {
-        Node* newNode = (Node*)m_pAllocator->Allocate(sizeof(Node), alignof(Node));
+        Node* newNode = (Node*)GetAllocator()->Allocate(sizeof(Node), alignof(Node));
         newNode->previous = nullptr;
         newNode->next = m_head;
         newNode->value.Construct(std::forward<Args>(args)...);
@@ -414,7 +412,10 @@ public:
     HYP_DEF_STL_BEGIN_END({ m_head }, { (Node*)nullptr })
 
 private:
-    AllocatorType* const m_pAllocator;
+    HYP_FORCE_INLINE static AllocatorType* GetAllocator()
+    {
+        return GetDefaultAllocatorInstance<AllocatorType>();
+    }
 
     Node* m_head;
     Node* m_tail;
@@ -423,13 +424,10 @@ private:
 
 template <class T, class AllocatorType>
 LinkedList<T, AllocatorType>::LinkedList(const LinkedList<T, AllocatorType>& other)
-    : m_pAllocator(other.m_pAllocator),
-      m_head(nullptr),
+    : m_head(nullptr),
       m_tail(nullptr),
       m_size(0)
 {
-    HYP_CORE_ASSERT(m_pAllocator != nullptr);
-
     for (const auto& value : other)
     {
         PushBack(value);
@@ -438,13 +436,10 @@ LinkedList<T, AllocatorType>::LinkedList(const LinkedList<T, AllocatorType>& oth
 
 template <class T, class AllocatorType>
 LinkedList<T, AllocatorType>::LinkedList(LinkedList<T, AllocatorType>&& other) noexcept
-    : m_pAllocator(other.m_pAllocator),
-      m_head(other.m_head),
+    : m_head(other.m_head),
       m_tail(other.m_tail),
       m_size(other.m_size)
 {
-    HYP_CORE_ASSERT(m_pAllocator != nullptr);
-
     other.m_head = nullptr;
     other.m_tail = nullptr;
     other.m_size = 0;
@@ -499,7 +494,7 @@ LinkedList<T, AllocatorType>::~LinkedList()
         Node* next = node->next;
 
         node->value.Destruct();
-        m_pAllocator->Free(node);
+        GetAllocator()->Free(node);
 
         node = next;
     }
@@ -508,7 +503,7 @@ LinkedList<T, AllocatorType>::~LinkedList()
 template <class T, class AllocatorType>
 auto LinkedList<T, AllocatorType>::PushBack(const ValueType& value) -> ValueType&
 {
-    Node* newNode = (Node*)m_pAllocator->Allocate(sizeof(Node), alignof(Node));
+    Node* newNode = (Node*)GetAllocator()->Allocate(sizeof(Node), alignof(Node));
     newNode->previous = m_tail;
     newNode->next = nullptr;
     newNode->value.Construct(value);
@@ -532,7 +527,7 @@ auto LinkedList<T, AllocatorType>::PushBack(const ValueType& value) -> ValueType
 template <class T, class AllocatorType>
 auto LinkedList<T, AllocatorType>::PushBack(ValueType&& value) -> ValueType&
 {
-    Node* newNode = (Node*)m_pAllocator->Allocate(sizeof(Node), alignof(Node));
+    Node* newNode = (Node*)GetAllocator()->Allocate(sizeof(Node), alignof(Node));
     newNode->previous = m_tail;
     newNode->next = nullptr;
     newNode->value.Construct(std::move(value));
@@ -556,7 +551,7 @@ auto LinkedList<T, AllocatorType>::PushBack(ValueType&& value) -> ValueType&
 template <class T, class AllocatorType>
 auto LinkedList<T, AllocatorType>::PushFront(const ValueType& value) -> ValueType&
 {
-    Node* newNode = (Node*)m_pAllocator->Allocate(sizeof(Node), alignof(Node));
+    Node* newNode = (Node*)GetAllocator()->Allocate(sizeof(Node), alignof(Node));
     newNode->previous = nullptr;
     newNode->next = m_head;
     newNode->value.Construct(value);
@@ -581,7 +576,7 @@ auto LinkedList<T, AllocatorType>::PushFront(const ValueType& value) -> ValueTyp
 template <class T, class AllocatorType>
 auto LinkedList<T, AllocatorType>::PushFront(ValueType&& value) -> ValueType&
 {
-    Node* newNode = (Node*)m_pAllocator->Allocate(sizeof(Node), alignof(Node));
+    Node* newNode = (Node*)GetAllocator()->Allocate(sizeof(Node), alignof(Node));
     newNode->previous = nullptr;
     newNode->next = m_head;
     newNode->value.Construct(std::move(value));
@@ -613,7 +608,7 @@ auto LinkedList<T, AllocatorType>::PopBack() -> ValueType
     ValueType value = std::move(m_tail->value.Get());
 
     m_tail->value.Destruct();
-    m_pAllocator->Free(m_tail);
+    GetAllocator()->Free(m_tail);
 
     if (prev)
     {
@@ -640,7 +635,7 @@ auto LinkedList<T, AllocatorType>::PopFront() -> ValueType
     ValueType value = std::move(m_head->value.Get());
 
     m_head->value.Destruct();
-    m_pAllocator->Free(m_head);
+    GetAllocator()->Free(m_head);
 
     if (next)
     {
@@ -691,7 +686,7 @@ auto LinkedList<T, AllocatorType>::Erase(Iterator iter) -> Iterator
     }
 
     node->value.Destruct();
-    m_pAllocator->Free(node);
+    GetAllocator()->Free(node);
 
     --m_size;
 
@@ -732,7 +727,7 @@ auto LinkedList<T, AllocatorType>::Erase(ConstIterator iter) -> Iterator
     }
 
     node->value.Destruct();
-    m_pAllocator->Free(node);
+    GetAllocator()->Free(node);
 
     --m_size;
 
@@ -749,7 +744,7 @@ void LinkedList<T, AllocatorType>::Clear()
         Node* next = node->next;
 
         node->value.Destruct();
-        m_pAllocator->Free(node);
+        GetAllocator()->Free(node);
 
         node = next;
     }

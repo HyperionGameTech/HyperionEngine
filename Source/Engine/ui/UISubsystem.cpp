@@ -158,6 +158,8 @@ void UISubsystem::Init()
     Subsystem::Init();
 
     Assert(m_uiStage != nullptr);
+
+    m_uiStage->SetWorld(GetWorld());
     InitObject(m_uiStage);
 
     InitFont();
@@ -231,9 +233,9 @@ void UISubsystem::Init()
 
 void UISubsystem::OnAddedToWorld()
 {
-    if (m_uiStage && m_uiStage->GetScene())
+    if (m_uiStage)
     {
-        GetWorld()->AddScene(MakeStrongRef(m_uiStage->GetScene()));
+        m_uiStage->SetWorld(GetWorld());
     }
 
     InitDebugOverlays();
@@ -241,9 +243,9 @@ void UISubsystem::OnAddedToWorld()
 
 void UISubsystem::OnRemovedFromWorld()
 {
-    if (m_uiStage && m_uiStage->GetScene())
+    if (m_uiStage)
     {
-        GetWorld()->RemoveScene(m_uiStage->GetScene());
+        m_uiStage->SetWorld(nullptr);
     }
 }
 

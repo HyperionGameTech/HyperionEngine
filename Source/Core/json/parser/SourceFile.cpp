@@ -20,14 +20,14 @@ SourceFile::SourceFile()
 
 SourceFile::SourceFile(const String& filepath, size_t size)
     : m_filepath(filepath),
+      m_buffer(size),
       m_position(0)
 {
-    m_buffer.SetSize(size);
 }
 
 SourceFile::SourceFile(const SourceFile& other)
     : m_filepath(other.m_filepath),
-      m_buffer(other.m_buffer.Copy()),
+      m_buffer(other.m_buffer),
       m_position(other.m_position)
 {
 }
@@ -39,7 +39,7 @@ SourceFile& SourceFile::operator=(const SourceFile& other)
         return *this;
     }
 
-    m_buffer = other.m_buffer.Copy();
+    m_buffer = other.m_buffer;
     m_position = other.m_position;
     m_filepath = other.m_filepath;
 

@@ -597,12 +597,8 @@ VkDescriptorSetLayout VulkanDescriptorSetManager::GetOrCreateVkDescriptorSetLayo
 
 VulkanRenderInterface::VulkanRenderInterface()
     : m_instance(nullptr),
-      m_renderConfig(MakePimpl<VulkanRenderConfig>()),
-      m_descriptorSetManager(MakePimpl<VulkanDescriptorSetManager>()),
       m_currentFrameIndex(0)
 {
-    m_frames.Resize(NumFramesInFlight);
-    m_commandBuffers.Resize(NumFramesInFlight);
 }
 
 VulkanRenderInterface::~VulkanRenderInterface()
@@ -621,6 +617,12 @@ const IRenderConfig& VulkanRenderInterface::GetRenderConfig() const
 
 RendererResult VulkanRenderInterface::Initialize()
 {
+    m_renderConfig = MakePimpl<VulkanRenderConfig>();
+    m_descriptorSetManager = MakePimpl<VulkanDescriptorSetManager>();
+
+    m_frames.Resize(NumFramesInFlight);
+    m_commandBuffers.Resize(NumFramesInFlight);
+
 #if HYP_DEBUG_MODE
     EngineConfig& engineConfig = GetEngineConfig();
     engineConfig.Load();
@@ -688,9 +690,11 @@ RendererResult VulkanRenderInterface::Initialize()
     const VkDeviceSize minUniformBufferOffsetAlignment = RI.GetDevice()->GetFeatures()
         .GetPhysicalDeviceProperties().limits.minUniformBufferOffsetAlignment;
 
+    CheckResultOrReturn(RenderInterface::Initialize());
+    
     cbufferAllocator->Initialize(minUniformBufferOffsetAlignment);
-
-    return RenderInterface::Initialize();
+    
+    return {};
 }
 
 void VulkanRenderInterface::Shutdown()

@@ -237,26 +237,39 @@ struct Allocator
 
 struct DynamicAllocator : Allocator<DynamicAllocator>
 {
-    static constexpr uint32 maxAlign = ~0u;
+    static constexpr uint32 maxAlign = alignof(std::max_align_t);
 
     template <class T>
     struct Allocation : DynamicAllocationBase<T>
     {
     };
 
-    HYP_FORCE_INLINE void* Allocate(size_t size, size_t alignment)
+    HYP_FORCE_INLINE void* Allocate(size_t size, size_t /* alignment */)
     {
         HYP_CORE_ASSERT(size > 0);
-        HYP_CORE_ASSERT(alignment > 0);
 
-        return std::malloc(size);
+        void* ptr = malloc(size);
+        HYP_CORE_ASSERT(ptr != nullptr);
+
+        return ptr;
+
+#if 0
+        void* ptr = HYP_ALLOC_ALIGNED(size, alignment);
+        HYP_CORE_ASSERT(ptr != nullptr);
+
+        return ptr;
+#endif
     }
 
     HYP_FORCE_INLINE void Free(void* ptr)
     {
         HYP_CORE_ASSERT(ptr != nullptr);
 
-        std::free(ptr);
+        free(ptr);
+
+#if 0
+        HYP_FREE_ALIGNED(ptr);
+#endif
     }
 };
 
@@ -673,7 +686,7 @@ struct FixedAllocator : Allocator<FixedAllocator<Count>>
         // Fixed allocations should be handled by the Allocation struct itself
         HYP_NOT_IMPLEMENTED();
     }
-};  
+};
 
 /*! \brief Binds a pointer-to-pointer of a given AllocatorType, allowing the instance to be passed as an allocator to other structures. */
 template <class AllocatorType, AllocatorType** GlobalInstance = nullptr>
@@ -710,11 +723,12 @@ struct AllocatorInstance : Allocator<AllocatorInstance<AllocatorType, GlobalInst
     HYP_FORCE_INLINE void* Allocate(size_t size, size_t alignment)
     {
         HYP_CORE_ASSERT(pAllocator != nullptr);
+        HYP_CORE_ASSERT(size > 0 && alignment > 0);
 
-        HYP_CORE_ASSERT(size > 0);
-        HYP_CORE_ASSERT(alignment > 0);
+        void* ptr = pAllocator->Allocate(size, alignment);
+        HYP_CORE_ASSERT(ptr != nullptr);
 
-        return pAllocator->Allocate(size, alignment);
+        return ptr;
     }
 
     HYP_FORCE_INLINE void Free(void* ptr)

@@ -6,13 +6,17 @@
 
 #pragma once
 
-#include <Core/containers/Array.hpp>
-#include <Core/utilities/Span.hpp>
-#include <Core/memory/Memory.hpp>
-
+#include "allocator/Allocator.hpp"
 #include <Core/HashCode.hpp>
 #include <Core/Constants.hpp>
 #include <Core/Types.hpp>
+
+#include <Core/containers/Array.hpp>
+
+#include <Core/utilities/Span.hpp>
+#include <Core/utilities/ByteUtil.hpp>
+
+#include <Core/memory/Memory.hpp>
 
 namespace Hyperion {
 namespace memory {
@@ -46,7 +50,7 @@ public:
             return;
         }
 
-        m_allocation.Allocate(GetAllocator(), m_size, /* alignment */ BufferAlignment);
+        m_allocation.Allocate(GetAllocator(), ByteUtil::AlignAs(m_size, BufferAlignment), /* alignment */ BufferAlignment);
 
         if (zeroize)
         {
@@ -65,7 +69,7 @@ public:
             return;
         }
 
-        m_allocation.Allocate(GetAllocator(), m_size, /* alignment */ BufferAlignment);
+        m_allocation.Allocate(GetAllocator(), ByteUtil::AlignAs(m_size, BufferAlignment), /* alignment */ BufferAlignment);
         m_allocation.InitFromRangeCopy(reinterpret_cast<const ubyte*>(data), reinterpret_cast<const ubyte*>(data) + m_size);
     }
 
@@ -81,7 +85,7 @@ public:
             return;
         }
 
-        m_allocation.Allocate(GetAllocator(), m_size, /* alignment */ BufferAlignment);
+        m_allocation.Allocate(GetAllocator(), ByteUtil::AlignAs(m_size, BufferAlignment), /* alignment */ BufferAlignment);
         m_allocation.InitFromRangeCopy(view.Begin(), view.End());
     }
 
@@ -97,7 +101,7 @@ public:
             return;
         }
 
-        m_allocation.Allocate(GetAllocator(), m_size, /* alignment */ BufferAlignment);
+        m_allocation.Allocate(GetAllocator(), ByteUtil::AlignAs(m_size, BufferAlignment), /* alignment */ BufferAlignment);
         m_allocation.InitFromRangeCopy(view.Begin(), view.End());
     }
 
@@ -111,7 +115,7 @@ public:
             return;
         }
 
-        m_allocation.Allocate(GetAllocator(), m_size, /* alignment */ BufferAlignment);
+        m_allocation.Allocate(GetAllocator(), ByteUtil::AlignAs(m_size, BufferAlignment), /* alignment */ BufferAlignment);
         m_allocation.InitFromRangeCopy(other.Data(), other.Data() + m_size);
     }
 
@@ -126,7 +130,7 @@ public:
             return;
         }
 
-        m_allocation.Allocate(GetAllocator(), m_size, /* alignment */ BufferAlignment);
+        m_allocation.Allocate(GetAllocator(), ByteUtil::AlignAs(m_size, BufferAlignment), /* alignment */ BufferAlignment);
         m_allocation.InitFromRangeCopy(other.Data(), other.Data() + m_size);
     }
 
@@ -143,7 +147,7 @@ public:
 
         if (newSize != 0)
         {
-            m_allocation.Allocate(GetAllocator(), newSize, /* alignment */ BufferAlignment);
+            m_allocation.Allocate(GetAllocator(), ByteUtil::AlignAs(newSize, BufferAlignment), /* alignment */ BufferAlignment);
             m_allocation.InitFromRangeCopy(other.Data(), other.Data() + newSize);
         }
 
@@ -166,7 +170,7 @@ public:
 
         if (newSize != 0)
         {
-            m_allocation.Allocate(GetAllocator(), newSize, /* alignment */ BufferAlignment);
+            m_allocation.Allocate(GetAllocator(), ByteUtil::AlignAs(newSize, BufferAlignment), /* alignment */ BufferAlignment);
             m_allocation.InitFromRangeCopy(other.Data(), other.Data() + newSize);
         }
 
@@ -190,7 +194,7 @@ public:
         {
             if (m_size != 0)
             {
-                m_allocation.Allocate(GetAllocator(), m_size, /* alignment */ BufferAlignment);
+                m_allocation.Allocate(GetAllocator(), ByteUtil::AlignAs(m_size, BufferAlignment), /* alignment */ BufferAlignment);
                 m_allocation.InitFromRangeMove(other.Data(), other.Data() + m_size);
             }
 
@@ -221,7 +225,7 @@ public:
         {
             if (newSize != 0)
             {
-                m_allocation.Allocate(GetAllocator(), newSize, /* alignment */ BufferAlignment);
+                m_allocation.Allocate(GetAllocator(), ByteUtil::AlignAs(newSize, BufferAlignment), /* alignment */ BufferAlignment);
                 m_allocation.InitFromRangeMove(other.Data(), other.Data() + newSize);
             }
 
@@ -326,7 +330,7 @@ public:
             return;
         }
 
-        m_allocation.Allocate(GetAllocator(), count, /* alignment */ BufferAlignment);
+        m_allocation.Allocate(GetAllocator(), ByteUtil::AlignAs(count, BufferAlignment), /* alignment */ BufferAlignment);
         m_allocation.InitFromRangeCopy(reinterpret_cast<const ubyte*>(data), reinterpret_cast<const ubyte*>(data) + count);
     }
 
@@ -342,7 +346,7 @@ public:
      *  The current data will be copied into the newly allocated memory if the size is changed.
      * \param newSize The new size of the ByteBuffer in bytes.
      * \param zeroize If true, the new bytes are zeroed out. */
-    HYP_FORCE_INLINE void SetSize(size_t newSize, bool zeroize = true)
+    void SetSize(size_t newSize, bool zeroize = true)
     {
         if (newSize == m_size)
         {
@@ -373,7 +377,7 @@ public:
 
     /*! \brief Sets the capacity of the ByteBuffer to the given size. If the new capacity is larger than the current capacity, the buffer is extended and the current data is copied into the newly allocated memory.
      *  If the new capacity is smaller than the current size, the excess bytes are freed and the size is adjusted accordingly. */
-    HYP_FORCE_INLINE void SetCapacity(size_t newCapacity)
+    void SetCapacity(size_t newCapacity)
     {
         const size_t currentCapacity = m_allocation.GetCapacity();
 
@@ -387,7 +391,7 @@ public:
 
         if (newCapacity != 0)
         {
-            newAllocation.Allocate(GetAllocator(), newCapacity, /* alignment */ BufferAlignment);
+            newAllocation.Allocate(GetAllocator(), ByteUtil::AlignAs(newCapacity, BufferAlignment), /* alignment */ BufferAlignment);
 
             const size_t minCapacity = currentCapacity <= newCapacity ? currentCapacity : newCapacity;
 
@@ -403,6 +407,8 @@ public:
         m_allocation.Free(GetAllocator());
 
         m_allocation = newAllocation;
+
+        HYP_CORE_ASSERT(GetCapacity() >= newCapacity);
     }
 
     /*! \brief Reads a value from the ByteBuffer at the given offset. If the offset is out of bounds, the function returns false and does not modify the output.
@@ -411,7 +417,7 @@ public:
      *  \param count The number of bytes to read from the ByteBuffer.
      *  \param outValues The output buffer to write the read values to.
      *  \return Returns true if the read was successful, false if the offset is out of bounds. */
-    HYP_FORCE_INLINE bool Read(size_t offset, size_t count, ubyte* outValues) const
+    bool Read(size_t offset, size_t count, ubyte* outValues) const
     {
         HYP_CORE_ASSERT(outValues != nullptr);
 
@@ -437,7 +443,7 @@ public:
      *  \param out The output buffer to write the read value to.
      *  \return Returns true if the read was successful, false if the offset is out of bounds. */
     template <class T>
-    HYP_FORCE_INLINE bool Read(size_t offset, T* out) const
+    bool Read(size_t offset, T* out) const
     {
         static_assert(is_pod_type_v<T>, "Must be POD type");
 
@@ -552,7 +558,7 @@ public:
 private:
     HYP_FORCE_INLINE static AllocatorType* GetAllocator()
     {
-        return GetAllocator();
+        return GetDefaultAllocatorInstance<AllocatorType>();
     }
 
     Allocation<ubyte, AllocatorType> m_allocation;

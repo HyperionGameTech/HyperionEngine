@@ -114,14 +114,15 @@ void UIStageUpdateManager::RegisterForUpdate(UIObject* object, EnumFlags<UIObjec
 #pragma region UIStage
 
 UIStage::UIStage()
-    : UIStage(ThreadId::Current())
+    : UIStage(nullptr, ThreadId::Current())
 {
 }
 
-UIStage::UIStage(ThreadId ownerThreadId)
+UIStage::UIStage(World* world, ThreadId ownerThreadId)
     : UIObject(ownerThreadId),
       m_updateManager(this),
-      m_surfaceSize { 1000, 1000 }
+      m_surfaceSize { 1000, 1000 },
+      m_world(world)
 {
     SetName(NAME("Stage"));
     m_size = UIObjectSize({ 100, UIObjectSize::PERCENT }, { 100, UIObjectSize::PERCENT });
@@ -261,13 +262,34 @@ void UIStage::SetScene(const Handle<Scene>& scene)
 
     m_scene = std::move(newScene);
 
-    // If no World is set for the scene, use default world
-    if (m_scene && !m_scene->GetWorld())
+    if (m_world != nullptr)
     {
-        g_engineDriver->GetDefaultWorld()->AddScene(m_scene);
+        m_world->AddScene(m_scene);
     }
 
     InitObject(m_scene);
+}
+
+void UIStage::SetWorld(World* world)
+{
+    AssertOnOwnerThread();
+
+    if (world == m_world)
+    {
+        return;
+    }
+
+    if (m_scene.IsValid())
+    {
+        m_scene->RemoveFromWorld();
+    }
+
+    m_world = world;
+
+    if (m_world != nullptr && m_scene.IsValid())
+    {
+        m_world->AddScene(m_scene);
+    }
 }
 
 const Handle<FontAtlas>& UIStage::GetDefaultFontAtlas() const
@@ -677,7 +699,7 @@ UIEventHandlerResult UIStage::OnInputEvent(const Event& event)
         const Vec2i mousePosition = event.IsAbsoluteMousePosition()
             ? event.GetMousePosition()
             : Vec2i(event.GetMousePositionDeltas() + Vec2f(previousMousePosition));
-            
+
         const Vec2f mouseScreen = Vec2f(mousePosition) / Vec2f(m_surfaceSize);
         const Vec2f invSurfaceSize = Vec2f(1.0f) / Vec2f(m_surfaceSize);
 

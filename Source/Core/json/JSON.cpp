@@ -1242,9 +1242,12 @@ ParseResult Parse(BufferedReader& reader)
 
 ParseResult Parse(const String& jsonString)
 {
-    SourceFile sourceFile("<input>", jsonString.Size());
+    const size_t bufferLength = jsonString.Size();
+    
+    SourceFile sourceFile("<input>", bufferLength);
+    Assert(sourceFile.GetBuffer().Size() == bufferLength);
 
-    ByteBuffer temp(jsonString.Size(), jsonString.Data());
+    ByteBuffer temp(bufferLength, jsonString.Data());
     sourceFile.ReadIntoBuffer(temp);
 
     return Parse(sourceFile);
