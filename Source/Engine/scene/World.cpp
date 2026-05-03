@@ -134,7 +134,7 @@ World::~World()
 
             scene->SetWorld(nullptr);
         }
-        
+
         for (const Handle<SystemBase>& system : m_systems)
         {
             system->OnRemovedFromWorld(this);
@@ -201,7 +201,7 @@ void World::Init()
 
         subsystem->OnAddedToWorld();
     }
-    
+
     // Create a View that is intended to collect objects used by RT gi/reflections
     // since we'll need to have resources bound even if they aren't directly in any camera's view frustum.
     // (for example there could be some stuff behind the player we want to see reflections of)
@@ -283,7 +283,7 @@ void World::Init()
 
         m_physicsWorld->Initialize();
     }
-    
+
     for (const Handle<SystemBase>& system : m_systems)
     {
         AssertDebug(system != nullptr);
@@ -300,7 +300,7 @@ void World::Init()
         system->m_world = this;
 
         InitObject(system);
-        
+
         system->OnAddedToWorld(this);
 
         if (wasAddedToExecutionGroup)
@@ -317,16 +317,16 @@ void World::Init()
 
     if (!HasSystem<VisibilityStateUpdaterSystem>())
         AddSystem(MakeHandle<VisibilityStateUpdaterSystem>());
-    
+
     if (!HasSystem<LightmapSystem>())
         AddSystem(MakeHandle<LightmapSystem>());
-    
+
     if (!HasSystem<AnimationSystem>())
         AddSystem(MakeHandle<AnimationSystem>());
-    
+
     if (!HasSystem<AudioSystem>())
         AddSystem(MakeHandle<AudioSystem>());
-    
+
     if (!HasSystem<PhysicsSystem>())
         AddSystem(MakeHandle<PhysicsSystem>());
 
@@ -506,7 +506,7 @@ void World::BeginUpdate(TaskBatch& inBatch, float delta)
     if (m_physicsWorld != nullptr && GetGameState().IsSimulating())
     {
         m_physicsWorld->Tick(delta);
-        
+
         // must be called before entity managers are locked.
         SyncPhysicsToEntities();
     }
@@ -710,7 +710,7 @@ void World::SyncPhysicsToEntities()
             {
                 continue;
             }
-            
+
             physicsWorld.GetAdapter().OnChangePhysicsShape(rigidBody.Get());
 
             updatedEntities.PushBack(entity);
@@ -724,7 +724,7 @@ void World::SyncPhysicsToEntities()
             {
                 continue;
             }
-            
+
             physicsWorld.GetAdapter().OnChangePhysicsMaterial(rigidBody.Get());
 
             updatedEntities.PushBack(entity);
@@ -745,7 +745,7 @@ void World::SyncPhysicsToEntities()
             entity->SetWorldRotation(rigidBodyTransform.GetRotation(), TransformChangeType::Simulation);
         }
     }
-    
+
     for (Entity* entity : updatedEntities)
     {
         entity->RemoveTag<EntityTag::UpdatePhysicsMaterial>();
@@ -753,7 +753,7 @@ void World::SyncPhysicsToEntities()
     }
 }
 
-void World::CollectScenes(Array<Scene*, SceneTempAllocator>& outScenes)
+void World::CollectScenes(Array<Scene*, SceneAllocator>& outScenes)
 {
     outScenes.Reserve(outScenes.Size() + m_scenes.Size());
 
@@ -763,7 +763,7 @@ void World::CollectScenes(Array<Scene*, SceneTempAllocator>& outScenes)
     }
 }
 
-void World::CollectCameras(Array<Camera*, SceneTempAllocator>& outCameras)
+void World::CollectCameras(Array<Camera*, SceneAllocator>& outCameras)
 {
     outCameras.Reserve(m_scenes.Size() * 3);
 
@@ -776,7 +776,7 @@ void World::CollectCameras(Array<Camera*, SceneTempAllocator>& outCameras)
     }
 }
 
-void World::CollectViews(Array<View*, SceneTempAllocator>& outViews)
+void World::CollectViews(Array<View*, SceneAllocator>& outViews)
 {
     const uint32 slot = GetRingIndex();
 
@@ -824,7 +824,7 @@ void World::CollectViews(Array<View*, SceneTempAllocator>& outViews)
     m_processViews.Clear();
 }
 
-void World::CollectSubsystems(Array<Subsystem*, SceneTempAllocator>& outSubsystems)
+void World::CollectSubsystems(Array<Subsystem*, SceneAllocator>& outSubsystems)
 {
     const size_t offset = outSubsystems.Size();
     outSubsystems.Resize(offset + m_subsystemsArray.Size());
@@ -1192,7 +1192,7 @@ void World::RemoveView(View* view)
     {
         return;
     }
-    
+
     m_views.Erase(it);
 
     view->Release();
@@ -1506,7 +1506,7 @@ SystemBase* World::AddSystem(const Handle<SystemBase>& system)
         system->m_world = this;
 
         InitObject(system);
-        
+
         system->OnAddedToWorld(this);
 
         if (wasAddedToExecutionGroup)
@@ -1567,7 +1567,7 @@ bool World::RemoveSystem(SystemBase* system)
             AssertDebug(wasRemoved);
         }
     }
-    
+
     systemStrong->OnRemovedFromWorld(this);
     systemStrong->m_world = nullptr;
 

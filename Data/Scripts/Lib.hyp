@@ -139,8 +139,6 @@ extern class EngineDriver
     static GetInstance() -> EngineDriver
     GetCurrentWorld() -> World
     SetCurrentWorld(world : World) -> void
-    GetDefaultWorld() -> World
-    SetDefaultWorld(defaultWorld : World) -> void
     SetGameInstance(gameInstance : Game) -> void
     GetGameInstance() -> Game
 end

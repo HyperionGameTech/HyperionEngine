@@ -262,9 +262,16 @@ void FillShadowMapData(
         return;
 
     AssertDebug(shadowMapViewDynamic != nullptr && shadowMapViewDynamic->GetCamera() != nullptr);
+    
+    outShadowMapData = {};
 
     RenderProxyCamera* shadowCameraProxy = static_cast<RenderProxyCamera*>(GetRenderProxy(shadowMapViewDynamic->GetCamera()));
-    AssertDebug(shadowCameraProxy != nullptr);
+    if (!shadowCameraProxy)
+    {
+        // Shadow camera not ready yet.
+        // Defer until the next frame.
+        return;
+    }
 
     const Mat4f& viewProjMat = shadowCameraProxy->bufferData.viewProjMat;
 
@@ -273,8 +280,6 @@ void FillShadowMapData(
     shadowBoundsNDC.max = Vec3f(1.0f);
 
     BoundingBox shadowBoundsWS = viewProjMat.Inverse() * shadowBoundsNDC;
-
-    outShadowMapData = {};
 
     outShadowMapData.layerIndex = atlasElement->layerIndex;
 
@@ -2561,38 +2566,6 @@ void DeferredRenderer::RenderFrameForView(Frame* frame, const RenderSetup& rs)
         {
             continue;
         }
-
-        bool isLightInFrustum = false;
-
-        if (view->GetFlags() & ViewFlags::NO_FRUSTUM_CULLING)
-        {
-            isLightInFrustum = true;
-        }
-        else
-        {
-            switch (light->GetLightType())
-            {
-            case LightType::Directional:
-                isLightInFrustum = true;
-                break;
-            case LightType::Point:
-                isLightInFrustum = view->GetSubFrustum().ContainsBoundingSphere(light->GetBoundingSphere(true));
-                break;
-            case LightType::Spot:
-                /// \todo Implement frustum culling for spot lights
-                isLightInFrustum = true;
-                break;
-            case LightType::AreaRect:
-                isLightInFrustum = view->GetSubFrustum().ContainsAABB(light->GetWorldBounds());
-                break;
-            default:
-                break;
-            }
-        }
-
-        if (!isLightInFrustum)
-            // Skip shadow view creation/update if the light is totally out of view.
-            continue;
 
         RenderSetup shadowRs = rs.Fork();
         shadowRs.light = light;

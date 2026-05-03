@@ -79,15 +79,6 @@ public:
     HYP_METHOD()
     void SetCurrentWorld(World* world);
 
-    HYP_METHOD()
-    HYP_FORCE_INLINE const Handle<World>& GetDefaultWorld() const
-    {
-        return m_defaultWorld;
-    }
-
-    HYP_METHOD()
-    void SetDefaultWorld(const Handle<World>& defaultWorld);
-
     HYP_FORCE_INLINE const Handle<DebugDrawer>& GetDebugDrawer() const
     {
         return m_debugDrawer;
@@ -148,7 +139,6 @@ private:
 
     Array<Handle<World>> m_worlds; // Sim thread only
     World* m_currentWorld;         // Sim thread only
-    Handle<World> m_defaultWorld;
 
     Array<View*> m_viewsPerFrame[RingBufferDepth];
 

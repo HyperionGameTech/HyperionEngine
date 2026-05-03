@@ -4,6 +4,7 @@
  *  @licence MIT
 */
 
+#include "View.hpp"
 #include <ScenePch.hpp>
 
 #include <scene/View.hpp>
@@ -348,7 +349,7 @@ void View::UpdateVisibility()
     }
 }
 
-void View::PrepareShadowViews(Array<View*, SceneTempAllocator>& outShadowViews)
+void View::PrepareShadowViews(Array<View*, SceneAllocator>& outShadowViews)
 {
     HYP_SCOPE;
     AssertOnThread(g_simThread);
@@ -398,9 +399,9 @@ void View::PrepareShadowViews(Array<View*, SceneTempAllocator>& outShadowViews)
                 }
             }
 
-            //if (!isLightInFrustum)
+            if (!isLightInFrustum)
                 // Skip shadow view creation/update if the light is totally out of view.
-            //    continue;
+                continue;
 
             allShadowCastingLights.PushBack(light);
         }
@@ -428,6 +429,7 @@ void View::PrepareShadowViews(Array<View*, SceneTempAllocator>& outShadowViews)
             {
                 // failed to allocate shadow view - out of slots is most likely cause
                 // skip processing for this light.
+                HYP_LOG(Scene, Warning, "Failed to allocate shadow view for light {}, view: {} (id: {})", light->GetName(), GetName(), Id());
                 break;
             }
 

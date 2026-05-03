@@ -184,6 +184,17 @@ void ShadowRendererBase::RenderFrame(Frame* frame, const RenderSetup& renderSetu
         {
             continue;
         }
+        
+        Camera* camera = cachedData->shadowViewsDynamic[cascadeIndex]->GetCamera();
+        AssertDebug(camera != nullptr);
+
+        RenderProxyCamera* cameraProxy = static_cast<RenderProxyCamera*>(GetRenderProxy(camera));
+        if (!cameraProxy)
+        {
+            // Shadow camera not ready yet.
+            // Defer until the next frame.
+            continue;
+        }
 
         AssertDebug(shadowMap->GetAtlasElement() != nullptr);
 
@@ -209,12 +220,6 @@ void ShadowRendererBase::RenderFrame(Frame* frame, const RenderSetup& renderSetu
         const ShadowMapAtlasElement& atlasElement = *shadowMap->GetAtlasElement();
         AssertDebug(atlasElement.layerIndex <= UINT8_MAX);
         AssertDebug(atlasElement.layerIndex < shadowMapImage->NumArrayLayers());
-
-        Camera* camera = cachedData->shadowViewsDynamic[cascadeIndex]->GetCamera();
-        AssertDebug(camera != nullptr);
-
-        RenderProxyCamera* cameraProxy = static_cast<RenderProxyCamera*>(GetRenderProxy(camera));
-        AssertDebug(cameraProxy != nullptr);
 
         const Mat4f& viewProjMat = cameraProxy->bufferData.viewProjMat;
 

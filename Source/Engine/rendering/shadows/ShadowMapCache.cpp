@@ -406,6 +406,8 @@ HYP_NODISCARD View* ShadowMapCache::GetOrCreateShadowView(
             AssertDebug(entry->shadowMaps[cascadeIndex] != nullptr);
 
             outView = new View(GetViewDesc(light, isStatic, cascadeIndex, *entry->shadowMaps[cascadeIndex], *entry->camera));
+            
+            HYP_LOG(Rendering, Debug, "Create new shadow view for Light: {}", light->GetName());
 
             if (isStatic)
             {
@@ -453,6 +455,8 @@ HYP_NODISCARD View* ShadowMapCache::GetOrCreateShadowView(
             AssertDebug(entry.shadowMaps[cascadeIndex] != nullptr);
 
             outView = new View(GetViewDesc(light, isStatic, cascadeIndex, *entry.shadowMaps[cascadeIndex], *entry.camera));
+            
+            HYP_LOG(Rendering, Debug, "Create new shadow view for Light: {}", light->GetName());
 
             if (isStatic)
             {

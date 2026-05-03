@@ -284,18 +284,6 @@ void EngineDriver::SetCurrentWorld(World* world)
     OnCurrentWorldChanged(m_currentWorld);
 }
 
-void EngineDriver::SetDefaultWorld(const Handle<World>& defaultWorld)
-{
-    AssertOnThread(g_simThread);
-
-    m_defaultWorld = defaultWorld;
-
-    if (IsInitCalled())
-    {
-        InitObject(m_defaultWorld);
-    }
-}
-
 void EngineDriver::AddWorld(const Handle<World>& world)
 {
     AssertOnThread(g_simThread);
@@ -482,17 +470,17 @@ void EngineDriver::UpdateSim(float delta)
     const uint32 slot = GetRingIndex();
     const uint32 frameCounter = GetFrameCounter();
 
-    Array<Scene*, SceneTempAllocator> scenes;
-    Array<View*, SceneTempAllocator> views;
-    Array<Subsystem*, SceneTempAllocator> subsystems;
+    Array<Scene*, SceneAllocator> scenes;
+    Array<View*, SceneAllocator> views;
+    Array<Subsystem*, SceneAllocator> subsystems;
 
     TaskBatch worldUpdateTaskBatch;
     TaskBatch* currBatch = &worldUpdateTaskBatch;
 
-    Array<World*, SceneTempAllocator> worldsToRender;
+    Array<World*, SceneAllocator> worldsToRender;
     worldsToRender.Reserve(m_worlds.Size());
 
-    Array<World*, SceneTempAllocator> simulatingWorlds;
+    Array<World*, SceneAllocator> simulatingWorlds;
     simulatingWorlds.Reserve(m_worlds.Size());
 
     for (uint32 i = 0; i < uint32(m_worlds.Size()); i++)
@@ -688,7 +676,7 @@ void EngineDriver::UpdateSim(float delta)
             // (they may still assume the tag components exist)
             scene->GetEntityManager()->AddPendingEntitySets();
         }
-        
+
         // remove tags for updates that were applied
 
         for (Entity* entity : updatedEntities[Bucket_RenderProxy])
