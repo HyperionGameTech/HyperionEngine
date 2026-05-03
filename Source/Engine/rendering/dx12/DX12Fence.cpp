@@ -13,7 +13,7 @@
 
 namespace Hyperion {
 
-extern DX12RenderInterface* g_renderInterface;
+extern DX12RenderInterface RI;
 
 #pragma region DX12Fence
 
@@ -89,7 +89,7 @@ RendererResult DX12Fence::Create()
         return HYP_MAKE_ERROR(RendererError, "Failed to create wait event for D3D12 fence");
     }
 
-    HRESULT hr = g_renderInterface->GetDevice()->CreateFence(
+    HRESULT hr = RI.GetDevice()->CreateFence(
         m_value,
         D3D12_FENCE_FLAG_NONE,
         IID_PPV_ARGS(&m_fence));

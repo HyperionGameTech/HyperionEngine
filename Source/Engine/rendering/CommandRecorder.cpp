@@ -59,7 +59,7 @@ template <>
 void TCommandRecorder<RenderAllocator>::Execute(CommandBuffer* commandBuffer)
 {
     AssertDebug(commandBuffer != nullptr);
-    
+
     const size_t max = m_cmdHeaders.Size();
 
     CmdHeader* headersBegin = m_cmdHeaders.Data();
@@ -181,7 +181,7 @@ static void BlitImages(
     /* Create a temporary image with IU_STORAGE so we can write to it via compute.
        The temp image has the destination format and is sized to the destination rect.
        After the compute blit, we issue a CopyFrom (1:1, no scaling) to the real destination. */
-    GpuImageRef tempImage = g_renderInterface->MakeImage(TextureDesc {
+    GpuImageRef tempImage = RI.MakeImage(TextureDesc {
         TextureType::Texture2D,
         dstDesc.format,
         Vec3u { dstW, dstH, 1 },
@@ -194,12 +194,12 @@ static void BlitImages(
     tempImage->Create();
 
     /* Set the shader */
-    RenderInterface::State& state = g_renderInterface->state;
+    RenderInterface::State& state = RI.state;
     state.attributes.SetShaderName(NAME("BlitCompute"));
     state.attributes.SetShaderProperties(ShaderPropertySet {});
 
     /* Get a linear sampler */
-    Sampler* linearSampler = g_renderInterface->samplerCache->GetOrCreate(
+    Sampler* linearSampler = RI.samplerCache->GetOrCreate(
         SamplerDesc { TFM_LINEAR, TFM_LINEAR, TWM_CLAMP_TO_EDGE });
 
     for (uint16 layerIndex = 0; layerIndex < layerIterCount; layerIndex++)
@@ -212,12 +212,12 @@ static void BlitImages(
             const uint16 dstLayer = uint16(dstSubResource.baseArrayLayer + layerIndex);
 
             /* Create SRV view for the source subresource */
-            GpuImageViewRef srcView = g_renderInterface->MakeImageView(
+            GpuImageViewRef srcView = RI.MakeImageView(
                 MakeStrongRef(srcImage), srcMip, 1, srcLayer, 1);
             srcView->Create();
 
             /* Create UAV view for the temp image (single mip 0, layer 0) */
-            GpuImageViewRef tempView = g_renderInterface->MakeImageView(
+            GpuImageViewRef tempView = RI.MakeImageView(
                 tempImage, 0, 1, 0, 1);
             tempView->Create();
 
@@ -264,8 +264,8 @@ static void BlitImages(
             size_t cbufferOffset = 0;
             size_t cbufferSize = 0;
 
-            g_renderInterface->cbufferAllocator->Write(&uniforms);
-            g_renderInterface->cbufferAllocator->Commit(cbuffer, cbufferOffset, cbufferSize);
+            RI.cbufferAllocator->Write(&uniforms);
+            RI.cbufferAllocator->Commit(cbuffer, cbufferOffset, cbufferSize);
 
             /* Bind SRV input */
             ShaderUniform& inputUniform = state.shaderUniforms[0];
@@ -291,7 +291,7 @@ static void BlitImages(
             state.dirtyUniforms |= 1u << 3;
 
             /* Commit compute pipeline and dispatch */
-            g_renderInterface->CommitPipelineState(PSO_Compute, commandBuffer);
+            RI.CommitPipelineState(PSO_Compute, commandBuffer);
 
             ComputePipeline* pipeline = state.boundComputePipeline;
             AssertDebug(pipeline != nullptr);
@@ -519,7 +519,7 @@ void GenerateMipmaps::InvokeStatic(CmdBase* cmd, CommandBuffer* commandBuffer)
     const uint8 numMips = uint8(desc.NumMips());
     const uint16 numLayers = desc.NumArrayLayers();
 
-    if (!g_renderInterface->IsSupportedFormat(desc.format, ImageSupport::UnorderedAccess))
+    if (!RI.IsSupportedFormat(desc.format, ImageSupport::UnorderedAccess))
     {
         HYP_LOG(RenderingBackend, Warning, "Image format {} does not support UnorderedAccess, cannot generate mipmaps as it requires using a compute shader!",
             EnumToString(desc.format));
@@ -533,12 +533,12 @@ void GenerateMipmaps::InvokeStatic(CmdBase* cmd, CommandBuffer* commandBuffer)
     }
 
     /* Set the shader */
-    RenderInterface::State& state = g_renderInterface->state;
+    RenderInterface::State& state = RI.state;
     state.attributes.SetShaderName(NAME("GenerateMipmap"));
     state.attributes.SetShaderProperties(ShaderPropertySet {});
 
     /* Get a linear sampler */
-    Sampler* linearSampler = g_renderInterface->samplerCache->GetOrCreate(
+    Sampler* linearSampler = RI.samplerCache->GetOrCreate(
         SamplerDesc { TFM_LINEAR, TFM_LINEAR, TWM_REPEAT });
 
     if (!linearSampler)
@@ -552,7 +552,7 @@ void GenerateMipmaps::InvokeStatic(CmdBase* cmd, CommandBuffer* commandBuffer)
         /* Create a temporary 2D image with IU_STORAGE | IU_SAMPLED so we
            can generate mips via compute dispatch without requiring the
            source image to have IU_STORAGE. */
-        GpuImageRef tempImage = g_renderInterface->MakeImage(TextureDesc {
+        GpuImageRef tempImage = RI.MakeImage(TextureDesc {
             TextureType::Texture2D,
             desc.format,
             desc.extent,
@@ -616,7 +616,7 @@ void GenerateMipmaps::InvokeStatic(CmdBase* cmd, CommandBuffer* commandBuffer)
         {
             const uint8 srcMip = mip - 1;
 
-            GpuImageViewRef inputView = g_renderInterface->MakeImageView(
+            GpuImageViewRef inputView = RI.MakeImageView(
                 tempImage, srcMip, 1, 0, 1);
             RendererResult inputViewResult = inputView->Create();
             if (!inputViewResult)
@@ -627,7 +627,7 @@ void GenerateMipmaps::InvokeStatic(CmdBase* cmd, CommandBuffer* commandBuffer)
             }
             inputViews.PushBack(std::move(inputView));
 
-            GpuImageViewRef outputView = g_renderInterface->MakeImageView(
+            GpuImageViewRef outputView = RI.MakeImageView(
                 tempImage, mip, 1, 0, 1);
             RendererResult outputViewResult = outputView->Create();
             if (!outputViewResult)
@@ -647,13 +647,13 @@ void GenerateMipmaps::InvokeStatic(CmdBase* cmd, CommandBuffer* commandBuffer)
             uniforms.srcMipLevel = srcMip;
 
             // Write uniform data to cbuffer allocator and get this mip's cbuffer
-            g_renderInterface->cbufferAllocator->Write(&uniforms);
-            
+            RI.cbufferAllocator->Write(&uniforms);
+
             GpuBuffer* mipCBuffer = nullptr;
             size_t mipCBufferOffset = 0;
             size_t mipCBufferSize = 0;
-            g_renderInterface->cbufferAllocator->Commit(mipCBuffer, mipCBufferOffset, mipCBufferSize);
-            
+            RI.cbufferAllocator->Commit(mipCBuffer, mipCBufferOffset, mipCBufferSize);
+
             cbuffers.PushBack(mipCBuffer);
             cbufferOffsets.PushBack(mipCBufferOffset);
             cbufferSizes.PushBack(mipCBufferSize);
@@ -704,7 +704,7 @@ void GenerateMipmaps::InvokeStatic(CmdBase* cmd, CommandBuffer* commandBuffer)
             samplerUniform = ShaderUniform("SamplerLinear"_sh, linearSampler);
             state.dirtyUniforms |= 1u << 3;
 
-            g_renderInterface->CommitPipelineState(PSO_Compute, commandBuffer);
+            RI.CommitPipelineState(PSO_Compute, commandBuffer);
 
             ComputePipeline* pipeline = state.boundComputePipeline;
             if (!pipeline)
@@ -724,7 +724,7 @@ void GenerateMipmaps::InvokeStatic(CmdBase* cmd, CommandBuffer* commandBuffer)
             tempImage->InsertUAVBarrier(commandBuffer);
 #endif
         }
-        
+
 #ifdef HYP_DX12
         tempImage->InsertUAVBarrier(commandBuffer);
 #endif
@@ -965,7 +965,7 @@ void SetCurrentFramebuffer::InvokeStatic(CmdBase* cmd, CommandBuffer* commandBuf
 {
     SetCurrentFramebuffer* cmdCasted = static_cast<SetCurrentFramebuffer*>(cmd);
 
-    RenderInterface::State& state = g_renderInterface->state;
+    RenderInterface::State& state = RI.state;
 
     if (cmdCasted->m_framebuffer != state.boundFramebuffer)
     {
@@ -1010,10 +1010,10 @@ void SetCurrentFramebuffer::InvokeStatic(CmdBase* cmd, CommandBuffer* commandBuf
 void ClearFramebuffer::InvokeStatic(CmdBase* cmd, CommandBuffer* commandBuffer)
 {
     ClearFramebuffer* cmdCasted = static_cast<ClearFramebuffer*>(cmd);
-    
+
     AssertDebug(cmdCasted->framebuffer != nullptr);
 
-    RenderInterface::State& state = g_renderInterface->state;
+    RenderInterface::State& state = RI.state;
 
     state.framebuffer = cmdCasted->framebuffer;
 
@@ -1025,10 +1025,10 @@ void ClearFramebuffer::InvokeStatic(CmdBase* cmd, CommandBuffer* commandBuffer)
             state.boundFramebuffer->EndCapture(commandBuffer);
             state.boundFramebuffer = nullptr;
         }
-        
+
         // begin pass
         state.boundFramebuffer = cmdCasted->framebuffer;
-        
+
         cmdCasted->framebuffer->BeginCapture(commandBuffer);
     }
 
@@ -1052,10 +1052,10 @@ void ClearFramebuffer::InvokeStatic(CmdBase* cmd, CommandBuffer* commandBuffer)
 
 void BindGraphicsPipeline::InvokeStatic(CmdBase* cmd, CommandBuffer* commandBuffer)
 {
-    RenderInterface::State& state = g_renderInterface->state;
+    RenderInterface::State& state = RI.state;
 
     BindGraphicsPipeline* cmdCasted = static_cast<BindGraphicsPipeline*>(cmd);
-    
+
     cmdCasted->m_pipeline->lastFrame = GetFrameCounter();
 
     if (cmdCasted->m_viewport.position != Vec2i(0, 0) || cmdCasted->m_viewport.extent != Vec2u(0, 0))
@@ -1066,11 +1066,11 @@ void BindGraphicsPipeline::InvokeStatic(CmdBase* cmd, CommandBuffer* commandBuff
     {
         cmdCasted->m_pipeline->Bind(commandBuffer);
     }
-    
+
     state.boundGraphicsPipeline = cmdCasted->m_pipeline;
 
     //// temporary, will be removed once everything operates through CommitDrawState().
-    //RenderInterface::State& state = g_renderInterface->state;
+    //RenderInterface::State& state = RI.state;
     //state.Reset();
 
     static_assert(std::is_trivially_destructible_v<BindGraphicsPipeline>);
@@ -1083,12 +1083,12 @@ void BindGraphicsPipeline::InvokeStatic(CmdBase* cmd, CommandBuffer* commandBuff
 
 void BindComputePipeline::InvokeStatic(CmdBase* cmd, CommandBuffer* commandBuffer)
 {
-    RenderInterface::State& state = g_renderInterface->state;
+    RenderInterface::State& state = RI.state;
 
     BindComputePipeline* cmdCasted = static_cast<BindComputePipeline*>(cmd);
 
     cmdCasted->m_pipeline->Bind(commandBuffer);
-    
+
     state.boundComputePipeline = cmdCasted->m_pipeline;
 
     static_assert(std::is_trivially_destructible_v<BindComputePipeline>);
@@ -1101,7 +1101,7 @@ void BindComputePipeline::InvokeStatic(CmdBase* cmd, CommandBuffer* commandBuffe
 
 void BindRayTracingPipeline::InvokeStatic(CmdBase* cmd, CommandBuffer* commandBuffer)
 {
-    RenderInterface::State& state = g_renderInterface->state;
+    RenderInterface::State& state = RI.state;
 
     BindRayTracingPipeline* cmdCasted = static_cast<BindRayTracingPipeline*>(cmd);
 
@@ -1125,9 +1125,9 @@ void DispatchCompute::InvokeStatic(CmdBase* cmd, CommandBuffer* commandBuffer)
 
     if (pipeline == nullptr)
     {
-        g_renderInterface->CommitPipelineState(PSO_Compute, commandBuffer);
-        
-        pipeline = g_renderInterface->state.boundComputePipeline;
+        RI.CommitPipelineState(PSO_Compute, commandBuffer);
+
+        pipeline = RI.state.boundComputePipeline;
         AssertDebug(pipeline != nullptr, "No compute pipeline set, call SetCurrentShader before DispatchCompute() without pipeline passed");
     }
 
@@ -1146,12 +1146,12 @@ void TraceRays::InvokeStatic(CmdBase* cmd, CommandBuffer* commandBuffer)
     TraceRays* cmdCasted = static_cast<TraceRays*>(cmd);
 
     RayTracingPipeline* pipeline = cmdCasted->m_pipeline;
-    
+
     if (pipeline == nullptr)
     {
-        g_renderInterface->CommitPipelineState(PSO_RayTracing, commandBuffer);
+        RI.CommitPipelineState(PSO_RayTracing, commandBuffer);
 
-        pipeline = g_renderInterface->state.boundRayTracingPipeline;
+        pipeline = RI.state.boundRayTracingPipeline;
         AssertDebug(pipeline != nullptr, "No rayTracing pipeline set, call SetCurrentShader before TraceRays() without pipeline passed");
     }
 
@@ -1198,7 +1198,7 @@ void SetStencilState::InvokeStatic(CmdBase* cmd, CommandBuffer* commandBuffer)
 {
     SetStencilState* cmdCasted = static_cast<SetStencilState*>(cmd);
 
-    RenderInterface::State& state = g_renderInterface->state;
+    RenderInterface::State& state = RI.state;
 
     if (state.stencilReference != cmdCasted->m_referenceValue
         || state.stencilCompareMask != cmdCasted->m_compareMask
@@ -1230,7 +1230,7 @@ void SetCurrentShader::InvokeStatic(CmdBase* cmd, CommandBuffer*)
 {
     SetCurrentShader* cmdCasted = static_cast<SetCurrentShader*>(cmd);
 
-    RenderInterface::State& state = g_renderInterface->state;
+    RenderInterface::State& state = RI.state;
 
     ShaderDesc& shaderDesc = cmdCasted->shaderDesc;
 
@@ -1254,7 +1254,7 @@ void SetCurrentViewport::InvokeStatic(CmdBase* cmd, CommandBuffer*)
 
     Framebuffer* framebuffer = nullptr;
 
-    g_renderInterface->state.viewport = cmdCasted->viewport;
+    RI.state.viewport = cmdCasted->viewport;
 
     static_assert(std::is_trivially_destructible_v<SetCurrentViewport>);
     // cmdCasted->~SetCurrentViewport();
@@ -1268,11 +1268,11 @@ void SetTopology::InvokeStatic(CmdBase* cmd, CommandBuffer*)
 {
     SetTopology* cmdCasted = static_cast<SetTopology*>(cmd);
 
-    if (g_renderInterface->state.attributes.GetMeshAttributes().topology == cmdCasted->topology)
+    if (RI.state.attributes.GetMeshAttributes().topology == cmdCasted->topology)
         return;
 
-    g_renderInterface->state.attributes.GetMeshAttributes().topology = cmdCasted->topology;
-    
+    RI.state.attributes.GetMeshAttributes().topology = cmdCasted->topology;
+
     static_assert(std::is_trivially_destructible_v<SetTopology>);
     // cmdCasted->~SetTopology();
 }
@@ -1285,13 +1285,13 @@ void SetInputLayout::InvokeStatic(CmdBase* cmd, CommandBuffer*)
 {
     SetInputLayout* cmdCasted = static_cast<SetInputLayout*>(cmd);
 
-    RenderInterface::State& state = g_renderInterface->state;
+    RenderInterface::State& state = RI.state;
 
     if (state.attributes.GetMeshAttributes().inputLayout == cmdCasted->inputLayout)
         return;
 
     state.attributes.GetMeshAttributes().inputLayout = cmdCasted->inputLayout;
-    
+
     static_assert(std::is_trivially_destructible_v<SetInputLayout>);
     // cmdCasted->~SetInputLayout();
 }
@@ -1304,11 +1304,11 @@ void SetCurrentBlendFunction::InvokeStatic(CmdBase* cmd, CommandBuffer*)
 {
     SetCurrentBlendFunction* cmdCasted = static_cast<SetCurrentBlendFunction*>(cmd);
 
-    if (g_renderInterface->state.attributes.GetMaterialAttributes().blendFunction == cmdCasted->blendFunction)
+    if (RI.state.attributes.GetMaterialAttributes().blendFunction == cmdCasted->blendFunction)
         return;
 
-    g_renderInterface->state.attributes.GetMaterialAttributes().blendFunction = cmdCasted->blendFunction;
-    
+    RI.state.attributes.GetMaterialAttributes().blendFunction = cmdCasted->blendFunction;
+
     static_assert(std::is_trivially_destructible_v<SetCurrentBlendFunction>);
     // cmdCasted->~SetCurrentBlendFunction();
 }
@@ -1323,19 +1323,19 @@ void SetDepthWrite::InvokeStatic(CmdBase* cmd, CommandBuffer*)
 
     if (cmdCasted->depthWrite)
     {
-        if (g_renderInterface->state.attributes.GetMaterialAttributes().flags & MAF_DEPTH_WRITE)
+        if (RI.state.attributes.GetMaterialAttributes().flags & MAF_DEPTH_WRITE)
             return;
 
-        g_renderInterface->state.attributes.GetMaterialAttributes().flags |= MAF_DEPTH_WRITE;
+        RI.state.attributes.GetMaterialAttributes().flags |= MAF_DEPTH_WRITE;
     }
     else
     {
-        if (!(g_renderInterface->state.attributes.GetMaterialAttributes().flags & MAF_DEPTH_WRITE))
+        if (!(RI.state.attributes.GetMaterialAttributes().flags & MAF_DEPTH_WRITE))
             return;
 
-        g_renderInterface->state.attributes.GetMaterialAttributes().flags &= ~MAF_DEPTH_WRITE;
+        RI.state.attributes.GetMaterialAttributes().flags &= ~MAF_DEPTH_WRITE;
     }
-    
+
     static_assert(std::is_trivially_destructible_v<SetDepthWrite>);
     // cmdCasted->~SetDepthWrite();
 }
@@ -1350,19 +1350,19 @@ void SetDepthTest::InvokeStatic(CmdBase* cmd, CommandBuffer*)
 
     if (cmdCasted->depthTest)
     {
-        if (g_renderInterface->state.attributes.GetMaterialAttributes().flags & MAF_DEPTH_TEST)
+        if (RI.state.attributes.GetMaterialAttributes().flags & MAF_DEPTH_TEST)
             return;
 
-        g_renderInterface->state.attributes.GetMaterialAttributes().flags |= MAF_DEPTH_TEST;
+        RI.state.attributes.GetMaterialAttributes().flags |= MAF_DEPTH_TEST;
     }
     else
     {
-        if (!(g_renderInterface->state.attributes.GetMaterialAttributes().flags & MAF_DEPTH_TEST))
+        if (!(RI.state.attributes.GetMaterialAttributes().flags & MAF_DEPTH_TEST))
             return;
 
-        g_renderInterface->state.attributes.GetMaterialAttributes().flags &= ~MAF_DEPTH_TEST;
+        RI.state.attributes.GetMaterialAttributes().flags &= ~MAF_DEPTH_TEST;
     }
-    
+
     static_assert(std::is_trivially_destructible_v<SetDepthTest>);
     // cmdCasted->~SetDepthTest();
 }
@@ -1375,7 +1375,7 @@ void SetDepthBias::InvokeStatic(CmdBase* cmd, CommandBuffer*)
 {
     SetDepthBias* cmdCasted = static_cast<SetDepthBias*>(cmd);
 
-    RenderInterface::State& state = g_renderInterface->state;
+    RenderInterface::State& state = RI.state;
 
     const bool enableDepthBias = cmdCasted->depthBias != 0;
 
@@ -1399,7 +1399,7 @@ void SetDepthBias::InvokeStatic(CmdBase* cmd, CommandBuffer*)
 
         state.attributes.GetMaterialAttributes().flags &= ~MAF_DEPTH_BIAS;
     }
-    
+
     static_assert(std::is_trivially_destructible_v<SetDepthBias>);
     // cmdCasted->~SetDepthBias();
 }
@@ -1414,19 +1414,19 @@ void SetDepthClamp::InvokeStatic(CmdBase* cmd, CommandBuffer*)
 
     if (cmdCasted->depthClamp)
     {
-        if (g_renderInterface->state.attributes.GetMaterialAttributes().flags & MAF_DEPTH_CLAMP)
+        if (RI.state.attributes.GetMaterialAttributes().flags & MAF_DEPTH_CLAMP)
             return;
 
-        g_renderInterface->state.attributes.GetMaterialAttributes().flags |= MAF_DEPTH_CLAMP;
+        RI.state.attributes.GetMaterialAttributes().flags |= MAF_DEPTH_CLAMP;
     }
     else
     {
-        if (!(g_renderInterface->state.attributes.GetMaterialAttributes().flags & MAF_DEPTH_CLAMP))
+        if (!(RI.state.attributes.GetMaterialAttributes().flags & MAF_DEPTH_CLAMP))
             return;
 
-        g_renderInterface->state.attributes.GetMaterialAttributes().flags &= ~MAF_DEPTH_CLAMP;
+        RI.state.attributes.GetMaterialAttributes().flags &= ~MAF_DEPTH_CLAMP;
     }
-    
+
     static_assert(std::is_trivially_destructible_v<SetDepthClamp>);
     // cmdCasted->~SetDepthClamp();
 }
@@ -1441,19 +1441,19 @@ void SetStencilTest::InvokeStatic(CmdBase* cmd, CommandBuffer*)
 
     if (cmdCasted->stencilTest)
     {
-        if (g_renderInterface->state.attributes.GetMaterialAttributes().flags & MAF_STENCIL_TEST)
+        if (RI.state.attributes.GetMaterialAttributes().flags & MAF_STENCIL_TEST)
             return;
 
-        g_renderInterface->state.attributes.GetMaterialAttributes().flags |= MAF_STENCIL_TEST;
+        RI.state.attributes.GetMaterialAttributes().flags |= MAF_STENCIL_TEST;
     }
     else
     {
-        if (!(g_renderInterface->state.attributes.GetMaterialAttributes().flags & MAF_STENCIL_TEST))
+        if (!(RI.state.attributes.GetMaterialAttributes().flags & MAF_STENCIL_TEST))
             return;
 
-        g_renderInterface->state.attributes.GetMaterialAttributes().flags &= ~MAF_STENCIL_TEST;
+        RI.state.attributes.GetMaterialAttributes().flags &= ~MAF_STENCIL_TEST;
     }
-    
+
     static_assert(std::is_trivially_destructible_v<SetStencilTest>);
     // cmdCasted->~SetStencilTest();
 }
@@ -1466,11 +1466,11 @@ void SetStencilFunction::InvokeStatic(CmdBase* cmd, CommandBuffer*)
 {
     SetStencilFunction* cmdCasted = static_cast<SetStencilFunction*>(cmd);
 
-    if (g_renderInterface->state.attributes.GetMaterialAttributes().stencilFunction == cmdCasted->stencilFunction)
+    if (RI.state.attributes.GetMaterialAttributes().stencilFunction == cmdCasted->stencilFunction)
         return;
 
-    g_renderInterface->state.attributes.GetMaterialAttributes().stencilFunction = cmdCasted->stencilFunction;
-    
+    RI.state.attributes.GetMaterialAttributes().stencilFunction = cmdCasted->stencilFunction;
+
     static_assert(std::is_trivially_destructible_v<SetStencilFunction>);
     // cmdCasted->~SetStencilFunction();
 }
@@ -1483,11 +1483,11 @@ void SetFillMode::InvokeStatic(CmdBase* cmd, CommandBuffer*)
 {
     SetFillMode* cmdCasted = static_cast<SetFillMode*>(cmd);
 
-    if (g_renderInterface->state.attributes.GetMaterialAttributes().fillMode == cmdCasted->fillMode)
+    if (RI.state.attributes.GetMaterialAttributes().fillMode == cmdCasted->fillMode)
         return;
 
-    g_renderInterface->state.attributes.GetMaterialAttributes().fillMode = cmdCasted->fillMode;
-    
+    RI.state.attributes.GetMaterialAttributes().fillMode = cmdCasted->fillMode;
+
     static_assert(std::is_trivially_destructible_v<SetFillMode>);
     // cmdCasted->~SetFillMode();
 }
@@ -1500,11 +1500,11 @@ void SetFaceCullMode::InvokeStatic(CmdBase* cmd, CommandBuffer*)
 {
     SetFaceCullMode* cmdCasted = static_cast<SetFaceCullMode*>(cmd);
 
-    if (g_renderInterface->state.attributes.GetMaterialAttributes().cullFaces == cmdCasted->faceCullMode)
+    if (RI.state.attributes.GetMaterialAttributes().cullFaces == cmdCasted->faceCullMode)
         return;
 
-    g_renderInterface->state.attributes.GetMaterialAttributes().cullFaces = cmdCasted->faceCullMode;
-    
+    RI.state.attributes.GetMaterialAttributes().cullFaces = cmdCasted->faceCullMode;
+
     static_assert(std::is_trivially_destructible_v<SetFaceCullMode>);
     // cmdCasted->~SetFaceCullMode();
 }
@@ -1516,9 +1516,8 @@ void SetFaceCullMode::InvokeStatic(CmdBase* cmd, CommandBuffer*)
 void SetShaderUniform::InvokeStatic(CmdBase* cmd, CommandBuffer* commandBuffer)
 {
     SetShaderUniform* cmdCasted = static_cast<SetShaderUniform*>(cmd);
-    
-    RenderInterface& ri = *g_renderInterface;
-    RenderInterface::State& state = ri.state;
+
+    RenderInterface::State& state = RI.state;
 
     ShaderUniform& uniform = state.shaderUniforms[cmdCasted->uniformIndex];
 
@@ -1561,9 +1560,8 @@ void SetShaderUniform::InvokeStatic(CmdBase* cmd, CommandBuffer* commandBuffer)
 void SetShaderUniforms::InvokeStatic(CmdBase* cmd, CommandBuffer* commandBuffer)
 {
     SetShaderUniforms* cmdCasted = static_cast<SetShaderUniforms*>(cmd);
-    
-    RenderInterface& ri = *g_renderInterface;
-    RenderInterface::State& state = ri.state;
+
+    RenderInterface::State& state = RI.state;
 
     const ShaderUniforms& srcUniforms = cmdCasted->shaderUniforms;
     AssertDebug(cmdCasted->startIndex + srcUniforms.count <= state.MaxShaderUniforms);
@@ -1616,7 +1614,7 @@ void SetShaderUniforms::InvokeStatic(CmdBase* cmd, CommandBuffer* commandBuffer)
 
 void CommitDrawState::InvokeStatic(CmdBase*, CommandBuffer* commandBuffer)
 {
-    g_renderInterface->CommitDrawState(commandBuffer);
+    RI.CommitDrawState(commandBuffer);
 
     static_assert(std::is_trivially_destructible_v<CommitDrawState>);
     // cmdCasted->~CommitDrawState();

@@ -72,7 +72,7 @@ struct LightmapRender : RenderCommand
 
     virtual RendererResult operator()() override
     {
-        Frame* frame = g_renderInterface->GetCurrentFrame();
+        Frame* frame = RI.GetCurrentFrame();
 
         RenderSetup renderSetup { world, view };
 
@@ -358,7 +358,7 @@ uint32 BakeJobBase::Process(uint32 maxTexels)
     for (UniquePtr<ILightmapRenderer>& lightmapRenderer : *m_params.renderers)
     {
         AssertDebug(lightmapRenderer != nullptr);
-        
+
         if (!lightmapRenderer)
         {
             return 0;
@@ -384,10 +384,10 @@ uint32 BakeJobBase::Process(uint32 maxTexels)
         {
             return 0;
         }
-        
+
         maxTexels = MathUtil::Min(maxTexels, (*m_params.renderers)[0]->MaxTexelsPerFrame());
     }
-    
+
     if (totalNumTexels == 0 || maxTexels == 0)
     {
         return 0;

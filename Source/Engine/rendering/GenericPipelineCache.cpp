@@ -47,7 +47,7 @@ auto GenericPipelineCache<PipelineType>::GetOrCreate(Name shaderName, const Shad
         if (it != m_keyToIndex.End())
         {
             CachedPipeline& cached = m_pipelines.Get(it->second);
-            
+
             if (cached.pipeline.IsValid())
             {
                 cached.pipeline->lastFrame = GetFrameCounter();
@@ -63,7 +63,7 @@ auto GenericPipelineCache<PipelineType>::GetOrCreate(Name shaderName, const Shad
     if (it != m_keyToIndex.End())
     {
         CachedPipeline& cached = m_pipelines.Get(it->second);
-        
+
         if (cached.pipeline.IsValid())
         {
             cached.pipeline->lastFrame = GetFrameCounter();
@@ -80,19 +80,19 @@ auto GenericPipelineCache<PipelineType>::GetOrCreate(Name shaderName, const Shad
     {
         return nullptr;
     }
-    
+
     pipeline->lastFrame = GetFrameCounter();
     CheckResult(pipeline->Create());
 
     const uint32 index = m_idGenerator.Next() - 1;
-    
+
     CachedPipeline cached {};
     cached.pipeline = pipeline;
     cached.key = key;
 
     // re-lock
     TUniqueLock uniqueLock(m_mutex);
-    
+
     m_pipelines.Set(index, std::move(cached));
     m_keyToIndex[key] = index;
 
@@ -112,7 +112,7 @@ auto GenericPipelineCache<PipelineType>::Find(Name shaderName, const ShaderPrope
     if (it != m_keyToIndex.End())
     {
         const CachedPipeline& cached = m_pipelines.Get(it->second);
-        
+
         if (cached.pipeline.IsValid() && cached.pipeline->IsCreated())
         {
             return cached.pipeline;
@@ -195,18 +195,18 @@ int GenericPipelineCache<PipelineType>::RunCleanupCycle(int maxIter)
         {
             auto keyToIndexIt = m_keyToIndex.Find(cached.key);
             Assert(keyToIndexIt != m_keyToIndex.End());
-            
+
             m_idGenerator.ReleaseId(keyToIndexIt->second + 1);
 
             m_keyToIndex.Erase(keyToIndexIt);
-            
+
             EnqueueDeletion(std::move(cached.pipeline));
 
             m_cleanupIterator = m_pipelines.Erase(m_cleanupIterator);
 
             continue;
         }
-        
+
         ++m_cleanupIterator;
     }
 
@@ -241,14 +241,14 @@ template class GenericPipelineCache<RayTracingPipeline>;
 
 ComputePipelineRef ComputePipelineCache::MakePipeline(Name shaderName, const ShaderPropertySet& properties)
 {
-    ShaderInstanceRef shader = g_renderInterface->shaderManager->GetOrCreate(shaderName, properties, {});
-    
+    ShaderInstanceRef shader = RI.shaderManager->GetOrCreate(shaderName, properties, {});
+
     if (!shader.IsValid())
     {
         return ComputePipelineRef::Null();
     }
 
-    return g_renderInterface->MakeComputePipeline(shader);
+    return RI.MakeComputePipeline(shader);
 }
 
 #pragma endregion ComputePipelineCache
@@ -257,14 +257,14 @@ ComputePipelineRef ComputePipelineCache::MakePipeline(Name shaderName, const Sha
 
 RayTracingPipelineRef RayTracingPipelineCache::MakePipeline(Name shaderName, const ShaderPropertySet& properties)
 {
-    ShaderInstanceRef shader = g_renderInterface->shaderManager->GetOrCreate(shaderName, properties, {});
-    
+    ShaderInstanceRef shader = RI.shaderManager->GetOrCreate(shaderName, properties, {});
+
     if (!shader.IsValid())
     {
         return RayTracingPipelineRef::Null();
     }
 
-    return g_renderInterface->MakeRayTracingPipeline(shader);
+    return RI.MakeRayTracingPipeline(shader);
 }
 
 #pragma endregion RayTracingPipelineCache

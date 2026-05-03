@@ -237,7 +237,7 @@ void TemporalBlending::Render(Frame* frame, const RenderSetup& renderSetup)
 
     if (!cbuffer)
     {
-        cbuffer = g_renderInterface->MakeGpuBuffer(GpuBufferType::ConstantBuffer, sizeof(TemporalBlendingConstants));
+        cbuffer = RI.MakeGpuBuffer(GpuBufferType::ConstantBuffer, sizeof(TemporalBlendingConstants));
 #if HYP_DEBUG_MODE
         cbuffer->SetDebugName(NAME("TemporalBlendingConstants"));
 #endif
@@ -261,17 +261,17 @@ void TemporalBlending::Render(Frame* frame, const RenderSetup& renderSetup)
             : m_inputImageView;
 
     frame->cr << SetShaderUniform(0, "InImage"_sh, inputImageView);
-    frame->cr << SetShaderUniform(1, "PrevImage"_sh, g_renderInterface->textureViewCache->GetOrCreate(prevTexture));
+    frame->cr << SetShaderUniform(1, "PrevImage"_sh, RI.textureViewCache->GetOrCreate(prevTexture));
     frame->cr << SetShaderUniform(2, "VelocityImage"_sh, m_gbuffer->GetBucket(RenderBucket::Opaque).GetGBufferAttachment(GTN_VELOCITY)->GetImageView());
-    frame->cr << SetShaderUniform(3, "SamplerLinear"_sh, g_renderInterface->placeholderData->GetSamplerLinear());
-    frame->cr << SetShaderUniform(4, "SamplerNearest"_sh, g_renderInterface->placeholderData->GetSamplerNearest());
-    frame->cr << SetShaderUniform(5, "OutImage"_sh, g_renderInterface->textureViewCache->GetOrCreate(activeTexture));
+    frame->cr << SetShaderUniform(3, "SamplerLinear"_sh, RI.placeholderData->GetSamplerLinear());
+    frame->cr << SetShaderUniform(4, "SamplerNearest"_sh, RI.placeholderData->GetSamplerNearest());
+    frame->cr << SetShaderUniform(5, "OutImage"_sh, RI.textureViewCache->GetOrCreate(activeTexture));
     frame->cr << SetShaderUniform(6, "TemporalBlendingUniforms"_sh, cbuffer);
-    
+
     frame->cr << SetShaderUniform(7, "GBufferDepthTexture"_sh, m_gbuffer->GetBucket(RenderBucket::Opaque).GetGBufferAttachment(GTN_DEPTH)->GetImageView());
 
-    frame->cr << SetShaderUniform(8, "WorldsBuffer"_sh, g_renderInterface->namedBuffers[NamedBuffer::Worlds].gpuBuffer);
-    frame->cr << SetShaderUniform(9, "CamerasBuffer"_sh, g_renderInterface->namedBuffers[NamedBuffer::Cameras].gpuBuffer, TShaderDataOffset<CameraShaderData>(renderSetup.view->GetCamera()));
+    frame->cr << SetShaderUniform(8, "WorldsBuffer"_sh, RI.namedBuffers[NamedBuffer::Worlds].gpuBuffer);
+    frame->cr << SetShaderUniform(9, "CamerasBuffer"_sh, RI.namedBuffers[NamedBuffer::Cameras].gpuBuffer, TShaderDataOffset<CameraShaderData>(renderSetup.view->GetCamera()));
 
     frame->cr << DispatchCompute(Vec3u { (extent.x + 7) / 8, (extent.y + 7) / 8, 1 });
     frame->cr << InsertBarrier(activeTexture->GetGpuImage(), RS_SHADER_RESOURCE);

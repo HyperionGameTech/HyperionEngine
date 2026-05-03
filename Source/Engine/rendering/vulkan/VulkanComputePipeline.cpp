@@ -29,7 +29,7 @@
 
 namespace Hyperion {
 
-extern VulkanRenderInterface* g_renderInterface;
+extern VulkanRenderInterface RI;
 
 template <>
 Array<VkDescriptorSetLayout, VulkanAllocator> GetVkDescriptorSetLayouts<VulkanComputePipeline>(const VulkanComputePipeline& pipeline)
@@ -45,7 +45,7 @@ Array<VkDescriptorSetLayout, VulkanAllocator> GetVkDescriptorSetLayouts<VulkanCo
     for (const ShaderInputSet& setDecl : decl->elements)
     {
         VkDescriptorSetLayout layout = VK_NULL_HANDLE;
-        Assert(g_renderInterface->GetOrCreateVkDescriptorSetLayout(DescriptorSetLayout(&setDecl), layout));
+        Assert(RI.GetOrCreateVkDescriptorSetLayout(DescriptorSetLayout(&setDecl), layout));
 
         Assert(layout != VK_NULL_HANDLE);
 
@@ -125,7 +125,7 @@ RendererResult VulkanComputePipeline::Create()
     const VkPushConstantRange pushConstantRanges[] = {
         { .stageFlags = VK_SHADER_STAGE_COMPUTE_BIT,
             .offset = 0,
-            .size = uint32(g_renderInterface->GetDevice()->GetFeatures().PaddedSize<PushConstantData>()) }
+            .size = uint32(RI.GetDevice()->GetFeatures().PaddedSize<PushConstantData>()) }
     };
 
     /* Pipeline layout */
@@ -133,7 +133,7 @@ RendererResult VulkanComputePipeline::Create()
 
     const Array<VkDescriptorSetLayout, VulkanAllocator> usedLayouts = GetVkDescriptorSetLayouts(*this);
 
-    const uint32 maxSetLayouts = g_renderInterface->GetDevice()->GetFeatures().GetPhysicalDeviceProperties().limits.maxBoundDescriptorSets;
+    const uint32 maxSetLayouts = RI.GetDevice()->GetFeatures().GetPhysicalDeviceProperties().limits.maxBoundDescriptorSets;
 
     if (usedLayouts.Size() > maxSetLayouts)
     {
@@ -146,7 +146,7 @@ RendererResult VulkanComputePipeline::Create()
     layoutInfo.pPushConstantRanges = pushConstantRanges;
 
     VULKAN_CHECK_MSG(
-        vkCreatePipelineLayout(g_renderInterface->GetDevice()->GetDevice(), &layoutInfo, nullptr, &m_layout),
+        vkCreatePipelineLayout(RI.GetDevice()->GetDevice(), &layoutInfo, nullptr, &m_layout),
         "Failed to create compute pipeline layout");
 
     VkComputePipelineCreateInfo pipelineInfo { VK_STRUCTURE_TYPE_COMPUTE_PIPELINE_CREATE_INFO };
@@ -174,7 +174,7 @@ RendererResult VulkanComputePipeline::Create()
     pipelineInfo.basePipelineIndex = -1;
 
     VULKAN_CHECK_MSG(
-        vkCreateComputePipelines(g_renderInterface->GetDevice()->GetDevice(), VK_NULL_HANDLE, 1, &pipelineInfo, nullptr, &m_handle),
+        vkCreateComputePipelines(RI.GetDevice()->GetDevice(), VK_NULL_HANDLE, 1, &pipelineInfo, nullptr, &m_handle),
         "Failed to create compute pipeline");
 
 #if HYP_DEBUG_MODE

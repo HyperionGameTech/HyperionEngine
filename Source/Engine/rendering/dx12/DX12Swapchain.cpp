@@ -16,7 +16,7 @@
 
 namespace Hyperion {
 
-extern DX12RenderInterface* g_renderInterface;
+extern DX12RenderInterface RI;
 
 static constexpr bool AllowTearingDefault = true;
 static constexpr bool VSyncDefault = false;
@@ -43,7 +43,7 @@ void DX12Swapchain::Destroy()
 
     if (m_rtvDescriptorHandle.IsValid())
     {
-        g_renderInterface->descriptorHeapManager->Free(DX12DescriptorHeapType::RTV, std::move(m_rtvDescriptorHandle));
+        RI.descriptorHeapManager->Free(DX12DescriptorHeapType::RTV, std::move(m_rtvDescriptorHandle));
     }
 
     for (ID3D12Resource* backBuffer : m_backBuffers)
@@ -81,12 +81,12 @@ RendererResult DX12Swapchain::Create()
         return {};
     }
 
-    ID3D12Device* device = g_renderInterface->GetDevice();
+    ID3D12Device* device = RI.GetDevice();
 
-    const DX12QueueData* queueData = g_renderInterface->GetQueueData(D3D12_COMMAND_LIST_TYPE_DIRECT);
+    const DX12QueueData* queueData = RI.GetQueueData(D3D12_COMMAND_LIST_TYPE_DIRECT);
     Assert(queueData != nullptr);
 
-    ComPtr<IDXGIFactory4> factory = g_renderInterface->dxgiFactory;
+    ComPtr<IDXGIFactory4> factory = RI.dxgiFactory;
     Assert(factory != nullptr);
 
     // Check tearing support
@@ -160,7 +160,7 @@ RendererResult DX12Swapchain::Create()
     }
 
     // Allocate RTV descriptors
-    m_rtvDescriptorHandle = g_renderInterface->descriptorHeapManager->Allocate(DX12DescriptorHeapType::RTV, swapChainDesc.BufferCount);
+    m_rtvDescriptorHandle = RI.descriptorHeapManager->Allocate(DX12DescriptorHeapType::RTV, swapChainDesc.BufferCount);
     if (!m_rtvDescriptorHandle.IsValid())
     {
         return HYP_MAKE_ERROR(RendererError, "Failed to allocate RTV descriptors for swapchain");
@@ -206,7 +206,7 @@ RendererResult DX12Swapchain::Create()
         framebufferDesc.extent = m_extent;
         framebufferDesc.renderPassMode = RenderPassMode::Present;
 
-        DX12FramebufferRef framebuffer = g_renderInterface->MakeFramebuffer(framebufferDesc);
+        DX12FramebufferRef framebuffer = RI.MakeFramebuffer(framebufferDesc);
         Assert(framebuffer.IsValid());
 
         framebuffer->SetExternalRTVHandle(m_rtvHandles[i], m_backBuffers[i], m_extent, TextureFormat::RGBA8_SRGB);
@@ -260,19 +260,19 @@ void DX12Swapchain::Recreate()
 
 void DX12Swapchain::FlushGPU()
 {
-    const DX12QueueData* queueData = g_renderInterface->GetQueueData(D3D12_COMMAND_LIST_TYPE_DIRECT);
+    const DX12QueueData* queueData = RI.GetQueueData(D3D12_COMMAND_LIST_TYPE_DIRECT);
     if (!queueData || !queueData->commandQueue)
     {
         return;
     }
 
-    HRESULT hr = g_renderInterface->GetDevice()->CreateCommandAllocator(
+    HRESULT hr = RI.GetDevice()->CreateCommandAllocator(
         D3D12_COMMAND_LIST_TYPE_DIRECT,
         __uuidof(ID3D12CommandAllocator),
         &m_flushAllocator);
     Assert(SUCCEEDED(hr));
 
-    hr = g_renderInterface->GetDevice()->CreateCommandList(
+    hr = RI.GetDevice()->CreateCommandList(
         0, D3D12_COMMAND_LIST_TYPE_DIRECT,
         m_flushAllocator.Get(),
         nullptr,
@@ -337,7 +337,7 @@ void DX12Swapchain::PresentFrame(DX12Frame* frame)
         // Check for device removal on device-related errors
         if (hr == DXGI_ERROR_DEVICE_REMOVED || hr == DXGI_ERROR_DEVICE_RESET || hr == DXGI_ERROR_DEVICE_HUNG)
         {
-            CheckDeviceRemovedReason(g_renderInterface->GetDevice());
+            CheckDeviceRemovedReason(RI.GetDevice());
         }
 
         return;

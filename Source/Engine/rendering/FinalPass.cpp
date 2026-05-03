@@ -129,10 +129,10 @@ void FinalPass::Render(Frame* frame, const RenderSetup& rs)
     cr << SetTopology(TOP_TRIANGLES);
     cr << SetFaceCullMode(FCM_NONE);
 
-    cr << SetShaderUniform(0, "SamplerLinear"_sh, g_renderInterface->placeholderData->GetSamplerLinear());
-    cr << SetShaderUniform(1, "WorldsBuffer"_sh, g_renderInterface->namedBuffers[NamedBuffer::Worlds].gpuBuffer);
+    cr << SetShaderUniform(0, "SamplerLinear"_sh, RI.placeholderData->GetSamplerLinear());
+    cr << SetShaderUniform(1, "WorldsBuffer"_sh, RI.namedBuffers[NamedBuffer::Worlds].gpuBuffer);
 
-    DeferredRenderer* dr = static_cast<DeferredRenderer*>(g_renderInterface->globalRenderers[GRT_MAIN][0]);
+    DeferredRenderer* dr = static_cast<DeferredRenderer*>(RI.globalRenderers[GRT_MAIN][0]);
     AssertDebug(dr != nullptr);
 
     for (const DeferredRenderer::RenderedViewOutput& output : dr->GetRenderedViewOutputs().items)
@@ -150,7 +150,7 @@ void FinalPass::Render(Frame* frame, const RenderSetup& rs)
     if (cvShowDebugUI.Get())
     {
         // draw ui
-        UIRenderer* uiRenderer = static_cast<UIRenderer*>(g_renderInterface->globalRenderers[GRT_UI][0]);
+        UIRenderer* uiRenderer = static_cast<UIRenderer*>(RI.globalRenderers[GRT_UI][0]);
 
         if (uiRenderer != nullptr)
         {

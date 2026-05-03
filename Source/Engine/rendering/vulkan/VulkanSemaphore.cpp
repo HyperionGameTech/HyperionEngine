@@ -21,7 +21,7 @@ namespace Hyperion {
 
 HYP_DECLARE_LOG_CHANNEL(RenderingBackend);
 
-extern VulkanRenderInterface* g_renderInterface;
+extern VulkanRenderInterface RI;
 
 VulkanSemaphore::VulkanSemaphore()
     : m_handle(VK_NULL_HANDLE)
@@ -34,7 +34,7 @@ VulkanSemaphore::~VulkanSemaphore()
     {
         EnqueueDeletion(FunctionWrapper<Proc<void()>>([handle = m_handle]()
             {
-                vkDestroySemaphore(g_renderInterface->GetDevice()->GetDevice(), handle, nullptr);
+                vkDestroySemaphore(RI.GetDevice()->GetDevice(), handle, nullptr);
             }));
 
         m_handle = VK_NULL_HANDLE;
@@ -51,7 +51,7 @@ RendererResult VulkanSemaphore::Create()
     VkSemaphoreCreateInfo semaphoreInfo { VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO };
 
     VULKAN_CHECK_MSG(
-        vkCreateSemaphore(g_renderInterface->GetDevice()->GetDevice(), &semaphoreInfo, nullptr, &m_handle),
+        vkCreateSemaphore(RI.GetDevice()->GetDevice(), &semaphoreInfo, nullptr, &m_handle),
         "Failed to create semaphore");
 
     return {};

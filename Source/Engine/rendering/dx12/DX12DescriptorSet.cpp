@@ -29,7 +29,7 @@
 
 namespace Hyperion {
 
-extern DX12RenderInterface* g_renderInterface;
+extern DX12RenderInterface RI;
 
 #pragma region DX12DescriptorSet
 
@@ -61,7 +61,7 @@ DX12DescriptorSet::DX12DescriptorSet(const DescriptorSetLayout& layout)
             {
                 if (element.type == ShaderInputType::SRV || element.type == ShaderInputType::SRV_Dynamic)
                 {
-                    PrefillElements<DX12GpuImageView>(name, element.count, g_renderInterface->placeholderData->GetImageView2D1x1R8());
+                    PrefillElements<DX12GpuImageView>(name, element.count, RI.placeholderData->GetImageView2D1x1R8());
                 }
                 else
                 {
@@ -89,12 +89,12 @@ DX12DescriptorSet::~DX12DescriptorSet()
 {
     if (m_viewDescriptorHandle.IsValid())
     {
-        g_renderInterface->descriptorHeapManager->Free(DX12DescriptorHeapType::CBV_SRV_UAV, std::move(m_viewDescriptorHandle));
+        RI.descriptorHeapManager->Free(DX12DescriptorHeapType::CBV_SRV_UAV, std::move(m_viewDescriptorHandle));
     }
 
     if (m_samplerDescriptorHandle.IsValid())
     {
-        g_renderInterface->descriptorHeapManager->Free(DX12DescriptorHeapType::SAMPLER, std::move(m_samplerDescriptorHandle));
+        RI.descriptorHeapManager->Free(DX12DescriptorHeapType::SAMPLER, std::move(m_samplerDescriptorHandle));
     }
 }
 
@@ -213,7 +213,7 @@ RendererResult DX12DescriptorSet::Create()
 
     if (viewCount > 0)
     {
-        m_viewDescriptorHandle = g_renderInterface->descriptorHeapManager->Allocate(DX12DescriptorHeapType::CBV_SRV_UAV, viewCount);
+        m_viewDescriptorHandle = RI.descriptorHeapManager->Allocate(DX12DescriptorHeapType::CBV_SRV_UAV, viewCount);
 
         if (!m_viewDescriptorHandle.IsValid())
         {
@@ -223,14 +223,14 @@ RendererResult DX12DescriptorSet::Create()
 
     if (samplerCount > 0)
     {
-        m_samplerDescriptorHandle = g_renderInterface->descriptorHeapManager->Allocate(DX12DescriptorHeapType::SAMPLER, samplerCount);
+        m_samplerDescriptorHandle = RI.descriptorHeapManager->Allocate(DX12DescriptorHeapType::SAMPLER, samplerCount);
 
         if (!m_samplerDescriptorHandle.IsValid())
         {
             // Free already allocated views
             if (m_viewDescriptorHandle.IsValid())
             {
-                g_renderInterface->descriptorHeapManager->Free(DX12DescriptorHeapType::CBV_SRV_UAV, std::move(m_viewDescriptorHandle));
+                RI.descriptorHeapManager->Free(DX12DescriptorHeapType::CBV_SRV_UAV, std::move(m_viewDescriptorHandle));
             }
 
             return HYP_MAKE_ERROR(RendererError, "Failed to allocate {} sampler descriptors for descriptor set: {}", 0, samplerCount, m_layout.GetName());
@@ -444,10 +444,10 @@ void DX12DescriptorSet::Update(bool force)
         return;
     }
 
-    ID3D12Device* device = g_renderInterface->GetDevice();
+    ID3D12Device* device = RI.GetDevice();
 
-    const uint32 incrementSize = g_renderInterface->GetDevice()->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
-    const uint32 samplerIncrementSize = g_renderInterface->GetDevice()->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_SAMPLER);
+    const uint32 incrementSize = RI.GetDevice()->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
+    const uint32 samplerIncrementSize = RI.GetDevice()->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_SAMPLER);
 
     for (size_t i = 0; i < m_pendingDescriptors.Size(); i++)
     {
@@ -650,7 +650,7 @@ D3D12_CPU_DESCRIPTOR_HANDLE DX12DescriptorSet::GetViewCpuHandle(uint32 binding) 
     Assert(it != m_viewBindingToHeapOffset.End(), "Binding {} not found in view binding map", binding);
 
     const uint32 offset = it->second;
-    const uint32 incrementSize = g_renderInterface->GetDevice()->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
+    const uint32 incrementSize = RI.GetDevice()->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
 
     D3D12_CPU_DESCRIPTOR_HANDLE handle = m_viewDescriptorHandle.cpuHandle;
     handle.ptr += incrementSize * offset;
@@ -664,7 +664,7 @@ D3D12_CPU_DESCRIPTOR_HANDLE DX12DescriptorSet::GetSamplerCpuHandle(uint32 bindin
     Assert(it != m_samplerBindingToHeapOffset.End(), "Binding {} not found in sampler binding map", binding);
 
     const uint32 offset = it->second;
-    const uint32 incrementSize = g_renderInterface->GetDevice()->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_SAMPLER);
+    const uint32 incrementSize = RI.GetDevice()->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_SAMPLER);
 
     D3D12_CPU_DESCRIPTOR_HANDLE handle = m_samplerDescriptorHandle.cpuHandle;
     handle.ptr += incrementSize * offset;
@@ -772,7 +772,7 @@ void DX12DescriptorSet::Bind(DX12CommandBuffer* commandBuffer, const DX12Graphic
     {
         commandList->SetGraphicsRootDescriptorTable(rootIndices.viewRootIndex, m_viewDescriptorHandle.gpuHandle);
     }
-    
+
     if (m_samplerDescriptorHandle.IsValid() && rootIndices.samplerRootIndex != ~0u)
     {
         commandList->SetGraphicsRootDescriptorTable(rootIndices.samplerRootIndex, m_samplerDescriptorHandle.gpuHandle);
@@ -885,7 +885,7 @@ void DX12DescriptorSet::Bind(DX12CommandBuffer* commandBuffer, const DX12Compute
     {
         commandList->SetComputeRootDescriptorTable(rootIndices.viewRootIndex, m_viewDescriptorHandle.gpuHandle);
     }
-    
+
     if (m_samplerDescriptorHandle.IsValid() && rootIndices.samplerRootIndex != ~0u)
     {
         commandList->SetComputeRootDescriptorTable(rootIndices.samplerRootIndex, m_samplerDescriptorHandle.gpuHandle);

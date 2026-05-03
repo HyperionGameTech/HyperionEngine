@@ -77,10 +77,10 @@ const GpuImageViewRef& RayTracingReflections::GetFinalImageView() const
 {
     if (m_temporalBlending != nullptr)
     {
-        return g_renderInterface->textureViewCache->GetOrCreate(m_temporalBlending->GetResultTexture());
+        return RI.textureViewCache->GetOrCreate(m_temporalBlending->GetResultTexture());
     }
 
-    return g_renderInterface->textureViewCache->GetOrCreate(m_texture);
+    return RI.textureViewCache->GetOrCreate(m_texture);
 }
 
 void RayTracingReflections::Create()
@@ -110,11 +110,11 @@ void RayTracingReflections::Render(Frame* frame, const RenderSetup& renderSetup)
     const bool isPathTracer = cvPathTracing.Get();
     InitTemporalBlending(isPathTracer);
 
-    
+
     // Reset progressive blending if the camera view matrix has changed (for path tracing)
     RenderProxyCamera* cameraProxy = static_cast<RenderProxyCamera*>(GetRenderProxy(renderSetup.view->GetCamera()));
     Assert(cameraProxy != nullptr);
-    
+
     CameraShaderData cameraData = cameraProxy->bufferData;
 
     if (isPathTracer)
@@ -159,7 +159,7 @@ void RayTracingReflections::Render(Frame* frame, const RenderSetup& renderSetup)
         Array<Pair<Light*, LightShaderData*>, RenderAllocator> tempLights;
 
         uint32& numBoundLights = rayTracingConstants.numBoundLights;
-        
+
         RenderProxyList& rpl = GetConsumerProxyList(renderSetup.view);
         rpl.BeginRead();
         HYP_DEFER({ rpl.EndRead(); });
@@ -186,21 +186,21 @@ void RayTracingReflections::Render(Frame* frame, const RenderSetup& renderSetup)
             ++numBoundLights;
         }
 
-        g_renderInterface->cbufferAllocator->Write(&rayTracingConstants);
+        RI.cbufferAllocator->Write(&rayTracingConstants);
 
         // write camera
-        g_renderInterface->cbufferAllocator->Write(&cameraData);
+        RI.cbufferAllocator->Write(&cameraData);
 
         for (uint32 i = 0; i < MaxLights; i++)
         {
             if (i < uint32(tempLights.Size()))
             {
-                g_renderInterface->cbufferAllocator->Write(tempLights[i].second);
+                RI.cbufferAllocator->Write(tempLights[i].second);
                 continue;
             }
-        
+
             LightShaderData dummy {};
-            g_renderInterface->cbufferAllocator->Write(&dummy);
+            RI.cbufferAllocator->Write(&dummy);
         }
 
         for (uint32 i = 0; i < MaxLights; i++)
@@ -214,7 +214,7 @@ void RayTracingReflections::Render(Frame* frame, const RenderSetup& renderSetup)
 
                 Light* light = tempLights[i].first;
 
-                ShadowMap* shadowMap = g_renderInterface->shadowMapCache->GetShadowMap(
+                ShadowMap* shadowMap = RI.shadowMapCache->GetShadowMap(
                     light,
                     renderSetup.view,
                     /* cascadeIndex */ 0,
@@ -231,36 +231,36 @@ void RayTracingReflections::Render(Frame* frame, const RenderSetup& renderSetup)
                 }
             }
 
-            g_renderInterface->cbufferAllocator->Write(&shadowMapData);
+            RI.cbufferAllocator->Write(&shadowMapData);
         }
-            
-        g_renderInterface->cbufferAllocator->Commit(cbuffer, cbufferOffset, cbufferSize);
+
+        RI.cbufferAllocator->Commit(cbuffer, cbufferOffset, cbufferSize);
     }
-    
+
     frame->cr << SetShaderUniform(0, "GBufferAlbedoTexture"_sh, viewFramebuffer->GetAttachment(0)->GetImageView());
     frame->cr << SetShaderUniform(1, "GBufferNormalsTexture"_sh, viewFramebuffer->GetAttachment(1)->GetImageView());
     frame->cr << SetShaderUniform(2, "GBufferMaterialTexture"_sh, viewFramebuffer->GetAttachment(2)->GetImageView());
     frame->cr << SetShaderUniform(3, "GBufferDepthTexture"_sh, viewFramebuffer->GetAttachment(viewFramebuffer->NumAttachments() - 1)->GetImageView());
 
-    frame->cr << SetShaderUniform(4, "SamplerNearest"_sh, g_renderInterface->placeholderData->GetSamplerNearest());
-    frame->cr << SetShaderUniform(5, "SamplerLinear"_sh, g_renderInterface->placeholderData->GetSamplerLinearMipmap());
+    frame->cr << SetShaderUniform(4, "SamplerNearest"_sh, RI.placeholderData->GetSamplerNearest());
+    frame->cr << SetShaderUniform(5, "SamplerLinear"_sh, RI.placeholderData->GetSamplerLinearMipmap());
     frame->cr << SetShaderUniform(6, "TLAS"_sh, tlas);
     frame->cr << SetShaderUniform(7, "MeshDescriptionsBuffer"_sh, meshDescriptionsBuffer);
-    frame->cr << SetShaderUniform(8, "OutputImage"_sh, g_renderInterface->textureViewCache->GetOrCreate(m_texture));
+    frame->cr << SetShaderUniform(8, "OutputImage"_sh, RI.textureViewCache->GetOrCreate(m_texture));
     frame->cr << SetShaderUniform(9, "CBuffer"_sh, cbuffer, ShaderDataOffset(cbufferOffset, cbufferSize));
 
-    frame->cr << SetShaderUniform(11, "BlueNoiseBuffer"_sh, g_renderInterface->blueNoiseBuffer.gpuBuffer);
+    frame->cr << SetShaderUniform(11, "BlueNoiseBuffer"_sh, RI.blueNoiseBuffer.gpuBuffer);
 
-    frame->cr << SetShaderUniform(12, "ShadowMapsTextureArray"_sh, g_renderInterface->shadowMapCache->GetAtlasImageView());
-    frame->cr << SetShaderUniform(13, "PointLightShadowMapsTextureArray"_sh, g_renderInterface->shadowMapCache->GetPointLightShadowMapImageView());
+    frame->cr << SetShaderUniform(12, "ShadowMapsTextureArray"_sh, RI.shadowMapCache->GetAtlasImageView());
+    frame->cr << SetShaderUniform(13, "PointLightShadowMapsTextureArray"_sh, RI.shadowMapCache->GetPointLightShadowMapImageView());
 
-    frame->cr << SetShaderUniform(14, "MaterialsBuffer"_sh, g_renderInterface->namedBuffers[NamedBuffer::Materials].gpuBuffer);
-    frame->cr << SetShaderUniform(15, "WorldsBuffer"_sh, g_renderInterface->namedBuffers[NamedBuffer::Worlds].gpuBuffer);
+    frame->cr << SetShaderUniform(14, "MaterialsBuffer"_sh, RI.namedBuffers[NamedBuffer::Materials].gpuBuffer);
+    frame->cr << SetShaderUniform(15, "WorldsBuffer"_sh, RI.namedBuffers[NamedBuffer::Worlds].gpuBuffer);
 
     if (renderSetup.envProbe != nullptr)
     {
-        frame->cr << SetShaderUniform(18, "EnvProbesTexture"_sh, g_renderInterface->textureViewCache->GetOrCreate(g_renderInterface->envProbesTexture));
-        frame->cr << SetShaderUniform(19, "CurrentEnvProbe"_sh, g_renderInterface->namedBuffers[NamedBuffer::EnvProbes].gpuBuffer, TShaderDataOffset<EnvProbeShaderData>(renderSetup.envProbe));
+        frame->cr << SetShaderUniform(18, "EnvProbesTexture"_sh, RI.textureViewCache->GetOrCreate(RI.envProbesTexture));
+        frame->cr << SetShaderUniform(19, "CurrentEnvProbe"_sh, RI.namedBuffers[NamedBuffer::EnvProbes].gpuBuffer, TShaderDataOffset<EnvProbeShaderData>(renderSetup.envProbe));
     }
 
     const Vec3u imageExtent = m_texture->GetGpuImage()->GetExtent();
@@ -314,7 +314,7 @@ void RayTracingReflections::InitTemporalBlending(bool isPathTracer)
         TextureFormat::RGBA8,
         technique,
         DefaultTemporalBlendingFeedback,
-        g_renderInterface->textureViewCache->GetOrCreate(m_texture),
+        RI.textureViewCache->GetOrCreate(m_texture),
         m_gbuffer);
 
     m_temporalBlending->Create();

@@ -340,8 +340,8 @@ void SpriteRenderer::RenderFrame(Frame* frame, const RenderSetup& renderSetup)
     size_t cbufferOffset = 0;
     size_t cbufferSize = 0;
 
-    g_renderInterface->cbufferAllocator->Write(&cameraProxy->bufferData);
-    g_renderInterface->cbufferAllocator->Commit(cbuffer, cbufferOffset, cbufferSize);
+    RI.cbufferAllocator->Write(&cameraProxy->bufferData);
+    RI.cbufferAllocator->Commit(cbuffer, cbufferOffset, cbufferSize);
 
     cr << SetCurrentViewport(renderSetup.viewport);
     cr << SetTopology(Topology::TOP_TRIANGLES);
@@ -349,7 +349,7 @@ void SpriteRenderer::RenderFrame(Frame* frame, const RenderSetup& renderSetup)
 
     if (numSprites > 0)
     {
-        StructuredBuffer& instanceBuffer = g_renderInterface->bufferAllocator->AcquireStructuredBuffer(numSprites, sizeof(SpriteInstanceData));
+        StructuredBuffer& instanceBuffer = RI.bufferAllocator->AcquireStructuredBuffer(numSprites, sizeof(SpriteInstanceData));
 
         size_t offset = 0;
 
@@ -382,7 +382,7 @@ void SpriteRenderer::RenderFrame(Frame* frame, const RenderSetup& renderSetup)
 
         cr << SetCurrentShader(shaderDesc);
 
-        cr << SetShaderUniform(0, "SamplerLinear"_sh, g_renderInterface->placeholderData->GetSamplerLinear());
+        cr << SetShaderUniform(0, "SamplerLinear"_sh, RI.placeholderData->GetSamplerLinear());
         cr << SetShaderUniform(1, "SpriteInstanceBuffer"_sh, instanceBuffer.gpuBuffer);
         cr << SetShaderUniform(2, "CBuffer"_sh, cbuffer, ShaderDataOffset(cbufferOffset, cbufferSize));
 
@@ -463,7 +463,7 @@ void SpriteRenderer::RenderFrame(Frame* frame, const RenderSetup& renderSetup)
                 });
         }
 
-        StructuredBuffer& textInstanceBuffer = g_renderInterface->bufferAllocator->AcquireStructuredBuffer(charData.Size(), sizeof(TextSpriteInstanceData));
+        StructuredBuffer& textInstanceBuffer = RI.bufferAllocator->AcquireStructuredBuffer(charData.Size(), sizeof(TextSpriteInstanceData));
 
         size_t textOffset = 0;
         for (const auto& data : charData)
@@ -474,7 +474,7 @@ void SpriteRenderer::RenderFrame(Frame* frame, const RenderSetup& renderSetup)
 
         textInstanceBuffer.Flush();
 
-        static Sampler* s_textSpriteSampler = g_renderInterface->samplerCache->GetOrCreate(SamplerDesc {
+        static Sampler* s_textSpriteSampler = RI.samplerCache->GetOrCreate(SamplerDesc {
             TFM_LINEAR,
             TFM_LINEAR,
             TWM_CLAMP_TO_EDGE,

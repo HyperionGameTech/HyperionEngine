@@ -672,7 +672,7 @@ void Win32ApplicationWindow::Close()
     {
         EnqueueDeletion(FunctionWrapper<Proc<void()>>([surface = m_vkSurface]()
             {
-                VulkanInstance* vulkanInstance = g_renderInterface->GetInstance();
+                VulkanInstance* vulkanInstance = RI.GetInstance();
                 Assert(vulkanInstance != nullptr);
 
                 vkDestroySurfaceKHR(vulkanInstance->GetInstance(), surface, nullptr);

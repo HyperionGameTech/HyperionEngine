@@ -252,7 +252,7 @@ void View::Init()
         }
         else if (m_viewDesc.framebufferDesc.numAttachments > 0)
         {
-            FramebufferRef framebuffer = g_renderInterface->MakeFramebuffer(m_viewDesc.framebufferDesc);
+            FramebufferRef framebuffer = RI.MakeFramebuffer(m_viewDesc.framebufferDesc);
 
 #if HYP_DEBUG_MODE
             if (m_name.IsValid())
@@ -418,7 +418,7 @@ void View::PrepareShadowViews(Array<View*, SceneTempAllocator>& outShadowViews)
 
         for (uint32 cascadeIndex = 0; cascadeIndex < light->GetNumShadowMapCascades(); cascadeIndex++)
         {
-            shadowViewsDynamic[cascadeIndex] = g_renderInterface->shadowMapCache->GetOrCreateShadowView(
+            shadowViewsDynamic[cascadeIndex] = RI.shadowMapCache->GetOrCreateShadowView(
                 this,
                 light,
                 cascadeIndex,
@@ -436,7 +436,7 @@ void View::PrepareShadowViews(Array<View*, SceneTempAllocator>& outShadowViews)
             // - use baked shadow maps for statics
             if (cacheStaticShadowMaps || hasBakedStaticShadows)
             {
-                shadowViewsStatic[cascadeIndex] = g_renderInterface->shadowMapCache->GetOrCreateShadowView(
+                shadowViewsStatic[cascadeIndex] = RI.shadowMapCache->GetOrCreateShadowView(
                     this,
                     light,
                     cascadeIndex,

@@ -37,7 +37,7 @@ void WriteBufferData_MeshEntity(StructuredBuffer& sbuffer, uint32 idx, IRenderPr
     proxyCasted->bufferData.entityIndex = idx;
     proxyCasted->bufferData.materialIndex = GetBinding(proxyCasted->material);
     proxyCasted->bufferData.skeletonIndex = GetBinding(proxyCasted->skeleton);
-    
+
     sbuffer.Write(idx * sizeof(proxyCasted->bufferData), sizeof(proxyCasted->bufferData), &proxyCasted->bufferData);
 }
 
@@ -92,10 +92,10 @@ void OnBindingChanged_ReflectionProbe(EnvProbe* envProbe, uint32 prev, uint32 ne
         const GpuImageRef& srcImage = proxyCasted->texture->GetGpuImage();
         AssertDebug(srcImage.IsValid());
 
-        const GpuImageRef& dstImage = g_renderInterface->envProbesTexture->GetGpuImage();
+        const GpuImageRef& dstImage = RI.envProbesTexture->GetGpuImage();
         Assert(dstImage.IsValid());
 
-        Frame* currentFrame = g_renderInterface->GetCurrentFrame();
+        Frame* currentFrame = RI.GetCurrentFrame();
         Assert(currentFrame != nullptr);
 
         CommandRecorder& cr = currentFrame->preRenderCommands;
@@ -109,7 +109,7 @@ void OnBindingChanged_ReflectionProbe(EnvProbe* envProbe, uint32 prev, uint32 ne
             {
                 break;
             }
-            
+
             ImageSubResource srcSubResource {};
             srcSubResource.baseMipLevel = mipIndex;
             srcSubResource.baseArrayLayer = 0;
@@ -182,7 +182,7 @@ void WriteBufferData_Light(StructuredBuffer& sbuffer, uint32 idx, IRenderProxy* 
     {
         bufferData.materialIndex = ~0u;
     }
-    
+
     sbuffer.Write(idx * sizeof(bufferData), sizeof(bufferData), &bufferData);
 }
 
@@ -190,7 +190,7 @@ void OnBindingChanged_Material(MaterialInstance* material, uint32 prev, uint32 n
 {
     AssertOnThread(g_renderThread);
 
-    static const IRenderConfig& s_renderConfig = g_renderInterface->GetRenderConfig();
+    static const IRenderConfig& s_renderConfig = RI.GetRenderConfig();
 
     AssertDebug(material != nullptr);
 
@@ -198,9 +198,9 @@ void OnBindingChanged_Material(MaterialInstance* material, uint32 prev, uint32 n
 
     if (prev != ~0u)
     {
-        if (g_renderInterface->materialTextureCache->imageViews.HasIndex(prev))
+        if (RI.materialTextureCache->imageViews.HasIndex(prev))
         {
-            auto& imageViews = g_renderInterface->materialTextureCache->imageViews.Get(prev);
+            auto& imageViews = RI.materialTextureCache->imageViews.Get(prev);
 
             if (imageViews.Any())
             {
@@ -208,7 +208,7 @@ void OnBindingChanged_Material(MaterialInstance* material, uint32 prev, uint32 n
             }
         }
     }
-    
+
     if (next != ~0u)
     {
         IRenderProxy* proxy = GetRenderProxy(material);
@@ -216,7 +216,7 @@ void OnBindingChanged_Material(MaterialInstance* material, uint32 prev, uint32 n
 
         RenderProxyMaterial* proxyCasted = static_cast<RenderProxyMaterial*>(proxy);
 
-        auto imageViewsIt = g_renderInterface->materialTextureCache->imageViews.Emplace(next);
+        auto imageViewsIt = RI.materialTextureCache->imageViews.Emplace(next);
         auto& imageViews = *imageViewsIt;
 
         if (imageViews.Size() < proxyCasted->boundTextures.Size())
@@ -232,19 +232,19 @@ void OnBindingChanged_Material(MaterialInstance* material, uint32 prev, uint32 n
                 {
                     continue; // skip; already valid image view set
                 }
-                
+
                 // defer release until a few frames from now
                 EnqueueDeletion(std::move(imageViews[i]));
             }
 
-            imageViews[i] = g_renderInterface->textureViewCache->GetOrCreate(proxyCasted->boundTextures[i]);
+            imageViews[i] = RI.textureViewCache->GetOrCreate(proxyCasted->boundTextures[i]);
         }
     }
 }
 
 void OnBindingChanged_Texture(Texture* texture, uint32 prev, uint32 next)
 {
-    static const IRenderConfig& s_renderConfig = g_renderInterface->GetRenderConfig();
+    static const IRenderConfig& s_renderConfig = RI.GetRenderConfig();
     static const bool s_isBindlessSupported = s_renderConfig.bindlessTextures;
 
     if (s_isBindlessSupported)
@@ -252,12 +252,12 @@ void OnBindingChanged_Texture(Texture* texture, uint32 prev, uint32 next)
         if (next != ~0u)
         {
             // @TODO Use 'next' rather than texture->Id().ToIndex() here
-            g_renderInterface->bindlessStorage->AddResource(BindlessStorage_Textures, texture->Id().ToIndex(), g_renderInterface->textureViewCache->GetOrCreate(texture));
+            RI.bindlessStorage->AddResource(BindlessStorage_Textures, texture->Id().ToIndex(), RI.textureViewCache->GetOrCreate(texture));
         }
         else
         {
             // @TODO Use 'prev' rather than texture->Id().ToIndex() here
-            g_renderInterface->bindlessStorage->RemoveResource(BindlessStorage_Textures, texture->Id().ToIndex());
+            RI.bindlessStorage->RemoveResource(BindlessStorage_Textures, texture->Id().ToIndex());
         }
     }
 

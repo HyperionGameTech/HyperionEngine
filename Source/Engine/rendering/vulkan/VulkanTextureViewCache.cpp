@@ -16,7 +16,7 @@
 
 namespace Hyperion {
 
-extern VulkanRenderInterface* g_renderInterface;
+extern VulkanRenderInterface RI;
 
 static uint64 CalculateImageViewHash(const ImageSubResource& subResource, TextureType viewTextureType)
 {

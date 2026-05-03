@@ -33,7 +33,7 @@
 
 namespace Hyperion {
 
-extern VulkanRenderInterface* g_renderInterface;
+extern VulkanRenderInterface RI;
 
 #if HYP_DEBUG_MODE
 
@@ -54,7 +54,7 @@ static inline void ValidateDynamicOffset(
 
     Assert(offset != ~0u, "Invalid offset set for dynamic element: {}", Name(dynamicElementName));
 
-    const VkPhysicalDeviceLimits& limits = g_renderInterface->GetDevice()->GetFeatures().GetPhysicalDeviceProperties().limits;
+    const VkPhysicalDeviceLimits& limits = RI.GetDevice()->GetFeatures().GetPhysicalDeviceProperties().limits;
 
     // Validate alignment based on buffer type
     if (layoutElement->type == ShaderInputType::CBV_Dynamic)
@@ -174,7 +174,7 @@ VulkanDescriptorSet::VulkanDescriptorSet(const DescriptorSetLayout& layout)
             {
                 if (element.type == ShaderInputType::SRV || element.type == ShaderInputType::SRV_Dynamic)
                 {
-                    PrefillElements<VulkanGpuImageView>(name, element.count, g_renderInterface->placeholderData->GetImageView2D1x1R8());
+                    PrefillElements<VulkanGpuImageView>(name, element.count, RI.placeholderData->GetImageView2D1x1R8());
                 }
                 else
                 {
@@ -193,7 +193,7 @@ VulkanDescriptorSet::VulkanDescriptorSet(const DescriptorSetLayout& layout)
 
             break;
         case ShaderInputType::Sampler:
-            PrefillElements<VulkanSampler>(name, element.count, g_renderInterface->placeholderData->GetSamplerLinear());
+            PrefillElements<VulkanSampler>(name, element.count, RI.placeholderData->GetSamplerLinear());
 
             break;
         default:
@@ -208,7 +208,7 @@ VulkanDescriptorSet::~VulkanDescriptorSet()
     {
         EnqueueDeletion(FunctionWrapper<Proc<void()>>([handle = m_handle, pool = m_vkDescriptorPool]() -> void
             {
-                g_renderInterface->DestroyDescriptorSet(handle, pool);
+                RI.DestroyDescriptorSet(handle, pool);
             }));
 
         m_handle = VK_NULL_HANDLE;
@@ -241,7 +241,7 @@ void VulkanDescriptorSet::UpdateDirtyState(bool* outIsDirty)
             cachedElementValues.ResizeZeroed(element.values.Size());
         }
     }
-    
+
     Array<VulkanCachedDescriptor, VulkanTempAllocator> localDescriptors;
 
     // detect changes from cachedValues
@@ -396,7 +396,7 @@ void VulkanDescriptorSet::UpdateDirtyState(bool* outIsDirty)
         {
             AssertDebug(localDirtyRange.GetEnd() <= cachedValues.Size());
             AssertDebug(localDirtyRange.GetEnd() <= localDescriptors.Size());
-            
+
             Memory::Copy(cachedValues.Data() + localDirtyRange.GetStart(), localDescriptors.Data() + localDirtyRange.GetStart(), sizeof(VulkanCachedDescriptor) * size_t(localDirtyRange.Distance()));
             // std::copy_n(
             //     std::begin(cachedValues) + localDirtyRange.GetStart(),
@@ -481,7 +481,7 @@ void VulkanDescriptorSet::Update(bool force)
     }
 
     vkUpdateDescriptorSets(
-        g_renderInterface->GetDevice()->GetDevice(),
+        RI.GetDevice()->GetDevice(),
         uint32(vkWriteDescriptorSets.Size()),
         vkWriteDescriptorSets.Data(),
         0,
@@ -506,7 +506,7 @@ RendererResult VulkanDescriptorSet::Create()
         return HYP_MAKE_ERROR(RendererError, "Descriptor set layout is not valid: {}", 0, m_layout.GetName());
     }
 
-    CheckResultOrReturn(g_renderInterface->GetOrCreateVkDescriptorSetLayout(m_layout, m_vkDescriptorSetLayout));
+    CheckResultOrReturn(RI.GetOrCreateVkDescriptorSetLayout(m_layout, m_vkDescriptorSetLayout));
 
     if (m_layout.IsTemplate())
     {
@@ -524,7 +524,7 @@ RendererResult VulkanDescriptorSet::Create()
         isRayTracing |= (pair.second.type == ShaderInputType::SRV && pair.second.category == ShaderResourceCategory::AccelerationStructure);
     }
 
-    CheckResultOrReturn(g_renderInterface->CreateDescriptorSet(
+    CheckResultOrReturn(RI.CreateDescriptorSet(
         m_vkDescriptorSetLayout,
         isBindlessTextures, isBindlessBuffers, isRayTracing,
         m_handle,
@@ -830,7 +830,7 @@ void VulkanDescriptorSet::SetDebugName(Name name)
     objectNameInfo.objectHandle = (uint64)m_handle;
     objectNameInfo.pObjectName = strName;
 
-    g_vulkanDynamicFunctions->vkSetDebugUtilsObjectNameEXT(g_renderInterface->GetDevice()->GetDevice(), &objectNameInfo);
+    g_vulkanDynamicFunctions->vkSetDebugUtilsObjectNameEXT(RI.GetDevice()->GetDevice(), &objectNameInfo);
 }
 
 #endif

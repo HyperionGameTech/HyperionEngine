@@ -22,7 +22,7 @@
 
 namespace Hyperion {
 
-extern VulkanRenderInterface* g_renderInterface;
+extern VulkanRenderInterface RI;
 
 VulkanFrame::VulkanFrame()
     : FrameBase(0),
@@ -89,9 +89,9 @@ void VulkanFrame::WriteCommandBuffer(VulkanCommandBuffer* commandBuffer)
 
     commandRecorders.PushBack(&preRenderCommands);
     commandRecorders.PushBack(&cr);
-    commandRecorders.PushBack(&g_renderInterface->commandRecorderAllocator.GetCommandRecorder());
+    commandRecorders.PushBack(&RI.commandRecorderAllocator.GetCommandRecorder());
     commandRecorders.PushBack(&postRenderCommands);
-    
+
     for (CommandRecorder* commandRecorder : commandRecorders)
     {
         commandRecorder->Prepare(this);

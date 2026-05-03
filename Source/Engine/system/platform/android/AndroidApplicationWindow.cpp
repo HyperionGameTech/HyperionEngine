@@ -226,7 +226,7 @@ void AndroidApplicationWindow::Close()
     if (m_vkSurface != VK_NULL_HANDLE)
     {
         vkDestroySurfaceKHR(
-            g_renderInterface->GetInstance()->GetInstance(),
+            RI.GetInstance()->GetInstance(),
             m_vkSurface,
             nullptr);
         m_vkSurface = VK_NULL_HANDLE;

@@ -274,7 +274,7 @@ DescriptorSetElement& DescriptorSetBase::SetElementT(StringHash name, uint32 ind
     if (it == m_elements.End())
     {
         it = m_elements.Emplace(Name(name)).first;
-        
+
         element = &it->second;
 
         element->bufferStride = bufferStride;
@@ -409,7 +409,7 @@ DescriptorTableBase::DescriptorTableBase(const ShaderInputGroup* decl)
 
             for (uint32 frameIndex = 0; frameIndex < NumFramesInFlight; frameIndex++)
             {
-                DescriptorSetRef descriptorSet = g_renderInterface->globalDescriptorTable->GetDescriptorSet(referencedDescriptorSetDeclaration->name, frameIndex);
+                DescriptorSetRef descriptorSet = RI.globalDescriptorTable->GetDescriptorSet(referencedDescriptorSetDeclaration->name, frameIndex);
                 Assert(descriptorSet.IsValid(), "Invalid global descriptor set reference: {}", referencedDescriptorSetDeclaration->name);
 
                 m_sets[frameIndex].PushBack(std::move(descriptorSet));

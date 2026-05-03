@@ -46,10 +46,10 @@ struct BuildMeshBlas : public RenderCommand
         const size_t packedVerticesSize = this->packedVertices.ByteSize();
         const size_t packedIndicesSize = this->packedIndices.ByteSize();
 
-        packedVerticesBuffer = g_renderInterface->MakeGpuBuffer(GpuBufferType::RTMeshVertexBuffer, packedVerticesSize);
-        packedIndicesBuffer = g_renderInterface->MakeGpuBuffer(GpuBufferType::RTMeshIndexBuffer, packedIndicesSize);
+        packedVerticesBuffer = RI.MakeGpuBuffer(GpuBufferType::RTMeshVertexBuffer, packedVerticesSize);
+        packedIndicesBuffer = RI.MakeGpuBuffer(GpuBufferType::RTMeshIndexBuffer, packedIndicesSize);
 
-        blas = g_renderInterface->MakeGpuBlas(
+        blas = RI.MakeGpuBlas(
             packedVerticesBuffer,
             packedIndicesBuffer,
             uint32(packedVerticesSize),
@@ -81,7 +81,7 @@ struct BuildMeshBlas : public RenderCommand
         CheckResultOrReturn(packedVerticesBuffer->Create());
         CheckResultOrReturn(packedIndicesBuffer->Create());
 
-        verticesStagingBuffer = g_renderInterface->MakeGpuBuffer(GpuBufferType::StagingBuffer, packedVerticesSize);
+        verticesStagingBuffer = RI.MakeGpuBuffer(GpuBufferType::StagingBuffer, packedVerticesSize);
 #if HYP_DEBUG_MODE
         verticesStagingBuffer->SetDebugName(NAME_FMT("StagingBuffer_VB_GpuBlas_{}", blas->GetDebugName()));
 #endif
@@ -89,7 +89,7 @@ struct BuildMeshBlas : public RenderCommand
         verticesStagingBuffer->Memset(packedVerticesSize, 0); // zero out
         verticesStagingBuffer->Copy(packedVerticesSize, packedVertices.Data());
 
-        indicesStagingBuffer = g_renderInterface->MakeGpuBuffer(GpuBufferType::StagingBuffer, packedIndicesSize);
+        indicesStagingBuffer = RI.MakeGpuBuffer(GpuBufferType::StagingBuffer, packedIndicesSize);
 #if HYP_DEBUG_MODE
         indicesStagingBuffer->SetDebugName(NAME_FMT("StagingBuffer_IB_GpuBlas_{}", blas->GetDebugName()));
 #endif
@@ -97,7 +97,7 @@ struct BuildMeshBlas : public RenderCommand
         indicesStagingBuffer->Memset(packedIndicesSize, 0); // zero out
         indicesStagingBuffer->Copy(packedIndicesSize, packedIndices.Data());
 
-        UniquePtr<SingleTimeCommands> singleTimeCommands = g_renderInterface->GetSingleTimeCommands();
+        UniquePtr<SingleTimeCommands> singleTimeCommands = RI.GetSingleTimeCommands();
 
         singleTimeCommands->Push([this, packedVerticesSize, packedIndicesSize](CommandRecorder& cr)
             {
@@ -115,7 +115,7 @@ struct BuildMeshBlas : public RenderCommand
 
         CheckResultOrReturn(singleTimeCommands->Execute());
 
-        /*Frame* frame = g_renderInterface->GetCurrentFrame();
+        /*Frame* frame = RI.GetCurrentFrame();
         CommandRecorder& cr = frame->cr;
 
         cr << CopyBuffer(verticesStagingBuffer, packedVerticesBuffer, packedVerticesSize);

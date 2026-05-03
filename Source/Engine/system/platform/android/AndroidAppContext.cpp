@@ -258,7 +258,7 @@ AndroidAppContext::~AndroidAppContext()
         if (m_looperThread->IsRunning())
         {
             m_looperThread->Stop();
-            
+
             Assert(m_looperThread->Join());
         }
 
@@ -328,7 +328,7 @@ VkSurfaceKHR AndroidAppContext::CreateVulkanSurface(
         Assert(nativeWindow != nullptr); // if window is provided native window must not be null
     }
 
-    Assert(g_renderInterface->GetInstance()->GetInstance() != VK_NULL_HANDLE);
+    Assert(RI.GetInstance()->GetInstance() != VK_NULL_HANDLE);
 
     VkAndroidSurfaceCreateInfoKHR createInfo { VK_STRUCTURE_TYPE_ANDROID_SURFACE_CREATE_INFO_KHR };
     createInfo.window = nativeWindow;
@@ -336,7 +336,7 @@ VkSurfaceKHR AndroidAppContext::CreateVulkanSurface(
     VkSurfaceKHR surface = VK_NULL_HANDLE;
 
     const VkResult result = vkCreateAndroidSurfaceKHR(
-        g_renderInterface->GetInstance()->GetInstance(),
+        RI.GetInstance()->GetInstance(),
         &createInfo,
         nullptr,
         &surface);

@@ -27,7 +27,7 @@
 
 namespace Hyperion {
 
-extern VulkanRenderInterface* g_renderInterface;
+extern VulkanRenderInterface RI;
 
 static void TransitionFramebufferAttachments(CommandRecorder& cr, VulkanFramebuffer* framebuffer, Span<VulkanAttachment*> attachments)
 {
@@ -99,7 +99,7 @@ RendererResult VulkanAttachmentMap::Create()
         }
     }
 
-    CommandRecorder& cr = g_renderInterface->commandRecorderAllocator.GetCommandRecorder();
+    CommandRecorder& cr = RI.commandRecorderAllocator.GetCommandRecorder();
     TransitionFramebufferAttachments(cr, framebuffer, attachments.ToSpan());
     cr.Done();
 
@@ -129,7 +129,7 @@ VulkanFramebuffer::~VulkanFramebuffer()
     {
         EnqueueDeletion(FunctionWrapper<Proc<void()>>([handle = m_handle]()
             {
-                vkDestroyFramebuffer(g_renderInterface->GetDevice()->GetDevice(), handle, nullptr);
+                vkDestroyFramebuffer(RI.GetDevice()->GetDevice(), handle, nullptr);
             }));
 
         m_handle = VK_NULL_HANDLE;
@@ -205,16 +205,16 @@ RendererResult VulkanFramebuffer::Create()
     framebufferCreateInfo.height = imageExtent.y;
     framebufferCreateInfo.layers = numLayers;
 
-    VULKAN_CHECK(vkCreateFramebuffer(g_renderInterface->GetDevice()->GetDevice(), &framebufferCreateInfo, nullptr, &m_handle));
+    VULKAN_CHECK(vkCreateFramebuffer(RI.GetDevice()->GetDevice(), &framebufferCreateInfo, nullptr, &m_handle));
 
     // if (shouldClearFramebuffer)
     // {
-        // CommandRecorder& cr = g_renderInterface->commandRecorderAllocator.GetCommandRecorder();
-// 
+        // CommandRecorder& cr = RI.commandRecorderAllocator.GetCommandRecorder();
+//
         // cr << SetCurrentFramebuffer(this);
         // cr << ClearFramebuffer(this);
         // cr << SetCurrentFramebuffer(nullptr);
-// 
+//
         // cr.Done();
     // }
 
@@ -307,7 +307,7 @@ void VulkanFramebuffer::BeginCapture(VulkanCommandBuffer* commandBuffer)
     commandBuffer->ResetBoundDescriptorSets();
 
     m_renderPass.Begin(commandBuffer, this);
-    
+
     commandBuffer->m_renderPass = &m_renderPass;
 
     m_isRecording = true;
@@ -355,7 +355,7 @@ void VulkanFramebuffer::Clear(
 
     Array<const AttachmentDesc*, VulkanTempAllocator> colorAttachments;
     colorAttachments.Reserve(m_framebufferDesc.numAttachments);
-    
+
     for (uint32 attachmentIndex = 0; attachmentIndex < m_framebufferDesc.numAttachments; attachmentIndex++)
     {
         if (!TextureUtils::IsDepthFormat(m_framebufferDesc.attachments[attachmentIndex].format))
@@ -369,7 +369,7 @@ void VulkanFramebuffer::Clear(
 
     Array<VkClearRect, VulkanTempAllocator> clearRects;
     clearRects.Resize(m_attachmentMap.attachments.Size());
-    
+
     const Vec2u& maxExtent = GetExtent();
 
     for (const auto& it : m_attachmentMap.attachments)
@@ -392,7 +392,7 @@ void VulkanFramebuffer::Clear(
         clearRect.rect.extent.width = rect.x1 - rect.x0;
         clearRect.rect.extent.height = rect.y1 - rect.y0;
         clearRect.layerCount = 1;
-        
+
         AssertDebug(clearRect.rect.extent.width - clearRect.rect.offset.x <= maxExtent.x
                     && clearRect.rect.extent.height - clearRect.rect.offset.y <= maxExtent.y);
 
@@ -426,7 +426,7 @@ void VulkanFramebuffer::Clear(
             clearAttachment.clearValue.color.float32[3] = attachment->GetClearColor().w;
         }
     }
-    
+
 
     if (clearAttachments.Any())
     {
@@ -456,7 +456,7 @@ void VulkanFramebuffer::SetDebugName(Name name)
     objectNameInfo.objectHandle = (uint64)m_handle;
     objectNameInfo.pObjectName = strName;
 
-    g_vulkanDynamicFunctions->vkSetDebugUtilsObjectNameEXT(g_renderInterface->GetDevice()->GetDevice(), &objectNameInfo);
+    g_vulkanDynamicFunctions->vkSetDebugUtilsObjectNameEXT(RI.GetDevice()->GetDevice(), &objectNameInfo);
 }
 #endif
 

@@ -20,7 +20,7 @@ namespace Hyperion {
 
 HYP_DECLARE_LOG_CHANNEL(RenderingBackend);
 
-extern DX12RenderInterface* g_renderInterface;
+extern DX12RenderInterface RI;
 
 DX12AsyncCompute::DX12AsyncCompute()
     : m_commandBuffer(nullptr),
@@ -74,7 +74,7 @@ void DX12AsyncCompute::Create()
 {
     HYP_SCOPE;
 
-    const DX12QueueData* computeQueueData = g_renderInterface->GetQueueData(D3D12_COMMAND_LIST_TYPE_COMPUTE);
+    const DX12QueueData* computeQueueData = RI.GetQueueData(D3D12_COMMAND_LIST_TYPE_COMPUTE);
 
     m_isSupported = computeQueueData != nullptr && computeQueueData->commandQueue != nullptr;
 
@@ -100,7 +100,7 @@ void DX12AsyncCompute::Submit()
         CheckResult(m_fence->Wait(true));
     }
 
-    const DX12QueueData* queueData = g_renderInterface->GetQueueData(m_commandListType);
+    const DX12QueueData* queueData = RI.GetQueueData(m_commandListType);
     Assert(queueData != nullptr && queueData->commandQueue != nullptr);
 
     // Begin resets the allocator and opens the command list for recording
@@ -117,7 +117,7 @@ void DX12AsyncCompute::Submit()
 
     HRESULT res = queueData->commandQueue->Signal(m_fence->GetD3D12Fence(), m_fence->GetValue());
     Assert(SUCCEEDED(res));
-    
+
     m_isSubmitted = true;
 }
 

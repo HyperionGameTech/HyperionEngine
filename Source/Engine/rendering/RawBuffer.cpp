@@ -52,9 +52,7 @@ void RawBuffer::FlushInto(CommandBuffer& cmdBuffer)
 
     Assert(gpuBuffer && gpuBuffer->IsCreated());
 
-    RenderInterface& ri = *g_renderInterface;
-
-    GpuBuffer* stagingBuffer = ri.stagingBufferPool->AcquireStagingBuffer(dirtyRangeEnd - dirtyRangeStart);
+    GpuBuffer* stagingBuffer = RI.stagingBufferPool->AcquireStagingBuffer(dirtyRangeEnd - dirtyRangeStart);
     Assert(stagingBuffer != nullptr);
 
     Memory::Copy(stagingBuffer->Map(), cpuBuffer.Data() + dirtyRangeStart, dirtyRangeEnd - dirtyRangeStart);
@@ -75,11 +73,9 @@ void RawBuffer::Flush()
         return;
     }
 
-    RenderInterface& ri = *g_renderInterface;
-
-    CommandBuffer& cmdBuffer = ri.GetTransientCommandBuffer();
+    CommandBuffer& cmdBuffer = RI.GetTransientCommandBuffer();
     FlushInto(cmdBuffer);
-    ri.SubmitTransientCommandBuffer(cmdBuffer);
+    RI.SubmitTransientCommandBuffer(cmdBuffer);
 }
 
 #pragma endregion RawBuffer

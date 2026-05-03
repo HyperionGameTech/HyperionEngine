@@ -407,7 +407,7 @@ IRenderProxy* GetRenderProxy(const ObjectBase* resource)
 
     AssertDebug(resource != nullptr);
 
-    ResourceSubtypeData& subtypeData = g_renderInterface->resources->GetSubtypeData(resource->InstanceClass());
+    ResourceSubtypeData& subtypeData = RI.resources->GetSubtypeData(resource->InstanceClass());
     AssertDebug(subtypeData.hasProxyData,
         "Cannot use GetRenderProxy() for type which does not have a RenderProxy! Type name: {}",
         subtypeData.typeInfo->name);
@@ -437,7 +437,7 @@ void UpdateGpuData(const ObjectBase* resource)
 
     const ObjIdBase resourceId = resource->Id();
 
-    ResourceSubtypeData& subtypeData = g_renderInterface->resources->GetSubtypeData(resource->InstanceClass());
+    ResourceSubtypeData& subtypeData = RI.resources->GetSubtypeData(resource->InstanceClass());
     AssertDebug(resourceId.GetTypeId() == subtypeData.typeInfo->id);
 
     AssertDebug(subtypeData.sbuffer != nullptr,
@@ -469,7 +469,7 @@ void SetForceRebind(ObjectBase* resource, bool forceRebind)
 
     AssertDebug(resource != nullptr);
 
-    ResourceSubtypeData& subtypeData = g_renderInterface->resources->GetSubtypeData(resource->InstanceClass());
+    ResourceSubtypeData& subtypeData = RI.resources->GetSubtypeData(resource->InstanceClass());
 
     for (ResourceBinderBase** it = subtypeData.resourceBinders; *it; ++it)
     {
@@ -554,24 +554,24 @@ EngineConfig& GetEngineConfig()
 #pragma region RenderInterface
 
 RenderInterface::RenderInterface()
-    : gpuBufferHolders(PoolNew<GpuBufferHolderMap>(*g_renderPool)),
-      cbufferAllocator(PoolNew<CBufferAllocator>(*g_renderPool)),
-      bufferAllocator(PoolNew<BufferAllocator>(*g_renderPool)),
-      descriptorSetCache(PoolNew<DescriptorSetCache>(*g_renderPool)),
-      placeholderData(PoolNew<PlaceholderData>(*g_renderPool)),
-      materialTextureCache(PoolNew<MaterialTextureCache>(*g_renderPool)),
-      graphicsPipelineCache(PoolNew<GraphicsPipelineCache>(*g_renderPool)),
-      computePipelineCache(PoolNew<ComputePipelineCache>(*g_renderPool)),
-      rayTracingPipelineCache(PoolNew<RayTracingPipelineCache>(*g_renderPool)),
-      bindlessStorage(PoolNew<BindlessStorage>(*g_renderPool)),
-      shaderManager(PoolNew<ShaderManager>(*g_renderPool)),
+    : gpuBufferHolders(nullptr),
+      cbufferAllocator(nullptr),
+      bufferAllocator(nullptr),
+      descriptorSetCache(nullptr),
+      placeholderData(nullptr),
+      materialTextureCache(nullptr),
+      graphicsPipelineCache(nullptr),
+      computePipelineCache(nullptr),
+      rayTracingPipelineCache(nullptr),
+      bindlessStorage(nullptr),
+      shaderManager(nullptr),
       finalPass(nullptr),
-      textureViewCache(PoolNew<TextureViewCache>(*g_renderPool)),
-      samplerCache(PoolNew<SamplerCache>(*g_renderPool)),
-      stagingBufferPool(PoolNew<StagingBufferPool>(*g_renderPool)),
-      blasCache(PoolNew<BLASCache>(*g_renderPool)),
-      shadowMapCache(PoolNew<ShadowMapCache>(*g_renderPool)),
-      crashHandler(PoolNew<CrashHandler>(*g_renderPool))
+      textureViewCache(nullptr),
+      samplerCache(nullptr),
+      stagingBufferPool(nullptr),
+      blasCache(nullptr),
+      shadowMapCache(nullptr),
+      crashHandler(nullptr)
 {
 }
 
@@ -584,6 +584,24 @@ RendererResult RenderInterface::Initialize()
     HYP_LOG(Rendering, Verbose, "Initializing base render interface");
 
     Framework::s_threadFrameIndex = &Framework::s_frameIndex[Framework::TT_FrameDataConsumer];
+
+    gpuBufferHolders = PoolNew<GpuBufferHolderMap>(*g_renderPool);
+    cbufferAllocator = PoolNew<CBufferAllocator>(*g_renderPool);
+    bufferAllocator = PoolNew<BufferAllocator>(*g_renderPool);
+    descriptorSetCache = PoolNew<DescriptorSetCache>(*g_renderPool);
+    placeholderData = PoolNew<PlaceholderData>(*g_renderPool);
+    materialTextureCache = PoolNew<MaterialTextureCache>(*g_renderPool);
+    graphicsPipelineCache = PoolNew<GraphicsPipelineCache>(*g_renderPool);
+    computePipelineCache = PoolNew<ComputePipelineCache>(*g_renderPool);
+    rayTracingPipelineCache = PoolNew<RayTracingPipelineCache>(*g_renderPool);
+    bindlessStorage = PoolNew<BindlessStorage>(*g_renderPool);
+    shaderManager = PoolNew<ShaderManager>(*g_renderPool);
+    textureViewCache = PoolNew<TextureViewCache>(*g_renderPool);
+    samplerCache = PoolNew<SamplerCache>(*g_renderPool);
+    stagingBufferPool = PoolNew<StagingBufferPool>(*g_renderPool);
+    blasCache = PoolNew<BLASCache>(*g_renderPool);
+    shadowMapCache = PoolNew<ShadowMapCache>(*g_renderPool);
+    crashHandler = PoolNew<CrashHandler>(*g_renderPool);
 
     InitDeviceDetails(deviceDetails);
 
@@ -1410,21 +1428,21 @@ void RenderInterface::CommitPipelineState(PSOType psoType, CommandBuffer* comman
         {
             if (inputSet.flags & ShaderInputSetFlags::Template)
             {
-                const ShaderInputSet* refDsDecl = g_renderInterface->globalDescriptorTable->GetDeclaration()->FindDescriptorSetDeclaration(inputSet.name);
+                const ShaderInputSet* refDsDecl = RI.globalDescriptorTable->GetDeclaration()->FindDescriptorSetDeclaration(inputSet.name);
                 AssertDebug(refDsDecl != nullptr);
 
                 DescriptorSetLayout layout { refDsDecl };
-                return g_renderInterface->descriptorSetCache->GetOrCreate(layout);
+                return RI.descriptorSetCache->GetOrCreate(layout);
             }
 
             outStateFlags |= DSS_GlobalReference;
 
-            return g_renderInterface->globalDescriptorTable->GetDescriptorSet(inputSet.name, frameIndex);
+            return RI.globalDescriptorTable->GetDescriptorSet(inputSet.name, frameIndex);
         }
         else
         {
             DescriptorSetLayout layout { &inputSet };
-            return g_renderInterface->descriptorSetCache->GetOrCreate(layout);
+            return RI.descriptorSetCache->GetOrCreate(layout);
         }
     };
 
@@ -1468,7 +1486,7 @@ void RenderInterface::CommitPipelineState(PSOType psoType, CommandBuffer* comman
 
             if (setDecl.flags & ShaderInputSetFlags::Reference)
             {
-                pSetDecl = g_renderInterface->globalDescriptorTable->GetDeclaration()->FindDescriptorSetDeclaration(setDecl.name);
+                pSetDecl = RI.globalDescriptorTable->GetDeclaration()->FindDescriptorSetDeclaration(setDecl.name);
                 AssertDebug(pSetDecl != nullptr);
             }
 

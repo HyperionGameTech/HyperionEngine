@@ -63,11 +63,9 @@ extern VisThread* g_visThreadInstance;
 extern Game* g_gameInstance;
 
 #if HYP_VULKAN
-extern VulkanRenderInterface* g_renderInterface;
+extern VulkanRenderInterface RI;
 #elif HYP_DX12
-extern DX12RenderInterface* g_renderInterface;
-#else
-extern RenderBackend* g_renderInterface;
+extern DX12RenderInterface RI;
 #endif
 
 #endif

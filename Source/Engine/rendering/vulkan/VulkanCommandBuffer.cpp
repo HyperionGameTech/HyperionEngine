@@ -23,7 +23,7 @@ namespace Hyperion {
 
 HYP_DECLARE_LOG_CHANNEL(RenderingBackend);
 
-extern VulkanRenderInterface* g_renderInterface;
+extern VulkanRenderInterface RI;
 
 VulkanCommandBuffer::VulkanCommandBuffer()
     : m_handle(VK_NULL_HANDLE),
@@ -68,7 +68,7 @@ VulkanCommandBuffer& VulkanCommandBuffer::operator=(VulkanCommandBuffer&& other)
 
         EnqueueDeletion(FunctionWrapper<Proc<void()>>([commandPool = m_commandPool, handle = m_handle]() -> void
             {
-                vkFreeCommandBuffers(g_renderInterface->GetDevice()->GetDevice(), commandPool, 1, &handle);
+                vkFreeCommandBuffers(RI.GetDevice()->GetDevice(), commandPool, 1, &handle);
             }));
     }
 
@@ -100,7 +100,7 @@ VulkanCommandBuffer::~VulkanCommandBuffer()
 
         EnqueueDeletion(FunctionWrapper<Proc<void()>>([commandPool = m_commandPool, handle = m_handle]() -> void
             {
-                vkFreeCommandBuffers(g_renderInterface->GetDevice()->GetDevice(), commandPool, 1, &handle);
+                vkFreeCommandBuffers(RI.GetDevice()->GetDevice(), commandPool, 1, &handle);
             }));
 
         m_handle = VK_NULL_HANDLE;
@@ -137,7 +137,7 @@ RendererResult VulkanCommandBuffer::Create()
     allocInfo.commandBufferCount = 1;
 
     VULKAN_CHECK_MSG(
-        vkAllocateCommandBuffers(g_renderInterface->GetDevice()->GetDevice(), &allocInfo, &m_handle),
+        vkAllocateCommandBuffers(RI.GetDevice()->GetDevice(), &allocInfo, &m_handle),
         "Failed to allocate command buffer");
 
     return {};
@@ -258,7 +258,7 @@ void VulkanCommandBuffer::BindVertexBuffer(const VulkanGpuBuffer* buffer)
     AssertDebug(buffer->GetBufferType() == GpuBufferType::VertexBuffer, "Not a vertex buffer! Got buffer type: %u", uint32(buffer->GetBufferType()));
 
     const VkBuffer vertexBuffers[] = { buffer->GetVulkanHandle() };
-    
+
     vkCmdBindVertexBuffers(m_handle, 0, 1, vertexBuffers, BindingOffsets);
 }
 

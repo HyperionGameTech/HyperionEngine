@@ -177,7 +177,7 @@ VkSurfaceKHR Win32AppContext::CreateVulkanSurface(
     }
 
     VkResult vkResult = vkCreateWin32SurfaceKHR(
-        g_renderInterface->GetInstance()->GetInstance(),
+        RI.GetInstance()->GetInstance(),
         &createInfo,
         nullptr,
         &surface);

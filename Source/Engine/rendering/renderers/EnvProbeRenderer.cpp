@@ -86,12 +86,12 @@ void ConvolveEnvProbeCubemap(
     // we need to do this after we Create() the src texture,
     // because CreateGpuImage in Texture.cpp creates its own command recorder,
     // so we need that one to run before this one.
-    CommandRecorder& cr = g_renderInterface->commandRecorderAllocator.GetCommandRecorder();
+    CommandRecorder& cr = RI.commandRecorderAllocator.GetCommandRecorder();
     HYP_DEFER({ cr.Done(); });
-    
+
     Handle<Texture> prefilteredEnvMap = envProbe.GetPrefilteredEnvMap();
     Assert(prefilteredEnvMap.IsValid() && prefilteredEnvMap->IsCreated());
-    
+
     Handle<Texture> srcTexture;
     bool needsMipMapGeneration = false;
 
@@ -101,7 +101,7 @@ void ConvolveEnvProbeCubemap(
     Handle<Texture> dstTexture = MakeHandle<Texture>(dstTextureDesc);
     dstTexture->SetName(NAME("EnvProbeRenderer_DstColorTexture"));
     CheckResult(dstTexture->Create());
-    
+
     if (inTexture->HasMipMaps())
     {
         srcTexture = inTexture;
@@ -187,7 +187,7 @@ void ConvolveEnvProbeCubemap(
 
         GpuBufferRef& uniformBuffer = buffers[mipIndex];
 
-        uniformBuffer = g_renderInterface->MakeGpuBuffer(GpuBufferType::ConstantBuffer, sizeof(uniforms));
+        uniformBuffer = RI.MakeGpuBuffer(GpuBufferType::ConstantBuffer, sizeof(uniforms));
         Assert(uniformBuffer->Create());
 
         uniforms.outImageDimensions = mipExtent;
@@ -203,24 +203,24 @@ void ConvolveEnvProbeCubemap(
         subResource.numLayers = 6;
 
         // create the view as 2D array instead of cubemap
-        GpuImageViewRef dstImageView = g_renderInterface->textureViewCache->GetOrCreate(
+        GpuImageViewRef dstImageView = RI.textureViewCache->GetOrCreate(
             dstTexture, subResource, TextureType::Texture2DArray);
 
-        GpuImageViewRef srcImageView = g_renderInterface->textureViewCache->GetOrCreate(srcTexture);
-        
+        GpuImageViewRef srcImageView = RI.textureViewCache->GetOrCreate(srcTexture);
+
         Assert(dstImageView.IsValid() && srcImageView.IsValid());
 
         cr << InsertBarrier(dstTexture->GetGpuImage(), RS_UNORDERED_ACCESS, subResource);
 
-        const Frame* currFrame = g_renderInterface->GetCurrentFrame();
+        const Frame* currFrame = RI.GetCurrentFrame();
         const uint32 frameIndex = currFrame ? currFrame->GetFrameIndex() : 0;
 
         // @TODO Just write the env probe to constant buffer?
-        cr << SetShaderUniform(0, "CurrentEnvProbe"_sh, g_renderInterface->namedBuffers[NamedBuffer::EnvProbes].gpuBuffer, TShaderDataOffset<EnvProbeShaderData>(&envProbe));
-        cr << SetShaderUniform(1, "SphereSamplesBuffer"_sh, g_renderInterface->sphereSamplesBuffer.gpuBuffer);
+        cr << SetShaderUniform(0, "CurrentEnvProbe"_sh, RI.namedBuffers[NamedBuffer::EnvProbes].gpuBuffer, TShaderDataOffset<EnvProbeShaderData>(&envProbe));
+        cr << SetShaderUniform(1, "SphereSamplesBuffer"_sh, RI.sphereSamplesBuffer.gpuBuffer);
         cr << SetShaderUniform(2, "ColorTexture"_sh, srcImageView);
-        cr << SetShaderUniform(3, "SamplerLinear"_sh, g_renderInterface->placeholderData->GetSamplerLinear());
-        cr << SetShaderUniform(4, "SamplerNearest"_sh, g_renderInterface->placeholderData->GetSamplerNearest());
+        cr << SetShaderUniform(3, "SamplerLinear"_sh, RI.placeholderData->GetSamplerLinear());
+        cr << SetShaderUniform(4, "SamplerNearest"_sh, RI.placeholderData->GetSamplerNearest());
         cr << SetShaderUniform(5, "OutImage"_sh, dstImageView);
         cr << SetShaderUniform(6, "UniformBuffer"_sh, uniformBuffer);
 
@@ -234,7 +234,7 @@ void ConvolveEnvProbeCubemap(
             Vec3u::Zero(), Vec3u::Zero(),
             Vec3u(mipExtent, 1),
             subResource, subResource);
-        
+
         // put prefiltered map back into shader read
         cr << InsertBarrier(prefilteredEnvMap->GetGpuImage(), RS_SHADER_RESOURCE, subResource);
     }
@@ -255,7 +255,7 @@ void ConvolveEnvProbeCubemap(
             HYP_LOG(Rendering, Info, "Readback of convolved EnvProbe {} completed, size {} bytes", envProbeStrong->GetName(), buffer.Size());
 
             auto resGuard = prefilteredEnvMap->GetWriteScope();
-            
+
             TextureDesc desc = prefilteredEnvMap->GetTextureDesc();
 
             // sanity check
@@ -279,10 +279,10 @@ void ConvolveEnvProbeCubemap(
                 {
                     desc.mipOffsets[mipIndex - 1] = uint32(mipOffset);
                 }
-                    
+
                 mipOffset += mipByteSize;
             }
-            
+
             prefilteredEnvMap->SetTextureDesc(desc);
 
             // Copy to cpu side data
@@ -304,7 +304,7 @@ void ConvolveEnvProbeCubemap(
             const GpuImageRef& srcImage = prefilteredEnvMap->GetGpuImage();
             AssertDebug(srcImage.IsValid());
 
-            const GpuImageRef& dstImage = g_renderInterface->envProbesTexture->GetGpuImage();
+            const GpuImageRef& dstImage = RI.envProbesTexture->GetGpuImage();
             Assert(dstImage.IsValid());
 
             cr << InsertBarrier(srcImage, RS_COPY_SRC);
@@ -382,12 +382,12 @@ void ComputeEnvProbeSphericalHarmonics(
     }
 
     // @TODO fix thread safety
-    Frame* frame = g_renderInterface->GetCurrentFrame();
+    Frame* frame = RI.GetCurrentFrame();
     Assert(frame != nullptr);
-    
-    AsyncCompute* asyncCompute = useAsyncCompute ? g_renderInterface->CreateAsyncCompute() : nullptr;
 
-    CommandRecorder& cr = useAsyncCompute ? asyncCompute->cr : g_renderInterface->commandRecorderAllocator.GetCommandRecorder();
+    AsyncCompute* asyncCompute = useAsyncCompute ? RI.CreateAsyncCompute() : nullptr;
+
+    CommandRecorder& cr = useAsyncCompute ? asyncCompute->cr : RI.commandRecorderAllocator.GetCommandRecorder();
 
     FixedArray<RWStructuredBuffer, ShNumLevels> shTilesBuffers;
 
@@ -406,14 +406,14 @@ void ComputeEnvProbeSphericalHarmonics(
 
     static constexpr uint32 ShDataSize = sizeof(EnvProbeShaderData::shData);
 
-    GpuBufferRef shBuffer = g_renderInterface->MakeGpuBuffer(GpuBufferType::RWStructuredBuffer, MathUtil::NextPowerOf2(ShDataSize));
+    GpuBufferRef shBuffer = RI.MakeGpuBuffer(GpuBufferType::RWStructuredBuffer, MathUtil::NextPowerOf2(ShDataSize));
     CheckResult(shBuffer->Create());
 
     Array<GpuBufferRef> uniformBuffers;
 
     cr << InsertBarrier(shTilesBuffers[0].gpuBuffer, RS_UNORDERED_ACCESS, ShaderModuleType::Compute);
     cr << InsertBarrier(shBuffer, RS_UNORDERED_ACCESS, ShaderModuleType::Compute);
-    
+
     ShaderPropertySet shaderProperties;
 
     // Helper to run pass
@@ -426,18 +426,18 @@ void ComputeEnvProbeSphericalHarmonics(
         ShaderDesc shaderDesc(NAME("ComputeSH"), passShaderProperties);
         cr << SetCurrentShader(shaderDesc);
 
-        GpuBufferRef ub = g_renderInterface->MakeGpuBuffer(GpuBufferType::ConstantBuffer, sizeof(SHUniforms));
+        GpuBufferRef ub = RI.MakeGpuBuffer(GpuBufferType::ConstantBuffer, sizeof(SHUniforms));
         ub->Create();
         ub->Copy(sizeof(SHUniforms), &passUniforms);
         uniformBuffers.PushBack(ub);
 
-        cr << SetShaderUniform(0, "SamplerLinear"_sh, g_renderInterface->placeholderData->GetSamplerLinear());
-        cr << SetShaderUniform(1, "SamplerNearest"_sh, g_renderInterface->placeholderData->GetSamplerNearest());
-        cr << SetShaderUniform(3, "EnvProbesBuffer"_sh, g_renderInterface->namedBuffers[NamedBuffer::EnvProbes].gpuBuffer);
+        cr << SetShaderUniform(0, "SamplerLinear"_sh, RI.placeholderData->GetSamplerLinear());
+        cr << SetShaderUniform(1, "SamplerNearest"_sh, RI.placeholderData->GetSamplerNearest());
+        cr << SetShaderUniform(3, "EnvProbesBuffer"_sh, RI.namedBuffers[NamedBuffer::EnvProbes].gpuBuffer);
 
         cr << SetShaderUniform(4, "OutSHBuffer"_sh, shBuffer);
 
-        cr << SetShaderUniform(8, "InColorCubemap"_sh, g_renderInterface->textureViewCache->GetOrCreate(const_cast<Texture*>(&inColorTexture)));
+        cr << SetShaderUniform(8, "InColorCubemap"_sh, RI.textureViewCache->GetOrCreate(const_cast<Texture*>(&inColorTexture)));
         cr << SetShaderUniform(11, "InputSHTilesBuffer"_sh, inputBuffer.gpuBuffer);
         cr << SetShaderUniform(12, "OutputSHTilesBuffer"_sh, outputBuffer.gpuBuffer);
         cr << SetShaderUniform(13, "SHUniforms"_sh, ub);
@@ -507,13 +507,13 @@ void ComputeEnvProbeSphericalHarmonics(
 
     cr << InsertBarrier(shBuffer, RS_COPY_SRC, ShaderModuleType::Compute);
 
-    GpuBufferRef readbackBuffer = g_renderInterface->MakeGpuBuffer(GpuBufferType::ReadbackBuffer, shBuffer->Size());
+    GpuBufferRef readbackBuffer = RI.MakeGpuBuffer(GpuBufferType::ReadbackBuffer, shBuffer->Size());
     readbackBuffer->SetIsCpuAccessible(true);
 #if HYP_DEBUG_MODE
     readbackBuffer->SetDebugName(NAME("ComputeEnvProbeSphericalHarmonics_ReadbackBuffer"));
 #endif // HYP_DEBUG_MODE
     CheckResult(readbackBuffer->Create());
-    
+
     // Copy to readback buffer
     cr << InsertBarrier(readbackBuffer, RS_COPY_DST, ShaderModuleType::Compute);
     cr << CopyBuffer(shBuffer, readbackBuffer, shBuffer->Size());
@@ -542,8 +542,8 @@ void ComputeEnvProbeSphericalHarmonics(
         static void InvokeStatic(CmdBase* cmd, CommandBuffer* commandBuffer)
         {
             ReadbackSphericalHarmonics* cmdCasted = static_cast<ReadbackSphericalHarmonics*>(cmd);
-            
-            Frame* frame = g_renderInterface->GetCurrentFrame();
+
+            Frame* frame = RI.GetCurrentFrame();
             Assert(frame != nullptr);
 
             // Readback happens after the frame is finished.
@@ -588,7 +588,7 @@ void ComputeEnvProbeSphericalHarmonics(
 
     if (useAsyncCompute)
     {
-        g_renderInterface->SubmitAsyncCompute(asyncCompute);
+        RI.SubmitAsyncCompute(asyncCompute);
     }
     else
     {

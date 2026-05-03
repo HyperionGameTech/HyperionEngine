@@ -292,7 +292,7 @@ GpuImage* ShadowMapCache::GetAtlasImage() const
 
 GpuImageView* ShadowMapCache::GetAtlasImageView() const
 {
-    return g_renderInterface->textureViewCache->GetOrCreate(m_impl->allocator.GetAtlasTextureArray());
+    return RI.textureViewCache->GetOrCreate(m_impl->allocator.GetAtlasTextureArray());
 }
 
 GpuImage* ShadowMapCache::GetPointLightShadowMapImage() const
@@ -302,7 +302,7 @@ GpuImage* ShadowMapCache::GetPointLightShadowMapImage() const
 
 GpuImageView* ShadowMapCache::GetPointLightShadowMapImageView() const
 {
-    return g_renderInterface->textureViewCache->GetOrCreate(m_impl->allocator.GetPointLightTextureArray());
+    return RI.textureViewCache->GetOrCreate(m_impl->allocator.GetPointLightTextureArray());
 }
 
 HYP_NODISCARD View* ShadowMapCache::GetOrCreateShadowView(

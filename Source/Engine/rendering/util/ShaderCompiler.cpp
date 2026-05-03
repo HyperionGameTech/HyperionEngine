@@ -431,7 +431,7 @@ void MergeGlobalShaderProperties(ShaderPropertySet& out)
 
     const EngineConfig& cfg = GetEngineConfig();
 
-    if (g_renderInterface && g_renderInterface->GetRenderConfig().bindlessTextures)
+    if (RI.GetRenderConfig().bindlessTextures)
         out.Add(s_propBindlessTextures);
 
     if (cfg.Get("Rendering.Debug.Irradiance").ToBool(false))
@@ -3826,9 +3826,9 @@ bool ShaderCompiler::CompileBundle(
     {
         for (Handle<Shader>& shader : existingShadersToRemove)
         {
-            g_renderInterface->graphicsPipelineCache->ExpirePipelinesForShader(shader);
-            g_renderInterface->computePipelineCache->ExpirePipelinesForShader(shader);
-            g_renderInterface->rayTracingPipelineCache->ExpirePipelinesForShader(shader);
+            RI.graphicsPipelineCache->ExpirePipelinesForShader(shader);
+            RI.computePipelineCache->ExpirePipelinesForShader(shader);
+            RI.rayTracingPipelineCache->ExpirePipelinesForShader(shader);
 
             GetEngineAssetRegistry()->RemoveAsset(shader);
 

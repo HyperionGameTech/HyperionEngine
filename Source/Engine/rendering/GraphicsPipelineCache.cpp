@@ -212,17 +212,17 @@ void GraphicsPipelineCacheHandle::UpdateRefCount(GraphicsPipelineCacheHandle& ca
 {
     AssertDebug(cacheHandle.m_ptr != nullptr);
 
-    CachedPipelinesMap* cachedPipelines = g_renderInterface->graphicsPipelineCache->m_cachedPipelines;
+    CachedPipelinesMap* cachedPipelines = RI.graphicsPipelineCache->m_cachedPipelines;
     AssertDebug(cachedPipelines != nullptr);
 
     ValueStorage<TSharedLock<SharedMutex>> lockStorage {};
 
     if (lock)
     {
-        lockStorage.Construct(g_renderInterface->graphicsPipelineCache->m_mutex);
+        lockStorage.Construct(RI.graphicsPipelineCache->m_mutex);
     }
 
-    const size_t index = g_renderInterface->graphicsPipelineCache->m_cachedPipelines->IndexOf(cacheHandle.m_ptr);
+    const size_t index = RI.graphicsPipelineCache->m_cachedPipelines->IndexOf(cacheHandle.m_ptr);
     AssertDebug(index != size_t(-1));
 
     int& refCount = cachedPipelines->refCountMap.Get(index);
@@ -327,7 +327,7 @@ void GraphicsPipelineCache::GetOrCreate(
     Assert(framebufferDesc.numAttachments > 0,
         "Cannot create a graphics pipeline with no render target descriptor or 0 attachments!");
 
-    ShaderInstanceRef shader = g_renderInterface->shaderManager->GetOrCreate(
+    ShaderInstanceRef shader = RI.shaderManager->GetOrCreate(
         attributes.GetMaterialAttributes().shaderName,
         attributes.GetMaterialAttributes().shaderProperties,
         attributes.GetMeshAttributes().inputLayout);
@@ -341,7 +341,7 @@ void GraphicsPipelineCache::GetOrCreate(
     size_t slot = SIZE_MAX;
 
     // Create pipeline
-    GraphicsPipelineRef graphicsPipeline = g_renderInterface->MakeGraphicsPipeline(
+    GraphicsPipelineRef graphicsPipeline = RI.MakeGraphicsPipeline(
         shader,
         framebufferDesc,
         attributes);
@@ -352,7 +352,7 @@ void GraphicsPipelineCache::GetOrCreate(
     TUniqueLock guard(m_mutex);
 
     ShaderInstance* shaderInstance = graphicsPipeline->GetShader();
-    
+
 #if HYP_DEBUG_MODE
     String shaderString = "\tProperties: " + shaderInstance->GetShader()->properties.GetDebugString();
     shaderString += "\n\tVertex attributes: " + String::ToString(shaderInstance->GetShader()->inputLayout.mask);
@@ -366,12 +366,12 @@ void GraphicsPipelineCache::GetOrCreate(
     {
         return;
     }
-    
+
     // set initial lastFrame index so we don't delete it right away when cleaning up after the frame.
     graphicsPipeline->lastFrame = GetFrameCounter();
 
     cacheHandle = m_cachedPipelines->Alloc(slot);
-    
+
     Assert(cacheHandle.m_ptr != nullptr && slot != SIZE_MAX);
 
     // set new allocated slot to the graphics pipeline we just created

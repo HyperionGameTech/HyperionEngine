@@ -323,7 +323,7 @@ Mesh* BoxDebugDrawShape::GetMesh_Internal() const
             GetEngineAssetRegistry()->PutAsset(mesh);
 
             InitObject(mesh);
-            
+
             onShutdownHandle = g_engineDriver->GetDelegates().OnShutdown.Bind([m = &mesh]()
             {
                 m->Reset();
@@ -394,7 +394,7 @@ Mesh* PlaneDebugDrawShape::GetMesh_Internal() const
             GetEngineAssetRegistry()->PutAsset(mesh);
 
             InitObject(mesh);
-            
+
             onShutdownHandle = g_engineDriver->GetDelegates().OnShutdown.Bind([m = &mesh]()
             {
                 m->Reset();
@@ -424,7 +424,7 @@ void PlaneDebugDrawShape::operator()(const FixedArray<Vec3f, 4>& points, const C
     const Vec3f center = points.Avg();
 
     Mat4f transformMatrix;
-    
+
     transformMatrix.rows[0][0] = x.x;
     transformMatrix.rows[0][1] = x.y;
     transformMatrix.rows[0][2] = x.z;
@@ -681,7 +681,7 @@ void DebugDrawer::Render(Frame* frame, const RenderSetup& renderSetup)
             EnqueueDeletion(std::move(instanceBuffer));
         }
 
-        instanceBuffer = g_renderInterface->MakeGpuBuffer(GpuBufferType::StructuredBuffer, sizeof(ImmediateDrawShaderData) * m_headers[idx].Size());
+        instanceBuffer = RI.MakeGpuBuffer(GpuBufferType::StructuredBuffer, sizeof(ImmediateDrawShaderData) * m_headers[idx].Size());
         instanceBuffer->SetIsCpuAccessible(true);
         CheckResult(instanceBuffer->Create());
 
@@ -741,7 +741,7 @@ void DebugDrawer::Render(Frame* frame, const RenderSetup& renderSetup)
     ShaderDesc shaderDesc;
     shaderDesc.name = NAME("DebugVis");
     shaderDesc.properties.Add(s_propImmediateMode);
-    
+
     cr << SetCurrentShader(shaderDesc);
     cr << SetCurrentViewport(viewport);
 
@@ -754,21 +754,21 @@ void DebugDrawer::Render(Frame* frame, const RenderSetup& renderSetup)
         cr << SetDepthWrite(true);
         cr << SetStencilTest(false);
         cr << SetFillMode(FM_FILL);
-        cr << SetFaceCullMode(FCM_BACK);    
+        cr << SetFaceCullMode(FCM_BACK);
     });
-    
+
     DeferredRendererPassData* dpd = DynamicCast<DeferredRendererPassData>(renderSetup.passData);
     AssertDebug(dpd != nullptr);
-    
-    cr << SetShaderUniform(0, "SamplerNearest"_sh, g_renderInterface->placeholderData->GetSamplerNearest());
-    cr << SetShaderUniform(1, "SamplerLinear"_sh, g_renderInterface->placeholderData->GetSamplerLinearMipmap());
-    cr << SetShaderUniform(2, "GBufferMipChain"_sh, g_renderInterface->textureViewCache->GetOrCreate(dpd->mipChain));
-    cr << SetShaderUniform(3, "EnvProbesTexture"_sh, g_renderInterface->textureViewCache->GetOrCreate(g_renderInterface->envProbesTexture));
 
-    cr << SetShaderUniform(4, "CamerasBuffer"_sh, g_renderInterface->namedBuffers[NamedBuffer::Cameras].gpuBuffer, TShaderDataOffset<CameraShaderData>(renderSetup.view->GetCamera()));
-    cr << SetShaderUniform(5, "EntitiesBuffer"_sh, g_renderInterface->namedBuffers[NamedBuffer::Entities].gpuBuffer);
-    cr << SetShaderUniform(6, "WorldsBuffer"_sh, g_renderInterface->namedBuffers[NamedBuffer::Worlds].gpuBuffer);
-    cr << SetShaderUniform(7, "EnvProbesBuffer"_sh, g_renderInterface->namedBuffers[NamedBuffer::EnvProbes].gpuBuffer);
+    cr << SetShaderUniform(0, "SamplerNearest"_sh, RI.placeholderData->GetSamplerNearest());
+    cr << SetShaderUniform(1, "SamplerLinear"_sh, RI.placeholderData->GetSamplerLinearMipmap());
+    cr << SetShaderUniform(2, "GBufferMipChain"_sh, RI.textureViewCache->GetOrCreate(dpd->mipChain));
+    cr << SetShaderUniform(3, "EnvProbesTexture"_sh, RI.textureViewCache->GetOrCreate(RI.envProbesTexture));
+
+    cr << SetShaderUniform(4, "CamerasBuffer"_sh, RI.namedBuffers[NamedBuffer::Cameras].gpuBuffer, TShaderDataOffset<CameraShaderData>(renderSetup.view->GetCamera()));
+    cr << SetShaderUniform(5, "EntitiesBuffer"_sh, RI.namedBuffers[NamedBuffer::Entities].gpuBuffer);
+    cr << SetShaderUniform(6, "WorldsBuffer"_sh, RI.namedBuffers[NamedBuffer::Worlds].gpuBuffer);
+    cr << SetShaderUniform(7, "EnvProbesBuffer"_sh, RI.namedBuffers[NamedBuffer::EnvProbes].gpuBuffer);
 
     for (uint32 shapeIdx = 0; shapeIdx < HYP_ARRAY_SIZE(partitionedShaderData); shapeIdx++)
     {
@@ -807,11 +807,11 @@ void DebugDrawer::Render(Frame* frame, const RenderSetup& renderSetup)
                     cr << SetDepthWrite(bool(attributes.GetMaterialAttributes().flags & MAF_DEPTH_WRITE));
                     cr << SetStencilTest(bool(attributes.GetMaterialAttributes().flags & MAF_STENCIL_TEST));
                     cr << SetStencilFunction(attributes.GetMaterialAttributes().stencilFunction);
-    
+
                     cr << SetShaderUniform(8, "ImmediateDrawsBuffer"_sh, instanceBuffer, TShaderDataOffset<ImmediateDrawShaderData>(shaderDataOffset));
 
                     cr << CommitDrawState();
-                    
+
                     MeshDebugDrawShapeBase* meshShape = static_cast<MeshDebugDrawShapeBase*>(shape);
 
                     Mesh* mesh = meshShape->GetMesh();
@@ -844,7 +844,7 @@ void DebugDrawer::Render(Frame* frame, const RenderSetup& renderSetup)
             uint32 offset = m_headers[idx][drawCommandIdx].offset;
             uint32 size = m_headers[idx][drawCommandIdx].size;
             AssertDebug(offset + size <= m_buffers[idx].Size());
-            
+
             numToDraw++;
 
             DebugDrawCommand* drawCommand = reinterpret_cast<DebugDrawCommand*>(m_buffers[idx].Data() + offset);

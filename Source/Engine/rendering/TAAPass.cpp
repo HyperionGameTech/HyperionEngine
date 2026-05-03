@@ -109,7 +109,7 @@ void TAAPass::Render(Frame* frame, const RenderSetup& renderSetup)
 
     if (!m_cbuffers[frameIndex])
     {
-        m_cbuffers[frameIndex] = g_renderInterface->MakeGpuBuffer(GpuBufferType::ConstantBuffer, sizeof(TAAConstants));
+        m_cbuffers[frameIndex] = RI.MakeGpuBuffer(GpuBufferType::ConstantBuffer, sizeof(TAAConstants));
 #if HYP_DEBUG_MODE
         m_cbuffers[frameIndex]->SetDebugName(NAME("TAAConstants"));
 #endif
@@ -139,12 +139,12 @@ void TAAPass::Render(Frame* frame, const RenderSetup& renderSetup)
     frame->cr << SetCurrentShader(ShaderDesc(NAME("TAA")));
 
     frame->cr << SetShaderUniform(0, "InColorTexture"_sh, m_inputImageView);
-    frame->cr << SetShaderUniform(1, "InPrevColorTexture"_sh, g_renderInterface->textureViewCache->GetOrCreate(prevTexture));
+    frame->cr << SetShaderUniform(1, "InPrevColorTexture"_sh, RI.textureViewCache->GetOrCreate(prevTexture));
     frame->cr << SetShaderUniform(2, "InVelocityTexture"_sh, m_gbuffer->GetBucket(RenderBucket::Opaque).GetGBufferAttachment(GTN_VELOCITY)->GetImageView());
     frame->cr << SetShaderUniform(3, "InDepthTexture"_sh, m_gbuffer->GetBucket(RenderBucket::Opaque).GetGBufferAttachment(GTN_DEPTH)->GetImageView());
-    frame->cr << SetShaderUniform(4, "SamplerLinear"_sh, g_renderInterface->placeholderData->GetSamplerLinear());
-    frame->cr << SetShaderUniform(5, "SamplerNearest"_sh, g_renderInterface->placeholderData->GetSamplerNearest());
-    frame->cr << SetShaderUniform(6, "OutColorImage"_sh, g_renderInterface->textureViewCache->GetOrCreate(activeTexture));
+    frame->cr << SetShaderUniform(4, "SamplerLinear"_sh, RI.placeholderData->GetSamplerLinear());
+    frame->cr << SetShaderUniform(5, "SamplerNearest"_sh, RI.placeholderData->GetSamplerNearest());
+    frame->cr << SetShaderUniform(6, "OutColorImage"_sh, RI.textureViewCache->GetOrCreate(activeTexture));
     frame->cr << SetShaderUniform(7, "TAAConstants"_sh, m_cbuffers[frameIndex]);
 
     frame->cr << DispatchCompute(Vec3u { (m_extent.x + 7) / 8, (m_extent.y + 7) / 8, 1 });

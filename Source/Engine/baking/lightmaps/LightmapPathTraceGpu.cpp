@@ -151,7 +151,7 @@ void LightmapRenderer_GpuPathTracing::CreateBuffers(BakeJobBase* job)
 
     AssertDebug(jd.raysBuffer == nullptr);
 
-    jd.raysBuffer = g_renderInterface->MakeGpuBuffer(GpuBufferType::StructuredBuffer, sizeof(Vec4f) * 2 * m_maxTexelsPerFrame, alignof(Vec4f));
+    jd.raysBuffer = RI.MakeGpuBuffer(GpuBufferType::StructuredBuffer, sizeof(Vec4f) * 2 * m_maxTexelsPerFrame, alignof(Vec4f));
     jd.raysBuffer->SetIsCpuAccessible(true);
 
     jd.hitsBufferGpu = RWStructuredBuffer(m_maxTexelsPerFrame, sizeof(LightmapHit));
@@ -196,7 +196,7 @@ void LightmapRenderer_GpuPathTracing::CreateAccelerationStructures()
     if (!m_tlas)
     {
         /// Create acceleration structure
-        m_tlas = g_renderInterface->MakeTLAS();
+        m_tlas = RI.MakeTLAS();
     }
     else if (m_tlas->IsCreated())
     {
@@ -294,10 +294,10 @@ void LightmapRenderer_GpuPathTracing::ReadHitsBuffer(Frame* frame, BakeJobBase* 
 
     Assert(hitsBuffer.cpuBuffer.Size() >= outHits.Size() * sizeof(LightmapHit));
 
-    GpuBufferRef stagingBuffer = g_renderInterface->MakeGpuBuffer(GpuBufferType::StagingBuffer, outHits.Size() * sizeof(LightmapHit));
+    GpuBufferRef stagingBuffer = RI.MakeGpuBuffer(GpuBufferType::StagingBuffer, outHits.Size() * sizeof(LightmapHit));
     Assert(stagingBuffer->Create());
 
-    UniquePtr<SingleTimeCommands> singleTimeCommands = g_renderInterface->GetSingleTimeCommands();
+    UniquePtr<SingleTimeCommands> singleTimeCommands = RI.GetSingleTimeCommands();
 
     singleTimeCommands->Push([&](CommandRecorder& cr)
         {
@@ -356,7 +356,7 @@ void LightmapRenderer_GpuPathTracing::Render(Frame* frame, const RenderSetup& re
 
         RayTracingConstants constants {};
         constants.rayOffset = rayOffset;
-        
+
         Array<Pair<Light*, LightShaderData*>, RenderAllocator> tempLights;
         Array<Pair<EnvProbe*, EnvProbeShaderData*>, RenderAllocator> tempEnvProbes;
 
@@ -429,18 +429,18 @@ void LightmapRenderer_GpuPathTracing::Render(Frame* frame, const RenderSetup& re
             }
         }
 
-        g_renderInterface->cbufferAllocator->Write(&constants);
+        RI.cbufferAllocator->Write(&constants);
 
         for (uint32 i = 0; i < LightmapVolumeMaxBoundLights; i++)
         {
             if (i < uint32(tempLights.Size()))
             {
-                g_renderInterface->cbufferAllocator->Write(tempLights[i].second);
+                RI.cbufferAllocator->Write(tempLights[i].second);
                 continue;
             }
-        
+
             LightShaderData dummy {};
-            g_renderInterface->cbufferAllocator->Write(&dummy);
+            RI.cbufferAllocator->Write(&dummy);
         }
 
         // sort so sky is last
@@ -454,12 +454,12 @@ void LightmapRenderer_GpuPathTracing::Render(Frame* frame, const RenderSetup& re
             {
                 return false;
             }
-                
+
             if (!aIsSky && bIsSky)
             {
                 return true;
             }
-                
+
             if (aIsSky && bIsSky)
             {
                 return false;
@@ -482,10 +482,10 @@ void LightmapRenderer_GpuPathTracing::Render(Frame* frame, const RenderSetup& re
                 pEnvProbeShaderData = &s_dummyEnvProbeShaderData;
             }
 
-            g_renderInterface->cbufferAllocator->Write(pEnvProbeShaderData);
+            RI.cbufferAllocator->Write(pEnvProbeShaderData);
         }
 
-        g_renderInterface->cbufferAllocator->Commit(cbuffer, cbufferOffset, cbufferSize);
+        RI.cbufferAllocator->Commit(cbuffer, cbufferOffset, cbufferSize);
     }
 
     JobData& jd = m_jobData[job];
@@ -522,18 +522,18 @@ void LightmapRenderer_GpuPathTracing::Render(Frame* frame, const RenderSetup& re
     cr << SetShaderUniform(1, "MeshDescriptionsBuffer"_sh, m_tlas->GetMeshDescriptionsBuffer());
     cr << SetShaderUniform(2, "HitsBuffer"_sh, jd.hitsBufferGpu.gpuBuffer);
     cr << SetShaderUniform(3, "RaysBuffer"_sh, jd.raysBuffer);
-    cr << SetShaderUniform(5, "MaterialsBuffer"_sh, g_renderInterface->namedBuffers[NamedBuffer::Materials].gpuBuffer);
+    cr << SetShaderUniform(5, "MaterialsBuffer"_sh, RI.namedBuffers[NamedBuffer::Materials].gpuBuffer);
     cr << SetShaderUniform(6, "CBuffer"_sh, cbuffer, ShaderDataOffset(cbufferOffset, cbufferSize));
-    
-    cr << SetShaderUniform(7, "SamplerNearest"_sh, g_renderInterface->placeholderData->GetSamplerNearest());
-    cr << SetShaderUniform(8, "SamplerLinear"_sh, g_renderInterface->placeholderData->GetSamplerLinear());
 
-    cr << SetShaderUniform(9, "BlueNoiseBuffer"_sh, g_renderInterface->blueNoiseBuffer.gpuBuffer);
+    cr << SetShaderUniform(7, "SamplerNearest"_sh, RI.placeholderData->GetSamplerNearest());
+    cr << SetShaderUniform(8, "SamplerLinear"_sh, RI.placeholderData->GetSamplerLinear());
 
-    cr << SetShaderUniform(10, "WorldsBuffer"_sh, g_renderInterface->namedBuffers[NamedBuffer::Worlds].gpuBuffer);
-    cr << SetShaderUniform(11, "EntitiesBuffer"_sh, g_renderInterface->namedBuffers[NamedBuffer::Entities].gpuBuffer);
-    
-    cr << SetShaderUniform(12, "EnvProbesTexture"_sh, g_renderInterface->textureViewCache->GetOrCreate(g_renderInterface->envProbesTexture));
+    cr << SetShaderUniform(9, "BlueNoiseBuffer"_sh, RI.blueNoiseBuffer.gpuBuffer);
+
+    cr << SetShaderUniform(10, "WorldsBuffer"_sh, RI.namedBuffers[NamedBuffer::Worlds].gpuBuffer);
+    cr << SetShaderUniform(11, "EntitiesBuffer"_sh, RI.namedBuffers[NamedBuffer::Entities].gpuBuffer);
+
+    cr << SetShaderUniform(12, "EnvProbesTexture"_sh, RI.textureViewCache->GetOrCreate(RI.envProbesTexture));
 
     frame->cr << InsertBarrier(jd.hitsBufferGpu.gpuBuffer, RS_UNORDERED_ACCESS);
     frame->cr << TraceRays(Vec3u { uint32(rays.Size()), 1, 1 });

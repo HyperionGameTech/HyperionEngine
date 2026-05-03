@@ -58,7 +58,7 @@ static TextureFormat GetImageFormat(GBufferTargetName targetName)
 {
     for (auto it = std::begin(s_targetDescs[targetName].formats); it != std::end(s_targetDescs[targetName].formats) && *it != InvalidTextureFormat; ++it)
     {
-        if (g_renderInterface->IsSupportedFormat(*it, ImageSupport::Attachment))
+        if (RI.IsSupportedFormat(*it, ImageSupport::Attachment))
         {
             return *it;
         }
@@ -187,7 +187,7 @@ FramebufferRef GBuffer::CreateFramebuffer(const FramebufferRef& parentFramebuffe
     framebufferDesc.extent = resolution;
     framebufferDesc.numLayers = 1;
 
-    FramebufferRef framebuffer = g_renderInterface->MakeFramebuffer(framebufferDesc);
+    FramebufferRef framebuffer = RI.MakeFramebuffer(framebufferDesc);
 
 #if HYP_DEBUG_MODE
     framebuffer->SetDebugName(NAME_FMT("{}Framebuffer", EnumToString(rb)));
@@ -218,7 +218,7 @@ FramebufferRef GBuffer::CreateFramebuffer(const FramebufferRef& parentFramebuffe
         return framebuffer->AddAttachment(
             binding,
             newDesc,
-            g_renderInterface->MakeImageView(parentAttachment->GetGpuImage()));
+            RI.MakeImageView(parentAttachment->GetGpuImage()));
     };
 
     // add gbuffer attachments

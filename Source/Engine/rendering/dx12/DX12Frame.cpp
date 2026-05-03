@@ -15,7 +15,7 @@
 
 namespace Hyperion {
 
-extern DX12RenderInterface* g_renderInterface;
+extern DX12RenderInterface RI;
 
 #pragma region DX12Frame
 
@@ -57,9 +57,9 @@ void DX12Frame::WriteCommandBuffer(CommandBuffer* commandBuffer)
 
     commandRecorders.PushBack(&preRenderCommands);
     commandRecorders.PushBack(&cr);
-    commandRecorders.PushBack(&g_renderInterface->commandRecorderAllocator.GetCommandRecorder());
+    commandRecorders.PushBack(&RI.commandRecorderAllocator.GetCommandRecorder());
     commandRecorders.PushBack(&postRenderCommands);
-    
+
     for (CommandRecorder* commandRecorder : commandRecorders)
     {
         commandRecorder->Prepare(this);
@@ -84,11 +84,9 @@ void DX12Frame::WriteCommandBuffer(CommandBuffer* commandBuffer)
         commandBuffer->End();
     }
 
-    DX12RenderInterface& ri = *g_renderInterface;
-
-    const DX12QueueData* queueData = ri.GetQueueData(D3D12_COMMAND_LIST_TYPE_DIRECT);
+    const DX12QueueData* queueData = RI.GetQueueData(D3D12_COMMAND_LIST_TYPE_DIRECT);
     Assert(queueData != nullptr);
-    
+
     ID3D12CommandList* commandLists[] = { commandBuffer->GetCommandList() };
     queueData->commandQueue->ExecuteCommandLists(1, commandLists);
 

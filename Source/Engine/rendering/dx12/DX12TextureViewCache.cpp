@@ -16,7 +16,7 @@
 
 namespace Hyperion {
 
-extern DX12RenderInterface* g_renderInterface;
+extern DX12RenderInterface RI;
 
 static uint64 CalculateImageViewHash(const ImageSubResource& subResource, TextureType viewTextureType)
 {

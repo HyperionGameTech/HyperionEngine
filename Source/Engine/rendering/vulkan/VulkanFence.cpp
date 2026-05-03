@@ -20,7 +20,7 @@
 
 namespace Hyperion {
 
-extern VulkanRenderInterface* g_renderInterface;
+extern VulkanRenderInterface RI;
 
 VulkanFence::VulkanFence()
     : handle(VK_NULL_HANDLE),
@@ -37,7 +37,7 @@ VulkanFence& VulkanFence::operator=(VulkanFence&& other) noexcept
         {
             EnqueueDeletion(FunctionWrapper<Proc<void()>>([handle = handle]()
                 {
-                    vkDestroyFence(g_renderInterface->GetDevice()->GetDevice(), handle, nullptr);
+                    vkDestroyFence(RI.GetDevice()->GetDevice(), handle, nullptr);
                 }));
         }
 
@@ -49,7 +49,7 @@ VulkanFence& VulkanFence::operator=(VulkanFence&& other) noexcept
         other.lastFrameResult = VK_SUCCESS;
         other.isSubmitted = false;
     }
-    
+
     return *this;
 }
 
@@ -59,7 +59,7 @@ VulkanFence::~VulkanFence()
     {
         EnqueueDeletion(FunctionWrapper<Proc<void()>>([handle = handle]()
             {
-                vkDestroyFence(g_renderInterface->GetDevice()->GetDevice(), handle, nullptr);
+                vkDestroyFence(RI.GetDevice()->GetDevice(), handle, nullptr);
             }));
 
         handle = VK_NULL_HANDLE;
@@ -78,7 +78,7 @@ void VulkanFence::Create(bool createSignaled)
         fenceCreateInfo.flags = VK_FENCE_CREATE_SIGNALED_BIT;
     }
 
-    VkResult result = vkCreateFence(g_renderInterface->GetDevice()->GetDevice(), &fenceCreateInfo, nullptr, &handle);
+    VkResult result = vkCreateFence(RI.GetDevice()->GetDevice(), &fenceCreateInfo, nullptr, &handle);
     Assert(result == VK_SUCCESS, "Failed to create Vulkan fence, VkResult: {}", result);
 }
 
@@ -91,7 +91,7 @@ bool VulkanFence::CheckStatus()
         return false;
     }
 
-    VkResult result = vkGetFenceStatus(g_renderInterface->GetDevice()->GetDevice(), handle);
+    VkResult result = vkGetFenceStatus(RI.GetDevice()->GetDevice(), handle);
 
     if (result == VK_NOT_READY)
     {
@@ -116,7 +116,7 @@ void VulkanFence::Wait(bool timeoutLoop)
 
     do
     {
-        result = vkWaitForFences(g_renderInterface->GetDevice()->GetDevice(), 1, &handle, VK_TRUE, DEFAULT_FENCE_TIMEOUT);
+        result = vkWaitForFences(RI.GetDevice()->GetDevice(), 1, &handle, VK_TRUE, DEFAULT_FENCE_TIMEOUT);
     }
     while (result == VK_TIMEOUT && timeoutLoop);
 
@@ -128,7 +128,7 @@ void VulkanFence::Wait(bool timeoutLoop)
 
 void VulkanFence::Reset()
 {
-    VkResult result = vkResetFences(g_renderInterface->GetDevice()->GetDevice(), 1, &handle);
+    VkResult result = vkResetFences(RI.GetDevice()->GetDevice(), 1, &handle);
     Assert(result == VK_SUCCESS, "Failed to reset Vulkan fence, VkResult: {}", result);
 
     isSubmitted = false;

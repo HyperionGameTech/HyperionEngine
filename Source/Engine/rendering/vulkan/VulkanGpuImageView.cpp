@@ -21,7 +21,7 @@
 
 namespace Hyperion {
 
-extern VulkanRenderInterface* g_renderInterface;
+extern VulkanRenderInterface RI;
 
 #pragma region VulkanGpuImageView
 
@@ -57,7 +57,7 @@ VulkanGpuImageView::~VulkanGpuImageView()
     {
         EnqueueDeletion(FunctionWrapper<Proc<void()>>([handle = m_handle]() -> void
             {
-                vkDestroyImageView(g_renderInterface->GetDevice()->GetDevice(), handle, nullptr);
+                vkDestroyImageView(RI.GetDevice()->GetDevice(), handle, nullptr);
             }));
 
         m_handle = VK_NULL_HANDLE;
@@ -123,7 +123,7 @@ RendererResult VulkanGpuImageView::Create()
     viewInfo.subresourceRange.layerCount = m_subResource.numLayers != 0 ? m_subResource.numLayers : m_image->NumArrayLayers();
 
     VULKAN_CHECK_MSG(
-        vkCreateImageView(g_renderInterface->GetDevice()->GetDevice(), &viewInfo, nullptr, &m_handle),
+        vkCreateImageView(RI.GetDevice()->GetDevice(), &viewInfo, nullptr, &m_handle),
         "Failed to create image view");
 
 #if HYP_DEBUG_MODE
@@ -154,7 +154,7 @@ void VulkanGpuImageView::SetDebugName(Name name)
     objectNameInfo.objectHandle = (uint64)m_handle;
     objectNameInfo.pObjectName = strName;
 
-    g_vulkanDynamicFunctions->vkSetDebugUtilsObjectNameEXT(g_renderInterface->GetDevice()->GetDevice(), &objectNameInfo);
+    g_vulkanDynamicFunctions->vkSetDebugUtilsObjectNameEXT(RI.GetDevice()->GetDevice(), &objectNameInfo);
 }
 
 #endif

@@ -188,7 +188,7 @@ public:
             Assert(false, "Compiled shader '{}' is not a valid compiled shader", request.shaderName);
         }
 
-        ShaderInstanceRef si = g_renderInterface->MakeShader(request.entry->shader);
+        ShaderInstanceRef si = RI.MakeShader(request.entry->shader);
         request.shaderInstance = si;
 
 #if HYP_ENABLE_SHADER_RELOAD
@@ -739,9 +739,9 @@ public:
         {
             for (Shader* shader : shadersToExpire)
             {
-                g_renderInterface->graphicsPipelineCache->ExpirePipelinesForShader(shader);
-                g_renderInterface->computePipelineCache->ExpirePipelinesForShader(shader);
-                g_renderInterface->rayTracingPipelineCache->ExpirePipelinesForShader(shader);
+                RI.graphicsPipelineCache->ExpirePipelinesForShader(shader);
+                RI.computePipelineCache->ExpirePipelinesForShader(shader);
+                RI.rayTracingPipelineCache->ExpirePipelinesForShader(shader);
             }
         }
 

@@ -144,7 +144,7 @@ void SSGI::Create()
     m_ssgiTexture->SetIsTransient(true);
     m_ssgiTexture->SetName(NAME("SSGITexture"));
     CheckResult(m_ssgiTexture->Create());
-    
+
     GetEngineAssetRegistry()->PutAsset(m_ssgiTexture);
 
     for (uint32 i = 0; i < NumDownsamplePasses; i++)
@@ -162,7 +162,7 @@ void SSGI::Create()
         m_downsampleTextures[i]->SetName(NAME_FMT("SSGIDownsampleTexture{}", i));
         CheckResult(m_downsampleTextures[i]->Create());
     }
-    
+
     for (uint32 i = 0; i < NumDownsamplePasses; i++)
     {
         // scaling back up
@@ -236,7 +236,7 @@ void SSGI::Render(Frame* frame, const RenderSetup& renderSetup)
 
             uint32& numBoundLights = ssgiConstants.numBoundLights;
             uint32& numBoundEnvProbes = ssgiConstants.numBoundEnvProbes;
-        
+
             RenderProxyList& rpl = GetConsumerProxyList(renderSetup.view);
             rpl.BeginRead();
             HYP_DEFER({ rpl.EndRead(); });
@@ -281,18 +281,18 @@ void SSGI::Render(Frame* frame, const RenderSetup& renderSetup)
                 }
             }
 
-            g_renderInterface->cbufferAllocator->Write(&ssgiConstants);
+            RI.cbufferAllocator->Write(&ssgiConstants);
 
             for (uint32 i = 0; i < MaxLights; i++)
             {
                 if (i < uint32(tempLights.Size()))
                 {
-                    g_renderInterface->cbufferAllocator->Write(tempLights[i].second);
+                    RI.cbufferAllocator->Write(tempLights[i].second);
                     continue;
                 }
-        
+
                 LightShaderData dummy {};
-                g_renderInterface->cbufferAllocator->Write(&dummy);
+                RI.cbufferAllocator->Write(&dummy);
             }
 
             for (uint32 i = 0; i < MaxLights; i++)
@@ -306,7 +306,7 @@ void SSGI::Render(Frame* frame, const RenderSetup& renderSetup)
 
                     Light* light = tempLights[i].first;
 
-                    ShadowMap* shadowMap = g_renderInterface->shadowMapCache->GetShadowMap(
+                    ShadowMap* shadowMap = RI.shadowMapCache->GetShadowMap(
                         light,
                         renderSetup.view,
                         /* cascadeIndex */ 0,
@@ -323,7 +323,7 @@ void SSGI::Render(Frame* frame, const RenderSetup& renderSetup)
                     }
                 }
 
-                g_renderInterface->cbufferAllocator->Write(&shadowMapData);
+                RI.cbufferAllocator->Write(&shadowMapData);
             }
 
             // sort probes
@@ -342,12 +342,12 @@ void SSGI::Render(Frame* frame, const RenderSetup& renderSetup)
                 {
                     return false;
                 }
-                
+
                 if (!aIsSky && bIsSky)
                 {
                     return true;
                 }
-                
+
                 if (aIsSky && bIsSky)
                 {
                     return false;
@@ -377,10 +377,10 @@ void SSGI::Render(Frame* frame, const RenderSetup& renderSetup)
                     pEnvProbeShaderData = &s_dummyEnvProbeShaderData;
                 }
 
-                g_renderInterface->cbufferAllocator->Write(pEnvProbeShaderData);
+                RI.cbufferAllocator->Write(pEnvProbeShaderData);
             }
 
-            g_renderInterface->cbufferAllocator->Commit(cbuffer, cbufferOffset, cbufferSize);
+            RI.cbufferAllocator->Commit(cbuffer, cbufferOffset, cbufferSize);
         }
 
         const uint32 totalPixelsInImage = m_extent.Volume();
@@ -393,7 +393,7 @@ void SSGI::Render(Frame* frame, const RenderSetup& renderSetup)
 
         uint32 numShaderUniforms = 0;
 
-        cr << SetShaderUniform(numShaderUniforms++, "OutImage"_sh, g_renderInterface->textureViewCache->GetOrCreate(m_ssgiTexture));
+        cr << SetShaderUniform(numShaderUniforms++, "OutImage"_sh, RI.textureViewCache->GetOrCreate(m_ssgiTexture));
         cr << SetShaderUniform(numShaderUniforms++, "CBuffer"_sh, cbuffer, ShaderDataOffset(cbufferOffset, cbufferSize));
 
         // GBuffer textures
@@ -404,24 +404,24 @@ void SSGI::Render(Frame* frame, const RenderSetup& renderSetup)
 
         cr << SetShaderUniform(numShaderUniforms++, "DeferredShadingTexture"_sh, dpd->deferredShadingFramebuffer->GetAttachment(0)->GetImageView());
 
-        cr << SetShaderUniform(numShaderUniforms++, "BlueNoiseBuffer"_sh, g_renderInterface->blueNoiseBuffer.gpuBuffer);
+        cr << SetShaderUniform(numShaderUniforms++, "BlueNoiseBuffer"_sh, RI.blueNoiseBuffer.gpuBuffer);
 
         // Samplers
-        cr << SetShaderUniform(numShaderUniforms++, "SamplerLinear"_sh, g_renderInterface->placeholderData->GetSamplerLinear());
-        cr << SetShaderUniform(numShaderUniforms++, "SamplerNearest"_sh, g_renderInterface->placeholderData->GetSamplerNearest());
+        cr << SetShaderUniform(numShaderUniforms++, "SamplerLinear"_sh, RI.placeholderData->GetSamplerLinear());
+        cr << SetShaderUniform(numShaderUniforms++, "SamplerNearest"_sh, RI.placeholderData->GetSamplerNearest());
 
         // World and camera buffers
-        cr << SetShaderUniform(numShaderUniforms++, "WorldsBuffer"_sh, g_renderInterface->namedBuffers[NamedBuffer::Worlds].gpuBuffer);
-        cr << SetShaderUniform(numShaderUniforms++, "CamerasBuffer"_sh, g_renderInterface->namedBuffers[NamedBuffer::Cameras].gpuBuffer, TShaderDataOffset<CameraShaderData>(renderSetup.view->GetCamera()));
+        cr << SetShaderUniform(numShaderUniforms++, "WorldsBuffer"_sh, RI.namedBuffers[NamedBuffer::Worlds].gpuBuffer);
+        cr << SetShaderUniform(numShaderUniforms++, "CamerasBuffer"_sh, RI.namedBuffers[NamedBuffer::Cameras].gpuBuffer, TShaderDataOffset<CameraShaderData>(renderSetup.view->GetCamera()));
 
         // Shadow maps
-        cr << SetShaderUniform(numShaderUniforms++, "ShadowMapsTextureArray"_sh, g_renderInterface->shadowMapCache->GetAtlasImageView());
-        cr << SetShaderUniform(numShaderUniforms++, "PointLightShadowMapsTextureArray"_sh, g_renderInterface->shadowMapCache->GetPointLightShadowMapImageView());
+        cr << SetShaderUniform(numShaderUniforms++, "ShadowMapsTextureArray"_sh, RI.shadowMapCache->GetAtlasImageView());
+        cr << SetShaderUniform(numShaderUniforms++, "PointLightShadowMapsTextureArray"_sh, RI.shadowMapCache->GetPointLightShadowMapImageView());
 
         // Env probes
-        cr << SetShaderUniform(numShaderUniforms++, "EnvProbesTexture"_sh, g_renderInterface->textureViewCache->GetOrCreate(g_renderInterface->envProbesTexture));
+        cr << SetShaderUniform(numShaderUniforms++, "EnvProbesTexture"_sh, RI.textureViewCache->GetOrCreate(RI.envProbesTexture));
 
-        cr << SetShaderUniform(numShaderUniforms++, "EnvProbesBuffer"_sh, g_renderInterface->namedBuffers[NamedBuffer::EnvProbes].gpuBuffer);
+        cr << SetShaderUniform(numShaderUniforms++, "EnvProbesBuffer"_sh, RI.namedBuffers[NamedBuffer::EnvProbes].gpuBuffer);
 
         cr << DispatchCompute(Vec3u { numDispatchCalls, 1, 1 });
     }
@@ -455,7 +455,7 @@ void SSGI::Render(Frame* frame, const RenderSetup& renderSetup)
         cbuffer = nullptr;
         cbufferSize = 0;
         cbufferOffset = 0;
-        
+
         { // Update constant buffer
             struct SSGIUpsampleConstants
             {
@@ -472,8 +472,8 @@ void SSGI::Render(Frame* frame, const RenderSetup& renderSetup)
             upsampleConstants.depthThreshold = cvSSGIDepthThreshold.Get();
             upsampleConstants.normalThreshold = cvSSGINormalPower.Get();
 
-            g_renderInterface->cbufferAllocator->Write(&upsampleConstants);
-            g_renderInterface->cbufferAllocator->Commit(cbuffer, cbufferOffset, cbufferSize);
+            RI.cbufferAllocator->Write(&upsampleConstants);
+            RI.cbufferAllocator->Commit(cbuffer, cbufferOffset, cbufferSize);
         }
 
         pass->Begin(frame, renderSetup);
@@ -481,17 +481,17 @@ void SSGI::Render(Frame* frame, const RenderSetup& renderSetup)
         uint32 numShaderUniforms = 0;
 
         // Samplers
-        cr << SetShaderUniform(numShaderUniforms++, "SamplerLinear"_sh, g_renderInterface->placeholderData->GetSamplerLinear());
-        cr << SetShaderUniform(numShaderUniforms++, "SamplerNearest"_sh, g_renderInterface->placeholderData->GetSamplerNearest());
-        
+        cr << SetShaderUniform(numShaderUniforms++, "SamplerLinear"_sh, RI.placeholderData->GetSamplerLinear());
+        cr << SetShaderUniform(numShaderUniforms++, "SamplerNearest"_sh, RI.placeholderData->GetSamplerNearest());
+
         // GBuffer textures
         cr << SetShaderUniform(numShaderUniforms++, "GBufferNormalsTexture"_sh, inputsFramebuffer->GetAttachment(GTN_NORMALS)->GetImageView());
         cr << SetShaderUniform(numShaderUniforms++, "GBufferDepthTexture"_sh, inputsFramebuffer->GetAttachment(GTN_DEPTH)->GetImageView());
-        
+
         cr << SetShaderUniform(numShaderUniforms++, "PrevPassTexture"_sh,
-            i == 0 ? g_renderInterface->textureViewCache->GetOrCreate(m_downsampleTextures[NumDownsamplePasses - 1])
+            i == 0 ? RI.textureViewCache->GetOrCreate(m_downsampleTextures[NumDownsamplePasses - 1])
                 : m_upsamplePasses[i - 1]->GetAttachment(0)->GetImageView());
-        
+
         cr << SetShaderUniform(numShaderUniforms++, "CBuffer"_sh, cbuffer, ShaderDataOffset(cbufferOffset, cbufferSize));
 
         // Draw quad

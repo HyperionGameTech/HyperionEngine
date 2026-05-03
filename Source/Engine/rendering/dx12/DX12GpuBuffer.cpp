@@ -16,7 +16,7 @@ namespace Hyperion {
 
 HYP_DECLARE_LOG_CHANNEL(RenderingBackend);
 
-extern DX12RenderInterface* g_renderInterface;
+extern DX12RenderInterface RI;
 
 static D3D12_HEAP_TYPE GetHeapType(GpuBufferType bufferType, bool cpuAccessible)
 {
@@ -116,7 +116,7 @@ RendererResult DX12GpuBuffer::Create()
         return {};
     }
 
-    D3D12MA::Allocator* allocator = g_renderInterface->GetAllocator();
+    D3D12MA::Allocator* allocator = RI.GetAllocator();
     AssertDebug(allocator != nullptr);
 
     D3D12_HEAP_TYPE heapType = GetHeapType(m_type, m_cpuAccessible);
@@ -175,14 +175,14 @@ RendererResult DX12GpuBuffer::Create()
 
     D3D12MA::ALLOCATION_DESC allocDesc {};
     allocDesc.HeapType = heapType;
-    
+
     HRESULT hr = allocator->CreateResource(
         &allocDesc,
         &bufferDesc,
         finalState,
         nullptr,
         &m_allocation,
-        __uuidof(ID3D12Resource), 
+        __uuidof(ID3D12Resource),
         (void**)&m_resource
     );
 

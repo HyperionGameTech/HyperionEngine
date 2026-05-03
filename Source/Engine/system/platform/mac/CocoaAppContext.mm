@@ -72,9 +72,9 @@ Handle<ApplicationWindow> CocoaAppContext::CreateSystemWindow(WindowOptions wind
 {
     Handle<CocoaApplicationWindow> window = MakeHandle<CocoaApplicationWindow>(windowOptions.title, windowOptions.dimensions);
     m_windows.PushBack(window);
-    
+
     window->Initialize(windowOptions);
-    
+
     return window;
 }
 
@@ -216,19 +216,19 @@ int CocoaAppContext::PollEvents(Event& event)
     AssertOnThread(g_mainThread);
 
     event = Event();
-    
+
     @autoreleasepool
     {
         NSEvent* nsEvent = [NSApp nextEventMatchingMask:NSEventMaskAny
                                               untilDate:nil
                                                 inMode:NSDefaultRunLoopMode
                                                 dequeue:YES];
-        
+
         if (!nsEvent)
         {
             return 0;
         }
-        
+
         [NSApp sendEvent:nsEvent];
         [NSApp updateWindows];
 
@@ -259,7 +259,7 @@ int CocoaAppContext::PollEvents(Event& event)
             return 1;
         }
     }
-    
+
     return 0;
 }
 
@@ -362,11 +362,11 @@ VkSurfaceKHR CocoaAppContext::CreateVulkanSurface(
 
         createInfo.pLayer = layer;
     }
-    
-    Assert(g_renderInterface->GetInstance()->GetInstance() != VK_NULL_HANDLE);
+
+    Assert(RI.GetInstance()->GetInstance() != VK_NULL_HANDLE);
 
     VkResult vkResult = vkCreateMetalSurfaceEXT(
-        g_renderInterface->GetInstance()->GetInstance(),
+        RI.GetInstance()->GetInstance(),
         &createInfo,
         nullptr,
         &surface);

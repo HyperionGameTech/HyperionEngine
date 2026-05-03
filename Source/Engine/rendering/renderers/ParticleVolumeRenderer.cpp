@@ -101,12 +101,12 @@ void ParticleVolumeRenderer::EnsureStaging()
     if (!m_staging.zeroIndirectArgs)
     {
         TByteBuffer<RenderAllocator> indirectDrawCommandsBuffer;
-        g_renderInterface->PopulateIndirectDrawCommandsBuffer(
+        RI.PopulateIndirectDrawCommandsBuffer(
             m_staging.quadMesh->GetVertexBuffer(),
             m_staging.quadMesh->GetIndexBuffer(),
             0, indirectDrawCommandsBuffer);
 
-        m_staging.zeroIndirectArgs = g_renderInterface->MakeGpuBuffer(GpuBufferType::StagingBuffer, indirectDrawCommandsBuffer.Size());
+        m_staging.zeroIndirectArgs = RI.MakeGpuBuffer(GpuBufferType::StagingBuffer, indirectDrawCommandsBuffer.Size());
         CheckResult(m_staging.zeroIndirectArgs->Create());
 
         m_staging.zeroIndirectArgs->Copy(indirectDrawCommandsBuffer.Size(), indirectDrawCommandsBuffer.Data());
@@ -148,14 +148,14 @@ ParticleVolumeRenderer::VolumeState& ParticleVolumeRenderer::EnsureVolumeState(R
 
     state.maxParticles = proxy->bufferData.maxParticles;
 
-    state.particleBuffer = g_renderInterface->MakeGpuBuffer(GpuBufferType::RWStructuredBuffer, state.maxParticles * sizeof(ParticleShaderData));
+    state.particleBuffer = RI.MakeGpuBuffer(GpuBufferType::RWStructuredBuffer, state.maxParticles * sizeof(ParticleShaderData));
     CheckResult(state.particleBuffer->Create());
 
-    state.indirectBuffer = g_renderInterface->MakeGpuBuffer(GpuBufferType::IndirectArgsBuffer, sizeof(IndirectDrawCommand));
+    state.indirectBuffer = RI.MakeGpuBuffer(GpuBufferType::IndirectArgsBuffer, sizeof(IndirectDrawCommand));
     CheckResult(state.indirectBuffer->Create());
 
     CreateNoiseMap(state.noiseMap);
-    
+
     state.hasPhysics = proxy->particleVolume.GetUnsafe()->GetParams().hasPhysics;
 
     // compute shader properties
@@ -244,17 +244,17 @@ void ParticleVolumeRenderer::RenderFrame(Frame* frame, const RenderSetup& render
     csConstants.deltaTime = 0.016f; // TODO: real render delta
     csConstants.globalCounter = m_counter++;
 
-    g_renderInterface->cbufferAllocator->Write(&csConstants);
+    RI.cbufferAllocator->Write(&csConstants);
 
     RenderProxyCamera* cameraProxy = static_cast<RenderProxyCamera*>(GetRenderProxy(view->GetCamera()));
     AssertDebug(cameraProxy != nullptr);
 
-    g_renderInterface->cbufferAllocator->Write(&cameraProxy->bufferData);
-    
+    RI.cbufferAllocator->Write(&cameraProxy->bufferData);
+
     GpuBuffer* cbuffer;
     size_t cbufferOffset;
     size_t cbufferSize;
-    g_renderInterface->cbufferAllocator->Commit(cbuffer, cbufferOffset, cbufferSize);
+    RI.cbufferAllocator->Commit(cbuffer, cbufferOffset, cbufferSize);
 
     // this is rendered from translucent pass in DeferredRenderer
     Framebuffer* framebuffer = view->GetOutputTarget().GetFramebuffer(RenderBucket::Translucent);
@@ -269,21 +269,21 @@ void ParticleVolumeRenderer::RenderFrame(Frame* frame, const RenderSetup& render
 
         cr << SetCurrentShader(ShaderDesc(NAME("UpdateParticles"), properties));
 
-        cr << SetShaderUniform(0, "ParticlesBuffer"_sh, state.particleBuffer); 
+        cr << SetShaderUniform(0, "ParticlesBuffer"_sh, state.particleBuffer);
         cr << SetShaderUniform(1, "IndirectDrawCommandsBuffer"_sh, state.indirectBuffer);
-        cr << SetShaderUniform(2, "NoiseMap"_sh, g_renderInterface->textureViewCache->GetOrCreate(state.noiseMap));
+        cr << SetShaderUniform(2, "NoiseMap"_sh, RI.textureViewCache->GetOrCreate(state.noiseMap));
 
-        cr << SetShaderUniform(3, "SamplerNearest"_sh, g_renderInterface->placeholderData->GetSamplerNearest());
-        cr << SetShaderUniform(4, "SamplerLinear"_sh, g_renderInterface->placeholderData->GetSamplerLinear());
+        cr << SetShaderUniform(3, "SamplerNearest"_sh, RI.placeholderData->GetSamplerNearest());
+        cr << SetShaderUniform(4, "SamplerLinear"_sh, RI.placeholderData->GetSamplerLinear());
 
         cr << SetShaderUniform(5, "GBufferAlbedoTexture"_sh, framebuffer->GetAttachment(GTN_ALBEDO)->GetImageView());
         cr << SetShaderUniform(6, "GBufferNormalsTexture"_sh, framebuffer->GetAttachment(GTN_NORMALS)->GetImageView());
         cr << SetShaderUniform(7, "GBufferMaterialTexture"_sh, framebuffer->GetAttachment(GTN_MATERIAL)->GetImageView());
         cr << SetShaderUniform(8, "GBufferVelocityTexture"_sh, framebuffer->GetAttachment(GTN_VELOCITY)->GetImageView());
         cr << SetShaderUniform(9, "GBufferDepthTexture"_sh, framebuffer->GetAttachment(GTN_DEPTH)->GetImageView());
-        
-        cr << SetShaderUniform(10, "WorldsBuffer"_sh, g_renderInterface->namedBuffers[NamedBuffer::Worlds].gpuBuffer);
-        
+
+        cr << SetShaderUniform(10, "WorldsBuffer"_sh, RI.namedBuffers[NamedBuffer::Worlds].gpuBuffer);
+
         cr << SetShaderUniform(11, "CBuffer"_sh, cbuffer, ShaderDataOffset(cbufferOffset, cbufferSize));
 
         const size_t maxParticles = proxy->bufferData.maxParticles;
@@ -316,16 +316,16 @@ void ParticleVolumeRenderer::RenderFrame(Frame* frame, const RenderSetup& render
 
         if (proxy->particleTexture)
         {
-            cr << SetShaderUniform(1, "ParticleTexture"_sh, g_renderInterface->textureViewCache->GetOrCreate(proxy->particleTexture));
+            cr << SetShaderUniform(1, "ParticleTexture"_sh, RI.textureViewCache->GetOrCreate(proxy->particleTexture));
         }
         else
         {
-            cr << SetShaderUniform(1, "ParticleTexture"_sh, g_renderInterface->placeholderData->GetImageView2D1x1R8());
+            cr << SetShaderUniform(1, "ParticleTexture"_sh, RI.placeholderData->GetImageView2D1x1R8());
         }
 
-        cr << SetShaderUniform(2, "SamplerLinear"_sh, g_renderInterface->placeholderData->GetSamplerLinearMipmap());
-        cr << SetShaderUniform(3, "WorldsBuffer"_sh, g_renderInterface->namedBuffers[NamedBuffer::Worlds].gpuBuffer);
-        cr << SetShaderUniform(4, "CamerasBuffer"_sh, g_renderInterface->namedBuffers[NamedBuffer::Cameras].gpuBuffer, TShaderDataOffset<CameraShaderData>(view->GetCamera()));
+        cr << SetShaderUniform(2, "SamplerLinear"_sh, RI.placeholderData->GetSamplerLinearMipmap());
+        cr << SetShaderUniform(3, "WorldsBuffer"_sh, RI.namedBuffers[NamedBuffer::Worlds].gpuBuffer);
+        cr << SetShaderUniform(4, "CamerasBuffer"_sh, RI.namedBuffers[NamedBuffer::Cameras].gpuBuffer, TShaderDataOffset<CameraShaderData>(view->GetCamera()));
 
         cr << CommitDrawState();
 

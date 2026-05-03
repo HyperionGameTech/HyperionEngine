@@ -244,7 +244,7 @@ void Mesh::PageBlobData()
             m_indexData.readOnly = true;
         }
     }
-    
+
     // Keep BVH data separate from vertex and index data because it is mutually exclusive from them
     if (m_bvhData.raw == nullptr
         && m_bvhData.key
@@ -269,7 +269,7 @@ void Mesh::PageBlobData()
                         return;
                     }
 #endif
-                        
+
                     HYP_FAIL("Blob data missing! Data corruption detected.");
                 })();
         }
@@ -358,8 +358,8 @@ void Mesh::UploadGpuData()
     // don't assign m_vertexBuffer and m_indexBuffer when render thread could be reading it.
     if (IsReady() && !IsOnThread(g_renderThread))
     {
-        vertexBuffer = g_renderInterface->MakeGpuBuffer(GpuBufferType::VertexBuffer, packedBufferSize);
-        indexBuffer = g_renderInterface->MakeGpuBuffer(GpuBufferType::IndexBuffer, packedIndicesSize);
+        vertexBuffer = RI.MakeGpuBuffer(GpuBufferType::VertexBuffer, packedBufferSize);
+        indexBuffer = RI.MakeGpuBuffer(GpuBufferType::IndexBuffer, packedIndicesSize);
 
 #if HYP_DEBUG_MODE
         vertexBuffer->SetDebugName(NAME_FMT("{}_VBO", GetName()));
@@ -373,7 +373,7 @@ void Mesh::UploadGpuData()
     {
         if (!m_vertexBuffer.IsValid() || m_vertexBuffer->Size() != packedBufferSize)
         {
-            m_vertexBuffer = g_renderInterface->MakeGpuBuffer(GpuBufferType::VertexBuffer, packedBufferSize);
+            m_vertexBuffer = RI.MakeGpuBuffer(GpuBufferType::VertexBuffer, packedBufferSize);
 
 #if HYP_DEBUG_MODE
             m_vertexBuffer->SetDebugName(NAME_FMT("{}_VBO", GetName()));
@@ -384,7 +384,7 @@ void Mesh::UploadGpuData()
 
         if (!m_indexBuffer.IsValid() || m_indexBuffer->Size() != packedIndicesSize)
         {
-            m_indexBuffer = g_renderInterface->MakeGpuBuffer(GpuBufferType::IndexBuffer, packedIndicesSize);
+            m_indexBuffer = RI.MakeGpuBuffer(GpuBufferType::IndexBuffer, packedIndicesSize);
 
 #if HYP_DEBUG_MODE
             m_indexBuffer->SetDebugName(NAME_FMT("{}_IBO", GetName()));
@@ -441,9 +441,9 @@ void Mesh::UploadGpuData()
 
             const size_t bufferSizeCombined = ByteUtil::AlignAs(packedVerticesSize, StagingBufferAlignment) + packedIndicesSize;
 
-            Frame* frame = g_renderInterface->GetCurrentFrame();
+            Frame* frame = RI.GetCurrentFrame();
 
-            GpuBuffer* stagingBuffer = g_renderInterface->stagingBufferPool->AcquireStagingBuffer(bufferSizeCombined);
+            GpuBuffer* stagingBuffer = RI.stagingBufferPool->AcquireStagingBuffer(bufferSizeCombined);
             stagingBuffer->Copy(packedVerticesSize, vertices.Data());
             stagingBuffer->Copy(ByteUtil::AlignAs(packedVerticesSize, StagingBufferAlignment), packedIndicesSize, indices.Data());
 
@@ -798,7 +798,7 @@ void Mesh::CalculateNormals(bool weighted)
     for (size_t i = 0; i < numVertices; i++)
     {
         AssertDebug(normals.HasIndex(uint32(i)));
-        
+
         float* floatDataOffset = const_cast<float*>(vertexData.floatData + (i * vertexSizeInFloats));
         TVertexPacket<VT_Normal>* packet = reinterpret_cast<TVertexPacket<VT_Normal>*>(floatDataOffset + (sizeof(TVertexPacket<VT_Position>) / sizeof(float)));
 
@@ -826,7 +826,7 @@ void Mesh::CalculateNormals(bool weighted)
         const uint32 i0 = uIndexData[i];
         const uint32 i1 = uIndexData[i + 1];
         const uint32 i2 = uIndexData[i + 2];
-        
+
         const float* floatDataOffset0 = vertexData.floatData + (i0 * vertexSizeInFloats);
         const float* floatDataOffset1 = vertexData.floatData + (i1 * vertexSizeInFloats);
         const float* floatDataOffset2 = vertexData.floatData + (i2 * vertexSizeInFloats);
@@ -838,7 +838,7 @@ void Mesh::CalculateNormals(bool weighted)
         const Vec3f p0 = posPacket0->GetPosition();
         const Vec3f p1 = posPacket1->GetPosition();
         const Vec3f p2 = posPacket2->GetPosition();
-        
+
         const TVertexPacket<VT_Normal>* normPacket0 = reinterpret_cast<const TVertexPacket<VT_Normal>*>(posPacket0 + 1);
         const TVertexPacket<VT_Normal>* normPacket1 = reinterpret_cast<const TVertexPacket<VT_Normal>*>(posPacket1 + 1);
         const TVertexPacket<VT_Normal>* normPacket2 = reinterpret_cast<const TVertexPacket<VT_Normal>*>(posPacket2 + 1);
@@ -872,7 +872,7 @@ void Mesh::CalculateNormals(bool weighted)
             posPacket0 = reinterpret_cast<const TVertexPacket<VT_Position>*>(floatDataOffset0);
             posPacket1 = reinterpret_cast<const TVertexPacket<VT_Position>*>(floatDataOffset1);
             posPacket2 = reinterpret_cast<const TVertexPacket<VT_Position>*>(floatDataOffset2);
-        
+
             normPacket0 = reinterpret_cast<const TVertexPacket<VT_Normal>*>(posPacket0 + 1);
             normPacket1 = reinterpret_cast<const TVertexPacket<VT_Normal>*>(posPacket1 + 1);
             normPacket2 = reinterpret_cast<const TVertexPacket<VT_Normal>*>(posPacket2 + 1);
@@ -934,7 +934,7 @@ void Mesh::CalculateNormals(bool weighted)
     for (size_t i = 0; i < numVertices; i++)
     {
         AssertDebug(normals.HasIndex(i));
-        
+
         float* floatDataOffset = const_cast<float*>(vertexData.floatData + (i * vertexSizeInFloats));
         TVertexPacket<VT_Normal>* packet = reinterpret_cast<TVertexPacket<VT_Normal>*>(floatDataOffset + (sizeof(TVertexPacket<VT_Position>) / sizeof(float)));
 

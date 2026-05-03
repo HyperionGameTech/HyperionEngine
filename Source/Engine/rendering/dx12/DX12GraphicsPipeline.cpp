@@ -31,7 +31,7 @@ namespace Hyperion {
 
 HYP_DECLARE_LOG_CHANNEL(RenderingBackend);
 
-extern DX12RenderInterface* g_renderInterface;
+extern DX12RenderInterface RI;
 
 static D3D12_DEPTH_STENCIL_DESC GetDefaultDepthStencilDesc()
 {
@@ -237,7 +237,7 @@ void DX12GraphicsPipeline::Bind(DX12CommandBuffer* commandBuffer, Vec2i viewport
 
     if (m_stencilWrite || m_stencilFunction.HasValue())
     {
-        commandBuffer->GetCommandList()->OMSetStencilRef(g_renderInterface->state.stencilReference);
+        commandBuffer->GetCommandList()->OMSetStencilRef(RI.state.stencilReference);
     }
 }
 
@@ -384,7 +384,7 @@ RendererResult DX12GraphicsPipeline::Rebuild()
 
     // @TODO: add D3D12_VIEW_INSTANCING_DESC for view instancing to fulfill the role multiview was taking in the Vulkan impl.
 
-    HRESULT res = g_renderInterface->GetDevice()->CreateGraphicsPipelineState(
+    HRESULT res = RI.GetDevice()->CreateGraphicsPipelineState(
         &psoDesc,
         __uuidof(ID3D12PipelineState),
         &m_pipelineState
@@ -463,7 +463,7 @@ RendererResult DX12GraphicsPipeline::BuildRootSignature()
             AssertDebug(!(setDecl.flags & ShaderInputSetFlags::Template), "Not supported");
 
             // it's a reference to a global descriptor set -- we need to grab that one.
-            const ShaderInputSet* refSetDecl = g_renderInterface->globalDescriptorTable->GetDeclaration()->FindDescriptorSetDeclaration(setDecl.name);
+            const ShaderInputSet* refSetDecl = RI.globalDescriptorTable->GetDeclaration()->FindDescriptorSetDeclaration(setDecl.name);
             AssertDebug(refSetDecl != nullptr, "Invalid reference to global set: {}", setDecl.name);
 
             pSetDecl = refSetDecl;
@@ -600,7 +600,7 @@ RendererResult DX12GraphicsPipeline::BuildRootSignature()
         return HYP_MAKE_ERROR(RendererError, "Root Signature Serialization Failed! {}", res, errStr);
     }
 
-    res = g_renderInterface->GetDevice()->CreateRootSignature(
+    res = RI.GetDevice()->CreateRootSignature(
         0,
         signature->GetBufferPointer(),
         signature->GetBufferSize(),

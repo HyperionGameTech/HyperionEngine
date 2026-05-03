@@ -26,7 +26,7 @@
 
 namespace Hyperion {
 
-extern DX12RenderInterface* g_renderInterface;
+extern DX12RenderInterface RI;
 
 #pragma region DX12ComputePipeline
 
@@ -76,7 +76,7 @@ RendererResult DX12ComputePipeline::Create()
         return HYP_MAKE_ERROR(RendererError, "Compute shader bytecode not available");
     }
 
-    HRESULT res = g_renderInterface->GetDevice()->CreateComputePipelineState(&psoDesc, IID_PPV_ARGS(&m_pipelineState));
+    HRESULT res = RI.GetDevice()->CreateComputePipelineState(&psoDesc, IID_PPV_ARGS(&m_pipelineState));
 
     if (FAILED(res))
     {
@@ -152,7 +152,7 @@ RendererResult DX12ComputePipeline::BuildRootSignature()
             AssertDebug(!(setDecl.flags & ShaderInputSetFlags::Template), "Not supported");
 
             // it's a reference to a global descriptor set -- we need to grab that one.
-            const ShaderInputSet* refSetDecl = g_renderInterface->globalDescriptorTable->GetDeclaration()->FindDescriptorSetDeclaration(setDecl.name);
+            const ShaderInputSet* refSetDecl = RI.globalDescriptorTable->GetDeclaration()->FindDescriptorSetDeclaration(setDecl.name);
             AssertDebug(refSetDecl != nullptr, "Invalid reference to global set: {}", setDecl.name);
 
             pSetDecl = refSetDecl;
@@ -163,11 +163,11 @@ RendererResult DX12ComputePipeline::BuildRootSignature()
 
         // Collect dynamic buffer entries (CBV_Dynamic / SRV_Dynamic / UAV_Dynamic) to create as root descriptor params
         Array<const ShaderInput*> dynamicDeclarations;
-        
+
         for (uint8 slotIndex = 0; slotIndex < NumDescriptorSlots; slotIndex++)
         {
             const auto& declarations = pSetDecl->slots[slotIndex];
-            
+
             if (declarations.Empty())
             {
                 continue;
@@ -280,7 +280,7 @@ RendererResult DX12ComputePipeline::BuildRootSignature()
 
     ComPtr<ID3DBlob> signature;
     ComPtr<ID3DBlob> error;
-    
+
     HRESULT res = D3D12SerializeRootSignature(&sigDesc, D3D_ROOT_SIGNATURE_VERSION_1, &signature, &error);
 
     if (FAILED(res))
@@ -290,7 +290,7 @@ RendererResult DX12ComputePipeline::BuildRootSignature()
         return HYP_MAKE_ERROR(RendererError, "Root Signature Serialization Failed! {}", res, errStr);
     }
 
-    res = g_renderInterface->GetDevice()->CreateRootSignature(
+    res = RI.GetDevice()->CreateRootSignature(
         0,
         signature->GetBufferPointer(),
         signature->GetBufferSize(),
@@ -360,7 +360,7 @@ void DX12ComputePipeline::DispatchIndirect(
         sigDesc.NumArgumentDescs = 1;
         sigDesc.pArgumentDescs = &argDesc;
 
-        g_renderInterface->GetDevice()->CreateCommandSignature(
+        RI.GetDevice()->CreateCommandSignature(
             &sigDesc,
             m_rootSignature.Get(),
             IID_PPV_ARGS(&m_dispatchCommandSignature));
@@ -390,7 +390,7 @@ void DX12ComputePipeline::SetDebugName(Name name)
     {
         return;
     }
-    
+
     WideString ws = *name;
 
     if (m_pipelineState)

@@ -14,7 +14,7 @@
 
 namespace Hyperion {
 
-extern DX12RenderInterface* g_renderInterface;
+extern DX12RenderInterface RI;
 
 #pragma region DX12DescriptorAllocator
 
@@ -49,10 +49,10 @@ DX12DescriptorAllocator::DX12DescriptorAllocator(DX12DescriptorHeapType type, ui
         HYP_UNREACHABLE();
     }
 
-    HRESULT res = g_renderInterface->GetDevice()->CreateDescriptorHeap(&heapDesc, __uuidof(ID3D12DescriptorHeap), &heap);
+    HRESULT res = RI.GetDevice()->CreateDescriptorHeap(&heapDesc, __uuidof(ID3D12DescriptorHeap), &heap);
     Assert(SUCCEEDED(res), "Failed to create descriptor heap! Error code: {}", res);
-    
-    incrementSize = g_renderInterface->GetDevice()->GetDescriptorHandleIncrementSize(heapDesc.Type);
+
+    incrementSize = RI.GetDevice()->GetDescriptorHandleIncrementSize(heapDesc.Type);
 
     cpuStart = heap->GetCPUDescriptorHandleForHeapStart();
 
@@ -107,7 +107,7 @@ DX12DescriptorHeapManager::DX12DescriptorHeapManager()
 
 void DX12DescriptorHeapManager::Initialize()
 {
-    ID3D12Device* device = g_renderInterface->GetDevice();
+    ID3D12Device* device = RI.GetDevice();
 
     // placeholder
     static constexpr uint32 MaxDescriptorsByHeapType[MaxDescriptorHeapType] = {

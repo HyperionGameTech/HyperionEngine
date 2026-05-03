@@ -127,7 +127,7 @@ void Baker<ReflectionProbe>::OnCompleted_Internal()
         RendererResult operator()() override
         {
             CheckResult(cubemap->Create());
-            
+
             // prevent writing on other threads
             auto resGuard = envProbe->GetWriteScope();
 
@@ -150,7 +150,7 @@ void Baker<ReflectionProbe>::OnCompleted_Internal()
             ConvolveProbe::ConvolveEnvProbeCubemap(cubemap, *envProbe);
             ComputeSH::ComputeEnvProbeSphericalHarmonics(*envProbe, *cubemap);
 
-            g_renderInterface->GetCurrentFrame()->OnFrameEnd.Bind([cubemap = cubemap, envProbe = envProbe](Frame*) mutable
+            RI.GetCurrentFrame()->OnFrameEnd.Bind([cubemap = cubemap, envProbe = envProbe](Frame*) mutable
                 {
                     EnqueueDeletion(std::move(cubemap));
                     EnqueueDeletion(std::move(envProbe));

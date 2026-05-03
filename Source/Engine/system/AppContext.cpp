@@ -91,7 +91,7 @@ struct SetupWindowSwapchainAsync
         // ensure window is still valid, otherwise, cancel the task
         if (Handle<ApplicationWindow> window = windowWeak.Lock(); window.IsValid())
         {
-            if (g_renderInterface != nullptr && g_renderInitSignal.IsSignalled())
+            if (g_renderInitSignal.IsSignalled())
             {
                 window->CreateSwapchain();
                 success = true;
@@ -196,7 +196,7 @@ void ApplicationWindow::CreateSwapchain()
         return; // already created. swapchain is set on render thread
     }
 
-    m_vkSurface = g_renderInterface->CreateSurface(this, nullptr);
+    m_vkSurface = RI.CreateSurface(this, nullptr);
     Assert(m_vkSurface != VK_NULL_HANDLE);
 #endif
 
@@ -210,7 +210,7 @@ void ApplicationWindow::CreateSwapchain()
         // we need to temporarily release the lock here to avoid deadlocking the render thread
         lock.Reset();
 
-        SwapchainRef swapchain = g_renderInterface->CreateSwapchain(this, swapchainSize);
+        SwapchainRef swapchain = RI.CreateSwapchain(this, swapchainSize);
         Assert(swapchain.IsValid());
 
         lock.Reset(m_mtx);
@@ -232,7 +232,7 @@ void ApplicationWindow::CreateSwapchain()
 
                 const Vec2u swapchainSize = Vec2u(Vec2f(m_size) * SwapchainScale);
 
-                SwapchainRef swapchain = g_renderInterface->CreateSwapchain(this, swapchainSize);
+                SwapchainRef swapchain = RI.CreateSwapchain(this, swapchainSize);
                 Assert(swapchain.IsValid());
 
                 if (m_swapchain.IsValid())

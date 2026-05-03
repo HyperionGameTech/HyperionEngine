@@ -356,14 +356,14 @@ static void InitDrawCallCollection(
     }
 
     drawCallCollection.batchAllocator = renderCollector->batchAllocator;
-    
+
     // If parallel rendering is globally disabled, disable it for this RenderGroup
-    if (!g_renderInterface->GetRenderConfig().parallelRendering)
+    if (!RI.GetRenderConfig().parallelRendering)
     {
         drawCallCollection.flags &= ~RenderGroupFlags::PARALLEL_RENDERING;
     }
 
-    if (!g_renderInterface->GetRenderConfig().indirectRendering)
+    if (!RI.GetRenderConfig().indirectRendering)
     {
         drawCallCollection.flags &= ~RenderGroupFlags::INDIRECT_RENDERING;
     }
@@ -593,7 +593,7 @@ void RenderProxyList::BeginRead(bool* pOutSuccess)
 void RenderProxyList::EndRead()
 {
     AssertDebug(state == CS_READING);
-    
+
     /// @NOTE: If BeginRead() is called on other thread between the check and setting state to CS_DONE,
     /// we could set state to done when it isn't actually.
     if (m_lock.UnlockReader() == 0)
@@ -623,7 +623,7 @@ static void SetForwardShadingUniforms(
     size_t cbufferOffset = 0;
     size_t cbufferSize = 0;
 
-    ForwardShadingConstants* forwardShadingConstants = (ForwardShadingConstants*)g_renderInterface->cbufferAllocator->Allocate(
+    ForwardShadingConstants* forwardShadingConstants = (ForwardShadingConstants*)RI.cbufferAllocator->Allocate(
         sizeof(ForwardShadingConstants),
         alignof(ForwardShadingConstants),
         cbuffer,
@@ -633,7 +633,7 @@ static void SetForwardShadingUniforms(
     Memory::Zero(forwardShadingConstants, sizeof(ForwardShadingConstants));
 
     cbufferSize = sizeof(ForwardShadingConstants);
-        
+
     RenderProxyList& rpl = GetConsumerProxyList(renderSetup.view);
     rpl.BeginRead();
 
@@ -645,7 +645,7 @@ static void SetForwardShadingUniforms(
         {
             break;
         }
-                
+
         RenderProxyLight* lightProxy = static_cast<RenderProxyLight*>(GetRenderProxy(light));
         Assert(lightProxy != nullptr);
 
@@ -655,11 +655,11 @@ static void SetForwardShadingUniforms(
 
         // Set shadow map
         ShadowMapData& currShadowMapData = forwardShadingConstants->shadowMaps[lightIndex];
-                
+
         View* shadowMapViewDynamic;
         View* shadowMapViewStatic;
 
-        ShadowMap* shadowMap = g_renderInterface->shadowMapCache->GetShadowMap(
+        ShadowMap* shadowMap = RI.shadowMapCache->GetShadowMap(
             light,
             renderSetup.view,
             0,
@@ -686,7 +686,7 @@ static void SetForwardShadingUniforms(
             shadowBoundsNDC.max = Vec3f(1.0f);
 
             BoundingBox shadowBoundsWS = shadowCameraProxy->bufferData.inverseViewMat * shadowBoundsNDC;
-        
+
             currShadowMapData.layerIndex = atlasElement->layerIndex;
 
             currShadowMapData.viewProjMat = viewProjMat;
@@ -728,7 +728,7 @@ static void RenderAll(
         AssertDebug(indirectRenderer != nullptr);
     }
 
-    static const bool s_useBindlessTextures = g_renderInterface->GetRenderConfig().bindlessTextures;
+    static const bool s_useBindlessTextures = RI.GetRenderConfig().bindlessTextures;
 
     if (drawCallCollection.instancedDrawCalls.Empty() && drawCallCollection.drawCalls.Empty())
     {
@@ -742,37 +742,37 @@ static void RenderAll(
     const MaterialAttributes& mas = ras.GetMaterialAttributes();
 
     uint32 numShaderUniforms = 0;
-    
-    cr << SetShaderUniform(numShaderUniforms++, "SamplerLinear"_sh, g_renderInterface->placeholderData->GetSamplerLinearMipmap());
-    cr << SetShaderUniform(numShaderUniforms++, "SamplerNearest"_sh, g_renderInterface->placeholderData->GetSamplerNearest());
+
+    cr << SetShaderUniform(numShaderUniforms++, "SamplerLinear"_sh, RI.placeholderData->GetSamplerLinearMipmap());
+    cr << SetShaderUniform(numShaderUniforms++, "SamplerNearest"_sh, RI.placeholderData->GetSamplerNearest());
 
     const uint32 cbufferBinding = numShaderUniforms++;
 
-    cr << SetShaderUniform(numShaderUniforms++, "CamerasBuffer"_sh, g_renderInterface->namedBuffers[NamedBuffer::Cameras].gpuBuffer, TShaderDataOffset<CameraShaderData>(renderSetup.view->GetCamera()));
-    
-    cr << SetShaderUniform(numShaderUniforms++, "EntitiesBuffer"_sh, g_renderInterface->namedBuffers[NamedBuffer::Entities].gpuBuffer);
+    cr << SetShaderUniform(numShaderUniforms++, "CamerasBuffer"_sh, RI.namedBuffers[NamedBuffer::Cameras].gpuBuffer, TShaderDataOffset<CameraShaderData>(renderSetup.view->GetCamera()));
 
-    cr << SetShaderUniform(numShaderUniforms++, "WorldsBuffer"_sh, g_renderInterface->namedBuffers[NamedBuffer::Worlds].gpuBuffer);
-    
-    cr << SetShaderUniform(numShaderUniforms++, "ShadowMapsTextureArray"_sh, g_renderInterface->shadowMapCache->GetAtlasImageView()); 
-    cr << SetShaderUniform(numShaderUniforms++, "PointLightShadowMapsTextureArray"_sh, g_renderInterface->shadowMapCache->GetPointLightShadowMapImageView());
-    
-    cr << SetShaderUniform(numShaderUniforms++, "EnvProbesTexture"_sh, g_renderInterface->textureViewCache->GetOrCreate(g_renderInterface->envProbesTexture));
-    cr << SetShaderUniform(numShaderUniforms++, "EnvProbesBuffer"_sh, g_renderInterface->namedBuffers[NamedBuffer::EnvProbes].gpuBuffer);
-    
-    cr << SetShaderUniform(numShaderUniforms++, "LightsBuffer"_sh, g_renderInterface->namedBuffers[NamedBuffer::Lights].gpuBuffer);
-    
+    cr << SetShaderUniform(numShaderUniforms++, "EntitiesBuffer"_sh, RI.namedBuffers[NamedBuffer::Entities].gpuBuffer);
+
+    cr << SetShaderUniform(numShaderUniforms++, "WorldsBuffer"_sh, RI.namedBuffers[NamedBuffer::Worlds].gpuBuffer);
+
+    cr << SetShaderUniform(numShaderUniforms++, "ShadowMapsTextureArray"_sh, RI.shadowMapCache->GetAtlasImageView());
+    cr << SetShaderUniform(numShaderUniforms++, "PointLightShadowMapsTextureArray"_sh, RI.shadowMapCache->GetPointLightShadowMapImageView());
+
+    cr << SetShaderUniform(numShaderUniforms++, "EnvProbesTexture"_sh, RI.textureViewCache->GetOrCreate(RI.envProbesTexture));
+    cr << SetShaderUniform(numShaderUniforms++, "EnvProbesBuffer"_sh, RI.namedBuffers[NamedBuffer::EnvProbes].gpuBuffer);
+
+    cr << SetShaderUniform(numShaderUniforms++, "LightsBuffer"_sh, RI.namedBuffers[NamedBuffer::Lights].gpuBuffer);
+
     // These two (CurrentLight, CurrentEnvProbe) should be refactored out; they exist for RenderSky shader currently.
     if (renderSetup.light != nullptr)
-        cr << SetShaderUniform(numShaderUniforms++, "CurrentLight"_sh, g_renderInterface->namedBuffers[NamedBuffer::Lights].gpuBuffer, TShaderDataOffset<LightShaderData>(renderSetup.light));
+        cr << SetShaderUniform(numShaderUniforms++, "CurrentLight"_sh, RI.namedBuffers[NamedBuffer::Lights].gpuBuffer, TShaderDataOffset<LightShaderData>(renderSetup.light));
     else
-        cr << SetShaderUniform(numShaderUniforms++, "CurrentLight"_sh, g_renderInterface->namedBuffers[NamedBuffer::Lights].gpuBuffer, TShaderDataOffset<LightShaderData>(0));
+        cr << SetShaderUniform(numShaderUniforms++, "CurrentLight"_sh, RI.namedBuffers[NamedBuffer::Lights].gpuBuffer, TShaderDataOffset<LightShaderData>(0));
 
     if (renderSetup.envProbe != nullptr)
-        cr << SetShaderUniform(numShaderUniforms++, "CurrentEnvProbe"_sh, g_renderInterface->namedBuffers[NamedBuffer::EnvProbes].gpuBuffer, TShaderDataOffset<EnvProbeShaderData>(renderSetup.envProbe));
+        cr << SetShaderUniform(numShaderUniforms++, "CurrentEnvProbe"_sh, RI.namedBuffers[NamedBuffer::EnvProbes].gpuBuffer, TShaderDataOffset<EnvProbeShaderData>(renderSetup.envProbe));
     else
-        cr << SetShaderUniform(numShaderUniforms++, "CurrentEnvProbe"_sh, g_renderInterface->namedBuffers[NamedBuffer::EnvProbes].gpuBuffer, TShaderDataOffset<EnvProbeShaderData>(0));
-    
+        cr << SetShaderUniform(numShaderUniforms++, "CurrentEnvProbe"_sh, RI.namedBuffers[NamedBuffer::EnvProbes].gpuBuffer, TShaderDataOffset<EnvProbeShaderData>(0));
+
 
     const bool isForwardShading = mas.shaderProperties.Test(s_propShadingTypeForward);
 
@@ -786,8 +786,8 @@ static void RenderAll(
 
     if (dpd != nullptr)
     {
-        cr << SetShaderUniform(numShaderUniforms++, "GBufferMipChain"_sh, g_renderInterface->textureViewCache->GetOrCreate(dpd->mipChain));
-    
+        cr << SetShaderUniform(numShaderUniforms++, "GBufferMipChain"_sh, RI.textureViewCache->GetOrCreate(dpd->mipChain));
+
         if (isForwardShading)
         {
             // Even though the name suggests otherwise we are in forward pass, where we use clustered shading
@@ -817,7 +817,7 @@ static void RenderAll(
         AssertDebug(materialProxy != nullptr);
 
         { // Write constants for the draw
-            CBufferAllocator& cba = *g_renderInterface->cbufferAllocator;
+            CBufferAllocator& cba = *RI.cbufferAllocator;
             cba.Write(&meshProxy.bufferData);
             cba.Write(&materialProxy->bufferData);
             cba.Commit(cbuffer, cbufferOffset, cbufferSize);
@@ -827,16 +827,16 @@ static void RenderAll(
         if (meshProxy.skeleton != nullptr)
         {
             cr << SetShaderUniform(numDrawCallUniforms++, "SkeletonsBuffer"_sh,
-                g_renderInterface->namedBuffers[NamedBuffer::Skeletons].gpuBuffer,
+                RI.namedBuffers[NamedBuffer::Skeletons].gpuBuffer,
                 TShaderDataOffset<SkeletonShaderData>(meshProxy.skeleton));
         }
-        
+
         if (!s_useBindlessTextures)
         {
             const uint32 materialBoundIndex = Resources::GetBinding(meshProxy.material);
             AssertDebug(materialBoundIndex != ~0u);
 
-            Span<const GpuImageViewRef> imageViews = g_renderInterface->materialTextureCache->imageViews.Get(materialBoundIndex);
+            Span<const GpuImageViewRef> imageViews = RI.materialTextureCache->imageViews.Get(materialBoundIndex);
             AssertDebug(imageViews.Size() >= materialProxy->boundTextures.Size());
 
             FOR_EACH_BIT(materialProxy->bufferData.textureUsage, bit)
@@ -846,7 +846,7 @@ static void RenderAll(
                 cr << SetShaderUniform(numDrawCallUniforms++, textureUniformName, imageViews[materialProxy->boundTextureIndices[bit]]);
             }
         }
-        
+
         cr << CommitDrawState();
 
         if (!prevMesh || prevMesh != meshProxy.mesh)
@@ -893,9 +893,9 @@ static void RenderAll(
 
         const RenderProxyMaterial* materialProxy = static_cast<const RenderProxyMaterial*>(GetRenderProxy(meshProxy.material));
         AssertDebug(materialProxy != nullptr);
-        
+
         { // Write constants for the draw
-            CBufferAllocator& cba = *g_renderInterface->cbufferAllocator;
+            CBufferAllocator& cba = *RI.cbufferAllocator;
             cba.Write(&meshProxy.bufferData);
             cba.Write(&materialProxy->bufferData);
             cba.Commit(cbuffer, cbufferOffset, cbufferSize);
@@ -904,26 +904,26 @@ static void RenderAll(
 
         EntityInstanceBatch* entityInstanceBatch = instancedDrawCalls.batches[i];
         AssertDebug(entityInstanceBatch != nullptr);
-        
+
         const uint32 stride = drawCallCollection.batchAllocator->GetStructSize();
 
         cr << SetShaderUniform(numDrawCallUniforms++, "EntityInstanceBatchesBuffer"_sh,
             drawCallCollection.batchAllocator->GetStructuredBuffer().gpuBuffer,
             ShaderDataOffset(entityInstanceBatch->batchIndex * stride, stride));
-                        
+
         if (meshProxy.skeleton != nullptr)
         {
             cr << SetShaderUniform(numDrawCallUniforms++, "SkeletonsBuffer"_sh,
-                g_renderInterface->namedBuffers[NamedBuffer::Skeletons].gpuBuffer,
+                RI.namedBuffers[NamedBuffer::Skeletons].gpuBuffer,
                 TShaderDataOffset<SkeletonShaderData>(meshProxy.skeleton));
         }
-        
+
         if (!s_useBindlessTextures)
         {
             const uint32 materialBoundIndex = Resources::GetBinding(meshProxy.material);
             AssertDebug(materialBoundIndex != ~0u);
 
-            Span<const GpuImageViewRef> imageViews = g_renderInterface->materialTextureCache->imageViews.Get(materialBoundIndex);
+            Span<const GpuImageViewRef> imageViews = RI.materialTextureCache->imageViews.Get(materialBoundIndex);
             AssertDebug(imageViews.Size() >= materialProxy->boundTextures.Size());
 
             FOR_EACH_BIT(materialProxy->bufferData.textureUsage, bit)
@@ -935,7 +935,7 @@ static void RenderAll(
                     imageViews[materialProxy->boundTextureIndices[bit]]);
             }
         }
-        
+
         cr << CommitDrawState();
 
         if (!prevMesh || prevMesh != meshProxy.mesh)
@@ -964,7 +964,7 @@ static void RenderAll(
         }
 
         prevMesh = meshProxy.mesh;
-            
+
         // @NOTE For indirect rendering we would need to read back the number of drawn instances from the GPU to get correct stats.
         if (!drawCallCollection.suppressStats)
         {
@@ -982,7 +982,7 @@ static void PerformRenderingImpl(
     const DrawCallCollection& drawCallCollection,
     IndirectRenderer* indirectRenderer)
 {
-    static const bool s_indirectRenderingEnabled = g_renderInterface->GetRenderConfig().indirectRendering;
+    static const bool s_indirectRenderingEnabled = RI.GetRenderConfig().indirectRendering;
 
     const bool useIndirectRendering = s_indirectRenderingEnabled
         && drawCallCollection.flags[RenderGroupFlags::INDIRECT_RENDERING]
@@ -999,7 +999,7 @@ static void PerformRenderingImpl(
 
     cr << SetTopology(ras.GetMeshAttributes().topology);
     cr << SetInputLayout(ras.GetMeshAttributes().inputLayout);
-    
+
     cr << SetCurrentViewport(renderSetup.viewport);
 
 
@@ -1016,7 +1016,7 @@ static void PerformRenderingImpl(
         // these are needed too
         shaderProperties.Add(propTileSize);
         shaderProperties.Add(propTileZBins);
-    
+
         cr << SetCurrentShader(ShaderDesc(mas.shaderName, shaderProperties));
     }
     else
@@ -1026,7 +1026,7 @@ static void PerformRenderingImpl(
 
     cr << SetFillMode(mas.fillMode);
     cr << SetFaceCullMode(mas.cullFaces);
-    
+
     cr << SetCurrentBlendFunction(mas.blendFunction);
 
     cr << SetDepthTest(bool(mas.flags & MAF_DEPTH_TEST));
@@ -1171,10 +1171,10 @@ RenderCollector::~RenderCollector()
                         }
                     }
                 };
-                
+
                 // Render thread == 0
                 DestructCommandRecorders();
-                
+
                 if (isParallel)
                 {
                     // we have to free up the memory for each local queue on individual threads,
@@ -1274,7 +1274,7 @@ HYP_NODISCARD ParallelRenderingState* RenderCollector::AcquireNextParallelRender
 {
     HYP_SCOPE;
     AssertOnThread(g_renderThread);
-    
+
     ParallelRenderingState*& parallelRenderingStateHead = parallelRenderingStates[index].head;
     ParallelRenderingState*& parallelRenderingStateTail = parallelRenderingStates[index].tail;
 
@@ -1335,7 +1335,7 @@ HYP_NODISCARD ParallelRenderingState* RenderCollector::AcquireNextParallelRender
 void RenderCollector::Commit(CommandRecorder& cr, uint8 index)
 {
     HYP_SCOPE;
-    
+
     ParallelRenderingState*& parallelRenderingStateHead = parallelRenderingStates[index].head;
     ParallelRenderingState*& parallelRenderingStateTail = parallelRenderingStates[index].tail;
 
@@ -1419,7 +1419,7 @@ void RenderCollector::PerformOcclusionCulling(Frame* frame, const RenderSetup& r
     AssertDebug(renderSetup.world && renderSetup.view);
     AssertDebug(renderSetup.passData != nullptr, "RenderSetup must have valid PassData to perform occlusion culling");
 
-    static const bool s_isIndirectRenderingEnabled = g_renderInterface->GetRenderConfig().indirectRendering;
+    static const bool s_isIndirectRenderingEnabled = RI.GetRenderConfig().indirectRendering;
     const bool performOcclusionCulling = s_isIndirectRenderingEnabled && renderSetup.passData->cullData.depthPyramidImageView != nullptr;
 
     if (performOcclusionCulling)
@@ -1531,7 +1531,7 @@ bool RenderCollector::BeginRecordDrawCalls(
                 {
                     PerformRendering(frame, renderSetup, drawCallCollection, indirectRenderer);
                 });
-            
+
             anyEnqueued = true;
         }
 
@@ -1562,7 +1562,7 @@ void RenderCollector::ExecuteDrawCalls(
     else
     {
         Framebuffer* framebuffer = renderSetup.framebuffer;
-    
+
         if (!framebuffer)
         {
             framebuffer = renderSetup.view->GetOutputTarget().GetFramebuffer();
@@ -1907,7 +1907,7 @@ void RenderCollector::BuildRenderGroups(View* view, RenderProxyList& renderProxy
                 // not changed, skip
                 continue;
             }
-            
+
             prevDrawCallCollection->meshProxies.EraseAt(idx);
             prevDrawCallCollection = nullptr;
 
@@ -2007,7 +2007,7 @@ void RenderCollector::PerformRendering(
     AssertDebug(renderSetup.passData != nullptr, "RenderSetup must have valid PassData for rendering!");
 
     Framebuffer* framebuffer = renderSetup.framebuffer;
-    
+
     if (!framebuffer)
     {
         framebuffer = renderSetup.view->GetOutputTarget().GetFramebuffer();
@@ -2036,7 +2036,7 @@ void RenderCollector::PerformRendering(
     {
         PerformRenderingImpl(frame, frame->cr, renderSetup, drawCallCollection, indirectRenderer);
     }
-    
+
     g_statRenderGroups++;
 }
 

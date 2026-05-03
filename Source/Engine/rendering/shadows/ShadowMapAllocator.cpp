@@ -89,7 +89,7 @@ void ShadowMapAllocator::Initialize()
         uint16(m_atlases.Size()),
         IU_SAMPLED | IU_ATTACHMENT
     });
-    
+
     m_atlasTextureArray->SetName(NAME("ShadowMapAtlas"));
     CheckResult(m_atlasTextureArray->Create());
     m_atlasTextureArray->GetGpuImage()->SetDebugName(NAME("ShadowMapAtlas"));
@@ -104,7 +104,7 @@ void ShadowMapAllocator::Initialize()
         MaxBoundOmniShadowMaps * 6,
         IU_SAMPLED | IU_ATTACHMENT
     });
-    
+
     m_pointLightTextureArray->SetName(NAME("PointLightShadowMapImage"));
     CheckResult(m_pointLightTextureArray->Create());
     m_pointLightTextureArray->GetGpuImage()->SetDebugName(NAME("PointLightShadowMapImage"));
@@ -124,7 +124,7 @@ void ShadowMapAllocator::Initialize()
     m_clearTexture->GetGpuImage()->SetDebugName(NAME("ShadowMapClearTexture"));
 
     { // Clear that clear texture
-        CommandRecorder& cr = g_renderInterface->commandRecorderAllocator.GetCommandRecorder();
+        CommandRecorder& cr = RI.commandRecorderAllocator.GetCommandRecorder();
 
         cr << InsertBarrier(m_clearTexture->GetGpuImage(), RS_COPY_DST);
         cr << FillImage(m_clearTexture->GetGpuImage(), 1.0f, ImageSubResource {});
@@ -161,7 +161,7 @@ ShadowMap* ShadowMapAllocator::AllocateShadowMap(ShadowMapType shadowMapType, Sh
             m_pointLightShadowMapIdGenerator.ReleaseId(pointLightIndex + 1);
 
             HYP_LOG_ONCE(Rendering, Warning, "Too many omni shadow maps allocated; returning NULL for AllocateShadowMap()");
-            
+
             return nullptr;
         }
 
@@ -177,9 +177,9 @@ ShadowMap* ShadowMapAllocator::AllocateShadowMap(ShadowMapType shadowMapType, Sh
         subResource.numLayers = 6;
         subResource.baseMipLevel = 0;
         subResource.numLevels = 1;
-        
+
         // @NOTE using TextureType::Texture2DArray for point light shadow maps rather than CubemapArray
-        GpuImageViewRef atlasImageView = g_renderInterface->textureViewCache->GetOrCreate(
+        GpuImageViewRef atlasImageView = RI.textureViewCache->GetOrCreate(
             m_pointLightTextureArray,
             subResource,
             TextureType::Texture2DArray);
@@ -209,7 +209,7 @@ ShadowMap* ShadowMapAllocator::AllocateShadowMap(ShadowMapType shadowMapType, Sh
             subResource.baseMipLevel = 0;
             subResource.numLevels = 1;
 
-            GpuImageViewRef atlasImageView = g_renderInterface->textureViewCache->GetOrCreate(m_atlasTextureArray, subResource);
+            GpuImageViewRef atlasImageView = RI.textureViewCache->GetOrCreate(m_atlasTextureArray, subResource);
             CheckResult(atlasImageView->Create());
 
             ShadowMap* shadowMap = new ShadowMap(
@@ -260,7 +260,7 @@ bool ShadowMapAllocator::FreeShadowMap(ShadowMap* shadowMap)
             }
             else
             {
-                Frame* frame = g_renderInterface->GetCurrentFrame();
+                Frame* frame = RI.GetCurrentFrame();
                 if (frame != nullptr)
                 {
                     ImageSubResource srcSubResource {};

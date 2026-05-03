@@ -170,14 +170,14 @@ void BakerBase::Initialize()
 {
     if (PerformsRayTracing())
     {
-        if (!g_renderInterface->GetRenderConfig().rayTracing)
+        if (!RI.GetRenderConfig().rayTracing)
         {
             SystemMessageBox(MessageBoxType::CRITICAL)
                 .Title("Ray tracing must be enabled")
                 .Text("This baking technique requires support for ray tracing which doesn't appear to be supported on this device (or it has been explicitly disabled via config).")
                 .Show();
         }
-        
+
         Handle<Camera> camera = MakeHandle<Camera>();
         camera->SetName(NAME_FMT("{}_Camera", InstanceClass()->GetName()));
         camera->AddCameraController(MakeHandle<OrthoCameraController>());
@@ -191,7 +191,7 @@ void BakerBase::Initialize()
         framebufferDesc.numAttachments = 1;
 
         BoundingBox bounds;
-        
+
         if (OnlyOverlappingElements())
         {
             bounds = m_aabb;
@@ -278,7 +278,7 @@ UniquePtr<ILightmapRenderer> BakerBase::CreateRenderer(LightmapShadingType shadi
         return nullptr;
     }
 
-    if (!g_renderInterface->GetRenderConfig().rayTracing)
+    if (!RI.GetRenderConfig().rayTracing)
     {
         HYP_LOG(Lightmap, Error, "GPU path tracing is not supported on this device");
 
@@ -295,7 +295,7 @@ void BakerBase::CreateLightmapRenderers()
 void BakerBase::Build()
 {
     HYP_SCOPE;
-    
+
     Assert(m_numJobs == 0, "Cannot initialize lightmap renderer -- jobs currently running!");
 
     // Build jobs
@@ -642,7 +642,7 @@ void BakerBase::OnCompleted()
         totalElapsedStr = HYP_FORMAT("{}s", int(totalElapsedSeconds));
     }
 
-    // mark the source object dirty if it is an AssetObject 
+    // mark the source object dirty if it is an AssetObject
     if (m_source->IsA(AssetObject::StaticClass()))
     {
         static_cast<AssetObject*>(m_source)->MarkDirty();

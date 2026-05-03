@@ -111,7 +111,7 @@ const GpuImageViewRef& FullScreenPass::GetFinalImageView() const
     {
         Assert(m_temporalBlending != nullptr);
 
-        return g_renderInterface->textureViewCache->GetOrCreate(m_temporalBlending->GetResultTexture());
+        return RI.textureViewCache->GetOrCreate(m_temporalBlending->GetResultTexture());
     }
 
     if (ShouldRenderCheckerboarded())
@@ -146,7 +146,7 @@ const GpuImageViewRef& FullScreenPass::GetPreviousFrameColorImageView() const
 
     if (m_historyTexture.IsValid())
     {
-        return g_renderInterface->textureViewCache->GetOrCreate(m_historyTexture);
+        return RI.textureViewCache->GetOrCreate(m_historyTexture);
     }
 
     return GpuImageViewRef::Null();
@@ -327,7 +327,7 @@ void FullScreenPass::CreateFramebuffer()
     framebufferDesc.extent = framebufferExtent;
     framebufferDesc.numLayers = 1;
 
-    m_framebuffer = g_renderInterface->MakeFramebuffer(framebufferDesc);
+    m_framebuffer = RI.MakeFramebuffer(framebufferDesc);
 
 #if HYP_DEBUG_MODE
     m_framebuffer->SetDebugName(NAME_FMT("{}Framebuffer", GetName()));
@@ -405,7 +405,7 @@ void FullScreenPass::CreateMergeCheckerboardPass()
 
     if (!m_mergeCheckerboardUniformBuffer)
     {
-        m_mergeCheckerboardUniformBuffer = g_renderInterface->MakeGpuBuffer(GpuBufferType::ConstantBuffer, sizeof(uniforms));
+        m_mergeCheckerboardUniformBuffer = RI.MakeGpuBuffer(GpuBufferType::ConstantBuffer, sizeof(uniforms));
         CheckResult(m_mergeCheckerboardUniformBuffer->Create());
     }
 
@@ -431,7 +431,7 @@ void FullScreenPass::DrawHistoryTexture(Frame* frame, const RenderSetup& renderS
     const uint32 frameIndex = frame->GetFrameIndex();
 
     CommandRecorder& cr = frame->cr;
-    
+
     ShaderDesc shaderDesc;
     shaderDesc.name = NAME("BlitTexture");
     shaderDesc.properties.Set(s_propCheckerboarded, ShouldRenderCheckerboarded());
@@ -455,10 +455,10 @@ void FullScreenPass::DrawHistoryTexture(Frame* frame, const RenderSetup& renderS
 
     cr << SetDepthTest(false);
     cr << SetDepthWrite(false);
-    
-    cr << SetShaderUniform(0, "SamplerLinear"_sh, g_renderInterface->placeholderData->GetSamplerLinear());
-    cr << SetShaderUniform(1, "SamplerNearest"_sh, g_renderInterface->placeholderData->GetSamplerNearest());
-    cr << SetShaderUniform(2, "WorldsBuffer"_sh, g_renderInterface->namedBuffers[NamedBuffer::Worlds].gpuBuffer);
+
+    cr << SetShaderUniform(0, "SamplerLinear"_sh, RI.placeholderData->GetSamplerLinear());
+    cr << SetShaderUniform(1, "SamplerNearest"_sh, RI.placeholderData->GetSamplerNearest());
+    cr << SetShaderUniform(2, "WorldsBuffer"_sh, RI.namedBuffers[NamedBuffer::Worlds].gpuBuffer);
     cr << SetShaderUniform(3, "InTexture"_sh, GetPreviousFrameColorImageView());
 
     RenderFullScreenQuad(frame, renderSetup);
@@ -501,9 +501,9 @@ void FullScreenPass::MergeCheckerboard(Frame* frame, const RenderSetup& renderSe
 
     m_mergeCheckerboardPass->Begin(frame, renderSetup);
 
-    cr << SetShaderUniform(0, "SamplerLinear"_sh, g_renderInterface->placeholderData->GetSamplerLinear());
-    cr << SetShaderUniform(1, "SamplerNearest"_sh, g_renderInterface->placeholderData->GetSamplerNearest());
-    cr << SetShaderUniform(2, "WorldsBuffer"_sh, g_renderInterface->namedBuffers[NamedBuffer::Worlds].gpuBuffer);
+    cr << SetShaderUniform(0, "SamplerLinear"_sh, RI.placeholderData->GetSamplerLinear());
+    cr << SetShaderUniform(1, "SamplerNearest"_sh, RI.placeholderData->GetSamplerNearest());
+    cr << SetShaderUniform(2, "WorldsBuffer"_sh, RI.namedBuffers[NamedBuffer::Worlds].gpuBuffer);
     cr << SetShaderUniform(3, "InTexture"_sh, GetAttachment(0)->GetImageView());
     cr << SetShaderUniform(4, "UniformBuffer"_sh, m_mergeCheckerboardUniformBuffer);
 
@@ -624,7 +624,7 @@ void FullScreenPass::RenderToFramebuffer_Internal(Frame* frame, const RenderSetu
     }
 
     cr << SetInputLayout(StaticVertexInputLayout<VT_Simple>);
-    
+
     cr << SetCurrentShader(m_shaderDesc);
 
     cr << SetDepthTest(false);

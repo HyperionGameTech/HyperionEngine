@@ -26,7 +26,7 @@
 
 namespace Hyperion {
 
-extern DX12RenderInterface* g_renderInterface;
+extern DX12RenderInterface RI;
 
 #pragma region DX12GpuImage
 
@@ -94,7 +94,7 @@ RendererResult DX12GpuImage::Create(ResourceState initialState)
     const bool hasMipmaps = m_textureDesc.HasMipMaps();
     const uint32 numMipmaps = m_textureDesc.NumMips();
     const uint32 numLayers = m_textureDesc.NumArrayLayers();
-    
+
     if (extent.Volume() == 0)
     {
         return HYP_MAKE_ERROR(RendererError, "Invalid image extent - width*height*depth cannot equal zero");
@@ -106,7 +106,7 @@ RendererResult DX12GpuImage::Create(ResourceState initialState)
     resourceDesc.Height = extent.y;
     resourceDesc.DepthOrArraySize = extent.z;
     resourceDesc.MipLevels = m_textureDesc.HasMipMaps() ? m_textureDesc.NumMips() : 1;
-    
+
     // For depth textures that will be sampled, use TYPELESS format for the resource
     // Views will use the appropriate typed format (D16_UNORM for DSV, R16_UNORM for SRV)
     DX12ViewType resourceFormatType = DX12ViewType::SRV_UAV;
@@ -118,9 +118,9 @@ RendererResult DX12GpuImage::Create(ResourceState initialState)
     {
         resourceFormatType = DX12ViewType::RTV_DSV;
     }
-    
+
     resourceDesc.Format = ToDXGIFormat(m_textureDesc.format, resourceFormatType);
-    
+
     resourceDesc.SampleDesc.Count = 1;
     resourceDesc.SampleDesc.Quality = 0;
     resourceDesc.Layout = D3D12_TEXTURE_LAYOUT_UNKNOWN;
@@ -206,7 +206,7 @@ RendererResult DX12GpuImage::Create(ResourceState initialState)
     D3D12MA::ALLOCATION_DESC allocDesc {};
     allocDesc.HeapType = D3D12_HEAP_TYPE_DEFAULT;
 
-    HRESULT hr = g_renderInterface->GetAllocator()->CreateResource(
+    HRESULT hr = RI.GetAllocator()->CreateResource(
         &allocDesc,
         &resourceDesc,
         resourceStates,
@@ -277,7 +277,7 @@ RendererResult DX12GpuImage::Resize(const Vec3u& extent)
         {
             SetResourceState(RS_UNDEFINED);
 
-            DX12Frame* frame = g_renderInterface->GetCurrentFrame();
+            DX12Frame* frame = RI.GetCurrentFrame();
             CommandRecorder& cr = frame->cr;
             cr << ::Hyperion::InsertBarrier(this, previousResourceState);
         }
@@ -506,7 +506,7 @@ void DX12GpuImage::InsertBarrier(
         {
             return;
         }
-         
+
         D3D12_RESOURCE_BARRIER barrier {};
         barrier.Type = D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
         barrier.Flags = D3D12_RESOURCE_BARRIER_FLAG_NONE;
@@ -551,7 +551,7 @@ void DX12GpuImage::InsertBarrier(
             const ResourceState subResCurrentState = onlyStencil
                 ? currStencilState
                 : (stateIt != m_subResourceStates.End() ? stateIt->second : GetResourceState());
-            
+
             const uint32 planeSlice = onlyStencil ? 1u : 0u;
             const uint32 subResourceIndex = D3D12CalcSubresource(
                 mipLevel,
@@ -694,7 +694,7 @@ void DX12GpuImage::Blit(
         },
         ImageSubResource {
             .numLevels = m_textureDesc.NumMips(),
-            .numLayers = m_textureDesc.NumArrayLayers() 
+            .numLayers = m_textureDesc.NumArrayLayers()
     });
 }
 
@@ -718,7 +718,7 @@ void DX12GpuImage::Blit(
             .numLayers = m_textureDesc.NumArrayLayers()
         });
 }
-        
+
 void DX12GpuImage::Blit(
     DX12CommandBuffer* commandBuffer,
     const DX12GpuImage* srcImage,
@@ -1256,7 +1256,7 @@ void DX12GpuImage::Fill(
     }
 
     // Get the device and command list
-    ID3D12Device* device = g_renderInterface->GetDevice();
+    ID3D12Device* device = RI.GetDevice();
     ID3D12GraphicsCommandList* commandList = commandBuffer->GetCommandList();
 
     // Determine the number of mip levels and array layers to clear
@@ -1292,7 +1292,7 @@ void DX12GpuImage::Fill(
         }
 
         // Get a temporary descriptor from the render interface's DSV heap
-        DX12DescriptorHandle dsvHandle = g_renderInterface->descriptorHeapManager->Allocate(DX12DescriptorHeapType::DSV, 1);
+        DX12DescriptorHandle dsvHandle = RI.descriptorHeapManager->Allocate(DX12DescriptorHeapType::DSV, 1);
         AssertDebug(dsvHandle.IsValid(), "Failed to allocate DSV descriptor");
 
         device->CreateDepthStencilView(
@@ -1317,7 +1317,7 @@ void DX12GpuImage::Fill(
         EnqueueDeletion(FunctionWrapper<Proc<void()>>([dsvHandle = std::move(dsvHandle)]() mutable
             {
                 // Release the descriptor back to the heap
-                g_renderInterface->descriptorHeapManager->Free(DX12DescriptorHeapType::DSV, std::move(dsvHandle));
+                RI.descriptorHeapManager->Free(DX12DescriptorHeapType::DSV, std::move(dsvHandle));
             }));
     }
     else
@@ -1344,7 +1344,7 @@ void DX12GpuImage::Fill(
         }
 
         // Get a temporary descriptor from the render interface's RTV heap
-        DX12DescriptorHandle rtvHandle = g_renderInterface->descriptorHeapManager->Allocate(DX12DescriptorHeapType::RTV, 1);
+        DX12DescriptorHandle rtvHandle = RI.descriptorHeapManager->Allocate(DX12DescriptorHeapType::RTV, 1);
         AssertDebug(rtvHandle.IsValid(), "Failed to allocate RTV descriptor");
 
         device->CreateRenderTargetView(
@@ -1363,7 +1363,7 @@ void DX12GpuImage::Fill(
         EnqueueDeletion(FunctionWrapper<Proc<void()>>([rtvHandle = std::move(rtvHandle)]() mutable
             {
                 // Release the descriptor back to the heap
-                g_renderInterface->descriptorHeapManager->Free(DX12DescriptorHeapType::RTV, std::move(rtvHandle));
+                RI.descriptorHeapManager->Free(DX12DescriptorHeapType::RTV, std::move(rtvHandle));
             }));
     }
 }
@@ -1380,7 +1380,7 @@ DX12GpuImageViewRef DX12GpuImage::MakeLayerImageView(uint32 layerIndex) const
         return DX12GpuImageViewRef::Null();
     }
 
-    return g_renderInterface->MakeImageView(
+    return RI.MakeImageView(
         MakeStrongRef(this),
         0,
         m_textureDesc.NumMips(),

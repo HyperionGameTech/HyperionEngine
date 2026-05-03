@@ -122,7 +122,7 @@ void SSRPass::CreatePasses()
         framebufferDesc.extent = m_uvsTexture->GetExtent().GetXY();
         framebufferDesc.numLayers = 1;
 
-        FramebufferRef writeUVsFramebuffer = g_renderInterface->MakeFramebuffer(framebufferDesc);
+        FramebufferRef writeUVsFramebuffer = RI.MakeFramebuffer(framebufferDesc);
 
 #if HYP_DEBUG_MODE
         writeUVsFramebuffer->SetDebugName(NAME("SSRWriteUVsFramebuffer"));
@@ -137,7 +137,7 @@ void SSRPass::CreatePasses()
         Attachment* attachment = writeUVsFramebuffer->AddAttachment(
             0,
             attachmentDesc,
-            g_renderInterface->MakeImageView(m_uvsTexture->GetGpuImage()));
+            RI.MakeImageView(m_uvsTexture->GetGpuImage()));
 
         CheckResult(writeUVsFramebuffer->Create());
 
@@ -160,12 +160,12 @@ void SSRPass::CreatePasses()
         framebufferDesc.extent = m_sampledResultTexture->GetExtent().GetXY();
         framebufferDesc.numLayers = 1;
 
-        FramebufferRef sampleGBufferFramebuffer = g_renderInterface->MakeFramebuffer(framebufferDesc);
+        FramebufferRef sampleGBufferFramebuffer = RI.MakeFramebuffer(framebufferDesc);
 
 #if HYP_DEBUG_MODE
         sampleGBufferFramebuffer->SetDebugName(NAME("SSRSampleGBufferFramebuffer"));
 #endif
-        
+
         AttachmentDesc attachmentDesc {};
         attachmentDesc.imageType = TextureType::Texture2D;
         attachmentDesc.format = m_sampledResultTexture->GetFormat();
@@ -175,7 +175,7 @@ void SSRPass::CreatePasses()
         sampleGBufferFramebuffer->AddAttachment(
             0,
             attachmentDesc,
-            g_renderInterface->MakeImageView(m_sampledResultTexture->GetGpuImage()));
+            RI.MakeImageView(m_sampledResultTexture->GetGpuImage()));
 
         CheckResult(sampleGBufferFramebuffer->Create());
 
@@ -258,7 +258,7 @@ void SSRPass::UpdatePipelineState(Frame* frame, const RenderSetup& renderSetup)
                 TextureFormat::RGBA8,
                 TemporalBlendTechnique::TECHNIQUE_1,
                 0.95,
-                g_renderInterface->textureViewCache->GetOrCreate(m_sampledResultTexture),
+                RI.textureViewCache->GetOrCreate(m_sampledResultTexture),
                 m_gbuffer);
 
             m_temporalBlending->Create();
@@ -297,8 +297,8 @@ void SSRPass::Render(Frame* frame, const RenderSetup& renderSetup)
         constants.screenEdgeFadeStart = 0.98f;
         constants.screenEdgeFadeEnd = 0.99f;
 
-        g_renderInterface->cbufferAllocator->Write(&constants);
-        g_renderInterface->cbufferAllocator->Commit(cbuffer, cbufferOffset, cbufferSize);
+        RI.cbufferAllocator->Write(&constants);
+        RI.cbufferAllocator->Commit(cbuffer, cbufferOffset, cbufferSize);
     }
 
     { // PASS 1 -- write UVs
@@ -310,14 +310,14 @@ void SSRPass::Render(Frame* frame, const RenderSetup& renderSetup)
         cr << SetShaderUniform(uniformIndex++, "GBufferNormalsTexture"_sh, m_gbuffer->GetBucket(RenderBucket::Opaque).GetGBufferAttachment(GTN_NORMALS)->GetImageView());
         cr << SetShaderUniform(uniformIndex++, "GBufferMaterialTexture"_sh, m_gbuffer->GetBucket(RenderBucket::Opaque).GetGBufferAttachment(GTN_MATERIAL)->GetImageView());
         cr << SetShaderUniform(uniformIndex++, "GBufferVelocityTexture"_sh, m_gbuffer->GetBucket(RenderBucket::Opaque).GetGBufferAttachment(GTN_VELOCITY)->GetImageView());
-        cr << SetShaderUniform(uniformIndex++, "GBufferMipChain"_sh, m_mipChainImageView ? m_mipChainImageView : g_renderInterface->placeholderData->GetImageView2D1x1R8());
+        cr << SetShaderUniform(uniformIndex++, "GBufferMipChain"_sh, m_mipChainImageView ? m_mipChainImageView : RI.placeholderData->GetImageView2D1x1R8());
         cr << SetShaderUniform(uniformIndex++, "GBufferDepthTexture"_sh, m_gbuffer->GetBucket(RenderBucket::Opaque).GetGBufferAttachment(GTN_DEPTH)->GetImageView());
-        cr << SetShaderUniform(uniformIndex++, "DeferredResult"_sh, m_mipChainImageView ? m_mipChainImageView : g_renderInterface->placeholderData->GetImageView2D1x1R8());
-        cr << SetShaderUniform(uniformIndex++, "SamplerNearest"_sh, g_renderInterface->placeholderData->GetSamplerNearest());
-        cr << SetShaderUniform(uniformIndex++, "SamplerLinear"_sh, g_renderInterface->placeholderData->GetSamplerLinear());
-        cr << SetShaderUniform(uniformIndex++, "BlueNoiseBuffer"_sh, g_renderInterface->blueNoiseBuffer.gpuBuffer);
-        cr << SetShaderUniform(uniformIndex++, "WorldsBuffer"_sh, g_renderInterface->namedBuffers[NamedBuffer::Worlds].gpuBuffer);
-        cr << SetShaderUniform(uniformIndex++, "CamerasBuffer"_sh, g_renderInterface->namedBuffers[NamedBuffer::Cameras].gpuBuffer, TShaderDataOffset<CameraShaderData>(renderSetup.view->GetCamera()));
+        cr << SetShaderUniform(uniformIndex++, "DeferredResult"_sh, m_mipChainImageView ? m_mipChainImageView : RI.placeholderData->GetImageView2D1x1R8());
+        cr << SetShaderUniform(uniformIndex++, "SamplerNearest"_sh, RI.placeholderData->GetSamplerNearest());
+        cr << SetShaderUniform(uniformIndex++, "SamplerLinear"_sh, RI.placeholderData->GetSamplerLinear());
+        cr << SetShaderUniform(uniformIndex++, "BlueNoiseBuffer"_sh, RI.blueNoiseBuffer.gpuBuffer);
+        cr << SetShaderUniform(uniformIndex++, "WorldsBuffer"_sh, RI.namedBuffers[NamedBuffer::Worlds].gpuBuffer);
+        cr << SetShaderUniform(uniformIndex++, "CamerasBuffer"_sh, RI.namedBuffers[NamedBuffer::Cameras].gpuBuffer, TShaderDataOffset<CameraShaderData>(renderSetup.view->GetCamera()));
 
         m_writeUvs->RenderFullScreenQuad(frame, renderSetup);
         m_writeUvs->End(frame, renderSetup);
@@ -334,14 +334,14 @@ void SSRPass::Render(Frame* frame, const RenderSetup& renderSetup)
         cr << SetShaderUniform(uniformIndex++, "GBufferNormalsTexture"_sh, m_gbuffer->GetBucket(RenderBucket::Opaque).GetGBufferAttachment(GTN_NORMALS)->GetImageView());
         cr << SetShaderUniform(uniformIndex++, "GBufferMaterialTexture"_sh, m_gbuffer->GetBucket(RenderBucket::Opaque).GetGBufferAttachment(GTN_MATERIAL)->GetImageView());
         cr << SetShaderUniform(uniformIndex++, "GBufferVelocityTexture"_sh, m_gbuffer->GetBucket(RenderBucket::Opaque).GetGBufferAttachment(GTN_VELOCITY)->GetImageView());
-        cr << SetShaderUniform(uniformIndex++, "GBufferMipChain"_sh, m_mipChainImageView ? m_mipChainImageView : g_renderInterface->placeholderData->GetImageView2D1x1R8());
+        cr << SetShaderUniform(uniformIndex++, "GBufferMipChain"_sh, m_mipChainImageView ? m_mipChainImageView : RI.placeholderData->GetImageView2D1x1R8());
         cr << SetShaderUniform(uniformIndex++, "GBufferDepthTexture"_sh, m_gbuffer->GetBucket(RenderBucket::Opaque).GetGBufferAttachment(GTN_DEPTH)->GetImageView());
-        cr << SetShaderUniform(uniformIndex++, "SamplerNearest"_sh, g_renderInterface->placeholderData->GetSamplerNearest());
-        cr << SetShaderUniform(uniformIndex++, "SamplerLinear"_sh, g_renderInterface->placeholderData->GetSamplerLinear());
-        cr << SetShaderUniform(uniformIndex++, "BlueNoiseBuffer"_sh, g_renderInterface->blueNoiseBuffer.gpuBuffer);
-        cr << SetShaderUniform(uniformIndex++, "WorldsBuffer"_sh, g_renderInterface->namedBuffers[NamedBuffer::Worlds].gpuBuffer);
-        cr << SetShaderUniform(uniformIndex++, "CamerasBuffer"_sh, g_renderInterface->namedBuffers[NamedBuffer::Cameras].gpuBuffer, TShaderDataOffset<CameraShaderData>(renderSetup.view->GetCamera()));
-        cr << SetShaderUniform(uniformIndex++, "UVImage"_sh, g_renderInterface->textureViewCache->GetOrCreate(m_uvsTexture));
+        cr << SetShaderUniform(uniformIndex++, "SamplerNearest"_sh, RI.placeholderData->GetSamplerNearest());
+        cr << SetShaderUniform(uniformIndex++, "SamplerLinear"_sh, RI.placeholderData->GetSamplerLinear());
+        cr << SetShaderUniform(uniformIndex++, "BlueNoiseBuffer"_sh, RI.blueNoiseBuffer.gpuBuffer);
+        cr << SetShaderUniform(uniformIndex++, "WorldsBuffer"_sh, RI.namedBuffers[NamedBuffer::Worlds].gpuBuffer);
+        cr << SetShaderUniform(uniformIndex++, "CamerasBuffer"_sh, RI.namedBuffers[NamedBuffer::Cameras].gpuBuffer, TShaderDataOffset<CameraShaderData>(renderSetup.view->GetCamera()));
+        cr << SetShaderUniform(uniformIndex++, "UVImage"_sh, RI.textureViewCache->GetOrCreate(m_uvsTexture));
 
         m_sampleGbuffer->RenderFullScreenQuad(frame, renderSetup);
         m_sampleGbuffer->End(frame, renderSetup);

@@ -82,10 +82,10 @@ struct SetFinalPassImageView : RenderCommand
     {
         if (!imageView)
         {
-            imageView = g_renderInterface->textureViewCache->GetOrCreate(g_renderInterface->placeholderData->defaultTexture2d);
+            imageView = RI.textureViewCache->GetOrCreate(RI.placeholderData->defaultTexture2d);
         }
 
-        g_renderInterface->finalPass->SetUILayerImageView(imageView);
+        RI.finalPass->SetUILayerImageView(imageView);
 
         return {};
     }
@@ -99,7 +99,7 @@ static TResult<Handle<FontAtlas>> CreateFontAtlas()
     // some platforms build without freetype support so the atlas must already exist in the registry.
 
     AssetRegistry& registry = *GetEngineAssetRegistry();
-    
+
     GlobalContextScope contextScope { AssetRegistryContext { MakeStrongRef(&registry) } };
 
     Handle<FontAtlas> fontAtlas = DynamicCast<FontAtlas>(registry.GetAsset(AssetBuckets::FontAtlases, "Roboto_Regular"_sh));
@@ -118,13 +118,13 @@ static TResult<Handle<FontAtlas>> CreateFontAtlas()
 
     // create new font atlas
     fontAtlas = MakeHandle<FontAtlas>(NAME("Roboto_Regular"), std::move(fontFaceAsset->Result()));
-    
+
     // render atlas textures.
     if (Result renderAtlasResult = fontAtlas->RenderAtlasTextures(1.0f, 2.0f, 0.1f); renderAtlasResult.HasError())
     {
         return renderAtlasResult.GetError();
     }
-    
+
     registry.PutAssetsDeep(fontAtlas);
     registry.SaveDirtyAssets();
 
@@ -235,7 +235,7 @@ void UISubsystem::OnAddedToWorld()
     {
         GetWorld()->AddScene(MakeStrongRef(m_uiStage->GetScene()));
     }
-    
+
     InitDebugOverlays();
 }
 
@@ -394,7 +394,7 @@ void UISubsystem::RenderCollect(RenderProxyList& rpl)
             meshProxy.bufferData.worldAabbMin = boundingBoxComponent ? boundingBoxComponent->worldAabb.min : MathUtil::MaxSafeValue<Vec3f>();
         }
     }
-    
+
     rpl.EndWrite();
 }
 

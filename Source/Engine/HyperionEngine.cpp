@@ -125,9 +125,9 @@ VisThread* g_visThreadInstance;
 Game* g_gameInstance; // active game instance, read/write only from the main thread
 
 #if HYP_VULKAN
-VulkanRenderInterface* g_renderInterface;
+VulkanRenderInterface RI;
 #elif HYP_DX12
-DX12RenderInterface* g_renderInterface;
+DX12RenderInterface RI;
 #endif // HYP_VULKAN || HYP_DX12
 
 static void HandleFatalError(const char* message)
@@ -309,7 +309,7 @@ extern "C"
         }
 
         SetCurrentThreadId(g_mainThread);
-        
+
         InitClassDecls();
 
         CoreApi::SetConfigDirectory(GetConfigDirectory());
@@ -337,7 +337,7 @@ extern "C"
 #endif // HYP_ANDROID
 
         CoreApi::SetExecutablePath(basePath);
-        
+
         const bool isEditor = cliArgs["Editor"].ToBool();
 
 #if HYP_DOTNET
@@ -368,7 +368,7 @@ extern "C"
             Handle<AssetRegistry> engineRegistry = MakeHandle<AssetRegistry>(
                 AssetRegistryId::Engine,
                 GetLibraryDirectory() / "Engine");
-                
+
             engineRegistry->Initialize();
 
             SetEngineAssetRegistry(engineRegistry);
@@ -445,7 +445,7 @@ extern "C"
             Handle<ApplicationWindow> window = g_appContext->CreateSystemWindow({ "Hyperion Engine", resolution, windowFlags });
 
             DelegateHandler* onCloseHandle = new DelegateHandler();
-            
+
             *onCloseHandle = window->OnClose.Bind([onCloseHandle]()
                 {
                     // shut down application on main window close.
@@ -466,7 +466,7 @@ extern "C"
         }
 
         InitObject(g_engineDriver);
-        
+
         if (isCommandlet)
         {
             const ANSIString commandletName = cliArgs["Commandlet"].ToString().ToAnsi();
@@ -574,7 +574,7 @@ extern "C"
 
         delete g_visThreadInstance;
         g_visThreadInstance = nullptr;
-        
+
         // Shutdown object container map - destroys all remaining ObjectBase instances
         GetObjectContainerMap().Shutdown();
 
@@ -746,7 +746,7 @@ extern "C"
 
         g_mainThreadInstance->Update();
     }
-    
+
 #if HYP_DOTNET
     HYP_EXPORT void Hyp_SetInitFromManagedCallback(InitFromManagedCallback callback)
     {
@@ -892,7 +892,7 @@ extern "C"
                     const Handle<EditorCommandBase>& command = boxed.Get<Handle<EditorCommandBase>>();
 
                     Handle<EditorSubsystem> editorSubsystem = g_editorState->GetEditorSubsystem();
-                    
+
                     if (editorSubsystem.IsValid())
                     {
                         command->SetArguments(Map(commandLine.Split(' '), &String::Trimmed));
@@ -1017,7 +1017,7 @@ extern "C"
                 if (str.StartsWith("EditorCommand"))
                 {
                     str = str.Substr(std::size("EditorCommand") - 1);
-                    
+
                     callbackFn(str.Data(), userData);
                 }
             }

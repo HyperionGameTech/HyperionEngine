@@ -107,7 +107,7 @@ static void BuildRenderGroupsOrdered(
 
         if (const Handle<Texture>& albedoTexture = material->GetTexture(MaterialTextureKey::Diffuse); albedoTexture.IsValid())
         {
-            if (albedoTexture != g_renderInterface->placeholderData->defaultTexture2d)
+            if (albedoTexture != RI.placeholderData->defaultTexture2d)
             {
                 ShaderPropertySet newProperties = attributes.GetShaderProperties();
                 newProperties.Add(s_propTextured);
@@ -221,7 +221,7 @@ void UIRenderCollector::ExecuteDrawCalls(Frame* frame, const RenderSetup& render
     {
         Commit(frame->cr, uint8(bit));
     }
-    
+
     if (s_parallelRenderingStatesToNullify.Any())
     {
         for (ParallelRenderingState** pp : s_parallelRenderingStatesToNullify)

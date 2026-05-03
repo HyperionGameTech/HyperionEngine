@@ -68,10 +68,7 @@ bool RenderThread::Start()
 
     AddOnExitCallback([](void)
         {
-            g_renderInterface->Shutdown();
-
-            delete g_renderInterface;
-            g_renderInterface = nullptr;
+            RI.Shutdown();
         });
 
     // -RenderOnMainThread option
@@ -108,7 +105,7 @@ void RenderThread::Update()
 {
     ENGINE_STAT_SCOPE(&g_statRenderUpdate);
 
-    g_renderInterface->BeginFrame(&m_stopRequested);
+    RI.BeginFrame(&m_stopRequested);
 
     if (m_stopRequested.Load())
     {
@@ -126,7 +123,7 @@ void RenderThread::Update()
         }
     }
 
-    Frame* frame = g_renderInterface->GetCurrentFrame();
+    Frame* frame = RI.GetCurrentFrame();
     Assert(frame != nullptr);
 
     // Check if any swapchains need to be recreated
@@ -142,11 +139,11 @@ void RenderThread::Update()
         }
     }
 
-    g_renderInterface->namedBuffers[NamedBuffer::Worlds].Write(0, sizeof(WorldShaderData), GetWorldBufferData());
+    RI.namedBuffers[NamedBuffer::Worlds].Write(0, sizeof(WorldShaderData), GetWorldBufferData());
 
     for (Swapchain* swapchain : swapchains)
     {
-        g_renderInterface->PrepareSwapchain(swapchain);
+        RI.PrepareSwapchain(swapchain);
     }
 
     Swapchain* swapchain = swapchains.Any() ? swapchains[0] : nullptr;
@@ -155,7 +152,7 @@ void RenderThread::Update()
 
     if (worldsToRender)
     {
-        RendererBase* mainRenderer = g_renderInterface->globalRenderers[GRT_MAIN][0];
+        RendererBase* mainRenderer = RI.globalRenderers[GRT_MAIN][0];
         AssertDebug(mainRenderer != nullptr);
 
         RenderSetup renderSetup {};
@@ -165,7 +162,7 @@ void RenderThread::Update()
             renderSetup.swapchain = swapchain;
             renderSetup.viewport = Viewport { swapchain->GetExtent() };
         }
-        
+
         for (World* world : worldsToRender)
         {
             AssertDebug(world != nullptr && world->IsReady());
@@ -180,17 +177,17 @@ void RenderThread::Update()
 
         renderSetup.world = nullptr;
 
-        if (!g_renderInterface->finalPass)
+        if (!RI.finalPass)
         {
-            g_renderInterface->finalPass = HYP_POOL_NEW(g_renderPool, FinalPass);
-            g_renderInterface->finalPass->Create();
+            RI.finalPass = HYP_POOL_NEW(g_renderPool, FinalPass);
+            RI.finalPass->Create();
         }
 
-        g_renderInterface->finalPass->Render(frame, renderSetup);
+        RI.finalPass->Render(frame, renderSetup);
     }
 
     // update shared global descriptor sets
-    for (DescriptorSet* ds : g_renderInterface->globalDescriptorTable->GetSets()[frame->GetFrameIndex()])
+    for (DescriptorSet* ds : RI.globalDescriptorTable->GetSets()[frame->GetFrameIndex()])
     {
         bool dirty = false;
         ds->UpdateDirtyState(&dirty);
@@ -199,11 +196,11 @@ void RenderThread::Update()
             ds->Update();
     }
 
-    g_renderInterface->commandRecorderAllocator.UpdateQueue();
+    RI.commandRecorderAllocator.UpdateQueue();
 
-    g_renderInterface->PresentToSwapchain(swapchain);
+    RI.PresentToSwapchain(swapchain);
 
-    g_renderInterface->EndFrame();
+    RI.EndFrame();
 
     g_renderArena->Reset();
 }
@@ -219,15 +216,7 @@ void RenderThread::operator()()
             g_renderArena = nullptr;
         });
 
-#if HYP_VULKAN
-    g_renderInterface = new VulkanRenderInterface();
-#elif HYP_DX12
-    g_renderInterface = new DX12RenderInterface();
-#else
-    HYP_FAIL("Not compiled with any rendering backend - cannot initialize renderer!");
-#endif
-
-    if (!CheckResult(g_renderInterface->Initialize()))
+    if (!CheckResult(RI.Initialize()))
     {
         HYP_FAIL("Failed to initialize rendering backend");
     }

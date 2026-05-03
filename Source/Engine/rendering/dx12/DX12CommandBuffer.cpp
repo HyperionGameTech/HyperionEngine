@@ -21,7 +21,7 @@ namespace Hyperion {
 
 HYP_DECLARE_LOG_CHANNEL(RenderingBackend);
 
-extern DX12RenderInterface* g_renderInterface;
+extern DX12RenderInterface RI;
 
 DX12CommandBuffer::DX12CommandBuffer(D3D12_COMMAND_LIST_TYPE type)
     : m_type(type),
@@ -101,7 +101,7 @@ RendererResult DX12CommandBuffer::Create()
         return {};
     }
 
-    ID3D12Device* device = g_renderInterface->GetDevice();
+    ID3D12Device* device = RI.GetDevice();
 
     // Create allocator
     HRESULT res = device->CreateCommandAllocator(m_type, __uuidof(ID3D12CommandAllocator), &m_allocator);
@@ -258,7 +258,7 @@ void DX12CommandBuffer::DrawIndexedIndirect(
         sigDesc.NumArgumentDescs = 1;
         sigDesc.pArgumentDescs = &argDesc;
 
-        HRESULT hr = g_renderInterface->GetDevice()->CreateCommandSignature(
+        HRESULT hr = RI.GetDevice()->CreateCommandSignature(
             &sigDesc,
             nullptr,
             IID_PPV_ARGS(&s_drawIndexedCommandSignature));

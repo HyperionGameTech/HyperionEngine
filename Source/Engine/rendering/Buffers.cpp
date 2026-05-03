@@ -121,7 +121,7 @@ struct StagingBufferPoolImpl
         CachedStagingBuffer newBuffer;
         newBuffer.size = bufferSize;
         newBuffer.lastUsedFrame = currFrame;
-        newBuffer.buffer = g_renderInterface->MakeGpuBuffer(GpuBufferType::StagingBuffer, bufferSize);
+        newBuffer.buffer = RI.MakeGpuBuffer(GpuBufferType::StagingBuffer, bufferSize);
 
 #if HYP_DEBUG_MODE
         newBuffer.buffer->SetDebugName(NAME("StagingBufferPoolTempBuffer"));
@@ -133,7 +133,7 @@ struct StagingBufferPoolImpl
         Assert(dataPtr != nullptr);
 
         Memory::Zero(dataPtr, bufferSize);
-                
+
         auto& used = usedBuffers[currFrame % NumFramesInFlight];
         return used.PushBack(std::move(newBuffer)).buffer.Get();
     }
@@ -193,12 +193,12 @@ void GpuBufferHolderBase::CreateBuffers(GpuBufferType bufferType, size_t initial
         EnqueueDeletion(std::move(m_gpuBuffer));
     }
 
-    m_gpuBuffer = g_renderInterface->MakeGpuBuffer(bufferType, gpuBufferSize);
+    m_gpuBuffer = RI.MakeGpuBuffer(bufferType, gpuBufferSize);
 
 #if HYP_DEBUG_MODE
     m_gpuBuffer->SetDebugName(NAME_FMT("GpuBufferHolder_{}", *m_structTypeInfo->name));
 #endif
-    
+
     m_gpuBuffer->SetIsCpuAccessible(m_cpuAccessible);
     CheckResult(m_gpuBuffer->Create());
 }

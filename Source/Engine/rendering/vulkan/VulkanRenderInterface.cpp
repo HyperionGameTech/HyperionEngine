@@ -298,7 +298,7 @@ void VulkanDescriptorSetManager::OnFrameStart()
 
         if (dp.frameCounter % RingBufferDepth == 0)
         {
-            VkResult result = vkResetDescriptorPool(g_renderInterface->GetDevice()->GetDevice(), dp.pool, 0);
+            VkResult result = vkResetDescriptorPool(RI.GetDevice()->GetDevice(), dp.pool, 0);
             Assert(result == VK_SUCCESS, "Failed to reset descriptor pool! {}", result);
         }
     }
@@ -360,7 +360,7 @@ VkDescriptorPool VulkanDescriptorSetManager::GetDescriptorPool(
         {
             VkDescriptorPool pool = dp.pool;
             dp.frameCounter = currentFrameCounter;
-            
+
             outPoolIndex = idx - 1;
 
             return pool;
@@ -368,7 +368,7 @@ VkDescriptorPool VulkanDescriptorSetManager::GetDescriptorPool(
     }
 
     // no pool (for this frame); create a new one
-    
+
     VkDescriptorPool pool = VK_NULL_HANDLE;
     if (RendererResult createDescriptorPoolResult = CreateDescriptorPool(reqs, pool); createDescriptorPoolResult.HasError())
     {
@@ -399,7 +399,7 @@ RendererResult VulkanDescriptorSetManager::CreateDescriptorPool(VulkanDescriptor
 
     // only add acceleration structure descriptor type if rayTracing is supported,
     // otherwise we'll get an error when creating the descriptor pool
-    if ((reqs & VDPR_RayTracing) && g_renderInterface->GetDevice()->GetFeatures().IsRayTracingSupported())
+    if ((reqs & VDPR_RayTracing) && RI.GetDevice()->GetFeatures().IsRayTracingSupported())
     {
         descriptorPoolSizes.PushBack({ VK_DESCRIPTOR_TYPE_ACCELERATION_STRUCTURE_KHR, 1 });
     }
@@ -418,7 +418,7 @@ RendererResult VulkanDescriptorSetManager::CreateDescriptorPool(VulkanDescriptor
     poolInfo.pPoolSizes = descriptorPoolSizes.Data();
 
     VULKAN_CHECK(vkCreateDescriptorPool(
-        g_renderInterface->GetDevice()->GetDevice(),
+        RI.GetDevice()->GetDevice(),
         &poolInfo,
         nullptr,
         &dp.pool));
@@ -576,7 +576,7 @@ VkDescriptorSetLayout VulkanDescriptorSetManager::GetOrCreateVkDescriptorSetLayo
     AssertDebug(handle != VK_NULL_HANDLE);
 
     TUniqueLock lock2(m_mutex);
-    
+
     // make sure it hasnt changed
     auto insertResult = m_vkDescriptorSetLayouts.Set(hashCode, handle);
 
@@ -685,7 +685,7 @@ RendererResult VulkanRenderInterface::Initialize()
 
     CheckResultOrReturn(m_descriptorSetManager->Create(m_instance->GetDevice()));
 
-    const VkDeviceSize minUniformBufferOffsetAlignment = g_renderInterface->GetDevice()->GetFeatures()
+    const VkDeviceSize minUniformBufferOffsetAlignment = RI.GetDevice()->GetFeatures()
         .GetPhysicalDeviceProperties().limits.minUniformBufferOffsetAlignment;
 
     cbufferAllocator->Initialize(minUniformBufferOffsetAlignment);
@@ -729,7 +729,7 @@ void VulkanRenderInterface::Shutdown()
 
     m_asyncComputePool.Clear();
     m_submittedAsyncComputes.Clear();
-    
+
     for (uint32 frameIndex = 0; frameIndex < NumFramesInFlight; frameIndex++)
     {
         m_transientCommandBufferFences[frameIndex].Clear();
@@ -744,10 +744,10 @@ void VulkanRenderInterface::Shutdown()
     RenderInterface::Shutdown();
 
     m_descriptorSetManager->Destroy(m_instance->GetDevice());
-    
+
     PoolDelete(*g_vulkanPool, m_instance);
     m_instance = nullptr;
-    
+
     DeletionQueue::GetInstance().Flush();
 }
 
@@ -793,7 +793,7 @@ void VulkanRenderInterface::PrepareFrame(VulkanFrame* frame)
 
             continue;
         }
-        
+
         ++it;
     }
 
@@ -820,7 +820,7 @@ void VulkanRenderInterface::PrepareFrame(VulkanFrame* frame)
             ++it;
         }
     }
-    
+
     auto& fences = m_transientCommandBufferFences[frameCounter % NumFramesInFlight];
     for (auto it = fences.Begin(); it != fences.End();)
     {
@@ -913,7 +913,7 @@ void VulkanRenderInterface::PresentToSwapchain(VulkanSwapchain* swapchain)
     frame->WriteCommandBuffer(commandBuffer);
 
     commandBuffer->End();
-    
+
     VulkanSemaphore* waitSemaphore = nullptr;
     VulkanSemaphore* signalSemaphore = nullptr;
 
@@ -926,7 +926,7 @@ void VulkanRenderInterface::PresentToSwapchain(VulkanSwapchain* swapchain)
     }
 
     // HYP_LOG_TEMP("Submitting frame {} to present queue", frame->GetFrameIndex());
-    
+
     commandBuffer->Submit(
         presentQueue,
         frame->GetFence(),
@@ -954,7 +954,7 @@ VulkanCommandBuffer& VulkanRenderInterface::GetTransientCommandBuffer()
 
     LinkedList<VulkanCommandBuffer, VulkanAllocator>& freeList = m_transientCommandBuffers[renderThreadIndex][frameCounter % NumFramesInFlight];
     LinkedList<VulkanCommandBuffer, VulkanAllocator>& pendingList = m_pendingTransientCommandBuffers[renderThreadIndex][frameCounter % NumFramesInFlight];
-    
+
     VulkanDeviceQueue* graphicsQueue = m_instance->GetDevice()->GetGraphicsQueue();
     Assert(graphicsQueue != nullptr);
 
@@ -965,7 +965,7 @@ VulkanCommandBuffer& VulkanRenderInterface::GetTransientCommandBuffer()
     {
         VulkanCommandBuffer& commandBuffer = pendingList.EmplaceBack();
         CheckResult(commandBuffer.Create(pool));
-        
+
         commandBuffer.Begin();
 
         return commandBuffer;
@@ -1066,7 +1066,7 @@ VulkanGraphicsPipelineRef VulkanRenderInterface::MakeGraphicsPipeline(
         graphicsPipeline->SetDepthBiasSlope(attributes.GetMaterialAttributes().depthBiasSlope);
     }
 
-    if (attributes.GetMaterialAttributes().flags & MAF_STENCIL_TEST)  
+    if (attributes.GetMaterialAttributes().flags & MAF_STENCIL_TEST)
     {
         graphicsPipeline->SetStencilFunction(attributes.GetMaterialAttributes().stencilFunction);
     }
@@ -1264,7 +1264,7 @@ HYP_NODISCARD VulkanAsyncCompute* VulkanRenderInterface::CreateAsyncCompute()
 void VulkanRenderInterface::SubmitAsyncCompute(VulkanAsyncCompute* asyncCompute)
 {
     Assert(asyncCompute != nullptr);
-    
+
     Mutex::Guard guard(m_asyncComputesMutex);
     Assert(!m_submittedAsyncComputes.Contains(asyncCompute));
 

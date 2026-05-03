@@ -24,7 +24,7 @@
 
 namespace Hyperion {
 
-extern VulkanRenderInterface* g_renderInterface;
+extern VulkanRenderInterface RI;
 
 VkIndexType ToVkIndexType(GpuElemType elemType)
 {
@@ -370,7 +370,7 @@ VkPipelineStageFlags GetVkShaderStageMask(ResourceState state,
         case ShaderModuleType::RayGen:
         case ShaderModuleType::Intersect:
         case ShaderModuleType::Miss:
-            if (g_renderInterface->GetDevice()->GetFeatures().IsRayTracingSupported())
+            if (RI.GetDevice()->GetFeatures().IsRayTracingSupported())
             {
                 return VK_PIPELINE_STAGE_RAY_TRACING_SHADER_BIT_KHR;
             }
@@ -394,7 +394,7 @@ VkPipelineStageFlags GetVkShaderStageMask(ResourceState state,
             VkPipelineStageFlags bits = VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT
                 | VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT;
 
-            if (g_renderInterface->GetDevice()->GetFeatures().IsRayTracingSupported())
+            if (RI.GetDevice()->GetFeatures().IsRayTracingSupported())
             {
                 bits |= VK_PIPELINE_STAGE_RAY_TRACING_SHADER_BIT_KHR;
             }
@@ -748,14 +748,14 @@ RendererResult VulkanSingleTimeCommands::Execute()
     fence.Create(/* createSignalled */ false);
 
     VulkanCommandBuffer commandBuffer;
-    commandBuffer.Create(g_renderInterface->GetDevice()->GetGraphicsQueue()->commandPools[0]);
+    commandBuffer.Create(RI.GetDevice()->GetGraphicsQueue()->commandPools[0]);
 
     commandBuffer.Begin();
     cr.Execute(&commandBuffer);
     commandBuffer.End();
 
     // Submit to the queue
-    VulkanDeviceQueue* queueGraphics = g_renderInterface->GetDevice()->GetGraphicsQueue();
+    VulkanDeviceQueue* queueGraphics = RI.GetDevice()->GetGraphicsQueue();
     CheckResultOrReturn(commandBuffer.Submit(queueGraphics, &fence, nullptr, nullptr));
 
     fence.Wait();

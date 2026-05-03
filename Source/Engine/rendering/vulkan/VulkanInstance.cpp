@@ -55,7 +55,7 @@ static VkPhysicalDevice PickPhysicalDevice(Span<VkPhysicalDevice> devices)
     {
         return VK_NULL_HANDLE;
     }
-    
+
     EngineConfig& cfg = GetEngineConfig();
 
     const ConfigValue& cfgSelectedGpuIndex = cfg.Get("System.SelectedGpu.Index");
@@ -65,7 +65,7 @@ static VkPhysicalDevice PickPhysicalDevice(Span<VkPhysicalDevice> devices)
 
     Array<VkPhysicalDevice, VulkanTempAllocator> validDevices;
     validDevices.Reserve(devices.Size());
-    
+
     for (VkPhysicalDevice device : devices)
     {
         deviceFeatures.SetPhysicalDevice(device);
@@ -75,7 +75,7 @@ static VkPhysicalDevice PickPhysicalDevice(Span<VkPhysicalDevice> devices)
             validDevices.PushBack(device);
         }
     }
-    
+
     if (cfgSelectedGpuIndex.IsNumber() && cfgSelectedGpuIndex.AsNumber() < validDevices.Size())
     {
         for (uint32 deviceIndex = 0; deviceIndex < uint32(validDevices.Size()); deviceIndex++)
@@ -111,7 +111,7 @@ static VkPhysicalDevice PickPhysicalDevice(Span<VkPhysicalDevice> devices)
         if ((deviceRequirementsResult = deviceFeatures.SatisfiesMinimumRequirements()))
         {
             HYP_LOG(RenderingBackend, Info, "Select discrete device {}", deviceFeatures.GetDeviceName());
-            
+
             cfg.Set("System.SelectedGpu.Index", JSON::Number(deviceIndex));
 
             if (!cfg.Save())
@@ -121,7 +121,7 @@ static VkPhysicalDevice PickPhysicalDevice(Span<VkPhysicalDevice> devices)
 
             return device;
         }
-        
+
         ++deviceIndex;
     }
 
@@ -142,7 +142,7 @@ static VkPhysicalDevice PickPhysicalDevice(Span<VkPhysicalDevice> devices)
         if ((deviceRequirementsResult = deviceFeatures.SatisfiesMinimumRequirements()))
         {
             HYP_LOG(RenderingBackend, Info, "Select integrated device {}", deviceFeatures.GetDeviceName());
-            
+
             cfg.Set("System.SelectedGpu.Index", JSON::Number(deviceIndex));
 
             if (!cfg.Save())
@@ -152,7 +152,7 @@ static VkPhysicalDevice PickPhysicalDevice(Span<VkPhysicalDevice> devices)
 
             return device;
         }
-        
+
         ++deviceIndex;
     }
 
@@ -239,7 +239,7 @@ ExtensionMap VulkanInstance::GetExtensionMap()
     map[VK_EXT_DESCRIPTOR_INDEXING_EXTENSION_NAME] = true;
     // Load store op none is used so we don't write to certain attachments (e.g stencil texture for deferred shading passes)
     map[VK_EXT_LOAD_STORE_OP_NONE_EXTENSION_NAME] = true;
-    
+
     map[VK_EXT_SWAPCHAIN_COLOR_SPACE_EXTENSION_NAME] = false;
 
     map[VK_KHR_SPIRV_1_4_EXTENSION_NAME] = false;
@@ -463,7 +463,7 @@ RendererResult VulkanInstance::Initialize(bool enableDebugLayers)
         HYP_LOG(RenderingBackend, Info, "\t{} (specVersion={})", extension.extensionName, extension.specVersion);
     }
 
-    if (RendererResult result = g_renderInterface->GetVkExtensions(extensionNames); result.HasError())
+    if (RendererResult result = RI.GetVkExtensions(extensionNames); result.HasError())
     {
         return result;
     }
@@ -537,7 +537,7 @@ RendererResult VulkanInstance::Initialize(bool enableDebugLayers)
     VULKAN_CHECK_MSG(instanceResult, "Failed to create Vulkan Instance!");
 
     IDummyVulkanSurfaceContext* dummySurfaceContext = nullptr;
-    VkSurfaceKHR surface = g_renderInterface->CreateSurface(nullptr, &dummySurfaceContext);
+    VkSurfaceKHR surface = RI.CreateSurface(nullptr, &dummySurfaceContext);
 
     Array<VkPhysicalDevice> devices = EnumeratePhysicalDevices(m_instance);
     VkPhysicalDevice physicalDevice = PickPhysicalDevice(Span<VkPhysicalDevice>(devices.Begin(), devices.End()));

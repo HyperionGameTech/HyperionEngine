@@ -35,7 +35,7 @@ namespace Hyperion {
 
 static constexpr size_t MaxImageBytes = 256 * 1024 * 1024; // 256 MiB - cannot be larger than a block in our blob storage system
 
-extern VulkanRenderInterface* g_renderInterface;
+extern VulkanRenderInterface RI;
 
 #pragma region VulkanGpuImage
 
@@ -55,7 +55,7 @@ VulkanGpuImage::~VulkanGpuImage()
 
             EnqueueDeletion(FunctionWrapper<Proc<void()>>([handle = m_handle, allocation = m_allocation]() -> void
                 {
-                    vmaDestroyImage(g_renderInterface->GetDevice()->GetVmaAllocator(), handle, allocation);
+                    vmaDestroyImage(RI.GetDevice()->GetVmaAllocator(), handle, allocation);
                 }));
 
             m_allocation = VK_NULL_HANDLE;
@@ -303,7 +303,7 @@ RendererResult VulkanGpuImage::Create(ResourceState initialState)
         vkImageCreateFlags |= VK_IMAGE_CREATE_CUBE_COMPATIBLE_BIT;
     }
 
-    RendererResult formatSupportResult = g_renderInterface->GetDevice()->GetFeatures().GetImageFormatProperties(
+    RendererResult formatSupportResult = RI.GetDevice()->GetFeatures().GetImageFormatProperties(
         vkFormat,
         vkImageType,
         m_tiling,
@@ -316,7 +316,7 @@ RendererResult VulkanGpuImage::Create(ResourceState initialState)
         CheckResultOrReturn(formatSupportResult);
     }
 
-    const QueueFamilyIndices& qfIndices = g_renderInterface->GetDevice()->GetQueueFamilyIndices();
+    const QueueFamilyIndices& qfIndices = RI.GetDevice()->GetQueueFamilyIndices();
     const uint32 imageFamilyIndices[] = { qfIndices.graphicsFamily.Get(), qfIndices.computeFamily.Get() };
 
     VkImageCreateInfo imageInfo { VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO };
@@ -360,7 +360,7 @@ RendererResult VulkanGpuImage::Create(ResourceState initialState)
         uint32_t memTypeIndex;
 
         VkResult res = vmaFindMemoryTypeIndexForImageInfo(
-            g_renderInterface->GetDevice()->GetVmaAllocator(),
+            RI.GetDevice()->GetVmaAllocator(),
             &imageInfo, &allocInfo, &memTypeIndex);
 
         VULKAN_CHECK(res);
@@ -370,7 +370,7 @@ RendererResult VulkanGpuImage::Create(ResourceState initialState)
         poolCreateInfo.pMemoryAllocateNext = (void*)&ExportAllocInfo;
 
         VmaPool pool;
-        res = vmaCreatePool(g_renderInterface->GetDevice()->GetVmaAllocator(), &poolCreateInfo, &pool);
+        res = vmaCreatePool(RI.GetDevice()->GetVmaAllocator(), &poolCreateInfo, &pool);
         VULKAN_CHECK(res); //// \todo Have to destroy this pool later!
 
         allocInfo.pool = pool;
@@ -383,7 +383,7 @@ RendererResult VulkanGpuImage::Create(ResourceState initialState)
 
     VULKAN_CHECK_MSG(
         vmaCreateImage(
-            g_renderInterface->GetDevice()->GetVmaAllocator(),
+            RI.GetDevice()->GetVmaAllocator(),
             &imageInfo,
             &allocInfo,
             &m_handle,
@@ -436,7 +436,7 @@ RendererResult VulkanGpuImage::Resize(const Vec3u& extent)
         {
             EnqueueDeletion(FunctionWrapper<Proc<void()>>([handle = m_handle, allocation = m_allocation]()
                 {
-                    vmaDestroyImage(g_renderInterface->GetDevice()->GetVmaAllocator(), handle, allocation);
+                    vmaDestroyImage(RI.GetDevice()->GetVmaAllocator(), handle, allocation);
                 }));
 
             m_allocation = VK_NULL_HANDLE;
@@ -453,7 +453,7 @@ RendererResult VulkanGpuImage::Resize(const Vec3u& extent)
         {
             SetResourceState(RS_UNDEFINED);
 
-            VulkanFrame* frame = g_renderInterface->GetCurrentFrame();
+            VulkanFrame* frame = RI.GetCurrentFrame();
             CommandRecorder& cr = frame->cr;
             cr << ::Hyperion::InsertBarrier(this, previousResourceState);
         }
@@ -518,7 +518,7 @@ void VulkanGpuImage::InsertBarrier(
     const uint8 maxMipLevels = uint8(subResource.baseMipLevel + MathUtil::Min(subResource.numLevels, NumMips()));
 
     const bool isAttachmentTexture = m_textureDesc.imageUsage[IU_ATTACHMENT];
-    
+
     const bool isDepthStencil = m_textureDesc.IsDepthStencil();
     const bool hasStencil = TextureUtils::HasStencilComponent(m_textureDesc.format);
 
@@ -785,7 +785,7 @@ void VulkanGpuImage::Blit(
         },
         ImageSubResource {
             .numLevels = m_textureDesc.NumMips(),
-            .numLayers = m_textureDesc.NumArrayLayers() 
+            .numLayers = m_textureDesc.NumArrayLayers()
     });
 }
 
@@ -1008,7 +1008,7 @@ void VulkanGpuImage::CopyFromBuffer(
         region.imageSubresource.layerCount = 1;
         region.imageOffset = { 0, 0, 0 };
         region.imageExtent = VkExtent3D { mipExtent.x, mipExtent.y, mipExtent.z };
-        
+
         // https://docs.vulkan.org/spec/latest/chapters/copies.html#VUID-vkCmdCopyBufferToImage-dstImage-07975
         // bufferOffset must be a multiple texel block size
         AssertDebug(region.bufferOffset % (TextureUtils::BytesPerComponent(m_textureDesc.format) * TextureUtils::NumComponents(m_textureDesc.format)) == 0);
@@ -1030,7 +1030,7 @@ void VulkanGpuImage::CopyToBuffer(
 {
     Assert(dstBuffer != nullptr && dstBuffer->IsCreated(), "Destination buffer is null or invalid !");
     Assert(dstBuffer->Size() >= m_size, "Destination buffer is too small to hold image data!");
-    
+
     ImageSubResource newSubResource = subResource;
     newSubResource.numLayers = MathUtil::Min(subResource.numLayers, NumArrayLayers() - subResource.baseArrayLayer);
     newSubResource.numLevels = MathUtil::Min(subResource.numLevels, NumMips() - subResource.baseMipLevel);
@@ -1073,11 +1073,11 @@ void VulkanGpuImage::CopyToBuffer(
             currSubResource.numLayers = 1;
 
             VkBufferImageCopy region {};
-            
+
             region.bufferOffset = bufferOffset + (layerIndex * layerStep);
             region.bufferRowLength = 0;
             region.bufferImageHeight = 0;
-            
+
             region.imageSubresource.aspectMask = aspectFlagBits;
             region.imageSubresource.mipLevel = mipIndex;
             region.imageSubresource.baseArrayLayer = layerIndex;
@@ -1303,7 +1303,7 @@ VulkanGpuImageViewRef VulkanGpuImage::MakeLayerImageView(uint32 layerIndex) cons
         return VulkanGpuImageViewRef::Null();
     }
 
-    return g_renderInterface->MakeImageView(
+    return RI.MakeImageView(
         MakeStrongRef(this),
         0,
         m_textureDesc.NumMips(),
@@ -1326,7 +1326,7 @@ void VulkanGpuImage::SetDebugName(Name name)
 
     if (m_allocation != VK_NULL_HANDLE)
     {
-        vmaSetAllocationName(g_renderInterface->GetDevice()->GetVmaAllocator(), m_allocation, strName);
+        vmaSetAllocationName(RI.GetDevice()->GetVmaAllocator(), m_allocation, strName);
     }
 
     VkDebugUtilsObjectNameInfoEXT objectNameInfo { VK_STRUCTURE_TYPE_DEBUG_UTILS_OBJECT_NAME_INFO_EXT };
@@ -1334,7 +1334,7 @@ void VulkanGpuImage::SetDebugName(Name name)
     objectNameInfo.objectHandle = (uint64)m_handle;
     objectNameInfo.pObjectName = strName;
 
-    g_vulkanDynamicFunctions->vkSetDebugUtilsObjectNameEXT(g_renderInterface->GetDevice()->GetDevice(), &objectNameInfo);
+    g_vulkanDynamicFunctions->vkSetDebugUtilsObjectNameEXT(RI.GetDevice()->GetDevice(), &objectNameInfo);
 }
 
 #endif
