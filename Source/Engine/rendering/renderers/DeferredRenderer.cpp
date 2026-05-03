@@ -1608,6 +1608,11 @@ public:
         const uint32 numTilesY = (extent.y + TileSize - 1) / TileSize;
         const uint32 totalTiles = numTilesX * numTilesY * TileZBins;
 
+        if (totalTiles == 0)
+        {
+            return;
+        }
+
         if (tileDataPerView.Size() <= view->Id().ToIndex())
         {
             tileDataPerView.Resize(view->Id().ToIndex() + 1);
@@ -2188,9 +2193,12 @@ void DeferredRenderer::ResizeView(Viewport viewport, View* view, DeferredRendere
 {
     AssertOnThread(g_renderThread);
 
-    HYP_LOG(Rendering, Verbose, "Resizing View '{}' to {}x{}", view->Id(), viewport.extent.x, viewport.extent.y);
+    if (viewport.extent.Volume() == 0)
+    {
+        return;
+    }
 
-    Assert(viewport.extent.Volume() > 0);
+    HYP_LOG(Rendering, Verbose, "Resizing View '{}' to {}x{}", view->Id(), viewport.extent.x, viewport.extent.y);
 
     const Vec2u newSize = Vec2u(viewport.extent);
 
@@ -2534,7 +2542,7 @@ void DeferredRenderer::RenderFrameForView(Frame* frame, const RenderSetup& rs)
         passData.gridTilesBuffer,
         passData.gridIndexBuffer);
 
-    if (cvBypassDrawing.Get())
+    if (cvBypassDrawing.Get() || rs.viewport.extent.Volume() == 0)
     {
         return;
     }

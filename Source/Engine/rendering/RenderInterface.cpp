@@ -1888,14 +1888,7 @@ void RenderInterface::FlushStructuredBuffers()
     {
         if (sbuffer.IsDirty())
         {
-            if (sbuffer.gpuBuffer->IsCpuAccessible())
-            {
-                sbuffer.Flush();
-            }
-            else
-            {
-                anyNeedStaging = true;
-            }
+            anyNeedStaging = true;
 
             break;
         }
@@ -1911,7 +1904,7 @@ void RenderInterface::FlushStructuredBuffers()
 
     for (StructuredBuffer& sbuffer : namedBuffers)
     {
-        if (sbuffer.IsDirty() && !sbuffer.gpuBuffer->IsCpuAccessible())
+        if (sbuffer.IsDirty())
         {
             sbuffer.FlushInto(cmdBuffer);
         }

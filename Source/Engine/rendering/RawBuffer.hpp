@@ -6,11 +6,12 @@
 
 #pragma once
 
-#include "RawBufferAllocator.hpp"
 #include <Core/Defines.hpp>
 #include <Core/Types.hpp>
 
 #include <Core/memory/ByteBuffer.hpp>
+
+#include <Core/utilities/ByteUtil.hpp>
 
 #include <rendering/GpuBuffer.hpp>
 #include <rendering/RenderMemory.hpp>
@@ -20,12 +21,11 @@ namespace Hyperion {
 template <class AllocatorType>
 class TCommandRecorder;
 
-
 class RawBuffer
 {
 protected:
-    RawBuffer(GpuBufferType bufferType, size_t numElements, size_t elementSize)
-        : gpuBuffer(new GpuBuffer(bufferType, elementSize != 0 ? numElements * elementSize : numElements, 16)),
+    RawBuffer(GpuBufferType bufferType, size_t numElements, size_t elementSize, size_t alignment = 16)
+        : gpuBuffer(new GpuBuffer(bufferType, GetAlignedBufferSize(numElements, elementSize, alignment), alignment)),
           elementSize(elementSize),
           dirtyRangeStart(SIZE_MAX),
           dirtyRangeEnd(0)
@@ -117,6 +117,13 @@ public:
 
     size_t dirtyRangeStart;
     size_t dirtyRangeEnd;
+
+protected:
+    static constexpr inline size_t GetAlignedBufferSize(size_t numElements, size_t elementSize, size_t alignment)
+    {
+        size_t totalSize = elementSize != 0 ? numElements * elementSize : numElements;
+        return alignment != 0 ? ByteUtil::AlignAs(totalSize, alignment) : totalSize;
+    }
 };
 
 class StructuredBuffer : public RawBuffer

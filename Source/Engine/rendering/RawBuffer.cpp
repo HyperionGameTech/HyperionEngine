@@ -77,24 +77,6 @@ void RawBuffer::Flush()
 
     RenderInterface& ri = *g_renderInterface;
 
-    if (gpuBuffer->IsCpuAccessible())
-    {
-        // Write directly to the buffer.
-        ubyte* ptr = reinterpret_cast<ubyte*>(gpuBuffer->Map());
-        Assert(ptr != nullptr);
-
-        ubyte* ptrOffset = ptr + dirtyRangeStart;
-        
-        Memory::Copy(ptrOffset, cpuBuffer.Data() + dirtyRangeStart, dirtyRangeEnd - dirtyRangeStart);
-
-        gpuBuffer->Flush(dirtyRangeStart, dirtyRangeEnd - dirtyRangeStart);
-
-        dirtyRangeStart = SIZE_MAX;
-        dirtyRangeEnd = 0;
-
-        return;
-    }
-
     CommandBuffer& cmdBuffer = ri.GetTransientCommandBuffer();
     FlushInto(cmdBuffer);
     ri.SubmitTransientCommandBuffer(cmdBuffer);
