@@ -15,225 +15,514 @@ const DBL_MAX : double = 1.7976931348623157e+308
 const DBL_MIN : double = 2.2250738585072014e-308
 const DBL_EPSILON : double = 2.2204460492503131e-16
 
-extern class EditorCommandBase
-    GetText() -> string
-    GetArguments() -> Array<string>
-    SetArguments(args : Array<string>) -> void
-    NumArguments() -> int
-    GetArgument(index : int) -> string
+extern struct OctantId
 end
-extern class EditorTaskBase
-    GetTitle() -> string
-    GetDescription() -> string
-    SetDescription(description : string) -> void
-    GetProgress() -> float
-    SetProgress(progress : float) -> void
-    IsCancellationRequested() -> bool
-    IsCommitted() -> bool
-    Start() -> void
-    Cancel() -> void
-    IsCompleted() -> bool
-    Commit() -> bool
-    OnComplete : any
-    OnCancel : any
-    OnDescriptionChange : any
+extern class OverlayBase
+    GetUIObject() -> UIObject
+    GetPlacement() -> int
+    Update(delta : float) -> void
+    CreateUIObject(spawnParent : UIObject) -> UIObject
+    IsEnabled() -> bool
+    CreateUIObject_Impl(spawnParent : UIObject) -> UIObject
+    GetPlacement_Impl() -> int
+    Update_Impl(delta : float) -> void
+    IsEnabled_Impl() -> bool
 end
-extern class TickableEditorTask : EditorTaskBase
-    IsForegroundTask() -> bool
-    SetIsForegroundTask(isForeground : bool) -> void
-    Start() -> void
-    Cancel() -> void
-    IsCompleted() -> bool
-    Commit() -> bool
-    Tick() -> void
-    Start_Impl() -> void
-    Cancel_Impl() -> void
-    IsCompleted_Impl() -> bool
-    Tick_Impl() -> void
+extern class NullOverlay : OverlayBase
 end
-extern class LongRunningEditorTask : EditorTaskBase
-    Start() -> void
-    Cancel() -> void
-    IsCompleted() -> bool
-    Process() -> void
-    Commit() -> bool
-    Start_Impl() -> void
-    Cancel_Impl() -> void
-    IsCompleted_Impl() -> bool
-    Process_Impl() -> void
+extern class TextureOverlay : OverlayBase
+    CreateUIObject_Impl(spawnParent : UIObject) -> UIObject
+    GetPlacement_Impl() -> int
 end
-extern class EditorActionBase
-    GetText() -> string
-    Execute(editorSubsystem : EditorSubsystem, project : EditorProject) -> void
-    Revert(editorSubsystem : EditorSubsystem, project : EditorProject) -> void
+extern class TextOverlay : OverlayBase
+    CreateUIObject_Impl(spawnParent : UIObject) -> UIObject
 end
-extern class FunctionalEditorAction : EditorActionBase
-    GetText() -> string
-    Execute(editorSubsystem : EditorSubsystem, project : EditorProject) -> void
-    Revert(editorSubsystem : EditorSubsystem, project : EditorProject) -> void
+extern class StatsOverlay : OverlayBase
+    CreateUIObject_Impl(spawnParent : UIObject) -> UIObject
+    GetPlacement_Impl() -> int
+    Update_Impl(delta : float) -> void
+    IsEnabled_Impl() -> bool
 end
-extern class EditorProject
+extern class DeviceDetailsOverlay : OverlayBase
+    CreateUIObject_Impl(spawnParent : UIObject) -> UIObject
+    GetPlacement_Impl() -> int
+    Update_Impl(delta : float) -> void
+    IsEnabled_Impl() -> bool
+end
+extern class ConsoleOverlay : OverlayBase
+    CreateUIObject_Impl(spawnParent : UIObject) -> UIObject
+    GetPlacement_Impl() -> int
+    Update_Impl(delta : float) -> void
+    IsEnabled_Impl() -> bool
+end
+extern class BaseStatsOverlay : OverlayBase
+    CreateUIObject_Impl(spawnParent : UIObject) -> UIObject
+    GetPlacement_Impl() -> int
+    Update_Impl(delta : float) -> void
+    IsEnabled_Impl() -> bool
+end
+extern struct GlyphMetrics
+    Width : uint16
+    Height : uint16
+    BearingX : int16
+    BearingY : int16
+    Advance : uint32
+    ImagePosition : Vec2i
+end
+extern enum ScrollAxis : uint8
+    SA_NONE = 0x0,
+    SA_HORIZONTAL = 0x1,
+    SA_VERTICAL = 0x2,
+    SA_ALL = (SA_HORIZONTAL | SA_VERTICAL)
+end
+extern enum UIObjectFocusState : uint32
+    NONE = 0x0,
+    HOVER = 0x1,
+    PRESSED = 0x2,
+    TOGGLED = 0x4,
+    FOCUSED = 0x8
+end
+extern enum UIObjectUpdateType : uint32
+    NONE = 0x0,
+    UPDATE_SIZE = 0x1,
+    UPDATE_POSITION = 0x2,
+    UPDATE_MATERIAL = 0x4,
+    UPDATE_MESH_DATA = 0x8,
+    UPDATE_COMPUTED_VISIBILITY = 0x10,
+    UPDATE_CLAMPED_SIZE = 0x20,
+    UPDATE_CUSTOM = 0x40,
+    UPDATE_ALL = UINT16_MAX,
+    UPDATE_CHILDREN_SIZE = (UPDATE_SIZE << 16),
+    UPDATE_CHILDREN_POSITION = (UPDATE_POSITION << 16),
+    UPDATE_CHILDREN_MATERIAL = (UPDATE_MATERIAL << 16),
+    UPDATE_CHILDREN_MESH_DATA = (UPDATE_MESH_DATA << 16),
+    UPDATE_CHILDREN_COMPUTED_VISIBILITY = (UPDATE_COMPUTED_VISIBILITY << 16),
+    UPDATE_CHILDREN_CLAMPED_SIZE = (UPDATE_CLAMPED_SIZE << 16),
+    UPDATE_CHILDREN_CUSTOM = (UPDATE_CUSTOM << 16),
+    UPDATE_CHILDREN_ALL = (UPDATE_ALL << 16)
+end
+extern enum UIObjectBorderFlags : uint32
+    NONE = 0x0,
+    TOP = 0x1,
+    LEFT = 0x2,
+    BOTTOM = 0x4,
+    RIGHT = 0x8,
+    ALL = (((TOP | LEFT) | BOTTOM) | RIGHT)
+end
+extern struct UIEventHandlerResult
+end
+extern enum UIObjectAlignment : uint32
+    TOP_LEFT = 0,
+    TOP_RIGHT = 1,
+    CENTER = 2,
+    BOTTOM_LEFT = 3,
+    BOTTOM_RIGHT = 4
+end
+extern enum UIObjectUpdateSizeFlags : uint32
+    NONE = 0x0,
+    MAX_SIZE = 0x1,
+    INNER_SIZE = 0x2,
+    OUTER_SIZE = 0x4,
+    DEFAULT = ((MAX_SIZE | INNER_SIZE) | OUTER_SIZE)
+end
+extern struct UIObjectAspectRatio
+    X : float
+    Y : float
+end
+extern struct UIObjectSize
+    Flags : uint64
+    Value : Vec2i
+end
+extern class UIObject
+    GetEntity() -> Entity
+    GetStage() -> UIStage
+    SetStage(stage : UIStage) -> void
     GetName() -> Name
     SetName(name : Name) -> void
+    GetPosition() -> Vec2i
+    SetPosition(position : Vec2i) -> void
+    GetOffsetPosition() -> Vec2f
+    GetAbsolutePosition() -> Vec2f
+    IsPositionAbsolute() -> bool
+    SetIsPositionAbsolute(isPositionAbsolute : bool) -> void
+    GetSize() -> UIObjectSize
+    SetSize(size : UIObjectSize) -> void
+    GetInnerSize() -> UIObjectSize
+    SetInnerSize(size : UIObjectSize) -> void
+    GetMaxSize() -> UIObjectSize
+    SetMaxSize(size : UIObjectSize) -> void
+    GetActualSize() -> Vec2i
+    GetActualSizeClamped() -> Vec2i
+    GetActualInnerSize() -> Vec2i
+    GetScrollOffset() -> Vec2f
+    SetScrollOffset(scrollOffset : Vec2f, smooth : bool) -> void
+    ScrollToChild(child : UIObject) -> void
+    GetVerticalScrollbarSize() -> int
+    GetHorizontalScrollbarSize() -> int
+    CanScrollOnAxis(axis : ScrollAxis) -> bool
+    GetComputedDepth() -> int
+    GetDepth() -> int
+    SetDepth(depth : int) -> void
+    AcceptsFocus() -> bool
+    SetAcceptsFocus(acceptsFocus : bool) -> void
+    NeedsUpdate() -> bool
+    Focus() -> void
+    Blur(blurChildren : bool) -> void
+    SetAffectsParentSize(affectsParentSize : bool) -> void
+    AffectsParentSize() -> bool
+    GetBorderRadius() -> uint32
+    SetBorderRadius(borderRadius : uint32) -> void
+    GetBorderFlags() -> UIObjectBorderFlags
+    SetBorderFlags(borderFlags : UIObjectBorderFlags) -> void
+    GetAspectRatio() -> UIObjectAspectRatio
+    SetAspectRatio(aspectRatio : UIObjectAspectRatio) -> void
+    GetPadding() -> Vec2i
+    SetPadding(padding : Vec2i) -> void
+    GetBackgroundColor() -> Color
+    SetBackgroundColor(backgroundColor : Color) -> void
+    GetTextColor() -> Color
+    SetTextColor(textColor : Color) -> void
+    GetText() -> string
+    SetText(text : string) -> void
+    GetTextSize() -> float
+    SetTextSize(textSize : float) -> void
+    IsVisible() -> bool
+    SetIsVisible(isVisible : bool) -> void
+    IsEnabled() -> bool
+    SetIsEnabled(isEnabled : bool) -> void
+    GetParentUIObject() -> UIObject
+    AddChildUIObject(uiObject : UIObject) -> void
+    RemoveChildUIObject(uiObject : UIObject) -> bool
+    ClearDeep() -> void
+    RemoveFromParent() -> bool
+    DetachFromParent() -> UIObject
+    HasChildUIObjects() -> bool
+    GetChildUIObject(index : int) -> UIObject
+    NumChildUIObjects(deep : bool) -> uint32
+    GetNode() -> Node
     GetWorld() -> World
-    GetGame() -> Game
-    SetGame(gameInstance : Game) -> void
-    GetLastSavedTime() -> Time
-    GetFilePath() -> string
-    AddScene(scene : Scene) -> void
-    RemoveScene(scene : Scene) -> void
-    GetProjectsDirectory() -> string
-    IsSaved() -> bool
-    Save() -> Result
-    SaveAs(filepath : string) -> Result
-    GetActionStack() -> EditorActionStack
-    Close() -> void
-    OnProjectSaved : any
-    Name : Name
-    LastSavedTime : Time
-    Filepath : string
-    GameInstance : Game
-    ActionStack : EditorActionStack
+    GetAABB() -> BoundingBox
+    GetAABBClamped() -> BoundingBox
+    GetDataSource() -> UIDataSourceBase
+    SetDataSource(dataSource : UIDataSourceBase) -> void
+    OnInit : any
+    OnAttached : any
+    OnRemoved : any
+    OnChildAttached : any
+    OnChildRemoved : any
+    OnMouseDown : any
+    OnMouseUp : any
+    OnMouseDrag : any
+    OnMouseHover : any
+    OnMouseLeave : any
+    OnMouseMove : any
+    OnGainFocus : any
+    OnLoseFocus : any
+    OnScroll : any
+    OnClick : any
+    OnRightClick : any
+    OnKeyDown : any
+    OnKeyUp : any
+    OnTextChange : any
+    OnSizeChange : any
+    OnComputedVisibilityChange : any
+    OnEnabled : any
+    OnDisabled : any
+    OnValueChange : any
+    Init() -> void
 end
-extern class EditorState
-    static GetInstance() -> EditorState
-    GetCurrentProject() -> EditorProject
-    SetCurrentProject(project : EditorProject) -> void
-    AddTask(task : EditorTaskBase) -> void
-    OnCurrentProjectChanged : any
-    OnTaskStarted : any
-    OnTaskEnded : any
-    OnTaskProgressUpdated : any
+extern class UIConsole : UIObject
 end
-extern class EditorViewport
+extern class UIText : UIObject
+    GetCharacterOffset(characterIndex : int) -> Vec2f
+end
+extern class UIStage : UIObject
+    GetSurfaceSize() -> Vec2i
+    SetSurfaceSize(surfaceSize : Vec2i) -> void
+    GetScene() -> Scene
+    SetScene(scene : Scene) -> void
     GetCamera() -> Camera
-    GetView() -> View
-    GetWindow() -> ApplicationWindow
-    CreateViewportWindow(options : WindowOptions) -> ApplicationWindow
 end
-extern enum EditorActionStackState : uint32
+extern class UISpacer : UIObject
+end
+extern class UIPanel : UIObject
+    IsHorizontalScrollEnabled() -> bool
+    IsVerticalScrollEnabled() -> bool
+    SetIsScrollEnabled(axis : ScrollAxis, isScrollEnabled : bool) -> void
+end
+extern class UIWindow : UIPanel
+end
+extern class UITextbox : UIPanel
+    GetPlaceholder() -> string
+    SetPlaceholder(placeholder : string) -> void
+    GetPlaceholderTextColor() -> Color
+    ClearOnSubmit : bool
+end
+extern class UITabView : UIPanel
+end
+extern class UITab : UIObject
+end
+extern class UIMenuBar : UIPanel
+    GetDropDirection() -> UIMenuBarDropDirection
+    SetDropDirection(dropDirection : UIMenuBarDropDirection) -> void
+    SetSelectedMenuItemIndex(index : uint32) -> void
+    AddMenuItem(name : Name, text : string) -> UIMenuItem
+    GetMenuItem(name : Name) -> UIMenuItem
+    GetMenuItemIndex(name : Name) -> uint32
+    RemoveMenuItem(name : Name) -> bool
+end
+extern class UIMenuItem : UIObject
+end
+extern enum UIMenuBarDropDirection : uint32
+    DOWN,
+    UP
+end
+extern enum UIListViewOrientation : uint8
+    VERTICAL = 0,
+    HORIZONTAL
+end
+extern class UIListView : UIPanel
+    SetSelectedItem(listViewItem : UIListViewItem) -> void
+    GetSelectedItemIndex() -> int
+    SetSelectedItemIndex(index : int) -> void
+    GetOrientation() -> UIListViewOrientation
+    SetOrientation(orientation : UIListViewOrientation) -> void
+end
+extern class UIListViewItem : UIObject
+end
+extern class UIGrid : UIPanel
+    GetNumColumns() -> int
+    SetNumColumns(numColumns : int) -> void
+    GetNumRows() -> uint32
+    SetNumRows(numRows : uint32) -> void
+end
+extern class UIGridRow : UIPanel
+end
+extern class UIGridColumn : UIPanel
+    GetColumnSize() -> int
+    SetColumnSize(columnSize : int) -> void
+end
+extern class UIDockableContainer : UIPanel
+end
+extern class UIDockableItem : UIPanel
+end
+extern class EditorPropertyPanelBase : UIPanel
+    Build(boxed : any, property : any) -> void
+end
+extern class UIImage : UIObject
+end
+extern class UIButton : UIObject
+end
+extern class UIDataSourceBase
+    Size() -> int
+    Clear() -> void
+end
+extern class UIDataSource : UIDataSourceBase
+    Size() -> int
+    Clear() -> void
+end
+extern class UIElementFactoryBase
+    GetElementTypeId() -> TypeId
+    CreateUIObject(parent : UIObject, value : any, context : any) -> UIObject
+    UpdateUIObject(uiObject : UIObject, value : any, context : any) -> void
+end
+extern class ApplicationWindow
+    GetInputManager() -> InputManager
+    GetHWND() -> any
+    GetSize() -> Vec2i
+    SetMousePosition(position : Vec2i) -> void
+    GetMousePosition() -> Vec2i
+    SetIsMouseLocked(locked : bool) -> void
+    IsMouseLocked() -> bool
+    HasMouseFocus() -> bool
+    IsHighDPI() -> bool
+    GetDimensions() -> Vec2i
+    Close() -> void
+    OnWindowSizeChanged : any
+    OnClose : any
+end
+extern class AndroidApplicationWindow : ApplicationWindow
+    SetMousePosition(position : Vec2i) -> void
+    GetMousePosition() -> Vec2i
+    GetDimensions() -> Vec2i
+    SetIsMouseLocked(locked : bool) -> void
+    IsMouseLocked() -> bool
+    HasMouseFocus() -> bool
+    Close() -> void
+end
+extern class SDLApplicationWindow : ApplicationWindow
+    SetMousePosition(position : Vec2i) -> void
+    GetMousePosition() -> Vec2i
+    GetDimensions() -> Vec2i
+    SetIsMouseLocked(locked : bool) -> void
+    IsMouseLocked() -> bool
+    HasMouseFocus() -> bool
+    IsHighDPI() -> bool
+    Close() -> void
+end
+extern class CocoaApplicationWindow : ApplicationWindow
+    SetMousePosition(position : Vec2i) -> void
+    GetMousePosition() -> Vec2i
+    GetDimensions() -> Vec2i
+    SetIsMouseLocked(locked : bool) -> void
+    IsMouseLocked() -> bool
+    HasMouseFocus() -> bool
+    IsHighDPI() -> bool
+    GetNSWindow() -> any
+    GetNSView() -> any
+    Close() -> void
+end
+extern class Win32ApplicationWindow : ApplicationWindow
+    SetMousePosition(position : Vec2i) -> void
+    GetMousePosition() -> Vec2i
+    GetDimensions() -> Vec2i
+    SetIsMouseLocked(locked : bool) -> void
+    IsMouseLocked() -> bool
+    HasMouseFocus() -> bool
+    Close() -> void
+end
+extern class AppContextBase
+    static GetInstance() -> AppContextBase
+    GetAppName() -> string
+    GetMainWindow() -> ApplicationWindow
+    SetMainWindow(window : ApplicationWindow) -> void
+    GetWindows() -> Array<ApplicationWindow>
+    CreateSystemWindow(windowOptions : WindowOptions) -> ApplicationWindow
+    RemoveWindow(window : ApplicationWindow) -> void
+    RunCommandlet(commandletName : string, args : CommandLineArguments) -> Result
+    OnCurrentWindowChanged : any
+end
+extern class Win32AppContext : AppContextBase
+    CreateSystemWindow(windowOptions : WindowOptions) -> ApplicationWindow
+end
+extern class AndroidAppContext : AppContextBase
+    CreateSystemWindow(windowOptions : WindowOptions) -> ApplicationWindow
+end
+extern class SDLAppContext : AppContextBase
+    CreateSystemWindow(windowOptions : WindowOptions) -> ApplicationWindow
+end
+extern class CocoaAppContext : AppContextBase
+    CreateSystemWindow(windowOptions : WindowOptions) -> ApplicationWindow
+end
+extern struct WindowOptions
+end
+extern enum WindowFlags : uint32
     NONE = 0x0,
-    CAN_UNDO = 0x1,
-    CAN_REDO = 0x2
+    HEADLESS = 0x1,
+    NO_GFX = 0x2,
+    HIGH_DPI = 0x4,
+    EVENTS_POLLING = 0x8
 end
-extern class EditorActionStack
-    PushAction(action : EditorActionBase) -> bool
-    CanUndo() -> bool
-    CanRedo() -> bool
-    Undo() -> void
-    Redo() -> void
-    GetUndoAction() -> EditorActionBase
-    GetRedoAction() -> EditorActionBase
-    OnBeforeActionPush : any
-    OnBeforeActionPop : any
-    OnAfterActionPush : any
-    OnAfterActionPop : any
-    OnStateChange : any
+extern class StreamingVolumeBase
+    GetShape() -> StreamingVolumeShape
+    GetBoundingBox(outAabb : BoundingBox) -> bool
+    GetBoundingSphere(outSphere : BoundingSphere) -> bool
+    ContainsPoint(point : Vec3f) -> bool
+    GetShape_Impl() -> StreamingVolumeShape
+    GetBoundingBox_Impl(outAabb : BoundingBox) -> bool
+    GetBoundingSphere_Impl(outSphere : BoundingSphere) -> bool
+    ContainsPoint_Impl(point : Vec3f) -> bool
+    NotifyUpdate() -> void
 end
-extern class CommandletBase
-    static GetArgumentDefinitions() -> CommandLineArgumentDefinitions
-    Run(args : CommandLineArguments) -> Result
-    Run_Impl(args : CommandLineArguments) -> Result
+extern enum StreamingVolumeShape : uint32
+    SPHERE = 0,
+    BOX,
+    MAX,
+    INVALID = ~0u
 end
-extern class EngineDriver
-    static GetInstance() -> EngineDriver
-    GetCurrentWorld() -> World
-    SetCurrentWorld(world : World) -> void
-    SetGameInstance(gameInstance : Game) -> void
-    GetGameInstance() -> Game
+extern class StreamingManager
+    AddStreamingVolume(volume : StreamingVolumeBase) -> void
+    RemoveStreamingVolume(volume : StreamingVolumeBase) -> void
 end
-extern class EngineStats
-    static GetInstance() -> EngineStats
-    GetFps() -> double
-    GetMsPerFrame() -> double
-    QueryStatValue(path : string, valueIfNotFound : double) -> double
+extern class StreamableBase
+    GetBoundingBox() -> BoundingBox
+    OnStreamStart() -> void
+    OnLoaded() -> void
+    OnRemoved() -> void
+    GetBoundingBox_Impl() -> BoundingBox
+    OnStreamStart_Impl() -> void
+    OnLoaded_Impl() -> void
+    OnRemoved_Impl() -> void
 end
-extern enum EnginePoolName : int
-    EPN_INVALID = -1,
-    EPN_CORE = 0,
-    EPN_RENDER,
-    EPN_SCENE,
-    EPN_MAX
+extern enum StreamingCellState : uint32
+    INVALID = ~0u,
+    UNLOADED = 0,
+    UNLOADING,
+    WAITING,
+    LOADING,
+    LOADED,
+    MAX
 end
-extern enum GpuType : uint8
-    Unknown = 0,
-    Integrated,
-    Dedicated
+extern class StreamingCell : StreamableBase
+    GetPatchInfo() -> StreamingCellInfo
+    Update(delta : float) -> void
+    GetBoundingBox_Impl() -> BoundingBox
+    Update_Impl(delta : float) -> void
 end
-extern class DeviceDetails
-    GetGpuType() -> GpuType
-    GetGpuVendor() -> GpuVendor
-    GetGpuModel() -> string
-    GetGpuVendorName() -> string
-    GetDriverVersion() -> string
-    IsDiscreteGpu() -> bool
-    SupportsRayTracing() -> bool
-    SupportsRayQueries() -> bool
-    SupportsVariableRateShading() -> bool
-    SupportsSamplerFeedback() -> bool
-    SupportsBindless() -> bool
+extern struct StreamingCellInfo
+    Coord : Vec2i
+    Extent : Vec3u
+    Scale : Vec3f
+    Bounds : BoundingBox
 end
-extern enum GpuVendor : uint8
-    Unknown = 0,
-    Nvidia,
-    Amd,
-    Intel,
-    Qualcomm,
-    Apple,
-    Microsoft
+extern struct StreamingCellNeighbor
+    Coord : Vec2i
 end
-extern class Game
-    GetAssetRegistry() -> AssetRegistry
-    SetAssetRegistry(assetRegistry : AssetRegistry) -> void
-    GetWorld() -> World
-    SetWorld(world : World) -> void
-    GetGameState() -> GameState
-    OnLaunch() -> void
-    OnUpdate(delta : float) -> void
-    Initialize() -> void
-    Shutdown() -> void
-    SetToEditMode() -> void
-    IsLaunched() -> bool
-    StartSimulating() -> void
-    StopSimulating() -> void
-    PauseSimulation() -> void
-    OnLaunched : any
-    OnGameStateChange : any
-    OnLaunch_Impl() -> void
-    OnUpdate_Impl(delta : float) -> void
-    World : World
-    GameState : GameState
+extern class TerrainStreamingCell : StreamingCell
+    OnStreamStart_Impl() -> void
+    OnLoaded_Impl() -> void
+    OnRemoved_Impl() -> void
 end
-extern enum GameStateMode : uint32
-    STOPPED = 0,
-    SIMULATING,
-    PAUSED,
-    EDIT_MODE
+extern enum ScriptLanguage : uint32
+    Invalid = ~0u,
+    Native = 0,
+    HypScript = 1,
+    CSharp = 2
 end
-extern struct GameState
-    Mode : GameStateMode
-    DeltaTime : float
-    GameTime : float
-    IsStopped() -> bool
-    IsSimulating() -> bool
-    IsPaused() -> bool
-    IsEditMode() -> bool
+extern enum ScriptCompileStatus : uint32
+    Uninitialized = 0x0,
+    Compiled = 0x1,
+    Dirty = 0x2,
+    Processing = 0x4,
+    Errored = 0x8
 end
-extern struct WGLayerDesc
-    ClassName : Name
-    LayerName : Name
-    Info : WorldGridLayerInfo
-    Objects : Array<WGObject>
+extern struct ScriptDesc
+    Uuid : UUID
+    Language : ScriptLanguage
+    Path : Array<any>
+    AssemblyPath : Array<any>
+    ClassName : Array<any>
+    CompileStatus : uint32
+    HotReloadVersion : int32
+    LastModifiedTimestamp : uint64
 end
-extern struct WGObject
-    Coords : Vec2i
-    Path : AssetPath
+extern struct PropertyHandle
 end
-extern class WorldGrid
-    GetWorld() -> World
-    AddLayer(layer : WorldGridLayer) -> void
-    RemoveLayer(layer : WorldGridLayer) -> bool
-    GetLayers() -> Array<WorldGridLayer>
+extern struct FieldHandle
+end
+extern struct MethodHandle
+end
+extern class Reflection
+    static GetClassByName(name : Name) -> Class
+    static GetFields(classRef : Class) -> Array<FieldHandle>
+    static GetFieldHandle(classRef : Class, fieldName : Name) -> FieldHandle
+    static GetFieldValue(field : FieldHandle, target : any) -> any
+    static SetFieldValue(field : FieldHandle, target : any, value : any) -> void
+    static GetFieldName(field : FieldHandle) -> Name
+    static GetMethods(classRef : Class) -> Array<MethodHandle>
+    static GetMethodHandle(classRef : Class, methodName : Name) -> MethodHandle
+    static InvokeMethod(method : MethodHandle, args : Array<any>) -> any
+    static GetMethodName(method : MethodHandle) -> Name
+    static GetProperties(classRef : Class) -> Array<PropertyHandle>
+    static GetPropertyHandle(classRef : Class, propertyName : Name) -> PropertyHandle
+    static GetPropertyValue(property : PropertyHandle, target : any) -> any
+    static SetPropertyValue(property : PropertyHandle, target : any, value : any) -> void
+    static GetPropertyName(property : PropertyHandle) -> Name
+end
+extern class Debugger
+    static Breakpoint() -> void
+    static AssertTrue(condition : bool) -> void
+    static AssertFalse(condition : bool) -> void
 end
 extern class WorldGridLayer
     GetName() -> Name
@@ -264,10 +553,76 @@ extern class TerrainWorldGridLayer : WorldGridLayer
     OnRemoved_Impl(worldGrid : WorldGrid) -> void
     CreateStreamingCell_Impl(cellInfo : StreamingCellInfo) -> StreamingCell
 end
+extern struct WGLayerDesc
+    ClassName : Name
+    LayerName : Name
+    Info : WorldGridLayerInfo
+    Objects : Array<WGObject>
+end
+extern struct WGObject
+    Coords : Vec2i
+    Path : AssetPath
+end
+extern class WorldGrid
+    GetWorld() -> World
+    AddLayer(layer : WorldGridLayer) -> void
+    RemoveLayer(layer : WorldGridLayer) -> bool
+    GetLayers() -> Array<WorldGridLayer>
+end
+extern struct VisibilityStateComponent
+    Flags : VisibilityStateFlags
+    OctantId : OctantId
+    VisibilityState : VisibilityState
+end
+extern enum VisibilityStateFlags : uint32
+    NONE = 0x0,
+    ALWAYS_VISIBLE = 0x1,
+    INVALIDATED = 0x2
+end
+extern struct UIComponent
+    UiObject : any
+end
+extern struct TransformComponent
+    Translation : Vec3f
+    Rotation : Quat4f
+    Scale : Vec3f
+end
+extern enum ScriptComponentFlags : uint32
+    NONE = 0x0,
+    INITIALIZED = 0x1,
+    RELOADING = 0x2,
+    INITIALIZATION_STARTED = 0x4,
+    BEFORE_ADDED_CALLED = 0x10,
+    ON_ADDED_CALLED = 0x20
+end
 extern struct RigidBodyComponent
     PhysicsMaterial : PhysicsMaterial
     Shape : PhysicsShape
     RigidBody : RigidBody
+end
+extern struct MeshComponent
+    Mesh : Mesh
+    Material : MaterialInstance
+    Skeleton : Skeleton
+    EnableAutoInstancing : bool
+    NumInstances : uint32
+    PreviousModelMatrix : Mat4f
+end
+extern struct CharacterControllerComponent
+    Shape : PhysicsShape
+    InputHandler : InputHandlerBase
+    PhysicsHandle : void
+    ViewDirection : Vec3f
+    Translation : Vec3f
+    MoveSpeed : float
+    StepHeight : float
+    MaxSlopeAngle : float
+    JumpSpeed : float
+    FallSpeed : float
+    IsOnGround : bool
+end
+extern struct BoundingBoxComponent
+    WorldAabb : BoundingBox
 end
 extern struct AudioPlaybackState
     Status : AudioPlaybackStatus
@@ -314,69 +669,14 @@ end
 extern struct AnimationComponent
     PlaybackState : AnimationPlaybackState
 end
-extern struct CharacterControllerComponent
-    Shape : PhysicsShape
-    InputHandler : InputHandlerBase
-    PhysicsHandle : void
-    ViewDirection : Vec3f
-    Translation : Vec3f
-    MoveSpeed : float
-    StepHeight : float
-    MaxSlopeAngle : float
-    JumpSpeed : float
-    FallSpeed : float
-    IsOnGround : bool
-end
-extern struct UIComponent
-    UiObject : any
-end
-extern enum ScriptComponentFlags : uint32
-    NONE = 0x0,
-    INITIALIZED = 0x1,
-    RELOADING = 0x2,
-    INITIALIZATION_STARTED = 0x4,
-    BEFORE_ADDED_CALLED = 0x10,
-    ON_ADDED_CALLED = 0x20
-end
-extern struct TransformComponent
-    Translation : Vec3f
-    Rotation : Quat4f
-    Scale : Vec3f
-end
-extern struct BoundingBoxComponent
-    WorldAabb : BoundingBox
-end
-extern struct VisibilityStateComponent
-    Flags : VisibilityStateFlags
-    OctantId : OctantId
-    VisibilityState : VisibilityState
-end
-extern enum VisibilityStateFlags : uint32
-    NONE = 0x0,
-    ALWAYS_VISIBLE = 0x1,
-    INVALIDATED = 0x2
-end
-extern struct MeshComponent
-    Mesh : Mesh
-    Material : MaterialInstance
-    Skeleton : Skeleton
-    EnableAutoInstancing : bool
-    NumInstances : uint32
-    PreviousModelMatrix : Mat4f
-end
 extern struct Keyframe
     Time : float
     Transform : Transform
     Blend(to : Keyframe, blend : float) -> Keyframe
 end
-extern class EntityManager
-    GetWorld() -> World
-    GetScene() -> Scene
-    AddExistingEntity(entity : Entity) -> void
-    AddTypedEntity(cls : Class) -> Entity
-    AddBasicEntity() -> Entity
+extern struct VisibilityStateSnapshot
 end
-extern struct BVHNode
+extern struct VisibilityState
 end
 extern enum ViewFlags : uint32
     NONE = 0x0,
@@ -412,91 +712,6 @@ extern class View
     GetPriority() -> int
     SetPriority(priority : int) -> void
 end
-extern class Subsystem
-end
-extern enum SubsystemUpdatePhase : uint8
-    BeforeVis,
-    AfterVis
-end
-extern class EditorGizmoBase
-    GetNode() -> Node
-    IsDragging() -> bool
-    GetManipulationMode() -> EditorManipulationMode
-    GetPriority() -> int
-    GetMenuText() -> string
-end
-extern class NullEditorGizmo : EditorGizmoBase
-end
-extern class TranslateEditorGizmo : EditorGizmoBase
-end
-extern class RotateEditorGizmo : EditorGizmoBase
-end
-extern class VolumeEditorGizmo : EditorGizmoBase
-end
-extern class GenerateLightmapsEditorTask : TickableEditorTask
-    GetWorld() -> World
-    SetWorld(world : World) -> void
-    GetScene() -> Scene
-    SetScene(scene : Scene) -> void
-    Start() -> void
-    Cancel() -> void
-    IsCompleted() -> bool
-    Tick() -> void
-end
-extern enum EditorManipulationMode
-    NONE = 0,
-    TRANSLATE,
-    ROTATE,
-    SCALE,
-    VOLUME_EDIT
-end
-extern class EditorSubsystem : Subsystem
-    GetCurrentProject() -> EditorProject
-    GetActiveViewport() -> EditorViewport
-    SetActiveViewport(viewport : EditorViewport) -> void
-    AddViewport(viewport : EditorViewport) -> void
-    RemoveViewport(viewport : EditorViewport) -> void
-    GetEditorScene() -> Scene
-    ExecuteCommand(command : EditorCommandBase) -> bool
-    ExecuteCommandByName(name : Name, arguments : string) -> bool
-    NewProject() -> void
-    OpenProject(project : EditorProject) -> void
-    CloseProject() -> void
-    ShowImportContentDialog() -> void
-    SetFocusedNode(focusedNode : Node, shouldSelectInOutline : bool) -> void
-    GetFocusedNode() -> Node
-    GetActiveScene() -> Scene
-    SetActiveScene(scene : Scene) -> void
-    GetSelectedManipulationMode() -> EditorManipulationMode
-    SetSelectedManipulationMode(mode : EditorManipulationMode) -> void
-    GetSelectedGizmo() -> EditorGizmoBase
-    GetGizmo(mode : EditorManipulationMode) -> EditorGizmoBase
-    SetSelectedBucket(bucketIndex : uint32) -> void
-    CalculateSceneInsertionPoint(desiredDistance : float, offsetFromSurface : float) -> Vec3f
-    OnFocusedNodeChanged : any
-    OnProjectClosing : any
-    OnProjectOpened : any
-    OnActiveSceneChanged : any
-    OnSelectedGizmoChanged : any
-    OnSelectedBucketChanged : any
-    OnActiveViewportChanged : any
-    StartSimulation() -> void
-    StopSimulation() -> void
-    PauseSimulation() -> void
-end
-extern class BakerSubsystem : Subsystem
-end
-extern struct ComponentInfo
-    TypeId : TypeId
-    Access : ComponentAccess
-    ReceivesEvents : bool
-end
-extern enum ComponentAccess : uint32
-    NONE = 0,
-    READ = 0x1,
-    WRITE = 0x2,
-    READ_WRITE = (READ | WRITE)
-end
 extern class SystemBase
 end
 extern class ScriptableSystem : SystemBase
@@ -519,22 +734,39 @@ extern class ScriptableSystem : SystemBase
 end
 extern class DynamicSkySystem : SystemBase
 end
+extern class Subsystem
+end
+extern enum SubsystemUpdatePhase : uint8
+    BeforeVis,
+    AfterVis
+end
+extern class BakerSubsystem : Subsystem
+end
 extern struct TagComponentBase
     Value : EntityTag
 end
 extern struct EntityTag
     Value : uint64
 end
-extern struct VisibilityStateSnapshot
+extern class EntityManager
+    GetWorld() -> World
+    GetScene() -> Scene
+    AddExistingEntity(entity : Entity) -> void
+    AddTypedEntity(cls : Class) -> Entity
+    AddBasicEntity() -> Entity
 end
-extern struct VisibilityState
+extern struct ComponentInfo
+    TypeId : TypeId
+    Access : ComponentAccess
+    ReceivesEvents : bool
 end
-extern class RigidBody
+extern enum ComponentAccess : uint32
+    NONE = 0,
+    READ = 0x1,
+    WRITE = 0x2,
+    READ_WRITE = (READ | WRITE)
 end
-extern struct PhysicsMaterial
-    Mass : float
-end
-extern class PhysicsWorldBase
+extern struct BVHNode
 end
 extern enum VulkanDeviceQueueType : uint8
     INVALID = 0,
@@ -560,91 +792,6 @@ extern enum ShadowMapType : uint32
     SMT_DIRECTIONAL,
     SMT_SPOT,
     SMT_OMNI
-end
-extern struct MeshRayTracingData
-end
-extern struct DescriptorSetLayoutElement
-    Type : ShaderInputType
-    Binding : uint32
-    Count : uint32
-    Category : ShaderResourceCategory
-end
-extern enum GpuImageFlags : uint32
-    NONE = 0x0
-end
-extern struct MeshAttributes
-    InputLayout : VertexInputLayoutDesc
-    Topology : Topology
-    IndexBufferElemType : GpuElemType
-end
-extern struct MaterialAttributes
-    ShaderName : Name
-    ShaderProperties : ShaderPropertySet
-    Bucket : RenderBucket
-    FillMode : FillMode
-    BlendFunction : BlendFunction
-    CullFaces : FaceCullMode
-    Flags : MaterialAttributeFlags
-    StencilFunction : StencilFunction
-    StencilReference : uint8
-    DepthBias : int32
-    DepthBiasSlope : float
-end
-extern enum MaterialAttributeFlags : uint8
-    MAF_NONE = 0x0,
-    MAF_DEPTH_WRITE = 0x1,
-    MAF_DEPTH_TEST = 0x2,
-    MAF_DEPTH_BIAS = 0x4,
-    MAF_DEPTH_CLAMP = 0x8,
-    MAF_STENCIL_TEST = 0x10,
-    MAF_ALPHA_DISCARD = 0x20
-end
-extern struct RayTracingReflectionsConfig
-    Extent : Vec2u
-end
-extern enum GBufferTargetName : uint32
-    GTN_ALBEDO = 0,
-    GTN_NORMALS,
-    GTN_MATERIAL,
-    GTN_VELOCITY,
-    GTN_DEPTH,
-    GTN_MAX
-end
-extern struct MaterialTextures
-    Values : Array<Texture>
-end
-extern struct MaterialParameters
-    Albedo : Vec4f
-    Metalness : float
-    Roughness : float
-    AlphaThreshold : float
-    ParallaxHeightScale : float
-    Transmission : float
-    Ior : float
-    EmissiveColor : Color
-    EmissiveIntensity : float
-    UserParams : Vec4f
-end
-extern enum MaterialTextureKey : uint64
-    NONE = 0,
-    Diffuse = 0x1,
-    Normals = 0x2,
-    Parallax = 0x4,
-    Metalness = 0x8,
-    Roughness = 0x10,
-    AmbientOcclusion = 0x20
-end
-extern enum GlobalRendererType : uint32
-    GRT_NONE = ~0u,
-    GRT_MAIN = 0,
-    GRT_UI,
-    GRT_ENV_PROBE,
-    GRT_ENV_GRID,
-    GRT_SHADOW_MAP,
-    GRT_PARTICLE_VOLUME,
-    GRT_SPRITE,
-    GRT_SSAO,
-    GRT_MAX
 end
 extern enum VertexType : uint8
     VT_Invalid = 0x0,
@@ -963,9 +1110,19 @@ extern enum Topology : uint8
 end
 extern struct BlendFunction
 end
-extern enum AccelerationStructureType : uint8
-    BOTTOM_LEVEL,
-    TOP_LEVEL
+extern struct MeshRayTracingData
+end
+extern enum GlobalRendererType : uint32
+    GRT_NONE = ~0u,
+    GRT_MAIN = 0,
+    GRT_UI,
+    GRT_ENV_PROBE,
+    GRT_ENV_GRID,
+    GRT_SHADOW_MAP,
+    GRT_PARTICLE_VOLUME,
+    GRT_SPRITE,
+    GRT_SSAO,
+    GRT_MAX
 end
 extern enum RenderBucket : uint8
     Opaque,
@@ -974,225 +1131,94 @@ extern enum RenderBucket : uint8
     Sky,
     Debug
 end
+extern struct MeshAttributes
+    InputLayout : VertexInputLayoutDesc
+    Topology : Topology
+    IndexBufferElemType : GpuElemType
+end
+extern struct MaterialAttributes
+    ShaderName : Name
+    ShaderProperties : ShaderPropertySet
+    Bucket : RenderBucket
+    FillMode : FillMode
+    BlendFunction : BlendFunction
+    CullFaces : FaceCullMode
+    Flags : MaterialAttributeFlags
+    StencilFunction : StencilFunction
+    StencilReference : uint8
+    DepthBias : int32
+    DepthBiasSlope : float
+end
+extern enum MaterialAttributeFlags : uint8
+    MAF_NONE = 0x0,
+    MAF_DEPTH_WRITE = 0x1,
+    MAF_DEPTH_TEST = 0x2,
+    MAF_DEPTH_BIAS = 0x4,
+    MAF_DEPTH_CLAMP = 0x8,
+    MAF_STENCIL_TEST = 0x10,
+    MAF_ALPHA_DISCARD = 0x20
+end
+extern struct RayTracingReflectionsConfig
+    Extent : Vec2u
+end
+extern struct MaterialTextures
+    Values : Array<Texture>
+end
+extern struct MaterialParameters
+    Albedo : Vec4f
+    Metalness : float
+    Roughness : float
+    AlphaThreshold : float
+    ParallaxHeightScale : float
+    Transmission : float
+    Ior : float
+    EmissiveColor : Color
+    EmissiveIntensity : float
+    UserParams : Vec4f
+end
+extern enum MaterialTextureKey : uint64
+    NONE = 0,
+    Diffuse = 0x1,
+    Normals = 0x2,
+    Parallax = 0x4,
+    Metalness = 0x8,
+    Roughness = 0x10,
+    AmbientOcclusion = 0x20
+end
+extern enum GpuImageFlags : uint32
+    NONE = 0x0
+end
+extern enum GBufferTargetName : uint32
+    GTN_ALBEDO = 0,
+    GTN_NORMALS,
+    GTN_MATERIAL,
+    GTN_VELOCITY,
+    GTN_DEPTH,
+    GTN_MAX
+end
 extern class UISubsystem : Subsystem
     AddDebugOverlay(debugOverlay : OverlayBase) -> void
     RemoveDebugOverlay(debugOverlay : OverlayBase) -> bool
 end
+extern struct DescriptorSetLayoutElement
+    Type : ShaderInputType
+    Binding : uint32
+    Count : uint32
+    Category : ShaderResourceCategory
+end
 extern struct DebugDrawerConfig
     Enabled : bool
 end
-extern class AudioManager
+extern enum AccelerationStructureType : uint8
+    BOTTOM_LEVEL,
+    TOP_LEVEL
 end
-extern enum AudioSourceState : uint32
-    UNDEFINED,
-    STOPPED,
-    PLAYING,
-    PAUSED
+extern class RigidBody
 end
-extern enum AudioSourceFormat : uint32
-    MONO8,
-    MONO16,
-    STEREO8,
-    STEREO16
+extern class PhysicsWorldBase
 end
-extern class AudioSource
-    GetFormat() -> AudioSourceFormat
-    SetFormat(format : AudioSourceFormat) -> void
-    GetFreq() -> uint64
-    SetFreq(freq : uint64) -> void
-    GetData() -> ByteBuffer
-    SetData(data : ByteBuffer) -> void
-    GetSampleLength() -> uint32
-    SetSampleLength(sampleLength : uint32) -> void
-    GetDuration() -> double
-    SetDuration(duration : double) -> void
-end
-extern class ApplicationWindow
-    GetInputManager() -> InputManager
-    GetHWND() -> any
-    GetSize() -> Vec2i
-    SetMousePosition(position : Vec2i) -> void
-    GetMousePosition() -> Vec2i
-    SetIsMouseLocked(locked : bool) -> void
-    IsMouseLocked() -> bool
-    HasMouseFocus() -> bool
-    IsHighDPI() -> bool
-    GetDimensions() -> Vec2i
-    Close() -> void
-    OnWindowSizeChanged : any
-    OnClose : any
-end
-extern class AndroidApplicationWindow : ApplicationWindow
-    SetMousePosition(position : Vec2i) -> void
-    GetMousePosition() -> Vec2i
-    GetDimensions() -> Vec2i
-    SetIsMouseLocked(locked : bool) -> void
-    IsMouseLocked() -> bool
-    HasMouseFocus() -> bool
-    Close() -> void
-end
-extern class SDLApplicationWindow : ApplicationWindow
-    SetMousePosition(position : Vec2i) -> void
-    GetMousePosition() -> Vec2i
-    GetDimensions() -> Vec2i
-    SetIsMouseLocked(locked : bool) -> void
-    IsMouseLocked() -> bool
-    HasMouseFocus() -> bool
-    IsHighDPI() -> bool
-    Close() -> void
-end
-extern class CocoaApplicationWindow : ApplicationWindow
-    SetMousePosition(position : Vec2i) -> void
-    GetMousePosition() -> Vec2i
-    GetDimensions() -> Vec2i
-    SetIsMouseLocked(locked : bool) -> void
-    IsMouseLocked() -> bool
-    HasMouseFocus() -> bool
-    IsHighDPI() -> bool
-    GetNSWindow() -> any
-    GetNSView() -> any
-    Close() -> void
-end
-extern class Win32ApplicationWindow : ApplicationWindow
-    SetMousePosition(position : Vec2i) -> void
-    GetMousePosition() -> Vec2i
-    GetDimensions() -> Vec2i
-    SetIsMouseLocked(locked : bool) -> void
-    IsMouseLocked() -> bool
-    HasMouseFocus() -> bool
-    Close() -> void
-end
-extern class AppContextBase
-    static GetInstance() -> AppContextBase
-    GetAppName() -> string
-    GetMainWindow() -> ApplicationWindow
-    SetMainWindow(window : ApplicationWindow) -> void
-    GetWindows() -> Array<ApplicationWindow>
-    CreateSystemWindow(windowOptions : WindowOptions) -> ApplicationWindow
-    RemoveWindow(window : ApplicationWindow) -> void
-    RunCommandlet(commandletName : string, args : CommandLineArguments) -> Result
-    OnCurrentWindowChanged : any
-end
-extern class Win32AppContext : AppContextBase
-    CreateSystemWindow(windowOptions : WindowOptions) -> ApplicationWindow
-end
-extern class AndroidAppContext : AppContextBase
-    CreateSystemWindow(windowOptions : WindowOptions) -> ApplicationWindow
-end
-extern class SDLAppContext : AppContextBase
-    CreateSystemWindow(windowOptions : WindowOptions) -> ApplicationWindow
-end
-extern class CocoaAppContext : AppContextBase
-    CreateSystemWindow(windowOptions : WindowOptions) -> ApplicationWindow
-end
-extern struct WindowOptions
-end
-extern enum WindowFlags : uint32
-    NONE = 0x0,
-    HEADLESS = 0x1,
-    NO_GFX = 0x2,
-    HIGH_DPI = 0x4,
-    EVENTS_POLLING = 0x8
-end
-extern class StreamingVolumeBase
-    GetShape() -> StreamingVolumeShape
-    GetBoundingBox(outAabb : BoundingBox) -> bool
-    GetBoundingSphere(outSphere : BoundingSphere) -> bool
-    ContainsPoint(point : Vec3f) -> bool
-    GetShape_Impl() -> StreamingVolumeShape
-    GetBoundingBox_Impl(outAabb : BoundingBox) -> bool
-    GetBoundingSphere_Impl(outSphere : BoundingSphere) -> bool
-    ContainsPoint_Impl(point : Vec3f) -> bool
-    NotifyUpdate() -> void
-end
-extern enum StreamingVolumeShape : uint32
-    SPHERE = 0,
-    BOX,
-    MAX,
-    INVALID = ~0u
-end
-extern class StreamingManager
-    AddStreamingVolume(volume : StreamingVolumeBase) -> void
-    RemoveStreamingVolume(volume : StreamingVolumeBase) -> void
-end
-extern class StreamableBase
-    GetBoundingBox() -> BoundingBox
-    OnStreamStart() -> void
-    OnLoaded() -> void
-    OnRemoved() -> void
-    GetBoundingBox_Impl() -> BoundingBox
-    OnStreamStart_Impl() -> void
-    OnLoaded_Impl() -> void
-    OnRemoved_Impl() -> void
-end
-extern enum StreamingCellState : uint32
-    INVALID = ~0u,
-    UNLOADED = 0,
-    UNLOADING,
-    WAITING,
-    LOADING,
-    LOADED,
-    MAX
-end
-extern class StreamingCell : StreamableBase
-    GetPatchInfo() -> StreamingCellInfo
-    Update(delta : float) -> void
-    GetBoundingBox_Impl() -> BoundingBox
-    Update_Impl(delta : float) -> void
-end
-extern struct StreamingCellInfo
-    Coord : Vec2i
-    Extent : Vec3u
-    Scale : Vec3f
-    Bounds : BoundingBox
-end
-extern struct StreamingCellNeighbor
-    Coord : Vec2i
-end
-extern class TerrainStreamingCell : StreamingCell
-    OnStreamStart_Impl() -> void
-    OnLoaded_Impl() -> void
-    OnRemoved_Impl() -> void
-end
-extern class BakerBase
-end
-extern enum LightmapShadingType : uint32
-    IRRADIANCE = 0,
-    RADIANCE,
-    FULL,
-    SHADOW,
-    MAX
-end
-extern struct BakerConfig
-    NumSamples : uint32
-    MaxTexelsPerFrame : uint32
-    OnlyGenerateUVs : bool
-end
-extern class InputHandlerBase
-    OnKeyDown(evt : KeyboardEvent) -> bool
-    OnKeyUp(evt : KeyboardEvent) -> bool
-    OnMouseDown(evt : MouseEvent) -> bool
-    OnMouseUp(evt : MouseEvent) -> bool
-    OnMouseMove(evt : MouseEvent) -> bool
-    OnMouseDrag(evt : MouseEvent) -> bool
-    OnMouseLeave(evt : MouseEvent) -> bool
-    OnClick(evt : MouseEvent) -> bool
-    OnGainFocus(evt : MouseEvent) -> bool
-    OnLoseFocus(evt : MouseEvent) -> bool
-    OnKeyDown_Impl(evt : KeyboardEvent) -> bool
-    OnKeyUp_Impl(evt : KeyboardEvent) -> bool
-    OnMouseDown_Impl(evt : MouseEvent) -> bool
-    OnMouseUp_Impl(evt : MouseEvent) -> bool
-    OnMouseMove_Impl(evt : MouseEvent) -> bool
-    OnMouseDrag_Impl(evt : MouseEvent) -> bool
-    OnMouseLeave_Impl(evt : MouseEvent) -> bool
-    OnClick_Impl(evt : MouseEvent) -> bool
-    OnGainFocus_Impl(evt : MouseEvent) -> bool
-    OnLoseFocus_Impl(evt : MouseEvent) -> bool
-end
-extern class NullInputHandler : InputHandlerBase
-end
-extern class CharacterControllerInputHandler : InputHandlerBase
+extern struct PhysicsMaterial
+    Mass : float
 end
 extern enum MouseButtonKey : uint32
     MBK_INVALID = ~0u,
@@ -1215,24 +1241,6 @@ extern enum MouseButtonState : uint32
     LEFT = 0x1,
     MIDDLE = 0x2,
     RIGHT = 0x4
-end
-extern class InputManager
-    IsMouseLocked() -> bool
-    PushMouseLockState(mouseLocked : bool, syncToVirtualPosition : bool) -> void
-    PopMouseLockState() -> void
-    GetMousePosition() -> Vec2i
-    GetVirtualMousePosition() -> Vec2i
-    GetPreviousVirtualMousePosition() -> Vec2i
-    GetWindowSize() -> Vec2i
-    IsKeyDown(key : KeyCode) -> bool
-    IsKeyUp(key : KeyCode) -> bool
-    IsShiftDown() -> bool
-    IsAltDown() -> bool
-    IsCtrlDown() -> bool
-    IsButtonDown(btn : MouseButtonKey) -> bool
-    GetButtonStates() -> MouseButtonState
-    IsButtonUp(btn : MouseButtonKey) -> bool
-    GetWindow() -> ApplicationWindow
 end
 extern struct KeyboardEvent
     InputManager : InputManager
@@ -1309,6 +1317,50 @@ extern enum KeyCode : uint16
     KEY_UP = 82,
     KEY_ESCAPE = 27
 end
+extern class InputManager
+    IsMouseLocked() -> bool
+    PushMouseLockState(mouseLocked : bool, syncToVirtualPosition : bool) -> void
+    PopMouseLockState() -> void
+    GetMousePosition() -> Vec2i
+    GetVirtualMousePosition() -> Vec2i
+    GetPreviousVirtualMousePosition() -> Vec2i
+    GetWindowSize() -> Vec2i
+    IsKeyDown(key : KeyCode) -> bool
+    IsKeyUp(key : KeyCode) -> bool
+    IsShiftDown() -> bool
+    IsAltDown() -> bool
+    IsCtrlDown() -> bool
+    IsButtonDown(btn : MouseButtonKey) -> bool
+    GetButtonStates() -> MouseButtonState
+    IsButtonUp(btn : MouseButtonKey) -> bool
+    GetWindow() -> ApplicationWindow
+end
+extern class InputHandlerBase
+    OnKeyDown(evt : KeyboardEvent) -> bool
+    OnKeyUp(evt : KeyboardEvent) -> bool
+    OnMouseDown(evt : MouseEvent) -> bool
+    OnMouseUp(evt : MouseEvent) -> bool
+    OnMouseMove(evt : MouseEvent) -> bool
+    OnMouseDrag(evt : MouseEvent) -> bool
+    OnMouseLeave(evt : MouseEvent) -> bool
+    OnClick(evt : MouseEvent) -> bool
+    OnGainFocus(evt : MouseEvent) -> bool
+    OnLoseFocus(evt : MouseEvent) -> bool
+    OnKeyDown_Impl(evt : KeyboardEvent) -> bool
+    OnKeyUp_Impl(evt : KeyboardEvent) -> bool
+    OnMouseDown_Impl(evt : MouseEvent) -> bool
+    OnMouseUp_Impl(evt : MouseEvent) -> bool
+    OnMouseMove_Impl(evt : MouseEvent) -> bool
+    OnMouseDrag_Impl(evt : MouseEvent) -> bool
+    OnMouseLeave_Impl(evt : MouseEvent) -> bool
+    OnClick_Impl(evt : MouseEvent) -> bool
+    OnGainFocus_Impl(evt : MouseEvent) -> bool
+    OnLoseFocus_Impl(evt : MouseEvent) -> bool
+end
+extern class NullInputHandler : InputHandlerBase
+end
+extern class CharacterControllerInputHandler : InputHandlerBase
+end
 extern enum EventType : uint32
     INVALID = ~0u,
     WINDOW_EVENT = 0x0200,
@@ -1331,9 +1383,355 @@ extern enum EventFlags : uint8
     NONE = 0x0,
     RELATIVE_MOUSE = 0x1
 end
-extern struct OctantId
+extern class CommandletBase
+    static GetArgumentDefinitions() -> CommandLineArgumentDefinitions
+    Run(args : CommandLineArguments) -> Result
+    Run_Impl(args : CommandLineArguments) -> Result
 end
-extern struct AssetBucket
+extern enum GameStateMode : uint32
+    STOPPED = 0,
+    SIMULATING,
+    PAUSED,
+    EDIT_MODE
+end
+extern struct GameState
+    Mode : GameStateMode
+    DeltaTime : float
+    GameTime : float
+    IsStopped() -> bool
+    IsSimulating() -> bool
+    IsPaused() -> bool
+    IsEditMode() -> bool
+end
+extern class Game
+    GetAssetRegistry() -> AssetRegistry
+    SetAssetRegistry(assetRegistry : AssetRegistry) -> void
+    GetWorld() -> World
+    SetWorld(world : World) -> void
+    GetGameState() -> GameState
+    OnLaunch() -> void
+    OnUpdate(delta : float) -> void
+    Initialize() -> void
+    Shutdown() -> void
+    SetToEditMode() -> void
+    IsLaunched() -> bool
+    StartSimulating() -> void
+    StopSimulating() -> void
+    PauseSimulation() -> void
+    OnLaunched : any
+    OnGameStateChange : any
+    OnLaunch_Impl() -> void
+    OnUpdate_Impl(delta : float) -> void
+    World : World
+    GameState : GameState
+end
+extern class EngineStats
+    static GetInstance() -> EngineStats
+    GetFps() -> double
+    GetMsPerFrame() -> double
+    QueryStatValue(path : string, valueIfNotFound : double) -> double
+end
+extern enum EnginePoolName : int
+    EPN_INVALID = -1,
+    EPN_CORE = 0,
+    EPN_RENDER,
+    EPN_SCENE,
+    EPN_MAX
+end
+extern class EngineDriver
+    static GetInstance() -> EngineDriver
+    GetCurrentWorld() -> World
+    SetCurrentWorld(world : World) -> void
+    SetGameInstance(gameInstance : Game) -> void
+    GetGameInstance() -> Game
+end
+extern enum GpuType : uint8
+    Unknown = 0,
+    Integrated,
+    Dedicated
+end
+extern class DeviceDetails
+    GetGpuType() -> GpuType
+    GetGpuVendor() -> GpuVendor
+    GetGpuModel() -> string
+    GetGpuVendorName() -> string
+    GetDriverVersion() -> string
+    IsDiscreteGpu() -> bool
+    SupportsRayTracing() -> bool
+    SupportsRayQueries() -> bool
+    SupportsVariableRateShading() -> bool
+    SupportsSamplerFeedback() -> bool
+    SupportsBindless() -> bool
+end
+extern enum GpuVendor : uint8
+    Unknown = 0,
+    Nvidia,
+    Amd,
+    Intel,
+    Qualcomm,
+    Apple,
+    Microsoft
+end
+extern class EditorViewport
+    GetCamera() -> Camera
+    GetView() -> View
+    GetWindow() -> ApplicationWindow
+    CreateViewportWindow(options : WindowOptions) -> ApplicationWindow
+end
+extern class EditorTaskBase
+    GetTitle() -> string
+    GetDescription() -> string
+    SetDescription(description : string) -> void
+    GetProgress() -> float
+    SetProgress(progress : float) -> void
+    IsCancellationRequested() -> bool
+    IsCommitted() -> bool
+    Start() -> void
+    Cancel() -> void
+    IsCompleted() -> bool
+    Commit() -> bool
+    OnComplete : any
+    OnCancel : any
+    OnDescriptionChange : any
+end
+extern class TickableEditorTask : EditorTaskBase
+    IsForegroundTask() -> bool
+    SetIsForegroundTask(isForeground : bool) -> void
+    Start() -> void
+    Cancel() -> void
+    IsCompleted() -> bool
+    Commit() -> bool
+    Tick() -> void
+    Start_Impl() -> void
+    Cancel_Impl() -> void
+    IsCompleted_Impl() -> bool
+    Tick_Impl() -> void
+end
+extern class LongRunningEditorTask : EditorTaskBase
+    Start() -> void
+    Cancel() -> void
+    IsCompleted() -> bool
+    Process() -> void
+    Commit() -> bool
+    Start_Impl() -> void
+    Cancel_Impl() -> void
+    IsCompleted_Impl() -> bool
+    Process_Impl() -> void
+end
+extern class EditorGizmoBase
+    GetNode() -> Node
+    IsDragging() -> bool
+    GetManipulationMode() -> EditorManipulationMode
+    GetPriority() -> int
+    GetMenuText() -> string
+end
+extern class NullEditorGizmo : EditorGizmoBase
+end
+extern class TranslateEditorGizmo : EditorGizmoBase
+end
+extern class RotateEditorGizmo : EditorGizmoBase
+end
+extern class VolumeEditorGizmo : EditorGizmoBase
+end
+extern class GenerateLightmapsEditorTask : TickableEditorTask
+    GetWorld() -> World
+    SetWorld(world : World) -> void
+    GetScene() -> Scene
+    SetScene(scene : Scene) -> void
+    Start() -> void
+    Cancel() -> void
+    IsCompleted() -> bool
+    Tick() -> void
+end
+extern enum EditorManipulationMode
+    NONE = 0,
+    TRANSLATE,
+    ROTATE,
+    SCALE,
+    VOLUME_EDIT
+end
+extern class EditorSubsystem : Subsystem
+    GetCurrentProject() -> EditorProject
+    GetActiveViewport() -> EditorViewport
+    SetActiveViewport(viewport : EditorViewport) -> void
+    AddViewport(viewport : EditorViewport) -> void
+    RemoveViewport(viewport : EditorViewport) -> void
+    GetEditorScene() -> Scene
+    ExecuteCommand(command : EditorCommandBase) -> bool
+    ExecuteCommandByName(name : Name, arguments : string) -> bool
+    NewProject() -> void
+    OpenProject(project : EditorProject) -> void
+    CloseProject() -> void
+    ShowImportContentDialog() -> void
+    SetFocusedNode(focusedNode : Node, shouldSelectInOutline : bool) -> void
+    GetFocusedNode() -> Node
+    GetActiveScene() -> Scene
+    SetActiveScene(scene : Scene) -> void
+    GetSelectedManipulationMode() -> EditorManipulationMode
+    SetSelectedManipulationMode(mode : EditorManipulationMode) -> void
+    GetSelectedGizmo() -> EditorGizmoBase
+    GetGizmo(mode : EditorManipulationMode) -> EditorGizmoBase
+    SetSelectedBucket(bucketIndex : uint32) -> void
+    CalculateSceneInsertionPoint(desiredDistance : float, offsetFromSurface : float) -> Vec3f
+    OnFocusedNodeChanged : any
+    OnProjectClosing : any
+    OnProjectOpened : any
+    OnActiveSceneChanged : any
+    OnSelectedGizmoChanged : any
+    OnSelectedBucketChanged : any
+    OnActiveViewportChanged : any
+    StartSimulation() -> void
+    StopSimulation() -> void
+    PauseSimulation() -> void
+end
+extern class EditorState
+    static GetInstance() -> EditorState
+    GetCurrentProject() -> EditorProject
+    SetCurrentProject(project : EditorProject) -> void
+    AddTask(task : EditorTaskBase) -> void
+    OnCurrentProjectChanged : any
+    OnTaskStarted : any
+    OnTaskEnded : any
+    OnTaskProgressUpdated : any
+end
+extern class EditorProject
+    GetName() -> Name
+    SetName(name : Name) -> void
+    GetWorld() -> World
+    GetGame() -> Game
+    SetGame(gameInstance : Game) -> void
+    GetLastSavedTime() -> Time
+    GetFilePath() -> string
+    AddScene(scene : Scene) -> void
+    RemoveScene(scene : Scene) -> void
+    GetProjectsDirectory() -> string
+    IsSaved() -> bool
+    Save() -> Result
+    SaveAs(filepath : string) -> Result
+    GetActionStack() -> EditorActionStack
+    Close() -> void
+    OnProjectSaved : any
+    Name : Name
+    LastSavedTime : Time
+    Filepath : string
+    GameInstance : Game
+    ActionStack : EditorActionStack
+end
+extern class EditorCommandBase
+    GetText() -> string
+    GetArguments() -> Array<string>
+    SetArguments(args : Array<string>) -> void
+    NumArguments() -> int
+    GetArgument(index : int) -> string
+end
+extern enum EditorActionStackState : uint32
+    NONE = 0x0,
+    CAN_UNDO = 0x1,
+    CAN_REDO = 0x2
+end
+extern class EditorActionStack
+    PushAction(action : EditorActionBase) -> bool
+    CanUndo() -> bool
+    CanRedo() -> bool
+    Undo() -> void
+    Redo() -> void
+    GetUndoAction() -> EditorActionBase
+    GetRedoAction() -> EditorActionBase
+    OnBeforeActionPush : any
+    OnBeforeActionPop : any
+    OnAfterActionPush : any
+    OnAfterActionPop : any
+    OnStateChange : any
+end
+extern class EditorActionBase
+    GetText() -> string
+    Execute(editorSubsystem : EditorSubsystem, project : EditorProject) -> void
+    Revert(editorSubsystem : EditorSubsystem, project : EditorProject) -> void
+end
+extern class FunctionalEditorAction : EditorActionBase
+    GetText() -> string
+    Execute(editorSubsystem : EditorSubsystem, project : EditorProject) -> void
+    Revert(editorSubsystem : EditorSubsystem, project : EditorProject) -> void
+end
+extern class BakerBase
+end
+extern enum LightmapShadingType : uint32
+    IRRADIANCE = 0,
+    RADIANCE,
+    FULL,
+    SHADOW,
+    MAX
+end
+extern struct BakerConfig
+    NumSamples : uint32
+    MaxTexelsPerFrame : uint32
+    OnlyGenerateUVs : bool
+end
+extern enum AudioSourceState : uint32
+    UNDEFINED,
+    STOPPED,
+    PLAYING,
+    PAUSED
+end
+extern enum AudioSourceFormat : uint32
+    MONO8,
+    MONO16,
+    STEREO8,
+    STEREO16
+end
+extern class AudioSource
+    GetFormat() -> AudioSourceFormat
+    SetFormat(format : AudioSourceFormat) -> void
+    GetFreq() -> uint64
+    SetFreq(freq : uint64) -> void
+    GetData() -> ByteBuffer
+    SetData(data : ByteBuffer) -> void
+    GetSampleLength() -> uint32
+    SetSampleLength(sampleLength : uint32) -> void
+    GetDuration() -> double
+    SetDuration(duration : double) -> void
+end
+extern class AudioManager
+end
+extern struct BlobDataReference
+    Key : Name
+    Size : uint64
+    Raw : any
+    ReadOnly : bool
+end
+extern class BlobStorage
+    BaseDirectory : string
+    PageSize : uint64
+    FreeRanges : Array<BlobMappingRange>
+    PageData : Array<BlobPageData>
+end
+extern struct BlobPageData
+    Cursor : uint64
+end
+extern struct BlobMappingRange
+    Start : uint32
+    End : uint32
+end
+extern enum AddAssetConflictMode : uint8
+    FailOnConflict = 0,
+    GenerateNewName,
+    ReplaceExisting,
+    Default
+end
+extern struct AssetDesc
+    Name : Name
+    Index : uint32
+end
+extern enum AssetObjectFlags : uint8
+    None = 0x0,
+    Persistent = 0x1,
+    Transient = 0x2
+end
+extern enum AssetPackageFlags : uint32
+    None = 0x0,
+    Transient = 0x1,
+    Hidden = 0x2,
+    SaveOnChanged = 0x4
 end
 extern class AssetCollector
     GetBasePath() -> string
@@ -1362,26 +1760,13 @@ extern enum AssetChangeType : uint32
     RENAMED = 3,
     MAX
 end
-extern enum AddAssetConflictMode : uint8
-    FailOnConflict = 0,
-    GenerateNewName,
-    ReplaceExisting,
-    Default
+extern class AssetRegistry
+    GetRootPath() -> string
+    SetRootPath(rootPath : string) -> void
 end
-extern struct AssetDesc
-    Name : Name
-    Index : uint32
-end
-extern enum AssetObjectFlags : uint8
-    None = 0x0,
-    Persistent = 0x1,
-    Transient = 0x2
-end
-extern enum AssetPackageFlags : uint32
-    None = 0x0,
-    Transient = 0x1,
-    Hidden = 0x2,
-    SaveOnChanged = 0x4
+extern struct AssetReference
+    GetAssetPath() -> AssetPath
+    SetAssetPath(assetPath : AssetPath) -> void
 end
 extern struct AssetPath
     IsValid() -> bool
@@ -1418,6 +1803,18 @@ extern class AssetObject
     AssetIndex : uint32
     AssetPath : AssetPath
 end
+extern struct FontAtlasTextureSet
+    MainAtlas : Texture
+    Atlases : Array<any>
+end
+extern class FontAtlas : AssetObject
+    AtlasTextures : FontAtlasTextureSet
+    CellDimensions : Vec2i
+    GlyphMetrics : Array<GlyphMetrics>
+    SymbolList : Array<uint32>
+end
+extern class ScriptAsset : AssetObject
+end
 extern class Skeleton : AssetObject
     GetRootBone() -> Bone
     SetRootBone(bone : Bone) -> void
@@ -1443,6 +1840,67 @@ extern class AnimationTrack : AssetObject
     GetKeyframe(time : float) -> Keyframe
     BoneName : Name
     KeyframeData : BlobDataReference
+end
+extern struct CSMState
+    PlayerCenter : Vec3f
+end
+extern struct FogParams
+    Color : Color
+    StartDistance : float
+    EndDistance : float
+end
+extern enum WorldFlags : uint32
+    NONE = 0x0,
+    EDITOR_WORLD = 0x1,
+    HAS_PHYSICS = 0x2,
+    HAS_STREAMING = 0x4,
+    HAS_SCENE_STREAMING_LAYER = 0x100,
+    ALL_STREAMING_LAYER_FLAGS = HAS_SCENE_STREAMING_LAYER,
+    DEFAULT = ((HAS_PHYSICS | HAS_STREAMING) | ALL_STREAMING_LAYER_FLAGS)
+end
+extern struct CSMParams
+    NumCascades : uint32
+end
+extern class World : AssetObject
+    GetGame() -> Game
+    GetWorldFlags() -> WorldFlags
+    SetWorldFlags(flags : WorldFlags) -> void
+    GetFogParams() -> FogParams
+    SetFogParams(fogParams : FogParams) -> void
+    GetCSMParams() -> CSMParams
+    SetCSMParams(csmParams : CSMParams) -> void
+    GetCSMState() -> CSMState
+    SetCSMState(csmState : CSMState) -> void
+    GetPhysicsWorld() -> PhysicsWorldBase
+    TryAddSubsystem(subsystem : Subsystem) -> bool
+    GetSubsystemByName(name : any) -> Subsystem
+    RemoveSubsystem(subsystem : Subsystem) -> bool
+    GetWorldGrid() -> WorldGrid
+    GetGameState() -> GameState
+    AddScene(scene : Scene, addToStreamingLayer : bool) -> void
+    RemoveScene(scene : Scene, removeFromStreamingLayer : bool) -> bool
+    HasScene(sceneId : any) -> bool
+    GetSceneByName(nameHash : any) -> Scene
+    GetScenes() -> Array<Scene>
+    AddView(view : View) -> void
+    RemoveView(view : View) -> void
+    AddSystem(system : SystemBase) -> SystemBase
+    RemoveSystem(system : SystemBase) -> bool
+    OnSceneAdded : any
+    OnSceneRemoved : any
+    DeserializeNonStreamingScenes(scenes : Array<Scene>) -> void
+    SerializeNonStreamingScenes() -> Array<Scene>
+    DeserializeStreamingLayers(streamingLayers : Array<WGLayerDesc>) -> void
+    SerializeStreamingLayers() -> Array<WGLayerDesc>
+    DeserializeSystems(systems : Array<SystemBase>) -> void
+    SerializeSystems() -> Array<SystemBase>
+    GameInstance : Game
+    WorldFlags : WorldFlags
+    Scenes : Array<Scene>
+    FogParams : FogParams
+    CsmParams : CSMParams
+    CsmState : CSMState
+    Systems : Array<SystemBase>
 end
 extern enum SceneFlags : uint32
     NONE = 0x0,
@@ -1577,6 +2035,8 @@ extern class Bone : Node
     WorldBoneRotation : Quat4f
     InvBindingRotation : Quat4f
 end
+extern class InstancedMeshProxy : Node
+end
 extern class Entity : Node
     GetEntityManager() -> EntityManager
     ReceivesUpdate() -> bool
@@ -1663,10 +2123,6 @@ extern enum CameraProjectionMode : uint32
     PERSPECTIVE = 1,
     ORTHOGRAPHIC = 2
 end
-extern class OrthoCameraController : CameraController
-end
-extern class UICameraController : OrthoCameraController
-end
 extern class PerspectiveCameraController : CameraController
 end
 extern class FollowCameraController : PerspectiveCameraController
@@ -1693,7 +2149,96 @@ extern class EditorCameraInputHandler : InputHandlerBase
 end
 extern class CameraTrackController : PerspectiveCameraController
 end
-extern class EnvGrid : Entity
+extern class OrthoCameraController : CameraController
+end
+extern class UICameraController : OrthoCameraController
+end
+extern class VolumeBase : Entity
+end
+extern struct ParticleVolumeParams
+    Texture : Texture
+    MaxParticles : uint32
+    Origin : Vec3f
+    StartSize : float
+    Radius : float
+    Randomness : float
+    Lifespan : float
+    HasPhysics : bool
+end
+extern class ParticleVolume : VolumeBase
+    GetParams() -> ParticleVolumeParams
+    SetParams(newParams : ParticleVolumeParams) -> void
+    Params : ParticleVolumeParams
+end
+extern class LightmapVolume : VolumeBase
+    Rebake() -> void
+    RadianceAtlasTextures : Array<Texture>
+    IrradianceAtlasTextures : Array<Texture>
+    Atlases : Array<LightmapVolumeAtlas>
+end
+extern struct LightmapVolumeAtlas
+end
+extern class FogVolume : VolumeBase
+    GetVolumeTexture() -> Texture
+    SetTextures(volumeTexture : Texture, noiseTexture : Texture) -> void
+    Rebake() -> void
+    VolumeTexture : Texture
+    NoiseTexture : Texture
+end
+extern struct EnvProbeSphericalHarmonics
+end
+extern class EnvProbe : VolumeBase
+    GetEnvProbeType() -> EnvProbeType
+    GetEnvProbeFlags() -> EnvProbeFlags
+    SetEnvProbeFlags(envProbeFlags : EnvProbeFlags) -> void
+    IsReflectionProbe() -> bool
+    IsSkyProbe() -> bool
+    IsAmbientProbe() -> bool
+    IsBaked() -> bool
+    SetIsBaked(isBaked : bool) -> void
+    IsRealtime() -> bool
+    GetOrigin() -> Vec3f
+    SetOrigin(origin : Vec3f) -> void
+    GetCamera() -> Camera
+    GetBakedTexture() -> Texture
+    SetBakedTexture(texture : Texture) -> void
+    Dimensions : Vec2u
+    EnvProbeType : EnvProbeType
+    EnvProbeFlags : EnvProbeFlags
+    ShData : EnvProbeSphericalHarmonics
+end
+extern class SkyProbe : EnvProbe
+    GetSkyboxCubemap() -> Texture
+end
+extern class ReflectionProbe : EnvProbe
+    BakeCubemap() -> void
+end
+extern enum EnvProbeType : uint32
+    EPT_INVALID = ~0u,
+    EPT_SKY = 0,
+    EPT_REFLECTION,
+    EPT_AMBIENT,
+    EPT_MAX
+end
+extern enum EnvProbeFlags : uint32
+    EPF_NONE = 0x0,
+    EPF_PARALLAX_CORRECTED = 0x1,
+    EPF_BAKED = 0x2
+end
+extern class Sprite : Entity
+end
+extern enum SpriteType : uint32
+    None = 0,
+    Point2D,
+    Spot3D,
+    Crosshair,
+    EnvProbe,
+    LightmapVolume,
+    Camera,
+    Text,
+    Max
+end
+extern class TextSprite : Sprite
 end
 extern class Light : Entity
     GetLightType() -> LightType
@@ -1759,179 +2304,7 @@ extern enum LightFlags : uint32
     BakeStaticShadows = 0x20,
     Default = (ShadowCaster | ShadowPCF)
 end
-extern class Sprite : Entity
-end
-extern enum SpriteType : uint32
-    None = 0,
-    Point2D,
-    Spot3D,
-    Crosshair,
-    EnvProbe,
-    LightmapVolume,
-    Camera,
-    Text,
-    Max
-end
-extern class TextSprite : Sprite
-end
-extern class VolumeBase : Entity
-end
-extern struct ParticleVolumeParams
-    Texture : Texture
-    MaxParticles : uint32
-    Origin : Vec3f
-    StartSize : float
-    Radius : float
-    Randomness : float
-    Lifespan : float
-    HasPhysics : bool
-end
-extern class ParticleVolume : VolumeBase
-    GetParams() -> ParticleVolumeParams
-    SetParams(newParams : ParticleVolumeParams) -> void
-    Params : ParticleVolumeParams
-end
-extern class FogVolume : VolumeBase
-    GetVolumeTexture() -> Texture
-    SetTextures(volumeTexture : Texture, noiseTexture : Texture) -> void
-    Rebake() -> void
-    VolumeTexture : Texture
-    NoiseTexture : Texture
-end
-extern class LightmapVolume : VolumeBase
-    Rebake() -> void
-    RadianceAtlasTextures : Array<Texture>
-    IrradianceAtlasTextures : Array<Texture>
-    Atlases : Array<LightmapVolumeAtlas>
-end
-extern struct LightmapVolumeAtlas
-end
-extern struct EnvProbeSphericalHarmonics
-end
-extern class EnvProbe : VolumeBase
-    GetEnvProbeType() -> EnvProbeType
-    GetEnvProbeFlags() -> EnvProbeFlags
-    SetEnvProbeFlags(envProbeFlags : EnvProbeFlags) -> void
-    IsReflectionProbe() -> bool
-    IsSkyProbe() -> bool
-    IsAmbientProbe() -> bool
-    IsBaked() -> bool
-    SetIsBaked(isBaked : bool) -> void
-    IsRealtime() -> bool
-    GetOrigin() -> Vec3f
-    SetOrigin(origin : Vec3f) -> void
-    GetCamera() -> Camera
-    GetBakedTexture() -> Texture
-    SetBakedTexture(texture : Texture) -> void
-    Dimensions : Vec2u
-    EnvProbeType : EnvProbeType
-    EnvProbeFlags : EnvProbeFlags
-    ShData : EnvProbeSphericalHarmonics
-end
-extern class SkyProbe : EnvProbe
-    GetSkyboxCubemap() -> Texture
-end
-extern class ReflectionProbe : EnvProbe
-    BakeCubemap() -> void
-end
-extern enum EnvProbeType : uint32
-    EPT_INVALID = ~0u,
-    EPT_SKY = 0,
-    EPT_REFLECTION,
-    EPT_AMBIENT,
-    EPT_MAX
-end
-extern enum EnvProbeFlags : uint32
-    EPF_NONE = 0x0,
-    EPF_PARALLAX_CORRECTED = 0x1,
-    EPF_BAKED = 0x2
-end
-extern class InstancedMeshProxy : Node
-end
-extern struct CSMState
-    PlayerCenter : Vec3f
-end
-extern struct FogParams
-    Color : Color
-    StartDistance : float
-    EndDistance : float
-end
-extern enum WorldFlags : uint32
-    NONE = 0x0,
-    EDITOR_WORLD = 0x1,
-    HAS_PHYSICS = 0x2,
-    HAS_STREAMING = 0x4,
-    HAS_SCENE_STREAMING_LAYER = 0x100,
-    ALL_STREAMING_LAYER_FLAGS = HAS_SCENE_STREAMING_LAYER,
-    DEFAULT = ((HAS_PHYSICS | HAS_STREAMING) | ALL_STREAMING_LAYER_FLAGS)
-end
-extern struct CSMParams
-    NumCascades : uint32
-end
-extern class World : AssetObject
-    GetGame() -> Game
-    GetWorldFlags() -> WorldFlags
-    SetWorldFlags(flags : WorldFlags) -> void
-    GetFogParams() -> FogParams
-    SetFogParams(fogParams : FogParams) -> void
-    GetCSMParams() -> CSMParams
-    SetCSMParams(csmParams : CSMParams) -> void
-    GetCSMState() -> CSMState
-    SetCSMState(csmState : CSMState) -> void
-    GetPhysicsWorld() -> PhysicsWorldBase
-    TryAddSubsystem(subsystem : Subsystem) -> bool
-    GetSubsystemByName(name : any) -> Subsystem
-    RemoveSubsystem(subsystem : Subsystem) -> bool
-    GetWorldGrid() -> WorldGrid
-    GetGameState() -> GameState
-    AddScene(scene : Scene, addToStreamingLayer : bool) -> void
-    RemoveScene(scene : Scene, removeFromStreamingLayer : bool) -> bool
-    HasScene(sceneId : any) -> bool
-    GetSceneByName(nameHash : any) -> Scene
-    GetScenes() -> Array<Scene>
-    AddView(view : View) -> void
-    RemoveView(view : View) -> void
-    AddSystem(system : SystemBase) -> SystemBase
-    RemoveSystem(system : SystemBase) -> bool
-    OnSceneAdded : any
-    OnSceneRemoved : any
-    DeserializeNonStreamingScenes(scenes : Array<Scene>) -> void
-    SerializeNonStreamingScenes() -> Array<Scene>
-    DeserializeStreamingLayers(streamingLayers : Array<WGLayerDesc>) -> void
-    SerializeStreamingLayers() -> Array<WGLayerDesc>
-    DeserializeSystems(systems : Array<SystemBase>) -> void
-    SerializeSystems() -> Array<SystemBase>
-    GameInstance : Game
-    WorldFlags : WorldFlags
-    Scenes : Array<Scene>
-    FogParams : FogParams
-    CsmParams : CSMParams
-    CsmState : CSMState
-    Systems : Array<SystemBase>
-end
-extern class PhysicsShape : AssetObject
-end
-extern class PlanePhysicsShape : PhysicsShape
-    Plane : Vec4f
-end
-extern class BoxPhysicsShape : PhysicsShape
-    Aabb : BoundingBox
-end
-extern class ConvexHullPhysicsShape : PhysicsShape
-end
-extern class SpherePhysicsShape : PhysicsShape
-    Sphere : BoundingSphere
-end
-extern class CapsulePhysicsShape : PhysicsShape
-    Radius : float
-    Height : float
-end
-extern enum PhysicsShapeType : uint8
-    BOX,
-    SPHERE,
-    PLANE,
-    CONVEX_HULL,
-    CAPSULE
+extern class EnvGrid : Entity
 end
 extern struct ShaderInputGroup
     Elements : Array<ShaderInputSet>
@@ -1984,6 +2357,26 @@ extern class ShaderBundle : AssetObject
     CompiledShaders : Array<Shader>
     ErrorMessages : Array<string>
 end
+extern class Texture : AssetObject
+    Rename(name : Name) -> Result
+    TextureDesc : TextureDesc
+    ImageData : BlobDataReference
+    GpuImage : any
+end
+extern class Shader : AssetObject
+    BaseName : Name
+    InputLayout : VertexInputLayoutDesc
+    InputGroup : ShaderInputGroup
+    ModuleTypes : Array<ShaderModuleType>
+    ModuleNames : Array<string>
+    EntryPointNames : Array<string>
+    ShaderBlobs : Array<BlobDataReference>
+    PropertySetHashCode : HashCode
+    LastCompiledTimestamp : Time
+    Properties : ShaderPropertySet
+    SerializeProperties() -> Array<ShaderProperty>
+    DeserializeProperties(properties : Array<ShaderProperty>) -> void
+end
 extern enum MeshFlags : uint32
     None = 0x0,
     ViewIndependent = 0x1
@@ -2008,26 +2401,6 @@ extern class Mesh : AssetObject
     Bvh : BVHNode
     Flags : MeshFlags
 end
-extern class Shader : AssetObject
-    BaseName : Name
-    InputLayout : VertexInputLayoutDesc
-    InputGroup : ShaderInputGroup
-    ModuleTypes : Array<ShaderModuleType>
-    ModuleNames : Array<string>
-    EntryPointNames : Array<string>
-    ShaderBlobs : Array<BlobDataReference>
-    PropertySetHashCode : HashCode
-    LastCompiledTimestamp : Time
-    Properties : ShaderPropertySet
-    SerializeProperties() -> Array<ShaderProperty>
-    DeserializeProperties(properties : Array<ShaderProperty>) -> void
-end
-extern class Texture : AssetObject
-    Rename(name : Name) -> Result
-    TextureDesc : TextureDesc
-    ImageData : BlobDataReference
-    GpuImage : any
-end
 extern class MaterialInstance : AssetObject
     IsStatic() -> bool
     GetIsDynamic() -> bool
@@ -2038,418 +2411,110 @@ extern class MaterialInstance : AssetObject
     Textures : MaterialTextures
     IsDynamic : bool
 end
-extern class InstancedMeshData : AssetObject
-    Buffers : Array<BlobDataReference>
-    BufferStructSizes : Array<uint32>
-    BufferStructAlignments : Array<uint32>
-end
 extern class MaterialDefinition : AssetObject
     Attributes : MaterialAttributes
     DefaultParameters : MaterialParameters
     DefaultTextures : MaterialTextures
 end
-extern class ScriptAsset : AssetObject
+extern class InstancedMeshData : AssetObject
+    Buffers : Array<BlobDataReference>
+    BufferStructSizes : Array<uint32>
+    BufferStructAlignments : Array<uint32>
 end
-extern struct FontAtlasTextureSet
-    MainAtlas : Texture
-    Atlases : Array<any>
+extern class PhysicsShape : AssetObject
 end
-extern class FontAtlas : AssetObject
-    AtlasTextures : FontAtlasTextureSet
-    CellDimensions : Vec2i
-    GlyphMetrics : Array<GlyphMetrics>
-    SymbolList : Array<uint32>
+extern class PlanePhysicsShape : PhysicsShape
+    Plane : Vec4f
 end
-extern struct AssetReference
-    GetAssetPath() -> AssetPath
-    SetAssetPath(assetPath : AssetPath) -> void
+extern class BoxPhysicsShape : PhysicsShape
+    Aabb : BoundingBox
 end
-extern class AssetRegistry
-    GetRootPath() -> string
-    SetRootPath(rootPath : string) -> void
+extern class ConvexHullPhysicsShape : PhysicsShape
 end
-extern struct BlobDataReference
-    Key : Name
-    Size : uint64
-    Raw : any
-    ReadOnly : bool
+extern class SpherePhysicsShape : PhysicsShape
+    Sphere : BoundingSphere
 end
-extern class BlobStorage
-    BaseDirectory : string
-    PageSize : uint64
-    FreeRanges : Array<BlobMappingRange>
-    PageData : Array<BlobPageData>
+extern class CapsulePhysicsShape : PhysicsShape
+    Radius : float
+    Height : float
 end
-extern struct BlobPageData
-    Cursor : uint64
-end
-extern struct BlobMappingRange
-    Start : uint32
-    End : uint32
+extern enum PhysicsShapeType : uint8
+    BOX,
+    SPHERE,
+    PLANE,
+    CONVEX_HULL,
+    CAPSULE
 end
 extern class AssetLoaderBase
 end
-extern struct ScriptDesc
-    Uuid : UUID
-    Language : ScriptLanguage
-    Path : Array<any>
-    AssemblyPath : Array<any>
-    ClassName : Array<any>
-    CompileStatus : uint32
-    HotReloadVersion : int32
-    LastModifiedTimestamp : uint64
+extern struct AssetBucket
 end
-extern struct PropertyHandle
+extern struct UUID
+    Data0 : uint64
+    Data1 : uint64
+    ToString() -> string
 end
-extern struct FieldHandle
+extern struct Time
+    Value : uint64
 end
-extern struct MethodHandle
+extern struct Result
+    HasValue() -> bool
+    HasError() -> bool
+    GetError() -> Error
 end
-extern class Reflection
-    static GetClassByName(name : Name) -> Class
-    static GetFields(classRef : Class) -> Array<FieldHandle>
-    static GetFieldHandle(classRef : Class, fieldName : Name) -> FieldHandle
-    static GetFieldValue(field : FieldHandle, target : any) -> any
-    static SetFieldValue(field : FieldHandle, target : any, value : any) -> void
-    static GetFieldName(field : FieldHandle) -> Name
-    static GetMethods(classRef : Class) -> Array<MethodHandle>
-    static GetMethodHandle(classRef : Class, methodName : Name) -> MethodHandle
-    static InvokeMethod(method : MethodHandle, args : Array<any>) -> any
-    static GetMethodName(method : MethodHandle) -> Name
-    static GetProperties(classRef : Class) -> Array<PropertyHandle>
-    static GetPropertyHandle(classRef : Class, propertyName : Name) -> PropertyHandle
-    static GetPropertyValue(property : PropertyHandle, target : any) -> any
-    static SetPropertyValue(property : PropertyHandle, target : any, value : any) -> void
-    static GetPropertyName(property : PropertyHandle) -> Name
-end
-extern class Debugger
-    static Breakpoint() -> void
-    static AssertTrue(condition : bool) -> void
-    static AssertFalse(condition : bool) -> void
-end
-extern enum ScriptLanguage : uint32
-    Invalid = ~0u,
-    Native = 0,
-    HypScript = 1,
-    CSharp = 2
-end
-extern enum ScriptCompileStatus : uint32
-    Uninitialized = 0x0,
-    Compiled = 0x1,
-    Dirty = 0x2,
-    Processing = 0x4,
-    Errored = 0x8
-end
-extern struct GlyphMetrics
-    Width : uint16
-    Height : uint16
-    BearingX : int16
-    BearingY : int16
-    Advance : uint32
-    ImagePosition : Vec2i
-end
-extern class OverlayBase
-    GetUIObject() -> UIObject
-    GetPlacement() -> int
-    Update(delta : float) -> void
-    CreateUIObject(spawnParent : UIObject) -> UIObject
-    IsEnabled() -> bool
-    CreateUIObject_Impl(spawnParent : UIObject) -> UIObject
-    GetPlacement_Impl() -> int
-    Update_Impl(delta : float) -> void
-    IsEnabled_Impl() -> bool
-end
-extern class NullOverlay : OverlayBase
-end
-extern class TextureOverlay : OverlayBase
-    CreateUIObject_Impl(spawnParent : UIObject) -> UIObject
-    GetPlacement_Impl() -> int
-end
-extern class TextOverlay : OverlayBase
-    CreateUIObject_Impl(spawnParent : UIObject) -> UIObject
-end
-extern class ConsoleOverlay : OverlayBase
-    CreateUIObject_Impl(spawnParent : UIObject) -> UIObject
-    GetPlacement_Impl() -> int
-    Update_Impl(delta : float) -> void
-    IsEnabled_Impl() -> bool
-end
-extern class BaseStatsOverlay : OverlayBase
-    CreateUIObject_Impl(spawnParent : UIObject) -> UIObject
-    GetPlacement_Impl() -> int
-    Update_Impl(delta : float) -> void
-    IsEnabled_Impl() -> bool
-end
-extern class DeviceDetailsOverlay : OverlayBase
-    CreateUIObject_Impl(spawnParent : UIObject) -> UIObject
-    GetPlacement_Impl() -> int
-    Update_Impl(delta : float) -> void
-    IsEnabled_Impl() -> bool
-end
-extern class StatsOverlay : OverlayBase
-    CreateUIObject_Impl(spawnParent : UIObject) -> UIObject
-    GetPlacement_Impl() -> int
-    Update_Impl(delta : float) -> void
-    IsEnabled_Impl() -> bool
-end
-extern enum ScrollAxis : uint8
-    SA_NONE = 0x0,
-    SA_HORIZONTAL = 0x1,
-    SA_VERTICAL = 0x2,
-    SA_ALL = (SA_HORIZONTAL | SA_VERTICAL)
-end
-extern enum UIObjectFocusState : uint32
-    NONE = 0x0,
-    HOVER = 0x1,
-    PRESSED = 0x2,
-    TOGGLED = 0x4,
-    FOCUSED = 0x8
-end
-extern enum UIObjectUpdateType : uint32
-    NONE = 0x0,
-    UPDATE_SIZE = 0x1,
-    UPDATE_POSITION = 0x2,
-    UPDATE_MATERIAL = 0x4,
-    UPDATE_MESH_DATA = 0x8,
-    UPDATE_COMPUTED_VISIBILITY = 0x10,
-    UPDATE_CLAMPED_SIZE = 0x20,
-    UPDATE_CUSTOM = 0x40,
-    UPDATE_ALL = UINT16_MAX,
-    UPDATE_CHILDREN_SIZE = (UPDATE_SIZE << 16),
-    UPDATE_CHILDREN_POSITION = (UPDATE_POSITION << 16),
-    UPDATE_CHILDREN_MATERIAL = (UPDATE_MATERIAL << 16),
-    UPDATE_CHILDREN_MESH_DATA = (UPDATE_MESH_DATA << 16),
-    UPDATE_CHILDREN_COMPUTED_VISIBILITY = (UPDATE_COMPUTED_VISIBILITY << 16),
-    UPDATE_CHILDREN_CLAMPED_SIZE = (UPDATE_CLAMPED_SIZE << 16),
-    UPDATE_CHILDREN_CUSTOM = (UPDATE_CUSTOM << 16),
-    UPDATE_CHILDREN_ALL = (UPDATE_ALL << 16)
-end
-extern enum UIObjectBorderFlags : uint32
-    NONE = 0x0,
-    TOP = 0x1,
-    LEFT = 0x2,
-    BOTTOM = 0x4,
-    RIGHT = 0x8,
-    ALL = (((TOP | LEFT) | BOTTOM) | RIGHT)
-end
-extern struct UIEventHandlerResult
-end
-extern enum UIObjectAlignment : uint32
-    TOP_LEFT = 0,
-    TOP_RIGHT = 1,
-    CENTER = 2,
-    BOTTOM_LEFT = 3,
-    BOTTOM_RIGHT = 4
-end
-extern enum UIObjectUpdateSizeFlags : uint32
-    NONE = 0x0,
-    MAX_SIZE = 0x1,
-    INNER_SIZE = 0x2,
-    OUTER_SIZE = 0x4,
-    DEFAULT = ((MAX_SIZE | INNER_SIZE) | OUTER_SIZE)
-end
-extern struct UIObjectAspectRatio
-    X : float
-    Y : float
-end
-extern struct UIObjectSize
-    Flags : uint64
-    Value : Vec2i
-end
-extern class UIObject
-    GetEntity() -> Entity
-    GetStage() -> UIStage
-    SetStage(stage : UIStage) -> void
-    GetName() -> Name
-    SetName(name : Name) -> void
-    GetPosition() -> Vec2i
-    SetPosition(position : Vec2i) -> void
-    GetOffsetPosition() -> Vec2f
-    GetAbsolutePosition() -> Vec2f
-    IsPositionAbsolute() -> bool
-    SetIsPositionAbsolute(isPositionAbsolute : bool) -> void
-    GetSize() -> UIObjectSize
-    SetSize(size : UIObjectSize) -> void
-    GetInnerSize() -> UIObjectSize
-    SetInnerSize(size : UIObjectSize) -> void
-    GetMaxSize() -> UIObjectSize
-    SetMaxSize(size : UIObjectSize) -> void
-    GetActualSize() -> Vec2i
-    GetActualSizeClamped() -> Vec2i
-    GetActualInnerSize() -> Vec2i
-    GetScrollOffset() -> Vec2f
-    SetScrollOffset(scrollOffset : Vec2f, smooth : bool) -> void
-    ScrollToChild(child : UIObject) -> void
-    GetVerticalScrollbarSize() -> int
-    GetHorizontalScrollbarSize() -> int
-    CanScrollOnAxis(axis : ScrollAxis) -> bool
-    GetComputedDepth() -> int
-    GetDepth() -> int
-    SetDepth(depth : int) -> void
-    AcceptsFocus() -> bool
-    SetAcceptsFocus(acceptsFocus : bool) -> void
-    NeedsUpdate() -> bool
-    Focus() -> void
-    Blur(blurChildren : bool) -> void
-    SetAffectsParentSize(affectsParentSize : bool) -> void
-    AffectsParentSize() -> bool
-    GetBorderRadius() -> uint32
-    SetBorderRadius(borderRadius : uint32) -> void
-    GetBorderFlags() -> UIObjectBorderFlags
-    SetBorderFlags(borderFlags : UIObjectBorderFlags) -> void
-    GetAspectRatio() -> UIObjectAspectRatio
-    SetAspectRatio(aspectRatio : UIObjectAspectRatio) -> void
-    GetPadding() -> Vec2i
-    SetPadding(padding : Vec2i) -> void
-    GetBackgroundColor() -> Color
-    SetBackgroundColor(backgroundColor : Color) -> void
-    GetTextColor() -> Color
-    SetTextColor(textColor : Color) -> void
-    GetText() -> string
-    SetText(text : string) -> void
-    GetTextSize() -> float
-    SetTextSize(textSize : float) -> void
-    IsVisible() -> bool
-    SetIsVisible(isVisible : bool) -> void
-    IsEnabled() -> bool
-    SetIsEnabled(isEnabled : bool) -> void
-    GetParentUIObject() -> UIObject
-    AddChildUIObject(uiObject : UIObject) -> void
-    RemoveChildUIObject(uiObject : UIObject) -> bool
-    ClearDeep() -> void
-    RemoveFromParent() -> bool
-    DetachFromParent() -> UIObject
-    HasChildUIObjects() -> bool
-    GetChildUIObject(index : int) -> UIObject
-    NumChildUIObjects(deep : bool) -> uint32
-    GetNode() -> Node
-    GetWorld() -> World
-    GetAABB() -> BoundingBox
-    GetAABBClamped() -> BoundingBox
-    GetDataSource() -> UIDataSourceBase
-    SetDataSource(dataSource : UIDataSourceBase) -> void
-    OnInit : any
-    OnAttached : any
-    OnRemoved : any
-    OnChildAttached : any
-    OnChildRemoved : any
-    OnMouseDown : any
-    OnMouseUp : any
-    OnMouseDrag : any
-    OnMouseHover : any
-    OnMouseLeave : any
-    OnMouseMove : any
-    OnGainFocus : any
-    OnLoseFocus : any
-    OnScroll : any
-    OnClick : any
-    OnRightClick : any
-    OnKeyDown : any
-    OnKeyUp : any
-    OnTextChange : any
-    OnSizeChange : any
-    OnComputedVisibilityChange : any
-    OnEnabled : any
-    OnDisabled : any
-    OnValueChange : any
-    Init() -> void
-end
-extern class UIConsole : UIObject
-end
-extern class UIButton : UIObject
-end
-extern class UIText : UIObject
-    GetCharacterOffset(characterIndex : int) -> Vec2f
-end
-extern class UIImage : UIObject
-end
-extern class UIStage : UIObject
-    GetSurfaceSize() -> Vec2i
-    SetSurfaceSize(surfaceSize : Vec2i) -> void
-    GetScene() -> Scene
-    SetScene(scene : Scene) -> void
-    GetCamera() -> Camera
-end
-extern class UIPanel : UIObject
-    IsHorizontalScrollEnabled() -> bool
-    IsVerticalScrollEnabled() -> bool
-    SetIsScrollEnabled(axis : ScrollAxis, isScrollEnabled : bool) -> void
-end
-extern class EditorPropertyPanelBase : UIPanel
-    Build(boxed : any, property : any) -> void
-end
-extern class UITextbox : UIPanel
-    GetPlaceholder() -> string
-    SetPlaceholder(placeholder : string) -> void
-    GetPlaceholderTextColor() -> Color
-    ClearOnSubmit : bool
-end
-extern enum UIListViewOrientation : uint8
-    VERTICAL = 0,
-    HORIZONTAL
-end
-extern class UIListView : UIPanel
-    SetSelectedItem(listViewItem : UIListViewItem) -> void
-    GetSelectedItemIndex() -> int
-    SetSelectedItemIndex(index : int) -> void
-    GetOrientation() -> UIListViewOrientation
-    SetOrientation(orientation : UIListViewOrientation) -> void
-end
-extern class UIListViewItem : UIObject
-end
-extern class UITabView : UIPanel
-end
-extern class UITab : UIObject
-end
-extern class UIWindow : UIPanel
-end
-extern class UIDockableContainer : UIPanel
-end
-extern class UIDockableItem : UIPanel
-end
-extern class UIMenuBar : UIPanel
-    GetDropDirection() -> UIMenuBarDropDirection
-    SetDropDirection(dropDirection : UIMenuBarDropDirection) -> void
-    SetSelectedMenuItemIndex(index : uint32) -> void
-    AddMenuItem(name : Name, text : string) -> UIMenuItem
-    GetMenuItem(name : Name) -> UIMenuItem
-    GetMenuItemIndex(name : Name) -> uint32
-    RemoveMenuItem(name : Name) -> bool
-end
-extern class UIMenuItem : UIObject
-end
-extern enum UIMenuBarDropDirection : uint32
-    DOWN,
-    UP
-end
-extern class UIGrid : UIPanel
-    GetNumColumns() -> int
-    SetNumColumns(numColumns : int) -> void
-    GetNumRows() -> uint32
-    SetNumRows(numRows : uint32) -> void
-end
-extern class UIGridRow : UIPanel
-end
-extern class UIGridColumn : UIPanel
-    GetColumnSize() -> int
-    SetColumnSize(columnSize : int) -> void
-end
-extern class UISpacer : UIObject
-end
-extern class UIDataSourceBase
-    Size() -> int
-    Clear() -> void
-end
-extern class UIDataSource : UIDataSourceBase
-    Size() -> int
-    Clear() -> void
-end
-extern class UIElementFactoryBase
-    GetElementTypeId() -> TypeId
-    CreateUIObject(parent : UIObject, value : any, context : any) -> UIObject
-    UpdateUIObject(uiObject : UIObject, value : any, context : any) -> void
+extern struct Error
 end
 extern struct TypeId
+end
+extern struct Triangle
+    Points : Array<Vec3f>
+end
+extern struct Transform
+    Translation : Vec3f
+    Scale : Vec3f
+    Rotation : Quat4f
+end
+extern struct Ray
+    Position : Vec3f
+    Direction : Vec3f
+end
+extern enum RayTestFlags : uint32
+    None = 0x0,
+    TestBVH = 0x1,
+    EditorPick = 0x2,
+    Max = 0xFFFFFFFF
+end
+extern struct Quat4f
+    X : float
+    Y : float
+    Z : float
+    W : float
+end
+extern struct Mat4f
+end
+extern struct Mat3f
+end
+extern struct Frustum
+    Planes : Array<Vec4f>
+    Corners : Array<Vec3f>
+end
+extern struct Color
+    GetRed() -> float
+    SetRed(red : float) -> Color
+    GetGreen() -> float
+    SetGreen(green : float) -> Color
+    GetBlue() -> float
+    SetBlue(blue : float) -> Color
+    GetAlpha() -> float
+    SetAlpha(alpha : float) -> Color
+end
+extern struct BoundingSphere
+    Center : Vec3f
+    Radius : float
+end
+extern struct BoundingBox
+    Min : Vec3f
+    Max : Vec3f
 end
 extern enum LogLevel : uint8
     Fatal,
@@ -2467,71 +2532,6 @@ end
 extern class Logger
     static MakeScriptLogger() -> Logger
     LogScript(channel : LogChannel, level : LogLevel, message : string) -> void
-end
-extern struct Result
-    HasValue() -> bool
-    HasError() -> bool
-    GetError() -> Error
-end
-extern struct Error
-end
-extern struct UUID
-    Data0 : uint64
-    Data1 : uint64
-    ToString() -> string
-end
-extern struct Time
-    Value : uint64
-end
-extern struct Quat4f
-    X : float
-    Y : float
-    Z : float
-    W : float
-end
-extern struct BoundingBox
-    Min : Vec3f
-    Max : Vec3f
-end
-extern struct Color
-    GetRed() -> float
-    SetRed(red : float) -> Color
-    GetGreen() -> float
-    SetGreen(green : float) -> Color
-    GetBlue() -> float
-    SetBlue(blue : float) -> Color
-    GetAlpha() -> float
-    SetAlpha(alpha : float) -> Color
-end
-extern struct Frustum
-    Planes : Array<Vec4f>
-    Corners : Array<Vec3f>
-end
-extern struct Ray
-    Position : Vec3f
-    Direction : Vec3f
-end
-extern enum RayTestFlags : uint32
-    None = 0x0,
-    TestBVH = 0x1,
-    EditorPick = 0x2,
-    Max = 0xFFFFFFFF
-end
-extern struct BoundingSphere
-    Center : Vec3f
-    Radius : float
-end
-extern struct Triangle
-    Points : Array<Vec3f>
-end
-extern struct Mat4f
-end
-extern struct Transform
-    Translation : Vec3f
-    Scale : Vec3f
-    Rotation : Quat4f
-end
-extern struct Mat3f
 end
 extern enum CommandLineArgumentType : uint8
     STRING,

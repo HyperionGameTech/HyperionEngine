@@ -184,12 +184,16 @@ PSOutput PSMain(PSInput input)
 
     const float3 diffuse_color = CalculateDiffuseColor(albedo.rgb, metalness);
 
+    uint2 viewportExtent = camera.dimensions.xy;
+    viewportExtent.x &= ~1;
+    viewportExtent.y &= ~1;
+
     CalculateEnvProbesContribution(
         positionVS.xyz, positionWS.xyz,
         N, V, R,
         camera.near, camera.far,
         roughness, perceptualRoughness,
-        texcoord, camera.dimensions.xy,
+        texcoord, viewportExtent,
         /* inout */ reflections,
         /* inout */ irradiance);
 

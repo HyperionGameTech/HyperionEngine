@@ -208,22 +208,22 @@ PSOutput PSMain(PSInput input)
 
     const float NdotV = max(0.000001, dot(N, V));
 
-    float ao = 1.0;
     float shadow = 1.0;
-
-#if HBAO_ENABLED || SSAO_ENABLED
-    const float4 ssao_data = SAMPLE_TEXTURE_2D_LOD(HYP_SAMPLER_NEAREST, SSAOResultTexture, texcoord, 0);
-    ao = ssao_data.r;
-#endif
 
     float4 area_light_radiance;
 
 #ifdef LIGHT_TYPE_CLUSTERED
     float viewSpaceZ = positionVS.z;
 
+    uint2 viewportExtent = camera.dimensions.xy;
+    viewportExtent.x &= ~1;
+    viewportExtent.y &= ~1;
+
+    uint2 viewportPixelCoord = (uint2)((pixelCoord / (float2)camera.dimensions.xy) * (float2)viewportExtent);
+
     // Cluster data
     const uint gridIndex = Cluster_GetGridIndex(
-        camera.dimensions.xy, pixelCoord,
+        viewportExtent, viewportPixelCoord,
         viewSpaceZ,
         camera.near, camera.far);
 
@@ -304,7 +304,7 @@ PSOutput PSMain(PSInput input)
 
                         float3 worldToLight = position.xyz - currentLight.position_intensity.xyz;
 
-                        shadow = GetPointShadow(shadowMap, currentLight.flags, worldToLight, NdotL);
+                        // shadow = GetPointShadow(shadowMap, currentLight.flags, worldToLight, NdotL);
                     }
                 }
 
@@ -320,7 +320,7 @@ PSOutput PSMain(PSInput input)
 
         float4 direct_component = diffuse + specular * float4(energy_compensation, 1.0);
 
-        result += float4((direct_component * (light_color * ao * NdotL * shadow * currentLight.position_intensity.w * attenuation)).rgb, attenuation);
+        result += float4((direct_component * (light_color * NdotL * shadow * currentLight.position_intensity.w * attenuation)).rgb, attenuation);
 
         lightHit = true;
     }
@@ -346,7 +346,7 @@ PSOutput PSMain(PSInput input)
 
     // result = float4(tileColor, 1.0);
 
-    // result = float4(numLights, 0.0, 0.0, 1.0);
+    // result = float4((float2)pixelCoord / (float2)camera.dimensions.xy, 0.0, 1.0);
 
     // Env probes will be in indirect pass.
 #else // !LIGHT_TYPE_CLUSTERED
@@ -464,7 +464,7 @@ PSOutput PSMain(PSInput input)
 
     float4 direct_component = diffuse + specular * float4(energy_compensation, 1.0);
 
-    result += direct_component * (light_color * ao * NdotL * shadow * currentLight.position_intensity.w * attenuation);
+    result += direct_component * (light_color * NdotL * shadow * currentLight.position_intensity.w * attenuation);
     result.a = attenuation;
 
 #ifdef LIGHT_TYPE_AREA_RECT

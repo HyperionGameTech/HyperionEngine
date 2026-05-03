@@ -8,8 +8,6 @@
 
 #include "include/Defines.hlsli"
 
-float Linear01Depth(float depth, float near, float far);
-
 // For intellisense to work
 #ifndef HYP_SHADER_COMPILER
 #define TILE_SIZE 32

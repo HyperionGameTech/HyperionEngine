@@ -1586,6 +1586,9 @@ public:
         size_t gridBufferSize = 0;
         size_t indexBufferSize = 0;
         uint32 lastUsedFrame = UINT32_MAX;
+
+        Array<TileGridData, RenderAllocator> gridData;
+        Array<uint16, RenderAllocator> indexData;
     };
 
     Array<TileDataAllocation, RenderAllocator> tileDataPerView;
@@ -1607,7 +1610,10 @@ public:
         outIndexBuffer = nullptr;
 
         // @TODO VP offset
-        const Vec2u& extent = viewport.extent;
+
+        Vec2u extent = viewport.extent;
+        extent.x &= ~1;
+        extent.y &= ~1;
 
         const uint32 numTilesX = (extent.x + TileSize - 1) / TileSize;
         const uint32 numTilesY = (extent.y + TileSize - 1) / TileSize;
@@ -1683,15 +1689,8 @@ public:
 
             const float pixMinX = (ndcCenterX - ndcRadiusX) * halfW + halfW;
             const float pixMaxX = (ndcCenterX + ndcRadiusX) * halfW + halfW;
-
-            // Determine the highest and lowest points in NDC space
-            const float ndcTop = ndcCenterY + ndcRadiusY;
-            const float ndcBottom = ndcCenterY - ndcRadiusY;
-
-            // Map to screen pixels (Invert Y)
-            // The HIGHEST NDC point becomes the LOWEST pixel index (pixMinY)
-            const float pixMinY = (1.0f - ndcTop) * halfH;
-            const float pixMaxY = (1.0f - ndcBottom) * halfH;
+            const float pixMinY = (1.0f - (ndcCenterY + ndcRadiusY)) * halfH;
+            const float pixMaxY = (1.0f - (ndcCenterY - ndcRadiusY)) * halfH;
 
             outMinX = uint32(MathUtil::Max(int32(pixMinX) / int32(TileSize), 0));
             outMinY = uint32(MathUtil::Max(int32(pixMinY) / int32(TileSize), 0));
@@ -1775,8 +1774,7 @@ public:
 
             const float pixMinX = ndcMinX * halfW + halfW;
             const float pixMaxX = ndcMaxX * halfW + halfW;
-
-            const float pixMinY = (1.0f - ndcMaxY) * halfH;
+            const float pixMinY = (1.0f - ndcMaxY) * halfH; 
             const float pixMaxY = (1.0f - ndcMinY) * halfH;
 
             outMinX = uint32(MathUtil::Max(int32(pixMinX) / int32(TileSize), 0));
@@ -1953,10 +1951,13 @@ public:
             }
         }
 
-        Array<TileGridData, RenderAllocator> gridData;
+        TileDataAllocation& allocation = tileDataPerView[view->Id().ToIndex()];
+        allocation.lastUsedFrame = GetFrameCounter();
+
+        Array<TileGridData, RenderAllocator>& gridData = allocation.gridData;
         gridData.Resize(totalTiles);
 
-        Array<uint16, RenderAllocator> flatIndexData;
+        Array<uint16, RenderAllocator>& flatIndexData = allocation.indexData;
         flatIndexData.Reserve(totalTiles * 4);
 
         uint32 offset = 0;
@@ -1990,9 +1991,6 @@ public:
         {
             flatIndexData.Resize(1);
         }
-
-        TileDataAllocation& allocation = tileDataPerView[view->Id().ToIndex()];
-        allocation.lastUsedFrame = GetFrameCounter();
 
         StructuredBuffer& gridBuffer = RI.bufferAllocator->AcquireStructuredBuffer(gridData.Size(), sizeof(TileGridData));
 #if HYP_DEBUG_MODE

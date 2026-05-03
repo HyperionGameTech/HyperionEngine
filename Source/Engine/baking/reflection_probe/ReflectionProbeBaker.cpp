@@ -66,6 +66,12 @@ void Baker<ReflectionProbe>::CreateLightmapRenderers()
     UniquePtr<ILightmapRenderer>& lightmapRenderer = m_lightmapRenderers.EmplaceBack();
     lightmapRenderer = CreateRenderer(LightmapShadingType::FULL, maxTexelsPerFrame);
 
+    if (!lightmapRenderer)
+    {
+        m_lightmapRenderers.PopBack();
+        return;
+    }
+
     lightmapRenderer->Create();
 }
 

@@ -192,7 +192,7 @@ public:
     ByteAddressBuffer() = default;
 
     ByteAddressBuffer(size_t totalSizeBytes)
-        : RawBuffer(GpuBufferType::ByteAddressBuffer, totalSizeBytes, 0)
+        : RawBuffer(GpuBufferType::ByteAddressBuffer, totalSizeBytes, 0, 4)
     {
     }
 
