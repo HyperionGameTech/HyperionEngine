@@ -1205,6 +1205,15 @@ void VulkanGpuImage::CopyFrom(
     {
         dstAspectFlagBits |= VK_IMAGE_ASPECT_COLOR_BIT;
     }
+    
+    // normalize counts
+    ImageSubResource newSrcSubResource = srcSubResource;
+    newSrcSubResource.numLayers = MathUtil::Min(srcSubResource.numLayers, srcImage->NumArrayLayers() - srcSubResource.baseArrayLayer);
+    newSrcSubResource.numLevels = MathUtil::Min(srcSubResource.numLevels, srcImage->NumMips() - srcSubResource.baseMipLevel);
+    
+    ImageSubResource newDstSubResource = dstSubResource;
+    newDstSubResource.numLayers = MathUtil::Min(dstSubResource.numLayers, NumArrayLayers() - dstSubResource.baseArrayLayer);
+    newDstSubResource.numLevels = MathUtil::Min(dstSubResource.numLevels, NumMips() - dstSubResource.baseMipLevel);
 
     // simple path; all resource states are same
     if (m_subResourceStates.Empty() && srcImage->m_subResourceStates.Empty())
@@ -1221,15 +1230,15 @@ void VulkanGpuImage::CopyFrom(
         copy.dstOffset = { int(dstOffset.x), int(dstOffset.y), int(dstOffset.z) };
         copy.srcSubresource = {
             .aspectMask = srcAspectFlagBits,
-            .mipLevel = srcSubResource.baseMipLevel,
-            .baseArrayLayer = srcSubResource.baseArrayLayer,
-            .layerCount = srcSubResource.numLayers
+            .mipLevel = newSrcSubResource.baseMipLevel,
+            .baseArrayLayer = newSrcSubResource.baseArrayLayer,
+            .layerCount = newSrcSubResource.numLayers
         };
         copy.dstSubresource = {
             .aspectMask = dstAspectFlagBits,
-            .mipLevel = dstSubResource.baseMipLevel,
-            .baseArrayLayer = dstSubResource.baseArrayLayer,
-            .layerCount = dstSubResource.numLayers
+            .mipLevel = newDstSubResource.baseMipLevel,
+            .baseArrayLayer = newDstSubResource.baseArrayLayer,
+            .layerCount = newDstSubResource.numLayers
         };
 
         vkCmdCopyImage(
@@ -1239,24 +1248,26 @@ void VulkanGpuImage::CopyFrom(
             m_handle,
             GetVkImageLayout(dstResourceState, dstIsDepthStencil && dstIsAttachmentTexture),
             1, &copy);
+        
+        return;
     }
 
     // complex path; per-subresource states
-    for (uint16 layerIndex = 0; layerIndex < MathUtil::Min(srcSubResource.numLayers, srcImage->NumArrayLayers() - srcSubResource.baseArrayLayer); layerIndex++)
+    for (uint16 layerIndex = 0; layerIndex < MathUtil::Min(newSrcSubResource.numLayers, srcImage->NumArrayLayers() - newSrcSubResource.baseArrayLayer); layerIndex++)
     {
-        for (uint8 mipLevel = 0; mipLevel < MathUtil::Min(srcSubResource.numLevels, srcImage->NumMips() - srcSubResource.baseMipLevel); mipLevel++)
+        for (uint8 mipLevel = 0; mipLevel < MathUtil::Min(newSrcSubResource.numLevels, srcImage->NumMips() - newSrcSubResource.baseMipLevel); mipLevel++)
         {
             const ResourceState srcResourceState = srcImage->GetSubResourceState(ImageSubResource {
-                .baseMipLevel = uint8(srcSubResource.baseMipLevel + mipLevel),
+                .baseMipLevel = uint8(newSrcSubResource.baseMipLevel + mipLevel),
                 .numLevels = 1,
-                .baseArrayLayer = uint16(srcSubResource.baseArrayLayer + layerIndex),
+                .baseArrayLayer = uint16(newSrcSubResource.baseArrayLayer + layerIndex),
                 .numLayers = 1
             });
 
             const ResourceState dstResourceState = GetSubResourceState(ImageSubResource {
-                .baseMipLevel = uint8(dstSubResource.baseMipLevel + mipLevel),
+                .baseMipLevel = uint8(newDstSubResource.baseMipLevel + mipLevel),
                 .numLevels = 1,
-                .baseArrayLayer = uint16(dstSubResource.baseArrayLayer + layerIndex),
+                .baseArrayLayer = uint16(newDstSubResource.baseArrayLayer + layerIndex),
                 .numLayers = 1
             });
 
@@ -1269,14 +1280,14 @@ void VulkanGpuImage::CopyFrom(
             copy.dstOffset = { int(dstOffset.x), int(dstOffset.y), int(dstOffset.z) };
             copy.srcSubresource = {
                 .aspectMask = srcAspectFlagBits,
-                .mipLevel = uint32(srcSubResource.baseMipLevel + mipLevel),
-                .baseArrayLayer = uint32(srcSubResource.baseArrayLayer + layerIndex),
+                .mipLevel = uint32(newSrcSubResource.baseMipLevel + mipLevel),
+                .baseArrayLayer = uint32(newSrcSubResource.baseArrayLayer + layerIndex),
                 .layerCount = 1
             };
             copy.dstSubresource = {
                 .aspectMask = dstAspectFlagBits,
-                .mipLevel = uint32(dstSubResource.baseMipLevel + mipLevel),
-                .baseArrayLayer = uint32(dstSubResource.baseArrayLayer + layerIndex),
+                .mipLevel = uint32(newDstSubResource.baseMipLevel + mipLevel),
+                .baseArrayLayer = uint32(newDstSubResource.baseArrayLayer + layerIndex),
                 .layerCount = 1
             };
 
