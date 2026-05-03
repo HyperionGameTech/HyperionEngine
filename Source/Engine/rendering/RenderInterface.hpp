@@ -14,7 +14,7 @@
 #include <rendering/RenderObject.hpp>
 #include <rendering/RenderConfig.hpp>
 #include <rendering/CommandRecorderAllocator.hpp>
-#include <rendering/StructuredBuffer.hpp>
+#include <rendering/RawBuffer.hpp>
 
 #include <engine/DeviceDetails.hpp>
 
@@ -69,7 +69,7 @@ class SamplerCache;
 struct SamplerDesc;
 
 class CBufferAllocator;
-class StructuredBufferAllocator;
+class BufferAllocator;
 
 enum class GpuBufferType : uint8;
 enum RenderTargetType : uint8;
@@ -372,7 +372,7 @@ public:
     GpuBufferHolderMap* gpuBufferHolders;
 
     CBufferAllocator* cbufferAllocator;
-    StructuredBufferAllocator* sbufferAllocator;
+    BufferAllocator* bufferAllocator;
 
     DescriptorTableRef globalDescriptorTable;
 
@@ -408,7 +408,7 @@ public:
     BLASCache* blasCache;
 
     ShadowMapCache* shadowMapCache;
-    
+
     CrashHandler* crashHandler;
 
     CommandRecorderAllocator commandRecorderAllocator;

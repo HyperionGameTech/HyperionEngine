@@ -119,7 +119,7 @@ RendererResult DX12Swapchain::Create()
     swapChainDesc.BufferCount = 3;
     swapChainDesc.Width = m_extent.x;
     swapChainDesc.Height = m_extent.y;
-    swapChainDesc.Format = DXGI_FORMAT_R8G8B8A8_UNORM; // @TODO Use proper swapchain format!!!
+    swapChainDesc.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
     swapChainDesc.BufferUsage = DXGI_USAGE_RENDER_TARGET_OUTPUT;
     swapChainDesc.SwapEffect = DXGI_SWAP_EFFECT_FLIP_DISCARD;
     swapChainDesc.SampleDesc.Count = 1;
@@ -185,7 +185,12 @@ RendererResult DX12Swapchain::Create()
         m_backBuffers[i]->SetName(name.c_str());
 #endif
 
-        device->CreateRenderTargetView(m_backBuffers[i], nullptr, rtvHandle);
+        D3D12_RENDER_TARGET_VIEW_DESC rtvDesc {};
+        rtvDesc.Format = DXGI_FORMAT_R8G8B8A8_UNORM_SRGB;
+        rtvDesc.ViewDimension = D3D12_RTV_DIMENSION_TEXTURE2D;
+        rtvDesc.Texture2D.MipSlice = 0;
+
+        device->CreateRenderTargetView(m_backBuffers[i], &rtvDesc, rtvHandle);
         m_rtvHandles[i] = rtvHandle;
 
         rtvHandle.ptr += rtvIncrement;
@@ -204,7 +209,7 @@ RendererResult DX12Swapchain::Create()
         DX12FramebufferRef framebuffer = g_renderInterface->MakeFramebuffer(framebufferDesc);
         Assert(framebuffer.IsValid());
 
-        framebuffer->SetExternalRTVHandle(m_rtvHandles[i], m_backBuffers[i], m_extent.x, m_extent.y);
+        framebuffer->SetExternalRTVHandle(m_rtvHandles[i], m_backBuffers[i], m_extent, TextureFormat::RGBA8_SRGB);
         CheckResultOrReturn(framebuffer->Create());
 
         m_framebuffers[i] = framebuffer;
@@ -321,14 +326,6 @@ void DX12Swapchain::PresentFrame(DX12Frame* frame)
     if (m_allowTearing && !m_vsync)
     {
         flags = DXGI_PRESENT_ALLOW_TEARING;
-    }
-
-    static bool s_loggedPresentInfo = false;
-    if (!s_loggedPresentInfo)
-    {
-        HYP_LOG(RenderingBackend, Info, "DX12 Present params — vsync: {}, tearing: {}, syncInterval: {}, flags: {}",
-            m_vsync, m_allowTearing, syncInterval, flags);
-        s_loggedPresentInfo = true;
     }
 
     HRESULT hr = m_swapChain->Present(syncInterval, flags);

@@ -38,17 +38,18 @@ struct Camera
 
 struct ShadowMap
 {
+    float4x4 viewProjMat;
+    float4x4 invProjMat;
+
+    float4 aabbMin;         // w = offsetUV.x
+    float4 aabbMax;         // w = offsetUV.y
+    float4 dimensionsScale; // xy = slice dimensions in pixels, zw = slice dimensions relative to the atlas dimensions
+
     // layer indices per cascade for shadow maps. Each cascade is 1 byte.
     uint layerIndex;
     float splitDistance;
     float _pad0;
     float _pad1;
-
-    float4x4 viewProjMat;
-    float4x4 invProjMat;
-    float4 aabbMin;         // w = offsetUV.x
-    float4 aabbMax;         // w = offsetUV.y
-    float4 dimensionsScale; // xy = slice dimensions in pixels, zw = slice dimensions relative to the atlas dimensions
 };
 
 struct Light

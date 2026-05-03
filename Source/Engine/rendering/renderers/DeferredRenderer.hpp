@@ -48,6 +48,7 @@ class RenderProxyList;
 class RenderCollector;
 class TileProcessor;
 class StructuredBuffer;
+class ByteAddressBuffer;
 
 enum class LightType : uint32;
 enum EnvProbeType : uint32;
@@ -310,7 +311,7 @@ public:
     UniquePtr<DDGI> ddgi;
 
     StructuredBuffer* gridTilesBuffer = nullptr;
-    StructuredBuffer* gridIndexBuffer = nullptr;
+    ByteAddressBuffer* gridIndexBuffer = nullptr;
 };
 
 HYP_CLASS(NoScriptBindings)

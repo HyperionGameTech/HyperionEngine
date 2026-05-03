@@ -45,7 +45,7 @@
 #include <rendering/RayTracingReflections.hpp>
 #include <rendering/DDGI.hpp>
 #include <rendering/CBufferAllocator.hpp>
-#include <rendering/StructuredBufferAllocator.hpp>
+#include <rendering/RawBufferAllocator.hpp>
 
 #include <rendering/shadows/ShadowMapAllocator.hpp>
 #include <rendering/shadows/ShadowMapCache.hpp>
@@ -568,7 +568,7 @@ void DeferredPass::RenderToFramebuffer_Internal(Frame* frame, const RenderSetup&
             if (maxLightBinding == 0)
                 maxLightBinding = 1;
 
-            StructuredBuffer& shadowMapIndexBuffer = g_renderInterface->sbufferAllocator->AcquireBuffer(maxLightBinding, sizeof(uint32));
+            StructuredBuffer& shadowMapIndexBuffer = g_renderInterface->bufferAllocator->AcquireStructuredBuffer(maxLightBinding, sizeof(uint32));
 
             uint32 shadowMapIndex = 0;
 
@@ -1594,7 +1594,7 @@ public:
 
     ~TileProcessor() = default;
 
-    void ProcessView(const Viewport& viewport, View* view, StructuredBuffer*& outGridBuffer, StructuredBuffer*& outIndexBuffer)
+    void ProcessView(const Viewport& viewport, View* view, StructuredBuffer*& outGridBuffer, ByteAddressBuffer*& outIndexBuffer)
     {
         Assert(view != nullptr);
 
@@ -1623,17 +1623,17 @@ public:
         RenderProxyCamera* cameraProxy = static_cast<RenderProxyCamera*>(GetRenderProxy(view->GetCamera()));
         Assert(cameraProxy != nullptr);
 
-        const Mat4f& cameraVP = cameraProxy->bufferData.viewProjMat;
-
         const float cameraNear = cameraProxy->bufferData.cameraNear;
         const float cameraFar = cameraProxy->bufferData.cameraFar;
+
         const float logFarOverNear = std::log2(cameraFar / cameraNear);
 
         const float scale = float(TileZBins) / logFarOverNear;
         const float bias = -(float(TileZBins) * std::log2(cameraNear)) / logFarOverNear;
 
         const Mat4f& viewMatrix = cameraProxy->bufferData.viewMat;
-        const Mat4f& projMatrix = cameraProxy->bufferData.projMat;
+
+        Mat4f projMatrix = cameraProxy->bufferData.projMat;
 
         auto CalculateZBin = [scale, bias](float viewSpaceZ) -> int32
         {
@@ -1673,13 +1673,20 @@ public:
 
             const float pixMinX = (ndcCenterX - ndcRadiusX) * halfW + halfW;
             const float pixMaxX = (ndcCenterX + ndcRadiusX) * halfW + halfW;
-            const float pixMinY = (ndcCenterY - ndcRadiusY) * halfH + halfH;
-            const float pixMaxY = (ndcCenterY + ndcRadiusY) * halfH + halfH;
+
+            // Determine the highest and lowest points in NDC space
+            const float ndcTop = ndcCenterY + ndcRadiusY;
+            const float ndcBottom = ndcCenterY - ndcRadiusY;
+
+            // Map to screen pixels (Invert Y)
+            // The HIGHEST NDC point becomes the LOWEST pixel index (pixMinY)
+            const float pixMinY = (1.0f - ndcTop) * halfH;
+            const float pixMaxY = (1.0f - ndcBottom) * halfH;
 
             outMinX = uint32(MathUtil::Max(int32(pixMinX) / int32(TileSize), 0));
             outMinY = uint32(MathUtil::Max(int32(pixMinY) / int32(TileSize), 0));
-            outMaxX = MathUtil::Min(uint32(MathUtil::Max(pixMaxX, 0.0f)) / TileSize, numTilesX - 1);
-            outMaxY = MathUtil::Min(uint32(MathUtil::Max(pixMaxY, 0.0f)) / TileSize, numTilesY - 1);
+            outMaxX = uint32(MathUtil::Min(int32(pixMaxX) / int32(TileSize), numTilesX - 1));
+            outMaxY = uint32(MathUtil::Min(int32(pixMaxY) / int32(TileSize), numTilesY - 1));
 
             return outMinX <= outMaxX && outMinY <= outMaxY;
         };
@@ -1702,6 +1709,7 @@ public:
 
             const float projScaleX = projMatrix[0][0];
             const float projScaleY = projMatrix[1][1];
+
             const float halfW = float(extent.x) * 0.5f;
             const float halfH = float(extent.y) * 0.5f;
 
@@ -1757,13 +1765,14 @@ public:
 
             const float pixMinX = ndcMinX * halfW + halfW;
             const float pixMaxX = ndcMaxX * halfW + halfW;
-            const float pixMinY = ndcMinY * halfH + halfH;
-            const float pixMaxY = ndcMaxY * halfH + halfH;
+
+            const float pixMinY = (1.0f - ndcMaxY) * halfH;
+            const float pixMaxY = (1.0f - ndcMinY) * halfH;
 
             outMinX = uint32(MathUtil::Max(int32(pixMinX) / int32(TileSize), 0));
             outMinY = uint32(MathUtil::Max(int32(pixMinY) / int32(TileSize), 0));
-            outMaxX = MathUtil::Min(uint32(MathUtil::Max(pixMaxX, 0.0f)) / TileSize, numTilesX - 1);
-            outMaxY = MathUtil::Min(uint32(MathUtil::Max(pixMaxY, 0.0f)) / TileSize, numTilesY - 1);
+            outMaxX = uint32(MathUtil::Min(int32(pixMaxX) / int32(TileSize), numTilesX - 1));
+            outMaxY = uint32(MathUtil::Min(int32(pixMaxY) / int32(TileSize), numTilesY - 1));
 
             return outMinX <= outMaxX && outMinY <= outMaxY;
         };
@@ -1975,12 +1984,12 @@ public:
         TileDataAllocation& allocation = tileDataPerView[view->Id().ToIndex()];
         allocation.lastUsedFrame = GetFrameCounter();
 
-        StructuredBuffer& gridBuffer = g_renderInterface->sbufferAllocator->AcquireBuffer(gridData.Size(), sizeof(TileGridData));
+        StructuredBuffer& gridBuffer = g_renderInterface->bufferAllocator->AcquireStructuredBuffer(gridData.Size(), sizeof(TileGridData));
 #if HYP_DEBUG_MODE
         gridBuffer.gpuBuffer->SetDebugName(NAME("ClusterGridBuffer"));
 #endif
 
-        StructuredBuffer& indexBuffer = g_renderInterface->sbufferAllocator->AcquireBuffer(flatIndexData.Size(), sizeof(uint16));
+        ByteAddressBuffer& indexBuffer = g_renderInterface->bufferAllocator->AcquireByteAddressBuffer(flatIndexData.Size() * sizeof(uint16));
 #if HYP_DEBUG_MODE
         indexBuffer.gpuBuffer->SetDebugName(NAME("ClusterIndexBuffer"));
 #endif
@@ -2203,6 +2212,23 @@ void DeferredRenderer::ResizeView(Viewport viewport, View* view, DeferredRendere
     passData.directPass->Resize(newSize);
     passData.indirectPass->Resize(newSize);
 
+    passData.depthPyramidRenderer = MakeUnique<DepthPyramidRenderer>(gbuffer);
+    passData.depthPyramidRenderer->Create();
+
+    passData.cullData.depthPyramidImageView = passData.depthPyramidRenderer->GetResultImageView();
+    passData.cullData.depthPyramidDimensions = passData.depthPyramidRenderer->GetExtent();
+    
+    passData.mipChain = MakeHandle<Texture>(TextureDesc {
+        TextureType::Texture2D,
+        opaquePassFramebuffer->GetAttachment(0)->GetFormat(),
+        Vec3u(opaquePassFramebuffer->GetExtent(), 1),
+        TFM_LINEAR_MIPMAP,
+        TFM_LINEAR_MIPMAP,
+        TWM_CLAMP_TO_EDGE
+    });
+    passData.mipChain->SetName(NAME("DeferredPassMipChain"));
+    CheckResult(passData.mipChain->Create());
+
     passData.hbao = MakeUnique<HBAO>(viewport.extent, gbuffer);
     passData.hbao->Create();
 
@@ -2233,9 +2259,6 @@ void DeferredRenderer::ResizeView(Viewport viewport, View* view, DeferredRendere
 
     passData.taaPass = MakeUnique<TAAPass>(passData.tonemapPass->GetFinalImageView(), newSize, gbuffer);
     passData.taaPass->Create();
-
-    passData.depthPyramidRenderer = MakeUnique<DepthPyramidRenderer>(gbuffer);
-    passData.depthPyramidRenderer->Create();
 
     CreateViewRayTracingPasses(view, passData);
 
@@ -3038,7 +3061,7 @@ void DeferredRenderer::GenerateMipChain(Frame* frame, const RenderSetup& rs, Ren
 
     frame->cr << CopyImage(srcImage, mipmappedResult, mipmappedResult->GetTextureDesc().extent);
     frame->cr << GenerateMipmaps(mipmappedResult);
-    
+
     frame->cr << InsertBarrier(mipmappedResult, RS_SHADER_RESOURCE);
     frame->cr << InsertBarrier(srcImage, RS_RENDER_TARGET);
 }

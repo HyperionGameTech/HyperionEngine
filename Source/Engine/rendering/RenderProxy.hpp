@@ -172,16 +172,17 @@ public:
 
 struct alignas(16) ShadowMapData
 {
+    Mat4f viewProjMat;
+    Mat4f invProjMat;
+    
+    Vec4f aabbMin;          // w = offsetUV.x
+    Vec4f aabbMax;          // w = offsetUV.y
+    Vec4f dimensionsScale;  // xy = shadow map dimensions in pixels, zw = shadow map dimensions relative to the atlas dimensions
+
     uint32 layerIndex;
     float splitDistance;
     float _pad0;
     float _pad1;
-
-    Mat4f viewProjMat;
-    Mat4f invProjMat;
-    Vec4f aabbMin;          // w = offsetUV.x
-    Vec4f aabbMax;          // w = offsetUV.y
-    Vec4f dimensionsScale;  // xy = shadow map dimensions in pixels, zw = shadow map dimensions relative to the atlas dimensions
 };
 
 struct alignas(16) LightShaderData

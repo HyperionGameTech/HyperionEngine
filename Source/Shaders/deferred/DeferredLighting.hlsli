@@ -162,13 +162,13 @@ void CalculateEnvProbesContribution(
     float3 N, float3 V, float3 R,
     float nearClip, float farClip,
     float roughness, float perceptualRoughness,
-    float2 texcoordSS, uint2 gbufferDimensions,
+    float2 texcoordSS, uint2 dimensions,
     inout float4 reflections, inout float4 irradiance)
 {
-    const uint2 pixelCoord = uint2(texcoordSS * max(0, int2(gbufferDimensions) - 1));
+    const uint2 pixelCoord = uint2(texcoordSS * dimensions);
 
     const uint gridIndex = Cluster_GetGridIndex(
-        gbufferDimensions, pixelCoord,
+        dimensions, pixelCoord,
         positionVS.z,
         nearClip, farClip);
 
@@ -185,7 +185,7 @@ void CalculateEnvProbesContribution(
     {
         const uint envProbeIndex = Cluster_LoadEnvProbeIndex(clusterIndexOffset, numLights, i);
 
-        EnvProbe currentEnvProbe = EnvProbesBuffer.Load(envProbeIndex);
+        EnvProbe currentEnvProbe = EnvProbesBuffer[envProbeIndex];
 
         const float numMips = 7.0; // assuming 128x128 cubemap size for reflection probes
         const float lod = perceptualRoughness * numMips;
@@ -219,7 +219,7 @@ void CalculateEnvProbesContribution(
     {
         const uint envProbeIndex = Cluster_LoadEnvProbeIndex(clusterIndexOffset, numLights, i);
 
-        EnvProbe currentEnvProbe = EnvProbesBuffer.Load(envProbeIndex);
+        EnvProbe currentEnvProbe = EnvProbesBuffer[envProbeIndex];
         const float3 aabbMin = currentEnvProbe.aabb_min.xyz;
         const float3 aabbMax = currentEnvProbe.aabb_max.xyz;
         const float weight = CalculateEnvProbeWeight(positionWS, aabbMin, aabbMax);

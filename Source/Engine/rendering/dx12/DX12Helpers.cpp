@@ -399,28 +399,31 @@ D3D12_CONSTANT_BUFFER_VIEW_DESC GetCBVDesc(DX12GpuBuffer* buffer)
 D3D12_SHADER_RESOURCE_VIEW_DESC GetSRVDesc(DX12GpuBuffer* buffer, uint32 structureStride, uint32 firstElement, uint32 numElements)
 {
     AssertDebug(buffer != nullptr);
-
-    const bool useByteAddressBuffer = (structureStride == 0);
-
-    if (!useByteAddressBuffer)
-    {
-        numElements = (numElements == UINT32_MAX) ? uint32(buffer->Size() / structureStride) : numElements;
-    }
-    else if (numElements == UINT32_MAX)
-    {
-        // For raw (byte address) buffers, elements are 4-byte R32_TYPELESS units
-        numElements = uint32(buffer->Size() / 4) - firstElement;
-    }
-
+    
     D3D12_SHADER_RESOURCE_VIEW_DESC desc {};
+    desc.Buffer.FirstElement = firstElement;
     desc.ViewDimension = D3D12_SRV_DIMENSION_BUFFER;
     desc.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
-    desc.Format = (useByteAddressBuffer) ? DXGI_FORMAT_R32_TYPELESS : DXGI_FORMAT_UNKNOWN;
-    desc.Buffer.FirstElement = firstElement;
-    desc.Buffer.NumElements = numElements;
-    desc.Buffer.StructureByteStride = structureStride;
-    desc.Buffer.Flags = (useByteAddressBuffer) ? D3D12_BUFFER_SRV_FLAG_RAW : D3D12_BUFFER_SRV_FLAG_NONE;
 
+    switch (buffer->GetBufferType())
+    {
+    case GpuBufferType::ByteAddressBuffer: // fallthrough
+    case GpuBufferType::RWByteAddressBuffer:
+        // For raw (byte address) buffers, elements are 4-byte R32_TYPELESS units
+        desc.Buffer.NumElements = uint32(buffer->Size() / 4) - firstElement;
+        desc.Format = DXGI_FORMAT_R32_TYPELESS;
+        desc.Buffer.Flags = D3D12_BUFFER_SRV_FLAG_RAW;
+        break;
+    case GpuBufferType::StructuredBuffer: // fallthrough
+    case GpuBufferType::RWStructuredBuffer:
+    default:
+        desc.Buffer.NumElements = (numElements == UINT32_MAX) ? uint32(buffer->Size() / structureStride) : numElements;
+        desc.Format = DXGI_FORMAT_UNKNOWN;
+        desc.Buffer.Flags = D3D12_BUFFER_SRV_FLAG_NONE;
+        desc.Buffer.StructureByteStride = structureStride;
+        break;
+    }
+    
     return desc;
 }
 

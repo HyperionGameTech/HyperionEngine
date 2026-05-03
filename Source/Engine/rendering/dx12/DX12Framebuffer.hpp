@@ -134,7 +134,11 @@ public:
 
     RendererResult Create() override;
 
-    void SetExternalRTVHandle(const D3D12_CPU_DESCRIPTOR_HANDLE& handle, ID3D12Resource* resource, uint32 extentX, uint32 extentY)
+    void SetExternalRTVHandle(
+        const D3D12_CPU_DESCRIPTOR_HANDLE& handle,
+        ID3D12Resource* resource,
+        const Vec2u& extent,
+        TextureFormat format)
     {
         m_rtvDescriptorHandle.cpuHandle = handle;
         m_rtvDescriptorHandle.count = 1;
@@ -146,10 +150,8 @@ public:
 
         // Populate framebufferDesc so the graphics pipeline sees at least 1 attachment
         m_framebufferDesc.numAttachments = 1;
-        m_framebufferDesc.extent = Vec2u(extentX, extentY);
-        m_framebufferDesc.attachments[0] = AttachmentDesc(
-            TextureType::Texture2D,
-            TextureFormat::RGBA8);
+        m_framebufferDesc.extent = extent;
+        m_framebufferDesc.attachments[0] = AttachmentDesc(TextureType::Texture2D, format);
     }
 
     DX12Attachment* AddAttachment(DX12Attachment* attachment) override;

@@ -41,7 +41,7 @@
 #include <rendering/BLASCache.hpp>
 #include <rendering/CrashHandler.hpp>
 #include <rendering/CBufferAllocator.hpp>
-#include <rendering/StructuredBufferAllocator.hpp>
+#include <rendering/RawBufferAllocator.hpp>
 
 #include <engine/resources/ResourceTracker.hpp>
 #include <engine/resources/ResourceBinder.hpp>
@@ -556,7 +556,7 @@ EngineConfig& GetEngineConfig()
 RenderInterface::RenderInterface()
     : gpuBufferHolders(PoolNew<GpuBufferHolderMap>(*g_renderPool)),
       cbufferAllocator(PoolNew<CBufferAllocator>(*g_renderPool)),
-      sbufferAllocator(PoolNew<StructuredBufferAllocator>(*g_renderPool)),
+      bufferAllocator(PoolNew<BufferAllocator>(*g_renderPool)),
       descriptorSetCache(PoolNew<DescriptorSetCache>(*g_renderPool)),
       placeholderData(PoolNew<PlaceholderData>(*g_renderPool)),
       materialTextureCache(PoolNew<MaterialTextureCache>(*g_renderPool)),
@@ -808,8 +808,8 @@ void RenderInterface::Shutdown()
     PoolDelete(*g_renderPool, cbufferAllocator);
     cbufferAllocator = nullptr;
 
-    PoolDelete(*g_renderPool, sbufferAllocator);
-    sbufferAllocator = nullptr;
+    PoolDelete(*g_renderPool, bufferAllocator);
+    bufferAllocator = nullptr;
 
     PoolDelete(*g_renderPool, gpuBufferHolders);
     gpuBufferHolders = nullptr;
@@ -862,7 +862,7 @@ void RenderInterface::BeginFrame(AtomicFlag* pCancelFlag)
     Framework::BufferedData& bufferedData = Framework::s_bufferedData[slot];
 
     cbufferAllocator->OnFrameStart();
-    sbufferAllocator->OnFrameStart();
+    bufferAllocator->OnFrameStart();
     descriptorSetCache->OnFrameStart();
     stagingBufferPool->OnFrameStart();
 
@@ -1214,7 +1214,7 @@ void RenderInterface::EndFrame()
     state.Reset();
 
     cbufferAllocator->OnFrameEnd();
-    sbufferAllocator->OnFrameEnd();
+    bufferAllocator->OnFrameEnd();
     descriptorSetCache->OnFrameEnd();
     stagingBufferPool->OnFrameEnd();
 
@@ -1603,11 +1603,12 @@ void RenderInterface::CommitPipelineState(PSOType psoType, CommandBuffer* comman
         {
             if (image->IsFullSubResource(subResource))
             {
-                HYP_LOG_TEMP("Shader: {} needs to transition target {} from state {} to state {}", state.attributes.GetShaderName(), image->GetDebugName(), EnumToString(image->GetResourceState()), EnumToString(desiredResourceState));
+                // HYP_LOG_TEMP("Shader: {} needs to transition target {} from state {} to state {}", state.attributes.GetShaderName(), image->GetDebugName(), EnumToString(image->GetResourceState()), EnumToString(desiredResourceState));
 
                 if (psoType == PSO_Graphics && state.boundFramebuffer != nullptr)
                 {
-                    HYP_LOG_TEMP("Breaking framebuffer {} (bound to shader {})", state.boundFramebuffer->GetDebugName(), state.attributes.GetShaderName());
+                    // HYP_LOG_TEMP("Breaking framebuffer {} (bound to shader {})", state.boundFramebuffer->GetDebugName(), state.attributes.GetShaderName());
+
                     // have to end render pass if we are going to insert a barrier
                     state.boundFramebuffer->EndCapture(commandBuffer);
                     state.boundFramebuffer = nullptr;
@@ -1635,13 +1636,14 @@ void RenderInterface::CommitPipelineState(PSOType psoType, CommandBuffer* comman
 
                         if (currResourceState != desiredResourceState)
                         {
-                            HYP_LOG_TEMP("Shader: {} needs to transition target {} from state {} to state {} (subresource: {}/{}/{})", state.attributes.GetShaderName(), image->GetDebugName(), EnumToString(image->GetResourceState()), EnumToString(desiredResourceState), mipIndex, layerIndex, subResource.baseArrayLayer + subResource.numLayers - 1);
+                            // HYP_LOG_TEMP("Shader: {} needs to transition target {} from state {} to state {} (subresource: {}/{}/{})", state.attributes.GetShaderName(), image->GetDebugName(), EnumToString(image->GetResourceState()), EnumToString(desiredResourceState), mipIndex, layerIndex, subResource.baseArrayLayer + subResource.numLayers - 1);
 
                             needsTransition = true;
 
                             if (psoType == PSO_Graphics && state.boundFramebuffer != nullptr)
                             {
-                                HYP_LOG_TEMP("Breaking framebuffer {} (bound to shader {})", state.boundFramebuffer->GetDebugName(), state.attributes.GetShaderName());
+                                // HYP_LOG_TEMP("Breaking framebuffer {} (bound to shader {})", state.boundFramebuffer->GetDebugName(), state.attributes.GetShaderName());
+
                                 // have to end render pass if we are going to insert a barrier
                                 state.boundFramebuffer->EndCapture(commandBuffer);
                                 state.boundFramebuffer = nullptr;
@@ -1880,31 +1882,36 @@ void RenderInterface::FlushStructuredBuffers()
     HYP_SCOPE;
     AssertOnThread(g_renderThread);
 
-    // Check whether any buffer is actually dirty before acquiring a command buffer.
-    bool anyDirty = false;
+    bool anyNeedStaging = false;
 
     for (StructuredBuffer& sbuffer : namedBuffers)
     {
         if (sbuffer.IsDirty())
         {
-            anyDirty = true;
+            if (sbuffer.gpuBuffer->IsCpuAccessible())
+            {
+                sbuffer.Flush();
+            }
+            else
+            {
+                anyNeedStaging = true;
+            }
+
             break;
         }
     }
 
-    if (!anyDirty)
+    if (!anyNeedStaging)
     {
         return;
     }
 
-    // Batch all dirty structured-buffer copies into a single command buffer and
-    // submit once. Previously each Flush() issued its own vkQueueSubmit + fence,
-    // meaning up to 9 separate submissions per frame and 9 fence waits next frame.
+    // Batch all dirty structured buffers that need to use a staging buffer to copy data from the CPU to the GPU.
     CommandBuffer& cmdBuffer = GetTransientCommandBuffer();
 
     for (StructuredBuffer& sbuffer : namedBuffers)
     {
-        if (sbuffer.IsDirty())
+        if (sbuffer.IsDirty() && !sbuffer.gpuBuffer->IsCpuAccessible())
         {
             sbuffer.FlushInto(cmdBuffer);
         }

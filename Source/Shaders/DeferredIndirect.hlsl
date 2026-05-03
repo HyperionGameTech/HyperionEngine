@@ -144,10 +144,7 @@ PSOutput PSMain(PSInput input)
 
     float2 texcoord = input.texcoord;
 
-    uint2 gbufferDimensions;
-    gbuffer_albedo_texture.GetDimensions(gbufferDimensions.x, gbufferDimensions.y);
-
-    const uint2 pixelCoord = uint2(texcoord * max(0, int2(gbufferDimensions) - 1));
+    const uint2 pixelCoord = uint2(texcoord * camera.dimensions.xy);
 
     float4 albedo = SAMPLE_TEXTURE_2D_LOD(sampler_nearest, gbuffer_albedo_texture, texcoord, 0);
     float4 normalSample = SAMPLE_TEXTURE_2D_LOD(sampler_nearest, gbuffer_normals_texture, texcoord, 0);
@@ -192,7 +189,7 @@ PSOutput PSMain(PSInput input)
         N, V, R,
         camera.near, camera.far,
         roughness, perceptualRoughness,
-        texcoord, gbufferDimensions,
+        texcoord, camera.dimensions.xy,
         /* inout */ reflections,
         /* inout */ irradiance);
 

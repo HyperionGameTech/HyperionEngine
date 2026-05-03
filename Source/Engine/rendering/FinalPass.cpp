@@ -18,7 +18,7 @@
 #include <rendering/DescriptorSet.hpp>
 #include <rendering/TextureViewCache.hpp>
 #include <rendering/CBufferAllocator.hpp>
-#include <rendering/StructuredBufferAllocator.hpp>
+#include <rendering/RawBufferAllocator.hpp>
 
 #include <rendering/renderers/DeferredRenderer.hpp>
 #include <rendering/renderers/UIRenderer.hpp>
@@ -128,7 +128,7 @@ void FinalPass::Render(Frame* frame, const RenderSetup& rs)
     cr << SetFillMode(FM_FILL);
     cr << SetTopology(TOP_TRIANGLES);
     cr << SetFaceCullMode(FCM_NONE);
-    
+
     cr << SetShaderUniform(0, "SamplerLinear"_sh, g_renderInterface->placeholderData->GetSamplerLinear());
     cr << SetShaderUniform(1, "WorldsBuffer"_sh, g_renderInterface->namedBuffers[NamedBuffer::Worlds].gpuBuffer);
 

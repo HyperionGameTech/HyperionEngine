@@ -164,10 +164,7 @@ PSOutput PSMain(PSInput input)
 
     float2 texcoord = input.texcoord;
 
-    uint2 gbufferDimensions;
-    gbuffer_albedo_texture.GetDimensions(gbufferDimensions.x, gbufferDimensions.y);
-
-    const uint2 pixelCoord = uint2(texcoord * max(0, int2(gbufferDimensions) - 1));
+    const uint2 pixelCoord = (uint2)input.position_cs.xy;
 
     float4 albedo = SAMPLE_TEXTURE_2D_LOD(HYP_SAMPLER_NEAREST, gbuffer_albedo_texture, texcoord, 0);
     float4 normalSample = SAMPLE_TEXTURE_2D_LOD(HYP_SAMPLER_NEAREST, gbuffer_normals_texture, texcoord, 0);
@@ -222,10 +219,12 @@ PSOutput PSMain(PSInput input)
     float4 area_light_radiance;
 
 #ifdef LIGHT_TYPE_CLUSTERED
+    float viewSpaceZ = positionVS.z;
+
     // Cluster data
     const uint gridIndex = Cluster_GetGridIndex(
-        gbufferDimensions, pixelCoord,
-        positionVS.z / positionVS.w,
+        camera.dimensions.xy, pixelCoord,
+        viewSpaceZ,
         camera.near, camera.far);
 
     const uint2 clusterData = ClusterGridBuffer[gridIndex];
@@ -245,7 +244,7 @@ PSOutput PSMain(PSInput input)
         // We handle area lights in a specialized version of the deferred pass, so we skip
         // them for clustered deferred shading.
 
-        Light currentLight = LightsBuffer.Load(lightIndex);
+        Light currentLight = LightsBuffer[lightIndex];
 
         float3 L = currentLight.position_intensity.xyz;
         L -= position.xyz * float(min(currentLight.type, 1));
@@ -326,15 +325,28 @@ PSOutput PSMain(PSInput input)
         lightHit = true;
     }
 
-    // Debug clustering
-    // if (lightHit)
-    // {
-    //     result = float4(1.0, 0.0, 0.0, 1.0);
-    // }
-    // else
-    // {
-    //     result = float4(0.0, 0.0, 0.0, 0.0);
-    // }
+    // // Debug clustering - color based on tile (x, y, z)
+    // const uint tilesX = (camera.dimensions.x + TILE_SIZE - 1) / TILE_SIZE;
+    // const uint tilesY = (camera.dimensions.y + TILE_SIZE - 1) / TILE_SIZE;
+
+    // const uint tileX = pixelCoord.x / TILE_SIZE;
+    // const uint tileY = pixelCoord.y / TILE_SIZE;
+
+    // const float scale = TILE_Z_BINS / log2(camera.far / camera.near);
+    // const float bias = -log2(camera.near) * scale;
+    // const float z = max(viewSpaceZ, 0.0001);
+    // const int zBinInt = (int)(log2(z) * scale + bias);
+    // const uint tileZ = clamp(zBinInt, 0, TILE_Z_BINS - 1);
+
+    // // Generate color from tile coordinates
+    // float3 tileColor;
+    // tileColor.x = frac(float(tileX) / float(tilesX));
+    // tileColor.y = frac(float(tileY) / float(tilesY));
+    // tileColor.z = frac(float(tileZ) / float(TILE_Z_BINS));
+
+    // result = float4(tileColor, 1.0);
+
+    // result = float4(numLights, 0.0, 0.0, 1.0);
 
     // Env probes will be in indirect pass.
 #else // !LIGHT_TYPE_CLUSTERED

@@ -20,7 +20,7 @@
 #include <rendering/Shader.hpp>
 #include <rendering/Texture.hpp>
 #include <rendering/CBufferAllocator.hpp>
-#include <rendering/StructuredBufferAllocator.hpp>
+#include <rendering/RawBufferAllocator.hpp>
 #include <rendering/SamplerCache.hpp>
 
 #include <rendering/renderers/SpriteRenderer.hpp>
@@ -349,7 +349,7 @@ void SpriteRenderer::RenderFrame(Frame* frame, const RenderSetup& renderSetup)
 
     if (numSprites > 0)
     {
-        StructuredBuffer& instanceBuffer = g_renderInterface->sbufferAllocator->AcquireBuffer(numSprites, sizeof(SpriteInstanceData));
+        StructuredBuffer& instanceBuffer = g_renderInterface->bufferAllocator->AcquireStructuredBuffer(numSprites, sizeof(SpriteInstanceData));
 
         size_t offset = 0;
 
@@ -381,7 +381,7 @@ void SpriteRenderer::RenderFrame(Frame* frame, const RenderSetup& renderSetup)
         shaderDesc.name = NAME("Sprite");
 
         cr << SetCurrentShader(shaderDesc);
-        
+
         cr << SetShaderUniform(0, "SamplerLinear"_sh, g_renderInterface->placeholderData->GetSamplerLinear());
         cr << SetShaderUniform(1, "SpriteInstanceBuffer"_sh, instanceBuffer.gpuBuffer);
         cr << SetShaderUniform(2, "CBuffer"_sh, cbuffer, ShaderDataOffset(cbufferOffset, cbufferSize));
@@ -463,7 +463,7 @@ void SpriteRenderer::RenderFrame(Frame* frame, const RenderSetup& renderSetup)
                 });
         }
 
-        StructuredBuffer& textInstanceBuffer = g_renderInterface->sbufferAllocator->AcquireBuffer(charData.Size(), sizeof(TextSpriteInstanceData));
+        StructuredBuffer& textInstanceBuffer = g_renderInterface->bufferAllocator->AcquireStructuredBuffer(charData.Size(), sizeof(TextSpriteInstanceData));
 
         size_t textOffset = 0;
         for (const auto& data : charData)

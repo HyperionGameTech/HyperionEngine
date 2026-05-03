@@ -44,6 +44,9 @@ namespace Hyperion {
 
 HYP_DECLARE_LOG_CHANNEL(RenderingBackend);
 
+#define HYP_DX12_ENABLE_DEBUG_LAYER 1
+#define HYP_DX12_ENABLE_DRED 1
+
 #pragma region DX12RenderConfig
 
 class DX12RenderConfig final : public IRenderConfig
@@ -168,19 +171,21 @@ RendererResult DX12RenderInterface::Initialize()
     }
 
 #ifdef HYP_DEBUG_MODE
-#if 0
+#ifdef HYP_DX12_ENABLE_DRED
     if (SUCCEEDED(D3D12GetDebugInterface(__uuidof(ID3D12DeviceRemovedExtendedDataSettings), &m_dredSettings)))
     {
         m_dredSettings->SetAutoBreadcrumbsEnablement(D3D12_DRED_ENABLEMENT_FORCED_ON);
         m_dredSettings->SetPageFaultEnablement(D3D12_DRED_ENABLEMENT_FORCED_ON);
     }
-
+#endif
+    
+#ifdef HYP_DX12_ENABLE_DEBUG_LAYER
     ComPtr<ID3D12Debug> debugController;
     if (SUCCEEDED(D3D12GetDebugInterface(__uuidof(ID3D12Debug), &debugController)))
     {
         debugController->EnableDebugLayer();
     }
-#endif // 
+#endif
 #endif
 
     // create device

@@ -15,7 +15,7 @@
 
 #include <Core/utilities/IdGenerator.hpp>
 
-#include <rendering/StructuredBuffer.hpp>
+#include <rendering/RawBuffer.hpp>
 #include <rendering/RenderMemory.hpp>
 #include <rendering/RenderObject.hpp>
 #include <rendering/RenderGroup.hpp>
@@ -322,7 +322,7 @@ struct DrawCallCollection
     RenderableAttributeSet attributes;
     EnumFlags<RenderGroupFlags> flags = {};
     ParallelRenderingState* parallelRenderingState = nullptr;
-    
+
     bool isInit : 1 = false;
     bool suppressStats : 1 = false;
 

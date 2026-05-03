@@ -6,7 +6,7 @@
 
 #include <RenderingPch.hpp>
 
-#include <rendering/StructuredBuffer.hpp>
+#include <rendering/RawBuffer.hpp>
 #include <rendering/RenderInterface.hpp>
 #include <rendering/CommandRecorder.hpp>
 
@@ -14,7 +14,7 @@ namespace Hyperion {
 
 #pragma region StructuredBuffer
 
-void StructuredBuffer::Initialize()
+void RawBuffer::Initialize()
 {
     Assert(gpuBuffer);
 
@@ -24,7 +24,7 @@ void StructuredBuffer::Initialize()
     CheckResult(gpuBuffer->Create());
 }
 
-void StructuredBuffer::Shutdown()
+void RawBuffer::Shutdown()
 {
     if (!gpuBuffer)
         return;
@@ -33,7 +33,7 @@ void StructuredBuffer::Shutdown()
     gpuBuffer = nullptr;
 }
 
-void StructuredBuffer::Write(size_t offset, size_t count, const void* data)
+void RawBuffer::Write(size_t offset, size_t count, const void* data)
 {
     AssertDebug(offset + count <= cpuBuffer.Size());
 
@@ -43,7 +43,7 @@ void StructuredBuffer::Write(size_t offset, size_t count, const void* data)
     dirtyRangeEnd = MathUtil::Max(dirtyRangeEnd, offset + count);
 }
 
-void StructuredBuffer::FlushInto(CommandBuffer& cmdBuffer)
+void RawBuffer::FlushInto(CommandBuffer& cmdBuffer)
 {
     if (!IsDirty())
     {
@@ -68,7 +68,7 @@ void StructuredBuffer::FlushInto(CommandBuffer& cmdBuffer)
     dirtyRangeEnd = 0;
 }
 
-void StructuredBuffer::Flush()
+void RawBuffer::Flush()
 {
     if (!IsDirty())
     {
@@ -77,11 +77,29 @@ void StructuredBuffer::Flush()
 
     RenderInterface& ri = *g_renderInterface;
 
+    if (gpuBuffer->IsCpuAccessible())
+    {
+        // Write directly to the buffer.
+        ubyte* ptr = reinterpret_cast<ubyte*>(gpuBuffer->Map());
+        Assert(ptr != nullptr);
+
+        ubyte* ptrOffset = ptr + dirtyRangeStart;
+        
+        Memory::Copy(ptrOffset, cpuBuffer.Data() + dirtyRangeStart, dirtyRangeEnd - dirtyRangeStart);
+
+        gpuBuffer->Flush(dirtyRangeStart, dirtyRangeEnd - dirtyRangeStart);
+
+        dirtyRangeStart = SIZE_MAX;
+        dirtyRangeEnd = 0;
+
+        return;
+    }
+
     CommandBuffer& cmdBuffer = ri.GetTransientCommandBuffer();
     FlushInto(cmdBuffer);
     ri.SubmitTransientCommandBuffer(cmdBuffer);
 }
 
-#pragma endregion StructuredBuffer
+#pragma endregion RawBuffer
 
 } // namespace Hyperion
