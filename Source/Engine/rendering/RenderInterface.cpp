@@ -42,6 +42,7 @@
 #include <rendering/CrashHandler.hpp>
 #include <rendering/CBufferAllocator.hpp>
 #include <rendering/RawBufferAllocator.hpp>
+#include <rendering/ScratchImageAllocator.hpp>
 
 #include <engine/resources/ResourceTracker.hpp>
 #include <engine/resources/ResourceBinder.hpp>
@@ -557,6 +558,7 @@ RenderInterface::RenderInterface()
     : gpuBufferHolders(nullptr),
       cbufferAllocator(nullptr),
       bufferAllocator(nullptr),
+      scratchImageAllocator(nullptr),
       descriptorSetCache(nullptr),
       placeholderData(nullptr),
       materialTextureCache(nullptr),
@@ -588,6 +590,7 @@ RendererResult RenderInterface::Initialize()
     gpuBufferHolders = PoolNew<GpuBufferHolderMap>(*g_renderPool);
     cbufferAllocator = PoolNew<CBufferAllocator>(*g_renderPool);
     bufferAllocator = PoolNew<BufferAllocator>(*g_renderPool);
+    scratchImageAllocator = PoolNew<ScratchImageAllocator>(*g_renderPool);
     descriptorSetCache = PoolNew<DescriptorSetCache>(*g_renderPool);
     placeholderData = PoolNew<PlaceholderData>(*g_renderPool);
     materialTextureCache = PoolNew<MaterialTextureCache>(*g_renderPool);
@@ -829,6 +832,9 @@ void RenderInterface::Shutdown()
     PoolDelete(*g_renderPool, bufferAllocator);
     bufferAllocator = nullptr;
 
+    PoolDelete(*g_renderPool, scratchImageAllocator);
+    scratchImageAllocator = nullptr;
+
     PoolDelete(*g_renderPool, gpuBufferHolders);
     gpuBufferHolders = nullptr;
 
@@ -881,6 +887,7 @@ void RenderInterface::BeginFrame(AtomicFlag* pCancelFlag)
 
     cbufferAllocator->OnFrameStart();
     bufferAllocator->OnFrameStart();
+    scratchImageAllocator->OnFrameStart();
     descriptorSetCache->OnFrameStart();
     stagingBufferPool->OnFrameStart();
 
@@ -1233,6 +1240,7 @@ void RenderInterface::EndFrame()
 
     cbufferAllocator->OnFrameEnd();
     bufferAllocator->OnFrameEnd();
+    scratchImageAllocator->OnFrameEnd();
     descriptorSetCache->OnFrameEnd();
     stagingBufferPool->OnFrameEnd();
 

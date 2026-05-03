@@ -20,7 +20,7 @@
 #include <rendering/CBufferAllocator.hpp>
 #include <rendering/RayTracingPipeline.hpp>
 #include <rendering/AccelerationStructure.hpp>
-
+#include <rendering/ScratchImageAllocator.hpp>
 #include <rendering/GpuImageView.hpp>
 #include <rendering/GpuBuffer.hpp>
 #include <rendering/SamplerCache.hpp>
@@ -549,25 +549,14 @@ void GenerateMipmaps::InvokeStatic(CmdBase* cmd, CommandBuffer* commandBuffer)
 
     for (uint16 layer = 0; layer < numLayers; layer++)
     {
-        /* Create a temporary 2D image with IU_STORAGE | IU_SAMPLED so we
+        /* Acquire a temporary 2D image with IU_STORAGE | IU_SAMPLED so we
            can generate mips via compute dispatch without requiring the
            source image to have IU_STORAGE. */
-        GpuImageRef tempImage = RI.MakeImage(TextureDesc {
-            TextureType::Texture2D,
-            desc.format,
-            desc.extent,
-            TFM_LINEAR_MIPMAP,
-            TFM_LINEAR,
-            TWM_CLAMP_TO_EDGE,
-            1, // numLayers
-            IU_SAMPLED | IU_STORAGE
-        });
+        GpuImageRef tempImage = RI.scratchImageAllocator->AcquireScratchImage(desc.format, desc.extent);
 
-        RendererResult createResult = tempImage->Create();
-        if (!createResult)
+        if (!tempImage)
         {
-            HYP_LOG(RenderingBackend, Error, "GenerateMipmaps: Failed to create temp image: {}",
-                createResult.HasError() ? createResult.GetError().GetMessage() : "Unknown error");
+            HYP_LOG(RenderingBackend, Error, "GenerateMipmaps: Failed to acquire scratch image");
             continue;
         }
 
@@ -764,7 +753,6 @@ void GenerateMipmaps::InvokeStatic(CmdBase* cmd, CommandBuffer* commandBuffer)
 
         EnqueueDeletion(std::move(inputViews));
         EnqueueDeletion(std::move(outputViews));
-        EnqueueDeletion(std::move(tempImage));
     }
 
     image->InsertBarrier(

@@ -70,6 +70,7 @@ struct SamplerDesc;
 
 class CBufferAllocator;
 class BufferAllocator;
+class ScratchImageAllocator;
 
 enum class GpuBufferType : uint8;
 enum RenderTargetType : uint8;
@@ -373,6 +374,7 @@ public:
 
     CBufferAllocator* cbufferAllocator;
     BufferAllocator* bufferAllocator;
+    ScratchImageAllocator* scratchImageAllocator;
 
     DescriptorTableRef globalDescriptorTable;
 
