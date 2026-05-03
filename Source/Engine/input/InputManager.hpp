@@ -18,6 +18,8 @@
 
 #include <Core/threading/Semaphore.hpp>
 
+#include <Core/memory/pool/Pool.hpp>
+
 #include <input/Keyboard.hpp>
 #include <input/Mouse.hpp>
 
@@ -25,6 +27,9 @@ namespace Hyperion {
 
 class ApplicationWindow;
 class Event;
+
+extern Pool* g_inputPool;
+using InputAllocator = AllocatorInstance<Pool, &g_inputPool>;
 
 struct InputState
 {
@@ -223,7 +228,7 @@ private:
 
     AtomicVec2i m_windowSize;
 
-    Array<InputMouseLockState*, Pool> m_mouseLockStates;
+    Array<InputMouseLockState*, InputAllocator> m_mouseLockStates;
     Mutex m_mouseLockStatesMutex;
 
     ApplicationWindow* m_ownerWindow;

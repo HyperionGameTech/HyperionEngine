@@ -21,17 +21,13 @@
 
 namespace Hyperion {
 
-static Pool& GetInputPool()
-{
-    static Pool s_inputPool(1 * 1024 * 1024);
-
-    return s_inputPool;
-}
+static Pool s_inputPool(1 * 1024 * 1024);
+Pool* g_inputPool = &s_inputPool;
 
 static TSlabAllocator<Pool>& GetMouseLockStateAllocator()
 {
     static TSlabAllocator<Pool> s_mouseLockStateAllocator(
-        &GetInputPool(),
+        g_inputPool,
         sizeof(InputMouseLockState),
         alignof(InputMouseLockState),
         32,
@@ -51,7 +47,7 @@ public:
     static constexpr uint32 MaxSize = 1024;
 
     InputEventQueue()
-        : m_buffer(&GetInputPool()),
+        : m_buffer(),
           m_head(0),
           m_tail(0)
     {
@@ -80,7 +76,7 @@ private:
         return head == tail;
     }
 
-    Array<ValueStorage<Event>, Pool> m_buffer;
+    Array<ValueStorage<Event>, InputAllocator> m_buffer;
 
     mutable volatile int32 m_head;
     mutable volatile int32 m_tail;
@@ -184,7 +180,7 @@ void InputMouseLockScope::Reset()
 
 InputManager::InputManager(ApplicationWindow* ownerWindow)
     : m_eventQueue(new InputEventQueue),
-      m_mouseLockStates(&GetInputPool()),
+      m_mouseLockStates(),
       m_ownerWindow(ownerWindow),
       m_isMouseLocked(false),
       m_syncToVirtualPosition(false)
@@ -610,7 +606,7 @@ void InputManager::MainThreadUpdate()
         m_previousMousePosition = m_mousePosition;
         m_mousePosition = m_ownerWindow->GetMousePosition();
     }
-        
+
     m_previousVirtualMousePosition = m_virtualMousePosition;
 }
 

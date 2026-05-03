@@ -478,20 +478,18 @@ static inline void UpdateRefs(T& renderProxyList)
 
 #pragma region RenderProxyList
 
-RenderProxyList::RenderProxyList(AllocatorType* pAllocator, bool isShared, bool useRefCounting)
+RenderProxyList::RenderProxyList(bool isShared, bool useRefCounting)
     : isShared(isShared),
       useRefCounting(useRefCounting),
       priority(0),
       resourceTrackers {}
 {
-    AssertDebug(pAllocator != nullptr);
-
     // initialize the resource trackers
-    ForEachResourceTrackerType(resourceTrackers.ToSpan(), [this, pAllocator]<class ResourceTrackerType>(TypeWrapper<ResourceTrackerType>, ResourceTrackerBase<AllocatorType>*& pResourceTracker, size_t idx)
+    ForEachResourceTrackerType(resourceTrackers.ToSpan(), [this]<class ResourceTrackerType>(TypeWrapper<ResourceTrackerType>, ResourceTrackerBase<AllocatorType>*& pResourceTracker, size_t idx)
         {
             AssertDebug(!pResourceTracker);
 
-            pResourceTracker = new ResourceTrackerType(pAllocator);
+            pResourceTracker = new ResourceTrackerType();
         });
 }
 

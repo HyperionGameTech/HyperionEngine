@@ -29,12 +29,11 @@ static constexpr int NumReservedStatIds = 5;
 
 static AtomicVar<int> s_nextStatId { NumReservedStatIds };
 
-Pool* g_statPool;
-
-static TByteBuffer<Pool> CreateSamplesBuffer()
+static ByteBuffer CreateSamplesBuffer()
 {
-    TByteBuffer<Pool> buf(g_statPool);
+    ByteBuffer buf;
     buf.SetSize(sizeof(double) * EngineStatsMaxStats * EngineStatsNumSamples);
+
     return buf;
 }
 
@@ -42,7 +41,7 @@ struct EngineStatsRecorderImpl
 {
     EngineStatsSnapshot snapshots[RingBufferDepth];
 
-    TByteBuffer<Pool> statsBuffer;
+    ByteBuffer statsBuffer;
 
     ClockTimer counter;
     double deltaAccum;
@@ -174,10 +173,6 @@ EngineStats::EngineStats()
     : root(nullptr),
       linearStats {}
 {
-    // init pool
-    AssertDebug(g_statPool == nullptr);
-    g_statPool = new Pool(StatPoolBlockSize);
-
     m_impl = MakePimpl<EngineStatsRecorderImpl>();
 
     root = new EngineStatGroup(UTF8StringView(RootStatGroupName), true);
@@ -196,16 +191,10 @@ EngineStats::EngineStats()
 
 EngineStats::~EngineStats()
 {
-    Assert(g_statPool != nullptr);
-
     delete root;
     root = nullptr;
 
     m_impl.Reset();
-
-    // destroy pool
-    delete g_statPool;
-    g_statPool = nullptr;
 }
 
 EngineStatBase* EngineStats::GetStat(UTF8StringView path) const

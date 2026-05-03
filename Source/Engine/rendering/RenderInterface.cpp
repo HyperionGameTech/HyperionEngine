@@ -173,7 +173,7 @@ struct ViewData
     uint32 numRefs = 0; // number of BufferedViewData holding refs to this
 
     ViewData()
-        : rplRender(g_renderPool, /* isShared */ false, /* useRefCounting */ false)
+        : rplRender(/* isShared */ false, /* useRefCounting */ false)
     {
     }
 
@@ -377,7 +377,7 @@ RenderProxyList& GetConsumerProxyList(View* view)
 
     if (vd == nullptr)
     {
-        static RenderProxyList s_fallbackRpl { g_renderPool, /* isShared */ false, /* useRefCounting */ false };
+        static RenderProxyList s_fallbackRpl { /* isShared */ false, /* useRefCounting */ false };
         return s_fallbackRpl;
     }
 
@@ -934,7 +934,7 @@ void RenderInterface::BeginFrame(AtomicFlag* pCancelFlag)
 
         if (!rplShared)
         {
-            static RenderProxyList s_defaultRenderProxyList { g_renderPool, /* isShared */ false, /* useRefCounting */ false };
+            static RenderProxyList s_defaultRenderProxyList { /* isShared */ false, /* useRefCounting */ false };
             rplShared = &s_defaultRenderProxyList;
         }
 
@@ -1132,7 +1132,7 @@ void RenderInterface::EndFrame()
                             ++resourceTrackerIndex;
                         });
 
-                    static RenderProxyList s_emptyRpl { g_renderPool, /* isShared */ false, /* useRefCounting */ false };
+                    static RenderProxyList s_emptyRpl { /* isShared */ false, /* useRefCounting */ false };
                     CopyDependencies(*resources, viewData->rplRender, s_emptyRpl);
                 }
 

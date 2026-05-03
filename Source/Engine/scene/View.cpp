@@ -208,7 +208,7 @@ View::View(const ViewDesc& viewDesc, Name name)
             continue;
         }
 
-        *it = new RenderProxyList(g_scenePool, /* isShared */ true, /* useRefCounting */ true);
+        *it = new RenderProxyList(/* isShared */ true, /* useRefCounting */ true);
     }
 }
 

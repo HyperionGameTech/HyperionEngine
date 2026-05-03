@@ -28,20 +28,8 @@ public:
 
     /*! \brief Constructs an empty ByteBuffer, no memory is allocated. */
     TByteBuffer()
-        : m_pAllocator(GetDefaultAllocatorInstance<AllocatorType>()),
-          m_size(0)
+        : m_size(0)
     {
-        HYP_CORE_ASSERT(m_pAllocator != nullptr);
-
-        m_allocation.SetToInitialState();
-    }
-
-    explicit TByteBuffer(AllocatorType* pAllocator)
-        : m_pAllocator(pAllocator),
-          m_size(0)
-    {
-        HYP_CORE_ASSERT(m_pAllocator != nullptr);
-
         m_allocation.SetToInitialState();
     }
 
@@ -49,11 +37,8 @@ public:
      *  \param count The size of the ByteBuffer in bytes. If count is zero, no memory is allocated and the ByteBuffer is set to an empty state.
      *  \param zeroize If true, the memory is initialized to zero. */
     explicit TByteBuffer(size_t count, bool zeroize = true)
-        : m_pAllocator(GetDefaultAllocatorInstance<AllocatorType>()),
-          m_size(count)
+        : m_size(count)
     {
-        HYP_CORE_ASSERT(m_pAllocator != nullptr);
-
         m_allocation.SetToInitialState();
 
         if (m_size == 0)
@@ -61,7 +46,7 @@ public:
             return;
         }
 
-        m_allocation.Allocate(m_pAllocator, m_size, /* alignment */ BufferAlignment);
+        m_allocation.Allocate(GetAllocator(), m_size, /* alignment */ BufferAlignment);
 
         if (zeroize)
         {
@@ -71,11 +56,8 @@ public:
 
     /*! \brief Constructs a ByteBuffer with the given size and data, allocating memory on the heap if \p count != 0 and copies the data into the buffer. */
     explicit TByteBuffer(size_t count, const void* data)
-        : m_pAllocator(GetDefaultAllocatorInstance<AllocatorType>()),
-          m_size(count)
+        : m_size(count)
     {
-        HYP_CORE_ASSERT(m_pAllocator != nullptr);
-
         m_allocation.SetToInitialState();
 
         if (m_size == 0)
@@ -83,18 +65,15 @@ public:
             return;
         }
 
-        m_allocation.Allocate(m_pAllocator, m_size, /* alignment */ BufferAlignment);
+        m_allocation.Allocate(GetAllocator(), m_size, /* alignment */ BufferAlignment);
         m_allocation.InitFromRangeCopy(reinterpret_cast<const ubyte*>(data), reinterpret_cast<const ubyte*>(data) + m_size);
     }
 
     /*! \brief Constructs a ByteBuffer from \p view, allocating memory on the heap if the view is not empty and copies the data into the buffer.
      *  \param view The ByteView to copy to the ByteBuffer. */
     explicit TByteBuffer(const ByteView& view)
-        : m_pAllocator(GetDefaultAllocatorInstance<AllocatorType>()),
-          m_size(view.Size())
+        : m_size(view.Size())
     {
-        HYP_CORE_ASSERT(m_pAllocator != nullptr);
-
         m_allocation.SetToInitialState();
 
         if (m_size == 0)
@@ -102,18 +81,15 @@ public:
             return;
         }
 
-        m_allocation.Allocate(m_pAllocator, m_size, /* alignment */ BufferAlignment);
+        m_allocation.Allocate(GetAllocator(), m_size, /* alignment */ BufferAlignment);
         m_allocation.InitFromRangeCopy(view.Begin(), view.End());
     }
 
     /*! \brief Constructs a ByteBuffer from a \ref ConstByteView, allocating memory on the heap if the view is not empty and copies the data into the buffer.
      *  \param view The ConstByteView to copy to the ByteBuffer. */
     explicit TByteBuffer(const ConstByteView& view)
-        : m_pAllocator(GetDefaultAllocatorInstance<AllocatorType>()),
-          m_size(view.Size())
+        : m_size(view.Size())
     {
-        HYP_CORE_ASSERT(m_pAllocator != nullptr);
-
         m_allocation.SetToInitialState();
 
         if (m_size == 0)
@@ -121,16 +97,13 @@ public:
             return;
         }
 
-        m_allocation.Allocate(m_pAllocator, m_size, /* alignment */ BufferAlignment);
+        m_allocation.Allocate(GetAllocator(), m_size, /* alignment */ BufferAlignment);
         m_allocation.InitFromRangeCopy(view.Begin(), view.End());
     }
 
     TByteBuffer(const TByteBuffer& other)
-        : m_pAllocator(other.m_pAllocator),
-          m_size(other.m_size)
+        : m_size(other.m_size)
     {
-        HYP_CORE_ASSERT(m_pAllocator != nullptr);
-
         m_allocation.SetToInitialState();
 
         if (m_size == 0)
@@ -138,17 +111,14 @@ public:
             return;
         }
 
-        m_allocation.Allocate(m_pAllocator, m_size, /* alignment */ BufferAlignment);
+        m_allocation.Allocate(GetAllocator(), m_size, /* alignment */ BufferAlignment);
         m_allocation.InitFromRangeCopy(other.Data(), other.Data() + m_size);
     }
 
     template <class OtherAllocator>
     TByteBuffer(const TByteBuffer<OtherAllocator>& other)
-        : m_pAllocator(GetDefaultAllocatorInstance<AllocatorType>()),
-          m_size(other.m_size)
+        : m_size(other.m_size)
     {
-        HYP_CORE_ASSERT(m_pAllocator != nullptr);
-
         m_allocation.SetToInitialState();
 
         if (m_size == 0)
@@ -156,7 +126,7 @@ public:
             return;
         }
 
-        m_allocation.Allocate(m_pAllocator, m_size, /* alignment */ BufferAlignment);
+        m_allocation.Allocate(GetAllocator(), m_size, /* alignment */ BufferAlignment);
         m_allocation.InitFromRangeCopy(other.Data(), other.Data() + m_size);
     }
 
@@ -167,14 +137,13 @@ public:
             return *this;
         }
 
-        const size_t previousSize = m_size;
         const size_t newSize = other.m_size;
 
-        m_allocation.Free(m_pAllocator);
+        m_allocation.Free(GetAllocator());
 
         if (newSize != 0)
         {
-            m_allocation.Allocate(m_pAllocator, newSize, /* alignment */ BufferAlignment);
+            m_allocation.Allocate(GetAllocator(), newSize, /* alignment */ BufferAlignment);
             m_allocation.InitFromRangeCopy(other.Data(), other.Data() + newSize);
         }
 
@@ -191,14 +160,13 @@ public:
             return *this;
         }
 
-        const size_t previousSize = m_size;
         const size_t newSize = other.m_size;
 
-        m_allocation.Free(m_pAllocator);
+        m_allocation.Free(GetAllocator());
 
         if (newSize != 0)
         {
-            m_allocation.Allocate(m_pAllocator, newSize, /* alignment */ BufferAlignment);
+            m_allocation.Allocate(GetAllocator(), newSize, /* alignment */ BufferAlignment);
             m_allocation.InitFromRangeCopy(other.Data(), other.Data() + newSize);
         }
 
@@ -208,11 +176,8 @@ public:
     }
 
     TByteBuffer(TByteBuffer<AllocatorType>&& other) noexcept
-        : m_pAllocator(other.m_pAllocator),
-          m_size(other.m_size)
+        : m_size(other.m_size)
     {
-        HYP_CORE_ASSERT(m_pAllocator != nullptr);
-
         m_allocation.SetToInitialState();
 
         if (other.m_allocation.IsDynamic())
@@ -225,11 +190,11 @@ public:
         {
             if (m_size != 0)
             {
-                m_allocation.Allocate(m_pAllocator, m_size, /* alignment */ BufferAlignment);
+                m_allocation.Allocate(GetAllocator(), m_size, /* alignment */ BufferAlignment);
                 m_allocation.InitFromRangeMove(other.Data(), other.Data() + m_size);
             }
 
-            other.m_allocation.Free(other.m_pAllocator);
+            other.m_allocation.Free(GetAllocator());
         }
 
         other.m_size = 0;
@@ -242,12 +207,11 @@ public:
             return *this;
         }
 
-        const size_t previousSize = m_size;
         const size_t newSize = other.m_size;
 
-        m_allocation.Free(m_pAllocator);
+        m_allocation.Free(GetAllocator());
 
-        if (other.m_allocation.IsDynamic() && m_pAllocator == other.m_pAllocator)
+        if (other.m_allocation.IsDynamic())
         {
             m_allocation.TakeOwnership(other.Data(), other.Data() + newSize);
 
@@ -257,11 +221,11 @@ public:
         {
             if (newSize != 0)
             {
-                m_allocation.Allocate(m_pAllocator, newSize, /* alignment */ BufferAlignment);
+                m_allocation.Allocate(GetAllocator(), newSize, /* alignment */ BufferAlignment);
                 m_allocation.InitFromRangeMove(other.Data(), other.Data() + newSize);
             }
 
-            other.m_allocation.Free(other.m_pAllocator);
+            other.m_allocation.Free(GetAllocator());
         }
 
         m_size = newSize;
@@ -273,7 +237,7 @@ public:
 
     ~TByteBuffer()
     {
-        m_allocation.Free(m_pAllocator);
+        m_allocation.Free(GetAllocator());
     }
 
     /*! \brief Writes \p count bytes of \p data to the ByteBuffer at the given \p offset.
@@ -353,7 +317,7 @@ public:
      *  \param data A pointer to the data to copy into the ByteBuffer. If count is zero, no memory is allocated and the ByteBuffer is set to an empty state. */
     void SetData(size_t count, const void* data)
     {
-        m_allocation.Free(m_pAllocator);
+        m_allocation.Free(GetAllocator());
 
         m_size = count;
 
@@ -362,7 +326,7 @@ public:
             return;
         }
 
-        m_allocation.Allocate(m_pAllocator, count, /* alignment */ BufferAlignment);
+        m_allocation.Allocate(GetAllocator(), count, /* alignment */ BufferAlignment);
         m_allocation.InitFromRangeCopy(reinterpret_cast<const ubyte*>(data), reinterpret_cast<const ubyte*>(data) + count);
     }
 
@@ -423,7 +387,7 @@ public:
 
         if (newCapacity != 0)
         {
-            newAllocation.Allocate(m_pAllocator, newCapacity, /* alignment */ BufferAlignment);
+            newAllocation.Allocate(GetAllocator(), newCapacity, /* alignment */ BufferAlignment);
 
             const size_t minCapacity = currentCapacity <= newCapacity ? currentCapacity : newCapacity;
 
@@ -436,7 +400,7 @@ public:
             m_size = newCapacity;
         }
 
-        m_allocation.Free(m_pAllocator);
+        m_allocation.Free(GetAllocator());
 
         m_allocation = newAllocation;
     }
@@ -569,7 +533,7 @@ public:
      *  After calling this function, the ByteBuffer will be empty and no memory will be allocated. */
     void Clear()
     {
-        m_allocation.Free(m_pAllocator);
+        m_allocation.Free(GetAllocator());
         m_size = 0;
     }
 
@@ -586,7 +550,11 @@ public:
     }
 
 private:
-    AllocatorType* const m_pAllocator;
+    HYP_FORCE_INLINE static AllocatorType* GetAllocator()
+    {
+        return GetAllocator();
+    }
+
     Allocation<ubyte, AllocatorType> m_allocation;
     size_t m_size;
 };

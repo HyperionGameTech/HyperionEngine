@@ -83,51 +83,33 @@ public:
     template <bool ConditionalEnable = HasDefaultAllocatorInstance<AllocatorType>, typename = std::enable_if_t<ConditionalEnable>>
     Array()
         : m_size(0),
-          m_startOffset(0),
-          m_pAllocator(GetDefaultAllocatorInstance<AllocatorType>())
+          m_startOffset(0)
     {
-        HYP_CORE_ASSERT(m_pAllocator != nullptr);
-
         m_allocation.SetToInitialState();
     }
 
     Array(const Array& other);
     Array(Array&& other) noexcept;
 
-    explicit Array(AllocatorType* pAllocator, size_t size = 0)
-        : m_size(0),
-          m_startOffset(0),
-          m_pAllocator(pAllocator)
-    {
-        HYP_CORE_ASSERT(pAllocator != nullptr);
-
-        m_allocation.SetToInitialState();
-
-        if (size != 0)
-        {
-            Resize(size);
-        }
-    }
-    
     template <bool ConditionalEnable = HasDefaultAllocatorInstance<AllocatorType>, typename = std::enable_if_t<ConditionalEnable>>
     explicit Array(size_t size)
         : Array()
     {
         Resize(size);
     }
-    
+
     template <bool ConditionalEnable = HasDefaultAllocatorInstance<AllocatorType>, typename = std::enable_if_t<ConditionalEnable>>
     Array(Span<T> span)
         : Array(span.Data(), span.Size())
     {
     }
-    
+
     template <bool ConditionalEnable = HasDefaultAllocatorInstance<AllocatorType>, typename = std::enable_if_t<ConditionalEnable>>
     Array(Span<const T> span)
         : Array(span.Data(), span.Size())
     {
     }
-    
+
     template <size_t Sz, bool ConditionalEnable = HasDefaultAllocatorInstance<AllocatorType>, typename = std::enable_if_t<ConditionalEnable>>
     Array(T const (&items)[Sz])
         : Array()
@@ -141,7 +123,7 @@ public:
             Memory::Construct<T>(storagePtr++, items[i]);
         }
     }
-    
+
     template <size_t Sz, bool ConditionalEnable = HasDefaultAllocatorInstance<AllocatorType>, typename = std::enable_if_t<ConditionalEnable>>
     Array(T (&&items)[Sz])
         : Array()
@@ -155,13 +137,13 @@ public:
             Memory::Construct<T>(storagePtr++, std::move(items[i]));
         }
     }
-    
+
     template <size_t Sz, bool ConditionalEnable = HasDefaultAllocatorInstance<AllocatorType>, typename = std::enable_if_t<ConditionalEnable>>
     Array(const FixedArray<T, Sz>& items)
         : Array(items.Begin(), items.End())
     {
     }
-    
+
     template <size_t Sz, bool ConditionalEnable = HasDefaultAllocatorInstance<AllocatorType>, typename = std::enable_if_t<ConditionalEnable>>
     Array(FixedArray<T, Sz>&& items)
         : Array()
@@ -175,7 +157,7 @@ public:
             Memory::Construct<T>(storagePtr++, std::move(items[i]));
         }
     }
-    
+
     template <bool ConditionalEnable = HasDefaultAllocatorInstance<AllocatorType>, typename = std::enable_if_t<ConditionalEnable>>
     Array(T* ptr, size_t size)
         : Array()
@@ -207,7 +189,7 @@ public:
             Memory::Construct<T>(storagePtr++, *it);
         }
     }
-    
+
     template <bool ConditionalEnable = HasDefaultAllocatorInstance<AllocatorType>, typename = std::enable_if_t<ConditionalEnable>>
     Array(ConstIterator first, ConstIterator last)
         : Array()
@@ -222,13 +204,13 @@ public:
             Memory::Construct<T>(storagePtr++, *it);
         }
     }
-    
+
     template <bool ConditionalEnable = HasDefaultAllocatorInstance<AllocatorType>, typename = std::enable_if_t<ConditionalEnable>>
     Array(const T* ptr, size_t size)
         : Array(ptr, ptr + size)
     {
     }
-    
+
     template <bool ConditionalEnable = HasDefaultAllocatorInstance<AllocatorType>, typename = std::enable_if_t<ConditionalEnable>>
     Array(std::initializer_list<T> initializerList)
         : Array(initializerList.begin(), initializerList.end())
@@ -241,7 +223,7 @@ public:
     {
         m_size = other.Size();
 
-        m_allocation.Allocate(m_pAllocator, m_size);
+        m_allocation.Allocate(GetAllocator(), m_size);
         m_allocation.InitFromRangeCopy(other.Begin(), other.End());
     }
 
@@ -737,30 +719,32 @@ protected:
 protected:
     size_t m_startOffset;
 
-    AllocatorType* const m_pAllocator;
+    HYP_FORCE_INLINE static AllocatorType* GetAllocator()
+    {
+        return GetDefaultAllocatorInstance<AllocatorType>();
+    }
+
     Allocation<T, AllocatorType> m_allocation;
 };
 
 template <class T, class AllocatorType>
 Array<T, AllocatorType>::Array(const Array& other)
     : m_size(other.m_size - other.m_startOffset),
-      m_startOffset(0),
-      m_pAllocator(other.m_pAllocator)
+      m_startOffset(0)
 {
-    HYP_CORE_ASSERT(m_pAllocator != nullptr);
+    HYP_CORE_ASSERT(GetAllocator() != nullptr);
 
     m_allocation.SetToInitialState();
-    m_allocation.Allocate(m_pAllocator, m_size);
+    m_allocation.Allocate(GetAllocator(), m_size);
     m_allocation.InitFromRangeCopy(other.Begin(), other.End());
 }
 
 template <class T, class AllocatorType>
 Array<T, AllocatorType>::Array(Array&& other) noexcept
     : m_size(0),
-      m_startOffset(0),
-      m_pAllocator(other.m_pAllocator)
+      m_startOffset(0)
 {
-    HYP_CORE_ASSERT(m_pAllocator != nullptr);
+    HYP_CORE_ASSERT(GetAllocator() != nullptr);
 
     m_allocation.SetToInitialState();
 
@@ -781,11 +765,11 @@ Array<T, AllocatorType>::Array(Array&& other) noexcept
         m_size = other.m_size - other.m_startOffset;
         m_startOffset = 0;
 
-        m_allocation.Allocate(m_pAllocator, m_size);
+        m_allocation.Allocate(GetAllocator(), m_size);
         m_allocation.InitFromRangeMove(other.Begin(), other.End());
 
         other.m_allocation.DestructInRange(other.m_startOffset, other.m_size);
-        other.m_allocation.Free(other.m_pAllocator);
+        other.m_allocation.Free(other.GetAllocator());
 
         other.m_size = 0;
         other.m_startOffset = 0;
@@ -796,7 +780,7 @@ template <class T, class AllocatorType>
 Array<T, AllocatorType>::~Array()
 {
     m_allocation.DestructInRange(m_startOffset, m_size);
-    m_allocation.Free(m_pAllocator);
+    m_allocation.Free(GetAllocator());
 }
 
 template <class T, class AllocatorType>
@@ -808,12 +792,12 @@ auto Array<T, AllocatorType>::operator=(const Array& other) -> Array&
     }
 
     m_allocation.DestructInRange(m_startOffset, m_size);
-    m_allocation.Free(m_pAllocator);
+    m_allocation.Free(GetAllocator());
 
     m_size = other.m_size - other.m_startOffset;
     m_startOffset = 0;
 
-    m_allocation.Allocate(m_pAllocator, m_size);
+    m_allocation.Allocate(GetAllocator(), m_size);
     m_allocation.InitFromRangeCopy(other.Begin(), other.End());
 
     return *this;
@@ -828,9 +812,9 @@ auto Array<T, AllocatorType>::operator=(Array&& other) noexcept -> Array&
     }
 
     m_allocation.DestructInRange(m_startOffset, m_size);
-    m_allocation.Free(m_pAllocator);
+    m_allocation.Free(GetAllocator());
 
-    if (other.m_allocation.IsDynamic() && m_pAllocator == other.m_pAllocator)
+    if (other.m_allocation.IsDynamic() && GetAllocator() == other.GetAllocator())
     {
         m_size = other.m_size;
         m_startOffset = other.m_startOffset;
@@ -847,11 +831,11 @@ auto Array<T, AllocatorType>::operator=(Array&& other) noexcept -> Array&
         m_size = other.m_size - other.m_startOffset;
         m_startOffset = 0;
 
-        m_allocation.Allocate(m_pAllocator, m_size);
+        m_allocation.Allocate(GetAllocator(), m_size);
         m_allocation.InitFromRangeMove(other.Begin(), other.End());
 
         other.m_allocation.DestructInRange(other.m_startOffset, other.m_size);
-        other.m_allocation.Free(other.m_pAllocator);
+        other.m_allocation.Free(other.GetAllocator());
 
         other.m_size = 0;
         other.m_startOffset = 0;
@@ -914,12 +898,12 @@ void Array<T, AllocatorType>::SetCapacity(size_t capacity, size_t offset)
 
     if (capacity > 0)
     {
-        newAllocation.Allocate(m_pAllocator, capacity);
+        newAllocation.Allocate(GetAllocator(), capacity);
         newAllocation.InitFromRangeMove(Begin(), End(), offset);
     }
 
     m_allocation.DestructInRange(m_startOffset, m_size);
-    m_allocation.Free(m_pAllocator);
+    m_allocation.Free(GetAllocator());
 
     m_size -= m_startOffset;
     m_size += offset;

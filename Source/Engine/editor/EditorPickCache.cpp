@@ -39,7 +39,7 @@ struct EditorPickCacheImpl
 
     Cache cache;
     FixedArray<ResidencySet, MaxResidency + 1> residencyMap;
-    RenderProxyList renderProxyList { g_editorPickCachePool, /* isShared */ false, /* useRefCounting */ false };
+    RenderProxyList renderProxyList { /* isShared */ false, /* useRefCounting */ false };
 
     ClockTimer timer { 1.0 }; // 1 tick per second
 
@@ -153,7 +153,7 @@ void EditorPickCache::PutEntry(const Mesh* mesh)
     }
 
     const MeshDesc& meshDesc = mesh->GetMeshDesc();
-    
+
     const VertexArrayView vertexData = mesh->GetVertexData();
     const Span<const ubyte> indexData = mesh->GetIndexData();
 

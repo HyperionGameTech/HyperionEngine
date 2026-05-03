@@ -40,7 +40,7 @@ public:
 #else
     CmdBase() = default;
 #endif
-    
+
     static void PrepareStatic(CmdBase*, Frame*)
     {
     }
@@ -466,7 +466,7 @@ public:
         m_subResource.baseMipLevel = 0;
         m_subResource.numLevels = 1;
     }
-    
+
     CopyImageToBuffer(GpuImage* image, GpuBuffer* buffer, const ImageSubResource& subResource)
         : m_image(image),
           m_buffer(buffer),
@@ -845,19 +845,19 @@ public:
           uniform { name, buffer }
     {
     }
-    
+
     SetShaderUniform(uint32 uniformIndex, StringHash name, GpuImageView* imageView)
         : uniformIndex(uniformIndex),
           uniform { name, imageView }
     {
     }
-    
+
     SetShaderUniform(uint32 uniformIndex, StringHash name, Sampler* sampler)
         : uniformIndex(uniformIndex),
           uniform { name, sampler }
     {
     }
-    
+
     SetShaderUniform(uint32 uniformIndex, StringHash name, GpuTlas* tlas)
         : uniformIndex(uniformIndex),
           uniform { name, tlas }
@@ -933,7 +933,7 @@ public:
     }
 
     explicit TCommandRecorder(AllocatorType* pAllocator)
-        : m_cmdHeaders(pAllocator),
+        : m_cmdHeaders(),
           m_buffer(pAllocator),
           m_offset(0),
           m_writableState(true)

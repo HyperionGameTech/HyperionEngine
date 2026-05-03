@@ -61,8 +61,8 @@ class RenderProxyList
     static constexpr uint64 ReadMask = uint64(-1) & ~WriteFlag;
 
 public:
-    using AllocatorType = Pool; // per-frame pools
-    
+    using AllocatorType = DynamicAllocator;
+
     template <class... Ts>
     using ResourceTrackerBase = Resources::ResourceTrackerBase<Ts...>;
 
@@ -101,12 +101,10 @@ public:
 
     static_assert(TupleSize<ResourceTrackerTypes>::value == TupleSize<TrackedResourceTypes>::value, "Tuple sizes must match");
 
-private:
 public:
-    /*! \param pAllocator The allocator to use for this render proxy list
-     *  \param isShared if true, uses a spinlock to protect against mutual access of the data
+    /*! \param isShared if true, uses a spinlock to protect against mutual access of the data
      *  \param useRefCounting if true, will increment reference count (UpdateRefs() will need to be called) and release reference counts on destruction. */
-    RenderProxyList(AllocatorType* pAllocator, bool isShared, bool useRefCounting);
+    RenderProxyList(bool isShared, bool useRefCounting);
 
     RenderProxyList(const RenderProxyList& other) = delete;
     RenderProxyList& operator=(const RenderProxyList& other) = delete;
@@ -114,7 +112,7 @@ public:
     RenderProxyList(RenderProxyList&& other) noexcept = delete;
     RenderProxyList& operator=(RenderProxyList&& other) noexcept = delete;
 
-    ~RenderProxyList();
+    virtual ~RenderProxyList();
 
     HYP_API void BeginWrite();
     HYP_API void EndWrite();

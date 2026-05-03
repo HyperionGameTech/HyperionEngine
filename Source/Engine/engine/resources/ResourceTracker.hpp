@@ -290,11 +290,10 @@ public:
 
     static_assert(std::is_base_of_v<ObjIdBase, IdType>, "IdType must be derived from ObjIdBase (must use numeric id)");
 
-    explicit ResourceTracker(AllocatorType* pAllocator)
-        : pAllocator(pAllocator),
-          baseImpl(&TypeOf<typename IdType::ObjectType>(), pAllocator), // default impl for base class
-          subclassImpls(pAllocator),
-          emptyArray(pAllocator),
+    ResourceTracker()
+        : baseImpl(&TypeOf<typename IdType::ObjectType>()), // default impl for base class
+          subclassImpls(),
+          emptyArray(),
           cachedDiffNeedsUpdate(false)
     {
         // Setup the subclass implementations array, we initialize them as they get used
@@ -449,7 +448,7 @@ public:
             const Class* cls = GetClass(typeId);
             AssertDebug(cls != nullptr);
 
-            subclassImpls[subclassIndex] = MakePimpl<Impl>(&Class_GetTypeInfo(*cls), pAllocator);
+            subclassImpls[subclassIndex] = MakePimpl<Impl>(&Class_GetTypeInfo(*cls));
             subclassIndices.Set(subclassIndex, true);
         }
 
@@ -701,7 +700,7 @@ public:
             const Class* cls = GetClass(typeId);
             AssertDebug(cls != nullptr, "Class for TypeId {} not found", typeId.Value());
 
-            subclassImpls[subclassIndex] = MakePimpl<Impl>(&Class_GetTypeInfo(*cls), pAllocator);
+            subclassImpls[subclassIndex] = MakePimpl<Impl>(&Class_GetTypeInfo(*cls));
             subclassIndices.Set(subclassIndex, true);
         }
 
@@ -731,7 +730,7 @@ public:
             const Class* cls = GetClass(typeId);
             AssertDebug(cls != nullptr, "Class for TypeId {} not found", typeId.Value());
 
-            subclassImpls[subclassIndex] = MakePimpl<Impl>(&Class_GetTypeInfo(*cls), pAllocator);
+            subclassImpls[subclassIndex] = MakePimpl<Impl>(&Class_GetTypeInfo(*cls));
             subclassIndices.Set(subclassIndex, true);
         }
 
@@ -795,13 +794,12 @@ public:
 
     struct Impl final
     {
-        Impl(const TypeInfo* typeInfo, AllocatorType* pAllocator)
+        Impl(const TypeInfo* typeInfo)
             : typeInfo(typeInfo),
-              elements(pAllocator),
-              versions(pAllocator),
-              proxies(pAllocator)
+              elements(),
+              versions(),
+              proxies()
         {
-            AssertDebug(pAllocator != nullptr);
         }
 
         Impl(const Impl& other) = delete;
@@ -1304,8 +1302,6 @@ public:
         Bitset changed;
     };
 
-    AllocatorType* pAllocator;
-
     // base class impl
     Impl baseImpl;
 
@@ -1354,7 +1350,7 @@ static inline void GetAddedElements(ResourceTracker<IdType, ElementType, ProxyTy
     {
         if (!lhs.subclassIndices.Test(i))
         {
-            lhs.subclassImpls[i] = MakePimpl<typename ResourceTracker<IdType, ElementType, ProxyType>::Impl>(rhs.subclassImpls[i]->typeInfo, lhs.pAllocator);
+            lhs.subclassImpls[i] = MakePimpl<typename ResourceTracker<IdType, ElementType, ProxyType>::Impl>(rhs.subclassImpls[i]->typeInfo);
             lhs.subclassIndices.Set(i, true);
         }
 
@@ -1397,7 +1393,7 @@ static inline void GetRemovedElements(ResourceTracker<IdType, ElementType, Proxy
     {
         if (!rhs.subclassIndices.Test(i))
         {
-            lhs.subclassImpls[i] = MakePimpl<typename ResourceTracker<IdType, ElementType, ProxyType>::Impl>(rhs.subclassImpls[i]->typeInfo, lhs.pAllocator);
+            lhs.subclassImpls[i] = MakePimpl<typename ResourceTracker<IdType, ElementType, ProxyType>::Impl>(rhs.subclassImpls[i]->typeInfo);
             lhs.subclassIndices.Set(i, true);
         }
 
