@@ -1966,7 +1966,7 @@ public:
         {
             const Tile& tile = tempTiles[i];
 
-            gridData[i].indexOffset = uint32(flatIndexData.Size());
+            gridData[i].indexOffset = offset;
             gridData[i].numLights = tile.numLights;
             gridData[i].numEnvProbes = tile.numEnvProbes;
 

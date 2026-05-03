@@ -184,7 +184,9 @@ PSOutput PSMain(PSInput input)
 
     const float3 diffuse_color = CalculateDiffuseColor(albedo.rgb, metalness);
 
-    uint2 viewportExtent = camera.dimensions.xy;
+    uint width, height;
+    gbuffer_depth_texture.GetDimensions(width, height);
+    uint2 viewportExtent = uint2(width, height);
     viewportExtent.x &= ~1;
     viewportExtent.y &= ~1;
 

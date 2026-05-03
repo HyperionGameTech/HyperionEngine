@@ -215,11 +215,13 @@ PSOutput PSMain(PSInput input)
 #ifdef LIGHT_TYPE_CLUSTERED
     float viewSpaceZ = positionVS.z;
 
-    uint2 viewportExtent = camera.dimensions.xy;
+    uint width, height;
+    gbuffer_depth_texture.GetDimensions(width, height);
+    uint2 viewportExtent = uint2(width, height);
     viewportExtent.x &= ~1;
     viewportExtent.y &= ~1;
 
-    uint2 viewportPixelCoord = (uint2)((pixelCoord / (float2)camera.dimensions.xy) * (float2)viewportExtent);
+    uint2 viewportPixelCoord = (uint2)(texcoord * (float2)viewportExtent);
 
     // Cluster data
     const uint gridIndex = Cluster_GetGridIndex(
@@ -304,7 +306,7 @@ PSOutput PSMain(PSInput input)
 
                         float3 worldToLight = position.xyz - currentLight.position_intensity.xyz;
 
-                        // shadow = GetPointShadow(shadowMap, currentLight.flags, worldToLight, NdotL);
+                        shadow = GetPointShadow(shadowMap, currentLight.flags, worldToLight, NdotL);
                     }
                 }
 
@@ -326,11 +328,11 @@ PSOutput PSMain(PSInput input)
     }
 
     // // Debug clustering - color based on tile (x, y, z)
-    // const uint tilesX = (camera.dimensions.x + TILE_SIZE - 1) / TILE_SIZE;
-    // const uint tilesY = (camera.dimensions.y + TILE_SIZE - 1) / TILE_SIZE;
+    // const uint tilesX = (viewportExtent.x + TILE_SIZE - 1) / TILE_SIZE;
+    // const uint tilesY = (viewportExtent.y + TILE_SIZE - 1) / TILE_SIZE;
 
-    // const uint tileX = pixelCoord.x / TILE_SIZE;
-    // const uint tileY = pixelCoord.y / TILE_SIZE;
+    // const uint tileX = viewportPixelCoord.x / TILE_SIZE;
+    // const uint tileY = viewportPixelCoord.y / TILE_SIZE;
 
     // const float scale = TILE_Z_BINS / log2(camera.far / camera.near);
     // const float bias = -log2(camera.near) * scale;
@@ -347,6 +349,10 @@ PSOutput PSMain(PSInput input)
     // result = float4(tileColor, 1.0);
 
     // result = float4((float2)pixelCoord / (float2)camera.dimensions.xy, 0.0, 1.0);
+    // result = UINT_TO_VEC4(gridIndex);//  float4(numLights, 0.0, 0.0, 1.0);
+    // result.a = 1.0;
+
+    // result = float4(numLights, 0.0, 0.0, 1.0);
 
     // Env probes will be in indirect pass.
 #else // !LIGHT_TYPE_CLUSTERED

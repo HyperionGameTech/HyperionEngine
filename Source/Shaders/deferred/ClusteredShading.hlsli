@@ -52,7 +52,7 @@ uint Cluster_CalculateZBin(float viewSpaceZ, float scale, float bias)
 uint Cluster_GetGridIndex(uint2 dimensions, uint2 pixelCoord, float viewSpaceZ, float cameraNear, float cameraFar)
 {
     // Constants for logarithmic Z binning.
-    const float scale = TILE_Z_BINS / log2(cameraFar / cameraNear);
+    const float scale = (float)TILE_Z_BINS / log2(cameraFar / cameraNear);
     const float bias = -log2(cameraNear) * scale;
 
     const uint zBin = Cluster_CalculateZBin(viewSpaceZ, scale, bias);
