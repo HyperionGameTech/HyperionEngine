@@ -21,7 +21,7 @@
 #include <Core/profiling/ProfileScope.hpp>
 
 #include <engine/EngineDriver.hpp>
-#include <engine/config/EngineConfig.hpp>
+#include <engine/CVarManager.hpp>
 
 #include <EditorCamera.generated.inl>
 
@@ -29,11 +29,15 @@ namespace Hyperion {
 
 extern EngineConfig& GetEngineConfig();
 
+CVar<float> cvEditorCameraLookSensitivity("Editor.Camera.LookSensitivity", 25.0f);
+CVar<float> cvEditorCameraMovementSpeed("Editor.Camera.MovementSpeed", 10.0f);
+
 HYP_DECLARE_LOG_CHANNEL(Camera);
 
-static Bitset GetMovementKeys(bool includeArrowKeys = true)
+template <class AllocatorType>
+static TBitset<AllocatorType> GetMovementKeys(bool includeArrowKeys = true)
 {
-    Bitset bits;
+    TBitset<AllocatorType> bits;
     bits.Set(uint32(KeyCode::KEY_W), true);
     bits.Set(uint32(KeyCode::KEY_A), true);
     bits.Set(uint32(KeyCode::KEY_S), true);
@@ -50,7 +54,8 @@ static Bitset GetMovementKeys(bool includeArrowKeys = true)
     return bits;
 }
 
-static const Bitset s_movementKeys = GetMovementKeys(true);
+// Max key enum value (KEY_W) < (32*4)
+static const auto s_movementKeys = GetMovementKeys<FixedAllocator<(128 / Bitset::NumBitsPerBlock)>>(true);
 
 #pragma region EditorCameraInputHandler
 
@@ -143,14 +148,11 @@ bool EditorCameraInputHandler::OnMouseDrag(const MouseEvent& evt)
 {
     HYP_SCOPE;
 
-    const ConfigValue& editorLookSensitivity = GetEngineConfig().Get("Editor.Camera.LookSensitivity");
-    const ConfigValue& editorMoveSensitivity = GetEngineConfig().Get("Editor.Camera.MoveSensitivity");
-
     Camera* camera = m_controller->GetCamera();
     Assert(camera != nullptr);
 
-    const double lookMultiplier = 7.5 * editorLookSensitivity.ToDouble(1.0);
-    const double moveMultiplier = 24.0 * editorMoveSensitivity.ToDouble(1.0);
+    const double lookMultiplier = double(cvEditorCameraLookSensitivity.Get());
+    const double moveMultiplier = double(cvEditorCameraMovementSpeed.Get());
 
     const double mouseDeltaX = double(evt.relativePos.x) - double(evt.relativePrevPos.x);
     const double mouseDeltaY = double(evt.relativePos.y) - double(evt.relativePrevPos.y);

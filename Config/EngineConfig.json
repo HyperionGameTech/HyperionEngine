@@ -66,8 +66,8 @@
   },
   "Editor": {
     "Camera": {
-      "MoveSensitivity": 1,
-      "LookSensitivity": 1
+      "MovementSpeed": 10.0,
+      "LookSensitivity": 10.0
     }
   },
   "System": {

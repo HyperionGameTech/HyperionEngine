@@ -50,6 +50,9 @@ public:
     }
 
 private:
+    template <class OtherAllocatorType>
+    friend class TBitset; // to allow access to private members of other TBitset instantiations.
+
     template <bool IsConst>
     struct IteratorBase
     {
