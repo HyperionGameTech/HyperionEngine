@@ -34,7 +34,7 @@ bool CharacterControllerInputHandler::IsJumpPressed() const
     return m_jump;
 }
 
-bool CharacterControllerInputHandler::OnKeyDown_Impl(const KeyboardEvent& evt)
+bool CharacterControllerInputHandler::OnKeyDown(const KeyboardEvent& evt)
 {
     switch (evt.keyCode)
     {
@@ -49,7 +49,7 @@ bool CharacterControllerInputHandler::OnKeyDown_Impl(const KeyboardEvent& evt)
     return false;
 }
 
-bool CharacterControllerInputHandler::OnKeyUp_Impl(const KeyboardEvent& evt)
+bool CharacterControllerInputHandler::OnKeyUp(const KeyboardEvent& evt)
 {
     switch (evt.keyCode)
     {
@@ -182,4 +182,3 @@ void CharacterControllerSystem::Process(float delta, Span<Handle<Scene>> scenes)
 #pragma endregion CharacterControllerSystem
 
 } // namespace Hyperion
-

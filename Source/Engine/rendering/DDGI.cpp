@@ -302,9 +302,9 @@ void DDGI::Render(Frame* frame, const RenderSetup& renderSetup)
     frame->cr << SetShaderUniform(0, "SamplerNearest"_sh, RI.placeholderData->GetSamplerNearest());
     frame->cr << SetShaderUniform(1, "SamplerLinear"_sh, RI.placeholderData->GetSamplerLinearMipmap());
     frame->cr << SetShaderUniform(2, "TLAS"_sh, tlas);
-    frame->cr << SetShaderUniform(3, "MeshDescriptionsBuffer"_sh, meshDescriptionsBuffer);
+    frame->cr << SetShaderUniform(3, "MeshDescriptionsBuffer"_sh, meshDescriptionsBuffer, ShaderDataOffset(0, sizeof(MeshDescription)));
     frame->cr << SetShaderUniform(4, "CBuffer"_sh, m_dynamicCBuffer, ShaderDataOffset(m_dynamicCBufferOffset, m_dynamicCBufferSize));
-    frame->cr << SetShaderUniform(5, "ProbeRayData"_sh, m_radianceBuffer);
+    frame->cr << SetShaderUniform(5, "ProbeRayData"_sh, m_radianceBuffer, ShaderDataOffset(0, sizeof(ProbeRayData)));
 
     frame->cr << SetShaderUniform(6, "ShadowMapsTextureArray"_sh, RI.shadowMapCache->GetAtlasImageView());
     frame->cr << SetShaderUniform(7, "PointLightShadowMapsTextureArray"_sh, RI.shadowMapCache->GetPointLightShadowMapImageView());
@@ -335,7 +335,7 @@ void DDGI::Render(Frame* frame, const RenderSetup& renderSetup)
     frame->cr << SetCurrentShader(ShaderDesc(NAME("UpdateProbeData"), shaderProperties));
 
     frame->cr << SetShaderUniform(0, "CBuffer"_sh, m_dynamicCBuffer, ShaderDataOffset(m_dynamicCBufferOffset, m_dynamicCBufferSize));
-    frame->cr << SetShaderUniform(1, "ProbeRayData"_sh, m_radianceBuffer);
+    frame->cr << SetShaderUniform(1, "ProbeRayData"_sh, m_radianceBuffer, ShaderDataOffset(0, sizeof(ProbeRayData)));
     frame->cr << SetShaderUniform(2, "OutputImage"_sh, m_irradianceImageView);
 
     frame->cr << DispatchCompute(Vec3u { probeCounts.x * probeCounts.y, probeCounts.z, 1u });
@@ -350,7 +350,7 @@ void DDGI::Render(Frame* frame, const RenderSetup& renderSetup)
     frame->cr << SetCurrentShader(ShaderDesc(NAME("UpdateProbeData"), shaderProperties));
 
     frame->cr << SetShaderUniform(0, "CBuffer"_sh, m_dynamicCBuffer, ShaderDataOffset(m_dynamicCBufferOffset, m_dynamicCBufferSize));
-    frame->cr << SetShaderUniform(1, "ProbeRayData"_sh, m_radianceBuffer);
+    frame->cr << SetShaderUniform(1, "ProbeRayData"_sh, m_radianceBuffer, ShaderDataOffset(0, sizeof(ProbeRayData)));
     frame->cr << SetShaderUniform(2, "OutputImage"_sh, m_depthImageView);
 
     frame->cr << DispatchCompute(Vec3u { probeCounts.x * probeCounts.y, probeCounts.z, 1u });
@@ -365,7 +365,7 @@ void DDGI::Render(Frame* frame, const RenderSetup& renderSetup)
     // Copy border texels irradiance
     frame->cr << SetCurrentShader(ShaderDesc(NAME("RTCopyBorderTexelsIrradiance")));
     frame->cr << SetShaderUniform(0, "DDGIConstants"_sh, m_cbuffers[frameIndex]);
-    frame->cr << SetShaderUniform(1, "ProbeRayData"_sh, m_radianceBuffer);
+    frame->cr << SetShaderUniform(1, "ProbeRayData"_sh, m_radianceBuffer, ShaderDataOffset(0, sizeof(ProbeRayData)));
     frame->cr << SetShaderUniform(2, "OutputIrradianceImage"_sh, m_irradianceImageView);
     frame->cr << SetShaderUniform(3, "OutputDepthImage"_sh, m_depthImageView);
 
@@ -378,7 +378,7 @@ void DDGI::Render(Frame* frame, const RenderSetup& renderSetup)
     // Copy border texels depth
     frame->cr << SetCurrentShader(ShaderDesc(NAME("RTCopyBorderTexelsDepth")));
     frame->cr << SetShaderUniform(0, "DDGIConstants"_sh, m_cbuffers[frameIndex]);
-    frame->cr << SetShaderUniform(1, "ProbeRayData"_sh, m_radianceBuffer);
+    frame->cr << SetShaderUniform(1, "ProbeRayData"_sh, m_radianceBuffer, ShaderDataOffset(0, sizeof(ProbeRayData)));
     frame->cr << SetShaderUniform(2, "OutputIrradianceImage"_sh, m_irradianceImageView);
     frame->cr << SetShaderUniform(3, "OutputDepthImage"_sh, m_depthImageView);
 

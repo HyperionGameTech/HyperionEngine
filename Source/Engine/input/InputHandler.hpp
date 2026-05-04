@@ -48,72 +48,46 @@ public:
         m_deltaTime = deltaTime;
     }
 
-    HYP_METHOD(Scriptable)
-    bool OnKeyDown(const KeyboardEvent& evt);
-
-    HYP_METHOD(Scriptable)
-    bool OnKeyUp(const KeyboardEvent& evt);
-
-    HYP_METHOD(Scriptable)
-    bool OnMouseDown(const MouseEvent& evt);
-
-    HYP_METHOD(Scriptable)
-    bool OnMouseUp(const MouseEvent& evt);
-
-    HYP_METHOD(Scriptable)
-    bool OnMouseMove(const MouseEvent& evt);
-
-    HYP_METHOD(Scriptable)
-    bool OnMouseDrag(const MouseEvent& evt);
-
-    HYP_METHOD(Scriptable)
-    bool OnMouseLeave(const MouseEvent& evt);
-
-    HYP_METHOD(Scriptable)
-    bool OnClick(const MouseEvent& evt);
-
-    HYP_METHOD(Scriptable)
-    bool OnGainFocus(const MouseEvent& evt);
-
-    HYP_METHOD(Scriptable)
-    bool OnLoseFocus(const MouseEvent& evt);
-
     bool IsKeyDown(KeyCode key) const;
     bool IsKeyUp(KeyCode key) const;
 
     bool IsMouseButtonDown(MouseButtonKey btn) const;
     bool IsMouseButtonUp(MouseButtonKey btn) const;
 
-protected:
-    HYP_METHOD()
-    virtual bool OnKeyDown_Impl(const KeyboardEvent& evt);
+    virtual bool OnKeyDown(const KeyboardEvent& evt);
+    virtual bool OnKeyUp(const KeyboardEvent& evt);
+    virtual bool OnMouseDown(const MouseEvent& evt);
+    virtual bool OnMouseUp(const MouseEvent& evt);
 
-    HYP_METHOD()
-    virtual bool OnKeyUp_Impl(const KeyboardEvent& evt);
+    virtual bool OnMouseMove(const MouseEvent& evt)
+    {
+        return false;
+    }
 
-    HYP_METHOD()
-    virtual bool OnMouseDown_Impl(const MouseEvent& evt);
+    virtual bool OnMouseDrag(const MouseEvent& evt)
+    {
+        return false;
+    }
 
-    HYP_METHOD()
-    virtual bool OnMouseUp_Impl(const MouseEvent& evt);
+    virtual bool OnMouseLeave(const MouseEvent& evt)
+    {
+        return false;
+    }
 
-    HYP_METHOD()
-    virtual bool OnMouseMove_Impl(const MouseEvent& evt) = 0;
+    virtual bool OnClick(const MouseEvent& evt)
+    {
+        return false;
+    }
 
-    HYP_METHOD()
-    virtual bool OnMouseDrag_Impl(const MouseEvent& evt) = 0;
+    virtual bool OnGainFocus(const MouseEvent& evt)
+    {
+        return false;
+    }
 
-    HYP_METHOD()
-    virtual bool OnMouseLeave_Impl(const MouseEvent& evt) = 0;
-
-    HYP_METHOD()
-    virtual bool OnClick_Impl(const MouseEvent& evt) = 0;
-
-    HYP_METHOD()
-    virtual bool OnGainFocus_Impl(const MouseEvent& evt) = 0;
-
-    HYP_METHOD()
-    virtual bool OnLoseFocus_Impl(const MouseEvent& evt) = 0;
+    virtual bool OnLoseFocus(const MouseEvent& evt)
+    {
+        return false;
+    }
 
 private:
     Bitset m_keyStates;
@@ -131,62 +105,6 @@ class NullInputHandler final : public InputHandlerBase
 public:
     NullInputHandler() = default;
     virtual ~NullInputHandler() override = default;
-
-private:
-    void Init() override
-    {
-        SetReady(true);
-    }
-
-    virtual bool OnKeyDown_Impl(const KeyboardEvent& evt) override
-    {
-        return false;
-    }
-
-    virtual bool OnKeyUp_Impl(const KeyboardEvent& evt) override
-    {
-        return false;
-    }
-
-    virtual bool OnMouseDown_Impl(const MouseEvent& evt) override
-    {
-        return false;
-    }
-
-    virtual bool OnMouseUp_Impl(const MouseEvent& evt) override
-    {
-        return false;
-    }
-
-    virtual bool OnMouseMove_Impl(const MouseEvent& evt) override
-    {
-        return false;
-    }
-
-    virtual bool OnMouseDrag_Impl(const MouseEvent& evt) override
-    {
-        return false;
-    }
-
-    virtual bool OnMouseLeave_Impl(const MouseEvent& evt) override
-    {
-        return false;
-    }
-
-    virtual bool OnClick_Impl(const MouseEvent& evt) override
-    {
-        return false;
-    }
-
-    virtual bool OnGainFocus_Impl(const MouseEvent& evt) override
-    {
-        return false;
-    }
-
-    virtual bool OnLoseFocus_Impl(const MouseEvent& evt) override
-    {
-        return false;
-    }
 };
 
 } // namespace Hyperion

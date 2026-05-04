@@ -26,16 +26,8 @@ public:
     Vec2f GetMovementInput() const;
     bool IsJumpPressed() const;
 
-protected:
-    virtual bool OnKeyDown_Impl(const KeyboardEvent& evt) override;
-    virtual bool OnKeyUp_Impl(const KeyboardEvent& evt) override;
-
-    virtual bool OnMouseMove_Impl(const MouseEvent& evt) override { return false; }
-    virtual bool OnMouseDrag_Impl(const MouseEvent& evt) override { return false; }
-    virtual bool OnMouseLeave_Impl(const MouseEvent& evt) override { return false; }
-    virtual bool OnClick_Impl(const MouseEvent& evt) override { return false; }
-    virtual bool OnGainFocus_Impl(const MouseEvent& evt) override { return false; }
-    virtual bool OnLoseFocus_Impl(const MouseEvent& evt) override { return false; }
+    virtual bool OnKeyDown(const KeyboardEvent& evt) override;
+    virtual bool OnKeyUp(const KeyboardEvent& evt) override;
 
 private:
     float m_forward = 0.0f;

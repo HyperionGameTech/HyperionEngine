@@ -519,9 +519,9 @@ void LightmapRenderer_GpuPathTracing::Render(Frame* frame, const RenderSetup& re
     cr << SetCurrentShader(GetShaderDesc(m_shadingType));
 
     cr << SetShaderUniform(0, "TLAS"_sh, m_tlas);
-    cr << SetShaderUniform(1, "MeshDescriptionsBuffer"_sh, m_tlas->GetMeshDescriptionsBuffer());
-    cr << SetShaderUniform(2, "HitsBuffer"_sh, jd.hitsBufferGpu.gpuBuffer);
-    cr << SetShaderUniform(3, "RaysBuffer"_sh, jd.raysBuffer);
+    cr << SetShaderUniform(1, "MeshDescriptionsBuffer"_sh, m_tlas->GetMeshDescriptionsBuffer(), ShaderDataOffset(0, sizeof(MeshDescription)));
+    cr << SetShaderUniform(2, "HitsBuffer"_sh, jd.hitsBufferGpu.gpuBuffer, ShaderDataOffset(0, sizeof(Vec4f)));
+    cr << SetShaderUniform(3, "RaysBuffer"_sh, jd.raysBuffer, ShaderDataOffset(0, sizeof(Vec4f)));
     cr << SetShaderUniform(5, "MaterialsBuffer"_sh, RI.namedBuffers[NamedBuffer::Materials]);
     cr << SetShaderUniform(6, "CBuffer"_sh, cbuffer, ShaderDataOffset(cbufferOffset, cbufferSize));
 

@@ -262,7 +262,7 @@ void FillShadowMapData(
         return;
 
     AssertDebug(shadowMapViewDynamic != nullptr && shadowMapViewDynamic->GetCamera() != nullptr);
-    
+
     outShadowMapData = {};
 
     RenderProxyCamera* shadowCameraProxy = static_cast<RenderProxyCamera*>(GetRenderProxy(shadowMapViewDynamic->GetCamera()));
@@ -477,8 +477,8 @@ void DeferredPass::RenderToFramebuffer_Internal(Frame* frame, const RenderSetup&
         AssertDebug(dpd->gridTilesBuffer != nullptr && dpd->gridIndexBuffer != nullptr);
 
         // Indirect pass uses clusters for EnvProbes.
-        cr << SetShaderUniform(numShaderUniforms++, "ClusterGridBuffer"_sh, dpd->gridTilesBuffer->gpuBuffer);
-        cr << SetShaderUniform(numShaderUniforms++, "ClusterIndexBuffer"_sh, dpd->gridIndexBuffer->gpuBuffer);
+        cr << SetShaderUniform(numShaderUniforms++, "ClusterGridBuffer"_sh, *dpd->gridTilesBuffer);
+        cr << SetShaderUniform(numShaderUniforms++, "ClusterIndexBuffer"_sh, *dpd->gridIndexBuffer);
     }
 
     if (m_mode == DPM_INDIRECT_LIGHTING)
@@ -617,7 +617,7 @@ void DeferredPass::RenderToFramebuffer_Internal(Frame* frame, const RenderSetup&
 
             shadowMapIndexBuffer.Flush();
 
-            cr << SetShaderUniform(localNumShaderUniforms++, "ShadowMapIndexBuffer"_sh, shadowMapIndexBuffer.gpuBuffer);
+            cr << SetShaderUniform(localNumShaderUniforms++, "ShadowMapIndexBuffer"_sh, shadowMapIndexBuffer);
 
             RI.cbufferAllocator->Write(shadowMapData.Data(), MaxClusteredShadowMaps * sizeof(ShadowMapData), alignof(ShadowMapData));
             RI.cbufferAllocator->Commit(cbuffer, cbufferOffset, cbufferSize);
@@ -1780,7 +1780,7 @@ public:
 
             const float pixMinX = ndcMinX * halfW + halfW;
             const float pixMaxX = ndcMaxX * halfW + halfW;
-            const float pixMinY = (1.0f - ndcMaxY) * halfH; 
+            const float pixMinY = (1.0f - ndcMaxY) * halfH;
             const float pixMaxY = (1.0f - ndcMinY) * halfH;
 
             outMinX = uint32(MathUtil::Max(int32(pixMinX) / int32(TileSize), 0));

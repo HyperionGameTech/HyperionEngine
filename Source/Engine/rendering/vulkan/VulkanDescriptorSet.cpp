@@ -284,19 +284,47 @@ void VulkanDescriptorSet::UpdateDirtyState(bool* outIsDirty)
                     VulkanGpuBuffer* ref = static_cast<VulkanGpuBuffer*>(ptr);
                     AssertDebug(ref != nullptr);
 
+                    // Default to VK_WHOLE_SIZE -- ByteAddressBuffers will use this.
+                    VkDeviceSize bufferRange = VK_WHOLE_SIZE;
+
+                    const bool isDynamic = layoutElement->type == ShaderInputType::CBV_Dynamic
+                        || layoutElement->type == ShaderInputType::SRV_Dynamic
+                        || layoutElement->type == ShaderInputType::UAV_Dynamic;
+
+                    const bool isByteAddressBuffer = ref->GetBufferType() == GpuBufferType::ByteAddressBuffer
+                        || ref->GetBufferType() == GpuBufferType::RWByteAddressBuffer;
+
+                    if (ref->GetBufferType() == GpuBufferType::ConstantBuffer)
+                    {
+                        AssertDebug(element.bufferStride != ByteAddressBufferStride,
+                            "Constant buffer for {} may not have zero for buffer stride!", name);
+                    }
+
+                    if (isDynamic && element.bufferStride != ByteAddressBufferStride)
+                    {
+                        AssertDebug(element.bufferStride != ~0u, "Buffer {} must have stride passed in!", name);
+
+                        bufferRange = element.bufferStride;
+                    }
+                    else
+                    {
+                        // use entire buffer size for range, if not dynamic.
+                        // This differs from DX12 where we have to pass the structure stride for StructuredBuffers.
+                        bufferRange = VK_WHOLE_SIZE;
+                    }
+
                     VulkanCachedDescriptor& descriptor = localDescriptors.EmplaceBack();
-                    Memory::Fill(&descriptor, 0, sizeof(VulkanCachedDescriptor));
+                    Memory::Zero(&descriptor, sizeof(VulkanCachedDescriptor));
                     descriptor.binding = layoutElement->binding;
                     descriptor.index = index;
                     descriptor.descriptorType = ToVkDescriptorType(layoutElement->type, layoutElement->category);
 
                     AssertDebug(ref->IsCreated(), "Buffer not initialized for descriptor set element: {}.{}[{}]", m_layout.GetName(), name, index);
-                    AssertDebug(element.bufferStride != 0, "Buffer descriptor set element is zero sized: {}.{}[{}]", m_layout.GetName(), name, index);
 
                     descriptor.bufferInfo = VkDescriptorBufferInfo {
                         .buffer = ref->GetVulkanHandle(),
                         .offset = 0,
-                        .range = (element.bufferStride != ~0u && element.bufferStride != 0) ? VkDeviceSize(element.bufferStride) : VK_WHOLE_SIZE
+                        .range = bufferRange
                     };
                 }
                 else if (layoutElement->category == ShaderResourceCategory::Image)
@@ -309,7 +337,7 @@ void VulkanDescriptorSet::UpdateDirtyState(bool* outIsDirty)
                     const bool isStorageImage = (layoutElement->type == ShaderInputType::UAV || layoutElement->type == ShaderInputType::UAV_Dynamic);
 
                     VulkanCachedDescriptor& descriptor = localDescriptors.EmplaceBack();
-                    Memory::Fill(&descriptor, 0, sizeof(VulkanCachedDescriptor));
+                    Memory::Zero(&descriptor, sizeof(VulkanCachedDescriptor));
                     descriptor.binding = layoutElement->binding;
                     descriptor.index = index;
                     descriptor.descriptorType = ToVkDescriptorType(layoutElement->type, layoutElement->category);
@@ -333,7 +361,7 @@ void VulkanDescriptorSet::UpdateDirtyState(bool* outIsDirty)
                     AssertDebug(ref->GetVulkanHandle() != VK_NULL_HANDLE, "Invalid TLAS for descriptor set element: {}.{}[{}]", m_layout.GetName(), name, index);
 
                     VulkanCachedDescriptor& descriptor = localDescriptors.EmplaceBack();
-                    Memory::Fill(&descriptor, 0, sizeof(VulkanCachedDescriptor));
+                    Memory::Zero(&descriptor, sizeof(VulkanCachedDescriptor));
                     descriptor.binding = layoutElement->binding;
                     descriptor.index = index;
                     descriptor.descriptorType = ToVkDescriptorType(layoutElement->type, layoutElement->category);
@@ -360,7 +388,7 @@ void VulkanDescriptorSet::UpdateDirtyState(bool* outIsDirty)
                 AssertDebug(ref != nullptr);
 
                 VulkanCachedDescriptor& descriptor = localDescriptors.EmplaceBack();
-                Memory::Fill(&descriptor, 0, sizeof(VulkanCachedDescriptor));
+                Memory::Zero(&descriptor, sizeof(VulkanCachedDescriptor));
                 descriptor.binding = layoutElement->binding;
                 descriptor.index = index;
                 descriptor.descriptorType = ToVkDescriptorType(layoutElement->type, layoutElement->category);
@@ -576,7 +604,7 @@ void VulkanDescriptorSet::Bind(VulkanCommandBuffer* commandBuffer, const VulkanG
     cachedBinding.pipeline = pipeline->GetVulkanHandle();
     cachedBinding.pipelineLayout = pipeline->GetVulkanPipelineLayout();
     cachedBinding.numDynamicOffsets = uint32(m_layout.GetDynamicElements().Size());
-    Memory::Fill(cachedBinding.dynamicOffsets, 0, cachedBinding.numDynamicOffsets * sizeof(uint32));
+    Memory::Zero(cachedBinding.dynamicOffsets, cachedBinding.numDynamicOffsets * sizeof(uint32));
 
     auto& boundDescriptorSets = commandBuffer->m_boundDescriptorSets;
 
@@ -657,7 +685,7 @@ void VulkanDescriptorSet::Bind(VulkanCommandBuffer* commandBuffer, const VulkanC
     cachedBinding.pipeline = pipeline->GetVulkanHandle();
     cachedBinding.pipelineLayout = pipeline->GetVulkanPipelineLayout();
     cachedBinding.numDynamicOffsets = uint32(m_layout.GetDynamicElements().Size());
-    Memory::Fill(cachedBinding.dynamicOffsets, 0, cachedBinding.numDynamicOffsets * sizeof(uint32));
+    Memory::Zero(cachedBinding.dynamicOffsets, cachedBinding.numDynamicOffsets * sizeof(uint32));
 
     auto& boundDescriptorSets = commandBuffer->m_boundDescriptorSets;
 
@@ -738,7 +766,7 @@ void VulkanDescriptorSet::Bind(VulkanCommandBuffer* commandBuffer, const VulkanR
     cachedBinding.pipeline = pipeline->GetVulkanHandle();
     cachedBinding.pipelineLayout = pipeline->GetVulkanPipelineLayout();
     cachedBinding.numDynamicOffsets = uint32(m_layout.GetDynamicElements().Size());
-    Memory::Fill(cachedBinding.dynamicOffsets, 0, cachedBinding.numDynamicOffsets * sizeof(uint32));
+    Memory::Zero(cachedBinding.dynamicOffsets, cachedBinding.numDynamicOffsets * sizeof(uint32));
 
     auto& boundDescriptorSets = commandBuffer->m_boundDescriptorSets;
 

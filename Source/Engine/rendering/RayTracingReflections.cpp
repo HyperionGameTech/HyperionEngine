@@ -245,7 +245,7 @@ void RayTracingReflections::Render(Frame* frame, const RenderSetup& renderSetup)
     frame->cr << SetShaderUniform(4, "SamplerNearest"_sh, RI.placeholderData->GetSamplerNearest());
     frame->cr << SetShaderUniform(5, "SamplerLinear"_sh, RI.placeholderData->GetSamplerLinearMipmap());
     frame->cr << SetShaderUniform(6, "TLAS"_sh, tlas);
-    frame->cr << SetShaderUniform(7, "MeshDescriptionsBuffer"_sh, meshDescriptionsBuffer);
+    frame->cr << SetShaderUniform(7, "MeshDescriptionsBuffer"_sh, meshDescriptionsBuffer, ShaderDataOffset(0, sizeof(MeshDescription)));
     frame->cr << SetShaderUniform(8, "OutputImage"_sh, RI.textureViewCache->GetOrCreate(m_texture));
     frame->cr << SetShaderUniform(9, "CBuffer"_sh, cbuffer, ShaderDataOffset(cbufferOffset, cbufferSize));
 

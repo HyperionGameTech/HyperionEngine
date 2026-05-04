@@ -1336,26 +1336,6 @@ extern class InputManager
     GetWindow() -> ApplicationWindow
 end
 extern class InputHandlerBase
-    OnKeyDown(evt : KeyboardEvent) -> bool
-    OnKeyUp(evt : KeyboardEvent) -> bool
-    OnMouseDown(evt : MouseEvent) -> bool
-    OnMouseUp(evt : MouseEvent) -> bool
-    OnMouseMove(evt : MouseEvent) -> bool
-    OnMouseDrag(evt : MouseEvent) -> bool
-    OnMouseLeave(evt : MouseEvent) -> bool
-    OnClick(evt : MouseEvent) -> bool
-    OnGainFocus(evt : MouseEvent) -> bool
-    OnLoseFocus(evt : MouseEvent) -> bool
-    OnKeyDown_Impl(evt : KeyboardEvent) -> bool
-    OnKeyUp_Impl(evt : KeyboardEvent) -> bool
-    OnMouseDown_Impl(evt : MouseEvent) -> bool
-    OnMouseUp_Impl(evt : MouseEvent) -> bool
-    OnMouseMove_Impl(evt : MouseEvent) -> bool
-    OnMouseDrag_Impl(evt : MouseEvent) -> bool
-    OnMouseLeave_Impl(evt : MouseEvent) -> bool
-    OnClick_Impl(evt : MouseEvent) -> bool
-    OnGainFocus_Impl(evt : MouseEvent) -> bool
-    OnLoseFocus_Impl(evt : MouseEvent) -> bool
 end
 extern class NullInputHandler : InputHandlerBase
 end

@@ -33,38 +33,38 @@ FirstPersonCameraInputHandler::FirstPersonCameraInputHandler(FirstPersonCameraCo
     Assert(m_controller != nullptr);
 }
 
-bool FirstPersonCameraInputHandler::OnKeyDown_Impl(const KeyboardEvent& evt)
+bool FirstPersonCameraInputHandler::OnKeyDown(const KeyboardEvent& evt)
 {
     if (evt.keyCode == KeyCode::KEY_ESCAPE)
     {
         m_controller->SetMode(FirstPersonCameraControllerMode::MOUSE_FREE);
     }
 
-    return InputHandlerBase::OnKeyDown_Impl(evt);
+    return InputHandlerBase::OnKeyDown(evt);
 }
 
-bool FirstPersonCameraInputHandler::OnKeyUp_Impl(const KeyboardEvent& evt)
+bool FirstPersonCameraInputHandler::OnKeyUp(const KeyboardEvent& evt)
 {
-    return InputHandlerBase::OnKeyUp_Impl(evt);
+    return InputHandlerBase::OnKeyUp(evt);
 }
 
-bool FirstPersonCameraInputHandler::OnMouseDown_Impl(const MouseEvent& evt)
+bool FirstPersonCameraInputHandler::OnMouseDown(const MouseEvent& evt)
 {
     m_controller->SetMode(FirstPersonCameraControllerMode::MOUSE_LOCKED);
 
-    return InputHandlerBase::OnMouseDown_Impl(evt);
+    return InputHandlerBase::OnMouseDown(evt);
 }
 
-bool FirstPersonCameraInputHandler::OnMouseUp_Impl(const MouseEvent& evt)
+bool FirstPersonCameraInputHandler::OnMouseUp(const MouseEvent& evt)
 {
 #if HYP_ANDROID || HYP_IOS // @TODO Better check for touch input. Touch devices can still have mouse input, and some non-touch devices might not have mouse input
     m_controller->SetMode(FirstPersonCameraControllerMode::MOUSE_FREE);
 #endif
 
-    return InputHandlerBase::OnMouseUp_Impl(evt);
+    return InputHandlerBase::OnMouseUp(evt);
 }
 
-bool FirstPersonCameraInputHandler::OnMouseMove_Impl(const MouseEvent& evt)
+bool FirstPersonCameraInputHandler::OnMouseMove(const MouseEvent& evt)
 {
     HYP_SCOPE;
 
@@ -98,31 +98,31 @@ bool FirstPersonCameraInputHandler::OnMouseMove_Impl(const MouseEvent& evt)
     return true;
 }
 
-bool FirstPersonCameraInputHandler::OnMouseDrag_Impl(const MouseEvent& evt)
+bool FirstPersonCameraInputHandler::OnMouseDrag(const MouseEvent& evt)
 {
     return false;
 }
 
-bool FirstPersonCameraInputHandler::OnMouseLeave_Impl(const MouseEvent& evt)
+bool FirstPersonCameraInputHandler::OnMouseLeave(const MouseEvent& evt)
 {
-    InputHandlerBase::OnMouseLeave_Impl(evt);
+    InputHandlerBase::OnMouseLeave(evt);
 
     return false;
 }
 
-bool FirstPersonCameraInputHandler::OnClick_Impl(const MouseEvent& evt)
+bool FirstPersonCameraInputHandler::OnClick(const MouseEvent& evt)
 {
     return false;
 }
 
-bool FirstPersonCameraInputHandler::OnGainFocus_Impl(const MouseEvent& evt)
+bool FirstPersonCameraInputHandler::OnGainFocus(const MouseEvent& evt)
 {
     m_controller->SetMode(FirstPersonCameraControllerMode::MOUSE_FREE);
 
     return true;
 }
 
-bool FirstPersonCameraInputHandler::OnLoseFocus_Impl(const MouseEvent& evt)
+bool FirstPersonCameraInputHandler::OnLoseFocus(const MouseEvent& evt)
 {
     m_controller->SetMode(FirstPersonCameraControllerMode::MOUSE_LOCKED);
 

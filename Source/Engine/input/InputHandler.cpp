@@ -50,7 +50,7 @@ bool InputHandlerBase::IsMouseButtonUp(MouseButtonKey btn) const
     return !(m_mouseButtonStates & MouseButtonState(1u << uint32(btn)));
 }
 
-bool InputHandlerBase::OnKeyDown_Impl(const KeyboardEvent& evt)
+bool InputHandlerBase::OnKeyDown(const KeyboardEvent& evt)
 {
     if (uint32(evt.keyCode) < NUM_KEYBOARD_KEYS)
     {
@@ -61,7 +61,7 @@ bool InputHandlerBase::OnKeyDown_Impl(const KeyboardEvent& evt)
     return false;
 }
 
-bool InputHandlerBase::OnKeyUp_Impl(const KeyboardEvent& evt)
+bool InputHandlerBase::OnKeyUp(const KeyboardEvent& evt)
 {
     if (uint32(evt.keyCode) < NUM_KEYBOARD_KEYS)
     {
@@ -72,7 +72,7 @@ bool InputHandlerBase::OnKeyUp_Impl(const KeyboardEvent& evt)
     return false;
 }
 
-bool InputHandlerBase::OnMouseDown_Impl(const MouseEvent& evt)
+bool InputHandlerBase::OnMouseDown(const MouseEvent& evt)
 {
     m_mouseButtonStates |= evt.mouseButtons;
 
@@ -80,16 +80,11 @@ bool InputHandlerBase::OnMouseDown_Impl(const MouseEvent& evt)
     return false;
 }
 
-bool InputHandlerBase::OnMouseUp_Impl(const MouseEvent& evt)
+bool InputHandlerBase::OnMouseUp(const MouseEvent& evt)
 {
     m_mouseButtonStates &= ~evt.mouseButtons;
 
     // default to not handled
-    return false;
-}
-
-bool InputHandlerBase::OnMouseLeave_Impl(const MouseEvent& evt)
-{
     return false;
 }
 
