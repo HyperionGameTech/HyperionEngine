@@ -522,16 +522,16 @@ void LightmapRenderer_GpuPathTracing::Render(Frame* frame, const RenderSetup& re
     cr << SetShaderUniform(1, "MeshDescriptionsBuffer"_sh, m_tlas->GetMeshDescriptionsBuffer());
     cr << SetShaderUniform(2, "HitsBuffer"_sh, jd.hitsBufferGpu.gpuBuffer);
     cr << SetShaderUniform(3, "RaysBuffer"_sh, jd.raysBuffer);
-    cr << SetShaderUniform(5, "MaterialsBuffer"_sh, RI.namedBuffers[NamedBuffer::Materials].gpuBuffer);
+    cr << SetShaderUniform(5, "MaterialsBuffer"_sh, RI.namedBuffers[NamedBuffer::Materials]);
     cr << SetShaderUniform(6, "CBuffer"_sh, cbuffer, ShaderDataOffset(cbufferOffset, cbufferSize));
 
     cr << SetShaderUniform(7, "SamplerNearest"_sh, RI.placeholderData->GetSamplerNearest());
     cr << SetShaderUniform(8, "SamplerLinear"_sh, RI.placeholderData->GetSamplerLinear());
 
-    cr << SetShaderUniform(9, "BlueNoiseBuffer"_sh, RI.blueNoiseBuffer.gpuBuffer);
+    cr << SetShaderUniform(9, "BlueNoiseBuffer"_sh, RI.blueNoiseBuffer);
 
-    cr << SetShaderUniform(10, "WorldsBuffer"_sh, RI.namedBuffers[NamedBuffer::Worlds].gpuBuffer);
-    cr << SetShaderUniform(11, "EntitiesBuffer"_sh, RI.namedBuffers[NamedBuffer::Entities].gpuBuffer);
+    cr << SetShaderUniform(10, "WorldsBuffer"_sh, RI.namedBuffers[NamedBuffer::Worlds]);
+    cr << SetShaderUniform(11, "EntitiesBuffer"_sh, RI.namedBuffers[NamedBuffer::Entities]);
 
     cr << SetShaderUniform(12, "EnvProbesTexture"_sh, RI.textureViewCache->GetOrCreate(RI.envProbesTexture));
 

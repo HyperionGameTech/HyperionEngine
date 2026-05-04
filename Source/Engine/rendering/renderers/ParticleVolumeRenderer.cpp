@@ -269,8 +269,8 @@ void ParticleVolumeRenderer::RenderFrame(Frame* frame, const RenderSetup& render
 
         cr << SetCurrentShader(ShaderDesc(NAME("UpdateParticles"), properties));
 
-        cr << SetShaderUniform(0, "ParticlesBuffer"_sh, state.particleBuffer);
-        cr << SetShaderUniform(1, "IndirectDrawCommandsBuffer"_sh, state.indirectBuffer);
+        cr << SetShaderUniform(0, "ParticlesBuffer"_sh, state.particleBuffer, ShaderDataOffset(0, sizeof(ParticleShaderData)));
+        cr << SetShaderUniform(1, "IndirectDrawCommandsBuffer"_sh, state.indirectBuffer, ShaderDataOffset(0, sizeof(IndirectDrawCommand)));
         cr << SetShaderUniform(2, "NoiseMap"_sh, RI.textureViewCache->GetOrCreate(state.noiseMap));
 
         cr << SetShaderUniform(3, "SamplerNearest"_sh, RI.placeholderData->GetSamplerNearest());
@@ -282,7 +282,7 @@ void ParticleVolumeRenderer::RenderFrame(Frame* frame, const RenderSetup& render
         cr << SetShaderUniform(8, "GBufferVelocityTexture"_sh, framebuffer->GetAttachment(GTN_VELOCITY)->GetImageView());
         cr << SetShaderUniform(9, "GBufferDepthTexture"_sh, framebuffer->GetAttachment(GTN_DEPTH)->GetImageView());
 
-        cr << SetShaderUniform(10, "WorldsBuffer"_sh, RI.namedBuffers[NamedBuffer::Worlds].gpuBuffer);
+        cr << SetShaderUniform(10, "WorldsBuffer"_sh, RI.namedBuffers[NamedBuffer::Worlds]);
 
         cr << SetShaderUniform(11, "CBuffer"_sh, cbuffer, ShaderDataOffset(cbufferOffset, cbufferSize));
 
@@ -312,7 +312,7 @@ void ParticleVolumeRenderer::RenderFrame(Frame* frame, const RenderSetup& render
         cr << SetStencilTest(bool(state.renderableAttributes.GetMaterialAttributes().flags & MAF_STENCIL_TEST));
         cr << SetStencilFunction(state.renderableAttributes.GetMaterialAttributes().stencilFunction);
 
-        cr << SetShaderUniform(0, "ParticlesBuffer"_sh, state.particleBuffer);
+        cr << SetShaderUniform(0, "ParticlesBuffer"_sh, state.particleBuffer, ShaderDataOffset(0, sizeof(ParticleShaderData)));
 
         if (proxy->particleTexture)
         {
@@ -324,8 +324,8 @@ void ParticleVolumeRenderer::RenderFrame(Frame* frame, const RenderSetup& render
         }
 
         cr << SetShaderUniform(2, "SamplerLinear"_sh, RI.placeholderData->GetSamplerLinearMipmap());
-        cr << SetShaderUniform(3, "WorldsBuffer"_sh, RI.namedBuffers[NamedBuffer::Worlds].gpuBuffer);
-        cr << SetShaderUniform(4, "CamerasBuffer"_sh, RI.namedBuffers[NamedBuffer::Cameras].gpuBuffer, TShaderDataOffset<CameraShaderData>(view->GetCamera()));
+        cr << SetShaderUniform(3, "WorldsBuffer"_sh, RI.namedBuffers[NamedBuffer::Worlds]);
+        cr << SetShaderUniform(4, "CamerasBuffer"_sh, RI.namedBuffers[NamedBuffer::Cameras], Resources::GetBinding(view->GetCamera()));
 
         cr << CommitDrawState();
 

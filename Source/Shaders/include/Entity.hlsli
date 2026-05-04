@@ -8,11 +8,7 @@ struct Entity
     float4x4 model_matrix;
     float4x4 previous_model_matrix;
 
-#ifdef HYP_VULKAN
     float3x4 normal_matrix;
-#else
-    float4x3 normal_matrix;
-#endif
 
     float4 world_aabb_max;
     float4 world_aabb_min;

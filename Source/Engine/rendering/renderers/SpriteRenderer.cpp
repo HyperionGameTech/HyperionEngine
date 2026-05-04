@@ -383,7 +383,7 @@ void SpriteRenderer::RenderFrame(Frame* frame, const RenderSetup& renderSetup)
         cr << SetCurrentShader(shaderDesc);
 
         cr << SetShaderUniform(0, "SamplerLinear"_sh, RI.placeholderData->GetSamplerLinear());
-        cr << SetShaderUniform(1, "SpriteInstanceBuffer"_sh, instanceBuffer.gpuBuffer);
+        cr << SetShaderUniform(1, "SpriteInstanceBuffer"_sh, instanceBuffer);
         cr << SetShaderUniform(2, "CBuffer"_sh, cbuffer, ShaderDataOffset(cbufferOffset, cbufferSize));
 
         cr << SetCurrentBlendFunction(BlendFunction::AlphaBlending());
@@ -488,7 +488,7 @@ void SpriteRenderer::RenderFrame(Frame* frame, const RenderSetup& renderSetup)
 
         cr << SetShaderUniform(0, "SamplerLinear"_sh, s_textSpriteSampler);
 
-        cr << SetShaderUniform(1, "TextSpriteInstanceBuffer"_sh, textInstanceBuffer.gpuBuffer);
+        cr << SetShaderUniform(1, "TextSpriteInstanceBuffer"_sh, textInstanceBuffer);
         cr << SetShaderUniform(2, "CBuffer"_sh, cbuffer, ShaderDataOffset(cbufferOffset, cbufferSize));
 
         cr << SetCurrentBlendFunction(BlendFunction::AlphaBlending());

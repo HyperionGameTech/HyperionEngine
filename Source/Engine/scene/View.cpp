@@ -4,7 +4,6 @@
  *  @licence MIT
 */
 
-#include "View.hpp"
 #include <ScenePch.hpp>
 
 #include <scene/View.hpp>

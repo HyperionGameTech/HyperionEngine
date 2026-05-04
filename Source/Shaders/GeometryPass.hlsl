@@ -75,7 +75,7 @@ DECLARE_SRV(Default, PointLightShadowMapsTextureArray) TextureCubeArray point_sh
 
 DECLARE_SRV(Default, EnvProbesBuffer) StructuredBuffer<EnvProbe> EnvProbesBuffer;
 DECLARE_SRV(Default, LightsBuffer) StructuredBuffer<Light> LightsBuffer;
-DECLARE_SRV(Default, ClusterGridBuffer) StructuredBuffer<uint2> ClusterGridBuffer;
+DECLARE_SRV(Default, ClusterGridBuffer) ByteAddressBuffer ClusterGridBuffer;
 DECLARE_SRV(Default, ClusterIndexBuffer) ByteAddressBuffer ClusterIndexBuffer;
 
 #include "deferred/ClusteredShading.hlsli"
@@ -253,7 +253,7 @@ PSOutput PSMain(PSInput input)
                 viewSpaceZ,
                 camera.near, camera.far);
 
-            const uint2 clusterData = ClusterGridBuffer[gridIndex];
+            const uint2 clusterData = ClusterGridBuffer.Load2(gridIndex * sizeof(uint2));
 
             const uint clusterIndexOffset = clusterData.x;
 

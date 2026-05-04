@@ -32,6 +32,10 @@ namespace Hyperion {
 class CmdBase;
 class View;
 
+class StructuredBuffer;
+class RWStructuredBuffer;
+class ByteAddressBuffer;
+
 class alignas(void*) CmdBase
 {
 public:
@@ -845,6 +849,10 @@ public:
           uniform { name, buffer }
     {
     }
+
+    SetShaderUniform(uint32 uniformIndex, StringHash name, const StructuredBuffer& structuredBuffer, uint32 elementOffset = 0);
+    SetShaderUniform(uint32 uniformIndex, StringHash name, const RWStructuredBuffer& rwStructuredBuffer, uint32 elementOffset = 0);
+    SetShaderUniform(uint32 uniformIndex, StringHash name, const ByteAddressBuffer& byteAddressBuffer, uint32 byteOffset = 0);
 
     SetShaderUniform(uint32 uniformIndex, StringHash name, GpuImageView* imageView)
         : uniformIndex(uniformIndex),

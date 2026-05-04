@@ -172,7 +172,7 @@ void CalculateEnvProbesContribution(
         positionVS.z,
         nearClip, farClip);
 
-    const uint2 clusterData = ClusterGridBuffer[gridIndex];
+    const uint2 clusterData = ClusterGridBuffer.Load2(gridIndex * sizeof(uint2));
 
     const uint clusterIndexOffset = clusterData.x;
 

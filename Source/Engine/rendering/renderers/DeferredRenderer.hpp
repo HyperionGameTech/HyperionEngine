@@ -310,7 +310,7 @@ public:
     UniquePtr<RayTracingReflections> rayTracingReflections;
     UniquePtr<DDGI> ddgi;
 
-    StructuredBuffer* gridTilesBuffer = nullptr;
+    ByteAddressBuffer* gridTilesBuffer = nullptr;
     ByteAddressBuffer* gridIndexBuffer = nullptr;
 };
 

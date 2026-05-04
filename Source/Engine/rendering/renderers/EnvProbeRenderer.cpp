@@ -216,8 +216,8 @@ void ConvolveEnvProbeCubemap(
         const uint32 frameIndex = currFrame ? currFrame->GetFrameIndex() : 0;
 
         // @TODO Just write the env probe to constant buffer?
-        cr << SetShaderUniform(0, "CurrentEnvProbe"_sh, RI.namedBuffers[NamedBuffer::EnvProbes].gpuBuffer, TShaderDataOffset<EnvProbeShaderData>(&envProbe));
-        cr << SetShaderUniform(1, "SphereSamplesBuffer"_sh, RI.sphereSamplesBuffer.gpuBuffer);
+        cr << SetShaderUniform(0, "CurrentEnvProbe"_sh, RI.namedBuffers[NamedBuffer::EnvProbes], Resources::GetBinding(&envProbe));
+        cr << SetShaderUniform(1, "SphereSamplesBuffer"_sh, RI.sphereSamplesBuffer);
         cr << SetShaderUniform(2, "ColorTexture"_sh, srcImageView);
         cr << SetShaderUniform(3, "SamplerLinear"_sh, RI.placeholderData->GetSamplerLinear());
         cr << SetShaderUniform(4, "SamplerNearest"_sh, RI.placeholderData->GetSamplerNearest());
@@ -433,13 +433,13 @@ void ComputeEnvProbeSphericalHarmonics(
 
         cr << SetShaderUniform(0, "SamplerLinear"_sh, RI.placeholderData->GetSamplerLinear());
         cr << SetShaderUniform(1, "SamplerNearest"_sh, RI.placeholderData->GetSamplerNearest());
-        cr << SetShaderUniform(3, "EnvProbesBuffer"_sh, RI.namedBuffers[NamedBuffer::EnvProbes].gpuBuffer);
+        cr << SetShaderUniform(3, "EnvProbesBuffer"_sh, RI.namedBuffers[NamedBuffer::EnvProbes]);
 
-        cr << SetShaderUniform(4, "OutSHBuffer"_sh, shBuffer);
+        cr << SetShaderUniform(4, "OutSHBuffer"_sh, shBuffer, ShaderDataOffset(0, sizeof(Vec4f)));
 
         cr << SetShaderUniform(8, "InColorCubemap"_sh, RI.textureViewCache->GetOrCreate(const_cast<Texture*>(&inColorTexture)));
-        cr << SetShaderUniform(11, "InputSHTilesBuffer"_sh, inputBuffer.gpuBuffer);
-        cr << SetShaderUniform(12, "OutputSHTilesBuffer"_sh, outputBuffer.gpuBuffer);
+        cr << SetShaderUniform(11, "InputSHTilesBuffer"_sh, inputBuffer);
+        cr << SetShaderUniform(12, "OutputSHTilesBuffer"_sh, outputBuffer);
         cr << SetShaderUniform(13, "SHUniforms"_sh, ub);
 
         cr << DispatchCompute(dispatchGroupSize);

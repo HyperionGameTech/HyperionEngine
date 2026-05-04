@@ -396,6 +396,14 @@ D3D12_CONSTANT_BUFFER_VIEW_DESC GetCBVDesc(DX12GpuBuffer* buffer)
     return desc;
 }
 
+static constexpr DXGI_FORMAT SizeToBufferFormat[] = {
+    DXGI_FORMAT_UNKNOWN,
+    DXGI_FORMAT_R32_TYPELESS,
+    DXGI_FORMAT_R32G32_TYPELESS,
+    DXGI_FORMAT_R32G32B32_TYPELESS,
+    DXGI_FORMAT_R32G32B32A32_TYPELESS
+};
+
 D3D12_SHADER_RESOURCE_VIEW_DESC GetSRVDesc(DX12GpuBuffer* buffer, uint32 structureStride, uint32 firstElement, uint32 numElements)
 {
     AssertDebug(buffer != nullptr);
@@ -451,6 +459,8 @@ D3D12_UNORDERED_ACCESS_VIEW_DESC GetUAVDesc(DX12GpuBuffer* buffer, uint32 struct
     case GpuBufferType::StructuredBuffer: // fallthrough
     case GpuBufferType::RWStructuredBuffer:
     default:
+        Assert(structureStride != 0);
+
         desc.Buffer.NumElements = (numElements == UINT32_MAX) ? uint32(buffer->Size() / structureStride) : numElements;
         desc.Format = DXGI_FORMAT_UNKNOWN;
         desc.Buffer.Flags = D3D12_BUFFER_UAV_FLAG_NONE;

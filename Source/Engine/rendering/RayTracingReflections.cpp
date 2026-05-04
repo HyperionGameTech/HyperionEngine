@@ -249,18 +249,18 @@ void RayTracingReflections::Render(Frame* frame, const RenderSetup& renderSetup)
     frame->cr << SetShaderUniform(8, "OutputImage"_sh, RI.textureViewCache->GetOrCreate(m_texture));
     frame->cr << SetShaderUniform(9, "CBuffer"_sh, cbuffer, ShaderDataOffset(cbufferOffset, cbufferSize));
 
-    frame->cr << SetShaderUniform(11, "BlueNoiseBuffer"_sh, RI.blueNoiseBuffer.gpuBuffer);
+    frame->cr << SetShaderUniform(11, "BlueNoiseBuffer"_sh, RI.blueNoiseBuffer);
 
     frame->cr << SetShaderUniform(12, "ShadowMapsTextureArray"_sh, RI.shadowMapCache->GetAtlasImageView());
     frame->cr << SetShaderUniform(13, "PointLightShadowMapsTextureArray"_sh, RI.shadowMapCache->GetPointLightShadowMapImageView());
 
-    frame->cr << SetShaderUniform(14, "MaterialsBuffer"_sh, RI.namedBuffers[NamedBuffer::Materials].gpuBuffer);
-    frame->cr << SetShaderUniform(15, "WorldsBuffer"_sh, RI.namedBuffers[NamedBuffer::Worlds].gpuBuffer);
+    frame->cr << SetShaderUniform(14, "MaterialsBuffer"_sh, RI.namedBuffers[NamedBuffer::Materials]);
+    frame->cr << SetShaderUniform(15, "WorldsBuffer"_sh, RI.namedBuffers[NamedBuffer::Worlds]);
 
     if (renderSetup.envProbe != nullptr)
     {
         frame->cr << SetShaderUniform(18, "EnvProbesTexture"_sh, RI.textureViewCache->GetOrCreate(RI.envProbesTexture));
-        frame->cr << SetShaderUniform(19, "CurrentEnvProbe"_sh, RI.namedBuffers[NamedBuffer::EnvProbes].gpuBuffer, TShaderDataOffset<EnvProbeShaderData>(renderSetup.envProbe));
+        frame->cr << SetShaderUniform(19, "CurrentEnvProbe"_sh, RI.namedBuffers[NamedBuffer::EnvProbes], Resources::GetBinding(renderSetup.envProbe));
     }
 
     const Vec3u imageExtent = m_texture->GetGpuImage()->GetExtent();

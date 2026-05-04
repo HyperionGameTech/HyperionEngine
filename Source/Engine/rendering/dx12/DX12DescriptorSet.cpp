@@ -535,6 +535,13 @@ void DX12DescriptorSet::Update(bool force)
                     continue;
                 }
 
+                if (buffer->GetBufferType() == GpuBufferType::StructuredBuffer
+                    || buffer->GetBufferType() == GpuBufferType::RWStructuredBuffer)
+                {
+                    // allow zero so we can pass a StructuredBuffer where shaders expect a ByteAddressBuffer.
+                    AssertDebug(element->bufferStride != ~0u || element->bufferStride == ByteAddressBufferStride, "StructuredBuffer must have stride passed in!");
+                }
+
                 const uint32 structureStride = element->bufferStride != ~0u ? element->bufferStride : uint32(buffer->Size());
                 D3D12_SHADER_RESOURCE_VIEW_DESC srvDesc = GetSRVDesc(buffer, structureStride);
                 device->CreateShaderResourceView(buffer->GetResource(), &srvDesc, destHandle);
@@ -588,6 +595,13 @@ void DX12DescriptorSet::Update(bool force)
                 if (!buffer->IsCreated())
                 {
                     continue;
+                }
+
+                if (buffer->GetBufferType() == GpuBufferType::StructuredBuffer
+                    || buffer->GetBufferType() == GpuBufferType::RWStructuredBuffer)
+                {
+                    // allow zero so we can pass a StructuredBuffer where shaders expect a ByteAddressBuffer.
+                    AssertDebug(element->bufferStride != ~0u || element->bufferStride == ByteAddressBufferStride, "StructuredBuffer must have stride passed in!");
                 }
 
                 const uint32 structureStride = element->bufferStride != ~0u ? element->bufferStride : uint32(buffer->Size());

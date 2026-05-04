@@ -1170,6 +1170,8 @@ struct SamplerDesc
     }
 };
 
+static constexpr uint32 ByteAddressBufferStride = 0;
+
 #pragma pack(pop)
 
 struct ShaderDataOffset

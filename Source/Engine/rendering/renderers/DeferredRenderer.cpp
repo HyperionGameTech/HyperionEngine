@@ -444,10 +444,10 @@ void DeferredPass::RenderToFramebuffer_Internal(Frame* frame, const RenderSetup&
     cr << SetShaderUniform(numShaderUniforms++, "SamplerNearest"_sh, RI.placeholderData->GetSamplerNearest());
     cr << SetShaderUniform(numShaderUniforms++, "SamplerShadow"_sh, shadowSampler);
 
-    cr << SetShaderUniform(numShaderUniforms++, "WorldsBuffer"_sh, RI.namedBuffers[NamedBuffer::Worlds].gpuBuffer);
+    cr << SetShaderUniform(numShaderUniforms++, "WorldsBuffer"_sh, RI.namedBuffers[NamedBuffer::Worlds]);
 
-    cr << SetShaderUniform(numShaderUniforms++, "LightsBuffer"_sh, RI.namedBuffers[NamedBuffer::Lights].gpuBuffer);
-    cr << SetShaderUniform(numShaderUniforms++, "EnvProbesBuffer"_sh, RI.namedBuffers[NamedBuffer::EnvProbes].gpuBuffer);
+    cr << SetShaderUniform(numShaderUniforms++, "LightsBuffer"_sh, RI.namedBuffers[NamedBuffer::Lights]);
+    cr << SetShaderUniform(numShaderUniforms++, "EnvProbesBuffer"_sh, RI.namedBuffers[NamedBuffer::EnvProbes]);
 
     // use the same index for the CBuffer uniform across shaders
     const uint32 cbufferUniformIndex = numShaderUniforms++;
@@ -573,7 +573,7 @@ void DeferredPass::RenderToFramebuffer_Internal(Frame* frame, const RenderSetup&
             if (maxLightBinding == 0)
                 maxLightBinding = 1;
 
-            StructuredBuffer& shadowMapIndexBuffer = RI.bufferAllocator->AcquireStructuredBuffer(maxLightBinding, sizeof(uint32));
+            ByteAddressBuffer& shadowMapIndexBuffer = RI.bufferAllocator->AcquireByteAddressBuffer(maxLightBinding * sizeof(uint32));
 
             uint32 shadowMapIndex = 0;
 
@@ -619,7 +619,7 @@ void DeferredPass::RenderToFramebuffer_Internal(Frame* frame, const RenderSetup&
 
             cr << SetShaderUniform(localNumShaderUniforms++, "ShadowMapIndexBuffer"_sh, shadowMapIndexBuffer.gpuBuffer);
 
-            RI.cbufferAllocator->Write(&shadowMapData[0], shadowMapData.ByteSize(), alignof(ShadowMapData));
+            RI.cbufferAllocator->Write(shadowMapData.Data(), MaxClusteredShadowMaps * sizeof(ShadowMapData), alignof(ShadowMapData));
             RI.cbufferAllocator->Commit(cbuffer, cbufferOffset, cbufferSize);
 
             cr << SetShaderUniform(cbufferUniformIndex, "CBuffer"_sh, cbuffer, ShaderDataOffset(cbufferOffset, cbufferSize));
@@ -715,7 +715,7 @@ void DeferredPass::RenderToFramebuffer_Internal(Frame* frame, const RenderSetup&
                 cr << SetShaderUniform(cbufferUniformIndex, "CBuffer"_sh, cbuffer, ShaderDataOffset(cbufferOffset, cbufferSize));
             }
 
-            cr << SetShaderUniform(localNumShaderUniforms++, "CurrentLight"_sh, RI.namedBuffers[NamedBuffer::Lights].gpuBuffer, TShaderDataOffset<LightShaderData>(light));
+            cr << SetShaderUniform(localNumShaderUniforms++, "CurrentLight"_sh, RI.namedBuffers[NamedBuffer::Lights], Resources::GetBinding(light));
 
             if (lightType == LightType::AreaRect)
             {
@@ -735,11 +735,11 @@ void DeferredPass::RenderToFramebuffer_Internal(Frame* frame, const RenderSetup&
                         cr << SetShaderUniform(localNumShaderUniforms++, "DiffuseMap"_sh, imageViews[materialProxy->boundTextureIndices[0]]);
                     }
 
-                    cr << SetShaderUniform(localNumShaderUniforms++, "CurrentMaterial"_sh, RI.namedBuffers[NamedBuffer::Materials].gpuBuffer, TShaderDataOffset<MaterialShaderData>(lightProxy->lightMaterial));
+                    cr << SetShaderUniform(localNumShaderUniforms++, "CurrentMaterial"_sh, RI.namedBuffers[NamedBuffer::Materials], Resources::GetBinding(lightProxy->lightMaterial));
                 }
                 else
                 {
-                    cr << SetShaderUniform(localNumShaderUniforms++, "CurrentMaterial"_sh, RI.namedBuffers[NamedBuffer::Materials].gpuBuffer, TShaderDataOffset<MaterialShaderData>(0));
+                    cr << SetShaderUniform(localNumShaderUniforms++, "CurrentMaterial"_sh, RI.namedBuffers[NamedBuffer::Materials], 0);
                 }
 
                 cr << SetShaderUniform(localNumShaderUniforms++, "LTCSampler"_sh, m_ltcSampler);
@@ -858,8 +858,8 @@ void TonemapPass::Render(Frame* frame, const RenderSetup& rs)
 
     cr << SetShaderUniform(numShaderUniforms++, "PostProcessingUniforms"_sh, dpd->postProcessing->GetUniformBuffer());
 
-    cr << SetShaderUniform(numShaderUniforms++, "CamerasBuffer"_sh, RI.namedBuffers[NamedBuffer::Cameras].gpuBuffer, TShaderDataOffset<CameraShaderData>(rs.view->GetCamera()));
-    cr << SetShaderUniform(numShaderUniforms++, "WorldsBuffer"_sh, RI.namedBuffers[NamedBuffer::Worlds].gpuBuffer);
+    cr << SetShaderUniform(numShaderUniforms++, "CamerasBuffer"_sh, RI.namedBuffers[NamedBuffer::Cameras], Resources::GetBinding(rs.view->GetCamera()));
+    cr << SetShaderUniform(numShaderUniforms++, "WorldsBuffer"_sh, RI.namedBuffers[NamedBuffer::Worlds]);
 
     RenderFullScreenQuad(frame, rs);
 
@@ -983,17 +983,17 @@ void LightmapPass::RenderToFramebuffer_Internal(Frame* frame, const RenderSetup&
     cr << SetShaderUniform(numShaderUniforms++, "PointLightShadowMapsTextureArray"_sh, RI.shadowMapCache->GetPointLightShadowMapImageView());
 
     // Cameras and Worlds buffers
-    cr << SetShaderUniform(numShaderUniforms++, "CamerasBuffer"_sh, RI.namedBuffers[NamedBuffer::Cameras].gpuBuffer, TShaderDataOffset<CameraShaderData>(renderSetup.view->GetCamera()));
-    cr << SetShaderUniform(numShaderUniforms++, "WorldsBuffer"_sh, RI.namedBuffers[NamedBuffer::Worlds].gpuBuffer);
+    cr << SetShaderUniform(numShaderUniforms++, "CamerasBuffer"_sh, RI.namedBuffers[NamedBuffer::Cameras], Resources::GetBinding(renderSetup.view->GetCamera()));
+    cr << SetShaderUniform(numShaderUniforms++, "WorldsBuffer"_sh, RI.namedBuffers[NamedBuffer::Worlds]);
 
     // Env probes
     cr << SetShaderUniform(numShaderUniforms++, "EnvProbesTexture"_sh, RI.textureViewCache->GetOrCreate(RI.envProbesTexture));
-    cr << SetShaderUniform(numShaderUniforms++, "EnvProbesBuffer"_sh, RI.namedBuffers[NamedBuffer::EnvProbes].gpuBuffer);
+    cr << SetShaderUniform(numShaderUniforms++, "EnvProbesBuffer"_sh, RI.namedBuffers[NamedBuffer::EnvProbes]);
 
     if (renderSetup.envProbe != nullptr)
-        cr << SetShaderUniform(numShaderUniforms++, "CurrentEnvProbe"_sh, RI.namedBuffers[NamedBuffer::EnvProbes].gpuBuffer, TShaderDataOffset<EnvProbeShaderData>(renderSetup.envProbe));
+        cr << SetShaderUniform(numShaderUniforms++, "CurrentEnvProbe"_sh, RI.namedBuffers[NamedBuffer::EnvProbes], Resources::GetBinding(renderSetup.envProbe));
     else
-        cr << SetShaderUniform(numShaderUniforms++, "CurrentEnvProbe"_sh, RI.namedBuffers[NamedBuffer::EnvProbes].gpuBuffer, TShaderDataOffset<EnvProbeShaderData>(0));
+        cr << SetShaderUniform(numShaderUniforms++, "CurrentEnvProbe"_sh, RI.namedBuffers[NamedBuffer::EnvProbes], 0);
 
     if (dpd->hbao != nullptr)
         cr << SetShaderUniform(numShaderUniforms++, "SSAOResultTexture"_sh, dpd->hbao->GetFinalImageView());
@@ -1116,7 +1116,7 @@ void FogVolumePass::RenderToFramebuffer_Internal(Frame* frame, const RenderSetup
     cr << SetShaderUniform(0, "SamplerLinear"_sh, RI.placeholderData->GetSamplerLinearMipmap());
     cr << SetShaderUniform(1, "SamplerNearest"_sh, RI.placeholderData->GetSamplerNearest());
 
-    cr << SetShaderUniform(2, "CamerasBuffer"_sh, RI.namedBuffers[NamedBuffer::Cameras].gpuBuffer, TShaderDataOffset<CameraShaderData>(renderSetup.view->GetCamera()));
+    cr << SetShaderUniform(2, "CamerasBuffer"_sh, RI.namedBuffers[NamedBuffer::Cameras], Resources::GetBinding(renderSetup.view->GetCamera()));
 
     cr << SetShaderUniform(3, "ShadowMapsTextureArray"_sh, RI.shadowMapCache->GetAtlasImageView());
     cr << SetShaderUniform(4, "PointLightShadowMapsTextureArray"_sh, RI.shadowMapCache->GetPointLightShadowMapImageView());
@@ -1376,9 +1376,9 @@ void ReflectionsPass::Render(Frame* frame, const RenderSetup& rs)
         cr << SetShaderUniform(2 + attachmentIndex, GBufferTextureNames[attachmentIndex], opaquePassFramebuffer->GetAttachment(attachmentIndex)->GetImageView());
     }
 
-    cr << SetShaderUniform(2 + GTN_MAX, "CamerasBuffer"_sh, RI.namedBuffers[NamedBuffer::Cameras].gpuBuffer, TShaderDataOffset<CameraShaderData>(rs.view->GetCamera()));
-    cr << SetShaderUniform(3 + GTN_MAX, "WorldsBuffer"_sh, RI.namedBuffers[NamedBuffer::Worlds].gpuBuffer);
-    cr << SetShaderUniform(4 + GTN_MAX, "EnvProbesBuffer"_sh, RI.namedBuffers[NamedBuffer::EnvProbes].gpuBuffer);
+    cr << SetShaderUniform(2 + GTN_MAX, "CamerasBuffer"_sh, RI.namedBuffers[NamedBuffer::Cameras], Resources::GetBinding(rs.view->GetCamera()));
+    cr << SetShaderUniform(3 + GTN_MAX, "WorldsBuffer"_sh, RI.namedBuffers[NamedBuffer::Worlds]);
+    cr << SetShaderUniform(4 + GTN_MAX, "EnvProbesBuffer"_sh, RI.namedBuffers[NamedBuffer::EnvProbes]);
 
     cr << SetShaderUniform(10 + GTN_MAX, "BlueNoiseBuffer"_sh, RI.blueNoiseBuffer.gpuBuffer);
     cr << SetShaderUniform(11 + GTN_MAX, "SphereSamplesBuffer"_sh, RI.sphereSamplesBuffer.gpuBuffer);
@@ -1410,7 +1410,7 @@ void ReflectionsPass::Render(Frame* frame, const RenderSetup& rs)
                 break;
             }
 
-            cr << SetShaderUniform(5 + GTN_MAX, "CurrentEnvProbe"_sh, RI.namedBuffers[NamedBuffer::EnvProbes].gpuBuffer, TShaderDataOffset<EnvProbeShaderData>(envProbe));
+            cr << SetShaderUniform(5 + GTN_MAX, "CurrentEnvProbe"_sh, RI.namedBuffers[NamedBuffer::EnvProbes], Resources::GetBinding(envProbe));
 
             RenderFullScreenQuad(frame, rs);
 
@@ -1437,7 +1437,7 @@ void ReflectionsPass::Render(Frame* frame, const RenderSetup& rs)
         cr << SetCurrentBlendFunction(BlendFunction(BMF_SRC_ALPHA, BMF_ONE_MINUS_SRC_ALPHA, BMF_ONE, BMF_ONE_MINUS_SRC_ALPHA));
 
         cr << SetShaderUniform(0, "SamplerLinear"_sh, RI.placeholderData->GetSamplerLinear());
-        cr << SetShaderUniform(1, "WorldsBuffer"_sh, RI.namedBuffers[NamedBuffer::Worlds].gpuBuffer);
+        cr << SetShaderUniform(1, "WorldsBuffer"_sh, RI.namedBuffers[NamedBuffer::Worlds]);
         cr << SetShaderUniform(2, "InTexture"_sh, RI.textureViewCache->GetOrCreate(ssrTexture));
 
         RenderFullScreenQuad(frame, rs);
@@ -1576,7 +1576,6 @@ public:
     {
         uint16 numEnvProbes;
         uint16 numLights;
-
         uint16 envProbeIndices[MaxEnvProbesPerTile];
         uint16 lightIndices[MaxLightsPerTile];
     };
@@ -1586,6 +1585,8 @@ public:
         size_t gridBufferSize = 0;
         size_t indexBufferSize = 0;
         uint32 lastUsedFrame = UINT32_MAX;
+
+        Array<Tile, RenderAllocator> tempTiles;
 
         Array<TileGridData, RenderAllocator> gridData;
         Array<uint16, RenderAllocator> indexData;
@@ -1602,7 +1603,7 @@ public:
 
     ~TileProcessor() = default;
 
-    void ProcessView(const Viewport& viewport, View* view, StructuredBuffer*& outGridBuffer, ByteAddressBuffer*& outIndexBuffer)
+    void ProcessView(const Viewport& viewport, View* view, ByteAddressBuffer*& outGridBuffer, ByteAddressBuffer*& outIndexBuffer)
     {
         Assert(view != nullptr);
 
@@ -1624,8 +1625,18 @@ public:
             tileDataPerView.Resize(view->Id().ToIndex() + 1);
         }
 
-        Array<Tile, RenderAllocator> tempTiles;
-        tempTiles.ResizeZeroed(totalTiles);
+        TileDataAllocation& allocation = tileDataPerView[view->Id().ToIndex()];
+        allocation.lastUsedFrame = GetFrameCounter();
+
+        Array<Tile, RenderAllocator>& tempTiles = allocation.tempTiles;
+        if (tempTiles.Size() < totalTiles)
+        {
+            tempTiles.ResizeZeroed(totalTiles);
+        }
+        else
+        {
+            Memory::Zero(tempTiles.Data(), totalTiles * sizeof(Tile));
+        }
 
         RenderProxyList& rpl = GetConsumerProxyList(view);
         rpl.BeginRead();
@@ -1689,8 +1700,8 @@ public:
 
             outMinX = uint32(MathUtil::Max(int32(pixMinX) / int32(TileSize), 0));
             outMinY = uint32(MathUtil::Max(int32(pixMinY) / int32(TileSize), 0));
-            outMaxX = uint32(MathUtil::Min(int32(pixMaxX) / int32(TileSize), numTilesX - 1));
-            outMaxY = uint32(MathUtil::Min(int32(pixMaxY) / int32(TileSize), numTilesY - 1));
+            outMaxX = uint32(MathUtil::Min(int32(pixMaxX) / int32(TileSize), int32(numTilesX - 1)));
+            outMaxY = uint32(MathUtil::Min(int32(pixMaxY) / int32(TileSize), int32(numTilesY - 1)));
 
             return outMinX <= outMaxX && outMinY <= outMaxY;
         };
@@ -1774,8 +1785,8 @@ public:
 
             outMinX = uint32(MathUtil::Max(int32(pixMinX) / int32(TileSize), 0));
             outMinY = uint32(MathUtil::Max(int32(pixMinY) / int32(TileSize), 0));
-            outMaxX = uint32(MathUtil::Min(int32(pixMaxX) / int32(TileSize), numTilesX - 1));
-            outMaxY = uint32(MathUtil::Min(int32(pixMaxY) / int32(TileSize), numTilesY - 1));
+            outMaxX = uint32(MathUtil::Min(int32(pixMaxX) / int32(TileSize), int32(numTilesX - 1)));
+            outMaxY = uint32(MathUtil::Min(int32(pixMaxY) / int32(TileSize), int32(numTilesY - 1)));
 
             return outMinX <= outMaxX && outMinY <= outMaxY;
         };
@@ -1836,7 +1847,7 @@ public:
             }
         }
 
-        Array<Tuple<EnvProbe*, EnvProbeShaderData*, uint32>, RenderTempAllocator> envProbes;
+        Array<Tuple<EnvProbe*, EnvProbeShaderData*, uint32>, RenderAllocator> envProbes;
         envProbes.Reserve(rpl.GetEnvProbes().NumCurrent());
 
         for (EnvProbe* envProbe : rpl.GetEnvProbes())
@@ -1946,9 +1957,6 @@ public:
             }
         }
 
-        TileDataAllocation& allocation = tileDataPerView[view->Id().ToIndex()];
-        allocation.lastUsedFrame = GetFrameCounter();
-
         Array<TileGridData, RenderAllocator>& gridData = allocation.gridData;
         gridData.Resize(totalTiles);
 
@@ -1965,7 +1973,12 @@ public:
             gridData[i].numLights = tile.numLights;
             gridData[i].numEnvProbes = tile.numEnvProbes;
 
-            flatIndexData.Resize(offset + tile.numLights + tile.numEnvProbes);
+            const size_t minRequiredSize = offset + tile.numLights + tile.numEnvProbes;
+
+            if (flatIndexData.Size() < minRequiredSize)
+            {
+                flatIndexData.Resize(minRequiredSize);
+            }
 
             for (uint16 j = 0; j < tile.numLights; j++)
             {
@@ -1987,7 +2000,12 @@ public:
             flatIndexData.Resize(1);
         }
 
-        StructuredBuffer& gridBuffer = RI.bufferAllocator->AcquireStructuredBuffer(gridData.Size(), sizeof(TileGridData));
+        if (flatIndexData.Size() % 2 != 0)
+        {
+            flatIndexData.PushBack(0); // Align to 4 bytes for ByteAddressBuffer
+        }
+
+        ByteAddressBuffer& gridBuffer = RI.bufferAllocator->AcquireByteAddressBuffer(gridData.Size() * sizeof(TileGridData));
 #if HYP_DEBUG_MODE
         gridBuffer.gpuBuffer->SetDebugName(NAME("ClusterGridBuffer"));
 #endif
@@ -2787,7 +2805,7 @@ void DeferredRenderer::RenderFrameForView(Frame* frame, const RenderSetup& rs)
             frame->cr << SetCurrentShader(ShaderDesc(NAME("BlitTexture")));
 
             frame->cr << SetShaderUniform(0, "SamplerLinear"_sh, RI.placeholderData->GetSamplerLinear());
-            frame->cr << SetShaderUniform(1, "WorldsBuffer"_sh, RI.namedBuffers[NamedBuffer::Worlds].gpuBuffer);
+            frame->cr << SetShaderUniform(1, "WorldsBuffer"_sh, RI.namedBuffers[NamedBuffer::Worlds]);
             frame->cr << SetShaderUniform(2, "InTexture"_sh, passData.deferredShadingFramebuffer->GetAttachment(0)->GetImageView());
 
             frame->cr << CommitDrawState();

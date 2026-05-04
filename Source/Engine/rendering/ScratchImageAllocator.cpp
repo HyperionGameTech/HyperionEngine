@@ -11,6 +11,8 @@
 
 #include <Core/threading/SharedMutex.hpp>
 
+#include <Core/reflection/Enum.hpp>
+
 namespace Hyperion {
 
 #pragma region ScratchImageAllocator
@@ -80,7 +82,10 @@ struct ScratchImageAllocatorImpl
 
         for (auto it = cachedImages.Begin(); it != cachedImages.End(); ++it)
         {
-            if (it->format == format && it->alignedExtent.x >= alignedExtent.x && it->alignedExtent.y >= alignedExtent.y && it->alignedExtent.z >= alignedExtent.z)
+            if (it->format == format
+                && it->alignedExtent.x >= alignedExtent.x
+                && it->alignedExtent.y >= alignedExtent.y
+                && it->alignedExtent.z >= alignedExtent.z)
             {
                 CachedScratchImage& entry = usedImages.PushBack(std::move(*it));
                 entry.lastUsedFrame = GetFrameCounter();
@@ -108,6 +113,10 @@ struct ScratchImageAllocatorImpl
             1,
             IU_SAMPLED | IU_STORAGE
         });
+
+#ifdef HYP_DEBUG_MODE
+        newEntry.image->SetDebugName(NAME_FMT("ScratchImg_{}_{}_{}_{}", extent.x, extent.y, extent.z, EnumToString(format)));
+#endif // HYP_DEBUG_MODE
 
         RendererResult createResult = newEntry.image->Create();
         if (!createResult)

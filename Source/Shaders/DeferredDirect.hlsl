@@ -133,7 +133,7 @@ DECLARE_SRV(DeferredPass, EnvProbesTexture) Texture2DArray envProbesTexture;
 
 DECLARE_SRV(DeferredPass, EnvProbesBuffer) StructuredBuffer<EnvProbe> EnvProbesBuffer;
 DECLARE_SRV(DeferredPass, LightsBuffer) StructuredBuffer<Light> LightsBuffer;
-DECLARE_SRV(DeferredPass, ClusterGridBuffer) StructuredBuffer<uint2> ClusterGridBuffer;
+DECLARE_SRV(DeferredPass, ClusterGridBuffer) ByteAddressBuffer ClusterGridBuffer;
 DECLARE_SRV(DeferredPass, ClusterIndexBuffer) ByteAddressBuffer ClusterIndexBuffer;
 
 #include "deferred/ClusteredShading.hlsli"
@@ -224,12 +224,12 @@ PSOutput PSMain(PSInput input)
         viewSpaceZ,
         camera.near, camera.far);
 
-    const uint2 clusterData = ClusterGridBuffer[gridIndex];
+    const uint2 clusterData = ClusterGridBuffer.Load2(gridIndex * sizeof(uint2));
 
     const uint clusterIndexOffset = clusterData.x;
 
-    const uint numLights = (clusterData.y & 0xFFFF);
-    const uint numEnvProbes = (clusterData.y >> 16) & 0xFFFF;
+    const uint numLights = (clusterData.y & 0xFFFFu);
+    const uint numEnvProbes = (clusterData.y >> 16u) & 0xFFFFu;
 
     // for testing
     bool lightHit = false;
@@ -301,7 +301,7 @@ PSOutput PSMain(PSInput input)
 
                         float3 worldToLight = position.xyz - currentLight.position_intensity.xyz;
 
-                        shadow = GetPointShadow(shadowMap, currentLight.flags, worldToLight, NdotL);
+                        // shadow = GetPointShadow(shadowMap, currentLight.flags, worldToLight, NdotL);
                     }
                 }
 
@@ -347,7 +347,7 @@ PSOutput PSMain(PSInput input)
     // result = UINT_TO_VEC4(gridIndex);//  float4(numLights, 0.0, 0.0, 1.0);
     // result.a = 1.0;
 
-    // result = float4(float2(viewportExtent - camera.dimensions.xy), 0.0, 1.0);
+    // result = float4(numEnvProbes, 0.0, 0.0, 1.0);
 
     // Env probes will be in indirect pass.
 #else // !LIGHT_TYPE_CLUSTERED

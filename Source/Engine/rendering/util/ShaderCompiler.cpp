@@ -1241,10 +1241,13 @@ static ByteBuffer CompileHLSL(
     args.PushBack(L"-HV 2021");
 
     // enable debug info in HYP_DEBUG_MODE.
-#if HYP_DEBUG_MODE && defined(HYP_ENABLE_SHADER_DEBUGGING)
+#if defined(HYP_DEBUG_MODE) && defined(HYP_ENABLE_SHADER_DEBUGGING)
     args.PushBack(L"-Zi");
     args.PushBack(L"-Od");
-#else
+#ifdef HYP_DX12
+    args.PushBack(L"-Qembed_debug");
+#endif // HYP_DX12
+#else // !HYP_DEBUG_MODE
     // Optimize that code.
     args.PushBack(L"-O3");
 #endif
@@ -1282,10 +1285,6 @@ static ByteBuffer CompileHLSL(
             return {};
         }
     }
-#elif HYP_DX12
-#if HYP_DEBUG_MODE
-    args.PushBack(L"-Qembed_debug");
-#endif
 #endif
 
     DxcBuffer sourceBuffer = { pSource->GetBufferPointer(), pSource->GetBufferSize(), 0 };

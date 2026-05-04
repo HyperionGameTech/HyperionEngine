@@ -1501,6 +1501,30 @@ void SetFaceCullMode::InvokeStatic(CmdBase* cmd, CommandBuffer*)
 
 #pragma region SetShaderUniform
 
+SetShaderUniform::SetShaderUniform(uint32 uniformIndex, StringHash name, const StructuredBuffer& structuredBuffer, uint32 elementOffset)
+    : uniformIndex(uniformIndex),
+      shaderDataOffset(elementOffset * structuredBuffer.elementSize, structuredBuffer.elementSize),
+      uniform({ name, structuredBuffer.gpuBuffer })
+{
+    AssertDebug(structuredBuffer.gpuBuffer != nullptr);
+}
+
+SetShaderUniform::SetShaderUniform(uint32 uniformIndex, StringHash name, const RWStructuredBuffer& rwStructuredBuffer, uint32 elementOffset)
+    : uniformIndex(uniformIndex),
+      shaderDataOffset(elementOffset * rwStructuredBuffer.elementSize, rwStructuredBuffer.elementSize),
+      uniform({ name, rwStructuredBuffer.gpuBuffer })
+{
+    AssertDebug(rwStructuredBuffer.gpuBuffer != nullptr);
+}
+
+SetShaderUniform::SetShaderUniform(uint32 uniformIndex, StringHash name, const ByteAddressBuffer& byteAddressBuffer, uint32 byteOffset)
+    : uniformIndex(uniformIndex),
+      shaderDataOffset(byteOffset, 0),
+      uniform({ name, byteAddressBuffer.gpuBuffer })
+{
+    AssertDebug(byteAddressBuffer.gpuBuffer != nullptr);
+}
+
 void SetShaderUniform::InvokeStatic(CmdBase* cmd, CommandBuffer* commandBuffer)
 {
     SetShaderUniform* cmdCasted = static_cast<SetShaderUniform*>(cmd);
