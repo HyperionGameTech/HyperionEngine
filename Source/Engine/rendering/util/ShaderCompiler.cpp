@@ -72,6 +72,7 @@ namespace Hyperion {
 HYP_DEFINE_LOG_SUBCHANNEL(ShaderCompiler, Core);
 
 // #define HYP_SHADER_COMPILER_LOGGING
+// #define HYP_ENABLE_SHADER_DEBUGGING
 
 /// Should missing shader variants be compiled when requested, or should we just fail?
 /// Enabling this will cause shader compilation to happen during gameplay / editor.
@@ -1240,15 +1241,20 @@ static ByteBuffer CompileHLSL(
     args.PushBack(L"-HV 2021");
 
     // enable debug info in HYP_DEBUG_MODE.
-#if HYP_DEBUG_MODE
+#if HYP_DEBUG_MODE && defined(HYP_ENABLE_SHADER_DEBUGGING)
     args.PushBack(L"-Zi");
     args.PushBack(L"-Od");
+#else
+    // Optimize that code.
+    args.PushBack(L"-O3");
 #endif
 
 #if HYP_VULKAN
     if (outputType == HLSLOutputType::SPIRV)
     {
         args.PushBack(L"-spirv");
+        // args.PushBack(L"-fvk-use-scalar-layout");
+        args.PushBack(L"-fvk-use-dx-layout");
 
         uint32 spirvVersion;
         uint32 vulkanApiVersion;
@@ -1275,8 +1281,6 @@ static ByteBuffer CompileHLSL(
             errorMessages.PushBack(HYP_FORMAT("Unsupported vulkan version {}", vulkanApiVersion));
             return {};
         }
-
-        args.PushBack(L"-fvk-use-scalar-layout");
     }
 #elif HYP_DX12
 #if HYP_DEBUG_MODE

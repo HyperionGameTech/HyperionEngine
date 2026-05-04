@@ -15,9 +15,9 @@ struct EnvProbe
     float4 aabb_min;
     float4 world_position;
 
+    uint2 dimensions;
     uint texture_index; // point light shadow map probes - this is the index in the point shadow maps array
     uint flags;
-    uint2 dimensions;
 
     float4 sh[9];
 };

@@ -144,6 +144,7 @@ RendererResult DX12GpuBuffer::Create()
     }
 
     UINT64 finalSize = m_size;
+
     if (m_type == GpuBufferType::ConstantBuffer)
     {
         finalSize = ByteUtil::AlignAs(m_size, 256);

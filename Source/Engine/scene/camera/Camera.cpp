@@ -275,21 +275,30 @@ void Camera::Init()
 
     if (m_cameraFlags & CameraFlags::MATCH_WINDOW_SIZE)
     {
-        Handle<ApplicationWindow> window = m_window.Lock();
-
-        auto MatchWindowSize = [this](Vec2i windowSize)
+        const auto handleWindowChanged = [this](ApplicationWindow* window)
         {
-            windowSize = MathUtil::Max(Vec2i(MathUtil::Round(Vec2f(windowSize) * m_matchWindowSizeRatio)), Vec2i::One());
+            m_onWindowResizedHandle.Reset();
 
-            SetDimensions(windowSize);
-        };
+            if (window == nullptr)
+            {
+                return;
+            }
 
-        if (window.IsValid())
-        {
+            auto MatchWindowSize = [this](Vec2i windowSize)
+            {
+                windowSize = MathUtil::Max(Vec2i(MathUtil::Round(Vec2f(windowSize) * m_matchWindowSizeRatio)), Vec2i::One());
+
+                SetDimensions(windowSize);
+            };
+
             MatchWindowSize(window->GetDimensions());
 
             m_onWindowResizedHandle = window->OnWindowSizeChanged.BindThreaded(MatchWindowSize, g_simThread);
-        }
+        };
+
+        handleWindowChanged(g_appContext->GetMainWindow());
+
+        m_onMainWindowChangedHandle = g_appContext->OnCurrentWindowChanged.BindThreaded(handleWindowChanged, g_simThread);
     }
 
     UpdateMouseLocked();
@@ -456,37 +465,6 @@ bool Camera::RemoveCameraController(const Handle<CameraController>& cameraContro
     }
 
     return true;
-}
-
-void Camera::SetWindow(ApplicationWindow* window)
-{
-    HYP_SCOPE;
-
-    if (m_window.GetUnsafe() == window)
-    {
-        return;
-    }
-
-    m_window = MakeWeakRef(window);
-
-    if (IsInitCalled() && (m_cameraFlags & CameraFlags::MATCH_WINDOW_SIZE))
-    {
-        m_onWindowResizedHandle.Reset();
-
-        if (window)
-        {
-            auto matchWindowSize = [this](Vec2i windowSize)
-            {
-                windowSize = MathUtil::Max(Vec2i(MathUtil::Round(Vec2f(windowSize) * m_matchWindowSizeRatio)), Vec2i::One());
-
-                SetDimensions(windowSize);
-            };
-
-            matchWindowSize(window->GetDimensions());
-
-            m_onWindowResizedHandle = window->OnWindowSizeChanged.BindThreaded(matchWindowSize, g_simThread);
-        }
-    }
 }
 
 void Camera::OnTransformUpdated()
@@ -684,7 +662,6 @@ void Camera::Update(float delta)
     {
         UpdateMatrices();
     }
-
     
     if (m_streamingVolume.IsValid())
     {

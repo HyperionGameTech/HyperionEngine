@@ -254,9 +254,6 @@ public:
         m_cameraFlags = flags;
     }
 
-    HYP_METHOD()
-    void SetWindow(ApplicationWindow* window);
-
     HYP_METHOD(Property = "CameraControllers")
     const Array<Handle<CameraController>>& GetCameraControllers() const
     {
@@ -554,8 +551,6 @@ private:
 
     Handle<CameraStreamingVolume> m_streamingVolume;
     bool m_streamingVolumeAdded;
-
-    WeakHandle<ApplicationWindow> m_window;
 
     DelegateHandler m_onMainWindowChangedHandle;
     DelegateHandler m_onWindowResizedHandle;

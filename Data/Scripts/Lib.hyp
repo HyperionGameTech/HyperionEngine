@@ -2045,7 +2045,6 @@ end
 extern class Camera : Entity
     GetCameraFlags() -> CameraFlags
     SetCameraFlags(flags : CameraFlags) -> void
-    SetWindow(window : ApplicationWindow) -> void
     GetCameraControllers() -> Array<CameraController>
     GetCameraController() -> CameraController
     HasActiveCameraController() -> bool

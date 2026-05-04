@@ -90,8 +90,6 @@ struct alignas(16) EntityShaderData
     uint32 flags;
     uint32 _pad0;
     uint32 _pad1;
-
-    Vec4f _pad2;
 };
 
 enum class LightmapElementId : uint32;
@@ -140,10 +138,10 @@ struct alignas(16) EnvProbeShaderData
     Vec4f aabbMax;
     Vec4f aabbMin;
     Vec4f worldPosition;
-
+    
+    Vec2u dimensions;
     uint32 textureIndex = ~0u;
     uint32 flags = 0;
-    Vec2u dimensions;
 
     Vec4f shData[9];
 };
@@ -174,7 +172,7 @@ struct alignas(16) ShadowMapData
 {
     Mat4f viewProjMat;
     Mat4f invProjMat;
-    
+
     Vec4f aabbMin;          // w = offsetUV.x
     Vec4f aabbMax;          // w = offsetUV.y
     Vec4f dimensionsScale;  // xy = shadow map dimensions in pixels, zw = shadow map dimensions relative to the atlas dimensions
@@ -286,14 +284,13 @@ struct alignas(16) MaterialShaderData
     // 4 vec4s of 0.0..1.0 values stuffed into uint32s
     Vec4u packedParams;
 
-    Vec2f uvScale;
-    float parallaxHeight;
+    Vec4u textureIndices[4];
 
     uint32 textureUsage;
 
-    Vec4u textureIndices[4];
+    float parallaxHeight;
 
-    Vec4f _pad0;
+    Vec2f uvScale;
 };
 
 class RenderProxyMaterial final : public IRenderProxy

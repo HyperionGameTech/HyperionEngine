@@ -54,7 +54,7 @@ DECLARE_SRV(UpdateParticlesDescriptorSet, WorldsBuffer) StructuredBuffer<WorldSh
 DECLARE_BUFFER_DYNAMIC(UpdateParticlesDescriptorSet, CBuffer) cbuffer CBuffer
 {
     float4 origin;
-    
+
     float spawn_radius;
     float randomness;
     float avg_lifespan;
@@ -151,6 +151,8 @@ void CSMain(uint3 dispatchThreadID : SV_DispatchThreadID)
 #ifdef HAS_PHYSICS
     float4 posNDC = mul(camera.viewProjMat, float4(particle.position.xyz, 1.0));
     posNDC /= posNDC.w;
+
+    posNDC.y = 1.0 - posNDC.y;
 
     float2 particleUV = posNDC.xy * 0.5 + 0.5;
 

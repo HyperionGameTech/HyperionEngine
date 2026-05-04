@@ -1611,18 +1611,13 @@ public:
 
         // @TODO VP offset
 
-        Vec2u extent = viewport.extent;
-        extent.x &= ~1;
-        extent.y &= ~1;
+        const Vec2u extent = viewport.extent;
 
         const uint32 numTilesX = (extent.x + TileSize - 1) / TileSize;
         const uint32 numTilesY = (extent.y + TileSize - 1) / TileSize;
         const uint32 totalTiles = numTilesX * numTilesY * TileZBins;
 
-        if (totalTiles == 0)
-        {
-            return;
-        }
+        Assert(totalTiles != 0);
 
         if (tileDataPerView.Size() <= view->Id().ToIndex())
         {
@@ -2539,16 +2534,16 @@ void DeferredRenderer::RenderFrameForView(Frame* frame, const RenderSetup& rs)
 
     const uint32 frameIndex = frame->GetFrameIndex();
 
+    if (cvBypassDrawing.Get() || rs.viewport.extent.Volume() == 0)
+    {
+        return;
+    }
+
     m_tileProcessor->ProcessView(
         rs.viewport,
         view,
         passData.gridTilesBuffer,
         passData.gridIndexBuffer);
-
-    if (cvBypassDrawing.Get() || rs.viewport.extent.Volume() == 0)
-    {
-        return;
-    }
 
     // Render shadows for shadow casting lights
     for (Light* light : rpl.GetLights())

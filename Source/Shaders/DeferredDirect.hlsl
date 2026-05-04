@@ -215,13 +215,8 @@ PSOutput PSMain(PSInput input)
 #ifdef LIGHT_TYPE_CLUSTERED
     float viewSpaceZ = positionVS.z;
 
-    uint width, height;
-    gbuffer_depth_texture.GetDimensions(width, height);
-    uint2 viewportExtent = uint2(width, height);
-    viewportExtent.x &= ~1;
-    viewportExtent.y &= ~1;
-
-    uint2 viewportPixelCoord = (uint2)(texcoord * (float2)viewportExtent);
+    uint2 viewportExtent = camera.dimensions.xy;
+    uint2 viewportPixelCoord = (uint2)input.position_cs.xy;
 
     // Cluster data
     const uint gridIndex = Cluster_GetGridIndex(
@@ -352,7 +347,7 @@ PSOutput PSMain(PSInput input)
     // result = UINT_TO_VEC4(gridIndex);//  float4(numLights, 0.0, 0.0, 1.0);
     // result.a = 1.0;
 
-    // result = float4(numLights, 0.0, 0.0, 1.0);
+    // result = float4(float2(viewportExtent - camera.dimensions.xy), 0.0, 1.0);
 
     // Env probes will be in indirect pass.
 #else // !LIGHT_TYPE_CLUSTERED

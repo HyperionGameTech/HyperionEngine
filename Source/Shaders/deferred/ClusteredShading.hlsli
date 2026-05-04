@@ -24,11 +24,11 @@
 
 uint Cluster_LoadUInt16(uint index)
 {
-    uint dwordAlignedOffset = (index / 2) * sizeof(uint);
+    uint dwordAlignedOffset = (index / 2) * 4;
     uint raw32 = ClusterIndexBuffer.Load(dwordAlignedOffset);
 
     // even index means we want the lower 16 bits, odd index means we want the upper 16 bits
-    return select(index & 1, raw32 >> 16, raw32 & 0xFFFFu);
+    return (index & 1) ? (raw32 >> 16) : (raw32 & 0xFFFFu);
 }
 
 uint Cluster_LoadLightIndex(uint indexOffset, uint index)

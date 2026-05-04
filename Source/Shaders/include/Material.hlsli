@@ -26,13 +26,10 @@ struct Material
 
     uint4 packed_params;
 
-    float2 uv_scale;
-    float parallax_height;
-    uint textureUsage;
-
     uint4 texture_indices[4];
-
-    float4 _pad0;
+    uint textureUsage;
+    float parallax_height;
+    float2 uv_scale;
 };
 
 // enum for packed params

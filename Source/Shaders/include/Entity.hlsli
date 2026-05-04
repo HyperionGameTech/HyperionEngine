@@ -9,9 +9,9 @@ struct Entity
     float4x4 previous_model_matrix;
 
 #ifdef HYP_VULKAN
-    float4x3 normal_matrix;
+    float3x4 normal_matrix;
 #else
-    float3x3 normal_matrix;
+    float4x3 normal_matrix;
 #endif
 
     float4 world_aabb_max;
@@ -26,8 +26,6 @@ struct Entity
     uint flags;
     uint _pad0;
     uint _pad1;
-
-    float4 _pad2;
 };
 
 #define MAX_ENTITIES_PER_INSTANCE_BATCH 16

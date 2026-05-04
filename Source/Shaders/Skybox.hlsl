@@ -52,14 +52,10 @@ VSOutput VSMain(VSInput input, uint instanceId : SV_InstanceID)
 
     float4 position = mul(entity.model_matrix, float4(input.a_position, 1.0));
 
-#ifdef HYP_VULKAN
-    float4x3 normal_matrix = entity.normal_matrix;
-#else
-    float3x3 normal_matrix = entity.normal_matrix;
-#endif
+    float3x3 normal_matrix = (float3x3)entity.normal_matrix;
 
     output.position = input.a_position.xyz;
-    output.normal = mul((float3x3)normal_matrix, input.a_normal);
+    output.normal = mul(normal_matrix, input.a_normal);
     output.texcoord0 = input.a_texcoord0;
 
     float4x4 view_matrix = camera.view;
