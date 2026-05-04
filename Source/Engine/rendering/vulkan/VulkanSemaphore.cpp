@@ -2,7 +2,7 @@
  *  @author: The Hyperion Contributors
  *  @date 2016-2026
  *  @licence MIT
-*/
+ */
 
 #include <VulkanPch.hpp>
 
@@ -24,7 +24,8 @@ HYP_DECLARE_LOG_CHANNEL(RenderingBackend);
 extern VulkanRenderInterface RI;
 
 VulkanSemaphore::VulkanSemaphore()
-    : m_handle(VK_NULL_HANDLE)
+    : m_handle(VK_NULL_HANDLE),
+      m_type(VulkanSemaphoreType::BINARY)
 {
 }
 
@@ -49,12 +50,63 @@ RendererResult VulkanSemaphore::Create()
     }
 
     VkSemaphoreCreateInfo semaphoreInfo { VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO };
+    VkSemaphoreTypeCreateInfo timelineInfo { VK_STRUCTURE_TYPE_SEMAPHORE_TYPE_CREATE_INFO };
+
+    if (m_type == VulkanSemaphoreType::TIMELINE)
+    {
+        timelineInfo.semaphoreType = VK_SEMAPHORE_TYPE_TIMELINE;
+        timelineInfo.initialValue = 0;
+
+        semaphoreInfo.pNext = &timelineInfo;
+    }
 
     VULKAN_CHECK_MSG(
         vkCreateSemaphore(RI.GetDevice()->GetDevice(), &semaphoreInfo, nullptr, &m_handle),
         "Failed to create semaphore");
 
     return {};
+}
+
+void VulkanSemaphore::Signal(uint64 value)
+{
+    Assert(IsTimeline() && IsCreated());
+
+    VkSemaphoreSignalInfo signalInfo { VK_STRUCTURE_TYPE_SEMAPHORE_SIGNAL_INFO };
+    signalInfo.semaphore = m_handle;
+    signalInfo.value = value;
+
+    VkResult result = vkSignalSemaphore(RI.GetDevice()->GetDevice(), &signalInfo);
+    Assert(result == VK_SUCCESS, "Failed to signal timeline semaphore, VkResult: {}", result);
+}
+
+void VulkanSemaphore::WaitForValue(uint64 value, uint64 timeoutNs)
+{
+    Assert(IsTimeline() && IsCreated());
+
+    VkSemaphoreWaitInfo waitInfo { VK_STRUCTURE_TYPE_SEMAPHORE_WAIT_INFO };
+    waitInfo.semaphoreCount = 1;
+    waitInfo.pSemaphores = &m_handle;
+    waitInfo.pValues = &value;
+
+    VkResult result = vkWaitSemaphores(RI.GetDevice()->GetDevice(), &waitInfo, timeoutNs);
+
+    if (result == VK_TIMEOUT)
+    {
+        HYP_LOG(RenderingBackend, Warning, "Timeline semaphore wait timed out for value {}", value);
+    }
+
+    Assert(result == VK_SUCCESS || result == VK_TIMEOUT, "Failed to wait on timeline semaphore, VkResult: {}", result);
+}
+
+uint64 VulkanSemaphore::GetCounterValue() const
+{
+    Assert(IsTimeline() && IsCreated());
+
+    uint64 value = 0;
+    VkResult result = vkGetSemaphoreCounterValue(RI.GetDevice()->GetDevice(), m_handle, &value);
+    Assert(result == VK_SUCCESS, "Failed to get timeline semaphore counter value, VkResult: {}", result);
+
+    return value;
 }
 
 } // namespace Hyperion

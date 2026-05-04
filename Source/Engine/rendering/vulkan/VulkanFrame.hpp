@@ -2,7 +2,7 @@
  *  @author: The Hyperion Contributors
  *  @date 2016-2026
  *  @licence MIT
-*/
+ */
 
 #pragma once
 
@@ -17,6 +17,7 @@
 #include <rendering/RenderObject.hpp>
 
 #include <rendering/vulkan/VulkanSemaphore.hpp>
+#include <rendering/vulkan/VulkanFence.hpp>
 #include <rendering/vulkan/VulkanMemory.hpp>
 
 #include <Core/containers/HashSet.hpp>
@@ -60,6 +61,16 @@ public:
         return m_queueSubmitFence;
     }
 
+    HYP_FORCE_INLINE VulkanSemaphoreRef GetFrameCompleteSemaphore() const
+    {
+        return m_frameCompleteSemaphore;
+    }
+
+    HYP_FORCE_INLINE uint64 GetFrameCompleteValue() const
+    {
+        return m_frameCompleteValue;
+    }
+
     VulkanSemaphore* GetImageAvailableSemaphore(const VulkanSwapchain* swapchain, bool createIfNotExist = true);
 
     void RecreateFence();
@@ -82,6 +93,8 @@ private:
     static void InitVulkanSwapchainData(VulkanSwapchainData& swapchainData);
 
     VulkanFence* m_queueSubmitFence;
+    VulkanSemaphoreRef m_frameCompleteSemaphore;
+    uint64 m_frameCompleteValue;
     VulkanRenderPassesSet m_renderPasses;
 
     HashMap<const VulkanSwapchain*, VulkanSwapchainData, VulkanAllocator> m_swapchainData;

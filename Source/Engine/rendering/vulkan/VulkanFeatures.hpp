@@ -422,6 +422,18 @@ public:
 #endif
     }
 
+    const VkPhysicalDeviceVulkan12Features& GetVulkan12Features() const
+    {
+        return m_vulkan12Features;
+    }
+
+    // Timeline semaphores are mandatory in Vulkan 1.2. We target VK_API_VERSION_1_2
+    // so they are always available on a compatible device.
+    bool SupportsTimelineSemaphores() const
+    {
+        return m_vulkan12Features.timelineSemaphore == VK_TRUE;
+    }
+
 private:
     VkPhysicalDevice m_physicalDevice;
     VkPhysicalDeviceProperties m_properties;
@@ -437,6 +449,7 @@ private:
 
     VkPhysicalDeviceDescriptorIndexingFeatures m_indexingFeatures;
     VkPhysicalDeviceDescriptorIndexingProperties m_indexingProperties;
+    VkPhysicalDeviceVulkan12Features m_vulkan12Features;
     VkPhysicalDeviceMultiviewFeatures m_multiviewFeatures;
     VkPhysicalDeviceScalarBlockLayoutFeatures m_scalarBlockLayoutFeatures;
 

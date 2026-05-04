@@ -2,7 +2,7 @@
  *  @author: The Hyperion Contributors
  *  @date 2016-2026
  *  @licence MIT
-*/
+ */
 
 #pragma once
 
@@ -14,6 +14,13 @@ namespace Hyperion {
 
 extern Pool* g_vulkanPool;
 
+HYP_ENUM()
+enum class VulkanSemaphoreType : uint8
+{
+    BINARY = 0,
+    TIMELINE = 1
+};
+
 HYP_CLASS(NoScriptBindings)
 class VulkanSemaphore final : public ObjectBase
 {
@@ -23,6 +30,13 @@ public:
     static Pool* GetAllocator() { return g_vulkanPool; }
 
     VulkanSemaphore();
+
+    explicit VulkanSemaphore(VulkanSemaphoreType type)
+        : m_handle(VK_NULL_HANDLE),
+          m_type(type)
+    {
+    }
+
     ~VulkanSemaphore() override;
 
     HYP_FORCE_INLINE VkSemaphore GetVulkanHandle() const
@@ -35,10 +49,25 @@ public:
         return m_handle != VK_NULL_HANDLE;
     }
 
+    HYP_FORCE_INLINE VulkanSemaphoreType GetType() const
+    {
+        return m_type;
+    }
+
+    HYP_FORCE_INLINE bool IsTimeline() const
+    {
+        return m_type == VulkanSemaphoreType::TIMELINE;
+    }
+
     RendererResult Create();
+
+    void Signal(uint64 value);
+    void WaitForValue(uint64 value, uint64 timeoutNs = UINT64_MAX);
+    uint64 GetCounterValue() const;
 
 private:
     VkSemaphore m_handle;
+    VulkanSemaphoreType m_type;
 };
 
 } // namespace Hyperion

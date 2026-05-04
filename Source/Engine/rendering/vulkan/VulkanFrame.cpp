@@ -2,7 +2,7 @@
  *  @author: The Hyperion Contributors
  *  @date 2016-2026
  *  @licence MIT
-*/
+ */
 
 #include <VulkanPch.hpp>
 
@@ -12,6 +12,7 @@
 #include <rendering/vulkan/VulkanRenderInterface.hpp>
 #include <rendering/vulkan/VulkanRenderPass.hpp>
 #include <rendering/vulkan/VulkanSwapchain.hpp>
+#include <rendering/vulkan/VulkanFeatures.hpp>
 
 #include <rendering/Device.hpp>
 #include <rendering/RenderObject.hpp>
@@ -26,13 +27,15 @@ extern VulkanRenderInterface RI;
 
 VulkanFrame::VulkanFrame()
     : FrameBase(0),
-      m_queueSubmitFence(nullptr)
+      m_queueSubmitFence(nullptr),
+      m_frameCompleteValue(0)
 {
 }
 
 VulkanFrame::VulkanFrame(uint32 frameIndex)
     : FrameBase(frameIndex),
-      m_queueSubmitFence(nullptr)
+      m_queueSubmitFence(nullptr),
+      m_frameCompleteValue(0)
 {
 }
 
@@ -57,6 +60,19 @@ RendererResult VulkanFrame::Create()
     m_queueSubmitFence = new VulkanFence();
     m_queueSubmitFence->Create(/* createSignalled */ true);
 
+    if (RI.GetDevice()->GetFeatures().SupportsTimelineSemaphores()
+        && RI.GetRenderConfig().timelineSemaphores)
+    {
+        m_frameCompleteSemaphore = MakeHandle<VulkanSemaphore>(VulkanSemaphoreType::TIMELINE);
+        RendererResult result = m_frameCompleteSemaphore->Create();
+
+        if (!result)
+        {
+            HYP_LOG(RenderingBackend, Warning, "Failed to create timeline semaphore, falling back to fence-only sync: {}", result.GetError().GetMessage());
+            m_frameCompleteSemaphore.Reset();
+        }
+    }
+
     return {};
 }
 
@@ -65,6 +81,11 @@ void VulkanFrame::OnFrameStart()
     FrameBase::OnFrameStart();
 
     m_queueSubmitFence->Reset();
+
+    if (m_frameCompleteSemaphore.IsValid())
+    {
+        m_frameCompleteValue = GetFrameCounter() + 1;
+    }
 
 #ifdef DECLARE_SET_TRACK_FRAME_USAGE
     for (VulkanDescriptorSet* descriptorSet : m_usedDescriptorSets)
@@ -118,6 +139,20 @@ void VulkanFrame::RecreateFence()
 
     m_queueSubmitFence = new VulkanFence();
     m_queueSubmitFence->Create(/* createSignalled */ true);
+
+    if (RI.GetDevice()->GetFeatures().SupportsTimelineSemaphores()
+        && RI.GetRenderConfig().timelineSemaphores)
+    {
+        m_frameCompleteSemaphore = MakeHandle<VulkanSemaphore>(VulkanSemaphoreType::TIMELINE);
+        RendererResult result = m_frameCompleteSemaphore->Create();
+
+        if (!result)
+        {
+            HYP_LOG(RenderingBackend, Warning, "Failed to recreate timeline semaphore, falling back to fence-only sync: {}", result.GetError().GetMessage());
+            m_frameCompleteSemaphore.Reset();
+            m_frameCompleteValue = 0;
+        }
+    }
 }
 
 void VulkanFrame::RecreateSemaphores(const VulkanSwapchain* swapchain)
