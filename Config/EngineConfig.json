@@ -12,7 +12,7 @@
     "HBIL": {
       "Enabled": false
     },
-    "SSGI": false,
+    "SSGI": true,
     "TAA": true,
     "PathTracing": false,
     "RayTracedReflections": false,

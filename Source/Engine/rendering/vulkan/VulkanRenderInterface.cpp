@@ -61,7 +61,7 @@ namespace Hyperion {
 static constexpr bool UseResetDescriptorPool = false;
 static constexpr uint32 MaxDescriptorPools = 32;
 
-static EngineStatTimer s_statVulkanWaitOnFences("Rendering/Vulkan/WaitOnFences");
+static EngineStatTimer s_statVulkanFrameSync("Rendering/Vulkan/FrameSync");
 
 enum VulkanDescriptorPoolRequirements : uint8
 {
@@ -692,9 +692,9 @@ RendererResult VulkanRenderInterface::Initialize()
         .GetPhysicalDeviceProperties().limits.minUniformBufferOffsetAlignment;
 
     CheckResultOrReturn(RenderInterface::Initialize());
-    
+
     cbufferAllocator->Initialize(minUniformBufferOffsetAlignment);
-    
+
     return {};
 }
 
@@ -768,7 +768,7 @@ void VulkanRenderInterface::PrepareFrame(VulkanFrame* frame)
     const uint32 frameCounter = GetFrameCounter();
 
     {
-        ENGINE_STAT_SCOPE(&s_statVulkanWaitOnFences);
+        ENGINE_STAT_SCOPE(&s_statVulkanFrameSync);
 
         if (frame->IsUsingTimelineSemaphore())
         {
@@ -777,12 +777,10 @@ void VulkanRenderInterface::PrepareFrame(VulkanFrame* frame)
 
             if (waitValue > 0)
             {
-                uint64 currentValue = timelineSemaphore->GetCounterValue();
+                const uint64 currentValue = timelineSemaphore->GetCounterValue();
 
                 if (currentValue < waitValue)
                 {
-                    HYP_LOG(RenderingBackend, Verbose, "Frame {} (fc={}) waiting on timeline semaphore (value={}, current={})", frame->GetFrameIndex(), frameCounter, waitValue, currentValue);
-
                     timelineSemaphore->WaitForValue(waitValue, UINT64_MAX);
                 }
             }
@@ -854,7 +852,7 @@ void VulkanRenderInterface::PrepareFrame(VulkanFrame* frame)
 
         if (fence.isSubmitted)
         {
-            ENGINE_STAT_SCOPE(&s_statVulkanWaitOnFences);
+            ENGINE_STAT_SCOPE(&s_statVulkanFrameSync);
 
             fence.Wait(true);
 

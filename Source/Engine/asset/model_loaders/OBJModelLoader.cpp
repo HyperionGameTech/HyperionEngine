@@ -184,14 +184,18 @@ OBJModel OBJModelLoader::LoadModel(LoaderState& state)
 
         if (tokens[0] == "v")
         {
-            model.positions.PushBack(ReadVector<Vec3f>(tokens, 1));
+            Vec3f position = ReadVector<Vec3f>(tokens, 1);
+            position.z = -position.z;
+            model.positions.PushBack(position);
 
             continue;
         }
 
         if (tokens[0] == "vn")
         {
-            model.normals.PushBack(ReadVector<Vec3f>(tokens, 1));
+            Vec3f normal = ReadVector<Vec3f>(tokens, 1);
+            normal.z = -normal.z;
+            model.normals.PushBack(normal);
 
             continue;
         }

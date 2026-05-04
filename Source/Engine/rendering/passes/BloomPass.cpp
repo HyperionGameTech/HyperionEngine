@@ -69,7 +69,7 @@ struct UpsampleUniforms
 };
 
 CVar<float> cvBloomThreshold { "Rendering.BloomThreshold", 1.0f, "Rendering.Bloom.Threshold" };
-CVar<float> cvBloomIntensity { "Rendering.BloomIntensity", 1.0f, "Rendering.Bloom.Intensity" };
+CVar<float> cvBloomIntensity { "Rendering.BloomIntensity", 0.4f, "Rendering.Bloom.Intensity" };
 CVar<float> cvBloomSoftKnee { "Rendering.BloomSoftKnee", 0.5f, "Rendering.Bloom.SoftKnee" };
 
 BloomPass::BloomPass(Vec2u extent, GBuffer* gbuffer)
