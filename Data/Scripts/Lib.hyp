@@ -768,6 +768,10 @@ extern enum ComponentAccess : uint32
 end
 extern struct BVHNode
 end
+extern enum VulkanSemaphoreType : uint8
+    BINARY = 0,
+    TIMELINE = 1
+end
 extern enum VulkanDeviceQueueType : uint8
     INVALID = 0,
     GRAPHICS,

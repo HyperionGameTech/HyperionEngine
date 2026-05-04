@@ -300,9 +300,10 @@ void VulkanDescriptorSet::UpdateDirtyState(bool* outIsDirty)
                             "Constant buffer for {} may not have zero for buffer stride!", name);
                     }
 
-                    if (isDynamic && element.bufferStride != ByteAddressBufferStride)
+                    if (isDynamic)
                     {
-                        AssertDebug(element.bufferStride != ~0u, "Buffer {} must have stride passed in!", name);
+                        AssertDebug(element.bufferStride != ~0u && element.bufferStride != ByteAddressBufferStride,
+                            "Buffer {} is marked as having a dynamic offset, so it must have stride passed in, and must not be zero (ByteAddressBufferStride)", name);
 
                         bufferRange = element.bufferStride;
                     }

@@ -709,9 +709,11 @@ void VulkanRenderInterface::Shutdown()
             continue;
         }
 
-        if (frame->GetFence()->isSubmitted && !frame->GetFence()->CheckStatus())
+        VulkanFence* fence = frame->GetFence();
+
+        if (fence && fence->isSubmitted && !fence->CheckStatus())
         {
-            frame->GetFence()->Wait();
+            fence->Wait();
         }
 
         frame.Reset();
@@ -768,10 +770,9 @@ void VulkanRenderInterface::PrepareFrame(VulkanFrame* frame)
     {
         ENGINE_STAT_SCOPE(&s_statVulkanWaitOnFences);
 
-        VulkanSemaphoreRef timelineSemaphore = frame->GetFrameCompleteSemaphore();
-
-        if (timelineSemaphore.IsValid() && timelineSemaphore->IsCreated())
+        if (frame->IsUsingTimelineSemaphore())
         {
+            VulkanSemaphoreRef timelineSemaphore = frame->GetFrameCompleteSemaphore();
             const uint64 waitValue = frame->GetFrameCompleteValue();
 
             if (waitValue > 0)
@@ -782,22 +783,7 @@ void VulkanRenderInterface::PrepareFrame(VulkanFrame* frame)
                 {
                     HYP_LOG(RenderingBackend, Verbose, "Frame {} (fc={}) waiting on timeline semaphore (value={}, current={})", frame->GetFrameIndex(), frameCounter, waitValue, currentValue);
 
-                    timelineSemaphore->WaitForValue(waitValue, 5000000000);
-                    currentValue = timelineSemaphore->GetCounterValue();
-                }
-
-                if (currentValue >= waitValue)
-                {
-                    HYP_LOG(RenderingBackend, Verbose, "Frame {} timeline semaphore ready (value={})", frame->GetFrameIndex(), currentValue);
-
-                    frame->GetFence()->lastFrameResult = VK_SUCCESS;
-                    frame->GetFence()->isSubmitted = false;
-                }
-                else
-                {
-                    HYP_LOG(RenderingBackend, Warning, "Frame {} timeline semaphore not ready after wait, using fence fallback", frame->GetFrameIndex());
-
-                    frame->GetFence()->Wait(true);
+                    timelineSemaphore->WaitForValue(waitValue, UINT64_MAX);
                 }
             }
         }
@@ -807,7 +793,7 @@ void VulkanRenderInterface::PrepareFrame(VulkanFrame* frame)
         }
     }
 
-    // call frame callbacks after fence is waited on
+    // call frame callbacks after GPU sync is complete
     if (frame->OnFrameEnd.AnyBound())
     {
         frame->OnFrameEnd(frame);
@@ -965,10 +951,10 @@ void VulkanRenderInterface::PresentToSwapchain(VulkanSwapchain* swapchain)
         AssertDebug(waitSemaphore != nullptr && signalSemaphore != nullptr);
     }
 
-    VulkanSemaphoreRef frameTimelineSemaphore = frame->GetFrameCompleteSemaphore();
-    const uint64 frameSignalValue = frame->GetFrameCompleteValue();
+    const bool useTimeline = frame->IsUsingTimelineSemaphore();
+    VulkanFence* submitFence = useTimeline ? nullptr : frame->GetFence();
 
-    if (frameTimelineSemaphore.IsValid() && frameTimelineSemaphore->IsCreated() && frameSignalValue > 0)
+    if (useTimeline && frame->GetFrameCompleteValue() > 0)
     {
         VulkanSemaphore* signalSemaphores[2] = { nullptr, nullptr };
         uint64 signalValues[2] = { 0, 0 };
@@ -981,23 +967,23 @@ void VulkanRenderInterface::PresentToSwapchain(VulkanSwapchain* swapchain)
             signalCount++;
         }
 
-        signalSemaphores[signalCount] = frameTimelineSemaphore.Get();
-        signalValues[signalCount] = frameSignalValue;
+        signalSemaphores[signalCount] = frame->GetFrameCompleteSemaphore().Get();
+        signalValues[signalCount] = frame->GetFrameCompleteValue();
         signalCount++;
 
         commandBuffer->Submit(
             presentQueue,
-            frame->GetFence(),
+            submitFence,
             Span<VulkanSemaphore*>(&waitSemaphore, waitSemaphore ? 1 : 0),
             Span<VulkanSemaphore*>(signalSemaphores, signalCount),
-            nullptr,             // waitValues - binary semaphore, value ignored
-            signalValues);       // signalValues
+            nullptr,
+            signalValues);
     }
     else
     {
         commandBuffer->Submit(
             presentQueue,
-            frame->GetFence(),
+            submitFence,
             Span<VulkanSemaphore*>(&waitSemaphore, waitSemaphore ? 1 : 0),
             Span<VulkanSemaphore*>(&signalSemaphore, signalSemaphore ? 1 : 0));
     }

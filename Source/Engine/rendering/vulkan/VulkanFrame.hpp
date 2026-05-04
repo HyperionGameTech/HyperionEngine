@@ -47,7 +47,7 @@ public:
 
     bool IsCreated() const override
     {
-        return m_queueSubmitFence != nullptr;
+        return m_queueSubmitFence != nullptr || m_frameCompleteSemaphore.IsValid();
     }
 
     RendererResult Create() override;
@@ -55,6 +55,11 @@ public:
     void OnFrameStart() override;
 
     void WriteCommandBuffer(VulkanCommandBuffer* commandBuffer) override;
+
+    HYP_FORCE_INLINE bool IsUsingTimelineSemaphore() const
+    {
+        return m_frameCompleteSemaphore.IsValid() && m_frameCompleteSemaphore->IsCreated();
+    }
 
     HYP_FORCE_INLINE VulkanFence* GetFence() const
     {

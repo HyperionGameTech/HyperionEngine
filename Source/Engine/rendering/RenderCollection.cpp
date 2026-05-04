@@ -901,12 +901,9 @@ static void RenderAll(
         EntityInstanceBatch* entityInstanceBatch = instancedDrawCalls.batches[i];
         AssertDebug(entityInstanceBatch != nullptr);
 
-        const uint32 effectiveStride = drawCallCollection.batchAllocator->GetStructSize();
+        const StructuredBuffer& entityInstanceBatchBuffer = drawCallCollection.batchAllocator->GetStructuredBuffer();
 
-        // We use ByteAddressBuffer in the shader, so we set stride on the ShaderDataOffset to zero.
-        cr << SetShaderUniform(numDrawCallUniforms++, "EntityInstanceBatchesBuffer"_sh,
-            drawCallCollection.batchAllocator->GetStructuredBuffer().gpuBuffer,
-            ShaderDataOffset(entityInstanceBatch->batchIndex * effectiveStride, ByteAddressBufferStride));
+        cr << SetShaderUniform(numDrawCallUniforms++, "EntityInstanceBatchesBuffer"_sh, entityInstanceBatchBuffer, entityInstanceBatch->batchIndex);
 
         if (meshProxy.skeleton != nullptr)
         {
