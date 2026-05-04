@@ -318,6 +318,31 @@ D3D12_COMPARISON_FUNC ToDX12ComparisonFunction(StencilCompareOp compareOp)
     }
 }
 
+D3D12_COMPARISON_FUNC ToDX12DepthCompareOp(DepthCompareOp compareOp)
+{
+    switch (compareOp)
+    {
+    case DCO_LESS:
+        return D3D12_COMPARISON_FUNC_LESS;
+    case DCO_LESS_OR_EQUAL:
+        return D3D12_COMPARISON_FUNC_LESS_EQUAL;
+    case DCO_GREATER:
+        return D3D12_COMPARISON_FUNC_GREATER;
+    case DCO_GREATER_OR_EQUAL:
+        return D3D12_COMPARISON_FUNC_GREATER_EQUAL;
+    case DCO_EQUAL:
+        return D3D12_COMPARISON_FUNC_EQUAL;
+    case DCO_NOT_EQUAL:
+        return D3D12_COMPARISON_FUNC_NOT_EQUAL;
+    case DCO_ALWAYS:
+        return D3D12_COMPARISON_FUNC_ALWAYS;
+    case DCO_NEVER:
+        return D3D12_COMPARISON_FUNC_NEVER;
+    default:
+        return D3D12_COMPARISON_FUNC_LESS;
+    }
+}
+
 static inline D3D12_COMPARISON_FUNC ToDX12SamplerCompareOp(SamplerCompareOp compareOp)
 {
     switch (compareOp)

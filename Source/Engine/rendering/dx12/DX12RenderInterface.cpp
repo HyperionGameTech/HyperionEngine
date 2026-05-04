@@ -693,6 +693,7 @@ DX12GraphicsPipelineRef DX12RenderInterface::MakeGraphicsPipeline(
     graphicsPipeline->SetBlendFunction(attributes.GetMaterialAttributes().blendFunction);
     graphicsPipeline->SetDepthTest(bool(attributes.GetMaterialAttributes().flags & MAF_DEPTH_TEST));
     graphicsPipeline->SetDepthWrite(bool(attributes.GetMaterialAttributes().flags & MAF_DEPTH_WRITE));
+    graphicsPipeline->SetDepthCompareOp(attributes.GetMaterialAttributes().depthCompareOp);
     graphicsPipeline->SetDepthClamp(bool(attributes.GetMaterialAttributes().flags & MAF_DEPTH_CLAMP));
 
     if (attributes.GetMaterialAttributes().flags & MAF_DEPTH_BIAS)

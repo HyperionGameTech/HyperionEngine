@@ -901,6 +901,19 @@ enum StencilCompareOp : uint8
 };
 
 HYP_ENUM()
+enum DepthCompareOp : uint8
+{
+    DCO_LESS,
+    DCO_LESS_OR_EQUAL,
+    DCO_GREATER,
+    DCO_GREATER_OR_EQUAL,
+    DCO_EQUAL,
+    DCO_NOT_EQUAL,
+    DCO_ALWAYS,
+    DCO_NEVER
+};
+
+HYP_ENUM()
 enum StencilOp : uint8
 {
     SO_KEEP,

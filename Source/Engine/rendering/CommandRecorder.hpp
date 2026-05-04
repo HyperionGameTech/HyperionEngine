@@ -740,6 +740,20 @@ private:
     bool depthTest;
 };
 
+class SetDepthCompareOp final : public CmdBase
+{
+public:
+    explicit SetDepthCompareOp(DepthCompareOp compareOp)
+        : compareOp(compareOp)
+    {
+    }
+
+    static void InvokeStatic(CmdBase* cmd, CommandBuffer* commandBuffer);
+
+private:
+    DepthCompareOp compareOp;
+};
+
 class SetDepthBias final : public CmdBase
 {
 public:

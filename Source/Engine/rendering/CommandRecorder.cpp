@@ -1357,6 +1357,22 @@ void SetDepthTest::InvokeStatic(CmdBase* cmd, CommandBuffer*)
 
 #pragma endregion SetDepthTest
 
+#pragma region SetDepthCompareOp
+
+void SetDepthCompareOp::InvokeStatic(CmdBase* cmd, CommandBuffer*)
+{
+    SetDepthCompareOp* cmdCasted = static_cast<SetDepthCompareOp*>(cmd);
+
+    if (RI.state.attributes.GetMaterialAttributes().depthCompareOp == cmdCasted->compareOp)
+        return;
+
+    RI.state.attributes.GetMaterialAttributes().depthCompareOp = cmdCasted->compareOp;
+
+    static_assert(std::is_trivially_destructible_v<SetDepthCompareOp>);
+}
+
+#pragma endregion SetDepthCompareOp
+
 #pragma region SetDepthBias
 
 void SetDepthBias::InvokeStatic(CmdBase* cmd, CommandBuffer*)

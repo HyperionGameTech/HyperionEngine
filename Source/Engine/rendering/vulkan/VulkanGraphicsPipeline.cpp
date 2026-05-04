@@ -372,7 +372,7 @@ RendererResult VulkanGraphicsPipeline::Rebuild()
     VkPipelineDepthStencilStateCreateInfo depthStencil { VK_STRUCTURE_TYPE_PIPELINE_DEPTH_STENCIL_STATE_CREATE_INFO };
     depthStencil.depthTestEnable = m_depthTest;
     depthStencil.depthWriteEnable = m_depthWrite;
-    depthStencil.depthCompareOp = VK_COMPARE_OP_LESS;
+    depthStencil.depthCompareOp = ToVkDepthCompareOp(m_depthCompareOp);
     depthStencil.depthBoundsTestEnable = VK_FALSE;
     depthStencil.minDepthBounds = 0.0f; // Optional
     depthStencil.maxDepthBounds = 1.0f; // Optional

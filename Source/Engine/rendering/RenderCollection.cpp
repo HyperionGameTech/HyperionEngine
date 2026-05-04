@@ -1411,6 +1411,7 @@ void RenderCollector::Commit(CommandRecorder& cr, uint8 index)
         cr << SetCurrentBlendFunction(BlendFunction::None());
         cr << SetDepthWrite(true);
         cr << SetDepthTest(true);
+        cr << SetDepthCompareOp(DCO_LESS);
         cr << SetDepthBias(0, 0.0f);
         cr << SetDepthClamp(false);
         cr << SetStencilTest(false);
@@ -1443,6 +1444,7 @@ void RenderCollector::Commit(CommandRecorder& cr, uint8 index)
         cr << SetCurrentBlendFunction(BlendFunction::None());
         cr << SetDepthWrite(true);
         cr << SetDepthTest(true);
+        cr << SetDepthCompareOp(DCO_LESS);
         cr << SetDepthBias(0, 0.0f);
         cr << SetDepthClamp(false);
         cr << SetStencilTest(false);

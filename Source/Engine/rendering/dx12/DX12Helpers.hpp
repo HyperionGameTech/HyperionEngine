@@ -43,6 +43,7 @@ D3D12_PRIMITIVE_TOPOLOGY ToDX12PrimitiveTopology(Topology topology);
 DXGI_FORMAT ToDXGIFormat(GpuElemType elemType);
 D3D12_STENCIL_OP ToDX12StencilOp(StencilOp op);
 D3D12_COMPARISON_FUNC ToDX12ComparisonFunction(StencilCompareOp compareOp);
+D3D12_COMPARISON_FUNC ToDX12DepthCompareOp(DepthCompareOp compareOp);
 D3D12_SRV_DIMENSION ToDX12SRVDimension(TextureType textureType);
 D3D12_UAV_DIMENSION ToDX12UAVDimension(TextureType textureType);
 

@@ -2705,6 +2705,11 @@ void DeferredRenderer::RenderFrameForView(Frame* frame, const RenderSetup& rs)
     // render opaque objects into separate framebuffer
     frame->cr << SetCurrentFramebuffer(opaquePassFramebuffer);
 
+    if (performDepthPrepass)
+    {
+        frame->cr << SetDepthCompareOp(DCO_LESS_OR_EQUAL);
+    }
+
     // if no opaque objects will be rendered, we need to clear the color target anyway
     // as other passes are using load ops
     if (renderCollector.mappingsByBucket[uint32(RenderBucket::Opaque)].Any()
@@ -2722,6 +2727,11 @@ void DeferredRenderer::RenderFrameForView(Frame* frame, const RenderSetup& rs)
         frame->cr << ClearFramebuffer(opaquePassFramebuffer, 0x1);
     }
 
+    if (performDepthPrepass)
+    {
+        frame->cr << SetDepthCompareOp(DCO_LESS);
+    }
+
     frame->cr << SetCurrentFramebuffer(nullptr);
 
     if (cvEnableLightmapVolumes.Get())
@@ -2732,7 +2742,17 @@ void DeferredRenderer::RenderFrameForView(Frame* frame, const RenderSetup& rs)
         {
             frame->cr << SetCurrentFramebuffer(lightmapPassFramebuffer);
 
+            if (performDepthPrepass)
+            {
+                frame->cr << SetDepthCompareOp(DCO_LESS_OR_EQUAL);
+            }
+
             renderCollector.ExecuteDrawCalls(frame, rs, RenderBucketMask<RenderBucket::Lightmapped>);
+
+            if (performDepthPrepass)
+            {
+                frame->cr << SetDepthCompareOp(DCO_LESS);
+            }
 
             frame->cr << SetCurrentFramebuffer(nullptr);
         }

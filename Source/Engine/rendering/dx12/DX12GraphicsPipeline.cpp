@@ -33,12 +33,12 @@ HYP_DECLARE_LOG_CHANNEL(RenderingBackend);
 
 extern DX12RenderInterface RI;
 
-static D3D12_DEPTH_STENCIL_DESC GetDefaultDepthStencilDesc()
+static D3D12_DEPTH_STENCIL_DESC GetDefaultDepthStencilDesc(DepthCompareOp depthCompareOp = DCO_LESS)
 {
     D3D12_DEPTH_STENCIL_DESC desc {};
     desc.DepthEnable = TRUE;
     desc.DepthWriteMask = D3D12_DEPTH_WRITE_MASK_ALL;
-    desc.DepthFunc = D3D12_COMPARISON_FUNC_LESS;
+    desc.DepthFunc = ToDX12DepthCompareOp(depthCompareOp);
     desc.StencilEnable = FALSE;
     desc.StencilReadMask = D3D12_DEFAULT_STENCIL_READ_MASK;
     desc.StencilWriteMask = D3D12_DEFAULT_STENCIL_WRITE_MASK;
@@ -310,7 +310,7 @@ RendererResult DX12GraphicsPipeline::Rebuild()
     psoDesc.RasterizerState.SlopeScaledDepthBias = m_depthBiasSlope;
     psoDesc.RasterizerState.DepthClipEnable = m_depthClamp ? FALSE : TRUE;
 
-    psoDesc.DepthStencilState = GetDefaultDepthStencilDesc();
+    psoDesc.DepthStencilState = GetDefaultDepthStencilDesc(m_depthCompareOp);
     psoDesc.DepthStencilState.DepthEnable = m_depthTest;
     psoDesc.DepthStencilState.DepthWriteMask = m_depthWrite ? D3D12_DEPTH_WRITE_MASK_ALL : D3D12_DEPTH_WRITE_MASK_ZERO;
 

@@ -690,6 +690,31 @@ VkCompareOp ToVkCompareOp(StencilCompareOp compareOp)
     }
 }
 
+VkCompareOp ToVkDepthCompareOp(DepthCompareOp compareOp)
+{
+    switch (compareOp)
+    {
+    case DCO_LESS:
+        return VK_COMPARE_OP_LESS;
+    case DCO_LESS_OR_EQUAL:
+        return VK_COMPARE_OP_LESS_OR_EQUAL;
+    case DCO_GREATER:
+        return VK_COMPARE_OP_GREATER;
+    case DCO_GREATER_OR_EQUAL:
+        return VK_COMPARE_OP_GREATER_OR_EQUAL;
+    case DCO_EQUAL:
+        return VK_COMPARE_OP_EQUAL;
+    case DCO_NOT_EQUAL:
+        return VK_COMPARE_OP_NOT_EQUAL;
+    case DCO_ALWAYS:
+        return VK_COMPARE_OP_ALWAYS;
+    case DCO_NEVER:
+        return VK_COMPARE_OP_NEVER;
+    default:
+        return VK_COMPARE_OP_LESS;
+    }
+}
+
 VkAttachmentDescription ToVkAttachmentDescription(
     const AttachmentDesc& attachmentDesc,
     RenderPassMode renderPassMode)

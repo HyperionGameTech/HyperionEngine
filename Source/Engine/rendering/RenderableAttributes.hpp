@@ -66,6 +66,9 @@ struct MaterialAttributes
     StencilFunction stencilFunction;
 
     HYP_FIELD()
+    DepthCompareOp depthCompareOp = DCO_LESS;
+
+    HYP_FIELD()
     uint8 stencilReference = 0;
 
     HYP_FIELD()
@@ -84,6 +87,7 @@ struct MaterialAttributes
             && cullFaces == other.cullFaces
             && flags == other.flags
             && stencilFunction == other.stencilFunction
+            && depthCompareOp == other.depthCompareOp
             && stencilReference == other.stencilReference
             && depthBias == other.depthBias
             && MathUtil::ApproxEqual(depthBiasSlope, other.depthBiasSlope);
@@ -105,6 +109,7 @@ struct MaterialAttributes
         hc.Add(cullFaces);
         hc.Add(flags);
         hc.Add(stencilFunction);
+        hc.Add(depthCompareOp);
         hc.Add(stencilReference);
         hc.Add(depthBias);
         hc.Add(depthBiasSlope);
