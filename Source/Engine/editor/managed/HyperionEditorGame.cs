@@ -69,49 +69,49 @@ namespace Hyperion.Editor
                 HandleProjectOpened(project);
             }
 
-            
-            
+
+
             //project.World.AddSystem(new DynamicSkySystem());
 
             //project.World.WorldGrid.AddLayer(new TerrainWorldGridLayer());
 
             // tmp debug
-            // AssetBatch ab = new();
-            // ab.Add("test_model", "Models/SponzaGltf/Sponza.gltf"); ///"Models/NewSponza/NewSponza_Main_glTF_003.gltf");//"Models/SanMiguel/san-miguel.obj"); //
-            // ab.Add("guy", "models/ZombieGuy/guy.mesh.xml");
-            // _assetBatchTask = ab.Load();
+            AssetBatch ab = new();
+            ab.Add("test_model", "Models/testbed/testbed.obj");
+            ab.Add("guy", "models/ZombieGuy/guy.mesh.xml");
+            _assetBatchTask = ab.Load();
         }
 
         protected override void OnUpdate(float deltaTime)
         {
             if (_assetBatchTask != null && _assetBatchTask.IsCompleted)
             {
-                // AssetMap assetMap = _assetBatchTask.Result;
+                AssetMap assetMap = _assetBatchTask.Result;
 
-                // var guy = assetMap["guy"];
+                var guy = assetMap["guy"];
 
-                // if (guy != null && guy.IsValid)
-                // {
-                //     Assert.Throw(guy.Value != null);
+                if (guy != null && guy.IsValid)
+                {
+                    Assert.Throw(guy.Value != null);
 
-                //     Node n = _editorSubsystem!.GetActiveScene().RootNode.AddChild((Node)guy.Value);
-                //     n.LocalScale = new Vec3f(0.5f);
-                // }
+                    Node n = _editorSubsystem!.GetActiveScene().RootNode.AddChild((Node)guy.Value);
+                    n.LocalScale = new Vec3f(0.5f);
+                }
 
-                // var testModelAsset = assetMap["test_model"];
+                var testModelAsset = assetMap["test_model"];
 
-                // if (testModelAsset != null && testModelAsset.IsValid)
-                // {
-                //     Logger.Log(LogLevel.Debug, "Test model asset loaded successfully.");
-                //     Assert.Throw(testModelAsset.Value != null);
+                if (testModelAsset != null && testModelAsset.IsValid)
+                {
+                    Logger.Log(LogLevel.Debug, "Test model asset loaded successfully.");
+                    Assert.Throw(testModelAsset.Value != null);
 
-                //     Node n = _editorSubsystem!.GetActiveScene().RootNode.AddChild((Node)testModelAsset.Value);
-                //     n.LocalScale = new Vec3f(3.0f);
-                // }
-                // else
-                // {
-                //     Logger.Log(LogLevel.Error, "Failed to load test model asset.");
-                // }
+                    Node n = _editorSubsystem!.GetActiveScene().RootNode.AddChild((Node)testModelAsset.Value);
+                    n.LocalScale = new Vec3f(3.0f);
+                }
+                else
+                {
+                    Logger.Log(LogLevel.Error, "Failed to load test model asset.");
+                }
 
                 _assetBatchTask = null; // Prevent repeated checks
             }

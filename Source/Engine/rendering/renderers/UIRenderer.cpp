@@ -206,7 +206,7 @@ void UIRenderCollector::ExecuteDrawCalls(Frame* frame, const RenderSetup& render
             drawCallCollection.parallelRenderingState = AcquireNextParallelRenderingState(uint8(drawCallCollection.attributes.GetMaterialAttributes().bucket));
         }
 
-        PerformRendering(frame, renderSetup, drawCallCollection, nullptr);
+        PerformRendering(frame, renderSetup, drawCallCollection);
 
         if (drawCallCollection.parallelRenderingState != nullptr)
         {
@@ -283,7 +283,7 @@ void UIRenderer::RenderFrame(Frame* frame, const RenderSetup& renderSetup)
     RenderSetup rs = renderSetup.Fork();
     rs.passData = pd;
 
-    pd->renderCollector.BuildDrawCalls(0);
+    pd->renderCollector.CollectRenderables(0);
     pd->renderCollector.ExecuteDrawCalls(frame, rs, nullptr, 0);
 }
 

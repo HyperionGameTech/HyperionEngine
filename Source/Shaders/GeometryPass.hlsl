@@ -366,8 +366,6 @@ PSOutput PSMain(PSInput input)
     uint maskPacked;
     GBufferPackMaterialParams(materialParams, roughnessAndMetalPacked, maskPacked);
 
-    output.gbuffer_albedo = float4(1.0, 0.0, 0.0, 1.0);
-
     output.gbuffer_normals.x = roughnessAndMetalPacked;
     output.gbuffer_material.x = maskPacked;
     output.gbuffer_material.y = 0u;

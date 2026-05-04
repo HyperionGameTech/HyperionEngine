@@ -172,6 +172,7 @@ CVar<bool> cvEnableLightmapVolumes { "Rendering.LightmapVolumes", true };
 CVar<bool> cvClusteredShading { "Rendering.ClusteredShading", true };
 CVar<float> cvTonemapExposure { "Rendering.Tonemap.Exposure", 1.8f };
 CVar<bool> cvBypassDrawing { "Rendering.BypassDrawing", false };
+CVar<bool> cvDepthPrepass { "Rendering.DepthPrepass", true };
 
 namespace DeferredRendererHelpers {
 
@@ -1559,6 +1560,41 @@ static FramebufferRef CreateDeferredShadingFramebuffer(GBuffer* gbuffer)
     return framebuffer;
 }
 
+static FramebufferRef CreateDepthPrepassFramebuffer(GBuffer* gbuffer)
+{
+    FramebufferDesc framebufferDesc {};
+    framebufferDesc.extent = gbuffer->GetExtent();
+
+    FramebufferRef framebuffer = RI.MakeFramebuffer(framebufferDesc);
+
+#if HYP_DEBUG_MODE
+    framebuffer->SetDebugName(NAME("DepthPrepassFramebuffer"));
+#endif
+
+    // depth for stencil testing
+    const GpuImageViewRef& depthImageView = gbuffer->GetBucket(RenderBucket::Opaque).GetGBufferAttachment(GTN_DEPTH)->GetImageView();
+    Assert(depthImageView.IsValid());
+
+    AttachmentDesc depthAttachmentDesc {};
+    depthAttachmentDesc.imageType = TextureType::Texture2D;
+    depthAttachmentDesc.format = depthImageView->GetImage()->GetTextureFormat();
+    depthAttachmentDesc.loadOp = LoadOperation::CLEAR;
+    depthAttachmentDesc.storeOp = StoreOperation::STORE;
+
+    Attachment* depthAttachment = framebuffer->AddAttachment(
+        0,
+        depthAttachmentDesc,
+        depthImageView);
+
+    CheckResult(framebuffer->Create());
+
+#if HYP_DEBUG_MODE
+    depthAttachment->GetGpuImage()->SetDebugName(NAME("DepthPrepassAttachment"));
+#endif
+
+    return framebuffer;
+}
+
 class TileProcessor
 {
 public:
@@ -2079,6 +2115,7 @@ PassData* DeferredRenderer::CreateViewPassData(View* view, PassDataExt&)
         passData.postProcessing->Create();
 
         passData.deferredShadingFramebuffer = CreateDeferredShadingFramebuffer(gbuffer);
+        passData.depthPrepassFramebuffer = CreateDepthPrepassFramebuffer(gbuffer);
 
         passData.indirectPass = MakeUnique<DeferredPass>(DPM_INDIRECT_LIGHTING, gbuffer->GetExtent(), gbuffer, passData.deferredShadingFramebuffer);
         passData.indirectPass->Create();
@@ -2230,7 +2267,13 @@ void DeferredRenderer::ResizeView(Viewport viewport, View* view, DeferredRendere
         EnqueueDeletion(std::move(passData.deferredShadingFramebuffer));
     }
 
+    if (passData.depthPrepassFramebuffer.IsValid())
+    {
+        EnqueueDeletion(std::move(passData.depthPrepassFramebuffer));
+    }
+
     passData.deferredShadingFramebuffer = CreateDeferredShadingFramebuffer(gbuffer);
+    passData.depthPrepassFramebuffer = CreateDepthPrepassFramebuffer(gbuffer);
 
     passData.directPass->Resize(newSize);
     passData.indirectPass->Resize(newSize);
@@ -2539,11 +2582,6 @@ void DeferredRenderer::RenderFrameForView(Frame* frame, const RenderSetup& rs)
 
     RenderCollector& renderCollector = GetRenderCollector(view);
 
-    // must be before BeginRecordDrawCalls
-    PerformOcclusionCulling(frame, rs, renderCollector);
-
-    renderCollector.BeginRecordDrawCalls(frame, rs, RenderBucketMask<RenderBucket::Opaque, RenderBucket::Translucent, RenderBucket::Lightmapped, RenderBucket::Sky>);
-
     DeferredRendererPassData* passDataCasted = DynamicCast<DeferredRendererPassData>(rs.passData);
     AssertDebug(passDataCasted != nullptr);
 
@@ -2555,20 +2593,62 @@ void DeferredRenderer::RenderFrameForView(Frame* frame, const RenderSetup& rs)
     {
         return;
     }
-
+    
+    // Assign lights and envprobes to tiles.
+    // Must happen before any draw calls are returned as they will need to bind
+    // the cluster tile / index buffers.
     m_tileProcessor->ProcessView(
         rs.viewport,
         view,
         passData.gridTilesBuffer,
         passData.gridIndexBuffer);
 
+    Framebuffer* opaquePassFramebuffer = view->GetOutputTarget().GetFramebuffer(RenderBucket::Opaque);
+    Framebuffer* depthPrepassFramebuffer = passData.depthPrepassFramebuffer;
+
+    static const bool s_indirectRendering = RI.GetRenderConfig().indirectRendering;
+    const bool performDepthPrepass = s_indirectRendering && cvDepthPrepass.Get();
+
+    if (performDepthPrepass)
+    {
+        AssertDebug(depthPrepassFramebuffer != nullptr);
+
+        constexpr uint32 PrepassRenderBucketsMask = RenderBucketMask<RenderBucket::Opaque, RenderBucket::Lightmapped>;
+        
+        renderCollector.BeginRecordDrawCalls(frame, rs, PrepassRenderBucketsMask, true);
+
+        if (renderCollector.mappingsByBucket[uint32(RenderBucket::Opaque)].Any() || renderCollector.mappingsByBucket[uint32(RenderBucket::Lightmapped)].Any())
+        {
+            renderCollector.ExecuteDrawCalls(frame, rs, depthPrepassFramebuffer, PrepassRenderBucketsMask, true);
+        }
+        else
+        {
+            frame->cr << SetCurrentFramebuffer(depthPrepassFramebuffer);
+            frame->cr << ClearFramebuffer(depthPrepassFramebuffer);
+            frame->cr << SetCurrentFramebuffer(nullptr);
+        }
+
+        passData.depthPyramidRenderer->Render(frame);
+        passData.cullData.depthPyramidImageView = passData.depthPyramidRenderer->GetResultImageView();
+        passData.cullData.depthPyramidDimensions = passData.depthPyramidRenderer->GetExtent();
+
+        renderCollector.PerformOcclusionCulling(frame, rs, AllRenderBucketsMask);
+        renderCollector.BeginRecordDrawCalls(frame, rs, AllRenderBucketsMask & ~PrepassRenderBucketsMask);
+    }
+    else
+    {
+        // must be before BeginRecordDrawCalls
+        renderCollector.PerformOcclusionCulling(frame, rs, AllRenderBucketsMask);
+        renderCollector.BeginRecordDrawCalls(frame, rs, AllRenderBucketsMask);
+    }
+
     // Render shadows for shadow casting lights
     for (Light* light : rpl.GetLights())
     {
         const uint32 lightTypeIndex = uint32(light->GetLightType());
-        
+
         AssertDebug(lightTypeIndex < RI.globalRenderers[GRT_SHADOW_MAP].Size());
-        
+
         RendererBase* shadowRenderer = RI.globalRenderers[GRT_SHADOW_MAP][lightTypeIndex];
 
         if (!shadowRenderer)
@@ -2587,7 +2667,6 @@ void DeferredRenderer::RenderFrameForView(Frame* frame, const RenderSetup& rs)
         shadowRenderer->RenderFrame(frame, shadowRs);
     }
 
-    Framebuffer* opaquePassFramebuffer = view->GetOutputTarget().GetFramebuffer(RenderBucket::Opaque);
     Framebuffer* lightmapPassFramebuffer = view->GetOutputTarget().GetFramebuffer(RenderBucket::Lightmapped);
     Framebuffer* translucentPassFramebuffer = view->GetOutputTarget().GetFramebuffer(RenderBucket::Translucent);
     Framebuffer* debugPassFramebuffer = view->GetOutputTarget().GetFramebuffer(RenderBucket::Debug);
@@ -2783,6 +2862,7 @@ void DeferredRenderer::RenderFrameForView(Frame* frame, const RenderSetup& rs)
         GenerateMipChain(frame, rs, renderCollector, srcImage);
     }
 
+    if (!performDepthPrepass)
     { // render Hi-Z
         passData.depthPyramidRenderer->Render(frame);
 

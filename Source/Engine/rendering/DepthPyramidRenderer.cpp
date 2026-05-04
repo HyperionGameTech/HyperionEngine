@@ -55,9 +55,6 @@ DepthPyramidRenderer::~DepthPyramidRenderer()
 
 void DepthPyramidRenderer::Create()
 {
-    HYP_SCOPE;
-    AssertOnThread(g_renderThread);
-
     Assert(m_gbuffer != nullptr);
 
     const FramebufferRef& opaqueFramebuffer = m_gbuffer->GetBucket(RenderBucket::Opaque).GetFramebuffer();
@@ -156,9 +153,6 @@ Vec2u DepthPyramidRenderer::GetExtent() const
 
 void DepthPyramidRenderer::Render(Frame* frame)
 {
-    HYP_SCOPE;
-    AssertOnThread(g_renderThread);
-
     Sampler* depthPyramidSampler = RI.samplerCache->GetOrCreate(SamplerDesc { TFM_NEAREST_MIPMAP, TFM_NEAREST, TWM_CLAMP_TO_EDGE });
 
     const uint8 numDepthPyramidMipLevels = uint8(m_mipImageViews.Size());
@@ -224,8 +218,7 @@ void DepthPyramidRenderer::Render(Frame* frame)
         frame->cr << DispatchCompute({ (mipWidth + 31) / 32, (mipHeight + 31) / 32, 1 });
     }
 
-    frame->cr << InsertBarrier(
-        m_depthPyramid, RS_SHADER_RESOURCE);
+    frame->cr << InsertBarrier(m_depthPyramid, RS_SHADER_RESOURCE);
 
     m_isRendered = true;
 }

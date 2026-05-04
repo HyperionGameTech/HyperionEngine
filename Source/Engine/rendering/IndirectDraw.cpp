@@ -414,6 +414,20 @@ void IndirectRenderer::PushDrawCallsToIndirectState(DrawCallCollection& drawCall
     }
 }
 
+void IndirectRenderer::PrepareDrawCommands(Frame* frame)
+{
+    HYP_SCOPE;
+    AssertOnThread(g_renderThread);
+
+    bool wasBufferResized = false;
+    m_indirectDrawState.UpdateBufferData(frame, &wasBufferResized);
+
+    if (wasBufferResized)
+    {
+        RebuildDescriptors(frame);
+    }
+}
+
 void IndirectRenderer::ExecuteCullShaderInBatches(Frame* frame, const RenderSetup& renderSetup)
 {
     HYP_SCOPE;
@@ -441,15 +455,7 @@ void IndirectRenderer::ExecuteCullShaderInBatches(Frame* frame, const RenderSetu
         return;
     }
 
-    {
-        bool wasBufferResized = false;
-        m_indirectDrawState.UpdateBufferData(frame, &wasBufferResized);
-
-        if (wasBufferResized)
-        {
-            RebuildDescriptors(frame);
-        }
-    }
+    PrepareDrawCommands(frame);
 
     if (m_cachedCullData != renderSetup.passData->cullData)
     {

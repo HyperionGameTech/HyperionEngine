@@ -652,6 +652,7 @@ RendererResult RenderInterface::Initialize()
 
         // For Android leave these rendering settings off.
         engineConfig.Set("Rendering.IndirectRendering", false);
+        engineConfig.Set("Rendering.DepthPrepass", false);
         engineConfig.Set("Rendering.SSGI", false);
         engineConfig.Set("Rendering.TAA", false);
         engineConfig.Set("Rendering.SSR.Enabled", false);
@@ -1078,7 +1079,7 @@ void RenderInterface::BeginFrame(AtomicFlag* pCancelFlag)
         vd.rplRender.BeginRead();
 
         vd.renderCollector.BuildRenderGroups(vd.view, vd.rplRender);
-        vd.renderCollector.BuildDrawCalls(0);
+        vd.renderCollector.CollectRenderables(0);
 
         vd.rplRender.EndRead();
     }

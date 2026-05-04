@@ -96,7 +96,7 @@ struct ParallelRenderingState
 
         template <bool UseIndirectRendering>
         void ProcessNonInstanced(DrawCallRange range, uint32 index, uint32 batchIndex);
-        
+
         template <bool UseIndirectRendering>
         void ProcessInstanced(DrawCallRange range, uint32 index, uint32 batchIndex);
     };
@@ -147,7 +147,7 @@ public:
         ParallelRenderingState* head;
         ParallelRenderingState* tail;
     };
-    
+
     FixedArray<ParallelRenderingStateLL, NumRenderBuckets> parallelRenderingStates;
 
     EntityBatchAllocatorBase* batchAllocator;
@@ -157,21 +157,25 @@ public:
     void Commit(CommandRecorder& cr, uint8 index);
 
     void PerformOcclusionCulling(Frame* frame, const RenderSetup& renderSetup, uint32 bucketBits);
-    
-    /*! \brief Used with ExecuteDrawCalls for parallel rendering to start writing the draw calls 
+
+    void PrepareIndirectDrawCommands(Frame* frame, const RenderSetup& renderSetup, uint32 bucketBits);
+    void ExecuteOcclusionCullingShader(Frame* frame, const RenderSetup& renderSetup, uint32 bucketBits);
+
+    /*! \brief Used with ExecuteDrawCalls for parallel rendering to start writing the draw calls
      *   in advance. Call ExecuteDrawCalls() when it is necessary to block execution until all draw calls are written.
      *   \returns true if any draw calls are enqueued; otherwise, returns false. */
     bool BeginRecordDrawCalls(
         Frame* frame,
         const RenderSetup& renderSetup,
-        uint32 bucketBits);
+        uint32 bucketBits,
+        bool isDepthPrepass = false);
 
     // Writes commands into the frame's command list to execute the draw calls in the given bucket mask.
     void ExecuteDrawCalls(
         Frame* frame,
         const RenderSetup& renderSetup,
         uint32 bucketBits,
-        bool commit = true);
+        bool isDepthPrepass = false);
 
     // Writes commands into the frame's command list to execute the draw calls in the given bucket mask.
     void ExecuteDrawCalls(
@@ -179,9 +183,9 @@ public:
         const RenderSetup& renderSetup,
         Framebuffer* framebuffer,
         uint32 bucketBits,
-        bool commit = true);
+        bool isDepthPrepass = false);
 
-    void BuildDrawCalls(uint32 bucketBits);
+    void CollectRenderables(uint32 bucketBits);
 
     void RemoveEmptyRenderGroups();
 
@@ -192,11 +196,10 @@ public:
     void BuildRenderGroups(View* view, RenderProxyList& renderProxyList);
 
 protected:
-    void PerformRendering(
-        Frame* frame,
-        const RenderSetup& renderSetup,
-        const DrawCallCollection& drawCallCollection,
-        IndirectRenderer* indirectRenderer);
+    void PerformRendering(Frame* frame, struct PerformRenderingPayloadBase& payload);
+
+    // Helper for derived types that don't have access to the payload struct.
+    void PerformRendering(Frame* frame, const RenderSetup& renderSetup, const DrawCallCollection& drawCallCollection);
 };
 
 } // namespace Hyperion

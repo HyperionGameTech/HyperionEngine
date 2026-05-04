@@ -243,7 +243,7 @@ public:
 
     virtual void Create() override;
     virtual void Render(Frame* frame, const RenderSetup& rs) override;
-    
+
     UniquePtr<SSRPass> ssrPass;
 
 private:
@@ -287,6 +287,7 @@ public:
     UniquePtr<DeferredPass> directPass;
 
     FramebufferRef deferredShadingFramebuffer;
+    FramebufferRef depthPrepassFramebuffer;
 
     UniquePtr<ReflectionsPass> reflectionsPass;
 
@@ -322,7 +323,7 @@ class HYP_API RayTracingPassData : public PassData
 public:
     // Set only while rendering to this pass
     DeferredRendererPassData* parentPass = nullptr;
-    
+
     FixedArray<GpuTlasRef, NumFramesInFlight> rayTracingTlases;
 
     virtual ~RayTracingPassData() override;

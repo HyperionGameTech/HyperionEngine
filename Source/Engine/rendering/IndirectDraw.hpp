@@ -121,6 +121,8 @@ public:
     /*! \brief Register all current draw calls in the draw call collection with the indirect draw state */
     void PushDrawCallsToIndirectState(DrawCallCollection& drawCallCollection);
 
+    void PrepareDrawCommands(Frame* frame);
+
     void ExecuteCullShaderInBatches(Frame* frame, const RenderSetup& renderSetup);
 
 private:
