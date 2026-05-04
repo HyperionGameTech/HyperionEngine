@@ -301,7 +301,7 @@ PSOutput PSMain(PSInput input)
 
                         float3 worldToLight = position.xyz - currentLight.position_intensity.xyz;
 
-                        // shadow = GetPointShadow(shadowMap, currentLight.flags, worldToLight, NdotL);
+                        shadow = GetPointShadow(shadowMap, currentLight.flags, worldToLight, NdotL);
                     }
                 }
 
