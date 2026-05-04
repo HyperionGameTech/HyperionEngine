@@ -152,9 +152,7 @@ void CSMain(uint3 dispatchThreadID : SV_DispatchThreadID)
     float4 posNDC = mul(camera.viewProjMat, float4(particle.position.xyz, 1.0));
     posNDC /= posNDC.w;
 
-    posNDC.y = 1.0 - posNDC.y;
-
-    float2 particleUV = posNDC.xy * 0.5 + 0.5;
+    const float2 particleUV = float2(posNDC.x * 0.5 + 0.5, 1.0 - (posNDC.y * 0.5 + 0.5));
 
     const float depth = SAMPLE_TEXTURE_2D(sampler_nearest, gbuffer_depth_texture, particleUV).r;
 

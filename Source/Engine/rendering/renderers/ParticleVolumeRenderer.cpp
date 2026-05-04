@@ -169,7 +169,7 @@ ParticleVolumeRenderer::VolumeState& ParticleVolumeRenderer::EnsureVolumeState(R
     materialAttributes.shaderProperties = properties;
     materialAttributes.bucket = RenderBucket::Translucent;
     materialAttributes.blendFunction = BlendFunction::AlphaBlending();
-    materialAttributes.cullFaces = FCM_FRONT;
+    materialAttributes.cullFaces = FCM_BACK;
     materialAttributes.flags = MAF_DEPTH_TEST; // depth test on, depth write off by default
 
     MeshAttributes meshAttributes {};
