@@ -1522,7 +1522,6 @@ static FramebufferRef CreateDeferredShadingFramebuffer(GBuffer* gbuffer)
     framebufferDesc.extent = gbuffer->GetExtent();
 
     FramebufferRef framebuffer = RI.MakeFramebuffer(framebufferDesc);
-
 #if HYP_DEBUG_MODE
     framebuffer->SetDebugName(NAME("DeferredShadingFramebuffer"));
 #endif
@@ -1566,12 +1565,10 @@ static FramebufferRef CreateDepthPrepassFramebuffer(GBuffer* gbuffer)
     framebufferDesc.extent = gbuffer->GetExtent();
 
     FramebufferRef framebuffer = RI.MakeFramebuffer(framebufferDesc);
-
 #if HYP_DEBUG_MODE
     framebuffer->SetDebugName(NAME("DepthPrepassFramebuffer"));
 #endif
 
-    // depth for stencil testing
     const GpuImageViewRef& depthImageView = gbuffer->GetBucket(RenderBucket::Opaque).GetGBufferAttachment(GTN_DEPTH)->GetImageView();
     Assert(depthImageView.IsValid());
 
@@ -2593,7 +2590,7 @@ void DeferredRenderer::RenderFrameForView(Frame* frame, const RenderSetup& rs)
     {
         return;
     }
-    
+
     // Assign lights and envprobes to tiles.
     // Must happen before any draw calls are returned as they will need to bind
     // the cluster tile / index buffers.
@@ -2614,7 +2611,7 @@ void DeferredRenderer::RenderFrameForView(Frame* frame, const RenderSetup& rs)
         AssertDebug(depthPrepassFramebuffer != nullptr);
 
         constexpr uint32 PrepassRenderBucketsMask = RenderBucketMask<RenderBucket::Opaque, RenderBucket::Lightmapped>;
-        
+
         renderCollector.BeginRecordDrawCalls(frame, rs, PrepassRenderBucketsMask, true);
 
         if (renderCollector.mappingsByBucket[uint32(RenderBucket::Opaque)].Any() || renderCollector.mappingsByBucket[uint32(RenderBucket::Lightmapped)].Any())

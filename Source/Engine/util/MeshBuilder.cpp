@@ -232,7 +232,7 @@ Handle<Mesh> MeshBuilder::NormalizedCubeSphere(uint32 numDivisions){
 
     const uint32 expectedVertices = 6 * (numDivisions + 1) * (numDivisions + 1);
     const uint32 expectedIndices = 36 * numDivisions * numDivisions;
-    
+
     vertices.Reserve(expectedVertices);
     indices.Reserve(expectedIndices);
 

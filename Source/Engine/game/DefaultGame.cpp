@@ -186,7 +186,7 @@ void DefaultGame::OnLaunch_Impl()
     cubeEnt->SetName(NAME("CUBEFUCKER"));
     cubeEnt->Scale(3.0f);
 
-    Handle<Mesh> mesh = MeshBuilder::NormalizedCubeSphere(8);
+    Handle<Mesh> mesh = MeshBuilder::Cube();
     mesh->SetFlags(MeshFlags::ViewIndependent);
     mesh->SetName(NAME("CF_MESH"));
     mesh->SetIsTransient(true);

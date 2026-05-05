@@ -748,8 +748,6 @@ Array<float> Mesh::BuildVertexBuffer(const VertexInputLayoutDesc& inputLayout) c
 
 void Mesh::CalculateNormals(bool weighted)
 {
-    HYP_SCOPE;
-
     VertexArrayView vertexData = GetVertexData();
     AssertDebug(((VT_Position | VT_Normal) & vertexData.layoutDesc.mask) == (VT_Position | VT_Normal),
         "Vertex data must have VT_Position and VT_Normal at least in order to calculate normals");
@@ -788,7 +786,7 @@ void Mesh::CalculateNormals(bool weighted)
 
         const Vec3f u = p2 - p0;
         const Vec3f v = p1 - p0;
-        const Vec3f n = v.Cross(u).Normalize();
+        const Vec3f n = u.Cross(v).Normalize();
 
         ADD_NORMAL(normals, i0, n);
         ADD_NORMAL(normals, i1, n);
