@@ -221,39 +221,57 @@ int CocoaAppContext::PollEvents(Event& event)
     {
         NSEvent* nsEvent = [NSApp nextEventMatchingMask:NSEventMaskAny
                                               untilDate:nil
-                                                inMode:NSDefaultRunLoopMode
-                                                dequeue:YES];
+                                                 inMode:NSDefaultRunLoopMode
+                                                 dequeue:YES];
 
         if (!nsEvent)
         {
             return 0;
         }
 
-        [NSApp sendEvent:nsEvent];
-        [NSApp updateWindows];
-
         NSWindow* nsWindow = [nsEvent window];
         CocoaApplicationWindow* cocoaWindow = nullptr;
+
+        // Find the Cocoa window that corresponds to this event
+        if (nsWindow)
+        {
+            auto cocoaWindowIt = m_windows.FindIf([nsWindow](const Handle<ApplicationWindow>& window)
+            {
+                AssertDebug(window->IsA(CocoaApplicationWindow::StaticClass()));
+
+                CocoaApplicationWindow* cocoaWindow = static_cast<CocoaApplicationWindow*>(window.Get());
+                return (NSWindow*)cocoaWindow->GetNSWindow() == nsWindow;
+            });
+
+            cocoaWindow = cocoaWindowIt != m_windows.End()
+                ? static_cast<CocoaApplicationWindow*>(cocoaWindowIt->Get())
+                : nullptr;
+        }
+
+        NSEventType eventType = [nsEvent type];
+        bool isKeyEvent = (eventType == NSEventTypeKeyDown || eventType == NSEventTypeKeyUp);
+
+        // When Cocoa events are enabled, the view's keyDown:/keyUp: handlers process
+        // key events, so we must route them via sendEvent:. When Cocoa events are
+        // disabled, we handle key events ourselves via HandleNSEvent and must NOT
+        // route them via sendEvent: to prevent them from falling through the
+        // responder chain and causing NSBeep.
+        bool shouldSendEvent = !isKeyEvent || (cocoaWindow && cocoaWindow->UseCocoaEvents());
+
+        if (shouldSendEvent)
+        {
+            [NSApp sendEvent:nsEvent];
+        }
+
+        [NSApp updateWindows];
 
         if (!nsWindow)
         {
             return 0;
         }
 
-        auto cocoaWindowIt = m_windows.FindIf([nsWindow](const Handle<ApplicationWindow>& window)
-        {
-            AssertDebug(window->IsA(CocoaApplicationWindow::StaticClass()));
-
-            CocoaApplicationWindow* cocoaWindow = static_cast<CocoaApplicationWindow*>(window.Get());
-            return (NSWindow*)cocoaWindow->GetNSWindow() == nsWindow;
-        });
-
-        cocoaWindow = cocoaWindowIt != m_windows.End()
-            ? static_cast<CocoaApplicationWindow*>(cocoaWindowIt->Get())
-            : nullptr;
-
         if (cocoaWindow
-            && !cocoaWindow->UseCocoaEvents() // if we are using Cocoa events, they are already handled in the CocoaApplicationWindow methods
+            && !cocoaWindow->UseCocoaEvents()
             && cocoaWindow->HandleNSEvent(nsEvent, event))
         {
             return 1;

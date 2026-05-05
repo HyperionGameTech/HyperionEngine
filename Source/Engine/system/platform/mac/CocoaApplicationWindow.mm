@@ -182,6 +182,11 @@ HANDLE_COCOA_EVENT(rightMouseDown)
 HANDLE_COCOA_EVENT(rightMouseUp)
 HANDLE_COCOA_EVENT(rightMouseDragged)
 HANDLE_COCOA_EVENT(scrollWheel)
+// keyDown and keyUp must always consume the event to prevent
+// NSBeep from occurring when the event falls through the responder chain.
+// The macro-generated methods don't call [super keyDown:/keyUp:], which
+// properly marks the event as handled. When UseCocoaEvents() is false,
+// key events are handled by PollEvents in CocoaAppContext.
 HANDLE_COCOA_EVENT(keyDown)
 HANDLE_COCOA_EVENT(keyUp)
 
@@ -406,14 +411,22 @@ void CocoaApplicationWindow::Initialize(WindowOptions windowOptions)
                                                     styleMask:styleMask
                                                         backing:NSBackingStoreBuffered
                                                         defer:NO];
-    
-    m_nsView = [window contentView];
-    AssertDebug(m_nsView != nullptr);
 
     [window setTitle:[NSString stringWithUTF8String:m_title.Data()]];
     [window center];
 
-    
+    // Use HyperionMetalView as content view so key events are properly consumed
+    // and don't fall through the responder chain (which causes NSBeep).
+    {
+        HyperionMetalView* metalView = [[HyperionMetalView alloc] initWithFrame:[window contentView].frame];
+        metalView.hyperionWindow = this;
+        metalView.autoresizingMask = NSViewWidthSizable | NSViewHeightSizable;
+        [window setContentView:metalView];
+        [metalView release];
+        m_nsView = metalView;
+    }
+    AssertDebug(m_nsView != nullptr);
+
     // Setup delegate
     HyperionWindowDelegate* delegate = [[HyperionWindowDelegate alloc] init];
     delegate.window = this;
@@ -429,8 +442,8 @@ void CocoaApplicationWindow::Initialize(WindowOptions windowOptions)
     if (!(windowOptions.flags & uint32(WindowFlags::NO_GFX)))
     {
         CAMetalLayer* metalLayer = [CAMetalLayer layer];
-        [window.contentView setLayer:metalLayer];
-        [window.contentView setWantsLayer:YES];
+        [((NSView*)m_nsView) setLayer:metalLayer];
+        [((NSView*)m_nsView) setWantsLayer:YES];
         
         if (windowOptions.flags & uint32(WindowFlags::HIGH_DPI))
         {
@@ -442,8 +455,8 @@ void CocoaApplicationWindow::Initialize(WindowOptions windowOptions)
         }
         
         metalLayer.drawableSize = CGSizeMake(
-            [window.contentView bounds].size.width * metalLayer.contentsScale,
-            [window.contentView bounds].size.height * metalLayer.contentsScale
+            [((NSView*)m_nsView) bounds].size.width * metalLayer.contentsScale,
+            [((NSView*)m_nsView) bounds].size.height * metalLayer.contentsScale
         );
         
         m_metalLayer = [metalLayer retain];
