@@ -117,17 +117,20 @@ VSOutput VSMain(VSInput input, uint instanceId : SV_InstanceID)
     output.position_ndc = mul(camera.viewProjMat, position);
     output.previous_position_ndc = mul(camera.prevViewProjMat, previous_position);
 
-    // Jitter
-    float4x4 jitterMat = {
-        1, 0, 0, 0,
-        0, 1, 0, 0,
-        0, 0, 1, 0,
-        0, 0, 0, 1
-    };
-    jitterMat[0][3] += camera.jitter.x;
-    jitterMat[1][3] += camera.jitter.y;
+    // // Jitter
+    // float4x4 jitterMat = {
+    //     1, 0, 0, 0,
+    //     0, 1, 0, 0,
+    //     0, 0, 1, 0,
+    //     0, 0, 0, 1
+    // };
+    // jitterMat[0][3] += camera.jitter.x;
+    // jitterMat[1][3] += camera.jitter.y;
 
-    output.position_cs = mul(jitterMat, output.position_ndc);
+    // output.position_cs = mul(jitterMat, output.position_ndc);
+
+    output.position_cs = output.position_ndc;
+    output.position_cs.xy += camera.jitter.xy * output.position_cs.w;
 
     output.color = material.albedo;
 

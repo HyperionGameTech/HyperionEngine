@@ -38,6 +38,8 @@
 
 namespace Hyperion {
 
+static constexpr float CameraJitterScale = 0.25f;
+
 class Camera;
 
 static NullInputHandler* GetNullInputHandler()
@@ -725,6 +727,12 @@ void Camera::UpdateMatrices()
     }
 
     UpdateViewProjectionMatrix();
+
+    if (m_width > 0 && m_height > 0 && MathUtil::ApproxEqual(m_projMat[3][3], 0.0f))
+    {
+        Mat4f::Jitter(m_jitterFrameCounter++, uint32(MathUtil::Abs(m_width)), uint32(MathUtil::Abs(m_height)), m_jitter);
+        m_jitter *= CameraJitterScale;
+    }
 }
 
 void Camera::UpdateMouseLocked()
@@ -805,6 +813,8 @@ void Camera::UpdateRenderProxy(RenderProxyCamera* proxy)
     bufferData.cameraFar = m_far;
 
     bufferData.cameraFov = m_fov;
+
+    bufferData.jitter = m_jitter;
 }
 
 #pragma endregion Camera

@@ -146,7 +146,7 @@ bool Initialize(int argc, char** argv)
 
     CommandLineParser argParse { &DefaultCommandLineArgumentDefinitions() };
 
-    TResult<CommandLineArguments> parseResult = argParse.Parse(argc, argv);
+    TResult<CommandLineArguments> parseResult = argParse.Parse(argc, argv, false);
 
     if (parseResult.HasError())
     {
@@ -176,14 +176,16 @@ bool Initialize(int argc, char** argv)
                 return str.ToUtf8();
             });
 
-        parseResult = argParse.Parse(s_commandLineArguments.GetCommand(), configArgsStringSplit);
+        parseResult = argParse.Parse(s_commandLineArguments.GetCommand(), configArgsStringSplit, false);
 
         if (!parseResult.HasError())
         {
-            // merge argv last so that they may be override what's in the config.
+            // merge argv last so that they may override what's in the config.
             s_commandLineArguments = CommandLineArguments::Merge(*argParse.GetDefinitions(), *parseResult, s_commandLineArguments);
         }
     }
+
+    argParse.ApplyDefaults(s_commandLineArguments);
 
     return true;
 }

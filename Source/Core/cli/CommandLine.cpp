@@ -390,7 +390,7 @@ CommandLineArgumentDefinitions& CommandLineArgumentDefinitions::Add(
 
 #pragma region CommandLineParser
 
-TResult<CommandLineArguments> CommandLineParser::Parse(const String& commandLine) const
+TResult<CommandLineArguments> CommandLineParser::Parse(const String& commandLine, bool fillDefaults) const
 {
     ANSIString command;
     Array<String> args;
@@ -450,10 +450,10 @@ TResult<CommandLineArguments> CommandLineParser::Parse(const String& commandLine
 
     AddCurrentString();
 
-    return Parse(command, args);
+    return Parse(command, args, fillDefaults);
 }
 
-TResult<CommandLineArguments> CommandLineParser::Parse(int argc, char** argv) const
+TResult<CommandLineArguments> CommandLineParser::Parse(int argc, char** argv, bool fillDefaults) const
 {
     if (argc < 1)
     {
@@ -467,10 +467,10 @@ TResult<CommandLineArguments> CommandLineParser::Parse(int argc, char** argv) co
         args.PushBack(argv[i]);
     }
 
-    return Parse(argv[0], args);
+    return Parse(argv[0], args, fillDefaults);
 }
 
-TResult<CommandLineArguments> CommandLineParser::Parse(ANSIStringView command, const Array<String>& args) const
+TResult<CommandLineArguments> CommandLineParser::Parse(ANSIStringView command, const Array<String>& args, bool fillDefaults) const
 {
     if (!m_definitions)
     {
@@ -549,29 +549,54 @@ TResult<CommandLineArguments> CommandLineParser::Parse(ANSIStringView command, c
         AppendCommandLineArgumentValue(result.m_values, arg, std::move(parsedValue.GetValue()), allowMultiple);
     }
 
-    for (const CommandLineArgumentDefinition& def : *m_definitions)
+    if (fillDefaults)
     {
-        const bool allowMultiple = def.flags[CommandLineArgumentFlags::ALLOW_MULTIPLE];
-
-        if (usedArguments.Contains(def.name))
+        for (const CommandLineArgumentDefinition& def : *m_definitions)
         {
-            continue;
-        }
+            const bool allowMultiple = def.flags[CommandLineArgumentFlags::ALLOW_MULTIPLE];
 
-        if (def.flags[CommandLineArgumentFlags::REQUIRED] && (!def.defaultValue.HasValue() || def.defaultValue->IsNullOrUndefined()))
-        {
-            return HYP_MAKE_ERROR(Error, "Missing value for required argument: {}", def.name);
-        }
+            if (usedArguments.Contains(def.name))
+            {
+                continue;
+            }
 
-        if (def.defaultValue.HasValue())
-        {
-            AppendCommandLineArgumentValue(result.m_values, def.name, *def.defaultValue, allowMultiple);
+            if (def.flags[CommandLineArgumentFlags::REQUIRED] && (!def.defaultValue.HasValue() || def.defaultValue->IsNullOrUndefined()))
+            {
+                return HYP_MAKE_ERROR(Error, "Missing value for required argument: {}", def.name);
+            }
 
-            continue;
+            if (def.defaultValue.HasValue())
+            {
+                AppendCommandLineArgumentValue(result.m_values, def.name, *def.defaultValue, allowMultiple);
+
+                continue;
+            }
         }
     }
 
     return result;
+}
+
+void CommandLineParser::ApplyDefaults(CommandLineArguments& args) const
+{
+    if (!m_definitions)
+    {
+        return;
+    }
+
+    for (const CommandLineArgumentDefinition& def : *m_definitions)
+    {
+        if (args.Contains(def.name))
+        {
+            continue;
+        }
+
+        if (def.defaultValue.HasValue())
+        {
+            const bool allowMultiple = def.flags[CommandLineArgumentFlags::ALLOW_MULTIPLE];
+            AppendCommandLineArgumentValue(args.m_values, def.name, *def.defaultValue, allowMultiple);
+        }
+    }
 }
 
 #pragma endregion CommandLineParser

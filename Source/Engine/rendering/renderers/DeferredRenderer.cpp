@@ -86,8 +86,6 @@
 
 namespace Hyperion {
 
-static constexpr float CameraJitterScale = 0.25f;
-
 static constexpr uint32 TileSize = 32;
 static constexpr uint32 TileZBins = 16;
 
@@ -2681,27 +2679,6 @@ void DeferredRenderer::RenderFrameForView(Frame* frame, const RenderSetup& rs)
     const bool useRayTracingGlobalIllumination = cvRayTracedGI.Get()
         && view->GetRayTracingView().IsValid()
         && passData.ddgi != nullptr;
-
-    if (cvTAA.Get())
-    {
-        // apply jitter to camera for TAA
-        RenderProxyCamera* cameraProxy = static_cast<RenderProxyCamera*>(GetRenderProxy(view->GetCamera()));
-        Assert(cameraProxy != nullptr);
-
-        CameraShaderData& cameraBufferData = cameraProxy->bufferData;
-
-        if (MathUtil::ApproxEqual(cameraBufferData.projMat[3][3], 0.0f))
-        {
-            const uint32 frameCounter = GetWorldBufferData()->frameCounter + 1;
-
-            Vec4f jitter = Vec4f::Zero();
-            Mat4f::Jitter(frameCounter, rs.viewport.extent.x, rs.viewport.extent.y, jitter);
-
-            cameraBufferData.jitter = jitter * CameraJitterScale;
-
-            UpdateGpuData(view->GetCamera());
-        }
-    }
 
     // render opaque objects into separate framebuffer
     frame->cr << SetCurrentFramebuffer(opaquePassFramebuffer);

@@ -364,7 +364,7 @@ void CocoaApplicationWindow::Initialize(WindowOptions windowOptions)
 
         if (windowOptions.flags & uint32(WindowFlags::HIGH_DPI))
         {
-            metalLayer.contentsScale = parentWindow ? [parentWindow backingScaleFactor] : 2.0;
+            metalLayer.contentsScale = 2.0;
         }
         else
         {
@@ -439,7 +439,7 @@ void CocoaApplicationWindow::Initialize(WindowOptions windowOptions)
 
         if (windowOptions.flags & uint32(WindowFlags::HIGH_DPI))
         {
-            metalLayer.contentsScale = [window backingScaleFactor];
+            metalLayer.contentsScale = 2.0;
         }
         else
         {
@@ -757,7 +757,7 @@ float CocoaApplicationWindow::GetContentScaleFactor() const
     {
         HyperionMetalView* view = (HyperionMetalView*)m_nsView;
         NSWindow* window = [view window];
-        
+
         return window ? float([window backingScaleFactor]) : 1.0f;
     }
 

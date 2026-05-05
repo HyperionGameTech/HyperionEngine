@@ -547,6 +547,9 @@ private:
     Mat4f m_viewProjMat;
     Mat4f m_prevViewProjMat;
 
+    Vec4f m_jitter = Vec4f::Zero();
+    uint32 m_jitterFrameCounter = 0;
+
     InputMouseLockScope m_mouseLockScope;
 
     Handle<CameraStreamingVolume> m_streamingVolume;
