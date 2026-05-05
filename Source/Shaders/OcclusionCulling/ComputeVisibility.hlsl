@@ -41,7 +41,7 @@ DECLARE_SRV(ComputeVisibility, ObjectInstancesBuffer) StructuredBuffer<ObjectIns
 
 DECLARE_UAV(ComputeVisibility, IndirectDrawCommandsBuffer) RWStructuredBuffer<IndirectDrawCommand> drawCommands;
 
-DECLARE_UAV(ComputeVisibility, EntityInstanceBatchesBuffer) RWStructuredBuffer<uint4> entityInstanceBatchData;
+DECLARE_UAV(ComputeVisibility, EntityInstanceBatchesBuffer) RWByteAddressBuffer entityInstanceBatchData;
 
 DECLARE_BUFFER(ComputeVisibility, ComputeVisibilityConstants) cbuffer ComputeVisibilityConstants
 {
@@ -68,7 +68,7 @@ float GetDepthAtTexel(float2 texcoord, int mip)
     float4 value = TEXEL_FETCH_2D_LOD(
         depth_pyramid_sampler,
         depth_pyramid,
-        clamp(int2(texcoord * float2(mip_dimensions)), (int2)0, mip_dimensions - 1),
+        clamp(int2(texcoord * mip_dimensions), (int2)0, mip_dimensions - 1),
         mip);
 
     return value.r;
@@ -78,7 +78,7 @@ float GetDepthAtTexel(float2 texcoord, int mip)
 void CSMain(uint3 dispatchThreadID : SV_DispatchThreadID)
 {
     const uint id = dispatchThreadID.x;
-    const uint index = id; // batch_offset + id;
+    const uint index = id;
 
     if (id >= num_instances)
     {
@@ -108,43 +108,55 @@ void CSMain(uint3 dispatchThreadID : SV_DispatchThreadID)
     uint cull_bits = 0x7Fu;
     const bool skip_check = bool(GET_OBJECT_BUCKET_MASK(currEntity) & OBJECT_MASK_SKY);
 
-    // is_visible = skip_check;
+    is_visible = skip_check;
 
     if (!skip_check)
     {
-        float4x4 view = camera.view;
-        float4x4 proj = camera.projection;
-
         float4 clip_pos = float4(0.0, 0.0, 0.0, 0.0);
-        float3 clip_min = float3(1.0, 1.0, 1.0);
-        float3 clip_max = float3(-1.0, -1.0, 0.0);
 
-        // transform worldspace aabb to screenspace
+        float3 clip_min = float3(1e5, 1e5, 1e5);
+        float3 clip_max = float3(-1e5, -1e5, -1e5);
+
+        bool intersects_near_plane = false;
+
         for (int i = 0; i < 8; i++)
         {
-            float4 projected_corner = mul(proj, mul(view, float4(AABBGetCorner(aabb, i), 1.0)));
-            projected_corner.y = -projected_corner.y;
-
+            float4 projected_corner = mul(camera.viewProjMat, float4(AABBGetCorner(aabb, i), 1.0));
             cull_bits &= GetCullBits(projected_corner);
+
+            // projected_corner.y *= -1.0f;
+
+            if (projected_corner.w <= 0.0)
+            {
+                intersects_near_plane = true;
+            }
 
             clip_pos = projected_corner;
             clip_pos.z = max(clip_pos.z, 0.0);
             clip_pos.xyz /= clip_pos.w;
-            clip_pos.xy = clamp(clip_pos.xy, -1.0, 1.0);
+
+            clip_pos.xy = clamp(clip_pos.xy, float2(-1.0, -1.0), float2(1.0, 1.0));
 
             clip_min = min(clip_pos.xyz, clip_min);
             clip_max = max(clip_pos.xyz, clip_max);
         }
 
-        if (cull_bits == 0u)
+        if (intersects_near_plane)
         {
-            clip_min.xy = clip_min.xy * float2(0.5, 0.5) + float2(0.5, 0.5);
-            clip_max.xy = clip_max.xy * float2(0.5, 0.5) + float2(0.5, 0.5);
+            is_visible = true;
+        }
+        else if (cull_bits == 0u)
+        {
+            float2 uv_min = float2(clip_min.x * 0.5 + 0.5, 0.5 - clip_max.y * 0.5);
+            float2 uv_max = float2(clip_max.x * 0.5 + 0.5, 0.5 - clip_min.y * 0.5);
+
+            clip_min.xy = uv_min;
+            clip_max.xy = uv_max;
 
             float2 dimensions = float2(depth_pyramid_dimensions);
 
-            // Calculate hi-Z buffer mip
-            float2 size = (clip_max.xy - clip_min.xy) * max(dimensions.x, dimensions.y);
+            // Calculate hi-Z buffer mip based on actual screen dimensions
+            float2 size = (clip_max.xy - clip_min.xy) * dimensions;
             int mip = (int)ceil(log2(max(size.x, size.y)));
 
             const float4 depths = float4(
@@ -167,12 +179,19 @@ void CSMain(uint3 dispatchThreadID : SV_DispatchThreadID)
 
         if (object_instance.batch_index != ~0u && instance_index < MAX_ENTITIES_PER_INSTANCE_BATCH)
         {
-            uint bufferOffsetWords = object_instance.batch_index * batch_stride / 4;
-            // `indices` member of EntityInstanceBatch has offset of 16 bytes (4 words)
-            uint indicesOffsetWords = bufferOffsetWords + 4 + instance_index;
+            // uint bufferOffsetWords = object_instance.batch_index * batch_stride / 4;
+            // // `indices` member of EntityInstanceBatch has offset of 64 bytes.
+            // uint indicesOffsetWords = bufferOffsetWords + 16 + instance_index;
+
+            // uint oldValue;
+            // InterlockedExchange(entityInstanceBatchData[indicesOffsetWords >> 2][indicesOffsetWords & 3], entity_binding_index, oldValue);
+            //
+
+            // 64 is the byte offset to the 'indices' array
+            uint byteOffset = (object_instance.batch_index * batch_stride) + 64 + (instance_index * sizeof(uint));
 
             uint oldValue;
-            InterlockedExchange(entityInstanceBatchData[indicesOffsetWords >> 2][indicesOffsetWords & 3], entity_binding_index, oldValue);
+            entityInstanceBatchData.InterlockedExchange(byteOffset, entity_binding_index, oldValue);
         }
     }
 }

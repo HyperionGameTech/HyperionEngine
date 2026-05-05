@@ -474,10 +474,10 @@ void IndirectRenderer::ExecuteCullShaderInBatches(Frame* frame, const RenderSetu
     cr << SetShaderUniform(numShaderUniforms++, "ObjectInstancesBuffer"_sh, m_indirectDrawState.GetInstanceBuffer(frameIndex), ShaderDataOffset(0, sizeof(ObjectInstance)));
     cr << SetShaderUniform(numShaderUniforms++, "IndirectDrawCommandsBuffer"_sh, m_indirectDrawState.GetIndirectBuffer(frameIndex), ShaderDataOffset(0, sizeof(IndirectDrawCommand)));
 
-    // For ComputeVisibility we use RWStructuredBuffer<uint4> so we pass in sizeof(Vec4u) as stride.
+    // For ComputeVisibility we use RWByteAddressBuffer -- that's why stride is passed as 0.
     cr << SetShaderUniform(numShaderUniforms++, "EntityInstanceBatchesBuffer"_sh,
         m_batchAllocator->GetStructuredBuffer().gpuBuffer,
-        ShaderDataOffset(0, sizeof(Vec4u)));
+        ShaderDataOffset(0, 0));
 
     ComputeVisibilityConstants constants {};
     constants.depthPyramidDimensions = pd->depthPyramidRenderer->GetExtent();

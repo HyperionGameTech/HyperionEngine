@@ -186,21 +186,20 @@ void DefaultGame::OnLaunch_Impl()
     cubeEnt->SetName(NAME("CUBEFUCKER"));
     cubeEnt->Scale(3.0f);
 
-    Handle<Mesh> mesh = MeshBuilder::Cube();
+    Handle<Mesh> mesh = MeshBuilder::NormalizedCubeSphere(8);
     mesh->SetFlags(MeshFlags::ViewIndependent);
-    mesh->SetName(NAME("SkyboxMesh"));
+    mesh->SetName(NAME("CF_MESH"));
     mesh->SetIsTransient(true);
     InitObject(mesh);
 
     MaterialAttributes attributes;
     attributes.shaderName = NAME("GeometryPass");
     attributes.shaderProperties = {};
-    attributes.bucket = RenderBucket::Translucent;
+    attributes.bucket = RenderBucket::Opaque;
 
     MaterialParameters parameters;
-    parameters.albedo = Vec4f(1.0f, 1.0f, 1.0f, 1.0f);
-    parameters.roughness = 0.01f;
-    parameters.metalness = 0.9f;
+    parameters.roughness = 0.3f;
+    parameters.metalness = 0.02f;
 
     Handle<MaterialDefinition> skyboxMaterialDefinition = MakeHandle<MaterialDefinition>(NAME("NewMat"), attributes, parameters, MaterialTextures {});
     skyboxMaterialDefinition->SetIsTransient(true);

@@ -1997,10 +1997,9 @@ public:
 
         if (flatIndexData.Empty())
         {
-            flatIndexData.Resize(1);
+            flatIndexData.Resize(2);
         }
-
-        if (flatIndexData.Size() % 2 != 0)
+        else if (flatIndexData.Size() % 2 != 0)
         {
             flatIndexData.PushBack(0); // Align to 4 bytes for ByteAddressBuffer
         }
@@ -2566,7 +2565,11 @@ void DeferredRenderer::RenderFrameForView(Frame* frame, const RenderSetup& rs)
     // Render shadows for shadow casting lights
     for (Light* light : rpl.GetLights())
     {
-        RendererBase* shadowRenderer = RI.globalRenderers[GRT_SHADOW_MAP][uint32(light->GetLightType())];
+        const uint32 lightTypeIndex = uint32(light->GetLightType());
+        
+        AssertDebug(lightTypeIndex < RI.globalRenderers[GRT_SHADOW_MAP].Size());
+        
+        RendererBase* shadowRenderer = RI.globalRenderers[GRT_SHADOW_MAP][lightTypeIndex];
 
         if (!shadowRenderer)
         {
