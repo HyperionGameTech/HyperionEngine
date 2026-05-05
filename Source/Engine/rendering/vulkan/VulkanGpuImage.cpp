@@ -1205,12 +1205,12 @@ void VulkanGpuImage::CopyFrom(
     {
         dstAspectFlagBits |= VK_IMAGE_ASPECT_COLOR_BIT;
     }
-    
+
     // normalize counts
     ImageSubResource newSrcSubResource = srcSubResource;
     newSrcSubResource.numLayers = MathUtil::Min(srcSubResource.numLayers, srcImage->NumArrayLayers() - srcSubResource.baseArrayLayer);
     newSrcSubResource.numLevels = MathUtil::Min(srcSubResource.numLevels, srcImage->NumMips() - srcSubResource.baseMipLevel);
-    
+
     ImageSubResource newDstSubResource = dstSubResource;
     newDstSubResource.numLayers = MathUtil::Min(dstSubResource.numLayers, NumArrayLayers() - dstSubResource.baseArrayLayer);
     newDstSubResource.numLevels = MathUtil::Min(dstSubResource.numLevels, NumMips() - dstSubResource.baseMipLevel);
@@ -1248,7 +1248,7 @@ void VulkanGpuImage::CopyFrom(
             m_handle,
             GetVkImageLayout(dstResourceState, dstIsDepthStencil && dstIsAttachmentTexture),
             1, &copy);
-        
+
         return;
     }
 

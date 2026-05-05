@@ -1031,8 +1031,9 @@ void View::CollectMeshEntities(RenderProxyList& rpl)
                 meshProxy.instanceData = {};
             }
 
-            meshProxy.bufferData.worldAabbMax = boundingBoxComponent ? boundingBoxComponent->worldAabb.max : MathUtil::MinSafeValue<Vec3f>();
-            meshProxy.bufferData.worldAabbMin = boundingBoxComponent ? boundingBoxComponent->worldAabb.min : MathUtil::MaxSafeValue<Vec3f>();
+            const BoundingBox meshWorldBounds = transformMatrix * meshProxy.mesh->GetAABB();
+            meshProxy.bufferData.worldAabbMax = meshWorldBounds.max;
+            meshProxy.bufferData.worldAabbMin = meshWorldBounds.min;
 
             meshProxy.bufferData.modelMatrix = transformMatrix;
             meshProxy.bufferData.previousModelMatrix = meshComponent->previousModelMatrix;

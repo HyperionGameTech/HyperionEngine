@@ -3148,7 +3148,7 @@ void DeferredRenderer::GenerateMipChain(Frame* frame, const RenderSetup& rs, Ren
 {
     DeferredRendererPassData* pd = DynamicCast<DeferredRendererPassData>(rs.passData);
 
-    const Handle<Texture>& mipChainTexture = pd->mipChain);
+    const Handle<Texture>& mipChainTexture = pd->mipChain;
     AssertDebug(mipChainTexture.IsValid());
 
     frame->cr << InsertBarrier(srcImage, RS_COPY_SRC);

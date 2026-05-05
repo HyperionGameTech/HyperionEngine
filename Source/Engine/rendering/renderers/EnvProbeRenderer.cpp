@@ -167,7 +167,7 @@ void ConvolveEnvProbeCubemap(
         cr << InsertBarrier(dstImage, RS_COPY_DST);
 
         // generate mips on src texture before running convolve shader using it as a source
-        cr << GenerateMipmaps(dstImage);
+        cr << GenerateMipmaps(srcTexture);
 
         cr << InsertBarrier(dstImage, RS_SHADER_RESOURCE);
     }

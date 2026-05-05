@@ -20,6 +20,7 @@
 #include <rendering/ShaderInstance.hpp>
 #include <rendering/Mesh.hpp>
 #include <rendering/PlaceholderData.hpp>
+#include <rendering/CBufferAllocator.hpp>
 
 #include <rendering/renderers/EnvProbeRenderer.hpp>
 #include <rendering/renderers/DeferredRenderer.hpp>
@@ -35,6 +36,7 @@ namespace Hyperion {
 struct alignas(16) ComputeVisibilityConstants
 {
     Vec2u depthPyramidDimensions;
+    uint32 totalMips;
     uint32 batchOffset;
     uint32 numInstances;
     uint32 entityInstanceBatchStride;
@@ -371,7 +373,6 @@ IndirectRenderer::IndirectRenderer()
 
 IndirectRenderer::~IndirectRenderer()
 {
-    EnqueueDeletion(std::move(m_cbuffers));
 }
 
 void IndirectRenderer::Create(EntityBatchAllocatorBase* batchAllocator)
@@ -380,16 +381,6 @@ void IndirectRenderer::Create(EntityBatchAllocatorBase* batchAllocator)
     m_batchAllocator = batchAllocator;
 
     m_indirectDrawState.Create();
-
-    for (uint32 frameIndex = 0; frameIndex < NumFramesInFlight; frameIndex++)
-    {
-        m_cbuffers[frameIndex] = RI.MakeGpuBuffer(GpuBufferType::ConstantBuffer, sizeof(ComputeVisibilityConstants));
-#if HYP_DEBUG_MODE
-        m_cbuffers[frameIndex]->SetDebugName(NAME_FMT("IndirectRenderer_UniformBuffer_Frame{}", frameIndex));
-#endif
-
-        CheckResult(m_cbuffers[frameIndex]->Create());
-    }
 }
 
 void IndirectRenderer::PushDrawCallsToIndirectState(DrawCallCollection& drawCallCollection)
@@ -487,18 +478,23 @@ void IndirectRenderer::ExecuteCullShaderInBatches(Frame* frame, const RenderSetu
 
     ComputeVisibilityConstants constants {};
     constants.depthPyramidDimensions = pd->depthPyramidRenderer->GetExtent();
+    constants.totalMips = pd->depthPyramidRenderer->GetTotalMips();
     constants.batchOffset = 0;
     constants.numInstances = numInstances;
     constants.entityInstanceBatchStride = ByteUtil::AlignAs(m_batchAllocator->GetStructSize(), m_batchAllocator->GetStructAlignment());
 
-    m_cbuffers[frameIndex]->Copy(sizeof(constants), &constants);
-    m_cbuffers[frameIndex]->Flush(0, sizeof(constants));
+    GpuBuffer* cbuffer = nullptr;
+    size_t cbufferSize = 0;
+    size_t cbufferOffset = 0;
 
-    cr << SetShaderUniform(numShaderUniforms++, "ComputeVisibilityConstants"_sh, m_cbuffers[frameIndex]);
+    RI.cbufferAllocator->Write(&constants);
+    RI.cbufferAllocator->Commit(cbuffer, cbufferOffset, cbufferSize);
+
+    cr << SetShaderUniform(numShaderUniforms++, "ComputeVisibilityConstants"_sh, cbuffer, ShaderDataOffset(cbufferOffset, cbufferSize));
 
     cr << InsertBarrier(m_indirectDrawState.GetIndirectBuffer(frameIndex), RS_INDIRECT_ARG);
 
-    cr << DispatchCompute(Vec3u { numBatches, 1, 1 });
+    cr << DispatchCompute(Vec3u { (numBatches + IndirectDrawState::BatchSize - 1) / IndirectDrawState::BatchSize, 1, 1 });
 
     cr << InsertBarrier(m_indirectDrawState.GetIndirectBuffer(frameIndex), RS_INDIRECT_ARG);
 }

@@ -24,7 +24,7 @@ float GetDepthAtTexel(float2 texcoord, int2 offset)
     return TEXEL_FETCH_2D_LOD(depth_pyramid_sampler, mip_in, texel_coord, 0).r;
 }
 
-[numthreads(32, 32, 1)]
+[numthreads(8, 8, 1)]
 void CSMain(uint3 dispatchThreadID : SV_DispatchThreadID)
 {
     const uint2 coord = dispatchThreadID.xy;

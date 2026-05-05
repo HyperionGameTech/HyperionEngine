@@ -43,33 +43,19 @@ DECLARE_UAV(ComputeVisibility, IndirectDrawCommandsBuffer) RWStructuredBuffer<In
 
 DECLARE_UAV(ComputeVisibility, EntityInstanceBatchesBuffer) RWByteAddressBuffer entityInstanceBatchData;
 
-DECLARE_BUFFER(ComputeVisibility, ComputeVisibilityConstants) cbuffer ComputeVisibilityConstants
+DECLARE_BUFFER_DYNAMIC(ComputeVisibility, ComputeVisibilityConstants) cbuffer ComputeVisibilityConstants
 {
     uint2 depth_pyramid_dimensions;
+    uint totalMips;
     uint batch_offset;
     uint num_instances;
     uint batch_stride;
 };
 
-bool IsPixelVisible(float3 clip_min, float3 clip_max)
-{
-    float2 dim = (clip_max.xy - clip_min.xy) * 0.5 * float2(depth_pyramid_dimensions);
-
-    return max(dim.x, dim.y) < 16.0;
-}
-
 float GetDepthAtTexel(float2 texcoord, int mip)
 {
-    uint mip_width, mip_height, mip_levels;
-    depth_pyramid.GetDimensions(mip, mip_width, mip_height, mip_levels);
-
-    const int2 mip_dimensions = int2(mip_width, mip_height);
-
-    float4 value = TEXEL_FETCH_2D_LOD(
-        depth_pyramid_sampler,
-        depth_pyramid,
-        clamp(int2(texcoord * mip_dimensions), (int2)0, mip_dimensions - 1),
-        mip);
+    const int2 mip_dimensions = max(int2(depth_pyramid_dimensions.x >> mip, depth_pyramid_dimensions.y >> mip), (int2)1);
+    const float4 value = depth_pyramid.Load(int3(clamp(texcoord * mip_dimensions, (int2)0, (int2)mip_dimensions - 1), mip));
 
     return value.r;
 }
@@ -107,16 +93,15 @@ void CSMain(uint3 dispatchThreadID : SV_DispatchThreadID)
 
     uint cull_bits = 0x7Fu;
     // commented out to test something.. ignore
-    const bool skip_check = true;//bool(GET_OBJECT_BUCKET_MASK(currEntity) & OBJECT_MASK_SKY);
+    const bool skip_check = bool(GET_OBJECT_BUCKET_MASK(currEntity) & OBJECT_MASK_SKY);
 
     is_visible = skip_check;
 
     if (!skip_check)
     {
         float4 clip_pos = float4(0.0, 0.0, 0.0, 0.0);
-
-        float3 clip_min = float3(1e5, 1e5, 1e5);
-        float3 clip_max = float3(-1e5, -1e5, -1e5);
+        float3 clip_min = float3(1.0, 1.0, 1.0);
+        float3 clip_max = float3(-1.0, -1.0, 0.0);
 
         bool intersects_near_plane = false;
 
@@ -125,21 +110,19 @@ void CSMain(uint3 dispatchThreadID : SV_DispatchThreadID)
             float4 projected_corner = mul(camera.viewProjMat, float4(AABBGetCorner(aabb, i), 1.0));
             cull_bits &= GetCullBits(projected_corner);
 
-            // projected_corner.y *= -1.0f;
-
             if (projected_corner.w <= 0.0)
             {
                 intersects_near_plane = true;
             }
+            else
+            {
+                clip_pos = projected_corner;
+                clip_pos.z = max(clip_pos.z, 0.0);
+                clip_pos.xyz /= clip_pos.w;
 
-            clip_pos = projected_corner;
-            clip_pos.z = max(clip_pos.z, 0.0);
-            clip_pos.xyz /= clip_pos.w;
-
-            clip_pos.xy = clamp(clip_pos.xy, float2(-1.0, -1.0), float2(1.0, 1.0));
-
-            clip_min = min(clip_pos.xyz, clip_min);
-            clip_max = max(clip_pos.xyz, clip_max);
+                clip_min = min(clip_pos.xyz, clip_min);
+                clip_max = max(clip_pos.xyz, clip_max);
+            }
         }
 
         if (intersects_near_plane)
@@ -148,28 +131,28 @@ void CSMain(uint3 dispatchThreadID : SV_DispatchThreadID)
         }
         else if (cull_bits == 0u)
         {
-            float2 uv_min = float2(clip_min.x * 0.5 + 0.5, 0.5 - clip_max.y * 0.5);
-            float2 uv_max = float2(clip_max.x * 0.5 + 0.5, 0.5 - clip_min.y * 0.5);
+            const float2 uv_min = float2(clip_min.x * 0.5 + 0.5, 0.5 - clip_min.y * 0.5);
+            const float2 uv_max = float2(clip_max.x * 0.5 + 0.5, 0.5 - clip_max.y * 0.5);
 
-            clip_min.xy = uv_min;
-            clip_max.xy = uv_max;
+            const float2 dimensions = float2(depth_pyramid_dimensions);
 
-            float2 dimensions = float2(depth_pyramid_dimensions);
+            const float2 size = (uv_max - uv_min) * dimensions;
+            const float max_size = max(max(size.x, size.y), 1.0);
 
-            // Calculate hi-Z buffer mip based on actual screen dimensions
-            float2 size = (clip_max.xy - clip_min.xy) * dimensions;
-            int mip = (int)ceil(log2(max(size.x, size.y)));
+            const int mip = clamp((int)ceil(log2(max_size)), 0, totalMips - 1);
 
             const float4 depths = float4(
-                GetDepthAtTexel(clip_min.xy, mip),
-                GetDepthAtTexel(float2(clip_max.x, clip_min.y), mip),
-                GetDepthAtTexel(float2(clip_min.x, clip_max.y), mip),
-                GetDepthAtTexel(clip_max.xy, mip)
+                GetDepthAtTexel(uv_min, mip),
+                GetDepthAtTexel(float2(uv_max.x, uv_min.y), mip),
+                GetDepthAtTexel(float2(uv_min.x, uv_max.y), mip),
+                GetDepthAtTexel(uv_max, mip)
             );
 
             // find the max depth
-            float max_depth = max(max(max(depths.x, depths.y), depths.z), depths.w);
-            is_visible = (clip_min.z <= max_depth + 0.001);
+            const float max_depth = max(max(max(depths.x, depths.y), depths.z), depths.w);
+
+            // If the max depth is 1.0, we hit the sky/far plane
+            is_visible = (clip_min.z <= max_depth);
         }
     }
 

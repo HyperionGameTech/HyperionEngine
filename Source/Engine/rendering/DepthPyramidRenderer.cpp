@@ -74,8 +74,8 @@ void DepthPyramidRenderer::Create()
         TextureType::Texture2D,
         TextureFormat::R32F,
         Vec3u {
-            MathUtil::Max(uint32(MathUtil::PreviousPowerOf2(depthImage->GetExtent().x + 1)), 1),
-            MathUtil::Max(uint32(MathUtil::PreviousPowerOf2(depthImage->GetExtent().y + 1)), 1),
+            depthImage->GetExtent().x,
+            depthImage->GetExtent().y,
             1
         },
         TFM_NEAREST_MIPMAP,
@@ -165,33 +165,6 @@ void DepthPyramidRenderer::Render(Frame* frame)
 
     for (uint8 mipLevel = 0; mipLevel < numDepthPyramidMipLevels; mipLevel++)
     {
-        // level 0 == write just-rendered depth image into mip 0
-
-        // put the mip into writeable state
-        /*frame->cr << InsertBarrier(
-            m_depthPyramid,
-            RS_UNORDERED_ACCESS,
-            ImageSubResource {
-                .baseMipLevel = mipLevel,
-                .numLevels = 1,
-                .baseArrayLayer = 0,
-                .numLayers = 1
-            });*/
-
-        //if (mipLevel != 0)
-        //{
-        //    // put prev mip into readable state
-        //    frame->cr << InsertBarrier(
-        //        m_depthPyramid,
-        //        RS_SHADER_RESOURCE,
-        //        ImageSubResource {
-        //            .baseMipLevel = uint8(mipLevel - 1),
-        //            .numLevels = 1,
-        //            .baseArrayLayer = 0,
-        //            .numLayers = 1
-        //        });
-        //}
-
         const uint32 prevMipWidth = mipWidth;
         const uint32 prevMipHeight = mipHeight;
 
@@ -215,7 +188,7 @@ void DepthPyramidRenderer::Render(Frame* frame)
         frame->cr << SetShaderUniform(2, "UniformBuffer"_sh, m_mipUniformBuffers[mipLevel]);
         frame->cr << SetShaderUniform(3, "DepthPyramidSampler"_sh, depthPyramidSampler);
 
-        frame->cr << DispatchCompute({ (mipWidth + 31) / 32, (mipHeight + 31) / 32, 1 });
+        frame->cr << DispatchCompute({ (mipWidth + 7) / 8, (mipHeight + 7) / 8, 1 });
     }
 
     frame->cr << InsertBarrier(m_depthPyramid, RS_SHADER_RESOURCE);

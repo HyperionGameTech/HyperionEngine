@@ -25,6 +25,7 @@
 #include <rendering/GpuBuffer.hpp>
 #include <rendering/SamplerCache.hpp>
 #include <rendering/Sampler.hpp>
+#include <rendering/TextureViewCache.hpp>
 
 #include <rendering/util/ShaderCompiler.hpp>
 
@@ -537,8 +538,29 @@ void GenerateMipmaps::InvokeStatic(CmdBase* cmd, CommandBuffer* commandBuffer)
         return;
     }
 
+    /* Allocate per-mip views and cbuffers for the temp image */
+    Array<GpuImageView*, RenderTempAllocator> inputViews;
+    Array<GpuImageView*, RenderTempAllocator> outputViews;
+
+    Array<GpuBuffer*, RenderTempAllocator> cbuffers;
+    Array<size_t, RenderTempAllocator> cbufferOffsets;
+    Array<size_t, RenderTempAllocator> cbufferSizes;
+
+    inputViews.Reserve(numMips - 1);
+    outputViews.Reserve(numMips - 1);
+    cbuffers.Reserve(numMips - 1);
+    cbufferOffsets.Reserve(numMips - 1);
+    cbufferSizes.Reserve(numMips - 1);
+
     for (uint16 layer = 0; layer < numLayers; layer++)
     {
+        inputViews.Resize(0);
+        outputViews.Resize(0);
+
+        cbuffers.Resize(0);
+        cbufferOffsets.Resize(0);
+        cbufferSizes.Resize(0);
+
         /* Acquire a temporary 2D image with IU_STORAGE | IU_SAMPLED so we
            can generate mips via compute dispatch without requiring the
            source image to have IU_STORAGE. */
@@ -569,20 +591,6 @@ void GenerateMipmaps::InvokeStatic(CmdBase* cmd, CommandBuffer* commandBuffer)
             desc.extent,
             ImageSubResource { .baseMipLevel = 0, .numLevels = 1, .baseArrayLayer = layer, .numLayers = 1 },
             ImageSubResource { .baseMipLevel = 0, .numLevels = 1, .baseArrayLayer = 0, .numLayers = 1 });
-
-        /* Allocate per-mip views and cbuffers for the temp image */
-        Array<GpuImageView*> inputViews;
-        Array<GpuImageView*> outputViews;
-
-        Array<GpuBuffer*> cbuffers;
-        Array<size_t> cbufferOffsets;
-        Array<size_t> cbufferSizes;
-
-        inputViews.Reserve(numMips - 1);
-        outputViews.Reserve(numMips - 1);
-        cbuffers.Reserve(numMips - 1);
-        cbufferOffsets.Reserve(numMips - 1);
-        cbufferSizes.Reserve(numMips - 1);
 
         struct MipGenUniforms
         {
@@ -644,13 +652,6 @@ void GenerateMipmaps::InvokeStatic(CmdBase* cmd, CommandBuffer* commandBuffer)
                 ImageSubResource { .baseMipLevel = mip, .numLevels = 1, .baseArrayLayer = 0, .numLayers = 1 },
                 RS_UNORDERED_ACCESS,
                 ShaderModuleType::None);
-
-            // Validate that the image view and cbuffer are valid before using
-            if (!inputViews[srcMip].IsValid() || !outputViews[srcMip].IsValid() || cbuffers[srcMip] == nullptr)
-            {
-                HYP_LOG(RenderingBackend, Error, "GenerateMipmaps: Invalid view or cbuffer at mip {}", mip);
-                continue;
-            }
 
             ShaderUniform& inputUniform = state.shaderUniforms[0];
             inputUniform = ShaderUniform("InputTexture"_sh, inputViews[srcMip]);
@@ -723,7 +724,7 @@ void GenerateMipmaps::InvokeStatic(CmdBase* cmd, CommandBuffer* commandBuffer)
                 ImageSubResource { .baseMipLevel = mip, .numLevels = 1, .baseArrayLayer = 0, .numLayers = 1 },
                 ImageSubResource { .baseMipLevel = mip, .numLevels = 1, .baseArrayLayer = layer, .numLayers = 1 });
 
-            image->InsertBarrier(
+            inTexture->GetGpuImage()->InsertBarrier(
                 commandBuffer,
                 ImageSubResource { .baseMipLevel = mip, .numLevels = 1, .baseArrayLayer = layer, .numLayers = 1 },
                 RS_SHADER_RESOURCE,
