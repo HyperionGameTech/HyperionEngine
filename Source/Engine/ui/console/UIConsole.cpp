@@ -209,11 +209,6 @@ void UIConsole::Init()
     OnComputedVisibilityChange
         .Bind([this]() -> UIEventHandlerResult
             {
-                if (IsVisible() && m_textbox)
-                {
-                    m_textbox->Focus();
-                }
-
                 return UIEventHandlerResult::OK;
             })
         .Detach();
