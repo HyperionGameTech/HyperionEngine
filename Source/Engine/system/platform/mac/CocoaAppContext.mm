@@ -356,15 +356,17 @@ VkSurfaceKHR CocoaAppContext::CreateVulkanSurface(
                     if ([NSThread isMainThread])
                     {
                         [m_window close];
+                        //[m_window release];
                     }
                     else
                     {
                         // will only occur if RenderOnMainThread is false
                         AssertOnThread(g_renderThread);
 
-                        __block NSWindow* windowToClose = m_window;
+                        __block NSWindow* nsWindow = m_window;
                         dispatch_async(dispatch_get_main_queue(), ^{
-                            [windowToClose close];
+                            [nsWindow close];
+                            //[nsWindow release];
                         });
                     }
 

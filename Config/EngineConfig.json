@@ -50,7 +50,7 @@
       "AO": false
     },
     "Vulkan": {
-      "DebugLayers": true,
+      "DebugLayers": false,
       "TimelineSemaphores": true
     },
     "RayTracing": {

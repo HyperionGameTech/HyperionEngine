@@ -212,14 +212,11 @@ static void BlitImages(
             const uint16 dstLayer = uint16(dstSubResource.baseArrayLayer + layerIndex);
 
             /* Create SRV view for the source subresource */
-            GpuImageViewRef srcView = RI.MakeImageView(
-                MakeStrongRef(srcImage), srcMip, 1, srcLayer, 1);
+            GpuImageViewRef srcView = RI.MakeImageView(MakeStrongRef(srcImage), srcMip, 1, srcLayer, 1);
             srcView->Create();
 
             /* Create UAV view for the temp image (single mip 0, layer 0) */
-            GpuImageViewRef tempView = RI.MakeImageView(
-                tempImage, 0, 1, 0, 1);
-            tempView->Create();
+            const GpuImageViewRef& tempView = RI.textureViewCache->GetOrCreate(tempImage, 0, 1, 0, 1);
 
             /* Transition source to shader-readable state */
             srcImage->InsertBarrier(
@@ -344,7 +341,6 @@ static void BlitImages(
         RS_SHADER_RESOURCE,
         ShaderModuleType::None);
 
-    /* Clean up the temp image */
     EnqueueDeletion(std::move(tempImage));
 }
 #endif
@@ -496,26 +492,20 @@ void CopyBufferToImage::InvokeStatic(CmdBase* cmd, CommandBuffer* commandBuffer)
 
 #pragma region GenerateMipmaps
 
-GenerateMipmaps::GenerateMipmaps(GpuImage* image)
-    : m_image(image)
+GenerateMipmaps::GenerateMipmaps(Texture* inTexture)
+    : inTexture(inTexture)
 {
-    AssertDebug(image && image->IsCreated());
+    AssertDebug(inTexture != nullptr && inTexture->IsCreated());
 }
 
 void GenerateMipmaps::InvokeStatic(CmdBase* cmd, CommandBuffer* commandBuffer)
 {
     GenerateMipmaps* cmdCasted = static_cast<GenerateMipmaps*>(cmd);
 
-    GpuImage* image = cmdCasted->m_image;
+    Texture* inTexture = cmdCasted->inTexture;
 
-    if (!image || !image->IsCreated())
-    {
-        HYP_LOG(RenderingBackend, Warning, "GenerateMipmaps::InvokeStatic: Image is null or not created");
+    const TextureDesc& desc = inTexture->GetTextureDesc();
 
-        return;
-    }
-
-    const TextureDesc& desc = image->GetTextureDesc();
     const uint8 numMips = uint8(desc.NumMips());
     const uint16 numLayers = desc.NumArrayLayers();
 
@@ -552,28 +542,28 @@ void GenerateMipmaps::InvokeStatic(CmdBase* cmd, CommandBuffer* commandBuffer)
         /* Acquire a temporary 2D image with IU_STORAGE | IU_SAMPLED so we
            can generate mips via compute dispatch without requiring the
            source image to have IU_STORAGE. */
-        GpuImageRef tempImage = RI.scratchImageAllocator->AcquireScratchImage(desc.format, desc.extent);
+        Handle<Texture> tempImage = RI.scratchImageAllocator->AcquireScratchImage(desc.format, desc.extent);
 
-        if (!tempImage)
+        if (!tempImage.IsValid())
         {
             HYP_LOG(RenderingBackend, Error, "GenerateMipmaps: Failed to acquire scratch image");
             continue;
         }
 
-        image->InsertBarrier(
+        inTexture->GetGpuImage()->InsertBarrier(
             commandBuffer,
             ImageSubResource { .baseMipLevel = 0, .numLevels = 1, .baseArrayLayer = layer, .numLayers = 1 },
             RS_COPY_SRC,
             ShaderModuleType::None);
 
-        tempImage->InsertBarrier(
+        tempImage->GetGpuImage()->InsertBarrier(
             commandBuffer,
             RS_COPY_DST,
             ShaderModuleType::None);
 
-        tempImage->CopyFrom(
+        tempImage->GetGpuImage()->CopyFrom(
             commandBuffer,
-            image,
+            inTexture->GetGpuImage(),
             Vec3u::Zero(),
             Vec3u::Zero(),
             desc.extent,
@@ -581,8 +571,9 @@ void GenerateMipmaps::InvokeStatic(CmdBase* cmd, CommandBuffer* commandBuffer)
             ImageSubResource { .baseMipLevel = 0, .numLevels = 1, .baseArrayLayer = 0, .numLayers = 1 });
 
         /* Allocate per-mip views and cbuffers for the temp image */
-        Array<GpuImageViewRef> inputViews;
-        Array<GpuImageViewRef> outputViews;
+        Array<GpuImageView*> inputViews;
+        Array<GpuImageView*> outputViews;
+
         Array<GpuBuffer*> cbuffers;
         Array<size_t> cbufferOffsets;
         Array<size_t> cbufferSizes;
@@ -605,27 +596,15 @@ void GenerateMipmaps::InvokeStatic(CmdBase* cmd, CommandBuffer* commandBuffer)
         {
             const uint8 srcMip = mip - 1;
 
-            GpuImageViewRef inputView = RI.MakeImageView(
+            const GpuImageViewRef& inputView = RI.textureViewCache->GetOrCreate(
                 tempImage, srcMip, 1, 0, 1);
-            RendererResult inputViewResult = inputView->Create();
-            if (!inputViewResult)
-            {
-                HYP_LOG(RenderingBackend, Error, "GenerateMipmaps: Failed to create input view for mip {}: {}",
-                    srcMip, inputViewResult.HasError() ? inputViewResult.GetError().GetMessage() : "Unknown error");
-                // Continue anyway, will check validity before use
-            }
-            inputViews.PushBack(std::move(inputView));
 
-            GpuImageViewRef outputView = RI.MakeImageView(
+            inputViews.PushBack(inputView);
+
+            const GpuImageViewRef& outputView = RI.textureViewCache->GetOrCreate(
                 tempImage, mip, 1, 0, 1);
-            RendererResult outputViewResult = outputView->Create();
-            if (!outputViewResult)
-            {
-                HYP_LOG(RenderingBackend, Error, "GenerateMipmaps: Failed to create output view for mip {}: {}",
-                    mip, outputViewResult.HasError() ? outputViewResult.GetError().GetMessage() : "Unknown error");
-                // Continue anyway, will check validity before use
-            }
-            outputViews.PushBack(std::move(outputView));
+
+            outputViews.PushBack(outputView);
 
             const Vec3u srcExtent = desc.GetMipExtent(srcMip);
             const Vec3u dstExtent = desc.GetMipExtent(mip);
@@ -654,13 +633,13 @@ void GenerateMipmaps::InvokeStatic(CmdBase* cmd, CommandBuffer* commandBuffer)
             const uint8 srcMip = mip - 1;
             const Vec3u dstExtent = desc.GetMipExtent(mip);
 
-            tempImage->InsertBarrier(
+            tempImage->GetGpuImage()->InsertBarrier(
                 commandBuffer,
                 ImageSubResource { .baseMipLevel = srcMip, .numLevels = 1, .baseArrayLayer = 0, .numLayers = 1 },
                 RS_SHADER_RESOURCE,
                 ShaderModuleType::None);
 
-            tempImage->InsertBarrier(
+            tempImage->GetGpuImage()->InsertBarrier(
                 commandBuffer,
                 ImageSubResource { .baseMipLevel = mip, .numLevels = 1, .baseArrayLayer = 0, .numLayers = 1 },
                 RS_UNORDERED_ACCESS,
@@ -674,11 +653,11 @@ void GenerateMipmaps::InvokeStatic(CmdBase* cmd, CommandBuffer* commandBuffer)
             }
 
             ShaderUniform& inputUniform = state.shaderUniforms[0];
-            inputUniform = ShaderUniform("InputTexture"_sh, inputViews[srcMip].Get());
+            inputUniform = ShaderUniform("InputTexture"_sh, inputViews[srcMip]);
             state.dirtyUniforms |= 1u << 0;
 
             ShaderUniform& outputUniform = state.shaderUniforms[1];
-            outputUniform = ShaderUniform("OutputTexture"_sh, outputViews[srcMip].Get());
+            outputUniform = ShaderUniform("OutputTexture"_sh, outputViews[srcMip]);
             state.dirtyUniforms |= 1u << 1;
 
             // Use this mip's own cbuffer with dynamic offset
@@ -710,12 +689,12 @@ void GenerateMipmaps::InvokeStatic(CmdBase* cmd, CommandBuffer* commandBuffer)
             });
 
 #ifdef HYP_DX12
-            tempImage->InsertUAVBarrier(commandBuffer);
+            tempImage->GetGpuImage()->InsertUAVBarrier(commandBuffer);
 #endif
         }
 
 #ifdef HYP_DX12
-        tempImage->InsertUAVBarrier(commandBuffer);
+        tempImage->GetGpuImage()->InsertUAVBarrier(commandBuffer);
 #endif
 
         /* Copy each generated mip from the temp image back to the source */
@@ -723,21 +702,21 @@ void GenerateMipmaps::InvokeStatic(CmdBase* cmd, CommandBuffer* commandBuffer)
         {
             const Vec3u mipExtent = desc.GetMipExtent(mip);
 
-            tempImage->InsertBarrier(
+            tempImage->GetGpuImage()->InsertBarrier(
                 commandBuffer,
                 ImageSubResource { .baseMipLevel = mip, .numLevels = 1, .baseArrayLayer = 0, .numLayers = 1 },
                 RS_COPY_SRC,
                 ShaderModuleType::None);
 
-            image->InsertBarrier(
+            inTexture->GetGpuImage()->InsertBarrier(
                 commandBuffer,
                 ImageSubResource { .baseMipLevel = mip, .numLevels = 1, .baseArrayLayer = layer, .numLayers = 1 },
                 RS_COPY_DST,
                 ShaderModuleType::None);
 
-            image->CopyFrom(
+            inTexture->GetGpuImage()->CopyFrom(
                 commandBuffer,
-                tempImage.Get(),
+                tempImage->GetGpuImage().Get(),
                 Vec3u::Zero(),
                 Vec3u::Zero(),
                 mipExtent,
@@ -750,12 +729,9 @@ void GenerateMipmaps::InvokeStatic(CmdBase* cmd, CommandBuffer* commandBuffer)
                 RS_SHADER_RESOURCE,
                 ShaderModuleType::None);
         }
-
-        EnqueueDeletion(std::move(inputViews));
-        EnqueueDeletion(std::move(outputViews));
     }
 
-    image->InsertBarrier(
+    inTexture->GetGpuImage()->InsertBarrier(
         commandBuffer,
         RS_SHADER_RESOURCE,
         ShaderModuleType::None);

@@ -1474,6 +1474,8 @@ void ReflectionsPass::Render(Frame* frame, const RenderSetup& rs)
 
 DeferredRendererPassData::~DeferredRendererPassData()
 {
+    EnqueueDeletion(std::move(mipChain));
+
     depthPyramidRenderer.Reset();
 
     hbao.Reset();
@@ -2280,6 +2282,8 @@ void DeferredRenderer::ResizeView(Viewport viewport, View* view, DeferredRendere
 
     passData.cullData.depthPyramidImageView = passData.depthPyramidRenderer->GetResultImageView();
     passData.cullData.depthPyramidDimensions = passData.depthPyramidRenderer->GetExtent();
+
+    EnqueueDeletion(std::move(passData.mipChain));
 
     passData.mipChain = MakeHandle<Texture>(TextureDesc {
         TextureType::Texture2D,
@@ -3144,17 +3148,16 @@ void DeferredRenderer::GenerateMipChain(Frame* frame, const RenderSetup& rs, Ren
 {
     DeferredRendererPassData* pd = DynamicCast<DeferredRendererPassData>(rs.passData);
 
-    GpuImage* mipmappedResult = pd->mipChain->GetGpuImage();
-    AssertDebug(mipmappedResult != nullptr && mipmappedResult->IsCreated());
-    AssertDebug(mipmappedResult->GetTextureDesc().extent == srcImage->GetTextureDesc().extent);
+    const Handle<Texture>& mipChainTexture = pd->mipChain);
+    AssertDebug(mipChainTexture.IsValid());
 
     frame->cr << InsertBarrier(srcImage, RS_COPY_SRC);
-    frame->cr << InsertBarrier(mipmappedResult, RS_COPY_DST);
+    frame->cr << InsertBarrier(mipChainTexture->GetGpuImage(), RS_COPY_DST);
 
-    frame->cr << CopyImage(srcImage, mipmappedResult, mipmappedResult->GetTextureDesc().extent);
-    frame->cr << GenerateMipmaps(mipmappedResult);
+    frame->cr << CopyImage(srcImage, mipChainTexture->GetGpuImage(), mipChainTexture->GetTextureDesc().extent);
+    frame->cr << GenerateMipmaps(mipChainTexture);
 
-    frame->cr << InsertBarrier(mipmappedResult, RS_SHADER_RESOURCE);
+    frame->cr << InsertBarrier(mipChainTexture->GetGpuImage(), RS_SHADER_RESOURCE);
     frame->cr << InsertBarrier(srcImage, RS_RENDER_TARGET);
 }
 

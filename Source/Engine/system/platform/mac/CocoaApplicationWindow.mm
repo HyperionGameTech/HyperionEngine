@@ -100,18 +100,18 @@ KeyCode MapCocoaKeyCodeToKeyCode(unsigned short keyCode);
 - (void)updateTrackingAreas
 {
     [super updateTrackingAreas];
-    
+
     if (_trackingArea)
     {
         [self removeTrackingArea:_trackingArea];
         [_trackingArea release];
     }
-    
+
     NSTrackingAreaOptions options = NSTrackingMouseEnteredAndExited |
                                     NSTrackingMouseMoved |
                                     NSTrackingActiveInKeyWindow |
                                     NSTrackingInVisibleRect;
-    
+
     _trackingArea = [[NSTrackingArea alloc] initWithRect:self.bounds
                                                  options:options
                                                    owner:self
@@ -125,7 +125,7 @@ KeyCode MapCocoaKeyCodeToKeyCode(unsigned short keyCode);
 
     CGFloat scale = self.window ? self.window.backingScaleFactor : [NSScreen mainScreen].backingScaleFactor;
     CGSize drawableSize = CGSizeMake(newSize.width * scale, newSize.height * scale);
-    
+
     // Update metal layer drawable size
     CAMetalLayer* metalLayer = (CAMetalLayer*)self.layer;
     if (metalLayer)
@@ -133,7 +133,7 @@ KeyCode MapCocoaKeyCodeToKeyCode(unsigned short keyCode);
         metalLayer.contentsScale = scale;
         metalLayer.drawableSize = drawableSize;
     }
-    
+
     if (_hyperionWindow)
     {
         const int width = int(drawableSize.width);
@@ -146,7 +146,7 @@ KeyCode MapCocoaKeyCodeToKeyCode(unsigned short keyCode);
 - (void)viewDidMoveToWindow
 {
     [super viewDidMoveToWindow];
-    
+
     if (self.window)
     {
         CAMetalLayer* metalLayer = (CAMetalLayer*)self.layer;
@@ -155,7 +155,7 @@ KeyCode MapCocoaKeyCodeToKeyCode(unsigned short keyCode);
             CGFloat scale = self.window.backingScaleFactor;
             metalLayer.contentsScale = scale;
             metalLayer.drawableSize = CGSizeMake(
-                self.bounds.size.width * scale, 
+                self.bounds.size.width * scale,
                 self.bounds.size.height * scale);
         }
     }
@@ -213,7 +213,7 @@ HANDLE_COCOA_EVENT(keyUp)
     {
         NSWindow* nsWindow = [notification object];
         NSRect frame = [nsWindow.contentView frame];
-        
+
         int width = (int)frame.size.width;
         int height = (int)frame.size.height;
 
@@ -266,7 +266,7 @@ CocoaApplicationWindow::~CocoaApplicationWindow()
         [(id)m_metalLayer release];
         m_metalLayer = nullptr;
     }
-    
+
     if (m_nsView)
     {
         // Only treat m_nsView as a HyperionMetalView if it actually is one.
@@ -287,7 +287,7 @@ CocoaApplicationWindow::~CocoaApplicationWindow()
 
         m_nsView = nullptr;
     }
-    
+
     if (m_windowDelegate)
     {
         HyperionWindowDelegate* delegate = (HyperionWindowDelegate*)m_windowDelegate;
@@ -296,7 +296,7 @@ CocoaApplicationWindow::~CocoaApplicationWindow()
 
         m_windowDelegate = nullptr;
     }
-    
+
     // Only close/release window if we created it (not embedded)
     if (m_hwnd && !m_isEmbeddedView)
     {
@@ -317,7 +317,7 @@ void CocoaApplicationWindow::Initialize(WindowOptions windowOptions)
     AssertOnThread(g_mainThread);
 
     TUniqueLock lock(m_mtx);
-  
+
     m_title = windowOptions.title;
     m_size = windowOptions.dimensions;
 
@@ -329,11 +329,11 @@ void CocoaApplicationWindow::Initialize(WindowOptions windowOptions)
     if (windowOptions.parentHwnd != nullptr)
     {
         m_isEmbeddedView = true;
-        
+
         id parentObject = (id)windowOptions.parentHwnd;
         NSView* parentView = nil;
         NSWindow* parentWindow = nil;
-        
+
         // handle both NSWindow and NSView as parentHwnd
         if ([parentObject isKindOfClass:[NSWindow class]])
         {
@@ -353,23 +353,23 @@ void CocoaApplicationWindow::Initialize(WindowOptions windowOptions)
         }
 
         AssertDebug(parentView != nil, "Parent NSWindow contentView is null in CocoaApplicationWindow embedded view creation");
-        
+
         // Create the metal view
         NSRect frame = NSMakeRect(0, 0, windowOptions.dimensions.x, windowOptions.dimensions.y);
-        
+
         HyperionMetalView* metalView = [[HyperionMetalView alloc] initWithFrame:frame];
         metalView.hyperionWindow = this;
-        
+
         // Configure autoresizing to fill parent
         metalView.autoresizingMask = NSViewWidthSizable | NSViewHeightSizable;
-        
+
         // Add to parent view
         [parentView addSubview:metalView];
-        
+
         // Get the metal layer from the view
         CAMetalLayer* metalLayer = (CAMetalLayer*)[metalView layer];
         metalLayer.presentsWithTransaction = NO;
-        
+
         if (windowOptions.flags & uint32(WindowFlags::HIGH_DPI))
         {
             metalLayer.contentsScale = parentWindow ? [parentWindow backingScaleFactor] : 2.0;
@@ -378,12 +378,12 @@ void CocoaApplicationWindow::Initialize(WindowOptions windowOptions)
         {
             metalLayer.contentsScale = 1.0;
         }
-        
+
         metalLayer.drawableSize = CGSizeMake(
             frame.size.width * metalLayer.contentsScale,
             frame.size.height * metalLayer.contentsScale
         );
-        
+
         m_nsView = metalView;
         m_metalLayer = [metalLayer retain];
         m_hwnd = parentWindow; // Store reference to parent window for coordinate conversions
@@ -396,17 +396,17 @@ void CocoaApplicationWindow::Initialize(WindowOptions windowOptions)
 
     // Standard standalone window creation
     NSRect frame = NSMakeRect(0, 0, m_size.x, m_size.y);
-    
-    NSWindowStyleMask styleMask = NSWindowStyleMaskTitled | 
-                                    NSWindowStyleMaskClosable | 
-                                    NSWindowStyleMaskMiniaturizable | 
+
+    NSWindowStyleMask styleMask = NSWindowStyleMaskTitled |
+                                    NSWindowStyleMaskClosable |
+                                    NSWindowStyleMaskMiniaturizable |
                                     NSWindowStyleMaskResizable;
-    
+
     if (windowOptions.flags & uint32(WindowFlags::HEADLESS))
     {
         // Create window but don't show it
     }
-    
+
     NSWindow* window = [[NSWindow alloc] initWithContentRect:frame
                                                     styleMask:styleMask
                                                         backing:NSBackingStoreBuffered
@@ -431,20 +431,20 @@ void CocoaApplicationWindow::Initialize(WindowOptions windowOptions)
     HyperionWindowDelegate* delegate = [[HyperionWindowDelegate alloc] init];
     delegate.window = this;
     [window setDelegate:delegate];
-    
+
     // Accept mouse moved events
     [window setAcceptsMouseMovedEvents:YES];
-    
+
     // Register for drag-and-drop
     [window registerForDraggedTypes:@[NSPasteboardTypeFileURL]];
-    
+
     // Create Metal layer
     if (!(windowOptions.flags & uint32(WindowFlags::NO_GFX)))
     {
         CAMetalLayer* metalLayer = [CAMetalLayer layer];
         [((NSView*)m_nsView) setLayer:metalLayer];
         [((NSView*)m_nsView) setWantsLayer:YES];
-        
+
         if (windowOptions.flags & uint32(WindowFlags::HIGH_DPI))
         {
             metalLayer.contentsScale = [window backingScaleFactor];
@@ -453,15 +453,15 @@ void CocoaApplicationWindow::Initialize(WindowOptions windowOptions)
         {
             metalLayer.contentsScale = 1.0;
         }
-        
+
         metalLayer.drawableSize = CGSizeMake(
             [((NSView*)m_nsView) bounds].size.width * metalLayer.contentsScale,
             [((NSView*)m_nsView) bounds].size.height * metalLayer.contentsScale
         );
-        
+
         m_metalLayer = [metalLayer retain];
     }
-    
+
     m_hwnd = window;
     m_windowDelegate = delegate;
 
@@ -485,120 +485,121 @@ bool CocoaApplicationWindow::HandleNSEvent(NSEvent* nsEvent, Event& event)
     HYP_SCOPE;
     AssertOnThread(g_mainThread);
 
+    Assert(nsEvent != nullptr);
+
     event = Event();
-    
-    @autoreleasepool
+
+    PlatformEvent platformEvent {};
+    platformEvent.cocoaEvent.nsEvent = (void*)[nsEvent retain]; // keep it around, we release it manually in DestroyCocoaEvent()
+    switch ([nsEvent type])
     {
-        PlatformEvent platformEvent {};
-        platformEvent.cocoaEvent.nsEvent = (void*)[nsEvent retain]; // keep it around, we release it manually in DestroyCocoaEvent()
+    case NSEventTypeKeyDown:
+        event = Event(EventType::KEYDOWN, this, platformEvent);
+        event.GetEventData().Set(MapCocoaKeyCodeToKeyCode([nsEvent keyCode]));
+        return true;
 
-        switch ([nsEvent type])
-        {
-        case NSEventTypeKeyDown:
-            event = Event(EventType::KEYDOWN, this, platformEvent);
-            event.GetEventData().Set(MapCocoaKeyCodeToKeyCode([nsEvent keyCode]));
-            return true;
-            
-        case NSEventTypeKeyUp:
-            event = Event(EventType::KEYUP, this, platformEvent);
-            event.GetEventData().Set(MapCocoaKeyCodeToKeyCode([nsEvent keyCode]));
-            return true;
-            
-        case NSEventTypeMouseMoved:
-        case NSEventTypeLeftMouseDragged:
-        case NSEventTypeRightMouseDragged:
-        case NSEventTypeOtherMouseDragged:
-        {
-            event = Event(EventType::MOUSEMOTION, this, platformEvent);
+    case NSEventTypeKeyUp:
+        event = Event(EventType::KEYUP, this, platformEvent);
+        event.GetEventData().Set(MapCocoaKeyCodeToKeyCode([nsEvent keyCode]));
+        return true;
 
-            if (m_mouseLocked)
+    case NSEventTypeMouseMoved:
+    case NSEventTypeLeftMouseDragged:
+    case NSEventTypeRightMouseDragged:
+    case NSEventTypeOtherMouseDragged:
+    {
+        event = Event(EventType::MOUSEMOTION, this, platformEvent);
+
+        if (m_mouseLocked)
+        {
+            CGFloat deltaX = [nsEvent deltaX];
+            CGFloat deltaY = [nsEvent deltaY];
+
+            Vec2i newPos = GetMousePosition() + Vec2i((int)deltaX, (int)deltaY);
+
+            event.GetEventData().Set(newPos);
+        }
+        else
+        {
+            NSPoint location = [nsEvent locationInWindow];
+
+            if (m_isEmbeddedView && m_nsView)
             {
-                CGFloat deltaX = [nsEvent deltaX];
-                CGFloat deltaY = [nsEvent deltaY];
-                
-                Vec2i newPos = GetMousePosition() + Vec2i((int)deltaX, (int)deltaY);
-                
-                event.GetEventData().Set(newPos);
+                // Convert to view coordinates
+                HyperionMetalView* view = (HyperionMetalView*)m_nsView;
+                location = [view convertPoint:location fromView:nil];
+
+                // Flip Y coordinate
+                NSRect viewFrame = [view frame];
+                location.y = viewFrame.size.height - location.y;
             }
             else
             {
-                NSPoint location = [nsEvent locationInWindow];
-
-                if (m_isEmbeddedView && m_nsView)
-                {
-                    // Convert to view coordinates
-                    HyperionMetalView* view = (HyperionMetalView*)m_nsView;
-                    location = [view convertPoint:location fromView:nil];
-                    
-                    // Flip Y coordinate
-                    NSRect viewFrame = [view frame];
-                    location.y = viewFrame.size.height - location.y;
-                }
-                else
-                {
-                    // Flip Y coordinate for window content view
-                    NSWindow* window = (NSWindow*)m_hwnd;
-                    NSRect contentFrame = [window.contentView frame];
-                    location.y = contentFrame.size.height - location.y;
-                }
-
-                event.GetEventData().Set(Vec2i((int)location.x, (int)location.y));
+                // Flip Y coordinate for window content view
+                NSWindow* window = (NSWindow*)m_hwnd;
+                NSRect contentFrame = [window.contentView frame];
+                location.y = contentFrame.size.height - location.y;
             }
-            
-            return true;
+
+            event.GetEventData().Set(Vec2i((int)location.x, (int)location.y));
         }
-            
-        case NSEventTypeLeftMouseDown:
-            event = Event(EventType::MOUSEBUTTON_DOWN, this, platformEvent);
-            event.GetEventData().Set(EnumFlags<MouseButtonState>(MouseButtonState::LEFT));
-            return true;
-            
-        case NSEventTypeLeftMouseUp:
-            event = Event(EventType::MOUSEBUTTON_UP, this, platformEvent);
-            event.GetEventData().Set(EnumFlags<MouseButtonState>(MouseButtonState::LEFT));
-            return true;
-            
-        case NSEventTypeRightMouseDown:
-            event = Event(EventType::MOUSEBUTTON_DOWN, this, platformEvent);
-            event.GetEventData().Set(EnumFlags<MouseButtonState>(MouseButtonState::RIGHT));
-            return true;
-            
-        case NSEventTypeRightMouseUp:
-            event = Event(EventType::MOUSEBUTTON_UP, this, platformEvent);
-            event.GetEventData().Set(EnumFlags<MouseButtonState>(MouseButtonState::RIGHT));
-            return true;
-            
-        case NSEventTypeOtherMouseDown:
-            event = Event(EventType::MOUSEBUTTON_DOWN, this, platformEvent);
-            event.GetEventData().Set(EnumFlags<MouseButtonState>(MouseButtonState::MIDDLE));
-            return true;
-            
-        case NSEventTypeOtherMouseUp:
-            event = Event(EventType::MOUSEBUTTON_UP, this, platformEvent);
-            event.GetEventData().Set(EnumFlags<MouseButtonState>(MouseButtonState::MIDDLE));
-            return true;
-            
-        case NSEventTypeScrollWheel:
+
+        return true;
+    }
+
+    case NSEventTypeLeftMouseDown:
+        event = Event(EventType::MOUSEBUTTON_DOWN, this, platformEvent);
+        event.GetEventData().Set(EnumFlags<MouseButtonState>(MouseButtonState::LEFT));
+        return true;
+
+    case NSEventTypeLeftMouseUp:
+        event = Event(EventType::MOUSEBUTTON_UP, this, platformEvent);
+        event.GetEventData().Set(EnumFlags<MouseButtonState>(MouseButtonState::LEFT));
+        return true;
+
+    case NSEventTypeRightMouseDown:
+        event = Event(EventType::MOUSEBUTTON_DOWN, this, platformEvent);
+        event.GetEventData().Set(EnumFlags<MouseButtonState>(MouseButtonState::RIGHT));
+        return true;
+
+    case NSEventTypeRightMouseUp:
+        event = Event(EventType::MOUSEBUTTON_UP, this, platformEvent);
+        event.GetEventData().Set(EnumFlags<MouseButtonState>(MouseButtonState::RIGHT));
+        return true;
+
+    case NSEventTypeOtherMouseDown:
+        event = Event(EventType::MOUSEBUTTON_DOWN, this, platformEvent);
+        event.GetEventData().Set(EnumFlags<MouseButtonState>(MouseButtonState::MIDDLE));
+        return true;
+
+    case NSEventTypeOtherMouseUp:
+        event = Event(EventType::MOUSEBUTTON_UP, this, platformEvent);
+        event.GetEventData().Set(EnumFlags<MouseButtonState>(MouseButtonState::MIDDLE));
+        return true;
+
+    case NSEventTypeScrollWheel:
+    {
+        event = Event(EventType::MOUSESCROLL, this, platformEvent);
+        CGFloat deltaX = [nsEvent scrollingDeltaX];
+        CGFloat deltaY = [nsEvent scrollingDeltaY];
+
+        // If the scroll event has precise deltas, use them
+        if ([nsEvent hasPreciseScrollingDeltas])
         {
-            event = Event(EventType::MOUSESCROLL, this, platformEvent);
-            CGFloat deltaX = [nsEvent scrollingDeltaX];
-            CGFloat deltaY = [nsEvent scrollingDeltaY];
-            
-            // If the scroll event has precise deltas, use them
-            if ([nsEvent hasPreciseScrollingDeltas])
-            {
-                // Scale down precise deltas
-                deltaX *= 0.1;
-                deltaY *= 0.1;
-            }
-            
-            event.GetEventData().Set(Vec2i((int)deltaX, (int)deltaY));
-            return true;
+            // Scale down precise deltas
+            deltaX *= 0.1;
+            deltaY *= 0.1;
         }
-            
-        default:
-            break;
-        }
+
+        event.GetEventData().Set(Vec2i((int)deltaX, (int)deltaY));
+        return true;
+    }
+
+    default:
+        [(NSEvent*)platformEvent.cocoaEvent.nsEvent release];
+        platformEvent = PlatformEvent();
+        event = Event();
+        break;
     }
 
     return false;
@@ -618,7 +619,7 @@ void CocoaApplicationWindow::SetMousePosition(Vec2i position)
                 NSPoint viewPoint = NSMakePoint(position.x, viewFrame.size.height - position.y);
                 NSPoint windowPoint = [view convertPoint:viewPoint toView:nil];
                 NSPoint screenPoint = [window convertPointToScreen:windowPoint];
-                
+
                 CGPoint point = CGPointMake(screenPoint.x, CGDisplayBounds(CGMainDisplayID()).size.height - screenPoint.y);
                 CGWarpMouseCursorPosition(point);
                 CGAssociateMouseAndMouseCursorPosition(true);
@@ -629,11 +630,11 @@ void CocoaApplicationWindow::SetMousePosition(Vec2i position)
             NSWindow* window = (NSWindow*)m_hwnd;
             NSRect windowFrame = [window frame];
             NSRect contentFrame = [window.contentView frame];
-            
+
             // Convert from content coordinates to screen coordinates
             CGFloat screenY = windowFrame.origin.y + (contentFrame.size.height - position.y);
             CGFloat screenX = windowFrame.origin.x + position.x;
-            
+
             CGPoint point = CGPointMake(screenX, screenY);
             CGWarpMouseCursorPosition(point);
             CGAssociateMouseAndMouseCursorPosition(true);
@@ -656,7 +657,7 @@ Vec2i CocoaApplicationWindow::GetMousePosition() const
                 NSPoint mouseLocation = [NSEvent mouseLocation];
                 NSPoint windowPoint = [window convertPointFromScreen:mouseLocation];
                 NSPoint viewPoint = [view convertPoint:windowPoint fromView:nil];
-                
+
                 NSRect viewFrame = [view frame];
                 m_mousePosition = Vec2i((int)viewPoint.x, (int)(viewFrame.size.height - viewPoint.y));
             }
@@ -667,7 +668,7 @@ Vec2i CocoaApplicationWindow::GetMousePosition() const
             NSPoint mouseLocation = [NSEvent mouseLocation];
             NSRect windowFrame = [window frame];
             NSRect contentFrame = [window.contentView frame];
-            
+
             // Convert from screen coordinates to content coordinates
             CGFloat localX = mouseLocation.x - windowFrame.origin.x;
             CGFloat localY = contentFrame.size.height - (mouseLocation.y - windowFrame.origin.y);
@@ -675,7 +676,7 @@ Vec2i CocoaApplicationWindow::GetMousePosition() const
             m_mousePosition = Vec2i((int)localX, (int)localY);
         }
     }
-    
+
     return m_mousePosition;
 }
 
@@ -685,10 +686,10 @@ Vec2i CocoaApplicationWindow::GetDimensions() const
     {
         HyperionMetalView* view = (HyperionMetalView*)m_nsView;
         NSRect frame = [view frame];
-        
+
         return Vec2i((int)frame.size.width, (int)frame.size.height);
     }
-    
+
     NSWindow* window = (NSWindow*)m_hwnd;
     NSRect frame = [window.contentView frame];
     return Vec2i((int)frame.size.width, (int)frame.size.height);
@@ -697,7 +698,7 @@ Vec2i CocoaApplicationWindow::GetDimensions() const
 void CocoaApplicationWindow::SetIsMouseLocked(bool locked)
 {
     m_mouseLocked = locked;
-    
+
     if (locked)
     {
         CGAssociateMouseAndMouseCursorPosition(false);
@@ -720,14 +721,14 @@ bool CocoaApplicationWindow::HasMouseFocus() const
         {
             return false;
         }
-        
+
         // Check if mouse is within our view
         NSPoint mouseLocation = [NSEvent mouseLocation];
         NSRect screenFrame = [view convertRect:[view bounds] toView:nil];
         screenFrame = [window convertRectToScreen:screenFrame];
         return NSPointInRect(mouseLocation, screenFrame);
     }
-    
+
     NSWindow* window = (NSWindow*)m_hwnd;
     return [window isKeyWindow];
 }
@@ -740,7 +741,7 @@ bool CocoaApplicationWindow::IsHighDPI() const
         NSWindow* window = [view window];
         return window ? [window backingScaleFactor] > 1.0 : true; // Assume high DPI if no window
     }
-    
+
     NSWindow* window = (NSWindow*)m_hwnd;
     return [window backingScaleFactor] > 1.0;
 }

@@ -28,7 +28,7 @@ struct ScratchImageAllocatorImpl
         Vec3u extent = Vec3u::One();
         Vec3u alignedExtent = Vec3u::One();
         uint32 lastUsedFrame = 0;
-        GpuImageRef image;
+        Handle<Texture> texture;
     };
 
     LinkedList<CachedScratchImage, RenderAllocator> cachedImages;
@@ -70,7 +70,7 @@ struct ScratchImageAllocatorImpl
         }
     }
 
-    GpuImageRef AcquireScratchImage(TextureFormat format, Vec3u extent)
+    Handle<Texture> AcquireScratchImage(TextureFormat format, Vec3u extent)
     {
         AssertDebug(extent.x > 0 && extent.y > 0 && extent.z > 0);
 
@@ -92,7 +92,7 @@ struct ScratchImageAllocatorImpl
 
                 cachedImages.Erase(it);
 
-                return entry.image;
+                return entry.texture;
             }
         }
 
@@ -103,7 +103,7 @@ struct ScratchImageAllocatorImpl
         newEntry.extent = extent;
         newEntry.alignedExtent = alignedExtent;
 
-        newEntry.image = RI.MakeImage(TextureDesc {
+        newEntry.texture = MakeHandle<Texture>(TextureDesc {
             TextureType::Texture2D,
             format,
             alignedExtent,
@@ -114,35 +114,34 @@ struct ScratchImageAllocatorImpl
             IU_SAMPLED | IU_STORAGE
         });
 
-#ifdef HYP_DEBUG_MODE
-        newEntry.image->SetDebugName(NAME_FMT("ScratchImg_{}_{}_{}_{}", extent.x, extent.y, extent.z, EnumToString(format)));
-#endif // HYP_DEBUG_MODE
+        newEntry.texture->SetIsTransient(true);
+        newEntry.texture->SetName(NAME_FMT("ScratchImg_{}_{}_{}_{}", extent.x, extent.y, extent.z, EnumToString(format)));
 
-        RendererResult createResult = newEntry.image->Create();
+        RendererResult createResult = newEntry.texture->Create();
         if (!createResult)
         {
-            HYP_LOG(RenderingBackend, Error, "ScratchImageAllocator: Failed to create scratch image: {}",
+            HYP_LOG(RenderingBackend, Error, "ScratchImageAllocator: Failed to create scratch texture: {}",
                 createResult.HasError() ? createResult.GetError().GetMessage() : "Unknown error");
 
             usedImages.PopBack();
             return {};
         }
 
-        return newEntry.image;
+        return newEntry.texture;
     }
 
     void Shutdown()
     {
         for (auto& cached : cachedImages)
         {
-            cached.image.Reset();
+            cached.texture.Reset();
         }
 
         cachedImages.Clear();
 
         for (auto& used : usedImages)
         {
-            used.image.Reset();
+            used.texture.Reset();
         }
 
         usedImages.Clear();
@@ -169,7 +168,7 @@ void ScratchImageAllocator::OnFrameEnd()
     m_impl->OnFrameEnd();
 }
 
-GpuImageRef ScratchImageAllocator::AcquireScratchImage(TextureFormat format, Vec3u extent)
+Handle<Texture> ScratchImageAllocator::AcquireScratchImage(TextureFormat format, Vec3u extent)
 {
     return m_impl->AcquireScratchImage(format, extent);
 }

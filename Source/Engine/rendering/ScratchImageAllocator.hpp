@@ -28,7 +28,7 @@ public:
     void OnFrameStart();
     void OnFrameEnd();
 
-    GpuImageRef AcquireScratchImage(TextureFormat format, Vec3u extent);
+    Handle<Texture> AcquireScratchImage(TextureFormat format, Vec3u extent);
 
     void Shutdown();
 

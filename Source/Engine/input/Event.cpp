@@ -132,17 +132,20 @@ Event::~Event()
 
     CocoaEvent& cocoaEvent = m_platformEvent.cocoaEvent;
 
-    if (IsOnThread(g_mainThread))
+    if (cocoaEvent.nsEvent != nullptr)
     {
-        DestroyCocoaEvent(cocoaEvent);
-    }
-    else
-    {
-        g_mainThreadInstance->GetScheduler().Enqueue([cocoaEvent = std::move(cocoaEvent)]() mutable
-            {
-                DestroyCocoaEvent(cocoaEvent);
-            },
-            TaskEnqueueFlags::FIRE_AND_FORGET);
+        if (IsOnThread(g_mainThread))
+        {
+            DestroyCocoaEvent(cocoaEvent);
+        }
+        else
+        {
+            g_mainThreadInstance->GetScheduler().Enqueue([cocoaEvent = std::move(cocoaEvent)]() mutable
+                {
+                    DestroyCocoaEvent(cocoaEvent);
+                },
+                TaskEnqueueFlags::FIRE_AND_FORGET);
+        }
     }
 
     cocoaEvent = {};

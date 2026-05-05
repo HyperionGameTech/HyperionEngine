@@ -572,12 +572,11 @@ private:
 class GenerateMipmaps final : public CmdBase
 {
 public:
-    GenerateMipmaps(GpuImage* image);
+    GenerateMipmaps(Texture* inTexture);
 
     static void InvokeStatic(CmdBase* cmd, CommandBuffer* commandBuffer);
 
-private:
-    GpuImage* m_image;
+    Texture* inTexture;
 };
 
 class DispatchCompute final : public CmdBase
