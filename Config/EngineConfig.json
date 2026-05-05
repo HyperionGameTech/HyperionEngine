@@ -4,8 +4,8 @@
       "Enabled": false
     },
     "HBAO": {
-      "Radius": 1.5,
-      "Power": 2.5,
+      "Radius": 1.500000,
+      "Power": 2.500000,
       "UseTemporalBlending": false,
       "Enabled": true
     },
@@ -25,10 +25,10 @@
       "Quality": 2,
       "RoughnessScattering": false,
       "ConeTracing": true,
-      "RayStep": 1.5,
+      "RayStep": 1.500000,
       "NumIterations": 64,
-      "EyeFade": [0.99, 0.995],
-      "ScreenEdgeFade": [0.99, 0.995],
+      "EyeFade": [0.990000, 0.995000],
+      "ScreenEdgeFade": [0.990000, 0.995000],
       "ResolutionScale": 1
     },
     "EnvGrid": {
@@ -67,13 +67,13 @@
   },
   "Editor": {
     "Camera": {
-      "MovementSpeed": 10.0,
-      "LookSensitivity": 10.0
+      "MovementSpeed": 10,
+      "LookSensitivity": 10
     }
   },
   "System": {
     "SelectedGpu": {
-      "Index": 1
+      "Index": 0
     }
   },
   "Baker": {

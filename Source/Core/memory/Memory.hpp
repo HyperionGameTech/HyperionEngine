@@ -2,7 +2,7 @@
  *  @author: The Hyperion Contributors
  *  @date 2016-2026
  *  @licence MIT
-*/
+ */
 
 #pragma once
 
@@ -31,14 +31,14 @@ public:
     {
         return std::memcmp(a, b, count);
     }
-    
+
     template <class T, class U, typename = std::enable_if_t<BitwiseCopyable<T> && BitwiseCopyable<U>>>
     HYP_FORCE_INLINE static void* Copy(HYP_NOTNULL T* dest, const HYP_NOTNULL U* src, size_t count)
     {
         return std::memcpy(dest, src, count);
     }
-    
-template <class T, class U, typename = std::enable_if_t<BitwiseCopyable<T> && BitwiseCopyable<U>>>
+
+    template <class T, class U, typename = std::enable_if_t<BitwiseCopyable<T> && BitwiseCopyable<U>>>
     HYP_FORCE_INLINE static void* Move(HYP_NOTNULL T* dest, const U* src, size_t size)
     {
         return std::memmove(dest, src, size);
@@ -58,7 +58,7 @@ template <class T, class U, typename = std::enable_if_t<BitwiseCopyable<T> && Bi
 
     HYP_FORCE_INLINE static void Garble(HYP_NOTNULL void* dest, size_t length)
     {
-        if (!dest || length == 0)
+        if (length == 0)
         {
             return;
         }

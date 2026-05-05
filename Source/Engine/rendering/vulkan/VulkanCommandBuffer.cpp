@@ -2,7 +2,7 @@
  *  @author: The Hyperion Contributors
  *  @date 2016-2026
  *  @licence MIT
-*/
+ */
 
 #include <VulkanPch.hpp>
 
@@ -246,9 +246,9 @@ RendererResult VulkanCommandBuffer::Submit(
 
     VkTimelineSemaphoreSubmitInfo timelineInfo { VK_STRUCTURE_TYPE_TIMELINE_SEMAPHORE_SUBMIT_INFO };
     timelineInfo.waitSemaphoreValueCount = uint32(waitSemaphores.Size());
-    timelineInfo.pWaitSemaphoreValues = safeWaitValues;
+    timelineInfo.pWaitSemaphoreValues = reinterpret_cast<const uint64_t*>(safeWaitValues);
     timelineInfo.signalSemaphoreValueCount = uint32(signalSemaphores.Size());
-    timelineInfo.pSignalSemaphoreValues = safeSignalValues;
+    timelineInfo.pSignalSemaphoreValues = reinterpret_cast<const uint64_t*>(safeSignalValues);
 
     VkSubmitInfo submitInfo { VK_STRUCTURE_TYPE_SUBMIT_INFO };
 

@@ -17,6 +17,7 @@
 #include <scene/sky/DynamicSkySystem.hpp>
 
 #include <scene/components/ScriptComponent.hpp>
+#include <scene/components/MeshComponent.hpp>
 
 #include <scene/camera/FirstPersonCamera.hpp>
 
@@ -34,6 +35,8 @@
 
 #include <rendering/Mesh.hpp>
 #include <rendering/Texture.hpp>
+#include <rendering/MaterialDefinition.hpp>
+#include <rendering/MaterialInstance.hpp>
 
 #include <Core/config/Config.hpp>
 
@@ -75,7 +78,7 @@ DefaultGame::~DefaultGame()
 
 void DefaultGame::OnLaunch_Impl()
 {
-    //GetWorld()->GetWorldGrid()->AddLayer(MakeHandle<TerrainWorldGridLayer>());
+    // GetWorld()->GetWorldGrid()->AddLayer(MakeHandle<TerrainWorldGridLayer>());
 
 #if 0
     auto pkg = GetCurrentAssetRegistry()->GetPackageFromPath("DefaultProject39", /* createIfNotExist */ false, /* requireLoaded */ true);
@@ -177,39 +180,57 @@ void DefaultGame::OnLaunch_Impl()
     scriptDesc.language = ScriptLanguage::HypScript;
     Memory::StrCpy(scriptDesc.path.Data(), "FPSCounter.hyp", ArraySize(scriptDesc.path));
     Memory::StrCpy(scriptDesc.className.Data(), "MyClass", ArraySize(scriptDesc.className));
-
-    AssetBatch* batch = g_assetManager->CreateBatch();
-    batch->Add("testbed", "Models/SponzaGltf/Sponza.gltf");//"Models/Testbed/testbed.obj");
-    auto results = batch->ForceLoad();
-
-    LoadedAsset& testbedAsset = results["testbed"];
-
-    if (testbedAsset.IsValid())
     {
-        Handle<Node> testbedNode = testbedAsset.ExtractAs<Handle<Node>>();
-        testbedNode->Scale(3.0f);
+        Handle<Entity> cubeEnt = MakeHandle<Entity>();
+        Handle<Mesh> cubeMesh = MeshBuilder::Cube();
 
-        scene->GetRoot()->AddChild(testbedNode);
+        Handle<MaterialDefinition> skyboxMaterialDefinition = MakeHandle<MaterialDefinition>(NAME("EmptyMaterial"), MaterialAttributes {});
+        skyboxMaterialDefinition->SetIsTransient(true);
+        InitObject(skyboxMaterialDefinition);
+
+        GetCurrentAssetRegistry()->PutAssetUnique(skyboxMaterialDefinition);
+
+        Handle<MaterialInstance> skyboxMaterialInstance = MakeHandle<MaterialInstance>(NAME("EmptyMaterial"), skyboxMaterialDefinition);
+        skyboxMaterialInstance->SetIsTransient(true);
+        InitObject(skyboxMaterialInstance);
+
+        GetCurrentAssetRegistry()->PutAssetUnique(skyboxMaterialInstance);
+
+        scene->GetRoot()->AddChild(cubeEnt);
+
+        cubeEnt->AddComponent<MeshComponent>(MeshComponent { cubeMesh, skyboxMaterialInstance });
     }
-    else if (const AssetLoadError* error = testbedAsset.GetErrorIfFailed())
-    {
-        HYP_LOG(Game, Error, "Failed to load test asset: {}", error->GetMessage());
-    }
+
+    // AssetBatch* batch = g_assetManager->CreateBatch();
+    // batch->Add("testbed", "Models/SponzaGltf/Sponza.gltf");//"Models/Testbed/testbed.obj");
+    // auto results = batch->ForceLoad();
+
+    // LoadedAsset& testbedAsset = results["testbed"];
+
+    // if (testbedAsset.IsValid())
+    // {
+    //     Handle<Node> testbedNode = testbedAsset.ExtractAs<Handle<Node>>();
+    //     testbedNode->Scale(3.0f);
+
+    //     scene->GetRoot()->AddChild(testbedNode);
+    // }
+    // else if (const AssetLoadError* error = testbedAsset.GetErrorIfFailed())
+    // {
+    //     HYP_LOG(Game, Error, "Failed to load test asset: {}", error->GetMessage());
+    // }
 
     // sky
     GetWorld()->AddSystemT<DynamicSkySystem>();
 
-
     ScriptComponent& scriptComponent = sunEntity->AddComponent<ScriptComponent>(ScriptComponent {
-       TAssetReference<ScriptAsset>(scriptAsset)
-    });
+        TAssetReference<ScriptAsset>(scriptAsset) });
 
-//    Handle<FogVolume> fogVolume = MakeHandle<FogVolume>();
-//    fogVolume->SetLocalBounds(BoundingBox(Vec3f(-30.0f, -0.5f, -30.0f), Vec3f(30.0f, 40.0f, 30.0f)));
-//    scene->GetRoot()->AddChild(fogVolume);
-//#if HYP_EDITOR
-//    fogVolume->Rebake();
-//#endif
+    //    Handle<FogVolume> fogVolume = MakeHandle<FogVolume>();
+    //    fogVolume->SetLocalBounds(BoundingBox(Vec3f(-30.0f, -0.5f, -30.0f), Vec3f(30.0f, 40.0f, 30.0f)));
+    //    scene->GetRoot()->AddChild(fogVolume);
+    // #if HYP_EDITOR
+    //    fogVolume->Rebake();
+    // #endif
 
     if (UISubsystem* uiSubsystem = GetUISubsystem())
     {

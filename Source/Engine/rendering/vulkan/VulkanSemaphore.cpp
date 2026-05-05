@@ -86,7 +86,7 @@ void VulkanSemaphore::WaitForValue(uint64 value, uint64 timeoutNs)
     VkSemaphoreWaitInfo waitInfo { VK_STRUCTURE_TYPE_SEMAPHORE_WAIT_INFO };
     waitInfo.semaphoreCount = 1;
     waitInfo.pSemaphores = &m_handle;
-    waitInfo.pValues = &value;
+    waitInfo.pValues = reinterpret_cast<uint64_t*>(&value);
 
     VkResult result = vkWaitSemaphores(RI.GetDevice()->GetDevice(), &waitInfo, timeoutNs);
 
@@ -103,7 +103,7 @@ uint64 VulkanSemaphore::GetCounterValue() const
     Assert(IsTimeline() && IsCreated());
 
     uint64 value = 0;
-    VkResult result = vkGetSemaphoreCounterValue(RI.GetDevice()->GetDevice(), m_handle, &value);
+    VkResult result = vkGetSemaphoreCounterValue(RI.GetDevice()->GetDevice(), m_handle, reinterpret_cast<uint64_t*>(&value));
     Assert(result == VK_SUCCESS, "Failed to get timeline semaphore counter value, VkResult: {}", result);
 
     return value;
