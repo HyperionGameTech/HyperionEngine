@@ -100,7 +100,7 @@ HYP_API uint32 GetRingIndex();
 /*! \brief Get the global frame counter value that is incremented every frame.
  *  This is used to track the number of frames that have been rendered.
  *  \note This is thread-safe and can be called from any thread as the frame counter is atomic. */
-HYP_API uint32 GetFrameCounter();
+uint32 GetFrameCounter();
 
 /*! \brief Get the current render thread index (valid indices starting at 1) - usable from Render thread or renderer worker threads.
  *  For the main render thread, this index would be 0. For worker threads, it would be 1,2... so on and so forth.

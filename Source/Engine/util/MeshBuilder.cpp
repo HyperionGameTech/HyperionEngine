@@ -312,6 +312,7 @@ Handle<Mesh> MeshBuilder::NormalizedCubeSphere(uint32 numDivisions){
     vertexArrayView.layoutDesc = { VT_Simple };
 
     mesh->SetMeshData(meshDesc, vertexArrayView, indices.ToByteView());
+    mesh->CalculateNormals();
 
     return mesh;
 }

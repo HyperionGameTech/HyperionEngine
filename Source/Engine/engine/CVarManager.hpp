@@ -58,7 +58,6 @@ public:
 
 protected:
     explicit CVarBase(const UTF8StringView& path, const UTF8StringView& configPath = {});
-    ~CVarBase() = default;
 
 public:
     Name name;
@@ -67,11 +66,13 @@ public:
 
     CVarBase(const CVarBase& other) = delete;
     CVarBase& operator=(const CVarBase& other) = delete;
+    
+    virtual ~CVarBase() = default;
 
     virtual bool SetFromConfig(const ConfigValue& cfgValue) = 0;
     virtual bool SetFromBoxed(const BoxedValue& boxed) = 0;
     virtual bool SetFromString(const String& str) = 0;
-    
+
 protected:
     virtual void WriteToSnapshot(CVarSnapshotValue& snapshotValue) const = 0;
 };
@@ -90,6 +91,17 @@ public:
 
     void Set(T value);
     T Get() const;
+
+    explicit operator T() const
+    {
+        return Get();
+    }
+
+    CVar& operator=(const T& value)
+    {
+        Set(value);
+        return *this;
+    }
 
     bool SetFromConfig(const ConfigValue& cfgValue) override;
     bool SetFromBoxed(const BoxedValue& boxed) override;
@@ -160,7 +172,7 @@ inline bool CVar<T>::SetFromBoxed(const BoxedValue& boxed)
     {
         return false;
     }
-    
+
     m_value = boxed.Get<T>();
 
     return true;
@@ -345,7 +357,6 @@ private:
     HYP_NODISCARD int FindVarIndex(StringHash nameHash) const;
 
     CVarSnapshot m_snapshots[RingBufferDepth];
-    AtomicVar<uint32> m_snapshotIndex;
 
     Mutex m_mutex;
 };

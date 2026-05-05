@@ -32,7 +32,7 @@ namespace Hyperion {
 
 static constexpr uint32 MinSafeDeleteCycles = 10; // minimum number of cycles to wait before deleting an object
 
-HYP_API extern uint32 GetFrameCounter();
+extern uint32 GetFrameCounter();
 
 template <class T>
 class DeletionQueueElem;
@@ -293,10 +293,10 @@ public:
 
     DeletionQueue(const DeletionQueue&) = delete;
     DeletionQueue& operator=(const DeletionQueue&) = delete;
-    
+
     DeletionQueue(DeletionQueue&&) = delete;
     DeletionQueue& operator=(DeletionQueue&&) = delete;
-    
+
     ~DeletionQueue();
 
     void Shutdown();
@@ -425,7 +425,7 @@ static inline void EnqueueDeletion(FunctionWrapper<TFunction>&& func)
             delete pPayload;
         },
         &pGuard);
-    
+
     *ppPayload = new FunctionWrapper<TFunction>(std::move(func));
 
     if (pGuard) // if locking was needed then we can delete the guard now to unlock.
