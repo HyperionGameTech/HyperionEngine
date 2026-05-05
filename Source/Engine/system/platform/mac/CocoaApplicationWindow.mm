@@ -123,23 +123,19 @@ KeyCode MapCocoaKeyCodeToKeyCode(unsigned short keyCode);
 {
     [super setFrameSize:newSize];
 
-    CGFloat scale = self.window ? self.window.backingScaleFactor : [NSScreen mainScreen].backingScaleFactor;
+    CAMetalLayer* metalLayer = (CAMetalLayer*)self.layer;
+    CGFloat scale = metalLayer ? metalLayer.contentsScale : 1.0;
+
     CGSize drawableSize = CGSizeMake(newSize.width * scale, newSize.height * scale);
 
-    // Update metal layer drawable size
-    CAMetalLayer* metalLayer = (CAMetalLayer*)self.layer;
     if (metalLayer)
     {
-        metalLayer.contentsScale = scale;
         metalLayer.drawableSize = drawableSize;
     }
 
     if (_hyperionWindow)
     {
-        const int width = int(drawableSize.width);
-        const int height = int(drawableSize.height);
-
-        _hyperionWindow->HandleResize(Vec2i(int(newSize.width), int(newSize.height)));
+        _hyperionWindow->HandleResize(Vec2i(int(drawableSize.width), int(drawableSize.height)));
     }
 }
 
@@ -152,11 +148,9 @@ KeyCode MapCocoaKeyCodeToKeyCode(unsigned short keyCode);
         CAMetalLayer* metalLayer = (CAMetalLayer*)self.layer;
         if (metalLayer)
         {
-            CGFloat scale = self.window.backingScaleFactor;
-            metalLayer.contentsScale = scale;
             metalLayer.drawableSize = CGSizeMake(
-                self.bounds.size.width * scale,
-                self.bounds.size.height * scale);
+                self.bounds.size.width * metalLayer.contentsScale,
+                self.bounds.size.height * metalLayer.contentsScale);
         }
     }
 }
@@ -213,11 +207,9 @@ HANDLE_COCOA_EVENT(keyUp)
     {
         NSWindow* nsWindow = [notification object];
         NSRect frame = [nsWindow.contentView frame];
+        CGFloat scale = _window->GetContentScaleFactor();
 
-        int width = (int)frame.size.width;
-        int height = (int)frame.size.height;
-
-        _window->HandleResize(Vec2i(width, height));
+        _window->HandleResize(Vec2i(int(frame.size.width * scale), int(frame.size.height * scale)));
     }
 }
 
@@ -460,6 +452,13 @@ void CocoaApplicationWindow::Initialize(WindowOptions windowOptions)
         );
 
         m_metalLayer = [metalLayer retain];
+
+        // Trigger resize with the correct drawable size based on contentsScale
+        {
+            NSRect viewFrame = [((NSView*)m_nsView) bounds];
+            HandleResize(Vec2i(int(viewFrame.size.width * metalLayer.contentsScale),
+                               int(viewFrame.size.height * metalLayer.contentsScale)));
+        }
     }
 
     m_hwnd = window;
@@ -510,12 +509,14 @@ bool CocoaApplicationWindow::HandleNSEvent(NSEvent* nsEvent, Event& event)
     {
         event = Event(EventType::MOUSEMOTION, this, platformEvent);
 
+        const CGFloat scale = m_metalLayer ? ((CAMetalLayer*)m_metalLayer).contentsScale : 1.0;
+
         if (m_mouseLocked)
         {
             CGFloat deltaX = [nsEvent deltaX];
             CGFloat deltaY = [nsEvent deltaY];
 
-            Vec2i newPos = GetMousePosition() + Vec2i((int)deltaX, (int)deltaY);
+            Vec2i newPos = GetMousePosition() + Vec2i(int(deltaX * scale), int(deltaY * scale));
 
             event.GetEventData().Set(newPos);
         }
@@ -541,7 +542,7 @@ bool CocoaApplicationWindow::HandleNSEvent(NSEvent* nsEvent, Event& event)
                 location.y = contentFrame.size.height - location.y;
             }
 
-            event.GetEventData().Set(Vec2i((int)location.x, (int)location.y));
+            event.GetEventData().Set(Vec2i(int(location.x * scale), int(location.y * scale)));
         }
 
         return true;
@@ -609,6 +610,8 @@ void CocoaApplicationWindow::SetMousePosition(Vec2i position)
 {
     if (!m_mouseLocked)
     {
+        const CGFloat scale = m_metalLayer ? ((CAMetalLayer*)m_metalLayer).contentsScale : 1.0;
+
         if (m_isEmbeddedView && m_nsView)
         {
             HyperionMetalView* view = (HyperionMetalView*)m_nsView;
@@ -616,7 +619,7 @@ void CocoaApplicationWindow::SetMousePosition(Vec2i position)
             if (window)
             {
                 NSRect viewFrame = [view frame];
-                NSPoint viewPoint = NSMakePoint(position.x, viewFrame.size.height - position.y);
+                NSPoint viewPoint = NSMakePoint(position.x / scale, viewFrame.size.height - position.y / scale);
                 NSPoint windowPoint = [view convertPoint:viewPoint toView:nil];
                 NSPoint screenPoint = [window convertPointToScreen:windowPoint];
 
@@ -632,8 +635,9 @@ void CocoaApplicationWindow::SetMousePosition(Vec2i position)
             NSRect contentFrame = [window.contentView frame];
 
             // Convert from content coordinates to screen coordinates
-            CGFloat screenY = windowFrame.origin.y + (contentFrame.size.height - position.y);
-            CGFloat screenX = windowFrame.origin.x + position.x;
+            // (position is in physical drawable coordinates; convert to logical points)
+            CGFloat screenY = windowFrame.origin.y + (contentFrame.size.height - position.y / scale);
+            CGFloat screenX = windowFrame.origin.x + position.x / scale;
 
             CGPoint point = CGPointMake(screenX, screenY);
             CGWarpMouseCursorPosition(point);
@@ -648,6 +652,8 @@ Vec2i CocoaApplicationWindow::GetMousePosition() const
 {
     if (!m_mouseLocked)
     {
+        const CGFloat scale = m_metalLayer ? ((CAMetalLayer*)m_metalLayer).contentsScale : 1.0;
+
         if (m_isEmbeddedView && m_nsView)
         {
             HyperionMetalView* view = (HyperionMetalView*)m_nsView;
@@ -659,7 +665,7 @@ Vec2i CocoaApplicationWindow::GetMousePosition() const
                 NSPoint viewPoint = [view convertPoint:windowPoint fromView:nil];
 
                 NSRect viewFrame = [view frame];
-                m_mousePosition = Vec2i((int)viewPoint.x, (int)(viewFrame.size.height - viewPoint.y));
+                m_mousePosition = Vec2i(int(viewPoint.x * scale), int((viewFrame.size.height - viewPoint.y) * scale));
             }
         }
         else
@@ -673,7 +679,7 @@ Vec2i CocoaApplicationWindow::GetMousePosition() const
             CGFloat localX = mouseLocation.x - windowFrame.origin.x;
             CGFloat localY = contentFrame.size.height - (mouseLocation.y - windowFrame.origin.y);
 
-            m_mousePosition = Vec2i((int)localX, (int)localY);
+            m_mousePosition = Vec2i(int(localX * scale), int(localY * scale));
         }
     }
 
@@ -686,13 +692,15 @@ Vec2i CocoaApplicationWindow::GetDimensions() const
     {
         HyperionMetalView* view = (HyperionMetalView*)m_nsView;
         NSRect frame = [view frame];
+        CGFloat scale = m_metalLayer ? ((CAMetalLayer*)m_metalLayer).contentsScale : 1.0;
 
-        return Vec2i((int)frame.size.width, (int)frame.size.height);
+        return Vec2i(int(frame.size.width * scale), int(frame.size.height * scale));
     }
 
     NSWindow* window = (NSWindow*)m_hwnd;
     NSRect frame = [window.contentView frame];
-    return Vec2i((int)frame.size.width, (int)frame.size.height);
+    CGFloat scale = m_metalLayer ? ((CAMetalLayer*)m_metalLayer).contentsScale : 1.0;
+    return Vec2i(int(frame.size.width * scale), int(frame.size.height * scale));
 }
 
 void CocoaApplicationWindow::SetIsMouseLocked(bool locked)
@@ -735,15 +743,32 @@ bool CocoaApplicationWindow::HasMouseFocus() const
 
 bool CocoaApplicationWindow::IsHighDPI() const
 {
+    return GetContentScaleFactor() > 1.0f;
+}
+
+float CocoaApplicationWindow::GetContentScaleFactor() const
+{
+    if (m_metalLayer)
+    {
+        return float(((CAMetalLayer*)m_metalLayer).contentsScale);
+    }
+
     if (m_isEmbeddedView && m_nsView)
     {
         HyperionMetalView* view = (HyperionMetalView*)m_nsView;
         NSWindow* window = [view window];
-        return window ? [window backingScaleFactor] > 1.0 : true; // Assume high DPI if no window
+        
+        return window ? float([window backingScaleFactor]) : 1.0f;
     }
 
     NSWindow* window = (NSWindow*)m_hwnd;
-    return [window backingScaleFactor] > 1.0;
+    return float([window backingScaleFactor]);
+}
+
+float CocoaApplicationWindow::GetRenderTargetScale() const
+{
+    // When rendering using Retina we scale it down a bit (70%) to combat the performance overhead of rendering at extremely high resolutions.
+    return IsHighDPI() ? 0.7f : 1.0f;
 }
 
 } // namespace Hyperion

@@ -198,11 +198,15 @@ void UIStage::SetSurfaceSize(Vec2i surfaceSize)
     HYP_SCOPE;
     AssertOnOwnerThread();
 
-    m_surfaceSize = surfaceSize;
+    m_contentScaleFactor = (g_appContext != nullptr && g_appContext->GetMainWindow() != nullptr)
+        ? g_appContext->GetMainWindow()->GetContentScaleFactor()
+        : 1.0f;
+
+    m_surfaceSize = Vec2i(Vec2f(surfaceSize) / m_contentScaleFactor);
 
     if (m_camera.IsValid())
     {
-        m_camera->SetDimensions(surfaceSize);
+        m_camera->SetDimensions(m_surfaceSize);
 
         UpdateCameraControllerStack();
     }
@@ -347,9 +351,10 @@ void UIStage::Init()
             return;
         }
 
-        const Vec2i size = window->GetSize();
+        m_contentScaleFactor = window->GetContentScaleFactor();
+        const Vec2i physicalSize = window->GetSize();
 
-        m_surfaceSize = Vec2i(size);
+        m_surfaceSize = Vec2i(Vec2f(physicalSize) / m_contentScaleFactor);
 
         if (m_camera.IsValid())
         {
@@ -610,13 +615,13 @@ UIEventHandlerResult UIStage::OnInputEvent(const Event& event)
         return {};
     }
 
-    const Vec2i previousMousePosition = inputManager->GetPreviousMousePosition();
+    const Vec2i previousMousePosition = ToLogicalCoords(inputManager->GetPreviousMousePosition());
 
     switch (event.GetType())
     {
     case EventType::WINDOW_FOCUS_LOST:
     {
-        const Vec2i mousePosition = inputManager->GetMousePosition();
+        const Vec2i mousePosition = ToLogicalCoords(inputManager->GetMousePosition());
 
         // when window focus gets lost we want to unset hover for anything marked as being hovered
         for (auto it = m_hoveredUiObjects.Begin(); it != m_hoveredUiObjects.End(); ++it)
@@ -696,9 +701,9 @@ UIEventHandlerResult UIStage::OnInputEvent(const Event& event)
 
         const EnumFlags<MouseButtonState> mouseButtons = inputManager->GetButtonStates();
 
-        const Vec2i mousePosition = event.IsAbsoluteMousePosition()
+        const Vec2i mousePosition = ToLogicalCoords(event.IsAbsoluteMousePosition()
             ? event.GetMousePosition()
-            : Vec2i(event.GetMousePositionDeltas() + Vec2f(previousMousePosition));
+            : Vec2i(event.GetMousePositionDeltas() + Vec2f(previousMousePosition)));
 
         const Vec2f mouseScreen = Vec2f(mousePosition) / Vec2f(m_surfaceSize);
         const Vec2f invSurfaceSize = Vec2f(1.0f) / Vec2f(m_surfaceSize);
@@ -901,7 +906,7 @@ UIEventHandlerResult UIStage::OnInputEvent(const Event& event)
     }
     case EventType::MOUSEBUTTON_DOWN:
     {
-        const Vec2i mousePosition = inputManager->GetMousePosition();
+        const Vec2i mousePosition = ToLogicalCoords(inputManager->GetMousePosition());
         const Vec2f mouseScreen = Vec2f(mousePosition) / Vec2f(m_surfaceSize);
         const Vec2f invSurfaceSize = Vec2f(1.0f) / Vec2f(m_surfaceSize);
 
@@ -977,7 +982,7 @@ UIEventHandlerResult UIStage::OnInputEvent(const Event& event)
     }
     case EventType::MOUSEBUTTON_UP:
     {
-        const Vec2i mousePosition = inputManager->GetMousePosition();
+        const Vec2i mousePosition = ToLogicalCoords(inputManager->GetMousePosition());
         const Vec2f mouseScreen = Vec2f(mousePosition) / Vec2f(m_surfaceSize);
         const Vec2f invSurfaceSize = Vec2f(1.0f) / Vec2f(m_surfaceSize);
 
@@ -1098,7 +1103,7 @@ UIEventHandlerResult UIStage::OnInputEvent(const Event& event)
     }
     case EventType::MOUSESCROLL:
     {
-        const Vec2i mousePosition = inputManager->GetMousePosition();
+        const Vec2i mousePosition = ToLogicalCoords(inputManager->GetMousePosition());
         const Vec2f mouseScreen = Vec2f(mousePosition) / Vec2f(m_surfaceSize);
 
         Vec2i wheel = event.GetMouseWheel();

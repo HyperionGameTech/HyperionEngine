@@ -103,6 +103,7 @@ const CommandLineArgumentDefinitions& DefaultCommandLineArgumentDefinitions()
             definitions.Add("ResX", {}, {}, CommandLineArgumentFlags::NONE, CommandLineArgumentType::INTEGER);
             definitions.Add("ResY", {}, {}, CommandLineArgumentFlags::NONE, CommandLineArgumentType::INTEGER);
             definitions.Add("Headless", {}, {}, CommandLineArgumentFlags::NONE, CommandLineArgumentType::BOOLEAN, false);
+            definitions.Add("HighDPI", {}, {}, CommandLineArgumentFlags::NONE, CommandLineArgumentType::BOOLEAN, false);
             definitions.Add("Detached", {}, {}, CommandLineArgumentFlags::NONE, CommandLineArgumentType::BOOLEAN, false);
             definitions.Add("Editor", {}, {}, CommandLineArgumentFlags::NONE, CommandLineArgumentType::BOOLEAN, false);
             definitions.Add("Commandlet", "c", "Execute the commandlet with the given name immediately following -Commandlet. The program will end immediately after running the commandlet and return 0 upon success or otherwise on failure", CommandLineArgumentFlags::NONE, CommandLineArgumentType::STRING);
@@ -161,11 +162,13 @@ bool Initialize(int argc, char** argv)
     s_commandLineArguments = CommandLineArguments::Merge(*argParse.GetDefinitions(), s_commandLineArguments, *parseResult);
 
     GlobalConfig config { "GlobalConfig" };
+    config.Load();
     config.LogErrors(stderr);
 
     if (JSON::Value configArgs = config.Get("App.Args"))
     {
         JSON::JString configArgsString = configArgs.ToString();
+
         Array<String> configArgsStringSplit = Map(
             configArgsString.Split(' '),
             [](auto&& str)

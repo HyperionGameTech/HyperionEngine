@@ -421,11 +421,16 @@ extern "C"
 
         Vec2i resolution = { 1280, 720 };
 
-        EnumFlags<WindowFlags> windowFlags = WindowFlags::HIGH_DPI | WindowFlags::EVENTS_POLLING;
+        EnumFlags<WindowFlags> windowFlags = WindowFlags::EVENTS_POLLING;
 
         if (cliArgs["Headless"].ToBool() || isCommandlet)
         {
             windowFlags |= WindowFlags::HEADLESS;
+        }
+        
+        if (cliArgs["HighDPI"].ToBool())
+        {
+            windowFlags |= WindowFlags::HIGH_DPI;
         }
 
         if (cliArgs["ResX"].IsNumber())

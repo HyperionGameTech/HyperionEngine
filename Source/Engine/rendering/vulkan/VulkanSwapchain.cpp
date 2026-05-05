@@ -40,6 +40,7 @@ CVar<bool> VulkanSwapchainUseFIFO("Rendering.Vulkan.FIFO", true);
 
 static constexpr bool UseSRGBFormat = true;
 static constexpr bool UseHDRFormat = false;
+
 static constexpr VkImageUsageFlags ImageUsageFlags = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
 
 static RendererResult AcquireNextImage(

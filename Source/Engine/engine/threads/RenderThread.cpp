@@ -129,7 +129,9 @@ void RenderThread::Update()
     // Check if any swapchains need to be recreated
     Array<Swapchain*, RenderTempAllocator> swapchains;
 
-    if (ApplicationWindow* mainWindow = g_appContext->GetMainWindow())
+    ApplicationWindow* mainWindow = g_appContext->GetMainWindow();
+    
+    if (mainWindow != nullptr)
     {
         Swapchain* swapchain = mainWindow->GetSwapchain();
 
@@ -160,7 +162,13 @@ void RenderThread::Update()
         if (swapchain != nullptr)
         {
             renderSetup.swapchain = swapchain;
-            renderSetup.viewport = Viewport { swapchain->GetExtent() };
+
+            const Vec2u swapchainExtent = swapchain->GetExtent();
+            
+            const float renderTargetScale = mainWindow->GetRenderTargetScale();
+            const Vec2u renderExtent = Vec2u(Vec2f(swapchainExtent) * renderTargetScale);
+
+            renderSetup.viewport = Viewport { renderExtent };
         }
 
         for (World* world : worldsToRender)

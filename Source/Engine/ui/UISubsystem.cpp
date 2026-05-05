@@ -179,7 +179,7 @@ void UISubsystem::Init()
         CreateFramebuffer();
     };
 
-    Vec2u windowSize = Vec2u(800, 600);
+    Vec2u windowSize { 1280, 720 };
 
     if (g_appContext->GetMainWindow() != nullptr)
     {
@@ -213,10 +213,12 @@ void UISubsystem::Init()
         },
         g_simThread);
 
-    const Vec2u windowSize2 = windowSize * 2;
+    m_uiStage->SetSurfaceSize(Vec2i(windowSize));
+
+    const Vec2u framebufferSize = windowSize;
 
     FramebufferDesc framebufferDesc;
-    framebufferDesc.extent = windowSize2;
+    framebufferDesc.extent = framebufferSize;
     framebufferDesc.AddAttachment({ TextureType::Texture2D, TextureFormat::RGBA8 });
 
     ViewDesc viewDesc {};

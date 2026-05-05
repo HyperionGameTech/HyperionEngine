@@ -266,7 +266,7 @@ void Camera::Init()
     HYP_SCOPE;
 
     Entity::Init();
-    
+
     const Vec3f translation = GetWorldTranslation();
 
     m_streamingVolume = MakeHandle<CameraStreamingVolume>();
@@ -284,14 +284,21 @@ void Camera::Init()
                 return;
             }
 
-            auto MatchWindowSize = [this](Vec2i windowSize)
+            auto MatchWindowSize = [this, windowWeak = MakeWeakRef(window)](Vec2i windowSize)
             {
-                windowSize = MathUtil::Max(Vec2i(MathUtil::Round(Vec2f(windowSize) * m_matchWindowSizeRatio)), Vec2i::One());
+                Handle<ApplicationWindow> windowStrong = windowWeak.Lock();
 
-                SetDimensions(windowSize);
+                const float renderTargetScale = windowStrong.IsValid()
+                    ? windowStrong->GetRenderTargetScale()
+                    : 1.0f;
+
+                Vec2i renderSize = Vec2i(Vec2f(windowSize) * renderTargetScale);
+                renderSize = MathUtil::Max(Vec2i(MathUtil::Round(Vec2f(renderSize) * m_matchWindowSizeRatio)), Vec2i::One());
+
+                SetDimensions(renderSize);
             };
 
-            MatchWindowSize(window->GetDimensions());
+            MatchWindowSize(window->GetSize());
 
             m_onWindowResizedHandle = window->OnWindowSizeChanged.BindThreaded(MatchWindowSize, g_simThread);
         };
@@ -662,7 +669,7 @@ void Camera::Update(float delta)
     {
         UpdateMatrices();
     }
-    
+
     if (m_streamingVolume.IsValid())
     {
         const Vec3f translation = GetWorldTranslation();
@@ -788,15 +795,15 @@ void Camera::UpdateRenderProxy(RenderProxyCamera* proxy)
 
     bufferData.viewProjMat = m_viewProjMat;
     bufferData.prevViewProjMat = m_prevViewProjMat;
-    
+
     bufferData.dimensions = Vec4u { uint32(MathUtil::Abs(m_width)), uint32(MathUtil::Abs(m_height)), 0, 1 };
-    
+
     bufferData.cameraPosition = Vec4f(GetWorldTranslation(), 1.0f);
     bufferData.cameraDirection = Vec4f(m_direction, 1.0f);
-    
+
     bufferData.cameraNear = m_near;
     bufferData.cameraFar = m_far;
-    
+
     bufferData.cameraFov = m_fov;
 }
 

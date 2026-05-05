@@ -204,6 +204,12 @@ private:
     bool Remove(const Entity* entity);
 
     Vec2i m_surfaceSize;
+    float m_contentScaleFactor = 1.0f;
+
+    Vec2i ToLogicalCoords(Vec2i physicalCoords) const
+    {
+        return Vec2i(Vec2f(physicalCoords) / m_contentScaleFactor);
+    }
 
     World* m_world;
 

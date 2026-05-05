@@ -155,6 +155,25 @@ public:
         return false;
     }
 
+    HYP_METHOD()
+    virtual float GetContentScaleFactor() const
+    {
+        return 1.0f;
+    }
+
+    HYP_METHOD()
+    virtual float GetRenderTargetScale() const
+    {
+        return IsHighDPI() ? 0.7f : 1.0f;
+    }
+
+    HYP_METHOD()
+    Vec2i GetRenderSize() const
+    {
+        TSharedLock lock(m_mtx);
+        return Vec2i(Vec2f(m_size) * GetRenderTargetScale());
+    }
+
     virtual void CreateSwapchain();
 
     HYP_METHOD()
@@ -410,6 +429,12 @@ public:
 
     HYP_METHOD()
     bool IsHighDPI() const override;
+
+    HYP_METHOD()
+    float GetContentScaleFactor() const override;
+
+    HYP_METHOD()
+    float GetRenderTargetScale() const override;
 
     HYP_METHOD()
     HYP_FORCE_INLINE void* GetNSWindow() const
