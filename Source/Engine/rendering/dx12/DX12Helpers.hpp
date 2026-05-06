@@ -18,6 +18,7 @@ enum Topology : uint8;
 enum BlendModeFactor : uint8;
 enum StencilOp : uint8;
 enum StencilCompareOp : uint8;
+enum DepthCompareOp : uint8;
 enum GpuElemType : uint8;
 
 enum class TextureFormat : uint8;

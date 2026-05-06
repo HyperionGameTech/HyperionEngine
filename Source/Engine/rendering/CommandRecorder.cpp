@@ -137,6 +137,7 @@ void DrawIndexedIndirect::InvokeStatic(CmdBase* cmd, CommandBuffer* commandBuffe
 
 #ifndef HYP_VULKAN
 
+#if 0
 /// Generic blit pass for D3D since it doesn't have something analogous to vkCmdBlitImage().
 static void BlitImages(
     GpuImage* srcImage,
@@ -344,6 +345,7 @@ static void BlitImages(
 
     EnqueueDeletion(std::move(tempImage));
 }
+#endif
 #endif
 
 void Blit::InvokeStatic(CmdBase* cmd, CommandBuffer* commandBuffer)

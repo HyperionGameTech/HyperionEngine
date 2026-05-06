@@ -202,42 +202,6 @@ protected:
     SharedMutex m_mtx;
 };
 
-HYP_CLASS()
-class HYP_API SDLApplicationWindow final : public ApplicationWindow
-{
-    HYP_OBJECT_BODY(SDLApplicationWindow);
-
-public:
-    SDLApplicationWindow(ANSIString title, Vec2i size);
-    ~SDLApplicationWindow() override;
-
-    HYP_METHOD()
-    void SetMousePosition(Vec2i position) override;
-
-    HYP_METHOD()
-    Vec2i GetMousePosition() const override;
-
-    HYP_METHOD()
-    Vec2i GetDimensions() const override;
-
-    HYP_METHOD()
-    void SetIsMouseLocked(bool locked) override;
-
-    HYP_METHOD()
-    bool IsMouseLocked() const override;
-
-    HYP_METHOD()
-    bool HasMouseFocus() const override;
-
-    HYP_METHOD()
-    bool IsHighDPI() const override;
-
-    HYP_METHOD()
-    void Close() override;
-
-    void Initialize(WindowOptions windowOptions);
-};
-
 HYP_CLASS(Abstract)
 class HYP_API AppContextBase : public ObjectBase
 {
@@ -296,28 +260,9 @@ protected:
     Handle<Game> m_game;
 };
 
-HYP_CLASS()
-class HYP_API SDLAppContext final : public AppContextBase
-{
-    HYP_OBJECT_BODY(SDLAppContext);
+#ifdef HYP_WINDOWS
 
-public:
-    SDLAppContext(ANSIString name, const CommandLineArguments& arguments);
-    ~SDLAppContext() override;
-
-    HYP_METHOD()
-    Handle<ApplicationWindow> CreateSystemWindow(WindowOptions windowOptions) override;
-
-    int PollEvents(Event& event) override;
-
-#if HYP_VULKAN
-    static VkSurfaceKHR CreateVulkanSurface(
-        SDLApplicationWindow* window,
-        IDummyVulkanSurfaceContext** ppOutDummySurfaceContext);
-#endif
-};
-
-HYP_CLASS()
+HYP_CLASS(Condition = "HYP_WINDOWS")
 class HYP_API Win32ApplicationWindow final : public ApplicationWindow
 {
     HYP_OBJECT_BODY(Win32ApplicationWindow);
@@ -354,7 +299,6 @@ public:
     HYP_METHOD()
     void Close() override;
 
-#ifdef HYP_WINDOWS
     HYP_FORCE_INLINE HINSTANCE GetHINSTANCE() const
     {
         return m_hinst;
@@ -368,13 +312,11 @@ private:
 
     HINSTANCE m_hinst = nullptr;
     bool m_useWndProc = false;
-#endif
-
     bool m_mouseLocked = false;
     bool m_isOpen = false;
 };
 
-HYP_CLASS()
+HYP_CLASS(Condition = "HYP_WINDOWS")
 class HYP_API Win32AppContext final : public AppContextBase
 {
     HYP_OBJECT_BODY(Win32AppContext);
@@ -395,7 +337,11 @@ public:
 #endif
 };
 
-HYP_CLASS()
+#endif // HYP_WINDOWS
+
+#ifdef HYP_MACOS
+
+HYP_CLASS(Condition = "HYP_MACOS")
 class HYP_API CocoaApplicationWindow final : public ApplicationWindow
 {
     HYP_OBJECT_BODY(CocoaApplicationWindow);
@@ -451,7 +397,6 @@ public:
     HYP_METHOD()
     void Close() override;
 
-#ifdef HYP_MACOS
     HYP_FORCE_INLINE bool IsEmbeddedView() const
     {
         return m_isEmbeddedView;
@@ -475,13 +420,12 @@ private:
     bool m_isEmbeddedView = false;
     mutable Vec2i m_mousePosition = Vec2i::Zero();
     bool m_useCocoaEvents = false;
-#endif
 
     void* m_nsView = nullptr;
     bool m_mouseLocked = false;
 };
 
-HYP_CLASS()
+HYP_CLASS(Condition = "HYP_MACOS")
 class HYP_API CocoaAppContext final : public AppContextBase
 {
     HYP_OBJECT_BODY(CocoaAppContext);
@@ -502,7 +446,11 @@ public:
 #endif
 };
 
-HYP_CLASS()
+#endif // HYP_MACOS
+
+#ifdef HYP_ANDROID
+
+HYP_CLASS(Condition = "HYP_ANDROID")
 class HYP_API AndroidApplicationWindow final : public ApplicationWindow
 {
     HYP_OBJECT_BODY(AndroidApplicationWindow);
@@ -549,12 +497,12 @@ public:
 private:
     void* m_nativeWindow = nullptr;
     bool m_mouseLocked = false;
-    
+
     Vec2f m_touchPosition;
     Vec2f m_prevTouchPosition;
 };
 
-HYP_CLASS()
+HYP_CLASS(Condition = "HYP_ANDROID")
 class HYP_API AndroidAppContext final : public AppContextBase
 {
     HYP_OBJECT_BODY(AndroidAppContext);
@@ -580,6 +528,8 @@ public:
 private:
     class AndroidLooperThread* m_looperThread;
 };
+
+#endif // HYP_ANDROID
 
 #ifdef HYP_WINDOWS
 HYP_API void Win32_CleanupWindowClasses();
