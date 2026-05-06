@@ -297,7 +297,6 @@ size_t FileByteReader::Read(void* ptr, size_t size)
     return readBytes;
 }
 
-HYP_DISABLE_OPTIMIZATION;
 ByteBuffer FileByteReader::Read(size_t size)
 {
     const size_t remaining = m_maxPos > m_pos ? (m_maxPos - m_pos) : 0;

@@ -851,7 +851,6 @@ void UIObject::SetScrollOffset(Vec2f scrollOffset, bool smooth)
     OnScrollOffsetUpdate(m_scrollOffset.GetValue());
 }
 
-HYP_DISABLE_OPTIMIZATION;
 void UIObject::ScrollToChild(UIObject* child)
 {
     HYP_SCOPE;
@@ -912,7 +911,6 @@ void UIObject::ScrollToChild(UIObject* child)
         SetScrollOffset(Vec2f(newScrollOffset), /* smooth */ false);
     }
 }
-HYP_ENABLE_OPTIMIZATION;
 
 void UIObject::SetFocusState(EnumFlags<UIObjectFocusState> focusState)
 {

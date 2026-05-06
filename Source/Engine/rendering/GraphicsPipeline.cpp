@@ -78,8 +78,6 @@ void GraphicsPipelineBase::SetFramebufferDesc(const FramebufferDesc& framebuffer
     m_framebufferDesc = framebufferDesc;
 }
 
-HYP_DISABLE_OPTIMIZATION;
-
 bool GraphicsPipelineBase::MatchesSignature(
     const RenderableAttributeSet& attributes,
     const FramebufferDesc& framebufferDesc) const

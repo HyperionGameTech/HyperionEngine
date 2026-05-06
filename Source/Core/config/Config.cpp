@@ -35,8 +35,6 @@ static const ConfigValue s_invalidConfigValue {};
 
 #pragma region ConfigBase
 
-HYP_DISABLE_OPTIMIZATION;
-
 ConfigBase::ConfigBase()
     : m_rootObject(JSON::Object())
 {
