@@ -227,7 +227,7 @@ ShadowMap* ShadowMapAllocator::AllocateShadowMap(ShadowMapType shadowMapType, Sh
     return nullptr;
 }
 
-bool ShadowMapAllocator::FreeShadowMap(ShadowMap* shadowMap)
+bool ShadowMapAllocator::FreeShadowMap(ShadowMap* shadowMap, bool clearTextureRegion)
 {
     if (!shadowMap)
     {
@@ -260,37 +260,40 @@ bool ShadowMapAllocator::FreeShadowMap(ShadowMap* shadowMap)
             }
             else
             {
-                Frame* frame = RI.GetCurrentFrame();
-                if (frame != nullptr)
+                if (clearTextureRegion)
                 {
-                    ImageSubResource srcSubResource {};
-                    srcSubResource.baseArrayLayer = 0;
-                    srcSubResource.numLayers = 1;
-                    srcSubResource.baseMipLevel = 0;
-                    srcSubResource.numLevels = 1;
+                    Frame* frame = RI.GetCurrentFrame();
+                    if (frame != nullptr)
+                    {
+                        ImageSubResource srcSubResource {};
+                        srcSubResource.baseArrayLayer = 0;
+                        srcSubResource.numLayers = 1;
+                        srcSubResource.baseMipLevel = 0;
+                        srcSubResource.numLevels = 1;
 
-                    ImageSubResource dstSubResource {};
-                    dstSubResource.baseArrayLayer = atlasElement.layerIndex;
-                    dstSubResource.numLayers = 1;
-                    dstSubResource.baseMipLevel = 0;
-                    dstSubResource.numLevels = 1;
+                        ImageSubResource dstSubResource {};
+                        dstSubResource.baseArrayLayer = atlasElement.layerIndex;
+                        dstSubResource.numLayers = 1;
+                        dstSubResource.baseMipLevel = 0;
+                        dstSubResource.numLevels = 1;
 
-                    Vec3u srcOffset = Vec3u(atlasElement.offsetCoords, 0);
-                    Vec3u extent = Vec3u(atlasElement.dimensions, 1);
+                        Vec3u srcOffset = Vec3u(atlasElement.offsetCoords, 0);
+                        Vec3u extent = Vec3u(atlasElement.dimensions, 1);
 
-                    frame->cr << InsertBarrier(
-                        m_atlasTextureArray->GetGpuImage(),
-                        RS_COPY_DST,
-                        dstSubResource);
+                        frame->cr << InsertBarrier(
+                            m_atlasTextureArray->GetGpuImage(),
+                            RS_COPY_DST,
+                            dstSubResource);
 
-                    frame->cr << CopyImage(
-                        m_clearTexture->GetGpuImage(),
-                        m_atlasTextureArray->GetGpuImage(),
-                        srcOffset,
-                        Vec3u::Zero(),
-                        extent,
-                        srcSubResource,
-                        dstSubResource);
+                        frame->cr << CopyImage(
+                            m_clearTexture->GetGpuImage(),
+                            m_atlasTextureArray->GetGpuImage(),
+                            srcOffset,
+                            Vec3u::Zero(),
+                            extent,
+                            srcSubResource,
+                            dstSubResource);
+                    }
                 }
             }
         }

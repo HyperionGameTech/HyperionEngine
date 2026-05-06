@@ -80,7 +80,7 @@ static void BuildRenderGroupsOrdered(
 {
     renderCollector.Clear(/* freeMemory */ false);
 
-    RenderGroupCache& attributeRegistry = RenderGroupCache::GetInstance();
+    RenderGroupCache& attributeRegistry = *RI.renderGroupCache;
 
     for (const Pair<ObjId<Entity>, int>& pair : meshEntityOrdering)
     {
@@ -166,7 +166,7 @@ void UIRenderCollector::ExecuteDrawCalls(Frame* frame, const RenderSetup& render
         frame->cr << SetCurrentFramebuffer(framebuffer);
     }
 
-    RenderGroupCache& attributeRegistry = RenderGroupCache::GetInstance();
+    RenderGroupCache& attributeRegistry = *RI.renderGroupCache;
 
     using IteratorType = BinnedDrawCallCollections::Iterator;
 

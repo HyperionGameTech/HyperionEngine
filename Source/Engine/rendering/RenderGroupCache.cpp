@@ -10,13 +10,6 @@
 
 namespace Hyperion {
 
-RenderGroupCache& RenderGroupCache::GetInstance()
-{
-    static RenderGroupCache s_instance;
-
-    return s_instance;
-}
-
 RenderGroupCache::RenderGroupCache() = default;
 
 RenderGroupCache::~RenderGroupCache() = default;

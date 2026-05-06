@@ -1163,13 +1163,17 @@ static inline void DeleteOnRenderThread(Func&& function)
 RenderCollector::RenderCollector()
     : parallelRenderingStates {},
       batchAllocator(nullptr),
-      renderGroupFlags(RenderGroupFlags::DEFAULT)
+      renderGroupFlags(RenderGroupFlags::DEFAULT),
+      isFallback(false)
 {
 }
 
 RenderCollector::~RenderCollector()
 {
     HYP_SCOPE;
+
+    if (isFallback)
+        return;
 
     const bool isParallel = renderGroupFlags[RenderGroupFlags::PARALLEL_RENDERING];
 
@@ -1814,7 +1818,7 @@ void RenderCollector::ExecuteDrawCalls(
         frame->cr << SetCurrentFramebuffer(framebuffer);
     }
 
-    RenderGroupCache& attributeRegistry = RenderGroupCache::GetInstance();
+    RenderGroupCache& attributeRegistry = *RI.renderGroupCache;
 
     // set these to null after rendering
     Array<ParallelRenderingState**, RenderTempAllocator> parallelRenderingStatesToNullify;
@@ -2034,7 +2038,7 @@ void RenderCollector::BuildRenderGroups(View* view, RenderProxyList& renderProxy
     AssertDebug(view != nullptr);
     AssertDebug(renderProxyList.state == RenderProxyList::CS_READING);
 
-    RenderGroupCache& attributeRegistry = RenderGroupCache::GetInstance();
+    RenderGroupCache& attributeRegistry = *RI.renderGroupCache;
 
     const RenderableAttributeSet* overrideAttributes = view->GetOverrideAttributes().TryGet();
 

@@ -555,8 +555,6 @@ extern "C"
             TaskSystem::GetInstance().Stop();
         }
 
-        DeletionQueue::GetInstance().Shutdown();
-
         DestroyNameRegistry();
 
         CoreApi::Shutdown();

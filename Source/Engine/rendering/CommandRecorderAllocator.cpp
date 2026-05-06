@@ -28,9 +28,8 @@ CommandRecorderAllocator::~CommandRecorderAllocator() = default;
 
 void CommandRecorderAllocator::Shutdown()
 {
-    HYP_SCOPE;
     AssertOnThread(g_renderThread);
-    
+
     Mutex::Guard guard(m_mutex);
 
     for (auto it = m_tempCommandRecorders.Begin(); it != m_tempCommandRecorders.End();)
@@ -50,6 +49,8 @@ void CommandRecorderAllocator::Shutdown()
 
         AtomicDecrement(&m_tempCommandRecordersCount);
     }
+
+    m_renderThreadCommandRecorder.Reset(/* freeMemory */ true);
 }
 
 void CommandRecorderAllocator::UpdateQueue()
@@ -68,7 +69,7 @@ void CommandRecorderAllocator::UpdateQueue()
     for (auto it = m_tempCommandRecorders.Begin(); it != m_tempCommandRecorders.End();)
     {
         auto& commandRecorder = *it;
-        
+
         // only destroy/read if not in writable state (other thread could be using it)
         if (commandRecorder.IsWritable())
         {
@@ -97,15 +98,13 @@ void CommandRecorderAllocator::UpdateQueue()
 
 CommandRecorder& CommandRecorderAllocator::GetCommandRecorder()
 {
-    HYP_SCOPE;
-
     if (IsOnThread(g_renderThread))
     {
         return m_renderThreadCommandRecorder;
     }
 
     Mutex::Guard guard(m_mutex);
-    
+
     AtomicIncrement(&m_tempCommandRecordersCount);
     auto& newCommandRecorder = m_tempCommandRecorders.EmplaceBack();
 

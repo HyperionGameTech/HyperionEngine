@@ -349,6 +349,8 @@ void DX12RenderInterface::Shutdown()
 
     RenderInterface::Shutdown();
 
+    DeletionQueue::GetInstance().Shutdown();
+
     m_allocator->Release();
     m_allocator = nullptr;
 
@@ -370,10 +372,11 @@ bool DX12RenderInterface::CheckDeviceRemoved() const
 
 DX12Frame* DX12RenderInterface::GetCurrentFrame() const
 {
+    if (m_frames.Empty())
+        return nullptr;
+
     return m_frames[GetFrameCounter() % NumFramesInFlight].Get();
 }
-
-HYP_DISABLE_OPTIMIZATION;
 
 void DX12RenderInterface::PrepareFrame(DX12Frame* frame)
 {

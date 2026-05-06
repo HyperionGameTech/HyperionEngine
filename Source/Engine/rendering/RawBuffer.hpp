@@ -79,11 +79,7 @@ public:
 
     ~RawBuffer()
     {
-        if (gpuBuffer)
-        {
-            gpuBuffer->Release();
-            gpuBuffer = nullptr;
-        }
+        Shutdown();
     }
 
     HYP_FORCE_INLINE bool IsDirty() const
@@ -103,11 +99,7 @@ public:
 
     void Write(size_t offset, size_t count, const void* data);
 
-    // Records the staging copy into an existing command buffer without submitting it.
-    // Caller is responsible for submitting the command buffer.
     void FlushInto(CommandBuffer& cmdBuffer);
-
-    // Standalone flush: acquires a transient command buffer, records the copy, and submits immediately.
     void Flush();
 
     GpuBuffer* gpuBuffer;

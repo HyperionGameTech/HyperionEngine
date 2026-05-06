@@ -43,6 +43,7 @@
 #include <rendering/CBufferAllocator.hpp>
 #include <rendering/RawBufferAllocator.hpp>
 #include <rendering/ScratchImageAllocator.hpp>
+#include <rendering/RenderGroupCache.hpp>
 
 #include <engine/resources/ResourceTracker.hpp>
 #include <engine/resources/ResourceBinder.hpp>
@@ -353,8 +354,6 @@ uint32 GetFrameCounter()
 
 RenderProxyList& GetProducerProxyList(View* view)
 {
-    HYP_SCOPE;
-
     // can be called on sim thread or on task thread for tasks enqueued and awaited by sim thread, **exclusively**
     AssertOnThread(g_simThread | ThreadCategory::THREAD_CATEGORY_TASK);
 
@@ -369,7 +368,6 @@ RenderProxyList& GetProducerProxyList(View* view)
 
 RenderProxyList& GetConsumerProxyList(View* view)
 {
-    HYP_SCOPE;
     AssertOnThread(g_renderThread | ThreadCategory::THREAD_CATEGORY_TASK);
 
     AssertDebug(view != nullptr);
@@ -387,7 +385,6 @@ RenderProxyList& GetConsumerProxyList(View* view)
 
 RenderCollector& GetRenderCollector(View* view)
 {
-    HYP_SCOPE;
     AssertOnThread(g_renderThread);
 
     Framework::ViewData* vd = Framework::GetViewData(view, false);
@@ -395,6 +392,8 @@ RenderCollector& GetRenderCollector(View* view)
     if (vd == nullptr)
     {
         static RenderCollector s_fallbackRenderCollector;
+        s_fallbackRenderCollector.isFallback = true;
+
         return s_fallbackRenderCollector;
     }
 
@@ -403,7 +402,6 @@ RenderCollector& GetRenderCollector(View* view)
 
 IRenderProxy* GetRenderProxy(const ObjectBase* resource)
 {
-    HYP_SCOPE;
     AssertOnThread(g_renderThread | ThreadCategory::THREAD_CATEGORY_TASK);
 
     AssertDebug(resource != nullptr);
@@ -465,7 +463,6 @@ void UpdateGpuData(const ObjectBase* resource)
 
 void SetForceRebind(ObjectBase* resource, bool forceRebind)
 {
-    HYP_SCOPE;
     AssertOnThread(g_renderThread);
 
     AssertDebug(resource != nullptr);
@@ -481,7 +478,6 @@ void SetForceRebind(ObjectBase* resource, bool forceRebind)
 
 WorldShaderData* GetWorldBufferData()
 {
-    HYP_SCOPE;
     AssertOnThread(g_simThread | g_renderThread);
 
     return &Framework::s_bufferedData[*Framework::s_threadFrameIndex].worldBufferData;
@@ -489,7 +485,6 @@ WorldShaderData* GetWorldBufferData()
 
 void CommitActiveWorlds(Span<World*> activeWorlds)
 {
-    HYP_SCOPE;
     AssertOnThread(g_simThread);
 
     Framework::BufferedData& bufferedData = Framework::s_bufferedData[Framework::s_frameIndex[Framework::TT_FrameDataProducer]];
@@ -498,7 +493,6 @@ void CommitActiveWorlds(Span<World*> activeWorlds)
 
 Span<World*> GetActiveWorlds()
 {
-    HYP_SCOPE;
     AssertOnThread(g_simThread | g_renderThread);
 
     return Framework::s_bufferedData[*Framework::s_threadFrameIndex].activeWorlds.ToSpan();
@@ -506,7 +500,6 @@ Span<World*> GetActiveWorlds()
 
 Viewport& GetViewport(View* view)
 {
-    HYP_SCOPE;
     AssertOnThread(g_simThread | g_renderThread);
 
     return Framework::GetBufferedViewData(view, *Framework::s_threadFrameIndex)->viewport;
@@ -524,8 +517,6 @@ uint32 CurrentRenderThreadIndex()
 
 void BeginFrameSim()
 {
-    HYP_SCOPE;
-
     Framework::s_threadFrameIndex = &Framework::s_frameIndex[Framework::TT_FrameDataProducer];
 
     Framework::s_freeSemaphore.acquire();
@@ -533,7 +524,6 @@ void BeginFrameSim()
 
 void EndFrameSim()
 {
-    HYP_SCOPE;
     AssertOnThread(g_simThread);
 
     const uint32 slot = Framework::s_frameIndex[Framework::TT_FrameDataProducer];
@@ -565,6 +555,7 @@ RenderInterface::RenderInterface()
       graphicsPipelineCache(nullptr),
       computePipelineCache(nullptr),
       rayTracingPipelineCache(nullptr),
+      renderGroupCache(nullptr),
       bindlessStorage(nullptr),
       shaderManager(nullptr),
       finalPass(nullptr),
@@ -597,6 +588,7 @@ RendererResult RenderInterface::Initialize()
     graphicsPipelineCache = PoolNew<GraphicsPipelineCache>(*g_renderPool);
     computePipelineCache = PoolNew<ComputePipelineCache>(*g_renderPool);
     rayTracingPipelineCache = PoolNew<RayTracingPipelineCache>(*g_renderPool);
+    renderGroupCache = PoolNew<RenderGroupCache>(*g_renderPool);
     bindlessStorage = PoolNew<BindlessStorage>(*g_renderPool);
     shaderManager = PoolNew<ShaderManager>(*g_renderPool);
     textureViewCache = PoolNew<TextureViewCache>(*g_renderPool);
@@ -791,9 +783,9 @@ void RenderInterface::Shutdown()
 
     DebugDrawer::GetInstance().Shutdown();
 
-    for (StructuredBuffer& grb : namedBuffers)
+    for (StructuredBuffer& structuredBuffer : namedBuffers)
     {
-        grb.Shutdown();
+        structuredBuffer.Shutdown();
     }
 
     blueNoiseBuffer.Shutdown();
@@ -854,10 +846,11 @@ void RenderInterface::Shutdown()
     PoolDelete(*g_renderPool, rayTracingPipelineCache);
     rayTracingPipelineCache = nullptr;
 
+    PoolDelete(*g_renderPool, renderGroupCache);
+    renderGroupCache = nullptr;
+
     PoolDelete(*g_renderPool, crashHandler);
     crashHandler = nullptr;
-
-    DeletionQueue::GetInstance().Flush();
 }
 
 void RenderInterface::BeginFrame(AtomicFlag* pCancelFlag)

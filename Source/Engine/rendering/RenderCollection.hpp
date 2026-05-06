@@ -124,10 +124,13 @@ class HYP_API RenderCollector
 {
 public:
     RenderCollector();
+
     RenderCollector(const RenderCollector& other) = delete;
     RenderCollector& operator=(const RenderCollector& other) = delete;
+
     RenderCollector(RenderCollector&& other) noexcept = delete;
     RenderCollector& operator=(RenderCollector&& other) noexcept = delete;
+
     ~RenderCollector();
 
 #if HYP_DEBUG_MODE
@@ -152,6 +155,8 @@ public:
 
     EntityBatchAllocatorBase* batchAllocator;
     EnumFlags<RenderGroupFlags> renderGroupFlags;
+
+    bool isFallback;
 
     HYP_NODISCARD ParallelRenderingState* AcquireNextParallelRenderingState(uint8 index);
     void Commit(CommandRecorder& cr, uint8 index);

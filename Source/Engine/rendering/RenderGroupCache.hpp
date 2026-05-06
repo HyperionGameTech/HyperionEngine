@@ -23,8 +23,6 @@ class RenderGroupCache
 public:
     RenderGroupCache();
 
-    static RenderGroupCache& GetInstance();
-
     RenderGroupCache(const RenderGroupCache&) = delete;
     RenderGroupCache& operator=(const RenderGroupCache&) = delete;
 
@@ -38,7 +36,7 @@ public:
 
         AssertDebug(handle.IsValid());
         AssertDebug(m_entries.HasIndex(handle.GetIndex()));
-        
+
         return m_entries.Get(handle.GetIndex());
     }
 

@@ -750,16 +750,19 @@ void VulkanRenderInterface::Shutdown()
 
     RenderInterface::Shutdown();
 
+    DeletionQueue::GetInstance().Shutdown();
+    
     m_descriptorSetManager->Destroy(m_instance->GetDevice());
 
     PoolDelete(*g_vulkanPool, m_instance);
     m_instance = nullptr;
-
-    DeletionQueue::GetInstance().Flush();
 }
 
 VulkanFrame* VulkanRenderInterface::GetCurrentFrame() const
 {
+    if (m_frames.Empty())
+        return nullptr;
+
     return m_frames[m_currentFrameIndex];
 }
 

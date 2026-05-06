@@ -47,22 +47,21 @@ static NullInputHandler* GetNullInputHandler()
     static struct NullInputHandlerInitializer
     {
         NullInputHandler* inputHandler;
-        DelegateHandler onShutdownHandle;
 
         NullInputHandlerInitializer()
         {
             inputHandler = new NullInputHandler;
 
-            onShutdownHandle = g_engineDriver->GetDelegates().OnShutdown.Bind([this]()
+            g_engineDriver->GetDelegates().OnShutdown
+                .Bind([this]()
                 {
                     if (inputHandler != nullptr)
                     {
                         inputHandler->Release();
                         inputHandler = nullptr;
                     }
-
-                    onShutdownHandle.Reset();
-                });
+                })
+                .Detach();
         }
     } s_initializer;
 
@@ -74,22 +73,21 @@ static NullCameraController* GetNullCameraController()
     static struct NullCameraControllerInitializer
     {
         NullCameraController* controller;
-        DelegateHandler onShutdownHandle;
 
         NullCameraControllerInitializer()
         {
             controller = new NullCameraController;
 
-            onShutdownHandle = g_engineDriver->GetDelegates().OnShutdown.Bind([this]()
+            g_engineDriver->GetDelegates().OnShutdown
+                .Bind([this]()
                 {
                     if (controller != nullptr)
                     {
                         controller->Release();
                         controller = nullptr;
                     }
-
-                    onShutdownHandle.Reset();
-                });
+                })
+                .Detach();
         }
     } s_initializer;
 
@@ -286,12 +284,12 @@ void Camera::Init()
                 return;
             }
 
-            auto MatchWindowSize = [this, windowWeak = MakeWeakRef(window)](Vec2i windowSize)
+            auto MatchWindowSize = [this, weakWindow = MakeWeakRef(window)](Vec2i windowSize)
             {
-                Handle<ApplicationWindow> windowStrong = windowWeak.Lock();
+                Handle<ApplicationWindow> strongWindow = weakWindow.Lock();
 
-                const float renderTargetScale = windowStrong.IsValid()
-                    ? windowStrong->GetRenderTargetScale()
+                const float renderTargetScale = strongWindow.IsValid()
+                    ? strongWindow->GetRenderTargetScale()
                     : 1.0f;
 
                 Vec2i renderSize = Vec2i(Vec2f(windowSize) * renderTargetScale);

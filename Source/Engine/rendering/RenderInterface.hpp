@@ -67,6 +67,7 @@ class CrashHandler;
 class EngineConfig;
 class SamplerCache;
 struct SamplerDesc;
+class RenderGroupCache;
 
 class CBufferAllocator;
 class BufferAllocator;
@@ -392,6 +393,8 @@ public:
     GraphicsPipelineCache* graphicsPipelineCache;
     ComputePipelineCache* computePipelineCache;
     RayTracingPipelineCache* rayTracingPipelineCache;
+
+    RenderGroupCache* renderGroupCache;
 
     FinalPass* finalPass;
 
