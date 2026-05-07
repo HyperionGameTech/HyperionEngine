@@ -18,7 +18,7 @@
     "RayTracedReflections": false,
     "RayTracedGI": false,
     "RayTracingEnabled": true,
-    "IndirectRendering": true,
+    "IndirectRendering": false,
     "DepthPrepass": true,
     "ParallelCollection": true,
     "SSR": {

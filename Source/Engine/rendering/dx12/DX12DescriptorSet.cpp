@@ -38,40 +38,37 @@ DX12DescriptorSet::DX12DescriptorSet(const DescriptorSetLayout& layout)
       m_updateVersion(0),
       m_isCreated(false)
 {
-    for (auto& it : m_layout.GetElements())
+    for (const ShaderInput& shaderInput : m_layout.GetElements())
     {
-        const Name name = it.first;
-        const DescriptorSetLayoutElement& element = it.second;
-
-        switch (element.type)
+        switch (shaderInput.type)
         {
         case ShaderInputType::CBV:
         case ShaderInputType::CBV_Dynamic:
-            PrefillElements<DX12GpuBuffer>(name, element.count);
+            PrefillElements<DX12GpuBuffer>(shaderInput.name, shaderInput.count);
             break;
         case ShaderInputType::SRV:
         case ShaderInputType::SRV_Dynamic:
         case ShaderInputType::UAV:
         case ShaderInputType::UAV_Dynamic:
-            if (element.category == ShaderResourceCategory::Buffer)
+            if (shaderInput.category == ShaderResourceCategory::Buffer)
             {
-                PrefillElements<DX12GpuBuffer>(name, element.count);
+                PrefillElements<DX12GpuBuffer>(shaderInput.name, shaderInput.count);
             }
-            else if (element.category == ShaderResourceCategory::Image)
+            else if (shaderInput.category == ShaderResourceCategory::Image)
             {
-                if (element.type == ShaderInputType::SRV || element.type == ShaderInputType::SRV_Dynamic)
+                if (shaderInput.type == ShaderInputType::SRV || shaderInput.type == ShaderInputType::SRV_Dynamic)
                 {
-                    PrefillElements<DX12GpuImageView>(name, element.count, RI.placeholderData->GetImageView2D1x1R8());
+                    PrefillElements<DX12GpuImageView>(shaderInput.name, shaderInput.count, RI.placeholderData->GetImageView2D1x1R8());
                 }
                 else
                 {
                     // leave empty to avoid overwriting default image view for UAV
-                    PrefillElements<DX12GpuImageView>(name, element.count);
+                    PrefillElements<DX12GpuImageView>(shaderInput.name, shaderInput.count);
                 }
             }
-            else if (element.category == ShaderResourceCategory::AccelerationStructure)
+            else if (shaderInput.category == ShaderResourceCategory::AccelerationStructure)
             {
-                PrefillElements<DX12GpuTlas>(name, element.count);
+                PrefillElements<DX12GpuTlas>(shaderInput.name, shaderInput.count);
             }
             else
             {
@@ -79,7 +76,7 @@ DX12DescriptorSet::DX12DescriptorSet(const DescriptorSetLayout& layout)
             }
             break;
         case ShaderInputType::Sampler:
-            PrefillElements<DX12Sampler>(name, element.count);
+            PrefillElements<DX12Sampler>(shaderInput.name, shaderInput.count);
             break;
         }
     }
@@ -150,8 +147,8 @@ RendererResult DX12DescriptorSet::Create()
                 continue;
             }
 
-            const DescriptorSetLayoutElement* layoutElement = m_layout.GetElement(desc.name);
-            if (layoutElement == nullptr)
+            const ShaderInputWithBinding* shaderInput = m_layout.GetElement(desc.name);
+            if (shaderInput == nullptr)
             {
                 continue;
             }
@@ -163,19 +160,19 @@ RendererResult DX12DescriptorSet::Create()
             }
 
             // For bindless elements, use the MaxBindlessResources limit instead of ~0u
-            const uint32 elementCount = layoutElement->IsBindless()
-                ? (layoutElement->IsBuffer()
+            const uint32 elementCount = shaderInput->count == ~0u
+                ? (shaderInput->category == ShaderResourceCategory::Buffer
                     ? MaxBindlessResources[BindlessStorage_Buffers]
                     : MaxBindlessResources[BindlessStorage_Textures])
-                : layoutElement->count;
+                : shaderInput->count;
 
             if (desc.slot == ShaderRegister::SAMPLER)
             {
-                samplerEntries.PushBack({ layoutElement->binding, elementCount, desc.index });
+                samplerEntries.PushBack({ shaderInput->binding, elementCount, desc.index });
             }
             else
             {
-                viewEntries.PushBack({ layoutElement->binding, elementCount, ToDX12DescriptorRangeType(desc.slot), desc.index });
+                viewEntries.PushBack({ shaderInput->binding, elementCount, ToDX12DescriptorRangeType(desc.slot), desc.index });
             }
         }
     }
@@ -286,8 +283,8 @@ void DX12DescriptorSet::UpdateDirtyState(bool* outIsDirty)
         const Name name = it.first;
         DescriptorSetElement& element = it.second;
 
-        const DescriptorSetLayoutElement* layoutElement = m_layout.GetElement(name);
-        AssertDebug(layoutElement != nullptr, "Invalid element: No item with name {} found", name);
+        const ShaderInputWithBinding* shaderInput = m_layout.GetElement(name);
+        AssertDebug(shaderInput != nullptr, "Invalid element: No item with name {} found", name);
 
         auto cachedIt = m_cachedElements.Find(name);
         AssertDebug(cachedIt != m_cachedElements.End());
@@ -296,7 +293,7 @@ void DX12DescriptorSet::UpdateDirtyState(bool* outIsDirty)
         localDescriptors.Clear();
         localDescriptors.Reserve(element.values.Size());
 
-        switch (layoutElement->type)
+        switch (shaderInput->type)
         {
         case ShaderInputType::CBV:
         case ShaderInputType::CBV_Dynamic:
@@ -309,7 +306,7 @@ void DX12DescriptorSet::UpdateDirtyState(bool* outIsDirty)
             {
                 ObjectBase* ptr = element.values[index];
 
-                if (layoutElement->category == ShaderResourceCategory::Buffer)
+                if (shaderInput->category == ShaderResourceCategory::Buffer)
                 {
                     AssertDebug(ptr && ptr->IsA<DX12GpuBuffer>(), "Invalid buffer descriptor: {}", name);
 
@@ -318,7 +315,7 @@ void DX12DescriptorSet::UpdateDirtyState(bool* outIsDirty)
 
                     DX12CachedDescriptor& descriptor = localDescriptors.EmplaceBack();
                     Memory::Fill(&descriptor, 0, sizeof(DX12CachedDescriptor));
-                    descriptor.binding = layoutElement->binding;
+                    descriptor.binding = shaderInput->binding;
                     descriptor.index = index;
                     descriptor.heapType = D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV;
 
@@ -326,7 +323,7 @@ void DX12DescriptorSet::UpdateDirtyState(bool* outIsDirty)
 
                     descriptor.objectPtr = ref;
                 }
-                else if (layoutElement->category == ShaderResourceCategory::Image)
+                else if (shaderInput->category == ShaderResourceCategory::Image)
                 {
                     AssertDebug(ptr && ptr->IsA<DX12GpuImageView>(), "Invalid image descriptor: {}", name);
 
@@ -335,7 +332,7 @@ void DX12DescriptorSet::UpdateDirtyState(bool* outIsDirty)
 
                     DX12CachedDescriptor& descriptor = localDescriptors.EmplaceBack();
                     Memory::Fill(&descriptor, 0, sizeof(DX12CachedDescriptor));
-                    descriptor.binding = layoutElement->binding;
+                    descriptor.binding = shaderInput->binding;
                     descriptor.index = index;
                     descriptor.heapType = D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV;
 
@@ -343,7 +340,7 @@ void DX12DescriptorSet::UpdateDirtyState(bool* outIsDirty)
 
                     descriptor.objectPtr = ref;
                 }
-                else if (layoutElement->category == ShaderResourceCategory::AccelerationStructure)
+                else if (shaderInput->category == ShaderResourceCategory::AccelerationStructure)
                 {
                     AssertDebug(ptr && ptr->IsA<DX12GpuTlas>(), "Invalid TLAS descriptor: {}", name);
 
@@ -352,7 +349,7 @@ void DX12DescriptorSet::UpdateDirtyState(bool* outIsDirty)
 
                     DX12CachedDescriptor& descriptor = localDescriptors.EmplaceBack();
                     Memory::Fill(&descriptor, 0, sizeof(DX12CachedDescriptor));
-                    descriptor.binding = layoutElement->binding;
+                    descriptor.binding = shaderInput->binding;
                     descriptor.index = index;
                     descriptor.heapType = D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV;
 
@@ -379,7 +376,7 @@ void DX12DescriptorSet::UpdateDirtyState(bool* outIsDirty)
 
                 DX12CachedDescriptor& descriptor = localDescriptors.EmplaceBack();
                 Memory::Fill(&descriptor, 0, sizeof(DX12CachedDescriptor));
-                descriptor.binding = layoutElement->binding;
+                descriptor.binding = shaderInput->binding;
                 descriptor.index = index;
                 descriptor.heapType = D3D12_DESCRIPTOR_HEAP_TYPE_SAMPLER;
 
@@ -454,21 +451,22 @@ void DX12DescriptorSet::Update(bool force)
         const DX12CachedDescriptor& descriptor = m_pendingDescriptors[i];
 
         DescriptorSetElement* element = nullptr;
-        const DescriptorSetLayoutElement* layoutElement = nullptr;
+        const ShaderInput* foundShaderInput = nullptr;
 
         for (auto& it : m_elements)
         {
             const Name name = it.first;
-            const DescriptorSetLayoutElement* layoutEl = m_layout.GetElement(name);
-            if (layoutEl && layoutEl->binding == descriptor.binding)
+            const ShaderInputWithBinding* shaderInput = m_layout.GetElement(name);
+
+            if (shaderInput && shaderInput->binding == descriptor.binding)
             {
                 element = &it.second;
-                layoutElement = layoutEl;
+                foundShaderInput = shaderInput;
                 break;
             }
         }
 
-        if (element == nullptr || layoutElement == nullptr)
+        if (element == nullptr || foundShaderInput == nullptr)
         {
             continue;
         }
@@ -481,9 +479,9 @@ void DX12DescriptorSet::Update(bool force)
 
         // Dynamic buffer entries are handled via root descriptors at bind time,
         // they do not participate in the descriptor table
-        if (layoutElement->type == ShaderInputType::CBV_Dynamic
-            || layoutElement->type == ShaderInputType::SRV_Dynamic
-            || layoutElement->type == ShaderInputType::UAV_Dynamic)
+        if (foundShaderInput->type == ShaderInputType::CBV_Dynamic
+            || foundShaderInput->type == ShaderInputType::SRV_Dynamic
+            || foundShaderInput->type == ShaderInputType::UAV_Dynamic)
         {
             continue;
         }
@@ -505,7 +503,7 @@ void DX12DescriptorSet::Update(bool force)
             continue;
         }
 
-        switch (layoutElement->type)
+        switch (foundShaderInput->type)
         {
         case ShaderInputType::CBV:
         case ShaderInputType::CBV_Dynamic:
@@ -525,28 +523,28 @@ void DX12DescriptorSet::Update(bool force)
         case ShaderInputType::SRV:
         case ShaderInputType::SRV_Dynamic:
         {
-            if (layoutElement->category == ShaderResourceCategory::Buffer)
+            if (foundShaderInput->category == ShaderResourceCategory::Buffer)
             {
+                if (foundShaderInput->bufferType == GpuBufferType::StructuredBuffer
+                    || foundShaderInput->bufferType == GpuBufferType::RWStructuredBuffer)
+                {
+                    // @NOTE: we allow zero so we can pass a StructuredBuffer where shaders expect a ByteAddressBuffer.
+                    AssertDebug(element->bufferStride != ~0u, "(RW)StructuredBuffer must have stride passed in!");
+                }
+                
                 AssertDebug(ptr && ptr->IsA<DX12GpuBuffer>());
-
+                
                 DX12GpuBuffer* buffer = StaticCast<DX12GpuBuffer>(ptr);
                 if (!buffer->IsCreated())
                 {
                     continue;
                 }
 
-                if (buffer->GetBufferType() == GpuBufferType::StructuredBuffer
-                    || buffer->GetBufferType() == GpuBufferType::RWStructuredBuffer)
-                {
-                    // @NOTE: we allow zero so we can pass a StructuredBuffer where shaders expect a ByteAddressBuffer.
-                    AssertDebug(element->bufferStride != ~0u, "(RW)StructuredBuffer must have stride passed in!");
-                }
-
                 const uint32 structureStride = element->bufferStride != ~0u ? element->bufferStride : uint32(buffer->Size());
-                D3D12_SHADER_RESOURCE_VIEW_DESC srvDesc = GetSRVDesc(buffer, structureStride);
+                D3D12_SHADER_RESOURCE_VIEW_DESC srvDesc = GetSRVDesc(foundShaderInput->bufferType, buffer->Size(), structureStride);
                 device->CreateShaderResourceView(buffer->GetResource(), &srvDesc, destHandle);
             }
-            else if (layoutElement->category == ShaderResourceCategory::Image)
+            else if (foundShaderInput->category == ShaderResourceCategory::Image)
             {
                 AssertDebug(ptr && ptr->IsA<DX12GpuImageView>());
 
@@ -563,7 +561,7 @@ void DX12DescriptorSet::Update(bool force)
 
                 device->CreateShaderResourceView(imageView->GetImage()->GetResource(), &srvDesc, destHandle);
             }
-            else if (layoutElement->category == ShaderResourceCategory::AccelerationStructure)
+            else if (foundShaderInput->category == ShaderResourceCategory::AccelerationStructure)
             {
                 AssertDebug(ptr && ptr->IsA<DX12GpuTlas>());
 
@@ -589,26 +587,28 @@ void DX12DescriptorSet::Update(bool force)
         case ShaderInputType::UAV:
         case ShaderInputType::UAV_Dynamic:
         {
-            if (layoutElement->category == ShaderResourceCategory::Buffer)
+            if (foundShaderInput->category == ShaderResourceCategory::Buffer)
             {
-                DX12GpuBuffer* buffer = static_cast<DX12GpuBuffer*>(ptr);
+                if (foundShaderInput->bufferType == GpuBufferType::StructuredBuffer
+                    || foundShaderInput->bufferType == GpuBufferType::RWStructuredBuffer)
+                {
+                    // @NOTE: we allow zero so we can pass a StructuredBuffer where shaders expect a ByteAddressBuffer.
+                    AssertDebug(element->bufferStride != ~0u, "(RW)StructuredBuffer must have stride passed in!");
+                }
+                
+                AssertDebug(ptr && ptr->IsA<DX12GpuBuffer>());
+
+                DX12GpuBuffer* buffer = StaticCast<DX12GpuBuffer>(ptr);
                 if (!buffer->IsCreated())
                 {
                     continue;
                 }
 
-                if (buffer->GetBufferType() == GpuBufferType::StructuredBuffer
-                    || buffer->GetBufferType() == GpuBufferType::RWStructuredBuffer)
-                {
-                    // @NOTE: we allow zero so we can pass a StructuredBuffer where shaders expect a ByteAddressBuffer.
-                    AssertDebug(element->bufferStride != ~0u, "(RW)StructuredBuffer must have stride passed in!");
-                }
-
                 const uint32 structureStride = element->bufferStride != ~0u ? element->bufferStride : uint32(buffer->Size());
-                D3D12_UNORDERED_ACCESS_VIEW_DESC uavDesc = GetUAVDesc(buffer, structureStride);
+                D3D12_UNORDERED_ACCESS_VIEW_DESC uavDesc = GetUAVDesc(foundShaderInput->bufferType, buffer->Size(), structureStride);
                 device->CreateUnorderedAccessView(buffer->GetResource(), nullptr, &uavDesc, destHandle);
             }
-            else if (layoutElement->category == ShaderResourceCategory::Image)
+            else if (foundShaderInput->category == ShaderResourceCategory::Image)
             {
                 DX12GpuImageView* imageView = static_cast<DX12GpuImageView*>(ptr);
                 if (!imageView->IsCreated())
@@ -706,12 +706,12 @@ void DX12DescriptorSet::Bind(DX12CommandBuffer* commandBuffer, const DX12Graphic
 
     for (const Name& elementName : m_layout.GetDynamicElements())
     {
-        const DescriptorSetLayoutElement* layoutElement = m_layout.GetElement(elementName);
-        Assert(layoutElement != nullptr);
+        const ShaderInput* shaderInput = m_layout.GetElement(elementName);
+        Assert(shaderInput != nullptr);
 
-        if (layoutElement->type != ShaderInputType::CBV_Dynamic
-            && layoutElement->type != ShaderInputType::SRV_Dynamic
-            && layoutElement->type != ShaderInputType::UAV_Dynamic)
+        if (shaderInput->type != ShaderInputType::CBV_Dynamic
+            && shaderInput->type != ShaderInputType::SRV_Dynamic
+            && shaderInput->type != ShaderInputType::UAV_Dynamic)
         {
             continue;
         }
@@ -750,7 +750,7 @@ void DX12DescriptorSet::Bind(DX12CommandBuffer* commandBuffer, const DX12Graphic
             D3D12_GPU_VIRTUAL_ADDRESS gpuAddress = buffer->GetResource()->GetGPUVirtualAddress() + offset;
             dynamicEntryAddresses[dynamicEntryCount] = gpuAddress;
 
-            switch (layoutElement->type)
+            switch (shaderInput->type)
             {
             case ShaderInputType::CBV_Dynamic:
                 commandList->SetGraphicsRootConstantBufferView(rootParamIndex, gpuAddress);
@@ -819,12 +819,12 @@ void DX12DescriptorSet::Bind(DX12CommandBuffer* commandBuffer, const DX12Compute
 
     for (const Name& elementName : m_layout.GetDynamicElements())
     {
-        const DescriptorSetLayoutElement* layoutElement = m_layout.GetElement(elementName);
-        Assert(layoutElement != nullptr);
+        const ShaderInput* shaderInput = m_layout.GetElement(elementName);
+        Assert(shaderInput != nullptr);
 
-        if (layoutElement->type != ShaderInputType::CBV_Dynamic
-            && layoutElement->type != ShaderInputType::SRV_Dynamic
-            && layoutElement->type != ShaderInputType::UAV_Dynamic)
+        if (shaderInput->type != ShaderInputType::CBV_Dynamic
+            && shaderInput->type != ShaderInputType::SRV_Dynamic
+            && shaderInput->type != ShaderInputType::UAV_Dynamic)
         {
             continue;
         }
@@ -863,7 +863,7 @@ void DX12DescriptorSet::Bind(DX12CommandBuffer* commandBuffer, const DX12Compute
             D3D12_GPU_VIRTUAL_ADDRESS gpuAddress = buffer->GetResource()->GetGPUVirtualAddress() + offset;
             dynamicEntryAddresses[dynamicEntryCount] = gpuAddress;
 
-            switch (layoutElement->type)
+            switch (shaderInput->type)
             {
             case ShaderInputType::CBV_Dynamic:
                 commandList->SetComputeRootConstantBufferView(rootParamIndex, gpuAddress);
@@ -932,12 +932,12 @@ void DX12DescriptorSet::Bind(DX12CommandBuffer* commandBuffer, const DX12RayTrac
 
     for (const Name& elementName : m_layout.GetDynamicElements())
     {
-        const DescriptorSetLayoutElement* layoutElement = m_layout.GetElement(elementName);
-        Assert(layoutElement != nullptr);
+        const ShaderInput* shaderInput = m_layout.GetElement(elementName);
+        Assert(shaderInput != nullptr);
 
-        if (layoutElement->type != ShaderInputType::CBV_Dynamic
-            && layoutElement->type != ShaderInputType::SRV_Dynamic
-            && layoutElement->type != ShaderInputType::UAV_Dynamic)
+        if (shaderInput->type != ShaderInputType::CBV_Dynamic
+            && shaderInput->type != ShaderInputType::SRV_Dynamic
+            && shaderInput->type != ShaderInputType::UAV_Dynamic)
         {
             continue;
         }
@@ -976,7 +976,7 @@ void DX12DescriptorSet::Bind(DX12CommandBuffer* commandBuffer, const DX12RayTrac
             D3D12_GPU_VIRTUAL_ADDRESS gpuAddress = buffer->GetResource()->GetGPUVirtualAddress() + offset;
             dynamicEntryAddresses[dynamicEntryCount] = gpuAddress;
 
-            switch (layoutElement->type)
+            switch (shaderInput->type)
             {
             case ShaderInputType::CBV_Dynamic:
                 commandList->SetComputeRootConstantBufferView(rootParamIndex, gpuAddress);

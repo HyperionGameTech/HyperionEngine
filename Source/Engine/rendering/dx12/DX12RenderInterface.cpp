@@ -58,10 +58,13 @@ class DX12RenderConfig final : public IRenderConfig
 public:
     DX12RenderConfig()
     {
+        EngineConfig& cfg = GetEngineConfig();
+        cfg.Load();
+
         bindlessTextures = false;
         rayTracing = false;
-        indirectRendering = GetEngineConfig().Get("Rendering.IndirectRendering").ToBool(/* defaultValue */ true);
-        parallelRendering = GetEngineConfig().Get("Rendering.ParallelCollection").ToBool(/* defaultValue */ true);
+        indirectRendering = cfg.Get("Rendering.IndirectRendering").ToBool(/* defaultValue */ true);
+        parallelRendering = cfg.Get("Rendering.ParallelCollection").ToBool(/* defaultValue */ true);
         dynamicDescriptorIndexing = true;
     }
 

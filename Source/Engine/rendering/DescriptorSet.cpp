@@ -148,38 +148,40 @@ DescriptorSetLayout::DescriptorSetLayout(const ShaderInputSet* decl)
         Assert(m_decl != nullptr, "Invalid global descriptor set reference: {}", decl->name);
     }
 
+    // build a list of dynamic elements, paired by their element index so we can sort it after.
+    Array<Pair<Name, uint32>> dynamicElementsWithIndex;
+
     for (const Array<ShaderInput>& slot : m_decl->slots)
     {
-        for (const ShaderInput& descriptor : slot)
+        for (const ShaderInput& shaderInput : slot)
         {
-            const uint32 descriptorIndex = m_decl->CalculateFlatIndex(descriptor.slot, descriptor.name);
-            Assert(descriptorIndex != ~0u);
+//#ifdef HYP_VULKAN
+            const uint32 binding = m_decl->CalculateFlatIndex(shaderInput.slot, shaderInput.name);
+//#elif HYP_DX12
+//            const uint32 binding = shaderInput.index;
+//#endif
 
-            if (descriptor.cond != nullptr && !descriptor.cond())
+            Assert(binding != ~0u);
+
+            if (shaderInput.cond != nullptr && !shaderInput.cond())
             {
                 // Skip this descriptor, condition not met
                 continue;
             }
 
             // HYP_LOG(RenderingBackend, Verbose, "Set element {}.{}[{}] (slot: {}, count: {}, size: {}, is_dynamic: {})",
-            //     declPtr->name, descriptor.name, descriptorIndex, int(descriptor.slot),
+            //     declPtr->name, descriptor.name, binding, int(descriptor.slot),
             //     descriptor.count, descriptor.size, descriptor.isDynamic);
 
-            AddElement(descriptor.name, descriptor.type, descriptorIndex, descriptor.count, descriptor.category);
-        }
-    }
+            ShaderInputWithBinding& res = AddElement(shaderInput);
+            res.binding = binding;
 
-    // build a list of dynamic elements, paired by their element index so we can sort it after.
-    Array<Pair<Name, uint32>> dynamicElementsWithIndex;
-
-    // Add to list of dynamic buffer names
-    for (const auto& it : m_elements)
-    {
-        if (it.second.type == ShaderInputType::CBV_Dynamic
-            || it.second.type == ShaderInputType::SRV_Dynamic
-            || it.second.type == ShaderInputType::UAV_Dynamic)
-        {
-            dynamicElementsWithIndex.PushBack({ it.first, it.second.binding });
+            if (shaderInput.type == ShaderInputType::CBV_Dynamic
+                || shaderInput.type == ShaderInputType::SRV_Dynamic
+                || shaderInput.type == ShaderInputType::UAV_Dynamic)
+            {
+                dynamicElementsWithIndex.PushBack({ shaderInput.name, binding });
+            }
         }
     }
 
@@ -212,14 +214,14 @@ bool DescriptorSetBase::HasElement(StringHash name) const
 template <class T>
 DescriptorSetElement& DescriptorSetBase::SetElementT(StringHash name, uint32 index, T* ref, uint32 bufferStride)
 {
-    const DescriptorSetLayoutElement* layoutElement = m_layout.GetElement(name);
-    AssertDebug(layoutElement != nullptr, "Invalid element: No item with name {} found", Name(name));
+    const ShaderInput* shaderInput = m_layout.GetElement(name);
+    AssertDebug(shaderInput != nullptr, "Invalid element: No item with name {} found", Name(name));
 
     AssertDebug(ref != nullptr);
 
     // Range check
-    AssertDebug(index < layoutElement->count, "Index {} out of range for element {} with count {}",
-        index, Name(name), layoutElement->count);
+    AssertDebug(index < shaderInput->count, "Index {} out of range for element {} with count {}",
+        index, Name(name), shaderInput->count);
 
     if constexpr (std::is_base_of_v<GpuBufferBase, T>)
     {
@@ -230,7 +232,15 @@ DescriptorSetElement& DescriptorSetBase::SetElementT(StringHash name, uint32 ind
             | (1u << uint32(ShaderInputType::UAV))
             | (1u << uint32(ShaderInputType::UAV_Dynamic));
 
-        AssertDebug(Mask & (1u << uint32(layoutElement->type)), "Layout type for {} does not match given type", Name(name));
+        AssertDebug(Mask & (1u << uint32(shaderInput->type)), "Layout type for {} does not match given type", Name(name));
+
+        const bool isByteAddressBuffer = (shaderInput->bufferType == GpuBufferType::ByteAddressBuffer
+            || shaderInput->bufferType == GpuBufferType::RWByteAddressBuffer);
+
+        if (bufferStride == ByteAddressBufferStride)
+        {
+            AssertDebug(isByteAddressBuffer);
+        }
 
         if (ref != nullptr)
         {
@@ -238,15 +248,9 @@ DescriptorSetElement& DescriptorSetBase::SetElementT(StringHash name, uint32 ind
             const GpuBufferType bufferType = ref->GetBufferType();
 
             AssertDebug(
-                (ElementTypeToBufferType[uint32(layoutElement->type)] & (1u << uint32(bufferType))),
+                (ElementTypeToBufferType[uint32(shaderInput->type)] & (1u << uint32(bufferType))),
                 "Buffer type {} is not in the allowed types for element {}",
                 EnumToString(bufferType), Name(name));
-
-            if (bufferType != GpuBufferType::ByteAddressBuffer
-                && bufferType != GpuBufferType::RWByteAddressBuffer)
-            {
-                AssertDebug(bufferStride != 0);
-            }
         }
     }
     else if constexpr (std::is_base_of_v<GpuImageViewBase, T>)
@@ -254,19 +258,19 @@ DescriptorSetElement& DescriptorSetBase::SetElementT(StringHash name, uint32 ind
         static constexpr uint32 Mask = (1u << uint32(ShaderInputType::SRV))
             | (1u << uint32(ShaderInputType::UAV));
 
-        AssertDebug(Mask & (1u << uint32(layoutElement->type)), "Layout type for {} does not match given type", Name(name));
+        AssertDebug(Mask & (1u << uint32(shaderInput->type)), "Layout type for {} does not match given type", Name(name));
     }
     else if constexpr (std::is_base_of_v<SamplerBase, T>)
     {
         static constexpr uint32 Mask = (1u << uint32(ShaderInputType::Sampler));
 
-        AssertDebug(Mask & (1u << uint32(layoutElement->type)), "Layout type for {} does not match given type", Name(name));
+        AssertDebug(Mask & (1u << uint32(shaderInput->type)), "Layout type for {} does not match given type", Name(name));
     }
     else if constexpr (std::is_base_of_v<GpuTlasBase, T>)
     {
         static constexpr uint32 Mask = (1u << uint32(ShaderInputType::SRV));
 
-        AssertDebug(Mask & (1u << uint32(layoutElement->type)), "Layout type for {} does not match given type", Name(name));
+        AssertDebug(Mask & (1u << uint32(shaderInput->type)), "Layout type for {} does not match given type", Name(name));
     }
     else
     {
@@ -368,9 +372,11 @@ void DescriptorSetBase::SetElement(StringHash name, GpuTlas* ref)
 
 void DescriptorSetBase::DeleteElement(StringHash name, uint32 index)
 {
-    const DescriptorSetLayoutElement* layoutElement = m_layout.GetElement(name);
+    const ShaderInputWithBinding* layoutElement = m_layout.GetElement(name);
     Assert(layoutElement != nullptr);
-    Assert(layoutElement->IsBindless(), "Can only call DeleteElement() for bindless descriptors");
+
+    // ~0u count == bindless
+    Assert(layoutElement->count == ~0u, "Can only call DeleteElement() for bindless descriptors");
 
     DescriptorSetElement* element = nullptr;
 
