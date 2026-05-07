@@ -61,7 +61,7 @@ DeletionQueueElem<Handle<ObjectBase>>::DeletionQueueElem(ObjectBase* ptr)
     }
 }
 
-DeletionQueueElem<Handle<ObjectBase>>::~DeletionQueueElem()
+void DeletionQueueElem<Handle<ObjectBase>>::DestroyObject()
 {
     // call destructor if no more strong references
     if (ptr)

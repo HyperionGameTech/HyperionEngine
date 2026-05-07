@@ -61,7 +61,14 @@ void ManagedObject::Reset()
 {
     if (IsValid() && m_keepAlive.Get(MemoryOrder::ACQUIRE))
     {
-        Assert(SetKeepAlive(false), "Failed to set keep alive to false!");
+        const bool keepAliveDidSucceed = SetKeepAlive(false);
+
+        const DotNETHost& dnh = DotNETHost::GetInstance();
+
+        if (dnh.IsInitialized() && !dnh.IsShuttingDown())
+        {
+            AssertDebug(keepAliveDidSucceed, "Failed to set keep alive to false!");
+        }
     }
 
     m_managedClass.Reset();

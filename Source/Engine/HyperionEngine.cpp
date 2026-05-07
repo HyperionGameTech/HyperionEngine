@@ -58,6 +58,8 @@
 
 #include <scene/ComponentInterface.hpp>
 
+#include <ui/UIDataSource.hpp> // For UIElementFactoryRegistry
+
 #include <audio/AudioManager.hpp>
 
 #if HYP_VULKAN
@@ -427,7 +429,7 @@ extern "C"
         {
             windowFlags |= WindowFlags::HEADLESS;
         }
-        
+
         if (cliArgs["HighDPI"].ToBool())
         {
             windowFlags |= WindowFlags::HIGH_DPI;
@@ -506,11 +508,11 @@ extern "C"
 
         Assert(g_engineDriver != nullptr, "Hyperion not initialized!");
 
+        g_engineDriver->RequestStop();
+
 #if HYP_DOTNET
         DotNETHost::GetInstance().Shutdown();
 #endif // HYP_DOTNET
-
-        g_engineDriver->RequestStop();
 
         g_mainThreadInstance->Stop();
 
@@ -524,6 +526,8 @@ extern "C"
 
         g_streamingManager->Stop();
         g_streamingManager.Reset();
+
+        ClearAssetRegistryStack();
 
         GetEngineAssetRegistry()->Shutdown();
         SetEngineAssetRegistry(Handle<AssetRegistry>::Null());
@@ -545,6 +549,8 @@ extern "C"
         g_appContext.Reset();
 
         ComponentInterfaceRegistry::GetInstance().Shutdown();
+
+        UIElementFactoryRegistry::GetInstance().Shutdown();
 
         if (TaskSystem::GetInstance().IsRunning())
         {
@@ -736,7 +742,7 @@ extern "C"
             return;
         }
 
-        pGame->GetObjectHeader_Internal()->DecRefStrong();
+        pGame->Release();
     }
 
     HYP_EXPORT void Hyp_MainThreadUpdate()

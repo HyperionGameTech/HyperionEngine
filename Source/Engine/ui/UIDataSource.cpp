@@ -132,6 +132,11 @@ void UIElementFactoryRegistry::RegisterFactory(TypeId typeId, Handle<UIElementFa
     m_elementFactories.Set(typeId, FactoryInstance { makeFactoryFunction, nullptr });
 }
 
+void UIElementFactoryRegistry::Shutdown()
+{
+    m_elementFactories.Clear();
+}
+
 #pragma endregion UIElementFactoryRegistry
 
 #pragma region UIElementFactoryRegistrationBase

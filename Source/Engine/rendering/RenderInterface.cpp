@@ -837,6 +837,9 @@ void RenderInterface::Shutdown()
     PoolDelete(*g_renderPool, scratchImageAllocator);
     scratchImageAllocator = nullptr;
 
+    PoolDelete(*g_renderPool, descriptorSetCache);
+    descriptorSetCache = nullptr;
+
     PoolDelete(*g_renderPool, gpuBufferHolders);
     gpuBufferHolders = nullptr;
 

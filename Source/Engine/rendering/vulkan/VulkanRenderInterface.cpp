@@ -244,8 +244,8 @@ public:
 
     void OnFrameStart();
 
-    RendererResult Create(VulkanDevice* device);
-    RendererResult Destroy(VulkanDevice* device);
+    void Initialize(VulkanDevice* device);
+    void Shutdown(VulkanDevice* device);
 
     RendererResult CreateDescriptorSet(
         VulkanDevice* device,
@@ -305,14 +305,16 @@ void VulkanDescriptorSetManager::OnFrameStart()
     }
 }
 
-RendererResult VulkanDescriptorSetManager::Create(VulkanDevice* device)
+void VulkanDescriptorSetManager::Initialize(VulkanDevice* device)
 {
-    return {};
 }
 
-RendererResult VulkanDescriptorSetManager::Destroy(VulkanDevice* device)
+void VulkanDescriptorSetManager::Shutdown(VulkanDevice* device)
 {
-    RendererResult result {};
+    for (auto& pair : m_vkDescriptorSetLayouts)
+    {
+        DestroyVkDescriptorSetLayout(device, pair.second);
+    }
 
     m_vkDescriptorSetLayouts.Clear();
 
@@ -332,8 +334,6 @@ RendererResult VulkanDescriptorSetManager::Destroy(VulkanDevice* device)
     }
 
     m_pools.Clear();
-
-    return result;
 }
 
 VkDescriptorPool VulkanDescriptorSetManager::GetDescriptorPool(
@@ -686,7 +686,7 @@ RendererResult VulkanRenderInterface::Initialize()
         deviceFeatures.IsRayTracingSupported(),
         deviceFeatures.SupportsDynamicDescriptorIndexing());
 
-    CheckResultOrReturn(m_descriptorSetManager->Create(m_instance->GetDevice()));
+    m_descriptorSetManager->Initialize(m_instance->GetDevice());
 
     const VkDeviceSize minUniformBufferOffsetAlignment = RI.GetDevice()->GetFeatures()
         .GetPhysicalDeviceProperties().limits.minUniformBufferOffsetAlignment;
@@ -737,6 +737,10 @@ void VulkanRenderInterface::Shutdown()
     m_asyncComputePool.Clear();
     m_submittedAsyncComputes.Clear();
 
+    RenderInterface::Shutdown();
+    
+    m_recycledTransientCommandBufferFences.Clear();
+
     for (uint32 frameIndex = 0; frameIndex < NumFramesInFlight; frameIndex++)
     {
         m_transientCommandBufferFences[frameIndex].Clear();
@@ -748,11 +752,9 @@ void VulkanRenderInterface::Shutdown()
         }
     }
 
-    RenderInterface::Shutdown();
-
     DeletionQueue::GetInstance().Shutdown();
     
-    m_descriptorSetManager->Destroy(m_instance->GetDevice());
+    m_descriptorSetManager->Shutdown(m_instance->GetDevice());
 
     PoolDelete(*g_vulkanPool, m_instance);
     m_instance = nullptr;

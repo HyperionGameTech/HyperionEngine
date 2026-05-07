@@ -58,8 +58,18 @@ static Handle<AssetRegistry> s_engineAssetRegistry;
 static Handle<AssetRegistry> s_editorAssetRegistry;
 #endif // HYP_EDITOR
 
-static Mutex s_currentAssetRegistryMtx;
-static Array<Handle<AssetRegistry>> s_currentAssetRegistryStack;
+
+static Mutex& GetCurrentAssetRegistryMutex()
+{
+    static Mutex s_mutex;
+    return s_mutex;
+}
+
+static Array<Handle<AssetRegistry>>& GetAssetRegistryStack()
+{
+    static Array<Handle<AssetRegistry>> s_stack;
+    return s_stack;
+}
 
 HYP_API Handle<AssetRegistry> GetCurrentAssetRegistry()
 {
@@ -71,26 +81,50 @@ HYP_API Handle<AssetRegistry> GetCurrentAssetRegistry()
         return ctx->registry;
     }
 
-    Mutex::Guard guard(s_currentAssetRegistryMtx);
+    Mutex::Guard guard(GetCurrentAssetRegistryMutex());
 
-    if (s_currentAssetRegistryStack.Any())
+    Array<Handle<AssetRegistry>>& stack = GetAssetRegistryStack();
+
+    if (stack.Any())
     {
-        return s_currentAssetRegistryStack.Back();
+        return stack.Back();
     }
 
     return Handle<AssetRegistry>::Null();
 }
 
-HYP_API void PushCurrentAssetRegistry(const Handle<AssetRegistry>& registry)
+HYP_API void PushAssetRegistry(const Handle<AssetRegistry>& registry)
 {
-    Mutex::Guard guard(s_currentAssetRegistryMtx);
-    s_currentAssetRegistryStack.PushBack(registry);
+    Mutex::Guard guard(GetCurrentAssetRegistryMutex());
+    GetAssetRegistryStack().PushBack(registry);
 }
 
-HYP_API void PopCurrentAssetRegistry()
+HYP_API void PopAssetRegistry(const AssetRegistry* registry)
 {
-    Mutex::Guard guard(s_currentAssetRegistryMtx);
-    s_currentAssetRegistryStack.PopBack();
+    Mutex::Guard guard(GetCurrentAssetRegistryMutex());
+
+    // Iterate backwards to find the registry to pop.
+
+    Array<Handle<AssetRegistry>>& stack = GetAssetRegistryStack();
+
+    int index = int(stack.Size()) - 1;
+
+    while (index >= 0 && stack[index] != registry)
+    {
+        index--;
+    }
+
+    if (index >= 0)
+    {
+        stack.Erase(stack.Begin() + index);
+    }
+}
+
+HYP_API void ClearAssetRegistryStack()
+{
+    Mutex::Guard guard(GetCurrentAssetRegistryMutex());
+
+    GetAssetRegistryStack().Clear();
 }
 
 HYP_API Handle<AssetRegistry> GetEngineAssetRegistry()
@@ -104,7 +138,7 @@ HYP_API void SetEngineAssetRegistry(const Handle<AssetRegistry>& registry)
     {
         registry->LoadAssetDescs();
     }
-    
+
     s_engineAssetRegistry = registry;
 }
 
@@ -121,7 +155,7 @@ HYP_API void SetEditorAssetRegistry(const Handle<AssetRegistry>& registry)
     {
         registry->LoadAssetDescs();
     }
-    
+
     s_editorAssetRegistry = registry;
 }
 
@@ -296,10 +330,10 @@ public:
 
     AssetRegistryId registryId : 3;
     uint32 bucketIndex : 29;
-    
+
     AssetDescSet assetDescs;
     AssetObjectCache assetObjectCache;
-    
+
     TBitset<AssetAllocator> dirtyIndices;
     TBitset<AssetAllocator> usedIndices;
 
@@ -374,11 +408,11 @@ void AssetBucketData::SetAsset(
             AssertDebug(usedIndices.Test(assetObject->m_assetIndex) == true);
 
             usedIndices.Set(assetObject->m_assetIndex, false);
-            
+
             assetObject->m_assetIndex = assetDesc.index;
         }
     }
-        
+
     if (assetDesc.index == AssetDesc::InvalidIndex)
     {
         assetDesc.index = usedIndices.FirstZeroBitIndex();
@@ -399,7 +433,7 @@ void AssetBucketData::SetAsset(
         oldAssetObject->OnUnloaded();
         oldAssetObject->m_assetIndex = AssetDesc::InvalidIndex;
     }
-    
+
     assetObject->m_name = assetDesc.name;
     assetObject->m_assetIndex = assetDesc.index;
     assetObject->m_assetPath = AssetPath(registryId, *AssetBuckets::AllBuckets[bucketIndex], assetDesc.name);
@@ -700,9 +734,9 @@ void AssetRegistry::SetRootPath(const FilePath& rootPath)
             bucketData.dirtyIndices.Set(assetDesc.index, true);
         }
     }
-    
+
     // @TODO - Move blob storage data?
-    
+
 
     m_rootPath = rootPath;
 }
@@ -749,7 +783,7 @@ Handle<AssetObject> AssetRegistry::GetAsset(const AssetBucket& bucket, StringHas
 
         return Handle<AssetObject>::Null();
     }
-        
+
     Result loadResult = AssetObject::Load(manifestData, assetObject);
 
     if (loadResult.HasError())
@@ -860,7 +894,7 @@ void AssetRegistry::PutAsset(const AssetBucket& bucket, const Handle<AssetObject
     }
 
     AssetBucketData& data = m_assetBucketData[bucket.GetIndex()];
-    
+
     AssetDesc assetDesc;
     assetDesc.name = assetObject->m_name;
     assetDesc.index = AssetDesc::InvalidIndex;
@@ -1095,7 +1129,7 @@ void AssetRegistry::PutAssetsDeep(const Handle<AssetObject>& targetAsset)
         //         }
         //     }
         // }
-        
+
         const Class* cls = GetClass(current.GetTypeId());
 
         const BoxedValue* boxed = &current;
@@ -1384,7 +1418,7 @@ void AssetRegistry::SaveDirtyAssets()
                     if (!pAssetObject || !pAssetObject->IsValid() || (*pAssetObject)->IsTransient())
                     {
                         data.dirtyIndices.Set(index, false);
-                        
+
                         seenIndices.Set(index, true);
 
                         continue;
@@ -1406,7 +1440,7 @@ void AssetRegistry::SaveDirtyAssets()
 
                     seenIndices.Set(index, true);
                 }
-                
+
                 // mark this asset as no longer dirty so we don't keep looping over the same index.
                 data.dirtyIndices.Set(index, false);
             }
@@ -1549,7 +1583,7 @@ void AssetRegistry::InitBlobStorage(const FilePath& blobStorageDir)
 
     const uint64 s_blobStoragePageSize = CoreApi::GetGlobalConfig().Get("App.Cache.PageSize")
         .ToUInt64(/* defaultValue */ BlobStorage::DefaultPageSize);
-    
+
     m_blobStorage = new BlobStorage(blobStorageDir, s_blobStoragePageSize);
 }
 

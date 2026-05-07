@@ -279,7 +279,10 @@ Texture::~Texture()
 
     if (m_gpuImage.IsValid())
     {
-        RI.textureViewCache->RemoveTexture(this);
+        if (RI.textureViewCache != nullptr)
+        {
+            RI.textureViewCache->RemoveTexture(this);
+        }
 
         EnqueueDeletion(std::move(m_gpuImage));
     }

@@ -352,19 +352,21 @@ public:
             return;
         }
 
+        const size_t oldSize = m_size;
+
         if (newSize > m_allocation.GetCapacity())
         {
             // Extend the buffer's capacity to ensure we have room.
             SetCapacity(newSize);
         }
 
-        if (newSize > m_size && zeroize)
+        m_size = newSize;
+
+        if (m_size > oldSize && zeroize)
         {
             // Zero out the new bytes
-            m_allocation.InitZeroed(newSize - m_size, m_size);
+            m_allocation.InitZeroed(m_size - oldSize, oldSize);
         }
-
-        m_size = newSize;
     }
 
     /*! \brief Returns the current capacity of the ByteBuffer. The capacity is the amount of memory allocated for the ByteBuffer, which may be larger than the current size.
@@ -397,15 +399,12 @@ public:
             newAllocation.InitFromRangeMove(Data(), Data() + minCapacity);
         }
 
-        // Chop size off if it is larger than newCapacity.
-        if (newCapacity < m_size)
-        {
-            m_size = newCapacity;
-        }
-
         m_allocation.Free(GetAllocator());
 
         m_allocation = newAllocation;
+        
+        // Chop size off if it is larger than newCapacity.
+        m_size = newCapacity < m_size ? newCapacity : m_size;
 
         HYP_CORE_ASSERT(GetCapacity() >= newCapacity);
     }

@@ -389,7 +389,7 @@ void SpriteRenderer::RenderFrame(Frame* frame, const RenderSetup& renderSetup)
         cr << SetCurrentBlendFunction(BlendFunction::AlphaBlending());
         cr << SetDepthTest(true);
         cr << SetDepthWrite(true);
-        cr << SetFaceCullMode(FaceCullMode::FCM_NONE);
+        cr << SetFaceCullMode(FCM_BACK);
 
         cr << CommitDrawState();
 
@@ -494,7 +494,7 @@ void SpriteRenderer::RenderFrame(Frame* frame, const RenderSetup& renderSetup)
         cr << SetCurrentBlendFunction(BlendFunction::AlphaBlending());
         cr << SetDepthTest(true);
         cr << SetDepthWrite(true);
-        cr << SetFaceCullMode(FaceCullMode::FCM_NONE);
+        cr << SetFaceCullMode(FCM_BACK);
 
         cr << CommitDrawState();
 

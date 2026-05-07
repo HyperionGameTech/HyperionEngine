@@ -65,7 +65,7 @@ HYP_CLASS()
 class HYP_API AssetRegistry final : public ObjectBase
 {
     HYP_OBJECT_BODY(AssetRegistry);
-    
+
     AssetRegistry() = default;
 
 public:
@@ -91,7 +91,7 @@ public:
 
     HYP_METHOD()
     void SetRootPath(const FilePath& rootPath);
-    
+
     /// Begin new assetbucket based stuff
     Handle<AssetObject> GetAsset(const AssetBucket& bucket, StringHash name);
 
@@ -192,8 +192,10 @@ struct AssetLoadingContext
 
 HYP_API Handle<AssetRegistry> GetCurrentAssetRegistry();
 
-HYP_API void PushCurrentAssetRegistry(const Handle<AssetRegistry>& registry);
-HYP_API void PopCurrentAssetRegistry();
+HYP_API void PushAssetRegistry(const Handle<AssetRegistry>& registry);
+HYP_API void PopAssetRegistry(const AssetRegistry* registry);
+
+HYP_API void ClearAssetRegistryStack();
 
 HYP_API Handle<AssetRegistry> GetEngineAssetRegistry();
 HYP_API void SetEngineAssetRegistry(const Handle<AssetRegistry>& registry);

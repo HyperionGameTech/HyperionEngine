@@ -467,14 +467,17 @@ VulkanGpuTlas::~VulkanGpuTlas()
 
     m_blases.Clear();
 
-    for (auto& it : m_keyToBlasAndStorageId)
+    if (RI.bindlessStorage != nullptr)
     {
-        const uint32 storageId = it.second.second;
+        for (auto& it : m_keyToBlasAndStorageId)
+        {
+            const uint32 storageId = it.second.second;
 
-        RI.bindlessStorage->RemoveResource(BindlessStorage_Buffers, storageId * 2);       // VB
-        RI.bindlessStorage->RemoveResource(BindlessStorage_Buffers, storageId * 2 + 1);   // IB
+            RI.bindlessStorage->RemoveResource(BindlessStorage_Buffers, storageId * 2);     // VB
+            RI.bindlessStorage->RemoveResource(BindlessStorage_Buffers, storageId * 2 + 1); // IB
 
-        RI.bindlessStorage->ReleaseId(BindlessStorage_Buffers, storageId);
+            RI.bindlessStorage->ReleaseId(BindlessStorage_Buffers, storageId);
+        }
     }
 }
 

@@ -70,6 +70,8 @@ public:
 
     void RegisterFactory(TypeId typeId, Handle<UIElementFactoryBase> (*makeFactoryFunction)(void));
 
+    void Shutdown();
+
 private:
     TypeMap<FactoryInstance> m_elementFactories;
 };

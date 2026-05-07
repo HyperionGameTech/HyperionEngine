@@ -31,6 +31,11 @@ void RawBuffer::Shutdown()
 
     delete gpuBuffer;
     gpuBuffer = nullptr;
+
+    cpuBuffer.Clear();
+
+    dirtyRangeStart = SIZE_MAX;
+    dirtyRangeEnd = 0;
 }
 
 void RawBuffer::Write(size_t offset, size_t count, const void* data)
