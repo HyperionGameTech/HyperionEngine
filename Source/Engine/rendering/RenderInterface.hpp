@@ -352,10 +352,10 @@ public:
     virtual GpuTlasRef MakeTLAS() = 0;
 
     virtual void PopulateIndirectDrawCommandsBuffer(
-        const GpuBufferRef& vertexBuffer,
-        const GpuBufferRef& indexBuffer,
+        const GpuBuffer* vertexBuffer,
+        const GpuBuffer* indexBuffer,
         uint32 instanceOffset,
-        TByteBuffer<RenderAllocator>& outByteBuffer) = 0;
+        Array<IndirectDrawCommand, RHIAllocator>& outBuffer) = 0;
 
     virtual bool IsSupportedFormat(TextureFormat format, ImageSupport supportType) const = 0;
     virtual TextureFormat FindSupportedFormat(Span<TextureFormat> possibleFormats, ImageSupport supportType) const = 0;

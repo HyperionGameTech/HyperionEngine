@@ -451,6 +451,8 @@ D3D12_SHADER_RESOURCE_VIEW_DESC GetSRVDesc(DX12GpuBuffer* buffer, uint32 structu
     case GpuBufferType::StructuredBuffer: // fallthrough
     case GpuBufferType::RWStructuredBuffer:
     default:
+        Assert(structureStride != 0);
+
         desc.Buffer.NumElements = (numElements == UINT32_MAX) ? uint32(buffer->Size() / structureStride) : numElements;
         desc.Format = DXGI_FORMAT_UNKNOWN;
         desc.Buffer.Flags = D3D12_BUFFER_SRV_FLAG_NONE;

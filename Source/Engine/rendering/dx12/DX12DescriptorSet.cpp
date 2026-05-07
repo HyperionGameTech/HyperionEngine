@@ -538,8 +538,8 @@ void DX12DescriptorSet::Update(bool force)
                 if (buffer->GetBufferType() == GpuBufferType::StructuredBuffer
                     || buffer->GetBufferType() == GpuBufferType::RWStructuredBuffer)
                 {
-                    // allow zero so we can pass a StructuredBuffer where shaders expect a ByteAddressBuffer.
-                    AssertDebug(element->bufferStride != ~0u || element->bufferStride == ByteAddressBufferStride, "StructuredBuffer must have stride passed in!");
+                    // @NOTE: we allow zero so we can pass a StructuredBuffer where shaders expect a ByteAddressBuffer.
+                    AssertDebug(element->bufferStride != ~0u, "(RW)StructuredBuffer must have stride passed in!");
                 }
 
                 const uint32 structureStride = element->bufferStride != ~0u ? element->bufferStride : uint32(buffer->Size());
@@ -600,8 +600,8 @@ void DX12DescriptorSet::Update(bool force)
                 if (buffer->GetBufferType() == GpuBufferType::StructuredBuffer
                     || buffer->GetBufferType() == GpuBufferType::RWStructuredBuffer)
                 {
-                    // allow zero so we can pass a StructuredBuffer where shaders expect a ByteAddressBuffer.
-                    AssertDebug(element->bufferStride != ~0u || element->bufferStride == ByteAddressBufferStride, "StructuredBuffer must have stride passed in!");
+                    // @NOTE: we allow zero so we can pass a StructuredBuffer where shaders expect a ByteAddressBuffer.
+                    AssertDebug(element->bufferStride != ~0u, "(RW)StructuredBuffer must have stride passed in!");
                 }
 
                 const uint32 structureStride = element->bufferStride != ~0u ? element->bufferStride : uint32(buffer->Size());

@@ -52,11 +52,7 @@ struct VulkanSwapchainSupportDetails
     Array<VkPresentModeKHR> presentModes;
 };
 
-struct IndirectDrawCommand
-{
-    // native vk object
-    VkDrawIndexedIndirectCommand command;
-};
+using IndirectDrawCommand = VkDrawIndexedIndirectCommand;
 
 static_assert(std::is_standard_layout_v<IndirectDrawCommand>, "IndirectDrawCommand must be POD");
 static_assert(sizeof(IndirectDrawCommand) == 20, "Verify size of struct in shader");

@@ -119,13 +119,15 @@ static inline bool CreateOrResizeBuffer(
 
 static bool ResizeIndirectDrawCommandsBuffer(
     Frame* frame,
-    const TByteBuffer<RenderAllocator>& drawCommandsBuffer,
+    const Span<IndirectDrawCommand>& drawCommandsBuffer,
     GpuBufferRef& indirectBuffer,
     GpuBuffer* stagingBuffer)
 {
     CommandRecorder& cr = frame->cr;
 
-    const bool wasCreatedOrResized = CreateOrResizeBuffer(frame, indirectBuffer, drawCommandsBuffer.Size());
+    const size_t requiredSize = drawCommandsBuffer.Size() * sizeof(IndirectDrawCommand);
+
+    const bool wasCreatedOrResized = CreateOrResizeBuffer(frame, indirectBuffer, requiredSize);
 
     if (!wasCreatedOrResized)
     {
@@ -161,7 +163,7 @@ static bool ResizeIfNeeded(
     FixedArray<GpuBufferRef, NumFramesInFlight>& instanceBuffers,
     FixedArray<GpuBufferRef, NumFramesInFlight>& stagingBuffers,
     uint32 numObjectInstances,
-    const TByteBuffer<RenderAllocator>& drawCommandsBuffer,
+    const Span<IndirectDrawCommand>& drawCommandsBuffer,
     uint8 dirtyBits)
 {
     bool resizeHappened = false;
@@ -205,7 +207,7 @@ void IndirectDrawState::Create()
     HYP_SCOPE;
     AssertOnThread(g_renderThread);
 
-    TByteBuffer<RenderAllocator> drawCommandsBuffer;
+    Array<IndirectDrawCommand, RHIAllocator> drawCommandsBuffer;
     RI.PopulateIndirectDrawCommandsBuffer(GpuBufferRef::Null(), GpuBufferRef::Null(), 0, drawCommandsBuffer);
 
     for (uint32 frameIndex = 0; frameIndex < NumFramesInFlight; frameIndex++)
@@ -217,7 +219,7 @@ void IndirectDrawState::Create()
 #endif
         CheckResult(m_instanceBuffers[frameIndex]->Create());
 
-        m_indirectBuffers[frameIndex] = RI.MakeGpuBuffer(GpuBufferType::IndirectArgsBuffer, drawCommandsBuffer.Size());
+        m_indirectBuffers[frameIndex] = RI.MakeGpuBuffer(GpuBufferType::IndirectArgsBuffer, drawCommandsBuffer.ByteSize());
 #if HYP_DEBUG_MODE
         m_indirectBuffers[frameIndex]->SetDebugName(NAME_FMT("IndirectDraw_IndirectBuffer_Frame{}", frameIndex));
 #endif
@@ -226,7 +228,7 @@ void IndirectDrawState::Create()
 
         if (!m_indirectBuffers[frameIndex]->IsCpuAccessible())
         {
-            m_stagingBuffers[frameIndex] = RI.MakeGpuBuffer(GpuBufferType::StagingBuffer, drawCommandsBuffer.Size());
+            m_stagingBuffers[frameIndex] = RI.MakeGpuBuffer(GpuBufferType::StagingBuffer, drawCommandsBuffer.ByteSize());
 #if HYP_DEBUG_MODE
             m_stagingBuffers[frameIndex]->SetDebugName(NAME_FMT("IndirectDraw_StagingBuffer_Frame{}", frameIndex));
 #endif
@@ -297,8 +299,8 @@ void IndirectDrawState::ResetDrawState()
 
     m_objectInstances.Clear();
 
-    // use SetSize() to keep the memory allocated
-    m_drawCommandsBuffer.SetSize(0);
+    // use Resize() to keep the memory allocated
+    m_drawCommandsBuffer.Resize(0);
 
     m_dirtyBits = AllBitsDirty;
 }
@@ -340,9 +342,9 @@ void IndirectDrawState::UpdateBufferData(Frame* frame, bool* outWasResized)
         GpuBuffer* stagingBuffer = m_stagingBuffers[frameIndex];
 
         Assert(stagingBuffer != nullptr);
-        Assert(stagingBuffer->Size() >= m_drawCommandsBuffer.Size());
+        Assert(stagingBuffer->Size() >= m_drawCommandsBuffer.ByteSize());
 
-        stagingBuffer->Copy(m_drawCommandsBuffer.Size(), m_drawCommandsBuffer.Data());
+        stagingBuffer->Copy(m_drawCommandsBuffer.ByteSize(), m_drawCommandsBuffer.Data());
 
         cr << InsertBarrier(stagingBuffer, RS_COPY_SRC);
         cr << InsertBarrier(indirectBuffer, RS_COPY_DST);

@@ -241,6 +241,12 @@ DescriptorSetElement& DescriptorSetBase::SetElementT(StringHash name, uint32 ind
                 (ElementTypeToBufferType[uint32(layoutElement->type)] & (1u << uint32(bufferType))),
                 "Buffer type {} is not in the allowed types for element {}",
                 EnumToString(bufferType), Name(name));
+
+            if (bufferType != GpuBufferType::ByteAddressBuffer
+                && bufferType != GpuBufferType::RWByteAddressBuffer)
+            {
+                AssertDebug(bufferStride != 0);
+            }
         }
     }
     else if constexpr (std::is_base_of_v<GpuImageViewBase, T>)

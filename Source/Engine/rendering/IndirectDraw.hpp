@@ -81,7 +81,7 @@ public:
 
 private:
     Array<ObjectInstance, RenderAllocator> m_objectInstances;
-    TByteBuffer<RenderAllocator> m_drawCommandsBuffer;
+    Array<IndirectDrawCommand, RHIAllocator> m_drawCommandsBuffer;
 
     FixedArray<GpuBufferRef, NumFramesInFlight> m_indirectBuffers;
     FixedArray<GpuBufferRef, NumFramesInFlight> m_instanceBuffers;

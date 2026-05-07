@@ -83,7 +83,9 @@ public:
 
         bindlessTextures = renderBackend->GetDevice()->GetFeatures().SupportsBindlessTextures();
         rayTracing = renderBackend->GetDevice()->GetFeatures().IsRayTracingSupported();
+#ifndef HYP_ANDROID
         indirectRendering = GetEngineConfig().Get("Rendering.IndirectRendering").ToBool(/* defaultValue */ true);
+#endif
         parallelRendering = GetEngineConfig().Get("Rendering.ParallelCollection").ToBool(/* defaultValue */ true);
         timelineSemaphores = GetEngineConfig().Get("Rendering.Vulkan.TimelineSemaphores").ToBool(/* defaultValue */ false);
         dynamicDescriptorIndexing = renderBackend->GetDevice()->GetFeatures().SupportsDynamicDescriptorIndexing();
@@ -1232,28 +1234,30 @@ VulkanGpuTlasRef VulkanRenderInterface::MakeTLAS()
 }
 
 void VulkanRenderInterface::PopulateIndirectDrawCommandsBuffer(
-    const VulkanGpuBufferRef& vertexBuffer,
-    const VulkanGpuBufferRef& indexBuffer,
+    const VulkanGpuBuffer* vertexBuffer,
+    const VulkanGpuBuffer* indexBuffer,
     uint32 instanceOffset,
-    TByteBuffer<RenderAllocator>& outByteBuffer)
+    Array<VkDrawIndexedIndirectCommand, VulkanAllocator>& outBuffer)
 {
-    const size_t requiredSize = (size_t(instanceOffset) + 1) * sizeof(VkDrawIndexedIndirectCommand);
+    const size_t requiredSize = (size_t(instanceOffset) + 1);
 
-    if (outByteBuffer.Size() < requiredSize)
+    if (outBuffer.Size() < requiredSize)
     {
-        outByteBuffer.SetSize(requiredSize);
+        outBuffer.ResizeUninitialized(requiredSize);
     }
 
     uint32 numIndices = 0;
 
-    if (indexBuffer.IsValid())
+    if (indexBuffer != nullptr)
     {
         numIndices = indexBuffer->Size() / sizeof(uint32);
     }
 
-    VkDrawIndexedIndirectCommand* commandPtr = reinterpret_cast<VkDrawIndexedIndirectCommand*>(outByteBuffer.Data()) + instanceOffset;
-    *commandPtr = VkDrawIndexedIndirectCommand {};
-    commandPtr->indexCount = numIndices;
+    VkDrawIndexedIndirectCommand& command = outBuffer[instanceOffset];
+    command = VkDrawIndexedIndirectCommand {};
+    command.indexCount = numIndices;
+    command.vertexOffset = 0;
+    command.firstInstance = 0;
 }
 
 bool VulkanRenderInterface::IsSupportedFormat(TextureFormat format, ImageSupport supportType) const

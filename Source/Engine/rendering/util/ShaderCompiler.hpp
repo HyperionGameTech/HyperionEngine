@@ -380,6 +380,9 @@ struct ShaderInput
     HYP_FIELD(Property = "IsDynamic", Serialize = true)
     bool isDynamic = false;
 
+    HYP_FIELD(Property = "BufferType", Serialize = true)
+    GpuBufferType bufferType = GpuBufferType::NONE;
+
     HYP_FIELD(Property = "StructInfo", Serialize = true)
     ShaderStruct structInfo;
 
@@ -401,6 +404,7 @@ struct ShaderInput
         hc.Add(count);
         hc.Add(size);
         hc.Add(isDynamic);
+        hc.Add(bufferType);
         hc.Add(structInfo);
         hc.Add(index);
 
@@ -443,12 +447,12 @@ struct ShaderInputSet
 
     ~ShaderInputSet() = default;
 
-    HYP_FORCE_INLINE void AddDescriptorDeclaration(ShaderInput decl)
+    void Add(ShaderInput shaderInput)
     {
-        AssertDebug(decl.slot != ShaderRegister::NONE && uint8(decl.slot) < NumDescriptorSlots);
+        AssertDebug(shaderInput.slot != ShaderRegister::NONE && uint8(shaderInput.slot) < NumDescriptorSlots);
 
-        decl.index = uint32(slots[uint8(decl.slot) - 1].Size());
-        slots[uint8(decl.slot) - 1].PushBack(std::move(decl));
+        shaderInput.index = uint32(slots[uint8(shaderInput.slot) - 1].Size());
+        slots[uint8(shaderInput.slot) - 1].PushBack(std::move(shaderInput));
     }
 
     /*! \brief Calculate a flat index for a Descriptor that is part of this set.
@@ -467,9 +471,9 @@ struct ShaderInputSet
 
         for (const auto& slot : slots)
         {
-            for (const auto& decl : slot)
+            for (const ShaderInput& shaderInput : slot)
             {
-                hc.Add(decl.GetHashCode());
+                hc.Add(shaderInput.GetHashCode());
             }
         }
 

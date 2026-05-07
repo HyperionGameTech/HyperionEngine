@@ -55,7 +55,7 @@ struct VulkanDynamicFunctions
     HYP_DECL_FN(vkCmdTraceRaysKHR);
     HYP_DECL_FN(vkGetRayTracingShaderGroupHandlesKHR);
     HYP_DECL_FN(vkCreateRayTracingPipelinesKHR);
-    
+
     // timeline semaphores
     HYP_DECL_FN(vkSignalSemaphore);
     HYP_DECL_FN(vkWaitSemaphores);
@@ -153,9 +153,14 @@ public:
         uint32 numIndices,
         const Handle<MaterialInstance>& material,
         const Mat4f& transform) override;
+
     VulkanGpuTlasRef MakeTLAS() override;
 
-    void PopulateIndirectDrawCommandsBuffer(const VulkanGpuBufferRef& vertexBuffer, const VulkanGpuBufferRef& indexBuffer, uint32 instanceOffset, TByteBuffer<RenderAllocator>& outByteBuffer) override;
+    void PopulateIndirectDrawCommandsBuffer(
+        const VulkanGpuBuffer* vertexBuffer,
+        const VulkanGpuBuffer* indexBuffer,
+        uint32 instanceOffset,
+        Array<VkDrawIndexedIndirectCommand, VulkanAllocator>& outBuffer) override;
 
     bool IsSupportedFormat(TextureFormat format, ImageSupport supportType) const override;
     TextureFormat FindSupportedFormat(Span<TextureFormat> possibleFormats, ImageSupport supportType) const override;

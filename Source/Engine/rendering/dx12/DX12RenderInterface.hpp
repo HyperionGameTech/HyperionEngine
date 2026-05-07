@@ -134,7 +134,11 @@ public:
         const Mat4f& transform) override;
     DX12GpuTlasRef MakeTLAS() override;
 
-    void PopulateIndirectDrawCommandsBuffer(const DX12GpuBufferRef& vertexBuffer, const DX12GpuBufferRef& indexBuffer, uint32 instanceOffset, TByteBuffer<RenderAllocator>& outByteBuffer) override;
+    void PopulateIndirectDrawCommandsBuffer(
+        const DX12GpuBuffer* vertexBuffer,
+        const DX12GpuBuffer* indexBuffer,
+        uint32 instanceOffset,
+        Array<D3D12_DRAW_INDEXED_ARGUMENTS, DX12Allocator>& outBuffer) override;
 
     bool IsSupportedFormat(TextureFormat format, ImageSupport supportType) const override;
     TextureFormat FindSupportedFormat(Span<TextureFormat> possibleFormats, ImageSupport supportType) const override;

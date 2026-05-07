@@ -8,6 +8,6 @@
     }
   },
   "Logging": {
-    "Verbose": false
+    "Verbose": true
   }
 }

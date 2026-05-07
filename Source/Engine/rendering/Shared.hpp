@@ -28,6 +28,12 @@
 
 #include <util/EnumOptions.hpp>
 
+#ifdef HYP_VULKAN
+#include <rendering/vulkan/VulkanStructs.hpp>
+#elif defined(HYP_DX12)
+#include <rendering/dx12/DX12Structs.hpp>
+#endif
+
 namespace Hyperion {
 
 class ObjectBase;
@@ -778,7 +784,7 @@ struct BlendFunction
 
     constexpr BlendFunction(const BlendFunction& other) = default;
     BlendFunction& operator=(const BlendFunction& other) = default;
-    
+
     constexpr BlendFunction(BlendFunction&& other) noexcept = default;
     BlendFunction& operator=(BlendFunction&& other) noexcept = default;
 
@@ -1153,13 +1159,13 @@ struct SamplerDesc
 
     HYP_FIELD()
     TextureFilterMode minFilterMode;
-    
+
     HYP_FIELD()
     TextureFilterMode magFilterMode;
-    
+
     HYP_FIELD()
     TextureWrapMode wrapMode;
-    
+
     HYP_FIELD()
     SamplerCompareOp compareOp;
 
@@ -1352,9 +1358,9 @@ struct AttachmentDesc
     bool onlyDepth : 1;
     bool onlyStencil : 1;
     bool clearColorIsF16 : 1;
-    
+
     BlendFunction blendFunction;
-    
+
     union
     {
         Color clearColor;
@@ -2152,7 +2158,7 @@ public:
     }
 
     HYP_DEF_STL_BEGIN_END(m_props.Begin(), m_props.End());
-    
+
 private:
     HashCode RecalculateHashCode_Const() const
     {
@@ -2314,7 +2320,7 @@ extern ShaderPropertyId InternShaderProperty(const ShaderProperty& shaderPropert
 struct ShaderDesc
 {
     static constexpr uint32 MaxShaderProperties = 8;
-    
+
     Name name;
     ShaderPropertySet properties;
 
@@ -2393,7 +2399,7 @@ struct ShaderUniform
           type(other.type)
     {
     }
-    
+
     ShaderUniform(StringHash name, GpuBuffer* buffer)
         : name(name),
           buffer(buffer),

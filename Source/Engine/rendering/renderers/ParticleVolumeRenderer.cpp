@@ -100,16 +100,16 @@ void ParticleVolumeRenderer::EnsureStaging()
 
     if (!m_staging.zeroIndirectArgs)
     {
-        TByteBuffer<RenderAllocator> indirectDrawCommandsBuffer;
+        Array<IndirectDrawCommand, RHIAllocator> indirectDrawCommandsBuffer;
         RI.PopulateIndirectDrawCommandsBuffer(
             m_staging.quadMesh->GetVertexBuffer(),
             m_staging.quadMesh->GetIndexBuffer(),
             0, indirectDrawCommandsBuffer);
 
-        m_staging.zeroIndirectArgs = RI.MakeGpuBuffer(GpuBufferType::StagingBuffer, indirectDrawCommandsBuffer.Size());
+        m_staging.zeroIndirectArgs = RI.MakeGpuBuffer(GpuBufferType::StagingBuffer, indirectDrawCommandsBuffer.ByteSize());
         CheckResult(m_staging.zeroIndirectArgs->Create());
 
-        m_staging.zeroIndirectArgs->Copy(indirectDrawCommandsBuffer.Size(), indirectDrawCommandsBuffer.Data());
+        m_staging.zeroIndirectArgs->Copy(indirectDrawCommandsBuffer.ByteSize(), indirectDrawCommandsBuffer.Data());
     }
 }
 

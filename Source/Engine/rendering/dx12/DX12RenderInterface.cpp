@@ -60,9 +60,9 @@ public:
     {
         bindlessTextures = false;
         rayTracing = false;
-        indirectRendering = false;
-        parallelRendering = false;
-        dynamicDescriptorIndexing = false;
+        indirectRendering = GetEngineConfig().Get("Rendering.IndirectRendering").ToBool(/* defaultValue */ true);
+        parallelRendering = GetEngineConfig().Get("Rendering.ParallelCollection").ToBool(/* defaultValue */ true);
+        dynamicDescriptorIndexing = true;
     }
 
     void InitializeBindless(DX12RenderInterface* renderInterface)
@@ -75,7 +75,6 @@ public:
         if (SUCCEEDED(hr))
         {
             //bindlessTextures = (options.ResourceBindingTier >= D3D12_RESOURCE_BINDING_TIER_3);
-            dynamicDescriptorIndexing = (options.ResourceBindingTier >= D3D12_RESOURCE_BINDING_TIER_2);
         }
     }
 };
@@ -887,29 +886,33 @@ DX12GpuTlasRef DX12RenderInterface::MakeTLAS()
     return MakeHandle<DX12GpuTlas>();
 }
 
-void DX12RenderInterface::PopulateIndirectDrawCommandsBuffer(const DX12GpuBufferRef& vertexBuffer, const DX12GpuBufferRef& indexBuffer, uint32 instanceOffset, TByteBuffer<RenderAllocator>& outByteBuffer)
+void DX12RenderInterface::PopulateIndirectDrawCommandsBuffer(
+    const DX12GpuBuffer* vertexBuffer,
+    const DX12GpuBuffer* indexBuffer,
+    uint32 instanceOffset,
+    Array<D3D12_DRAW_INDEXED_ARGUMENTS, DX12Allocator>& outBuffer)
 {
-    const size_t requiredSize = (size_t(instanceOffset) + 1) * sizeof(D3D12_DRAW_INDEXED_ARGUMENTS);
+    const size_t requiredSize = (size_t(instanceOffset) + 1);
 
-    if (outByteBuffer.Size() < requiredSize)
+    if (outBuffer.Size() < requiredSize)
     {
-        outByteBuffer.SetSize(requiredSize);
+        outBuffer.ResizeUninitialized(requiredSize);
     }
 
     uint32 numIndices = 0;
 
-    if (indexBuffer.IsValid())
+    if (indexBuffer != nullptr)
     {
         numIndices = uint32(indexBuffer->Size() / sizeof(uint32));
     }
 
-    D3D12_DRAW_INDEXED_ARGUMENTS* commandPtr = reinterpret_cast<D3D12_DRAW_INDEXED_ARGUMENTS*>(outByteBuffer.Data()) + instanceOffset;
-    *commandPtr = D3D12_DRAW_INDEXED_ARGUMENTS {};
-    commandPtr->IndexCountPerInstance = numIndices;
-    commandPtr->InstanceCount = 1;
-    commandPtr->StartIndexLocation = 0;
-    commandPtr->BaseVertexLocation = 0;
-    commandPtr->StartInstanceLocation = 0;
+    D3D12_DRAW_INDEXED_ARGUMENTS& command = outBuffer[instanceOffset];
+    command = D3D12_DRAW_INDEXED_ARGUMENTS {};
+    command.IndexCountPerInstance = numIndices;
+    command.InstanceCount = 1;
+    command.StartIndexLocation = 0;
+    command.BaseVertexLocation = 0;
+    command.StartInstanceLocation = 0;
 }
 
 bool DX12RenderInterface::IsSupportedFormat(TextureFormat format, ImageSupport supportType) const
