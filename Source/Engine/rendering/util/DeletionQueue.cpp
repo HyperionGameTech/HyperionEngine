@@ -298,7 +298,7 @@ int DeletionQueue::Iterate(int maxIter)
     return iterCount;
 }
 
-int DeletionQueue::ForceDeleteAll(uint32 bufferIndex)
+size_t DeletionQueue::ForceDeleteAll(uint32 bufferIndex)
 {
     HYP_SCOPE;
     AssertOnThread(g_renderThread);
@@ -307,29 +307,48 @@ int DeletionQueue::ForceDeleteAll(uint32 bufferIndex)
 
     auto& entryList = *m_entryLists[bufferIndex];
 
-    int iterCount = 0;
-
     AssertDebug(entryList.currHeaders == &entryList.headers[0]);
     AssertDebug(entryList.headers[1].Empty());
 
-    while (!entryList.headers[0].Empty())
-    {
-        EntryHeader header = entryList.headers[0].Front();
-        entryList.headers[0].PopFront();
+    size_t numTotalDestroyed = 0;
 
-        if (header.destructFn)
+    while (!entryList.currHeaders->Empty())
+    {
+        size_t currOffset = 0;
+        size_t currCount = entryList.currHeaders->Size();
+
+        auto& prevHeaders = *entryList.currHeaders;
+        EntryHeader* first = &(*entryList.currHeaders)[currOffset];
+
+        // swap before destroying anything.
+        entryList.SwapHeaderBuffers();
+
+        for (; currOffset < currCount; currOffset++)
         {
-            header.destructFn(reinterpret_cast<void*>(entryList.buffer.Data() + header.offset));
+            EntryHeader& header = *(first + currOffset);
+
+            if (header.destructFn)
+            {
+                // swap while we force destruct
+                header.destructFn(reinterpret_cast<void*>(entryList.buffer.Data() + header.offset));
+            }
         }
 
-        ++iterCount;
+        AssertDebug(prevHeaders.Size() == currOffset);
+
+        numTotalDestroyed += prevHeaders.Size();
+
+        prevHeaders.Clear();
     }
+
+    // Reset headers back to headers[0] after all are cleared
+    entryList.currHeaders = &entryList.headers[0];
 
     // clear buffer if all entries have been deleted
     entryList.buffer.Clear();
     entryList.bufferPos = 0;
 
-    return iterCount;
+    return numTotalDestroyed;
 }
 
 void DeletionQueue::UpdateCounter(uint32 bufferIndex)

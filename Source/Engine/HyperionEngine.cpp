@@ -449,17 +449,15 @@ extern "C"
 
             Handle<ApplicationWindow> window = g_appContext->CreateSystemWindow({ "Hyperion Engine", resolution, windowFlags });
 
-            DelegateHandler* onCloseHandle = new DelegateHandler();
-
-            *onCloseHandle = window->OnClose.Bind([onCloseHandle]()
+            window->OnClose
+                .Bind([]()
                 {
                     // shut down application on main window close.
                     Hyp_Shutdown();
 
-                    delete onCloseHandle;
-
                     std::exit(0);
-                });
+                })
+                .Detach();
 
             Assert(window.IsValid());
 
@@ -506,9 +504,11 @@ extern "C"
     {
         AssertOnThread(g_mainThread);
 
-        Assert(
-            g_engineDriver != nullptr,
-            "Hyperion not initialized!");
+        Assert(g_engineDriver != nullptr, "Hyperion not initialized!");
+
+#if HYP_DOTNET
+        DotNETHost::GetInstance().Shutdown();
+#endif // HYP_DOTNET
 
         g_engineDriver->RequestStop();
 
@@ -545,10 +545,6 @@ extern "C"
         g_appContext.Reset();
 
         ComponentInterfaceRegistry::GetInstance().Shutdown();
-
-#if HYP_DOTNET
-        DotNETHost::GetInstance().Shutdown();
-#endif // HYP_DOTNET
 
         if (TaskSystem::GetInstance().IsRunning())
         {

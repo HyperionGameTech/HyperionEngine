@@ -310,7 +310,7 @@ public:
     int Iterate(int maxIter = 1000);
 
     // returns number of entries that were deleted
-    int ForceDeleteAll(uint32 bufferIndex);
+    size_t ForceDeleteAll(uint32 bufferIndex);
     void Flush();
 
     // copy from temp entry list to sim thread / render thread queue
