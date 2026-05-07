@@ -55,6 +55,11 @@ struct VulkanDynamicFunctions
     HYP_DECL_FN(vkCmdTraceRaysKHR);
     HYP_DECL_FN(vkGetRayTracingShaderGroupHandlesKHR);
     HYP_DECL_FN(vkCreateRayTracingPipelinesKHR);
+    
+    // timeline semaphores
+    HYP_DECL_FN(vkSignalSemaphore);
+    HYP_DECL_FN(vkWaitSemaphores);
+    HYP_DECL_FN(vkGetSemaphoreCounterValue);
 
 #if HYP_DEBUG_MODE
     // debugging

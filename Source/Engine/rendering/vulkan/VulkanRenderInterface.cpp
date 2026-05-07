@@ -214,6 +214,10 @@ void VulkanDynamicFunctions::Load(VulkanDevice* device)
     HYP_LOAD_FN(vkCreateRayTracingPipelinesKHR);
 #endif
 
+    HYP_LOAD_FN(vkSignalSemaphore);
+    HYP_LOAD_FN(vkWaitSemaphores);
+    HYP_LOAD_FN(vkGetSemaphoreCounterValue);
+
 #if HYP_DEBUG_MODE
     // HYP_LOAD_FN(vkCmdDebugMarkerBeginEXT);
     // HYP_LOAD_FN(vkCmdDebugMarkerEndEXT);
@@ -738,7 +742,7 @@ void VulkanRenderInterface::Shutdown()
     m_submittedAsyncComputes.Clear();
 
     RenderInterface::Shutdown();
-    
+
     m_recycledTransientCommandBufferFences.Clear();
 
     for (uint32 frameIndex = 0; frameIndex < NumFramesInFlight; frameIndex++)
@@ -753,7 +757,7 @@ void VulkanRenderInterface::Shutdown()
     }
 
     DeletionQueue::GetInstance().Shutdown();
-    
+
     m_descriptorSetManager->Shutdown(m_instance->GetDevice());
 
     PoolDelete(*g_vulkanPool, m_instance);
