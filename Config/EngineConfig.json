@@ -12,7 +12,7 @@
     "HBIL": {
       "Enabled": false
     },
-    "SSGI": true,
+    "SSGI": false,
     "TAA": true,
     "PathTracing": false,
     "RayTracedReflections": false,
@@ -74,7 +74,7 @@
   },
   "System": {
     "SelectedGpu": {
-      "Index": 0
+      "Index": 1
     }
   },
   "Baker": {

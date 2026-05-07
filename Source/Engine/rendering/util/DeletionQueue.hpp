@@ -28,7 +28,12 @@
 #include <Core/memory/pool/Pool.hpp>
 
 #include <rendering/RenderResult.hpp>
+
 #include <type_traits>
+
+#ifdef HYP_DX12
+#include <wrl.h> // For Microsoft::WRL::ComPtr
+#endif // HYP_DX12
 
 namespace Hyperion {
 
@@ -111,6 +116,41 @@ private:
 
     T* ptr;
 };
+
+#ifdef HYP_DX12
+
+using Microsoft::WRL::ComPtr;
+
+template <class T>
+class DeletionQueueElem<ComPtr<T>>
+{
+public:
+    explicit DeletionQueueElem(ComPtr<T>&& ptr)
+        : ptr(ptr.Detach())
+    {
+    }
+
+    static void Destroy(void* ptr)
+    {
+        static_cast<DeletionQueueElem*>(ptr)->DestroyObject();
+    }
+
+private:
+    void DestroyObject()
+    {
+        if (!ptr)
+        {
+            return;
+        }
+
+        ptr->Release();
+        ptr = nullptr;
+    }
+
+    T* ptr;
+};
+
+#endif // HYP_DX12
 
 class HYP_API DeletionQueue
 {

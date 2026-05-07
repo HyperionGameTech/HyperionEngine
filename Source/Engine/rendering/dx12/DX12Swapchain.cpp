@@ -12,6 +12,8 @@
 #include <rendering/dx12/DX12Framebuffer.hpp>
 #include <rendering/dx12/DX12Helpers.hpp>
 
+#include <rendering/util/DeletionQueue.hpp>
+
 #include <DX12Swapchain.generated.inl>
 
 namespace Hyperion {
@@ -54,8 +56,8 @@ void DX12Swapchain::Destroy()
     m_backBuffers.Clear();
     m_rtvHandles.Clear();
 
-    // Release the swapchain itself so Create() can make a fresh one
     m_swapChain.Reset();
+
     m_currentBackBufferIndex = 0;
 
     if (m_flushEvent != nullptr)

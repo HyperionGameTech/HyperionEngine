@@ -28,7 +28,8 @@ DX12CommandBuffer::DX12CommandBuffer(D3D12_COMMAND_LIST_TYPE type)
       m_isRecording(false),
       m_boundGraphicsPipeline(nullptr),
       m_boundViewHeap(nullptr),
-      m_boundSamplerHeap(nullptr)
+      m_boundSamplerHeap(nullptr),
+      m_indirectCommandSignature(nullptr)
 {
 }
 
@@ -39,12 +40,14 @@ DX12CommandBuffer::DX12CommandBuffer(DX12CommandBuffer&& other) noexcept
       m_isRecording(other.m_isRecording),
       m_boundViewHeap(other.m_boundViewHeap),
       m_boundSamplerHeap(other.m_boundSamplerHeap),
-      m_boundGraphicsPipeline(other.m_boundGraphicsPipeline)
+      m_boundGraphicsPipeline(other.m_boundGraphicsPipeline),
+      m_indirectCommandSignature(other.m_indirectCommandSignature)
 {
     other.m_isRecording = false;
     other.m_boundViewHeap = nullptr;
     other.m_boundSamplerHeap = nullptr;
     other.m_boundGraphicsPipeline = nullptr;
+    other.m_indirectCommandSignature = nullptr;
 }
 
 DX12CommandBuffer& DX12CommandBuffer::operator=(DX12CommandBuffer&& other) noexcept
@@ -69,17 +72,25 @@ DX12CommandBuffer& DX12CommandBuffer::operator=(DX12CommandBuffer&& other) noexc
     m_boundViewHeap = other.m_boundViewHeap;
     m_boundSamplerHeap = other.m_boundSamplerHeap;
     m_boundGraphicsPipeline = other.m_boundGraphicsPipeline;
+    m_indirectCommandSignature = other.m_indirectCommandSignature;
 
     other.m_isRecording = false;
     other.m_boundViewHeap = nullptr;
     other.m_boundSamplerHeap = nullptr;
     other.m_boundGraphicsPipeline = nullptr;
+    other.m_indirectCommandSignature = nullptr;
 
     return *this;
 }
 
 DX12CommandBuffer::~DX12CommandBuffer()
 {
+    if (m_indirectCommandSignature != nullptr)
+    {
+        m_indirectCommandSignature->Release();
+        m_indirectCommandSignature = nullptr;
+    }
+
     if (m_commandList != nullptr)
     {
         m_commandList->Close();
@@ -225,10 +236,7 @@ void DX12CommandBuffer::BindIndexBuffer(const DX12GpuBuffer* buffer, GpuElemType
     m_commandList->IASetIndexBuffer(&ibView);
 }
 
-void DX12CommandBuffer::DrawIndexed(
-    uint32 numIndices,
-    uint32 numInstances,
-    uint32 instanceIndex) const
+void DX12CommandBuffer::DrawIndexed(uint32 numIndices, uint32 numInstances, uint32 instanceIndex) const
 {
     AssertDebug(m_boundGraphicsPipeline != nullptr);
 
@@ -240,15 +248,12 @@ void DX12CommandBuffer::DrawIndexed(
         instanceIndex);
 }
 
-void DX12CommandBuffer::DrawIndexedIndirect(
-    const DX12GpuBuffer* buffer,
-    uint32 bufferOffset) const
+void DX12CommandBuffer::DrawIndexedIndirect(const DX12GpuBuffer* buffer, uint32 bufferOffset) const
 {
     AssertDebug(m_boundGraphicsPipeline != nullptr);
+    AssertDebug(bufferOffset % 4 == 0);
 
-    static ID3D12CommandSignature* s_drawIndexedCommandSignature = nullptr;
-
-    if (s_drawIndexedCommandSignature == nullptr)
+    if (HYP_UNLIKELY(!m_indirectCommandSignature))
     {
         D3D12_INDIRECT_ARGUMENT_DESC argDesc {};
         argDesc.Type = D3D12_INDIRECT_ARGUMENT_TYPE_DRAW_INDEXED;
@@ -261,7 +266,8 @@ void DX12CommandBuffer::DrawIndexedIndirect(
         HRESULT hr = RI.GetDevice()->CreateCommandSignature(
             &sigDesc,
             nullptr,
-            IID_PPV_ARGS(&s_drawIndexedCommandSignature));
+            __uuidof(ID3D12CommandSignature),
+            (void**)&m_indirectCommandSignature);
 
         if (FAILED(hr))
         {
@@ -271,7 +277,7 @@ void DX12CommandBuffer::DrawIndexedIndirect(
     }
 
     m_commandList->ExecuteIndirect(
-        s_drawIndexedCommandSignature,
+        m_indirectCommandSignature,
         1,
         buffer->GetResource(),
         bufferOffset,

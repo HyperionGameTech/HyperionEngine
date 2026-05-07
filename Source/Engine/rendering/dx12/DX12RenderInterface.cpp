@@ -35,6 +35,10 @@
 
 #include <Core/logging/Logger.hpp>
 
+#include <Core/utilities/Optional.hpp>
+
+#include <engine/config/EngineConfig.hpp>
+
 #include <dxgi1_6.h>
 
 #pragma comment(lib, "d3d12.lib")
@@ -44,7 +48,7 @@ namespace Hyperion {
 
 HYP_DECLARE_LOG_CHANNEL(RenderingBackend);
 
-#define HYP_DX12_ENABLE_DEBUG_LAYER
+// #define HYP_DX12_ENABLE_DEBUG_LAYER
 // #define HYP_DX12_ENABLE_DRED
 
 #pragma region DX12RenderConfig
@@ -101,7 +105,8 @@ public:
 #pragma region DX12RenderInterface
 
 DX12RenderInterface::DX12RenderInterface()
-    : m_allocator(nullptr),
+    : descriptorHeapManager(nullptr),
+      m_allocator(nullptr),
       m_frameFenceEvent(nullptr),
       m_frameFenceIndex(0)
 {
@@ -115,12 +120,11 @@ DX12RenderInterface::DX12RenderInterface()
 
 DX12RenderInterface::~DX12RenderInterface()
 {
-    PoolDelete(*g_renderPool, descriptorHeapManager);
 }
 
 RendererResult DX12RenderInterface::Initialize()
 {
-    HYP_LOG(RenderingBackend, Info, "Initializing DX12 render backend...");
+    HYP_LOG(RenderingBackend, Info, "Initializing DX12 render backend");
 
     descriptorHeapManager = PoolNew<DX12DescriptorHeapManager>(*g_renderPool);
     m_renderConfig = MakePimpl<DX12RenderConfig>();
@@ -135,16 +139,25 @@ RendererResult DX12RenderInterface::Initialize()
     if (!SUCCEEDED(res))
         return HYP_MAKE_ERROR(RendererError, "Failed to create DXGI Factory", res);
 
-    ComPtr<IDXGIFactory6> factory6;
+    EngineConfig& cfg = GetEngineConfig();
+    cfg.Load();
 
+    const ConfigValue& cfgSelectedGpuIndex = cfg.Get("System.SelectedGpu.Index");
+
+    bool gpuSelected = false;
+    int targetGpuIndex = -1;
+
+    if (cfgSelectedGpuIndex.IsNumber())
+    {
+        targetGpuIndex = cfgSelectedGpuIndex.ToInt32();
+    }
+
+    ComPtr<IDXGIFactory6> factory6;
     if (SUCCEEDED(dxgiFactory.As(&factory6)))
     {
-        for (UINT i = 0;
-             SUCCEEDED(factory6->EnumAdapterByGpuPreference(
-                 i,
-                 DXGI_GPU_PREFERENCE_HIGH_PERFORMANCE,
-                 IID_PPV_ARGS(&m_hardwareAdapter)));
-             ++i)
+        UINT validAdapterIndex = 0;
+
+        for (UINT i = 0; SUCCEEDED(factory6->EnumAdapters1(i, &m_hardwareAdapter)); ++i)
         {
             DXGI_ADAPTER_DESC1 desc;
             m_hardwareAdapter->GetDesc1(&desc);
@@ -152,12 +165,47 @@ RendererResult DX12RenderInterface::Initialize()
             if (desc.Flags & DXGI_ADAPTER_FLAG_SOFTWARE)
                 continue;
 
-            if (SUCCEEDED(D3D12CreateDevice(m_hardwareAdapter.Get(),  D3D_FEATURE_LEVEL_12_0, __uuidof(ID3D12Device), nullptr)))
-                break;
+            if (SUCCEEDED(D3D12CreateDevice(m_hardwareAdapter.Get(), D3D_FEATURE_LEVEL_12_0, __uuidof(ID3D12Device), nullptr)))
+            {
+                bool selectThisAdapter = false;
+
+                if (validAdapterIndex == targetGpuIndex)
+                {
+                    selectThisAdapter = true;
+                }
+                else if (targetGpuIndex < 0 && !gpuSelected)
+                {
+                    selectThisAdapter = true;
+                }
+
+                if (selectThisAdapter)
+                {
+                    HYP_LOG(RenderingBackend, Info, "Selected GPU index {}: {}", validAdapterIndex, WideString(desc.Description));
+
+                    if (targetGpuIndex < 0)
+                    {
+                        cfg.Set("System.SelectedGpu.Index", JSON::Number(validAdapterIndex));
+
+                        if (!cfg.Save())
+                        {
+                           HYP_LOG(RenderingBackend, Warning, "Failed to save GPU selection config");
+                        }
+                    }
+
+                    gpuSelected = true;
+                }
+
+                if (gpuSelected)
+                    break;
+
+                validAdapterIndex++;
+            }
         }
     }
     else
     {
+        UINT validAdapterIndex = 0;
+
         for (UINT i = 0; SUCCEEDED(dxgiFactory->EnumAdapters1(i, &m_hardwareAdapter)); ++i)
         {
             DXGI_ADAPTER_DESC1 desc;
@@ -167,8 +215,46 @@ RendererResult DX12RenderInterface::Initialize()
                 continue;
 
             if (SUCCEEDED(D3D12CreateDevice(m_hardwareAdapter.Get(), D3D_FEATURE_LEVEL_12_0, __uuidof(ID3D12Device), nullptr)))
-                break;
+            {
+                bool selectThisAdapter = false;
+
+                if (validAdapterIndex == targetGpuIndex)
+                {
+                    selectThisAdapter = true;
+                }
+                else if (targetGpuIndex < 0 && !gpuSelected)
+                {
+                    selectThisAdapter = true;
+                }
+
+                if (selectThisAdapter)
+                {
+                    HYP_LOG(RenderingBackend, Info, "Selected GPU index {}: {}", validAdapterIndex, WideString(desc.Description));
+
+                    if (targetGpuIndex < 0)
+                    {
+                        cfg.Set("System.SelectedGpu.Index", JSON::Number(validAdapterIndex));
+                        if (!cfg.Save())
+                        {
+                            HYP_LOG(RenderingBackend, Warning, "Failed to save GPU selection config");
+                        }
+                    }
+
+                    gpuSelected = true;
+                }
+
+                if (gpuSelected)
+                    break;
+
+                validAdapterIndex++;
+            }
         }
+    }
+
+    if (!gpuSelected)
+    {
+        HYP_LOG(RenderingBackend, Error, "Failed to find a suitable GPU adapter");
+        return HYP_MAKE_ERROR(RendererError, "Failed to find suitable GPU", E_FAIL);
     }
 
 #ifdef HYP_DEBUG_MODE
@@ -325,8 +411,6 @@ void DX12RenderInterface::Shutdown()
 
     m_recycledTransientCommandBufferFences.Clear();
 
-    descriptorHeapManager->Shutdown();
-
     for (DX12CommandBufferRef& commandBuffer : m_commandBuffers)
     {
         commandBuffer.Reset();
@@ -351,8 +435,13 @@ void DX12RenderInterface::Shutdown()
 
     DeletionQueue::GetInstance().Shutdown();
 
+    descriptorHeapManager->Shutdown();
+    PoolDelete(*g_renderPool, descriptorHeapManager);
+
     m_allocator->Release();
     m_allocator = nullptr;
+
+    m_dredSettings.Reset();
 
     m_device.Reset();
     m_hardwareAdapter.Reset();
