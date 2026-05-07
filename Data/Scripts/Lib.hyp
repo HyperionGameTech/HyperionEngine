@@ -2292,13 +2292,6 @@ extern enum LightFlags : uint32
 end
 extern class EnvGrid : Entity
 end
-extern struct ShaderInputGroup
-    Elements : Array<ShaderInputSet>
-end
-extern enum ProcessShaderSourcePhase : uint32
-    BEFORE_PREPROCESS,
-    AFTER_PREPROCESS
-end
 extern struct ShaderInput
     Slot : ShaderRegister
     Type : ShaderInputType
@@ -2310,10 +2303,9 @@ extern struct ShaderInput
     Category : ShaderResourceCategory
     Index : uint32
 end
-extern enum ShaderInputSetFlags : uint8
-    None = 0x0,
-    Reference = 0x1,
-    Template = 0x2
+extern struct ShaderCompileParams
+    TargetPlatforms : ShaderCompileTargetPlatform
+    TargetBackends : ShaderCompileTargetBackend
 end
 extern struct ShaderInputSet
     SetIndex : uint32
@@ -2324,6 +2316,33 @@ end
 extern enum ShaderLanguage : uint32
     GLSL,
     HLSL
+end
+extern struct ShaderInputGroup
+    Elements : Array<ShaderInputSet>
+end
+extern enum ProcessShaderSourcePhase : uint32
+    BEFORE_PREPROCESS,
+    AFTER_PREPROCESS
+end
+extern enum ShaderCompileTargetPlatform : uint32
+    None = 0x00000000,
+    Windows = 0x00000001,
+    Mac = 0x00000002,
+    Linux = 0x00000004,
+    Android = 0x00000008,
+    iOS = 0x00000010,
+    AllPlatforms = ((((Windows | Mac) | Linux) | Android) | iOS)
+end
+extern enum ShaderCompileTargetBackend : uint32
+    None = 0x00000000,
+    Vulkan = 0x00000100,
+    DX12 = 0x00000200,
+    AllBackends = (Vulkan | DX12)
+end
+extern enum ShaderInputSetFlags : uint8
+    None = 0x0,
+    Reference = 0x1,
+    Template = 0x2
 end
 extern struct ShaderStruct
     Name : Name

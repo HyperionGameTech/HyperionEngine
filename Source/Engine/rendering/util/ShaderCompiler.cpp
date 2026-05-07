@@ -179,7 +179,7 @@ String GetShaderVersionFromSource(const String& source, String& outSourceWithout
     return "#version 450";
 }
 
-static String BuildDescriptorTableDefines(ShaderLanguage language, const ShaderInputGroup& inputGroup)
+static String BuildDescriptorTableDefines(ShaderLanguage language, const ShaderInputGroup& inputGroup, ShaderCompileTargetBackend targetBackend = ShaderCompileTargetBackend::Vulkan)
 {
     String descriptorTableDefines;
 
@@ -249,11 +249,10 @@ static String BuildDescriptorTableDefines(ShaderLanguage language, const ShaderI
                         HYP_UNREACHABLE();
                     }
 
-#if HYP_VULKAN
-                    const uint32 registerIndex = descriptorSetDeclarationPtr->CalculateFlatIndex(shaderInput.slot, shaderInput.name);
-#elif HYP_DX12
-                    const uint32 registerIndex = shaderInput.index;
-#endif
+
+                    const uint32 registerIndex = (targetBackend == ShaderCompileTargetBackend::DX12)
+                        ? shaderInput.index  // DX12: use explicit binding index
+                        : descriptorSetDeclarationPtr->CalculateFlatIndex(shaderInput.slot, shaderInput.name);  // Vulkan: use flattened index
 
                     descriptorTableDefines += HYP_FORMAT("#define _{}_{}_REGISTER {}{}",
                         descriptorSetDeclarationPtr->name, shaderInput.name,
@@ -361,9 +360,16 @@ static constexpr uint32 VK_API_VERSION_1_2 = 4202496;
 static constexpr uint32 HYP_VULKAN_API_VERSION = VK_API_VERSION_1_2;
 #endif // !HYP_VULKAN
 
-static const ShaderPropertyId s_propVulkan = InternShaderProperty(ShaderProperty(NAME("HYP_VULKAN"), int(HYP_VULKAN_API_VERSION)));
+// Target platform properties for cross-compilation
+static const ShaderPropertyId s_propTargetPlatformWindows = InternShaderProperty(ShaderProperty(NAME("HYP_TARGET_PLATFORM"), NAME("WINDOWS")));
+static const ShaderPropertyId s_propTargetPlatformMac = InternShaderProperty(ShaderProperty(NAME("HYP_TARGET_PLATFORM"), NAME("MAC")));
+static const ShaderPropertyId s_propTargetPlatformLinux = InternShaderProperty(ShaderProperty(NAME("HYP_TARGET_PLATFORM"), NAME("LINUX")));
+static const ShaderPropertyId s_propTargetPlatformAndroid = InternShaderProperty(ShaderProperty(NAME("HYP_TARGET_PLATFORM"), NAME("ANDROID")));
+static const ShaderPropertyId s_propTargetPlatformIOS = InternShaderProperty(ShaderProperty(NAME("HYP_TARGET_PLATFORM"), NAME("IOS")));
 
-static const ShaderPropertyId s_propDX12 = InternShaderProperty(ShaderProperty(NAME("HYP_DX12")));
+// Target backend properties for cross-compilation
+static const ShaderPropertyId s_propTargetBackendVulkan = InternShaderProperty(ShaderProperty(NAME("HYP_TARGET_BACKEND"), NAME("VULKAN")));
+static const ShaderPropertyId s_propTargetBackendDX12 = InternShaderProperty(ShaderProperty(NAME("HYP_TARGET_BACKEND"), NAME("DX12")));
 
 static const ShaderPropertyId s_propNumGBufferTextures = InternShaderProperty(ShaderProperty(NAME("NUM_GBUFFER_TEXTURES"), int(NumGBufferTargets)));
 
@@ -422,11 +428,23 @@ static bool AreShaderPropertyValuesEquivalent(const ShaderProperty::Value& a, co
 
 void MergeGlobalShaderProperties(ShaderPropertySet& out)
 {
-#if HYP_DX12
-    out.Add(s_propDX12);
-#elif HYP_VULKAN
-    out.Add(s_propVulkan);
+#ifdef HYP_DX12
+    out.Add(s_propTargetBackendDX12);
+#elif defined(HYP_VULKAN)
+    out.Add(s_propTargetBackendVulkan);
 #endif // HYP_DX12 || HYP_VULKAN
+
+#ifdef HYP_WINDOWS
+    out.Add(s_propTargetBackendWindows);
+#elif defined(HYP_MAC)
+    out.Add(s_propTargetBackendMac);
+#elif defined(HYP_LINUX)
+    out.Add(s_propTargetBackendLinux);
+#elif defined(HYP_ANDROID)
+    out.Add(s_propTargetBackendAndroid);
+#elif defined(HYP_IOS)
+    out.Add(s_propTargetBackendIOS);
+#endif // HYP_WINDOWS || HYP_MAC || HYP_LINUX || HYP_ANDROID || HYP_IOS
 
     out.Add(s_propNumGBufferTextures);
 
@@ -914,6 +932,7 @@ static ByteBuffer CompileGLSL(
     ShaderModuleType type,
     DescriptorUsageSet& descriptorUsages,
     String source, String filename,
+    ShaderCompileTargetBackend targetBackend,
     Array<String>& errorMessages)
 {
 #define GLSL_ERROR(level, errorMessage, ...)                             \
@@ -1021,7 +1040,7 @@ static ByteBuffer CompileGLSL(
     ShaderInputGroup inputGroup;
     descriptorUsages.BuildDescriptorTableDeclaration(inputGroup);
 
-    String preamble = BuildDescriptorTableDefines(ShaderLanguage::GLSL, inputGroup);
+    String preamble = BuildDescriptorTableDefines(ShaderLanguage::GLSL, inputGroup, targetBackend);
 
     glslang_shader_set_preamble(shader, preamble.Data());
 
@@ -1212,6 +1231,7 @@ static ByteBuffer CompileHLSL(
     DescriptorUsageSet& descriptorUsages,
     String source, String filename,
     const ShaderVariantPerms& perm,
+    ShaderCompileTargetBackend targetBackend,
     Array<String>& errorMessages)
 {
     Assert(s_dxcCompiler && s_dxcUtils);
@@ -1219,7 +1239,7 @@ static ByteBuffer CompileHLSL(
     ShaderInputGroup inputGroup;
     descriptorUsages.BuildDescriptorTableDeclaration(inputGroup);
 
-    String preamble = BuildDescriptorTableDefines(ShaderLanguage::HLSL, inputGroup)
+    String preamble = BuildDescriptorTableDefines(ShaderLanguage::HLSL, inputGroup, targetBackend)
         + "\n" + BuildAttributesDefines(ShaderLanguage::HLSL, perm);
 
     String fullSource = preamble + "\n" + source;
@@ -2263,8 +2283,11 @@ bool ShaderCompiler::LoadBundle(
     return HandleBundle(decl, shaderRequest, lastSavedTimestamp, outBundle);
 }
 
-bool ShaderCompiler::LoadShaderDefinitions(bool precompileShaders)
+bool ShaderCompiler::LoadShaderDefinitions(bool precompileShaders, const ShaderCompileParams& params)
 {
+    // Store the compile params for use during compilation
+    m_compileParams = params;
+
     if (!m_definitions || !m_definitions->IsValid())
     {
         if (m_definitions)
@@ -2309,6 +2332,8 @@ bool ShaderCompiler::LoadShaderDefinitions(bool precompileShaders)
     }
 
     HYP_LOG(ShaderCompiler, Verbose, "Precompiling shaders...");
+    HYP_LOG(ShaderCompiler, Info, "Target platforms: {:#010x}", uint32(params.targetPlatforms));
+    HYP_LOG(ShaderCompiler, Info, "Target backends: {:#010x}", uint32(params.targetBackends));
 
     PrecompileShadersWorkerPool pool;
     s_precompileShadersPool = &pool;
@@ -2358,15 +2383,35 @@ bool ShaderCompiler::LoadShaderDefinitions(bool precompileShaders)
 
 bool ShaderCompiler::CanCompileShaders() const
 {
+    return CanCompileShaders(m_compileParams);
+}
+
+bool ShaderCompiler::CanCompileShaders(const ShaderCompileParams& params) const
+{
 #if HYP_ANDROID || HYP_IOS
     return false;
 #endif
 
-#if HYP_GLSLANG || HYP_DXC
-    return true;
-#else
-    return false;
+    // Check if we can compile for any of the requested backends
+    const bool needsVulkan = params.ShouldCompileVulkan();
+    const bool needsDX12 = params.ShouldCompileDX12();
+
+#if HYP_GLSLANG
+    if (needsVulkan)
+    {
+        return true;
+    }
 #endif
+
+#if HYP_DXC
+    // DXC can compile HLSL for both Vulkan (SPIR-V) and DX12 (DXIL)
+    if (needsVulkan || needsDX12)
+    {
+        return true;
+    }
+#endif
+
+    return false;
 }
 
 // Hyperion-specific custom preprocessor directives
@@ -3384,6 +3429,41 @@ bool ShaderCompiler::CompileBundle(
 
     ShaderVariantPerms permsToCompile = declaredPerms;
 
+    // When precompiling, add target platform and backend as value groups
+    // to generate separate shader variants for each platform+backend combination
+    if (m_isPrecompilingShaders)
+    {
+        // Build value groups for target platforms
+        Array<ShaderProperty::Value> platformValues;
+        if (m_compileParams.targetPlatforms[ShaderCompileTargetPlatform::Windows])
+            platformValues.PushBack(ShaderProperty::Value(NAME("Windows")));
+        if (m_compileParams.targetPlatforms[ShaderCompileTargetPlatform::Mac])
+            platformValues.PushBack(ShaderProperty::Value(NAME("Mac")));
+        if (m_compileParams.targetPlatforms[ShaderCompileTargetPlatform::Linux])
+            platformValues.PushBack(ShaderProperty::Value(NAME("Linux")));
+        if (m_compileParams.targetPlatforms[ShaderCompileTargetPlatform::Android])
+            platformValues.PushBack(ShaderProperty::Value(NAME("Android")));
+        if (m_compileParams.targetPlatforms[ShaderCompileTargetPlatform::iOS])
+            platformValues.PushBack(ShaderProperty::Value(NAME("iOS")));
+
+        if (platformValues.Any())
+        {
+            declaredPerms.AddValueGroup(NAME("HYP_TARGET_PLATFORM"), platformValues);
+        }
+
+        // Build value groups for target backends
+        Array<ShaderProperty::Value> backendValues;
+        if (m_compileParams.targetBackends[ShaderCompileTargetBackend::Vulkan])
+            backendValues.PushBack(ShaderProperty::Value(NAME("Vulkan")));
+        if (m_compileParams.targetBackends[ShaderCompileTargetBackend::DX12])
+            backendValues.PushBack(ShaderProperty::Value(NAME("DX12")));
+
+        if (backendValues.Any())
+        {
+            declaredPerms.AddValueGroup(NAME("HYP_TARGET_BACKEND"), backendValues);
+        }
+    }
+
     for (const ShaderProperty& permProperty : decl.variantPerms.GetPropertySet())
     {
         MergeProperty(declaredPerms, permProperty);
@@ -3508,6 +3588,42 @@ bool ShaderCompiler::CompileBundle(
     }
 #endif
 
+    // Helper to extract target backend from permutation
+    auto GetTargetBackendFromPerm = [](const ShaderVariantPerms& perm) -> Optional<ShaderCompileTargetBackend>
+    {
+        auto backendIt = perm.Find(NAME("HYP_TARGET_BACKEND"));
+        if (backendIt != perm.End() && backendIt->HasValue())
+        {
+            const Name backendName = backendIt->currentValue.Get<Name>();
+            if (backendName == NAME("Vulkan"))
+                return ShaderCompileTargetBackend::Vulkan;
+            if (backendName == NAME("DX12"))
+                return ShaderCompileTargetBackend::DX12;
+        }
+        return {};
+    };
+
+    // Helper to extract target platform from permutation
+    auto GetTargetPlatformFromPerm = [](const ShaderVariantPerms& perm) -> Optional<ShaderCompileTargetPlatform>
+    {
+        auto platformIt = perm.Find(NAME("HYP_TARGET_PLATFORM"));
+        if (platformIt != perm.End() && platformIt->HasValue())
+        {
+            const Name platformName = platformIt->currentValue.Get<Name>();
+            if (platformName == NAME("Windows"))
+                return ShaderCompileTargetPlatform::Windows;
+            if (platformName == NAME("Mac"))
+                return ShaderCompileTargetPlatform::Mac;
+            if (platformName == NAME("Linux"))
+                return ShaderCompileTargetPlatform::Linux;
+            if (platformName == NAME("Android"))
+                return ShaderCompileTargetPlatform::Android;
+            if (platformName == NAME("iOS"))
+                return ShaderCompileTargetPlatform::iOS;
+        }
+        return {};
+    };
+
     // compile shader with each permutation of properties
     ForEachPermutation(
         permsToCompile,
@@ -3517,6 +3633,14 @@ bool ShaderCompiler::CompileBundle(
                 decl.name,
                 perm.ToString(),
                 perm.GetRequiredVertexAttributes().ToString());
+
+            // Get the target backend and platform for this specific permutation
+            const Optional<ShaderCompileTargetBackend> targetBackend = GetTargetBackendFromPerm(perm);
+            const Optional<ShaderCompileTargetPlatform> targetPlatform = GetTargetPlatformFromPerm(perm);
+
+            // Determine if we're compiling for Vulkan or DX12 for this specific variant
+            const bool isVulkan = targetBackend.HasValue() && targetBackend.Get() == ShaderCompileTargetBackend::Vulkan;
+            const bool isDX12 = targetBackend.HasValue() && targetBackend.Get() == ShaderCompileTargetBackend::DX12;
 
             HashCode permHashCode = perm.GetPropertySetHashCode();
             permHashCode.Add(perm.GetRequiredVertexAttributes().GetHashCode());
@@ -3669,17 +3793,31 @@ bool ShaderCompiler::CompileBundle(
                 if (item.language == ShaderLanguage::GLSL)
                 {
 #if HYP_GLSLANG
-                    byteBuffer = CompileGLSL(
-                        item.type,
-                        descriptorUsageSetsMerged,
-                        processedSources[index],
-                        item.file,
-                        errorMessages);
+                    // Only compile GLSL if this specific variant targets Vulkan
+                    if (isVulkan)
+                    {
+                        byteBuffer = CompileGLSL(
+                            item.type,
+                            descriptorUsageSetsMerged,
+                            processedSources[index],
+                            item.file,
+                            ShaderCompileTargetBackend::Vulkan,  // GLSL always targets Vulkan
+                            errorMessages);
 
-                    if (errorMessages.Any())
+                        if (errorMessages.Any())
+                        {
+                            Mutex::Guard guard(errorMessagesMutex);
+                            outBundle->errorMessages.Concat(errorMessages);
+
+                            ++numErrored;
+
+                            continue;
+                        }
+                    }
+                    else
                     {
                         Mutex::Guard guard(errorMessagesMutex);
-                        outBundle->errorMessages.Concat(errorMessages);
+                        outBundle->errorMessages.EmplaceBack("Skipping GLSL compilation - this variant does not target Vulkan");
 
                         ++numErrored;
 
@@ -3699,12 +3837,28 @@ bool ShaderCompiler::CompileBundle(
                 {
 #if HYP_DXC
                     HLSLOutputType outputType = HLSLOutputType::SPIRV;
+                    ShaderCompileTargetBackend hlslTargetBackend = ShaderCompileTargetBackend::Vulkan;
 
-#if HYP_DX12
-                    outputType = HLSLOutputType::DXIL;
-#elif HYP_VULKAN
-                    outputType = HLSLOutputType::SPIRV;
-#endif
+                    // Use the specific variant's target backend to determine output type
+                    if (isDX12)
+                    {
+                        outputType = HLSLOutputType::DXIL;
+                        hlslTargetBackend = ShaderCompileTargetBackend::DX12;
+                    }
+                    else if (isVulkan)
+                    {
+                        outputType = HLSLOutputType::SPIRV;
+                        hlslTargetBackend = ShaderCompileTargetBackend::Vulkan;
+                    }
+                    else
+                    {
+                        Mutex::Guard guard(errorMessagesMutex);
+                        outBundle->errorMessages.EmplaceBack("Cannot determine HLSL output type - no target backend specified for this variant");
+
+                        ++numErrored;
+
+                        continue;
+                    }
 
                     byteBuffer = CompileHLSL(
                         item.type,
@@ -3713,6 +3867,7 @@ bool ShaderCompiler::CompileBundle(
                         processedSources[index],
                         item.file,
                         perm,
+                        hlslTargetBackend,
                         errorMessages);
 
                     if (errorMessages.Any())
