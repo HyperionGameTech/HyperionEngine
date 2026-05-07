@@ -512,6 +512,8 @@ protected:
     void UpdateProjectionMatrix();
     void UpdateViewProjectionMatrix();
 
+    void UpdateJitter();
+
     EnumFlags<CameraFlags> m_cameraFlags;
 
     HYP_FIELD(Property = "MatchWindowSizeRatio", Editor)

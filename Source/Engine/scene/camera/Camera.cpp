@@ -33,6 +33,7 @@
 
 #include <engine/EngineGlobals.hpp>
 #include <engine/EngineDriver.hpp>
+#include <engine/CVarManager.hpp>
 
 #include <Camera.generated.inl>
 
@@ -40,7 +41,7 @@ namespace Hyperion {
 
 static constexpr float CameraJitterScale = 0.25f;
 
-class Camera;
+extern CVar<bool> cvTAA;
 
 static NullInputHandler* GetNullInputHandler()
 {
@@ -122,8 +123,6 @@ void CameraController::SetInputHandler(const Handle<InputHandlerBase>& inputHand
 
 void CameraController::OnAdded(Camera* camera)
 {
-    HYP_SCOPE;
-
     m_camera = camera;
 
     OnAdded();
@@ -263,8 +262,6 @@ Camera::~Camera()
 
 void Camera::Init()
 {
-    HYP_SCOPE;
-
     Entity::Init();
 
     const Vec3f translation = GetWorldTranslation();
@@ -319,8 +316,6 @@ void Camera::Init()
 
 void Camera::SetCameraControllers(const Array<Handle<CameraController>>& cameraControllers)
 {
-    HYP_SCOPE;
-
     if (HasActiveCameraController())
     {
         if (const Handle<CameraController>& currentCameraController = GetCameraController())
@@ -366,8 +361,6 @@ void Camera::SetCameraControllers(const Array<Handle<CameraController>>& cameraC
 
 void Camera::AddCameraController(const Handle<CameraController>& cameraController, int index)
 {
-    HYP_SCOPE;
-
     if (!cameraController || cameraController->IsA<NullCameraController>())
     {
         return;
@@ -427,8 +420,6 @@ void Camera::AddCameraController(const Handle<CameraController>& cameraControlle
 
 bool Camera::RemoveCameraController(const Handle<CameraController>& cameraController)
 {
-    HYP_SCOPE;
-
     if (!cameraController || cameraController->IsA<NullCameraController>())
     {
         return false;
@@ -497,8 +488,6 @@ void Camera::OnTransformUpdated()
 
 void Camera::SetNextTranslation(const Vec3f& translation)
 {
-    HYP_SCOPE;
-
     m_nextTranslation = translation;
 
     if (HasActiveCameraController())
@@ -512,8 +501,6 @@ void Camera::SetNextTranslation(const Vec3f& translation)
 
 void Camera::SetDirection(const Vec3f& direction)
 {
-    HYP_SCOPE;
-
     m_direction = direction;
 
     if (HasActiveCameraController())
@@ -529,8 +516,6 @@ void Camera::SetDirection(const Vec3f& direction)
 
 void Camera::SetUpVector(const Vec3f& up)
 {
-    HYP_SCOPE;
-
     m_up = up;
 
     if (HasActiveCameraController())
@@ -546,8 +531,6 @@ void Camera::SetUpVector(const Vec3f& up)
 
 void Camera::Rotate(const Vec3f& axis, float radians)
 {
-    HYP_SCOPE;
-
     m_direction.Rotate(axis, radians);
     m_direction.Normalize();
 
@@ -556,8 +539,6 @@ void Camera::Rotate(const Vec3f& axis, float radians)
 
 void Camera::SetViewMatrix(const Mat4f& viewMat)
 {
-    HYP_SCOPE;
-
     m_prevViewProjMat = m_viewProjMat;
     m_viewMat = viewMat;
 
@@ -566,8 +547,6 @@ void Camera::SetViewMatrix(const Mat4f& viewMat)
 
 void Camera::SetProjectionMatrix(const Mat4f& projMat)
 {
-    HYP_SCOPE;
-
     m_projMat = projMat;
 
     UpdateViewProjectionMatrix();
@@ -575,8 +554,6 @@ void Camera::SetProjectionMatrix(const Mat4f& projMat)
 
 void Camera::SetViewProjectionMatrix(const Mat4f& viewMat, const Mat4f& projMat)
 {
-    HYP_SCOPE;
-
     m_prevViewProjMat = m_viewProjMat;
 
     m_viewMat = viewMat;
@@ -587,13 +564,20 @@ void Camera::SetViewProjectionMatrix(const Mat4f& viewMat, const Mat4f& projMat)
 
 void Camera::UpdateViewProjectionMatrix()
 {
-    HYP_SCOPE;
-
     m_viewProjMat = m_projMat * m_viewMat;
 
     m_frustum.SetFromViewProjectionMatrix(m_viewProjMat);
 
     SetNeedsRenderProxyUpdate();
+}
+
+void Camera::UpdateJitter()
+{
+    if (m_width > 0 && m_height > 0 && MathUtil::ApproxEqual(m_projMat[3][3], 0.0f))
+    {
+        Mat4f::Jitter(m_jitterFrameCounter++, uint32(MathUtil::Abs(m_width)), uint32(MathUtil::Abs(m_height)), m_jitter);
+        m_jitter *= CameraJitterScale;
+    }
 }
 
 Vec3f Camera::TransformScreenToNDC(const Vec2f& screen) const
@@ -649,7 +633,6 @@ void Camera::Update(float delta)
 {
     HYP_SCOPE;
     AssertOnThread(g_simThread | ThreadCategory::THREAD_CATEGORY_TASK);
-    AssertReady();
 
     if (HasActiveCameraController())
     {
@@ -683,8 +666,6 @@ void Camera::Update(float delta)
 
 void Camera::UpdateViewMatrix()
 {
-    HYP_SCOPE;
-
     m_prevViewProjMat = m_viewProjMat;
 
     if (HasActiveCameraController())
@@ -698,8 +679,6 @@ void Camera::UpdateViewMatrix()
 
 void Camera::UpdateProjectionMatrix()
 {
-    HYP_SCOPE;
-
     if (HasActiveCameraController())
     {
         if (const Handle<CameraController>& cameraController = GetCameraController())
@@ -711,8 +690,6 @@ void Camera::UpdateProjectionMatrix()
 
 void Camera::UpdateMatrices()
 {
-    HYP_SCOPE;
-
     m_prevViewProjMat = m_viewProjMat;
 
     if (HasActiveCameraController())
@@ -726,17 +703,18 @@ void Camera::UpdateMatrices()
 
     UpdateViewProjectionMatrix();
 
-    if (m_width > 0 && m_height > 0 && MathUtil::ApproxEqual(m_projMat[3][3], 0.0f))
+    if (cvTAA.Get())
     {
-        Mat4f::Jitter(m_jitterFrameCounter++, uint32(MathUtil::Abs(m_width)), uint32(MathUtil::Abs(m_height)), m_jitter);
-        m_jitter *= CameraJitterScale;
+        UpdateJitter();
+    }
+    else
+    {
+        m_jitter = Vec4f::Zero();
     }
 }
 
 void Camera::UpdateMouseLocked()
 {
-    HYP_SCOPE;
-
     bool shouldLockMouse = false;
 
     if (const Handle<CameraController>& cameraController = GetCameraController(); cameraController && !cameraController->IsA<NullCameraController>())

@@ -217,11 +217,6 @@ void SimThread::operator()()
     HypScript::GetInstance().Initialize();
 #endif
 
-    // create fallback world
-    //Handle<World> defaultWorld = MakeHandle<World>(NAME("DefaultWorld"), WorldFlags::NONE);
-    //InitObject(defaultWorld);
-    //g_engineDriver->SetDefaultWorld(defaultWorld);
-
     // Handle -SimulateOnMainThread
     if (m_id != g_mainThread)
     {

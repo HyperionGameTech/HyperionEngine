@@ -68,13 +68,6 @@ bool RenderThread::Start()
 
     AddOnExitCallback([](void)
         {
-            // Clear worlds before RI.Shutdown so View/GBuffer GPU resources
-            // are enqueued for deletion while the VMA allocator is still alive.
-            g_engineDriver->ClearWorldsForShutdown();
-        });
-
-    AddOnExitCallback([](void)
-        {
             RI.Shutdown();
         });
 

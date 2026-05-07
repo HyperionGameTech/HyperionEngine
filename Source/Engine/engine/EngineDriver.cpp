@@ -418,12 +418,13 @@ void EngineDriver::RequestStop()
 
 void EngineDriver::FinalizeStop()
 {
-    HYP_SCOPE;
     AssertOnThread(g_mainThread);
 
     Assert(AtomicAdd(&m_isShuttingDown, 0) >= 1);
 
     HYP_LOG(Engine, Info, "Stopping all engine processes");
+
+    m_worlds.Clear();
 
     if (m_scriptingService)
     {
@@ -457,16 +458,7 @@ void EngineDriver::FinalizeStop()
         SetGlobalNetRequestThread(nullptr);
     }
 
-    m_worlds.Clear();
-
     m_isShuttingDown = 0;
-}
-
-void EngineDriver::ClearWorldsForShutdown()
-{
-    HYP_SCOPE;
-
-    m_worlds.Clear();
 }
 
 void EngineDriver::UpdateSim(float delta)
