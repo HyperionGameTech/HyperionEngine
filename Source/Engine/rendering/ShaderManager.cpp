@@ -246,7 +246,7 @@ public:
                 }
             }
 
-            ThreadSleep(100); // sleep to try and pick up more tasks before we finish
+            ThreadSleep(10); // sleep to try and pick up more tasks before we finish
         }
     }
 

@@ -426,8 +426,23 @@ static bool AreShaderPropertyValuesEquivalent(const ShaderProperty::Value& a, co
     return false;
 }
 
+static void MergeGlobalShaderProperties(bool isPrecompilingShaders, ShaderPropertySet& out);
+
 void MergeGlobalShaderProperties(ShaderPropertySet& out)
 {
+    MergeGlobalShaderProperties(/* isPrecompilingShaders */ false, out);
+}
+
+static void MergeGlobalShaderProperties(bool isPrecompilingShaders, ShaderPropertySet& out)
+{
+    // Num GBuffer textures is always static
+    out.Add(s_propNumGBufferTextures);
+
+    if (isPrecompilingShaders)
+        return;
+
+    // Current platform + Graphics API
+
 #ifdef HYP_DX12
     out.Add(s_propTargetBackendDX12);
 #elif defined(HYP_VULKAN)
@@ -435,18 +450,16 @@ void MergeGlobalShaderProperties(ShaderPropertySet& out)
 #endif // HYP_DX12 || HYP_VULKAN
 
 #ifdef HYP_WINDOWS
-    out.Add(s_propTargetBackendWindows);
+    out.Add(s_propTargetPlatformWindows);
 #elif defined(HYP_MAC)
-    out.Add(s_propTargetBackendMac);
+    out.Add(s_propTargetPlatformMac);
 #elif defined(HYP_LINUX)
-    out.Add(s_propTargetBackendLinux);
+    out.Add(s_propTargetPlatformLinux);
 #elif defined(HYP_ANDROID)
-    out.Add(s_propTargetBackendAndroid);
+    out.Add(s_propTargetPlatformAndroid);
 #elif defined(HYP_IOS)
-    out.Add(s_propTargetBackendIOS);
+    out.Add(s_propTargetPlatformIOS);
 #endif // HYP_WINDOWS || HYP_MAC || HYP_LINUX || HYP_ANDROID || HYP_IOS
-
-    out.Add(s_propNumGBufferTextures);
 
     const EngineConfig& cfg = GetEngineConfig();
 
@@ -466,12 +479,12 @@ void MergeGlobalShaderProperties(ShaderPropertySet& out)
         out.Add(s_propDebugAO);
 }
 
-static void MergeGlobalShaderProperties(bool shouldCompileEntireBundle, ShaderVariantPerms& inOutPerm)
+static void MergeGlobalShaderProperties(bool isPrecompilingShaders, ShaderVariantPerms& inOutPerm)
 {
     ShaderPropertySet props;
-    MergeGlobalShaderProperties(props);
+    MergeGlobalShaderProperties(isPrecompilingShaders, props);
 
-    if (shouldCompileEntireBundle)
+    if (isPrecompilingShaders)
     {
         // if compiling the entire bundle (like with PrecompileShaders.exe),
         // we want to add some of these properties as a permutation, rather than as a static property.
@@ -2332,8 +2345,8 @@ bool ShaderCompiler::LoadShaderDefinitions(bool precompileShaders, const ShaderC
     }
 
     HYP_LOG(ShaderCompiler, Verbose, "Precompiling shaders...");
-    HYP_LOG(ShaderCompiler, Info, "Target platforms: {:#010x}", uint32(params.targetPlatforms));
-    HYP_LOG(ShaderCompiler, Info, "Target backends: {:#010x}", uint32(params.targetBackends));
+    HYP_LOG(ShaderCompiler, Info, "Target platforms: {}", uint32(params.targetPlatforms));
+    HYP_LOG(ShaderCompiler, Info, "Target backends: {}", uint32(params.targetBackends));
 
     PrecompileShadersWorkerPool pool;
     s_precompileShadersPool = &pool;
@@ -3429,38 +3442,77 @@ bool ShaderCompiler::CompileBundle(
 
     ShaderVariantPerms permsToCompile = declaredPerms;
 
-    // When precompiling, add target platform and backend as value groups
-    // to generate separate shader variants for each platform+backend combination
+    // For precompiling shaders, we allow targetting multiple platforms, not just the current (host) platform
     if (m_isPrecompilingShaders)
     {
-        // Build value groups for target platforms
         Array<ShaderProperty::Value> platformValues;
+
         if (m_compileParams.targetPlatforms[ShaderCompileTargetPlatform::Windows])
-            platformValues.PushBack(ShaderProperty::Value(NAME("Windows")));
+            platformValues.PushBack(ShaderProperty::Value(NAME("WINDOWS")));
+
         if (m_compileParams.targetPlatforms[ShaderCompileTargetPlatform::Mac])
-            platformValues.PushBack(ShaderProperty::Value(NAME("Mac")));
+            platformValues.PushBack(ShaderProperty::Value(NAME("MAC")));
+
         if (m_compileParams.targetPlatforms[ShaderCompileTargetPlatform::Linux])
-            platformValues.PushBack(ShaderProperty::Value(NAME("Linux")));
+            platformValues.PushBack(ShaderProperty::Value(NAME("LINUX")));
+
         if (m_compileParams.targetPlatforms[ShaderCompileTargetPlatform::Android])
-            platformValues.PushBack(ShaderProperty::Value(NAME("Android")));
+            platformValues.PushBack(ShaderProperty::Value(NAME("ANDROID")));
+
         if (m_compileParams.targetPlatforms[ShaderCompileTargetPlatform::iOS])
-            platformValues.PushBack(ShaderProperty::Value(NAME("iOS")));
+            platformValues.PushBack(ShaderProperty::Value(NAME("IOS")));
 
         if (platformValues.Any())
         {
             declaredPerms.AddValueGroup(NAME("HYP_TARGET_PLATFORM"), platformValues);
         }
 
-        // Build value groups for target backends
         Array<ShaderProperty::Value> backendValues;
+        
         if (m_compileParams.targetBackends[ShaderCompileTargetBackend::Vulkan])
-            backendValues.PushBack(ShaderProperty::Value(NAME("Vulkan")));
+            backendValues.PushBack(ShaderProperty::Value(NAME("VULKAN")));
+
         if (m_compileParams.targetBackends[ShaderCompileTargetBackend::DX12])
             backendValues.PushBack(ShaderProperty::Value(NAME("DX12")));
 
         if (backendValues.Any())
         {
             declaredPerms.AddValueGroup(NAME("HYP_TARGET_BACKEND"), backendValues);
+        }
+    }
+    else
+    {
+        // Only compile for the active platform/backend when not precompiling.
+
+        Name activePlatform;
+
+#if HYP_WINDOWS
+        activePlatform = NAME("WINDOWS");
+#elif HYP_MACOS
+        activePlatform = NAME("MAC");
+#elif HYP_LINUX
+        activePlatform = NAME("LINUX");
+#elif HYP_ANDROID
+        activePlatform = NAME("ANDROID");
+#elif HYP_IOS
+        activePlatform = NAME("IOS");
+#endif
+
+        if (activePlatform.IsValid())
+        {
+            declaredPerms.Set(ShaderProperty(NAME("HYP_TARGET_PLATFORM"), activePlatform));
+        }
+
+        Name activeBackend;
+#if HYP_VULKAN
+        activeBackend = NAME("VULKAN");
+#elif HYP_DX12
+        activeBackend = NAME("DX12");
+#endif
+
+        if (activeBackend.IsValid())
+        {
+            declaredPerms.Set(ShaderProperty(NAME("HYP_TARGET_BACKEND"), activeBackend));
         }
     }
 
@@ -3591,36 +3643,47 @@ bool ShaderCompiler::CompileBundle(
     // Helper to extract target backend from permutation
     auto GetTargetBackendFromPerm = [](const ShaderVariantPerms& perm) -> Optional<ShaderCompileTargetBackend>
     {
-        auto backendIt = perm.Find(NAME("HYP_TARGET_BACKEND"));
-        if (backendIt != perm.End() && backendIt->HasValue())
+        auto backendIt = perm.Find("HYP_TARGET_BACKEND"_sh);
+
+        if (backendIt != perm.End() && backendIt->HasValue() && backendIt->currentValue.Is<Name>())
         {
             const Name backendName = backendIt->currentValue.Get<Name>();
-            if (backendName == NAME("Vulkan"))
+
+            if (backendName == "VULKAN"_sh)
                 return ShaderCompileTargetBackend::Vulkan;
-            if (backendName == NAME("DX12"))
+
+            if (backendName == "DX12"_sh)
                 return ShaderCompileTargetBackend::DX12;
         }
+
         return {};
     };
 
     // Helper to extract target platform from permutation
     auto GetTargetPlatformFromPerm = [](const ShaderVariantPerms& perm) -> Optional<ShaderCompileTargetPlatform>
     {
-        auto platformIt = perm.Find(NAME("HYP_TARGET_PLATFORM"));
-        if (platformIt != perm.End() && platformIt->HasValue())
+        auto platformIt = perm.Find("HYP_TARGET_PLATFORM"_sh);
+
+        if (platformIt != perm.End() && platformIt->HasValue() && platformIt->currentValue.Is<Name>())
         {
             const Name platformName = platformIt->currentValue.Get<Name>();
-            if (platformName == NAME("Windows"))
+
+            if (platformName == "WINDOWS"_sh)
                 return ShaderCompileTargetPlatform::Windows;
-            if (platformName == NAME("Mac"))
+
+            if (platformName == "MAC"_sh)
                 return ShaderCompileTargetPlatform::Mac;
-            if (platformName == NAME("Linux"))
+
+            if (platformName == "LINUX"_sh)
                 return ShaderCompileTargetPlatform::Linux;
-            if (platformName == NAME("Android"))
+
+            if (platformName == "ANDROID"_sh)
                 return ShaderCompileTargetPlatform::Android;
-            if (platformName == NAME("iOS"))
+
+            if (platformName == "IOS"_sh)
                 return ShaderCompileTargetPlatform::iOS;
         }
+
         return {};
     };
 
@@ -3836,10 +3899,9 @@ bool ShaderCompiler::CompileBundle(
                 if (item.language == ShaderLanguage::HLSL)
                 {
 #if HYP_DXC
-                    HLSLOutputType outputType = HLSLOutputType::SPIRV;
-                    ShaderCompileTargetBackend hlslTargetBackend = ShaderCompileTargetBackend::Vulkan;
+                    HLSLOutputType outputType;
+                    ShaderCompileTargetBackend hlslTargetBackend;
 
-                    // Use the specific variant's target backend to determine output type
                     if (isDX12)
                     {
                         outputType = HLSLOutputType::DXIL;
@@ -3854,6 +3916,8 @@ bool ShaderCompiler::CompileBundle(
                     {
                         Mutex::Guard guard(errorMessagesMutex);
                         outBundle->errorMessages.EmplaceBack("Cannot determine HLSL output type - no target backend specified for this variant");
+
+                        HYP_BREAKPOINT;
 
                         ++numErrored;
 
@@ -3984,9 +4048,14 @@ bool ShaderCompiler::CompileBundle(
     {
         for (Handle<Shader>& shader : existingShadersToRemove)
         {
-            RI.graphicsPipelineCache->ExpirePipelinesForShader(shader);
-            RI.computePipelineCache->ExpirePipelinesForShader(shader);
-            RI.rayTracingPipelineCache->ExpirePipelinesForShader(shader);
+            // If we're using PrecompileShaders.exe, the pipeline caches will be null,
+            // so make sure we don't dereference them
+            if (!m_isPrecompilingShaders)
+            {
+                RI.graphicsPipelineCache->ExpirePipelinesForShader(shader);
+                RI.computePipelineCache->ExpirePipelinesForShader(shader);
+                RI.rayTracingPipelineCache->ExpirePipelinesForShader(shader);
+            }
 
             GetEngineAssetRegistry()->RemoveAsset(shader);
 
@@ -4069,7 +4138,7 @@ bool ShaderCompiler::RequestShader(
     Shader*& outShader)
 {
     ShaderPropertySet mergedProperties = properties;
-    MergeGlobalShaderProperties(mergedProperties);
+    MergeGlobalShaderProperties(/* isPrecompilingShaders */ false, mergedProperties);
 
     Handle<ShaderBundle> bundle;
 

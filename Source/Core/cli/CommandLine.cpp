@@ -123,8 +123,8 @@ TResult<CommandLineArgumentValue> CommandLineArguments::ParseArgumentValue(const
 
     if (!parseResult.ok)
     {
-        // If string, allow unquoted on parse error
-        if (type == CommandLineArgumentType::STRING)
+        // If string or enum, allow unquoted on parse error
+        if (type == CommandLineArgumentType::STRING || type == CommandLineArgumentType::ENUM)
         {
             return JSON::Value(JSON::JString(str));
         }
@@ -174,8 +174,6 @@ TResult<CommandLineArgumentValue> CommandLineArguments::ParseArgumentValue(const
         return JSON::Value(value.ToBool());
     case CommandLineArgumentType::ENUM:
     {
-        JSON::JString stringValue = value.ToString();
-
         const Array<String>* enumValues = definition.enumValues.TryGet();
 
         if (!enumValues)
@@ -183,16 +181,41 @@ TResult<CommandLineArgumentValue> CommandLineArguments::ParseArgumentValue(const
             return HYP_MAKE_ERROR(Error, "Internal error parsing enum argument");
         }
 
-        if (!enumValues->Contains(stringValue))
+        // For ALLOW_MULTIPLE, the value should be a comma-separated list
+        if (definition.flags[CommandLineArgumentFlags::ALLOW_MULTIPLE])
         {
-            return HYP_MAKE_ERROR(Error, "Not a valid value for argument");
+            Array<String> parts = value.ToString().Split(',');
+            JSON::JArray result;
+
+            for (String& part : parts)
+            {
+                part = part.Trimmed();
+
+                if (!enumValues->Contains(part))
+                {
+                    return HYP_MAKE_ERROR(Error, "Not a valid value for argument: {}", part);
+                }
+
+                result.PushBack(JSON::Value(part));
+            }
+
+            return JSON::Value(std::move(result));
         }
+        else
+        {
+            JSON::JString stringValue = value.ToString();
 
-        return JSON::Value(std::move(stringValue));
-    }
-    }
+            if (!enumValues->Contains(stringValue))
+            {
+                return HYP_MAKE_ERROR(Error, "Not a valid value for argument: {}", stringValue);
+            }
 
-    return HYP_MAKE_ERROR(Error, "Invalid argument");
+            return JSON::Value(std::move(stringValue));
+        }
+    }
+    default:
+        return HYP_MAKE_ERROR(Error, "Invalid argument: {}", value.ToString(/* representation */ true));
+    }
 }
 
 #pragma endregion CommandLineArguments
@@ -498,7 +521,7 @@ TResult<CommandLineArguments> CommandLineParser::Parse(ANSIStringView command, c
         }
         else
         {
-            return HYP_MAKE_ERROR(Error, "Invalid argument");
+            return HYP_MAKE_ERROR(Error, "Invalid argument: {}", arg);
         }
 
         auto it = m_definitions->Find(arg);

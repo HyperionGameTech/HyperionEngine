@@ -41,148 +41,101 @@ public:
         {
             s_initialized = true;
 
-            // Platform arguments
-            s_definitions.AddArgument({
-                .name = "windows",
-                .description = "Include Windows as a target platform",
-                .type = CommandLineArgumentType::Bool,
-                .category = "Platforms"
-            });
+            s_definitions.Add(
+                "platform",
+                "p",
+                "Target platforms to compile for (comma-separated: windows,mac,linux,android,ios)", // @TODO add 'all'
+                CommandLineArgumentFlags::ALLOW_MULTIPLE,
+                Array<String> { "windows", "mac", "linux", "android", "ios" },
+                JSON::Value("windows,mac,linux,android,ios"));
 
-            s_definitions.AddArgument({
-                .name = "mac",
-                .description = "Include macOS as a target platform",
-                .type = CommandLineArgumentType::Bool,
-                .category = "Platforms"
-            });
-
-            s_definitions.AddArgument({
-                .name = "linux",
-                .description = "Include Linux as a target platform",
-                .type = CommandLineArgumentType::Bool,
-                .category = "Platforms"
-            });
-
-            s_definitions.AddArgument({
-                .name = "android",
-                .description = "Include Android as a target platform",
-                .type = CommandLineArgumentType::Bool,
-                .category = "Platforms"
-            });
-
-            s_definitions.AddArgument({
-                .name = "ios",
-                .description = "Include iOS as a target platform",
-                .type = CommandLineArgumentType::Bool,
-                .category = "Platforms"
-            });
-
-            s_definitions.AddArgument({
-                .name = "all-platforms",
-                .description = "Include all platforms (Windows, Mac, Linux, Android, iOS)",
-                .type = CommandLineArgumentType::Bool,
-                .category = "Platforms"
-            });
-
-            // Backend arguments
-            s_definitions.AddArgument({
-                .name = "vulkan",
-                .description = "Compile shaders for Vulkan backend",
-                .type = CommandLineArgumentType::Bool,
-                .category = "Backends"
-            });
-
-            s_definitions.AddArgument({
-                .name = "dx12",
-                .description = "Compile shaders for DX12 backend",
-                .type = CommandLineArgumentType::Bool,
-                .category = "Backends"
-            });
-
-            s_definitions.AddArgument({
-                .name = "all-backends",
-                .description = "Compile shaders for all backends (Vulkan, DX12)",
-                .type = CommandLineArgumentType::Bool,
-                .category = "Backends"
-            });
+            s_definitions.Add(
+                "api",
+                "a",
+                "Target rendering backends to compile for (comma-separated: vulkan,dx12)", // @TODO add 'all'
+                CommandLineArgumentFlags::ALLOW_MULTIPLE,
+                Array<String> { "vulkan", "dx12" },
+                JSON::Value("vulkan,dx12"));
         }
 
         return s_definitions;
     }
 
 protected:
+    static Array<String> GetEnumValues(const CommandLineArgumentValue& value)
+    {
+        Array<String> result;
+
+        if (value.IsArray())
+        {
+            for (const JSON::Value& element : value.AsArray())
+            {
+                result.PushBack(element.ToString());
+            }
+        }
+        else if (value.IsString())
+        {
+            // Single value or comma-separated list
+            Array<String> parts = value.ToString().Split(',');
+            for (String& part : parts)
+            {
+                result.PushBack(part.Trimmed());
+            }
+        }
+
+        return result;
+    }
+
     static ShaderCompileParams ParseCompileParams(const CommandLineArguments& args)
     {
         ShaderCompileParams params;
 
-        // Parse platform flags
-        const bool allPlatforms = args.GetBool("all-platforms", false);
-        
-        if (allPlatforms)
+        // Parse platforms
+        Array<String> platforms = GetEnumValues(args["platform"]);
+        EnumFlags<ShaderCompileTargetPlatform> platformFlags = ShaderCompileTargetPlatform::None;
+
+        for (const String& platform : platforms)
+        {
+            if (platform == "windows")
+                platformFlags |= ShaderCompileTargetPlatform::Windows;
+            else if (platform == "mac")
+                platformFlags |= ShaderCompileTargetPlatform::Mac;
+            else if (platform == "linux")
+                platformFlags |= ShaderCompileTargetPlatform::Linux;
+            else if (platform == "android")
+                platformFlags |= ShaderCompileTargetPlatform::Android;
+            else if (platform == "ios")
+                platformFlags |= ShaderCompileTargetPlatform::iOS;
+        }
+
+        if (platformFlags != ShaderCompileTargetPlatform::None)
+        {
+            params.SetTargetPlatforms(platformFlags);
+        }
+        else
         {
             params.SetTargetPlatforms(ShaderCompileTargetPlatform::AllPlatforms);
         }
-        else
+
+        // Parse backends
+        Array<String> backends = GetEnumValues(args["backends"]);
+        EnumFlags<ShaderCompileTargetBackend> backendFlags = ShaderCompileTargetBackend::None;
+
+        for (const String& backend : backends)
         {
-            EnumFlags<ShaderCompileTargetPlatform> platforms = ShaderCompileTargetPlatform::None;
-
-            if (args.GetBool("windows", false))
-            {
-                platforms |= ShaderCompileTargetPlatform::Windows;
-            }
-            if (args.GetBool("mac", false))
-            {
-                platforms |= ShaderCompileTargetPlatform::Mac;
-            }
-            if (args.GetBool("linux", false))
-            {
-                platforms |= ShaderCompileTargetPlatform::Linux;
-            }
-            if (args.GetBool("android", false))
-            {
-                platforms |= ShaderCompileTargetPlatform::Android;
-            }
-            if (args.GetBool("ios", false))
-            {
-                platforms |= ShaderCompileTargetPlatform::iOS;
-            }
-
-            // If no platforms specified, default to all
-            if (platforms == ShaderCompileTargetPlatform::None)
-            {
-                platforms = ShaderCompileTargetPlatform::AllPlatforms;
-            }
-
-            params.SetTargetPlatforms(platforms);
+            if (backend == "vulkan")
+                backendFlags |= ShaderCompileTargetBackend::Vulkan;
+            else if (backend == "dx12")
+                backendFlags |= ShaderCompileTargetBackend::DX12;
         }
 
-        // Parse backend flags
-        const bool allBackends = args.GetBool("all-backends", false);
-        
-        if (allBackends)
+        if (backendFlags != ShaderCompileTargetBackend::None)
+        {
+            params.SetTargetBackends(backendFlags);
+        }
+        else
         {
             params.SetTargetBackends(ShaderCompileTargetBackend::AllBackends);
-        }
-        else
-        {
-            EnumFlags<ShaderCompileTargetBackend> backends = ShaderCompileTargetBackend::None;
-
-            if (args.GetBool("vulkan", false))
-            {
-                backends |= ShaderCompileTargetBackend::Vulkan;
-            }
-            if (args.GetBool("dx12", false))
-            {
-                backends |= ShaderCompileTargetBackend::DX12;
-            }
-
-            // If no backends specified, default to all
-            if (backends == ShaderCompileTargetBackend::None)
-            {
-                backends = ShaderCompileTargetBackend::AllBackends;
-            }
-
-            params.SetTargetBackends(backends);
         }
 
         return params;
@@ -206,15 +159,12 @@ protected:
             return HYP_MAKE_ERROR(Error, "ShaderCompiler is not initialized");
         }
 
-        // Parse compile parameters from command line
         const ShaderCompileParams params = ParseCompileParams(args);
 
-        // Log the targets we're compiling for
         HYP_LOG(Engine, Info, "Shader compilation targets:");
-        HYP_LOG(Engine, Info, "  Platforms: {:#010x}", uint32(params.targetPlatforms));
-        HYP_LOG(Engine, Info, "  Backends:  {:#010x}", uint32(params.targetBackends));
+        HYP_LOG(Engine, Info, "  Platforms: {}", uint32(params.targetPlatforms));
+        HYP_LOG(Engine, Info, "  Backends:  {}", uint32(params.targetBackends));
 
-        // Check if we can compile for the requested targets
         if (!g_shaderCompiler->CanCompileShaders(params))
         {
             HYP_LOG(Engine, Error, "Cannot compile shaders for the requested targets. "

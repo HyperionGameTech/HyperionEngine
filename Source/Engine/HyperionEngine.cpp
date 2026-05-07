@@ -417,7 +417,7 @@ extern "C"
         HYP_FAIL("AppContext not implemented for this platform");
 #endif // HYP_WINDOWS || HYP_MACOS || HYP_SDL || HYP_ANDROID
 
-        const bool isCommandlet = cliArgs["Commandlet"].ToBool();
+        const bool isCommandlet = cliArgs["exec"].ToBool();
 
         Vec2i resolution = { 1280, 720 };
 
@@ -472,14 +472,57 @@ extern "C"
 
         if (isCommandlet)
         {
-            const ANSIString commandletName = cliArgs["Commandlet"].ToString().ToAnsi();
+            const ANSIString commandletName = cliArgs["exec"].ToString().ToAnsi();
 
-            CommandLineArguments commandletArgs = CommandLineArguments::Merge(
-                CoreApi::DefaultCommandLineArgumentDefinitions(),
-                CommandLineArguments { commandletName },
-                cliArgs);
+            const Class* commandletClass = g_appContext->FindCommandletClass(commandletName);
 
-            commandletArgs.Delete("Commandlet");
+            if (!commandletClass)
+            {
+                HYP_LOG(Engine, Error, "Failed to find Commandlet class with name: {}", commandletName);
+
+                Hyp_Shutdown();
+
+                return 1;
+            }
+
+            String cliString;
+
+            for (int i = 1; i < argc; i++)
+            {
+                cliString += argv[i];
+                if (i != argc - 1)
+                {
+                    cliString += ' ';
+                }
+            }
+
+            CommandLineArgumentDefinitions argumentDefinitions {};
+
+            // check for static method GetArgumentDefinitions() on commandlet class to override.
+            if (const Method* m = commandletClass->GetMethod("GetArgumentDefinitions"_sh))
+            {
+                Span<BoxedValue*> args = { nullptr };
+
+                BoxedValue boxed = m->Invoke(args);
+                AssertDebug(boxed.Is<CommandLineArgumentDefinitions>());
+
+                if (boxed.Is<CommandLineArgumentDefinitions>())
+                {
+                    argumentDefinitions = boxed.Get<CommandLineArgumentDefinitions>();
+                }
+            }
+
+            CommandLineParser parser { &argumentDefinitions };
+            TResult<CommandLineArguments> parseResult = parser.Parse(cliString);
+
+            if (parseResult.HasError())
+            {
+                HYP_LOG(Engine, Error, "Failed to parse command line arguments: {}", parseResult.GetError().GetMessage());
+                return 1;
+            }
+
+            CommandLineArguments& commandletArgs = parseResult.GetValue();
+            commandletArgs.Delete("exec");
 
             Result commandletResult = g_appContext->RunCommandlet(commandletName, commandletArgs);
 
