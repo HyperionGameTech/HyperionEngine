@@ -69,7 +69,7 @@ public:
     const IRenderConfig& GetRenderConfig() const override;
 
     DX12Frame* GetCurrentFrame() const override;
-    
+
     DX12SwapchainRef CreateSwapchain(ApplicationWindow* window, const Vec2u& extent) override;
 
     void PrepareSwapchain(DX12Swapchain* swapchain) override;
@@ -138,7 +138,7 @@ public:
 
     bool IsSupportedFormat(TextureFormat format, ImageSupport supportType) const override;
     TextureFormat FindSupportedFormat(Span<TextureFormat> possibleFormats, ImageSupport supportType) const override;
-    
+
     HYP_NODISCARD DX12AsyncCompute* CreateAsyncCompute() override;
     void SubmitAsyncCompute(DX12AsyncCompute* asyncCompute) override;
 
@@ -147,7 +147,7 @@ public:
     void ReleaseTransientMemory() override;
 
     void BeginFrame(AtomicFlag* pCancelFlag) override;
-    
+
     ComPtr<IDXGIFactory4> dxgiFactory;
 
     DX12DescriptorHeapManager* descriptorHeapManager;
@@ -171,7 +171,7 @@ private:
     LinkedList<DX12Fence, RenderAllocator> m_transientCommandBufferFences[NumFramesInFlight];
     LinkedList<DX12Fence, RenderAllocator> m_recycledTransientCommandBufferFences;
     Mutex m_transientCommandBuffersMutex;
-    
+
     ComPtr<IDXGIAdapter1> m_hardwareAdapter;
 
     ComPtr<ID3D12Device> m_device;

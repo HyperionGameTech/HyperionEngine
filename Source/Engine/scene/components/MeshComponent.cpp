@@ -86,9 +86,14 @@ MeshComponent& MeshComponent::operator=(MeshComponent&& other) noexcept
 
 MeshComponent::~MeshComponent()
 {
-    EnqueueDeletion(std::move(mesh));
-    EnqueueDeletion(std::move(material));
-    EnqueueDeletion(std::move(skeleton));
+    if (mesh.IsValid())
+        EnqueueDeletion(std::move(mesh));
+
+    if (material.IsValid())
+        EnqueueDeletion(std::move(material));
+
+    if (skeleton.IsValid())
+        EnqueueDeletion(std::move(skeleton));
 }
 
 } // namespace Hyperion

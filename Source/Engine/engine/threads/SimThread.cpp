@@ -73,7 +73,7 @@ struct LaunchGameAsync
         if (!gameInstance->m_isLaunched.Get(MemoryOrder::RELAXED))
         {
             gameInstance->Initialize();
-            
+
             gameInstance->OnLaunch();
             gameInstance->m_isLaunched.Set(true, MemoryOrder::RELEASE);
 
@@ -147,12 +147,17 @@ void SimThread::SetGameInstance(Game* gameInstance)
 void SimThread::Update()
 {
     ENGINE_STAT_SCOPE(&g_statSimUpdate);
-    
+
     static const bool s_isDetached = CoreApi::GetCommandLineArguments()["Detached"].ToBool();
 
     m_counter.NextTick();
 
-    BeginFrameSim();
+    BeginFrameSim(&m_stopRequested);
+
+    if (HYP_UNLIKELY(m_stopRequested.Load()))
+    {
+        return;
+    }
 
     // execute posted tasks
     Array<Scheduler::ScheduledTask, SceneAllocator> tasks;

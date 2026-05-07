@@ -515,11 +515,19 @@ uint32 CurrentRenderThreadIndex()
     return Framework::s_currentRenderThreadIndex - 1;
 }
 
-void BeginFrameSim()
+void BeginFrameSim(AtomicFlag* pCancelFlag)
 {
     Framework::s_threadFrameIndex = &Framework::s_frameIndex[Framework::TT_FrameDataProducer];
 
-    Framework::s_freeSemaphore.acquire();
+    while (!Framework::s_freeSemaphore.try_acquire())
+    {
+        if (pCancelFlag != nullptr && pCancelFlag->Load())
+        {
+            return;
+        }
+
+        ThreadSleep(0);
+    }
 }
 
 void EndFrameSim()
@@ -739,7 +747,7 @@ void RenderInterface::Shutdown()
 
     for (auto& it : Framework::s_viewData)
     {
-        Framework::ViewData* vd = it.second;
+        Framework::ViewData*& vd = it.second;
 
         if (!vd)
         {
@@ -747,6 +755,7 @@ void RenderInterface::Shutdown()
         }
 
         PoolDelete(*g_renderPool, vd);
+        vd = nullptr;
     }
 
     Framework::s_viewData.Clear();

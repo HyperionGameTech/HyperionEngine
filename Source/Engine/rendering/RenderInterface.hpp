@@ -108,7 +108,7 @@ uint32 GetFrameCounter();
  *  Undefined for sim thread or other threads than the render thread or renderer worker threads. */
 uint32 CurrentRenderThreadIndex();
 
-void BeginFrameSim();
+void BeginFrameSim(AtomicFlag* pCancelFlag);
 void EndFrameSim();
 
 /*! \brief Get the RenderProxyList for the Sim thread to write to for the current frame, for the given view.

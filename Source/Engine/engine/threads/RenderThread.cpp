@@ -89,8 +89,6 @@ bool RenderThread::Start()
 
 void RenderThread::Stop()
 {
-    Thread::Stop();
-
     if (m_id == g_mainThread)
     {
         AssertOnThread(g_mainThread);
@@ -99,6 +97,8 @@ void RenderThread::Stop()
 
         OnExit();
     }
+
+    Thread::Stop();
 }
 
 void RenderThread::Update()
@@ -107,7 +107,7 @@ void RenderThread::Update()
 
     RI.BeginFrame(&m_stopRequested);
 
-    if (m_stopRequested.Load())
+    if (HYP_UNLIKELY(m_stopRequested.Load()))
     {
         return;
     }
@@ -130,7 +130,7 @@ void RenderThread::Update()
     Array<Swapchain*, RenderTempAllocator> swapchains;
 
     ApplicationWindow* mainWindow = g_appContext->GetMainWindow();
-    
+
     if (mainWindow != nullptr)
     {
         Swapchain* swapchain = mainWindow->GetSwapchain();
@@ -164,7 +164,7 @@ void RenderThread::Update()
             renderSetup.swapchain = swapchain;
 
             const Vec2u swapchainExtent = swapchain->GetExtent();
-            
+
             const float renderTargetScale = mainWindow->GetRenderTargetScale();
             const Vec2u renderExtent = Vec2u(Vec2f(swapchainExtent) * renderTargetScale);
 
