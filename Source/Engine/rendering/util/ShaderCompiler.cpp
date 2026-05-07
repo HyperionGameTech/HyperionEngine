@@ -237,9 +237,7 @@ static String BuildDescriptorTableDefines(const ShaderInputGroup& inputGroup, Sh
     return descriptorTableDefines;
 }
 
-static String BuildAttributesDefines(
-    ShaderLanguage language,
-    const ShaderVariantPerms& perm)
+static String BuildAttributesDefines(const ShaderVariantPerms& perm)
 {
     String preamble;
 
@@ -693,8 +691,8 @@ static ByteBuffer CompileHLSL(
     ShaderInputGroup inputGroup;
     descriptorUsages.BuildDescriptorTableDeclaration(inputGroup);
 
-    String preamble = BuildDescriptorTableDefines(ShaderLanguage::HLSL, inputGroup, targetBackend)
-        + "\n" + BuildAttributesDefines(ShaderLanguage::HLSL, perm);
+    String preamble = BuildDescriptorTableDefines(inputGroup, targetBackend)
+        + "\n" + BuildAttributesDefines(perm);
 
     String fullSource = preamble + "\n" + source;
 
@@ -1952,7 +1950,7 @@ static TResult<Tuple<ShaderInputType, ShaderResourceCategory, GpuBufferType>> Pa
 
         if (MatchesAnyToken(firstToken, { "Texture1D", "Texture2D", "Texture3D", "TextureCube", "Texture1DArray", "Texture2DArray", "TextureCubeArray" }))
         {
-            return Tuple<ShaderInputType, ShaderResourceCategory, GpuBufferType> { ShaderInputType::SRV, ShaderResourceCategory::Image, GpuBufferType::Texture };
+            return Tuple<ShaderInputType, ShaderResourceCategory, GpuBufferType> { ShaderInputType::SRV, ShaderResourceCategory::Image, GpuBufferType::NONE };
         }
 
         if (MatchesAnyToken(firstToken, { "SamplerState", "SamplerComparisonState", "sampler" }))
@@ -2012,7 +2010,7 @@ ShaderCompiler::ProcessResult ShaderCompiler::ProcessShaderSource(
 
         bool preprocessResult = false;
 
-        const String preamble = BuildAttributesDefines(language, perm);
+        const String preamble = BuildAttributesDefines(perm);
 
 #if HYP_DXC
         preprocessResult = PreprocessHLSL(
@@ -2530,7 +2528,7 @@ bool ShaderCompiler::CompileBundle(
                 // and folding to nothing.
                 String preamble = "#define HYP_SHADER_COMPILER 1\n\n"
                     + HYP_FORMAT("#define {} 1\n\n", ShaderModuleTypeNames[uint8(moduleType)])
-                    + HYP_FORMAT("#define LANG_{} 1\n\n", (language == ShaderLanguage::HLSL ? "HLSL" : "GLSL"));
+                    + "#define LANG_HLSL 1\n\n";
 
                 String sourceString = String(byteBuffer.ToByteView()).ReplaceAll("\r\n", "\n");
 
@@ -2542,7 +2540,7 @@ bool ShaderCompiler::CompileBundle(
                 ProcessResult result = ProcessShaderSource(
                     ProcessShaderSourcePhase::BEFORE_PREPROCESS,
                     pair.first,
-                    language,
+                    ShaderLanguage::HLSL,
                     sourceString,
                     filepath,
                     {});
@@ -2562,7 +2560,7 @@ bool ShaderCompiler::CompileBundle(
 
                 loadedSourceFiles[index] = LoadedSourceFile {
                     .type = pair.first,
-                    .language = language,
+                    .language = ShaderLanguage::HLSL,
                     .file = pair.second,
                     .lastModifiedTimestamp = filepath.LastModifiedTimestamp(),
                     .source = result.processedSource
