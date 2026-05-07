@@ -217,6 +217,7 @@ const Handle<EngineDriver>& EngineDriver::GetInstance()
 EngineDriver::EngineDriver()
     : m_currentWorld(nullptr),
       m_viewCollectionBatch(nullptr),
+      m_isInitialized(false),
       m_isShuttingDown(0)
 {
 }
@@ -225,9 +226,14 @@ EngineDriver::~EngineDriver()
 {
 }
 
-HYP_API void EngineDriver::Init()
+void EngineDriver::Initialize()
 {
     AssertOnThread(g_mainThread);
+
+    if (m_isInitialized)
+    {
+        return;
+    }
 
 #if HYP_EDITOR
     // Create script compilation service
@@ -254,7 +260,7 @@ HYP_API void EngineDriver::Init()
     m_viewCollectionBatch = new TaskBatch();
     m_viewCollectionBatch->pool = &TaskSystem::GetInstance().GetPool(TaskThreadPoolName::THREAD_POOL_GENERIC);
 
-    SetReady(true);
+    m_isInitialized = true;
 }
 
 World* EngineDriver::GetCurrentWorld() const
@@ -357,9 +363,9 @@ Game* EngineDriver::GetGameInstance() const
 
 bool EngineDriver::StartThreads()
 {
-    HYP_SCOPE;
     AssertOnThread(g_mainThread);
-    AssertReady();
+
+    Assert(m_isInitialized);
 
     Assert(g_renderThreadInstance != nullptr
         && g_simThreadInstance != nullptr
@@ -454,6 +460,13 @@ void EngineDriver::FinalizeStop()
     m_worlds.Clear();
 
     m_isShuttingDown = 0;
+}
+
+void EngineDriver::ClearWorldsForShutdown()
+{
+    HYP_SCOPE;
+
+    m_worlds.Clear();
 }
 
 void EngineDriver::UpdateSim(float delta)

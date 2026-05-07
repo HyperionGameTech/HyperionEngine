@@ -289,6 +289,8 @@ public:
     HYP_METHOD()
     HYP_API Handle<AssetRegistry> GetAssetRegistry() const;
 
+    void Initialize();
+
     void Update(float delta);
 
     Delegate<void, const Handle<AssetCollector>&> OnAssetCollectorAdded;
@@ -296,8 +298,6 @@ public:
     Delegate<void, const Handle<AssetCollector>&> OnBaseAssetCollectorChanged;
 
 private:
-    void Init() override;
-
     /*! \internal Called from AssetBatch on LoadAsync() */
     HYP_API void AddPendingBatch(AssetBatch* batch);
 

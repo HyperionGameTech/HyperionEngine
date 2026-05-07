@@ -6,6 +6,7 @@
 
 #pragma once
 
+#include "EngineGlobals.hpp"
 #include <rendering/RenderObject.hpp>
 
 #include <Core/Types.hpp>
@@ -71,6 +72,10 @@ public:
     static const Handle<EngineDriver>& GetInstance();
 
     EngineDriver();
+
+    EngineDriver(const EngineDriver&) = delete;
+    EngineDriver& operator=(const EngineDriver&) = delete;
+
     ~EngineDriver() override;
 
     HYP_METHOD()
@@ -121,14 +126,19 @@ public:
 
     EngineConfig& GetConfig();
 
+    void Initialize();
+
     void RequestStop();
     void FinalizeStop();
+
+    /*! \brief Clears world handles to release GPU-held resources before render backend shutdown.
+     *  Must be called before the render thread's RI.Shutdown() to ensure Views/GBuffers
+     *  are destroyed while the VMA allocator is still alive. */
+    void ClearWorldsForShutdown();
 
     Delegate<void, World*> OnCurrentWorldChanged;
 
 private:
-    void Init() override;
-
     void SyncConfig();
 
     void UpdateSim(float delta);
@@ -146,6 +156,7 @@ private:
 
     TaskBatch* m_viewCollectionBatch;
 
+    bool m_isInitialized;
     mutable volatile int32 m_isShuttingDown;
 };
 

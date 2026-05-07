@@ -71,8 +71,6 @@ public:
     void Update(float delta);
 
 private:
-    void Init() override;
-
     UniquePtr<StreamingManagerThread> m_thread;
 };
 

@@ -20,23 +20,25 @@ const Handle<AudioManager>& AudioManager::GetInstance()
 }
 
 AudioManager::AudioManager()
+    : m_isInitialized(false)
 {
 }
 
 AudioManager::~AudioManager()
 {
-    if (IsReady())
+    if (m_isInitialized)
     {
-#if HYP_OPENAL
-        alcMakeContextCurrent(NULL);
-        alcDestroyContext(m_context);
-        alcCloseDevice(m_device);
-#endif
+        Shutdown();
     }
 }
 
-void AudioManager::Init()
+void AudioManager::Initialize()
 {
+    if (m_isInitialized)
+    {
+        return;
+    }
+
 #if HYP_OPENAL
     m_device = alcOpenDevice(NULL);
     if (!m_device)
@@ -61,7 +63,23 @@ void AudioManager::Init()
     alListenerfv(AL_ORIENTATION, orientation);
 #endif
 
-    SetReady(true);
+    m_isInitialized = true;
+}
+
+void AudioManager::Shutdown()
+{
+    if (!m_isInitialized)
+    {
+        return;
+    }
+
+#if HYP_OPENAL
+    alcMakeContextCurrent(NULL);
+    alcDestroyContext(m_context);
+    alcCloseDevice(m_device);
+#endif
+
+    m_isInitialized = false;
 }
 
 Array<String> AudioManager::ListDevices() const

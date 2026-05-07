@@ -356,14 +356,12 @@ extern "C"
         ComponentInterfaceRegistry::GetInstance().Initialize();
 
         g_engineStats = MakeHandle<EngineStats>();
-        InitObject(g_engineStats);
 
         g_streamingManager = MakeHandle<StreamingManager>();
-        InitObject(g_streamingManager);
         g_streamingManager->Start();
 
         g_assetManager = MakeHandle<AssetManager>();
-        InitObject(g_assetManager);
+        g_assetManager->Initialize();
 
         // Create the engine-global asset registry for shared engine data (shaders, debug shapes, etc.)
         {
@@ -390,11 +388,11 @@ extern "C"
 #endif // HYP_EDITOR
 
         g_audioManager = MakeHandle<AudioManager>();
-        InitObject(g_audioManager);
+        g_audioManager->Initialize();
 
 #if HYP_EDITOR
         g_editorState = MakeHandle<EditorState>();
-        InitObject(g_editorState);
+        g_editorState->Initialize();
 #endif // HYP_EDITOR
 
         g_materialInstanceCache = new MaterialInstanceCache;
@@ -470,7 +468,7 @@ extern "C"
             HYP_LOG(Engine, Info, "Running in headless mode");
         }
 
-        InitObject(g_engineDriver);
+        g_engineDriver->Initialize();
 
         if (isCommandlet)
         {
@@ -527,6 +525,9 @@ extern "C"
         g_streamingManager->Stop();
         g_streamingManager.Reset();
 
+        g_audioManager->Shutdown();
+        g_audioManager.Reset();
+
         ClearAssetRegistryStack();
 
         GetEngineAssetRegistry()->Shutdown();
@@ -538,14 +539,13 @@ extern "C"
 #endif // HYP_EDITOR
 
         g_assetManager.Reset();
-        g_audioManager.Reset();
+        g_engineDriver.Reset();
         g_engineStats.Reset();
 
 #if HYP_EDITOR
         g_editorState.Reset();
 #endif // HYP_EDITOR
 
-        g_engineDriver.Reset();
         g_appContext.Reset();
 
         ComponentInterfaceRegistry::GetInstance().Shutdown();
@@ -627,7 +627,7 @@ extern "C"
     {
         AssertOnThread(g_mainThread);
 
-        Assert(g_engineDriver != nullptr && g_engineDriver->IsReady());
+        Assert(g_engineDriver.IsValid());
 
         if (!g_mainThreadInstance || !g_mainThreadInstance->IsRunning())
         {
