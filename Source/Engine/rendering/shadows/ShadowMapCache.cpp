@@ -173,6 +173,9 @@ static ViewDesc GetViewDesc(Light* light, bool isStatic, uint32 cascadeIndex, Sh
         viewDesc.flags |= ViewFlags::COLLECT_DYNAMIC_ENTITIES;
     }
 
+    // No parallel draw call collection for shadow maps
+    viewDesc.flags |= ViewFlags::NO_PARALLEL_DRAW_CALL_COLLECTION;
+
     return viewDesc;
 }
 

@@ -241,6 +241,12 @@ static ViewData* GetViewData(View* view, bool createIfNotExist)
             GetFrameCounter(),
             view->GetCamera() ? *view->GetCamera()->GetName() : "null");
 
+        // If NO_PARALLEL_DRAW_CALL_COLLECTION flag is set, we need to make sure PARALLEL_COLLECTION is disabled on the group
+        if (view->GetFlags() & ViewFlags::NO_PARALLEL_DRAW_CALL_COLLECTION)
+        {
+            viewData->renderCollector.renderGroupFlags &= ~RenderGroupFlags::PARALLEL_COLLECTION;
+        }
+
         if (view->GetViewDesc().entityBatchClass != nullptr)
         {
             viewData->renderCollector.batchAllocator = GetOrCreateEntityBatchAllocator(view->GetViewDesc().entityBatchClass->GetTypeId());

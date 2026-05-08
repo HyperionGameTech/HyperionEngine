@@ -76,6 +76,8 @@ enum class ViewFlags : uint32
                                         //  --- Use of these is still threadsafe, however it uses a spinlock instead of multiple buffering so contentions will eat up cpu cycles.
     NO_DRAW_CALLS = 0x4000,             //!< If set, no draw calls will be built for any mesh entities that this View collects.
 
+    NO_PARALLEL_DRAW_CALL_COLLECTION = 0x8000, //!< Set flag in order to forcibly disable parallel draw call collection for this View. Used for systems like EnvProbe rendering, rather than geometry pass rendering.
+
     // enable flags
     RAY_TRACING = 0x100000,             //!< Does this View contain rayTracing data (acceleration structures)? (RayTracing must be enabled in the global config and must have RT hardware support)
 

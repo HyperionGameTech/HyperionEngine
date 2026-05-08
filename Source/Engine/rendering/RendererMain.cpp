@@ -394,13 +394,13 @@ static bool ShouldIncludeInPrepass(
 #pragma endregion DepthPrepass
 
 static void InitDrawCallCollection(
-    RenderCollector* renderCollector,
+    const RenderCollector& renderCollector,
     DrawCallCollection& drawCallCollection,
     const RenderableAttributeSet& attributes)
 {
-    AssertDebug(renderCollector->batchAllocator != nullptr);
+    AssertDebug(renderCollector.batchAllocator != nullptr);
 
-    EnumFlags<RenderGroupFlags> renderGroupFlags = renderCollector->renderGroupFlags;
+    EnumFlags<RenderGroupFlags> renderGroupFlags = renderCollector.renderGroupFlags;
 
     // Disable occlusion culling for translucent objects
     const RenderBucket rb = attributes.GetMaterialAttributes().bucket;
@@ -413,25 +413,24 @@ static void InitDrawCallCollection(
     drawCallCollection.attributes = attributes;
     drawCallCollection.flags = renderGroupFlags;
 
-    if (renderGroupFlags & RenderGroupFlags::INDIRECT_RENDERING)
+    if (!RI.GetRenderConfig().indirectRendering)
+    {
+        renderGroupFlags &= ~RenderGroupFlags::INDIRECT_RENDERING;
+    }
+    else if (renderGroupFlags & RenderGroupFlags::INDIRECT_RENDERING)
     {
         AssertDebug(drawCallCollection.indirectRenderer == nullptr, "Indirect renderer already exists on mapping");
 
         drawCallCollection.indirectRenderer = HYP_POOL_NEW(g_renderPool, IndirectRenderer);
-        drawCallCollection.indirectRenderer->Create(renderCollector->batchAllocator);
+        drawCallCollection.indirectRenderer->Create(renderCollector.batchAllocator);
     }
 
-    drawCallCollection.batchAllocator = renderCollector->batchAllocator;
+    drawCallCollection.batchAllocator = renderCollector.batchAllocator;
 
     // If parallel rendering is globally disabled, disable it for this RenderGroup
     if (!RI.GetRenderConfig().parallelRendering)
     {
-        drawCallCollection.flags &= ~RenderGroupFlags::PARALLEL_RENDERING;
-    }
-
-    if (!RI.GetRenderConfig().indirectRendering)
-    {
-        drawCallCollection.flags &= ~RenderGroupFlags::INDIRECT_RENDERING;
+        drawCallCollection.flags &= ~RenderGroupFlags::PARALLEL_COLLECTION;
     }
 
     drawCallCollection.isInit = true;
@@ -1266,7 +1265,7 @@ RenderCollector::~RenderCollector()
     if (isFallback)
         return;
 
-    const bool isParallel = renderGroupFlags[RenderGroupFlags::PARALLEL_RENDERING];
+    const bool isParallel = renderGroupFlags[RenderGroupFlags::PARALLEL_COLLECTION];
 
     DeleteOnRenderThread([isParallel, attrs = std::move(previousAttributes), m = std::move(mappingsByBucket), states = parallelRenderingStates]() mutable
         {
@@ -1553,11 +1552,6 @@ void RenderCollector::Commit(CommandRecorder& cr, uint8 index)
         }
 
         state->sharedData->Reset();
-
-        state->drawCalls.Clear();
-        state->instancedDrawCalls.Clear();
-        state->drawCallPayload = {};
-
         state->taskBatch->ResetState();
 
         state = state->next;
@@ -1768,7 +1762,7 @@ bool RenderCollector::BeginRecordDrawCalls(
         {
             AssertDebug(drawCallCollection.isInit);
 
-            if (!(drawCallCollection.flags & RenderGroupFlags::PARALLEL_RENDERING))
+            if (!(drawCallCollection.flags & RenderGroupFlags::PARALLEL_COLLECTION))
             {
                 continue;
             }
@@ -1930,17 +1924,20 @@ void RenderCollector::ExecuteDrawCalls(
 
             AssertDebug(drawCallCollection.isInit);
 
-            if (drawCallCollection.flags & RenderGroupFlags::PARALLEL_RENDERING)
+            if (drawCallCollection.flags & RenderGroupFlags::PARALLEL_COLLECTION)
             {
-
                 if (drawCallCollection.parallelRenderingState != nullptr)
                 {
                     // If BeginRecordDrawCalls() was used, parallelRenderingState would be non-null,
                     // therefore we skip enqueueing teh task batch if that is set and instead just
                     // will wait on the existing one
+
                     parallelRenderingStatesToNullify.PushBack(&drawCallCollection.parallelRenderingState);
+
                     continue;
                 }
+
+                HYP_LOG(Rendering, Warning, "Executing draw calls for bucket {} SYNCHRONOUSLY! BeginRecordDrawCalls() should be used to ensure parallel rendering is used.", uint32(rb));
             }
 
             PerformRenderingPayloadBase payload {};
@@ -2185,7 +2182,7 @@ void RenderCollector::BuildRenderGroups(View* view, RenderProxyList& renderProxy
 
             if (!newDrawCallCollection.isInit)
             {
-                InitDrawCallCollection(this, newDrawCallCollection, newAttributes);
+                InitDrawCallCollection(*this, newDrawCallCollection, newAttributes);
             }
 
             AssertDebug(meshProxy->mesh != nullptr && meshProxy->material != nullptr);
@@ -2251,7 +2248,7 @@ void RenderCollector::BuildRenderGroups(View* view, RenderProxyList& renderProxy
 
             if (!drawCallCollection.isInit)
             {
-                InitDrawCallCollection(this, drawCallCollection, attributes);
+                InitDrawCallCollection(*this, drawCallCollection, attributes);
             }
 
             const uint32 idx = id.ToIndex();
@@ -2291,7 +2288,7 @@ void RenderCollector::PerformRendering(Frame* frame, PerformRenderingPayloadBase
 
     if (drawCallCollection.parallelRenderingState != nullptr)
     {
-        AssertDebug(drawCallCollection.flags & RenderGroupFlags::PARALLEL_RENDERING);
+        AssertDebug(drawCallCollection.flags & RenderGroupFlags::PARALLEL_COLLECTION);
 
         auto* cr = drawCallCollection.parallelRenderingState->threadLocalRecorders[s_renderThreadIndex];
         AssertDebug(cr != nullptr);

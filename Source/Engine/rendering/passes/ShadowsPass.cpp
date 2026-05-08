@@ -459,7 +459,6 @@ void ShadowsPassBase::RenderFrame(Frame* frame, const RenderSetup& renderSetup)
                 target->GetImageView()->GetImageSubResource());
 
             RenderCollector& renderCollector = GetRenderCollector(shadowView);
-            renderCollector.renderGroupFlags &= ~RenderGroupFlags::PARALLEL_RENDERING;
             renderCollector.ExecuteDrawCalls(frame, rs, BucketMask);
 
             if (shouldCacheAfterRender)

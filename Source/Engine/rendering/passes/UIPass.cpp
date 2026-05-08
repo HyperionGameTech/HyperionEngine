@@ -201,7 +201,7 @@ void UIRenderCollector::ExecuteDrawCalls(Frame* frame, const RenderSetup& render
         DrawCallCollection& drawCallCollection = *iterators[index];
         Assert(drawCallCollection.isInit);
 
-        if (drawCallCollection.flags & RenderGroupFlags::PARALLEL_RENDERING)
+        if (drawCallCollection.flags & RenderGroupFlags::PARALLEL_COLLECTION)
         {
             drawCallCollection.parallelRenderingState = AcquireNextParallelRenderingState(uint8(drawCallCollection.attributes.GetMaterialAttributes().bucket));
         }

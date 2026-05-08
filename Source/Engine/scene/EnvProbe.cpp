@@ -319,7 +319,8 @@ void EnvProbe::CreateView()
         .flags = (OnlyCollectStaticEntities() ? ViewFlags::COLLECT_STATIC_ENTITIES : ViewFlags::COLLECT_ALL_ENTITIES)
             | ViewFlags::NO_FRUSTUM_CULLING
             | ViewFlags::SKIP_ENV_PROBES
-            | ViewFlags::SKIP_ENV_GRIDS,
+            | ViewFlags::SKIP_ENV_GRIDS
+            | ViewFlags::NO_PARALLEL_DRAW_CALL_COLLECTION,
         .framebufferDesc = framebufferDesc,
         .scenes = {},
         .camera = m_camera,
@@ -526,7 +527,7 @@ void EnvProbe::SetBakedTexture(const Handle<Texture>& texture)
     }
 
     m_texture = texture;
-    
+
     if (m_texture.IsValid())
     {
         CheckResult(m_texture->Create());

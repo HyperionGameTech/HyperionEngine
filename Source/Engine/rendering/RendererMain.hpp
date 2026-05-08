@@ -82,26 +82,6 @@ struct ParallelRenderingState
 
     FixedArray<EngineStatsValueSet, MaxBatches> statValues {};
 
-    // Temporary storage for data that will be executed in parallel during the frame
-    Array<DrawCallRange, FixedAllocator<MaxBatches>> drawCalls;
-    Array<DrawCallRange, FixedAllocator<MaxBatches>> instancedDrawCalls;
-
-    struct DrawCallPayload
-    {
-        uint32 frameIndex;
-        uint32 numShaderUniforms;
-        ParallelRenderingState* parallelRenderingState;
-        const DrawCallCollection* drawCallCollection;
-        IndirectRenderer* indirectRenderer;
-
-        template <bool UseIndirectRendering>
-        void ProcessNonInstanced(DrawCallRange range, uint32 index, uint32 batchIndex);
-
-        template <bool UseIndirectRendering>
-        void ProcessInstanced(DrawCallRange range, uint32 index, uint32 batchIndex);
-    };
-
-    DrawCallPayload drawCallPayload;
 
     ParallelRenderingState* next = nullptr;
 

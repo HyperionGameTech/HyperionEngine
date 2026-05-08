@@ -2609,31 +2609,13 @@ void DeferredPass::RenderFrameForView(Frame* frame, const RenderSetup& rs)
     static const bool s_indirectRendering = RI.GetRenderConfig().indirectRendering;
     const bool performDepthPrepass = s_indirectRendering && cvDepthPrepass.Get();
 
+    constexpr uint32 PrepassRenderBucketsMask = RenderBucketMask<RenderBucket::Opaque, RenderBucket::Lightmapped>;
+
     if (performDepthPrepass)
     {
         AssertDebug(depthPrepassFramebuffer != nullptr);
 
-        constexpr uint32 PrepassRenderBucketsMask = RenderBucketMask<RenderBucket::Opaque, RenderBucket::Lightmapped>;
-
         renderCollector.BeginRecordDrawCalls(frame, rs, PrepassRenderBucketsMask, true);
-
-        if (renderCollector.mappingsByBucket[uint32(RenderBucket::Opaque)].Any() || renderCollector.mappingsByBucket[uint32(RenderBucket::Lightmapped)].Any())
-        {
-            renderCollector.ExecuteDrawCalls(frame, rs, depthPrepassFramebuffer, PrepassRenderBucketsMask, true);
-        }
-        else
-        {
-            frame->cr << SetCurrentFramebuffer(depthPrepassFramebuffer);
-            frame->cr << ClearFramebuffer(depthPrepassFramebuffer);
-            frame->cr << SetCurrentFramebuffer(nullptr);
-        }
-
-        passData.depthPyramidRenderer->Render(frame);
-        passData.cullData.depthPyramidImageView = passData.depthPyramidRenderer->GetResultImageView();
-        passData.cullData.depthPyramidDimensions = passData.depthPyramidRenderer->GetExtent();
-
-        renderCollector.PerformOcclusionCulling(frame, rs, AllRenderBucketsMask);
-        renderCollector.BeginRecordDrawCalls(frame, rs, AllRenderBucketsMask & ~PrepassRenderBucketsMask);
     }
     else
     {
@@ -2665,6 +2647,28 @@ void DeferredPass::RenderFrameForView(Frame* frame, const RenderSetup& rs)
         shadowRs.light = light;
 
         shadowRenderer->RenderFrame(frame, shadowRs);
+    }
+
+    if (performDepthPrepass)
+    {
+        if (renderCollector.mappingsByBucket[uint32(RenderBucket::Opaque)].Any() || renderCollector.mappingsByBucket[uint32(RenderBucket::Lightmapped)].Any())
+        {
+            renderCollector.ExecuteDrawCalls(frame, rs, depthPrepassFramebuffer, PrepassRenderBucketsMask, true);
+        }
+        else
+        {
+            frame->cr << SetCurrentFramebuffer(depthPrepassFramebuffer);
+            frame->cr << ClearFramebuffer(depthPrepassFramebuffer);
+            frame->cr << SetCurrentFramebuffer(nullptr);
+        }
+
+        passData.depthPyramidRenderer->Render(frame);
+        passData.cullData.depthPyramidImageView = passData.depthPyramidRenderer->GetResultImageView();
+        passData.cullData.depthPyramidDimensions = passData.depthPyramidRenderer->GetExtent();
+
+        renderCollector.PerformOcclusionCulling(frame, rs, AllRenderBucketsMask);
+
+        renderCollector.BeginRecordDrawCalls(frame, rs, AllRenderBucketsMask);
     }
 
     Framebuffer* lightmapPassFramebuffer = view->GetOutputTarget().GetFramebuffer(RenderBucket::Lightmapped);
