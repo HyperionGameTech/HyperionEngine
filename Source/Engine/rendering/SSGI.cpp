@@ -15,7 +15,7 @@
 #include <rendering/Frame.hpp>
 #include <rendering/DescriptorSet.hpp>
 #include <rendering/ComputePipeline.hpp>
-#include <rendering/RenderCollection.hpp>
+#include <rendering/RendererMain.hpp>
 #include <rendering/RenderProxyList.hpp>
 #include <rendering/RenderProxy.hpp>
 #include <rendering/ShaderInstance.hpp>

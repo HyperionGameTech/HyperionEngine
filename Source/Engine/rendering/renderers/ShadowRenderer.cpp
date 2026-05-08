@@ -23,7 +23,7 @@
 #include <rendering/RenderProxy.hpp>
 #include <rendering/Texture.hpp>
 #include <rendering/ShaderInstance.hpp>
-#include <rendering/RenderCollection.hpp>
+#include <rendering/RendererMain.hpp>
 #include <rendering/TextureViewCache.hpp>
 
 #include <scene/Light.hpp>

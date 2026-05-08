@@ -9,7 +9,7 @@
 
 #include <rendering/RenderInterface.hpp>
 #include <rendering/RenderHelpers.hpp>
-#include <rendering/RenderCollection.hpp>
+#include <rendering/RendererMain.hpp>
 #include <rendering/RenderProxyList.hpp>
 #include <rendering/RenderProxy.hpp>
 #include <rendering/RenderCommand.hpp>

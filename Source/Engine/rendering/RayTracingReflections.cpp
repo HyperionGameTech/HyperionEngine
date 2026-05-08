@@ -15,7 +15,7 @@
 #include <rendering/RenderProxyList.hpp>
 #include <rendering/RenderProxy.hpp>
 #include <rendering/Texture.hpp>
-#include <rendering/RenderCollection.hpp>
+#include <rendering/RendererMain.hpp>
 #include <rendering/ShaderInstance.hpp>
 #include <rendering/TextureViewCache.hpp>
 #include <rendering/DescriptorSet.hpp>

@@ -8,7 +8,7 @@
 #include "RenderableAttributes.hpp"
 #include <RenderingPch.hpp>
 
-#include <rendering/RenderCollection.hpp>
+#include <rendering/RendererMain.hpp>
 #include <rendering/RenderGroup.hpp>
 #include <rendering/RenderProxy.hpp>
 #include <rendering/RenderProxyList.hpp>

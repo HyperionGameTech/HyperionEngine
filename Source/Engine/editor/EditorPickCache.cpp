@@ -10,7 +10,7 @@
 
 #include <Core/containers/SparsePagedArray.hpp>
 
-#include <rendering/RenderCollection.hpp>
+#include <rendering/RendererMain.hpp>
 #include <rendering/RenderProxyList.hpp>
 #include <rendering/Mesh.hpp>
 

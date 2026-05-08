@@ -132,7 +132,7 @@ void FinalPass::Render(Frame* frame, const RenderSetup& rs)
     cr << SetShaderUniform(0, "SamplerLinear"_sh, RI.placeholderData->GetSamplerLinear());
     cr << SetShaderUniform(1, "WorldsBuffer"_sh, RI.namedBuffers[NamedBuffer::Worlds]);
 
-    DeferredRenderer* dr = static_cast<DeferredRenderer*>(RI.globalRenderers[GRT_MAIN][0]);
+    DeferredRenderer* dr = static_cast<DeferredRenderer*>(RI.globalRenderers[GRT_DEFERRED][0]);
     AssertDebug(dr != nullptr);
 
     for (const DeferredRenderer::RenderedViewOutput& output : dr->GetRenderedViewOutputs().items)

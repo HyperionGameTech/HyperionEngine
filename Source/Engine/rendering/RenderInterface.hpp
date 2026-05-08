@@ -154,7 +154,7 @@ enum GlobalRendererType : uint32
 {
     GRT_NONE = ~0u, //!< Not a global renderer type
 
-    GRT_MAIN = 0,        //!< Main world renderer (DeferredRenderer)
+    GRT_DEFERRED = 0,        //!< Main world renderer (DeferredRenderer)
     GRT_UI,              //!< Globally registered UIRenderer instances to be used by FinalPass to draw the UI onto the backbuffer.
     GRT_ENV_PROBE,       //!< Global renderer instances for different EnvProbe classes
     GRT_ENV_GRID,        //!< Global renderer instance for EnvGrids

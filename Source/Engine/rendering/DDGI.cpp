@@ -17,7 +17,7 @@
 #include <rendering/Frame.hpp>
 #include <rendering/GpuBuffer.hpp>
 #include <rendering/GpuImage.hpp>
-#include <rendering/RenderCollection.hpp>
+#include <rendering/RendererMain.hpp>
 #include <rendering/RenderProxyList.hpp>
 #include <rendering/RenderProxy.hpp>
 #include <rendering/ShaderInstance.hpp>

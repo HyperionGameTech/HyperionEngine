@@ -15,7 +15,7 @@
 
 #include <rendering/RenderInterface.hpp>
 #include <rendering/RenderHelpers.hpp>
-#include <rendering/RenderCollection.hpp>
+#include <rendering/RendererMain.hpp>
 #include <rendering/RenderObject.hpp>
 #include <rendering/RenderConfig.hpp>
 #include <rendering/Device.hpp>

@@ -25,7 +25,7 @@
 #include <rendering/Texture.hpp>
 #include <rendering/TextureViewCache.hpp>
 #include <rendering/ShaderInstance.hpp>
-#include <rendering/RenderCollection.hpp>
+#include <rendering/RendererMain.hpp>
 #include <rendering/RenderHelpers.hpp>
 
 #include <rendering/shadows/ShadowMapCache.hpp>

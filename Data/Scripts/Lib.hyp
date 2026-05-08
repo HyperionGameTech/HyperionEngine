@@ -1120,7 +1120,7 @@ extern struct MeshRayTracingData
 end
 extern enum GlobalRendererType : uint32
     GRT_NONE = ~0u,
-    GRT_MAIN = 0,
+    GRT_DEFERRED = 0,
     GRT_UI,
     GRT_ENV_PROBE,
     GRT_ENV_GRID,

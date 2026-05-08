@@ -154,7 +154,7 @@ void RenderThread::Update()
 
     if (worldsToRender)
     {
-        RendererBase* mainRenderer = RI.globalRenderers[GRT_MAIN][0];
+        RendererBase* mainRenderer = RI.globalRenderers[GRT_DEFERRED][0];
         AssertDebug(mainRenderer != nullptr);
 
         RenderSetup renderSetup {};

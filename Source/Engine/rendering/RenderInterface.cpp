@@ -25,7 +25,7 @@
 #include <rendering/Texture.hpp>
 #include <rendering/MaterialInstance.hpp>
 #include <rendering/Mesh.hpp>
-#include <rendering/RenderCollection.hpp>
+#include <rendering/RendererMain.hpp>
 #include <rendering/RenderObject.hpp>
 #include <rendering/ShaderInstance.hpp>
 #include <rendering/RenderMemory.hpp>
@@ -707,11 +707,11 @@ RendererResult RenderInterface::Initialize()
         globalRenderers[i] = Array<RendererBase*>();
     }
 
-    globalRenderers[GRT_MAIN].PushBack(new DeferredRenderer);
-    globalRenderers[GRT_MAIN][0]->Initialize();
+    globalRenderers[GRT_DEFERRED].PushBack(new DeferredRenderer);
+    globalRenderers[GRT_DEFERRED][0]->Initialize();
 
     globalRenderers[GRT_UI].PushBack(new UIRenderer);
-    globalRenderers[GRT_MAIN][0]->Initialize();
+    globalRenderers[GRT_DEFERRED][0]->Initialize();
 
     globalRenderers[GRT_ENV_PROBE].ResizeZeroed(EPT_MAX);
     globalRenderers[GRT_ENV_PROBE][EPT_REFLECTION] = new ReflectionProbeRenderer;

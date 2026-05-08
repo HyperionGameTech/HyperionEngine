@@ -29,7 +29,7 @@
 #include <scene/components/LightmapElementComponent.hpp>
 
 #include <rendering/RenderInterface.hpp>
-#include <rendering/RenderCollection.hpp>
+#include <rendering/RendererMain.hpp>
 #include <rendering/RenderProxyList.hpp>
 #include <rendering/RenderProxy.hpp>
 #include <rendering/InstancedMeshData.hpp>
