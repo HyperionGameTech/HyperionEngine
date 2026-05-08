@@ -23,7 +23,7 @@
 #include <rendering/RawBufferAllocator.hpp>
 #include <rendering/SamplerCache.hpp>
 
-#include <rendering/renderers/SpriteRenderer.hpp>
+#include <rendering/passes/SpritePass.hpp>
 
 #include <rendering/util/DeletionQueue.hpp>
 
@@ -44,7 +44,7 @@
 #include <engine/CVarManager.hpp>
 #include <engine/EngineGlobals.hpp>
 
-#include <SpriteRenderer.generated.inl>
+#include <SpritePass.generated.inl>
 
 namespace Hyperion {
 
@@ -220,13 +220,13 @@ static void ForEachCharacter(
     iterateCurrentWord();
 }
 
-#pragma region SpriteRenderer
+#pragma region SpritePass
 
-SpriteRenderer::SpriteRenderer()
+SpritePass::SpritePass()
 {
 }
 
-void SpriteRenderer::Initialize()
+void SpritePass::Initialize()
 {
     m_quadMesh = MeshBuilder::Quad();
     m_quadMesh->SetName(NAME("SpriteMesh"));
@@ -264,19 +264,19 @@ void SpriteRenderer::Initialize()
     GetEngineAssetRegistry()->PutAsset(m_quadMesh);
 }
 
-void SpriteRenderer::Shutdown()
+void SpritePass::Shutdown()
 {
     EnqueueDeletion(std::move(m_quadMesh));
 }
 
-void SpriteRenderer::RenderFrame(Frame* frame, const RenderSetup& renderSetup)
+void SpritePass::RenderFrame(Frame* frame, const RenderSetup& renderSetup)
 {
     HYP_SCOPE;
     AssertOnThread(g_renderThread);
 
     Assert(renderSetup.view != nullptr);
 
-    SpriteRendererPassData* pd = DynamicCast<SpriteRendererPassData>(FetchViewPassData(renderSetup.view));
+    SpritePassData* pd = DynamicCast<SpritePassData>(FetchViewPassData(renderSetup.view));
     AssertDebug(pd != nullptr);
 
     RenderProxyList& rpl = GetConsumerProxyList(renderSetup.view);
@@ -505,15 +505,15 @@ void SpriteRenderer::RenderFrame(Frame* frame, const RenderSetup& renderSetup)
     }
 }
 
-PassData* SpriteRenderer::CreateViewPassData(View* view, PassDataExt&)
+PassData* SpritePass::CreateViewPassData(View* view, PassDataExt&)
 {
-    SpriteRendererPassData* pd = new SpriteRendererPassData();
+    SpritePassData* pd = new SpritePassData();
 
     pd->view = MakeWeakRef(view);
 
     return pd;
 }
 
-#pragma endregion SpriteRenderer
+#pragma endregion SpritePass
 
 } // namespace Hyperion

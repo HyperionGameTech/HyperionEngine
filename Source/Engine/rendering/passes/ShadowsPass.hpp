@@ -6,7 +6,7 @@
 
 #pragma once
 
-#include <rendering/RendererBase.hpp>
+#include <rendering/Pass.hpp>
 
 #include <Core/math/Mat4f.hpp>
 #include <Core/math/Vector2.hpp>
@@ -19,40 +19,40 @@ class FullScreenPass;
 class ShadowMap;
 
 HYP_CLASS(NoScriptBindings)
-class HYP_API ShadowRendererPassData : public PassData
+class HYP_API ShadowsPassData : public PassData
 {
-    HYP_OBJECT_BODY(ShadowRendererPassData);
+    HYP_OBJECT_BODY(ShadowsPassData);
 
 public:
-    virtual ~ShadowRendererPassData() override;
+    virtual ~ShadowsPassData() override;
 
     Array<Mat4f, RenderAllocator> prevCameraMatrices;
 };
 
-struct ShadowRendererPassDataExt : PassDataExt
+struct ShadowsPassDataExt : PassDataExt
 {
     Light* light = nullptr;
 
-    ShadowRendererPassDataExt()
-        : PassDataExt(TypeId::ForType<ShadowRendererPassDataExt>())
+    ShadowsPassDataExt()
+        : PassDataExt(TypeId::ForType<ShadowsPassDataExt>())
     {
     }
 
-    virtual ~ShadowRendererPassDataExt() override = default;
+    virtual ~ShadowsPassDataExt() override = default;
 
     virtual PassDataExt* Clone() override
     {
-        ShadowRendererPassDataExt* clone = new ShadowRendererPassDataExt;
+        ShadowsPassDataExt* clone = new ShadowsPassDataExt;
         *clone = *this;
 
         return clone;
     }
 };
 
-class ShadowRendererBase : public RendererBase
+class ShadowsPassBase : public PassBase
 {
 public:
-    virtual ~ShadowRendererBase() override = default;
+    virtual ~ShadowsPassBase() override = default;
 
     virtual void Initialize() override;
     virtual void Shutdown() override;
@@ -60,7 +60,7 @@ public:
     virtual void RenderFrame(Frame* frame, const RenderSetup& renderSetup) override final;
 
 protected:
-    ShadowRendererBase();
+    ShadowsPassBase();
 
     virtual int RunCleanupCycle(int maxIter) override;
 
@@ -70,7 +70,7 @@ private:
     struct CachedShadowMapData
     {
         Array<ShadowMap*, RenderAllocator> shadowMaps;
-        
+
         FixedArray<View*, MaxShadowMapCascades> shadowViewsDynamic;
         FixedArray<View*, MaxShadowMapCascades> shadowViewsStatic;
 
@@ -103,20 +103,20 @@ private:
     HashMap<CacheKey, CachedShadowMapData, RenderAllocator> m_cachedShadowMapData;
 };
 
-class PointShadowRenderer : public ShadowRendererBase
+class PointLightShadowsPass : public ShadowsPassBase
 {
 public:
-    PointShadowRenderer() = default;
-    virtual ~PointShadowRenderer() override = default;
+    PointLightShadowsPass() = default;
+    virtual ~PointLightShadowsPass() override = default;
 
 protected:
 };
 
-class DirectionalShadowRenderer : public ShadowRendererBase
+class DirectionalLightShadowsPass : public ShadowsPassBase
 {
 public:
-    DirectionalShadowRenderer() = default;
-    virtual ~DirectionalShadowRenderer() override = default;
+    DirectionalLightShadowsPass() = default;
+    virtual ~DirectionalLightShadowsPass() override = default;
 
 protected:
 };

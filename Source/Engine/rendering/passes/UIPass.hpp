@@ -8,7 +8,7 @@
 
 #include <Core/memory/resource/Resource.hpp>
 
-#include <rendering/RendererBase.hpp>
+#include <rendering/Pass.hpp>
 #include <rendering/RendererMain.hpp>
 #include <rendering/RenderObject.hpp>
 
@@ -32,21 +32,21 @@ public:
 };
 
 HYP_CLASS(NoScriptBindings)
-class HYP_API UIRendererPassData : public PassData
+class HYP_API UIPassData : public PassData
 {
-    HYP_OBJECT_BODY(UIRendererPassData);
+    HYP_OBJECT_BODY(UIPassData);
 
 public:
-    virtual ~UIRendererPassData() override = default;
+    virtual ~UIPassData() override = default;
 
     UIRenderCollector renderCollector;
 };
 
-class UIRenderer final : public RendererBase
+class UIPass final : public PassBase
 {
 public:
-    UIRenderer();
-    virtual ~UIRenderer() = default;
+    UIPass();
+    virtual ~UIPass() = default;
 
     virtual void Initialize() override;
     virtual void Shutdown() override;

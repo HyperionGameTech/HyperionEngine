@@ -6,7 +6,7 @@
 
 #include <RenderingPch.hpp>
 
-#include <rendering/renderers/ShadowRenderer.hpp>
+#include <rendering/passes/ShadowsPass.hpp>
 
 #include <rendering/shadows/ShadowMapCache.hpp>
 #include <rendering/shadows/ShadowMapAllocator.hpp>
@@ -33,7 +33,7 @@
 
 #include <Core/utilities/DeferredScope.hpp>
 
-#include <ShadowRenderer.generated.inl>
+#include <ShadowsPass.generated.inl>
 
 namespace Hyperion {
 
@@ -42,23 +42,23 @@ HYP_DECLARE_LOG_CHANNEL(Rendering);
 // Draw the actual shadowmap
 static constexpr uint32 BucketMask = RenderBucketMask<RenderBucket::Opaque, RenderBucket::Translucent, RenderBucket::Lightmapped>;
 
-#pragma region ShadowRendererPassData
+#pragma region ShadowsPassData
 
-ShadowRendererPassData::~ShadowRendererPassData()
+ShadowsPassData::~ShadowsPassData()
 {
 }
 
-#pragma endregion ShadowRendererPassData
+#pragma endregion ShadowsPassData
 
-#pragma region ShadowRendererBase
+#pragma region ShadowsPassBase
 
-ShadowRendererBase::ShadowRendererBase() = default;
+ShadowsPassBase::ShadowsPassBase() = default;
 
-void ShadowRendererBase::Initialize()
+void ShadowsPassBase::Initialize()
 {
 }
 
-void ShadowRendererBase::Shutdown()
+void ShadowsPassBase::Shutdown()
 {
     HashSet<CacheKey> cacheKeys;
 
@@ -85,11 +85,11 @@ void ShadowRendererBase::Shutdown()
     }
 }
 
-int ShadowRendererBase::RunCleanupCycle(int maxIter)
+int ShadowsPassBase::RunCleanupCycle(int maxIter)
 {
     const uint32 currentFrame = GetFrameCounter();
 
-    int numCycles = RendererBase::RunCleanupCycle(maxIter);
+    int numCycles = PassBase::RunCleanupCycle(maxIter);
 
     for (auto it = m_cachedShadowMapData.Begin(); it != m_cachedShadowMapData.End() && numCycles < maxIter; numCycles++)
     {
@@ -117,7 +117,7 @@ int ShadowRendererBase::RunCleanupCycle(int maxIter)
     return numCycles;
 }
 
-void ShadowRendererBase::RenderFrame(Frame* frame, const RenderSetup& renderSetup)
+void ShadowsPassBase::RenderFrame(Frame* frame, const RenderSetup& renderSetup)
 {
     HYP_SCOPE;
     AssertOnThread(g_renderThread);
@@ -184,7 +184,7 @@ void ShadowRendererBase::RenderFrame(Frame* frame, const RenderSetup& renderSetu
         {
             continue;
         }
-        
+
         Camera* camera = cachedData->shadowViewsDynamic[cascadeIndex]->GetCamera();
         AssertDebug(camera != nullptr);
 
@@ -335,7 +335,7 @@ void ShadowRendererBase::RenderFrame(Frame* frame, const RenderSetup& renderSetu
             rs.framebuffer = framebuffer;
             rs.viewport = Viewport { atlasElement.dimensions, Vec2i(atlasElement.offsetCoords) };
 
-            ShadowRendererPassData* pd = DynamicCast<ShadowRendererPassData>(rs.passData);
+            ShadowsPassData* pd = DynamicCast<ShadowsPassData>(rs.passData);
             AssertDebug(pd != nullptr);
 
             RenderProxyList& rpl = GetConsumerProxyList(shadowView);
@@ -422,7 +422,7 @@ void ShadowRendererBase::RenderFrame(Frame* frame, const RenderSetup& renderSetu
             rs.framebuffer = framebuffer;
             rs.viewport = Viewport { atlasElement.dimensions, Vec2i(atlasElement.offsetCoords) };
 
-            ShadowRendererPassData* pd = DynamicCast<ShadowRendererPassData>(rs.passData);
+            ShadowsPassData* pd = DynamicCast<ShadowsPassData>(rs.passData);
             AssertDebug(pd != nullptr);
 
             if (needsClearBeforeDraw)
@@ -570,14 +570,14 @@ void ShadowRendererBase::RenderFrame(Frame* frame, const RenderSetup& renderSetu
     UpdateGpuData(light);
 }
 
-PassData* ShadowRendererBase::CreateViewPassData(View* view, PassDataExt& ext)
+PassData* ShadowsPassBase::CreateViewPassData(View* view, PassDataExt& ext)
 {
-    ShadowRendererPassData* pd = new ShadowRendererPassData();
+    ShadowsPassData* pd = new ShadowsPassData();
     pd->view = MakeWeakRef(view);
 
     return pd;
 }
 
-#pragma endregion ShadowRendererBase
+#pragma endregion ShadowsPassBase
 
 } // namespace Hyperion

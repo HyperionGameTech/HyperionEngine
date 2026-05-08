@@ -6,7 +6,7 @@
 
 #include <RenderingPch.hpp>
 
-#include <rendering/renderers/ParticleVolumeRenderer.hpp>
+#include <rendering/passes/ParticlesPass.hpp>
 
 #include <rendering/RenderInterface.hpp>
 #include <rendering/Frame.hpp>
@@ -54,22 +54,22 @@ static constexpr uint32 DiscardFrames = 60;
 
 static const ShaderPropertyId s_propHasPhysics = InternShaderProperty(ShaderProperty(NAME("HAS_PHYSICS")));
 
-ParticleVolumeRenderer::VolumeState::~VolumeState()
+ParticlesPass::VolumeState::~VolumeState()
 {
     EnqueueDeletion(std::move(particleBuffer));
     EnqueueDeletion(std::move(indirectBuffer));
     EnqueueDeletion(std::move(noiseMap));
 }
 
-ParticleVolumeRenderer::ParticleVolumeRenderer() = default;
-ParticleVolumeRenderer::~ParticleVolumeRenderer() = default;
+ParticlesPass::ParticlesPass() = default;
+ParticlesPass::~ParticlesPass() = default;
 
-void ParticleVolumeRenderer::Initialize()
+void ParticlesPass::Initialize()
 {
     HYP_SCOPE;
 }
 
-void ParticleVolumeRenderer::Shutdown()
+void ParticlesPass::Shutdown()
 {
     HYP_SCOPE;
 
@@ -81,7 +81,7 @@ void ParticleVolumeRenderer::Shutdown()
     EnqueueDeletion(std::move(m_staging.zeroIndirectArgs));
 }
 
-PassData* ParticleVolumeRenderer::CreateViewPassData(View* view, PassDataExt&)
+PassData* ParticlesPass::CreateViewPassData(View* view, PassDataExt&)
 {
     PassData* pd = new PassData();
     pd->view = MakeWeakRef(view);
@@ -89,7 +89,7 @@ PassData* ParticleVolumeRenderer::CreateViewPassData(View* view, PassDataExt&)
     return pd;
 }
 
-void ParticleVolumeRenderer::EnsureStaging()
+void ParticlesPass::EnsureStaging()
 {
     if (!m_staging.quadMesh.IsValid())
     {
@@ -135,7 +135,7 @@ static void CreateNoiseMap(Handle<Texture>& tex)
     CheckResult(tex->Create());
 }
 
-ParticleVolumeRenderer::VolumeState& ParticleVolumeRenderer::EnsureVolumeState(RenderProxyParticleVolume* proxy)
+ParticlesPass::VolumeState& ParticlesPass::EnsureVolumeState(RenderProxyParticleVolume* proxy)
 {
     auto it = m_volumeStates.Find(proxy->particleVolume.Id());
 
@@ -181,7 +181,7 @@ ParticleVolumeRenderer::VolumeState& ParticleVolumeRenderer::EnsureVolumeState(R
     return state;
 }
 
-void ParticleVolumeRenderer::RenderFrame(Frame* frame, const RenderSetup& renderSetup)
+void ParticlesPass::RenderFrame(Frame* frame, const RenderSetup& renderSetup)
 {
     HYP_SCOPE;
     AssertOnThread(g_renderThread);
@@ -256,7 +256,7 @@ void ParticleVolumeRenderer::RenderFrame(Frame* frame, const RenderSetup& render
     size_t cbufferSize;
     RI.cbufferAllocator->Commit(cbuffer, cbufferOffset, cbufferSize);
 
-    // this is rendered from translucent pass in DeferredRenderer
+    // this is rendered from translucent pass in DeferredPass
     Framebuffer* framebuffer = view->GetOutputTarget().GetFramebuffer(RenderBucket::Translucent);
     Assert(framebuffer != nullptr);
 
@@ -343,7 +343,7 @@ void ParticleVolumeRenderer::RenderFrame(Frame* frame, const RenderSetup& render
     }
 }
 
-int ParticleVolumeRenderer::RunCleanupCycle(int maxIter)
+int ParticlesPass::RunCleanupCycle(int maxIter)
 {
     HYP_SCOPE;
     AssertOnThread(g_renderThread);

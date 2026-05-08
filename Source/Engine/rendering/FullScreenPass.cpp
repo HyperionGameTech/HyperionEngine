@@ -24,7 +24,7 @@
 #include <rendering/Texture.hpp>
 #include <rendering/TextureViewCache.hpp>
 
-#include <rendering/renderers/DeferredRenderer.hpp>
+#include <rendering/passes/DeferredPass.hpp>
 
 #include <rendering/util/DeletionQueue.hpp>
 #include <rendering/util/ShaderPropertyDictionary.hpp>

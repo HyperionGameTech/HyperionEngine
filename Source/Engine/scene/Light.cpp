@@ -24,7 +24,7 @@
 #include <rendering/RenderProxy.hpp>
 #include <rendering/RenderInterface.hpp>
 
-#include <rendering/renderers/ShadowRenderer.hpp>
+#include <rendering/passes/ShadowsPass.hpp>
 
 #include <rendering/util/DeletionQueue.hpp>
 
@@ -367,7 +367,7 @@ void Light::SetNumShadowMapCascades(uint32 numShadowMapCascades)
     {
         return;
     }
-    
+
     if (m_shadowMap.IsValid())
     {
         EnqueueDeletion(std::move(m_shadowMap));
@@ -423,7 +423,7 @@ void Light::SetBakedShadowMap(const Handle<Texture>& shadowMap)
             CheckResult(m_shadowMap->Create());
         }
     }
-    
+
     SetNeedsRenderProxyUpdate();
     MarkDirty();
 }
@@ -526,7 +526,7 @@ void Light::UpdateRenderProxy(RenderProxyLight* proxy)
     proxy->lightMaterial = m_material.Get();
     proxy->bakedShadowMap = m_shadowMap.Get();
     proxy->numCascades = m_numShadowMapCascades;
-    
+
     LightShaderData& bufferData = proxy->bufferData;
     bufferData.lightType = uint32(m_type);
     bufferData.color = Vec4f(m_color);

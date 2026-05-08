@@ -28,7 +28,7 @@
 
 #include <rendering/shadows/ShadowMapCache.hpp>
 
-#include <rendering/renderers/DeferredRenderer.hpp>
+#include <rendering/passes/DeferredPass.hpp>
 
 #include <engine/CVarManager.hpp>
 
@@ -61,7 +61,7 @@ CVar<uint32> cvSSGIMaxIterations { "Rendering.SSGI.MaxIterations", 16 };
 
 namespace DeferredRendererHelpers {
 
-// Defined in DeferredRenderer.cpp
+// Defined in DeferredPass.cpp
 void FillShadowMapData(
     ShadowMapData& outShadowMapData,
     const ShadowMap& inShadowMap,
@@ -205,7 +205,7 @@ void SSGI::Render(Frame* frame, const RenderSetup& renderSetup)
 
     const uint32 frameIndex = frame->GetFrameIndex();
 
-    DeferredRendererPassData* dpd = DynamicCast<DeferredRendererPassData>(renderSetup.passData);
+    DeferredPassData* dpd = DynamicCast<DeferredPassData>(renderSetup.passData);
     AssertDebug(dpd != nullptr);
 
     const FramebufferRef& inputsFramebuffer = dpd->view.GetUnsafe()->GetOutputTarget().GetFramebuffer(RenderBucket::Opaque);

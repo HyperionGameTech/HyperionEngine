@@ -6,7 +6,7 @@
 
 #pragma once
 
-#include <rendering/RendererBase.hpp>
+#include <rendering/Pass.hpp>
 #include <rendering/FullScreenPass.hpp>
 #include <rendering/PostFX.hpp>
 #include <rendering/IndirectDraw.hpp>
@@ -28,11 +28,10 @@ class DepthPyramidRenderer;
 class SSRPass;
 class SSGI;
 class View;
-class DeferredRenderer;
+class DeferredPass;
 class GBuffer;
 class EnvGrid;
 class EnvProbe;
-class FullScreenPass;
 class TAAPass;
 class PostProcessing;
 class HBAO;
@@ -67,15 +66,15 @@ enum CubemapType : uint32
     CMT_MAX
 };
 
-class DeferredPass final : public FullScreenPass
+class LightingPass final : public FullScreenPass
 {
-    friend class DeferredRenderer;
+    friend class DeferredPass;
 
 public:
-    DeferredPass(DeferredPassMode mode, Vec2u extent, GBuffer* gbuffer, const FramebufferRef& framebuffer);
-    DeferredPass(const DeferredPass& other) = delete;
-    DeferredPass& operator=(const DeferredPass& other) = delete;
-    virtual ~DeferredPass() override;
+    LightingPass(DeferredPassMode mode, Vec2u extent, GBuffer* gbuffer, const FramebufferRef& framebuffer);
+    LightingPass(const LightingPass& other) = delete;
+    LightingPass& operator=(const LightingPass& other) = delete;
+    virtual ~LightingPass() override;
 
     virtual void Create() override;
 
@@ -272,19 +271,19 @@ private:
 };
 
 HYP_CLASS(NoScriptBindings)
-class HYP_API DeferredRendererPassData : public PassData
+class HYP_API DeferredPassData : public PassData
 {
-    HYP_OBJECT_BODY(DeferredRendererPassData);
+    HYP_OBJECT_BODY(DeferredPassData);
 
 public:
-    virtual ~DeferredRendererPassData() override;
+    virtual ~DeferredPassData() override;
 
     int priority = 0;
 
     Handle<Texture> mipChain;
 
-    UniquePtr<DeferredPass> indirectPass;
-    UniquePtr<DeferredPass> directPass;
+    UniquePtr<LightingPass> ambientLightingPass;
+    UniquePtr<LightingPass> punctualLightingPass;
 
     FramebufferRef deferredShadingFramebuffer;
     FramebufferRef depthPrepassFramebuffer;
@@ -322,14 +321,14 @@ class HYP_API RayTracingPassData : public PassData
 
 public:
     // Set only while rendering to this pass
-    DeferredRendererPassData* parentPass = nullptr;
+    DeferredPassData* parentPass = nullptr;
 
     FixedArray<GpuTlasRef, NumFramesInFlight> rayTracingTlases;
 
     virtual ~RayTracingPassData() override;
 };
 
-class DeferredRenderer final : public RendererBase
+class DeferredPass final : public PassBase
 {
 public:
 
@@ -346,10 +345,10 @@ public:
         Array<RenderedViewOutput> items;
     };
 
-    DeferredRenderer();
-    DeferredRenderer(const DeferredRenderer& other) = delete;
-    DeferredRenderer& operator=(const DeferredRenderer& other) = delete;
-    virtual ~DeferredRenderer() override;
+    DeferredPass();
+    DeferredPass(const DeferredPass& other) = delete;
+    DeferredPass& operator=(const DeferredPass& other) = delete;
+    virtual ~DeferredPass() override;
 
     HYP_FORCE_INLINE const RenderedViewOutputs& GetRenderedViewOutputs() const
     {
@@ -368,11 +367,11 @@ private:
     // Called on initialization or when the view changes
     virtual PassData* CreateViewPassData(View* view, PassDataExt&) override;
 
-    void CreateViewRayTracingPasses(View* view, DeferredRendererPassData& passData);
+    void CreateViewRayTracingPasses(View* view, DeferredPassData& passData);
 
     void CreateViewTopLevelAccelerationStructures(View* view, RayTracingPassData& passData);
 
-    void ResizeView(Viewport viewport, View* view, DeferredRendererPassData& passData);
+    void ResizeView(Viewport viewport, View* view, DeferredPassData& passData);
 
     void PerformOcclusionCulling(Frame* frame, const RenderSetup& rs, RenderCollector& renderCollector);
     void ExecuteDrawCalls(Frame* frame, const RenderSetup& rs, RenderCollector& renderCollector, uint32 bucketMask);

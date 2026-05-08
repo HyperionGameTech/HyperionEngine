@@ -9,7 +9,7 @@
 #include <rendering/DDGI.hpp>
 #include <rendering/AccelerationStructure.hpp>
 
-#include <rendering/renderers/DeferredRenderer.hpp>
+#include <rendering/passes/DeferredPass.hpp>
 
 #include <rendering/RenderInterface.hpp>
 #include <rendering/PlaceholderData.hpp>

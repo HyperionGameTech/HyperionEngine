@@ -42,7 +42,7 @@
 #include <rendering/Buffers.hpp>
 #include <rendering/InstancedMeshData.hpp>
 
-#include <rendering/renderers/UIRenderer.hpp>
+#include <rendering/passes/UIPass.hpp>
 
 #include <system/AppContext.hpp>
 

@@ -76,7 +76,7 @@ struct EnvProbeSphericalHarmonics
             reinterpret_cast<const ubyte*>(values),
             reinterpret_cast<const ubyte*>(values) + sizeof(values));
     }
-    
+
 #pragma region Serialization
 
     HYP_METHOD(Property = "Order0", Serialize = true, NoScriptBindings)
@@ -383,7 +383,7 @@ class HYP_API SkyProbe : public EnvProbe
 {
     HYP_OBJECT_BODY(SkyProbe);
 
-    friend class ReflectionProbeRenderer;
+    friend class ReflectionProbePass;
 
 public:
     SkyProbe()

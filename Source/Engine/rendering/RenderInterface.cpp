@@ -4,11 +4,12 @@
  *  @licence MIT
 */
 
+#include "RenderInterface.hpp"
 #include <RenderingPch.hpp>
 
 #include <rendering/RenderInterface.hpp>
 #include <rendering/MaterialTextureCache.hpp>
-#include <rendering/RendererBase.hpp>
+#include <rendering/Pass.hpp>
 #include <rendering/DrawCall.hpp>
 #include <rendering/GlobalBuffers.hpp>
 #include <rendering/PlaceholderData.hpp>
@@ -49,12 +50,12 @@
 #include <engine/resources/ResourceBinder.hpp>
 #include <rendering/resources/ResourceBindings.hpp>
 
-#include <rendering/renderers/EnvProbeRenderer.hpp>
-#include <rendering/renderers/DeferredRenderer.hpp>
-#include <rendering/renderers/ShadowRenderer.hpp>
-#include <rendering/renderers/ParticleVolumeRenderer.hpp>
-#include <rendering/renderers/SpriteRenderer.hpp>
-#include <rendering/renderers/UIRenderer.hpp>
+#include <rendering/passes/EnvProbePass.hpp>
+#include <rendering/passes/DeferredPass.hpp>
+#include <rendering/passes/ShadowsPass.hpp>
+#include <rendering/passes/ParticlesPass.hpp>
+#include <rendering/passes/SpritePass.hpp>
+#include <rendering/passes/UIPass.hpp>
 
 #include <rendering/shadows/ShadowMapCache.hpp>
 
@@ -702,33 +703,32 @@ RendererResult RenderInterface::Initialize()
 
     CheckResultOrReturn(globalDescriptorTable->Create());
 
-    for (uint32 i = 0; i < GRT_MAX; i++)
+    for (uint8 i = 0; i < NumNamedPasses; i++)
     {
-        globalRenderers[i] = Array<RendererBase*>();
+        namedPasses[i] = Array<PassBase*, RenderAllocator>();
     }
 
-    globalRenderers[GRT_DEFERRED].PushBack(new DeferredRenderer);
-    globalRenderers[GRT_DEFERRED][0]->Initialize();
+    namedPasses[NamedPass::Deferred].PushBack(new DeferredPass);
+    namedPasses[NamedPass::Deferred][0]->Initialize();
 
-    globalRenderers[GRT_UI].PushBack(new UIRenderer);
-    globalRenderers[GRT_DEFERRED][0]->Initialize();
+    namedPasses[NamedPass::UI].PushBack(new UIPass);
+    namedPasses[NamedPass::UI][0]->Initialize();
 
-    globalRenderers[GRT_ENV_PROBE].ResizeZeroed(EPT_MAX);
-    globalRenderers[GRT_ENV_PROBE][EPT_REFLECTION] = new ReflectionProbeRenderer;
-    globalRenderers[GRT_ENV_PROBE][EPT_SKY] = new ReflectionProbeRenderer;
+    namedPasses[NamedPass::EnvProbe].ResizeZeroed(EPT_MAX);
+    namedPasses[NamedPass::EnvProbe][EPT_REFLECTION] = new ReflectionProbePass;
+    namedPasses[NamedPass::EnvProbe][EPT_SKY] = new ReflectionProbePass;
 
-    globalRenderers[GRT_SHADOW_MAP].ResizeZeroed(NumLightTypes); // 1 ShadowMapRenderer per LightType
-    globalRenderers[GRT_SHADOW_MAP][uint32(LightType::Point)] = new PointShadowRenderer;
-    globalRenderers[GRT_SHADOW_MAP][uint32(LightType::Directional)] = new DirectionalShadowRenderer;
+    namedPasses[NamedPass::ShadowMap].ResizeZeroed(NumLightTypes); // 1 ShadowMapRenderer per LightType
+    namedPasses[NamedPass::ShadowMap][uint32(LightType::Point)] = new PointLightShadowsPass;
+    namedPasses[NamedPass::ShadowMap][uint32(LightType::Directional)] = new DirectionalLightShadowsPass;
 
     // one global particle volume renderer
-    globalRenderers[GRT_PARTICLE_VOLUME].ResizeZeroed(1);
-    globalRenderers[GRT_PARTICLE_VOLUME][0] = new ParticleVolumeRenderer;
+    namedPasses[NamedPass::ParticleVolume].ResizeZeroed(1);
+    namedPasses[NamedPass::ParticleVolume][0] = new ParticlesPass;
 
-    // one global sprite renderer
-    globalRenderers[GRT_SPRITE].ResizeZeroed(1);
-    globalRenderers[GRT_SPRITE][0] = new SpriteRenderer;
-    globalRenderers[GRT_SPRITE][0]->Initialize();
+    namedPasses[NamedPass::Sprite].ResizeZeroed(1);
+    namedPasses[NamedPass::Sprite][0] = new SpritePass;
+    namedPasses[NamedPass::Sprite][0]->Initialize();
 
     return {};
 }
@@ -778,16 +778,18 @@ void RenderInterface::Shutdown()
     PoolDelete(*g_renderPool, bindlessStorage);
     bindlessStorage = nullptr;
 
-    for (uint32 i = 0; i < GRT_MAX; i++)
+    for (uint8 i = 0; i < NumNamedPasses; i++)
     {
-        for (uint32 j = 0; j < globalRenderers[i].Size(); j++)
+        for (uint32 j = 0; j < namedPasses[i].Size(); j++)
         {
-            if (globalRenderers[i][j])
+            if (namedPasses[i][j])
             {
-                globalRenderers[i][j]->Shutdown();
-                delete globalRenderers[i][j];
+                namedPasses[i][j]->Shutdown();
+                delete namedPasses[i][j];
             }
         }
+
+        namedPasses[i].Clear();
     }
 
     DebugDrawer::GetInstance().Shutdown();
@@ -1179,13 +1181,13 @@ void RenderInterface::EndFrame()
         ++it;
     }
 
-    for (uint32 i = 0; i < GRT_MAX; i++)
+    for (uint8 i = 0; i < NumNamedPasses; i++)
     {
-        for (uint32 j = 0; j < globalRenderers[i].Size(); j++)
+        for (size_t j = 0; j < namedPasses[i].Size(); j++)
         {
-            if (RendererBase* renderer = globalRenderers[i][j])
+            if (PassBase* pass = namedPasses[i][j])
             {
-                renderer->RunCleanupCycle();
+                pass->RunCleanupCycle();
             }
         }
     }
@@ -1264,32 +1266,32 @@ void RenderInterface::EndFrame()
     Framework::s_freeSemaphore.release();
 }
 
-void RenderInterface::AddRenderer(GlobalRendererType globalRendererType, RendererBase* renderer)
+void RenderInterface::AddPass(NamedPass passName, PassBase* pass)
 {
     HYP_SCOPE;
     AssertOnThread(g_renderThread);
 
-    AssertDebug(globalRendererType != GRT_NONE && globalRendererType < GRT_MAX);
+    AssertDebug(passName < NumNamedPasses);
 
-    AssertDebug(renderer != nullptr);
-    AssertDebug(!globalRenderers[globalRendererType].Contains(renderer));
+    AssertDebug(pass != nullptr);
+    AssertDebug(!namedPasses[passName].Contains(pass));
 
-    globalRenderers[globalRendererType].PushBack(renderer);
+    namedPasses[passName].PushBack(pass);
 }
 
-void RenderInterface::RemoveRenderer(GlobalRendererType globalRendererType, RendererBase* renderer)
+void RenderInterface::RemovePass(NamedPass passName, PassBase* pass)
 {
     HYP_SCOPE;
     AssertOnThread(g_renderThread);
 
-    AssertDebug(globalRendererType != GRT_NONE && globalRendererType < GRT_MAX);
+    AssertDebug(passName < NumNamedPasses);
 
-    AssertDebug(renderer != nullptr);
-    AssertDebug(globalRenderers[globalRendererType].Contains(renderer));
+    AssertDebug(pass != nullptr);
+    AssertDebug(namedPasses[passName].Contains(pass));
 
-    PoolDelete(*g_renderPool, renderer);
+    PoolDelete(*g_renderPool, pass);
 
-    globalRenderers[globalRendererType].Erase(renderer);
+    namedPasses[passName].Erase(pass);
 }
 
 void RenderInterface::CommitPipelineState(PSOType psoType, CommandBuffer* commandBuffer)

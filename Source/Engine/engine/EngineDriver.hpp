@@ -39,7 +39,7 @@ class SimThread;
 class RenderGlobalState;
 class ScriptingService;
 class DebugDrawer;
-class DeferredRenderer;
+class DeferredPass;
 class FinalPass;
 class PlaceholderData;
 class RenderThread;

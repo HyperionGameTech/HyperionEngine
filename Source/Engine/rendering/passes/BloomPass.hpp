@@ -29,7 +29,7 @@ public:
     const Handle<Texture>& GetBloomResult() const;
 
     void Create() override;
-    
+
     void Render(Frame* frame, const RenderSetup& renderSetup) override;
 
 protected:
@@ -48,7 +48,7 @@ protected:
     ShaderPropertySet GetShaderProperties() const;
 
 private:
-    void ExtractBrightAreas(Frame* frame, const RenderSetup& renderSetup, const FramebufferRef& inputsFramebuffer, class DeferredRendererPassData* dpd);
+    void ExtractBrightAreas(Frame* frame, const RenderSetup& renderSetup, const FramebufferRef& inputsFramebuffer, class DeferredPassData* dpd);
     void Downsample(Frame* frame, const RenderSetup& renderSetup);
     void Upsample(Frame* frame, const RenderSetup& renderSetup);
 

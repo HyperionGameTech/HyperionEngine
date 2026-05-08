@@ -21,7 +21,7 @@
 #include <rendering/ShaderInstance.hpp>
 #include <rendering/RenderProxy.hpp>
 
-#include <rendering/renderers/DeferredRenderer.hpp>
+#include <rendering/passes/DeferredPass.hpp>
 
 #include <rendering/util/DeletionQueue.hpp>
 

@@ -6,8 +6,8 @@
 
 #include <RenderingPch.hpp>
 
-#include <rendering/renderers/EnvProbeRenderer.hpp>
-#include <rendering/renderers/DeferredRenderer.hpp>
+#include <rendering/passes/EnvProbePass.hpp>
+#include <rendering/passes/DeferredPass.hpp>
 
 #include <rendering/ShaderManager.hpp>
 #include <rendering/PlaceholderData.hpp>
@@ -42,7 +42,7 @@
 
 #include <HyperionEngine.hpp>
 
-#include <EnvProbeRenderer.generated.inl>
+#include <EnvProbePass.generated.inl>
 
 namespace Hyperion {
 
@@ -600,25 +600,25 @@ void ComputeEnvProbeSphericalHarmonics(
 
 #pragma endregion ComputeSH
 
-#pragma region EnvProbeRenderer
+#pragma region EnvProbePassBase
 
-EnvProbeRenderer::EnvProbeRenderer()
+EnvProbePassBase::EnvProbePassBase()
 {
 }
 
-EnvProbeRenderer::~EnvProbeRenderer()
+EnvProbePassBase::~EnvProbePassBase()
 {
 }
 
-void EnvProbeRenderer::Initialize()
+void EnvProbePassBase::Initialize()
 {
 }
 
-void EnvProbeRenderer::Shutdown()
+void EnvProbePassBase::Shutdown()
 {
 }
 
-void EnvProbeRenderer::RenderFrame(Frame* frame, const RenderSetup& renderSetup)
+void EnvProbePassBase::RenderFrame(Frame* frame, const RenderSetup& renderSetup)
 {
     HYP_SCOPE;
     AssertOnThread(g_renderThread);
@@ -637,41 +637,41 @@ void EnvProbeRenderer::RenderFrame(Frame* frame, const RenderSetup& renderSetup)
     RenderProbe(frame, rs, envProbe);
 }
 
-PassData* EnvProbeRenderer::CreateViewPassData(View* view, PassDataExt& ext)
+PassData* EnvProbePassBase::CreateViewPassData(View* view, PassDataExt& ext)
 {
-    EnvProbeRendererPassData* pd = new EnvProbeRendererPassData();
+    EnvProbePassData* pd = new EnvProbePassData();
     pd->view = MakeWeakRef(view);
 
     return pd;
 }
 
-#pragma endregion EnvProbeRenderer
+#pragma endregion EnvProbePassBase
 
-#pragma region ReflectionProbeRenderer
+#pragma region ReflectionProbePass
 
-ReflectionProbeRenderer::ReflectionProbeRenderer()
+ReflectionProbePass::ReflectionProbePass()
 {
 }
 
-ReflectionProbeRenderer::~ReflectionProbeRenderer()
+ReflectionProbePass::~ReflectionProbePass()
 {
 }
 
-void ReflectionProbeRenderer::Initialize()
-{
-    HYP_SCOPE;
-
-    EnvProbeRenderer::Initialize();
-}
-
-void ReflectionProbeRenderer::Shutdown()
+void ReflectionProbePass::Initialize()
 {
     HYP_SCOPE;
 
-    EnvProbeRenderer::Shutdown();
+    EnvProbePassBase::Initialize();
 }
 
-void ReflectionProbeRenderer::RenderProbe(Frame* frame, const RenderSetup& renderSetup, EnvProbe* envProbe)
+void ReflectionProbePass::Shutdown()
+{
+    HYP_SCOPE;
+
+    EnvProbePassBase::Shutdown();
+}
+
+void ReflectionProbePass::RenderProbe(Frame* frame, const RenderSetup& renderSetup, EnvProbe* envProbe)
 {
     HYP_SCOPE;
     AssertOnThread(g_renderThread);
@@ -683,7 +683,7 @@ void ReflectionProbeRenderer::RenderProbe(Frame* frame, const RenderSetup& rende
     View* view = renderSetup.view;
     AssertDebug(view != nullptr);
 
-    EnvProbeRendererPassData* pd = DynamicCast<EnvProbeRendererPassData>(renderSetup.passData);
+    EnvProbePassData* pd = DynamicCast<EnvProbePassData>(renderSetup.passData);
     AssertDebug(pd != nullptr);
 
     RenderProxyList& rpl = GetConsumerProxyList(view);
@@ -794,7 +794,7 @@ void ReflectionProbeRenderer::RenderProbe(Frame* frame, const RenderSetup& rende
     }*/
 }
 
-void ReflectionProbeRenderer::ComputePrefilteredEnvMap(Frame* frame, const RenderSetup& renderSetup, EnvProbe* envProbe)
+void ReflectionProbePass::ComputePrefilteredEnvMap(Frame* frame, const RenderSetup& renderSetup, EnvProbe* envProbe)
 {
     HYP_SCOPE;
 
@@ -824,7 +824,7 @@ void ReflectionProbeRenderer::ComputePrefilteredEnvMap(Frame* frame, const Rende
         *envProbe);
 }
 
-void ReflectionProbeRenderer::ComputeSH(Frame* frame, EnvProbe* envProbe)
+void ReflectionProbePass::ComputeSH(Frame* frame, EnvProbe* envProbe)
 {
     HYP_SCOPE;
 
@@ -839,6 +839,6 @@ void ReflectionProbeRenderer::ComputeSH(Frame* frame, EnvProbe* envProbe)
     ComputeSH::ComputeEnvProbeSphericalHarmonics(*envProbe, *colorAttachment);
 }
 
-#pragma endregion ReflectionProbeRenderer
+#pragma endregion ReflectionProbePass
 
 } // namespace Hyperion

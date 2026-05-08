@@ -33,13 +33,10 @@ class RenderProxyList;
 class View;
 class DrawCallCollection;
 class DescriptorSetLayout;
-class RendererBase;
+class PassBase;
 class IRenderProxy;
-class EnvProbeRenderer;
-class EnvProbe;
-class ReflectionProbe;
 class SkyProbe;
-class UIRenderer;
+class UIPass;
 class MaterialInstance;
 class MaterialTextureCache;
 class GraphicsPipelineCache;
@@ -149,23 +146,49 @@ Viewport& GetViewport(View* view);
 
 EngineConfig& GetEngineConfig();
 
-HYP_ENUM()
-enum GlobalRendererType : uint32
+struct NamedPass
 {
-    GRT_NONE = ~0u, //!< Not a global renderer type
+    enum Name : uint8
+    {
+        Invalid = UINT8_MAX,
 
-    GRT_DEFERRED = 0,        //!< Main world renderer (DeferredRenderer)
-    GRT_UI,              //!< Globally registered UIRenderer instances to be used by FinalPass to draw the UI onto the backbuffer.
-    GRT_ENV_PROBE,       //!< Global renderer instances for different EnvProbe classes
-    GRT_ENV_GRID,        //!< Global renderer instance for EnvGrids
-    GRT_SHADOW_MAP,      //!< Shadow map renderers, e.g. PointLightShadowRenderer, DirectionalLightShadowRenderer
-    GRT_PARTICLE_VOLUME, //!< Global renderer instance for ParticleVolumes
-    GRT_SPRITE,          //!< Sprite rendering for editor sprites
+        Deferred = 0,
+        UI,
+        EnvProbe,
+        EnvGrid,
+        ShadowMap,
+        ParticleVolume,
+        Sprite,
+        SSAO,
 
-    GRT_SSAO,
+        Max
+    };
 
-    GRT_MAX
+    static constexpr const char* StringValues[Max] = {
+        "Deferred",
+        "UI",
+        "EnvProbe",
+        "EnvGrid",
+        "ShadowMap",
+        "ParticleVolume",
+        "Sprite",
+        "SSAO",
+    };
+
+    NamedPass(Name value)
+        : value(value)
+    {
+    }
+
+    operator uint8() const
+    {
+        return uint8(value);
+    }
+
+    Name value;
 };
+
+static constexpr uint8 NumNamedPasses = uint8(NamedPass::Max);
 
 enum PSOType : uint8
 {
@@ -284,8 +307,8 @@ public:
     virtual RendererResult Initialize();
     virtual void Shutdown();
 
-    void AddRenderer(GlobalRendererType globalRendererType, RendererBase* renderer);
-    void RemoveRenderer(GlobalRendererType globalRendererType, RendererBase* renderer);
+    void AddPass(NamedPass passName, PassBase* pass);
+    void RemovePass(NamedPass passName, PassBase* pass);
 
     void FlushStructuredBuffers();
 
@@ -379,7 +402,7 @@ public:
 
     DescriptorTableRef globalDescriptorTable;
 
-    Array<RendererBase*> globalRenderers[GRT_MAX];
+    Array<PassBase*, RenderAllocator> namedPasses[NumNamedPasses];
 
     StructuredBuffer namedBuffers[NumNamedBuffers];
 

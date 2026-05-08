@@ -15,7 +15,7 @@
 
 #include <rendering/util/DeletionQueue.hpp>
 
-#include <rendering/renderers/EnvProbeRenderer.hpp>
+#include <rendering/passes/EnvProbePass.hpp>
 
 #include <asset/AssetRegistry.hpp>
 #include <asset/Assets.hpp>

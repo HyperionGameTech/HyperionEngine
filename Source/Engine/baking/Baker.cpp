@@ -23,7 +23,7 @@
 #include <rendering/Mesh.hpp>
 #include <rendering/MaterialInstance.hpp>
 #include <rendering/Texture.hpp>
-#include <rendering/RendererBase.hpp>
+#include <rendering/Pass.hpp>
 
 #include <rendering/util/DeletionQueue.hpp>
 

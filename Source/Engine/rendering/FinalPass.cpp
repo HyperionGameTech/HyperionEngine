@@ -20,8 +20,8 @@
 #include <rendering/CBufferAllocator.hpp>
 #include <rendering/RawBufferAllocator.hpp>
 
-#include <rendering/renderers/DeferredRenderer.hpp>
-#include <rendering/renderers/UIRenderer.hpp>
+#include <rendering/passes/DeferredPass.hpp>
+#include <rendering/passes/UIPass.hpp>
 
 #include <rendering/util/DeletionQueue.hpp>
 
@@ -132,10 +132,10 @@ void FinalPass::Render(Frame* frame, const RenderSetup& rs)
     cr << SetShaderUniform(0, "SamplerLinear"_sh, RI.placeholderData->GetSamplerLinear());
     cr << SetShaderUniform(1, "WorldsBuffer"_sh, RI.namedBuffers[NamedBuffer::Worlds]);
 
-    DeferredRenderer* dr = static_cast<DeferredRenderer*>(RI.globalRenderers[GRT_DEFERRED][0]);
+    DeferredPass* dr = static_cast<DeferredPass*>(RI.namedPasses[NamedPass::Deferred][0]);
     AssertDebug(dr != nullptr);
 
-    for (const DeferredRenderer::RenderedViewOutput& output : dr->GetRenderedViewOutputs().items)
+    for (const DeferredPass::RenderedViewOutput& output : dr->GetRenderedViewOutputs().items)
     {
         cr << SetShaderUniform(3, "InTexture"_sh, output.finalImageView);
 
@@ -150,7 +150,7 @@ void FinalPass::Render(Frame* frame, const RenderSetup& rs)
     if (cvShowDebugUI.Get())
     {
         // draw ui
-        UIRenderer* uiRenderer = static_cast<UIRenderer*>(RI.globalRenderers[GRT_UI][0]);
+        UIPass* uiRenderer = static_cast<UIPass*>(RI.namedPasses[NamedPass::UI][0]);
 
         if (uiRenderer != nullptr)
         {

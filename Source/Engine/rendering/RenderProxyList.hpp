@@ -149,7 +149,7 @@ public:
     const bool isShared : 1 = false;               //!< should we use a spinlock to ensure multiple threads aren't accessing this list at the same time?
     const bool useRefCounting : 1 = true;          //!< Should we inc/dec ref counts for resources we hold?
     bool useOrdering : 1 = false;                  //!< are mesh entities sorted using an indirect array to map sort order?
-    bool disableBuildRenderCollection : 1 = false; //!< Disable building out RenderCollection. Set to true in the case of custom render collection building (See UIRenderer)
+    bool disableBuildRenderCollection : 1 = false; //!< Disable building out RenderCollection. Set to true in the case of custom render collection building (See UIPass)
 
     int priority;
 

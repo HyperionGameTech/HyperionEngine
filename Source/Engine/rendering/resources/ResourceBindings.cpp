@@ -11,7 +11,7 @@
 #include <rendering/Mesh.hpp>
 #include <rendering/DescriptorSet.hpp>
 
-#include <rendering/renderers/EnvProbeRenderer.hpp>
+#include <rendering/passes/EnvProbePass.hpp>
 
 #include <engine/resources/ResourceBinder.hpp>
 

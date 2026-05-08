@@ -22,8 +22,8 @@
 #include <rendering/PlaceholderData.hpp>
 #include <rendering/CBufferAllocator.hpp>
 
-#include <rendering/renderers/EnvProbeRenderer.hpp>
-#include <rendering/renderers/DeferredRenderer.hpp>
+#include <rendering/passes/EnvProbePass.hpp>
+#include <rendering/passes/DeferredPass.hpp>
 
 #include <rendering/util/DeletionQueue.hpp>
 
@@ -456,7 +456,7 @@ void IndirectRenderer::ExecuteCullShaderInBatches(Frame* frame, const RenderSetu
         m_cachedCullDataUpdatedBits = 0xFF;
     }
 
-    DeferredRendererPassData* pd = DynamicCast<DeferredRendererPassData>(renderSetup.passData);
+    DeferredPassData* pd = DynamicCast<DeferredPassData>(renderSetup.passData);
     AssertDebug(pd != nullptr);
 
     uint32 numShaderUniforms = 0;

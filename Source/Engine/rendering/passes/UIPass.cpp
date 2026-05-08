@@ -21,8 +21,8 @@
 #include <rendering/RenderGroup.hpp>
 #include <rendering/RenderGroupCache.hpp>
 
-#include <rendering/renderers/DeferredRenderer.hpp>
-#include <rendering/renderers/UIRenderer.hpp>
+#include <rendering/passes/DeferredPass.hpp>
+#include <rendering/passes/UIPass.hpp>
 
 #include <rendering/util/ShaderPropertyDictionary.hpp>
 
@@ -39,7 +39,7 @@
 #include <engine/EngineDriver.hpp>
 #include <engine/CVarManager.hpp>
 
-#include <UIRenderer.generated.inl>
+#include <UIPass.generated.inl>
 
 namespace Hyperion {
 
@@ -238,28 +238,28 @@ void UIRenderCollector::ExecuteDrawCalls(Frame* frame, const RenderSetup& render
 
 #pragma endregion UIRenderCollector
 
-#pragma region UIRenderer
+#pragma region UIPass
 
-UIRenderer::UIRenderer()
+UIPass::UIPass()
 {
 }
 
-void UIRenderer::Initialize()
+void UIPass::Initialize()
 {
 }
 
-void UIRenderer::Shutdown()
+void UIPass::Shutdown()
 {
 }
 
-void UIRenderer::RenderFrame(Frame* frame, const RenderSetup& renderSetup)
+void UIPass::RenderFrame(Frame* frame, const RenderSetup& renderSetup)
 {
     HYP_SCOPE;
     AssertOnThread(g_renderThread);
 
     Assert(renderSetup.view != nullptr);
 
-    UIRendererPassData* pd = DynamicCast<UIRendererPassData>(FetchViewPassData(renderSetup.view));
+    UIPassData* pd = DynamicCast<UIPassData>(FetchViewPassData(renderSetup.view));
     AssertDebug(pd != nullptr);
 
     if (!pd->renderCollector.batchAllocator)
@@ -287,15 +287,15 @@ void UIRenderer::RenderFrame(Frame* frame, const RenderSetup& renderSetup)
     pd->renderCollector.ExecuteDrawCalls(frame, rs, nullptr, 0);
 }
 
-PassData* UIRenderer::CreateViewPassData(View* view, PassDataExt&)
+PassData* UIPass::CreateViewPassData(View* view, PassDataExt&)
 {
-    UIRendererPassData* pd = new UIRendererPassData();
+    UIPassData* pd = new UIPassData();
 
     pd->view = MakeWeakRef(view);
 
     return pd;
 }
 
-#pragma endregion UIRenderer
+#pragma endregion UIPass
 
 } // namespace Hyperion

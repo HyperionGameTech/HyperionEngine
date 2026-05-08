@@ -7,7 +7,7 @@
 #include <RenderingPch.hpp>
 
 #include <rendering/passes/SSRPass.hpp>
-#include <rendering/RendererBase.hpp>
+#include <rendering/Pass.hpp>
 #include <rendering/ShaderManager.hpp>
 #include <rendering/PlaceholderData.hpp>
 #include <rendering/RenderInterface.hpp>

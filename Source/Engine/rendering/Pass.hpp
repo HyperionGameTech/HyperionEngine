@@ -31,7 +31,7 @@ class LightmapVolume;
 class ParticleVolume;
 struct CullData;
 class PassData;
-class RendererBase;
+class PassBase;
 class View;
 class VolumeBase;
 class EntityBatchAllocatorBase;
@@ -203,14 +203,14 @@ public:
     PassDataExt* next = nullptr;
 };
 
-class RendererBase
+class PassBase
 {
 public:
     HYP_DEF_POOL_NEW_DELETE(g_renderPool);
 
     using PassDataMap = SparsePagedArray<PassData*, 16, RenderAllocator>;
 
-    virtual ~RendererBase();
+    virtual ~PassBase();
 
     virtual void Initialize() = 0;
     virtual void Shutdown() = 0;
@@ -222,7 +222,7 @@ public:
     virtual int RunCleanupCycle(int maxIter = 10);
 
 protected:
-    RendererBase();
+    PassBase();
 
     virtual PassData* CreateViewPassData(View* view, PassDataExt& ext)
     {

@@ -22,7 +22,7 @@
 #include <rendering/RenderHelpers.hpp>
 #include <rendering/CBufferAllocator.hpp>
 
-#include <rendering/renderers/DeferredRenderer.hpp>
+#include <rendering/passes/DeferredPass.hpp>
 
 #include <rendering/AccelerationStructure.hpp>
 #include <rendering/RayTracingReflections.hpp>
@@ -52,7 +52,7 @@ extern CVar<bool> cvPathTracing;
 
 namespace DeferredRendererHelpers {
 
-// Defined in DeferredRenderer.cpp
+// Defined in DeferredPass.cpp
 void FillShadowMapData(
     ShadowMapData& outShadowMapData,
     const ShadowMap& inShadowMap,
@@ -97,7 +97,7 @@ void RayTracingReflections::Render(Frame* frame, const RenderSetup& renderSetup)
     RayTracingPassData* pd = DynamicCast<RayTracingPassData>(renderSetup.passData);
     AssertDebug(pd != nullptr);
 
-    DeferredRendererPassData* parentPass = pd->parentPass;
+    DeferredPassData* parentPass = pd->parentPass;
     AssertDebug(parentPass != nullptr);
 
     const uint32 frameIndex = frame->GetFrameIndex();

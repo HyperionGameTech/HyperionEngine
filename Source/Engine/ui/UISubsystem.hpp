@@ -24,7 +24,7 @@ class World;
 
 class UIStage;
 class UIObject;
-class UIRenderer;
+class UIPass;
 class UIListView;
 class FontAtlas;
 
@@ -105,8 +105,8 @@ private:
 
     Handle<View> m_view;
 
-    UIRenderer* m_uiRenderer;
-    
+    UIPass* m_uiRenderer;
+
     Array<Handle<OverlayBase>> m_debugOverlays;
 
     // top-left, bottom-left, top-right, bottom-right

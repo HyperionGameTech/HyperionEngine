@@ -36,8 +36,6 @@ class SystemExecutionGroup;
 
 struct GameState;
 
-enum GlobalRendererType : uint32;
-
 namespace threading {
 class TaskBatch;
 } // namespace threading

@@ -1,6 +1,6 @@
 #include <RenderingPch.hpp>
 
-#include <rendering/RendererBase.hpp>
+#include <rendering/Pass.hpp>
 #include <rendering/RenderInterface.hpp>
 #include <rendering/GraphicsPipelineCache.hpp>
 #include <rendering/DrawCall.hpp>
@@ -14,7 +14,7 @@
 
 #include <Core/profiling/PerformanceClock.hpp>
 
-#include <RendererBase.generated.inl>
+#include <Pass.generated.inl>
 
 namespace Hyperion {
 
@@ -40,7 +40,7 @@ PassData::~PassData()
 
 #pragma endregion PassData
 
-#pragma region RendererBase
+#pragma region PassBase
 
 struct NullPassDataExt final : PassDataExt
 {
@@ -50,17 +50,17 @@ struct NullPassDataExt final : PassDataExt
     }
 };
 
-RendererBase::RendererBase()
+PassBase::PassBase()
     : m_viewPassDataCleanupIterator(m_viewPassData.End())
 {
 }
 
-RendererBase::~RendererBase()
+PassBase::~PassBase()
 {
     for (auto it = m_viewPassData.Begin(); it != m_viewPassData.End(); ++it)
     {
         PassData* pd = *it;
-        
+
         if (pd != nullptr)
         {
             delete pd;
@@ -68,13 +68,13 @@ RendererBase::~RendererBase()
     }
 }
 
-int RendererBase::RunCleanupCycle(int maxIter)
+int PassBase::RunCleanupCycle(int maxIter)
 {
     // default impl, run for views
     return RunCleanupCycle(m_viewPassData, maxIter, &m_viewPassDataCleanupIterator);
 }
 
-int RendererBase::RunCleanupCycle(PassDataMap& passData, int maxIter, typename PassDataMap::Iterator* pIter)
+int PassBase::RunCleanupCycle(PassDataMap& passData, int maxIter, typename PassDataMap::Iterator* pIter)
 {
     typename PassDataMap::Iterator tmpIterator;
 
@@ -134,7 +134,7 @@ int RendererBase::RunCleanupCycle(PassDataMap& passData, int maxIter, typename P
     return numCycles;
 }
 
-PassData* RendererBase::TryGetViewPassData(View* view)
+PassData* PassBase::TryGetViewPassData(View* view)
 {
     if (!view)
     {
@@ -151,7 +151,7 @@ PassData* RendererBase::TryGetViewPassData(View* view)
     return nullptr;
 }
 
-PassData* RendererBase::FetchViewPassData(View* view, PassDataExt* ext, bool forceNew)
+PassData* PassBase::FetchViewPassData(View* view, PassDataExt* ext, bool forceNew)
 {
     if (!view)
     {
@@ -200,6 +200,6 @@ PassData* RendererBase::FetchViewPassData(View* view, PassDataExt* ext, bool for
     return *ppPassData;
 }
 
-#pragma region RendererBase
+#pragma region PassBase
 
 } // namespace Hyperion

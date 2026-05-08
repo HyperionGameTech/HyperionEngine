@@ -30,7 +30,7 @@
 #include <rendering/Buffers.hpp>
 #include <rendering/Frame.hpp>
 
-#include <rendering/renderers/DeferredRenderer.hpp>
+#include <rendering/passes/DeferredPass.hpp>
 
 #include <rendering/util/DeletionQueue.hpp>
 
@@ -154,7 +154,7 @@ void RenderThread::Update()
 
     if (worldsToRender)
     {
-        RendererBase* mainRenderer = RI.globalRenderers[GRT_DEFERRED][0];
+        PassBase* mainRenderer = RI.namedPasses[NamedPass::Deferred][0];
         AssertDebug(mainRenderer != nullptr);
 
         RenderSetup renderSetup {};

@@ -22,7 +22,7 @@
 #include <rendering/TextureViewCache.hpp>
 #include <rendering/Texture.hpp>
 
-#include <rendering/renderers/DeferredRenderer.hpp>
+#include <rendering/passes/DeferredPass.hpp>
 
 #include <rendering/util/DeletionQueue.hpp>
 
@@ -41,7 +41,7 @@
 
 namespace Hyperion {
 
-class DeferredRendererPassData;
+class DeferredPassData;
 
 HYP_DECLARE_LOG_CHANNEL(Rendering);
 
@@ -209,7 +209,7 @@ void BloomPass::Render(Frame* frame, const RenderSetup& renderSetup)
 
     const uint32 frameIndex = frame->GetFrameIndex();
 
-    DeferredRendererPassData* dpd = DynamicCast<DeferredRendererPassData>(renderSetup.passData);
+    DeferredPassData* dpd = DynamicCast<DeferredPassData>(renderSetup.passData);
     AssertDebug(dpd != nullptr);
 
     const FramebufferRef& inputsFramebuffer = dpd->view.GetUnsafe()->GetOutputTarget().GetFramebuffer(RenderBucket::Opaque);
@@ -227,7 +227,7 @@ ShaderPropertySet BloomPass::GetShaderProperties() const
     return shaderProperties;
 }
 
-void BloomPass::ExtractBrightAreas(Frame* frame, const RenderSetup& renderSetup, const FramebufferRef& inputsFramebuffer, DeferredRendererPassData* dpd)
+void BloomPass::ExtractBrightAreas(Frame* frame, const RenderSetup& renderSetup, const FramebufferRef& inputsFramebuffer, DeferredPassData* dpd)
 {
     HYP_SCOPE;
 

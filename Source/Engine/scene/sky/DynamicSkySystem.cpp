@@ -18,7 +18,7 @@
 #include <scene/components/VisibilityStateComponent.hpp>
 #include <scene/components/BoundingBoxComponent.hpp>
 
-#include <rendering/RendererBase.hpp>
+#include <rendering/Pass.hpp>
 #include <rendering/Frame.hpp>
 #include <rendering/Texture.hpp>
 #include <rendering/Mesh.hpp>
@@ -64,7 +64,7 @@ void DynamicSkySystem::Init()
     SystemBase::Init();
 
     GlobalContextScope engineRegistryScope { AssetRegistryContext { GetEngineAssetRegistry() } };
-    
+
     { // atmospheric scattering capture setup
         m_renderScene = MakeHandle<Scene>(NAME("DynamicSkyRenderScene"), SceneFlags::NONE);
         m_renderScene->SetIsTransient(true); // don't save; it's generated at runtime

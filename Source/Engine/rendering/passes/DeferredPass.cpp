@@ -6,10 +6,10 @@
 
 #include <RenderingPch.hpp>
 
-#include <rendering/renderers/DeferredRenderer.hpp>
-#include <rendering/renderers/EnvProbeRenderer.hpp>
-#include <rendering/renderers/UIRenderer.hpp>
-#include <rendering/renderers/SpriteRenderer.hpp>
+#include <rendering/passes/DeferredPass.hpp>
+#include <rendering/passes/EnvProbePass.hpp>
+#include <rendering/passes/UIPass.hpp>
+#include <rendering/passes/SpritePass.hpp>
 
 #include <rendering/RenderGroup.hpp>
 #include <rendering/MaterialTextureCache.hpp>
@@ -82,7 +82,7 @@
 #include <engine/EngineDriver.hpp>
 #include <engine/EngineStats.hpp>
 
-#include <DeferredRenderer.generated.inl>
+#include <DeferredPass.generated.inl>
 
 namespace Hyperion {
 
@@ -308,9 +308,9 @@ static const TypeId s_envProbeTypeToTypeId[EPT_MAX] = {
     TypeId::ForType<EnvProbe>()         // EPT_AMBIENT (fixme when derived class)
 };
 
-#pragma region DeferredPass
+#pragma region LightingPass
 
-DeferredPass::DeferredPass(DeferredPassMode mode, Vec2u extent, GBuffer* gbuffer, const FramebufferRef& framebuffer)
+LightingPass::LightingPass(DeferredPassMode mode, Vec2u extent, GBuffer* gbuffer, const FramebufferRef& framebuffer)
     : FullScreenPass(ShaderDesc(), framebuffer, TextureFormat::RGBA16F, extent, gbuffer, FSP_EXTERNAL_RENDERTARGET),
       m_mode(mode),
       m_ltcSampler(nullptr)
@@ -321,12 +321,12 @@ DeferredPass::DeferredPass(DeferredPassMode mode, Vec2u extent, GBuffer* gbuffer
     SetBlendFunction(BlendFunction(BMF_ONE, BMF_ONE, BMF_ONE, BMF_ONE));
 }
 
-DeferredPass::~DeferredPass()
+LightingPass::~LightingPass()
 {
     m_ltcSampler = nullptr;
 }
 
-void DeferredPass::Create()
+void LightingPass::Create()
 {
     AssertOnThread(g_renderThread);
 
@@ -372,12 +372,12 @@ void DeferredPass::Create()
     }
 }
 
-void DeferredPass::Resize_Internal(Vec2u newSize)
+void LightingPass::Resize_Internal(Vec2u newSize)
 {
     FullScreenPass::Resize_Internal(newSize);
 }
 
-void DeferredPass::RenderToFramebuffer_Internal(Frame* frame, const RenderSetup& rs, Framebuffer* framebuffer)
+void LightingPass::RenderToFramebuffer_Internal(Frame* frame, const RenderSetup& rs, Framebuffer* framebuffer)
 {
     AssertDebug(rs.world && rs.view);
     AssertDebug(rs.passData != nullptr);
@@ -393,7 +393,7 @@ void DeferredPass::RenderToFramebuffer_Internal(Frame* frame, const RenderSetup&
 
     const Vec4f& cameraPosition = cameraProxy->bufferData.cameraPosition;
 
-    DeferredRendererPassData* dpd = DynamicCast<DeferredRendererPassData>(rs.passData);
+    DeferredPassData* dpd = DynamicCast<DeferredPassData>(rs.passData);
     AssertDebug(dpd != nullptr);
 
     Framebuffer* opaquePassFramebuffer = dpd->view.GetUnsafe()->GetOutputTarget().GetFramebuffer(RenderBucket::Opaque);
@@ -761,7 +761,7 @@ void DeferredPass::RenderToFramebuffer_Internal(Frame* frame, const RenderSetup&
     }
 }
 
-#pragma endregion DeferredPass
+#pragma endregion LightingPass
 
 #pragma region TonemapPass
 
@@ -791,7 +791,7 @@ void TonemapPass::Render(Frame* frame, const RenderSetup& rs)
 
     CommandRecorder& cr = frame->cr;
 
-    DeferredRendererPassData* dpd = DynamicCast<DeferredRendererPassData>(rs.passData);
+    DeferredPassData* dpd = DynamicCast<DeferredPassData>(rs.passData);
     AssertDebug(dpd != nullptr);
 
     const uint32 frameIndex = frame->GetFrameIndex();
@@ -921,7 +921,7 @@ void LightmapPass::RenderToFramebuffer_Internal(Frame* frame, const RenderSetup&
         return; // nothing to do
     }
 
-    DeferredRendererPassData* dpd = DynamicCast<DeferredRendererPassData>(renderSetup.passData);
+    DeferredPassData* dpd = DynamicCast<DeferredPassData>(renderSetup.passData);
     AssertDebug(dpd != nullptr);
 
     Framebuffer* viewFramebuffer = dpd->view.GetUnsafe()->GetOutputTarget().GetFramebuffer(RenderBucket::Opaque);
@@ -1083,7 +1083,7 @@ void FogVolumePass::RenderToFramebuffer_Internal(Frame* frame, const RenderSetup
 {
     AssertDebug(renderSetup.world && renderSetup.volume && renderSetup.view);
 
-    DeferredRendererPassData* dpd = DynamicCast<DeferredRendererPassData>(renderSetup.passData);
+    DeferredPassData* dpd = DynamicCast<DeferredPassData>(renderSetup.passData);
     AssertDebug(dpd != nullptr);
 
     FogVolume* volume = DynamicCast<FogVolume>(renderSetup.volume);
@@ -1365,7 +1365,7 @@ void ReflectionsPass::Render(Frame* frame, const RenderSetup& rs)
     cr << SetShaderUniform(0, "SamplerLinear"_sh, RI.placeholderData->GetSamplerLinearMipmap());
     cr << SetShaderUniform(1, "SamplerNearest"_sh, RI.placeholderData->GetSamplerNearest());
 
-    DeferredRendererPassData* dpd = DynamicCast<DeferredRendererPassData>(rs.passData);
+    DeferredPassData* dpd = DynamicCast<DeferredPassData>(rs.passData);
     AssertDebug(dpd != nullptr);
 
     const FramebufferRef& opaquePassFramebuffer = dpd->view.GetUnsafe()->GetOutputTarget().GetFramebuffer(RenderBucket::Opaque);
@@ -1468,9 +1468,9 @@ void ReflectionsPass::Render(Frame* frame, const RenderSetup& rs)
 
 #pragma endregion ReflectionsPass
 
-#pragma region DeferredRendererPassData
+#pragma region DeferredPassData
 
-DeferredRendererPassData::~DeferredRendererPassData()
+DeferredPassData::~DeferredPassData()
 {
     EnqueueDeletion(std::move(mipChain));
 
@@ -1496,8 +1496,8 @@ DeferredRendererPassData::~DeferredRendererPassData()
     lightmapPass.Reset();
     tonemapPass.Reset();
     mipChain.Reset();
-    indirectPass.Reset();
-    directPass.Reset();
+    ambientLightingPass.Reset();
+    punctualLightingPass.Reset();
 
     rayTracingReflections.Reset();
     ddgi.Reset();
@@ -1514,7 +1514,7 @@ RayTracingPassData::~RayTracingPassData()
 
 #pragma endregion RayTracingPassData
 
-#pragma region DeferredRenderer
+#pragma region DeferredPass
 
 static FramebufferRef CreateDeferredShadingFramebuffer(GBuffer* gbuffer)
 {
@@ -2061,32 +2061,32 @@ public:
     }
 };
 
-DeferredRenderer::DeferredRenderer()
+DeferredPass::DeferredPass()
     : m_tileProcessor(MakeUnique<TileProcessor>())
 {
 }
 
-DeferredRenderer::~DeferredRenderer()
+DeferredPass::~DeferredPass()
 {
 }
 
-void DeferredRenderer::Initialize()
+void DeferredPass::Initialize()
 {
 }
 
-void DeferredRenderer::Shutdown()
+void DeferredPass::Shutdown()
 {
     m_quadMesh.Reset();
 }
 
-PassData* DeferredRenderer::CreateViewPassData(View* view, PassDataExt&)
+PassData* DeferredPass::CreateViewPassData(View* view, PassDataExt&)
 {
     Assert(view != nullptr);
 
     if (view->GetFlags() & ViewFlags::GBUFFER)
     {
-        DeferredRendererPassData* pd = new DeferredRendererPassData();
-        DeferredRendererPassData& passData = *pd;
+        DeferredPassData* pd = new DeferredPassData();
+        DeferredPassData& passData = *pd;
 
         passData.view = MakeWeakRef(view);
 
@@ -2114,11 +2114,11 @@ PassData* DeferredRenderer::CreateViewPassData(View* view, PassDataExt&)
         passData.deferredShadingFramebuffer = CreateDeferredShadingFramebuffer(gbuffer);
         passData.depthPrepassFramebuffer = CreateDepthPrepassFramebuffer(gbuffer);
 
-        passData.indirectPass = MakeUnique<DeferredPass>(DPM_INDIRECT_LIGHTING, gbuffer->GetExtent(), gbuffer, passData.deferredShadingFramebuffer);
-        passData.indirectPass->Create();
+        passData.ambientLightingPass = MakeUnique<LightingPass>(DPM_INDIRECT_LIGHTING, gbuffer->GetExtent(), gbuffer, passData.deferredShadingFramebuffer);
+        passData.ambientLightingPass->Create();
 
-        passData.directPass = MakeUnique<DeferredPass>(DPM_DIRECT_LIGHTING, gbuffer->GetExtent(), gbuffer, passData.deferredShadingFramebuffer);
-        passData.directPass->Create();
+        passData.punctualLightingPass = MakeUnique<LightingPass>(DPM_DIRECT_LIGHTING, gbuffer->GetExtent(), gbuffer, passData.deferredShadingFramebuffer);
+        passData.punctualLightingPass->Create();
 
         passData.depthPyramidRenderer = MakeUnique<DepthPyramidRenderer>(gbuffer);
         passData.depthPyramidRenderer->Create();
@@ -2184,7 +2184,7 @@ PassData* DeferredRenderer::CreateViewPassData(View* view, PassDataExt&)
     return nullptr;
 }
 
-void DeferredRenderer::CreateViewRayTracingPasses(View* view, DeferredRendererPassData& passData)
+void DeferredPass::CreateViewRayTracingPasses(View* view, DeferredPassData& passData)
 {
     AssertOnThread(g_renderThread);
 
@@ -2215,7 +2215,7 @@ void DeferredRenderer::CreateViewRayTracingPasses(View* view, DeferredRendererPa
     passData.ddgi->Create();
 }
 
-void DeferredRenderer::CreateViewTopLevelAccelerationStructures(View* view, RayTracingPassData& passData)
+void DeferredPass::CreateViewTopLevelAccelerationStructures(View* view, RayTracingPassData& passData)
 {
     EnqueueDeletion(std::move(passData.rayTracingTlases));
 
@@ -2238,7 +2238,7 @@ void DeferredRenderer::CreateViewTopLevelAccelerationStructures(View* view, RayT
     }
 }
 
-void DeferredRenderer::ResizeView(Viewport viewport, View* view, DeferredRendererPassData& passData)
+void DeferredPass::ResizeView(Viewport viewport, View* view, DeferredPassData& passData)
 {
     AssertOnThread(g_renderThread);
 
@@ -2272,8 +2272,8 @@ void DeferredRenderer::ResizeView(Viewport viewport, View* view, DeferredRendere
     passData.deferredShadingFramebuffer = CreateDeferredShadingFramebuffer(gbuffer);
     passData.depthPrepassFramebuffer = CreateDepthPrepassFramebuffer(gbuffer);
 
-    passData.directPass->Resize(newSize);
-    passData.indirectPass->Resize(newSize);
+    passData.punctualLightingPass->Resize(newSize);
+    passData.ambientLightingPass->Resize(newSize);
 
     passData.depthPyramidRenderer = MakeUnique<DepthPyramidRenderer>(gbuffer);
     passData.depthPyramidRenderer->Create();
@@ -2330,7 +2330,7 @@ void DeferredRenderer::ResizeView(Viewport viewport, View* view, DeferredRendere
     passData.view = MakeWeakRef(view);
 }
 
-void DeferredRenderer::RenderFrame(Frame* frame, const RenderSetup& rs)
+void DeferredPass::RenderFrame(Frame* frame, const RenderSetup& rs)
 {
     AssertDebug(rs.world);
 
@@ -2380,7 +2380,7 @@ void DeferredRenderer::RenderFrame(Frame* frame, const RenderSetup& rs)
                 PassData* pd = FetchViewPassData(view);
                 Assert(pd != nullptr);
 
-                DeferredRendererPassData* pdCasted = DynamicCast<DeferredRendererPassData>(pd);
+                DeferredPassData* pdCasted = DynamicCast<DeferredPassData>(pd);
                 Assert(pdCasted != nullptr);
 
                 pdCasted->priority = view->GetPriority();
@@ -2481,7 +2481,7 @@ void DeferredRenderer::RenderFrame(Frame* frame, const RenderSetup& rs)
             // check for dynamic env probes to render
             for (uint32 envProbeType = 0; envProbeType <= EPT_REFLECTION; envProbeType++)
             {
-                if (RendererBase* renderer = RI.globalRenderers[GRT_ENV_PROBE][envProbeType])
+                if (PassBase* pass = RI.namedPasses[NamedPass::EnvProbe][envProbeType])
                 {
                     for (EnvProbe* envProbe : envProbes[envProbeType])
                     {
@@ -2493,12 +2493,12 @@ void DeferredRenderer::RenderFrame(Frame* frame, const RenderSetup& rs)
                         RenderSetup currentEnvProbeSetup = envProbeSetup.Fork();
                         currentEnvProbeSetup.envProbe = envProbe;
 
-                        renderer->RenderFrame(frame, currentEnvProbeSetup);
+                        pass->RenderFrame(frame, currentEnvProbeSetup);
                     }
                 }
                 else
                 {
-                    HYP_LOG(Rendering, Warning, "No EnvProbeRenderer found for EnvProbeType {}! Skipping rendering of env probes of this type.", EPT_REFLECTION);
+                    HYP_LOG(Rendering, Warning, "No EnvProbePass found for EnvProbeType {}! Skipping rendering of env probes of this type.", EPT_REFLECTION);
                 }
             }
         }
@@ -2517,7 +2517,7 @@ void DeferredRenderer::RenderFrame(Frame* frame, const RenderSetup& rs)
 
                 envGridSetup.envGrid = envGrid;
 
-                RI.globalRenderers[GRT_ENV_GRID][0]->RenderFrame(frame, envGridSetup);
+                RI.namedPasses[NamedPass::EnvGrid][0]->RenderFrame(frame, envGridSetup);
             }
         }
     }
@@ -2529,7 +2529,7 @@ void DeferredRenderer::RenderFrame(Frame* frame, const RenderSetup& rs)
             continue;
         }
 
-        DeferredRendererPassData* pd = DynamicCast<DeferredRendererPassData>(FetchViewPassData(view));
+        DeferredPassData* pd = DynamicCast<DeferredPassData>(FetchViewPassData(view));
         AssertDebug(pd != nullptr);
 
         RenderSetup currentViewSetup = rs.Fork();
@@ -2561,7 +2561,7 @@ void DeferredRenderer::RenderFrame(Frame* frame, const RenderSetup& rs)
     }
 }
 
-void DeferredRenderer::RenderFrameForView(Frame* frame, const RenderSetup& rs)
+void DeferredPass::RenderFrameForView(Frame* frame, const RenderSetup& rs)
 {
     AssertDebug(rs.world && rs.view);
 
@@ -2581,10 +2581,10 @@ void DeferredRenderer::RenderFrameForView(Frame* frame, const RenderSetup& rs)
 
     RenderCollector& renderCollector = GetRenderCollector(view);
 
-    DeferredRendererPassData* passDataCasted = DynamicCast<DeferredRendererPassData>(rs.passData);
+    DeferredPassData* passDataCasted = DynamicCast<DeferredPassData>(rs.passData);
     AssertDebug(passDataCasted != nullptr);
 
-    DeferredRendererPassData& passData = *passDataCasted;
+    DeferredPassData& passData = *passDataCasted;
 
     const uint32 frameIndex = frame->GetFrameIndex();
 
@@ -2646,9 +2646,9 @@ void DeferredRenderer::RenderFrameForView(Frame* frame, const RenderSetup& rs)
     {
         const uint32 lightTypeIndex = uint32(light->GetLightType());
 
-        AssertDebug(lightTypeIndex < RI.globalRenderers[GRT_SHADOW_MAP].Size());
+        AssertDebug(lightTypeIndex < RI.namedPasses[NamedPass::ShadowMap].Size());
 
-        RendererBase* shadowRenderer = RI.globalRenderers[GRT_SHADOW_MAP][lightTypeIndex];
+        PassBase* shadowRenderer = RI.namedPasses[NamedPass::ShadowMap][lightTypeIndex];
 
         if (!shadowRenderer)
         {
@@ -2849,8 +2849,8 @@ void DeferredRenderer::RenderFrameForView(Frame* frame, const RenderSetup& rs)
             }
         }
 
-        passData.indirectPass->RenderToFramebuffer(frame, rs, passData.deferredShadingFramebuffer);
-        passData.directPass->RenderToFramebuffer(frame, rs, passData.deferredShadingFramebuffer);
+        passData.ambientLightingPass->RenderToFramebuffer(frame, rs, passData.deferredShadingFramebuffer);
+        passData.punctualLightingPass->RenderToFramebuffer(frame, rs, passData.deferredShadingFramebuffer);
 
         frame->cr << SetCurrentFramebuffer(nullptr);
     }
@@ -2929,12 +2929,12 @@ void DeferredRenderer::RenderFrameForView(Frame* frame, const RenderSetup& rs)
                 RenderSetup particleVolumeRS = rs.Fork();
                 particleVolumeRS.volume = particleVolume;
 
-                RI.globalRenderers[GRT_PARTICLE_VOLUME][0]->RenderFrame(frame, particleVolumeRS);
+                RI.namedPasses[NamedPass::ParticleVolume][0]->RenderFrame(frame, particleVolumeRS);
             }
         }
 
         { // draw sprites
-            SpriteRenderer* spriteRenderer = static_cast<SpriteRenderer*>(RI.globalRenderers[GRT_SPRITE][0]);
+            SpritePass* spriteRenderer = static_cast<SpritePass*>(RI.namedPasses[NamedPass::Sprite][0]);
 
             if (spriteRenderer != nullptr)
             {
@@ -2992,7 +2992,7 @@ void DeferredRenderer::RenderFrameForView(Frame* frame, const RenderSetup& rs)
     m_renderedViewOutputs.items.Insert(outputsIt, RenderedViewOutput { view, std::move(finalImageView), passData.priority });
 }
 
-void DeferredRenderer::UpdateRayTracingView(Frame* frame, const RenderSetup& rs)
+void DeferredPass::UpdateRayTracingView(Frame* frame, const RenderSetup& rs)
 {
     View* view = rs.view;
     AssertDebug(view != nullptr);
@@ -3107,12 +3107,12 @@ void DeferredRenderer::UpdateRayTracingView(Frame* frame, const RenderSetup& rs)
     pd->rayTracingTlases[currentFrameIndex]->UpdateStructure(updateStateFlags);
 }
 
-void DeferredRenderer::PerformOcclusionCulling(Frame* frame, const RenderSetup& rs, RenderCollector& renderCollector)
+void DeferredPass::PerformOcclusionCulling(Frame* frame, const RenderSetup& rs, RenderCollector& renderCollector)
 {
     renderCollector.PerformOcclusionCulling(frame, rs, AllRenderBucketsMask);
 }
 
-void DeferredRenderer::ExecuteDrawCalls(
+void DeferredPass::ExecuteDrawCalls(
     Frame* frame,
     const RenderSetup& rs,
     RenderCollector& renderCollector,
@@ -3121,9 +3121,9 @@ void DeferredRenderer::ExecuteDrawCalls(
     renderCollector.ExecuteDrawCalls(frame, rs, bucketMask);
 }
 
-void DeferredRenderer::GenerateMipChain(Frame* frame, const RenderSetup& rs, RenderCollector& renderCollector, const GpuImageRef& srcImage)
+void DeferredPass::GenerateMipChain(Frame* frame, const RenderSetup& rs, RenderCollector& renderCollector, const GpuImageRef& srcImage)
 {
-    DeferredRendererPassData* pd = DynamicCast<DeferredRendererPassData>(rs.passData);
+    DeferredPassData* pd = DynamicCast<DeferredPassData>(rs.passData);
 
     const Handle<Texture>& mipChainTexture = pd->mipChain;
     AssertDebug(mipChainTexture.IsValid());
@@ -3138,6 +3138,6 @@ void DeferredRenderer::GenerateMipChain(Frame* frame, const RenderSetup& rs, Ren
     frame->cr << InsertBarrier(srcImage, RS_RENDER_TARGET);
 }
 
-#pragma endregion DeferredRenderer
+#pragma endregion DeferredPass
 
 } // namespace Hyperion

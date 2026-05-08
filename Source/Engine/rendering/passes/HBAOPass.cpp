@@ -21,7 +21,7 @@
 #include <rendering/TextureViewCache.hpp>
 #include <rendering/Texture.hpp>
 
-#include <rendering/renderers/DeferredRenderer.hpp>
+#include <rendering/passes/DeferredPass.hpp>
 
 #include <rendering/util/DeletionQueue.hpp>
 
@@ -109,7 +109,7 @@ void HBAO::Render(Frame* frame, const RenderSetup& renderSetup)
 
     Begin(frame, renderSetup);
 
-    DeferredRendererPassData* dpd = DynamicCast<DeferredRendererPassData>(renderSetup.passData);
+    DeferredPassData* dpd = DynamicCast<DeferredPassData>(renderSetup.passData);
     AssertDebug(dpd != nullptr);
 
     const FramebufferRef& inputsFramebuffer = dpd->view.GetUnsafe()->GetOutputTarget().GetFramebuffer(RenderBucket::Opaque);

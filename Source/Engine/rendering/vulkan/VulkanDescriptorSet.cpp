@@ -545,8 +545,14 @@ RendererResult VulkanDescriptorSet::Create()
 
     for (const ShaderInput& shaderInput : m_layout.GetElements())
     {
-        isBindlessTextures |= (shaderInput.type == ShaderInputType::SRV && shaderInput.category == ShaderResourceCategory::Image && shaderInput.count == ~0u);
-        isBindlessBuffers |= (shaderInput.category == ShaderResourceCategory::Buffer && shaderInput.count == ~0u);
+        const bool isBindless = (shaderInput.count == ~0u);
+
+        if (isBindless)
+        {
+            isBindlessTextures |= (shaderInput.category == ShaderResourceCategory::Image && shaderInput.type == ShaderInputType::SRV);
+            isBindlessBuffers |= (shaderInput.category == ShaderResourceCategory::Buffer);
+        }
+
         isRayTracing |= (shaderInput.type == ShaderInputType::SRV && shaderInput.category == ShaderResourceCategory::AccelerationStructure);
     }
 

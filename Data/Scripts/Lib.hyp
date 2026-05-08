@@ -1118,18 +1118,6 @@ extern struct BlendFunction
 end
 extern struct MeshRayTracingData
 end
-extern enum GlobalRendererType : uint32
-    GRT_NONE = ~0u,
-    GRT_DEFERRED = 0,
-    GRT_UI,
-    GRT_ENV_PROBE,
-    GRT_ENV_GRID,
-    GRT_SHADOW_MAP,
-    GRT_PARTICLE_VOLUME,
-    GRT_SPRITE,
-    GRT_SSAO,
-    GRT_MAX
-end
 extern enum RenderBucket : uint8
     Opaque,
     Lightmapped,

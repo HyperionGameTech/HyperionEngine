@@ -34,7 +34,7 @@
 #include <rendering/shadows/ShadowMapAllocator.hpp>
 #include <rendering/shadows/ShadowMap.hpp>
 
-#include <rendering/renderers/DeferredRenderer.hpp>
+#include <rendering/passes/DeferredPass.hpp>
 
 #include <rendering/util/DeletionQueue.hpp>
 #include <rendering/util/ShaderPropertyDictionary.hpp>
@@ -346,7 +346,7 @@ static inline Stage GetStage(const RenderSetup& renderSetup, bool isDepthPrepass
 {
     // We only consider DPP to be active when we are in the main geometry pass
     // Shadows, env probes etc should not be considered
-    static constexpr uint64 PassDataTypeId = CONSTEXPR_TYPE_ID(DeferredRendererPassData);
+    static constexpr uint64 PassDataTypeId = CONSTEXPR_TYPE_ID(DeferredPassData);
 
     if (!renderSetup.passData
         || renderSetup.passData->Id().GetTypeId().Value() != PassDataTypeId
@@ -869,7 +869,7 @@ static void RenderAll(Frame* frame, const TPerformRenderingPayload<TCommandRecor
     // }
 
     // Will only be non-null if we are in a deferred rendering pass.
-    DeferredRendererPassData* dpd = DynamicCast<DeferredRendererPassData>(renderSetup.passData);
+    DeferredPassData* dpd = DynamicCast<DeferredPassData>(renderSetup.passData);
 
     if (dpd != nullptr)
     {
@@ -877,7 +877,7 @@ static void RenderAll(Frame* frame, const TPerformRenderingPayload<TCommandRecor
 
         if (isForwardShading)
         {
-            // Even though the name (DeferredRendererPassData) suggests otherwise, we are in forward pass, where we use clustered shading
+            // Even though the name (DeferredPassData) suggests otherwise, we are in forward pass, where we use clustered shading
 
             AssertDebug(dpd->gridTilesBuffer != nullptr && dpd->gridIndexBuffer != nullptr);
 
@@ -1146,7 +1146,7 @@ static void PerformRenderingImpl(Frame* frame, const TPerformRenderingPayload<TC
         && drawCallCollection.flags[RenderGroupFlags::INDIRECT_RENDERING]
         && (renderSetup.passData && renderSetup.passData->cullData.depthPyramidImageView);
 
-    DeferredRendererPassData* dpd = DynamicCast<DeferredRendererPassData>(renderSetup.passData);
+    DeferredPassData* dpd = DynamicCast<DeferredPassData>(renderSetup.passData);
 
     // Not env probes, prepass, etc. Just main drawing pass.
     const bool isNormalDrawingPass = dpd != nullptr
@@ -1832,7 +1832,7 @@ void RenderCollector::ExecuteDrawCalls(
 
     if (renderSetup.view->GetFlags() & ViewFlags::GBUFFER)
     {
-        // Pass NULL framebuffer for GBuffer rendering, as it will be handled by DeferredRenderer outside of this scope.
+        // Pass NULL framebuffer for GBuffer rendering, as it will be handled by DeferredPass outside of this scope.
         ExecuteDrawCalls(frame, renderSetup, nullptr, bucketBits, isDepthPrepass);
     }
     else

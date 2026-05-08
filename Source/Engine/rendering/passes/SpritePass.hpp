@@ -8,7 +8,7 @@
 
 #include <Core/memory/resource/Resource.hpp>
 
-#include <rendering/RendererBase.hpp>
+#include <rendering/Pass.hpp>
 #include <rendering/RenderObject.hpp>
 
 #include <scene/Subsystem.hpp>
@@ -19,19 +19,19 @@ class View;
 struct RenderSetup;
 
 HYP_CLASS(NoScriptBindings)
-class HYP_API SpriteRendererPassData : public PassData
+class HYP_API SpritePassData : public PassData
 {
-    HYP_OBJECT_BODY(SpriteRendererPassData);
+    HYP_OBJECT_BODY(SpritePassData);
 
 public:
-    virtual ~SpriteRendererPassData() override = default;
+    virtual ~SpritePassData() override = default;
 };
 
-class SpriteRenderer final : public RendererBase
+class SpritePass final : public PassBase
 {
 public:
-    SpriteRenderer();
-    virtual ~SpriteRenderer() = default;
+    SpritePass();
+    virtual ~SpritePass() = default;
 
     virtual void Initialize() override;
     virtual void Shutdown() override;

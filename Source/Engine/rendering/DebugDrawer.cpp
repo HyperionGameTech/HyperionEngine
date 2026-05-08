@@ -25,7 +25,7 @@
 #include <rendering/Texture.hpp>
 #include <rendering/Buffers.hpp>
 
-#include <rendering/renderers/DeferredRenderer.hpp>
+#include <rendering/passes/DeferredPass.hpp>
 
 #include <rendering/util/DeletionQueue.hpp>
 
@@ -757,7 +757,7 @@ void DebugDrawer::Render(Frame* frame, const RenderSetup& renderSetup)
         cr << SetFaceCullMode(FCM_BACK);
     });
 
-    DeferredRendererPassData* dpd = DynamicCast<DeferredRendererPassData>(renderSetup.passData);
+    DeferredPassData* dpd = DynamicCast<DeferredPassData>(renderSetup.passData);
     AssertDebug(dpd != nullptr);
 
     cr << SetShaderUniform(0, "SamplerNearest"_sh, RI.placeholderData->GetSamplerNearest());

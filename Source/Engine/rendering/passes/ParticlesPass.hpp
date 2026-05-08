@@ -8,7 +8,7 @@
 
 #include <Core/containers/HashMap.hpp>
 
-#include <rendering/RendererBase.hpp>
+#include <rendering/Pass.hpp>
 #include <rendering/RenderableAttributes.hpp>
 
 namespace Hyperion {
@@ -18,11 +18,11 @@ class Mesh;
 class ParticleVolume;
 class RenderProxyParticleVolume;
 
-class ParticleVolumeRenderer : public RendererBase
+class ParticlesPass : public PassBase
 {
 public:
-    ParticleVolumeRenderer();
-    ~ParticleVolumeRenderer() override;
+    ParticlesPass();
+    ~ParticlesPass() override;
 
     void Initialize() override;
     void Shutdown() override;
