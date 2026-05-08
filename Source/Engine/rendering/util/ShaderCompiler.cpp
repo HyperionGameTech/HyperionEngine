@@ -324,15 +324,15 @@ static constexpr uint32 HYP_VULKAN_API_VERSION = VK_API_VERSION_1_2;
 #endif // !HYP_VULKAN
 
 // Target platform properties for cross-compilation
-static const ShaderPropertyId s_propTargetPlatformWindows = InternShaderProperty(ShaderProperty(NAME("HYP_TARGET_PLATFORM"), NAME("WINDOWS")));
-static const ShaderPropertyId s_propTargetPlatformMac = InternShaderProperty(ShaderProperty(NAME("HYP_TARGET_PLATFORM"), NAME("MAC")));
-static const ShaderPropertyId s_propTargetPlatformLinux = InternShaderProperty(ShaderProperty(NAME("HYP_TARGET_PLATFORM"), NAME("LINUX")));
-static const ShaderPropertyId s_propTargetPlatformAndroid = InternShaderProperty(ShaderProperty(NAME("HYP_TARGET_PLATFORM"), NAME("ANDROID")));
-static const ShaderPropertyId s_propTargetPlatformIOS = InternShaderProperty(ShaderProperty(NAME("HYP_TARGET_PLATFORM"), NAME("IOS")));
+static const ShaderPropertyId s_propTargetWindows = InternShaderProperty(ShaderProperty(NAME("TARGET"), NAME("WINDOWS")));
+static const ShaderPropertyId s_propTargetMac = InternShaderProperty(ShaderProperty(NAME("TARGET"), NAME("MAC")));
+static const ShaderPropertyId s_propTargetLinux = InternShaderProperty(ShaderProperty(NAME("TARGET"), NAME("LINUX")));
+static const ShaderPropertyId s_propTargetAndroid = InternShaderProperty(ShaderProperty(NAME("TARGET"), NAME("ANDROID")));
+static const ShaderPropertyId s_propTargetIOS = InternShaderProperty(ShaderProperty(NAME("TARGET"), NAME("IOS")));
 
 // Target backend properties for cross-compilation
-static const ShaderPropertyId s_propTargetBackendVulkan = InternShaderProperty(ShaderProperty(NAME("HYP_TARGET_BACKEND"), NAME("VULKAN")));
-static const ShaderPropertyId s_propTargetBackendDX12 = InternShaderProperty(ShaderProperty(NAME("HYP_TARGET_BACKEND"), NAME("DX12")));
+static const ShaderPropertyId s_propVulkan = InternShaderProperty(ShaderProperty(NAME("VULKAN")));
+static const ShaderPropertyId s_propDX12 = InternShaderProperty(ShaderProperty(NAME("DX12")));
 
 static const ShaderPropertyId s_propNumGBufferTextures = InternShaderProperty(ShaderProperty(NAME("NUM_GBUFFER_TEXTURES"), int(NumGBufferTargets)));
 
@@ -407,21 +407,21 @@ static void MergeGlobalShaderProperties(bool isPrecompilingShaders, ShaderProper
     // Current platform + Graphics API
 
 #ifdef HYP_DX12
-    out.Add(s_propTargetBackendDX12);
+    out.Add(s_propDX12);
 #elif defined(HYP_VULKAN)
-    out.Add(s_propTargetBackendVulkan);
+    out.Add(s_propVulkan);
 #endif // HYP_DX12 || HYP_VULKAN
 
 #ifdef HYP_WINDOWS
-    out.Add(s_propTargetPlatformWindows);
+    out.Add(s_propTargetWindows);
 #elif defined(HYP_MAC)
-    out.Add(s_propTargetPlatformMac);
+    out.Add(s_propTargetMac);
 #elif defined(HYP_LINUX)
-    out.Add(s_propTargetPlatformLinux);
+    out.Add(s_propTargetLinux);
 #elif defined(HYP_ANDROID)
-    out.Add(s_propTargetPlatformAndroid);
+    out.Add(s_propTargetAndroid);
 #elif defined(HYP_IOS)
-    out.Add(s_propTargetPlatformIOS);
+    out.Add(s_propTargetIOS);
 #endif // HYP_WINDOWS || HYP_MAC || HYP_LINUX || HYP_ANDROID || HYP_IOS
 
     const EngineConfig& cfg = GetEngineConfig();
@@ -2717,21 +2717,13 @@ bool ShaderCompiler::CompileBundle(
 
         if (platformValues.Any())
         {
-            declaredPerms.AddValueGroup(NAME("HYP_TARGET_PLATFORM"), platformValues);
+            declaredPerms.AddValueGroup(NAME("TARGET"), platformValues);
         }
-
-        Array<ShaderProperty::Value> backendValues;
 
         if (m_compileParams.targetBackends[ShaderCompileTargetBackend::Vulkan])
-            backendValues.PushBack(ShaderProperty::Value(NAME("VULKAN")));
-
-        if (m_compileParams.targetBackends[ShaderCompileTargetBackend::DX12])
-            backendValues.PushBack(ShaderProperty::Value(NAME("DX12")));
-
-        if (backendValues.Any())
-        {
-            declaredPerms.AddValueGroup(NAME("HYP_TARGET_BACKEND"), backendValues);
-        }
+            declaredPerms.AddStatic(NAME("VULKAN"));
+        else if (m_compileParams.targetBackends[ShaderCompileTargetBackend::DX12])
+            declaredPerms.AddStatic(NAME("DX12"));
     }
     else
     {
@@ -2753,19 +2745,19 @@ bool ShaderCompiler::CompileBundle(
 
         if (activePlatform.IsValid())
         {
-            declaredPerms.Set(ShaderProperty(NAME("HYP_TARGET_PLATFORM"), activePlatform));
+            declaredPerms.Set(ShaderProperty(NAME("TARGET"), activePlatform));
         }
 
-        Name activeBackend;
+        Name graphicsApi;
 #if HYP_VULKAN
-        activeBackend = NAME("VULKAN");
+        graphicsApi = NAME("VULKAN");
 #elif HYP_DX12
-        activeBackend = NAME("DX12");
+        graphicsApi = NAME("DX12");
 #endif
 
-        if (activeBackend.IsValid())
+        if (graphicsApi.IsValid())
         {
-            declaredPerms.Set(ShaderProperty(NAME("HYP_TARGET_BACKEND"), activeBackend));
+            declaredPerms.Set(ShaderProperty(graphicsApi));
         }
     }
 
@@ -2896,18 +2888,11 @@ bool ShaderCompiler::CompileBundle(
     // Helper to extract target backend from permutation
     auto GetTargetBackendFromPerm = [](const ShaderVariantPerms& perm) -> Optional<ShaderCompileTargetBackend>
     {
-        auto backendIt = perm.Find("HYP_TARGET_BACKEND"_sh);
+        if (perm.Has("VULKAN"_sh))
+            return ShaderCompileTargetBackend::Vulkan;
 
-        if (backendIt != perm.End() && backendIt->HasValue() && backendIt->currentValue.Is<Name>())
-        {
-            const Name backendName = backendIt->currentValue.Get<Name>();
-
-            if (backendName == "VULKAN"_sh)
-                return ShaderCompileTargetBackend::Vulkan;
-
-            if (backendName == "DX12"_sh)
-                return ShaderCompileTargetBackend::DX12;
-        }
+        if (perm.Has("DX12"_sh))
+            return ShaderCompileTargetBackend::DX12;
 
         return {};
     };
@@ -2915,7 +2900,7 @@ bool ShaderCompiler::CompileBundle(
     // Helper to extract target platform from permutation
     auto GetTargetPlatformFromPerm = [](const ShaderVariantPerms& perm) -> Optional<ShaderCompileTargetPlatform>
     {
-        auto platformIt = perm.Find("HYP_TARGET_PLATFORM"_sh);
+        auto platformIt = perm.Find("TARGET"_sh);
 
         if (platformIt != perm.End() && platformIt->HasValue() && platformIt->currentValue.Is<Name>())
         {

@@ -47,7 +47,7 @@ VSOutput VSMain(VSInput input, uint instanceId : SV_InstanceID)
     UIEntityInstanceBatch currentBatch = currentBatchBuffer.Load<UIEntityInstanceBatch>(0);
 
     float4x4 transform = currentBatch.transforms[instanceId];
-#ifdef HYP_VULKAN
+#ifdef VULKAN
     transform = transpose(transform);
 #endif
 

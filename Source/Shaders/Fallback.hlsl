@@ -61,7 +61,7 @@ VSOutput VSMain(VSInput input, uint instanceId : SV_InstanceID)
     MeshEntityInstanceBatch batch = EntityInstanceBatchBuffer.Load<MeshEntityInstanceBatch>(0);
 
     float4x4 transform = batch.transforms[instanceId];
-#ifdef HYP_VULKAN
+#ifdef VULKAN
     transform = transpose(transform);
 #endif
 
