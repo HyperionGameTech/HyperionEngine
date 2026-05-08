@@ -100,6 +100,7 @@ CommandRecorder& CommandRecorderAllocator::GetCommandRecorder()
 {
     if (IsOnThread(g_renderThread))
     {
+        ++m_renderThreadCommandRecorder.writeCount;
         return m_renderThreadCommandRecorder;
     }
 
@@ -107,6 +108,8 @@ CommandRecorder& CommandRecorderAllocator::GetCommandRecorder()
 
     AtomicIncrement(&m_tempCommandRecordersCount);
     auto& newCommandRecorder = m_tempCommandRecorders.EmplaceBack();
+
+    AssertDebug(newCommandRecorder.IsWritable());
 
     return newCommandRecorder;
 }

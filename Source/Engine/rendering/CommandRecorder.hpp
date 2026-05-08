@@ -948,13 +948,15 @@ public:
     using Base::PrepareCmdFnPtr;
 
     TCommandRecorder()
-        : m_offset(0),
+        : writeCount(1),
+          m_offset(0),
           m_writableState(true)
     {
     }
 
     explicit TCommandRecorder(AllocatorType* pAllocator)
-        : m_cmdHeaders(),
+        : writeCount(1),
+          m_cmdHeaders(),
           m_buffer(pAllocator),
           m_offset(0),
           m_writableState(true)
@@ -985,6 +987,8 @@ public:
     {
         using TCmd = NormalizedType<CmdType>;
         static_assert(alignof(TCmd) <= 16, "CmdType should have alignment <= 16!");
+
+        AssertDebug(m_writableState.LoadVolatile());
 
         //static_assert(std::is_trivially_copyable_v<TCmd> && std::is_trivially_destructible_v<TCmd>,
          //   "CmdType should be trivially copyable and destructible!");
@@ -1079,7 +1083,10 @@ public:
             m_buffer.Clear();
         }
 
+        writeCount = 1;
+
         m_offset = 0;
+        m_writableState.StoreVolatile(true);
     }
 
     void Reserve(uint32 numCmdHeaders, uint32 bufferSizeBytes = 0)
@@ -1094,8 +1101,13 @@ public:
 
     void Done()
     {
-        m_writableState.Release();
+        if (!(--writeCount))
+        {
+            m_writableState.Release();
+        }
     }
+
+    uint32 writeCount;
 
 private:
     Array<CmdHeader, AllocatorType> m_cmdHeaders;

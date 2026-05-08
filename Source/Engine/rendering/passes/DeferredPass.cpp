@@ -1532,7 +1532,8 @@ static FramebufferRef CreateDeferredShadingFramebuffer(GBuffer* gbuffer)
             TextureType::Texture2D,
             TextureFormat::RGBA16F,
             LoadOperation::CLEAR,
-            StoreOperation::STORE });
+            StoreOperation::STORE
+        });
 
     // depth for stencil testing
     const GpuImageViewRef& depthImageView = gbuffer->GetBucket(RenderBucket::Opaque).GetGBufferAttachment(GTN_DEPTH)->GetImageView();
