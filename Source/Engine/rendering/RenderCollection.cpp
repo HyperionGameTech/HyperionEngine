@@ -342,17 +342,20 @@ enum Stage : uint8
     DPP_InMainPass = 2
 };
 
-static Stage GetStage(bool isDepthPrepass)
+static inline Stage GetStage(const RenderSetup& renderSetup, bool isDepthPrepass)
 {
-    const bool isDepthPrepassEnabled = cvDepthPrepass.Get();
-    Stage prepassStage = DPP_NotActive;
+    // We only consider DPP to be active when we are in the main geometry pass
+    // Shadows, env probes etc should not be considered
+    static constexpr uint64 PassDataTypeId = CONSTEXPR_TYPE_ID(DeferredRendererPassData);
 
-    if (isDepthPrepassEnabled)
+    if (!renderSetup.passData
+        || renderSetup.passData->Id().GetTypeId().Value() != PassDataTypeId
+        || !cvDepthPrepass.Get())
     {
-        prepassStage = isDepthPrepass ? DPP_InPrepass : DPP_InMainPass;
+        return DPP_NotActive;
     }
 
-    return prepassStage;
+    return isDepthPrepass ? DPP_InPrepass : DPP_InMainPass;
 }
 
 static bool ShouldIncludeInPrepass(
@@ -1706,7 +1709,7 @@ bool RenderCollector::BeginRecordDrawCalls(
         bucketBits = AllBucketsMask;
     }
 
-    const DepthPrepass::Stage prepassStage = DepthPrepass::GetStage(isDepthPrepass);
+    const DepthPrepass::Stage prepassStage = DepthPrepass::GetStage(renderSetup, isDepthPrepass);
 
     Span<BinnedDrawCallCollections> groupsView;
 
@@ -1857,7 +1860,7 @@ void RenderCollector::ExecuteDrawCalls(
     HYP_SCOPE;
     AssertOnThread(g_renderThread);
 
-    const DepthPrepass::Stage prepassStage = DepthPrepass::GetStage(isDepthPrepass);
+    const DepthPrepass::Stage prepassStage = DepthPrepass::GetStage(renderSetup, isDepthPrepass);
 
     if (bucketBits == 0)
     {
