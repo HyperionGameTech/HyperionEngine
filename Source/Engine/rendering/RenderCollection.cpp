@@ -4,6 +4,8 @@
  *  @licence MIT
 */
 
+#include "RenderBucket.hpp"
+#include "RenderableAttributes.hpp"
 #include <RenderingPch.hpp>
 
 #include <rendering/RenderCollection.hpp>
@@ -353,9 +355,35 @@ static Stage GetStage(bool isDepthPrepass)
     return prepassStage;
 }
 
-static bool ShouldIncludeInPrepass(const RenderProxyMesh& meshProxy)
+static bool ShouldIncludeInPrepass(
+    const Viewport& viewport,
+    const Mat4f& viewProjMat,
+    const RenderProxyMesh& meshProxy)
 {
-    return true; // For now.
+    const MaterialAttributes& mas = meshProxy.attributes.GetMaterialAttributes();
+    const RenderBucket bucket = mas.bucket;
+
+    // Only include in depth prepass if depth write is enabled
+    if (!(mas.flags & MAF_DEPTH_WRITE))
+        return false;
+
+    // Only considering opaque, lightmapped objects
+    if (bucket != RenderBucket::Opaque && bucket != RenderBucket::Lightmapped)
+        return false;
+
+    // Only include large enough objects based on pixel size relative to the current view.
+    BoundingBox worldBounds;
+    worldBounds.min = meshProxy.bufferData.worldAabbMin;
+    worldBounds.max = meshProxy.bufferData.worldAabbMax;
+
+    const BoundingBox clipSpaceBounds = viewProjMat * worldBounds;
+
+    const Vec3f clipSpaceExtent = clipSpaceBounds.GetExtent();
+    const Vec2f uvSpaceExtent = clipSpaceExtent.GetXY() * 0.5f;
+    const Vec2f screenSpaceExtent = uvSpaceExtent * Vec2f(viewport.extent);
+
+    return screenSpaceExtent.x >= 100.0f
+        && screenSpaceExtent.y >= 100.0f;
 }
 
 } // namespace DepthPrepass
@@ -773,6 +801,14 @@ static void RenderAll(Frame* frame, const TPerformRenderingPayload<TCommandRecor
 
     const DepthPrepass::Stage prepassStage = payload.pNext->prepassStage;
 
+    RenderProxyCamera* renderProxyCamera = nullptr;
+    if (renderSetup.view != nullptr)
+    {
+        Camera* camera = renderSetup.view->GetCamera();
+
+        renderProxyCamera = static_cast<RenderProxyCamera*>(GetRenderProxy(camera));
+    }
+
     if constexpr (UseIndirectRendering)
     {
         AssertDebug(indirectRenderer != nullptr);
@@ -856,20 +892,76 @@ static void RenderAll(Frame* frame, const TPerformRenderingPayload<TCommandRecor
     size_t cbufferSize = 0;
     size_t cbufferOffset = 0;
 
+    bool isDepthWriteEnabled = (mas.flags & MAF_DEPTH_WRITE) != 0;
+
+    // Helper lambda to handle depth prepass logic. Returns true if the draw should be skipped.
+    auto HandleDepthPrepass = [&](const RenderProxyMesh& meshProxy) -> bool
+    {
+        if (prepassStage == DepthPrepass::DPP_InPrepass)
+        {
+            if (!renderProxyCamera)
+            {
+                return true; // skip draw
+            }
+
+            if (DepthPrepass::ShouldIncludeInPrepass(
+                renderSetup.viewport,
+                renderProxyCamera->bufferData.viewProjMat,
+                meshProxy))
+            {
+                if (!isDepthWriteEnabled)
+                {
+                    cr << SetDepthWrite(true);
+                    isDepthWriteEnabled = true;
+                }
+            }
+            else
+            {
+                return true; // skip draw
+            }
+        }
+        else if (prepassStage == DepthPrepass::DPP_InMainPass)
+        {
+            if (renderProxyCamera)
+            {
+                bool shouldEnableDepthWrite;
+
+                if (DepthPrepass::ShouldIncludeInPrepass(
+                    renderSetup.viewport,
+                    renderProxyCamera->bufferData.viewProjMat,
+                    meshProxy))
+                {
+                    // No depth write; depth would have been written by the prepass
+                    shouldEnableDepthWrite = false;
+                }
+                else
+                {
+                    // we need to set depth write based on the mesh proxy's depth write flag
+                    shouldEnableDepthWrite = (mas.flags & MAF_DEPTH_WRITE) != 0;
+                }
+
+                if (shouldEnableDepthWrite != isDepthWriteEnabled)
+                {
+                    cr << SetDepthWrite(shouldEnableDepthWrite);
+                    isDepthWriteEnabled = shouldEnableDepthWrite;
+                }
+            }
+        }
+
+        return false;
+    };
+
     const DrawCallStorage& drawCalls = drawCallCollection.drawCalls;
+
     for (size_t i = 0; i < drawCalls.Size(); i++)
     {
         uint32 numDrawCallUniforms = numShaderUniforms;
 
         const RenderProxyMesh& meshProxy = *drawCalls.meshProxies[i];
 
-        if (prepassStage == DepthPrepass::DPP_InPrepass)
+        if (HandleDepthPrepass(meshProxy))
         {
-            if (!DepthPrepass::ShouldIncludeInPrepass(meshProxy))
-            {
-                // skip draw
-                continue;
-            }
+            continue;
         }
 
         const RenderProxyMaterial* materialProxy = static_cast<const RenderProxyMaterial*>(GetRenderProxy(meshProxy.material));
@@ -948,13 +1040,9 @@ static void RenderAll(Frame* frame, const TPerformRenderingPayload<TCommandRecor
 
         const RenderProxyMesh& meshProxy = *instancedDrawCalls.meshProxies[i];
 
-        if (prepassStage == DepthPrepass::DPP_InPrepass)
+        if (HandleDepthPrepass(meshProxy))
         {
-            if (!DepthPrepass::ShouldIncludeInPrepass(meshProxy))
-            {
-                // skip draw
-                continue;
-            }
+            continue;
         }
 
         const RenderProxyMaterial* materialProxy = static_cast<const RenderProxyMaterial*>(GetRenderProxy(meshProxy.material));
@@ -1098,8 +1186,8 @@ static void PerformRenderingImpl(Frame* frame, const TPerformRenderingPayload<TC
     cr << SetCurrentBlendFunction(mas.blendFunction);
 
     cr << SetDepthTest(bool(mas.flags & MAF_DEPTH_TEST));
-    cr << SetDepthWrite(bool(mas.flags & MAF_DEPTH_WRITE));
     cr << SetDepthClamp(bool(mas.flags & MAF_DEPTH_CLAMP));
+    cr << SetDepthWrite(bool(mas.flags & MAF_DEPTH_WRITE));
 
     if (mas.flags & MAF_DEPTH_BIAS)
     {

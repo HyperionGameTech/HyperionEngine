@@ -18,8 +18,8 @@
     "RayTracedReflections": false,
     "RayTracedGI": false,
     "RayTracingEnabled": true,
-    "IndirectRendering": false,
-    "DepthPrepass": false,
+    "IndirectRendering": true,
+    "DepthPrepass": true,
     "ParallelCollection": true,
     "SSR": {
       "Enabled": true,
@@ -54,7 +54,7 @@
       "TimelineSemaphores": true
     },
     "RayTracing": {
-      "Enabled": false,
+      "Enabled": true,
       "Reflections": {
         "Enabled": false
       },
@@ -71,6 +71,9 @@
       "MovementSpeed": 10,
       "LookSensitivity": 50
     }
+  },
+  "Threads": {
+    "NumForegroundWorkers": 3
   },
   "System": {
     "SelectedGpu": {

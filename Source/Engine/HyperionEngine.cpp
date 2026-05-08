@@ -321,6 +321,11 @@ extern "C"
             return 0;
         }
 
+        EngineConfig engineConfig;
+        engineConfig.Load();
+
+        CVarManager::GetInstance().InitFromConfig(engineConfig);
+
         InitThreads();
         InitMemoryPools();
         InitNameRegistry();
@@ -348,8 +353,6 @@ extern "C"
         // due to multiple runtimes being loaded.
         DotNETHost::GetInstance().Initialize(basePath, /* initFromManaged */ isEditor, s_initFromManagedCallback);
 #endif // HYP_DOTNET
-
-        TaskSystem::GetInstance().Start();
 
         g_engineDriver = MakeHandle<EngineDriver>();
 
@@ -594,11 +597,6 @@ extern "C"
         ComponentInterfaceRegistry::GetInstance().Shutdown();
 
         UIElementFactoryRegistry::GetInstance().Shutdown();
-
-        if (TaskSystem::GetInstance().IsRunning())
-        {
-            TaskSystem::GetInstance().Stop();
-        }
 
         DestroyNameRegistry();
 

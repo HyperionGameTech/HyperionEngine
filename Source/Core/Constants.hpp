@@ -40,7 +40,6 @@ constexpr uint32 NumFramesInFlight = 3;
 constexpr uint32 NumAsyncCommandBuffers = 4;
 
 constexpr uint32 NumRendererWorkerThreads = 2;
-constexpr uint32 NumForegroundWorkerThreads = 3;
 constexpr uint32 MaxBackgroundWorkerThreads = 4;
 
 // Constants for types that have a global structured buffer.

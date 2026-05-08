@@ -96,6 +96,64 @@ EngineStatCounter<uint32> g_statViews("Rendering/Views");
 
 ThreadSignal g_renderInitSignal { 0 };
 
+// We generally don't have more than 3 Systems running concurrently
+CVar<uint32> cvNumForegroundWorkerThreads("Threads.NumForegroundWorkers", 3);
+
+#pragma region ForegroundWorkerPool
+
+class ForegroundWorkerPool final : public TaskThreadPool
+{
+public:
+    ForegroundWorkerPool(uint32 numTaskThreads, ThreadPriorityValue priority)
+        : TaskThreadPool(TypeWrapper<TaskThread>(), "ForegroundWorker", numTaskThreads)
+    {
+    }
+
+    virtual ~ForegroundWorkerPool() override = default;
+};
+
+#pragma endregion ForegroundWorkerPool
+
+#pragma region RenderWorkerPool
+
+class RenderWorkerPool final : public TaskThreadPool
+{
+public:
+    RenderWorkerPool(uint32 numTaskThreads, ThreadPriorityValue priority)
+        : TaskThreadPool(TypeWrapper<TaskThread>(), "RenderWorker", numTaskThreads)
+    {
+    }
+
+    virtual ~RenderWorkerPool() override = default;
+};
+
+#pragma endregion RenderWorkerPool
+
+#pragma region Thread Pool Factories
+
+static const HashMap<TaskThreadPoolName, UniquePtr<TaskThreadPool> (*)(void)> s_threadPoolFactories {
+    {
+        TaskThreadPoolName::THREAD_POOL_GENERIC, []() -> UniquePtr<TaskThreadPool>
+        {
+            return MakeUnique<ForegroundWorkerPool>(cvNumForegroundWorkerThreads.Get(), ThreadPriorityValue::HIGHEST);
+        }
+    },
+    {
+        TaskThreadPoolName::THREAD_POOL_RENDER, []() -> UniquePtr<TaskThreadPool>
+        {
+            return MakeUnique<RenderWorkerPool>(NumRendererWorkerThreads, ThreadPriorityValue::HIGHEST);
+        }
+    },
+    {
+        TaskThreadPoolName::THREAD_POOL_BACKGROUND, []() -> UniquePtr<TaskThreadPool>
+        {
+            return MakeUnique<BackgroundWorkerPool>("BackgroundWorker", MaxBackgroundWorkerThreads);
+        }
+    }
+};
+
+#pragma endregion Thread Pool Factories
+
 void HandleSignal(int signum)
 {
 #ifdef HYP_WINDOWS
@@ -258,7 +316,6 @@ void EngineDriver::Initialize()
     }
 
     m_viewCollectionBatch = new TaskBatch();
-    m_viewCollectionBatch->pool = &TaskSystem::GetInstance().GetPool(TaskThreadPoolName::THREAD_POOL_GENERIC);
 
     m_isInitialized = true;
 }
@@ -378,6 +435,23 @@ bool EngineDriver::StartThreads()
 
     bool success = true;
 
+    { // Create all task thread pools and initialize the task system
+        for (auto& pair : s_threadPoolFactories)
+        {
+            const TaskThreadPoolName name = pair.first;
+            const auto& createFn = pair.second;
+
+            TaskSystem::GetInstance().RegisterPool(name, createFn());
+        }
+
+        Assert(m_viewCollectionBatch != nullptr);
+        m_viewCollectionBatch->pool = &TaskSystem::GetInstance().GetPool(TaskThreadPoolName::THREAD_POOL_GENERIC);
+
+        TaskSystem::GetInstance().Start();
+    }
+
+    HYP_DEFER({ if (!success) TaskSystem::GetInstance().Stop(); });
+
     success &= g_renderThreadInstance->Start();
     if (!success)
         return false;
@@ -395,12 +469,21 @@ bool EngineDriver::StartThreads()
     if (!success)
         return false;
 
-    return g_mainThreadInstance->Start();
+    success &= g_mainThreadInstance->Start();
+    if (!success)
+        return false;
+
+    return success;
 }
 
 void EngineDriver::RequestStop()
 {
     m_delegates.OnShutdown();
+
+    if (TaskSystem::GetInstance().IsRunning())
+    {
+        TaskSystem::GetInstance().Stop();
+    }
 
     if (int32 shutdownCounter = AtomicIncrement(&m_isShuttingDown); shutdownCounter == 1)
     {
