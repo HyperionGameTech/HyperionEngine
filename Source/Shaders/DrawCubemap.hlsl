@@ -54,8 +54,8 @@ DECLARE_SRV_DYNAMIC(Default, SkeletonsBuffer) StructuredBuffer<float4x4> Skeleto
 float4x4 LookAt(float3 pos, float3 target, float3 up)
 {
     float3 forward = normalize(target - pos);
-    float3 right = normalize(cross(forward, up));
-    float3 newUp = cross(right, forward);
+    float3 right = normalize(cross(up, forward));
+    float3 newUp = cross(forward, right);
 
     return float4x4(
         right.x, right.y, right.z, -dot(right, pos),

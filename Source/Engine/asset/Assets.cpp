@@ -91,7 +91,7 @@ class AssetManagerThreadPool : public TaskThreadPool
 {
 public:
     AssetManagerThreadPool()
-        : TaskThreadPool(TypeWrapper<AssetManagerWorkerThread>(), "AssetManagerWorker", 2)
+        : TaskThreadPool(TypeWrapper<AssetManagerWorkerThread>(), "AssetWorker", 1)
     {
     }
 

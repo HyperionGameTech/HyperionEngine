@@ -109,16 +109,13 @@ static VkDescriptorSetLayout CreateVkDescriptorSetLayout(VulkanDevice* device, c
     Array<VkDescriptorBindingFlags> bindingFlags;
     bindingFlags.Reserve(layout.GetElements().Size());
 
-    for (const auto& it : layout.GetElements())
+    for (const ShaderInputWithBinding& shaderInput : layout.GetElements())
     {
-        const Name name = it.first;
-        const DescriptorSetLayoutElement& element = it.second;
+        uint32 descriptorCount = shaderInput.count;
 
-        uint32 descriptorCount = element.count;
-
-        if (element.IsBindless())
+        if (descriptorCount == ~0u)
         {
-            descriptorCount = element.IsBuffer()
+            descriptorCount = shaderInput.category == ShaderResourceCategory::Buffer
                 ? MaxBindlessResources[BindlessStorage_Buffers]
                 : MaxBindlessResources[BindlessStorage_Textures];
         }
@@ -129,16 +126,16 @@ static VkDescriptorSetLayout CreateVkDescriptorSetLayout(VulkanDevice* device, c
 
         VkDescriptorSetLayoutBinding binding {};
         binding.descriptorCount = descriptorCount;
-        binding.descriptorType = ToVkDescriptorType(element.type, element.category);
+        binding.descriptorType = ToVkDescriptorType(shaderInput.type, shaderInput.category);
         binding.pImmutableSamplers = nullptr;
         binding.stageFlags = VK_SHADER_STAGE_ALL;
-        binding.binding = element.binding;
+        binding.binding = shaderInput.binding;
 
         bindings.PushBack(binding);
 
         VkDescriptorBindingFlags flags = 0;
 
-        if (element.IsBindless())
+        if (descriptorCount == ~0u)
         {
             flags |= BindlessFlags;
         }

@@ -1207,12 +1207,6 @@ extern class UISubsystem : Subsystem
     AddDebugOverlay(debugOverlay : OverlayBase) -> void
     RemoveDebugOverlay(debugOverlay : OverlayBase) -> bool
 end
-extern struct DescriptorSetLayoutElement
-    Type : ShaderInputType
-    Binding : uint32
-    Count : uint32
-    Category : ShaderResourceCategory
-end
 extern struct DebugDrawerConfig
     Enabled : bool
 end
@@ -2306,6 +2300,7 @@ extern struct ShaderInput
     Count : uint32
     Size : uint32
     IsDynamic : bool
+    BufferType : GpuBufferType
     StructInfo : ShaderStruct
     Category : ShaderResourceCategory
     Index : uint32

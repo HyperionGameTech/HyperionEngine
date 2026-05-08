@@ -694,6 +694,12 @@ void AssetRegistry::SaveBlobCache(bool async)
 
     if (async)
     {
+        if (m_blobStorage != nullptr && !m_blobStorage->IsDirty())
+        {
+            // skip this time, prevent creating a new background thread.
+            return;
+        }
+
         if (m_saveBlobCacheBatch != nullptr)
         {
             if (!m_saveBlobCacheBatch->IsCompleted())
