@@ -8,13 +8,14 @@ enum class DescriptorUsageFlags : uint32
     DYNAMIC = 0x1
 };
 
-HYP_MAKE_ENUM_FLAGS(DescriptorUsageFlags)
+HYP_MAKE_ENUM_FLAGS(DescriptorUsageFlags);
 
 struct DescriptorUsage
 {
     ShaderRegister slot = ShaderRegister::NONE;
     ShaderInputType type = ShaderInputType::Unset;
     ShaderResourceCategory category = ShaderResourceCategory::Unknown;
+    GpuBufferType bufferType = GpuBufferType::NONE;
     Name setName;
     Name descriptorName;
     ShaderStruct shaderStruct;
@@ -26,6 +27,7 @@ struct DescriptorUsage
         return slot == other.slot
             && type == other.type
             && category == other.category
+            && bufferType == other.bufferType
             && setName == other.setName
             && descriptorName == other.descriptorName
             && shaderStruct == other.shaderStruct
@@ -38,6 +40,7 @@ struct DescriptorUsage
         return slot != other.slot
             || type != other.type
             || category != other.category
+            || bufferType != other.bufferType
             || setName != other.setName
             || descriptorName != other.descriptorName
             || shaderStruct != other.shaderStruct
@@ -60,6 +63,11 @@ struct DescriptorUsage
         if (category != other.category)
         {
             return category < other.category;
+        }
+
+        if (bufferType != other.bufferType)
+        {
+            return bufferType < other.bufferType;
         }
 
         if (setName != other.setName)
@@ -140,6 +148,7 @@ struct DescriptorUsage
         hc.Add(slot);
         hc.Add(type);
         hc.Add(category);
+        hc.Add(bufferType);
         hc.Add(setName.GetHashCode());
         hc.Add(descriptorName.GetHashCode());
         hc.Add(shaderStruct);

@@ -20,7 +20,7 @@
 #include <rendering/Shader.hpp>
 #include <rendering/Texture.hpp>
 #include <rendering/CBufferAllocator.hpp>
-#include <rendering/StructuredBufferAllocator.hpp>
+#include <rendering/RawBufferAllocator.hpp>
 #include <rendering/SamplerCache.hpp>
 
 #include <rendering/renderers/SpriteRenderer.hpp>
@@ -340,8 +340,8 @@ void SpriteRenderer::RenderFrame(Frame* frame, const RenderSetup& renderSetup)
     size_t cbufferOffset = 0;
     size_t cbufferSize = 0;
 
-    g_renderInterface->cbufferAllocator->Write(&cameraProxy->bufferData);
-    g_renderInterface->cbufferAllocator->Commit(cbuffer, cbufferOffset, cbufferSize);
+    RI.cbufferAllocator->Write(&cameraProxy->bufferData);
+    RI.cbufferAllocator->Commit(cbuffer, cbufferOffset, cbufferSize);
 
     cr << SetCurrentViewport(renderSetup.viewport);
     cr << SetTopology(Topology::TOP_TRIANGLES);
@@ -349,7 +349,7 @@ void SpriteRenderer::RenderFrame(Frame* frame, const RenderSetup& renderSetup)
 
     if (numSprites > 0)
     {
-        StructuredBuffer& instanceBuffer = g_renderInterface->sbufferAllocator->AcquireBuffer(numSprites, sizeof(SpriteInstanceData));
+        StructuredBuffer& instanceBuffer = RI.bufferAllocator->AcquireStructuredBuffer(numSprites, sizeof(SpriteInstanceData));
 
         size_t offset = 0;
 
@@ -381,15 +381,15 @@ void SpriteRenderer::RenderFrame(Frame* frame, const RenderSetup& renderSetup)
         shaderDesc.name = NAME("Sprite");
 
         cr << SetCurrentShader(shaderDesc);
-        
-        cr << SetShaderUniform(0, "SamplerLinear"_sh, g_renderInterface->placeholderData->GetSamplerLinear());
-        cr << SetShaderUniform(1, "SpriteInstanceBuffer"_sh, instanceBuffer.gpuBuffer);
+
+        cr << SetShaderUniform(0, "SamplerLinear"_sh, RI.placeholderData->GetSamplerLinear());
+        cr << SetShaderUniform(1, "SpriteInstanceBuffer"_sh, instanceBuffer);
         cr << SetShaderUniform(2, "CBuffer"_sh, cbuffer, ShaderDataOffset(cbufferOffset, cbufferSize));
 
         cr << SetCurrentBlendFunction(BlendFunction::AlphaBlending());
         cr << SetDepthTest(true);
-        cr << SetDepthWrite(false);
-        cr << SetFaceCullMode(FaceCullMode::FCM_NONE);
+        cr << SetDepthWrite(true);
+        cr << SetFaceCullMode(FCM_BACK);
 
         cr << CommitDrawState();
 
@@ -463,7 +463,7 @@ void SpriteRenderer::RenderFrame(Frame* frame, const RenderSetup& renderSetup)
                 });
         }
 
-        StructuredBuffer& textInstanceBuffer = g_renderInterface->sbufferAllocator->AcquireBuffer(charData.Size(), sizeof(TextSpriteInstanceData));
+        StructuredBuffer& textInstanceBuffer = RI.bufferAllocator->AcquireStructuredBuffer(charData.Size(), sizeof(TextSpriteInstanceData));
 
         size_t textOffset = 0;
         for (const auto& data : charData)
@@ -474,7 +474,7 @@ void SpriteRenderer::RenderFrame(Frame* frame, const RenderSetup& renderSetup)
 
         textInstanceBuffer.Flush();
 
-        static Sampler* s_textSpriteSampler = g_renderInterface->samplerCache->GetOrCreate(SamplerDesc {
+        static Sampler* s_textSpriteSampler = RI.samplerCache->GetOrCreate(SamplerDesc {
             TFM_LINEAR,
             TFM_LINEAR,
             TWM_CLAMP_TO_EDGE,
@@ -488,13 +488,13 @@ void SpriteRenderer::RenderFrame(Frame* frame, const RenderSetup& renderSetup)
 
         cr << SetShaderUniform(0, "SamplerLinear"_sh, s_textSpriteSampler);
 
-        cr << SetShaderUniform(1, "TextSpriteInstanceBuffer"_sh, textInstanceBuffer.gpuBuffer);
+        cr << SetShaderUniform(1, "TextSpriteInstanceBuffer"_sh, textInstanceBuffer);
         cr << SetShaderUniform(2, "CBuffer"_sh, cbuffer, ShaderDataOffset(cbufferOffset, cbufferSize));
 
         cr << SetCurrentBlendFunction(BlendFunction::AlphaBlending());
         cr << SetDepthTest(true);
-        cr << SetDepthWrite(false);
-        cr << SetFaceCullMode(FaceCullMode::FCM_NONE);
+        cr << SetDepthWrite(true);
+        cr << SetFaceCullMode(FCM_BACK);
 
         cr << CommitDrawState();
 

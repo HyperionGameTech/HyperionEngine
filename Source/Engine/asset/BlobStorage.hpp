@@ -120,6 +120,8 @@ public:
     Result SaveManifest();
     Result SaveTOC();
 
+    bool IsDirty() const;
+
     Result SaveIfDirty();
 
     // Needs to be set by impl

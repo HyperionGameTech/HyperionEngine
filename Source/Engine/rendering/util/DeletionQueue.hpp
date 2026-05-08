@@ -10,6 +10,7 @@
 #include <Core/Defines.hpp>
 
 #include <Core/reflection/Handle.hpp>
+#include <Core/reflection/ObjectFwd.hpp>
 
 #include <Core/containers/FixedArray.hpp>
 #include <Core/containers/Array.hpp>
@@ -28,11 +29,17 @@
 
 #include <rendering/RenderResult.hpp>
 
+#include <type_traits>
+
+#ifdef HYP_DX12
+#include <wrl.h> // For Microsoft::WRL::ComPtr
+#endif // HYP_DX12
+
 namespace Hyperion {
 
 static constexpr uint32 MinSafeDeleteCycles = 10; // minimum number of cycles to wait before deleting an object
 
-HYP_API extern uint32 GetFrameCounter();
+extern uint32 GetFrameCounter();
 
 template <class T>
 class DeletionQueueElem;
@@ -40,6 +47,9 @@ class DeletionQueueElem;
 template <>
 class DeletionQueueElem<Handle<ObjectBase>>
 {
+protected:
+    HYP_API explicit DeletionQueueElem(ObjectBase* ptr);
+
 public:
     HYP_API explicit DeletionQueueElem(Handle<ObjectBase>&& handle)
         : DeletionQueueElem(handle.ptr)
@@ -47,30 +57,13 @@ public:
         handle.ptr = nullptr; // unset so DecRefStrong() doesn't get called on Handle destruction.
     }
 
-    DeletionQueueElem(const DeletionQueueElem&) = delete;
-    DeletionQueueElem& operator=(const DeletionQueueElem&) = delete;
-
-    DeletionQueueElem(DeletionQueueElem&& other) noexcept
-        : ptr(other.ptr)
+    static void Destroy(void* ptr)
     {
-        other.ptr = nullptr;
+        static_cast<DeletionQueueElem*>(ptr)->DestroyObject();
     }
 
-    DeletionQueueElem& operator=(DeletionQueueElem&& other) noexcept
-    {
-        if (this != &other)
-        {
-            ptr = other.ptr;
-            other.ptr = nullptr;
-        }
-
-        return *this;
-    }
-
-    HYP_API ~DeletionQueueElem();
-
-protected:
-    HYP_API explicit DeletionQueueElem(ObjectBase* ptr);
+private:
+    void DestroyObject();
 
     ObjectBase* ptr;
 };
@@ -95,71 +88,69 @@ public:
     {
     }
 
-    DeletionQueueElem(const DeletionQueueElem&) = delete;
-    DeletionQueueElem& operator=(const DeletionQueueElem&) = delete;
-
-    DeletionQueueElem(DeletionQueueElem&& other) noexcept
-        : ptr(other.ptr)
+    static void Destroy(void* ptr)
     {
-        other.ptr = nullptr;
-    }
-
-    DeletionQueueElem& operator=(DeletionQueueElem&& other) noexcept
-    {
-        if (this != &other)
-        {
-            ptr = other.ptr;
-            other.ptr = nullptr;
-        }
-
-        return *this;
-    }
-
-    ~DeletionQueueElem()
-    {
-        delete ptr;
-    }
-
-protected:
-    T* ptr;
-};
-
-/*! \brief Wrapper for a custom safe deleter type, with a ustom deleter function pointer. */
-enum CustomDeleterTag
-{
-    CUSTOM_DELETER
-};
-
-template <class T>
-class DeletionQueueElem final
-{
-    DeletionQueueElem() = delete;
-
-public:
-    DeletionQueueElem(const T& value, void (*deleteFn)(T&), CustomDeleterTag)
-        : value(value),
-          deleteFn(deleteFn)
-    {
-    }
-
-    DeletionQueueElem(T&& value, void (*deleteFn)(T&), CustomDeleterTag)
-        : value(std::move(value)),
-          deleteFn(deleteFn)
-    {
-    }
-
-    ~DeletionQueueElem()
-    {
-        if (deleteFn)
-        {
-            deleteFn(value);
-        }
+        static_cast<DeletionQueueElem*>(ptr)->DestroyObject();
     }
 
 private:
-    T value;
-    void (*deleteFn)(T&);
+    void DestroyObject()
+    {
+        if (!ptr)
+            return;
+
+        if constexpr (IsObjectV<T>)
+        {
+            if (ptr->GetObjectHeader_Internal() != nullptr)
+            {
+                ptr->Release();
+                ptr = nullptr;
+
+                return;
+            }
+        }
+
+        delete ptr;
+        ptr = nullptr;
+    }
+
+    T* ptr;
 };
+
+#ifdef HYP_DX12
+
+using Microsoft::WRL::ComPtr;
+
+template <class T>
+class DeletionQueueElem<ComPtr<T>>
+{
+public:
+    explicit DeletionQueueElem(ComPtr<T>&& ptr)
+        : ptr(ptr.Detach())
+    {
+    }
+
+    static void Destroy(void* ptr)
+    {
+        static_cast<DeletionQueueElem*>(ptr)->DestroyObject();
+    }
+
+private:
+    void DestroyObject()
+    {
+        if (!ptr)
+        {
+            return;
+        }
+
+        ptr->Release();
+        ptr = nullptr;
+    }
+
+    T* ptr;
+};
+
+#endif // HYP_DX12
 
 class HYP_API DeletionQueue
 {
@@ -293,10 +284,10 @@ public:
 
     DeletionQueue(const DeletionQueue&) = delete;
     DeletionQueue& operator=(const DeletionQueue&) = delete;
-    
+
     DeletionQueue(DeletionQueue&&) = delete;
     DeletionQueue& operator=(DeletionQueue&&) = delete;
-    
+
     ~DeletionQueue();
 
     void Shutdown();
@@ -310,7 +301,7 @@ public:
     int Iterate(int maxIter = 1000);
 
     // returns number of entries that were deleted
-    int ForceDeleteAll(uint32 bufferIndex);
+    size_t ForceDeleteAll(uint32 bufferIndex);
     void Flush();
 
     // copy from temp entry list to sim thread / render thread queue
@@ -321,41 +312,19 @@ public:
     template <class T>
     DeletionQueueElem<T>* Alloc(Mutex::Guard** ppGuard)
     {
-        EntryHeader header;
+        static_assert(
+            std::is_trivially_move_constructible_v<DeletionQueueElem<T>>
+                && std::is_trivially_move_assignable_v<DeletionQueueElem<T>>
+                && std::is_trivially_copyable_v<DeletionQueueElem<T>>, "DeletionQueueElem must be trivially moveable and trivially copyable");
+
+        EntryHeader header {};
 
         EntryListBase& list = GetCurrentEntryList(ppGuard);
 
         DeletionQueueElem<T>* ptr = reinterpret_cast<DeletionQueueElem<T>*>(list.Alloc(sizeof(DeletionQueueElem<T>), alignof(DeletionQueueElem<T>), header));
 
         header.fc = GetFrameCounter();
-
-        if constexpr (!std::is_trivially_destructible_v<DeletionQueueElem<T>>)
-        {
-            header.destructFn = [](void* ptr)
-            {
-                DeletionQueueElem<T>* ptrCasted = reinterpret_cast<DeletionQueueElem<T>*>(ptr);
-                ptrCasted->~DeletionQueueElem<T>();
-            };
-        }
-        else
-        {
-            header.destructFn = nullptr;
-        }
-
-        if constexpr (!std::is_trivially_move_assignable_v<DeletionQueueElem<T>>)
-        {
-            header.moveFn = [](void* dst, void* src)
-            {
-                new (dst) DeletionQueueElem<T>(std::move(*reinterpret_cast<DeletionQueueElem<T>*>(src)));
-
-                // destruct prev in place, since we won't be using it again (this is done upon buffer resize)
-                reinterpret_cast<DeletionQueueElem<T>*>(src)->~DeletionQueueElem();
-            };
-        }
-        else
-        {
-            header.moveFn = nullptr;
-        }
+        header.destructFn = &DeletionQueueElem<T>::Destroy;
 
         list.Push(header);
 
@@ -372,7 +341,7 @@ public:
     {
         static_assert(is_pod_type_v<T>, "T must be a POD type");
 
-        EntryHeader header;
+        EntryHeader header {};
 
         EntryListBase& list = GetEntryList(ppGuard, desiredIdx);
 
@@ -425,7 +394,7 @@ static inline void EnqueueDeletion(FunctionWrapper<TFunction>&& func)
             delete pPayload;
         },
         &pGuard);
-    
+
     *ppPayload = new FunctionWrapper<TFunction>(std::move(func));
 
     if (pGuard) // if locking was needed then we can delete the guard now to unlock.

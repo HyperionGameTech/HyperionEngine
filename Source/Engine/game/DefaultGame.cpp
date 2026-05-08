@@ -17,6 +17,7 @@
 #include <scene/sky/DynamicSkySystem.hpp>
 
 #include <scene/components/ScriptComponent.hpp>
+#include <scene/components/MeshComponent.hpp>
 
 #include <scene/camera/FirstPersonCamera.hpp>
 
@@ -34,6 +35,8 @@
 
 #include <rendering/Mesh.hpp>
 #include <rendering/Texture.hpp>
+#include <rendering/MaterialDefinition.hpp>
+#include <rendering/MaterialInstance.hpp>
 
 #include <Core/config/Config.hpp>
 
@@ -75,7 +78,7 @@ DefaultGame::~DefaultGame()
 
 void DefaultGame::OnLaunch_Impl()
 {
-    //GetWorld()->GetWorldGrid()->AddLayer(MakeHandle<TerrainWorldGridLayer>());
+    // GetWorld()->GetWorldGrid()->AddLayer(MakeHandle<TerrainWorldGridLayer>());
 
 #if 0
     auto pkg = GetCurrentAssetRegistry()->GetPackageFromPath("DefaultProject39", /* createIfNotExist */ false, /* requireLoaded */ true);
@@ -119,9 +122,9 @@ void DefaultGame::OnLaunch_Impl()
     // camera
     m_camera = MakeHandle<Camera>();
     m_camera->SetFOV(65.0f);
+    m_camera->SetNearClip(0.1f);
     m_camera->SetFarClip(1000.0f);
     m_camera->SetCameraFlags(CameraFlags::MATCH_WINDOW_SIZE);
-    m_camera->SetWindow(g_appContext->GetMainWindow());
     m_camera->AddTag<EntityTag::PrimaryCamera>();
 
     InitObject(m_camera);
@@ -164,7 +167,7 @@ void DefaultGame::OnLaunch_Impl()
 
     sunNode->AddChild(sunEntity);
 
-    auto pointLight = MakeHandle<PointLight>(Vec3f(0.0f, 7.0f, 7.0f), Color::Red(), 5.0f, 3.0f);
+    auto pointLight = MakeHandle<PointLight>(Vec3f(-10.0f, 4.0f, 0.0f), Color::Red(), 50.0f, 30.0f);
     scene->GetRoot()->AddChild(pointLight);
 
     // temp: add test script component
@@ -178,38 +181,75 @@ void DefaultGame::OnLaunch_Impl()
     Memory::StrCpy(scriptDesc.path.Data(), "FPSCounter.hyp", ArraySize(scriptDesc.path));
     Memory::StrCpy(scriptDesc.className.Data(), "MyClass", ArraySize(scriptDesc.className));
 
-    AssetBatch* batch = g_assetManager->CreateBatch();
-    batch->Add("testbed", "Models/SponzaGltf/Sponza.gltf");//"Models/Testbed/testbed.obj");
-    auto results = batch->ForceLoad();
 
-    LoadedAsset& testbedAsset = results["testbed"];
+    Handle<Entity> cubeEnt = MakeHandle<Entity>();
+    cubeEnt->SetName(NAME("CUBEFUCKER"));
+    cubeEnt->Scale(3.0f);
 
-    if (testbedAsset.IsValid())
-    {
-        Handle<Node> testbedNode = testbedAsset.ExtractAs<Handle<Node>>();
-        testbedNode->Scale(3.0f);
+    Handle<Mesh> mesh = MeshBuilder::Cube();
+    mesh->SetFlags(MeshFlags::ViewIndependent);
+    mesh->SetName(NAME("CF_MESH"));
+    mesh->SetIsTransient(true);
+    InitObject(mesh);
 
-        scene->GetRoot()->AddChild(testbedNode);
-    }
-    else if (const AssetLoadError* error = testbedAsset.GetErrorIfFailed())
-    {
-        HYP_LOG(Game, Error, "Failed to load test asset: {}", error->GetMessage());
-    }
+    MaterialAttributes attributes;
+    attributes.shaderName = NAME("GeometryPass");
+    attributes.shaderProperties = {};
+    attributes.bucket = RenderBucket::Opaque;
+
+    MaterialParameters parameters;
+    parameters.roughness = 0.3f;
+    parameters.metalness = 0.02f;
+
+    Handle<MaterialDefinition> skyboxMaterialDefinition = MakeHandle<MaterialDefinition>(NAME("NewMat"), attributes, parameters, MaterialTextures {});
+    skyboxMaterialDefinition->SetIsTransient(true);
+    InitObject(skyboxMaterialDefinition);
+
+    GetCurrentAssetRegistry()->PutAssetUnique(skyboxMaterialDefinition);
+
+    Handle<MaterialInstance> skyboxMaterialInstance = MakeHandle<MaterialInstance>(NAME("NewMat"), skyboxMaterialDefinition);
+    skyboxMaterialInstance->SetIsTransient(true);
+    InitObject(skyboxMaterialInstance);
+
+    GetCurrentAssetRegistry()->PutAssetUnique(skyboxMaterialInstance);
+
+    scene->GetRoot()->AddChild(cubeEnt);
+
+    cubeEnt->Translate(Vec3f(-10.0f, 0.0f, 0.0f));
+
+    // add MeshComponent to skybox entity
+    cubeEnt->AddComponent<MeshComponent>(MeshComponent { mesh, skyboxMaterialInstance });
+
+     AssetBatch* batch = g_assetManager->CreateBatch();
+     batch->Add("testbed", "Models/testbed/testbed.obj");
+     auto results = batch->ForceLoad();
+
+     LoadedAsset& testbedAsset = results["testbed"];
+
+     if (testbedAsset.IsValid())
+     {
+         Handle<Node> testbedNode = testbedAsset.ExtractAs<Handle<Node>>();
+         testbedNode->Scale(3.0f);
+
+         //scene->GetRoot()->AddChild(testbedNode);
+     }
+     else if (const AssetLoadError* error = testbedAsset.GetErrorIfFailed())
+     {
+         HYP_LOG(Game, Error, "Failed to load test asset: {}", error->GetMessage());
+     }
 
     // sky
     GetWorld()->AddSystemT<DynamicSkySystem>();
 
-
     ScriptComponent& scriptComponent = sunEntity->AddComponent<ScriptComponent>(ScriptComponent {
-       TAssetReference<ScriptAsset>(scriptAsset)
-    });
+        TAssetReference<ScriptAsset>(scriptAsset) });
 
-//    Handle<FogVolume> fogVolume = MakeHandle<FogVolume>();
-//    fogVolume->SetLocalBounds(BoundingBox(Vec3f(-30.0f, -0.5f, -30.0f), Vec3f(30.0f, 40.0f, 30.0f)));
-//    scene->GetRoot()->AddChild(fogVolume);
-//#if HYP_EDITOR
-//    fogVolume->Rebake();
-//#endif
+    //    Handle<FogVolume> fogVolume = MakeHandle<FogVolume>();
+    //    fogVolume->SetLocalBounds(BoundingBox(Vec3f(-30.0f, -0.5f, -30.0f), Vec3f(30.0f, 40.0f, 30.0f)));
+    //    scene->GetRoot()->AddChild(fogVolume);
+    // #if HYP_EDITOR
+    //    fogVolume->Rebake();
+    // #endif
 
     if (UISubsystem* uiSubsystem = GetUISubsystem())
     {

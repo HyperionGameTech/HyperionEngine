@@ -336,6 +336,16 @@ struct NoOpFunction
     }
 };
 
+template <>
+struct NoOpFunction<void>
+{
+    template <class... Args>
+    HYP_FORCE_INLINE constexpr void operator()(Args&&...) const
+    {
+        // do nothing
+    }
+};
+
 #pragma endregion Misc utilities
 
 /*! \brief Size of an array literal (Hyperion equivalent of std::size) */

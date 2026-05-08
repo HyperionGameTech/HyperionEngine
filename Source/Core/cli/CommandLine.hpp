@@ -236,9 +236,11 @@ public:
         return m_definitions;
     }
 
-    HYP_API TResult<CommandLineArguments> Parse(const String& commandLine) const;
-    HYP_API TResult<CommandLineArguments> Parse(int argc, char** argv) const;
-    HYP_API TResult<CommandLineArguments> Parse(ANSIStringView command, const Array<String>& args) const;
+    HYP_API TResult<CommandLineArguments> Parse(const String& commandLine, bool fillDefaults = true) const;
+    HYP_API TResult<CommandLineArguments> Parse(int argc, char** argv, bool fillDefaults = true) const;
+    HYP_API TResult<CommandLineArguments> Parse(ANSIStringView command, const Array<String>& args, bool fillDefaults = true) const;
+
+    void ApplyDefaults(CommandLineArguments& args) const;
 
 private:
     const CommandLineArgumentDefinitions* m_definitions;

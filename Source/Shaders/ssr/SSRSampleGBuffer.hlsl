@@ -151,7 +151,7 @@ PSOutput PSMain(PSInput input)
 
         float2 sample_texcoord = texcoord;
         int2 sample_coord = int2(sample_texcoord * (ssr_image_dimensions - 1.0) + 0.5);
-        
+
         const float4 hit_data = SAMPLE_TEXTURE_2D_LOD(sampler_linear, ssr_uv_image, sample_texcoord, 0);
         const float2 hit_uv = hit_data.xy;
         const float hit_mask = hit_data.z;

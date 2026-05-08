@@ -92,8 +92,10 @@ public:
             String boneName = attributes.At("name");
             const uint32 id = StringUtil::Parse<uint32>(attributes.At("id"));
 
-            m_skeleton.bones.PushBack({ .name = std::move(boneName),
-                .id = id });
+            m_skeleton.bones.PushBack({
+                .name = std::move(boneName),
+                .id = id
+            });
         }
         else if (name == "position")
         {
@@ -103,7 +105,7 @@ public:
 
             if (!m_skeleton.bones.Empty())
             {
-                m_skeleton.bones.Back().bindingTranslation = Vector3(x, y, z);
+                m_skeleton.bones.Back().bindingTranslation = Vec3f(x, y, z);
             }
             else
             {
@@ -151,7 +153,7 @@ public:
             auto y = StringUtil::Parse<float>(attributes.At("y"));
             auto z = StringUtil::Parse<float>(attributes.At("z"));
 
-            LastKeyframe().translation = Vector3(x, y, z);
+            LastKeyframe().translation = Vec3f(x, y, z);
         }
         else if (name == "rotate")
         {
@@ -163,7 +165,7 @@ public:
             auto y = StringUtil::Parse<float>(attributes.At("y"));
             auto z = StringUtil::Parse<float>(attributes.At("z"));
 
-            const auto axis = Vector3(x, y, z).Normalized();
+            const auto axis = Vec3f(x, y, z).Normalized();
 
             if (m_elementTags.Empty())
             {

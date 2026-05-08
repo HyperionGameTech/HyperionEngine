@@ -193,7 +193,7 @@ void TraceAO_New(float2 uv, out float occlusion)
 
             const float4 new_uv_ndc = new_uv * 2.0 - 1.0;
             const float2 max_dimension = min(float2(1.0, 1.0), max(abs(new_uv_ndc.xz), abs(new_uv_ndc.yw)));
-            const float2 fade = 1.0 - saturate(max(float2(0.0, 0.0), max_dimension - 0.9) / 0.1); 
+            const float2 fade = 1.0 - saturate(max(float2(0.0, 0.0), max_dimension - 0.9) / 0.1);
 
             bool valid_xy = all(new_uv.xy < float2(1.0, 1.0)) && all(new_uv.xy >= float2(0.0, 0.0));
             bool valid_zw = all(new_uv.zw < float2(1.0, 1.0)) && all(new_uv.zw >= float2(0.0, 0.0));
@@ -214,7 +214,7 @@ void TraceAO_New(float2 uv, out float occlusion)
                 const float2 safe_len = max(len, float2(HYP_FMATH_EPSILON, HYP_FMATH_EPSILON));
                 const float2 dist = len / radius;
                 const float2 DdotD = len * len;
-                
+
                 ds /= safe_len.x;
                 dt /= safe_len.y;
 

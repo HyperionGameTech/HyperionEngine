@@ -21,7 +21,7 @@ struct VSOutput
 
 #define HYP_DO_NOT_DEFINE_DESCRIPTOR_SETS
 
-#include "../include/Scene.hlsli" 
+#include "../include/Scene.hlsli"
 #include "../include/Shared.hlsli"
 
 #undef HYP_DO_NOT_DEFINE_DESCRIPTOR_SETS
@@ -166,12 +166,12 @@ float3 WorldToTexCoord(float3 positionWS, float3 aabbMin, float3 aabbMax)
 float HenyeyGreenstein(float g, float cosTheta)
 {
     float g2 = g * g;
-    
+
     float denom = 1.0 + g2 - 2.0 * g * cosTheta;
     denom = pow(denom, 1.5);
 
     float num = 1.0 - g2;
-    
+
     return (1.0 / (4.0 * HYP_FMATH_PI)) * (num / max(denom, 0.0001));
 }
 
@@ -184,7 +184,7 @@ float4 RayMarch(float3 rayOrigin, float3 rayDir, float tNear, float tFar, float 
 {
     float t = tNear;
     const int maxSteps = 128;
-    
+
     float transmittance = 1.0;
     float3 accumulatedColor = float3(0.0, 0.0, 0.0);
 
@@ -216,7 +216,7 @@ float4 RayMarch(float3 rayOrigin, float3 rayDir, float tNear, float tFar, float 
 
         if (sdf < -0.01)
         {
-            break; 
+            break;
         }
 #endif
 
@@ -235,14 +235,14 @@ float4 RayMarch(float3 rayOrigin, float3 rayDir, float tNear, float tFar, float 
         {
             Light light = lights[lightIndex];
             ShadowMap shadowMap = shadowMaps[lightIndex];
-            
+
             float3 lightDir;
             float phase;
 
             float shadow;
             float attenuation = 1.0;
-            
-            
+
+
             switch (light.type)
             {
                 case HYP_LIGHT_TYPE_POINT:
@@ -275,8 +275,7 @@ float4 RayMarch(float3 rayOrigin, float3 rayDir, float tNear, float tFar, float 
 
                     break;
                 }
-                default:
-                    break;
+                default: break;
             }
 
             stepLightEnergy += light.color.rgb * light.position_intensity.w * attenuation * phase * shadow;
@@ -286,10 +285,10 @@ float4 RayMarch(float3 rayOrigin, float3 rayDir, float tNear, float tFar, float 
         float stepTransmittance = exp(-stepExtinction);
 
         float3 stepRadiance = stepLightEnergy * albedo * (1.0 - stepTransmittance);
-        
+
         accumulatedColor += stepRadiance * transmittance;
         transmittance *= stepTransmittance;
-        
+
         t += stepSize;
     }
 
@@ -302,6 +301,8 @@ PSOutput PSMain(PSInput input)
     PSOutput output;
 
     float2 screenSpaceUV = (input.positionNdc.xy / input.positionNdc.w) * 0.5 + 0.5;
+    screenSpaceUV.y = 1.0 - screenSpaceUV.y;
+
     float sceneDepth = SAMPLE_TEXTURE_2D_LOD(SamplerNearest, DepthPyramidTexture, screenSpaceUV, 0).r;
     float4 positionVS = ReconstructViewSpacePositionFromDepth(camera.invProjMat, screenSpaceUV, sceneDepth);
     float linearDepth = length(positionVS.xyz);
@@ -327,7 +328,7 @@ PSOutput PSMain(PSInput input)
     {
         discard;
     }
-    
+
     float4 fogColor = RayMarch(camera.position.xyz, rayDir, tNear, tFar, 0.25);
 
     output.gbuffer_albedo = fogColor;

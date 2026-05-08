@@ -29,7 +29,7 @@
 
 namespace Hyperion {
 
-HYP_API extern uint32 GetFrameCounter();
+extern uint32 GetFrameCounter();
 
 class HYP_API CommandRecorderAllocator
 {
@@ -38,16 +38,16 @@ public:
 
     CommandRecorderAllocator(const CommandRecorderAllocator&) = delete;
     CommandRecorderAllocator& operator=(const CommandRecorderAllocator&) = delete;
-    
+
     CommandRecorderAllocator(CommandRecorderAllocator&&) = delete;
     CommandRecorderAllocator& operator=(CommandRecorderAllocator&&) = delete;
-    
+
     ~CommandRecorderAllocator();
 
     void Shutdown();
 
     void UpdateQueue();
-    
+
     CommandRecorder& GetCommandRecorder();
 
 private:

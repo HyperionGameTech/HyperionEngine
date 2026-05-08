@@ -9,6 +9,7 @@ namespace Hyperion
     {
         public string? Name { get; set; }
         public bool IsDynamic { get; set; }
+        public string? Condition { get; set; }
 
         public Class GetClass(Type type)
         {
@@ -30,7 +31,7 @@ namespace Hyperion
             return (Class)cls;
         }
 
-        public static ClassBinding? ForType(Type type) 
+        public static ClassBinding? ForType(Type type)
         {
             Type? currentType = type;
 

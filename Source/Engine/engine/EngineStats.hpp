@@ -329,6 +329,10 @@ public:
     static const Handle<EngineStats>& GetInstance();
 
     EngineStats();
+
+    EngineStats(const EngineStats&) = delete;
+    EngineStats& operator=(const EngineStats&) = delete;
+
     ~EngineStats();
 
     EngineStatsSnapshot& GetCurrentSnapshot();

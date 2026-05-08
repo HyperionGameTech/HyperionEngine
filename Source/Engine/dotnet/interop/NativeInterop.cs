@@ -419,6 +419,17 @@ namespace Hyperion
 
             if (classBindingAttribute != null)
             {
+                string? condition = classBindingAttribute.Condition;
+                if (condition != null)
+                {
+                    // Check OperatingSystem.(condition) if Condition is provided.
+                    // This is icky but it's the only way to conditionally load a class using the Attributes as what
+                    // we provide to it must be a constant expression.
+                    MethodInfo? conditionMethod = typeof(OperatingSystem).GetMethod(condition);
+                    if (conditionMethod == null || !conditionMethod.Invoke(null, null)!.Equals(true))
+                        return IntPtr.Zero;
+                }
+
                 className = classBindingAttribute.Name;
 
                 if (className == null || className.Length == 0)

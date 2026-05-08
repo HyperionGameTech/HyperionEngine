@@ -36,28 +36,39 @@ DECLARE_SRV_DYNAMIC(Default, CamerasBuffer) StructuredBuffer<Camera> _cameras_bu
 #define camera _cameras_buffer[0]
 
 DECLARE_SRV_DYNAMIC(Default, EntityInstanceBatchesBuffer) ByteAddressBuffer currentBatchBuffer;
+
 #undef OBJECT_INDEX
 #define OBJECT_INDEX (currentBatch.indices[instanceId >> 2][instanceId & 3])
 
 VSOutput VSMain(VSInput input, uint instanceId : SV_InstanceID)
 {
     VSOutput output;
-    
+
     UIEntityInstanceBatch currentBatch = currentBatchBuffer.Load<UIEntityInstanceBatch>(0);
+
+    float4x4 transform = currentBatch.transforms[instanceId];
+#ifdef VULKAN
+    transform = transpose(transform);
+#endif
 
     float2 clamped_offset = currentBatch.offsets[instanceId].xy;
     float2 size = currentBatch.sizes[instanceId].xy;
     float2 clamped_size = currentBatch.sizes[instanceId].zw;
 
-    float4 position = mul(currentBatch.transforms[instanceId], float4(input.a_position, 1.0));
+    float4 position = mul(transform, float4(input.a_position, 1.0));
+
     float4 ndc_position = mul(camera.viewProjMat, position);
+    ndc_position.y = -ndc_position.y;
+
+    float2 texcoord = input.a_texcoord0;
+    texcoord.y = 1.0 - texcoord.y;
 
     float4 instance_texcoords = currentBatch.texcoords[instanceId];
 
     float2 instance_texcoord_size = instance_texcoords.zw - instance_texcoords.xy;
     float2 clamped_instance_texcoord_size = instance_texcoord_size * (clamped_size / size);
 
-    output.texcoord0 = instance_texcoords.xy - (clamped_offset / clamped_size * clamped_instance_texcoord_size) + (input.a_texcoord0 * clamped_instance_texcoord_size);
+    output.texcoord0 = instance_texcoords.xy - (clamped_offset / clamped_size * clamped_instance_texcoord_size) + (texcoord * clamped_instance_texcoord_size);
 
     output.object_index = OBJECT_INDEX;
     output.properties = currentBatch.properties[instanceId];
@@ -147,13 +158,13 @@ PSOutput PSMain(PSInput input)
     float4 albedo_texture = SAMPLE_MATERIAL_TEXTURE(CURRENT_MATERIAL, DiffuseMap, input.texcoord0);
 
     ui_color *= albedo_texture;
-    
+
 #ifdef UI_TEXT
     // ui text uses R8 font atlas bitmap so swizzle red channel into rgba before mult by color value
     ui_color.rgba = (float4)albedo_texture.r;
 #endif
 #endif
-    
+
     ui_color *= CURRENT_MATERIAL.albedo;
 
     float2 size = float2(properties.size);

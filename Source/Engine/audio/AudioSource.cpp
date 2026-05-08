@@ -96,7 +96,7 @@ AudioSource::~AudioSource()
 
 void AudioSource::Init()
 {
-    if (g_audioManager->IsReady())
+    if (g_audioManager.IsValid() && g_audioManager->IsInitialized())
     {
 #if HYP_OPENAL
         auto alFormat = AL_FORMAT_MONO8;
@@ -128,14 +128,14 @@ void AudioSource::Init()
         // drop reference
         m_data = ByteBuffer();
 #endif
-        
+
         SetReady(true);
     }
 }
 
 AudioSourceState AudioSource::GetState() const
 {
-    if (!g_audioManager->IsReady())
+    if (!g_audioManager.IsValid() || !g_audioManager->IsInitialized())
     {
         return AudioSourceState::UNDEFINED;
     }
@@ -164,7 +164,7 @@ AudioSourceState AudioSource::GetState() const
 void AudioSource::SetPosition(const Vec3f& vec)
 {
 #if HYP_OPENAL
-    if (g_audioManager->IsReady())
+    if (g_audioManager.IsValid() && g_audioManager->IsInitialized())
     {
         alSource3f(m_sourceId, AL_POSITION, vec.x, vec.y, vec.z);
     }
@@ -174,7 +174,7 @@ void AudioSource::SetPosition(const Vec3f& vec)
 void AudioSource::SetVelocity(const Vec3f& vec)
 {
 #if HYP_OPENAL
-    if (g_audioManager->IsReady())
+    if (g_audioManager.IsValid() && g_audioManager->IsInitialized())
     {
         alSource3f(m_sourceId, AL_VELOCITY, vec.x, vec.y, vec.z);
     }
@@ -184,7 +184,7 @@ void AudioSource::SetVelocity(const Vec3f& vec)
 void AudioSource::SetPitch(float pitch)
 {
 #if HYP_OPENAL
-    if (g_audioManager->IsReady())
+    if (g_audioManager.IsValid() && g_audioManager->IsInitialized())
     {
         alSourcef(m_sourceId, AL_PITCH, pitch);
     }
@@ -194,7 +194,7 @@ void AudioSource::SetPitch(float pitch)
 void AudioSource::SetGain(float gain)
 {
 #if HYP_OPENAL
-    if (g_audioManager->IsReady())
+    if (g_audioManager.IsValid() && g_audioManager->IsInitialized())
     {
         alSourcef(m_sourceId, AL_GAIN, gain);
     }
@@ -204,7 +204,7 @@ void AudioSource::SetGain(float gain)
 void AudioSource::SetLoop(bool loop)
 {
 #if HYP_OPENAL
-    if (g_audioManager->IsReady())
+    if (g_audioManager.IsValid() && g_audioManager->IsInitialized())
     {
         alSourcei(m_sourceId, AL_LOOPING, loop);
     }
@@ -214,7 +214,7 @@ void AudioSource::SetLoop(bool loop)
 void AudioSource::Play()
 {
 #if HYP_OPENAL
-    if (g_audioManager->IsReady())
+    if (g_audioManager.IsValid() && g_audioManager->IsInitialized())
     {
         alSourcePlay(m_sourceId);
     }
@@ -224,7 +224,7 @@ void AudioSource::Play()
 void AudioSource::Pause()
 {
 #if HYP_OPENAL
-    if (g_audioManager->IsReady())
+    if (g_audioManager.IsValid() && g_audioManager->IsInitialized())
     {
         alSourcePause(m_sourceId);
     }
@@ -234,7 +234,7 @@ void AudioSource::Pause()
 void AudioSource::Stop()
 {
 #if HYP_OPENAL
-    if (g_audioManager->IsReady())
+    if (g_audioManager.IsValid() && g_audioManager->IsInitialized())
     {
         alSourceStop(m_sourceId);
     }
@@ -244,7 +244,7 @@ void AudioSource::Stop()
 void AudioSource::FindSampleLength()
 {
 #if HYP_OPENAL
-    if (!g_audioManager->IsReady())
+    if (!g_audioManager.IsValid() || !g_audioManager->IsInitialized())
     {
         return;
     }

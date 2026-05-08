@@ -258,7 +258,7 @@ void MaterialInstance::UpdateRenderProxy(RenderProxyMaterial* proxy)
 {
     Assert(m_definition != nullptr, "MaterialInstance has no definition set");
 
-    const bool useBindlessTextures = g_renderInterface->GetRenderConfig().bindlessTextures;
+    const bool useBindlessTextures = RI.GetRenderConfig().bindlessTextures;
 
     if (proxy->material.GetUnsafe() != this)
     {

@@ -81,7 +81,7 @@ public:
 
 private:
     Array<ObjectInstance, RenderAllocator> m_objectInstances;
-    TByteBuffer<RenderAllocator> m_drawCommandsBuffer;
+    Array<IndirectDrawCommand, RHIAllocator> m_drawCommandsBuffer;
 
     FixedArray<GpuBufferRef, NumFramesInFlight> m_indirectBuffers;
     FixedArray<GpuBufferRef, NumFramesInFlight> m_instanceBuffers;
@@ -121,13 +121,14 @@ public:
     /*! \brief Register all current draw calls in the draw call collection with the indirect draw state */
     void PushDrawCallsToIndirectState(DrawCallCollection& drawCallCollection);
 
+    void PrepareDrawCommands(Frame* frame);
+
     void ExecuteCullShaderInBatches(Frame* frame, const RenderSetup& renderSetup);
 
 private:
     void RebuildDescriptors(Frame* frame);
 
     IndirectDrawState m_indirectDrawState;
-    FixedArray<GpuBufferRef, NumFramesInFlight> m_cbuffers;
     CullData m_cachedCullData;
     uint8 m_cachedCullDataUpdatedBits;
     EntityBatchAllocatorBase* m_batchAllocator;

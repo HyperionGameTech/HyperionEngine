@@ -759,6 +759,13 @@ Result BlobStorage::SaveManifest()
     return SaveManifest_Internal();
 }
 
+bool BlobStorage::IsDirty() const
+{
+    Mutex::Guard guard(m_mutex);
+
+    return m_toc && m_toc->Dirty();
+}
+
 Result BlobStorage::SaveIfDirty()
 {
     Mutex::Guard guard(m_mutex);

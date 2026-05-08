@@ -89,7 +89,7 @@ template HYP_API void FillPlaceholderBuffer_Cubemap<TextureFormat::RGBA8>(Vec2u 
 #pragma region PlaceholderData
 
 PlaceholderData::PlaceholderData()
-    : m_image2d1x1R8(g_renderInterface->MakeImage(TextureDesc {
+    : m_image2d1x1R8(RI.MakeImage(TextureDesc {
           TextureType::Texture2D,
           TextureFormat::R8,
           Vec3u::One(),
@@ -98,8 +98,8 @@ PlaceholderData::PlaceholderData()
           TWM_CLAMP_TO_EDGE,
           1,
           IU_SAMPLED })),
-      m_imageView2d1x1R8(g_renderInterface->MakeImageView(m_image2d1x1R8)),
-      m_image2d1x1R8Storage(g_renderInterface->MakeImage(TextureDesc {
+      m_imageView2d1x1R8(RI.MakeImageView(m_image2d1x1R8)),
+      m_image2d1x1R8Storage(RI.MakeImage(TextureDesc {
           TextureType::Texture2D,
           TextureFormat::R8,
           Vec3u::One(),
@@ -108,8 +108,8 @@ PlaceholderData::PlaceholderData()
           TWM_CLAMP_TO_EDGE,
           1,
           IU_STORAGE | IU_SAMPLED })),
-      m_imageView2d1x1R8Storage(g_renderInterface->MakeImageView(m_image2d1x1R8Storage)),
-      m_image3d1x1x1R8(g_renderInterface->MakeImage(TextureDesc {
+      m_imageView2d1x1R8Storage(RI.MakeImageView(m_image2d1x1R8Storage)),
+      m_image3d1x1x1R8(RI.MakeImage(TextureDesc {
           TextureType::Texture3D,
           TextureFormat::R8,
           Vec3u::One(),
@@ -118,8 +118,8 @@ PlaceholderData::PlaceholderData()
           TWM_CLAMP_TO_EDGE,
           1,
           IU_SAMPLED })),
-      m_imageView3d1x1x1R8(g_renderInterface->MakeImageView(m_image3d1x1x1R8)),
-      m_image3d1x1x1R8Storage(g_renderInterface->MakeImage(TextureDesc {
+      m_imageView3d1x1x1R8(RI.MakeImageView(m_image3d1x1x1R8)),
+      m_image3d1x1x1R8Storage(RI.MakeImage(TextureDesc {
           TextureType::Texture3D,
           TextureFormat::R8,
           Vec3u::One(),
@@ -128,8 +128,8 @@ PlaceholderData::PlaceholderData()
           TWM_CLAMP_TO_EDGE,
           1,
           IU_STORAGE | IU_SAMPLED })),
-      m_imageView3d1x1x1R8Storage(g_renderInterface->MakeImageView(m_image3d1x1x1R8Storage)),
-      m_imageCube1x1R8(g_renderInterface->MakeImage(TextureDesc {
+      m_imageView3d1x1x1R8Storage(RI.MakeImageView(m_image3d1x1x1R8Storage)),
+      m_imageCube1x1R8(RI.MakeImage(TextureDesc {
           TextureType::Cubemap,
           TextureFormat::RGBA8,
           Vec3u::One(),
@@ -138,8 +138,8 @@ PlaceholderData::PlaceholderData()
           TWM_CLAMP_TO_EDGE,
           1,
           IU_SAMPLED })),
-      m_imageViewCube1x1R8(g_renderInterface->MakeImageView(m_imageCube1x1R8)),
-      m_image2d1x1R8Array(g_renderInterface->MakeImage(TextureDesc {
+      m_imageViewCube1x1R8(RI.MakeImageView(m_imageCube1x1R8)),
+      m_image2d1x1R8Array(RI.MakeImage(TextureDesc {
           TextureType::Texture2DArray,
           TextureFormat::R8,
           Vec3u::One(),
@@ -148,8 +148,8 @@ PlaceholderData::PlaceholderData()
           TWM_CLAMP_TO_EDGE,
           1,
           IU_SAMPLED })),
-      m_imageView2d1x1R8Array(g_renderInterface->MakeImageView(m_image2d1x1R8Array)),
-      m_imageCube1x1R8Array(g_renderInterface->MakeImage(TextureDesc {
+      m_imageView2d1x1R8Array(RI.MakeImageView(m_image2d1x1R8Array)),
+      m_imageCube1x1R8Array(RI.MakeImage(TextureDesc {
           TextureType::CubemapArray,
           TextureFormat::RGBA8,
           Vec3u::One(),
@@ -158,18 +158,18 @@ PlaceholderData::PlaceholderData()
           TWM_CLAMP_TO_EDGE,
           1,
           IU_SAMPLED })),
-      m_imageViewCube1x1R8Array(g_renderInterface->MakeImageView(m_imageCube1x1R8Array)),
-      m_samplerLinear(g_renderInterface->MakeSampler(SamplerDesc {
+      m_imageViewCube1x1R8Array(RI.MakeImageView(m_imageCube1x1R8Array)),
+      m_samplerLinear(RI.MakeSampler(SamplerDesc {
           TFM_LINEAR,
           TFM_LINEAR,
           TWM_REPEAT
       })),
-      m_samplerLinearMipmap(g_renderInterface->MakeSampler(SamplerDesc {
+      m_samplerLinearMipmap(RI.MakeSampler(SamplerDesc {
           TFM_LINEAR_MIPMAP,
           TFM_LINEAR,
           TWM_REPEAT
       })),
-      m_samplerNearest(g_renderInterface->MakeSampler(SamplerDesc {
+      m_samplerNearest(RI.MakeSampler(SamplerDesc {
           TFM_NEAREST,
           TFM_NEAREST,
           TWM_CLAMP_TO_EDGE
@@ -234,7 +234,7 @@ void PlaceholderData::Initialize()
         outTexture = MakeHandle<Texture>(textureDesc, bufferData.first.ToByteView());
         outTexture->SetName(name);
         outTexture->SetPersistentRequested(true, /* setFlag */ true);
-        
+
         GetEngineAssetRegistry()->PutAsset(outTexture);
 
         CheckResult(outTexture->Create());
@@ -322,19 +322,19 @@ void PlaceholderData::Initialize()
 #pragma endregion Textures
 
 #pragma region Samplers
-    
+
 #if HYP_DEBUG_MODE
     m_samplerLinear->SetDebugName(NAME("Placeholder_Sampler_Linear"));
 #endif
 
     CheckResult(m_samplerLinear->Create());
-    
+
 #if HYP_DEBUG_MODE
     m_samplerLinearMipmap->SetDebugName(NAME("Placeholder_Sampler_Linear_Mipmap"));
 #endif
 
     CheckResult(m_samplerLinearMipmap->Create());
-    
+
 #if HYP_DEBUG_MODE
     m_samplerNearest->SetDebugName(NAME("Placeholder_Sampler_Nearest"));
 #endif
@@ -377,7 +377,7 @@ void PlaceholderData::Shutdown()
 
 GpuBufferRef PlaceholderData::CreateGpuBuffer(GpuBufferType bufferType, size_t size)
 {
-    GpuBufferRef gpuBuffer = g_renderInterface->MakeGpuBuffer(bufferType, size);
+    GpuBufferRef gpuBuffer = RI.MakeGpuBuffer(bufferType, size);
 #if HYP_DEBUG_MODE
     gpuBuffer->SetDebugName(NAME("Placeholder_GpuBuffer"));
 #endif

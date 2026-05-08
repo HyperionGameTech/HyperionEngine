@@ -315,7 +315,7 @@ protected:
 
     HYP_FIELD(Property = "ShadowMapDimensions")
     Vec2u m_shadowMapDimensions;
-    
+
     HYP_FIELD(Property = "ShadowMapCascades")
     uint32 m_numShadowMapCascades;
 

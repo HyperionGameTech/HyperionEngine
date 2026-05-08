@@ -919,7 +919,7 @@ AssetLoadResult UILoader::LoadAsset(LoaderState& state) const
 {
     Assert(state.assetManager != nullptr);
 
-    Handle<UIObject> uiStage = MakeHandle<UIStage>(ThreadId::Current());
+    Handle<UIObject> uiStage = MakeHandle<UIStage>(nullptr, ThreadId::Current());
     InitObject(uiStage);
 
     UISAXHandler handler(&state, static_cast<UIStage*>(uiStage.Get()));

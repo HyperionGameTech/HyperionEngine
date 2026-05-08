@@ -82,6 +82,108 @@ enum class ShaderLanguage : uint32
 };
 
 HYP_ENUM()
+enum class ShaderCompileTargetPlatform : uint32
+{
+    None        = 0x00000000,
+    Windows     = 0x00000001,   // Bit 0
+    Mac         = 0x00000002,   // Bit 1
+    Linux       = 0x00000004,   // Bit 2
+    Android     = 0x00000008,   // Bit 3
+    iOS         = 0x00000010,   // Bit 4
+    AllPlatforms = Windows | Mac | Linux | Android | iOS
+};
+
+HYP_MAKE_ENUM_FLAGS(ShaderCompileTargetPlatform);
+
+HYP_ENUM()
+enum class ShaderCompileTargetBackend : uint32
+{
+    None        = 0x00000000,
+    Vulkan      = 0x00000100,   // Bit 8
+    DX12        = 0x00000200,   // Bit 9
+    AllBackends = Vulkan | DX12
+};
+
+HYP_MAKE_ENUM_FLAGS(ShaderCompileTargetBackend);
+
+/*! \brief Combined bit mask type for shader compile targets (platforms + backends). */
+using ShaderCompileTargetMask = uint32;
+
+struct ShaderCompileParams
+{
+    EnumFlags<ShaderCompileTargetPlatform> targetPlatforms = ShaderCompileTargetPlatform::AllPlatforms;
+    EnumFlags<ShaderCompileTargetBackend> targetBackends = ShaderCompileTargetBackend::AllBackends;
+
+    ShaderCompileParams() = default;
+
+    explicit ShaderCompileParams(EnumFlags<ShaderCompileTargetPlatform> platforms)
+        : targetPlatforms(platforms)
+    {
+    }
+
+    explicit ShaderCompileParams(EnumFlags<ShaderCompileTargetBackend> backends)
+        : targetBackends(backends)
+    {
+    }
+
+    ShaderCompileParams(EnumFlags<ShaderCompileTargetPlatform> platforms, EnumFlags<ShaderCompileTargetBackend> backends)
+        : targetPlatforms(platforms),
+          targetBackends(backends)
+    {
+    }
+
+    /*! \brief Returns the combined bit mask of platforms and backends. */
+    HYP_FORCE_INLINE ShaderCompileTargetMask GetTargetMask() const
+    {
+        return uint32(targetPlatforms) | uint32(targetBackends);
+    }
+
+    /*! \brief Returns true if the given platform is enabled. */
+    HYP_FORCE_INLINE bool HasPlatform(ShaderCompileTargetPlatform platform) const
+    {
+        return targetPlatforms[platform];
+    }
+
+    /*! \brief Returns true if the given backend is enabled. */
+    HYP_FORCE_INLINE bool HasBackend(ShaderCompileTargetBackend backend) const
+    {
+        return targetBackends[backend];
+    }
+
+    /*! \brief Returns true if Vulkan backend is enabled. */
+    HYP_FORCE_INLINE bool ShouldCompileVulkan() const
+    {
+        return targetBackends[ShaderCompileTargetBackend::Vulkan];
+    }
+
+    /*! \brief Returns true if DX12 backend is enabled. */
+    HYP_FORCE_INLINE bool ShouldCompileDX12() const
+    {
+        return targetBackends[ShaderCompileTargetBackend::DX12];
+    }
+
+    /*! \brief Set the target platforms mask. */
+    HYP_FORCE_INLINE void SetTargetPlatforms(EnumFlags<ShaderCompileTargetPlatform> platforms)
+    {
+        targetPlatforms = platforms;
+    }
+
+    /*! \brief Set the target backends mask. */
+    HYP_FORCE_INLINE void SetTargetBackends(EnumFlags<ShaderCompileTargetBackend> backends)
+    {
+        targetBackends = backends;
+    }
+
+    HYP_FORCE_INLINE HashCode GetHashCode() const
+    {
+        HashCode hc;
+        hc.Add(uint32(targetPlatforms));
+        hc.Add(uint32(targetBackends));
+        return hc;
+    }
+};
+
+HYP_ENUM()
 enum class ProcessShaderSourcePhase : uint32
 {
     BEFORE_PREPROCESS, // Raw source file before any preprocessing
@@ -278,6 +380,9 @@ struct ShaderInput
     HYP_FIELD(Property = "IsDynamic", Serialize = true)
     bool isDynamic = false;
 
+    HYP_FIELD(Property = "BufferType", Serialize = true)
+    GpuBufferType bufferType = GpuBufferType::NONE;
+
     HYP_FIELD(Property = "StructInfo", Serialize = true)
     ShaderStruct structInfo;
 
@@ -299,6 +404,7 @@ struct ShaderInput
         hc.Add(count);
         hc.Add(size);
         hc.Add(isDynamic);
+        hc.Add(bufferType);
         hc.Add(structInfo);
         hc.Add(index);
 
@@ -341,12 +447,12 @@ struct ShaderInputSet
 
     ~ShaderInputSet() = default;
 
-    HYP_FORCE_INLINE void AddDescriptorDeclaration(ShaderInput decl)
+    void Add(ShaderInput shaderInput)
     {
-        AssertDebug(decl.slot != ShaderRegister::NONE && uint8(decl.slot) < NumDescriptorSlots);
+        AssertDebug(shaderInput.slot != ShaderRegister::NONE && uint8(shaderInput.slot) < NumDescriptorSlots);
 
-        decl.index = uint32(slots[uint8(decl.slot) - 1].Size());
-        slots[uint8(decl.slot) - 1].PushBack(std::move(decl));
+        shaderInput.index = uint32(slots[uint8(shaderInput.slot) - 1].Size());
+        slots[uint8(shaderInput.slot) - 1].PushBack(std::move(shaderInput));
     }
 
     /*! \brief Calculate a flat index for a Descriptor that is part of this set.
@@ -365,9 +471,9 @@ struct ShaderInputSet
 
         for (const auto& slot : slots)
         {
-            for (const auto& decl : slot)
+            for (const ShaderInput& shaderInput : slot)
             {
-                hc.Add(decl.GetHashCode());
+                hc.Add(shaderInput.GetHashCode());
             }
         }
 
@@ -557,19 +663,32 @@ public:
     ~ShaderCompiler();
 
     bool CanCompileShaders() const;
-    bool LoadShaderDefinitions(bool precompileShaders = false);
+    bool CanCompileShaders(const ShaderCompileParams& params) const;
+    bool LoadShaderDefinitions(bool precompileShaders = false, const ShaderCompileParams& params = ShaderCompileParams());
 
     bool RequestShader(
         Name name,
         const ShaderPropertySet& properties,
         const VertexInputLayoutDesc& inputLayout,
         Shader*& outShader);
-        
+
     bool IsGraphicsShaderBundle(Name name) const;
 
 #if HYP_ENABLE_SHADER_RELOAD
     bool IsShaderBundleOutdated(Name name, const Time& lastCompiledTimestamp) const;
 #endif
+
+    /*! \brief Get the current shader compilation parameters. */
+    HYP_FORCE_INLINE const ShaderCompileParams& GetCompileParams() const
+    {
+        return m_compileParams;
+    }
+
+    /*! \brief Set the shader compilation parameters. */
+    HYP_FORCE_INLINE void SetCompileParams(const ShaderCompileParams& params)
+    {
+        m_compileParams = params;
+    }
 
 private:
     ProcessResult ProcessShaderSource(
@@ -603,6 +722,7 @@ private:
     INIFile* m_definitions;
     Array<ShaderBundleDecl> m_shaderBundleDecls;
     bool m_isPrecompilingShaders;
+    ShaderCompileParams m_compileParams;
 };
 
 } // namespace Hyperion

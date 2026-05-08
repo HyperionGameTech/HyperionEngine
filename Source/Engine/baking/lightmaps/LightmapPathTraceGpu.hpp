@@ -9,7 +9,7 @@
 #include <baking/Baker.hpp>
 
 #include <rendering/RenderObject.hpp>
-#include <rendering/StructuredBuffer.hpp>
+#include <rendering/RawBuffer.hpp>
 
 #include <Core/memory/RefCountedPtr.hpp>
 

@@ -24,20 +24,23 @@
 // for EnumToString
 #include <Core/reflection/Enum.hpp>
 
+#include <engine/CVarManager.hpp>
+
 #include <VulkanSwapchain.generated.inl>
 
 namespace Hyperion {
 
-extern VulkanRenderInterface* g_renderInterface;
+extern VulkanRenderInterface RI;
 
 #if HYP_ANDROID || !HYP_DEBUG_MODE
 static constexpr bool VulkanSwapchainUseFIFO = true;
 #else
-static constexpr bool VulkanSwapchainUseFIFO = false;// true;
+CVar<bool> VulkanSwapchainUseFIFO("Rendering.Vulkan.FIFO", true);
 #endif
 
 static constexpr bool UseSRGBFormat = true;
 static constexpr bool UseHDRFormat = false;
+
 static constexpr VkImageUsageFlags ImageUsageFlags = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
 
 static RendererResult AcquireNextImage(
@@ -50,7 +53,7 @@ static RendererResult AcquireNextImage(
     Assert(semaphore != nullptr && semaphore->IsCreated());
 
     VkResult vkResult = vkAcquireNextImageKHR(
-        g_renderInterface->GetDevice()->GetDevice(),
+        RI.GetDevice()->GetDevice(),
         swapchain->GetVulkanHandle(),
         UINT64_MAX,
         semaphore->GetVulkanHandle(),
@@ -93,7 +96,7 @@ VulkanSwapchain::~VulkanSwapchain()
     {
         EnqueueDeletion(FunctionWrapper<Proc<void()>>([handle = m_handle]()
             {
-                vkDestroySwapchainKHR(g_renderInterface->GetDevice()->GetDevice(), handle, nullptr);
+                vkDestroySwapchainKHR(RI.GetDevice()->GetDevice(), handle, nullptr);
             }));
     }
 
@@ -169,7 +172,7 @@ void VulkanSwapchain::PresentFrame(VulkanFrame* frame, VulkanDeviceQueue* queue)
     }
     else if (result != VK_SUCCESS && result != VK_SUBOPTIMAL_KHR)
     {
-        g_renderInterface->crashHandler->Dump();
+        RI.crashHandler->Dump();
 
         HYP_FAIL("Failed to present swapchain image: {}", int(result));
     }
@@ -187,7 +190,7 @@ RendererResult VulkanSwapchain::Create()
         return HYP_MAKE_ERROR(RendererError, "Cannot initialize swapchain without a surface");
     }
 
-    m_supportDetails = g_renderInterface->GetDevice()->GetFeatures().QuerySwapchainSupport(m_surface);
+    m_supportDetails = RI.GetDevice()->GetFeatures().QuerySwapchainSupport(m_surface);
 
     CheckResultOrReturn(ChooseSurfaceFormat());
 
@@ -255,7 +258,7 @@ RendererResult VulkanSwapchain::Create()
     createInfo.imageUsage = ImageUsageFlags;
 
     /* Graphics computations and presentation are done on separate hardware */
-    const QueueFamilyIndices& qfIndices = g_renderInterface->GetDevice()->GetQueueFamilyIndices();
+    const QueueFamilyIndices& qfIndices = RI.GetDevice()->GetQueueFamilyIndices();
 
     const uint32 concurrentFamilies[] = {
         qfIndices.graphicsFamily.Get(),
@@ -286,7 +289,7 @@ RendererResult VulkanSwapchain::Create()
     createInfo.clipped = VK_TRUE;
     createInfo.oldSwapchain = m_oldHandle;
 
-    VkResult result = vkCreateSwapchainKHR(g_renderInterface->GetDevice()->GetDevice(), &createInfo, nullptr, &m_handle);
+    VkResult result = vkCreateSwapchainKHR(RI.GetDevice()->GetDevice(), &createInfo, nullptr, &m_handle);
 
     if (result != VK_SUCCESS)
     {
@@ -320,7 +323,7 @@ RendererResult VulkanSwapchain::Create()
                 image->GetTextureFormat(),
                 LoadOperation::CLEAR,
                 StoreOperation::STORE },
-            g_renderInterface->MakeImageView(image));
+            RI.MakeImageView(image));
 
         CheckResultOrReturn(framebuffer->Create());
 
@@ -376,7 +379,7 @@ void VulkanSwapchain::Recreate()
     {
         // we can now destroy the old swapchain
         vkDestroySwapchainKHR(
-            g_renderInterface->GetDevice()->GetDevice(),
+            RI.GetDevice()->GetDevice(),
             m_oldHandle,
             nullptr);
 
@@ -396,7 +399,7 @@ RendererResult VulkanSwapchain::ChooseSurfaceFormat()
     if (UseHDRFormat)
     {
         /* look for hdr format */
-        m_imageFormat = g_renderInterface->GetDevice()->GetFeatures().FindSupportedSurfaceFormat(
+        m_imageFormat = RI.GetDevice()->GetFeatures().FindSupportedSurfaceFormat(
             m_supportDetails,
             { { TextureFormat::R10G10B10A2, TextureFormat::R11G11B10F, TextureFormat::RGBA16F } },
             [this](VkSurfaceFormatKHR format)
@@ -427,7 +430,7 @@ RendererResult VulkanSwapchain::ChooseSurfaceFormat()
     if (UseSRGBFormat)
     {
         /* look for srgb format */
-        m_imageFormat = g_renderInterface->GetDevice()->GetFeatures().FindSupportedSurfaceFormat(
+        m_imageFormat = RI.GetDevice()->GetFeatures().FindSupportedSurfaceFormat(
             m_supportDetails,
             { { TextureFormat::RGBA8_SRGB, TextureFormat::BGRA8_SRGB } },
             [this](VkSurfaceFormatKHR format)
@@ -451,7 +454,7 @@ RendererResult VulkanSwapchain::ChooseSurfaceFormat()
     }
 
     /* look for non-srgb format */
-    m_imageFormat = g_renderInterface->GetDevice()->GetFeatures().FindSupportedSurfaceFormat(
+    m_imageFormat = RI.GetDevice()->GetFeatures().FindSupportedSurfaceFormat(
         m_supportDetails,
         { { TextureFormat::R11G11B10F, TextureFormat::RGBA16F, TextureFormat::RGBA8 } },
         [this](auto&& format)
@@ -477,11 +480,11 @@ RendererResult VulkanSwapchain::RetrieveImageHandles()
     uint32 imageCount = 0;
     /* Query for the size, as we will need to create swap chains with more images
      * in the future for more complex applications. */
-    vkGetSwapchainImagesKHR(g_renderInterface->GetDevice()->GetDevice(), m_handle, &imageCount, nullptr);
+    vkGetSwapchainImagesKHR(RI.GetDevice()->GetDevice(), m_handle, &imageCount, nullptr);
 
     vkImages.Resize(imageCount);
 
-    vkGetSwapchainImagesKHR(g_renderInterface->GetDevice()->GetDevice(), m_handle, &imageCount, vkImages.Data());
+    vkGetSwapchainImagesKHR(RI.GetDevice()->GetDevice(), m_handle, &imageCount, vkImages.Data());
 
     m_images.Resize(imageCount);
 
@@ -508,7 +511,7 @@ RendererResult VulkanSwapchain::RetrieveImageHandles()
     }
 
     // Transition each image to PRESENT state immediately
-    UniquePtr<SingleTimeCommands> singleTimeCommands = g_renderInterface->GetSingleTimeCommands();
+    UniquePtr<SingleTimeCommands> singleTimeCommands = RI.GetSingleTimeCommands();
 
     singleTimeCommands->Push([&](CommandRecorder& cr)
         {

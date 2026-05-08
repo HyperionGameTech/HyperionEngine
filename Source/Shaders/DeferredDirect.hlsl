@@ -59,8 +59,6 @@ DECLARE_SRV(DeferredPass, GBufferVelocityTexture) Texture2D gbuffer_velocity_tex
 
 DECLARE_SRV(DeferredPass, GBufferDepthTexture) Texture2D gbuffer_depth_texture;
 
-DECLARE_SRV(DeferredPass, GBufferMipChain) Texture2D gbuffer_mip_chain;
-
 DECLARE_SAMPLER(DeferredPass, SamplerNearest) SamplerState sampler_nearest;
 DECLARE_SAMPLER(DeferredPass, SamplerLinear) SamplerState sampler_linear;
 DECLARE_SAMPLER(DeferredPass, SamplerShadow) SamplerComparisonState SamplerShadow;
@@ -135,7 +133,7 @@ DECLARE_SRV(DeferredPass, EnvProbesTexture) Texture2DArray envProbesTexture;
 
 DECLARE_SRV(DeferredPass, EnvProbesBuffer) StructuredBuffer<EnvProbe> EnvProbesBuffer;
 DECLARE_SRV(DeferredPass, LightsBuffer) StructuredBuffer<Light> LightsBuffer;
-DECLARE_SRV(DeferredPass, ClusterGridBuffer) StructuredBuffer<uint2> ClusterGridBuffer;
+DECLARE_SRV(DeferredPass, ClusterGridBuffer) ByteAddressBuffer ClusterGridBuffer;
 DECLARE_SRV(DeferredPass, ClusterIndexBuffer) ByteAddressBuffer ClusterIndexBuffer;
 
 #include "deferred/ClusteredShading.hlsli"
@@ -166,10 +164,7 @@ PSOutput PSMain(PSInput input)
 
     float2 texcoord = input.texcoord;
 
-    uint2 gbufferDimensions;
-    gbuffer_albedo_texture.GetDimensions(gbufferDimensions.x, gbufferDimensions.y);
-
-    const uint2 pixelCoord = uint2(texcoord * max(0, int2(gbufferDimensions) - 1));
+    const uint2 pixelCoord = (uint2)input.position_cs.xy;
 
     float4 albedo = SAMPLE_TEXTURE_2D_LOD(HYP_SAMPLER_NEAREST, gbuffer_albedo_texture, texcoord, 0);
     float4 normalSample = SAMPLE_TEXTURE_2D_LOD(HYP_SAMPLER_NEAREST, gbuffer_normals_texture, texcoord, 0);
@@ -198,7 +193,7 @@ PSOutput PSMain(PSInput input)
     const float perceptualRoughness = sqrt(roughness);
 
     float4 result = (float4)0;
-    
+
     const float material_reflectance = 0.5;
     const float reflectance = 0.16 * material_reflectance * material_reflectance;
     float4 F0 = float4(albedo.rgb * metalness + (reflectance * (1.0 - metalness)), 1.0);
@@ -213,29 +208,28 @@ PSOutput PSMain(PSInput input)
 
     const float NdotV = max(0.000001, dot(N, V));
 
-    float ao = 1.0;
     float shadow = 1.0;
 
-#if HBAO_ENABLED || SSAO_ENABLED
-    const float4 ssao_data = SAMPLE_TEXTURE_2D_LOD(HYP_SAMPLER_NEAREST, SSAOResultTexture, texcoord, 0);
-    ao = ssao_data.r;
-#endif
-
     float4 area_light_radiance;
-    
+
 #ifdef LIGHT_TYPE_CLUSTERED
+    float viewSpaceZ = positionVS.z;
+
+    uint2 viewportExtent = camera.dimensions.xy;
+    uint2 viewportPixelCoord = (uint2)input.position_cs.xy;
+
     // Cluster data
     const uint gridIndex = Cluster_GetGridIndex(
-        gbufferDimensions, pixelCoord,
-        positionVS.z / positionVS.w,
+        viewportExtent, viewportPixelCoord,
+        viewSpaceZ,
         camera.near, camera.far);
 
-    const uint2 clusterData = ClusterGridBuffer[gridIndex];
-    
+    const uint2 clusterData = ClusterGridBuffer.Load2(gridIndex * sizeof(uint2));
+
     const uint clusterIndexOffset = clusterData.x;
 
-    const uint numLights = (clusterData.y & 0xFFFF);
-    const uint numEnvProbes = (clusterData.y >> 16) & 0xFFFF;
+    const uint numLights = (clusterData.y & 0xFFFFu);
+    const uint numEnvProbes = (clusterData.y >> 16u) & 0xFFFFu;
 
     // for testing
     bool lightHit = false;
@@ -243,11 +237,11 @@ PSOutput PSMain(PSInput input)
     for (uint i = 0; i < numLights; ++i)
     {
         const uint lightIndex = Cluster_LoadLightIndex(clusterIndexOffset, i);
-        
+
         // We handle area lights in a specialized version of the deferred pass, so we skip
         // them for clustered deferred shading.
 
-        Light currentLight = LightsBuffer.Load(lightIndex);
+        Light currentLight = LightsBuffer[lightIndex];
 
         float3 L = currentLight.position_intensity.xyz;
         L -= position.xyz * float(min(currentLight.type, 1));
@@ -294,9 +288,9 @@ PSOutput PSMain(PSInput input)
                     float2 spot_angles = currentLight.area_size.xy;
 
                     attenuation *= saturate((theta - spot_angles[0]) / (spot_angles[1] - spot_angles[0])) * step(spot_angles[0], theta);
-                    
+
                     // @TODO Spot shadows for clustered deferred
-                    
+
                 }
                 else
                 {
@@ -323,20 +317,37 @@ PSOutput PSMain(PSInput input)
 
         float4 direct_component = diffuse + specular * float4(energy_compensation, 1.0);
 
-        result += float4((direct_component * (light_color * ao * NdotL * shadow * currentLight.position_intensity.w * attenuation)).rgb, attenuation);
+        result += float4((direct_component * (light_color * NdotL * shadow * currentLight.position_intensity.w * attenuation)).rgb, attenuation);
 
         lightHit = true;
     }
 
-    // // Debug clustering
-    // if (lightHit)
-    // {
-    //     result = float4(1.0, 0.0, 0.0, 1.0);
-    // }
-    // else
-    // {
-    //     result = float4(0.0, 0.0, 0.0, 0.0);
-    // }
+    // // Debug clustering - color based on tile (x, y, z)
+    // const uint tilesX = (viewportExtent.x + TILE_SIZE - 1) / TILE_SIZE;
+    // const uint tilesY = (viewportExtent.y + TILE_SIZE - 1) / TILE_SIZE;
+
+    // const uint tileX = viewportPixelCoord.x / TILE_SIZE;
+    // const uint tileY = viewportPixelCoord.y / TILE_SIZE;
+
+    // const float scale = TILE_Z_BINS / log2(camera.far / camera.near);
+    // const float bias = -log2(camera.near) * scale;
+    // const float z = max(viewSpaceZ, 0.0001);
+    // const int zBinInt = (int)(log2(z) * scale + bias);
+    // const uint tileZ = clamp(zBinInt, 0, TILE_Z_BINS - 1);
+
+    // // Generate color from tile coordinates
+    // float3 tileColor;
+    // tileColor.x = frac(float(tileX) / float(tilesX));
+    // tileColor.y = frac(float(tileY) / float(tilesY));
+    // tileColor.z = frac(float(tileZ) / float(TILE_Z_BINS));
+
+    // result = float4(tileColor, 1.0);
+
+    // result = float4((float2)pixelCoord / (float2)camera.dimensions.xy, 0.0, 1.0);
+    // result = UINT_TO_VEC4(gridIndex);//  float4(numLights, 0.0, 0.0, 1.0);
+    // result.a = 1.0;
+
+    // result = float4(numEnvProbes, 0.0, 0.0, 1.0);
 
     // Env probes will be in indirect pass.
 #else // !LIGHT_TYPE_CLUSTERED
@@ -454,7 +465,7 @@ PSOutput PSMain(PSInput input)
 
     float4 direct_component = diffuse + specular * float4(energy_compensation, 1.0);
 
-    result += direct_component * (light_color * ao * NdotL * shadow * currentLight.position_intensity.w * attenuation);
+    result += direct_component * (light_color * NdotL * shadow * currentLight.position_intensity.w * attenuation);
     result.a = attenuation;
 
 #ifdef LIGHT_TYPE_AREA_RECT

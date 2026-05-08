@@ -18,11 +18,15 @@
 
 #include <Core/threading/Threads.hpp>
 
+#include <engine/CVarManager.hpp>
+
 #include <initializer_list>
 
 #include <GBuffer.generated.inl>
 
 namespace Hyperion {
+
+extern CVar<bool> cvDepthPrepass;
 
 #pragma region GBuffer
 
@@ -58,7 +62,7 @@ static TextureFormat GetImageFormat(GBufferTargetName targetName)
 {
     for (auto it = std::begin(s_targetDescs[targetName].formats); it != std::end(s_targetDescs[targetName].formats) && *it != InvalidTextureFormat; ++it)
     {
-        if (g_renderInterface->IsSupportedFormat(*it, ImageSupport::Attachment))
+        if (RI.IsSupportedFormat(*it, ImageSupport::Attachment))
         {
             return *it;
         }
@@ -187,25 +191,25 @@ FramebufferRef GBuffer::CreateFramebuffer(const FramebufferRef& parentFramebuffe
     framebufferDesc.extent = resolution;
     framebufferDesc.numLayers = 1;
 
-    FramebufferRef framebuffer = g_renderInterface->MakeFramebuffer(framebufferDesc);
+    FramebufferRef framebuffer = RI.MakeFramebuffer(framebufferDesc);
 
 #if HYP_DEBUG_MODE
     framebuffer->SetDebugName(NAME_FMT("{}Framebuffer", EnumToString(rb)));
 #endif
 
-    auto AddOwnedAttachment = [&](uint32 binding, TextureFormat format) -> Attachment*
+    auto AddOwnedAttachment = [&](uint32 binding, TextureFormat format, LoadOperation loadOp = LoadOperation::CLEAR, StoreOperation storeOp = StoreOperation::STORE) -> Attachment*
     {
         return framebuffer->AddAttachment(
             binding,
             AttachmentDesc {
                 TextureType::Texture2D,
                 format,
-                LoadOperation::CLEAR,
-                StoreOperation::STORE
+                loadOp,
+                storeOp
             });
     };
 
-    auto AddSharedAttachment = [&](uint32 binding) -> Attachment*
+    auto AddSharedAttachment = [&](uint32 binding, LoadOperation loadOp = LoadOperation::LOAD, StoreOperation storeOp = StoreOperation::STORE) -> Attachment*
     {
         Assert(parentFramebuffer != nullptr);
 
@@ -213,22 +217,34 @@ FramebufferRef GBuffer::CreateFramebuffer(const FramebufferRef& parentFramebuffe
         Assert(parentAttachment != nullptr);
 
         AttachmentDesc newDesc = parentAttachment->GetAttachmentDesc();
-        newDesc.loadOp = LoadOperation::LOAD;
+        newDesc.loadOp = loadOp;
+        newDesc.storeOp = storeOp;
 
         return framebuffer->AddAttachment(
             binding,
             newDesc,
-            g_renderInterface->MakeImageView(parentAttachment->GetGpuImage()));
+            RI.MakeImageView(parentAttachment->GetGpuImage()));
     };
 
     // add gbuffer attachments
     if (rb == RenderBucket::Opaque)
     {
-        for (uint32 i = 0; i < GTN_MAX; i++)
+        for (uint32 i = 0; i < GTN_DEPTH; i++)
         {
             const TextureFormat format = GetImageFormat(GBufferTargetName(i));
 
             AddOwnedAttachment(i, format);
+        }
+
+        if (cvDepthPrepass.Get())
+        {
+            // If DepthPrepass is enabled, we don't CLEAR the depth texture as DPP is responsible for clearing it.
+            AddOwnedAttachment(GTN_DEPTH, GetImageFormat(GTN_DEPTH), LoadOperation::LOAD, StoreOperation::NONE);
+        }
+        else
+        {
+            // Otherwise, we clear it on render pass start.
+            AddOwnedAttachment(GTN_DEPTH, GetImageFormat(GTN_DEPTH), LoadOperation::CLEAR, StoreOperation::STORE);
         }
     }
     else
@@ -238,13 +254,24 @@ FramebufferRef GBuffer::CreateFramebuffer(const FramebufferRef& parentFramebuffe
         // add the attachments shared with opaque bucket (including depth)
         for (uint32 i = 0; i < GTN_MAX; i++)
         {
-            if (rb == RenderBucket::Debug && i == GTN_DEPTH)
+            if (i == GTN_DEPTH)
             {
-                // debug bucket creates its own depth attachment
-                const TextureFormat format = GetImageFormat(GBufferTargetName(i));
-                AddOwnedAttachment(i, format);
+                if (rb == RenderBucket::Debug)
+                {
+                    // debug bucket creates its own depth attachment
+                    const TextureFormat format = GetImageFormat(GBufferTargetName(i));
+                    AddOwnedAttachment(i, format);
 
-                continue;
+                    continue;
+                }
+                else if (rb == RenderBucket::Lightmapped && cvDepthPrepass.Get())
+                {
+                    // Lightmapped objects are included in the depth prepass, so we don't want to write to depth when they render.
+                    // Therefore we use StoreOperation::NONE as storeOp when DepthPrepass is true.
+                    AddSharedAttachment(i, LoadOperation::LOAD, StoreOperation::NONE);
+
+                    continue;
+                }
             }
 
             AddSharedAttachment(i);

@@ -31,17 +31,16 @@ public:
     explicit FirstPersonCameraInputHandler(FirstPersonCameraController* controller);
     virtual ~FirstPersonCameraInputHandler() override = default;
 
-protected:
-    virtual bool OnKeyDown_Impl(const KeyboardEvent& evt) override;
-    virtual bool OnKeyUp_Impl(const KeyboardEvent& evt) override;
-    virtual bool OnMouseDown_Impl(const MouseEvent& evt) override;
-    virtual bool OnMouseUp_Impl(const MouseEvent& evt) override;
-    virtual bool OnMouseMove_Impl(const MouseEvent& evt) override;
-    virtual bool OnMouseDrag_Impl(const MouseEvent& evt) override;
-    virtual bool OnMouseLeave_Impl(const MouseEvent& evt) override;
-    virtual bool OnClick_Impl(const MouseEvent& evt) override;
-    virtual bool OnGainFocus_Impl(const MouseEvent& evt) override;
-    virtual bool OnLoseFocus_Impl(const MouseEvent& evt) override;
+    virtual bool OnKeyDown(const KeyboardEvent& evt) override;
+    virtual bool OnKeyUp(const KeyboardEvent& evt) override;
+    virtual bool OnMouseDown(const MouseEvent& evt) override;
+    virtual bool OnMouseUp(const MouseEvent& evt) override;
+    virtual bool OnMouseMove(const MouseEvent& evt) override;
+    virtual bool OnMouseDrag(const MouseEvent& evt) override;
+    virtual bool OnMouseLeave(const MouseEvent& evt) override;
+    virtual bool OnClick(const MouseEvent& evt) override;
+    virtual bool OnGainFocus(const MouseEvent& evt) override;
+    virtual bool OnLoseFocus(const MouseEvent& evt) override;
 
 private:
     FirstPersonCameraController* m_controller;

@@ -34,7 +34,7 @@ namespace Hyperion
         }
     }
 
-    [ClassBinding(Name = "Win32AppContext")]
+    [ClassBinding(Name = "Win32AppContext", Condition = "IsWindows")]
     public class Win32AppContext : AppContextBase
     {
         public Win32AppContext()
@@ -42,7 +42,7 @@ namespace Hyperion
         }
     }
 
-    [ClassBinding(Name = "CocoaAppContext")]
+    [ClassBinding(Name = "CocoaAppContext", Condition = "IsMacOS")]
     public class CocoaAppContext : AppContextBase
     {
         public CocoaAppContext()
@@ -50,15 +50,7 @@ namespace Hyperion
         }
     }
 
-    [ClassBinding(Name = "SDLAppContext")]
-    public class SDLAppContext : AppContextBase
-    {
-        public SDLAppContext()
-        {
-        }
-    }
-
-    [ClassBinding(Name = "AndroidAppContext")]
+    [ClassBinding(Name = "AndroidAppContext", Condition = "IsAndroid")]
     public class AndroidAppContext : AppContextBase
     {
         public AndroidAppContext()

@@ -41,20 +41,17 @@ EditorState::EditorState()
 
 EditorState::~EditorState()
 {
-    if (m_currentProject.IsValid())
+    if (m_currentProject.IsValid() && m_currentProject->GetGame().IsValid())
     {
-        PopCurrentAssetRegistry();
+        PopAssetRegistry(m_currentProject->GetGame()->GetAssetRegistry());
     }
 }
 
-void EditorState::Init()
+void EditorState::Initialize()
 {
     m_taskManager.OnTaskAdded.Bind([this]<class... Args>(Args&&... args) { OnTaskStarted(std::forward<Args>(args)...); }).Detach();
     m_taskManager.OnTaskRemoved.Bind([this]<class... Args>(Args&&... args) { OnTaskEnded(std::forward<Args>(args)...); }).Detach();
     m_taskManager.OnTaskProgressUpdated.Bind([this]<class... Args>(Args&&... args) { OnTaskProgressUpdated(std::forward<Args>(args)...); }).Detach();
-
-
-    SetReady(true);
 }
 
 Handle<EditorSubsystem> EditorState::GetEditorSubsystem() const
@@ -86,9 +83,9 @@ void EditorState::SetCurrentProject(const Handle<EditorProject>& project)
             return;
         }
 
-        if (m_currentProject.IsValid())
+        if (m_currentProject.IsValid() && m_currentProject->GetGame().IsValid())
         {
-            PopCurrentAssetRegistry();
+            PopAssetRegistry(m_currentProject->GetGame()->GetAssetRegistry());
         }
 
         m_currentProject = project;
@@ -100,7 +97,7 @@ void EditorState::SetCurrentProject(const Handle<EditorProject>& project)
             Game* game = m_currentProject->GetGame();
             Assert(game != nullptr);
 
-            PushCurrentAssetRegistry(game->GetAssetRegistry());
+            PushAssetRegistry(game->GetAssetRegistry());
         }
         else
         {

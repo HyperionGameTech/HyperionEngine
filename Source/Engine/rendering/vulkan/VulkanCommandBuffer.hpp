@@ -129,6 +129,14 @@ public:
         VulkanFence* fence,
         Span<VulkanSemaphore*> waitSemaphores,
         Span<VulkanSemaphore*> signalSemaphores);
+
+    RendererResult Submit(
+        VulkanDeviceQueue* queue,
+        VulkanFence* fence,
+        Span<VulkanSemaphore*> waitSemaphores,
+        Span<VulkanSemaphore*> signalSemaphores,
+        const uint64* waitValues,
+        const uint64* signalValues);
         
     void BindVertexBuffer(const VulkanGpuBuffer* buffer) override;
     void BindIndexBuffer(const VulkanGpuBuffer* buffer, GpuElemType elemType = GET_UNSIGNED_INT) override;

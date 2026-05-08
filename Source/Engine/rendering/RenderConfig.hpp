@@ -30,6 +30,9 @@ public:
 
     // Whether or not dynamic descriptor indexing is enabled / supported.
     bool dynamicDescriptorIndexing : 1 = false;
+
+    // Whether or not timeline semaphores are enabled
+    bool timelineSemaphores : 1 = false;
 };
 
 } // namespace Hyperion

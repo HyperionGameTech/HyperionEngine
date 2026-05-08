@@ -162,8 +162,8 @@ public:
         ShadowMapType shadowMapType,
         ShadowMapFilter filterMode,
         const Vec2u& dimensions);
-        
-    bool FreeShadowMap(ShadowMap* shadowMap);
+
+    bool FreeShadowMap(ShadowMap* shadowMap, bool clearTextureRegion = false);
 
 private:
     Vec2u m_atlasDimensions;

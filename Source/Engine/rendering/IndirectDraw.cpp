@@ -20,6 +20,7 @@
 #include <rendering/ShaderInstance.hpp>
 #include <rendering/Mesh.hpp>
 #include <rendering/PlaceholderData.hpp>
+#include <rendering/CBufferAllocator.hpp>
 
 #include <rendering/renderers/EnvProbeRenderer.hpp>
 #include <rendering/renderers/DeferredRenderer.hpp>
@@ -35,6 +36,7 @@ namespace Hyperion {
 struct alignas(16) ComputeVisibilityConstants
 {
     Vec2u depthPyramidDimensions;
+    uint32 totalMips;
     uint32 batchOffset;
     uint32 numInstances;
     uint32 entityInstanceBatchStride;
@@ -52,7 +54,7 @@ static void ZeroizeBuffer(Frame* frame, GpuBuffer* stagingBuffer, GpuBuffer* dst
 
         return;
     }
-    
+
     // staging buffer cannot be null if dstBuffer isn't cpu accessible.
     Assert(stagingBuffer != nullptr);
 
@@ -93,7 +95,7 @@ static inline bool CreateOrResizeBuffer(
         const bool prevWasCpuAccessible = buffer->IsCpuAccessible();
 
         EnqueueDeletion(std::move(buffer));
-        buffer = g_renderInterface->MakeGpuBuffer(prevBufferType, newBufferSize);
+        buffer = RI.MakeGpuBuffer(prevBufferType, newBufferSize);
 
         if (prevWasCpuAccessible)
         {
@@ -117,13 +119,15 @@ static inline bool CreateOrResizeBuffer(
 
 static bool ResizeIndirectDrawCommandsBuffer(
     Frame* frame,
-    const TByteBuffer<RenderAllocator>& drawCommandsBuffer,
+    const Span<IndirectDrawCommand>& drawCommandsBuffer,
     GpuBufferRef& indirectBuffer,
     GpuBuffer* stagingBuffer)
 {
     CommandRecorder& cr = frame->cr;
 
-    const bool wasCreatedOrResized = CreateOrResizeBuffer(frame, indirectBuffer, drawCommandsBuffer.Size());
+    const size_t requiredSize = drawCommandsBuffer.Size() * sizeof(IndirectDrawCommand);
+
+    const bool wasCreatedOrResized = CreateOrResizeBuffer(frame, indirectBuffer, requiredSize);
 
     if (!wasCreatedOrResized)
     {
@@ -159,7 +163,7 @@ static bool ResizeIfNeeded(
     FixedArray<GpuBufferRef, NumFramesInFlight>& instanceBuffers,
     FixedArray<GpuBufferRef, NumFramesInFlight>& stagingBuffers,
     uint32 numObjectInstances,
-    const TByteBuffer<RenderAllocator>& drawCommandsBuffer,
+    const Span<IndirectDrawCommand>& drawCommandsBuffer,
     uint8 dirtyBits)
 {
     bool resizeHappened = false;
@@ -203,19 +207,19 @@ void IndirectDrawState::Create()
     HYP_SCOPE;
     AssertOnThread(g_renderThread);
 
-    TByteBuffer<RenderAllocator> drawCommandsBuffer;
-    g_renderInterface->PopulateIndirectDrawCommandsBuffer(GpuBufferRef::Null(), GpuBufferRef::Null(), 0, drawCommandsBuffer);
+    Array<IndirectDrawCommand, RHIAllocator> drawCommandsBuffer;
+    RI.PopulateIndirectDrawCommandsBuffer(GpuBufferRef::Null(), GpuBufferRef::Null(), 0, drawCommandsBuffer);
 
     for (uint32 frameIndex = 0; frameIndex < NumFramesInFlight; frameIndex++)
     {
-        m_instanceBuffers[frameIndex] = g_renderInterface->MakeGpuBuffer(GpuBufferType::StructuredBuffer, sizeof(ObjectInstance));
+        m_instanceBuffers[frameIndex] = RI.MakeGpuBuffer(GpuBufferType::StructuredBuffer, sizeof(ObjectInstance));
         m_instanceBuffers[frameIndex]->SetIsCpuAccessible(true);
 #if HYP_DEBUG_MODE
         m_instanceBuffers[frameIndex]->SetDebugName(NAME_FMT("IndirectDraw_InstancesBuffer_Frame{}", frameIndex));
 #endif
         CheckResult(m_instanceBuffers[frameIndex]->Create());
 
-        m_indirectBuffers[frameIndex] = g_renderInterface->MakeGpuBuffer(GpuBufferType::IndirectArgsBuffer, drawCommandsBuffer.Size());
+        m_indirectBuffers[frameIndex] = RI.MakeGpuBuffer(GpuBufferType::IndirectArgsBuffer, drawCommandsBuffer.ByteSize());
 #if HYP_DEBUG_MODE
         m_indirectBuffers[frameIndex]->SetDebugName(NAME_FMT("IndirectDraw_IndirectBuffer_Frame{}", frameIndex));
 #endif
@@ -224,7 +228,7 @@ void IndirectDrawState::Create()
 
         if (!m_indirectBuffers[frameIndex]->IsCpuAccessible())
         {
-            m_stagingBuffers[frameIndex] = g_renderInterface->MakeGpuBuffer(GpuBufferType::StagingBuffer, drawCommandsBuffer.Size());
+            m_stagingBuffers[frameIndex] = RI.MakeGpuBuffer(GpuBufferType::StagingBuffer, drawCommandsBuffer.ByteSize());
 #if HYP_DEBUG_MODE
             m_stagingBuffers[frameIndex]->SetDebugName(NAME_FMT("IndirectDraw_StagingBuffer_Frame{}", frameIndex));
 #endif
@@ -249,7 +253,7 @@ void IndirectDrawState::PushDrawCall(size_t drawCallIndex, const DrawCallStorage
 
     out.drawCommandIndex = drawCommandIndex;
 
-    g_renderInterface->PopulateIndirectDrawCommandsBuffer(
+    RI.PopulateIndirectDrawCommandsBuffer(
         drawCalls.meshProxies[drawCallIndex]->mesh->GetVertexBuffer(),
         drawCalls.meshProxies[drawCallIndex]->mesh->GetIndexBuffer(),
         drawCommandIndex,
@@ -277,7 +281,7 @@ void IndirectDrawState::PushInstancedDrawCall(size_t drawCallIndex, const Instan
 
     out.drawCommandIndex = drawCommandIndex;
 
-    g_renderInterface->PopulateIndirectDrawCommandsBuffer(
+    RI.PopulateIndirectDrawCommandsBuffer(
         drawCalls.meshProxies[drawCallIndex]->mesh->GetVertexBuffer(),
         drawCalls.meshProxies[drawCallIndex]->mesh->GetIndexBuffer(),
         drawCommandIndex,
@@ -295,8 +299,8 @@ void IndirectDrawState::ResetDrawState()
 
     m_objectInstances.Clear();
 
-    // use SetSize() to keep the memory allocated
-    m_drawCommandsBuffer.SetSize(0);
+    // use Resize() to keep the memory allocated
+    m_drawCommandsBuffer.Resize(0);
 
     m_dirtyBits = AllBitsDirty;
 }
@@ -338,9 +342,9 @@ void IndirectDrawState::UpdateBufferData(Frame* frame, bool* outWasResized)
         GpuBuffer* stagingBuffer = m_stagingBuffers[frameIndex];
 
         Assert(stagingBuffer != nullptr);
-        Assert(stagingBuffer->Size() >= m_drawCommandsBuffer.Size());
+        Assert(stagingBuffer->Size() >= m_drawCommandsBuffer.ByteSize());
 
-        stagingBuffer->Copy(m_drawCommandsBuffer.Size(), m_drawCommandsBuffer.Data());
+        stagingBuffer->Copy(m_drawCommandsBuffer.ByteSize(), m_drawCommandsBuffer.Data());
 
         cr << InsertBarrier(stagingBuffer, RS_COPY_SRC);
         cr << InsertBarrier(indirectBuffer, RS_COPY_DST);
@@ -371,7 +375,6 @@ IndirectRenderer::IndirectRenderer()
 
 IndirectRenderer::~IndirectRenderer()
 {
-    EnqueueDeletion(std::move(m_cbuffers));
 }
 
 void IndirectRenderer::Create(EntityBatchAllocatorBase* batchAllocator)
@@ -380,16 +383,6 @@ void IndirectRenderer::Create(EntityBatchAllocatorBase* batchAllocator)
     m_batchAllocator = batchAllocator;
 
     m_indirectDrawState.Create();
-
-    for (uint32 frameIndex = 0; frameIndex < NumFramesInFlight; frameIndex++)
-    {
-        m_cbuffers[frameIndex] = g_renderInterface->MakeGpuBuffer(GpuBufferType::ConstantBuffer, sizeof(ComputeVisibilityConstants));
-#if HYP_DEBUG_MODE
-        m_cbuffers[frameIndex]->SetDebugName(NAME_FMT("IndirectRenderer_UniformBuffer_Frame{}", frameIndex));
-#endif
-
-        CheckResult(m_cbuffers[frameIndex]->Create());
-    }
 }
 
 void IndirectRenderer::PushDrawCallsToIndirectState(DrawCallCollection& drawCallCollection)
@@ -411,6 +404,20 @@ void IndirectRenderer::PushDrawCallsToIndirectState(DrawCallCollection& drawCall
         m_indirectDrawState.PushInstancedDrawCall(i, drawCallCollection.instancedDrawCalls, drawCommandData);
 
         drawCallCollection.instancedDrawCalls.drawCommandIndices[i] = drawCommandData.drawCommandIndex;
+    }
+}
+
+void IndirectRenderer::PrepareDrawCommands(Frame* frame)
+{
+    HYP_SCOPE;
+    AssertOnThread(g_renderThread);
+
+    bool wasBufferResized = false;
+    m_indirectDrawState.UpdateBufferData(frame, &wasBufferResized);
+
+    if (wasBufferResized)
+    {
+        RebuildDescriptors(frame);
     }
 }
 
@@ -441,15 +448,7 @@ void IndirectRenderer::ExecuteCullShaderInBatches(Frame* frame, const RenderSetu
         return;
     }
 
-    {
-        bool wasBufferResized = false;
-        m_indirectDrawState.UpdateBufferData(frame, &wasBufferResized);
-
-        if (wasBufferResized)
-        {
-            RebuildDescriptors(frame);
-        }
-    }
+    PrepareDrawCommands(frame);
 
     if (m_cachedCullData != renderSetup.passData->cullData)
     {
@@ -464,32 +463,41 @@ void IndirectRenderer::ExecuteCullShaderInBatches(Frame* frame, const RenderSetu
 
     cr << SetCurrentShader(ShaderDesc(NAME("ComputeVisibility")));
 
-    cr << SetShaderUniform(numShaderUniforms++, "CamerasBuffer"_sh, g_renderInterface->namedBuffers[NamedBuffer::Cameras].gpuBuffer, TShaderDataOffset<CameraShaderData>(renderSetup.view->GetCamera()));
-    cr << SetShaderUniform(numShaderUniforms++, "EntitiesBuffer"_sh, g_renderInterface->namedBuffers[NamedBuffer::Entities].gpuBuffer);
-    cr << SetShaderUniform(numShaderUniforms++, "WorldsBuffer"_sh, g_renderInterface->namedBuffers[NamedBuffer::Worlds].gpuBuffer);
-    
-    cr << SetShaderUniform(numShaderUniforms++, "SamplerNearest"_sh, g_renderInterface->placeholderData->GetSamplerNearest());
+    cr << SetShaderUniform(numShaderUniforms++, "CamerasBuffer"_sh, RI.namedBuffers[NamedBuffer::Cameras], Resources::GetBinding(renderSetup.view->GetCamera()));
+    cr << SetShaderUniform(numShaderUniforms++, "EntitiesBuffer"_sh, RI.namedBuffers[NamedBuffer::Entities]);
+    cr << SetShaderUniform(numShaderUniforms++, "WorldsBuffer"_sh, RI.namedBuffers[NamedBuffer::Worlds]);
+
+    cr << SetShaderUniform(numShaderUniforms++, "SamplerNearest"_sh, RI.placeholderData->GetSamplerNearest());
     cr << SetShaderUniform(numShaderUniforms++, "DepthPyramidResult"_sh, renderSetup.passData->cullData.depthPyramidImageView);
 
-    cr << SetShaderUniform(numShaderUniforms++, "ObjectInstancesBuffer"_sh, m_indirectDrawState.GetInstanceBuffer(frameIndex));
-    cr << SetShaderUniform(numShaderUniforms++, "IndirectDrawCommandsBuffer"_sh, m_indirectDrawState.GetIndirectBuffer(frameIndex));
-    cr << SetShaderUniform(numShaderUniforms++, "EntityInstanceBatchesBuffer"_sh, m_batchAllocator->GetStructuredBuffer().gpuBuffer);
+    cr << SetShaderUniform(numShaderUniforms++, "ObjectInstancesBuffer"_sh, m_indirectDrawState.GetInstanceBuffer(frameIndex), ShaderDataOffset(0, sizeof(ObjectInstance)));
+    cr << SetShaderUniform(numShaderUniforms++, "IndirectDrawCommandsBuffer"_sh, m_indirectDrawState.GetIndirectBuffer(frameIndex), ShaderDataOffset(0, sizeof(IndirectDrawCommand)));
+
+    // For ComputeVisibility we use RWByteAddressBuffer -- that's why stride is passed as 0.
+    cr << SetShaderUniform(numShaderUniforms++, "EntityInstanceBatchesBuffer"_sh,
+        m_batchAllocator->GetStructuredBuffer().gpuBuffer,
+        ShaderDataOffset(0, 0));
 
     ComputeVisibilityConstants constants {};
     constants.depthPyramidDimensions = pd->depthPyramidRenderer->GetExtent();
+    constants.totalMips = pd->depthPyramidRenderer->GetTotalMips();
     constants.batchOffset = 0;
     constants.numInstances = numInstances;
     constants.entityInstanceBatchStride = ByteUtil::AlignAs(m_batchAllocator->GetStructSize(), m_batchAllocator->GetStructAlignment());
 
-    m_cbuffers[frameIndex]->Copy(sizeof(constants), &constants);
-    m_cbuffers[frameIndex]->Flush(0, sizeof(constants));
+    GpuBuffer* cbuffer = nullptr;
+    size_t cbufferSize = 0;
+    size_t cbufferOffset = 0;
 
-    cr << SetShaderUniform(numShaderUniforms++, "ComputeVisibilityConstants"_sh, m_cbuffers[frameIndex]);
+    RI.cbufferAllocator->Write(&constants);
+    RI.cbufferAllocator->Commit(cbuffer, cbufferOffset, cbufferSize);
+
+    cr << SetShaderUniform(numShaderUniforms++, "ComputeVisibilityConstants"_sh, cbuffer, ShaderDataOffset(cbufferOffset, cbufferSize));
 
     cr << InsertBarrier(m_indirectDrawState.GetIndirectBuffer(frameIndex), RS_INDIRECT_ARG);
 
-    cr << DispatchCompute(Vec3u { numBatches, 1, 1 });
-    
+    cr << DispatchCompute(Vec3u { (numBatches + IndirectDrawState::BatchSize - 1) / IndirectDrawState::BatchSize, 1, 1 });
+
     cr << InsertBarrier(m_indirectDrawState.GetIndirectBuffer(frameIndex), RS_INDIRECT_ARG);
 }
 

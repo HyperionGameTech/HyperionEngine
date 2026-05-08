@@ -912,6 +912,10 @@ bool BuildPrimitive(GltfLoadContext& ctx,
             }
         }
 
+        // Invert Z to convert Right-Handed to Left-Handed
+        vertex.posZ *= -1.0f;
+        vertex.normalZ *= -1.0f;
+
         vertices[vertexIndex] = vertex;
     }
 

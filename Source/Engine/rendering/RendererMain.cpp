@@ -4,9 +4,11 @@
  *  @licence MIT
 */
 
+#include "RenderBucket.hpp"
+#include "RenderableAttributes.hpp"
 #include <RenderingPch.hpp>
 
-#include <rendering/RenderCollection.hpp>
+#include <rendering/RendererMain.hpp>
 #include <rendering/RenderGroup.hpp>
 #include <rendering/RenderProxy.hpp>
 #include <rendering/RenderProxyList.hpp>
@@ -58,6 +60,7 @@
 
 #include <engine/EngineDriver.hpp>
 #include <engine/EngineStats.hpp>
+#include <engine/CVarManager.hpp>
 
 #include <engine/resources/ResourceTracker.hpp>
 
@@ -73,6 +76,8 @@ extern EngineStatCounter<uint32> g_statDrawCalls;
 extern EngineStatCounter<uint32> g_statInstancedDrawCalls;
 extern EngineStatCounter<uint32> g_statTriangles;
 extern EngineStatCounter<uint32> g_statRenderGroups;
+
+extern CVar<bool> cvDepthPrepass;
 
 static const Name s_nameShadingType = NAME("SHADING_TYPE");
 static const Name s_nameForward = NAME("FORWARD");
@@ -227,8 +232,6 @@ static constexpr inline uint8 GetLightmapStencilValue(LightmapElementId lightmap
 /// Set attributes, used to decide what shader variant + pipeline to use for rendering the given proxy.
 static void BuildAttributes(const RenderProxyMesh& proxy, RenderableAttributeSet& attributes, const RenderableAttributeSet* overrideAttributes = nullptr)
 {
-    HYP_SCOPE;
-
     Mesh* mesh = proxy.mesh;
     AssertDebug(mesh != nullptr);
 
@@ -327,6 +330,69 @@ static void BuildAttributes(const RenderProxyMesh& proxy, RenderableAttributeSet
 
 #pragma endregion GeometryPass
 
+#pragma region DepthPrepass
+
+namespace DepthPrepass
+{
+
+enum Stage : uint8
+{
+    DPP_NotActive = 0,
+    DPP_InPrepass = 1,
+    DPP_InMainPass = 2
+};
+
+static inline Stage GetStage(const RenderSetup& renderSetup, bool isDepthPrepass)
+{
+    // We only consider DPP to be active when we are in the main geometry pass
+    // Shadows, env probes etc should not be considered
+    static constexpr uint64 PassDataTypeId = CONSTEXPR_TYPE_ID(DeferredRendererPassData);
+
+    if (!renderSetup.passData
+        || renderSetup.passData->Id().GetTypeId().Value() != PassDataTypeId
+        || !cvDepthPrepass.Get())
+    {
+        return DPP_NotActive;
+    }
+
+    return isDepthPrepass ? DPP_InPrepass : DPP_InMainPass;
+}
+
+static bool ShouldIncludeInPrepass(
+    const Viewport& viewport,
+    const Mat4f& viewProjMat,
+    const RenderProxyMesh& meshProxy)
+{
+    const MaterialAttributes& mas = meshProxy.attributes.GetMaterialAttributes();
+    const RenderBucket bucket = mas.bucket;
+
+    // Only include in depth prepass if depth write is enabled
+    if (!(mas.flags & MAF_DEPTH_WRITE))
+        return false;
+
+    // Only considering opaque, lightmapped objects
+    if (bucket != RenderBucket::Opaque && bucket != RenderBucket::Lightmapped)
+        return false;
+
+    // Only include large enough objects based on pixel size relative to the current view.
+    BoundingBox worldBounds;
+    worldBounds.min = meshProxy.bufferData.worldAabbMin;
+    worldBounds.max = meshProxy.bufferData.worldAabbMax;
+
+    const BoundingBox clipSpaceBounds = viewProjMat * worldBounds;
+
+    const Vec3f clipSpaceExtent = clipSpaceBounds.GetExtent();
+    const Vec2f uvSpaceExtent = clipSpaceExtent.GetXY() * 0.5f;
+    const Vec2f screenSpaceExtent = uvSpaceExtent * Vec2f(viewport.extent);
+
+    return screenSpaceExtent.x >= 100.0f
+        && screenSpaceExtent.y >= 100.0f;
+}
+
+} // namespace DepthPrepass
+
+#pragma endregion DepthPrepass
+
 static void InitDrawCallCollection(
     RenderCollector* renderCollector,
     DrawCallCollection& drawCallCollection,
@@ -356,14 +422,14 @@ static void InitDrawCallCollection(
     }
 
     drawCallCollection.batchAllocator = renderCollector->batchAllocator;
-    
+
     // If parallel rendering is globally disabled, disable it for this RenderGroup
-    if (!g_renderInterface->GetRenderConfig().parallelRendering)
+    if (!RI.GetRenderConfig().parallelRendering)
     {
         drawCallCollection.flags &= ~RenderGroupFlags::PARALLEL_RENDERING;
     }
 
-    if (!g_renderInterface->GetRenderConfig().indirectRendering)
+    if (!RI.GetRenderConfig().indirectRendering)
     {
         drawCallCollection.flags &= ~RenderGroupFlags::INDIRECT_RENDERING;
     }
@@ -478,20 +544,18 @@ static inline void UpdateRefs(T& renderProxyList)
 
 #pragma region RenderProxyList
 
-RenderProxyList::RenderProxyList(AllocatorType* pAllocator, bool isShared, bool useRefCounting)
+RenderProxyList::RenderProxyList(bool isShared, bool useRefCounting)
     : isShared(isShared),
       useRefCounting(useRefCounting),
       priority(0),
       resourceTrackers {}
 {
-    AssertDebug(pAllocator != nullptr);
-
     // initialize the resource trackers
-    ForEachResourceTrackerType(resourceTrackers.ToSpan(), [this, pAllocator]<class ResourceTrackerType>(TypeWrapper<ResourceTrackerType>, ResourceTrackerBase<AllocatorType>*& pResourceTracker, size_t idx)
+    ForEachResourceTrackerType(resourceTrackers.ToSpan(), [this]<class ResourceTrackerType>(TypeWrapper<ResourceTrackerType>, ResourceTrackerBase<AllocatorType>*& pResourceTracker, size_t idx)
         {
             AssertDebug(!pResourceTracker);
 
-            pResourceTracker = new ResourceTrackerType(pAllocator);
+            pResourceTracker = new ResourceTrackerType();
         });
 }
 
@@ -593,7 +657,7 @@ void RenderProxyList::BeginRead(bool* pOutSuccess)
 void RenderProxyList::EndRead()
 {
     AssertDebug(state == CS_READING);
-    
+
     /// @NOTE: If BeginRead() is called on other thread between the check and setting state to CS_DONE,
     /// we could set state to done when it isn't actually.
     if (m_lock.UnlockReader() == 0)
@@ -605,6 +669,22 @@ void RenderProxyList::EndRead()
 #pragma endregion RenderProxyList
 
 #pragma region RenderCollector Helpers
+
+struct PerformRenderingPayloadBase final
+{
+    RenderSetup renderSetup;
+    IndirectRenderer* pIndirectRenderer;
+    const DrawCallCollection* pDrawCallCollection;
+    DepthPrepass::Stage prepassStage : 3;
+};
+
+template <class TCommandRecorder>
+struct TPerformRenderingPayload
+{
+    TCommandRecorder* pCommandRecorder;
+
+    PerformRenderingPayloadBase* pNext;
+};
 
 template <class TCommandRecorder>
 static void SetForwardShadingUniforms(
@@ -623,7 +703,7 @@ static void SetForwardShadingUniforms(
     size_t cbufferOffset = 0;
     size_t cbufferSize = 0;
 
-    ForwardShadingConstants* forwardShadingConstants = (ForwardShadingConstants*)g_renderInterface->cbufferAllocator->Allocate(
+    ForwardShadingConstants* forwardShadingConstants = (ForwardShadingConstants*)RI.cbufferAllocator->Allocate(
         sizeof(ForwardShadingConstants),
         alignof(ForwardShadingConstants),
         cbuffer,
@@ -633,7 +713,7 @@ static void SetForwardShadingUniforms(
     Memory::Zero(forwardShadingConstants, sizeof(ForwardShadingConstants));
 
     cbufferSize = sizeof(ForwardShadingConstants);
-        
+
     RenderProxyList& rpl = GetConsumerProxyList(renderSetup.view);
     rpl.BeginRead();
 
@@ -645,7 +725,7 @@ static void SetForwardShadingUniforms(
         {
             break;
         }
-                
+
         RenderProxyLight* lightProxy = static_cast<RenderProxyLight*>(GetRenderProxy(light));
         Assert(lightProxy != nullptr);
 
@@ -655,11 +735,11 @@ static void SetForwardShadingUniforms(
 
         // Set shadow map
         ShadowMapData& currShadowMapData = forwardShadingConstants->shadowMaps[lightIndex];
-                
+
         View* shadowMapViewDynamic;
         View* shadowMapViewStatic;
 
-        ShadowMap* shadowMap = g_renderInterface->shadowMapCache->GetShadowMap(
+        ShadowMap* shadowMap = RI.shadowMapCache->GetShadowMap(
             light,
             renderSetup.view,
             0,
@@ -686,7 +766,7 @@ static void SetForwardShadingUniforms(
             shadowBoundsNDC.max = Vec3f(1.0f);
 
             BoundingBox shadowBoundsWS = shadowCameraProxy->bufferData.inverseViewMat * shadowBoundsNDC;
-        
+
             currShadowMapData.layerIndex = atlasElement->layerIndex;
 
             currShadowMapData.viewProjMat = viewProjMat;
@@ -714,21 +794,28 @@ static void SetForwardShadingUniforms(
 }
 
 template <bool UseIndirectRendering, class TCommandRecorder>
-static void RenderAll(
-    Frame* frame,
-    TCommandRecorder& cr,
-    const RenderSetup& renderSetup,
-    IndirectRenderer* indirectRenderer,
-    const DrawCallCollection& drawCallCollection)
+static void RenderAll(Frame* frame, const TPerformRenderingPayload<TCommandRecorder>& payload)
 {
-    HYP_SCOPE;
+    TCommandRecorder& cr = *payload.pCommandRecorder;
+
+    const RenderSetup& renderSetup = payload.pNext->renderSetup;
+    IndirectRenderer* indirectRenderer = payload.pNext->pIndirectRenderer;
+    const DrawCallCollection& drawCallCollection = *payload.pNext->pDrawCallCollection;
+
+    const DepthPrepass::Stage prepassStage = payload.pNext->prepassStage;
+
+    RenderProxyCamera* renderProxyCamera = nullptr;
+    if (renderSetup.view != nullptr)
+    {
+        Camera* camera = renderSetup.view->GetCamera();
+
+        renderProxyCamera = static_cast<RenderProxyCamera*>(GetRenderProxy(camera));
+    }
 
     if constexpr (UseIndirectRendering)
     {
         AssertDebug(indirectRenderer != nullptr);
     }
-
-    static const bool s_useBindlessTextures = g_renderInterface->GetRenderConfig().bindlessTextures;
 
     if (drawCallCollection.instancedDrawCalls.Empty() && drawCallCollection.drawCalls.Empty())
     {
@@ -742,37 +829,37 @@ static void RenderAll(
     const MaterialAttributes& mas = ras.GetMaterialAttributes();
 
     uint32 numShaderUniforms = 0;
-    
-    cr << SetShaderUniform(numShaderUniforms++, "SamplerLinear"_sh, g_renderInterface->placeholderData->GetSamplerLinearMipmap());
-    cr << SetShaderUniform(numShaderUniforms++, "SamplerNearest"_sh, g_renderInterface->placeholderData->GetSamplerNearest());
+
+    cr << SetShaderUniform(numShaderUniforms++, "SamplerLinear"_sh, RI.placeholderData->GetSamplerLinearMipmap());
+    cr << SetShaderUniform(numShaderUniforms++, "SamplerNearest"_sh, RI.placeholderData->GetSamplerNearest());
 
     const uint32 cbufferBinding = numShaderUniforms++;
 
-    cr << SetShaderUniform(numShaderUniforms++, "CamerasBuffer"_sh, g_renderInterface->namedBuffers[NamedBuffer::Cameras].gpuBuffer, TShaderDataOffset<CameraShaderData>(renderSetup.view->GetCamera()));
-    
-    cr << SetShaderUniform(numShaderUniforms++, "EntitiesBuffer"_sh, g_renderInterface->namedBuffers[NamedBuffer::Entities].gpuBuffer);
+    cr << SetShaderUniform(numShaderUniforms++, "CamerasBuffer"_sh, RI.namedBuffers[NamedBuffer::Cameras], Resources::GetBinding(renderSetup.view->GetCamera()));
 
-    cr << SetShaderUniform(numShaderUniforms++, "WorldsBuffer"_sh, g_renderInterface->namedBuffers[NamedBuffer::Worlds].gpuBuffer);
-    
-    cr << SetShaderUniform(numShaderUniforms++, "ShadowMapsTextureArray"_sh, g_renderInterface->shadowMapCache->GetAtlasImageView()); 
-    cr << SetShaderUniform(numShaderUniforms++, "PointLightShadowMapsTextureArray"_sh, g_renderInterface->shadowMapCache->GetPointLightShadowMapImageView());
-    
-    cr << SetShaderUniform(numShaderUniforms++, "EnvProbesTexture"_sh, g_renderInterface->textureViewCache->GetOrCreate(g_renderInterface->envProbesTexture));
-    cr << SetShaderUniform(numShaderUniforms++, "EnvProbesBuffer"_sh, g_renderInterface->namedBuffers[NamedBuffer::EnvProbes].gpuBuffer);
-    
-    cr << SetShaderUniform(numShaderUniforms++, "LightsBuffer"_sh, g_renderInterface->namedBuffers[NamedBuffer::Lights].gpuBuffer);
-    
+    cr << SetShaderUniform(numShaderUniforms++, "EntitiesBuffer"_sh, RI.namedBuffers[NamedBuffer::Entities]);
+
+    cr << SetShaderUniform(numShaderUniforms++, "WorldsBuffer"_sh, RI.namedBuffers[NamedBuffer::Worlds]);
+
+    cr << SetShaderUniform(numShaderUniforms++, "ShadowMapsTextureArray"_sh, RI.shadowMapCache->GetAtlasImageView());
+    cr << SetShaderUniform(numShaderUniforms++, "PointLightShadowMapsTextureArray"_sh, RI.shadowMapCache->GetPointLightShadowMapImageView());
+
+    cr << SetShaderUniform(numShaderUniforms++, "EnvProbesTexture"_sh, RI.textureViewCache->GetOrCreate(RI.envProbesTexture));
+    cr << SetShaderUniform(numShaderUniforms++, "EnvProbesBuffer"_sh, RI.namedBuffers[NamedBuffer::EnvProbes]);
+
+    cr << SetShaderUniform(numShaderUniforms++, "LightsBuffer"_sh, RI.namedBuffers[NamedBuffer::Lights]);
+
     // These two (CurrentLight, CurrentEnvProbe) should be refactored out; they exist for RenderSky shader currently.
     if (renderSetup.light != nullptr)
-        cr << SetShaderUniform(numShaderUniforms++, "CurrentLight"_sh, g_renderInterface->namedBuffers[NamedBuffer::Lights].gpuBuffer, TShaderDataOffset<LightShaderData>(renderSetup.light));
+        cr << SetShaderUniform(numShaderUniforms++, "CurrentLight"_sh, RI.namedBuffers[NamedBuffer::Lights], Resources::GetBinding(renderSetup.light));
     else
-        cr << SetShaderUniform(numShaderUniforms++, "CurrentLight"_sh, g_renderInterface->namedBuffers[NamedBuffer::Lights].gpuBuffer, TShaderDataOffset<LightShaderData>(0));
+        cr << SetShaderUniform(numShaderUniforms++, "CurrentLight"_sh, RI.namedBuffers[NamedBuffer::Lights], 0);
 
     if (renderSetup.envProbe != nullptr)
-        cr << SetShaderUniform(numShaderUniforms++, "CurrentEnvProbe"_sh, g_renderInterface->namedBuffers[NamedBuffer::EnvProbes].gpuBuffer, TShaderDataOffset<EnvProbeShaderData>(renderSetup.envProbe));
+        cr << SetShaderUniform(numShaderUniforms++, "CurrentEnvProbe"_sh, RI.namedBuffers[NamedBuffer::EnvProbes], Resources::GetBinding(renderSetup.envProbe));
     else
-        cr << SetShaderUniform(numShaderUniforms++, "CurrentEnvProbe"_sh, g_renderInterface->namedBuffers[NamedBuffer::EnvProbes].gpuBuffer, TShaderDataOffset<EnvProbeShaderData>(0));
-    
+        cr << SetShaderUniform(numShaderUniforms++, "CurrentEnvProbe"_sh, RI.namedBuffers[NamedBuffer::EnvProbes], 0);
+
 
     const bool isForwardShading = mas.shaderProperties.Test(s_propShadingTypeForward);
 
@@ -786,19 +873,21 @@ static void RenderAll(
 
     if (dpd != nullptr)
     {
-        cr << SetShaderUniform(numShaderUniforms++, "GBufferMipChain"_sh, g_renderInterface->textureViewCache->GetOrCreate(dpd->mipChain));
-    
+        cr << SetShaderUniform(numShaderUniforms++, "GBufferMipChain"_sh, RI.textureViewCache->GetOrCreate(dpd->mipChain));
+
         if (isForwardShading)
         {
-            // Even though the name suggests otherwise we are in forward pass, where we use clustered shading
+            // Even though the name (DeferredRendererPassData) suggests otherwise, we are in forward pass, where we use clustered shading
 
             AssertDebug(dpd->gridTilesBuffer != nullptr && dpd->gridIndexBuffer != nullptr);
 
             // set cluster grid / index buffers for forward shading pass.
-            cr << SetShaderUniform(numShaderUniforms++, "ClusterGridBuffer"_sh, dpd->gridTilesBuffer->gpuBuffer);
-            cr << SetShaderUniform(numShaderUniforms++, "ClusterIndexBuffer"_sh, dpd->gridIndexBuffer->gpuBuffer);
+            cr << SetShaderUniform(numShaderUniforms++, "ClusterGridBuffer"_sh, *dpd->gridTilesBuffer);
+            cr << SetShaderUniform(numShaderUniforms++, "ClusterIndexBuffer"_sh, *dpd->gridIndexBuffer);
         }
     }
+
+    static const bool s_useBindlessTextures = RI.GetRenderConfig().bindlessTextures;
 
     Mesh* prevMesh = nullptr;
 
@@ -806,38 +895,100 @@ static void RenderAll(
     size_t cbufferSize = 0;
     size_t cbufferOffset = 0;
 
+    bool isDepthWriteEnabled = (mas.flags & MAF_DEPTH_WRITE) != 0;
+
+    // Helper lambda to handle depth prepass logic. Returns true if the draw should be skipped.
+    auto HandleDepthPrepass = [&](const RenderProxyMesh& meshProxy) -> bool
+    {
+        if (prepassStage == DepthPrepass::DPP_InPrepass)
+        {
+            if (!renderProxyCamera)
+            {
+                return true; // skip draw
+            }
+
+            if (DepthPrepass::ShouldIncludeInPrepass(
+                renderSetup.viewport,
+                renderProxyCamera->bufferData.viewProjMat,
+                meshProxy))
+            {
+                if (!isDepthWriteEnabled)
+                {
+                    cr << SetDepthWrite(true);
+                    isDepthWriteEnabled = true;
+                }
+            }
+            else
+            {
+                return true; // skip draw
+            }
+        }
+        else if (prepassStage == DepthPrepass::DPP_InMainPass)
+        {
+            if (renderProxyCamera)
+            {
+                bool shouldEnableDepthWrite;
+
+                if (DepthPrepass::ShouldIncludeInPrepass(
+                    renderSetup.viewport,
+                    renderProxyCamera->bufferData.viewProjMat,
+                    meshProxy))
+                {
+                    // No depth write; depth would have been written by the prepass
+                    shouldEnableDepthWrite = false;
+                }
+                else
+                {
+                    // we need to set depth write based on the mesh proxy's depth write flag
+                    shouldEnableDepthWrite = (mas.flags & MAF_DEPTH_WRITE) != 0;
+                }
+
+                if (shouldEnableDepthWrite != isDepthWriteEnabled)
+                {
+                    cr << SetDepthWrite(shouldEnableDepthWrite);
+                    isDepthWriteEnabled = shouldEnableDepthWrite;
+                }
+            }
+        }
+
+        return false;
+    };
+
     const DrawCallStorage& drawCalls = drawCallCollection.drawCalls;
+
     for (size_t i = 0; i < drawCalls.Size(); i++)
     {
         uint32 numDrawCallUniforms = numShaderUniforms;
 
         const RenderProxyMesh& meshProxy = *drawCalls.meshProxies[i];
 
+        if (HandleDepthPrepass(meshProxy))
+        {
+            continue;
+        }
+
         const RenderProxyMaterial* materialProxy = static_cast<const RenderProxyMaterial*>(GetRenderProxy(meshProxy.material));
         AssertDebug(materialProxy != nullptr);
 
         { // Write constants for the draw
-            CBufferAllocator& cba = *g_renderInterface->cbufferAllocator;
+            CBufferAllocator& cba = *RI.cbufferAllocator;
             cba.Write(&meshProxy.bufferData);
             cba.Write(&materialProxy->bufferData);
             cba.Commit(cbuffer, cbufferOffset, cbufferSize);
         }
-
         cr << SetShaderUniform(cbufferBinding, "CBuffer"_sh, cbuffer, ShaderDataOffset(cbufferOffset, cbufferSize));
 
         if (meshProxy.skeleton != nullptr)
         {
-            cr << SetShaderUniform(numDrawCallUniforms++, "SkeletonsBuffer"_sh,
-                g_renderInterface->namedBuffers[NamedBuffer::Skeletons].gpuBuffer,
-                TShaderDataOffset<SkeletonShaderData>(meshProxy.skeleton));
+            cr << SetShaderUniform(numDrawCallUniforms++, "SkeletonsBuffer"_sh, RI.namedBuffers[NamedBuffer::Skeletons], Resources::GetBinding(meshProxy.skeleton));
         }
-        
+
         if (!s_useBindlessTextures)
         {
             const uint32 materialBoundIndex = Resources::GetBinding(meshProxy.material);
             AssertDebug(materialBoundIndex != ~0u);
 
-            Span<const GpuImageViewRef> imageViews = g_renderInterface->materialTextureCache->imageViews.Get(materialBoundIndex);
+            Span<const GpuImageViewRef> imageViews = RI.materialTextureCache->imageViews.Get(materialBoundIndex);
             AssertDebug(imageViews.Size() >= materialProxy->boundTextures.Size());
 
             FOR_EACH_BIT(materialProxy->bufferData.textureUsage, bit)
@@ -847,7 +998,7 @@ static void RenderAll(
                 cr << SetShaderUniform(numDrawCallUniforms++, textureUniformName, imageViews[materialProxy->boundTextureIndices[bit]]);
             }
         }
-        
+
         cr << CommitDrawState();
 
         if (!prevMesh || prevMesh != meshProxy.mesh)
@@ -892,40 +1043,40 @@ static void RenderAll(
 
         const RenderProxyMesh& meshProxy = *instancedDrawCalls.meshProxies[i];
 
+        if (HandleDepthPrepass(meshProxy))
+        {
+            continue;
+        }
+
         const RenderProxyMaterial* materialProxy = static_cast<const RenderProxyMaterial*>(GetRenderProxy(meshProxy.material));
         AssertDebug(materialProxy != nullptr);
 
         { // Write constants for the draw
-            CBufferAllocator& cba = *g_renderInterface->cbufferAllocator;
+            CBufferAllocator& cba = *RI.cbufferAllocator;
             cba.Write(&meshProxy.bufferData);
             cba.Write(&materialProxy->bufferData);
             cba.Commit(cbuffer, cbufferOffset, cbufferSize);
         }
-
         cr << SetShaderUniform(cbufferBinding, "CBuffer"_sh, cbuffer, ShaderDataOffset(cbufferOffset, cbufferSize));
 
         EntityInstanceBatch* entityInstanceBatch = instancedDrawCalls.batches[i];
         AssertDebug(entityInstanceBatch != nullptr);
-        
-        const uint32 stride = drawCallCollection.batchAllocator->GetStructSize();
 
-        cr << SetShaderUniform(numDrawCallUniforms++, "EntityInstanceBatchesBuffer"_sh,
-            drawCallCollection.batchAllocator->GetStructuredBuffer().gpuBuffer,
-            ShaderDataOffset(entityInstanceBatch->batchIndex * stride, stride));
-                        
+        const StructuredBuffer& entityInstanceBatchBuffer = drawCallCollection.batchAllocator->GetStructuredBuffer();
+
+        cr << SetShaderUniform(numDrawCallUniforms++, "EntityInstanceBatchesBuffer"_sh, entityInstanceBatchBuffer, entityInstanceBatch->batchIndex);
+
         if (meshProxy.skeleton != nullptr)
         {
-            cr << SetShaderUniform(numDrawCallUniforms++, "SkeletonsBuffer"_sh,
-                g_renderInterface->namedBuffers[NamedBuffer::Skeletons].gpuBuffer,
-                TShaderDataOffset<SkeletonShaderData>(meshProxy.skeleton));
+            cr << SetShaderUniform(numDrawCallUniforms++, "SkeletonsBuffer"_sh, RI.namedBuffers[NamedBuffer::Skeletons], Resources::GetBinding(meshProxy.skeleton));
         }
-        
+
         if (!s_useBindlessTextures)
         {
             const uint32 materialBoundIndex = Resources::GetBinding(meshProxy.material);
             AssertDebug(materialBoundIndex != ~0u);
 
-            Span<const GpuImageViewRef> imageViews = g_renderInterface->materialTextureCache->imageViews.Get(materialBoundIndex);
+            Span<const GpuImageViewRef> imageViews = RI.materialTextureCache->imageViews.Get(materialBoundIndex);
             AssertDebug(imageViews.Size() >= materialProxy->boundTextures.Size());
 
             FOR_EACH_BIT(materialProxy->bufferData.textureUsage, bit)
@@ -937,7 +1088,7 @@ static void RenderAll(
                     imageViews[materialProxy->boundTextureIndices[bit]]);
             }
         }
-        
+
         cr << CommitDrawState();
 
         if (!prevMesh || prevMesh != meshProxy.mesh)
@@ -966,7 +1117,7 @@ static void RenderAll(
         }
 
         prevMesh = meshProxy.mesh;
-            
+
         // @NOTE For indirect rendering we would need to read back the number of drawn instances from the GPU to get correct stats.
         if (!drawCallCollection.suppressStats)
         {
@@ -977,22 +1128,29 @@ static void RenderAll(
 }
 
 template <class TCommandRecorder>
-static void PerformRenderingImpl(
-    Frame* frame,
-    TCommandRecorder& cr,
-    const RenderSetup& renderSetup,
-    const DrawCallCollection& drawCallCollection,
-    IndirectRenderer* indirectRenderer)
+static void PerformRenderingImpl(Frame* frame, const TPerformRenderingPayload<TCommandRecorder>& payload)
 {
-    static const bool s_indirectRenderingEnabled = g_renderInterface->GetRenderConfig().indirectRendering;
+    TCommandRecorder& cr = *payload.pCommandRecorder;
 
-    const bool useIndirectRendering = s_indirectRenderingEnabled
+    const RenderSetup& renderSetup = payload.pNext->renderSetup;
+    IndirectRenderer* indirectRenderer = payload.pNext->pIndirectRenderer;
+    const DrawCallCollection& drawCallCollection = *payload.pNext->pDrawCallCollection;
+
+    const DepthPrepass::Stage prepassStage = payload.pNext->prepassStage;
+
+    static const bool s_indirectRenderingEnabled = RI.GetRenderConfig().indirectRendering;
+
+    const bool useIndirectRendering = indirectRenderer != nullptr
+        && prepassStage != DepthPrepass::DPP_InPrepass
+        && s_indirectRenderingEnabled
         && drawCallCollection.flags[RenderGroupFlags::INDIRECT_RENDERING]
         && (renderSetup.passData && renderSetup.passData->cullData.depthPyramidImageView);
 
     DeferredRendererPassData* dpd = DynamicCast<DeferredRendererPassData>(renderSetup.passData);
-    // Not env probes or anything like that
-    const bool isNormalDrawingPass = dpd != nullptr;
+
+    // Not env probes, prepass, etc. Just main drawing pass.
+    const bool isNormalDrawingPass = dpd != nullptr
+        && prepassStage != DepthPrepass::DPP_InPrepass;
 
     const RenderableAttributeSet& ras = drawCallCollection.attributes;
     const MaterialAttributes& mas = ras.GetMaterialAttributes();
@@ -1001,9 +1159,8 @@ static void PerformRenderingImpl(
 
     cr << SetTopology(ras.GetMeshAttributes().topology);
     cr << SetInputLayout(ras.GetMeshAttributes().inputLayout);
-    
-    cr << SetCurrentViewport(renderSetup.viewport);
 
+    cr << SetCurrentViewport(renderSetup.viewport);
 
     if (isNormalDrawingPass
         && mas.shaderName == GeometryPass::DefaultShaderName
@@ -1018,7 +1175,7 @@ static void PerformRenderingImpl(
         // these are needed too
         shaderProperties.Add(propTileSize);
         shaderProperties.Add(propTileZBins);
-    
+
         cr << SetCurrentShader(ShaderDesc(mas.shaderName, shaderProperties));
     }
     else
@@ -1028,12 +1185,12 @@ static void PerformRenderingImpl(
 
     cr << SetFillMode(mas.fillMode);
     cr << SetFaceCullMode(mas.cullFaces);
-    
+
     cr << SetCurrentBlendFunction(mas.blendFunction);
 
     cr << SetDepthTest(bool(mas.flags & MAF_DEPTH_TEST));
-    cr << SetDepthWrite(bool(mas.flags & MAF_DEPTH_WRITE));
     cr << SetDepthClamp(bool(mas.flags & MAF_DEPTH_CLAMP));
+    cr << SetDepthWrite(bool(mas.flags & MAF_DEPTH_WRITE));
 
     if (mas.flags & MAF_DEPTH_BIAS)
     {
@@ -1051,21 +1208,11 @@ static void PerformRenderingImpl(
 
     if (useIndirectRendering)
     {
-        RenderAll<true>(
-            frame,
-            cr,
-            renderSetup,
-            indirectRenderer,
-            drawCallCollection);
+        RenderAll<true>(frame, payload);
     }
     else
     {
-        RenderAll<false>(
-            frame,
-            cr,
-            renderSetup,
-            indirectRenderer,
-            drawCallCollection);
+        RenderAll<false>(frame, payload);
     }
 }
 
@@ -1107,13 +1254,17 @@ static inline void DeleteOnRenderThread(Func&& function)
 RenderCollector::RenderCollector()
     : parallelRenderingStates {},
       batchAllocator(nullptr),
-      renderGroupFlags(RenderGroupFlags::DEFAULT)
+      renderGroupFlags(RenderGroupFlags::DEFAULT),
+      isFallback(false)
 {
 }
 
 RenderCollector::~RenderCollector()
 {
     HYP_SCOPE;
+
+    if (isFallback)
+        return;
 
     const bool isParallel = renderGroupFlags[RenderGroupFlags::PARALLEL_RENDERING];
 
@@ -1173,10 +1324,10 @@ RenderCollector::~RenderCollector()
                         }
                     }
                 };
-                
+
                 // Render thread == 0
                 DestructCommandRecorders();
-                
+
                 if (isParallel)
                 {
                     // we have to free up the memory for each local queue on individual threads,
@@ -1276,7 +1427,7 @@ HYP_NODISCARD ParallelRenderingState* RenderCollector::AcquireNextParallelRender
 {
     HYP_SCOPE;
     AssertOnThread(g_renderThread);
-    
+
     ParallelRenderingState*& parallelRenderingStateHead = parallelRenderingStates[index].head;
     ParallelRenderingState*& parallelRenderingStateTail = parallelRenderingStates[index].tail;
 
@@ -1337,7 +1488,7 @@ HYP_NODISCARD ParallelRenderingState* RenderCollector::AcquireNextParallelRender
 void RenderCollector::Commit(CommandRecorder& cr, uint8 index)
 {
     HYP_SCOPE;
-    
+
     ParallelRenderingState*& parallelRenderingStateHead = parallelRenderingStates[index].head;
     ParallelRenderingState*& parallelRenderingStateTail = parallelRenderingStates[index].tail;
 
@@ -1355,6 +1506,7 @@ void RenderCollector::Commit(CommandRecorder& cr, uint8 index)
         cr << SetCurrentBlendFunction(BlendFunction::None());
         cr << SetDepthWrite(true);
         cr << SetDepthTest(true);
+        cr << SetDepthCompareOp(DCO_LESS);
         cr << SetDepthBias(0, 0.0f);
         cr << SetDepthClamp(false);
         cr << SetStencilTest(false);
@@ -1387,6 +1539,7 @@ void RenderCollector::Commit(CommandRecorder& cr, uint8 index)
         cr << SetCurrentBlendFunction(BlendFunction::None());
         cr << SetDepthWrite(true);
         cr << SetDepthTest(true);
+        cr << SetDepthCompareOp(DCO_LESS);
         cr << SetDepthBias(0, 0.0f);
         cr << SetDepthClamp(false);
         cr << SetStencilTest(false);
@@ -1421,7 +1574,7 @@ void RenderCollector::PerformOcclusionCulling(Frame* frame, const RenderSetup& r
     AssertDebug(renderSetup.world && renderSetup.view);
     AssertDebug(renderSetup.passData != nullptr, "RenderSetup must have valid PassData to perform occlusion culling");
 
-    static const bool s_isIndirectRenderingEnabled = g_renderInterface->GetRenderConfig().indirectRendering;
+    static const bool s_isIndirectRenderingEnabled = RI.GetRenderConfig().indirectRendering;
     const bool performOcclusionCulling = s_isIndirectRenderingEnabled && renderSetup.passData->cullData.depthPyramidImageView != nullptr;
 
     if (performOcclusionCulling)
@@ -1458,25 +1611,111 @@ void RenderCollector::PerformOcclusionCulling(Frame* frame, const RenderSetup& r
     }
 }
 
-
-bool RenderCollector::BeginRecordDrawCalls(
-    Frame* frame,
-    const RenderSetup& renderSetup,
-    uint32 bucketBits)
+void RenderCollector::PrepareIndirectDrawCommands(Frame* frame, const RenderSetup& renderSetup, uint32 bucketBits)
 {
     HYP_SCOPE;
     AssertOnThread(g_renderThread);
 
-    Span<BinnedDrawCallCollections> groupsView;
+    static const bool s_isIndirectRenderingEnabled = RI.GetRenderConfig().indirectRendering;
+
+    if (!s_isIndirectRenderingEnabled)
+    {
+        return;
+    }
+
+    FOR_EACH_BIT(bucketBits, bitIndex)
+    {
+        AssertDebug(bitIndex < mappingsByBucket.Size());
+
+        auto& mappings = mappingsByBucket[bitIndex];
+
+        if (mappings.Empty())
+        {
+            continue;
+        }
+
+        for (DrawCallCollection& drawCallCollection : mappings)
+        {
+            AssertDebug(drawCallCollection.isInit);
+
+            if (drawCallCollection.flags & RenderGroupFlags::OCCLUSION_CULLING)
+            {
+                AssertDebug((drawCallCollection.flags & (RenderGroupFlags::INDIRECT_RENDERING | RenderGroupFlags::OCCLUSION_CULLING)) == (RenderGroupFlags::INDIRECT_RENDERING | RenderGroupFlags::OCCLUSION_CULLING));
+                AssertDebug(drawCallCollection.indirectRenderer != nullptr);
+
+                IndirectRenderer* indirectRenderer = drawCallCollection.indirectRenderer;
+
+                indirectRenderer->GetDrawState().ResetDrawState();
+                indirectRenderer->PushDrawCallsToIndirectState(drawCallCollection);
+                indirectRenderer->PrepareDrawCommands(frame);
+            }
+        }
+    }
+}
+
+void RenderCollector::ExecuteOcclusionCullingShader(Frame* frame, const RenderSetup& renderSetup, uint32 bucketBits)
+{
+    HYP_SCOPE;
+    AssertOnThread(g_renderThread);
+
+    AssertDebug(renderSetup.world && renderSetup.view);
+    AssertDebug(renderSetup.passData != nullptr, "RenderSetup must have valid PassData to perform occlusion culling");
+
+    static const bool s_isIndirectRenderingEnabled = RI.GetRenderConfig().indirectRendering;
+    const bool performOcclusionCulling = s_isIndirectRenderingEnabled && renderSetup.passData->cullData.depthPyramidImageView != nullptr;
+
+    if (performOcclusionCulling)
+    {
+        FOR_EACH_BIT(bucketBits, bitIndex)
+        {
+            AssertDebug(bitIndex < mappingsByBucket.Size());
+
+            auto& mappings = mappingsByBucket[bitIndex];
+
+            if (mappings.Empty())
+            {
+                continue;
+            }
+
+            for (DrawCallCollection& drawCallCollection : mappings)
+            {
+                AssertDebug(drawCallCollection.isInit);
+
+                if (drawCallCollection.flags & RenderGroupFlags::OCCLUSION_CULLING)
+                {
+                    AssertDebug((drawCallCollection.flags & (RenderGroupFlags::INDIRECT_RENDERING | RenderGroupFlags::OCCLUSION_CULLING)) == (RenderGroupFlags::INDIRECT_RENDERING | RenderGroupFlags::OCCLUSION_CULLING));
+                    AssertDebug(drawCallCollection.indirectRenderer != nullptr);
+
+                    IndirectRenderer* indirectRenderer = drawCallCollection.indirectRenderer;
+
+                    indirectRenderer->ExecuteCullShaderInBatches(frame, renderSetup);
+                }
+            }
+        }
+    }
+}
+
+bool RenderCollector::BeginRecordDrawCalls(
+    Frame* frame,
+    const RenderSetup& renderSetup,
+    uint32 bucketBits,
+    bool isDepthPrepass)
+{
+    HYP_SCOPE;
+    AssertOnThread(g_renderThread);
 
     if (bucketBits == 0)
     {
         bucketBits = AllBucketsMask;
     }
 
+    const DepthPrepass::Stage prepassStage = DepthPrepass::GetStage(renderSetup, isDepthPrepass);
+
+    Span<BinnedDrawCallCollections> groupsView;
+
     if (ByteUtil::BitCount(bucketBits) == 1)
     {
-        const uint32 renderBucketIndex = MathUtil::FastLog2_Pow2(bucketBits);
+        const uint32 renderBucketIndex = uint32(MathUtil::FastLog2_Pow2(bucketBits));
 
         auto& mappings = mappingsByBucket[renderBucketIndex];
 
@@ -1486,6 +1725,27 @@ bool RenderCollector::BeginRecordDrawCalls(
         }
 
         groupsView = { &mappings, 1 };
+    }
+    else
+    {
+        bool allEmpty = true;
+
+        FOR_EACH_BIT(bucketBits, bit)
+        {
+            if (mappingsByBucket[bit].Any())
+            {
+                allEmpty = false;
+                break;
+            }
+        }
+
+        if (allEmpty)
+        {
+            // Nothing to record draw calls for.
+            return false;
+        }
+
+        groupsView = mappingsByBucket.ToSpan();
     }
 
     bool anyEnqueued = false;
@@ -1508,8 +1768,6 @@ bool RenderCollector::BeginRecordDrawCalls(
         {
             AssertDebug(drawCallCollection.isInit);
 
-            IndirectRenderer* indirectRenderer = drawCallCollection.indirectRenderer;
-
             if (!(drawCallCollection.flags & RenderGroupFlags::PARALLEL_RENDERING))
             {
                 continue;
@@ -1528,12 +1786,28 @@ bool RenderCollector::BeginRecordDrawCalls(
 
             AssertDebug(drawCallCollection.parallelRenderingState->taskBatch != nullptr);
 
-            // @TODO refactor to use payload similar to before
-            parallelRenderingState->taskBatch->AddTask([this, frame, renderSetup = renderSetup, &drawCallCollection, indirectRenderer]()
+            struct PerformRenderingFunctor
+            {
+                RenderCollector* pRenderCollector;
+                Frame* pFrame;
+                PerformRenderingPayloadBase payload;
+
+                void operator()()
                 {
-                    PerformRendering(frame, renderSetup, drawCallCollection, indirectRenderer);
-                });
-            
+                    pRenderCollector->PerformRendering(pFrame, payload);
+                }
+            };
+
+            PerformRenderingFunctor functor {};
+            functor.pRenderCollector = this;
+            functor.pFrame = frame;
+            functor.payload.renderSetup = renderSetup;
+            functor.payload.pDrawCallCollection = &drawCallCollection;
+            functor.payload.prepassStage = prepassStage;
+            functor.payload.pIndirectRenderer = isDepthPrepass ? nullptr : drawCallCollection.indirectRenderer;
+
+            parallelRenderingState->taskBatch->AddTask(functor);
+
             anyEnqueued = true;
         }
 
@@ -1551,7 +1825,7 @@ void RenderCollector::ExecuteDrawCalls(
     Frame* frame,
     const RenderSetup& renderSetup,
     uint32 bucketBits,
-    bool commit)
+    bool isDepthPrepass)
 {
     AssertDebug(renderSetup.world && renderSetup.view);
     AssertDebug(renderSetup.view->IsReady());
@@ -1559,12 +1833,12 @@ void RenderCollector::ExecuteDrawCalls(
     if (renderSetup.view->GetFlags() & ViewFlags::GBUFFER)
     {
         // Pass NULL framebuffer for GBuffer rendering, as it will be handled by DeferredRenderer outside of this scope.
-        ExecuteDrawCalls(frame, renderSetup, nullptr, bucketBits, commit);
+        ExecuteDrawCalls(frame, renderSetup, nullptr, bucketBits, isDepthPrepass);
     }
     else
     {
         Framebuffer* framebuffer = renderSetup.framebuffer;
-    
+
         if (!framebuffer)
         {
             framebuffer = renderSetup.view->GetOutputTarget().GetFramebuffer();
@@ -1572,7 +1846,7 @@ void RenderCollector::ExecuteDrawCalls(
 
         AssertDebug(framebuffer != nullptr, "Must have a valid framebuffer for rendering");
 
-        ExecuteDrawCalls(frame, renderSetup, framebuffer, bucketBits, commit);
+        ExecuteDrawCalls(frame, renderSetup, framebuffer, bucketBits, isDepthPrepass);
     }
 }
 
@@ -1581,10 +1855,12 @@ void RenderCollector::ExecuteDrawCalls(
     const RenderSetup& renderSetup,
     Framebuffer* framebuffer,
     uint32 bucketBits,
-    bool commit)
+    bool isDepthPrepass)
 {
     HYP_SCOPE;
     AssertOnThread(g_renderThread);
+
+    const DepthPrepass::Stage prepassStage = DepthPrepass::GetStage(renderSetup, isDepthPrepass);
 
     if (bucketBits == 0)
     {
@@ -1596,7 +1872,7 @@ void RenderCollector::ExecuteDrawCalls(
     // If only one bit is set, we can skip the loop by directly accessing the RenderGroup
     if (ByteUtil::BitCount(bucketBits) == 1)
     {
-        const uint32 renderBucketIndex = MathUtil::FastLog2_Pow2(bucketBits);
+        const uint32 renderBucketIndex = uint32(MathUtil::FastLog2_Pow2(bucketBits));
 
         auto& mappings = mappingsByBucket[renderBucketIndex];
 
@@ -1633,7 +1909,7 @@ void RenderCollector::ExecuteDrawCalls(
         frame->cr << SetCurrentFramebuffer(framebuffer);
     }
 
-    RenderGroupCache& attributeRegistry = RenderGroupCache::GetInstance();
+    RenderGroupCache& attributeRegistry = *RI.renderGroupCache;
 
     // set these to null after rendering
     Array<ParallelRenderingState**, RenderTempAllocator> parallelRenderingStatesToNullify;
@@ -1654,50 +1930,39 @@ void RenderCollector::ExecuteDrawCalls(
 
             AssertDebug(drawCallCollection.isInit);
 
-            IndirectRenderer* indirectRenderer = drawCallCollection.indirectRenderer;
-
-            ParallelRenderingState* parallelRenderingState = nullptr;
-
             if (drawCallCollection.flags & RenderGroupFlags::PARALLEL_RENDERING)
             {
-                parallelRenderingStatesToNullify.PushBack(&drawCallCollection.parallelRenderingState);
 
                 if (drawCallCollection.parallelRenderingState != nullptr)
                 {
-                    // If PrepareAsyncDrawCalls() was used, parallelRenderingState would be non-null,
+                    // If BeginRecordDrawCalls() was used, parallelRenderingState would be non-null,
                     // therefore we skip enqueueing teh task batch if that is set and instead just
                     // will wait on the existing one
+                    parallelRenderingStatesToNullify.PushBack(&drawCallCollection.parallelRenderingState);
                     continue;
                 }
-
-                parallelRenderingState = AcquireNextParallelRenderingState(uint8(rb));
             }
 
-            drawCallCollection.parallelRenderingState = parallelRenderingState;
-            PerformRendering(frame, renderSetup, drawCallCollection, indirectRenderer);
+            PerformRenderingPayloadBase payload {};
+            payload.renderSetup = renderSetup;
+            payload.prepassStage = prepassStage;
+            payload.pDrawCallCollection = &drawCallCollection;
+            payload.pIndirectRenderer = isDepthPrepass ? nullptr : drawCallCollection.indirectRenderer;
 
-            if (parallelRenderingState != nullptr)
-            {
-                AssertDebug(parallelRenderingState->taskBatch != nullptr);
-
-                TaskSystem::GetInstance().EnqueueBatch(parallelRenderingState->taskBatch);
-            }
+            PerformRendering(frame, payload);
         }
     }
 
-    if (commit)
+    FOR_EACH_BIT(bucketBits, bit)
     {
-        FOR_EACH_BIT(bucketBits, bit)
-        {
-            Commit(frame->cr, uint8(bit));
-        }
+        Commit(frame->cr, uint8(bit));
+    }
 
-        if (parallelRenderingStatesToNullify.Any())
+    if (parallelRenderingStatesToNullify.Any())
+    {
+        for (ParallelRenderingState** pp : parallelRenderingStatesToNullify)
         {
-            for (ParallelRenderingState** pp : parallelRenderingStatesToNullify)
-            {
-                *pp = nullptr;
-            }
+            *pp = nullptr;
         }
     }
 
@@ -1708,7 +1973,7 @@ void RenderCollector::ExecuteDrawCalls(
 }
 
 // Called at start of frame on render thread
-void RenderCollector::BuildDrawCalls(uint32 bucketBits)
+void RenderCollector::CollectRenderables(uint32 bucketBits)
 {
     HYP_SCOPE;
     AssertOnThread(g_renderThread);
@@ -1864,7 +2129,7 @@ void RenderCollector::BuildRenderGroups(View* view, RenderProxyList& renderProxy
     AssertDebug(view != nullptr);
     AssertDebug(renderProxyList.state == RenderProxyList::CS_READING);
 
-    RenderGroupCache& attributeRegistry = RenderGroupCache::GetInstance();
+    RenderGroupCache& attributeRegistry = *RI.renderGroupCache;
 
     const RenderableAttributeSet* overrideAttributes = view->GetOverrideAttributes().TryGet();
 
@@ -1909,7 +2174,7 @@ void RenderCollector::BuildRenderGroups(View* view, RenderProxyList& renderProxy
                 // not changed, skip
                 continue;
             }
-            
+
             prevDrawCallCollection->meshProxies.EraseAt(idx);
             prevDrawCallCollection = nullptr;
 
@@ -1997,19 +2262,18 @@ void RenderCollector::BuildRenderGroups(View* view, RenderProxyList& renderProxy
     }
 }
 
-void RenderCollector::PerformRendering(
-    Frame* frame,
-    const RenderSetup& renderSetup,
-    const DrawCallCollection& drawCallCollection,
-    IndirectRenderer* indirectRenderer)
+void RenderCollector::PerformRendering(Frame* frame, PerformRenderingPayloadBase& payload)
 {
     HYP_SCOPE;
+
+    const RenderSetup& renderSetup = payload.renderSetup;
+    const DrawCallCollection& drawCallCollection = *payload.pDrawCallCollection;
 
     AssertDebug(renderSetup.world && renderSetup.view);
     AssertDebug(renderSetup.passData != nullptr, "RenderSetup must have valid PassData for rendering!");
 
     Framebuffer* framebuffer = renderSetup.framebuffer;
-    
+
     if (!framebuffer)
     {
         framebuffer = renderSetup.view->GetOutputTarget().GetFramebuffer();
@@ -2025,21 +2289,35 @@ void RenderCollector::PerformRendering(
 
     static const thread_local uint32 s_renderThreadIndex = CurrentRenderThreadIndex();
 
-    if (drawCallCollection.flags & RenderGroupFlags::PARALLEL_RENDERING)
+    if (drawCallCollection.parallelRenderingState != nullptr)
     {
-        AssertDebug(drawCallCollection.parallelRenderingState != nullptr);
+        AssertDebug(drawCallCollection.flags & RenderGroupFlags::PARALLEL_RENDERING);
 
         auto* cr = drawCallCollection.parallelRenderingState->threadLocalRecorders[s_renderThreadIndex];
         AssertDebug(cr != nullptr);
 
-        PerformRenderingImpl(frame, *cr, renderSetup, drawCallCollection, indirectRenderer);
+        TPerformRenderingPayload payloadNext { cr, &payload };
+
+        PerformRenderingImpl(frame, payloadNext);
     }
     else
     {
-        PerformRenderingImpl(frame, frame->cr, renderSetup, drawCallCollection, indirectRenderer);
+        TPerformRenderingPayload payloadNext { &frame->cr, &payload };
+
+        PerformRenderingImpl(frame, payloadNext);
     }
-    
+
     g_statRenderGroups++;
+}
+
+void RenderCollector::PerformRendering(Frame* frame, const RenderSetup& renderSetup, const DrawCallCollection& drawCallCollection)
+{
+    PerformRenderingPayloadBase payload {};
+    payload.renderSetup = renderSetup;
+    payload.pDrawCallCollection = &drawCallCollection;
+    payload.pIndirectRenderer = nullptr;
+
+    PerformRendering(frame, payload);
 }
 
 #pragma endregion RenderCollector

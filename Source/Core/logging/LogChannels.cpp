@@ -37,7 +37,6 @@ HYP_DEFINE_LOG_SUBCHANNEL(Perf, Engine);
 HYP_DEFINE_LOG_SUBCHANNEL(Rendering, Core);
 
 HYP_DEFINE_LOG_SUBCHANNEL(RenderingBackend, Rendering);
-HYP_DEFINE_LOG_SUBCHANNEL(RenderCollection, Rendering);
 HYP_DEFINE_LOG_SUBCHANNEL(RenderCommands, Rendering);
 HYP_DEFINE_LOG_SUBCHANNEL(Shader, Rendering);
 HYP_DEFINE_LOG_SUBCHANNEL(Texture, Rendering);

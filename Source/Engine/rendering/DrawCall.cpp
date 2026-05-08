@@ -24,8 +24,6 @@
 
 namespace Hyperion {
 
-HYP_DECLARE_LOG_CHANNEL(RenderCollection);
-
 HYP_API extern const char* LookupTypeName(const TypeId& typeId);
 
 // Register allocator for the batch type used if none other is specified
@@ -325,7 +323,7 @@ EntityBatchAllocatorBase* GetEntityBatchAllocator(const TypeId& typeId)
     {
         return nullptr;
     }
-    
+
     Mutex& mtx = GetEntityBatchAllocatorMutex();
 
     auto it = s_entityBatchAllocatorMap.Find(typeId);
@@ -358,7 +356,7 @@ HYP_NODISCARD static bool SetEntityBatchAllocator(const TypeId& typeId, EntityBa
     {
         return false;
     }
-    
+
     Mutex& mtx = GetEntityBatchAllocatorMutex();
 
     auto it = s_entityBatchAllocatorMap.Find(typeId);
@@ -424,7 +422,7 @@ void RegisterEntityBatchAllocator(const TypeId& typeId, PFNCreateEntityBatchAllo
     {
         return;
     }
-    
+
     Mutex& mtx = GetEntityBatchAllocatorMutex();
     CreateFnMap& funcs = GetEntityBatchAllocatorCreateFnMap();
 

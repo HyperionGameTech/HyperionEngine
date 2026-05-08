@@ -51,6 +51,16 @@ Game::Game()
 
 Game::~Game()
 {
+    if (m_assetRegistryActive)
+    {
+        PopAssetRegistry(m_assetRegistry);
+        m_assetRegistryActive = false;
+    }
+
+    if (m_assetRegistry)
+    {
+        m_assetRegistry->Shutdown();
+    }
 }
 
 void Game::Initialize()
@@ -73,7 +83,7 @@ void Game::Initialize()
     {
         m_assetRegistry->Initialize();
 
-        PushCurrentAssetRegistry(m_assetRegistry);
+        PushAssetRegistry(m_assetRegistry);
         m_assetRegistryActive = true;
     }
 
@@ -82,7 +92,7 @@ void Game::Initialize()
     AssertDebug(m_world->m_gameInstance == nullptr || m_world->m_gameInstance == this);
     m_world->m_gameInstance = this;
     InitObject(m_world);
-    
+
     m_assetRegistry->PutAssetsDeep(m_world);
 
     if (!m_uiSubsystem)
@@ -109,11 +119,10 @@ void Game::Shutdown()
 
     if (m_assetRegistry && m_assetRegistryActive)
     {
-        m_assetRegistry->Shutdown();
-
-        PopCurrentAssetRegistry();
+        PopAssetRegistry(m_assetRegistry);
 
         m_assetRegistryActive = false;
+        m_assetRegistry->Shutdown();
     }
 
     m_isInitialized = false;
@@ -126,22 +135,25 @@ void Game::SetAssetRegistry(const Handle<AssetRegistry>& assetRegistry)
         return;
     }
 
-    if (m_assetRegistry && m_assetRegistryActive)
+    if (m_assetRegistryActive)
+    {
+        PopAssetRegistry(m_assetRegistry);
+
+        m_assetRegistryActive = false;
+    }
+
+    if (m_assetRegistry)
     {
         m_assetRegistry->Shutdown();
-
-        PopCurrentAssetRegistry();
     }
 
     m_assetRegistry = assetRegistry;
-    m_assetRegistryActive = false;
 
     if (m_assetRegistry && m_isInitialized)
     {
         m_assetRegistry->Initialize();
 
-        PushCurrentAssetRegistry(m_assetRegistry);
-
+        PushAssetRegistry(m_assetRegistry);
         m_assetRegistryActive = true;
     }
 }

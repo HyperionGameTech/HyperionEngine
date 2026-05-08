@@ -2,7 +2,7 @@
 
 *Commandlets* - are isolated tasks that can be run:
 - from within the editor's console window by typing the name of the commandlet and pressing enter (args can be provided after the name of the commandlet, separated by spaces),
-- by invoking them via cli by running the engine's executable with the `-Commandlet` argument followed by the name of the commandlet you want to run and any args you want to provide (e.g. `HyperionEngine.exe -Commandlet MyCommandlet arg1 arg2`).
+- by invoking them via cli by running the engine's executable with the `--exec` argument followed by the name of the commandlet you want to run and any args you want to provide (e.g. `HyperionEngine.exe --exec MyCommandlet arg1 arg2`).
 - or as a specifically compiled executable, as long as `add_commandlet_target()` is used in the Source/Commandlets/CMakeLists.txt. For example, `PrecompileShaders` is one of these, and can be run by executing `PrecompileShaders.exe` directly from the command line.
 
 > To find all commandlets, do a project-wide search for `: public CommandletBase`. That will show you all defined console command classes.
@@ -14,4 +14,4 @@ This allows commandlets to perform a wide variety of tasks within an engine cont
 
 From within the editor, you can use the console window to set a CVar by name. The name you pass is case-insensitive and can be either the full name of the CVar (e.g. `Rendering.SSGI`) or just the last part of the name (e.g. `SSGI`), followed by the value you want to set it to (e.g. `true`/`1` or `false`/`0` for bool CVars, a number for int or float CVars, etc.). For example, you can type `ssgi 1` in the console to enable SSGI at runtime.
 
-> For a full list of available CVars, do a project-wide regex search for `^CVar<([A-Za-z_]+)>` to find all CVars defined in the codebase. 
+> For a full list of available CVars, do a project-wide regex search for `^CVar<([A-Za-z_]+)>` to find all CVars defined in the codebase.

@@ -91,7 +91,7 @@ class AssetManagerThreadPool : public TaskThreadPool
 {
 public:
     AssetManagerThreadPool()
-        : TaskThreadPool(TypeWrapper<AssetManagerWorkerThread>(), "AssetManagerWorker", 2)
+        : TaskThreadPool(TypeWrapper<AssetManagerWorkerThread>(), "AssetWorker", 1)
     {
     }
 
@@ -322,13 +322,11 @@ const AssetLoaderDefinition* AssetManager::GetLoaderDefinition(const FilePath& p
     return nullptr;
 }
 
-void AssetManager::Init()
+void AssetManager::Initialize()
 {
     RegisterDefaultLoaders();
 
     m_threadPool->Start();
-
-    SetReady(true);
 }
 
 Handle<AssetRegistry> AssetManager::GetAssetRegistry() const

@@ -35,6 +35,10 @@
 
 #include <Core/logging/Logger.hpp>
 
+#include <Core/utilities/Optional.hpp>
+
+#include <engine/config/EngineConfig.hpp>
+
 #include <dxgi1_6.h>
 
 #pragma comment(lib, "d3d12.lib")
@@ -44,6 +48,9 @@ namespace Hyperion {
 
 HYP_DECLARE_LOG_CHANNEL(RenderingBackend);
 
+// #define HYP_DX12_ENABLE_DEBUG_LAYER
+// #define HYP_DX12_ENABLE_DRED
+
 #pragma region DX12RenderConfig
 
 class DX12RenderConfig final : public IRenderConfig
@@ -51,11 +58,14 @@ class DX12RenderConfig final : public IRenderConfig
 public:
     DX12RenderConfig()
     {
+        EngineConfig& cfg = GetEngineConfig();
+        cfg.Load();
+
         bindlessTextures = false;
         rayTracing = false;
-        indirectRendering = false;
-        parallelRendering = false;
-        dynamicDescriptorIndexing = false;
+        indirectRendering = cfg.Get("Rendering.IndirectRendering").ToBool(/* defaultValue */ true);
+        parallelRendering = cfg.Get("Rendering.ParallelCollection").ToBool(/* defaultValue */ true);
+        dynamicDescriptorIndexing = true;
     }
 
     void InitializeBindless(DX12RenderInterface* renderInterface)
@@ -67,8 +77,7 @@ public:
         HRESULT hr = device->CheckFeatureSupport(D3D12_FEATURE_D3D12_OPTIONS, &options, sizeof(options));
         if (SUCCEEDED(hr))
         {
-            bindlessTextures = (options.ResourceBindingTier >= D3D12_RESOURCE_BINDING_TIER_3);
-            dynamicDescriptorIndexing = (options.ResourceBindingTier >= D3D12_RESOURCE_BINDING_TIER_2);
+            //bindlessTextures = (options.ResourceBindingTier >= D3D12_RESOURCE_BINDING_TIER_3);
         }
     }
 };
@@ -98,8 +107,7 @@ public:
 #pragma region DX12RenderInterface
 
 DX12RenderInterface::DX12RenderInterface()
-    : descriptorHeapManager(PoolNew<DX12DescriptorHeapManager>(*g_renderPool)),
-      m_renderConfig(MakePimpl<DX12RenderConfig>()),
+    : descriptorHeapManager(nullptr),
       m_allocator(nullptr),
       m_frameFenceEvent(nullptr),
       m_frameFenceIndex(0)
@@ -114,12 +122,14 @@ DX12RenderInterface::DX12RenderInterface()
 
 DX12RenderInterface::~DX12RenderInterface()
 {
-    PoolDelete(*g_renderPool, descriptorHeapManager);
 }
 
 RendererResult DX12RenderInterface::Initialize()
 {
-    HYP_LOG(RenderingBackend, Info, "Initializing DX12 render backend...");
+    HYP_LOG(RenderingBackend, Info, "Initializing DX12 render backend");
+
+    descriptorHeapManager = PoolNew<DX12DescriptorHeapManager>(*g_renderPool);
+    m_renderConfig = MakePimpl<DX12RenderConfig>();
 
     uint32 createFactoryFlags = 0;
 
@@ -131,30 +141,25 @@ RendererResult DX12RenderInterface::Initialize()
     if (!SUCCEEDED(res))
         return HYP_MAKE_ERROR(RendererError, "Failed to create DXGI Factory", res);
 
-    ComPtr<IDXGIFactory6> factory6;
+    EngineConfig& cfg = GetEngineConfig();
+    cfg.Load();
 
+    const ConfigValue& cfgSelectedGpuIndex = cfg.Get("System.SelectedGpu.Index");
+
+    bool gpuSelected = false;
+    int targetGpuIndex = -1;
+
+    if (cfgSelectedGpuIndex.IsNumber())
+    {
+        targetGpuIndex = cfgSelectedGpuIndex.ToInt32();
+    }
+
+    ComPtr<IDXGIFactory6> factory6;
     if (SUCCEEDED(dxgiFactory.As(&factory6)))
     {
-        for (UINT i = 0;
-             SUCCEEDED(factory6->EnumAdapterByGpuPreference(
-                 i,
-                 DXGI_GPU_PREFERENCE_HIGH_PERFORMANCE,
-                 IID_PPV_ARGS(&m_hardwareAdapter)));
-             ++i)
-        {
-            DXGI_ADAPTER_DESC1 desc;
-            m_hardwareAdapter->GetDesc1(&desc);
-        
-            if (desc.Flags & DXGI_ADAPTER_FLAG_SOFTWARE)
-                continue;
+        UINT validAdapterIndex = 0;
 
-            if (SUCCEEDED(D3D12CreateDevice(m_hardwareAdapter.Get(),  D3D_FEATURE_LEVEL_12_0, __uuidof(ID3D12Device), nullptr)))
-                break;
-        }
-    } 
-    else
-    {
-        for (UINT i = 0; SUCCEEDED(dxgiFactory->EnumAdapters1(i, &m_hardwareAdapter)); ++i) 
+        for (UINT i = 0; SUCCEEDED(factory6->EnumAdapters1(i, &m_hardwareAdapter)); ++i)
         {
             DXGI_ADAPTER_DESC1 desc;
             m_hardwareAdapter->GetDesc1(&desc);
@@ -163,24 +168,113 @@ RendererResult DX12RenderInterface::Initialize()
                 continue;
 
             if (SUCCEEDED(D3D12CreateDevice(m_hardwareAdapter.Get(), D3D_FEATURE_LEVEL_12_0, __uuidof(ID3D12Device), nullptr)))
-                break;
+            {
+                bool selectThisAdapter = false;
+
+                if (validAdapterIndex == targetGpuIndex)
+                {
+                    selectThisAdapter = true;
+                }
+                else if (targetGpuIndex < 0 && !gpuSelected)
+                {
+                    selectThisAdapter = true;
+                }
+
+                if (selectThisAdapter)
+                {
+                    HYP_LOG(RenderingBackend, Info, "Selected GPU index {}: {}", validAdapterIndex, WideString(desc.Description));
+
+                    if (targetGpuIndex < 0)
+                    {
+                        cfg.Set("System.SelectedGpu.Index", JSON::Number(validAdapterIndex));
+
+                        if (!cfg.Save())
+                        {
+                           HYP_LOG(RenderingBackend, Warning, "Failed to save GPU selection config");
+                        }
+                    }
+
+                    gpuSelected = true;
+                }
+
+                if (gpuSelected)
+                    break;
+
+                validAdapterIndex++;
+            }
+        }
+    }
+    else
+    {
+        UINT validAdapterIndex = 0;
+
+        for (UINT i = 0; SUCCEEDED(dxgiFactory->EnumAdapters1(i, &m_hardwareAdapter)); ++i)
+        {
+            DXGI_ADAPTER_DESC1 desc;
+            m_hardwareAdapter->GetDesc1(&desc);
+
+            if (desc.Flags & DXGI_ADAPTER_FLAG_SOFTWARE)
+                continue;
+
+            if (SUCCEEDED(D3D12CreateDevice(m_hardwareAdapter.Get(), D3D_FEATURE_LEVEL_12_0, __uuidof(ID3D12Device), nullptr)))
+            {
+                bool selectThisAdapter = false;
+
+                if (validAdapterIndex == targetGpuIndex)
+                {
+                    selectThisAdapter = true;
+                }
+                else if (targetGpuIndex < 0 && !gpuSelected)
+                {
+                    selectThisAdapter = true;
+                }
+
+                if (selectThisAdapter)
+                {
+                    HYP_LOG(RenderingBackend, Info, "Selected GPU index {}: {}", validAdapterIndex, WideString(desc.Description));
+
+                    if (targetGpuIndex < 0)
+                    {
+                        cfg.Set("System.SelectedGpu.Index", JSON::Number(validAdapterIndex));
+                        if (!cfg.Save())
+                        {
+                            HYP_LOG(RenderingBackend, Warning, "Failed to save GPU selection config");
+                        }
+                    }
+
+                    gpuSelected = true;
+                }
+
+                if (gpuSelected)
+                    break;
+
+                validAdapterIndex++;
+            }
         }
     }
 
+    if (!gpuSelected)
+    {
+        HYP_LOG(RenderingBackend, Error, "Failed to find a suitable GPU adapter");
+        return HYP_MAKE_ERROR(RendererError, "Failed to find suitable GPU", E_FAIL);
+    }
+
 #ifdef HYP_DEBUG_MODE
-#if 1
+#ifdef HYP_DX12_ENABLE_DRED
     if (SUCCEEDED(D3D12GetDebugInterface(__uuidof(ID3D12DeviceRemovedExtendedDataSettings), &m_dredSettings)))
     {
         m_dredSettings->SetAutoBreadcrumbsEnablement(D3D12_DRED_ENABLEMENT_FORCED_ON);
         m_dredSettings->SetPageFaultEnablement(D3D12_DRED_ENABLEMENT_FORCED_ON);
     }
+#endif
 
+#ifdef HYP_DX12_ENABLE_DEBUG_LAYER
     ComPtr<ID3D12Debug> debugController;
     if (SUCCEEDED(D3D12GetDebugInterface(__uuidof(ID3D12Debug), &debugController)))
     {
         debugController->EnableDebugLayer();
     }
-#endif // 
+#endif
 #endif
 
     // create device
@@ -229,7 +323,7 @@ RendererResult DX12RenderInterface::Initialize()
 #ifdef HYP_DEBUG_MODE
     copyQueueData.commandQueue->SetName(L"D3D12 Copy Command Queue");
 #endif
-    
+
     D3D12MA::ALLOCATOR_DESC allocatorDesc {};
     allocatorDesc.pDevice = m_device.Get();
     allocatorDesc.pAdapter = m_hardwareAdapter.Get();
@@ -277,11 +371,13 @@ RendererResult DX12RenderInterface::Initialize()
     }
 
     descriptorHeapManager->Initialize();
-    
+
+    CheckResultOrReturn(RenderInterface::Initialize());
+
     // In Direct3D, 256 is the minimum constant buffer alignment
     cbufferAllocator->Initialize(256);
 
-    return RenderInterface::Initialize();
+    return {};
 }
 
 void DX12RenderInterface::Shutdown()
@@ -317,8 +413,6 @@ void DX12RenderInterface::Shutdown()
 
     m_recycledTransientCommandBufferFences.Clear();
 
-    descriptorHeapManager->Shutdown();
-
     for (DX12CommandBufferRef& commandBuffer : m_commandBuffers)
     {
         commandBuffer.Reset();
@@ -341,12 +435,19 @@ void DX12RenderInterface::Shutdown()
 
     RenderInterface::Shutdown();
 
+    DeletionQueue::GetInstance().Shutdown();
+
+    descriptorHeapManager->Shutdown();
+    PoolDelete(*g_renderPool, descriptorHeapManager);
+
     m_allocator->Release();
     m_allocator = nullptr;
 
+    m_dredSettings.Reset();
+
     m_device.Reset();
     m_hardwareAdapter.Reset();
-    
+
     dxgiFactory.Reset();
 }
 
@@ -362,10 +463,11 @@ bool DX12RenderInterface::CheckDeviceRemoved() const
 
 DX12Frame* DX12RenderInterface::GetCurrentFrame() const
 {
+    if (m_frames.Empty())
+        return nullptr;
+
     return m_frames[GetFrameCounter() % NumFramesInFlight].Get();
 }
-
-HYP_DISABLE_OPTIMIZATION;
 
 void DX12RenderInterface::PrepareFrame(DX12Frame* frame)
 {
@@ -469,7 +571,7 @@ void DX12RenderInterface::PrepareFrame(DX12Frame* frame)
     {
         LinkedList<DX12CommandBuffer, RenderAllocator>& freeList = m_transientCommandBuffers[threadIndex][frameIndex];
         LinkedList<DX12CommandBuffer, RenderAllocator>& pendingList = m_pendingTransientCommandBuffers[threadIndex][frameIndex];
-        
+
         for (auto it = pendingList.Begin(); it != pendingList.End();)
         {
             DX12CommandBuffer& commandBuffer = *it;
@@ -495,7 +597,7 @@ DX12SwapchainRef DX12RenderInterface::CreateSwapchain(ApplicationWindow* window,
     {
         HYP_FAIL("Failed to create DX12 swapchain: {}", result.GetError().GetMessage());
     }
-    
+
     return swapchain;
 }
 
@@ -620,7 +722,7 @@ void DX12RenderInterface::SubmitTransientCommandBuffer(DX12CommandBuffer& comman
     queueData->commandQueue->ExecuteCommandLists(ArraySize(commandLists), commandLists);
 
     pFence->Increment();
-    
+
     // HYP_LOG_TEMP("Submitting transient command buffer {} with value {} on frame {}", pFence->GetDebugName(), pFence->GetValue(), frameIndex);
 
     HRESULT hr = queueData->commandQueue->Signal(pFence->GetD3D12Fence(), pFence->GetValue());
@@ -685,6 +787,7 @@ DX12GraphicsPipelineRef DX12RenderInterface::MakeGraphicsPipeline(
     graphicsPipeline->SetBlendFunction(attributes.GetMaterialAttributes().blendFunction);
     graphicsPipeline->SetDepthTest(bool(attributes.GetMaterialAttributes().flags & MAF_DEPTH_TEST));
     graphicsPipeline->SetDepthWrite(bool(attributes.GetMaterialAttributes().flags & MAF_DEPTH_WRITE));
+    graphicsPipeline->SetDepthCompareOp(attributes.GetMaterialAttributes().depthCompareOp);
     graphicsPipeline->SetDepthClamp(bool(attributes.GetMaterialAttributes().flags & MAF_DEPTH_CLAMP));
 
     if (attributes.GetMaterialAttributes().flags & MAF_DEPTH_BIAS)
@@ -692,8 +795,8 @@ DX12GraphicsPipelineRef DX12RenderInterface::MakeGraphicsPipeline(
         graphicsPipeline->SetDepthBias(attributes.GetMaterialAttributes().depthBias);
         graphicsPipeline->SetDepthBiasSlope(attributes.GetMaterialAttributes().depthBiasSlope);
     }
-    
-    if (attributes.GetMaterialAttributes().flags & MAF_STENCIL_TEST)  
+
+    if (attributes.GetMaterialAttributes().flags & MAF_STENCIL_TEST)
     {
         graphicsPipeline->SetStencilFunction(attributes.GetMaterialAttributes().stencilFunction);
     }
@@ -786,29 +889,33 @@ DX12GpuTlasRef DX12RenderInterface::MakeTLAS()
     return MakeHandle<DX12GpuTlas>();
 }
 
-void DX12RenderInterface::PopulateIndirectDrawCommandsBuffer(const DX12GpuBufferRef& vertexBuffer, const DX12GpuBufferRef& indexBuffer, uint32 instanceOffset, TByteBuffer<RenderAllocator>& outByteBuffer)
+void DX12RenderInterface::PopulateIndirectDrawCommandsBuffer(
+    const DX12GpuBuffer* vertexBuffer,
+    const DX12GpuBuffer* indexBuffer,
+    uint32 instanceOffset,
+    Array<D3D12_DRAW_INDEXED_ARGUMENTS, DX12Allocator>& outBuffer)
 {
-    const size_t requiredSize = (size_t(instanceOffset) + 1) * sizeof(D3D12_DRAW_INDEXED_ARGUMENTS);
+    const size_t requiredSize = (size_t(instanceOffset) + 1);
 
-    if (outByteBuffer.Size() < requiredSize)
+    if (outBuffer.Size() < requiredSize)
     {
-        outByteBuffer.SetSize(requiredSize);
+        outBuffer.ResizeUninitialized(requiredSize);
     }
 
     uint32 numIndices = 0;
 
-    if (indexBuffer.IsValid())
+    if (indexBuffer != nullptr)
     {
         numIndices = uint32(indexBuffer->Size() / sizeof(uint32));
     }
 
-    D3D12_DRAW_INDEXED_ARGUMENTS* commandPtr = reinterpret_cast<D3D12_DRAW_INDEXED_ARGUMENTS*>(outByteBuffer.Data()) + instanceOffset;
-    *commandPtr = D3D12_DRAW_INDEXED_ARGUMENTS {};
-    commandPtr->IndexCountPerInstance = numIndices;
-    commandPtr->InstanceCount = 1;
-    commandPtr->StartIndexLocation = 0;
-    commandPtr->BaseVertexLocation = 0;
-    commandPtr->StartInstanceLocation = 0;
+    D3D12_DRAW_INDEXED_ARGUMENTS& command = outBuffer[instanceOffset];
+    command = D3D12_DRAW_INDEXED_ARGUMENTS {};
+    command.IndexCountPerInstance = numIndices;
+    command.InstanceCount = 1;
+    command.StartIndexLocation = 0;
+    command.BaseVertexLocation = 0;
+    command.StartInstanceLocation = 0;
 }
 
 bool DX12RenderInterface::IsSupportedFormat(TextureFormat format, ImageSupport supportType) const

@@ -29,7 +29,7 @@
 #include <scene/components/LightmapElementComponent.hpp>
 
 #include <rendering/RenderInterface.hpp>
-#include <rendering/RenderCollection.hpp>
+#include <rendering/RendererMain.hpp>
 #include <rendering/RenderProxyList.hpp>
 #include <rendering/RenderProxy.hpp>
 #include <rendering/InstancedMeshData.hpp>
@@ -208,7 +208,7 @@ View::View(const ViewDesc& viewDesc, Name name)
             continue;
         }
 
-        *it = new RenderProxyList(g_scenePool, /* isShared */ true, /* useRefCounting */ true);
+        *it = new RenderProxyList(/* isShared */ true, /* useRefCounting */ true);
     }
 }
 
@@ -252,7 +252,7 @@ void View::Init()
         }
         else if (m_viewDesc.framebufferDesc.numAttachments > 0)
         {
-            FramebufferRef framebuffer = g_renderInterface->MakeFramebuffer(m_viewDesc.framebufferDesc);
+            FramebufferRef framebuffer = RI.MakeFramebuffer(m_viewDesc.framebufferDesc);
 
 #if HYP_DEBUG_MODE
             if (m_name.IsValid())
@@ -348,7 +348,7 @@ void View::UpdateVisibility()
     }
 }
 
-void View::PrepareShadowViews(Array<View*, SceneTempAllocator>& outShadowViews)
+void View::PrepareShadowViews(Array<View*, SceneAllocator>& outShadowViews)
 {
     HYP_SCOPE;
     AssertOnThread(g_simThread);
@@ -371,7 +371,7 @@ void View::PrepareShadowViews(Array<View*, SceneTempAllocator>& outShadowViews)
 
             if (!(light->GetLightFlags() & LightFlags::ShadowCaster))
                 continue;
-            
+
             bool isLightInFrustum = false;
 
             if (m_flags & ViewFlags::NO_FRUSTUM_CULLING)
@@ -398,9 +398,9 @@ void View::PrepareShadowViews(Array<View*, SceneTempAllocator>& outShadowViews)
                 }
             }
 
-            //if (!isLightInFrustum)
+            if (!isLightInFrustum)
                 // Skip shadow view creation/update if the light is totally out of view.
-            //    continue;
+                continue;
 
             allShadowCastingLights.PushBack(light);
         }
@@ -415,10 +415,10 @@ void View::PrepareShadowViews(Array<View*, SceneTempAllocator>& outShadowViews)
 
         View* shadowViewsStatic[MaxShadowMapCascades] {};
         View* shadowViewsDynamic[MaxShadowMapCascades] {};
-                    
+
         for (uint32 cascadeIndex = 0; cascadeIndex < light->GetNumShadowMapCascades(); cascadeIndex++)
         {
-            shadowViewsDynamic[cascadeIndex] = g_renderInterface->shadowMapCache->GetOrCreateShadowView(
+            shadowViewsDynamic[cascadeIndex] = RI.shadowMapCache->GetOrCreateShadowView(
                 this,
                 light,
                 cascadeIndex,
@@ -428,6 +428,7 @@ void View::PrepareShadowViews(Array<View*, SceneTempAllocator>& outShadowViews)
             {
                 // failed to allocate shadow view - out of slots is most likely cause
                 // skip processing for this light.
+                HYP_LOG(Scene, Warning, "Failed to allocate shadow view for light {}, view: {} (id: {})", light->GetName(), GetName(), Id());
                 break;
             }
 
@@ -436,7 +437,7 @@ void View::PrepareShadowViews(Array<View*, SceneTempAllocator>& outShadowViews)
             // - use baked shadow maps for statics
             if (cacheStaticShadowMaps || hasBakedStaticShadows)
             {
-                shadowViewsStatic[cascadeIndex] = g_renderInterface->shadowMapCache->GetOrCreateShadowView(
+                shadowViewsStatic[cascadeIndex] = RI.shadowMapCache->GetOrCreateShadowView(
                     this,
                     light,
                     cascadeIndex,
@@ -975,7 +976,7 @@ void View::CollectMeshEntities(RenderProxyList& rpl)
             AssertDebug(entity->InstanceClass() == Entity::StaticClass());
 
             auto&& [meshComponent, transformComponent, boundingBoxComponent, lightmapElementComponent] = entity->GetEntityManager()->TryGetComponents<MeshComponent, TransformComponent, BoundingBoxComponent, LightmapElementComponent>(entity);
-            
+
             AssertDebug(meshComponent != nullptr);
 
             if (!meshComponent->mesh || !meshComponent->material)
@@ -996,7 +997,7 @@ void View::CollectMeshEntities(RenderProxyList& rpl)
             meshProxy.attributes = RenderableAttributeSet(meshComponent->mesh->GetMeshAttributes(), meshComponent->material->GetAttributes());
 
             Mat4f transformMatrix = transformComponent->GetMatrix();
-            
+
             if (meshComponent->enableAutoInstancing || meshComponent->numInstances)
             {
                 AssertDebug(m_viewDesc.entityBatchClass == nullptr || m_viewDesc.entityBatchClass == MeshEntityInstanceBatch::StaticClass());
@@ -1030,9 +1031,10 @@ void View::CollectMeshEntities(RenderProxyList& rpl)
                 meshProxy.instanceData = {};
             }
 
-            meshProxy.bufferData.worldAabbMax = boundingBoxComponent ? boundingBoxComponent->worldAabb.max : MathUtil::MinSafeValue<Vec3f>();
-            meshProxy.bufferData.worldAabbMin = boundingBoxComponent ? boundingBoxComponent->worldAabb.min : MathUtil::MaxSafeValue<Vec3f>();
-            
+            const BoundingBox meshWorldBounds = transformMatrix * meshProxy.mesh->GetAABB();
+            meshProxy.bufferData.worldAabbMax = meshWorldBounds.max;
+            meshProxy.bufferData.worldAabbMin = meshWorldBounds.min;
+
             meshProxy.bufferData.modelMatrix = transformMatrix;
             meshProxy.bufferData.previousModelMatrix = meshComponent->previousModelMatrix;
             meshProxy.bufferData.normalMatrix = Mat3f(transformMatrix).Inverse().Transpose();

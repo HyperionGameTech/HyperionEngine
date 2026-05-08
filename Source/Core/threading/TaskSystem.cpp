@@ -18,8 +18,6 @@ namespace Hyperion {
 
 namespace threading {
 
-extern const FlatMap<TaskThreadPoolName, UniquePtr<TaskThreadPool> (*)(void)> g_threadPoolFactories;
-
 #pragma region TaskBatch
 
 bool TaskBatch::IsCompleted() const
@@ -62,36 +60,6 @@ void TaskBatch::AwaitCompletion()
 
 #pragma endregion TaskBatch
 
-#pragma region ForegroundWorkerPool
-
-class ForegroundWorkerPool final : public TaskThreadPool
-{
-public:
-    ForegroundWorkerPool(uint32 numTaskThreads, ThreadPriorityValue priority)
-        : TaskThreadPool(TypeWrapper<TaskThread>(), "ForegroundWorker", numTaskThreads)
-    {
-    }
-
-    virtual ~ForegroundWorkerPool() override = default;
-};
-
-#pragma endregion ForegroundWorkerPool
-
-#pragma region RenderWorkerPool
-
-class RenderWorkerPool final : public TaskThreadPool
-{
-public:
-    RenderWorkerPool(uint32 numTaskThreads, ThreadPriorityValue priority)
-        : TaskThreadPool(TypeWrapper<TaskThread>(), "RenderWorker", numTaskThreads)
-    {
-    }
-
-    virtual ~RenderWorkerPool() override = default;
-};
-
-#pragma endregion RenderWorkerPool
-
 #pragma region TaskSystem
 
 TaskSystem& TaskSystem::GetInstance()
@@ -103,21 +71,6 @@ TaskSystem& TaskSystem::GetInstance()
 
 TaskSystem::TaskSystem()
 {
-    m_pools.Reserve(THREAD_POOL_MAX);
-
-    for (uint32 i = 0; i < THREAD_POOL_MAX; i++)
-    {
-        const TaskThreadPoolName poolName { i };
-
-        auto beginIt = g_threadPoolFactories.Begin();
-        auto endIt = g_threadPoolFactories.End();
-
-        auto threadPoolFactoriesIt = g_threadPoolFactories.Find(poolName);
-
-        AssertDebug(threadPoolFactoriesIt != endIt, "Invalid thread pool index {}", i);
-
-        m_pools.PushBack(threadPoolFactoriesIt->second());
-    }
 }
 
 void TaskSystem::Start()
@@ -142,6 +95,20 @@ void TaskSystem::Stop()
     {
         pool->Stop();
     }
+}
+
+void TaskSystem::RegisterPool(TaskThreadPoolName poolName, UniquePtr<TaskThreadPool>&& pool)
+{
+    AssertDebug(!IsRunning(), "TaskSystem::RegisterPool() must only be called before the TaskSystem is started!");
+
+    AssertDebug(pool != nullptr);
+
+    if (m_pools.Size() <= size_t(poolName))
+    {
+        m_pools.Resize(size_t(poolName) + 1);
+    }
+
+    m_pools[size_t(poolName)] = std::move(pool);
 }
 
 TaskBatch* TaskSystem::EnqueueBatch(TaskBatch* batch)
@@ -244,22 +211,6 @@ TaskThread* TaskSystem::GetNextTaskThread(TaskThreadPool& pool)
 }
 
 #pragma endregion TaskSystem
-
-const FlatMap<TaskThreadPoolName, UniquePtr<TaskThreadPool> (*)(void)> g_threadPoolFactories {
-    { TaskThreadPoolName::THREAD_POOL_GENERIC, +[]() -> UniquePtr<TaskThreadPool>
-        {
-            // we generally don't have more than 3 concurrent Systems running at once.
-            return MakeUnique<ForegroundWorkerPool>(NumForegroundWorkerThreads, ThreadPriorityValue::HIGHEST);
-        } },
-    { TaskThreadPoolName::THREAD_POOL_RENDER, +[]() -> UniquePtr<TaskThreadPool>
-        {
-            return MakeUnique<RenderWorkerPool>(NumRendererWorkerThreads, ThreadPriorityValue::HIGHEST);
-        } },
-    { TaskThreadPoolName::THREAD_POOL_BACKGROUND, +[]() -> UniquePtr<TaskThreadPool>
-        {
-            return MakeUnique<BackgroundWorkerPool>("BackgroundWorker", MaxBackgroundWorkerThreads);
-        } }
-};
 
 } // namespace threading
 } // namespace Hyperion

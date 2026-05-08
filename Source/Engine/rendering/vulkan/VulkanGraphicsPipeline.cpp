@@ -30,7 +30,7 @@
 
 namespace Hyperion {
 
-extern VulkanRenderInterface* g_renderInterface;
+extern VulkanRenderInterface RI;
 
 template <>
 Array<VkDescriptorSetLayout, VulkanAllocator> GetVkDescriptorSetLayouts<VulkanGraphicsPipeline>(const VulkanGraphicsPipeline& pipeline)
@@ -46,7 +46,7 @@ Array<VkDescriptorSetLayout, VulkanAllocator> GetVkDescriptorSetLayouts<VulkanGr
     for (const ShaderInputSet& setDecl : decl->elements)
     {
         VkDescriptorSetLayout layout = VK_NULL_HANDLE;
-        Assert(g_renderInterface->GetOrCreateVkDescriptorSetLayout(DescriptorSetLayout(&setDecl), layout));
+        Assert(RI.GetOrCreateVkDescriptorSetLayout(DescriptorSetLayout(&setDecl), layout));
 
         Assert(layout != VK_NULL_HANDLE);
 
@@ -133,7 +133,7 @@ void VulkanGraphicsPipeline::Bind(VulkanCommandBuffer* commandBuffer, Vec2i view
         vkCmdSetStencilReference(
             vulkanCommandBuffer->GetVulkanHandle(),
             VK_STENCIL_FRONT_AND_BACK,
-            g_renderInterface->state.stencilReference);
+            RI.state.stencilReference);
     }
 
     if (m_stencilFunction.HasValue())
@@ -141,12 +141,12 @@ void VulkanGraphicsPipeline::Bind(VulkanCommandBuffer* commandBuffer, Vec2i view
         vkCmdSetStencilCompareMask(
             vulkanCommandBuffer->GetVulkanHandle(),
             VK_STENCIL_FRONT_AND_BACK,
-            g_renderInterface->state.stencilCompareMask);
+            RI.state.stencilCompareMask);
 
         vkCmdSetStencilWriteMask(
             vulkanCommandBuffer->GetVulkanHandle(),
             VK_STENCIL_FRONT_AND_BACK,
-            g_renderInterface->state.stencilWriteMask);
+            RI.state.stencilWriteMask);
     }
 }
 
@@ -200,9 +200,9 @@ RendererResult VulkanGraphicsPipeline::Rebuild()
 
     VkViewport vkViewport {};
     vkViewport.x = float(m_viewport.position.x);
-    vkViewport.y = float(m_viewport.position.y);
+    vkViewport.y = float(m_viewport.position.y + m_viewport.extent.y);
     vkViewport.width = float(m_viewport.extent.x);
-    vkViewport.height = float(m_viewport.extent.y);
+    vkViewport.height = -float(m_viewport.extent.y);
     vkViewport.minDepth = 0.0f;
     vkViewport.maxDepth = 1.0f;
 
@@ -219,7 +219,7 @@ RendererResult VulkanGraphicsPipeline::Rebuild()
     VkPipelineRasterizationStateCreateInfo rasterizer { VK_STRUCTURE_TYPE_PIPELINE_RASTERIZATION_STATE_CREATE_INFO };
     rasterizer.depthClampEnable = m_depthClamp ? VK_TRUE : VK_FALSE;
     rasterizer.rasterizerDiscardEnable = VK_FALSE;
-    rasterizer.frontFace = VK_FRONT_FACE_COUNTER_CLOCKWISE;
+    rasterizer.frontFace = VK_FRONT_FACE_CLOCKWISE;
 
     switch (m_faceCullMode)
     {
@@ -332,7 +332,7 @@ RendererResult VulkanGraphicsPipeline::Rebuild()
 
     VkPipelineLayoutCreateInfo layoutInfo { VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO };
 
-    const uint32 maxSetLayouts = g_renderInterface->GetDevice()->GetFeatures().GetPhysicalDeviceProperties().limits.maxBoundDescriptorSets;
+    const uint32 maxSetLayouts = RI.GetDevice()->GetFeatures().GetPhysicalDeviceProperties().limits.maxBoundDescriptorSets;
 
     Array<VkDescriptorSetLayout, VulkanAllocator> usedLayouts = GetVkDescriptorSetLayouts(*this);
 
@@ -357,7 +357,7 @@ RendererResult VulkanGraphicsPipeline::Rebuild()
         {
             .stageFlags = VK_SHADER_STAGE_ALL_GRAPHICS,
             .offset = 0,
-            .size = uint32(g_renderInterface->GetDevice()->GetFeatures().PaddedSize<PushConstantData>())
+            .size = uint32(RI.GetDevice()->GetFeatures().PaddedSize<PushConstantData>())
         }
     };
 
@@ -365,14 +365,14 @@ RendererResult VulkanGraphicsPipeline::Rebuild()
     layoutInfo.pPushConstantRanges = pushConstantRanges;
 
     VULKAN_CHECK_MSG(
-        vkCreatePipelineLayout(g_renderInterface->GetDevice()->GetDevice(), &layoutInfo, nullptr, &m_layout),
+        vkCreatePipelineLayout(RI.GetDevice()->GetDevice(), &layoutInfo, nullptr, &m_layout),
         "Failed to create graphics pipeline layout");
 
     /* Depth / stencil */
     VkPipelineDepthStencilStateCreateInfo depthStencil { VK_STRUCTURE_TYPE_PIPELINE_DEPTH_STENCIL_STATE_CREATE_INFO };
     depthStencil.depthTestEnable = m_depthTest;
     depthStencil.depthWriteEnable = m_depthWrite;
-    depthStencil.depthCompareOp = VK_COMPARE_OP_LESS;
+    depthStencil.depthCompareOp = ToVkDepthCompareOp(m_depthCompareOp);
     depthStencil.depthBoundsTestEnable = VK_FALSE;
     depthStencil.minDepthBounds = 0.0f; // Optional
     depthStencil.maxDepthBounds = 1.0f; // Optional
@@ -430,7 +430,7 @@ RendererResult VulkanGraphicsPipeline::Rebuild()
     };
 
     VULKAN_CHECK_MSG(
-        vkCreateGraphicsPipelines(g_renderInterface->GetDevice()->GetDevice(), VK_NULL_HANDLE, 1, &pipelineInfo, nullptr, &m_handle),
+        vkCreateGraphicsPipelines(RI.GetDevice()->GetDevice(), VK_NULL_HANDLE, 1, &pipelineInfo, nullptr, &m_handle),
         "Failed to create graphics pipeline");
 
     Assert(m_handle != VK_NULL_HANDLE, "We got a null handle on our hands!");
@@ -460,9 +460,9 @@ void VulkanGraphicsPipeline::UpdateViewport(
 
     VkViewport vkViewport {};
     vkViewport.x = float(viewport.position.x);
-    vkViewport.y = float(viewport.position.y);
+    vkViewport.y = float(viewport.position.y + viewport.extent.y);
     vkViewport.width = float(viewport.extent.x);
-    vkViewport.height = float(viewport.extent.y);
+    vkViewport.height = -float(viewport.extent.y);
     vkViewport.minDepth = 0.0f;
     vkViewport.maxDepth = 1.0f;
     vkCmdSetViewport(commandBuffer->GetVulkanHandle(), 0, 1, &vkViewport);

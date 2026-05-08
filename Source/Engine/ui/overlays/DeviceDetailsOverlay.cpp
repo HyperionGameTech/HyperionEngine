@@ -36,7 +36,7 @@ Handle<UIObject> DeviceDetailsOverlay::CreateUIObject_Impl(UIObject* spawnParent
 {
     HYP_SCOPE;
 
-    DeviceDetails& device = g_renderInterface->deviceDetails;
+    DeviceDetails& device = RI.deviceDetails;
 
     Handle<UIPanel> panelBackdrop = spawnParent->CreateUIObject<UIPanel>(
         NAME_FMT("DeviceDetailsOverlay_PanelBackdrop"),
@@ -107,7 +107,7 @@ void DeviceDetailsOverlay::Update_Impl(float delta)
     const EngineStatsSnapshot& snapshot = s_stats.GetCurrentSnapshot();
 
     const int fps = MathUtil::Floor(snapshot[StatIdFps].avg);
-    
+
     char fpsStr[8] = { '9', '9', '9', ' ', 'F', 'P', 'S', '\0' };
 
     if (HYP_LIKELY(fps < 1000))
@@ -116,7 +116,7 @@ void DeviceDetailsOverlay::Update_Impl(float delta)
         fpsStr[1] = char('0' + (fps / 10) % 10);
         fpsStr[2] = char('0' + fps % 10);
     }
-    
+
     m_fpsText->SetText(String(fpsStr));
 }
 

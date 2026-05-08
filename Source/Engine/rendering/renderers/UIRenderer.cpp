@@ -80,7 +80,7 @@ static void BuildRenderGroupsOrdered(
 {
     renderCollector.Clear(/* freeMemory */ false);
 
-    RenderGroupCache& attributeRegistry = RenderGroupCache::GetInstance();
+    RenderGroupCache& attributeRegistry = *RI.renderGroupCache;
 
     for (const Pair<ObjId<Entity>, int>& pair : meshEntityOrdering)
     {
@@ -107,7 +107,7 @@ static void BuildRenderGroupsOrdered(
 
         if (const Handle<Texture>& albedoTexture = material->GetTexture(MaterialTextureKey::Diffuse); albedoTexture.IsValid())
         {
-            if (albedoTexture != g_renderInterface->placeholderData->defaultTexture2d)
+            if (albedoTexture != RI.placeholderData->defaultTexture2d)
             {
                 ShaderPropertySet newProperties = attributes.GetShaderProperties();
                 newProperties.Add(s_propTextured);
@@ -166,7 +166,7 @@ void UIRenderCollector::ExecuteDrawCalls(Frame* frame, const RenderSetup& render
         frame->cr << SetCurrentFramebuffer(framebuffer);
     }
 
-    RenderGroupCache& attributeRegistry = RenderGroupCache::GetInstance();
+    RenderGroupCache& attributeRegistry = *RI.renderGroupCache;
 
     using IteratorType = BinnedDrawCallCollections::Iterator;
 
@@ -206,7 +206,7 @@ void UIRenderCollector::ExecuteDrawCalls(Frame* frame, const RenderSetup& render
             drawCallCollection.parallelRenderingState = AcquireNextParallelRenderingState(uint8(drawCallCollection.attributes.GetMaterialAttributes().bucket));
         }
 
-        PerformRendering(frame, renderSetup, drawCallCollection, nullptr);
+        PerformRendering(frame, renderSetup, drawCallCollection);
 
         if (drawCallCollection.parallelRenderingState != nullptr)
         {
@@ -221,7 +221,7 @@ void UIRenderCollector::ExecuteDrawCalls(Frame* frame, const RenderSetup& render
     {
         Commit(frame->cr, uint8(bit));
     }
-    
+
     if (s_parallelRenderingStatesToNullify.Any())
     {
         for (ParallelRenderingState** pp : s_parallelRenderingStatesToNullify)
@@ -283,7 +283,7 @@ void UIRenderer::RenderFrame(Frame* frame, const RenderSetup& renderSetup)
     RenderSetup rs = renderSetup.Fork();
     rs.passData = pd;
 
-    pd->renderCollector.BuildDrawCalls(0);
+    pd->renderCollector.CollectRenderables(0);
     pd->renderCollector.ExecuteDrawCalls(frame, rs, nullptr, 0);
 }
 

@@ -26,14 +26,14 @@
 
 namespace Hyperion {
 
-extern VulkanRenderInterface* g_renderInterface;
+extern VulkanRenderInterface RI;
 
 #pragma region Helpers
 
 static uint32 FindMemoryType(uint32 vkTypeFilter, VkMemoryPropertyFlags vkMemoryPropertyFlags)
 {
     VkPhysicalDeviceMemoryProperties memProperties;
-    vkGetPhysicalDeviceMemoryProperties(g_renderInterface->GetDevice()->GetPhysicalDevice(), &memProperties);
+    vkGetPhysicalDeviceMemoryProperties(RI.GetDevice()->GetPhysicalDevice(), &memProperties);
 
     for (uint32 i = 0; i < memProperties.memoryTypeCount; i++)
     {
@@ -85,7 +85,7 @@ VulkanGpuBuffer& VulkanGpuBuffer::operator=(VulkanGpuBuffer&& other) noexcept
 
         EnqueueDeletion(FunctionWrapper<Proc<void()>>([handle = m_handle, allocation = m_vmaAllocation]() -> void
             {
-                vmaDestroyBuffer(g_renderInterface->GetDevice()->GetVmaAllocator(), handle, allocation);
+                vmaDestroyBuffer(RI.GetDevice()->GetVmaAllocator(), handle, allocation);
             }));
     }
 
@@ -116,10 +116,10 @@ VulkanGpuBuffer::~VulkanGpuBuffer()
     {
         Unmap();
     }
-    
+
     EnqueueDeletion(FunctionWrapper<Proc<void()>>([handle = m_handle, allocation = m_vmaAllocation]() -> void
         {
-            vmaDestroyBuffer(g_renderInterface->GetDevice()->GetVmaAllocator(), handle, allocation);
+            vmaDestroyBuffer(RI.GetDevice()->GetVmaAllocator(), handle, allocation);
         }));
 
     m_handle = VK_NULL_HANDLE;
@@ -196,7 +196,7 @@ void* VulkanGpuBuffer::Map() const
 
     Assert(IsCpuAccessible(), "Attempt to map a buffer that is not CPU accessible!");
 
-    vmaMapMemory(g_renderInterface->GetDevice()->GetVmaAllocator(), m_vmaAllocation, &m_mapping);
+    vmaMapMemory(RI.GetDevice()->GetVmaAllocator(), m_vmaAllocation, &m_mapping);
 
     return m_mapping;
 }
@@ -208,7 +208,7 @@ void VulkanGpuBuffer::Unmap() const
         return;
     }
 
-    vmaUnmapMemory(g_renderInterface->GetDevice()->GetVmaAllocator(), m_vmaAllocation);
+    vmaUnmapMemory(RI.GetDevice()->GetVmaAllocator(), m_vmaAllocation);
     m_mapping = nullptr;
 }
 
@@ -221,7 +221,7 @@ void VulkanGpuBuffer::Flush(size_t offset, size_t count)
 
     AssertDebug(offset + count <= Size());
 
-    VkResult result = vmaFlushAllocation(g_renderInterface->GetDevice()->GetVmaAllocator(), m_vmaAllocation, offset, count);
+    VkResult result = vmaFlushAllocation(RI.GetDevice()->GetVmaAllocator(), m_vmaAllocation, offset, count);
     Assert(result == VK_SUCCESS);
 }
 
@@ -233,10 +233,10 @@ bool VulkanGpuBuffer::IsCreated() const
 bool VulkanGpuBuffer::IsCpuAccessible() const
 {
     VmaAllocationInfo info {};
-    vmaGetAllocationInfo(g_renderInterface->GetDevice()->GetVmaAllocator(), m_vmaAllocation, &info);
+    vmaGetAllocationInfo(RI.GetDevice()->GetVmaAllocator(), m_vmaAllocation, &info);
 
     VkMemoryPropertyFlags flags = 0;
-    vmaGetMemoryTypeProperties(g_renderInterface->GetDevice()->GetVmaAllocator(), info.memoryType, &flags);
+    vmaGetMemoryTypeProperties(RI.GetDevice()->GetVmaAllocator(), info.memoryType, &flags);
 
     return (flags & VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT) != 0;
 }
@@ -252,7 +252,7 @@ RendererResult VulkanGpuBuffer::CheckCanAllocate(size_t size) const
 uint64 VulkanGpuBuffer::GetBufferDeviceAddress() const
 {
     Assert(
-        g_renderInterface->GetDevice()->GetFeatures().GetBufferDeviceAddressFeatures().bufferDeviceAddress,
+        RI.GetDevice()->GetFeatures().GetBufferDeviceAddressFeatures().bufferDeviceAddress,
         "Called GetBufferDeviceAddress() but the buffer device address extension feature is not supported or enabled!");
 
     Assert(m_handle != VK_NULL_HANDLE);
@@ -261,7 +261,7 @@ uint64 VulkanGpuBuffer::GetBufferDeviceAddress() const
     info.buffer = m_handle;
 
     return g_vulkanDynamicFunctions->vkGetBufferDeviceAddressKHR(
-        g_renderInterface->GetDevice()->GetDevice(),
+        RI.GetDevice()->GetDevice(),
         &info);
 }
 
@@ -437,7 +437,7 @@ RendererResult VulkanGpuBuffer::Create()
     {
         VULKAN_CHECK_MSG(
             vmaCreateBufferWithAlignment(
-                g_renderInterface->GetDevice()->GetVmaAllocator(),
+                RI.GetDevice()->GetVmaAllocator(),
                 &createInfo,
                 &allocInfo,
                 m_alignment,
@@ -450,7 +450,7 @@ RendererResult VulkanGpuBuffer::Create()
     {
         VULKAN_CHECK_MSG(
             vmaCreateBuffer(
-                g_renderInterface->GetDevice()->GetVmaAllocator(),
+                RI.GetDevice()->GetVmaAllocator(),
                 &createInfo,
                 &allocInfo,
                 &m_handle,
@@ -508,7 +508,7 @@ RendererResult VulkanGpuBuffer::EnsureCapacity(
 
         EnqueueDeletion(FunctionWrapper<Proc<void()>>([handle = m_handle, allocation = m_vmaAllocation]() -> void
             {
-                vmaDestroyBuffer(g_renderInterface->GetDevice()->GetVmaAllocator(), handle, allocation);
+                vmaDestroyBuffer(RI.GetDevice()->GetVmaAllocator(), handle, allocation);
             }));
 
         m_handle = VK_NULL_HANDLE;
@@ -541,7 +541,7 @@ RendererResult VulkanGpuBuffer::EnsureCapacity(
 
 VkBufferCreateInfo VulkanGpuBuffer::GetBufferCreateInfo() const
 {
-    const QueueFamilyIndices& qfIndices = g_renderInterface->GetDevice()->GetQueueFamilyIndices();
+    const QueueFamilyIndices& qfIndices = RI.GetDevice()->GetQueueFamilyIndices();
     const uint32 bufferFamilyIndices[] = { qfIndices.graphicsFamily.Get(), qfIndices.computeFamily.Get() };
 
     VkBufferCreateInfo vkBufferInfo { VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO };
@@ -567,7 +567,7 @@ RendererResult VulkanGpuBuffer::CheckCanAllocate(
     const VmaAllocationCreateInfo& allocationCreateInfo,
     size_t size) const
 {
-    const VulkanFeatures& features = g_renderInterface->GetDevice()->GetFeatures();
+    const VulkanFeatures& features = RI.GetDevice()->GetFeatures();
 
     RendererResult result;
 
@@ -575,7 +575,7 @@ RendererResult VulkanGpuBuffer::CheckCanAllocate(
 
     VULKAN_PASS_ERRORS(
         vmaFindMemoryTypeIndexForBufferInfo(
-            g_renderInterface->GetDevice()->GetVmaAllocator(),
+            RI.GetDevice()->GetVmaAllocator(),
             &bufferCreateInfo,
             &allocationCreateInfo,
             &memoryTypeIndex),
@@ -613,7 +613,7 @@ void VulkanGpuBuffer::SetDebugName(Name name)
 
     if (m_vmaAllocation != VK_NULL_HANDLE)
     {
-        vmaSetAllocationName(g_renderInterface->GetDevice()->GetVmaAllocator(), m_vmaAllocation, strName);
+        vmaSetAllocationName(RI.GetDevice()->GetVmaAllocator(), m_vmaAllocation, strName);
     }
 
     VkDebugUtilsObjectNameInfoEXT objectNameInfo { VK_STRUCTURE_TYPE_DEBUG_UTILS_OBJECT_NAME_INFO_EXT };
@@ -621,7 +621,7 @@ void VulkanGpuBuffer::SetDebugName(Name name)
     objectNameInfo.objectHandle = (uint64)m_handle;
     objectNameInfo.pObjectName = strName;
 
-    g_vulkanDynamicFunctions->vkSetDebugUtilsObjectNameEXT(g_renderInterface->GetDevice()->GetDevice(), &objectNameInfo);
+    g_vulkanDynamicFunctions->vkSetDebugUtilsObjectNameEXT(RI.GetDevice()->GetDevice(), &objectNameInfo);
 }
 
 #endif

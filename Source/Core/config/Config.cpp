@@ -136,7 +136,8 @@ Result ConfigBase::Read(JSON::Value& outValue) const
         return HYP_MAKE_ERROR(Error, "Failed to open configuration file at {}", configPath);
     }
 
-    String configStr = String(stream.Read().ToByteView());
+    ByteBuffer buffer = stream.Read();
+    String configStr = String(buffer.ToByteView());
 
     JSON::ParseResult parseResult = JSON::Parse(configStr);
 

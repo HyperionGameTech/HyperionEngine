@@ -18,7 +18,7 @@
 
 namespace Hyperion {
 
-extern VulkanRenderInterface* g_renderInterface;
+extern VulkanRenderInterface RI;
 
 #pragma region VulkanPipelineBase
 
@@ -37,8 +37,8 @@ VulkanPipelineBase::~VulkanPipelineBase()
     {
         EnqueueDeletion(FunctionWrapper<Proc<void()>>([handle = m_handle, layout = m_layout]()
             {
-                vkDestroyPipeline(g_renderInterface->GetDevice()->GetDevice(), handle, nullptr);
-                vkDestroyPipelineLayout(g_renderInterface->GetDevice()->GetDevice(), layout, nullptr);
+                vkDestroyPipeline(RI.GetDevice()->GetDevice(), handle, nullptr);
+                vkDestroyPipelineLayout(RI.GetDevice()->GetDevice(), layout, nullptr);
             }));
 
         m_handle = VK_NULL_HANDLE;
@@ -74,7 +74,7 @@ void VulkanPipelineBase::SetDebugName(Name name)
     objectNameInfo.objectHandle = (uint64)m_handle;
     objectNameInfo.pObjectName = strName;
 
-    g_vulkanDynamicFunctions->vkSetDebugUtilsObjectNameEXT(g_renderInterface->GetDevice()->GetDevice(), &objectNameInfo);
+    g_vulkanDynamicFunctions->vkSetDebugUtilsObjectNameEXT(RI.GetDevice()->GetDevice(), &objectNameInfo);
 }
 
 #endif

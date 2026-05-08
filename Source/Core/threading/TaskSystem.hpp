@@ -185,6 +185,8 @@ public:
     HYP_API void Start();
     HYP_API void Stop();
 
+    void RegisterPool(TaskThreadPoolName poolName, UniquePtr<TaskThreadPool>&& pool);
+
     HYP_FORCE_INLINE TaskThreadPool& GetPool(TaskThreadPoolName poolName) const
     {
         return *m_pools[uint32(poolName)];

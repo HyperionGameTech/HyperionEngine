@@ -22,7 +22,7 @@
 
 namespace Hyperion {
 
-extern VulkanRenderInterface* g_renderInterface;
+extern VulkanRenderInterface RI;
 
 VulkanRenderPass::VulkanRenderPass()
     : VulkanRenderPass(FramebufferDesc {})
@@ -53,7 +53,7 @@ VulkanRenderPass& VulkanRenderPass::operator=(VulkanRenderPass&& other) noexcept
     {
         EnqueueDeletion(FunctionWrapper<Proc<void()>>([handle = m_handle]()
             {
-                vkDestroyRenderPass(g_renderInterface->GetDevice()->GetDevice(), handle, nullptr);
+                vkDestroyRenderPass(RI.GetDevice()->GetDevice(), handle, nullptr);
             }));
 
         m_handle = VK_NULL_HANDLE;
@@ -80,7 +80,7 @@ VulkanRenderPass::~VulkanRenderPass()
     {
         EnqueueDeletion(FunctionWrapper<Proc<void()>>([handle = m_handle]()
             {
-                vkDestroyRenderPass(g_renderInterface->GetDevice()->GetDevice(), handle, nullptr);
+                vkDestroyRenderPass(RI.GetDevice()->GetDevice(), handle, nullptr);
             }));
 
         m_handle = VK_NULL_HANDLE;
@@ -300,7 +300,7 @@ RendererResult VulkanRenderPass::Create()
         renderPassInfo.pNext = &multiviewInfo;
     }
 
-    VULKAN_CHECK(vkCreateRenderPass(g_renderInterface->GetDevice()->GetDevice(), &renderPassInfo, nullptr, &m_handle));
+    VULKAN_CHECK(vkCreateRenderPass(RI.GetDevice()->GetDevice(), &renderPassInfo, nullptr, &m_handle));
 
     return {};
 }
@@ -325,7 +325,7 @@ void VulkanRenderPass::Begin(VulkanCommandBuffer* cmd, VulkanFramebuffer* frameb
     renderPassInfo.clearValueCount = uint32(m_vkClearValues.Size());
     renderPassInfo.pClearValues = m_vkClearValues.Data();
 
-    VulkanFrame* currentFrame = g_renderInterface->GetCurrentFrame();
+    VulkanFrame* currentFrame = RI.GetCurrentFrame();
     if (currentFrame != nullptr)
     {
         currentFrame->AddRenderPass(this);
@@ -340,7 +340,7 @@ void VulkanRenderPass::Begin(VulkanCommandBuffer* cmd, VulkanFramebuffer* frameb
         const AttachmentDesc& attachmentDesc = attachment->GetAttachmentDesc();
 
         VulkanGpuImage* image = attachment->GetGpuImage();
-        
+
         const ImageSubResource& subResource = attachment->GetImageView()->GetImageSubResource();
 
         const TextureDesc& textureDesc = image->GetTextureDesc();

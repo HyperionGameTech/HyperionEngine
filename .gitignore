@@ -70,7 +70,6 @@ Source/Generated/**/*
 
 Packages/SampleGame/**/*
 
-Data/Models/Testbed/**/*
 Data/Models/Sponza/**/*
 Data/Models/NewSponza/**/*
 Data/Models/lostempire/**/*

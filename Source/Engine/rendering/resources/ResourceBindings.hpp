@@ -271,7 +271,7 @@ public:
                 AssertDebug(staticIndex >= 0, "Invalid class: '{}' has no assigned static index!", *resourceClass->GetName());
 
                 StructuredBuffer* sbuffer = bufferId != NamedBuffer::Invalid
-                    ? &g_renderInterface->namedBuffers[bufferId]
+                    ? &RI.namedBuffers[bufferId]
                     : nullptr;
 
                 if (!s_subtypeBindings.HasIndex(staticIndex))

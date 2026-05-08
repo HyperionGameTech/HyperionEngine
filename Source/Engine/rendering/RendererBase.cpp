@@ -57,6 +57,15 @@ RendererBase::RendererBase()
 
 RendererBase::~RendererBase()
 {
+    for (auto it = m_viewPassData.Begin(); it != m_viewPassData.End(); ++it)
+    {
+        PassData* pd = *it;
+        
+        if (pd != nullptr)
+        {
+            delete pd;
+        }
+    }
 }
 
 int RendererBase::RunCleanupCycle(int maxIter)

@@ -72,9 +72,9 @@ Handle<ApplicationWindow> CocoaAppContext::CreateSystemWindow(WindowOptions wind
 {
     Handle<CocoaApplicationWindow> window = MakeHandle<CocoaApplicationWindow>(windowOptions.title, windowOptions.dimensions);
     m_windows.PushBack(window);
-    
+
     window->Initialize(windowOptions);
-    
+
     return window;
 }
 
@@ -216,50 +216,68 @@ int CocoaAppContext::PollEvents(Event& event)
     AssertOnThread(g_mainThread);
 
     event = Event();
-    
+
     @autoreleasepool
     {
         NSEvent* nsEvent = [NSApp nextEventMatchingMask:NSEventMaskAny
                                               untilDate:nil
-                                                inMode:NSDefaultRunLoopMode
-                                                dequeue:YES];
-        
+                                                 inMode:NSDefaultRunLoopMode
+                                                 dequeue:YES];
+
         if (!nsEvent)
         {
             return 0;
         }
-        
-        [NSApp sendEvent:nsEvent];
-        [NSApp updateWindows];
 
         NSWindow* nsWindow = [nsEvent window];
         CocoaApplicationWindow* cocoaWindow = nullptr;
+
+        // Find the Cocoa window that corresponds to this event
+        if (nsWindow)
+        {
+            auto cocoaWindowIt = m_windows.FindIf([nsWindow](const Handle<ApplicationWindow>& window)
+            {
+                AssertDebug(window->IsA(CocoaApplicationWindow::StaticClass()));
+
+                CocoaApplicationWindow* cocoaWindow = static_cast<CocoaApplicationWindow*>(window.Get());
+                return (NSWindow*)cocoaWindow->GetNSWindow() == nsWindow;
+            });
+
+            cocoaWindow = cocoaWindowIt != m_windows.End()
+                ? static_cast<CocoaApplicationWindow*>(cocoaWindowIt->Get())
+                : nullptr;
+        }
+
+        NSEventType eventType = [nsEvent type];
+        bool isKeyEvent = (eventType == NSEventTypeKeyDown || eventType == NSEventTypeKeyUp);
+
+        // When Cocoa events are enabled, the view's keyDown:/keyUp: handlers process
+        // key events, so we must route them via sendEvent:. When Cocoa events are
+        // disabled, we handle key events ourselves via HandleNSEvent and must NOT
+        // route them via sendEvent: to prevent them from falling through the
+        // responder chain and causing NSBeep.
+        bool shouldSendEvent = !isKeyEvent || (cocoaWindow && cocoaWindow->UseCocoaEvents());
+
+        if (shouldSendEvent)
+        {
+            [NSApp sendEvent:nsEvent];
+        }
+
+        [NSApp updateWindows];
 
         if (!nsWindow)
         {
             return 0;
         }
 
-        auto cocoaWindowIt = m_windows.FindIf([nsWindow](const Handle<ApplicationWindow>& window)
-        {
-            AssertDebug(window->IsA(CocoaApplicationWindow::StaticClass()));
-
-            CocoaApplicationWindow* cocoaWindow = static_cast<CocoaApplicationWindow*>(window.Get());
-            return (NSWindow*)cocoaWindow->GetNSWindow() == nsWindow;
-        });
-
-        cocoaWindow = cocoaWindowIt != m_windows.End()
-            ? static_cast<CocoaApplicationWindow*>(cocoaWindowIt->Get())
-            : nullptr;
-
         if (cocoaWindow
-            && !cocoaWindow->UseCocoaEvents() // if we are using Cocoa events, they are already handled in the CocoaApplicationWindow methods
+            && !cocoaWindow->UseCocoaEvents()
             && cocoaWindow->HandleNSEvent(nsEvent, event))
         {
             return 1;
         }
     }
-    
+
     return 0;
 }
 
@@ -338,15 +356,17 @@ VkSurfaceKHR CocoaAppContext::CreateVulkanSurface(
                     if ([NSThread isMainThread])
                     {
                         [m_window close];
+                        //[m_window release];
                     }
                     else
                     {
                         // will only occur if RenderOnMainThread is false
                         AssertOnThread(g_renderThread);
 
-                        __block NSWindow* windowToClose = m_window;
+                        __block NSWindow* nsWindow = m_window;
                         dispatch_async(dispatch_get_main_queue(), ^{
-                            [windowToClose close];
+                            [nsWindow close];
+                            //[nsWindow release];
                         });
                     }
 
@@ -362,11 +382,11 @@ VkSurfaceKHR CocoaAppContext::CreateVulkanSurface(
 
         createInfo.pLayer = layer;
     }
-    
-    Assert(g_renderInterface->GetInstance()->GetInstance() != VK_NULL_HANDLE);
+
+    Assert(RI.GetInstance()->GetInstance() != VK_NULL_HANDLE);
 
     VkResult vkResult = vkCreateMetalSurfaceEXT(
-        g_renderInterface->GetInstance()->GetInstance(),
+        RI.GetInstance()->GetInstance(),
         &createInfo,
         nullptr,
         &surface);

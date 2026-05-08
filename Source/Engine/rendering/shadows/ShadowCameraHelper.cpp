@@ -12,7 +12,7 @@ void ShadowCameraHelper::UpdateShadowCameraDirectional(
     const Vec3f& dir,
     float radius)
 {
-    camera.SetWorldTranslation(center + (dir.Normalized() * -1.0f));
+    camera.SetWorldTranslation(center + dir.Normalized());
     camera.SetTarget(center);
 
     BoundingBox bounds { center - radius, center + radius };

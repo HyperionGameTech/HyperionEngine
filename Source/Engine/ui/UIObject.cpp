@@ -851,7 +851,6 @@ void UIObject::SetScrollOffset(Vec2f scrollOffset, bool smooth)
     OnScrollOffsetUpdate(m_scrollOffset.GetValue());
 }
 
-HYP_DISABLE_OPTIMIZATION;
 void UIObject::ScrollToChild(UIObject* child)
 {
     HYP_SCOPE;
@@ -912,7 +911,6 @@ void UIObject::ScrollToChild(UIObject* child)
         SetScrollOffset(Vec2f(newScrollOffset), /* smooth */ false);
     }
 }
-HYP_ENABLE_OPTIMIZATION;
 
 void UIObject::SetFocusState(EnumFlags<UIObjectFocusState> focusState)
 {
@@ -1909,7 +1907,7 @@ MaterialAttributes UIObject::GetMaterialAttributes() const
     MaterialAttributes attrs;
     attrs.shaderName = NAME("UIObject");
     attrs.blendFunction = BlendFunction(BMF_SRC_ALPHA, BMF_ONE_MINUS_SRC_ALPHA, BMF_ONE, BMF_ONE_MINUS_SRC_ALPHA);
-    attrs.cullFaces = FCM_BACK;
+    attrs.cullFaces = FCM_NONE;//FCM_BACK;
     attrs.flags = MAF_NONE;
 
     return attrs;

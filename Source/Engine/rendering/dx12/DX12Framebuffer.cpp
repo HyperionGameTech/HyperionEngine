@@ -18,7 +18,7 @@
 
 namespace Hyperion {
 
-extern DX12RenderInterface* g_renderInterface;
+extern DX12RenderInterface RI;
 
 #pragma region DX12Framebuffer
 
@@ -36,9 +36,9 @@ DX12Framebuffer::~DX12Framebuffer()
 {
     if (!m_isExternalRTV)
     {
-        g_renderInterface->descriptorHeapManager->Free(DX12DescriptorHeapType::RTV, std::move(m_rtvDescriptorHandle));
+        RI.descriptorHeapManager->Free(DX12DescriptorHeapType::RTV, std::move(m_rtvDescriptorHandle));
     }
-    g_renderInterface->descriptorHeapManager->Free(DX12DescriptorHeapType::DSV, std::move(m_dsvDescriptorHandle));
+    RI.descriptorHeapManager->Free(DX12DescriptorHeapType::DSV, std::move(m_dsvDescriptorHandle));
 
     m_attachmentMap.Reset();
 }
@@ -49,7 +49,7 @@ RendererResult DX12Framebuffer::Create()
     {
         return {};
     }
-    
+
     Vec2u imageExtent;
 
     if (!m_isExternalRTV)
@@ -78,7 +78,7 @@ RendererResult DX12Framebuffer::Create()
     {
         DX12Attachment* attachment = it.second;
         Assert(attachment != nullptr);
-        
+
         // Ensure image is created
         DX12GpuImageRef image = attachment->GetGpuImage();
 
@@ -118,24 +118,24 @@ RendererResult DX12Framebuffer::Create()
     // Allocate RTV/DSV descriptors
     if (numRTVs > 0)
     {
-        m_rtvDescriptorHandle = g_renderInterface->descriptorHeapManager->Allocate(DX12DescriptorHeapType::RTV, numRTVs);
-        
+        m_rtvDescriptorHandle = RI.descriptorHeapManager->Allocate(DX12DescriptorHeapType::RTV, numRTVs);
+
         if (!m_rtvDescriptorHandle.IsValid())
             return HYP_MAKE_ERROR(RendererError, "Failed to allocate RTV descriptors");
     }
 
     if (hasDepth)
     {
-        m_dsvDescriptorHandle = g_renderInterface->descriptorHeapManager->Allocate(DX12DescriptorHeapType::DSV, 1);
-        
+        m_dsvDescriptorHandle = RI.descriptorHeapManager->Allocate(DX12DescriptorHeapType::DSV, 1);
+
         if (!m_dsvDescriptorHandle.IsValid())
             return HYP_MAKE_ERROR(RendererError, "Failed to allocate DSV descriptors");
     }
 
     // Create Views
-    ID3D12Device* device = g_renderInterface->GetDevice();
+    ID3D12Device* device = RI.GetDevice();
     const uint32 rtvIncrement = device->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_RTV);
-    
+
     uint32 rtvIndex = 0;
 
     for (auto& it : m_attachmentMap)
@@ -163,7 +163,7 @@ RendererResult DX12Framebuffer::Create()
 
             D3D12_CPU_DESCRIPTOR_HANDLE rtvHandle = m_rtvDescriptorHandle.cpuHandle;
             rtvHandle.ptr += rtvIndex * rtvIncrement;
-            
+
             device->CreateRenderTargetView(image->GetResource(), &rtvDesc, rtvHandle);
 
             rtvIndex++;
@@ -246,7 +246,7 @@ void DX12Framebuffer::BeginCapture(DX12CommandBuffer* commandBuffer)
     Assert(!m_isRecording);
 
     ID3D12GraphicsCommandList* commandList = commandBuffer->GetCommandList();
-    ID3D12Device* device = g_renderInterface->GetDevice();
+    ID3D12Device* device = RI.GetDevice();
     const uint32 rtvIncrement = device->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_RTV);
 
     // Transition attachments to render target state and collect handles
@@ -390,6 +390,7 @@ void DX12Framebuffer::BeginCapture(DX12CommandBuffer* commandBuffer)
         );
     }
 
+    m_hasBeenCleared = true;
     m_isRecording = true;
 }
 
@@ -451,7 +452,7 @@ void DX12Framebuffer::Clear(
     Assert(m_isRecording);
 
     ID3D12GraphicsCommandList* commandList = commandBuffer->GetCommandList();
-    ID3D12Device* device = g_renderInterface->GetDevice();
+    ID3D12Device* device = RI.GetDevice();
 
     const uint32 rtvIncrement = device->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_RTV);
 

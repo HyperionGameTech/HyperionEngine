@@ -96,6 +96,64 @@ EngineStatCounter<uint32> g_statViews("Rendering/Views");
 
 ThreadSignal g_renderInitSignal { 0 };
 
+// We generally don't have more than 3 Systems running concurrently
+CVar<uint32> cvNumForegroundWorkerThreads("Threads.NumForegroundWorkers", 3);
+
+#pragma region ForegroundWorkerPool
+
+class ForegroundWorkerPool final : public TaskThreadPool
+{
+public:
+    ForegroundWorkerPool(uint32 numTaskThreads, ThreadPriorityValue priority)
+        : TaskThreadPool(TypeWrapper<TaskThread>(), "ForegroundWorker", numTaskThreads)
+    {
+    }
+
+    virtual ~ForegroundWorkerPool() override = default;
+};
+
+#pragma endregion ForegroundWorkerPool
+
+#pragma region RenderWorkerPool
+
+class RenderWorkerPool final : public TaskThreadPool
+{
+public:
+    RenderWorkerPool(uint32 numTaskThreads, ThreadPriorityValue priority)
+        : TaskThreadPool(TypeWrapper<TaskThread>(), "RenderWorker", numTaskThreads)
+    {
+    }
+
+    virtual ~RenderWorkerPool() override = default;
+};
+
+#pragma endregion RenderWorkerPool
+
+#pragma region Thread Pool Factories
+
+static const HashMap<TaskThreadPoolName, UniquePtr<TaskThreadPool> (*)(void)> s_threadPoolFactories {
+    {
+        TaskThreadPoolName::THREAD_POOL_GENERIC, []() -> UniquePtr<TaskThreadPool>
+        {
+            return MakeUnique<ForegroundWorkerPool>(cvNumForegroundWorkerThreads.Get(), ThreadPriorityValue::HIGHEST);
+        }
+    },
+    {
+        TaskThreadPoolName::THREAD_POOL_RENDER, []() -> UniquePtr<TaskThreadPool>
+        {
+            return MakeUnique<RenderWorkerPool>(NumRendererWorkerThreads, ThreadPriorityValue::HIGHEST);
+        }
+    },
+    {
+        TaskThreadPoolName::THREAD_POOL_BACKGROUND, []() -> UniquePtr<TaskThreadPool>
+        {
+            return MakeUnique<BackgroundWorkerPool>("BackgroundWorker", MaxBackgroundWorkerThreads);
+        }
+    }
+};
+
+#pragma endregion Thread Pool Factories
+
 void HandleSignal(int signum)
 {
 #ifdef HYP_WINDOWS
@@ -217,6 +275,7 @@ const Handle<EngineDriver>& EngineDriver::GetInstance()
 EngineDriver::EngineDriver()
     : m_currentWorld(nullptr),
       m_viewCollectionBatch(nullptr),
+      m_isInitialized(false),
       m_isShuttingDown(0)
 {
 }
@@ -225,9 +284,14 @@ EngineDriver::~EngineDriver()
 {
 }
 
-HYP_API void EngineDriver::Init()
+void EngineDriver::Initialize()
 {
     AssertOnThread(g_mainThread);
+
+    if (m_isInitialized)
+    {
+        return;
+    }
 
 #if HYP_EDITOR
     // Create script compilation service
@@ -252,9 +316,8 @@ HYP_API void EngineDriver::Init()
     }
 
     m_viewCollectionBatch = new TaskBatch();
-    m_viewCollectionBatch->pool = &TaskSystem::GetInstance().GetPool(TaskThreadPoolName::THREAD_POOL_GENERIC);
 
-    SetReady(true);
+    m_isInitialized = true;
 }
 
 World* EngineDriver::GetCurrentWorld() const
@@ -282,18 +345,6 @@ void EngineDriver::SetCurrentWorld(World* world)
     m_currentWorld = world;
 
     OnCurrentWorldChanged(m_currentWorld);
-}
-
-void EngineDriver::SetDefaultWorld(const Handle<World>& defaultWorld)
-{
-    AssertOnThread(g_simThread);
-
-    m_defaultWorld = defaultWorld;
-
-    if (IsInitCalled())
-    {
-        InitObject(m_defaultWorld);
-    }
 }
 
 void EngineDriver::AddWorld(const Handle<World>& world)
@@ -369,9 +420,9 @@ Game* EngineDriver::GetGameInstance() const
 
 bool EngineDriver::StartThreads()
 {
-    HYP_SCOPE;
     AssertOnThread(g_mainThread);
-    AssertReady();
+
+    Assert(m_isInitialized);
 
     Assert(g_renderThreadInstance != nullptr
         && g_simThreadInstance != nullptr
@@ -383,6 +434,23 @@ bool EngineDriver::StartThreads()
     Assert(!g_visThreadInstance->IsRunning(), "Vis thread is already running!");
 
     bool success = true;
+
+    { // Create all task thread pools and initialize the task system
+        for (auto& pair : s_threadPoolFactories)
+        {
+            const TaskThreadPoolName name = pair.first;
+            const auto& createFn = pair.second;
+
+            TaskSystem::GetInstance().RegisterPool(name, createFn());
+        }
+
+        Assert(m_viewCollectionBatch != nullptr);
+        m_viewCollectionBatch->pool = &TaskSystem::GetInstance().GetPool(TaskThreadPoolName::THREAD_POOL_GENERIC);
+
+        TaskSystem::GetInstance().Start();
+    }
+
+    HYP_DEFER({ if (!success) TaskSystem::GetInstance().Stop(); });
 
     success &= g_renderThreadInstance->Start();
     if (!success)
@@ -401,12 +469,21 @@ bool EngineDriver::StartThreads()
     if (!success)
         return false;
 
-    return g_mainThreadInstance->Start();
+    success &= g_mainThreadInstance->Start();
+    if (!success)
+        return false;
+
+    return success;
 }
 
 void EngineDriver::RequestStop()
 {
     m_delegates.OnShutdown();
+
+    if (TaskSystem::GetInstance().IsRunning())
+    {
+        TaskSystem::GetInstance().Stop();
+    }
 
     if (int32 shutdownCounter = AtomicIncrement(&m_isShuttingDown); shutdownCounter == 1)
     {
@@ -424,12 +501,13 @@ void EngineDriver::RequestStop()
 
 void EngineDriver::FinalizeStop()
 {
-    HYP_SCOPE;
     AssertOnThread(g_mainThread);
 
     Assert(AtomicAdd(&m_isShuttingDown, 0) >= 1);
 
     HYP_LOG(Engine, Info, "Stopping all engine processes");
+
+    m_worlds.Clear();
 
     if (m_scriptingService)
     {
@@ -463,8 +541,6 @@ void EngineDriver::FinalizeStop()
         SetGlobalNetRequestThread(nullptr);
     }
 
-    m_worlds.Clear();
-
     m_isShuttingDown = 0;
 }
 
@@ -482,17 +558,17 @@ void EngineDriver::UpdateSim(float delta)
     const uint32 slot = GetRingIndex();
     const uint32 frameCounter = GetFrameCounter();
 
-    Array<Scene*, SceneTempAllocator> scenes;
-    Array<View*, SceneTempAllocator> views;
-    Array<Subsystem*, SceneTempAllocator> subsystems;
+    Array<Scene*, SceneAllocator> scenes;
+    Array<View*, SceneAllocator> views;
+    Array<Subsystem*, SceneAllocator> subsystems;
 
     TaskBatch worldUpdateTaskBatch;
     TaskBatch* currBatch = &worldUpdateTaskBatch;
 
-    Array<World*, SceneTempAllocator> worldsToRender;
+    Array<World*, SceneAllocator> worldsToRender;
     worldsToRender.Reserve(m_worlds.Size());
 
-    Array<World*, SceneTempAllocator> simulatingWorlds;
+    Array<World*, SceneAllocator> simulatingWorlds;
     simulatingWorlds.Reserve(m_worlds.Size());
 
     for (uint32 i = 0; i < uint32(m_worlds.Size()); i++)
@@ -688,7 +764,7 @@ void EngineDriver::UpdateSim(float delta)
             // (they may still assume the tag components exist)
             scene->GetEntityManager()->AddPendingEntitySets();
         }
-        
+
         // remove tags for updates that were applied
 
         for (Entity* entity : updatedEntities[Bucket_RenderProxy])

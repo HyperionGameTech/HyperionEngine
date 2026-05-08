@@ -181,7 +181,7 @@ VSOutput VSMain(VSInput input, uint ViewId : SV_ViewID, uint instanceId : SV_Ins
     output.position_cs = mul(projection_matrix, mul(view_matrix, position));
 
     output.v_cube_face_index = ViewId;
-    output.v_cube_face_uv = output.position_cs.xy * 0.5 + 0.5;
+    output.v_cube_face_uv = float2(output.position_cs.x * 0.5 + 0.5, 0.5 - output.position_cs.y * 0.5);
 
     return output;
 }

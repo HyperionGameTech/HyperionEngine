@@ -20,7 +20,7 @@
 
 namespace Hyperion {
 
-extern DX12RenderInterface* g_renderInterface;
+extern DX12RenderInterface RI;
 
 #pragma region DX12AccelerationGeometry
 
@@ -260,7 +260,7 @@ RendererResult DX12GpuBlas::Rebuild(RTUpdateStateFlags& outUpdateStateFlags)
     inputs.DescsLayout = D3D12_ELEMENTS_LAYOUT_ARRAY;
     inputs.pGeometryDescs = &geometryDesc;
 
-    ID3D12Device* device = g_renderInterface->GetDevice();
+    ID3D12Device* device = RI.GetDevice();
 
     ComPtr<ID3D12Device5> device5;
     if (FAILED(device->QueryInterface(IID_PPV_ARGS(&device5))))
@@ -276,17 +276,17 @@ RendererResult DX12GpuBlas::Rebuild(RTUpdateStateFlags& outUpdateStateFlags)
 
     if (!m_buffer || m_buffer->Size() < accelerationStructureSize)
     {
-        m_buffer = g_renderInterface->MakeGpuBuffer(GpuBufferType::AccelerationStructureBuffer, accelerationStructureSize);
+        m_buffer = RI.MakeGpuBuffer(GpuBufferType::AccelerationStructureBuffer, accelerationStructureSize);
         CheckResultOrReturn(m_buffer->Create());
     }
 
     if (!m_scratchBuffer || m_scratchBuffer->Size() < scratchBufferSize)
     {
-        m_scratchBuffer = g_renderInterface->MakeGpuBuffer(GpuBufferType::ScratchBuffer, scratchBufferSize);
+        m_scratchBuffer = RI.MakeGpuBuffer(GpuBufferType::ScratchBuffer, scratchBufferSize);
         CheckResultOrReturn(m_scratchBuffer->Create());
     }
 
-    ID3D12GraphicsCommandList* commandList = g_renderInterface->GetCurrentCommandBuffer()->GetCommandList();
+    ID3D12GraphicsCommandList* commandList = RI.GetCurrentCommandBuffer()->GetCommandList();
 
     ComPtr<ID3D12GraphicsCommandList4> commandList4;
     if (FAILED(commandList->QueryInterface(IID_PPV_ARGS(&commandList4))))
@@ -369,10 +369,10 @@ void DX12GpuTlas::RemoveGpuBlas(uint64 key)
         DX12GpuBlas* blas = it->second.first;
         uint32 storageId = it->second.second;
 
-        g_renderInterface->bindlessStorage->RemoveResource(BindlessStorage_Buffers, storageId * 2);
-        g_renderInterface->bindlessStorage->RemoveResource(BindlessStorage_Buffers, storageId * 2 + 1);
+        RI.bindlessStorage->RemoveResource(BindlessStorage_Buffers, storageId * 2);
+        RI.bindlessStorage->RemoveResource(BindlessStorage_Buffers, storageId * 2 + 1);
 
-        g_renderInterface->bindlessStorage->ReleaseId(BindlessStorage_Buffers, storageId);
+        RI.bindlessStorage->ReleaseId(BindlessStorage_Buffers, storageId);
 
         auto blasesIt = m_blases.Find(blas);
         Assert(blasesIt != m_blases.End());
@@ -424,7 +424,7 @@ RendererResult DX12GpuTlas::Rebuild(RTUpdateStateFlags& outUpdateStateFlags)
 
     if (!m_instancesBuffer || m_instancesBuffer->Size() < instancesBufferSize)
     {
-        m_instancesBuffer = g_renderInterface->MakeGpuBuffer(GpuBufferType::AccelerationStructureInstanceBuffer, instancesBufferSize);
+        m_instancesBuffer = RI.MakeGpuBuffer(GpuBufferType::AccelerationStructureInstanceBuffer, instancesBufferSize);
         CheckResultOrReturn(m_instancesBuffer->Create());
     }
 
@@ -455,7 +455,7 @@ RendererResult DX12GpuTlas::Rebuild(RTUpdateStateFlags& outUpdateStateFlags)
     inputs.DescsLayout = D3D12_ELEMENTS_LAYOUT_ARRAY;
     inputs.InstanceDescs = m_instancesBuffer->GetResource()->GetGPUVirtualAddress();
 
-    ID3D12Device* device = g_renderInterface->GetDevice();
+    ID3D12Device* device = RI.GetDevice();
 
     ComPtr<ID3D12Device5> device5;
     if (FAILED(device->QueryInterface(IID_PPV_ARGS(&device5))))
@@ -471,17 +471,17 @@ RendererResult DX12GpuTlas::Rebuild(RTUpdateStateFlags& outUpdateStateFlags)
 
     if (!m_buffer || m_buffer->Size() < accelerationStructureSize)
     {
-        m_buffer = g_renderInterface->MakeGpuBuffer(GpuBufferType::AccelerationStructureBuffer, accelerationStructureSize);
+        m_buffer = RI.MakeGpuBuffer(GpuBufferType::AccelerationStructureBuffer, accelerationStructureSize);
         CheckResultOrReturn(m_buffer->Create());
     }
 
     if (!m_scratchBuffer || m_scratchBuffer->Size() < scratchBufferSize)
     {
-        m_scratchBuffer = g_renderInterface->MakeGpuBuffer(GpuBufferType::ScratchBuffer, scratchBufferSize);
+        m_scratchBuffer = RI.MakeGpuBuffer(GpuBufferType::ScratchBuffer, scratchBufferSize);
         CheckResultOrReturn(m_scratchBuffer->Create());
     }
 
-    ID3D12GraphicsCommandList* commandList = g_renderInterface->GetCurrentCommandBuffer()->GetCommandList();
+    ID3D12GraphicsCommandList* commandList = RI.GetCurrentCommandBuffer()->GetCommandList();
 
     ComPtr<ID3D12GraphicsCommandList4> commandList4;
     if (FAILED(commandList->QueryInterface(IID_PPV_ARGS(&commandList4))))

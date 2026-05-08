@@ -53,9 +53,11 @@ public:
 
     HYP_METHOD()
     void SetCurrentProject(const Handle<EditorProject>& project);
-    
+
     HYP_METHOD()
     void AddTask(const Handle<EditorTaskBase>& task);
+
+    void Initialize();
 
     void Update(float delta);
 
@@ -72,8 +74,6 @@ public:
     ScriptableDelegate<void, Handle<EditorTaskBase>> OnTaskProgressUpdated;
 
 private:
-    void Init() override;
-
     Handle<EditorProject> m_currentProject;
 
     EditorTaskManager m_taskManager;

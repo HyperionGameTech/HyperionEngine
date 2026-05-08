@@ -2,7 +2,7 @@
  *  @author: The Hyperion Contributors
  *  @date 2016-2026
  *  @licence MIT
-*/
+ */
 
 #include <VulkanPch.hpp>
 
@@ -23,7 +23,7 @@ namespace Hyperion {
 
 HYP_DECLARE_LOG_CHANNEL(RenderingBackend);
 
-extern VulkanRenderInterface* g_renderInterface;
+extern VulkanRenderInterface RI;
 
 VulkanCommandBuffer::VulkanCommandBuffer()
     : m_handle(VK_NULL_HANDLE),
@@ -68,7 +68,7 @@ VulkanCommandBuffer& VulkanCommandBuffer::operator=(VulkanCommandBuffer&& other)
 
         EnqueueDeletion(FunctionWrapper<Proc<void()>>([commandPool = m_commandPool, handle = m_handle]() -> void
             {
-                vkFreeCommandBuffers(g_renderInterface->GetDevice()->GetDevice(), commandPool, 1, &handle);
+                vkFreeCommandBuffers(RI.GetDevice()->GetDevice(), commandPool, 1, &handle);
             }));
     }
 
@@ -100,7 +100,7 @@ VulkanCommandBuffer::~VulkanCommandBuffer()
 
         EnqueueDeletion(FunctionWrapper<Proc<void()>>([commandPool = m_commandPool, handle = m_handle]() -> void
             {
-                vkFreeCommandBuffers(g_renderInterface->GetDevice()->GetDevice(), commandPool, 1, &handle);
+                vkFreeCommandBuffers(RI.GetDevice()->GetDevice(), commandPool, 1, &handle);
             }));
 
         m_handle = VK_NULL_HANDLE;
@@ -137,7 +137,7 @@ RendererResult VulkanCommandBuffer::Create()
     allocInfo.commandBufferCount = 1;
 
     VULKAN_CHECK_MSG(
-        vkAllocateCommandBuffers(g_renderInterface->GetDevice()->GetDevice(), &allocInfo, &m_handle),
+        vkAllocateCommandBuffers(RI.GetDevice()->GetDevice(), &allocInfo, &m_handle),
         "Failed to allocate command buffer");
 
     return {};
@@ -192,6 +192,17 @@ RendererResult VulkanCommandBuffer::Submit(
     Span<VulkanSemaphore*> waitSemaphores,
     Span<VulkanSemaphore*> signalSemaphores)
 {
+    return Submit(queue, fence, waitSemaphores, signalSemaphores, nullptr, nullptr);
+}
+
+RendererResult VulkanCommandBuffer::Submit(
+    VulkanDeviceQueue* queue,
+    VulkanFence* fence,
+    Span<VulkanSemaphore*> waitSemaphores,
+    Span<VulkanSemaphore*> signalSemaphores,
+    const uint64* waitValues,
+    const uint64* signalValues)
+{
     AssertOnThread(g_renderThread);
 
     VkSemaphore* signalSemaphoresVk = signalSemaphores.Size() > 0 ? (VkSemaphore*)StackAlloc(sizeof(VkSemaphore) * signalSemaphores.Size()) : nullptr;
@@ -210,7 +221,41 @@ RendererResult VulkanCommandBuffer::Submit(
         waitStages[i] = { VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT };
     }
 
+    const bool useTimelineInfo = (waitValues != nullptr || signalValues != nullptr);
+    uint64* safeWaitValues = nullptr;
+    uint64* safeSignalValues = nullptr;
+
+    if (useTimelineInfo)
+    {
+        const uint32 numWaitSems = uint32(waitSemaphores.Size());
+        const uint32 numSignalSems = uint32(signalSemaphores.Size());
+
+        safeWaitValues = (numWaitSems > 0) ? (uint64*)StackAlloc(sizeof(uint64) * numWaitSems) : nullptr;
+        safeSignalValues = (numSignalSems > 0) ? (uint64*)StackAlloc(sizeof(uint64) * numSignalSems) : nullptr;
+
+        for (uint32 i = 0; i < numWaitSems; i++)
+        {
+            safeWaitValues[i] = waitValues ? waitValues[i] : 0;
+        }
+
+        for (uint32 i = 0; i < numSignalSems; i++)
+        {
+            safeSignalValues[i] = signalValues ? signalValues[i] : 0;
+        }
+    }
+
+    VkTimelineSemaphoreSubmitInfo timelineInfo { VK_STRUCTURE_TYPE_TIMELINE_SEMAPHORE_SUBMIT_INFO };
+    timelineInfo.waitSemaphoreValueCount = uint32(waitSemaphores.Size());
+    timelineInfo.pWaitSemaphoreValues = reinterpret_cast<const uint64_t*>(safeWaitValues);
+    timelineInfo.signalSemaphoreValueCount = uint32(signalSemaphores.Size());
+    timelineInfo.pSignalSemaphoreValues = reinterpret_cast<const uint64_t*>(safeSignalValues);
+
     VkSubmitInfo submitInfo { VK_STRUCTURE_TYPE_SUBMIT_INFO };
+
+    if (useTimelineInfo)
+    {
+        submitInfo.pNext = &timelineInfo;
+    }
 
     if (waitSemaphores.Size() > 0)
     {
@@ -258,7 +303,7 @@ void VulkanCommandBuffer::BindVertexBuffer(const VulkanGpuBuffer* buffer)
     AssertDebug(buffer->GetBufferType() == GpuBufferType::VertexBuffer, "Not a vertex buffer! Got buffer type: %u", uint32(buffer->GetBufferType()));
 
     const VkBuffer vertexBuffers[] = { buffer->GetVulkanHandle() };
-    
+
     vkCmdBindVertexBuffers(m_handle, 0, 1, vertexBuffers, BindingOffsets);
 }
 

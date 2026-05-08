@@ -20,7 +20,7 @@
 
 namespace Hyperion {
 
-extern VulkanRenderInterface* g_renderInterface;
+extern VulkanRenderInterface RI;
 
 VulkanSampler::VulkanSampler(const SamplerDesc& desc)
     : SamplerBase(desc),
@@ -34,7 +34,7 @@ VulkanSampler::~VulkanSampler()
     {
         EnqueueDeletion(FunctionWrapper<Proc<void()>>([handle = m_handle]()
             {
-                vkDestroySampler(g_renderInterface->GetDevice()->GetDevice(), handle, nullptr);
+                vkDestroySampler(RI.GetDevice()->GetDevice(), handle, nullptr);
             }));
 
         m_handle = VK_NULL_HANDLE;
@@ -67,7 +67,7 @@ RendererResult VulkanSampler::Create()
 
     samplerInfo.borderColor = VK_BORDER_COLOR_INT_OPAQUE_BLACK;
     samplerInfo.unnormalizedCoordinates = VK_FALSE;
-    
+
     samplerInfo.compareEnable = VK_FALSE;
     samplerInfo.compareOp = VK_COMPARE_OP_ALWAYS;
 
@@ -128,7 +128,7 @@ RendererResult VulkanSampler::Create()
 
     if (m_minFilterMode == TFM_MINMAX_MIPMAP)
     {
-        if (!g_renderInterface->GetDevice()->GetFeatures().GetSamplerMinMaxProperties().filterMinmaxSingleComponentFormats)
+        if (!RI.GetDevice()->GetFeatures().GetSamplerMinMaxProperties().filterMinmaxSingleComponentFormats)
         {
             return HYP_MAKE_ERROR(RendererError, "Device does not support min/max sampler formats");
         }
@@ -137,7 +137,7 @@ RendererResult VulkanSampler::Create()
         samplerInfo.pNext = &reductionInfo;
     }
 
-    if (vkCreateSampler(g_renderInterface->GetDevice()->GetDevice(), &samplerInfo, nullptr, &m_handle) != VK_SUCCESS)
+    if (vkCreateSampler(RI.GetDevice()->GetDevice(), &samplerInfo, nullptr, &m_handle) != VK_SUCCESS)
     {
         return HYP_MAKE_ERROR(RendererError, "Failed to create sampler!");
     }
@@ -163,7 +163,7 @@ void VulkanSampler::SetDebugName(Name name)
     objectNameInfo.objectHandle = (uint64)m_handle;
     objectNameInfo.pObjectName = strName;
 
-    g_vulkanDynamicFunctions->vkSetDebugUtilsObjectNameEXT(g_renderInterface->GetDevice()->GetDevice(), &objectNameInfo);
+    g_vulkanDynamicFunctions->vkSetDebugUtilsObjectNameEXT(RI.GetDevice()->GetDevice(), &objectNameInfo);
 }
 
 #endif

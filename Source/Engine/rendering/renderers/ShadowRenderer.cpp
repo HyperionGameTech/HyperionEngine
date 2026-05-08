@@ -23,7 +23,7 @@
 #include <rendering/RenderProxy.hpp>
 #include <rendering/Texture.hpp>
 #include <rendering/ShaderInstance.hpp>
-#include <rendering/RenderCollection.hpp>
+#include <rendering/RendererMain.hpp>
 #include <rendering/TextureViewCache.hpp>
 
 #include <scene/Light.hpp>
@@ -73,7 +73,7 @@ void ShadowRendererBase::Shutdown()
     {
         for (CacheKey& cacheKey : cacheKeys)
         {
-            bool removed = g_renderInterface->shadowMapCache->Remove(cacheKey.light, cacheKey.view);
+            bool removed = RI.shadowMapCache->Remove(cacheKey.light, cacheKey.view);
 
             if (!removed)
             {
@@ -99,7 +99,7 @@ int ShadowRendererBase::RunCleanupCycle(int maxIter)
         {
             HYP_LOG(Rendering, Verbose, "Removing cached shadow map for Light {} + View {} as it has not been used in over {} frames", it->first.light->Id(), it->first.view->Id(), RingBufferDepth);
 
-            bool removed = g_renderInterface->shadowMapCache->Remove(it->first.light, it->first.view);
+            bool removed = RI.shadowMapCache->Remove(it->first.light, it->first.view);
 
             if (!removed)
             {
@@ -132,7 +132,7 @@ void ShadowRendererBase::RenderFrame(Frame* frame, const RenderSetup& renderSetu
     const bool isVarianceShadowMap = light->GetShadowMapFilter() == ShadowMapFilter::SMF_VSM;
     const bool hasBakedStaticShadowMaps = (light->GetLightFlags() & LightFlags::BakeStaticShadows) && lightProxy->bakedShadowMap != nullptr;
     const bool cacheStaticShadowMaps = !hasBakedStaticShadowMaps && (light->GetLightFlags() & LightFlags::CacheStaticShadowMaps);
-    
+
     CacheKey cacheKey {};
     cacheKey.light = light;
     cacheKey.view = renderSetup.view;
@@ -153,7 +153,7 @@ void ShadowRendererBase::RenderFrame(Frame* frame, const RenderSetup& renderSetu
             {
                 GpuBufferRef& buffer = cachedData->blurUniformBuffers[frameIndex];
 
-                buffer = g_renderInterface->MakeGpuBuffer(GpuBufferType::ConstantBuffer, sizeof(Vec2u) * 3);
+                buffer = RI.MakeGpuBuffer(GpuBufferType::ConstantBuffer, sizeof(Vec2u) * 3);
 
 #if HYP_DEBUG_MODE
                 buffer->SetDebugName(NAME_FMT("BlurShadowMap_UniformBuffer_Frame{}", frameIndex));
@@ -173,20 +173,31 @@ void ShadowRendererBase::RenderFrame(Frame* frame, const RenderSetup& renderSetu
 
     for (uint32 cascadeIndex = 0; cascadeIndex < lightProxy->numCascades; cascadeIndex++)
     {
-        ShadowMap* shadowMap = g_renderInterface->shadowMapCache->GetShadowMap(
+        ShadowMap* shadowMap = RI.shadowMapCache->GetShadowMap(
             light, renderSetup.view, cascadeIndex,
             cachedData->shadowViewsDynamic[cascadeIndex],
             cachedData->shadowViewsStatic[cascadeIndex]);
-            
+
         cachedData->shadowMaps[cascadeIndex] = shadowMap;
 
         if (!shadowMap)
         {
             continue;
         }
+        
+        Camera* camera = cachedData->shadowViewsDynamic[cascadeIndex]->GetCamera();
+        AssertDebug(camera != nullptr);
+
+        RenderProxyCamera* cameraProxy = static_cast<RenderProxyCamera*>(GetRenderProxy(camera));
+        if (!cameraProxy)
+        {
+            // Shadow camera not ready yet.
+            // Defer until the next frame.
+            continue;
+        }
 
         AssertDebug(shadowMap->GetAtlasElement() != nullptr);
-        
+
         GpuImage* shadowMapImage = shadowMap->GetImageView()->GetImage();
         AssertDebug(shadowMapImage != nullptr);
 
@@ -210,21 +221,15 @@ void ShadowRendererBase::RenderFrame(Frame* frame, const RenderSetup& renderSetu
         AssertDebug(atlasElement.layerIndex <= UINT8_MAX);
         AssertDebug(atlasElement.layerIndex < shadowMapImage->NumArrayLayers());
 
-        Camera* camera = cachedData->shadowViewsDynamic[cascadeIndex]->GetCamera();
-        AssertDebug(camera != nullptr);
-
-        RenderProxyCamera* cameraProxy = static_cast<RenderProxyCamera*>(GetRenderProxy(camera));
-        AssertDebug(cameraProxy != nullptr);
-
         const Mat4f& viewProjMat = cameraProxy->bufferData.viewProjMat;
-        
+
         FramebufferRef& framebuffer = cachedData->shadowMapFramebuffers[cascadeIndex];
 
         if (!framebuffer.IsValid())
         {
             const FramebufferDesc& framebufferDesc = cachedData->shadowViewsDynamic[cascadeIndex]->GetViewDesc().framebufferDesc;
 
-            framebuffer = g_renderInterface->MakeFramebuffer(framebufferDesc);
+            framebuffer = RI.MakeFramebuffer(framebufferDesc);
 
             uint32 attachmentIndex = 0;
 
@@ -298,7 +303,7 @@ void ShadowRendererBase::RenderFrame(Frame* frame, const RenderSetup& renderSetu
                 Vec3u(atlasElement.dimensions.x, atlasElement.dimensions.y, 1),
                 srcImageSubResource,
                 dstImageSubResource);
-            
+
             // skip the pass for drawing statics
             passes[0] = nullptr;
 
@@ -323,7 +328,7 @@ void ShadowRendererBase::RenderFrame(Frame* frame, const RenderSetup& renderSetu
             // skip rendering static objects if we used the cached texture.
 
             View* shadowView = cachedData->shadowViewsStatic[cascadeIndex];
-            
+
             RenderSetup rs = renderSetup.Fork();
             rs.view = shadowView;
             rs.passData = FetchViewPassData(shadowView);
@@ -336,7 +341,7 @@ void ShadowRendererBase::RenderFrame(Frame* frame, const RenderSetup& renderSetu
             RenderProxyList& rpl = GetConsumerProxyList(shadowView);
             rpl.BeginRead();
             HYP_DEFER({ rpl.EndRead(); });
-            
+
             const bool isMatrixDirty = cascadeIndex >= pd->prevCameraMatrices.Size()
                 || pd->prevCameraMatrices[cascadeIndex] != viewProjMat;
 
@@ -353,7 +358,7 @@ void ShadowRendererBase::RenderFrame(Frame* frame, const RenderSetup& renderSetu
                 Assert(depthTarget != nullptr);
 
                 Assert(cachedData->cachedShadowMapTexture.IsValid());
-                
+
                 ImageSubResource srcImageSubResource {};
                 srcImageSubResource.baseArrayLayer = 0;
                 srcImageSubResource.numLayers = cachedData->cachedShadowMapTexture->NumArrayLayers();
@@ -447,7 +452,7 @@ void ShadowRendererBase::RenderFrame(Frame* frame, const RenderSetup& renderSetu
             pd->prevCameraMatrices[cascadeIndex] = viewProjMat;
 
             //HYP_LOG(Rendering, Verbose, "Rendering shadows for shadow view {} at frame {}", shadowView->Id(), GetFrameCounter());
-            
+
             frame->cr << InsertBarrier(
                 resultImage,
                 RS_RENDER_TARGET,
@@ -462,7 +467,7 @@ void ShadowRendererBase::RenderFrame(Frame* frame, const RenderSetup& renderSetu
                 Assert(cachedData->cachedShadowMapTexture.IsValid());
 
                 // Save rendered result to cache texture
-                
+
                 // need to transition atlas section to COPY_SRC
                 frame->cr << InsertBarrier(
                     resultImage,
@@ -490,7 +495,7 @@ void ShadowRendererBase::RenderFrame(Frame* frame, const RenderSetup& renderSetu
                 RS_SHADER_RESOURCE,
                 target->GetImageView()->GetImageSubResource());
         }
-        
+
 #if 0 // FIXME
         if (isVarianceShadowMap)
         {
@@ -501,7 +506,7 @@ void ShadowRendererBase::RenderFrame(Frame* frame, const RenderSetup& renderSetu
                 : cachedData->shadowViewsDynamic[cascadeIndex];
 
             GpuImageView* inputImageView = cachedData->cachedShadowMapTexture.IsValid()
-                ? g_renderInterface->textureViewCache->GetOrCreate(cachedData->cachedShadowMapTexture)
+                ? RI.textureViewCache->GetOrCreate(cachedData->cachedShadowMapTexture)
                 : framebuffer->GetAttachment(0)->GetImageView();
 
             GpuImageView* outputImageView = shadowMap->GetImageView();
@@ -530,7 +535,7 @@ void ShadowRendererBase::RenderFrame(Frame* frame, const RenderSetup& renderSetu
 
             uint32 numShaderUniforms = 0;
 
-            cr << SetShaderUniform(numShaderUniforms++, "SamplerLinear"_sh, g_renderInterface->placeholderData->GetSamplerLinear());
+            cr << SetShaderUniform(numShaderUniforms++, "SamplerLinear"_sh, RI.placeholderData->GetSamplerLinear());
             cr << SetShaderUniform(numShaderUniforms++, "InputTexture"_sh, inputImageView);
             cr << SetShaderUniform(numShaderUniforms++, "OutputTexture"_sh, outputImageView);
             cr << SetShaderUniform(numShaderUniforms++, "BlurShadowMapUniforms"_sh, cachedData->blurUniformBuffers[frameIndex]);
@@ -550,7 +555,7 @@ void ShadowRendererBase::RenderFrame(Frame* frame, const RenderSetup& renderSetu
 
             // put shadow map back into readable state
             cr << InsertBarrier(
-                shadowMapImage, 
+                shadowMapImage,
                 RS_SHADER_RESOURCE,
                 ImageSubResource {
                     .baseMipLevel = 0,

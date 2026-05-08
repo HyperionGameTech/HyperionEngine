@@ -18,7 +18,7 @@ namespace Hyperion
         private string sourceDirectory;
         private string intermediateDirectory;
         private string binaryOutputDirectory;
-        
+
         private const int timeoutMilliseconds = 30000; // 30 seconds
 
         public ScriptCompiler(string sourceDirectory, string intermediateDirectory, string binaryOutputDirectory)

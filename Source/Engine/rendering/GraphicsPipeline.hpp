@@ -141,6 +141,16 @@ public:
         m_depthWrite = depthWrite;
     }
 
+    HYP_FORCE_INLINE DepthCompareOp GetDepthCompareOp() const
+    {
+        return m_depthCompareOp;
+    }
+
+    HYP_FORCE_INLINE void SetDepthCompareOp(DepthCompareOp depthCompareOp)
+    {
+        m_depthCompareOp = depthCompareOp;
+    }
+
     HYP_FORCE_INLINE bool GetDepthClamp() const
     {
         return m_depthClamp;
@@ -262,6 +272,8 @@ protected:
     bool m_depthTest = true;
     bool m_depthWrite = true;
     bool m_depthClamp = false;
+
+    DepthCompareOp m_depthCompareOp = DCO_LESS;
 
     bool m_stencilWrite = false;
     Optional<StencilFunction> m_stencilFunction;

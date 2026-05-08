@@ -71,6 +71,10 @@ public:
     static const Handle<EngineDriver>& GetInstance();
 
     EngineDriver();
+
+    EngineDriver(const EngineDriver&) = delete;
+    EngineDriver& operator=(const EngineDriver&) = delete;
+
     ~EngineDriver() override;
 
     HYP_METHOD()
@@ -78,15 +82,6 @@ public:
 
     HYP_METHOD()
     void SetCurrentWorld(World* world);
-
-    HYP_METHOD()
-    HYP_FORCE_INLINE const Handle<World>& GetDefaultWorld() const
-    {
-        return m_defaultWorld;
-    }
-
-    HYP_METHOD()
-    void SetDefaultWorld(const Handle<World>& defaultWorld);
 
     HYP_FORCE_INLINE const Handle<DebugDrawer>& GetDebugDrawer() const
     {
@@ -130,14 +125,14 @@ public:
 
     EngineConfig& GetConfig();
 
+    void Initialize();
+
     void RequestStop();
     void FinalizeStop();
 
     Delegate<void, World*> OnCurrentWorldChanged;
 
 private:
-    void Init() override;
-
     void SyncConfig();
 
     void UpdateSim(float delta);
@@ -148,7 +143,6 @@ private:
 
     Array<Handle<World>> m_worlds; // Sim thread only
     World* m_currentWorld;         // Sim thread only
-    Handle<World> m_defaultWorld;
 
     Array<View*> m_viewsPerFrame[RingBufferDepth];
 
@@ -156,6 +150,7 @@ private:
 
     TaskBatch* m_viewCollectionBatch;
 
+    bool m_isInitialized;
     mutable volatile int32 m_isShuttingDown;
 };
 

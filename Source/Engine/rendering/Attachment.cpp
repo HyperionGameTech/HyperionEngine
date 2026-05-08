@@ -27,7 +27,7 @@ AttachmentBase::AttachmentBase(
       m_attachmentDesc(attachmentDesc)
 {
     m_gpuImage = image;
-    
+
     if (m_gpuImage.IsValid())
     {
         m_textureDesc = m_gpuImage->GetTextureDesc();
@@ -39,7 +39,7 @@ AttachmentBase::AttachmentBase(
         m_textureDesc.imageUsage |= IU_SAMPLED | IU_ATTACHMENT;
         m_textureDesc.imageUsage &= ~(IU_STORAGE | IU_EXTERNAL);
 
-        m_gpuImage = g_renderInterface->MakeImage(m_textureDesc);
+        m_gpuImage = RI.MakeImage(m_textureDesc);
         Assert(m_gpuImage.IsValid());
     }
 }
@@ -55,7 +55,7 @@ AttachmentBase::AttachmentBase(
     m_textureDesc.imageUsage |= IU_SAMPLED | IU_ATTACHMENT;
     m_textureDesc.imageUsage &= ~(IU_STORAGE | IU_EXTERNAL);
 
-    m_gpuImage = g_renderInterface->MakeImage(m_textureDesc);
+    m_gpuImage = RI.MakeImage(m_textureDesc);
     Assert(m_gpuImage.IsValid());
 }
 

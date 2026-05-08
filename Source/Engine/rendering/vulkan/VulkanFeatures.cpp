@@ -39,6 +39,9 @@ void VulkanFeatures::SetPhysicalDevice(VkPhysicalDevice physicalDevice)
         
         m_features2 = { VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_FEATURES_2 };
 
+        m_vulkan12Features = { VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_2_FEATURES };
+        VulkanHelpers::ChainNext(m_features2, &m_vulkan12Features);
+
         m_multiviewFeatures = { VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_MULTIVIEW_FEATURES_KHR };
         VulkanHelpers::ChainNext(m_features2, &m_multiviewFeatures);
 

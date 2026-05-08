@@ -9,7 +9,7 @@
 #include <Core/memory/resource/Resource.hpp>
 
 #include <rendering/RendererBase.hpp>
-#include <rendering/RenderCollection.hpp>
+#include <rendering/RendererMain.hpp>
 #include <rendering/RenderObject.hpp>
 
 #include <scene/Scene.hpp>

@@ -33,7 +33,7 @@
 #include <rendering/DescriptorSet.hpp>
 #include <rendering/GraphicsPipeline.hpp>
 #include <rendering/Swapchain.hpp>
-#include <rendering/RenderCollection.hpp>
+#include <rendering/RendererMain.hpp>
 #include <rendering/RenderProxyList.hpp>
 #include <rendering/RenderProxy.hpp>
 #include <rendering/TextureViewCache.hpp>
@@ -45,7 +45,7 @@
 #include <rendering/RayTracingReflections.hpp>
 #include <rendering/DDGI.hpp>
 #include <rendering/CBufferAllocator.hpp>
-#include <rendering/StructuredBufferAllocator.hpp>
+#include <rendering/RawBufferAllocator.hpp>
 
 #include <rendering/shadows/ShadowMapAllocator.hpp>
 #include <rendering/shadows/ShadowMapCache.hpp>
@@ -85,8 +85,6 @@
 #include <DeferredRenderer.generated.inl>
 
 namespace Hyperion {
-
-static constexpr float CameraJitterScale = 0.25f;
 
 static constexpr uint32 TileSize = 32;
 static constexpr uint32 TileZBins = 16;
@@ -172,6 +170,7 @@ CVar<bool> cvEnableLightmapVolumes { "Rendering.LightmapVolumes", true };
 CVar<bool> cvClusteredShading { "Rendering.ClusteredShading", true };
 CVar<float> cvTonemapExposure { "Rendering.Tonemap.Exposure", 1.8f };
 CVar<bool> cvBypassDrawing { "Rendering.BypassDrawing", false };
+CVar<bool> cvDepthPrepass { "Rendering.DepthPrepass", true };
 
 namespace DeferredRendererHelpers {
 
@@ -190,7 +189,7 @@ void GetDeferredShaderProperties(
 {
     const EngineConfig& cfg = GetEngineConfig();
 
-    static const IRenderConfig& s_renderConfig = g_renderInterface->GetRenderConfig();
+    static const IRenderConfig& s_renderConfig = RI.GetRenderConfig();
 
     MergeGlobalShaderProperties(outShaderProperties);
 
@@ -263,8 +262,15 @@ void FillShadowMapData(
 
     AssertDebug(shadowMapViewDynamic != nullptr && shadowMapViewDynamic->GetCamera() != nullptr);
 
+    outShadowMapData = {};
+
     RenderProxyCamera* shadowCameraProxy = static_cast<RenderProxyCamera*>(GetRenderProxy(shadowMapViewDynamic->GetCamera()));
-    AssertDebug(shadowCameraProxy != nullptr);
+    if (!shadowCameraProxy)
+    {
+        // Shadow camera not ready yet.
+        // Defer until the next frame.
+        return;
+    }
 
     const Mat4f& viewProjMat = shadowCameraProxy->bufferData.viewProjMat;
 
@@ -273,8 +279,6 @@ void FillShadowMapData(
     shadowBoundsNDC.max = Vec3f(1.0f);
 
     BoundingBox shadowBoundsWS = viewProjMat.Inverse() * shadowBoundsNDC;
-
-    outShadowMapData = {};
 
     outShadowMapData.layerIndex = atlasElement->layerIndex;
 
@@ -331,7 +335,7 @@ void DeferredPass::Create()
     // linear transform cosines texture data
     if (m_mode == DPM_DIRECT_LIGHTING && !m_ltcSampler)
     {
-        m_ltcSampler = g_renderInterface->samplerCache->GetOrCreate(SamplerDesc {
+        m_ltcSampler = RI.samplerCache->GetOrCreate(SamplerDesc {
             TFM_NEAREST,
             TFM_LINEAR,
             TWM_CLAMP_TO_EDGE });
@@ -375,8 +379,6 @@ void DeferredPass::Resize_Internal(Vec2u newSize)
 
 void DeferredPass::RenderToFramebuffer_Internal(Frame* frame, const RenderSetup& rs, Framebuffer* framebuffer)
 {
-    HYP_SCOPE;
-
     AssertDebug(rs.world && rs.view);
     AssertDebug(rs.passData != nullptr);
 
@@ -431,41 +433,41 @@ void DeferredPass::RenderToFramebuffer_Internal(Frame* frame, const RenderSetup&
 
     uint32 numShaderUniforms = 0;
 
-    Sampler* shadowSampler = g_renderInterface->samplerCache->GetOrCreate(SamplerDesc {
+    Sampler* shadowSampler = RI.samplerCache->GetOrCreate(SamplerDesc {
         TFM_LINEAR,
         TFM_LINEAR,
         TWM_CLAMP_TO_EDGE,
         SamplerCompareOp::LessEq });
 
-    cr << SetShaderUniform(numShaderUniforms++, "SamplerLinear"_sh, g_renderInterface->placeholderData->GetSamplerLinearMipmap());
-    cr << SetShaderUniform(numShaderUniforms++, "SamplerNearest"_sh, g_renderInterface->placeholderData->GetSamplerNearest());
+    cr << SetShaderUniform(numShaderUniforms++, "SamplerLinear"_sh, RI.placeholderData->GetSamplerLinearMipmap());
+    cr << SetShaderUniform(numShaderUniforms++, "SamplerNearest"_sh, RI.placeholderData->GetSamplerNearest());
     cr << SetShaderUniform(numShaderUniforms++, "SamplerShadow"_sh, shadowSampler);
 
-    cr << SetShaderUniform(numShaderUniforms++, "WorldsBuffer"_sh, g_renderInterface->namedBuffers[NamedBuffer::Worlds].gpuBuffer);
+    cr << SetShaderUniform(numShaderUniforms++, "WorldsBuffer"_sh, RI.namedBuffers[NamedBuffer::Worlds]);
 
-    cr << SetShaderUniform(numShaderUniforms++, "LightsBuffer"_sh, g_renderInterface->namedBuffers[NamedBuffer::Lights].gpuBuffer);
-    cr << SetShaderUniform(numShaderUniforms++, "EnvProbesBuffer"_sh, g_renderInterface->namedBuffers[NamedBuffer::EnvProbes].gpuBuffer);
+    cr << SetShaderUniform(numShaderUniforms++, "LightsBuffer"_sh, RI.namedBuffers[NamedBuffer::Lights]);
+    cr << SetShaderUniform(numShaderUniforms++, "EnvProbesBuffer"_sh, RI.namedBuffers[NamedBuffer::EnvProbes]);
 
     // use the same index for the CBuffer uniform across shaders
     const uint32 cbufferUniformIndex = numShaderUniforms++;
 
-    cr << SetShaderUniform(numShaderUniforms++, "ShadowMapsTextureArray"_sh, g_renderInterface->shadowMapCache->GetAtlasImageView());
-    cr << SetShaderUniform(numShaderUniforms++, "PointLightShadowMapsTextureArray"_sh, g_renderInterface->shadowMapCache->GetPointLightShadowMapImageView());
+    cr << SetShaderUniform(numShaderUniforms++, "ShadowMapsTextureArray"_sh, RI.shadowMapCache->GetAtlasImageView());
+    cr << SetShaderUniform(numShaderUniforms++, "PointLightShadowMapsTextureArray"_sh, RI.shadowMapCache->GetPointLightShadowMapImageView());
 
-    cr << SetShaderUniform(numShaderUniforms++, "EnvProbesTexture"_sh, g_renderInterface->textureViewCache->GetOrCreate(g_renderInterface->envProbesTexture));
+    cr << SetShaderUniform(numShaderUniforms++, "EnvProbesTexture"_sh, RI.textureViewCache->GetOrCreate(RI.envProbesTexture));
 
     for (uint32 attachmentIndex = 0; attachmentIndex < GTN_MAX; attachmentIndex++)
     {
         cr << SetShaderUniform(numShaderUniforms++, GBufferTextureNames[attachmentIndex], opaquePassFramebuffer->GetAttachment(attachmentIndex)->GetImageView());
     }
 
-    cr << SetShaderUniform(numShaderUniforms++, "GBufferMipChain"_sh, g_renderInterface->textureViewCache->GetOrCreate(dpd->mipChain));
+    cr << SetShaderUniform(numShaderUniforms++, "GBufferMipChain"_sh, RI.textureViewCache->GetOrCreate(dpd->mipChain));
 
     if (dpd->hbao != nullptr)
         cr << SetShaderUniform(numShaderUniforms++, "SSAOResultTexture"_sh, dpd->hbao->GetFinalImageView());
 
     if (dpd->reflectionsPass != nullptr && dpd->reflectionsPass->ssrPass != nullptr)
-        cr << SetShaderUniform(numShaderUniforms++, "SSRResultTexture"_sh, g_renderInterface->textureViewCache->GetOrCreate(dpd->reflectionsPass->ssrPass->GetFinalResultTexture()));
+        cr << SetShaderUniform(numShaderUniforms++, "SSRResultTexture"_sh, RI.textureViewCache->GetOrCreate(dpd->reflectionsPass->ssrPass->GetFinalResultTexture()));
 
     const bool useClusteredShading = cvClusteredShading.Get();
 
@@ -474,14 +476,14 @@ void DeferredPass::RenderToFramebuffer_Internal(Frame* frame, const RenderSetup&
         AssertDebug(dpd->gridTilesBuffer != nullptr && dpd->gridIndexBuffer != nullptr);
 
         // Indirect pass uses clusters for EnvProbes.
-        cr << SetShaderUniform(numShaderUniforms++, "ClusterGridBuffer"_sh, dpd->gridTilesBuffer->gpuBuffer);
-        cr << SetShaderUniform(numShaderUniforms++, "ClusterIndexBuffer"_sh, dpd->gridIndexBuffer->gpuBuffer);
+        cr << SetShaderUniform(numShaderUniforms++, "ClusterGridBuffer"_sh, *dpd->gridTilesBuffer);
+        cr << SetShaderUniform(numShaderUniforms++, "ClusterIndexBuffer"_sh, *dpd->gridIndexBuffer);
     }
 
     if (m_mode == DPM_INDIRECT_LIGHTING)
     {
         if (dpd->ssgi != nullptr)
-            cr << SetShaderUniform(numShaderUniforms++, "SSGIResultTexture"_sh, g_renderInterface->textureViewCache->GetOrCreate(dpd->ssgi->GetFinalResultTexture()));
+            cr << SetShaderUniform(numShaderUniforms++, "SSGIResultTexture"_sh, RI.textureViewCache->GetOrCreate(dpd->ssgi->GetFinalResultTexture()));
 
         if (dpd->rayTracingReflections != nullptr)
             cr << SetShaderUniform(numShaderUniforms++, "RTRadianceResultTexture"_sh, dpd->rayTracingReflections->GetFinalImageView());
@@ -499,9 +501,9 @@ void DeferredPass::RenderToFramebuffer_Internal(Frame* frame, const RenderSetup&
             size_t cbufferSize = 0;
 
             // write camera data
-            g_renderInterface->cbufferAllocator->Write(&cameraProxy->bufferData);
+            RI.cbufferAllocator->Write(&cameraProxy->bufferData);
 
-            g_renderInterface->cbufferAllocator->Commit(cbuffer, cbufferOffset, cbufferSize);
+            RI.cbufferAllocator->Commit(cbuffer, cbufferOffset, cbufferSize);
 
             cr << SetShaderUniform(cbufferUniformIndex, "CBuffer"_sh, cbuffer, ShaderDataOffset(cbufferOffset, cbufferSize));
         }
@@ -536,7 +538,7 @@ void DeferredPass::RenderToFramebuffer_Internal(Frame* frame, const RenderSetup&
             size_t cbufferSize = 0;
 
             // write camera
-            g_renderInterface->cbufferAllocator->Write(&cameraProxy->bufferData);
+            RI.cbufferAllocator->Write(&cameraProxy->bufferData);
 
             uint32 maxLightBinding = 0;
 
@@ -570,7 +572,7 @@ void DeferredPass::RenderToFramebuffer_Internal(Frame* frame, const RenderSetup&
             if (maxLightBinding == 0)
                 maxLightBinding = 1;
 
-            StructuredBuffer& shadowMapIndexBuffer = g_renderInterface->sbufferAllocator->AcquireBuffer(maxLightBinding, sizeof(uint32));
+            ByteAddressBuffer& shadowMapIndexBuffer = RI.bufferAllocator->AcquireByteAddressBuffer(maxLightBinding * sizeof(uint32));
 
             uint32 shadowMapIndex = 0;
 
@@ -593,7 +595,7 @@ void DeferredPass::RenderToFramebuffer_Internal(Frame* frame, const RenderSetup&
                 View* shadowMapViewDynamic;
                 View* shadowMapViewStatic;
 
-                ShadowMap* shadowMap = g_renderInterface->shadowMapCache->GetShadowMap(
+                ShadowMap* shadowMap = RI.shadowMapCache->GetShadowMap(
                     light,
                     rs.view,
                     0,
@@ -614,10 +616,10 @@ void DeferredPass::RenderToFramebuffer_Internal(Frame* frame, const RenderSetup&
 
             shadowMapIndexBuffer.Flush();
 
-            cr << SetShaderUniform(localNumShaderUniforms++, "ShadowMapIndexBuffer"_sh, shadowMapIndexBuffer.gpuBuffer);
+            cr << SetShaderUniform(localNumShaderUniforms++, "ShadowMapIndexBuffer"_sh, shadowMapIndexBuffer);
 
-            g_renderInterface->cbufferAllocator->Write(&shadowMapData[0], shadowMapData.ByteSize(), alignof(ShadowMapData));
-            g_renderInterface->cbufferAllocator->Commit(cbuffer, cbufferOffset, cbufferSize);
+            RI.cbufferAllocator->Write(shadowMapData.Data(), MaxClusteredShadowMaps * sizeof(ShadowMapData), alignof(ShadowMapData));
+            RI.cbufferAllocator->Commit(cbuffer, cbufferOffset, cbufferSize);
 
             cr << SetShaderUniform(cbufferUniformIndex, "CBuffer"_sh, cbuffer, ShaderDataOffset(cbufferOffset, cbufferSize));
         }
@@ -671,13 +673,14 @@ void DeferredPass::RenderToFramebuffer_Internal(Frame* frame, const RenderSetup&
                 size_t cbufferSize = 0;
 
                 // write camera
-                g_renderInterface->cbufferAllocator->Write(&cameraProxy->bufferData);
+                RI.cbufferAllocator->Write(&cameraProxy->bufferData);
 
                 // write current light
-                g_renderInterface->cbufferAllocator->Write(&lightProxy->bufferData);
+                RI.cbufferAllocator->Write(&lightProxy->bufferData);
 
                 ShadowMapData shadowMapData[MaxShadowMapCascades];
 
+                // Directional light writes out all cascades (4), other light types write only one.
                 const uint32 numCascadesToWrite = (lightType == LightType::Directional) ? MaxShadowMapCascades : 1;
 
                 for (uint32 cascadeIndex = 0; cascadeIndex < numCascadesToWrite; cascadeIndex++)
@@ -687,7 +690,7 @@ void DeferredPass::RenderToFramebuffer_Internal(Frame* frame, const RenderSetup&
                     View* shadowMapViewDynamic;
                     View* shadowMapViewStatic;
 
-                    ShadowMap* shadowMap = g_renderInterface->shadowMapCache->GetShadowMap(
+                    ShadowMap* shadowMap = RI.shadowMapCache->GetShadowMap(
                         light,
                         rs.view,
                         cascadeIndex,
@@ -697,21 +700,21 @@ void DeferredPass::RenderToFramebuffer_Internal(Frame* frame, const RenderSetup&
                     if (shadowMap != nullptr)
                     {
                         DeferredRendererHelpers::FillShadowMapData(
-                            shadowMapData[cascadeIndex],
+                            currShadowMapData,
                             *shadowMap,
                             shadowMapViewDynamic,
                             shadowMapViewStatic);
                     }
 
-                    g_renderInterface->cbufferAllocator->Write(&shadowMapData[cascadeIndex]);
+                    RI.cbufferAllocator->Write(&currShadowMapData);
                 }
 
-                g_renderInterface->cbufferAllocator->Commit(cbuffer, cbufferOffset, cbufferSize);
+                RI.cbufferAllocator->Commit(cbuffer, cbufferOffset, cbufferSize);
 
                 cr << SetShaderUniform(cbufferUniformIndex, "CBuffer"_sh, cbuffer, ShaderDataOffset(cbufferOffset, cbufferSize));
             }
 
-            cr << SetShaderUniform(localNumShaderUniforms++, "CurrentLight"_sh, g_renderInterface->namedBuffers[NamedBuffer::Lights].gpuBuffer, TShaderDataOffset<LightShaderData>(light));
+            cr << SetShaderUniform(localNumShaderUniforms++, "CurrentLight"_sh, RI.namedBuffers[NamedBuffer::Lights], Resources::GetBinding(light));
 
             if (lightType == LightType::AreaRect)
             {
@@ -725,26 +728,26 @@ void DeferredPass::RenderToFramebuffer_Internal(Frame* frame, const RenderSetup&
                         const uint32 materialBoundIndex = Resources::GetBinding(lightProxy->lightMaterial);
                         AssertDebug(materialBoundIndex != ~0u);
 
-                        Span<const GpuImageViewRef> imageViews = g_renderInterface->materialTextureCache->imageViews.Get(materialBoundIndex);
+                        Span<const GpuImageViewRef> imageViews = RI.materialTextureCache->imageViews.Get(materialBoundIndex);
                         AssertDebug(imageViews.Size() >= materialProxy->boundTextures.Size());
 
                         cr << SetShaderUniform(localNumShaderUniforms++, "DiffuseMap"_sh, imageViews[materialProxy->boundTextureIndices[0]]);
                     }
 
-                    cr << SetShaderUniform(localNumShaderUniforms++, "CurrentMaterial"_sh, g_renderInterface->namedBuffers[NamedBuffer::Materials].gpuBuffer, TShaderDataOffset<MaterialShaderData>(lightProxy->lightMaterial));
+                    cr << SetShaderUniform(localNumShaderUniforms++, "CurrentMaterial"_sh, RI.namedBuffers[NamedBuffer::Materials], Resources::GetBinding(lightProxy->lightMaterial));
                 }
                 else
                 {
-                    cr << SetShaderUniform(localNumShaderUniforms++, "CurrentMaterial"_sh, g_renderInterface->namedBuffers[NamedBuffer::Materials].gpuBuffer, TShaderDataOffset<MaterialShaderData>(0));
+                    cr << SetShaderUniform(localNumShaderUniforms++, "CurrentMaterial"_sh, RI.namedBuffers[NamedBuffer::Materials], 0);
                 }
 
                 cr << SetShaderUniform(localNumShaderUniforms++, "LTCSampler"_sh, m_ltcSampler);
 
                 if (m_ltcMatrixTexture != nullptr)
-                    cr << SetShaderUniform(localNumShaderUniforms++, "LTCMatrixTexture"_sh, g_renderInterface->textureViewCache->GetOrCreate(m_ltcMatrixTexture));
+                    cr << SetShaderUniform(localNumShaderUniforms++, "LTCMatrixTexture"_sh, RI.textureViewCache->GetOrCreate(m_ltcMatrixTexture));
 
                 if (m_ltcBrdfTexture != nullptr)
-                    cr << SetShaderUniform(localNumShaderUniforms++, "LTCBRDFTexture"_sh, g_renderInterface->textureViewCache->GetOrCreate(m_ltcBrdfTexture));
+                    cr << SetShaderUniform(localNumShaderUniforms++, "LTCBRDFTexture"_sh, RI.textureViewCache->GetOrCreate(m_ltcBrdfTexture));
             }
 
             cr << CommitDrawState();
@@ -763,7 +766,7 @@ void DeferredPass::RenderToFramebuffer_Internal(Frame* frame, const RenderSetup&
 #pragma region TonemapPass
 
 TonemapPass::TonemapPass(Vec2u extent, GBuffer* gbuffer)
-    : FullScreenPass(TextureFormat::R11G11B10F, extent, gbuffer)
+    : FullScreenPass(TextureFormat::RGBA16F, extent, gbuffer)
 {
     SetPassName(NAME("Tonemap"));
 }
@@ -807,20 +810,20 @@ void TonemapPass::Render(Frame* frame, const RenderSetup& rs)
 
     cr << SetShaderUniform(numShaderUniforms++, "DeferredResult"_sh, translucentPassFramebuffer->GetAttachment(GTN_ALBEDO)->GetImageView());
 
-    cr << SetShaderUniform(numShaderUniforms++, "ShadowMapsTextureArray"_sh, g_renderInterface->shadowMapCache->GetAtlasImageView());
+    cr << SetShaderUniform(numShaderUniforms++, "ShadowMapsTextureArray"_sh, RI.shadowMapCache->GetAtlasImageView());
 
-    cr << SetShaderUniform(numShaderUniforms++, "GBufferMipChain"_sh, g_renderInterface->textureViewCache->GetOrCreate(dpd->mipChain));
+    cr << SetShaderUniform(numShaderUniforms++, "GBufferMipChain"_sh, RI.textureViewCache->GetOrCreate(dpd->mipChain));
 
-    cr << SetShaderUniform(numShaderUniforms++, "SamplerNearest"_sh, g_renderInterface->placeholderData->GetSamplerNearest());
-    cr << SetShaderUniform(numShaderUniforms++, "SamplerLinear"_sh, g_renderInterface->placeholderData->GetSamplerLinear());
+    cr << SetShaderUniform(numShaderUniforms++, "SamplerNearest"_sh, RI.placeholderData->GetSamplerNearest());
+    cr << SetShaderUniform(numShaderUniforms++, "SamplerLinear"_sh, RI.placeholderData->GetSamplerLinear());
 
     if (cvBloom.Get() && dpd->bloomPass)
     {
-        cr << SetShaderUniform(numShaderUniforms++, "BloomResultTexture"_sh, g_renderInterface->textureViewCache->GetOrCreate(dpd->bloomPass->GetBloomResult()));
+        cr << SetShaderUniform(numShaderUniforms++, "BloomResultTexture"_sh, RI.textureViewCache->GetOrCreate(dpd->bloomPass->GetBloomResult()));
     }
     else
     {
-        cr << SetShaderUniform(numShaderUniforms++, "BloomResultTexture"_sh, g_renderInterface->placeholderData->GetImageView2D1x1R8());
+        cr << SetShaderUniform(numShaderUniforms++, "BloomResultTexture"_sh, RI.placeholderData->GetImageView2D1x1R8());
     }
 
     if (dpd->rayTracingReflections)
@@ -829,33 +832,33 @@ void TonemapPass::Render(Frame* frame, const RenderSetup& rs)
     }
     else
     {
-        cr << SetShaderUniform(numShaderUniforms++, "RTRadianceResultTexture"_sh, g_renderInterface->placeholderData->GetImageView2D1x1R8());
+        cr << SetShaderUniform(numShaderUniforms++, "RTRadianceResultTexture"_sh, RI.placeholderData->GetImageView2D1x1R8());
     }
 
     if (dpd->ssgi)
     {
-        cr << SetShaderUniform(numShaderUniforms++, "SSGIResultTexture"_sh, g_renderInterface->textureViewCache->GetOrCreate(dpd->ssgi->GetFinalResultTexture()));
+        cr << SetShaderUniform(numShaderUniforms++, "SSGIResultTexture"_sh, RI.textureViewCache->GetOrCreate(dpd->ssgi->GetFinalResultTexture()));
     }
     else
     {
-        cr << SetShaderUniform(numShaderUniforms++, "SSGIResultTexture"_sh, g_renderInterface->placeholderData->GetImageView2D1x1R8());
+        cr << SetShaderUniform(numShaderUniforms++, "SSGIResultTexture"_sh, RI.placeholderData->GetImageView2D1x1R8());
     }
 
     if (dpd->taaPass)
     {
-        cr << SetShaderUniform(numShaderUniforms++, "TAAResultTexture"_sh, g_renderInterface->textureViewCache->GetOrCreate(dpd->taaPass->GetResultTexture()));
+        cr << SetShaderUniform(numShaderUniforms++, "TAAResultTexture"_sh, RI.textureViewCache->GetOrCreate(dpd->taaPass->GetResultTexture()));
     }
     else
     {
-        cr << SetShaderUniform(numShaderUniforms++, "TAAResultTexture"_sh, g_renderInterface->placeholderData->GetImageView2D1x1R8());
+        cr << SetShaderUniform(numShaderUniforms++, "TAAResultTexture"_sh, RI.placeholderData->GetImageView2D1x1R8());
     }
 
     cr << SetShaderUniform(numShaderUniforms++, "DeferredIndirectResultTexture"_sh, dpd->deferredShadingFramebuffer->GetAttachment(0)->GetImageView());
 
     cr << SetShaderUniform(numShaderUniforms++, "PostProcessingUniforms"_sh, dpd->postProcessing->GetUniformBuffer());
 
-    cr << SetShaderUniform(numShaderUniforms++, "CamerasBuffer"_sh, g_renderInterface->namedBuffers[NamedBuffer::Cameras].gpuBuffer, TShaderDataOffset<CameraShaderData>(rs.view->GetCamera()));
-    cr << SetShaderUniform(numShaderUniforms++, "WorldsBuffer"_sh, g_renderInterface->namedBuffers[NamedBuffer::Worlds].gpuBuffer);
+    cr << SetShaderUniform(numShaderUniforms++, "CamerasBuffer"_sh, RI.namedBuffers[NamedBuffer::Cameras], Resources::GetBinding(rs.view->GetCamera()));
+    cr << SetShaderUniform(numShaderUniforms++, "WorldsBuffer"_sh, RI.namedBuffers[NamedBuffer::Worlds]);
 
     RenderFullScreenQuad(frame, rs);
 
@@ -903,9 +906,6 @@ void LightmapPass::Resize_Internal(Vec2u newSize)
 
 void LightmapPass::RenderToFramebuffer_Internal(Frame* frame, const RenderSetup& renderSetup, Framebuffer* framebuffer)
 {
-    HYP_SCOPE;
-    AssertOnThread(g_renderThread);
-
     AssertDebug(renderSetup.world && renderSetup.volume && renderSetup.view);
 
     const uint32 frameIndex = frame->GetFrameIndex();
@@ -971,28 +971,28 @@ void LightmapPass::RenderToFramebuffer_Internal(Frame* frame, const RenderSetup&
     cr << SetShaderUniform(numShaderUniforms++, "GBufferMaterialTexture"_sh, viewFramebuffer->GetAttachment(GTN_MATERIAL)->GetImageView());
     cr << SetShaderUniform(numShaderUniforms++, "GBufferDepthTexture"_sh, viewFramebuffer->GetAttachment(GTN_DEPTH)->GetImageView());
     cr << SetShaderUniform(numShaderUniforms++, "GBufferVelocityTexture"_sh, viewFramebuffer->GetAttachment(GTN_VELOCITY)->GetImageView());
-    cr << SetShaderUniform(numShaderUniforms++, "GBufferMipChain"_sh, g_renderInterface->textureViewCache->GetOrCreate(dpd->mipChain));
+    cr << SetShaderUniform(numShaderUniforms++, "GBufferMipChain"_sh, RI.textureViewCache->GetOrCreate(dpd->mipChain));
 
     // Samplers
-    cr << SetShaderUniform(numShaderUniforms++, "SamplerNearest"_sh, g_renderInterface->placeholderData->GetSamplerNearest());
-    cr << SetShaderUniform(numShaderUniforms++, "SamplerLinear"_sh, g_renderInterface->placeholderData->GetSamplerLinear());
+    cr << SetShaderUniform(numShaderUniforms++, "SamplerNearest"_sh, RI.placeholderData->GetSamplerNearest());
+    cr << SetShaderUniform(numShaderUniforms++, "SamplerLinear"_sh, RI.placeholderData->GetSamplerLinear());
 
     // Shadows
-    cr << SetShaderUniform(numShaderUniforms++, "ShadowMapsTextureArray"_sh, g_renderInterface->shadowMapCache->GetAtlasImageView());
-    cr << SetShaderUniform(numShaderUniforms++, "PointLightShadowMapsTextureArray"_sh, g_renderInterface->shadowMapCache->GetPointLightShadowMapImageView());
+    cr << SetShaderUniform(numShaderUniforms++, "ShadowMapsTextureArray"_sh, RI.shadowMapCache->GetAtlasImageView());
+    cr << SetShaderUniform(numShaderUniforms++, "PointLightShadowMapsTextureArray"_sh, RI.shadowMapCache->GetPointLightShadowMapImageView());
 
     // Cameras and Worlds buffers
-    cr << SetShaderUniform(numShaderUniforms++, "CamerasBuffer"_sh, g_renderInterface->namedBuffers[NamedBuffer::Cameras].gpuBuffer, TShaderDataOffset<CameraShaderData>(renderSetup.view->GetCamera()));
-    cr << SetShaderUniform(numShaderUniforms++, "WorldsBuffer"_sh, g_renderInterface->namedBuffers[NamedBuffer::Worlds].gpuBuffer);
+    cr << SetShaderUniform(numShaderUniforms++, "CamerasBuffer"_sh, RI.namedBuffers[NamedBuffer::Cameras], Resources::GetBinding(renderSetup.view->GetCamera()));
+    cr << SetShaderUniform(numShaderUniforms++, "WorldsBuffer"_sh, RI.namedBuffers[NamedBuffer::Worlds]);
 
     // Env probes
-    cr << SetShaderUniform(numShaderUniforms++, "EnvProbesTexture"_sh, g_renderInterface->textureViewCache->GetOrCreate(g_renderInterface->envProbesTexture));
-    cr << SetShaderUniform(numShaderUniforms++, "EnvProbesBuffer"_sh, g_renderInterface->namedBuffers[NamedBuffer::EnvProbes].gpuBuffer);
+    cr << SetShaderUniform(numShaderUniforms++, "EnvProbesTexture"_sh, RI.textureViewCache->GetOrCreate(RI.envProbesTexture));
+    cr << SetShaderUniform(numShaderUniforms++, "EnvProbesBuffer"_sh, RI.namedBuffers[NamedBuffer::EnvProbes]);
 
     if (renderSetup.envProbe != nullptr)
-        cr << SetShaderUniform(numShaderUniforms++, "CurrentEnvProbe"_sh, g_renderInterface->namedBuffers[NamedBuffer::EnvProbes].gpuBuffer, TShaderDataOffset<EnvProbeShaderData>(renderSetup.envProbe));
+        cr << SetShaderUniform(numShaderUniforms++, "CurrentEnvProbe"_sh, RI.namedBuffers[NamedBuffer::EnvProbes], Resources::GetBinding(renderSetup.envProbe));
     else
-        cr << SetShaderUniform(numShaderUniforms++, "CurrentEnvProbe"_sh, g_renderInterface->namedBuffers[NamedBuffer::EnvProbes].gpuBuffer, TShaderDataOffset<EnvProbeShaderData>(0));
+        cr << SetShaderUniform(numShaderUniforms++, "CurrentEnvProbe"_sh, RI.namedBuffers[NamedBuffer::EnvProbes], 0);
 
     if (dpd->hbao != nullptr)
         cr << SetShaderUniform(numShaderUniforms++, "SSAOResultTexture"_sh, dpd->hbao->GetFinalImageView());
@@ -1016,7 +1016,7 @@ void LightmapPass::RenderToFramebuffer_Internal(Frame* frame, const RenderSetup&
 
         if (!uniformBuffer)
         {
-            uniformBuffer = g_renderInterface->MakeGpuBuffer(GpuBufferType::ConstantBuffer, sizeof(LightmapVolumeUniforms));
+            uniformBuffer = RI.MakeGpuBuffer(GpuBufferType::ConstantBuffer, sizeof(LightmapVolumeUniforms));
             CheckResult(uniformBuffer->Create());
         }
 
@@ -1027,9 +1027,9 @@ void LightmapPass::RenderToFramebuffer_Internal(Frame* frame, const RenderSetup&
 
         uint32 localNumShaderUniforms = numShaderUniforms;
 
-        cr << SetShaderUniform(localNumShaderUniforms++, "IrradianceTexture"_sh, g_renderInterface->textureViewCache->GetOrCreate(irradianceTexture != nullptr ? irradianceTexture : g_renderInterface->placeholderData->defaultTexture2d));
-        cr << SetShaderUniform(localNumShaderUniforms++, "RadianceTexture"_sh, g_renderInterface->textureViewCache->GetOrCreate(radianceTexture != nullptr ? radianceTexture : g_renderInterface->placeholderData->defaultTexture2d));
-        cr << SetShaderUniform(localNumShaderUniforms++, "LightmapSampler"_sh, g_renderInterface->placeholderData->GetSamplerLinear());
+        cr << SetShaderUniform(localNumShaderUniforms++, "IrradianceTexture"_sh, RI.textureViewCache->GetOrCreate(irradianceTexture != nullptr ? irradianceTexture : RI.placeholderData->defaultTexture2d));
+        cr << SetShaderUniform(localNumShaderUniforms++, "RadianceTexture"_sh, RI.textureViewCache->GetOrCreate(radianceTexture != nullptr ? radianceTexture : RI.placeholderData->defaultTexture2d));
+        cr << SetShaderUniform(localNumShaderUniforms++, "LightmapSampler"_sh, RI.placeholderData->GetSamplerLinear());
         cr << SetShaderUniform(localNumShaderUniforms++, "LightmapVolumeUniforms"_sh, uniformBuffer);
 
         RenderFullScreenQuad(frame, renderSetup);
@@ -1081,9 +1081,6 @@ void FogVolumePass::Resize_Internal(Vec2u newSize)
 
 void FogVolumePass::RenderToFramebuffer_Internal(Frame* frame, const RenderSetup& renderSetup, Framebuffer* framebuffer)
 {
-    HYP_SCOPE;
-    AssertOnThread(g_renderThread);
-
     AssertDebug(renderSetup.world && renderSetup.volume && renderSetup.view);
 
     DeferredRendererPassData* dpd = DynamicCast<DeferredRendererPassData>(renderSetup.passData);
@@ -1115,19 +1112,19 @@ void FogVolumePass::RenderToFramebuffer_Internal(Frame* frame, const RenderSetup
 
     cr << SetCurrentShader(m_shaderDesc);
 
-    cr << SetShaderUniform(0, "SamplerLinear"_sh, g_renderInterface->placeholderData->GetSamplerLinearMipmap());
-    cr << SetShaderUniform(1, "SamplerNearest"_sh, g_renderInterface->placeholderData->GetSamplerNearest());
+    cr << SetShaderUniform(0, "SamplerLinear"_sh, RI.placeholderData->GetSamplerLinearMipmap());
+    cr << SetShaderUniform(1, "SamplerNearest"_sh, RI.placeholderData->GetSamplerNearest());
 
-    cr << SetShaderUniform(2, "CamerasBuffer"_sh, g_renderInterface->namedBuffers[NamedBuffer::Cameras].gpuBuffer, TShaderDataOffset<CameraShaderData>(renderSetup.view->GetCamera()));
+    cr << SetShaderUniform(2, "CamerasBuffer"_sh, RI.namedBuffers[NamedBuffer::Cameras], Resources::GetBinding(renderSetup.view->GetCamera()));
 
-    cr << SetShaderUniform(3, "ShadowMapsTextureArray"_sh, g_renderInterface->shadowMapCache->GetAtlasImageView());
-    cr << SetShaderUniform(4, "PointLightShadowMapsTextureArray"_sh, g_renderInterface->shadowMapCache->GetPointLightShadowMapImageView());
+    cr << SetShaderUniform(3, "ShadowMapsTextureArray"_sh, RI.shadowMapCache->GetAtlasImageView());
+    cr << SetShaderUniform(4, "PointLightShadowMapsTextureArray"_sh, RI.shadowMapCache->GetPointLightShadowMapImageView());
 
     if (data.volumeTexture)
-        cr << SetShaderUniform(5, "DataMap"_sh, g_renderInterface->textureViewCache->GetOrCreate(data.volumeTexture));
+        cr << SetShaderUniform(5, "DataMap"_sh, RI.textureViewCache->GetOrCreate(data.volumeTexture));
 
     if (data.noiseTexture)
-        cr << SetShaderUniform(6, "NoiseMap"_sh, g_renderInterface->textureViewCache->GetOrCreate(data.noiseTexture));
+        cr << SetShaderUniform(6, "NoiseMap"_sh, RI.textureViewCache->GetOrCreate(data.noiseTexture));
 
     cr << SetShaderUniform(7, "DepthPyramidTexture"_sh, dpd->depthPyramidRenderer->GetResultImageView());
 
@@ -1169,18 +1166,18 @@ void FogVolumePass::RenderToFramebuffer_Internal(Frame* frame, const RenderSetup
     size_t cbufferOffset = 0;
     size_t cbufferSize = 0;
 
-    g_renderInterface->cbufferAllocator->Write(&shaderData);
+    RI.cbufferAllocator->Write(&shaderData);
 
     for (uint32 i = 0; i < MaxBoundLightsPerFogVolume; i++)
     {
         if (i < uint32(tempLightsArray.Size()))
         {
-            g_renderInterface->cbufferAllocator->Write(tempLightsArray[i].second);
+            RI.cbufferAllocator->Write(tempLightsArray[i].second);
             continue;
         }
 
         LightShaderData dummy {};
-        g_renderInterface->cbufferAllocator->Write(&dummy);
+        RI.cbufferAllocator->Write(&dummy);
     }
 
     for (uint32 i = 0; i < MaxBoundLightsPerFogVolume; i++)
@@ -1194,7 +1191,7 @@ void FogVolumePass::RenderToFramebuffer_Internal(Frame* frame, const RenderSetup
 
             Light* light = tempLightsArray[i].first;
 
-            ShadowMap* shadowMap = g_renderInterface->shadowMapCache->GetShadowMap(
+            ShadowMap* shadowMap = RI.shadowMapCache->GetShadowMap(
                 light,
                 renderSetup.view,
                 /* cascadeIndex */ 0,
@@ -1211,10 +1208,10 @@ void FogVolumePass::RenderToFramebuffer_Internal(Frame* frame, const RenderSetup
             }
         }
 
-        g_renderInterface->cbufferAllocator->Write(&shadowMapData);
+        RI.cbufferAllocator->Write(&shadowMapData);
     }
 
-    g_renderInterface->cbufferAllocator->Commit(cbuffer, cbufferOffset, cbufferSize);
+    RI.cbufferAllocator->Commit(cbuffer, cbufferOffset, cbufferSize);
 
     cr << SetShaderUniform(8, "FogVolumeConstants"_sh, cbuffer, ShaderDataOffset(cbufferOffset, cbufferSize));
 
@@ -1274,8 +1271,6 @@ ReflectionsPass::~ReflectionsPass()
 
 void ReflectionsPass::Create()
 {
-    HYP_SCOPE;
-
     FullScreenPass::Create();
 
     CreateSSRPass();
@@ -1294,16 +1289,11 @@ void ReflectionsPass::CreateSSRPass()
 
 void ReflectionsPass::Resize_Internal(Vec2u newSize)
 {
-    HYP_SCOPE;
-
     FullScreenPass::Resize_Internal(newSize);
 }
 
 void ReflectionsPass::Render(Frame* frame, const RenderSetup& rs)
 {
-    HYP_SCOPE;
-    AssertOnThread(g_renderThread);
-
     AssertDebug(rs.world && rs.view);
     AssertDebug(rs.passData != nullptr);
 
@@ -1372,8 +1362,8 @@ void ReflectionsPass::Render(Frame* frame, const RenderSetup& rs)
         DrawHistoryTexture(frame, rs);
     }
 
-    cr << SetShaderUniform(0, "SamplerLinear"_sh, g_renderInterface->placeholderData->GetSamplerLinearMipmap());
-    cr << SetShaderUniform(1, "SamplerNearest"_sh, g_renderInterface->placeholderData->GetSamplerNearest());
+    cr << SetShaderUniform(0, "SamplerLinear"_sh, RI.placeholderData->GetSamplerLinearMipmap());
+    cr << SetShaderUniform(1, "SamplerNearest"_sh, RI.placeholderData->GetSamplerNearest());
 
     DeferredRendererPassData* dpd = DynamicCast<DeferredRendererPassData>(rs.passData);
     AssertDebug(dpd != nullptr);
@@ -1385,16 +1375,16 @@ void ReflectionsPass::Render(Frame* frame, const RenderSetup& rs)
         cr << SetShaderUniform(2 + attachmentIndex, GBufferTextureNames[attachmentIndex], opaquePassFramebuffer->GetAttachment(attachmentIndex)->GetImageView());
     }
 
-    cr << SetShaderUniform(2 + GTN_MAX, "CamerasBuffer"_sh, g_renderInterface->namedBuffers[NamedBuffer::Cameras].gpuBuffer, TShaderDataOffset<CameraShaderData>(rs.view->GetCamera()));
-    cr << SetShaderUniform(3 + GTN_MAX, "WorldsBuffer"_sh, g_renderInterface->namedBuffers[NamedBuffer::Worlds].gpuBuffer);
-    cr << SetShaderUniform(4 + GTN_MAX, "EnvProbesBuffer"_sh, g_renderInterface->namedBuffers[NamedBuffer::EnvProbes].gpuBuffer);
+    cr << SetShaderUniform(2 + GTN_MAX, "CamerasBuffer"_sh, RI.namedBuffers[NamedBuffer::Cameras], Resources::GetBinding(rs.view->GetCamera()));
+    cr << SetShaderUniform(3 + GTN_MAX, "WorldsBuffer"_sh, RI.namedBuffers[NamedBuffer::Worlds]);
+    cr << SetShaderUniform(4 + GTN_MAX, "EnvProbesBuffer"_sh, RI.namedBuffers[NamedBuffer::EnvProbes]);
 
-    cr << SetShaderUniform(10 + GTN_MAX, "BlueNoiseBuffer"_sh, g_renderInterface->blueNoiseBuffer.gpuBuffer);
-    cr << SetShaderUniform(11 + GTN_MAX, "SphereSamplesBuffer"_sh, g_renderInterface->sphereSamplesBuffer.gpuBuffer);
+    cr << SetShaderUniform(10 + GTN_MAX, "BlueNoiseBuffer"_sh, RI.blueNoiseBuffer.gpuBuffer);
+    cr << SetShaderUniform(11 + GTN_MAX, "SphereSamplesBuffer"_sh, RI.sphereSamplesBuffer.gpuBuffer);
 
-    cr << SetShaderUniform(12 + GTN_MAX, "GBufferMipChain"_sh, g_renderInterface->textureViewCache->GetOrCreate(dpd->mipChain));
+    cr << SetShaderUniform(12 + GTN_MAX, "GBufferMipChain"_sh, RI.textureViewCache->GetOrCreate(dpd->mipChain));
 
-    cr << SetShaderUniform(13 + GTN_MAX, "EnvProbesTexture"_sh, g_renderInterface->textureViewCache->GetOrCreate(g_renderInterface->envProbesTexture));
+    cr << SetShaderUniform(13 + GTN_MAX, "EnvProbesTexture"_sh, RI.textureViewCache->GetOrCreate(RI.envProbesTexture));
 
     uint32 numRenderedEnvProbes = 0;
 
@@ -1419,7 +1409,7 @@ void ReflectionsPass::Render(Frame* frame, const RenderSetup& rs)
                 break;
             }
 
-            cr << SetShaderUniform(5 + GTN_MAX, "CurrentEnvProbe"_sh, g_renderInterface->namedBuffers[NamedBuffer::EnvProbes].gpuBuffer, TShaderDataOffset<EnvProbeShaderData>(envProbe));
+            cr << SetShaderUniform(5 + GTN_MAX, "CurrentEnvProbe"_sh, RI.namedBuffers[NamedBuffer::EnvProbes], Resources::GetBinding(envProbe));
 
             RenderFullScreenQuad(frame, rs);
 
@@ -1445,9 +1435,9 @@ void ReflectionsPass::Render(Frame* frame, const RenderSetup& rs)
         cr << SetDepthWrite(false);
         cr << SetCurrentBlendFunction(BlendFunction(BMF_SRC_ALPHA, BMF_ONE_MINUS_SRC_ALPHA, BMF_ONE, BMF_ONE_MINUS_SRC_ALPHA));
 
-        cr << SetShaderUniform(0, "SamplerLinear"_sh, g_renderInterface->placeholderData->GetSamplerLinear());
-        cr << SetShaderUniform(1, "WorldsBuffer"_sh, g_renderInterface->namedBuffers[NamedBuffer::Worlds].gpuBuffer);
-        cr << SetShaderUniform(2, "InTexture"_sh, g_renderInterface->textureViewCache->GetOrCreate(ssrTexture));
+        cr << SetShaderUniform(0, "SamplerLinear"_sh, RI.placeholderData->GetSamplerLinear());
+        cr << SetShaderUniform(1, "WorldsBuffer"_sh, RI.namedBuffers[NamedBuffer::Worlds]);
+        cr << SetShaderUniform(2, "InTexture"_sh, RI.textureViewCache->GetOrCreate(ssrTexture));
 
         RenderFullScreenQuad(frame, rs);
 
@@ -1482,6 +1472,8 @@ void ReflectionsPass::Render(Frame* frame, const RenderSetup& rs)
 
 DeferredRendererPassData::~DeferredRendererPassData()
 {
+    EnqueueDeletion(std::move(mipChain));
+
     depthPyramidRenderer.Reset();
 
     hbao.Reset();
@@ -1529,8 +1521,7 @@ static FramebufferRef CreateDeferredShadingFramebuffer(GBuffer* gbuffer)
     FramebufferDesc framebufferDesc {};
     framebufferDesc.extent = gbuffer->GetExtent();
 
-    FramebufferRef framebuffer = g_renderInterface->MakeFramebuffer(framebufferDesc);
-
+    FramebufferRef framebuffer = RI.MakeFramebuffer(framebufferDesc);
 #if HYP_DEBUG_MODE
     framebuffer->SetDebugName(NAME("DeferredShadingFramebuffer"));
 #endif
@@ -1568,6 +1559,39 @@ static FramebufferRef CreateDeferredShadingFramebuffer(GBuffer* gbuffer)
     return framebuffer;
 }
 
+static FramebufferRef CreateDepthPrepassFramebuffer(GBuffer* gbuffer)
+{
+    FramebufferDesc framebufferDesc {};
+    framebufferDesc.extent = gbuffer->GetExtent();
+
+    FramebufferRef framebuffer = RI.MakeFramebuffer(framebufferDesc);
+#if HYP_DEBUG_MODE
+    framebuffer->SetDebugName(NAME("DepthPrepassFramebuffer"));
+#endif
+
+    const GpuImageViewRef& depthImageView = gbuffer->GetBucket(RenderBucket::Opaque).GetGBufferAttachment(GTN_DEPTH)->GetImageView();
+    Assert(depthImageView.IsValid());
+
+    AttachmentDesc depthAttachmentDesc {};
+    depthAttachmentDesc.imageType = TextureType::Texture2D;
+    depthAttachmentDesc.format = depthImageView->GetImage()->GetTextureFormat();
+    depthAttachmentDesc.loadOp = LoadOperation::CLEAR;
+    depthAttachmentDesc.storeOp = StoreOperation::STORE;
+
+    Attachment* depthAttachment = framebuffer->AddAttachment(
+        0,
+        depthAttachmentDesc,
+        depthImageView);
+
+    CheckResult(framebuffer->Create());
+
+#if HYP_DEBUG_MODE
+    depthAttachment->GetGpuImage()->SetDebugName(NAME("DepthPrepassAttachment"));
+#endif
+
+    return framebuffer;
+}
+
 class TileProcessor
 {
 public:
@@ -1585,7 +1609,6 @@ public:
     {
         uint16 numEnvProbes;
         uint16 numLights;
-
         uint16 envProbeIndices[MaxEnvProbesPerTile];
         uint16 lightIndices[MaxLightsPerTile];
     };
@@ -1595,6 +1618,11 @@ public:
         size_t gridBufferSize = 0;
         size_t indexBufferSize = 0;
         uint32 lastUsedFrame = UINT32_MAX;
+
+        Array<Tile, RenderAllocator> tempTiles;
+
+        Array<TileGridData, RenderAllocator> gridData;
+        Array<uint16, RenderAllocator> indexData;
     };
 
     Array<TileDataAllocation, RenderAllocator> tileDataPerView;
@@ -1608,7 +1636,7 @@ public:
 
     ~TileProcessor() = default;
 
-    void ProcessView(const Viewport& viewport, View* view, StructuredBuffer*& outGridBuffer, StructuredBuffer*& outIndexBuffer)
+    void ProcessView(const Viewport& viewport, View* view, ByteAddressBuffer*& outGridBuffer, ByteAddressBuffer*& outIndexBuffer)
     {
         Assert(view != nullptr);
 
@@ -1616,19 +1644,32 @@ public:
         outIndexBuffer = nullptr;
 
         // @TODO VP offset
-        const Vec2u& extent = viewport.extent;
+
+        const Vec2u extent = viewport.extent;
 
         const uint32 numTilesX = (extent.x + TileSize - 1) / TileSize;
         const uint32 numTilesY = (extent.y + TileSize - 1) / TileSize;
         const uint32 totalTiles = numTilesX * numTilesY * TileZBins;
+
+        Assert(totalTiles != 0);
 
         if (tileDataPerView.Size() <= view->Id().ToIndex())
         {
             tileDataPerView.Resize(view->Id().ToIndex() + 1);
         }
 
-        Array<Tile, RenderAllocator> tempTiles;
-        tempTiles.ResizeZeroed(totalTiles);
+        TileDataAllocation& allocation = tileDataPerView[view->Id().ToIndex()];
+        allocation.lastUsedFrame = GetFrameCounter();
+
+        Array<Tile, RenderAllocator>& tempTiles = allocation.tempTiles;
+        if (tempTiles.Size() < totalTiles)
+        {
+            tempTiles.ResizeZeroed(totalTiles);
+        }
+        else
+        {
+            Memory::Zero(tempTiles.Data(), totalTiles * sizeof(Tile));
+        }
 
         RenderProxyList& rpl = GetConsumerProxyList(view);
         rpl.BeginRead();
@@ -1637,17 +1678,17 @@ public:
         RenderProxyCamera* cameraProxy = static_cast<RenderProxyCamera*>(GetRenderProxy(view->GetCamera()));
         Assert(cameraProxy != nullptr);
 
-        const Mat4f& cameraVP = cameraProxy->bufferData.viewProjMat;
-
         const float cameraNear = cameraProxy->bufferData.cameraNear;
         const float cameraFar = cameraProxy->bufferData.cameraFar;
+
         const float logFarOverNear = std::log2(cameraFar / cameraNear);
 
         const float scale = float(TileZBins) / logFarOverNear;
         const float bias = -(float(TileZBins) * std::log2(cameraNear)) / logFarOverNear;
 
         const Mat4f& viewMatrix = cameraProxy->bufferData.viewMat;
-        const Mat4f& projMatrix = cameraProxy->bufferData.projMat;
+
+        Mat4f projMatrix = cameraProxy->bufferData.projMat;
 
         auto CalculateZBin = [scale, bias](float viewSpaceZ) -> int32
         {
@@ -1687,13 +1728,13 @@ public:
 
             const float pixMinX = (ndcCenterX - ndcRadiusX) * halfW + halfW;
             const float pixMaxX = (ndcCenterX + ndcRadiusX) * halfW + halfW;
-            const float pixMinY = (ndcCenterY - ndcRadiusY) * halfH + halfH;
-            const float pixMaxY = (ndcCenterY + ndcRadiusY) * halfH + halfH;
+            const float pixMinY = (1.0f - (ndcCenterY + ndcRadiusY)) * halfH;
+            const float pixMaxY = (1.0f - (ndcCenterY - ndcRadiusY)) * halfH;
 
             outMinX = uint32(MathUtil::Max(int32(pixMinX) / int32(TileSize), 0));
             outMinY = uint32(MathUtil::Max(int32(pixMinY) / int32(TileSize), 0));
-            outMaxX = MathUtil::Min(uint32(MathUtil::Max(pixMaxX, 0.0f)) / TileSize, numTilesX - 1);
-            outMaxY = MathUtil::Min(uint32(MathUtil::Max(pixMaxY, 0.0f)) / TileSize, numTilesY - 1);
+            outMaxX = uint32(MathUtil::Min(int32(pixMaxX) / int32(TileSize), int32(numTilesX - 1)));
+            outMaxY = uint32(MathUtil::Min(int32(pixMaxY) / int32(TileSize), int32(numTilesY - 1)));
 
             return outMinX <= outMaxX && outMinY <= outMaxY;
         };
@@ -1716,6 +1757,7 @@ public:
 
             const float projScaleX = projMatrix[0][0];
             const float projScaleY = projMatrix[1][1];
+
             const float halfW = float(extent.x) * 0.5f;
             const float halfH = float(extent.y) * 0.5f;
 
@@ -1771,13 +1813,13 @@ public:
 
             const float pixMinX = ndcMinX * halfW + halfW;
             const float pixMaxX = ndcMaxX * halfW + halfW;
-            const float pixMinY = ndcMinY * halfH + halfH;
-            const float pixMaxY = ndcMaxY * halfH + halfH;
+            const float pixMinY = (1.0f - ndcMaxY) * halfH;
+            const float pixMaxY = (1.0f - ndcMinY) * halfH;
 
             outMinX = uint32(MathUtil::Max(int32(pixMinX) / int32(TileSize), 0));
             outMinY = uint32(MathUtil::Max(int32(pixMinY) / int32(TileSize), 0));
-            outMaxX = MathUtil::Min(uint32(MathUtil::Max(pixMaxX, 0.0f)) / TileSize, numTilesX - 1);
-            outMaxY = MathUtil::Min(uint32(MathUtil::Max(pixMaxY, 0.0f)) / TileSize, numTilesY - 1);
+            outMaxX = uint32(MathUtil::Min(int32(pixMaxX) / int32(TileSize), int32(numTilesX - 1)));
+            outMaxY = uint32(MathUtil::Min(int32(pixMaxY) / int32(TileSize), int32(numTilesY - 1)));
 
             return outMinX <= outMaxX && outMinY <= outMaxY;
         };
@@ -1838,7 +1880,7 @@ public:
             }
         }
 
-        Array<Tuple<EnvProbe*, EnvProbeShaderData*, uint32>, RenderTempAllocator> envProbes;
+        Array<Tuple<EnvProbe*, EnvProbeShaderData*, uint32>, RenderAllocator> envProbes;
         envProbes.Reserve(rpl.GetEnvProbes().NumCurrent());
 
         for (EnvProbe* envProbe : rpl.GetEnvProbes())
@@ -1948,10 +1990,10 @@ public:
             }
         }
 
-        Array<TileGridData, RenderAllocator> gridData;
+        Array<TileGridData, RenderAllocator>& gridData = allocation.gridData;
         gridData.Resize(totalTiles);
 
-        Array<uint16, RenderAllocator> flatIndexData;
+        Array<uint16, RenderAllocator>& flatIndexData = allocation.indexData;
         flatIndexData.Reserve(totalTiles * 4);
 
         uint32 offset = 0;
@@ -1960,11 +2002,16 @@ public:
         {
             const Tile& tile = tempTiles[i];
 
-            gridData[i].indexOffset = uint32(flatIndexData.Size());
+            gridData[i].indexOffset = offset;
             gridData[i].numLights = tile.numLights;
             gridData[i].numEnvProbes = tile.numEnvProbes;
 
-            flatIndexData.Resize(offset + tile.numLights + tile.numEnvProbes);
+            const size_t minRequiredSize = offset + tile.numLights + tile.numEnvProbes;
+
+            if (flatIndexData.Size() < minRequiredSize)
+            {
+                flatIndexData.Resize(minRequiredSize);
+            }
 
             for (uint16 j = 0; j < tile.numLights; j++)
             {
@@ -1983,14 +2030,22 @@ public:
 
         if (flatIndexData.Empty())
         {
-            flatIndexData.Resize(1);
+            flatIndexData.Resize(2);
+        }
+        else if (flatIndexData.Size() % 2 != 0)
+        {
+            flatIndexData.PushBack(0); // Align to 4 bytes for ByteAddressBuffer
         }
 
-        TileDataAllocation& allocation = tileDataPerView[view->Id().ToIndex()];
-        allocation.lastUsedFrame = GetFrameCounter();
+        ByteAddressBuffer& gridBuffer = RI.bufferAllocator->AcquireByteAddressBuffer(gridData.Size() * sizeof(TileGridData));
+#if HYP_DEBUG_MODE
+        gridBuffer.gpuBuffer->SetDebugName(NAME("ClusterGridBuffer"));
+#endif
 
-        StructuredBuffer& gridBuffer = g_renderInterface->sbufferAllocator->AcquireBuffer(gridData.Size(), sizeof(TileGridData));
-        StructuredBuffer& indexBuffer = g_renderInterface->sbufferAllocator->AcquireBuffer(flatIndexData.Size(), sizeof(uint16));
+        ByteAddressBuffer& indexBuffer = RI.bufferAllocator->AcquireByteAddressBuffer(flatIndexData.Size() * sizeof(uint16));
+#if HYP_DEBUG_MODE
+        indexBuffer.gpuBuffer->SetDebugName(NAME("ClusterIndexBuffer"));
+#endif
 
         allocation.gridBufferSize = gridBuffer.gpuBuffer->Size();
         allocation.indexBufferSize = indexBuffer.gpuBuffer->Size();
@@ -2026,9 +2081,6 @@ void DeferredRenderer::Shutdown()
 
 PassData* DeferredRenderer::CreateViewPassData(View* view, PassDataExt&)
 {
-    HYP_SCOPE;
-    AssertOnThread(g_renderThread);
-
     Assert(view != nullptr);
 
     if (view->GetFlags() & ViewFlags::GBUFFER)
@@ -2060,6 +2112,7 @@ PassData* DeferredRenderer::CreateViewPassData(View* view, PassDataExt&)
         passData.postProcessing->Create();
 
         passData.deferredShadingFramebuffer = CreateDeferredShadingFramebuffer(gbuffer);
+        passData.depthPrepassFramebuffer = CreateDepthPrepassFramebuffer(gbuffer);
 
         passData.indirectPass = MakeUnique<DeferredPass>(DPM_INDIRECT_LIGHTING, gbuffer->GetExtent(), gbuffer, passData.deferredShadingFramebuffer);
         passData.indirectPass->Create();
@@ -2093,7 +2146,7 @@ PassData* DeferredRenderer::CreateViewPassData(View* view, PassDataExt&)
         passData.reflectionsPass = MakeUnique<ReflectionsPass>(
             gbuffer->GetExtent(),
             gbuffer,
-            g_renderInterface->textureViewCache->GetOrCreate(passData.mipChain));
+            RI.textureViewCache->GetOrCreate(passData.mipChain));
 
         passData.reflectionsPass->Create();
 
@@ -2114,7 +2167,7 @@ PassData* DeferredRenderer::CreateViewPassData(View* view, PassDataExt&)
 
         return pd;
     }
-    else if ((view->GetFlags() & ViewFlags::RAY_TRACING) && g_renderInterface->GetRenderConfig().rayTracing)
+    else if ((view->GetFlags() & ViewFlags::RAY_TRACING) && RI.GetRenderConfig().rayTracing)
     {
         RayTracingPassData* pd = new RayTracingPassData();
         RayTracingPassData& passData = *pd;
@@ -2135,7 +2188,7 @@ void DeferredRenderer::CreateViewRayTracingPasses(View* view, DeferredRendererPa
 {
     AssertOnThread(g_renderThread);
 
-    if (!g_renderInterface->GetRenderConfig().rayTracing)
+    if (!RI.GetRenderConfig().rayTracing)
     {
         return;
     }
@@ -2178,7 +2231,7 @@ void DeferredRenderer::CreateViewTopLevelAccelerationStructures(View* view, RayT
     {
         GpuTlasRef& tlas = passData.rayTracingTlases[frameIndex];
 
-        tlas = g_renderInterface->MakeTLAS();
+        tlas = RI.MakeTLAS();
         tlas->AddGpuBlas(0, blas);
 
         CheckResult(tlas->Create());
@@ -2187,12 +2240,14 @@ void DeferredRenderer::CreateViewTopLevelAccelerationStructures(View* view, RayT
 
 void DeferredRenderer::ResizeView(Viewport viewport, View* view, DeferredRendererPassData& passData)
 {
-    HYP_SCOPE;
     AssertOnThread(g_renderThread);
 
-    HYP_LOG(Rendering, Verbose, "Resizing View '{}' to {}x{}", view->Id(), viewport.extent.x, viewport.extent.y);
+    if (viewport.extent.Volume() == 0)
+    {
+        return;
+    }
 
-    Assert(viewport.extent.Volume() > 0);
+    HYP_LOG(Rendering, Verbose, "Resizing View '{}' to {}x{}", view->Id(), viewport.extent.x, viewport.extent.y);
 
     const Vec2u newSize = Vec2u(viewport.extent);
 
@@ -2209,10 +2264,35 @@ void DeferredRenderer::ResizeView(Viewport viewport, View* view, DeferredRendere
         EnqueueDeletion(std::move(passData.deferredShadingFramebuffer));
     }
 
+    if (passData.depthPrepassFramebuffer.IsValid())
+    {
+        EnqueueDeletion(std::move(passData.depthPrepassFramebuffer));
+    }
+
     passData.deferredShadingFramebuffer = CreateDeferredShadingFramebuffer(gbuffer);
+    passData.depthPrepassFramebuffer = CreateDepthPrepassFramebuffer(gbuffer);
 
     passData.directPass->Resize(newSize);
     passData.indirectPass->Resize(newSize);
+
+    passData.depthPyramidRenderer = MakeUnique<DepthPyramidRenderer>(gbuffer);
+    passData.depthPyramidRenderer->Create();
+
+    passData.cullData.depthPyramidImageView = passData.depthPyramidRenderer->GetResultImageView();
+    passData.cullData.depthPyramidDimensions = passData.depthPyramidRenderer->GetExtent();
+
+    EnqueueDeletion(std::move(passData.mipChain));
+
+    passData.mipChain = MakeHandle<Texture>(TextureDesc {
+        TextureType::Texture2D,
+        opaquePassFramebuffer->GetAttachment(0)->GetFormat(),
+        Vec3u(opaquePassFramebuffer->GetExtent(), 1),
+        TFM_LINEAR_MIPMAP,
+        TFM_LINEAR_MIPMAP,
+        TWM_CLAMP_TO_EDGE
+    });
+    passData.mipChain->SetName(NAME("DeferredPassMipChain"));
+    CheckResult(passData.mipChain->Create());
 
     passData.hbao = MakeUnique<HBAO>(viewport.extent, gbuffer);
     passData.hbao->Create();
@@ -2229,7 +2309,7 @@ void DeferredRenderer::ResizeView(Viewport viewport, View* view, DeferredRendere
     passData.reflectionsPass = MakeUnique<ReflectionsPass>(
         newSize,
         gbuffer,
-        g_renderInterface->textureViewCache->GetOrCreate(passData.mipChain));
+        RI.textureViewCache->GetOrCreate(passData.mipChain));
 
     passData.reflectionsPass->Create();
 
@@ -2245,9 +2325,6 @@ void DeferredRenderer::ResizeView(Viewport viewport, View* view, DeferredRendere
     passData.taaPass = MakeUnique<TAAPass>(passData.tonemapPass->GetFinalImageView(), newSize, gbuffer);
     passData.taaPass->Create();
 
-    passData.depthPyramidRenderer = MakeUnique<DepthPyramidRenderer>(gbuffer);
-    passData.depthPyramidRenderer->Create();
-
     CreateViewRayTracingPasses(view, passData);
 
     passData.view = MakeWeakRef(view);
@@ -2255,8 +2332,6 @@ void DeferredRenderer::ResizeView(Viewport viewport, View* view, DeferredRendere
 
 void DeferredRenderer::RenderFrame(Frame* frame, const RenderSetup& rs)
 {
-    HYP_SCOPE;
-
     AssertDebug(rs.world);
 
     Array<RenderProxyList*, InlineAllocator<8, RenderAllocator>> renderProxyLists;
@@ -2316,7 +2391,7 @@ void DeferredRenderer::RenderFrame(Frame* frame, const RenderSetup& rs)
                 }
             }
         }
-        else if ((view->GetFlags() & ViewFlags::RAY_TRACING) && g_renderInterface->GetRenderConfig().rayTracing)
+        else if ((view->GetFlags() & ViewFlags::RAY_TRACING) && RI.GetRenderConfig().rayTracing)
         {
             PassData* pd = FetchViewPassData(view);
             Assert(pd != nullptr);
@@ -2406,7 +2481,7 @@ void DeferredRenderer::RenderFrame(Frame* frame, const RenderSetup& rs)
             // check for dynamic env probes to render
             for (uint32 envProbeType = 0; envProbeType <= EPT_REFLECTION; envProbeType++)
             {
-                if (RendererBase* renderer = g_renderInterface->globalRenderers[GRT_ENV_PROBE][envProbeType])
+                if (RendererBase* renderer = RI.globalRenderers[GRT_ENV_PROBE][envProbeType])
                 {
                     for (EnvProbe* envProbe : envProbes[envProbeType])
                     {
@@ -2442,7 +2517,7 @@ void DeferredRenderer::RenderFrame(Frame* frame, const RenderSetup& rs)
 
                 envGridSetup.envGrid = envGrid;
 
-                g_renderInterface->globalRenderers[GRT_ENV_GRID][0]->RenderFrame(frame, envGridSetup);
+                RI.globalRenderers[GRT_ENV_GRID][0]->RenderFrame(frame, envGridSetup);
             }
         }
     }
@@ -2488,8 +2563,6 @@ void DeferredRenderer::RenderFrame(Frame* frame, const RenderSetup& rs)
 
 void DeferredRenderer::RenderFrameForView(Frame* frame, const RenderSetup& rs)
 {
-    HYP_SCOPE;
-
     AssertDebug(rs.world && rs.view);
 
     uint32 slot = GetRingIndex();
@@ -2508,11 +2581,6 @@ void DeferredRenderer::RenderFrameForView(Frame* frame, const RenderSetup& rs)
 
     RenderCollector& renderCollector = GetRenderCollector(view);
 
-    // must be before BeginRecordDrawCalls
-    PerformOcclusionCulling(frame, rs, renderCollector);
-
-    renderCollector.BeginRecordDrawCalls(frame, rs, RenderBucketMask<RenderBucket::Opaque, RenderBucket::Translucent, RenderBucket::Lightmapped, RenderBucket::Sky>);
-
     DeferredRendererPassData* passDataCasted = DynamicCast<DeferredRendererPassData>(rs.passData);
     AssertDebug(passDataCasted != nullptr);
 
@@ -2520,21 +2588,67 @@ void DeferredRenderer::RenderFrameForView(Frame* frame, const RenderSetup& rs)
 
     const uint32 frameIndex = frame->GetFrameIndex();
 
+    if (cvBypassDrawing.Get() || rs.viewport.extent.Volume() == 0)
+    {
+        return;
+    }
+
+    // Assign lights and envprobes to tiles.
+    // Must happen before any draw calls are returned as they will need to bind
+    // the cluster tile / index buffers.
     m_tileProcessor->ProcessView(
         rs.viewport,
         view,
         passData.gridTilesBuffer,
         passData.gridIndexBuffer);
 
-    if (cvBypassDrawing.Get())
+    Framebuffer* opaquePassFramebuffer = view->GetOutputTarget().GetFramebuffer(RenderBucket::Opaque);
+    Framebuffer* depthPrepassFramebuffer = passData.depthPrepassFramebuffer;
+
+    static const bool s_indirectRendering = RI.GetRenderConfig().indirectRendering;
+    const bool performDepthPrepass = s_indirectRendering && cvDepthPrepass.Get();
+
+    if (performDepthPrepass)
     {
-        return;
+        AssertDebug(depthPrepassFramebuffer != nullptr);
+
+        constexpr uint32 PrepassRenderBucketsMask = RenderBucketMask<RenderBucket::Opaque, RenderBucket::Lightmapped>;
+
+        renderCollector.BeginRecordDrawCalls(frame, rs, PrepassRenderBucketsMask, true);
+
+        if (renderCollector.mappingsByBucket[uint32(RenderBucket::Opaque)].Any() || renderCollector.mappingsByBucket[uint32(RenderBucket::Lightmapped)].Any())
+        {
+            renderCollector.ExecuteDrawCalls(frame, rs, depthPrepassFramebuffer, PrepassRenderBucketsMask, true);
+        }
+        else
+        {
+            frame->cr << SetCurrentFramebuffer(depthPrepassFramebuffer);
+            frame->cr << ClearFramebuffer(depthPrepassFramebuffer);
+            frame->cr << SetCurrentFramebuffer(nullptr);
+        }
+
+        passData.depthPyramidRenderer->Render(frame);
+        passData.cullData.depthPyramidImageView = passData.depthPyramidRenderer->GetResultImageView();
+        passData.cullData.depthPyramidDimensions = passData.depthPyramidRenderer->GetExtent();
+
+        renderCollector.PerformOcclusionCulling(frame, rs, AllRenderBucketsMask);
+        renderCollector.BeginRecordDrawCalls(frame, rs, AllRenderBucketsMask & ~PrepassRenderBucketsMask);
+    }
+    else
+    {
+        // must be before BeginRecordDrawCalls
+        renderCollector.PerformOcclusionCulling(frame, rs, AllRenderBucketsMask);
+        renderCollector.BeginRecordDrawCalls(frame, rs, AllRenderBucketsMask);
     }
 
     // Render shadows for shadow casting lights
     for (Light* light : rpl.GetLights())
     {
-        RendererBase* shadowRenderer = g_renderInterface->globalRenderers[GRT_SHADOW_MAP][uint32(light->GetLightType())];
+        const uint32 lightTypeIndex = uint32(light->GetLightType());
+
+        AssertDebug(lightTypeIndex < RI.globalRenderers[GRT_SHADOW_MAP].Size());
+
+        RendererBase* shadowRenderer = RI.globalRenderers[GRT_SHADOW_MAP][lightTypeIndex];
 
         if (!shadowRenderer)
         {
@@ -2546,45 +2660,12 @@ void DeferredRenderer::RenderFrameForView(Frame* frame, const RenderSetup& rs)
             continue;
         }
 
-        bool isLightInFrustum = false;
-
-        if (view->GetFlags() & ViewFlags::NO_FRUSTUM_CULLING)
-        {
-            isLightInFrustum = true;
-        }
-        else
-        {
-            switch (light->GetLightType())
-            {
-            case LightType::Directional:
-                isLightInFrustum = true;
-                break;
-            case LightType::Point:
-                isLightInFrustum = view->GetSubFrustum().ContainsBoundingSphere(light->GetBoundingSphere(true));
-                break;
-            case LightType::Spot:
-                /// \todo Implement frustum culling for spot lights
-                isLightInFrustum = true;
-                break;
-            case LightType::AreaRect:
-                isLightInFrustum = view->GetSubFrustum().ContainsAABB(light->GetWorldBounds());
-                break;
-            default:
-                break;
-            }
-        }
-
-        if (!isLightInFrustum)
-            // Skip shadow view creation/update if the light is totally out of view.
-            continue;
-
         RenderSetup shadowRs = rs.Fork();
         shadowRs.light = light;
 
         shadowRenderer->RenderFrame(frame, shadowRs);
     }
 
-    Framebuffer* opaquePassFramebuffer = view->GetOutputTarget().GetFramebuffer(RenderBucket::Opaque);
     Framebuffer* lightmapPassFramebuffer = view->GetOutputTarget().GetFramebuffer(RenderBucket::Lightmapped);
     Framebuffer* translucentPassFramebuffer = view->GetOutputTarget().GetFramebuffer(RenderBucket::Translucent);
     Framebuffer* debugPassFramebuffer = view->GetOutputTarget().GetFramebuffer(RenderBucket::Debug);
@@ -2599,29 +2680,13 @@ void DeferredRenderer::RenderFrameForView(Frame* frame, const RenderSetup& rs)
         && view->GetRayTracingView().IsValid()
         && passData.ddgi != nullptr;
 
-    if (cvTAA.Get())
-    {
-        // apply jitter to camera for TAA
-        RenderProxyCamera* cameraProxy = static_cast<RenderProxyCamera*>(GetRenderProxy(view->GetCamera()));
-        Assert(cameraProxy != nullptr);
-
-        CameraShaderData& cameraBufferData = cameraProxy->bufferData;
-
-        if (MathUtil::ApproxEqual(cameraBufferData.projMat[3][3], 0.0f))
-        {
-            const uint32 frameCounter = GetWorldBufferData()->frameCounter + 1;
-
-            Vec4f jitter = Vec4f::Zero();
-            Mat4f::Jitter(frameCounter, rs.viewport.extent.x, rs.viewport.extent.y, jitter);
-
-            cameraBufferData.jitter = jitter * CameraJitterScale;
-
-            UpdateGpuData(view->GetCamera());
-        }
-    }
-
     // render opaque objects into separate framebuffer
     frame->cr << SetCurrentFramebuffer(opaquePassFramebuffer);
+
+    if (performDepthPrepass)
+    {
+        frame->cr << SetDepthCompareOp(DCO_LESS_OR_EQUAL);
+    }
 
     // if no opaque objects will be rendered, we need to clear the color target anyway
     // as other passes are using load ops
@@ -2640,6 +2705,11 @@ void DeferredRenderer::RenderFrameForView(Frame* frame, const RenderSetup& rs)
         frame->cr << ClearFramebuffer(opaquePassFramebuffer, 0x1);
     }
 
+    if (performDepthPrepass)
+    {
+        frame->cr << SetDepthCompareOp(DCO_LESS);
+    }
+
     frame->cr << SetCurrentFramebuffer(nullptr);
 
     if (cvEnableLightmapVolumes.Get())
@@ -2650,7 +2720,17 @@ void DeferredRenderer::RenderFrameForView(Frame* frame, const RenderSetup& rs)
         {
             frame->cr << SetCurrentFramebuffer(lightmapPassFramebuffer);
 
+            if (performDepthPrepass)
+            {
+                frame->cr << SetDepthCompareOp(DCO_LESS_OR_EQUAL);
+            }
+
             renderCollector.ExecuteDrawCalls(frame, rs, RenderBucketMask<RenderBucket::Lightmapped>);
+
+            if (performDepthPrepass)
+            {
+                frame->cr << SetDepthCompareOp(DCO_LESS);
+            }
 
             frame->cr << SetCurrentFramebuffer(nullptr);
         }
@@ -2740,12 +2820,18 @@ void DeferredRenderer::RenderFrameForView(Frame* frame, const RenderSetup& rs)
     { // deferred lighting on opaque objects
         ENGINE_STAT_SCOPE(&s_statDeferredPass);
 
+        // Pre-transition resources to avoid breaking the render pass for barriers
         frame->cr << InsertBarrier(
             passData.deferredShadingFramebuffer->GetAttachment(1)->GetGpuImage(),
             RS_RENDER_TARGET,
             ShaderModuleType::Pixel,
             /* onlyDepth */ false,
             /* onlyStencil */ true);
+
+        // Transition shadow map atlas to shader resource before the pass
+        frame->cr << InsertBarrier(RI.shadowMapCache->GetAtlasImage(), RS_SHADER_RESOURCE, ShaderModuleType::Pixel);
+        // Transition point light shadow map atlas to shader resource before the pass
+        frame->cr << InsertBarrier(RI.shadowMapCache->GetPointLightShadowMapImage(), RS_SHADER_RESOURCE, ShaderModuleType::Pixel);
 
         frame->cr << SetCurrentFramebuffer(passData.deferredShadingFramebuffer);
 
@@ -2774,6 +2860,7 @@ void DeferredRenderer::RenderFrameForView(Frame* frame, const RenderSetup& rs)
         GenerateMipChain(frame, rs, renderCollector, srcImage);
     }
 
+    if (!performDepthPrepass)
     { // render Hi-Z
         passData.depthPyramidRenderer->Render(frame);
 
@@ -2798,8 +2885,8 @@ void DeferredRenderer::RenderFrameForView(Frame* frame, const RenderSetup& rs)
 
             frame->cr << SetCurrentShader(ShaderDesc(NAME("BlitTexture")));
 
-            frame->cr << SetShaderUniform(0, "SamplerLinear"_sh, g_renderInterface->placeholderData->GetSamplerLinear());
-            frame->cr << SetShaderUniform(1, "WorldsBuffer"_sh, g_renderInterface->namedBuffers[NamedBuffer::Worlds].gpuBuffer);
+            frame->cr << SetShaderUniform(0, "SamplerLinear"_sh, RI.placeholderData->GetSamplerLinear());
+            frame->cr << SetShaderUniform(1, "WorldsBuffer"_sh, RI.namedBuffers[NamedBuffer::Worlds]);
             frame->cr << SetShaderUniform(2, "InTexture"_sh, passData.deferredShadingFramebuffer->GetAttachment(0)->GetImageView());
 
             frame->cr << CommitDrawState();
@@ -2842,12 +2929,12 @@ void DeferredRenderer::RenderFrameForView(Frame* frame, const RenderSetup& rs)
                 RenderSetup particleVolumeRS = rs.Fork();
                 particleVolumeRS.volume = particleVolume;
 
-                g_renderInterface->globalRenderers[GRT_PARTICLE_VOLUME][0]->RenderFrame(frame, particleVolumeRS);
+                RI.globalRenderers[GRT_PARTICLE_VOLUME][0]->RenderFrame(frame, particleVolumeRS);
             }
         }
 
         { // draw sprites
-            SpriteRenderer* spriteRenderer = static_cast<SpriteRenderer*>(g_renderInterface->globalRenderers[GRT_SPRITE][0]);
+            SpriteRenderer* spriteRenderer = static_cast<SpriteRenderer*>(RI.globalRenderers[GRT_SPRITE][0]);
 
             if (spriteRenderer != nullptr)
             {
@@ -2889,7 +2976,7 @@ void DeferredRenderer::RenderFrameForView(Frame* frame, const RenderSetup& rs)
     // m_dofBlur->Render(frame);
 
     GpuImageViewRef finalImageView = (passData.taaPass != nullptr && cvTAA.Get())
-        ? g_renderInterface->textureViewCache->GetOrCreate(passData.taaPass->GetResultTexture())
+        ? RI.textureViewCache->GetOrCreate(passData.taaPass->GetResultTexture())
         : passData.tonemapPass->GetFinalImageView();
 
     // Ordered by View priority
@@ -2907,12 +2994,10 @@ void DeferredRenderer::RenderFrameForView(Frame* frame, const RenderSetup& rs)
 
 void DeferredRenderer::UpdateRayTracingView(Frame* frame, const RenderSetup& rs)
 {
-    HYP_SCOPE;
-
     View* view = rs.view;
     AssertDebug(view != nullptr);
 
-    if (!(view->GetFlags() & ViewFlags::RAY_TRACING) || !g_renderInterface->GetRenderConfig().rayTracing)
+    if (!(view->GetFlags() & ViewFlags::RAY_TRACING) || !RI.GetRenderConfig().rayTracing)
     {
         return;
     }
@@ -2929,7 +3014,7 @@ void DeferredRenderer::UpdateRayTracingView(Frame* frame, const RenderSetup& rs)
     {
         for (GpuTlasRef& tlas : pd->rayTracingTlases)
         {
-            tlas = g_renderInterface->MakeTLAS();
+            tlas = RI.MakeTLAS();
         }
     }
 
@@ -2958,7 +3043,7 @@ void DeferredRenderer::UpdateRayTracingView(Frame* frame, const RenderSetup& rs)
         uint64 oldKey;
         GpuBlas* blas;
 
-        g_renderInterface->blasCache->GetOrCreateBLAS(
+        RI.blasCache->GetOrCreateBLAS(
             entity, meshProxy->mesh, meshProxy->material,
             newKey, oldKey,
             blas);
@@ -3024,8 +3109,6 @@ void DeferredRenderer::UpdateRayTracingView(Frame* frame, const RenderSetup& rs)
 
 void DeferredRenderer::PerformOcclusionCulling(Frame* frame, const RenderSetup& rs, RenderCollector& renderCollector)
 {
-    HYP_SCOPE;
-
     renderCollector.PerformOcclusionCulling(frame, rs, AllRenderBucketsMask);
 }
 
@@ -3035,35 +3118,24 @@ void DeferredRenderer::ExecuteDrawCalls(
     RenderCollector& renderCollector,
     uint32 bucketMask)
 {
-    HYP_SCOPE;
-
     renderCollector.ExecuteDrawCalls(frame, rs, bucketMask);
 }
 
 void DeferredRenderer::GenerateMipChain(Frame* frame, const RenderSetup& rs, RenderCollector& renderCollector, const GpuImageRef& srcImage)
 {
-    HYP_SCOPE;
-
-    const uint32 frameIndex = frame->GetFrameIndex();
-
     DeferredRendererPassData* pd = DynamicCast<DeferredRendererPassData>(rs.passData);
 
-    GpuImage* mipmappedResult = pd->mipChain->GetGpuImage();
-    Assert(mipmappedResult != nullptr && mipmappedResult->IsCreated());
+    const Handle<Texture>& mipChainTexture = pd->mipChain;
+    AssertDebug(mipChainTexture.IsValid());
 
     frame->cr << InsertBarrier(srcImage, RS_COPY_SRC);
-    frame->cr << InsertBarrier(mipmappedResult, RS_COPY_DST);
+    frame->cr << InsertBarrier(mipChainTexture->GetGpuImage(), RS_COPY_DST);
 
-    // Blit into the mipmap chain img
-    frame->cr << Blit(
-        srcImage,
-        mipmappedResult,
-        Rect<uint32> { 0, 0, srcImage->GetExtent().x, srcImage->GetExtent().y },
-        Rect<uint32> { 0, 0, mipmappedResult->GetExtent().x, mipmappedResult->GetExtent().y });
+    frame->cr << CopyImage(srcImage, mipChainTexture->GetGpuImage(), mipChainTexture->GetTextureDesc().extent);
+    frame->cr << GenerateMipmaps(mipChainTexture);
 
-    frame->cr << GenerateMipmaps(mipmappedResult);
-
-    frame->cr << InsertBarrier(srcImage, RS_SHADER_RESOURCE);
+    frame->cr << InsertBarrier(mipChainTexture->GetGpuImage(), RS_SHADER_RESOURCE);
+    frame->cr << InsertBarrier(srcImage, RS_RENDER_TARGET);
 }
 
 #pragma endregion DeferredRenderer

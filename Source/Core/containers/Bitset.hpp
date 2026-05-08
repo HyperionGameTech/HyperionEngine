@@ -50,6 +50,9 @@ public:
     }
 
 private:
+    template <class OtherAllocatorType>
+    friend class TBitset; // to allow access to private members of other TBitset instantiations.
+
     template <bool IsConst>
     struct IteratorBase
     {
@@ -99,20 +102,13 @@ public:
         }
     };
 
-    template <bool ConditionalEnable = HasDefaultAllocatorInstance<AllocatorType>, typename = std::enable_if_t<ConditionalEnable>>
     TBitset()
-        : TBitset(GetDefaultAllocatorInstance<AllocatorType>(), 0)
+        : m_blocks()
     {
     }
-
-    explicit TBitset(AllocatorType* pAllocator, uint64 value = 0);
 
     /*! \brief Constructs a bitset from a 64-bit unsigned integer. */
-    template <bool ConditionalEnable = HasDefaultAllocatorInstance<AllocatorType>, typename = std::enable_if_t<ConditionalEnable>>
-    explicit TBitset(uint64 value)
-        : TBitset(GetDefaultAllocatorInstance<AllocatorType>(), value)
-    {
-    }
+    explicit TBitset(uint64 value);
 
     TBitset(const TBitset& other);
     TBitset& operator=(const TBitset& other);
@@ -553,7 +549,11 @@ private:
         }
     }
 
-    AllocatorType* const m_pAllocator;
+    HYP_FORCE_INLINE static AllocatorType* GetAllocator()
+    {
+        return GetDefaultAllocatorInstance<AllocatorType>();
+    }
+
     Blocks m_blocks;
 };
 
@@ -578,20 +578,17 @@ static inline Span<const typename TBitset<AllocatorType>::BlockType> CreateBlock
 }
 
 template <class AllocatorType>
-TBitset<AllocatorType>::TBitset(AllocatorType* pAllocator, uint64 value)
-    : m_pAllocator(pAllocator),
-      m_blocks(m_pAllocator)
+TBitset<AllocatorType>::TBitset(const TBitset& other)
+    : m_blocks(other.m_blocks)
 {
-    HYP_CORE_ASSERT(m_pAllocator != nullptr);
-
-    m_blocks.Concat(CreateBlocks_Internal<AllocatorType>(value).ToSpan());
 }
 
+/*! \brief Constructs a bitset from a 64-bit unsigned integer. */
 template <class AllocatorType>
-TBitset<AllocatorType>::TBitset(const TBitset& other)
-    : m_pAllocator(other.m_pAllocator),
-      m_blocks(other.m_blocks)
+TBitset<AllocatorType>::TBitset(uint64 value)
+    : m_blocks()
 {
+    m_blocks.Concat(CreateBlocks_Internal<AllocatorType>(value).ToSpan());
 }
 
 template <class AllocatorType>
@@ -604,8 +601,7 @@ TBitset<AllocatorType>& TBitset<AllocatorType>::operator=(const TBitset& other)
 
 template <class AllocatorType>
 TBitset<AllocatorType>::TBitset(TBitset&& other) noexcept
-    : m_pAllocator(other.m_pAllocator),
-      m_blocks(std::move(other.m_blocks))
+    : m_blocks(std::move(other.m_blocks))
 {
     other.m_blocks = CreateBlocks_Static_Internal<AllocatorType, 0>();
 }
@@ -622,7 +618,7 @@ TBitset<AllocatorType>& TBitset<AllocatorType>::operator=(TBitset&& other) noexc
 template <class AllocatorType>
 TBitset<AllocatorType> TBitset<AllocatorType>::operator~() const
 {
-    TBitset result { m_pAllocator };
+    TBitset result;
     result.m_blocks.ResizeUninitialized(m_blocks.Size());
 
     for (uint32 index = 0; index < result.m_blocks.Size(); index++)
@@ -638,7 +634,7 @@ TBitset<AllocatorType> TBitset<AllocatorType>::operator~() const
 template <class AllocatorType>
 TBitset<AllocatorType> TBitset<AllocatorType>::operator<<(uint32 pos) const
 {
-    TBitset result { m_pAllocator };
+    TBitset result;
 
     const size_t totalBitSize = NumBits();
 
@@ -659,7 +655,7 @@ TBitset<AllocatorType>& TBitset<AllocatorType>::operator<<=(uint32 pos)
 template <class AllocatorType>
 TBitset<AllocatorType> TBitset<AllocatorType>::operator&(uint64 value) const
 {
-    TBitset result { m_pAllocator };
+    TBitset result;
     result.m_blocks.Resize(MathUtil::Min(m_blocks.Size(), uint32(2)));
 
     if (m_blocks.Size() > 0)
@@ -689,7 +685,7 @@ template <class AllocatorType>
 template <class OtherAllocatorType>
 TBitset<AllocatorType> TBitset<AllocatorType>::operator&(const TBitset<OtherAllocatorType>& other) const
 {
-    TBitset result { m_pAllocator };
+    TBitset result;
     result.m_blocks.Resize(MathUtil::Min(m_blocks.Size(), other.m_blocks.Size()));
 
     for (uint32 index = 0; index < result.m_blocks.Size(); index++)
@@ -721,7 +717,7 @@ TBitset<AllocatorType>& TBitset<AllocatorType>::operator&=(const TBitset<OtherAl
 template <class AllocatorType>
 TBitset<AllocatorType> TBitset<AllocatorType>::operator|(uint64 value) const
 {
-    TBitset result { m_pAllocator };
+    TBitset result;
     result.m_blocks.Resize(MathUtil::Max(m_blocks.Size(), uint32(2)));
 
     if (m_blocks.Size() > 0)
@@ -759,7 +755,7 @@ template <class AllocatorType>
 template <class OtherAllocatorType>
 TBitset<AllocatorType> TBitset<AllocatorType>::operator|(const TBitset<OtherAllocatorType>& other) const
 {
-    TBitset result { m_pAllocator };
+    TBitset result;
     result.m_blocks.Resize(MathUtil::Max(m_blocks.Size(), other.m_blocks.Size()));
 
     for (uint32 index = 0; index < result.m_blocks.Size(); index++)
@@ -792,7 +788,7 @@ TBitset<AllocatorType>& TBitset<AllocatorType>::operator|=(const TBitset<OtherAl
 template <class AllocatorType>
 TBitset<AllocatorType> TBitset<AllocatorType>::operator^(uint64 value) const
 {
-    TBitset result { m_pAllocator };
+    TBitset result;
     result.m_blocks.Resize(MathUtil::Max(m_blocks.Size(), uint32(2)));
 
     if (m_blocks.Size() > 0)
@@ -830,7 +826,7 @@ template <class AllocatorType>
 template <class OtherAllocatorType>
 TBitset<AllocatorType> TBitset<AllocatorType>::operator^(const TBitset<OtherAllocatorType>& other) const
 {
-    TBitset result { m_pAllocator };
+    TBitset result;
     result.m_blocks.Resize(MathUtil::Max(m_blocks.Size(), other.m_blocks.Size()));
 
     for (uint32 index = 0; index < result.m_blocks.Size(); index++)

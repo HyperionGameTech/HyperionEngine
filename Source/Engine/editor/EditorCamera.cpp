@@ -21,7 +21,7 @@
 #include <Core/profiling/ProfileScope.hpp>
 
 #include <engine/EngineDriver.hpp>
-#include <engine/config/EngineConfig.hpp>
+#include <engine/CVarManager.hpp>
 
 #include <EditorCamera.generated.inl>
 
@@ -29,11 +29,15 @@ namespace Hyperion {
 
 extern EngineConfig& GetEngineConfig();
 
+CVar<float> cvEditorCameraLookSensitivity("Editor.Camera.LookSensitivity", 25.0f);
+CVar<float> cvEditorCameraMovementSpeed("Editor.Camera.MovementSpeed", 10.0f);
+
 HYP_DECLARE_LOG_CHANNEL(Camera);
 
-static Bitset GetMovementKeys(bool includeArrowKeys = true)
+template <class AllocatorType>
+static TBitset<AllocatorType> GetMovementKeys(bool includeArrowKeys = true)
 {
-    Bitset bits;
+    TBitset<AllocatorType> bits;
     bits.Set(uint32(KeyCode::KEY_W), true);
     bits.Set(uint32(KeyCode::KEY_A), true);
     bits.Set(uint32(KeyCode::KEY_S), true);
@@ -50,7 +54,8 @@ static Bitset GetMovementKeys(bool includeArrowKeys = true)
     return bits;
 }
 
-static const Bitset s_movementKeys = GetMovementKeys(true);
+// Max key enum value (KEY_W) < (32*4)
+static const auto s_movementKeys = GetMovementKeys<FixedAllocator<(128 / Bitset::NumBitsPerBlock)>>(true);
 
 #pragma region EditorCameraInputHandler
 
@@ -64,9 +69,9 @@ EditorCameraInputHandler::EditorCameraInputHandler(EditorCameraController* contr
 {
 }
 
-bool EditorCameraInputHandler::OnKeyDown_Impl(const KeyboardEvent& evt)
+bool EditorCameraInputHandler::OnKeyDown(const KeyboardEvent& evt)
 {
-    InputHandlerBase::OnKeyDown_Impl(evt);
+    InputHandlerBase::OnKeyDown(evt);
 
     if (m_controller && m_controller->GetMode() == EditorCameraControllerMode::MOUSE_LOCKED)
     {
@@ -82,9 +87,9 @@ bool EditorCameraInputHandler::OnKeyDown_Impl(const KeyboardEvent& evt)
     return false;
 }
 
-bool EditorCameraInputHandler::OnKeyUp_Impl(const KeyboardEvent& evt)
+bool EditorCameraInputHandler::OnKeyUp(const KeyboardEvent& evt)
 {
-    InputHandlerBase::OnKeyUp_Impl(evt);
+    InputHandlerBase::OnKeyUp(evt);
 
     if (m_controller && m_controller->GetMode() == EditorCameraControllerMode::MOUSE_LOCKED)
     {
@@ -100,9 +105,9 @@ bool EditorCameraInputHandler::OnKeyUp_Impl(const KeyboardEvent& evt)
     return false;
 }
 
-bool EditorCameraInputHandler::OnMouseDown_Impl(const MouseEvent& evt)
+bool EditorCameraInputHandler::OnMouseDown(const MouseEvent& evt)
 {
-    InputHandlerBase::OnMouseDown_Impl(evt);
+    InputHandlerBase::OnMouseDown(evt);
 
     if (!m_controller)
     {
@@ -117,9 +122,9 @@ bool EditorCameraInputHandler::OnMouseDown_Impl(const MouseEvent& evt)
     return true;
 }
 
-bool EditorCameraInputHandler::OnMouseUp_Impl(const MouseEvent& evt)
+bool EditorCameraInputHandler::OnMouseUp(const MouseEvent& evt)
 {
-    InputHandlerBase::OnMouseUp_Impl(evt);
+    InputHandlerBase::OnMouseUp(evt);
 
     if (!m_controller)
     {
@@ -134,39 +139,23 @@ bool EditorCameraInputHandler::OnMouseUp_Impl(const MouseEvent& evt)
     return true;
 }
 
-bool EditorCameraInputHandler::OnMouseMove_Impl(const MouseEvent& evt)
+bool EditorCameraInputHandler::OnMouseMove(const MouseEvent& evt)
 {
     return false;
 }
 
-bool EditorCameraInputHandler::OnMouseDrag_Impl(const MouseEvent& evt)
+bool EditorCameraInputHandler::OnMouseDrag(const MouseEvent& evt)
 {
     HYP_SCOPE;
 
-    const ConfigValue& editorLookSensitivity = GetEngineConfig().Get("Editor.Camera.LookSensitivity");
-    const ConfigValue& editorMoveSensitivity = GetEngineConfig().Get("Editor.Camera.MoveSensitivity");
-
-    if (!m_controller)
-    {
-        return false;
-    }
-
     Camera* camera = m_controller->GetCamera();
+    Assert(camera != nullptr);
 
-    if (!camera)
-    {
-        return false;
-    }
+    const double lookMultiplier = double(cvEditorCameraLookSensitivity.Get());
+    const double moveMultiplier = double(cvEditorCameraMovementSpeed.Get());
 
-    // magic numbers for fun
-    const double lookMultiplier = 7000.0 * editorLookSensitivity.ToDouble(1.0);
-    const double moveMultiplier = 25.0 * editorMoveSensitivity.ToDouble(1.0);
-
-    // double for moar bits!!1
     const double mouseDeltaX = double(evt.relativePos.x) - double(evt.relativePrevPos.x);
     const double mouseDeltaY = double(evt.relativePos.y) - double(evt.relativePrevPos.y);
-
-    const Vec2f deltaSign = Vec2f(MathUtil::Sign(evt.relativePos - evt.relativePrevPos)) * float(m_deltaTime);
 
     const Vec3f dirCrossY = camera->GetDirection().Cross(camera->GetUpVector());
 
@@ -178,16 +167,10 @@ bool EditorCameraInputHandler::OnMouseDrag_Impl(const MouseEvent& evt)
 
     if (isAltPressed || (evt.mouseButtons & ButtonsLR) == ButtonsLR)
     {
-        if (!isMoveKeyPressed) // so we don't try to move using cam when any movement keys are pressed. would be annoying.
+        if (!isMoveKeyPressed)
         {
-            if (MathUtil::Abs(mouseDeltaY) > MathUtil::Abs(mouseDeltaX))
-            {
-                camera->SetWorldTranslation(camera->GetWorldTranslation() + camera->GetUpVector() * -deltaSign.y * moveMultiplier);
-            }
-            else
-            {
-                camera->SetWorldTranslation(camera->GetWorldTranslation() + dirCrossY * deltaSign.x * moveMultiplier);
-            }
+            Vec3f translationDelta = (dirCrossY * float(mouseDeltaX)) + (camera->GetUpVector() * float(-mouseDeltaY));
+            camera->SetWorldTranslation(camera->GetWorldTranslation() + (translationDelta * moveMultiplier * float(m_deltaTime)));
         }
     }
     else if ((evt.mouseButtons & MouseButtonState::RIGHT))
@@ -202,33 +185,27 @@ bool EditorCameraInputHandler::OnMouseDrag_Impl(const MouseEvent& evt)
         }
         else if (!isMoveKeyPressed)
         {
-            if (MathUtil::Abs(mouseDeltaY) > MathUtil::Abs(mouseDeltaX))
-            {
-                camera->SetWorldTranslation(camera->GetWorldTranslation() + forward * -deltaSign.y * moveMultiplier);
-            }
-            else
-            {
-                camera->SetWorldTranslation(camera->GetWorldTranslation() + dirCrossY * deltaSign.x * moveMultiplier);
-            }
+            Vec3f translationDelta = (dirCrossY * float(mouseDeltaX)) + (forward * float(-mouseDeltaY));
+            camera->SetWorldTranslation(camera->GetWorldTranslation() + (translationDelta * moveMultiplier * float(m_deltaTime)));
         }
     }
     else if (evt.mouseButtons & MouseButtonState::LEFT)
     {
-        camera->Rotate(camera->GetUpVector(), MathUtil::DegToRad(mouseDeltaX * lookMultiplier * m_deltaTime));
-        camera->Rotate(dirCrossY, MathUtil::DegToRad(mouseDeltaY * lookMultiplier * m_deltaTime));
+        camera->Rotate(camera->GetUpVector(), MathUtil::DegToRad(mouseDeltaX * lookMultiplier));
+        camera->Rotate(dirCrossY, MathUtil::DegToRad(mouseDeltaY * lookMultiplier));
 
         if (camera->GetDirection().y > 0.98f || camera->GetDirection().y < -0.98f)
         {
-            camera->Rotate(dirCrossY, MathUtil::DegToRad(-mouseDeltaY * lookMultiplier * m_deltaTime));
+            camera->Rotate(dirCrossY, MathUtil::DegToRad(-mouseDeltaY * lookMultiplier));
         }
     }
 
     return true;
 }
 
-bool EditorCameraInputHandler::OnMouseLeave_Impl(const MouseEvent& evt)
+bool EditorCameraInputHandler::OnMouseLeave(const MouseEvent& evt)
 {
-    InputHandlerBase::OnMouseLeave_Impl(evt);
+    InputHandlerBase::OnMouseLeave(evt);
 
     if (!m_controller)
     {
@@ -240,17 +217,17 @@ bool EditorCameraInputHandler::OnMouseLeave_Impl(const MouseEvent& evt)
     return true;
 }
 
-bool EditorCameraInputHandler::OnClick_Impl(const MouseEvent& evt)
+bool EditorCameraInputHandler::OnClick(const MouseEvent& evt)
 {
     return false;
 }
 
-bool EditorCameraInputHandler::OnGainFocus_Impl(const MouseEvent& evt)
+bool EditorCameraInputHandler::OnGainFocus(const MouseEvent& evt)
 {
     return false;
 }
 
-bool EditorCameraInputHandler::OnLoseFocus_Impl(const MouseEvent& evt)
+bool EditorCameraInputHandler::OnLoseFocus(const MouseEvent& evt)
 {
     if (!m_controller)
     {

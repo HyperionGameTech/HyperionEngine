@@ -78,8 +78,6 @@ void GraphicsPipelineBase::SetFramebufferDesc(const FramebufferDesc& framebuffer
     m_framebufferDesc = framebufferDesc;
 }
 
-HYP_DISABLE_OPTIMIZATION;
-
 bool GraphicsPipelineBase::MatchesSignature(
     const RenderableAttributeSet& attributes,
     const FramebufferDesc& framebufferDesc) const
@@ -100,7 +98,8 @@ bool GraphicsPipelineBase::MatchesSignature(
         || materialAttributes.fillMode != m_fillMode
         || bool(materialAttributes.flags & MAF_DEPTH_TEST) != m_depthTest
         || bool(materialAttributes.flags & MAF_DEPTH_WRITE) != m_depthWrite
-        || bool(materialAttributes.flags & MAF_DEPTH_CLAMP) != m_depthClamp)
+        || bool(materialAttributes.flags & MAF_DEPTH_CLAMP) != m_depthClamp
+        || materialAttributes.depthCompareOp != m_depthCompareOp)
     {
         return false;
     }

@@ -32,6 +32,10 @@ namespace Hyperion {
 class CmdBase;
 class View;
 
+class StructuredBuffer;
+class RWStructuredBuffer;
+class ByteAddressBuffer;
+
 class alignas(void*) CmdBase
 {
 public:
@@ -40,7 +44,7 @@ public:
 #else
     CmdBase() = default;
 #endif
-    
+
     static void PrepareStatic(CmdBase*, Frame*)
     {
     }
@@ -438,45 +442,11 @@ private:
 class FillImage final : public CmdBase
 {
 public:
-    FillImage(GpuImage* image, float value)
-        : m_image(image),
-          m_value(value),
-          m_offset(Vec3u::Zero()),
-          m_extent(image ? image->GetTextureDesc().extent : Vec3u::One())
-    {
-    }
+    FillImage(GpuImage* image, float value);
+    FillImage(GpuImage* image, float value, const ImageSubResource& subResource);
+    FillImage(GpuImage* image, float value, const ImageSubResource& subResource, const Vec3u& offset, const Vec3u& extent);
 
-    FillImage(GpuImage* image, float value, const ImageSubResource& subResource)
-        : m_image(image),
-          m_value(value),
-          m_subResource(subResource),
-          m_offset(Vec3u::Zero()),
-          m_extent(image ? image->GetTextureDesc().extent : Vec3u::One())
-    {
-    }
-
-    FillImage(GpuImage* image, float value, const ImageSubResource& subResource, const Vec3u& offset, const Vec3u& extent)
-        : m_image(image),
-          m_value(value),
-          m_subResource(subResource),
-          m_offset(offset),
-          m_extent(extent)
-    {
-    }
-
-    static inline void InvokeStatic(CmdBase* cmd, CommandBuffer* commandBuffer)
-    {
-        FillImage* cmdCasted = static_cast<FillImage*>(cmd);
-
-        cmdCasted->m_image->Fill(
-            commandBuffer,
-            cmdCasted->m_value,
-            cmdCasted->m_subResource,
-            cmdCasted->m_offset,
-            cmdCasted->m_extent);
-
-        static_assert(std::is_trivially_destructible_v<FillImage>);
-    }
+    static void InvokeStatic(CmdBase* cmd, CommandBuffer* commandBuffer);
 
 private:
     GpuImage* m_image;
@@ -500,7 +470,7 @@ public:
         m_subResource.baseMipLevel = 0;
         m_subResource.numLevels = 1;
     }
-    
+
     CopyImageToBuffer(GpuImage* image, GpuBuffer* buffer, const ImageSubResource& subResource)
         : m_image(image),
           m_buffer(buffer),
@@ -602,12 +572,11 @@ private:
 class GenerateMipmaps final : public CmdBase
 {
 public:
-    GenerateMipmaps(GpuImage* image);
+    GenerateMipmaps(Texture* inTexture);
 
     static void InvokeStatic(CmdBase* cmd, CommandBuffer* commandBuffer);
 
-private:
-    GpuImage* m_image;
+    Texture* inTexture;
 };
 
 class DispatchCompute final : public CmdBase
@@ -770,6 +739,20 @@ private:
     bool depthTest;
 };
 
+class SetDepthCompareOp final : public CmdBase
+{
+public:
+    explicit SetDepthCompareOp(DepthCompareOp compareOp)
+        : compareOp(compareOp)
+    {
+    }
+
+    static void InvokeStatic(CmdBase* cmd, CommandBuffer* commandBuffer);
+
+private:
+    DepthCompareOp compareOp;
+};
+
 class SetDepthBias final : public CmdBase
 {
 public:
@@ -879,19 +862,23 @@ public:
           uniform { name, buffer }
     {
     }
-    
+
+    SetShaderUniform(uint32 uniformIndex, StringHash name, const StructuredBuffer& structuredBuffer, uint32 elementOffset = 0);
+    SetShaderUniform(uint32 uniformIndex, StringHash name, const RWStructuredBuffer& rwStructuredBuffer, uint32 elementOffset = 0);
+    SetShaderUniform(uint32 uniformIndex, StringHash name, const ByteAddressBuffer& byteAddressBuffer, uint32 byteOffset = 0);
+
     SetShaderUniform(uint32 uniformIndex, StringHash name, GpuImageView* imageView)
         : uniformIndex(uniformIndex),
           uniform { name, imageView }
     {
     }
-    
+
     SetShaderUniform(uint32 uniformIndex, StringHash name, Sampler* sampler)
         : uniformIndex(uniformIndex),
           uniform { name, sampler }
     {
     }
-    
+
     SetShaderUniform(uint32 uniformIndex, StringHash name, GpuTlas* tlas)
         : uniformIndex(uniformIndex),
           uniform { name, tlas }
@@ -967,7 +954,7 @@ public:
     }
 
     explicit TCommandRecorder(AllocatorType* pAllocator)
-        : m_cmdHeaders(pAllocator),
+        : m_cmdHeaders(),
           m_buffer(pAllocator),
           m_offset(0),
           m_writableState(true)

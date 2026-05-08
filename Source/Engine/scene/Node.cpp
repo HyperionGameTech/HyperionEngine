@@ -205,7 +205,7 @@ void Node::SetScene(Scene* scene)
             previousScene != nullptr,
             "Previous scene is null when setting new scene for Node {} - should be set to detached world scene by default",
             GetName());
-        
+
         m_scene = scene;
 
         MarkDirty();
@@ -224,9 +224,12 @@ void Node::SetScene(Scene* scene)
 
 World* Node::GetWorld() const
 {
-    return m_scene != nullptr
-        ? m_scene->GetWorld()
-        : g_engineDriver->GetDefaultWorld().Get();
+    if (m_scene != nullptr)
+    {
+        return m_scene->GetWorld();
+    }
+
+    return nullptr;
 }
 
 void Node::OnTransformUpdated()
@@ -367,7 +370,7 @@ Handle<Node> Node::AddChild(const Handle<Node>& node)
 
         currentParent = currentParent->m_parentNode;
     }
-    
+
     MarkDirty();
 
     return node;
@@ -429,7 +432,7 @@ bool Node::RemoveChild(const Node* node)
 
     UpdateWorldTransform();
     EnqueueDeletion(std::move(childNode));
-    
+
     MarkDirty();
 
     return true;
@@ -488,7 +491,7 @@ void Node::RemoveAllChildren()
     }
 
     UpdateWorldTransform();
-    
+
     MarkDirty();
 }
 
@@ -921,7 +924,7 @@ void Node::UpdateWorldTransform(bool updateChildTransforms)
                 transformMatrix[0][0] *= denom.x;
                 transformMatrix[0][1] *= denom.x;
                 transformMatrix[0][2] *= denom.x;
-                
+
                 transformMatrix[1][0] *= denom.y;
                 transformMatrix[1][1] *= denom.y;
                 transformMatrix[1][2] *= denom.y;
@@ -1164,7 +1167,7 @@ bool Node::RemoveTag(StringHash key)
 
         return true;
     }
-    
+
     return false;
 }
 

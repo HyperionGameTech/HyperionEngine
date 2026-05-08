@@ -77,21 +77,11 @@ CBufferAllocator::~CBufferAllocator()
     {
         scratch.Clear();
     }
-    
-    for (Block& block : m_blocks)
-    {
-        delete block.buffer;
-    }
 
     m_blocks.Clear();
 
     for (auto& frameBlocks : m_currentFrameBlocks)
     {
-        for (Block& block : frameBlocks)
-        {
-            delete block.buffer;
-        }
-
         frameBlocks.Clear();
     }
 }

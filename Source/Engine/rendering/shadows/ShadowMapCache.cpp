@@ -68,7 +68,7 @@ static FramebufferDesc GetFramebufferDesc(
     framebufferDesc.offset = Vec2i(atlasElement.offsetCoords);
 
     const ShadowMapFilter shadowMapFilter = light->GetShadowMapFilter();
-    
+
     outShaderDesc.name = NAME("DrawShadowMap");
     outShaderDesc.properties.Add(s_shadowMapFilterProperties[shadowMapFilter]);
 
@@ -131,7 +131,7 @@ static Camera* CreateShadowCamera(Light* light, uint32 cascadeIndex)
         shadowMapCamera->SetFarClip(1000.0f);//light->GetRadius());
 
         shadowMapCamera->AddCameraController(MakeHandle<PerspectiveCameraController>());
-        
+
         break;
     default:
         break;
@@ -184,7 +184,7 @@ struct CachedShadowMapData
     Array<ShadowMap*, RenderAllocator> shadowMaps;
 
     Camera* camera = nullptr;
-    
+
     Array<View*, FixedAllocator<MaxShadowMapCascades>> shadowViewsDynamic;
     Array<View*, FixedAllocator<MaxShadowMapCascades>> shadowViewsStatic;
 
@@ -257,7 +257,7 @@ public:
             }
         }
     }
-    
+
     ShadowMapAllocator allocator;
 
     /// Cached (per-light/view combination) shadow map rendering data that is cleaned up when no longer used
@@ -292,7 +292,7 @@ GpuImage* ShadowMapCache::GetAtlasImage() const
 
 GpuImageView* ShadowMapCache::GetAtlasImageView() const
 {
-    return g_renderInterface->textureViewCache->GetOrCreate(m_impl->allocator.GetAtlasTextureArray());
+    return RI.textureViewCache->GetOrCreate(m_impl->allocator.GetAtlasTextureArray());
 }
 
 GpuImage* ShadowMapCache::GetPointLightShadowMapImage() const
@@ -302,7 +302,7 @@ GpuImage* ShadowMapCache::GetPointLightShadowMapImage() const
 
 GpuImageView* ShadowMapCache::GetPointLightShadowMapImageView() const
 {
-    return g_renderInterface->textureViewCache->GetOrCreate(m_impl->allocator.GetPointLightTextureArray());
+    return RI.textureViewCache->GetOrCreate(m_impl->allocator.GetPointLightTextureArray());
 }
 
 HYP_NODISCARD View* ShadowMapCache::GetOrCreateShadowView(
@@ -407,6 +407,8 @@ HYP_NODISCARD View* ShadowMapCache::GetOrCreateShadowView(
 
             outView = new View(GetViewDesc(light, isStatic, cascadeIndex, *entry->shadowMaps[cascadeIndex], *entry->camera));
 
+            HYP_LOG(Rendering, Debug, "Create new shadow view for Light: {}", light->GetName());
+
             if (isStatic)
             {
                 outView->SetName(NAME_FMT("ShadowMapView_{}_{}_Static", light->GetName(), view->GetName()));
@@ -453,6 +455,8 @@ HYP_NODISCARD View* ShadowMapCache::GetOrCreateShadowView(
             AssertDebug(entry.shadowMaps[cascadeIndex] != nullptr);
 
             outView = new View(GetViewDesc(light, isStatic, cascadeIndex, *entry.shadowMaps[cascadeIndex], *entry.camera));
+
+            HYP_LOG(Rendering, Debug, "Create new shadow view for Light: {}", light->GetName());
 
             if (isStatic)
             {
@@ -534,7 +538,7 @@ ShadowMap* ShadowMapCache::GetShadowMap(
         {
             outShadowViewDynamic = entry.shadowViewsDynamic[cascadeIndex];
             outShadowViewStatic = entry.shadowViewsStatic[cascadeIndex];
-            
+
             AtomicExchange(&entry.lastFrameUsed, int64(GetFrameCounter()));
 
             return entry.shadowMaps[cascadeIndex];
@@ -565,7 +569,7 @@ bool ShadowMapCache::Remove(Light* light, View* view)
     }
 
     CachedShadowMapData& entry = it->second;
-    
+
     Array<View*, FixedAllocator<MaxShadowMapCascades * 2>> allViews;
 
     for (View* view : entry.shadowViewsStatic)
@@ -604,7 +608,7 @@ bool ShadowMapCache::Remove(Light* light, View* view)
     {
         if (shadowMap)
         {
-            bool success = m_impl->allocator.FreeShadowMap(shadowMap);
+            bool success = m_impl->allocator.FreeShadowMap(shadowMap, /* clearTextureRegion */ true);
 
             if (!success)
             {

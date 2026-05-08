@@ -37,7 +37,7 @@ class DX12CommandBuffer final : public CommandBufferBase
     friend class DX12DescriptorSet;
 
 public:
-    DX12CommandBuffer(D3D12_COMMAND_LIST_TYPE type);
+    explicit DX12CommandBuffer(D3D12_COMMAND_LIST_TYPE type);
 
     DX12CommandBuffer(DX12CommandBuffer&& other) noexcept;
     DX12CommandBuffer& operator=(DX12CommandBuffer&& other) noexcept;
@@ -131,6 +131,8 @@ private:
 
     // Track bound descriptor sets to avoid redundant SetGraphicsRootDescriptorTable() calls
     Array<DX12CachedDescriptorSetBinding> m_boundDescriptorSets;
+
+    ID3D12CommandSignature* m_indirectCommandSignature;
 };
 
 } // namespace Hyperion

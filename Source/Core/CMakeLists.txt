@@ -20,8 +20,15 @@ set(COMMON_LIBRARIES
 )
 
 if(HYPERION_ENGINE)
-    message(STATUS "Building hyperion-core for the engine, setting HYPERION_ENGINE=1")
+    message(STATUS "Building hyperion-core for the engine, setting HYPERION_ENGINE=1 in Core.")
     add_definitions(-DHYPERION_ENGINE=1)
+endif()
+
+message(STATUS "HYP_PLATFORM_NAME: ${HYP_PLATFORM_NAME}")
+
+if(HYP_PLATFORM_NAME STREQUAL "Android")
+    message(STATUS "Building for Android, setting HYP_ANDROID=1 in Core.")
+    add_definitions(-DHYP_ANDROID=1)
 endif()
 
 find_package(Threads REQUIRED)

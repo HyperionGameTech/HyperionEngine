@@ -33,34 +33,36 @@
 
 #include <engine/EngineGlobals.hpp>
 #include <engine/EngineDriver.hpp>
+#include <engine/CVarManager.hpp>
 
 #include <Camera.generated.inl>
 
 namespace Hyperion {
 
-class Camera;
+static constexpr float CameraJitterScale = 0.25f;
+
+extern CVar<bool> cvTAA;
 
 static NullInputHandler* GetNullInputHandler()
 {
     static struct NullInputHandlerInitializer
     {
         NullInputHandler* inputHandler;
-        DelegateHandler onShutdownHandle;
 
         NullInputHandlerInitializer()
         {
             inputHandler = new NullInputHandler;
 
-            onShutdownHandle = g_engineDriver->GetDelegates().OnShutdown.Bind([this]()
+            g_engineDriver->GetDelegates().OnShutdown
+                .Bind([this]()
                 {
                     if (inputHandler != nullptr)
                     {
                         inputHandler->Release();
                         inputHandler = nullptr;
                     }
-
-                    onShutdownHandle.Reset();
-                });
+                })
+                .Detach();
         }
     } s_initializer;
 
@@ -72,22 +74,21 @@ static NullCameraController* GetNullCameraController()
     static struct NullCameraControllerInitializer
     {
         NullCameraController* controller;
-        DelegateHandler onShutdownHandle;
 
         NullCameraControllerInitializer()
         {
             controller = new NullCameraController;
 
-            onShutdownHandle = g_engineDriver->GetDelegates().OnShutdown.Bind([this]()
+            g_engineDriver->GetDelegates().OnShutdown
+                .Bind([this]()
                 {
                     if (controller != nullptr)
                     {
                         controller->Release();
                         controller = nullptr;
                     }
-
-                    onShutdownHandle.Reset();
-                });
+                })
+                .Detach();
         }
     } s_initializer;
 
@@ -122,8 +123,6 @@ void CameraController::SetInputHandler(const Handle<InputHandlerBase>& inputHand
 
 void CameraController::OnAdded(Camera* camera)
 {
-    HYP_SCOPE;
-
     m_camera = camera;
 
     OnAdded();
@@ -263,10 +262,8 @@ Camera::~Camera()
 
 void Camera::Init()
 {
-    HYP_SCOPE;
-
     Entity::Init();
-    
+
     const Vec3f translation = GetWorldTranslation();
 
     m_streamingVolume = MakeHandle<CameraStreamingVolume>();
@@ -275,21 +272,37 @@ void Camera::Init()
 
     if (m_cameraFlags & CameraFlags::MATCH_WINDOW_SIZE)
     {
-        Handle<ApplicationWindow> window = m_window.Lock();
-
-        auto MatchWindowSize = [this](Vec2i windowSize)
+        const auto handleWindowChanged = [this](ApplicationWindow* window)
         {
-            windowSize = MathUtil::Max(Vec2i(MathUtil::Round(Vec2f(windowSize) * m_matchWindowSizeRatio)), Vec2i::One());
+            m_onWindowResizedHandle.Reset();
 
-            SetDimensions(windowSize);
-        };
+            if (window == nullptr)
+            {
+                return;
+            }
 
-        if (window.IsValid())
-        {
-            MatchWindowSize(window->GetDimensions());
+            auto MatchWindowSize = [this, weakWindow = MakeWeakRef(window)](Vec2i windowSize)
+            {
+                Handle<ApplicationWindow> strongWindow = weakWindow.Lock();
+
+                const float renderTargetScale = strongWindow.IsValid()
+                    ? strongWindow->GetRenderTargetScale()
+                    : 1.0f;
+
+                Vec2i renderSize = Vec2i(Vec2f(windowSize) * renderTargetScale);
+                renderSize = MathUtil::Max(Vec2i(MathUtil::Round(Vec2f(renderSize) * m_matchWindowSizeRatio)), Vec2i::One());
+
+                SetDimensions(renderSize);
+            };
+
+            MatchWindowSize(window->GetSize());
 
             m_onWindowResizedHandle = window->OnWindowSizeChanged.BindThreaded(MatchWindowSize, g_simThread);
-        }
+        };
+
+        handleWindowChanged(g_appContext->GetMainWindow());
+
+        m_onMainWindowChangedHandle = g_appContext->OnCurrentWindowChanged.BindThreaded(handleWindowChanged, g_simThread);
     }
 
     UpdateMouseLocked();
@@ -303,8 +316,6 @@ void Camera::Init()
 
 void Camera::SetCameraControllers(const Array<Handle<CameraController>>& cameraControllers)
 {
-    HYP_SCOPE;
-
     if (HasActiveCameraController())
     {
         if (const Handle<CameraController>& currentCameraController = GetCameraController())
@@ -350,8 +361,6 @@ void Camera::SetCameraControllers(const Array<Handle<CameraController>>& cameraC
 
 void Camera::AddCameraController(const Handle<CameraController>& cameraController, int index)
 {
-    HYP_SCOPE;
-
     if (!cameraController || cameraController->IsA<NullCameraController>())
     {
         return;
@@ -411,8 +420,6 @@ void Camera::AddCameraController(const Handle<CameraController>& cameraControlle
 
 bool Camera::RemoveCameraController(const Handle<CameraController>& cameraController)
 {
-    HYP_SCOPE;
-
     if (!cameraController || cameraController->IsA<NullCameraController>())
     {
         return false;
@@ -458,37 +465,6 @@ bool Camera::RemoveCameraController(const Handle<CameraController>& cameraContro
     return true;
 }
 
-void Camera::SetWindow(ApplicationWindow* window)
-{
-    HYP_SCOPE;
-
-    if (m_window.GetUnsafe() == window)
-    {
-        return;
-    }
-
-    m_window = MakeWeakRef(window);
-
-    if (IsInitCalled() && (m_cameraFlags & CameraFlags::MATCH_WINDOW_SIZE))
-    {
-        m_onWindowResizedHandle.Reset();
-
-        if (window)
-        {
-            auto matchWindowSize = [this](Vec2i windowSize)
-            {
-                windowSize = MathUtil::Max(Vec2i(MathUtil::Round(Vec2f(windowSize) * m_matchWindowSizeRatio)), Vec2i::One());
-
-                SetDimensions(windowSize);
-            };
-
-            matchWindowSize(window->GetDimensions());
-
-            m_onWindowResizedHandle = window->OnWindowSizeChanged.BindThreaded(matchWindowSize, g_simThread);
-        }
-    }
-}
-
 void Camera::OnTransformUpdated()
 {
     Entity::OnTransformUpdated();
@@ -512,8 +488,6 @@ void Camera::OnTransformUpdated()
 
 void Camera::SetNextTranslation(const Vec3f& translation)
 {
-    HYP_SCOPE;
-
     m_nextTranslation = translation;
 
     if (HasActiveCameraController())
@@ -527,8 +501,6 @@ void Camera::SetNextTranslation(const Vec3f& translation)
 
 void Camera::SetDirection(const Vec3f& direction)
 {
-    HYP_SCOPE;
-
     m_direction = direction;
 
     if (HasActiveCameraController())
@@ -544,8 +516,6 @@ void Camera::SetDirection(const Vec3f& direction)
 
 void Camera::SetUpVector(const Vec3f& up)
 {
-    HYP_SCOPE;
-
     m_up = up;
 
     if (HasActiveCameraController())
@@ -561,8 +531,6 @@ void Camera::SetUpVector(const Vec3f& up)
 
 void Camera::Rotate(const Vec3f& axis, float radians)
 {
-    HYP_SCOPE;
-
     m_direction.Rotate(axis, radians);
     m_direction.Normalize();
 
@@ -571,8 +539,6 @@ void Camera::Rotate(const Vec3f& axis, float radians)
 
 void Camera::SetViewMatrix(const Mat4f& viewMat)
 {
-    HYP_SCOPE;
-
     m_prevViewProjMat = m_viewProjMat;
     m_viewMat = viewMat;
 
@@ -581,8 +547,6 @@ void Camera::SetViewMatrix(const Mat4f& viewMat)
 
 void Camera::SetProjectionMatrix(const Mat4f& projMat)
 {
-    HYP_SCOPE;
-
     m_projMat = projMat;
 
     UpdateViewProjectionMatrix();
@@ -590,8 +554,6 @@ void Camera::SetProjectionMatrix(const Mat4f& projMat)
 
 void Camera::SetViewProjectionMatrix(const Mat4f& viewMat, const Mat4f& projMat)
 {
-    HYP_SCOPE;
-
     m_prevViewProjMat = m_viewProjMat;
 
     m_viewMat = viewMat;
@@ -602,8 +564,6 @@ void Camera::SetViewProjectionMatrix(const Mat4f& viewMat, const Mat4f& projMat)
 
 void Camera::UpdateViewProjectionMatrix()
 {
-    HYP_SCOPE;
-
     m_viewProjMat = m_projMat * m_viewMat;
 
     m_frustum.SetFromViewProjectionMatrix(m_viewProjMat);
@@ -611,13 +571,22 @@ void Camera::UpdateViewProjectionMatrix()
     SetNeedsRenderProxyUpdate();
 }
 
+void Camera::UpdateJitter()
+{
+    if (m_width > 0 && m_height > 0 && MathUtil::ApproxEqual(m_projMat[3][3], 0.0f))
+    {
+        Mat4f::Jitter(m_jitterFrameCounter++, uint32(MathUtil::Abs(m_width)), uint32(MathUtil::Abs(m_height)), m_jitter);
+        m_jitter *= CameraJitterScale;
+    }
+}
+
 Vec3f Camera::TransformScreenToNDC(const Vec2f& screen) const
 {
     // [0, 1] -> [-1, 1]
 
     return {
-        screen.x * 2.0f - 1.0f, // 1.0f - (2.0f * screen.x),
-        screen.y * 2.0f - 1.0f, // 1.0f - (2.0f * screen.y),
+        screen.x * 2.0f - 1.0f,
+        1.0f - (2.0f * screen.y),
         1.0f
     };
 }
@@ -628,7 +597,6 @@ Vec4f Camera::TransformNDCToWorld(const Vec3f& ndc) const
 
     Vec4f eye = m_projMat.Inverse() * clip;
     eye /= eye.w;
-    // eye = Vec4f(eye.x, eye.y, -1.0f, 0.0f);
 
     return m_viewMat.Inverse() * eye;
 }
@@ -665,7 +633,6 @@ void Camera::Update(float delta)
 {
     HYP_SCOPE;
     AssertOnThread(g_simThread | ThreadCategory::THREAD_CATEGORY_TASK);
-    AssertReady();
 
     if (HasActiveCameraController())
     {
@@ -686,7 +653,6 @@ void Camera::Update(float delta)
         UpdateMatrices();
     }
 
-    
     if (m_streamingVolume.IsValid())
     {
         const Vec3f translation = GetWorldTranslation();
@@ -700,8 +666,6 @@ void Camera::Update(float delta)
 
 void Camera::UpdateViewMatrix()
 {
-    HYP_SCOPE;
-
     m_prevViewProjMat = m_viewProjMat;
 
     if (HasActiveCameraController())
@@ -715,8 +679,6 @@ void Camera::UpdateViewMatrix()
 
 void Camera::UpdateProjectionMatrix()
 {
-    HYP_SCOPE;
-
     if (HasActiveCameraController())
     {
         if (const Handle<CameraController>& cameraController = GetCameraController())
@@ -728,8 +690,6 @@ void Camera::UpdateProjectionMatrix()
 
 void Camera::UpdateMatrices()
 {
-    HYP_SCOPE;
-
     m_prevViewProjMat = m_viewProjMat;
 
     if (HasActiveCameraController())
@@ -742,12 +702,19 @@ void Camera::UpdateMatrices()
     }
 
     UpdateViewProjectionMatrix();
+
+    if (cvTAA.Get())
+    {
+        UpdateJitter();
+    }
+    else
+    {
+        m_jitter = Vec4f::Zero();
+    }
 }
 
 void Camera::UpdateMouseLocked()
 {
-    HYP_SCOPE;
-
     bool shouldLockMouse = false;
 
     if (const Handle<CameraController>& cameraController = GetCameraController(); cameraController && !cameraController->IsA<NullCameraController>())
@@ -812,16 +779,18 @@ void Camera::UpdateRenderProxy(RenderProxyCamera* proxy)
 
     bufferData.viewProjMat = m_viewProjMat;
     bufferData.prevViewProjMat = m_prevViewProjMat;
-    
+
     bufferData.dimensions = Vec4u { uint32(MathUtil::Abs(m_width)), uint32(MathUtil::Abs(m_height)), 0, 1 };
-    
+
     bufferData.cameraPosition = Vec4f(GetWorldTranslation(), 1.0f);
     bufferData.cameraDirection = Vec4f(m_direction, 1.0f);
-    
+
     bufferData.cameraNear = m_near;
     bufferData.cameraFar = m_far;
-    
+
     bufferData.cameraFov = m_fov;
+
+    bufferData.jitter = m_jitter;
 }
 
 #pragma endregion Camera

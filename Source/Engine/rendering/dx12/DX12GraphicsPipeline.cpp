@@ -31,32 +31,14 @@ namespace Hyperion {
 
 HYP_DECLARE_LOG_CHANNEL(RenderingBackend);
 
-extern DX12RenderInterface* g_renderInterface;
+extern DX12RenderInterface RI;
 
-static D3D12_RASTERIZER_DESC GetDefaultRasterizerDesc()
-{
-    D3D12_RASTERIZER_DESC desc {};
-    desc.FillMode = D3D12_FILL_MODE_SOLID;
-    desc.CullMode = D3D12_CULL_MODE_BACK;
-    desc.FrontCounterClockwise = FALSE;
-    desc.DepthBias = D3D12_DEFAULT_DEPTH_BIAS;
-    desc.DepthBiasClamp = D3D12_DEFAULT_DEPTH_BIAS_CLAMP;
-    desc.SlopeScaledDepthBias = D3D12_DEFAULT_SLOPE_SCALED_DEPTH_BIAS;
-    desc.DepthClipEnable = TRUE;
-    desc.MultisampleEnable = FALSE;
-    desc.AntialiasedLineEnable = FALSE;
-    desc.ForcedSampleCount = 0;
-    desc.ConservativeRaster = D3D12_CONSERVATIVE_RASTERIZATION_MODE_OFF;
-
-    return desc;
-}
-
-static D3D12_DEPTH_STENCIL_DESC GetDefaultDepthStencilDesc()
+static D3D12_DEPTH_STENCIL_DESC GetDefaultDepthStencilDesc(DepthCompareOp depthCompareOp = DCO_LESS)
 {
     D3D12_DEPTH_STENCIL_DESC desc {};
     desc.DepthEnable = TRUE;
     desc.DepthWriteMask = D3D12_DEPTH_WRITE_MASK_ALL;
-    desc.DepthFunc = D3D12_COMPARISON_FUNC_LESS;
+    desc.DepthFunc = ToDX12DepthCompareOp(depthCompareOp);
     desc.StencilEnable = FALSE;
     desc.StencilReadMask = D3D12_DEFAULT_STENCIL_READ_MASK;
     desc.StencilWriteMask = D3D12_DEFAULT_STENCIL_WRITE_MASK;
@@ -234,13 +216,18 @@ void DX12GraphicsPipeline::Bind(DX12CommandBuffer* commandBuffer, Vec2i viewport
 
     commandBuffer->GetCommandList()->SetPipelineState(m_pipelineState.Get());
     commandBuffer->GetCommandList()->IASetPrimitiveTopology(ToDX12PrimitiveTopology(m_topology));
-    
+
     commandBuffer->GetCommandList()->SetGraphicsRootSignature(m_rootSignature.Get());
 
     commandBuffer->ResetBoundDescriptorSets();
 
     if (viewportExtent != Vec2u::Zero())
     {
+        // Clamp viewport to framebuffer extent to prevent D3D12 validation warning
+        // about viewport / scissor exceeding render target dimensions (#1378).
+        viewportExtent.x = MathUtil::Min(viewportExtent.x, m_framebufferDesc.extent.x);
+        viewportExtent.y = MathUtil::Min(viewportExtent.y, m_framebufferDesc.extent.y);
+
         Viewport viewport;
         viewport.position = viewportOffset;
         viewport.extent = viewportExtent;
@@ -250,7 +237,7 @@ void DX12GraphicsPipeline::Bind(DX12CommandBuffer* commandBuffer, Vec2i viewport
 
     if (m_stencilWrite || m_stencilFunction.HasValue())
     {
-        commandBuffer->GetCommandList()->OMSetStencilRef(g_renderInterface->state.stencilReference);
+        commandBuffer->GetCommandList()->OMSetStencilRef(RI.state.stencilReference);
     }
 }
 
@@ -308,26 +295,25 @@ RendererResult DX12GraphicsPipeline::Rebuild()
     psoDesc.SampleDesc.Quality = 0;
     psoDesc.SampleMask = UINT_MAX;
 
-    DX12ShaderInstance* dxShader = static_cast<DX12ShaderInstance*>(m_shaderInstance.Get());
-    psoDesc.VS = dxShader->GetShaderBytecode(ShaderModuleType::Vertex);
-    psoDesc.PS = dxShader->GetShaderBytecode(ShaderModuleType::Pixel);
-    psoDesc.GS = dxShader->GetShaderBytecode(ShaderModuleType::Geometry);
+    psoDesc.VS = m_shaderInstance->GetShaderBytecode(ShaderModuleType::Vertex);
+    psoDesc.PS = m_shaderInstance->GetShaderBytecode(ShaderModuleType::Pixel);
+    psoDesc.GS = m_shaderInstance->GetShaderBytecode(ShaderModuleType::Geometry);
 
     psoDesc.InputLayout = { inputElementDescs.Data(), (UINT)inputElementDescs.Size() };
 
-    psoDesc.RasterizerState = GetDefaultRasterizerDesc(); 
+    psoDesc.RasterizerState = {};
     psoDesc.RasterizerState.CullMode = ToDX12CullMode(m_faceCullMode);
     psoDesc.RasterizerState.FillMode = (m_fillMode == FM_LINE) ? D3D12_FILL_MODE_WIREFRAME : D3D12_FILL_MODE_SOLID;
-    psoDesc.RasterizerState.FrontCounterClockwise = TRUE;
+    psoDesc.RasterizerState.FrontCounterClockwise = FALSE;
     psoDesc.RasterizerState.DepthBias = m_depthBias;
     psoDesc.RasterizerState.DepthBiasClamp = 0.0f;
     psoDesc.RasterizerState.SlopeScaledDepthBias = m_depthBiasSlope;
     psoDesc.RasterizerState.DepthClipEnable = m_depthClamp ? FALSE : TRUE;
 
-    psoDesc.DepthStencilState = GetDefaultDepthStencilDesc();
+    psoDesc.DepthStencilState = GetDefaultDepthStencilDesc(m_depthCompareOp);
     psoDesc.DepthStencilState.DepthEnable = m_depthTest;
     psoDesc.DepthStencilState.DepthWriteMask = m_depthWrite ? D3D12_DEPTH_WRITE_MASK_ALL : D3D12_DEPTH_WRITE_MASK_ZERO;
-    
+
     if (m_stencilFunction.HasValue())
     {
         psoDesc.DepthStencilState.StencilEnable = TRUE;
@@ -396,8 +382,10 @@ RendererResult DX12GraphicsPipeline::Rebuild()
         }
     }
 
-    HRESULT res = g_renderInterface->GetDevice()->CreateGraphicsPipelineState(
-        &psoDesc, 
+    // @TODO: add D3D12_VIEW_INSTANCING_DESC for view instancing to fulfill the role multiview was taking in the Vulkan impl.
+
+    HRESULT res = RI.GetDevice()->CreateGraphicsPipelineState(
+        &psoDesc,
         __uuidof(ID3D12PipelineState),
         &m_pipelineState
     );
@@ -475,7 +463,7 @@ RendererResult DX12GraphicsPipeline::BuildRootSignature()
             AssertDebug(!(setDecl.flags & ShaderInputSetFlags::Template), "Not supported");
 
             // it's a reference to a global descriptor set -- we need to grab that one.
-            const ShaderInputSet* refSetDecl = g_renderInterface->globalDescriptorTable->GetDeclaration()->FindDescriptorSetDeclaration(setDecl.name);
+            const ShaderInputSet* refSetDecl = RI.globalDescriptorTable->GetDeclaration()->FindDescriptorSetDeclaration(setDecl.name);
             AssertDebug(refSetDecl != nullptr, "Invalid reference to global set: {}", setDecl.name);
 
             pSetDecl = refSetDecl;
@@ -486,11 +474,11 @@ RendererResult DX12GraphicsPipeline::BuildRootSignature()
 
         // Collect dynamic buffer entries (CBV_Dynamic / SRV_Dynamic / UAV_Dynamic) to create as root descriptor params
         Array<const ShaderInput*> dynamicDeclarations;
-        
+
         for (uint8 slotIndex = 0; slotIndex < NumDescriptorSlots; slotIndex++)
         {
             const auto& declarations = pSetDecl->slots[slotIndex];
-            
+
             if (declarations.Empty())
             {
                 continue;
@@ -498,6 +486,12 @@ RendererResult DX12GraphicsPipeline::BuildRootSignature()
 
             for (const ShaderInput& descDecl : declarations)
             {
+                // Skip descriptors excluded by compile-time conditions (matches DescriptorSetLayout constructor behavior)
+                if (descDecl.cond != nullptr && !descDecl.cond())
+                {
+                    continue;
+                }
+
                 if (descDecl.isDynamic && descDecl.category == ShaderResourceCategory::Buffer && descDecl.slot != ShaderRegister::SAMPLER)
                 {
                     dynamicDeclarations.PushBack(&descDecl);
@@ -514,6 +508,20 @@ RendererResult DX12GraphicsPipeline::BuildRootSignature()
                 range.OffsetInDescriptorsFromTableStart = D3D12_DESCRIPTOR_RANGE_OFFSET_APPEND;
             }
         }
+
+        std::sort(viewRanges.Begin(), viewRanges.End(),
+            [](const D3D12_DESCRIPTOR_RANGE& a, const D3D12_DESCRIPTOR_RANGE& b) {
+                if (a.RangeType != b.RangeType)
+                {
+                    return a.RangeType < b.RangeType;
+                }
+                return a.BaseShaderRegister < b.BaseShaderRegister;
+            });
+
+        std::sort(samplerRanges.Begin(), samplerRanges.End(),
+            [](const D3D12_DESCRIPTOR_RANGE& a, const D3D12_DESCRIPTOR_RANGE& b) {
+                return a.BaseShaderRegister < b.BaseShaderRegister;
+            });
 
         // Sort dynamic declarations by flat index to match DescriptorSetLayout::GetDynamicElements() order
         std::sort(dynamicDeclarations.Begin(), dynamicDeclarations.End(),
@@ -582,7 +590,7 @@ RendererResult DX12GraphicsPipeline::BuildRootSignature()
 
     ComPtr<ID3DBlob> signature;
     ComPtr<ID3DBlob> error;
-    
+
     HRESULT res = D3D12SerializeRootSignature(&sigDesc, D3D_ROOT_SIGNATURE_VERSION_1, &signature, &error);
 
     if (FAILED(res))
@@ -592,7 +600,7 @@ RendererResult DX12GraphicsPipeline::BuildRootSignature()
         return HYP_MAKE_ERROR(RendererError, "Root Signature Serialization Failed! {}", res, errStr);
     }
 
-    res = g_renderInterface->GetDevice()->CreateRootSignature(
+    res = RI.GetDevice()->CreateRootSignature(
         0,
         signature->GetBufferPointer(),
         signature->GetBufferSize(),

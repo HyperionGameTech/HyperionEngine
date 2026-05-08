@@ -58,7 +58,7 @@ Sampler* SamplerCache::GetOrCreate(const SamplerDesc& samplerDesc)
         return it->second.Get();
     }
 
-    SamplerRef sampler = g_renderInterface->MakeSampler(samplerDesc);
+    SamplerRef sampler = RI.MakeSampler(samplerDesc);
     CheckResult(sampler->Create());
 
     AssertDebug(m_impl->cache[samplerDesc] == nullptr);

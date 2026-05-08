@@ -2,7 +2,7 @@
  *  @author: The Hyperion Contributors
  *  @date 2016-2026
  *  @licence MIT
-*/
+ */
 
 #pragma once
 
@@ -17,6 +17,7 @@
 #include <rendering/RenderObject.hpp>
 
 #include <rendering/vulkan/VulkanSemaphore.hpp>
+#include <rendering/vulkan/VulkanFence.hpp>
 #include <rendering/vulkan/VulkanMemory.hpp>
 
 #include <Core/containers/HashSet.hpp>
@@ -46,7 +47,7 @@ public:
 
     bool IsCreated() const override
     {
-        return m_queueSubmitFence != nullptr;
+        return m_queueSubmitFence != nullptr || m_frameCompleteSemaphore.IsValid();
     }
 
     RendererResult Create() override;
@@ -55,9 +56,24 @@ public:
 
     void WriteCommandBuffer(VulkanCommandBuffer* commandBuffer) override;
 
+    HYP_FORCE_INLINE bool IsUsingTimelineSemaphore() const
+    {
+        return m_frameCompleteSemaphore.IsValid() && m_frameCompleteSemaphore->IsCreated();
+    }
+
     HYP_FORCE_INLINE VulkanFence* GetFence() const
     {
         return m_queueSubmitFence;
+    }
+
+    HYP_FORCE_INLINE VulkanSemaphoreRef GetFrameCompleteSemaphore() const
+    {
+        return m_frameCompleteSemaphore;
+    }
+
+    HYP_FORCE_INLINE uint64 GetFrameCompleteValue() const
+    {
+        return m_frameCompleteValue;
     }
 
     VulkanSemaphore* GetImageAvailableSemaphore(const VulkanSwapchain* swapchain, bool createIfNotExist = true);
@@ -82,6 +98,8 @@ private:
     static void InitVulkanSwapchainData(VulkanSwapchainData& swapchainData);
 
     VulkanFence* m_queueSubmitFence;
+    VulkanSemaphoreRef m_frameCompleteSemaphore;
+    uint64 m_frameCompleteValue;
     VulkanRenderPassesSet m_renderPasses;
 
     HashMap<const VulkanSwapchain*, VulkanSwapchainData, VulkanAllocator> m_swapchainData;

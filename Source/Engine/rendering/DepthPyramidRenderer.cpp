@@ -55,9 +55,6 @@ DepthPyramidRenderer::~DepthPyramidRenderer()
 
 void DepthPyramidRenderer::Create()
 {
-    HYP_SCOPE;
-    AssertOnThread(g_renderThread);
-
     Assert(m_gbuffer != nullptr);
 
     const FramebufferRef& opaqueFramebuffer = m_gbuffer->GetBucket(RenderBucket::Opaque).GetFramebuffer();
@@ -73,12 +70,12 @@ void DepthPyramidRenderer::Create()
     Assert(depthImage.IsValid());
 
     // create depth pyramid image
-    m_depthPyramid = g_renderInterface->MakeImage(TextureDesc {
+    m_depthPyramid = RI.MakeImage(TextureDesc {
         TextureType::Texture2D,
         TextureFormat::R32F,
         Vec3u {
-            MathUtil::Max(uint32(MathUtil::PreviousPowerOf2(depthImage->GetExtent().x + 1)), 1),
-            MathUtil::Max(uint32(MathUtil::PreviousPowerOf2(depthImage->GetExtent().y + 1)), 1),
+            depthImage->GetExtent().x,
+            depthImage->GetExtent().y,
             1
         },
         TFM_NEAREST_MIPMAP,
@@ -94,7 +91,7 @@ void DepthPyramidRenderer::Create()
 
     m_depthPyramid->Create();
 
-    m_depthPyramidView = g_renderInterface->MakeImageView(m_depthPyramid);
+    m_depthPyramidView = RI.MakeImageView(m_depthPyramid);
     m_depthPyramidView->Create();
 
     const Vec3u& imageExtent = m_depthImageView->GetImage()->GetExtent();
@@ -124,7 +121,7 @@ void DepthPyramidRenderer::Create()
         uniforms.prevMipDimensions = { prevMipWidth, prevMipHeight };
         uniforms.mipLevel = mipLevel;
 
-        GpuBufferRef& mipUniformBuffer = m_mipUniformBuffers.PushBack(g_renderInterface->MakeGpuBuffer(GpuBufferType::ConstantBuffer, sizeof(DepthPyramidUniforms)));
+        GpuBufferRef& mipUniformBuffer = m_mipUniformBuffers.PushBack(RI.MakeGpuBuffer(GpuBufferType::ConstantBuffer, sizeof(DepthPyramidUniforms)));
 #if HYP_DEBUG_MODE
         mipUniformBuffer->SetDebugName(NAME_FMT("DepthPyramid_Mip{}_UniformBuffer", mipLevel));
 #endif
@@ -133,7 +130,7 @@ void DepthPyramidRenderer::Create()
         mipUniformBuffer->Copy(sizeof(DepthPyramidUniforms), &uniforms);
         mipUniformBuffer->Flush(0, sizeof(DepthPyramidUniforms));
 
-        GpuImageViewRef& mipImageView = m_mipImageViews.PushBack(g_renderInterface->MakeImageView(m_depthPyramid, mipLevel, 1, 0, m_depthPyramid->NumArrayLayers()));
+        GpuImageViewRef& mipImageView = m_mipImageViews.PushBack(RI.MakeImageView(m_depthPyramid, mipLevel, 1, 0, m_depthPyramid->NumArrayLayers()));
 #if HYP_DEBUG_MODE
         mipImageView->SetDebugName(NAME_FMT("DepthPyramid_Mip{}_ImageView", mipLevel));
 #endif
@@ -156,10 +153,7 @@ Vec2u DepthPyramidRenderer::GetExtent() const
 
 void DepthPyramidRenderer::Render(Frame* frame)
 {
-    HYP_SCOPE;
-    AssertOnThread(g_renderThread);
-
-    Sampler* depthPyramidSampler = g_renderInterface->samplerCache->GetOrCreate(SamplerDesc { TFM_NEAREST_MIPMAP, TFM_NEAREST, TWM_CLAMP_TO_EDGE });
+    Sampler* depthPyramidSampler = RI.samplerCache->GetOrCreate(SamplerDesc { TFM_NEAREST_MIPMAP, TFM_NEAREST, TWM_CLAMP_TO_EDGE });
 
     const uint8 numDepthPyramidMipLevels = uint8(m_mipImageViews.Size());
 
@@ -171,33 +165,6 @@ void DepthPyramidRenderer::Render(Frame* frame)
 
     for (uint8 mipLevel = 0; mipLevel < numDepthPyramidMipLevels; mipLevel++)
     {
-        // level 0 == write just-rendered depth image into mip 0
-
-        // put the mip into writeable state
-        /*frame->cr << InsertBarrier(
-            m_depthPyramid,
-            RS_UNORDERED_ACCESS,
-            ImageSubResource {
-                .baseMipLevel = mipLevel,
-                .numLevels = 1,
-                .baseArrayLayer = 0,
-                .numLayers = 1
-            });*/
-
-        //if (mipLevel != 0)
-        //{
-        //    // put prev mip into readable state
-        //    frame->cr << InsertBarrier(
-        //        m_depthPyramid,
-        //        RS_SHADER_RESOURCE,
-        //        ImageSubResource {
-        //            .baseMipLevel = uint8(mipLevel - 1),
-        //            .numLevels = 1,
-        //            .baseArrayLayer = 0,
-        //            .numLayers = 1
-        //        });
-        //}
-
         const uint32 prevMipWidth = mipWidth;
         const uint32 prevMipHeight = mipHeight;
 
@@ -220,12 +187,11 @@ void DepthPyramidRenderer::Render(Frame* frame)
         frame->cr << SetShaderUniform(1, "OutImage"_sh, m_mipImageViews[mipLevel]);
         frame->cr << SetShaderUniform(2, "UniformBuffer"_sh, m_mipUniformBuffers[mipLevel]);
         frame->cr << SetShaderUniform(3, "DepthPyramidSampler"_sh, depthPyramidSampler);
-        
-        frame->cr << DispatchCompute({ (mipWidth + 31) / 32, (mipHeight + 31) / 32, 1 });
+
+        frame->cr << DispatchCompute({ (mipWidth + 7) / 8, (mipHeight + 7) / 8, 1 });
     }
 
-    frame->cr << InsertBarrier(
-        m_depthPyramid, RS_SHADER_RESOURCE);
+    frame->cr << InsertBarrier(m_depthPyramid, RS_SHADER_RESOURCE);
 
     m_isRendered = true;
 }

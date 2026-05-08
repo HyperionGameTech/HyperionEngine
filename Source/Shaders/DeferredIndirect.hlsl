@@ -119,8 +119,13 @@ DECLARE_SRV(DeferredPass, EnvProbesTexture) Texture2DArray envProbesTexture;
 
 DECLARE_SRV(DeferredPass, EnvProbesBuffer) StructuredBuffer<EnvProbe> EnvProbesBuffer;
 DECLARE_SRV(DeferredPass, LightsBuffer) StructuredBuffer<Light> LightsBuffer;
-DECLARE_SRV(DeferredPass, ClusterGridBuffer) StructuredBuffer<uint2> ClusterGridBuffer;
+DECLARE_SRV(DeferredPass, ClusterGridBuffer) ByteAddressBuffer ClusterGridBuffer;
 DECLARE_SRV(DeferredPass, ClusterIndexBuffer) ByteAddressBuffer ClusterIndexBuffer;
+
+// Keep here even if unused; Having shadow maps here means the render pass won't need to be broken between
+// the indirect and direct passes.
+DECLARE_SRV(DeferredPass, ShadowMapsTextureArray) Texture2DArray<float> shadow_maps;
+DECLARE_SRV(DeferredPass, PointLightShadowMapsTextureArray) TextureCubeArray point_shadow_maps;
 
 #include "./deferred/ClusteredShading.hlsli"
 #include "./deferred/DeferredLighting.hlsli"
@@ -135,22 +140,20 @@ DECLARE_BUFFER_DYNAMIC(DeferredPass, CBuffer) cbuffer CBuffer
 PSOutput PSMain(PSInput input)
 {
     PSOutput output;
+    float3 result = (float3)0.0;
 
     float2 texcoord = input.texcoord;
 
-    uint2 gbufferDimensions;
-    gbuffer_albedo_texture.GetDimensions(gbufferDimensions.x, gbufferDimensions.y);
-
-    const uint2 pixelCoord = uint2(texcoord * max(0, int2(gbufferDimensions) - 1));
+    const uint2 pixelCoord = uint2(texcoord * camera.dimensions.xy);
 
     float4 albedo = SAMPLE_TEXTURE_2D_LOD(sampler_nearest, gbuffer_albedo_texture, texcoord, 0);
     float4 normalSample = SAMPLE_TEXTURE_2D_LOD(sampler_nearest, gbuffer_normals_texture, texcoord, 0);
     float3 normal = GBufferUnpackNormal(normalSample);
 
     float depth = SAMPLE_TEXTURE_2D_LOD(sampler_nearest, gbuffer_depth_texture, texcoord, 0).r;
-    
+
     float4 positionVS = ReconstructViewSpacePositionFromDepth(camera.invProjMat, texcoord, depth);
-    
+
     float4 positionWS = mul(camera.invViewMat, positionVS);
     positionWS /= positionWS.w;
 
@@ -162,10 +165,8 @@ PSOutput PSMain(PSInput input)
     const float roughness = materialParams.roughness;
     const float metalness = materialParams.metalness;
     const uint mask = materialParams.mask;
-    
-    const float perceptualRoughness = sqrt(roughness);
 
-    float3 result = (float3)0.0;
+    const float perceptualRoughness = sqrt(roughness);
 
     float3 N = normalize(normal);
     float3 V = normalize(camera.position.xyz - positionWS.xyz);
@@ -182,13 +183,15 @@ PSOutput PSMain(PSInput input)
 #endif
 
     const float3 diffuse_color = CalculateDiffuseColor(albedo.rgb, metalness);
-    
+
+    const uint2 viewportExtent = camera.dimensions.xy;
+
     CalculateEnvProbesContribution(
         positionVS.xyz, positionWS.xyz,
         N, V, R,
         camera.near, camera.far,
         roughness, perceptualRoughness,
-        texcoord, gbufferDimensions,
+        texcoord, viewportExtent,
         /* inout */ reflections,
         /* inout */ irradiance);
 

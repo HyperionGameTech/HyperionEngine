@@ -82,10 +82,10 @@ struct SetFinalPassImageView : RenderCommand
     {
         if (!imageView)
         {
-            imageView = g_renderInterface->textureViewCache->GetOrCreate(g_renderInterface->placeholderData->defaultTexture2d);
+            imageView = RI.textureViewCache->GetOrCreate(RI.placeholderData->defaultTexture2d);
         }
 
-        g_renderInterface->finalPass->SetUILayerImageView(imageView);
+        RI.finalPass->SetUILayerImageView(imageView);
 
         return {};
     }
@@ -99,7 +99,7 @@ static TResult<Handle<FontAtlas>> CreateFontAtlas()
     // some platforms build without freetype support so the atlas must already exist in the registry.
 
     AssetRegistry& registry = *GetEngineAssetRegistry();
-    
+
     GlobalContextScope contextScope { AssetRegistryContext { MakeStrongRef(&registry) } };
 
     Handle<FontAtlas> fontAtlas = DynamicCast<FontAtlas>(registry.GetAsset(AssetBuckets::FontAtlases, "Roboto_Regular"_sh));
@@ -118,13 +118,13 @@ static TResult<Handle<FontAtlas>> CreateFontAtlas()
 
     // create new font atlas
     fontAtlas = MakeHandle<FontAtlas>(NAME("Roboto_Regular"), std::move(fontFaceAsset->Result()));
-    
+
     // render atlas textures.
     if (Result renderAtlasResult = fontAtlas->RenderAtlasTextures(1.0f, 2.0f, 0.1f); renderAtlasResult.HasError())
     {
         return renderAtlasResult.GetError();
     }
-    
+
     registry.PutAssetsDeep(fontAtlas);
     registry.SaveDirtyAssets();
 
@@ -158,6 +158,8 @@ void UISubsystem::Init()
     Subsystem::Init();
 
     Assert(m_uiStage != nullptr);
+
+    m_uiStage->SetWorld(GetWorld());
     InitObject(m_uiStage);
 
     InitFont();
@@ -177,7 +179,7 @@ void UISubsystem::Init()
         CreateFramebuffer();
     };
 
-    Vec2u windowSize = Vec2u(800, 600);
+    Vec2u windowSize { 1280, 720 };
 
     if (g_appContext->GetMainWindow() != nullptr)
     {
@@ -211,10 +213,12 @@ void UISubsystem::Init()
         },
         g_simThread);
 
-    const Vec2u windowSize2 = windowSize * 2;
+    m_uiStage->SetSurfaceSize(Vec2i(windowSize));
+
+    const Vec2u framebufferSize = windowSize;
 
     FramebufferDesc framebufferDesc;
-    framebufferDesc.extent = windowSize2;
+    framebufferDesc.extent = framebufferSize;
     framebufferDesc.AddAttachment({ TextureType::Texture2D, TextureFormat::RGBA8 });
 
     ViewDesc viewDesc {};
@@ -231,19 +235,19 @@ void UISubsystem::Init()
 
 void UISubsystem::OnAddedToWorld()
 {
-    if (m_uiStage && m_uiStage->GetScene())
+    if (m_uiStage)
     {
-        GetWorld()->AddScene(MakeStrongRef(m_uiStage->GetScene()));
+        m_uiStage->SetWorld(GetWorld());
     }
-    
+
     InitDebugOverlays();
 }
 
 void UISubsystem::OnRemovedFromWorld()
 {
-    if (m_uiStage && m_uiStage->GetScene())
+    if (m_uiStage)
     {
-        GetWorld()->RemoveScene(m_uiStage->GetScene());
+        m_uiStage->SetWorld(nullptr);
     }
 }
 
@@ -394,7 +398,7 @@ void UISubsystem::RenderCollect(RenderProxyList& rpl)
             meshProxy.bufferData.worldAabbMin = boundingBoxComponent ? boundingBoxComponent->worldAabb.min : MathUtil::MaxSafeValue<Vec3f>();
         }
     }
-    
+
     rpl.EndWrite();
 }
 

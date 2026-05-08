@@ -34,25 +34,22 @@ struct Camera
     float far;
     float fov;
     float _pad0;
-
-    float4 _pad1;
-    float4 _pad2;
-    float4 _pad3;
 };
 
 struct ShadowMap
 {
+    float4x4 viewProjMat;
+    float4x4 invProjMat;
+
+    float4 aabbMin;         // w = offsetUV.x
+    float4 aabbMax;         // w = offsetUV.y
+    float4 dimensionsScale; // xy = slice dimensions in pixels, zw = slice dimensions relative to the atlas dimensions
+
     // layer indices per cascade for shadow maps. Each cascade is 1 byte.
     uint layerIndex;
     float splitDistance;
     float _pad0;
     float _pad1;
-    
-    float4x4 viewProjMat;
-    float4x4 invProjMat;
-    float4 aabbMin;         // w = offsetUV.x
-    float4 aabbMax;         // w = offsetUV.y
-    float4 dimensionsScale; // xy = slice dimensions in pixels, zw = slice dimensions relative to the atlas dimensions
 };
 
 struct Light
@@ -61,15 +58,13 @@ struct Light
     uint material_index;        // for area lights - ~0u == no material
     uint radiusFalloffPacked;   // packed as half
     uint flags;
-    
+
     float4 position_intensity;  // position or direction
     float4 color;
     float4 normal;              // for area lights/spot lights - x,y,z = normal
 
     float2 area_size;           // for area lights = area size, for spot lights = spot angles
     float2 _pad0;
-    
-    float4 _pad1[3];
 };
 
 // Maps to LightFlags

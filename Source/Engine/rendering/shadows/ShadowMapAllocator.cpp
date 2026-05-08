@@ -89,9 +89,10 @@ void ShadowMapAllocator::Initialize()
         uint16(m_atlases.Size()),
         IU_SAMPLED | IU_ATTACHMENT
     });
-    
+
     m_atlasTextureArray->SetName(NAME("ShadowMapAtlas"));
     CheckResult(m_atlasTextureArray->Create());
+    m_atlasTextureArray->GetGpuImage()->SetDebugName(NAME("ShadowMapAtlas"));
 
     m_pointLightTextureArray = MakeHandle<Texture>(TextureDesc {
         TextureType::CubemapArray,
@@ -103,9 +104,10 @@ void ShadowMapAllocator::Initialize()
         MaxBoundOmniShadowMaps * 6,
         IU_SAMPLED | IU_ATTACHMENT
     });
-    
+
     m_pointLightTextureArray->SetName(NAME("PointLightShadowMapImage"));
     CheckResult(m_pointLightTextureArray->Create());
+    m_pointLightTextureArray->GetGpuImage()->SetDebugName(NAME("PointLightShadowMapImage"));
 
     m_clearTexture = MakeHandle<Texture>(TextureDesc {
         TextureType::Texture2DArray,
@@ -119,9 +121,10 @@ void ShadowMapAllocator::Initialize()
     });
     m_clearTexture->SetName(NAME("ShadowMapClearTexture"));
     CheckResult(m_clearTexture->Create());
+    m_clearTexture->GetGpuImage()->SetDebugName(NAME("ShadowMapClearTexture"));
 
     { // Clear that clear texture
-        CommandRecorder& cr = g_renderInterface->commandRecorderAllocator.GetCommandRecorder();
+        CommandRecorder& cr = RI.commandRecorderAllocator.GetCommandRecorder();
 
         cr << InsertBarrier(m_clearTexture->GetGpuImage(), RS_COPY_DST);
         cr << FillImage(m_clearTexture->GetGpuImage(), 1.0f, ImageSubResource {});
@@ -158,7 +161,7 @@ ShadowMap* ShadowMapAllocator::AllocateShadowMap(ShadowMapType shadowMapType, Sh
             m_pointLightShadowMapIdGenerator.ReleaseId(pointLightIndex + 1);
 
             HYP_LOG_ONCE(Rendering, Warning, "Too many omni shadow maps allocated; returning NULL for AllocateShadowMap()");
-            
+
             return nullptr;
         }
 
@@ -174,9 +177,9 @@ ShadowMap* ShadowMapAllocator::AllocateShadowMap(ShadowMapType shadowMapType, Sh
         subResource.numLayers = 6;
         subResource.baseMipLevel = 0;
         subResource.numLevels = 1;
-        
+
         // @NOTE using TextureType::Texture2DArray for point light shadow maps rather than CubemapArray
-        GpuImageViewRef atlasImageView = g_renderInterface->textureViewCache->GetOrCreate(
+        GpuImageViewRef atlasImageView = RI.textureViewCache->GetOrCreate(
             m_pointLightTextureArray,
             subResource,
             TextureType::Texture2DArray);
@@ -206,7 +209,7 @@ ShadowMap* ShadowMapAllocator::AllocateShadowMap(ShadowMapType shadowMapType, Sh
             subResource.baseMipLevel = 0;
             subResource.numLevels = 1;
 
-            GpuImageViewRef atlasImageView = g_renderInterface->textureViewCache->GetOrCreate(m_atlasTextureArray, subResource);
+            GpuImageViewRef atlasImageView = RI.textureViewCache->GetOrCreate(m_atlasTextureArray, subResource);
             CheckResult(atlasImageView->Create());
 
             ShadowMap* shadowMap = new ShadowMap(
@@ -224,7 +227,7 @@ ShadowMap* ShadowMapAllocator::AllocateShadowMap(ShadowMapType shadowMapType, Sh
     return nullptr;
 }
 
-bool ShadowMapAllocator::FreeShadowMap(ShadowMap* shadowMap)
+bool ShadowMapAllocator::FreeShadowMap(ShadowMap* shadowMap, bool clearTextureRegion)
 {
     if (!shadowMap)
     {
@@ -257,37 +260,40 @@ bool ShadowMapAllocator::FreeShadowMap(ShadowMap* shadowMap)
             }
             else
             {
-                Frame* frame = g_renderInterface->GetCurrentFrame();
-                if (frame != nullptr)
+                if (clearTextureRegion)
                 {
-                    ImageSubResource srcSubResource {};
-                    srcSubResource.baseArrayLayer = 0;
-                    srcSubResource.numLayers = 1;
-                    srcSubResource.baseMipLevel = 0;
-                    srcSubResource.numLevels = 1;
+                    Frame* frame = RI.GetCurrentFrame();
+                    if (frame != nullptr)
+                    {
+                        ImageSubResource srcSubResource {};
+                        srcSubResource.baseArrayLayer = 0;
+                        srcSubResource.numLayers = 1;
+                        srcSubResource.baseMipLevel = 0;
+                        srcSubResource.numLevels = 1;
 
-                    ImageSubResource dstSubResource {};
-                    dstSubResource.baseArrayLayer = atlasElement.layerIndex;
-                    dstSubResource.numLayers = 1;
-                    dstSubResource.baseMipLevel = 0;
-                    dstSubResource.numLevels = 1;
+                        ImageSubResource dstSubResource {};
+                        dstSubResource.baseArrayLayer = atlasElement.layerIndex;
+                        dstSubResource.numLayers = 1;
+                        dstSubResource.baseMipLevel = 0;
+                        dstSubResource.numLevels = 1;
 
-                    Vec3u srcOffset = Vec3u(atlasElement.offsetCoords, 0);
-                    Vec3u extent = Vec3u(atlasElement.dimensions, 1);
+                        Vec3u srcOffset = Vec3u(atlasElement.offsetCoords, 0);
+                        Vec3u extent = Vec3u(atlasElement.dimensions, 1);
 
-                    frame->cr << InsertBarrier(
-                        m_atlasTextureArray->GetGpuImage(),
-                        RS_COPY_DST,
-                        dstSubResource);
+                        frame->cr << InsertBarrier(
+                            m_atlasTextureArray->GetGpuImage(),
+                            RS_COPY_DST,
+                            dstSubResource);
 
-                    frame->cr << CopyImage(
-                        m_clearTexture->GetGpuImage(),
-                        m_atlasTextureArray->GetGpuImage(),
-                        srcOffset,
-                        Vec3u::Zero(),
-                        extent,
-                        srcSubResource,
-                        dstSubResource);
+                        frame->cr << CopyImage(
+                            m_clearTexture->GetGpuImage(),
+                            m_atlasTextureArray->GetGpuImage(),
+                            srcOffset,
+                            Vec3u::Zero(),
+                            extent,
+                            srcSubResource,
+                            dstSubResource);
+                    }
                 }
             }
         }

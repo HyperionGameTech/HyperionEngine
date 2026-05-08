@@ -6,8 +6,8 @@
 
 #include <RenderingPch.hpp>
 
-#include <rendering/StructuredBufferAllocator.hpp>
-#include <rendering/StructuredBuffer.hpp>
+#include <rendering/RawBufferAllocator.hpp>
+#include <rendering/RawBuffer.hpp>
 #include <rendering/RenderInterface.hpp>
 
 #include <Core/threading/SharedMutex.hpp>
@@ -18,16 +18,16 @@ namespace Hyperion {
 static constexpr bool UseNextPowerOfTwo = true;
 static constexpr uint32 MaxFramesBeforeDiscard = NumFramesInFlight;
 
-#pragma region StructuredBufferAllocator
+#pragma region BufferAllocator
 
-struct StructuredBufferAllocatorImpl
+struct BufferAllocatorImpl
 {
     struct CachedStructuredBuffer
     {
         size_t numElements = 0;
         size_t elementSize = 0;
         uint32 lastUsedFrame = 0;
-        StructuredBuffer buffer;
+        RawBuffer buffer;
     };
 
     LinkedList<CachedStructuredBuffer, RenderAllocator> cachedBuffers;
@@ -35,7 +35,7 @@ struct StructuredBufferAllocatorImpl
 
     SharedMutex mutex;
 
-    ~StructuredBufferAllocatorImpl() = default;
+    ~BufferAllocatorImpl() = default;
 
     void OnFrameStart()
     {
@@ -71,39 +71,27 @@ struct StructuredBufferAllocatorImpl
         }
     }
 
-    template <class AllocatorType>
-    void UpdateAllUsedInFrame(TCommandRecorder<AllocatorType>& cr)
+    template <class TBuffer, class TInitializeFunction>
+    TBuffer& AllocateBuffer(size_t numElements, size_t elementSize, TInitializeFunction&& initialize)
     {
-        // for (CachedStructuredBuffer& usedBuffer : usedBuffers)
-        // {
-        //     AssertDebug(usedBuffer.buffer.gpuBuffer != nullptr && usedBuffer.buffer.gpuBuffer->IsCreated());
-
-        //     usedBuffer.buffer.Update(cr);
-        // }
-    }
-
-    StructuredBuffer& AcquireBuffer(size_t numElements, size_t elementSize)
-    {
-        AssertDebug(elementSize != 0 && numElements != 0);
+        AssertDebug(numElements != 0);
 
         const size_t numElementsAligned = UseNextPowerOfTwo ? MathUtil::NextPowerOf2(numElements) : numElements;
 
-        // only part that can be used across renderer worker threads simultaneously
         TUniqueLock lock(mutex);
 
         for (auto it = cachedBuffers.Begin(); it != cachedBuffers.End(); ++it)
         {
-            if (it->numElements == numElementsAligned && it->elementSize == elementSize)
+            if (it->buffer.gpuBuffer->GetBufferType() == TBuffer::BufferType
+                && it->numElements == numElementsAligned
+                && it->elementSize == elementSize)
             {
                 CachedStructuredBuffer& entry = usedBuffers.PushBack(std::move(*it));
                 entry.lastUsedFrame = GetFrameCounter();
-#if HYP_DEBUG_MODE
-                entry.buffer.gpuBuffer->SetDebugName(NAME("StructuredBuffer"));
-#endif
 
                 cachedBuffers.Erase(it);
 
-                return entry.buffer;
+                return reinterpret_cast<TBuffer&>(entry.buffer);
             }
         }
 
@@ -115,14 +103,12 @@ struct StructuredBufferAllocatorImpl
         newEntry.numElements = numElementsAligned;
         newEntry.elementSize = elementSize;
 
-        newEntry.buffer = StructuredBuffer(numElementsAligned, elementSize);
-        newEntry.buffer.Initialize();
+        initialize(newEntry.buffer, numElementsAligned, elementSize);
 
-#if HYP_DEBUG_MODE
-        newEntry.buffer.gpuBuffer->SetDebugName(NAME("StructuredBuffer"));
-#endif
+        AssertDebug(newEntry.buffer.gpuBuffer != nullptr);
+        AssertDebug(newEntry.buffer.gpuBuffer->GetBufferType() == TBuffer::BufferType);
 
-        return newEntry.buffer;
+        return reinterpret_cast<TBuffer&>(newEntry.buffer);
     }
 
     void Shutdown()
@@ -139,42 +125,63 @@ struct StructuredBufferAllocatorImpl
     }
 };
 
-StructuredBufferAllocator::StructuredBufferAllocator()
-    : m_impl(MakePimpl<StructuredBufferAllocatorImpl>())
+BufferAllocator::BufferAllocator()
+    : m_impl(MakePimpl<BufferAllocatorImpl>())
 {
 }
 
-StructuredBufferAllocator::~StructuredBufferAllocator()
+BufferAllocator::~BufferAllocator()
 {
     Shutdown();
 }
 
-void StructuredBufferAllocator::OnFrameStart()
+void BufferAllocator::OnFrameStart()
 {
     m_impl->OnFrameStart();
 }
 
-void StructuredBufferAllocator::OnFrameEnd()
+void BufferAllocator::OnFrameEnd()
 {
     m_impl->OnFrameEnd();
 }
 
-template <>
-void StructuredBufferAllocator::UpdateAllUsedInFrame<RenderAllocator>(TCommandRecorder<RenderAllocator>& cr)
+StructuredBuffer& BufferAllocator::AcquireStructuredBuffer(size_t numElements, size_t elementSize)
 {
-    return m_impl->UpdateAllUsedInFrame(cr);
+    return m_impl->AllocateBuffer<StructuredBuffer>(numElements, elementSize, [](RawBuffer& buffer, size_t numElements, size_t elementSize)
+    {
+        buffer = StructuredBuffer(numElements, elementSize);
+        buffer.Initialize();
+    });
 }
 
-StructuredBuffer& StructuredBufferAllocator::AcquireBuffer(size_t numElements, size_t elementSize)
+RWStructuredBuffer& BufferAllocator::AcquireRWStructuredBuffer(size_t numElements, size_t elementSize)
 {
-    return m_impl->AcquireBuffer(numElements, elementSize);
+    return m_impl->AllocateBuffer<RWStructuredBuffer>(numElements, elementSize, [](RawBuffer& buffer, size_t numElements, size_t elementSize)
+    {
+        buffer = RWStructuredBuffer(numElements, elementSize);
+        buffer.Initialize();
+    });
 }
 
-void StructuredBufferAllocator::Shutdown()
+ByteAddressBuffer& BufferAllocator::AcquireByteAddressBuffer(size_t totalSizeBytes)
+{
+    return m_impl->AllocateBuffer<ByteAddressBuffer>(totalSizeBytes, 0, [](RawBuffer& buffer, size_t totalSizeBytes, size_t)
+    {
+        buffer = ByteAddressBuffer(totalSizeBytes);
+        buffer.Initialize();
+    });
+}
+
+void BufferAllocator::Shutdown()
 {
     m_impl->Shutdown();
 }
 
-#pragma endregion StructuredBufferAllocator
+#pragma endregion BufferAllocator
+
+// Sizes of all these must be the same as we cast the RawBuffer to the specific type directly.
+static_assert(sizeof(RawBuffer) == sizeof(StructuredBuffer));
+static_assert(sizeof(RawBuffer) == sizeof(RWStructuredBuffer));
+static_assert(sizeof(RawBuffer) == sizeof(ByteAddressBuffer));
 
 } // namespace Hyperion

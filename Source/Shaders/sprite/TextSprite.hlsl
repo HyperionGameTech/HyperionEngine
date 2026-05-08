@@ -60,7 +60,7 @@ VSOutput VSMain(VSInput input, uint instanceId : SV_InstanceID)
 
     output.texcoord0 = float2(
         lerp(instance.texcoordStart.x, instance.texcoordEnd.x, input.a_texcoord0.x),
-        lerp(instance.texcoordEnd.y, instance.texcoordStart.y, input.a_texcoord0.y)
+        lerp(instance.texcoordStart.y, instance.texcoordEnd.y, input.a_texcoord0.y)
     );
     output.color = UINT_TO_VEC4(instance.colorPacked);
     output.instanceId = instanceId;
@@ -80,6 +80,7 @@ struct PSInput
     float2 texcoord0 : TEXCOORD0;
     float4 color : TEXCOORD1;
     uint instanceId : TEXCOORD2;
+    bool isFrontFace : SV_IsFrontFace;
 };
 
 struct PSOutput
@@ -102,12 +103,18 @@ PSOutput PSMain(PSInput input)
 
     TextSpriteInstanceData instance = TextSpriteInstanceBuffer[input.instanceId];
 
+    float2 uv = input.texcoord0;
+    if (!input.isFrontFace)
+    {
+        uv.x = instance.texcoordStart.x + instance.texcoordEnd.x - uv.x;
+    }
+
 #ifdef HYP_FEATURES_BINDLESS_TEXTURES
     float4 texColor = (float4)0;
-    
+
     if (instance.textureIndex != ~0u)
     {
-        texColor = fontTextures[instance.textureIndex].Sample(sampler_linear, input.texcoord0);
+        texColor = fontTextures[instance.textureIndex].Sample(sampler_linear, uv);
     }
     else
     {

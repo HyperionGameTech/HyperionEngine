@@ -25,7 +25,7 @@
 #include <rendering/Texture.hpp>
 #include <rendering/MaterialInstance.hpp>
 #include <rendering/Mesh.hpp>
-#include <rendering/RenderCollection.hpp>
+#include <rendering/RendererMain.hpp>
 #include <rendering/RenderObject.hpp>
 #include <rendering/ShaderInstance.hpp>
 #include <rendering/RenderMemory.hpp>
@@ -41,7 +41,9 @@
 #include <rendering/BLASCache.hpp>
 #include <rendering/CrashHandler.hpp>
 #include <rendering/CBufferAllocator.hpp>
-#include <rendering/StructuredBufferAllocator.hpp>
+#include <rendering/RawBufferAllocator.hpp>
+#include <rendering/ScratchImageAllocator.hpp>
+#include <rendering/RenderGroupCache.hpp>
 
 #include <engine/resources/ResourceTracker.hpp>
 #include <engine/resources/ResourceBinder.hpp>
@@ -173,7 +175,7 @@ struct ViewData
     uint32 numRefs = 0; // number of BufferedViewData holding refs to this
 
     ViewData()
-        : rplRender(g_renderPool, /* isShared */ false, /* useRefCounting */ false)
+        : rplRender(/* isShared */ false, /* useRefCounting */ false)
     {
     }
 
@@ -223,7 +225,7 @@ static ViewData* GetViewData(View* view, bool createIfNotExist)
         {
             return nullptr;
         }
-        
+
         ENGINE_STAT_SCOPE(&s_statViewDataAllocTime);
 
         ViewData* viewData = HYP_POOL_NEW(g_renderPool, ViewData);
@@ -352,8 +354,6 @@ uint32 GetFrameCounter()
 
 RenderProxyList& GetProducerProxyList(View* view)
 {
-    HYP_SCOPE;
-
     // can be called on sim thread or on task thread for tasks enqueued and awaited by sim thread, **exclusively**
     AssertOnThread(g_simThread | ThreadCategory::THREAD_CATEGORY_TASK);
 
@@ -368,7 +368,6 @@ RenderProxyList& GetProducerProxyList(View* view)
 
 RenderProxyList& GetConsumerProxyList(View* view)
 {
-    HYP_SCOPE;
     AssertOnThread(g_renderThread | ThreadCategory::THREAD_CATEGORY_TASK);
 
     AssertDebug(view != nullptr);
@@ -377,7 +376,7 @@ RenderProxyList& GetConsumerProxyList(View* view)
 
     if (vd == nullptr)
     {
-        static RenderProxyList s_fallbackRpl { g_renderPool, /* isShared */ false, /* useRefCounting */ false };
+        static RenderProxyList s_fallbackRpl { /* isShared */ false, /* useRefCounting */ false };
         return s_fallbackRpl;
     }
 
@@ -386,28 +385,28 @@ RenderProxyList& GetConsumerProxyList(View* view)
 
 RenderCollector& GetRenderCollector(View* view)
 {
-    HYP_SCOPE;
     AssertOnThread(g_renderThread);
 
     Framework::ViewData* vd = Framework::GetViewData(view, false);
-    
+
     if (vd == nullptr)
     {
         static RenderCollector s_fallbackRenderCollector;
+        s_fallbackRenderCollector.isFallback = true;
+
         return s_fallbackRenderCollector;
     }
-    
+
     return vd->renderCollector;
 }
 
 IRenderProxy* GetRenderProxy(const ObjectBase* resource)
 {
-    HYP_SCOPE;
     AssertOnThread(g_renderThread | ThreadCategory::THREAD_CATEGORY_TASK);
 
     AssertDebug(resource != nullptr);
 
-    ResourceSubtypeData& subtypeData = g_renderInterface->resources->GetSubtypeData(resource->InstanceClass());
+    ResourceSubtypeData& subtypeData = RI.resources->GetSubtypeData(resource->InstanceClass());
     AssertDebug(subtypeData.hasProxyData,
         "Cannot use GetRenderProxy() for type which does not have a RenderProxy! Type name: {}",
         subtypeData.typeInfo->name);
@@ -437,7 +436,7 @@ void UpdateGpuData(const ObjectBase* resource)
 
     const ObjIdBase resourceId = resource->Id();
 
-    ResourceSubtypeData& subtypeData = g_renderInterface->resources->GetSubtypeData(resource->InstanceClass());
+    ResourceSubtypeData& subtypeData = RI.resources->GetSubtypeData(resource->InstanceClass());
     AssertDebug(resourceId.GetTypeId() == subtypeData.typeInfo->id);
 
     AssertDebug(subtypeData.sbuffer != nullptr,
@@ -464,12 +463,11 @@ void UpdateGpuData(const ObjectBase* resource)
 
 void SetForceRebind(ObjectBase* resource, bool forceRebind)
 {
-    HYP_SCOPE;
     AssertOnThread(g_renderThread);
 
     AssertDebug(resource != nullptr);
 
-    ResourceSubtypeData& subtypeData = g_renderInterface->resources->GetSubtypeData(resource->InstanceClass());
+    ResourceSubtypeData& subtypeData = RI.resources->GetSubtypeData(resource->InstanceClass());
 
     for (ResourceBinderBase** it = subtypeData.resourceBinders; *it; ++it)
     {
@@ -480,7 +478,6 @@ void SetForceRebind(ObjectBase* resource, bool forceRebind)
 
 WorldShaderData* GetWorldBufferData()
 {
-    HYP_SCOPE;
     AssertOnThread(g_simThread | g_renderThread);
 
     return &Framework::s_bufferedData[*Framework::s_threadFrameIndex].worldBufferData;
@@ -488,7 +485,6 @@ WorldShaderData* GetWorldBufferData()
 
 void CommitActiveWorlds(Span<World*> activeWorlds)
 {
-    HYP_SCOPE;
     AssertOnThread(g_simThread);
 
     Framework::BufferedData& bufferedData = Framework::s_bufferedData[Framework::s_frameIndex[Framework::TT_FrameDataProducer]];
@@ -497,7 +493,6 @@ void CommitActiveWorlds(Span<World*> activeWorlds)
 
 Span<World*> GetActiveWorlds()
 {
-    HYP_SCOPE;
     AssertOnThread(g_simThread | g_renderThread);
 
     return Framework::s_bufferedData[*Framework::s_threadFrameIndex].activeWorlds.ToSpan();
@@ -505,7 +500,6 @@ Span<World*> GetActiveWorlds()
 
 Viewport& GetViewport(View* view)
 {
-    HYP_SCOPE;
     AssertOnThread(g_simThread | g_renderThread);
 
     return Framework::GetBufferedViewData(view, *Framework::s_threadFrameIndex)->viewport;
@@ -521,18 +515,23 @@ uint32 CurrentRenderThreadIndex()
     return Framework::s_currentRenderThreadIndex - 1;
 }
 
-void BeginFrameSim()
+void BeginFrameSim(AtomicFlag* pCancelFlag)
 {
-    HYP_SCOPE;
-
     Framework::s_threadFrameIndex = &Framework::s_frameIndex[Framework::TT_FrameDataProducer];
 
-    Framework::s_freeSemaphore.acquire();
+    while (!Framework::s_freeSemaphore.try_acquire())
+    {
+        if (pCancelFlag != nullptr && pCancelFlag->Load())
+        {
+            return;
+        }
+
+        ThreadSleep(0);
+    }
 }
 
 void EndFrameSim()
 {
-    HYP_SCOPE;
     AssertOnThread(g_simThread);
 
     const uint32 slot = Framework::s_frameIndex[Framework::TT_FrameDataProducer];
@@ -554,24 +553,26 @@ EngineConfig& GetEngineConfig()
 #pragma region RenderInterface
 
 RenderInterface::RenderInterface()
-    : gpuBufferHolders(PoolNew<GpuBufferHolderMap>(*g_renderPool)),
-      cbufferAllocator(PoolNew<CBufferAllocator>(*g_renderPool)),
-      sbufferAllocator(PoolNew<StructuredBufferAllocator>(*g_renderPool)),
-      descriptorSetCache(PoolNew<DescriptorSetCache>(*g_renderPool)),
-      placeholderData(PoolNew<PlaceholderData>(*g_renderPool)),
-      materialTextureCache(PoolNew<MaterialTextureCache>(*g_renderPool)),
-      graphicsPipelineCache(PoolNew<GraphicsPipelineCache>(*g_renderPool)),
-      computePipelineCache(PoolNew<ComputePipelineCache>(*g_renderPool)),
-      rayTracingPipelineCache(PoolNew<RayTracingPipelineCache>(*g_renderPool)),
-      bindlessStorage(PoolNew<BindlessStorage>(*g_renderPool)),
-      shaderManager(PoolNew<ShaderManager>(*g_renderPool)),
+    : gpuBufferHolders(nullptr),
+      cbufferAllocator(nullptr),
+      bufferAllocator(nullptr),
+      scratchImageAllocator(nullptr),
+      descriptorSetCache(nullptr),
+      placeholderData(nullptr),
+      materialTextureCache(nullptr),
+      graphicsPipelineCache(nullptr),
+      computePipelineCache(nullptr),
+      rayTracingPipelineCache(nullptr),
+      renderGroupCache(nullptr),
+      bindlessStorage(nullptr),
+      shaderManager(nullptr),
       finalPass(nullptr),
-      textureViewCache(PoolNew<TextureViewCache>(*g_renderPool)),
-      samplerCache(PoolNew<SamplerCache>(*g_renderPool)),
-      stagingBufferPool(PoolNew<StagingBufferPool>(*g_renderPool)),
-      blasCache(PoolNew<BLASCache>(*g_renderPool)),
-      shadowMapCache(PoolNew<ShadowMapCache>(*g_renderPool)),
-      crashHandler(PoolNew<CrashHandler>(*g_renderPool))
+      textureViewCache(nullptr),
+      samplerCache(nullptr),
+      stagingBufferPool(nullptr),
+      blasCache(nullptr),
+      shadowMapCache(nullptr),
+      crashHandler(nullptr)
 {
 }
 
@@ -584,6 +585,26 @@ RendererResult RenderInterface::Initialize()
     HYP_LOG(Rendering, Verbose, "Initializing base render interface");
 
     Framework::s_threadFrameIndex = &Framework::s_frameIndex[Framework::TT_FrameDataConsumer];
+
+    gpuBufferHolders = PoolNew<GpuBufferHolderMap>(*g_renderPool);
+    cbufferAllocator = PoolNew<CBufferAllocator>(*g_renderPool);
+    bufferAllocator = PoolNew<BufferAllocator>(*g_renderPool);
+    scratchImageAllocator = PoolNew<ScratchImageAllocator>(*g_renderPool);
+    descriptorSetCache = PoolNew<DescriptorSetCache>(*g_renderPool);
+    placeholderData = PoolNew<PlaceholderData>(*g_renderPool);
+    materialTextureCache = PoolNew<MaterialTextureCache>(*g_renderPool);
+    graphicsPipelineCache = PoolNew<GraphicsPipelineCache>(*g_renderPool);
+    computePipelineCache = PoolNew<ComputePipelineCache>(*g_renderPool);
+    rayTracingPipelineCache = PoolNew<RayTracingPipelineCache>(*g_renderPool);
+    renderGroupCache = PoolNew<RenderGroupCache>(*g_renderPool);
+    bindlessStorage = PoolNew<BindlessStorage>(*g_renderPool);
+    shaderManager = PoolNew<ShaderManager>(*g_renderPool);
+    textureViewCache = PoolNew<TextureViewCache>(*g_renderPool);
+    samplerCache = PoolNew<SamplerCache>(*g_renderPool);
+    stagingBufferPool = PoolNew<StagingBufferPool>(*g_renderPool);
+    blasCache = PoolNew<BLASCache>(*g_renderPool);
+    shadowMapCache = PoolNew<ShadowMapCache>(*g_renderPool);
+    crashHandler = PoolNew<CrashHandler>(*g_renderPool);
 
     InitDeviceDetails(deviceDetails);
 
@@ -631,6 +652,7 @@ RendererResult RenderInterface::Initialize()
 
         // For Android leave these rendering settings off.
         engineConfig.Set("Rendering.IndirectRendering", false);
+        engineConfig.Set("Rendering.DepthPrepass", false);
         engineConfig.Set("Rendering.SSGI", false);
         engineConfig.Set("Rendering.TAA", false);
         engineConfig.Set("Rendering.SSR.Enabled", false);
@@ -650,7 +672,7 @@ RendererResult RenderInterface::Initialize()
         {
             engineConfig.Save();
         }
-        
+
         CVarManager::GetInstance().InitFromConfig(engineConfig);
 
         for (uint32 i = 1; i < RingBufferDepth; i++)
@@ -685,11 +707,11 @@ RendererResult RenderInterface::Initialize()
         globalRenderers[i] = Array<RendererBase*>();
     }
 
-    globalRenderers[GRT_MAIN].PushBack(new DeferredRenderer);
-    globalRenderers[GRT_MAIN][0]->Initialize();
+    globalRenderers[GRT_DEFERRED].PushBack(new DeferredRenderer);
+    globalRenderers[GRT_DEFERRED][0]->Initialize();
 
     globalRenderers[GRT_UI].PushBack(new UIRenderer);
-    globalRenderers[GRT_MAIN][0]->Initialize();
+    globalRenderers[GRT_DEFERRED][0]->Initialize();
 
     globalRenderers[GRT_ENV_PROBE].ResizeZeroed(EPT_MAX);
     globalRenderers[GRT_ENV_PROBE][EPT_REFLECTION] = new ReflectionProbeRenderer;
@@ -725,7 +747,7 @@ void RenderInterface::Shutdown()
 
     for (auto& it : Framework::s_viewData)
     {
-        Framework::ViewData* vd = it.second;
+        Framework::ViewData*& vd = it.second;
 
         if (!vd)
         {
@@ -733,6 +755,7 @@ void RenderInterface::Shutdown()
         }
 
         PoolDelete(*g_renderPool, vd);
+        vd = nullptr;
     }
 
     Framework::s_viewData.Clear();
@@ -766,12 +789,12 @@ void RenderInterface::Shutdown()
             }
         }
     }
-    
+
     DebugDrawer::GetInstance().Shutdown();
 
-    for (StructuredBuffer& grb : namedBuffers)
+    for (StructuredBuffer& structuredBuffer : namedBuffers)
     {
-        grb.Shutdown();
+        structuredBuffer.Shutdown();
     }
 
     blueNoiseBuffer.Shutdown();
@@ -804,12 +827,18 @@ void RenderInterface::Shutdown()
 
     PoolDelete(*g_renderPool, finalPass);
     finalPass = nullptr;
-    
+
     PoolDelete(*g_renderPool, cbufferAllocator);
     cbufferAllocator = nullptr;
-    
-    PoolDelete(*g_renderPool, sbufferAllocator);
-    sbufferAllocator = nullptr;
+
+    PoolDelete(*g_renderPool, bufferAllocator);
+    bufferAllocator = nullptr;
+
+    PoolDelete(*g_renderPool, scratchImageAllocator);
+    scratchImageAllocator = nullptr;
+
+    PoolDelete(*g_renderPool, descriptorSetCache);
+    descriptorSetCache = nullptr;
 
     PoolDelete(*g_renderPool, gpuBufferHolders);
     gpuBufferHolders = nullptr;
@@ -828,11 +857,12 @@ void RenderInterface::Shutdown()
 
     PoolDelete(*g_renderPool, rayTracingPipelineCache);
     rayTracingPipelineCache = nullptr;
-    
+
+    PoolDelete(*g_renderPool, renderGroupCache);
+    renderGroupCache = nullptr;
+
     PoolDelete(*g_renderPool, crashHandler);
     crashHandler = nullptr;
-
-    DeletionQueue::GetInstance().Flush();
 }
 
 void RenderInterface::BeginFrame(AtomicFlag* pCancelFlag)
@@ -862,7 +892,8 @@ void RenderInterface::BeginFrame(AtomicFlag* pCancelFlag)
     Framework::BufferedData& bufferedData = Framework::s_bufferedData[slot];
 
     cbufferAllocator->OnFrameStart();
-    sbufferAllocator->OnFrameStart();
+    bufferAllocator->OnFrameStart();
+    scratchImageAllocator->OnFrameStart();
     descriptorSetCache->OnFrameStart();
     stagingBufferPool->OnFrameStart();
 
@@ -871,13 +902,13 @@ void RenderInterface::BeginFrame(AtomicFlag* pCancelFlag)
     RenderCommands::Flush();
 
     Span<View* const> activeViews = g_engineDriver->GetCurrentFrameViews();
-    
+
     for (View* view : activeViews)
     {
         // ensure BufferedViewData exists
         Framework::BufferedViewData& bufferedViewData = *Framework::GetBufferedViewData(view, slot);
         AssertDebug(bufferedViewData.rplShared != nullptr);
-        
+
         if (!bufferedViewData.viewData)
         {
             bufferedViewData.viewData = Framework::GetViewData(view, /* createIfNotExist */ true);
@@ -916,7 +947,7 @@ void RenderInterface::BeginFrame(AtomicFlag* pCancelFlag)
 
         if (!rplShared)
         {
-            static RenderProxyList s_defaultRenderProxyList { g_renderPool, /* isShared */ false, /* useRefCounting */ false };
+            static RenderProxyList s_defaultRenderProxyList { /* isShared */ false, /* useRefCounting */ false };
             rplShared = &s_defaultRenderProxyList;
         }
 
@@ -975,7 +1006,7 @@ void RenderInterface::BeginFrame(AtomicFlag* pCancelFlag)
     {
         resourceBinder->ApplyUpdates();
     }
-    
+
     TBitset<RenderAllocator> currentBoundIndices;
 
     for (ResourceSubtypeData& subtypeData : resources->dataByType)
@@ -1053,11 +1084,11 @@ void RenderInterface::BeginFrame(AtomicFlag* pCancelFlag)
         vd.rplRender.BeginRead();
 
         vd.renderCollector.BuildRenderGroups(vd.view, vd.rplRender);
-        vd.renderCollector.BuildDrawCalls(0);
+        vd.renderCollector.CollectRenderables(0);
 
         vd.rplRender.EndRead();
     }
-    
+
     GetCurrentCommandBuffer()->Begin();
 }
 
@@ -1087,7 +1118,7 @@ void RenderInterface::EndFrame()
             AssertDebug(view != nullptr);
 
             viewData->renderCollector.RemoveEmptyRenderGroups();
-            
+
             // Clear out data for views that haven't been written to for a while
             if (int64(currFrame) - int64(viewData->lastUsedFrame) >= MaxFramesBeforeDiscard)
             {
@@ -1114,7 +1145,7 @@ void RenderInterface::EndFrame()
                             ++resourceTrackerIndex;
                         });
 
-                    static RenderProxyList s_emptyRpl { g_renderPool, /* isShared */ false, /* useRefCounting */ false };
+                    static RenderProxyList s_emptyRpl { /* isShared */ false, /* useRefCounting */ false };
                     CopyDependencies(*resources, viewData->rplRender, s_emptyRpl);
                 }
 
@@ -1214,7 +1245,8 @@ void RenderInterface::EndFrame()
     state.Reset();
 
     cbufferAllocator->OnFrameEnd();
-    sbufferAllocator->OnFrameEnd();
+    bufferAllocator->OnFrameEnd();
+    scratchImageAllocator->OnFrameEnd();
     descriptorSetCache->OnFrameEnd();
     stagingBufferPool->OnFrameEnd();
 
@@ -1288,7 +1320,7 @@ void RenderInterface::CommitPipelineState(PSOType psoType, CommandBuffer* comman
     case PSO_Graphics:
     {
         AssertDebug(state.framebuffer != nullptr);
-        
+
         GraphicsPipeline* pipeline = nullptr;
 
         if (!state.boundGraphicsPipeline
@@ -1410,21 +1442,21 @@ void RenderInterface::CommitPipelineState(PSOType psoType, CommandBuffer* comman
         {
             if (inputSet.flags & ShaderInputSetFlags::Template)
             {
-                const ShaderInputSet* refDsDecl = g_renderInterface->globalDescriptorTable->GetDeclaration()->FindDescriptorSetDeclaration(inputSet.name);
+                const ShaderInputSet* refDsDecl = RI.globalDescriptorTable->GetDeclaration()->FindDescriptorSetDeclaration(inputSet.name);
                 AssertDebug(refDsDecl != nullptr);
 
                 DescriptorSetLayout layout { refDsDecl };
-                return g_renderInterface->descriptorSetCache->GetOrCreate(layout);
+                return RI.descriptorSetCache->GetOrCreate(layout);
             }
 
             outStateFlags |= DSS_GlobalReference;
 
-            return g_renderInterface->globalDescriptorTable->GetDescriptorSet(inputSet.name, frameIndex);
+            return RI.globalDescriptorTable->GetDescriptorSet(inputSet.name, frameIndex);
         }
         else
         {
             DescriptorSetLayout layout { &inputSet };
-            return g_renderInterface->descriptorSetCache->GetOrCreate(layout);
+            return RI.descriptorSetCache->GetOrCreate(layout);
         }
     };
 
@@ -1468,7 +1500,7 @@ void RenderInterface::CommitPipelineState(PSOType psoType, CommandBuffer* comman
 
             if (setDecl.flags & ShaderInputSetFlags::Reference)
             {
-                pSetDecl = g_renderInterface->globalDescriptorTable->GetDeclaration()->FindDescriptorSetDeclaration(setDecl.name);
+                pSetDecl = RI.globalDescriptorTable->GetDeclaration()->FindDescriptorSetDeclaration(setDecl.name);
                 AssertDebug(pSetDecl != nullptr);
             }
 
@@ -1488,7 +1520,7 @@ void RenderInterface::CommitPipelineState(PSOType psoType, CommandBuffer* comman
             state.validUniforms &= ~(1u << uniformIndex);
             state.dirtyUniforms &= ~(1u << uniformIndex);
             state.dirtyBufferOffsets &= ~(1u << uniformIndex);
-            
+
             bits.Set(currBit, false);
 
             continue;
@@ -1603,14 +1635,20 @@ void RenderInterface::CommitPipelineState(PSOType psoType, CommandBuffer* comman
         {
             if (image->IsFullSubResource(subResource))
             {
+                // HYP_LOG_TEMP("Shader: {} needs to transition target {} from state {} to state {}", state.attributes.GetShaderName(), image->GetDebugName(), EnumToString(image->GetResourceState()), EnumToString(desiredResourceState));
+
                 if (psoType == PSO_Graphics && state.boundFramebuffer != nullptr)
                 {
+                    // HYP_LOG_TEMP("Breaking framebuffer {} (bound to shader {})", state.boundFramebuffer->GetDebugName(), state.attributes.GetShaderName());
+
                     // have to end render pass if we are going to insert a barrier
                     state.boundFramebuffer->EndCapture(commandBuffer);
                     state.boundFramebuffer = nullptr;
                 }
 
                 image->InsertBarrier(commandBuffer, desiredResourceState, ShaderModuleType::None);
+
+                AssertDebug(image->GetResourceState() == desiredResourceState);
             }
             else
             {
@@ -1630,10 +1668,14 @@ void RenderInterface::CommitPipelineState(PSOType psoType, CommandBuffer* comman
 
                         if (currResourceState != desiredResourceState)
                         {
+                            // HYP_LOG_TEMP("Shader: {} needs to transition target {} from state {} to state {} (subresource: {}/{}/{})", state.attributes.GetShaderName(), image->GetDebugName(), EnumToString(image->GetResourceState()), EnumToString(desiredResourceState), mipIndex, layerIndex, subResource.baseArrayLayer + subResource.numLayers - 1);
+
                             needsTransition = true;
 
                             if (psoType == PSO_Graphics && state.boundFramebuffer != nullptr)
                             {
+                                // HYP_LOG_TEMP("Breaking framebuffer {} (bound to shader {})", state.boundFramebuffer->GetDebugName(), state.attributes.GetShaderName());
+
                                 // have to end render pass if we are going to insert a barrier
                                 state.boundFramebuffer->EndCapture(commandBuffer);
                                 state.boundFramebuffer = nullptr;
@@ -1652,6 +1694,8 @@ void RenderInterface::CommitPipelineState(PSOType psoType, CommandBuffer* comman
                 if (needsTransition)
                 {
                     image->InsertBarrier(commandBuffer, subResource, desiredResourceState, ShaderModuleType::None);
+
+                    AssertDebug(image->GetSubResourceState(subResource) == desiredResourceState);
                 }
             }
         }
@@ -1692,7 +1736,7 @@ void RenderInterface::CommitPipelineState(PSOType psoType, CommandBuffer* comman
             reinterpret_cast<CmdBase*>(&deferredBindCommandMemory),
             commandBuffer);
     }
-    
+
     AssertDebug(state.boundGraphicsPipeline != nullptr, "Pipeline not bound");
 
     if (state.dirtyUniforms)
@@ -1870,26 +1914,24 @@ void RenderInterface::FlushStructuredBuffers()
     HYP_SCOPE;
     AssertOnThread(g_renderThread);
 
-    // Check whether any buffer is actually dirty before acquiring a command buffer.
-    bool anyDirty = false;
+    bool anyNeedStaging = false;
 
     for (StructuredBuffer& sbuffer : namedBuffers)
     {
         if (sbuffer.IsDirty())
         {
-            anyDirty = true;
+            anyNeedStaging = true;
+
             break;
         }
     }
 
-    if (!anyDirty)
+    if (!anyNeedStaging)
     {
         return;
     }
 
-    // Batch all dirty structured-buffer copies into a single command buffer and
-    // submit once. Previously each Flush() issued its own vkQueueSubmit + fence,
-    // meaning up to 9 separate submissions per frame and 9 fence waits next frame.
+    // Batch all dirty structured buffers that need to use a staging buffer to copy data from the CPU to the GPU.
     CommandBuffer& cmdBuffer = GetTransientCommandBuffer();
 
     for (StructuredBuffer& sbuffer : namedBuffers)

@@ -14,7 +14,7 @@
 #include <rendering/RenderObject.hpp>
 #include <rendering/RenderConfig.hpp>
 #include <rendering/CommandRecorderAllocator.hpp>
-#include <rendering/StructuredBuffer.hpp>
+#include <rendering/RawBuffer.hpp>
 
 #include <engine/DeviceDetails.hpp>
 
@@ -67,9 +67,11 @@ class CrashHandler;
 class EngineConfig;
 class SamplerCache;
 struct SamplerDesc;
+class RenderGroupCache;
 
 class CBufferAllocator;
-class StructuredBufferAllocator;
+class BufferAllocator;
+class ScratchImageAllocator;
 
 enum class GpuBufferType : uint8;
 enum RenderTargetType : uint8;
@@ -99,14 +101,14 @@ HYP_API uint32 GetRingIndex();
 /*! \brief Get the global frame counter value that is incremented every frame.
  *  This is used to track the number of frames that have been rendered.
  *  \note This is thread-safe and can be called from any thread as the frame counter is atomic. */
-HYP_API uint32 GetFrameCounter();
+uint32 GetFrameCounter();
 
 /*! \brief Get the current render thread index (valid indices starting at 1) - usable from Render thread or renderer worker threads.
  *  For the main render thread, this index would be 0. For worker threads, it would be 1,2... so on and so forth.
  *  Undefined for sim thread or other threads than the render thread or renderer worker threads. */
 uint32 CurrentRenderThreadIndex();
 
-void BeginFrameSim();
+void BeginFrameSim(AtomicFlag* pCancelFlag);
 void EndFrameSim();
 
 /*! \brief Get the RenderProxyList for the Sim thread to write to for the current frame, for the given view.
@@ -152,7 +154,7 @@ enum GlobalRendererType : uint32
 {
     GRT_NONE = ~0u, //!< Not a global renderer type
 
-    GRT_MAIN = 0,        //!< Main world renderer (DeferredRenderer)
+    GRT_DEFERRED = 0,        //!< Main world renderer (DeferredRenderer)
     GRT_UI,              //!< Globally registered UIRenderer instances to be used by FinalPass to draw the UI onto the backbuffer.
     GRT_ENV_PROBE,       //!< Global renderer instances for different EnvProbe classes
     GRT_ENV_GRID,        //!< Global renderer instance for EnvGrids
@@ -350,10 +352,10 @@ public:
     virtual GpuTlasRef MakeTLAS() = 0;
 
     virtual void PopulateIndirectDrawCommandsBuffer(
-        const GpuBufferRef& vertexBuffer,
-        const GpuBufferRef& indexBuffer,
+        const GpuBuffer* vertexBuffer,
+        const GpuBuffer* indexBuffer,
         uint32 instanceOffset,
-        TByteBuffer<RenderAllocator>& outByteBuffer) = 0;
+        Array<IndirectDrawCommand, RHIAllocator>& outBuffer) = 0;
 
     virtual bool IsSupportedFormat(TextureFormat format, ImageSupport supportType) const = 0;
     virtual TextureFormat FindSupportedFormat(Span<TextureFormat> possibleFormats, ImageSupport supportType) const = 0;
@@ -372,7 +374,8 @@ public:
     GpuBufferHolderMap* gpuBufferHolders;
 
     CBufferAllocator* cbufferAllocator;
-    StructuredBufferAllocator* sbufferAllocator;
+    BufferAllocator* bufferAllocator;
+    ScratchImageAllocator* scratchImageAllocator;
 
     DescriptorTableRef globalDescriptorTable;
 
@@ -391,6 +394,8 @@ public:
     ComputePipelineCache* computePipelineCache;
     RayTracingPipelineCache* rayTracingPipelineCache;
 
+    RenderGroupCache* renderGroupCache;
+
     FinalPass* finalPass;
 
     TextureViewCache* textureViewCache;
@@ -408,7 +413,7 @@ public:
     BLASCache* blasCache;
 
     ShadowMapCache* shadowMapCache;
-    
+
     CrashHandler* crashHandler;
 
     CommandRecorderAllocator commandRecorderAllocator;

@@ -26,7 +26,7 @@ void BindlessStorage::UnsetAllResources(BindlessStorageSlot slot)
 
     for (uint32 frameIndex = 0; frameIndex < NumFramesInFlight; frameIndex++)
     {
-        const DescriptorSetRef& descriptorSet = g_renderInterface->globalDescriptorTable->GetDescriptorSet(BindlessStorageSlotNames[slot], frameIndex);
+        const DescriptorSetRef& descriptorSet = RI.globalDescriptorTable->GetDescriptorSet(BindlessStorageSlotNames[slot], frameIndex);
         AssertDebug(descriptorSet.IsValid());
 
         // Unset all active textures
@@ -63,7 +63,7 @@ void BindlessStorage::AddResource(BindlessStorageSlot slot, uint32 index, const 
 
     for (uint32 frameIndex = 0; frameIndex < NumFramesInFlight; frameIndex++)
     {
-        const DescriptorSetRef& descriptorSet = g_renderInterface->globalDescriptorTable->GetDescriptorSet(BindlessStorageSlotNames[slot], frameIndex);
+        const DescriptorSetRef& descriptorSet = RI.globalDescriptorTable->GetDescriptorSet(BindlessStorageSlotNames[slot], frameIndex);
         AssertDebug(descriptorSet.IsValid());
 
         if (GpuImageView* imageView = DynamicCast<GpuImageView>(resource.Get()))
@@ -84,7 +84,7 @@ void BindlessStorage::AddResource(BindlessStorageSlot slot, uint32 index, const 
 void BindlessStorage::RemoveResource(BindlessStorageSlot slot, uint32 index)
 {
     AssertOnThread(g_renderThread);
-    
+
     auto& resources = m_resources[slot];
 
     if (!resources.HasIndex(index))
@@ -94,12 +94,12 @@ void BindlessStorage::RemoveResource(BindlessStorageSlot slot, uint32 index)
 
     for (uint32 frameIndex = 0; frameIndex < NumFramesInFlight; frameIndex++)
     {
-        const DescriptorSetRef& descriptorSet = g_renderInterface->globalDescriptorTable->GetDescriptorSet(BindlessStorageSlotNames[slot], frameIndex);
+        const DescriptorSetRef& descriptorSet = RI.globalDescriptorTable->GetDescriptorSet(BindlessStorageSlotNames[slot], frameIndex);
         AssertDebug(descriptorSet.IsValid());
 
         if (slot == BindlessStorage_Textures)
         {
-            GpuImageView* placeholder_view = g_renderInterface->placeholderData->GetImageView2D1x1R8();
+            GpuImageView* placeholder_view = RI.placeholderData->GetImageView2D1x1R8();
             descriptorSet->SetElement(BindlessStorageDescriptorNames[slot], index, placeholder_view);
         }
         else

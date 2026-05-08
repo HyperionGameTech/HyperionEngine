@@ -254,9 +254,6 @@ public:
         m_cameraFlags = flags;
     }
 
-    HYP_METHOD()
-    void SetWindow(ApplicationWindow* window);
-
     HYP_METHOD(Property = "CameraControllers")
     const Array<Handle<CameraController>>& GetCameraControllers() const
     {
@@ -515,6 +512,8 @@ protected:
     void UpdateProjectionMatrix();
     void UpdateViewProjectionMatrix();
 
+    void UpdateJitter();
+
     EnumFlags<CameraFlags> m_cameraFlags;
 
     HYP_FIELD(Property = "MatchWindowSizeRatio", Editor)
@@ -550,12 +549,13 @@ private:
     Mat4f m_viewProjMat;
     Mat4f m_prevViewProjMat;
 
+    Vec4f m_jitter = Vec4f::Zero();
+    uint32 m_jitterFrameCounter = 0;
+
     InputMouseLockScope m_mouseLockScope;
 
     Handle<CameraStreamingVolume> m_streamingVolume;
     bool m_streamingVolumeAdded;
-
-    WeakHandle<ApplicationWindow> m_window;
 
     DelegateHandler m_onMainWindowChangedHandle;
     DelegateHandler m_onWindowResizedHandle;

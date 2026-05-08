@@ -308,6 +308,12 @@ AssetLoadResult OgreXMLModelLoader::LoadAsset(LoaderState& state) const
             continue;
         }
 
+        // Reverse triangle winding: convert right-handed CCW to left-handed CW
+        for (uint32 i = 0; i + 2 < subMesh.indices.Size(); i += 3)
+        {
+            std::swap(subMesh.indices[i + 1], subMesh.indices[i + 2]);
+        }
+
         Scene* scene = GetDetachedSceneForCurrentThread();
 
         const Handle<Entity> entity = scene->GetEntityManager()->AddEntity();
@@ -332,7 +338,6 @@ AssetLoadResult OgreXMLModelLoader::LoadAsset(LoaderState& state) const
         vertexArrayView.layoutDesc = meshDesc.meshAttributes.inputLayout;
 
         mesh->SetMeshData(meshDesc, vertexArrayView, subMesh.indices.ToByteView());
-        mesh->CalculateNormals();
         //mesh->SetOriginalFilepath(FilePath::Relative(state.filepath, state.assetManager->GetBasePath()));
 
         GetCurrentAssetRegistry()->PutAsset(mesh);

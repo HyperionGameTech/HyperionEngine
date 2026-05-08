@@ -58,6 +58,8 @@
 
 #include <scene/ComponentInterface.hpp>
 
+#include <ui/UIDataSource.hpp> // For UIElementFactoryRegistry
+
 #include <audio/AudioManager.hpp>
 
 #if HYP_VULKAN
@@ -99,6 +101,11 @@ struct AAssetManager* g_androidAssetManager;
 // defined in ClassDecls.cpp
 extern void InitClassDecls();
 
+// defined in PlatformUtils.[cpp|mm]
+namespace PlatformUtils {
+extern PlatformString GetExecutableAbsolutePath();
+} // namespace PlatformUtils
+
 Handle<EngineDriver> g_engineDriver;
 Handle<AssetManager> g_assetManager;
 Handle<AudioManager> g_audioManager;
@@ -120,9 +127,9 @@ VisThread* g_visThreadInstance;
 Game* g_gameInstance; // active game instance, read/write only from the main thread
 
 #if HYP_VULKAN
-VulkanRenderInterface* g_renderInterface;
+VulkanRenderInterface RI;
 #elif HYP_DX12
-DX12RenderInterface* g_renderInterface;
+DX12RenderInterface RI;
 #endif // HYP_VULKAN || HYP_DX12
 
 static void HandleFatalError(const char* message)
@@ -304,7 +311,7 @@ extern "C"
         }
 
         SetCurrentThreadId(g_mainThread);
-        
+
         InitClassDecls();
 
         CoreApi::SetConfigDirectory(GetConfigDirectory());
@@ -313,6 +320,11 @@ extern "C"
         {
             return 0;
         }
+
+        EngineConfig engineConfig;
+        engineConfig.Load();
+
+        CVarManager::GetInstance().InitFromConfig(engineConfig);
 
         InitThreads();
         InitMemoryPools();
@@ -328,11 +340,11 @@ extern "C"
         // use asset manager for all assets
         const FilePath basePath = FilePath(AndroidAssetPathPrefix);
 #else // !HYP_ANDROID
-        const FilePath basePath = FilePath(cliArgs.GetCommand().ToUtf8()).BasePath();
+        const FilePath basePath = FilePath(PlatformUtils::GetExecutableAbsolutePath().ToUtf8()).BasePath();
 #endif // HYP_ANDROID
 
         CoreApi::SetExecutablePath(basePath);
-        
+
         const bool isEditor = cliArgs["Editor"].ToBool();
 
 #if HYP_DOTNET
@@ -342,28 +354,24 @@ extern "C"
         DotNETHost::GetInstance().Initialize(basePath, /* initFromManaged */ isEditor, s_initFromManagedCallback);
 #endif // HYP_DOTNET
 
-        TaskSystem::GetInstance().Start();
-
         g_engineDriver = MakeHandle<EngineDriver>();
 
         ComponentInterfaceRegistry::GetInstance().Initialize();
 
         g_engineStats = MakeHandle<EngineStats>();
-        InitObject(g_engineStats);
 
         g_streamingManager = MakeHandle<StreamingManager>();
-        InitObject(g_streamingManager);
         g_streamingManager->Start();
 
         g_assetManager = MakeHandle<AssetManager>();
-        InitObject(g_assetManager);
+        g_assetManager->Initialize();
 
         // Create the engine-global asset registry for shared engine data (shaders, debug shapes, etc.)
         {
             Handle<AssetRegistry> engineRegistry = MakeHandle<AssetRegistry>(
                 AssetRegistryId::Engine,
                 GetLibraryDirectory() / "Engine");
-                
+
             engineRegistry->Initialize();
 
             SetEngineAssetRegistry(engineRegistry);
@@ -383,11 +391,11 @@ extern "C"
 #endif // HYP_EDITOR
 
         g_audioManager = MakeHandle<AudioManager>();
-        InitObject(g_audioManager);
+        g_audioManager->Initialize();
 
 #if HYP_EDITOR
         g_editorState = MakeHandle<EditorState>();
-        InitObject(g_editorState);
+        g_editorState->Initialize();
 #endif // HYP_EDITOR
 
         g_materialInstanceCache = new MaterialInstanceCache;
@@ -412,15 +420,20 @@ extern "C"
         HYP_FAIL("AppContext not implemented for this platform");
 #endif // HYP_WINDOWS || HYP_MACOS || HYP_SDL || HYP_ANDROID
 
-        const bool isCommandlet = cliArgs["Commandlet"].ToBool();
+        const bool isCommandlet = cliArgs["exec"].ToBool();
 
         Vec2i resolution = { 1280, 720 };
 
-        EnumFlags<WindowFlags> windowFlags = WindowFlags::HIGH_DPI | WindowFlags::EVENTS_POLLING;
+        EnumFlags<WindowFlags> windowFlags = WindowFlags::EVENTS_POLLING;
 
         if (cliArgs["Headless"].ToBool() || isCommandlet)
         {
             windowFlags |= WindowFlags::HEADLESS;
+        }
+
+        if (cliArgs["HighDPI"].ToBool())
+        {
+            windowFlags |= WindowFlags::HIGH_DPI;
         }
 
         if (cliArgs["ResX"].IsNumber())
@@ -439,17 +452,15 @@ extern "C"
 
             Handle<ApplicationWindow> window = g_appContext->CreateSystemWindow({ "Hyperion Engine", resolution, windowFlags });
 
-            DelegateHandler* onCloseHandle = new DelegateHandler();
-            
-            *onCloseHandle = window->OnClose.Bind([onCloseHandle]()
+            window->OnClose
+                .Bind([]()
                 {
                     // shut down application on main window close.
                     Hyp_Shutdown();
 
-                    delete onCloseHandle;
-
                     std::exit(0);
-                });
+                })
+                .Detach();
 
             Assert(window.IsValid());
 
@@ -460,18 +471,61 @@ extern "C"
             HYP_LOG(Engine, Info, "Running in headless mode");
         }
 
-        InitObject(g_engineDriver);
-        
+        g_engineDriver->Initialize();
+
         if (isCommandlet)
         {
-            const ANSIString commandletName = cliArgs["Commandlet"].ToString().ToAnsi();
+            const ANSIString commandletName = cliArgs["exec"].ToString().ToAnsi();
 
-            CommandLineArguments commandletArgs = CommandLineArguments::Merge(
-                CoreApi::DefaultCommandLineArgumentDefinitions(),
-                CommandLineArguments { commandletName },
-                cliArgs);
+            const Class* commandletClass = g_appContext->FindCommandletClass(commandletName);
 
-            commandletArgs.Delete("Commandlet");
+            if (!commandletClass)
+            {
+                HYP_LOG(Engine, Error, "Failed to find Commandlet class with name: {}", commandletName);
+
+                Hyp_Shutdown();
+
+                return 1;
+            }
+
+            String cliString;
+
+            for (int i = 1; i < argc; i++)
+            {
+                cliString += argv[i];
+                if (i != argc - 1)
+                {
+                    cliString += ' ';
+                }
+            }
+
+            CommandLineArgumentDefinitions argumentDefinitions {};
+
+            // check for static method GetArgumentDefinitions() on commandlet class to override.
+            if (const Method* m = commandletClass->GetMethod("GetArgumentDefinitions"_sh))
+            {
+                Span<BoxedValue*> args = { nullptr };
+
+                BoxedValue boxed = m->Invoke(args);
+                AssertDebug(boxed.Is<CommandLineArgumentDefinitions>());
+
+                if (boxed.Is<CommandLineArgumentDefinitions>())
+                {
+                    argumentDefinitions = boxed.Get<CommandLineArgumentDefinitions>();
+                }
+            }
+
+            CommandLineParser parser { &argumentDefinitions };
+            TResult<CommandLineArguments> parseResult = parser.Parse(cliString);
+
+            if (parseResult.HasError())
+            {
+                HYP_LOG(Engine, Error, "Failed to parse command line arguments: {}", parseResult.GetError().GetMessage());
+                return 1;
+            }
+
+            CommandLineArguments& commandletArgs = parseResult.GetValue();
+            commandletArgs.Delete("exec");
 
             Result commandletResult = g_appContext->RunCommandlet(commandletName, commandletArgs);
 
@@ -496,11 +550,13 @@ extern "C"
     {
         AssertOnThread(g_mainThread);
 
-        Assert(
-            g_engineDriver != nullptr,
-            "Hyperion not initialized!");
+        Assert(g_engineDriver != nullptr, "Hyperion not initialized!");
 
         g_engineDriver->RequestStop();
+
+#if HYP_DOTNET
+        DotNETHost::GetInstance().Shutdown();
+#endif // HYP_DOTNET
 
         g_mainThreadInstance->Stop();
 
@@ -515,6 +571,11 @@ extern "C"
         g_streamingManager->Stop();
         g_streamingManager.Reset();
 
+        g_audioManager->Shutdown();
+        g_audioManager.Reset();
+
+        ClearAssetRegistryStack();
+
         GetEngineAssetRegistry()->Shutdown();
         SetEngineAssetRegistry(Handle<AssetRegistry>::Null());
 
@@ -524,28 +585,18 @@ extern "C"
 #endif // HYP_EDITOR
 
         g_assetManager.Reset();
-        g_audioManager.Reset();
+        g_engineDriver.Reset();
         g_engineStats.Reset();
 
 #if HYP_EDITOR
         g_editorState.Reset();
 #endif // HYP_EDITOR
 
-        g_engineDriver.Reset();
         g_appContext.Reset();
 
         ComponentInterfaceRegistry::GetInstance().Shutdown();
 
-#if HYP_DOTNET
-        DotNETHost::GetInstance().Shutdown();
-#endif // HYP_DOTNET
-
-        if (TaskSystem::GetInstance().IsRunning())
-        {
-            TaskSystem::GetInstance().Stop();
-        }
-
-        DeletionQueue::GetInstance().Shutdown();
+        UIElementFactoryRegistry::GetInstance().Shutdown();
 
         DestroyNameRegistry();
 
@@ -569,7 +620,7 @@ extern "C"
 
         delete g_visThreadInstance;
         g_visThreadInstance = nullptr;
-        
+
         // Shutdown object container map - destroys all remaining ObjectBase instances
         GetObjectContainerMap().Shutdown();
 
@@ -617,7 +668,7 @@ extern "C"
     {
         AssertOnThread(g_mainThread);
 
-        Assert(g_engineDriver != nullptr && g_engineDriver->IsReady());
+        Assert(g_engineDriver.IsValid());
 
         if (!g_mainThreadInstance || !g_mainThreadInstance->IsRunning())
         {
@@ -732,7 +783,7 @@ extern "C"
             return;
         }
 
-        pGame->GetObjectHeader_Internal()->DecRefStrong();
+        pGame->Release();
     }
 
     HYP_EXPORT void Hyp_MainThreadUpdate()
@@ -741,7 +792,7 @@ extern "C"
 
         g_mainThreadInstance->Update();
     }
-    
+
 #if HYP_DOTNET
     HYP_EXPORT void Hyp_SetInitFromManagedCallback(InitFromManagedCallback callback)
     {
@@ -887,7 +938,7 @@ extern "C"
                     const Handle<EditorCommandBase>& command = boxed.Get<Handle<EditorCommandBase>>();
 
                     Handle<EditorSubsystem> editorSubsystem = g_editorState->GetEditorSubsystem();
-                    
+
                     if (editorSubsystem.IsValid())
                     {
                         command->SetArguments(Map(commandLine.Split(' '), &String::Trimmed));
@@ -1012,7 +1063,7 @@ extern "C"
                 if (str.StartsWith("EditorCommand"))
                 {
                     str = str.Substr(std::size("EditorCommand") - 1);
-                    
+
                     callbackFn(str.Data(), userData);
                 }
             }

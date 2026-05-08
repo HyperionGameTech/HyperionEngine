@@ -69,20 +69,22 @@ namespace Hyperion.Editor
                 HandleProjectOpened(project);
             }
 
+
+
             //project.World.AddSystem(new DynamicSkySystem());
 
             //project.World.WorldGrid.AddLayer(new TerrainWorldGridLayer());
 
             // tmp debug
-            AssetBatch ab = new AssetBatch();
-            ab.Add("test_model", "Models/SponzaGltf/Sponza.gltf"); ///"Models/NewSponza/NewSponza_Main_glTF_003.gltf");//"Models/SanMiguel/san-miguel.obj"); //
+            AssetBatch ab = new();
+            ab.Add("test_model", "Models/SponzaGltf/Sponza.gltf"); //"Models/testbed/testbed.obj");
             ab.Add("guy", "models/ZombieGuy/guy.mesh.xml");
             _assetBatchTask = ab.Load();
         }
 
         protected override void OnUpdate(float deltaTime)
         {
-            if (false && _assetBatchTask != null && _assetBatchTask.IsCompleted)
+            if (_assetBatchTask != null && _assetBatchTask.IsCompleted)
             {
                 AssetMap assetMap = _assetBatchTask.Result;
 

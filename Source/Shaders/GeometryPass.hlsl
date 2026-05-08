@@ -19,6 +19,7 @@ struct PSInput
     float2 texcoord1 : TEXCOORD1;
     float3 tangent : TANGENT;
     float3 bitangent : BINORMAL;
+    float4 color : TEXCOORD2;
     nointerpolation float3 camera_position : TEXCOORD3;
     float4 position_ndc : TEXCOORD4;
     float4 previous_position_ndc : TEXCOORD5;
@@ -74,7 +75,7 @@ DECLARE_SRV(Default, PointLightShadowMapsTextureArray) TextureCubeArray point_sh
 
 DECLARE_SRV(Default, EnvProbesBuffer) StructuredBuffer<EnvProbe> EnvProbesBuffer;
 DECLARE_SRV(Default, LightsBuffer) StructuredBuffer<Light> LightsBuffer;
-DECLARE_SRV(Default, ClusterGridBuffer) StructuredBuffer<uint2> ClusterGridBuffer;
+DECLARE_SRV(Default, ClusterGridBuffer) ByteAddressBuffer ClusterGridBuffer;
 DECLARE_SRV(Default, ClusterIndexBuffer) ByteAddressBuffer ClusterIndexBuffer;
 
 #include "deferred/ClusteredShading.hlsli"
@@ -252,7 +253,7 @@ PSOutput PSMain(PSInput input)
                 viewSpaceZ,
                 camera.near, camera.far);
 
-            const uint2 clusterData = ClusterGridBuffer[gridIndex];
+            const uint2 clusterData = ClusterGridBuffer.Load2(gridIndex * sizeof(uint2));
 
             const uint clusterIndexOffset = clusterData.x;
 
@@ -353,11 +354,6 @@ PSOutput PSMain(PSInput input)
     float2 velocity = float2(((input.position_ndc.xy / input.position_ndc.w) * 0.5 + 0.5) - ((input.previous_position_ndc.xy / input.previous_position_ndc.w) * 0.5 + 0.5));
 
     uint mask = input.object_mask;
-
-    // // temp debug
-    // output.gbuffer_albedo = float4(1.0, 0.0, 0.0, 1.0);
-    //
-    output.gbuffer_albedo = float4(input.texcoord0, 0.0, 1.0);
 
     GBufferMaterialParams materialParams;
     materialParams.roughness = roughness;

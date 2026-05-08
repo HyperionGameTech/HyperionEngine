@@ -23,6 +23,8 @@ HYP_DECLARE_LOG_CHANNEL(Engine);
 static AtomicVar<int> s_nextCVarId = 0;
 static CVarManager* s_pInstance = nullptr;
 
+extern uint32 GetFrameCounter();
+
 #pragma region CVar
 
 // String specializations
@@ -328,7 +330,6 @@ CVarManager& CVarManager::GetInstance()
 }
 
 CVarManager::CVarManager()
-    : m_snapshotIndex(0)
 {
     s_pInstance = this;
 
@@ -429,7 +430,7 @@ T CVarManager::GetVar(StringHash nameHash) const
         return T {};
     }
 
-    const uint32 snapshotIndex = m_snapshotIndex.Get(MemoryOrder::RELAXED);
+    const uint32 snapshotIndex = GetFrameCounter() % RingBufferDepth;
     const CVarSnapshot& snapshot = m_snapshots[snapshotIndex];
 
     if (idx >= snapshot.numVars)
@@ -444,8 +445,10 @@ void CVarManager::Advance()
 {
     Mutex::Guard lock(m_mutex);
 
-    const uint32 currentIdx = m_snapshotIndex.Get(MemoryOrder::RELAXED);
-    const uint32 nextIdx = (currentIdx + 1) % RingBufferDepth;
+    const uint32 fc = GetFrameCounter();
+
+    const uint32 currentIdx = fc % RingBufferDepth;
+    const uint32 nextIdx = (fc + 1) % RingBufferDepth;
 
     CVarSnapshot& next = m_snapshots[nextIdx];
 
@@ -461,13 +464,11 @@ void CVarManager::Advance()
 
     next.numVars = numVars;
     next.version = m_snapshots[currentIdx].version + 1;
-
-    m_snapshotIndex.Set(nextIdx, MemoryOrder::RELEASE);
 }
 
 const CVarSnapshot& CVarManager::GetCurrentSnapshot() const
 {
-    return m_snapshots[m_snapshotIndex.Get(MemoryOrder::RELAXED)];
+    return m_snapshots[GetFrameCounter() % RingBufferDepth];
 }
 
 HYP_NODISCARD int CVarManager::FindVarIndex(const ANSIString& name) const

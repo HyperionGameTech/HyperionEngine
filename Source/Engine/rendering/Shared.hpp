@@ -28,6 +28,12 @@
 
 #include <util/EnumOptions.hpp>
 
+#ifdef HYP_VULKAN
+#include <rendering/vulkan/VulkanStructs.hpp>
+#elif defined(HYP_DX12)
+#include <rendering/dx12/DX12Structs.hpp>
+#endif
+
 namespace Hyperion {
 
 class ObjectBase;
@@ -778,7 +784,7 @@ struct BlendFunction
 
     constexpr BlendFunction(const BlendFunction& other) = default;
     BlendFunction& operator=(const BlendFunction& other) = default;
-    
+
     constexpr BlendFunction(BlendFunction&& other) noexcept = default;
     BlendFunction& operator=(BlendFunction&& other) noexcept = default;
 
@@ -898,6 +904,19 @@ enum StencilCompareOp : uint8
     SCO_NEVER,
     SCO_EQUAL,
     SCO_NOT_EQUAL
+};
+
+HYP_ENUM()
+enum DepthCompareOp : uint8
+{
+    DCO_LESS,
+    DCO_LESS_OR_EQUAL,
+    DCO_GREATER,
+    DCO_GREATER_OR_EQUAL,
+    DCO_EQUAL,
+    DCO_NOT_EQUAL,
+    DCO_ALWAYS,
+    DCO_NEVER
 };
 
 HYP_ENUM()
@@ -1140,13 +1159,13 @@ struct SamplerDesc
 
     HYP_FIELD()
     TextureFilterMode minFilterMode;
-    
+
     HYP_FIELD()
     TextureFilterMode magFilterMode;
-    
+
     HYP_FIELD()
     TextureWrapMode wrapMode;
-    
+
     HYP_FIELD()
     SamplerCompareOp compareOp;
 
@@ -1169,6 +1188,8 @@ struct SamplerDesc
         return HashCode::GetHashCode(*(const uint32*)this);
     }
 };
+
+static constexpr uint32 ByteAddressBufferStride = 0;
 
 #pragma pack(pop)
 
@@ -1337,9 +1358,9 @@ struct AttachmentDesc
     bool onlyDepth : 1;
     bool onlyStencil : 1;
     bool clearColorIsF16 : 1;
-    
+
     BlendFunction blendFunction;
-    
+
     union
     {
         Color clearColor;
@@ -2137,7 +2158,7 @@ public:
     }
 
     HYP_DEF_STL_BEGIN_END(m_props.Begin(), m_props.End());
-    
+
 private:
     HashCode RecalculateHashCode_Const() const
     {
@@ -2299,7 +2320,7 @@ extern ShaderPropertyId InternShaderProperty(const ShaderProperty& shaderPropert
 struct ShaderDesc
 {
     static constexpr uint32 MaxShaderProperties = 8;
-    
+
     Name name;
     ShaderPropertySet properties;
 
@@ -2378,7 +2399,7 @@ struct ShaderUniform
           type(other.type)
     {
     }
-    
+
     ShaderUniform(StringHash name, GpuBuffer* buffer)
         : name(name),
           buffer(buffer),

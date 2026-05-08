@@ -214,7 +214,7 @@ public:
                     m_volumes.Erase(it);
                 },
                 TaskEnqueueFlags::FIRE_AND_FORGET);
-            
+
             m_notifier.Signal();
         }
     }
@@ -251,7 +251,7 @@ public:
                     m_layers.EmplaceBack(layer);
                 },
                 TaskEnqueueFlags::FIRE_AND_FORGET);
-            
+
             m_notifier.Signal();
         }
     }
@@ -295,7 +295,7 @@ public:
                     m_layers.Erase(it);
                 },
                 TaskEnqueueFlags::FIRE_AND_FORGET);
-            
+
             m_notifier.Signal();
         }
     }
@@ -850,11 +850,6 @@ void StreamingManager::Stop()
 
         m_thread.Reset();
     }
-}
-
-void StreamingManager::Init()
-{
-    SetReady(true);
 }
 
 void StreamingManager::Update(float delta)

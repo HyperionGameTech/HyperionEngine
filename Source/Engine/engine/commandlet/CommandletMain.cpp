@@ -27,14 +27,14 @@ int main(int argc, char** argv)
 
     newArgv[0] = argv[0];
 
-    newArgv[1] = const_cast<char*>("-Commandlet");
+    newArgv[1] = const_cast<char*>("--exec");
     newArgv[2] = const_cast<char*>(CommandletName);
 
     for (int i = 1; i < argc; ++i)
     {
         newArgv[i + 2] = argv[i];
     }
-    
+
     if (!Hyp_Initialize(newArgc, newArgv))
     {
         delete[] newArgv;

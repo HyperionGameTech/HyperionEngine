@@ -2,7 +2,7 @@
  *  @author: The Hyperion Contributors
  *  @date 2016-2026
  *  @licence MIT
-*/
+ */
 
 #include <VulkanPch.hpp>
 
@@ -12,6 +12,7 @@
 #include <rendering/vulkan/VulkanRenderInterface.hpp>
 #include <rendering/vulkan/VulkanRenderPass.hpp>
 #include <rendering/vulkan/VulkanSwapchain.hpp>
+#include <rendering/vulkan/VulkanFeatures.hpp>
 
 #include <rendering/Device.hpp>
 #include <rendering/RenderObject.hpp>
@@ -22,17 +23,19 @@
 
 namespace Hyperion {
 
-extern VulkanRenderInterface* g_renderInterface;
+extern VulkanRenderInterface RI;
 
 VulkanFrame::VulkanFrame()
     : FrameBase(0),
-      m_queueSubmitFence(nullptr)
+      m_queueSubmitFence(nullptr),
+      m_frameCompleteValue(0)
 {
 }
 
 VulkanFrame::VulkanFrame(uint32 frameIndex)
     : FrameBase(frameIndex),
-      m_queueSubmitFence(nullptr)
+      m_queueSubmitFence(nullptr),
+      m_frameCompleteValue(0)
 {
 }
 
@@ -45,6 +48,7 @@ VulkanFrame::~VulkanFrame()
     }
 
     delete m_queueSubmitFence;
+    m_queueSubmitFence = nullptr;
 }
 
 RendererResult VulkanFrame::Create()
@@ -54,8 +58,19 @@ RendererResult VulkanFrame::Create()
         return {};
     }
 
-    m_queueSubmitFence = new VulkanFence();
-    m_queueSubmitFence->Create(/* createSignalled */ true);
+    const bool useTimeline = RI.GetDevice()->GetFeatures().SupportsTimelineSemaphores()
+        && RI.GetRenderConfig().timelineSemaphores;
+
+    if (useTimeline)
+    {
+        m_frameCompleteSemaphore = MakeHandle<VulkanSemaphore>(VulkanSemaphoreType::TIMELINE);
+        CheckResultOrReturn(m_frameCompleteSemaphore->Create());
+    }
+    else
+    {
+        m_queueSubmitFence = new VulkanFence();
+        m_queueSubmitFence->Create(/* createSignalled */ true);
+    }
 
     return {};
 }
@@ -64,7 +79,15 @@ void VulkanFrame::OnFrameStart()
 {
     FrameBase::OnFrameStart();
 
-    m_queueSubmitFence->Reset();
+    if (m_queueSubmitFence)
+    {
+        m_queueSubmitFence->Reset();
+    }
+
+    if (m_frameCompleteSemaphore.IsValid())
+    {
+        m_frameCompleteValue = GetFrameCounter() + 1;
+    }
 
 #ifdef DECLARE_SET_TRACK_FRAME_USAGE
     for (VulkanDescriptorSet* descriptorSet : m_usedDescriptorSets)
@@ -89,9 +112,9 @@ void VulkanFrame::WriteCommandBuffer(VulkanCommandBuffer* commandBuffer)
 
     commandRecorders.PushBack(&preRenderCommands);
     commandRecorders.PushBack(&cr);
-    commandRecorders.PushBack(&g_renderInterface->commandRecorderAllocator.GetCommandRecorder());
+    commandRecorders.PushBack(&RI.commandRecorderAllocator.GetCommandRecorder());
     commandRecorders.PushBack(&postRenderCommands);
-    
+
     for (CommandRecorder* commandRecorder : commandRecorders)
     {
         commandRecorder->Prepare(this);
@@ -115,9 +138,21 @@ void VulkanFrame::WriteCommandBuffer(VulkanCommandBuffer* commandBuffer)
 void VulkanFrame::RecreateFence()
 {
     delete m_queueSubmitFence;
+    m_queueSubmitFence = nullptr;
 
-    m_queueSubmitFence = new VulkanFence();
-    m_queueSubmitFence->Create(/* createSignalled */ true);
+    const bool useTimeline = RI.GetDevice()->GetFeatures().SupportsTimelineSemaphores()
+        && RI.GetRenderConfig().timelineSemaphores;
+
+    if (useTimeline)
+    {
+        m_frameCompleteSemaphore = MakeHandle<VulkanSemaphore>(VulkanSemaphoreType::TIMELINE);
+        m_frameCompleteSemaphore->Create();
+    }
+    else
+    {
+        m_queueSubmitFence = new VulkanFence();
+        m_queueSubmitFence->Create(/* createSignalled */ true);
+    }
 }
 
 void VulkanFrame::RecreateSemaphores(const VulkanSwapchain* swapchain)

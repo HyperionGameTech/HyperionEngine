@@ -29,10 +29,6 @@ struct VSOutput
     float4 color : TEXCOORD1;
 };
 
-#ifndef MAX_PARTICLES
-#define MAX_PARTICLES 1024
-#endif
-
 DECLARE_UAV(ParticleDescriptorSet, ParticlesBuffer) RWStructuredBuffer<ParticleShaderData> instances;
 
 DECLARE_SRV(ParticleDescriptorSet, WorldsBuffer) StructuredBuffer<WorldShaderData> _worlds_buffer;

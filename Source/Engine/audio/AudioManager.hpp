@@ -27,9 +27,19 @@ public:
     static const Handle<AudioManager>& GetInstance();
 
     AudioManager();
+
+    AudioManager(const AudioManager&) = delete;
+    AudioManager& operator=(const AudioManager&) = delete;
+
     ~AudioManager() override;
 
-    void Init() override;
+    HYP_FORCE_INLINE bool IsInitialized() const
+    {
+        return m_isInitialized;
+    }
+
+    void Initialize();
+    void Shutdown();
 
     Array<String> ListDevices() const;
 
@@ -49,5 +59,7 @@ public:
 private:
     ALCdevice* m_device;
     ALCcontext* m_context;
+
+    bool m_isInitialized;
 };
 } // namespace Hyperion

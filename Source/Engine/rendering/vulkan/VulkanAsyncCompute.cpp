@@ -19,7 +19,7 @@
 
 namespace Hyperion {
 
-extern VulkanRenderInterface* g_renderInterface;
+extern VulkanRenderInterface RI;
 
 VulkanAsyncCompute::VulkanAsyncCompute()
     : m_deviceQueue(nullptr),
@@ -56,7 +56,7 @@ bool VulkanAsyncCompute::CheckStatus()
         return true;
     }
 
-    VkResult result = vkGetFenceStatus(g_renderInterface->GetDevice()->GetDevice(), m_fence->GetVulkanHandle());
+    VkResult result = vkGetFenceStatus(RI.GetDevice()->GetDevice(), m_fence->GetVulkanHandle());
 
     if (result == VK_NOT_READY)
     {
@@ -78,7 +78,7 @@ bool VulkanAsyncCompute::CheckStatus()
 void VulkanAsyncCompute::Submit()
 {
     Assert(CheckStatus());
-    
+
     m_fence->Wait(true);
     m_fence->Reset();
 
@@ -95,17 +95,17 @@ void VulkanAsyncCompute::Create()
 {
     HYP_SCOPE;
 
-    Assert(g_renderInterface->GetDevice()->GetQueueFamilyIndices().IsComplete());
+    Assert(RI.GetDevice()->GetQueueFamilyIndices().IsComplete());
 
-    m_deviceQueue = g_renderInterface->GetDevice()->GetComputeQueue();
+    m_deviceQueue = RI.GetDevice()->GetComputeQueue();
 
-    m_isSupported = g_renderInterface->GetDevice()->GetQueueFamilyIndices().computeFamily.HasValue();
+    m_isSupported = RI.GetDevice()->GetQueueFamilyIndices().computeFamily.HasValue();
 
     if (!m_isSupported)
     {
         HYP_LOG(RenderingBackend, Warning, "Dedicated compute queue not supported, using graphics queue for compute operations");
 
-        m_deviceQueue = g_renderInterface->GetDevice()->GetGraphicsQueue();
+        m_deviceQueue = RI.GetDevice()->GetGraphicsQueue();
     }
 
     CheckResult(m_commandBuffer->Create(m_deviceQueue->commandPools[0]));

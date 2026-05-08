@@ -38,6 +38,11 @@ public:
 
     Vec2u GetExtent() const;
 
+    HYP_FORCE_INLINE uint32 GetTotalMips() const
+    {
+        return uint32(m_mipImageViews.Size());
+    }
+
     void Create();
 
     void Render(Frame* frame);
@@ -48,8 +53,9 @@ private:
     GpuImageViewRef m_depthImageView;
     GpuImageRef m_depthPyramid;
     GpuImageViewRef m_depthPyramidView;
-    Array<GpuImageViewRef> m_mipImageViews;
-    Array<GpuBufferRef> m_mipUniformBuffers;
+
+    Array<GpuImageViewRef, RenderAllocator> m_mipImageViews;
+    Array<GpuBufferRef, RenderAllocator> m_mipUniformBuffers;
 
     bool m_isRendered;
 };

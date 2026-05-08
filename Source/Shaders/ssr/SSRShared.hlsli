@@ -32,8 +32,4 @@ struct SSRConstants
     float eye_fade_end;
     float screen_edge_fade_start;
     float screen_edge_fade_end;
-
-    float _pad0;
-    float _pad1;
-    float _pad2;
 };

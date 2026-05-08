@@ -75,61 +75,19 @@ struct DescriptorSetElementTypeInfo<GpuTlas>
     static constexpr uint32 mask = (1u << uint32(ShaderInputType::SRV));
 };
 
-HYP_STRUCT()
-struct DescriptorSetLayoutElement
-{
-    HYP_STRUCT_BODY(DescriptorSetLayoutElement);
-
-    HYP_FIELD()
-    ShaderInputType type = ShaderInputType::Unset;
-
-    HYP_FIELD()
-    uint32 binding = ~0u; // has to be set
-
-    HYP_FIELD()
-    uint32 count = 1; // Set to -1 for bindless
-
-    HYP_FIELD()
-    ShaderResourceCategory category = ShaderResourceCategory::Unknown;
-
-    HYP_FORCE_INLINE bool IsBuffer() const
-    {
-        return category == ShaderResourceCategory::Buffer;
-    }
-
-    HYP_FORCE_INLINE bool IsImage() const
-    {
-        return category == ShaderResourceCategory::Image;
-    }
-
-    HYP_FORCE_INLINE bool IsAccelerationStructure() const
-    {
-        return category == ShaderResourceCategory::AccelerationStructure;
-    }
-
-    HYP_FORCE_INLINE bool IsBindless() const
-    {
-        return count == uint32(-1);
-    }
-
-    HYP_FORCE_INLINE HashCode GetHashCode() const
-    {
-        HashCode hc;
-
-        hc.Add(type);
-        hc.Add(binding);
-        hc.Add(count);
-
-        return hc;
-    }
-};
-
 extern ShaderInputGroup& GetStaticDescriptorTableDeclaration();
+
+struct ShaderInputWithBinding : ShaderInput
+{
+    uint32 binding = ~0u;
+};
 
 class DescriptorSetLayout
 {
 public:
-    DescriptorSetLayout(const ShaderInputSet* decl);
+    using InputMap = IntrusiveMap<ShaderInputWithBinding, &ShaderInputWithBinding::name, RHIAllocator>;
+
+    explicit DescriptorSetLayout(const ShaderInputSet* decl);
 
     DescriptorSetLayout(const DescriptorSetLayout& other)
         : m_decl(other.m_decl),
@@ -231,26 +189,27 @@ public:
         m_isReference = isReference;
     }
 
-    HYP_FORCE_INLINE const HashMap<Name, DescriptorSetLayoutElement>& GetElements() const
+    HYP_FORCE_INLINE const InputMap& GetElements() const
     {
         return m_elements;
     }
 
-    HYP_FORCE_INLINE void AddElement(Name name, ShaderInputType type, uint32 binding, uint32 count, ShaderResourceCategory category = ShaderResourceCategory::Unknown)
+    HYP_FORCE_INLINE ShaderInputWithBinding& AddElement(const ShaderInput& input)
     {
-        m_elements.Insert(name, DescriptorSetLayoutElement { type, binding, count, category });
+        ShaderInputWithBinding element = { input };
+        element.binding = ~0u;
+        return *m_elements.Set(element).first;
     }
 
-    HYP_FORCE_INLINE const DescriptorSetLayoutElement* GetElement(StringHash name) const
+    HYP_FORCE_INLINE const ShaderInputWithBinding* GetElement(StringHash name) const
     {
-        const auto it = m_elements.FindAs(name);
-
-        if (it == m_elements.End())
+        auto it = m_elements.Find(Name(name));
+        if (it != m_elements.End())
         {
-            return nullptr;
+            return &*it;
         }
 
-        return &it->second;
+        return nullptr;
     }
 
     HYP_FORCE_INLINE const Array<Name>& GetDynamicElements() const
@@ -267,7 +226,7 @@ private:
     const ShaderInputSet* m_decl;
     bool m_isTemplate : 1 = false;  // is this descriptor set a template for other sets? (e.g material textures)
     bool m_isReference : 1 = false; // is this descriptor set a reference to a global set? (e.g global material textures)
-    HashMap<Name, DescriptorSetLayoutElement> m_elements;
+    InputMap m_elements;
     Array<Name> m_dynamicElements;
     HashCode m_cachedHashCode;
 };
@@ -294,14 +253,14 @@ public:
     using ElementsMap = HashMap<Name, DescriptorSetElement, RHIAllocator>;
 
     virtual ~DescriptorSetBase() override;
-    
+
     static Pool* GetAllocator() { return g_rhiPool; }
 
     HYP_FORCE_INLINE const DescriptorSetLayout& GetLayout() const
     {
         return m_layout;
     }
-    
+
 #if HYP_DEBUG_MODE
     Name GetDebugName() const
     {
@@ -360,7 +319,7 @@ public:
 
     virtual void Bind(CommandBuffer* commandBuffer, const RayTracingPipeline* pipeline, uint32 bindIndex) const = 0;
     virtual void Bind(CommandBuffer* commandBuffer, const RayTracingPipeline* pipeline, const DescriptorSetOffsetMap& offsets, uint32 bindIndex) const = 0;
-    
+
     uint32 frameCounter; // last used
 
 protected:
@@ -383,12 +342,12 @@ protected:
             isBindless = true;
         }
 
-        const DescriptorSetLayoutElement* layoutElement = m_layout.GetElement(name);
-        AssertDebug(layoutElement != nullptr, "Invalid element: No item with name {} found", name);
+        const ShaderInput* shaderInput = m_layout.GetElement(name);
+        AssertDebug(shaderInput != nullptr, "Invalid element: No item with name {} found", name);
 
         if (isBindless)
         {
-            AssertDebug(layoutElement->IsBindless(), "-1 given as count to prefill elements, yet {} is not specified as bindless in layout", name);
+            AssertDebug(shaderInput->count == ~0u, "-1 given as count to prefill elements, yet {} is not specified as bindless in layout", name);
         }
 
         auto it = m_elements.FindAs(name);
@@ -397,7 +356,7 @@ protected:
         {
             it = m_elements.Emplace(name).first;
         }
-        
+
         // if we are a bindless descriptor then we want to NOT have occupiedArrayElems set.
         if (isBindless)
         {
@@ -418,7 +377,7 @@ protected:
 
     DescriptorSetLayout m_layout;
     ElementsMap m_elements;
-    
+
 #if HYP_DEBUG_MODE
     Name m_debugName;
 
@@ -443,7 +402,7 @@ public:
             EnqueueDeletion(std::move(it));
         }
     }
-    
+
 #if HYP_DEBUG_MODE
     Name GetDebugName() const
     {

@@ -91,6 +91,8 @@ void ThreadBase::OnExit()
     {
         cb();
     }
+
+    m_onExitCallbacks.Clear();
 }
 
 #pragma endregion ThreadBase

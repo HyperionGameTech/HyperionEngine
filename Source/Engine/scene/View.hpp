@@ -248,7 +248,7 @@ public:
     /*! \brief Computes visibility states for all Scenes this View has using the Camera */
     void UpdateVisibility();
 
-    void PrepareShadowViews(Array<View*, SceneTempAllocator>& outShadowViews);
+    void PrepareShadowViews(Array<View*, SceneAllocator>& outShadowViews);
 
     /*! \brief Enqueue tasks to `batch` to asynchronously collect entities and other scene resources for the current View. */
     void BeginAsyncCollection(TaskBatch& batch);

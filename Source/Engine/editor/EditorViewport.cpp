@@ -46,8 +46,6 @@ void EditorViewport::Init()
         
         m_camera->AddTag<EntityTag::EditorCamera>();
         
-        m_camera->SetWindow(m_window);
-        
         m_camera->SetCameraFlags(CameraFlags::MATCH_WINDOW_SIZE);
         
         m_camera->AddCameraController(MakeHandle<EditorCameraController>());
@@ -80,11 +78,6 @@ Handle<ApplicationWindow> EditorViewport::CreateViewportWindow(const WindowOptio
 
     Handle<ApplicationWindow> window = g_appContext->CreateSystemWindow(options);
     m_window = window;
-
-    if (m_camera)
-    {
-        m_camera->SetWindow(m_window);
-    }
 
     return window;
 }

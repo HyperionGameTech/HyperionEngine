@@ -58,9 +58,6 @@ DECLARE_SRV_DYNAMIC(DebugDrawerDescriptorSet, ImmediateDrawsBuffer) StructuredBu
 
 #ifdef INSTANCING
 DECLARE_SRV(DebugDrawerDescriptorSet, EntitiesBuffer) StructuredBuffer<Entity> entities;
-
-DECLARE_SRV_DYNAMIC(DebugDrawerDescriptorSet, EntityInstanceBatchesBuffer) ByteAddressBuffer entity_instance_batch_buffer;
-#define entity_instance_batch entity_instance_batch_buffer.Load<MeshEntityInstanceBatch>(0)
 #else // !INSTANCING
 DECLARE_BUFFER_DYNAMIC(DebugDrawerDescriptorSet, CBuffer) cbuffer CBuffer
 {
@@ -116,11 +113,11 @@ VSOutput VSMain(VSInput input, uint instanceId : SV_InstanceID)
     output.object_index = 0;
 #endif
 
-    float4x4 jitterMat = { 
+    float4x4 jitterMat = {
         1, 0, 0, 0,
         0, 1, 0, 0,
         0, 0, 1, 0,
-        0, 0, 0, 1 
+        0, 0, 0, 1
     };
     jitterMat[0][3] += camera.jitter.x;
     jitterMat[1][3] += camera.jitter.y;
@@ -266,7 +263,7 @@ PSOutput PSMain(PSInput input)
     float roughnessAndMetalPacked;
     uint maskPacked;
     GBufferPackMaterialParams(materialParams, roughnessAndMetalPacked, maskPacked);
-    
+
     output.gbuffer_normals.x = roughnessAndMetalPacked;
 
     output.gbuffer_material.x = maskPacked;

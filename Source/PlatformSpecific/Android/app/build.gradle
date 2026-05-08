@@ -126,9 +126,6 @@ tasks.register('stageNativeLibs') {
 // TODO: Copy Projects/*ProjectName*/ too?
 def basePackagesDir = file('../../../../Packages')
 def baseConfigDir = file("../../../../Config")
-// only for testing, in finished build we'll just use packages / blob storage.
-def modelsDir = file("../../../../Data/Models")
-def texturesDir = file("../../../../Data/Textures")
 def fontsDir = file("../../../../Data/Fonts")
 def scriptDir = file("../../../../Data/Scripts")
 // also just for testing, copying Shaders.ini to the assets folder - should prob go elsewhere.
@@ -151,12 +148,6 @@ tasks.register('stagePackageAssets', Copy) {
 
     from(baseConfigDir) {
         into 'Config'
-    }
-    from(modelsDir) {
-        into 'Data/Models'
-    }
-    from(texturesDir) {
-        into 'Data/Textures'
     }
     from(fontsDir) {
         into 'Data/Fonts'

@@ -61,7 +61,7 @@ namespace Hyperion {
 static constexpr bool UseResetDescriptorPool = false;
 static constexpr uint32 MaxDescriptorPools = 32;
 
-static EngineStatTimer s_statVulkanWaitOnFences("Rendering/Vulkan/WaitOnFences");
+static EngineStatTimer s_statVulkanFrameSync("Rendering/Vulkan/FrameSync");
 
 enum VulkanDescriptorPoolRequirements : uint8
 {
@@ -83,8 +83,11 @@ public:
 
         bindlessTextures = renderBackend->GetDevice()->GetFeatures().SupportsBindlessTextures();
         rayTracing = renderBackend->GetDevice()->GetFeatures().IsRayTracingSupported();
+#ifndef HYP_ANDROID
         indirectRendering = GetEngineConfig().Get("Rendering.IndirectRendering").ToBool(/* defaultValue */ true);
+#endif
         parallelRendering = GetEngineConfig().Get("Rendering.ParallelCollection").ToBool(/* defaultValue */ true);
+        timelineSemaphores = GetEngineConfig().Get("Rendering.Vulkan.TimelineSemaphores").ToBool(/* defaultValue */ false);
         dynamicDescriptorIndexing = renderBackend->GetDevice()->GetFeatures().SupportsDynamicDescriptorIndexing();
     }
 };
@@ -106,16 +109,13 @@ static VkDescriptorSetLayout CreateVkDescriptorSetLayout(VulkanDevice* device, c
     Array<VkDescriptorBindingFlags> bindingFlags;
     bindingFlags.Reserve(layout.GetElements().Size());
 
-    for (const auto& it : layout.GetElements())
+    for (const ShaderInputWithBinding& shaderInput : layout.GetElements())
     {
-        const Name name = it.first;
-        const DescriptorSetLayoutElement& element = it.second;
+        uint32 descriptorCount = shaderInput.count;
 
-        uint32 descriptorCount = element.count;
-
-        if (element.IsBindless())
+        if (descriptorCount == ~0u)
         {
-            descriptorCount = element.IsBuffer()
+            descriptorCount = shaderInput.category == ShaderResourceCategory::Buffer
                 ? MaxBindlessResources[BindlessStorage_Buffers]
                 : MaxBindlessResources[BindlessStorage_Textures];
         }
@@ -126,16 +126,16 @@ static VkDescriptorSetLayout CreateVkDescriptorSetLayout(VulkanDevice* device, c
 
         VkDescriptorSetLayoutBinding binding {};
         binding.descriptorCount = descriptorCount;
-        binding.descriptorType = ToVkDescriptorType(element.type, element.category);
+        binding.descriptorType = ToVkDescriptorType(shaderInput.type, shaderInput.category);
         binding.pImmutableSamplers = nullptr;
         binding.stageFlags = VK_SHADER_STAGE_ALL;
-        binding.binding = element.binding;
+        binding.binding = shaderInput.binding;
 
         bindings.PushBack(binding);
 
         VkDescriptorBindingFlags flags = 0;
 
-        if (element.IsBindless())
+        if (descriptorCount == ~0u)
         {
             flags |= BindlessFlags;
         }
@@ -213,6 +213,10 @@ void VulkanDynamicFunctions::Load(VulkanDevice* device)
     HYP_LOAD_FN(vkCreateRayTracingPipelinesKHR);
 #endif
 
+    HYP_LOAD_FN(vkSignalSemaphore);
+    HYP_LOAD_FN(vkWaitSemaphores);
+    HYP_LOAD_FN(vkGetSemaphoreCounterValue);
+
 #if HYP_DEBUG_MODE
     // HYP_LOAD_FN(vkCmdDebugMarkerBeginEXT);
     // HYP_LOAD_FN(vkCmdDebugMarkerEndEXT);
@@ -243,8 +247,8 @@ public:
 
     void OnFrameStart();
 
-    RendererResult Create(VulkanDevice* device);
-    RendererResult Destroy(VulkanDevice* device);
+    void Initialize(VulkanDevice* device);
+    void Shutdown(VulkanDevice* device);
 
     RendererResult CreateDescriptorSet(
         VulkanDevice* device,
@@ -298,20 +302,22 @@ void VulkanDescriptorSetManager::OnFrameStart()
 
         if (dp.frameCounter % RingBufferDepth == 0)
         {
-            VkResult result = vkResetDescriptorPool(g_renderInterface->GetDevice()->GetDevice(), dp.pool, 0);
+            VkResult result = vkResetDescriptorPool(RI.GetDevice()->GetDevice(), dp.pool, 0);
             Assert(result == VK_SUCCESS, "Failed to reset descriptor pool! {}", result);
         }
     }
 }
 
-RendererResult VulkanDescriptorSetManager::Create(VulkanDevice* device)
+void VulkanDescriptorSetManager::Initialize(VulkanDevice* device)
 {
-    return {};
 }
 
-RendererResult VulkanDescriptorSetManager::Destroy(VulkanDevice* device)
+void VulkanDescriptorSetManager::Shutdown(VulkanDevice* device)
 {
-    RendererResult result {};
+    for (auto& pair : m_vkDescriptorSetLayouts)
+    {
+        DestroyVkDescriptorSetLayout(device, pair.second);
+    }
 
     m_vkDescriptorSetLayouts.Clear();
 
@@ -331,8 +337,6 @@ RendererResult VulkanDescriptorSetManager::Destroy(VulkanDevice* device)
     }
 
     m_pools.Clear();
-
-    return result;
 }
 
 VkDescriptorPool VulkanDescriptorSetManager::GetDescriptorPool(
@@ -360,7 +364,7 @@ VkDescriptorPool VulkanDescriptorSetManager::GetDescriptorPool(
         {
             VkDescriptorPool pool = dp.pool;
             dp.frameCounter = currentFrameCounter;
-            
+
             outPoolIndex = idx - 1;
 
             return pool;
@@ -368,7 +372,7 @@ VkDescriptorPool VulkanDescriptorSetManager::GetDescriptorPool(
     }
 
     // no pool (for this frame); create a new one
-    
+
     VkDescriptorPool pool = VK_NULL_HANDLE;
     if (RendererResult createDescriptorPoolResult = CreateDescriptorPool(reqs, pool); createDescriptorPoolResult.HasError())
     {
@@ -399,7 +403,7 @@ RendererResult VulkanDescriptorSetManager::CreateDescriptorPool(VulkanDescriptor
 
     // only add acceleration structure descriptor type if rayTracing is supported,
     // otherwise we'll get an error when creating the descriptor pool
-    if ((reqs & VDPR_RayTracing) && g_renderInterface->GetDevice()->GetFeatures().IsRayTracingSupported())
+    if ((reqs & VDPR_RayTracing) && RI.GetDevice()->GetFeatures().IsRayTracingSupported())
     {
         descriptorPoolSizes.PushBack({ VK_DESCRIPTOR_TYPE_ACCELERATION_STRUCTURE_KHR, 1 });
     }
@@ -418,7 +422,7 @@ RendererResult VulkanDescriptorSetManager::CreateDescriptorPool(VulkanDescriptor
     poolInfo.pPoolSizes = descriptorPoolSizes.Data();
 
     VULKAN_CHECK(vkCreateDescriptorPool(
-        g_renderInterface->GetDevice()->GetDevice(),
+        RI.GetDevice()->GetDevice(),
         &poolInfo,
         nullptr,
         &dp.pool));
@@ -576,7 +580,7 @@ VkDescriptorSetLayout VulkanDescriptorSetManager::GetOrCreateVkDescriptorSetLayo
     AssertDebug(handle != VK_NULL_HANDLE);
 
     TUniqueLock lock2(m_mutex);
-    
+
     // make sure it hasnt changed
     auto insertResult = m_vkDescriptorSetLayouts.Set(hashCode, handle);
 
@@ -597,12 +601,8 @@ VkDescriptorSetLayout VulkanDescriptorSetManager::GetOrCreateVkDescriptorSetLayo
 
 VulkanRenderInterface::VulkanRenderInterface()
     : m_instance(nullptr),
-      m_renderConfig(MakePimpl<VulkanRenderConfig>()),
-      m_descriptorSetManager(MakePimpl<VulkanDescriptorSetManager>()),
       m_currentFrameIndex(0)
 {
-    m_frames.Resize(NumFramesInFlight);
-    m_commandBuffers.Resize(NumFramesInFlight);
 }
 
 VulkanRenderInterface::~VulkanRenderInterface()
@@ -621,6 +621,12 @@ const IRenderConfig& VulkanRenderInterface::GetRenderConfig() const
 
 RendererResult VulkanRenderInterface::Initialize()
 {
+    m_renderConfig = MakePimpl<VulkanRenderConfig>();
+    m_descriptorSetManager = MakePimpl<VulkanDescriptorSetManager>();
+
+    m_frames.Resize(NumFramesInFlight);
+    m_commandBuffers.Resize(NumFramesInFlight);
+
 #if HYP_DEBUG_MODE
     EngineConfig& engineConfig = GetEngineConfig();
     engineConfig.Load();
@@ -643,6 +649,8 @@ RendererResult VulkanRenderInterface::Initialize()
 
     m_instance = HYP_POOL_NEW(g_vulkanPool, VulkanInstance);
     CheckResultOrReturn(m_instance->Initialize(enableDebugLayers));
+
+    m_renderConfig->Initialize(this);
 
     VulkanDeviceQueue* deviceQueue = GetDevice()->GetPresentQueue();
 
@@ -672,8 +680,6 @@ RendererResult VulkanRenderInterface::Initialize()
 
     VulkanDynamicFunctions::Load(m_instance->GetDevice());
 
-    m_renderConfig->Initialize(this);
-
     const VulkanFeatures& deviceFeatures = m_instance->GetDevice()->GetFeatures();
     const VkPhysicalDeviceProperties& physicalDeviceProperties = deviceFeatures.GetPhysicalDeviceProperties();
 
@@ -683,14 +689,16 @@ RendererResult VulkanRenderInterface::Initialize()
         deviceFeatures.IsRayTracingSupported(),
         deviceFeatures.SupportsDynamicDescriptorIndexing());
 
-    CheckResultOrReturn(m_descriptorSetManager->Create(m_instance->GetDevice()));
+    m_descriptorSetManager->Initialize(m_instance->GetDevice());
 
-    const VkDeviceSize minUniformBufferOffsetAlignment = g_renderInterface->GetDevice()->GetFeatures()
+    const VkDeviceSize minUniformBufferOffsetAlignment = RI.GetDevice()->GetFeatures()
         .GetPhysicalDeviceProperties().limits.minUniformBufferOffsetAlignment;
+
+    CheckResultOrReturn(RenderInterface::Initialize());
 
     cbufferAllocator->Initialize(minUniformBufferOffsetAlignment);
 
-    return RenderInterface::Initialize();
+    return {};
 }
 
 void VulkanRenderInterface::Shutdown()
@@ -704,9 +712,11 @@ void VulkanRenderInterface::Shutdown()
             continue;
         }
 
-        if (frame->GetFence()->isSubmitted && !frame->GetFence()->CheckStatus())
+        VulkanFence* fence = frame->GetFence();
+
+        if (fence && fence->isSubmitted && !fence->CheckStatus())
         {
-            frame->GetFence()->Wait();
+            fence->Wait();
         }
 
         frame.Reset();
@@ -729,7 +739,11 @@ void VulkanRenderInterface::Shutdown()
 
     m_asyncComputePool.Clear();
     m_submittedAsyncComputes.Clear();
-    
+
+    RenderInterface::Shutdown();
+
+    m_recycledTransientCommandBufferFences.Clear();
+
     for (uint32 frameIndex = 0; frameIndex < NumFramesInFlight; frameIndex++)
     {
         m_transientCommandBufferFences[frameIndex].Clear();
@@ -741,18 +755,19 @@ void VulkanRenderInterface::Shutdown()
         }
     }
 
-    RenderInterface::Shutdown();
+    DeletionQueue::GetInstance().Shutdown();
 
-    m_descriptorSetManager->Destroy(m_instance->GetDevice());
-    
+    m_descriptorSetManager->Shutdown(m_instance->GetDevice());
+
     PoolDelete(*g_vulkanPool, m_instance);
     m_instance = nullptr;
-    
-    DeletionQueue::GetInstance().Flush();
 }
 
 VulkanFrame* VulkanRenderInterface::GetCurrentFrame() const
 {
+    if (m_frames.Empty())
+        return nullptr;
+
     return m_frames[m_currentFrameIndex];
 }
 
@@ -761,13 +776,30 @@ void VulkanRenderInterface::PrepareFrame(VulkanFrame* frame)
     const uint32 frameCounter = GetFrameCounter();
 
     {
-        ENGINE_STAT_SCOPE(&s_statVulkanWaitOnFences);
+        ENGINE_STAT_SCOPE(&s_statVulkanFrameSync);
 
-        // HYP_LOG_TEMP("Preparing frame {} (frame counter : {})", frame->GetFrameIndex(), frameCounter % NumFramesInFlight);
-        frame->GetFence()->Wait(true);
+        if (frame->IsUsingTimelineSemaphore())
+        {
+            VulkanSemaphoreRef timelineSemaphore = frame->GetFrameCompleteSemaphore();
+            const uint64 waitValue = frame->GetFrameCompleteValue();
+
+            if (waitValue > 0)
+            {
+                const uint64 currentValue = timelineSemaphore->GetCounterValue();
+
+                if (currentValue < waitValue)
+                {
+                    timelineSemaphore->WaitForValue(waitValue, UINT64_MAX);
+                }
+            }
+        }
+        else
+        {
+            frame->GetFence()->Wait(true);
+        }
     }
 
-    // call frame callbacks after fence is waited on
+    // call frame callbacks after GPU sync is complete
     if (frame->OnFrameEnd.AnyBound())
     {
         frame->OnFrameEnd(frame);
@@ -793,7 +825,7 @@ void VulkanRenderInterface::PrepareFrame(VulkanFrame* frame)
 
             continue;
         }
-        
+
         ++it;
     }
 
@@ -820,7 +852,7 @@ void VulkanRenderInterface::PrepareFrame(VulkanFrame* frame)
             ++it;
         }
     }
-    
+
     auto& fences = m_transientCommandBufferFences[frameCounter % NumFramesInFlight];
     for (auto it = fences.Begin(); it != fences.End();)
     {
@@ -828,7 +860,7 @@ void VulkanRenderInterface::PrepareFrame(VulkanFrame* frame)
 
         if (fence.isSubmitted)
         {
-            ENGINE_STAT_SCOPE(&s_statVulkanWaitOnFences);
+            ENGINE_STAT_SCOPE(&s_statVulkanFrameSync);
 
             fence.Wait(true);
 
@@ -913,7 +945,7 @@ void VulkanRenderInterface::PresentToSwapchain(VulkanSwapchain* swapchain)
     frame->WriteCommandBuffer(commandBuffer);
 
     commandBuffer->End();
-    
+
     VulkanSemaphore* waitSemaphore = nullptr;
     VulkanSemaphore* signalSemaphore = nullptr;
 
@@ -925,13 +957,42 @@ void VulkanRenderInterface::PresentToSwapchain(VulkanSwapchain* swapchain)
         AssertDebug(waitSemaphore != nullptr && signalSemaphore != nullptr);
     }
 
-    // HYP_LOG_TEMP("Submitting frame {} to present queue", frame->GetFrameIndex());
-    
-    commandBuffer->Submit(
-        presentQueue,
-        frame->GetFence(),
-        Span<VulkanSemaphore*>(&waitSemaphore, waitSemaphore ? 1 : 0),
-        Span<VulkanSemaphore*>(&signalSemaphore, signalSemaphore ? 1 : 0));
+    const bool useTimeline = frame->IsUsingTimelineSemaphore();
+    VulkanFence* submitFence = useTimeline ? nullptr : frame->GetFence();
+
+    if (useTimeline && frame->GetFrameCompleteValue() > 0)
+    {
+        VulkanSemaphore* signalSemaphores[2] = { nullptr, nullptr };
+        uint64 signalValues[2] = { 0, 0 };
+        uint32 signalCount = 0;
+
+        if (signalSemaphore != nullptr)
+        {
+            signalSemaphores[signalCount] = signalSemaphore;
+            signalValues[signalCount] = 0;
+            signalCount++;
+        }
+
+        signalSemaphores[signalCount] = frame->GetFrameCompleteSemaphore().Get();
+        signalValues[signalCount] = frame->GetFrameCompleteValue();
+        signalCount++;
+
+        commandBuffer->Submit(
+            presentQueue,
+            submitFence,
+            Span<VulkanSemaphore*>(&waitSemaphore, waitSemaphore ? 1 : 0),
+            Span<VulkanSemaphore*>(signalSemaphores, signalCount),
+            nullptr,
+            signalValues);
+    }
+    else
+    {
+        commandBuffer->Submit(
+            presentQueue,
+            submitFence,
+            Span<VulkanSemaphore*>(&waitSemaphore, waitSemaphore ? 1 : 0),
+            Span<VulkanSemaphore*>(&signalSemaphore, signalSemaphore ? 1 : 0));
+    }
 
     if (swapchain != nullptr)
     {
@@ -954,7 +1015,7 @@ VulkanCommandBuffer& VulkanRenderInterface::GetTransientCommandBuffer()
 
     LinkedList<VulkanCommandBuffer, VulkanAllocator>& freeList = m_transientCommandBuffers[renderThreadIndex][frameCounter % NumFramesInFlight];
     LinkedList<VulkanCommandBuffer, VulkanAllocator>& pendingList = m_pendingTransientCommandBuffers[renderThreadIndex][frameCounter % NumFramesInFlight];
-    
+
     VulkanDeviceQueue* graphicsQueue = m_instance->GetDevice()->GetGraphicsQueue();
     Assert(graphicsQueue != nullptr);
 
@@ -965,7 +1026,7 @@ VulkanCommandBuffer& VulkanRenderInterface::GetTransientCommandBuffer()
     {
         VulkanCommandBuffer& commandBuffer = pendingList.EmplaceBack();
         CheckResult(commandBuffer.Create(pool));
-        
+
         commandBuffer.Begin();
 
         return commandBuffer;
@@ -1058,6 +1119,7 @@ VulkanGraphicsPipelineRef VulkanRenderInterface::MakeGraphicsPipeline(
     graphicsPipeline->SetBlendFunction(attributes.GetMaterialAttributes().blendFunction);
     graphicsPipeline->SetDepthTest(bool(attributes.GetMaterialAttributes().flags & MAF_DEPTH_TEST));
     graphicsPipeline->SetDepthWrite(bool(attributes.GetMaterialAttributes().flags & MAF_DEPTH_WRITE));
+    graphicsPipeline->SetDepthCompareOp(attributes.GetMaterialAttributes().depthCompareOp);
     graphicsPipeline->SetDepthClamp(bool(attributes.GetMaterialAttributes().flags & MAF_DEPTH_CLAMP));
 
     if (attributes.GetMaterialAttributes().flags & MAF_DEPTH_BIAS)
@@ -1066,7 +1128,7 @@ VulkanGraphicsPipelineRef VulkanRenderInterface::MakeGraphicsPipeline(
         graphicsPipeline->SetDepthBiasSlope(attributes.GetMaterialAttributes().depthBiasSlope);
     }
 
-    if (attributes.GetMaterialAttributes().flags & MAF_STENCIL_TEST)  
+    if (attributes.GetMaterialAttributes().flags & MAF_STENCIL_TEST)
     {
         graphicsPipeline->SetStencilFunction(attributes.GetMaterialAttributes().stencilFunction);
     }
@@ -1169,28 +1231,30 @@ VulkanGpuTlasRef VulkanRenderInterface::MakeTLAS()
 }
 
 void VulkanRenderInterface::PopulateIndirectDrawCommandsBuffer(
-    const VulkanGpuBufferRef& vertexBuffer,
-    const VulkanGpuBufferRef& indexBuffer,
+    const VulkanGpuBuffer* vertexBuffer,
+    const VulkanGpuBuffer* indexBuffer,
     uint32 instanceOffset,
-    TByteBuffer<RenderAllocator>& outByteBuffer)
+    Array<VkDrawIndexedIndirectCommand, VulkanAllocator>& outBuffer)
 {
-    const size_t requiredSize = (size_t(instanceOffset) + 1) * sizeof(VkDrawIndexedIndirectCommand);
+    const size_t requiredSize = (size_t(instanceOffset) + 1);
 
-    if (outByteBuffer.Size() < requiredSize)
+    if (outBuffer.Size() < requiredSize)
     {
-        outByteBuffer.SetSize(requiredSize);
+        outBuffer.ResizeUninitialized(requiredSize);
     }
 
     uint32 numIndices = 0;
 
-    if (indexBuffer.IsValid())
+    if (indexBuffer != nullptr)
     {
         numIndices = indexBuffer->Size() / sizeof(uint32);
     }
 
-    VkDrawIndexedIndirectCommand* commandPtr = reinterpret_cast<VkDrawIndexedIndirectCommand*>(outByteBuffer.Data()) + instanceOffset;
-    *commandPtr = VkDrawIndexedIndirectCommand {};
-    commandPtr->indexCount = numIndices;
+    VkDrawIndexedIndirectCommand& command = outBuffer[instanceOffset];
+    command = VkDrawIndexedIndirectCommand {};
+    command.indexCount = numIndices;
+    command.vertexOffset = 0;
+    command.firstInstance = 0;
 }
 
 bool VulkanRenderInterface::IsSupportedFormat(TextureFormat format, ImageSupport supportType) const
@@ -1264,7 +1328,7 @@ HYP_NODISCARD VulkanAsyncCompute* VulkanRenderInterface::CreateAsyncCompute()
 void VulkanRenderInterface::SubmitAsyncCompute(VulkanAsyncCompute* asyncCompute)
 {
     Assert(asyncCompute != nullptr);
-    
+
     Mutex::Guard guard(m_asyncComputesMutex);
     Assert(!m_submittedAsyncComputes.Contains(asyncCompute));
 

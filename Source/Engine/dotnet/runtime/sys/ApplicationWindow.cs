@@ -41,7 +41,7 @@ namespace Hyperion
         }
     }
 
-    [ClassBinding(Name = "Win32ApplicationWindow")]
+    [ClassBinding(Name = "Win32ApplicationWindow", Condition = "IsWindows")]
     public class Win32ApplicationWindow : ApplicationWindow
     {
         public Win32ApplicationWindow()
@@ -49,7 +49,7 @@ namespace Hyperion
         }
     }
 
-    [ClassBinding(Name = "CocoaApplicationWindow")]
+    [ClassBinding(Name = "CocoaApplicationWindow", Condition = "IsMacOS")]
     public class CocoaApplicationWindow : ApplicationWindow
     {
         public CocoaApplicationWindow()
@@ -57,15 +57,7 @@ namespace Hyperion
         }
     }
 
-    [ClassBinding(Name = "SDLApplicationWindow")]
-    public class SDLApplicationWindow : ApplicationWindow
-    {
-        public SDLApplicationWindow()
-        {
-        }
-    }
-
-    [ClassBinding(Name = "AndroidApplicationWindow")]
+    [ClassBinding(Name = "AndroidApplicationWindow", Condition = "IsAndroid")]
     public class AndroidApplicationWindow : ApplicationWindow
     {
         public AndroidApplicationWindow()

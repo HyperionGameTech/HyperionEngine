@@ -55,6 +55,7 @@ VkImageLayout GetIntermediateLayout(bool isDepthStencil, bool hasStencil, bool o
 VkBlendFactor ToVkBlendFactor(BlendModeFactor blendMode);
 VkStencilOp ToVkStencilOp(StencilOp stencilOp);
 VkCompareOp ToVkCompareOp(StencilCompareOp compareOp);
+VkCompareOp ToVkDepthCompareOp(DepthCompareOp compareOp);
 VkAttachmentDescription ToVkAttachmentDescription(const AttachmentDesc& attachmentDesc, RenderPassMode renderPassMode);
 VkAttachmentReference ToVkAttachmentReference(uint32 index, const AttachmentDesc& attachmentDesc);
 

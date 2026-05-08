@@ -123,6 +123,13 @@ public:
         const ImageSubResource& srcSubResource,
         const ImageSubResource& dstSubResource) override;
 
+    void Fill(
+        DX12CommandBuffer* commandBuffer,
+        float value,
+        const ImageSubResource& subResource,
+        const Vec3u& offset = Vec3u::Zero(),
+        const Vec3u& extent = Vec3u::One()) override;
+
     DX12GpuImageViewRef MakeLayerImageView(uint32 layerIndex) const override;
 
 #ifdef HYP_DEBUG_MODE
