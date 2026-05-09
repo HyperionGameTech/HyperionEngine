@@ -375,12 +375,6 @@ void DX12ComputePipeline::DispatchIndirect(
         0);
 }
 
-void DX12ComputePipeline::SetPushConstants(const void* data, size_t size)
-{
-    // @TODO: Implement push constants if needed for compute shaders
-    // D3D12 doesn't have direct push constants; use root constants instead
-}
-
 #ifdef HYP_DEBUG_MODE
 void DX12ComputePipeline::SetDebugName(Name name)
 {

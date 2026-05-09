@@ -62,11 +62,11 @@ public:
     void Bind(DX12CommandBuffer* cmd) override;
     void Bind(DX12CommandBuffer* cmd, Vec2i viewportOffset, Vec2u viewportExtent) override;
 
-    void SetPushConstants(const void* data, size_t size) override;
-
 #ifdef HYP_DEBUG_MODE
     void SetDebugName(Name name) override;
 #endif
+
+    static bool CanDynamicallySetDepthState() { return false; }
 
 private:
     RendererResult Rebuild() override;

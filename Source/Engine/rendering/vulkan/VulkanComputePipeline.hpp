@@ -45,8 +45,6 @@ public:
         const VulkanGpuBufferRef& indirectBuffer,
         size_t offset = 0) const override;
 
-    void SetPushConstants(const void* data, size_t size) override;
-
 #if HYP_DEBUG_MODE
     void SetDebugName(Name name) override;
 #endif

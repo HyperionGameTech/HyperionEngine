@@ -54,12 +54,6 @@ Array<VkDescriptorSetLayout, VulkanAllocator> GetVkDescriptorSetLayouts<VulkanRa
     return usedLayouts;
 }
 
-static constexpr VkShaderStageFlags PushConstantStageFlags = VK_SHADER_STAGE_RAYGEN_BIT_KHR
-    | VK_SHADER_STAGE_CLOSEST_HIT_BIT_KHR
-    | VK_SHADER_STAGE_ANY_HIT_BIT_KHR
-    | VK_SHADER_STAGE_MISS_BIT_KHR
-    | VK_SHADER_STAGE_INTERSECTION_BIT_KHR;
-
 #pragma region VulkanRayTracingPipeline
 
 VulkanRayTracingPipeline::VulkanRayTracingPipeline()
@@ -103,18 +97,6 @@ RendererResult VulkanRayTracingPipeline::Create()
 
     layoutInfo.setLayoutCount = uint32(usedLayouts.Size());
     layoutInfo.pSetLayouts = usedLayouts.Data();
-
-    /* Push constants */
-    const VkPushConstantRange pushConstantRanges[] = {
-        {
-            .stageFlags = PushConstantStageFlags,
-            .offset = 0,
-            .size = uint32(RI.GetDevice()->GetFeatures().PaddedSize<PushConstantData>())
-        }
-    };
-
-    layoutInfo.pushConstantRangeCount = ArraySize(pushConstantRanges);
-    layoutInfo.pPushConstantRanges = pushConstantRanges;
 
     VULKAN_CHECK(vkCreatePipelineLayout(RI.GetDevice()->GetDevice(), &layoutInfo, VK_NULL_HANDLE, &m_layout));
 
@@ -170,17 +152,6 @@ void VulkanRayTracingPipeline::Bind(VulkanCommandBuffer* commandBuffer)
         commandBuffer->GetVulkanHandle(),
         VK_PIPELINE_BIND_POINT_RAY_TRACING_KHR,
         m_handle);
-
-    if (m_pushConstants)
-    {
-        vkCmdPushConstants(
-            commandBuffer->GetVulkanHandle(),
-            m_layout,
-            PushConstantStageFlags,
-            0,
-            m_pushConstants.Size(),
-            m_pushConstants.Data());
-    }
 }
 
 void VulkanRayTracingPipeline::TraceRays(VulkanCommandBuffer* commandBuffer, const Vec3u& extent) const
@@ -297,11 +268,6 @@ RendererResult VulkanRayTracingPipeline::CreateShaderBindingTableEntry(
     };
 
     return {};
-}
-
-void VulkanRayTracingPipeline::SetPushConstants(const void* data, size_t size)
-{
-    VulkanPipelineBase::SetPushConstants(data, size);
 }
 
 #pragma endregion VulkanRayTracingPipeline

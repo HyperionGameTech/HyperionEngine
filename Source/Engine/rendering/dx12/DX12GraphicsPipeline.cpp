@@ -241,11 +241,6 @@ void DX12GraphicsPipeline::Bind(DX12CommandBuffer* commandBuffer, Vec2i viewport
     }
 }
 
-void DX12GraphicsPipeline::SetPushConstants(const void* data, size_t size)
-{
-    HYP_NOT_IMPLEMENTED();
-}
-
 HYP_DISABLE_OPTIMIZATION;
 
 void DX12GraphicsPipeline::UpdateViewport(DX12CommandBuffer* commandBuffer, const Viewport& viewport)

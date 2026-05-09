@@ -22,9 +22,9 @@ class RayTracingPipelineBase : public ObjectBase
 
 public:
     static Pool* GetAllocator() { return g_rhiPool; }
-    
+
     virtual ~RayTracingPipelineBase() override = default;
-    
+
 #if HYP_DEBUG_MODE
     Name GetDebugName() const
     {
@@ -57,11 +57,8 @@ public:
         CommandBuffer* commandBuffer,
         const Vec3u& extent) const = 0;
 
-    // Deprecated - will be removed to decouple from vulkan
-    HYP_DEPRECATED HYP_API virtual void SetPushConstants(const void* data, size_t size) = 0;
-
     bool MatchesSignature(const ShaderDesc& shaderDesc) const;
-    
+
     uint32 lastFrame = uint32(-1);
 
 protected:
@@ -73,7 +70,7 @@ protected:
     }
 
     ShaderInstanceRef m_shaderInstance;
-    
+
 #if HYP_DEBUG_MODE
     Name m_debugName;
 #endif

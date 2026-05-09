@@ -24,7 +24,7 @@ class ComputePipelineBase : public ObjectBase
 
 public:
     virtual ~ComputePipelineBase() override = default;
-    
+
     static Pool* GetAllocator() { return g_rhiPool; }
 
     HYP_FORCE_INLINE const ShaderInstanceRef& GetShader() const
@@ -61,9 +61,6 @@ public:
         const GpuBufferRef& indirectBuffer,
         size_t offset = 0) const = 0;
 
-    // Deprecated - will be removed to decouple from vulkan
-    HYP_DEPRECATED virtual void SetPushConstants(const void* data, size_t size) = 0;
-    
     bool MatchesSignature(const ShaderDesc& shaderDesc) const;
 
     uint32 lastFrame = uint32(-1);
@@ -77,7 +74,7 @@ protected:
     }
 
     ShaderInstanceRef m_shaderInstance;
-    
+
 #if HYP_DEBUG_MODE
     Name m_debugName;
 #endif

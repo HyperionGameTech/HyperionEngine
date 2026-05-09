@@ -58,11 +58,6 @@ void DX12RayTracingPipeline::TraceRays(CommandBuffer* commandBuffer, const Vec3u
     // @TODO
 }
 
-void DX12RayTracingPipeline::SetPushConstants(const void* data, size_t size)
-{
-    // @TODO
-}
-
 #ifdef HYP_DEBUG_MODE
 void DX12RayTracingPipeline::SetDebugName(Name name)
 {

@@ -67,11 +67,18 @@ public:
     void Bind(VulkanCommandBuffer* cmd) override;
     void Bind(VulkanCommandBuffer* cmd, Vec2i viewportOffset, Vec2u viewportExtent) override;
 
-    void SetPushConstants(const void* data, size_t size) override;
-
 #if HYP_DEBUG_MODE
     void SetDebugName(Name name) override;
 #endif
+
+    void UpdateDynamicStates(VulkanCommandBuffer* cmd) override
+    {
+        UpdateDynamicStates(cmd, /* onlyChanged */ true);
+    }
+
+    void UpdateDynamicStates(VulkanCommandBuffer* cmd, bool onlyChanged);
+
+    static bool CanDynamicallySetDepthState();
 
 private:
     RendererResult Rebuild() override;
@@ -84,6 +91,8 @@ private:
 
     Viewport m_viewport;
     VulkanRenderPass* m_renderPass;
+
+    Array<VkDynamicState, VulkanAllocator> m_dynamicStates;
 };
 
 } // namespace Hyperion

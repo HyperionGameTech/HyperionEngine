@@ -46,8 +46,6 @@ public:
     void Bind(CommandBuffer* commandBuffer) override;
     void TraceRays(CommandBuffer* commandBuffer, const Vec3u& extent) const override;
 
-    void SetPushConstants(const void* data, size_t size) override;
-
 #ifdef HYP_DEBUG_MODE
     void SetDebugName(Name name) override;
 #endif

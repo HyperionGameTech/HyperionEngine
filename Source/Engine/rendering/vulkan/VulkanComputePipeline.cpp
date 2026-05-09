@@ -84,17 +84,6 @@ void VulkanComputePipeline::Bind(VulkanCommandBuffer* commandBuffer)
         commandBuffer->GetVulkanHandle(),
         VK_PIPELINE_BIND_POINT_COMPUTE,
         m_handle);
-
-    if (m_pushConstants)
-    {
-        vkCmdPushConstants(
-            commandBuffer->GetVulkanHandle(),
-            m_layout,
-            VK_SHADER_STAGE_COMPUTE_BIT,
-            0,
-            m_pushConstants.Size(),
-            m_pushConstants.Data());
-    }
 }
 
 void VulkanComputePipeline::Dispatch(
@@ -121,12 +110,6 @@ void VulkanComputePipeline::DispatchIndirect(
 
 RendererResult VulkanComputePipeline::Create()
 {
-    /* Push constants */
-    const VkPushConstantRange pushConstantRanges[] = {
-        { .stageFlags = VK_SHADER_STAGE_COMPUTE_BIT,
-            .offset = 0,
-            .size = uint32(RI.GetDevice()->GetFeatures().PaddedSize<PushConstantData>()) }
-    };
 
     /* Pipeline layout */
     VkPipelineLayoutCreateInfo layoutInfo { VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO };
@@ -142,8 +125,8 @@ RendererResult VulkanComputePipeline::Create()
 
     layoutInfo.setLayoutCount = uint32(usedLayouts.Size());
     layoutInfo.pSetLayouts = usedLayouts.Data();
-    layoutInfo.pushConstantRangeCount = uint32(std::size(pushConstantRanges));
-    layoutInfo.pPushConstantRanges = pushConstantRanges;
+    layoutInfo.pushConstantRangeCount = 0;
+    layoutInfo.pPushConstantRanges = nullptr;
 
     VULKAN_CHECK_MSG(
         vkCreatePipelineLayout(RI.GetDevice()->GetDevice(), &layoutInfo, nullptr, &m_layout),
@@ -185,11 +168,6 @@ RendererResult VulkanComputePipeline::Create()
 #endif
 
     return {};
-}
-
-void VulkanComputePipeline::SetPushConstants(const void* data, size_t size)
-{
-    VulkanPipelineBase::SetPushConstants(data, size);
 }
 
 #if HYP_DEBUG_MODE

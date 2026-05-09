@@ -51,6 +51,9 @@ void VulkanFeatures::SetPhysicalDevice(VkPhysicalDevice physicalDevice)
         m_scalarBlockLayoutFeatures = { VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_SCALAR_BLOCK_LAYOUT_FEATURES };
         VulkanHelpers::ChainNext(m_features2, &m_scalarBlockLayoutFeatures);
 
+        m_extendedDynamicStateFeatures = { VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_EXTENDED_DYNAMIC_STATE_FEATURES_EXT };
+        VulkanHelpers::ChainNext(m_features2, &m_extendedDynamicStateFeatures);
+
 #if defined(HYP_FEATURES_ENABLE_RAY_TRACING) && defined(HYP_FEATURES_BINDLESS_TEXTURES)
         m_bufferDeviceAddressFeatures = { VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_BUFFER_DEVICE_ADDRESS_FEATURES };
         VulkanHelpers::ChainNext(m_features2, &m_bufferDeviceAddressFeatures);

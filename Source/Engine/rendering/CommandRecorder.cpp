@@ -44,14 +44,16 @@ void TCommandRecorder<RenderAllocator>::Prepare(Frame* frame)
 {
     Assert(frame != nullptr);
 
-    for (CmdHeader& cmdHeader : m_cmdHeaders)
+    for (size_t i = 0; i < m_headerCount; i++)
     {
-        CmdBase* cmdDataPtr = reinterpret_cast<CmdBase*>(m_buffer.Data() + cmdHeader.offset);
-        AssertDebug(cmdHeader.offset < m_buffer.Size());
+        CmdHeader& header = m_headersPtr[i];
 
-        if (cmdHeader.prepareFnPtr != nullptr)
+        CmdBase* cmdDataPtr = reinterpret_cast<CmdBase*>(m_buffer.Data() + header.offset);
+        AssertDebug(header.offset < m_buffer.Size());
+
+        if (header.prepareFnPtr != nullptr)
         {
-            cmdHeader.prepareFnPtr(cmdDataPtr, frame);
+            header.prepareFnPtr(cmdDataPtr, frame);
         }
     }
 }
@@ -61,18 +63,16 @@ void TCommandRecorder<RenderAllocator>::Execute(CommandBuffer* commandBuffer)
 {
     AssertDebug(commandBuffer != nullptr);
 
-    const size_t max = m_cmdHeaders.Size();
+    const size_t max = m_headerCount;
 
-    CmdHeader* headersBegin = m_cmdHeaders.Data();
+    CmdHeader* headersBegin = m_headersPtr;
     CmdHeader* headersEnd = headersBegin + max;
 
     CmdHeader* curr = headersBegin;
 
-    ubyte* data = m_buffer.Data();
-
     while (curr != headersEnd)
     {
-        CmdBase* cmdDataPtr = HYP_ALIGN_PTR_AS(data + curr->offset, CmdBase);
+        CmdBase* cmdDataPtr = reinterpret_cast<CmdBase*>(m_buffer.Data() + curr->offset);
 
         InvokeCmdFnPtr invokeFnPtr = curr->invokeFnPtr;
         invokeFnPtr(cmdDataPtr, commandBuffer);
@@ -80,7 +80,7 @@ void TCommandRecorder<RenderAllocator>::Execute(CommandBuffer* commandBuffer)
         ++curr;
     }
 
-    m_cmdHeaders.Clear();
+    m_headerCount = 0;
     m_offset = 0;
 
     m_writableState.Release();

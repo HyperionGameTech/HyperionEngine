@@ -143,9 +143,6 @@ public:
 
     void PerformOcclusionCulling(Frame* frame, const RenderSetup& renderSetup, uint32 bucketBits);
 
-    void PrepareIndirectDrawCommands(Frame* frame, const RenderSetup& renderSetup, uint32 bucketBits);
-    void ExecuteOcclusionCullingShader(Frame* frame, const RenderSetup& renderSetup, uint32 bucketBits);
-
     /*! \brief Used with ExecuteDrawCalls for parallel rendering to start writing the draw calls
      *   in advance. Call ExecuteDrawCalls() when it is necessary to block execution until all draw calls are written.
      *   \returns true if any draw calls are enqueued; otherwise, returns false. */

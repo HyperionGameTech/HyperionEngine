@@ -930,47 +930,21 @@ protected:
         PrepareCmdFnPtr prepareFnPtr;
     };
 
-    CommandRecorderBase() = default;
-};
-
-template <class AllocatorType>
-class TCommandRecorder final : public CommandRecorderBase
-{
-    template <class OtherAllocatorType>
-    friend class TCommandRecorder;
+    CommandRecorderBase()
+        : writeCount(1),
+          m_writableState(true),
+          m_offset(0),
+          m_bufferSize(0),
+          m_startPtr(nullptr),
+          m_headerCount(0),
+          m_headerCapacity(0),
+          m_headersPtr(nullptr)
+    {
+    }
 
 public:
-    using Base = CommandRecorderBase;
 
-    using Base::CmdHeader;
-    using Base::InvokeCmdFnPtr;
-    using Base::MoveCmdFnPtr;
-    using Base::PrepareCmdFnPtr;
-
-    TCommandRecorder()
-        : writeCount(1),
-          m_offset(0),
-          m_writableState(true)
-    {
-    }
-
-    explicit TCommandRecorder(AllocatorType* pAllocator)
-        : writeCount(1),
-          m_cmdHeaders(),
-          m_buffer(pAllocator),
-          m_offset(0),
-          m_writableState(true)
-    {
-        AssertDebug(pAllocator != nullptr);
-    }
-
-    TCommandRecorder(const TCommandRecorder& other) = delete;
-    TCommandRecorder& operator=(const TCommandRecorder& other) = delete;
-
-    TCommandRecorder(TCommandRecorder&& other) noexcept = delete;
-    TCommandRecorder& operator=(TCommandRecorder&& other) noexcept = delete;
-
-    ~TCommandRecorder();
+    virtual ~CommandRecorderBase() = default;
 
     HYP_FORCE_INLINE bool IsEmpty() const
     {
@@ -997,15 +971,21 @@ public:
 
         const uint32 alignedOffset = ByteUtil::AlignAs(m_offset, 16);
 
-        if (m_buffer.Size() < alignedOffset + CmdSize)
+        if (m_bufferSize < alignedOffset + CmdSize)
         {
-            m_buffer.SetSize(MathUtil::Ceil<size_t>(1.5 * (alignedOffset + CmdSize)), /* zeroize */ false);
+            ResizeBuffer(MathUtil::Ceil<size_t>(1.5 * (alignedOffset + CmdSize)));
         }
 
-        void* startPtr = m_buffer.Data() + alignedOffset;
+        ubyte* startPtr = m_startPtr + alignedOffset;
         new (startPtr) TCmd(std::forward<CmdType>(cmd));
 
-        CmdHeader& header = m_cmdHeaders.EmplaceBack();
+        if (m_headerCount >= m_headerCapacity)
+        {
+            uint32 newCapacity = MathUtil::Max(16u, static_cast<uint32>(m_headerCapacity * 1.5f));
+            ResizeHeaders(newCapacity);
+        }
+
+        CmdHeader& header = m_headersPtr[m_headerCount++];
         header.offset = alignedOffset;
         header.size = CmdSize;
         header.invokeFnPtr = &TCmd::InvokeStatic;
@@ -1015,89 +995,15 @@ public:
     }
 
     template <class CmdType>
-    TCommandRecorder& operator<<(CmdType&& cmd)
+    CommandRecorderBase& operator<<(CmdType&& cmd)
     {
         Add(std::forward<CmdType>(cmd));
 
         return *this;
     }
 
-    template <class OtherAllocatorType>
-    void Concat(TCommandRecorder<OtherAllocatorType>& other)
-    {
-        other.m_writableState.Acquire();
-
-        m_cmdHeaders.Reserve(m_cmdHeaders.Size() + other.m_cmdHeaders.Size());
-
-        // since we guarantee <= 16 byte alignment, we should just align our offset to 16 to make sure everything fits
-        const uint32 newStartOffset = ByteUtil::AlignAs(m_offset, 16);
-
-        if (m_buffer.GetCapacity() < newStartOffset + other.m_offset)
-        {
-            m_buffer.SetSize(MathUtil::Ceil<size_t>(1.5 * (newStartOffset + other.m_offset)), /* zeroize */ false);
-        }
-        else
-        {
-            ubyte* prevPtr = m_buffer.Data();
-
-            // No need to reconstruct commands if the allocation did not change
-            m_buffer.SetSize(newStartOffset + other.m_offset, /* zeroize */ false);
-
-            // Sanity check to ensure SetSize() did not change our capacity. (it shouldn't)
-            AssertDebug(m_buffer.Data() == prevPtr);
-        }
-
-        size_t cmdsOffset = m_cmdHeaders.Size();
-
-        // Reconstruct the commands into our memory
-        Memory::Copy(m_buffer.Data() + newStartOffset, other.m_buffer.Data(), other.m_offset);
-
-        // Add headers and update offsets
-        for (const CmdHeader& cmdHeader : other.m_cmdHeaders)
-        {
-            CmdHeader& newCmdHeader = m_cmdHeaders.PushBack(cmdHeader);
-            newCmdHeader.offset += newStartOffset;
-        }
-
-        //        // Copy from other buffer, starting at the new offset
-        //        m_buffer.Write(other.m_offset, newStartOffset, other.m_buffer.Data());
-
-        m_offset = newStartOffset + other.m_offset;
-
-        other.m_cmdHeaders.Clear();
-        other.m_offset = 0;
-
-        // @NOTE: Keep it in write state
-    }
-
-    void Prepare(Frame* frame);
-    void Execute(CommandBuffer* commandBuffer);
-
-    void Reset(bool freeMemory)
-    {
-        m_cmdHeaders.Clear();
-
-        if (freeMemory)
-        {
-            m_cmdHeaders.Refit();
-            m_buffer.Clear();
-        }
-
-        writeCount = 1;
-
-        m_offset = 0;
-        m_writableState.StoreVolatile(true);
-    }
-
-    void Reserve(uint32 numCmdHeaders, uint32 bufferSizeBytes = 0)
-    {
-        m_cmdHeaders.Reserve(numCmdHeaders);
-
-        if (bufferSizeBytes > 0 && bufferSizeBytes > m_buffer.Size())
-        {
-            m_buffer.SetSize(ByteUtil::AlignAs(bufferSizeBytes, 16));
-        }
-    }
+    virtual void Reset(bool freeMemory) = 0;
+    virtual void Reserve(uint32 numCmdHeaders, uint32 bufferSizeBytes = 0) = 0;
 
     void Done()
     {
@@ -1109,18 +1015,179 @@ public:
 
     uint32 writeCount;
 
-private:
-    Array<CmdHeader, AllocatorType> m_cmdHeaders;
-    TByteBuffer<AllocatorType> m_buffer;
-    uint32 m_offset;
+protected:
+    virtual void ResizeBuffer(size_t newSize) = 0;
+    virtual void ResizeHeaders(uint32 newCapacity) = 0;
 
     AtomicFlag m_writableState;
+
+    uint32 m_offset;
+    size_t m_bufferSize;
+    ubyte* m_startPtr;
+
+    size_t m_headerCount;
+    size_t m_headerCapacity;
+    CmdHeader* m_headersPtr;
+};
+
+template <class AllocatorType>
+class TCommandRecorder final : public CommandRecorderBase
+{
+    template <class OtherAllocatorType>
+    friend class TCommandRecorder;
+
+public:
+    using Base = CommandRecorderBase;
+
+    using Base::CmdHeader;
+    using Base::InvokeCmdFnPtr;
+    using Base::MoveCmdFnPtr;
+    using Base::PrepareCmdFnPtr;
+
+    TCommandRecorder() = default;
+
+    TCommandRecorder(const TCommandRecorder& other) = delete;
+    TCommandRecorder& operator=(const TCommandRecorder& other) = delete;
+
+    TCommandRecorder(TCommandRecorder&& other) noexcept = delete;
+    TCommandRecorder& operator=(TCommandRecorder&& other) noexcept = delete;
+
+    ~TCommandRecorder() override;
+
+    void Reset(bool freeMemory) override
+    {
+        if (freeMemory)
+        {
+            if (m_headersPtr != nullptr)
+            {
+                GetDefaultAllocatorInstance<AllocatorType>()->Free(m_headersPtr);
+                m_headersPtr = nullptr;
+
+                m_headerCapacity = 0;
+            }
+
+            m_buffer.Clear();
+            m_startPtr = nullptr;
+            m_bufferSize = 0;
+        }
+
+        m_headerCount = 0;
+
+        writeCount = 1;
+
+        m_offset = 0;
+        m_writableState.StoreVolatile(true);
+    }
+
+    void Reserve(uint32 numCmdHeaders, uint32 bufferSizeBytes = 0) override
+    {
+        if (numCmdHeaders > m_headerCapacity)
+        {
+            ResizeHeaders(numCmdHeaders);
+        }
+
+        if (bufferSizeBytes > 0 && bufferSizeBytes > m_bufferSize)
+        {
+            ResizeBuffer(ByteUtil::AlignAs(bufferSizeBytes, 16));
+        }
+    }
+
+    template <class OtherAllocatorType>
+    void Concat(TCommandRecorder<OtherAllocatorType>& other)
+    {
+        if ((void*)&other == (void*)this)
+        {
+            return;
+        }
+
+        other.m_writableState.Acquire();
+
+        if (m_headerCount + other.m_headerCount > m_headerCapacity)
+        {
+            ResizeHeaders(m_headerCount + other.m_headerCount);
+        }
+
+        // since we guarantee <= 16 byte alignment, we should just align our offset to 16 to make sure everything fits
+        const uint32 newStartOffset = ByteUtil::AlignAs(m_offset, 16);
+
+        if (m_bufferSize < newStartOffset + other.m_offset)
+        {
+            ResizeBuffer(MathUtil::Ceil<size_t>(1.5 * (newStartOffset + other.m_offset)));
+        }
+
+        // Reconstruct the commands into our memory
+        Memory::Copy(m_buffer.Data() + newStartOffset, other.m_buffer.Data(), other.m_offset);
+
+        // Add headers and update offsets
+        for (uint32 i = 0; i < other.m_headerCount; ++i)
+        {
+            const CmdHeader& cmdHeader = other.m_headersPtr[i];
+            CmdHeader& newCmdHeader = m_headersPtr[m_headerCount++];
+            newCmdHeader = cmdHeader;
+            newCmdHeader.offset += newStartOffset;
+        }
+
+        m_offset = newStartOffset + other.m_offset;
+        other.m_headerCount = 0; // Consume the other headers
+        other.m_offset = 0;
+
+        // @NOTE: Keep it in write state
+    }
+
+    void Prepare(Frame* frame);
+    void Execute(CommandBuffer* commandBuffer);
+
+private:
+    void ResizeBuffer(size_t newSize) override
+    {
+        m_buffer.SetSize(ByteUtil::AlignAs(newSize, 16));
+        m_bufferSize = m_buffer.Size();
+        m_startPtr = m_buffer.Data();
+    }
+
+    void ResizeHeaders(uint32 newCapacity) override
+    {
+        auto* allocator = GetDefaultAllocatorInstance<AllocatorType>();
+
+        CmdHeader* prevPtr = m_headersPtr;
+
+        if (newCapacity != 0)
+        {
+            m_headersPtr = (CmdHeader*)allocator->Allocate(newCapacity * sizeof(CmdHeader), alignof(CmdHeader));
+
+            m_headerCount = newCapacity < m_headerCount ? newCapacity : m_headerCount;
+
+            if (m_headersPtr && prevPtr && m_headerCount != 0)
+            {
+                Memory::Copy(m_headersPtr, prevPtr, m_headerCount * sizeof(CmdHeader));
+            }
+        }
+        else
+        {
+            m_headersPtr = nullptr;
+        }
+
+        if (prevPtr != nullptr)
+        {
+            allocator->Free(prevPtr);
+        }
+
+        m_headerCapacity = m_headersPtr ? newCapacity : 0;
+    }
+
+    TByteBuffer<AllocatorType> m_buffer;
 };
 
 template <class AllocatorType>
 TCommandRecorder<AllocatorType>::~TCommandRecorder()
 {
-    Assert(m_cmdHeaders.Empty(), "CommandRecorder destroyed with pending commands!");
+    Assert(m_headerCount == 0, "CommandRecorder destroyed with pending commands!");
+
+    if (m_headersPtr != nullptr)
+    {
+        GetDefaultAllocatorInstance<AllocatorType>()->Free(m_headersPtr);
+        m_headersPtr = nullptr;
+    }
 }
 
 using CommandRecorder = TCommandRecorder<RenderAllocator>;

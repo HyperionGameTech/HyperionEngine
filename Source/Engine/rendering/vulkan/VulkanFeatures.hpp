@@ -434,6 +434,11 @@ public:
         return m_vulkan12Features.timelineSemaphore == VK_TRUE;
     }
 
+    bool SupportsExtendedDynamicState() const
+    {
+        return m_extendedDynamicStateFeatures.extendedDynamicState == VK_TRUE;
+    }
+
 private:
     VkPhysicalDevice m_physicalDevice;
     VkPhysicalDeviceProperties m_properties;
@@ -452,6 +457,7 @@ private:
     VkPhysicalDeviceVulkan12Features m_vulkan12Features;
     VkPhysicalDeviceMultiviewFeatures m_multiviewFeatures;
     VkPhysicalDeviceScalarBlockLayoutFeatures m_scalarBlockLayoutFeatures;
+    VkPhysicalDeviceExtendedDynamicStateFeaturesEXT m_extendedDynamicStateFeatures;
 
     VkPhysicalDeviceFeatures2 m_features2;
     VkPhysicalDeviceProperties2 m_properties2;

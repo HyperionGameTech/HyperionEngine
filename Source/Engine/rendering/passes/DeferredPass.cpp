@@ -2619,8 +2619,8 @@ void DeferredPass::RenderFrameForView(Frame* frame, const RenderSetup& rs)
     }
     else
     {
-        // must be before BeginRecordDrawCalls
         renderCollector.PerformOcclusionCulling(frame, rs, AllRenderBucketsMask);
+
         renderCollector.BeginRecordDrawCalls(frame, rs, AllRenderBucketsMask);
     }
 
@@ -3110,11 +3110,6 @@ void DeferredPass::UpdateRayTracingView(Frame* frame, const RenderSetup& rs)
 
     RTUpdateStateFlags updateStateFlags;
     pd->rayTracingTlases[currentFrameIndex]->UpdateStructure(updateStateFlags);
-}
-
-void DeferredPass::PerformOcclusionCulling(Frame* frame, const RenderSetup& rs, RenderCollector& renderCollector)
-{
-    renderCollector.PerformOcclusionCulling(frame, rs, AllRenderBucketsMask);
 }
 
 void DeferredPass::ExecuteDrawCalls(

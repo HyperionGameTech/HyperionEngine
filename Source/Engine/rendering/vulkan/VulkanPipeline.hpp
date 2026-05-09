@@ -36,8 +36,6 @@ public:
 
     bool IsCreated() const;
 
-    void SetPushConstants(const void* data, size_t size);
-
 #if HYP_DEBUG_MODE
     void SetDebugName(Name name);
 #endif
@@ -45,8 +43,6 @@ public:
 protected:
     VkPipeline m_handle;
     VkPipelineLayout m_layout;
-
-    PushConstantData m_pushConstants;
 };
 
 } // namespace Hyperion

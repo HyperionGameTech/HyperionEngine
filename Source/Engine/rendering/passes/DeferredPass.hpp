@@ -373,7 +373,6 @@ private:
 
     void ResizeView(Viewport viewport, View* view, DeferredPassData& passData);
 
-    void PerformOcclusionCulling(Frame* frame, const RenderSetup& rs, RenderCollector& renderCollector);
     void ExecuteDrawCalls(Frame* frame, const RenderSetup& rs, RenderCollector& renderCollector, uint32 bucketMask);
     void GenerateMipChain(Frame* frame, const RenderSetup& rs, RenderCollector& renderCollector, const GpuImageRef& srcImage);
 

@@ -1744,6 +1744,20 @@ void RenderInterface::CommitPipelineState(PSOType psoType, CommandBuffer* comman
             reinterpret_cast<CmdBase*>(&deferredBindCommandMemory),
             commandBuffer);
     }
+    else
+    {
+        if (psoType == PSO_Graphics)
+        {
+            PSOCacheKey psoCacheKey = { state.attributes, state.boundFramebuffer->GetFramebufferDesc() };
+
+            if (psoCacheKey != state.boundGraphicsPipeline->GetKey())
+            {
+                state.boundGraphicsPipeline->UpdateDynamicStates(commandBuffer);
+
+                state.boundGraphicsPipeline->SetKey(psoCacheKey);
+            }
+        }
+    }
 
     AssertDebug(state.boundGraphicsPipeline != nullptr, "Pipeline not bound");
 

@@ -74,10 +74,10 @@ public:
 
     void PushDrawCall(size_t drawCallIndex, const DrawCallStorage& drawCalls, DrawCommandData& out);
     void PushInstancedDrawCall(size_t drawCallIndex, const InstancedDrawCallStorage& drawCalls, DrawCommandData& out);
+    
+    void UpdateBufferData(CommandRecorderBase& cr, bool* outWasResized);
 
     void ResetDrawState();
-
-    void UpdateBufferData(Frame* frame, bool* outWasResized);
 
 private:
     Array<ObjectInstance, RenderAllocator> m_objectInstances;
@@ -119,14 +119,11 @@ public:
     void Create(EntityBatchAllocatorBase* batchAllocator);
 
     /*! \brief Register all current draw calls in the draw call collection with the indirect draw state */
-    void PushDrawCallsToIndirectState(DrawCallCollection& drawCallCollection);
-
-    void PrepareDrawCommands(Frame* frame);
-
-    void ExecuteCullShaderInBatches(Frame* frame, const RenderSetup& renderSetup);
+    void PushDrawCallsToIndirectState(CommandRecorderBase& cr, DrawCallCollection& drawCallCollection);
+    void ExecuteCullShaderInBatches(CommandRecorderBase& cr, const RenderSetup& renderSetup);
 
 private:
-    void RebuildDescriptors(Frame* frame);
+    void PrepareDrawCommands(CommandRecorderBase& cr);
 
     IndirectDrawState m_indirectDrawState;
     CullData m_cachedCullData;

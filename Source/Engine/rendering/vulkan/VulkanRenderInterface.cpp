@@ -230,6 +230,10 @@ void VulkanDynamicFunctions::Load(VulkanDevice* device)
     HYP_LOAD_FN(vkSetMoltenVKConfigurationMVK);
 #endif
 
+    // extended dynamic state (VK_EXT_extended_dynamic_state)
+    HYP_LOAD_FN(vkCmdSetDepthWriteEnableEXT);
+    HYP_LOAD_FN(vkCmdSetDepthCompareOpEXT);
+
 #undef HYP_LOAD_FN
 }
 

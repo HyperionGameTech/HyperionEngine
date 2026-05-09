@@ -24,7 +24,7 @@ struct ShaderInputGroup;
 struct PSOCacheKey
 {
     HashCode hashCode;
-    
+
     // keep shader name and properties around so we can expire PSOs when shaders are reloaded
     Name shaderName;
     ShaderPropertySet shaderProperties;
@@ -36,7 +36,7 @@ struct PSOCacheKey
     PSOCacheKey(
         const RenderableAttributeSet& attributes,
         const FramebufferDesc& framebufferDesc);
-    
+
     PSOCacheKey(const PSOCacheKey& other) = default;
     PSOCacheKey& operator=(const PSOCacheKey& other) = default;
 
@@ -214,7 +214,7 @@ public:
     }
 
     void SetFramebufferDesc(const FramebufferDesc& framebufferDesc);
-    
+
 #if HYP_DEBUG_MODE
     Name GetDebugName() const
     {
@@ -227,9 +227,14 @@ public:
     }
 #endif
 
-    HYP_FORCE_INLINE const PSOCacheKey& GetPSOCacheKey() const
+    HYP_FORCE_INLINE const PSOCacheKey& GetKey() const
     {
-        return m_psoCacheKey;
+        return m_key;
+    }
+
+    HYP_FORCE_INLINE void SetKey(const PSOCacheKey& key)
+    {
+        m_key = key;
     }
 
     virtual bool IsCreated() const = 0;
@@ -245,8 +250,9 @@ public:
         const RenderableAttributeSet& attributes,
         const FramebufferDesc& framebufferDesc) const;
 
-    // Deprecated - will be removed to decouple from vulkan
-    HYP_DEPRECATED virtual void SetPushConstants(const void* data, size_t size) = 0;
+    virtual void UpdateDynamicStates(CommandBuffer* cmd)
+    {
+    }
 
     uint32 lastFrame = uint32(-1);
 
@@ -269,13 +275,14 @@ protected:
     FillMode m_fillMode = FM_FILL;
     BlendFunction m_blendFunction = BlendFunction::None();
 
-    bool m_depthTest = true;
-    bool m_depthWrite = true;
-    bool m_depthClamp = false;
+    bool m_depthTest : 1 = true;
+    bool m_depthWrite : 1 = true;
+    bool m_depthClamp : 1 = false;
+
+    bool m_stencilWrite : 1 = false;
 
     DepthCompareOp m_depthCompareOp = DCO_LESS;
 
-    bool m_stencilWrite = false;
     Optional<StencilFunction> m_stencilFunction;
 
     int m_depthBias = 0;
@@ -283,8 +290,8 @@ protected:
 
     ShaderInstanceRef m_shaderInstance;
     FramebufferDesc m_framebufferDesc;
-    
-    PSOCacheKey m_psoCacheKey;
+
+    PSOCacheKey m_key;
 
 #if HYP_DEBUG_MODE
     Name m_debugName;

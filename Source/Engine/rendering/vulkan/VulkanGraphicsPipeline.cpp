@@ -83,6 +83,11 @@ VulkanGraphicsPipeline::~VulkanGraphicsPipeline()
     m_shaderInstance.Reset();
 }
 
+bool VulkanGraphicsPipeline::CanDynamicallySetDepthState()
+{
+    return RI.GetDevice()->GetFeatures().SupportsExtendedDynamicState();
+}
+
 void VulkanGraphicsPipeline::Bind(VulkanCommandBuffer* cmd)
 {
     Vec2i viewportOffset = Vec2i::Zero();
@@ -117,21 +122,15 @@ void VulkanGraphicsPipeline::Bind(VulkanCommandBuffer* commandBuffer, Vec2i view
         UpdateViewport(vulkanCommandBuffer, viewport);
     }
 
-    if (m_pushConstants)
-    {
-        vkCmdPushConstants(
-            vulkanCommandBuffer->GetVulkanHandle(),
-            VulkanPipelineBase::m_layout,
-            VK_SHADER_STAGE_ALL_GRAPHICS,
-            0,
-            m_pushConstants.Size(),
-            m_pushConstants.Data());
-    }
+    UpdateDynamicStates(commandBuffer, /* onlyChanged */ false);
+}
 
+void VulkanGraphicsPipeline::UpdateDynamicStates(VulkanCommandBuffer* commandBuffer, bool onlyChanged)
+{
     if (m_stencilWrite || m_stencilFunction.HasValue())
     {
         vkCmdSetStencilReference(
-            vulkanCommandBuffer->GetVulkanHandle(),
+            commandBuffer->GetVulkanHandle(),
             VK_STENCIL_FRONT_AND_BACK,
             RI.state.stencilReference);
     }
@@ -139,14 +138,50 @@ void VulkanGraphicsPipeline::Bind(VulkanCommandBuffer* commandBuffer, Vec2i view
     if (m_stencilFunction.HasValue())
     {
         vkCmdSetStencilCompareMask(
-            vulkanCommandBuffer->GetVulkanHandle(),
+            commandBuffer->GetVulkanHandle(),
             VK_STENCIL_FRONT_AND_BACK,
             RI.state.stencilCompareMask);
 
         vkCmdSetStencilWriteMask(
-            vulkanCommandBuffer->GetVulkanHandle(),
+            commandBuffer->GetVulkanHandle(),
             VK_STENCIL_FRONT_AND_BACK,
             RI.state.stencilWriteMask);
+    }
+
+    if (m_dynamicStates.Contains(VK_DYNAMIC_STATE_DEPTH_TEST_ENABLE))
+    {
+        if (!onlyChanged || bool(RI.state.attributes.GetMaterialAttributes().flags & MAF_DEPTH_TEST) != m_depthTest)
+        {
+            vkCmdSetDepthTestEnable(
+                commandBuffer->GetVulkanHandle(),
+                bool(RI.state.attributes.GetMaterialAttributes().flags & MAF_DEPTH_TEST) ? VK_TRUE : VK_FALSE);
+
+            m_depthTest = bool(RI.state.attributes.GetMaterialAttributes().flags & MAF_DEPTH_TEST);
+        }
+    }
+
+    if (m_dynamicStates.Contains(VK_DYNAMIC_STATE_DEPTH_WRITE_ENABLE))
+    {
+        if (!onlyChanged || bool(RI.state.attributes.GetMaterialAttributes().flags) != m_depthWrite)
+        {
+            vkCmdSetDepthWriteEnable(
+                commandBuffer->GetVulkanHandle(),
+                bool(RI.state.attributes.GetMaterialAttributes().flags & MAF_DEPTH_WRITE) ? VK_TRUE : VK_FALSE);
+
+            m_depthWrite = bool(RI.state.attributes.GetMaterialAttributes().flags & MAF_DEPTH_WRITE);
+        }
+    }
+
+    if (m_dynamicStates.Contains(VK_DYNAMIC_STATE_DEPTH_COMPARE_OP))
+    {
+        if (!onlyChanged || RI.state.attributes.GetMaterialAttributes().depthCompareOp != m_depthCompareOp)
+        {
+            vkCmdSetDepthCompareOp(
+                commandBuffer->GetVulkanHandle(),
+                ToVkDepthCompareOp(RI.state.attributes.GetMaterialAttributes().depthCompareOp));
+
+            m_depthCompareOp = RI.state.attributes.GetMaterialAttributes().depthCompareOp;
+        }
     }
 }
 
@@ -310,25 +345,32 @@ RendererResult VulkanGraphicsPipeline::Rebuild()
     colorBlending.blendConstants[3] = 0.0f;
 
     // Allow updating viewport and scissor at runtime
-    Array<VkDynamicState> dynamicStates = {
+    m_dynamicStates = {
         VK_DYNAMIC_STATE_VIEWPORT,
         VK_DYNAMIC_STATE_SCISSOR
     };
 
     if (m_stencilWrite || m_stencilFunction.HasValue())
     {
-        dynamicStates.PushBack(VK_DYNAMIC_STATE_STENCIL_REFERENCE);
+        m_dynamicStates.PushBack(VK_DYNAMIC_STATE_STENCIL_REFERENCE);
     }
 
     if (m_stencilFunction.HasValue())
     {
-        dynamicStates.PushBack(VK_DYNAMIC_STATE_STENCIL_COMPARE_MASK);
-        dynamicStates.PushBack(VK_DYNAMIC_STATE_STENCIL_WRITE_MASK);
+        m_dynamicStates.PushBack(VK_DYNAMIC_STATE_STENCIL_COMPARE_MASK);
+        m_dynamicStates.PushBack(VK_DYNAMIC_STATE_STENCIL_WRITE_MASK);
+    }
+
+    if (CanDynamicallySetDepthState())
+    {
+        m_dynamicStates.PushBack(VK_DYNAMIC_STATE_DEPTH_TEST_ENABLE);
+        m_dynamicStates.PushBack(VK_DYNAMIC_STATE_DEPTH_WRITE_ENABLE);
+        m_dynamicStates.PushBack(VK_DYNAMIC_STATE_DEPTH_COMPARE_OP);
     }
 
     VkPipelineDynamicStateCreateInfo dynamicState { VK_STRUCTURE_TYPE_PIPELINE_DYNAMIC_STATE_CREATE_INFO };
-    dynamicState.dynamicStateCount = uint32(dynamicStates.Size());
-    dynamicState.pDynamicStates = dynamicStates.Data();
+    dynamicState.dynamicStateCount = uint32(m_dynamicStates.Size());
+    dynamicState.pDynamicStates = m_dynamicStates.Data();
 
     VkPipelineLayoutCreateInfo layoutInfo { VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO };
 
@@ -445,14 +487,7 @@ RendererResult VulkanGraphicsPipeline::Rebuild()
     return {};
 }
 
-void VulkanGraphicsPipeline::SetPushConstants(const void* data, size_t size)
-{
-    VulkanPipelineBase::SetPushConstants(data, size);
-}
-
-void VulkanGraphicsPipeline::UpdateViewport(
-    VulkanCommandBuffer* commandBuffer,
-    const Viewport& viewport)
+void VulkanGraphicsPipeline::UpdateViewport(VulkanCommandBuffer* commandBuffer, const Viewport& viewport)
 {
     // if (viewport == this->viewport) {
     //    return;

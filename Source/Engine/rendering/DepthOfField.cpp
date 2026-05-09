@@ -56,13 +56,6 @@ void DOFBlur::Destroy()
 
 void DOFBlur::Render(Frame* frame, const RenderSetup& renderSetup)
 {
-    struct
-    {
-        Vec2u dimension;
-    } pushConstants;
-
-    pushConstants.dimension = m_extent;
-
     FixedArray<FullScreenPass*, 2> directionalPasses {
         m_blurHorizontalPass.Get(),
         m_blurVerticalPass.Get()
