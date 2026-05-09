@@ -894,7 +894,7 @@ static void RenderAll(Frame* frame, const TPerformRenderingPayload<TCommandRecor
     size_t cbufferSize = 0;
     size_t cbufferOffset = 0;
 
-    bool isDepthWriteEnabled = (mas.flags & MAF_DEPTH_WRITE) != 0;
+    bool isDepthWriteEnabled = bool(mas.flags & MAF_DEPTH_WRITE);
 
     // Helper lambda to handle depth prepass logic. Returns true if the draw should be skipped.
     auto HandleDepthPrepass = [&](const RenderProxyMesh& meshProxy) -> bool
@@ -939,7 +939,7 @@ static void RenderAll(Frame* frame, const TPerformRenderingPayload<TCommandRecor
                 else
                 {
                     // we need to set depth write based on the mesh proxy's depth write flag
-                    shouldEnableDepthWrite = (mas.flags & MAF_DEPTH_WRITE) != 0;
+                    shouldEnableDepthWrite = bool(mas.flags & MAF_DEPTH_WRITE);
                 }
 
                 if (shouldEnableDepthWrite != isDepthWriteEnabled)

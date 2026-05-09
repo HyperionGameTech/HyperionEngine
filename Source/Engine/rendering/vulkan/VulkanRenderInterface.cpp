@@ -135,7 +135,7 @@ static VkDescriptorSetLayout CreateVkDescriptorSetLayout(VulkanDevice* device, c
 
         VkDescriptorBindingFlags flags = 0;
 
-        if (descriptorCount == ~0u)
+        if (shaderInput.count == ~0u)
         {
             flags |= BindlessFlags;
         }
@@ -181,18 +181,13 @@ static void DestroyVkDescriptorSetLayout(VulkanDevice* device, VkDescriptorSetLa
 
 #pragma region VulkanDynamicFunctions
 
-HYP_API VulkanDynamicFunctions* g_vulkanDynamicFunctions = nullptr;
-
 void VulkanDynamicFunctions::Load(VulkanDevice* device)
 {
-    static VulkanDynamicFunctions s_instance;
-    g_vulkanDynamicFunctions = &s_instance;
-
 #define HYP_LOAD_FN(function)                                                                                        \
     do                                                                                                               \
     {                                                                                                                \
-        s_instance.function = reinterpret_cast<PFN_##function>(vkGetDeviceProcAddr(device->GetDevice(), #function)); \
-        if (!s_instance.function)                                                                                    \
+        function = reinterpret_cast<PFN_##function>(vkGetDeviceProcAddr(device->GetDevice(), #function));            \
+        if (!function)                                                                                               \
         {                                                                                                            \
             HYP_LOG(RenderingBackend, Warning, "Failed to load Vulkan function {}", #function);                      \
         }                                                                                                            \
@@ -232,6 +227,7 @@ void VulkanDynamicFunctions::Load(VulkanDevice* device)
 
     // extended dynamic state (VK_EXT_extended_dynamic_state)
     HYP_LOAD_FN(vkCmdSetDepthWriteEnableEXT);
+    HYP_LOAD_FN(vkCmdSetDepthTestEnableEXT);
     HYP_LOAD_FN(vkCmdSetDepthCompareOpEXT);
 
 #undef HYP_LOAD_FN
@@ -682,7 +678,7 @@ RendererResult VulkanRenderInterface::Initialize()
         CheckResultOrReturn(frame->Create());
     }
 
-    VulkanDynamicFunctions::Load(m_instance->GetDevice());
+    dynamicFunctions.Load(m_instance->GetDevice());
 
     const VulkanFeatures& deviceFeatures = m_instance->GetDevice()->GetFeatures();
     const VkPhysicalDeviceProperties& physicalDeviceProperties = deviceFeatures.GetPhysicalDeviceProperties();

@@ -166,7 +166,7 @@ VulkanAccelerationStructureBase::~VulkanAccelerationStructureBase()
     {
         EnqueueDeletion(FunctionWrapper<Proc<void()>>([accelerationStructure = m_accelerationStructure]()
             {
-                g_vulkanDynamicFunctions->vkDestroyAccelerationStructureKHR(
+                RI.dynamicFunctions.vkDestroyAccelerationStructureKHR(
                     RI.GetDevice()->GetDevice(),
                     accelerationStructure,
                     VK_NULL_HANDLE);
@@ -212,7 +212,7 @@ RendererResult VulkanAccelerationStructureBase::CreateAccelerationStructure(
     Assert(primitiveCounts.Size() == geometries.Size());
 
     VkAccelerationStructureBuildSizesInfoKHR buildSizesInfo { VK_STRUCTURE_TYPE_ACCELERATION_STRUCTURE_BUILD_SIZES_INFO_KHR };
-    g_vulkanDynamicFunctions->vkGetAccelerationStructureBuildSizesKHR(
+    RI.dynamicFunctions.vkGetAccelerationStructureBuildSizesKHR(
         RI.GetDevice()->GetDevice(),
         VK_ACCELERATION_STRUCTURE_BUILD_TYPE_DEVICE_KHR,
         &geometryInfo,
@@ -253,7 +253,7 @@ RendererResult VulkanAccelerationStructureBase::CreateAccelerationStructure(
             RI.GetCurrentFrame()->OnFrameEnd
                 .Bind([oldAccelerationStructure = m_accelerationStructure](...)
                 {
-                    g_vulkanDynamicFunctions->vkDestroyAccelerationStructureKHR(
+                    RI.dynamicFunctions.vkDestroyAccelerationStructureKHR(
                         RI.GetDevice()->GetDevice(),
                         oldAccelerationStructure,
                         nullptr);
@@ -267,7 +267,7 @@ RendererResult VulkanAccelerationStructureBase::CreateAccelerationStructure(
             // update was true but we need to rebuild from scratch, have to unset the UPDATE flag.
             geometryInfo.mode = VK_BUILD_ACCELERATION_STRUCTURE_MODE_BUILD_KHR;
 
-            g_vulkanDynamicFunctions->vkGetAccelerationStructureBuildSizesKHR(
+            RI.dynamicFunctions.vkGetAccelerationStructureBuildSizesKHR(
                 RI.GetDevice()->GetDevice(),
                 VK_ACCELERATION_STRUCTURE_BUILD_TYPE_DEVICE_KHR,
                 &geometryInfo,
@@ -289,7 +289,7 @@ RendererResult VulkanAccelerationStructureBase::CreateAccelerationStructure(
         createInfo.size = accelerationStructureSize;
         createInfo.type = ToVkAccelerationStructureType(type);
 
-        VULKAN_CHECK(g_vulkanDynamicFunctions->vkCreateAccelerationStructureKHR(
+        VULKAN_CHECK(RI.dynamicFunctions.vkCreateAccelerationStructureKHR(
             RI.GetDevice()->GetDevice(),
             &createInfo,
             VK_NULL_HANDLE,
@@ -301,7 +301,7 @@ RendererResult VulkanAccelerationStructureBase::CreateAccelerationStructure(
     VkAccelerationStructureDeviceAddressInfoKHR addressInfo { VK_STRUCTURE_TYPE_ACCELERATION_STRUCTURE_DEVICE_ADDRESS_INFO_KHR };
     addressInfo.accelerationStructure = m_accelerationStructure;
 
-    m_deviceAddress = g_vulkanDynamicFunctions->vkGetAccelerationStructureDeviceAddressKHR(
+    m_deviceAddress = RI.dynamicFunctions.vkGetAccelerationStructureDeviceAddressKHR(
         RI.GetDevice()->GetDevice(),
         &addressInfo);
 
@@ -353,7 +353,7 @@ RendererResult VulkanAccelerationStructureBase::CreateAccelerationStructure(
 
     commandBuffer->Begin();
 
-    g_vulkanDynamicFunctions->vkCmdBuildAccelerationStructuresKHR(
+    RI.dynamicFunctions.vkCmdBuildAccelerationStructuresKHR(
         commandBuffer->GetVulkanHandle(),
         uint32(rangeInfoPtrs.Size()),
         &geometryInfo,
@@ -440,7 +440,7 @@ void VulkanAccelerationStructureBase::SetDebugName(Name name)
     objectNameInfo.objectHandle = (uint64)m_accelerationStructure;
     objectNameInfo.pObjectName = strName;
 
-    g_vulkanDynamicFunctions->vkSetDebugUtilsObjectNameEXT(RI.GetDevice()->GetDevice(), &objectNameInfo);
+    RI.dynamicFunctions.vkSetDebugUtilsObjectNameEXT(RI.GetDevice()->GetDevice(), &objectNameInfo);
 
 #endif
 }

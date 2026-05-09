@@ -314,12 +314,25 @@ static String BuildAttributesDefines(const ShaderVariantPerms& perm)
 
 // fallback to allow compiling shaders for vulkan targets when not compiled with vulkan support.
 #if !HYP_VULKAN
+#ifndef VK_API_VERSION_1_0
+#define VK_API_VERSION_1_0 VK_MAKE_API_VERSION(0, 1, 0, 0)
+#endif
+#ifndef VK_MAKE_API_VERSION
+#define VK_MAKE_API_VERSION(variant, major, minor, patch) \
+    ((((uint32)(variant)) << 29) | (((uint32)(major)) << 22) | (((uint32)(minor)) << 12) | ((uint32)(patch)))
+#endif
 #ifndef VK_API_VERSION_1_1
-static constexpr uint32 VK_API_VERSION_1_1 = 4198400;
-#endif // VK_API_VERSION_1_1
-#ifndef VK_API_VERSION_1_1
-static constexpr uint32 VK_API_VERSION_1_2 = 4202496;
-#endif // VK_API_VERSION_1_2
+#define VK_API_VERSION_1_1 VK_MAKE_API_VERSION(0, 1, 1, 0)
+#endif
+#ifndef VK_API_VERSION_1_2
+#define VK_API_VERSION_1_2 VK_MAKE_API_VERSION(0, 1, 2, 0)
+#endif
+#ifndef VK_API_VERSION_1_3
+#define VK_API_VERSION_1_3 VK_MAKE_API_VERSION(0, 1, 3, 0)
+#endif
+#ifndef VK_API_VERSION_1_4
+#define VK_API_VERSION_1_4 VK_MAKE_API_VERSION(0, 1, 4, 0)
+#endif
 static constexpr uint32 HYP_VULKAN_API_VERSION = VK_API_VERSION_1_2;
 #endif // !HYP_VULKAN
 
@@ -331,8 +344,8 @@ static const ShaderPropertyId s_propTargetAndroid = InternShaderProperty(ShaderP
 static const ShaderPropertyId s_propTargetIOS = InternShaderProperty(ShaderProperty(NAME("TARGET"), NAME("IOS")));
 
 // Target backend properties for cross-compilation
-static const ShaderPropertyId s_propVulkan = InternShaderProperty(ShaderProperty(NAME("VULKAN")));
-static const ShaderPropertyId s_propDX12 = InternShaderProperty(ShaderProperty(NAME("DX12")));
+static const ShaderPropertyId s_propVulkan = InternShaderProperty(ShaderProperty(NAME("BACKEND"), NAME("VULKAN")));
+static const ShaderPropertyId s_propDX12 = InternShaderProperty(ShaderProperty(NAME("BACKEND"), NAME("DX12")));
 
 static const ShaderPropertyId s_propNumGBufferTextures = InternShaderProperty(ShaderProperty(NAME("NUM_GBUFFER_TEXTURES"), int(NumGBufferTargets)));
 
@@ -558,7 +571,6 @@ void DescriptorUsageSet::BuildDescriptorTableDeclaration(ShaderInputGroup& table
 
 #pragma region SPRIV Compilation
 
-#if HYP_VULKAN
 static void GetSPIRVEnvironmentInfo(
     ShaderModuleType type,
     uint32& outSpirvVersion,
@@ -575,7 +587,6 @@ static void GetSPIRVEnvironmentInfo(
         outVulkanVersion = MathUtil::Max(outVulkanVersion, VK_API_VERSION_1_2);
     }
 }
-#endif
 
 #if HYP_DXC
 
@@ -724,7 +735,6 @@ static ByteBuffer CompileHLSL(
     args.PushBack(L"-O3");
 #endif
 
-#if HYP_VULKAN
     if (outputType == HLSLOutputType::SPIRV)
     {
         args.PushBack(L"-spirv");
@@ -757,7 +767,6 @@ static ByteBuffer CompileHLSL(
             return {};
         }
     }
-#endif
 
     DxcBuffer sourceBuffer = { pSource->GetBufferPointer(), pSource->GetBufferSize(), 0 };
     IDxcResult* pResult = nullptr;
@@ -2724,10 +2733,18 @@ bool ShaderCompiler::CompileBundle(
             declaredPerms.AddValueGroup(NAME("TARGET"), platformValues);
         }
 
+        Array<ShaderProperty::Value> backendValues;
+
         if (m_compileParams.targetBackends[ShaderCompileTargetBackend::Vulkan])
-            declaredPerms.AddStatic(NAME("VULKAN"));
-        else if (m_compileParams.targetBackends[ShaderCompileTargetBackend::DX12])
-            declaredPerms.AddStatic(NAME("DX12"));
+            backendValues.PushBack(ShaderProperty::Value(NAME("VULKAN")));
+
+        if (m_compileParams.targetBackends[ShaderCompileTargetBackend::DX12])
+            backendValues.PushBack(ShaderProperty::Value(NAME("DX12")));
+
+        if (backendValues.Any())
+        {
+            declaredPerms.AddValueGroup(NAME("BACKEND"), backendValues);
+        }
     }
     else
     {
@@ -2761,7 +2778,7 @@ bool ShaderCompiler::CompileBundle(
 
         if (graphicsApi.IsValid())
         {
-            declaredPerms.Set(ShaderProperty(graphicsApi));
+            declaredPerms.Set(ShaderProperty(NAME("BACKEND"), graphicsApi));
         }
     }
 
@@ -2892,11 +2909,18 @@ bool ShaderCompiler::CompileBundle(
     // Helper to extract target backend from permutation
     auto GetTargetBackendFromPerm = [](const ShaderVariantPerms& perm) -> Optional<ShaderCompileTargetBackend>
     {
-        if (perm.Has("VULKAN"_sh))
-            return ShaderCompileTargetBackend::Vulkan;
+        auto backendIt = perm.Find("BACKEND"_sh);
 
-        if (perm.Has("DX12"_sh))
-            return ShaderCompileTargetBackend::DX12;
+        if (backendIt != perm.End() && backendIt->HasValue() && backendIt->currentValue.Is<Name>())
+        {
+            const Name backendName = backendIt->currentValue.Get<Name>();
+
+            if (backendName == "VULKAN"_sh)
+                return ShaderCompileTargetBackend::Vulkan;
+
+            if (backendName == "DX12"_sh)
+                return ShaderCompileTargetBackend::DX12;
+        }
 
         return {};
     };

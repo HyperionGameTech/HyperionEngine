@@ -74,6 +74,38 @@ static const FixedArray<uint32, 6>& GetQuadIndices()
     return s_indices;
 }
 
+static const FixedArray<SimpleVertex, 8>& GetDoubleSidedQuadVertices()
+{
+    static const FixedArray<SimpleVertex, 8> s_vertices = {
+        // Front face (normals pointing -Z)
+        SimpleVertex { Vec3f { -1.0f, 1.0f, 0.0f }, Vec3f { 0.0f, 0.0f, -1.0f }, Vec2f { 0.0f, 0.0f } },
+        SimpleVertex { Vec3f { 1.0f, 1.0f, 0.0f }, Vec3f { 0.0f, 0.0f, -1.0f }, Vec2f { 1.0f, 0.0f } },
+        SimpleVertex { Vec3f { 1.0f, -1.0f, 0.0f }, Vec3f { 0.0f, 0.0f, -1.0f }, Vec2f { 1.0f, 1.0f } },
+        SimpleVertex { Vec3f { -1.0f, -1.0f, 0.0f }, Vec3f { 0.0f, 0.0f, -1.0f }, Vec2f { 0.0f, 1.0f } },
+        // Back face (normals pointing +Z, UVs mirrored horizontally)
+        SimpleVertex { Vec3f { -1.0f, 1.0f, 0.0f }, Vec3f { 0.0f, 0.0f, 1.0f }, Vec2f { 1.0f, 0.0f } },
+        SimpleVertex { Vec3f { 1.0f, 1.0f, 0.0f }, Vec3f { 0.0f, 0.0f, 1.0f }, Vec2f { 0.0f, 0.0f } },
+        SimpleVertex { Vec3f { 1.0f, -1.0f, 0.0f }, Vec3f { 0.0f, 0.0f, 1.0f }, Vec2f { 0.0f, 1.0f } },
+        SimpleVertex { Vec3f { -1.0f, -1.0f, 0.0f }, Vec3f { 0.0f, 0.0f, 1.0f }, Vec2f { 1.0f, 1.0f } }
+    };
+
+    return s_vertices;
+}
+
+static const FixedArray<uint32, 12>& GetDoubleSidedQuadIndices()
+{
+    static const FixedArray<uint32, 12> s_indices = {
+        // Front face (CCW from -Z view)
+        0, 1, 2,
+        0, 2, 3,
+        // Back face (CCW from +Z view)
+        4, 6, 5,
+        4, 7, 6
+    };
+
+    return s_indices;
+}
+
 static const Array<SimpleVertex>& GetCubeVertices()
 {
     static const Array<SimpleVertex> s_cubeVertices = {
@@ -147,6 +179,33 @@ Handle<Mesh> MeshBuilder::Quad()
 
     Handle<Mesh> mesh = MakeHandle<Mesh>();
     mesh->SetName(NAME("MeshBuilder_Quad"));
+
+    VertexArrayView vertexArrayView {};
+    vertexArrayView.floatData = reinterpret_cast<const float*>(vertices.Data());
+    vertexArrayView.layoutDesc = meshDesc.meshAttributes.inputLayout;
+    vertexArrayView.vertexCount = vertices.Size();
+
+    const ConstByteView indicesByteView = ConstByteView(
+        reinterpret_cast<const ubyte*>(indices.Data()),
+        reinterpret_cast<const ubyte*>(indices.Data() + indices.Size()));
+
+    mesh->SetMeshData(meshDesc, vertexArrayView, indicesByteView);
+
+    return mesh;
+}
+
+Handle<Mesh> MeshBuilder::DoubleSidedQuad()
+{
+    const auto& vertices = GetDoubleSidedQuadVertices();
+    const auto& indices = GetDoubleSidedQuadIndices();
+
+    MeshDesc meshDesc {};
+    meshDesc.meshAttributes.inputLayout = { VT_Simple };
+    meshDesc.numIndices = uint32(indices.Size());
+    meshDesc.numVertices = uint32(vertices.Size());
+
+    Handle<Mesh> mesh = MakeHandle<Mesh>();
+    mesh->SetName(NAME("MeshBuilder_DoubleSidedQuad"));
 
     VertexArrayView vertexArrayView {};
     vertexArrayView.floatData = reinterpret_cast<const float*>(vertices.Data());

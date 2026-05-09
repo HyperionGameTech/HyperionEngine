@@ -195,6 +195,14 @@
 
 #define HYP_FAST_LESS(x, y) (1 - step((y), (x)))
 
+#ifdef BACKEND_DX12
+#define DX12 1
+#endif // BACKEND_DX12
+
+#ifdef BACKEND_VULKAN
+#define VULKAN 1
+#endif // BACKEND_VULKAN
+
 #ifndef HYP_SHADER_COMPILER
     ///// For Intellisense /////
 

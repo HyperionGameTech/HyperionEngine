@@ -30,6 +30,11 @@ public:
     /*! \brief Build a quad mesh in the XY plane with size 1x1. */
     static Handle<Mesh> Quad();
 
+    /*! \brief Build a double-sided quad mesh in the XY plane with size 1x1.
+     *  The back face has mirrored UVs so that rendered content (e.g. text)
+     *  appears legible from both sides. */
+    static Handle<Mesh> DoubleSidedQuad();
+
     /*! \brief Build a cube mesh.
      *  \param originOnBottom If true, the cube's origin will be at the bottom face center. Otherwise, it will be at the center of the cube.
      */

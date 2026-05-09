@@ -260,7 +260,7 @@ uint64 VulkanGpuBuffer::GetBufferDeviceAddress() const
     VkBufferDeviceAddressInfoKHR info { VK_STRUCTURE_TYPE_BUFFER_DEVICE_ADDRESS_INFO };
     info.buffer = m_handle;
 
-    return g_vulkanDynamicFunctions->vkGetBufferDeviceAddressKHR(
+    return RI.dynamicFunctions.vkGetBufferDeviceAddressKHR(
         RI.GetDevice()->GetDevice(),
         &info);
 }
@@ -621,7 +621,7 @@ void VulkanGpuBuffer::SetDebugName(Name name)
     objectNameInfo.objectHandle = (uint64)m_handle;
     objectNameInfo.pObjectName = strName;
 
-    g_vulkanDynamicFunctions->vkSetDebugUtilsObjectNameEXT(RI.GetDevice()->GetDevice(), &objectNameInfo);
+    RI.dynamicFunctions.vkSetDebugUtilsObjectNameEXT(RI.GetDevice()->GetDevice(), &objectNameInfo);
 }
 
 #endif

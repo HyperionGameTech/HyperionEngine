@@ -75,7 +75,7 @@ void VulkanSemaphore::Signal(uint64 value)
     signalInfo.semaphore = m_handle;
     signalInfo.value = value;
 
-    VkResult result = g_vulkanDynamicFunctions->vkSignalSemaphore(RI.GetDevice()->GetDevice(), &signalInfo);
+    VkResult result = RI.dynamicFunctions.vkSignalSemaphore(RI.GetDevice()->GetDevice(), &signalInfo);
     Assert(result == VK_SUCCESS, "Failed to signal timeline semaphore, VkResult: {}", result);
 }
 
@@ -88,7 +88,7 @@ void VulkanSemaphore::WaitForValue(uint64 value, uint64 timeoutNs)
     waitInfo.pSemaphores = &m_handle;
     waitInfo.pValues = reinterpret_cast<uint64_t*>(&value);
 
-    VkResult result = g_vulkanDynamicFunctions->vkWaitSemaphores(RI.GetDevice()->GetDevice(), &waitInfo, timeoutNs);
+    VkResult result = RI.dynamicFunctions.vkWaitSemaphores(RI.GetDevice()->GetDevice(), &waitInfo, timeoutNs);
 
     if (result == VK_TIMEOUT)
     {
@@ -103,7 +103,7 @@ uint64 VulkanSemaphore::GetCounterValue() const
     Assert(IsTimeline() && IsCreated());
 
     uint64 value = 0;
-    VkResult result = g_vulkanDynamicFunctions->vkGetSemaphoreCounterValue(RI.GetDevice()->GetDevice(), m_handle, reinterpret_cast<uint64_t*>(&value));
+    VkResult result = RI.dynamicFunctions.vkGetSemaphoreCounterValue(RI.GetDevice()->GetDevice(), m_handle, reinterpret_cast<uint64_t*>(&value));
     Assert(result == VK_SUCCESS, "Failed to get timeline semaphore counter value, VkResult: {}", result);
 
     return value;

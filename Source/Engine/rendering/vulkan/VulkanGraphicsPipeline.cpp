@@ -152,7 +152,7 @@ void VulkanGraphicsPipeline::UpdateDynamicStates(VulkanCommandBuffer* commandBuf
     {
         if (!onlyChanged || bool(RI.state.attributes.GetMaterialAttributes().flags & MAF_DEPTH_TEST) != m_depthTest)
         {
-            vkCmdSetDepthTestEnable(
+            RI.dynamicFunctions.vkCmdSetDepthTestEnableEXT(
                 commandBuffer->GetVulkanHandle(),
                 bool(RI.state.attributes.GetMaterialAttributes().flags & MAF_DEPTH_TEST) ? VK_TRUE : VK_FALSE);
 
@@ -164,7 +164,7 @@ void VulkanGraphicsPipeline::UpdateDynamicStates(VulkanCommandBuffer* commandBuf
     {
         if (!onlyChanged || bool(RI.state.attributes.GetMaterialAttributes().flags) != m_depthWrite)
         {
-            vkCmdSetDepthWriteEnable(
+            RI.dynamicFunctions.vkCmdSetDepthWriteEnableEXT(
                 commandBuffer->GetVulkanHandle(),
                 bool(RI.state.attributes.GetMaterialAttributes().flags & MAF_DEPTH_WRITE) ? VK_TRUE : VK_FALSE);
 
@@ -176,7 +176,7 @@ void VulkanGraphicsPipeline::UpdateDynamicStates(VulkanCommandBuffer* commandBuf
     {
         if (!onlyChanged || RI.state.attributes.GetMaterialAttributes().depthCompareOp != m_depthCompareOp)
         {
-            vkCmdSetDepthCompareOp(
+            RI.dynamicFunctions.vkCmdSetDepthCompareOpEXT(
                 commandBuffer->GetVulkanHandle(),
                 ToVkDepthCompareOp(RI.state.attributes.GetMaterialAttributes().depthCompareOp));
 

@@ -282,7 +282,7 @@ void VulkanShaderInstance::SetDebugName(Name name)
         objectNameInfo.objectHandle = (uint64)shaderModule.handle;
         objectNameInfo.pObjectName = shaderModule.moduleName.Data();
 
-        g_vulkanDynamicFunctions->vkSetDebugUtilsObjectNameEXT(RI.GetDevice()->GetDevice(), &objectNameInfo);
+        RI.dynamicFunctions.vkSetDebugUtilsObjectNameEXT(RI.GetDevice()->GetDevice(), &objectNameInfo);
     }
 }
 

@@ -36,7 +36,7 @@ void VulkanFeatures::SetPhysicalDevice(VkPhysicalDevice physicalDevice)
         vkGetPhysicalDeviceMemoryProperties(physicalDevice, &m_memoryProperties);
 
         Assert(m_features.samplerAnisotropy);
-        
+
         m_features2 = { VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_FEATURES_2 };
 
         m_vulkan12Features = { VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_2_FEATURES };
@@ -96,7 +96,7 @@ void VulkanFeatures::SetDeviceFeatures(VulkanDevice* device)
 #if defined(HYP_MOLTENVK) && HYP_MOLTENVK && HYP_MOLTENVK_LINKED
     MVKConfiguration* mvkConfig = nullptr;
     size_t sz = 1;
-    g_vulkanDynamicFunctions->vkGetMoltenVKConfigurationMVK(VK_NULL_HANDLE, mvkConfig, &sz);
+    RI.dynamicFunctions.vkGetMoltenVKConfigurationMVK(VK_NULL_HANDLE, mvkConfig, &sz);
 
     mvkConfig = new MVKConfiguration[sz];
 
@@ -107,7 +107,7 @@ void VulkanFeatures::SetDeviceFeatures(VulkanDevice* device)
 #endif
     }
 
-    g_vulkanDynamicFunctions->vkSetMoltenVKConfigurationMVK(VK_NULL_HANDLE, mvkConfig, &sz);
+    RI.dynamicFunctions.vkSetMoltenVKConfigurationMVK(VK_NULL_HANDLE, mvkConfig, &sz);
 
     delete[] mvkConfig;
 #endif

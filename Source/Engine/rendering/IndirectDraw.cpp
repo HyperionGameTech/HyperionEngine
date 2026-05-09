@@ -340,16 +340,12 @@ void IndirectDrawState::UpdateBufferData(CommandRecorder& cr, bool* outWasResize
 
         stagingBuffer->Copy(m_drawCommandsBuffer.ByteSize(), m_drawCommandsBuffer.Data());
 
-        //CommandRecorder& cr = RI.commandRecorderAllocator.GetCommandRecorder();
-
         cr << InsertBarrier(stagingBuffer, RS_COPY_SRC);
         cr << InsertBarrier(indirectBuffer, RS_COPY_DST);
 
         cr << CopyBuffer(stagingBuffer, indirectBuffer, stagingBuffer->Size());
 
         cr << InsertBarrier(indirectBuffer, RS_INDIRECT_ARG);
-
-        //cr.Done();
     }
 
     Assert(instanceBuffer->Size() >= m_objectInstances.Size() * sizeof(ObjectInstance));

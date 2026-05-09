@@ -262,11 +262,47 @@ void SpritePass::Initialize()
     InitObject(m_quadMesh);
 
     GetEngineAssetRegistry()->PutAsset(m_quadMesh);
+
+    m_textQuadMesh = MeshBuilder::DoubleSidedQuad();
+    m_textQuadMesh->SetName(NAME("TextSpriteMesh"));
+    m_textQuadMesh->SetFlags(MeshFlags::ViewIndependent);
+    m_textQuadMesh->SetIsTransient(true);
+
+    {
+        VertexArrayView vd = m_textQuadMesh->GetVertexData();
+        ByteView id = m_textQuadMesh->GetIndexData();
+
+        Array<SimpleVertex> newVertices;
+        newVertices.Resize(vd.vertexCount);
+        Memory::Copy(newVertices.Data(), vd.floatData, vd.vertexCount * sizeof(SimpleVertex));
+
+        for (SimpleVertex& vert : newVertices)
+        {
+            vert.posX = (vert.posX + 1.0f) * 0.5f;
+            vert.posY = (vert.posY + 1.0f) * 0.5f;
+        }
+
+        VertexArrayView vertexArrayView {};
+        vertexArrayView.floatData = reinterpret_cast<const float*>(newVertices.Data());
+        vertexArrayView.vertexCount = newVertices.Size();
+        vertexArrayView.layoutDesc = { VT_Simple };
+
+        Array<ubyte> indexData;
+        indexData.Resize(id.Size());
+        Memory::Copy(indexData.Data(), id.Data(), id.Size());
+
+        m_textQuadMesh->SetMeshData(m_textQuadMesh->GetMeshDesc(), vertexArrayView, indexData);
+    }
+
+    InitObject(m_textQuadMesh);
+
+    GetEngineAssetRegistry()->PutAsset(m_textQuadMesh);
 }
 
 void SpritePass::Shutdown()
 {
     EnqueueDeletion(std::move(m_quadMesh));
+    EnqueueDeletion(std::move(m_textQuadMesh));
 }
 
 void SpritePass::RenderFrame(Frame* frame, const RenderSetup& renderSetup)
@@ -498,10 +534,10 @@ void SpritePass::RenderFrame(Frame* frame, const RenderSetup& renderSetup)
 
         cr << CommitDrawState();
 
-        cr << BindVertexBuffer(quadMesh->GetVertexBuffer());
-        cr << BindIndexBuffer(quadMesh->GetIndexBuffer());
+        cr << BindVertexBuffer(m_textQuadMesh->GetVertexBuffer());
+        cr << BindIndexBuffer(m_textQuadMesh->GetIndexBuffer());
 
-        cr << DrawIndexed(quadMesh->NumIndices(), charData.Size());
+        cr << DrawIndexed(m_textQuadMesh->NumIndices(), charData.Size());
     }
 }
 

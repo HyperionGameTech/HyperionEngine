@@ -40,7 +40,7 @@ class VulkanTextureCache;
 
 struct VulkanDynamicFunctions
 {
-    static void Load(VulkanDevice* device);
+    void Load(VulkanDevice* device);
 
 #define HYP_DECL_FN(name) PFN_##name name = nullptr
 
@@ -77,12 +77,11 @@ struct VulkanDynamicFunctions
 
     // extended dynamic state (VK_EXT_extended_dynamic_state)
     HYP_DECL_FN(vkCmdSetDepthWriteEnableEXT);
+    HYP_DECL_FN(vkCmdSetDepthTestEnableEXT);
     HYP_DECL_FN(vkCmdSetDepthCompareOpEXT);
 
 #undef HYP_DECL_FN
 };
-
-HYP_API extern VulkanDynamicFunctions* g_vulkanDynamicFunctions;
 
 class IDummyVulkanSurfaceContext
 {
@@ -188,6 +187,8 @@ public:
     VkSurfaceKHR CreateSurface(ApplicationWindow* window, IDummyVulkanSurfaceContext** ppOutDummySurfaceContext = nullptr);
 
     RendererResult GetVkExtensions(Array<const char*>& outExtensions);
+
+    VulkanDynamicFunctions dynamicFunctions;
 
 private:
     void InitDeviceDetails(DeviceDetails& deviceDetails) override;

@@ -121,7 +121,7 @@ RendererResult VulkanRayTracingPipeline::Create()
     pipelineInfo.basePipelineHandle = VK_NULL_HANDLE;
     pipelineInfo.basePipelineIndex = -1;
 
-    VULKAN_CHECK(g_vulkanDynamicFunctions->vkCreateRayTracingPipelinesKHR(
+    VULKAN_CHECK(RI.dynamicFunctions.vkCreateRayTracingPipelinesKHR(
         RI.GetDevice()->GetDevice(),
         VK_NULL_HANDLE,
         VK_NULL_HANDLE,
@@ -156,7 +156,7 @@ void VulkanRayTracingPipeline::Bind(VulkanCommandBuffer* commandBuffer)
 
 void VulkanRayTracingPipeline::TraceRays(VulkanCommandBuffer* commandBuffer, const Vec3u& extent) const
 {
-    g_vulkanDynamicFunctions->vkCmdTraceRaysKHR(
+    RI.dynamicFunctions.vkCmdTraceRaysKHR(
         commandBuffer->GetVulkanHandle(),
         &m_shaderBindingTableEntries.rayGen,
         &m_shaderBindingTableEntries.rayMiss,
@@ -178,7 +178,7 @@ RendererResult VulkanRayTracingPipeline::CreateShaderBindingTables(VulkanShaderI
 
     ByteBuffer shaderHandleStorage(tableSize);
 
-    VULKAN_CHECK(g_vulkanDynamicFunctions->vkGetRayTracingShaderGroupHandlesKHR(
+    VULKAN_CHECK(RI.dynamicFunctions.vkGetRayTracingShaderGroupHandlesKHR(
         RI.GetDevice()->GetDevice(),
         m_handle,
         0,

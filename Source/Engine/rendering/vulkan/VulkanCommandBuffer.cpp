@@ -352,7 +352,7 @@ void VulkanCommandBuffer::DrawIndexedIndirect(
 void VulkanCommandBuffer::DebugMarkerBegin(const char* markerName) const
 {
 #if HYP_DEBUG_MODE
-    if (g_vulkanDynamicFunctions->vkCmdDebugMarkerBeginEXT)
+    if (RI.dynamicFunctions.vkCmdDebugMarkerBeginEXT)
     {
         const VkDebugMarkerMarkerInfoEXT marker {
             .sType = VK_STRUCTURE_TYPE_DEBUG_MARKER_MARKER_INFO_EXT,
@@ -360,7 +360,7 @@ void VulkanCommandBuffer::DebugMarkerBegin(const char* markerName) const
             .pMarkerName = markerName
         };
 
-        g_vulkanDynamicFunctions->vkCmdDebugMarkerBeginEXT(m_handle, &marker);
+        RI.dynamicFunctions.vkCmdDebugMarkerBeginEXT(m_handle, &marker);
     }
 #endif
 }
@@ -368,9 +368,9 @@ void VulkanCommandBuffer::DebugMarkerBegin(const char* markerName) const
 void VulkanCommandBuffer::DebugMarkerEnd() const
 {
 #if HYP_DEBUG_MODE
-    if (g_vulkanDynamicFunctions->vkCmdDebugMarkerEndEXT)
+    if (RI.dynamicFunctions.vkCmdDebugMarkerEndEXT)
     {
-        g_vulkanDynamicFunctions->vkCmdDebugMarkerEndEXT(m_handle);
+        RI.dynamicFunctions.vkCmdDebugMarkerEndEXT(m_handle);
     }
 #endif
 }
