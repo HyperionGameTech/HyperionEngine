@@ -43,7 +43,7 @@ struct alignas(16) ComputeVisibilityConstants
 };
 
 static void ZeroizeBuffer(
-    CommandRecorderBase& cr,
+    CommandRecorder& cr,
     GpuBuffer* stagingBuffer,
     GpuBuffer* dstBuffer)
 {
@@ -81,7 +81,7 @@ static void ZeroizeBuffer(
 }
 
 static inline bool CreateOrResizeBuffer(
-    CommandRecorderBase& cr,
+    CommandRecorder& cr,
     GpuBufferRef& buffer,
     size_t newBufferSize)
 {
@@ -119,7 +119,7 @@ static inline bool CreateOrResizeBuffer(
 }
 
 static bool ResizeIndirectDrawCommandsBuffer(
-    CommandRecorderBase& cr,
+    CommandRecorder& cr,
     const Span<IndirectDrawCommand>& drawCommandsBuffer,
     GpuBufferRef& indirectBuffer,
     GpuBuffer* stagingBuffer)
@@ -139,7 +139,7 @@ static bool ResizeIndirectDrawCommandsBuffer(
 }
 
 static bool ResizeInstancesBuffer(
-    CommandRecorderBase& cr,
+    CommandRecorder& cr,
     uint32 numObjectInstances,
     GpuBufferRef& instanceBuffer)
 {
@@ -157,7 +157,7 @@ static bool ResizeInstancesBuffer(
 }
 
 static bool ResizeIfNeeded(
-    CommandRecorderBase& cr,
+    CommandRecorder& cr,
     FixedArray<GpuBufferRef, NumFramesInFlight>& indirectBuffers,
     FixedArray<GpuBufferRef, NumFramesInFlight>& instanceBuffers,
     FixedArray<GpuBufferRef, NumFramesInFlight>& stagingBuffers,
@@ -303,7 +303,7 @@ void IndirectDrawState::ResetDrawState()
     m_dirtyBits = AllBitsDirty;
 }
 
-void IndirectDrawState::UpdateBufferData(CommandRecorderBase& cr, bool* outWasResized)
+void IndirectDrawState::UpdateBufferData(CommandRecorder& cr, bool* outWasResized)
 {
     const uint32 frameIndex = GetFrameCounter() % NumFramesInFlight;
 
@@ -383,7 +383,7 @@ void IndirectRenderer::Create(EntityBatchAllocatorBase* batchAllocator)
     m_indirectDrawState.Create();
 }
 
-void IndirectRenderer::PushDrawCallsToIndirectState(CommandRecorderBase& cr, DrawCallCollection& drawCallCollection)
+void IndirectRenderer::PushDrawCallsToIndirectState(CommandRecorder& cr, DrawCallCollection& drawCallCollection)
 {
     for (size_t i = 0; i < drawCallCollection.drawCalls.Size(); i++)
     {
@@ -402,13 +402,13 @@ void IndirectRenderer::PushDrawCallsToIndirectState(CommandRecorderBase& cr, Dra
     }
 }
 
-void IndirectRenderer::PrepareDrawCommands(CommandRecorderBase& cr)
+void IndirectRenderer::PrepareDrawCommands(CommandRecorder& cr)
 {
     bool wasBufferResized = false;
     m_indirectDrawState.UpdateBufferData(cr, &wasBufferResized);
 }
 
-void IndirectRenderer::ExecuteCullShaderInBatches(CommandRecorderBase& cr, const RenderSetup& renderSetup)
+void IndirectRenderer::ExecuteCullShaderInBatches(CommandRecorder& cr, const RenderSetup& renderSetup)
 {
     AssertDebug(renderSetup.world && renderSetup.view);
     AssertDebug(renderSetup.passData != nullptr);

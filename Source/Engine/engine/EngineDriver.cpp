@@ -480,11 +480,6 @@ void EngineDriver::RequestStop()
 {
     m_delegates.OnShutdown();
 
-    if (TaskSystem::GetInstance().IsRunning())
-    {
-        TaskSystem::GetInstance().Stop();
-    }
-
     if (int32 shutdownCounter = AtomicIncrement(&m_isShuttingDown); shutdownCounter == 1)
     {
         if (g_renderThreadInstance != nullptr && g_renderThreadInstance->IsRunning())
@@ -506,6 +501,11 @@ void EngineDriver::FinalizeStop()
     Assert(AtomicAdd(&m_isShuttingDown, 0) >= 1);
 
     HYP_LOG(Engine, Info, "Stopping all engine processes");
+
+    if (TaskSystem::GetInstance().IsRunning())
+    {
+        TaskSystem::GetInstance().Stop();
+    }
 
     m_worlds.Clear();
 

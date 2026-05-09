@@ -63,21 +63,14 @@ void TCommandRecorder<RenderAllocator>::Execute(CommandBuffer* commandBuffer)
 {
     AssertDebug(commandBuffer != nullptr);
 
-    const size_t max = m_headerCount;
-
-    CmdHeader* headersBegin = m_headersPtr;
-    CmdHeader* headersEnd = headersBegin + max;
-
-    CmdHeader* curr = headersBegin;
-
-    while (curr != headersEnd)
+    for (size_t i = 0; i < m_headerCount; i++)
     {
-        CmdBase* cmdDataPtr = reinterpret_cast<CmdBase*>(m_buffer.Data() + curr->offset);
+        CmdHeader& header = m_headersPtr[i];
 
-        InvokeCmdFnPtr invokeFnPtr = curr->invokeFnPtr;
+        CmdBase* cmdDataPtr = reinterpret_cast<CmdBase*>(m_buffer.Data() + header.offset);
+
+        InvokeCmdFnPtr invokeFnPtr = header.invokeFnPtr;
         invokeFnPtr(cmdDataPtr, commandBuffer);
-
-        ++curr;
     }
 
     m_headerCount = 0;
