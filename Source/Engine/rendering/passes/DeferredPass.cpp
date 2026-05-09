@@ -1472,6 +1472,11 @@ void ReflectionsPass::Render(Frame* frame, const RenderSetup& rs)
 
 DeferredPassData::~DeferredPassData()
 {
+    for (FramebufferRef& framebuffer : mipChainFramebuffers)
+    {
+        EnqueueDeletion(std::move(framebuffer));
+    }
+
     EnqueueDeletion(std::move(mipChain));
 
     depthPyramidRenderer.Reset();
@@ -2138,6 +2143,47 @@ PassData* DeferredPass::CreateViewPassData(View* view, PassDataExt&)
         passData.mipChain->SetName(NAME("DeferredPassMipChain"));
         CheckResult(passData.mipChain->Create());
 
+        // Create framebuffers for each mip level (for downsampling)
+        {
+            const uint32 numMips = passData.mipChain->GetTextureDesc().NumMips();
+            passData.mipChainFramebuffers.Resize(numMips);
+
+            for (uint32 mipLevel = 0; mipLevel < numMips; ++mipLevel)
+            {
+                const Vec3u& baseExtent = passData.mipChain->GetTextureDesc().extent;
+                Vec2u mipExtent {
+                    MathUtil::Max(baseExtent.x >> mipLevel, 1u),
+                    MathUtil::Max(baseExtent.y >> mipLevel, 1u)
+                };
+
+                FramebufferDesc framebufferDesc {};
+                framebufferDesc.extent = mipExtent;
+
+                passData.mipChainFramebuffers[mipLevel] = RI.MakeFramebuffer(framebufferDesc);
+#if HYP_DEBUG_MODE
+                passData.mipChainFramebuffers[mipLevel]->SetDebugName(NAME_FMT("DeferredPassMipChain_FB{}", mipLevel));
+#endif
+
+                GpuImageViewRef mipImageView = RI.MakeImageView(
+                    passData.mipChain->GetGpuImage(),
+                    uint8(mipLevel), 1, // mip level, 1 mip
+                    0, 1                // layer 0, 1 layer
+                );
+
+                Attachment* attachment = passData.mipChainFramebuffers[mipLevel]->AddAttachment(
+                    0,
+                    AttachmentDesc {
+                        TextureType::Texture2D,
+                        passData.mipChain->GetTextureDesc().format,
+                        LoadOperation::CLEAR,
+                        StoreOperation::STORE
+                    },
+                    mipImageView);
+
+                CheckResult(passData.mipChainFramebuffers[mipLevel]->Create());
+            }
+        }
+
         passData.hbao = MakeUnique<HBAO>(gbuffer->GetExtent(), gbuffer);
         passData.hbao->Create();
 
@@ -2283,6 +2329,11 @@ void DeferredPass::ResizeView(Viewport viewport, View* view, DeferredPassData& p
     passData.cullData.depthPyramidDimensions = passData.depthPyramidRenderer->GetExtent();
 
     EnqueueDeletion(std::move(passData.mipChain));
+    for (FramebufferRef& framebuffer : passData.mipChainFramebuffers)
+    {
+        EnqueueDeletion(std::move(framebuffer));
+    }
+    passData.mipChainFramebuffers.Clear();
 
     passData.mipChain = MakeHandle<Texture>(TextureDesc {
         TextureType::Texture2D,
@@ -2294,6 +2345,47 @@ void DeferredPass::ResizeView(Viewport viewport, View* view, DeferredPassData& p
     });
     passData.mipChain->SetName(NAME("DeferredPassMipChain"));
     CheckResult(passData.mipChain->Create());
+
+    // Recreate framebuffers for each mip level
+    {
+        const uint32 numMips = passData.mipChain->GetTextureDesc().NumMips();
+        passData.mipChainFramebuffers.Resize(numMips);
+
+        for (uint32 mipLevel = 0; mipLevel < numMips; ++mipLevel)
+        {
+            const Vec3u& baseExtent = passData.mipChain->GetTextureDesc().extent;
+            Vec2u mipExtent {
+                MathUtil::Max(baseExtent.x >> mipLevel, 1u),
+                MathUtil::Max(baseExtent.y >> mipLevel, 1u)
+            };
+
+            FramebufferDesc framebufferDesc {};
+            framebufferDesc.extent = mipExtent;
+
+            passData.mipChainFramebuffers[mipLevel] = RI.MakeFramebuffer(framebufferDesc);
+#if HYP_DEBUG_MODE
+            passData.mipChainFramebuffers[mipLevel]->SetDebugName(NAME_FMT("DeferredPassMipChain_FB{}", mipLevel));
+#endif
+
+            GpuImageViewRef mipImageView = RI.MakeImageView(
+                passData.mipChain->GetGpuImage(),
+                uint8(mipLevel), 1, // mip level, 1 mip
+                0, 1                // layer 0, 1 layer
+            );
+
+            Attachment* attachment = passData.mipChainFramebuffers[mipLevel]->AddAttachment(
+                0,
+                AttachmentDesc {
+                    TextureType::Texture2D,
+                    passData.mipChain->GetTextureDesc().format,
+                    LoadOperation::CLEAR,
+                    StoreOperation::STORE
+                },
+                mipImageView);
+
+            CheckResult(passData.mipChainFramebuffers[mipLevel]->Create());
+        }
+    }
 
     passData.hbao = MakeUnique<HBAO>(viewport.extent, gbuffer);
     passData.hbao->Create();
@@ -3128,14 +3220,89 @@ void DeferredPass::GenerateMipChain(Frame* frame, const RenderSetup& rs, RenderC
     const Handle<Texture>& mipChainTexture = pd->mipChain;
     AssertDebug(mipChainTexture.IsValid());
 
-    frame->cr << InsertBarrier(srcImage, RS_COPY_SRC);
-    frame->cr << InsertBarrier(mipChainTexture->GetGpuImage(), RS_COPY_DST);
+    const uint32 numMips = mipChainTexture->GetTextureDesc().NumMips();
 
-    frame->cr << CopyImage(srcImage, mipChainTexture->GetGpuImage(), mipChainTexture->GetTextureDesc().extent);
-    frame->cr << GenerateMipmaps(mipChainTexture);
+    CommandRecorder& cr = frame->cr;
 
-    frame->cr << InsertBarrier(mipChainTexture->GetGpuImage(), RS_SHADER_RESOURCE);
-    frame->cr << InsertBarrier(srcImage, RS_RENDER_TARGET);
+    // Copy the source image to mip 0 of the mip chain
+    cr << InsertBarrier(srcImage, RS_COPY_SRC);
+    cr << InsertBarrier(mipChainTexture->GetGpuImage(), RS_COPY_DST);
+
+    cr << CopyImage(srcImage, mipChainTexture->GetGpuImage(), mipChainTexture->GetTextureDesc().extent);
+
+    // Transition mip 0 to shader resource for reading (source for first downsample)
+    cr << InsertBarrier(mipChainTexture->GetGpuImage(), RS_SHADER_RESOURCE);
+
+    for (uint32 mipLevel = 1; mipLevel < numMips; ++mipLevel)
+    {
+        const uint32 srcMip = mipLevel - 1;
+
+        // Calculate dimensions for source and destination mip levels
+        const Vec3u& baseExtent = mipChainTexture->GetTextureDesc().extent;
+        Vec2u srcExtent {
+            MathUtil::Max(baseExtent.x >> srcMip, 1u),
+            MathUtil::Max(baseExtent.y >> srcMip, 1u)
+        };
+
+        // Create image view for the source mip level
+        const GpuImageViewRef& srcMipView = RI.textureViewCache->GetOrCreate(
+            mipChainTexture,
+            uint8(srcMip), 1,   // mip level, 1 mip
+            0, 1                // layer 0, 1 layer
+        );
+
+        // Set up render target (destination mip level) - use pre-created framebuffer
+        Framebuffer* dstFramebuffer = pd->mipChainFramebuffers[mipLevel];
+        AssertDebug(dstFramebuffer != nullptr);
+
+        // Begin rendering to the destination mip
+        cr << SetCurrentFramebuffer(dstFramebuffer);
+        cr << SetCurrentViewport(Viewport { dstFramebuffer->GetExtent() });
+
+        // Set up the BlitTexture shader for downsampling
+        cr << SetCurrentShader(ShaderDesc(NAME("BlitTexture")));
+
+        cr << SetInputLayout(StaticVertexInputLayout<VT_Simple>);
+        cr << SetTopology(TOP_TRIANGLES);
+        cr << SetFillMode(FM_FILL);
+        cr << SetDepthTest(false);
+        cr << SetDepthWrite(false);
+        cr << SetFaceCullMode(FCM_NONE);
+
+        // Set shader uniforms
+        cr << SetShaderUniform(0, "SamplerLinear"_sh, RI.placeholderData->GetSamplerLinear());
+        cr << SetShaderUniform(1, "SamplerNearest"_sh, RI.placeholderData->GetSamplerNearest());
+        cr << SetShaderUniform(2, "WorldsBuffer"_sh, RI.namedBuffers[NamedBuffer::Worlds]);
+        cr << SetShaderUniform(3, "InTexture"_sh, srcMipView);
+
+        // Render fullscreen quad
+        cr << CommitDrawState();
+
+        // Get the fullscreen quad mesh (same as used by FullScreenPass)
+        if (!m_quadMesh)
+        {
+            m_quadMesh = MeshBuilder::Quad();
+            m_quadMesh->SetFlags(MeshFlags::ViewIndependent);
+            InitObject(m_quadMesh);
+        }
+
+        cr << BindVertexBuffer(m_quadMesh->GetVertexBuffer());
+        cr << BindIndexBuffer(m_quadMesh->GetIndexBuffer());
+        cr << DrawIndexed(6);
+
+        // End rendering to this mip
+        cr << SetCurrentFramebuffer(nullptr);
+
+        // Transition the written mip to shader resource for the next iteration
+        cr << InsertBarrier(mipChainTexture->GetGpuImage(), RS_SHADER_RESOURCE);
+    }
+
+    // Reset depth state
+    cr << SetDepthTest(true);
+    cr << SetDepthWrite(true);
+
+    // Transition source image back to render target
+    cr << InsertBarrier(srcImage, RS_RENDER_TARGET);
 }
 
 #pragma endregion DeferredPass

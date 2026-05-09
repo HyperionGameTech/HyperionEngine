@@ -281,6 +281,7 @@ public:
     int priority = 0;
 
     Handle<Texture> mipChain;
+    Array<FramebufferRef, RenderAllocator> mipChainFramebuffers; // One framebuffer per mip level for downsampling
 
     UniquePtr<LightingPass> ambientLightingPass;
     UniquePtr<LightingPass> punctualLightingPass;

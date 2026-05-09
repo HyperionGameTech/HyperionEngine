@@ -602,11 +602,17 @@ public:
         m_shaderReloadTask = TaskSystem::GetInstance().Enqueue(
             [this]()
             {
-                while (!m_shaderReloadShouldStop.Get(MemoryOrder::RELAXED))
+                auto CheckShouldStop = [&]()
+                {
+                    return m_shaderReloadShouldStop.Get(MemoryOrder::RELAXED)
+                        || static_cast<TaskThread*>(CurrentThreadObject())->IsStopping();
+                };
+
+                while (!CheckShouldStop())
                 {
                     ThreadSleep(ShaderReloadIntervalMs);
 
-                    if (m_shaderReloadShouldStop.Get(MemoryOrder::RELAXED))
+                    if (CheckShouldStop())
                     {
                         break;
                     }
