@@ -502,6 +502,14 @@ void EngineDriver::FinalizeStop()
 
     HYP_LOG(Engine, Info, "Stopping all engine processes");
 
+    if (m_viewCollectionBatch)
+    {
+        AssertDebug(m_viewCollectionBatch->IsCompleted());
+
+        delete m_viewCollectionBatch;
+        m_viewCollectionBatch = nullptr;
+    }
+
     if (TaskSystem::GetInstance().IsRunning())
     {
         TaskSystem::GetInstance().Stop();
@@ -513,14 +521,6 @@ void EngineDriver::FinalizeStop()
     {
         m_scriptingService->Stop();
         m_scriptingService.Reset();
-    }
-
-    if (m_viewCollectionBatch)
-    {
-        AssertDebug(m_viewCollectionBatch->IsCompleted());
-
-        delete m_viewCollectionBatch;
-        m_viewCollectionBatch = nullptr;
     }
 
     // must stop before net request thread

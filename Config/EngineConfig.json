@@ -18,8 +18,8 @@
     "RayTracedReflections": false,
     "RayTracedGI": false,
     "RayTracingEnabled": true,
-    "IndirectRendering": true,
-    "DepthPrepass": true,
+    "IndirectRendering": false,
+    "DepthPrepass": false,
     "ParallelCollection": true,
     "SSR": {
       "Enabled": true,
@@ -54,7 +54,7 @@
       "TimelineSemaphores": true
     },
     "RayTracing": {
-      "Enabled": true,
+      "Enabled": false,
       "Reflections": {
         "Enabled": false
       },

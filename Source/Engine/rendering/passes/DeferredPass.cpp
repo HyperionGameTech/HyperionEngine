@@ -2138,7 +2138,9 @@ PassData* DeferredPass::CreateViewPassData(View* view, PassDataExt&)
             Vec3u(opaquePassFramebuffer->GetExtent(), 1),
             TFM_LINEAR_MIPMAP,
             TFM_LINEAR_MIPMAP,
-            TWM_CLAMP_TO_EDGE
+            TWM_CLAMP_TO_EDGE,
+            1,
+            IU_SAMPLED | IU_ATTACHMENT
         });
         passData.mipChain->SetName(NAME("DeferredPassMipChain"));
         CheckResult(passData.mipChain->Create());
@@ -2341,7 +2343,9 @@ void DeferredPass::ResizeView(Viewport viewport, View* view, DeferredPassData& p
         Vec3u(opaquePassFramebuffer->GetExtent(), 1),
         TFM_LINEAR_MIPMAP,
         TFM_LINEAR_MIPMAP,
-        TWM_CLAMP_TO_EDGE
+        TWM_CLAMP_TO_EDGE,
+        1,
+        IU_SAMPLED | IU_ATTACHMENT
     });
     passData.mipChain->SetName(NAME("DeferredPassMipChain"));
     CheckResult(passData.mipChain->Create());

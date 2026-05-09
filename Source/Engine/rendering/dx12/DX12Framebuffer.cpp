@@ -143,13 +143,34 @@ RendererResult DX12Framebuffer::Create()
         DX12Attachment* attachment = it.second;
         DX12GpuImage* image = attachment->GetGpuImage();
 
+        const GpuImageViewRef& imageView = attachment->GetImageView();
+        const ImageSubResource& subResource = imageView->GetImageSubResource();
+        const uint32 mipSlice = subResource.baseMipLevel;
+
         if (attachment->IsDepthAttachment())
         {
             D3D12_DEPTH_STENCIL_VIEW_DESC dsvDesc {};
             dsvDesc.Format = ToDXGIFormat(image->GetTextureFormat(), DX12ViewType::RTV_DSV);
-            dsvDesc.ViewDimension = D3D12_DSV_DIMENSION_TEXTURE2D;
+
+            switch (image->GetType())
+            {
+            case TextureType::Texture2D:
+                dsvDesc.ViewDimension = D3D12_DSV_DIMENSION_TEXTURE2D;
+                dsvDesc.Texture2D.MipSlice = mipSlice;
+                break;
+            case TextureType::Texture2DArray:
+            case TextureType::Cubemap:
+            case TextureType::CubemapArray:
+                dsvDesc.ViewDimension = D3D12_DSV_DIMENSION_TEXTURE2DARRAY;
+                dsvDesc.Texture2DArray.MipSlice = mipSlice;
+                dsvDesc.Texture2DArray.FirstArraySlice = subResource.baseArrayLayer;
+                dsvDesc.Texture2DArray.ArraySize = subResource.numLayers;
+                break;
+            default:
+                HYP_UNREACHABLE();
+            }
+
             dsvDesc.Flags = D3D12_DSV_FLAG_NONE;
-            dsvDesc.Texture2D.MipSlice = 0;
 
             device->CreateDepthStencilView(image->GetResource(), &dsvDesc, m_dsvDescriptorHandle.cpuHandle);
         }
@@ -157,9 +178,25 @@ RendererResult DX12Framebuffer::Create()
         {
             D3D12_RENDER_TARGET_VIEW_DESC rtvDesc {};
             rtvDesc.Format = ToDXGIFormat(image->GetTextureFormat(), DX12ViewType::RTV_DSV);
-            rtvDesc.ViewDimension = D3D12_RTV_DIMENSION_TEXTURE2D;
-            rtvDesc.Texture2D.MipSlice = 0;
-            rtvDesc.Texture2D.PlaneSlice = 0;
+
+            switch (image->GetType())
+            {
+            case TextureType::Texture2D:
+                rtvDesc.ViewDimension = D3D12_RTV_DIMENSION_TEXTURE2D;
+                rtvDesc.Texture2D.MipSlice = mipSlice;
+                rtvDesc.Texture2D.PlaneSlice = 0;
+                break;
+            case TextureType::Texture2DArray:
+            case TextureType::Cubemap:
+            case TextureType::CubemapArray:
+                rtvDesc.ViewDimension = D3D12_RTV_DIMENSION_TEXTURE2DARRAY;
+                rtvDesc.Texture2DArray.MipSlice = mipSlice;
+                rtvDesc.Texture2DArray.FirstArraySlice = subResource.baseArrayLayer;
+                rtvDesc.Texture2DArray.ArraySize = subResource.numLayers;
+                break;
+            default:
+                HYP_UNREACHABLE();
+            }
 
             D3D12_CPU_DESCRIPTOR_HANDLE rtvHandle = m_rtvDescriptorHandle.cpuHandle;
             rtvHandle.ptr += rtvIndex * rtvIncrement;
