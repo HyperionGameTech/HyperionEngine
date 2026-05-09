@@ -381,7 +381,7 @@ public:
 
                 continue;
             }
-            
+
             // release write flag
             current->mask.BitAnd(~ExclusiveAccessFlag, MemoryOrder::RELEASE);
 
@@ -524,7 +524,7 @@ public:
                 {
                     // release read access if marked for removal
                     current->mask.Decrement(2, MemoryOrder::RELEASE);
-                        
+
                     // skip broadcast
                     continue;
                 }
@@ -855,7 +855,7 @@ public:
 
             {
                 TUniqueLock guard2(m_mtx);
-                
+
                 // check still nullptr after acquiring unique lock
                 if (!m_impl)
                     m_impl = new DelegateImpl<ReturnType, Args...>();
@@ -938,46 +938,46 @@ private:
 };
 
 /*! \brief Stores a set of DelegateHandlers, intended to hold references to delegates and remove them upon destruction of the owner object. */
-class DelegateHandlerSet : HashMap<Name, DelegateHandler, DynamicAllocator, HashTablePolicy::NotPooled>
+class DelegateHandlerSet : TMap<Name, DelegateHandler, DynamicAllocator, HashTablePolicy::NotPooled>
 {
 public:
-    using HashMap::ConstIterator;
-    using HashMap::Iterator;
+    using TMap::ConstIterator;
+    using TMap::Iterator;
 
     HYP_FORCE_INLINE DelegateHandlerSet& Add(DelegateHandler&& delegateHandler)
     {
-        HashMap::Insert({ Name::Unique("DelegateHandler_"), std::move(delegateHandler) });
+        TMap::Insert({ Name::Unique("DelegateHandler_"), std::move(delegateHandler) });
         return *this;
     }
 
     HYP_FORCE_INLINE DelegateHandlerSet& Add(Name name, DelegateHandler&& delegateHandler)
     {
-        HashMap::Insert({ name, std::move(delegateHandler) });
+        TMap::Insert({ name, std::move(delegateHandler) });
         return *this;
     }
 
     HYP_FORCE_INLINE bool Remove(StringHash name)
     {
-        auto it = HashMap::FindAs(name);
+        auto it = TMap::FindAs(name);
 
-        if (it == HashMap::End())
+        if (it == TMap::End())
         {
             return false;
         }
 
-        HashMap::Erase(it);
+        TMap::Erase(it);
 
         return true;
     }
 
     HYP_FORCE_INLINE bool Remove(ConstIterator it)
     {
-        if (it == HashMap::End())
+        if (it == TMap::End())
         {
             return false;
         }
 
-        HashMap::Erase(it);
+        TMap::Erase(it);
 
         return true;
     }
@@ -998,13 +998,13 @@ public:
 
         Array<DelegateHandler> delegateHandlers;
 
-        for (auto it = HashMap::Begin(); it != HashMap::End();)
+        for (auto it = TMap::Begin(); it != TMap::End();)
         {
             if (it->second.delegateImpl == delegate->m_impl)
             {
                 delegateHandlers.PushBack(std::move(it->second));
 
-                it = HashMap::Erase(it);
+                it = TMap::Erase(it);
 
                 continue;
             }
@@ -1017,20 +1017,20 @@ public:
 
     HYP_FORCE_INLINE Iterator Find(StringHash name)
     {
-        return HashMap::FindAs(name);
+        return TMap::FindAs(name);
     }
 
     HYP_FORCE_INLINE ConstIterator Find(StringHash name) const
     {
-        return HashMap::FindAs(name);
+        return TMap::FindAs(name);
     }
 
     HYP_FORCE_INLINE bool Contains(StringHash name) const
     {
-        return HashMap::FindAs(name) != HashMap::End();
+        return TMap::FindAs(name) != TMap::End();
     }
 
-    HYP_DEF_STL_BEGIN_END(HashMap::Begin(), HashMap::End())
+    HYP_DEF_STL_BEGIN_END(TMap::Begin(), TMap::End())
 };
 
 template <class T>

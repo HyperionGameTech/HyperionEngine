@@ -20,7 +20,7 @@ struct DescriptorUsage
     Name descriptorName;
     ShaderStruct shaderStruct;
     EnumFlags<DescriptorUsageFlags> flags;
-    HashMap<String, String> params;
+    TMap<String, String> params;
 
     HYP_FORCE_INLINE bool operator==(const DescriptorUsage& other) const
     {

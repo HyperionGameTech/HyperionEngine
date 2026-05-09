@@ -16,7 +16,7 @@
 
 #include <Core/containers/Array.hpp>
 #include <Core/containers/SparsePagedArray.hpp>
-#include <Core/containers/HashMap.hpp>
+#include <Core/containers/Map.hpp>
 
 #include <Core/threading/SharedMutex.hpp>
 
@@ -27,7 +27,7 @@ class DX12TextureViewCache final : public TextureViewCacheBase
 public:
     struct SubtypeData
     {
-        SparsePagedArray<HashMap<uint64, DX12GpuImageViewRef, RenderAllocator>, 32, RenderAllocator> imageViews;
+        SparsePagedArray<TMap<uint64, DX12GpuImageViewRef, RenderAllocator>, 32, RenderAllocator> imageViews;
         SparsePagedArray<WeakHandle<Texture>, 32, RenderAllocator> weakTextureHandles;
     };
 
@@ -53,7 +53,7 @@ public:
         Texture* texture,
         const ImageSubResource& subResource,
         TextureType viewTextureType) override;
-    
+
     void RemoveTexture(const Texture* texture) override;
     void CleanupUnusedTextures() override;
 

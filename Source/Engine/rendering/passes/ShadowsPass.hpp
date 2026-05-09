@@ -100,7 +100,7 @@ private:
     };
 
     /// Cached (per-light/view combination) shadow map rendering data that is cleaned up when no longer used
-    HashMap<CacheKey, CachedShadowMapData, RenderAllocator> m_cachedShadowMapData;
+    TMap<CacheKey, CachedShadowMapData, RenderAllocator> m_cachedShadowMapData;
 };
 
 class PointLightShadowsPass : public ShadowsPassBase

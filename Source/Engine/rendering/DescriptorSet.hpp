@@ -12,7 +12,7 @@
 
 #include <Core/memory/RefCountedPtr.hpp>
 
-#include <Core/containers/HashMap.hpp>
+#include <Core/containers/Map.hpp>
 #include <Core/containers/ArrayMap.hpp>
 #include <Core/containers/FixedArray.hpp>
 
@@ -85,7 +85,7 @@ struct ShaderInputWithBinding : ShaderInput
 class DescriptorSetLayout
 {
 public:
-    using InputMap = IntrusiveMap<ShaderInputWithBinding, &ShaderInputWithBinding::name, RHIAllocator>;
+    using InputMap = THashTable<ShaderInputWithBinding, &ShaderInputWithBinding::name, RHIAllocator>;
 
     explicit DescriptorSetLayout(const ShaderInputSet* decl);
 
@@ -250,7 +250,7 @@ class DescriptorSetBase : public ObjectBase
     HYP_OBJECT_BODY(DescriptorSetBase);
 
 public:
-    using ElementsMap = HashMap<Name, DescriptorSetElement, RHIAllocator>;
+    using ElementsMap = TMap<Name, DescriptorSetElement, RHIAllocator>;
 
     virtual ~DescriptorSetBase() override;
 
@@ -273,12 +273,12 @@ public:
     }
 
 #ifdef DECLARE_SET_TRACK_FRAME_USAGE
-    HYP_FORCE_INLINE HashSet<FrameWeakRef>& GetCurrentFrames()
+    HYP_FORCE_INLINE TSet<FrameWeakRef>& GetCurrentFrames()
     {
         return m_currentFrames;
     }
 
-    HYP_FORCE_INLINE const HashSet<FrameWeakRef>& GetCurrentFrames() const
+    HYP_FORCE_INLINE const TSet<FrameWeakRef>& GetCurrentFrames() const
     {
         return m_currentFrames;
     }
@@ -382,7 +382,7 @@ protected:
     Name m_debugName;
 
 #ifdef DECLARE_SET_TRACK_FRAME_USAGE
-    HashSet<FrameWeakRef> m_currentFrames; // frames that are currently using this descriptor set
+    TSet<FrameWeakRef> m_currentFrames; // frames that are currently using this descriptor set
 #endif
 #endif
 };

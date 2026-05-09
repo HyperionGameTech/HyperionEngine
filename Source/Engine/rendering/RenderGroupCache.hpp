@@ -6,7 +6,7 @@
 
 #pragma once
 
-#include <Core/containers/HashMap.hpp>
+#include <Core/containers/Map.hpp>
 #include <Core/containers/Array.hpp>
 
 #include <Core/utilities/IdGenerator.hpp>
@@ -41,7 +41,7 @@ public:
     }
 
 private:
-    HashMap<HashCode, Array<uint32, RenderAllocator>, RenderAllocator> m_lookupByHash;
+    TMap<HashCode, Array<uint32, RenderAllocator>, RenderAllocator> m_lookupByHash;
     SparsePagedArray<RenderableAttributeSet, 1024, RenderAllocator> m_entries;
     IdGenerator m_idGenerator;
 };

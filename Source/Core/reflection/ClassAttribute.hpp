@@ -7,7 +7,7 @@
 #pragma once
 
 #include <Core/containers/String.hpp>
-#include <Core/containers/HashSet.hpp>
+#include <Core/containers/Set.hpp>
 
 #include <Core/utilities/StringView.hpp>
 #include <Core/utilities/Span.hpp>
@@ -382,7 +382,7 @@ struct ClassAttribute final
 class ClassAttributeSet final
 {
 public:
-    using SetType = IntrusiveMap<ClassAttribute, &ClassAttribute::name, DynamicAllocator, HashTablePolicy::NotPooled>;
+    using SetType = THashTable<ClassAttribute, &ClassAttribute::name, DynamicAllocator, HashTablePolicy::NotPooled>;
 
     using Iterator = typename SetType::Iterator;
     using ConstIterator = typename SetType::ConstIterator;

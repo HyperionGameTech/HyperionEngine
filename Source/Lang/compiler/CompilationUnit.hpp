@@ -7,7 +7,7 @@
 #include <Lang/compiler/Tree.hpp>
 
 #include <Core/containers/String.hpp>
-#include <Core/containers/HashMap.hpp>
+#include <Core/containers/Map.hpp>
 
 #include <Core/memory/RefCountedPtr.hpp>
 #include <Core/memory/UniquePtr.hpp>
@@ -85,7 +85,7 @@ public:
     /** Maps filepath to a vector of modules, so that no module has to be parsed
         and analyze more than once.
     */
-    HashMap<String, Array<Module*>> importedModules;
+    TMap<String, Array<Module*>> importedModules;
     Array<Module*> ownedModules;
     Tree<Module*> moduleTree;
 

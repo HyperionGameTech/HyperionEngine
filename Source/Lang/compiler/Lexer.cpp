@@ -7,7 +7,7 @@ namespace Hyperion {
 
 using namespace utf;
 
-const HashMap<String, Lexer::NumericSuffixInfo> Lexer::s_numericSuffixes = {
+const TMap<String, Lexer::NumericSuffixInfo> Lexer::s_numericSuffixes = {
     { "u", { "u", CBS_32 } },
     { "i", { "i", CBS_32 } },
     { "l", { "l", CBS_64 } },

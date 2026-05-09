@@ -19,8 +19,8 @@
 #include <Core/profiling/ProfileScope.hpp>
 
 #include <Core/containers/Array.hpp>
-#include <Core/containers/HashMap.hpp>
-#include <Core/containers/HashSet.hpp>
+#include <Core/containers/Map.hpp>
+#include <Core/containers/Set.hpp>
 #include <Core/containers/String.hpp>
 #include <Core/containers/FlatMap.hpp>
 #include <Core/containers/FlatSet.hpp>

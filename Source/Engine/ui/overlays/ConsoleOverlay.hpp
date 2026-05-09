@@ -11,7 +11,7 @@
 #include <Core/math/Color.hpp>
 
 #include <Core/containers/Array.hpp>
-#include <Core/containers/HashMap.hpp>
+#include <Core/containers/Map.hpp>
 
 #include <Core/utilities/Uuid.hpp>
 

@@ -418,7 +418,7 @@ private:
     uint32 m_componentIdCounter = 0;
 
     /// TODO: Change to MemoryPool and use Component* rather than ComponentId
-    HashMap<ComponentId, Component> m_components;
+    TMap<ComponentId, Component> m_components;
 };
 
 template <class Component>

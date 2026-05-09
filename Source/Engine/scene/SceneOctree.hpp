@@ -10,8 +10,8 @@
 
 #include <Core/containers/Array.hpp>
 #include <Core/containers/FixedArray.hpp>
-#include <Core/containers/HashMap.hpp>
-#include <Core/containers/HashSet.hpp>
+#include <Core/containers/Map.hpp>
+#include <Core/containers/Set.hpp>
 #include <Core/containers/SparsePagedArray.hpp>
 
 #include <Core/utilities/Pair.hpp>
@@ -81,7 +81,7 @@ struct SceneOctreePayload
         }
     };
 
-    using EntrySet = IntrusiveMap<Entry, &Entry::GetId, DynamicAllocator, HashTablePolicy::NotPooled>;
+    using EntrySet = THashTable<Entry, &Entry::GetId, DynamicAllocator, HashTablePolicy::NotPooled>;
 
     EntrySet entries;
 
@@ -93,7 +93,7 @@ struct SceneOctreePayload
 
 struct SceneOctreeState : public OctreeState<SceneOctree, SceneOctreePayload>
 {
-    HashMap<Entity*, SceneOctree*> entityToOctant;
+    TMap<Entity*, SceneOctree*> entityToOctant;
 
     virtual ~SceneOctreeState() override = default;
 };

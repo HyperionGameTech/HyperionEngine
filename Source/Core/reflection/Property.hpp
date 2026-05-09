@@ -15,7 +15,7 @@
 
 #include <Core/functional/Proc.hpp>
 
-#include <Core/containers/HashMap.hpp>
+#include <Core/containers/Map.hpp>
 
 #include <Core/reflection/TypeId.hpp>
 #include <Core/reflection/TypeInfoFwd.hpp>

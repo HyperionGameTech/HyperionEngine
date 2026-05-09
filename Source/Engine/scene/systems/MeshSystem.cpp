@@ -45,10 +45,10 @@ void UpdateInstancedMeshData(Entity& entity, MeshComponent& meshComponent)
         {
             DestroyInstancedMeshData(entity, meshComponent, /* removeFromPackage */ true);
         }
-        
+
         return;
     }
-    
+
     if (!meshComponent.instanceData.IsValid())
     {
         Handle<InstancedMeshData> imd = MakeHandle<InstancedMeshData>(NAME_FMT("IMD_{}", entity.GetName()));
@@ -57,7 +57,7 @@ void UpdateInstancedMeshData(Entity& entity, MeshComponent& meshComponent)
 
         meshComponent.instanceData = AssetReference(imd);
     }
-    
+
     const Handle<InstancedMeshData>& imd = DynamicCast<InstancedMeshData>(meshComponent.instanceData.Resolve());
 
     if (!imd.IsValid())
@@ -147,9 +147,9 @@ void MeshSystem::OnEntityRemoved(Entity* entity)
     {
         return;
     }
-    
+
     DestroyInstancedMeshData(*entity, entity->GetComponent<MeshComponent>(), /* removeFromPackage */ false);
-    
+
     entity->AddTag<EntityTag::UpdateRenderProxy>();
     entity->RemoveTag<EntityTag::UpdateInstancedMeshData>();
 
@@ -174,7 +174,7 @@ void MeshSystem::Process(float delta, Span<Handle<Scene>> scenes)
             continue;
         }
 
-        HashSet<Entity*, SceneAllocator> updatedEntities;
+        TSet<Entity*, SceneAllocator> updatedEntities;
 
 #if HYP_EDITOR
         for (auto [entity, meshComponent] : scene->GetEntityManager()->GetEntitySet<MeshComponent>().GetScopedView(GetComponentInfos()))

@@ -156,7 +156,7 @@ HYP_CLASS(Abstract)
 class HYP_API BakerBase : public ObjectBase
 {
     HYP_OBJECT_BODY(BakerBase);
-    
+
 public:
     BakerBase(BakerConfig&& config, ObjectBase* source, const Handle<Scene>& scene, const BoundingBox& aabb);
 
@@ -279,7 +279,7 @@ protected:
     Handle<View> m_view;
 
     Array<BakeEntity, DynamicAllocator> m_bakeEntities;
-    HashMap<Handle<Entity>, BakeEntity*> m_bakeEntitiesByEntity;
+    TMap<Handle<Entity>, BakeEntity*> m_bakeEntitiesByEntity;
 
     BakerThreadPool* m_threadPool;
 

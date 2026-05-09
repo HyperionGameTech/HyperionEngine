@@ -50,7 +50,7 @@ class NameRegistry
 {
 public:
     using CharBuffer = Array<char>;
-    using MapType = HashMap<NameID, Pair<CharBuffer, uint32>>;
+    using MapType = TMap<NameID, Pair<CharBuffer, uint32>>;
 
     using Bucket = typename MapType::Bucket;
     using Node = typename MapType::Node;

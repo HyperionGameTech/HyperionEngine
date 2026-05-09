@@ -10,7 +10,7 @@
 
 #include <Core/memory/RefCountedPtr.hpp>
 
-#include <Core/containers/HashMap.hpp>
+#include <Core/containers/Map.hpp>
 #include <Core/containers/String.hpp>
 
 #include <Core/utilities/StringView.hpp>
@@ -249,7 +249,7 @@ public:
      *
      *  \return A reference to the map of methods.
      */
-    HYP_FORCE_INLINE const HashMap<ANSIString, ManagedMethod>& GetMethods() const
+    HYP_FORCE_INLINE const TMap<ANSIString, ManagedMethod>& GetMethods() const
     {
         return m_methods;
     }
@@ -313,7 +313,7 @@ public:
      *
      *  \return A reference to the map of properties.
      */
-    HYP_FORCE_INLINE const HashMap<ANSIString, ManagedProperty>& GetProperties() const
+    HYP_FORCE_INLINE const TMap<ANSIString, ManagedProperty>& GetProperties() const
     {
         return m_properties;
     }
@@ -432,8 +432,8 @@ private:
     const Class* m_class;
     ManagedClass* m_parentClass;
     EnumFlags<ManagedClassFlags> m_flags;
-    HashMap<ANSIString, ManagedMethod> m_methods;
-    HashMap<ANSIString, ManagedProperty> m_properties;
+    TMap<ANSIString, ManagedMethod> m_methods;
+    TMap<ANSIString, ManagedProperty> m_properties;
 
     Weak<Assembly> m_assembly;
 

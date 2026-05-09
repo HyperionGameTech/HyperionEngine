@@ -220,9 +220,9 @@ private:
 
     Handle<FontAtlas> m_defaultFontAtlas;
 
-    HashMap<WeakHandle<UIObject>, UIObjectMouseState> m_objectMouseStates;
-    HashSet<WeakHandle<UIObject>> m_hoveredUiObjects;
-    SparsePagedArray<HashMap<WeakHandle<UIObject>, UIObjectKeyState>, 16> m_keyedDownObjects;
+    TMap<WeakHandle<UIObject>, UIObjectMouseState> m_objectMouseStates;
+    TSet<WeakHandle<UIObject>> m_hoveredUiObjects;
+    SparsePagedArray<TMap<WeakHandle<UIObject>, UIObjectKeyState>, 16> m_keyedDownObjects;
 
     WeakHandle<UIObject> m_focusedObject;
 

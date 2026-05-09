@@ -43,7 +43,7 @@ struct LoadAssetsFromReferencesContext
 };
 
 // used to prevent infinite recursion when serializing nested objects
-static thread_local HashSet<Pair<TypeId, const void*>> s_serializedObjects;
+static thread_local TSet<Pair<TypeId, const void*>> s_serializedObjects;
 
 // If true, class names will always be written when serializing objects IF the type != the declared type.
 // For example, we're serializing an array of Animal and we encounter a Dog object, we need to write the class name
@@ -714,7 +714,7 @@ Result ObjectToJSON(const Class* cls, const BoxedValue& target, JSON::Object& ou
         opts.writeClassNames = true;
     }
 
-    HashSet<Name> usedMembers;
+    TSet<Name> usedMembers;
 
     const Class* originalClass = cls;
 

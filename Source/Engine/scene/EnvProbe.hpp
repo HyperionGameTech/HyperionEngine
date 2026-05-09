@@ -347,7 +347,7 @@ protected:
 
     Bitset m_visibilityBits;
 
-    HashMap<ObjId<Scene>, HashCode, SceneAllocator> m_cachedOctantHashCodes;
+    TMap<ObjId<Scene>, HashCode, SceneAllocator> m_cachedOctantHashCodes;
 
     Handle<Texture> m_texture;
 };

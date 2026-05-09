@@ -4,7 +4,7 @@
 #include <Lang/compiler/type-system/SymbolType.hpp>
 #include <Lang/SourceLocation.hpp>
 
-#include <Core/containers/HashMap.hpp>
+#include <Core/containers/Map.hpp>
 #include <Core/memory/RefCountedPtr.hpp>
 #include <Core/utilities/Optional.hpp>
 
@@ -117,7 +117,7 @@ public:
     }
 
 private:
-    using CacheMap = HashMap<Key, SymbolType*, DynamicAllocator, HashTablePolicy::NotPooled>;
+    using CacheMap = TMap<Key, SymbolType*, DynamicAllocator, HashTablePolicy::NotPooled>;
 
     mutable Mutex m_mutex;
     CacheMap m_cache;
@@ -169,7 +169,7 @@ public:
     ScopeType scopeType;
     int scopeFlags;
     Array<const SymbolType*> returnTypes;
-    HashMap<String, RC<Identifier>> closureCaptures;
+    TMap<String, RC<Identifier>> closureCaptures;
     TypeInstanceCache typeInstanceCache;
 };
 

@@ -11,7 +11,7 @@
 #include <Core/Defines.hpp>
 
 #include <Core/containers/SparsePagedArray.hpp>
-#include <Core/containers/HashMap.hpp>
+#include <Core/containers/Map.hpp>
 
 #include <Core/memory/Pimpl.hpp>
 

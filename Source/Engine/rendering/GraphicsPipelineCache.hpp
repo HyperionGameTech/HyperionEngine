@@ -8,7 +8,7 @@
 
 #include <Core/containers/Array.hpp>
 #include <Core/containers/FixedArray.hpp>
-#include <Core/containers/HashMap.hpp>
+#include <Core/containers/Map.hpp>
 
 #include <Core/threading/Mutex.hpp>
 #include <Core/threading/Task.hpp>
@@ -85,7 +85,7 @@ public:
     friend class GraphicsPipelineCacheHandle;
 
     GraphicsPipelineCache();
-    
+
     GraphicsPipelineCache(const GraphicsPipelineCache&) = delete;
     GraphicsPipelineCache& operator=(const GraphicsPipelineCache&) = delete;
 

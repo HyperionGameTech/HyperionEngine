@@ -1819,15 +1819,15 @@ class ShaderVariantPerms
 public:
     HYP_STRUCT_BODY(ShaderVariantPerms);
 
-    using Iterator = typename HashSet<ShaderProperty>::Iterator;
-    using ConstIterator = typename HashSet<ShaderProperty>::ConstIterator;
+    using Iterator = typename TSet<ShaderProperty>::Iterator;
+    using ConstIterator = typename TSet<ShaderProperty>::ConstIterator;
 
     ShaderVariantPerms()
         : m_needsHashCodeRecalculation(true)
     {
     }
 
-    explicit ShaderVariantPerms(const HashSet<ShaderProperty>& props)
+    explicit ShaderVariantPerms(const TSet<ShaderProperty>& props)
         : m_needsHashCodeRecalculation(true)
     {
         for (const ShaderProperty& property : props)
@@ -1990,7 +1990,7 @@ public:
         return result;
     }
 
-    HYP_FORCE_INLINE const HashSet<ShaderProperty>& GetPropertySet() const
+    HYP_FORCE_INLINE const TSet<ShaderProperty>& GetPropertySet() const
     {
         return m_props;
     }
@@ -2199,7 +2199,7 @@ private:
     }
 
     HYP_FIELD()
-    HashSet<ShaderProperty> m_props;
+    TSet<ShaderProperty> m_props;
 
     HYP_FIELD()
     VertexTypeMask m_requiredVertexAttributes;

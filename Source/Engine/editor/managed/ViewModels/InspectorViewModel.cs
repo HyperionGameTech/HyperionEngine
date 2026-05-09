@@ -86,7 +86,7 @@ namespace Hyperion.Editor.ViewModels
         public void SetSelectedNode(Node? node, Scene? scene = null, bool isRootNode = false)
         {
             Dispatcher.UIThread.VerifyAccess();
-            
+
             SelectedNode = node;
             CurrentScene = scene;
             IsRootNode = isRootNode;
@@ -406,7 +406,7 @@ namespace Hyperion.Editor.ViewModels
 
         private void UpdateAddableComponents(IEnumerable<TypeId> existingComponentTypes)
         {
-            HashSet<TypeId> existingTypes = new(existingComponentTypes);
+            HashSet<TypeId> existingTypes = [.. existingComponentTypes];
 
             AddableComponents.Clear();
 

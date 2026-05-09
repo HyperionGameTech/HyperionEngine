@@ -11,7 +11,7 @@
 
 #include <Core/utilities/EnumFlags.hpp>
 
-#include <Core/containers/HashMap.hpp>
+#include <Core/containers/Map.hpp>
 
 #include <dotnet/Types.hpp>
 
@@ -99,7 +99,7 @@ private:
 
     ManagedGuid m_guid;
 
-    HashMap<int32, RC<ManagedClass>> m_classObjects;
+    TMap<int32, RC<ManagedClass>> m_classObjects;
 
     // Function pointer to invoke a managed method
     InvokeGetterFunction m_invokeGetterFptr;

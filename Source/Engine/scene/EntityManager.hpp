@@ -9,8 +9,8 @@
 #include <Core/containers/Array.hpp>
 #include <Core/containers/FlatMap.hpp>
 #include <Core/containers/FlatSet.hpp>
-#include <Core/containers/HashMap.hpp>
-#include <Core/containers/HashSet.hpp>
+#include <Core/containers/Map.hpp>
+#include <Core/containers/Set.hpp>
 #include <Core/containers/TypeMap.hpp>
 
 #include <Core/memory/UniquePtr.hpp>
@@ -919,18 +919,18 @@ private:
     EntityContainer m_entities;
     DataRaceDetector m_entitiesDataRaceDetector;
 
-    HashMap<EntitySetId, UniquePtr<EntitySetBase>> m_entitySets;
+    TMap<EntitySetId, UniquePtr<EntitySetBase>> m_entitySets;
 
-    TypeMap<HashSet<EntitySetId>> m_componentEntitySets;
+    TypeMap<TSet<EntitySetId>> m_componentEntitySets;
 
     // thread safe map of entity sets not yet added to m_entitySets
     // that will be added upon synchronization
-    HashMap<EntitySetId, UniquePtr<EntitySetBase>> m_pendingEntitySets;
+    TMap<EntitySetId, UniquePtr<EntitySetBase>> m_pendingEntitySets;
     mutable Mutex m_pendingEntitySetsMtx;
 
     Array<SystemExecutionGroup*> m_systemExecutionGroups;
 
-    HashMap<SystemBase*, HashSet<Entity*>> m_systemEntityMap;
+    TMap<SystemBase*, TSet<Entity*>> m_systemEntityMap;
     mutable Mutex m_systemEntityMapMutex;
 
     bool m_isLocked;

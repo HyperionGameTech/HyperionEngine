@@ -627,7 +627,7 @@ bool EntityManager::RemoveEntity(Entity* entity)
     const ObjId<Entity> entityId = entity->Id();
 
     // Components generically stored as BoxedValue by TypeId - to add to other EntityManager
-    HashMap<TypeId, BoxedValue> components;
+    TMap<TypeId, BoxedValue> components;
 
     HYP_MT_CHECK_RW(m_entitiesDataRaceDetector);
 

@@ -87,10 +87,10 @@ template <class T, class AllocatorType>
 class LinkedList;
 
 template <class Key, class Value, class AllocatorType, class Policy>
-class HashMap;
+class TMap;
 
 template <class Value, class AllocatorType, class Policy>
-class HashSet;
+class TSet;
 
 template <class Key, class Value>
 class FlatMap;
@@ -539,13 +539,13 @@ struct TypeInfoImpl<T, TBoxed, std::enable_if_t<std::is_same_v<T, filesystem::Fi
 };
 
 template <class Key, class Value, class NodeAllocatorType, class TBoxed>
-struct TypeInfoImpl<containers::HashMap<Key, Value, NodeAllocatorType>, TBoxed>
+struct TypeInfoImpl<containers::TMap<Key, Value, NodeAllocatorType>, TBoxed>
 {
     void operator()(TypeInfo& result) const;
 };
 
 template <class Value, class NodeAllocatorType, class TBoxed>
-struct TypeInfoImpl<containers::HashSet<Value, NodeAllocatorType>, TBoxed>
+struct TypeInfoImpl<containers::TSet<Value, NodeAllocatorType>, TBoxed>
 {
     void operator()(TypeInfo& result) const;
 };
@@ -917,7 +917,7 @@ struct TypeInfo
         return flags & TypeInfoFlags::HANDLE_TYPE;
     }
 
-    /*! \brief Get element type for Array, String, HashSet, FlatSet, or key type for HashMap/FlatMap */
+    /*! \brief Get element type for Array, String, HashSet, FlatSet, or key type for TMap/FlatMap */
     HYP_FORCE_INLINE const TypeInfo* GetElementType() const
     {
         return extendedInfo.GetElementType();
@@ -962,7 +962,7 @@ struct TypeInfo
         return nullptr;
     }
 
-    /*! \brief Get value type for HashMap/FlatMap (stored in extendedInfo.next->data) */
+    /*! \brief Get value type for TMap/FlatMap (stored in extendedInfo.next->data) */
     HYP_FORCE_INLINE const TypeInfo* GetValueType() const
     {
         if (!extendedInfo.next)
@@ -973,7 +973,7 @@ struct TypeInfo
         return extendedInfo.next->GetElementType();
     }
 
-    /*! \brief Get key type for HashMap/FlatMap (same as GetElementType for these types) */
+    /*! \brief Get key type for TMap/FlatMap (same as GetElementType for these types) */
     HYP_FORCE_INLINE const TypeInfo* GetKeyType() const
     {
         if (IsMapType())
@@ -1307,9 +1307,9 @@ void TypeInfoImpl<T, TBoxed, std::enable_if_t<std::is_same_v<T, filesystem::File
 }
 
 template <class Key, class Value, class NodeAllocatorType, class TBoxed>
-void TypeInfoImpl<containers::HashMap<Key, Value, NodeAllocatorType>, TBoxed>::operator()(TypeInfo& result) const
+void TypeInfoImpl<containers::TMap<Key, Value, NodeAllocatorType>, TBoxed>::operator()(TypeInfo& result) const
 {
-    using MapType = containers::HashMap<Key, Value, NodeAllocatorType>;
+    using MapType = containers::TMap<Key, Value, NodeAllocatorType>;
 
     class HashMapHandler final : public ITypeInfoMapHandler
     {
@@ -1858,9 +1858,9 @@ void TypeInfoImpl<containers::FlatSet<Value>, TBoxed>::operator()(TypeInfo& resu
 }
 
 template <class Value, class NodeAllocatorType, class TBoxed>
-void TypeInfoImpl<containers::HashSet<Value, NodeAllocatorType>, TBoxed>::operator()(TypeInfo& result) const
+void TypeInfoImpl<containers::TSet<Value, NodeAllocatorType>, TBoxed>::operator()(TypeInfo& result) const
 {
-    using SetType = containers::HashSet<Value, NodeAllocatorType>;
+    using SetType = containers::TSet<Value, NodeAllocatorType>;
 
     class HashSetHandler final : public ITypeInfoSetHandler
     {
@@ -2095,7 +2095,7 @@ void TypeInfoImpl<utilities::Variant<Types...>, TBoxed>::operator()(TypeInfo& re
                 if (isSet)
                     return true;
             }
-             
+
             // final pass: non-strict match.
             // allows fundamental types to be used interchangably; the first compatible type that is encountered
             // will be used.

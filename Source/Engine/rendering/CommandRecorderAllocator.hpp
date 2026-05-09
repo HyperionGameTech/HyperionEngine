@@ -13,7 +13,7 @@
 
 #include <Core/containers/FixedArray.hpp>
 #include <Core/containers/Array.hpp>
-#include <Core/containers/HashMap.hpp>
+#include <Core/containers/Map.hpp>
 #include <Core/containers/LinkedList.hpp>
 
 #include <Core/utilities/DeferredScope.hpp>

@@ -998,7 +998,7 @@ JString Value::ToString(bool representation, uint32 depth) const
 
 JString Value::ToString_Internal(bool representation, uint32 depth) const
 {
-    static thread_local HashSet<const Value*> s_serializedObjects;
+    static thread_local TSet<const Value*> s_serializedObjects;
 
     if (!s_serializedObjects.Insert(this).second)
     {
@@ -1034,7 +1034,7 @@ JString Value::ToString_Internal(bool representation, uint32 depth) const
             // JSON doesn't have undefined, only null.
             return "null";
         }
-        
+
         // empty string
         return "";
     }
@@ -1243,7 +1243,7 @@ ParseResult Parse(BufferedReader& reader)
 ParseResult Parse(const String& jsonString)
 {
     const size_t bufferLength = jsonString.Size();
-    
+
     SourceFile sourceFile("<input>", bufferLength);
     Assert(sourceFile.GetBuffer().Size() == bufferLength);
 

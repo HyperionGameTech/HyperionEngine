@@ -203,7 +203,7 @@ struct ViewData
     }
 };
 
-static HashMap<View*, ViewData*> s_viewData;
+static TMap<View*, ViewData*> s_viewData;
 
 static ViewData* GetViewData(View* view, bool createIfNotExist)
 {
@@ -280,7 +280,7 @@ struct BufferedViewData
 
 struct BufferedData
 {
-    HashMap<View*, BufferedViewData*> perViewData;
+    TMap<View*, BufferedViewData*> perViewData;
     SharedMutex viewFrameDataMutex;
 
     Array<World*> activeWorlds;

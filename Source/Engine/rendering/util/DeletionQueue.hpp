@@ -14,7 +14,7 @@
 
 #include <Core/containers/FixedArray.hpp>
 #include <Core/containers/Array.hpp>
-#include <Core/containers/HashMap.hpp>
+#include <Core/containers/Map.hpp>
 #include <Core/containers/LinkedList.hpp>
 
 #include <Core/profiling/ProfileScope.hpp>
@@ -463,7 +463,7 @@ static inline void EnqueueDeletion(FixedArray<T, Sz>&& value)
 
 /*! \see EnqueueDeletion(T&& value) */
 template <class T>
-static inline void EnqueueDeletion(HashSet<T>&& value)
+static inline void EnqueueDeletion(TSet<T>&& value)
 {
     for (auto& it : value)
     {

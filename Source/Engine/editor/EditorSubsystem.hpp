@@ -394,7 +394,7 @@ class HYP_API EditorSubsystem : public Subsystem
     HYP_OBJECT_BODY(EditorSubsystem);
 
 public:
-    using EditorGizmoSet = IntrusiveMap<Handle<EditorGizmoBase>, &EditorGizmoBase::GetManipulationMode>;
+    using EditorGizmoSet = THashTable<Handle<EditorGizmoBase>, &EditorGizmoBase::GetManipulationMode>;
 
     EditorSubsystem();
     virtual ~EditorSubsystem() override;
@@ -532,7 +532,7 @@ private:
 
     HYP_METHOD()
     void StartSimulation();
-    
+
     HYP_METHOD()
     void StopSimulation();
 

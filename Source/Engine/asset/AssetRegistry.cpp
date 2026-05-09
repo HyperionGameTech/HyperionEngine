@@ -1040,7 +1040,7 @@ void AssetRegistry::PutAssetsDeep(const Handle<AssetObject>& targetAsset)
     // Recurse through the objects' fields, registering assets with their respective buckets
     //// \todo : Change to a Stack, recursion could get impressively deep.
 
-    HashSet<const ObjectBase*> visited; // to avoid infinite recursion
+    TSet<const ObjectBase*> visited; // to avoid infinite recursion
 
     bool shouldFollowAssetPaths = false;
 
@@ -1421,7 +1421,7 @@ void AssetRegistry::SaveDirtyAssets()
         const char* bucketName = GetAssetBucketName(bucketIndex);
         AssertDebug(bucketName != nullptr);
 
-        HashSet<Handle<AssetObject>, AssetAllocator> dirtyAssets;
+        TSet<Handle<AssetObject>, AssetAllocator> dirtyAssets;
 
         {
             TUniqueLock lock(data.mtx);

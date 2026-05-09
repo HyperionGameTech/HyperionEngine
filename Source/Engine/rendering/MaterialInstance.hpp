@@ -13,7 +13,7 @@
 #include <Core/reflection/Handle.hpp>
 
 #include <Core/containers/String.hpp>
-#include <Core/containers/HashMap.hpp>
+#include <Core/containers/Map.hpp>
 
 namespace Hyperion {
 

@@ -362,7 +362,7 @@ class ResourceBinder : public ResourceBinderBase
         BitsetType lastFrameIds;
         BitsetType currentFrameIds;
         BitsetType forceRebindBits;
-        HashMap<WeakHandle<T>, uint32> bindings;
+        TMap<WeakHandle<T>, uint32> bindings;
     };
 
 public:

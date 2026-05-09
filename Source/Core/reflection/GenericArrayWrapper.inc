@@ -45,7 +45,7 @@ GenericArrayWrapper::GenericArrayWrapper(AsReferenceTag, Array<T, AllocatorType>
         {
             return false;
         }
-        
+
         outValue = BoxedValue(arr[index]);
 
         return true;
@@ -123,7 +123,7 @@ GenericArrayWrapper::GenericArrayWrapper(AsCopyTag, const Array<T, AllocatorType
         {
             return AnyRef();
         }
-        
+
         return AnyRef(&arr[index]);
     };
 
@@ -135,7 +135,7 @@ GenericArrayWrapper::GenericArrayWrapper(AsCopyTag, const Array<T, AllocatorType
         {
             return false;
         }
-        
+
         outValue = BoxedValue(arr[index]);
 
         return true;
@@ -213,7 +213,7 @@ GenericArrayWrapper::GenericArrayWrapper(AsCopyTag, Array<T, AllocatorType>&& ar
         {
             return AnyRef();
         }
-        
+
         return AnyRef(&arr[index]);
     };
 
@@ -225,7 +225,7 @@ GenericArrayWrapper::GenericArrayWrapper(AsCopyTag, Array<T, AllocatorType>&& ar
         {
             return false;
         }
-        
+
         outValue = BoxedValue(arr[index]);
 
         return true;
@@ -287,7 +287,7 @@ GenericArrayWrapper::GenericArrayWrapper(AsReferenceTag, FixedArray<T, Sz>& arr)
         {
             return AnyRef();
         }
-        
+
         return AnyRef(&arr[index]);
     };
 
@@ -299,7 +299,7 @@ GenericArrayWrapper::GenericArrayWrapper(AsReferenceTag, FixedArray<T, Sz>& arr)
         {
             return false;
         }
-        
+
         outValue = BoxedValue(arr[index]);
 
         return true;
@@ -355,7 +355,7 @@ GenericArrayWrapper::GenericArrayWrapper(AsCopyTag, const FixedArray<T, Sz>& arr
         {
             return AnyRef();
         }
-        
+
         return AnyRef(&arr[index]);
     };
 
@@ -367,7 +367,7 @@ GenericArrayWrapper::GenericArrayWrapper(AsCopyTag, const FixedArray<T, Sz>& arr
         {
             return false;
         }
-        
+
         outValue = BoxedValue(arr[index]);
 
         return true;
@@ -423,7 +423,7 @@ GenericArrayWrapper::GenericArrayWrapper(AsCopyTag, FixedArray<T, Sz>&& arr)
         {
             return AnyRef();
         }
-        
+
         return AnyRef(&arr[index]);
     };
 
@@ -435,7 +435,7 @@ GenericArrayWrapper::GenericArrayWrapper(AsCopyTag, FixedArray<T, Sz>&& arr)
         {
             return false;
         }
-        
+
         outValue = BoxedValue(arr[index]);
 
         return true;
@@ -469,10 +469,10 @@ GenericArrayWrapper::GenericArrayWrapper(AsCopyTag, FixedArray<T, Sz>&& arr)
     };
 }
 
-// HashSet<T>
+// TSet<T>
 
 template <class T, class AllocatorType>
-GenericArrayWrapper::GenericArrayWrapper(AsReferenceTag, HashSet<T, AllocatorType>& set)
+GenericArrayWrapper::GenericArrayWrapper(AsReferenceTag, TSet<T, AllocatorType>& set)
     : GenericArrayWrapper()
 {
     pInternalArray = &set;
@@ -483,13 +483,13 @@ GenericArrayWrapper::GenericArrayWrapper(AsReferenceTag, HashSet<T, AllocatorTyp
 
     functionTable.size = [](const GenericArrayWrapper& array) -> size_t
     {
-        auto& hashSet = *static_cast<const HashSet<T, AllocatorType>*>(array.pInternalArray);
+        auto& hashSet = *static_cast<const TSet<T, AllocatorType>*>(array.pInternalArray);
         return hashSet.Size();
     };
 }
 
 template <class T, class AllocatorType>
-GenericArrayWrapper::GenericArrayWrapper(AsCopyTag, const HashSet<T, AllocatorType>& set)
+GenericArrayWrapper::GenericArrayWrapper(AsCopyTag, const TSet<T, AllocatorType>& set)
     : GenericArrayWrapper()
 {
     pInternalArray = new std::remove_cvref_t<decltype(set)>(set);
@@ -504,13 +504,13 @@ GenericArrayWrapper::GenericArrayWrapper(AsCopyTag, const HashSet<T, AllocatorTy
 
     functionTable.size = [](const GenericArrayWrapper& array) -> size_t
     {
-        auto& hashSet = *static_cast<const HashSet<T, AllocatorType>*>(array.pInternalArray);
+        auto& hashSet = *static_cast<const TSet<T, AllocatorType>*>(array.pInternalArray);
         return hashSet.Size();
     };
 }
 
 template <class T, class AllocatorType>
-GenericArrayWrapper::GenericArrayWrapper(AsCopyTag, HashSet<T, AllocatorType>&& set)
+GenericArrayWrapper::GenericArrayWrapper(AsCopyTag, TSet<T, AllocatorType>&& set)
     : GenericArrayWrapper()
 {
     pInternalArray = new std::remove_cvref_t<decltype(set)>(std::move(set));
@@ -525,7 +525,7 @@ GenericArrayWrapper::GenericArrayWrapper(AsCopyTag, HashSet<T, AllocatorType>&& 
 
     functionTable.size = [](const GenericArrayWrapper& array) -> size_t
     {
-        auto& hashSet = *static_cast<const HashSet<T, AllocatorType>*>(array.pInternalArray);
+        auto& hashSet = *static_cast<const TSet<T, AllocatorType>*>(array.pInternalArray);
         return hashSet.Size();
     };
 }
@@ -652,10 +652,10 @@ GenericArrayWrapper::GenericArrayWrapper(AsCopyTag, FlatMap<K, V>&& map)
     };
 }
 
-// HashMap<K, V>
+// TMap<K, V>
 
 template <class K, class V, class AllocatorType>
-GenericArrayWrapper::GenericArrayWrapper(AsReferenceTag, HashMap<K, V, AllocatorType>& map)
+GenericArrayWrapper::GenericArrayWrapper(AsReferenceTag, TMap<K, V, AllocatorType>& map)
     : GenericArrayWrapper()
 {
     pInternalArray = &map;
@@ -666,13 +666,13 @@ GenericArrayWrapper::GenericArrayWrapper(AsReferenceTag, HashMap<K, V, Allocator
 
     functionTable.size = [](const GenericArrayWrapper& array) -> size_t
     {
-        auto& hashMap = *static_cast<const HashMap<K, V, AllocatorType>*>(array.pInternalArray);
+        auto& hashMap = *static_cast<const TMap<K, V, AllocatorType>*>(array.pInternalArray);
         return hashMap.Size();
     };
 }
 
 template <class K, class V, class AllocatorType>
-GenericArrayWrapper::GenericArrayWrapper(AsCopyTag, const HashMap<K, V, AllocatorType>& map)
+GenericArrayWrapper::GenericArrayWrapper(AsCopyTag, const TMap<K, V, AllocatorType>& map)
     : GenericArrayWrapper()
 {
     pInternalArray = new std::remove_cvref_t<decltype(map)>(map);
@@ -687,13 +687,13 @@ GenericArrayWrapper::GenericArrayWrapper(AsCopyTag, const HashMap<K, V, Allocato
 
     functionTable.size = [](const GenericArrayWrapper& array) -> size_t
     {
-        auto& hashMap = *static_cast<const HashMap<K, V, AllocatorType>*>(array.pInternalArray);
+        auto& hashMap = *static_cast<const TMap<K, V, AllocatorType>*>(array.pInternalArray);
         return hashMap.Size();
     };
 }
 
 template <class K, class V, class AllocatorType>
-GenericArrayWrapper::GenericArrayWrapper(AsCopyTag, HashMap<K, V, AllocatorType>&& map)
+GenericArrayWrapper::GenericArrayWrapper(AsCopyTag, TMap<K, V, AllocatorType>&& map)
     : GenericArrayWrapper()
 {
     pInternalArray = new std::remove_cvref_t<decltype(map)>(std::move(map));
@@ -708,7 +708,7 @@ GenericArrayWrapper::GenericArrayWrapper(AsCopyTag, HashMap<K, V, AllocatorType>
 
     functionTable.size = [](const GenericArrayWrapper& array) -> size_t
     {
-        auto& hashMap = *static_cast<const HashMap<K, V, AllocatorType>*>(array.pInternalArray);
+        auto& hashMap = *static_cast<const TMap<K, V, AllocatorType>*>(array.pInternalArray);
         return hashMap.Size();
     };
 }

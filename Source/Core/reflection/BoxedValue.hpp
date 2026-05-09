@@ -1662,15 +1662,15 @@ struct BoxedValueHelper<Pair<K, V>> : BoxedValueHelper<Any>
     }
 };
 
-/// HashMap
+/// TMap
 
 template <class K, class V>
-struct BoxedValueHelperDecl<HashMap<K, V>>
+struct BoxedValueHelperDecl<TMap<K, V>>
 {
 };
 
 template <class K, class V>
-struct BoxedValueHelper<HashMap<K, V>> : BoxedValueHelper<GenericArrayWrapper>
+struct BoxedValueHelper<TMap<K, V>> : BoxedValueHelper<GenericArrayWrapper>
 {
     using ConvertibleFrom = Tuple<>;
 
@@ -1678,24 +1678,24 @@ struct BoxedValueHelper<HashMap<K, V>> : BoxedValueHelper<GenericArrayWrapper>
     {
         if (const GenericArrayWrapper* array = value.TryGet<GenericArrayWrapper>())
         {
-            return TypeInfo_GetId(*array->typeInfo) == TypeId::ForType<HashMap<K, V>>();
+            return TypeInfo_GetId(*array->typeInfo) == TypeId::ForType<TMap<K, V>>();
         }
 
-        return value.GetTypeId() == TypeId::ForType<HashMap<K, V>>();
+        return value.GetTypeId() == TypeId::ForType<TMap<K, V>>();
     }
 
-    HYP_FORCE_INLINE HashMap<K, V>& Get(const Any& value) const
+    HYP_FORCE_INLINE TMap<K, V>& Get(const Any& value) const
     {
         if (const GenericArrayWrapper* arr = value.TryGet<GenericArrayWrapper>())
         {
-            if (TypeInfo_GetId(*arr->typeInfo) == TypeId::ForType<HashMap<K, V>>())
+            if (TypeInfo_GetId(*arr->typeInfo) == TypeId::ForType<TMap<K, V>>())
             {
-                return *static_cast<HashMap<K, V>*>(arr->pInternalArray);
+                return *static_cast<TMap<K, V>*>(arr->pInternalArray);
             }
         }
-        else if (value.GetTypeId() == TypeId::ForType<HashMap<K, V>>())
+        else if (value.GetTypeId() == TypeId::ForType<TMap<K, V>>())
         {
-            return value.Get<HashMap<K, V>>();
+            return value.Get<TMap<K, V>>();
         }
 
         HYP_UNREACHABLE();
@@ -1703,20 +1703,20 @@ struct BoxedValueHelper<HashMap<K, V>> : BoxedValueHelper<GenericArrayWrapper>
 
     HYP_FORCE_INLINE bool Is(const GenericArrayWrapper& value) const
     {
-        return TypeInfo_GetId(*value.typeInfo) == TypeId::ForType<HashMap<K, V>>();
+        return TypeInfo_GetId(*value.typeInfo) == TypeId::ForType<TMap<K, V>>();
     }
 
-    HYP_FORCE_INLINE HashMap<K, V>& Get(const GenericArrayWrapper& value) const
+    HYP_FORCE_INLINE TMap<K, V>& Get(const GenericArrayWrapper& value) const
     {
-        return *static_cast<HashMap<K, V>*>(value.pInternalArray);
+        return *static_cast<TMap<K, V>*>(value.pInternalArray);
     }
 
-    HYP_FORCE_INLINE void Set(BoxedValue& boxed, const HashMap<K, V>& value) const
+    HYP_FORCE_INLINE void Set(BoxedValue& boxed, const TMap<K, V>& value) const
     {
         BoxedValueHelper<GenericArrayWrapper>::Set(boxed, GenericArrayWrapper(GenericArrayWrapper::AS_COPY, value));
     }
 
-    HYP_FORCE_INLINE void Set(BoxedValue& boxed, HashMap<K, V>&& value) const
+    HYP_FORCE_INLINE void Set(BoxedValue& boxed, TMap<K, V>&& value) const
     {
         BoxedValueHelper<GenericArrayWrapper>::Set(boxed, GenericArrayWrapper(GenericArrayWrapper::AS_COPY, std::move(value)));
     }
@@ -1785,12 +1785,12 @@ struct BoxedValueHelper<FlatMap<K, V>> : BoxedValueHelper<GenericArrayWrapper>
 /// HashSet
 
 template <class ValueType>
-struct BoxedValueHelperDecl<HashSet<ValueType>>
+struct BoxedValueHelperDecl<TSet<ValueType>>
 {
 };
 
 template <class ValueType>
-struct BoxedValueHelper<HashSet<ValueType>> : BoxedValueHelper<GenericArrayWrapper>
+struct BoxedValueHelper<TSet<ValueType>> : BoxedValueHelper<GenericArrayWrapper>
 {
     using ConvertibleFrom = Tuple<>;
 
@@ -1798,24 +1798,24 @@ struct BoxedValueHelper<HashSet<ValueType>> : BoxedValueHelper<GenericArrayWrapp
     {
         if (const GenericArrayWrapper* array = value.TryGet<GenericArrayWrapper>())
         {
-            return TypeInfo_GetId(*array->typeInfo) == TypeId::ForType<HashSet<ValueType>>();
+            return TypeInfo_GetId(*array->typeInfo) == TypeId::ForType<TSet<ValueType>>();
         }
 
-        return value.GetTypeId() == TypeId::ForType<HashSet<ValueType>>();
+        return value.GetTypeId() == TypeId::ForType<TSet<ValueType>>();
     }
 
-    HYP_FORCE_INLINE HashSet<ValueType>& Get(const Any& value) const
+    HYP_FORCE_INLINE TSet<ValueType>& Get(const Any& value) const
     {
         if (const GenericArrayWrapper* arr = value.TryGet<GenericArrayWrapper>())
         {
-            if (TypeInfo_GetId(*arr->typeInfo) == TypeId::ForType<HashSet<ValueType>>())
+            if (TypeInfo_GetId(*arr->typeInfo) == TypeId::ForType<TSet<ValueType>>())
             {
-                return *static_cast<HashSet<ValueType>*>(arr->pInternalArray);
+                return *static_cast<TSet<ValueType>*>(arr->pInternalArray);
             }
         }
-        else if (value.GetTypeId() == TypeId::ForType<HashSet<ValueType>>())
+        else if (value.GetTypeId() == TypeId::ForType<TSet<ValueType>>())
         {
-            return value.Get<HashSet<ValueType>>();
+            return value.Get<TSet<ValueType>>();
         }
 
         HYP_UNREACHABLE();
@@ -1823,20 +1823,20 @@ struct BoxedValueHelper<HashSet<ValueType>> : BoxedValueHelper<GenericArrayWrapp
 
     HYP_FORCE_INLINE bool Is(const GenericArrayWrapper& value) const
     {
-        return TypeInfo_GetId(*value.typeInfo) == TypeId::ForType<HashSet<ValueType>>();
+        return TypeInfo_GetId(*value.typeInfo) == TypeId::ForType<TSet<ValueType>>();
     }
 
-    HYP_FORCE_INLINE HashSet<ValueType>& Get(const GenericArrayWrapper& value) const
+    HYP_FORCE_INLINE TSet<ValueType>& Get(const GenericArrayWrapper& value) const
     {
-        return *static_cast<HashSet<ValueType>*>(value.pInternalArray);
+        return *static_cast<TSet<ValueType>*>(value.pInternalArray);
     }
 
-    HYP_FORCE_INLINE void Set(BoxedValue& boxed, const HashSet<ValueType>& value) const
+    HYP_FORCE_INLINE void Set(BoxedValue& boxed, const TSet<ValueType>& value) const
     {
         BoxedValueHelper<GenericArrayWrapper>::Set(boxed, GenericArrayWrapper(GenericArrayWrapper::AS_COPY, value));
     }
 
-    HYP_FORCE_INLINE void Set(BoxedValue& boxed, HashSet<ValueType>&& value) const
+    HYP_FORCE_INLINE void Set(BoxedValue& boxed, TSet<ValueType>&& value) const
     {
         BoxedValueHelper<GenericArrayWrapper>::Set(boxed, GenericArrayWrapper(GenericArrayWrapper::AS_COPY, std::move(value)));
     }

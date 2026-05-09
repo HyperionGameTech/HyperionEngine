@@ -296,7 +296,7 @@ void Entity::OnComponentAdded(AnyRef component)
         }
 
         AddTag<EntityTag::UpdateRenderProxy>();
-        
+
         // build mesh BVH if there is no existing one. (size != 0)
         if (m_entityInitInfo.bvhDepth > 0
             && meshComponent->mesh->GetBVHDataReference().size == 0)
@@ -590,7 +590,7 @@ Array<BoxedValue, DynamicAllocator> Entity::SerializeComponents() const
             return;
         }
 
-        HashSet<TypeId> serializedComponents;
+        TSet<TypeId> serializedComponents;
 
         for (const auto& it : *allComponents)
         {

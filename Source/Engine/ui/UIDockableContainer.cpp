@@ -13,7 +13,7 @@
 
 namespace Hyperion {
 
-static const HashMap<String, UIDockableItemPosition> g_dockableItemPositionMap = {
+static const TMap<String, UIDockableItemPosition> g_dockableItemPositionMap = {
     { "left", UIDockableItemPosition::LEFT },
     { "right", UIDockableItemPosition::RIGHT },
     { "top", UIDockableItemPosition::TOP },

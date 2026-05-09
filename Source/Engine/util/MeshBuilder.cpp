@@ -18,7 +18,7 @@ namespace Hyperion {
 
 static Pair<Array<SimpleVertex>, Array<uint32>> CalculateIndices(const Array<SimpleVertex>& vertices)
 {
-    HashMap<SimpleVertex, uint32> indexMap;
+    TMap<SimpleVertex, uint32> indexMap;
 
     Array<uint32> indices;
     indices.Reserve(vertices.Size());

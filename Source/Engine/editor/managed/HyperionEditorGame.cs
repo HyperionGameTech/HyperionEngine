@@ -122,8 +122,6 @@ namespace Hyperion.Editor
             Logger.Log(LogLevel.Debug, "Focused node changed from " + (prevNode != null ? prevNode.Name.ToString() : "null") +
                        " to " + (newNode != null ? newNode.Name.ToString() : "null") +
                        ", shouldSelectInOutline: " + shouldSelectInOutline);
-
-
         }
 
         private void HandleProjectOpened(EditorProject project)

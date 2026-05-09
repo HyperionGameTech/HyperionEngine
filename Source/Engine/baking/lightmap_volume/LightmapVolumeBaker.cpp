@@ -48,7 +48,7 @@ static Name GenerateElementTextureName(LightmapVolume* lmv, uint32 elementIndex,
 static void UpdateAtlasTextures(
     LightmapVolume* lmv,
     uint16 atlasIndex,
-    HashMap<LightmapElementId, FixedArray<typename Baking::BakeData<LightmapVolume>::BitmapType, LightmapVolume::NumAtlasTextureTypes>>&& elementBitmaps)
+    TMap<LightmapElementId, FixedArray<typename Baking::BakeData<LightmapVolume>::BitmapType, LightmapVolume::NumAtlasTextureTypes>>&& elementBitmaps)
 {
     HYP_LOG(Lightmap, Verbose, "Updating atlas textures for LightmapVolume {}", lmv->Id());
 
@@ -379,7 +379,7 @@ void Baker<LightmapVolume>::OnCompleted_Internal()
 
         // Update material to have the Lightmapped bucket (if it does not already)
         AssertDebug(bakeEntity.material.IsValid());
-        
+
         bool isNewMaterial = false;
 #if 1
         // update material info
@@ -399,7 +399,7 @@ void Baker<LightmapVolume>::OnCompleted_Internal()
                 currentMaterialDefinition->GetDefaultTextures());
 
             Assert(newMaterialDefinition != nullptr);
-            
+
             InitObject(newMaterialDefinition);
 
             GetCurrentAssetRegistry()->PutAssetsDeep(newMaterialDefinition);
@@ -415,7 +415,7 @@ void Baker<LightmapVolume>::OnCompleted_Internal()
             InitObject(newMaterialInstance);
 
             GetCurrentAssetRegistry()->PutAssetsDeep(newMaterialInstance);
-            
+
             bakeEntity.material = newMaterialInstance;
 
             isNewMaterial = true;

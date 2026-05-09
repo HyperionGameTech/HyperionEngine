@@ -62,7 +62,7 @@ using FatVertex = TVertex<VT_Simple | VT_Skeletal>;
 
 static Pair<Array<FatVertex>, Array<uint32>> CalculateIndices(const Array<FatVertex>& vertices)
 {
-    HashMap<FatVertex, uint32> indexMap;
+    TMap<FatVertex, uint32> indexMap;
 
     Array<uint32> indices;
     indices.Reserve(vertices.Size());

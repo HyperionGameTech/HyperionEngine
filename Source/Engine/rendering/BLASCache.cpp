@@ -12,7 +12,7 @@
 #include <rendering/MaterialInstance.hpp>
 
 #include <Core/threading/Mutex.hpp>
-#include <Core/containers/HashMap.hpp>
+#include <Core/containers/Map.hpp>
 
 #include <scene/Entity.hpp>
 
@@ -46,18 +46,18 @@ public:
         : cleanupIterator(meshEntityIdToKey.End())
     {
     }
-    
+
     ~BLASCacheImpl()
     {
         for (auto& pair : map)
         {
             pair.second.blas->Release();
         }
-        
+
         map.Clear();
     }
 
-    HashMap<uint64, Entry, RenderAllocator> map;
+    TMap<uint64, Entry, RenderAllocator> map;
     MeshEntityIdToKeyMap meshEntityIdToKey;
 
     typename MeshEntityIdToKeyMap::Iterator cleanupIterator;
@@ -88,7 +88,7 @@ void BLASCache::GetOrCreateBLAS(
     }
 
     AssertDebug(entity->InstanceClass() == Entity::StaticClass()); // needed since we use ToIndex() - if we ever want to change this, we need subclassImpls as used elsewhere.
-    
+
     const uint64 newKey = MakeBLASKey(Span<const ObjIdBase>({
         entity->Id(),
         mesh->Id(),
@@ -120,9 +120,9 @@ void BLASCache::GetOrCreateBLAS(
 
         m_impl->map.Erase(it);
     }
-    
+
     auto it = m_impl->map.Find(newKey);
-    
+
     if (it != m_impl->map.End())
     {
         Entry& entry = it->second;
@@ -131,10 +131,10 @@ void BLASCache::GetOrCreateBLAS(
         {
             return;
         }
-        
+
         // Check if material changed - if so, we need to rebuild
         const bool materialsDiffer = entry.blas->GetMaterial() != material;
-        
+
         if (!materialsDiffer)
         {
             outBlas = entry.blas;
@@ -143,11 +143,11 @@ void BLASCache::GetOrCreateBLAS(
 
             return;
         }
-        
+
         // Material changed or BLAS is null, need to rebuild
         entry.blas->Release();
     }
-    
+
     GpuBlasRef blas = MeshBlasBuilder::Build(mesh, material);
 
     // Build new BLAS
@@ -195,7 +195,7 @@ void BLASCache::RunCleanupCycle(int maxIter)
 
             continue;
         }
-        
+
         ++m_impl->cleanupIterator;
     }
 #endif

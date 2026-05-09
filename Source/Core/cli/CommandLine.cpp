@@ -8,7 +8,7 @@
 
 #include <Core/logging/Logger.hpp>
 
-#include <Core/containers/HashSet.hpp>
+#include <Core/containers/Set.hpp>
 
 #include <Core/utilities/StringUtil.hpp>
 
@@ -502,7 +502,7 @@ TResult<CommandLineArguments> CommandLineParser::Parse(ANSIStringView command, c
 
     CommandLineArguments result { command };
 
-    HashSet<String> usedArguments;
+    TSet<String> usedArguments;
 
     for (size_t i = 0; i < args.Size(); i++)
     {

@@ -117,7 +117,7 @@ public:
 
 private:
     Array<Pair<Name, NodeWatcher>> m_nodeWatchers;
-    HashMap<Node*, SuppressedNode> m_suppressedNodes;
+    TMap<Node*, SuppressedNode> m_suppressedNodes;
 
     Scheduler m_scheduler;
 };

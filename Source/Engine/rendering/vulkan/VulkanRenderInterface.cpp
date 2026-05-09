@@ -273,7 +273,7 @@ private:
     RendererResult CreateDescriptorPool(VulkanDescriptorPoolRequirements reqs, VkDescriptorPool& outDescriptorPool);
 
     SharedMutex m_mutex;
-    HashMap<HashCode, VkDescriptorSetLayout> m_vkDescriptorSetLayouts;
+    TMap<HashCode, VkDescriptorSetLayout> m_vkDescriptorSetLayouts;
 
     struct VulkanDescriptorPool
     {

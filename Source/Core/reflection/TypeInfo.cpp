@@ -11,7 +11,7 @@
 
 #include <Core/threading/Mutex.hpp>
 
-#include <Core/containers/HashMap.hpp>
+#include <Core/containers/Map.hpp>
 
 #include <Core/memory/pool/Pool.hpp>
 #include <Core/memory/allocator/SlabAllocator.hpp>
@@ -21,7 +21,7 @@ namespace utilities {
 
 #pragma region Cache
 
-using TypeInfoCache = HashMap<TypeId, TypeInfo*>;
+using TypeInfoCache = TMap<TypeId, TypeInfo*>;
 
 static bool s_typeInfoSystemInitialized = false;
 static TypeInfoCache* s_typeInfoCache = nullptr;
@@ -33,7 +33,7 @@ static Mutex& GetTypeInfoCacheMutex()
     return s_typeInfoCacheMutex;
 }
 
-static HashMap<TypeId, TypeInfo*>& GetTypeInfoCache()
+static TMap<TypeId, TypeInfo*>& GetTypeInfoCache()
 {
     static struct Initializer
     {

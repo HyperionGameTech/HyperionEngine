@@ -20,7 +20,7 @@
 #include <rendering/vulkan/VulkanFence.hpp>
 #include <rendering/vulkan/VulkanMemory.hpp>
 
-#include <Core/containers/HashSet.hpp>
+#include <Core/containers/Set.hpp>
 
 namespace Hyperion {
 
@@ -84,7 +84,7 @@ public:
     void ResetTransientStates();
 
 private:
-    using VulkanRenderPassesSet = HashSet<
+    using VulkanRenderPassesSet = TSet<
         VulkanRenderPass*,
         VulkanAllocator,
         HashTablePolicy::NotPooled>;
@@ -102,7 +102,7 @@ private:
     uint64 m_frameCompleteValue;
     VulkanRenderPassesSet m_renderPasses;
 
-    HashMap<const VulkanSwapchain*, VulkanSwapchainData, VulkanAllocator> m_swapchainData;
+    TMap<const VulkanSwapchain*, VulkanSwapchainData, VulkanAllocator> m_swapchainData;
 };
 
 } // namespace Hyperion

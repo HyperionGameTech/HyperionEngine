@@ -12,7 +12,7 @@
 #include <Core/reflection/Member.hpp>
 #include <Core/reflection/ClassAttribute.hpp>
 
-#include <Core/containers/HashMap.hpp>
+#include <Core/containers/Map.hpp>
 #include <Core/containers/Array.hpp>
 
 #include <Core/utilities/Span.hpp>
@@ -311,7 +311,7 @@ public:
     }
 
 private:
-    HashMap<TypeId, const IClassCallbackWrapper*> m_callbacks;
+    TMap<TypeId, const IClassCallbackWrapper*> m_callbacks;
     mutable Mutex m_mutex;
 };
 
@@ -680,16 +680,16 @@ protected:
     size_t m_alignment;
 
     Array<Property*> m_properties;
-    HashMap<Name, Property*> m_propertiesByName;
+    TMap<Name, Property*> m_propertiesByName;
 
     Array<Method*> m_methods;
-    HashMap<Name, Method*> m_methodsByName;
+    TMap<Name, Method*> m_methodsByName;
 
     Array<Field*> m_fields;
-    HashMap<Name, Field*> m_fieldsByName;
+    TMap<Name, Field*> m_fieldsByName;
 
     Array<StaticField*> m_staticFields;
-    HashMap<Name, StaticField*> m_staticFieldsByName;
+    TMap<Name, StaticField*> m_staticFieldsByName;
 
     EnumFlags<ClassSerializationMode> m_serializationMode;
 

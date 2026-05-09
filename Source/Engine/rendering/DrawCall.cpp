@@ -277,9 +277,9 @@ HYP_NODISCARD uint32 DrawCallCollection::PushEntityToBatch(
 
 #pragma region TEntityBatchAllocator
 
-static HashMap<TypeId, EntityBatchAllocatorBase*> s_entityBatchAllocatorMap;
+static TMap<TypeId, EntityBatchAllocatorBase*> s_entityBatchAllocatorMap;
 
-using CreateFnMap = HashMap<TypeId, PFNCreateEntityBatchAllocator>;
+using CreateFnMap = TMap<TypeId, PFNCreateEntityBatchAllocator>;
 
 static Mutex& GetEntityBatchAllocatorMutex()
 {
@@ -411,7 +411,7 @@ EntityBatchAllocatorBase* GetOrCreateEntityBatchAllocator(const TypeId& typeId)
     return batchAllocator;
 }
 
-const HashMap<TypeId, EntityBatchAllocatorBase*>& GetAllEntityBatchAllocators()
+const TMap<TypeId, EntityBatchAllocatorBase*>& GetAllEntityBatchAllocators()
 {
     return s_entityBatchAllocatorMap;
 }

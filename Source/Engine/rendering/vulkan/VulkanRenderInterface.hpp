@@ -17,7 +17,7 @@
 #include <rendering/vulkan/VulkanGpuBuffer.hpp>
 #include <rendering/vulkan/VulkanGpuImage.hpp>
 
-#include <Core/containers/HashMap.hpp>
+#include <Core/containers/Map.hpp>
 
 #include <Core/memory/RefCountedPtr.hpp>
 #include <Core/memory/Pimpl.hpp>

@@ -1,8 +1,8 @@
 #pragma once
 
 #include <Core/containers/String.hpp>
-#include <Core/containers/HashMap.hpp>
-#include <Core/containers/HashSet.hpp>
+#include <Core/containers/Map.hpp>
+#include <Core/containers/Set.hpp>
 #include <Core/containers/FlatMap.hpp>
 #include <Core/containers/FlatSet.hpp>
 #include <Core/containers/LinkedList.hpp>
@@ -169,16 +169,16 @@ struct GenericArrayWrapper
     template <class T, size_t Sz>
     GenericArrayWrapper(AsCopyTag, FixedArray<T, Sz>&& arr);
 
-    // HashSet<T, AllocatorType>
+    // TSet<T, AllocatorType>
 
     template <class T, class AllocatorType>
-    GenericArrayWrapper(AsReferenceTag, HashSet<T, AllocatorType>& set);
+    GenericArrayWrapper(AsReferenceTag, TSet<T, AllocatorType>& set);
 
     template <class T, class AllocatorType>
-    GenericArrayWrapper(AsCopyTag, const HashSet<T, AllocatorType>& set);
+    GenericArrayWrapper(AsCopyTag, const TSet<T, AllocatorType>& set);
 
     template <class T, class AllocatorType>
-    GenericArrayWrapper(AsCopyTag, HashSet<T, AllocatorType>&& set);
+    GenericArrayWrapper(AsCopyTag, TSet<T, AllocatorType>&& set);
 
     // FlatSet<T>
 
@@ -202,16 +202,16 @@ struct GenericArrayWrapper
     template <class K, class V>
     GenericArrayWrapper(AsCopyTag, FlatMap<K, V>&& map);
 
-    // HashMap<K, V, AllocatorType>
+    // TMap<K, V, AllocatorType>
 
     template <class K, class V, class AllocatorType>
-    GenericArrayWrapper(AsReferenceTag, HashMap<K, V, AllocatorType>& map);
+    GenericArrayWrapper(AsReferenceTag, TMap<K, V, AllocatorType>& map);
 
     template <class K, class V, class AllocatorType>
-    GenericArrayWrapper(AsCopyTag, const HashMap<K, V, AllocatorType>& map);
+    GenericArrayWrapper(AsCopyTag, const TMap<K, V, AllocatorType>& map);
 
     template <class K, class V, class AllocatorType>
-    GenericArrayWrapper(AsCopyTag, HashMap<K, V, AllocatorType>&& map);
+    GenericArrayWrapper(AsCopyTag, TMap<K, V, AllocatorType>&& map);
 
     // LinkedList<T>
 

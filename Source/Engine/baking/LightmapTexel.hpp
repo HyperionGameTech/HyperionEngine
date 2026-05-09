@@ -7,7 +7,7 @@
 #pragma once
 
 #include <Core/containers/String.hpp>
-#include <Core/containers/HashMap.hpp>
+#include <Core/containers/Map.hpp>
 
 #include <Core/utilities/Span.hpp>
 #include <Core/utilities/Result.hpp>

@@ -6,7 +6,7 @@
 
 #pragma once
 
-#include <Core/containers/HashMap.hpp>
+#include <Core/containers/Map.hpp>
 #include <Core/containers/String.hpp>
 #include <Core/utilities/StringView.hpp>
 #include <Core/utilities/FormatFwd.hpp>

@@ -9,7 +9,7 @@
 #include <Core/Types.hpp>
 #include <Core/Defines.hpp>
 
-#include <Core/containers/HashMap.hpp>
+#include <Core/containers/Map.hpp>
 #include <Core/containers/Array.hpp>
 
 #include <Core/memory/Pimpl.hpp>

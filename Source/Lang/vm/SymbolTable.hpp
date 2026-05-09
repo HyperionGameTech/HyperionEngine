@@ -4,14 +4,14 @@
 
 #include <Core/HashCode.hpp>
 
-#include <Core/containers/HashMap.hpp>
+#include <Core/containers/Map.hpp>
 #include <Core/debug/Debug.hpp>
 
 namespace Hyperion {
 
 class SymbolTable
 {
-    using SymbolMap = HashMap<HashCode::ValueType, BoxedValue*>;
+    using SymbolMap = TMap<HashCode::ValueType, BoxedValue*>;
 
 public:
     SymbolTable();

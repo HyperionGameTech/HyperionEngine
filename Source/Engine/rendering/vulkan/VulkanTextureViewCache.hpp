@@ -15,7 +15,7 @@
 #undef INCLUDE_FROM_RHI_BASE
 
 #include <Core/containers/SparsePagedArray.hpp>
-#include <Core/containers/HashMap.hpp>
+#include <Core/containers/Map.hpp>
 
 #include <Core/threading/SharedMutex.hpp>
 
@@ -24,7 +24,7 @@ namespace Hyperion {
 class VulkanTextureViewCache final : public TextureViewCacheBase
 {
 public:
-    using TextureImageViewMap = HashMap<uint64, VulkanGpuImageViewRef, VulkanAllocator>;
+    using TextureImageViewMap = TMap<uint64, VulkanGpuImageViewRef, VulkanAllocator>;
 
     struct SubtypeData
     {

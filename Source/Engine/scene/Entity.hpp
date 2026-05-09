@@ -9,7 +9,7 @@
 #include <Core/reflection/Handle.hpp>
 
 #include <Core/containers/Array.hpp>
-#include <Core/containers/HashSet.hpp>
+#include <Core/containers/Set.hpp>
 
 #include <Core/memory/AnyRef.hpp>
 

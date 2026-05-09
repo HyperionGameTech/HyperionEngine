@@ -43,7 +43,7 @@ public:
     static Pool* GetAllocator() { return g_rhiPool; }
 
     virtual ~GpuImageBase() override = default;
-    
+
 #if HYP_DEBUG_MODE
     Name GetDebugName() const
     {
@@ -72,7 +72,7 @@ public:
     {
         return m_stencilState;
     }
-    
+
     void SetStencilState(ResourceState newState);
     void SetResourceState(ResourceState newState);
 
@@ -254,10 +254,10 @@ protected:
     ResourceState m_resourceState;
     ResourceState m_stencilState;
 
-    HashMap<uint64, ResourceState, RHIAllocator> m_subResourceStates;
+    TMap<uint64, ResourceState, RHIAllocator> m_subResourceStates;
 
     EnumFlags<GpuImageFlags> m_flags;
-    
+
 #if HYP_DEBUG_MODE
     Name m_debugName;
 #endif

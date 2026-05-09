@@ -104,7 +104,7 @@ class HYP_API World final : public AssetObject
     friend class EngineDriver;
 
 public:
-    using SubsystemsMap = HashMap<TypeId, Handle<Subsystem>, SceneAllocator, HashTablePolicy::NotPooled>;
+    using SubsystemsMap = TMap<TypeId, Handle<Subsystem>, SceneAllocator, HashTablePolicy::NotPooled>;
 
     World();
     explicit World(Name name, EnumFlags<WorldFlags> worldFlags = WorldFlags::DEFAULT);

@@ -21,7 +21,7 @@
 #include <Core/memory/UniquePtr.hpp>
 
 #include <Core/containers/Array.hpp>
-#include <Core/containers/HashMap.hpp>
+#include <Core/containers/Map.hpp>
 #include <Core/containers/String.hpp>
 
 #include <Core/utilities/Span.hpp>
@@ -36,7 +36,7 @@ namespace Hyperion {
 class VulkanInstance;
 class VulkanFeatures;
 
-using ExtensionMap = HashMap<String, bool>;
+using ExtensionMap = TMap<String, bool>;
 
 extern Pool* g_vulkanPool;
 

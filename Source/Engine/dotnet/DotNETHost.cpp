@@ -525,8 +525,8 @@ private:
 
     ManagedDelegates m_managedDelegates;
 
-    HashMap<FilePath, RC<Assembly>> m_assembliesByPath;
-    HashMap<String, ManagedGuid> m_coreAssemblies;
+    TMap<FilePath, RC<Assembly>> m_assembliesByPath;
+    TMap<String, ManagedGuid> m_coreAssemblies;
 
     hostfxr_handle m_cxt;
     hostfxr_initialize_for_runtime_config_fn m_initFptr;

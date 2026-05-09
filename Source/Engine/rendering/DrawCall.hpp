@@ -334,7 +334,7 @@ struct DrawCallCollection
     InstancedDrawCallStorage instancedDrawCalls;
 
     // Map from draw call id to the index in instancedDrawCalls
-    using InstancedDrawCallIndexMap = HashMap<uint64, Array<size_t, InlineAllocator<3, RenderAllocator>>, RenderAllocator>;
+    using InstancedDrawCallIndexMap = TMap<uint64, Array<size_t, InlineAllocator<3, RenderAllocator>>, RenderAllocator>;
     InstancedDrawCallIndexMap indexMap;
 };
 
@@ -384,7 +384,7 @@ static inline EntityBatchAllocatorBase* GetOrCreateEntityBatchAllocator()
 // used internally
 extern void RegisterEntityBatchAllocator(const TypeId& typeId, PFNCreateEntityBatchAllocator createFn);
 
-HYP_API const HashMap<TypeId, EntityBatchAllocatorBase*>& GetAllEntityBatchAllocators();
+HYP_API const TMap<TypeId, EntityBatchAllocatorBase*>& GetAllEntityBatchAllocators();
 
 #define HYP_REGISTER_DRAW_BATCH_TYPE(BatchType)                                                                                             \
     namespace {                                                                                                                             \

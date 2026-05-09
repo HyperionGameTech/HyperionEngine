@@ -240,7 +240,10 @@ public:
 
     ~TByteBuffer()
     {
-        m_allocation.Free(GetAllocator());
+        if (m_allocation.GetCapacity() != 0)
+        {
+            m_allocation.Free(GetAllocator());
+        }
     }
 
     /*! \brief Writes \p count bytes of \p data to the ByteBuffer at the given \p offset.

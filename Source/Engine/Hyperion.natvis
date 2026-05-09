@@ -42,28 +42,28 @@
 
       <CustomListItems>
         <Variable Name="idx" InitialValue="0" />
-        
+
         <Loop>
           <Break Condition="idx == (m_size - m_startOffset)" />
-          
+
           <If Condition="m_allocation.allocationType == 1">
             <Item Name="[{ idx }]">*((($T1 *)m_allocation.buffer) + m_startOffset + idx)</Item>
           </If>
-          
+
           <If Condition="m_allocation.allocationType == 2 &amp;&amp; m_allocation.isDynamic == false">
             <Item Name="[{ idx }]">*((($T1 *)&amp;m_allocation.storage.dataBuffer[0]) + m_startOffset + idx)</Item>
           </If>
-          
+
           <If Condition="m_allocation.allocationType == 2 &amp;&amp; m_allocation.isDynamic == true">
             <Item Name="[{ idx }]">*((($T1 *)m_allocation.dynamicAllocation.buffer) + m_startOffset + idx)</Item>
           </If>
-        
+
           <Exec>idx++</Exec>
         </Loop>
       </CustomListItems>
     </Expand>
   </Type>
-  
+
   <Type Name="Hyperion::containers::LinkedList&lt;*,*&gt;">
     <DisplayString>{{ Count={m_size} }}</DisplayString>
     <Expand>
@@ -145,7 +145,7 @@
     </Expand>
   </Type>
 
-  <Type Name="Hyperion::containers::HashMap&lt;*,*,*&gt;">
+  <Type Name="Hyperion::containers::TMap&lt;*,*,*&gt;">
     <DisplayString>{{ Size={m_size} }}</DisplayString>
 
     <Expand>
@@ -181,9 +181,9 @@
       </CustomListItems>
     </Expand>
   </Type>
-  
-  
-  <Type Name="Hyperion::containers::IntrusiveMap&lt;*,*,*&gt;">
+
+
+  <Type Name="Hyperion::containers::THashTable&lt;*,*,*&gt;">
     <DisplayString>{{ Size={m_size} }}</DisplayString>
 
     <Expand>
@@ -263,11 +263,11 @@
       <ExpandedItem>($T1 *)(&amp;((Allocation *)m_allocation)-&gt;storage)</ExpandedItem>
     </Expand>
   </Type>
-	
+
 	<Type Name="Hyperion::memory::Any">
 		<DisplayString Condition="m_block == nullptr">EMPTY</DisplayString>
 		<DisplayString Condition="m_block != nullptr">{{ TypeInfo={*((Block*)m_block)-&gt;typeInfo} Value={((Block*)m_block)-&gt;objectPtr} }}</DisplayString>
-		
+
 		<Expand>
 			<Item Name="[HasValue]">(m_block != nullptr)</Item>
 			<Item Name="[TypeInfo]" Condition="m_block != nullptr">*((Block*)m_block)-&gt;typeInfo</Item>
@@ -353,7 +353,7 @@
       <ExpandedItem>value</ExpandedItem>
     </Expand>
   </Type>
-  
+
   <!-- Just display inner data of a Value -->
   <Type Name="Hyperion::JSON::Value">
     <DisplayString>{{ Value={m_inner} }}</DisplayString>
@@ -472,23 +472,23 @@
       <Item Name="[IsDynamicType]">bool((m_value &amp; 1) &amp; 1)</Item>
     </Expand>
   </Type>
-  
+
   <Type Name="Hyperion::AssetPath">
     <DisplayString>{chain,hv}</DisplayString>
     <Expand>
       <CustomListItems>
         <Variable Name="current" InitialValue="chain" />
         <Variable Name="first" InitialValue="true" />
-        
+
         <Loop>
           <Break Condition="current-&gt;hashCode == 0" />
-          
+
           <If Condition="first == true">
             <Exec>first = false</Exec>
           </If>
-          
+
           <Item>(current),na</Item>
-          
+
           <Exec>current = current + 1</Exec>
         </Loop>
       </CustomListItems>

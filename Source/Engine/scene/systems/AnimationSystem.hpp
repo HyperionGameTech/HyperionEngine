@@ -9,7 +9,7 @@
 #include <scene/System.hpp>
 #include <scene/components/AnimationComponent.hpp>
 
-#include <Core/containers/HashMap.hpp>
+#include <Core/containers/Map.hpp>
 
 #include <Core/memory/resource/Resource.hpp>
 
@@ -45,7 +45,7 @@ private:
         };
     }
 
-    HashMap<Skeleton*, Array<UniquePtr<TSharedLock<AssetObject>>>> m_resourceHandles;
+    TMap<Skeleton*, Array<UniquePtr<TSharedLock<AssetObject>>>> m_resourceHandles;
 };
 
 } // namespace Hyperion

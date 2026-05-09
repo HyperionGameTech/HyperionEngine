@@ -10,9 +10,9 @@
 
 #include <Core/containers/Array.hpp>
 #include <Core/containers/SparsePagedArray.hpp>
-#include <Core/containers/HashMap.hpp>
+#include <Core/containers/Map.hpp>
 #include <Core/containers/FlatMap.hpp>
-#include <Core/containers/HashSet.hpp>
+#include <Core/containers/Set.hpp>
 #include <Core/containers/FlatSet.hpp>
 
 #include <Core/memory/pool/Pool.hpp>
@@ -320,7 +320,7 @@ void ProfileHashMapInsertion()
 {
     const Dataset& data = ActiveDataset();
 
-    HashMap<uint32, uint32, TestAllocator> map;
+    TMap<uint32, uint32, TestAllocator> map;
     map.Reserve(data.elementCount);
 
     for (size_t i = 0; i < data.elementCount; ++i)
@@ -335,7 +335,7 @@ void ProfileHashMapDynamicInsertion()
 {
     const Dataset& data = ActiveDataset();
 
-    HashMap<uint32, uint32, TestAllocator> map;
+    TMap<uint32, uint32, TestAllocator> map;
     map.Reserve(data.elementCount);
 
     for (size_t i = 0; i < data.elementCount; ++i)
@@ -350,7 +350,7 @@ void ProfileHashMapIteration()
 {
     const Dataset& data = ActiveDataset();
 
-    HashMap<uint32, uint32, TestAllocator> map;
+    TMap<uint32, uint32, TestAllocator> map;
     map.Reserve(data.elementCount);
 
     for (size_t i = 0; i < data.elementCount; ++i)
@@ -371,7 +371,7 @@ void ProfileHashMapDynamicIteration()
 {
     const Dataset& data = ActiveDataset();
 
-    HashMap<uint32, uint32, TestAllocator> map;
+    TMap<uint32, uint32, TestAllocator> map;
     map.Reserve(data.elementCount);
 
     for (size_t i = 0; i < data.elementCount; ++i)
@@ -392,7 +392,7 @@ void ProfileHashMapFind()
 {
     const Dataset& data = ActiveDataset();
 
-    HashMap<uint32, uint32, TestAllocator> map;
+    TMap<uint32, uint32, TestAllocator> map;
     map.Reserve(data.elementCount);
 
     for (size_t i = 0; i < data.elementCount; ++i)
@@ -416,7 +416,7 @@ void ProfileHashMapDynamicFind()
 {
     const Dataset& data = ActiveDataset();
 
-    HashMap<uint32, uint32, TestAllocator> map;
+    TMap<uint32, uint32, TestAllocator> map;
     map.Reserve(data.elementCount);
 
     for (size_t i = 0; i < data.elementCount; ++i)
@@ -440,7 +440,7 @@ void ProfileHashMapRemoval()
 {
     const Dataset& data = ActiveDataset();
 
-    HashMap<uint32, uint32, TestAllocator> map;
+    TMap<uint32, uint32, TestAllocator> map;
     map.Reserve(data.elementCount);
 
     for (size_t i = 0; i < data.elementCount; ++i)
@@ -460,7 +460,7 @@ void ProfileHashMapDynamicRemoval()
 {
     const Dataset& data = ActiveDataset();
 
-    HashMap<uint32, uint32, TestAllocator> map;
+    TMap<uint32, uint32, TestAllocator> map;
     map.Reserve(data.elementCount);
 
     for (size_t i = 0; i < data.elementCount; ++i)
@@ -560,7 +560,7 @@ void ProfileHashSetInsertion()
 {
     const Dataset& data = ActiveDataset();
 
-    HashSet<uint32, TestAllocator> set;
+    TSet<uint32, TestAllocator> set;
     set.Reserve(data.elementCount);
 
     for (size_t i = 0; i < data.elementCount; ++i)
@@ -575,7 +575,7 @@ void ProfileHashSetDynamicInsertion()
 {
     const Dataset& data = ActiveDataset();
 
-    HashSet<uint32, TestAllocator> set;
+    TSet<uint32, TestAllocator> set;
     set.Reserve(data.elementCount);
 
     for (size_t i = 0; i < data.elementCount; ++i)
@@ -590,7 +590,7 @@ void ProfileHashSetIteration()
 {
     const Dataset& data = ActiveDataset();
 
-    HashSet<uint32, TestAllocator> set;
+    TSet<uint32, TestAllocator> set;
     set.Reserve(data.elementCount);
 
     for (size_t i = 0; i < data.elementCount; ++i)
@@ -611,7 +611,7 @@ void ProfileHashSetDynamicIteration()
 {
     const Dataset& data = ActiveDataset();
 
-    HashSet<uint32, TestAllocator> set;
+    TSet<uint32, TestAllocator> set;
     set.Reserve(data.elementCount);
 
     for (size_t i = 0; i < data.elementCount; ++i)
@@ -632,7 +632,7 @@ void ProfileHashSetFind()
 {
     const Dataset& data = ActiveDataset();
 
-    HashSet<uint32, TestAllocator> set;
+    TSet<uint32, TestAllocator> set;
     set.Reserve(data.elementCount);
 
     for (size_t i = 0; i < data.elementCount; ++i)
@@ -656,7 +656,7 @@ void ProfileHashSetDynamicFind()
 {
     const Dataset& data = ActiveDataset();
 
-    HashSet<uint32, TestAllocator> set;
+    TSet<uint32, TestAllocator> set;
     set.Reserve(data.elementCount);
 
     for (size_t i = 0; i < data.elementCount; ++i)
@@ -680,7 +680,7 @@ void ProfileHashSetRemoval()
 {
     const Dataset& data = ActiveDataset();
 
-    HashSet<uint32, TestAllocator> set;
+    TSet<uint32, TestAllocator> set;
     set.Reserve(data.elementCount);
 
     for (size_t i = 0; i < data.elementCount; ++i)
@@ -700,7 +700,7 @@ void ProfileHashSetDynamicRemoval()
 {
     const Dataset& data = ActiveDataset();
 
-    HashSet<uint32, TestAllocator> set;
+    TSet<uint32, TestAllocator> set;
     set.Reserve(data.elementCount);
 
     for (size_t i = 0; i < data.elementCount; ++i)
@@ -1247,8 +1247,8 @@ HYP_EXPORT void PrintContainerProfiling(size_t runsPer = 5, size_t numIterations
     const SectionEntry insertionEntries[] = {
         { "Array", &ProfileArrayInsertion },
         { "SparsePagedArray", &ProfileSparsePagedArrayInsertion },
-        { "HashMap (Pooled)", &ProfileHashMapInsertion },
-        { "HashMap (Dynamic)", &ProfileHashMapDynamicInsertion },
+        { "TMap (Pooled)", &ProfileHashMapInsertion },
+        { "TMap (Dynamic)", &ProfileHashMapDynamicInsertion },
         { "HashSet (Pooled)", &ProfileHashSetInsertion },
         { "HashSet (Dynamic)", &ProfileHashSetDynamicInsertion },
         { "std::vector", &ProfileStdVectorInsertion },
@@ -1261,8 +1261,8 @@ HYP_EXPORT void PrintContainerProfiling(size_t runsPer = 5, size_t numIterations
     const SectionEntry iterationEntries[] = {
         { "Array", &ProfileArrayIteration },
         { "SparsePagedArray", &ProfileSparsePagedArrayIteration },
-        { "HashMap (Pooled)", &ProfileHashMapIteration },
-        { "HashMap (Dynamic)", &ProfileHashMapDynamicIteration },
+        { "TMap (Pooled)", &ProfileHashMapIteration },
+        { "TMap (Dynamic)", &ProfileHashMapDynamicIteration },
         { "HashSet (Pooled)", &ProfileHashSetIteration },
         { "HashSet (Dynamic)", &ProfileHashSetDynamicIteration },
         { "std::vector", &ProfileStdVectorIteration },
@@ -1275,8 +1275,8 @@ HYP_EXPORT void PrintContainerProfiling(size_t runsPer = 5, size_t numIterations
     const SectionEntry findEntries[] = {
         { "Array", &ProfileArrayFind },
         { "SparsePagedArray", &ProfileSparsePagedArrayFind },
-        { "HashMap (Pooled)", &ProfileHashMapFind },
-        { "HashMap (Dynamic)", &ProfileHashMapDynamicFind },
+        { "TMap (Pooled)", &ProfileHashMapFind },
+        { "TMap (Dynamic)", &ProfileHashMapDynamicFind },
         { "HashSet (Pooled)", &ProfileHashSetFind },
         { "HashSet (Dynamic)", &ProfileHashSetDynamicFind },
         { "std::vector", &ProfileStdVectorFind },
@@ -1289,8 +1289,8 @@ HYP_EXPORT void PrintContainerProfiling(size_t runsPer = 5, size_t numIterations
     const SectionEntry removalEntries[] = {
         { "Array", &ProfileArrayRemoval },
         { "SparsePagedArray", &ProfileSparsePagedArrayRemoval },
-        { "HashMap (Pooled)", &ProfileHashMapRemoval },
-        { "HashMap (Dynamic)", &ProfileHashMapDynamicRemoval },
+        { "TMap (Pooled)", &ProfileHashMapRemoval },
+        { "TMap (Dynamic)", &ProfileHashMapDynamicRemoval },
         { "HashSet (Pooled)", &ProfileHashSetRemoval },
         { "HashSet (Dynamic)", &ProfileHashSetDynamicRemoval },
         { "std::vector", &ProfileStdVectorRemoval },

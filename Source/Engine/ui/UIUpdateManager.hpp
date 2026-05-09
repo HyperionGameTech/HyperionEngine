@@ -7,8 +7,8 @@
 #pragma once
 
 #include <Core/containers/Array.hpp>
-#include <Core/containers/HashMap.hpp>
-#include <Core/containers/HashSet.hpp>
+#include <Core/containers/Map.hpp>
+#include <Core/containers/Set.hpp>
 #include <Core/reflection/Handle.hpp>
 #include <Core/utilities/EnumFlags.hpp>
 #include <Core/utilities/IdGenerator.hpp>
@@ -59,8 +59,8 @@ private:
     SparsePagedArray<UpdateEntry, 2048> m_entryPool;
     IdGenerator m_entryIdGenerator;
 
-    HashMap<UIObjectUpdateType, Array<UpdateEntry*>> m_updateQueues;
-    HashMap<WeakHandle<UIObject>, UpdateEntry*> m_pendingObjects;
+    TMap<UIObjectUpdateType, Array<UpdateEntry*>> m_updateQueues;
+    TMap<WeakHandle<UIObject>, UpdateEntry*> m_pendingObjects;
 
     static constexpr UIObjectUpdateType s_updateOrder[] = {
         UIObjectUpdateType::UPDATE_SIZE,

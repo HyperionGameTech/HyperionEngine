@@ -6,7 +6,7 @@
 
 #pragma once
 
-#include <Core/containers/HashSet.hpp>
+#include <Core/containers/Set.hpp>
 
 #include <Core/utilities/Pair.hpp>
 
@@ -19,17 +19,17 @@ namespace Hyperion {
 
 namespace containers {
 
-/*! \brief HashMap is a hash table based associative container that stores key-value pairs, based on the HashSet implementation.
+/*! \brief TMap is a hash table based associative container that stores key-value pairs, based on the TSet implementation.
  *  A custom allocator can be provided to control memory allocation for the nodes.
  *  \tparam Key The type of keys stored in the hash map.
  * \tparam Value The type of values stored in the hash map.
  * \tparam AllocatorType The type of node allocator used for managing memory (See InstrusiveMap)
  *  \tparam Policy Whether to use node pooling or dynamic nodes - if persistent pointers to elements are needed, use HashTablePolicy::NotPooled and the pointers will remain persistent until rehash. */
 template <class Key, class Value, class AllocatorType = DynamicAllocator, class Policy = HashTablePolicy::NodePooling>
-class HashMap : public IntrusiveMap<KeyValuePair<Key, Value>, &KeyValuePair<Key, Value>::first, AllocatorType, Policy>
+class TMap : public THashTable<KeyValuePair<Key, Value>, &KeyValuePair<Key, Value>::first, AllocatorType, Policy>
 {
 public:
-    using Base = IntrusiveMap<KeyValuePair<Key, Value>, &KeyValuePair<Key, Value>::first, AllocatorType, Policy>;
+    using Base = THashTable<KeyValuePair<Key, Value>, &KeyValuePair<Key, Value>::first, AllocatorType, Policy>;
 
     using Iterator = typename Base::Iterator;
     using ConstIterator = typename Base::ConstIterator;
@@ -55,10 +55,10 @@ public:
     using Base::Reserve;
     using Base::Size;
 
-    HashMap();
+    TMap();
 
-    HashMap(std::initializer_list<KeyValuePair<Key, Value>> initializerList)
-        : HashMap()
+    TMap(std::initializer_list<KeyValuePair<Key, Value>> initializerList)
+        : TMap()
     {
         Array<KeyValuePair<Key, Value>> temp(initializerList);
 
@@ -68,11 +68,11 @@ public:
         }
     }
 
-    HashMap(const HashMap& other);
-    HashMap& operator=(const HashMap& other);
-    HashMap(HashMap&& other) noexcept;
-    HashMap& operator=(HashMap&& other) noexcept;
-    ~HashMap();
+    TMap(const TMap& other);
+    TMap& operator=(const TMap& other);
+    TMap(TMap&& other) noexcept;
+    TMap& operator=(TMap&& other) noexcept;
+    ~TMap();
 
     Value& operator[](const Key& key);
 
@@ -92,7 +92,7 @@ public:
         return it->second;
     }
 
-    HYP_FORCE_INLINE bool operator==(const HashMap& other) const
+    HYP_FORCE_INLINE bool operator==(const TMap& other) const
     {
         if (Base::m_size != other.Base::m_size)
         {
@@ -120,7 +120,7 @@ public:
         return true;
     }
 
-    HYP_FORCE_INLINE bool operator!=(const HashMap& other) const
+    HYP_FORCE_INLINE bool operator!=(const TMap& other) const
     {
         if (Base::m_size != other.Base::m_size)
         {
@@ -202,7 +202,7 @@ public:
     }
 
     template <class OtherContainerType>
-    HYP_FORCE_INLINE HashMap& Merge(OtherContainerType&& other)
+    HYP_FORCE_INLINE TMap& Merge(OtherContainerType&& other)
     {
         Base::Merge(std::forward<OtherContainerType>(other));
 
@@ -211,18 +211,18 @@ public:
 };
 
 template <class Key, class Value, class AllocatorType, class Policy>
-HashMap<Key, Value, AllocatorType, Policy>::HashMap()
+TMap<Key, Value, AllocatorType, Policy>::TMap()
 {
 }
 
 template <class Key, class Value, class AllocatorType, class Policy>
-HashMap<Key, Value, AllocatorType, Policy>::HashMap(const HashMap& other)
+TMap<Key, Value, AllocatorType, Policy>::TMap(const TMap& other)
     : Base(static_cast<const Base&>(other))
 {
 }
 
 template <class Key, class Value, class AllocatorType, class Policy>
-auto HashMap<Key, Value, AllocatorType, Policy>::operator=(const HashMap& other) -> HashMap&
+auto TMap<Key, Value, AllocatorType, Policy>::operator=(const TMap& other) -> TMap&
 {
     Base::operator=(static_cast<const Base&>(other));
 
@@ -230,13 +230,13 @@ auto HashMap<Key, Value, AllocatorType, Policy>::operator=(const HashMap& other)
 }
 
 template <class Key, class Value, class AllocatorType, class Policy>
-HashMap<Key, Value, AllocatorType, Policy>::HashMap(HashMap&& other) noexcept
+TMap<Key, Value, AllocatorType, Policy>::TMap(TMap&& other) noexcept
     : Base(static_cast<Base&&>(other))
 {
 }
 
 template <class Key, class Value, class AllocatorType, class Policy>
-auto HashMap<Key, Value, AllocatorType, Policy>::operator=(HashMap&& other) noexcept -> HashMap&
+auto TMap<Key, Value, AllocatorType, Policy>::operator=(TMap&& other) noexcept -> TMap&
 {
     Base::operator=(static_cast<Base&&>(other));
 
@@ -244,10 +244,10 @@ auto HashMap<Key, Value, AllocatorType, Policy>::operator=(HashMap&& other) noex
 }
 
 template <class Key, class Value, class AllocatorType, class Policy>
-HashMap<Key, Value, AllocatorType, Policy>::~HashMap() = default;
+TMap<Key, Value, AllocatorType, Policy>::~TMap() = default;
 
 template <class Key, class Value, class AllocatorType, class Policy>
-auto HashMap<Key, Value, AllocatorType, Policy>::operator[](const Key& key) -> Value&
+auto TMap<Key, Value, AllocatorType, Policy>::operator[](const Key& key) -> Value&
 {
     const Iterator it = Find(key);
 
@@ -260,7 +260,7 @@ auto HashMap<Key, Value, AllocatorType, Policy>::operator[](const Key& key) -> V
 }
 
 template <class Key, class Value, class AllocatorType, class Policy>
-auto HashMap<Key, Value, AllocatorType, Policy>::FindByHashCode(HashCode hashCode) -> Iterator
+auto TMap<Key, Value, AllocatorType, Policy>::FindByHashCode(HashCode hashCode) -> Iterator
 {
     auto* bucket = Base::GetBucketForHash(hashCode.Value());
 
@@ -275,7 +275,7 @@ auto HashMap<Key, Value, AllocatorType, Policy>::FindByHashCode(HashCode hashCod
 }
 
 template <class Key, class Value, class AllocatorType, class Policy>
-auto HashMap<Key, Value, AllocatorType, Policy>::FindByHashCode(HashCode hashCode) const -> ConstIterator
+auto TMap<Key, Value, AllocatorType, Policy>::FindByHashCode(HashCode hashCode) const -> ConstIterator
 {
     auto* bucket = Base::GetBucketForHash(hashCode.Value());
 
@@ -290,71 +290,71 @@ auto HashMap<Key, Value, AllocatorType, Policy>::FindByHashCode(HashCode hashCod
 }
 
 template <class Key, class Value, class AllocatorType, class Policy>
-auto HashMap<Key, Value, AllocatorType, Policy>::Set(const Key& key, const Value& value) -> InsertResult
+auto TMap<Key, Value, AllocatorType, Policy>::Set(const Key& key, const Value& value) -> InsertResult
 {
     return Base::Set(KeyValuePair<Key, Value> { key, value });
 }
 
 template <class Key, class Value, class AllocatorType, class Policy>
-auto HashMap<Key, Value, AllocatorType, Policy>::Set(const Key& key, Value&& value) -> InsertResult
+auto TMap<Key, Value, AllocatorType, Policy>::Set(const Key& key, Value&& value) -> InsertResult
 {
     return Base::Set(KeyValuePair<Key, Value> { key, std::move(value) });
 }
 
 template <class Key, class Value, class AllocatorType, class Policy>
-auto HashMap<Key, Value, AllocatorType, Policy>::Set(Key&& key, const Value& value) -> InsertResult
+auto TMap<Key, Value, AllocatorType, Policy>::Set(Key&& key, const Value& value) -> InsertResult
 {
     return Base::Set(KeyValuePair<Key, Value> { std::move(key), value });
 }
 
 template <class Key, class Value, class AllocatorType, class Policy>
-auto HashMap<Key, Value, AllocatorType, Policy>::Set(Key&& key, Value&& value) -> InsertResult
+auto TMap<Key, Value, AllocatorType, Policy>::Set(Key&& key, Value&& value) -> InsertResult
 {
     return Base::Set(KeyValuePair<Key, Value> { std::move(key), std::move(value) });
 }
 
 template <class Key, class Value, class AllocatorType, class Policy>
-auto HashMap<Key, Value, AllocatorType, Policy>::Insert(const Key& key, const Value& value) -> InsertResult
+auto TMap<Key, Value, AllocatorType, Policy>::Insert(const Key& key, const Value& value) -> InsertResult
 {
     return Base::Insert(KeyValuePair<Key, Value> { key, value });
 }
 
 template <class Key, class Value, class AllocatorType, class Policy>
-auto HashMap<Key, Value, AllocatorType, Policy>::Insert(const Key& key, Value&& value) -> InsertResult
+auto TMap<Key, Value, AllocatorType, Policy>::Insert(const Key& key, Value&& value) -> InsertResult
 {
     return Base::Insert(KeyValuePair<Key, Value> { key, std::move(value) });
 }
 
 template <class Key, class Value, class AllocatorType, class Policy>
-auto HashMap<Key, Value, AllocatorType, Policy>::Insert(Key&& key, const Value& value) -> InsertResult
+auto TMap<Key, Value, AllocatorType, Policy>::Insert(Key&& key, const Value& value) -> InsertResult
 {
     return Base::Insert(KeyValuePair<Key, Value> { std::move(key), value });
 }
 
 template <class Key, class Value, class AllocatorType, class Policy>
-auto HashMap<Key, Value, AllocatorType, Policy>::Insert(Key&& key, Value&& value) -> InsertResult
+auto TMap<Key, Value, AllocatorType, Policy>::Insert(Key&& key, Value&& value) -> InsertResult
 {
     return Base::Insert(KeyValuePair<Key, Value> { std::move(key), std::move(value) });
 }
 
 template <class Key, class Value, class AllocatorType, class Policy>
-auto HashMap<Key, Value, AllocatorType, Policy>::Insert(const KeyValuePair<Key, Value>& pair) -> InsertResult
+auto TMap<Key, Value, AllocatorType, Policy>::Insert(const KeyValuePair<Key, Value>& pair) -> InsertResult
 {
     return Base::Insert(pair);
 }
 
 template <class Key, class Value, class AllocatorType, class Policy>
-auto HashMap<Key, Value, AllocatorType, Policy>::Insert(KeyValuePair<Key, Value>&& pair) -> InsertResult
+auto TMap<Key, Value, AllocatorType, Policy>::Insert(KeyValuePair<Key, Value>&& pair) -> InsertResult
 {
     return Base::Insert(std::move(pair));
 }
 
 } // namespace containers
 
-using containers::HashMap;
+using containers::TMap;
 
 template <class Key, class Value, class AllocatorType, class Policy>
-struct IsHashMap<containers::HashMap<Key, Value, AllocatorType, Policy>> : std::true_type
+struct IsHashMap<containers::TMap<Key, Value, AllocatorType, Policy>> : std::true_type
 {
 };
 

@@ -164,7 +164,7 @@ static const FlatMap<String, std::add_pointer_t<ScriptableDelegate<UIEventHandle
 
 #undef UI_OBJECT_GET_DELEGATE_FUNCTION
 
-static const HashMap<String, UIObjectAlignment> s_uiAlignmentStrings {
+static const TMap<String, UIObjectAlignment> s_uiAlignmentStrings {
     { "TOPLEFT", UIObjectAlignment::TOP_LEFT },
     { "TOPRIGHT", UIObjectAlignment::TOP_RIGHT },
     { "CENTER", UIObjectAlignment::CENTER },

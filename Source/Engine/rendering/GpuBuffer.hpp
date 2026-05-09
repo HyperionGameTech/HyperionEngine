@@ -12,7 +12,7 @@
 #include <Core/functional/Proc.hpp>
 
 #include <Core/containers/Array.hpp>
-#include <Core/containers/HashSet.hpp>
+#include <Core/containers/Set.hpp>
 
 #include <rendering/RenderResult.hpp>
 #include <rendering/RenderObject.hpp>
@@ -27,9 +27,9 @@ class GpuBufferBase : public ObjectBase
 
 public:
     static Pool* GetAllocator() { return g_rhiPool; }
-    
+
     virtual ~GpuBufferBase() override = default;
-    
+
 #if HYP_DEBUG_MODE
     Name GetDebugName() const
     {
@@ -123,7 +123,7 @@ protected:
     size_t m_alignment;
 
     mutable ResourceState m_resourceState;
-    
+
 #if HYP_DEBUG_MODE
     Name m_debugName;
 #endif

@@ -13,7 +13,7 @@
 
 #include <Core/Defines.hpp>
 
-#include <Core/containers/HashSet.hpp>
+#include <Core/containers/Set.hpp>
 
 #include <Core/functional/Delegate.hpp>
 
@@ -30,7 +30,7 @@ class FrameBase : public ObjectBase
 
 public:
     virtual ~FrameBase() override = default;
-    
+
     static Pool* GetAllocator() { return g_rhiPool; }
 
     virtual bool IsCreated() const = 0;

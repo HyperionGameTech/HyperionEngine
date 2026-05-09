@@ -9,8 +9,8 @@
 #include <Core/HashCode.hpp>
 #include <Core/Types.hpp>
 
-#include <Core/containers/HashMap.hpp>
-#include <Core/containers/HashSet.hpp>
+#include <Core/containers/Map.hpp>
+#include <Core/containers/Set.hpp>
 #include <Core/containers/SparsePagedArray.hpp>
 
 #include <Core/math/MathUtil.hpp>
@@ -137,7 +137,7 @@ public:
     {
         TSharedLock lock(m_mutex);
 
-        HashSet<IdType> visited;
+        TSet<IdType> visited;
         visited.Reserve(m_forwardMap.Size());
 
         const uint32 headerOffset = stream.Position();
@@ -274,7 +274,7 @@ protected:
     bool m_initialized = false;
 
 private:
-    HashMap<HashCode, IdType> m_forwardMap;
+    TMap<HashCode, IdType> m_forwardMap;
     SparsePagedArray<Value, PageSize> m_reverseMap;
     mutable SharedMutex m_mutex;
 };

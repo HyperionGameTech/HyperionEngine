@@ -15,7 +15,7 @@
 
 #include <rendering/util/DeletionQueue.hpp>
 
-#include <Core/containers/HashMap.hpp>
+#include <Core/containers/Map.hpp>
 
 #include <Core/threading/SharedMutex.hpp>
 
@@ -264,7 +264,7 @@ public:
     ShadowMapAllocator allocator;
 
     /// Cached (per-light/view combination) shadow map rendering data that is cleaned up when no longer used
-    HashMap<ShadowMapCacheKey, CachedShadowMapData, RenderAllocator> cache;
+    TMap<ShadowMapCacheKey, CachedShadowMapData, RenderAllocator> cache;
 
 #if SHADOW_MAP_CACHE_MULTITHREADED
     SharedMutex mutex;

@@ -40,7 +40,7 @@ namespace {
 
 struct Win32WindowRegistry
 {
-    HashSet<WideString> registeredClasses;
+    TSet<WideString> registeredClasses;
     Mutex mutex;
 
     static Win32WindowRegistry& GetInstance()

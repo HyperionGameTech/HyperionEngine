@@ -10,7 +10,7 @@
 
 #include <rendering/Vertex.hpp>
 
-#include <Core/containers/HashMap.hpp>
+#include <Core/containers/Map.hpp>
 #include <Core/containers/Array.hpp>
 #include <Core/containers/String.hpp>
 
@@ -48,8 +48,8 @@ public:
 
     struct PLYModel
     {
-        HashMap<String, PLYPropertyDefinition> propertyTypes;
-        HashMap<String, ByteBuffer> customData;
+        TMap<String, PLYPropertyDefinition> propertyTypes;
+        TMap<String, ByteBuffer> customData;
         Array<SimpleVertex> vertices;
         size_t headerLength = 0;
     };

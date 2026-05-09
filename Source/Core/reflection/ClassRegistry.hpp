@@ -139,13 +139,13 @@ public:
 private:
     Array<Class*> m_classesByStaticIndex;
 
-    HashMap<TypeId, Class*> m_classesByTypeId;
+    TMap<TypeId, Class*> m_classesByTypeId;
 
     mutable Mutex m_mutex;
-    HashMap<TypeId, Class*> m_dynamicClasses;
+    TMap<TypeId, Class*> m_dynamicClasses;
 
-    HashMap<Class*, RC<dotnet::ManagedClass>> m_managedClasses;
-    HashMap<dotnet::ManagedClass*, Class*> m_managedClassesReverseMapping;
+    TMap<Class*, RC<dotnet::ManagedClass>> m_managedClasses;
+    TMap<dotnet::ManagedClass*, Class*> m_managedClassesReverseMapping;
     mutable Mutex m_managedClassesMutex;
 
     bool m_isInitialized : 1;

@@ -36,7 +36,7 @@ VulkanDevice::VulkanDevice(VkPhysicalDevice physical)
 
 VulkanDevice::~VulkanDevice()
 {
-    HashSet<VulkanDeviceQueue*> queuesToDestroy;
+    TSet<VulkanDeviceQueue*> queuesToDestroy;
     queuesToDestroy.Add(m_queueGraphics);
     queuesToDestroy.Add(m_queueTransfer);
     queuesToDestroy.Add(m_queuePresent);
@@ -504,7 +504,7 @@ RendererResult VulkanDevice::Create(VkSurfaceKHR surface)
     VkDeviceCreateInfo createInfo { VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO };
     createInfo.pQueueCreateInfos = queueCreateInfos.Data();
     createInfo.queueCreateInfoCount = uint32(queueCreateInfos.Size());
-    
+
 #if defined(HYP_AFTERMATH) && HYP_AFTERMATH
     VkDeviceDiagnosticsConfigCreateInfoNV aftermathInfo { VK_STRUCTURE_TYPE_DEVICE_DIAGNOSTICS_CONFIG_CREATE_INFO_NV };
 
@@ -540,7 +540,7 @@ RendererResult VulkanDevice::Create(VkSurfaceKHR surface)
         "Could not create Device!");
 
     // Create command pools
-    HashSet<VulkanDeviceQueue*> deviceQueues;
+    TSet<VulkanDeviceQueue*> deviceQueues;
     deviceQueues.Add(m_queueGraphics);
     deviceQueues.Add(m_queueTransfer);
     deviceQueues.Add(m_queueCompute);
@@ -622,7 +622,7 @@ void VulkanDevice::InitQueueFamilies(VkSurfaceKHR surface)
         queueMembers.PushBack(&m_queuePresent);
     }
 
-    HashMap<uint32, VulkanDeviceQueue*> mapFamilyIndexToDeviceQueue;
+    TMap<uint32, VulkanDeviceQueue*> mapFamilyIndexToDeviceQueue;
 
     for (int i = 0; i < int(queues.Size()); i++)
     {

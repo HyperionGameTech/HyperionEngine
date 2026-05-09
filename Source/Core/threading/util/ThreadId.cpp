@@ -8,7 +8,7 @@
 #include <Core/threading/Threads.hpp>
 #include <Core/threading/Mutex.hpp>
 
-#include <Core/containers/HashMap.hpp>
+#include <Core/containers/Map.hpp>
 
 #include <Core/utilities/GlobalContext.hpp>
 #include <Core/utilities/IdGenerator.hpp>
@@ -91,8 +91,8 @@ private:
 
     IdGenerator m_idGenerator;
 
-    HashMap<Name, Array<uint32>> m_nameMapping;
-    HashMap<uint32, Name> m_reverseNameMapping;
+    TMap<Name, Array<uint32>> m_nameMapping;
+    TMap<uint32, Name> m_reverseNameMapping;
 
     mutable Mutex m_mutex;
 };

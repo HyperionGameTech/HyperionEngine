@@ -1,7 +1,7 @@
 #pragma once
 
 #include <Core/containers/String.hpp>
-#include <Core/containers/HashMap.hpp>
+#include <Core/containers/Map.hpp>
 #include <Core/utilities/Optional.hpp>
 
 #include <map>
@@ -61,7 +61,7 @@ public:
     static Optional<String> ToString(Keywords keyword);
 
 private:
-    static const HashMap<String, Keywords> keywordStrings;
+    static const TMap<String, Keywords> keywordStrings;
 };
 
 } // namespace Hyperion

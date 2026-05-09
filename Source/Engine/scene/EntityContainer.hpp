@@ -7,7 +7,7 @@
 #pragma once
 
 #include <Core/containers/TypeMap.hpp>
-#include <Core/containers/HashMap.hpp>
+#include <Core/containers/Map.hpp>
 #include <Core/containers/Array.hpp>
 #include <Core/containers/SparsePagedArray.hpp>
 

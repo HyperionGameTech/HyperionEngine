@@ -11,7 +11,7 @@
 
 #include <Core/utilities/IdGenerator.hpp>
 
-#include <Core/containers/HashMap.hpp>
+#include <Core/containers/Map.hpp>
 
 #include <rendering/RenderObject.hpp>
 

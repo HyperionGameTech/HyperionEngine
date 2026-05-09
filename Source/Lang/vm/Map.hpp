@@ -2,7 +2,7 @@
 
 #include <Lang/vm/Value.hpp>
 
-#include <Core/containers/HashMap.hpp>
+#include <Core/containers/Map.hpp>
 
 #include <Core/math/MathUtil.hpp>
 
@@ -39,7 +39,7 @@ public:
         }
     };
 
-    using InternalMapType = HashMap<VMMapKey, BoxedValue, DynamicAllocator, HashTablePolicy::NotPooled>;
+    using InternalMapType = TMap<VMMapKey, BoxedValue, DynamicAllocator, HashTablePolicy::NotPooled>;
 
     ScriptMap();
     ScriptMap(const ScriptMap& other) = delete;

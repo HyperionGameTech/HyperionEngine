@@ -4,7 +4,7 @@
 #include <Core/memory/allocator/SlabAllocator.hpp>
 
 #include <Core/containers/Array.hpp>
-#include <Core/containers/HashSet.hpp>
+#include <Core/containers/Set.hpp>
 #include <Core/containers/String.hpp>
 
 #include <Core/Types.hpp>
@@ -675,7 +675,7 @@ public:
 
     HYP_FORCE_INLINE HashCode GetHashCode() const
     {
-        HashSet<String> duplicateNames;
+        TSet<String> duplicateNames;
 
         return GetHashCodeWithDuplicateRemoval(duplicateNames);
     }
@@ -716,7 +716,7 @@ public:
 
 private:
     void DeleteReferencedTypes();
-    HashCode GetHashCodeWithDuplicateRemoval(HashSet<String>& duplicateNames) const;
+    HashCode GetHashCodeWithDuplicateRemoval(TSet<String>& duplicateNames) const;
 
     String m_name;
     SymbolTypeClass m_typeClass;

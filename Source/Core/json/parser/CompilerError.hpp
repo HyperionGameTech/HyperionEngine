@@ -9,7 +9,7 @@
 #include <Core/json/parser/SourceLocation.hpp>
 
 #include <Core/containers/String.hpp>
-#include <Core/containers/HashMap.hpp>
+#include <Core/containers/Map.hpp>
 
 #include <Core/utilities/Format.hpp>
 
@@ -62,7 +62,7 @@ enum ErrorMessage
 
 class CompilerError
 {
-    static const HashMap<ErrorMessage, String> errorMessageStrings;
+    static const TMap<ErrorMessage, String> errorMessageStrings;
 
 public:
     template <typename... Args>

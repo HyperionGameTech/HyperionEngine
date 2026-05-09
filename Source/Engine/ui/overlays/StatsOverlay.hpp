@@ -11,7 +11,7 @@
 #include <Core/math/Color.hpp>
 
 #include <Core/containers/Array.hpp>
-#include <Core/containers/HashMap.hpp>
+#include <Core/containers/Map.hpp>
 
 #include <Core/utilities/Uuid.hpp>
 
@@ -57,9 +57,9 @@ protected:
 private:
     Handle<UIListView> m_panel;
     Handle<UIDataSource> m_dataSource;
-    HashMap<EngineStatBase*, UUID> m_statUuids;
+    TMap<EngineStatBase*, UUID> m_statUuids;
 
-    ClockTimer m_hotFunctionsUpdateTimer; // updates at a slower rate 
+    ClockTimer m_hotFunctionsUpdateTimer; // updates at a slower rate
     Handle<UIListView> m_hotFunctionsPanel;
     Handle<UIText> m_hotFunctionsText;
 };

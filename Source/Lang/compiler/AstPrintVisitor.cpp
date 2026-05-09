@@ -263,7 +263,7 @@ WideString AstPrintVisitor::GetNodeDescription(AstStatement* node) const
 
     if (dynamic_cast<AstHashMap*>(node))
     {
-        return L"HashMap";
+        return L"TMap";
     }
 
     if (dynamic_cast<AstDirective*>(node))

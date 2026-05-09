@@ -11,7 +11,7 @@
 
 #include <Core/functional/Delegate.hpp>
 
-#include <Core/containers/HashMap.hpp>
+#include <Core/containers/Map.hpp>
 
 #include <Core/utilities/GlobalContext.hpp>
 #include <Core/utilities/IdGenerator.hpp>

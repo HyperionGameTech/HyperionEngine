@@ -122,7 +122,7 @@ AssetLoadResult MTLMaterialLoader::LoadAsset(LoaderState& state) const
     return { HYP_MAKE_ERROR(AssetLoadError, "MTL files should be loaded via MTLMaterialLoader::ParseMtl()") };
 }
 
-HashMap<String, Handle<MaterialInstance>> MTLMaterialLoader::ParseMtl(
+TMap<String, Handle<MaterialInstance>> MTLMaterialLoader::ParseMtl(
     FilePath filepath,
     AssetManager& assetManager,
     const String& batchIdentifier)
@@ -141,7 +141,7 @@ HashMap<String, Handle<MaterialInstance>> MTLMaterialLoader::ParseMtl(
     return ParseMtl_Internal(state);
 }
 
-HashMap<String, Handle<MaterialInstance>> MTLMaterialLoader::ParseMtl_Internal(LoaderState& state)
+TMap<String, Handle<MaterialInstance>> MTLMaterialLoader::ParseMtl_Internal(LoaderState& state)
 {
     Assert(state.assetManager != nullptr);
 
@@ -161,7 +161,7 @@ HashMap<String, Handle<MaterialInstance>> MTLMaterialLoader::ParseMtl_Internal(L
 
     Tokens tokens;
     tokens.Reserve(5);
-    
+
     String fileContents = String(state.stream.Read().ToByteView());
     Array<String> lines = fileContents.Split('\n');
 
@@ -234,12 +234,12 @@ HashMap<String, Handle<MaterialInstance>> MTLMaterialLoader::ParseMtl_Internal(L
         // }
 
             /*! Ns exponent
- 
-            Specifies the specular exponent for the current material.  This defines 
+
+            Specifies the specular exponent for the current material.  This defines
             the focus of the specular highlight.
- 
-            "exponent" is the value for the specular exponent.  A high exponent 
-            results in a tight, concentrated highlight.  Ns values normally range 
+
+            "exponent" is the value for the specular exponent.  A high exponent
+            results in a tight, concentrated highlight.  Ns values normally range
             from 0 to 1000. */
         if (tokens[0] == "ns")
         {
@@ -256,31 +256,31 @@ HashMap<String, Handle<MaterialInstance>> MTLMaterialLoader::ParseMtl_Internal(L
 
             continue;
         }
-            
+
         /*! d factor
- 
+
             Specifies the dissolve for the current material.
- 
-            "factor" is the amount this material dissolves into the background.  A 
-        factor of 1.0 is fully opaque.  This is the default when a new material 
-        is created.  A factor of 0.0 is fully dissolved (completely 
+
+            "factor" is the amount this material dissolves into the background.  A
+        factor of 1.0 is fully opaque.  This is the default when a new material
+        is created.  A factor of 0.0 is fully dissolved (completely
         transparent).
- 
-            Unlike a real transparent material, the dissolve does not depend upon 
-        material thickness nor does it have any spectral character.  Dissolve 
+
+            Unlike a real transparent material, the dissolve does not depend upon
+        material thickness nor does it have any spectral character.  Dissolve
         works on all illumination models.
- 
+
             d -halo factor
- 
-            Specifies that a dissolve is dependent on the surface orientation 
-        relative to the viewer.  For example, a sphere with the following 
-        dissolve, d -halo 0.0, will be fully dissolved at its center and will 
+
+            Specifies that a dissolve is dependent on the surface orientation
+        relative to the viewer.  For example, a sphere with the following
+        dissolve, d -halo 0.0, will be fully dissolved at its center and will
         appear gradually more opaque toward its edge.
- 
-            "factor" is the minimum amount of dissolve applied to the material.  
-        The amount of dissolve will vary between 1.0 (fully opaque) and the 
+
+            "factor" is the minimum amount of dissolve applied to the material.
+        The amount of dissolve will vary between 1.0 (fully opaque) and the
         specified "factor".  The formula is:
- 
+
             dissolve = 1.0 - (N*v)(1.0-factor) */
         if (tokens[0] == "d")
         {
@@ -347,18 +347,18 @@ HashMap<String, Handle<MaterialInstance>> MTLMaterialLoader::ParseMtl_Internal(L
 
 
         /*! illum illum_#
- 
-        The "illum" statement specifies the illumination model to use in the 
-        material.  Illumination models are mathematical equations that represent 
+
+        The "illum" statement specifies the illumination model to use in the
+        material.  Illumination models are mathematical equations that represent
         various material lighting and shading effects.
-            
-        "illum_#"can be a number from 0 to 10.  The illumination models are 
-        summarized below; for complete descriptions see "Illumination models" on 
+
+        "illum_#"can be a number from 0 to 10.  The illumination models are
+        summarized below; for complete descriptions see "Illumination models" on
         page 5-30.
-            
-        Illumination    Properties that are turned on in the 
+
+        Illumination    Properties that are turned on in the
         model           Property Editor
-            
+
         0		Color on and Ambient off
         1		Color on and Ambient on
         2		Highlight on
@@ -420,10 +420,10 @@ HashMap<String, Handle<MaterialInstance>> MTLMaterialLoader::ParseMtl_Internal(L
         }
     }
 
-    HashMap<String, Handle<MaterialInstance>> result;
+    TMap<String, Handle<MaterialInstance>> result;
 
-    HashMap<String, String> textureNamesToPath;
-    HashSet<String> srgbTextures;
+    TMap<String, String> textureNamesToPath;
+    TSet<String> srgbTextures;
 
     for (const auto& item : library.materials)
     {
@@ -442,7 +442,7 @@ HashMap<String, Handle<MaterialInstance>> MTLMaterialLoader::ParseMtl_Internal(L
         }
     }
 
-    HashMap<String, Handle<Texture>> textureRefs;
+    TMap<String, Handle<Texture>> textureRefs;
 
     AssetMap loadedTextures;
     Array<String> allFilepaths;
@@ -561,7 +561,7 @@ HashMap<String, Handle<MaterialInstance>> MTLMaterialLoader::ParseMtl_Internal(L
 
         Handle<MaterialInstance> materialInstance = materialDefinition->CreateInstance();
         InitObject(materialInstance);
-        
+
         GetCurrentAssetRegistry()->PutAssetUnique(materialInstance);
 
         result.Set(item.tag, std::move(materialInstance));

@@ -131,7 +131,7 @@ public:
 
 #pragma region Thread Pool Factories
 
-static const HashMap<TaskThreadPoolName, UniquePtr<TaskThreadPool> (*)(void)> s_threadPoolFactories {
+static const TMap<TaskThreadPoolName, UniquePtr<TaskThreadPool> (*)(void)> s_threadPoolFactories {
     {
         TaskThreadPoolName::THREAD_POOL_GENERIC, []() -> UniquePtr<TaskThreadPool>
         {

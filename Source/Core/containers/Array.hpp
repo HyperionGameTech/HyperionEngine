@@ -779,8 +779,11 @@ Array<T, AllocatorType>::Array(Array&& other) noexcept
 template <class T, class AllocatorType>
 Array<T, AllocatorType>::~Array()
 {
-    m_allocation.DestructInRange(m_startOffset, m_size);
-    m_allocation.Free(GetAllocator());
+    if (m_allocation.GetCapacity() != 0)
+    {
+        m_allocation.DestructInRange(m_startOffset, m_size);
+        m_allocation.Free(GetAllocator());
+    }
 }
 
 template <class T, class AllocatorType>

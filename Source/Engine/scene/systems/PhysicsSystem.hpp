@@ -11,7 +11,7 @@
 #include <scene/components/RigidBodyComponent.hpp>
 #include <scene/components/TransformComponent.hpp>
 
-#include <Core/containers/HashMap.hpp>
+#include <Core/containers/Map.hpp>
 #include <Core/functional/Delegate.hpp>
 #include <Core/math/Transform.hpp>
 

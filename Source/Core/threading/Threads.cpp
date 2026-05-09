@@ -8,7 +8,7 @@
 #include <Core/threading/TaskSystem.hpp>
 #include <Core/threading/Mutex.hpp>
 
-#include <Core/containers/HashSet.hpp>
+#include <Core/containers/Set.hpp>
 
 #include <Core/logging/LogChannels.hpp>
 #include <Core/logging/Logger.hpp>
@@ -40,7 +40,7 @@ static const ThreadId& ThreadSet_KeyBy(ThreadBase* thread)
 class ThreadMap
 {
 public:
-    using ThreadSetType = IntrusiveMap<ThreadBase*, &ThreadSet_KeyBy>;
+    using ThreadSetType = THashTable<ThreadBase*, &ThreadSet_KeyBy>;
 
     ThreadMap() = default;
 

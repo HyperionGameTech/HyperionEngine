@@ -80,7 +80,7 @@ static constexpr TypeId s_typeIdString { CONSTEXPR_TYPE_ID(ScriptString) };
 
 // clang-format off
 
-static const HashMap<TypeId, String (*)(const void*)> s_builtinToStringFunctions = {
+static const TMap<TypeId, String (*)(const void*)> s_builtinToStringFunctions = {
     { s_typeIdI8, [](const void* p) -> String { return HYP_FORMAT("{}", *reinterpret_cast<const int8*>(p)); } },
     { s_typeIdI16, [](const void* p) -> String { return HYP_FORMAT("{}", *reinterpret_cast<const int16*>(p)); } },
     { s_typeIdI32, [](const void* p) -> String { return HYP_FORMAT("{}", *reinterpret_cast<const int32*>(p)); } },
@@ -95,7 +95,7 @@ static const HashMap<TypeId, String (*)(const void*)> s_builtinToStringFunctions
     { s_typeIdString, [](const void* p) -> String { return *reinterpret_cast<const ScriptString*>(p); } }
 };
 
-static const HashMap<TypeId, const char*> s_builtinTypeNames = {
+static const TMap<TypeId, const char*> s_builtinTypeNames = {
     { s_typeIdI8, "int8" },
     { s_typeIdI16, "int16" },
     { s_typeIdI32, "int32" },

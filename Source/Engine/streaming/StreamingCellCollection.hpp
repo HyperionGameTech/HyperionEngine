@@ -12,7 +12,7 @@
 #include <Core/Defines.hpp>
 
 #include <Core/containers/Array.hpp>
-#include <Core/containers/HashSet.hpp>
+#include <Core/containers/Set.hpp>
 
 #include <Core/threading/AtomicVar.hpp>
 
@@ -76,10 +76,10 @@ struct StreamingCellRuntimeInfo
 };
 
 template <class AllocatorType>
-class StreamingCellCollection final : IntrusiveMap<StreamingCellRuntimeInfo, &StreamingCellRuntimeInfo::coord, AllocatorType>
+class StreamingCellCollection final : THashTable<StreamingCellRuntimeInfo, &StreamingCellRuntimeInfo::coord, AllocatorType>
 {
 public:
-    using Base = IntrusiveMap<StreamingCellRuntimeInfo, &StreamingCellRuntimeInfo::coord, AllocatorType>;
+    using Base = THashTable<StreamingCellRuntimeInfo, &StreamingCellRuntimeInfo::coord, AllocatorType>;
 
     using Iterator = typename Base::Iterator;
     using ConstIterator = typename Base::ConstIterator;

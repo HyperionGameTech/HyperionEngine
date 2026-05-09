@@ -9,7 +9,7 @@
 #include <Core/Types.hpp>
 
 #include <Core/containers/Array.hpp>
-#include <Core/containers/HashMap.hpp>
+#include <Core/containers/Map.hpp>
 
 #include <Core/utilities/ValueStorage.hpp>
 #include <Core/utilities/Range.hpp>
@@ -113,10 +113,10 @@ public:
 
     ByteWriter* GetWriteStream(uint32 page);
     ByteReader* GetReadStream(uint32 page);
-    
+
     bool GetData(StringHash key, size_t size, void*& outRawData);
     bool PutData(StringHash key, const BlobHeader& header, const void* rawData);
-    
+
     Result SaveManifest();
     Result SaveTOC();
 

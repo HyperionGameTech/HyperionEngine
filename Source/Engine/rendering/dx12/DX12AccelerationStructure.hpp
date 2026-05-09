@@ -235,7 +235,7 @@ private:
 
     Array<DX12GpuBlas*, RenderAllocator> m_blases;
     Array<uint64, RenderAllocator> m_keys;
-    HashMap<uint64, Pair<DX12GpuBlas*, uint32>, RenderAllocator> m_keyToBlasAndStorageId;
+    TMap<uint64, Pair<DX12GpuBlas*, uint32>, RenderAllocator> m_keyToBlasAndStorageId;
 
     DX12GpuBufferRef m_instancesBuffer;
 };

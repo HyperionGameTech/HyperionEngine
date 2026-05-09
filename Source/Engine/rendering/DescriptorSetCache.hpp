@@ -10,7 +10,7 @@
 #include <Core/Types.hpp>
 
 #include <Core/containers/Array.hpp>
-#include <Core/containers/HashMap.hpp>
+#include <Core/containers/Map.hpp>
 #include <Core/containers/FlatMap.hpp>
 
 #include <rendering/RenderObject.hpp>
@@ -34,10 +34,10 @@ public:
     DescriptorSet* GetOrCreate(const DescriptorSetLayout& layout);
 
 private:
-    using AllocationsMap = HashMap<HashCode, Array<DescriptorSetRef, RenderAllocator>, RenderAllocator>;
+    using AllocationsMap = TMap<HashCode, Array<DescriptorSetRef, RenderAllocator>, RenderAllocator>;
 
     AllocationsMap m_allocsByLayout;
-    
+
     struct AllocatedDescriptorSet
     {
         uint32 frameCounter; // last used frame counter

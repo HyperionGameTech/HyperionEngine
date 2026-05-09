@@ -13,7 +13,7 @@
 #include <Core/threading/AtomicVar.hpp>
 #include <Core/threading/ThreadLocalStorage.hpp>
 
-#include <Core/containers/HashMap.hpp>
+#include <Core/containers/Map.hpp>
 #include <Core/containers/Bitset.hpp>
 #include <Core/containers/LinkedList.hpp>
 
@@ -253,7 +253,7 @@ public:
             if (isConsole)
             {
                 static constexpr android_LogPriority LogLevelToAndroidLogPriority[NumLogLevels] = {
-                    
+
                      ANDROID_LOG_FATAL,     // Fatal
                      ANDROID_LOG_ERROR,     // Error
                      ANDROID_LOG_WARN,      // Warning
@@ -296,7 +296,7 @@ public:
                         s_useAndroidLogger = false;
                     }
                 }
-                
+
                 if (HYP_LIKELY(s_useAndroidLogger))
                 {
                     size_t offset = 0;
@@ -318,7 +318,7 @@ public:
                     }
 
                     s_androidLogBuffer->Data()[offset] = '\0';
-                    
+
                     __android_log_write(LogLevelToAndroidLogPriority[uint8(message.level)], "HyperionEngine", reinterpret_cast<const char*>(s_androidLogBuffer->Data()));
                 }
             }
@@ -381,7 +381,7 @@ private:
     LoggerWriteFnPtr m_writeErrorFnptrTable[Logger::MaxChannels];
 
     Mutex m_mutex;
-    HashMap<int, LoggerRedirect> m_redirects;
+    TMap<int, LoggerRedirect> m_redirects;
     uint64 m_redirectEnabledMask;
     int m_redirectIdCounter;
 };
@@ -459,8 +459,8 @@ void LogChannelRegistrar::RegisterAll()
     const Array<LogChannel*>& channels = m_channels;
     const uint32 n = uint32(channels.Size());
 
-    HashMap<LogChannel*, uint32> indeg;
-    HashMap<LogChannel*, Array<LogChannel*>> children;
+    TMap<LogChannel*, uint32> indeg;
+    TMap<LogChannel*, Array<LogChannel*>> children;
     indeg.Reserve(n);
     children.Reserve(n);
 

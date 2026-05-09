@@ -190,7 +190,7 @@ namespace Hyperion.Editor.ViewModels
                             if (isMeshComponent && MeshComponentRenderProxyProperties.Contains(property.Name.ToString()))
                             {
                                 Entity entity = _target;
-                                
+
                                 postWrite = () =>
                                 {
                                     entity.AddTag(EntityTag.UpdateRenderProxy);

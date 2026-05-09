@@ -20,6 +20,8 @@
 
 #include <Core/cli/CommandLine.hpp>
 
+#include <Core/threading/TaskSystem.hpp>
+
 namespace Hyperion {
 
 HYP_API extern const FilePath& GetLibraryDirectory();
@@ -143,15 +145,10 @@ protected:
 
     virtual Result Run_Impl(const CommandLineArguments& args) override
     {
-        //TResult loadShaderPackageResult = GetEngineAssetRegistry()->LoadPackageFromManifest(
-        //    GetLibraryDirectory() / "Engine" / "Shaders" / "PackageManifest.json",
-        //    true,
-        //    true);
-
-        //if (loadShaderPackageResult.HasError())
-        //{
-        //    return loadShaderPackageResult.GetError();
-        //}
+        if (!TaskSystem::GetInstance().IsRunning())
+        {
+            TaskSystem::GetInstance().Start();
+        }
 
         if (!g_shaderCompiler)
         {

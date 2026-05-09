@@ -10,7 +10,7 @@
 #include <rendering/Sampler.hpp>
 #include <rendering/RenderInterface.hpp>
 
-#include <Core/containers/HashMap.hpp>
+#include <Core/containers/Map.hpp>
 
 #include <Core/threading/SharedMutex.hpp>
 
@@ -23,7 +23,7 @@ namespace Hyperion {
 class SamplerCacheImpl
 {
 public:
-    HashMap<SamplerDesc, SamplerRef, RenderAllocator> cache;
+    TMap<SamplerDesc, SamplerRef, RenderAllocator> cache;
     SharedMutex mutex;
 };
 

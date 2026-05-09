@@ -17,7 +17,7 @@
 #include <rendering/vulkan/VulkanPipeline.hpp>
 
 #include <Core/containers/Array.hpp>
-#include <Core/containers/HashMap.hpp>
+#include <Core/containers/Map.hpp>
 
 #include <Core/Types.hpp>
 
@@ -70,7 +70,7 @@ private:
         VkStridedDeviceAddressRegionKHR callable {};
     } m_shaderBindingTableEntries;
 
-    using ShaderBindingTableMap = HashMap<ShaderModuleType, ShaderBindingTableEntry, VulkanAllocator>;
+    using ShaderBindingTableMap = TMap<ShaderModuleType, ShaderBindingTableEntry, VulkanAllocator>;
 
     RendererResult CreateShaderBindingTables(VulkanShaderInstance* shader);
     RendererResult CreateShaderBindingTableEntry(uint32 numShaders, ShaderBindingTableEntry& out);

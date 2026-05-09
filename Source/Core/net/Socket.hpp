@@ -15,7 +15,7 @@
 
 #include <Core/containers/Array.hpp>
 #include <Core/containers/String.hpp>
-#include <Core/containers/HashMap.hpp>
+#include <Core/containers/Map.hpp>
 
 #include <Core/memory/UniquePtr.hpp>
 #include <Core/memory/RefCountedPtr.hpp>
@@ -69,7 +69,7 @@ public:
     void TriggerProc(Name eventName, Array<SocketProcArgument>&& args);
 
 protected:
-    HashMap<Name, Proc<void(Array<SocketProcArgument>&&)>> m_eventProcs;
+    TMap<Name, Proc<void(Array<SocketProcArgument>&&)>> m_eventProcs;
 };
 
 class HYP_API SocketServerThread final : public Thread<Scheduler, SocketServer*>
@@ -137,7 +137,7 @@ private:
     UniquePtr<SocketServerThread> m_thread;
 
     // SocketServerThread controls the connections list
-    HashMap<Name, RC<SocketClient>> m_connections;
+    TMap<Name, RC<SocketClient>> m_connections;
     Mutex m_connectionsMutex;
 };
 

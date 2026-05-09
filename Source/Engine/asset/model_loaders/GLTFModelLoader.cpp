@@ -46,7 +46,7 @@
 #include <Core/math/Transform.hpp>
 
 #include <Core/memory/ByteBuffer.hpp>
-#include <Core/containers/HashMap.hpp>
+#include <Core/containers/Map.hpp>
 #include <Core/reflection/Handle.hpp>
 
 #include <engine/EngineDriver.hpp>
@@ -90,8 +90,8 @@ struct GltfLoadContext
     cgltf_data& data;
     Scene* scene;
     Array<GltfMeshResource> meshResources;
-    HashMap<const cgltf_material*, Handle<MaterialInstance>> materialCache;
-    HashMap<const cgltf_texture*, Handle<Texture>> textureCache;
+    TMap<const cgltf_material*, Handle<MaterialInstance>> materialCache;
+    TMap<const cgltf_texture*, Handle<Texture>> textureCache;
     uint32 unnamedNodeCounter = 0;
     uint32 unnamedMaterialCounter = 0;
     bool loggedMorphTargetWarning = false;
@@ -294,7 +294,7 @@ Handle<Texture> AcquireTexture(GltfLoadContext& ctx, const cgltf_texture_view& t
             {
                 const Handle<Texture>& texture = textureResult->Result();
                 CheckResult(texture->Create());
-                
+
                 GetCurrentAssetRegistry()->PutAssetUnique(texture);
 
                 return texture;
@@ -964,7 +964,7 @@ bool BuildPrimitive(GltfLoadContext& ctx,
 
     Handle<Mesh> mesh = MakeHandle<Mesh>();
     mesh->SetName(assetName);
-    
+
     VertexArrayView vertexArrayView {};
     vertexArrayView.floatData = reinterpret_cast<const float*>(vertices.Data());
     vertexArrayView.vertexCount = vertices.Size();
@@ -1146,7 +1146,7 @@ LoadedAsset BuildModel(LoaderState& state, cgltf_data& data)
     }
 
     const Name rootName = DetermineRootName(state, data);
-    
+
     Handle<Node> root = MakeHandle<Node>(rootName);
     root->SetIsDynamic(false);
 

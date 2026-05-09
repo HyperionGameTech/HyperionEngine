@@ -6,7 +6,7 @@
 
 #pragma once
 
-#include <Core/containers/HashMap.hpp>
+#include <Core/containers/Map.hpp>
 #include <Core/containers/String.hpp>
 
 #include <Core/utilities/Result.hpp>
@@ -19,7 +19,7 @@ class ByteReader;
 
 namespace xml {
 
-using AttributeMap = HashMap<String, String>;
+using AttributeMap = TMap<String, String>;
 
 class SAXHandler
 {

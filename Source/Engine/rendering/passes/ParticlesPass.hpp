@@ -6,7 +6,7 @@
 
 #pragma once
 
-#include <Core/containers/HashMap.hpp>
+#include <Core/containers/Map.hpp>
 
 #include <rendering/Pass.hpp>
 #include <rendering/RenderableAttributes.hpp>
@@ -61,7 +61,7 @@ private:
     VolumeState& EnsureVolumeState(RenderProxyParticleVolume* proxy);
     void EnsureStaging();
 
-    HashMap<ObjId<ParticleVolume>, VolumeState> m_volumeStates;
+    TMap<ObjId<ParticleVolume>, VolumeState> m_volumeStates;
     Staging m_staging;
 
     uint32 m_counter = 0u;

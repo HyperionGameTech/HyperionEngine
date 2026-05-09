@@ -12,7 +12,7 @@
 
 #include <Core/reflection/Handle.hpp>
 
-#include <Core/containers/HashMap.hpp>
+#include <Core/containers/Map.hpp>
 
 #include <Core/threading/Mutex.hpp>
 
@@ -131,7 +131,7 @@ public:
     }
 
 private:
-    HashMap<HashCode, WeakHandle<MaterialInstance>> m_map;
+    TMap<HashCode, WeakHandle<MaterialInstance>> m_map;
     Mutex m_mutex;
 };
 

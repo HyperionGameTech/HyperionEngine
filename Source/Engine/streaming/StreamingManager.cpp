@@ -385,7 +385,7 @@ private:
     void GetDesiredCellsForLayer(
         const LayerData& layerData,
         const Handle<StreamingVolumeBase>& volume,
-        HashSet<Vec2i, StreamingAllocator>& outCellCoords) const;
+        TSet<Vec2i, StreamingAllocator>& outCellCoords) const;
 
     void PostCellUpdate(Handle<StreamingCell> cell, StreamingCellState state)
     {
@@ -486,7 +486,7 @@ void StreamingManagerThread::DoWork(StreamingManager* streamingManager)
 
         const WorldGridLayerInfo& layerInfo = layer->GetLayerInfo();
 
-        HashSet<Vec2i, StreamingAllocator> desiredCells;
+        TSet<Vec2i, StreamingAllocator> desiredCells;
 
         for (const Handle<StreamingVolumeBase>& volume : m_volumes)
         {
@@ -709,7 +709,7 @@ void StreamingManagerThread::ProcessCellUpdatesForLayer(LayerData& layerData)
 void StreamingManagerThread::GetDesiredCellsForLayer(
     const LayerData& layerData,
     const Handle<StreamingVolumeBase>& volume,
-    HashSet<Vec2i, StreamingAllocator>& outCellCoords) const
+    TSet<Vec2i, StreamingAllocator>& outCellCoords) const
 {
     constexpr Vec2i CellNeighborDirections[4] = { { 1, 0 }, { -1, 0 }, { 0, 1 }, { 0, -1 } };
 
@@ -723,7 +723,7 @@ void StreamingManagerThread::GetDesiredCellsForLayer(
     }
 
     Array<Vec2f, StreamingTempAllocator> queue;
-    HashSet<Vec2i, StreamingTempAllocator, HashTablePolicy::NotPooled> visited;
+    TSet<Vec2i, StreamingTempAllocator, HashTablePolicy::NotPooled> visited;
 
     const Vec2f centerCoord = Vec2f(WorldSpaceToCellCoord(layerInfo, aabb.GetCenter()));
 

@@ -410,7 +410,7 @@ static void DebugLogProfileScopeEntry(ProfileScopeEntry* entry, int depth = 0)
 
 class ProfileScopeStack
 {
-    using TimeByFunctionMap = HashMap<ANSIString, double, ThreadAllocator>;
+    using TimeByFunctionMap = TMap<ANSIString, double, ThreadAllocator>;
 
 public:
     ProfileScopeStack()
@@ -461,7 +461,7 @@ public:
         {
             Reset();
         }
-        
+
         ++m_numRecordedScopes;
 
         m_head = &m_head->children.EmplaceBack(label, location, m_head);
@@ -520,7 +520,7 @@ private:
     void CollectTimeByFunction_Internal(ProfileScopeEntry* entry, TimeByFunctionMap& totalTimeByFunction)
     {
         // assume mutex is locked
-        
+
         if (entry != &m_rootEntry)
         {
             totalTimeByFunction[entry->label.Any() ? ANSIStringView(entry->label) : entry->location] += entry->measuredTimeMs;

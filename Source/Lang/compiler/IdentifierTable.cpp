@@ -1,7 +1,7 @@
 #include <Lang/compiler/IdentifierTable.hpp>
 #include <Lang/compiler/Configuration.hpp>
 
-#include <Core/containers/HashSet.hpp>
+#include <Core/containers/Set.hpp>
 
 #include <Core/debug/Debug.hpp>
 
@@ -9,7 +9,7 @@ namespace Hyperion {
 
 int IdentifierTable::CountUsedVariables() const
 {
-    HashSet<int> usedVariables;
+    TSet<int> usedVariables;
 
     for (auto& ident : identifiers)
     {

@@ -32,7 +32,7 @@
 #include <Core/reflection/Class.hpp>
 #include <Core/reflection/Method.hpp>
 
-#include <Core/containers/HashMap.hpp>
+#include <Core/containers/Map.hpp>
 
 #include <Core/utilities/Optional.hpp>
 #include <Core/utilities/Format.hpp>
@@ -267,7 +267,7 @@ void AstClass::Visit(AstVisitor* visitor, Module* mod)
             }
         }
 
-        HashMap<uint64, Array<String>> revEnumMembers;
+        TMap<uint64, Array<String>> revEnumMembers;
 
         // ===== STATIC DATA MEMBERS ======
         {

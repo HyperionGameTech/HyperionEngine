@@ -7,7 +7,7 @@
 #pragma once
 
 #include <Core/Defines.hpp>
-#include <Core/containers/HashMap.hpp>
+#include <Core/containers/Map.hpp>
 
 #include <Core/filesystem/FilePath.hpp>
 
@@ -60,7 +60,7 @@ public:
         }
     };
 
-    using Section = HashMap<String, Value>;
+    using Section = TMap<String, Value>;
 
     INIFile(const FilePath& path);
     ~INIFile() = default;
@@ -75,7 +75,7 @@ public:
         return m_path;
     }
 
-    HYP_FORCE_INLINE const HashMap<String, Section>& GetSections() const
+    HYP_FORCE_INLINE const TMap<String, Section>& GetSections() const
     {
         return m_sections;
     }
@@ -96,7 +96,7 @@ private:
     bool m_isValid;
     FilePath m_path;
 
-    HashMap<String, Section> m_sections;
+    TMap<String, Section> m_sections;
 };
 
 } // namespace Hyperion

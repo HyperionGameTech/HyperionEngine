@@ -192,12 +192,12 @@ struct NodeUnlockTransformScope;
 extern void Node_OnPostLoad(Node& node);
 
 HYP_STRUCT()
-class NodeTagSet : IntrusiveMap<NodeTag, &NodeTag::name>
+class NodeTagSet : THashTable<NodeTag, &NodeTag::name>
 {
     HYP_STRUCT_BODY(NodeTagSet);
 
 public:
-    using Base = IntrusiveMap<NodeTag, &NodeTag::name>;
+    using Base = THashTable<NodeTag, &NodeTag::name>;
 
     using Iterator = typename Base::Iterator;
     using ConstIterator = typename Base::ConstIterator;

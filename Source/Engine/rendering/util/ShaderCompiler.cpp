@@ -78,7 +78,7 @@ static IDxcCompiler3* s_dxcCompiler = nullptr;
 
 static constexpr uint32 NumPrecompileShadersThreads = 8;
 
-static const HashMap<VertexType, Array<const char*>> s_vertexTypeToVertexAttributes = {
+static const TMap<VertexType, Array<const char*>> s_vertexTypeToVertexAttributes = {
     { VT_Position, { "a_position" } },
     { VT_Normal, { "a_normal" } },
     { VT_UV0, { "a_texcoord0" } },
@@ -268,7 +268,7 @@ static String BuildAttributesDefines(const ShaderVariantPerms& perm)
     // instantiated at this point in time. before compiling the shader, they
     // should have all been made Required.
 
-    HashSet<StringHash> definedNames;
+    TSet<StringHash> definedNames;
 
     for (const ShaderProperty& property : perm.GetPropertySet())
     {
@@ -1086,7 +1086,7 @@ static void ForEachPermutation(
 
     for (size_t i = 0; i < numPermutations; i++)
     {
-        HashSet<ShaderProperty> currentProperties;
+        TSet<ShaderProperty> currentProperties;
         currentProperties.Reserve(ByteUtil::BitCount(i) + staticProperties.Size());
         currentProperties.Merge(staticProperties);
 
@@ -1784,7 +1784,7 @@ bool ShaderCompiler::LoadShaderDefinitions(bool precompileShaders, const ShaderC
 
     pool.Start();
 
-    HashMap<const ShaderBundleDecl*, bool> results;
+    TMap<const ShaderBundleDecl*, bool> results;
 
     // Compile all shaders ahead of time
     for (const ShaderBundleDecl& decl : m_shaderBundleDecls)
@@ -2371,7 +2371,7 @@ ShaderCompiler::ProcessResult ShaderCompiler::ProcessShaderSource(
 
                 String descriptorName, setName, slotStr;
 
-                HashMap<String, String> params;
+                TMap<String, String> params;
 
                 auto parseResult = ParseCustomStatement(commandStr, line);
 
@@ -2568,6 +2568,9 @@ bool ShaderCompiler::CompileBundle(
             });
     }
 
+    taskBatch.ExecuteBlocking();
+
+#if 0
     if (IsOnThread(ThreadCategory::THREAD_CATEGORY_TASK))
     {
         // run on this thread if we are already in a task thread
@@ -2589,6 +2592,7 @@ bool ShaderCompiler::CompileBundle(
             taskBatch.AwaitCompletion();
         }
     }
+#endif
 
     Array<ProcessError> allProcessErrors;
 
@@ -2875,7 +2879,7 @@ bool ShaderCompiler::CompileBundle(
     uint32 numErroredPermutations = 0;
 
     Array<Handle<Shader>> existingShadersToRemove;
-    HashSet<Name> usedNames;
+    TSet<Name> usedNames;
 
 #if HYP_ENABLE_SHADER_RELOAD
     Time maxSourceFileLastModified = Time(0);

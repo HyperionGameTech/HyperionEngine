@@ -10,7 +10,7 @@
 
 #include <rendering/MaterialInstance.hpp>
 
-#include <Core/containers/HashMap.hpp>
+#include <Core/containers/Map.hpp>
 
 namespace Hyperion {
 
@@ -55,7 +55,7 @@ public:
 
     /*! \brief Parse a .mtl file and return a map of material name → Handle<MaterialInstance>.
      *  This can be called directly without going through the asset system. */
-    static HashMap<String, Handle<MaterialInstance>> ParseMtl(
+    static TMap<String, Handle<MaterialInstance>> ParseMtl(
         FilePath filepath,
         AssetManager& assetManager,
         const String& batchIdentifier = String::empty);
@@ -63,7 +63,7 @@ public:
     virtual AssetLoadResult LoadAsset(LoaderState& state) const override;
 
 private:
-    static HashMap<String, Handle<MaterialInstance>> ParseMtl_Internal(LoaderState& state);
+    static TMap<String, Handle<MaterialInstance>> ParseMtl_Internal(LoaderState& state);
 };
 
 } // namespace Hyperion

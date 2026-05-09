@@ -2,7 +2,7 @@
 #include <Core/memory/UniquePtr.hpp>
 
 #include <Core/containers/Array.hpp>
-#include <Core/containers/HashMap.hpp>
+#include <Core/containers/Map.hpp>
 #include <Core/containers/String.hpp>
 
 #include <Core/Defines.hpp>
@@ -77,7 +77,7 @@ public:
 
 private:
     Array<UniquePtr<ManagedObject>> m_values;
-    HashMap<String, ManagedObject*> m_valuesByName;
+    TMap<String, ManagedObject*> m_valuesByName;
 };
 
 } // namespace Hyperion::dotnet

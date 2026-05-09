@@ -8,8 +8,8 @@
 
 #include <Core/containers/Array.hpp>
 #include <Core/containers/FixedArray.hpp>
-#include <Core/containers/HashMap.hpp>
-#include <Core/containers/HashSet.hpp>
+#include <Core/containers/Map.hpp>
+#include <Core/containers/Set.hpp>
 
 #include <Core/memory/UniquePtr.hpp>
 

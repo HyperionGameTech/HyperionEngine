@@ -9,7 +9,7 @@
 #include <scene/Subsystem.hpp>
 
 #include <Core/containers/LinkedList.hpp>
-#include <Core/containers/HashMap.hpp>
+#include <Core/containers/Map.hpp>
 
 #include <Core/threading/Task.hpp>
 
@@ -68,7 +68,7 @@ private:
     Task<void> EnqueueBake_Internal(const Handle<T>& source, Args&&... args);
 
     // Map source to lightmapper instance
-    HashMap<ObjectBase*, Handle<Baking::BakerBase>> m_bakers;
+    TMap<ObjectBase*, Handle<Baking::BakerBase>> m_bakers;
 };
 
 } // namespace Hyperion

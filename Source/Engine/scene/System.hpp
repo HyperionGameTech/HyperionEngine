@@ -9,7 +9,7 @@
 #include <Core/Defines.hpp>
 
 #include <Core/containers/Array.hpp>
-#include <Core/containers/HashSet.hpp>
+#include <Core/containers/Set.hpp>
 
 #include <Core/utilities/EnumFlags.hpp>
 
@@ -27,14 +27,14 @@ class EntityManager;
 class Scene;
 class World;
 
-class SystemComponentDescriptors : IntrusiveMap<ComponentInfo, &ComponentInfo::typeId>
+class SystemComponentDescriptors : THashTable<ComponentInfo, &ComponentInfo::typeId>
 {
 public:
     EntitySetId entitySetId; // can be 0 if inited dynamically (from Span<ComponentInfo>)
 
     template <class... ComponentDescriptors>
     SystemComponentDescriptors(ComponentDescriptors&&... componentDescriptors)
-        : IntrusiveMap({ std::forward<ComponentDescriptors>(componentDescriptors)... }),
+        : THashTable({ std::forward<ComponentDescriptors>(componentDescriptors)... }),
           entitySetId(GetEntitySetId<std::conditional_t<bool(ComponentDescriptors::Access& ComponentAccess::READ_WRITE), typename ComponentDescriptors::Type, VoidComponentType>...>())
     {
         Assert(Size() == sizeof...(ComponentDescriptors), "Duplicate component descriptors found");
@@ -48,9 +48,9 @@ public:
         }
     }
 
-    using IntrusiveMap::ToArray;
+    using THashTable::ToArray;
 
-    HYP_DEF_STL_BEGIN_END(IntrusiveMap::Begin(), IntrusiveMap::End())
+    HYP_DEF_STL_BEGIN_END(THashTable::Begin(), THashTable::End())
 };
 
 /*! \brief A system is attached to a World and batch processes entities with specific components each tick.
@@ -252,7 +252,7 @@ protected:
 private:
     void InitComponentInfos_Internal();
 
-    HashSet<WeakHandle<Entity>> m_initializedEntities;
+    TSet<WeakHandle<Entity>> m_initializedEntities;
 
     Array<TypeId> m_componentTypeIds;
     Array<ComponentInfo> m_componentInfos;

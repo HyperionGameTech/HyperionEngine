@@ -518,12 +518,12 @@ struct NodeAllocator
     };
 };
 
-#pragma region IntrusiveMap
+#pragma region THashTable
 
-/*! \brief An IntrusiveMap is a hash table that uses a KeyBy function to extract a key from the value, and uses that key for hashing and equality comparison
+/*! \brief An THashTable is a hash table that uses a KeyBy function to extract a key from the value, and uses that key for hashing and equality comparison
  */
 template <class Value, auto KeyBy, class AllocatorType = DynamicAllocator, class Policy = HashTablePolicy::NodePooling>
-class IntrusiveMap : public ContainerBase<IntrusiveMap<Value, KeyBy, AllocatorType, Policy>, decltype(std::declval<FunctionWrapper<decltype(KeyBy)>>()(std::declval<const Value&>()))>
+class THashTable : public ContainerBase<THashTable<Value, KeyBy, AllocatorType, Policy>, decltype(std::declval<FunctionWrapper<decltype(KeyBy)>>()(std::declval<const Value&>()))>
 {
     using NodeAllocatorType = std::conditional_t<(Policy{}() == HashTablePolicy::NodePooling{}()), PooledNodeAllocator<AllocatorType>, NodeAllocator<AllocatorType>>;
 
@@ -571,16 +571,16 @@ public:
     using KeyType = decltype(std::declval<FunctionWrapper<decltype(KeyBy)>>()(std::declval<const Value&>()));
     using ValueType = Value;
 
-    using Base = ContainerBase<IntrusiveMap<Value, KeyBy, AllocatorType, Policy>, KeyType>;
+    using Base = ContainerBase<THashTable<Value, KeyBy, AllocatorType, Policy>, KeyType>;
 
     struct ConstIterator;
 
     struct Iterator
     {
-        IntrusiveMap* map;
+        THashTable* map;
         typename Bucket::Iterator bucketIter;
 
-        Iterator(IntrusiveMap* map, typename Bucket::Iterator bucketIter)
+        Iterator(THashTable* map, typename Bucket::Iterator bucketIter)
             : map(map),
               bucketIter(bucketIter)
         {
@@ -650,16 +650,16 @@ public:
 
         HYP_FORCE_INLINE operator ConstIterator() const
         {
-            return ConstIterator { const_cast<const IntrusiveMap*>(map), typename Bucket::ConstIterator(bucketIter) };
+            return ConstIterator { const_cast<const THashTable*>(map), typename Bucket::ConstIterator(bucketIter) };
         }
     };
 
     struct ConstIterator
     {
-        const IntrusiveMap* map;
+        const THashTable* map;
         typename Bucket::ConstIterator bucketIter;
 
-        ConstIterator(const IntrusiveMap* map, typename Bucket::ConstIterator bucketIter)
+        ConstIterator(const THashTable* map, typename Bucket::ConstIterator bucketIter)
             : map(map),
               bucketIter(bucketIter)
         {
@@ -730,19 +730,19 @@ public:
 
     using InsertResult = Pair<Iterator, bool>;
 
-    IntrusiveMap();
-    IntrusiveMap(std::initializer_list<Value> initializerList);
+    THashTable();
+    THashTable(std::initializer_list<Value> initializerList);
 
-    explicit IntrusiveMap(AllocatorType* pAllocator);
-    IntrusiveMap(AllocatorType* pAllocator, std::initializer_list<Value> initializerList);
+    explicit THashTable(AllocatorType* pAllocator);
+    THashTable(AllocatorType* pAllocator, std::initializer_list<Value> initializerList);
 
-    IntrusiveMap(const IntrusiveMap& other);
-    IntrusiveMap& operator=(const IntrusiveMap& other);
+    THashTable(const THashTable& other);
+    THashTable& operator=(const THashTable& other);
 
-    IntrusiveMap(IntrusiveMap&& other) noexcept;
-    IntrusiveMap& operator=(IntrusiveMap&& other) noexcept;
+    THashTable(THashTable&& other) noexcept;
+    THashTable& operator=(THashTable&& other) noexcept;
 
-    ~IntrusiveMap();
+    ~THashTable();
 
     HYP_FORCE_INLINE bool Any() const
     {
@@ -766,8 +766,8 @@ public:
         return *Begin();
     }
 
-    HYP_FORCE_INLINE bool operator==(const IntrusiveMap& other) const = delete;
-    HYP_FORCE_INLINE bool operator!=(const IntrusiveMap& other) const = delete;
+    HYP_FORCE_INLINE bool operator==(const THashTable& other) const = delete;
+    HYP_FORCE_INLINE bool operator!=(const THashTable& other) const = delete;
 
     HYP_FORCE_INLINE size_t Size() const
     {
@@ -946,7 +946,7 @@ public:
     void Clear();
 
     template <class OtherContainerType>
-    IntrusiveMap& Merge(const OtherContainerType& other)
+    THashTable& Merge(const OtherContainerType& other)
     {
         for (const auto& item : other)
         {
@@ -957,7 +957,7 @@ public:
     }
 
     template <class OtherContainerType, typename = std::enable_if_t<std::is_rvalue_reference_v<OtherContainerType>>>
-    IntrusiveMap& Merge(OtherContainerType&& other)
+    THashTable& Merge(OtherContainerType&& other)
     {
         for (auto& item : other)
         {
@@ -1075,15 +1075,15 @@ protected:
 };
 
 template <class Value, auto KeyBy, class AllocatorType, class Policy>
-IntrusiveMap<Value, KeyBy, AllocatorType, Policy>::IntrusiveMap()
+THashTable<Value, KeyBy, AllocatorType, Policy>::THashTable()
     : m_size(0)
 {
     m_buckets.ResizeZeroed(InitialBucketSize);
 }
 
 template <class Value, auto KeyBy, class AllocatorType, class Policy>
-IntrusiveMap<Value, KeyBy, AllocatorType, Policy>::IntrusiveMap(std::initializer_list<Value> initializerList)
-    : IntrusiveMap()
+THashTable<Value, KeyBy, AllocatorType, Policy>::THashTable(std::initializer_list<Value> initializerList)
+    : THashTable()
 {
     for (const auto& item : initializerList)
     {
@@ -1092,7 +1092,7 @@ IntrusiveMap<Value, KeyBy, AllocatorType, Policy>::IntrusiveMap(std::initializer
 }
 
 template <class Value, auto KeyBy, class AllocatorType, class Policy>
-IntrusiveMap<Value, KeyBy, AllocatorType, Policy>::IntrusiveMap(AllocatorType* pAllocator)
+THashTable<Value, KeyBy, AllocatorType, Policy>::THashTable(AllocatorType* pAllocator)
     : m_size(0),
       m_nodeAllocator(pAllocator)
 {
@@ -1100,8 +1100,8 @@ IntrusiveMap<Value, KeyBy, AllocatorType, Policy>::IntrusiveMap(AllocatorType* p
 }
 
 template <class Value, auto KeyBy, class AllocatorType, class Policy>
-IntrusiveMap<Value, KeyBy, AllocatorType, Policy>::IntrusiveMap(AllocatorType* pAllocator, std::initializer_list<Value> initializerList)
-    : IntrusiveMap(pAllocator)
+THashTable<Value, KeyBy, AllocatorType, Policy>::THashTable(AllocatorType* pAllocator, std::initializer_list<Value> initializerList)
+    : THashTable(pAllocator)
 {
     for (const auto& item : initializerList)
     {
@@ -1110,7 +1110,7 @@ IntrusiveMap<Value, KeyBy, AllocatorType, Policy>::IntrusiveMap(AllocatorType* p
 }
 
 template <class Value, auto KeyBy, class AllocatorType, class Policy>
-IntrusiveMap<Value, KeyBy, AllocatorType, Policy>::IntrusiveMap(const IntrusiveMap& other)
+THashTable<Value, KeyBy, AllocatorType, Policy>::THashTable(const THashTable& other)
     : m_size(other.m_size)
 {
     m_nodeAllocator.Reserve(m_size, m_buckets);
@@ -1134,7 +1134,7 @@ IntrusiveMap<Value, KeyBy, AllocatorType, Policy>::IntrusiveMap(const IntrusiveM
 }
 
 template <class Value, auto KeyBy, class AllocatorType, class Policy>
-auto IntrusiveMap<Value, KeyBy, AllocatorType, Policy>::operator=(const IntrusiveMap& other) -> IntrusiveMap&
+auto THashTable<Value, KeyBy, AllocatorType, Policy>::operator=(const THashTable& other) -> THashTable&
 {
     if (this == &other)
     {
@@ -1177,7 +1177,7 @@ auto IntrusiveMap<Value, KeyBy, AllocatorType, Policy>::operator=(const Intrusiv
 }
 
 template <class Value, auto KeyBy, class AllocatorType, class Policy>
-IntrusiveMap<Value, KeyBy, AllocatorType, Policy>::IntrusiveMap(IntrusiveMap&& other) noexcept
+THashTable<Value, KeyBy, AllocatorType, Policy>::THashTable(THashTable&& other) noexcept
     : m_buckets(std::move(other.m_buckets)),
       m_size(other.m_size)
 {
@@ -1188,7 +1188,7 @@ IntrusiveMap<Value, KeyBy, AllocatorType, Policy>::IntrusiveMap(IntrusiveMap&& o
 }
 
 template <class Value, auto KeyBy, class AllocatorType, class Policy>
-auto IntrusiveMap<Value, KeyBy, AllocatorType, Policy>::operator=(IntrusiveMap&& other) noexcept -> IntrusiveMap&
+auto THashTable<Value, KeyBy, AllocatorType, Policy>::operator=(THashTable&& other) noexcept -> THashTable&
 {
     if (&other == this)
     {
@@ -1220,7 +1220,7 @@ auto IntrusiveMap<Value, KeyBy, AllocatorType, Policy>::operator=(IntrusiveMap&&
 }
 
 template <class Value, auto KeyBy, class AllocatorType, class Policy>
-IntrusiveMap<Value, KeyBy, AllocatorType, Policy>::~IntrusiveMap()
+THashTable<Value, KeyBy, AllocatorType, Policy>::~THashTable()
 {
     for (auto bucketsIt = m_buckets.Begin(); bucketsIt != m_buckets.End(); ++bucketsIt)
     {
@@ -1237,7 +1237,7 @@ IntrusiveMap<Value, KeyBy, AllocatorType, Policy>::~IntrusiveMap()
 }
 
 template <class Value, auto KeyBy, class AllocatorType, class Policy>
-void IntrusiveMap<Value, KeyBy, AllocatorType, Policy>::Reserve(size_t capacity)
+void THashTable<Value, KeyBy, AllocatorType, Policy>::Reserve(size_t capacity)
 {
     m_nodeAllocator.Reserve(capacity, m_buckets);
 
@@ -1272,7 +1272,7 @@ void IntrusiveMap<Value, KeyBy, AllocatorType, Policy>::Reserve(size_t capacity)
 }
 
 template <class Value, auto KeyBy, class AllocatorType, class Policy>
-void IntrusiveMap<Value, KeyBy, AllocatorType, Policy>::CheckAndRebuildBuckets(size_t neededCapacity)
+void THashTable<Value, KeyBy, AllocatorType, Policy>::CheckAndRebuildBuckets(size_t neededCapacity)
 {
     // Check load factor, if currently load factor is greater than `loadFactor`, then rehash so that the load factor becomes <= `loadFactor` constant.
 
@@ -1287,7 +1287,7 @@ void IntrusiveMap<Value, KeyBy, AllocatorType, Policy>::CheckAndRebuildBuckets(s
 }
 
 template <class Value, auto KeyBy, class AllocatorType, class Policy>
-auto IntrusiveMap<Value, KeyBy, AllocatorType, Policy>::Find(const KeyType& value) -> Iterator
+auto THashTable<Value, KeyBy, AllocatorType, Policy>::Find(const KeyType& value) -> Iterator
 {
     const HashCode::ValueType hashCode = HashCode::GetHashCode(value).Value();
     Bucket* bucket = GetBucketForHash(hashCode);
@@ -1303,7 +1303,7 @@ auto IntrusiveMap<Value, KeyBy, AllocatorType, Policy>::Find(const KeyType& valu
 }
 
 template <class Value, auto KeyBy, class AllocatorType, class Policy>
-auto IntrusiveMap<Value, KeyBy, AllocatorType, Policy>::Find(const KeyType& value) const -> ConstIterator
+auto THashTable<Value, KeyBy, AllocatorType, Policy>::Find(const KeyType& value) const -> ConstIterator
 {
     const HashCode::ValueType hashCode = HashCode::GetHashCode(value).Value();
     const Bucket* bucket = GetBucketForHash(hashCode);
@@ -1319,7 +1319,7 @@ auto IntrusiveMap<Value, KeyBy, AllocatorType, Policy>::Find(const KeyType& valu
 }
 
 template <class Value, auto KeyBy, class AllocatorType, class Policy>
-auto IntrusiveMap<Value, KeyBy, AllocatorType, Policy>::FindByHashCode(HashCode hashCode) -> Iterator
+auto THashTable<Value, KeyBy, AllocatorType, Policy>::FindByHashCode(HashCode hashCode) -> Iterator
 {
     Bucket* bucket = GetBucketForHash(hashCode.Value());
 
@@ -1334,7 +1334,7 @@ auto IntrusiveMap<Value, KeyBy, AllocatorType, Policy>::FindByHashCode(HashCode 
 }
 
 template <class Value, auto KeyBy, class AllocatorType, class Policy>
-auto IntrusiveMap<Value, KeyBy, AllocatorType, Policy>::FindByHashCode(HashCode hashCode) const -> ConstIterator
+auto THashTable<Value, KeyBy, AllocatorType, Policy>::FindByHashCode(HashCode hashCode) const -> ConstIterator
 {
     const Bucket* bucket = GetBucketForHash(hashCode.Value());
 
@@ -1349,7 +1349,7 @@ auto IntrusiveMap<Value, KeyBy, AllocatorType, Policy>::FindByHashCode(HashCode 
 }
 
 template <class Value, auto KeyBy, class AllocatorType, class Policy>
-auto IntrusiveMap<Value, KeyBy, AllocatorType, Policy>::Erase(ConstIterator iter) -> Iterator
+auto THashTable<Value, KeyBy, AllocatorType, Policy>::Erase(ConstIterator iter) -> Iterator
 {
     if (iter == End())
     {
@@ -1383,7 +1383,7 @@ auto IntrusiveMap<Value, KeyBy, AllocatorType, Policy>::Erase(ConstIterator iter
 }
 
 template <class Value, auto KeyBy, class AllocatorType, class Policy>
-bool IntrusiveMap<Value, KeyBy, AllocatorType, Policy>::Erase(const KeyType& value)
+bool THashTable<Value, KeyBy, AllocatorType, Policy>::Erase(const KeyType& value)
 {
     const Iterator it = Find(value);
 
@@ -1398,7 +1398,7 @@ bool IntrusiveMap<Value, KeyBy, AllocatorType, Policy>::Erase(const KeyType& val
 }
 
 template <class Value, auto KeyBy, class AllocatorType, class Policy>
-auto IntrusiveMap<Value, KeyBy, AllocatorType, Policy>::Set(const Value& value) -> InsertResult
+auto THashTable<Value, KeyBy, AllocatorType, Policy>::Set(const Value& value) -> InsertResult
 {
     const HashCode::ValueType hashCode = GetHashCodeForValue(value).Value();
 
@@ -1430,7 +1430,7 @@ auto IntrusiveMap<Value, KeyBy, AllocatorType, Policy>::Set(const Value& value) 
 }
 
 template <class Value, auto KeyBy, class AllocatorType, class Policy>
-auto IntrusiveMap<Value, KeyBy, AllocatorType, Policy>::Set(Value&& value) -> InsertResult
+auto THashTable<Value, KeyBy, AllocatorType, Policy>::Set(Value&& value) -> InsertResult
 {
     const HashCode::ValueType hashCode = GetHashCodeForValue(value).Value();
 
@@ -1461,7 +1461,7 @@ auto IntrusiveMap<Value, KeyBy, AllocatorType, Policy>::Set(Value&& value) -> In
 }
 
 template <class Value, auto KeyBy, class AllocatorType, class Policy>
-auto IntrusiveMap<Value, KeyBy, AllocatorType, Policy>::Insert(const Value& value) -> InsertResult
+auto THashTable<Value, KeyBy, AllocatorType, Policy>::Insert(const Value& value) -> InsertResult
 {
     // Have to rehash before any insertion, so we don't invalidate the iterator or bucket pointer.
     CheckAndRebuildBuckets(m_size + 1);
@@ -1489,7 +1489,7 @@ auto IntrusiveMap<Value, KeyBy, AllocatorType, Policy>::Insert(const Value& valu
 }
 
 template <class Value, auto KeyBy, class AllocatorType, class Policy>
-auto IntrusiveMap<Value, KeyBy, AllocatorType, Policy>::Insert(Value&& value) -> InsertResult
+auto THashTable<Value, KeyBy, AllocatorType, Policy>::Insert(Value&& value) -> InsertResult
 {
     // Have to rehash before any insertion, so we don't invalidate the iterator or bucket pointer.
     CheckAndRebuildBuckets(m_size + 1);
@@ -1516,7 +1516,7 @@ auto IntrusiveMap<Value, KeyBy, AllocatorType, Policy>::Insert(Value&& value) ->
 }
 
 template <class Value, auto KeyBy, class AllocatorType, class Policy>
-void IntrusiveMap<Value, KeyBy, AllocatorType, Policy>::Clear()
+void THashTable<Value, KeyBy, AllocatorType, Policy>::Clear()
 {
     for (auto bucketsIt = m_buckets.Begin(); bucketsIt != m_buckets.End(); ++bucketsIt)
     {
@@ -1537,33 +1537,33 @@ void IntrusiveMap<Value, KeyBy, AllocatorType, Policy>::Clear()
     m_size = 0;
 }
 
-#pragma endregion IntrusiveMap
+#pragma endregion THashTable
 
-#pragma region HashSet
+#pragma region TSet
 
 template <class Value, class AllocatorType = DynamicAllocator, class Policy = HashTablePolicy::NodePooling>
-class HashSet : public IntrusiveMap<Value, &KeyBy_Identity<Value>, AllocatorType, Policy>
+class TSet : public THashTable<Value, &KeyBy_Identity<Value>, AllocatorType, Policy>
 {
 public:
-    using Base = IntrusiveMap<Value, &KeyBy_Identity<Value>, AllocatorType, Policy>;
+    using Base = THashTable<Value, &KeyBy_Identity<Value>, AllocatorType, Policy>;
 
     using Base::Base;
 
-    HYP_FORCE_INLINE bool operator==(const HashSet& other) const = delete;
-    HYP_FORCE_INLINE bool operator!=(const HashSet& other) const = delete;
+    HYP_FORCE_INLINE bool operator==(const TSet& other) const = delete;
+    HYP_FORCE_INLINE bool operator!=(const TSet& other) const = delete;
 };
 
-#pragma endregion HashSet
+#pragma endregion TSet
 
 } // namespace containers
 
-using containers::HashSet;
-using containers::IntrusiveMap;
+using containers::TSet;
+using containers::THashTable;
 
 using containers::HashTablePolicy;
 
 template <class Value, class NodeAllocatorType>
-struct IsHashSet<HashSet<Value, NodeAllocatorType>> : std::true_type
+struct IsHashSet<TSet<Value, NodeAllocatorType>> : std::true_type
 {
 };
 

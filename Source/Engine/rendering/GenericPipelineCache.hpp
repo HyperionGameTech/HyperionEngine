@@ -7,7 +7,7 @@
 #pragma once
 
 #include <Core/containers/Array.hpp>
-#include <Core/containers/HashMap.hpp>
+#include <Core/containers/Map.hpp>
 #include <Core/containers/SparsePagedArray.hpp>
 
 #include <Core/threading/Mutex.hpp>
@@ -70,7 +70,7 @@ private:
         HashCode key;
     };
 
-    using PipelineMap = HashMap<HashCode, size_t, RenderAllocator>;
+    using PipelineMap = TMap<HashCode, size_t, RenderAllocator>;
     using PipelineStorage = SparsePagedArray<CachedPipeline, 64, RenderAllocator>;
 
     PipelineStorage m_pipelines;

@@ -6,7 +6,7 @@
 
 #include <Core/dll/DynamicLibrary.hpp>
 
-#include <Core/containers/HashMap.hpp>
+#include <Core/containers/Map.hpp>
 #include <Core/containers/String.hpp>
 
 #include <Core/memory/UniquePtr.hpp>
@@ -146,7 +146,7 @@ UIntPtr DynamicLibrary::GetFunction(const char* name) const
 struct DynamicLibraryCacheImpl
 {
     Mutex mutex;
-    HashMap<PlatformString, UniquePtr<DynamicLibrary>> libraries;
+    TMap<PlatformString, UniquePtr<DynamicLibrary>> libraries;
 };
 
 #pragma endregion DynamicLibraryCacheImpl

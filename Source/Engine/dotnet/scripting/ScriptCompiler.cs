@@ -462,7 +462,7 @@ namespace Hyperion
 
             hotReloadVersion = 0;
 
-            HashSet<string> directories = new HashSet<string>();
+            HashSet<string> directories = new();
 
             foreach (string dll in dlls)
             {
@@ -483,7 +483,7 @@ namespace Hyperion
                 directories.Add(directoryName);
             }
 
-            HashSet<string> files = new HashSet<string>();
+            HashSet<string> files = new();
 
             foreach (string directory in directories)
             {

@@ -315,7 +315,7 @@ private:
 
     Array<VulkanGpuBlas*, VulkanAllocator> m_blases;
     Array<uint64, VulkanAllocator> m_keys;
-    HashMap<uint64, Pair<VulkanGpuBlas*, uint32>, VulkanAllocator> m_keyToBlasAndStorageId;
+    TMap<uint64, Pair<VulkanGpuBlas*, uint32>, VulkanAllocator> m_keyToBlasAndStorageId;
 
     VulkanGpuBufferRef m_instancesBuffer;
 };

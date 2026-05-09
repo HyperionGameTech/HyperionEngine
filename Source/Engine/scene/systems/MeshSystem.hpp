@@ -9,7 +9,7 @@
 #include <scene/System.hpp>
 #include <scene/components/MeshComponent.hpp>
 
-#include <Core/containers/HashMap.hpp>
+#include <Core/containers/Map.hpp>
 
 namespace Hyperion {
 
@@ -33,7 +33,7 @@ private:
     {
         return {
             ComponentDescriptor<MeshComponent, ComponentAccess::READ_WRITE> {},
-            
+
             ComponentDescriptor<TagComponent<EntityTag::UpdateInstancedMeshData>, ComponentAccess::READ, false> {}
         };
     }
@@ -46,7 +46,7 @@ private:
 
     // Per entity mapping from Entity* -> cached state (num instances, auto instancing enabled)
     // Currently only needed to be able to init/deinit instanced mesh data when changed in editor.
-    HashMap<Entity*, CachedInstancedMeshDataState, SceneAllocator> m_cachedStates;
+    TMap<Entity*, CachedInstancedMeshDataState, SceneAllocator> m_cachedStates;
 #endif // HYP_EDITOR
 };
 
