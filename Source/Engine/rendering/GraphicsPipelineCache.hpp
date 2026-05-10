@@ -99,7 +99,7 @@ public:
      *  Instead, use the returned pointer to access the graphics pipeline. It's guaranteed to be valid for at least 10 frames after this method returns.
      */
     void GetOrCreate(
-        const RenderableAttributeSet& attributes,
+        RenderableAttributeSet& inOutAttributes,
         const FramebufferDesc& framebufferDesc,
         GraphicsPipelineCacheHandle& outCacheHandle);
 

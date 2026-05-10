@@ -50,7 +50,7 @@ static inline void ValidateDynamicOffset(
         return;
     }
 
-    Assert(offset != ~0u, "Invalid offset set for dynamic element: {}", Name(dynamicElementName));
+    AssertDebug(offset != ~0u, "Invalid offset set for dynamic element: {}", Name(dynamicElementName));
 
     const VkPhysicalDeviceLimits& limits = RI.GetDevice()->GetFeatures().GetPhysicalDeviceProperties().limits;
 

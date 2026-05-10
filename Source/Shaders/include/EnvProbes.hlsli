@@ -20,6 +20,10 @@ struct EnvProbe
     uint flags;
 
     float4 sh[9];
+
+    float4 _pad0;
+    float4 _pad1;
+    float4 _pad2;
 };
 
 struct EnvGrid

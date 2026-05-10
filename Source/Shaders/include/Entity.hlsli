@@ -22,6 +22,8 @@ struct Entity
     uint flags;
     uint _pad0;
     uint _pad1;
+
+    float4 _pad2;
 };
 
 #define MAX_ENTITIES_PER_INSTANCE_BATCH 16

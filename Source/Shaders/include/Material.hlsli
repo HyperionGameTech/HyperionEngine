@@ -30,6 +30,8 @@ struct Material
     uint textureUsage;
     float parallax_height;
     float2 uv_scale;
+
+    float4 _pad0;
 };
 
 // enum for packed params

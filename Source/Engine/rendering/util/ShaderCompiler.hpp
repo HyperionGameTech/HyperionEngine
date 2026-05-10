@@ -601,8 +601,11 @@ class HYP_API ShaderBundle : public AssetObject
     HYP_OBJECT_BODY(ShaderBundle);
 
 public:
-    HYP_FIELD()
+    HYP_FIELD(Property = "CompiledShaders")
     Array<Handle<Shader>> compiledShaders;
+
+    HYP_FIELD(Property = "StaticProperties")
+    Array<Pair<Name, ShaderProperty::Value>> staticProperties;
 
     HYP_FIELD(Transient)
     Array<String> errorMessages;

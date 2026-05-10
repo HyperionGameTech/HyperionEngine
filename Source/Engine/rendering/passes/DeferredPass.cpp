@@ -169,7 +169,7 @@ CVar<bool> cvBloom { "Rendering.Bloom", true, "Rendering.Bloom.Enabled" };
 CVar<bool> cvEnableLightmapVolumes { "Rendering.LightmapVolumes", true };
 CVar<bool> cvClusteredShading { "Rendering.ClusteredShading", true };
 CVar<float> cvTonemapExposure { "Rendering.Tonemap.Exposure", 1.8f };
-CVar<bool> cvBypassDrawing { "Rendering.BypassDrawing", true };//false };
+CVar<bool> cvBypassDrawing { "Rendering.BypassDrawing", false };
 CVar<bool> cvDepthPrepass { "Rendering.DepthPrepass", true };
 
 namespace DeferredRendererHelpers {

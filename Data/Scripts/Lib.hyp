@@ -2340,6 +2340,7 @@ extern enum ShaderRegister : uint8
 end
 extern class ShaderBundle : AssetObject
     CompiledShaders : Array<Shader>
+    StaticProperties : Array<any>
     ErrorMessages : Array<string>
 end
 extern class Texture : AssetObject

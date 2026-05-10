@@ -28,8 +28,6 @@ struct VSOutput
     nointerpolation uint4 properties : TEXCOORD5;
 };
 
-#define INSTANCING
-
 #include "../include/Scene.hlsli"
 
 DECLARE_SRV_DYNAMIC(Default, CamerasBuffer) StructuredBuffer<Camera> _cameras_buffer;

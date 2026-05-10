@@ -2,6 +2,7 @@
  *  @author: The Hyperion Contributors
  *  @date 2016-2026
  *  @licence MIT
+ *  @note Created by ethan on 2/5/22.
 */
 
 #include <VulkanPch.hpp>
@@ -1138,6 +1139,9 @@ VulkanGraphicsPipelineRef VulkanRenderInterface::MakeGraphicsPipeline(
     {
         graphicsPipeline->SetStencilWrite(true);
     }
+
+    // sanity check: newly created pipeline must match or caching will fail.
+    AssertDebug(graphicsPipeline->MatchesSignature(attributes, framebufferDesc));
 
     return graphicsPipeline;
 }

@@ -346,9 +346,6 @@ void GraphicsPipelineCache::GetOrCreate(
         framebufferDesc,
         attributes);
 
-    // sanity check: newly created pipeline must match or caching will fail.
-    AssertDebug(graphicsPipeline->MatchesSignature(attributes, framebufferDesc));
-
     TUniqueLock guard(m_mutex);
 
     ShaderInstance* shaderInstance = graphicsPipeline->GetShader();

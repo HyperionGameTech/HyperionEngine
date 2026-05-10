@@ -62,7 +62,7 @@ private:
     NullProxy() = default;
 };
 
-struct alignas(16) WorldShaderData
+struct WorldShaderData
 {
     Vec4f fogParams;
 
@@ -72,7 +72,7 @@ struct alignas(16) WorldShaderData
     uint32 _pad1;
 };
 
-struct alignas(16) EntityShaderData
+struct EntityShaderData
 {
     Mat4f modelMatrix;
     Mat4f previousModelMatrix;
@@ -90,7 +90,11 @@ struct alignas(16) EntityShaderData
     uint32 flags;
     uint32 _pad0;
     uint32 _pad1;
+
+    Vec4f _pad2;
 };
+
+static_assert(sizeof(EntityShaderData) % 64 == 0);
 
 enum class LightmapElementId : uint32;
 
@@ -131,20 +135,26 @@ public:
     EntityShaderData bufferData {};
 };
 
-struct alignas(16) EnvProbeShaderData
+struct EnvProbeShaderData
 {
     Mat4f faceViewMatrices[6];
 
     Vec4f aabbMax;
     Vec4f aabbMin;
     Vec4f worldPosition;
-    
+
     Vec2u dimensions;
     uint32 textureIndex = ~0u;
     uint32 flags = 0;
 
     Vec4f shData[9];
+
+    Vec4f _pad0;
+    Vec4f _pad1;
+    Vec4f _pad2;
 };
+
+static_assert(sizeof(EnvProbeShaderData) % 64 == 0);
 
 class RenderProxyEnvProbe final : public IRenderProxy
 {
@@ -154,7 +164,7 @@ public:
     EnvProbeShaderData bufferData {};
 };
 
-struct alignas(16) EnvGridShaderData
+struct EnvGridShaderData
 {
     // Nothing for now until we add the new env grid (baked)
 
@@ -168,7 +178,7 @@ public:
     EnvGridShaderData bufferData {};
 };
 
-struct alignas(16) ShadowMapData
+struct ShadowMapData
 {
     Mat4f viewProjMat;
     Mat4f invProjMat;
@@ -183,7 +193,7 @@ struct alignas(16) ShadowMapData
     float _pad1;
 };
 
-struct alignas(16) LightShaderData
+struct LightShaderData
 {
     uint32 lightType;
     uint32 materialIndex;
@@ -201,7 +211,12 @@ struct alignas(16) LightShaderData
 
     Vec2f areaSize; // also angles for spot lights
     Vec2f _pad0;
+    Vec4f _pad1;
+    Vec4f _pad2;
+    Vec4f _pad3;
 };
+
+static_assert(sizeof(LightShaderData) % 64 == 0);
 
 class RenderProxyLight final : public IRenderProxy
 {
@@ -213,7 +228,7 @@ public:
     LightShaderData bufferData {};
 };
 
-struct alignas(16) LightmapVolumeShaderData
+struct LightmapVolumeShaderData
 {
     Vec4f aabbMax;
     Vec4f aabbMin;
@@ -222,7 +237,11 @@ struct alignas(16) LightmapVolumeShaderData
     uint32 _pad0;
     uint32 _pad1;
     uint32 _pad2;
+
+    Vec4f _pad3;
 };
+
+static_assert(sizeof(LightmapVolumeShaderData) % 64 == 0);
 
 class RenderProxyLightmapVolume final : public IRenderProxy
 {
@@ -234,7 +253,7 @@ public:
     LightmapVolumeShaderData bufferData {};
 };
 
-struct alignas(16) ParticleVolumeShaderData
+struct ParticleVolumeShaderData
 {
     Vec4f originStartSize; // xyz = origin, w = start size
 
@@ -247,6 +266,8 @@ struct alignas(16) ParticleVolumeShaderData
     float _pad0 = 0.0f;
     float _pad1 = 0.0f;
     float _pad2 = 0.0f;
+
+    Vec4f _pad3;
 };
 
 class RenderProxyParticleVolume final : public IRenderProxy
@@ -258,13 +279,19 @@ public:
     ParticleVolumeShaderData bufferData {};
 };
 
-struct alignas(16) FogVolumeShaderData
+struct FogVolumeShaderData
 {
     Mat4f transformMatrix;
     Vec4f aabbMin;
     Vec4f aabbMax;
-    uint32 numBoundLights;
     Vec4u lightIndices[4];
+
+    uint32 numBoundLights;
+    uint32 _pad0;
+    uint32 _pad1;
+    uint32 _pad2;
+
+    Vec4f _pad3;
 };
 
 class RenderProxyFogVolume final : public IRenderProxy
@@ -277,7 +304,7 @@ public:
     FogVolumeShaderData bufferData {};
 };
 
-struct alignas(16) MaterialShaderData
+struct MaterialShaderData
 {
     Vec4f albedo;
 
@@ -291,7 +318,11 @@ struct alignas(16) MaterialShaderData
     float parallaxHeight;
 
     Vec2f uvScale;
+
+    Vec4f _pad0;
 };
+
+static_assert(sizeof(MaterialShaderData) % 64 == 0);
 
 class RenderProxyMaterial final : public IRenderProxy
 {
@@ -311,7 +342,7 @@ public:
     MaterialShaderData bufferData {};
 };
 
-struct alignas(16) SkeletonShaderData
+struct SkeletonShaderData
 {
     static constexpr size_t maxBones = 256;
 
@@ -333,7 +364,7 @@ public:
     SkeletonShaderData bufferData {};
 };
 
-struct alignas(16) CameraShaderData
+struct CameraShaderData
 {
     Mat4f viewMat;
     Mat4f projMat;
@@ -353,8 +384,14 @@ struct alignas(16) CameraShaderData
     float cameraNear;
     float cameraFar;
     float cameraFov;
-    float _pad;
+    float _pad0;
+
+    Vec4f _pad1;
+    Vec4f _pad2;
+    Vec4f _pad3;
 };
+
+static_assert(sizeof(CameraShaderData) % 64 == 0);
 
 class RenderProxyCamera final : public IRenderProxy
 {
@@ -364,7 +401,7 @@ public:
     Frustum viewFrustum;
 };
 
-struct alignas(16) SpriteShaderData
+struct SpriteShaderData
 {
     Vec4f positionSize;
     Vec4f color;

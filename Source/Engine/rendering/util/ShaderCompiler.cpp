@@ -1420,13 +1420,16 @@ String ShaderPropertySet::GetDebugString() const
 
 HashCode ShaderBundle::GetHashCode() const
 {
-    HashCode hashCode;
-    for (auto& shader : compiledShaders)
+    HashCode hc;
+
+    for (const Handle<Shader>& shader : compiledShaders)
     {
-        hashCode.Add(shader->GetHashCode());
+        hc.Add(shader->GetHashCode());
     }
 
-    return hashCode;
+    hc.Add(staticProperties.GetHashCode());
+
+    return hc;
 }
 
 #pragma endregion ShaderBundle
@@ -1598,44 +1601,55 @@ bool ShaderCompiler::HandleBundle(
         }
     }
 
-    const bool requestedFound = shaderRequest.HasValue() &&
-        inOutBundle->compiledShaders.FindIf([&](const Handle<Shader>& shader)
+    bool requestedFound = false;
+
+    if (shaderRequest.HasValue())
+    {
+        // All STATIC properties get added atop of the requested properties.
+        for (const Pair<Name, ShaderProperty::Value>& pair : inOutBundle->staticProperties)
+        {
+            shaderRequest->properties.Add(InternShaderProperty(ShaderProperty(pair.first, pair.second)));
+        }
+
+        auto requestedIt = inOutBundle->compiledShaders.FindIf([&](const Handle<Shader>& shader)
             {
                 return SatisfiesRequested(
                     shaderRequest->properties,
                     shaderRequest->inputLayout,
                     *shader,
                     /* matchAllProperties */ CanCompileShaders());
-            })
-            != inOutBundle->compiledShaders.End();
+            });
 
-    if (shaderRequest.HasValue() && !requestedFound)
-    {
-        String requestString = "requested shader with properties: " + shaderRequest->properties.GetDebugString();
-        requestString += " and vertex attributes: " + (shaderRequest->inputLayout.mask ? InputLayoutToString(shaderRequest->inputLayout) : "<none>");
+        requestedFound = requestedIt != inOutBundle->compiledShaders.End();
 
-        HYP_LOG(ShaderCompiler, Verbose,
-            "Bundle {} does not contain a shader satisfying the {}",
-            *decl.name, requestString);
-
-        HYP_LOG(ShaderCompiler, Verbose, "Other shaders in the bundle:\n===============================");
-
-        for (const Handle<Shader>& shader : inOutBundle->compiledShaders)
+        if (!requestedFound)
         {
-            String shaderString = "\tProperties: " + shader->properties.GetDebugString();
-            shaderString += "\n\tVertex attributes: " + (shader->inputLayout.mask ? InputLayoutToString(shader->inputLayout) : "<none>");
+            String requestString = "requested shader with properties: " + shaderRequest->properties.GetDebugString();
+            requestString += " and vertex attributes: " + (shaderRequest->inputLayout.mask ? InputLayoutToString(shaderRequest->inputLayout) : "<none>");
 
-            HYP_LOG(ShaderCompiler, Verbose, "{}", shaderString);
+            HYP_LOG(ShaderCompiler, Verbose,
+                "Bundle {} does not contain a shader satisfying the {}",
+                *decl.name, requestString);
+
+            HYP_LOG(ShaderCompiler, Verbose, "Other shaders in the bundle:\n===============================");
+
+            for (const Handle<Shader>& shader : inOutBundle->compiledShaders)
+            {
+                String shaderString = "\tProperties: " + shader->properties.GetDebugString();
+                shaderString += "\n\tVertex attributes: " + (shader->inputLayout.mask ? InputLayoutToString(shader->inputLayout) : "<none>");
+
+                HYP_LOG(ShaderCompiler, Verbose, "{}", shaderString);
+            }
+
+            HYP_LOG(ShaderCompiler, Verbose, "===============================");
+
+            if (CanCompileShaders())
+            {
+                return CompileBundle(decl, shaderRequest, inOutBundle);
+            }
+
+            return false;
         }
-
-        HYP_LOG(ShaderCompiler, Verbose, "===============================");
-
-        if (CanCompileShaders())
-        {
-            return CompileBundle(decl, shaderRequest, inOutBundle);
-        }
-
-        return false;
     }
 
     return true;
@@ -2629,6 +2643,12 @@ bool ShaderCompiler::CompileBundle(
             // Find ValueGroup in target with same name
             if (targetIt != target.End())
             {
+                if (*targetIt == prop)
+                {
+                    // already exists but equal, ok.
+                    return {};
+                }
+
                 if (targetIt->IsValueGroup())
                 {
                     // Add each value from prop to the target's ValueGroup
@@ -2637,22 +2657,30 @@ bool ShaderCompiler::CompileBundle(
                     return {};
                 }
 
-                if (*targetIt == prop)
+                if (targetIt->IsStatic())
                 {
-                    // already exists but equal; no need to add or give an error.
-                    return {};
+                    // Convert to a ValueGroup.
+                    Array<ShaderProperty::Value> valueArray;
+                    if (targetIt->HasValue())
+                    {
+                        valueArray.PushBack(targetIt->currentValue);
+                    }
+                    valueArray.PushBack(prop.currentValue);
+
+                    target.AddValueGroup(prop.name, valueArray);
                 }
 
-                // conflict: trying to add a value to a non-ValueGroup property
-                return HYP_MAKE_ERROR(Error, "Duplicate property: {} already exists and is not a ValueGroup we can append to!", prop.name);
+                return HYP_MAKE_ERROR(Error, "Duplicate property: {} already exists and cannot be appened to.", prop.name);
             }
             else
             {
-                Array<ShaderProperty::Value> valueArray(1);
-                valueArray[0] = prop.currentValue;
+                //Array<ShaderProperty::Value> valueArray(1);
+                //valueArray[0] = prop.currentValue;
 
-                // Add new ValueGroup to the shader variant.
-                target.AddValueGroup(prop.name, valueArray);
+                //// Add new ValueGroup to the shader variant.
+                //target.AddValueGroup(prop.name, valueArray);
+
+                target.AddStatic(prop.name, prop.currentValue);
 
                 return {};
             }
@@ -3263,6 +3291,30 @@ bool ShaderCompiler::CompileBundle(
         },
         true);
 
+    // Recalculate static properties
+    TSet<Name> visitedNames;
+
+    outBundle->staticProperties.Clear();
+
+    for (const ShaderProperty& property : declaredPerms)
+    {
+        if (!property.IsStatic())
+        {
+            continue;
+        }
+
+        if (visitedNames.Contains(property.name))
+        {
+            continue;
+        }
+
+        outBundle->staticProperties.EmplaceBack(property.name, property.currentValue);
+
+        visitedNames.Add(property.name);
+    }
+
+    outBundle->MarkDirty();
+
     if (existingShadersToRemove.Any())
     {
         for (Handle<Shader>& shader : existingShadersToRemove)
@@ -3372,6 +3424,14 @@ bool ShaderCompiler::RequestShader(
     {
         AssertDebug(false, "Loaded shader bundle has no compiled shaders! Corrupted file?");
         return false;
+    }
+
+    // All STATIC properties get added atop of the requested properties.
+    // (same logic exists in LoadBundle(), but we need to apply it here as well.
+    //   ideally this should be cleaned up so the logic exists in one place.)
+    for (const Pair<Name, ShaderProperty::Value>& pair : bundle->staticProperties)
+    {
+        mergedProperties.Add(InternShaderProperty(ShaderProperty(pair.first, pair.second)));
     }
 
     auto it = bundle->compiledShaders.FindIf(

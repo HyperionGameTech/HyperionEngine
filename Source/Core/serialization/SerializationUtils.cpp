@@ -1910,7 +1910,18 @@ Result BoxedFromJSON(const JSON::Value& jsonValue, const TypeInfo& typeInfo, Box
                         return HYP_MAKE_ERROR(Error, "Failed to create instance of variant type {}", typeInfo.name);
                     }
 
-                    if (variantHandler->SetValue(variantInstance, BoxedValue(static_cast<int64>(num))))
+                    bool bSuccess = false;
+
+                    if (variantTypeInfo->IsIntegralType())
+                    {
+                        bSuccess = variantHandler->SetValue(variantInstance, BoxedValue(static_cast<int64>(num)));
+                    }
+                    else
+                    {
+                        bSuccess = variantHandler->SetValue(variantInstance, BoxedValue(static_cast<double>(num)));
+                    }
+
+                    if (bSuccess)
                     {
                         outBoxed = std::move(variantInstance);
                         return {};

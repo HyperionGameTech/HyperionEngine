@@ -566,7 +566,6 @@ RendererResult VulkanDevice::Create(VkSurfaceKHR surface)
         }
     }
 
-    HYP_LOG(RenderingBackend, Verbose, "Loading dynamic functions\n");
     m_features->SetDeviceFeatures(this);
 
     return {};

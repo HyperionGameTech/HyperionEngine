@@ -1904,8 +1904,12 @@ MaterialAttributes UIObject::GetMaterialAttributes() const
 {
     HYP_SCOPE;
 
+    ShaderPropertySet properties;
+    properties.Add(InternShaderProperty(ShaderProperty(NAME("INSTANCING"))));
+
     MaterialAttributes attrs;
     attrs.shaderName = NAME("UIObject");
+    attrs.shaderProperties = properties;
     attrs.blendFunction = BlendFunction(BMF_SRC_ALPHA, BMF_ONE_MINUS_SRC_ALPHA, BMF_ONE, BMF_ONE_MINUS_SRC_ALPHA);
     attrs.cullFaces = FCM_NONE;//FCM_BACK;
     attrs.flags = MAF_NONE;
