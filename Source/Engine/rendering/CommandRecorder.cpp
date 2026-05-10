@@ -1194,6 +1194,9 @@ void SetCurrentShader::InvokeStatic(CmdBase* cmd, CommandBuffer*)
 
     ShaderDesc& shaderDesc = cmdCasted->shaderDesc;
 
+    // merge shared global properties with the one we're setting
+    MergeGlobalShaderProperties(shaderDesc.properties);
+
     state.attributes.SetShaderName(shaderDesc.name);
     state.attributes.SetShaderProperties(shaderDesc.properties);
 

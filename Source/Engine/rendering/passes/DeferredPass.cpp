@@ -187,6 +187,8 @@ void GetDeferredShaderProperties(
 
     static const IRenderConfig& s_renderConfig = RI.GetRenderConfig();
 
+    MergeGlobalShaderProperties(outShaderProperties);
+
     if (cvHBAO.Get())
     {
         outShaderProperties.Add(s_propHBAOEnabled);

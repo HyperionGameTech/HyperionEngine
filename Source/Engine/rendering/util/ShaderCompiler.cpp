@@ -2829,6 +2829,8 @@ bool ShaderCompiler::CompileBundle(
         }
     }
 
+    outBundle->staticProperties.Clear();
+
     for (const ShaderProperty& permProperty : decl.variantPerms.GetPropertySet())
     {
         MergeProperty(declaredPerms, permProperty);
@@ -2839,6 +2841,18 @@ bool ShaderCompiler::CompileBundle(
         for (const ShaderProperty& permProperty : scannedPerms.GetPropertySet())
         {
             MergeProperty(declaredPerms, permProperty);
+
+            if (permProperty.IsStatic())
+            {
+                ShaderPropertyId propertyId = InternShaderProperty(permProperty);
+
+                if (outBundle->staticProperties.Contains(propertyId))
+                {
+                    continue;
+                }
+
+                outBundle->staticProperties.Add(propertyId);
+            }
         }
     }
 
@@ -2868,26 +2882,6 @@ bool ShaderCompiler::CompileBundle(
     {
         permsToCompile.SetRequiredVertexAttributes(declaredPerms.GetRequiredVertexAttributes());
         permsToCompile.SetOptionalVertexAttributes(declaredPerms.GetOptionalVertexAttributes());
-    }
-
-    // Recalculate static properties
-    outBundle->staticProperties.Clear();
-
-    for (const ShaderProperty& property : declaredPerms)
-    {
-        if (!property.IsStatic())
-        {
-            continue;
-        }
-
-        ShaderPropertyId propertyId = InternShaderProperty(property);
-
-        if (outBundle->staticProperties.Contains(propertyId))
-        {
-            continue;
-        }
-
-        outBundle->staticProperties.Add(propertyId);
     }
 
     // INFO ON MERGING 'ADDITIONAL' SHADER VERSIONS (upon requesting a shader)
@@ -3417,10 +3411,12 @@ bool ShaderCompiler::CompileBundle(
 
 bool ShaderCompiler::RequestShader(
     Name name,
-    const ShaderPropertySet& properties,
-    const VertexInputLayoutDesc& inputLayout,
+    ShaderPropertySet properties,
+    VertexInputLayoutDesc inputLayout,
     Shader*& outShader)
 {
+    MergeGlobalShaderProperties(/* isPrecompilingShaders */ false, properties);
+
     Handle<ShaderBundle> bundle;
 
     if (!LoadBundle(name, ShaderRequest { properties, inputLayout }, bundle))

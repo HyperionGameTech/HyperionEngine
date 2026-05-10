@@ -677,8 +677,8 @@ public:
 
     bool RequestShader(
         Name name,
-        const ShaderPropertySet& properties,
-        const VertexInputLayoutDesc& inputLayout,
+        ShaderPropertySet properties,
+        VertexInputLayoutDesc inputLayout,
         Shader*& outShader);
 
     bool IsGraphicsShaderBundle(Name name) const;
