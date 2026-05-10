@@ -48,8 +48,8 @@ namespace Hyperion {
 
 HYP_DECLARE_LOG_CHANNEL(RenderingBackend);
 
-#define HYP_DX12_ENABLE_DEBUG_LAYER
-#define HYP_DX12_ENABLE_DRED
+// #define HYP_DX12_ENABLE_DEBUG_LAYER
+// #define HYP_DX12_ENABLE_DRED
 
 #pragma region DX12RenderConfig
 

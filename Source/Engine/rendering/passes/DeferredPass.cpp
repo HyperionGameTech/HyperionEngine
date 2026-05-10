@@ -126,10 +126,6 @@ static const ShaderPropertyId s_propDebugIrradiance = InternShaderProperty(Shade
 static const ShaderPropertyId s_propOutputSDR = InternShaderProperty(ShaderProperty(NAME("OUTPUT"), NAME("SDR")));
 
 static const ShaderPropertyId s_propLightTypeClustered = InternShaderProperty(ShaderProperty(NAME("LIGHT_TYPE"), NAME("CLUSTERED")));
-static const ShaderPropertyId s_propMaxClusteredShadowMaps = InternShaderProperty(ShaderProperty(NAME("MAX_CLUSTERED_SHADOW_MAPS"), int(MaxClusteredShadowMaps)));
-
-ShaderPropertyId propTileSize = InternShaderProperty(ShaderProperty(NAME("TILE_SIZE"), int(TileSize)));
-ShaderPropertyId propTileZBins = InternShaderProperty(ShaderProperty(NAME("TILE_Z_BINS"), int(TileZBins)));
 
 static constexpr StringHash GBufferTextureNames[GTN_MAX] = {
     "GBufferAlbedoTexture"_sh,
@@ -191,11 +187,6 @@ void GetDeferredShaderProperties(
 
     static const IRenderConfig& s_renderConfig = RI.GetRenderConfig();
 
-    MergeGlobalShaderProperties(outShaderProperties);
-
-    outShaderProperties.Add(propTileSize);
-    outShaderProperties.Add(propTileZBins);
-
     if (cvHBAO.Get())
     {
         outShaderProperties.Add(s_propHBAOEnabled);
@@ -215,8 +206,6 @@ void GetDeferredShaderProperties(
     }
     else
     {
-        outShaderProperties.Add(s_propMaxClusteredShadowMaps);
-
         if (clustered)
         {
             outShaderProperties.Add(s_propLightTypeClustered);

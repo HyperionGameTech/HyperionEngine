@@ -308,13 +308,13 @@ GraphicsPipelineCache::~GraphicsPipelineCache()
 }
 
 void GraphicsPipelineCache::GetOrCreate(
-    const RenderableAttributeSet& attributes,
+    RenderableAttributeSet& inOutAttributes,
     const FramebufferDesc& framebufferDesc,
     GraphicsPipelineCacheHandle& outCacheHandle)
 {
     HYP_SCOPE;
 
-    GraphicsPipelineCacheHandle cacheHandle = FindGraphicsPipeline(attributes, framebufferDesc);
+    GraphicsPipelineCacheHandle cacheHandle = FindGraphicsPipeline(inOutAttributes, framebufferDesc);
 
     if (cacheHandle.IsAlive())
     {
@@ -328,9 +328,9 @@ void GraphicsPipelineCache::GetOrCreate(
         "Cannot create a graphics pipeline with no render target descriptor or 0 attachments!");
 
     ShaderInstanceRef shader = RI.shaderManager->GetOrCreate(
-        attributes.GetMaterialAttributes().shaderName,
-        attributes.GetMaterialAttributes().shaderProperties,
-        attributes.GetMeshAttributes().inputLayout);
+        inOutAttributes.GetMaterialAttributes().shaderName,
+        inOutAttributes.GetMaterialAttributes().shaderProperties,
+        inOutAttributes.GetMeshAttributes().inputLayout);
 
     if (!shader.IsValid())
     {
@@ -338,13 +338,17 @@ void GraphicsPipelineCache::GetOrCreate(
         return;
     }
 
+    // // Shader may have additional static properties.
+    // // See: ShaderBundle, staticProperties and its usage in ShaderCompiler.cpp.
+    // inOutAttributes.GetMaterialAttributes().shaderProperties = shader->GetShader()->properties;
+
     size_t slot = SIZE_MAX;
 
     // Create pipeline
     GraphicsPipelineRef graphicsPipeline = RI.MakeGraphicsPipeline(
         shader,
         framebufferDesc,
-        attributes);
+        inOutAttributes);
 
     TUniqueLock guard(m_mutex);
 
@@ -380,10 +384,10 @@ void GraphicsPipelineCache::GetOrCreate(
     Assert(slot != SIZE_MAX);
 
 #if HYP_GRAPHICS_PIPELINE_TIMING_DEBUG
-    HYP_LOG(Rendering, Verbose, "Adding graphics pipeline {} (debug name: {}) to cache with hash: {}", graphicsPipeline->Id(), graphicsPipeline->GetDebugName(), attributes.GetHashCode().Value());
+    HYP_LOG(Rendering, Verbose, "Adding graphics pipeline {} (debug name: {}) to cache with hash: {}", graphicsPipeline->Id(), graphicsPipeline->GetDebugName(), inOutAttributes.GetHashCode().Value());
 #endif
     // cache it now that it's been created so it can be reused
-    PSOCacheKey key { attributes, framebufferDesc };
+    PSOCacheKey key { inOutAttributes, framebufferDesc };
     m_cachedPipelines->Add(key, slot);
 
     return;

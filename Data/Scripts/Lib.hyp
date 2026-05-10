@@ -2340,8 +2340,10 @@ extern enum ShaderRegister : uint8
 end
 extern class ShaderBundle : AssetObject
     CompiledShaders : Array<Shader>
-    StaticProperties : Array<any>
+    StaticProperties : any
     ErrorMessages : Array<string>
+    SerializeStaticProperties() -> Array<any>
+    DeserializeStaticProperties(properties : Array<any>) -> void
 end
 extern class Texture : AssetObject
     Rename(name : Name) -> Result

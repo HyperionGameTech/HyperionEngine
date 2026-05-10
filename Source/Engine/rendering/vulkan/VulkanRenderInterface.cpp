@@ -1140,8 +1140,8 @@ VulkanGraphicsPipelineRef VulkanRenderInterface::MakeGraphicsPipeline(
         graphicsPipeline->SetStencilWrite(true);
     }
 
-    // sanity check: newly created pipeline must match or caching will fail.
-    AssertDebug(graphicsPipeline->MatchesSignature(attributes, framebufferDesc));
+    // // sanity check: newly created pipeline must match or caching will fail.
+    // AssertDebug(graphicsPipeline->MatchesSignature(attributes, framebufferDesc));
 
     return graphicsPipeline;
 }

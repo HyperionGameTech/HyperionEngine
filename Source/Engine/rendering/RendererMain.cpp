@@ -86,9 +86,6 @@ static const ShaderPropertyId s_propShadingTypeForward = InternShaderProperty(Sh
 
 static const ShaderPropertyId s_propForwardClustered = InternShaderProperty(ShaderProperty(NAME("FORWARD_CLUSTERED")));
 
-extern ShaderPropertyId propTileSize;
-extern ShaderPropertyId propTileZBins;
-
 #pragma region ParallelRenderingState
 
 // Holds shared data for ParallelRenderingState instances to reduce memory usage
@@ -1170,10 +1167,6 @@ static void PerformRenderingImpl(Frame* frame, const TPerformRenderingPayload<TC
         // Therefore we need to set FORWARD_CLUSTERED prop to true to choose the correct variant.
         ShaderPropertySet shaderProperties = mas.shaderProperties;
         shaderProperties.Add(s_propForwardClustered);
-
-        // these are needed too
-        shaderProperties.Add(propTileSize);
-        shaderProperties.Add(propTileZBins);
 
         cr << SetCurrentShader(ShaderDesc(mas.shaderName, shaderProperties));
     }

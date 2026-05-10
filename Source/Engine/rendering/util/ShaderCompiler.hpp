@@ -604,11 +604,17 @@ public:
     HYP_FIELD(Property = "CompiledShaders")
     Array<Handle<Shader>> compiledShaders;
 
-    HYP_FIELD(Property = "StaticProperties")
-    Array<Pair<Name, ShaderProperty::Value>> staticProperties;
+    HYP_FIELD(Transient)
+    TSet<ShaderPropertyId> staticProperties;
 
     HYP_FIELD(Transient)
     Array<String> errorMessages;
+
+    HYP_METHOD(Property = "StaticProperties")
+    Array<Pair<Name, ShaderProperty::Value>> SerializeStaticProperties() const;
+
+    HYP_METHOD(Property = "StaticProperties")
+    void DeserializeStaticProperties(const Array<Pair<Name, ShaderProperty::Value>>& properties);
 
     ShaderBundle() = default;
 

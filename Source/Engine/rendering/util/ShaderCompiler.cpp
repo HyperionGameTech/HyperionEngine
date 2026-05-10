@@ -1418,6 +1418,31 @@ String ShaderPropertySet::GetDebugString() const
 
 #pragma region ShaderBundle
 
+Array<Pair<Name, ShaderProperty::Value>> ShaderBundle::SerializeStaticProperties() const
+{
+    Array<Pair<Name, ShaderProperty::Value>> result;
+
+    for (ShaderPropertyId propertyId : staticProperties)
+    {
+        ShaderProperty property;
+        if (GetShaderPropertyById(propertyId, property))
+        {
+            result.EmplaceBack(property.name, property.currentValue);
+        }
+    }
+
+    return result;
+}
+
+void ShaderBundle::DeserializeStaticProperties(const Array<Pair<Name, ShaderProperty::Value>>& properties)
+{
+    for (const Pair<Name, ShaderProperty::Value>& pair : properties)
+    {
+        ShaderPropertyId propertyId = InternShaderProperty(ShaderProperty(pair.first, pair.second));
+        staticProperties.Add(propertyId);
+    }
+}
+
 HashCode ShaderBundle::GetHashCode() const
 {
     HashCode hc;
@@ -1605,12 +1630,6 @@ bool ShaderCompiler::HandleBundle(
 
     if (shaderRequest.HasValue())
     {
-        // All STATIC properties get added atop of the requested properties.
-        for (const Pair<Name, ShaderProperty::Value>& pair : inOutBundle->staticProperties)
-        {
-            shaderRequest->properties.Add(InternShaderProperty(ShaderProperty(pair.first, pair.second)));
-        }
-
         auto requestedIt = inOutBundle->compiledShaders.FindIf([&](const Handle<Shader>& shader)
             {
                 return SatisfiesRequested(
@@ -2851,7 +2870,26 @@ bool ShaderCompiler::CompileBundle(
         permsToCompile.SetOptionalVertexAttributes(declaredPerms.GetOptionalVertexAttributes());
     }
 
-#if 1
+    // Recalculate static properties
+    outBundle->staticProperties.Clear();
+
+    for (const ShaderProperty& property : declaredPerms)
+    {
+        if (!property.IsStatic())
+        {
+            continue;
+        }
+
+        ShaderPropertyId propertyId = InternShaderProperty(property);
+
+        if (outBundle->staticProperties.Contains(propertyId))
+        {
+            continue;
+        }
+
+        outBundle->staticProperties.Add(propertyId);
+    }
+
     // INFO ON MERGING 'ADDITIONAL' SHADER VERSIONS (upon requesting a shader)
     // ============================================
     // if shaderRequest is set, we need to properly merge those properties with our ShaderVariant.
@@ -2864,6 +2902,12 @@ bool ShaderCompiler::CompileBundle(
     // =============================================
     if (shaderRequest.HasValue())
     {
+        // add static properties from the bundle
+        for (ShaderPropertyId propertyId : outBundle->staticProperties.ToArray())
+        {
+            shaderRequest->properties.Add(propertyId);
+        }
+
         Array<ShaderProperty> additionalProperties;
 
         for (ShaderPropertyId propertyId : shaderRequest->properties.ToArray())
@@ -2915,7 +2959,6 @@ bool ShaderCompiler::CompileBundle(
             }
         }
     }
-#endif
 
     Mutex compiledShadersMutex;
     Mutex errorMessagesMutex;
@@ -3012,17 +3055,7 @@ bool ShaderCompiler::CompileBundle(
             Handle<Shader> shader = MakeHandle<Shader>(NAME_FMT("{}_{}", decl.name, permHashCode.Value()));
             shader->baseName = decl.name;
 
-            for (const ShaderProperty& shaderProperty : perm.GetPropertySet())
-            {
-                // should be no longer permutable or value group by the time we get here.
-                AssertDebug(!shaderProperty.IsPermutable() && !shaderProperty.IsValueGroup());
-
-                const ShaderPropertyId propertyId = InternShaderProperty(shaderProperty);
-                shader->properties.Add(propertyId);
-            }
-
             shader->inputLayout = { perm.GetRequiredVertexAttributes().flagMask };
-            shader->propertySetHashCode = perm.GetPropertySetHashCode();
 
             uint32 numErrored = 0;
             uint32 numCompiled = 0;
@@ -3101,38 +3134,24 @@ bool ShaderCompiler::CompileBundle(
 
             descriptorUsageSetsPerFile.Clear();
 
-            // for logging
-            String variablePropertiesString;
+            // for debug logging.
             String staticPropertiesString;
 
             for (const ShaderProperty& property : perm.ToArray())
             {
-                if (property.IsPermutable())
+                if (!staticPropertiesString.Empty())
                 {
-                    if (!variablePropertiesString.Empty())
-                    {
-                        variablePropertiesString += ", ";
-                    }
-
-                    variablePropertiesString += property.ToString();
+                    staticPropertiesString += ", ";
                 }
-                else
-                {
-                    if (!staticPropertiesString.Empty())
-                    {
-                        staticPropertiesString += ", ";
-                    }
 
-                    staticPropertiesString += property.ToString();
-                }
+                staticPropertiesString += property.ToString();
             }
 
             HYP_LOG(
                 ShaderCompiler,
                 Verbose,
-                "Compiling shader {}\n\tVariable properties: [{}]\n\tStatic properties: [{}]",
+                "Compiling shader {}\n\tProperties: [{}]",
                 decl.name,
-                variablePropertiesString,
                 staticPropertiesString);
 
             // final substitution of properties + compilation
@@ -3244,14 +3263,30 @@ bool ShaderCompiler::CompileBundle(
                 ++numCompiled;
             }
 
+            for (const ShaderProperty& shaderProperty : perm.GetPropertySet())
+            {
+                // should be no longer permutable or value group by the time we get here (they should be "unwrapped")
+                AssertDebug(!shaderProperty.IsPermutable() && !shaderProperty.IsValueGroup());
+
+                const ShaderPropertyId propertyId = InternShaderProperty(shaderProperty);
+
+                // Strip out the bundle's staticProperties from the individual shader properties.
+                if (outBundle->staticProperties.Contains(propertyId))
+                {
+                    continue;
+                }
+
+                shader->properties.Add(propertyId);
+            }
+            shader->propertySetHashCode = perm.GetPropertySetHashCode();
+
             numCompiledPermutations += (numErrored == 0 && numCompiled > 0 ? 1 : 0);
             numErroredPermutations += (numErrored > 0 ? 1 : 0);
 
             if (numCompiled == 0)
             {
-                HYP_LOG(ShaderCompiler, Warning, "No shader bytecode files were output for {}\n\tVariable properties: [{}]\n\tStatic properties: [{}]",
+                HYP_LOG(ShaderCompiler, Warning, "No shader bytecode files were output for {}\n\tProperties: [{}]",
                     decl.name,
-                    variablePropertiesString,
                     staticPropertiesString);
             }
             else if (numErrored == 0)
@@ -3290,28 +3325,6 @@ bool ShaderCompiler::CompileBundle(
             }
         },
         true);
-
-    // Recalculate static properties
-    TSet<Name> visitedNames;
-
-    outBundle->staticProperties.Clear();
-
-    for (const ShaderProperty& property : declaredPerms)
-    {
-        if (!property.IsStatic())
-        {
-            continue;
-        }
-
-        if (visitedNames.Contains(property.name))
-        {
-            continue;
-        }
-
-        outBundle->staticProperties.EmplaceBack(property.name, property.currentValue);
-
-        visitedNames.Add(property.name);
-    }
 
     outBundle->MarkDirty();
 
@@ -3408,12 +3421,9 @@ bool ShaderCompiler::RequestShader(
     const VertexInputLayoutDesc& inputLayout,
     Shader*& outShader)
 {
-    ShaderPropertySet mergedProperties = properties;
-    MergeGlobalShaderProperties(/* isPrecompilingShaders */ false, mergedProperties);
-
     Handle<ShaderBundle> bundle;
 
-    if (!LoadBundle(name, ShaderRequest { mergedProperties, inputLayout }, bundle))
+    if (!LoadBundle(name, ShaderRequest { properties, inputLayout }, bundle))
     {
         HYP_LOG(ShaderCompiler, Error, "Failed to attempt loading of shader bundle: {}", name);
 
@@ -3426,18 +3436,10 @@ bool ShaderCompiler::RequestShader(
         return false;
     }
 
-    // All STATIC properties get added atop of the requested properties.
-    // (same logic exists in LoadBundle(), but we need to apply it here as well.
-    //   ideally this should be cleaned up so the logic exists in one place.)
-    for (const Pair<Name, ShaderProperty::Value>& pair : bundle->staticProperties)
-    {
-        mergedProperties.Add(InternShaderProperty(ShaderProperty(pair.first, pair.second)));
-    }
-
     auto it = bundle->compiledShaders.FindIf(
-        [&mergedProperties, &inputLayout](const Handle<Shader>& shader) -> bool
+        [&properties, &inputLayout](const Handle<Shader>& shader) -> bool
         {
-            return SatisfiesRequested(mergedProperties, inputLayout, *shader, /* matchAllProperties */ true);
+            return SatisfiesRequested(properties, inputLayout, *shader, /* matchAllProperties */ true);
         });
 
     if (it == bundle->compiledShaders.End()
@@ -3445,9 +3447,9 @@ bool ShaderCompiler::RequestShader(
     {
         // try again but this time only match the required properties, not all properties
         it = bundle->compiledShaders.FindIf(
-            [&mergedProperties, &inputLayout](const Handle<Shader>& shader) -> bool
+            [&properties, &inputLayout](const Handle<Shader>& shader) -> bool
             {
-                return SatisfiesRequested(mergedProperties, inputLayout, *shader, /* matchAllProperties */ false);
+                return SatisfiesRequested(properties, inputLayout, *shader, /* matchAllProperties */ false);
             });
     }
 
@@ -3458,7 +3460,7 @@ bool ShaderCompiler::RequestShader(
             "Name: {}\n"
             "\tRequested properties: {}\n\tVertex Attributes: {}\n\n"
             "Found: {}",
-            name, mergedProperties.GetDebugString(), InputLayoutToString(inputLayout),
+            name, properties.GetDebugString(), InputLayoutToString(inputLayout),
             String::Join(bundle->compiledShaders, "\n", [](const Handle<Shader>& shader)
                 {
                     return HYP_FORMAT("-----\n\tProperties: {}\n\tVertex Attributes: {}\n-----",

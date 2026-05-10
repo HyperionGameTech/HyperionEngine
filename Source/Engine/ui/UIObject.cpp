@@ -1168,8 +1168,6 @@ void UIObject::SetPadding(Vec2i padding)
 
 void UIObject::SetBackgroundColor(const Color& backgroundColor)
 {
-    HYP_SCOPE;
-
     if (m_backgroundColor == backgroundColor)
     {
         return;
@@ -1182,8 +1180,6 @@ void UIObject::SetBackgroundColor(const Color& backgroundColor)
 
 Color UIObject::ComputeBlendedBackgroundColor() const
 {
-    HYP_SCOPE;
-
     Vec4f blendedColor = Vec4f(m_backgroundColor);
 
     if (m_backgroundColor.GetAlpha() < 1.0f)
@@ -1199,8 +1195,6 @@ Color UIObject::ComputeBlendedBackgroundColor() const
 
 Color UIObject::GetTextColor() const
 {
-    HYP_SCOPE;
-
     if (uint32(m_textColor) == 0)
     {
         Handle<UIObject> spawnParent = GetClosestSpawnParent_Proc([](UIObject* parent)
@@ -1219,8 +1213,6 @@ Color UIObject::GetTextColor() const
 
 void UIObject::SetTextColor(const Color& textColor)
 {
-    HYP_SCOPE;
-
     if (textColor == m_textColor)
     {
         return;
@@ -1235,8 +1227,6 @@ void UIObject::SetTextColor(const Color& textColor)
 
 void UIObject::SetText(const String& text)
 {
-    HYP_SCOPE;
-
     if (m_text == text)
     {
         return;
@@ -1247,15 +1237,11 @@ void UIObject::SetText(const String& text)
 
 float UIObject::GetTextSize() const
 {
-    HYP_SCOPE;
-
     return m_computedTextSize;
 }
 
 void UIObject::SetTextSize(float textSize)
 {
-    HYP_SCOPE;
-
     if (m_textSize == textSize || (m_textSize <= 0.0f && textSize <= 0.0f))
     {
         return;
@@ -1277,8 +1263,6 @@ bool UIObject::IsVisible() const
 
 void UIObject::SetIsVisible(bool isVisible)
 {
-    HYP_SCOPE;
-
     if (isVisible == m_isVisible)
     {
         return;
@@ -1311,8 +1295,6 @@ void UIObject::SetIsVisible(bool isVisible)
 
 void UIObject::UpdateComputedVisibility(bool updateChildren)
 {
-    HYP_SCOPE;
-
     if (m_lockedUpdates & UIObjectUpdateType::UPDATE_COMPUTED_VISIBILITY)
     {
         return;
@@ -1376,8 +1358,6 @@ bool UIObject::IsEnabled() const
 
 void UIObject::SetIsEnabled(bool isEnabled)
 {
-    HYP_SCOPE;
-
     if (isEnabled == m_isEnabled)
     {
         return;
@@ -1414,8 +1394,6 @@ void UIObject::SetIsEnabled(bool isEnabled)
 
 void UIObject::SetCurrentValue(BoxedValue&& value, bool triggerEvent)
 {
-    HYP_SCOPE;
-
     m_currentValue = std::move(value);
 
     if (triggerEvent)
@@ -1459,8 +1437,6 @@ void UIObject::UpdateComputedTextSize()
 
 bool UIObject::HasFocus(bool includeChildren) const
 {
-    HYP_SCOPE;
-
     if (GetFocusState() & UIObjectFocusState::FOCUSED)
     {
         return true;
@@ -1492,8 +1468,6 @@ bool UIObject::HasFocus(bool includeChildren) const
 
 bool UIObject::IsOrHasParent(const UIObject* other) const
 {
-    HYP_SCOPE;
-
     if (!other)
     {
         return false;
@@ -1517,8 +1491,6 @@ bool UIObject::IsOrHasParent(const UIObject* other) const
 
 void UIObject::AddChildUIObject(const Handle<UIObject>& uiObject)
 {
-    HYP_SCOPE;
-
     if (!uiObject)
     {
         return;
@@ -1556,8 +1528,6 @@ void UIObject::AddChildUIObject(const Handle<UIObject>& uiObject)
 
 bool UIObject::RemoveChildUIObject(UIObject* uiObject)
 {
-    HYP_SCOPE;
-
     if (!uiObject)
     {
         return false;
@@ -1615,8 +1585,6 @@ bool UIObject::RemoveChildUIObject(UIObject* uiObject)
 
 int UIObject::RemoveAllChildUIObjects()
 {
-    HYP_SCOPE;
-
     int numRemoved = 0;
 
     {
@@ -1647,8 +1615,6 @@ int UIObject::RemoveAllChildUIObjects()
 
 int UIObject::RemoveAllChildUIObjects(ProcRef<bool(UIObject*)> predicate)
 {
-    HYP_SCOPE;
-
     int numRemoved = 0;
 
     {
@@ -1675,8 +1641,6 @@ int UIObject::RemoveAllChildUIObjects(ProcRef<bool(UIObject*)> predicate)
 
 void UIObject::ClearDeep()
 {
-    HYP_SCOPE;
-
     {
         UILockedUpdatesScope scope(*this, UIObjectUpdateType::UPDATE_SIZE);
 
@@ -1698,8 +1662,6 @@ void UIObject::ClearDeep()
 
 bool UIObject::RemoveFromParent()
 {
-    HYP_SCOPE;
-
     if (UIObject* parent = GetParentUIObject())
     {
         return parent->RemoveChildUIObject(this);
@@ -1710,8 +1672,6 @@ bool UIObject::RemoveFromParent()
 
 Handle<UIObject> UIObject::DetachFromParent()
 {
-    HYP_SCOPE;
-
     Handle<UIObject> strongThis = HandleFromThis();
 
     if (UIObject* parent = GetParentUIObject())
@@ -1724,8 +1684,6 @@ Handle<UIObject> UIObject::DetachFromParent()
 
 Handle<UIObject> UIObject::FindChildUIObject(StringHash name, bool deep) const
 {
-    HYP_SCOPE;
-
     Handle<UIObject> foundObject;
 
     ForEachChildUIObject([name, &foundObject](UIObject* child)
@@ -1746,8 +1704,6 @@ Handle<UIObject> UIObject::FindChildUIObject(StringHash name, bool deep) const
 
 Handle<UIObject> UIObject::FindChildUIObject(ProcRef<bool(UIObject*)> predicate, bool deep) const
 {
-    HYP_SCOPE;
-
     Handle<UIObject> foundObject;
 
     ForEachChildUIObject([&foundObject, &predicate](UIObject* child)
@@ -1783,8 +1739,6 @@ World* UIObject::GetWorld() const
 
 BoundingBox UIObject::GetWorldAABB() const
 {
-    HYP_SCOPE;
-
     if (const Handle<Node>& node = GetNode())
     {
         return node->GetWorldBounds();
@@ -1795,8 +1749,6 @@ BoundingBox UIObject::GetWorldAABB() const
 
 BoundingBox UIObject::GetLocalAABB() const
 {
-    HYP_SCOPE;
-
     if (const Handle<Node>& node = GetNode())
     {
         return node->GetLocalBoundsWithChildren();
@@ -1807,8 +1759,6 @@ BoundingBox UIObject::GetLocalAABB() const
 
 void UIObject::SetLocalBounds(const BoundingBox& aabb)
 {
-    HYP_SCOPE;
-
     Mat4f transformMatrix;
 
     if (Scene* scene = GetScene())
@@ -1832,8 +1782,6 @@ void UIObject::SetLocalBounds(const BoundingBox& aabb)
 
 BoundingBox UIObject::CalculateAABB() const
 {
-    HYP_SCOPE;
-
     const Vec3f min = Vec3f::Zero();
     const Vec3f max = Vec3f { float(m_actualSize.x), float(m_actualSize.y), 0.0f };
 
@@ -1842,8 +1790,6 @@ BoundingBox UIObject::CalculateAABB() const
 
 BoundingBox UIObject::CalculateInnerAABB_Internal() const
 {
-    HYP_SCOPE;
-
     if (const Handle<Node>& node = GetNode())
     {
         const BoundingBox aabb = node->GetLocalBoundsWithChildren();
@@ -1859,8 +1805,6 @@ BoundingBox UIObject::CalculateInnerAABB_Internal() const
 
 void UIObject::SetAffectsParentSize(bool affectsParentSize)
 {
-    HYP_SCOPE;
-
     if (m_affectsParentSize == affectsParentSize)
     {
         return;
@@ -1888,8 +1832,6 @@ void UIObject::SetAffectsParentSize(bool affectsParentSize)
 
 void UIObject::SetAllowMaterialUpdate(bool allowMaterialUpdate)
 {
-    HYP_SCOPE;
-
     if (allowMaterialUpdate == m_allowMaterialUpdate)
     {
         return;
@@ -1902,14 +1844,8 @@ void UIObject::SetAllowMaterialUpdate(bool allowMaterialUpdate)
 
 MaterialAttributes UIObject::GetMaterialAttributes() const
 {
-    HYP_SCOPE;
-
-    ShaderPropertySet properties;
-    properties.Add(InternShaderProperty(ShaderProperty(NAME("INSTANCING"))));
-
     MaterialAttributes attrs;
     attrs.shaderName = NAME("UIObject");
-    attrs.shaderProperties = properties;
     attrs.blendFunction = BlendFunction(BMF_SRC_ALPHA, BMF_ONE_MINUS_SRC_ALPHA, BMF_ONE, BMF_ONE_MINUS_SRC_ALPHA);
     attrs.cullFaces = FCM_NONE;//FCM_BACK;
     attrs.flags = MAF_NONE;
