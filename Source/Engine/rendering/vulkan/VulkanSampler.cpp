@@ -158,12 +158,15 @@ void VulkanSampler::SetDebugName(Name name)
 
     const char* strName = name.LookupString();
 
-    VkDebugUtilsObjectNameInfoEXT objectNameInfo { VK_STRUCTURE_TYPE_DEBUG_UTILS_OBJECT_NAME_INFO_EXT };
-    objectNameInfo.objectType = VK_OBJECT_TYPE_SAMPLER;
-    objectNameInfo.objectHandle = (uint64)m_handle;
-    objectNameInfo.pObjectName = strName;
+    if (RI.dynamicFunctions.vkSetDebugUtilsObjectNameEXT)
+    {
+        VkDebugUtilsObjectNameInfoEXT objectNameInfo { VK_STRUCTURE_TYPE_DEBUG_UTILS_OBJECT_NAME_INFO_EXT };
+        objectNameInfo.objectType = VK_OBJECT_TYPE_SAMPLER;
+        objectNameInfo.objectHandle = (uint64)m_handle;
+        objectNameInfo.pObjectName = strName;
 
-    RI.dynamicFunctions.vkSetDebugUtilsObjectNameEXT(RI.GetDevice()->GetDevice(), &objectNameInfo);
+        RI.dynamicFunctions.vkSetDebugUtilsObjectNameEXT(RI.GetDevice()->GetDevice(), &objectNameInfo);
+    }
 }
 
 #endif

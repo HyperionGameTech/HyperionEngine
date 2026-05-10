@@ -430,7 +430,6 @@ RendererResult VulkanGpuBuffer::Create()
 
     const auto createInfo = GetBufferCreateInfo();
     const auto allocInfo = GetAllocationCreateInfo();
-
     CheckResultOrReturn(CheckCanAllocate(createInfo, allocInfo, m_size));
 
     if (m_alignment != 0)
@@ -616,12 +615,15 @@ void VulkanGpuBuffer::SetDebugName(Name name)
         vmaSetAllocationName(RI.GetDevice()->GetVmaAllocator(), m_vmaAllocation, strName);
     }
 
-    VkDebugUtilsObjectNameInfoEXT objectNameInfo { VK_STRUCTURE_TYPE_DEBUG_UTILS_OBJECT_NAME_INFO_EXT };
-    objectNameInfo.objectType = VK_OBJECT_TYPE_BUFFER;
-    objectNameInfo.objectHandle = (uint64)m_handle;
-    objectNameInfo.pObjectName = strName;
+    if (RI.dynamicFunctions.vkSetDebugUtilsObjectNameEXT)
+    {
+        VkDebugUtilsObjectNameInfoEXT objectNameInfo { VK_STRUCTURE_TYPE_DEBUG_UTILS_OBJECT_NAME_INFO_EXT };
+        objectNameInfo.objectType = VK_OBJECT_TYPE_BUFFER;
+        objectNameInfo.objectHandle = (uint64)m_handle;
+        objectNameInfo.pObjectName = strName;
 
-    RI.dynamicFunctions.vkSetDebugUtilsObjectNameEXT(RI.GetDevice()->GetDevice(), &objectNameInfo);
+        RI.dynamicFunctions.vkSetDebugUtilsObjectNameEXT(RI.GetDevice()->GetDevice(), &objectNameInfo);
+    }
 }
 
 #endif

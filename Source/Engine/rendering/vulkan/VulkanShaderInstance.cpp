@@ -277,12 +277,15 @@ void VulkanShaderInstance::SetDebugName(Name name)
             continue;
         }
 
-        VkDebugUtilsObjectNameInfoEXT objectNameInfo { VK_STRUCTURE_TYPE_DEBUG_UTILS_OBJECT_NAME_INFO_EXT };
-        objectNameInfo.objectType = VK_OBJECT_TYPE_SHADER_MODULE;
-        objectNameInfo.objectHandle = (uint64)shaderModule.handle;
-        objectNameInfo.pObjectName = shaderModule.moduleName.Data();
+        if (RI.dynamicFunctions.vkSetDebugUtilsObjectNameEXT)
+        {
+            VkDebugUtilsObjectNameInfoEXT objectNameInfo { VK_STRUCTURE_TYPE_DEBUG_UTILS_OBJECT_NAME_INFO_EXT };
+            objectNameInfo.objectType = VK_OBJECT_TYPE_SHADER_MODULE;
+            objectNameInfo.objectHandle = (uint64)shaderModule.handle;
+            objectNameInfo.pObjectName = shaderModule.moduleName.Data();
 
-        RI.dynamicFunctions.vkSetDebugUtilsObjectNameEXT(RI.GetDevice()->GetDevice(), &objectNameInfo);
+            RI.dynamicFunctions.vkSetDebugUtilsObjectNameEXT(RI.GetDevice()->GetDevice(), &objectNameInfo);
+        }
     }
 }
 

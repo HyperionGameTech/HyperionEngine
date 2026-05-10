@@ -236,9 +236,9 @@ ExtensionMap VulkanInstance::GetExtensionMap()
     // Scalar block layout needed for our shaders.
     map[VK_EXT_SCALAR_BLOCK_LAYOUT_EXTENSION_NAME] = true;
     // Dynamic descriptor indexing - needed for bindless resources and our clustered shading implementation.
-    map[VK_EXT_DESCRIPTOR_INDEXING_EXTENSION_NAME] = true;
+    map[VK_EXT_DESCRIPTOR_INDEXING_EXTENSION_NAME] = false;
     // Load store op none is used so we don't write to certain attachments (e.g stencil texture for deferred shading passes)
-    map[VK_EXT_LOAD_STORE_OP_NONE_EXTENSION_NAME] = true;
+    map[VK_EXT_LOAD_STORE_OP_NONE_EXTENSION_NAME] = false;
 
     // Extended dynamic state - allows dynamic depth write enable and depth compare op
     map[VK_EXT_EXTENDED_DYNAMIC_STATE_EXTENSION_NAME] = false;

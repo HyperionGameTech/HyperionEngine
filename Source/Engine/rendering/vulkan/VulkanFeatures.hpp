@@ -188,12 +188,6 @@ public:
         REQUIRES_VK_FEATURE(m_properties.limits.maxDescriptorSetSamplers >= 16);
         REQUIRES_VK_FEATURE(m_properties.limits.maxDescriptorSetUniformBuffers >= 16);
 
-#ifdef HYP_FEATURES_BINDLESS_TEXTURES
-        REQUIRES_VK_FEATURE(m_indexingProperties.maxPerStageDescriptorUpdateAfterBindSamplers >= 4096);
-#else
-        REQUIRES_VK_FEATURE(m_indexingProperties.maxPerStageDescriptorUpdateAfterBindSamplers >= 16);
-#endif
-
         return DeviceRequirementsResult(DeviceRequirementsResult::DEVICE_REQUIREMENTS_OK);
     }
 
@@ -280,7 +274,7 @@ public:
             {
                 featureFlags |= VK_FORMAT_FEATURE_COLOR_ATTACHMENT_BIT;
             }
-            
+
             break;
         case ImageSupport::ShaderResource:
             featureFlags |= VK_FORMAT_FEATURE_SAMPLED_IMAGE_BIT;

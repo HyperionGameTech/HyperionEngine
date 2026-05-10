@@ -51,7 +51,7 @@
     },
     "Vulkan": {
       "DebugLayers": false,
-      "TimelineSemaphores": true
+      "TimelineSemaphores": false
     },
     "RayTracing": {
       "Enabled": false,

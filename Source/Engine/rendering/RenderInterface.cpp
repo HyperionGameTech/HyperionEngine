@@ -627,6 +627,10 @@ RendererResult RenderInterface::Initialize()
 
     for (uint8 namedBufferIndex = 0; namedBufferIndex < NamedBuffer::Max; namedBufferIndex++)
     {
+#if HYP_DEBUG_MODE
+        HYP_LOG(Rendering, Verbose, "Initializing named buffer: {}", NamedBuffer::StringValues[namedBufferIndex]);
+#endif
+
         StructuredBuffer& sbuffer = namedBuffers[namedBufferIndex];
 
         if (!sbuffer.cpuBuffer.Empty())
@@ -634,6 +638,9 @@ RendererResult RenderInterface::Initialize()
             sbuffer.Initialize();
 
 #if HYP_DEBUG_MODE
+            HYP_LOG(Rendering, Verbose, "Initialized named buffer: {}", NamedBuffer::StringValues[namedBufferIndex]);
+
+            AssertDebug(sbuffer.gpuBuffer != nullptr);
             sbuffer.gpuBuffer->SetDebugName(CreateNameFromDynamicString(NamedBuffer::StringValues[namedBufferIndex]));
 #endif // HYP_DEBUG_MODE
         }

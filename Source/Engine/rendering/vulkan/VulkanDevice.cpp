@@ -92,7 +92,6 @@ VkPhysicalDevice VulkanDevice::GetPhysicalDevice()
 QueueFamilyIndices VulkanDevice::FindQueueFamilies(VkPhysicalDevice physicalDevice, VkSurfaceKHR surface)
 {
     const bool needPresentation = surface != VK_NULL_HANDLE;
-
     QueueFamilyIndices indices {};
 
     uint32 queueFamilyCount = 0;
@@ -100,139 +99,56 @@ QueueFamilyIndices VulkanDevice::FindQueueFamilies(VkPhysicalDevice physicalDevi
 
     Array<VkQueueFamilyProperties> families;
     families.Resize(queueFamilyCount);
-
     vkGetPhysicalDeviceQueueFamilyProperties(physicalDevice, &queueFamilyCount, families.Data());
 
-    constexpr auto possibleFlags = VK_QUEUE_GRAPHICS_BIT | VK_QUEUE_TRANSFER_BIT | VK_QUEUE_COMPUTE_BIT;
-
-    /* TODO: move over to QueueFamilyIndices */
-    Array<uint32> foundIndices;
-
-    const auto Predicate = [&](uint32 index, VkQueueFlagBits expectedBits, bool expectDedicated) -> bool
+    for (uint32 i = 0; i < queueFamilyCount; i++)
     {
-        const uint32 maskedBits = families[index].queueFlags & possibleFlags;
-
-        /* When looking for a dedicate graphics queue, we'll make sure it supports presentation.
-         * Some devices appear only to compute and are not graphical,
-         * so we need to make sure it supports presenting to the user. */
-        if (needPresentation && expectedBits == VK_QUEUE_GRAPHICS_BIT)
+        if (families[i].queueFlags & VK_QUEUE_GRAPHICS_BIT)
         {
-            VkBool32 supportsPresentation = false;
-            vkGetPhysicalDeviceSurfaceSupportKHR(physicalDevice, index, surface, &supportsPresentation);
-
-            if (!supportsPresentation)
-            {
-                return false;
-            }
-        }
-
-        if (maskedBits & expectedBits)
-        {
-            if (!expectDedicated)
-            {
-                return true;
-            }
-
-            return std::find(foundIndices.begin(), foundIndices.end(), index) == foundIndices.end();
-        }
-
-        return false;
-    };
-
-    /* Find dedicated queues */
-    for (uint32 i = 0; i < uint32(families.Size()) && !indices.IsComplete(); i++)
-    {
-        if (families[i].queueCount == 0)
-        {
-            HYP_LOG(RenderingBackend, Verbose, "Queue family {} supports no queues, skipping", i);
-
-            continue;
+            if (!indices.graphicsFamily.HasValue()) indices.graphicsFamily = i;
         }
 
         if (needPresentation && !indices.presentFamily.HasValue())
         {
             VkBool32 supportsPresentation = false;
             vkGetPhysicalDeviceSurfaceSupportKHR(physicalDevice, i, surface, &supportsPresentation);
-
             if (supportsPresentation)
             {
-                HYP_LOG(RenderingBackend, Verbose, "Found presentation queue: {}", i);
                 indices.presentFamily = i;
             }
         }
+    }
 
-        if (!indices.graphicsFamily.HasValue())
+    for (uint32 i = 0; i < queueFamilyCount; i++)
+    {
+        const auto flags = families[i].queueFlags;
+
+        if ((flags & VK_QUEUE_COMPUTE_BIT) && !(flags & VK_QUEUE_GRAPHICS_BIT))
         {
-            if (Predicate(i, VK_QUEUE_GRAPHICS_BIT, true))
-            {
-                HYP_LOG(RenderingBackend, Verbose, "Found dedicated graphics presentation queue: {}", i);
-                indices.graphicsFamily = i;
-                foundIndices.PushBack(i);
-                continue;
-            }
+            if (!indices.computeFamily.HasValue()) indices.computeFamily = i;
+        }
+
+        if ((flags & VK_QUEUE_TRANSFER_BIT) && !(flags & VK_QUEUE_GRAPHICS_BIT) && !(flags & VK_QUEUE_COMPUTE_BIT))
+        {
+            if (!indices.transferFamily.HasValue()) indices.transferFamily = i;
+        }
+    }
+
+    for (uint32 i = 0; i < queueFamilyCount; i++)
+    {
+        const auto flags = families[i].queueFlags;
+
+        if (!indices.computeFamily.HasValue() && (flags & VK_QUEUE_COMPUTE_BIT))
+        {
+            indices.computeFamily = i;
         }
 
         if (!indices.transferFamily.HasValue())
         {
-            if (Predicate(i, VK_QUEUE_TRANSFER_BIT, true))
+            // Remember: Graphics and Compute implicitly support transfer operations
+            if ((flags & VK_QUEUE_TRANSFER_BIT) || (flags & VK_QUEUE_GRAPHICS_BIT) || (flags & VK_QUEUE_COMPUTE_BIT))
             {
-                HYP_LOG(RenderingBackend, Verbose, "Found dedicated transfer queue: {}", i);
                 indices.transferFamily = i;
-                foundIndices.PushBack(i);
-                continue;
-            }
-        }
-
-        if (!indices.computeFamily.HasValue())
-        {
-            if (Predicate(i, VK_QUEUE_COMPUTE_BIT, true))
-            {
-                HYP_LOG(RenderingBackend, Verbose, "Found dedicated compute queue: {}", i);
-                indices.computeFamily = i;
-                foundIndices.PushBack(i);
-                continue;
-            }
-        }
-    }
-
-    Assert(!needPresentation || indices.presentFamily.HasValue(), "No present queue family found!");
-    Assert(indices.graphicsFamily.HasValue(), "No graphics queue family found that supports presentation!");
-
-    if (!indices.transferFamily.HasValue())
-    {
-        HYP_LOG(RenderingBackend, Warning, "No dedicated transfer queue family found!");
-    }
-
-    if (!indices.computeFamily.HasValue())
-    {
-        HYP_LOG(RenderingBackend, Warning, "No dedicated compute queue family found!");
-    }
-
-    /* Fallback -- find queue families (non-dedicated) */
-    for (uint32 i = 0; i < families.Size() && !indices.IsComplete(); i++)
-    {
-        if (families[i].queueCount == 0)
-        {
-            HYP_LOG(RenderingBackend, Verbose, "Queue family {} supports no queues, skipping", i);
-
-            continue;
-        }
-
-        if (!indices.transferFamily.HasValue())
-        {
-            if (Predicate(i, VK_QUEUE_TRANSFER_BIT, false))
-            {
-                HYP_LOG(RenderingBackend, Verbose, "Found non-dedicated transfer queue {}", i);
-                indices.transferFamily = i;
-            }
-        }
-
-        if (!indices.computeFamily.HasValue())
-        {
-            if (Predicate(i, VK_QUEUE_COMPUTE_BIT, false))
-            {
-                HYP_LOG(RenderingBackend, Verbose, "Found non-dedicated compute queue {}", i);
-                indices.computeFamily = i;
             }
         }
     }
@@ -318,9 +234,9 @@ RendererResult VulkanDevice::CheckDeviceSuitable(const ExtensionMap& unsupported
         }
     }
 
-    if (!m_queueFamilyIndices.IsComplete())
+    if (!m_queueFamilyIndices.graphicsFamily.HasValue())
     {
-        return HYP_MAKE_ERROR(RendererError, "Device not supported -- indices setup was not complete.");
+        return HYP_MAKE_ERROR(RendererError, "Device not supported -- no graphics queue family available.");
     }
 
     return {};
