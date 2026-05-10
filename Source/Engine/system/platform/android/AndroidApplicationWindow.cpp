@@ -249,27 +249,32 @@ bool AndroidApplicationWindow::HandleInputEvent(int32 type, int32 action, float 
             m_touchPosition = currentPos;
         }
 
+        // intParam contains the pointer ID for multi-touch support
+        const int32 pointerId = intParam;
 
         switch (action)
         {
         case ANDROID_ACTION_DOWN:
         case ANDROID_ACTION_POINTER_DOWN:
             m_prevTouchPosition = currentPos;
-            outEvent = Event(EventType::MOUSEBUTTON_DOWN, this, platformEvent);
-            outEvent.GetEventData().Set(EnumFlags<MouseButtonState>(MouseButtonState::LEFT));
+            // Emit new touch event for mobile controls
+            outEvent = Event(EventType::TOUCH_DOWN, this, platformEvent);
+            outEvent.GetEventData().Set(TouchEventData(pointerId, currentPos));
             return true;
 
         case ANDROID_ACTION_UP:
         case ANDROID_ACTION_POINTER_UP:
-            outEvent = Event(EventType::MOUSEBUTTON_UP, this, platformEvent);
-            outEvent.GetEventData().Set(EnumFlags<MouseButtonState>(MouseButtonState::LEFT));
+            // Emit new touch event for mobile controls
+            outEvent = Event(EventType::TOUCH_UP, this, platformEvent);
+            outEvent.GetEventData().Set(TouchEventData(pointerId, currentPos));
             return true;
 
         case ANDROID_ACTION_MOVE:
         {
             Vec2f deltas = currentPos - m_prevTouchPosition;
-            outEvent = Event(EventType::MOUSEMOTION, this, platformEvent);
-            outEvent.GetEventData().Set(deltas);
+            // Emit new touch event for mobile controls
+            outEvent = Event(EventType::TOUCH_MOVE, this, platformEvent);
+            outEvent.GetEventData().Set(TouchEventData(pointerId, currentPos, deltas));
             m_prevTouchPosition = currentPos;
             return true;
         }

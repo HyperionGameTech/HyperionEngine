@@ -22,7 +22,7 @@
 namespace Hyperion {
 namespace CodeGen {
 
-static const HashMap<String, String> s_getValueOverloads = {
+static const TMap<String, String> s_getValueOverloads = {
     { "bool", "ReadBool" },
     { "sbyte", "ReadInt8" },
     { "byte", "ReadUInt8" },
@@ -71,7 +71,7 @@ Result CSharpModuleGenerator::Generate(const Analyzer& analyzer, const Module& m
             {
                 continue;
             }
-            
+
             if (const ClassAttributeValue& attr = cls.GetAttribute("OnlyLanguages"); attr.IsValid() && attr.IsString())
             {
                 if (!CheckAttrCSV(attr, "csharp"))

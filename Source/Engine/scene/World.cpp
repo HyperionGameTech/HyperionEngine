@@ -882,6 +882,28 @@ const Handle<Subsystem>& World::AddSubsystem(TypeId typeId, const Handle<Subsyst
     return newSubsystem;
 }
 
+const Handle<Subsystem>& World::AddSubsystem(const Class* subsystemClass)
+{
+    Assert(subsystemClass != nullptr);
+
+    BoxedValue boxed;
+    if (!subsystemClass->CreateInstance(boxed))
+    {
+        return Handle<Subsystem>::Null();
+    }
+
+    Assert(boxed.Is<Subsystem>());
+
+    Handle<Subsystem>& subsystem = boxed.Get<Handle<Subsystem>>();
+
+    if (!subsystem)
+    {
+        return Handle<Subsystem>::Null();
+    }
+
+    return AddSubsystem(subsystem);
+}
+
 bool World::TryAddSubsystem(const Handle<Subsystem>& subsystem)
 {
     if (!subsystem)

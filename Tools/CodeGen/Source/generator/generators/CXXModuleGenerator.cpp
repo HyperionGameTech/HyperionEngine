@@ -13,7 +13,7 @@
 
 #include <Core/io/ByteWriter.hpp>
 
-#include <Core/containers/HashSet.hpp>
+#include <Core/containers/Set.hpp>
 
 #include <Core/utilities/Format.hpp>
 
@@ -30,13 +30,13 @@ HYP_DECLARE_LOG_CHANNEL(Tool);
 
 static constexpr bool AddIncludesForDependencies = true;
 
-static const HashMap<ClassDefinitionType, String> s_startMacroNames = {
+static const TMap<ClassDefinitionType, String> s_startMacroNames = {
     { ClassDefinitionType::Class, "HYP_BEGIN_CLASS" },
     { ClassDefinitionType::Struct, "HYP_BEGIN_STRUCT" },
     { ClassDefinitionType::Enum, "HYP_BEGIN_ENUM" }
 };
 
-static const HashMap<ClassDefinitionType, String> s_endMacroNames = {
+static const TMap<ClassDefinitionType, String> s_endMacroNames = {
     { ClassDefinitionType::Class, "HYP_END_CLASS" },
     { ClassDefinitionType::Struct, "HYP_END_STRUCT" },
     { ClassDefinitionType::Enum, "HYP_END_ENUM" }
@@ -70,7 +70,7 @@ Result CXXModuleGenerator::GenerateClassDeclHeader(const Analyzer& analyzer, Byt
     };
 
     Array<ClassInfo> allClasses;
-    HashSet<String> processedNames;
+    TSet<String> processedNames;
 
     for (const auto& it : analyzer.GetBuiltinClasses())
     {
@@ -150,7 +150,7 @@ Result CXXModuleGenerator::GenerateClassDeclHeader(const Analyzer& analyzer, Byt
     for (const ClassInfo& classInfo : allClasses)
     {
         const ClassDefinition& cls = *classInfo.definition;
-        
+
         if (cls.condition.Any())
         {
             writer.WriteString(HYP_FORMAT("#if {}\n", cls.condition));
@@ -202,7 +202,7 @@ Result CXXModuleGenerator::GenerateClassDeclImplementation(const Analyzer& analy
     };
 
     Array<ClassInfo> allClasses;
-    HashSet<String> processedNames;
+    TSet<String> processedNames;
 
     writer.WriteString("#pragma region Builtins\n\n");
 
@@ -250,7 +250,7 @@ Result CXXModuleGenerator::GenerateClassDeclImplementation(const Analyzer& analy
                 namespaceParts.PopFront();
             }
         }
-        
+
         if (cls.condition.Any())
         {
             writer.WriteString(HYP_FORMAT("#if {}\n", cls.condition));
@@ -290,7 +290,7 @@ Result CXXModuleGenerator::GenerateClassDeclImplementation(const Analyzer& analy
         {
             return HYP_MAKE_ERROR(Error, "Class '{}' is not in the '{}' namespace", cls.name, BaseNamespace);
         }
-        
+
         if (cls.condition.Any())
         {
             writer.WriteString(HYP_FORMAT("#if {}\n", cls.condition));
@@ -420,7 +420,7 @@ Result CXXModuleGenerator::GenerateClassDeclImplementation(const Analyzer& analy
         {
             qualifiedName = cls.name;
         }
-        
+
         if (cls.condition.Any())
         {
             writer.WriteString(HYP_FORMAT("#if {}\n", cls.condition));
@@ -490,7 +490,7 @@ Result CXXModuleGenerator::GenerateInline(const Analyzer& analyzer, const Module
                 BuildNamespaceString(cls.namespaceParts),
                 cls.name));
         }
-        
+
         writer.WriteString(HYP_FORMAT("using {}::Class;\n", BaseNamespace)); // to resolve ambiguity in intellisense
 
         writer.WriteString("\n");
@@ -534,7 +534,7 @@ Result CXXModuleGenerator::GenerateInline(const Analyzer& analyzer, const Module
 
         writer.WriteString(HYP_FORMAT("{}({}, {}, {}", s_startMacroNames.At(cls.type), cls.name, cls.staticIndex, cls.numDescendants));
 
-        HashSet<const ClassDefinition*> baseClassDefinitions;
+        TSet<const ClassDefinition*> baseClassDefinitions;
 
         if (cls.baseClassNames.Any())
         {
@@ -571,7 +571,7 @@ Result CXXModuleGenerator::GenerateInline(const Analyzer& analyzer, const Module
         }
 
         writer.WriteString(")\n");
-        
+
         for (size_t i = 0; i < cls.members.Size(); ++i)
         {
             const MemberDef& member = cls.members[i];
@@ -795,7 +795,7 @@ Result CXXModuleGenerator::GenerateInline(const Analyzer& analyzer, const Module
 
 Result CXXModuleGenerator::Generate(const Analyzer& analyzer, const Module& mod, ByteWriter& writer) const
 {
-    HashSet<String> addedIncludes;
+    TSet<String> addedIncludes;
     const auto addInclude = [&writer, &addedIncludes](const String& include)
     {
         if (addedIncludes.Contains(include))
@@ -879,7 +879,7 @@ Result CXXModuleGenerator::Generate(const Analyzer& analyzer, const Module& mod,
                 BuildNamespaceString(cls.namespaceParts),
                 cls.name));
         }
-        
+
         writer.WriteString(HYP_FORMAT("using {}::Class;\n", BaseNamespace)); // to resolve ambiguity in intellisense
 
         writer.WriteString("\n");
@@ -901,7 +901,7 @@ Result CXXModuleGenerator::Generate(const Analyzer& analyzer, const Module& mod,
         writer.WriteString(HYP_FORMAT("namespace {}", BuildNamespaceString(cls.namespaceParts)) + " {\n");
         writer.WriteString(HYP_FORMAT("extern const Class* g_cls{};\n", cls.name));
         writer.WriteString("} " + HYP_FORMAT("// namespace {}\n\n", BuildNamespaceString(cls.namespaceParts)));
-        
+
         if (cls.namespaceParts.Any() && (cls.namespaceParts.Size() > 1 || cls.namespaceParts[0] != BaseNamespace))
         {
             // alias the global g_clsXXX to the namespaced one to avoid having to qualify it everywhere in the generated code
@@ -922,7 +922,7 @@ Result CXXModuleGenerator::Generate(const Analyzer& analyzer, const Module& mod,
 
         writer.WriteString(HYP_FORMAT("{}({}, {}, {}", s_startMacroNames.At(cls.type), cls.name, cls.staticIndex, cls.numDescendants));
 
-        HashSet<const ClassDefinition*> baseClassDefinitions;
+        TSet<const ClassDefinition*> baseClassDefinitions;
 
         if (cls.baseClassNames.Any())
         {

@@ -8,7 +8,7 @@
 
 namespace Hyperion::CodeGen {
 
-const HashMap<ErrorMessage, String> CompilerError::errorMessageStrings {
+const TMap<ErrorMessage, String> CompilerError::errorMessageStrings {
     { Msg_unexpected_eof, "Unexpected end of file." },
     { Msg_unexpected_token, "Unexpected token." },
     { Msg_unexpected_character, "Unexpected character." },

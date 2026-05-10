@@ -13,8 +13,8 @@
 #include <Core/utilities/Format.hpp>
 #include <Core/utilities/StringView.hpp>
 
-#include <Core/containers/HashMap.hpp>
-#include <Core/containers/HashSet.hpp>
+#include <Core/containers/Map.hpp>
+#include <Core/containers/Set.hpp>
 #include <Core/containers/Forest.hpp>
 
 #include <Core/functional/Proc.hpp>
@@ -38,20 +38,20 @@ HYP_DECLARE_LOG_CHANNEL(Tool);
 
 using namespace JSON;
 
-static const HashMap<String, ClassDefinitionType> s_classDefinitionTypes = {
+static const TMap<String, ClassDefinitionType> s_classDefinitionTypes = {
     { "HYP_CLASS", ClassDefinitionType::Class },
     { "HYP_STRUCT", ClassDefinitionType::Struct },
     { "HYP_ENUM", ClassDefinitionType::Enum }
 };
 
-static const HashMap<String, MemberType> s_memberDefinitionTypes = {
+static const TMap<String, MemberType> s_memberDefinitionTypes = {
     { "HYP_FIELD", MemberType::Field },
     { "HYP_METHOD", MemberType::Method },
     { "HYP_PROPERTY", MemberType::Property }
 };
 
 // for each path below, if it matches the module path, add the corresponding define(s) to the class condition
-static const HashMap<String, String> s_pathConditionalDefines = {
+static const TMap<String, String> s_pathConditionalDefines = {
     // platforms
     { "platform/win32", "HYP_WINDOWS" },
     { "platform/linux", "HYP_LINUX" },
@@ -415,7 +415,7 @@ static TResult<Array<Pair<String, ClassAttributeValue>>> BuildClassAttributes(co
 
 template <typename E, typename = std::enable_if_t<std::is_enum_v<E>>>
 static TResult<Pair<E, Array<Pair<String, ClassAttributeValue>>>> ParseHypMacro(
-    const HashMap<String, E>& usableMacros,
+    const TMap<String, E>& usableMacros,
     const String& line,
     size_t& outStartIndex,
     size_t& outEndIndex,

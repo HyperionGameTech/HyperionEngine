@@ -62,6 +62,8 @@ namespace Hyperion {
 
 HYP_DEFINE_LOG_CHANNEL(Game);
 
+class TouchControlsSubsystem;
+
 namespace game {
 
 static bool s_isSaving = false;
@@ -78,9 +80,19 @@ DefaultGame::~DefaultGame()
 
 void DefaultGame::OnLaunch_Impl()
 {
+    // if (UISubsystem* uiSubsystem = GetUISubsystem())
+    // {
+    //     uiSubsystem->AddDebugOverlay(MakeHandle<StatsOverlay>());
+    //     uiSubsystem->AddDebugOverlay(MakeHandle<ConsoleOverlay>());
+    // }
+
     // sky
     GetWorld()->AddSystemT<DynamicSkySystem>();
     // GetWorld()->GetWorldGrid()->AddLayer(MakeHandle<TerrainWorldGridLayer>());
+
+#ifdef HYP_ANDROID
+    GetWorld()->AddSubsystem(Hyperion::GetClass<TouchControlsSubsystem>());
+#endif
 
 #if 1
     // Get MainScene
@@ -256,11 +268,6 @@ void DefaultGame::OnLaunch_Impl()
     //    fogVolume->Rebake();
     // #endif
 
-    if (UISubsystem* uiSubsystem = GetUISubsystem())
-    {
-        uiSubsystem->AddDebugOverlay(MakeHandle<StatsOverlay>());
-        uiSubsystem->AddDebugOverlay(MakeHandle<ConsoleOverlay>());
-    }
 #endif
 
     StartSimulating();

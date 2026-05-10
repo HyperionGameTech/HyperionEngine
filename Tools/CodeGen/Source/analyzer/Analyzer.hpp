@@ -12,8 +12,8 @@
 
 #include <Core/memory/UniquePtr.hpp>
 
-#include <Core/containers/HashSet.hpp>
-#include <Core/containers/HashMap.hpp>
+#include <Core/containers/Set.hpp>
+#include <Core/containers/Map.hpp>
 
 #include <Core/utilities/Result.hpp>
 
@@ -95,22 +95,22 @@ public:
         m_hypscriptOutputDirectory = hypscriptOutputDirectory;
     }
 
-    HYP_FORCE_INLINE const HashSet<FilePath>& GetExcludeDirectories() const
+    HYP_FORCE_INLINE const TSet<FilePath>& GetExcludeDirectories() const
     {
         return m_excludeDirectories;
     }
 
-    HYP_FORCE_INLINE void SetExcludeDirectories(const HashSet<FilePath>& excludeDirectories)
+    HYP_FORCE_INLINE void SetExcludeDirectories(const TSet<FilePath>& excludeDirectories)
     {
         m_excludeDirectories = excludeDirectories;
     }
 
-    HYP_FORCE_INLINE const HashSet<FilePath>& GetExcludeFiles() const
+    HYP_FORCE_INLINE const TSet<FilePath>& GetExcludeFiles() const
     {
         return m_excludeFiles;
     }
 
-    HYP_FORCE_INLINE void SetExcludeFiles(const HashSet<FilePath>& excludeFiles)
+    HYP_FORCE_INLINE void SetExcludeFiles(const TSet<FilePath>& excludeFiles)
     {
         m_excludeFiles = excludeFiles;
     }
@@ -139,22 +139,22 @@ public:
         return nullptr;
     }
 
-    HYP_FORCE_INLINE const HashMap<String, String>& GetGlobalDefines() const
+    HYP_FORCE_INLINE const TMap<String, String>& GetGlobalDefines() const
     {
         return m_globalDefines;
     }
 
-    HYP_FORCE_INLINE void SetGlobalDefines(HashMap<String, String>&& globalDefines)
+    HYP_FORCE_INLINE void SetGlobalDefines(TMap<String, String>&& globalDefines)
     {
         m_globalDefines = std::move(globalDefines);
     }
 
-    HYP_FORCE_INLINE const HashSet<String>& GetIncludePaths() const
+    HYP_FORCE_INLINE const TSet<String>& GetIncludePaths() const
     {
         return m_includePaths;
     }
 
-    HYP_FORCE_INLINE void SetIncludePaths(HashSet<String>&& includePaths)
+    HYP_FORCE_INLINE void SetIncludePaths(TSet<String>&& includePaths)
     {
         m_includePaths = std::move(includePaths);
     }
@@ -166,12 +166,12 @@ public:
         m_state.errors.PushBack(error);
     }
 
-    HYP_FORCE_INLINE HashMap<String, ClassDefinition>& GetBuiltinClasses()
+    HYP_FORCE_INLINE TMap<String, ClassDefinition>& GetBuiltinClasses()
     {
         return m_builtinClasses;
     }
 
-    HYP_FORCE_INLINE const HashMap<String, ClassDefinition>& GetBuiltinClasses() const
+    HYP_FORCE_INLINE const TMap<String, ClassDefinition>& GetBuiltinClasses() const
     {
         return m_builtinClasses;
     }
@@ -193,16 +193,16 @@ private:
     FilePath m_csharpOutputDirectory;
     FilePath m_hypscriptOutputDirectory;
 
-    HashSet<FilePath> m_excludeDirectories;
-    HashSet<FilePath> m_excludeFiles;
+    TSet<FilePath> m_excludeDirectories;
+    TSet<FilePath> m_excludeFiles;
 
     AnalyzerState m_state;
     Array<UniquePtr<Module>> m_modules;
     mutable Mutex m_mutex;
-    HashMap<String, String> m_globalDefines;
-    HashSet<String> m_includePaths;
+    TMap<String, String> m_globalDefines;
+    TSet<String> m_includePaths;
 
-    HashMap<String, ClassDefinition> m_builtinClasses;
+    TMap<String, ClassDefinition> m_builtinClasses;
 };
 
 } // namespace CodeGen

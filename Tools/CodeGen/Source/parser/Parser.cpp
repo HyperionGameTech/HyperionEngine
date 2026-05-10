@@ -72,7 +72,7 @@ TResult<CSharpTypeMapping> MapToCSharpType(const Analyzer& analyzer, const ASTTy
             return HYP_MAKE_ERROR(Error, "Type name has no parts");
         }
 
-        static const HashMap<String, CSharpTypeMapping> s_mapping {
+        static const TMap<String, CSharpTypeMapping> s_mapping {
             { "int", { "int", "ReadInt32" } },
             { "float", { "float", "ReadFloat" } },
             { "double", { "double", "ReadDouble" } },
@@ -249,7 +249,7 @@ TResult<HypScriptTypeMapping> MapToHypScriptType(const Analyzer& analyzer, const
             return HYP_MAKE_ERROR(Error, "Type name has no parts");
         }
 
-        static const HashMap<String, HypScriptTypeMapping> s_mapping {
+        static const TMap<String, HypScriptTypeMapping> s_mapping {
             { "int", { "int" } },
             { "int8", { "int8" } },
             { "int16", { "int16" } },

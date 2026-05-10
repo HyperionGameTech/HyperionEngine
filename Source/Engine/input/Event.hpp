@@ -7,10 +7,6 @@
 
 #include <Core/math/Vector2.hpp>
 
-#ifdef HYP_SDL
-#include <SDL2/SDL.h>
-#endif
-
 #include <Core/Types.hpp>
 
 namespace Hyperion {
@@ -39,6 +35,11 @@ enum class EventType : uint32
     MOUSEBUTTON_DOWN = 0x0401,
     MOUSEBUTTON_UP = 0x0402,
     MOUSESCROLL = 0x0403,
+
+    // Touch events for mobile controls
+    TOUCH_DOWN = 0x0500,
+    TOUCH_UP = 0x0501,
+    TOUCH_MOVE = 0x0502,
 
     FILE_DROP = 0x1000,
 
@@ -78,12 +79,49 @@ struct AndroidEvent
 };
 #endif
 
+HYP_STRUCT()
+struct TouchEventData
+{
+    HYP_STRUCT_BODY(TouchEventData);
+
+    HYP_FIELD()
+    int32 pointerId = -1;
+
+    HYP_FIELD()
+    Vec2f position;
+
+    HYP_FIELD()
+    Vec2f delta;
+
+    TouchEventData() = default;
+    TouchEventData(int32 pointerId_, Vec2f position_, Vec2f delta_ = Vec2f::Zero())
+        : pointerId(pointerId_), position(position_), delta(delta_)
+    {
+    }
+};
+
+HYP_STRUCT()
+struct TouchEvent
+{
+    HYP_STRUCT_BODY(TouchEvent);
+
+    const Event* baseEvent = nullptr;
+
+    HYP_FIELD()
+    int32 pointerId = -1;
+
+    HYP_FIELD()
+    Vec2f position;
+
+    HYP_FIELD()
+    Vec2f delta;
+
+    HYP_FIELD()
+    bool isDown = false;
+};
+
 union PlatformEvent
 {
-#ifdef HYP_SDL
-    SDL_Event sdlEvent;
-#endif
-
 #ifdef HYP_WINDOWS
     Win32Event win32Event;
 #endif
@@ -100,7 +138,7 @@ union PlatformEvent
 class HYP_API Event final
 {
 public:
-    using EventData = Variant<EnumFlags<MouseButtonState>, KeyCode, FilePath, Vec2i, Vec2f, void*>;
+    using EventData = Variant<EnumFlags<MouseButtonState>, KeyCode, FilePath, Vec2i, Vec2f, TouchEventData, void*>;
 
     Event()
         : m_eventType(EventType::INVALID),
@@ -220,6 +258,8 @@ public:
 
     KeyboardEvent ToKeyboardEvent() const;
 
+    TouchEvent ToTouchEvent() const;
+
     Vec2i GetWindowResizeDimensions() const
     {
         if (m_eventType != EventType::WINDOW_RESIZED)
@@ -315,6 +355,54 @@ public:
     HYP_FORCE_INLINE const EventData& GetEventData() const
     {
         return m_eventData;
+    }
+
+    HYP_FORCE_INLINE int32 GetTouchPointerId() const
+    {
+        if (m_eventType != EventType::TOUCH_DOWN && m_eventType != EventType::TOUCH_UP && m_eventType != EventType::TOUCH_MOVE)
+        {
+            return -1;
+        }
+
+        const TouchEventData* touchData = m_eventData.TryGet<TouchEventData>();
+        if (!touchData)
+        {
+            return -1;
+        }
+
+        return touchData->pointerId;
+    }
+
+    HYP_FORCE_INLINE Vec2f GetTouchPosition() const
+    {
+        if (m_eventType != EventType::TOUCH_DOWN && m_eventType != EventType::TOUCH_UP && m_eventType != EventType::TOUCH_MOVE)
+        {
+            return Vec2f::Zero();
+        }
+
+        const TouchEventData* touchData = m_eventData.TryGet<TouchEventData>();
+        if (!touchData)
+        {
+            return Vec2f::Zero();
+        }
+
+        return touchData->position;
+    }
+
+    HYP_FORCE_INLINE Vec2f GetTouchDelta() const
+    {
+        if (m_eventType != EventType::TOUCH_MOVE)
+        {
+            return Vec2f::Zero();
+        }
+
+        const TouchEventData* touchData = m_eventData.TryGet<TouchEventData>();
+        if (!touchData)
+        {
+            return Vec2f::Zero();
+        }
+
+        return touchData->delta;
     }
 
 private:

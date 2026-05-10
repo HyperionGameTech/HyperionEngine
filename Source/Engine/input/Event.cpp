@@ -65,6 +65,18 @@ KeyboardEvent Event::ToKeyboardEvent() const
     return kbe;
 }
 
+TouchEvent Event::ToTouchEvent() const
+{
+    TouchEvent te {};
+    te.baseEvent = this;
+    te.pointerId = GetTouchPointerId();
+    te.position = GetTouchPosition();
+    te.delta = GetTouchDelta();
+    te.isDown = (m_eventType == EventType::TOUCH_DOWN);
+
+    return te;
+}
+
 #ifdef HYP_SDL
 
 static EnumFlags<MouseButtonState> GetMouseButtonState(int sdlButton)

@@ -9,7 +9,7 @@
 
 #include <parser/ErrorList.hpp>
 
-#include <Core/containers/HashMap.hpp>
+#include <Core/containers/Map.hpp>
 
 namespace Hyperion::CodeGen {
 
@@ -30,19 +30,19 @@ public:
         return m_errorList;
     }
 
-    HYP_FORCE_INLINE const HashMap<String, String>& GetPreprocessorDefinitions() const
+    HYP_FORCE_INLINE const TMap<String, String>& GetPreprocessorDefinitions() const
     {
         return m_preprocessorDefinitions;
     }
 
-    HYP_FORCE_INLINE void SetPreprocessorDefinitions(const HashMap<String, String>& preprocessorDefinitions)
+    HYP_FORCE_INLINE void SetPreprocessorDefinitions(const TMap<String, String>& preprocessorDefinitions)
     {
         m_preprocessorDefinitions = preprocessorDefinitions;
     }
 
 private:
     ErrorList m_errorList;
-    HashMap<String, String> m_preprocessorDefinitions;
+    TMap<String, String> m_preprocessorDefinitions;
 };
 
 } // namespace Hyperion::CodeGen

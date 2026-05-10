@@ -9,7 +9,7 @@
 
 #include <analyzer/Definitions.hpp>
 
-#include <Core/containers/HashMap.hpp>
+#include <Core/containers/Map.hpp>
 #include <Core/containers/Array.hpp>
 
 #include <Core/filesystem/FilePath.hpp>
@@ -26,7 +26,7 @@ namespace CodeGen {
 class Module
 {
 public:
-    using ClassDefinitionMap = HashMap<String, ClassDefinition, DynamicAllocator, containers::HashTablePolicy::NotPooled>;
+    using ClassDefinitionMap = TMap<String, ClassDefinition, DynamicAllocator, containers::HashTablePolicy::NotPooled>;
 
     explicit Module(const FilePath& path);
 

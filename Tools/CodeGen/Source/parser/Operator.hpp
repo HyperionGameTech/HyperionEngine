@@ -4,7 +4,7 @@
 #include <Core/Types.hpp>
 
 #include <Core/containers/String.hpp>
-#include <Core/containers/HashMap.hpp>
+#include <Core/containers/Map.hpp>
 
 #include <Core/HashCode.hpp>
 
@@ -68,7 +68,7 @@ enum Operators
 class Operator
 {
 public:
-    using OperatorMap = HashMap<String, Operator, DynamicAllocator, containers::HashTablePolicy::NotPooled>;
+    using OperatorMap = TMap<String, Operator, DynamicAllocator, containers::HashTablePolicy::NotPooled>;
 
     static const OperatorMap s_binaryOperators;
     static const OperatorMap s_unaryOperators;

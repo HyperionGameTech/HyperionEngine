@@ -10,7 +10,7 @@
 #include <generator/Generator.hpp>
 
 #include <Core/containers/Array.hpp>
-#include <Core/containers/HashMap.hpp>
+#include <Core/containers/Map.hpp>
 #include <Core/containers/String.hpp>
 
 namespace Hyperion {
@@ -32,7 +32,7 @@ public:
     virtual FilePath GetOutputFilePath(const Analyzer& analyzer, const Module& mod) const override;
 
 protected:
-    Array<const ClassDefinition*> SortClassesTopologically(const Analyzer& analyzer, const Array<const ClassDefinition*>& classes, const HashMap<String, size_t>& classNameToIndex) const;
+    Array<const ClassDefinition*> SortClassesTopologically(const Analyzer& analyzer, const Array<const ClassDefinition*>& classes, const TMap<String, size_t>& classNameToIndex) const;
 };
 
 } // namespace CodeGen

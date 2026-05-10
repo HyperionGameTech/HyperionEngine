@@ -733,6 +733,15 @@ extern enum SubsystemUpdatePhase : uint8
     BeforeVis,
     AfterVis
 end
+extern class TouchControlsSubsystem : Subsystem
+    GetMovementDelta() -> Vec2f
+    GetLookDelta() -> Vec2f
+    IsActive() -> bool
+    SetEnabled(enabled : bool) -> void
+    IsEnabled() -> bool
+    SetJoystickSize(size : float) -> void
+    SetDeadzone(deadzone : float) -> void
+end
 extern class BakerSubsystem : Subsystem
 end
 extern struct TagComponentBase
@@ -1331,6 +1340,11 @@ extern class NullInputHandler : InputHandlerBase
 end
 extern class CharacterControllerInputHandler : InputHandlerBase
 end
+extern struct TouchEventData
+    PointerId : int32
+    Position : Vec2f
+    Delta : Vec2f
+end
 extern enum EventType : uint32
     INVALID = ~0u,
     WINDOW_EVENT = 0x0200,
@@ -1341,6 +1355,9 @@ extern enum EventType : uint32
     MOUSEBUTTON_DOWN = 0x0401,
     MOUSEBUTTON_UP = 0x0402,
     MOUSESCROLL = 0x0403,
+    TOUCH_DOWN = 0x0500,
+    TOUCH_UP = 0x0501,
+    TOUCH_MOVE = 0x0502,
     FILE_DROP = 0x1000,
     WINDOW_MOVED = 0x0204,
     WINDOW_RESIZED = 0x0205,
@@ -1352,6 +1369,12 @@ end
 extern enum EventFlags : uint8
     NONE = 0x0,
     RELATIVE_MOUSE = 0x1
+end
+extern struct TouchEvent
+    PointerId : int32
+    Position : Vec2f
+    Delta : Vec2f
+    IsDown : bool
 end
 extern class CommandletBase
     static GetArgumentDefinitions() -> CommandLineArgumentDefinitions

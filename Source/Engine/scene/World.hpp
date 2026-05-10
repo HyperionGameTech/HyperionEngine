@@ -194,6 +194,8 @@ public:
 
     const Handle<Subsystem>& AddSubsystem(TypeId typeId, const Handle<Subsystem>& subsystem);
 
+    const Handle<Subsystem>& AddSubsystem(const Class* subsystemClass);
+
     HYP_METHOD()
     bool TryAddSubsystem(const Handle<Subsystem>& subsystem);
 
