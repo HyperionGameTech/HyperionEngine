@@ -77,16 +77,16 @@ static const FixedArray<uint32, 6>& GetQuadIndices()
 static const FixedArray<SimpleVertex, 8>& GetDoubleSidedQuadVertices()
 {
     static const FixedArray<SimpleVertex, 8> s_vertices = {
-        // Front face (normals pointing -Z)
+        // Front face
         SimpleVertex { Vec3f { -1.0f, 1.0f, 0.0f }, Vec3f { 0.0f, 0.0f, -1.0f }, Vec2f { 0.0f, 0.0f } },
         SimpleVertex { Vec3f { 1.0f, 1.0f, 0.0f }, Vec3f { 0.0f, 0.0f, -1.0f }, Vec2f { 1.0f, 0.0f } },
         SimpleVertex { Vec3f { 1.0f, -1.0f, 0.0f }, Vec3f { 0.0f, 0.0f, -1.0f }, Vec2f { 1.0f, 1.0f } },
         SimpleVertex { Vec3f { -1.0f, -1.0f, 0.0f }, Vec3f { 0.0f, 0.0f, -1.0f }, Vec2f { 0.0f, 1.0f } },
-        // Back face (normals pointing +Z, UVs mirrored horizontally)
-        SimpleVertex { Vec3f { -1.0f, 1.0f, 0.0f }, Vec3f { 0.0f, 0.0f, 1.0f }, Vec2f { 1.0f, 0.0f } },
-        SimpleVertex { Vec3f { 1.0f, 1.0f, 0.0f }, Vec3f { 0.0f, 0.0f, 1.0f }, Vec2f { 0.0f, 0.0f } },
+        // Back face
         SimpleVertex { Vec3f { 1.0f, -1.0f, 0.0f }, Vec3f { 0.0f, 0.0f, 1.0f }, Vec2f { 0.0f, 1.0f } },
-        SimpleVertex { Vec3f { -1.0f, -1.0f, 0.0f }, Vec3f { 0.0f, 0.0f, 1.0f }, Vec2f { 1.0f, 1.0f } }
+        SimpleVertex { Vec3f { -1.0f, -1.0f, 0.0f }, Vec3f { 0.0f, 0.0f, 1.0f }, Vec2f { 1.0f, 1.0f } },
+        SimpleVertex { Vec3f { -1.0f, 1.0f, 0.0f }, Vec3f { 0.0f, 0.0f, 1.0f }, Vec2f { 1.0f, 0.0f } },
+        SimpleVertex { Vec3f { 1.0f, 1.0f, 0.0f }, Vec3f { 0.0f, 0.0f, 1.0f }, Vec2f { 0.0f, 0.0f } }
     };
 
     return s_vertices;
@@ -95,10 +95,10 @@ static const FixedArray<SimpleVertex, 8>& GetDoubleSidedQuadVertices()
 static const FixedArray<uint32, 12>& GetDoubleSidedQuadIndices()
 {
     static const FixedArray<uint32, 12> s_indices = {
-        // Front face (CCW from -Z view)
+        // Front face
         0, 1, 2,
         0, 2, 3,
-        // Back face (CCW from +Z view)
+        // Back face
         4, 6, 5,
         4, 7, 6
     };

@@ -99,8 +99,17 @@ HYP_API Handle<AssetRegistry> GetCurrentAssetRegistry()
 
 HYP_API void PushAssetRegistry(const Handle<AssetRegistry>& registry)
 {
+    AssertDebug(registry.IsValid(), "Cannot push a null AssetRegistry!");
+
+    if (!registry.IsValid())
+    {
+        return;
+    }
+
     Mutex::Guard guard(GetCurrentAssetRegistryMutex());
     GetAssetRegistryStack().PushBack(registry);
+
+    registry->LoadAssetDescs();
 }
 
 HYP_API void PopAssetRegistry(const AssetRegistry* registry)
@@ -614,18 +623,6 @@ void AssetRegistry::Initialize()
 
     if (m_rootPath.Length() > 0)
     {
-        if (m_rootPath.Exists())
-        {
-            if (!m_rootPath.IsDirectory())
-            {
-                HYP_LOG(Assets, Warning, "AssetRegistry root path ({}) exists but is not a directory!", m_rootPath);
-            }
-        }
-        else if (!m_rootPath.MkDir())
-        {
-            HYP_LOG(Assets, Warning, "Failed to create root directory for AssetRegistry: {}", m_rootPath);
-        }
-
 #if !HYP_EDITOR
         const FilePath blobStorageDir = m_rootPath / "Cache";
 
@@ -1350,7 +1347,6 @@ void AssetRegistry::LoadAssetDescs()
 
             if (curr.GetExtension() != "json")
             {
-                HYP_LOG(Assets, Verbose, "Skipping file '{}' (does not have .json ext)", curr);
                 continue;
             }
 
@@ -1411,6 +1407,22 @@ void AssetRegistry::LoadAssetDescs()
 void AssetRegistry::SaveDirtyAssets()
 {
     const FilePath rootPath = GetRootPath();
+
+    if (m_rootPath.Exists())
+    {
+        if (!m_rootPath.IsDirectory())
+        {
+            HYP_LOG(Assets, Error, "AssetRegistry root path ({}) exists but is not a directory! Cannot save assets.", m_rootPath);
+
+            return;
+        }
+    }
+    else if (!m_rootPath.MkDir())
+    {
+        HYP_LOG(Assets, Error, "Failed to create root directory for AssetRegistry: {}! Cannot save assets.", m_rootPath);
+
+        return;
+    }
 
     BlobStorage* blobStorage = HasBlobStorage() ? &GetBlobStorage() : nullptr;
 

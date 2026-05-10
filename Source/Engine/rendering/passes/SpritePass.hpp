@@ -42,7 +42,8 @@ protected:
     PassData* CreateViewPassData(View* view, PassDataExt&) override;
 
     Handle<Mesh> m_quadMesh;
-    Handle<Mesh> m_textQuadMesh;
+    Handle<Mesh> m_textQuadFrontMesh;
+    Handle<Mesh> m_textQuadBackMesh;
 };
 
 } // namespace Hyperion

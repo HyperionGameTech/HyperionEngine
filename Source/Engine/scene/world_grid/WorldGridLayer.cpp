@@ -56,7 +56,7 @@ Handle<StreamingCell> WorldGridLayer::CreateStreamingCell_Impl(const StreamingCe
                         objs.PushBack(obj.Get());
                     }
                 }
-                
+
                 if (objs.Any())
                 {
                     OnStreamingObjectsLoaded(cell, objs);
@@ -106,7 +106,6 @@ void WorldGridLayer::AddStreamingObject(const AssetObject* assetObject, const Ve
 
     if (!assetObject->IsRegistered())
     {
-        // When AssetRegistry::RegisterAssetsRecursively is called, these will be moved to their proper packages/paths (i.e project package)
         GetCurrentAssetRegistry()->PutAssetUnique(MakeStrongRef(assetObject));
     }
 

@@ -78,43 +78,51 @@ DefaultGame::~DefaultGame()
 
 void DefaultGame::OnLaunch_Impl()
 {
+    // sky
+    GetWorld()->AddSystemT<DynamicSkySystem>();
     // GetWorld()->GetWorldGrid()->AddLayer(MakeHandle<TerrainWorldGridLayer>());
 
-#if 0
-    auto pkg = GetCurrentAssetRegistry()->GetPackageFromPath("DefaultProject39", /* createIfNotExist */ false, /* requireLoaded */ true);
-    if (pkg.IsValid())
+#if 1
+    // Get MainScene
+    Handle<AssetObject> mainSceneAsset = GetCurrentAssetRegistry()->GetAsset<Scene>(AssetBuckets::Scenes, "MainScene"_sh);
+    Assert(mainSceneAsset.IsValid());
+
+    if (mainSceneAsset.IsValid())
     {
-        // Get MainScene
-        Handle<AssetObject> mainSceneAsset = pkg->GetAssetObject(NAME("DefaultScene1"));
-        Assert(mainSceneAsset.IsValid());
-
-        if (mainSceneAsset.IsValid())
+        Handle<Scene> mainScene = DynamicCast<Scene>(mainSceneAsset);
+        Assert(mainScene.IsValid(), "Could not find main scene asset");
+        if (mainScene.IsValid())
         {
-            Handle<Scene> mainScene = DynamicCast<Scene>(mainSceneAsset);
-            Assert(mainScene.IsValid(), "Could not find main scene asset");
-            if (mainScene.IsValid())
+            for (const Handle<Node>& node : mainScene->GetRoot()->GetChildren())
             {
-                m_camera = DynamicCast<Camera>(mainScene->GetRoot()->GetChild(0));
-                Assert(m_camera.IsValid());
-
-                Vec2u viewportSize = Vec2u(m_camera->GetDimensions());
-
-                ViewDesc viewDesc {
-                    .flags = ViewFlags::DEFAULT | ViewFlags::GBUFFER | ViewFlags::MATCH_CAMERA_DIMENSIONS,
-                    .framebufferDesc = { .extent = viewportSize },
-                    .camera = m_camera
-                };
-
-                Handle<View> view = MakeHandle<View>(viewDesc);
-
-                GetWorld()->AddView(view);
-
-                GetWorld()->AddScene(mainScene);
+                if (node->IsA<Camera>())
+                {
+                    m_camera = StaticCast<Camera>(node);
+                    break;
+                }
             }
-        }
 
-        StartSimulating();
+            Assert(m_camera.IsValid());
+            m_camera->SetWorldTranslation(Vec3f(0.0f, 6.0f, 3.0f));
+
+            Vec2u viewportSize = Vec2u(m_camera->GetDimensions());
+
+            ViewDesc viewDesc {
+                .flags = ViewFlags::DEFAULT | ViewFlags::GBUFFER | ViewFlags::MATCH_CAMERA_DIMENSIONS,
+                .framebufferDesc = { .extent = viewportSize },
+                .camera = m_camera
+            };
+
+            Handle<View> view = MakeHandle<View>(viewDesc);
+
+            GetWorld()->AddView(view);
+
+            GetWorld()->AddScene(mainScene);
+        }
     }
+
+    StartSimulating();
+
     return;
 #endif
 
@@ -237,9 +245,6 @@ void DefaultGame::OnLaunch_Impl()
      {
          HYP_LOG(Game, Error, "Failed to load test asset: {}", error->GetMessage());
      }
-
-    // sky
-    GetWorld()->AddSystemT<DynamicSkySystem>();
 
     ScriptComponent& scriptComponent = sunEntity->AddComponent<ScriptComponent>(ScriptComponent {
         TAssetReference<ScriptAsset>(scriptAsset) });

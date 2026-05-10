@@ -167,6 +167,7 @@ static void ForEachCharacter(
     }
 
     Array<FontAtlasCharacterIterator> currentWordChars;
+    currentWordChars.Reserve(length);
 
     const auto iterateCurrentWord = [&currentWordChars, &callback]()
     {
@@ -260,17 +261,28 @@ void SpritePass::Initialize()
     }
 
     InitObject(m_quadMesh);
-
     GetEngineAssetRegistry()->PutAsset(m_quadMesh);
 
-    m_textQuadMesh = MeshBuilder::DoubleSidedQuad();
-    m_textQuadMesh->SetName(NAME("TextSpriteMesh"));
-    m_textQuadMesh->SetFlags(MeshFlags::ViewIndependent);
-    m_textQuadMesh->SetIsTransient(true);
+    m_textQuadFrontMesh = MeshBuilder::Quad();
+    m_textQuadFrontMesh->SetName(NAME("TextSpriteFront"));
+    m_textQuadFrontMesh->SetFlags(MeshFlags::ViewIndependent);
+    m_textQuadFrontMesh->SetIsTransient(true);
 
+    Transform backTransform;
+    backTransform.rotation = Quat4f::AxisAngles(Vec3f::UnitY(), MathUtil::DegToRad(180.0f));
+    backTransform.scale = Vec3f(1.0f, 1.0f, -1.0f);
+
+    m_textQuadBackMesh = MeshBuilder::ApplyTransform(m_textQuadFrontMesh, backTransform);
+    m_textQuadBackMesh->SetName(NAME("TextSpriteBack"));
+    m_textQuadBackMesh->SetFlags(MeshFlags::ViewIndependent);
+    m_textQuadBackMesh->SetIsTransient(true);
+
+    Handle<Mesh> textQuadMeshes[2] = { m_textQuadFrontMesh, m_textQuadBackMesh };
+
+    for (Handle<Mesh>& mesh : textQuadMeshes)
     {
-        VertexArrayView vd = m_textQuadMesh->GetVertexData();
-        ByteView id = m_textQuadMesh->GetIndexData();
+        VertexArrayView vd = mesh->GetVertexData();
+        ByteView id = mesh->GetIndexData();
 
         Array<SimpleVertex> newVertices;
         newVertices.Resize(vd.vertexCount);
@@ -291,18 +303,21 @@ void SpritePass::Initialize()
         indexData.Resize(id.Size());
         Memory::Copy(indexData.Data(), id.Data(), id.Size());
 
-        m_textQuadMesh->SetMeshData(m_textQuadMesh->GetMeshDesc(), vertexArrayView, indexData);
+        mesh->SetMeshData(mesh->GetMeshDesc(), vertexArrayView, indexData);
     }
 
-    InitObject(m_textQuadMesh);
+    InitObject(m_textQuadFrontMesh);
+    GetEngineAssetRegistry()->PutAsset(m_textQuadFrontMesh);
 
-    GetEngineAssetRegistry()->PutAsset(m_textQuadMesh);
+    InitObject(m_textQuadBackMesh);
+    GetEngineAssetRegistry()->PutAsset(m_textQuadBackMesh);
 }
 
 void SpritePass::Shutdown()
 {
     EnqueueDeletion(std::move(m_quadMesh));
-    EnqueueDeletion(std::move(m_textQuadMesh));
+    EnqueueDeletion(std::move(m_textQuadFrontMesh));
+    EnqueueDeletion(std::move(m_textQuadBackMesh));
 }
 
 void SpritePass::RenderFrame(Frame* frame, const RenderSetup& renderSetup)
@@ -437,8 +452,11 @@ void SpritePass::RenderFrame(Frame* frame, const RenderSetup& renderSetup)
 
     if (numTextCharacters > 0)
     {
-        Array<TextSpriteInstanceData> charData;
-        charData.Reserve(numTextCharacters);
+        Array<TextSpriteInstanceData> charDataFront;
+        charDataFront.Reserve(numTextCharacters);
+
+        Array<TextSpriteInstanceData> charDataBack;
+        charDataBack.Reserve(numTextCharacters);
 
         for (Sprite* sprite : rpl.GetSprites())
         {
@@ -447,7 +465,7 @@ void SpritePass::RenderFrame(Frame* frame, const RenderSetup& renderSetup)
                 continue;
             }
 
-            TextSprite* textSprite = static_cast<TextSprite*>(sprite);
+            TextSprite* textSprite = StaticCast<TextSprite>(sprite);
 
             RenderProxySprite* spriteProxy = rpl.GetSprites().GetProxy(textSprite->Id());
             if (!spriteProxy || !spriteProxy->fontAtlas)
@@ -455,7 +473,7 @@ void SpritePass::RenderFrame(Frame* frame, const RenderSetup& renderSetup)
                 continue;
             }
 
-            const Vec3f worldPos = sprite->GetWorldTranslation(); // spriteProxy->bufferData.positionSize.GetXYZ();
+            const Vec3f worldPos = sprite->GetWorldTranslation();
             const float textSize = spriteProxy->bufferData.positionSize.w;
 
             const uint32 textureIndex = spriteProxy->texture ? spriteProxy->texture->Id().ToIndex() : uint32(-1);
@@ -468,22 +486,6 @@ void SpritePass::RenderFrame(Frame* frame, const RenderSetup& renderSetup)
                     const float scaleY = iter.glyphDimensions.y * textSize;
 
                     const float offsetY = -iter.bearingY * textSize;
-                    const Vec3f charTranslation(
-                        worldPos.x + iter.placement.x * textSize - metrics.size.x * 0.5f,
-                        worldPos.y + iter.placement.y * textSize + offsetY - metrics.size.y * 0.5f,
-                        worldPos.z
-                    );
-
-                    TextSpriteInstanceData data {};
-
-                    Transform t;
-                    t.SetScale(Vec3f(scaleX, scaleY, 0.1f));
-                    t.SetTranslation(charTranslation);
-
-                    data.transform = t.GetMatrix();
-
-                    data.textureIndex = textureIndex;
-                    data.colorPacked = spriteProxy->textColor.Packed();
 
                     Vec2f atlasPixelSize;
                     if (spriteProxy->texture && spriteProxy->texture->GetExtent().Volume() != 0)
@@ -492,23 +494,77 @@ void SpritePass::RenderFrame(Frame* frame, const RenderSetup& renderSetup)
                     }
 
                     Vec2f charOffsetF = Vec2f(iter.charOffset);
-                    data.texcoordStart = Vec2f(charOffsetF * atlasPixelSize);
-                    data.texcoordEnd = Vec2f((charOffsetF + (iter.glyphDimensions * 64.0f)) * atlasPixelSize);
 
-                    charData.PushBack(data);
+                    const uint32 packedColor = spriteProxy->textColor.Packed();
+
+                    // Front face
+                    {
+                        const Vec3f charTranslation(
+                            worldPos.x + iter.placement.x * textSize - metrics.size.x * 0.5f,
+                            worldPos.y + iter.placement.y * textSize + offsetY - metrics.size.y * 0.5f,
+                            worldPos.z
+                        );
+
+                        Transform t;
+                        t.SetScale(Vec3f(scaleX, scaleY, 0.1f));
+                        t.SetTranslation(charTranslation);
+
+                        TextSpriteInstanceData data {};
+                        data.transform = t.GetMatrix();
+                        data.textureIndex = textureIndex;
+                        data.colorPacked = packedColor;
+                        data.texcoordStart = Vec2f(charOffsetF * atlasPixelSize);
+                        data.texcoordEnd = Vec2f((charOffsetF + (iter.glyphDimensions * 64.0f)) * atlasPixelSize);
+
+                        charDataFront.PushBack(data);
+                    }
+
+                    // Back face - mirror X around text center so glyph order reads correctly from behind.
+                    // We mirror the character center, not the left edge, to handle variable-width characters.
+                    {
+                        const Vec3f charTranslation(
+                            worldPos.x - iter.placement.x * textSize + metrics.size.x * 0.5f - scaleX,
+                            worldPos.y + iter.placement.y * textSize + offsetY - metrics.size.y * 0.5f,
+                            worldPos.z
+                        );
+
+                        Transform t;
+                        t.SetScale(Vec3f(scaleX, scaleY, 0.1f));
+                        t.SetTranslation(charTranslation);
+
+                        TextSpriteInstanceData data {};
+                        data.transform = t.GetMatrix();
+                        data.textureIndex = textureIndex;
+                        data.colorPacked = packedColor;
+                        data.texcoordStart = Vec2f(charOffsetF * atlasPixelSize);
+                        data.texcoordEnd = Vec2f((charOffsetF + (iter.glyphDimensions * 64.0f)) * atlasPixelSize);
+
+                        charDataBack.PushBack(data);
+                    }
                 });
         }
 
-        StructuredBuffer& textInstanceBuffer = RI.bufferAllocator->AcquireStructuredBuffer(charData.Size(), sizeof(TextSpriteInstanceData));
+        StructuredBuffer& textInstanceBufferFront = RI.bufferAllocator->AcquireStructuredBuffer(charDataFront.Size(), sizeof(TextSpriteInstanceData));
 
         size_t textOffset = 0;
-        for (const auto& data : charData)
+        for (const auto& data : charDataFront)
         {
-            textInstanceBuffer.Write(textOffset, sizeof(TextSpriteInstanceData), &data);
+            textInstanceBufferFront.Write(textOffset, sizeof(TextSpriteInstanceData), &data);
             textOffset += sizeof(TextSpriteInstanceData);
         }
 
-        textInstanceBuffer.Flush();
+        textInstanceBufferFront.Flush();
+
+        StructuredBuffer& textInstanceBufferBack = RI.bufferAllocator->AcquireStructuredBuffer(charDataBack.Size(), sizeof(TextSpriteInstanceData));
+
+        textOffset = 0;
+        for (const auto& data : charDataBack)
+        {
+            textInstanceBufferBack.Write(textOffset, sizeof(TextSpriteInstanceData), &data);
+            textOffset += sizeof(TextSpriteInstanceData);
+        }
+
+        textInstanceBufferBack.Flush();
 
         static Sampler* s_textSpriteSampler = RI.samplerCache->GetOrCreate(SamplerDesc {
             TFM_LINEAR,
@@ -524,27 +580,34 @@ void SpritePass::RenderFrame(Frame* frame, const RenderSetup& renderSetup)
 
         cr << SetShaderUniform(0, "SamplerLinear"_sh, s_textSpriteSampler);
 
-        cr << SetShaderUniform(1, "TextSpriteInstanceBuffer"_sh, textInstanceBuffer);
         cr << SetShaderUniform(2, "CBuffer"_sh, cbuffer, ShaderDataOffset(cbufferOffset, cbufferSize));
 
         cr << SetCurrentBlendFunction(BlendFunction::AlphaBlending());
-        cr << SetDepthTest(true);
-        cr << SetDepthWrite(true);
+        cr << SetDepthTest(false);
+        cr << SetDepthWrite(false);
         cr << SetFaceCullMode(FCM_BACK);
 
+        // Draw front face
+        cr << SetShaderUniform(1, "TextSpriteInstanceBuffer"_sh, textInstanceBufferFront);
         cr << CommitDrawState();
 
-        cr << BindVertexBuffer(m_textQuadMesh->GetVertexBuffer());
-        cr << BindIndexBuffer(m_textQuadMesh->GetIndexBuffer());
+        cr << BindVertexBuffer(m_textQuadFrontMesh->GetVertexBuffer());
+        cr << BindIndexBuffer(m_textQuadFrontMesh->GetIndexBuffer());
+        cr << DrawIndexed(m_textQuadFrontMesh->NumIndices(), charDataFront.Size());
 
-        cr << DrawIndexed(m_textQuadMesh->NumIndices(), charData.Size());
+        // Draw back face
+        cr << SetShaderUniform(1, "TextSpriteInstanceBuffer"_sh, textInstanceBufferBack);
+        cr << CommitDrawState();
+
+        cr << BindVertexBuffer(m_textQuadBackMesh->GetVertexBuffer());
+        cr << BindIndexBuffer(m_textQuadBackMesh->GetIndexBuffer());
+        cr << DrawIndexed(m_textQuadBackMesh->NumIndices(), charDataBack.Size());
     }
 }
 
 PassData* SpritePass::CreateViewPassData(View* view, PassDataExt&)
 {
     SpritePassData* pd = new SpritePassData();
-
     pd->view = MakeWeakRef(view);
 
     return pd;

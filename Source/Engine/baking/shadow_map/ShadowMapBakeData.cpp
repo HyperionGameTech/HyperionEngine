@@ -44,6 +44,7 @@ Result BakeData<Light>::Build()
     m_rays.Resize(numTexelsTotal);
 
     m_projMat = Mat4f::Perspective(90.0f, dimensions.x, dimensions.y, 0.01f, 1000.0f);
+    m_projMat[1][1] = -m_projMat[1][1];
 
     const Vec3f origin = m_light->GetWorldTranslation();
 
@@ -115,7 +116,7 @@ auto BakeData<Light>::ToBitmap() const -> BitmapType
 
                 // otherwise transform to 0..1 range based on viewproj mat
                 //const Vec4f transformedPosition = (m_viewProjMats[face] * Vec4f(texels[texelIdx].pRay->ray.position + texels[texelIdx].pRay->ray.direction * dist, 1.0f));
-                
+
                 // otherwise transform to 0..1 range based on viewproj mat
                 const Vec4f transformedPosition = (m_projMat * Vec4f(0.0f, 0.0f, dist, 1.0f));
                 const float depth = transformedPosition.z / transformedPosition.w;
