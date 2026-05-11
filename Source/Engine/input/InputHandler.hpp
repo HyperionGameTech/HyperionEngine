@@ -19,6 +19,7 @@
 namespace Hyperion {
 
 struct InputState;
+struct TouchEvent;
 
 HYP_CLASS(Abstract)
 class HYP_API InputHandlerBase : public ObjectBase
@@ -56,8 +57,24 @@ public:
 
     virtual bool OnKeyDown(const KeyboardEvent& evt);
     virtual bool OnKeyUp(const KeyboardEvent& evt);
+
     virtual bool OnMouseDown(const MouseEvent& evt);
     virtual bool OnMouseUp(const MouseEvent& evt);
+
+    virtual bool OnTouchDown(const TouchEvent& evt)
+    {
+        return false;
+    }
+
+    virtual bool OnTouchUp(const TouchEvent& evt)
+    {
+        return false;
+    }
+
+    virtual bool OnTouchMove(const TouchEvent& evt)
+    {
+        return false;
+    }
 
     virtual bool OnMouseMove(const MouseEvent& evt)
     {

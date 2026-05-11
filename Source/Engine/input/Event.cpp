@@ -38,10 +38,37 @@ MouseEvent Event::ToMouseEvent(const Vec2f& offsetMousePos, const Vec2f& surface
 {
     MouseEvent me {};
     me.baseEvent = this;
-    me.mouseButtons = GetMouseButtons();
 
-    me.absolutePos = IsAbsoluteMousePosition() ? Vec2f(GetMousePosition()) : (offsetMousePos + GetMousePositionDeltas());
-    me.absolutePrevPos = offsetMousePos;
+    // To allow conversion from touch events to mouse events
+    switch (m_eventType)
+    {
+    case EventType::TOUCH_DOWN:
+    case EventType::TOUCH_UP:
+    case EventType::TOUCH_MOVE:
+    {
+        const TouchEventData* touchData = GetTouchEventData();
+        AssertDebug(touchData != nullptr);
+
+        if (touchData != nullptr)
+        {
+            const int32 pointerId = touchData->pointerId;
+
+            me.mouseButtons = pointerId == 0 ? MouseButtonState::LEFT : MouseButtonState::NONE;
+
+            me.absolutePos = touchData->motionData.position;
+            me.absolutePrevPos = me.absolutePos - touchData->motionData.delta;
+        }
+
+        break;
+    }
+    default:
+        me.mouseButtons = GetMouseButtons();
+
+        me.absolutePos = IsAbsoluteMousePosition() ? GetMousePosition() : (offsetMousePos + GetMousePositionDeltas());
+        me.absolutePrevPos = offsetMousePos;
+
+        break;
+    }
 
     me.relativePos = me.absolutePos;
     me.relativePrevPos = me.absolutePrevPos;
@@ -72,58 +99,9 @@ TouchEvent Event::ToTouchEvent() const
     te.pointerId = GetTouchPointerId();
     te.position = GetTouchPosition();
     te.delta = GetTouchDelta();
-    te.isDown = (m_eventType == EventType::TOUCH_DOWN);
 
     return te;
 }
-
-#ifdef HYP_SDL
-
-static EnumFlags<MouseButtonState> GetMouseButtonState(int sdlButton)
-{
-    EnumFlags<MouseButtonState> mouseButtonState = MouseButtonState::NONE;
-
-    switch (sdlButton)
-    {
-    case SDL_BUTTON_LEFT:
-        mouseButtonState |= MouseButtonState::LEFT;
-        break;
-    case SDL_BUTTON_MIDDLE:
-        mouseButtonState |= MouseButtonState::MIDDLE;
-        break;
-    case SDL_BUTTON_RIGHT:
-        mouseButtonState |= MouseButtonState::RIGHT;
-        break;
-    default:
-        break;
-    }
-
-    // Bitset bitset { uint32(sdlButton) };
-
-    // Bitset::BitIndex firstSetBitIndex = -1;
-
-    // while ((firstSetBitIndex = bitset.FirstSetBitIndex()) != -1) {
-    //     switch (firstSetBitIndex + 1) {
-    //     case SDL_BUTTON_LEFT:
-    //         mouseButtonState |= MouseButtonState::LEFT;
-    //         break;
-    //     case SDL_BUTTON_MIDDLE:
-    //         mouseButtonState |= MouseButtonState::MIDDLE;
-    //         break;
-    //     case SDL_BUTTON_RIGHT:
-    //         mouseButtonState |= MouseButtonState::RIGHT;
-    //         break;
-    //     default:
-    //         break;
-    //     }
-
-    //     bitset.Set(firstSetBitIndex, false);
-    // }
-
-    return mouseButtonState;
-}
-
-#endif
 
 #pragma endregion Helper methods
 

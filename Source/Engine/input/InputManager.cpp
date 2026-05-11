@@ -267,7 +267,6 @@ InputMouseLockScope InputManager::AcquireMouseLock(bool syncToVirtualPosition)
 
 void InputManager::SetIsMouseLocked(bool locked)
 {
-    HYP_SCOPE;
     AssertOnThread(g_mainThread);
 
     if (!m_ownerWindow)
@@ -304,7 +303,6 @@ void InputManager::SetIsMouseLocked(bool locked)
 
 void InputManager::UpdateMousePosition(Event& event)
 {
-    HYP_SCOPE;
     AssertOnThread(g_mainThread);
 
     if (!m_ownerWindow)
@@ -314,12 +312,12 @@ void InputManager::UpdateMousePosition(Event& event)
 
     if (m_isMouseLocked)
     {
-        const Vec2i deltas = event.IsAbsoluteMousePosition()
-            ? event.GetMousePosition() - Vec2i(m_previousMousePosition)
-            : Vec2i(event.GetMousePositionDeltas());
+        const Vec2f deltas = event.IsAbsoluteMousePosition()
+            ? event.GetMousePosition() - Vec2f(m_previousMousePosition)
+            : event.GetMousePositionDeltas();
 
         // if locked, only update the virtual position
-        Vec2i newVirtualMousePosition = Vec2i(m_virtualMousePosition) + deltas;
+        Vec2i newVirtualMousePosition = Vec2i(Vec2f(m_virtualMousePosition) + deltas);
         newVirtualMousePosition = MathUtil::Clamp(newVirtualMousePosition, Vec2i::Zero(), m_ownerWindow->GetDimensions() - 1);
 
         m_virtualMousePosition = newVirtualMousePosition;
@@ -328,8 +326,8 @@ void InputManager::UpdateMousePosition(Event& event)
     }
 
     m_mousePosition = event.IsAbsoluteMousePosition()
-        ? event.GetMousePosition()
-        : Vec2i(m_previousMousePosition) + Vec2i(event.GetMousePositionDeltas());
+        ? Vec2i(event.GetMousePosition())
+        : Vec2i(Vec2f(m_previousMousePosition) + event.GetMousePositionDeltas());
 
     // not locked, keep virtual position synced with the physical one.
     m_virtualMousePosition = m_mousePosition;
@@ -337,7 +335,6 @@ void InputManager::UpdateMousePosition(Event& event)
 
 void InputManager::UpdateWindowSize(Vec2i newSize)
 {
-    HYP_SCOPE;
     AssertOnThread(g_mainThread);
 
     m_windowSize = newSize;
@@ -427,8 +424,6 @@ EnumFlags<MouseButtonState> InputManager::GetButtonStates() const
 
 void InputManager::ApplyMouseLockState(InputMouseLockState* mouseLockState)
 {
-    HYP_SCOPE;
-
     Mutex::Guard guard(m_mouseLockStatesMutex);
 
     if (!mouseLockState)
@@ -456,8 +451,6 @@ void InputManager::ApplyMouseLockState(InputMouseLockState* mouseLockState)
 
 void InputManager::RemoveMouseLockState(InputMouseLockState* mouseLockState)
 {
-    HYP_SCOPE;
-
     if (!mouseLockState)
     {
         return;
@@ -496,7 +489,6 @@ void InputManager::RemoveMouseLockState(InputMouseLockState* mouseLockState)
 
 void InputManager::ProcessEvent(Event&& event)
 {
-    HYP_SCOPE;
     AssertOnThread(g_mainThread);
 
     const EventType eventType = event.GetType();

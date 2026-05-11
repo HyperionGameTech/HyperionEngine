@@ -24,7 +24,7 @@ namespace Hyperion
                 throw new InvalidOperationException("UIObject is null");
             }
         }
-        
+
         public UIObject UIObject
         {
             get

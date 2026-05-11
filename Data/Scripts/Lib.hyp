@@ -1235,7 +1235,7 @@ extern struct MouseEvent
     Wheel : Vec2i
     IsDown : bool
 end
-extern enum MouseButtonState : uint32
+extern enum MouseButtonState : uint8
     NONE = 0x0,
     LEFT = 0x1,
     MIDDLE = 0x2,
@@ -1340,10 +1340,14 @@ extern class NullInputHandler : InputHandlerBase
 end
 extern class CharacterControllerInputHandler : InputHandlerBase
 end
-extern struct TouchEventData
-    PointerId : int32
+extern struct MotionData
     Position : Vec2f
     Delta : Vec2f
+    IsAbsolute : bool
+end
+extern struct TouchEventData
+    PointerId : int32
+    MotionData : MotionData
 end
 extern enum EventType : uint32
     INVALID = ~0u,
@@ -1374,7 +1378,6 @@ extern struct TouchEvent
     PointerId : int32
     Position : Vec2f
     Delta : Vec2f
-    IsDown : bool
 end
 extern class CommandletBase
     static GetArgumentDefinitions() -> CommandLineArgumentDefinitions

@@ -3187,7 +3187,6 @@ bool ShaderCompiler::CompileBundle(
                     outBundle->errorMessages.EmplaceBack("Cannot determine HLSL output type - no target backend specified for this variant");
 
                     HYP_BREAKPOINT;
-
                     ++numErrored;
 
                     continue;

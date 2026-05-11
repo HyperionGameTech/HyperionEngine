@@ -256,29 +256,39 @@ bool AndroidApplicationWindow::HandleInputEvent(int32 type, int32 action, float 
         {
         case ANDROID_ACTION_DOWN:
         case ANDROID_ACTION_POINTER_DOWN:
-            m_prevTouchPosition = currentPos;
-            // Emit new touch event for mobile controls
-            outEvent = Event(EventType::TOUCH_DOWN, this, platformEvent);
-            outEvent.GetEventData().Set(TouchEventData(pointerId, currentPos));
-            return true;
-
-        case ANDROID_ACTION_UP:
-        case ANDROID_ACTION_POINTER_UP:
-            // Emit new touch event for mobile controls
-            outEvent = Event(EventType::TOUCH_UP, this, platformEvent);
-            outEvent.GetEventData().Set(TouchEventData(pointerId, currentPos));
-            return true;
-
-        case ANDROID_ACTION_MOVE:
         {
-            Vec2f deltas = currentPos - m_prevTouchPosition;
-            // Emit new touch event for mobile controls
-            outEvent = Event(EventType::TOUCH_MOVE, this, platformEvent);
-            outEvent.GetEventData().Set(TouchEventData(pointerId, currentPos, deltas));
+            outEvent = Event(EventType::TOUCH_DOWN, this, platformEvent);
+
+            MotionData motionData { currentPos, currentPos - m_prevTouchPosition, /* isAbsolute */ false };
+
+            outEvent.GetEventData().Set(TouchEventData { pointerId, motionData });
+
             m_prevTouchPosition = currentPos;
+
             return true;
         }
+        case ANDROID_ACTION_UP:
+        case ANDROID_ACTION_POINTER_UP:
+        {
+            outEvent = Event(EventType::TOUCH_UP, this, platformEvent);
 
+            MotionData motionData { currentPos, currentPos - m_prevTouchPosition, /* isAbsolute */ false };
+
+            outEvent.GetEventData().Set(TouchEventData { pointerId, motionData });
+
+            return true;
+        }
+        case ANDROID_ACTION_MOVE:
+        {
+            outEvent = Event(EventType::TOUCH_MOVE, this, platformEvent);
+
+            MotionData motionData { currentPos, currentPos - m_prevTouchPosition, /* isAbsolute */ false };
+            outEvent.GetEventData().Set(TouchEventData { pointerId, motionData });
+
+            m_prevTouchPosition = currentPos;
+
+            return true;
+        }
         default:
             break;
         }

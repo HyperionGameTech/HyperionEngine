@@ -314,6 +314,8 @@ private:
     bool m_useWndProc = false;
     bool m_mouseLocked = false;
     bool m_isOpen = false;
+
+    Vec2f m_mousePosition;
 };
 
 HYP_CLASS(Condition = "HYP_WINDOWS")

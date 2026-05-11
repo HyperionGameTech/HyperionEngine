@@ -1113,7 +1113,7 @@ public:
     /*! \brief Transform a screen coordinate to a relative coordinate within the UIObject.
      *  \param coords The screen coordinates to transform.
      *  \return The relative coordinates within the UIObject. */
-    Vec2f TransformScreenCoordsToRelative(Vec2i coords) const;
+    Vec2f TransformScreenCoordsToRelative(Vec2f coords) const;
 
     /*! \brief Does this object allow the material to be updated?
      *  If true, a dynamic material will be created for this object. */

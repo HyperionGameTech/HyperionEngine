@@ -80,6 +80,21 @@ struct AndroidEvent
 #endif
 
 HYP_STRUCT()
+struct MotionData
+{
+    HYP_STRUCT_BODY(MotionData);
+
+    HYP_FIELD()
+    Vec2f position;
+
+    HYP_FIELD()
+    Vec2f delta;
+
+    HYP_FIELD()
+    bool isAbsolute = false;
+};
+
+HYP_STRUCT()
 struct TouchEventData
 {
     HYP_STRUCT_BODY(TouchEventData);
@@ -88,16 +103,7 @@ struct TouchEventData
     int32 pointerId = -1;
 
     HYP_FIELD()
-    Vec2f position;
-
-    HYP_FIELD()
-    Vec2f delta;
-
-    TouchEventData() = default;
-    TouchEventData(int32 pointerId_, Vec2f position_, Vec2f delta_ = Vec2f::Zero())
-        : pointerId(pointerId_), position(position_), delta(delta_)
-    {
-    }
+    MotionData motionData;
 };
 
 HYP_STRUCT()
@@ -115,9 +121,6 @@ struct TouchEvent
 
     HYP_FIELD()
     Vec2f delta;
-
-    HYP_FIELD()
-    bool isDown = false;
 };
 
 union PlatformEvent
@@ -138,7 +141,14 @@ union PlatformEvent
 class HYP_API Event final
 {
 public:
-    using EventData = Variant<EnumFlags<MouseButtonState>, KeyCode, FilePath, Vec2i, Vec2f, TouchEventData, void*>;
+    using EventData = Variant<
+        EnumFlags<MouseButtonState>,
+        KeyCode,
+        FilePath,
+        Vec2i,          // scroll
+        MotionData,     // mouse movement data
+        TouchEventData, // touch event data
+        void*>;
 
     Event()
         : m_eventType(EventType::INVALID),
@@ -238,7 +248,6 @@ public:
     HYP_FORCE_INLINE EnumFlags<MouseButtonState> GetMouseButtons() const
     {
         const EnumFlags<MouseButtonState>* mouseButtonState = m_eventData.TryGet<EnumFlags<MouseButtonState>>();
-        // AssertDebug(mouseButtonState != nullptr);
 
         if (!mouseButtonState)
         {
@@ -298,7 +307,9 @@ public:
 
     HYP_FORCE_INLINE bool IsAbsoluteMousePosition() const
     {
-        return m_eventType == EventType::MOUSEMOTION && m_eventData.Is<Vec2i>();
+        return m_eventType == EventType::MOUSEMOTION
+            && m_eventData.Is<MotionData>()
+            && m_eventData.GetUnchecked<MotionData>().isAbsolute;
     }
 
     HYP_FORCE_INLINE Vec2f GetMousePositionDeltas() const
@@ -308,33 +319,33 @@ public:
             return Vec2f::Zero();
         }
 
-        const Vec2f* deltas = m_eventData.TryGet<Vec2f>();
-        AssertDebug(deltas != nullptr);
+        const MotionData* motionData = m_eventData.TryGet<MotionData>();
+        AssertDebug(motionData != nullptr);
 
-        if (!deltas)
+        if (!motionData)
         {
             return Vec2f::Zero();
         }
 
-        return *deltas;
+        return motionData->delta;
     }
 
-    HYP_FORCE_INLINE Vec2i GetMousePosition() const
+    HYP_FORCE_INLINE Vec2f GetMousePosition() const
     {
         if (m_eventType != EventType::MOUSEMOTION)
         {
-            return Vec2i::Zero();
+            return Vec2f::Zero();
         }
 
-        const Vec2i* pos = m_eventData.TryGet<Vec2i>();
-        AssertDebug(pos != nullptr);
+        const MotionData* motionData = m_eventData.TryGet<MotionData>();
+        AssertDebug(motionData != nullptr);
 
-        if (!pos)
+        if (!motionData)
         {
-            return Vec2i::Zero();
+            return Vec2f::Zero();
         }
 
-        return *pos;
+        return motionData->position;
     }
 
     HYP_FORCE_INLINE PlatformEvent& GetPlatformEvent()
@@ -359,7 +370,9 @@ public:
 
     HYP_FORCE_INLINE int32 GetTouchPointerId() const
     {
-        if (m_eventType != EventType::TOUCH_DOWN && m_eventType != EventType::TOUCH_UP && m_eventType != EventType::TOUCH_MOVE)
+        if (m_eventType != EventType::TOUCH_DOWN
+            && m_eventType != EventType::TOUCH_UP
+            && m_eventType != EventType::TOUCH_MOVE)
         {
             return -1;
         }
@@ -375,7 +388,9 @@ public:
 
     HYP_FORCE_INLINE Vec2f GetTouchPosition() const
     {
-        if (m_eventType != EventType::TOUCH_DOWN && m_eventType != EventType::TOUCH_UP && m_eventType != EventType::TOUCH_MOVE)
+        if (m_eventType != EventType::TOUCH_DOWN
+            && m_eventType != EventType::TOUCH_UP
+            && m_eventType != EventType::TOUCH_MOVE)
         {
             return Vec2f::Zero();
         }
@@ -386,7 +401,12 @@ public:
             return Vec2f::Zero();
         }
 
-        return touchData->position;
+        return touchData->motionData.position;
+    }
+
+    HYP_FORCE_INLINE const TouchEventData* GetTouchEventData() const
+    {
+        return m_eventData.TryGet<TouchEventData>();
     }
 
     HYP_FORCE_INLINE Vec2f GetTouchDelta() const
@@ -402,7 +422,7 @@ public:
             return Vec2f::Zero();
         }
 
-        return touchData->delta;
+        return touchData->motionData.delta;
     }
 
 private:

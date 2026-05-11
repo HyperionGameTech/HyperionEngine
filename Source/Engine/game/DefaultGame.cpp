@@ -24,6 +24,8 @@
 #include <scene/world_grid/terrain/TerrainWorldGridLayer.hpp>
 #include <scene/world_grid/WorldGrid.hpp>
 
+#include <scene/input/TouchControlsSubsystem.hpp>
+
 #include <Lang/HypScript.hpp>
 
 #include <scripting/asset/ScriptAsset.hpp>
@@ -62,8 +64,6 @@ namespace Hyperion {
 
 HYP_DEFINE_LOG_CHANNEL(Game);
 
-class TouchControlsSubsystem;
-
 namespace game {
 
 static bool s_isSaving = false;
@@ -80,18 +80,18 @@ DefaultGame::~DefaultGame()
 
 void DefaultGame::OnLaunch_Impl()
 {
-    // if (UISubsystem* uiSubsystem = GetUISubsystem())
-    // {
-    //     uiSubsystem->AddDebugOverlay(MakeHandle<StatsOverlay>());
-    //     uiSubsystem->AddDebugOverlay(MakeHandle<ConsoleOverlay>());
-    // }
+    if (UISubsystem* uiSubsystem = GetUISubsystem())
+    {
+        uiSubsystem->AddDebugOverlay(MakeHandle<StatsOverlay>());
+        uiSubsystem->AddDebugOverlay(MakeHandle<ConsoleOverlay>());
+    }
 
     // sky
     GetWorld()->AddSystemT<DynamicSkySystem>();
     // GetWorld()->GetWorldGrid()->AddLayer(MakeHandle<TerrainWorldGridLayer>());
 
 #ifdef HYP_ANDROID
-    GetWorld()->AddSubsystem(Hyperion::GetClass<TouchControlsSubsystem>());
+    GetWorld()->AddSubsystem(MakeHandle<TouchControlsSubsystem>());
 #endif
 
 #if 1
@@ -307,34 +307,7 @@ bool DefaultGame::OnInputEvent(const Event& event)
     case EventType::KEYDOWN:
         if (event.GetKeyCode() == KeyCode::KEY_TILDE)
         {
-
             break;
-        }
-
-        if (!s_isSaving && event.GetKeyCode() == KeyCode::KEY_1)
-        {
-            s_isSaving = true;
-
-            // GetCurrentAssetRegistry()->RegisterAssetsRecursively("SampleGame", BoxedValue(m_defaultScene),
-            //     /* forceRelocation */ false,
-            //     /* appendExistingPackagePath */ true,
-            //     [](const AssetObject& obj) -> String
-            //     {
-            //         return HYP_FORMAT("Instances/{}", obj.InstanceClass()->GetName());
-            //     });
-
-            // // save package
-            // Handle<AssetPackage> pkg = GetCurrentAssetRegistry()->GetPackageFromPath("SampleGame", /* createIfNotExist */ false, /* requireLoaded */ false);
-            // if (pkg.IsValid())
-            // {
-            //     Result result = pkg->Save(GetLibraryDirectory());
-            //     if (result.HasError())
-            //     {
-            //         HYP_LOG(Game, Error, "Failed to save package: {}", result.GetError().GetMessage());
-            //     }
-
-            //     s_isSaving = false;
-            // }
         }
 
         controller->GetInputHandler()->OnKeyDown(event.ToKeyboardEvent());
@@ -347,6 +320,14 @@ bool DefaultGame::OnInputEvent(const Event& event)
         break;
     case EventType::MOUSEMOTION:
         controller->GetInputHandler()->OnMouseMove(event.ToMouseEvent());
+        break;
+    case EventType::TOUCH_DOWN:     // fallthrough
+    case EventType::TOUCH_UP:       // fallthrough
+    case EventType::TOUCH_MOVE:
+        if (TouchControlsSubsystem* tcs = GetWorld()->GetSubsystem<TouchControlsSubsystem>())
+        {
+            tcs->ProcessTouchEvent(event.ToTouchEvent());
+        }
         break;
     default:
         break;

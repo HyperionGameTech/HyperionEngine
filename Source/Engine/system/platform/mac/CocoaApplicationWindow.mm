@@ -516,9 +516,10 @@ bool CocoaApplicationWindow::HandleNSEvent(NSEvent* nsEvent, Event& event)
             CGFloat deltaX = [nsEvent deltaX];
             CGFloat deltaY = [nsEvent deltaY];
 
-            Vec2i newPos = GetMousePosition() + Vec2i(int(deltaX * scale), int(deltaY * scale));
+            const Vec2f position = GetMousePosition() + Vec2f(float(deltaX * scale), float(deltaY * scale));
+            const Vec2f delta = position - m_mousePosition;
 
-            event.GetEventData().Set(newPos);
+            event.GetEventData().Set(MotionData { position, delta, /* isAbsolute */ false });
         }
         else
         {
@@ -542,7 +543,10 @@ bool CocoaApplicationWindow::HandleNSEvent(NSEvent* nsEvent, Event& event)
                 location.y = contentFrame.size.height - location.y;
             }
 
-            event.GetEventData().Set(Vec2i(int(location.x * scale), int(location.y * scale)));
+            const Vec2f position = Vec2f(float(location.x * scale), float(location.y * scale));
+            const Vec2f delta = position - m_mousePosition;
+
+            event.GetEventData().Set(MotionData { position, delta, /* isAbsolute */ false });
         }
 
         return true;

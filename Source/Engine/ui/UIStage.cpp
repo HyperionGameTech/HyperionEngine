@@ -615,13 +615,13 @@ UIEventHandlerResult UIStage::OnInputEvent(const Event& event)
         return {};
     }
 
-    const Vec2i previousMousePosition = ToLogicalCoords(inputManager->GetPreviousMousePosition());
+    const Vec2f previousMousePosition = ToLogicalCoords(Vec2f(inputManager->GetPreviousMousePosition()));
 
     switch (event.GetType())
     {
     case EventType::WINDOW_FOCUS_LOST:
     {
-        const Vec2i mousePosition = ToLogicalCoords(inputManager->GetMousePosition());
+        const Vec2f mousePosition = ToLogicalCoords(Vec2f(inputManager->GetMousePosition()));
 
         // when window focus gets lost we want to unset hover for anything marked as being hovered
         for (auto it = m_hoveredUiObjects.Begin(); it != m_hoveredUiObjects.End(); ++it)
@@ -642,8 +642,8 @@ UIEventHandlerResult UIStage::OnInputEvent(const Event& event)
                             .baseEvent = &event,
                             .relativePos = uiObject->TransformScreenCoordsToRelative(mousePosition),
                             .relativePrevPos = uiObject->TransformScreenCoordsToRelative(previousMousePosition),
-                            .absolutePos = Vec2f(mousePosition),
-                            .absolutePrevPos = Vec2f(previousMousePosition),
+                            .absolutePos = mousePosition,
+                            .absolutePrevPos = previousMousePosition,
                             .mouseButtons = stateMouseButtons
                         });
 
@@ -658,8 +658,8 @@ UIEventHandlerResult UIStage::OnInputEvent(const Event& event)
                     .baseEvent = &event,
                     .relativePos = uiObject->TransformScreenCoordsToRelative(mousePosition),
                     .relativePrevPos = uiObject->TransformScreenCoordsToRelative(previousMousePosition),
-                    .absolutePos = Vec2f(mousePosition),
-                    .absolutePrevPos = Vec2f(previousMousePosition),
+                    .absolutePos = mousePosition,
+                    .absolutePrevPos = previousMousePosition,
                     .mouseButtons = inputManager->GetButtonStates()
                 });
             }
@@ -701,12 +701,12 @@ UIEventHandlerResult UIStage::OnInputEvent(const Event& event)
 
         const EnumFlags<MouseButtonState> mouseButtons = inputManager->GetButtonStates();
 
-        const Vec2i mousePosition = ToLogicalCoords(event.IsAbsoluteMousePosition()
+        const Vec2f mousePosition = ToLogicalCoords(event.IsAbsoluteMousePosition()
             ? event.GetMousePosition()
-            : Vec2i(event.GetMousePositionDeltas() + Vec2f(previousMousePosition)));
+            : event.GetMousePositionDeltas() + previousMousePosition);
 
-        const Vec2f mouseScreen = Vec2f(mousePosition) / Vec2f(m_surfaceSize);
-        const Vec2f invSurfaceSize = Vec2f(1.0f) / Vec2f(m_surfaceSize);
+        const Vec2f mouseScreen = mousePosition / Vec2f(m_surfaceSize);
+        const Vec2f invSurfaceSize = Vec2f::One() / Vec2f(m_surfaceSize);
 
         if (mouseButtons != MouseButtonState::NONE)
         { // mouse drag event
@@ -723,8 +723,8 @@ UIEventHandlerResult UIStage::OnInputEvent(const Event& event)
                             .baseEvent = &event,
                             .relativePos = uiObject->TransformScreenCoordsToRelative(mousePosition),
                             .relativePrevPos = uiObject->TransformScreenCoordsToRelative(previousMousePosition),
-                            .absolutePos = Vec2f(mousePosition),
-                            .absolutePrevPos = Vec2f(previousMousePosition),
+                            .absolutePos = mousePosition,
+                            .absolutePrevPos = previousMousePosition,
                             .mouseButtons = mouseButtons
                         };
 
@@ -872,8 +872,8 @@ UIEventHandlerResult UIStage::OnInputEvent(const Event& event)
                                 .baseEvent = &event,
                                 .relativePos = uiObject->TransformScreenCoordsToRelative(mousePosition),
                                 .relativePrevPos = uiObject->TransformScreenCoordsToRelative(previousMousePosition),
-                                .absolutePos = Vec2f(mousePosition),
-                                .absolutePrevPos = Vec2f(previousMousePosition),
+                                .absolutePos = mousePosition,
+                                .absolutePrevPos = previousMousePosition,
                                 .mouseButtons = stateMouseButtons
                             });
 
@@ -888,8 +888,8 @@ UIEventHandlerResult UIStage::OnInputEvent(const Event& event)
                         .baseEvent = &event,
                         .relativePos = uiObject->TransformScreenCoordsToRelative(mousePosition),
                         .relativePrevPos = uiObject->TransformScreenCoordsToRelative(previousMousePosition),
-                        .absolutePos = Vec2f(mousePosition),
-                        .absolutePrevPos = Vec2f(previousMousePosition),
+                        .absolutePos = mousePosition,
+                        .absolutePrevPos = previousMousePosition,
                         .mouseButtons = inputManager->GetButtonStates()
                     });
                 }
@@ -906,9 +906,9 @@ UIEventHandlerResult UIStage::OnInputEvent(const Event& event)
     }
     case EventType::MOUSEBUTTON_DOWN:
     {
-        const Vec2i mousePosition = ToLogicalCoords(inputManager->GetMousePosition());
-        const Vec2f mouseScreen = Vec2f(mousePosition) / Vec2f(m_surfaceSize);
-        const Vec2f invSurfaceSize = Vec2f(1.0f) / Vec2f(m_surfaceSize);
+        const Vec2f mousePosition = ToLogicalCoords(Vec2f(inputManager->GetMousePosition()));
+        const Vec2f mouseScreen = mousePosition / Vec2f(m_surfaceSize);
+        const Vec2f invSurfaceSize = Vec2f::One() / Vec2f(m_surfaceSize);
 
         // project a ray into the scene and test if it hits any objects
         RayHit hit;
@@ -982,9 +982,9 @@ UIEventHandlerResult UIStage::OnInputEvent(const Event& event)
     }
     case EventType::MOUSEBUTTON_UP:
     {
-        const Vec2i mousePosition = ToLogicalCoords(inputManager->GetMousePosition());
-        const Vec2f mouseScreen = Vec2f(mousePosition) / Vec2f(m_surfaceSize);
-        const Vec2f invSurfaceSize = Vec2f(1.0f) / Vec2f(m_surfaceSize);
+        const Vec2f mousePosition = ToLogicalCoords(Vec2f(inputManager->GetMousePosition()));
+        const Vec2f mouseScreen = mousePosition / Vec2f(m_surfaceSize);
+        const Vec2f invSurfaceSize = Vec2f::One() / Vec2f(m_surfaceSize);
 
         Array<Handle<UIObject>> rayTestResults;
         TestRay(mouseScreen, rayTestResults);
@@ -1103,8 +1103,8 @@ UIEventHandlerResult UIStage::OnInputEvent(const Event& event)
     }
     case EventType::MOUSESCROLL:
     {
-        const Vec2i mousePosition = ToLogicalCoords(inputManager->GetMousePosition());
-        const Vec2f mouseScreen = Vec2f(mousePosition) / Vec2f(m_surfaceSize);
+        const Vec2f mousePosition = ToLogicalCoords(Vec2f(inputManager->GetMousePosition()));
+        const Vec2f mouseScreen = mousePosition / Vec2f(m_surfaceSize);
 
         Vec2i wheel = event.GetMouseWheel();
 

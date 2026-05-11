@@ -211,7 +211,7 @@ bool HandleWindowEvent(
         pt.x = LOWORD(lParam);
         pt.y = HIWORD(lParam);
 
-        event.GetEventData().Set(Vec2i(pt.x, pt.y));
+        event.GetEventData().Set(MotionData { Vec2f(float(pt.x), float(pt.y)), Vec2f::Zero(), /* isAbsolute */ true });
 
         return true;
     }
@@ -359,13 +359,23 @@ void Win32ApplicationWindow::ProcessRawInput(void* rawInput)
 
     if (raw->header.dwType == RIM_TYPEMOUSE)
     {
-        int xRel = raw->data.mouse.lLastX;
-        int yRel = raw->data.mouse.lLastY;
-
         event = Event(EventType::MOUSEMOTION, this, platformEvent);
-        event.GetEventData().Set(Vec2f(xRel, yRel));
+        
+        int x = raw->data.mouse.lLastX;
+        int y = raw->data.mouse.lLastY;
 
-        m_inputManager->ProcessEvent(std::move(event));
+        if (raw->data.mouse.usFlags & MOUSE_MOVE_ABSOLUTE)
+        {
+            event.GetEventData().Set(MotionData { Vec2f(x, y), Vec2f::Zero(), /* isAbsolute */ true });
+
+            m_inputManager->ProcessEvent(std::move(event));
+        }
+        else
+        {
+            event.GetEventData().Set(MotionData { Vec2f::Zero(), Vec2f(x, y), /* isAbsolute */ false });
+
+            m_inputManager->ProcessEvent(std::move(event));
+        }
 
         if (raw->data.mouse.usButtonFlags & RI_MOUSE_LEFT_BUTTON_DOWN)
         {
@@ -373,30 +383,35 @@ void Win32ApplicationWindow::ProcessRawInput(void* rawInput)
             event.GetEventData().Set(EnumFlags<MouseButtonState>(MouseButtonState::LEFT));
             m_inputManager->ProcessEvent(std::move(event));
         }
+
         if (raw->data.mouse.usButtonFlags & RI_MOUSE_LEFT_BUTTON_UP)
         {
             event = Event(EventType::MOUSEBUTTON_UP, this, platformEvent);
             event.GetEventData().Set(EnumFlags<MouseButtonState>(MouseButtonState::LEFT));
             m_inputManager->ProcessEvent(std::move(event));
         }
+
         if (raw->data.mouse.usButtonFlags & RI_MOUSE_RIGHT_BUTTON_DOWN)
         {
             event = Event(EventType::MOUSEBUTTON_DOWN, this, platformEvent);
             event.GetEventData().Set(EnumFlags<MouseButtonState>(MouseButtonState::RIGHT));
             m_inputManager->ProcessEvent(std::move(event));
         }
+
         if (raw->data.mouse.usButtonFlags & RI_MOUSE_RIGHT_BUTTON_UP)
         {
             event = Event(EventType::MOUSEBUTTON_UP, this, platformEvent);
             event.GetEventData().Set(EnumFlags<MouseButtonState>(MouseButtonState::RIGHT));
             m_inputManager->ProcessEvent(std::move(event));
         }
+
         if (raw->data.mouse.usButtonFlags & RI_MOUSE_MIDDLE_BUTTON_DOWN)
         {
             event = Event(EventType::MOUSEBUTTON_DOWN, this, platformEvent);
             event.GetEventData().Set(EnumFlags<MouseButtonState>(MouseButtonState::MIDDLE));
             m_inputManager->ProcessEvent(std::move(event));
         }
+
         if (raw->data.mouse.usButtonFlags & RI_MOUSE_MIDDLE_BUTTON_UP)
         {
             event = Event(EventType::MOUSEBUTTON_UP, this, platformEvent);

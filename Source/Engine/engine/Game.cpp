@@ -34,6 +34,8 @@
 
 #include <input/Event.hpp>
 
+#include <scene/input/TouchControlsSubsystem.hpp>
+
 #include <Game.generated.inl>
 
 namespace Hyperion {
@@ -192,6 +194,22 @@ void Game::HandleEvent(Event&& event)
 {
     HYP_SCOPE;
     AssertOnThread(g_simThread);
+
+    // Pass touch events to TouchControlsSubsystem if available
+    if (event.GetType() == EventType::TOUCH_DOWN ||
+        event.GetType() == EventType::TOUCH_UP ||
+        event.GetType() == EventType::TOUCH_MOVE)
+    {
+        if (m_world != nullptr)
+        {
+            TouchControlsSubsystem* touchControls = m_world->GetSubsystem<TouchControlsSubsystem>();
+            if (touchControls != nullptr)
+            {
+                TouchEvent touchEvent = event.ToTouchEvent();
+                touchControls->ProcessTouchEvent(touchEvent);
+            }
+        }
+    }
 
     OnInputEvent(event);
 }

@@ -208,6 +208,13 @@ private:
                 AtomicAdd(const_cast<volatile int32*>(&y), 0));
         }
 
+        HYP_FORCE_INLINE explicit operator Vec2f() const
+        {
+            return Vec2f(
+                AtomicAdd(const_cast<volatile int32*>(&x), 0),
+                AtomicAdd(const_cast<volatile int32*>(&y), 0));
+        }
+
         HYP_FORCE_INLINE AtomicVec2i& operator=(const Vec2i& vec)
         {
             AtomicExchange(&x, vec.x);

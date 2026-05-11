@@ -2805,14 +2805,12 @@ void UIObject::CollectObjects(Array<UIObject*>& outObjects, bool onlyVisible) co
         onlyVisible);
 }
 
-Vec2f UIObject::TransformScreenCoordsToRelative(Vec2i coords) const
+Vec2f UIObject::TransformScreenCoordsToRelative(Vec2f coords) const
 {
-    HYP_SCOPE;
-
     const Vec2i actualSize = GetActualSize();
     const Vec2f absolutePosition = GetAbsolutePosition();
 
-    return (Vec2f(coords) - absolutePosition) / Vec2f(actualSize);
+    return (coords - absolutePosition) / Vec2f(actualSize);
 }
 
 Array<UIObject*> UIObject::GetChildUIObjects(bool deep) const

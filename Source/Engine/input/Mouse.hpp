@@ -22,7 +22,7 @@ enum MouseButtonKey : uint32
 };
 
 HYP_ENUM()
-enum class MouseButtonState : uint32
+enum class MouseButtonState : uint8
 {
     NONE = 0x0,
     LEFT = 0x1,
