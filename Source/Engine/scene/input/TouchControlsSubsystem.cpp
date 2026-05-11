@@ -348,15 +348,15 @@ void TouchControlsSubsystem::UpdateActiveTouches(float delta)
                 prevRightPosition = touch.startPosition;
             }
 
-            Vec2f delta = touch.position - prevRightPosition;
+            Vec2f lookDelta = touch.position - prevRightPosition;
             prevRightPosition = touch.position;
 
             // Normalize to -1 to 1 range based on screen size
             if (!m_screenSize.IsZero())
             {
                 m_lookDelta = Vec2f(
-                    delta.x / m_screenSize.x * m_lookSensitivity,
-                    delta.y / m_screenSize.y * m_lookSensitivity
+                    lookDelta.x / m_screenSize.x * m_lookSensitivity,
+                    lookDelta.y / m_screenSize.y * m_lookSensitivity
                 );
             }
         }
@@ -368,6 +368,9 @@ void TouchControlsSubsystem::UpdateActiveTouches(float delta)
     else
     {
         m_lookDelta = Vec2f::Zero();
+        // Reset the static prev position when touch is released
+        static Vec2f prevRightPosition = Vec2f::Zero();
+        prevRightPosition = Vec2f::Zero();
     }
 }
 

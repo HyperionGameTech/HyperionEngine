@@ -10,6 +10,8 @@
 
 #include <Core/math/Vector2.hpp>
 
+#include <input/Event.hpp>
+
 namespace Hyperion {
 
 class FirstPersonCameraController;
@@ -36,6 +38,7 @@ public:
     virtual bool OnMouseDown(const MouseEvent& evt) override;
     virtual bool OnMouseUp(const MouseEvent& evt) override;
     virtual bool OnMouseMove(const MouseEvent& evt) override;
+    virtual bool OnTouchMove(const TouchEvent& evt) override;
     virtual bool OnMouseDrag(const MouseEvent& evt) override;
     virtual bool OnMouseLeave(const MouseEvent& evt) override;
     virtual bool OnClick(const MouseEvent& evt) override;

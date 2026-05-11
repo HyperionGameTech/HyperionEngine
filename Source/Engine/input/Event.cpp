@@ -100,6 +100,19 @@ TouchEvent Event::ToTouchEvent() const
     te.position = GetTouchPosition();
     te.delta = GetTouchDelta();
 
+    // Calculate normalized values (0..1 range)
+    Vec2f screenSize = Vec2f::Zero();
+    if (m_window != nullptr)
+    {
+        screenSize = Vec2f(m_window->GetDimensions());
+    }
+
+    if (!screenSize.IsZero())
+    {
+        te.relativePosition = te.position / screenSize;
+        te.relativeDelta = te.delta / screenSize;
+    }
+
     return te;
 }
 

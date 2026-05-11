@@ -321,14 +321,43 @@ bool DefaultGame::OnInputEvent(const Event& event)
     case EventType::MOUSEMOTION:
         controller->GetInputHandler()->OnMouseMove(event.ToMouseEvent());
         break;
-    case EventType::TOUCH_DOWN:     // fallthrough
-    case EventType::TOUCH_UP:       // fallthrough
-    case EventType::TOUCH_MOVE:
+    case EventType::TOUCH_DOWN:
         if (TouchControlsSubsystem* tcs = GetWorld()->GetSubsystem<TouchControlsSubsystem>())
         {
             tcs->ProcessTouchEvent(event.ToTouchEvent());
         }
+        controller->GetInputHandler()->OnTouchDown(event.ToTouchEvent());
         break;
+    case EventType::TOUCH_UP:
+        if (TouchControlsSubsystem* tcs = GetWorld()->GetSubsystem<TouchControlsSubsystem>())
+        {
+            tcs->ProcessTouchEvent(event.ToTouchEvent());
+        }
+        controller->GetInputHandler()->OnTouchUp(event.ToTouchEvent());
+        break;
+    case EventType::TOUCH_MOVE:
+    {
+        TouchEvent touchEvent = event.ToTouchEvent();
+        
+        if (TouchControlsSubsystem* tcs = GetWorld()->GetSubsystem<TouchControlsSubsystem>())
+        {
+            tcs->ProcessTouchEvent(touchEvent);
+            
+            // Only call OnTouchMove for right side touches (camera look)
+            // Left side is handled separately for movement
+            Vec2f screenSize = Vec2f::Zero();
+            if (g_appContext.IsValid() && g_appContext->GetMainWindow() != nullptr)
+            {
+                screenSize = Vec2f(g_appContext->GetMainWindow()->GetSize());
+            }
+            
+            if (!screenSize.IsZero() && touchEvent.position.x > screenSize.x * 0.5f)
+            {
+                controller->GetInputHandler()->OnTouchMove(touchEvent);
+            }
+        }
+        break;
+    }
     default:
         break;
     }

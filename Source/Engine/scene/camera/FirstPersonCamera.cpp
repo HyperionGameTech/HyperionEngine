@@ -98,6 +98,40 @@ bool FirstPersonCameraInputHandler::OnMouseMove(const MouseEvent& evt)
     return true;
 }
 
+bool FirstPersonCameraInputHandler::OnTouchMove(const TouchEvent& evt)
+{
+    HYP_SCOPE;
+
+    if (!m_controller)
+    {
+        return false;
+    }
+
+    Camera* camera = m_controller->GetCamera();
+
+    if (!camera)
+    {
+        return false;
+    }
+
+    // Use the pre-calculated normalized delta (0..1 range)
+    // This is similar to how mouse events work with relativePos
+    static constexpr float touchSensitivity = 200.0f; // Degrees per full screen swipe
+    Vec2f touchDelta = evt.relativeDelta * touchSensitivity;
+
+    const Vec3f dirCrossY = camera->GetDirection().Cross(camera->GetUpVector());
+
+    camera->Rotate(camera->GetUpVector(), MathUtil::DegToRad(touchDelta.x));
+    camera->Rotate(dirCrossY, MathUtil::DegToRad(touchDelta.y));
+
+    if (camera->GetDirection().y > 0.98f || camera->GetDirection().y < -0.98f)
+    {
+        camera->Rotate(dirCrossY, MathUtil::DegToRad(-touchDelta.y));
+    }
+
+    return true;
+}
+
 bool FirstPersonCameraInputHandler::OnMouseDrag(const MouseEvent& evt)
 {
     return false;

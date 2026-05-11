@@ -116,11 +116,21 @@ struct TouchEvent
     HYP_FIELD()
     int32 pointerId = -1;
 
+    // Absolute position in screen pixels
     HYP_FIELD()
     Vec2f position;
 
+    // Delta in screen pixels
     HYP_FIELD()
     Vec2f delta;
+
+    // Normalized position (0..1 range based on screen size)
+    HYP_FIELD()
+    Vec2f relativePosition;
+
+    // Normalized delta (delta / screen size)
+    HYP_FIELD()
+    Vec2f relativeDelta;
 };
 
 union PlatformEvent
