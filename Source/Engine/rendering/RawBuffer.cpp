@@ -83,6 +83,16 @@ void RawBuffer::Flush()
     RI.SubmitTransientCommandBuffer(cmdBuffer);
 }
 
+void RawBuffer::FlushBatched()
+{
+    if (!IsDirty())
+    {
+        return;
+    }
+
+    RI.DeferFlushBuffer(this);
+}
+
 #pragma endregion RawBuffer
 
 } // namespace Hyperion

@@ -116,6 +116,7 @@ void DefaultGame::OnLaunch_Impl()
 
             Assert(m_camera.IsValid());
             m_camera->SetWorldTranslation(Vec3f(0.0f, 6.0f, 3.0f));
+            m_camera->SetCameraFlags(m_camera->GetCameraFlags() | CameraFlags::MATCH_WINDOW_SIZE);
 
             Vec2u viewportSize = Vec2u(m_camera->GetDimensions());
 

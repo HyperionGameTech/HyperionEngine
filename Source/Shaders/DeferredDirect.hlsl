@@ -216,7 +216,7 @@ PSOutput PSMain(PSInput input)
     float viewSpaceZ = positionVS.z;
 
     uint2 viewportExtent = camera.dimensions.xy;
-    uint2 viewportPixelCoord = (uint2)input.position_cs.xy;
+    uint2 viewportPixelCoord = (uint2)(texcoord * (float2)viewportExtent);
 
     // Cluster data
     const uint gridIndex = Cluster_GetGridIndex(

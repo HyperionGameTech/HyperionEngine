@@ -183,8 +183,6 @@ void GetDeferredShaderProperties(
     LightType lightType = InvalidLightType,
     bool clustered = false)
 {
-    const EngineConfig& cfg = GetEngineConfig();
-
     static const IRenderConfig& s_renderConfig = RI.GetRenderConfig();
 
     MergeGlobalShaderProperties(outShaderProperties);
@@ -454,8 +452,14 @@ void LightingPass::RenderToFramebuffer_Internal(Frame* frame, const RenderSetup&
 
     cr << SetShaderUniform(numShaderUniforms++, "GBufferMipChain"_sh, RI.textureViewCache->GetOrCreate(dpd->mipChain));
 
-    if (dpd->hbao != nullptr)
+    if (dpd->hbao != nullptr && cvHBAO.Get())
+    {
         cr << SetShaderUniform(numShaderUniforms++, "SSAOResultTexture"_sh, dpd->hbao->GetFinalImageView());
+    }
+    else
+    {
+        cr << SetShaderUniform(numShaderUniforms++, "SSAOResultTexture"_sh, RI.textureViewCache->GetOrCreate(RI.placeholderData->textureSolidWhite));
+    }
 
     if (dpd->reflectionsPass != nullptr && dpd->reflectionsPass->ssrPass != nullptr)
         cr << SetShaderUniform(numShaderUniforms++, "SSRResultTexture"_sh, RI.textureViewCache->GetOrCreate(dpd->reflectionsPass->ssrPass->GetFinalResultTexture()));
@@ -605,7 +609,7 @@ void LightingPass::RenderToFramebuffer_Internal(Frame* frame, const RenderSetup&
                 ++shadowMapIndex;
             }
 
-            shadowMapIndexBuffer.Flush();
+            shadowMapIndexBuffer.FlushBatched();
 
             cr << SetShaderUniform(localNumShaderUniforms++, "ShadowMapIndexBuffer"_sh, shadowMapIndexBuffer);
 
@@ -985,8 +989,14 @@ void LightmapPass::RenderToFramebuffer_Internal(Frame* frame, const RenderSetup&
     else
         cr << SetShaderUniform(numShaderUniforms++, "CurrentEnvProbe"_sh, RI.namedBuffers[NamedBuffer::EnvProbes], 0);
 
-    if (dpd->hbao != nullptr)
+    if (dpd->hbao != nullptr && cvHBAO.Get())
+    {
         cr << SetShaderUniform(numShaderUniforms++, "SSAOResultTexture"_sh, dpd->hbao->GetFinalImageView());
+    }
+    else
+    {
+        cr << SetShaderUniform(numShaderUniforms++, "SSAOResultTexture"_sh, RI.textureViewCache->GetOrCreate(RI.placeholderData->textureSolidWhite));
+    }
 
     if (data.uniformBuffers.Size() < proxy->numAtlases)
     {
@@ -1642,7 +1652,10 @@ public:
 
         // @TODO VP offset
 
-        const Vec2u extent = viewport.extent;
+        RenderProxyCamera* cameraProxy = static_cast<RenderProxyCamera*>(GetRenderProxy(view->GetCamera()));
+        Assert(cameraProxy != nullptr);
+
+        const Vec2u extent = cameraProxy->bufferData.dimensions.GetXY();
 
         const uint32 numTilesX = (extent.x + TileSize - 1) / TileSize;
         const uint32 numTilesY = (extent.y + TileSize - 1) / TileSize;
@@ -1671,9 +1684,6 @@ public:
         RenderProxyList& rpl = GetConsumerProxyList(view);
         rpl.BeginRead();
         HYP_DEFER({ rpl.EndRead(); });
-
-        RenderProxyCamera* cameraProxy = static_cast<RenderProxyCamera*>(GetRenderProxy(view->GetCamera()));
-        Assert(cameraProxy != nullptr);
 
         const float cameraNear = cameraProxy->bufferData.cameraNear;
         const float cameraFar = cameraProxy->bufferData.cameraFar;
@@ -1906,12 +1916,12 @@ public:
 
                 if (aIsSky && !bIsSky)
                 {
-                    return false;
+                    return true;
                 }
 
                 if (!aIsSky && bIsSky)
                 {
-                    return true;
+                    return false;
                 }
 
                 if (aIsSky && bIsSky)
@@ -1991,6 +2001,7 @@ public:
         gridData.Resize(totalTiles);
 
         Array<uint16, RenderAllocator>& flatIndexData = allocation.indexData;
+        flatIndexData.Resize(0);
         flatIndexData.Reserve(totalTiles * 4);
 
         uint32 offset = 0;
@@ -2048,10 +2059,10 @@ public:
         allocation.indexBufferSize = indexBuffer.gpuBuffer->Size();
 
         gridBuffer.Write(0, gridData.Size() * sizeof(TileGridData), gridData.Data());
-        gridBuffer.Flush();
+        gridBuffer.FlushBatched();
 
         indexBuffer.Write(0, flatIndexData.Size() * sizeof(uint16), flatIndexData.Data());
-        indexBuffer.Flush();
+        indexBuffer.FlushBatched();
 
         outGridBuffer = &gridBuffer;
         outIndexBuffer = &indexBuffer;

@@ -78,6 +78,7 @@ extern EngineStatCounter<uint32> g_statTriangles;
 extern EngineStatCounter<uint32> g_statRenderGroups;
 
 extern CVar<bool> cvDepthPrepass;
+extern CVar<bool> cvPathTracing;
 
 static const Name s_nameShadingType = NAME("SHADING_TYPE");
 static const Name s_nameForward = NAME("FORWARD");
@@ -256,7 +257,7 @@ static void BuildAttributes(const RenderProxyMesh& proxy, RenderableAttributeSet
     const bool hasAlphaDiscard = bool(attributes.GetMaterialAttributes().flags & MAF_ALPHA_DISCARD);
     const bool hasSkinning = proxy.skeleton != nullptr && proxy.skeleton->GetRootBone() != nullptr;
 
-    const bool isPathTracer = GetEngineConfig().Get("Rendering.RayTracing.PathTracing.Enabled").ToBool();
+    const bool isPathTracer = cvPathTracing.Get();
 
     // if lightmap volume is set we need stencil testing
     if (hasLightmaps && !isPathTracer)

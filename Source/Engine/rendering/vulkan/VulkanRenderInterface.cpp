@@ -82,13 +82,16 @@ public:
     {
         Assert(renderBackend != nullptr && renderBackend->GetDevice() != nullptr);
 
+        EngineConfig cfg;
+        cfg.Load();
+
         bindlessTextures = renderBackend->GetDevice()->GetFeatures().SupportsBindlessTextures();
         rayTracing = renderBackend->GetDevice()->GetFeatures().IsRayTracingSupported();
 #ifndef HYP_ANDROID
-        indirectRendering = GetEngineConfig().Get("Rendering.IndirectRendering").ToBool(/* defaultValue */ true);
+        indirectRendering = cfg.Get("Rendering.IndirectRendering").ToBool(/* defaultValue */ true);
 #endif
-        parallelRendering = GetEngineConfig().Get("Rendering.ParallelCollection").ToBool(/* defaultValue */ true);
-        timelineSemaphores = GetEngineConfig().Get("Rendering.Vulkan.TimelineSemaphores").ToBool(/* defaultValue */ false);
+        parallelRendering = cfg.Get("Rendering.ParallelCollection").ToBool(/* defaultValue */ true);
+        timelineSemaphores = cfg.Get("Rendering.Vulkan.TimelineSemaphores").ToBool(/* defaultValue */ false);
         dynamicDescriptorIndexing = renderBackend->GetDevice()->GetFeatures().SupportsDynamicDescriptorIndexing();
     }
 };
@@ -629,10 +632,10 @@ RendererResult VulkanRenderInterface::Initialize()
     m_commandBuffers.Resize(NumFramesInFlight);
 
 #if HYP_DEBUG_MODE
-    EngineConfig& engineConfig = GetEngineConfig();
-    engineConfig.Load();
+    EngineConfig cfg;
+    cfg.Load();
 
-    const ConfigValue& cfgDebugLayers = engineConfig.Get("Rendering.Vulkan.DebugLayers");
+    const ConfigValue& cfgDebugLayers = cfg.Get("Rendering.Vulkan.DebugLayers");
 
     if (cfgDebugLayers.ToBool(false))
     {

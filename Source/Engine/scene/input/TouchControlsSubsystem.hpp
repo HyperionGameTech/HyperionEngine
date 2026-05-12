@@ -148,7 +148,7 @@ private:
 
     // Runtime state
     bool m_isInitialized = false;
-    Vec2f m_screenSize = Vec2f::Zero();
+    Handle<UIStage> m_uiStage;
 };
 
 } // namespace Hyperion

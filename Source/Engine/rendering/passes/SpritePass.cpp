@@ -152,7 +152,6 @@ static void ForEachCharacter(
     const Vec2f cellDimensions = Vec2f(fontAtlas.GetCellDimensions()) / 64.0f;
 
     const Handle<Texture>& mainTextureAtlas = fontAtlas.GetAtlasTextures().GetMainAtlas();
-    AssertDebug(mainTextureAtlas.IsValid(), "Main texture atlas is invalid");
 
     if (!mainTextureAtlas.IsValid())
     {
@@ -426,7 +425,7 @@ void SpritePass::RenderFrame(Frame* frame, const RenderSetup& renderSetup)
             offset += sizeof(SpriteInstanceData);
         }
 
-        instanceBuffer.Flush();
+        instanceBuffer.FlushBatched();
 
         ShaderDesc shaderDesc;
         shaderDesc.name = NAME("Sprite");
@@ -544,6 +543,12 @@ void SpritePass::RenderFrame(Frame* frame, const RenderSetup& renderSetup)
                 });
         }
 
+        if (charDataFront.Empty())
+        {
+            // something failed, likely our font atlas texture was invalid
+            return;
+        }
+
         StructuredBuffer& textInstanceBufferFront = RI.bufferAllocator->AcquireStructuredBuffer(charDataFront.Size(), sizeof(TextSpriteInstanceData));
 
         size_t textOffset = 0;
@@ -553,7 +558,7 @@ void SpritePass::RenderFrame(Frame* frame, const RenderSetup& renderSetup)
             textOffset += sizeof(TextSpriteInstanceData);
         }
 
-        textInstanceBufferFront.Flush();
+        textInstanceBufferFront.FlushBatched();
 
         StructuredBuffer& textInstanceBufferBack = RI.bufferAllocator->AcquireStructuredBuffer(charDataBack.Size(), sizeof(TextSpriteInstanceData));
 
@@ -564,7 +569,7 @@ void SpritePass::RenderFrame(Frame* frame, const RenderSetup& renderSetup)
             textOffset += sizeof(TextSpriteInstanceData);
         }
 
-        textInstanceBufferBack.Flush();
+        textInstanceBufferBack.FlushBatched();
 
         static Sampler* s_textSpriteSampler = RI.samplerCache->GetOrCreate(SamplerDesc {
             TFM_LINEAR,

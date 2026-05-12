@@ -21,21 +21,33 @@
 
 namespace Hyperion {
 
-template <TextureFormat Format>
+template <TextureFormat Format, FillPattern Pattern>
 HYP_API void FillPlaceholderBuffer_Tex2D(Vec2u dimensions, ByteBuffer& outBuffer)
 {
     using Helper = TextureFormatHelper<Format>;
 
     auto bitmap = Bitmap<Format>(dimensions.x, dimensions.y);
 
-    // checkerboard pattern
     for (uint32 y = 0; y < dimensions.y; y++)
     {
         for (uint32 x = 0; x < dimensions.x; x++)
         {
-            const bool isColor = ((x / 16) % 2) == ((y / 16) % 2);
 
-            bitmap.SetPixel(x, y, { isColor ? 1.0f : 0.0f, 0.0f, isColor ? 1.0f : 0.0f, 1.0f });
+            switch (Pattern)
+            {
+            case FillPattern::SolidWhite:
+                bitmap.SetPixel(x, y, { 1.0f, 1.0f, 1.0f, 1.0f });
+                break;
+            case FillPattern::SolidBlack:
+                bitmap.SetPixel(x, y, { 0.0f, 0.0f, 0.0f, 1.0f });
+                break;
+            case FillPattern::Checkerboard:
+            {
+                const bool isColor = ((x / 4) % 2) == ((y / 4) % 2);
+                bitmap.SetPixel(x, y, { isColor ? 1.0f : 0.0f, 0.0f, isColor ? 1.0f : 0.0f, 1.0f });
+                break;
+            }
+            }
         }
     }
 
@@ -49,7 +61,7 @@ HYP_API void FillPlaceholderBuffer_Tex2D(Vec2u dimensions, ByteBuffer& outBuffer
     }
 }
 
-template <TextureFormat Format>
+template <TextureFormat Format, FillPattern Pattern>
 HYP_API void FillPlaceholderBuffer_Cubemap(Vec2u dimensions, ByteBuffer& outBuffer)
 {
     using Helper = TextureFormatHelper<Format>;
@@ -62,9 +74,19 @@ HYP_API void FillPlaceholderBuffer_Cubemap(Vec2u dimensions, ByteBuffer& outBuff
     {
         for (uint32 x = 0; x < dimensions.x; x++)
         {
-            const bool isColor = ((x / 16) % 2) == ((y / 16) % 2);
-
-            bitmap.SetPixel(x, y, { isColor ? 1.0f : 0.0f, 0.0f, isColor ? 1.0f : 0.0f, 1.0f });
+            switch (Pattern)
+            {
+                case FillPattern::SolidBlack:
+                    bitmap.SetPixel(x, y, { 0.0f, 0.0f, 0.0f, 1.0f });
+                    break;
+                case FillPattern::SolidWhite:
+                    bitmap.SetPixel(x, y, { 1.0f, 1.0f, 1.0f, 1.0f });
+                    break;
+                case FillPattern::Checkerboard:
+                    const bool isColor = ((x / 16) % 2) == ((y / 16) % 2);
+                    bitmap.SetPixel(x, y, { isColor ? 1.0f : 0.0f, 0.0f, isColor ? 1.0f : 0.0f, 1.0f });
+                    break;
+            }
         }
     }
 
@@ -78,13 +100,13 @@ HYP_API void FillPlaceholderBuffer_Cubemap(Vec2u dimensions, ByteBuffer& outBuff
     }
 }
 
-template HYP_API void FillPlaceholderBuffer_Tex2D<TextureFormat::R8>(Vec2u dimensions, ByteBuffer& outBuffer);      // R8
-template HYP_API void FillPlaceholderBuffer_Tex2D<TextureFormat::RGBA8>(Vec2u dimensions, ByteBuffer& outBuffer);   // RGBA8
-template HYP_API void FillPlaceholderBuffer_Tex2D<TextureFormat::RGBA16F>(Vec2u dimensions, ByteBuffer& outBuffer); // RGBA16F
-template HYP_API void FillPlaceholderBuffer_Tex2D<TextureFormat::RGBA32F>(Vec2u dimensions, ByteBuffer& outBuffer); // RGBA32F
+template HYP_API void FillPlaceholderBuffer_Tex2D<TextureFormat::R8, FillPattern::SolidBlack>(Vec2u dimensions, ByteBuffer& outBuffer);      // R8
+template HYP_API void FillPlaceholderBuffer_Tex2D<TextureFormat::RGBA8, FillPattern::SolidBlack>(Vec2u dimensions, ByteBuffer& outBuffer);   // RGBA8
+template HYP_API void FillPlaceholderBuffer_Tex2D<TextureFormat::RGBA16F, FillPattern::SolidBlack>(Vec2u dimensions, ByteBuffer& outBuffer); // RGBA16F
+template HYP_API void FillPlaceholderBuffer_Tex2D<TextureFormat::RGBA32F, FillPattern::SolidBlack>(Vec2u dimensions, ByteBuffer& outBuffer); // RGBA32F
 
-template HYP_API void FillPlaceholderBuffer_Cubemap<TextureFormat::R8>(Vec2u dimensions, ByteBuffer& outBuffer);    // R8
-template HYP_API void FillPlaceholderBuffer_Cubemap<TextureFormat::RGBA8>(Vec2u dimensions, ByteBuffer& outBuffer); // RGBA8
+template HYP_API void FillPlaceholderBuffer_Cubemap<TextureFormat::R8, FillPattern::SolidBlack>(Vec2u dimensions, ByteBuffer& outBuffer);    // R8
+template HYP_API void FillPlaceholderBuffer_Cubemap<TextureFormat::RGBA8, FillPattern::SolidBlack>(Vec2u dimensions, ByteBuffer& outBuffer); // RGBA8
 
 #pragma region PlaceholderData
 
@@ -246,78 +268,115 @@ void PlaceholderData::Initialize()
 
     LoadOrInitTexture(
         defaultTexture2d,
-        NAME("Placeholder_Texture_2D_1x1"),
+        NAME("Checkerboard"),
         TextureDesc {
             TextureType::Texture2D,
             TextureFormat::RGBA8,
-            Vec3u { 4, 4, 1 },
+            Vec3u { 8, 8, 1 },
             TFM_NEAREST,
             TFM_NEAREST,
             TWM_REPEAT,
             1,
-            IU_SAMPLED | IU_STORAGE },
+            IU_SAMPLED
+        },
         placeholderBufferTex2d,
-        &FillPlaceholderBuffer_Tex2D<TextureFormat::RGBA8>);
+        &FillPlaceholderBuffer_Tex2D<TextureFormat::RGBA8, FillPattern::Checkerboard>);
 
     LoadOrInitTexture(
         defaultTexture3d,
-        NAME("Placeholder_Texture_3D_1x1x1"),
+        NAME("Checkerboard_3D"),
         TextureDesc {
             TextureType::Texture3D,
             TextureFormat::RGBA8,
-            Vec3u::One(),
+            Vec3u { 1, 1, 1 },
             TFM_NEAREST,
             TFM_NEAREST,
             TWM_CLAMP_TO_EDGE,
             1,
-            IU_SAMPLED | IU_STORAGE },
+            IU_SAMPLED
+        },
         placeholderBufferTex3d,
-        &FillPlaceholderBuffer_Tex2D<TextureFormat::RGBA8>);
+        &FillPlaceholderBuffer_Tex2D<TextureFormat::RGBA8, FillPattern::Checkerboard>);
 
     LoadOrInitTexture(
         defaultCubemap,
-        NAME("Placeholder_Texture_Cube_1x1"),
+        NAME("Checkerboard_Cube"),
         TextureDesc {
             TextureType::Cubemap,
             TextureFormat::RGBA8,
-            Vec3u { 4, 4, 1 },
+            Vec3u { 8, 8, 1 },
             TFM_NEAREST,
             TFM_NEAREST,
             TWM_REPEAT,
             1,
-            IU_SAMPLED | IU_STORAGE },
+            IU_SAMPLED
+        },
         placeholderBufferCubemap,
-        &FillPlaceholderBuffer_Cubemap<TextureFormat::RGBA8>);
+        &FillPlaceholderBuffer_Cubemap<TextureFormat::RGBA8, FillPattern::Checkerboard>);
 
     LoadOrInitTexture(
         defaultTexture2dArray,
-        NAME("Placeholder_Texture_2D_1x1_Array"),
+        NAME("Checkerboard_Array2D"),
         TextureDesc {
             TextureType::Texture2DArray,
             TextureFormat::RGBA8,
-            Vec3u { 4, 4, 1 },
+            Vec3u { 8, 8, 1 },
             TFM_NEAREST,
             TFM_NEAREST,
             TWM_REPEAT,
             1,
-            IU_SAMPLED | IU_STORAGE },
+            IU_SAMPLED
+        },
         placeholderBufferTex2d,
-        &FillPlaceholderBuffer_Tex2D<TextureFormat::RGBA8>);
+        &FillPlaceholderBuffer_Tex2D<TextureFormat::RGBA8, FillPattern::Checkerboard>);
 
     LoadOrInitTexture(
         defaultCubemapArray,
-        NAME("Placeholder_Texture_Cube_1x1_Array"),
+        NAME("Checkerboard_ArrayCube"),
         TextureDesc {
             TextureType::CubemapArray,
             TextureFormat::RGBA8,
-            Vec3u { 4, 4, 1 },
+            Vec3u { 8, 8, 1 },
             TFM_NEAREST,
             TFM_NEAREST,
             TWM_REPEAT,
             1,
-            IU_SAMPLED | IU_STORAGE },
+            IU_SAMPLED
+        },
         placeholderBufferCubemap,
-        &FillPlaceholderBuffer_Cubemap<TextureFormat::RGBA8>);
+        &FillPlaceholderBuffer_Cubemap<TextureFormat::RGBA8, FillPattern::Checkerboard>);
+
+    LoadOrInitTexture(
+        textureSolidWhite,
+        NAME("SolidWhite"),
+        TextureDesc {
+            TextureType::Texture2D,
+            TextureFormat::RGBA8,
+            Vec3u { 1, 1, 1 },
+            TFM_NEAREST,
+            TFM_NEAREST,
+            TWM_REPEAT,
+            1,
+            IU_SAMPLED
+        },
+        placeholderBufferTex2d,
+        &FillPlaceholderBuffer_Tex2D<TextureFormat::RGBA8, FillPattern::SolidWhite>);
+
+    LoadOrInitTexture(
+        textureSolidBlack,
+        NAME("SolidBlack"),
+        TextureDesc {
+            TextureType::Texture2D,
+            TextureFormat::RGBA8,
+            Vec3u { 1, 1, 1 },
+            TFM_NEAREST,
+            TFM_NEAREST,
+            TWM_REPEAT,
+            1,
+            IU_SAMPLED
+        },
+        placeholderBufferTex2d,
+        &FillPlaceholderBuffer_Tex2D<TextureFormat::RGBA8, FillPattern::SolidBlack>);
 
 #pragma endregion Textures
 
@@ -360,6 +419,7 @@ void PlaceholderData::Shutdown()
     EnqueueDeletion(std::move(m_imageView2d1x1R8Array));
     EnqueueDeletion(std::move(m_imageCube1x1R8Array));
     EnqueueDeletion(std::move(m_imageViewCube1x1R8Array));
+
     EnqueueDeletion(std::move(m_samplerLinear));
     EnqueueDeletion(std::move(m_samplerLinearMipmap));
     EnqueueDeletion(std::move(m_samplerNearest));

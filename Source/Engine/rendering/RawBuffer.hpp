@@ -102,6 +102,9 @@ public:
     void FlushInto(CommandBuffer& cmdBuffer);
     void Flush();
 
+    /*! Sets the buffer to be flushed at the top of the frame, preceding other recorded rendering commands. */
+    void FlushBatched();
+
     GpuBuffer* gpuBuffer;
     TByteBuffer<RenderAllocator> cpuBuffer;
 

@@ -601,7 +601,6 @@ extern struct MeshComponent
     Mesh : Mesh
     Material : MaterialInstance
     Skeleton : Skeleton
-    EnableAutoInstancing : bool
     NumInstances : uint32
     PreviousModelMatrix : Mat4f
 end

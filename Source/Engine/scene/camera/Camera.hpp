@@ -249,10 +249,7 @@ public:
     }
 
     HYP_METHOD(Property = "Flags", Editor = true)
-    void SetCameraFlags(EnumFlags<CameraFlags> flags)
-    {
-        m_cameraFlags = flags;
-    }
+    void SetCameraFlags(EnumFlags<CameraFlags> flags);
 
     HYP_METHOD(Property = "CameraControllers")
     const Array<Handle<CameraController>>& GetCameraControllers() const
@@ -505,7 +502,9 @@ public:
 
 protected:
     void Init() override;
-    
+
+    void InitMatchWindowSize();
+
     void OnTransformUpdated() override;
 
     void UpdateViewMatrix();

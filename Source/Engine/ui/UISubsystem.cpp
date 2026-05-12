@@ -175,8 +175,6 @@ void UISubsystem::Init()
         }
 
         m_uiStage->SetSurfaceSize(windowSize);
-
-        m_view->uiSurfaceSize = Vec2u(windowSize);
     };
 
     Vec2u windowSize { 1280, 720 };
@@ -215,10 +213,6 @@ void UISubsystem::Init()
 
     m_uiStage->SetSurfaceSize(Vec2i(windowSize));
 
-#if HYP_ANDROID || HYP_IOS
-    m_uiStage->SetUIScaleFactor(1.0f);//2.0f);
-#endif
-
     ViewDesc viewDesc {};
     viewDesc.flags = ViewFlags::UI_VIEW
         | ViewFlags::EXTERNAL_RENDERTARGET
@@ -230,7 +224,6 @@ void UISubsystem::Init()
 
     m_view = MakeHandle<View>(viewDesc);
     m_view->SetName(NAME("UISubsystem_View"));
-    m_view->uiSurfaceSize = windowSize;
     InitObject(m_view);
 }
 

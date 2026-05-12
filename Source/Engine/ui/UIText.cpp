@@ -79,10 +79,10 @@ static void ForEachCharacter(
     const Vec2f cellDimensions = Vec2f(fontAtlas.GetCellDimensions()) / 64.0f;
 
     const Handle<Texture>& mainTextureAtlas = fontAtlas.GetAtlasTextures().GetMainAtlas();
-    AssertDebug(mainTextureAtlas.IsValid(), "Main texture atlas is invalid");
 
     if (!mainTextureAtlas.IsValid())
     {
+        HYP_LOG_ONCE(UI, Warning, "No valid font atlas texture.");
         return;
     }
 

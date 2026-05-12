@@ -56,7 +56,8 @@ static VkPhysicalDevice PickPhysicalDevice(Span<VkPhysicalDevice> devices)
         return VK_NULL_HANDLE;
     }
 
-    EngineConfig& cfg = GetEngineConfig();
+    EngineConfig cfg;
+    cfg.Load();
 
     const ConfigValue& cfgSelectedGpuIndex = cfg.Get("System.SelectedGpu.Index");
 

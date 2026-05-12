@@ -112,8 +112,21 @@ const VulkanGpuImageViewRef& VulkanTextureViewCache::GetOrCreate(
 
     if (!subtypeData.imageViews.HasIndex(idx))
     {
-        subtypeData.imageViews.Emplace(idx);
-        subtypeData.weakTextureHandles.Emplace(idx, MakeWeakRef(texture));
+        sharedLock.Reset();
+
+        // try again, this time with exclusive access.
+        TUniqueLock uniqueLock(mutex);
+
+        if (!subtypeData.imageViews.HasIndex(idx))
+        {
+            subtypeData.imageViews.Emplace(idx);
+            subtypeData.weakTextureHandles.Emplace(idx, MakeWeakRef(texture));
+        }
+
+        uniqueLock.Reset();
+
+        // back to shared access.
+        sharedLock.Reset(mutex);
     }
 
     auto& textureImageViews = subtypeData.imageViews.Get(idx);

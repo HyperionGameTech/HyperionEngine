@@ -6,6 +6,7 @@
 
 #include <Core/config/Config.hpp>
 
+#include <Core/containers/Map.hpp>
 #include <Core/threading/Threads.hpp>
 
 #include <Core/reflection/Class.hpp>
@@ -32,6 +33,9 @@ extern FilePath GetConfigDirectory();
 namespace config {
 
 static const ConfigValue s_invalidConfigValue {};
+
+static TMap<String, JSON::Value> s_configCache;
+static SharedMutex s_configCacheMutex;
 
 #pragma region ConfigBase
 
@@ -209,12 +213,19 @@ void ConfigBase::Set(UTF8StringView key, const ConfigValue& value)
 
 bool ConfigBase::Save()
 {
+    // Update in-memory cache
+    {
+        TUniqueLock lock(s_configCacheMutex);
+        s_configCache.Set(m_name, m_rootObject);
+    }
+
+#if !defined(HYP_ANDROID) && !defined(HYP_IOS)
+    // Write to file
     if (auto result = Write(m_rootObject); result.HasError())
     {
-        HYP_LOG(Config, Error, "Failed to write configuration file at {}: {}", GetFilePath(), result.GetError().GetMessage());
-
-        return false;
+        HYP_LOG(Config, Warning, "Failed to write configuration file at {}: {}", GetFilePath(), result.GetError().GetMessage());
     }
+#endif
 
     m_cachedHashCode = GetSubobject().GetHashCode();
 
@@ -223,11 +234,28 @@ bool ConfigBase::Save()
 
 bool ConfigBase::Load()
 {
-    // try to read from config file
+    // Check cache
+    {
+        TSharedLock lock(s_configCacheMutex);
+        if (auto it = s_configCache.Find(m_name); it != s_configCache.End())
+        {
+            m_rootObject = it->second;
+            m_cachedHashCode = GetSubobject().GetHashCode();
+            return true;
+        }
+    }
+
+    // Cache miss, read from file.
     if (Result result = Read(m_rootObject); result.HasError())
     {
         m_errors.PushBack(result.GetError());
         return false;
+    }
+
+    // Store in cache
+    {
+        TUniqueLock lock(s_configCacheMutex);
+        s_configCache.Set(m_name, m_rootObject);
     }
 
     m_cachedHashCode = GetSubobject().GetHashCode();

@@ -417,7 +417,9 @@ static void MergeGlobalShaderProperties(bool isPrecompilingShaders, ShaderProper
     out.Add(s_propNumGBufferTextures);
 
     if (isPrecompilingShaders)
+    {
         return;
+    }
 
     // Current platform + Graphics API
 
@@ -439,22 +441,10 @@ static void MergeGlobalShaderProperties(bool isPrecompilingShaders, ShaderProper
     out.Add(s_propTargetIOS);
 #endif // HYP_WINDOWS || HYP_MAC || HYP_LINUX || HYP_ANDROID || HYP_IOS
 
-    const EngineConfig& cfg = GetEngineConfig();
-
     if (RI.GetRenderConfig().bindlessTextures)
+    {
         out.Add(s_propBindlessTextures);
-
-    if (cfg.Get("Rendering.Debug.Irradiance").ToBool(false))
-        out.Add(s_propDebugIrradiance);
-
-    if (cfg.Get("Rendering.Debug.Velocity").ToBool(false))
-        out.Add(s_propDebugVelocity);
-
-    if (cfg.Get("Rendering.Debug.Normals").ToBool(false))
-        out.Add(s_propDebugNormals);
-
-    if (cfg.Get("Rendering.Debug.AO").ToBool(false))
-        out.Add(s_propDebugAO);
+    }
 }
 
 static void MergeGlobalShaderProperties(bool isPrecompilingShaders, ShaderVariantPerms& inOutPerm)

@@ -255,7 +255,7 @@ public:
     {
         if (m_sbuffer.IsDirty())
         {
-            m_sbuffer.Flush();
+            m_sbuffer.FlushBatched();
         }
     }
 

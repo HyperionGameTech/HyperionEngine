@@ -260,8 +260,6 @@ public:
     /*! \brief Synchronously collect scene resources for the View, blocks the current thread until complete. */
     void CollectSync();
 
-    Vec2u uiSurfaceSize; // UI_VIEW only: the size of the UI surface in pixels
-
 protected:
     void Init() override;
 

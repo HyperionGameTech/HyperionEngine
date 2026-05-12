@@ -31,10 +31,17 @@ namespace Hyperion {
 class Texture;
 class AssetObject;
 
-template <TextureFormat Format>
+enum class FillPattern : uint8
+{
+    SolidBlack,
+    SolidWhite,
+    Checkerboard
+};
+
+template <TextureFormat Format, FillPattern Pattern = FillPattern::SolidBlack>
 HYP_API void FillPlaceholderBuffer_Tex2D(Vec2u dimensions, ByteBuffer& outBuffer);
 
-template <TextureFormat Format>
+template <TextureFormat Format, FillPattern Pattern = FillPattern::SolidBlack>
 HYP_API void FillPlaceholderBuffer_Cubemap(Vec2u dimensions, ByteBuffer& outBuffer);
 
 class HYP_API PlaceholderData
@@ -52,6 +59,9 @@ public:
     Handle<Texture> defaultCubemap;
     Handle<Texture> defaultTexture2dArray;
     Handle<Texture> defaultCubemapArray;
+
+    Handle<Texture> textureSolidWhite;
+    Handle<Texture> textureSolidBlack;
 
 #define HYP_DEF_DUMMY_DATA(type, getter, member) \
 public:                                          \

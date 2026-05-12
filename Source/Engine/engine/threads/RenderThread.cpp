@@ -201,7 +201,26 @@ void RenderThread::Update()
         ds->UpdateDirtyState(&dirty);
 
         if (dirty)
+        {
             ds->Update();
+        }
+    }
+
+    CommandBuffer& commandBuffer = *RI.GetCurrentCommandBuffer();
+
+    if (RI.deferredFlushBuffers.Any())
+    {
+        for (RawBuffer* buffer : RI.deferredFlushBuffers)
+        {
+            if (!buffer->IsDirty())
+            {
+                continue;
+            }
+
+            buffer->FlushInto(commandBuffer);
+        }
+
+        RI.deferredFlushBuffers.Clear();
     }
 
     RI.commandRecorderAllocator.UpdateQueue();

@@ -552,11 +552,6 @@ void EndFrameSim()
     Framework::s_fullSemaphore.release();
 }
 
-EngineConfig& GetEngineConfig()
-{
-    return Framework::s_engineConfig[Framework::s_threadFrameIndex ? *Framework::s_threadFrameIndex : Framework::s_frameIndex[Framework::TT_FrameDataConsumer]];
-}
-
 #pragma region RenderInterface
 
 RenderInterface::RenderInterface()
@@ -748,6 +743,8 @@ RendererResult RenderInterface::Initialize()
 
 void RenderInterface::Shutdown()
 {
+    deferredFlushBuffers.Clear();
+
     for (uint32 i = 0; i < RingBufferDepth; i++)
     {
         for (auto& it : Framework::s_bufferedData[i].perViewData)
@@ -1972,6 +1969,18 @@ void RenderInterface::FlushStructuredBuffers()
     }
 
     SubmitTransientCommandBuffer(cmdBuffer);
+}
+
+void RenderInterface::DeferFlushBuffer(RawBuffer* buffer)
+{
+    AssertOnThread(g_renderThread);
+
+    if (!buffer || deferredFlushBuffers.Contains(buffer))
+    {
+        return;
+    }
+
+    deferredFlushBuffers.PushBack(buffer);
 }
 
 void RenderInterface::CreateBlueNoiseBuffer()

@@ -384,6 +384,7 @@ void CVarManager::InitFromConfig(const ConfigBase& config)
         if (!path || path[0] == '\0')
         {
             // invalid name, skip
+            HYP_LOG(Engine, Warning, "Invalid cvar name: {}", path);
             continue;
         }
 

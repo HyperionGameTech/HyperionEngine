@@ -27,8 +27,6 @@
 
 namespace Hyperion {
 
-extern EngineConfig& GetEngineConfig();
-
 CVar<float> cvEditorCameraLookSensitivity("Editor.Camera.LookSensitivity", 25.0f);
 CVar<float> cvEditorCameraMovementSpeed("Editor.Camera.MovementSpeed", 10.0f);
 

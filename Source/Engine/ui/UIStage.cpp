@@ -206,7 +206,7 @@ void UIStage::SetSurfaceSize(Vec2i surfaceSize)
 
     if (m_camera.IsValid())
     {
-        m_camera->SetDimensions(m_surfaceSize);
+        m_camera->SetDimensions(surfaceSize);
 
         UpdateCameraControllerStack();
     }
@@ -381,7 +381,7 @@ void UIStage::Init()
 
         if (m_camera.IsValid())
         {
-            m_camera->SetDimensions(m_surfaceSize);
+            m_camera->SetDimensions(physicalSize);
 
             UpdateCameraControllerStack();
         }

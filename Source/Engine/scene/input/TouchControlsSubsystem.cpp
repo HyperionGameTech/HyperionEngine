@@ -110,6 +110,8 @@ void TouchControlsSubsystem::CreateJoystickUI()
         return;
     }
 
+    m_uiStage = uiStage;
+
     // Create joystick base (outer circle)
     m_joystickBase = uiStage->CreateUIObject<UIPanel>(
         NAME("TouchJoystick_Base"),
@@ -120,17 +122,16 @@ void TouchControlsSubsystem::CreateJoystickUI()
 
     if (m_joystickBase.IsValid())
     {
-        uiStage->AddChildUIObject(m_joystickBase);
+        m_joystickBase->SetIsPositionAbsolute(true);
         m_joystickBase->SetIsVisible(false);
         m_joystickBase->SetDepth(100);  // Base layer
-
-        // Style the base - larger, more visible
         m_joystickBase->SetBackgroundColor(Color(0.12f, 0.12f, 0.14f, 0.35f));
         m_joystickBase->SetBorderRadius(static_cast<uint32>(m_joystickSize * 0.5f));
         m_joystickBase->SetBorderFlags(UIObjectBorderFlags::ALL);
 
-        // Create drop shadow (slightly larger, offset, darker)
-        const float shadowSize = m_knobSize + 8.0f;
+        uiStage->AddChildUIObject(m_joystickBase);
+
+        const float shadowSize = m_knobSize;
         m_joystickShadow = m_joystickBase->CreateUIObject<UIPanel>(
             NAME("TouchJoystick_Shadow"),
             Vec2i { 0, 0 },
@@ -140,11 +141,12 @@ void TouchControlsSubsystem::CreateJoystickUI()
 
         if (m_joystickShadow.IsValid())
         {
-            m_joystickBase->AddChildUIObject(m_joystickShadow);
             m_joystickShadow->SetDepth(101);  // Above base, below knob
             m_joystickShadow->SetBackgroundColor(Color(0.0f, 0.0f, 0.0f, 0.4f));
             m_joystickShadow->SetBorderRadius(static_cast<uint32>(shadowSize * 0.5f));
             m_joystickShadow->SetBorderFlags(UIObjectBorderFlags::ALL);
+
+            m_joystickBase->AddChildUIObject(m_joystickShadow);
         }
 
         // Create the knob (inner circle)
@@ -157,22 +159,18 @@ void TouchControlsSubsystem::CreateJoystickUI()
 
         if (m_joystickKnob.IsValid())
         {
-            m_joystickBase->AddChildUIObject(m_joystickKnob);
             m_joystickKnob->SetDepth(102);  // Top layer
             m_joystickKnob->SetBorderRadius(static_cast<uint32>(m_knobSize * 0.5f));
             m_joystickKnob->SetBorderFlags(UIObjectBorderFlags::ALL);
+            m_joystickKnob->SetAllowMaterialUpdate(true);
 
-            // Initial knob style - will be updated dynamically
+            m_joystickBase->AddChildUIObject(m_joystickKnob);
+
             UpdateKnobAppearance(Vec2f::Zero());
         }
     }
 
     m_isInitialized = true;
-
-    if (g_appContext.IsValid() && g_appContext->GetMainWindow() != nullptr)
-    {
-        m_screenSize = Vec2f(g_appContext->GetMainWindow()->GetSize());
-    }
 }
 
 void TouchControlsSubsystem::DestroyJoystickUI()
@@ -209,12 +207,6 @@ void TouchControlsSubsystem::Update(float delta)
         return;
     }
 
-    // Update screen size in case of resize
-    if (g_appContext.IsValid() && g_appContext->GetMainWindow() != nullptr)
-    {
-        m_screenSize = Vec2f(g_appContext->GetMainWindow()->GetSize());
-    }
-
     // Update active touches and compute deltas
     UpdateActiveTouches(delta);
 
@@ -229,8 +221,21 @@ void TouchControlsSubsystem::ProcessTouchEvent(const TouchEvent& touchEvent)
         return;
     }
 
+    if (!m_joystickBase.IsValid())
+    {
+        return;
+    }
+
     const int32 pointerId = touchEvent.pointerId;
-    const Vec2f position = touchEvent.position;
+
+    // Convert from physical to logical coordinates using content scale factor
+    float contentScaleFactor = 1.0f;
+    if (touchEvent.baseEvent && touchEvent.baseEvent->GetWindow())
+    {
+        contentScaleFactor = touchEvent.baseEvent->GetWindow()->GetContentScaleFactor();
+    }
+
+    const Vec2f position = Vec2f(touchEvent.position) / contentScaleFactor;
 
     const EventType eventType = touchEvent.baseEvent ? touchEvent.baseEvent->GetType() : EventType::INVALID;
 
@@ -375,11 +380,12 @@ void TouchControlsSubsystem::UpdateActiveTouches(float delta)
             prevRightPosition = touch.position;
 
             // Normalize to -1 to 1 range based on screen size
-            if (!m_screenSize.IsZero())
+            const Vec2f screenSize = Vec2f(m_uiStage->GetSurfaceSize());
+            if (!screenSize.IsZero())
             {
                 m_lookDelta = Vec2f(
-                    lookDelta.x / m_screenSize.x * m_lookSensitivity,
-                    lookDelta.y / m_screenSize.y * m_lookSensitivity
+                    lookDelta.x / screenSize.x * m_lookSensitivity,
+                    lookDelta.y / screenSize.y * m_lookSensitivity
                 );
             }
         }
@@ -544,12 +550,13 @@ void TouchControlsSubsystem::SetDeadzone(float deadzone)
 
 bool TouchControlsSubsystem::IsLeftSideOfScreen(const Vec2f& position) const
 {
-    if (m_screenSize.x <= 0.0f)
+    if (!m_uiStage.IsValid())
     {
         return position.x < 540.0f;
     }
-    
-    return position.x < m_screenSize.x * 0.5f;
+
+    const Vec2i surfaceSize = m_uiStage->GetSurfaceSize();
+    return position.x < float(surfaceSize.x) * 0.5f;
 }
 
 Vec2f TouchControlsSubsystem::NormalizeJoystickInput(const Vec2f& delta) const

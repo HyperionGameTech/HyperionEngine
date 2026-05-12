@@ -49,8 +49,7 @@
 
 #include <engine/Game.hpp>
 #include <engine/EngineDriver.hpp>
-
-#include <engine/config/EngineConfig.hpp>
+#include <engine/CVarManager.hpp>
 
 #include <asset/Assets.hpp>
 #include <asset/AssetObject.hpp>
@@ -71,6 +70,8 @@ namespace Hyperion {
 
 // if the number of systems in a group is less than this value, they will be executed sequentially
 static constexpr double SystemExecutionGroupLagSpikeThreshold = 50.0;
+
+extern CVar<bool> cvRayTracingEnabled;
 
 static const Name s_nameStreamingLayerScenes = NAME("Scenes_Layer");
 static const Name s_nameUnnamedWorld = NAME("<unnamed world>");
@@ -205,7 +206,7 @@ void World::Init()
     // Create a View that is intended to collect objects used by RT gi/reflections
     // since we'll need to have resources bound even if they aren't directly in any camera's view frustum.
     // (for example there could be some stuff behind the player we want to see reflections of)
-    if (GetEngineConfig().Get("Rendering.RayTracingEnabled").ToBool(false))
+    if (cvRayTracingEnabled.Get())
     {
         // dummy output target
         FramebufferDesc framebufferDesc;

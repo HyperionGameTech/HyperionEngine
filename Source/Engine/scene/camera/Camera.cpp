@@ -270,40 +270,7 @@ void Camera::Init()
     m_streamingVolume->SetBoundingBox(BoundingBox(translation - 10.0f, translation + 10.0f));
     InitObject(m_streamingVolume);
 
-    if (m_cameraFlags & CameraFlags::MATCH_WINDOW_SIZE)
-    {
-        const auto handleWindowChanged = [this](ApplicationWindow* window)
-        {
-            m_onWindowResizedHandle.Reset();
-
-            if (window == nullptr)
-            {
-                return;
-            }
-
-            auto MatchWindowSize = [this, weakWindow = MakeWeakRef(window)](Vec2i windowSize)
-            {
-                Handle<ApplicationWindow> strongWindow = weakWindow.Lock();
-
-                const float renderTargetScale = strongWindow.IsValid()
-                    ? strongWindow->GetRenderTargetScale()
-                    : 1.0f;
-
-                Vec2i renderSize = Vec2i(Vec2f(windowSize) * renderTargetScale);
-                renderSize = MathUtil::Max(Vec2i(MathUtil::Round(Vec2f(renderSize) * m_matchWindowSizeRatio)), Vec2i::One());
-
-                SetDimensions(renderSize);
-            };
-
-            MatchWindowSize(window->GetSize());
-
-            m_onWindowResizedHandle = window->OnWindowSizeChanged.BindThreaded(MatchWindowSize, g_simThread);
-        };
-
-        handleWindowChanged(g_appContext->GetMainWindow());
-
-        m_onMainWindowChangedHandle = g_appContext->OnCurrentWindowChanged.BindThreaded(handleWindowChanged, g_simThread);
-    }
+    InitMatchWindowSize();
 
     UpdateMouseLocked();
 
@@ -312,6 +279,25 @@ void Camera::Init()
     UpdateViewProjectionMatrix();
 
     SetReady(true);
+}
+
+void Camera::SetCameraFlags(EnumFlags<CameraFlags> flags)
+{
+    if (flags == m_cameraFlags)
+    {
+        return;
+    }
+
+    const EnumFlags<CameraFlags> flagsBefore = m_cameraFlags;
+
+    m_cameraFlags = flags;
+
+    if ((flagsBefore & CameraFlags::MATCH_WINDOW_SIZE) != (flags & CameraFlags::MATCH_WINDOW_SIZE))
+    {
+        InitMatchWindowSize();
+    }
+
+    MarkDirty();
 }
 
 void Camera::SetCameraControllers(const Array<Handle<CameraController>>& cameraControllers)
@@ -627,6 +613,54 @@ Vec4f Camera::TransformScreenToWorld(const Vec2f& screen) const
 Vec2f Camera::GetPixelSize() const
 {
     return Vec2f::One() / Vec2f(GetDimensions());
+}
+
+void Camera::InitMatchWindowSize()
+{
+    if (m_cameraFlags & CameraFlags::MATCH_WINDOW_SIZE)
+    {
+        if (m_onMainWindowChangedHandle.IsValid() && m_onWindowResizedHandle.IsValid())
+        {
+            return;
+        }
+
+        const auto HandleWindowChanged = [this](ApplicationWindow* window)
+        {
+            m_onWindowResizedHandle.Reset();
+
+            if (window == nullptr)
+            {
+                return;
+            }
+
+            auto MatchWindowSize = [this, weakWindow = MakeWeakRef(window)](Vec2i windowSize)
+            {
+                Handle<ApplicationWindow> strongWindow = weakWindow.Lock();
+
+                const float renderTargetScale = strongWindow.IsValid()
+                    ? strongWindow->GetRenderTargetScale()
+                    : 1.0f;
+
+                Vec2i renderSize = Vec2i(Vec2f(windowSize) * renderTargetScale);
+                renderSize = MathUtil::Max(Vec2i(MathUtil::Round(Vec2f(renderSize) * m_matchWindowSizeRatio)), Vec2i::One());
+
+                SetDimensions(renderSize);
+            };
+
+            MatchWindowSize(window->GetSize());
+
+            m_onWindowResizedHandle = window->OnWindowSizeChanged.BindThreaded(MatchWindowSize, g_simThread);
+        };
+
+        HandleWindowChanged(g_appContext->GetMainWindow());
+
+        m_onMainWindowChangedHandle = g_appContext->OnCurrentWindowChanged.BindThreaded(HandleWindowChanged, g_simThread);
+    }
+    else
+    {
+        m_onWindowResizedHandle.Reset();
+        m_onMainWindowChangedHandle.Reset();
+    }
 }
 
 void Camera::Update(float delta)

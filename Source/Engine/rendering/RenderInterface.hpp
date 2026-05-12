@@ -144,8 +144,6 @@ Span<World*> GetActiveWorlds();
 
 Viewport& GetViewport(View* view);
 
-EngineConfig& GetEngineConfig();
-
 struct NamedPass
 {
     enum Name : uint8
@@ -388,6 +386,8 @@ public:
     virtual AsyncCompute* CreateAsyncCompute() = 0;
     virtual void SubmitAsyncCompute(AsyncCompute* asyncCompute) = 0;
 
+    void DeferFlushBuffer(RawBuffer* buffer);
+
     ShaderManager* shaderManager;
 
     BindlessStorage* bindlessStorage;
@@ -440,6 +440,8 @@ public:
     CrashHandler* crashHandler;
 
     CommandRecorderAllocator commandRecorderAllocator;
+
+    Array<RawBuffer*, RenderAllocator> deferredFlushBuffers;
 
     DeviceDetails deviceDetails;
 

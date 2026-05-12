@@ -19,6 +19,7 @@
 #include <rendering/TextureViewCache.hpp>
 #include <rendering/CBufferAllocator.hpp>
 #include <rendering/RawBufferAllocator.hpp>
+#include <rendering/RenderProxy.hpp>
 
 #include <rendering/passes/DeferredPass.hpp>
 #include <rendering/passes/UIPass.hpp>
@@ -167,8 +168,14 @@ void FinalPass::Render(Frame* frame, const RenderSetup& rs)
                     currentViewSetup.world = world;
                     currentViewSetup.view = view;
 
+                    Camera* camera = view->GetCamera();
+                    AssertDebug(camera != nullptr);
+
+                    RenderProxyCamera* cameraProxy = static_cast<RenderProxyCamera*>(GetRenderProxy(camera));
+                    AssertDebug(cameraProxy != nullptr);
+
                     Viewport viewport {};
-                    viewport.extent = MathUtil::Max(view->uiSurfaceSize, Vec2u::One());
+                    viewport.extent = MathUtil::Max(cameraProxy->bufferData.dimensions.GetXY(), Vec2u::One());
 
                     currentViewSetup.viewport = viewport;
 

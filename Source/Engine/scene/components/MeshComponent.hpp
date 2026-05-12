@@ -33,19 +33,19 @@ struct MeshComponent
 {
     HYP_STRUCT_BODY(MeshComponent);
 
-    HYP_FIELD(Property = "Mesh", Editor)
+    HYP_FIELD(Property = "Mesh")
     Handle<Mesh> mesh;
 
-    HYP_FIELD(Property = "Material", Editor)
+    HYP_FIELD(Property = "Material")
     Handle<MaterialInstance> material;
 
-    HYP_FIELD(Property = "Skeleton", Editor)
+    HYP_FIELD(Property = "Skeleton")
     Handle<Skeleton> skeleton;
 
-    HYP_FIELD(Property = "EnableAutoInstancing", Serialize)
+    HYP_FIELD(Property = "EnableAutoInstancing", Serialize, EditHide, NoScriptBindings)
     bool enableAutoInstancing = false;
 
-    HYP_FIELD(Property = "InstanceData", Serialize, NoScriptBindings)
+    HYP_FIELD(Property = "InstanceData", Serialize, EditHide, NoScriptBindings)
     AssetReference instanceData;
 
     HYP_FIELD(Transient)

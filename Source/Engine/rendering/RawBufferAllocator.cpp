@@ -63,8 +63,6 @@ struct BufferAllocatorImpl
         for (auto it = usedBuffers.Begin(); it != usedBuffers.End();)
         {
             CachedStructuredBuffer& usedBuffer = *it;
-            usedBuffer.buffer.Flush();
-
             cachedBuffers.PushBack(std::move(usedBuffer));
 
             it = usedBuffers.Erase(it);
