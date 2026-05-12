@@ -17,6 +17,8 @@
 #include <editor/EditorViewport.hpp>
 #include <editor/EditorCommand.hpp>
 
+#include <scene/systems/editor/EditorSpriteSystem.hpp>
+
 #include <dotnet/DotNETHost.hpp>
 
 #include <scene/Scene.hpp>
@@ -901,12 +903,12 @@ Handle<Node> RotateEditorGizmo::Load_Internal() const
                     {
                         Handle<MaterialDefinition> materialDefinition = MakeHandle<MaterialDefinition>(NAME_FMT("{}_Material", child->GetName()), materialAttributes, materialParameters, MaterialTextures {});
                         InitObject(materialDefinition);
-                        
+
                         GetCurrentAssetRegistry()->PutAssetsDeep(materialDefinition);
-                        
+
                         Handle<MaterialInstance> materialInstance = materialDefinition->CreateInstance();
                         materialInstance->SetIsDynamic(true);
-                        
+
                         GetCurrentAssetRegistry()->PutAssetsDeep(materialInstance);
 
                         meshComponent->material = std::move(materialInstance);
@@ -916,7 +918,7 @@ Handle<Node> RotateEditorGizmo::Load_Internal() const
                     childEntity->Node::AddTag(NodeTag(NAME("TransformWidgetElementColor"), Vec4f(materialParameters.albedo)));
                 }
             }
-            
+
             GetCurrentAssetRegistry()->PutAssetsDeep(node);
             GetCurrentAssetRegistry()->SaveDirtyAssets();
 
@@ -954,7 +956,7 @@ void RotateEditorGizmo::OnDragStart(const Handle<Camera>& camera, const MouseEve
     {
         return;
     }
-    
+
     int axis = -1;
     axisTag.data.Visit([&axis](auto&& value)
         {
@@ -1059,7 +1061,7 @@ bool RotateEditorGizmo::OnMouseHover(const Handle<Camera>& camera, const MouseEv
     {
         return false;
     }
-    
+
     MaterialParameters newParameters = meshComponent->material->GetParameters();
     newParameters.albedo = Vec4f(1.0f, 1.0f, 0.0f, 1.0f);
 
@@ -1345,7 +1347,7 @@ Handle<Node> VolumeEditorGizmo::Load_Internal() const
     }
 
     rootNode->SetLocalBounds(BoundingBox(Vec3f(-1.0), Vec3f(1.0f)));
-    
+
     GetCurrentAssetRegistry()->PutAssetsDeep(rootNode);
     GetCurrentAssetRegistry()->SaveDirtyAssets();
 
@@ -1434,7 +1436,7 @@ void VolumeEditorGizmo::OnDragEnd(const Handle<Camera>& camera, const MouseEvent
 {
     EditorGizmoBase::OnDragEnd(camera, mouseEvent);
 
-    // @TODO we should show a "Commit" ui button, and when clicked, that will actually set the 
+    // @TODO we should show a "Commit" ui button, and when clicked, that will actually set the
 
     if (Handle<EditorProject> project = GetCurrentProject(); project.IsValid())
     {
@@ -1456,7 +1458,7 @@ void VolumeEditorGizmo::OnDragEnd(const Handle<Camera>& camera, const MouseEvent
                                 finalBoundsLocal = focusedNode->GetWorldMatrix().Inverse() * finalBoundsLocal;
 
                                 focusedNode->SetLocalBounds(finalBoundsLocal);
-                                
+
                                 editorSubsystem->SetSelectedManipulationMode(manipulationMode);
                                 editorSubsystem->SetFocusedNode(focusedNode, true);
                             },
@@ -1731,7 +1733,7 @@ EditorSubsystem::EditorSubsystem()
         .Bind([this](const Handle<EditorProject>& project)
             {
                 HYP_LOG(Editor, Verbose, "Opening project: {}", *project->GetName());
-                
+
                 g_editorState->GetPickCache().Clear();
 
                 InitObject(project);
@@ -1943,6 +1945,8 @@ void EditorSubsystem::OnAddedToWorld()
         HYP_FAIL("EditorSubsystem requires UISubsystem to be initialized");
     }
 
+    GetWorld()->AddSystemT<EditorSpriteSystem>();
+
     m_editorScene = MakeHandle<Scene>(NAME("EditorScene"), SceneFlags::FOREGROUND | SceneFlags::EDITOR);
     m_editorScene->SetIsTransient(true);
     GetWorld()->AddScene(m_editorScene);
@@ -1978,6 +1982,11 @@ void EditorSubsystem::OnRemovedFromWorld()
     for (const Handle<EditorViewport>& vp : m_editorViewports)
     {
         vp->OnSceneRemoved(m_editorScene);
+    }
+
+    if (EditorSpriteSystem* spriteSystem = GetWorld()->GetSystem<EditorSpriteSystem>())
+    {
+        GetWorld()->RemoveSystem(spriteSystem);
     }
 
     GetWorld()->RemoveScene(m_editorScene);
@@ -2149,7 +2158,7 @@ void EditorSubsystem::StartSimulation()
 
         return;
     }
-    
+
     m_preSimulationProject = m_currentProject;
     m_simulationSnapshotPath = m_preSimulationProject->GetFilePath();
 
@@ -2246,7 +2255,7 @@ void EditorSubsystem::StopSimulation()
         {
             gameInstance->GetWorld()->RemoveView(m_simulationView);
         }
-        
+
         gameInstance->StopSimulating();
         gameInstance->Shutdown();
     }

@@ -23,10 +23,6 @@
 #include <scene/systems/ScriptSystem.hpp>
 #include <scene/systems/MeshSystem.hpp>
 
-#if HYP_EDITOR
-#include <scene/systems/editor/EditorSpriteSystem.hpp>
-#endif // HYP_EDITOR
-
 #include <scene/components/MeshComponent.hpp>
 #include <scene/components/TransformComponent.hpp>
 #include <scene/components/BoundingBoxComponent.hpp>
@@ -339,11 +335,6 @@ void World::Init()
 
     if (!HasSystem<MeshSystem>())
         AddSystem(MakeHandle<MeshSystem>());
-
-#if HYP_EDITOR
-    if (!HasSystem<EditorSpriteSystem>())
-        AddSystem(MakeHandle<EditorSpriteSystem>());
-#endif // HYP_EDITOR
 
     for (View* view : m_views)
     {
@@ -1510,7 +1501,6 @@ SystemBase* World::AddSystem(const Handle<SystemBase>& system)
             return otherSystem->InstanceClass() == system->InstanceClass();
         });
 
-    AssertDebug(it == m_systems.End(), "System of type {} already exists in world {}", system->InstanceClass()->GetName(), GetName());
     if (it != m_systems.End())
     {
         // cannot add system if one already exists

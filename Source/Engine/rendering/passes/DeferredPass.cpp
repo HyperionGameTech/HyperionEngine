@@ -3226,7 +3226,7 @@ void DeferredPass::GenerateMipChain(Frame* frame, const RenderSetup& rs, RenderC
     const Handle<Texture>& mipChainTexture = pd->mipChain;
     AssertDebug(mipChainTexture.IsValid());
 
-    const uint32 numMips = mipChainTexture->GetTextureDesc().NumMips();
+    const uint8 numMips = mipChainTexture->GetTextureDesc().NumMips();
 
     CommandRecorder& cr = frame->cr;
 
@@ -3234,12 +3234,17 @@ void DeferredPass::GenerateMipChain(Frame* frame, const RenderSetup& rs, RenderC
     cr << InsertBarrier(srcImage, RS_COPY_SRC);
     cr << InsertBarrier(mipChainTexture->GetGpuImage(), RS_COPY_DST);
 
-    cr << CopyImage(srcImage, mipChainTexture->GetGpuImage(), mipChainTexture->GetTextureDesc().extent);
+    cr << CopyImage(
+        srcImage,
+        mipChainTexture->GetGpuImage(),
+        mipChainTexture->GetTextureDesc().extent,
+        ImageSubResource { .baseMipLevel = 0, .numLevels = 1, .baseArrayLayer = 0, .numLayers = 1 },
+        ImageSubResource { .baseMipLevel = 0, .numLevels = 1, .baseArrayLayer = 0, .numLayers = 1 });
 
     // Transition mip 0 to shader resource for reading (source for first downsample)
     cr << InsertBarrier(mipChainTexture->GetGpuImage(), RS_SHADER_RESOURCE);
 
-    for (uint32 mipLevel = 1; mipLevel < numMips; ++mipLevel)
+    for (uint8 mipLevel = 1; mipLevel < numMips; ++mipLevel)
     {
         const uint32 srcMip = mipLevel - 1;
 
@@ -3300,7 +3305,10 @@ void DeferredPass::GenerateMipChain(Frame* frame, const RenderSetup& rs, RenderC
         cr << SetCurrentFramebuffer(nullptr);
 
         // Transition the written mip to shader resource for the next iteration
-        cr << InsertBarrier(mipChainTexture->GetGpuImage(), RS_SHADER_RESOURCE);
+        cr << InsertBarrier(
+            mipChainTexture->GetGpuImage(),
+            RS_SHADER_RESOURCE,
+            ImageSubResource { .baseMipLevel = mipLevel, .numLevels = 1, .baseArrayLayer = 0, .numLayers = 1 });
     }
 
     // Reset depth state
