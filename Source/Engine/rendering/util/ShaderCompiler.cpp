@@ -1820,6 +1820,10 @@ bool ShaderCompiler::LoadShaderDefinitions(bool precompileShaders, const ShaderC
     HYP_LOG(ShaderCompiler, Verbose, "Precompiling shaders...");
     HYP_LOG(ShaderCompiler, Info, "Target platforms: {}", uint32(params.targetPlatforms));
     HYP_LOG(ShaderCompiler, Info, "Target backends: {}", uint32(params.targetBackends));
+    if (params.HasShaderFilters())
+    {
+        HYP_LOG(ShaderCompiler, Info, "Shader filters: {}", String::Join(params.shaderFilters, ", "));
+    }
 
     PrecompileShadersWorkerPool pool;
     s_precompileShadersPool = &pool;
@@ -1831,6 +1835,11 @@ bool ShaderCompiler::LoadShaderDefinitions(bool precompileShaders, const ShaderC
     // Compile all shaders ahead of time
     for (const ShaderBundleDecl& decl : m_shaderBundleDecls)
     {
+        if (!params.ShaderMatchesFilter(decl.name.ToString()))
+        {
+            continue;
+        }
+
         Handle<ShaderBundle> bundle;
         if (!LoadBundle(decl.name, Optional<ShaderRequest>(), bundle))
         {

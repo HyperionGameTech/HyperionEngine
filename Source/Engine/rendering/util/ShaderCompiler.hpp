@@ -113,6 +113,7 @@ struct ShaderCompileParams
 {
     EnumFlags<ShaderCompileTargetPlatform> targetPlatforms = ShaderCompileTargetPlatform::AllPlatforms;
     EnumFlags<ShaderCompileTargetBackend> targetBackends = ShaderCompileTargetBackend::AllBackends;
+    Array<String> shaderFilters;
 
     ShaderCompileParams() = default;
 
@@ -130,6 +131,27 @@ struct ShaderCompileParams
         : targetPlatforms(platforms),
           targetBackends(backends)
     {
+    }
+
+    HYP_FORCE_INLINE bool HasShaderFilters() const { return shaderFilters.Any(); }
+
+    bool ShaderMatchesFilter(const String& shaderName) const
+    {
+        if (shaderFilters.Empty())
+        {
+            return true;
+        }
+
+        const String lowerName = shaderName.ToLower();
+        for (const String& filter : shaderFilters)
+        {
+            if (lowerName.Contains(filter.ToLower()))
+            {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     /*! \brief Returns the combined bit mask of platforms and backends. */

@@ -824,6 +824,7 @@ void UIObject::UpdateNodeTransform()
 
     Node* parentNode = m_node->GetParent();
 
+    // Apply UI scale factor to position for touch-friendly scaling
     const float uiScaleFactor = GetUIScaleFactor();
     const Vec2f scaledPosition = Vec2f(m_position) * uiScaleFactor;
 
@@ -832,16 +833,14 @@ void UIObject::UpdateNodeTransform()
         m_node->SetLocalTranslation(Vec3f {
             scaledPosition.x + m_offsetPosition.x,
             scaledPosition.y + m_offsetPosition.y,
-            zValue
-        });
+            zValue });
     }
     else
     {
         m_node->SetLocalTranslation(Vec3f {
             scaledPosition.x + m_offsetPosition.x - parentScrollOffset.x,
             scaledPosition.y + m_offsetPosition.y - parentScrollOffset.y,
-            zValue
-        });
+            zValue });
     }
 }
 

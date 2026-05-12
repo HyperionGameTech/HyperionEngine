@@ -137,6 +137,7 @@ extern class UIObject
     GetEntity() -> Entity
     GetStage() -> UIStage
     SetStage(stage : UIStage) -> void
+    GetUIScaleFactor() -> float
     GetName() -> Name
     SetName(name : Name) -> void
     GetPosition() -> Vec2i
@@ -239,6 +240,8 @@ end
 extern class UIStage : UIObject
     GetSurfaceSize() -> Vec2i
     SetSurfaceSize(surfaceSize : Vec2i) -> void
+    GetUIScaleFactor() -> float
+    SetUIScaleFactor(scaleFactor : float) -> void
     GetScene() -> Scene
     SetScene(scene : Scene) -> void
     GetCamera() -> Camera
@@ -351,6 +354,8 @@ extern class AndroidApplicationWindow : ApplicationWindow
     SetIsMouseLocked(locked : bool) -> void
     IsMouseLocked() -> bool
     HasMouseFocus() -> bool
+    GetContentScaleFactor() -> float
+    GetRenderTargetScale() -> float
     Close() -> void
 end
 extern class CocoaApplicationWindow : ApplicationWindow

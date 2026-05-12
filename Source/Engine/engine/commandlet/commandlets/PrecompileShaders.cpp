@@ -58,6 +58,14 @@ public:
                 CommandLineArgumentFlags::ALLOW_MULTIPLE,
                 Array<String> { "vulkan", "dx12" },
                 JSON::Value("vulkan,dx12"));
+
+            s_definitions.Add(
+                "filter",
+                "f",
+                "Comma-separated list of shader name filters (only shaders containing filter string are compiled)",
+                CommandLineArgumentFlags::NONE,
+                {},
+                JSON::Value(""));
         }
 
         return s_definitions;
@@ -139,6 +147,10 @@ protected:
         {
             params.SetTargetBackends(ShaderCompileTargetBackend::AllBackends);
         }
+
+        // Parse shader filters
+        Array<String> filters = GetEnumValues(args["filter"]);
+        params.shaderFilters = std::move(filters);
 
         return params;
     }
