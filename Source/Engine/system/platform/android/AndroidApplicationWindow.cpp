@@ -259,11 +259,16 @@ bool AndroidApplicationWindow::HandleInputEvent(int32 type, int32 action, float 
         {
             outEvent = Event(EventType::TOUCH_DOWN, this, platformEvent);
 
-            MotionData motionData { currentPos, currentPos - m_prevTouchPosition, /* isAbsolute */ false };
+            // For new touches, delta is zero (no previous position)
+            MotionData motionData { currentPos, Vec2f::Zero(), /* isAbsolute */ false };
 
             outEvent.GetEventData().Set(TouchEventData { pointerId, motionData });
 
-            m_prevTouchPosition = currentPos;
+            // Store current position for this pointer (clamp pointerId to array bounds)
+            if (pointerId >= 0 && pointerId < static_cast<int32>(m_touchPrevPositions.Size()))
+            {
+                m_touchPrevPositions[pointerId] = currentPos;
+            }
 
             return true;
         }
@@ -272,7 +277,14 @@ bool AndroidApplicationWindow::HandleInputEvent(int32 type, int32 action, float 
         {
             outEvent = Event(EventType::TOUCH_UP, this, platformEvent);
 
-            MotionData motionData { currentPos, currentPos - m_prevTouchPosition, /* isAbsolute */ false };
+            // Get previous position for this pointer to calculate delta
+            Vec2f prevPos = currentPos; // Default to current if no previous
+            if (pointerId >= 0 && pointerId < static_cast<int32>(m_touchPrevPositions.Size()))
+            {
+                prevPos = m_touchPrevPositions[pointerId];
+            }
+
+            MotionData motionData { currentPos, currentPos - prevPos, /* isAbsolute */ false };
 
             outEvent.GetEventData().Set(TouchEventData { pointerId, motionData });
 
@@ -282,10 +294,31 @@ bool AndroidApplicationWindow::HandleInputEvent(int32 type, int32 action, float 
         {
             outEvent = Event(EventType::TOUCH_MOVE, this, platformEvent);
 
-            MotionData motionData { currentPos, currentPos - m_prevTouchPosition, /* isAbsolute */ false };
+            // Get previous position for this specific pointer
+            Vec2f prevPos = currentPos; // Default to current (zero delta) if no previous
+            bool hadPrevPos = false;
+            if (pointerId >= 0 && pointerId < static_cast<int32>(m_touchPrevPositions.Size()))
+            {
+                prevPos = m_touchPrevPositions[pointerId];
+                hadPrevPos = true;
+            }
+
+            Vec2f delta = currentPos - prevPos;
+            MotionData motionData { currentPos, delta, /* isAbsolute */ false };
             outEvent.GetEventData().Set(TouchEventData { pointerId, motionData });
 
-            m_prevTouchPosition = currentPos;
+            // Only log if there's actual movement or it's pointer 1 (to reduce spam)
+            if (!delta.IsZero() || pointerId == 1)
+            {
+                HYP_LOG(Core, Debug, "Android: TOUCH_MOVE pointerId={}, pos=({}, {}), delta=({}, {}), hadPrev={}",
+                    pointerId, currentPos.x, currentPos.y, delta.x, delta.y, hadPrevPos);
+            }
+
+            // Update stored position for this pointer
+            if (pointerId >= 0 && pointerId < static_cast<int32>(m_touchPrevPositions.Size()))
+            {
+                m_touchPrevPositions[pointerId] = currentPos;
+            }
 
             return true;
         }

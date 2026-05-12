@@ -150,10 +150,15 @@ void TouchControlsSubsystem::CreateJoystickUI()
 
     m_isInitialized = true;
 
-    // Get screen size
+    // Get screen size immediately
     if (g_appContext.IsValid() && g_appContext->GetMainWindow() != nullptr)
     {
         m_screenSize = Vec2f(g_appContext->GetMainWindow()->GetSize());
+        HYP_LOG(Input, Info, "TouchControlsSubsystem: Screen size initialized to ({}, {})", m_screenSize.x, m_screenSize.y);
+    }
+    else
+    {
+        HYP_LOG(Input, Warning, "TouchControlsSubsystem: Could not get screen size during initialization");
     }
 }
 
@@ -229,37 +234,53 @@ void TouchControlsSubsystem::ProcessTouchEvent(const TouchEvent& touchEvent)
 
         m_activeTouches[pointerId] = touchPoint;
 
-        if (isLeftSide && m_leftTouchId == -1)
+        // Only set as primary touch for a side if there isn't one already
+        // This allows multiple touches on same side without overwriting
+        if (isLeftSide)
         {
-            m_leftTouchId = pointerId;
-
-            HYP_LOG(Input, Debug, "TouchControlsSubsystem: Left touch started, showing joystick at ({}, {})", position.x, position.y);
-            
-            // Show joystick at touch position
-            if (m_joystickBase.IsValid())
+            if (m_leftTouchId == -1)
             {
-                m_joystickBase->SetPosition(Vec2i(
-                    static_cast<int32>(position.x - m_joystickSize * 0.5f),
-                    static_cast<int32>(position.y - m_joystickSize * 0.5f)
-                ));
-                m_joystickBase->SetIsVisible(true);
-                HYP_LOG(Input, Debug, "TouchControlsSubsystem: Joystick base shown at ({}, {})", 
-                    m_joystickBase->GetPosition().x, m_joystickBase->GetPosition().y);
+                m_leftTouchId = pointerId;
 
-                // Center the knob
-                if (m_joystickKnob.IsValid())
+                HYP_LOG(Input, Debug, "TouchControlsSubsystem: Left touch started, showing joystick at ({}, {})", position.x, position.y);
+                
+                // Show joystick at touch position
+                if (m_joystickBase.IsValid())
                 {
-                    m_joystickKnob->SetPosition(Vec2i(
-                        static_cast<int32>((m_joystickSize - m_knobSize) * 0.5f),
-                        static_cast<int32>((m_joystickSize - m_knobSize) * 0.5f)
+                    m_joystickBase->SetPosition(Vec2i(
+                        static_cast<int32>(position.x - m_joystickSize * 0.5f),
+                        static_cast<int32>(position.y - m_joystickSize * 0.5f)
                     ));
+                    m_joystickBase->SetIsVisible(true);
+                    HYP_LOG(Input, Debug, "TouchControlsSubsystem: Joystick base shown at ({}, {})", 
+                        m_joystickBase->GetPosition().x, m_joystickBase->GetPosition().y);
+
+                    // Center the knob
+                    if (m_joystickKnob.IsValid())
+                    {
+                        m_joystickKnob->SetPosition(Vec2i(
+                            static_cast<int32>((m_joystickSize - m_knobSize) * 0.5f),
+                            static_cast<int32>((m_joystickSize - m_knobSize) * 0.5f)
+                        ));
+                    }
                 }
             }
+            else
+            {
+                HYP_LOG(Input, Debug, "TouchControlsSubsystem: Additional left touch ignored, already have primary at pointerId={}", m_leftTouchId);
+            }
         }
-        else if (!isLeftSide && m_rightTouchId == -1)
+        else // Right side
         {
-            m_rightTouchId = pointerId;
-            // Right side has no visual UI, just track for look input
+            if (m_rightTouchId == -1)
+            {
+                m_rightTouchId = pointerId;
+                HYP_LOG(Input, Debug, "TouchControlsSubsystem: Right touch started for look, pointerId={}", pointerId);
+            }
+            else
+            {
+                HYP_LOG(Input, Debug, "TouchControlsSubsystem: Additional right touch ignored, already have primary at pointerId={}", m_rightTouchId);
+            }
         }
 
         break;
@@ -469,6 +490,13 @@ void TouchControlsSubsystem::SetDeadzone(float deadzone)
 
 bool TouchControlsSubsystem::IsLeftSideOfScreen(const Vec2f& position) const
 {
+    // If screen size is not known yet, assume standard width and log warning
+    if (m_screenSize.x <= 0.0f)
+    {
+        HYP_LOG(Input, Warning, "TouchControlsSubsystem: Screen size not initialized, assuming 1080px width");
+        return position.x < 540.0f; // Assume 1080px screen, left half is < 540
+    }
+    
     return position.x < m_screenSize.x * 0.5f;
 }
 
@@ -497,6 +525,27 @@ Vec2f TouchControlsSubsystem::NormalizeJoystickInput(const Vec2f& delta) const
     // Return normalized vector
     Vec2f direction = delta / distance;
     return direction * normalizedDist;
+}
+
+bool TouchControlsSubsystem::GetTouchPoint(int32 pointerId, TouchPoint& outTouchPoint) const
+{
+    auto it = m_activeTouches.Find(pointerId);
+    if (it != m_activeTouches.End())
+    {
+        outTouchPoint = it->second;
+        return true;
+    }
+    return false;
+}
+
+bool TouchControlsSubsystem::IsTouchLeftSide(int32 pointerId) const
+{
+    auto it = m_activeTouches.Find(pointerId);
+    if (it != m_activeTouches.End())
+    {
+        return it->second.isLeftSide;
+    }
+    return false;
 }
 
 } // namespace Hyperion

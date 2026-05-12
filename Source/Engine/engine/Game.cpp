@@ -192,7 +192,6 @@ void Game::SetWorld(const Handle<World>& world)
 
 void Game::HandleEvent(Event&& event)
 {
-    HYP_SCOPE;
     AssertOnThread(g_simThread);
 
     // Pass touch events to TouchControlsSubsystem if available
@@ -216,8 +215,6 @@ void Game::HandleEvent(Event&& event)
 
 bool Game::OnInputEvent(const Event& event)
 {
-    HYP_SCOPE;
-
     AssertOnThread(g_simThread);
 
     if (m_uiSubsystem.IsValid())
@@ -233,8 +230,6 @@ bool Game::OnInputEvent(const Event& event)
 
 void Game::StartSimulating()
 {
-    HYP_SCOPE;
-
     if (m_gameState.mode == GameStateMode::SIMULATING)
     {
         return;
@@ -255,8 +250,6 @@ void Game::StartSimulating()
 
 void Game::StopSimulating()
 {
-    HYP_SCOPE;
-
     const GameStateMode previousGameStateMode = m_gameState.mode;
 
     if (previousGameStateMode == GameStateMode::STOPPED)
@@ -273,8 +266,6 @@ void Game::StopSimulating()
 
 void Game::PauseSimulation()
 {
-    HYP_SCOPE;
-
     if (m_gameState.mode != GameStateMode::SIMULATING)
     {
         return;
@@ -291,8 +282,6 @@ void Game::PauseSimulation()
 
 void Game::SetToEditMode()
 {
-    HYP_SCOPE;
-
     if (m_gameState.mode == GameStateMode::EDIT_MODE)
     {
         return;

@@ -88,6 +88,15 @@ public:
     /*! \brief Process touch input events - called by input system */
     void ProcessTouchEvent(const TouchEvent& touchEvent);
 
+    /*! \brief Get touch information for a specific pointer ID
+     *  \param pointerId The touch pointer ID
+     *  \param outTouchPoint Output touch point information
+     *  \return true if the touch is active, false otherwise */
+    bool GetTouchPoint(int32 pointerId, TouchPoint& outTouchPoint) const;
+
+    /*! \brief Check if a specific touch pointer is on the left side (movement) */
+    bool IsTouchLeftSide(int32 pointerId) const;
+
     virtual void PreUpdate(float delta) override;
     virtual void Update(float delta) override;
 

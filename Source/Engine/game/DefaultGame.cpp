@@ -279,6 +279,18 @@ void DefaultGame::OnUpdate_Impl(float delta)
 
 bool DefaultGame::OnInputEvent(const Event& event)
 {
+    // Log all touch events to debug flow
+    if (event.GetType() == EventType::TOUCH_DOWN || 
+        event.GetType() == EventType::TOUCH_UP || 
+        event.GetType() == EventType::TOUCH_MOVE)
+    {
+        TouchEvent te = event.ToTouchEvent();
+        HYP_LOG(Game, Debug, "DefaultGame::OnInputEvent: {} pointerId={}", 
+            event.GetType() == EventType::TOUCH_DOWN ? "TOUCH_DOWN" : 
+            event.GetType() == EventType::TOUCH_UP ? "TOUCH_UP" : "TOUCH_MOVE",
+            te.pointerId);
+    }
+
     if (Game::OnInputEvent(event))
     {
         if (GetUISubsystem()->GetUIStage()->HasFocus())
@@ -322,38 +334,76 @@ bool DefaultGame::OnInputEvent(const Event& event)
         controller->GetInputHandler()->OnMouseMove(event.ToMouseEvent());
         break;
     case EventType::TOUCH_DOWN:
+    {
+        TouchEvent touchEvent = event.ToTouchEvent();
+
+        // Note: ProcessTouchEvent is already called in Game::HandleEvent, so we don't call it again here
+
+        // Check which side this touch started on using the subsystem's tracking
         if (TouchControlsSubsystem* tcs = GetWorld()->GetSubsystem<TouchControlsSubsystem>())
         {
-            tcs->ProcessTouchEvent(event.ToTouchEvent());
+            TouchPoint touchPoint;
+            if (tcs->GetTouchPoint(touchEvent.pointerId, touchPoint))
+            {
+                // Only call OnTouchDown for right side touches (camera look)
+                if (!touchPoint.isLeftSide)
+                {
+                    HYP_LOG(Game, Debug, "DefaultGame: TOUCH_DOWN on RIGHT side, calling OnTouchDown");
+                    controller->GetInputHandler()->OnTouchDown(touchEvent);
+                }
+                else
+                {
+                    HYP_LOG(Game, Debug, "DefaultGame: TOUCH_DOWN on LEFT side, NOT calling OnTouchDown");
+                }
+            }
         }
-        controller->GetInputHandler()->OnTouchDown(event.ToTouchEvent());
         break;
+    }
     case EventType::TOUCH_UP:
+    {
+        TouchEvent touchEvent = event.ToTouchEvent();
+
+        // Note: ProcessTouchEvent is already called in Game::HandleEvent, so we don't call it again here
+
+        // Check if this touch was on the right side before calling OnTouchUp
         if (TouchControlsSubsystem* tcs = GetWorld()->GetSubsystem<TouchControlsSubsystem>())
         {
-            tcs->ProcessTouchEvent(event.ToTouchEvent());
+            TouchPoint touchPoint;
+            if (tcs->GetTouchPoint(touchEvent.pointerId, touchPoint))
+            {
+                if (!touchPoint.isLeftSide)
+                {
+                    controller->GetInputHandler()->OnTouchUp(touchEvent);
+                }
+            }
         }
-        controller->GetInputHandler()->OnTouchUp(event.ToTouchEvent());
         break;
+    }
     case EventType::TOUCH_MOVE:
     {
         TouchEvent touchEvent = event.ToTouchEvent();
-        
+
+        // Note: ProcessTouchEvent is already called in Game::HandleEvent, so we don't call it again here
+
+        // Get the touch info to see which side it started on
         if (TouchControlsSubsystem* tcs = GetWorld()->GetSubsystem<TouchControlsSubsystem>())
         {
-            tcs->ProcessTouchEvent(touchEvent);
-            
-            // Only call OnTouchMove for right side touches (camera look)
-            // Left side is handled separately for movement
-            Vec2f screenSize = Vec2f::Zero();
-            if (g_appContext.IsValid() && g_appContext->GetMainWindow() != nullptr)
+            TouchPoint touchPoint;
+            if (tcs->GetTouchPoint(touchEvent.pointerId, touchPoint))
             {
-                screenSize = Vec2f(g_appContext->GetMainWindow()->GetSize());
+                touchEvent.isLeftSide = touchPoint.isLeftSide;
+
+                // Only call OnTouchMove for touches that STARTED on the right side (camera look)
+                if (!touchEvent.isLeftSide)
+                {
+                    HYP_LOG(Game, Debug, "DefaultGame: TOUCH_MOVE on RIGHT side, delta=({}, {}), relativeDelta=({}, {})",
+                        touchEvent.delta.x, touchEvent.delta.y, touchEvent.relativeDelta.x, touchEvent.relativeDelta.y);
+                    controller->GetInputHandler()->OnTouchMove(touchEvent);
+                }
             }
-            
-            if (!screenSize.IsZero() && touchEvent.position.x > screenSize.x * 0.5f)
+            else
             {
-                controller->GetInputHandler()->OnTouchMove(touchEvent);
+                HYP_LOG(Game, Debug, "DefaultGame: TOUCH_MOVE pointerId={} not found in TouchControlsSubsystem", touchEvent.pointerId);
             }
         }
         break;

@@ -131,6 +131,11 @@ struct TouchEvent
     // Normalized delta (delta / screen size)
     HYP_FIELD()
     Vec2f relativeDelta;
+
+    // True if this touch started on the left side (movement), false if right side (look)
+    // This prevents switching behaviors if the finger drifts across the screen
+    HYP_FIELD()
+    bool isLeftSide = false;
 };
 
 union PlatformEvent

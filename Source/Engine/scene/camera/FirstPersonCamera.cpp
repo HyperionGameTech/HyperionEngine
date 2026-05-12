@@ -102,8 +102,12 @@ bool FirstPersonCameraInputHandler::OnTouchMove(const TouchEvent& evt)
 {
     HYP_SCOPE;
 
+    HYP_LOG(Input, Debug, "FirstPersonCamera::OnTouchMove called, pointerId={}, relativeDelta=({}, {})",
+        evt.pointerId, evt.relativeDelta.x, evt.relativeDelta.y);
+
     if (!m_controller)
     {
+        HYP_LOG(Input, Debug, "FirstPersonCamera::OnTouchMove - no controller, returning false");
         return false;
     }
 
@@ -111,6 +115,7 @@ bool FirstPersonCameraInputHandler::OnTouchMove(const TouchEvent& evt)
 
     if (!camera)
     {
+        HYP_LOG(Input, Debug, "FirstPersonCamera::OnTouchMove - no camera, returning false");
         return false;
     }
 
@@ -118,6 +123,9 @@ bool FirstPersonCameraInputHandler::OnTouchMove(const TouchEvent& evt)
     // This is similar to how mouse events work with relativePos
     static constexpr float touchSensitivity = 200.0f; // Degrees per full screen swipe
     Vec2f touchDelta = evt.relativeDelta * touchSensitivity;
+
+    HYP_LOG(Input, Debug, "FirstPersonCamera::OnTouchMove - rotating camera by ({}, {}) degrees",
+        touchDelta.x, touchDelta.y);
 
     const Vec3f dirCrossY = camera->GetDirection().Cross(camera->GetUpVector());
 

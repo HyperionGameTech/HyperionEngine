@@ -1378,6 +1378,9 @@ extern struct TouchEvent
     PointerId : int32
     Position : Vec2f
     Delta : Vec2f
+    RelativePosition : Vec2f
+    RelativeDelta : Vec2f
+    IsLeftSide : bool
 end
 extern class CommandletBase
     static GetArgumentDefinitions() -> CommandLineArgumentDefinitions

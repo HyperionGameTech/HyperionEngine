@@ -24,6 +24,8 @@
 
 #include <Core/memory/Memory.hpp>
 
+#include <Core/containers/FixedArray.hpp>
+
 #include <Core/config/Config.hpp>
 
 #include <Core/reflection/ObjectBase.hpp>
@@ -502,6 +504,9 @@ private:
 
     Vec2f m_touchPosition;
     Vec2f m_prevTouchPosition;
+
+    // Track previous touch positions per pointer for multi-touch support
+    FixedArray<Vec2f, 10> m_touchPrevPositions {};
 };
 
 HYP_CLASS(Condition = "HYP_ANDROID")
