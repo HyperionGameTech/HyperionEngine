@@ -1164,7 +1164,7 @@ Result ObjectFromJSON(const JSON::Object& jsonObject, const Class* targetClass, 
         {
             if (!ResolveMember(*pair.second, *jsonObjectValue.Get(*pair.second->GetName()).value))
             {
-                HYP_LOG(Core, Warning, "Failed to resolve member \"{}\" for Class \"{}\"", pair.second->GetName(), instanceClass->GetName());
+                HYP_LOG(Core, Verbose, "Member \"{}\" for Class \"{}\" is missing or invalid, skipping", pair.second->GetName(), instanceClass->GetName());
                 continue;
             }
         }

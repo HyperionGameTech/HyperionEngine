@@ -30,7 +30,7 @@ namespace Hyperion
                 return (ManagedMethodCache)instance;
             }
         }
-        
+
         private Dictionary<Guid, StoredManagedMethod> cache = new Dictionary<Guid, StoredManagedMethod>();
         private object lockObject = new object();
 
@@ -56,8 +56,9 @@ namespace Hyperion
                     throw new Exception("Method already exists in cache");
                 }
 
-                cache.Add(guid, new StoredManagedMethod {
-                    AssemblyGuid = assemblyGuid, 
+                cache.Add(guid, new StoredManagedMethod
+                {
+                    AssemblyGuid = assemblyGuid,
                     MethodInfo = methodInfo,
                     InvokeMethodDelegate = invokeMethodDelegate,
                     DelegateGCHandle = GCHandle.Alloc(invokeMethodDelegate)
@@ -67,9 +68,6 @@ namespace Hyperion
 
         public int RemoveForAssembly(Guid assemblyGuid)
         {
-            Console.WriteLine("Removing methods for assembly: " + assemblyGuid);
-            Console.Out.Flush();
-
             List<Guid> keysToRemove = new List<Guid>();
             int numKeysToRemove = 0;
 

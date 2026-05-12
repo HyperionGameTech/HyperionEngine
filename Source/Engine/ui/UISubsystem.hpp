@@ -92,8 +92,6 @@ private:
     void OnAddedToWorld() override;
     void OnRemovedFromWorld() override;
 
-    void CreateFramebuffer();
-
     void RenderCollect(RenderProxyList& rpl);
 
     void InitFont();

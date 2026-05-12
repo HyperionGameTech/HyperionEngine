@@ -460,8 +460,6 @@ void AssetBucketData::SetAsset(
         return;
     }
 
-    HYP_LOG_TEMP("Add asset '{}'", assetObject->GetPath().ToString());
-
     dirtyIndices.Set(assetDesc.index, true);
 }
 
@@ -1473,8 +1471,6 @@ void AssetRegistry::SaveDirtyAssets()
 
                     dirtyAssets.Add(assetObject);
 
-                    HYP_LOG_TEMP("Asset '{}' is dirty", assetObject->GetPath().ToString());
-
                     lock.Reset();
 
                     // recursively register properties for this asset object
@@ -1547,11 +1543,11 @@ void AssetRegistry::SaveDirtyAssets()
                 }
 
                 manifestWriter.Close();
+
+                HYP_LOG(Assets, Verbose, "Saved asset manifest for '{}' to '{}'", assetName, manifestPath);
             }
 
             readScope.Reset();
-
-            HYP_LOG(Assets, Debug, "Saved asset '{}' to '{}'", assetName, manifestPath);
         }
     }
 }

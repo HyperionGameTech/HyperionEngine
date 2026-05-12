@@ -238,6 +238,7 @@ void FirstPersonCameraController::UpdateLogic(double delta)
 
     m_inputHandler->SetDeltaTime(delta);
 
+    // Keyboard movement (WASD)
     if (m_inputHandler->IsKeyDown(KeyCode::KEY_W))
     {
         translation += direction * delta * MovementSpeed;
@@ -253,6 +254,15 @@ void FirstPersonCameraController::UpdateLogic(double delta)
     if (m_inputHandler->IsKeyDown(KeyCode::KEY_D))
     {
         translation += dirCrossY * delta * MovementSpeed;
+    }
+
+    // Touch joystick movement
+    Vec2f touchDelta = m_inputHandler->GetTouchMovementDelta();
+    if (!touchDelta.IsZero())
+    {
+        // touchDelta.x = strafe (left/right), touchDelta.y = forward/back
+        translation += direction * -touchDelta.y * delta * MovementSpeed;
+        translation += dirCrossY * touchDelta.x * delta * MovementSpeed;
     }
 
     m_camera->SetNextTranslation(translation);

@@ -37,8 +37,8 @@ Java_com_hyperion_engine_HyperionBridge_nativeInit(JNIEnv* env, jclass /*clazz*/
 {
     const char* argv[] = {
         "hyperion",
-        "-RenderOnMainThread=true",
-        "-SimulateOnMainThread=false"
+        "-SimulateOnMainThread=true",
+        "-RenderOnMainThread=false"
     };
 
     return Hyp_Initialize(int(sizeof(argv) / sizeof(argv[0])), const_cast<char**>(argv));

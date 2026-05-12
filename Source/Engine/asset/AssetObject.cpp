@@ -222,7 +222,7 @@ Result AssetObject::SaveAs(const FilePath& manifestPath)
     {
         return HYP_MAKE_ERROR(Error, "Path '{}' is not a valid directory, cannot save asset", dir);
     }
-    
+
     Handle<AssetRegistry> registry = GetAssetRegistry();
     AssertDebug(registry.IsValid());
 

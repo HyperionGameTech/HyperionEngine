@@ -346,12 +346,13 @@ extern "C"
         CoreApi::SetExecutablePath(basePath);
 
         const bool isEditor = cliArgs["Editor"].ToBool();
+        const bool isCommandlet = cliArgs["exec"].ToBool();
 
-#if HYP_DOTNET
-        // dont initialize hostfxr if running from editor,
-        // leads to type identity issues with managed types
-        // due to multiple runtimes being loaded.
-        DotNETHost::GetInstance().Initialize(basePath, /* initFromManaged */ isEditor, s_initFromManagedCallback);
+#if HYP_DOTNET && !defined(HYP_COMMANDLET_NAME)
+        if (!isCommandlet)
+        {
+            DotNETHost::GetInstance().Initialize(basePath, /* initFromManaged */ isEditor, s_initFromManagedCallback);
+        }
 #endif // HYP_DOTNET
 
         g_engineDriver = MakeHandle<EngineDriver>();
@@ -419,8 +420,6 @@ extern "C"
 #else // !HYP_WINDOWS && !HYP_MACOS && !HYP_SDL && !HYP_ANDROID
         HYP_FAIL("AppContext not implemented for this platform");
 #endif // HYP_WINDOWS || HYP_MACOS || HYP_SDL || HYP_ANDROID
-
-        const bool isCommandlet = cliArgs["exec"].ToBool();
 
         Vec2i resolution = { 1280, 720 };
 

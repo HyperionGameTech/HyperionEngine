@@ -166,7 +166,6 @@ void UISubsystem::Init()
 
     const auto HandleWindowResize = [this, weakThis = MakeWeakRef(this)](Vec2i windowSize)
     {
-        //PUSH_RENDER_COMMAND(SetFinalPassImageView, nullptr);
         Handle<UISubsystem> strongThis = weakThis.Lock();
 
         if (!strongThis.IsValid())
@@ -176,7 +175,8 @@ void UISubsystem::Init()
         }
 
         m_uiStage->SetSurfaceSize(windowSize);
-        CreateFramebuffer();
+
+        m_view->uiSurfaceSize = Vec2u(windowSize);
     };
 
     Vec2u windowSize { 1280, 720 };
@@ -216,24 +216,21 @@ void UISubsystem::Init()
     m_uiStage->SetSurfaceSize(Vec2i(windowSize));
 
 #if HYP_ANDROID || HYP_IOS
-    //m_uiStage->SetUIScaleFactor(2.0f);
+    m_uiStage->SetUIScaleFactor(1.0f);//2.0f);
 #endif
 
-    const Vec2u framebufferSize = windowSize;
-
-    FramebufferDesc framebufferDesc;
-    framebufferDesc.extent = framebufferSize;
-    framebufferDesc.AddAttachment({ TextureType::Texture2D, TextureFormat::RGBA8 });
-
     ViewDesc viewDesc {};
-    viewDesc.flags = ViewFlags::UI_VIEW | (ViewFlags::DEFAULT & ~(ViewFlags::ALL_WORLD_SCENES | ViewFlags::MATCH_CAMERA_DIMENSIONS));
-    viewDesc.framebufferDesc = framebufferDesc;
+    viewDesc.flags = ViewFlags::UI_VIEW
+        | ViewFlags::EXTERNAL_RENDERTARGET
+        | (ViewFlags::DEFAULT & ~(ViewFlags::ALL_WORLD_SCENES | ViewFlags::MATCH_CAMERA_DIMENSIONS));
+
     viewDesc.scenes = { m_uiStage->GetScene() };
     viewDesc.camera = m_uiStage->GetCamera();
     viewDesc.entityBatchClass = UIEntityInstanceBatch::StaticClass();
 
     m_view = MakeHandle<View>(viewDesc);
     m_view->SetName(NAME("UISubsystem_View"));
+    m_view->uiSurfaceSize = windowSize;
     InitObject(m_view);
 }
 
@@ -406,50 +403,6 @@ void UISubsystem::RenderCollect(RenderProxyList& rpl)
     rpl.EndWrite();
 }
 
-void UISubsystem::CreateFramebuffer()
-{
-    const ThreadId ownerThreadId = m_uiStage->GetScene()->GetEntityManager()->GetOwnerThreadId();
-
-    auto impl = [weakThis = WeakHandleFromThis()]()
-    {
-        HYP_NAMED_SCOPE("Create UI Render Subsystem view");
-
-        Handle<UISubsystem> subsystem = weakThis.Lock();
-
-        if (!subsystem)
-        {
-            HYP_LOG(UI, Warning, "UISubsystem: subsystem is expired while creating view");
-
-            return;
-        }
-    };
-
-    if (IsOnThread(ownerThreadId))
-    {
-        HYP_NAMED_SCOPE("Create UI Render Subsystem view on owner thread");
-
-        impl();
-    }
-    else
-    {
-        GetThreadById(ownerThreadId)->GetScheduler().Enqueue(std::move(impl), TaskEnqueueFlags::FIRE_AND_FORGET);
-    }
-
-    const ViewOutputTarget& outputTarget = m_view->GetOutputTarget();
-    Assert(outputTarget.IsValid());
-
-    const FramebufferRef& framebuffer = outputTarget.GetFramebuffer();
-    Assert(framebuffer.IsValid());
-
-    const AttachmentBase* attachment = framebuffer->GetAttachment(0);
-    Assert(attachment != nullptr);
-
-    Assert(attachment->GetImageView().IsValid());
-    // Assert(attachment->GetImageView()->IsCreated());
-
-    //PUSH_RENDER_COMMAND(SetFinalPassImageView, attachment->GetImageView());
-}
-
 void UISubsystem::InitFont()
 {
     TResult<Handle<FontAtlas>> fontAtlasResult = CreateFontAtlas();
@@ -484,7 +437,7 @@ void UISubsystem::InitDebugOverlays()
         debugOverlayContainer->SetBackgroundColor(Color(0.0f, 0.0f, 0.0f, 0.0f));
         debugOverlayContainer->SetParentAlignment(Alignments[i]);
         debugOverlayContainer->SetOriginAlignment(Alignments[i]);
-        debugOverlayContainer->SetAcceptsFocus(false); // so we don't steal focus from the viewport
+        debugOverlayContainer->SetAcceptsFocus(false); // so we dlon't steal focus from the viewport
 
         debugOverlayContainer->OnClick.RemoveAllDetached();
         debugOverlayContainer->OnKeyDown.RemoveAllDetached();

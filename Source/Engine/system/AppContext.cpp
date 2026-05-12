@@ -102,7 +102,7 @@ struct SetupWindowSwapchainAsync
 #pragma region ApplicationWindow
 
 #if HYP_ANDROID || HYP_IOS
-static constexpr float SwapchainScale = 0.6f;
+static constexpr float SwapchainScale = 1.0f;
 #else
 static constexpr float SwapchainScale = 1.0f;
 #endif

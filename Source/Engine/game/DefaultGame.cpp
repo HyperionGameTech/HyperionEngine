@@ -275,6 +275,17 @@ void DefaultGame::OnLaunch_Impl()
 
 void DefaultGame::OnUpdate_Impl(float delta)
 {
+    // Pass joystick movement to camera controller
+    if (m_camera)
+    {
+        if (CameraController* controller = m_camera->GetCameraController())
+        {
+            if (TouchControlsSubsystem* tcs = GetWorld()->GetSubsystem<TouchControlsSubsystem>())
+            {
+                controller->GetInputHandler()->SetTouchMovementDelta(tcs->GetMovementDelta());
+            }
+        }
+    }
 }
 
 bool DefaultGame::OnInputEvent(const Event& event)

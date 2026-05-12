@@ -29,14 +29,16 @@
 #include <Core/utilities/ForEach.hpp>
 #include <Core/utilities/Time.hpp>
 
+#include <Core/reflection/Enum.hpp>
+
 #include <Core/functional/Proc.hpp>
 
 #include <Core/io/ByteWriter.hpp>
 #include <Core/io/BufferedByteReader.hpp>
 
-#include <util/ini/INIFile.hpp>
-
 #include <Core/math/MathUtil.hpp>
+
+#include <util/ini/INIFile.hpp>
 
 #include <system/DirectoryInitializer.hpp>
 
@@ -1818,8 +1820,9 @@ bool ShaderCompiler::LoadShaderDefinitions(bool precompileShaders, const ShaderC
     }
 
     HYP_LOG(ShaderCompiler, Verbose, "Precompiling shaders...");
-    HYP_LOG(ShaderCompiler, Info, "Target platforms: {}", uint32(params.targetPlatforms));
-    HYP_LOG(ShaderCompiler, Info, "Target backends: {}", uint32(params.targetBackends));
+    HYP_LOG(ShaderCompiler, Info, "Target platforms: {}", EnumToString(params.targetPlatforms));
+    HYP_LOG(ShaderCompiler, Info, "Target backends: {}", EnumToString(params.targetBackends));
+
     if (params.HasShaderFilters())
     {
         HYP_LOG(ShaderCompiler, Info, "Shader filters: {}", String::Join(params.shaderFilters, ", "));

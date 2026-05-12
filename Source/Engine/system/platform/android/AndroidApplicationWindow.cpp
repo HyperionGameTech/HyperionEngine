@@ -213,15 +213,13 @@ bool AndroidApplicationWindow::HasMouseFocus() const
 
 float AndroidApplicationWindow::GetContentScaleFactor() const
 {
-    return 1.0f;
+    return 2.0f;
 }
 
 float AndroidApplicationWindow::GetRenderTargetScale() const
 {
-    // // Render at 60% of native resolution
-    // return 0.6f;
-
-    return 1.0f;
+    // Render at 60% of native resolution
+    return 0.6f;
 }
 
 void AndroidApplicationWindow::Close()

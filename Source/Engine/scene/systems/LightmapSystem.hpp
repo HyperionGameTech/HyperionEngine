@@ -23,6 +23,12 @@ class LightmapSystem : public SystemBase
 public:
     virtual ~LightmapSystem() override = default;
 
+    virtual bool AllowUpdate() const override
+    {
+        // Process() does nothing currently.
+        return false;
+    }
+
     virtual void OnEntityAdded(Entity* entity) override;
     virtual void OnEntityRemoved(Entity* entity) override;
 

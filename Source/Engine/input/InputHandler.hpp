@@ -55,6 +55,20 @@ public:
     bool IsMouseButtonDown(MouseButtonKey btn) const;
     bool IsMouseButtonUp(MouseButtonKey btn) const;
 
+    /*! \brief Get the current touch movement delta (joystick input)
+     *  \return Vec2f where x = strafe (left/right), y = forward/back, range -1 to 1 */
+    HYP_FORCE_INLINE Vec2f GetTouchMovementDelta() const
+    {
+        return m_touchMovementDelta;
+    }
+
+    /*! \brief Set the touch movement delta from joystick input
+     *  \param delta Vec2f where x = strafe, y = forward/back */
+    HYP_FORCE_INLINE void SetTouchMovementDelta(const Vec2f& delta)
+    {
+        m_touchMovementDelta = delta;
+    }
+
     virtual bool OnKeyDown(const KeyboardEvent& evt);
     virtual bool OnKeyUp(const KeyboardEvent& evt);
 
@@ -109,6 +123,7 @@ public:
 private:
     Bitset m_keyStates;
     EnumFlags<MouseButtonState> m_mouseButtonStates;
+    Vec2f m_touchMovementDelta = Vec2f::Zero();
 
 protected:
     double m_deltaTime;

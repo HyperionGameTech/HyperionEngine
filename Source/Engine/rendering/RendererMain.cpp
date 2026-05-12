@@ -1740,14 +1740,21 @@ void RenderCollector::ExecuteDrawCalls(
     }
     else
     {
+        // Use the framebuffer on the RenderSetup
         Framebuffer* framebuffer = renderSetup.framebuffer;
 
+        // If none on the RenderSetup, use the View's output target framebuffer, if available.
         if (!framebuffer)
         {
             framebuffer = renderSetup.view->GetOutputTarget().GetFramebuffer();
         }
 
-        AssertDebug(framebuffer != nullptr, "Must have a valid framebuffer for rendering");
+        // If no framebuffer is bound due to the above logic, we assume that the framebuffer was bound at a
+        // higher level
+        //
+        // Note that this does have valid uses, that's why there is no assertion, check etc. here.
+        // For example, in FinalPass we bind the framebuffer that writes directly to the backbuffer,
+        // and draw UI into that.
 
         ExecuteDrawCalls(frame, renderSetup, framebuffer, bucketBits, isDepthPrepass);
     }
@@ -1815,8 +1822,8 @@ void RenderCollector::ExecuteDrawCalls(
     RenderGroupCache& attributeRegistry = *RI.renderGroupCache;
 
     // set these to null after rendering
-    Array<ParallelRenderingState**, RenderTempAllocator> parallelRenderingStatesToNullify;
-    parallelRenderingStatesToNullify.Reserve(32);
+    static Array<ParallelRenderingState**> s_parallelRenderingStatesToNullify;
+    s_parallelRenderingStatesToNullify.Reserve(32);
 
     for (auto& mappings : groupsView)
     {
@@ -1833,6 +1840,8 @@ void RenderCollector::ExecuteDrawCalls(
 
             AssertDebug(drawCallCollection.isInit);
 
+            bool shouldExecuteSynchronously = true;
+
             if (drawCallCollection.flags & RenderGroupFlags::PARALLEL_COLLECTION)
             {
                 if (drawCallCollection.parallelRenderingState != nullptr)
@@ -1841,21 +1850,29 @@ void RenderCollector::ExecuteDrawCalls(
                     // therefore we skip enqueueing teh task batch if that is set and instead just
                     // will wait on the existing one
 
-                    parallelRenderingStatesToNullify.PushBack(&drawCallCollection.parallelRenderingState);
-
-                    continue;
+                    shouldExecuteSynchronously = false;
                 }
-
-                HYP_LOG(Rendering, Warning, "Executing draw calls for bucket {} SYNCHRONOUSLY! BeginRecordDrawCalls() should be used to ensure parallel rendering is used.", uint32(rb));
+                else
+                {
+                    HYP_LOG_ONCE(Rendering, Warning, "Executing draw calls for bucket {} SYNCHRONOUSLY! BeginRecordDrawCalls() should be used to ensure parallel rendering is used.", uint32(rb));
+                }
             }
 
-            PerformRenderingPayloadBase payload {};
-            payload.renderSetup = renderSetup;
-            payload.prepassStage = prepassStage;
-            payload.pDrawCallCollection = &drawCallCollection;
-            payload.pIndirectRenderer = isDepthPrepass ? nullptr : drawCallCollection.indirectRenderer;
+            if (shouldExecuteSynchronously)
+            {
+                PerformRenderingPayloadBase payload {};
+                payload.renderSetup = renderSetup;
+                payload.prepassStage = prepassStage;
+                payload.pDrawCallCollection = &drawCallCollection;
+                payload.pIndirectRenderer = isDepthPrepass ? nullptr : drawCallCollection.indirectRenderer;
 
-            PerformRendering(frame, payload);
+                PerformRendering(frame, payload);
+            }
+            else
+            {
+                // Set null for next frame
+                s_parallelRenderingStatesToNullify.PushBack(&drawCallCollection.parallelRenderingState);
+            }
         }
     }
 
@@ -1864,13 +1881,14 @@ void RenderCollector::ExecuteDrawCalls(
         Commit(frame->cr, uint8(bit));
     }
 
-    if (parallelRenderingStatesToNullify.Any())
+    if (s_parallelRenderingStatesToNullify.Any())
     {
-        for (ParallelRenderingState** pp : parallelRenderingStatesToNullify)
+        for (ParallelRenderingState** pp : s_parallelRenderingStatesToNullify)
         {
             *pp = nullptr;
         }
     }
+    s_parallelRenderingStatesToNullify.Clear();
 
     if (framebuffer)
     {
@@ -2177,15 +2195,6 @@ void RenderCollector::PerformRendering(Frame* frame, PerformRenderingPayloadBase
 
     AssertDebug(renderSetup.world && renderSetup.view);
     AssertDebug(renderSetup.passData != nullptr, "RenderSetup must have valid PassData for rendering!");
-
-    Framebuffer* framebuffer = renderSetup.framebuffer;
-
-    if (!framebuffer)
-    {
-        framebuffer = renderSetup.view->GetOutputTarget().GetFramebuffer();
-    }
-
-    AssertDebug(framebuffer != nullptr);
 
     if (drawCallCollection.drawCalls.Empty() && drawCallCollection.instancedDrawCalls.Empty())
     {

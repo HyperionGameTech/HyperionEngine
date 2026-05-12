@@ -170,10 +170,6 @@ protected:
 
         const ShaderCompileParams params = ParseCompileParams(args);
 
-        HYP_LOG(Engine, Info, "Shader compilation targets:");
-        HYP_LOG(Engine, Info, "  Platforms: {}", uint32(params.targetPlatforms));
-        HYP_LOG(Engine, Info, "  Backends:  {}", uint32(params.targetBackends));
-
         if (!g_shaderCompiler->CanCompileShaders(params))
         {
             HYP_LOG(Engine, Error, "Cannot compile shaders for the requested targets. "

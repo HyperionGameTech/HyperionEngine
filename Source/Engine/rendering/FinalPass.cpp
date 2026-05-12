@@ -150,9 +150,9 @@ void FinalPass::Render(Frame* frame, const RenderSetup& rs)
     if (cvShowDebugUI.Get())
     {
         // draw ui
-        UIPass* uiRenderer = static_cast<UIPass*>(RI.namedPasses[NamedPass::UI][0]);
+        UIPass* uiPass = static_cast<UIPass*>(RI.namedPasses[NamedPass::UI][0]);
 
-        if (uiRenderer != nullptr)
+        if (uiPass != nullptr)
         {
             for (World* world : GetActiveWorlds())
             {
@@ -167,7 +167,12 @@ void FinalPass::Render(Frame* frame, const RenderSetup& rs)
                     currentViewSetup.world = world;
                     currentViewSetup.view = view;
 
-                    uiRenderer->RenderFrame(frame, currentViewSetup);
+                    Viewport viewport {};
+                    viewport.extent = MathUtil::Max(view->uiSurfaceSize, Vec2u::One());
+
+                    currentViewSetup.viewport = viewport;
+
+                    uiPass->RenderFrame(frame, currentViewSetup);
                 }
             }
         }
