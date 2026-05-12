@@ -184,16 +184,12 @@ public class MainActivity extends Activity implements SurfaceHolder.Callback {
                     break;
 
                 case MotionEvent.ACTION_MOVE:
-                    // For ACTION_MOVE, we need to handle ALL pointers that moved
-                    // Not just the one in getActionIndex()
+                    // Send move events for ALL active pointers
                     int pointerCount = event.getPointerCount();
                     for (int i = 0; i < pointerCount; i++) {
                         int pid = event.getPointerId(i);
                         float px = event.getX(i);
                         float py = event.getY(i);
-                        
-                        // Always send move events - let the native side handle dead zones
-                        // This is crucial for multi-touch to work properly
                         HyperionBridge.nativeTouchEvent(action, px, py, pid);
                     }
                     m_touchMoved = true;
