@@ -159,7 +159,6 @@ public:
     using EventData = Variant<
         EnumFlags<MouseButtonState>,
         KeyCode,
-        FilePath,
         Vec2i,          // scroll
         MotionData,     // mouse movement data
         TouchEventData, // touch event data

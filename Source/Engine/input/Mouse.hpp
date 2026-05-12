@@ -30,7 +30,7 @@ enum class MouseButtonState : uint8
     RIGHT = 0x4
 };
 
-HYP_MAKE_ENUM_FLAGS(MouseButtonState)
+HYP_MAKE_ENUM_FLAGS(MouseButtonState);
 
 HYP_STRUCT()
 struct MouseEvent

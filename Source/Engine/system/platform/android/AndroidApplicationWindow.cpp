@@ -211,6 +211,19 @@ bool AndroidApplicationWindow::HasMouseFocus() const
     return m_nativeWindow != nullptr;
 }
 
+float AndroidApplicationWindow::GetContentScaleFactor() const
+{
+    return 2.0f;
+}
+
+float AndroidApplicationWindow::GetRenderTargetScale() const
+{
+    // // Render at 60% of native resolution
+    // return 0.6f;
+
+    return 1.0f;
+}
+
 void AndroidApplicationWindow::Close()
 {
     TUniqueLock lock(m_mtx);

@@ -116,6 +116,7 @@ private:
     void CreateJoystickUI();
     void DestroyJoystickUI();
     void UpdateJoystickVisuals();
+    void UpdateKnobAppearance(const Vec2f& normalizedDelta);
     void UpdateMovementFromTouch();
     void UpdateLookFromTouch();
 
@@ -126,6 +127,7 @@ private:
     // UI elements for movement joystick
     Handle<UIObject> m_joystickBase;
     Handle<UIObject> m_joystickKnob;
+    Handle<UIObject> m_joystickShadow;  // Drop shadow for knob
 
     // Touch tracking
     TMap<int32, TouchPoint> m_activeTouches;
@@ -138,10 +140,10 @@ private:
 
     // Configuration
     bool m_enabled = true;
-    float m_joystickSize = 120.0f;
-    float m_knobSize = 50.0f;
+    float m_joystickSize = 180.0f;  // Larger base
+    float m_knobSize = 72.0f;       // Larger knob (40% of base)
     float m_deadzone = 0.1f;
-    float m_maxJoystickRadius = 40.0f;
+    float m_maxJoystickRadius = 60.0f;  // Increased radius
     float m_lookSensitivity = 2.0f;
 
     // Runtime state

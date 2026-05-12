@@ -215,6 +215,29 @@ void UIStage::SetSurfaceSize(Vec2i surfaceSize)
     UpdatePosition(true);
 }
 
+void UIStage::SetUIScaleFactor(float scaleFactor)
+{
+    HYP_SCOPE;
+    AssertOnOwnerThread();
+
+    if (scaleFactor <= 0.0f)
+    {
+        HYP_LOG(UI, Warning, "UIStage::SetUIScaleFactor: Scale factor must be greater than 0, ignoring value {}", scaleFactor);
+        return;
+    }
+
+    if (MathUtil::ApproxEqual(m_uiScaleFactor, scaleFactor))
+    {
+        return;
+    }
+
+    m_uiScaleFactor = scaleFactor;
+
+    // Trigger updates for all children to recalculate sizes and positions
+    UpdateSize(true);
+    UpdatePosition(true);
+}
+
 Scene* UIStage::GetScene() const
 {
     if (Scene* uiObjectScene = UIObject::GetScene())
@@ -342,7 +365,7 @@ void UIStage::Init()
 
     InitObject(m_camera);
 
-    const auto updateSurfaceSize = [this](ApplicationWindow* window)
+    const auto UpdateSurfaceSize = [this](ApplicationWindow* window)
     {
         m_onWindowResizedHandler.Reset();
 
@@ -371,9 +394,10 @@ void UIStage::Init()
             g_simThread);
     };
 
-    updateSurfaceSize(g_appContext->GetMainWindow());
+    UpdateSurfaceSize(g_appContext->GetMainWindow());
+
     m_onCurrentWindowChangedHandler = g_appContext->OnCurrentWindowChanged
-                                          .BindThreaded(updateSurfaceSize, g_simThread);
+        .BindThreaded(UpdateSurfaceSize, g_simThread);
 
     // Will create a new Scene
     SetScene(nullptr);

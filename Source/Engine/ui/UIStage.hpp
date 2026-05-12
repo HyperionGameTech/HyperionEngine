@@ -110,6 +110,22 @@ public:
     HYP_METHOD()
     void SetSurfaceSize(Vec2i surfaceSize);
 
+    /*! \brief Get the UI scale factor used to scale UI elements for touch-friendly interfaces.
+     *  This is separate from the content scale factor (DPI) and is used to make UI elements larger
+     *  on mobile devices or when touch input is needed.
+     *
+     *  \return The UI scale factor (default is 1.0). */
+    HYP_METHOD()
+    HYP_FORCE_INLINE float GetUIScaleFactor() const
+    {
+        return m_uiScaleFactor;
+    }
+
+    /*! \brief Set the UI scale factor used to scale UI elements for touch-friendly interfaces.
+     *  \param scaleFactor The scale factor to set. Must be greater than 0. */
+    HYP_METHOD()
+    void SetUIScaleFactor(float scaleFactor);
+
     /*! \brief Get the scene that contains the UI objects.
      *
      *  \return Handle to the scene. */
@@ -205,6 +221,7 @@ private:
 
     Vec2i m_surfaceSize;
     float m_contentScaleFactor = 1.0f;
+    float m_uiScaleFactor = 1.0f;
 
     Vec2f ToLogicalCoords(Vec2f physicalCoords) const
     {

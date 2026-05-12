@@ -110,26 +110,47 @@ void TouchControlsSubsystem::CreateJoystickUI()
         return;
     }
 
-    // Create joystick base (semi-transparent circle background)
+    // Create joystick base (outer circle)
     m_joystickBase = uiStage->CreateUIObject<UIPanel>(
         NAME("TouchJoystick_Base"),
-        Vec2i { 50, 50 },  // Initial position, will be hidden until touch
+        Vec2i { 50, 50 },
         UIObjectSize({ static_cast<int32>(m_joystickSize), UIObjectSize::PIXEL },
                      { static_cast<int32>(m_joystickSize), UIObjectSize::PIXEL })
     );
 
     if (m_joystickBase.IsValid())
     {
-        // Add the base to the UIStage
         uiStage->AddChildUIObject(m_joystickBase);
-
-        // Hidden until touched
         m_joystickBase->SetIsVisible(false);
+        m_joystickBase->SetDepth(100);  // Base layer
 
-        // Create the knob (inner circle that moves)
+        // Style the base - larger, more visible
+        m_joystickBase->SetBackgroundColor(Color(0.12f, 0.12f, 0.14f, 0.35f));
+        m_joystickBase->SetBorderRadius(static_cast<uint32>(m_joystickSize * 0.5f));
+        m_joystickBase->SetBorderFlags(UIObjectBorderFlags::ALL);
+
+        // Create drop shadow (slightly larger, offset, darker)
+        const float shadowSize = m_knobSize + 8.0f;
+        m_joystickShadow = m_joystickBase->CreateUIObject<UIPanel>(
+            NAME("TouchJoystick_Shadow"),
+            Vec2i { 0, 0 },
+            UIObjectSize({ static_cast<int32>(shadowSize), UIObjectSize::PIXEL },
+                         { static_cast<int32>(shadowSize), UIObjectSize::PIXEL })
+        );
+
+        if (m_joystickShadow.IsValid())
+        {
+            m_joystickBase->AddChildUIObject(m_joystickShadow);
+            m_joystickShadow->SetDepth(101);  // Above base, below knob
+            m_joystickShadow->SetBackgroundColor(Color(0.0f, 0.0f, 0.0f, 0.4f));
+            m_joystickShadow->SetBorderRadius(static_cast<uint32>(shadowSize * 0.5f));
+            m_joystickShadow->SetBorderFlags(UIObjectBorderFlags::ALL);
+        }
+
+        // Create the knob (inner circle)
         m_joystickKnob = m_joystickBase->CreateUIObject<UIPanel>(
             NAME("TouchJoystick_Knob"),
-            Vec2i { 0, 0 },  // Centered in parent
+            Vec2i { 0, 0 },
             UIObjectSize({ static_cast<int32>(m_knobSize), UIObjectSize::PIXEL },
                          { static_cast<int32>(m_knobSize), UIObjectSize::PIXEL })
         );
@@ -137,6 +158,12 @@ void TouchControlsSubsystem::CreateJoystickUI()
         if (m_joystickKnob.IsValid())
         {
             m_joystickBase->AddChildUIObject(m_joystickKnob);
+            m_joystickKnob->SetDepth(102);  // Top layer
+            m_joystickKnob->SetBorderRadius(static_cast<uint32>(m_knobSize * 0.5f));
+            m_joystickKnob->SetBorderFlags(UIObjectBorderFlags::ALL);
+
+            // Initial knob style - will be updated dynamically
+            UpdateKnobAppearance(Vec2f::Zero());
         }
     }
 
@@ -154,6 +181,12 @@ void TouchControlsSubsystem::DestroyJoystickUI()
     {
         m_joystickKnob->RemoveFromParent();
         m_joystickKnob.Reset();
+    }
+
+    if (m_joystickShadow.IsValid())
+    {
+        m_joystickShadow->RemoveFromParent();
+        m_joystickShadow.Reset();
     }
 
     if (m_joystickBase.IsValid())
@@ -223,17 +256,26 @@ void TouchControlsSubsystem::ProcessTouchEvent(const TouchEvent& touchEvent)
 
             if (m_joystickBase.IsValid())
             {
+                // Position joystick base centered on touch
                 m_joystickBase->SetPosition(Vec2i(
                     static_cast<int32>(position.x - m_joystickSize * 0.5f),
                     static_cast<int32>(position.y - m_joystickSize * 0.5f)
                 ));
                 m_joystickBase->SetIsVisible(true);
 
+                // Center knob and shadow in base initially
                 if (m_joystickKnob.IsValid())
                 {
                     m_joystickKnob->SetPosition(Vec2i(
                         static_cast<int32>((m_joystickSize - m_knobSize) * 0.5f),
                         static_cast<int32>((m_joystickSize - m_knobSize) * 0.5f)
+                    ));
+                }
+                if (m_joystickShadow.IsValid())
+                {
+                    m_joystickShadow->SetPosition(Vec2i(
+                        static_cast<int32>((m_joystickSize - (m_knobSize + 8.0f)) * 0.5f),
+                        static_cast<int32>((m_joystickSize - (m_knobSize + 8.0f)) * 0.5f)
                     ));
                 }
             }
@@ -376,22 +418,74 @@ void TouchControlsSubsystem::UpdateJoystickVisuals()
     const TouchPoint& touch = it->second;
     Vec2f delta = touch.position - touch.startPosition;
 
-    // Clamp to max radius
+    // Clamp delta to max radius so knob stays within base circle
     float distance = delta.Length();
     if (distance > m_maxJoystickRadius)
     {
         delta = delta / distance * m_maxJoystickRadius;
     }
 
-    // Update knob position relative to base center
-    Vec2f baseCenter(m_joystickSize * 0.5f, m_joystickSize * 0.5f);
-    Vec2f knobCenter(m_knobSize * 0.5f, m_knobSize * 0.5f);
-    Vec2f knobPos = baseCenter + delta - knobCenter;
+    // Calculate normalized delta (-1 to 1 range) for lighting
+    Vec2f normalizedDelta = Vec2f::Zero();
+    if (m_maxJoystickRadius > 0.0f)
+    {
+        normalizedDelta = delta / m_maxJoystickRadius;
+    }
+
+    // Position knob: base center + delta - half knob size to center it
+    Vec2f knobPos(
+        (m_joystickSize - m_knobSize) * 0.5f + delta.x,
+        (m_joystickSize - m_knobSize) * 0.5f + delta.y
+    );
 
     m_joystickKnob->SetPosition(Vec2i(
         static_cast<int32>(knobPos.x),
         static_cast<int32>(knobPos.y)
     ));
+
+    // Position shadow slightly offset in opposite direction of movement (fake depth)
+    if (m_joystickShadow.IsValid())
+    {
+        const float shadowOffset = 3.0f;
+        Vec2f shadowPos(
+            (m_joystickSize - (m_knobSize + 8.0f)) * 0.5f + delta.x - normalizedDelta.x * shadowOffset,
+            (m_joystickSize - (m_knobSize + 8.0f)) * 0.5f + delta.y - normalizedDelta.y * shadowOffset
+        );
+        m_joystickShadow->SetPosition(Vec2i(
+            static_cast<int32>(shadowPos.x),
+            static_cast<int32>(shadowPos.y)
+        ));
+    }
+
+    // Update knob appearance with dynamic lighting
+    UpdateKnobAppearance(normalizedDelta);
+}
+
+void TouchControlsSubsystem::UpdateKnobAppearance(const Vec2f& normalizedDelta)
+{
+    if (!m_joystickKnob.IsValid())
+    {
+        return;
+    }
+
+    // Simulate 3D lighting effect based on movement direction
+    // Light appears to come from top-left, so when knob moves:
+    // - Moving right: left side gets lighter (facing light)
+    // - Moving down: top gets lighter
+    // - etc.
+
+    float lightIntensity = 0.85f;  // Base brightness
+    float highlightStrength = 0.15f;  // How much the light varies
+
+    // Calculate lighting shift based on direction
+    // Moving "into" the light makes it brighter, "away" makes it darker
+    float lightShift = (normalizedDelta.x * -0.3f + normalizedDelta.y * -0.5f) * highlightStrength;
+
+    float r = MathUtil::Clamp(lightIntensity + lightShift, 0.6f, 1.0f);
+    float g = MathUtil::Clamp(lightIntensity + lightShift, 0.6f, 1.0f);
+    float b = MathUtil::Clamp(lightIntensity + lightShift * 0.8f, 0.6f, 1.0f);  // Slightly blue-tinted shadow
+
+    m_joystickKnob->SetBackgroundColor(Color(r, g, b, 0.95f));
 }
 
 Vec2f TouchControlsSubsystem::GetMovementDelta() const

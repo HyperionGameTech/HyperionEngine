@@ -215,6 +215,10 @@ void UISubsystem::Init()
 
     m_uiStage->SetSurfaceSize(Vec2i(windowSize));
 
+#if HYP_ANDROID || HYP_IOS
+    //m_uiStage->SetUIScaleFactor(2.0f);
+#endif
+
     const Vec2u framebufferSize = windowSize;
 
     FramebufferDesc framebufferDesc;

@@ -487,6 +487,12 @@ public:
     bool HasMouseFocus() const override;
 
     HYP_METHOD()
+    float GetContentScaleFactor() const override;
+
+    HYP_METHOD()
+    float GetRenderTargetScale() const override;
+
+    HYP_METHOD()
     void Close() override;
 
     HYP_FORCE_INLINE void* GetNativeWindow() const

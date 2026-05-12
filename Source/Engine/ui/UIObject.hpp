@@ -569,6 +569,13 @@ public:
     HYP_METHOD()
     void SetStage(UIStage* stage);
 
+    /*! \brief Get the UI scale factor from the stage this object belongs to.
+     *  Returns 1.0 if no stage is set.
+     *
+     *  \return The UI scale factor. */
+    HYP_METHOD()
+    float GetUIScaleFactor() const;
+
     HYP_METHOD(Property = "Name")
     Name GetName() const;
 

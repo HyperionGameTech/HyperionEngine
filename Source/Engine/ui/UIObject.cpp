@@ -461,6 +461,22 @@ void UIObject::SetStage(UIStage* stage)
     }
 }
 
+float UIObject::GetUIScaleFactor() const
+{
+    if (m_stage != nullptr)
+    {
+        return m_stage->GetUIScaleFactor();
+    }
+
+    // If this object is a UIStage, return its own scale factor
+    if (IsA<UIStage>())
+    {
+        return StaticCast<UIStage>(const_cast<UIObject*>(this))->GetUIScaleFactor();
+    }
+
+    return 1.0f;
+}
+
 Name UIObject::GetName() const
 {
     return m_name;
@@ -808,19 +824,24 @@ void UIObject::UpdateNodeTransform()
 
     Node* parentNode = m_node->GetParent();
 
+    const float uiScaleFactor = GetUIScaleFactor();
+    const Vec2f scaledPosition = Vec2f(m_position) * uiScaleFactor;
+
     if (m_isPositionAbsolute)
     {
         m_node->SetLocalTranslation(Vec3f {
-            float(m_position.x) + m_offsetPosition.x,
-            float(m_position.y) + m_offsetPosition.y,
-            zValue });
+            scaledPosition.x + m_offsetPosition.x,
+            scaledPosition.y + m_offsetPosition.y,
+            zValue
+        });
     }
     else
     {
         m_node->SetLocalTranslation(Vec3f {
-            float(m_position.x) + m_offsetPosition.x - parentScrollOffset.x,
-            float(m_position.y) + m_offsetPosition.y - parentScrollOffset.y,
-            zValue });
+            scaledPosition.x + m_offsetPosition.x - parentScrollOffset.x,
+            scaledPosition.y + m_offsetPosition.y - parentScrollOffset.y,
+            zValue
+        });
     }
 }
 
@@ -1237,7 +1258,8 @@ void UIObject::SetText(const String& text)
 
 float UIObject::GetTextSize() const
 {
-    return m_computedTextSize;
+    // Apply UI scale factor to make text proportional to scaled UI elements
+    return m_computedTextSize * GetUIScaleFactor();
 }
 
 void UIObject::SetTextSize(float textSize)
@@ -2116,26 +2138,28 @@ void UIObject::ComputeActualSize(const UIObjectSize& inSize, Vec2i& actualSize, 
 
     UIObject* parentUiObject = GetParentUIObject();
 
+    const float uiScaleFactor = GetUIScaleFactor();
+
     if (isInner)
     {
         parentSize = GetActualSize();
-        parentPadding = GetPadding();
+        parentPadding = Vec2i(Vec2f(GetPadding()) * uiScaleFactor);
 
-        horizontalScrollbarSize[1] = m_horizontalScrollbar != nullptr && m_horizontalScrollbar->IsVisible() ? scrollbarSize : 0;
-        verticalScrollbarSize[0] = m_verticalScrollbar != nullptr && m_verticalScrollbar->IsVisible() ? scrollbarSize : 0;
+        horizontalScrollbarSize[1] = m_horizontalScrollbar != nullptr && m_horizontalScrollbar->IsVisible() ? MathUtil::Floor(scrollbarSize * uiScaleFactor) : 0;
+        verticalScrollbarSize[0] = m_verticalScrollbar != nullptr && m_verticalScrollbar->IsVisible() ? MathUtil::Floor(scrollbarSize * uiScaleFactor) : 0;
     }
     else if (parentUiObject != nullptr)
     {
-        selfPadding = GetPadding();
+        selfPadding = Vec2i(Vec2f(GetPadding()) * uiScaleFactor);
         parentSize = parentUiObject->GetActualSize();
-        parentPadding = parentUiObject->GetPadding();
+        parentPadding = Vec2i(Vec2f(parentUiObject->GetPadding()) * uiScaleFactor);
 
-        horizontalScrollbarSize[1] = parentUiObject->m_horizontalScrollbar != nullptr && parentUiObject->m_horizontalScrollbar->IsVisible() ? scrollbarSize : 0;
-        verticalScrollbarSize[0] = parentUiObject->m_verticalScrollbar != nullptr && parentUiObject->m_verticalScrollbar->IsVisible() ? scrollbarSize : 0;
+        horizontalScrollbarSize[1] = parentUiObject->m_horizontalScrollbar != nullptr && parentUiObject->m_horizontalScrollbar->IsVisible() ? MathUtil::Floor(scrollbarSize * uiScaleFactor) : 0;
+        verticalScrollbarSize[0] = parentUiObject->m_verticalScrollbar != nullptr && parentUiObject->m_verticalScrollbar->IsVisible() ? MathUtil::Floor(scrollbarSize * uiScaleFactor) : 0;
     }
     else if (m_stage != nullptr)
     {
-        selfPadding = GetPadding();
+        selfPadding = Vec2i(Vec2f(GetPadding()) * uiScaleFactor);
         parentSize = m_stage->GetSurfaceSize();
     }
     else if (IsA<UIStage>())
@@ -2168,9 +2192,12 @@ void UIObject::ComputeActualSize(const UIObjectSize& inSize, Vec2i& actualSize, 
         switch (flags)
         {
         case UIObjectSize::PIXEL:
-            actualSize[componentIndex] = inSize.GetValue()[componentIndex];
+        {
+            const float uiScaleFactor = GetUIScaleFactor();
+            actualSize[componentIndex] = MathUtil::Floor(float(inSize.GetValue()[componentIndex]) * uiScaleFactor);
 
             break;
+        }
         case UIObjectSize::PERCENT:
             actualSize[componentIndex] = MathUtil::Floor(double(inSize.GetValue()[componentIndex]) * 0.01 * double(parentSize[componentIndex]));
 
@@ -2298,7 +2325,8 @@ void UIObject::ComputeOffsetPosition()
     // where to position the object relative to its parent
     if (UIObject* parentUiObject = GetParentUIObject())
     {
-        const Vec2f parentPadding(parentUiObject->GetPadding());
+        const float uiScaleFactor = GetUIScaleFactor();
+        const Vec2f parentPadding = Vec2f(parentUiObject->GetPadding()) * uiScaleFactor;
         const Vec2i parentActualSize(parentUiObject->GetActualSize());
 
         switch (m_parentAlignment)
@@ -2401,7 +2429,9 @@ void UIObject::UpdateMeshData_Internal()
     Vec4u instanceProperties;
     instanceProperties[0] = uint32(m_actualSize.x);
     instanceProperties[1] = uint32(m_actualSize.y);
-    instanceProperties[2] = (m_borderRadius & 0xFFu)
+    // Scale border radius to maintain visual proportions with UI scaling
+    const uint32 scaledBorderRadius = MathUtil::Min(uint32(float(m_borderRadius) * GetUIScaleFactor()), 0xFFu);
+    instanceProperties[2] = (scaledBorderRadius & 0xFFu)
         | ((uint32(m_borderFlags) & 0xFu) << 8u)
         | ((uint32(m_focusState) & 0xFFu) << 16u);
 
