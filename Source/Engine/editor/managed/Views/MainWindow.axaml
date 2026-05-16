@@ -113,7 +113,7 @@
                     <MenuItem Command="{Binding Redo}" Header="{Binding RedoHeader}" />
                     <Separator />
                     <MenuItem Command="{Binding Copy}" Header="_Copy" />
-                    <MenuItem Command="{Binding Paste}" Header="_Paste" />
+                    <MenuItem Command="{Binding Paste}" Header="{Binding PasteHeader}" />
                     <Separator />
                     <MenuItem Header="Select _All" />
                     <MenuItem Header="Select All in Viewport" />
@@ -357,7 +357,7 @@
                                             <Grid.ContextMenu>
                                                 <ContextMenu>
                                                     <MenuItem Command="{Binding DataContext.Copy, ElementName=Root}" CommandParameter="{Binding Name}" Header="Copy" />
-                                                    <MenuItem Command="{Binding DataContext.Paste, ElementName=Root}" Header="Paste" />
+                                                    <MenuItem Command="{Binding DataContext.Paste, ElementName=Root}" Header="{Binding DataContext.PasteHeader, ElementName=Root}" />
                                                     <Separator />
                                                     <MenuItem Command="{Binding DataContext.TeleportToNode, ElementName=Root}" CommandParameter="{Binding Name}" Header="Teleport to" />
                                                     <Separator />

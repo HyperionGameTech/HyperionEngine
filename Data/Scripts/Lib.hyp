@@ -1600,6 +1600,7 @@ extern class EditorState
     OnTaskStarted : any
     OnTaskEnded : any
     OnTaskProgressUpdated : any
+    OnClipboardChanged : any
 end
 extern class EditorProject
     GetName() -> Name

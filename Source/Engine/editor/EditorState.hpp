@@ -81,6 +81,9 @@ public:
     HYP_FIELD()
     ScriptableDelegate<void, Handle<EditorTaskBase>> OnTaskProgressUpdated;
 
+    HYP_FIELD()
+    ScriptableDelegate<void, Handle<Node>> OnClipboardChanged;
+
 private:
     Handle<EditorProject> m_currentProject;
 

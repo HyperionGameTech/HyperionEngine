@@ -44,6 +44,13 @@ namespace Hyperion.Editor.ViewModels
             set => SetProperty(ref _redoHeader, value);
         }
 
+        private string _pasteHeader = "_Paste";
+        public string PasteHeader
+        {
+            get => _pasteHeader;
+            set => SetProperty(ref _pasteHeader, value);
+        }
+
         public EditorCommand AddEmptyNode => new EditorCommand("AddEmptyNode");
         public EditorCommand AddEntity => new EditorCommand("AddEntity");
         private EditorCommand _addInstance = new EditorCommand("AddInstance");
@@ -142,6 +149,7 @@ namespace Hyperion.Editor.ViewModels
         private DelegateHandler? _gameModeChangedHandler;
         private DelegateHandler? _focusedNodeChangedHandler;
         private DelegateHandler? _currentProjectChangedHandler;
+        private DelegateHandler? _clipboardChangedHandler;
         private DelegateHandler? _selectedGizmoChangedHandler;
         private DelegateHandler? _activeSceneChangedHandler;
         private DelegateHandler? _actionStackStateChangedHandler;
@@ -261,6 +269,10 @@ namespace Hyperion.Editor.ViewModels
             _currentProjectChangedHandler = editorState.GetOnCurrentProjectChangedDelegate()
                 .Bind(HandleCurrentProjectChanged);
 
+            _clipboardChangedHandler?.Remove();
+            _clipboardChangedHandler = editorState.GetOnClipboardChangedDelegate()
+                .Bind(OnClipboardChanged);
+
             // handle active scene changes
             _activeSceneChangedHandler?.Remove();
             _activeSceneChangedHandler = _editorSubsystem.GetOnActiveSceneChangedDelegate()
@@ -300,6 +312,7 @@ namespace Hyperion.Editor.ViewModels
             _gameModeChangedHandler?.Remove();
             _focusedNodeChangedHandler?.Remove();
             _currentProjectChangedHandler?.Remove();
+            _clipboardChangedHandler?.Remove();
             _selectedGizmoChangedHandler?.Remove();
             _activeSceneChangedHandler?.Remove();
             _actionStackStateChangedHandler?.Remove();
@@ -428,6 +441,30 @@ namespace Hyperion.Editor.ViewModels
             });
         }
 
+        private void UpdatePasteHeader()
+        {
+            _ = EngineManager.PostToSimThread(() =>
+            {
+                Node? clipboardNode = EditorState.Instance.ClipboardNode;
+                string? nodeName = clipboardNode?.Name.ToString();
+
+                Dispatcher.UIThread.Post(() =>
+                {
+                    PasteHeader = string.IsNullOrEmpty(nodeName) ? "_Paste" : $"_Paste {nodeName}";
+                });
+            });
+        }
+
+        private void OnClipboardChanged(Node? node)
+        {
+            string? nodeName = node?.Name.ToString();
+
+            Dispatcher.UIThread.Post(() =>
+            {
+                PasteHeader = string.IsNullOrEmpty(nodeName) ? "_Paste" : $"_Paste {nodeName}";
+            });
+        }
+
         private void HandleCurrentProjectChanged(EditorProject? project)
         {
             // Game mode:  when project changes we also want to update the play/pause/stop buttons
@@ -439,10 +476,15 @@ namespace Hyperion.Editor.ViewModels
             if (project != null)
             {
                 _actionStackStateChangedHandler = project.ActionStack.GetOnStateChangeDelegate()
-                    .Bind((EditorActionStackState state, int undoDepth) => UpdateUndoRedoHeaders(project));
+                    .Bind((EditorActionStackState state, int undoDepth) =>
+                    {
+                        UpdateUndoRedoHeaders(project);
+                        UpdatePasteHeader();
+                    });
             }
 
             UpdateUndoRedoHeaders(project);
+            UpdatePasteHeader();
 
             if (project != null)
             {

@@ -44,5 +44,10 @@ namespace Hyperion
                 this.SetCurrentProject(value);
             }
         }
+
+        public Node? ClipboardNode
+        {
+            get => this.GetClipboardNode();
+        }
     }
 }

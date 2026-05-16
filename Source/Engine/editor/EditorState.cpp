@@ -137,8 +137,12 @@ Handle<Node> EditorState::GetClipboardNode() const
 
 void EditorState::SetClipboardNode(const Handle<Node>& node)
 {
-    Mutex::Guard guard(m_mutex);
-    m_clipboardNode = node;
+    {
+        Mutex::Guard guard(m_mutex);
+        m_clipboardNode = node;
+    }
+
+    OnClipboardChanged(node);
 }
 
 #endif
