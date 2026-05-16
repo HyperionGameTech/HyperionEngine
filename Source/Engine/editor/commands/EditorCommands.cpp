@@ -1268,6 +1268,8 @@ public:
 
     virtual void Execute(EditorSubsystem* subsystem) override
     {
+        AssertOnThread(g_simThread);
+
         const Handle<EditorProject>& currentProject = subsystem->GetCurrentProject();
         if (!currentProject.IsValid())
         {
@@ -1275,17 +1277,33 @@ public:
             return;
         }
 
-        Handle<Node> node = subsystem->GetFocusedNode();
+        Handle<Node> node;
+
+        if (NumArguments() >= 1 && !GetArgument(0).Empty())
+        {
+            node = subsystem->GetActiveScene()->FindNodeByName(StringHash(GetArgument(0)));
+
+            if (!node.IsValid())
+            {
+                HYP_LOG(Editor, Warning, "EditorCommandDeleteNode: could not find node '{}'", GetArgument(0));
+                return;
+            }
+        }
+        else
+        {
+            node = subsystem->GetFocusedNode();
+        }
+
         if (!node.IsValid())
         {
-            HYP_LOG(Editor, Warning, "EditorCommandDeleteNode: no node focused");
+            HYP_LOG(Editor, Warning, "EditorCommandDeleteNode: no node specified or focused");
             return;
         }
 
         Node* parentRaw = node->GetParent();
         if (!parentRaw)
         {
-            HYP_LOG(Editor, Warning, "EditorCommandDeleteNode: focused node has no parent (cannot delete root)");
+            HYP_LOG(Editor, Warning, "EditorCommandDeleteNode: node has no parent (cannot delete root)");
             return;
         }
 
@@ -1339,10 +1357,28 @@ public:
 
     virtual void Execute(EditorSubsystem* subsystem) override
     {
-        Handle<Node> node = subsystem->GetFocusedNode();
+        AssertOnThread(g_simThread);
+
+        Handle<Node> node;
+
+        if (NumArguments() >= 1 && !GetArgument(0).Empty())
+        {
+            node = subsystem->GetActiveScene()->FindNodeByName(StringHash(GetArgument(0)));
+
+            if (!node.IsValid())
+            {
+                HYP_LOG(Editor, Warning, "EditorCommandTeleportTo: could not find node '{}'", GetArgument(0));
+                return;
+            }
+        }
+        else
+        {
+            node = subsystem->GetFocusedNode();
+        }
+
         if (!node.IsValid())
         {
-            HYP_LOG(Editor, Warning, "EditorCommandTeleportTo: no node focused");
+            HYP_LOG(Editor, Warning, "EditorCommandTeleportTo: no node specified or focused");
             return;
         }
 
@@ -1377,24 +1413,36 @@ class HYP_API EditorCommandCopy final : public EditorCommandBase
 public:
     virtual ~EditorCommandCopy() override = default;
 
-    virtual String GetText() const override
-    {
-        return "Copy Node";
-    }
-
     virtual void Execute(EditorSubsystem* subsystem) override
     {
-        Handle<Node> focusedNode = subsystem->GetFocusedNode();
-        if (!focusedNode.IsValid())
+        AssertOnThread(g_simThread);
+
+        Handle<Node> node;
+
+        if (NumArguments() >= 1 && !GetArgument(0).Empty())
         {
-            // @FIXME should take node id/name as param, not focused..
-            HYP_LOG(Editor, Warning, "No node focused, not copying");
+            node = subsystem->GetActiveScene()->FindNodeByName(StringHash(GetArgument(0)));
+
+            if (!node.IsValid())
+            {
+                HYP_LOG(Editor, Warning, "could not find node '{}'", GetArgument(0));
+                return;
+            }
+        }
+        else
+        {
+            node = subsystem->GetFocusedNode();
+        }
+
+        if (!node.IsValid())
+        {
+            HYP_LOG(Editor, Warning, "No node specified or focused");
             return;
         }
 
-        g_editorState->SetClipboardNode(focusedNode);
+        g_editorState->SetClipboardNode(node);
 
-        HYP_LOG(Editor, Verbose, "Copied node '{}' to clipboard", focusedNode->GetName());
+        HYP_LOG(Editor, Verbose, "Copied node '{}' to clipboard", node->GetName());
     }
 };
 
@@ -1418,6 +1466,8 @@ public:
 
     virtual void Execute(EditorSubsystem* subsystem) override
     {
+        AssertOnThread(g_simThread);
+
         EditorProject* currentProject = subsystem->GetCurrentProject();
 
         if (!currentProject)

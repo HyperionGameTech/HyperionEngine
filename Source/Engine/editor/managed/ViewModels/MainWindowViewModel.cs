@@ -43,8 +43,6 @@ namespace Hyperion.Editor.ViewModels
             get => _redoHeader;
             set => SetProperty(ref _redoHeader, value);
         }
-        public EditorCommand Copy => new EditorCommand("Copy");
-        public EditorCommand Paste => new EditorCommand("Paste");
 
         public EditorCommand AddEmptyNode => new EditorCommand("AddEmptyNode");
         public EditorCommand AddEntity => new EditorCommand("AddEntity");
@@ -75,8 +73,12 @@ namespace Hyperion.Editor.ViewModels
         public EditorCommand AddParticleVolume => new EditorCommand("AddParticleVolume");
         public EditorCommand AddFogVolume => new EditorCommand("AddFogVolume");
 
-        public EditorCommand DeleteNode => new EditorCommand("DeleteNode");
-        public EditorCommand TeleportToNode => new EditorCommand("TeleportTo");
+        private string GetSelectedNodeName() => SceneHierarchy.SelectedNode?.Node?.Name.ToString() ?? string.Empty;
+
+        public EditorCommand DeleteNode => new EditorCommand("DeleteNode", GetSelectedNodeName);
+        public EditorCommand TeleportToNode => new EditorCommand("TeleportTo", GetSelectedNodeName);
+        public EditorCommand Copy => new EditorCommand("Copy", GetSelectedNodeName);
+        public EditorCommand Paste => new EditorCommand("Paste");
 
         public ICommand SelectTransformModeTranslate { get; private set; }
         public ICommand SelectTransformModeRotate { get; private set; }

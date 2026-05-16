@@ -356,12 +356,12 @@
                                             </StackPanel>
                                             <Grid.ContextMenu>
                                                 <ContextMenu>
-                                                    <MenuItem Command="{Binding DataContext.Copy, ElementName=Root}" Header="Copy" />
+                                                    <MenuItem Command="{Binding DataContext.Copy, ElementName=Root}" CommandParameter="{Binding Name}" Header="Copy" />
                                                     <MenuItem Command="{Binding DataContext.Paste, ElementName=Root}" Header="Paste" />
                                                     <Separator />
-                                                    <MenuItem Command="{Binding DataContext.TeleportToNode, ElementName=Root}" Header="Teleport to" />
+                                                    <MenuItem Command="{Binding DataContext.TeleportToNode, ElementName=Root}" CommandParameter="{Binding Name}" Header="Teleport to" />
                                                     <Separator />
-                                                    <MenuItem Command="{Binding DataContext.DeleteNode, ElementName=Root}" Header="Delete" />
+                                                    <MenuItem Command="{Binding DataContext.DeleteNode, ElementName=Root}" CommandParameter="{Binding Name}" Header="Delete" />
                                                 </ContextMenu>
                                             </Grid.ContextMenu>
                                         </Grid>

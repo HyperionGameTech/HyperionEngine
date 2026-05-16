@@ -10,14 +10,32 @@ namespace Hyperion.Editor.Commands
     public class EditorCommand : ICommand
     {
         private string _name;
-        
-        public EditorCommand(string name)
+        private Func<string?>? _argumentProvider;
+
+        public EditorCommand(string name, Func<string?>? argumentProvider = null)
         {
             _name = name;
+            _argumentProvider = argumentProvider;
         }
 
         public bool CanExecute(object? parameter) => !string.IsNullOrEmpty(_name);
-        public void Execute(object? parameter) => EngineManager.EditorGame?.EditorSubsystem?.ExecuteCommandByName(new Name("EditorCommand" + _name));
+        public void Execute(object? parameter)
+        {
+            string? argument = parameter as string;
+            if (string.IsNullOrEmpty(argument))
+            {
+                argument = _argumentProvider?.Invoke();
+            }
+
+            if (!string.IsNullOrEmpty(argument))
+            {
+                EngineManager.EditorGame?.EditorSubsystem?.ExecuteCommandByName(new Name("EditorCommand" + _name), argument);
+            }
+            else
+            {
+                EngineManager.EditorGame?.EditorSubsystem?.ExecuteCommandByName(new Name("EditorCommand" + _name));
+            }
+        }
         public event EventHandler? CanExecuteChanged;
         public void RaiseCanExecuteChanged() => CanExecuteChanged?.Invoke(this, EventArgs.Empty);
     }

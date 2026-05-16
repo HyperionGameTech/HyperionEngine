@@ -135,6 +135,16 @@ namespace Hyperion.Editor
 
             if (point.Properties.IsRightButtonPressed)
             {
+                var nodeVm = FindNodeViewModelInEventSource(e.Source);
+                if (nodeVm != null)
+                {
+                    var vm = DataContext as MainWindowViewModel;
+                    if (vm?.SceneHierarchy != null)
+                    {
+                        vm.SceneHierarchy.SelectedNode = nodeVm;
+                    }
+                }
+
                 e.Handled = true;
                 return;
             }

@@ -84,8 +84,6 @@ namespace Hyperion.Editor.ViewModels
                 using BoxedValue boxed = GetPropertyValue();
                 object? raw = boxed.GetValue();
 
-                Logger.Log(LogLevel.Debug, $"ReadTransform got raw value of type: {(raw != null ? raw.GetType().Name : "null")}");
-
                 if (raw is Transform t)
                 {
                     return t;
@@ -153,12 +151,14 @@ namespace Hyperion.Editor.ViewModels
 
         private static string FormatVec3(Vec3f v)
         {
-            return $"({v.x.ToString("F3", CultureInfo.InvariantCulture)}, {v.y.ToString("F3", CultureInfo.InvariantCulture)}, {v.z.ToString("F3", CultureInfo.InvariantCulture)})";
+            const string Format = "F3";
+            return $"({v.x.ToString(Format, CultureInfo.InvariantCulture)}, {v.y.ToString(Format, CultureInfo.InvariantCulture)}, {v.z.ToString(Format, CultureInfo.InvariantCulture)})";
         }
 
         private static string FormatQuat(Quat4f q)
         {
-            return $"({q.X.ToString("F3", CultureInfo.InvariantCulture)}, {q.Y.ToString("F3", CultureInfo.InvariantCulture)}, {q.Z.ToString("F3", CultureInfo.InvariantCulture)}, {q.W.ToString("F3", CultureInfo.InvariantCulture)})";
+            const string Format = "F3";
+            return $"({q.X.ToString(Format, CultureInfo.InvariantCulture)}, {q.Y.ToString(Format, CultureInfo.InvariantCulture)}, {q.Z.ToString(Format, CultureInfo.InvariantCulture)}, {q.W.ToString("F3", CultureInfo.InvariantCulture)})";
         }
 
         private static Vec3f QuaternionToEulerDegrees(Quat4f q)
@@ -180,10 +180,11 @@ namespace Hyperion.Editor.ViewModels
 
         private static Quat4f EulerDegreesToQuaternion(Vec3f eulerDegrees)
         {
-            const float deg2rad = MathF.PI / 180f;
-            float roll = eulerDegrees.x * deg2rad;
-            float pitch = eulerDegrees.y * deg2rad;
-            float yaw = eulerDegrees.z * deg2rad;
+            const float DegToRad = MathF.PI / 180f;
+
+            float roll = eulerDegrees.x * DegToRad;
+            float pitch = eulerDegrees.y * DegToRad;
+            float yaw = eulerDegrees.z * DegToRad;
 
             float cy = MathF.Cos(yaw * 0.5f);
             float sy = MathF.Sin(yaw * 0.5f);
