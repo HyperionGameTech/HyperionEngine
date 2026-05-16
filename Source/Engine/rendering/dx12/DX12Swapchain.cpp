@@ -41,6 +41,9 @@ DX12Swapchain::~DX12Swapchain()
 
 void DX12Swapchain::Destroy()
 {
+    // Wait for GPU to be idle before destroying resources
+    FlushGPU();
+
     m_framebuffers.Clear();
 
     if (m_rtvDescriptorHandle.IsValid())
