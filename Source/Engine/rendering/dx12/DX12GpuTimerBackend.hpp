@@ -14,6 +14,8 @@
 #undef INCLUDE_FROM_RHI
 #undef INCLUDE_FROM_RHI_BASE
 
+#include <rendering/RenderTypes.hpp>
+
 namespace Hyperion {
 
 class DX12GpuTimerBackend final : public GpuTimerBackendBase
@@ -27,7 +29,7 @@ public:
         return false;
     }
 
-    void Destroy() override
+    void Shutdown() override
     {
     }
 

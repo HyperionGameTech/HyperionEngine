@@ -51,7 +51,7 @@ HYP_DECLARE_LOG_CHANNEL(RenderingBackend);
 
 extern EngineStatGpuTimer g_statGpuFrameTime;
 
-// #define HYP_DX12_ENABLE_DEBUG_LAYER
+#define HYP_DX12_ENABLE_DEBUG_LAYER
 // #define HYP_DX12_ENABLE_DRED
 
 #pragma region DX12RenderConfig
@@ -481,7 +481,7 @@ const IRenderConfig& DX12RenderInterface::GetRenderConfig() const
 
 bool DX12RenderInterface::CheckDeviceRemoved() const
 {
-    return CheckDeviceRemovedReason(m_device.Get());
+    return CheckDeviceRemovedReason(m_device.Get()) != nullptr;
 }
 
 DX12Frame* DX12RenderInterface::GetCurrentFrame() const
@@ -491,6 +491,7 @@ DX12Frame* DX12RenderInterface::GetCurrentFrame() const
 
     return m_frames[GetFrameCounter() % NumFramesInFlight].Get();
 }
+HYP_DISABLE_OPTIMIZATION;
 
 void DX12RenderInterface::PrepareFrame(DX12Frame* frame)
 {
@@ -508,14 +509,24 @@ void DX12RenderInterface::PrepareFrame(DX12Frame* frame)
             if (FAILED(hr))
             {
                 HYP_LOG(RenderingBackend, Error, "Failed to set fence completion event! Error: {}", hr);
-                CheckDeviceRemovedReason(m_device.Get());
+
+                const char* deviceRemovedReason = CheckDeviceRemovedReason(m_device.Get());
+                if (deviceRemovedReason)
+                {
+                    HYP_LOG(RenderingBackend, Fatal, "Device removed: {}", deviceRemovedReason);
+                }
             }
 
             DWORD waitResult = WaitForSingleObject(m_frameFenceEvent, INFINITE);
             if (waitResult != WAIT_OBJECT_0)
             {
                 HYP_LOG(RenderingBackend, Error, "Failed to wait for fence! Result: {}", waitResult);
-                CheckDeviceRemovedReason(m_device.Get());
+
+                const char* deviceRemovedReason = CheckDeviceRemovedReason(m_device.Get());
+                if (deviceRemovedReason)
+                {
+                    HYP_LOG(RenderingBackend, Fatal, "Device removed: {}", deviceRemovedReason);
+                }
             }
         }
 
@@ -640,19 +651,19 @@ void DX12RenderInterface::PresentToSwapchain(DX12Swapchain* swapchain)
     AssertDebug(commandBuffer != nullptr);
     AssertDebug(!commandBuffer->IsRecording());
 
-    RI.InsertTransientSyncBarrier();
-
-    const DX12QueueData* queueData = RI.GetQueueData(D3D12_COMMAND_LIST_TYPE_DIRECT);
-    Assert(queueData != nullptr);
-
-    ID3D12CommandList* commandLists[] = { commandBuffer->GetCommandList() };
-    queueData->commandQueue->ExecuteCommandLists(1, commandLists);
-
     DX12Frame* frame = GetCurrentFrame();
     Assert(frame != nullptr);
 
     const uint32 frameCounter = GetFrameCounter();
     const uint32 frameIndex = frameCounter % NumFramesInFlight;
+
+    RI.InsertTransientSyncBarrier();
+
+    const DX12QueueData* queueData = RI.GetQueueData(D3D12_COMMAND_LIST_TYPE_DIRECT);
+    Assert(queueData != nullptr);
+
+    const uint64 signalValue = uint64(frameCounter) + 1;
+    commandBuffer->Submit(queueData->commandQueue.Get(), m_frameFence.Get(), signalValue);
 
     // HYP_LOG_TEMP("Signalling {} on frame {}", signalValue, frameIndex);
 
@@ -721,7 +732,7 @@ void DX12RenderInterface::SubmitTransientCommandBuffer(DX12CommandBuffer& comman
     const DX12QueueData* queueData = GetQueueData(D3D12_COMMAND_LIST_TYPE_DIRECT);
     AssertDebug(queueData != nullptr);
 
-    DX12Fence* pFence = nullptr;
+    DX12Fence* pTransientFence = nullptr;
 
     {
         Mutex::Guard guard(m_transientCommandBuffersMutex);
@@ -743,25 +754,29 @@ void DX12RenderInterface::SubmitTransientCommandBuffer(DX12CommandBuffer& comman
 #endif
         }
 
-        pFence = &fence;
+        pTransientFence = &fence;
     }
 
     ID3D12CommandList* commandLists[] = { commandBuffer.GetCommandList() };
     queueData->commandQueue->ExecuteCommandLists(ArraySize(commandLists), commandLists);
 
-    pFence->Increment();
+    pTransientFence->Increment();
 
-    // HYP_LOG_TEMP("Submitting transient command buffer {} with value {} on frame {}", pFence->GetDebugName(), pFence->GetValue(), frameIndex);
+    // HYP_LOG_TEMP("Submitting transient command buffer {} with value {} on frame {}", pTransientFence->GetDebugName(), pTransientFence->GetValue(), frameIndex);
 
-    HRESULT hr = queueData->commandQueue->Signal(pFence->GetD3D12Fence(), pFence->GetValue());
+    HRESULT hr = queueData->commandQueue->Signal(pTransientFence->GetD3D12Fence(), pTransientFence->GetValue());
     if (FAILED(hr))
     {
         HYP_LOG(RenderingBackend, Error, "Failed to signal fence after executing command lists! Error: {}", hr);
-        CheckDeviceRemovedReason(m_device.Get());
+
+        const char* deviceRemovedReason = CheckDeviceRemovedReason(m_device.Get());
+        if (deviceRemovedReason)
+        {
+            HYP_LOG(RenderingBackend, Fatal, "Device removed: {}", deviceRemovedReason);
+        }
     }
 
-    // Signal the transient sync fence so that the main frame submission
-    // (WriteCommandBuffer) can GPU-wait on this value and guarantee ordering.
+    // Signal the transient sync fence so that the main frame submission can wait on this value and guarantee ordering.
     {
         uint64& syncValue = m_transientSyncValues[frameIndex];
         ++syncValue;
@@ -770,7 +785,12 @@ void DX12RenderInterface::SubmitTransientCommandBuffer(DX12CommandBuffer& comman
         if (FAILED(hr))
         {
             HYP_LOG(RenderingBackend, Error, "Failed to signal transient sync fence! Error: {}", hr);
-            CheckDeviceRemovedReason(m_device.Get());
+
+            const char* deviceRemovedReason = CheckDeviceRemovedReason(m_device.Get());
+            if (deviceRemovedReason)
+            {
+                HYP_LOG(RenderingBackend, Fatal, "Device removed: {}", deviceRemovedReason);
+            }
         }
     }
 }
@@ -1051,22 +1071,12 @@ void DX12RenderInterface::SubmitAsyncCompute(DX12AsyncCompute* asyncCompute)
 
 void DX12RenderInterface::RecordStartTimestamp(DX12CommandBuffer* cmd, EngineStatGpuTimer* timer)
 {
-    DX12Frame* frame = GetCurrentFrame();
-
-    if (frame && m_gpuTimerBackend)
-    {
-        frame->cr << RecordGpuTimestamp(timer, m_gpuTimerBackend.Get(), /* isStart */ true);
-    }
+    // @TODO
 }
 
 void DX12RenderInterface::RecordStopTimestamp(DX12CommandBuffer* cmd, EngineStatGpuTimer* timer)
 {
-    DX12Frame* frame = GetCurrentFrame();
-
-    if (frame && m_gpuTimerBackend)
-    {
-        frame->cr << RecordGpuTimestamp(timer, m_gpuTimerBackend.Get(), /* isStart */ false);
-    }
+    // @TODO
 }
 
 void DX12RenderInterface::ResolveGpuFrameResults(uint32 completedFrameIndex)

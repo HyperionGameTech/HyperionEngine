@@ -339,7 +339,11 @@ void DX12Swapchain::PresentFrame(DX12Frame* frame)
         // Check for device removal on device-related errors
         if (hr == DXGI_ERROR_DEVICE_REMOVED || hr == DXGI_ERROR_DEVICE_RESET || hr == DXGI_ERROR_DEVICE_HUNG)
         {
-            CheckDeviceRemovedReason(RI.GetDevice());
+            const char* deviceRemovedReason = CheckDeviceRemovedReason(RI.GetDevice());
+            if (deviceRemovedReason)
+            {
+                HYP_LOG(RenderingBackend, Fatal, "Device removed: {}", deviceRemovedReason);
+            }
         }
 
         return;

@@ -588,7 +588,7 @@ void GenerateMipmaps::InvokeStatic(CmdBase* cmd, CommandBuffer* commandBuffer)
         /* Acquire a temporary 2D image with IU_STORAGE | IU_SAMPLED so we
            can generate mips via compute dispatch without requiring the
            source image to have IU_STORAGE. */
-        Handle<Texture> tempImage = RI.scratchImageAllocator->AcquireScratchImage(desc.format, desc.extent);
+        Handle<Texture> tempImage = RI.scratchImageAllocator->AcquireScratchImage(TextureType::Texture2D, desc.format, desc.extent);
 
         if (!tempImage.IsValid())
         {

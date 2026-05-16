@@ -722,17 +722,17 @@ D3D12_DESCRIPTOR_RANGE_TYPE ToDX12DescriptorRangeType(ShaderRegister reg)
     }
 }
 
-bool CheckDeviceRemovedReason(ID3D12Device* device)
+HYP_NODISCARD const char* CheckDeviceRemovedReason(ID3D12Device* device)
 {
-    if (device == nullptr)
+    if (!device)
     {
-        return false;
+        return nullptr;
     }
 
     HRESULT hr = device->GetDeviceRemovedReason();
     if (SUCCEEDED(hr))
     {
-        return false;
+        return nullptr;
     }
 
     const char* reasonStr = "Unknown";
@@ -762,9 +762,7 @@ bool CheckDeviceRemovedReason(ID3D12Device* device)
         break;
     }
 
-    HYP_LOG(RenderingBackend, Error, "D3D12 Device Removed! Reason: {} (HRESULT: {})", reasonStr, hr);
-
-    return true;
+    return reasonStr;
 }
 
 } // namespace Hyperion
