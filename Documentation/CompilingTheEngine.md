@@ -101,34 +101,6 @@ build.bat Debug Clang          # ClangCL, Debug
 ./build.sh Xcode Release       # Generate Xcode project
 ```
 
-### Fine-Grained Build Scripts
-
-Use `Tools/Scripts/BuildHyperion.bat` (Windows) or `Tools/Scripts/BuildHyperion.sh` (macOS/Linux) for more control.
-
-**Windows (`BuildHyperion.bat`):**
-
-Supports the following arguments (order-independent):
-
-| Argument | Effect |
-|----------|--------|
-| `Release` | Build type Release (default) |
-| `Debug` | Build type Debug |
-| `Clang` | Use ClangCL toolchain (VS 2026) |
-| `Android` | Build for Android ARM64 |
-| `regenerate` | Force CMake re-generation |
-| `nowait` | Skip the 3-second CMake prompt, used mainly for automation. |
-
-
-**macOS/Linux (`BuildHyperion.sh`):**
-
-| Argument | Effect |
-|----------|--------|
-| `Release` | Build type Release (default) |
-| `Debug` | Build type Debug |
-| `Xcode` | Generate Xcode project |
-| `iOS` | Cross-compile for iOS device |
-| `iOSSimulator` | Cross-compile for iOS simulator |
-
 ### Generated Project Files
 
 After CMake configuration, generated project files are in the build directory:
@@ -142,19 +114,15 @@ After CMake configuration, generated project files are in the build directory:
 
 ### Visual Studio / IDE Integration
 
-**Open the `Source` folder directly in Visual Studio 2026** — VS has native CMake support and will detect `Source/CMakeLists.txt` as the project root. This allows you to configure, build, and debug without generating `.sln` files manually.
+**In addition to generating .sln files, you can also open the `Source` folder directly in Visual Studio 2026**. VS has native CMake support and will detect `Source/CMakeLists.txt` as the project root. This allows you to configure, build, and debug without generating `.sln` files manually.
 
-To use ClangCL in Visual Studio's CMake integration, go to **Project > CMake Settings** and set the toolset to `ClangCL`.
-
-Engine output binaries are placed in `Binaries/{Platform}/{BuildType}/`.
+For this setup, we support using Clang for Windows as well as Android.
 
 ## Platform-Specific Notes
 
 ### Windows
 
 - **`VCPKG_ROOT` must be set.** The build will fail without it. Point it to your vcpkg installation directory.
-- **Use Release or RelWithDebInfo**, not Debug. MSVC Debug builds have excessive overhead that prevents the engine from running smoothly.
-- The MSVC generator is **Visual Studio 18 2026** targeting **x64**.
 
 ### macOS
 
@@ -164,14 +132,9 @@ Engine output binaries are placed in `Binaries/{Platform}/{BuildType}/`.
 
 ### Android
 
-- Requires Android NDK (tested with NDK 29). Set `ANDROID_NDK` or `ANDROID_NDK_HOME` environment variable, or the script defaults to `%LOCALAPPDATA%\Android\Sdk\ndk\29.0.14206865`.
+- Requires Android NDK (tested with NDK 29). Set `ANDROID_NDK` or `ANDROID_NDK_HOME` environment variable, or the script defaults to `%LOCALAPPDATA%\Android\Sdk\ndk\29.0.14206865`. (@TODO: Fix default path)
 - Uses Ninja as the build system — ensure `ninja` is on PATH or installed via Visual Studio or Android SDK CMake tools.
 - Builds for `arm64-v8a` with `android-28` as the minimum API level.
-
-### iOS
-
-- Requires `VULKAN_SDK` environment variable.
-- Builds target iOS 14.0+ and use MoltenVK for Vulkan to Metal translation.
 
 ## Shader Compilation
 
@@ -197,5 +160,4 @@ Binaries/
 │   │   ├── libhyperion.dylib
 │   │   └── ...
 ├── Android/
-└── iOS/
 ```
