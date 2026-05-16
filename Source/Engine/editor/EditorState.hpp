@@ -9,6 +9,8 @@
 #include <editor/EditorPickCache.hpp>
 #include <editor/EditorTaskManager.hpp>
 
+#include <scene/Node.hpp>
+
 #include <Core/reflection/ObjectBase.hpp>
 #include <Core/reflection/Handle.hpp>
 
@@ -57,6 +59,12 @@ public:
     HYP_METHOD()
     void AddTask(const Handle<EditorTaskBase>& task);
 
+    HYP_METHOD()
+    Handle<Node> GetClipboardNode() const;
+
+    HYP_METHOD()
+    void SetClipboardNode(const Handle<Node>& node);
+
     void Initialize();
 
     void Update(float delta);
@@ -79,6 +87,8 @@ private:
     EditorTaskManager m_taskManager;
 
     EditorPickCache m_pickCache;
+
+    WeakHandle<Node> m_clipboardNode;
 
     mutable Mutex m_mutex;
 };

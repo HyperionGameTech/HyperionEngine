@@ -44,6 +44,8 @@ namespace Hyperion {
 HYP_DECLARE_LOG_CHANNEL(Editor);
 HYP_DECLARE_LOG_CHANNEL(Console);
 
+extern Handle<EditorState> g_editorState;
+
 namespace CoreApi {
 extern FilePath GetExecutablePath();
 } // namespace CoreApi
@@ -741,7 +743,7 @@ static void AddNodeOfTypeImpl(EditorSubsystem* subsystem, Name defaultNodeName)
                                 editorSubsystem->SetFocusedNode(nullptr, true);
 
                                 Handle<Node> focusedNode = currentFocusedNode.Lock();
-                                
+
                                 if (focusedNode.IsValid())
                                 {
                                     editorSubsystem->SetFocusedNode(focusedNode, true);
@@ -970,7 +972,7 @@ public:
                                 LoadedAsset& loadedAsset = it.second;
 
                                 editorTaskScope->GetEditorTask()->SetDescription("Processing " + key);
-                                
+
                                 Handle<AssetObject> assetObject = loadedAsset.ExtractAs<AssetObject>();
                                 if (!assetObject.IsValid())
                                 {
@@ -1230,7 +1232,7 @@ public:
 
                     s_watchTextureState.overlay = newOverlay;
                 });
-            
+
             GetThreadById(g_simThread)->GetScheduler().Enqueue([uiSubsystem, overlay]()
                 {
                     uiSubsystem->AddDebugOverlay(overlay);
@@ -1365,6 +1367,166 @@ public:
 DEFINE_EDITOR_COMMAND(TeleportTo);
 
 #pragma endregion TeleportTo
+
+#pragma region Copy
+
+class HYP_API EditorCommandCopy final : public EditorCommandBase
+{
+    HYP_OBJECT_BODY(EditorCommandCopy);
+
+public:
+    virtual ~EditorCommandCopy() override = default;
+
+    virtual String GetText() const override
+    {
+        return "Copy Node";
+    }
+
+    virtual void Execute(EditorSubsystem* subsystem) override
+    {
+        Handle<Node> focusedNode = subsystem->GetFocusedNode();
+        if (!focusedNode.IsValid())
+        {
+            // @FIXME should take node id/name as param, not focused..
+            HYP_LOG(Editor, Warning, "No node focused, not copying");
+            return;
+        }
+
+        g_editorState->SetClipboardNode(focusedNode);
+
+        HYP_LOG(Editor, Verbose, "Copied node '{}' to clipboard", focusedNode->GetName());
+    }
+};
+
+DEFINE_EDITOR_COMMAND(Copy);
+
+#pragma endregion Copy
+
+#pragma region Paste
+
+class HYP_API EditorCommandPaste final : public EditorCommandBase
+{
+    HYP_OBJECT_BODY(EditorCommandPaste);
+
+public:
+    virtual ~EditorCommandPaste() override = default;
+
+    virtual String GetText() const override
+    {
+        return "Paste Node";
+    }
+
+    virtual void Execute(EditorSubsystem* subsystem) override
+    {
+        EditorProject* currentProject = subsystem->GetCurrentProject();
+
+        if (!currentProject)
+        {
+            HYP_LOG(Editor, Warning, "No current project");
+
+            return;
+        }
+
+        Handle<Node> clipboardNode = g_editorState->GetClipboardNode();
+
+        if (!clipboardNode.IsValid())
+        {
+            HYP_LOG(Editor, Warning, "No node in clipboard");
+
+            return;
+        }
+
+        Handle<Scene> activeScene = subsystem->GetActiveScene();
+
+        if (!activeScene.IsValid())
+        {
+            HYP_LOG(Editor, Error, "No active scene");
+
+            return;
+        }
+
+        WeakHandle<Node> parentNode = MakeWeakRef(clipboardNode->GetParent());
+        if (!parentNode.IsValid())
+        {
+            parentNode = MakeWeakRef(activeScene->GetRoot());
+        }
+
+        if (!parentNode.IsValid())
+        {
+            HYP_LOG(Editor, Error, "No parent node to attach pasted node to");
+
+            return;
+        }
+
+        WeakHandle<Node> previousFocusedNode = subsystem->GetFocusedNode();
+
+        Handle<Node> newNode = clipboardNode->Clone();
+
+        if (!newNode.IsValid())
+        {
+            HYP_LOG(Editor, Error, "Failed to clone clipboard node");
+
+            return;
+        }
+
+        String originalName = newNode->GetName().ToString();
+        String newName = originalName + "Copy";
+        newNode->SetName(CreateNameFromDynamicString(newName));
+
+        Handle<FunctionalEditorAction> action = MakeHandle<FunctionalEditorAction>(
+            HYP_FORMAT("Paste {}", newName),
+            Proc<EditorActionFunctions()>([newNode, previousFocusedNode, parentNode, activeScene]() -> EditorActionFunctions
+                {
+                    return EditorActionFunctions {
+                        .execute = Proc<void(EditorSubsystem*, EditorProject*)>([newNode, parentNode, activeScene](EditorSubsystem* editorSubsystem, EditorProject* project)
+                            {
+                                Handle<Node> parentNodeStrong = parentNode.Lock();
+                                if (!parentNodeStrong.IsValid())
+                                {
+                                    parentNodeStrong = MakeStrongRef(activeScene->GetRoot());
+                                }
+
+                                if (!parentNodeStrong.IsValid())
+                                {
+                                    HYP_LOG(Editor, Error, "Cannot paste node; no parent node to attach to");
+                                    return;
+                                }
+
+                                Handle<Node> addedNode = parentNodeStrong->AddChild(newNode);
+                                if (addedNode.IsValid())
+                                {
+                                    editorSubsystem->SetFocusedNode(addedNode, true);
+                                }
+                            }),
+                        .revert = Proc<void(EditorSubsystem*, EditorProject*)>([newNode, previousFocusedNode](EditorSubsystem* editorSubsystem, EditorProject* project)
+                            {
+                                newNode->Remove();
+
+                                if (editorSubsystem->GetFocusedNode() == newNode)
+                                {
+                                    editorSubsystem->SetFocusedNode(nullptr, true);
+
+                                    Handle<Node> focusedNode = previousFocusedNode.Lock();
+                                    if (focusedNode.IsValid())
+                                    {
+                                        editorSubsystem->SetFocusedNode(focusedNode, true);
+                                    }
+                                }
+                            })
+                    };
+                }));
+
+        InitObject(action);
+
+        currentProject->GetActionStack()->PushAction(action);
+
+        HYP_LOG(Editor, Verbose, "Pasted node '{}' to scene", newNode->GetName());
+    }
+};
+
+DEFINE_EDITOR_COMMAND(Paste);
+
+#pragma endregion Paste
 
 #undef DEFINE_EDITOR_COMMAND
 

@@ -114,6 +114,63 @@ Node::~Node()
     }
 }
 
+Handle<Node> Node::Clone() const
+{
+    const Class* nodeClass = InstanceClass();
+    AssertDebug(nodeClass != nullptr);
+
+    if (nodeClass == nullptr)
+    {
+        HYP_LOG(Node, Error, "Cannot clone node: class is null");
+        return Handle<Node>::Null();
+    }
+
+    BoxedValue boxed;
+    if (!nodeClass->CreateInstance(boxed))
+    {
+        HYP_LOG(Node, Error, "Failed to create instance of class {}", nodeClass->GetName());
+        return Handle<Node>::Null();
+    }
+
+    if (!boxed.Is<Handle<Node>>())
+    {
+        HYP_LOG(Node, Error, "Created instance is not a Handle<Node>");
+        return Handle<Node>::Null();
+    }
+
+    Handle<Node>& cloned = boxed.Get<Handle<Node>>();
+    if (!cloned.IsValid())
+    {
+        return Handle<Node>::Null();
+    }
+
+    cloned->SetNodeFlags(m_nodeFlags);
+    cloned->SetLocalTransform(m_localTransform, TransformChangeType::Default);
+    cloned->SetLocalBounds(m_localBounds);
+    cloned->SetName(m_name);
+    cloned->SetFriendlyName(m_friendlyName);
+
+    for (const NodeTag& tag : m_tags)
+    {
+        cloned->AddTag(NodeTag(tag));
+    }
+
+    // Clone children recursively
+    for (const Handle<Node>& child : m_childNodes)
+    {
+        if (child.IsValid())
+        {
+            Handle<Node> clonedChild = child->Clone();
+            if (clonedChild.IsValid())
+            {
+                cloned->AddChild(clonedChild);
+            }
+        }
+    }
+
+    return cloned;
+}
+
 void Node::Init()
 {
     for (const Handle<Node>& child : m_childNodes)

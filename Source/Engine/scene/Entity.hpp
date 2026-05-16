@@ -51,6 +51,11 @@ public:
 
     virtual ~Entity() override;
 
+    /*! \brief Clone this entity, including all components.
+     *  \returns A handle to the cloned entity. */
+    HYP_METHOD()
+    virtual Handle<Node> Clone() const override;
+
     HYP_METHOD()
     HYP_FORCE_INLINE EntityManager* GetEntityManager() const
     {

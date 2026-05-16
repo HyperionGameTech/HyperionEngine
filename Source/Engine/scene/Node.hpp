@@ -528,6 +528,11 @@ public:
 
     virtual ~Node() override;
 
+    /*! \brief Clone this node, creating a new instance with the same properties.
+     *  \returns A handle to the cloned node. */
+    HYP_METHOD()
+    virtual Handle<Node> Clone() const;
+
     HYP_METHOD()
     bool HasName() const;
 

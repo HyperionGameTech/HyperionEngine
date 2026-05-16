@@ -99,6 +99,42 @@ Entity::~Entity()
     }
 }
 
+Handle<Node> Entity::Clone() const
+{
+    // Clone Node base
+    Handle<Node> baseClone = Node::Clone();
+    if (!baseClone.IsValid())
+    {
+        return Handle<Node>::Null();
+    }
+
+    // baseClone would be an Entity because it uses InstanceClass()
+    // to create an instance based on the runtime type of this
+    Handle<Entity> cloned = DynamicCast<Entity>(baseClone);
+    AssertDebug(cloned.IsValid());
+
+    if (!cloned.IsValid())
+    {
+        HYP_LOG(Entity, Error, "Base clone is not an Entity");
+        return baseClone;
+    }
+
+    cloned->m_entityInitInfo = m_entityInitInfo;
+
+    InitObject(cloned);
+
+    // Copy components of this
+    EntityManager* entityManager = GetEntityManager();
+    if (entityManager != nullptr && m_scene != nullptr)
+    {
+        Array<BoxedValue, DynamicAllocator> serializedComponents = SerializeComponents();
+ 
+        cloned->DeserializeComponents(serializedComponents);
+    }
+
+    return cloned;
+}
+
 void Entity::Init()
 {
     AssertDebug(m_scene != nullptr);

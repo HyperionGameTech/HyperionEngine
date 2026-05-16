@@ -356,6 +356,9 @@
                                             </StackPanel>
                                             <Grid.ContextMenu>
                                                 <ContextMenu>
+                                                    <MenuItem Command="{Binding DataContext.Copy, ElementName=Root}" Header="Copy" />
+                                                    <MenuItem Command="{Binding DataContext.Paste, ElementName=Root}" Header="Paste" />
+                                                    <Separator />
                                                     <MenuItem Command="{Binding DataContext.TeleportToNode, ElementName=Root}" Header="Teleport to" />
                                                     <Separator />
                                                     <MenuItem Command="{Binding DataContext.DeleteNode, ElementName=Root}" Header="Delete" />

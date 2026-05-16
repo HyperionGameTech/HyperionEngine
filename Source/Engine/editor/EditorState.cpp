@@ -129,6 +129,18 @@ void EditorState::Update(float delta)
     m_taskManager.Tick();
 }
 
+Handle<Node> EditorState::GetClipboardNode() const
+{
+    Mutex::Guard guard(m_mutex);
+    return m_clipboardNode.Lock();
+}
+
+void EditorState::SetClipboardNode(const Handle<Node>& node)
+{
+    Mutex::Guard guard(m_mutex);
+    m_clipboardNode = node;
+}
+
 #endif
 
 } // namespace Hyperion
