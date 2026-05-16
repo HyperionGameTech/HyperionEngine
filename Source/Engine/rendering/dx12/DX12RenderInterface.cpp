@@ -49,7 +49,7 @@ namespace Hyperion {
 
 HYP_DECLARE_LOG_CHANNEL(RenderingBackend);
 
-static EngineStatGpuTimer s_statGpuFrameTime("Rendering/GPU/FrameTime");
+extern EngineStatGpuTimer g_statGpuFrameTime;
 
 // #define HYP_DX12_ENABLE_DEBUG_LAYER
 // #define HYP_DX12_ENABLE_DRED
@@ -132,8 +132,8 @@ RendererResult DX12RenderInterface::Initialize()
     HYP_LOG(RenderingBackend, Info, "Initializing DX12 render backend");
 
     descriptorHeapManager = PoolNew<DX12DescriptorHeapManager>(*g_renderPool);
+    m_gpuTimerBackend = PoolNew<DX12GpuTimerBackend>(*g_renderPool);
     m_renderConfig = MakePimpl<DX12RenderConfig>();
-    m_gpuTimerBackend = MakePimpl<DX12GpuTimerBackend>();
 
     uint32 createFactoryFlags = 0;
 
@@ -454,7 +454,7 @@ void DX12RenderInterface::Shutdown()
     m_queueData = {};
 
     m_gpuTimerBackend->Shutdown();
-    m_gpuTimerBackend.Reset();
+    PoolDelete(*g_renderPool, m_gpuTimerBackend);
 
     RenderInterface::Shutdown();
 
@@ -638,18 +638,21 @@ void DX12RenderInterface::PresentToSwapchain(DX12Swapchain* swapchain)
 {
     DX12CommandBuffer* commandBuffer = GetCurrentCommandBuffer();
     AssertDebug(commandBuffer != nullptr);
-    AssertDebug(commandBuffer->IsRecording());
+    AssertDebug(!commandBuffer->IsRecording());
+
+    RI.InsertTransientSyncBarrier();
+
+    const DX12QueueData* queueData = RI.GetQueueData(D3D12_COMMAND_LIST_TYPE_DIRECT);
+    Assert(queueData != nullptr);
+
+    ID3D12CommandList* commandLists[] = { commandBuffer->GetCommandList() };
+    queueData->commandQueue->ExecuteCommandLists(1, commandLists);
 
     DX12Frame* frame = GetCurrentFrame();
     Assert(frame != nullptr);
 
     const uint32 frameCounter = GetFrameCounter();
     const uint32 frameIndex = frameCounter % NumFramesInFlight;
-
-    frame->WriteCommandBuffer(commandBuffer);
-
-    m_gpuTimerBackend->WriteStopTimestamp(commandBuffer, &s_statGpuFrameTime);
-    m_gpuTimerBackend->OnFrameEnd();
 
     // HYP_LOG_TEMP("Signalling {} on frame {}", signalValue, frameIndex);
 
@@ -1079,10 +1082,6 @@ void DX12RenderInterface::ReleaseTransientMemory()
 void DX12RenderInterface::BeginFrame(AtomicFlag* pCancelFlag)
 {
     RenderInterface::BeginFrame(pCancelFlag);
-
-    m_gpuTimerBackend->BeginFrame();
-
-    RecordStartTimestamp(GetCurrentCommandBuffer(), &s_statGpuFrameTime);
 
     // Rebind descriptor heaps after command buffer reset in BeginFrame()
     BindDescriptorHeaps(*GetCurrentCommandBuffer());

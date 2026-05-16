@@ -4,7 +4,6 @@
  *  @licence MIT
 */
 
-#include "RenderInterface.hpp"
 #include <RenderingPch.hpp>
 
 #include <rendering/RenderInterface.hpp>
@@ -45,6 +44,7 @@
 #include <rendering/RawBufferAllocator.hpp>
 #include <rendering/ScratchImageAllocator.hpp>
 #include <rendering/RenderGroupCache.hpp>
+#include <rendering/GpuTimerBackend.hpp>
 
 #include <engine/resources/ResourceTracker.hpp>
 #include <engine/resources/ResourceBinder.hpp>
@@ -125,6 +125,8 @@ static_assert(MaxFramesBeforeDiscard >= MinSafeDeleteCycles,
 static constexpr int FrameCleanupBudget = 16;
 
 EngineStatTimer g_statRenderThreadSync("CPU/SemWait");
+EngineStatGpuTimer g_statGpuFrameTime("Rendering/GPU/FrameTime");
+
 static EngineStatTimer s_statViewDataAllocTime { "Rendering/ViewData/AllocTime", /* resetPerFrame */ false };
 
 namespace Framework {
@@ -139,8 +141,6 @@ static thread_local uint32* s_threadFrameIndex;
 static uint32 s_frameIndex[2] = { 0 };
 
 static thread_local uint32 s_currentRenderThreadIndex;
-
-static EngineConfig s_engineConfig[RingBufferDepth];
 
 enum
 {
@@ -559,22 +559,23 @@ RenderInterface::RenderInterface()
       cbufferAllocator(nullptr),
       bufferAllocator(nullptr),
       scratchImageAllocator(nullptr),
-      descriptorSetCache(nullptr),
+      shaderManager(nullptr),
+      bindlessStorage(nullptr),
       placeholderData(nullptr),
       materialTextureCache(nullptr),
       graphicsPipelineCache(nullptr),
       computePipelineCache(nullptr),
       rayTracingPipelineCache(nullptr),
+      descriptorSetCache(nullptr),
       renderGroupCache(nullptr),
-      bindlessStorage(nullptr),
-      shaderManager(nullptr),
-      finalPass(nullptr),
       textureViewCache(nullptr),
       samplerCache(nullptr),
-      stagingBufferPool(nullptr),
       blasCache(nullptr),
       shadowMapCache(nullptr),
-      crashHandler(nullptr)
+      finalPass(nullptr),
+      stagingBufferPool(nullptr),
+      crashHandler(nullptr),
+      m_gpuTimerBackend(nullptr)
 {
 }
 
@@ -603,9 +604,9 @@ RendererResult RenderInterface::Initialize()
     shaderManager = PoolNew<ShaderManager>(*g_renderPool);
     textureViewCache = PoolNew<TextureViewCache>(*g_renderPool);
     samplerCache = PoolNew<SamplerCache>(*g_renderPool);
-    stagingBufferPool = PoolNew<StagingBufferPool>(*g_renderPool);
     blasCache = PoolNew<BLASCache>(*g_renderPool);
     shadowMapCache = PoolNew<ShadowMapCache>(*g_renderPool);
+    stagingBufferPool = PoolNew<StagingBufferPool>(*g_renderPool);
 
     InitDeviceDetails(deviceDetails);
 
@@ -648,8 +649,8 @@ RendererResult RenderInterface::Initialize()
     }
 
     {
-        EngineConfig& engineConfig = Framework::s_engineConfig[0];
-        engineConfig.Load();
+        EngineConfig cfg;
+        cfg.Load();
 
         bool shouldDisableRayTracing = !GetRenderConfig().rayTracing;
 
@@ -657,34 +658,30 @@ RendererResult RenderInterface::Initialize()
         shouldDisableRayTracing = true;
 
         // For Android leave these rendering settings off.
-        engineConfig.Set("Rendering.IndirectRendering", false);
-        engineConfig.Set("Rendering.DepthPrepass", false);
-        engineConfig.Set("Rendering.SSGI", false);
-        engineConfig.Set("Rendering.TAA", false);
-        engineConfig.Set("Rendering.SSR.Enabled", false);
-        engineConfig.Set("Rendering.HBAO.Enabled", false);
+        cfg.Set("Rendering.IndirectRendering", false);
+        cfg.Set("Rendering.DepthPrepass", false);
+        cfg.Set("Rendering.SSGI", false);
+        cfg.Set("Rendering.TAA", false);
+        cfg.Set("Rendering.SSR.Enabled", false);
+        cfg.Set("Rendering.HBAO.Enabled", false);
 #endif
 
         // if ray tracing is not supported, we need to update the configuration
         if (shouldDisableRayTracing)
         {
-            engineConfig.Set("Rendering.RayTracing.Enabled", false);
-            engineConfig.Set("Rendering.RayTracing.Reflections.Enabled", false);
-            engineConfig.Set("Rendering.RayTracing.GI.Enabled", false);
-            engineConfig.Set("Rendering.RayTracing.PathTracing.Enabled", false);
+            cfg.Set("Rendering.RayTracingEnabled", false);
+            cfg.Set("Rendering.RayTracedReflections", false);
+            cfg.Set("Rendering.RayTracedGI", false);
+            cfg.Set("Rendering.PathTracing", false);
         }
 
-        if (engineConfig.IsChanged())
+        if (cfg.IsChanged())
         {
-            engineConfig.Save();
+            cfg.Save();
         }
 
-        CVarManager::GetInstance().InitFromConfig(engineConfig);
-
-        for (uint32 i = 1; i < RingBufferDepth; i++)
-        {
-            Framework::s_engineConfig[i] = engineConfig;
-        }
+        // Reinitialize the CVars based on the config.
+        CVarManager::GetInstance().InitFromConfig(cfg);
     }
 
     finalPass = PoolNew<FinalPass>(*g_renderPool);
@@ -1101,6 +1098,12 @@ void RenderInterface::BeginFrame(AtomicFlag* pCancelFlag)
     }
 
     GetCurrentCommandBuffer()->Begin();
+
+    if (m_gpuTimerBackend != nullptr)
+    {
+        m_gpuTimerBackend->OnFrameStart();
+        m_gpuTimerBackend->WriteStopTimestamp(GetCurrentCommandBuffer(), &g_statGpuFrameTime);
+    }
 }
 
 void RenderInterface::EndFrame()
@@ -1265,14 +1268,28 @@ void RenderInterface::EndFrame()
 
     const uint32 nextFrameIndex = (Framework::s_frameIndex[Framework::TT_FrameDataConsumer] + 1) % RingBufferDepth;
 
-    /// Sync the engine config for the current frame to prev frame
-    Framework::s_engineConfig[nextFrameIndex] = Framework::s_engineConfig[slot];
-
     Framework::s_frameIndex[Framework::TT_FrameDataConsumer] = nextFrameIndex;
 
     AtomicIncrement(&Framework::s_frameCounter);
 
     Framework::s_freeSemaphore.release();
+}
+
+void RenderInterface::WriteCommandBuffer()
+{
+    CommandBuffer* commandBuffer = GetCurrentCommandBuffer();
+    AssertDebug(commandBuffer->IsRecording());
+
+    Frame* frame = GetCurrentFrame();
+    frame->WriteCommandBuffer(commandBuffer);
+
+    if (m_gpuTimerBackend != nullptr)
+    {
+        m_gpuTimerBackend->WriteStopTimestamp(commandBuffer, &g_statGpuFrameTime);
+        m_gpuTimerBackend->OnFrameEnd();
+    }
+
+    commandBuffer->End();
 }
 
 void RenderInterface::AddPass(NamedPass passName, PassBase* pass)

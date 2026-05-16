@@ -1,8 +1,5 @@
 {
   "Rendering": {
-    "SSAO": {
-      "Enabled": false
-    },
     "HBAO": {
       "Radius": 1.5,
       "Power": 2.5,
@@ -50,21 +47,9 @@
       "AO": false
     },
     "Vulkan": {
-      "DebugLayers": false,
+      "DebugLayers": true,
       "TimelineSemaphores": true,
-      "FIFO": false
-    },
-    "RayTracing": {
-      "Enabled": false,
-      "Reflections": {
-        "Enabled": false
-      },
-      "GI": {
-        "Enabled": false
-      },
-      "PathTracing": {
-        "Enabled": false
-      }
+      "FIFO": true
     }
   },
   "Editor": {

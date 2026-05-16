@@ -64,7 +64,8 @@ static constexpr bool UseResetDescriptorPool = false;
 static constexpr uint32 MaxDescriptorPools = 32;
 
 static EngineStatTimer s_statVulkanFrameSync("Rendering/Vulkan/FrameSync");
-static EngineStatGpuTimer s_statGpuFrameTime("Rendering/GPU/FrameTime");
+
+extern EngineStatGpuTimer g_statGpuFrameTime;
 
 enum VulkanDescriptorPoolRequirements : uint8
 {
@@ -689,7 +690,7 @@ RendererResult VulkanRenderInterface::Initialize()
         CheckResultOrReturn(frame->Create());
     }
 
-    m_gpuTimerBackend = MakePimpl<VulkanGpuTimerBackend>();
+    m_gpuTimerBackend = PoolNew<VulkanGpuTimerBackend>(*g_renderPool);
     if (!m_gpuTimerBackend->Initialize(m_instance->GetDevice()))
     {
         HYP_LOG(RenderingBackend, Info, "GPU timestamp queries not supported on this device");
@@ -758,7 +759,7 @@ void VulkanRenderInterface::Shutdown()
     m_submittedAsyncComputes.Clear();
 
     m_gpuTimerBackend->Shutdown();
-    m_gpuTimerBackend.Reset();
+    PoolDelete(*g_renderPool, m_gpuTimerBackend);
 
     RenderInterface::Shutdown();
 
@@ -788,10 +789,6 @@ void VulkanRenderInterface::Shutdown()
 void VulkanRenderInterface::BeginFrame(AtomicFlag* pCancelFlag)
 {
     RenderInterface::BeginFrame(pCancelFlag);
-
-    m_gpuTimerBackend->OnFrameStart();
-
-    RecordStartTimestamp(GetCurrentCommandBuffer(), &s_statGpuFrameTime);
 }
 
 void VulkanRenderInterface::EndFrame()
@@ -968,8 +965,6 @@ void VulkanRenderInterface::PrepareSwapchain(VulkanSwapchain* swapchain)
 
 void VulkanRenderInterface::PresentToSwapchain(VulkanSwapchain* swapchain)
 {
-    VulkanCommandBuffer* commandBuffer = GetCurrentCommandBuffer();
-
     VulkanDeviceQueue* presentQueue = m_instance->GetDevice()->GetPresentQueue();
 
     if (swapchain != nullptr)
@@ -988,15 +983,10 @@ void VulkanRenderInterface::PresentToSwapchain(VulkanSwapchain* swapchain)
         }
     }
 
-    AssertDebug(commandBuffer->IsRecording());
+    VulkanCommandBuffer* commandBuffer = GetCurrentCommandBuffer();
+    AssertDebug(!commandBuffer->IsRecording());
 
     VulkanFrame* frame = GetCurrentFrame();
-    frame->WriteCommandBuffer(commandBuffer);
-
-    m_gpuTimerBackend->WriteStopTimestamp(commandBuffer, &s_statGpuFrameTime);
-    m_gpuTimerBackend->OnFrameEnd();
-
-    commandBuffer->End();
 
     VulkanSemaphore* waitSemaphore = nullptr;
     VulkanSemaphore* signalSemaphore = nullptr;

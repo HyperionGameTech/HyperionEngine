@@ -15,7 +15,6 @@
 #include <rendering/RenderConfig.hpp>
 #include <rendering/CommandRecorderAllocator.hpp>
 #include <rendering/RawBuffer.hpp>
-#include <rendering/GpuTimerBackend.hpp>
 
 #include <engine/DeviceDetails.hpp>
 
@@ -67,7 +66,7 @@ class SamplerCache;
 struct SamplerDesc;
 class RenderGroupCache;
 class EngineStatGpuTimer;
-
+class GpuTimerBackendBase;
 class CBufferAllocator;
 class BufferAllocator;
 class ScratchImageAllocator;
@@ -326,6 +325,8 @@ public:
     virtual void BeginFrame(AtomicFlag* pCancelFlag);
     virtual void EndFrame();
 
+    virtual void WriteCommandBuffer();
+
     virtual void RecordStartTimestamp(CommandBuffer* cmd, EngineStatGpuTimer* timer) = 0;
     virtual void RecordStopTimestamp(CommandBuffer* cmd, EngineStatGpuTimer* timer) = 0;
     virtual void ResolveGpuFrameResults(uint32 completedFrameIndex) = 0;
@@ -423,25 +424,25 @@ public:
     ComputePipelineCache* computePipelineCache;
     RayTracingPipelineCache* rayTracingPipelineCache;
 
-    RenderGroupCache* renderGroupCache;
+    DescriptorSetCache* descriptorSetCache;
 
-    FinalPass* finalPass;
+    RenderGroupCache* renderGroupCache;
 
     TextureViewCache* textureViewCache;
 
     SamplerCache* samplerCache;
 
+    BLASCache* blasCache;
+
+    ShadowMapCache* shadowMapCache;
+
+    FinalPass* finalPass;
+
     Span<World*> worldsToRender;
 
     State state;
 
-    DescriptorSetCache* descriptorSetCache;
-
     StagingBufferPool* stagingBufferPool;
-
-    BLASCache* blasCache;
-
-    ShadowMapCache* shadowMapCache;
 
     CrashHandler* crashHandler;
 
@@ -462,6 +463,8 @@ protected:
     void CreateBlueNoiseBuffer();
     void CreateSphereSamplesBuffer();
     void CreateEnvProbesTexture();
+
+    GpuTimerBackendBase* m_gpuTimerBackend;
 
 private:
     virtual void InitDeviceDetails(DeviceDetails& deviceDetails) = 0;

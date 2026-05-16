@@ -50,8 +50,20 @@ protected:
 
 #if HYP_VULKAN
 #include <rendering/vulkan/VulkanGpuTimerBackend.hpp>
+
+namespace Hyperion
+{
+    using GpuTimerBackend = VulkanGpuTimerBackend;
+} // namespace Hyperion
+
 #elif HYP_DX12
 #include <rendering/dx12/DX12GpuTimerBackend.hpp>
+
+namespace Hyperion
+{
+    using GpuTimerBackend = DX12GpuTimerBackend;
+} // namespace Hyperion
+
 #endif
 
 #undef INCLUDE_FROM_RHI_BASE

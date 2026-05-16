@@ -218,8 +218,6 @@ private:
 
     Pimpl<VulkanTextureCache> m_textureCache;
 
-    Pimpl<VulkanGpuTimerBackend> m_gpuTimerBackend;
-
     Array<VulkanFrameRef, VulkanAllocator> m_frames;
     uint32 m_currentFrameIndex;
 

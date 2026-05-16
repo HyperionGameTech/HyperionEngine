@@ -171,7 +171,6 @@ private:
     void PrepareFrame(DX12Frame* frame) override;
 
     Pimpl<DX12RenderConfig> m_renderConfig;
-    Pimpl<DX12GpuTimerBackend> m_gpuTimerBackend;
 
     FixedArray<DX12FrameRef, NumFramesInFlight> m_frames;
 

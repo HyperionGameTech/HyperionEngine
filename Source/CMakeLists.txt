@@ -1087,6 +1087,15 @@ if(HYP_EDITOR)
   add_subdirectory(Commandlets)
 endif()
 
+# Copy compile_commands.json to workspace root for clangd/LSP support in editors like VSCode, Zed, etc.
+add_custom_target(sync_compile_commands ALL
+    COMMAND ${CMAKE_COMMAND} -E copy_if_different
+        ${CMAKE_BINARY_DIR}/compile_commands.json
+        ${CMAKE_SOURCE_DIR}/../compile_commands.json
+    COMMENT "Syncing compile_commands.json to workspace root"
+    VERBATIM
+)
+
 # # copy sample scripts to the output directory
 # file(GLOB SAMPLE_SCRIPTS "${CMAKE_SOURCE_DIR}/../Data/Scripts/*.hyp")
 # foreach(SAMPLE_SCRIPT ${SAMPLE_SCRIPTS})

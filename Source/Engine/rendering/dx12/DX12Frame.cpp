@@ -78,22 +78,6 @@ void DX12Frame::WriteCommandBuffer(CommandBuffer* commandBuffer)
             commandRecorder->Reset(/* freeMemory */ false);
         }
     }
-
-    if (commandBuffer->IsRecording())
-    {
-        commandBuffer->End();
-    }
-
-    // GPU-wait on all transient command buffer submissions for this frame
-    // before executing the main command buffer, ensuring proper ordering.
-    RI.InsertTransientSyncBarrier();
-
-    const DX12QueueData* queueData = RI.GetQueueData(D3D12_COMMAND_LIST_TYPE_DIRECT);
-    Assert(queueData != nullptr);
-
-    ID3D12CommandList* commandLists[] = { commandBuffer->GetCommandList() };
-    queueData->commandQueue->ExecuteCommandLists(1, commandLists);
-
 }
 
 void DX12Frame::ResetTransientStates()

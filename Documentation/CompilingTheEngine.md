@@ -1,81 +1,201 @@
 # Compiling the Engine
 
-## Dependencies
-Hyperion has a few required dependencies to compile. In addition, there are several optional dependencies that enable additional functionality such as shader compilation, scripting, networking, etc. Let's start with the required dependencies:
+Hyperion is a cross-platform 3D game engine written in C++20 using CMake (3.10+) as its build system.
+The engine compiles as a shared library (`hyperion`) with the editor and sample app linking against it.
 
-### Required dependencies
+## Required Dependencies
 
-* CMake - We currently use CMake to generate project files and Makefiles. You'll see multiple CMakeLists.txt files which define how projects are generated.
-* (macOS only) MoltenVK - As Hyperion uses a Vulkan rendering backend on Apple platforms, the MoltenVK library is needed in order to translate Vulkan API calls to Metal calls as well as convert SPIR-V shader code to Metal Shading Language.
+All platforms require the following:
 
-## Optional* dependencies
+* **CMake** (3.10+) - Project generation and build orchestration.
+* **Vulkan SDK** - Required for the Vulkan rendering backend (the default and primary backend). On Apple platforms, the SDK includes MoltenVK which translates Vulkan API calls to Metal.
 
-The following dependencies are optional for compiling the engine, but without them, engine and editor functionality may be limited and/or missing features.
-Some of the dependencies listed below are included as Git submodules. If you cloned the repository with the `--recursive` flag, these submodules should already be pulled. If you didn't, you can still pull them after cloning.
-If you cloned the repository without the `--recursive` flag, you can run the following command to pull the submodules:
+Platform-specific prerequisites:
+
+| Platform | Additional Requirements |
+|----------|------------------------|
+| **Windows (MSVC)** | `VCPKG_ROOT` environment variable must be set pointing to a vcpkg installation. vcpkg provides the C++ standard library toolchain. |
+| **Windows (Clang)** | Same as MSVC - `VCPKG_ROOT` must be set. The Clang toolchain comes with Visual Studio 2026. |
+| **macOS** | Install dependencies via Homebrew: `brew install bullet molten-vk` (or run `Tools/Scripts/InstallDependenciesMac.sh`). |
+| **Android** | Android NDK (tested with NDK 29). Ninja build system on PATH. |
+
+## Optional Dependencies
+
+Some dependencies are included as Git submodules. If you cloned without `--recursive`, run:
+
 ```bash
 git submodule update --init --recursive
 ```
-### Optional dependencies that are included as Git submodules
-* [.NET Core](https://github.com/dotnet/runtime) - The .NET Core is used enable C# scripting for gameplay and editor functionality.
-* [zlib](https://github.com/madler/zlib) - Hyperion uses zlib to compress and decompress serialized data.
-* [glslang](https://github.com/KhronosGroup/glslang) - Used to compile GLSL shaders to SPIR-V and perform shader reflection. We use a version with [some minor modifications](https://github.com/notomorrow/glslang/tree/hyp-modifications)
-* [xatlas](https://github.com/jpcy/xatlas) - Used to generate lightmap UVs, can be skipped or disabled if you don't need this.
 
-### Optional dependencies you can install manually
-* [Bullet Physics](https://github.com/bulletphysics/bullet3) - Hyperion uses Bullet Physics for physics simulation. This is an optional dependency, but if you want to use physics in your game, you'll need to have it installed for CMake to find it. (Note, implementation is bare bones at the moment)
-* [FreeType](https://freetype.org/) - Used for rendering text in the editor and engine.
-* [OpenAL Soft](openal-soft.org) - Used for audio playback.
-* Aftermath (Windows only) - Provides crash dump information for GPU faults and similar issues. If `GFSDK_Aftermath_Lib.x64.
-lib` exists in the `lib/Win32/{Debug|Release}` directory, Hyperion will link to it.
+### DXC - DirectX Shader Compiler (Recommended)
 
-### Experimental (you probably won't need these)
-* [libdatachannel](https://libdatachannel.org/) (included as a Git submodule) - For WebRTC support (only needed if you want to use experimental WebRTC streaming).
-* [GStreamer](https://gstreamer.freedesktop.org/) - For cloud streaming (only needed if you want to use experimental WebRTC streaming).
+DXC is the shader compiler used for all platforms and rendering backends. All engine shaders are written in HLSL (`.hlsl` / `.hlsli`), and DXC compiles them to the appropriate target (SPIR-V for Vulkan, DXIL for DX12).
 
-## Run the Build Tool
+DXC headers and libraries are bundled in `External/ThirdParty/Source/dxc/` and `External/ThirdParty/Binaries/<Platform>/`. CMake auto-detects DXC and sets `HYP_DXC=1` when found.
 
-In the project's base directory, you'll find a folder named `codegen` containing source code and CMake files separated from the rest of the engine. This application reads through the engine's header files and parses them to generate code that is used by Hyperion's reflection, serialization, and scripting systems.
+### .NET Core (for C# Scripting and Editor UI)
 
-codegen is set up to run whenever you reconfigure the engine's CMake files. To invoke it manually, there are two scripts located under Tools/Scripts:
+The engine supports C# scripting and the editor UI is built with Avalonia UI on .NET 9.0 (C# 13.0). Requires `HYP_DOTNET=1` to be enabled.
 
-* `RunCodeGen.bat` (Windows only)
-* `RunCodeGen.sh` Linux/macOS/others
+* Headers (`nethost.h`, `hostfxr.h`, `coreclr_delegates.h`) are in `External/ThirdParty/Source/dotnetcore/`.
+* Native host library must be present in `External/ThirdParty/Binaries/<Platform>/`:
+  * **Windows**: `nethost.lib` + `nethost.dll`
+  * **macOS**: `libnethost.a` / `libnethost.dylib` / `libnethost.so`
+* The `dotnet` CLI must be on PATH for building the C# projects.
 
-Run the appropriate script depending on your platform whenever you want to reprocess files. It's necessary to do this whenever you make changes source code that needs to be seen by the systems mentioned above.
+### Git Submodule Dependencies
 
-`codegen` links to Hyperion's core library the same way the rest of the engine does, allowing the two separate systems to share a familiar codebase. Therefore, the first time you attempt to compile Hyperion, it will need to compile `core` first before compiling `codegen`. After that, you should be able to configure and compile `hyperion`.
+* **zlib** - Compression/decompression of serialized data.
+* **xatlas** - Lightmap UV generation (can be disabled if not needed).
 
-Similiarly to how you can invoke the build tool manually, you can also compile it separately via the following scripts:
-* `BuildCodeGen.bat` (Windows only)
-* `BuildCodeGen.sh` (macOS / Unix)
+### Manually Installed Dependencies
 
-Run these scripts from the command line to compile codegen separately from the rest of the engine. This might be useful for debugging purposes or to ensure that any changes in codegen itself are incorporated without needing to recompile the entire engine immediately.
+* **Bullet Physics** - Physics simulation. Install via Homebrew (`brew install bullet`) on macOS, or ensure CMake can find it on other platforms.
+* **FreeType** - Text rendering in the editor and engine.
+* **OpenAL Soft** - Audio playback.
+* **Aftermath** (Windows only) - NVIDIA GPU crash dump analysis. If `GFSDK_Aftermath_Lib.x64.lib` exists in `External/ThirdParty/Binaries/Windows/{Debug|Release}/`, Hyperion links to it.
 
-## Compile library / executable
+### Experimental
 
-While the engine itself compiles as a dynamic library, the main driver for the engine is an executable file providing (currently limited) editor functionality. This executable links to the hyperion library.
+* **libdatachannel** (Git submodule) - WebRTC support.
+* **GStreamer** - Cloud streaming (for WebRTC streaming).
 
-After CMake has been configured and the build tool has been run, you should be able to build the engine itself. Depending on your current platform, CMake will have generated into the build folder:
+## Build Tool (CodeGen)
 
-* Visual Studio Solution files (.sln) (Windows only) - Visual Studio now supports CMake projects directly, so you're able to just open the root directory of the cloned repository. You can also use these generated solution files.
-* Makefiles (for Unix based OSes)
+The engine uses a custom tool that parses engine headers to generate reflection, serialization, and scripting code. This tool lives in `Tools/CodeGen/` and is automatically invoked during CMake configuration via `RunCodeGen(<major version> <minor version>)`.
 
-## Build Scripts
+To run it manually:
 
-To make compiling easier, we've also added a `build` script in the root directory of the project that compiles the code for you as well as runs the build tool. There are also more useful build scripts in the `Tools/Scripts` directory for more fine-grained control over the build process.
-
-## Visual Studio specifics
-
-Note: If you're planning on using Visual Studio, be sure to compile the engine with the configuration set to either `Release` or `RelWithDebInfo`. MSVC's `Debug` configuration adds too much overhead for the engine to run smoothly.
-
-## macOS specifics
-
-On macOS, you will need to install the following dependencies via Homebrew using the `InstallDependenciesMac.sh` script located in the `Tools/Scripts` directory:
-```bash
-./Scripts/InstallDependenciesMac.sh
+**Windows:**
+```batch
+Tools\Scripts\RunCodeGen.bat <major version> <minor version>
 ```
-To generate XCode projects for macOS, you can run the `build.sh` script in the root directory with `--xcode` passed in as a command line argument.
 
-### Important note about Metal API validation
-**If you debug with XCode you will need to disable Metal API validation in the scheme settings.** This is because Hyperion uses Vulkan, which is translated to Metal on macOS, and Metal API validation can cause issues with Vulkan calls. To do this, open the scheme settings in XCode, go to the "Options" tab, and uncheck "Enable Metal API Validation".
+**macOS/Linux:**
+```bash
+./Tools/Scripts/RunCodeGen.sh <major version> <minor version>
+```
+
+The version arguments (`0 9`) are the major.minor version. If the codegen binary is out of date, the script automatically rebuilds it via `BuildCodeGen.bat` / `BuildCodeGen.sh`.
+
+**Note:** CodeGen must succeed before the engine will compile. Output is written to `Source/Generated/` (C++) and `Source/Generated/CSharp/` — do not edit generated files manually.
+
+## Building
+
+### Quick Build (All Platforms)
+
+Use the root-level convenience scripts:
+
+**Windows:**
+```batch
+build.bat Release              # MSVC, Release
+build.bat Release Clang        # ClangCL, Release
+build.bat Debug                # MSVC, Debug
+build.bat Debug Clang          # ClangCL, Debug
+```
+
+**macOS:**
+```bash
+./build.sh Release             # Default (Makefiles)
+./build.sh Debug
+./build.sh Xcode Release       # Generate Xcode project
+```
+
+### Fine-Grained Build Scripts
+
+Use `Tools/Scripts/BuildHyperion.bat` (Windows) or `Tools/Scripts/BuildHyperion.sh` (macOS/Linux) for more control.
+
+**Windows (`BuildHyperion.bat`):**
+
+Supports the following arguments (order-independent):
+
+| Argument | Effect |
+|----------|--------|
+| `Release` | Build type Release (default) |
+| `Debug` | Build type Debug |
+| `Clang` | Use ClangCL toolchain (VS 2026) |
+| `Android` | Build for Android ARM64 |
+| `regenerate` | Force CMake re-generation |
+| `nowait` | Skip the 3-second CMake prompt, used mainly for automation. |
+
+
+**macOS/Linux (`BuildHyperion.sh`):**
+
+| Argument | Effect |
+|----------|--------|
+| `Release` | Build type Release (default) |
+| `Debug` | Build type Debug |
+| `Xcode` | Generate Xcode project |
+| `iOS` | Cross-compile for iOS device |
+| `iOSSimulator` | Cross-compile for iOS simulator |
+
+### Generated Project Files
+
+After CMake configuration, generated project files are in the build directory:
+
+| Platform | Build Directory | Project Files |
+|----------|----------------|---------------|
+| Windows MSVC | `Build/Windows/Release/` | `hyperion.sln` (Visual Studio 2026) |
+| Windows Clang | `Build/Windows-Clang/Release/` | `hyperion.sln` (Visual Studio 2026, ClangCL toolset) |
+| macOS | `Build/Mac/Release/` | Makefiles (or `hyperion.xcodeproj` if Xcode was requested) |
+| Android | `Build/Android/Release/` | Ninja build files |
+
+### Visual Studio / IDE Integration
+
+**Open the `Source` folder directly in Visual Studio 2026** — VS has native CMake support and will detect `Source/CMakeLists.txt` as the project root. This allows you to configure, build, and debug without generating `.sln` files manually.
+
+To use ClangCL in Visual Studio's CMake integration, go to **Project > CMake Settings** and set the toolset to `ClangCL`.
+
+Engine output binaries are placed in `Binaries/{Platform}/{BuildType}/`.
+
+## Platform-Specific Notes
+
+### Windows
+
+- **`VCPKG_ROOT` must be set.** The build will fail without it. Point it to your vcpkg installation directory.
+- **Use Release or RelWithDebInfo**, not Debug. MSVC Debug builds have excessive overhead that prevents the engine from running smoothly.
+- The MSVC generator is **Visual Studio 18 2026** targeting **x64**.
+
+### macOS
+
+- Install dependencies: `brew install bullet molten-vk` or run `Tools/Scripts/InstallDependenciesMac.sh`.
+- To generate Xcode projects, pass `Xcode` as an argument to the build script.
+- **Disable Metal API Validation** when debugging in Xcode: Open scheme settings -> Options tab -> uncheck "Enable Metal API Validation". Since Hyperion uses Vulkan (translated to Metal via MoltenVK), Metal API validation causes issues.
+
+### Android
+
+- Requires Android NDK (tested with NDK 29). Set `ANDROID_NDK` or `ANDROID_NDK_HOME` environment variable, or the script defaults to `%LOCALAPPDATA%\Android\Sdk\ndk\29.0.14206865`.
+- Uses Ninja as the build system — ensure `ninja` is on PATH or installed via Visual Studio or Android SDK CMake tools.
+- Builds for `arm64-v8a` with `android-28` as the minimum API level.
+
+### iOS
+
+- Requires `VULKAN_SDK` environment variable.
+- Builds target iOS 14.0+ and use MoltenVK for Vulkan to Metal translation.
+
+## Shader Compilation
+
+All engine shaders are written in **HLSL**. The engine uses **DXC** (DirectXShaderCompiler) to compile shaders at build time.
+
+* **Vulkan**: HLSL -> SPIR-V (via DXC's `-spirv` target)
+* **DX12**: HLSL -> DXIL (via DXC's default target)
+
+The shader configuration is in `Source/Shaders/Shaders.ini`, which maps shader names to source files and defines compile-time permutations (e.g., `INSTANCING`, `HAS_PHYSICS`).
+
+## Output Structure
+
+```
+Binaries/
+├── Windows/
+│   ├── Release/
+│   │   ├── hyperion.dll        # Main engine library
+│   │   ├── hyperion-core.dll
+│   │   └── ...
+│   └── Debug/
+├── Mac/
+│   ├── Release/
+│   │   ├── libhyperion.dylib
+│   │   └── ...
+├── Android/
+└── iOS/
+```
