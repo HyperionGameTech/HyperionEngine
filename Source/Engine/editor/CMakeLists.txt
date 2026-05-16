@@ -154,11 +154,19 @@ if(DOTNET_EXECUTABLE)
     set(HYP_BUILD_TYPE "Release")
   endif()
 
-  # run dotnet restore now
+  # Clear MSBuildSdksPath environment variable if set to prevent SDK resolution issues
+  set(MSBuildSdksPath_BACKUP $ENV{MSBuildSdksPath})
+  unset(ENV{MSBuildSdksPath})
+
   execute_process(
         COMMAND ${DOTNET_EXECUTABLE} restore
         WORKING_DIRECTORY ${EDITOR_PROJECT_DIR}
     )
+
+  # Restore environment variable
+  if(MSBuildSdksPath_BACKUP)
+    set(ENV{MSBuildSdksPath} ${MSBuildSdksPath_BACKUP})
+  endif()
 
   if(USE_MSBUILD_FOR_CSHARP_BUILD)
     enable_language(CSharp)
@@ -170,11 +178,33 @@ if(DOTNET_EXECUTABLE)
 
     add_dependencies(Hyperion.Editor hyperion Hyperion.NET.Shared Hyperion.NET.Runtime Hyperion.NET.Interop)
   else()
-    add_custom_target(Hyperion.Editor ALL
-            COMMAND ${DOTNET_EXECUTABLE} build "${EDITOR_CSPROJ_PATH}"  --disable-build-servers --no-restore --configuration ${HYP_BUILD_TYPE}
-            COMMENT "Building Hyperion.Editor"
-            DEPENDS hyperion Hyperion.NET.Shared Hyperion.NET.Runtime Hyperion.NET.Interop
-        )
+      message(STATUS "Using dotnet CLI to build Hyperion.Editor")
+
+      # Create a wrapper script to clear MSBuildSdksPath before running dotnet build
+      # Use CMAKE_HOST_WIN32 to check the build machine (not target platform)
+      # This ensures we use .bat on Windows even when cross-compiling for Android
+      if(CMAKE_HOST_WIN32)
+        set(DOTNET_BUILD_WRAPPER "${EDITOR_PROJECT_DIR}/dotnet-build.bat")
+        file(WRITE ${DOTNET_BUILD_WRAPPER} "@echo off\n")
+        file(APPEND ${DOTNET_BUILD_WRAPPER} "set MSBuildSdksPath=\n")
+        file(APPEND ${DOTNET_BUILD_WRAPPER} "\"${DOTNET_EXECUTABLE}\" build \"${EDITOR_CSPROJ_PATH}\" --disable-build-servers --no-restore --configuration ${HYP_BUILD_TYPE}\n")
+        add_custom_target(Hyperion.Editor ALL
+                  COMMAND ${DOTNET_BUILD_WRAPPER}
+                  DEPENDS hyperion Hyperion.NET.Shared Hyperion.NET.Runtime Hyperion.NET.Interop
+                  WORKING_DIRECTORY ${EDITOR_PROJECT_DIR}
+              )
+      else()
+        set(DOTNET_BUILD_WRAPPER "${EDITOR_PROJECT_DIR}/dotnet-build.sh")
+        file(WRITE ${DOTNET_BUILD_WRAPPER} "#!/bin/bash\n")
+        file(APPEND ${DOTNET_BUILD_WRAPPER} "unset MSBuildSdksPath\n")
+        file(APPEND ${DOTNET_BUILD_WRAPPER} "\"${DOTNET_EXECUTABLE}\" build \"${EDITOR_CSPROJ_PATH}\" --disable-build-servers --no-restore --configuration ${HYP_BUILD_TYPE}\n")
+        execute_process(COMMAND chmod +x ${DOTNET_BUILD_WRAPPER})
+        add_custom_target(Hyperion.Editor ALL
+                  COMMAND ${DOTNET_BUILD_WRAPPER}
+                  DEPENDS hyperion Hyperion.NET.Shared Hyperion.NET.Runtime Hyperion.NET.Interop
+                  WORKING_DIRECTORY ${EDITOR_PROJECT_DIR}
+              )
+      endif()
 
     # for Xcode, we want to allow running the editor from within Xcode
     if(CMAKE_GENERATOR MATCHES "Xcode")

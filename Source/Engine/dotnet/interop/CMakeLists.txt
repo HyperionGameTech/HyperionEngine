@@ -102,7 +102,7 @@ if(HYP_GENERATE_CSHARP_LIBRARIES)
 
     # Restore environment variable
     if(MSBuildSdksPath_BACKUP)
-        set(ENV{MSBuildSdksPath} ${MSBuildSdksPath_BACKUP})
+      set(ENV{MSBuildSdksPath} ${MSBuildSdksPath_BACKUP})
     endif()
 
     if(NOT USE_MSBUILD_FOR_CSHARP_BUILD)

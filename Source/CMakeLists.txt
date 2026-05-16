@@ -119,7 +119,8 @@ message(STATUS "Building for platform: ${HYP_PLATFORM_NAME} with compiler: ${CMA
 
 set(USE_MSBUILD_FOR_CSHARP_BUILD false)
 
-if (HYP_MSVC OR HYP_CLANG_WINDOWS)
+# If generating for Visual Studio projects, we use MSBuild for C# projects
+if(CMAKE_GENERATOR MATCHES "^Visual Studio")
   set(USE_MSBUILD_FOR_CSHARP_BUILD true)
   message(STATUS "Using MSBuild for C# projects")
 endif()
