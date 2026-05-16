@@ -239,7 +239,12 @@ struct FunctionWrapper
     // for std::declval usage
     constexpr FunctionWrapper() = default;
 
-    template <class Func>
+    constexpr FunctionWrapper(const FunctionWrapper& other) = default;
+    constexpr FunctionWrapper(FunctionWrapper&& other) noexcept = default;
+    constexpr FunctionWrapper& operator=(const FunctionWrapper& other) = default;
+    constexpr FunctionWrapper& operator=(FunctionWrapper&& other) noexcept = default;
+
+    template <class Func, std::enable_if_t<!std::is_same_v<std::decay_t<Func>, FunctionWrapper>, int> = 0>
     constexpr FunctionWrapper(Func&& func)
         : func(std::forward<Func>(func))
     {

@@ -399,13 +399,16 @@ public:
 
             const size_t minCapacity = currentCapacity <= newCapacity ? currentCapacity : newCapacity;
 
-            newAllocation.InitFromRangeMove(Data(), Data() + minCapacity);
+            if (m_size > 0)
+            {
+                newAllocation.InitFromRangeMove(Data(), Data() + minCapacity);
+            }
         }
 
         m_allocation.Free(GetAllocator());
 
         m_allocation = newAllocation;
-        
+
         // Chop size off if it is larger than newCapacity.
         m_size = newCapacity < m_size ? newCapacity : m_size;
 

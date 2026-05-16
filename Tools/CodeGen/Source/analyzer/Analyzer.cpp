@@ -647,7 +647,7 @@ static TResult<Array<ClassDefinition>, AnalyzerError> BuildClasses(const Analyze
         classDefinitions.PushBack(std::move(classDefinition));
     }
 
-    return classDefinitions;
+    return { std::move(classDefinitions) };
 }
 
 // Add attributes to allow the runtime to access metadata on the member

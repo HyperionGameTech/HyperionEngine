@@ -123,16 +123,13 @@ struct alignas(16) HYP_API Quat4f
     static Quat4f LookAt(const Vec3f& direction, const Vec3f& up);
     static Quat4f AxisAngles(const Vec3f& axis, float radians);
 
-    HashCode GetHashCode() const
+    HYP_FORCE_INLINE constexpr HashCode GetHashCode() const
     {
-        HashCode hc;
-
-        hc.Add(x);
-        hc.Add(y);
-        hc.Add(z);
-        hc.Add(w);
-
-        return hc;
+        return HashCode()
+            .Combine(x)
+            .Combine(y)
+            .Combine(z)
+            .Combine(w);
     }
 };
 

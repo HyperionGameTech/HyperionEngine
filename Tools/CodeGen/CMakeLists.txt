@@ -76,7 +76,7 @@ if(HYP_MSVC)
 else()
     # set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -g -O3")
     # for debugging
-    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -g -O0 -fpermissive -fsanitize=address,undefined -fno-omit-frame-pointer")
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -g -O0 -fpermissive -fsanitize=undefined -fno-omit-frame-pointer")
 endif()
 
 # if Win32, link with DbgHelp

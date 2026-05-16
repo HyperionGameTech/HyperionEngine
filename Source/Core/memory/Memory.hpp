@@ -12,6 +12,7 @@
 #include <Core/utilities/Traits.hpp>
 
 #include <type_traits>
+#include <utility>
 #include <cstring>
 #include <cstdlib>
 #include <cstddef>
@@ -27,36 +28,37 @@ class Memory
 {
 public:
     template <class T, class U, typename = std::enable_if_t<BitwiseComparable<T> && BitwiseComparable<U>>>
-    HYP_FORCE_INLINE static int Compare(const HYP_NOTNULL T* a, const HYP_NOTNULL U* b, size_t count)
+    HYP_FORCE_INLINE static int Compare(const T* a, const U* b, size_t count)
     {
         return std::memcmp(a, b, count);
     }
 
     template <class T, class U, typename = std::enable_if_t<BitwiseCopyable<T> && BitwiseCopyable<U>>>
-    HYP_FORCE_INLINE static void* Copy(HYP_NOTNULL T* dest, const HYP_NOTNULL U* src, size_t count)
+    HYP_FORCE_INLINE static void* Copy(T* dest, const U* src, size_t count)
     {
         return std::memcpy(dest, src, count);
     }
 
     template <class T, class U, typename = std::enable_if_t<BitwiseCopyable<T> && BitwiseCopyable<U>>>
-    HYP_FORCE_INLINE static void* Move(HYP_NOTNULL T* dest, const U* src, size_t size)
+    HYP_FORCE_INLINE static void* Move(T* dest, const U* src, size_t size)
     {
         return std::memmove(dest, src, size);
     }
 
     template <class T>
-    HYP_FORCE_INLINE static void* Fill(HYP_NOTNULL T* dest, ubyte ch, size_t size)
+    HYP_FORCE_INLINE static void* Fill(T* dest, ubyte ch, size_t size)
     {
         return std::memset(dest, ch, size);
     }
 
     template <class T>
-    HYP_FORCE_INLINE static void* Zero(HYP_NOTNULL T* dest, size_t size)
+    HYP_FORCE_INLINE static void* Zero(T* dest, size_t size)
     {
         return std::memset(dest, 0, size);
     }
 
-    HYP_FORCE_INLINE static void Garble(HYP_NOTNULL void* dest, size_t length)
+#if HYP_DEBUG_MODE
+    HYP_FORCE_INLINE static void Garble(void* dest, size_t length)
     {
         if (length == 0)
         {
@@ -65,8 +67,11 @@ public:
 
         std::memset(dest, 0xDEAD, length);
     }
+#else
+    HYP_FORCE_INLINE static void Garble(void* dest, size_t length) { }
+#endif
 
-    HYP_FORCE_INLINE static int StrCmp(const HYP_NOTNULL char* lhs, HYP_NOTNULL const char* rhs, size_t length = 0)
+    HYP_FORCE_INLINE static int StrCmp(const char* lhs, const char* rhs, size_t length = 0)
     {
         if (length)
         {
@@ -77,7 +82,7 @@ public:
     }
 
     template <class T>
-    static constexpr bool StrEqual(const HYP_NOTNULL T* lhs, const HYP_NOTNULL T* rhs, size_t length, size_t index = 0)
+    static constexpr bool StrEqual(const T* lhs, const T* rhs, size_t length, size_t index = 0)
     {
         if (HYP_CONSTEVAL_CONTEXT)
         {
@@ -104,16 +109,14 @@ public:
         }
     }
 
-    HYP_FORCE_INLINE static char* StrCpy(HYP_NOTNULL char* dest, const HYP_NOTNULL char* src, size_t length = 0)
+    HYP_FORCE_INLINE static char* StrCpy(char* dest, const char* src, size_t length)
     {
-        if (length)
+        if (length == 0)
         {
-            // ReSharper disable once CppDeprecatedEntity
-            return std::strncpy(dest, src, length);
+            return dest;
         }
 
-        // ReSharper disable once CppDeprecatedEntity
-        return std::strcpy(dest, src);
+        return std::strncpy(dest, src, length);
     }
 
     static inline size_t StrLen(const char* str)
@@ -133,13 +136,13 @@ public:
     }
 
     template <class T>
-    static void Delete(HYP_NOTNULL void* ptr)
+    static void Delete(void* ptr)
     {
         delete static_cast<T*>(ptr);
     }
 
     template <class T, class... Args>
-    static void Construct(HYP_NOTNULL void* where, Args&&... args)
+    static void Construct(void* where, Args&&... args)
     {
         new (where) T(std::forward<Args>(args)...);
     }
@@ -320,7 +323,7 @@ public:
         return static_cast<T*>(HYP_ALLOC_ALIGNED(sizeof(T) * count, alignment));
     }
 
-    HYP_FORCE_INLINE static void FreeAligned(HYP_NOTNULL void* ptr)
+    HYP_FORCE_INLINE static void FreeAligned(void* ptr)
     {
         HYP_FREE_ALIGNED(ptr);
     }

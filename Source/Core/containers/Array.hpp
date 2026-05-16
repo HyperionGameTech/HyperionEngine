@@ -224,7 +224,11 @@ public:
         m_size = other.Size();
 
         m_allocation.Allocate(GetAllocator(), m_size);
-        m_allocation.InitFromRangeCopy(other.Begin(), other.End());
+
+        if (other.Size() > 0)
+        {
+            m_allocation.InitFromRangeCopy(other.Begin(), other.End());
+        }
     }
 
     template <class OtherAllocatorType, typename = std::enable_if_t<!std::is_same_v<OtherAllocatorType, AllocatorType>>>
@@ -736,7 +740,11 @@ Array<T, AllocatorType>::Array(const Array& other)
 
     m_allocation.SetToInitialState();
     m_allocation.Allocate(GetAllocator(), m_size);
-    m_allocation.InitFromRangeCopy(other.Begin(), other.End());
+
+    if (other.Size() > 0)
+    {
+        m_allocation.InitFromRangeCopy(other.Begin(), other.End());
+    }
 }
 
 template <class T, class AllocatorType>
@@ -766,9 +774,17 @@ Array<T, AllocatorType>::Array(Array&& other) noexcept
         m_startOffset = 0;
 
         m_allocation.Allocate(GetAllocator(), m_size);
-        m_allocation.InitFromRangeMove(other.Begin(), other.End());
 
-        other.m_allocation.DestructInRange(other.m_startOffset, other.m_size);
+        if (other.Size() > 0)
+        {
+            m_allocation.InitFromRangeMove(other.Begin(), other.End());
+        }
+
+        if (other.Size() > 0)
+        {
+            other.m_allocation.DestructInRange(other.m_startOffset, other.m_size);
+        }
+
         other.m_allocation.Free(other.GetAllocator());
 
         other.m_size = 0;
@@ -781,7 +797,11 @@ Array<T, AllocatorType>::~Array()
 {
     if (m_allocation.GetCapacity() != 0)
     {
-        m_allocation.DestructInRange(m_startOffset, m_size);
+        if (Size() > 0)
+        {
+            m_allocation.DestructInRange(m_startOffset, m_size);
+        }
+
         m_allocation.Free(GetAllocator());
     }
 }
@@ -794,14 +814,22 @@ auto Array<T, AllocatorType>::operator=(const Array& other) -> Array&
         return *this;
     }
 
-    m_allocation.DestructInRange(m_startOffset, m_size);
+    if (Size() > 0)
+    {
+        m_allocation.DestructInRange(m_startOffset, m_size);
+    }
+
     m_allocation.Free(GetAllocator());
 
     m_size = other.m_size - other.m_startOffset;
     m_startOffset = 0;
 
     m_allocation.Allocate(GetAllocator(), m_size);
-    m_allocation.InitFromRangeCopy(other.Begin(), other.End());
+
+    if (other.Size() > 0)
+    {
+        m_allocation.InitFromRangeCopy(other.Begin(), other.End());
+    }
 
     return *this;
 }
@@ -814,7 +842,11 @@ auto Array<T, AllocatorType>::operator=(Array&& other) noexcept -> Array&
         return *this;
     }
 
-    m_allocation.DestructInRange(m_startOffset, m_size);
+    if (Size() > 0)
+    {
+        m_allocation.DestructInRange(m_startOffset, m_size);
+    }
+
     m_allocation.Free(GetAllocator());
 
     if (other.m_allocation.IsDynamic() && GetAllocator() == other.GetAllocator())
@@ -835,9 +867,14 @@ auto Array<T, AllocatorType>::operator=(Array&& other) noexcept -> Array&
         m_startOffset = 0;
 
         m_allocation.Allocate(GetAllocator(), m_size);
-        m_allocation.InitFromRangeMove(other.Begin(), other.End());
 
-        other.m_allocation.DestructInRange(other.m_startOffset, other.m_size);
+        if (other.Size() > 0)
+        {
+            m_allocation.InitFromRangeMove(other.Begin(), other.End());
+
+            other.m_allocation.DestructInRange(other.m_startOffset, other.m_size);
+        }
+
         other.m_allocation.Free(other.GetAllocator());
 
         other.m_size = 0;
@@ -902,10 +939,18 @@ void Array<T, AllocatorType>::SetCapacity(size_t capacity, size_t offset)
     if (capacity > 0)
     {
         newAllocation.Allocate(GetAllocator(), capacity);
-        newAllocation.InitFromRangeMove(Begin(), End(), offset);
+
+        if (Size() > 0)
+        {
+            newAllocation.InitFromRangeMove(Begin(), End(), offset);
+        }
     }
 
-    m_allocation.DestructInRange(m_startOffset, m_size);
+    if (Size() > 0)
+    {
+        m_allocation.DestructInRange(m_startOffset, m_size);
+    }
+
     m_allocation.Free(GetAllocator());
 
     m_size -= m_startOffset;

@@ -188,7 +188,7 @@ TResult<CSharpTypeMapping> MapToCSharpType(const Analyzer& analyzer, const ASTTy
             }
         }
 
-        return CSharpTypeMapping { typeNameString, Optional<String>::empty, isPointerNullable };
+        return CSharpTypeMapping { typeNameString, Optional<String> {}, isPointerNullable };
     }
 
     HYP_LOG(Parser, Error, "Type is unable to be mapped to a C# type: {}", type->Format());

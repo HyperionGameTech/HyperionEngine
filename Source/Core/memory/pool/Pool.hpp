@@ -119,7 +119,7 @@ protected:
     size_t m_blockSize;
     EnumFlags<PoolFlags> m_flags;
     AtomicFlag m_atomicFlag;
-    
+
     const ThreadId& m_ownerThreadId;
 };
 

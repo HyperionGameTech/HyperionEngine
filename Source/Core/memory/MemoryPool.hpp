@@ -113,7 +113,7 @@ extern HYP_API void CalculateMemoryUsagePerPool(Array<Pair<MemoryPoolBase*, size
 class HYP_API MemoryPoolBase
 {
 public:
-    MemoryPoolBase(const MemoryPoolBase& other) = delete;
+    HYP_DEPRECATED MemoryPoolBase(const MemoryPoolBase& other) = delete;
     MemoryPoolBase& operator=(const MemoryPoolBase& other) = delete;
     MemoryPoolBase(MemoryPoolBase&& other) noexcept = delete;
     MemoryPoolBase& operator=(MemoryPoolBase&& other) noexcept = delete;

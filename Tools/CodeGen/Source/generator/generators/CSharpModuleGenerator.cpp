@@ -40,6 +40,11 @@ static const TMap<String, String> s_getValueOverloads = {
     { "ObjIdBase", "ReadId" }
 };
 
+static String AppendNullable(const String& typeName, bool isNullable)
+{
+    return isNullable ? typeName + "?" : typeName;
+}
+
 FilePath CSharpModuleGenerator::GetOutputFilePath(const Analyzer& analyzer, const Module& mod) const
 {
     FilePath relativePath = FilePath(FileSystem::RelativePath(mod.GetPath().Data(), analyzer.GetSourceDirectory().Data()).c_str());
@@ -231,11 +236,6 @@ Result CSharpModuleGenerator::Generate(const Analyzer& analyzer, const Module& m
                     {
                         parameterTypeMapping = res.GetValue();
                     }
-
-                    auto AppendNullable = [](const String& typeName, bool isNullable) -> String
-                    {
-                        return isNullable ? typeName + "?" : typeName;
-                    };
 
                     const String parameterName = MapParameterName(parameter->name);
 

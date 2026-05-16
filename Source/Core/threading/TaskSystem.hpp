@@ -189,6 +189,8 @@ public:
 
     HYP_FORCE_INLINE TaskThreadPool& GetPool(TaskThreadPoolName poolName) const
     {
+        Assert(m_pools[uint32(poolName)] != nullptr);
+
         return *m_pools[uint32(poolName)];
     }
 
@@ -201,6 +203,11 @@ public:
     {
         for (const UniquePtr<TaskThreadPool>& pool : m_pools)
         {
+            if (!pool)
+            {
+                continue;
+            }
+
             if (TaskThread* taskThread = pool->GetTaskThread(threadId))
             {
                 return taskThread;

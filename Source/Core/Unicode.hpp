@@ -446,7 +446,7 @@ static inline Char32 Char8to32(const Char8* str, size_t max, size_t& outCodepoin
 static inline void Char32to8(Char32 src, Char8* dst, size_t& outCodepoints)
 {
     // set all dst bytes to 0
-    *reinterpret_cast<Char32*>(dst) = 0;
+    std::memset(dst, 0, sizeof(Char32));
 
     outCodepoints = 0;
 

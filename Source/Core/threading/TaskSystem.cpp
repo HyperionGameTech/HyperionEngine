@@ -79,6 +79,11 @@ void TaskSystem::Start()
 
     for (const UniquePtr<TaskThreadPool>& pool : m_pools)
     {
+        if (!pool)
+        {
+            continue;
+        }
+
         pool->Start();
     }
 
@@ -93,6 +98,11 @@ void TaskSystem::Stop()
 
     for (const UniquePtr<TaskThreadPool>& pool : m_pools)
     {
+        if (!pool)
+        {
+            continue;
+        }
+
         pool->Stop();
     }
 }

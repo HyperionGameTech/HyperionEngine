@@ -331,8 +331,8 @@ private:
                 {
                     TSet<Module*> dependencyModules;
 
-                    Proc<void(const ClassDefinition& srcClassDef, const ASTType* type)> addDependenciesRecur;
-                    addDependenciesRecur = [&](const ClassDefinition& srcClassDef, const ASTType* type)
+                    Proc<void(const ClassDefinition& srcClassDef, const ASTType* type)> AddDependenciesRecur;
+                    AddDependenciesRecur = [&](const ClassDefinition& srcClassDef, const ASTType* type)
                     {
                         if (!type)
                         {
@@ -341,19 +341,19 @@ private:
 
                         if (type->isPointer)
                         {
-                            addDependenciesRecur(srcClassDef, type->ptrTo.Get());
+                            AddDependenciesRecur(srcClassDef, type->ptrTo.Get());
                             return;
                         }
 
                         if (type->isLvalueReference || type->isRvalueReference)
                         {
-                            addDependenciesRecur(srcClassDef, type->refTo.Get());
+                            AddDependenciesRecur(srcClassDef, type->refTo.Get());
                             return;
                         }
 
                         if (type->isArray)
                         {
-                            addDependenciesRecur(srcClassDef, type->arrayOf.Get());
+                            AddDependenciesRecur(srcClassDef, type->arrayOf.Get());
                             return;
                         }
 
@@ -365,7 +365,7 @@ private:
 
                                 if (templateArgument->type != nullptr)
                                 {
-                                    addDependenciesRecur(srcClassDef, templateArgument->type.Get());
+                                    AddDependenciesRecur(srcClassDef, templateArgument->type.Get());
                                 }
                             }
 
@@ -377,11 +377,11 @@ private:
                             const ASTFunctionType* functionType = dynamic_cast<const ASTFunctionType*>(type);
                             Assert(functionType != nullptr);
 
-                            addDependenciesRecur(srcClassDef, functionType->returnType.Get());
+                            AddDependenciesRecur(srcClassDef, functionType->returnType.Get());
 
                             for (const RC<ASTMemberDecl>& param : functionType->parameters)
                             {
-                                addDependenciesRecur(srcClassDef, param->type.Get());
+                                AddDependenciesRecur(srcClassDef, param->type.Get());
                             }
 
                             return;
@@ -402,7 +402,7 @@ private:
                     {
                         for (MemberDef& definition : it.second.members)
                         {
-                            addDependenciesRecur(it.second, definition.cxxType.Get());
+                            AddDependenciesRecur(it.second, definition.cxxType.Get());
                         }
 
                         if (classDefinitionIds.Contains(it.second.name))
@@ -480,8 +480,8 @@ private:
 
                 uint32 nextOut = 1; // 0 is reserved for ObjectBase
 
-                Proc<void(uint32)> topologicalSort;
-                topologicalSort = [&](uint32 id)
+                Proc<void(uint32)> TopologicalSort;
+                TopologicalSort = [&](uint32 id)
                 {
                     Assert(id < classDefinitions.Size());
 
@@ -503,7 +503,7 @@ private:
                     {
                         if (classDefinitions[i]->staticIndex == -1)
                         {
-                            topologicalSort(i);
+                            TopologicalSort(i);
                         }
                     }
 
@@ -514,9 +514,9 @@ private:
 
                 for (uint32 root : roots)
                 {
-                    topologicalSort(root);
+                    TopologicalSort(root);
                 }
-            });
+            }, m_threadPool);
     }
 
     Task<void> GenerateOutputFiles()
@@ -548,14 +548,14 @@ private:
         {
             Assert(m_analyzer.GetCSharpOutputDirectory().MkDir(), "Failed to create C# output directory: {}", m_analyzer.GetCSharpOutputDirectory());
 
-            RC<CSharpModuleGenerator> csharpModuleGenerator = MakeRefCountedPtr<CSharpModuleGenerator>();
+            static CSharpModuleGenerator s_csharpModuleGenerator;
 
             if (builtinsModule->GetClasses().Any())
             {
                 // generate builtins first
-                batch->AddTask([this, csharpModuleGenerator, builtinsModule]()
+                batch->AddTask([this, &s_csharpModuleGenerator, builtinsModule]()
                     {
-                        if (Result res = csharpModuleGenerator->Generate(m_analyzer, *builtinsModule); res.HasError())
+                        if (Result res = s_csharpModuleGenerator.Generate(m_analyzer, *builtinsModule); res.HasError())
                         {
                             m_analyzer.AddError(AnalyzerError(res.GetError(), FilePath("<builtins>")));
                         }
@@ -570,9 +570,9 @@ private:
                 }
 
                 // csharp modules can be processed async from C++ modules
-                batch->AddTask([this, csharpModuleGenerator, &mod = *mod]()
+                batch->AddTask([this, &s_csharpModuleGenerator, &mod = *mod]()
                     {
-                        if (Result res = csharpModuleGenerator->Generate(m_analyzer, mod); res.HasError())
+                        if (Result res = s_csharpModuleGenerator.Generate(m_analyzer, mod); res.HasError())
                         {
                             m_analyzer.AddError(AnalyzerError(res.GetError(), mod.GetPath()));
                         }
@@ -584,7 +584,7 @@ private:
         {
             Assert(m_analyzer.GetHypScriptOutputDirectory().MkDir(), "Failed to create HypScript output directory: {}", m_analyzer.GetHypScriptOutputDirectory());
 
-            RC<HypScriptModuleGenerator> hypscriptModuleGenerator = MakeRefCountedPtr<HypScriptModuleGenerator>();
+            HypScriptModuleGenerator hypscriptModuleGenerator;
 
             // for hypscript, we want to generate all modules and then merge them into one file
             // but we need to sort modules topologically to ensure dependencies come first
@@ -601,7 +601,7 @@ private:
             if (builtinsModule->GetClasses().Any())
             {
                 // generate builtins first
-                if (Result res = hypscriptModuleGenerator->Generate(m_analyzer, *builtinsModule, hypscriptModuleWriter); res.HasError())
+                if (Result res = hypscriptModuleGenerator.Generate(m_analyzer, *builtinsModule, hypscriptModuleWriter); res.HasError())
                 {
                     m_analyzer.AddError(AnalyzerError(res.GetError(), FilePath("<builtins>")));
                 }
@@ -618,7 +618,7 @@ private:
 
                 MemoryByteWriter writer;
 
-                if (Result res = hypscriptModuleGenerator->Generate(m_analyzer, *mod, writer); res.HasError())
+                if (Result res = hypscriptModuleGenerator.Generate(m_analyzer, *mod, writer); res.HasError())
                 {
                     m_analyzer.AddError(AnalyzerError(res.GetError(), mod->GetPath()));
 
@@ -636,7 +636,7 @@ private:
             hypscriptModuleWriter.Close();
         }
 
-        RC<CXXModuleGenerator> cxxModuleGenerator = MakeRefCountedPtr<CXXModuleGenerator>();
+        CXXModuleGenerator cxxModuleGenerator;
 
         // Generate the ClassDecl header and implementation files (shared by both modes)
         {
@@ -649,7 +649,7 @@ private:
             }
             else
             {
-                if (Result res = cxxModuleGenerator->GenerateClassDeclHeader(m_analyzer, classDeclWriter); res.HasError())
+                if (Result res = cxxModuleGenerator.GenerateClassDeclHeader(m_analyzer, classDeclWriter); res.HasError())
                 {
                     m_analyzer.AddError(AnalyzerError(res.GetError(), classDeclHeaderPath));
                 }
@@ -669,7 +669,7 @@ private:
             }
             else
             {
-                if (Result res = cxxModuleGenerator->GenerateClassDeclImplementation(m_analyzer, classDeclImplWriter); res.HasError())
+                if (Result res = cxxModuleGenerator.GenerateClassDeclImplementation(m_analyzer, classDeclImplWriter); res.HasError())
                 {
                     m_analyzer.AddError(AnalyzerError(res.GetError(), tmpClassDeclImplPath));
                 }
@@ -740,7 +740,7 @@ private:
                 {
                     builtinsWriter.WriteString(GetGeneratedFilePreamble(String::empty));
                     builtinsWriter.WriteString("#include <Core/reflection/ClassUtils.hpp>\n");
-                    if (Result res = cxxModuleGenerator->Generate(m_analyzer, *builtinsModule, builtinsWriter); res.HasError())
+                    if (Result res = cxxModuleGenerator.Generate(m_analyzer, *builtinsModule, builtinsWriter); res.HasError())
                     {
                         m_analyzer.AddError(AnalyzerError(res.GetError(), FilePath("<builtins>")));
                     }
@@ -770,7 +770,7 @@ private:
                     }
                 }
 
-                const FilePath inlPath = cxxModuleGenerator->GetInlineOutputFilePath(m_analyzer, *mod);
+                const FilePath inlPath = cxxModuleGenerator.GetInlineOutputFilePath(m_analyzer, *mod);
                 Assert(inlPath.BasePath().MkDir(), "Failed to create output directory for {}", inlPath);
 
                 FilePath tmpInlPath = inlPath + ".tmp";
@@ -783,7 +783,7 @@ private:
                 }
 
                 // Generate inline content without includes
-                if (Result res = cxxModuleGenerator->GenerateInline(m_analyzer, *mod, inlWriter); res.HasError())
+                if (Result res = cxxModuleGenerator.GenerateInline(m_analyzer, *mod, inlWriter); res.HasError())
                 {
                     m_analyzer.AddError(AnalyzerError(res.GetError(), mod->GetPath()));
                     inlWriter.Close();
@@ -865,7 +865,7 @@ private:
             // add main required header that is shared across all generated modules.
             cxxModuleWriter->WriteString("#include <Core/reflection/ClassUtils.hpp>\n");
 
-            if (Result res = cxxModuleGenerator->Generate(m_analyzer, *builtinsModule, *cxxModuleWriter); res.HasError())
+            if (Result res = cxxModuleGenerator.Generate(m_analyzer, *builtinsModule, *cxxModuleWriter); res.HasError())
             {
                 m_analyzer.AddError(AnalyzerError(res.GetError(), FilePath("<builtins>")));
             }
@@ -883,7 +883,9 @@ private:
                 if (cxxModuleWriter)
                 {
                     cxxModuleWriter->Close();
+
                     delete cxxModuleWriter;
+                    cxxModuleWriter = nullptr;
                 }
 
                 updateFilenameBuffer();
@@ -896,7 +898,7 @@ private:
                 cxxModuleWriter->WriteString("#include <Core/reflection/ClassUtils.hpp>\n");
             }
 
-            if (Result res = cxxModuleGenerator->Generate(m_analyzer, *mod, *cxxModuleWriter); res.HasError())
+            if (Result res = cxxModuleGenerator.Generate(m_analyzer, *mod, *cxxModuleWriter); res.HasError())
             {
                 m_analyzer.AddError(AnalyzerError(res.GetError(), mod->GetPath()));
             }
@@ -905,7 +907,9 @@ private:
         if (cxxModuleWriter != nullptr)
         {
             cxxModuleWriter->Close();
+
             delete cxxModuleWriter;
+            cxxModuleWriter = nullptr;
         }
 
         // In CPP mode, ensure any previously injected inline includes are removed
@@ -918,7 +922,7 @@ private:
                     continue;
                 }
 
-                const FilePath inlPath = cxxModuleGenerator->GetInlineOutputFilePath(m_analyzer, *mod);
+                const FilePath inlPath = cxxModuleGenerator.GetInlineOutputFilePath(m_analyzer, *mod);
                 if (Result res = RemoveInlineIncludeForModule(*mod, inlPath); res.HasError())
                 {
                     m_analyzer.AddError(AnalyzerError(res.GetError(), mod->GetPath()));
@@ -1849,6 +1853,10 @@ int main(int argc, char** argv)
 
     if (auto parseResult = commandLineParser.Parse(argc, argv))
     {
+        // Create background thread pool
+        static constexpr uint32 MaxBackgroundWorkerThreads = 1;
+        TaskSystem::GetInstance().RegisterPool(TaskThreadPoolName::THREAD_POOL_BACKGROUND, MakeUnique<BackgroundWorkerPool>("BackgroundWorker", MaxBackgroundWorkerThreads));
+
         TaskSystem::GetInstance().Start();
 
         const FilePath workingDirectory = FilePath(parseResult.GetValue()["WorkingDirectory"].AsString());

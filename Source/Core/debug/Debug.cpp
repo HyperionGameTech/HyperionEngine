@@ -17,10 +17,12 @@
 #define WIN32_LEAN_AND_MEAN
 #include <Windows.h>
 #include <debugapi.h>
-#elif HYP_ANDROID
-#elif HYP_UNIX
-#include <sys/types.h>
+#elif HYP_MACOS
 #include <sys/sysctl.h>
+#include <sys/types.h>
+#include <unistd.h>
+#elif HYP_LINUX
+#include <sys/types.h>
 #include <unistd.h>
 #endif
 
@@ -114,10 +116,7 @@ bool IsDebuggerAttached()
 {
 #if HYP_WINDOWS
     return ::IsDebuggerPresent();
-#elif HYP_ANDROID
-    // @TODO
-    return false;
-#elif HYP_UNIX
+#elif HYP_MACOS
     int mib[4] = { CTL_KERN, KERN_PROC, KERN_PROC_PID, getpid() };
     struct kinfo_proc info {};
     size_t size = sizeof(info);
@@ -129,6 +128,9 @@ bool IsDebuggerAttached()
 
     // P_TRACED flag is set when a debugger is tracing the process.
     return (info.kp_proc.p_flag & P_TRACED) != 0;
+#else
+    // @TODO: Implement for HYP_LINUX
+    return false;
 #endif
 }
 
