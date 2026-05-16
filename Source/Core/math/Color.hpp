@@ -241,5 +241,3 @@ struct Formatter<StringType, Color>
 } // namespace utilities
 
 } // namespace Hyperion
-
-HYP_DEF_STL_HASH(::Hyperion::Color);

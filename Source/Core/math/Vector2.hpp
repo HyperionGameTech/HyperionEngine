@@ -773,5 +773,3 @@ struct Formatter<StringType, math::Vec2<T>>
 } // namespace utilities
 
 } // namespace Hyperion
-
-HYP_DEF_STL_HASH(::Hyperion::Vector2);

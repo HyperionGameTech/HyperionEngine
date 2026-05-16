@@ -570,7 +570,7 @@ public:
             else if constexpr (std::is_same_v<OtherCharType, wchar_t>)
             {
                 // For Win32 (UTF-16) this must combine surrogate pairs
-                
+
                 const wchar_t* ptr = _begin;
                 const wchar_t* endPtr = _end;
 
@@ -651,7 +651,7 @@ public:
                 // Convert wchar_t to UTF-16
 #ifdef HYP_WINDOWS
                 static_assert(sizeof(OtherCharType) == sizeof(CharType));
-                
+
                 // Win32: Can just treat as UTF-16
                 for (const wchar_t* ptr = _begin; ptr < _end; ++ptr)
                 {
@@ -659,7 +659,7 @@ public:
                 }
 #else
                 static_assert(sizeof(OtherCharType) == sizeof(utf::Char32));
-                
+
                 // Treat as UTF-32 on other (Unix) platforms
                 for (const wchar_t* ptr = _begin; ptr < _end; ++ptr)
                 {
@@ -1746,7 +1746,7 @@ template <int TStringType>
 auto String<TStringType>::ToLower() const -> String
 {
     String result;
-    
+
     if constexpr (isUtf8)
     {
         result.Reserve(Size());
@@ -1791,7 +1791,7 @@ template <int TStringType>
 auto String<TStringType>::ToUpper() const -> String
 {
     String result;
-    
+
     if constexpr (isUtf8)
     {
         result.Reserve(Size());
@@ -2177,9 +2177,3 @@ inline containers::String<TStringType> operator+(const typename containers::Stri
 }
 
 } // namespace Hyperion
-
-HYP_DEF_STL_HASH(::Hyperion::String);
-HYP_DEF_STL_HASH(::Hyperion::ANSIString);
-HYP_DEF_STL_HASH(::Hyperion::WideString);
-HYP_DEF_STL_HASH(::Hyperion::UTF16String);
-HYP_DEF_STL_HASH(::Hyperion::UTF32String);

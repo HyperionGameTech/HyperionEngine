@@ -357,17 +357,3 @@ private:
     }
 };
 } // namespace Hyperion
-
-namespace std {
-
-// Specialize std::hash for HashCode
-template <>
-struct hash<::Hyperion::HashCode>
-{
-    size_t operator()(const ::Hyperion::HashCode& hc) const
-    {
-        return static_cast<size_t>(hc.Value());
-    }
-};
-
-} // namespace std

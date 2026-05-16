@@ -175,16 +175,6 @@
         return std::memcmp(this, &other, sizeof(*this)) < 0; \
     }
 
-#define HYP_DEF_STL_HASH(T)                   \
-    template <>                               \
-    struct std::hash<T>                       \
-    {                                         \
-        size_t operator()(const T& obj) const \
-        {                                     \
-            return obj.GetHashCode().Value(); \
-        }                                     \
-    }
-
 #define HYP_DEF_STL_ITERATOR(container)        \
     HYP_NODISCARD Iterator Begin()             \
     {                                          \
@@ -338,10 +328,10 @@
 #define HYP_FUNCTION_NAME_LIT (__PRETTY_FUNCTION__)
 
 #ifdef HYP_ENABLE_BREAKPOINTS
-#if (defined(HYP_ARM) && HYP_ARM) || HYP_GCC
+#ifdef HYP_CLANG
 #define HYP_BREAKPOINT __builtin_debugtrap()
-#else // for x86/x64
-#define HYP_BREAKPOINT __asm__ volatile("int $0x03")
+#else
+#define HYP_BREAKPOINT __builtin_trap()
 #endif
 
 namespace Hyperion {

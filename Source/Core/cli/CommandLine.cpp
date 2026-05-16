@@ -29,10 +29,14 @@ static void AppendCommandLineArgumentValue(
     CommandLineArgumentValue&& value,
     bool allowMultiple)
 {
-    auto it = values.FindIf([key](const auto& item)
+    typename Array<Pair<String, CommandLineArgumentValue>>::Iterator it;
+    for (it = values.Begin(); it != values.End(); ++it)
+    {
+        if (it->first == key)
         {
-            return item.first == key;
-        });
+            break;
+        }
+    }
 
     if (it != values.End())
     {
