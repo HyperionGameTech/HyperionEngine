@@ -204,12 +204,12 @@ void DefaultGame::OnLaunch_Impl()
 
 
     Handle<Entity> cubeEnt = MakeHandle<Entity>();
-    cubeEnt->SetName(NAME("CUBEFUCKER"));
+    cubeEnt->SetName(NAME("Cube"));
     cubeEnt->Scale(3.0f);
 
     Handle<Mesh> mesh = MeshBuilder::Cube();
     mesh->SetFlags(MeshFlags::ViewIndependent);
-    mesh->SetName(NAME("CF_MESH"));
+    mesh->SetName(NAME("CubeMesh"));
     mesh->SetIsTransient(true);
     InitObject(mesh);
 
