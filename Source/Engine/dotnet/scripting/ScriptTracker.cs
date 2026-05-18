@@ -17,7 +17,8 @@ namespace Hyperion
         private ScriptEventCallback? _callback;
         private IntPtr _callbackSelfPtr;
 
-        private ScriptCompiler? scriptCompiler = null;
+        private CSharpScriptCompiler? _csharpCompiler = null;
+        private HypScriptCompiler? _hypCompiler = null;
 
         private Dictionary<string, ScriptInstance> _processingScripts = [];
         private Dictionary<string, CompileScriptEditorTask> _tasks = [];
@@ -37,14 +38,16 @@ namespace Hyperion
             _intermediateDirectory = intermediateDirectory;
             _binaryOutputDirectory = binaryOutputDirectory;
 
-            // For C# compilation, use the first source directory (typically Data/Scripts)
-            // In the future, ScriptCompiler should support multiple directories
+            // Create language-specific compilers using the primary source directory
             if (_sourceDirectories.Count > 0)
             {
                 Logger.Log(logChannel, LogLevel.Info, "Primary source directory: {0}", _sourceDirectories[0]);
 
-                scriptCompiler = new ScriptCompiler(_sourceDirectories[0], _intermediateDirectory, _binaryOutputDirectory);
-                scriptCompiler.BuildAllProjects();
+                _csharpCompiler = new CSharpScriptCompiler(_sourceDirectories[0], _intermediateDirectory, _binaryOutputDirectory);
+                _csharpCompiler.BuildAllProjects();
+
+                _hypCompiler = new HypScriptCompiler(_sourceDirectories[0], _intermediateDirectory, _binaryOutputDirectory);
+                _hypCompiler.BuildAllProjects();
             }
 
             Logger.Log(logChannel, LogLevel.Info, "Script tracker initialized with {0} source directories.", _sourceDirectories.Count);
@@ -119,13 +122,20 @@ namespace Hyperion
                     continue;
                 }
 
-                if (scriptCompiler != null)
-                {
-                    ref ScriptDesc scriptDesc = ref entry.Value.Get();
+                ref ScriptDesc scriptDesc = ref entry.Value.Get();
 
+                ScriptCompilerBase? compiler = scriptDesc.Language switch
+                {
+                    ScriptLanguage.CSharp => _csharpCompiler,
+                    ScriptLanguage.HypScript => _hypCompiler,
+                    _ => null
+                };
+
+                if (compiler != null)
+                {
                     try
                     {
-                        if (scriptCompiler.Compile(ref scriptDesc))
+                        if (compiler.Compile(ref scriptDesc))
                         {
                             scriptDesc.CompileStatus |= ScriptCompileStatus.Compiled;
                         }
@@ -146,7 +156,7 @@ namespace Hyperion
                 }
                 else
                 {
-                    entry.Value.Get().CompileStatus = ScriptCompileStatus.Errored;
+                    scriptDesc.CompileStatus = ScriptCompileStatus.Errored;
                 }
             }
 
@@ -154,8 +164,7 @@ namespace Hyperion
             {
                 _processingScripts.Remove(scriptPath);
 
-                CompileScriptEditorTask? task = null;
-                if (_tasks.Remove(scriptPath, out task))
+                if (_tasks.Remove(scriptPath, out CompileScriptEditorTask? task))
                 {
                     task.SetIsCompleted(true);
                 }
@@ -187,9 +196,15 @@ namespace Hyperion
 
             Logger.Log(logChannel, LogLevel.Info, "Adding script {0} to processing queue...", filePath);
 
+            Debug.Assert(_sourceDirectories.Count >= 1, "Must have at least 1 directory to be able to compute relative path.");
+
+            // @NOTE Path must be relative to Data/Scripts directory.
+            // We assume the first directory is that.
+            string relativePath = Path.GetRelativePath(_sourceDirectories[0], filePath);
+
             ScriptInstance scriptInstance = new ScriptInstance(new ScriptDesc
             {
-                Path = filePath,
+                Path = relativePath,
                 Language = language,
                 CompileStatus = ScriptCompileStatus.Processing,
                 HotReloadVersion = 0,

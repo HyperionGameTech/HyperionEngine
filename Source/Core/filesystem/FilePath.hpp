@@ -196,6 +196,8 @@ public:
 
     HYP_API FilePath BasePath() const;
 
+    HYP_NODISCARD FilePath Canonicalize() const;
+
     /*! \brief Remove the file or directory at the path.
      *
      * \return true if the file or directory was removed, false otherwise.

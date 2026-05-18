@@ -338,6 +338,25 @@ void EntityScripting::InitEntityScriptComponent(Entity* entity, ScriptComponent&
                 // Create from bytecode
                 ConstByteView bytecode = scriptAsset->GetBytecode();
 #if HYP_EDITOR
+                static const auto GetSourcePath = [](const AssetRegistry& registry, const ScriptAsset& scriptAsset) -> FilePath
+                {
+                    const FilePath sourceDir = registry.GetRootPath() / "Scripts";
+                    FilePath sourcePath = sourceDir / (scriptAsset.GetName().ToString() + ".hyp");
+
+                    if (Memory::StrLen(scriptAsset.GetScriptDesc().path.Data()) != 0)
+                    {
+                        sourcePath = (sourceDir / FilePath(scriptAsset.GetScriptDesc().path.Data())).Canonicalize();
+                    }
+
+                    return sourcePath;
+                };
+
+                static const auto GetRelativeSourcePath = [](const AssetRegistry& registry, const FilePath& sourcePath) -> String
+                {
+                    const FilePath sourceDir = registry.GetRootPath() / "Scripts";
+                    return FilePath::Relative(sourcePath, sourceDir);
+                };
+
                 if (bytecode.Size() > 0)
                 {
                     // Check if source file has been modified since the bytecode was compiled
@@ -348,9 +367,15 @@ void EntityScripting::InitEntityScriptComponent(Entity* entity, ScriptComponent&
 
                         if (registry.IsValid())
                         {
-                            const FilePath sourcePath = registry->GetRootPath() / "Scripts" / (scriptAsset->GetName().ToString() + ".hyp");
+                            const FilePath sourcePath = GetSourcePath(*registry, *scriptAsset);
+                            const String relativeSourcePath = GetRelativeSourcePath(*registry, sourcePath);
 
-                            if (sourcePath.Exists() && sourcePath.CanRead())
+                            if (Memory::StrCmp(relativeSourcePath.Data(), scriptDesc.path.Data(), scriptDesc.path.Size()) != 0)
+                            {
+                                // needs recompile if source path differs
+                                needsRecompile = true;
+                            }
+                            else if (sourcePath.Exists() && sourcePath.CanRead())
                             {
                                 const Time sourceModified = sourcePath.LastModifiedTimestamp();
                                 const Time lastCompiled(scriptDesc.lastModifiedTimestamp);
@@ -382,7 +407,7 @@ void EntityScripting::InitEntityScriptComponent(Entity* entity, ScriptComponent&
                         return;
                     }
 
-                    const FilePath sourcePath = registry->GetRootPath() / "Scripts" / (scriptAsset->GetName().ToString() + ".hyp");
+                    FilePath sourcePath = GetSourcePath(*registry, *scriptAsset);
 
                     if (!sourcePath.Exists() || !sourcePath.CanRead())
                     {
@@ -399,11 +424,18 @@ void EntityScripting::InitEntityScriptComponent(Entity* entity, ScriptComponent&
                     }
 
                     ByteBuffer byteBuffer = readStream.Read();
-
                     SourceFile sourceFile(sourcePath, byteBuffer.Size());
                     sourceFile.ReadIntoBuffer(byteBuffer);
-
                     byteBuffer.Clear();
+
+                    // Get exclusive access to write the bytecode data and set state.
+                    readScope.Reset();
+                    auto writeScope = scriptAsset->GetWriteScope();
+
+                    // Update status
+                    ScriptDesc& scriptDesc = scriptAsset->GetScriptDesc();
+                    scriptDesc.compileStatus &= ~(ScriptCompileStatus::Compiled | ScriptCompileStatus::Errored);
+                    scriptDesc.compileStatus |= ScriptCompileStatus::Processing;
 
                     HypScriptCompileParams compileParams;
                     // Add data / scripts path as scan path so we pick up Lib.hyp
@@ -414,6 +446,9 @@ void EntityScripting::InitEntityScriptComponent(Entity* entity, ScriptComponent&
 
                     if (errorList.HasFatalErrors())
                     {
+                        scriptDesc.compileStatus &= ~ScriptCompileStatus::Processing;
+                        scriptDesc.compileStatus |= ScriptCompileStatus::Errored;
+
                         SystemMessageBox(MessageBoxType::CRITICAL)
                             .Title("Script Compilation Error")
                             .Text(HYP_FORMAT("Failed to compile script file '{}'. See the log for details.", sourcePath))
@@ -430,15 +465,21 @@ void EntityScripting::InitEntityScriptComponent(Entity* entity, ScriptComponent&
                     // Record the source file timestamp so we can detect future changes
                     scriptDesc.lastModifiedTimestamp = uint64(sourcePath.LastModifiedTimestamp());
 
+                    // Write filepath to desc
+                    const FilePath sourceDir = registry->GetRootPath() / "Scripts";
+                    const String relativeSourcePath = GetRelativeSourcePath(*registry, sourcePath);
+                    Memory::StrCpy(scriptDesc.path.Data(), relativeSourcePath.Data(), scriptDesc.path.Size());
+
                     { // Save bytecode.
                         MemoryByteWriter bytecodeStream;
                         hs.WriteBytecodeToStream(instance, bytecodeStream);
 
-                        readScope.Reset();
-
-                        // Get exclusive access to write the bytecode data.
-                        auto writeScope = scriptAsset->GetWriteScope();
                         scriptAsset->SetBytecode(bytecodeStream.GetBuffer().ToByteView());
+                        
+                        // Mark compiled
+                        scriptDesc.compileStatus &= ~ScriptCompileStatus::Processing;
+                        scriptDesc.compileStatus |= ScriptCompileStatus::Compiled;
+
                         writeScope.Reset();
                         
                         // Save script binary again if it exists on the filesystem.

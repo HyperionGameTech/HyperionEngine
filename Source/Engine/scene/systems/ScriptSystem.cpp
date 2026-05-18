@@ -121,13 +121,27 @@ ScriptSystem::ScriptSystem()
 
         m_delegateHandlers.Add(
             NAME("OnScriptStateChanged"),
-            g_engineDriver->GetScriptingService()->OnScriptStateChanged.Bind([this](const ScriptDesc& script)
+            g_engineDriver->GetScriptingService()->OnScriptStateChanged.Bind([this](const ScriptDesc& inScriptDesc)
                 {
                     AssertOnThread(g_simThread);
 
-                    if (!(script.compileStatus & uint32(ScriptCompileStatus::Compiled)))
+                    switch (inScriptDesc.language)
                     {
-                        return;
+                    case ScriptLanguage::CSharp:
+                        // C# script recompilation is driven from C#
+                        if (!(inScriptDesc.compileStatus & ScriptCompileStatus::Compiled))
+                        {
+                            return;
+                        }
+                        break;
+                    case ScriptLanguage::HypScript:
+                        // HypScript is compiled in C++, here. So we want it in Processing state if we're going to compile
+                        if (!(inScriptDesc.compileStatus & ScriptCompileStatus::Processing))
+                        {
+                            return;
+                        }
+                        break;
+                    default: break;
                     }
 
                     World* world = GetWorld();
@@ -137,6 +151,30 @@ ScriptSystem::ScriptSystem()
                     {
                         return;
                     }
+
+                    static const auto Comparator = [](const ScriptDesc& inScriptDesc, const ScriptDesc& scriptDesc) -> bool
+                    {
+                        switch (inScriptDesc.language)
+                        {
+                        case ScriptLanguage::CSharp:
+                            return Memory::StrCmp(
+                                       inScriptDesc.assemblyPath.Data(),
+                                       scriptDesc.assemblyPath.Data(),
+                                       MathUtil::Min(inScriptDesc.assemblyPath.Size(), scriptDesc.assemblyPath.Size()))
+                                == 0;
+                        case ScriptLanguage::HypScript:
+                            // @TODO We should save deps for hypscript and can check if we need to recomopile based on that.
+                            // If we do that, we'll need to sort which files get compiled first + Have a different way to compile
+                            // directly rather than abusing (De)initEntityScriptComponent
+                            return Memory::StrCmp(
+                                       inScriptDesc.path.Data(),
+                                       scriptDesc.path.Data(),
+                                       MathUtil::Min(inScriptDesc.path.Size(), scriptDesc.path.Size()))
+                                == 0;
+                        default:
+                            return false;
+                        }
+                    };
 
                     for (Scene* scene : world->GetScenes())
                     {
@@ -149,18 +187,19 @@ ScriptSystem::ScriptSystem()
 
                             ScriptDesc& scriptDesc = scriptAsset->GetScriptDesc();
 
-                            if (Memory::StrCmp(script.assemblyPath.Data(), scriptDesc.assemblyPath.Data(), MathUtil::Min(ArraySize(script.assemblyPath), ArraySize(scriptDesc.assemblyPath))) == 0)
+                            if (Comparator(inScriptDesc, scriptDesc))
                             {
                                 HYP_LOG(Script, Info, "ScriptSystem: Reloading script for entity #{}", entity->Id());
 
                                 // Reload the script
                                 scriptComponent.flags |= ScriptComponentFlags::RELOADING;
 
-                                scriptDesc.uuid = script.uuid;
-                                scriptDesc.compileStatus = script.compileStatus;
-                                scriptDesc.hotReloadVersion = script.hotReloadVersion;
-                                scriptDesc.lastModifiedTimestamp = script.lastModifiedTimestamp;
+                                scriptDesc.uuid = inScriptDesc.uuid;
+                                scriptDesc.compileStatus = inScriptDesc.compileStatus;
+                                scriptDesc.hotReloadVersion = inScriptDesc.hotReloadVersion;
+                                scriptDesc.lastModifiedTimestamp = inScriptDesc.lastModifiedTimestamp;
 
+                                // Release read scope - may need recompilation which will need exclusive access.
                                 resGuard.Reset();
 
                                 EntityScripting::DeinitEntityScriptComponent(entity, scriptComponent);

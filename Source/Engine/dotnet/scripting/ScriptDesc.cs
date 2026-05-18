@@ -34,11 +34,11 @@ namespace Hyperion
 
         private ScriptLanguage language;
 
+        private fixed byte className[1024];
+
         private fixed byte path[1024];
 
         private fixed byte assemblyPath[1024];
-
-        private fixed byte className[1024];
 
         [MarshalAs(UnmanagedType.U4)]
         private uint compileStatus;

@@ -461,6 +461,13 @@ FilePath FilePath::BasePath() const
     return FilePath(StringUtil::BasePath(*this));
 }
 
+FilePath FilePath::Canonicalize() const
+{
+    containers::Array<String> parts = Split('\\', '/');
+    parts = StringUtil::CanonicalizePath(parts);
+    return FilePath(String::Join(parts, HYP_FILESYSTEM_SEPARATOR));
+}
+
 Hyperion::containers::Array<FilePath, DynamicAllocator> FilePath::GetAllFilesInDirectory() const
 {
     Hyperion::containers::Array<FilePath, DynamicAllocator> files;

@@ -33,16 +33,16 @@ struct ScriptDesc
     ScriptLanguage language = ScriptLanguage::HypScript;
 
     HYP_FIELD(Serialize)
+    FixedArray<char, ScriptMaxClassNameLength> className;
+
+    HYP_FIELD(Serialize)
     FixedArray<char, ScriptMaxPathLength> path;
 
     HYP_FIELD(Serialize)
     FixedArray<char, ScriptMaxPathLength> assemblyPath; // C# only
 
-    HYP_FIELD(Serialize)
-    FixedArray<char, ScriptMaxClassNameLength> className;
-
     HYP_FIELD(Transient)
-    uint32 compileStatus;
+    EnumFlags<ScriptCompileStatus> compileStatus = ScriptCompileStatus::Uninitialized;
 
     HYP_FIELD(Transient)
     int32 hotReloadVersion;

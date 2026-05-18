@@ -12,7 +12,6 @@ testfunc := (x : float)
     end
 end
 
-
 closure := testfunc(f)
 Logger.LogScript(Channel, LogLevel.Info, "closure(10.0) = " + string(closure(10.0)))
 Logger.LogScript(Channel, LogLevel.Info, "closure(10.0) = " + string(closure(10.0)))

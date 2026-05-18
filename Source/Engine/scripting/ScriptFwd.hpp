@@ -34,7 +34,7 @@ enum class ScriptCompileStatus : uint32
     Errored = 0x8
 };
 
-HYP_MAKE_ENUM_FLAGS(ScriptCompileStatus)
+HYP_MAKE_ENUM_FLAGS(ScriptCompileStatus);
 
 HYP_ENUM()
 enum class ScriptLanguage : uint32
