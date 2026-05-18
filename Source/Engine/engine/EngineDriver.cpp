@@ -165,7 +165,7 @@ void HandleSignal(int signum)
 
 static const FilePath& GetScriptsSourceDirectory()
 {
-    static DirectoryInitializer<HYP_STATIC_STRING("Source/Scripts"), /* RelativeToExecutablePath */ false> s_directory;
+    static DirectoryInitializer<HYP_STATIC_STRING("Data/Scripts"), /* RelativeToExecutablePath */ false> s_directory;
     return s_directory.path;
 }
 
@@ -295,8 +295,13 @@ void EngineDriver::Initialize()
 
 #if HYP_EDITOR
     // Create script compilation service
+    // @TODO: Add project-specific scripts directory (Projects/<current>/Scripts)
+    Array<FilePath> scriptSourceDirectories;
+    scriptSourceDirectories.PushBack(GetScriptsSourceDirectory());
+    // scriptSourceDirectories.PushBack(GetProjectScriptsDirectory()); // Future: project-specific scripts
+
     m_scriptingService = MakeUnique<ScriptingService>(
-        GetScriptsSourceDirectory(),
+        scriptSourceDirectories,
         GetTempDirectory() / "ScriptProjects",
         CoreApi::GetExecutablePath()); // copy script binaries into executable path
 

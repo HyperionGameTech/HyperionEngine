@@ -63,8 +63,6 @@ AssetCollector::~AssetCollector()
 
 void AssetCollector::NotifyAssetChanged(const FilePath& path, AssetChangeType changeType)
 {
-    AssertReady();
-
     OnAssetChanged(path, changeType);
 }
 

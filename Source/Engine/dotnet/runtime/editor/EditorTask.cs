@@ -8,7 +8,11 @@ namespace Hyperion
     {
         public float Progress => this.GetProgress();
 
-        public string Title => this.GetTitle();
+        public string Title
+        {
+            get => this.GetTitle();
+            set => this.SetTitle(value);
+        }
 
         public string Description
         {
@@ -18,6 +22,11 @@ namespace Hyperion
 
         public abstract void Cancel();
         public abstract bool IsCompleted();
+
+        public bool Commit()
+        {
+            return InvokeNativeMethod<bool>(new Name("Commit", weak: true));
+        }
 
         public virtual void Start()
         {
@@ -34,6 +43,11 @@ namespace Hyperion
         }
 
         public bool IsForegroundTask => this.IsForegroundTask();
+
+        public void SetIsForegroundTask(bool isForeground)
+        {
+            InvokeNativeMethod(new Name("SetIsForegroundTask", weak: true), [isForeground]);
+        }
 
         public override void Cancel()
         {

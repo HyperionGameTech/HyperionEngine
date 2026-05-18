@@ -119,6 +119,12 @@ namespace Hyperion
             }
         }
 
+        public ScriptLanguage Language
+        {
+            get => language;
+            set => language = value;
+        }
+
         public ScriptCompileStatus CompileStatus
         {
             get

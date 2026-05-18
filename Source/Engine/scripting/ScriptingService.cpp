@@ -60,14 +60,14 @@ class ScriptingServiceThread : public TaskThread
 {
 public:
     ScriptingServiceThread(
-        const FilePath& watchDirectory,
+        const Array<FilePath>& watchDirectories,
         const FilePath& intermediateDirectory,
         const FilePath& binaryOutputDirectory,
         ScriptingServiceThreadCallback callback,
         void* callbackSelfPtr)
         : TaskThread(ThreadId(NAME("ScriptingServiceThread")), ThreadPriorityValue::LOWEST),
           m_scriptTracker(new ScriptTracker),
-          m_watchDirectory(watchDirectory),
+          m_watchDirectories(watchDirectories),
           m_intermediateDirectory(intermediateDirectory),
           m_binaryOutputDirectory(binaryOutputDirectory),
           m_callback(callback),
@@ -103,7 +103,7 @@ protected:
 
             m_scriptTracker->object->InvokeMethodByName<void>(
                 "Initialize",
-                m_watchDirectory,
+                m_watchDirectories,
                 m_intermediateDirectory,
                 m_binaryOutputDirectory,
                 (void*)m_callback,
@@ -134,7 +134,7 @@ protected:
     }
 
     ScriptTracker* m_scriptTracker;
-    FilePath m_watchDirectory;
+    Array<FilePath> m_watchDirectories;
     FilePath m_intermediateDirectory;
     FilePath m_binaryOutputDirectory;
     ScriptingServiceThreadCallback m_callback;
@@ -145,9 +145,9 @@ protected:
 
 #pragma region ScriptingService
 
-ScriptingService::ScriptingService(const FilePath& watchDirectory, const FilePath& intermediateDirectory, const FilePath& binaryOutputDirectory)
+ScriptingService::ScriptingService(const Array<FilePath>& watchDirectories, const FilePath& intermediateDirectory, const FilePath& binaryOutputDirectory)
     : m_thread(MakeUnique<ScriptingServiceThread>(
-          watchDirectory,
+          watchDirectories,
           intermediateDirectory,
           binaryOutputDirectory,
           [](void* selfPtr, ScriptEvent event)
@@ -158,10 +158,8 @@ ScriptingService::ScriptingService(const FilePath& watchDirectory, const FilePat
 {
     HYP_NAMED_SCOPE("ScriptingService: Initialize directories");
 
-    if (!watchDirectory.Exists())
-    {
-        watchDirectory.MkDir();
-    }
+    // Note: We don't create watch directories if they don't exist.
+    // Source directories should be created by the user or project setup.
 
     if (!intermediateDirectory.Exists())
     {

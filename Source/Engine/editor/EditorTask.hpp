@@ -46,6 +46,12 @@ public:
     }
 
     HYP_METHOD()
+    void SetTitle(const String& title)
+    {
+        m_title = title;
+    }
+
+    HYP_METHOD()
     const String& GetDescription() const
     {
         Mutex::Guard guard(m_mutex);

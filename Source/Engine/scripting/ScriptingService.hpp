@@ -1,6 +1,7 @@
 #pragma once
 #include <scripting/Script.hpp>
 
+#include <Core/containers/Array.hpp>
 #include <Core/containers/FlatMap.hpp>
 
 #include <Core/threading/Mutex.hpp>
@@ -33,7 +34,7 @@ class HYP_API ScriptingService
 {
 public:
     ScriptingService(
-        const FilePath& watchDirectory,
+        const Array<FilePath>& watchDirectories,
         const FilePath& intermediateDirectory,
         const FilePath& binaryOutputDirectory);
     ScriptingService(const ScriptingService& other) = delete;

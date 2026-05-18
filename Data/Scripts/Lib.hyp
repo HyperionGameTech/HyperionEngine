@@ -1483,6 +1483,7 @@ extern class EditorViewport
 end
 extern class EditorTaskBase
     GetTitle() -> string
+    SetTitle(title : string) -> void
     GetDescription() -> string
     SetDescription(description : string) -> void
     GetProgress() -> float
