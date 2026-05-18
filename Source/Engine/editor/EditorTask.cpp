@@ -51,6 +51,8 @@ bool TickableEditorTask::Commit()
 
     Start();
 
+    g_editorState->AddTask(MakeStrongRef(this));
+
     return true;
 }
 
@@ -118,6 +120,8 @@ bool LongRunningEditorTask::Commit()
         },
         TaskThreadPoolName::THREAD_POOL_BACKGROUND);
 
+    g_editorState->AddTask(MakeStrongRef(this));
+
     return true;
 }
 
@@ -136,7 +140,7 @@ void LongRunningEditorTask::Cancel_Impl()
         }
 
         OnCancel();
-        
+
         m_isCommitted = false;
     }
 }
@@ -204,11 +208,7 @@ EditorTaskScope::EditorTaskScope(
         m_task->m_title = title;
         m_task->m_description = description;
 
-        if (m_task->Commit())
-        {
-            g_editorState->AddTask(m_task);
-        }
-        else
+        if (!m_task->Commit())
         {
             HYP_LOG(Editor, Error, "Failed to commit editor task of type '{}'", m_task->InstanceClass()->GetName());
             m_task.Reset();
@@ -246,7 +246,7 @@ void EditorTaskScope::Reset(bool shouldCancel)
         {
             HYP_UNREACHABLE();
         }
-        
+
         m_task.Reset();
     }
 }

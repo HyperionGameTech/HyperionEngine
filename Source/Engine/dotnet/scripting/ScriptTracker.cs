@@ -14,42 +14,43 @@ namespace Hyperion
 
         private List<FileSystemWatcher> watchers = new List<FileSystemWatcher>();
 
-        private ScriptEventCallback? callback;
-        private IntPtr callbackSelfPtr;
+        private ScriptEventCallback? _callback;
+        private IntPtr _callbackSelfPtr;
 
         private ScriptCompiler? scriptCompiler = null;
 
-        private Dictionary<string, ScriptInstance> processingScripts = new Dictionary<string, ScriptInstance>();
+        private Dictionary<string, ScriptInstance> _processingScripts = [];
+        private Dictionary<string, CompileScriptEditorTask> _tasks = [];
 
-        private List<string> sourceDirectories = [];
-        private string intermediateDirectory = string.Empty;
-        private string binaryOutputDirectory = string.Empty;
+        private List<string> _sourceDirectories = [];
+        private string _intermediateDirectory = string.Empty;
+        private string _binaryOutputDirectory = string.Empty;
 
         public void Initialize(Array sourceDirectoriesArray, string intermediateDirectory, string binaryOutputDirectory, IntPtr callbackPtr, IntPtr callbackSelfPtr)
         {
             Logger.Log(logChannel, LogLevel.Info, "Initializing script tracker...");
 
-            callback = Marshal.GetDelegateForFunctionPointer<ScriptEventCallback>(callbackPtr);
-            this.callbackSelfPtr = callbackSelfPtr;
+            _callback = Marshal.GetDelegateForFunctionPointer<ScriptEventCallback>(callbackPtr);
+            _callbackSelfPtr = callbackSelfPtr;
 
-            sourceDirectories = sourceDirectoriesArray.Cast<string>().ToList();
-            this.intermediateDirectory = intermediateDirectory;
-            this.binaryOutputDirectory = binaryOutputDirectory;
+            _sourceDirectories = sourceDirectoriesArray.Cast<string>().ToList();
+            _intermediateDirectory = intermediateDirectory;
+            _binaryOutputDirectory = binaryOutputDirectory;
 
             // For C# compilation, use the first source directory (typically Data/Scripts)
             // In the future, ScriptCompiler should support multiple directories
-            if (sourceDirectories.Count > 0)
+            if (_sourceDirectories.Count > 0)
             {
-                Logger.Log(logChannel, LogLevel.Info, "Primary source directory: {0}", sourceDirectories[0]);
+                Logger.Log(logChannel, LogLevel.Info, "Primary source directory: {0}", _sourceDirectories[0]);
 
-                scriptCompiler = new ScriptCompiler(sourceDirectories[0], intermediateDirectory, binaryOutputDirectory);
+                scriptCompiler = new ScriptCompiler(_sourceDirectories[0], _intermediateDirectory, _binaryOutputDirectory);
                 scriptCompiler.BuildAllProjects();
             }
 
-            Logger.Log(logChannel, LogLevel.Info, "Script tracker initialized with {0} source directories.", sourceDirectories.Count);
+            Logger.Log(logChannel, LogLevel.Info, "Script tracker initialized with {0} source directories.", _sourceDirectories.Count);
 
             // Set up file system watchers for all source directories
-            foreach (string sourceDir in sourceDirectories)
+            foreach (string sourceDir in _sourceDirectories)
             {
                 if (!System.IO.Directory.Exists(sourceDir))
                 {
@@ -87,16 +88,16 @@ namespace Hyperion
 
         public void Update()
         {
-            if (processingScripts.Count == 0)
+            if (_processingScripts.Count == 0)
             {
                 return;
             }
 
-            Logger.Log(logChannel, LogLevel.Info, "Processing {0} scripts...", processingScripts.Count);
+            Logger.Log(logChannel, LogLevel.Info, "Processing {0} scripts...", _processingScripts.Count);
 
             List<string> scriptsToRemove = [];
 
-            foreach (KeyValuePair<string, ScriptInstance> entry in processingScripts)
+            foreach (KeyValuePair<string, ScriptInstance> entry in _processingScripts)
             {
                 if (!entry.Value.IsValid)
                 {
@@ -151,7 +152,13 @@ namespace Hyperion
 
             foreach (string scriptPath in scriptsToRemove)
             {
-                processingScripts.Remove(scriptPath);
+                _processingScripts.Remove(scriptPath);
+
+                CompileScriptEditorTask? task = null;
+                if (_tasks.Remove(scriptPath, out task))
+                {
+                    task.SetIsCompleted(true);
+                }
             }
         }
 
@@ -171,7 +178,7 @@ namespace Hyperion
 
         private void ProcessScriptFile(string filePath, ScriptLanguage language)
         {
-            if (processingScripts.ContainsKey(filePath))
+            if (_processingScripts.ContainsKey(filePath))
             {
                 Logger.Log(logChannel, LogLevel.Info, "Script {0} is already being processed. Skipping...", filePath);
 
@@ -189,7 +196,7 @@ namespace Hyperion
                 LastModifiedTimestamp = 0
             });
 
-            processingScripts.Add(filePath, scriptInstance);
+            _processingScripts.Add(filePath, scriptInstance);
 
             TriggerCallback(new ScriptEvent
             {
@@ -197,7 +204,6 @@ namespace Hyperion
                 ScriptPtr = scriptInstance.Address
             });
 
-            // Start editor task for script compilation
             StartCompilationTask(filePath, language);
         }
 
@@ -205,14 +211,14 @@ namespace Hyperion
         {
             try
             {
-                // Create and commit a compilation task
                 CompileScriptEditorTask task = new(filePath);
                 task.SetIsForegroundTask(true);
                 
-                // Commit the task - this registers it with the editor state and shows it as foreground
                 if (task.Commit())
                 {
                     Logger.Log(logChannel, LogLevel.Info, "Started compilation task for {0}", filePath);
+
+                    _tasks.Add(filePath, task);
                 }
                 else
                 {
@@ -227,8 +233,9 @@ namespace Hyperion
 
         private void TriggerCallback(ScriptEvent scriptEvent)
         {
-            Debug.Assert(callback != null);
-            callback(callbackSelfPtr, scriptEvent);
+            Debug.Assert(_callback != null);
+
+            _callback(_callbackSelfPtr, scriptEvent);
         }
     }
 }

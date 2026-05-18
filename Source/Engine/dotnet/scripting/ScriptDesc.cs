@@ -15,7 +15,6 @@ namespace Hyperion
         Errored = 0x8
     }
 
-
     [ClassBinding(Name = "ScriptLanguage")]
     public enum ScriptLanguage : uint
     {

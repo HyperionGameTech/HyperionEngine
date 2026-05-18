@@ -7,6 +7,7 @@ namespace Hyperion
     public class CompileScriptEditorTask : TickableEditorTask
     {
         private string ScriptPath { get; set; }
+        private bool _isCompleted = false;
 
         public CompileScriptEditorTask(string scriptPath)
         {
@@ -30,17 +31,22 @@ namespace Hyperion
 
         public override void Cancel()
         {
-            InvokeNativeMethod(new Name("Cancel", weak: true));
+            InvokeNativeMethod(new Name("Cancel_Impl", weak: true));
         }
 
         public override bool IsCompleted()
         {
-            return InvokeNativeMethod<bool>(new Name("IsCompleted", weak: true));
+            return _isCompleted;
         }
 
         public override void Tick()
         {
-            InvokeNativeMethod(new Name("Tick", weak: true));
+            // Do nothing
+        }
+
+        public void SetIsCompleted(bool isCompleted)
+        {
+            _isCompleted = isCompleted;
         }
     }
 }
