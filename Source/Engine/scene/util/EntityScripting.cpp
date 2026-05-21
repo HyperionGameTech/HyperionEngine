@@ -11,6 +11,7 @@
 #include <scene/Entity.hpp>
 #include <scene/World.hpp>
 #include <scene/Scene.hpp>
+#include <scene/EntityManager.hpp>
 
 #include <scene/components/ScriptComponent.hpp>
 
@@ -541,6 +542,17 @@ void ShutdownEntityScript(Entity* entity, ScriptComponent& scriptComponent, cons
 #endif
 
     scriptComponent.flags &= ~(ScriptComponentFlags::INITIALIZED | ScriptComponentFlags::ACTIVATED);
+}
+
+void UpdateScriptedEntities(World& world, float delta)
+{
+    QueryScriptedEntities(world, [delta](Entity* entity, ScriptComponent& scriptComponent)
+        {
+            if (!(scriptComponent.flags & ScriptComponentFlags::ACTIVATED))
+                return;
+
+            InvokeScriptMethodT<void>(nullptr, scriptComponent.scriptObjectResource, "Update", delta);
+        });
 }
 
 } // namespace EntityScripting

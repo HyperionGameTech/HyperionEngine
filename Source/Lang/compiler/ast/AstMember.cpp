@@ -46,8 +46,22 @@ void AstMember::Visit(AstVisitor* visitor, Module* mod)
 {
     m_symbolType = BuiltinTypes::s_errorType;
 
-    Assert(m_target != nullptr);
-    m_target->Visit(visitor, mod);
+    {
+        // For STORE operation we should load a reference into register.
+        if (m_accessMode == ACCESS_MODE_STORE)
+        {
+            mod->scopeTree.Open(SCOPE_TYPE_NORMAL, REF_VARIABLE_FLAG);
+        }
+
+        Assert(m_target != nullptr);
+        m_target->Visit(visitor, mod);
+
+        // Reference scope ends
+        if (m_accessMode == ACCESS_MODE_STORE)
+        {
+            mod->scopeTree.Close();
+        }
+    }
 
     bool isProxyClass = false;
 
@@ -198,7 +212,7 @@ void AstMember::Visit(AstVisitor* visitor, Module* mod)
     }
 
     Assert(m_targetType != nullptr);
-    
+
     const bool isStaticMember = m_isStaticField || m_isStaticMethod;
     if (!m_typeRef && (isStaticMember || m_targetType->IsClassType()))
     {

@@ -1554,7 +1554,8 @@ public:
 
         const Class* parentClass = nullptr;
 
-        if (parentClassValue.IsValid())
+        // Check if value in register is non-null
+        if (parentClassValue.ToRef().GetPointer() != nullptr)
         {
             parentClass = parentClassValue.Get<ClassRef>();
             Assert(parentClass != nullptr);

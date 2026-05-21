@@ -27,18 +27,10 @@ class ScriptSystem final : public SystemBase
 public:
     ScriptSystem();
     ~ScriptSystem() override;
-
-    // This system does not support parallel execution because scripts may modify
-    // any component in the entity manager
-    bool AllowParallelExecution() const override
-    {
-        return false;
-    }
-
-    bool RequiresSimThread() const override
-    {
-        return true;
-    }
+    
+    bool AllowParallelExecution() const override;
+    bool RequiresSimThread() const override;
+    bool AllowUpdate() const override;
 
     void OnAddedToWorld(World* world) override;
     void OnRemovedFromWorld(World* world) override;
@@ -57,9 +49,6 @@ private:
     }
 
     void HandleGameStateChanged(GameStateMode gameStateMode, GameStateMode previousGameStateMode);
-
-    void CallScriptMethod(UTF8StringView methodName);
-    void CallScriptMethod(UTF8StringView methodName, ScriptComponent& target);
 
     UniquePtr<ScriptingService> m_scriptingService;
     UniquePtr<ScriptTracker> m_scriptTracker;

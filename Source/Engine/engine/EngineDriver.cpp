@@ -163,77 +163,6 @@ void HandleSignal(int signum)
 
 namespace MeshEntityHelpers {
 
-#if 0
-template <class AllocatorType>
-static void UpdateInstancedMeshEntities(Scene* scene, Array<Entity*, AllocatorType>& outUpdatedEntities)
-{
-    EntityManager* entityManager = scene->GetEntityManager();
-    AssertDebug(entityManager != nullptr);
-
-    for (auto [entity, meshComponent, _] : entityManager->GetEntitySet<MeshComponent, TagComponent<EntityTag::UpdateInstancedMeshData>>())
-    {
-        Array<InstancedMeshProxy*, SceneAllocator> instancedMeshProxies;
-
-        for (const Handle<Node>& childNode : entity->GetChildren())
-        {
-            if (childNode->IsA(InstancedMeshProxy::StaticClass()))
-            {
-                instancedMeshProxies.PushBack(static_cast<InstancedMeshProxy*>(childNode.Get()));
-            }
-        }
-
-        meshComponent.numInstances = uint32(instancedMeshProxies.Size());
-
-        if (!meshComponent.enableAutoInstancing && !meshComponent.numInstances)
-        {
-            continue;
-        }
-
-        if (!meshComponent.instanceData.IsValid())
-        {
-            Handle<InstancedMeshData> imd = MakeHandle<InstancedMeshData>(NAME_FMT("IMD_{}", entity->GetName()));
-
-            GetCurrentAssetRegistry()->PutAssetUnique(imd);
-
-            meshComponent.instanceData = AssetReference(imd);
-        }
-
-        const Handle<InstancedMeshData>& imd = DynamicCast<InstancedMeshData>(meshComponent.instanceData.Resolve());
-
-        if (!imd.IsValid())
-        {
-            continue;
-        }
-
-        auto scope = imd->GetWriteScope();
-
-        Array<Mat4f, SceneAllocator> transforms;
-        transforms.Resize(instancedMeshProxies.Size());
-
-        Array<Mat4f, SceneAllocator> previousTransforms;
-        previousTransforms.Resize(instancedMeshProxies.Size());
-
-        for (size_t i = 0; i < instancedMeshProxies.Size(); i++)
-        {
-            InstancedMeshProxy* imp = instancedMeshProxies[i];
-
-            transforms[i] = imp->GetWorldMatrix(); // imp->GetLocalTransform().GetMatrix();
-            previousTransforms[i] = imp->prevTransformMatrix;
-
-            imp->prevTransformMatrix = transforms[i];
-        }
-
-        // Update transforms etc. based on the InstancedMeshProxy child objects
-        imd->SetBufferData(0, transforms.Data(), transforms.Size());
-        imd->SetBufferData(1, previousTransforms.Data(), previousTransforms.Size());
-
-        entity->SetNeedsRenderProxyUpdate();
-
-        outUpdatedEntities.PushBack(entity);
-    }
-}
-#endif
-
 template <class AllocatorType>
 static void UpdateDirtyMeshEntities(Scene* scene, Array<Entity*, AllocatorType>& outUpdatedEntities)
 {
@@ -558,22 +487,21 @@ void EngineDriver::UpdateSim(float delta)
 
         g_statViews += views.Size();
 
-        // if (gameState.IsSimulating() || (world->GetWorldFlags() & WorldFlags::EDITOR_WORLD))
-        // {
+        //if (gameState.IsSimulating() || (world->GetWorldFlags() & WorldFlags::EDITOR_WORLD))
+        //{
+            simulatingWorlds.PushBack(world);
 
-        simulatingWorlds.PushBack(world);
+            world->BeginUpdate(*currBatch, delta);
 
-        world->BeginUpdate(*currBatch, delta);
-
-        if (i != uint32(m_worlds.Size() - 1))
-        {
-            // get the tail to pass to the next world's BeginUpdate()
-            while (currBatch->nextBatch != nullptr)
+            if (i != uint32(m_worlds.Size() - 1))
             {
-                currBatch = currBatch->nextBatch;
+                // get the tail to pass to the next world's BeginUpdate()
+                while (currBatch->nextBatch != nullptr)
+                {
+                    currBatch = currBatch->nextBatch;
+                }
             }
-        }
-        // }
+        //}
 
         if (!worldsToRender.Contains(world))
         {

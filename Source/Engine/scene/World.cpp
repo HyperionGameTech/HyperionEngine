@@ -14,6 +14,8 @@
 #include <scene/SystemExecutionGroup.hpp>
 #include <scene/Subsystem.hpp>
 
+#include <scene/util/EntityScripting.hpp>
+
 #include <scene/systems/VisibilityStateUpdaterSystem.hpp>
 #include <scene/systems/LightmapSystem.hpp>
 #include <scene/systems/AnimationSystem.hpp>
@@ -506,12 +508,17 @@ void World::BeginUpdate(TaskBatch& inBatch, float delta)
 
     UpdateCSMState();
 
-    if (m_physicsWorld != nullptr && GetGameState().IsSimulating())
+    if (GetGameState().IsSimulating())
     {
-        m_physicsWorld->Tick(delta);
+        if (m_physicsWorld != nullptr)
+        {
+            m_physicsWorld->Tick(delta);
 
-        // must be called before entity managers are locked.
-        SyncPhysicsToEntities();
+            // must be called before entity managers are locked.
+            SyncPhysicsToEntities();
+        }
+
+        //EntityScripting::UpdateScriptedEntities(*this, delta);
     }
 
     for (Scene* scene : m_scenes)
