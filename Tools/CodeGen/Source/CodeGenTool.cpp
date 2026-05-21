@@ -553,7 +553,7 @@ private:
             if (builtinsModule->GetClasses().Any())
             {
                 // generate builtins first
-                batch->AddTask([this, &s_csharpModuleGenerator, builtinsModule]()
+                batch->AddTask([this, builtinsModule]()
                     {
                         if (Result res = s_csharpModuleGenerator.Generate(m_analyzer, *builtinsModule); res.HasError())
                         {
@@ -570,7 +570,7 @@ private:
                 }
 
                 // csharp modules can be processed async from C++ modules
-                batch->AddTask([this, &s_csharpModuleGenerator, &mod = *mod]()
+                batch->AddTask([this, &mod = *mod]()
                     {
                         if (Result res = s_csharpModuleGenerator.Generate(m_analyzer, mod); res.HasError())
                         {

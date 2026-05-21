@@ -1794,7 +1794,7 @@ public:
 
             for (const Vec3f& corner : corners)
             {
-                const Vec3f cornerVS = viewMatrix * corner;
+                const Vec3f cornerVS = viewMatrix.TransformVector(corner);
 
                 outMinVSZ = MathUtil::Min(outMinVSZ, cornerVS.z);
                 outMaxVSZ = MathUtil::Max(outMaxVSZ, cornerVS.z);
@@ -1876,7 +1876,7 @@ public:
                 AssertDebug(lightProxy != nullptr);
 
                 const Vec3f lightPosWS = lightProxy->bufferData.positionIntensity.GetXYZ();
-                const Vec3f lightPosVS = viewMatrix * lightPosWS;
+                const Vec3f lightPosVS = viewMatrix.TransformVector(lightPosWS);
                 const float lightRadius = float(Float16::FromRaw(uint16(lightProxy->bufferData.radiusFalloffPacked & 0xFFFFu)));
 
                 uint32 tileMinX;

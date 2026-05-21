@@ -237,9 +237,9 @@ VoxelOctreeBuildResult VoxelOctree::Build(const VoxelOctreeParams& params, Entit
                 const TVertexPacket<VT_Position>* packet2 = reinterpret_cast<const TVertexPacket<VT_Position>*>(floatDataOffset2);
 
                 const Vec3f positions[3] = {
-                    transformMatrix * packet0->GetPosition(),
-                    transformMatrix * packet1->GetPosition(),
-                    transformMatrix * packet2->GetPosition()
+                    transformMatrix.TransformVector(packet0->GetPosition()),
+                    transformMatrix.TransformVector(packet1->GetPosition()),
+                    transformMatrix.TransformVector(packet2->GetPosition())
                 };
 
                 const Triangle triangle {

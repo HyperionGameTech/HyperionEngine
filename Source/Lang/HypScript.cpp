@@ -350,7 +350,7 @@ InstructionStream* Decompile(ScriptInstance* instance, std::ostream* os)
     return DecompilationUnit().Decompile(instance->stream, os);
 }
 
-BoxedValue CallFunctionArgV(ScriptInstance* instance, const BoxedValue& value, BoxedValue* args, ArgCount numArgs)
+BoxedValue CallFunctionArgV(ScriptInstance* instance, const BoxedValue& value, BoxedValue* args, uint8 numArgs)
 {
     Assert(instance != nullptr);
     Assert(IsFunction(value));
@@ -359,7 +359,7 @@ BoxedValue CallFunctionArgV(ScriptInstance* instance, const BoxedValue& value, B
     {
         Assert(args != nullptr);
 
-        for (ArgCount i = 0; i < numArgs; i++)
+        for (uint8 i = 0; i < numArgs; i++)
         {
             instance->thread.m_stack.Push(std::move(args[i]));
         }

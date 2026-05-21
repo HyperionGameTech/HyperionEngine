@@ -589,8 +589,7 @@ extern enum ScriptComponentFlags : uint32
     INITIALIZED = 0x1,
     RELOADING = 0x2,
     INITIALIZATION_STARTED = 0x4,
-    BEFORE_ADDED_CALLED = 0x10,
-    ON_ADDED_CALLED = 0x20
+    ACTIVATED = 0x8
 end
 extern struct RigidBodyComponent
     PhysicsMaterial : PhysicsMaterial
@@ -2509,6 +2508,10 @@ extern struct Transform
     Translation : Vec3f
     Scale : Vec3f
     Rotation : Quat4f
+    GetMatrix() -> Mat4f
+    operator*(other : Transform) -> Transform
+    operator==(other : Transform) -> bool
+    operator!=(other : Transform) -> bool
 end
 extern struct Ray
     Position : Vec3f
@@ -2525,10 +2528,51 @@ extern struct Quat4f
     Y : float
     Z : float
     W : float
+    operator*(other : Quat4f) -> Quat4f
+    RotateVector(vec : Vec3f) -> Vec3f
+    Length() -> float
+    LengthSquared() -> float
+    Normalize() -> Quat4f
+    Inverse() -> Quat4f
+    Slerp(to : Quat4f, amt : float) -> Quat4f
+    GimbalPole() -> int
+    Roll() -> float
+    Pitch() -> float
+    Yaw() -> float
+    static Identity() -> Quat4f
+    static LookAt(direction : Vec3f, up : Vec3f) -> Quat4f
+    static AxisAngles(axis : Vec3f, radians : float) -> Quat4f
 end
 extern struct Mat4f
+    Determinant() -> float
+    Transpose() -> Mat4f
+    Inverse() -> Mat4f
+    Orthonormalize() -> Mat4f
+    Orthonormalized() -> Mat4f
+    GetYaw() -> float
+    GetPitch() -> float
+    GetRoll() -> float
+    operator*(other : Mat4f) -> Mat4f
+    ExtractTranslation() -> Vec3f
+    ExtractScale() -> Vec3f
+    ExtractRotation() -> Quat4f
+    GetColumn(index : uint32) -> Vec4f
+    operator==(other : Mat4f) -> bool
+    operator!=(other : Mat4f) -> bool
+    static Zeros() -> Mat4f
+    static Ones() -> Mat4f
+    static Identity() -> Mat4f
 end
 extern struct Mat3f
+    Determinant() -> float
+    Transpose() -> Mat3f
+    Inverse() -> Mat3f
+    operator*(other : Mat3f) -> Mat3f
+    operator==(other : Mat3f) -> bool
+    operator!=(other : Mat3f) -> bool
+    static Zeros() -> Mat3f
+    static Ones() -> Mat3f
+    static Identity() -> Mat3f
 end
 extern struct Frustum
     Planes : Array<Vec4f>

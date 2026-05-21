@@ -40,9 +40,6 @@
 
 #include <system/MessageBox.hpp>
 
-// temp
-#include <sstream>
-
 namespace Hyperion {
 
 namespace CoreApi {
@@ -54,7 +51,7 @@ extern const FilePath& GetDataDirectory();
 namespace EntityScripting {
 
 template <class ReturnType, class... ArgTypes>
-static void InvokeScriptMethodT(ReturnType* outReturnValue, ScriptObjectResource* sor, const char* methodName, ArgTypes&&... args)
+static void InvokeScriptMethodT(ReturnType* outReturnValue, ScriptObjectResource* sor, const char* methodName, const ArgTypes&... args)
 {
     Assert(sor != nullptr);
 
@@ -76,11 +73,12 @@ static void InvokeScriptMethodT(ReturnType* outReturnValue, ScriptObjectResource
                     if constexpr (!std::is_void_v<ReturnType>)
                     {
                         AssertDebug(outReturnValue != nullptr);
-                        new (outReturnValue) ReturnType(sor->GetManagedObject()->InvokeMethod<ReturnType>(managedMethod, std::forward<ArgTypes>(args)...));
+
+                        new (outReturnValue) ReturnType(sor->GetManagedObject()->InvokeMethod<ReturnType>(managedMethod, args...));
                     }
                     else
                     {
-                        sor->GetManagedObject()->InvokeMethod<void>(managedMethod, std::forward<ArgTypes>(args)...);
+                        sor->GetManagedObject()->InvokeMethod<void>(managedMethod, args...);
                     }
                 }
             }
@@ -99,7 +97,11 @@ static void InvokeScriptMethodT(ReturnType* outReturnValue, ScriptObjectResource
         BoxedValue functionValue;
         if (HS::GetFunctionHandle(data->instance, methodName, functionValue))
         {
-            BoxedValue returnValue = HS::CallFunction(data->instance, functionValue);
+            const size_t numArgs = sizeof...(ArgTypes);
+
+            FixedArray<BoxedValue, sizeof...(ArgTypes)> argsArray { BoxedValue(args)... };
+
+            BoxedValue returnValue = HS::CallFunctionArgV(data->instance, functionValue, argsArray.Data(), static_cast<uint8>(argsArray.Size()));
 
             if constexpr (!std::is_void_v<ReturnType>)
             {
@@ -127,11 +129,11 @@ static void InvokeScriptMethodT(ReturnType* outReturnValue, ScriptObjectResource
             if constexpr (!std::is_void_v<ReturnType>)
             {
                 AssertDebug(outReturnValue != nullptr);
-                new (outReturnValue) ReturnType(method->Invoke(Span<BoxedValue> { { BoxedValue(nativeObject), BoxedValue(std::forward<ArgTypes>(args))... } }));
+                new (outReturnValue) ReturnType(method->Invoke(Span<BoxedValue> { { BoxedValue(nativeObject), BoxedValue(args)... } }));
             }
             else
             {
-                (void)method->Invoke(Span<BoxedValue> { { BoxedValue(nativeObject), BoxedValue(std::forward<ArgTypes>(args))... } });
+                (void)method->Invoke(Span<BoxedValue> { { BoxedValue(nativeObject), BoxedValue(args)... } });
             }
         }
     }
@@ -166,7 +168,7 @@ void InitializeEntityScript(Entity* entity, ScriptComponent& scriptComponent, co
         HYP_LOG(Script, Verbose, "Created ScriptObjectResource for ScriptComponent, native class: {}", nativeClass->GetName());
 
         InitObject(scriptComponent.nativeObject);
-        
+
         if (!gameState.IsStopped())
         {
             if (!(scriptComponent.flags & ScriptComponentFlags::ACTIVATED))
@@ -258,7 +260,7 @@ void InitializeEntityScript(Entity* entity, ScriptComponent& scriptComponent, co
 
                     sor = new ScriptObjectResource(object, classPtr);
                     sor->AddReader();
-                    
+
                     if (!gameState.IsStopped())
                     {
                         if (!(scriptComponent.flags & ScriptComponentFlags::ACTIVATED))
@@ -418,12 +420,14 @@ void InitializeEntityScript(Entity* entity, ScriptComponent& scriptComponent, co
 
                     Assert(instance != nullptr);
 
+#if 0
                     {
                         // Debug: decompile the bytecode
                         std::stringstream ss;
                         HS::Decompile(instance, &ss);
                         HYP_LOG(Script, Debug, "Decompiled bytecode:\n\n{}", ss.str().c_str());
                     }
+#endif
 
                     // Record the source file timestamp so we can detect future changes
                     scriptDesc.lastModifiedTimestamp = uint64(sourcePath.LastModifiedTimestamp());
@@ -470,7 +474,7 @@ void InitializeEntityScript(Entity* entity, ScriptComponent& scriptComponent, co
 
                 if (!gameState.IsStopped())
                 {
-                    
+
                     if (!(scriptComponent.flags & ScriptComponentFlags::ACTIVATED))
                     {
                         // run the script to initialize classes, functions, etc.

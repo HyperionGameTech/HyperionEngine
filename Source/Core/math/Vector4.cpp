@@ -283,7 +283,7 @@ Vec4<float>& math::Vec4<float>::Normalize()
 
 Vec4<float>& math::Vec4<float>::Rotate(const Vec3<float>& axis, float radians)
 {
-    return (*this) = Mat4f::Rotation(axis, radians) * (*this);
+    return (*this) = Mat4f::Rotation(axis, radians).TransformVector(*this);
 }
 
 Vec4<float>& math::Vec4<float>::Lerp(const Vec4<float>& to, float amt)

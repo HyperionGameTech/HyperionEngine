@@ -118,7 +118,7 @@ auto BakeData<Light>::ToBitmap() const -> BitmapType
                 //const Vec4f transformedPosition = (m_viewProjMats[face] * Vec4f(texels[texelIdx].pRay->ray.position + texels[texelIdx].pRay->ray.direction * dist, 1.0f));
 
                 // otherwise transform to 0..1 range based on viewproj mat
-                const Vec4f transformedPosition = (m_projMat * Vec4f(0.0f, 0.0f, dist, 1.0f));
+                const Vec4f transformedPosition = m_projMat.TransformVector(Vec4f(0.0f, 0.0f, dist, 1.0f));
                 const float depth = transformedPosition.z / transformedPosition.w;
 
                 bitmap.GetPixelReference(x, bitmapY).SetComponentRaw(0, uint16(depth * float(UINT16_MAX)));

@@ -1065,10 +1065,10 @@ bool SceneOctree::TestRay(const Ray& ray, RayTestResults& outResults, EnumFlags<
                             hit.id = entry.value->Id().Value();
                             hit.node = entry.value;
 
-                            Vec4f transformedNormal = normalMatrix * Vec4f(hit.normal, 0.0f);
+                            Vec4f transformedNormal = normalMatrix.TransformVector(Vec4f(hit.normal, 0.0f));
                             hit.normal = transformedNormal.GetXYZ().Normalized();
 
-                            Vec4f transformedPosition = modelMatrix * Vec4f(hit.hitpoint, 1.0f);
+                            Vec4f transformedPosition = modelMatrix.TransformVector(Vec4f(hit.hitpoint, 1.0f));
                             transformedPosition /= transformedPosition.w;
 
                             hit.hitpoint = transformedPosition.GetXYZ();

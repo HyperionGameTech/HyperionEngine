@@ -158,7 +158,7 @@ Frustum& Frustum::SetFromViewProjectionMatrix(const Mat4f& viewProj)
 
     for (uint32 i = 0; i < 8; i++)
     {
-        Vec4f corner = clipToWorld * s_corners[i];
+        Vec4f corner = clipToWorld.TransformVector(s_corners[i]);
         corner /= corner.w;
 
         corners[i] = corner.GetXYZ();

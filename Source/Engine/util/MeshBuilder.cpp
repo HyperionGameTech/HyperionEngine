@@ -412,14 +412,14 @@ Handle<Mesh> MeshBuilder::ApplyTransform(const Mesh* mesh, const Transform& tran
         if (vertexData.layoutDesc.mask & VT_Position)
         {
             TVertexPacket<VT_Position>* packet = reinterpret_cast<TVertexPacket<VT_Position>*>(f);
-            packet->SetPosition(modelMatrix * packet->GetPosition());
+            packet->SetPosition(modelMatrix.TransformVector(packet->GetPosition()));
             offset += sizeof(TVertexPacket<VT_Position>) / sizeof(float);
         }
 
         if (vertexData.layoutDesc.mask & VT_Normal)
         {
             TVertexPacket<VT_Normal>* packet = reinterpret_cast<TVertexPacket<VT_Normal>*>(f + offset);
-            packet->SetNormal(modelMatrix * packet->GetNormal());
+            packet->SetNormal(modelMatrix.TransformVector(Vec4f(packet->GetNormal(), 0.0f)).GetXYZ());
             offset += sizeof(TVertexPacket<VT_Normal>) / sizeof(float);
         }
     }

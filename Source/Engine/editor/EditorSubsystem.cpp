@@ -718,8 +718,8 @@ bool TranslateEditorGizmo::OnKeyPress(const Handle<Camera>& camera, const Keyboa
 
         const Quat4f invNodeRotation = node->GetWorldRotation().Inverse();
 
-        const Vec3f nodeForwardVector = (invNodeRotation * cameraForwardVector);
-        const Vec3f nodeSideVector = (invNodeRotation * cameraSideVector);
+        const Vec3f nodeForwardVector = invNodeRotation.RotateVector(cameraForwardVector);
+        const Vec3f nodeSideVector = invNodeRotation.RotateVector(cameraSideVector);
 
         NodeUnlockTransformScope scope(*node);
 
@@ -770,7 +770,7 @@ bool TranslateEditorGizmo::OnKeyPress(const Handle<Camera>& camera, const Keyboa
             }
         }
 
-        moveVec = node->GetWorldRotation() * moveVec;
+        moveVec = node->GetWorldRotation().RotateVector(moveVec);
         moveVec.Normalize();
         moveVec *= step;
 
@@ -871,7 +871,7 @@ void RotateEditorGizmo::OnDragStart(const Handle<Camera>& camera, const MouseEve
 
     dragData.axis = Vec3f::Zero();
     dragData.axis[axis] = 1.0f;
-    dragData.axis = (focusedNode->GetWorldRotation() * dragData.axis).Normalize();
+    dragData.axis = focusedNode->GetWorldRotation().RotateVector(dragData.axis).Normalize();
 
     dragData.planePoint = m_node->GetWorldTranslation();
     dragData.startRotation = focusedNode->GetWorldRotation();

@@ -513,12 +513,20 @@ String ValueToString(const BoxedValue& value, int currDepth)
 
 Script_RegisterMemory::Script_RegisterMemory()
 {
+    for (uint8 i = 0; i < NumRegisters; i++)
+    {
+        new (values.GetPointer() + i) BoxedValue;
+    }
 }
 
 Script_RegisterMemory::~Script_RegisterMemory()
 {
-    for (BoxedValue& value : regs)
+    for (uint8 i = 0; i < NumRegisters; i++)
     {
+        BoxedValue& value = values.GetPointer()[i];
+
+        AssertDebug(!IsGarbage(value));
+
         value.~BoxedValue();
         value.extData.gcIndex = INVALID_GC_INDEX;
     }
@@ -800,7 +808,7 @@ public:
 
     SCRIPT_INLINE void OpLoadNull(RegisterIndex reg)
     {
-        instance->thread.m_regs[reg] = BoxedValue();
+        instance->thread.m_regs[reg] = BoxedValue(Handle<ObjectBase>());
     }
 
     SCRIPT_INLINE void OpLoadTrue(RegisterIndex reg)
@@ -2481,22 +2489,25 @@ public:
         // load value from register
         BoxedValue& value = *Deref(instance->thread.m_regs[src]);
 
-        const Class* cls = nullptr;
-
-        if (const Handle<ObjectBase>& object = GetObject(value))
+        if (value.ToRef().GetPointer() != nullptr)
         {
-            cls = object.ptr->InstanceClass();
-        }
-        else
-        {
-            cls = GetClass(value.GetTypeId());
-        }
+            const Class* cls = nullptr;
 
-        if (!cls || !cls->IsDerivedFrom(classRef))
-        {
-            vm->ThrowException(instance, Exception::InvalidCastException(GetTypeString(value), classRef->GetName().LookupString()));
+            if (const Handle<ObjectBase>& object = GetObject(value))
+            {
+                cls = object.ptr->InstanceClass();
+            }
+            else
+            {
+                cls = GetClass(value.GetTypeId());
+            }
 
-            return;
+            if (!cls || !cls->IsDerivedFrom(classRef))
+            {
+                vm->ThrowException(instance, Exception::InvalidCastException(GetTypeString(value), classRef->GetName().LookupString()));
+
+                return;
+            }
         }
 
         instance->thread.m_regs[dst] = ShallowCopy(value, vm->GetGC());
@@ -3556,7 +3567,7 @@ void VirtualMachine::CollectGarbage(Span<ScriptInstance*> instances)
         m_gc->MarkReachable(Span<BoxedValue>(stack.GetData(), stack.GetStackPointer()));
 
         Script_RegisterMemory& regs = instance->thread.GetRegisters();
-        m_gc->MarkReachable(Span<BoxedValue>(regs.regs, Script_RegisterMemory::NumRegisters));
+        m_gc->MarkReachable(Span<BoxedValue>(regs.values.GetPointer(), Script_RegisterMemory::NumRegisters));
     }
 
     m_gc->Collect();
@@ -3637,10 +3648,8 @@ void VirtualMachine::Invoke(ScriptInstance* instance, BoxedValue&& value, uint8 
                 }
             }
 
-            BoxedValue result = data->nativeFunc->Invoke(Span<BoxedValue*>(argsBoxed, nargs));
-
             // set register 0 to the result
-            instance->thread.GetRegisters()[0] = MakeValue(std::move(result));
+            instance->thread.GetRegisters()[0] = data->nativeFunc->Invoke(Span<BoxedValue*>(argsBoxed, nargs));
 
             // re-enable auto gc
             //            enableAutoGc = ENABLE_GC;

@@ -21,7 +21,7 @@ void ShadowCameraHelper::UpdateShadowCameraDirectional(
 
     for (Vec3f& corner : corners)
     {
-        corner = camera.GetViewMatrix() * corner;
+        corner = camera.GetViewMatrix().TransformVector(corner);
 
         bounds.max = MathUtil::Max(bounds.max, corner);
         bounds.min = MathUtil::Min(bounds.min, corner);

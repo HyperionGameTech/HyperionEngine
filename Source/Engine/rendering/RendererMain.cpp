@@ -381,7 +381,7 @@ static bool ShouldIncludeInPrepass(
 
     for (uint32 i = 0; i < 8; i++)
     {
-        Vec4f clipSpacePos = viewProjMat * Vec4f(corners[i], 1.0f);
+        Vec4f clipSpacePos = viewProjMat.TransformVector(Vec4f(corners[i], 1.0f));
         if (clipSpacePos.w <= 0.01f)
             return true;
 

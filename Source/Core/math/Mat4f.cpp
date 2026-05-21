@@ -407,33 +407,6 @@ float Mat4f::GetRoll() const
     return Quat4f(*this).Roll();
 }
 
-Mat4f Mat4f::operator+(const Mat4f& other) const
-{
-    Mat4f result(*this);
-    result += other;
-
-    return result;
-}
-
-Mat4f& Mat4f::operator+=(const Mat4f& other)
-{
-#if HYP_MAT4F_USE_SSE
-    _mm_store_ps(values + 0, _mm_add_ps(_mm_load_ps(values + 0), _mm_load_ps(other.values + 0)));
-    _mm_store_ps(values + 4, _mm_add_ps(_mm_load_ps(values + 4), _mm_load_ps(other.values + 4)));
-    _mm_store_ps(values + 8, _mm_add_ps(_mm_load_ps(values + 8), _mm_load_ps(other.values + 8)));
-    _mm_store_ps(values + 12, _mm_add_ps(_mm_load_ps(values + 12), _mm_load_ps(other.values + 12)));
-
-    return *this;
-#else
-    for (int i = 0; i < HYP_ARRAY_SIZE(values); i++)
-    {
-        values[i] += other.values[i];
-    }
-
-    return *this;
-#endif
-}
-
 Mat4f Mat4f::operator*(const Mat4f& other) const
 {
 #if HYP_MAT4F_USE_AVX
@@ -534,35 +507,7 @@ Mat4f& Mat4f::operator*=(const Mat4f& other)
     return (*this) = operator*(other);
 }
 
-Mat4f Mat4f::operator*(float scalar) const
-{
-    Mat4f result(*this);
-    result *= scalar;
-
-    return result;
-}
-
-Mat4f& Mat4f::operator*=(float scalar)
-{
-#if HYP_MAT4F_USE_SSE
-    const __m128 s = _mm_set1_ps(scalar);
-    _mm_store_ps(values + 0, _mm_mul_ps(_mm_load_ps(values + 0), s));
-    _mm_store_ps(values + 4, _mm_mul_ps(_mm_load_ps(values + 4), s));
-    _mm_store_ps(values + 8, _mm_mul_ps(_mm_load_ps(values + 8), s));
-    _mm_store_ps(values + 12, _mm_mul_ps(_mm_load_ps(values + 12), s));
-
-    return *this;
-#else
-    for (float& value : values)
-    {
-        value *= scalar;
-    }
-
-    return *this;
-#endif
-}
-
-Vec3f Mat4f::operator*(const Vec3f& vec) const
+Vec3f Mat4f::TransformVector(const Vec3f& vec) const
 {
 #if HYP_MAT4F_USE_SSE
     // Adapted from Foxtrot SIMD matrix paths:
@@ -589,7 +534,7 @@ Vec3f Mat4f::operator*(const Vec3f& vec) const
 #endif
 }
 
-Vec4f Mat4f::operator*(const Vec4f& vec) const
+Vec4f Mat4f::TransformVector(const Vec4f& vec) const
 {
 #if HYP_MAT4F_USE_SSE
     // Adapted from Foxtrot SIMD matrix paths:

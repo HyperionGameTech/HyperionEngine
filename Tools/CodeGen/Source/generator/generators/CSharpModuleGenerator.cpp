@@ -179,6 +179,11 @@ Result CSharpModuleGenerator::Generate(const Analyzer& analyzer, const Module& m
 
             if (member.type == MemberType::Method)
             {
+                if (member.name.StartsWith("operator"))
+                {
+                    continue;
+                }
+
                 if (!member.cxxType->isFunction)
                 {
                     return HYP_MAKE_ERROR(Error, "Cannot generate script bindings for non-function type");

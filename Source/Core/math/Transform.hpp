@@ -85,6 +85,7 @@ struct alignas(16) HYP_API Transform
         this->rotation = rotation;
     }
 
+    HYP_METHOD()
     Mat4f GetMatrix() const
     {
         const Mat4f t = Mat4f::Translation(translation);
@@ -101,9 +102,11 @@ struct alignas(16) HYP_API Transform
 
     Transform GetInverse() const;
 
+    HYP_METHOD()
     Transform operator*(const Transform& other) const;
     Transform& operator*=(const Transform& other);
 
+    HYP_METHOD()
     HYP_FORCE_INLINE bool operator==(const Transform& other) const
     {
         return translation == other.translation
@@ -111,6 +114,7 @@ struct alignas(16) HYP_API Transform
             && rotation == other.rotation;
     }
 
+    HYP_METHOD()
     HYP_FORCE_INLINE bool operator!=(const Transform& other) const
     {
         return translation != other.translation

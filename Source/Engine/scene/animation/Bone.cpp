@@ -119,7 +119,7 @@ void Bone::CalculateBoneTranslation()
     {
         const Bone* parentBone = static_cast<Bone*>(m_parentNode); // NOLINT(cppcoreguidelines-pro-type-static-cast-downcast)
 
-        m_worldBoneTranslation = parentBone->m_worldBoneRotation * m_bindingTransform.GetTranslation();
+        m_worldBoneTranslation = parentBone->m_worldBoneRotation.RotateVector(m_bindingTransform.GetTranslation());
         m_worldBoneTranslation += parentBone->m_worldBoneTranslation;
     }
 

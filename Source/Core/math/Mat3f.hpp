@@ -34,6 +34,7 @@ public:
     Vec3f rows[3];
 
     Mat3f();
+
     explicit Mat3f(const float(&v)[9]);
 
     /*! \brief Construct a 3x3 matrix from a 4x4 matrix by taking the upper-left 3x3 portion.
@@ -43,19 +44,26 @@ public:
     Mat3f(const Mat3f& other) = default;
     Mat3f& operator=(const Mat3f& other) = default;
 
+    HYP_METHOD()
     float Determinant() const;
 
+    HYP_METHOD()
     Mat3f Transpose() const;
+
+    HYP_METHOD()
     Mat3f Inverse() const;
 
+    HYP_METHOD()
     Mat3f operator*(const Mat3f& other) const;
     Mat3f& operator*=(const Mat3f& other);
 
+    HYP_METHOD()
     HYP_FORCE_INLINE bool operator==(const Mat3f& other) const
     {
         return std::memcmp(rows, other.rows, sizeof(rows)) == 0;
     }
 
+    HYP_METHOD()
     HYP_FORCE_INLINE bool operator!=(const Mat3f& other) const
     {
         return !operator==(other);
@@ -71,18 +79,21 @@ public:
         return rows[row].values;
     }
 
+    HYP_METHOD()
     static Mat3f Zeros();
+
+    HYP_METHOD()
     static Mat3f Ones();
+
+    HYP_METHOD()
     static Mat3f Identity();
 
-    HYP_FORCE_INLINE HashCode GetHashCode() const
+    HYP_FORCE_INLINE constexpr HashCode GetHashCode() const
     {
-        HashCode hc;
-        hc.Add(rows[0].GetHashCode());
-        hc.Add(rows[1].GetHashCode());
-        hc.Add(rows[2].GetHashCode());
-
-        return hc;
+        return HashCode()
+            .Combine(rows[0].GetHashCode())
+            .Combine(rows[1].GetHashCode())
+            .Combine(rows[2].GetHashCode());
     }
 };
 

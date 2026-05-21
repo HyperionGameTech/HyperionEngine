@@ -101,26 +101,49 @@ struct alignas(16) HYP_API Quat4f
         this->w = w;
     }
 
+    HYP_METHOD()
     Quat4f operator*(const Quat4f& other) const;
     Quat4f& operator*=(const Quat4f& other);
-    Quat4f& operator+=(const Vec3f& vec);
-    Vec3f operator*(const Vec3f& vec) const;
 
+    Quat4f& operator+=(const Vec3f& vec);
+
+    HYP_METHOD()
+    Vec3f RotateVector(const Vec3f& vec) const;
+
+    HYP_METHOD()
     float Length() const;
+
+    HYP_METHOD()
     float LengthSquared() const;
+
+    HYP_METHOD()
     Quat4f& Normalize();
 
+    HYP_METHOD()
     Quat4f Inverse() const;
 
+    HYP_METHOD()
     Quat4f& Slerp(const Quat4f& to, float amt);
 
+    HYP_METHOD()
     int GimbalPole() const;
+
+    HYP_METHOD()
     float Roll() const;
+
+    HYP_METHOD()
     float Pitch() const;
+
+    HYP_METHOD()
     float Yaw() const;
 
+    HYP_METHOD()
     static Quat4f Identity();
+
+    HYP_METHOD()
     static Quat4f LookAt(const Vec3f& direction, const Vec3f& up);
+
+    HYP_METHOD()
     static Quat4f AxisAngles(const Vec3f& axis, float radians);
 
     HYP_FORCE_INLINE constexpr HashCode GetHashCode() const

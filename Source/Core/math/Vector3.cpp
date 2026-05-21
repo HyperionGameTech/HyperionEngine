@@ -335,12 +335,12 @@ Vec3<float> math::Vec3<float>::Reflect(const Vec3<float>& normal) const
 
 Vec3<float>& math::Vec3<float>::Rotate(const Vec3<float>& axis, float radians)
 {
-    return (*this) = Mat4f::Rotation(axis, radians) * (*this);
+    return (*this) = Mat4f::Rotation(axis, radians).TransformVector(*this);
 }
 
 Vec3<float>& math::Vec3<float>::Rotate(const Quat4f& quaternion)
 {
-    return (*this) = Mat4f::Rotation(quaternion) * (*this);
+    return (*this) = Mat4f::Rotation(quaternion).TransformVector(*this);
 }
 
 Vec3<float>& math::Vec3<float>::Lerp(const Vec3<float>& to, const float amt)

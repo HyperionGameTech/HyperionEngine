@@ -37,7 +37,7 @@ void CameraTrackController::UpdateLogic(double delta)
 
     const CameraTrackPivot pivot = m_cameraTrack->GetPivotAt(currentTrackTime);
 
-    const Vec3f viewVector = (pivot.transform.GetRotation() * -Vec3f::UnitZ()).Normalized();
+    const Vec3f viewVector = pivot.transform.GetRotation().RotateVector(-Vec3f::UnitZ()).Normalized();
 
     m_camera->SetNextTranslation(pivot.transform.GetTranslation());
     m_camera->SetDirection(viewVector);

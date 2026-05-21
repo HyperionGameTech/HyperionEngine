@@ -52,7 +52,7 @@ Transform Transform::GetInverse() const
 Transform Transform::operator*(const Transform& other) const
 {
     return {
-        translation + (rotation * (scale * other.translation)),
+        translation + (rotation.RotateVector(scale * other.translation)),
         scale * other.scale,
         rotation * other.rotation
     };

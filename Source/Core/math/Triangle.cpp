@@ -83,9 +83,9 @@ Triangle operator*(const Mat4f& transform, const Triangle& triangle)
 {
     Triangle result;
 
-    for (size_t i = 0; i < 3; i++)
+    for (uint8 i = 0; i < 3; i++)
     {
-        result.points[i] = transform * triangle.points[i];
+        result.points[i] = transform.TransformVector(triangle.points[i]);
     }
 
     return result;

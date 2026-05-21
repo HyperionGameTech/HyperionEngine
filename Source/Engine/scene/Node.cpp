@@ -853,7 +853,7 @@ Vec3f Node::GetWorldTranslation() const
 
     if (m_parentNode != nullptr && !(m_nodeFlags & NodeFlags::IgnoreParentTranslation))
     {
-        translationWS = m_parentNode->GetWorldMatrix() * translationWS;
+        translationWS = m_parentNode->GetWorldMatrix().TransformVector(translationWS);
     }
 
     return translationWS;
@@ -868,7 +868,7 @@ void Node::SetWorldTranslation(const Vec3f& translation, TransformChangeType cha
         return;
     }
 
-    SetLocalTranslation(m_parentNode->GetWorldMatrix().Inverse() * translation, changeType);
+    SetLocalTranslation(m_parentNode->GetWorldMatrix().Inverse().TransformVector(translation), changeType);
 }
 
 Vec3f Node::GetWorldScale() const
@@ -1119,10 +1119,10 @@ bool Node::TestRay(const Ray& ray, RayTestResults& outResults, EnumFlags<RayTest
                         hit.id = Id().Value();
                         hit.node = const_cast<Node*>(this);
 
-                        Vec4f transformedNormal = normalMatrix * Vec4f(hit.normal, 0.0f);
+                        Vec4f transformedNormal = normalMatrix.TransformVector(Vec4f(hit.normal, 0.0f));
                         hit.normal = transformedNormal.GetXYZ().Normalized();
 
-                        Vec4f transformedPosition = modelMatrix * Vec4f(hit.hitpoint, 1.0f);
+                        Vec4f transformedPosition = modelMatrix.TransformVector(Vec4f(hit.hitpoint, 1.0f));
                         transformedPosition /= transformedPosition.w;
 
                         hit.hitpoint = transformedPosition.GetXYZ();

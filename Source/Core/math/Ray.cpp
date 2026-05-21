@@ -20,10 +20,10 @@ namespace Hyperion {
 
 HYP_API Ray operator*(const Mat4f& transform, const Ray& ray)
 {
-    Vec4f transformedPosition = transform * Vec4f(ray.position, 1.0f);
+    Vec4f transformedPosition = transform.TransformVector(Vec4f(ray.position, 1.0f));
     transformedPosition /= transformedPosition.w;
 
-    Vec4f transformedDirection = transform * Vec4f(ray.direction, 0.0f);
+    Vec4f transformedDirection = transform.TransformVector(Vec4f(ray.direction, 0.0f));
 
     Ray result;
     result.position = transformedPosition.GetXYZ();

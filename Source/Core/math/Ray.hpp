@@ -43,7 +43,7 @@ enum class RayTestFlags : uint32
     Max = 0xFFFFFFFFu
 };
 
-HYP_MAKE_ENUM_FLAGS(RayTestFlags)
+HYP_MAKE_ENUM_FLAGS(RayTestFlags);
 
 HYP_STRUCT(Size = 32, Serialize = "bitwise")
 struct HYP_API Ray

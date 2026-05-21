@@ -206,7 +206,7 @@ Quat4f& Quat4f::operator+=(const Vec3f& vec)
     return *this;
 }
 
-Vec3f Quat4f::operator*(const Vec3f& vec) const
+Vec3f Quat4f::RotateVector(const Vec3f& vec) const
 {
     Vec3f result;
     result.x = w * w * vec.x + 2 * y * w * vec.z - 2 * z * w * vec.y + x * x * vec.x

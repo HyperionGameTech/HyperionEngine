@@ -25,7 +25,7 @@ HYP_API BoundingBox operator*(const Mat4f& transform, const BoundingBox& aabb)
 
     for (Vec3f corner : aabb.GetCorners())
     {
-        result = result.Union(transform * corner);
+        result = result.Union(transform.TransformVector(corner));
     }
 
     return result;

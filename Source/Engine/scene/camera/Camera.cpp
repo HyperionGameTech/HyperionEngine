@@ -581,20 +581,20 @@ Vec4f Camera::TransformNDCToWorld(const Vec3f& ndc) const
 {
     const Vec4f clip(ndc, 1.0f);
 
-    Vec4f eye = m_projMat.Inverse() * clip;
+    Vec4f eye = m_projMat.Inverse().TransformVector(clip);
     eye /= eye.w;
 
-    return m_viewMat.Inverse() * eye;
+    return m_viewMat.Inverse().TransformVector(eye);
 }
 
 Vec3f Camera::TransformWorldToNDC(const Vec3f& world) const
 {
-    return m_viewProjMat * world;
+    return m_viewProjMat.TransformVector(world);
 }
 
 Vec2f Camera::TransformWorldToScreen(const Vec3f& world) const
 {
-    return TransformNDCToScreen(m_viewProjMat * world);
+    return TransformNDCToScreen(m_viewProjMat.TransformVector(world));
 }
 
 Vec2f Camera::TransformNDCToScreen(const Vec3f& ndc) const

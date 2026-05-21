@@ -51,7 +51,7 @@ struct Script_RegisterMemory
 {
     static constexpr uint32 NumRegisters = 4;
 
-    BoxedValue regs[NumRegisters];
+    ValueStorage<BoxedValue, NumRegisters> values;
 
     int flags = 0;
 
@@ -62,9 +62,9 @@ struct Script_RegisterMemory
 
     ~Script_RegisterMemory();
 
-    HYP_FORCE_INLINE BoxedValue& operator[](uint8 index)
+    HYP_FORCE_INLINE BoxedValue& operator[](int index)
     {
-        return regs[index];
+        return values.GetPointer()[index];
     }
 
     HYP_FORCE_INLINE void ResetFlags()
@@ -230,28 +230,19 @@ class VirtualMachine
 {
 public:
     VirtualMachine();
+    
     VirtualMachine(const VirtualMachine& other) = delete;
     VirtualMachine& operator=(const VirtualMachine& other) = delete;
+    
     VirtualMachine(VirtualMachine&& other) noexcept = delete;
     VirtualMachine& operator=(VirtualMachine&& other) noexcept = delete;
+
     ~VirtualMachine();
 
-    void Invoke(
-        ScriptInstance* instance,
-        BoxedValue&& value,
-        uint8 nargs);
-
-    void InvokeNow(
-        ScriptInstance* instance,
-        BoxedValue&& value,
-        uint8 nargs);
+    void Invoke(ScriptInstance* instance, BoxedValue&& value, uint8 nargs);
+    void InvokeNow(ScriptInstance* instance, BoxedValue&& value, uint8 nargs);
 
     void Execute(ScriptInstance* instance);
-
-    /** Reset the state of the VirtualMachine, destroying all heap objects,
-        stack objects and exception flags, etc.
-     */
-    void Reset();
 
     void ThrowException(ScriptInstance* instance, const Exception& exception);
 
