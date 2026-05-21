@@ -420,7 +420,7 @@ void InitializeEntityScript(Entity* entity, ScriptComponent& scriptComponent, co
 
                     Assert(instance != nullptr);
 
-#if 0
+#if 1
                     {
                         // Debug: decompile the bytecode
                         std::stringstream ss;

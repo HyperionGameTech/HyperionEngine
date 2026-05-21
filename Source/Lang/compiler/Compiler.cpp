@@ -518,7 +518,7 @@ static bool ShouldDerefType(const SymbolType& symbolType)
             || symbolType.IsOrHasBase(*BuiltinTypes::s_arrayBaseType)
             || symbolType.IsOrHasBase(*BuiltinTypes::s_varArgsBaseType)
             || symbolType.IsOrHasBase(*BuiltinTypes::s_mapBaseType)
-            || symbolType.IsOrHasBase(*BuiltinTypes::s_objectType));
+            || symbolType.IsObject());
     // clang-format on
 }
 

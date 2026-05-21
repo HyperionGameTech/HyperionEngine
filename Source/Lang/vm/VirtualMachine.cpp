@@ -226,7 +226,9 @@ BoxedValue MakeTrackedRef(BoxedValue* pValue, GarbageCollector* gc)
     return *pValue;
 }
 
-#define PASS_AS_REF(value) ((value).Is<Any>())
+/// NOTE: Changed to false, since struct types should act as value types
+/// All object types are ref counted and use Handle<ObjectBase>
+#define PASS_AS_REF(value) false //((value).Is<Any>())
 
 // Performs a shallow copy of the value. Numeric and primitive types are copied as-is.
 BoxedValue ShallowCopy(BoxedValue& refValue, GarbageCollector* gc)
@@ -254,11 +256,6 @@ BoxedValue ShallowCopy(BoxedValue& refValue, GarbageCollector* gc)
 
 bool ShouldValuePassByRef(const BoxedValue& value)
 {
-    if (!value.IsValid())
-    {
-        return false;
-    }
-
     return PASS_AS_REF(value);
 }
 
