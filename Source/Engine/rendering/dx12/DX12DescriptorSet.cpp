@@ -557,7 +557,8 @@ void DX12DescriptorSet::Update(bool force)
                 const D3D12_SHADER_RESOURCE_VIEW_DESC srvDesc = GetSRVDesc(
                     imageView->GetImage(),
                     imageView->GetMipIndex(), imageView->NumMips(),
-                    imageView->GetLayerIndex(), imageView->NumArrayLayers());
+                    imageView->GetLayerIndex(), imageView->NumArrayLayers(),
+                    imageView->GetViewTextureType());
 
                 device->CreateShaderResourceView(imageView->GetImage()->GetResource(), &srvDesc, destHandle);
             }
@@ -619,7 +620,8 @@ void DX12DescriptorSet::Update(bool force)
                 const D3D12_UNORDERED_ACCESS_VIEW_DESC uavDesc = GetUAVDesc(
                     imageView->GetImage(),
                     imageView->GetMipIndex(), imageView->NumMips(),
-                    imageView->GetLayerIndex(), imageView->NumArrayLayers());
+                    imageView->GetLayerIndex(), imageView->NumArrayLayers(),
+                    imageView->GetViewTextureType());
 
                 // @TODO needs atomic count resource
                 device->CreateUnorderedAccessView(imageView->GetImage()->GetResource(), nullptr, &uavDesc, destHandle);

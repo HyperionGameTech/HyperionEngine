@@ -498,7 +498,7 @@ D3D12_UNORDERED_ACCESS_VIEW_DESC GetUAVDesc(GpuBufferType bufferType, size_t buf
     return desc;
 }
 
-D3D12_SHADER_RESOURCE_VIEW_DESC GetSRVDesc(DX12GpuImage* image, uint32 mipIndex, uint32 numMips, uint32 layerIndex, uint32 numLayers)
+D3D12_SHADER_RESOURCE_VIEW_DESC GetSRVDesc(DX12GpuImage* image, uint32 mipIndex, uint32 numMips, uint32 layerIndex, uint32 numLayers, TextureType viewType)
 {
     AssertDebug(image != nullptr);
 
@@ -515,13 +515,15 @@ D3D12_SHADER_RESOURCE_VIEW_DESC GetSRVDesc(DX12GpuImage* image, uint32 mipIndex,
     layerIndex = MathUtil::Min(layerIndex, descNumLayers - 1);
     numLayers = MathUtil::Min(numLayers, descNumLayers);
 
+    const TextureType effectiveType = (viewType != TextureType::Max) ? viewType : textureDesc.type;
+
     D3D12_SHADER_RESOURCE_VIEW_DESC srvDesc {};
     srvDesc.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
     srvDesc.Format = ToDXGIFormat(textureDesc.format, DX12ViewType::SRV_UAV);
-    srvDesc.ViewDimension = ToDX12SRVDimension(textureDesc.type);
+    srvDesc.ViewDimension = ToDX12SRVDimension(effectiveType);
 
     // When viewing a single face of a cubemap as a 2D texture, use TEXTURE2D dimension
-    const bool isCubemap = textureDesc.IsTextureCube() || textureDesc.IsTextureCubeArray();
+    const bool isCubemap = effectiveType == TextureType::Cubemap || effectiveType == TextureType::CubemapArray;
     if (isCubemap && numLayers == 1)
     {
         srvDesc.ViewDimension = D3D12_SRV_DIMENSION_TEXTURE2D;
@@ -568,7 +570,7 @@ D3D12_SHADER_RESOURCE_VIEW_DESC GetSRVDesc(DX12GpuImage* image, uint32 mipIndex,
     return srvDesc;
 }
 
-D3D12_UNORDERED_ACCESS_VIEW_DESC GetUAVDesc(DX12GpuImage* image, uint32 mipIndex, uint32 /*numMips*/, uint32 layerIndex, uint32 numLayers)
+D3D12_UNORDERED_ACCESS_VIEW_DESC GetUAVDesc(DX12GpuImage* image, uint32 mipIndex, uint32 /*numMips*/, uint32 layerIndex, uint32 numLayers, TextureType viewType)
 {
     AssertDebug(image != nullptr);
     AssertDebug(image->GetTextureDesc().imageUsage & ImageUsage::IU_STORAGE);
@@ -585,12 +587,14 @@ D3D12_UNORDERED_ACCESS_VIEW_DESC GetUAVDesc(DX12GpuImage* image, uint32 mipIndex
     layerIndex = MathUtil::Min(layerIndex, descNumLayers - 1);
     numLayers = MathUtil::Min(numLayers, descNumLayers);
 
+    const TextureType effectiveType = (viewType != TextureType::Max) ? viewType : textureDesc.type;
+
     D3D12_UNORDERED_ACCESS_VIEW_DESC uavDesc {};
     uavDesc.Format = ToDXGIFormat(textureDesc.format, DX12ViewType::SRV_UAV);
-    uavDesc.ViewDimension = ToDX12UAVDimension(textureDesc.type);
+    uavDesc.ViewDimension = ToDX12UAVDimension(effectiveType);
 
     // When viewing a single face of a cubemap as a 2D texture, use TEXTURE2D dimension
-    const bool isCubemapUav = textureDesc.IsTextureCube() || textureDesc.IsTextureCubeArray();
+    const bool isCubemapUav = effectiveType == TextureType::Cubemap || effectiveType == TextureType::CubemapArray;
     if (isCubemapUav && numLayers == 1)
     {
         uavDesc.ViewDimension = D3D12_UAV_DIMENSION_TEXTURE2D;

@@ -128,7 +128,7 @@ const DX12GpuImageViewRef& DX12TextureViewCache::GetOrCreate(
     if (it == textureImageViews.End())
     {
         DX12GpuImageViewRef imageView = MakeHandle<DX12GpuImageView>(
-            texture->GetGpuImage(), subResource);
+            texture->GetGpuImage(), subResource, viewTextureType);
 
         CheckResult(imageView->Create());
 

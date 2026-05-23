@@ -727,48 +727,152 @@ void DX12GpuImage::Blit(
     const ImageSubResource& srcSubResource,
     const ImageSubResource& dstSubResource)
 {
-    // @TODO Needs to be implemented with a custom shader!
+    AssertDebug(srcImage != nullptr, "Source image is null");
+    AssertDebug(srcImage->IsCreated(), "Source image is not created");
+    AssertDebug(IsCreated(), "Destination image is not created");
 
+    const TextureDesc& srcTextureDesc = srcImage->GetTextureDesc();
+    const bool srcIsDepthStencil = srcTextureDesc.IsDepthStencil();
+    const bool dstIsDepthStencil = m_textureDesc.IsDepthStencil();
 
-    //const bool srcIsDepthStencil = srcImage->GetTextureDesc().IsDepthStencil();
-    //const bool dstIsDepthStencil = m_textureDesc.IsDepthStencil();
+    // numLevels == UINT8_MAX means "use all remaining mip levels"
+    // numLayers == UINT16_MAX means "use all remaining array layers"
+    const uint8 srcNumLevels = (srcSubResource.numLevels == UINT8_MAX)
+        ? uint8(srcImage->NumMips() - srcSubResource.baseMipLevel)
+        : srcSubResource.numLevels;
+    const uint8 dstNumLevels = (dstSubResource.numLevels == UINT8_MAX)
+        ? uint8(NumMips() - dstSubResource.baseMipLevel)
+        : dstSubResource.numLevels;
+    const uint16 srcNumLayers = (srcSubResource.numLayers == UINT16_MAX)
+        ? uint16(srcImage->NumArrayLayers() - srcSubResource.baseArrayLayer)
+        : srcSubResource.numLayers;
+    const uint16 dstNumLayers = (dstSubResource.numLayers == UINT16_MAX)
+        ? uint16(NumArrayLayers() - dstSubResource.baseArrayLayer)
+        : dstSubResource.numLayers;
 
-    //D3D12_RESOURCE_STATES srcState = srcIsDepthStencil ? D3D12_RESOURCE_STATE_DEPTH_READ : D3D12_RESOURCE_STATE_COPY_SOURCE;
-    //D3D12_RESOURCE_STATES dstState = dstIsDepthStencil ? D3D12_RESOURCE_STATE_DEPTH_WRITE : D3D12_RESOURCE_STATE_COPY_DEST;
+    const uint8 numLevelsToCopy = MathUtil::Min(srcNumLevels, dstNumLevels);
+    const uint16 numLayersToCopy = MathUtil::Min(srcNumLayers, dstNumLayers);
 
-    //D3D12_TEXTURE_COPY_LOCATION srcLocation {};
-    //srcLocation.pResource = srcImage->GetResource();
-    //srcLocation.Type = D3D12_TEXTURE_COPY_TYPE_SUBRESOURCE_INDEX;
-    //srcLocation.SubresourceIndex = D3D12CalcSubresource(
-    //    srcSubResource.baseMipLevel,
-    //    srcSubResource.baseArrayLayer,
-    //    0,
-    //    srcImage->NumMips(),
-    //    srcImage->NumArrayLayers());
+    ID3D12GraphicsCommandList* commandList = commandBuffer->GetCommandList();
 
-    //D3D12_TEXTURE_COPY_LOCATION dstLocation {};
-    //dstLocation.pResource = m_resource.Get();
-    //dstLocation.Type = D3D12_TEXTURE_COPY_TYPE_SUBRESOURCE_INDEX;
-    //dstLocation.SubresourceIndex = D3D12CalcSubresource(
-    //    dstSubResource.baseMipLevel,
-    //    dstSubResource.baseArrayLayer,
-    //    0,
-    //    NumMips(),
-    //    NumArrayLayers());
+    if (!HasSubResourceStates() && !srcImage->HasSubResourceStates())
+    {
+        const D3D12_RESOURCE_STATES srcState = srcIsDepthStencil ? D3D12_RESOURCE_STATE_DEPTH_READ : D3D12_RESOURCE_STATE_COPY_SOURCE;
+        const D3D12_RESOURCE_STATES dstState = dstIsDepthStencil ? D3D12_RESOURCE_STATE_DEPTH_WRITE : D3D12_RESOURCE_STATE_COPY_DEST;
 
-    //D3D12_BOX srcBox {};
-    //srcBox.left = srcRect.x0;
-    //srcBox.top = srcRect.y0;
-    //srcBox.front = 0;
-    //srcBox.right = srcRect.x1;
-    //srcBox.bottom = srcRect.y1;
-    //srcBox.back = 1;
+        AssertDebug(srcImage->GetResourceState() == RS_COPY_SRC);
+        AssertDebug(GetResourceState() == RS_COPY_DST);
 
-    //commandBuffer->GetCommandList()->CopyTextureRegion(
-    //    &dstLocation,
-    //    dstRect.x0, dstRect.y0, 0,
-    //    &srcLocation,
-    //    &srcBox);
+        D3D12_TEXTURE_COPY_LOCATION srcLocation {};
+        srcLocation.pResource = srcImage->GetResource();
+        srcLocation.Type = D3D12_TEXTURE_COPY_TYPE_SUBRESOURCE_INDEX;
+        srcLocation.SubresourceIndex = D3D12CalcSubresource(
+            srcSubResource.baseMipLevel,
+            srcSubResource.baseArrayLayer,
+            0,
+            srcImage->NumMips(),
+            srcImage->NumArrayLayers());
+
+        D3D12_TEXTURE_COPY_LOCATION dstLocation {};
+        dstLocation.pResource = m_resource.Get();
+        dstLocation.Type = D3D12_TEXTURE_COPY_TYPE_SUBRESOURCE_INDEX;
+        dstLocation.SubresourceIndex = D3D12CalcSubresource(
+            dstSubResource.baseMipLevel,
+            dstSubResource.baseArrayLayer,
+            0,
+            NumMips(),
+            NumArrayLayers());
+
+        D3D12_BOX srcBox {};
+        srcBox.left = srcRect.x0;
+        srcBox.top = srcRect.y0;
+        srcBox.front = 0;
+        srcBox.right = srcRect.x1;
+        srcBox.bottom = srcRect.y1;
+        srcBox.back = 1;
+
+        commandList->CopyTextureRegion(
+            &dstLocation,
+            dstRect.x0, dstRect.y0, 0,
+            &srcLocation,
+            &srcBox);
+    }
+    else
+    {
+        for (uint16 layerIndex = 0; layerIndex < numLayersToCopy; layerIndex++)
+        {
+            for (uint8 mipLevel = 0; mipLevel < numLevelsToCopy; mipLevel++)
+            {
+                const uint8 actualSrcMip = srcSubResource.baseMipLevel + mipLevel;
+                const uint8 actualDstMip = dstSubResource.baseMipLevel + mipLevel;
+                const uint16 actualSrcLayer = srcSubResource.baseArrayLayer + layerIndex;
+                const uint16 actualDstLayer = dstSubResource.baseArrayLayer + layerIndex;
+
+                const ResourceState srcResourceState = srcImage->GetSubResourceState(ImageSubResource {
+                    .baseMipLevel = actualSrcMip,
+                    .numLevels = 1,
+                    .baseArrayLayer = actualSrcLayer,
+                    .numLayers = 1
+                });
+
+                const ResourceState dstResourceState = GetSubResourceState(ImageSubResource {
+                    .baseMipLevel = actualDstMip,
+                    .numLevels = 1,
+                    .baseArrayLayer = actualDstLayer,
+                    .numLayers = 1
+                });
+
+                AssertDebug(srcResourceState == RS_COPY_SRC);
+                AssertDebug(dstResourceState == RS_COPY_DST);
+
+                D3D12_TEXTURE_COPY_LOCATION srcLocation {};
+                srcLocation.pResource = srcImage->GetResource();
+                srcLocation.Type = D3D12_TEXTURE_COPY_TYPE_SUBRESOURCE_INDEX;
+                srcLocation.SubresourceIndex = D3D12CalcSubresource(
+                    actualSrcMip,
+                    actualSrcLayer,
+                    0,
+                    srcImage->NumMips(),
+                    srcImage->NumArrayLayers());
+
+                D3D12_TEXTURE_COPY_LOCATION dstLocation {};
+                dstLocation.pResource = m_resource.Get();
+                dstLocation.Type = D3D12_TEXTURE_COPY_TYPE_SUBRESOURCE_INDEX;
+                dstLocation.SubresourceIndex = D3D12CalcSubresource(
+                    actualDstMip,
+                    actualDstLayer,
+                    0,
+                    NumMips(),
+                    NumArrayLayers());
+
+                // Clamp source rect to the source mip level dimensions
+                const Vec3u srcMipExtent = srcTextureDesc.GetMipExtent(actualSrcMip);
+                const uint32 srcX0 = MathUtil::Min(srcRect.x0, srcMipExtent.x);
+                const uint32 srcY0 = MathUtil::Min(srcRect.y0, srcMipExtent.y);
+                const uint32 srcX1 = MathUtil::Min(srcRect.x1, srcMipExtent.x);
+                const uint32 srcY1 = MathUtil::Min(srcRect.y1, srcMipExtent.y);
+
+                // Clamp destination rect to the destination mip level dimensions
+                const Vec3u dstMipExtent = m_textureDesc.GetMipExtent(actualDstMip);
+                const uint32 dstX0 = MathUtil::Min(dstRect.x0, dstMipExtent.x);
+                const uint32 dstY0 = MathUtil::Min(dstRect.y0, dstMipExtent.y);
+
+                D3D12_BOX srcBox {};
+                srcBox.left = srcX0;
+                srcBox.top = srcY0;
+                srcBox.front = 0;
+                srcBox.right = srcX1;
+                srcBox.bottom = srcY1;
+                srcBox.back = 1;
+
+                commandList->CopyTextureRegion(
+                    &dstLocation,
+                    dstX0, dstY0, 0,
+                    &srcLocation,
+                    &srcBox);
+            }
+        }
+    }
 }
 
 RendererResult DX12GpuImage::GenerateMipmaps(DX12CommandBuffer* commandBuffer)
@@ -1283,6 +1387,7 @@ void DX12GpuImage::Fill(
             break;
         case TextureType::Texture2DArray:
         case TextureType::Cubemap:
+        case TextureType::CubemapArray:
             dsvDesc.ViewDimension = D3D12_DSV_DIMENSION_TEXTURE2DARRAY;
             dsvDesc.Texture2DArray.ArraySize = numLayers;
             dsvDesc.Texture2DArray.FirstArraySlice = subResource.baseArrayLayer;
@@ -1335,6 +1440,7 @@ void DX12GpuImage::Fill(
             break;
         case TextureType::Texture2DArray:
         case TextureType::Cubemap:
+        case TextureType::CubemapArray:
             rtvDesc.ViewDimension = D3D12_RTV_DIMENSION_TEXTURE2DARRAY;
             rtvDesc.Texture2DArray.ArraySize = numLayers;
             rtvDesc.Texture2DArray.FirstArraySlice = subResource.baseArrayLayer;

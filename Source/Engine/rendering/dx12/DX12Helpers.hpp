@@ -8,6 +8,8 @@
 
 #include <Core/Types.hpp>
 
+#include <rendering/Shared.hpp>
+
 #include <rendering/dx12/DX12Shared.hpp>
 
 namespace Hyperion {
@@ -55,8 +57,8 @@ D3D12_UNORDERED_ACCESS_VIEW_DESC GetUAVDesc(GpuBufferType bufferType, size_t buf
 
 D3D12_SAMPLER_DESC GetSamplerDesc(const class DX12Sampler* sampler);
 
-D3D12_SHADER_RESOURCE_VIEW_DESC GetSRVDesc(DX12GpuImage* image, uint32 mipIndex, uint32 numMips, uint32 layerIndex, uint32 numLayers);
-D3D12_UNORDERED_ACCESS_VIEW_DESC GetUAVDesc(DX12GpuImage* image, uint32 mipIndex, uint32 numMips, uint32 layerIndex, uint32 numLayers);
+D3D12_SHADER_RESOURCE_VIEW_DESC GetSRVDesc(DX12GpuImage* image, uint32 mipIndex, uint32 numMips, uint32 layerIndex, uint32 numLayers, TextureType viewType = TextureType::Max);
+D3D12_UNORDERED_ACCESS_VIEW_DESC GetUAVDesc(DX12GpuImage* image, uint32 mipIndex, uint32 numMips, uint32 layerIndex, uint32 numLayers, TextureType viewType = TextureType::Max);
 
 D3D12_DESCRIPTOR_RANGE_TYPE ToDX12DescriptorRangeType(ShaderRegister reg);
 

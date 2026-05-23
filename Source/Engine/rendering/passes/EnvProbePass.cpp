@@ -145,13 +145,21 @@ void ConvolveEnvProbeCubemap(
         cr << InsertBarrier(srcImage, RS_COPY_SRC, subResource);
         cr << InsertBarrier(dstImage, RS_COPY_DST, subResource);
 
-        cr << Blit(
-            srcImage,
-            dstImage,
-            Rect<uint32> { 0, 0, inTexture->GetExtent().x, inTexture->GetExtent().y },
-            Rect<uint32> { 0, 0, srcTexture->GetExtent().x, srcTexture->GetExtent().y },
-            subResource,
-            subResource);
+        const Vec3u srcMipExtent = srcImage->GetTextureDesc().extent;
+        const Vec3u dstMipExtent = dstImage->GetTextureDesc().extent;
+
+        if (srcMipExtent == dstMipExtent && srcImage->GetTextureDesc().format == dstImage->GetTextureDesc().format)
+        {
+            cr << CopyImage(srcImage, dstImage, srcMipExtent);
+        }
+        else
+        {
+            cr << Blit(
+                srcImage,
+                dstImage,
+                Rect<uint32> { 0, 0, srcMipExtent.x, srcMipExtent.y },
+                Rect<uint32> { 0, 0, dstMipExtent.x, dstMipExtent.y });
+        }
 
         // back to shader resource state.
         cr << InsertBarrier(srcImage, RS_SHADER_RESOURCE, subResource);
@@ -324,19 +332,20 @@ void ConvolveEnvProbeCubemap(
                 const Vec3u srcMipExtent = srcImage->GetTextureDesc().GetMipExtent(mipIndex);
                 const Vec3u dstMipExtent = dstImage->GetTextureDesc().GetMipExtent(mipIndex);
 
-                cr << Blit(
-                    srcImage,
-                    dstImage,
-                    Rect<uint32> {
-                        0, 0,
-                        srcMipExtent.x, srcMipExtent.y
-                    },
-                    Rect<uint32> {
-                        0, 0,
-                        dstMipExtent.x, dstMipExtent.y
-                    },
-                    srcSubResource,
-                    dstSubResource);
+                if (srcMipExtent == dstMipExtent && srcImage->GetTextureDesc().format == dstImage->GetTextureDesc().format)
+                {
+                    cr << CopyImage(srcImage, dstImage, srcMipExtent, srcSubResource, dstSubResource);
+                }
+                else
+                {
+                    cr << Blit(
+                        srcImage,
+                        dstImage,
+                        Rect<uint32> { 0, 0, srcMipExtent.x, srcMipExtent.y },
+                        Rect<uint32> { 0, 0, dstMipExtent.x, dstMipExtent.y },
+                        srcSubResource,
+                        dstSubResource);
+                }
             }
 
             cr << InsertBarrier(srcImage, RS_SHADER_RESOURCE);

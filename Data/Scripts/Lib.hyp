@@ -1614,7 +1614,7 @@ extern class EditorProject
     GetWorld() -> World
     GetGame() -> Game
     SetGame(gameInstance : Game) -> void
-    GetLastSavedTime() -> Time
+    GetLastSavedTime() -> any
     GetFilePath() -> string
     AddScene(scene : Scene) -> void
     RemoveScene(scene : Scene) -> void
@@ -1626,7 +1626,7 @@ extern class EditorProject
     Close(shutdownWorld : bool) -> void
     OnProjectSaved : any
     Name : Name
-    LastSavedTime : Time
+    LastSavedTime : any
     Filepath : string
     GameInstance : Game
     ActionStack : EditorActionStack
@@ -2407,7 +2407,7 @@ extern class Shader : AssetObject
     EntryPointNames : Array<string>
     ShaderBlobs : Array<BlobDataReference>
     PropertySetHashCode : HashCode
-    LastCompiledTimestamp : Time
+    LastCompiledTimestamp : any
     Properties : ShaderPropertySet
     SerializeProperties() -> Array<ShaderProperty>
     DeserializeProperties(properties : Array<ShaderProperty>) -> void
@@ -2488,9 +2488,6 @@ extern struct UUID
     Data0 : uint64
     Data1 : uint64
     ToString() -> string
-end
-extern struct Time
-    Value : uint64
 end
 extern struct Result
     HasValue() -> bool

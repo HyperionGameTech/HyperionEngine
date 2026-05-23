@@ -23,14 +23,25 @@ extern DX12RenderInterface RI;
 #pragma region DX12GpuImageView
 
 DX12GpuImageView::DX12GpuImageView(const DX12GpuImageRef& image)
-    : GpuImageViewBase(image)
+    : GpuImageViewBase(image),
+      m_viewTextureType(image ? image->GetTextureDesc().type : TextureType::Max)
 {
 }
 
 DX12GpuImageView::DX12GpuImageView(
     const DX12GpuImageRef& image,
     const ImageSubResource& subResource)
-    : GpuImageViewBase(image, subResource)
+    : GpuImageViewBase(image, subResource),
+      m_viewTextureType(image ? image->GetTextureDesc().type : TextureType::Max)
+{
+}
+
+DX12GpuImageView::DX12GpuImageView(
+    const DX12GpuImageRef& image,
+    const ImageSubResource& subResource,
+    TextureType viewTextureType)
+    : GpuImageViewBase(image, subResource),
+      m_viewTextureType(viewTextureType)
 {
 }
 

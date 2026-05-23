@@ -30,8 +30,15 @@ public:
     DX12GpuImageView(
         const DX12GpuImageRef& image,
         const ImageSubResource& subResource);
+    DX12GpuImageView(
+        const DX12GpuImageRef& image,
+        const ImageSubResource& subResource,
+        TextureType viewTextureType);
 
     ~DX12GpuImageView() override;
+
+    HYP_FORCE_INLINE TextureType GetViewTextureType() const
+        { return m_viewTextureType; }
 
     bool IsCreated() const override;
     RendererResult Create() override;
@@ -39,6 +46,9 @@ public:
 #ifdef HYP_DEBUG_MODE
     void SetDebugName(Name name) override;
 #endif
+
+private:
+    TextureType m_viewTextureType = TextureType::Max;
 };
 
 } // namespace Hyperion
