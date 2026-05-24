@@ -1090,6 +1090,8 @@ endif()
 if (CMAKE_GENERATOR MATCHES "Ninja")
   # Copy compile_commands.json to workspace root for clangd/LSP support in editors like VSCode, Zed, etc.
   message(STATUS "Syncing compile_commands.json to workspace root")
+  # for VS with open cmake project
+  target_link_options(${BUILD_NAME} PRIVATE "/NATVIS:${CMAKE_SOURCE_DIR}/Engine/Hyperion.natvis")
   add_custom_target(sync_compile_commands ALL
       COMMAND ${CMAKE_COMMAND} -E copy_if_different
           ${CMAKE_BINARY_DIR}/compile_commands.json

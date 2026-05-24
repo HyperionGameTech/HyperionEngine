@@ -311,18 +311,18 @@ private:
 class Blit final : public CmdBase
 {
 public:
-    Blit(GpuImage* srcImage, GpuImage* dstImage)
-        : m_srcImage(srcImage),
-          m_dstImage(dstImage),
+    Blit(Texture* src, Texture* dst)
+        : m_src(src),
+          m_dst(dst),
           m_hasSubResource(false),
           m_hasRect(false)
     {
     }
 
-    Blit(GpuImage* srcImage, GpuImage* dstImage,
+    Blit(Texture* src, Texture* dst,
         const Rect<uint32>& srcRect, const Rect<uint32>& dstRect)
-        : m_srcImage(srcImage),
-          m_dstImage(dstImage),
+        : m_src(src),
+          m_dst(dst),
           m_srcRect(srcRect),
           m_dstRect(dstRect),
           m_hasSubResource(false),
@@ -330,11 +330,11 @@ public:
     {
     }
 
-    Blit(GpuImage* srcImage, GpuImage* dstImage,
+    Blit(Texture* src, Texture* dst,
         const Rect<uint32>& srcRect, const Rect<uint32>& dstRect,
         const ImageSubResource& srcSubResource, const ImageSubResource& dstSubResource)
-        : m_srcImage(srcImage),
-          m_dstImage(dstImage),
+        : m_src(src),
+          m_dst(dst),
           m_srcRect(srcRect),
           m_dstRect(dstRect),
           m_srcSubResource(srcSubResource),
@@ -347,8 +347,8 @@ public:
     static void InvokeStatic(CmdBase* cmd, CommandBuffer* commandBuffer);
 
 private:
-    GpuImage* m_srcImage;
-    GpuImage* m_dstImage;
+    Texture* m_src;
+    Texture* m_dst;
 
     ImageSubResource m_srcSubResource;
     ImageSubResource m_dstSubResource;
@@ -358,26 +358,6 @@ private:
 
     bool m_hasSubResource : 1;
     bool m_hasRect : 1;
-};
-
-class BlitRect final : public CmdBase
-{
-public:
-    HYP_DEPRECATED BlitRect(GpuImage* srcImage, GpuImage* dstImage, const Rect<uint32>& srcRect, const Rect<uint32>& dstRect)
-        : m_srcImage(srcImage),
-          m_dstImage(dstImage),
-          m_srcRect(srcRect),
-          m_dstRect(dstRect)
-    {
-    }
-
-    static void InvokeStatic(CmdBase* cmd, CommandBuffer* commandBuffer);
-
-private:
-    GpuImage* m_srcImage;
-    GpuImage* m_dstImage;
-    Rect<uint32> m_srcRect;
-    Rect<uint32> m_dstRect;
 };
 
 class CopyImage final : public CmdBase

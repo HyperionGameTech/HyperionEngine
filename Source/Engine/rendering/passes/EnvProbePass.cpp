@@ -130,11 +130,8 @@ void ConvolveEnvProbeCubemap(
 
     if (needsMipMapGeneration)
     { // Blit into mip 0 of the source texture
-        const GpuImageRef& dstImage = srcTexture->GetGpuImage();
-        Assert(dstImage.IsValid());
-
-        const GpuImageRef& srcImage = inTexture->GetGpuImage();
-        Assert(srcImage.IsValid());
+        Texture* dst = srcTexture;
+        Texture* src = inTexture;
 
         ImageSubResource subResource {};
         subResource.baseMipLevel = 0;
@@ -142,35 +139,35 @@ void ConvolveEnvProbeCubemap(
         subResource.baseArrayLayer = 0;
         subResource.numLayers = 6;
 
-        cr << InsertBarrier(srcImage, RS_COPY_SRC, subResource);
-        cr << InsertBarrier(dstImage, RS_COPY_DST, subResource);
+        cr << InsertBarrier(src->GetGpuImage(), RS_COPY_SRC, subResource);
+        cr << InsertBarrier(dst->GetGpuImage(), RS_COPY_DST, subResource);
 
-        const Vec3u srcMipExtent = srcImage->GetTextureDesc().extent;
-        const Vec3u dstMipExtent = dstImage->GetTextureDesc().extent;
+        const Vec3u srcMipExtent = src->GetTextureDesc().extent;
+        const Vec3u dstMipExtent = dst->GetTextureDesc().extent;
 
-        if (srcMipExtent == dstMipExtent && srcImage->GetTextureDesc().format == dstImage->GetTextureDesc().format)
+        if (srcMipExtent == dstMipExtent && src->GetTextureDesc().format == dst->GetTextureDesc().format)
         {
-            cr << CopyImage(srcImage, dstImage, srcMipExtent);
+            cr << CopyImage(src->GetGpuImage(), dst->GetGpuImage(), srcMipExtent);
         }
         else
         {
             cr << Blit(
-                srcImage,
-                dstImage,
+                src,
+                dst,
                 Rect<uint32> { 0, 0, srcMipExtent.x, srcMipExtent.y },
                 Rect<uint32> { 0, 0, dstMipExtent.x, dstMipExtent.y });
         }
 
         // back to shader resource state.
-        cr << InsertBarrier(srcImage, RS_SHADER_RESOURCE, subResource);
+        cr << InsertBarrier(src->GetGpuImage(), RS_SHADER_RESOURCE, subResource);
 
         // put ALL the remaining mips of dstImage into copy dst so we can generate mips on it
-        cr << InsertBarrier(dstImage, RS_COPY_DST);
+        cr << InsertBarrier(dst->GetGpuImage(), RS_COPY_DST);
 
-        // generate mips on src texture before running convolve shader using it as a source
-        cr << GenerateMipmaps(srcTexture);
+        // generate mips before running convolve shader using it as a source
+        cr << GenerateMipmaps(dst);
 
-        cr << InsertBarrier(dstImage, RS_SHADER_RESOURCE);
+        cr << InsertBarrier(src->GetGpuImage(), RS_SHADER_RESOURCE);
     }
 
     for (uint8 mipIndex = 0; mipIndex < numMips; mipIndex++)
@@ -339,8 +336,8 @@ void ConvolveEnvProbeCubemap(
                 else
                 {
                     cr << Blit(
-                        srcImage,
-                        dstImage,
+                        prefilteredEnvMap,
+                        RI.envProbesTexture,
                         Rect<uint32> { 0, 0, srcMipExtent.x, srcMipExtent.y },
                         Rect<uint32> { 0, 0, dstMipExtent.x, dstMipExtent.y },
                         srcSubResource,

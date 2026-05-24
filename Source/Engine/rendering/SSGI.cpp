@@ -431,14 +431,14 @@ void SSGI::Render(Frame* frame, const RenderSetup& renderSetup)
             cr << InsertBarrier(m_ssgiTexture->GetGpuImage(), RS_COPY_SRC);
             cr << InsertBarrier(m_downsampleTextures[i]->GetGpuImage(), RS_COPY_DST);
 
-            cr << Blit(m_ssgiTexture->GetGpuImage(), m_downsampleTextures[i]->GetGpuImage());
+            cr << Blit(m_ssgiTexture, m_downsampleTextures[i]);
         }
         else
         {
             cr << InsertBarrier(m_downsampleTextures[i - 1]->GetGpuImage(), RS_COPY_SRC);
             cr << InsertBarrier(m_downsampleTextures[i]->GetGpuImage(), RS_COPY_DST);
 
-            cr << Blit(m_downsampleTextures[i - 1]->GetGpuImage(), m_downsampleTextures[i]->GetGpuImage());
+            cr << Blit(m_downsampleTextures[i - 1], m_downsampleTextures[i]);
         }
     }
 

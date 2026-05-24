@@ -88,11 +88,14 @@ void OnBindingChanged_ReflectionProbe(EnvProbe* envProbe, uint32 prev, uint32 ne
             return;
         }
 
+        Texture* srcTexture = proxyCasted->texture;
+        Texture* dstTexture = RI.envProbesTexture;
+
         // blit to the array texture
-        GpuImage* srcImage = proxyCasted->texture->GetGpuImage();
+        GpuImage* srcImage = srcTexture->GetGpuImage();
         AssertDebug(srcImage != nullptr);
 
-        GpuImage* dstImage = RI.envProbesTexture->GetGpuImage();
+        GpuImage* dstImage = dstTexture->GetGpuImage();
         AssertDebug(dstImage != nullptr);
 
         if (HYP_UNLIKELY(!srcImage || !dstImage))
@@ -134,8 +137,8 @@ void OnBindingChanged_ReflectionProbe(EnvProbe* envProbe, uint32 prev, uint32 ne
             else
             {
                 cr << Blit(
-                    srcImage,
-                    dstImage,
+                    srcTexture,
+                    dstTexture,
                     Rect<uint32> { 0, 0, srcMipExtent.x, srcMipExtent.y },
                     Rect<uint32> { 0, 0, dstMipExtent.x, dstMipExtent.y },
                     srcSubResource,
