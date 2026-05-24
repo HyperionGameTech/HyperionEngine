@@ -330,8 +330,6 @@ void DX12GpuImage::InsertBarrier(
         shaderModuleType,
         onlyDepth,
         onlyStencil);
-
-    Assert(m_subResourceStates.Empty());
 }
 
 void DX12GpuImage::InsertBarrier(
@@ -633,37 +631,40 @@ void DX12GpuImage::InsertBarrier(
         }
     }
 
-    // Update state tracking
-    if (onlyStencil || stencilDiverged)
+    // Update state tracking (matching Vulkan's pattern)
+    if (subResource.baseMipLevel == 0 && subResource.numLevels >= NumMips()
+        && subResource.baseArrayLayer == 0 && subResource.numLayers >= NumArrayLayers())
     {
-        m_stencilState = newState;
-    }
-    else if (onlyDepth)
-    {
-        // Depth plane was transitioned -- update the main resource state
-        // and clear per-subresource tracking to prevent stale per-subresource
-        // states from blocking future transitions.
-        SetResourceState(newState);
-        m_stencilState = currStencilState;
-        m_subResourceStates.Clear();
+        if (onlyStencil)
+        {
+            m_stencilState = newState;
+        }
+        else
+        {
+            SetResourceState(newState);
+
+            if (onlyDepth)
+            {
+                m_stencilState = currStencilState;
+            }
+        }
     }
     else if (m_subResourceStates.Empty())
     {
-        SetResourceState(newState);
-
-        if (onlyDepth)
+        if (onlyStencil)
         {
-            m_stencilState = currStencilState;
+            m_stencilState = newState;
         }
-    }
-    else if (subResource.baseMipLevel == 0 && subResource.numLevels >= NumMips()
-        && subResource.baseArrayLayer == 0 && subResource.numLayers >= NumArrayLayers())
-    {
-        // Full resource was transitioned -- all subresources are now in the same state.
-        // Clear per-subresource tracking and update global state.
-        SetResourceState(newState);
-        m_subResourceStates.Clear();
-    }
+        else
+        {
+            SetResourceState(newState);
+
+            if (onlyDepth)
+            {
+                m_stencilState = currStencilState;
+            }
+        }
+}
 }
 
 void DX12GpuImage::InsertUAVBarrier(CommandBuffer* commandBuffer)
