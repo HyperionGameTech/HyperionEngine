@@ -1,0 +1,55 @@
+{
+  "$Class": "Entity",
+  "Tags": [],
+  "Components": [{
+      "$Class": "MeshComponent",
+      "Mesh": {
+        "$Class": "AssetReference",
+        "AssetPath": {
+          "Value": "Editor://Meshes/MeshBuilder_Quad"
+        }
+      },
+      "Material": {
+        "$Class": "AssetReference",
+        "AssetPath": {
+          "Value": "Editor://MaterialInstances/VolumeEditMaterial"
+        }
+      },
+      "Skeleton": null,
+      "EnableAutoInstancing": false,
+      "InstanceData": {
+        "AssetPath": {
+          "Value": ""
+        }
+      }
+    }],
+  "NodeFlags": 49152,
+  "LocalBounds": {
+    "Min": [-1, -1, 0],
+    "Max": [1, 1, 0]
+  },
+  "LocalTransform": {
+    "Translation": [0, 0, 0],
+    "Scale": [1, 1, 1],
+    "Rotation": {
+      "X": 0.707107,
+      "Y": 0,
+      "Z": 0,
+      "W": 0.707107
+    }
+  },
+  "Children": [],
+  "NodeTags": {
+    "Values": [{
+        "$Class": "NodeTag",
+        "Name": "TransformWidgetElementColor",
+        "Data": [0.300000, 0, 0.280000, 0.250000]
+      }, {
+        "$Class": "NodeTag",
+        "Name": "VolumeFaceIndex",
+        "Data": 2
+      }]
+  },
+  "Name": "VolumeFace_2",
+  "FriendlyName": "VolumeFace_2"
+}

@@ -1,0 +1,33 @@
+{
+  "$Class": "Mesh",
+  "AABB": {
+    "Min": [-0.120000, -0.625000, -0.120000],
+    "Max": [0.120000, 0.625000, 0.120000]
+  },
+  "MeshDesc": {
+    "MeshAttributes": {
+      "InputLayout": {
+        "Mask": 7
+      },
+      "Topology": 0,
+      "IndexBufferElemType": 4
+    },
+    "NumVertices": 320,
+    "NumIndices": 558
+  },
+  "VertexData": {
+    "Key": "Editor://Meshes/Mat_Translate_Y.VB",
+    "Size": 10240
+  },
+  "IndexData": {
+    "Key": "Editor://Meshes/Mat_Translate_Y.IB",
+    "Size": 2232
+  },
+  "BvhData": {
+    "Key": "Editor://Meshes/Mat_Translate_Y.BVH",
+    "Size": 13433
+  },
+  "Flags": 0,
+  "Name": "Mat_Translate_Y",
+  "FriendlyName": "MatTranslateY"
+}

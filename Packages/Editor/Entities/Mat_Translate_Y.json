@@ -1,0 +1,55 @@
+{
+  "$Class": "Entity",
+  "Tags": [],
+  "Components": [{
+      "$Class": "MeshComponent",
+      "Mesh": {
+        "$Class": "AssetReference",
+        "AssetPath": {
+          "Value": "Editor://Meshes/Mat_Translate_Y"
+        }
+      },
+      "Material": {
+        "$Class": "AssetReference",
+        "AssetPath": {
+          "Value": "Editor://MaterialInstances/Mat_Translate_Y_Material"
+        }
+      },
+      "Skeleton": null,
+      "EnableAutoInstancing": false,
+      "InstanceData": {
+        "AssetPath": {
+          "Value": ""
+        }
+      }
+    }],
+  "NodeFlags": 49152,
+  "LocalBounds": {
+    "Min": [-0.120000, -0.625000, -0.120000],
+    "Max": [0.120000, 0.625000, 0.120000]
+  },
+  "LocalTransform": {
+    "Translation": [0, 0.625000, 0],
+    "Scale": [1, 1, 1],
+    "Rotation": {
+      "X": 0,
+      "Y": 0,
+      "Z": 0,
+      "W": 1
+    }
+  },
+  "Children": [],
+  "NodeTags": {
+    "Values": [{
+        "$Class": "NodeTag",
+        "Name": "TransformWidgetElementColor",
+        "Data": [0, 0, 1, 1]
+      }, {
+        "$Class": "NodeTag",
+        "Name": "TransformWidgetAxis",
+        "Data": 1
+      }]
+  },
+  "Name": "Mat_Translate_Y",
+  "FriendlyName": "MatTranslateY"
+}

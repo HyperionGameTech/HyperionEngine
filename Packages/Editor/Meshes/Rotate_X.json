@@ -1,0 +1,33 @@
+{
+  "$Class": "Mesh",
+  "AABB": {
+    "Min": [-0.030000, -1.030000, -1.030000],
+    "Max": [0.030000, 1.030000, 1.030000]
+  },
+  "MeshDesc": {
+    "MeshAttributes": {
+      "InputLayout": {
+        "Mask": 7
+      },
+      "Topology": 0,
+      "IndexBufferElemType": 4
+    },
+    "NumVertices": 768,
+    "NumIndices": 4608
+  },
+  "VertexData": {
+    "Key": "Editor://Meshes/Rotate_X.VB",
+    "Size": 24576
+  },
+  "IndexData": {
+    "Key": "Editor://Meshes/Rotate_X.IB",
+    "Size": 18432
+  },
+  "BvhData": {
+    "Key": "Editor://Meshes/Rotate_X.BVH",
+    "Size": 31117
+  },
+  "Flags": 0,
+  "Name": "Rotate_X",
+  "FriendlyName": "RotateX"
+}

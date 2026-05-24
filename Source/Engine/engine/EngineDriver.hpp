@@ -82,11 +82,6 @@ public:
     HYP_METHOD()
     void SetCurrentWorld(World* world);
 
-    HYP_FORCE_INLINE const Handle<DebugDrawer>& GetDebugDrawer() const
-    {
-        return m_debugDrawer;
-    }
-
     HYP_FORCE_INLINE EngineDelegates& GetDelegates()
     {
         return m_delegates;
@@ -130,8 +125,6 @@ private:
     void SyncConfig();
 
     void UpdateSim(float delta);
-
-    Handle<DebugDrawer> m_debugDrawer;
 
     Array<Handle<World>> m_worlds; // Sim thread only
     World* m_currentWorld;         // Sim thread only

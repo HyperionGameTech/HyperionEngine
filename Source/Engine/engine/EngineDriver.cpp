@@ -428,8 +428,6 @@ void EngineDriver::FinalizeStop()
 
     m_worlds.Clear();
 
-    m_debugDrawer.Reset();
-
     // must stop before net request thread
     StopProfilerConnectionThread();
 

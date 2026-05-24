@@ -1,0 +1,33 @@
+{
+  "$Class": "Mesh",
+  "AABB": {
+    "Min": [-0.125000, -0.125000, -0.125000],
+    "Max": [0.125000, 0.125000, 0.125000]
+  },
+  "MeshDesc": {
+    "MeshAttributes": {
+      "InputLayout": {
+        "Mask": 7
+      },
+      "Topology": 0,
+      "IndexBufferElemType": 4
+    },
+    "NumVertices": 24,
+    "NumIndices": 36
+  },
+  "VertexData": {
+    "Key": "Editor://Meshes/Mat_Translate_Centroid.VB",
+    "Size": 768
+  },
+  "IndexData": {
+    "Key": "Editor://Meshes/Mat_Translate_Centroid.IB",
+    "Size": 144
+  },
+  "BvhData": {
+    "Key": "Editor://Meshes/Mat_Translate_Centroid.BVH",
+    "Size": 16865
+  },
+  "Flags": 0,
+  "Name": "Mat_Translate_Centroid",
+  "FriendlyName": "MatTranslateCentroid"
+}

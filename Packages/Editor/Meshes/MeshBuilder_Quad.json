@@ -1,0 +1,33 @@
+{
+  "$Class": "Mesh",
+  "AABB": {
+    "Min": [-1, -1, 0],
+    "Max": [1, 1, 0]
+  },
+  "MeshDesc": {
+    "MeshAttributes": {
+      "InputLayout": {
+        "Mask": 7
+      },
+      "Topology": 0,
+      "IndexBufferElemType": 4
+    },
+    "NumVertices": 4,
+    "NumIndices": 6
+  },
+  "VertexData": {
+    "Key": "Editor://Meshes/MeshBuilder_Quad.VB",
+    "Size": 128
+  },
+  "IndexData": {
+    "Key": "Editor://Meshes/MeshBuilder_Quad.IB",
+    "Size": 24
+  },
+  "BvhData": {
+    "Key": "Editor://Meshes/MeshBuilder_Quad.BVH",
+    "Size": 26737
+  },
+  "Flags": 0,
+  "Name": "MeshBuilder_Quad",
+  "FriendlyName": "MeshBuilderQuad"
+}

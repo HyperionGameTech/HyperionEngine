@@ -1,0 +1,33 @@
+{
+  "$Class": "Mesh",
+  "AABB": {
+    "Min": [-1.030000, -0.030000, -1.030000],
+    "Max": [1.030000, 0.030000, 1.030000]
+  },
+  "MeshDesc": {
+    "MeshAttributes": {
+      "InputLayout": {
+        "Mask": 7
+      },
+      "Topology": 0,
+      "IndexBufferElemType": 4
+    },
+    "NumVertices": 768,
+    "NumIndices": 4608
+  },
+  "VertexData": {
+    "Key": "Editor://Meshes/Rotate_Y.VB",
+    "Size": 24576
+  },
+  "IndexData": {
+    "Key": "Editor://Meshes/Rotate_Y.IB",
+    "Size": 18432
+  },
+  "BvhData": {
+    "Key": "Editor://Meshes/Rotate_Y.BVH",
+    "Size": 31101
+  },
+  "Flags": 0,
+  "Name": "Rotate_Y",
+  "FriendlyName": "RotateY"
+}

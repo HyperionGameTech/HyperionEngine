@@ -1,0 +1,14 @@
+[
+  {
+    "label": "Start sample (macOS)",
+    "program": "$ZED_WORKTREE_ROOT/Binaries/Mac/Release/hyperion-sample",
+    "request": "launch",
+    "adapter": "CodeLLDB"
+  },
+  {
+    "label": "Start editor (macOS)",
+    "program": "$ZED_WORKTREE_ROOT/Binaries/Mac/Release/Hyperion.Editor",
+    "request": "launch",
+    "adapter": "CodeLLDB"
+  }
+]

@@ -1,0 +1,33 @@
+{
+  "$Class": "Mesh",
+  "AABB": {
+    "Min": [-0.120000, -0.120000, -0.625000],
+    "Max": [0.120000, 0.120000, 0.625000]
+  },
+  "MeshDesc": {
+    "MeshAttributes": {
+      "InputLayout": {
+        "Mask": 7
+      },
+      "Topology": 0,
+      "IndexBufferElemType": 4
+    },
+    "NumVertices": 320,
+    "NumIndices": 558
+  },
+  "VertexData": {
+    "Key": "Editor://Meshes/Mat_Translate_Z.VB",
+    "Size": 10240
+  },
+  "IndexData": {
+    "Key": "Editor://Meshes/Mat_Translate_Z.IB",
+    "Size": 2232
+  },
+  "BvhData": {
+    "Key": "Editor://Meshes/Mat_Translate_Z.BVH",
+    "Size": 13425
+  },
+  "Flags": 0,
+  "Name": "Mat_Translate_Z",
+  "FriendlyName": "MatTranslateZ"
+}
