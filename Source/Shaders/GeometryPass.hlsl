@@ -99,7 +99,7 @@ DECLARE_SRV(Default, ClusterIndexBuffer) ByteAddressBuffer ClusterIndexBuffer;
 
 #include "include/Parallax.hlsli"
 
-// #define DEBUG_RAW_REFLECTIONS
+#define DEBUG_RAW_REFLECTIONS
 
 PSOutput PSMain(PSInput input)
 {

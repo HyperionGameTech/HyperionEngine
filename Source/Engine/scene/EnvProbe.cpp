@@ -39,7 +39,7 @@ static constexpr EnumFlags<EnvProbeFlags> DefaultEnvProbeFlags[EPT_MAX] = {
 static const ShaderPropertyId s_propWriteNormals = InternShaderProperty(ShaderProperty(NAME("WRITE_NORMALS")));
 static const ShaderPropertyId s_propWriteMoments = InternShaderProperty(ShaderProperty(NAME("WRITE_MOMENTS")));
 
-static FixedArray<Mat4f, 6> CreateCubemapMatrices(const BoundingBox& aabb, const Vec3f& origin)
+static FixedArray<Mat4f, 6> CreateCubemapMatrices(const Vec3f& origin)
 {
     FixedArray<Mat4f, 6> viewMatrices;
 
@@ -468,6 +468,8 @@ void EnvProbe::Update(float delta)
         cacheKeysToRemove.PushBack(kvp.first);
     }
 
+    FixedArray<Mat4f, 6> matrices = CreateCubemapMatrices(worldAabb.GetCenter());
+
     TSet<Scene*, SceneTempAllocator> allScenes;
     for (uint32 viewIndex = 0; viewIndex < 6; viewIndex++)
     {
@@ -475,12 +477,7 @@ void EnvProbe::Update(float delta)
         View* view = m_views[viewIndex];
         AssertDebug(view != nullptr);
 
-        const Pair<Vec3f, Vec3f>& dirPair = Texture::s_cubemapDirections[viewIndex];
-
-        const Vec3f& forwardDir = dirPair.first;
-        const Vec3f& upDir = dirPair.second;
-
-        const Mat4f viewMatrix = Mat4f::LookAt(worldAabb.GetCenter(), forwardDir, upDir);
+        const Mat4f& viewMatrix = matrices[viewIndex];
         const Mat4f viewProjectionMatrix = m_camera->GetProjectionMatrix() * viewMatrix;
 
         Frustum frustum;
@@ -629,7 +626,7 @@ void EnvProbe::UpdateRenderProxy(RenderProxyEnvProbe* proxy)
     bufferData.dimensions = Vec2u { m_dimensions.x, m_dimensions.y };
     bufferData.flags = uint32(m_envProbeFlags);
 
-    const FixedArray<Mat4f, 6> viewMatrices = CreateCubemapMatrices(worldBounds, GetOrigin());
+    const FixedArray<Mat4f, 6> viewMatrices = CreateCubemapMatrices(worldBounds.GetCenter());
 
     Memory::Copy(bufferData.faceViewMatrices, viewMatrices.Data(), sizeof(EnvProbeShaderData::faceViewMatrices));
     Memory::Copy(bufferData.shData, &m_shData, sizeof(EnvProbeSphericalHarmonics::values));

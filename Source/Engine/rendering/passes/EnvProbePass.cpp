@@ -54,21 +54,6 @@ static constexpr Vec2u ShNumTiles = { 16, 16 };
 static constexpr uint32 ShNumLevels = MathUtil::Max(1u, uint32(MathUtil::FastLog2(ShNumSamples.Max()) + 1));
 static constexpr bool ShParallelReduce = false;
 
-static FixedArray<Mat4f, 6> CreateCubemapMatrices(const BoundingBox& aabb, const Vec3f& origin)
-{
-    FixedArray<Mat4f, 6> viewMatrices;
-
-    for (uint32 i = 0; i < 6; i++)
-    {
-        viewMatrices[i] = Mat4f::LookAt(
-            origin,
-            origin + Texture::s_cubemapDirections[i].first,
-            Texture::s_cubemapDirections[i].second);
-    }
-
-    return viewMatrices;
-}
-
 #pragma region ConvolveProbe
 
 namespace ConvolveProbe {

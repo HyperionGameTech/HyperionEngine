@@ -195,7 +195,7 @@ void Blit::InvokeStatic(CmdBase* cmd, CommandBuffer* commandBuffer)
         dstSubResource.numLayers = dstDesc.NumArrayLayers();
     }
 
-#ifdef HYP_VULKAN
+#if 0//def HYP_VULKAN
     src->GetGpuImage()->InsertBarrier(commandBuffer, srcSubResource, RS_COPY_SRC, ShaderModuleType::None);
     dst->GetGpuImage()->InsertBarrier(commandBuffer, dstSubResource, RS_COPY_DST, ShaderModuleType::None);
 

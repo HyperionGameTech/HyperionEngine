@@ -345,7 +345,7 @@ void VulkanDescriptorSet::UpdateDirtyState(bool* outIsDirty)
                     descriptor.imageInfo = VkDescriptorImageInfo {
                         .sampler = VK_NULL_HANDLE,
                         .imageView = ref->GetVulkanHandle(),
-                        .imageLayout =  GetVkImageLayout(
+                        .imageLayout = GetVkImageLayout(
                             isStorageImage ? RS_UNORDERED_ACCESS : RS_SHADER_RESOURCE,
                             ref->GetImage()->GetTextureDesc().IsDepthStencil())
                     };
