@@ -47,7 +47,7 @@
 
 #include <engine/Game.hpp>
 #include <engine/EngineDriver.hpp>
-#include <Engine/EngineStats.hpp>
+#include <engine/EngineStats.hpp>
 #include <engine/CVarManager.hpp>
 
 #include <asset/Assets.hpp>

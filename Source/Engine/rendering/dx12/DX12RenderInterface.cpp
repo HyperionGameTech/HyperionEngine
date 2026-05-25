@@ -901,7 +901,13 @@ DX12GpuImageViewRef DX12RenderInterface::MakeImageView(const DX12GpuImageRef& im
     return MakeHandle<DX12GpuImageView>(image);
 }
 
-DX12GpuImageViewRef DX12RenderInterface::MakeImageView(const DX12GpuImageRef& image, uint8 mipIndex, uint8 numMips, uint16 layerIndex, uint16 numLayers)
+DX12GpuImageViewRef DX12RenderInterface::MakeImageView(
+    const DX12GpuImageRef& image,
+    uint8 mipIndex,
+    uint8 numMips,
+    uint16 layerIndex,
+    uint16 numLayers,
+    TextureType viewType)
 {
     ImageSubResource subResource {};
     subResource.baseMipLevel = mipIndex;
@@ -909,7 +915,7 @@ DX12GpuImageViewRef DX12RenderInterface::MakeImageView(const DX12GpuImageRef& im
     subResource.numLevels = numMips;
     subResource.numLayers = numLayers;
 
-    return MakeHandle<DX12GpuImageView>(image, subResource);
+    return MakeHandle<DX12GpuImageView>(image, subResource, viewType);
 }
 
 DX12SamplerRef DX12RenderInterface::MakeSampler(const SamplerDesc& samplerDesc)

@@ -34,7 +34,7 @@ DeletionQueueElem<Handle<ObjectBase>>::DeletionQueueElem(ObjectBase* ptr)
     {
 #ifdef HYP_DOTNET
         ScriptObjectResource* scriptObjectResource = ptr->GetScriptObjectResource();
-        const bool hasExtraRef = scriptObjectResource && (scriptObjectResource->GetScriptLanguageMask() == (1u << uint32(ScriptLanguage::CSharp)));
+        const bool hasExtraRef = scriptObjectResource && bool(scriptObjectResource->GetScriptLanguageMask() & (1u << uint32(ScriptLanguage::CSharp)));
 #else
         const bool hasExtraRef = false;
 #endif
@@ -109,7 +109,7 @@ void DeletionQueue::Shutdown()
     AssertDebug(bufferIndex < m_entryLists.Size());
 
     auto& currentEntryList = *m_entryLists[bufferIndex];
-    
+
     Mutex::Guard guard(m_mutex);
     for (auto it = m_tempEntryLists.Begin(); it != m_tempEntryLists.End();)
     {
@@ -178,7 +178,7 @@ void DeletionQueue::Shutdown()
 
     // delete remaining enqueued deletions
     FixedArray<int, RingBufferDepth> counts {};
-    
+
     do
     {
         for (uint32 i = 0; i < RingBufferDepth; i++)
@@ -189,7 +189,7 @@ void DeletionQueue::Shutdown()
         ThreadSleep(1); // give some time for other threads to finish
     }
     while (AnyOf(counts, [](uint32 count) { return count > 0; }));
-    
+
     // delete all entries in all buffers
     for (auto* pEntryList : m_entryLists)
     {
@@ -364,7 +364,7 @@ void DeletionQueue::UpdateCounter(uint32 bufferIndex)
 void DeletionQueue::Flush()
 {
     AssertOnThread(g_renderThread);
-    
+
     uint32 bufferIndex = GetRingIndex();
     ForceDeleteAll(bufferIndex);
 }

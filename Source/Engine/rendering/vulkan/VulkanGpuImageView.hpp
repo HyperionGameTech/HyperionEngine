@@ -37,7 +37,7 @@ public:
     VulkanGpuImageView(
         const VulkanGpuImageRef& image,
         const ImageSubResource& subResource,
-        VkImageViewType viewType);
+        TextureType viewType);
 
     ~VulkanGpuImageView() override;
 

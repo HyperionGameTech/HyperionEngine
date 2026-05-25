@@ -1249,7 +1249,13 @@ VulkanGpuImageViewRef VulkanRenderInterface::MakeImageView(const VulkanGpuImageR
     return ref;
 }
 
-VulkanGpuImageViewRef VulkanRenderInterface::MakeImageView(const VulkanGpuImageRef& image, uint8 mipIndex, uint8 numMips, uint16 layerIndex, uint16 numLayers)
+VulkanGpuImageViewRef VulkanRenderInterface::MakeImageView(
+    const VulkanGpuImageRef& image,
+    uint8 mipIndex,
+    uint8 numMips,
+    uint16 layerIndex,
+    uint16 numLayers,
+    TextureType viewType)
 {
     ImageSubResource subResource {};
     subResource.baseMipLevel = mipIndex;
@@ -1257,7 +1263,7 @@ VulkanGpuImageViewRef VulkanRenderInterface::MakeImageView(const VulkanGpuImageR
     subResource.numLevels = numMips;
     subResource.numLayers = numLayers;
 
-    VulkanGpuImageViewRef ref = MakeHandle<VulkanGpuImageView>(image, subResource);
+    VulkanGpuImageViewRef ref = MakeHandle<VulkanGpuImageView>(image, subResource, viewType);
 #if HYP_DEBUG_MODE
     ref->SetDebugName(NAME_FMT("{}_IV", image->GetDebugName()));
 #endif

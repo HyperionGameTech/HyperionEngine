@@ -191,6 +191,8 @@ VkImageViewType ToVkImageViewType(TextureType type)
         return VK_IMAGE_VIEW_TYPE_2D_ARRAY;
     case TextureType::CubemapArray:
         return VK_IMAGE_VIEW_TYPE_CUBE_ARRAY;
+    case TextureType::Max:
+        return VK_IMAGE_VIEW_TYPE_MAX_ENUM;
     default:
         HYP_FAIL("Unhandled texture type case %d", int(type));
     }

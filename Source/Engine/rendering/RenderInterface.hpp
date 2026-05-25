@@ -360,7 +360,13 @@ public:
     virtual GpuImageRef MakeImage(const TextureDesc& textureDesc) = 0;
 
     virtual GpuImageViewRef MakeImageView(const GpuImageRef& image) = 0;
-    virtual GpuImageViewRef MakeImageView(const GpuImageRef& image, uint8 mipIndex, uint8 numMips, uint16 layerIndex, uint16 numLayers) = 0;
+    virtual GpuImageViewRef MakeImageView(
+        const GpuImageRef& image,
+        uint8 mipIndex,
+        uint8 numMips,
+        uint16 layerIndex,
+        uint16 numLayers,
+        TextureType viewType = TextureType::Max) = 0;
 
     virtual SamplerRef MakeSampler(const SamplerDesc& samplerDesc) = 0;
 
