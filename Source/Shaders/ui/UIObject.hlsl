@@ -108,9 +108,6 @@ struct PSOutput
 
 #undef HYP_DO_NOT_DEFINE_DESCRIPTOR_SETS
 
-DECLARE_SRV_DYNAMIC(Default, CamerasBuffer) StructuredBuffer<Camera> _cameras_buffer;
-#define camera _cameras_buffer[0]
-
 DECLARE_SAMPLER(Default, SamplerLinear) SamplerState sampler_linear;
 DECLARE_SAMPLER(Default, SamplerNearest) SamplerState sampler_nearest;
 
@@ -123,6 +120,7 @@ DECLARE_BUFFER_DYNAMIC(Default, CBuffer) cbuffer CBuffer
 #else // INSTANCING
     Entity dummyEntity;
 #endif // !INSTANCING
+    Camera camera;
     Material material;
 };
 

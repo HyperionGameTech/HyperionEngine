@@ -20,9 +20,6 @@ DECLARE_SAMPLER(Default, SamplerNearest) SamplerState sampler_nearest;
 
 #undef HYP_DO_NOT_DEFINE_DESCRIPTOR_SETS
 
-DECLARE_SRV_DYNAMIC(Default, CamerasBuffer) StructuredBuffer<Camera> _cameras_buffer;
-#define camera _cameras_buffer[0]
-
 #ifdef ALPHA_DISCARD
 #ifdef HYP_FEATURES_BINDLESS_TEXTURES
     DECLARE_SRV(BindlessResources0, Textures) uniform texture2D textures[];
@@ -43,6 +40,7 @@ DECLARE_BUFFER_DYNAMIC(Default, CBuffer) cbuffer CBuffer
 #else // INSTANCING
     Entity dummyEntity;
 #endif // !INSTANCING
+    Camera camera;
     Material material;
 };
 

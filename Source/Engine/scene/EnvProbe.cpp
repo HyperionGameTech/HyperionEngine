@@ -73,7 +73,6 @@ EnvProbe::EnvProbe(EnvProbeType envProbeType, const BoundingBox& aabb, const Vec
       m_cameraNear(0.05f),
       m_cameraFar(aabb.GetRadius()),
       m_camera(nullptr),
-      m_view(nullptr),
       m_shData {}
 {
     SetLocalBounds(aabb);
@@ -84,9 +83,10 @@ EnvProbe::EnvProbe(EnvProbeType envProbeType, const BoundingBox& aabb, const Vec
 
 EnvProbe::~EnvProbe()
 {
-    if (m_view.IsValid())
+    if (AnyOf(m_views, &Handle<View>::IsValid))
     {
-        EnqueueDeletion(std::move(m_view));
+        EnqueueDeletion(std::move(m_views));
+        EnqueueDeletion(std::move(m_framebuffers));
     }
 
     if (m_texture.IsValid())
@@ -122,7 +122,7 @@ void EnvProbe::Init()
 
         m_camera = camera;
 
-        CreateView();
+        CreateViews();
 
         if (ShouldComputePrefilteredEnvMap())
         {
@@ -221,9 +221,12 @@ void EnvProbe::OnAddedToScene(Scene* scene)
 {
     Entity::OnAddedToScene(scene);
 
-    if (m_view)
+    for (View* view : m_views)
     {
-        m_view->AddScene(scene);
+        if (view)
+        {
+            view->AddScene(scene);
+        }
     }
 
     Invalidate();
@@ -232,10 +235,13 @@ void EnvProbe::OnAddedToScene(Scene* scene)
 void EnvProbe::OnRemovedFromScene(Scene* scene)
 {
     Entity::OnRemovedFromScene(scene);
-
-    if (m_view)
+    
+    for (View* view : m_views)
     {
-        m_view->RemoveScene(scene);
+        if (view)
+        {
+            view->RemoveScene(scene);
+        }
     }
 
     Invalidate();
@@ -248,56 +254,112 @@ void EnvProbe::OnTransformUpdated()
     Invalidate();
 }
 
-void EnvProbe::CreateView()
+void EnvProbe::CreateViews()
 {
     if (IsBaked())
     {
         return;
     }
 
-    AssertDebug(m_view == nullptr);
     AssertDebug(m_camera != nullptr);
 
+    Array<AttachmentDesc> attachmentDescs;
+    Array<GpuImageRef> attachmentImages;
+    
     FramebufferDesc framebufferDesc {};
     framebufferDesc.extent = Vec2u(m_dimensions);
     framebufferDesc.numAttachments = 0;
     framebufferDesc.numLayers = 6;
 
+    FramebufferRef framebuffer = RI.MakeFramebuffer(framebufferDesc);
+    Assert(framebuffer.IsValid());
+
+    uint32 attachmentIndex = 0;
+
     if (IsReflectionProbe() || IsSkyProbe())
     {
-        framebufferDesc.AddAttachment(AttachmentDesc {
+        // color
+        AttachmentDesc& colorDesc = attachmentDescs.PushBack(AttachmentDesc {
             TextureType::Cubemap,
             TextureFormat::R10G10B10A2,
             LoadOperation::CLEAR,
             StoreOperation::STORE
         });
+        attachmentImages.PushBack(RI.MakeImage(TextureDesc {
+            colorDesc.imageType,
+            colorDesc.format,
+            Vec3u(framebufferDesc.extent, 1),
+            TFM_NEAREST,
+            TFM_NEAREST,
+            TWM_CLAMP_TO_EDGE,
+            6,
+            IU_SAMPLED | IU_ATTACHMENT
+        }));
 
-        framebufferDesc.AddAttachment(AttachmentDesc {
+        // normals
+        AttachmentDesc& normalsDesc = attachmentDescs.PushBack(AttachmentDesc {
             TextureType::Cubemap,
             TextureFormat::RG16F,
             LoadOperation::CLEAR,
             StoreOperation::STORE
         });
+        attachmentImages.PushBack(RI.MakeImage(TextureDesc {
+            normalsDesc.imageType,
+            normalsDesc.format,
+            Vec3u(framebufferDesc.extent, 1),
+            TFM_NEAREST,
+            TFM_NEAREST,
+            TWM_CLAMP_TO_EDGE,
+            6,
+            IU_SAMPLED | IU_ATTACHMENT
+        }));
 
-        AttachmentDesc momentsAttachmentDesc;
-        momentsAttachmentDesc.imageType = TextureType::Cubemap;
-        momentsAttachmentDesc.format = TextureFormat::RG16F;
-        momentsAttachmentDesc.loadOp = LoadOperation::CLEAR;
-        momentsAttachmentDesc.storeOp = StoreOperation::STORE;
+        // moments
+        AttachmentDesc momentsDesc;
+        momentsDesc.imageType = TextureType::Cubemap;
+        momentsDesc.format = TextureFormat::RG16F;
+        momentsDesc.loadOp = LoadOperation::CLEAR;
+        momentsDesc.storeOp = StoreOperation::STORE;
 
-        momentsAttachmentDesc.clearColorF16[0] = FLT16_MAX;
-        momentsAttachmentDesc.clearColorF16[1] = FLT16_MAX;
-        momentsAttachmentDesc.clearColorIsF16 = true;
+        momentsDesc.clearColorF16[0] = FLT16_MAX;
+        momentsDesc.clearColorF16[1] = FLT16_MAX;
+        momentsDesc.clearColorIsF16 = true;
 
-        framebufferDesc.AddAttachment(momentsAttachmentDesc);
+        attachmentDescs.PushBack(momentsDesc);
+        attachmentImages.PushBack(RI.MakeImage(TextureDesc {
+            momentsDesc.imageType,
+            momentsDesc.format,
+            Vec3u(framebufferDesc.extent, 1),
+            TFM_NEAREST,
+            TFM_NEAREST,
+            TWM_CLAMP_TO_EDGE,
+            6,
+            IU_SAMPLED | IU_ATTACHMENT
+        }));
     }
 
-    framebufferDesc.AddAttachment(AttachmentDesc {
+    // Depth
+    AttachmentDesc& depthDesc = attachmentDescs.PushBack(AttachmentDesc {
         TextureType::Cubemap,
         TextureFormat::D32F,
         LoadOperation::CLEAR,
         StoreOperation::STORE
     });
+    attachmentImages.PushBack(RI.MakeImage(TextureDesc {
+        depthDesc.imageType,
+        depthDesc.format,
+        Vec3u(framebufferDesc.extent, 1),
+        TFM_NEAREST,
+        TFM_NEAREST,
+        TWM_CLAMP_TO_EDGE,
+        6,
+        IU_SAMPLED | IU_ATTACHMENT
+    }));
+
+    for (const GpuImageRef& image : attachmentImages)
+    {
+        CheckResult(image->Create());
+    }
 
     ShaderDesc shaderDesc;
 
@@ -315,29 +377,49 @@ void EnvProbe::CreateView()
 
     AssertDebug(shaderDesc.name.IsValid());
 
-    ViewDesc viewDesc {
-        .flags = (OnlyCollectStaticEntities() ? ViewFlags::COLLECT_STATIC_ENTITIES : ViewFlags::COLLECT_ALL_ENTITIES)
+    for (uint16 viewIndex = 0; viewIndex < 6; viewIndex++)
+    {
+        FramebufferRef viewFramebuffer = RI.MakeFramebuffer(framebufferDesc);
+        for (uint32 attachmentIndex = 0; attachmentIndex < uint32(attachmentDescs.Size()); attachmentIndex++)
+        {
+            const AttachmentDesc& attachmentDesc = attachmentDescs[attachmentIndex];
+            const GpuImageRef& image = attachmentImages[attachmentIndex];
+
+            GpuImageViewRef imageView = RI.MakeImageView(image, 0, 1, viewIndex, 1);
+            CheckResult(imageView->Create());
+
+            viewFramebuffer->AddAttachment(attachmentIndex, attachmentDesc, imageView);
+        }
+
+        CheckResult(viewFramebuffer->Create());
+
+        m_framebuffers[viewIndex] = std::move(viewFramebuffer);
+
+        ViewDesc viewDesc {};
+        viewDesc.flags = (OnlyCollectStaticEntities() ? ViewFlags::COLLECT_STATIC_ENTITIES : ViewFlags::COLLECT_ALL_ENTITIES)
             | ViewFlags::NO_FRUSTUM_CULLING
+            | ViewFlags::CUBEMAP_FACE_VIEW
             | ViewFlags::SKIP_ENV_PROBES
             | ViewFlags::SKIP_ENV_GRIDS
-            | ViewFlags::NO_PARALLEL_DRAW_CALL_COLLECTION,
-        .framebufferDesc = framebufferDesc,
-        .scenes = {},
-        .camera = m_camera,
-        .overrideAttributes = RenderableAttributeSet(
+            | ViewFlags::NO_PARALLEL_DRAW_CALL_COLLECTION
+            | ViewFlags::EXTERNAL_RENDERTARGET;
+        viewDesc.viewIndex = static_cast<uint8>(viewIndex);
+        viewDesc.camera = m_camera;
+        viewDesc.overrideAttributes = RenderableAttributeSet(
             MeshAttributes {},
             MaterialAttributes {
                 .shaderName = shaderDesc.name,
                 .shaderProperties = shaderDesc.properties,
                 .blendFunction = BlendFunction::AlphaBlending(),
                 .cullFaces = FCM_NONE
-            })
-    };
+            });
 
-    Handle<View> view = MakeHandle<View>(viewDesc);
-    view->SetName(NAME_FMT("EnvProbe_{}_View", GetName()));
-    InitObject(view);
-    m_view = view;
+        Handle<View> view = MakeHandle<View>(viewDesc);
+        view->SetName(NAME_FMT("EnvProbe_{}_View{}", GetName(), viewIndex));
+        InitObject(view);
+
+        m_views[viewIndex] = std::move(view);
+    }
 }
 
 void EnvProbe::SetOrigin(const Vec3f& origin)
@@ -377,7 +459,7 @@ void EnvProbe::Update(float delta)
 
     bool needsUpdate = false;
 
-    Array<ObjId<Scene>, SceneAllocator> cacheKeysToRemove;
+    Array<ObjId<Scene>, SceneTempAllocator> cacheKeysToRemove;
     cacheKeysToRemove.Reserve(m_cachedOctantHashCodes.Size());
 
     for (const KeyValuePair<ObjId<Scene>, HashCode>& kvp : m_cachedOctantHashCodes)
@@ -385,8 +467,35 @@ void EnvProbe::Update(float delta)
         cacheKeysToRemove.PushBack(kvp.first);
     }
 
-    for (Scene* scene : m_view->GetScenes())
+    TSet<Scene*, SceneTempAllocator> allScenes;
+    for (uint32 viewIndex = 0; viewIndex < 6; viewIndex++)
     {
+        // Update face view frustum.
+        View* view = m_views[viewIndex];
+        AssertDebug(view != nullptr);
+
+        const Pair<Vec3f, Vec3f>& dirPair = Texture::s_cubemapDirections[viewIndex];
+
+        const Vec3f& forwardDir = dirPair.first;
+        const Vec3f& upDir = dirPair.second;
+
+        const Mat4f viewMatrix = Mat4f::LookAt(worldAabb.GetCenter(), forwardDir, upDir);
+        const Mat4f viewProjectionMatrix = m_camera->GetProjectionMatrix() * viewMatrix;
+
+        Frustum frustum;
+        frustum.SetFromViewProjectionMatrix(viewProjectionMatrix);
+
+        view->SetSubFrustum(frustum);
+
+        for (Scene* scene : view->GetScenes())
+        {
+            allScenes.Add(scene);
+        }
+    }
+    
+    for (Scene* scene : allScenes)
+    {
+        // Check if the probe itself is in view.
         auto ApplyFrustumCheck = [&]()
         {
             // don't bother with the check for sky
@@ -486,14 +595,15 @@ void EnvProbe::Update(float delta)
         m_camera->Update(delta);
     }
 
-    AssertDebug(m_view != nullptr);
-
     World* world = GetWorld();
     AssertDebug(world != nullptr);
 
     if (world != nullptr)
     {
-        world->ProcessViewAsync(m_view);
+        for (View* view : m_views)
+        {
+            world->ProcessViewAsync(view);
+        }
     }
 }
 

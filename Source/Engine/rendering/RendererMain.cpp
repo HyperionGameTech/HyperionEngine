@@ -85,6 +85,14 @@ static const ShaderPropertyId s_propShadingTypeForward = InternShaderProperty(Sh
 
 static const ShaderPropertyId s_propForwardClustered = InternShaderProperty(ShaderProperty(NAME("FORWARD_CLUSTERED")));
 
+static HYP_FORCE_INLINE bool IsCubemapShader(StringHash shaderNameHash)
+{
+    static constexpr StringHash CubemapShaderNames[] = { "DrawCubemap"_sh, "RenderSky"_sh };
+
+    return shaderNameHash != CubemapShaderNames[0]
+        && shaderNameHash != CubemapShaderNames[1];
+}
+
 #pragma region ParallelRenderingState
 
 // Holds shared data for ParallelRenderingState instances to reduce memory usage
@@ -178,6 +186,8 @@ static const Name s_nameHasParallaxMap = NAME("HAS_PARALLAX_MAP");
 static const Name s_nameHasMetalnessMap = NAME("HAS_METALNESS_MAP");
 static const Name s_nameHasRoughnessMap = NAME("HAS_ROUGHNESS_MAP");
 
+static const Name s_nameMultiView = NAME("MULTI_VIEW");
+
 /// Property interning
 
 static const ShaderPropertyId s_propInstancing = InternShaderProperty(ShaderProperty(s_nameInstancing));
@@ -195,6 +205,8 @@ static const ShaderPropertyId s_propHasNormalMap = InternShaderProperty(ShaderPr
 static const ShaderPropertyId s_propHasParallaxMap = InternShaderProperty(ShaderProperty(s_nameHasParallaxMap));
 static const ShaderPropertyId s_propHasMetalnessMap = InternShaderProperty(ShaderProperty(s_nameHasMetalnessMap));
 static const ShaderPropertyId s_propHasRoughnessMap = InternShaderProperty(ShaderProperty(s_nameHasRoughnessMap));
+
+static const ShaderPropertyId s_propMultiView = InternShaderProperty(ShaderProperty(s_nameMultiView));
 
 static const Pair<MaterialTextureKey, ShaderPropertyId> s_textureProperties[] = {
     { MaterialTextureKey::Diffuse, InternShaderProperty(ShaderProperty(s_nameHasDiffuseMap)) },
@@ -257,6 +269,14 @@ static void BuildAttributes(const RenderProxyMesh& proxy, RenderableAttributeSet
 
     const bool isPathTracer = cvPathTracing.Get();
 
+    const bool isCubemap = IsCubemapShader(attributes.GetMaterialAttributes().shaderName);
+
+#if 0//def HYP_VULKAN
+    const bool isMultiView = isCubemap;
+#else
+    const bool isMultiView = false;
+#endif
+
     // if lightmap volume is set we need stencil testing
     if (hasLightmaps && !isPathTracer)
     {
@@ -286,6 +306,11 @@ static void BuildAttributes(const RenderProxyMesh& proxy, RenderableAttributeSet
     if (hasInstancing != currentShaderProperties.Test(Props::s_propInstancing))
     {
         newShaderProperties.Set(Props::s_propInstancing, hasInstancing);
+    }
+
+    if (isMultiView != currentShaderProperties.Test(Props::s_propMultiView))
+    {
+        newShaderProperties.Set(Props::s_propMultiView, isMultiView);
     }
 
     {
@@ -399,9 +424,9 @@ static bool ShouldIncludeInPrepass(
     float screenSpaceWidth = (ndcWidth * 0.5f) * viewport.extent.x;
     float screenSpaceHeight = (ndcHeight * 0.5f) * viewport.extent.y;
 
-    constexpr float PrepassPixelThreshold = 1.0f; 
+    constexpr float PrepassPixelThreshold = 1.0f;
 
-    return screenSpaceWidth >= PrepassPixelThreshold 
+    return screenSpaceWidth >= PrepassPixelThreshold
         && screenSpaceHeight >= PrepassPixelThreshold;
 }
 
@@ -818,13 +843,16 @@ static void RenderAll(Frame* frame, const TPerformRenderingPayload<TCommandRecor
     const DrawCallCollection& drawCallCollection = *payload.pNext->pDrawCallCollection;
 
     const DepthPrepass::Stage prepassStage = payload.pNext->prepassStage;
+    
+    Mat4f vpMatrix;
 
-    RenderProxyCamera* renderProxyCamera = nullptr;
+    RenderProxyCamera* cameraProxy = nullptr;
     if (renderSetup.view != nullptr)
     {
-        Camera* camera = renderSetup.view->GetCamera();
+        renderSetup.view->GetSubFrustum().StoreViewProjectionMatrix(vpMatrix);
 
-        renderProxyCamera = static_cast<RenderProxyCamera*>(GetRenderProxy(camera));
+        Camera* camera = renderSetup.view->GetCamera();
+        cameraProxy = static_cast<RenderProxyCamera*>(GetRenderProxy(camera));
     }
 
     if constexpr (UseIndirectRendering)
@@ -917,14 +945,14 @@ static void RenderAll(Frame* frame, const TPerformRenderingPayload<TCommandRecor
     {
         if (prepassStage == DepthPrepass::DPP_InPrepass)
         {
-            if (!renderProxyCamera)
+            if (!cameraProxy)
             {
                 return true; // skip draw
             }
 
             if (DepthPrepass::ShouldIncludeInPrepass(
                 renderSetup.viewport,
-                renderProxyCamera->bufferData.viewProjMat,
+                cameraProxy->bufferData.viewProjMat,
                 meshProxy))
             {
                 if (!isDepthWriteEnabled)
@@ -940,13 +968,13 @@ static void RenderAll(Frame* frame, const TPerformRenderingPayload<TCommandRecor
         }
         else if (prepassStage == DepthPrepass::DPP_InMainPass)
         {
-            if (renderProxyCamera)
+            if (cameraProxy)
             {
                 bool shouldEnableDepthWrite;
 
                 if (DepthPrepass::ShouldIncludeInPrepass(
                     renderSetup.viewport,
-                    renderProxyCamera->bufferData.viewProjMat,
+                    cameraProxy->bufferData.viewProjMat,
                     meshProxy))
                 {
                     // No depth write; depth would have been written by the prepass
@@ -988,7 +1016,9 @@ static void RenderAll(Frame* frame, const TPerformRenderingPayload<TCommandRecor
         { // Write constants for the draw
             CBufferAllocator& cba = *RI.cbufferAllocator;
             cba.Write(&meshProxy.bufferData);
+            cba.Write(&cameraProxy->bufferData);
             cba.Write(&materialProxy->bufferData);
+            cba.Write(&vpMatrix);
             cba.Commit(cbuffer, cbufferOffset, cbufferSize);
         }
         cr << SetShaderUniform(cbufferBinding, "CBuffer"_sh, cbuffer, ShaderDataOffset(cbufferOffset, cbufferSize));
@@ -1069,7 +1099,9 @@ static void RenderAll(Frame* frame, const TPerformRenderingPayload<TCommandRecor
         { // Write constants for the draw
             CBufferAllocator& cba = *RI.cbufferAllocator;
             cba.Write(&meshProxy.bufferData);
+            cba.Write(&cameraProxy->bufferData);
             cba.Write(&materialProxy->bufferData);
+            cba.Write(&vpMatrix);
             cba.Commit(cbuffer, cbufferOffset, cbufferSize);
         }
         cr << SetShaderUniform(cbufferBinding, "CBuffer"_sh, cbuffer, ShaderDataOffset(cbufferOffset, cbufferSize));

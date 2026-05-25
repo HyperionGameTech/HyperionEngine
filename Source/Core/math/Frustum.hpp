@@ -74,6 +74,8 @@ struct HYP_API Frustum
     bool ContainsPoint(const Vec3f& point) const;
 
     Frustum& SetFromViewProjectionMatrix(const Mat4f& viewProj);
+    void StoreViewProjectionMatrix(Mat4f& outVP) const;
+
     Vec3f GetIntersectionPoint(uint32 planeIndex0, uint32 planeIndex1, uint32 planeIndex2) const;
 };
 

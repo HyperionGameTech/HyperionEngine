@@ -326,13 +326,17 @@ void View::UpdateVisibility()
     AssertOnThread(g_simThread | g_visThread);
     AssertReady();
 
-    if (m_camera.IsValid())
+    // Cubemap face views do not automatically update the sub-frustum
+    if (!(m_flags & ViewFlags::CUBEMAP_FACE_VIEW))
     {
-        m_subFrustum = m_camera->GetFrustum();
-    }
-    else
-    {
-        m_subFrustum = Frustum {};
+        if (m_camera.IsValid())
+        {
+            m_subFrustum = m_camera->GetFrustum();
+        }
+        else
+        {
+            m_subFrustum = Frustum {};
+        }
     }
 
     for (Scene* scene : m_scenes)

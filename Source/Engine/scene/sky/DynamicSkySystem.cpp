@@ -138,7 +138,10 @@ void DynamicSkySystem::InitializeSky()
 
         m_envProbe->SetReceivesUpdate(false); // we will update manually, no automatic updates
 
-        m_envProbe->GetView()->AddScene(m_renderScene);
+        for (uint32 viewIndex = 0; viewIndex < 6; viewIndex++)
+        {
+            m_envProbe->GetView(viewIndex)->AddScene(m_renderScene);
+        }
 
         Handle<MaterialDefinition> skyboxMaterialDefinition = MakeHandle<MaterialDefinition>(NAME("SkyboxMaterial"), materialAttributes);
         skyboxMaterialDefinition->SetIsTransient(true);

@@ -29,9 +29,6 @@ struct VSOutput
     nointerpolation uint object_mask : TEXCOORD7;
 };
 
-DECLARE_SRV_DYNAMIC(Default, CamerasBuffer) StructuredBuffer<Camera> _cameras_buffer;
-#define camera _cameras_buffer[0]
-
 #include "include/Entity.hlsli"
 
 #ifdef INSTANCING
@@ -51,6 +48,7 @@ DECLARE_BUFFER_DYNAMIC(Default, CBuffer) cbuffer CBuffer
 #else // INSTANCING
     Entity dummyEntity;
 #endif // !INSTANCING
+    Camera camera;
     Material material;
 };
 

@@ -2,11 +2,14 @@
 #include "include/Shared.hlsli"
 #include "include/Scene.hlsli"
 
+STATIC(VIEW_COUNT, 6)
+
 PERMUTE(MODE_SHADOWS)
 PERMUTE(WRITE_NORMALS)
 PERMUTE(WRITE_MOMENTS)
 PERMUTE(INSTANCING)
 PERMUTE(SKINNING)
+PERMUTE(MULTI_VIEW)
 
 #ifdef VERTEX_SHADER
 
@@ -28,23 +31,26 @@ struct VSOutput
     float2 texcoord0 : TEXCOORD0;
     nointerpolation float3 camera_position : TEXCOORD3;
     nointerpolation uint object_index : TEXCOORD6;
-    nointerpolation uint cube_face_index : TEXCOORD7;
 };
-
-DECLARE_SRV_DYNAMIC(Default, CamerasBuffer) StructuredBuffer<Camera> _cameras_buffer;
-#define camera _cameras_buffer[0]
 
 #include "include/Entity.hlsli"
 
 #ifdef INSTANCING
 DECLARE_SRV(Default, EntitiesBuffer) StructuredBuffer<Entity> entities;
 DECLARE_SRV_DYNAMIC(Default, EntityInstanceBatchesBuffer) ByteAddressBuffer EntityInstanceBatchBuffer;
-#else // !INSTANCING
+#endif // INSTANCING
 DECLARE_BUFFER_DYNAMIC(Default, CBuffer) cbuffer CBuffer
 {
+#ifndef INSTANCING
     Entity entity;
+#else // INSTANCING
+    Entity dummyEntity;
+#endif // !INSTANCING
+    Camera camera;
+    Material material;
+    float4x4 vpMatrix;
 };
-#endif // INSTANCING
+
 
 #ifdef SKINNING
 DECLARE_SRV_DYNAMIC(Default, SkeletonsBuffer) StructuredBuffer<float4x4> SkeletonsBuffer;
@@ -65,7 +71,11 @@ float4x4 LookAt(float3 pos, float3 target, float3 up)
     );
 }
 
+#ifdef MULTI_VIEW
 VSOutput VSMain(VSInput input, uint ViewId : SV_ViewID, uint instanceId : SV_InstanceID)
+#else
+VSOutput VSMain(VSInput input, uint instanceId : SV_InstanceID)
+#endif
 {
     VSOutput output;
 
@@ -95,24 +105,26 @@ VSOutput VSMain(VSInput input, uint ViewId : SV_ViewID, uint instanceId : SV_Ins
     output.position = position.xyz / position.w;
     output.normal = mul(normal_matrix, input.a_normal);
     output.texcoord0 = float2(input.a_texcoord0.x, 1.0 - input.a_texcoord0.y);
+    output.camera_position = camera.position.xyz;
 
+    float4x4 projection_matrix = camera.projection;
+    float4x4 view_matrix;
+
+#ifdef MULTI_VIEW
     const float3 forward_direction = g_cubemapDirections[ViewId * 2];
     const float3 up_direction = g_cubemapDirections[ViewId * 2 + 1];
 
-    float4x4 projection_matrix = camera.projection;
-
-    float4x4 view_matrix;
-
-    output.camera_position = camera.position.xyz;
     view_matrix = LookAt(output.camera_position, output.camera_position + forward_direction, up_direction);
+    vpMatrix = mul(projection_matrix, view_matrix);
+#else
+    view_matrix = camera.view;
+#endif
 
 #ifdef INSTANCING
     output.object_index = OBJECT_INDEX;
 #endif
 
-    output.position_cs = mul(projection_matrix, mul(view_matrix, position));
-
-    output.cube_face_index = ViewId;
+    output.position_cs = mul(vpMatrix, position);
 
     return output;
 }
@@ -129,7 +141,6 @@ struct PSInput
     float2 texcoord0 : TEXCOORD0;
     nointerpolation float3 camera_position : TEXCOORD3;
     nointerpolation uint object_index : TEXCOORD6;
-    nointerpolation uint cube_face_index : TEXCOORD7;
 };
 
 struct PSOutput
@@ -180,6 +191,7 @@ DECLARE_BUFFER_DYNAMIC(Default, CBuffer) cbuffer CBuffer
 #else // INSTANCING
     Entity dummyEntity;
 #endif // INSTANCING
+    Camera camera;
     Material material;
 };
 

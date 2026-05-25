@@ -50,11 +50,19 @@ DECLARE_SAMPLER(Default, SamplerNearest) SamplerState sampler_nearest;
 #include "include/Gbuffer.hlsli"
 #include "include/Entity.hlsli"
 
-DECLARE_SRV_DYNAMIC(Default, CamerasBuffer) StructuredBuffer<Camera> _cameras_buffer;
-#define camera _cameras_buffer[0]
-
 DECLARE_SRV(Default, WorldsBuffer) StructuredBuffer<WorldShaderData> _worlds_buffer;
 #define world_shader_data _worlds_buffer[0]
+
+DECLARE_BUFFER_DYNAMIC(Default, CBuffer) cbuffer CBuffer
+{
+#ifndef INSTANCING
+    Entity entity;
+#else // INSTANCING
+    Entity dummyEntity;
+#endif // !INSTANCING
+    Camera camera;
+    Material material;
+};
 
 #ifdef SHADING_TYPE_FORWARD
 
@@ -85,23 +93,13 @@ DECLARE_SRV(Default, ClusterIndexBuffer) ByteAddressBuffer ClusterIndexBuffer;
 #include "include/Shadows.hlsli"
 #endif // SHADING_TYPE_FORWARD
 
-DECLARE_BUFFER_DYNAMIC(Default, CBuffer) cbuffer CBuffer
-{
-#ifndef INSTANCING
-    Entity entity;
-#else // INSTANCING
-    Entity dummyEntity;
-#endif // !INSTANCING
-    Material material;
-};
-
 #ifndef CURRENT_MATERIAL
 #define CURRENT_MATERIAL material
 #endif // CURRENT_MATERIAL
 
 #include "include/Parallax.hlsli"
 
-// #define DEBUG_RAW_REFLECTIONS
+#define DEBUG_RAW_REFLECTIONS
 
 PSOutput PSMain(PSInput input)
 {

@@ -167,6 +167,23 @@ Frustum& Frustum::SetFromViewProjectionMatrix(const Mat4f& viewProj)
     return *this;
 }
 
+void Frustum::StoreViewProjectionMatrix(Mat4f& outVP) const
+{
+    const Vec4f& left = planes[0];
+    const Vec4f& right = planes[1];
+    const Vec4f& bottom = planes[2];
+    const Vec4f& top = planes[3];
+    const Vec4f& nearP = planes[4];
+
+    Vec4f rows[4];
+    rows[0] = (left - right) * 0.5f;
+    rows[1] = (bottom - top) * 0.5f;
+    rows[2] = nearP;
+    rows[3] = (left + right) * 0.5f;
+
+    Memory::Copy(outVP.rows, rows, sizeof(rows));
+}
+
 Vec3f Frustum::GetIntersectionPoint(uint32 planeIndex0, uint32 planeIndex1, uint32 planeIndex2) const
 {
     const Vec4f planes[3] = { GetPlane(planeIndex0), GetPlane(planeIndex1), GetPlane(planeIndex2) };
