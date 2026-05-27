@@ -4,6 +4,7 @@
  *  @licence MIT
 */
 
+#include "vulkan/vulkan_core.h"
 #include <VulkanPch.hpp>
 
 #include <rendering/vulkan/VulkanGpuImageView.hpp>
@@ -44,10 +45,10 @@ VulkanGpuImageView::VulkanGpuImageView(
 VulkanGpuImageView::VulkanGpuImageView(
     const VulkanGpuImageRef& image,
     const ImageSubResource& subResource,
-    VkImageViewType viewType)
+    TextureType viewType)
     : GpuImageViewBase(image, subResource),
       m_handle(VK_NULL_HANDLE),
-      m_viewType(viewType)
+      m_viewType(ToVkImageViewType(viewType))
 {
 }
 
@@ -103,6 +104,14 @@ RendererResult VulkanGpuImageView::Create()
             && m_subResource.numLayers == 1)
         {
             m_viewType = VK_IMAGE_VIEW_TYPE_2D;
+        }
+    }
+
+    if (m_viewType == VK_IMAGE_VIEW_TYPE_CUBE || m_viewType == VK_IMAGE_VIEW_TYPE_CUBE_ARRAY)
+    {
+        if (m_subResource.numLayers != UINT16_MAX)
+        {
+            AssertDebug(m_subResource.numLayers % 6 == 0, "Must have a layer count with a multiple of 6 for cubemap image views");
         }
     }
 

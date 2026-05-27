@@ -731,7 +731,7 @@ void ReflectionProbePass::RenderProbe(Frame* frame, const RenderSetup& renderSet
             && !rpl.GetMeshEntities().GetDiff().NeedsUpdate()
             && !rpl.GetLights().GetDiff().NeedsUpdate())
         {
-            //return;
+            return;
         }
 
         RenderProbeView(frame, rs, envProbe);

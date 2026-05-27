@@ -235,7 +235,7 @@ void EnvProbe::OnAddedToScene(Scene* scene)
 void EnvProbe::OnRemovedFromScene(Scene* scene)
 {
     Entity::OnRemovedFromScene(scene);
-    
+
     for (View* view : m_views)
     {
         if (view)
@@ -265,7 +265,7 @@ void EnvProbe::CreateViews()
 
     Array<AttachmentDesc> attachmentDescs;
     Array<GpuImageRef> attachmentImages;
-    
+
     FramebufferDesc framebufferDesc {};
     framebufferDesc.extent = Vec2u(m_dimensions);
     framebufferDesc.numAttachments = 0;
@@ -385,7 +385,8 @@ void EnvProbe::CreateViews()
             const AttachmentDesc& attachmentDesc = attachmentDescs[attachmentIndex];
             const GpuImageRef& image = attachmentImages[attachmentIndex];
 
-            GpuImageViewRef imageView = RI.MakeImageView(image, 0, 1, viewIndex, 1);
+            // Create 2D view to the cubemap face
+            GpuImageViewRef imageView = RI.MakeImageView(image, 0, 1, viewIndex, 1, TextureType::Texture2D);
             CheckResult(imageView->Create());
 
             viewFramebuffer->AddAttachment(attachmentIndex, attachmentDesc, imageView);
@@ -492,7 +493,7 @@ void EnvProbe::Update(float delta)
             allScenes.Add(scene);
         }
     }
-    
+
     for (Scene* scene : allScenes)
     {
         // Check if the probe itself is in view.
@@ -589,7 +590,7 @@ void EnvProbe::Update(float delta)
         return;
 
     AssertDebug(m_camera != nullptr);
-    
+
     if (m_camera != nullptr)
     {
         m_camera->Update(delta);

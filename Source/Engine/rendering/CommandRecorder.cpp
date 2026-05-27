@@ -177,7 +177,7 @@ void Blit::InvokeStatic(CmdBase* cmd, CommandBuffer* commandBuffer)
         srcRect = Rect<uint32> { 0, 0, srcExtent.x, srcExtent.y };
         dstRect = Rect<uint32> { 0, 0, dstExtent.x, dstExtent.y };
     }
-    
+
     const TextureDesc& srcDesc = src->GetTextureDesc();
     const TextureDesc& dstDesc = dst->GetTextureDesc();
 
@@ -196,6 +196,9 @@ void Blit::InvokeStatic(CmdBase* cmd, CommandBuffer* commandBuffer)
     }
 
 #ifdef HYP_VULKAN
+    src->GetGpuImage()->InsertBarrier(commandBuffer, srcSubResource, RS_COPY_SRC, ShaderModuleType::None);
+    dst->GetGpuImage()->InsertBarrier(commandBuffer, dstSubResource, RS_COPY_DST, ShaderModuleType::None);
+
     dst->GetGpuImage()->Blit(commandBuffer, src->GetGpuImage(), srcRect, dstRect, srcSubResource, dstSubResource);
 #else
     if (!RI.IsSupportedFormat(dstDesc.format, ImageSupport::UnorderedAccess))
@@ -224,21 +227,11 @@ void Blit::InvokeStatic(CmdBase* cmd, CommandBuffer* commandBuffer)
     const uint8 numLevelsToCopy = MathUtil::Min(srcNumLevels, dstNumLevels);
     const uint16 numLayersToCopy = MathUtil::Min(srcNumLayers, dstNumLayers);
 
-    /* Set the shader */
     RenderInterface::State& state = RI.state;
     state.attributes.SetShaderName(NAME("GenerateMipmap"));
     state.attributes.SetShaderProperties(ShaderPropertySet {});
 
-    /* Get a linear sampler */
-    Sampler* linearSampler = RI.samplerCache->GetOrCreate(
-        SamplerDesc { TFM_LINEAR, TFM_LINEAR, TWM_REPEAT });
-
-    if (!linearSampler)
-    {
-        HYP_LOG(RenderingBackend, Error, "Blit: Failed to get linear sampler");
-
-        return;
-    }
+    Sampler* linearSampler = RI.samplerCache->GetOrCreate(SamplerDesc { TFM_LINEAR, TFM_LINEAR, TWM_REPEAT });
 
     struct BlitUniforms
     {
@@ -286,8 +279,8 @@ void Blit::InvokeStatic(CmdBase* cmd, CommandBuffer* commandBuffer)
             };
 
             /* Create image views for source (SRV) and scratch destination (UAV) */
-            const GpuImageViewRef& inputView = RI.textureViewCache->GetOrCreate(src, srcViewSubResource);
-            const GpuImageViewRef& outputView = RI.textureViewCache->GetOrCreate(tempImage, dstViewSubResource);
+            const GpuImageViewRef& inputView = RI.textureViewCache->GetOrCreate(src, srcViewSubResource, TextureType::Texture2D);
+            const GpuImageViewRef& outputView = RI.textureViewCache->GetOrCreate(tempImage, dstViewSubResource, TextureType::Texture2D);
 
             /* Barrier source to shader resource, scratch to unordered access */
             src->GetGpuImage()->InsertBarrier(

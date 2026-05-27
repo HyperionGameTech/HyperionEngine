@@ -36,7 +36,7 @@
       "AO": false
     },
     "Vulkan": {
-      "DebugLayers": false,
+      "DebugLayers": true,
       "TimelineSemaphores": true,
       "FIFO": true
     }
