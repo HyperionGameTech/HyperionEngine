@@ -292,7 +292,7 @@ void EnvProbe::CreateViews()
             TFM_NEAREST,
             TFM_NEAREST,
             TWM_CLAMP_TO_EDGE,
-            6,
+            1,
             IU_SAMPLED | IU_ATTACHMENT
         }));
 
@@ -310,7 +310,7 @@ void EnvProbe::CreateViews()
             TFM_NEAREST,
             TFM_NEAREST,
             TWM_CLAMP_TO_EDGE,
-            6,
+            1,
             IU_SAMPLED | IU_ATTACHMENT
         }));
 
@@ -333,7 +333,7 @@ void EnvProbe::CreateViews()
             TFM_NEAREST,
             TFM_NEAREST,
             TWM_CLAMP_TO_EDGE,
-            6,
+            1,
             IU_SAMPLED | IU_ATTACHMENT
         }));
     }
@@ -352,7 +352,7 @@ void EnvProbe::CreateViews()
         TFM_NEAREST,
         TFM_NEAREST,
         TWM_CLAMP_TO_EDGE,
-        6,
+        1,
         IU_SAMPLED | IU_ATTACHMENT
     }));
 

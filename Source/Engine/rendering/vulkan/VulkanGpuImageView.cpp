@@ -111,7 +111,18 @@ RendererResult VulkanGpuImageView::Create()
     {
         if (m_subResource.numLayers != UINT16_MAX)
         {
-            AssertDebug(m_subResource.numLayers % 6 == 0, "Must have a layer count with a multiple of 6 for cubemap image views");
+            if (m_viewType == VK_IMAGE_VIEW_TYPE_CUBE)
+            {
+                AssertDebug(m_subResource.numLayers == 6,
+                    "Must have a layer count of 6 for cubemap image views, got: {}",
+                    m_subResource.numLayers);
+            }
+            else
+            {
+                AssertDebug(m_subResource.numLayers % 6 == 0,
+                    "Must have a layer count with a multiple of 6 for cubemap array image views, got: {}",
+                    m_subResource.numLayers);
+            }
         }
     }
 
