@@ -77,7 +77,7 @@
 
 #include <system/AppContext.hpp>
 
-#include <util/MeshBuilder.hpp>
+#include <rendering/util/MeshBuilder.hpp>
 
 #include <engine/EngineDriver.hpp>
 #include <engine/EngineStats.hpp>

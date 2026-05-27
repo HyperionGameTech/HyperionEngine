@@ -20,6 +20,8 @@
 
 #include <Core/threading/SharedMutex.hpp>
 
+#include <rendering/RenderMemory.hpp>
+
 namespace Hyperion {
 
 class DX12TextureViewCache final : public TextureViewCacheBase

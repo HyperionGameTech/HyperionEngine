@@ -37,7 +37,7 @@
 
 #include <scene/camera/Camera.hpp>
 
-#include <util/MeshBuilder.hpp>
+#include <rendering/util/MeshBuilder.hpp>
 #include <util/NoiseFactory.hpp>
 
 #include <Core/math/MathUtil.hpp>

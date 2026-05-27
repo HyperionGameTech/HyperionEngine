@@ -79,7 +79,7 @@
 #include <rendering/MaterialDefinition.hpp>
 #include <rendering/MaterialInstance.hpp>
 
-#include <util/MeshBuilder.hpp>
+#include <rendering/util/MeshBuilder.hpp>
 
 #include <engine/EngineGlobals.hpp>
 #include <rendering/Texture.hpp>
@@ -2571,7 +2571,7 @@ void EditorSubsystem::InitViewport()
                             Handle<Node> nodeStrong = MakeStrongRef(hit.node);
 
                             bool shouldMutateSelection = false;
-                            
+
                             InputManager* inputManager = g_appContext->GetMainWindow()->GetInputManager();
 
                             // If 'ctrl' key is down, add/remove from current selection.

@@ -71,7 +71,7 @@
 
 #include <streaming/StreamingManager.hpp>
 
-#include <util/MeshBuilder.hpp>
+#include <rendering/util/MeshBuilder.hpp>
 
 #include <input/Event.hpp>
 

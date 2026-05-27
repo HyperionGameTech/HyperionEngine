@@ -28,7 +28,7 @@
 
 #include <engine/EngineDriver.hpp>
 #include <engine/EngineGlobals.hpp>
-
+#include <engine/EngineMemory.hpp>
 #include <engine/threads/SimThread.hpp>
 
 #include <StreamingManager.generated.inl>

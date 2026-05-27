@@ -14,7 +14,7 @@
 
 #include <asset/Assets.hpp>
 
-#include <util/MeshBuilder.hpp>
+#include <rendering/util/MeshBuilder.hpp>
 
 #include <scene/World.hpp>
 #include <scene/EntityManager.hpp>

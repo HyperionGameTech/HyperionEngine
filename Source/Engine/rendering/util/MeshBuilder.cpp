@@ -6,7 +6,7 @@
 
 #include <HyperionPch.hpp>
 
-#include <util/MeshBuilder.hpp>
+#include <rendering/util/MeshBuilder.hpp>
 
 #include <Core/math/Triangle.hpp>
 #include <Core/math/MathUtil.hpp>

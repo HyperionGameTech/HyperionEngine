@@ -59,7 +59,7 @@
 
 #include <Core/math/Triangle.hpp>
 
-#include <util/MeshBuilder.hpp>
+#include <rendering/util/MeshBuilder.hpp>
 
 #include <system/AppContext.hpp>
 #include <system/MessageBox.hpp>

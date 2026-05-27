@@ -27,7 +27,7 @@
 
 #include <rendering/util/DeletionQueue.hpp>
 
-#include <util/MeshBuilder.hpp>
+#include <rendering/util/MeshBuilder.hpp>
 
 #include <scene/View.hpp>
 #include <scene/Sprite.hpp>

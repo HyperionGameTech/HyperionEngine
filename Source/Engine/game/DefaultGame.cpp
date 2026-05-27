@@ -42,7 +42,7 @@
 
 #include <Core/config/Config.hpp>
 
-#include <util/MeshBuilder.hpp>
+#include <rendering/util/MeshBuilder.hpp>
 
 #include <input/InputManager.hpp>
 #include <input/Mouse.hpp>

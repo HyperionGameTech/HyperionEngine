@@ -13,7 +13,7 @@
 
 #include <asset/AssetRegistry.hpp>
 
-#include <util/MeshBuilder.hpp>
+#include <rendering/util/MeshBuilder.hpp>
 
 #include <Core/math/MathUtil.hpp>
 

@@ -43,6 +43,8 @@ struct ImmediateDrawShaderData;
 
 static constexpr int MaxDebugDrawShapeTypes = 8;
 
+RENDERING_API extern uint32 GetRingIndex();
+
 HYP_STRUCT(ConfigName = "EngineConfig", JsonPath = "Rendering.Debug.DebugDrawer")
 struct DebugDrawerConfig : public Config<DebugDrawerConfig>
 {

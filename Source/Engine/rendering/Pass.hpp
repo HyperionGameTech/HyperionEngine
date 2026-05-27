@@ -43,14 +43,6 @@ class TaskBatch;
 
 using threading::TaskBatch;
 
-namespace memory {
-class Pool;
-} // namespace memory
-
-using memory::Pool;
-
-HYP_API extern Pool* g_renderPool;
-
 /*! \brief Describes the setup for rendering a frame.  */
 struct RenderSetup
 {

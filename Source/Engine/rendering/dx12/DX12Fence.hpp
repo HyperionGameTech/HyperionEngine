@@ -8,6 +8,7 @@
 
 #include <rendering/RenderTypes.hpp>
 #include <rendering/RenderResult.hpp>
+#include <rendering/RenderMemory.hpp>
 
 #include <rendering/dx12/DX12Shared.hpp>
 

@@ -18,7 +18,7 @@
 
 #include <scene/components/MeshComponent.hpp>
 
-#include <util/MeshBuilder.hpp>
+#include <rendering/util/MeshBuilder.hpp>
 
 #include <Core/math/Quat4f.hpp>
 #include <Core/math/Transform.hpp>

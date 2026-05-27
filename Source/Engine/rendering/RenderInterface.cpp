@@ -574,10 +574,15 @@ RenderInterface::RenderInterface()
       crashHandler(nullptr),
       m_gpuTimerBackend(nullptr)
 {
+    Assert(g_renderPool == nullptr);
+
+    g_renderPool = new Pool(RenderPoolBlockSize);
 }
 
 RenderInterface::~RenderInterface()
 {
+    delete g_renderPool;
+    g_renderPool = nullptr;
 }
 
 RendererResult RenderInterface::Initialize()

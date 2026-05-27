@@ -43,7 +43,7 @@
 #include <asset/Assets.hpp>
 #include <asset/AssetRegistry.hpp>
 
-#include <util/MeshBuilder.hpp>
+#include <rendering/util/MeshBuilder.hpp>
 
 #include <Core/memory/resource/Resource.hpp>
 

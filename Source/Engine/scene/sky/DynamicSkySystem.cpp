@@ -32,7 +32,7 @@
 
 #include <engine/EngineGlobals.hpp>
 
-#include <util/MeshBuilder.hpp>
+#include <rendering/util/MeshBuilder.hpp>
 
 #include <DynamicSkySystem.generated.inl>
 

@@ -34,7 +34,7 @@
 
 #include <system/AppContext.hpp>
 
-#include <util/MeshBuilder.hpp>
+#include <rendering/util/MeshBuilder.hpp>
 
 #include <engine/EngineDriver.hpp>
 
@@ -448,7 +448,7 @@ void UIText::UpdateMeshData_Internal()
     instanceProperties.Resize(instanceTransforms.Size());
 
     meshComponent.numInstances = uint32(instanceTransforms.Size());
-    
+
     Handle<InstancedMeshData> instancedMesh = DynamicCast<InstancedMeshData>(meshComponent.instanceData.Resolve());
 
     if (!instancedMesh)

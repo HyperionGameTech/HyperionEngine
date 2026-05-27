@@ -642,9 +642,6 @@ extern "C"
         delete g_assetPool;
         g_assetPool = nullptr;
 
-        delete g_renderPool;
-        g_renderPool = nullptr;
-
         delete g_objectPool;
         g_objectPool = nullptr;
 
