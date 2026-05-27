@@ -75,12 +75,32 @@ public:
     {
         ID3D12Device* device = renderInterface->GetDevice();
 
-        // Resource Binding Tier 3 = unbounded descriptor tables (full bindless support)
         D3D12_FEATURE_DATA_D3D12_OPTIONS options {};
         HRESULT hr = device->CheckFeatureSupport(D3D12_FEATURE_D3D12_OPTIONS, &options, sizeof(options));
+
         if (SUCCEEDED(hr))
         {
-            //bindlessTextures = (options.ResourceBindingTier >= D3D12_RESOURCE_BINDING_TIER_3);
+            // We only use bindless for SRVs (textures, buffers) -- we currently aren't using bindless for UAVs or CBVs.
+            // Tier 2 resource binding support provides full heap access for SRVs.
+            bindlessTextures = (options.ResourceBindingTier >= D3D12_RESOURCE_BINDING_TIER_2);
+        }
+    }
+
+    void InitializeRayTracing(DX12RenderInterface* renderInterface)
+    {
+        ID3D12Device* device = renderInterface->GetDevice();
+
+        D3D12_FEATURE_DATA_D3D12_OPTIONS5 options5 {};
+        HRESULT hr = device->CheckFeatureSupport(D3D12_FEATURE_D3D12_OPTIONS5, &options5, sizeof(options5));
+
+        if (SUCCEEDED(hr))
+        {
+            rayTracing = (options5.RaytracingTier != D3D12_RAYTRACING_TIER_NOT_SUPPORTED);
+        }
+
+        if (rayTracing)
+        {
+            HYP_LOG(RenderingBackend, Info, "Ray tracing is supported (tier {})", int(options5.RaytracingTier));
         }
     }
 };
@@ -292,6 +312,7 @@ RendererResult DX12RenderInterface::Initialize()
 
     // Initialize render config features based on device capabilities
     static_cast<DX12RenderConfig*>(m_renderConfig.Get())->InitializeBindless(this);
+    static_cast<DX12RenderConfig*>(m_renderConfig.Get())->InitializeRayTracing(this);
 
     static_assert(sizeof(decltype(m_queueData)) / sizeof(decltype(m_queueData[0])) > D3D12_COMMAND_LIST_TYPE_COPY,
         "m_queueData is too small; must have size increased.");

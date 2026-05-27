@@ -124,8 +124,9 @@ void DDGI::CreateConstantBuffers()
 void DDGI::CreateStorageBuffers()
 {
     const Vec3u probeCounts = NumProbesPerDimension(m_gridInfo);
+    const Vec2u imageDimensions = GetImageDimensions(m_gridInfo);
 
-    m_radianceBuffer = RI.MakeGpuBuffer(GpuBufferType::RWStructuredBuffer, GetImageDimensions(m_gridInfo).x * GetImageDimensions(m_gridInfo).y * sizeof(ProbeRayData));
+    m_radianceBuffer = RI.MakeGpuBuffer(GpuBufferType::RWStructuredBuffer, imageDimensions.x * imageDimensions.y * sizeof(ProbeRayData));
     m_radianceBuffer->SetIsCpuAccessible(true);
     Assert(m_radianceBuffer->Create());
     m_radianceBuffer->Memset(m_radianceBuffer->Size(), 0);

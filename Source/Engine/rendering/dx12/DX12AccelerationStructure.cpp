@@ -425,10 +425,12 @@ RendererResult DX12GpuTlas::Rebuild(RTUpdateStateFlags& outUpdateStateFlags)
     if (!m_instancesBuffer || m_instancesBuffer->Size() < instancesBufferSize)
     {
         m_instancesBuffer = RI.MakeGpuBuffer(GpuBufferType::AccelerationStructureInstanceBuffer, instancesBufferSize);
+        m_instancesBuffer->SetIsCpuAccessible(true);
         CheckResultOrReturn(m_instancesBuffer->Create());
     }
 
     D3D12_RAYTRACING_INSTANCE_DESC* instanceDescs = static_cast<D3D12_RAYTRACING_INSTANCE_DESC*>(m_instancesBuffer->Map());
+    Assert(instanceDescs != nullptr);
 
     for (size_t i = 0; i < m_blases.Size(); i++)
     {
