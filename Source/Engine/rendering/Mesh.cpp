@@ -372,7 +372,6 @@ void Mesh::UploadGpuData()
     stagingBuffer->Flush(0, bufferSizeCombined);
 
     CommandRecorder& cr = RI.commandRecorderAllocator.GetCommandRecorder();
-    HYP_DEFER({ cr.Submit(); });
 
     cr << InsertBarrier(stagingBuffer, RS_COPY_SRC);
 
@@ -400,6 +399,8 @@ void Mesh::UploadGpuData()
     m_indexBuffer = std::move(indexBuffer);
 
     isUploaded.Store(true);
+
+    cr.Submit();
 }
 
 void Mesh::ReleaseGpuData()

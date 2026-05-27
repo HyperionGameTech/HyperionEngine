@@ -143,15 +143,23 @@ RendererResult DX12GpuImage::Create(ResourceState initialState)
 
     if (isDepthStencil)
     {
+        // D3D12 does not permit combining ALLOW_DEPTH_STENCIL with ALLOW_UNORDERED_ACCESS.
         resourceDesc.Flags |= D3D12_RESOURCE_FLAG_ALLOW_DEPTH_STENCIL;
     }
-    else if (isAttachmentTexture)
+    else
     {
-        resourceDesc.Flags |= D3D12_RESOURCE_FLAG_ALLOW_RENDER_TARGET;
-    }
-    else if (isRWTexture)
-    {
-        resourceDesc.Flags |= D3D12_RESOURCE_FLAG_ALLOW_UNORDERED_ACCESS;
+        // ALLOW_RENDER_TARGET and ALLOW_UNORDERED_ACCESS can coexist on the same resource,
+        // so evaluate them independently to support textures that serve as both an
+        // attachment and a storage (UAV) image.
+        if (isAttachmentTexture)
+        {
+            resourceDesc.Flags |= D3D12_RESOURCE_FLAG_ALLOW_RENDER_TARGET;
+        }
+
+        if (isRWTexture)
+        {
+            resourceDesc.Flags |= D3D12_RESOURCE_FLAG_ALLOW_UNORDERED_ACCESS;
+        }
     }
 
     if (m_textureDesc.IsTexture2DArray()

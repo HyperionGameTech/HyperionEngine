@@ -124,7 +124,7 @@ RendererResult DX12GpuBuffer::Create()
     D3D12_RESOURCE_FLAGS flags = D3D12_RESOURCE_FLAG_NONE;
 
     // Buffers on UPLOAD or READBACK heaps cannot have ALLOW_UNORDERED_ACCESS or ALLOW_RENDER_TARGET flags
-    const bool canHaveUAV = (heapType != D3D12_HEAP_TYPE_UPLOAD && heapType != D3D12_HEAP_TYPE_READBACK);
+    const bool canHazUAV = (heapType != D3D12_HEAP_TYPE_UPLOAD && heapType != D3D12_HEAP_TYPE_READBACK);
 
     switch (m_type)
     {
@@ -133,7 +133,7 @@ RendererResult DX12GpuBuffer::Create()
         case GpuBufferType::ScratchBuffer:                 // fallthrough
         case GpuBufferType::AccelerationStructureBuffer:   // fallthrough
         case GpuBufferType::IndirectArgsBuffer:
-            if (canHaveUAV)
+            if (canHazUAV)
             {
                 flags |= D3D12_RESOURCE_FLAG_ALLOW_UNORDERED_ACCESS;
             }
@@ -163,7 +163,7 @@ RendererResult DX12GpuBuffer::Create()
 
     D3D12_RESOURCE_DESC bufferDesc {};
     bufferDesc.Dimension = D3D12_RESOURCE_DIMENSION_BUFFER;
-    bufferDesc.Alignment = 0;
+    bufferDesc.Alignment = (m_alignment > 0) ? D3D12_DEFAULT_RESOURCE_PLACEMENT_ALIGNMENT : 0;
     bufferDesc.Width = finalSize;
     bufferDesc.Height = 1;
     bufferDesc.DepthOrArraySize = 1;
@@ -220,6 +220,17 @@ void DX12GpuBuffer::InsertBarrier(DX12CommandBuffer* commandBuffer, ResourceStat
     if (!IsCreated())
     {
         HYP_LOG(RenderingBackend, Warning, "Attempt to insert a resource barrier but buffer was not created");
+        return;
+    }
+
+    // Resources on UPLOAD/READBACK heaps are implicitly pinned to GENERIC_READ /
+    // COPY_DEST respectively and must not be transitioned.  Only update the
+    // logical state tracker so that downstream code that reads m_resourceState
+    // stays consistent, but do not emit a D3D12 barrier.
+    const D3D12_HEAP_TYPE heapType = GetHeapType(m_type, m_cpuAccessible);
+    if (heapType == D3D12_HEAP_TYPE_UPLOAD || heapType == D3D12_HEAP_TYPE_READBACK)
+    {
+        m_resourceState = newState;
         return;
     }
 

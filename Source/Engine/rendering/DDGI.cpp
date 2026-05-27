@@ -126,10 +126,14 @@ void DDGI::CreateStorageBuffers()
     const Vec3u probeCounts = NumProbesPerDimension(m_gridInfo);
     const Vec2u imageDimensions = GetImageDimensions(m_gridInfo);
 
+    // RWStructuredBuffer must live on the DEFAULT heap so that D3D12 can set
+    // D3D12_RESOURCE_FLAG_ALLOW_UNORDERED_ACCESS.  UPLOAD-heap resources cannot
+    // carry that flag, which would cause CreateUnorderedAccessView to fail when
+    // the descriptor set is updated.  The buffer is written by the GPU raygen
+    // shader every frame before it is read by the compute pass, so CPU-side
+    // initialisation is not required.
     m_radianceBuffer = RI.MakeGpuBuffer(GpuBufferType::RWStructuredBuffer, imageDimensions.x * imageDimensions.y * sizeof(ProbeRayData));
-    m_radianceBuffer->SetIsCpuAccessible(true);
     Assert(m_radianceBuffer->Create());
-    m_radianceBuffer->Memset(m_radianceBuffer->Size(), 0);
 
     { // irradiance image
         const Vec3u extent {
@@ -148,7 +152,6 @@ void DDGI::CreateStorageBuffers()
             1,
             IU_STORAGE | IU_SAMPLED
         });
-
         Assert(m_irradianceImage->Create());
     }
 

@@ -88,6 +88,7 @@ struct BuildMeshBlas : public RenderCommand
         CheckResultOrReturn(verticesStagingBuffer->Create());
         verticesStagingBuffer->Memset(packedVerticesSize, 0); // zero out
         verticesStagingBuffer->Copy(packedVerticesSize, packedVertices.Data());
+        verticesStagingBuffer->Flush(0, packedVerticesSize);
 
         indicesStagingBuffer = RI.MakeGpuBuffer(GpuBufferType::StagingBuffer, packedIndicesSize);
 #if HYP_DEBUG_MODE
@@ -96,30 +97,23 @@ struct BuildMeshBlas : public RenderCommand
         CheckResultOrReturn(indicesStagingBuffer->Create());
         indicesStagingBuffer->Memset(packedIndicesSize, 0); // zero out
         indicesStagingBuffer->Copy(packedIndicesSize, packedIndices.Data());
+        indicesStagingBuffer->Flush(0, packedIndicesSize);
 
-        UniquePtr<SingleTimeCommands> singleTimeCommands = RI.GetSingleTimeCommands();
+        CommandRecorder& cr = RI.commandRecorderAllocator.GetCommandRecorder();
+        
+        cr << InsertBarrier(verticesStagingBuffer.Get(), RS_COPY_SRC);
+        cr << InsertBarrier(indicesStagingBuffer.Get(), RS_COPY_SRC);
 
-        singleTimeCommands->Push([this, packedVerticesSize, packedIndicesSize](CommandRecorder& cr)
-            {
-                cr << InsertBarrier(verticesStagingBuffer.Get(), RS_COPY_SRC);
-                cr << InsertBarrier(indicesStagingBuffer.Get(), RS_COPY_SRC);
-                cr << InsertBarrier(packedVerticesBuffer.Get(), RS_COPY_DST);
-                cr << InsertBarrier(packedIndicesBuffer.Get(), RS_COPY_DST);
-
-                cr << CopyBuffer(verticesStagingBuffer, packedVerticesBuffer, packedVerticesSize);
-                cr << CopyBuffer(indicesStagingBuffer, packedIndicesBuffer, packedIndicesSize);
-
-                cr << InsertBarrier(packedVerticesBuffer.Get(), RS_SHADER_RESOURCE);
-                cr << InsertBarrier(packedIndicesBuffer.Get(), RS_SHADER_RESOURCE);
-            });
-
-        CheckResultOrReturn(singleTimeCommands->Execute());
-
-        /*Frame* frame = RI.GetCurrentFrame();
-        CommandRecorder& cr = frame->cr;
+        cr << InsertBarrier(packedVerticesBuffer.Get(), RS_COPY_DST);
+        cr << InsertBarrier(packedIndicesBuffer.Get(), RS_COPY_DST);
 
         cr << CopyBuffer(verticesStagingBuffer, packedVerticesBuffer, packedVerticesSize);
-        cr << CopyBuffer(indicesStagingBuffer, packedIndicesBuffer, packedIndicesSize);*/
+        cr << CopyBuffer(indicesStagingBuffer, packedIndicesBuffer, packedIndicesSize);
+
+        cr << InsertBarrier(packedVerticesBuffer.Get(), RS_SHADER_RESOURCE);
+        cr << InsertBarrier(packedIndicesBuffer.Get(), RS_SHADER_RESOURCE);
+
+        cr.Submit();
 
         return {};
     }

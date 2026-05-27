@@ -300,7 +300,7 @@ RendererResult DX12GpuBlas::Rebuild(RTUpdateStateFlags& outUpdateStateFlags)
 
     if (!m_buffer || m_buffer->Size() < accelerationStructureSize)
     {
-        m_buffer = RI.MakeGpuBuffer(GpuBufferType::AccelerationStructureBuffer, accelerationStructureSize);
+        m_buffer = RI.MakeGpuBuffer(GpuBufferType::AccelerationStructureBuffer, accelerationStructureSize, 256);
         CheckResultOrReturn(m_buffer->Create());
     }
 
@@ -310,21 +310,39 @@ RendererResult DX12GpuBlas::Rebuild(RTUpdateStateFlags& outUpdateStateFlags)
         CheckResultOrReturn(m_scratchBuffer->Create());
     }
 
-    ID3D12GraphicsCommandList* commandList = RI.GetCurrentCommandBuffer()->GetCommandList();
+    // Use the current command buffer if it is recording, otherwise acquire a transient one
+    // (BLAS builds may be triggered outside the frame's Begin/End recording window).
+    DX12CommandBuffer* pCmdBuffer = RI.GetCurrentCommandBuffer();
+    bool ownCmdBuffer = false;
+
+    if (!pCmdBuffer->IsRecording())
+    {
+        pCmdBuffer = &RI.GetTransientCommandBuffer();
+        ownCmdBuffer = true;
+    }
 
     ComPtr<ID3D12GraphicsCommandList4> commandList4;
-    if (FAILED(commandList->QueryInterface(IID_PPV_ARGS(&commandList4))))
+    if (FAILED(pCmdBuffer->GetCommandList()->QueryInterface(IID_PPV_ARGS(&commandList4))))
     {
+        if (ownCmdBuffer)
+        {
+            RI.SubmitTransientCommandBuffer(*pCmdBuffer);
+        }
         return HYP_MAKE_ERROR(RendererError, "Command list does not support DXR");
     }
 
     D3D12_BUILD_RAYTRACING_ACCELERATION_STRUCTURE_DESC buildDesc {};
     buildDesc.Inputs = inputs;
-    buildDesc.SourceAccelerationStructureData = m_buffer->GetResource()->GetGPUVirtualAddress();
+    buildDesc.SourceAccelerationStructureData = 0;
     buildDesc.DestAccelerationStructureData = m_buffer->GetResource()->GetGPUVirtualAddress();
     buildDesc.ScratchAccelerationStructureData = m_scratchBuffer->GetResource()->GetGPUVirtualAddress();
 
     commandList4->BuildRaytracingAccelerationStructure(&buildDesc, 0, nullptr);
+
+    if (ownCmdBuffer)
+    {
+        RI.SubmitTransientCommandBuffer(*pCmdBuffer);
+    }
 
     m_flags = ACCELERATION_STRUCTURE_FLAGS_NONE;
     outUpdateStateFlags = RT_UPDATE_STATE_FLAGS_UPDATE_ACCELERATION_STRUCTURE;
@@ -500,7 +518,7 @@ RendererResult DX12GpuTlas::Create()
 
         if (!m_buffer || m_buffer->Size() < accelerationStructureSize)
         {
-            m_buffer = RI.MakeGpuBuffer(GpuBufferType::AccelerationStructureBuffer, accelerationStructureSize);
+            m_buffer = RI.MakeGpuBuffer(GpuBufferType::AccelerationStructureBuffer, accelerationStructureSize, 256);
             CheckResultOrReturn(m_buffer->Create());
         }
 
@@ -510,11 +528,23 @@ RendererResult DX12GpuTlas::Create()
             CheckResultOrReturn(m_scratchBuffer->Create());
         }
 
-        ID3D12GraphicsCommandList* commandList = RI.GetCurrentCommandBuffer()->GetCommandList();
+        // Use the current command buffer if it is recording, otherwise acquire a transient one.
+        DX12CommandBuffer* pCmdBuffer = RI.GetCurrentCommandBuffer();
+        bool ownCmdBuffer = false;
+
+        if (!pCmdBuffer->IsRecording())
+        {
+            pCmdBuffer = &RI.GetTransientCommandBuffer();
+            ownCmdBuffer = true;
+        }
 
         ComPtr<ID3D12GraphicsCommandList4> commandList4;
-        if (FAILED(commandList->QueryInterface(IID_PPV_ARGS(&commandList4))))
+        if (FAILED(pCmdBuffer->GetCommandList()->QueryInterface(IID_PPV_ARGS(&commandList4))))
         {
+            if (ownCmdBuffer)
+            {
+                RI.SubmitTransientCommandBuffer(*pCmdBuffer);
+            }
             return HYP_MAKE_ERROR(RendererError, "Command list does not support DXR");
         }
 
@@ -525,6 +555,11 @@ RendererResult DX12GpuTlas::Create()
         buildDesc.ScratchAccelerationStructureData = m_scratchBuffer->GetResource()->GetGPUVirtualAddress();
 
         commandList4->BuildRaytracingAccelerationStructure(&buildDesc, 0, nullptr);
+
+        if (ownCmdBuffer)
+        {
+            RI.SubmitTransientCommandBuffer(*pCmdBuffer);
+        }
     }
 
     updateStateFlags |= RT_UPDATE_STATE_FLAGS_UPDATE_ACCELERATION_STRUCTURE;
@@ -569,8 +604,11 @@ RendererResult DX12GpuTlas::UpdateStructure(RTUpdateStateFlags& outUpdateStateFl
 
         D3D12_BUILD_RAYTRACING_ACCELERATION_STRUCTURE_INPUTS inputs {};
         inputs.Type = D3D12_RAYTRACING_ACCELERATION_STRUCTURE_TYPE_TOP_LEVEL;
+        // PERFORM_UPDATE must be set for in-place updates; SourceAccelerationStructureData
+        // must be non-null and 256-byte aligned when this flag is present.
         inputs.Flags = D3D12_RAYTRACING_ACCELERATION_STRUCTURE_BUILD_FLAG_PREFER_FAST_TRACE
-            | D3D12_RAYTRACING_ACCELERATION_STRUCTURE_BUILD_FLAG_ALLOW_UPDATE;
+            | D3D12_RAYTRACING_ACCELERATION_STRUCTURE_BUILD_FLAG_ALLOW_UPDATE
+            | D3D12_RAYTRACING_ACCELERATION_STRUCTURE_BUILD_FLAG_PERFORM_UPDATE;
         inputs.NumDescs = uint32(m_blases.Size());
         inputs.DescsLayout = D3D12_ELEMENTS_LAYOUT_ARRAY;
         inputs.InstanceDescs = m_instancesBuffer->GetResource()->GetGPUVirtualAddress();
@@ -587,11 +625,11 @@ RendererResult DX12GpuTlas::UpdateStructure(RTUpdateStateFlags& outUpdateStateFl
         device5->GetRaytracingAccelerationStructurePrebuildInfo(&inputs, &prebuildInfo);
 
         const size_t accelerationStructureSize = MathUtil::NextMultiple(prebuildInfo.ResultDataMaxSizeInBytes, 256ull);
-        const size_t scratchBufferSize = MathUtil::NextMultiple(prebuildInfo.ScratchDataSizeInBytes, 256ull);
+        const size_t scratchBufferSize = MathUtil::NextMultiple(prebuildInfo.UpdateScratchDataSizeInBytes, 256ull);
 
         if (!m_buffer || m_buffer->Size() < accelerationStructureSize)
         {
-            m_buffer = RI.MakeGpuBuffer(GpuBufferType::AccelerationStructureBuffer, accelerationStructureSize);
+            m_buffer = RI.MakeGpuBuffer(GpuBufferType::AccelerationStructureBuffer, accelerationStructureSize, 256);
             CheckResultOrReturn(m_buffer->Create());
         }
 
@@ -601,11 +639,23 @@ RendererResult DX12GpuTlas::UpdateStructure(RTUpdateStateFlags& outUpdateStateFl
             CheckResultOrReturn(m_scratchBuffer->Create());
         }
 
-        ID3D12GraphicsCommandList* commandList = RI.GetCurrentCommandBuffer()->GetCommandList();
+        // Use the current command buffer if it is recording, otherwise acquire a transient one.
+        DX12CommandBuffer* pCmdBuffer = RI.GetCurrentCommandBuffer();
+        bool ownCmdBuffer = false;
+
+        if (!pCmdBuffer->IsRecording())
+        {
+            pCmdBuffer = &RI.GetTransientCommandBuffer();
+            ownCmdBuffer = true;
+        }
 
         ComPtr<ID3D12GraphicsCommandList4> commandList4;
-        if (FAILED(commandList->QueryInterface(IID_PPV_ARGS(&commandList4))))
+        if (FAILED(pCmdBuffer->GetCommandList()->QueryInterface(IID_PPV_ARGS(&commandList4))))
         {
+            if (ownCmdBuffer)
+            {
+                RI.SubmitTransientCommandBuffer(*pCmdBuffer);
+            }
             return HYP_MAKE_ERROR(RendererError, "Command list does not support DXR");
         }
 
@@ -616,6 +666,11 @@ RendererResult DX12GpuTlas::UpdateStructure(RTUpdateStateFlags& outUpdateStateFl
         buildDesc.ScratchAccelerationStructureData = m_scratchBuffer->GetResource()->GetGPUVirtualAddress();
 
         commandList4->BuildRaytracingAccelerationStructure(&buildDesc, 0, nullptr);
+
+        if (ownCmdBuffer)
+        {
+            RI.SubmitTransientCommandBuffer(*pCmdBuffer);
+        }
 
         outUpdateStateFlags |= RT_UPDATE_STATE_FLAGS_UPDATE_MESH_DESCRIPTIONS | RT_UPDATE_STATE_FLAGS_UPDATE_INSTANCES;
     }
@@ -651,6 +706,7 @@ RendererResult DX12GpuTlas::Rebuild(RTUpdateStateFlags& outUpdateStateFlags)
 
     D3D12_BUILD_RAYTRACING_ACCELERATION_STRUCTURE_INPUTS inputs {};
     inputs.Type = D3D12_RAYTRACING_ACCELERATION_STRUCTURE_TYPE_TOP_LEVEL;
+    // Full rebuild — do NOT include PERFORM_UPDATE; SourceAccelerationStructureData must be 0.
     inputs.Flags = D3D12_RAYTRACING_ACCELERATION_STRUCTURE_BUILD_FLAG_PREFER_FAST_TRACE
         | D3D12_RAYTRACING_ACCELERATION_STRUCTURE_BUILD_FLAG_ALLOW_UPDATE;
     inputs.NumDescs = uint32(m_blases.Size());
@@ -673,7 +729,7 @@ RendererResult DX12GpuTlas::Rebuild(RTUpdateStateFlags& outUpdateStateFlags)
 
     if (!m_buffer || m_buffer->Size() < accelerationStructureSize)
     {
-        m_buffer = RI.MakeGpuBuffer(GpuBufferType::AccelerationStructureBuffer, accelerationStructureSize);
+        m_buffer = RI.MakeGpuBuffer(GpuBufferType::AccelerationStructureBuffer, accelerationStructureSize, 256);
         CheckResultOrReturn(m_buffer->Create());
     }
 
@@ -683,21 +739,38 @@ RendererResult DX12GpuTlas::Rebuild(RTUpdateStateFlags& outUpdateStateFlags)
         CheckResultOrReturn(m_scratchBuffer->Create());
     }
 
-    ID3D12GraphicsCommandList* commandList = RI.GetCurrentCommandBuffer()->GetCommandList();
+    // Use the current command buffer if it is recording, otherwise acquire a transient one.
+    DX12CommandBuffer* pCmdBuffer = RI.GetCurrentCommandBuffer();
+    bool ownCmdBuffer = false;
+
+    if (!pCmdBuffer->IsRecording())
+    {
+        pCmdBuffer = &RI.GetTransientCommandBuffer();
+        ownCmdBuffer = true;
+    }
 
     ComPtr<ID3D12GraphicsCommandList4> commandList4;
-    if (FAILED(commandList->QueryInterface(IID_PPV_ARGS(&commandList4))))
+    if (FAILED(pCmdBuffer->GetCommandList()->QueryInterface(IID_PPV_ARGS(&commandList4))))
     {
+        if (ownCmdBuffer)
+        {
+            RI.SubmitTransientCommandBuffer(*pCmdBuffer);
+        }
         return HYP_MAKE_ERROR(RendererError, "Command list does not support DXR");
     }
 
     D3D12_BUILD_RAYTRACING_ACCELERATION_STRUCTURE_DESC buildDesc {};
     buildDesc.Inputs = inputs;
-    buildDesc.SourceAccelerationStructureData = m_buffer->GetResource()->GetGPUVirtualAddress();
+    buildDesc.SourceAccelerationStructureData = 0;
     buildDesc.DestAccelerationStructureData = m_buffer->GetResource()->GetGPUVirtualAddress();
     buildDesc.ScratchAccelerationStructureData = m_scratchBuffer->GetResource()->GetGPUVirtualAddress();
 
     commandList4->BuildRaytracingAccelerationStructure(&buildDesc, 0, nullptr);
+
+    if (ownCmdBuffer)
+    {
+        RI.SubmitTransientCommandBuffer(*pCmdBuffer);
+    }
 
     m_flags = ACCELERATION_STRUCTURE_FLAGS_NONE;
     outUpdateStateFlags |= RT_UPDATE_STATE_FLAGS_UPDATE_ACCELERATION_STRUCTURE;

@@ -15,6 +15,7 @@
 #undef INCLUDE_FROM_RHI_BASE
 
 #include <rendering/dx12/DX12Shared.hpp>
+#include <rendering/dx12/DX12GpuBuffer.hpp>
 
 namespace Hyperion {
 
@@ -39,6 +40,11 @@ public:
         return m_descriptorSetRootIndices[bindIndex];
     }
 
+    HYP_FORCE_INLINE ID3D12StateObject* GetStateObject() const
+    {
+        return m_stateObject.Get();
+    }
+
     bool IsCreated() const override;
 
     RendererResult Create() override;
@@ -51,6 +57,24 @@ public:
 #endif
 
 private:
+    struct ShaderBindingTableEntry
+    {
+        DX12GpuBufferRef buffer;
+        D3D12_GPU_VIRTUAL_ADDRESS address = 0;
+        uint32 size = 0;
+    };
+
+    RendererResult BuildRootSignature();
+    RendererResult BuildShaderBindingTables();
+
+    ComPtr<ID3D12RootSignature> m_rootSignature;
+    ComPtr<ID3D12StateObject> m_stateObject;
+    ComPtr<ID3D12StateObjectProperties> m_stateObjectProperties;
+
+    ShaderBindingTableEntry m_rayGenShaderTable;
+    ShaderBindingTableEntry m_missShaderTable;
+    ShaderBindingTableEntry m_hitGroupShaderTable;
+
     // Maps descriptor set index (bindIndex) to root parameter indices
     Array<DescriptorSetRootIndices> m_descriptorSetRootIndices;
 };

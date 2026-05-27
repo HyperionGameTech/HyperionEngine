@@ -554,6 +554,9 @@ void DX12DescriptorSet::Update(bool force)
                     continue;
                 }
 
+                AssertDebug(imageView->GetImage()->GetTextureDesc().imageUsage & IU_SAMPLED,
+                    "Cannot create SRV descriptor for image without IU_SAMPLED flag set.");
+
                 const D3D12_SHADER_RESOURCE_VIEW_DESC srvDesc = GetSRVDesc(
                     imageView->GetImage(),
                     imageView->GetMipIndex(), imageView->NumMips(),
@@ -573,10 +576,11 @@ void DX12DescriptorSet::Update(bool force)
                 }
 
                 D3D12_SHADER_RESOURCE_VIEW_DESC srvDesc = {};
+                srvDesc.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
                 srvDesc.ViewDimension = D3D12_SRV_DIMENSION_RAYTRACING_ACCELERATION_STRUCTURE;
                 srvDesc.RaytracingAccelerationStructure.Location = tlas->GetBuffer()->GetBufferDeviceAddress();
 
-                device->CreateShaderResourceView(tlas->GetBuffer()->GetResource(), &srvDesc, destHandle);
+                device->CreateShaderResourceView(nullptr, &srvDesc, destHandle);
             }
             else
             {
@@ -605,6 +609,18 @@ void DX12DescriptorSet::Update(bool force)
                     continue;
                 }
 
+                Assert(
+                    buffer->GetBufferType() == GpuBufferType::RWStructuredBuffer
+                    || buffer->GetBufferType() == GpuBufferType::RWByteAddressBuffer
+                    || buffer->GetBufferType() == GpuBufferType::ScratchBuffer
+                    || buffer->GetBufferType() == GpuBufferType::AccelerationStructureBuffer
+                    || buffer->GetBufferType() == GpuBufferType::IndirectArgsBuffer,
+                    "Creating UAV for buffer type {} (category {}) which lacks ALLOW_UNORDERED_ACCESS. "
+                    "Shader input declares bufferType {}.",
+                    EnumToString(buffer->GetBufferType()),
+                    EnumToString(foundShaderInput->category),
+                    EnumToString(foundShaderInput->bufferType));
+
                 const uint32 structureStride = element->bufferStride != ~0u ? element->bufferStride : uint32(buffer->Size());
                 D3D12_UNORDERED_ACCESS_VIEW_DESC uavDesc = GetUAVDesc(foundShaderInput->bufferType, buffer->Size(), structureStride);
                 device->CreateUnorderedAccessView(buffer->GetResource(), nullptr, &uavDesc, destHandle);
@@ -616,6 +632,9 @@ void DX12DescriptorSet::Update(bool force)
                 {
                     continue;
                 }
+
+                AssertDebug(imageView->GetImage()->GetTextureDesc().imageUsage & IU_STORAGE,
+                    "Cannot create UAV descriptor for image without IU_STORAGE flag set.");
 
                 const D3D12_UNORDERED_ACCESS_VIEW_DESC uavDesc = GetUAVDesc(
                     imageView->GetImage(),

@@ -476,12 +476,14 @@ D3D12_UNORDERED_ACCESS_VIEW_DESC GetUAVDesc(GpuBufferType bufferType, size_t buf
     switch (bufferType)
     {
     case GpuBufferType::ByteAddressBuffer: // fallthrough
+    case GpuBufferType::StructuredBuffer: // fallthrough
+        HYP_FAIL("Cannot get UAV desc for non RW type, change the shader uniform decl or create an SRV instead.");
+        break;
     case GpuBufferType::RWByteAddressBuffer:
         desc.Buffer.NumElements = uint32(bufferSize / 4) - firstElement;
         desc.Format = DXGI_FORMAT_R32_TYPELESS;
         desc.Buffer.Flags = D3D12_BUFFER_UAV_FLAG_RAW;
         break;
-    case GpuBufferType::StructuredBuffer: // fallthrough
     case GpuBufferType::RWStructuredBuffer:
     default:
         Assert(structureStride != 0);

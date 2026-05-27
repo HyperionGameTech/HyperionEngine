@@ -19,6 +19,7 @@
 #include <rendering/dx12/DX12DescriptorSet.hpp>
 #include <rendering/dx12/DX12GraphicsPipeline.hpp>
 #include <rendering/dx12/DX12ComputePipeline.hpp>
+#include <rendering/dx12/DX12RayTracingPipeline.hpp>
 #include <rendering/dx12/DX12ShaderInstance.hpp>
 #include <rendering/dx12/DX12Helpers.hpp>
 
@@ -796,7 +797,7 @@ void DX12RenderInterface::SubmitTransientCommandBuffer(DX12CommandBuffer& comman
 
         if (m_recycledTransientCommandBufferFences.Any())
         {
-            fence = std::move(m_recycledTransientCommandBufferFences.PopFront());
+            fence = m_recycledTransientCommandBufferFences.PopFront();
         }
         else
         {
@@ -937,8 +938,7 @@ DX12ComputePipelineRef DX12RenderInterface::MakeComputePipeline(const DX12Shader
 
 DX12RayTracingPipelineRef DX12RenderInterface::MakeRayTracingPipeline(const DX12ShaderInstanceRef& shaderInstance)
 {
-    // @TODO: Implement rayTracing pipeline creation for DX12
-    return RayTracingPipelineRef();
+    return MakeHandle<DX12RayTracingPipeline>(shaderInstance);
 }
 
 DX12GpuBufferRef DX12RenderInterface::MakeGpuBuffer(GpuBufferType bufferType, size_t size, size_t alignment)
