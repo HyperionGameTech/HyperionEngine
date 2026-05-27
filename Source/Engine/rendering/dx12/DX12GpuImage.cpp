@@ -1182,52 +1182,36 @@ void DX12GpuImage::CopyFrom(
     const bool srcIsAttachment = srcImage->GetTextureDesc().imageUsage[IU_ATTACHMENT];
     const bool dstIsAttachment = m_textureDesc.imageUsage[IU_ATTACHMENT];
 
+    // Use resolved counts for iteration (handles UINT8_MAX/UINT16_MAX sentinel values)
+    const uint8 numLevelsToCopy = MathUtil::Min(srcNumLevels, dstNumLevels);
+    const uint16 numLayersToCopy = MathUtil::Min(srcNumLayers, dstNumLayers);
+
     if (!HasSubResourceStates() && !srcImage->HasSubResourceStates())
     {
         AssertDebug(GetResourceState() == RS_COPY_DST && srcImage->GetResourceState() == RS_COPY_SRC);
 
-        D3D12_TEXTURE_COPY_LOCATION srcLocation {};
-        srcLocation.pResource = srcImage->GetResource();
-        srcLocation.Type = D3D12_TEXTURE_COPY_TYPE_SUBRESOURCE_INDEX;
-        srcLocation.SubresourceIndex = D3D12CalcSubresource(
-            srcSubResource.baseMipLevel,
-            srcSubResource.baseArrayLayer,
-            0,
-            srcImage->NumMips(),
-            srcImage->NumArrayLayers());
-
-        D3D12_TEXTURE_COPY_LOCATION dstLocation {};
-        dstLocation.pResource = m_resource.Get();
-        dstLocation.Type = D3D12_TEXTURE_COPY_TYPE_SUBRESOURCE_INDEX;
-        dstLocation.SubresourceIndex = D3D12CalcSubresource(
-            dstSubResource.baseMipLevel,
-            dstSubResource.baseArrayLayer,
-            0,
-            NumMips(),
-            NumArrayLayers());
-
         // Validate offset and extent are within bounds for the base mip level
-        const Vec3u srcMipExtent = srcImage->GetTextureDesc().GetMipExtent(srcSubResource.baseMipLevel);
-        const Vec3u dstMipExtent = m_textureDesc.GetMipExtent(dstSubResource.baseMipLevel);
+        const Vec3u srcBaseMipExtent = srcImage->GetTextureDesc().GetMipExtent(srcSubResource.baseMipLevel);
+        const Vec3u dstBaseMipExtent = m_textureDesc.GetMipExtent(dstSubResource.baseMipLevel);
 
-        AssertDebug(srcOffset.x + extent.x <= srcMipExtent.x,
+        AssertDebug(srcOffset.x + extent.x <= srcBaseMipExtent.x,
             "Source copy region exceeds image bounds: offset.x({}) + extent.x({}) > mipWidth({})",
-            srcOffset.x, extent.x, srcMipExtent.x);
-        AssertDebug(srcOffset.y + extent.y <= srcMipExtent.y,
+            srcOffset.x, extent.x, srcBaseMipExtent.x);
+        AssertDebug(srcOffset.y + extent.y <= srcBaseMipExtent.y,
             "Source copy region exceeds image bounds: offset.y({}) + extent.y({}) > mipHeight({})",
-            srcOffset.y, extent.y, srcMipExtent.y);
-        AssertDebug(srcOffset.z + extent.z <= srcMipExtent.z,
+            srcOffset.y, extent.y, srcBaseMipExtent.y);
+        AssertDebug(srcOffset.z + extent.z <= srcBaseMipExtent.z,
             "Source copy region exceeds image bounds: offset.z({}) + extent.z({}) > mipDepth({})",
-            srcOffset.z, extent.z, srcMipExtent.z);
-        AssertDebug(dstOffset.x + extent.x <= dstMipExtent.x,
+            srcOffset.z, extent.z, srcBaseMipExtent.z);
+        AssertDebug(dstOffset.x + extent.x <= dstBaseMipExtent.x,
             "Destination copy region exceeds image bounds: offset.x({}) + extent.x({}) > mipWidth({})",
-            dstOffset.x, extent.x, dstMipExtent.x);
-        AssertDebug(dstOffset.y + extent.y <= dstMipExtent.y,
+            dstOffset.x, extent.x, dstBaseMipExtent.x);
+        AssertDebug(dstOffset.y + extent.y <= dstBaseMipExtent.y,
             "Destination copy region exceeds image bounds: offset.y({}) + extent.y({}) > mipHeight({})",
-            dstOffset.y, extent.y, dstMipExtent.y);
-        AssertDebug(dstOffset.z + extent.z <= dstMipExtent.z,
+            dstOffset.y, extent.y, dstBaseMipExtent.y);
+        AssertDebug(dstOffset.z + extent.z <= dstBaseMipExtent.z,
             "Destination copy region exceeds image bounds: offset.z({}) + extent.z({}) > mipDepth({})",
-            dstOffset.z, extent.z, dstMipExtent.z);
+            dstOffset.z, extent.z, dstBaseMipExtent.z);
 
         D3D12_BOX srcBox {};
         srcBox.left = srcOffset.x;
@@ -1237,18 +1221,45 @@ void DX12GpuImage::CopyFrom(
         srcBox.bottom = srcOffset.y + extent.y;
         srcBox.back = srcOffset.z + extent.z;
 
-        commandBuffer->GetCommandList()->CopyTextureRegion(
-            &dstLocation,
-            dstOffset.x, dstOffset.y, dstOffset.z,
-            &srcLocation,
-            &srcBox);
+        for (uint16 layerIndex = 0; layerIndex < numLayersToCopy; layerIndex++)
+        {
+            for (uint8 mipLevel = 0; mipLevel < numLevelsToCopy; mipLevel++)
+            {
+                const uint8 actualSrcMip = srcSubResource.baseMipLevel + mipLevel;
+                const uint8 actualDstMip = dstSubResource.baseMipLevel + mipLevel;
+                const uint16 actualSrcLayer = srcSubResource.baseArrayLayer + layerIndex;
+                const uint16 actualDstLayer = dstSubResource.baseArrayLayer + layerIndex;
+
+                D3D12_TEXTURE_COPY_LOCATION srcLocation {};
+                srcLocation.pResource = srcImage->GetResource();
+                srcLocation.Type = D3D12_TEXTURE_COPY_TYPE_SUBRESOURCE_INDEX;
+                srcLocation.SubresourceIndex = D3D12CalcSubresource(
+                    actualSrcMip,
+                    actualSrcLayer,
+                    0,
+                    srcImage->NumMips(),
+                    srcImage->NumArrayLayers());
+
+                D3D12_TEXTURE_COPY_LOCATION dstLocation {};
+                dstLocation.pResource = m_resource.Get();
+                dstLocation.Type = D3D12_TEXTURE_COPY_TYPE_SUBRESOURCE_INDEX;
+                dstLocation.SubresourceIndex = D3D12CalcSubresource(
+                    actualDstMip,
+                    actualDstLayer,
+                    0,
+                    NumMips(),
+                    NumArrayLayers());
+
+                commandBuffer->GetCommandList()->CopyTextureRegion(
+                    &dstLocation,
+                    dstOffset.x, dstOffset.y, dstOffset.z,
+                    &srcLocation,
+                    &srcBox);
+            }
+        }
     }
     else
     {
-        // Use resolved counts for iteration (handles UINT8_MAX/UINT16_MAX sentinel values)
-        const uint8 numLevelsToCopy = MathUtil::Min(srcNumLevels, dstNumLevels);
-        const uint16 numLayersToCopy = MathUtil::Min(srcNumLayers, dstNumLayers);
-
         for (uint16 layerIndex = 0; layerIndex < numLayersToCopy; layerIndex++)
         {
             for (uint8 mipLevel = 0; mipLevel < numLevelsToCopy; mipLevel++)
