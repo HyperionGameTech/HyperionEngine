@@ -53,8 +53,8 @@ public:
         Light* light,
         View* view,
         uint32 cascadeIndex,
-        View*& outShadowViewDynamic,
-        View*& outShadowViewStatic) const;
+        Span<View*>& outShadowViewsDynamic,
+        Span<View*>& outShadowViewsStatic) const;
 
     bool Remove(Light* light, View* view);
 

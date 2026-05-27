@@ -42,7 +42,8 @@ static FixedArray<Mat4f, 6> CreateCubemapMatrices(const Vec3f& origin)
 
     for (uint32 i = 0; i < 6; i++)
     {
-        viewMatrices[i] = Mat4f::LookAt(Texture::s_cubemapDirections[i].first, Texture::s_cubemapDirections[i].second) * Mat4f::Translation(origin);
+        viewMatrices[i] = Mat4f::LookAt(Texture::s_cubemapDirections[i].first, Texture::s_cubemapDirections[i].second)
+            * Mat4f::Translation(origin);
     }
 
     return viewMatrices;

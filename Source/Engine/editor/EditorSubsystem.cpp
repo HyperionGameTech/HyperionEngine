@@ -2320,7 +2320,6 @@ void EditorSubsystem::Update(float delta)
         }
     }
 
-#if 0
     RenderProxyList& pickRpl = g_editorState->GetPickCache().GetRenderProxyList();
     pickRpl.GetMeshes().Advance();
 
@@ -2345,12 +2344,11 @@ void EditorSubsystem::Update(float delta)
         }
     }
 
-    /// \todo : Prioritize based on distance from camera
+    /// @TODO : Prioritize meshes based on distance from camera
     for (Mesh* mesh : pickRpl.GetMeshes())
     {
         g_editorState->GetPickCache().PutEntry(mesh);
     }
-#endif
 }
 
 void EditorSubsystem::OnSceneAttached(const Handle<Scene>& scene)

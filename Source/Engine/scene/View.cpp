@@ -417,18 +417,21 @@ void View::PrepareShadowViews(Array<View*, SceneAllocator>& outShadowViews)
         const bool hasBakedStaticShadows = (light->GetLightFlags() & LightFlags::BakeStaticShadows);
         const bool cacheStaticShadowMaps = !hasBakedStaticShadows && (light->GetLightFlags() & LightFlags::CacheStaticShadowMaps);
 
-        View* shadowViewsStatic[MaxShadowMapCascades] {};
-        View* shadowViewsDynamic[MaxShadowMapCascades] {};
+        View* shadowViewsStatic[6] {};
+        View* shadowViewsDynamic[6] {};
 
-        for (uint32 cascadeIndex = 0; cascadeIndex < light->GetNumShadowMapCascades(); cascadeIndex++)
+        const bool isOmni = light->IsA<PointLight>();
+        const uint32 numShadowViews = isOmni ? 6 : light->GetNumShadowMapCascades();
+
+        for (uint32 shadowViewIndex = 0; shadowViewIndex < numShadowViews; shadowViewIndex++)
         {
-            shadowViewsDynamic[cascadeIndex] = RI.shadowMapCache->GetOrCreateShadowView(
+            shadowViewsDynamic[shadowViewIndex] = RI.shadowMapCache->GetOrCreateShadowView(
                 this,
                 light,
-                cascadeIndex,
+                shadowViewIndex,
                 /* isStatic */ false);
 
-            if (!shadowViewsDynamic[cascadeIndex])
+            if (!shadowViewsDynamic[shadowViewIndex])
             {
                 // failed to allocate shadow view - out of slots is most likely cause
                 // skip processing for this light.
@@ -441,20 +444,20 @@ void View::PrepareShadowViews(Array<View*, SceneAllocator>& outShadowViews)
             // - use baked shadow maps for statics
             if (cacheStaticShadowMaps || hasBakedStaticShadows)
             {
-                shadowViewsStatic[cascadeIndex] = RI.shadowMapCache->GetOrCreateShadowView(
+                shadowViewsStatic[shadowViewIndex] = RI.shadowMapCache->GetOrCreateShadowView(
                     this,
                     light,
-                    cascadeIndex,
+                    shadowViewIndex,
                     /* isStatic */ true);
             }
+            
+            Camera* shadowCamera = shadowViewsDynamic[0]->GetCamera();
+            Assert(shadowCamera != nullptr);
 
             // Update shadow map camera
-            if (cascadeIndex == 0)
+            if (shadowViewIndex == 0)
             {
                 BoundingBox shadowBounds;
-
-                Camera* shadowCamera = shadowViewsDynamic[0]->GetCamera();
-                Assert(shadowCamera != nullptr);
 
                 switch (light->GetLightType())
                 {
@@ -480,11 +483,27 @@ void View::PrepareShadowViews(Array<View*, SceneAllocator>& outShadowViews)
                 }
             }
 
-            for (View* shadowView : { shadowViewsDynamic[cascadeIndex], shadowViewsStatic[cascadeIndex] })
+            Frustum cubeFaceFrustum;
+
+            if (isOmni)
+            {
+                // Set frustum for the cubemap face
+                Mat4f lookAt = Mat4f::LookAt(Texture::s_cubemapDirections[shadowViewIndex].first, Texture::s_cubemapDirections[shadowViewIndex].second)
+                    * Mat4f::Translation(-shadowCamera->GetWorldTranslation());
+
+                cubeFaceFrustum.SetFromViewProjectionMatrix(shadowCamera->GetProjectionMatrix() * lookAt);
+            }
+
+            for (View* shadowView : { shadowViewsDynamic[shadowViewIndex], shadowViewsStatic[shadowViewIndex] })
             {
                 if (!shadowView || outShadowViews.Contains(shadowView))
                 {
                     continue;
+                }
+
+                if (isOmni)
+                {
+                    shadowView->SetSubFrustum(cubeFaceFrustum);
                 }
 
                 shadowView->m_scenes = m_scenes;

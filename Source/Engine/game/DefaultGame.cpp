@@ -113,7 +113,7 @@ void DefaultGame::OnLaunch_Impl()
             }
 
             Assert(m_camera.IsValid());
-            m_camera->SetWorldTranslation(Vec3f(0.0f, 6.0f, 3.0f));
+            m_camera->SetWorldTranslation(Vec3f(0.0f, 5.0f, 3.0f));
             m_camera->SetCameraFlags(m_camera->GetCameraFlags() | CameraFlags::MATCH_WINDOW_SIZE);
 
             Vec2u viewportSize = Vec2u(m_camera->GetDimensions());
@@ -127,6 +127,9 @@ void DefaultGame::OnLaunch_Impl()
             Handle<View> view = MakeHandle<View>(viewDesc);
 
             GetWorld()->AddView(view);
+
+            auto pointLight = MakeHandle<PointLight>(Vec3f(0.0f, 7.0f, -2.0f), Color::Red(), 50.0f, 30.0f);
+            mainScene->GetRoot()->AddChild(pointLight);
 
             GetWorld()->AddScene(mainScene);
 

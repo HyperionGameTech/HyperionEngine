@@ -571,4 +571,64 @@ void Light::BakeStaticShadows()
 
 #pragma endregion Light
 
+#pragma region DirectionalLight
+
+DirectionalLight::DirectionalLight()
+    : DirectionalLight(Vec3f(0.0f, 1.0f, 0.0f).Normalized(), Color::White(), 1.0f)
+{
+}
+
+DirectionalLight::DirectionalLight(const Vec3f& direction, const Color& color, float intensity)
+    : Light(LightType::Directional, direction.Normalized(), color, intensity, 0.0f)
+{
+    m_lightFlags |= LightFlags::CacheStaticShadowMaps;
+    m_numShadowMapCascades = 1;
+}
+
+
+#pragma endregion DirectionalLight
+
+#pragma region PointLight
+
+PointLight::PointLight()
+    : PointLight(Vec3f(0.0f), Color::White(), 5.0f, 25.0f)
+{
+}
+
+PointLight::PointLight(const Vec3f& position, const Color& color, float intensity, float radius)
+    : Light(LightType::Point, position, color, intensity, radius)
+{
+    //m_lightFlags |= LightFlags::CacheStaticShadowMaps;
+}
+
+#pragma endregion PointLight
+
+#pragma region SpotLight
+
+SpotLight::SpotLight()
+    : Light(LightType::Spot, Vec3f(0.0f), Vec3f(0.0f, 0.0f, -1.0f), Vec2f(30.0f, 15.0f), Color::White(), 1.0f, 10.0f)
+{
+}
+
+SpotLight::SpotLight(const Vec3f& position, const Vec3f& direction, const Vec2f& angles, const Color& color, float intensity, float radius)
+    : Light(LightType::Spot, position, direction, angles, color, intensity, radius)
+{
+}
+
+#pragma endregion SpotLight
+
+#pragma region AreaRectLight
+
+AreaRectLight::AreaRectLight()
+    : Light(LightType::AreaRect, Vec3f(0.0f), Vec3f(0.0f, 0.0f, -1.0f), Vec2f(1.0f, 1.0f), Color::White(), 1.0f, 10.0f)
+{
+}
+
+AreaRectLight::AreaRectLight(const Vec3f& position, const Vec3f& normal, const Vec2f& areaSize, const Color& color, float intensity, float radius)
+    : Light(LightType::AreaRect, position, normal, areaSize, color, intensity, radius)
+{
+}
+
+#pragma endregion AreaRectLight
+
 } // namespace Hyperion

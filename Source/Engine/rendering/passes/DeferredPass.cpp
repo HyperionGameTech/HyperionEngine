@@ -249,8 +249,8 @@ void GetDeferredShaderProperties(
 void FillShadowMapData(
     ShadowMapData& outShadowMapData,
     const ShadowMap& inShadowMap,
-    View* shadowMapViewDynamic,
-    View* shadowMapViewStatic)
+    Span<View*> shadowMapViewsDynamic,
+    Span<View*> shadowMapViewsStatic)
 {
     ShadowMapAtlasElement* atlasElement = inShadowMap.GetAtlasElement();
     AssertDebug(atlasElement != nullptr);
@@ -258,11 +258,11 @@ void FillShadowMapData(
     if (!atlasElement)
         return;
 
-    AssertDebug(shadowMapViewDynamic != nullptr && shadowMapViewDynamic->GetCamera() != nullptr);
+    AssertDebug(shadowMapViewsDynamic.Size() > 0 && shadowMapViewsDynamic[0]->GetCamera() != nullptr);
 
     outShadowMapData = {};
 
-    RenderProxyCamera* shadowCameraProxy = static_cast<RenderProxyCamera*>(GetRenderProxy(shadowMapViewDynamic->GetCamera()));
+    RenderProxyCamera* shadowCameraProxy = static_cast<RenderProxyCamera*>(GetRenderProxy(shadowMapViewsDynamic[0]->GetCamera()));
     if (!shadowCameraProxy)
     {
         // Shadow camera not ready yet.
@@ -596,23 +596,23 @@ void LightingPass::RenderToFramebuffer_Internal(Frame* frame, const RenderSetup&
 
                 shadowMapIndexBuffer.Write(lightBinding * sizeof(uint32), sizeof(uint32), &shadowMapIndex);
 
-                View* shadowMapViewDynamic;
-                View* shadowMapViewStatic;
+                Span<View*> shadowMapViewsDynamic;
+                Span<View*> shadowMapViewsStatic;
 
                 ShadowMap* shadowMap = RI.shadowMapCache->GetShadowMap(
                     light,
                     rs.view,
                     0,
-                    shadowMapViewDynamic,
-                    shadowMapViewStatic);
+                    shadowMapViewsDynamic,
+                    shadowMapViewsStatic);
 
                 if (shadowMap != nullptr)
                 {
                     DeferredRendererHelpers::FillShadowMapData(
                         currShadowMapData,
                         *shadowMap,
-                        shadowMapViewDynamic,
-                        shadowMapViewStatic);
+                        shadowMapViewsDynamic,
+                        shadowMapViewsStatic);
                 }
 
                 ++shadowMapIndex;
@@ -691,23 +691,23 @@ void LightingPass::RenderToFramebuffer_Internal(Frame* frame, const RenderSetup&
                 {
                     ShadowMapData& currShadowMapData = shadowMapData[cascadeIndex];
 
-                    View* shadowMapViewDynamic;
-                    View* shadowMapViewStatic;
+                    Span<View*> shadowMapViewsDynamic;
+                    Span<View*> shadowMapViewsStatic;
 
                     ShadowMap* shadowMap = RI.shadowMapCache->GetShadowMap(
                         light,
                         rs.view,
                         cascadeIndex,
-                        shadowMapViewDynamic,
-                        shadowMapViewStatic);
+                        shadowMapViewsDynamic,
+                        shadowMapViewsStatic);
 
                     if (shadowMap != nullptr)
                     {
                         DeferredRendererHelpers::FillShadowMapData(
                             currShadowMapData,
                             *shadowMap,
-                            shadowMapViewDynamic,
-                            shadowMapViewStatic);
+                            shadowMapViewsDynamic,
+                            shadowMapViewsStatic);
                     }
 
                     RI.cbufferAllocator->Write(&currShadowMapData);
@@ -1190,8 +1190,8 @@ void FogVolumePass::RenderToFramebuffer_Internal(Frame* frame, const RenderSetup
 
         if (i < uint32(tempLightsArray.Size()))
         {
-            View* shadowMapViewDynamic;
-            View* shadowMapViewStatic;
+            Span<View*> shadowMapViewsDynamic;
+            Span<View*> shadowMapViewsStatic;
 
             Light* light = tempLightsArray[i].first;
 
@@ -1199,16 +1199,16 @@ void FogVolumePass::RenderToFramebuffer_Internal(Frame* frame, const RenderSetup
                 light,
                 renderSetup.view,
                 /* cascadeIndex */ 0,
-                shadowMapViewDynamic,
-                shadowMapViewStatic);
+                shadowMapViewsDynamic,
+                shadowMapViewsStatic);
 
             if (shadowMap != nullptr)
             {
                 DeferredRendererHelpers::FillShadowMapData(
                     shadowMapData,
                     *shadowMap,
-                    shadowMapViewDynamic,
-                    shadowMapViewStatic);
+                    shadowMapViewsDynamic,
+                    shadowMapViewsStatic);
             }
         }
 

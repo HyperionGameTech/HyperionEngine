@@ -329,17 +329,8 @@ class HYP_API DirectionalLight final : public Light
     HYP_OBJECT_BODY(DirectionalLight);
 
 public:
-    DirectionalLight()
-        : DirectionalLight(Vec3f(0.0f, 1.0f, 0.0f).Normalized(), Color::White(), 1.0f)
-    {
-    }
-
-    DirectionalLight(const Vec3f& direction, const Color& color, float intensity)
-        : Light(LightType::Directional, direction.Normalized(), color, intensity, 0.0f)
-    {
-        m_lightFlags |= LightFlags::CacheStaticShadowMaps;
-        m_numShadowMapCascades = 1;
-    }
+    DirectionalLight();
+    DirectionalLight(const Vec3f& direction, const Color& color, float intensity);
 
     virtual ~DirectionalLight() override = default;
 
@@ -362,16 +353,8 @@ class HYP_API PointLight final : public Light
     HYP_OBJECT_BODY(PointLight);
 
 public:
-    PointLight()
-        : PointLight(Vec3f(0.0f), Color::White(), 5.0f, 25.0f)
-    {
-    }
-
-    PointLight(const Vec3f& position, const Color& color, float intensity, float radius)
-        : Light(LightType::Point, position, color, intensity, radius)
-    {
-        m_lightFlags |= LightFlags::CacheStaticShadowMaps;
-    }
+    PointLight();
+    PointLight(const Vec3f& position, const Color& color, float intensity, float radius);
 
     virtual ~PointLight() override = default;
 };
@@ -382,15 +365,8 @@ class HYP_API SpotLight final : public Light
     HYP_OBJECT_BODY(SpotLight);
 
 public:
-    SpotLight()
-        : Light(LightType::Spot, Vec3f(0.0f), Vec3f(0.0f, 0.0f, -1.0f), Vec2f(30.0f, 15.0f), Color::White(), 1.0f, 10.0f)
-    {
-    }
-
-    SpotLight(const Vec3f& position, const Vec3f& direction, const Vec2f& angles, const Color& color, float intensity, float radius)
-        : Light(LightType::Spot, position, direction, angles, color, intensity, radius)
-    {
-    }
+    SpotLight();
+    SpotLight(const Vec3f& position, const Vec3f& direction, const Vec2f& angles, const Color& color, float intensity, float radius);
 
     virtual ~SpotLight() override = default;
 };
@@ -401,15 +377,8 @@ class HYP_API AreaRectLight final : public Light
     HYP_OBJECT_BODY(AreaRectLight);
 
 public:
-    AreaRectLight()
-        : Light(LightType::AreaRect, Vec3f(0.0f), Vec3f(0.0f, 0.0f, -1.0f), Vec2f(1.0f, 1.0f), Color::White(), 1.0f, 10.0f)
-    {
-    }
-
-    AreaRectLight(const Vec3f& position, const Vec3f& normal, const Vec2f& areaSize, const Color& color, float intensity, float radius)
-        : Light(LightType::AreaRect, position, normal, areaSize, color, intensity, radius)
-    {
-    }
+    AreaRectLight();
+    AreaRectLight(const Vec3f& position, const Vec3f& normal, const Vec2f& areaSize, const Color& color, float intensity, float radius);
 
     virtual ~AreaRectLight() override = default;
 };

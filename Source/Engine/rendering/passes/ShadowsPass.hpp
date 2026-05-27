@@ -69,12 +69,12 @@ protected:
 private:
     struct CachedShadowMapData
     {
-        Array<ShadowMap*, RenderAllocator> shadowMaps;
+        FixedArray<ShadowMap*, MaxShadowMapCascades> shadowMaps;
 
-        FixedArray<View*, MaxShadowMapCascades> shadowViewsDynamic;
-        FixedArray<View*, MaxShadowMapCascades> shadowViewsStatic;
+        Array<View*, FixedAllocator<6>> shadowViewsDynamic;
+        Array<View*, FixedAllocator<6>> shadowViewsStatic;
 
-        FixedArray<FramebufferRef, MaxShadowMapCascades> shadowMapFramebuffers;
+        FixedArray<FramebufferRef, 6> shadowMapFramebuffers;
 
         Handle<Texture> cachedShadowMapTexture;
 

@@ -776,15 +776,15 @@ static void SetForwardShadingUniforms(
         // Set shadow map
         ShadowMapData& currShadowMapData = forwardShadingConstants->shadowMaps[lightIndex];
 
-        View* shadowMapViewDynamic;
-        View* shadowMapViewStatic;
+        Span<View*> shadowMapViewsDynamic;
+        Span<View*> shadowMapViewsStatic;
 
         ShadowMap* shadowMap = RI.shadowMapCache->GetShadowMap(
             light,
             renderSetup.view,
             0,
-            shadowMapViewDynamic,
-            shadowMapViewStatic);
+            shadowMapViewsDynamic,
+            shadowMapViewsStatic);
 
         if (shadowMap != nullptr)
         {
@@ -794,9 +794,9 @@ static void SetForwardShadingUniforms(
             if (!atlasElement)
                 continue;
 
-            AssertDebug(shadowMapViewDynamic != nullptr && shadowMapViewDynamic->GetCamera() != nullptr);
+            AssertDebug(shadowMapViewsDynamic.Size() > 0 && shadowMapViewsDynamic[0]->GetCamera() != nullptr);
 
-            RenderProxyCamera* shadowCameraProxy = static_cast<RenderProxyCamera*>(GetRenderProxy(shadowMapViewDynamic->GetCamera()));
+            RenderProxyCamera* shadowCameraProxy = static_cast<RenderProxyCamera*>(GetRenderProxy(shadowMapViewsDynamic[0]->GetCamera()));
             AssertDebug(shadowCameraProxy != nullptr);
 
             const Mat4f& viewProjMat = shadowCameraProxy->bufferData.viewProjMat;
