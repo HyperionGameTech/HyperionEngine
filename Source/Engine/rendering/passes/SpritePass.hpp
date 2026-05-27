@@ -39,6 +39,8 @@ public:
     virtual void RenderFrame(Frame* frame, const RenderSetup& renderSetup) override;
 
 protected:
+    void CreateQuadMeshes();
+
     PassData* CreateViewPassData(View* view, PassDataExt&) override;
 
     Handle<Mesh> m_quadMesh;

@@ -101,7 +101,7 @@ void FinalPass::Render(Frame* frame, const RenderSetup& rs)
     {
         m_quadMesh = MeshBuilder::Quad();
         m_quadMesh->SetFlags(MeshFlags::ViewIndependent);
-        InitObject(m_quadMesh);
+        m_quadMesh->UploadGpuData();
     }
 
     const FramebufferRef& framebuffer = rs.swapchain->GetFramebuffers()[acquiredImageIndex];

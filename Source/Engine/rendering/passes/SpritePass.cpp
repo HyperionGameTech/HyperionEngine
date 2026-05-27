@@ -229,6 +229,18 @@ SpritePass::SpritePass()
 
 void SpritePass::Initialize()
 {
+    CreateQuadMeshes();
+}
+
+void SpritePass::Shutdown()
+{
+    EnqueueDeletion(std::move(m_quadMesh));
+    EnqueueDeletion(std::move(m_textQuadFrontMesh));
+    EnqueueDeletion(std::move(m_textQuadBackMesh));
+}
+
+void SpritePass::CreateQuadMeshes()
+{
     m_quadMesh = MeshBuilder::Quad();
     m_quadMesh->SetName(NAME("SpriteMesh"));
 
@@ -256,9 +268,10 @@ void SpritePass::Initialize()
         Memory::Copy(indexData.Data(), id.Data(), id.Size());
 
         m_quadMesh->SetMeshData(m_quadMesh->GetMeshDesc(), vertexArrayView, indexData);
-        
+
         m_quadMesh->SetIsTransient(true);
         m_quadMesh->SetFlags(MeshFlags::ViewIndependent);
+        m_quadMesh->UploadGpuData();
     }
 
     Handle<Mesh> textQuadMesh = MeshBuilder::Quad();
@@ -266,16 +279,20 @@ void SpritePass::Initialize()
     textQuadMesh->SetPersistentRequested(true);
 
     Transform backTransform;
+    backTransform.rotation = Quat4f::AxisAngles(Vec3f::UnitY(), MathUtil::DegToRad(180.0f));
+    backTransform.scale = Vec3f(1.0f, 1.0f, -1.0f);
 
     m_textQuadBackMesh = MeshBuilder::ApplyTransform(textQuadMesh, backTransform);
     m_textQuadBackMesh->SetName(NAME("TextSpriteBack"));
+    m_textQuadBackMesh->SetIsTransient(true);
+    m_textQuadBackMesh->SetFlags(MeshFlags::ViewIndependent);
 
     Transform frontTransform;
-    frontTransform.rotation = Quat4f::AxisAngles(Vec3f::UnitY(), MathUtil::DegToRad(180.0f));
-    frontTransform.scale = Vec3f(1.0f, 1.0f, -1.0f);
 
     m_textQuadFrontMesh = MeshBuilder::ApplyTransform(textQuadMesh, frontTransform);
     m_textQuadFrontMesh->SetName(NAME("TextSpriteFront"));
+    m_textQuadFrontMesh->SetIsTransient(true);
+    m_textQuadFrontMesh->SetFlags(MeshFlags::ViewIndependent);
 
     Handle<Mesh> textQuadMeshes[2] = { m_textQuadFrontMesh, m_textQuadBackMesh };
 
@@ -283,12 +300,14 @@ void SpritePass::Initialize()
     {
         auto readScope = mesh->GetReadScope();
 
+        MeshDesc desc = mesh->GetMeshDesc();
+
         VertexArrayView vd = mesh->GetVertexData();
         Array<ubyte> indexData = mesh->GetIndexData();
 
         Array<float> newVertices;
         newVertices.Resize(vd.vertexCount * (vd.layoutDesc.VertexSize() / sizeof(float)));
-        Memory::Copy(newVertices.Data(), vd.floatData, vd.vertexCount * (vd.layoutDesc.VertexSize() / sizeof(float)));
+        Memory::Copy(newVertices.Data(), vd.floatData, vd.vertexCount * vd.layoutDesc.VertexSize());
 
         for (float* f = newVertices.Begin(); f < newVertices.End(); f += vd.layoutDesc.VertexSize() / sizeof(float))
         {
@@ -301,18 +320,10 @@ void SpritePass::Initialize()
 
         readScope.Reset();
 
-        mesh->SetMeshData(mesh->GetMeshDesc(), vertexArrayView, indexData);
-        
-        mesh->SetIsTransient(true);
-        mesh->SetFlags(MeshFlags::ViewIndependent);
-    }
-}
+        mesh->SetMeshData(desc, vertexArrayView, indexData);
 
-void SpritePass::Shutdown()
-{
-    EnqueueDeletion(std::move(m_quadMesh));
-    EnqueueDeletion(std::move(m_textQuadFrontMesh));
-    EnqueueDeletion(std::move(m_textQuadBackMesh));
+        mesh->UploadGpuData();
+    }
 }
 
 void SpritePass::RenderFrame(Frame* frame, const RenderSetup& renderSetup)

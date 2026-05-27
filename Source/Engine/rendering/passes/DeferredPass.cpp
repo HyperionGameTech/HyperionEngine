@@ -1071,7 +1071,7 @@ void FogVolumePass::Create()
     m_volumeMesh = MeshBuilder::Cube(true);
     m_volumeMesh->SetFlags(MeshFlags::ViewIndependent);
     m_volumeMesh->SetName(NAME("FogVolumeMesh"));
-    InitObject(m_volumeMesh);
+    m_volumeMesh->UploadGpuData();
 
     m_shaderDesc = ShaderDesc(NAME("ApplyFogVolume"));
 
@@ -2312,7 +2312,7 @@ void DeferredPass::CreateViewTopLevelAccelerationStructures(View* view, RayTraci
     // Hack to fix driver crash when building TLAS with no meshes
     Handle<Mesh> defaultMesh = MeshBuilder::Cube(true);
     defaultMesh->SetFlags(MeshFlags::ViewIndependent);
-    InitObject(defaultMesh);
+    defaultMesh->UploadGpuData();
 
     GpuBlasRef blas = MeshBlasBuilder::Build(defaultMesh);
     CheckResult(blas->Create());
@@ -2486,7 +2486,7 @@ void DeferredPass::RenderFrame(Frame* frame, const RenderSetup& rs)
     {
         m_quadMesh = MeshBuilder::Quad();
         m_quadMesh->SetFlags(MeshFlags::ViewIndependent);
-        InitObject(m_quadMesh);
+        m_quadMesh->UploadGpuData();
     }
 
     // Collect view-independent renderable types from all views, binned
@@ -3360,7 +3360,7 @@ void DeferredPass::GenerateMipChain(Frame* frame, const RenderSetup& rs, RenderC
         {
             m_quadMesh = MeshBuilder::Quad();
             m_quadMesh->SetFlags(MeshFlags::ViewIndependent);
-            InitObject(m_quadMesh);
+            m_quadMesh->UploadGpuData();
         }
 
         cr << BindVertexBuffer(m_quadMesh->GetVertexBuffer());

@@ -133,9 +133,9 @@ public:
      *  \param entry The entry to move (with updated size)
      *  \return Pointer to the GpuBuffer that was moved
      */
-    HYP_FORCE_INLINE static GpuBuffer* MoveToUsed(
+    static GpuBuffer* MoveToUsed(
         Array<Entry, RenderAllocator>& cachedBuffers,
-        Array<Entry, RenderAllocator>& usedBuffers,
+        LinkedList<Entry, RenderAllocator>& usedBuffers,
         typename Array<Entry, RenderAllocator>::Iterator it,
         Entry& entry)
     {
@@ -146,21 +146,29 @@ public:
         return newElem.Get();
     }
 
-    /*! \brief Recycle used buffers from a previous frame back into the cache.
+    /*! \brief Recycle used buffers from a previous frame back into the cache. Assumes usedBuffers is sorted by last used frame index.
      *  \param usedBuffers The used buffers array to recycle
      *  \param cachedBuffers The cache array to add to
+     *  \param maxFrameIndex Frame index to stop iterating at (no buffers with last use count >= \p{maxFrameIndex} will be recycled this call)
      */
-    HYP_FORCE_INLINE static void RecycleUsedBuffers(
-        Array<Entry, RenderAllocator>& usedBuffers,
-        Array<Entry, RenderAllocator>& cachedBuffers)
+    static void RecycleUsedBuffers(
+        LinkedList<Entry, RenderAllocator>& usedBuffers,
+        Array<Entry, RenderAllocator>& cachedBuffers,
+        uint32 maxFrameIndex)
     {
-        for (Entry& usedBuffer : usedBuffers)
+        while (!usedBuffers.Empty())
         {
-            auto lowerBoundIt = cachedBuffers.LowerBound(usedBuffer);
-            cachedBuffers.Insert(lowerBoundIt, std::move(usedBuffer));
-        }
+            Entry& currEntry = usedBuffers.Front();
 
-        usedBuffers.Clear();
+            if (currEntry.lastUsedFrame >= maxFrameIndex)
+            {
+                break;
+            }
+            
+            auto lowerBoundIt = cachedBuffers.LowerBound(currEntry);
+            cachedBuffers.Insert(lowerBoundIt, std::move(currEntry));
+            usedBuffers.PopFront();
+        }
     }
 };
 

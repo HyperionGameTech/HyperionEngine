@@ -117,7 +117,7 @@ void DynamicSkySystem::InitializeSky()
         mesh->SetFlags(MeshFlags::ViewIndependent);
         mesh->SetName(NAME("SkyboxMesh"));
         mesh->SetIsTransient(true);
-        InitObject(mesh);
+        mesh->UploadGpuData();
 
         MaterialAttributes materialAttributes {};
         materialAttributes.shaderName = NAME("Skybox");
@@ -167,7 +167,7 @@ void DynamicSkySystem::OnAddedToWorld(World* world)
 
     GetWorld()->AddScene(m_renderScene);
     GetWorld()->AddScene(m_visScene);
-    
+
     for (uint32 viewIndex = 0; viewIndex < 6; viewIndex++)
     {
         View* view = m_envProbe->GetView(viewIndex);
@@ -182,7 +182,7 @@ void DynamicSkySystem::OnAddedToWorld(World* world)
 void DynamicSkySystem::OnRemovedFromWorld(World* world)
 {
     SystemBase::OnRemovedFromWorld(world);
-    
+
     for (uint32 viewIndex = 0; viewIndex < 6; viewIndex++)
     {
         View* view = m_envProbe->GetView(viewIndex);

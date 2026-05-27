@@ -47,14 +47,14 @@ void OnBindingChanged_Mesh(Mesh* mesh, uint32 prev, uint32 next)
 
     if (next != ~0u)
     {
-        if ((mesh->GetFlags() & MeshFlags::ViewIndependent) || !mesh->isUploaded.Load())
+        if (!mesh->isUploaded.Load())
         {
             mesh->UploadGpuData();
         }
     }
     else if (prev != ~0u)
     {
-        if (mesh->isUploaded.Load() && !(mesh->GetFlags() & MeshFlags::ViewIndependent))
+        if (!(mesh->GetFlags() & MeshFlags::ViewIndependent))
         {
             mesh->ReleaseGpuData();
         }

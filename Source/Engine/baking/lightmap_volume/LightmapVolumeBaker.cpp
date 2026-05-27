@@ -386,9 +386,9 @@ void Baker<LightmapVolume>::OnCompleted_Internal()
             mesh->SetMeshData(newMeshDesc, vertexArrayView, bakeMesh.indices.ToByteView());
 
             writeScope.Reset();
-            
+
             // needs reupload!
-            if (mesh->GetFlags()[MeshFlags::ViewIndependent] || mesh->isUploaded.Load())
+            if (mesh->isUploaded.Load())
             {
                 mesh->UploadGpuData();
             }

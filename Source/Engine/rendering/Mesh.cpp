@@ -325,6 +325,7 @@ void Mesh::UploadGpuData()
     AssertDebug(vertices.Size() == m_meshDesc.numVertices * vertexSizeInFloats);
     AssertDebug(indices.Size() == m_meshDesc.numIndices);
 
+    // Done reading data into buffers for upload
     readScope.Reset();
 
     auto writeScope = GetWriteScope();
@@ -371,7 +372,7 @@ void Mesh::UploadGpuData()
     stagingBuffer->Flush(0, bufferSizeCombined);
 
     CommandRecorder& cr = RI.commandRecorderAllocator.GetCommandRecorder();
-    HYP_DEFER({ cr.Done(); });
+    HYP_DEFER({ cr.Submit(); });
 
     cr << InsertBarrier(stagingBuffer, RS_COPY_SRC);
 
@@ -440,12 +441,6 @@ void Mesh::SetMeshData(
     MarkDirty();
 
     writeScope.Reset();
-
-    // Needs reupload if changed.
-    if (m_flags[MeshFlags::ViewIndependent])
-    {
-        UploadGpuData();
-    }
 }
 
 void Mesh::SetFlags(EnumFlags<MeshFlags> flags)
@@ -462,11 +457,6 @@ void Mesh::SetFlags(EnumFlags<MeshFlags> flags)
     if (m_flags[MeshFlags::ViewIndependent] != wasViewIndependent)
     {
         SetPersistentRequested(m_flags[MeshFlags::ViewIndependent], /* setFlag */ true, /* markDirty */ false);
-
-        if (m_flags[MeshFlags::ViewIndependent])
-        {
-            UploadGpuData();
-        }
     }
 
     MarkDirty();

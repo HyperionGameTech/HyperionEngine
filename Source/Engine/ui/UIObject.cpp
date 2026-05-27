@@ -113,7 +113,7 @@ const Handle<Mesh>& UIObjectQuadMeshHelper::GetQuadMesh()
 
             quad->SetMeshData(meshDesc, vertexArrayView, indexData);
 
-            InitObject(quad);
+            quad->UploadGpuData();
 
             GetEngineAssetRegistry()->PutAsset(quad);
 

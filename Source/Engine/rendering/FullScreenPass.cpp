@@ -267,7 +267,7 @@ void FullScreenPass::CreateFullScreenQuad()
 {
     m_fullScreenQuad = MeshBuilder::Quad();
     m_fullScreenQuad->SetFlags(MeshFlags::ViewIndependent);
-    InitObject(m_fullScreenQuad);
+    m_fullScreenQuad->UploadGpuData();
 }
 
 void FullScreenPass::CreateFramebuffer()

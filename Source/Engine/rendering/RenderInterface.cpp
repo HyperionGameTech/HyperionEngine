@@ -137,7 +137,7 @@ RENDERING_API Arena* g_rhiArena;
 
 namespace Framework {
 
-static volatile int64 s_frameCounter; // atomic
+static volatile int64 s_frameCounter = 0; // atomic
 
 static std::counting_semaphore<RingBufferDepth> s_fullSemaphore { 0 };
 static std::counting_semaphore<RingBufferDepth> s_freeSemaphore { RingBufferDepth };

@@ -53,19 +53,28 @@ struct StagingBufferPoolImpl
     };
 
     Array<CachedStagingBuffer, RenderAllocator> cachedBuffers;
-    Array<CachedStagingBuffer, RenderAllocator> usedBuffers[NumFramesInFlight];
+    LinkedList<CachedStagingBuffer, RenderAllocator> usedBuffers;
     SharedMutex mutex;
 
     ~StagingBufferPoolImpl() = default;
 
     void OnFrameStart()
     {
-        auto& used = usedBuffers[GetFrameCounter() % NumFramesInFlight];
-        TBufferCache<CachedStagingBuffer, GpuBufferRef>::RecycleUsedBuffers(used, cachedBuffers);
     }
 
     void OnFrameEnd()
     {
+        const uint32 frameCounter = GetFrameCounter();
+
+        if (HYP_UNLIKELY(frameCounter < NumFramesInFlight))
+        {
+            return;
+        }
+
+        TBufferCache<CachedStagingBuffer, GpuBufferRef>::RecycleUsedBuffers(
+            usedBuffers,
+            cachedBuffers,
+            frameCounter - NumFramesInFlight);
     }
 
     void Cleanup()
@@ -109,10 +118,8 @@ struct StagingBufferPoolImpl
                 && bestMatchEntry.buffer->IsCreated()
                 && bestMatchEntry.buffer->Size() >= bestMatchEntry.size);
 
-            auto& used = usedBuffers[currFrame % NumFramesInFlight];
-
             return TBufferCache<CachedStagingBuffer, GpuBufferRef>::MoveToUsed(
-                cachedBuffers, used, bestMatchIt, bestMatchEntry);
+                cachedBuffers, usedBuffers, bestMatchIt, bestMatchEntry);
         }
 
         // Round up to minimum alignment
@@ -135,8 +142,7 @@ struct StagingBufferPoolImpl
 
         Memory::Zero(dataPtr, bufferSize);
 
-        auto& used = usedBuffers[currFrame % NumFramesInFlight];
-        return used.PushBack(std::move(newBuffer)).buffer.Get();
+        return usedBuffers.PushBack(std::move(newBuffer)).buffer.Get();
     }
 };
 

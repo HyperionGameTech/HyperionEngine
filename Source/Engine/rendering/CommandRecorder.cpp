@@ -1077,7 +1077,7 @@ void DrawQuad::InvokeStatic(CmdBase* cmd, CommandBuffer* commandBuffer)
     {
         g_quadMesh = MeshBuilder::Quad();
         g_quadMesh->SetFlags(MeshFlags::ViewIndependent);
-        InitObject(g_quadMesh);
+        g_quadMesh->UploadGpuData();
 
         CurrentThreadObject()->AddOnExitCallback([]()
             {

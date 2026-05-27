@@ -132,7 +132,7 @@ void DefaultGame::OnLaunch_Impl()
 
             auto pointLight = MakeHandle<PointLight>(Vec3f(0.0f, 7.0f, -2.0f), Color::Red(), 50.0f, 30.0f);
             mainScene->GetRoot()->AddChild(pointLight);
-            
+
             // add TextSprites
             Handle<TextSprite> titleSprite = MakeHandle<TextSprite>(NAME("TitleText"), "Hyperion Engine");
             titleSprite->SetWorldTranslation(Vec3f(5.0f, 5.0f, 0.0f));
@@ -232,10 +232,8 @@ void DefaultGame::OnLaunch_Impl()
     cubeEnt->Scale(3.0f);
 
     Handle<Mesh> mesh = MeshBuilder::Cube();
-    mesh->SetFlags(MeshFlags::ViewIndependent);
     mesh->SetName(NAME("CubeMesh"));
     mesh->SetIsTransient(true);
-    InitObject(mesh);
 
     MaterialAttributes attributes;
     attributes.shaderName = NAME("GeometryPass");

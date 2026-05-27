@@ -145,10 +145,9 @@ Mesh* SphereDebugDrawShape::GetMesh_Internal() const
             mesh = MeshBuilder::NormalizedCubeSphere(4);
             mesh->SetFlags(MeshFlags::ViewIndependent);
             mesh->SetName(NAME("SphereDebugDrawShape"));
+            mesh->UploadGpuData();
 
             GetEngineAssetRegistry()->PutAsset(mesh);
-
-            InitObject(mesh);
 
             onShutdownHandle = g_engineDriver->GetDelegates().OnShutdown.Bind([m = &mesh]()
             {
@@ -321,10 +320,9 @@ Mesh* BoxDebugDrawShape::GetMesh_Internal() const
             mesh = MeshBuilder::Cube();
             mesh->SetFlags(MeshFlags::ViewIndependent);
             mesh->SetName(NAME("BoxDebugDrawShape"));
+            mesh->UploadGpuData();
 
             GetEngineAssetRegistry()->PutAsset(mesh);
-
-            InitObject(mesh);
 
             onShutdownHandle = g_engineDriver->GetDelegates().OnShutdown.Bind([m = &mesh]()
             {
@@ -392,10 +390,9 @@ Mesh* PlaneDebugDrawShape::GetMesh_Internal() const
             mesh = MeshBuilder::Quad();
             mesh->SetFlags(MeshFlags::ViewIndependent);
             mesh->SetName(NAME("PlaneDebugDrawShape"));
+            mesh->UploadGpuData();
 
             GetEngineAssetRegistry()->PutAsset(mesh);
-
-            InitObject(mesh);
 
             onShutdownHandle = g_engineDriver->GetDelegates().OnShutdown.Bind([m = &mesh]()
             {
