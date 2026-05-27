@@ -856,6 +856,18 @@ void VulkanGpuImage::Blit(
         dstAspectFlagBits |= VK_IMAGE_ASPECT_COLOR_BIT;
     }
 
+    // clamp src/dst rects to actual mip extents
+    const Vec3u srcMipExtent = srcImage->GetTextureDesc().GetMipExtent(srcSubResource.baseMipLevel);
+    const Vec3u dstMipExtent = m_textureDesc.GetMipExtent(dstSubResource.baseMipLevel);
+
+    Rect<uint32> clampedSrcRect = srcRect;
+    clampedSrcRect.x1 = MathUtil::Min(clampedSrcRect.x1, srcMipExtent.x);
+    clampedSrcRect.y1 = MathUtil::Min(clampedSrcRect.y1, srcMipExtent.y);
+
+    Rect<uint32> clampedDstRect = dstRect;
+    clampedDstRect.x1 = MathUtil::Min(clampedDstRect.x1, dstMipExtent.x);
+    clampedDstRect.y1 = MathUtil::Min(clampedDstRect.y1, dstMipExtent.y);
+
     // simple path; all resource states are same
     if (m_subResourceStates.Empty() && srcImage->m_subResourceStates.Empty())
     {
@@ -871,9 +883,9 @@ void VulkanGpuImage::Blit(
                 .mipLevel = srcSubResource.baseMipLevel,
                 .baseArrayLayer = srcSubResource.baseArrayLayer,
                 .layerCount = srcSubResource.numLayers },
-            .srcOffsets = { { (int32_t)srcRect.x0, (int32_t)srcRect.y0, 0 }, { (int32_t)srcRect.x1, (int32_t)srcRect.y1, 1 } },
+            .srcOffsets = { { (int32_t)clampedSrcRect.x0, (int32_t)clampedSrcRect.y0, 0 }, { (int32_t)clampedSrcRect.x1, (int32_t)clampedSrcRect.y1, 1 } },
             .dstSubresource = { .aspectMask = dstAspectFlagBits, .mipLevel = dstSubResource.baseMipLevel, .baseArrayLayer = dstSubResource.baseArrayLayer, .layerCount = dstSubResource.numLayers },
-            .dstOffsets = { { (int32_t)dstRect.x0, (int32_t)dstRect.y0, 0 }, { (int32_t)dstRect.x1, (int32_t)dstRect.y1, 1 } }
+            .dstOffsets = { { (int32_t)clampedDstRect.x0, (int32_t)clampedDstRect.y0, 0 }, { (int32_t)clampedDstRect.x1, (int32_t)clampedDstRect.y1, 1 } }
         };
 
         vkCmdBlitImage(
@@ -910,15 +922,26 @@ void VulkanGpuImage::Blit(
             AssertDebug(srcResourceState == RS_COPY_SRC);
             AssertDebug(dstResourceState == RS_COPY_DST);
 
+            const Vec3u perMipSrcExtent = srcImage->GetTextureDesc().GetMipExtent(uint8(srcSubResource.baseMipLevel + mipLevel));
+            const Vec3u perMipDstExtent = m_textureDesc.GetMipExtent(uint8(dstSubResource.baseMipLevel + mipLevel));
+
+            Rect<uint32> perMipClampedSrcRect = srcRect;
+            perMipClampedSrcRect.x1 = MathUtil::Min(perMipClampedSrcRect.x1, perMipSrcExtent.x);
+            perMipClampedSrcRect.y1 = MathUtil::Min(perMipClampedSrcRect.y1, perMipSrcExtent.y);
+
+            Rect<uint32> perMipClampedDstRect = dstRect;
+            perMipClampedDstRect.x1 = MathUtil::Min(perMipClampedDstRect.x1, perMipDstExtent.x);
+            perMipClampedDstRect.y1 = MathUtil::Min(perMipClampedDstRect.y1, perMipDstExtent.y);
+
             VkImageBlit blit {
                 .srcSubresource = {
                     .aspectMask = srcAspectFlagBits,
                     .mipLevel = uint32(srcSubResource.baseMipLevel + mipLevel),
                     .baseArrayLayer = uint32(srcSubResource.baseArrayLayer + layerIndex),
                     .layerCount = 1 },
-                .srcOffsets = { { (int32_t)srcRect.x0, (int32_t)srcRect.y0, 0 }, { (int32_t)srcRect.x1, (int32_t)srcRect.y1, 1 } },
+                .srcOffsets = { { (int32_t)perMipClampedSrcRect.x0, (int32_t)perMipClampedSrcRect.y0, 0 }, { (int32_t)perMipClampedSrcRect.x1, (int32_t)perMipClampedSrcRect.y1, 1 } },
                 .dstSubresource = { .aspectMask = dstAspectFlagBits, .mipLevel = uint32(dstSubResource.baseMipLevel + mipLevel), .baseArrayLayer = uint32(dstSubResource.baseArrayLayer + layerIndex), .layerCount = 1 },
-                .dstOffsets = { { (int32_t)dstRect.x0, (int32_t)dstRect.y0, 0 }, { (int32_t)dstRect.x1, (int32_t)dstRect.y1, 1 } }
+                .dstOffsets = { { (int32_t)perMipClampedDstRect.x0, (int32_t)perMipClampedDstRect.y0, 0 }, { (int32_t)perMipClampedDstRect.x1, (int32_t)perMipClampedDstRect.y1, 1 } }
             };
 
             vkCmdBlitImage(
@@ -1217,6 +1240,15 @@ void VulkanGpuImage::CopyFrom(
     newDstSubResource.numLayers = MathUtil::Min(dstSubResource.numLayers, NumArrayLayers() - dstSubResource.baseArrayLayer);
     newDstSubResource.numLevels = MathUtil::Min(dstSubResource.numLevels, NumMips() - dstSubResource.baseMipLevel);
 
+    // clamp extent to min of src and dst mip dimensions
+    const Vec3u srcMipExtent = srcImage->GetTextureDesc().GetMipExtent(newSrcSubResource.baseMipLevel);
+    const Vec3u dstMipExtent = m_textureDesc.GetMipExtent(newDstSubResource.baseMipLevel);
+
+    Vec3u clampedExtent = extent;
+    clampedExtent.x = MathUtil::Min(clampedExtent.x, srcMipExtent.x - srcOffset.x, dstMipExtent.x - dstOffset.x);
+    clampedExtent.y = MathUtil::Min(clampedExtent.y, srcMipExtent.y - srcOffset.y, dstMipExtent.y - dstOffset.y);
+    clampedExtent.z = MathUtil::Min(clampedExtent.z, srcMipExtent.z - srcOffset.z, dstMipExtent.z - dstOffset.z);
+
     // simple path; all resource states are same
     if (m_subResourceStates.Empty() && srcImage->m_subResourceStates.Empty())
     {
@@ -1227,7 +1259,7 @@ void VulkanGpuImage::CopyFrom(
         AssertDebug(dstResourceState == RS_COPY_DST);
 
         VkImageCopy copy {};
-        copy.extent = { extent.x, extent.y, extent.z };
+        copy.extent = { clampedExtent.x, clampedExtent.y, clampedExtent.z };
         copy.srcOffset = { int(srcOffset.x), int(srcOffset.y), int(srcOffset.z) };
         copy.dstOffset = { int(dstOffset.x), int(dstOffset.y), int(dstOffset.z) };
         copy.srcSubresource = {
@@ -1276,8 +1308,16 @@ void VulkanGpuImage::CopyFrom(
             AssertDebug(srcResourceState == RS_COPY_SRC);
             AssertDebug(dstResourceState == RS_COPY_DST);
 
+            const Vec3u perMipSrcExtent = srcImage->GetTextureDesc().GetMipExtent(uint8(newSrcSubResource.baseMipLevel + mipLevel));
+            const Vec3u perMipDstExtent = m_textureDesc.GetMipExtent(uint8(newDstSubResource.baseMipLevel + mipLevel));
+
+            Vec3u perMipClampedExtent = extent;
+            perMipClampedExtent.x = MathUtil::Min(perMipClampedExtent.x, perMipSrcExtent.x - srcOffset.x, perMipDstExtent.x - dstOffset.x);
+            perMipClampedExtent.y = MathUtil::Min(perMipClampedExtent.y, perMipSrcExtent.y - srcOffset.y, perMipDstExtent.y - dstOffset.y);
+            perMipClampedExtent.z = MathUtil::Min(perMipClampedExtent.z, perMipSrcExtent.z - srcOffset.z, perMipDstExtent.z - dstOffset.z);
+
             VkImageCopy copy {};
-            copy.extent = { extent.x, extent.y, extent.z };
+            copy.extent = { perMipClampedExtent.x, perMipClampedExtent.y, perMipClampedExtent.z };
             copy.srcOffset = { int(srcOffset.x), int(srcOffset.y), int(srcOffset.z) };
             copy.dstOffset = { int(dstOffset.x), int(dstOffset.y), int(dstOffset.z) };
             copy.srcSubresource = {

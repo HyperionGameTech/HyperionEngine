@@ -111,59 +111,59 @@ static const FixedArray<uint32, 12>& GetDoubleSidedQuadIndices()
 static const Array<SimpleVertex>& GetCubeVertices()
 {
     static const Array<SimpleVertex> s_cubeVertices = {
-        // Face 1
-        SimpleVertex { Vec3f { -1.0f, -1.0f, -1.0f }, Vec3f { -1.0f, 0.0f, 0.0f }, Vec2f { 0.0f, 0.0f } },
-        SimpleVertex { Vec3f { -1.0f, 1.0f, -1.0f }, Vec3f { -1.0f, 0.0f, 0.0f }, Vec2f { 0.0f, 1.0f } },
-        SimpleVertex { Vec3f { -1.0f, 1.0f, 1.0f }, Vec3f { -1.0f, 0.0f, 0.0f }, Vec2f { 1.0f, 1.0f } },
+        // Face 1: -X (Left)
+        SimpleVertex { Vec3f { -1.0f, -1.0f, -1.0f }, Vec3f { -1.0f, 0.0f, 0.0f }, Vec2f { 1.0f, 1.0f } },
+        SimpleVertex { Vec3f { -1.0f,  1.0f, -1.0f }, Vec3f { -1.0f, 0.0f, 0.0f }, Vec2f { 1.0f, 0.0f } },
+        SimpleVertex { Vec3f { -1.0f,  1.0f,  1.0f }, Vec3f { -1.0f, 0.0f, 0.0f }, Vec2f { 0.0f, 0.0f } },
 
-        SimpleVertex { Vec3f { -1.0f, 1.0f, 1.0f }, Vec3f { -1.0f, 0.0f, 0.0f }, Vec2f { 1.0f, 1.0f } },
-        SimpleVertex { Vec3f { -1.0f, -1.0f, 1.0f }, Vec3f { -1.0f, 0.0f, 0.0f }, Vec2f { 1.0f, 0.0f } },
-        SimpleVertex { Vec3f { -1.0f, -1.0f, -1.0f }, Vec3f { -1.0f, 0.0f, 0.0f }, Vec2f { 0.0f, 0.0f } },
+        SimpleVertex { Vec3f { -1.0f,  1.0f,  1.0f }, Vec3f { -1.0f, 0.0f, 0.0f }, Vec2f { 0.0f, 0.0f } },
+        SimpleVertex { Vec3f { -1.0f, -1.0f,  1.0f }, Vec3f { -1.0f, 0.0f, 0.0f }, Vec2f { 0.0f, 1.0f } },
+        SimpleVertex { Vec3f { -1.0f, -1.0f, -1.0f }, Vec3f { -1.0f, 0.0f, 0.0f }, Vec2f { 1.0f, 1.0f } },
 
-        // Face 2
-        SimpleVertex { Vec3f { -1.0f, -1.0f, 1.0f }, Vec3f { 0.0f, 0.0f, 1.0f }, Vec2f { 0.0f, 0.0f } },
-        SimpleVertex { Vec3f { -1.0f, 1.0f, 1.0f }, Vec3f { 0.0f, 0.0f, 1.0f }, Vec2f { 0.0f, 1.0f } },
-        SimpleVertex { Vec3f { 1.0f, 1.0f, 1.0f }, Vec3f { 0.0f, 0.0f, 1.0f }, Vec2f { 1.0f, 1.0f } },
+        // Face 2: +Z (Front)
+        SimpleVertex { Vec3f { -1.0f, -1.0f,  1.0f }, Vec3f { 0.0f, 0.0f, 1.0f }, Vec2f { 0.0f, 1.0f } },
+        SimpleVertex { Vec3f { -1.0f,  1.0f,  1.0f }, Vec3f { 0.0f, 0.0f, 1.0f }, Vec2f { 0.0f, 0.0f } },
+        SimpleVertex { Vec3f {  1.0f,  1.0f,  1.0f }, Vec3f { 0.0f, 0.0f, 1.0f }, Vec2f { 1.0f, 0.0f } },
 
-        SimpleVertex { Vec3f { 1.0f, 1.0f, 1.0f }, Vec3f { 0.0f, 0.0f, 1.0f }, Vec2f { 1.0f, 1.0f } },
-        SimpleVertex { Vec3f { 1.0f, -1.0f, 1.0f }, Vec3f { 0.0f, 0.0f, 1.0f }, Vec2f { 1.0f, 0.0f } },
-        SimpleVertex { Vec3f { -1.0f, -1.0f, 1.0f }, Vec3f { 0.0f, 0.0f, 1.0f }, Vec2f { 0.0f, 0.0f } },
+        SimpleVertex { Vec3f {  1.0f,  1.0f,  1.0f }, Vec3f { 0.0f, 0.0f, 1.0f }, Vec2f { 1.0f, 0.0f } },
+        SimpleVertex { Vec3f {  1.0f, -1.0f,  1.0f }, Vec3f { 0.0f, 0.0f, 1.0f }, Vec2f { 1.0f, 1.0f } },
+        SimpleVertex { Vec3f { -1.0f, -1.0f,  1.0f }, Vec3f { 0.0f, 0.0f, 1.0f }, Vec2f { 0.0f, 1.0f } },
 
-        // Face 3
-        SimpleVertex { Vec3f { 1.0f, 1.0f, 1.0f }, Vec3f { 1.0f, 0.0f, 0.0f }, Vec2f { 1.0f, 1.0f } },
-        SimpleVertex { Vec3f { 1.0f, 1.0f, -1.0f }, Vec3f { 1.0f, 0.0f, 0.0f }, Vec2f { 0.0f, 1.0f } },
-        SimpleVertex { Vec3f { 1.0f, -1.0f, -1.0f }, Vec3f { 1.0f, 0.0f, 0.0f }, Vec2f { 0.0f, 0.0f } },
+        // Face 3: +X (Right)
+        SimpleVertex { Vec3f {  1.0f,  1.0f,  1.0f }, Vec3f { 1.0f, 0.0f, 0.0f }, Vec2f { 0.0f, 0.0f } },
+        SimpleVertex { Vec3f {  1.0f,  1.0f, -1.0f }, Vec3f { 1.0f, 0.0f, 0.0f }, Vec2f { 1.0f, 0.0f } },
+        SimpleVertex { Vec3f {  1.0f, -1.0f, -1.0f }, Vec3f { 1.0f, 0.0f, 0.0f }, Vec2f { 1.0f, 1.0f } },
 
-        SimpleVertex { Vec3f { 1.0f, -1.0f, -1.0f }, Vec3f { 1.0f, 0.0f, 0.0f }, Vec2f { 0.0f, 0.0f } },
-        SimpleVertex { Vec3f { 1.0f, -1.0f, 1.0f }, Vec3f { 1.0f, 0.0f, 0.0f }, Vec2f { 1.0f, 0.0f } },
-        SimpleVertex { Vec3f { 1.0f, 1.0f, 1.0f }, Vec3f { 1.0f, 0.0f, 0.0f }, Vec2f { 1.0f, 1.0f } },
+        SimpleVertex { Vec3f {  1.0f, -1.0f, -1.0f }, Vec3f { 1.0f, 0.0f, 0.0f }, Vec2f { 1.0f, 1.0f } },
+        SimpleVertex { Vec3f {  1.0f, -1.0f,  1.0f }, Vec3f { 1.0f, 0.0f, 0.0f }, Vec2f { 0.0f, 1.0f } },
+        SimpleVertex { Vec3f {  1.0f,  1.0f,  1.0f }, Vec3f { 1.0f, 0.0f, 0.0f }, Vec2f { 0.0f, 0.0f } },
 
-        // Face 4
-        SimpleVertex { Vec3f { 1.0f, 1.0f, -1.0f }, Vec3f { 0.0f, 0.0f, -1.0f }, Vec2f { 1.0f, 1.0f } },
-        SimpleVertex { Vec3f { -1.0f, 1.0f, -1.0f }, Vec3f { 0.0f, 0.0f, -1.0f }, Vec2f { 0.0f, 1.0f } },
-        SimpleVertex { Vec3f { -1.0f, -1.0f, -1.0f }, Vec3f { 0.0f, 0.0f, -1.0f }, Vec2f { 0.0f, 0.0f } },
+        // Face 4: -Z (Back)
+        SimpleVertex { Vec3f {  1.0f,  1.0f, -1.0f }, Vec3f { 0.0f, 0.0f, -1.0f }, Vec2f { 0.0f, 0.0f } },
+        SimpleVertex { Vec3f { -1.0f,  1.0f, -1.0f }, Vec3f { 0.0f, 0.0f, -1.0f }, Vec2f { 1.0f, 0.0f } },
+        SimpleVertex { Vec3f { -1.0f, -1.0f, -1.0f }, Vec3f { 0.0f, 0.0f, -1.0f }, Vec2f { 1.0f, 1.0f } },
 
-        SimpleVertex { Vec3f { -1.0f, -1.0f, -1.0f }, Vec3f { 0.0f, 0.0f, -1.0f }, Vec2f { 0.0f, 0.0f } },
-        SimpleVertex { Vec3f { 1.0f, -1.0f, -1.0f }, Vec3f { 0.0f, 0.0f, -1.0f }, Vec2f { 1.0f, 0.0f } },
-        SimpleVertex { Vec3f { 1.0f, 1.0f, -1.0f }, Vec3f { 0.0f, 0.0f, -1.0f }, Vec2f { 1.0f, 1.0f } },
+        SimpleVertex { Vec3f { -1.0f, -1.0f, -1.0f }, Vec3f { 0.0f, 0.0f, -1.0f }, Vec2f { 1.0f, 1.0f } },
+        SimpleVertex { Vec3f {  1.0f, -1.0f, -1.0f }, Vec3f { 0.0f, 0.0f, -1.0f }, Vec2f { 0.0f, 1.0f } },
+        SimpleVertex { Vec3f {  1.0f,  1.0f, -1.0f }, Vec3f { 0.0f, 0.0f, -1.0f }, Vec2f { 0.0f, 0.0f } },
 
-        // Face 5
-        SimpleVertex { Vec3f { -1.0f, 1.0f, 1.0f }, Vec3f { 0.0f, 1.0f, 0.0f }, Vec2f { 1.0f, 1.0f } },
-        SimpleVertex { Vec3f { -1.0f, 1.0f, -1.0f }, Vec3f { 0.0f, 1.0f, 0.0f }, Vec2f { 0.0f, 1.0f } },
-        SimpleVertex { Vec3f { 1.0f, 1.0f, -1.0f }, Vec3f { 0.0f, 1.0f, 0.0f }, Vec2f { 0.0f, 0.0f } },
+        // Face 5: +Y (Top)
+        SimpleVertex { Vec3f { -1.0f,  1.0f,  1.0f }, Vec3f { 0.0f, 1.0f, 0.0f }, Vec2f { 0.0f, 0.0f } },
+        SimpleVertex { Vec3f { -1.0f,  1.0f, -1.0f }, Vec3f { 0.0f, 1.0f, 0.0f }, Vec2f { 0.0f, 1.0f } },
+        SimpleVertex { Vec3f {  1.0f,  1.0f, -1.0f }, Vec3f { 0.0f, 1.0f, 0.0f }, Vec2f { 1.0f, 1.0f } },
 
-        SimpleVertex { Vec3f { 1.0f, 1.0f, -1.0f }, Vec3f { 0.0f, 1.0f, 0.0f }, Vec2f { 0.0f, 0.0f } },
-        SimpleVertex { Vec3f { 1.0f, 1.0f, 1.0f }, Vec3f { 0.0f, 1.0f, 0.0f }, Vec2f { 1.0f, 0.0f } },
-        SimpleVertex { Vec3f { -1.0f, 1.0f, 1.0f }, Vec3f { 0.0f, 1.0f, 0.0f }, Vec2f { 1.0f, 1.0f } },
+        SimpleVertex { Vec3f {  1.0f,  1.0f, -1.0f }, Vec3f { 0.0f, 1.0f, 0.0f }, Vec2f { 1.0f, 1.0f } },
+        SimpleVertex { Vec3f {  1.0f,  1.0f,  1.0f }, Vec3f { 0.0f, 1.0f, 0.0f }, Vec2f { 1.0f, 0.0f } },
+        SimpleVertex { Vec3f { -1.0f,  1.0f,  1.0f }, Vec3f { 0.0f, 1.0f, 0.0f }, Vec2f { 0.0f, 0.0f } },
 
-        // Face 6
-        SimpleVertex { Vec3f { 1.0f, -1.0f, -1.0f }, Vec3f { 0.0f, -1.0f, 0.0f }, Vec2f { 0.0f, 0.0f } },
-        SimpleVertex { Vec3f { -1.0f, -1.0f, -1.0f }, Vec3f { 0.0f, -1.0f, 0.0f }, Vec2f { 0.0f, 1.0f } },
-        SimpleVertex { Vec3f { -1.0f, -1.0f, 1.0f }, Vec3f { 0.0f, -1.0f, 0.0f }, Vec2f { 1.0f, 1.0f } },
+        // Face 6: -Y (Bottom)
+        SimpleVertex { Vec3f {  1.0f, -1.0f, -1.0f }, Vec3f { 0.0f, -1.0f, 0.0f }, Vec2f { 1.0f, 0.0f } },
+        SimpleVertex { Vec3f { -1.0f, -1.0f, -1.0f }, Vec3f { 0.0f, -1.0f, 0.0f }, Vec2f { 0.0f, 0.0f } },
+        SimpleVertex { Vec3f { -1.0f, -1.0f,  1.0f }, Vec3f { 0.0f, -1.0f, 0.0f }, Vec2f { 0.0f, 1.0f } },
 
-        SimpleVertex { Vec3f { -1.0f, -1.0f, 1.0f }, Vec3f { 0.0f, -1.0f, 0.0f }, Vec2f { 1.0f, 1.0f } },
-        SimpleVertex { Vec3f { 1.0f, -1.0f, 1.0f }, Vec3f { 0.0f, -1.0f, 0.0f }, Vec2f { 1.0f, 0.0f } },
-        SimpleVertex { Vec3f { 1.0f, -1.0f, -1.0f }, Vec3f { 0.0f, -1.0f, 0.0f }, Vec2f { 0.0f, 0.0f } }
+        SimpleVertex { Vec3f { -1.0f, -1.0f,  1.0f }, Vec3f { 0.0f, -1.0f, 0.0f }, Vec2f { 0.0f, 1.0f } },
+        SimpleVertex { Vec3f {  1.0f, -1.0f,  1.0f }, Vec3f { 0.0f, -1.0f, 0.0f }, Vec2f { 1.0f, 1.0f } },
+        SimpleVertex { Vec3f {  1.0f, -1.0f, -1.0f }, Vec3f { 0.0f, -1.0f, 0.0f }, Vec2f { 1.0f, 0.0f } }
     };
 
     return s_cubeVertices;

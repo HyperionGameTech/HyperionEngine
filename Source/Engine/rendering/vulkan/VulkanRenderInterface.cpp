@@ -908,15 +908,9 @@ void VulkanRenderInterface::PrepareFrame(VulkanFrame* frame)
         it = fences.Erase(it);
     }
 
-    auto& semaphores = m_transientCommandBufferSemaphores[frameCounter % NumFramesInFlight];
-    for (auto it = semaphores.Begin(); it != semaphores.End();)
-    {
-        VulkanSemaphore& semaphore = *it;
-
-        m_recycledTransientCommandBufferSemaphores.PushBack(std::move(semaphore));
-
-        it = semaphores.Erase(it);
-    }
+    // Semaphores are destroyed when cleared (destructor enqueues vkDestroySemaphore).
+    // No recycling needed: each transient submit creates a fresh semaphore.
+    m_transientCommandBufferSemaphores[frameCounter % NumFramesInFlight].Clear();
 
     for (uint32 threadIndex = 0; threadIndex < NumRendererWorkerThreads + 1; threadIndex++)
     {
@@ -1112,14 +1106,7 @@ void VulkanRenderInterface::SubmitTransientCommandBuffer(VulkanCommandBuffer& co
         VulkanSemaphore& signalSemaphore = m_transientCommandBufferSemaphores[frameIndex].EmplaceBack();
         pSignalSemaphore = &signalSemaphore;
 
-        if (m_recycledTransientCommandBufferSemaphores.Any())
-        {
-            signalSemaphore = std::move(m_recycledTransientCommandBufferSemaphores.PopFront());
-        }
-        else
-        {
-            CheckResult(signalSemaphore.Create());
-        }
+        CheckResult(signalSemaphore.Create());
 
         VulkanFence& fence = m_transientCommandBufferFences[frameIndex].EmplaceBack();
         pFence = &fence;
