@@ -127,6 +127,14 @@ EngineStatGpuTimer g_statGpuFrameTime("Rendering/GPU/FrameTime");
 
 static EngineStatTimer s_statViewDataAllocTime { "Rendering/ViewData/AllocTime", /* resetPerFrame */ false };
 
+/// ===== Memory pools =====
+RENDERING_API Pool* g_renderPool;
+RENDERING_API Arena* g_renderArena;
+
+RENDERING_API Pool* g_rhiPool;
+RENDERING_API Arena* g_rhiArena;
+/// ========================
+
 namespace Framework {
 
 static volatile int64 s_frameCounter; // atomic
@@ -577,12 +585,20 @@ RenderInterface::RenderInterface()
     Assert(g_renderPool == nullptr);
 
     g_renderPool = new Pool(RenderPoolBlockSize);
+    g_renderArena = new Arena(RenderArenaSize);
+
+    Assert(g_rhiPool == nullptr);
+    g_rhiPool = new Pool(RHIPoolBlockSize);
+    g_rhiArena = new Arena(RHIArenaSize);
 }
 
 RenderInterface::~RenderInterface()
 {
     delete g_renderPool;
     g_renderPool = nullptr;
+
+    delete g_rhiPool;
+    g_rhiPool = nullptr;
 }
 
 RendererResult RenderInterface::Initialize()

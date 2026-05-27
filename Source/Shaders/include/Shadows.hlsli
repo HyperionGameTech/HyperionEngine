@@ -41,11 +41,21 @@ static const float2 s_pcfKernel[16] = {
     float2(0.14383161, -0.14100790)
 };
 
+#ifdef VULKAN
 static const float4x4 s_shadowBiasMatrix = float4x4(
     0.5, 0.0, 0.0, 0.5,
     0.0, -0.5, 0.0, 0.5,
     0.0, 0.0, 1.0, 0.0,
-    0.0, 0.0, 0.0, 1.0);
+    0.0, 0.0, 0.0, 1.0
+);
+#else // !VULKAN
+static const float4x4 s_shadowBiasMatrix = float4x4(
+    0.5, 0.0, 0.0, 0.0,
+    0.0, -0.5, 0.0, 0.0,
+    0.0, 0.0, 1.0, 0.0,
+    0.5, 0.5, 0.0, 1.0
+);
+#endif // VULKAN
 
 float3 GetShadowCoord(in float4x4 shadowMatrix, float3 pos)
 {
@@ -61,6 +71,7 @@ float GetShadowStandard(in ShadowMap shadowMap, float3 pos, float2 offset, float
 {
     const float2 offsetUV = float2(shadowMap.aabbMin.w, shadowMap.aabbMax.w);
 
+    // @TODO Cache coord, in the case of using contact shadows (currently, this is evaluated each call when using contact shadows)
     const float3 coord = GetShadowCoord(shadowMap.viewProjMat, pos);
     const float4 shadow_sample = SAMPLE_TEXTURE_2D_ARRAY_LOD(HYP_SAMPLER_LINEAR, shadow_maps, float3((saturate(coord.xy + offset) * shadowMap.dimensionsScale.zw) + offsetUV, float(shadowMap.layerIndex)), 0);
     const float shadow_depth = shadow_sample.r;

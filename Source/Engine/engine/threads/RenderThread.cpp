@@ -231,9 +231,6 @@ void RenderThread::Update()
 
 void RenderThread::operator()()
 {
-    AssertDebug(g_renderArena == nullptr);
-    g_renderArena = new Arena(RenderArenaSize);
-
     if (!CheckResult(RI.Initialize()))
     {
         HYP_FAIL("Failed to initialize rendering backend");
@@ -252,9 +249,6 @@ void RenderThread::operator()()
         
         RI.Shutdown();
 
-        delete g_renderArena;
-        g_renderArena = nullptr;
-
         g_renderInitSignal.Reset();
     }
     else
@@ -262,9 +256,6 @@ void RenderThread::operator()()
         AddOnExitCallback([]()
             {
                 RI.Shutdown();
-                
-                delete g_renderArena;
-                g_renderArena = nullptr;
 
                 g_renderInitSignal.Reset();
             });

@@ -129,7 +129,7 @@ bool AtlasPacker<AtlasElement>::AddElement(
             *outElement = {};
 
             outElement->offsetCoords = Vec2u { uint32(bestX), uint32(bestY) };
-            outElement->offsetUV = Vec2f(outElement->offsetCoords) / Vec2f(atlasDimensions - 1);
+            outElement->offsetUV = Vec2f(outElement->offsetCoords) / Vec2f(atlasDimensions);
             outElement->dimensions = dim;
             outElement->scale = Vec2f(dim) / Vec2f(atlasDimensions);
 

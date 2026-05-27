@@ -39,6 +39,9 @@ class GBuffer;
 class EntityBatchAllocatorBase;
 class RenderProxyList;
 
+HYP_API extern Pool* g_scenePool;
+using SceneAllocator = AllocatorInstance<Pool, &g_scenePool>;
+
 namespace threading {
 
 class TaskBatch;

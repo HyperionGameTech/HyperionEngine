@@ -364,7 +364,7 @@ void View::PrepareShadowViews(Array<View*, SceneAllocator>& outShadowViews)
 
     // Collect all shadow casting lights into here so we can sort by distance / visibility to prioritize
     // closer lights' casting shadows.
-    Array<Light*, RenderAllocator> allShadowCastingLights;
+    Array<Light*, SceneTempAllocator> allShadowCastingLights;
     allShadowCastingLights.Reserve(8);
 
     for (Scene* scene : m_scenes)

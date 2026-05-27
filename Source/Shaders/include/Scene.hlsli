@@ -49,7 +49,6 @@ struct ShadowMap
     float4 aabbMax;         // w = offsetUV.y
     float4 dimensionsScale; // xy = slice dimensions in pixels, zw = slice dimensions relative to the atlas dimensions
 
-    // layer indices per cascade for shadow maps. Each cascade is 1 byte.
     uint layerIndex;
     float splitDistance;
     float _pad0;

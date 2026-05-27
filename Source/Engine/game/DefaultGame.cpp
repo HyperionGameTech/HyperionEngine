@@ -292,13 +292,13 @@ void DefaultGame::OnUpdate_Impl(float delta)
         }
     }
 
-    // Rotate sun for day/night cycle
-    if (m_sun)
-    {
-        m_sunAngle += delta * 0.5f;
-        Vec3f dir = Vec3f(MathUtil::Sin(m_sunAngle), 0.4f, MathUtil::Cos(m_sunAngle)).Normalize();
-        m_sun->SetDirection(dir);
-    }
+    //// Rotate sun for day/night cycle
+    //if (m_sun)
+    //{
+    //    m_sunAngle += delta * 0.5f;
+    //    Vec3f dir = Vec3f(MathUtil::Sin(m_sunAngle), 0.4f, MathUtil::Cos(m_sunAngle)).Normalize();
+    //    m_sun->SetDirection(dir);
+    //}
 }
 
 bool DefaultGame::OnInputEvent(const Event& event)

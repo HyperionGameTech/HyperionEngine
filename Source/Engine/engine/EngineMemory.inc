@@ -49,14 +49,6 @@ static void InitMemoryPools()
 
     g_sceneArena = new Arena(SceneArenaSize);
     g_streamingArena = new Arena(StreamingArenaSize);
-
-#if HYP_VULKAN
-    g_vulkanPool = new Pool(VulkanPoolBlockSize);
-    g_vulkanArena = new Arena(VulkanArenaSize);
-#elif HYP_DX12
-    g_dx12Pool = new Pool(DX12PoolBlockSize);
-    g_dx12Arena = new Arena(DX12ArenaSize);
-#endif
 }
 
 #endif
