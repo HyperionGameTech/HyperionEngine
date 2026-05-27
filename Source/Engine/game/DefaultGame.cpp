@@ -44,6 +44,8 @@
 
 #include <rendering/util/MeshBuilder.hpp>
 
+#include <scene/TextSprite.hpp>
+
 #include <input/InputManager.hpp>
 #include <input/Mouse.hpp>
 #include <input/Event.hpp>
@@ -130,6 +132,19 @@ void DefaultGame::OnLaunch_Impl()
 
             auto pointLight = MakeHandle<PointLight>(Vec3f(0.0f, 7.0f, -2.0f), Color::Red(), 50.0f, 30.0f);
             mainScene->GetRoot()->AddChild(pointLight);
+            
+            // add TextSprites
+            Handle<TextSprite> titleSprite = MakeHandle<TextSprite>(NAME("TitleText"), "Hyperion Engine");
+            titleSprite->SetWorldTranslation(Vec3f(5.0f, 5.0f, 0.0f));
+            titleSprite->SetTextColor(Color::White());
+            titleSprite->SetTextSize(16.0f);
+            mainScene->GetRoot()->AddChild(titleSprite);
+
+            Handle<TextSprite> subtitleSprite = MakeHandle<TextSprite>(NAME("SubtitleText"), "Default Scene");
+            subtitleSprite->SetWorldTranslation(Vec3f(5.0f, 4.0f, 0.0f));
+            subtitleSprite->SetTextColor(Color(0.8f, 0.8f, 1.0f, 1.0f));
+            subtitleSprite->SetTextSize(14.0f);
+            mainScene->GetRoot()->AddChild(subtitleSprite);
 
             GetWorld()->AddScene(mainScene);
 
@@ -266,8 +281,8 @@ void DefaultGame::OnLaunch_Impl()
          HYP_LOG(Game, Error, "Failed to load test asset: {}", error->GetMessage());
      }
 
-    ScriptComponent& scriptComponent = m_sun->AddComponent<ScriptComponent>(ScriptComponent {
-        scriptAsset });
+     ScriptComponent& scriptComponent = m_sun->AddComponent<ScriptComponent>(ScriptComponent {
+         scriptAsset });
 
     //    Handle<FogVolume> fogVolume = MakeHandle<FogVolume>();
     //    fogVolume->SetLocalBounds(BoundingBox(Vec3f(-30.0f, -0.5f, -30.0f), Vec3f(30.0f, 40.0f, 30.0f)));

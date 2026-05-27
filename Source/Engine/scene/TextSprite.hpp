@@ -72,6 +72,8 @@ protected:
     void UpdateTextAABB();
     void UpdateFontAtlasTexture();
 
+    void OnAddedToWorld(World* world) override;
+
     void UpdateRenderProxy(class RenderProxySprite* proxy) override;
 
     String m_text;

@@ -22,6 +22,7 @@
 #include <rendering/CBufferAllocator.hpp>
 #include <rendering/RawBufferAllocator.hpp>
 #include <rendering/SamplerCache.hpp>
+#include <rendering/TextureViewCache.hpp>
 
 #include <rendering/passes/SpritePass.hpp>
 
@@ -260,56 +261,53 @@ void SpritePass::Initialize()
     }
 
     InitObject(m_quadMesh);
-    GetEngineAssetRegistry()->PutAsset(m_quadMesh);
 
-    m_textQuadFrontMesh = MeshBuilder::Quad();
-    m_textQuadFrontMesh->SetName(NAME("TextSpriteFront"));
-    m_textQuadFrontMesh->SetFlags(MeshFlags::ViewIndependent);
-    m_textQuadFrontMesh->SetIsTransient(true);
+    Handle<Mesh> textQuadMesh = MeshBuilder::Quad();
+    textQuadMesh->SetName(NAME("TextSpriteQuad"));
+    textQuadMesh->SetPersistentRequested(true);
 
     Transform backTransform;
-    backTransform.rotation = Quat4f::AxisAngles(Vec3f::UnitY(), MathUtil::DegToRad(180.0f));
-    backTransform.scale = Vec3f(1.0f, 1.0f, -1.0f);
 
-    m_textQuadBackMesh = MeshBuilder::ApplyTransform(m_textQuadFrontMesh, backTransform);
+    m_textQuadBackMesh = MeshBuilder::ApplyTransform(textQuadMesh, backTransform);
     m_textQuadBackMesh->SetName(NAME("TextSpriteBack"));
     m_textQuadBackMesh->SetFlags(MeshFlags::ViewIndependent);
     m_textQuadBackMesh->SetIsTransient(true);
+
+    Transform frontTransform;
+    frontTransform.rotation = Quat4f::AxisAngles(Vec3f::UnitY(), MathUtil::DegToRad(180.0f));
+    frontTransform.scale = Vec3f(1.0f, 1.0f, -1.0f);
+
+    m_textQuadFrontMesh = MeshBuilder::ApplyTransform(textQuadMesh, frontTransform);
+    m_textQuadFrontMesh->SetName(NAME("TextSpriteFront"));
+    m_textQuadFrontMesh->SetFlags(MeshFlags::ViewIndependent);
+    m_textQuadFrontMesh->SetIsTransient(true);
 
     Handle<Mesh> textQuadMeshes[2] = { m_textQuadFrontMesh, m_textQuadBackMesh };
 
     for (Handle<Mesh>& mesh : textQuadMeshes)
     {
+        auto readScope = mesh->GetReadScope();
+
         VertexArrayView vd = mesh->GetVertexData();
-        ByteView id = mesh->GetIndexData();
+        Array<ubyte> indexData = mesh->GetIndexData();
 
-        Array<SimpleVertex> newVertices;
-        newVertices.Resize(vd.vertexCount);
-        Memory::Copy(newVertices.Data(), vd.floatData, vd.vertexCount * sizeof(SimpleVertex));
+        Array<float> newVertices;
+        newVertices.Resize(vd.vertexCount * (vd.layoutDesc.VertexSize() / sizeof(float)));
+        Memory::Copy(newVertices.Data(), vd.floatData, vd.vertexCount * (vd.layoutDesc.VertexSize() / sizeof(float)));
 
-        for (SimpleVertex& vert : newVertices)
+        for (float* f = newVertices.Data(); f < newVertices.End(); f += vd.layoutDesc.VertexSize() / sizeof(float))
         {
-            vert.posX = (vert.posX + 1.0f) * 0.5f;
-            vert.posY = (vert.posY + 1.0f) * 0.5f;
+            *f = (*f + 1.0f) * 0.5f;
+            *(f + 1) = (*(f + 1) + 1.0f) * 0.5f;
         }
 
-        VertexArrayView vertexArrayView {};
+        VertexArrayView vertexArrayView = vd;
         vertexArrayView.floatData = reinterpret_cast<const float*>(newVertices.Data());
-        vertexArrayView.vertexCount = newVertices.Size();
-        vertexArrayView.layoutDesc = { VT_Simple };
 
-        Array<ubyte> indexData;
-        indexData.Resize(id.Size());
-        Memory::Copy(indexData.Data(), id.Data(), id.Size());
+        readScope.Reset();
 
         mesh->SetMeshData(mesh->GetMeshDesc(), vertexArrayView, indexData);
     }
-
-    InitObject(m_textQuadFrontMesh);
-    GetEngineAssetRegistry()->PutAsset(m_textQuadFrontMesh);
-
-    InitObject(m_textQuadBackMesh);
-    GetEngineAssetRegistry()->PutAsset(m_textQuadBackMesh);
 }
 
 void SpritePass::Shutdown()
@@ -390,15 +388,135 @@ void SpritePass::RenderFrame(Frame* frame, const RenderSetup& renderSetup)
     RI.cbufferAllocator->Write(&cameraProxy->bufferData);
     RI.cbufferAllocator->Commit(cbuffer, cbufferOffset, cbufferSize);
 
+    static const IRenderConfig& s_renderConfig = RI.GetRenderConfig();
+    static const bool s_isBindlessSupported = s_renderConfig.bindlessTextures;
+
     cr << SetCurrentViewport(renderSetup.viewport);
     cr << SetTopology(Topology::TOP_TRIANGLES);
     cr << SetInputLayout(StaticVertexInputLayout<VT_Simple>);
+
+    Sampler* sampler = RI.samplerCache->GetOrCreate(SamplerDesc {
+        TFM_LINEAR,
+        TFM_LINEAR,
+        TWM_CLAMP_TO_EDGE,
+        SamplerCompareOp::None
+    });
+
+    size_t numToDraw = 0;
+
+    auto FlushDraws = [&](const StructuredBuffer& instanceBuffer)
+    {
+        if (numToDraw == 0)
+        {
+            return;
+        }
+
+        AssertDebug(instanceBuffer.gpuBuffer->Size() >= numToDraw * sizeof(SpriteInstanceData));
+
+        ShaderDesc shaderDesc;
+        shaderDesc.name = NAME("Sprite");
+
+        cr << SetCurrentShader(shaderDesc);
+
+        cr << SetShaderUniform(0, "SamplerLinear"_sh, sampler);
+        cr << SetShaderUniform(1, "SpriteInstanceBuffer"_sh, instanceBuffer);
+        cr << SetShaderUniform(2, "CBuffer"_sh, cbuffer, ShaderDataOffset(cbufferOffset, cbufferSize));
+
+        cr << SetCurrentBlendFunction(BlendFunction::AlphaBlending());
+        cr << SetDepthTest(true);
+        cr << SetDepthWrite(true);
+        cr << SetFaceCullMode(FCM_BACK);
+
+        cr << CommitDrawState();
+
+        cr << BindVertexBuffer(quadMesh->GetVertexBuffer());
+        cr << BindIndexBuffer(quadMesh->GetIndexBuffer());
+
+        cr << DrawIndexed(quadMesh->NumIndices(), uint32(numToDraw));
+
+        numToDraw = 0;
+    };
+
+    auto FlushDrawsText = [&](
+        Texture* fontTexture,
+        Span<TextSpriteInstanceData> charDataFront,
+        Span<TextSpriteInstanceData> charDataBack)
+    {
+        if (numToDraw == 0)
+        {
+            return;
+        }
+
+        StructuredBuffer& textInstanceBufferFront = RI.bufferAllocator->AcquireStructuredBuffer(charDataFront.Size(), sizeof(TextSpriteInstanceData));
+
+        size_t textOffset = 0;
+        for (const auto& data : charDataFront)
+        {
+            textInstanceBufferFront.Write(textOffset, sizeof(TextSpriteInstanceData), &data);
+            textOffset += sizeof(TextSpriteInstanceData);
+        }
+
+        textInstanceBufferFront.FlushBatched();
+
+        StructuredBuffer& textInstanceBufferBack = RI.bufferAllocator->AcquireStructuredBuffer(charDataBack.Size(), sizeof(TextSpriteInstanceData));
+
+        textOffset = 0;
+        for (const auto& data : charDataBack)
+        {
+            textInstanceBufferBack.Write(textOffset, sizeof(TextSpriteInstanceData), &data);
+            textOffset += sizeof(TextSpriteInstanceData);
+        }
+
+        textInstanceBufferBack.FlushBatched();
+
+        ShaderDesc textShaderDesc;
+        textShaderDesc.name = NAME("TextSprite");
+
+        cr << SetCurrentShader(textShaderDesc);
+
+        cr << SetCurrentBlendFunction(BlendFunction::AlphaBlending());
+        cr << SetDepthTest(true);
+        cr << SetDepthWrite(true);
+        cr << SetFaceCullMode(FCM_BACK);
+
+        cr << SetShaderUniform(0, "SamplerLinear"_sh, sampler);
+
+        cr << SetShaderUniform(2, "CBuffer"_sh, cbuffer, ShaderDataOffset(cbufferOffset, cbufferSize));
+
+        if (!s_isBindlessSupported)
+        {
+            cr << SetShaderUniform(3, "FontTexture"_sh, RI.textureViewCache->GetOrCreate(fontTexture));
+        }
+
+        // Draw front face
+        cr << SetShaderUniform(1, "TextSpriteInstanceBuffer"_sh, textInstanceBufferFront);
+        cr << CommitDrawState();
+
+        cr << BindVertexBuffer(m_textQuadFrontMesh->GetVertexBuffer());
+        cr << BindIndexBuffer(m_textQuadFrontMesh->GetIndexBuffer());
+        cr << DrawIndexed(m_textQuadFrontMesh->NumIndices(), charDataFront.Size());
+
+        // Draw back face
+        cr << SetShaderUniform(1, "TextSpriteInstanceBuffer"_sh, textInstanceBufferBack);
+        cr << CommitDrawState();
+
+        cr << BindVertexBuffer(m_textQuadBackMesh->GetVertexBuffer());
+        cr << BindIndexBuffer(m_textQuadBackMesh->GetIndexBuffer());
+        cr << DrawIndexed(m_textQuadBackMesh->NumIndices(), charDataBack.Size());
+
+        // reset
+        cr << SetFaceCullMode(FCM_BACK);
+
+        numToDraw = 0;
+    };
 
     if (numSprites > 0)
     {
         StructuredBuffer& instanceBuffer = RI.bufferAllocator->AcquireStructuredBuffer(numSprites, sizeof(SpriteInstanceData));
 
         size_t offset = 0;
+
+        Texture* lastTexture = nullptr;
 
         for (Sprite* sprite : rpl.GetSprites())
         {
@@ -420,30 +538,19 @@ void SpritePass::RenderFrame(Frame* frame, const RenderSetup& renderSetup)
 
             instanceBuffer.Write(offset, sizeof(SpriteInstanceData), &data);
             offset += sizeof(SpriteInstanceData);
+
+            if (!s_isBindlessSupported && spriteProxy->texture != lastTexture && numToDraw != 0)
+            {
+                FlushDraws(instanceBuffer);
+            }
+
+            lastTexture = spriteProxy->texture;
+            ++numToDraw;
         }
 
         instanceBuffer.FlushBatched();
 
-        ShaderDesc shaderDesc;
-        shaderDesc.name = NAME("Sprite");
-
-        cr << SetCurrentShader(shaderDesc);
-
-        cr << SetShaderUniform(0, "SamplerLinear"_sh, RI.placeholderData->GetSamplerLinear());
-        cr << SetShaderUniform(1, "SpriteInstanceBuffer"_sh, instanceBuffer);
-        cr << SetShaderUniform(2, "CBuffer"_sh, cbuffer, ShaderDataOffset(cbufferOffset, cbufferSize));
-
-        cr << SetCurrentBlendFunction(BlendFunction::AlphaBlending());
-        cr << SetDepthTest(true);
-        cr << SetDepthWrite(true);
-        cr << SetFaceCullMode(FCM_BACK);
-
-        cr << CommitDrawState();
-
-        cr << BindVertexBuffer(quadMesh->GetVertexBuffer());
-        cr << BindIndexBuffer(quadMesh->GetIndexBuffer());
-
-        cr << DrawIndexed(quadMesh->NumIndices(), numSprites);
+        FlushDraws(instanceBuffer);
     }
 
     if (numTextCharacters > 0)
@@ -453,6 +560,8 @@ void SpritePass::RenderFrame(Frame* frame, const RenderSetup& renderSetup)
 
         Array<TextSpriteInstanceData> charDataBack;
         charDataBack.Reserve(numTextCharacters);
+
+        Texture* lastTexture = nullptr;
 
         for (Sprite* sprite : rpl.GetSprites())
         {
@@ -538,72 +647,20 @@ void SpritePass::RenderFrame(Frame* frame, const RenderSetup& renderSetup)
                         charDataBack.PushBack(data);
                     }
                 });
+
+            if (!s_isBindlessSupported && lastTexture != spriteProxy->texture && numToDraw != 0)
+            {
+                FlushDrawsText(lastTexture, charDataFront, charDataBack);
+
+                charDataBack.Resize(0);
+                charDataFront.Resize(0);
+            }
+
+            lastTexture = spriteProxy->texture;
+            ++numToDraw;
         }
 
-        if (charDataFront.Empty())
-        {
-            // something failed, likely our font atlas texture was invalid
-            return;
-        }
-
-        StructuredBuffer& textInstanceBufferFront = RI.bufferAllocator->AcquireStructuredBuffer(charDataFront.Size(), sizeof(TextSpriteInstanceData));
-
-        size_t textOffset = 0;
-        for (const auto& data : charDataFront)
-        {
-            textInstanceBufferFront.Write(textOffset, sizeof(TextSpriteInstanceData), &data);
-            textOffset += sizeof(TextSpriteInstanceData);
-        }
-
-        textInstanceBufferFront.FlushBatched();
-
-        StructuredBuffer& textInstanceBufferBack = RI.bufferAllocator->AcquireStructuredBuffer(charDataBack.Size(), sizeof(TextSpriteInstanceData));
-
-        textOffset = 0;
-        for (const auto& data : charDataBack)
-        {
-            textInstanceBufferBack.Write(textOffset, sizeof(TextSpriteInstanceData), &data);
-            textOffset += sizeof(TextSpriteInstanceData);
-        }
-
-        textInstanceBufferBack.FlushBatched();
-
-        static Sampler* s_textSpriteSampler = RI.samplerCache->GetOrCreate(SamplerDesc {
-            TFM_LINEAR,
-            TFM_LINEAR,
-            TWM_CLAMP_TO_EDGE,
-            SamplerCompareOp::None
-        });
-
-        ShaderDesc textShaderDesc;
-        textShaderDesc.name = NAME("TextSprite");
-
-        cr << SetCurrentShader(textShaderDesc);
-
-        cr << SetShaderUniform(0, "SamplerLinear"_sh, s_textSpriteSampler);
-
-        cr << SetShaderUniform(2, "CBuffer"_sh, cbuffer, ShaderDataOffset(cbufferOffset, cbufferSize));
-
-        cr << SetCurrentBlendFunction(BlendFunction::AlphaBlending());
-        cr << SetDepthTest(false);
-        cr << SetDepthWrite(false);
-        cr << SetFaceCullMode(FCM_BACK);
-
-        // Draw front face
-        cr << SetShaderUniform(1, "TextSpriteInstanceBuffer"_sh, textInstanceBufferFront);
-        cr << CommitDrawState();
-
-        cr << BindVertexBuffer(m_textQuadFrontMesh->GetVertexBuffer());
-        cr << BindIndexBuffer(m_textQuadFrontMesh->GetIndexBuffer());
-        cr << DrawIndexed(m_textQuadFrontMesh->NumIndices(), charDataFront.Size());
-
-        // Draw back face
-        cr << SetShaderUniform(1, "TextSpriteInstanceBuffer"_sh, textInstanceBufferBack);
-        cr << CommitDrawState();
-
-        cr << BindVertexBuffer(m_textQuadBackMesh->GetVertexBuffer());
-        cr << BindIndexBuffer(m_textQuadBackMesh->GetIndexBuffer());
-        cr << DrawIndexed(m_textQuadBackMesh->NumIndices(), charDataBack.Size());
+        FlushDrawsText(lastTexture, charDataFront, charDataBack);
     }
 }
 

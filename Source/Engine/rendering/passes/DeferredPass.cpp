@@ -3196,7 +3196,7 @@ void DeferredPass::UpdateRayTracingView(Frame* frame, const RenderSetup& rs)
         RenderProxyMesh* meshProxy = rpl.GetMeshEntities().GetProxy(entity->Id());
         Assert(meshProxy != nullptr);
 
-        AssertDebug(meshProxy->mesh != nullptr && meshProxy->mesh->IsReady());
+        AssertDebug(meshProxy->mesh != nullptr);
         AssertDebug(meshProxy->material != nullptr && meshProxy->material->IsReady());
 
         const RenderBucket bucket = meshProxy->material->GetAttributes().bucket;

@@ -254,14 +254,7 @@ TextSprite::~TextSprite()
 
 void TextSprite::Init()
 {
-    HYP_SCOPE;
-
     Sprite::Init();
-
-    auto& bem = GetComponent<BoundingBoxComponent>();
-    bem.worldAabb = m_textAabb;
-
-    UpdateFontAtlasTexture();
 }
 
 void TextSprite::UpdateFontAtlasTexture()
@@ -276,45 +269,71 @@ void TextSprite::UpdateFontAtlasTexture()
     }
 }
 
-void TextSprite::SetText(const String& text)
+void TextSprite::OnAddedToWorld(World* world)
 {
-    m_text = text;
-    UpdateTextAABB();
-    UpdateFontAtlasTexture();
+    Sprite::OnAddedToWorld(world);
 
     auto& bem = GetComponent<BoundingBoxComponent>();
     bem.worldAabb = m_textAabb;
 
-    SetNeedsRenderProxyUpdate();
+    UpdateFontAtlasTexture();
+}
+
+void TextSprite::SetText(const String& text)
+{
+    m_text = text;
+
+    if (GetWorld() != nullptr)
+    {
+        UpdateTextAABB();
+        UpdateFontAtlasTexture();
+
+        auto& bem = GetComponent<BoundingBoxComponent>();
+        bem.worldAabb = m_textAabb;
+
+        SetNeedsRenderProxyUpdate();
+    }
 }
 
 void TextSprite::SetTextColor(Color color)
 {
     m_textColor = color;
-    SetNeedsRenderProxyUpdate();
+    
+    if (GetWorld() != nullptr)
+    {
+        SetNeedsRenderProxyUpdate();
+    }
 }
 
 void TextSprite::SetTextSize(float textSize)
 {
     m_textSize = textSize;
-    UpdateTextAABB();
-    UpdateFontAtlasTexture();
 
-    auto& bem = GetComponent<BoundingBoxComponent>();
-    bem.worldAabb = m_textAabb;
+    if (GetWorld() != nullptr)
+    {
+        UpdateTextAABB();
+        UpdateFontAtlasTexture();
 
-    SetNeedsRenderProxyUpdate();
+        auto& bem = GetComponent<BoundingBoxComponent>();
+        bem.worldAabb = m_textAabb;
+
+        SetNeedsRenderProxyUpdate();
+    }
 }
 
 void TextSprite::SetFontAtlas(const Handle<FontAtlas>& fontAtlas)
 {
     m_fontAtlas = fontAtlas;
-    UpdateTextAABB();
+    
+    if (GetWorld() != nullptr)
+    {
+        UpdateTextAABB();
 
-    auto& bem = GetComponent<BoundingBoxComponent>();
-    bem.worldAabb = m_textAabb;
+        auto& bem = GetComponent<BoundingBoxComponent>();
+        bem.worldAabb = m_textAabb;
 
-    SetNeedsRenderProxyUpdate();
+        SetNeedsRenderProxyUpdate();
+    }
 }
 
 const Handle<FontAtlas>& TextSprite::GetFontAtlasOrDefault() const

@@ -813,7 +813,7 @@ void DebugDrawer::Render(Frame* frame, const RenderSetup& renderSetup)
                     MeshDebugDrawShapeBase* meshShape = static_cast<MeshDebugDrawShapeBase*>(shape);
 
                     Mesh* mesh = meshShape->GetMesh();
-                    AssertDebug(mesh && mesh->IsReady());
+                    AssertDebug(mesh != nullptr);
 
                     cr << BindVertexBuffer(mesh->GetVertexBuffer());
                     cr << BindIndexBuffer(mesh->GetIndexBuffer());

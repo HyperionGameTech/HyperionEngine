@@ -106,20 +106,6 @@ Mesh::~Mesh()
     FreeBlobData(m_bvhData);
 }
 
-void Mesh::Init()
-{
-    if (m_flags[MeshFlags::ViewIndependent])
-    {
-        SetPersistentRequested(true, /* setFlag */ true);
-
-        UploadGpuData();
-    }
-
-    AssetObject::Init();
-
-    SetReady(true);
-}
-
 VertexArrayView Mesh::GetVertexData() const
 {
     Assert(m_vertexData.raw != nullptr, "Vertex data not loaded!");
@@ -320,8 +306,7 @@ void Mesh::UploadGpuData()
 
     if (vertices.Size() == 0 || indexData.Size() == 0)
     {
-        // Building buffers failed? (likely due to blob data corruption or missing...)
-        // Exit here to not cause access violations
+        // No data
         return;
     }
 
@@ -358,7 +343,7 @@ void Mesh::UploadGpuData()
     GpuBufferRef indexBuffer;
 
     // don't assign m_vertexBuffer and m_indexBuffer when render thread could be reading it.
-    if (IsReady() && !IsOnThread(g_renderThread))
+    if (!IsOnThread(g_renderThread))
     {
         vertexBuffer = RI.MakeGpuBuffer(GpuBufferType::VertexBuffer, packedBufferSize);
         indexBuffer = RI.MakeGpuBuffer(GpuBufferType::IndexBuffer, packedIndicesSize);
@@ -464,11 +449,21 @@ void Mesh::UploadGpuData()
 
             if (mesh->m_vertexBuffer != vertexBuffer)
             {
+                if (mesh->m_vertexBuffer.IsValid())
+                {
+                    EnqueueDeletion(std::move(mesh->m_vertexBuffer));
+                }
+
                 mesh->m_vertexBuffer = std::move(vertexBuffer);
             }
 
             if (mesh->m_indexBuffer != indexBuffer)
             {
+                if (mesh->m_indexBuffer.IsValid())
+                {
+                    EnqueueDeletion(std::move(mesh->m_indexBuffer));
+                }
+
                 mesh->m_indexBuffer = std::move(indexBuffer);
             }
 
@@ -501,6 +496,8 @@ void Mesh::SetMeshData(
     const VertexArrayView& vertices,
     Span<const ubyte> indices)
 {
+    auto writeScope = GetWriteScope();
+
     FreeBlobData(m_vertexData);
     FreeBlobData(m_indexData);
 
@@ -516,6 +513,14 @@ void Mesh::SetMeshData(
     m_aabb = CalculateAABB();
 
     MarkDirty();
+
+    writeScope.Reset();
+
+    // Needs reupload if changed.
+    if (m_flags[MeshFlags::ViewIndependent] || isUploaded.Load())
+    {
+        UploadGpuData();
+    }
 }
 
 void Mesh::SetFlags(EnumFlags<MeshFlags> flags)
@@ -529,11 +534,11 @@ void Mesh::SetFlags(EnumFlags<MeshFlags> flags)
 
     m_flags = flags;
 
-    if (IsInitCalled() && m_flags[MeshFlags::ViewIndependent] != wasViewIndependent)
+    if (m_flags[MeshFlags::ViewIndependent] != wasViewIndependent)
     {
         SetPersistentRequested(m_flags[MeshFlags::ViewIndependent], /* setFlag */ true, /* markDirty */ false);
 
-        if (m_flags[MeshFlags::ViewIndependent])
+        if (m_flags[MeshFlags::ViewIndependent] && !isUploaded.Load())
         {
             UploadGpuData();
         }

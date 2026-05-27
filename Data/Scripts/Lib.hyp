@@ -707,7 +707,7 @@ extern class View
     RemoveScene(scene : Scene) -> void
     GetCamera() -> Camera
     GetPriority() -> int
-    SetPriority(priority : int) -> void
+    SetPriority(pri : int) -> void
 end
 extern class SystemBase
 end

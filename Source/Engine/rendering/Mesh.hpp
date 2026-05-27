@@ -192,8 +192,6 @@ protected:
     }
 
 private:
-    void Init() override;
-
     HYP_FIELD(Serialize)
     MeshDesc m_meshDesc;
 

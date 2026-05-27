@@ -230,8 +230,6 @@ void TerrainMeshBuilder::GenerateHeights(const NoiseCombinator& noiseCombinator)
 
 Handle<Mesh> TerrainMeshBuilder::BuildMesh() const
 {
-    HYP_SCOPE;
-
     Array<SimpleVertex> vertices = BuildVertices();
     Array<uint32> indices = BuildIndices();
 

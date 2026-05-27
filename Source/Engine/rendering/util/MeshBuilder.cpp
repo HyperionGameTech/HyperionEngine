@@ -461,46 +461,40 @@ HYP_API Handle<Mesh> ApplyTransform(const Mesh* mesh, const Transform& transform
 {
     Assert(mesh != nullptr);
 
-    TSharedLock<AssetObject> resGuard;
+    auto readScope = mesh->GetReadScope();
 
-    if (mesh->IsRegistered())
-    {
-        resGuard = mesh->GetReadScope();
-    }
+    const Mat4f wMatrix = transform.GetMatrix();
+    const Mat4f nMatrix = wMatrix.Inverse().Transpose();
 
-    const Mat4f modelMatrix = transform.GetMatrix();
-    const Mat4f normalMatrix = modelMatrix.Inverse().Transpose();
+    const MeshDesc meshDesc = mesh->GetMeshDesc();
 
-    const MeshDesc& meshDesc = mesh->GetMeshDesc();
     const VertexArrayView vertexData = mesh->GetVertexData();
-    const Span<const ubyte> indexData = mesh->GetIndexData();
+    const Array<ubyte> indexData = mesh->GetIndexData();
+
+    const size_t vertexSizeInFloats = vertexData.layoutDesc.VertexSize() / sizeof(float);
 
     Array<float> newVertices;
-    newVertices.Resize(vertexData.vertexCount * (vertexData.layoutDesc.VertexSize() / sizeof(float)));
+    newVertices.Resize(vertexData.vertexCount * vertexSizeInFloats);
     Memory::Copy(newVertices.Data(), vertexData.floatData, vertexData.vertexCount * vertexData.layoutDesc.VertexSize());
 
-    Array<ubyte> newIndices;
-    newIndices.Resize(indexData.Size());
-    Memory::Copy(newIndices.Data(), indexData.Data(), indexData.Size());
-
-    resGuard.Reset();
-
-    for (float* f = newVertices.Begin(); f != newVertices.End(); f += (vertexData.layoutDesc.VertexSize() / sizeof(float)))
+    for (size_t offset = 0; offset < newVertices.Size(); offset += vertexSizeInFloats)
     {
-        size_t offset = 0;
+        size_t localOffset = offset;
 
         if (vertexData.layoutDesc.mask & VT_Position)
         {
-            TVertexPacket<VT_Position>* packet = reinterpret_cast<TVertexPacket<VT_Position>*>(f);
-            packet->SetPosition(modelMatrix.TransformVector(packet->GetPosition()));
-            offset += sizeof(TVertexPacket<VT_Position>) / sizeof(float);
+            TVertexPacket<VT_Position>* packet = reinterpret_cast<TVertexPacket<VT_Position>*>(newVertices.Data() + localOffset);
+            packet->SetPosition(wMatrix.TransformVector(packet->GetPosition()));
+
+            localOffset += sizeof(TVertexPacket<VT_Position>) / sizeof(float);
         }
 
         if (vertexData.layoutDesc.mask & VT_Normal)
         {
-            TVertexPacket<VT_Normal>* packet = reinterpret_cast<TVertexPacket<VT_Normal>*>(f + offset);
-            packet->SetNormal(modelMatrix.TransformVector(Vec4f(packet->GetNormal(), 0.0f)).GetXYZ());
-            offset += sizeof(TVertexPacket<VT_Normal>) / sizeof(float);
+            TVertexPacket<VT_Normal>* packet = reinterpret_cast<TVertexPacket<VT_Normal>*>(newVertices.Data() + localOffset);
+            packet->SetNormal(nMatrix.TransformVector(Vec4f(packet->GetNormal(), 0.0f)).GetXYZ());
+
+            localOffset += sizeof(TVertexPacket<VT_Normal>) / sizeof(float);
         }
     }
 
@@ -509,7 +503,7 @@ HYP_API Handle<Mesh> ApplyTransform(const Mesh* mesh, const Transform& transform
     VertexArrayView vertexArrayView = vertexData;
     vertexArrayView.floatData = newVertices.Data();
 
-    newMesh->SetMeshData(meshDesc, vertexArrayView, newIndices);
+    newMesh->SetMeshData(meshDesc, vertexArrayView, indexData);
 
     newMesh->SetName(mesh->GetName());
 
@@ -526,7 +520,7 @@ HYP_API Handle<Mesh> Merge(const Mesh* a, const Mesh* b, const Transform& aTrans
         ApplyTransform(b, bTransform)
     };
 
-    TSharedLock<AssetObject> resourceHandles[] = {
+    TSharedLock<AssetObject> readScopes[] = {
         transformedMeshes[0]->IsRegistered() ? TSharedLock<AssetObject>(*transformedMeshes[0]) : TSharedLock<AssetObject>(),
         transformedMeshes[1]->IsRegistered() ? TSharedLock<AssetObject>(*transformedMeshes[1]) : TSharedLock<AssetObject>()
     };
@@ -612,9 +606,9 @@ HYP_API Handle<Mesh> Merge(const Mesh* a, const Mesh* b, const Transform& aTrans
         }
     }
 
-    for (TSharedLock<AssetObject>& resGuard : resourceHandles)
+    for (TSharedLock<AssetObject>& scope : readScopes)
     {
-        resGuard.Reset();
+        scope.Reset();
     }
 
     MeshDesc mergedMeshDesc;
