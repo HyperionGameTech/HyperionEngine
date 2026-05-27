@@ -85,7 +85,7 @@ public:
     int shapeId = -1;
 };
 
-class HYP_API MeshDebugDrawShapeBase : public IDebugDrawShape
+class RENDERING_API MeshDebugDrawShapeBase : public IDebugDrawShape
 {
 public:
     MeshDebugDrawShapeBase(DebugDrawCommandList& list);
@@ -116,7 +116,7 @@ private:
     mutable Mesh* m_mesh;
 };
 
-class HYP_API SphereDebugDrawShape : public MeshDebugDrawShapeBase
+class RENDERING_API SphereDebugDrawShape : public MeshDebugDrawShapeBase
 {
 public:
     SphereDebugDrawShape(DebugDrawCommandList& list);
@@ -130,7 +130,7 @@ private:
     virtual Mesh* GetMesh_Internal() const override;
 };
 
-class HYP_API AmbientProbeDebugDrawShape : public SphereDebugDrawShape
+class RENDERING_API AmbientProbeDebugDrawShape : public SphereDebugDrawShape
 {
 public:
     AmbientProbeDebugDrawShape(DebugDrawCommandList& list);
@@ -142,7 +142,7 @@ public:
     void operator()(const Vec3f& position, float radius, const EnvProbe& envProbe);
 };
 
-class HYP_API ReflectionProbeDebugDrawShape : public SphereDebugDrawShape
+class RENDERING_API ReflectionProbeDebugDrawShape : public SphereDebugDrawShape
 {
 public:
     ReflectionProbeDebugDrawShape(DebugDrawCommandList& list);
@@ -154,7 +154,7 @@ public:
     void operator()(const Vec3f& position, float radius, const EnvProbe& envProbe);
 };
 
-class HYP_API BoxDebugDrawShape : public MeshDebugDrawShapeBase
+class RENDERING_API BoxDebugDrawShape : public MeshDebugDrawShapeBase
 {
 public:
     BoxDebugDrawShape(DebugDrawCommandList& list);
@@ -170,7 +170,7 @@ private:
     virtual Mesh* GetMesh_Internal() const override;
 };
 
-class HYP_API PlaneDebugDrawShape : public MeshDebugDrawShapeBase
+class RENDERING_API PlaneDebugDrawShape : public MeshDebugDrawShapeBase
 {
 public:
     PlaneDebugDrawShape(DebugDrawCommandList& list);

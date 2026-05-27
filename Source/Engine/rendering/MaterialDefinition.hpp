@@ -21,7 +21,7 @@ namespace Hyperion {
 class MaterialInstance;
 
 HYP_CLASS(AssetBucket = "MaterialDefinitions")
-class HYP_API MaterialDefinition final : public AssetObject
+class RENDERING_API MaterialDefinition final : public AssetObject
 {
     HYP_OBJECT_BODY(MaterialDefinition);
 

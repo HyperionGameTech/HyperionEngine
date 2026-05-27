@@ -21,7 +21,7 @@ class EnvProbe;
 class Texture;
 
 HYP_CLASS(NoScriptBindings)
-class HYP_API EnvProbePassData : public PassData
+class EnvProbePassData : public PassData
 {
     HYP_OBJECT_BODY(EnvProbePassData);
 

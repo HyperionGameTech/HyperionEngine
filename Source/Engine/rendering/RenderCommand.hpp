@@ -176,7 +176,7 @@ struct RenderCommandHolder
     \details This is useful for custom render commands that need to be executed
     in the render thread, but are not part of the main Hyperion DLL.
 */
-struct HYP_API CustomRenderCommand : RenderCommand
+struct RENDERING_API CustomRenderCommand : RenderCommand
 {
     CustomRenderCommand() = default;
     virtual ~CustomRenderCommand() override = default;
@@ -269,7 +269,7 @@ public:
         This is a complexity of the design due to how render commands within the Hyperion library are typically handled, using a custom allocation method.
         However, this allocation method is not suitable for use outside of the library, so this method is provided as a workaround to still allow you to use the render command queue.
     */
-    static HYP_API void PushCustomRenderCommand(CustomRenderCommand* command);
+    static RENDERING_API void PushCustomRenderCommand(CustomRenderCommand* command);
 
     static void Flush();
     static void Wait();

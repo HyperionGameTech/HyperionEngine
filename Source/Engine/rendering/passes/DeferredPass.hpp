@@ -271,7 +271,7 @@ private:
 };
 
 HYP_CLASS(NoScriptBindings)
-class HYP_API DeferredPassData : public PassData
+class DeferredPassData : public PassData
 {
     HYP_OBJECT_BODY(DeferredPassData);
 
@@ -316,7 +316,7 @@ public:
 };
 
 HYP_CLASS(NoScriptBindings)
-class HYP_API RayTracingPassData : public PassData
+class RayTracingPassData : public PassData
 {
     HYP_OBJECT_BODY(RayTracingPassData);
 

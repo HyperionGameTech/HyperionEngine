@@ -12,7 +12,7 @@
 
 namespace Hyperion {
 
-class HYP_API CrashHandler
+class CrashHandler
 {
 public:
     CrashHandler();

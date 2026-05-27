@@ -19,7 +19,7 @@ class View;
 struct RenderSetup;
 
 HYP_CLASS(NoScriptBindings)
-class HYP_API SpritePassData : public PassData
+class SpritePassData : public PassData
 {
     HYP_OBJECT_BODY(SpritePassData);
 

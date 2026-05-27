@@ -618,7 +618,7 @@ struct ShaderInputGroup
 };
 
 HYP_CLASS(AssetBucket = "ShaderBundles")
-class HYP_API ShaderBundle : public AssetObject
+class ShaderBundle : public AssetObject
 {
     HYP_OBJECT_BODY(ShaderBundle);
 
@@ -657,7 +657,7 @@ public:
 
 void MergeGlobalShaderProperties(ShaderPropertySet& out);
 
-class HYP_API ShaderCompiler
+class RENDERING_API ShaderCompiler
 {
     struct ProcessError
     {

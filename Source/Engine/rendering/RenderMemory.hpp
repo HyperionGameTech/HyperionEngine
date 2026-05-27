@@ -10,6 +10,6 @@
 
 namespace Hyperion {
 
-HYP_API extern uint32 GetRingIndex();
+RENDERING_API extern uint32 GetRingIndex();
 
 } // namespace Hyperion

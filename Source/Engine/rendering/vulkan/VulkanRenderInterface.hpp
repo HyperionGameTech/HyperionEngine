@@ -187,15 +187,15 @@ public:
     void RecordStopTimestamp(VulkanCommandBuffer* cmd, EngineStatGpuTimer* timer) override;
     void ResolveGpuFrameResults(uint32 completedFrameIndex) override;
 
-    HYP_API RendererResult CreateDescriptorSet(
+    RendererResult CreateDescriptorSet(
         VkDescriptorSetLayout vkDescriptorSetLayout,
         bool isBindlessTextures, bool isBindlessBuffers, bool isRayTracing,
         VkDescriptorSet& outVkDescriptorSet,
         VkDescriptorPool& outVkDescriptorPool);
 
-    HYP_API RendererResult DestroyDescriptorSet(VkDescriptorSet vkDescriptorSet, VkDescriptorPool vkDescriptorPool);
+    RendererResult DestroyDescriptorSet(VkDescriptorSet vkDescriptorSet, VkDescriptorPool vkDescriptorPool);
 
-    HYP_API RendererResult GetOrCreateVkDescriptorSetLayout(const DescriptorSetLayout& layout, VkDescriptorSetLayout& out);
+    RendererResult GetOrCreateVkDescriptorSetLayout(const DescriptorSetLayout& layout, VkDescriptorSetLayout& out);
 
     /*! \brief Create a VkSurfaceKHR for the given window - Window can be null to create a headless surface */
     VkSurfaceKHR CreateSurface(ApplicationWindow* window, IDummyVulkanSurfaceContext** ppOutDummySurfaceContext = nullptr);

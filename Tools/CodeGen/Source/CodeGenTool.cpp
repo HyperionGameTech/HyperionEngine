@@ -194,6 +194,7 @@ private:
             { "HYP_PROPERTY(...)", "" },
             { "HYP_OBJECT_BODY(...)", "" },
             { "HYP_API", "" },
+            { "RENDERING_API", "" },
             { "HYP_EXPORT", "" },
             { "HYP_IMPORT", "" },
             { "HYP_FORCE_INLINE", "inline" },

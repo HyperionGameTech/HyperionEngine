@@ -384,7 +384,7 @@ static inline EntityBatchAllocatorBase* GetOrCreateEntityBatchAllocator()
 // used internally
 extern void RegisterEntityBatchAllocator(const TypeId& typeId, PFNCreateEntityBatchAllocator createFn);
 
-HYP_API const TMap<TypeId, EntityBatchAllocatorBase*>& GetAllEntityBatchAllocators();
+const TMap<TypeId, EntityBatchAllocatorBase*>& GetAllEntityBatchAllocators();
 
 #define HYP_REGISTER_DRAW_BATCH_TYPE(BatchType)                                                                                             \
     namespace {                                                                                                                             \

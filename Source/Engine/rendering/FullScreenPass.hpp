@@ -9,6 +9,8 @@
 #include <Core/Constants.hpp>
 #include <Core/Types.hpp>
 
+#include <Core/utilities/EnumFlags.hpp>
+
 #include <Core/reflection/ObjectBase.hpp>
 #include <Core/reflection/Handle.hpp>
 

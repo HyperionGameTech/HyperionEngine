@@ -32,7 +32,7 @@ public:
 };
 
 HYP_CLASS(NoScriptBindings)
-class HYP_API UIPassData : public PassData
+class UIPassData : public PassData
 {
     HYP_OBJECT_BODY(UIPassData);
 

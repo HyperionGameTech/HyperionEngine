@@ -137,7 +137,7 @@ private:
     bool m_isEnabled;
 };
 
-class HYP_API PostProcessing
+class PostProcessing
 {
 public:
     static constexpr uint32 maxEffectsPerStage = sizeof(uint32) * CHAR_BIT;

@@ -29,7 +29,7 @@ HYP_DECLARE_LOG_CHANNEL(Tool);
 Optional<String> ExtractCXXClassName(const String& line)
 {
     static const std::regex s_pattern(
-        "(?:class|struct|(?:enum class)|enum)\\s+(?:alignas\\(.*\\)\\s+)?(?:HYP_API\\s+)?(\\w+)");
+        "(?:class|struct|(?:enum class)|enum)\\s+(?:alignas\\(.*\\)\\s+)?(?:[A-Z]+_API\\s+)?(\\w+)");
 
     std::string str = line.Data();
     std::smatch match;
@@ -45,7 +45,7 @@ Optional<String> ExtractCXXClassName(const String& line)
 Array<String> ExtractCXXBaseClasses(const String& line)
 {
     static const std::regex s_pattern(
-        "((?:class|struct|(?:enum class)|enum)\\s+(?:alignas\\(.*\\)\\s+)?(?:HYP_API\\s+)?(?:\\w+)\\s*(?:final)?\\s*:\\s*((?:public|private|protected)?\\s*(?:\\w+\\s*,?\\s*)+))");
+        "((?:class|struct|(?:enum class)|enum)\\s+(?:alignas\\(.*\\)\\s+)?(?:[A-Z]+_API\\s+)?(?:\\w+)\\s*(?:final)?\\s*:\\s*((?:public|private|protected)?\\s*(?:\\w+\\s*,?\\s*)+))");
 
     Array<String> results;
 
@@ -286,7 +286,7 @@ Array<String> ExtractCXXNamespacePath(const String& source)
                 if (!blockNamespaceSegmentCounts.Empty())
                 {
                     const uint32 segmentCount = blockNamespaceSegmentCounts.PopBack();
-                    
+
                     for (uint32 n = 0; n < segmentCount && !namespacePath.Empty(); ++n)
                     {
                         namespacePath.PopBack();
@@ -319,7 +319,7 @@ String BuildNamespaceString(Span<const String> namespaceParts)
 bool IsCXXClassDecl(const String& line)
 {
     static const std::regex s_pattern(
-        "(?:class)\\s+(?:alignas\\(.*\\)\\s+)?(?:HYP_API\\s+)?(\\w+)");
+        "(?:class)\\s+(?:alignas\\(.*\\)\\s+)?(?:[A-Z]+_API\\s+)?(\\w+)");
 
     std::string str = line.Data();
     std::smatch match;
@@ -330,7 +330,7 @@ bool IsCXXClassDecl(const String& line)
 bool IsCXXStructDecl(const String& line)
 {
     static const std::regex s_pattern(
-        "(?:struct)\\s+(?:alignas\\(.*\\)\\s+)?(?:HYP_API\\s+)?(\\w+)");
+        "(?:struct)\\s+(?:alignas\\(.*\\)\\s+)?(?:[A-Z]+_API\\s+)?(\\w+)");
 
     std::string str = line.Data();
     std::smatch match;

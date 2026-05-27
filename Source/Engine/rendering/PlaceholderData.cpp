@@ -22,7 +22,7 @@
 namespace Hyperion {
 
 template <TextureFormat Format, FillPattern Pattern>
-HYP_API void FillPlaceholderBuffer_Tex2D(Vec2u dimensions, ByteBuffer& outBuffer)
+void FillPlaceholderBuffer_Tex2D(Vec2u dimensions, ByteBuffer& outBuffer)
 {
     using Helper = TextureFormatHelper<Format>;
 
@@ -62,7 +62,7 @@ HYP_API void FillPlaceholderBuffer_Tex2D(Vec2u dimensions, ByteBuffer& outBuffer
 }
 
 template <TextureFormat Format, FillPattern Pattern>
-HYP_API void FillPlaceholderBuffer_Cubemap(Vec2u dimensions, ByteBuffer& outBuffer)
+void FillPlaceholderBuffer_Cubemap(Vec2u dimensions, ByteBuffer& outBuffer)
 {
     using Helper = TextureFormatHelper<Format>;
     static_assert(!Helper::IsFloatingPoint, "FillPlaceholderBuffer_Cubemap not implemented for floating point type textures");
@@ -100,13 +100,13 @@ HYP_API void FillPlaceholderBuffer_Cubemap(Vec2u dimensions, ByteBuffer& outBuff
     }
 }
 
-template HYP_API void FillPlaceholderBuffer_Tex2D<TextureFormat::R8, FillPattern::SolidBlack>(Vec2u dimensions, ByteBuffer& outBuffer);      // R8
-template HYP_API void FillPlaceholderBuffer_Tex2D<TextureFormat::RGBA8, FillPattern::SolidBlack>(Vec2u dimensions, ByteBuffer& outBuffer);   // RGBA8
-template HYP_API void FillPlaceholderBuffer_Tex2D<TextureFormat::RGBA16F, FillPattern::SolidBlack>(Vec2u dimensions, ByteBuffer& outBuffer); // RGBA16F
-template HYP_API void FillPlaceholderBuffer_Tex2D<TextureFormat::RGBA32F, FillPattern::SolidBlack>(Vec2u dimensions, ByteBuffer& outBuffer); // RGBA32F
+template void FillPlaceholderBuffer_Tex2D<TextureFormat::R8, FillPattern::SolidBlack>(Vec2u dimensions, ByteBuffer& outBuffer);      // R8
+template void FillPlaceholderBuffer_Tex2D<TextureFormat::RGBA8, FillPattern::SolidBlack>(Vec2u dimensions, ByteBuffer& outBuffer);   // RGBA8
+template void FillPlaceholderBuffer_Tex2D<TextureFormat::RGBA16F, FillPattern::SolidBlack>(Vec2u dimensions, ByteBuffer& outBuffer); // RGBA16F
+template void FillPlaceholderBuffer_Tex2D<TextureFormat::RGBA32F, FillPattern::SolidBlack>(Vec2u dimensions, ByteBuffer& outBuffer); // RGBA32F
 
-template HYP_API void FillPlaceholderBuffer_Cubemap<TextureFormat::R8, FillPattern::SolidBlack>(Vec2u dimensions, ByteBuffer& outBuffer);    // R8
-template HYP_API void FillPlaceholderBuffer_Cubemap<TextureFormat::RGBA8, FillPattern::SolidBlack>(Vec2u dimensions, ByteBuffer& outBuffer); // RGBA8
+template void FillPlaceholderBuffer_Cubemap<TextureFormat::R8, FillPattern::SolidBlack>(Vec2u dimensions, ByteBuffer& outBuffer);    // R8
+template void FillPlaceholderBuffer_Cubemap<TextureFormat::RGBA8, FillPattern::SolidBlack>(Vec2u dimensions, ByteBuffer& outBuffer); // RGBA8
 
 #pragma region PlaceholderData
 

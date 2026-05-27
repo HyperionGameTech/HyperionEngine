@@ -19,7 +19,7 @@ class FullScreenPass;
 class ShadowMap;
 
 HYP_CLASS(NoScriptBindings)
-class HYP_API ShadowsPassData : public PassData
+class ShadowsPassData : public PassData
 {
     HYP_OBJECT_BODY(ShadowsPassData);
 

@@ -31,7 +31,7 @@ namespace Hyperion {
 
 extern uint32 GetFrameCounter();
 
-class HYP_API CommandRecorderAllocator
+class CommandRecorderAllocator
 {
 public:
     CommandRecorderAllocator();

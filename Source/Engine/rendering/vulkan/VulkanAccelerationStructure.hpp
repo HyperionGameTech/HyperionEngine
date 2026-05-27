@@ -36,7 +36,7 @@ class Entity;
 extern Pool* g_vulkanPool;
 
 HYP_CLASS(NoScriptBindings)
-class HYP_API VulkanAccelerationGeometry final : public ObjectBase
+class VulkanAccelerationGeometry final : public ObjectBase
 {
     HYP_OBJECT_BODY(VulkanAccelerationGeometry);
 
@@ -101,7 +101,7 @@ private:
 using VulkanAccelerationGeometryRef = Handle<VulkanAccelerationGeometry>;
 using VulkanAccelerationGeometryWeakRef = WeakHandle<VulkanAccelerationGeometry>;
 
-class HYP_API VulkanAccelerationStructureBase
+class VulkanAccelerationStructureBase
 {
 protected:
     VulkanAccelerationStructureBase(const Mat4f& transform = Mat4f::Identity());

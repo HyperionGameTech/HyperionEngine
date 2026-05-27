@@ -503,15 +503,29 @@ static HYP_FORCE_INLINE void ExecuteBreakpointOnce()
 #ifdef HYP_STATICALLY_LINKED
 #define HYP_API
 #define HYP_C_API extern "C"
-#else
+#else // !HYP_STATICALLY_LINKED
+
+#ifdef HYP_BUILD_RENDERING_LIBRARY
+
+#define HYP_API
+#define HYP_C_API extern "C"
+
+#define RENDERING_API HYP_EXPORT
+#else // !HYP_BUILD_RENDERING_LIBRARY
+
+#define RENDERING_API HYP_IMPORT
+
+// HYP_API def
 #ifdef HYP_BUILD_LIBRARY
 #define HYP_API HYP_EXPORT
 #define HYP_C_API extern "C" HYP_EXPORT
-#else
+#else // !HYP_BUILD_LIBRARY
 #define HYP_API HYP_IMPORT
 #define HYP_C_API extern "C" HYP_IMPORT
-#endif
-#endif
+#endif // HYP_BUILD_LIBRARY
+#endif // !HYP_BUILD_RENDERING_LIBRARY
+
+#endif // !HYP_STATICALLY_LINKED
 
 #pragma endregion Symbol Visibility
 

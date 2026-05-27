@@ -100,7 +100,7 @@ struct ParallelRenderingState
  *  Keeps track of which objects are newly added, removed or changed (via render proxy version changing), allowing updates to be applied to only objects that need it. */
 // RenderProxyList is declared in rendering/RenderProxyList.hpp
 
-class HYP_API RenderCollector
+class RenderCollector
 {
 public:
     RenderCollector();

@@ -39,12 +39,12 @@ enum class FillPattern : uint8
 };
 
 template <TextureFormat Format, FillPattern Pattern = FillPattern::SolidBlack>
-HYP_API void FillPlaceholderBuffer_Tex2D(Vec2u dimensions, ByteBuffer& outBuffer);
+void FillPlaceholderBuffer_Tex2D(Vec2u dimensions, ByteBuffer& outBuffer);
 
 template <TextureFormat Format, FillPattern Pattern = FillPattern::SolidBlack>
-HYP_API void FillPlaceholderBuffer_Cubemap(Vec2u dimensions, ByteBuffer& outBuffer);
+void FillPlaceholderBuffer_Cubemap(Vec2u dimensions, ByteBuffer& outBuffer);
 
-class HYP_API PlaceholderData
+class PlaceholderData
 {
 public:
     PlaceholderData();

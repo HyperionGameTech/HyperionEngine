@@ -49,11 +49,11 @@ public:
 
     virtual bool IsCreated() const = 0;
 
-    HYP_API virtual RendererResult Create() = 0;
+    virtual RendererResult Create() = 0;
 
-    HYP_API virtual void Bind(CommandBuffer* commandBuffer) = 0;
+    virtual void Bind(CommandBuffer* commandBuffer) = 0;
 
-    HYP_API virtual void TraceRays(
+    virtual void TraceRays(
         CommandBuffer* commandBuffer,
         const Vec3u& extent) const = 0;
 

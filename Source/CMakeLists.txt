@@ -706,13 +706,7 @@ function(collect_sources_and_modules dir out_sources out_headers out_modules)
       set(sub_library_name "hyperion-dotnet-interop")
     elseif(dir MATCHES "dotnet/scripting")
       set(sub_library_name "hyperion-dotnet-scripting")
-    elseif(dir MATCHES "rendering/vulkan" AND NOT RENDERING_BACKEND STREQUAL "Vulkan")
-      # Skip it
-      message(STATUS "Skipping Vulkan rendering module since Vulkan is not the selected rendering backend")
-      set(should_skip_module TRUE)
-    elseif(dir MATCHES "rendering/dx12" AND NOT RENDERING_BACKEND STREQUAL "DX12")
-      # Skip it
-      message(STATUS "Skipping DirectX 12 rendering module since DX12 is not the selected rendering backend")
+    elseif(dir MATCHES "rendering/") # skip rendering subdirectory, allow rendering module to handle that.
       set(should_skip_module TRUE)
     else()
       # the subfolder must contain a library with the name hyperion-<subfolder>

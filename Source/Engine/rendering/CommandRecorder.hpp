@@ -292,7 +292,7 @@ public:
     }
 
 #if defined(HYP_VULKAN) && defined(HYP_DEBUG_MODE)
-    HYP_API void CheckNotInRenderPass(CommandBuffer* commandBuffer) const;
+    void CheckNotInRenderPass(CommandBuffer* commandBuffer) const;
 #endif
 
     static void InvokeStatic(CmdBase* cmd, CommandBuffer* commandBuffer);

@@ -18,7 +18,7 @@ add_definitions(-DHYP_VULKAN=1)
 add_definitions(-DVMA_DYNAMIC_VULKAN_FUNCTIONS=1)
 
 if(HYP_AFTERMATH)
-    add_definitions(-DHYP_AFTERMATH=1)
+  add_definitions(-DHYP_AFTERMATH=1)
 endif()
 
 include_directories(
@@ -34,19 +34,19 @@ include_directories(
 # Normalize sources/headers to absolute paths under the root
 set(CURRENT_SOURCES "")
 foreach(filepath ${hyperion-vulkan_SOURCES})
-    list(APPEND CURRENT_SOURCES "${CMAKE_SOURCE_DIR}/${filepath}")
+  list(APPEND CURRENT_SOURCES "${CMAKE_SOURCE_DIR}/${filepath}")
 endforeach()
 
 set(CURRENT_HEADERS "")
 foreach(filepath ${hyperion-vulkan_HEADERS})
-    list(APPEND CURRENT_HEADERS "${CMAKE_SOURCE_DIR}/${filepath}")
+  list(APPEND CURRENT_HEADERS "${CMAKE_SOURCE_DIR}/${filepath}")
 endforeach()
 
 add_library(${BUILD_NAME} STATIC ${CURRENT_SOURCES} ${CURRENT_HEADERS})
-source_group(TREE ${CMAKE_CURRENT_SOURCE_DIR} PREFIX "${BUILD_NAME} Code" FILES ${CURRENT_SOURCES} ${CURRENT_HEADERS})
+# source_group(TREE ${CMAKE_CURRENT_SOURCE_DIR} PREFIX "${BUILD_NAME} Code" FILES ${CURRENT_SOURCES} ${CURRENT_HEADERS})
 
 if(NOT "${${BUILD_NAME}_PCH}" STREQUAL "")
-    target_precompile_headers(${BUILD_NAME} PRIVATE "${${BUILD_NAME}_PCH}")
+  target_precompile_headers(${BUILD_NAME} PRIVATE "${${BUILD_NAME}_PCH}")
 endif()
 
 target_link_libraries(${BUILD_NAME} PRIVATE hyperion-core ${Vulkan_LIBRARIES})
