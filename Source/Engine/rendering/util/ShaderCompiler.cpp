@@ -127,7 +127,7 @@ static LPCWSTR GetDXCTargetProfile(ShaderModuleType type)
     case ShaderModuleType::ClosestHit:
     case ShaderModuleType::AnyHit:
     case ShaderModuleType::Intersect:
-        return L"lib_6_3";
+        return L"lib_6_5";
     default:
         return L"vs_6_0";
     }

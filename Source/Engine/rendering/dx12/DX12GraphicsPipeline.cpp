@@ -154,13 +154,6 @@ void DX12GraphicsPipeline::BuildVertexAttributes(
             .InstanceDataStepRate = 0
         };
 
-        HYP_LOG(RenderingBackend, Debug, "DX12 Input Element [{}]: Semantic={}{}, Format={}, Offset={}",
-            attrIndex,
-            semanticName,
-            semanticIndex,
-            (int)SizeToFormat[attributeSize / sizeof(float)],
-            offset);
-
         offset += (uint32)attributeSize;
 
         ++attrIndex;

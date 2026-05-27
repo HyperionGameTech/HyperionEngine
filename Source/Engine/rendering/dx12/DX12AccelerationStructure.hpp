@@ -231,7 +231,15 @@ public:
 #endif
 
 private:
+    static constexpr uint32 StorageIdDirtyBit = 0x80000000u;
+
     RendererResult Rebuild(RTUpdateStateFlags& outUpdateStateFlags);
+
+    RendererResult BuildInstancesBuffer();
+    RendererResult BuildInstancesBuffer(uint32 first, uint32 last);
+
+    RendererResult BuildMeshDescriptionsBuffer();
+    RendererResult BuildMeshDescriptionsBuffer(uint32 first, uint32 last);
 
     Array<DX12GpuBlas*, RenderAllocator> m_blases;
     Array<uint64, RenderAllocator> m_keys;

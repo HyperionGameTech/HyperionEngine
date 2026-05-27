@@ -118,10 +118,44 @@ public:
 
     virtual RendererResult Execute() override
     {
-        // @TODO: Implement single time commands for DX12
-        HYP_LOG(RenderingBackend, Warning, "DX12SingleTimeCommands::Execute() not implemented");
+        AssertOnThread(g_renderThread);
 
-        return {};
+        CommandRecorder cr;
+
+        for (auto& fn : m_functions)
+        {
+            fn(cr);
+        }
+
+        m_functions.Clear();
+
+        DX12Frame tempFrame;
+        CheckResultOrReturn(tempFrame.Create());
+
+        cr.Prepare(&tempFrame);
+
+        DX12Fence fence;
+        CheckResultOrReturn(fence.Create());
+
+        DX12CommandBuffer commandBuffer(D3D12_COMMAND_LIST_TYPE_DIRECT);
+        CheckResultOrReturn(commandBuffer.Create());
+
+        commandBuffer.Begin();
+        cr.Execute(&commandBuffer);
+        commandBuffer.End();
+
+        const DX12QueueData* queueData = RI.GetQueueData(D3D12_COMMAND_LIST_TYPE_DIRECT);
+        Assert(queueData != nullptr && queueData->commandQueue != nullptr);
+
+        ID3D12CommandList* commandLists[] = { commandBuffer.GetCommandList() };
+        queueData->commandQueue->ExecuteCommandLists(ArraySize(commandLists), commandLists);
+
+        fence.Increment();
+
+        HRESULT hr = queueData->commandQueue->Signal(fence.GetD3D12Fence(), fence.GetValue());
+        Assert(SUCCEEDED(hr));
+
+        return fence.Wait();
     }
 };
 

@@ -162,7 +162,7 @@ EngineStatCounter<uint32> g_statDebugDraws("Rendering/DebugDraws");
 
 CVar<int> cvDeferredDebugVis { "Rendering.Deferred.DebugVis", 0 };
 
-CVar<bool> cvRayTracingEnabled { "Rendering.RayTracedEnabled", true };
+CVar<bool> cvRayTracingEnabled { "Rendering.RayTracingEnabled", true };
 CVar<bool> cvRayTracedGI { "Rendering.RayTracedGI", false };
 CVar<bool> cvRayTracedReflections { "Rendering.RayTracing.RayTracedReflections", false };
 CVar<bool> cvPathTracing { "Rendering.PathTracing", false };
