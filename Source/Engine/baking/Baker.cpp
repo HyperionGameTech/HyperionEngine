@@ -173,9 +173,9 @@ void BakerBase::Initialize()
         if (!RI.GetRenderConfig().rayTracing)
         {
             SystemMessageBox(MessageBoxType::CRITICAL)
-                .Title("Ray tracing must be enabled")
+                .Title("Ray tracing support missing")
                 .Text("This baking technique requires support for ray tracing which doesn't appear to be supported on this device (or it has been explicitly disabled via config).")
-                .Show();
+                .Show(/* showBlocking */ false);
         }
 
         Handle<Camera> camera = MakeHandle<Camera>();

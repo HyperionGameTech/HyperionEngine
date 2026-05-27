@@ -1544,7 +1544,10 @@ void RenderInterface::CommitPipelineState(PSOType psoType, CommandBuffer* comman
 
             if (setDecl.flags & ShaderInputSetFlags::Reference)
             {
-                pSetDecl = RI.globalDescriptorTable->GetDeclaration()->FindDescriptorSetDeclaration(setDecl.name);
+                const ShaderInputGroup* globalInputGroup = RI.globalDescriptorTable->GetDeclaration();
+                AssertDebug(globalInputGroup != nullptr);
+
+                pSetDecl = globalInputGroup->FindDescriptorSetDeclaration(setDecl.name);
                 AssertDebug(pSetDecl != nullptr);
             }
 
