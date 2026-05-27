@@ -65,7 +65,7 @@ public:
      *  \param outBestMatchEntry Output parameter for the best matching entry found
      *  \return Iterator to the best match in cachedBuffers, or cachedBuffers.End() if no match found
      */
-    HYP_FORCE_INLINE static typename Array<Entry, RenderAllocator>::Iterator FindBestMatch(
+    static typename Array<Entry, RenderAllocator>::Iterator FindBestMatch(
         Array<Entry, RenderAllocator>& cachedBuffers,
         uint32 bufferSize,
         Entry& outBestMatchEntry)
@@ -119,7 +119,7 @@ public:
         if (bestMatch != nullptr)
         {
             outBestMatchEntry = *bestMatch;
-            outBestMatchEntry.size = bufferSize;
+
             return bestMatchIt;
         }
 
@@ -135,12 +135,15 @@ public:
      */
     HYP_FORCE_INLINE static GpuBuffer* MoveToUsed(
         Array<Entry, RenderAllocator>& cachedBuffers,
-        Array<Entry, RenderAllocator>* usedBuffers,
+        Array<Entry, RenderAllocator>& usedBuffers,
         typename Array<Entry, RenderAllocator>::Iterator it,
         Entry& entry)
     {
+        Assert(it != cachedBuffers.End());
+
+        auto& newElem = usedBuffers.PushBack(std::move(entry)).buffer;
         cachedBuffers.Erase(it);
-        return usedBuffers->PushBack(std::move(entry)).buffer.Get();
+        return newElem.Get();
     }
 
     /*! \brief Recycle used buffers from a previous frame back into the cache.

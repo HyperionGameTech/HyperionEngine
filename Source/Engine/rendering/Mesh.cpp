@@ -98,8 +98,15 @@ Mesh::Mesh(const VertexArrayView& vertexData, const ByteBuffer& indexData, Topol
 
 Mesh::~Mesh()
 {
-    m_vertexBuffer.Reset();
-    m_indexBuffer.Reset();
+    if (m_vertexBuffer.IsValid())
+    {
+        EnqueueDeletion(std::move(m_vertexBuffer));
+    }
+
+    if (m_indexBuffer.IsValid())
+    {
+        EnqueueDeletion(std::move(m_indexBuffer));
+    }
 
     FreeBlobData(m_vertexData);
     FreeBlobData(m_indexData);
@@ -293,9 +300,7 @@ void Mesh::UnpageBlobData()
 
 void Mesh::UploadGpuData()
 {
-    isUploaded.Store(false);
-
-    auto resGuard = GetReadScope();
+    auto readScope = GetReadScope();
 
     // @TODO fix for non-uint32 indices
     Assert(GpuElemTypeSize(m_meshDesc.meshAttributes.indexBufferElemType) == 4);
@@ -320,6 +325,12 @@ void Mesh::UploadGpuData()
     AssertDebug(vertices.Size() == m_meshDesc.numVertices * vertexSizeInFloats);
     AssertDebug(indices.Size() == m_meshDesc.numIndices);
 
+    readScope.Reset();
+
+    auto writeScope = GetWriteScope();
+    
+    isUploaded.Store(false);
+
     // Ensure vertex buffer is not empty (at least one vertex)
     if (vertices.Empty())
     {
@@ -336,152 +347,66 @@ void Mesh::UploadGpuData()
         indices.Resize(indices.Size() + (3 - (indices.Size() % 3)));
     }
 
-    const size_t packedBufferSize = vertices.ByteSize();
+    const size_t packedVerticesSize = vertices.ByteSize();
     const size_t packedIndicesSize = indices.ByteSize();
 
-    GpuBufferRef vertexBuffer;
-    GpuBufferRef indexBuffer;
+    GpuBufferRef vertexBuffer = RI.MakeGpuBuffer(GpuBufferType::VertexBuffer, packedVerticesSize);
+    GpuBufferRef indexBuffer = RI.MakeGpuBuffer(GpuBufferType::IndexBuffer, packedIndicesSize);
 
-    // don't assign m_vertexBuffer and m_indexBuffer when render thread could be reading it.
-    if (!IsOnThread(g_renderThread))
+#if HYP_DEBUG_MODE
+    vertexBuffer->SetDebugName(NAME_FMT("{}_VBO", GetName()));
+    indexBuffer->SetDebugName(NAME_FMT("{}_IBO", GetName()));
+#endif
+
+    CheckResult(vertexBuffer->Create());
+    CheckResult(indexBuffer->Create());
+
+    AssertDebug(vertexBuffer.IsValid() && indexBuffer.IsValid());
+
+    const size_t bufferSizeCombined = packedVerticesSize + packedIndicesSize;
+
+    GpuBuffer* stagingBuffer = RI.stagingBufferPool->AcquireStagingBuffer(bufferSizeCombined);
+    stagingBuffer->Copy(packedVerticesSize, vertices.Data());
+    stagingBuffer->Copy(packedVerticesSize, packedIndicesSize, indices.Data());
+    stagingBuffer->Flush(0, bufferSizeCombined);
+
+    CommandRecorder& cr = RI.commandRecorderAllocator.GetCommandRecorder();
+    HYP_DEFER({ cr.Done(); });
+
+    cr << InsertBarrier(stagingBuffer, RS_COPY_SRC);
+
+    cr << InsertBarrier(vertexBuffer, RS_COPY_DST);
+    cr << InsertBarrier(indexBuffer, RS_COPY_DST);
+
+    cr << CopyBuffer(stagingBuffer, vertexBuffer, packedVerticesSize);
+    cr << CopyBuffer(stagingBuffer, indexBuffer, packedVerticesSize, 0, packedIndicesSize);
+
+    cr << InsertBarrier(vertexBuffer, RS_VERTEX_BUFFER);
+    cr << InsertBarrier(indexBuffer, RS_INDEX_BUFFER);
+
+    if (m_vertexBuffer.IsValid())
     {
-        vertexBuffer = RI.MakeGpuBuffer(GpuBufferType::VertexBuffer, packedBufferSize);
-        indexBuffer = RI.MakeGpuBuffer(GpuBufferType::IndexBuffer, packedIndicesSize);
-
-#if HYP_DEBUG_MODE
-        vertexBuffer->SetDebugName(NAME_FMT("{}_VBO", GetName()));
-        indexBuffer->SetDebugName(NAME_FMT("{}_IBO", GetName()));
-#endif
-
-        CheckResult(vertexBuffer->Create());
-        CheckResult(indexBuffer->Create());
-    }
-    else
-    {
-        if (!m_vertexBuffer.IsValid() || m_vertexBuffer->Size() != packedBufferSize)
-        {
-            m_vertexBuffer = RI.MakeGpuBuffer(GpuBufferType::VertexBuffer, packedBufferSize);
-
-#if HYP_DEBUG_MODE
-            m_vertexBuffer->SetDebugName(NAME_FMT("{}_VBO", GetName()));
-#endif
-        }
-
-        CheckResult(m_vertexBuffer->Create());
-
-        if (!m_indexBuffer.IsValid() || m_indexBuffer->Size() != packedIndicesSize)
-        {
-            m_indexBuffer = RI.MakeGpuBuffer(GpuBufferType::IndexBuffer, packedIndicesSize);
-
-#if HYP_DEBUG_MODE
-            m_indexBuffer->SetDebugName(NAME_FMT("{}_IBO", GetName()));
-#endif
-        }
-
-        CheckResult(m_indexBuffer->Create());
-
-        vertexBuffer = m_vertexBuffer;
-        indexBuffer = m_indexBuffer;
+        EnqueueDeletion(std::move(m_vertexBuffer));
     }
 
-    struct CopyMeshGpuData : public RenderCommand
+    m_vertexBuffer = std::move(vertexBuffer);
+
+    if (m_indexBuffer.IsValid())
     {
-        WeakHandle<Mesh> weakMesh;
+        EnqueueDeletion(std::move(m_indexBuffer));
+    }
 
-        Array<float> vertices;
-        Array<uint32> indices;
+    m_indexBuffer = std::move(indexBuffer);
 
-        GpuBufferRef vertexBuffer;
-        GpuBufferRef indexBuffer;
-
-        CopyMeshGpuData(const WeakHandle<Mesh>& weakMesh, Array<float>&& vertices, Array<uint32>&& indices, GpuBufferRef&& vertexBuffer, GpuBufferRef&& indexBuffer)
-            : weakMesh(weakMesh),
-              vertices(std::move(vertices)),
-              indices(std::move(indices)),
-              vertexBuffer(std::move(vertexBuffer)),
-              indexBuffer(std::move(indexBuffer))
-        {
-        }
-
-        virtual ~CopyMeshGpuData() override
-        {
-            EnqueueDeletion(std::move(vertexBuffer));
-            EnqueueDeletion(std::move(indexBuffer));
-        }
-
-        virtual RendererResult operator()() override
-        {
-            AssertDebug(vertexBuffer.IsValid() && indexBuffer.IsValid());
-
-            Handle<Mesh> mesh = weakMesh.Lock();
-            AssertDebug(mesh.IsValid());
-
-            if (!mesh.IsValid())
-            {
-                return {};
-            }
-
-            constexpr size_t StagingBufferAlignment = 16;
-
-            const size_t packedVerticesSize = vertices.ByteSize();
-            const size_t packedIndicesSize = indices.ByteSize();
-
-            const size_t bufferSizeCombined = ByteUtil::AlignAs(packedVerticesSize, StagingBufferAlignment) + packedIndicesSize;
-
-            Frame* frame = RI.GetCurrentFrame();
-
-            GpuBuffer* stagingBuffer = RI.stagingBufferPool->AcquireStagingBuffer(bufferSizeCombined);
-            stagingBuffer->Copy(packedVerticesSize, vertices.Data());
-            stagingBuffer->Copy(ByteUtil::AlignAs(packedVerticesSize, StagingBufferAlignment), packedIndicesSize, indices.Data());
-
-            // use prerender queue to copy from staging buffers to gpu buffers
-            CommandRecorder& cr = frame->preRenderCommands;
-
-            cr << InsertBarrier(stagingBuffer, RS_COPY_SRC);
-            cr << InsertBarrier(vertexBuffer, RS_COPY_DST);
-            cr << InsertBarrier(indexBuffer, RS_COPY_DST);
-
-            cr << CopyBuffer(stagingBuffer, vertexBuffer, packedVerticesSize);
-            cr << CopyBuffer(stagingBuffer, indexBuffer, ByteUtil::AlignAs(packedVerticesSize, StagingBufferAlignment), 0, packedIndicesSize);
-
-            cr << InsertBarrier(vertexBuffer, RS_VERTEX_BUFFER);
-            cr << InsertBarrier(indexBuffer, RS_INDEX_BUFFER);
-
-            if (mesh->m_vertexBuffer != vertexBuffer)
-            {
-                if (mesh->m_vertexBuffer.IsValid())
-                {
-                    EnqueueDeletion(std::move(mesh->m_vertexBuffer));
-                }
-
-                mesh->m_vertexBuffer = std::move(vertexBuffer);
-            }
-
-            if (mesh->m_indexBuffer != indexBuffer)
-            {
-                if (mesh->m_indexBuffer.IsValid())
-                {
-                    EnqueueDeletion(std::move(mesh->m_indexBuffer));
-                }
-
-                mesh->m_indexBuffer = std::move(indexBuffer);
-            }
-
-            mesh->isUploaded.Store(true);
-
-            return {};
-        }
-    };
-
-    PUSH_RENDER_COMMAND(CopyMeshGpuData, WeakHandleFromThis(), std::move(vertices), std::move(indices), std::move(vertexBuffer), std::move(indexBuffer));
+    isUploaded.Store(true);
 }
 
 void Mesh::ReleaseGpuData()
 {
-    AssertOnThread(g_renderThread);
+    auto writeScope = GetWriteScope();
 
-    m_vertexBuffer.Reset();
-    m_indexBuffer.Reset();
+    EnqueueDeletion(std::move(m_vertexBuffer));
+    EnqueueDeletion(std::move(m_indexBuffer));
 
     isUploaded.Store(false);
 }
@@ -517,7 +442,7 @@ void Mesh::SetMeshData(
     writeScope.Reset();
 
     // Needs reupload if changed.
-    if (m_flags[MeshFlags::ViewIndependent] || isUploaded.Load())
+    if (m_flags[MeshFlags::ViewIndependent])
     {
         UploadGpuData();
     }
@@ -538,7 +463,7 @@ void Mesh::SetFlags(EnumFlags<MeshFlags> flags)
     {
         SetPersistentRequested(m_flags[MeshFlags::ViewIndependent], /* setFlag */ true, /* markDirty */ false);
 
-        if (m_flags[MeshFlags::ViewIndependent] && !isUploaded.Load())
+        if (m_flags[MeshFlags::ViewIndependent])
         {
             UploadGpuData();
         }

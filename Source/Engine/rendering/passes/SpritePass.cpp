@@ -231,8 +231,6 @@ void SpritePass::Initialize()
 {
     m_quadMesh = MeshBuilder::Quad();
     m_quadMesh->SetName(NAME("SpriteMesh"));
-    m_quadMesh->SetFlags(MeshFlags::ViewIndependent);
-    m_quadMesh->SetIsTransient(true);
 
     {
         VertexArrayView vd = m_quadMesh->GetVertexData();
@@ -258,9 +256,10 @@ void SpritePass::Initialize()
         Memory::Copy(indexData.Data(), id.Data(), id.Size());
 
         m_quadMesh->SetMeshData(m_quadMesh->GetMeshDesc(), vertexArrayView, indexData);
+        
+        m_quadMesh->SetIsTransient(true);
+        m_quadMesh->SetFlags(MeshFlags::ViewIndependent);
     }
-
-    InitObject(m_quadMesh);
 
     Handle<Mesh> textQuadMesh = MeshBuilder::Quad();
     textQuadMesh->SetName(NAME("TextSpriteQuad"));
@@ -270,8 +269,6 @@ void SpritePass::Initialize()
 
     m_textQuadBackMesh = MeshBuilder::ApplyTransform(textQuadMesh, backTransform);
     m_textQuadBackMesh->SetName(NAME("TextSpriteBack"));
-    m_textQuadBackMesh->SetFlags(MeshFlags::ViewIndependent);
-    m_textQuadBackMesh->SetIsTransient(true);
 
     Transform frontTransform;
     frontTransform.rotation = Quat4f::AxisAngles(Vec3f::UnitY(), MathUtil::DegToRad(180.0f));
@@ -279,8 +276,6 @@ void SpritePass::Initialize()
 
     m_textQuadFrontMesh = MeshBuilder::ApplyTransform(textQuadMesh, frontTransform);
     m_textQuadFrontMesh->SetName(NAME("TextSpriteFront"));
-    m_textQuadFrontMesh->SetFlags(MeshFlags::ViewIndependent);
-    m_textQuadFrontMesh->SetIsTransient(true);
 
     Handle<Mesh> textQuadMeshes[2] = { m_textQuadFrontMesh, m_textQuadBackMesh };
 
@@ -295,7 +290,7 @@ void SpritePass::Initialize()
         newVertices.Resize(vd.vertexCount * (vd.layoutDesc.VertexSize() / sizeof(float)));
         Memory::Copy(newVertices.Data(), vd.floatData, vd.vertexCount * (vd.layoutDesc.VertexSize() / sizeof(float)));
 
-        for (float* f = newVertices.Data(); f < newVertices.End(); f += vd.layoutDesc.VertexSize() / sizeof(float))
+        for (float* f = newVertices.Begin(); f < newVertices.End(); f += vd.layoutDesc.VertexSize() / sizeof(float))
         {
             *f = (*f + 1.0f) * 0.5f;
             *(f + 1) = (*(f + 1) + 1.0f) * 0.5f;
@@ -307,6 +302,9 @@ void SpritePass::Initialize()
         readScope.Reset();
 
         mesh->SetMeshData(mesh->GetMeshDesc(), vertexArrayView, indexData);
+        
+        mesh->SetIsTransient(true);
+        mesh->SetFlags(MeshFlags::ViewIndependent);
     }
 }
 

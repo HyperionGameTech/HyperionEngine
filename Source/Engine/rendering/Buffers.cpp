@@ -110,8 +110,9 @@ struct StagingBufferPoolImpl
                 && bestMatchEntry.buffer->Size() >= bestMatchEntry.size);
 
             auto& used = usedBuffers[currFrame % NumFramesInFlight];
+
             return TBufferCache<CachedStagingBuffer, GpuBufferRef>::MoveToUsed(
-                cachedBuffers, &used, bestMatchIt, bestMatchEntry);
+                cachedBuffers, used, bestMatchIt, bestMatchEntry);
         }
 
         // Round up to minimum alignment
