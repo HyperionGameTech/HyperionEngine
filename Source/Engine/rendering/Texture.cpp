@@ -45,23 +45,18 @@ class Texture;
 extern ThreadSignal g_renderInitSignal;
 
 const FixedArray<Pair<Vec3f, Vec3f>, 6> Texture::s_cubemapDirections = {
-    // Face 0: +X (Right)
-    Pair<Vec3f, Vec3f> { Vec3f { 1.0f,  0.0f,  0.0f}, Vec3f { 0.0f,  1.0f,  0.0f} },
-
-    // Face 1: -X (Left)
-    Pair<Vec3f, Vec3f> { Vec3f {-1.0f,  0.0f,  0.0f}, Vec3f { 0.0f,  1.0f,  0.0f} },
-
-    // Face 2: +Y (Top)
-    Pair<Vec3f, Vec3f> { Vec3f { 0.0f,  1.0f,  0.0f}, Vec3f { 0.0f,  0.0f, -1.0f} },
-
-    // Face 3: -Y (Bottom)
-    Pair<Vec3f, Vec3f> { Vec3f { 0.0f, -1.0f,  0.0f}, Vec3f { 0.0f,  0.0f,  1.0f} },
-
-    // Face 4: +Z (Front)
-    Pair<Vec3f, Vec3f> { Vec3f { 0.0f,  0.0f,  1.0f}, Vec3f { 0.0f,  1.0f,  0.0f} },
-
-    // Face 5: -Z (Back)
-    Pair<Vec3f, Vec3f> { Vec3f { 0.0f,  0.0f, -1.0f}, Vec3f { 0.0f,  1.0f,  0.0f} }
+    // +x
+    Pair<Vec3f, Vec3f> { Vec3f{ 1.0f,  0.0f,  0.0f}, Vec3f{ 0.0f,  1.0f,  0.0f} },
+    // -x
+    Pair<Vec3f, Vec3f> { Vec3f{-1.0f,  0.0f,  0.0f}, Vec3f{ 0.0f,  1.0f,  0.0f} },
+    // +y
+    Pair<Vec3f, Vec3f> { Vec3f{ 0.0f,  1.0f,  0.0f}, Vec3f{ 0.0f,  0.0f, -1.0f} },
+    // -y
+    Pair<Vec3f, Vec3f> { Vec3f{ 0.0f, -1.0f,  0.0f}, Vec3f{ 0.0f,  0.0f,  1.0f} },
+    // +z
+    Pair<Vec3f, Vec3f> { Vec3f{ 0.0f,  0.0f,  1.0f}, Vec3f{ 0.0f,  1.0f,  0.0f} },
+    // -z
+    Pair<Vec3f, Vec3f> { Vec3f{ 0.0f,  0.0f, -1.0f}, Vec3f{ 0.0f,  1.0f,  0.0f} }
 };
 
 static const Name s_nameTextureDefault = NAME("<unnamed texture>");

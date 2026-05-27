@@ -43,11 +43,11 @@ void EditorViewport::Init()
         m_camera = MakeHandle<Camera>();
         m_camera->SetName(NAME("EditorViewportCamera"));
         m_camera->SetIsTransient(true);
-        
+
         m_camera->AddTag<EntityTag::EditorCamera>();
-        
+
         m_camera->SetCameraFlags(CameraFlags::MATCH_WINDOW_SIZE);
-        
+
         m_camera->AddCameraController(MakeHandle<EditorCameraController>());
 
         m_camera->SetFOV(60.0f);
@@ -84,8 +84,6 @@ Handle<ApplicationWindow> EditorViewport::CreateViewportWindow(const WindowOptio
 
 void EditorViewport::OnAdded(EditorSubsystem* editorSubsystem)
 {
-    AssertReady();
-
     const Handle<Scene>& editorScene = editorSubsystem->GetEditorScene();
     Assert(editorScene.IsValid());
 
@@ -117,8 +115,6 @@ void EditorViewport::OnAdded(EditorSubsystem* editorSubsystem)
 
 void EditorViewport::OnRemoved(EditorSubsystem* editorSubsystem)
 {
-    AssertReady();
-
     const Handle<Scene>& editorScene = editorSubsystem->GetEditorScene();
     Assert(editorScene.IsValid());
 
@@ -145,7 +141,6 @@ void EditorViewport::OnRemoved(EditorSubsystem* editorSubsystem)
 
 void EditorViewport::OnSceneAdded(Scene* scene)
 {
-    AssertReady();
     Assert(scene != nullptr);
 
     if ((scene->GetSceneFlags() & (SceneFlags::FOREGROUND | SceneFlags::UI | SceneFlags::DETACHED)) != SceneFlags::FOREGROUND)
@@ -158,7 +153,6 @@ void EditorViewport::OnSceneAdded(Scene* scene)
 
 void EditorViewport::OnSceneRemoved(Scene* scene)
 {
-    AssertReady();
     Assert(scene != nullptr);
 
     m_view->RemoveScene(scene);

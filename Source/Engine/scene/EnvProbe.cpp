@@ -36,19 +36,13 @@ static constexpr EnumFlags<EnvProbeFlags> DefaultEnvProbeFlags[EPT_MAX] = {
     EPF_BAKED               // ambient
 };
 
-static const ShaderPropertyId s_propWriteNormals = InternShaderProperty(ShaderProperty(NAME("WRITE_NORMALS")));
-static const ShaderPropertyId s_propWriteMoments = InternShaderProperty(ShaderProperty(NAME("WRITE_MOMENTS")));
-
 static FixedArray<Mat4f, 6> CreateCubemapMatrices(const Vec3f& origin)
 {
     FixedArray<Mat4f, 6> viewMatrices;
 
     for (uint32 i = 0; i < 6; i++)
     {
-        viewMatrices[i] = Mat4f::LookAt(
-            origin,
-            origin + Texture::s_cubemapDirections[i].first,
-            Texture::s_cubemapDirections[i].second);
+        viewMatrices[i] = Mat4f::LookAt(Texture::s_cubemapDirections[i].first, Texture::s_cubemapDirections[i].second) * Mat4f::Translation(origin);
     }
 
     return viewMatrices;
@@ -111,7 +105,7 @@ void EnvProbe::Init()
 
         Handle<Camera> camera = MakeHandle<Camera>(
             90.0f,
-            -int(m_dimensions.x), int(m_dimensions.y),
+            int(m_dimensions.x), int(m_dimensions.y),
             m_cameraNear, m_cameraFar);
 
         camera->SetName(NAME("EnvProbeCamera"));
@@ -281,54 +275,13 @@ void EnvProbe::CreateViews()
         // color
         AttachmentDesc& colorDesc = attachmentDescs.PushBack(AttachmentDesc {
             TextureType::Cubemap,
-            TextureFormat::R10G10B10A2,
+            TextureFormat::RGBA8,
             LoadOperation::CLEAR,
             StoreOperation::STORE
         });
         attachmentImages.PushBack(RI.MakeImage(TextureDesc {
             colorDesc.imageType,
             colorDesc.format,
-            Vec3u(framebufferDesc.extent, 1),
-            TFM_NEAREST,
-            TFM_NEAREST,
-            TWM_CLAMP_TO_EDGE,
-            1,
-            IU_SAMPLED | IU_ATTACHMENT
-        }));
-
-        // normals
-        AttachmentDesc& normalsDesc = attachmentDescs.PushBack(AttachmentDesc {
-            TextureType::Cubemap,
-            TextureFormat::RG16F,
-            LoadOperation::CLEAR,
-            StoreOperation::STORE
-        });
-        attachmentImages.PushBack(RI.MakeImage(TextureDesc {
-            normalsDesc.imageType,
-            normalsDesc.format,
-            Vec3u(framebufferDesc.extent, 1),
-            TFM_NEAREST,
-            TFM_NEAREST,
-            TWM_CLAMP_TO_EDGE,
-            1,
-            IU_SAMPLED | IU_ATTACHMENT
-        }));
-
-        // moments
-        AttachmentDesc momentsDesc;
-        momentsDesc.imageType = TextureType::Cubemap;
-        momentsDesc.format = TextureFormat::RG16F;
-        momentsDesc.loadOp = LoadOperation::CLEAR;
-        momentsDesc.storeOp = StoreOperation::STORE;
-
-        momentsDesc.clearColorF16[0] = FLT16_MAX;
-        momentsDesc.clearColorF16[1] = FLT16_MAX;
-        momentsDesc.clearColorIsF16 = true;
-
-        attachmentDescs.PushBack(momentsDesc);
-        attachmentImages.PushBack(RI.MakeImage(TextureDesc {
-            momentsDesc.imageType,
-            momentsDesc.format,
             Vec3u(framebufferDesc.extent, 1),
             TFM_NEAREST,
             TFM_NEAREST,
@@ -366,9 +319,6 @@ void EnvProbe::CreateViews()
     if (IsReflectionProbe())
     {
         shaderDesc.name = NAME("DrawCubemap");
-
-        shaderDesc.properties.Add(s_propWriteNormals);
-        shaderDesc.properties.Add(s_propWriteMoments);
     }
     else if (IsSkyProbe())
     {
@@ -693,7 +643,7 @@ void SkyProbe::Init()
 {
     m_texture = MakeHandle<Texture>(TextureDesc {
         TextureType::Cubemap,
-        TextureFormat::RGBA16F,
+        TextureFormat::RGBA8,
         Vec3u { m_dimensions.x, m_dimensions.y, 1 },
         TFM_LINEAR_MIPMAP,
         TFM_LINEAR,

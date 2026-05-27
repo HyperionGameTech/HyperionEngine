@@ -225,39 +225,115 @@ HYP_API Handle<Mesh> DoubleSidedQuad()
 
 HYP_API Handle<Mesh> Cube(bool originOnBottom)
 {
-    static const auto s_cubeVerticesAndIndices = CalculateIndices(GetCubeVertices());
+    //static const auto s_cubeVerticesAndIndices = CalculateIndices(GetCubeVertices());
 
     MeshDesc meshDesc;
     meshDesc.meshAttributes.inputLayout = { VT_Simple };
-    meshDesc.numIndices = uint32(s_cubeVerticesAndIndices.second.Size());
-    meshDesc.numVertices = uint32(s_cubeVerticesAndIndices.first.Size());
+    //meshDesc.numIndices = uint32(s_cubeVerticesAndIndices.second.Size());
+    //meshDesc.numVertices = uint32(s_cubeVerticesAndIndices.first.Size());
 
-    Array<SimpleVertex> vertexData = s_cubeVerticesAndIndices.first;
+    //Array<SimpleVertex> vertexData = s_cubeVerticesAndIndices.first;
+
+    // Half-size dimensions for a 1x1x1 cube centered at the origin
+    const float l = -0.5f; // left
+    const float r =  0.5f; // right
+    const float b = -0.5f; // bottom
+    const float t =  0.5f; // top
+    const float n = -0.5f; // near (-Z)
+    const float f =  0.5f; // far (+Z)
+
+    SimpleVertex vertices[] = {
+        // Front Face (Facing -Z) - Normals: { 0, 0, -1 }
+        SimpleVertex { Vec3f { l, b, n }, Vec3f { 0.0f, 0.0f, -1.0f }, Vec2f { 0.0f, 1.0f } }, // 0: Bottom-Left
+        SimpleVertex { Vec3f { l, t, n }, Vec3f { 0.0f, 0.0f, -1.0f }, Vec2f { 0.0f, 0.0f } }, // 1: Top-Left
+        SimpleVertex { Vec3f { r, t, n }, Vec3f { 0.0f, 0.0f, -1.0f }, Vec2f { 1.0f, 0.0f } }, // 2: Top-Right
+        SimpleVertex { Vec3f { r, b, n }, Vec3f { 0.0f, 0.0f, -1.0f }, Vec2f { 1.0f, 1.0f } }, // 3: Bottom-Right
+
+        // Back Face (Facing +Z) - Normals: { 0, 0, 1 }
+        SimpleVertex { Vec3f { r, b, f }, Vec3f { 0.0f, 0.0f, 1.0f }, Vec2f { 0.0f, 1.0f } },  // 4: Bottom-Right
+        SimpleVertex { Vec3f { r, t, f }, Vec3f { 0.0f, 0.0f, 1.0f }, Vec2f { 0.0f, 0.0f } },  // 5: Top-Right
+        SimpleVertex { Vec3f { l, t, f }, Vec3f { 0.0f, 0.0f, 1.0f }, Vec2f { 1.0f, 0.0f } },  // 6: Top-Left
+        SimpleVertex { Vec3f { l, b, f }, Vec3f { 0.0f, 0.0f, 1.0f }, Vec2f { 1.0f, 1.0f } },  // 7: Bottom-Left
+
+        // Top Face (Facing +Y) - Normals: { 0, 1, 0 }
+        SimpleVertex { Vec3f { l, t, n }, Vec3f { 0.0f, 1.0f, 0.0f }, Vec2f { 0.0f, 1.0f } },  // 8: Bottom-Left
+        SimpleVertex { Vec3f { l, t, f }, Vec3f { 0.0f, 1.0f, 0.0f }, Vec2f { 0.0f, 0.0f } },  // 9: Top-Left
+        SimpleVertex { Vec3f { r, t, f }, Vec3f { 0.0f, 1.0f, 0.0f }, Vec2f { 1.0f, 0.0f } },  // 10: Top-Right
+        SimpleVertex { Vec3f { r, t, n }, Vec3f { 0.0f, 1.0f, 0.0f }, Vec2f { 1.0f, 1.0f } },  // 11: Bottom-Right
+
+        // Bottom Face (Facing -Y) - Normals: { 0, -1, 0 }
+        SimpleVertex { Vec3f { l, b, f }, Vec3f { 0.0f, -1.0f, 0.0f }, Vec2f { 0.0f, 1.0f } }, // 12: Bottom-Left
+        SimpleVertex { Vec3f { l, b, n }, Vec3f { 0.0f, -1.0f, 0.0f }, Vec2f { 0.0f, 0.0f } }, // 13: Top-Left
+        SimpleVertex { Vec3f { r, b, n }, Vec3f { 0.0f, -1.0f, 0.0f }, Vec2f { 1.0f, 0.0f } }, // 14: Top-Right
+        SimpleVertex { Vec3f { r, b, f }, Vec3f { 0.0f, -1.0f, 0.0f }, Vec2f { 1.0f, 1.0f } }, // 15: Bottom-Right
+
+        // Left Face (Facing -X) - Normals: { -1, 0, 0 }
+        SimpleVertex { Vec3f { l, b, f }, Vec3f { -1.0f, 0.0f, 0.0f }, Vec2f { 0.0f, 1.0f } }, // 16: Bottom-Left
+        SimpleVertex { Vec3f { l, t, f }, Vec3f { -1.0f, 0.0f, 0.0f }, Vec2f { 0.0f, 0.0f } }, // 17: Top-Left
+        SimpleVertex { Vec3f { l, t, n }, Vec3f { -1.0f, 0.0f, 0.0f }, Vec2f { 1.0f, 0.0f } }, // 18: Top-Right
+        SimpleVertex { Vec3f { l, b, n }, Vec3f { -1.0f, 0.0f, 0.0f }, Vec2f { 1.0f, 1.0f } }, // 19: Bottom-Right
+
+        // Right Face (Facing +X) - Normals: { 1, 0, 0 }
+        SimpleVertex { Vec3f { r, b, n }, Vec3f { 1.0f, 0.0f, 0.0f }, Vec2f { 0.0f, 1.0f } },  // 20: Bottom-Left
+        SimpleVertex { Vec3f { r, t, n }, Vec3f { 1.0f, 0.0f, 0.0f }, Vec2f { 0.0f, 0.0f } },  // 21: Top-Left
+        SimpleVertex { Vec3f { r, t, f }, Vec3f { 1.0f, 0.0f, 0.0f }, Vec2f { 1.0f, 0.0f } },  // 22: Top-Right
+        SimpleVertex { Vec3f { r, b, f }, Vec3f { 1.0f, 0.0f, 0.0f }, Vec2f { 1.0f, 1.0f } }   // 23: Bottom-Right
+    };
+
+    static const uint32 s_indices[] = {
+        // Front face (-Z)
+        0, 2, 1,
+        0, 3, 2,
+
+        // Back face (+Z)
+        4, 6, 5,
+        4, 7, 6,
+
+        // Top face (+Y)
+        8, 10, 9,
+        8, 11, 10,
+
+        // Bottom face (-Y)
+        12, 14, 13,
+        12, 15, 14,
+
+        // Left face (-X)
+        16, 18, 17,
+        16, 19, 18,
+
+        // Right face (+X)
+        20, 22, 21,
+        20, 23, 22
+    };
+
+    meshDesc.numIndices = uint32(std::size(s_indices));
+    meshDesc.numVertices = uint32(std::size(vertices));
 
     if (originOnBottom)
     {
-        for (SimpleVertex& vertex : vertexData)
+        for (SimpleVertex& vertex : vertices)
         {
             vertex.posY += 1.0f;
         }
     }
 
     Array<ubyte> indexData;
-    indexData.Resize(s_cubeVerticesAndIndices.second.Size() * sizeof(uint32));
-    Memory::Copy(indexData.Data(), s_cubeVerticesAndIndices.second.Data(), s_cubeVerticesAndIndices.second.Size() * sizeof(uint32));
+    indexData.Resize(std::size(s_indices) * sizeof(uint32));
+    Memory::Copy(indexData.Data(), s_indices, indexData.Size());
 
     Handle<Mesh> mesh = MakeHandle<Mesh>();
     mesh->SetName(NAME("MeshBuilder_Cube"));
 
     VertexArrayView vertexArrayView {};
-    vertexArrayView.floatData = reinterpret_cast<const float*>(vertexData.Data());
-    vertexArrayView.vertexCount = vertexData.Size();
+    vertexArrayView.floatData = reinterpret_cast<const float*>(vertices);
+    vertexArrayView.vertexCount = uint32(std::size(vertices));
     vertexArrayView.layoutDesc = { VT_Simple };
 
     mesh->SetMeshData(meshDesc, vertexArrayView, indexData);
 
     return mesh;
 }
+
 HYP_API Handle<Mesh> NormalizedCubeSphere(uint32 numDivisions){
     const float step = 1.0f / float(numDivisions);
 

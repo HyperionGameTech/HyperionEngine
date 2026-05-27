@@ -262,9 +262,6 @@ void UIObject::Init()
 
 void UIObject::Update(float delta)
 {
-    HYP_SCOPE;
-    AssertReady();
-
     // Get the root stage to access the update manager
     UIStage* rootStage = GetStage();
     while (rootStage && rootStage->GetStage())

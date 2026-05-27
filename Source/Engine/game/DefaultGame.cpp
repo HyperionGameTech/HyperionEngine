@@ -129,6 +129,15 @@ void DefaultGame::OnLaunch_Impl()
             GetWorld()->AddView(view);
 
             GetWorld()->AddScene(mainScene);
+
+            auto sunIt = mainScene->GetRoot()->GetChildren().FindIf([](const Handle<Node>& child)
+                {
+                    return child->IsA<DirectionalLight>();
+                });
+            if (sunIt != mainScene->GetRoot()->GetChildren().End())
+            {
+                m_sun = StaticCast<DirectionalLight>(*sunIt);
+            }
         }
 
         StartSimulating();
@@ -179,12 +188,12 @@ void DefaultGame::OnLaunch_Impl()
     Handle<Node> sunNode = scene->GetRoot()->AddChild();
     sunNode->SetName(NAME("Sun"));
 
-    Handle<DirectionalLight> sunEntity = scene->GetEntityManager()->AddEntity<DirectionalLight>(
-        Vec3f(0.1, 0.9f, 0.1f).Normalize(),
+    m_sun = scene->GetEntityManager()->AddEntity<DirectionalLight>(
+        Vec3f(-0.5f, 0.4f, 0.1f).Normalize(),
         Color(Vec4f(1.0f, 0.9f, 0.8f, 1.0f)),
         10.0f);
 
-    sunNode->AddChild(sunEntity);
+    sunNode->AddChild(m_sun);
 
     auto pointLight = MakeHandle<PointLight>(Vec3f(-10.0f, 4.0f, 0.0f), Color::Red(), 50.0f, 30.0f);
     scene->GetRoot()->AddChild(pointLight);
@@ -254,7 +263,7 @@ void DefaultGame::OnLaunch_Impl()
          HYP_LOG(Game, Error, "Failed to load test asset: {}", error->GetMessage());
      }
 
-    ScriptComponent& scriptComponent = sunEntity->AddComponent<ScriptComponent>(ScriptComponent {
+    ScriptComponent& scriptComponent = m_sun->AddComponent<ScriptComponent>(ScriptComponent {
         scriptAsset });
 
     //    Handle<FogVolume> fogVolume = MakeHandle<FogVolume>();
@@ -281,6 +290,14 @@ void DefaultGame::OnUpdate_Impl(float delta)
                 controller->GetInputHandler()->SetTouchMovementDelta(tcs->GetMovementDelta());
             }
         }
+    }
+
+    // Rotate sun for day/night cycle
+    if (m_sun)
+    {
+        m_sunAngle += delta * 0.5f;
+        Vec3f dir = Vec3f(MathUtil::Sin(m_sunAngle), 0.4f, MathUtil::Cos(m_sunAngle)).Normalize();
+        m_sun->SetDirection(dir);
     }
 }
 

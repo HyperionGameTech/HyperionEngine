@@ -9,6 +9,7 @@
 namespace Hyperion {
 
 class Camera;
+class DirectionalLight;
 class EditorSubsystem;
 
 namespace game {
@@ -40,6 +41,8 @@ protected:
 
     Handle<Scene> m_defaultScene;
     Handle<Camera> m_camera;
+    Handle<DirectionalLight> m_sun;
+    float m_sunAngle = 0.0f;
 };
 } // namespace game
 

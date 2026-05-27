@@ -282,23 +282,15 @@ void ConvolveEnvProbeCubemap(
 
         if (boundIndex != ~0u)
         {
-            // blit to the array texture
-            const GpuImageRef& srcImage = prefilteredEnvMap->GetGpuImage();
-            AssertDebug(srcImage.IsValid());
+            cr << InsertBarrier(prefilteredEnvMap->GetGpuImage(), RS_COPY_SRC);
+            cr << InsertBarrier(RI.envProbesTexture->GetGpuImage(), RS_COPY_DST);
 
-            const GpuImageRef& dstImage = RI.envProbesTexture->GetGpuImage();
-            Assert(dstImage.IsValid());
+            const uint8 numMips = MathUtil::Min(
+                RI.envProbesTexture->GetTextureDesc().NumMips(),
+                prefilteredEnvMap->GetTextureDesc().NumMips());
 
-            cr << InsertBarrier(srcImage, RS_COPY_SRC);
-            cr << InsertBarrier(dstImage, RS_COPY_DST);
-
-            for (uint8 mipIndex = 0; mipIndex < dstImage->NumMips(); mipIndex++)
+            for (uint8 mipIndex = 0; mipIndex < numMips; mipIndex++)
             {
-                if (mipIndex >= srcImage->NumMips())
-                {
-                    break;
-                }
-
                 ImageSubResource srcSubResource {};
                 srcSubResource.baseMipLevel = mipIndex;
                 srcSubResource.numLevels = 1;
@@ -311,12 +303,17 @@ void ConvolveEnvProbeCubemap(
                 dstSubResource.baseArrayLayer = 6 * boundIndex;
                 dstSubResource.numLayers = 6;
 
-                const Vec3u srcMipExtent = srcImage->GetTextureDesc().GetMipExtent(mipIndex);
-                const Vec3u dstMipExtent = dstImage->GetTextureDesc().GetMipExtent(mipIndex);
+                const Vec3u srcMipExtent = prefilteredEnvMap->GetTextureDesc().GetMipExtent(mipIndex);
+                const Vec3u dstMipExtent = RI.envProbesTexture->GetTextureDesc().GetMipExtent(mipIndex);
 
-                if (srcMipExtent == dstMipExtent && srcImage->GetTextureDesc().format == dstImage->GetTextureDesc().format)
+                if (srcMipExtent == dstMipExtent && prefilteredEnvMap->GetTextureDesc().format == RI.envProbesTexture->GetTextureDesc().format)
                 {
-                    cr << CopyImage(srcImage, dstImage, srcMipExtent, srcSubResource, dstSubResource);
+                    cr << CopyImage(
+                        prefilteredEnvMap->GetGpuImage(),
+                        RI.envProbesTexture->GetGpuImage(),
+                        srcMipExtent,
+                        srcSubResource,
+                        dstSubResource);
                 }
                 else
                 {
@@ -330,8 +327,8 @@ void ConvolveEnvProbeCubemap(
                 }
             }
 
-            cr << InsertBarrier(srcImage, RS_SHADER_RESOURCE);
-            cr << InsertBarrier(dstImage, RS_SHADER_RESOURCE);
+            cr << InsertBarrier(prefilteredEnvMap->GetGpuImage(), RS_SHADER_RESOURCE);
+            cr << InsertBarrier(RI.envProbesTexture->GetGpuImage(), RS_SHADER_RESOURCE);
         }
     }
 
@@ -670,14 +667,6 @@ void ReflectionProbePass::RenderProbe(Frame* frame, const RenderSetup& renderSet
             pd->cachedLightDirIntensity = MathUtil::NaN<Vec4f>();
         }
 
-        if (renderSetup.light->GetLightType() != LightType::Directional)
-        {
-            HYP_LOG_ONCE(Rendering, Warning, "Light bound to SkyProbe pass is not a directional light: {}",
-                renderSetup.light->Id());
-
-            pd->cachedLightDirIntensity = MathUtil::NaN<Vec4f>();
-        }
-
         RenderProxyLight* lightProxy = static_cast<RenderProxyLight*>(GetRenderProxy(renderSetup.light));
         AssertDebug(lightProxy != nullptr);
 
@@ -701,6 +690,8 @@ void ReflectionProbePass::RenderProbe(Frame* frame, const RenderSetup& renderSet
 
     pd->cachedProbeOrigin = envProbeProxy->bufferData.worldPosition.GetXYZ();
 
+    bool renderedView = false;
+
     for (uint8 viewIndex = 0; viewIndex < 6; viewIndex++)
     {
         RenderSetup rs = renderSetup.Fork();
@@ -716,10 +707,17 @@ void ReflectionProbePass::RenderProbe(Frame* frame, const RenderSetup& renderSet
             && !rpl.GetMeshEntities().GetDiff().NeedsUpdate()
             && !rpl.GetLights().GetDiff().NeedsUpdate())
         {
-            return;
+            continue;
         }
 
         RenderProbeView(frame, rs, envProbe);
+
+        renderedView = true;
+    }
+
+    if (!renderedView)
+    {
+        return;
     }
 
     if (envProbe->ShouldComputePrefilteredEnvMap())

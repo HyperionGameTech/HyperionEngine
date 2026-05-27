@@ -2176,7 +2176,7 @@ PassData* DeferredPass::CreateViewPassData(View* view, PassDataExt&)
         passData.mipChain = MakeHandle<Texture>(TextureDesc {
             TextureType::Texture2D,
             opaquePassFramebuffer->GetAttachment(0)->GetFormat(),
-            Vec3u(MathUtil::NextMultiple(opaquePassFramebuffer->GetExtent(), Vec2u(16)), 1),
+            Vec3u(opaquePassFramebuffer->GetExtent(), 1),
             TFM_LINEAR_MIPMAP,
             TFM_LINEAR_MIPMAP,
             TWM_CLAMP_TO_EDGE,

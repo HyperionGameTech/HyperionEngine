@@ -45,8 +45,8 @@ function(add_commandlet_target COMMANDLET_NAME)
   message(STATUS "Registered commandlet target ${COMMANDLET_NAME}")
 endfunction()
 
-# add all following commandlets here.
+# ----- Commandlets to build as separate EXEs -----
 add_commandlet_target(PrecompileShaders)
-add_commandlet_target(GenerateBlueNoiseBlob)
 add_commandlet_target(BuildGizmosCommandlet)
-add_commandlet_target(LogMemoryPools)
+# add_commandlet_target(GenerateBlueNoiseBlob)
+# add_commandlet_target(LogMemoryPools)

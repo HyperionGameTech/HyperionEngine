@@ -14,6 +14,7 @@
 
 #include <scene/Node.hpp>
 #include <scene/EntityManager.hpp>
+#include <scene/Scene.hpp>
 #include <scene/World.hpp>
 
 #include <engine/EngineGlobals.hpp>

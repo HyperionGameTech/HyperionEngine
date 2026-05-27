@@ -99,7 +99,7 @@ DECLARE_SRV(Default, ClusterIndexBuffer) ByteAddressBuffer ClusterIndexBuffer;
 
 #include "include/Parallax.hlsli"
 
-#define DEBUG_RAW_REFLECTIONS
+// #define DEBUG_RAW_REFLECTIONS
 
 PSOutput PSMain(PSInput input)
 {
@@ -344,7 +344,7 @@ PSOutput PSMain(PSInput input)
 #endif // SHADING_TYPE_FORWARD
 
 #ifdef DEBUG_RAW_REFLECTIONS
-    roughness = 0.02;
+    roughness = 0.0;
 #endif
 
     // https://www.elopezr.com/temporal-aa-and-the-quest-for-the-holy-trail/
