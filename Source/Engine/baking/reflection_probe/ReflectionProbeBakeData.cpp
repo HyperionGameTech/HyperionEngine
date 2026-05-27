@@ -37,7 +37,7 @@ Result BakeData<ReflectionProbe>::Build()
     for (uint32 face = 0; face < 6; face++)
     {
         const Vec3f forward = Texture::s_cubemapDirections[face].first;
-        const Vec3f up = Texture::s_cubemapDirections[face].second * Vec3f(-1.0f);
+        const Vec3f up = Texture::s_cubemapDirections[face].second;
         const Vec3f right = forward.Cross(up).Normalize();
 
         for (uint32 y = 0; y < dimensions.y; y++)

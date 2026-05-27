@@ -87,61 +87,11 @@ EnvProbe::~EnvProbe()
     {
         EnqueueDeletion(std::move(m_texture));
     }
-
-    if (m_camera != nullptr)
-    {
-        RemoveChild(m_camera);
-        m_camera = nullptr;
-    }
 }
 
 void EnvProbe::Init()
 {
     Entity::Init();
-
-    if (!IsBaked())
-    {
-        const BoundingBox worldBounds = GetWorldBounds();
-
-        Handle<Camera> camera = MakeHandle<Camera>(
-            90.0f,
-            int(m_dimensions.x), int(m_dimensions.y),
-            m_cameraNear, m_cameraFar);
-
-        camera->SetName(NAME("EnvProbeCamera"));
-        camera->SetViewMatrix(Mat4f::LookAt(worldBounds.GetCenter(), worldBounds.GetCenter() + Vec3f::UnitZ(), Vec3f::UnitY()));
-
-        InitObject(camera);
-        AddChild(camera);
-
-        m_camera = camera;
-
-        CreateViews();
-
-        if (ShouldComputePrefilteredEnvMap())
-        {
-            if (!m_texture)
-            {
-                m_texture = MakeHandle<Texture>(TextureDesc {
-                    TextureType::Texture2D,
-                    TextureFormat::RGBA8,
-                    Vec3u { m_dimensions, 1 },
-                    TFM_LINEAR_MIPMAP,
-                    TFM_LINEAR,
-                    TWM_CLAMP_TO_EDGE,
-                    1,
-                    IU_STORAGE | IU_SAMPLED
-                });
-
-                m_texture->SetName(NAME_FMT("{}_{}_PrefilteredEnvMap", InstanceClass()->GetName(), GetName()));
-            }
-        }
-    }
-
-    if (m_texture.IsValid())
-    {
-        CheckResult(m_texture->Create());
-    }
 
     SetReady(true);
 }
@@ -204,11 +154,68 @@ void EnvProbe::OnDetachedFromNode(Node* node)
 void EnvProbe::OnAddedToWorld(World* world)
 {
     Entity::OnAddedToWorld(world);
+
+    if (!IsBaked())
+    {
+        const BoundingBox worldBounds = GetWorldBounds();
+
+        Handle<Camera> camera = MakeHandle<Camera>(
+            90.0f,
+            int(m_dimensions.x), int(m_dimensions.y),
+            m_cameraNear, m_cameraFar);
+
+        camera->SetName(NAME("EnvProbeCamera"));
+        camera->SetViewMatrix(Mat4f::LookAt(worldBounds.GetCenter(), worldBounds.GetCenter() + Vec3f::UnitZ(), Vec3f::UnitY()));
+
+        InitObject(camera);
+        AddChild(camera);
+
+        m_camera = camera;
+
+        CreateViews();
+
+        if (ShouldComputePrefilteredEnvMap())
+        {
+            if (!m_texture)
+            {
+                m_texture = MakeHandle<Texture>(TextureDesc {
+                    TextureType::Texture2D,
+                    TextureFormat::RGBA8,
+                    Vec3u { m_dimensions, 1 },
+                    TFM_LINEAR_MIPMAP,
+                    TFM_LINEAR,
+                    TWM_CLAMP_TO_EDGE,
+                    1,
+                    IU_STORAGE | IU_SAMPLED
+                });
+
+                m_texture->SetName(NAME_FMT("{}_{}_PrefilteredEnvMap", InstanceClass()->GetName(), GetName()));
+            }
+        }
+    }
+
+    if (m_texture.IsValid())
+    {
+        CheckResult(m_texture->Create());
+    }
+
 }
 
 void EnvProbe::OnRemovedFromWorld(World* world)
 {
     Entity::OnRemovedFromWorld(world);
+
+    if (m_camera != nullptr)
+    {
+        RemoveChild(m_camera);
+        m_camera = nullptr;
+    }
+    
+    if (AnyOf(m_views, &Handle<View>::IsValid))
+    {
+        EnqueueDeletion(std::move(m_views));
+        EnqueueDeletion(std::move(m_framebuffers));
+    }
 }
 
 void EnvProbe::OnAddedToScene(Scene* scene)

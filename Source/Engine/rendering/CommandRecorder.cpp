@@ -195,7 +195,7 @@ void Blit::InvokeStatic(CmdBase* cmd, CommandBuffer* commandBuffer)
         dstSubResource.numLayers = dstDesc.NumArrayLayers();
     }
 
-#if 0//def HYP_VULKAN
+#ifdef HYP_VULKAN
     src->GetGpuImage()->InsertBarrier(commandBuffer, srcSubResource, RS_COPY_SRC, ShaderModuleType::None);
     dst->GetGpuImage()->InsertBarrier(commandBuffer, dstSubResource, RS_COPY_DST, ShaderModuleType::None);
 
@@ -240,17 +240,18 @@ void Blit::InvokeStatic(CmdBase* cmd, CommandBuffer* commandBuffer)
         uint32 srcMipLevel;
     };
 
-    for (uint16 layerIndex = 0; layerIndex < numLayersToCopy; layerIndex++)
+    for (uint8 mipLevel = 0; mipLevel < numLevelsToCopy; mipLevel++)
     {
-        for (uint8 mipLevel = 0; mipLevel < numLevelsToCopy; mipLevel++)
+        const uint8 actualSrcMip = srcSubResource.baseMipLevel + mipLevel;
+        const uint8 actualDstMip = dstSubResource.baseMipLevel + mipLevel;
+
+        const Vec3u srcExtent = srcDesc.GetMipExtent(actualSrcMip);
+        const Vec3u dstExtent = dstDesc.GetMipExtent(actualDstMip);
+
+        for (uint16 layerIndex = 0; layerIndex < numLayersToCopy; layerIndex++)
         {
-            const uint8 actualSrcMip = srcSubResource.baseMipLevel + mipLevel;
-            const uint8 actualDstMip = dstSubResource.baseMipLevel + mipLevel;
             const uint16 actualSrcLayer = srcSubResource.baseArrayLayer + layerIndex;
             const uint16 actualDstLayer = dstSubResource.baseArrayLayer + layerIndex;
-
-            const Vec3u srcExtent = srcDesc.GetMipExtent(actualSrcMip);
-            const Vec3u dstExtent = dstDesc.GetMipExtent(actualDstMip);
 
             /* Acquire a temporary 2D image with IU_STORAGE | IU_SAMPLED so we
                can perform the blit via compute dispatch without requiring the
@@ -365,7 +366,7 @@ void Blit::InvokeStatic(CmdBase* cmd, CommandBuffer* commandBuffer)
                 Vec3u::Zero(),
                 Vec3u::Zero(),
                 dstExtent,
-                ImageSubResource { .baseMipLevel = 0, .numLevels = 1, .baseArrayLayer = 0, .numLayers = 1 },
+                ImageSubResource { 0, 1, 0, 1 },
                 dstViewSubResource);
 
             /* Barrier destination back to shader resource so subsequent passes can sample it */

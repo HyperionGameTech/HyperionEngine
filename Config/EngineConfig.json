@@ -11,7 +11,7 @@
     "PathTracing": false,
     "RayTracedReflections": false,
     "RayTracedGI": false,
-    "RayTracingEnabled": false,
+    "RayTracingEnabled": true,
     "IndirectRendering": false,
     "DepthPrepass": false,
     "ParallelCollection": true,

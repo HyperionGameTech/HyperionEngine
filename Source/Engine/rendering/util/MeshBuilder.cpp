@@ -225,15 +225,17 @@ HYP_API Handle<Mesh> DoubleSidedQuad()
 
 HYP_API Handle<Mesh> Cube(bool originOnBottom)
 {
-    //static const auto s_cubeVerticesAndIndices = CalculateIndices(GetCubeVertices());
+    static const auto s_cubeVerticesAndIndices = CalculateIndices(GetCubeVertices());
 
     MeshDesc meshDesc;
     meshDesc.meshAttributes.inputLayout = { VT_Simple };
-    //meshDesc.numIndices = uint32(s_cubeVerticesAndIndices.second.Size());
-    //meshDesc.numVertices = uint32(s_cubeVerticesAndIndices.first.Size());
+    meshDesc.numIndices = uint32(s_cubeVerticesAndIndices.second.Size());
+    meshDesc.numVertices = uint32(s_cubeVerticesAndIndices.first.Size());
 
-    //Array<SimpleVertex> vertexData = s_cubeVerticesAndIndices.first;
+    Array<SimpleVertex> vertices = s_cubeVerticesAndIndices.first;
+    Array<uint32> indices = s_cubeVerticesAndIndices.second;
 
+#if 0
     // Half-size dimensions for a 1x1x1 cube centered at the origin
     const float l = -0.5f; // left
     const float r =  0.5f; // right
@@ -308,6 +310,7 @@ HYP_API Handle<Mesh> Cube(bool originOnBottom)
 
     meshDesc.numIndices = uint32(std::size(s_indices));
     meshDesc.numVertices = uint32(std::size(vertices));
+#endif
 
     if (originOnBottom)
     {
@@ -318,15 +321,15 @@ HYP_API Handle<Mesh> Cube(bool originOnBottom)
     }
 
     Array<ubyte> indexData;
-    indexData.Resize(std::size(s_indices) * sizeof(uint32));
-    Memory::Copy(indexData.Data(), s_indices, indexData.Size());
+    indexData.Resize(indices.Size() * sizeof(uint32));
+    Memory::Copy(indexData.Data(), indices.Data(), indexData.Size());
 
     Handle<Mesh> mesh = MakeHandle<Mesh>();
     mesh->SetName(NAME("MeshBuilder_Cube"));
 
     VertexArrayView vertexArrayView {};
-    vertexArrayView.floatData = reinterpret_cast<const float*>(vertices);
-    vertexArrayView.vertexCount = uint32(std::size(vertices));
+    vertexArrayView.floatData = reinterpret_cast<const float*>(vertices.Data());
+    vertexArrayView.vertexCount = uint32(vertices.Size());
     vertexArrayView.layoutDesc = { VT_Simple };
 
     mesh->SetMeshData(meshDesc, vertexArrayView, indexData);

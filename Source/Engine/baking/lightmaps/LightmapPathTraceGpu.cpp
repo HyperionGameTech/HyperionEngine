@@ -183,7 +183,9 @@ void LightmapRenderer_GpuPathTracing::CreateAccelerationStructures()
     const Handle<View>& view = m_baker->GetView();
     Assert(view != nullptr);
 
-    RenderProxyList& rpl = GetConsumerProxyList(view);
+    RenderProxyList& rpl = *view->GetRenderProxyList(GetRingIndex());
+    AssertDebug(rpl.isShared);
+
     rpl.BeginRead();
     HYP_DEFER({ rpl.EndRead(); });
 
@@ -220,17 +222,19 @@ void LightmapRenderer_GpuPathTracing::CreateAccelerationStructures()
             CheckResult(blas->Create());
         }
 
-        if (!m_tlas->HasGpuBlas(entity->Id().ToIndex()))
-        {
-            m_tlas->AddGpuBlas(entity->Id().ToIndex(), blas);
+        const uint64 key = entity->Id().GetHashCode().Value();
 
-            hasBlas = true;
+        if (!m_tlas->HasGpuBlas(key))
+        {
+            m_tlas->AddGpuBlas(key, blas);
         }
+
+        hasBlas = true;
     }
 
     if (!hasBlas)
     {
-        HYP_LOG(Lightmap, Warning, "No blas; cannot create tlas");
+        HYP_LOG(Lightmap, Warning, "No bottom-level acceleration structures found. Skipping top-level acceleration structure creation.");
         return;
     }
 

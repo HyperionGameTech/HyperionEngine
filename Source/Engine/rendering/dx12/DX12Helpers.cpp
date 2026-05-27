@@ -562,7 +562,7 @@ D3D12_SHADER_RESOURCE_VIEW_DESC GetSRVDesc(DX12GpuImage* image, uint32 mipIndex,
         srvDesc.TextureCubeArray.NumCubes = textureDesc.NumArrayLayers() / 6;
         srvDesc.TextureCubeArray.ResourceMinLODClamp = 0.0f;
         break;
-    case D3D12_SRV_DIMENSION_UNKNOWN:
+    default:
         HYP_UNREACHABLE();
         break;
     }
@@ -617,7 +617,7 @@ D3D12_UNORDERED_ACCESS_VIEW_DESC GetUAVDesc(DX12GpuImage* image, uint32 mipIndex
         uavDesc.Texture2DArray.ArraySize = numLayers;
         uavDesc.Texture2DArray.PlaneSlice = 0;
         break;
-    case D3D12_UAV_DIMENSION_UNKNOWN:
+    default:
         HYP_UNREACHABLE();
         break;
     }

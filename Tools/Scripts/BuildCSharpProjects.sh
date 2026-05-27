@@ -14,7 +14,7 @@ if [ ! -z "$1" ]; then
     CONFIG="$1"
 fi
 
-projects=("Hyperion.NET.Shared" "Hyperion.NET.Runtime" "Hyperion.NET.Interop" "Hyperion.NET.Scripting")
+projects=("Hyperion.NET.Shared" "Hyperion.NET.Runtime" "Hyperion.NET.Interop" "Hyperion.NET.Scripting" "Hyperion.NET.Editor")
 
 pushd Build
 buildDir="$(pwd)"
@@ -22,7 +22,7 @@ pushd CSharpProjects
 
 for project in "${projects[@]}"; do
     mkdir -p "$buildDir/../Binaries/$CURR_PLATFORM/$CONFIG"
-    
+
     echo "Building $project in $CONFIG configuration..."
 
     pushd "$project"

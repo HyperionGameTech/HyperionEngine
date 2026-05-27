@@ -1561,14 +1561,91 @@ void VolumeEditorGizmo::UpdateFaceGeometry(const BoundingBox& localBounds, const
 
 Handle<Node> VolumeEditorGizmo::Load_Internal() const
 {
-    GlobalContextScope assetRegistryScope { AssetRegistryContext { GetEditorAssetRegistry() } };
+    //GlobalContextScope assetRegistryScope { AssetRegistryContext { GetEditorAssetRegistry() } };
 
-    if (Handle<Node> node = GetCurrentAssetRegistry()->GetAsset<Node>(AssetBuckets::Nodes, "VolumeEditGizmo"_sh); node.IsValid())
+    //if (Handle<Node> node = GetCurrentAssetRegistry()->GetAsset<Node>(AssetBuckets::Nodes, "VolumeEditGizmo"_sh); node.IsValid())
+    //{
+    //    return node;
+    //}
+
+    //return Handle<Node>::Null();
+
+    // @TODO Save in editor registry and load
+
+    const Vec4f volumeColor = Vec4f(0.3f, 0.0f, 0.28f, 0.25f);
+
+    Handle<Node> rootNode = MakeHandle<Node>();
+    rootNode->SetName(NAME("VolumeEditGizmo"));
+
+    rootNode->UnlockTransform();
+    rootNode->SetNodeFlags(rootNode->GetNodeFlags() | NodeFlags::HideInSceneOutline);
+    rootNode->SetIsTransient(true);
+
+    // quad face rotations
+    static const Quat4f s_faceRotations[VEF_Max] = {
+        Quat4f::AxisAngles(Vec3f::UnitY(), -MathUtil::pi<float> * 0.5f),
+        Quat4f::AxisAngles(Vec3f::UnitY(), MathUtil::pi<float> * 0.5f),
+        Quat4f::AxisAngles(Vec3f::UnitX(), MathUtil::pi<float> * 0.5f),
+        Quat4f::AxisAngles(Vec3f::UnitX(), -MathUtil::pi<float> * 0.5f),
+        Quat4f::AxisAngles(Vec3f::UnitY(), MathUtil::pi<float>),
+        Quat4f::Identity()
+    };
+
+    Handle<Mesh> quadMesh = MeshBuilder::Quad();
+    InitObject(quadMesh);
+
+    MaterialAttributes materialAttributes;
+    materialAttributes.bucket = RenderBucket::Debug;
+    materialAttributes.blendFunction = BlendFunction::Additive();
+    materialAttributes.cullFaces = FCM_NONE;
+    materialAttributes.flags = MAF_NONE;
+
+    MaterialParameters materialParameters;
+    materialParameters.albedo = volumeColor;
+
+    Handle<MaterialDefinition> materialDefinition = MakeHandle<MaterialDefinition>(NAME("VolumeEditMaterial"), materialAttributes, materialParameters, MaterialTextures {});
+    InitObject(materialDefinition);
+    GetCurrentAssetRegistry()->PutAssetsDeep(materialDefinition);
+
+    Handle<MaterialInstance> materialInstance = materialDefinition->CreateInstance();
+    materialInstance->SetIsDynamic(true);
+    InitObject(materialInstance);
+    GetCurrentAssetRegistry()->PutAssetsDeep(materialInstance);
+
+    for (int i = 0; i < VEF_Max; i++)
     {
-        return node;
+        Handle<Entity> faceEntity = MakeHandle<Entity>(NAME_FMT("VolumeFace_{}", i));
+        faceEntity->SetIsDynamic(true);
+        faceEntity->UnlockTransform();
+        faceEntity->SetLocalRotation(s_faceRotations[i]);
+
+        faceEntity->Node::AddTag(NodeTag(NAME("VolumeFaceIndex"), i));
+
+        rootNode->AddChild(faceEntity);
+
+        faceEntity->AddComponent<MeshComponent>(MeshComponent { quadMesh, materialInstance });
+        faceEntity->SetLocalBounds(quadMesh->GetAABB());
+
+        VisibilityStateComponent* visibilityState = faceEntity->TryGetComponent<VisibilityStateComponent>();
+
+        if (visibilityState)
+        {
+            visibilityState->flags |= VisibilityStateFlags::ALWAYS_VISIBLE;
+        }
+        else
+        {
+            faceEntity->AddComponent<VisibilityStateComponent>(VisibilityStateComponent { VisibilityStateFlags::ALWAYS_VISIBLE });
+        }
+
+        faceEntity->Node::AddTag(NodeTag(NAME("TransformWidgetElementColor"), volumeColor));
     }
 
-    return Handle<Node>::Null();
+    rootNode->SetLocalBounds(BoundingBox(Vec3f(-1.0), Vec3f(1.0f)));
+
+    GetCurrentAssetRegistry()->PutAssetsDeep(rootNode);
+    GetCurrentAssetRegistry()->SaveDirtyAssets();
+
+    return rootNode;
 }
 
 void VolumeEditorGizmo::SetFocusedNode(const Handle<Node>& focusedNode)

@@ -187,11 +187,16 @@ void CalculateEnvProbesContribution(
 
         EnvProbe currentEnvProbe = EnvProbesBuffer[envProbeIndex];
 
+
         const float numMips = 7.0; // assuming 128x128 cubemap size for reflection probes
         const float lod = perceptualRoughness * numMips;
 
         const float3 aabbMin = currentEnvProbe.aabb_min.xyz;
         const float3 aabbMax = currentEnvProbe.aabb_max.xyz;
+
+        const float3 probeReflectionVector = bool(currentEnvProbe.flags & HYP_ENV_PROBE_PARALLAX_CORRECTED)
+            ? EnvProbeCoordParallaxCorrected(currentEnvProbe.world_position.xyz, aabbMin, aabbMax, positionWS, R)
+            : R;
 
         float4 currentReflections = (float4)0;
 
@@ -201,7 +206,7 @@ void CalculateEnvProbesContribution(
             aabbMin,
             aabbMax,
             positionWS,
-            R,
+            probeReflectionVector,
             lod,
             currentReflections);
 

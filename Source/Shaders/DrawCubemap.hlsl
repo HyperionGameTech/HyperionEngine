@@ -34,6 +34,7 @@ struct VSOutput
 };
 
 #include "include/Entity.hlsli"
+#include "include/Material.hlsli"
 
 #ifdef INSTANCING
 DECLARE_SRV(Default, EntitiesBuffer) StructuredBuffer<Entity> entities;

@@ -6,7 +6,7 @@ IF NOT "%~1"=="" SET "CONFIG=%~1"
 REM Windows only because batch
 SET "CURR_PLATFORM=Windows"
 
-SET "projects=Hyperion.NET.Shared Hyperion.NET.Runtime Hyperion.NET.Interop Hyperion.NET.Scripting"
+SET "projects=Hyperion.NET.Shared Hyperion.NET.Runtime Hyperion.NET.Interop Hyperion.NET.Scripting Hyperion.NET.Editor"
 
 pushd Build
 SET "buildDir=%CD%"

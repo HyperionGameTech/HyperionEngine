@@ -138,11 +138,6 @@ void DynamicSkySystem::InitializeSky()
 
         m_envProbe->SetReceivesUpdate(false); // we will update manually, no automatic updates
 
-        for (uint32 viewIndex = 0; viewIndex < 6; viewIndex++)
-        {
-            m_envProbe->GetView(viewIndex)->AddScene(m_renderScene);
-        }
-
         Handle<MaterialDefinition> skyboxMaterialDefinition = MakeHandle<MaterialDefinition>(NAME("SkyboxMaterial"), materialAttributes);
         skyboxMaterialDefinition->SetIsTransient(true);
         InitObject(skyboxMaterialDefinition);
@@ -172,11 +167,31 @@ void DynamicSkySystem::OnAddedToWorld(World* world)
 
     GetWorld()->AddScene(m_renderScene);
     GetWorld()->AddScene(m_visScene);
+    
+    for (uint32 viewIndex = 0; viewIndex < 6; viewIndex++)
+    {
+        View* view = m_envProbe->GetView(viewIndex);
+
+        if (view != nullptr)
+        {
+            view->AddScene(m_renderScene);
+        }
+    }
 }
 
 void DynamicSkySystem::OnRemovedFromWorld(World* world)
 {
     SystemBase::OnRemovedFromWorld(world);
+    
+    for (uint32 viewIndex = 0; viewIndex < 6; viewIndex++)
+    {
+        View* view = m_envProbe->GetView(viewIndex);
+
+        if (view != nullptr)
+        {
+            view->RemoveScene(m_renderScene);
+        }
+    }
 
     GetWorld()->RemoveScene(m_renderScene);
     GetWorld()->RemoveScene(m_visScene);
