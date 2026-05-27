@@ -330,6 +330,8 @@ void DX12GpuImage::InsertBarrier(
         shaderModuleType,
         onlyDepth,
         onlyStencil);
+
+    Assert(m_subResourceStates.Empty());
 }
 
 void DX12GpuImage::InsertBarrier(
