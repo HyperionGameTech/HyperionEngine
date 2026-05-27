@@ -167,22 +167,22 @@ public:
 
     HYP_FORCE_INLINE const ViewDesc& GetViewDesc() const
     {
-        return m_viewDesc;
+        return desc;
     }
 
     HYP_FORCE_INLINE Name GetName() const
     {
-        return m_name;
+        return name;
     }
 
-    HYP_FORCE_INLINE void SetName(Name name)
+    HYP_FORCE_INLINE void SetName(Name newName)
     {
-        m_name = name;
+        name = newName;
     }
 
     HYP_FORCE_INLINE EnumFlags<ViewFlags> GetFlags() const
     {
-        return m_flags;
+        return flags;
     }
 
     HYP_METHOD()
@@ -211,11 +211,11 @@ public:
     HYP_METHOD()
     int GetPriority() const
     {
-        return m_priority;
+        return priority;
     }
 
     HYP_METHOD()
-    void SetPriority(int priority);
+    void SetPriority(int pri);
 
     HYP_FORCE_INLINE const Optional<RenderableAttributeSet>& GetOverrideAttributes() const
     {
@@ -260,8 +260,16 @@ public:
     /*! \brief Synchronously collect scene resources for the View, blocks the current thread until complete. */
     void CollectSync();
 
+    ViewDesc desc;
+
+    Name name;
+
+    EnumFlags<ViewFlags> flags;
+
     Mat4f cachedViewProjMatrix;
     Frustum cachedFrustum;
+
+    int priority;
 
 protected:
     void Init() override;
@@ -276,12 +284,6 @@ protected:
     void CollectSprites(RenderProxyList& rpl);
     void CollectMeshEntities(RenderProxyList& rpl);
 
-    ViewDesc m_viewDesc;
-
-    Name m_name;
-
-    EnumFlags<ViewFlags> m_flags;
-
     Array<Scene*> m_scenes;
     Handle<Camera> m_camera;
     ViewOutputTarget m_outputTarget;
@@ -290,8 +292,6 @@ protected:
     WeakHandle<View> m_rayTracingView;
 
     RenderProxyList* m_renderProxyLists[RingBufferDepth];
-
-    int m_priority;
 
     Optional<RenderableAttributeSet> m_overrideAttributes;
 

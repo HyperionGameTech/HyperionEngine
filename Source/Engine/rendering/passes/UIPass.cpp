@@ -140,6 +140,8 @@ static void BuildRenderGroupsOrdered(
 
             drawCallCollection.batchAllocator = renderCollector.batchAllocator;
 
+            drawCallCollection.renderProxyList = &rpl;
+
             drawCallCollection.isInit = true;
             drawCallCollection.suppressStats = true;
         }

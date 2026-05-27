@@ -849,7 +849,9 @@ static void RenderAll(Frame* frame, const TPerformRenderingPayload<TCommandRecor
     RenderProxyCamera* cameraProxy = nullptr;
     if (renderSetup.view != nullptr)
     {
-        vpMatrix = renderSetup.view->cachedViewProjMatrix;
+        AssertDebug(drawCallCollection.renderProxyList != nullptr);
+
+        vpMatrix = drawCallCollection.renderProxyList->cachedViewProjMatrix;
 
         Camera* camera = renderSetup.view->GetCamera();
         cameraProxy = static_cast<RenderProxyCamera*>(GetRenderProxy(camera));
@@ -2161,6 +2163,7 @@ void RenderCollector::BuildRenderGroups(View* view, RenderProxyList& renderProxy
             if (!newDrawCallCollection.isInit)
             {
                 InitDrawCallCollection(*this, newDrawCallCollection, newAttributes);
+                newDrawCallCollection.renderProxyList = &renderProxyList;
             }
 
             AssertDebug(meshProxy->mesh != nullptr && meshProxy->material != nullptr);
@@ -2227,6 +2230,7 @@ void RenderCollector::BuildRenderGroups(View* view, RenderProxyList& renderProxy
             if (!drawCallCollection.isInit)
             {
                 InitDrawCallCollection(*this, drawCallCollection, attributes);
+                drawCallCollection.renderProxyList = &renderProxyList;
             }
 
             const uint32 idx = id.ToIndex();

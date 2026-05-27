@@ -37,6 +37,8 @@
 #include <scene/EnvProbe.hpp>
 #include <scene/Light.hpp>
 
+#include <engine/EngineStats.hpp>
+
 #include <Core/math/MathUtil.hpp>
 
 #include <Core/utilities/DeferredScope.hpp>
@@ -53,6 +55,10 @@ static constexpr Vec2u ShNumSamples = { 16, 16 };
 static constexpr Vec2u ShNumTiles = { 16, 16 };
 static constexpr uint32 ShNumLevels = MathUtil::Max(1u, uint32(MathUtil::FastLog2(ShNumSamples.Max()) + 1));
 static constexpr bool ShParallelReduce = false;
+
+static EngineStatGpuTimer s_statDrawEnvProbe("Rendering/GPU/DrawEnvProbe");
+static EngineStatGpuTimer s_statConvolveEnvProbe("Rendering/GPU/ConvolveEnvProbe");
+static EngineStatGpuTimer s_statComputeEnvProbeSH("Rendering/GPU/ComputeEnvProbeHS");
 
 #pragma region ConvolveProbe
 
@@ -76,6 +82,8 @@ void ConvolveEnvProbeCubemap(
     // so we need that one to run before this one.
     CommandRecorder& cr = RI.commandRecorderAllocator.GetCommandRecorder();
     HYP_DEFER({ cr.Done(); });
+
+    ENGINE_STAT_GPU_SCOPE(&s_statConvolveEnvProbe, &cr);
 
     Handle<Texture> prefilteredEnvMap = envProbe.GetPrefilteredEnvMap();
     Assert(prefilteredEnvMap.IsValid() && prefilteredEnvMap->IsCreated());
@@ -162,7 +170,7 @@ void ConvolveEnvProbeCubemap(
         ShaderPropertySet shaderProperties;
         // we have to round otherwise we'll potentially make too many permutations for *almost* the same values.
         shaderProperties.Add(InternShaderProperty(ShaderProperty(NAME("LOBE_SIZE"), MathUtil::Round(roughness, 3))));
-        shaderProperties.Add(InternShaderProperty(ShaderProperty(NAME("NUM_SAMPLES"), 4096)));
+        shaderProperties.Add(InternShaderProperty(ShaderProperty(NAME("NUM_SAMPLES"), 256)));
 
         const Vec2u mipExtent = mipIndex == 0
             ? extent
@@ -364,202 +372,206 @@ void ComputeEnvProbeSphericalHarmonics(
 
     CommandRecorder& cr = useAsyncCompute ? asyncCompute->cr : RI.commandRecorderAllocator.GetCommandRecorder();
 
-    FixedArray<RWStructuredBuffer, ShNumLevels> shTilesBuffers;
-
-    for (uint32 i = 0; i < ShNumLevels; i++)
     {
-        shTilesBuffers[i] = RWStructuredBuffer((ShNumTiles.x >> i) * (ShNumTiles.y >> i), sizeof(SHTile));
-        shTilesBuffers[i].Initialize();
-    }
+        ENGINE_STAT_GPU_SCOPE(&s_statComputeEnvProbeSH, &cr);
 
-    const Vec2u cubemapDimensions = inColorTexture.GetExtent().GetXY();
-
-    struct SHUniforms
-    {
-        Vec4u levelDimensions;
-    } uniforms;
-
-    static constexpr uint32 ShDataSize = sizeof(EnvProbeShaderData::shData);
-
-    GpuBufferRef shBuffer = RI.MakeGpuBuffer(GpuBufferType::RWStructuredBuffer, MathUtil::NextPowerOf2(ShDataSize));
-    CheckResult(shBuffer->Create());
-
-    Array<GpuBufferRef> uniformBuffers;
-
-    cr << InsertBarrier(shTilesBuffers[0].gpuBuffer, RS_UNORDERED_ACCESS, ShaderModuleType::Compute);
-    cr << InsertBarrier(shBuffer, RS_UNORDERED_ACCESS, ShaderModuleType::Compute);
-
-    ShaderPropertySet shaderProperties;
-
-    // Helper to run pass
-    auto RunPass = [&](Name mode, const SHUniforms& passUniforms, const Vec3u& dispatchGroupSize, const StructuredBuffer& inputBuffer, const StructuredBuffer& outputBuffer)
-    {
-        ShaderPropertySet passShaderProperties;
-        passShaderProperties.Add(InternShaderProperty(ShaderProperty(NAME("MODE"), mode)));
-        passShaderProperties = passShaderProperties | shaderProperties;
-
-        ShaderDesc shaderDesc(NAME("ComputeSH"), passShaderProperties);
-        cr << SetCurrentShader(shaderDesc);
-
-        GpuBufferRef ub = RI.MakeGpuBuffer(GpuBufferType::ConstantBuffer, sizeof(SHUniforms));
-        ub->Create();
-        ub->Copy(sizeof(SHUniforms), &passUniforms);
-        uniformBuffers.PushBack(ub);
-
-        cr << SetShaderUniform(0, "SamplerLinear"_sh, RI.placeholderData->GetSamplerLinear());
-        cr << SetShaderUniform(1, "SamplerNearest"_sh, RI.placeholderData->GetSamplerNearest());
-        cr << SetShaderUniform(3, "EnvProbesBuffer"_sh, RI.namedBuffers[NamedBuffer::EnvProbes]);
-
-        cr << SetShaderUniform(4, "OutSHBuffer"_sh, shBuffer, ShaderDataOffset(0, sizeof(Vec4f)));
-
-        cr << SetShaderUniform(8, "InColorCubemap"_sh, RI.textureViewCache->GetOrCreate(const_cast<Texture*>(&inColorTexture)));
-        cr << SetShaderUniform(11, "InputSHTilesBuffer"_sh, inputBuffer);
-        cr << SetShaderUniform(12, "OutputSHTilesBuffer"_sh, outputBuffer);
-        cr << SetShaderUniform(13, "SHUniforms"_sh, ub);
-
-        cr << DispatchCompute(dispatchGroupSize);
-    };
-
-    // MODE_CLEAR
-    RunPass(NAME("CLEAR"), uniforms, Vec3u { 1, 1, 1 }, shTilesBuffers[0], shTilesBuffers[1]);
-
-    cr << InsertBarrier(shTilesBuffers[0].gpuBuffer, RS_UNORDERED_ACCESS, ShaderModuleType::Compute);
-
-    // MODE_BUILD_COEFFICIENTS
-    RunPass(NAME("BUILD_COEFFICIENTS"), uniforms, Vec3u { 1, 1, 1 }, shTilesBuffers[0], shTilesBuffers[1]);
-
-    // Parallel reduce
-    if (ShParallelReduce)
-    {
-        for (uint32 i = 1; i < ShNumLevels; i++)
-        {
-            cr << InsertBarrier(shTilesBuffers[i - 1].gpuBuffer, RS_UNORDERED_ACCESS, ShaderModuleType::Compute);
-
-            const Vec2u prevDimensions {
-                MathUtil::Max(1u, ShNumSamples.x >> (i - 1)),
-                MathUtil::Max(1u, ShNumSamples.y >> (i - 1))
-            };
-
-            const Vec2u nextDimensions {
-                MathUtil::Max(1u, ShNumSamples.x >> i),
-                MathUtil::Max(1u, ShNumSamples.y >> i)
-            };
-
-            Assert(prevDimensions.x >= 2);
-            Assert(prevDimensions.x > nextDimensions.x);
-            Assert(prevDimensions.y > nextDimensions.y);
-
-            SHUniforms reduceUniforms = uniforms;
-            reduceUniforms.levelDimensions = {
-                prevDimensions.x,
-                prevDimensions.y,
-                nextDimensions.x,
-                nextDimensions.y
-            };
-
-            RunPass(
-                NAME("REDUCE"),
-                reduceUniforms,
-                Vec3u { 1, (nextDimensions.x + 3) / 4, (nextDimensions.y + 3) / 4 },
-                shTilesBuffers[i - 1],
-                shTilesBuffers[i]);
-        }
-    }
-
-    const uint32 finalizeShBufferIndex = ShParallelReduce ? ShNumLevels - 1 : 0;
-
-    // Finalize - build into final buffer
-    cr << InsertBarrier(shTilesBuffers[finalizeShBufferIndex].gpuBuffer, RS_UNORDERED_ACCESS, ShaderModuleType::Compute);
-    cr << InsertBarrier(shBuffer, RS_UNORDERED_ACCESS, ShaderModuleType::Compute);
-
-    // MODE_FINALIZE
-    RunPass(
-        NAME("FINALIZE"),
-        uniforms,
-        Vec3u { 1, 1, 1 },
-        shTilesBuffers[finalizeShBufferIndex],
-        shTilesBuffers[finalizeShBufferIndex]);
-
-    cr << InsertBarrier(shBuffer, RS_COPY_SRC, ShaderModuleType::Compute);
-
-    GpuBufferRef readbackBuffer = RI.MakeGpuBuffer(GpuBufferType::ReadbackBuffer, shBuffer->Size());
-    readbackBuffer->SetIsCpuAccessible(true);
-#if HYP_DEBUG_MODE
-    readbackBuffer->SetDebugName(NAME("ComputeEnvProbeSphericalHarmonics_ReadbackBuffer"));
-#endif // HYP_DEBUG_MODE
-    CheckResult(readbackBuffer->Create());
-
-    // Copy to readback buffer
-    cr << InsertBarrier(readbackBuffer, RS_COPY_DST, ShaderModuleType::Compute);
-    cr << CopyBuffer(shBuffer, readbackBuffer, shBuffer->Size());
-
-    struct ReadbackSphericalHarmonicsPayload
-    {
-        Handle<EnvProbe> envProbe;
-        GpuBufferRef shBuffer;
-        GpuBufferRef readbackBuffer;
         FixedArray<RWStructuredBuffer, ShNumLevels> shTilesBuffers;
+
+        for (uint32 i = 0; i < ShNumLevels; i++)
+        {
+            shTilesBuffers[i] = RWStructuredBuffer((ShNumTiles.x >> i) * (ShNumTiles.y >> i), sizeof(SHTile));
+            shTilesBuffers[i].Initialize();
+        }
+
+        const Vec2u cubemapDimensions = inColorTexture.GetExtent().GetXY();
+
+        struct SHUniforms
+        {
+            Vec4u levelDimensions;
+        } uniforms;
+
+        static constexpr uint32 ShDataSize = sizeof(EnvProbeShaderData::shData);
+
+        GpuBufferRef shBuffer = RI.MakeGpuBuffer(GpuBufferType::RWStructuredBuffer, MathUtil::NextPowerOf2(ShDataSize));
+        CheckResult(shBuffer->Create());
+
         Array<GpuBufferRef> uniformBuffers;
-    };
 
-    // Custom CmdBase class, executes when all previous commands are done.
-    //Always executes on the Render thread.
-    class ReadbackSphericalHarmonics : public CmdBase
-    {
-    public:
-        ReadbackSphericalHarmonicsPayload* payload;
+        cr << InsertBarrier(shTilesBuffers[0].gpuBuffer, RS_UNORDERED_ACCESS, ShaderModuleType::Compute);
+        cr << InsertBarrier(shBuffer, RS_UNORDERED_ACCESS, ShaderModuleType::Compute);
 
-        explicit ReadbackSphericalHarmonics(ReadbackSphericalHarmonicsPayload* payload)
-            : payload(payload)
+        ShaderPropertySet shaderProperties;
+
+        // Helper to run pass
+        auto RunPass = [&](Name mode, const SHUniforms& passUniforms, const Vec3u& dispatchGroupSize, const StructuredBuffer& inputBuffer, const StructuredBuffer& outputBuffer)
         {
+            ShaderPropertySet passShaderProperties;
+            passShaderProperties.Add(InternShaderProperty(ShaderProperty(NAME("MODE"), mode)));
+            passShaderProperties = passShaderProperties | shaderProperties;
+
+            ShaderDesc shaderDesc(NAME("ComputeSH"), passShaderProperties);
+            cr << SetCurrentShader(shaderDesc);
+
+            GpuBufferRef ub = RI.MakeGpuBuffer(GpuBufferType::ConstantBuffer, sizeof(SHUniforms));
+            ub->Create();
+            ub->Copy(sizeof(SHUniforms), &passUniforms);
+            uniformBuffers.PushBack(ub);
+
+            cr << SetShaderUniform(0, "SamplerLinear"_sh, RI.placeholderData->GetSamplerLinear());
+            cr << SetShaderUniform(1, "SamplerNearest"_sh, RI.placeholderData->GetSamplerNearest());
+            cr << SetShaderUniform(3, "EnvProbesBuffer"_sh, RI.namedBuffers[NamedBuffer::EnvProbes]);
+
+            cr << SetShaderUniform(4, "OutSHBuffer"_sh, shBuffer, ShaderDataOffset(0, sizeof(Vec4f)));
+
+            cr << SetShaderUniform(8, "InColorCubemap"_sh, RI.textureViewCache->GetOrCreate(const_cast<Texture*>(&inColorTexture)));
+            cr << SetShaderUniform(11, "InputSHTilesBuffer"_sh, inputBuffer);
+            cr << SetShaderUniform(12, "OutputSHTilesBuffer"_sh, outputBuffer);
+            cr << SetShaderUniform(13, "SHUniforms"_sh, ub);
+
+            cr << DispatchCompute(dispatchGroupSize);
+        };
+
+        // MODE_CLEAR
+        RunPass(NAME("CLEAR"), uniforms, Vec3u { 1, 1, 1 }, shTilesBuffers[0], shTilesBuffers[1]);
+
+        cr << InsertBarrier(shTilesBuffers[0].gpuBuffer, RS_UNORDERED_ACCESS, ShaderModuleType::Compute);
+
+        // MODE_BUILD_COEFFICIENTS
+        RunPass(NAME("BUILD_COEFFICIENTS"), uniforms, Vec3u { 1, 1, 1 }, shTilesBuffers[0], shTilesBuffers[1]);
+
+        // Parallel reduce
+        if (ShParallelReduce)
+        {
+            for (uint32 i = 1; i < ShNumLevels; i++)
+            {
+                cr << InsertBarrier(shTilesBuffers[i - 1].gpuBuffer, RS_UNORDERED_ACCESS, ShaderModuleType::Compute);
+
+                const Vec2u prevDimensions {
+                    MathUtil::Max(1u, ShNumSamples.x >> (i - 1)),
+                    MathUtil::Max(1u, ShNumSamples.y >> (i - 1))
+                };
+
+                const Vec2u nextDimensions {
+                    MathUtil::Max(1u, ShNumSamples.x >> i),
+                    MathUtil::Max(1u, ShNumSamples.y >> i)
+                };
+
+                Assert(prevDimensions.x >= 2);
+                Assert(prevDimensions.x > nextDimensions.x);
+                Assert(prevDimensions.y > nextDimensions.y);
+
+                SHUniforms reduceUniforms = uniforms;
+                reduceUniforms.levelDimensions = {
+                    prevDimensions.x,
+                    prevDimensions.y,
+                    nextDimensions.x,
+                    nextDimensions.y
+                };
+
+                RunPass(
+                    NAME("REDUCE"),
+                    reduceUniforms,
+                    Vec3u { 1, (nextDimensions.x + 3) / 4, (nextDimensions.y + 3) / 4 },
+                    shTilesBuffers[i - 1],
+                    shTilesBuffers[i]);
+            }
         }
 
-        static void InvokeStatic(CmdBase* cmd, CommandBuffer* commandBuffer)
+        const uint32 finalizeShBufferIndex = ShParallelReduce ? ShNumLevels - 1 : 0;
+
+        // Finalize - build into final buffer
+        cr << InsertBarrier(shTilesBuffers[finalizeShBufferIndex].gpuBuffer, RS_UNORDERED_ACCESS, ShaderModuleType::Compute);
+        cr << InsertBarrier(shBuffer, RS_UNORDERED_ACCESS, ShaderModuleType::Compute);
+
+        // MODE_FINALIZE
+        RunPass(
+            NAME("FINALIZE"),
+            uniforms,
+            Vec3u { 1, 1, 1 },
+            shTilesBuffers[finalizeShBufferIndex],
+            shTilesBuffers[finalizeShBufferIndex]);
+
+        cr << InsertBarrier(shBuffer, RS_COPY_SRC, ShaderModuleType::Compute);
+
+        GpuBufferRef readbackBuffer = RI.MakeGpuBuffer(GpuBufferType::ReadbackBuffer, shBuffer->Size());
+        readbackBuffer->SetIsCpuAccessible(true);
+#if HYP_DEBUG_MODE
+        readbackBuffer->SetDebugName(NAME("ComputeEnvProbeSphericalHarmonics_ReadbackBuffer"));
+#endif // HYP_DEBUG_MODE
+        CheckResult(readbackBuffer->Create());
+
+        // Copy to readback buffer
+        cr << InsertBarrier(readbackBuffer, RS_COPY_DST, ShaderModuleType::Compute);
+        cr << CopyBuffer(shBuffer, readbackBuffer, shBuffer->Size());
+
+        struct ReadbackSphericalHarmonicsPayload
         {
-            ReadbackSphericalHarmonics* cmdCasted = static_cast<ReadbackSphericalHarmonics*>(cmd);
+            Handle<EnvProbe> envProbe;
+            GpuBufferRef shBuffer;
+            GpuBufferRef readbackBuffer;
+            FixedArray<RWStructuredBuffer, ShNumLevels> shTilesBuffers;
+            Array<GpuBufferRef> uniformBuffers;
+        };
 
-            Frame* frame = RI.GetCurrentFrame();
-            Assert(frame != nullptr);
+        // Custom CmdBase class, executes when all previous commands are done.
+        // Always executes on the Render thread.
+        class ReadbackSphericalHarmonics : public CmdBase
+        {
+        public:
+            ReadbackSphericalHarmonicsPayload* payload;
 
-            // Readback happens after the frame is finished.
-            // Hand over the payload to the delegate handler.
-            frame->OnFrameEnd.Bind([pPayload = cmdCasted->payload](...)
-                {
-                    ReadbackSphericalHarmonicsPayload& payload = *pPayload;
+            explicit ReadbackSphericalHarmonics(ReadbackSphericalHarmonicsPayload* payload)
+                : payload(payload)
+            {
+            }
 
-                    // Read back the SH coefficients from the GPU buffer and store on the EnvProbe.
-                    EnvProbeSphericalHarmonics shData {};
+            static void InvokeStatic(CmdBase* cmd, CommandBuffer* commandBuffer)
+            {
+                ReadbackSphericalHarmonics* cmdCasted = static_cast<ReadbackSphericalHarmonics*>(cmd);
 
-                    Assert(payload.readbackBuffer.IsValid() && payload.readbackBuffer->Size() >= sizeof(shData.values));
-                    payload.readbackBuffer->Read(sizeof(shData.values), &shData.values[0]);
+                Frame* frame = RI.GetCurrentFrame();
+                Assert(frame != nullptr);
 
-                    {
-                        // SetSphericalHarmonicsData() marks it dirty so we don't need to do that here.
-                        auto resGuard = payload.envProbe->GetWriteScope();
-                        payload.envProbe->SetSphericalHarmonicsData(shData);
-                    }
+                // Readback happens after the frame is finished.
+                // Hand over the payload to the delegate handler.
+                frame->OnFrameEnd.Bind([pPayload = cmdCasted->payload](...)
+                                     {
+                                         ReadbackSphericalHarmonicsPayload& payload = *pPayload;
 
-                    EnqueueDeletion(std::move(payload.shBuffer));
-                    EnqueueDeletion(std::move(payload.readbackBuffer));
-                    EnqueueDeletion(std::move(payload.uniformBuffers));
+                                         // Read back the SH coefficients from the GPU buffer and store on the EnvProbe.
+                                         EnvProbeSphericalHarmonics shData {};
 
-                    delete pPayload;
-                })
-                .Detach();
+                                         Assert(payload.readbackBuffer.IsValid() && payload.readbackBuffer->Size() >= sizeof(shData.values));
+                                         payload.readbackBuffer->Read(sizeof(shData.values), &shData.values[0]);
 
-            // not necessary but just to aid in debugging
-            cmdCasted->payload = nullptr;
-        }
-    };
+                                         {
+                                             // SetSphericalHarmonicsData() marks it dirty so we don't need to do that here.
+                                             auto resGuard = payload.envProbe->GetWriteScope();
+                                             payload.envProbe->SetSphericalHarmonicsData(shData);
+                                         }
 
-    ReadbackSphericalHarmonicsPayload* payload = new ReadbackSphericalHarmonicsPayload;
-    payload->envProbe = MakeStrongRef(&envProbe);
-    payload->shBuffer = std::move(shBuffer);
-    payload->readbackBuffer = std::move(readbackBuffer);
-    payload->shTilesBuffers = std::move(shTilesBuffers);
-    payload->uniformBuffers = uniformBuffers;
+                                         EnqueueDeletion(std::move(payload.shBuffer));
+                                         EnqueueDeletion(std::move(payload.readbackBuffer));
+                                         EnqueueDeletion(std::move(payload.uniformBuffers));
 
-    cr << ReadbackSphericalHarmonics(payload);
+                                         delete pPayload;
+                                     })
+                    .Detach();
+
+                // not necessary but just to aid in debugging
+                cmdCasted->payload = nullptr;
+            }
+        };
+
+        ReadbackSphericalHarmonicsPayload* payload = new ReadbackSphericalHarmonicsPayload;
+        payload->envProbe = MakeStrongRef(&envProbe);
+        payload->shBuffer = std::move(shBuffer);
+        payload->readbackBuffer = std::move(readbackBuffer);
+        payload->shTilesBuffers = std::move(shTilesBuffers);
+        payload->uniformBuffers = uniformBuffers;
+
+        cr << ReadbackSphericalHarmonics(payload);
+    }
 
     if (useAsyncCompute)
     {
@@ -605,6 +617,8 @@ void EnvProbePassBase::RenderFrame(Frame* frame, const RenderSetup& renderSetup)
     RenderSetup rs = renderSetup.Fork();
     rs.envProbe = renderSetup.prev ? renderSetup.prev->envProbe : nullptr;
     rs.viewport = Viewport { envProbe->GetDimensions() };
+
+    ENGINE_STAT_GPU_SCOPE(&s_statDrawEnvProbe, &frame->cr);
 
     RenderProbe(frame, rs, envProbe);
 }

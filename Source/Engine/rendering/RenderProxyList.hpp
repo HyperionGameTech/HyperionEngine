@@ -184,6 +184,8 @@ public:
 
     Array<Pair<ObjId<Entity>, int>, DynamicAllocator> meshEntityOrdering;
 
+    Mat4f cachedViewProjMatrix;
+
     SharedMutex m_lock;
 };
 

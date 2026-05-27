@@ -28,6 +28,7 @@ class Mesh;
 class MaterialInstance;
 class Skeleton;
 class Entity;
+class RenderProxyList;
 class RenderProxyMesh;
 class RenderProxySprite;
 struct DrawCommandData;
@@ -306,6 +307,7 @@ struct DrawCallCollection
     {
         out.batchAllocator = batchAllocator;
         out.attributes = attributes;
+        out.renderProxyList = renderProxyList;
         out.indirectRenderer = indirectRenderer;
         out.drawCalls = std::move(drawCalls);
         out.instancedDrawCalls = std::move(instancedDrawCalls);
@@ -322,6 +324,8 @@ struct DrawCallCollection
     RenderableAttributeSet attributes;
     EnumFlags<RenderGroupFlags> flags = {};
     ParallelRenderingState* parallelRenderingState = nullptr;
+
+    RenderProxyList* renderProxyList = nullptr;
 
     bool isInit : 1 = false;
     bool suppressStats : 1 = false;

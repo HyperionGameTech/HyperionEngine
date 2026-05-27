@@ -483,6 +483,9 @@ static inline void CopyDependencies(
         src.resourceTrackers.Data(),
         std::make_index_sequence<TupleSize<RenderProxyList::ResourceTrackerTypes>::value>());
 
+    // Copy cached VP matrix so render subsystem can use it as it was written from the main thread
+    dst.cachedViewProjMatrix = src.cachedViewProjMatrix;
+
     if (src.useOrdering)
     {
         dst.meshEntityOrdering = src.meshEntityOrdering;

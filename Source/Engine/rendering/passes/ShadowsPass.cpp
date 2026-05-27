@@ -382,7 +382,7 @@ void ShadowsPassBase::RenderFrame(Frame* frame, const RenderSetup& renderSetup)
                 HYP_DEFER({ rpl.EndRead(); });
 
                 const bool isMatrixDirty = viewIndex >= pd->prevCameraMatrices.Size()
-                    || pd->prevCameraMatrices[viewIndex] != shadowView->cachedViewProjMatrix;
+                    || pd->prevCameraMatrices[viewIndex] != rpl.cachedViewProjMatrix;
 
                 // Copy from cached
                 if (!isMatrixDirty
@@ -441,7 +441,7 @@ void ShadowsPassBase::RenderFrame(Frame* frame, const RenderSetup& renderSetup)
                     pd->prevCameraMatrices.Resize(viewIndex + 1);
                 }
 
-                pd->prevCameraMatrices[viewIndex] = shadowView->cachedViewProjMatrix;
+                pd->prevCameraMatrices[viewIndex] = rpl.cachedViewProjMatrix;
             }
             else
             {

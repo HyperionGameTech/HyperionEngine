@@ -436,6 +436,7 @@ void EnvProbe::Update(float delta)
         AssertDebug(view != nullptr);
 
         const Mat4f& viewMatrix = matrices[viewIndex];
+
         view->cachedViewProjMatrix = m_camera->GetProjectionMatrix() * viewMatrix;
 
         for (Scene* scene : view->GetScenes())

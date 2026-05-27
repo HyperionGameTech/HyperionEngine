@@ -180,16 +180,16 @@ View::View()
 }
 
 View::View(const ViewDesc& viewDesc, Name name)
-    : m_viewDesc(viewDesc),
-      m_name(name),
-      m_flags(viewDesc.flags),
+    : desc(viewDesc),
+      name(name),
+      flags(viewDesc.flags),
+      priority(viewDesc.priority),
       m_camera(MakeStrongRef(viewDesc.camera)),
-      m_priority(viewDesc.priority),
       m_overrideAttributes(viewDesc.overrideAttributes),
       m_collectionTaskBatch(nullptr),
       m_overrideCollectFunctor(nullptr)
 {
-    for (Scene* scene : m_viewDesc.scenes)
+    for (Scene* scene : viewDesc.scenes)
     {
         if (!scene)
         {
@@ -201,7 +201,7 @@ View::View(const ViewDesc& viewDesc, Name name)
 
     for (auto it = std::begin(m_renderProxyLists); it != std::end(m_renderProxyLists); ++it)
     {
-        if ((m_flags & ViewFlags::NOT_MULTI_BUFFERED) && it != std::begin(m_renderProxyLists))
+        if ((flags & ViewFlags::NOT_MULTI_BUFFERED) && it != std::begin(m_renderProxyLists))
         {
             *it = *(it - 1);
 
@@ -218,7 +218,7 @@ View::~View()
 
     for (uint32 i = 0; i < HYP_ARRAY_SIZE(m_renderProxyLists); i++)
     {
-        if ((m_flags & ViewFlags::NOT_MULTI_BUFFERED) && i > 0)
+        if ((flags & ViewFlags::NOT_MULTI_BUFFERED) && i > 0)
         {
             break;
         }
@@ -239,25 +239,25 @@ void View::Init()
         InitObject(m_camera);
     }
 
-    const Vec2u extent = MathUtil::Max(m_viewDesc.framebufferDesc.extent, Vec2u::One());
+    const Vec2u extent = MathUtil::Max(desc.framebufferDesc.extent, Vec2u::One());
 
-    if (!(m_viewDesc.flags & ViewFlags::EXTERNAL_RENDERTARGET))
+    if (!(flags & ViewFlags::EXTERNAL_RENDERTARGET))
     {
-        if (m_viewDesc.flags & ViewFlags::GBUFFER)
+        if (flags & ViewFlags::GBUFFER)
         {
-            AssertDebug(m_viewDesc.framebufferDesc.numAttachments == 0,
+            AssertDebug(desc.framebufferDesc.numAttachments == 0,
                 "View with GBuffer flag cannot have output target attachments defined, as it will use GBuffer instead.");
 
             m_outputTarget = ViewOutputTarget(MakeHandle<GBuffer>(extent));
         }
-        else if (m_viewDesc.framebufferDesc.numAttachments > 0)
+        else if (desc.framebufferDesc.numAttachments > 0)
         {
-            FramebufferRef framebuffer = RI.MakeFramebuffer(m_viewDesc.framebufferDesc);
+            FramebufferRef framebuffer = RI.MakeFramebuffer(desc.framebufferDesc);
 
 #if HYP_DEBUG_MODE
-            if (m_name.IsValid())
+            if (name.IsValid())
             {
-                framebuffer->SetDebugName(NAME_FMT("{}Framebuffer", m_name));
+                framebuffer->SetDebugName(NAME_FMT("{}Framebuffer", name));
             }
             else
             {
@@ -265,9 +265,9 @@ void View::Init()
             }
 #endif
 
-            for (uint32 attachmentIndex = 0; attachmentIndex < m_viewDesc.framebufferDesc.numAttachments; attachmentIndex++)
+            for (uint32 attachmentIndex = 0; attachmentIndex < desc.framebufferDesc.numAttachments; attachmentIndex++)
             {
-                const AttachmentDesc& attachmentDesc = m_viewDesc.framebufferDesc.attachments[attachmentIndex];
+                const AttachmentDesc& attachmentDesc = desc.framebufferDesc.attachments[attachmentIndex];
                 AssertDebug(attachmentDesc.format != InvalidTextureFormat);
 
                 Attachment* attachment = framebuffer->AddAttachment(
@@ -325,9 +325,9 @@ void View::UpdateVisibility()
     HYP_SCOPE;
     AssertOnThread(g_simThread | g_visThread);
     AssertReady();
-
+    
     // Cubemap face views do not automatically update the sub-frustum
-    if (!(m_flags & ViewFlags::CUBEMAP_FACE_VIEW))
+    if (!(flags & ViewFlags::CUBEMAP_FACE_VIEW))
     {
         if (m_camera.IsValid())
         {
@@ -338,7 +338,7 @@ void View::UpdateVisibility()
             cachedViewProjMatrix = Mat4f::identity;
         }
     }
-
+    
     cachedFrustum.SetFromViewProjectionMatrix(cachedViewProjMatrix);
 
     for (Scene* scene : m_scenes)
@@ -359,7 +359,7 @@ void View::PrepareShadowViews(Array<View*, SceneAllocator>& outShadowViews)
     HYP_SCOPE;
     AssertOnThread(g_simThread);
 
-    if (m_flags & (ViewFlags::SKIP_LIGHTS | ViewFlags::SHADOW_VIEW))
+    if (flags & (ViewFlags::SKIP_LIGHTS | ViewFlags::SHADOW_VIEW))
     {
         return;
     }
@@ -380,7 +380,7 @@ void View::PrepareShadowViews(Array<View*, SceneAllocator>& outShadowViews)
 
             bool isLightInFrustum = false;
 
-            if (m_flags & ViewFlags::NO_FRUSTUM_CULLING)
+            if (flags & ViewFlags::NO_FRUSTUM_CULLING)
                 isLightInFrustum = true;
             else
             {
@@ -538,7 +538,8 @@ void View::BeginAsyncCollection(TaskBatch& batch)
         {
             rpl.BeginWrite();
 
-            rpl.priority = m_priority;
+            rpl.priority = priority;
+            rpl.cachedViewProjMatrix = cachedViewProjMatrix;
 
             CollectCameras(rpl);
             CollectLights(rpl);
@@ -580,9 +581,9 @@ void View::CollectSync()
     EndAsyncCollection();
 }
 
-void View::SetPriority(int priority)
+void View::SetPriority(int pri)
 {
-    m_priority = priority;
+    priority = pri;
 }
 
 void View::AddScene(Scene* scene)
@@ -637,14 +638,14 @@ void View::CollectMeshEntities(RenderProxyList& rpl)
         uint32 numCollectedEntities = 0;
         uint32 numSkippedEntities = 0;
 
-        switch (uint32(m_flags) & uint32(ViewFlags::COLLECT_ALL_ENTITIES))
+        switch (uint32(flags) & uint32(ViewFlags::COLLECT_ALL_ENTITIES))
         {
         case uint32(ViewFlags::COLLECT_ALL_ENTITIES):
-            if ((m_flags & ViewFlags::NO_FRUSTUM_CULLING) || !(scene->GetSceneFlags() & SceneFlags::HAS_OCTREE))
+            if ((flags & ViewFlags::NO_FRUSTUM_CULLING) || !(scene->GetSceneFlags() & SceneFlags::HAS_OCTREE))
             {
                 for (auto [entity, meshComponent, boundingBoxComponent] : scene->GetEntityManager()->GetEntitySet<MeshComponent, BoundingBoxComponent>().GetScopedView(DataAccessFlags::ACCESS_READ, HYP_FUNCTION_NAME_LIT))
                 {
-                    if (m_viewDesc.bounds.IsValid() && !m_viewDesc.bounds.Overlaps(boundingBoxComponent.worldAabb))
+                    if (desc.bounds.IsValid() && !desc.bounds.Overlaps(boundingBoxComponent.worldAabb))
                     {
                         continue;
                     }
@@ -688,7 +689,7 @@ void View::CollectMeshEntities(RenderProxyList& rpl)
             {
                 for (auto [entity, meshComponent, boundingBoxComponent, visibilityStateComponent] : scene->GetEntityManager()->GetEntitySet<MeshComponent, BoundingBoxComponent, VisibilityStateComponent>().GetScopedView(DataAccessFlags::ACCESS_READ, HYP_FUNCTION_NAME_LIT))
                 {
-                    if (m_viewDesc.bounds.IsValid() && !m_viewDesc.bounds.Overlaps(boundingBoxComponent.worldAabb))
+                    if (desc.bounds.IsValid() && !desc.bounds.Overlaps(boundingBoxComponent.worldAabb))
                     {
                         continue;
                     }
@@ -754,11 +755,11 @@ void View::CollectMeshEntities(RenderProxyList& rpl)
             break;
 
         case uint32(ViewFlags::COLLECT_STATIC_ENTITIES):
-            if ((m_flags & ViewFlags::NO_FRUSTUM_CULLING) || !(scene->GetSceneFlags() & SceneFlags::HAS_OCTREE))
+            if ((flags & ViewFlags::NO_FRUSTUM_CULLING) || !(scene->GetSceneFlags() & SceneFlags::HAS_OCTREE))
             {
                 for (auto [entity, meshComponent, boundingBoxComponent, _] : scene->GetEntityManager()->GetEntitySet<MeshComponent, BoundingBoxComponent, TagComponent<EntityTag::MobStatic>>().GetScopedView(DataAccessFlags::ACCESS_READ, HYP_FUNCTION_NAME_LIT))
                 {
-                    if (m_viewDesc.bounds.IsValid() && !m_viewDesc.bounds.Overlaps(boundingBoxComponent.worldAabb))
+                    if (desc.bounds.IsValid() && !desc.bounds.Overlaps(boundingBoxComponent.worldAabb))
                     {
                         continue;
                     }
@@ -802,7 +803,7 @@ void View::CollectMeshEntities(RenderProxyList& rpl)
             {
                 for (auto [entity, meshComponent, boundingBoxComponent, visibilityStateComponent, _] : scene->GetEntityManager()->GetEntitySet<MeshComponent, BoundingBoxComponent, VisibilityStateComponent, TagComponent<EntityTag::MobStatic>>().GetScopedView(DataAccessFlags::ACCESS_READ, HYP_FUNCTION_NAME_LIT))
                 {
-                    if (m_viewDesc.bounds.IsValid() && !m_viewDesc.bounds.Overlaps(boundingBoxComponent.worldAabb))
+                    if (desc.bounds.IsValid() && !desc.bounds.Overlaps(boundingBoxComponent.worldAabb))
                     {
                         continue;
                     }
@@ -868,11 +869,11 @@ void View::CollectMeshEntities(RenderProxyList& rpl)
             break;
 
         case uint32(ViewFlags::COLLECT_DYNAMIC_ENTITIES):
-            if ((m_flags & ViewFlags::NO_FRUSTUM_CULLING) || !(scene->GetSceneFlags() & SceneFlags::HAS_OCTREE))
+            if ((flags & ViewFlags::NO_FRUSTUM_CULLING) || !(scene->GetSceneFlags() & SceneFlags::HAS_OCTREE))
             {
                 for (auto [entity, meshComponent, boundingBoxComponent, _] : scene->GetEntityManager()->GetEntitySet<MeshComponent, BoundingBoxComponent, TagComponent<EntityTag::MobDynamic>>().GetScopedView(DataAccessFlags::ACCESS_READ, HYP_FUNCTION_NAME_LIT))
                 {
-                    if (m_viewDesc.bounds.IsValid() && !m_viewDesc.bounds.Overlaps(boundingBoxComponent.worldAabb))
+                    if (desc.bounds.IsValid() && !desc.bounds.Overlaps(boundingBoxComponent.worldAabb))
                     {
                         continue;
                     }
@@ -916,7 +917,7 @@ void View::CollectMeshEntities(RenderProxyList& rpl)
             {
                 for (auto [entity, meshComponent, boundingBoxComponent, visibilityStateComponent, _] : scene->GetEntityManager()->GetEntitySet<MeshComponent, BoundingBoxComponent, VisibilityStateComponent, TagComponent<EntityTag::MobDynamic>>().GetScopedView(DataAccessFlags::ACCESS_READ, HYP_FUNCTION_NAME_LIT))
                 {
-                    if (m_viewDesc.bounds.IsValid() && !m_viewDesc.bounds.Overlaps(boundingBoxComponent.worldAabb))
+                    if (desc.bounds.IsValid() && !desc.bounds.Overlaps(boundingBoxComponent.worldAabb))
                     {
                         continue;
                     }
@@ -1025,7 +1026,7 @@ void View::CollectMeshEntities(RenderProxyList& rpl)
 
             if (meshComponent->enableAutoInstancing || meshComponent->numInstances)
             {
-                AssertDebug(m_viewDesc.entityBatchClass == nullptr || m_viewDesc.entityBatchClass == MeshEntityInstanceBatch::StaticClass());
+                AssertDebug(desc.entityBatchClass == nullptr || desc.entityBatchClass == MeshEntityInstanceBatch::StaticClass());
 
                 AssertDebug(meshComponent->instanceData.IsLoaded());
 
@@ -1078,7 +1079,7 @@ void View::CollectCameras(RenderProxyList& rpl)
         rpl.GetCameras().Track(m_camera.Id(), m_camera, m_camera->GetRenderProxyVersionPtr());
     }
 
-    if (m_flags & ViewFlags::SKIP_CAMERAS)
+    if (flags & ViewFlags::SKIP_CAMERAS)
     {
         return;
     }
@@ -1098,7 +1099,7 @@ void View::CollectLights(RenderProxyList& rpl)
 {
     HYP_SCOPE;
 
-    if (m_flags & ViewFlags::SKIP_LIGHTS)
+    if (flags & ViewFlags::SKIP_LIGHTS)
     {
         return;
     }
@@ -1112,7 +1113,7 @@ void View::CollectLights(RenderProxyList& rpl)
             bool isLightInFrustum = false;
             bool lightCastsShadows = light->GetLightFlags() & LightFlags::ShadowCaster;
 
-            if (m_flags & ViewFlags::NO_FRUSTUM_CULLING)
+            if (flags & ViewFlags::NO_FRUSTUM_CULLING)
             {
                 isLightInFrustum = true;
             }
@@ -1165,7 +1166,7 @@ void View::CollectLightmapVolumes(RenderProxyList& rpl)
 {
     HYP_SCOPE;
 
-    if (m_flags & ViewFlags::SKIP_LIGHTMAP_VOLUMES)
+    if (flags & ViewFlags::SKIP_LIGHTMAP_VOLUMES)
     {
         return;
     }
@@ -1186,7 +1187,7 @@ void View::CollectLightmapVolumes(RenderProxyList& rpl)
                 continue;
             }
 
-            if (m_viewDesc.bounds.IsValid() && !m_viewDesc.bounds.Overlaps(worldBounds))
+            if (desc.bounds.IsValid() && !desc.bounds.Overlaps(worldBounds))
             {
                 continue;
             }
@@ -1205,7 +1206,7 @@ void View::CollectParticleVolumes(RenderProxyList& rpl)
 {
     HYP_SCOPE;
 
-    if (m_flags & ViewFlags::SKIP_PARTICLE_VOLUMES)
+    if (flags & ViewFlags::SKIP_PARTICLE_VOLUMES)
     {
         return;
     }
@@ -1224,12 +1225,12 @@ void View::CollectParticleVolumes(RenderProxyList& rpl)
                 continue;
             }
 
-            if (m_viewDesc.bounds.IsValid() && !m_viewDesc.bounds.Overlaps(worldBounds))
+            if (desc.bounds.IsValid() && !desc.bounds.Overlaps(worldBounds))
             {
                 continue;
             }
 
-            if (!(m_flags & ViewFlags::NO_FRUSTUM_CULLING))
+            if (!(flags & ViewFlags::NO_FRUSTUM_CULLING))
             {
                 if (!cachedFrustum.ContainsAABB(worldBounds))
                 {
@@ -1246,7 +1247,7 @@ void View::CollectFogVolumes(RenderProxyList& rpl)
 {
     HYP_SCOPE;
 
-    if (m_flags & ViewFlags::SKIP_FOG_VOLUMES)
+    if (flags & ViewFlags::SKIP_FOG_VOLUMES)
     {
         return;
     }
@@ -1265,12 +1266,12 @@ void View::CollectFogVolumes(RenderProxyList& rpl)
                 continue;
             }
 
-            if (m_viewDesc.bounds.IsValid() && !m_viewDesc.bounds.Overlaps(worldBounds))
+            if (desc.bounds.IsValid() && !desc.bounds.Overlaps(worldBounds))
             {
                 continue;
             }
 
-            if (!(m_flags & ViewFlags::NO_FRUSTUM_CULLING))
+            if (!(flags & ViewFlags::NO_FRUSTUM_CULLING))
             {
                 if (!cachedFrustum.ContainsAABB(worldBounds))
                 {
@@ -1287,7 +1288,7 @@ void View::CollectEnvGrids(RenderProxyList& rpl)
 {
     HYP_SCOPE;
 
-    if (m_flags & ViewFlags::SKIP_ENV_GRIDS)
+    if (flags & ViewFlags::SKIP_ENV_GRIDS)
     {
         return;
     }
@@ -1307,7 +1308,7 @@ void View::CollectEnvGrids(RenderProxyList& rpl)
                 continue;
             }
 
-            if (m_viewDesc.bounds.IsValid() && !m_viewDesc.bounds.Overlaps(worldBounds))
+            if (desc.bounds.IsValid() && !desc.bounds.Overlaps(worldBounds))
             {
                 continue;
             }
@@ -1328,7 +1329,7 @@ void View::CollectEnvProbes(RenderProxyList& rpl)
 {
     HYP_SCOPE;
 
-    if (m_flags & ViewFlags::SKIP_ENV_PROBES)
+    if (flags & ViewFlags::SKIP_ENV_PROBES)
     {
         return;
     }
@@ -1350,12 +1351,12 @@ void View::CollectEnvProbes(RenderProxyList& rpl)
                     continue;
                 }
 
-                if (m_viewDesc.bounds.IsValid() && !m_viewDesc.bounds.Overlaps(worldBounds))
+                if (desc.bounds.IsValid() && !desc.bounds.Overlaps(worldBounds))
                 {
                     continue;
                 }
 
-                if (!(m_flags & ViewFlags::NO_FRUSTUM_CULLING) && !cachedFrustum.ContainsAABB(worldBounds))
+                if (!(flags & ViewFlags::NO_FRUSTUM_CULLING) && !cachedFrustum.ContainsAABB(worldBounds))
                 {
                     continue;
                 }
@@ -1370,7 +1371,7 @@ void View::CollectSprites(RenderProxyList& rpl)
 {
     HYP_SCOPE;
 
-    if (m_flags & ViewFlags::SKIP_SPRITES)
+    if (flags & ViewFlags::SKIP_SPRITES)
     {
         return;
     }
