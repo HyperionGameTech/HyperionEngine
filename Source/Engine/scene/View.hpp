@@ -232,16 +232,6 @@ public:
         return m_rayTracingView;
     }
 
-    HYP_FORCE_INLINE const Frustum& GetSubFrustum() const
-    {
-        return m_subFrustum;
-    }
-
-    HYP_FORCE_INLINE void SetSubFrustum(const Frustum& subFrustum)
-    {
-        m_subFrustum = subFrustum;
-    }
-
     HYP_FORCE_INLINE const ProcRef<void(RenderProxyList&)>& GetOverrideCollectFunctor() const
     {
         return m_overrideCollectFunctor;
@@ -270,6 +260,9 @@ public:
     /*! \brief Synchronously collect scene resources for the View, blocks the current thread until complete. */
     void CollectSync();
 
+    Mat4f cachedViewProjMatrix;
+    Frustum cachedFrustum;
+
 protected:
     void Init() override;
 
@@ -297,8 +290,6 @@ protected:
     WeakHandle<View> m_rayTracingView;
 
     RenderProxyList* m_renderProxyLists[RingBufferDepth];
-
-    Frustum m_subFrustum;
 
     int m_priority;
 

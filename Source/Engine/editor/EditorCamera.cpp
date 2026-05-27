@@ -155,7 +155,7 @@ bool EditorCameraInputHandler::OnMouseDrag(const MouseEvent& evt)
     const double mouseDeltaX = double(evt.relativePos.x) - double(evt.relativePrevPos.x);
     const double mouseDeltaY = double(evt.relativePos.y) - double(evt.relativePrevPos.y);
 
-    const Vec3f dirCrossY = camera->GetDirection().Cross(camera->GetUpVector());
+    const Vec3f dirCrossY = camera->GetSideVector();
 
     const bool isAltPressed = IsKeyDown(KeyCode::KEY_LALT) || IsKeyDown(KeyCode::KEY_RALT);
     const bool isCtrlPressed = IsKeyDown(KeyCode::KEY_LCTRL) || IsKeyDown(KeyCode::KEY_RCTRL);
@@ -189,12 +189,12 @@ bool EditorCameraInputHandler::OnMouseDrag(const MouseEvent& evt)
     }
     else if (evt.mouseButtons & MouseButtonState::LEFT)
     {
-        camera->Rotate(camera->GetUpVector(), MathUtil::DegToRad(mouseDeltaX * lookMultiplier));
-        camera->Rotate(dirCrossY, MathUtil::DegToRad(mouseDeltaY * lookMultiplier));
+        camera->Rotate(camera->GetUpVector(), MathUtil::DegToRad(-mouseDeltaX * lookMultiplier));
+        camera->Rotate(dirCrossY, MathUtil::DegToRad(-mouseDeltaY * lookMultiplier));
 
         if (camera->GetDirection().y > 0.98f || camera->GetDirection().y < -0.98f)
         {
-            camera->Rotate(dirCrossY, MathUtil::DegToRad(-mouseDeltaY * lookMultiplier));
+            camera->Rotate(dirCrossY, MathUtil::DegToRad(mouseDeltaY * lookMultiplier));
         }
     }
 

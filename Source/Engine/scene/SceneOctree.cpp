@@ -879,7 +879,7 @@ void SceneOctree::UpdateVisibilityState(const View* view, uint16 validityMarker)
         return;
     }
 
-    const Frustum& frustum = view->GetSubFrustum();
+    const Frustum& frustum = view->cachedFrustum;
 
     if (!frustum.ContainsAABB(m_aabb))
     {

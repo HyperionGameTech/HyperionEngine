@@ -157,8 +157,8 @@ static ViewDesc GetViewDesc(Light* light, bool isStatic, uint32 cascadeIndex, Sh
     materialAttributes.shaderName = shaderDesc.name;
     materialAttributes.shaderProperties = shaderDesc.properties;
     materialAttributes.flags = MAF_DEPTH_WRITE | MAF_DEPTH_TEST | MAF_DEPTH_CLAMP | MAF_DEPTH_BIAS;
-    materialAttributes.depthBias = 4;
-    materialAttributes.depthBiasSlope = 2.0f;
+    materialAttributes.depthBias = 1;
+    materialAttributes.depthBiasSlope = 0.5f;
     materialAttributes.cullFaces = light->GetShadowMapFilter() == SMF_VSM ? FCM_FRONT : FCM_BACK;
 
     viewDesc.overrideAttributes = RenderableAttributeSet(MeshAttributes(), materialAttributes);

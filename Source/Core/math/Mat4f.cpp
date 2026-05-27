@@ -198,8 +198,8 @@ Mat4f Mat4f::LookAt(const Vec3f& direction, const Vec3f& up)
     auto mat = Identity();
 
     const Vec3f z = direction.Normalized();
-    const Vec3f x = direction.Cross(up).Normalize();
-    const Vec3f y = x.Cross(z).Normalize();
+    const Vec3f x = up.Cross(z).Normalize();
+    const Vec3f y = z.Cross(x);
 
     mat[0][0] = x.x;
     mat[0][1] = x.y;

@@ -19,27 +19,20 @@ PerspectiveCameraController::PerspectiveCameraController()
 
 void PerspectiveCameraController::OnActivated()
 {
-    HYP_SCOPE;
-
     CameraController::OnActivated();
 }
 
 void PerspectiveCameraController::OnDeactivated()
 {
-    HYP_SCOPE;
-
     CameraController::OnDeactivated();
 }
 
 void PerspectiveCameraController::UpdateLogic(double delta)
 {
-    HYP_SCOPE;
 }
 
 void PerspectiveCameraController::UpdateViewMatrix()
 {
-    HYP_SCOPE;
-
     m_camera->m_viewMat = Mat4f::LookAt(
         m_camera->GetWorldTranslation(),
         m_camera->GetTarget(),
@@ -48,8 +41,6 @@ void PerspectiveCameraController::UpdateViewMatrix()
 
 void PerspectiveCameraController::UpdateProjectionMatrix()
 {
-    HYP_SCOPE;
-
     m_camera->SetToPerspectiveProjection(
         m_camera->m_fov,
         m_camera->m_near,

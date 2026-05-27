@@ -169,19 +169,26 @@ Frustum& Frustum::SetFromViewProjectionMatrix(const Mat4f& viewProj)
 
 void Frustum::StoreViewProjectionMatrix(Mat4f& outVP) const
 {
-    const Vec4f& left = planes[0];
-    const Vec4f& right = planes[1];
-    const Vec4f& bottom = planes[2];
-    const Vec4f& top = planes[3];
-    const Vec4f& nearP = planes[4];
+    Mat4f mat;
 
-    Vec4f rows[4];
-    rows[0] = (left - right) * 0.5f;
-    rows[1] = (bottom - top) * 0.5f;
-    rows[2] = nearP;
-    rows[3] = (left + right) * 0.5f;
+    // Reconstruct the transposed matrix rows from the linear combinations of the planes
+    for (uint32 j = 0; j < 4; j++)
+    {
+        // planes[0] = mat[][3] - mat[][0]
+        // planes[1] = mat[][3] + mat[][0]
+        mat[j][3] = 0.5f * (planes[0][j] + planes[1][j]);
+        mat[j][0] = 0.5f * (planes[1][j] - planes[0][j]);
 
-    Memory::Copy(outVP.rows, rows, sizeof(rows));
+        // planes[2] = mat[][3] + mat[][1]
+        // planes[3] = mat[][3] - mat[][1]
+        mat[j][1] = 0.5f * (planes[2][j] - planes[3][j]);
+
+        // planes[4] = mat[][3] - mat[][2]
+        // planes[5] = mat[][3] + mat[][2]
+        mat[j][2] = 0.5f * (planes[5][j] - planes[4][j]);
+    }
+
+    outVP = mat.Transpose();
 }
 
 Vec3f Frustum::GetIntersectionPoint(uint32 planeIndex0, uint32 planeIndex1, uint32 planeIndex2) const

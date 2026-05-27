@@ -27,8 +27,6 @@ FollowCameraController::FollowCameraController(const Vector3& target, const Vect
 
 void FollowCameraController::OnActivated()
 {
-    HYP_SCOPE;
-
     PerspectiveCameraController::OnActivated();
 
     m_camera->SetTarget(m_target);
@@ -36,15 +34,11 @@ void FollowCameraController::OnActivated()
 
 void FollowCameraController::OnDeactivated()
 {
-    HYP_SCOPE;
-
     PerspectiveCameraController::OnDeactivated();
 }
 
 void FollowCameraController::UpdateLogic(double delta)
 {
-    HYP_SCOPE;
-
     m_realOffset.Lerp(m_offset, MathUtil::Clamp(float(delta) * 25.0f, 0.0f, 1.0f));
 
     const Vector3 origin = m_camera->GetTarget();

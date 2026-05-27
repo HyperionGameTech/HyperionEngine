@@ -849,7 +849,7 @@ static void RenderAll(Frame* frame, const TPerformRenderingPayload<TCommandRecor
     RenderProxyCamera* cameraProxy = nullptr;
     if (renderSetup.view != nullptr)
     {
-        renderSetup.view->GetSubFrustum().StoreViewProjectionMatrix(vpMatrix);
+        vpMatrix = renderSetup.view->cachedViewProjMatrix;
 
         Camera* camera = renderSetup.view->GetCamera();
         cameraProxy = static_cast<RenderProxyCamera*>(GetRenderProxy(camera));

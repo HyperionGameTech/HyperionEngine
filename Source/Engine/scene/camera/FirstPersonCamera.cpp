@@ -85,14 +85,14 @@ bool FirstPersonCameraInputHandler::OnMouseMove(const MouseEvent& evt)
     Vec2f mouseDelta = (evt.relativePos - evt.relativePrevPos) * mouseSensitivity;
     mouseDelta *= deltaTime;
 
-    const Vec3f dirCrossY = camera->GetDirection().Cross(camera->GetUpVector());
+    const Vec3f dirCrossY = camera->GetSideVector();
 
-    camera->Rotate(camera->GetUpVector(), MathUtil::DegToRad(mouseDelta.x));
-    camera->Rotate(dirCrossY, MathUtil::DegToRad(mouseDelta.y));
+    camera->Rotate(camera->GetUpVector(), MathUtil::DegToRad(-mouseDelta.x));
+    camera->Rotate(dirCrossY, MathUtil::DegToRad(-mouseDelta.y));
 
     if (camera->GetDirection().y > 0.98f || camera->GetDirection().y < -0.98f)
     {
-        camera->Rotate(dirCrossY, MathUtil::DegToRad(-mouseDelta.y));
+        camera->Rotate(dirCrossY, MathUtil::DegToRad(mouseDelta.y));
     }
 
     return true;
@@ -117,14 +117,14 @@ bool FirstPersonCameraInputHandler::OnTouchMove(const TouchEvent& evt)
     static constexpr float touchSensitivity = 200.0f;
     Vec2f touchDelta = evt.relativeDelta * touchSensitivity;
 
-    const Vec3f dirCrossY = camera->GetDirection().Cross(camera->GetUpVector());
+    const Vec3f dirCrossY = camera->GetSideVector();
 
-    camera->Rotate(camera->GetUpVector(), MathUtil::DegToRad(touchDelta.x));
-    camera->Rotate(dirCrossY, MathUtil::DegToRad(touchDelta.y));
+    camera->Rotate(camera->GetUpVector(), MathUtil::DegToRad(-touchDelta.x));
+    camera->Rotate(dirCrossY, MathUtil::DegToRad(-touchDelta.y));
 
     if (camera->GetDirection().y > 0.98f || camera->GetDirection().y < -0.98f)
     {
-        camera->Rotate(dirCrossY, MathUtil::DegToRad(-touchDelta.y));
+        camera->Rotate(dirCrossY, MathUtil::DegToRad(touchDelta.y));
     }
 
     return true;
@@ -234,7 +234,7 @@ void FirstPersonCameraController::UpdateLogic(double delta)
     Vec3f translation = m_camera->GetWorldTranslation();
 
     const Vec3f direction = m_camera->GetDirection();
-    const Vec3f dirCrossY = direction.Cross(m_camera->GetUpVector());
+    const Vec3f dirCrossY = m_camera->GetSideVector();
 
     m_inputHandler->SetDeltaTime(delta);
 

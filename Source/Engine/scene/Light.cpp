@@ -598,7 +598,7 @@ PointLight::PointLight()
 PointLight::PointLight(const Vec3f& position, const Color& color, float intensity, float radius)
     : Light(LightType::Point, position, color, intensity, radius)
 {
-    //m_lightFlags |= LightFlags::CacheStaticShadowMaps;
+    m_lightFlags |= LightFlags::CacheStaticShadowMaps;
 }
 
 #pragma endregion PointLight

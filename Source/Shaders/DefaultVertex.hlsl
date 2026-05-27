@@ -94,6 +94,7 @@ VSOutput VSMain(VSInput input, uint instanceId : SV_InstanceID)
 #endif // SKINNING && VT_Skeletal
 
     output.position = position.xyz / position.w;
+    // temp: normal flip
     output.normal = mul(normal_matrix, input.a_normal);
     output.texcoord0 = float2(input.a_texcoord0.x, 1.0 - input.a_texcoord0.y);
     output.camera_position = camera.position.xyz;

@@ -331,13 +331,15 @@ void View::UpdateVisibility()
     {
         if (m_camera.IsValid())
         {
-            m_subFrustum = m_camera->GetFrustum();
+            cachedViewProjMatrix = m_camera->GetViewProjectionMatrix();
         }
         else
         {
-            m_subFrustum = Frustum {};
+            cachedViewProjMatrix = Mat4f::identity;
         }
     }
+
+    cachedFrustum.SetFromViewProjectionMatrix(cachedViewProjMatrix);
 
     for (Scene* scene : m_scenes)
     {
@@ -388,14 +390,14 @@ void View::PrepareShadowViews(Array<View*, SceneAllocator>& outShadowViews)
                     isLightInFrustum = true;
                     break;
                 case LightType::Point:
-                    isLightInFrustum = m_subFrustum.ContainsBoundingSphere(light->GetBoundingSphere(true));
+                    isLightInFrustum = cachedFrustum.ContainsBoundingSphere(light->GetBoundingSphere(true));
                     break;
                 case LightType::Spot:
                     /// \todo Implement frustum culling for spot lights
                     isLightInFrustum = true;
                     break;
                 case LightType::AreaRect:
-                    isLightInFrustum = m_subFrustum.ContainsAABB(light->GetWorldBounds());
+                    isLightInFrustum = cachedFrustum.ContainsAABB(light->GetWorldBounds());
                     break;
                 default:
                     break;
@@ -410,7 +412,7 @@ void View::PrepareShadowViews(Array<View*, SceneAllocator>& outShadowViews)
         }
     }
 
-    std::sort(allShadowCastingLights.Begin(), allShadowCastingLights.End(), LightSorter(*m_camera, m_subFrustum));
+    std::sort(allShadowCastingLights.Begin(), allShadowCastingLights.End(), LightSorter(*m_camera, cachedFrustum));
 
     for (Light* light : allShadowCastingLights)
     {
@@ -483,7 +485,7 @@ void View::PrepareShadowViews(Array<View*, SceneAllocator>& outShadowViews)
                 }
             }
 
-            Frustum cubeFaceFrustum;
+            Mat4f shadowViewProjMatrix;
 
             if (isOmni)
             {
@@ -491,7 +493,7 @@ void View::PrepareShadowViews(Array<View*, SceneAllocator>& outShadowViews)
                 Mat4f lookAt = Mat4f::LookAt(Texture::s_cubemapDirections[shadowViewIndex].first, Texture::s_cubemapDirections[shadowViewIndex].second)
                     * Mat4f::Translation(-shadowCamera->GetWorldTranslation());
 
-                cubeFaceFrustum.SetFromViewProjectionMatrix(shadowCamera->GetProjectionMatrix() * lookAt);
+                shadowViewProjMatrix = shadowCamera->GetProjectionMatrix() * lookAt;
             }
 
             for (View* shadowView : { shadowViewsDynamic[shadowViewIndex], shadowViewsStatic[shadowViewIndex] })
@@ -503,7 +505,7 @@ void View::PrepareShadowViews(Array<View*, SceneAllocator>& outShadowViews)
 
                 if (isOmni)
                 {
-                    shadowView->SetSubFrustum(cubeFaceFrustum);
+                    shadowView->cachedViewProjMatrix = shadowViewProjMatrix;
                 }
 
                 shadowView->m_scenes = m_scenes;
@@ -1122,14 +1124,14 @@ void View::CollectLights(RenderProxyList& rpl)
                     isLightInFrustum = true;
                     break;
                 case LightType::Point:
-                    isLightInFrustum = m_subFrustum.ContainsBoundingSphere(light->GetBoundingSphere(true));
+                    isLightInFrustum = cachedFrustum.ContainsBoundingSphere(light->GetBoundingSphere(true));
                     break;
                 case LightType::Spot:
                     /// \todo Implement frustum culling for spot lights
                     isLightInFrustum = true;
                     break;
                 case LightType::AreaRect:
-                    isLightInFrustum = m_subFrustum.ContainsAABB(light->GetWorldBounds());
+                    isLightInFrustum = cachedFrustum.ContainsAABB(light->GetWorldBounds());
                     break;
                 default:
                     break;
@@ -1189,7 +1191,7 @@ void View::CollectLightmapVolumes(RenderProxyList& rpl)
                 continue;
             }
 
-            if (!m_subFrustum.ContainsAABB(worldBounds))
+            if (!cachedFrustum.ContainsAABB(worldBounds))
             {
                 continue;
             }
@@ -1229,7 +1231,7 @@ void View::CollectParticleVolumes(RenderProxyList& rpl)
 
             if (!(m_flags & ViewFlags::NO_FRUSTUM_CULLING))
             {
-                if (!m_subFrustum.ContainsAABB(worldBounds))
+                if (!cachedFrustum.ContainsAABB(worldBounds))
                 {
                     continue;
                 }
@@ -1270,7 +1272,7 @@ void View::CollectFogVolumes(RenderProxyList& rpl)
 
             if (!(m_flags & ViewFlags::NO_FRUSTUM_CULLING))
             {
-                if (!m_subFrustum.ContainsAABB(worldBounds))
+                if (!cachedFrustum.ContainsAABB(worldBounds))
                 {
                     continue;
                 }
@@ -1310,7 +1312,7 @@ void View::CollectEnvGrids(RenderProxyList& rpl)
                 continue;
             }
 
-            if (!m_subFrustum.ContainsAABB(worldBounds))
+            if (!cachedFrustum.ContainsAABB(worldBounds))
             {
                 HYP_LOG(Scene, Verbose, "EnvGrid {} is not in frustum of View {}", envGrid->Id(), Id());
 
@@ -1353,7 +1355,7 @@ void View::CollectEnvProbes(RenderProxyList& rpl)
                     continue;
                 }
 
-                if (!(m_flags & ViewFlags::NO_FRUSTUM_CULLING) && !m_subFrustum.ContainsAABB(worldBounds))
+                if (!(m_flags & ViewFlags::NO_FRUSTUM_CULLING) && !cachedFrustum.ContainsAABB(worldBounds))
                 {
                     continue;
                 }

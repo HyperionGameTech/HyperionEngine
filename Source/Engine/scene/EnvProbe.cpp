@@ -43,7 +43,7 @@ static FixedArray<Mat4f, 6> CreateCubemapMatrices(const Vec3f& origin)
     for (uint32 i = 0; i < 6; i++)
     {
         viewMatrices[i] = Mat4f::LookAt(Texture::s_cubemapDirections[i].first, Texture::s_cubemapDirections[i].second)
-            * Mat4f::Translation(origin);
+            * Mat4f::Translation(-origin);
     }
 
     return viewMatrices;
@@ -436,12 +436,7 @@ void EnvProbe::Update(float delta)
         AssertDebug(view != nullptr);
 
         const Mat4f& viewMatrix = matrices[viewIndex];
-        const Mat4f viewProjectionMatrix = m_camera->GetProjectionMatrix() * viewMatrix;
-
-        Frustum frustum;
-        frustum.SetFromViewProjectionMatrix(viewProjectionMatrix);
-
-        view->SetSubFrustum(frustum);
+        view->cachedViewProjMatrix = m_camera->GetProjectionMatrix() * viewMatrix;
 
         for (Scene* scene : view->GetScenes())
         {

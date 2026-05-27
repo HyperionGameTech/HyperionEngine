@@ -299,7 +299,7 @@ void DefaultGame::OnUpdate_Impl(float delta)
     if (m_sun)
     {
         m_sunAngle += delta * 0.5f;
-        Vec3f dir = Vec3f(MathUtil::Sin(m_sunAngle), 0.4f, MathUtil::Cos(m_sunAngle)).Normalize();
+        Vec3f dir = Vec3f(MathUtil::Sin(m_sunAngle), 0.7f, MathUtil::Cos(m_sunAngle)).Normalize();
         m_sun->SetDirection(dir);
     }
 }

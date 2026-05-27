@@ -367,9 +367,6 @@ void ShadowsPassBase::RenderFrame(Frame* frame, const RenderSetup& renderSetup)
                 // skip rendering static objects if we used the cached texture.
 
                 View* shadowView = cachedData->shadowViewsStatic[viewIndex];
-                
-                Mat4f viewProjMat;
-                shadowView->GetSubFrustum().StoreViewProjectionMatrix(viewProjMat);
 
                 RenderSetup rs = renderSetup.Fork();
                 rs.view = shadowView;
@@ -385,7 +382,7 @@ void ShadowsPassBase::RenderFrame(Frame* frame, const RenderSetup& renderSetup)
                 HYP_DEFER({ rpl.EndRead(); });
 
                 const bool isMatrixDirty = viewIndex >= pd->prevCameraMatrices.Size()
-                    || pd->prevCameraMatrices[viewIndex] != viewProjMat;
+                    || pd->prevCameraMatrices[viewIndex] != shadowView->cachedViewProjMatrix;
 
                 // Copy from cached
                 if (!isMatrixDirty
@@ -444,7 +441,7 @@ void ShadowsPassBase::RenderFrame(Frame* frame, const RenderSetup& renderSetup)
                     pd->prevCameraMatrices.Resize(viewIndex + 1);
                 }
 
-                pd->prevCameraMatrices[viewIndex] = viewProjMat;
+                pd->prevCameraMatrices[viewIndex] = shadowView->cachedViewProjMatrix;
             }
             else
             {
@@ -499,9 +496,6 @@ void ShadowsPassBase::RenderFrame(Frame* frame, const RenderSetup& renderSetup)
                 RenderProxyList& rpl = GetConsumerProxyList(shadowView);
                 rpl.BeginRead();
                 renderProxyLists.PushBack(&rpl);
-
-                Mat4f vpMatrix;
-                shadowView->GetSubFrustum().StoreViewProjectionMatrix(vpMatrix);
 
                 frame->cr << InsertBarrier(resultImage, RS_RENDER_TARGET, target->GetImageView()->GetImageSubResource());
 

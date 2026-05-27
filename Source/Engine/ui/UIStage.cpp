@@ -357,7 +357,7 @@ void UIStage::Init()
     m_camera->SetName(NAME_FMT("{}_UIStage_Camera", GetName()));
 
     m_camera->AddCameraController(MakeHandle<UICameraController>(
-        0.0f, -float(m_surfaceSize.x),
+        0.0f, float(m_surfaceSize.x),
         0.0f, float(m_surfaceSize.y)));
 
     m_camera->SetNearClip(float(MinDepth));

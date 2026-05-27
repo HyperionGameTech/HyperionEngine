@@ -29,8 +29,6 @@ OrthoCameraController::OrthoCameraController(float left, float right, float bott
 
 void OrthoCameraController::OnActivated()
 {
-    HYP_SCOPE;
-
     CameraController::OnActivated();
 
     m_camera->SetToOrthographicProjection(
@@ -41,20 +39,15 @@ void OrthoCameraController::OnActivated()
 
 void OrthoCameraController::OnDeactivated()
 {
-    HYP_SCOPE;
-
     CameraController::OnDeactivated();
 }
 
 void OrthoCameraController::UpdateLogic(double delta)
 {
-    HYP_SCOPE;
 }
 
 void OrthoCameraController::UpdateViewMatrix()
 {
-    HYP_SCOPE;
-
     m_camera->m_viewMat = Mat4f::LookAt(
         m_camera->GetWorldTranslation(),
         m_camera->GetTarget(),
@@ -63,8 +56,6 @@ void OrthoCameraController::UpdateViewMatrix()
 
 void OrthoCameraController::UpdateProjectionMatrix()
 {
-    HYP_SCOPE;
-
     m_camera->SetToOrthographicProjection(
         m_rect.left, m_rect.right,
         m_rect.bottom, m_rect.top,
