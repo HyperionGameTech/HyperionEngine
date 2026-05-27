@@ -1,5 +1,8 @@
 #include "../include/Defines.hlsli"
 
+STATIC(VIEW_COUNT, 6)
+PERMUTE(MULTI_VIEW)
+
 #define HYP_DO_NOT_DEFINE_DESCRIPTOR_SETS
 
 #include "../include/Scene.hlsli"
@@ -23,12 +26,17 @@ DECLARE_SRV_DYNAMIC(Default, EntityInstanceBatchesBuffer) ByteAddressBuffer enti
 DECLARE_SRV_DYNAMIC(Default, CurrentLight) StructuredBuffer<Light> current_light_buffer;
 #define light current_light_buffer[0]
 
-#ifndef INSTANCING
 DECLARE_BUFFER_DYNAMIC(Default, CBuffer) cbuffer CBuffer
 {
+#ifndef INSTANCING
     Entity entity;
-};
+#else
+    Entity dummyEntity;
 #endif // !INSTANCING
+    Camera camera;
+    Material material;
+    float4x4 vpMatrix;
+};
 
 #ifndef CURRENT_MATERIAL
 #define CURRENT_MATERIAL material
@@ -154,14 +162,16 @@ struct VSOutput
     float4 position_cs : SV_POSITION;
     float3 v_position : POSITION;
     nointerpolation uint object_index : TEXCOORD1;
-    nointerpolation uint v_cube_face_index : TEXCOORD2;
-    float2 v_cube_face_uv : TEXCOORD3;
 };
 
 DECLARE_SRV_DYNAMIC(Default, CamerasBuffer) StructuredBuffer<Camera> _cameras_buffer;
 #define camera _cameras_buffer[0]
 
+#ifdef MULTI_VIEW
 VSOutput VSMain(VSInput input, uint ViewId : SV_ViewID, uint instanceId : SV_InstanceID)
+#else
+VSOutput VSMain(VSInput input, uint instanceId : SV_InstanceID)
+#endif
 {
     VSOutput output;
 
@@ -170,7 +180,13 @@ VSOutput VSMain(VSInput input, uint ViewId : SV_ViewID, uint instanceId : SV_Ins
     output.v_position = position.xyz;
 
     float4x4 projection_matrix = camera.projection;
+
+#ifdef MULTI_VIEW
     float4x4 view_matrix = current_env_probe.face_view_matrices[ViewId];
+    vpMatrix = mul(projection_matrix, view_matrix);
+#else
+    float4x4 view_matrix = camera.view;
+#endif
 
 #ifdef INSTANCING
     output.object_index = OBJECT_INDEX;
@@ -178,10 +194,7 @@ VSOutput VSMain(VSInput input, uint ViewId : SV_ViewID, uint instanceId : SV_Ins
     output.object_index = 0;
 #endif
 
-    output.position_cs = mul(projection_matrix, mul(view_matrix, position));
-
-    output.v_cube_face_index = ViewId;
-    output.v_cube_face_uv = float2(output.position_cs.x * 0.5 + 0.5, 0.5 - output.position_cs.y * 0.5);
+    output.position_cs = mul(vpMatrix, position);
 
     return output;
 }
@@ -195,8 +208,6 @@ struct PSInput
     float4 position_cs : SV_POSITION;
     float3 v_position : POSITION;
     nointerpolation uint object_index : TEXCOORD1;
-    nointerpolation uint v_cube_face_index : TEXCOORD2;
-    float2 v_cube_face_uv : TEXCOORD3;
 };
 
 struct PSOutput

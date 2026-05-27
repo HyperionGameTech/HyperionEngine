@@ -613,7 +613,6 @@ void EnvProbePassBase::Shutdown()
 
 void EnvProbePassBase::RenderFrame(Frame* frame, const RenderSetup& renderSetup)
 {
-    HYP_SCOPE;
     AssertOnThread(g_renderThread);
 
     AssertDebug(renderSetup.world && renderSetup.envProbe);
@@ -622,8 +621,6 @@ void EnvProbePassBase::RenderFrame(Frame* frame, const RenderSetup& renderSetup)
     AssertDebug(envProbe != nullptr);
 
     RenderSetup rs = renderSetup.Fork();
-    rs.view = envProbe->GetView();
-    rs.passData = FetchViewPassData(rs.view);
     rs.envProbe = renderSetup.prev ? renderSetup.prev->envProbe : nullptr;
     rs.viewport = Viewport { envProbe->GetDimensions() };
 
@@ -652,15 +649,11 @@ ReflectionProbePass::~ReflectionProbePass()
 
 void ReflectionProbePass::Initialize()
 {
-    HYP_SCOPE;
-
     EnvProbePassBase::Initialize();
 }
 
 void ReflectionProbePass::Shutdown()
 {
-    HYP_SCOPE;
-
     EnvProbePassBase::Shutdown();
 }
 
@@ -671,38 +664,33 @@ void ReflectionProbePass::RenderProbe(Frame* frame, const RenderSetup& renderSet
 
     AssertDebug(!envProbe->IsBaked());
 
-    AssertDebug(renderSetup.world && renderSetup.view);
+    View* firstView = envProbe->GetView(0);
+    Assert(firstView != nullptr);
 
-    View* view = renderSetup.view;
-    AssertDebug(view != nullptr);
-
-    EnvProbePassData* pd = DynamicCast<EnvProbePassData>(renderSetup.passData);
+    EnvProbePassData* pd = static_cast<EnvProbePassData*>(FetchViewPassData(firstView));
     AssertDebug(pd != nullptr);
 
-    RenderProxyList& rpl = GetConsumerProxyList(view);
-    rpl.BeginRead();
-    HYP_DEFER({ rpl.EndRead(); });
+    RenderProxyEnvProbe* envProbeProxy = static_cast<RenderProxyEnvProbe*>(GetRenderProxy(envProbe));
+    AssertDebug(envProbeProxy != nullptr);
+
+    bool needsRerender = false;
 
     // special checks for Sky + caching result based on light position + intensity
     if (envProbe->IsA(SkyProbe::StaticClass()))
     {
         if (!renderSetup.light)
         {
-            HYP_LOG_ONCE(Rendering, Warning, "No directional light bound while rendering SkyProbe {} in view {}", envProbe->Id(), view->Id());
+            HYP_LOG_ONCE(Rendering, Warning, "No directional light bound while rendering SkyProbe {}", envProbe->Id());
 
             pd->cachedLightDirIntensity = MathUtil::NaN<Vec4f>();
-
-            return;
         }
 
         if (renderSetup.light->GetLightType() != LightType::Directional)
         {
-            HYP_LOG_ONCE(Rendering, Warning, "Light bound to SkyProbe pass is not a directional light: {} in view {}",
-                renderSetup.light->Id(), view->Id());
+            HYP_LOG_ONCE(Rendering, Warning, "Light bound to SkyProbe pass is not a directional light: {}",
+                renderSetup.light->Id());
 
             pd->cachedLightDirIntensity = MathUtil::NaN<Vec4f>();
-
-            return;
         }
 
         RenderProxyLight* lightProxy = static_cast<RenderProxyLight*>(GetRenderProxy(renderSetup.light));
@@ -712,23 +700,15 @@ void ReflectionProbePass::RenderProbe(Frame* frame, const RenderSetup& renderSet
         AssertDebug(Resources::GetBinding(renderSetup.light) != ~0u);
 #endif
 
-        if (lightProxy->bufferData.positionIntensity == pd->cachedLightDirIntensity
-            && !rpl.GetMeshEntities().GetDiff().NeedsUpdate())
+        if (lightProxy->bufferData.positionIntensity != pd->cachedLightDirIntensity)
         {
-            // no need to render it just yet if values have not changed -- return early
-            return;
+            needsRerender = true;
         }
 
         // cache it to save on rendering later
         pd->cachedLightDirIntensity = lightProxy->bufferData.positionIntensity;
     }
-
-    RenderProxyEnvProbe* envProbeProxy = static_cast<RenderProxyEnvProbe*>(GetRenderProxy(envProbe));
-    AssertDebug(envProbeProxy != nullptr);
-
-    if (envProbe->IsA(ReflectionProbe::StaticClass())
-        && !rpl.GetMeshEntities().GetDiff().NeedsUpdate()
-        && !rpl.GetLights().GetDiff().NeedsUpdate()
+    else if (envProbe->IsA(ReflectionProbe::StaticClass())
         && pd->cachedProbeOrigin == envProbeProxy->bufferData.worldPosition.GetXYZ())
     {
         return;
@@ -736,23 +716,26 @@ void ReflectionProbePass::RenderProbe(Frame* frame, const RenderSetup& renderSet
 
     pd->cachedProbeOrigin = envProbeProxy->bufferData.worldPosition.GetXYZ();
 
-    RenderCollector& renderCollector = GetRenderCollector(view);
+    for (uint8 viewIndex = 0; viewIndex < 6; viewIndex++)
+    {
+        RenderSetup rs = renderSetup.Fork();
+        rs.view = envProbe->GetView(viewIndex);
+        rs.framebuffer = envProbe->GetViewFramebuffer(viewIndex);
+        rs.passData = pd;
 
-#if HYP_DEBUG_MODE
-    HYP_LOG(Rendering, Verbose, "Render EnvProbe {} with {} mesh entities (shared: {}), num total draw calls: {}", envProbe->Id(), rpl.GetMeshEntities().NumCurrent(),
-        rpl.isShared,
-        renderCollector.NumDrawCallsCollected());
-#endif
+        RenderProxyList& rpl = GetConsumerProxyList(rs.view);
+        rpl.BeginRead();
+        HYP_DEFER({ rpl.EndRead(); });
 
-    renderCollector.ExecuteDrawCalls(frame, renderSetup, RenderBucketMask<RenderBucket::Opaque, RenderBucket::Translucent>);
+        if (!needsRerender
+            && !rpl.GetMeshEntities().GetDiff().NeedsUpdate()
+            && !rpl.GetLights().GetDiff().NeedsUpdate())
+        {
+            //return;
+        }
 
-    const ViewOutputTarget& outputTarget = view->GetOutputTarget();
-    AssertDebug(outputTarget.IsValid());
-
-    const FramebufferRef& framebuffer = outputTarget.GetFramebuffer();
-    AssertDebug(framebuffer.IsValid());
-
-    const GpuImageRef& framebufferImage = framebuffer->GetAttachment(0)->GetGpuImage();
+        RenderProbeView(frame, rs, envProbe);
+    }
 
     if (envProbe->ShouldComputePrefilteredEnvMap())
     {
@@ -763,67 +746,41 @@ void ReflectionProbePass::RenderProbe(Frame* frame, const RenderSetup& renderSet
     {
         ComputeSH(frame, envProbe);
     }
+}
 
-    /*if (SkyProbe* skyProbe = DynamicCast<SkyProbe>(envProbe))
-    {
-        Assert(skyProbe->GetSkyboxCubemap().IsValid());
+void ReflectionProbePass::RenderProbeView(Frame* frame, const RenderSetup& renderSetup, EnvProbe* envProbe)
+{
+    View* view = renderSetup.view;
+    AssertDebug(view != nullptr);
 
-        const GpuImageRef& dstImage = skyProbe->GetSkyboxCubemap()->GetGpuImage();
-        Assert(dstImage.IsValid());
-        Assert(dstImage->IsCreated());
+    RenderCollector& renderCollector = GetRenderCollector(view);
 
-        frame->cr << InsertBarrier(framebufferImage, RS_COPY_SRC);
-        frame->cr << InsertBarrier(dstImage, RS_COPY_DST);
+#if HYP_DEBUG_MODE
+        HYP_LOG(Rendering, Verbose, "Render EnvProbe {}, num total draw calls: {}", envProbe->Id(), renderCollector.NumDrawCallsCollected());
+#endif
 
-        frame->cr << Blit(framebufferImage, dstImage);
-
-        if (dstImage->HasMipMaps())
-        {
-            frame->cr << GenerateMipmaps(dstImage);
-        }
-
-        frame->cr << InsertBarrier(framebufferImage, RS_SHADER_RESOURCE);
-        frame->cr << InsertBarrier(dstImage, RS_SHADER_RESOURCE);
-    }*/
+    renderCollector.ExecuteDrawCalls(frame, renderSetup, RenderBucketMask<RenderBucket::Opaque, RenderBucket::Translucent>);
 }
 
 void ReflectionProbePass::ComputePrefilteredEnvMap(Frame* frame, const RenderSetup& renderSetup, EnvProbe* envProbe)
 {
-    HYP_SCOPE;
-
-    AssertDebug(renderSetup.world && renderSetup.view && envProbe);
-
-    View* view = renderSetup.view;
-    AssertDebug(view != nullptr);
+    AssertDebug(envProbe);
 
     RenderProxyEnvProbe* envProbeProxy = static_cast<RenderProxyEnvProbe*>(GetRenderProxy(envProbe));
     AssertDebug(envProbeProxy != nullptr);
 
-    RenderProxyList& rpl = GetConsumerProxyList(view);
-    rpl.BeginRead();
-    HYP_DEFER({ rpl.EndRead(); });
-
-    const ViewOutputTarget& outputTarget = view->GetOutputTarget();
-    AssertDebug(outputTarget.IsValid());
-
-    const FramebufferRef& framebuffer = outputTarget.GetFramebuffer();
+    const FramebufferRef& framebuffer = envProbe->GetViewFramebuffer(0);
     AssertDebug(framebuffer.IsValid());
 
     AttachmentBase* colorAttachment = framebuffer->GetAttachment(0);
     AssertDebug(colorAttachment != nullptr);
 
-    ConvolveProbe::ConvolveEnvProbeCubemap(
-        MakeStrongRef(colorAttachment),
-        *envProbe);
+    ConvolveProbe::ConvolveEnvProbeCubemap(MakeStrongRef(colorAttachment), *envProbe);
 }
 
 void ReflectionProbePass::ComputeSH(Frame* frame, EnvProbe* envProbe)
 {
-    HYP_SCOPE;
-
-    const ViewOutputTarget& outputTarget = envProbe->GetView()->GetOutputTarget();
-
-    const FramebufferRef& framebuffer = outputTarget.GetFramebuffer();
+    const FramebufferRef& framebuffer = envProbe->GetViewFramebuffer(0);
     AssertDebug(framebuffer.IsValid() && framebuffer->IsCreated());
 
     AttachmentBase* colorAttachment = framebuffer->GetAttachment(0);

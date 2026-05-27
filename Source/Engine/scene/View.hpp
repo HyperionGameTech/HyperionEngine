@@ -86,19 +86,21 @@ enum class ViewFlags : uint32
     SHADOW_VIEW = 0x400000,             //!< This View is for a rendering a shadow map slice or cascade
     BAKER_VIEW = 0x800000,              //!< This View is for baking lightmaps or shadow maps, not for rendering to the screen (see: Baker.cpp)
     UI_VIEW = 0x1000000,                //!< This View is for rendering UI elements. See UISubsystem.
+    CUBEMAP_FACE_VIEW = 0x2000000,           //!< This View corresponds to a face in a cubemap - will not automatically update sub-frustum
 
     EXTERNAL_RENDERTARGET = 0x10000000,
 
     DEFAULT = ALL_WORLD_SCENES | COLLECT_ALL_ENTITIES
 };
 
-HYP_MAKE_ENUM_FLAGS(ViewFlags)
+HYP_MAKE_ENUM_FLAGS(ViewFlags);
 
 struct ViewDesc
 {
     EnumFlags<ViewFlags> flags = ViewFlags::DEFAULT;
 
     FramebufferDesc framebufferDesc;
+    uint8 viewIndex = 0; // for cubemap drawing
 
     Array<Scene*> scenes;
 
@@ -230,6 +232,11 @@ public:
     HYP_FORCE_INLINE const Frustum& GetSubFrustum() const
     {
         return m_subFrustum;
+    }
+
+    HYP_FORCE_INLINE void SetSubFrustum(const Frustum& subFrustum)
+    {
+        m_subFrustum = subFrustum;
     }
 
     HYP_FORCE_INLINE const ProcRef<void(RenderProxyList&)>& GetOverrideCollectFunctor() const

@@ -10,16 +10,17 @@
 
 #include <Core/containers/Bitset.hpp>
 
-#include <Core/threading/AtomicVar.hpp>
+#include <Core/memory/pool/Pool.hpp>
 
 #include <Core/utilities/EnumFlags.hpp>
 
 #include <Core/math/BoundingBox.hpp>
 
-#include <cstring>
 #include <scene/Volume.hpp>
 
-#include <rendering/RenderCommand.hpp>
+#include <rendering/RenderTypes.hpp>
+
+#include <cstring>
 
 namespace Hyperion {
 
@@ -28,6 +29,9 @@ class View;
 class Light;
 class Camera;
 class RenderProxyEnvProbe;
+
+HYP_API extern Pool* g_scenePool;
+using SceneAllocator = AllocatorInstance<Pool, &g_scenePool>;
 
 HYP_ENUM()
 enum EnvProbeFlags : uint32
@@ -144,11 +148,6 @@ public:
     EnvProbe& operator=(const EnvProbe& other) = delete;
     ~EnvProbe();
 
-    HYP_FORCE_INLINE const Handle<View>& GetView() const
-    {
-        return m_view;
-    }
-
     HYP_METHOD()
     EnvProbeType GetEnvProbeType() const
     {
@@ -261,6 +260,16 @@ public:
         return m_camera;
     }
 
+    HYP_FORCE_INLINE const Handle<View>& GetView(uint8 viewIndex) const
+    {
+        return m_views[viewIndex];
+    }
+
+    HYP_FORCE_INLINE const FramebufferRef& GetViewFramebuffer(uint8 viewFramebufferIndex) const
+    {
+        return m_framebuffers[viewFramebufferIndex];
+    }
+
     HYP_FORCE_INLINE Vec2u GetDimensions() const
     {
         return m_dimensions;
@@ -325,7 +334,7 @@ protected:
 
     virtual void Init() override;
 
-    void CreateView();
+    void CreateViews();
 
     HYP_FIELD(Property = "Dimensions")
     Vec2u m_dimensions;
@@ -343,7 +352,9 @@ protected:
     float m_cameraFar;
 
     Camera* m_camera;
-    Handle<View> m_view;
+
+    FixedArray<Handle<View>, 6> m_views;
+    FixedArray<FramebufferRef, 6> m_framebuffers;
 
     Bitset m_visibilityBits;
 

@@ -280,6 +280,8 @@ RendererResult VulkanRenderPass::Create()
     renderPassInfo.dependencyCount = uint32(m_dependencies.Size());
     renderPassInfo.pDependencies = m_dependencies.Data();
 
+    // Disabling multiview for now to keep at par with DX12.
+#if 0
     uint32 multiviewViewMask = 0;
     uint32 multiviewCorrelationMask = 0;
 
@@ -299,6 +301,7 @@ RendererResult VulkanRenderPass::Create()
 
         renderPassInfo.pNext = &multiviewInfo;
     }
+#endif
 
     VULKAN_CHECK(vkCreateRenderPass(RI.GetDevice()->GetDevice(), &renderPassInfo, nullptr, &m_handle));
 

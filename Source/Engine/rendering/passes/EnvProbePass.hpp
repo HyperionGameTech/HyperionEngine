@@ -85,6 +85,8 @@ public:
 
 protected:
     virtual void RenderProbe(Frame* frame, const RenderSetup& renderSetup, EnvProbe* envProbe) override;
+
+    void RenderProbeView(Frame* frame, const RenderSetup& renderSetup, EnvProbe* envProbe);
 };
 
 } // namespace Hyperion

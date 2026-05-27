@@ -502,21 +502,25 @@ void DX12GpuImage::InsertBarrier(
         && subResource.baseArrayLayer == 0 && subResource.numLayers >= NumArrayLayers()
         && !onlyDepth && !onlyStencil)
     {
-        if (stateBefore == stateAfter)
+        // Only issue the barrier if the DX12 state actually changes.
+        // Some distinct RS_ states map to the same D3D12 state (e.g. RS_RENDER_TARGET and
+        // RS_DEPTH_STENCIL both map to DEPTH_WRITE for depth-stencil attachment images).
+        // In that case no hardware barrier is needed, but we must still update our logical
+        // state tracking so callers see the correct RS_ state.
+        if (stateBefore != stateAfter)
         {
-            return;
+            D3D12_RESOURCE_BARRIER barrier {};
+            barrier.Type = D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
+            barrier.Flags = D3D12_RESOURCE_BARRIER_FLAG_NONE;
+            barrier.Transition.pResource = m_resource.Get();
+            barrier.Transition.Subresource = D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES;
+            barrier.Transition.StateBefore = stateBefore;
+            barrier.Transition.StateAfter = stateAfter;
+
+            commandBuffer->GetCommandList()->ResourceBarrier(1, &barrier);
         }
 
-        D3D12_RESOURCE_BARRIER barrier {};
-        barrier.Type = D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
-        barrier.Flags = D3D12_RESOURCE_BARRIER_FLAG_NONE;
-        barrier.Transition.pResource = m_resource.Get();
-        barrier.Transition.Subresource = D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES;
-        barrier.Transition.StateBefore = stateBefore;
-        barrier.Transition.StateAfter = stateAfter;
-
-        commandBuffer->GetCommandList()->ResourceBarrier(1, &barrier);
-
+        // Always update state tracking regardless of whether a barrier was issued.
         if (onlyStencil)
         {
             m_stencilState = newState;
@@ -631,40 +635,45 @@ void DX12GpuImage::InsertBarrier(
         }
     }
 
-    // Update state tracking (matching Vulkan's pattern)
-    if (subResource.baseMipLevel == 0 && subResource.numLevels >= NumMips()
-        && subResource.baseArrayLayer == 0 && subResource.numLayers >= NumArrayLayers())
+    // Update state tracking -- mirrors Vulkan's InsertBarrier() logic.
+    // SetResourceState() sets both m_resourceState and m_stencilState (when hasStencil) and
+    // clears m_subResourceStates, so explicit map clears below are only for clarity.
+    if (onlyStencil)
     {
-        if (onlyStencil)
-        {
-            m_stencilState = newState;
-        }
-        else
-        {
-            SetResourceState(newState);
-
-            if (onlyDepth)
-            {
-                m_stencilState = currStencilState;
-            }
-        }
+        m_stencilState = newState;
+    }
+    else if (onlyDepth)
+    {
+        // Only the depth plane was transitioned; update the depth (main) resource state
+        // and preserve the stencil state.
+        SetResourceState(newState);
+        m_stencilState = currStencilState;
     }
     else if (m_subResourceStates.Empty())
     {
-        if (onlyStencil)
-        {
-            m_stencilState = newState;
-        }
-        else
-        {
-            SetResourceState(newState);
-
-            if (onlyDepth)
-            {
-                m_stencilState = currStencilState;
-            }
-        }
-}
+        // All subresources converged to the same state -- update the global state.
+        // SetResourceState also updates m_stencilState for depth-stencil images.
+        SetResourceState(newState);
+    }
+    else if (subResource.baseMipLevel == 0 && subResource.numLevels >= NumMips()
+        && subResource.baseArrayLayer == 0 && subResource.numLayers >= NumArrayLayers())
+    {
+        // Full resource was transitioned (took the per-subresource path due to diverged
+        // depth/stencil planes or RS_UNDEFINED subresource states).
+        // All subresources -- including both planes -- are now in newState.
+        // SetResourceState sets m_resourceState, m_stencilState, and clears the map.
+        SetResourceState(newState);
+    }
+    else if (stencilDiverged)
+    {
+        // Partial resource transition with diverged depth/stencil planes.
+        // The per-subresource loop above already updated depth-plane entries in
+        // m_subResourceStates.  Update the global stencil state separately since
+        // stencil is not tracked per-subresource.
+        m_stencilState = newState;
+    }
+    // else: partial resource transition, no stencil divergence.
+    // m_subResourceStates was already updated per-subresource in the loop above.
 }
 
 void DX12GpuImage::InsertUAVBarrier(CommandBuffer* commandBuffer)
