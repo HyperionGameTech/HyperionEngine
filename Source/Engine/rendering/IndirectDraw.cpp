@@ -42,37 +42,32 @@ struct alignas(16) ComputeVisibilityConstants
     uint32 entityInstanceBatchStride;
 };
 
-static void ZeroizeBuffer(CommandRecorder& cr, GpuBuffer* stagingBuffer, GpuBuffer* dstBuffer)
+static void ZeroizeBuffer(CommandRecorder& cr, GpuBuffer* dstBuffer)
 {
     AssertDebug(dstBuffer != nullptr);
+
+    const size_t bufferSize = dstBuffer->Size();
 
     if (dstBuffer->IsCpuAccessible())
     {
         // zeroize buffer, flush
-        dstBuffer->Memset(dstBuffer->Size(), 0);
-        dstBuffer->Flush(0, dstBuffer->Size());
+        dstBuffer->Memset(bufferSize, 0);
+        dstBuffer->Flush(0, bufferSize);
 
         return;
     }
 
     // staging buffer cannot be null if dstBuffer isn't cpu accessible.
+    GpuBuffer* stagingBuffer = RI.stagingBufferPool->AcquireStagingBuffer(bufferSize);
     Assert(stagingBuffer != nullptr);
 
-    CheckResult(stagingBuffer->EnsureCapacity(dstBuffer->Size()));
-
-    // upload zeros to the buffer using a staging buffer.
-    if (!stagingBuffer->IsCreated())
-    {
-        CheckResult(stagingBuffer->Create());
-    }
-
     // set all to zero
-    stagingBuffer->Memset(stagingBuffer->Size(), 0);
+    stagingBuffer->Memset(bufferSize, 0);
 
     cr << InsertBarrier(stagingBuffer, RS_COPY_SRC);
     cr << InsertBarrier(dstBuffer, RS_COPY_DST);
 
-    cr << CopyBuffer(stagingBuffer, dstBuffer, dstBuffer->Size());
+    cr << CopyBuffer(stagingBuffer, dstBuffer, bufferSize);
 
     cr << InsertBarrier(dstBuffer, RS_INDIRECT_ARG);
 }
@@ -118,8 +113,7 @@ static inline bool CreateOrResizeBuffer(
 static bool ResizeIndirectDrawCommandsBuffer(
     CommandRecorder& cr,
     const Span<IndirectDrawCommand>& drawCommandsBuffer,
-    GpuBufferRef& indirectBuffer,
-    GpuBuffer* stagingBuffer)
+    GpuBufferRef& indirectBuffer)
 {
     const size_t requiredSize = drawCommandsBuffer.Size() * sizeof(IndirectDrawCommand);
 
@@ -130,7 +124,7 @@ static bool ResizeIndirectDrawCommandsBuffer(
         return false;
     }
 
-    ZeroizeBuffer(cr, stagingBuffer, indirectBuffer);
+    ZeroizeBuffer(cr, indirectBuffer);
 
     return true;
 }
@@ -147,7 +141,7 @@ static bool ResizeInstancesBuffer(
 
     if (wasCreatedOrResized)
     {
-        ZeroizeBuffer(cr, nullptr, instanceBuffer);
+        ZeroizeBuffer(cr, instanceBuffer);
     }
 
     return wasCreatedOrResized;
@@ -157,7 +151,6 @@ static bool ResizeIfNeeded(
     CommandRecorder& cr,
     FixedArray<GpuBufferRef, NumFramesInFlight>& indirectBuffers,
     FixedArray<GpuBufferRef, NumFramesInFlight>& instanceBuffers,
-    FixedArray<GpuBufferRef, NumFramesInFlight>& stagingBuffers,
     uint32 numObjectInstances,
     const Span<IndirectDrawCommand>& drawCommandsBuffer,
     uint8 dirtyBits)
@@ -168,11 +161,10 @@ static bool ResizeIfNeeded(
 
     GpuBufferRef& indirectBuffer = indirectBuffers[frameIndex];
     GpuBufferRef& instanceBuffer = instanceBuffers[frameIndex];
-    GpuBufferRef& stagingBuffer = stagingBuffers[frameIndex];
 
     if ((dirtyBits & (1u << frameIndex)) || !indirectBuffer)
     {
-        resizeHappened |= ResizeIndirectDrawCommandsBuffer(cr, drawCommandsBuffer, indirectBuffer, stagingBuffer);
+        resizeHappened |= ResizeIndirectDrawCommandsBuffer(cr, drawCommandsBuffer, indirectBuffer);
     }
 
     if ((dirtyBits & (1u << frameIndex)) || !instanceBuffer)
@@ -197,7 +189,6 @@ IndirectDrawState::~IndirectDrawState()
 {
     EnqueueDeletion(std::move(m_indirectBuffers));
     EnqueueDeletion(std::move(m_instanceBuffers));
-    EnqueueDeletion(std::move(m_stagingBuffers));
 }
 
 void IndirectDrawState::Create()
@@ -223,16 +214,6 @@ void IndirectDrawState::Create()
 #endif
 
         CheckResult(m_indirectBuffers[frameIndex]->Create());
-
-        if (!m_indirectBuffers[frameIndex]->IsCpuAccessible())
-        {
-            m_stagingBuffers[frameIndex] = RI.MakeGpuBuffer(GpuBufferType::StagingBuffer, drawCommandsBuffer.ByteSize());
-#if HYP_DEBUG_MODE
-            m_stagingBuffers[frameIndex]->SetDebugName(NAME_FMT("IndirectDraw_StagingBuffer_Frame{}", frameIndex));
-#endif
-
-            CheckResult(m_stagingBuffers[frameIndex]->Create());
-        }
     }
 }
 
@@ -308,7 +289,6 @@ void IndirectDrawState::UpdateBufferData(CommandRecorder& cr, bool* outWasResize
              cr,
              m_indirectBuffers,
              m_instanceBuffers,
-             m_stagingBuffers,
              m_objectInstances.Size(),
              m_drawCommandsBuffer,
              m_dirtyBits)))
@@ -327,7 +307,6 @@ void IndirectDrawState::UpdateBufferData(CommandRecorder& cr, bool* outWasResize
     const bool needsStaging = !indirectBuffer->IsCpuAccessible();
 
     // fill instances buffer with data of the meshes
-    // @TODO Rework to use StructuredBuffer instead of staging buffers manually
     if (needsStaging)
     {
         const size_t drawCommandsBufferSize = m_drawCommandsBuffer.ByteSize();

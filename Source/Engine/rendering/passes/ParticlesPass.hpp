@@ -52,17 +52,9 @@ private:
         ~VolumeState();
     };
 
-    struct Staging
-    {
-        Handle<Mesh> quadMesh;         // shared quad
-        GpuBufferRef zeroIndirectArgs; // staging buffer with zeroed indirect args
-    };
-
     VolumeState& EnsureVolumeState(RenderProxyParticleVolume* proxy);
-    void EnsureStaging();
 
     TMap<ObjId<ParticleVolume>, VolumeState> m_volumeStates;
-    Staging m_staging;
 
     uint32 m_counter = 0u;
 };

@@ -274,7 +274,10 @@ class RenderProxyParticleVolume final : public IRenderProxy
 {
 public:
     WeakHandle<ParticleVolume> particleVolume;
+    
     Texture* particleTexture = nullptr;
+    Mesh* particleMesh = nullptr;
+
     BoundingBox worldAabb; // for culling/debug
     ParticleVolumeShaderData bufferData {};
 };

@@ -1238,6 +1238,16 @@ void View::CollectParticleVolumes(RenderProxyList& rpl)
                 }
             }
 
+            if (volume->texture.IsValid())
+            {
+                rpl.GetTextures().Track(volume->texture.Id(), volume->texture);
+            }
+
+            if (volume->mesh.IsValid())
+            {
+                rpl.GetMeshes().Track(volume->mesh.Id(), volume->mesh);
+            }
+
             rpl.GetParticleVolumes().Track(volume->Id(), volume, volume->GetRenderProxyVersionPtr());
         }
     }

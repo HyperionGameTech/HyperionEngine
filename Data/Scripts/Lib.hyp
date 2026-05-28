@@ -2172,8 +2172,9 @@ extern class UICameraController : OrthoCameraController
 end
 extern class VolumeBase : Entity
 end
-extern struct ParticleVolumeParams
+extern class ParticleVolume : VolumeBase
     Texture : Texture
+    Mesh : Mesh
     MaxParticles : uint32
     Origin : Vec3f
     StartSize : float
@@ -2181,11 +2182,6 @@ extern struct ParticleVolumeParams
     Randomness : float
     Lifespan : float
     HasPhysics : bool
-end
-extern class ParticleVolume : VolumeBase
-    GetParams() -> ParticleVolumeParams
-    SetParams(newParams : ParticleVolumeParams) -> void
-    Params : ParticleVolumeParams
 end
 extern class LightmapVolume : VolumeBase
     Rebake() -> void

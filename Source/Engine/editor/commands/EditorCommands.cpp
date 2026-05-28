@@ -34,6 +34,8 @@
 #include <rendering/Texture.hpp>
 #include <rendering/Mesh.hpp>
 
+#include <rendering/util/MeshBuilder.hpp>
+
 #include <scene/animation/Skeleton.hpp>
 
 #include <engine/EngineGlobals.hpp>
@@ -535,16 +537,17 @@ public:
             return;
         }
 
-        ParticleVolumeParams params {};
-        params.texture = g_assetManager->Load<Texture>("Textures/spark.png").GetValue().ExtractAs<Handle<Texture>>();
-        params.origin = Vec3f(0.0f, 10.0f, 0.0f); // temp
-        params.maxParticles = 2048;
-        params.hasPhysics = true;
-        params.lifespan = 3.5f;
-        params.startSize = 0.05f;
-        params.randomness = 0.8f;
+        Handle<ParticleVolume> particleVolume = MakeHandle<ParticleVolume>(BoundingBox(Vec3f(-20.0f, 0.0f, -20.0f), Vec3f(20.0f, 20.0f, 20.0f)));
+        
+        particleVolume->texture = g_assetManager->Load<Texture>("Textures/spark.png").GetValue().ExtractAs<Handle<Texture>>();
+        particleVolume->mesh = MeshBuilder::Quad();
+        particleVolume->origin = Vec3f(0.0f, 10.0f, 0.0f); // temp
+        particleVolume->maxParticles = 2048;
+        particleVolume->hasPhysics = true;
+        particleVolume->lifespan = 3.5f;
+        particleVolume->startSize = 0.05f;
+        particleVolume->randomness = 0.8f;
 
-        Handle<ParticleVolume> particleVolume = MakeHandle<ParticleVolume>(BoundingBox(Vec3f(-20.0f, 0.0f, -20.0f), Vec3f(20.0f, 20.0f, 20.0f)), params);
         InitObject(particleVolume);
 
         const Vec3f insertionPoint = subsystem->CalculateSceneInsertionPoint(5.0f, 0.5f);

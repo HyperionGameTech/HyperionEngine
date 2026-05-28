@@ -71,19 +71,10 @@ ParticlesPass::~ParticlesPass() = default;
 
 void ParticlesPass::Initialize()
 {
-    HYP_SCOPE;
 }
 
 void ParticlesPass::Shutdown()
 {
-    HYP_SCOPE;
-
-    if (m_staging.quadMesh.IsValid())
-    {
-        EnqueueDeletion(std::move(m_staging.quadMesh));
-    }
-
-    EnqueueDeletion(std::move(m_staging.zeroIndirectArgs));
 }
 
 PassData* ParticlesPass::CreateViewPassData(View* view, PassDataExt&)
@@ -92,31 +83,6 @@ PassData* ParticlesPass::CreateViewPassData(View* view, PassDataExt&)
     pd->view = MakeWeakRef(view);
 
     return pd;
-}
-
-void ParticlesPass::EnsureStaging()
-{
-    if (!m_staging.quadMesh.IsValid())
-    {
-        m_staging.quadMesh = MeshBuilder::Quad();
-        m_staging.quadMesh->SetFlags(MeshFlags::ViewIndependent);
-        m_staging.quadMesh->SetIsTransient(true);
-        m_staging.quadMesh->UploadGpuData();
-    }
-
-    if (!m_staging.zeroIndirectArgs)
-    {
-        Array<IndirectDrawCommand, RHIAllocator> indirectDrawCommandsBuffer;
-        RI.PopulateIndirectDrawCommandsBuffer(
-            m_staging.quadMesh->GetVertexBuffer(),
-            m_staging.quadMesh->GetIndexBuffer(),
-            0, indirectDrawCommandsBuffer);
-
-        m_staging.zeroIndirectArgs = RI.MakeGpuBuffer(GpuBufferType::StagingBuffer, indirectDrawCommandsBuffer.ByteSize());
-        CheckResult(m_staging.zeroIndirectArgs->Create());
-
-        m_staging.zeroIndirectArgs->Copy(indirectDrawCommandsBuffer.ByteSize(), indirectDrawCommandsBuffer.Data());
-    }
 }
 
 static void CreateNoiseMap(Handle<Texture>& tex)
@@ -162,7 +128,7 @@ ParticlesPass::VolumeState& ParticlesPass::EnsureVolumeState(RenderProxyParticle
 
     CreateNoiseMap(state.noiseMap);
 
-    state.hasPhysics = proxy->particleVolume.GetUnsafe()->GetParams().hasPhysics;
+    state.hasPhysics = proxy->particleVolume.GetUnsafe()->hasPhysics;
 
     // compute shader properties
     ShaderPropertySet properties;
@@ -197,19 +163,41 @@ void ParticlesPass::RenderFrame(Frame* frame, const RenderSetup& renderSetup)
     ParticleVolume* particleVolume = DynamicCast<ParticleVolume>(renderSetup.volume);
     AssertDebug(particleVolume != nullptr);
 
-    EnsureStaging();
-
     View* view = renderSetup.view;
     RenderProxyList& rpl = GetConsumerProxyList(view);
 
     rpl.BeginRead();
     HYP_DEFER({ rpl.EndRead(); });
 
-    // Reset zero staging buffer state
-    frame->preRenderCommands << InsertBarrier(m_staging.zeroIndirectArgs, RS_COPY_SRC);
-
     RenderProxyParticleVolume* proxy = static_cast<RenderProxyParticleVolume*>(GetRenderProxy(particleVolume));
     AssertDebug(proxy != nullptr);
+
+    if (!proxy->particleMesh)
+    {
+        HYP_LOG_ONCE(Rendering, Warning, "No mesh on particle volume proxy, skipping render of particle volume {}", particleVolume->GetName());
+        return;
+    }
+
+    GpuBuffer* stagingBuffer = nullptr;
+
+    CommandRecorder& preflightCommands = RI.commandRecorderAllocator.GetCommandRecorder();
+
+    { // set buffer to cleared state
+        Array<IndirectDrawCommand, RHIAllocator> indirectDrawCommandsBuffer;
+        RI.PopulateIndirectDrawCommandsBuffer(
+            proxy->particleMesh->GetVertexBuffer(),
+            proxy->particleMesh->GetIndexBuffer(),
+            0, indirectDrawCommandsBuffer);
+
+        stagingBuffer = RI.stagingBufferPool->AcquireStagingBuffer(indirectDrawCommandsBuffer.ByteSize());
+        Assert(stagingBuffer != nullptr);
+
+        stagingBuffer->Copy(indirectDrawCommandsBuffer.ByteSize(), indirectDrawCommandsBuffer.Data());
+        stagingBuffer->Flush(0, indirectDrawCommandsBuffer.ByteSize());
+    }
+
+    // Reset zero staging buffer state
+    preflightCommands << InsertBarrier(stagingBuffer, RS_COPY_SRC);
 
     VolumeState& state = EnsureVolumeState(proxy);
 
@@ -217,11 +205,9 @@ void ParticlesPass::RenderFrame(Frame* frame, const RenderSetup& renderSetup)
     Assert(state.indirectBuffer->Size() == sizeof(IndirectDrawCommand));
 
     { // zero out indirect buffer (ahead of frame compute + rendering)
-        CommandRecorder& cr = frame->preRenderCommands;
-
-        cr << InsertBarrier(state.indirectBuffer, RS_COPY_DST);
-        cr << CopyBuffer(m_staging.zeroIndirectArgs, state.indirectBuffer, sizeof(IndirectDrawCommand));
-        cr << InsertBarrier(state.indirectBuffer, RS_INDIRECT_ARG);
+        preflightCommands << InsertBarrier(state.indirectBuffer, RS_COPY_DST);
+        preflightCommands << CopyBuffer(stagingBuffer, state.indirectBuffer, sizeof(IndirectDrawCommand));
+        preflightCommands << InsertBarrier(state.indirectBuffer, RS_INDIRECT_ARG);
     }
 
     // bind and dispatch compute
@@ -267,7 +253,7 @@ void ParticlesPass::RenderFrame(Frame* frame, const RenderSetup& renderSetup)
     Assert(framebuffer != nullptr);
 
     { // update gpu particles pass (compute, done before frame is rendered)
-        CommandRecorder& cr = frame->preRenderCommands;
+        CommandRecorder& cr = preflightCommands;
 
         ENGINE_STAT_GPU_SCOPE(&s_statComputeParticles, &cr);
 
@@ -300,6 +286,8 @@ void ParticlesPass::RenderFrame(Frame* frame, const RenderSetup& renderSetup)
         cr << InsertBarrier(state.indirectBuffer, RS_INDIRECT_ARG);
     }
 
+    preflightCommands.Submit();
+
     state.fc = GetFrameCounter();
 
     { // draw particles pass
@@ -321,6 +309,7 @@ void ParticlesPass::RenderFrame(Frame* frame, const RenderSetup& renderSetup)
         cr << SetDepthWrite(bool(state.renderableAttributes.GetMaterialAttributes().flags & MAF_DEPTH_WRITE));
         cr << SetStencilTest(bool(state.renderableAttributes.GetMaterialAttributes().flags & MAF_STENCIL_TEST));
         cr << SetStencilFunction(state.renderableAttributes.GetMaterialAttributes().stencilFunction);
+        cr << SetFaceCullMode(FCM_FRONT); // temp
 
         cr << SetShaderUniform(0, "ParticlesBuffer"_sh, state.particleBuffer, ShaderDataOffset(0, sizeof(ParticleShaderData)));
 
@@ -339,8 +328,8 @@ void ParticlesPass::RenderFrame(Frame* frame, const RenderSetup& renderSetup)
 
         cr << CommitDrawState();
 
-        cr << BindVertexBuffer(m_staging.quadMesh->GetVertexBuffer());
-        cr << BindIndexBuffer(m_staging.quadMesh->GetIndexBuffer());
+        cr << BindVertexBuffer(proxy->particleMesh->GetVertexBuffer());
+        cr << BindIndexBuffer(proxy->particleMesh->GetIndexBuffer());
         cr << DrawIndexedIndirect(state.indirectBuffer, 0);
 
         // reset states
