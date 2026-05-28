@@ -1084,6 +1084,11 @@ bool SymbolType::IsArrayType() const
     return IsOrHasBase(*BuiltinTypes::s_arrayBaseType);
 }
 
+bool SymbolType::IsMapType() const
+{
+    return IsOrHasBase(*BuiltinTypes::s_mapBaseType);
+}
+
 bool SymbolType::IsString() const
 {
     return TypeEqual(*BuiltinTypes::s_stringType);

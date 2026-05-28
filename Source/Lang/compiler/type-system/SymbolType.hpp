@@ -670,6 +670,7 @@ public:
     bool IsNullableType() const;
     bool IsVarArgsType() const;
     bool IsArrayType() const;
+    bool IsMapType() const;
     bool IsString() const;
     bool IsName() const;
 
@@ -763,7 +764,7 @@ private:
     ConstantBitSize m_constantBitSize;
     EnumFlags<SymbolTypeFlags> m_flags;
     Scope* m_declScope;
-    
+
     RC<AstVariableDeclaration> m_classRefDecl;
 
     // set to default empty registration upon creation so we can delete all unregistered types

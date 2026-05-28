@@ -8,6 +8,7 @@
 namespace Hyperion {
 
 class AstTypeSpecifier;
+class AstTypeRef;
 class AstBlock;
 
 class AstHashMap : public AstExpression
@@ -59,6 +60,7 @@ private:
     Array<RC<AstExpression>> m_replacedKeys;
     Array<RC<AstExpression>> m_replacedValues;
     RC<AstTypeSpecifier> m_mapTypeExpr;
+    RC<AstTypeRef> m_resolvedMapTypeRef;
     RC<AstExpression> m_arrayExpr;
     const SymbolType* m_keyType;
     const SymbolType* m_valueType;

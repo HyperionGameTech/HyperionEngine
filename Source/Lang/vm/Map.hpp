@@ -16,66 +16,67 @@
 
 namespace Hyperion {
 
-class ScriptMap
+struct ScriptMapKey
+{
+    BoxedValue key;
+    uint64 hash;
+
+    HYP_FORCE_INLINE bool operator==(const ScriptMapKey& other) const
+    {
+        return hash == other.hash; // && key == other.key;
+    }
+
+    HYP_FORCE_INLINE bool operator!=(const ScriptMapKey& other) const
+    {
+        return hash != other.hash; // || key != other.key;
+    }
+
+    HYP_FORCE_INLINE HashCode GetHashCode() const
+    {
+        HashCode hc;
+        hc.value = hash;
+        return hc;
+    }
+};
+
+class ScriptMap final : public TMap<ScriptMapKey, BoxedValue, ScriptAllocator, HashTablePolicy::NotPooled>
 {
 public:
-    struct VMMapKey
-    {
-        BoxedValue key;
-        uint64 hash;
+    using Base = TMap;
 
-        HYP_FORCE_INLINE bool operator==(const VMMapKey& other) const
-        {
-            return hash == other.hash; // && key == other.key;
-        }
+    ScriptMap() = default;
+    
+    ScriptMap(const ScriptMap& other) = default;
+    ScriptMap& operator=(const ScriptMap& other) = default;
+    
+    ScriptMap(ScriptMap&& other) noexcept = default;
+    ScriptMap& operator=(ScriptMap&& other) noexcept = default;
 
-        HYP_FORCE_INLINE bool operator!=(const VMMapKey& other) const
-        {
-            return hash != other.hash; // || key != other.key;
-        }
-
-        HYP_FORCE_INLINE HashCode GetHashCode() const
-        {
-            return HashCode().Add(hash);
-        }
-    };
-
-    using InternalMapType = TMap<VMMapKey, BoxedValue, ScriptAllocator, HashTablePolicy::NotPooled>;
-
-    ScriptMap();
-    ScriptMap(const ScriptMap& other) = delete;
-    ScriptMap& operator=(const ScriptMap& other) = delete;
-    ScriptMap(ScriptMap&& other) noexcept;
-    ScriptMap& operator=(ScriptMap&& other) noexcept;
-    ~ScriptMap();
+    ~ScriptMap() = default;
 
     size_t GetSize() const
     {
-        return m_map.Size();
+        return Base::Size();
     }
 
-    InternalMapType& GetMap()
+    Base& GetMap() &
     {
-        return m_map;
+        return *static_cast<Base*>(this);
     }
 
-    const InternalMapType& GetMap() const
+    const Base& GetMap() const&
     {
-        return m_map;
+        return *static_cast<const Base*>(this);
     }
 
-    bool operator==(const ScriptMap& other) const
-    {
-        return this == &other;
-    }
+    using Base::operator==;
+    using Base::operator!=;
+    using Base::GetHashCode;
 
-    void SetElement(VMMapKey&& key, BoxedValue&& value);
+    void SetElement(ScriptMapKey&& key, BoxedValue&& value);
 
-    BoxedValue* GetElement(const VMMapKey& key);
-    const BoxedValue* GetElement(const VMMapKey& key) const;
-
-private:
-    InternalMapType m_map;
+    BoxedValue* GetElement(const ScriptMapKey& key);
+    const BoxedValue* GetElement(const ScriptMapKey& key) const;
 };
 
 } // namespace Hyperion

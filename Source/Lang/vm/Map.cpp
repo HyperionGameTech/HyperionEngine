@@ -8,41 +8,16 @@
 
 namespace Hyperion {
 
-ScriptMap::ScriptMap()
+void ScriptMap::SetElement(ScriptMapKey&& key, BoxedValue&& value)
 {
+    Base::Set(std::move(key), std::move(value));
 }
 
-ScriptMap::ScriptMap(ScriptMap&& other) noexcept
-    : m_map(std::move(other.m_map))
+BoxedValue* ScriptMap::GetElement(const ScriptMapKey& key)
 {
-}
+    auto it = Base::Find(key);
 
-ScriptMap& ScriptMap::operator=(ScriptMap&& other) noexcept
-{
-    if (&other == this)
-    {
-        return *this;
-    }
-
-    m_map = std::move(other.m_map);
-
-    return *this;
-}
-
-ScriptMap::~ScriptMap()
-{
-}
-
-void ScriptMap::SetElement(VMMapKey&& key, BoxedValue&& value)
-{
-    m_map.Set(std::move(key), std::move(value));
-}
-
-BoxedValue* ScriptMap::GetElement(const VMMapKey& key)
-{
-    auto it = m_map.Find(key);
-
-    if (it == m_map.End())
+    if (it == Base::End())
     {
         return nullptr;
     }
@@ -50,11 +25,11 @@ BoxedValue* ScriptMap::GetElement(const VMMapKey& key)
     return &it->second;
 }
 
-const BoxedValue* ScriptMap::GetElement(const VMMapKey& key) const
+const BoxedValue* ScriptMap::GetElement(const ScriptMapKey& key) const
 {
-    auto it = m_map.Find(key);
+    auto it = Base::Find(key);
 
-    if (it == m_map.End())
+    if (it == Base::End())
     {
         return nullptr;
     }

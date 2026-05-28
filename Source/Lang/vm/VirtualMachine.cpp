@@ -1007,7 +1007,7 @@ public:
             : ShallowCopy(srcValue, vm->GetGC());
 
         const Class* cls = nullptr;
-        
+
         BoxedValue* pValue = Deref(instance->thread.m_regs[dstReg]);
 
         if (pValue->Is<ClassRef>())
@@ -1618,7 +1618,7 @@ public:
             functions.copy = [](void* ctx, const void* src) -> void*
             {
                 const DynamicStructInstance* pStruct = static_cast<const DynamicStructInstance*>(ctx);
-                
+
                 void* dest = GetDefaultAllocatorInstance<DynamicAllocator>()->Allocate(pStruct->GetSize(), pStruct->GetAlignment());
 
                 const ubyte* srcRaw = reinterpret_cast<const ubyte*>(src);
@@ -1652,6 +1652,10 @@ public:
                         reinterpret_cast<BoxedValue*>(ptrRaw + field->GetOffset())->~BoxedValue();
                     }
                 }
+            };
+            functions.getHashCode = [](void* ctx, const void* objectPtr) -> HashCode
+            {
+
             };
 
             newClass = new DynamicStructInstance(

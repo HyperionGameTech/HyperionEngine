@@ -28,6 +28,8 @@
 
 namespace Hyperion {
 
+/// @TODO: Should be reworked to use intrinsic bytecode instructions rather than constructing nested arrays and using Map.FromArray!
+
 AstHashMap::AstHashMap(
     const Array<RC<AstExpression>>& keys,
     const Array<RC<AstExpression>>& values,
@@ -196,6 +198,9 @@ void AstHashMap::Visit(AstVisitor* visitor, Module* mod)
 
     m_exprType = mapType;
 
+    m_resolvedMapTypeRef.Reset(new AstTypeRef(m_exprType, m_location));
+    m_resolvedMapTypeRef->Visit(visitor, mod);
+
     Array<RC<AstExpression>> keyValueArrayExpressions;
     keyValueArrayExpressions.Reserve(m_replacedKeys.Size());
 
@@ -229,8 +234,8 @@ UniquePtr<Buildable> AstHashMap::Build(AstVisitor* visitor, Module* mod)
 {
     UniquePtr<BytecodeChunk> chunk = BytecodeUtil::Make<BytecodeChunk>();
 
-    Assert(m_mapTypeExpr != nullptr);
-    chunk->Append(m_mapTypeExpr->Build(visitor, mod));
+    Assert(m_resolvedMapTypeRef != nullptr);
+    chunk->Append(m_resolvedMapTypeRef->Build(visitor, mod));
 
     // get active register
     uint8 rp = visitor->GetCompilationUnit()->GetInstructionStream().GetCurrentRegister();
@@ -272,10 +277,10 @@ UniquePtr<Buildable> AstHashMap::Build(AstVisitor* visitor, Module* mod)
         chunk->Append(std::move(storageOperation));
     }
 
-    { // load member `from` from array type expr
-        constexpr uint64 fromHash = HashCode::GetHashCode("from").Value();
+    { // load member Map::FromArray
+        static constexpr uint64 FromArrayMethodHash = "FromArray"_sh.GetHashCode().Value();
 
-        chunk->Append(Compiler::LoadMemberFromHash(visitor, mod, fromHash));
+        chunk->Append(Compiler::LoadMemberFromHash(visitor, mod, FromArrayMethodHash));
     }
 
     // Here map class and array should be the 2 items on the stack
@@ -286,8 +291,8 @@ UniquePtr<Buildable> AstHashMap::Build(AstVisitor* visitor, Module* mod)
             visitor,
             mod,
             nullptr, // no target -- handled above
-            uint8(2) // self, array
-            ));
+            uint8(1) // num args
+        ));
     }
 
     // decrement stack size for array type expr
@@ -304,9 +309,9 @@ UniquePtr<Buildable> AstHashMap::Build(AstVisitor* visitor, Module* mod)
 
 void AstHashMap::Optimize(AstVisitor* visitor, Module* mod)
 {
-    if (m_mapTypeExpr != nullptr)
+    if (m_resolvedMapTypeRef != nullptr)
     {
-        m_mapTypeExpr->Optimize(visitor, mod);
+        m_resolvedMapTypeRef->Optimize(visitor, mod);
     }
 
     if (m_arrayExpr != nullptr)

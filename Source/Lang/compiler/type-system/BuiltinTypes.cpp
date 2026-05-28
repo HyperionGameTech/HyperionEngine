@@ -21,6 +21,7 @@ namespace Hyperion {
 // Class names to use for overrides for built in types.
 // (see: GetNativeClassNameForType() below)
 static const String s_stringClassName = "String";
+static const String s_mapClassName = "ScriptMap";
 static const String s_nameClassName = "Name";
 static const String s_classRefClassName = "ClassRef";
 
@@ -981,6 +982,11 @@ const String& BuiltinTypes::GetNativeClassNameForType(const SymbolType* type)
     if (type->IsString())
     {
         return s_stringClassName;
+    }
+
+    if (type->IsMapType())
+    {
+        return s_mapClassName;
     }
 
     if (type->IsName())
