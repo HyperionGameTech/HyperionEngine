@@ -34,6 +34,7 @@ static thread_local StagingBufferPool* s_stagingBufferPool = nullptr;
 struct StagingBufferPoolImpl
 {
     static constexpr uint32 MaxFramesBeforeDiscard = 300; // about 5 seconds at 60fps
+    static constexpr size_t StagingBufferAlignment = 256;
 
     struct CachedStagingBuffer
     {
@@ -123,13 +124,13 @@ struct StagingBufferPoolImpl
         }
 
         // Round up to minimum alignment
-        bufferSize = MathUtil::NextMultiple(bufferSize, 256);
+        bufferSize = MathUtil::NextMultiple(bufferSize, StagingBufferAlignment);
 
         // create new one if none found
         CachedStagingBuffer newBuffer;
         newBuffer.size = bufferSize;
         newBuffer.lastUsedFrame = currFrame;
-        newBuffer.buffer = RI.MakeGpuBuffer(GpuBufferType::StagingBuffer, bufferSize);
+        newBuffer.buffer = RI.MakeGpuBuffer(GpuBufferType::StagingBuffer, bufferSize, StagingBufferAlignment);
 
 #if HYP_DEBUG_MODE
         newBuffer.buffer->SetDebugName(NAME("StagingBufferPoolTempBuffer"));

@@ -208,6 +208,13 @@ bool DX12GpuBuffer::IsCreated() const
 
 bool DX12GpuBuffer::IsCpuAccessible() const
 {
+    AssertDebug(IsCreated());
+
+    if (HYP_UNLIKELY(!IsCreated()))
+    {
+        return false;
+    }
+
     D3D12_HEAP_PROPERTIES heapProperties;
     m_resource->GetHeapProperties(&heapProperties, nullptr);
 

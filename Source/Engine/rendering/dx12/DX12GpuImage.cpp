@@ -198,9 +198,13 @@ RendererResult DX12GpuImage::Create(ResourceState initialState)
 
         pClearValue = &clearValue;
     }
-    // NOTE: Render targets need a clear value to avoid D3D12 warning #820
-    // during ClearRenderTargetView. Use transparent black as default.
-    else if (resourceDesc.Flags & D3D12_RESOURCE_FLAG_ALLOW_RENDER_TARGET)
+    // When the initial state is UNDEFINED/COMMON, render target resources
+    // on NOT_ZEROED heaps must be fully initialized before any use.
+    // By setting the initial state to RENDER_TARGET alongside the clear value,
+    // D3D12 auto-initializes every subresource at creation time.
+    // This avoids EXECUTION ERROR #1422 for unvisited subresources (e.g.
+    // cubemap faces that were never drawn to before a copy/sample).
+    if (resourceDesc.Flags & D3D12_RESOURCE_FLAG_ALLOW_RENDER_TARGET)
     {
         clearValue.Format = resourceDesc.Format;
         clearValue.Color[0] = 0.0f;
@@ -209,10 +213,29 @@ RendererResult DX12GpuImage::Create(ResourceState initialState)
         clearValue.Color[3] = 0.0f;
 
         pClearValue = &clearValue;
+
+        // Promote to RENDER_TARGET initial state so the clear value triggers
+        // D3D12 auto-initialization of all subresources.
+        if (initialState == RS_UNDEFINED || initialState == RS_PRE_INITIALIZED)
+        {
+            initialState = RS_RENDER_TARGET;
+            resourceStates = ToDX12ResourceStates(initialState);
+        }
     }
 
     D3D12MA::ALLOCATION_DESC allocDesc {};
     allocDesc.HeapType = D3D12_HEAP_TYPE_DEFAULT;
+
+    // D3D12MA places resources on NOT_ZEROED heaps by default. For render
+    // targets the initial-state + clear-value auto-initialization only
+    // takes effect with COMMITTED allocations.
+    // Force committed so D3D12 honors the clear value and initializes
+    // every subresource — avoids EXECUTION ERROR #1422 for cubemap faces
+    // that were never explicitly cleared/drawn before a copy/sample.
+    if (resourceDesc.Flags & (D3D12_RESOURCE_FLAG_ALLOW_RENDER_TARGET | D3D12_RESOURCE_FLAG_ALLOW_DEPTH_STENCIL))
+    {
+        allocDesc.Flags = D3D12MA::ALLOCATION_FLAG_COMMITTED;
+    }
 
     HRESULT hr = RI.GetAllocator()->CreateResource(
         &allocDesc,
@@ -945,7 +968,8 @@ void DX12GpuImage::CopyFromBuffer(
 
     const Vec3u mipExtent = m_textureDesc.GetMipExtent(mipIdx);
     const uint32 bytesPerPixel = TextureUtils::BytesPerComponent(m_textureDesc.format) * TextureUtils::NumComponents(m_textureDesc.format);
-    const size_t requiredBufferSize = static_cast<size_t>(srcBufferOffset) + (static_cast<size_t>(mipExtent.x) * mipExtent.y * mipExtent.z * bytesPerPixel);
+    const uint32 alignedRowPitch = ByteUtil::AlignAs(mipExtent.x * bytesPerPixel, D3D12_TEXTURE_DATA_PITCH_ALIGNMENT);
+    const size_t requiredBufferSize = static_cast<size_t>(srcBufferOffset) + (static_cast<size_t>(mipExtent.y) * mipExtent.z * alignedRowPitch);
 
     AssertDebug(srcBuffer->Size() >= requiredBufferSize,
         "Source buffer size ({}) is too small for copy operation. Required: {} bytes from offset {}",
@@ -961,7 +985,7 @@ void DX12GpuImage::CopyFromBuffer(
     placedFootprint.Footprint.Height = mipExtent.y;
     placedFootprint.Footprint.Width = mipExtent.x;
     placedFootprint.Footprint.Format = ToDXGIFormat(m_textureDesc.format);
-    placedFootprint.Footprint.RowPitch = mipExtent.x * TextureUtils::BytesPerComponent(m_textureDesc.format) * TextureUtils::NumComponents(m_textureDesc.format);
+    placedFootprint.Footprint.RowPitch = alignedRowPitch;
 
     D3D12_TEXTURE_COPY_LOCATION srcLocation {};
     srcLocation.pResource = srcBuffer->GetResource();
@@ -1029,23 +1053,6 @@ void DX12GpuImage::CopyToBuffer(
 
     AssertDebug(GetSubResourceState(subResource) == RS_COPY_SRC && dstBuffer->GetResourceState() == RS_COPY_DST);
 
-    // Calculate total size required for the specified subresources
-    size_t totalSubResourceSize = 0;
-    for (uint8 mipIndex = subResource.baseMipLevel; mipIndex < subResource.baseMipLevel + numLevels; mipIndex++)
-    {
-        for (uint16 layerIndex = subResource.baseArrayLayer; layerIndex < subResource.baseArrayLayer + numLayers; layerIndex++)
-        {
-            totalSubResourceSize += m_textureDesc.GetMipByteSize(mipIndex, /* includeArrayLayers */ false);
-        }
-    }
-
-    AssertDebug(dstBuffer->Size() >= totalSubResourceSize,
-        "Destination buffer size ({}) is too small to hold subresource data ({} bytes). "
-        "Subresources: {} mip levels x {} array layers starting at mip {} layer {}",
-        dstBuffer->Size(), totalSubResourceSize,
-        numLevels, numLayers,
-        subResource.baseMipLevel, subResource.baseArrayLayer);
-
     ImageSubResource newSubResource = subResource;
     newSubResource.numLayers = numLayers;
     newSubResource.numLevels = numLevels;
@@ -1072,9 +1079,10 @@ void DX12GpuImage::CopyToBuffer(
     for (uint8 mipIndex = newSubResource.baseMipLevel; mipIndex < newSubResource.baseMipLevel + newSubResource.numLevels; mipIndex++)
     {
         const Vec3u mipExtent = m_textureDesc.GetMipExtent(mipIndex);
-        const size_t mipByteSize = m_textureDesc.GetMipByteSize(mipIndex, /* includeArrayLayers */ true);
-
-        const size_t layerStep = mipByteSize / NumArrayLayers();
+        const uint32 bytesPerPixel = TextureUtils::BytesPerComponent(m_textureDesc.format) * TextureUtils::NumComponents(m_textureDesc.format);
+        const uint32 alignedRowPitch = ByteUtil::AlignAs(mipExtent.x * bytesPerPixel, D3D12_TEXTURE_DATA_PITCH_ALIGNMENT);
+        const size_t layerStep = static_cast<size_t>(alignedRowPitch) * mipExtent.y * mipExtent.z;
+        const size_t mipByteSize = layerStep * NumArrayLayers();
 
         for (uint16 layerIndex = newSubResource.baseArrayLayer; layerIndex < newSubResource.baseArrayLayer + newSubResource.numLayers; layerIndex++)
         {
@@ -1098,6 +1106,7 @@ void DX12GpuImage::CopyToBuffer(
             footprint.Footprint.Height = mipExtent.y;
             footprint.Footprint.Depth = mipExtent.z;
             footprint.Footprint.Format = ToDXGIFormat(m_textureDesc.format);
+            footprint.Footprint.RowPitch = alignedRowPitch;
             footprint.Offset = bufferOffset + (layerIndex * layerStep);
 
             dstLocation.PlacedFootprint = footprint;

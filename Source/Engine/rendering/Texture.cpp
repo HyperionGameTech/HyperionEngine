@@ -111,22 +111,18 @@ static RendererResult CreateGpuImage(Texture& texture, GpuImage& image, Resource
     if (uploadTextureData)
     {
         ConstByteView imageData = texture.GetImageData();
-
         const TextureDesc& textureDesc = texture.GetTextureDesc();
-
         Span<const uint32> mipOffsets = textureDesc.mipOffsets.ToSpan();
 
         Optional<ByteBuffer> placeholderBuffer;
 
         if (!CheckImageData(texture, image))
         {
-            // throw an error in debug mode
             AssertDebug(false, "Image contains invalid data!");
 
             static const uint32 s_placeholderMipOffsets[TextureDesc::MaxMips] { 0 };
             mipOffsets = { s_placeholderMipOffsets, TextureDesc::MaxMips };
 
-            // fill some placeholder data with zeros so we don't crash
             imageData = placeholderBuffer.Emplace().ToByteView();
             placeholderBuffer->SetSize(image.GetByteSize());
 
@@ -137,96 +133,132 @@ static RendererResult CreateGpuImage(Texture& texture, GpuImage& image, Resource
             case TextureType::Texture2D:
                 switch (nonSrgbFormat)
                 {
-                case TextureFormat::R8:
-                    FillPlaceholderBuffer_Tex2D<TextureFormat::R8>(image.GetExtent().GetXY(), *placeholderBuffer);
-                    break;
-                case TextureFormat::RGBA8:
-                    FillPlaceholderBuffer_Tex2D<TextureFormat::RGBA8>(image.GetExtent().GetXY(), *placeholderBuffer);
-                    break;
-                case TextureFormat::RGBA16F:
-                    FillPlaceholderBuffer_Tex2D<TextureFormat::RGBA16F>(image.GetExtent().GetXY(), *placeholderBuffer);
-                    break;
-                case TextureFormat::RGBA32F:
-                    FillPlaceholderBuffer_Tex2D<TextureFormat::RGBA32F>(image.GetExtent().GetXY(), *placeholderBuffer);
-                    break;
-                default:
-                    // no FillPlaceholderBuffer method defined
-                    break;
+                case TextureFormat::R8:      FillPlaceholderBuffer_Tex2D<TextureFormat::R8>(image.GetExtent().GetXY(), *placeholderBuffer); break;
+                case TextureFormat::RGBA8:   FillPlaceholderBuffer_Tex2D<TextureFormat::RGBA8>(image.GetExtent().GetXY(), *placeholderBuffer); break;
+                case TextureFormat::RGBA16F: FillPlaceholderBuffer_Tex2D<TextureFormat::RGBA16F>(image.GetExtent().GetXY(), *placeholderBuffer); break;
+                case TextureFormat::RGBA32F: FillPlaceholderBuffer_Tex2D<TextureFormat::RGBA32F>(image.GetExtent().GetXY(), *placeholderBuffer); break;
+                default: break;
                 }
                 break;
             case TextureType::Cubemap:
                 switch (nonSrgbFormat)
                 {
-                case TextureFormat::R8:
-                    FillPlaceholderBuffer_Cubemap<TextureFormat::R8>(image.GetExtent().GetXY(), *placeholderBuffer);
-                    break;
-                case TextureFormat::RGBA8:
-                    FillPlaceholderBuffer_Cubemap<TextureFormat::RGBA8>(image.GetExtent().GetXY(), *placeholderBuffer);
-                    break;
-                default:
-                    // no FillPlaceholderBuffer method defined
-                    break;
+                case TextureFormat::R8:      FillPlaceholderBuffer_Cubemap<TextureFormat::R8>(image.GetExtent().GetXY(), *placeholderBuffer); break;
+                case TextureFormat::RGBA8:   FillPlaceholderBuffer_Cubemap<TextureFormat::RGBA8>(image.GetExtent().GetXY(), *placeholderBuffer); break;
+                default: break;
                 }
                 break;
-            default:
-                // no FillPlaceholderBuffer method defined
-                break;
+            default: break;
             }
         }
-
-        // @TODO use staging buffer pool. change staging buffer pool to use GetFrameCounter(), make it thread-safe.
-        // should recycle same way constants allocator recycles blocks etc.
-        GpuBufferRef stagingBuffer = RI.MakeGpuBuffer(GpuBufferType::StagingBuffer, imageData.Size());
-#if HYP_DEBUG_MODE
-        stagingBuffer->SetDebugName(NAME_FMT("Texture_StagingBuffer_{}", texture.GetName().IsValid() ? texture.GetName() : NAME("Invalid")));
-#endif
-
-        CheckResultOrReturn(stagingBuffer->Create());
-
-        //GpuBuffer* stagingBuffer = RI.stagingBufferPool->AcquireStagingBuffer(imageData.Size());
-        Assert(stagingBuffer != nullptr && stagingBuffer->IsCreated());
-        stagingBuffer->Copy(imageData.Size(), imageData.Data());
-        HYP_DEFER({ EnqueueDeletion(std::move(stagingBuffer)); });
-
-        //// Temp debug
-        //if (texture.GetType() == TextureType::Cubemap && texture.GetName().ToString().Contains("_Prefiltered"))
-        //{
-        //    Bitmap_RGBA8 bitmap(imageData.Slice(0, texture.GetTextureDesc().GetMipByteSize(0, /* includeArrayLayers */ true)), texture.GetExtent().x * 6, texture.GetExtent().y);
-        //    FileByteWriter tmpWriter("EnvProbeTest.bmp");
-        //    bitmap.Write(&tmpWriter);
-        //    tmpWriter.Close();
-        //}
-
-        cr << InsertBarrier(stagingBuffer, RS_COPY_SRC);
-        cr << InsertBarrier(&image, RS_COPY_DST);
 
         bool hasMips = textureDesc.HasMipMaps() && !placeholderBuffer.HasValue();
 
         if (hasMips && !textureDesc.mipOffsets[0])
         {
             HYP_LOG(Assets, Warning, "Mip data missing for texture {}", texture.GetName());
-
             hasMips = false;
         }
 
+        const uint32 numMips = hasMips ? textureDesc.NumMips() : 1;
+        const uint32 numArrayLayers = textureDesc.NumArrayLayers();
+
+#ifdef HYP_DX12
+        auto AlignUp = [](uint32 value, uint32 alignment) -> uint32
+            {
+                return (value + alignment - 1) & ~(alignment - 1);
+            };
+
+        // We will build a new padded buffer o upload to the staging buffer
+        uint32 paddedMipOffsets[TextureDesc::MaxMips] = {0};
+        uint32 paddedTotalSize = 0;
+
+        for (uint8 mipIndex = 0; mipIndex < numMips; mipIndex++)
+        {
+            // @NOTE Revisit if we use BC formats
+            uint32 mipWidth = MathUtil::Max(1u, textureDesc.extent.x >> mipIndex);
+            uint32 mipHeight = MathUtil::Max(1u, textureDesc.extent.y >> mipIndex);
+            uint32 mipDepth = MathUtil::Max(1u, textureDesc.extent.z >> mipIndex);
+            
+            uint32 bytesPerPixel = TextureUtils::NumComponents(textureDesc.format) * TextureUtils::BytesPerComponent(textureDesc.format);
+            uint32 unalignedRowPitch = mipWidth * bytesPerPixel;
+            uint32 numRows = mipHeight * mipDepth * numArrayLayers;
+
+            // Align row pitch to 256 bytes
+            uint32 paddedRowPitch = AlignUp(unalignedRowPitch, D3D12_TEXTURE_DATA_PITCH_ALIGNMENT);
+            
+            // Record offset for this mip, ensuring 512-byte alignment
+            paddedMipOffsets[mipIndex] = AlignUp(paddedTotalSize, D3D12_TEXTURE_DATA_PLACEMENT_ALIGNMENT);
+            
+            // Advance total size by the padded size of this mip
+            paddedTotalSize = paddedMipOffsets[mipIndex] + (paddedRowPitch * numRows);
+        }
+
+        ByteBuffer paddedByteBuffer;
+        paddedByteBuffer.SetSize(paddedTotalSize);
+
+        for (uint8 mipIndex = 0; mipIndex < numMips; mipIndex++)
+        {
+            uint32 mipWidth = MathUtil::Max(1u, textureDesc.extent.x >> mipIndex);
+            uint32 mipHeight = MathUtil::Max(1u, textureDesc.extent.y >> mipIndex);
+            uint32 mipDepth = MathUtil::Max(1u, textureDesc.extent.z >> mipIndex);
+            
+            uint32 bytesPerPixel = TextureUtils::NumComponents(textureDesc.format) * TextureUtils::BytesPerComponent(textureDesc.format);
+            uint32 unalignedRowPitch = mipWidth * bytesPerPixel;
+            uint32 paddedRowPitch = AlignUp(unalignedRowPitch, D3D12_TEXTURE_DATA_PITCH_ALIGNMENT);
+            uint32 numRows = mipHeight * mipDepth * numArrayLayers;
+
+            // Get tightly packed source offset
+            uint32 srcMipOffset = (mipIndex == 0) ? 0 : mipOffsets[mipIndex - 1];
+            const uint8* pSrcMipData = imageData.Data() + srcMipOffset;
+            
+            // Get padded destination offset
+            uint8* pDstMipData = paddedByteBuffer.Data() + paddedMipOffsets[mipIndex];
+
+            for (uint32 row = 0; row < numRows; ++row)
+            {
+                Memory::Copy(
+                    pDstMipData + (row * paddedRowPitch),
+                    pSrcMipData + (row * unalignedRowPitch),
+                    unalignedRowPitch // Only copy the valid unaligned bytes!
+                );
+            }
+        }
+
+        // Now acquire the staging buffer using the padded size!
+        GpuBuffer* stagingBuffer = RI.stagingBufferPool->AcquireStagingBuffer(paddedTotalSize);
+        Assert(stagingBuffer != nullptr && stagingBuffer->IsCreated());
+        
+        // Copy the padded buffer instead of the raw imageData
+        stagingBuffer->Copy(paddedTotalSize, paddedByteBuffer.Data());
+#else
+        GpuBuffer* stagingBuffer = RI.stagingBufferPool->AcquireStagingBuffer(imageData.Size());
+        Assert(stagingBuffer != nullptr && stagingBuffer->IsCreated());
+
+        stagingBuffer->Copy(imageData.Size(), imageData.Data());
+#endif
+
+        cr << InsertBarrier(stagingBuffer, RS_COPY_SRC);
+        cr << InsertBarrier(&image, RS_COPY_DST);
+
         if (hasMips)
         {
-            const uint32 numMips = textureDesc.NumMips();
-            const uint32 numArrayLayers = textureDesc.NumArrayLayers();
-
-            for (uint8 mipIndex = 0; mipIndex < uint8(numMips); mipIndex++)
+            for (uint8 mipIndex = 0; mipIndex < numMips; mipIndex++)
             {
+#ifdef HYP_DX12
+                uint32 mipBlockStart = paddedMipOffsets[mipIndex];
+#else
                 const uint32 mipSize = textureDesc.GetMipByteSize(mipIndex, /* includeArrayLayers */ true);
-
                 uint32 mipBlockStart = 0;
+                
                 if (mipIndex != 0)
                 {
                     mipBlockStart = mipOffsets[mipIndex - 1];
-
                     AssertDebug(mipBlockStart != 0);
                 }
 
                 AssertDebug(mipBlockStart + mipSize <= imageData.Size());
+#endif
 
                 cr << CopyBufferToImage(
                     stagingBuffer,
@@ -239,7 +271,11 @@ static RendererResult CreateGpuImage(Texture& texture, GpuImage& image, Resource
         else
         {
             // No mips, just base level
+#ifdef HYP_DX12
+            cr << CopyBufferToImage(stagingBuffer, &image, /* byteOffset */ paddedMipOffsets[0], /* dstMipIndex */ 0, /* dstArrayLayer */ UINT16_MAX);
+#else
             cr << CopyBufferToImage(stagingBuffer, &image);
+#endif
         }
 
         cr << InsertBarrier(&image, initialState);
@@ -619,6 +655,59 @@ void Texture::GenerateMipmaps(TextureDesc& desc, ByteBuffer& imageData)
     }
 }
 
+#ifdef HYP_DX12
+static size_t GetDX12ReadbackSize(const TextureDesc& desc, bool allMips)
+{
+    const uint32 numMips = allMips ? desc.NumMips() : 1;
+    const uint16 numArrayLayers = desc.NumArrayLayers();
+
+    size_t totalSize = 0;
+
+    for (uint8 mipIndex = 0; mipIndex < numMips; mipIndex++)
+    {
+        const Vec3u mipExtent = desc.GetMipExtent(mipIndex);
+        const uint32 bytesPerPixel = TextureUtils::BytesPerComponent(desc.format) * TextureUtils::NumComponents(desc.format);
+        const uint32 alignedRowPitch = ByteUtil::AlignAs(mipExtent.x * bytesPerPixel, D3D12_TEXTURE_DATA_PITCH_ALIGNMENT);
+        totalSize += static_cast<size_t>(alignedRowPitch) * mipExtent.y * mipExtent.z * numArrayLayers;
+    }
+
+    return totalSize;
+}
+
+static void UnpadDX12ReadbackData(const TextureDesc& desc, const ubyte* paddedData, ubyte* tightData, bool allMips)
+{
+    const uint32 numMips = allMips ? desc.NumMips() : 1;
+    const uint16 numArrayLayers = desc.NumArrayLayers();
+    size_t paddedOffset = 0;
+    size_t tightOffset = 0;
+
+    for (uint8 mipIndex = 0; mipIndex < numMips; mipIndex++)
+    {
+        const Vec3u mipExtent = desc.GetMipExtent(mipIndex);
+        const uint32 bytesPerPixel = TextureUtils::BytesPerComponent(desc.format) * TextureUtils::NumComponents(desc.format);
+        const uint32 tightRowPitch = mipExtent.x * bytesPerPixel;
+        const uint32 alignedRowPitch = ByteUtil::AlignAs(tightRowPitch, D3D12_TEXTURE_DATA_PITCH_ALIGNMENT);
+        const uint32 numRows = mipExtent.y * mipExtent.z;
+        const size_t layerStep = static_cast<size_t>(alignedRowPitch) * numRows;
+
+        for (uint16 layerIndex = 0; layerIndex < numArrayLayers; layerIndex++)
+        {
+            for (uint32 row = 0; row < numRows; row++)
+            {
+                Memory::Copy(
+                    tightData + tightOffset + (row * tightRowPitch),
+                    paddedData + paddedOffset + (row * alignedRowPitch),
+                    tightRowPitch
+                );
+            }
+
+            paddedOffset += layerStep;
+            tightOffset += static_cast<size_t>(tightRowPitch) * numRows;
+        }
+    }
+}
+#endif // HYP_DX12
+
 void Texture::Readback(GpuBufferRef& outBuffer, bool allMips)
 {
     HYP_SCOPE;
@@ -631,7 +720,13 @@ void Texture::Readback(GpuBufferRef& outBuffer, bool allMips)
         return;
     }
 
-    outBuffer = RI.MakeGpuBuffer(GpuBufferType::ReadbackBuffer, m_gpuImage->GetTextureDesc().GetByteSize(allMips));
+#ifdef HYP_DX12
+    const size_t readbackSize = GetDX12ReadbackSize(m_gpuImage->GetTextureDesc(), allMips);
+#else
+    const size_t readbackSize = m_gpuImage->GetTextureDesc().GetByteSize(allMips);
+#endif
+
+    outBuffer = RI.MakeGpuBuffer(GpuBufferType::ReadbackBuffer, readbackSize);
     outBuffer->SetIsCpuAccessible(true);
 #if HYP_DEBUG_MODE
     outBuffer->SetDebugName(NAME("Texture_ReadbackBuffer"));
@@ -681,6 +776,25 @@ void Texture::Readback(GpuBufferRef& outBuffer, bool allMips)
 
         return;
     }
+
+#ifdef HYP_DX12
+    {
+        const TextureDesc& desc = m_gpuImage->GetTextureDesc();
+        const size_t tightSize = desc.GetByteSize(allMips);
+
+        ByteBuffer tightBuffer;
+        tightBuffer.SetSize(tightSize);
+        UnpadDX12ReadbackData(desc, static_cast<const ubyte*>(outBuffer->Map()), tightBuffer.Data(), allMips);
+        outBuffer->Unmap();
+
+        outBuffer = RI.MakeGpuBuffer(GpuBufferType::ReadbackBuffer, tightSize);
+        outBuffer->SetIsCpuAccessible(true);
+        
+        CheckResult(outBuffer->Create());
+
+        outBuffer->Copy(tightSize, tightBuffer.Data());
+    }
+#endif // HYP_DX12
 }
 
 void Texture::EnqueueReadback(Proc<void(GpuBuffer&)>&& callback, bool allMips)
@@ -697,7 +811,13 @@ void Texture::EnqueueReadback(Proc<void(GpuBuffer&)>&& callback, bool allMips)
 
     const ResourceState previousResourceState = m_gpuImage->GetResourceState();
 
-    GpuBufferRef readbackBuffer = RI.MakeGpuBuffer(GpuBufferType::ReadbackBuffer, m_gpuImage->GetTextureDesc().GetByteSize(allMips));
+#ifdef HYP_DX12
+    const size_t readbackSize = GetDX12ReadbackSize(m_gpuImage->GetTextureDesc(), allMips);
+#else
+    const size_t readbackSize = m_gpuImage->GetTextureDesc().GetByteSize(allMips);
+#endif
+
+    GpuBufferRef readbackBuffer = RI.MakeGpuBuffer(GpuBufferType::ReadbackBuffer, readbackSize);
     readbackBuffer->SetIsCpuAccessible(true);
 #if HYP_DEBUG_MODE
     readbackBuffer->SetDebugName(NAME("Texture_EnqueueReadbackBuffer"));
@@ -738,12 +858,14 @@ void Texture::EnqueueReadback(Proc<void(GpuBuffer&)>&& callback, bool allMips)
         GpuImageRef image;
         GpuBufferRef readbackBuffer;
         Proc<void(GpuBuffer&)> callback;
+        bool allMips;
     };
 
     ReadbackPayload* payload = HYP_POOL_NEW(g_renderPool, ReadbackPayload);
     payload->image = MakeStrongRef(m_gpuImage);
     payload->readbackBuffer = std::move(readbackBuffer);
     payload->callback = std::move(callback);
+    payload->allMips = allMips;
 
     class ReadbackTextureCmd : public CmdBase
     {
@@ -765,9 +887,38 @@ void Texture::EnqueueReadback(Proc<void(GpuBuffer&)>&& callback, bool allMips)
             currentFrame->OnFrameEnd
                 .Bind([payload = _this->payload](...)
                 {
-                    payload->callback(*payload->readbackBuffer);
-                    payload->readbackBuffer.Reset();
+#ifdef HYP_DX12
+                    {
+                        const TextureDesc& desc = payload->image->GetTextureDesc();
 
+                        const size_t tightSize = desc.GetByteSize(payload->allMips);
+
+                        ByteBuffer tightBuffer;
+                        tightBuffer.SetSize(tightSize);
+
+                        UnpadDX12ReadbackData(desc, static_cast<const ubyte*>(payload->readbackBuffer->Map()), tightBuffer.Data(), payload->allMips);
+
+                        if (payload->readbackBuffer.IsValid())
+                        {
+                            payload->readbackBuffer->Unmap();
+
+                            EnqueueDeletion(std::move(payload->readbackBuffer));
+                        }
+
+                        payload->readbackBuffer = RI.MakeGpuBuffer(GpuBufferType::ReadbackBuffer, tightSize);
+                        payload->readbackBuffer->SetIsCpuAccessible(true);
+
+                        if (CheckResult(payload->readbackBuffer->Create()))
+                        {
+                            payload->readbackBuffer->Copy(tightSize, tightBuffer.Data());
+                            payload->readbackBuffer->Flush(0, tightSize);
+                        }
+                    }
+#endif
+
+                    payload->callback(*payload->readbackBuffer);
+
+                    EnqueueDeletion(std::move(payload->readbackBuffer));
                     EnqueueDeletion(std::move(payload->image));
 
                     PoolDelete(*g_renderPool, payload);

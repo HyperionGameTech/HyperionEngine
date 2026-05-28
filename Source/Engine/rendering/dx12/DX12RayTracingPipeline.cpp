@@ -490,6 +490,7 @@ RendererResult DX12RayTracingPipeline::BuildShaderBindingTables()
         }
 
         outEntry.buffer = RI.MakeGpuBuffer(GpuBufferType::ShaderBindingTable, sbtEntrySize);
+        outEntry.buffer->SetIsCpuAccessible(true);
 
 #if HYP_DEBUG_MODE
         outEntry.buffer->SetDebugName(CreateNameFromDynamicString(debugName));
