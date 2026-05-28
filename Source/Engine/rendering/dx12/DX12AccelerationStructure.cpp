@@ -127,6 +127,7 @@ void DX12AccelerationStructureBase::RemoveGeometry(const DX12AccelerationGeometr
     }
 }
 
+#if HYP_DEBUG_MODE
 void DX12AccelerationStructureBase::SetDebugName(Name name)
 {
     m_debugName = name;
@@ -146,6 +147,7 @@ void DX12AccelerationStructureBase::SetDebugName(Name name)
         m_scratchBuffer->SetDebugName(NAME_FMT("{}_scratch", *name));
     }
 }
+#endif
 
 #pragma endregion DX12AccelerationStructureBase
 

@@ -84,10 +84,12 @@ RendererResult DX12Framebuffer::Create()
 
         if (!image->IsCreated())
         {
+#if HYP_DEBUG_MODE
             if (!image->GetDebugName().IsValid())
             {
                 image->SetDebugName(NAME_FMT("{}_RT_{}", Id().Value(), it.first));
             }
+#endif
 
             CheckResultOrReturn(image->Create());
         }

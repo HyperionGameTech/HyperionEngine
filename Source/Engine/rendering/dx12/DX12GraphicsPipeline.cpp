@@ -342,10 +342,15 @@ RendererResult DX12GraphicsPipeline::Rebuild()
 
                 continue;
             }
-
+            
             if (psoDesc.NumRenderTargets >= 8)
+            {
+#if HYP_DEBUG_MODE
                 return HYP_MAKE_ERROR(RendererError, "To many render targets for pipeline {}!", 0, GetDebugName());
-
+#else
+                return HYP_MAKE_ERROR(RendererError, "To many render targets for pipeline!", 0);
+#endif
+            }
 
             const uint32 rtIndex = psoDesc.NumRenderTargets++;
 
@@ -370,23 +375,28 @@ RendererResult DX12GraphicsPipeline::Rebuild()
         }
     }
 
-    // @TODO: add D3D12_VIEW_INSTANCING_DESC for view instancing to fulfill the role multiview was taking in the Vulkan impl.
-
     HRESULT res = RI.GetDevice()->CreateGraphicsPipelineState(
         &psoDesc,
         __uuidof(ID3D12PipelineState),
         &m_pipelineState
     );
-
-    if (FAILED(res))
-        return HYP_MAKE_ERROR(RendererError, "Failed to create DX12 Pipeline State for {}", res, GetDebugName());
-
+    
 #ifdef HYP_DEBUG_MODE
+    if (FAILED(res))
+    {
+        return HYP_MAKE_ERROR(RendererError, "Failed to create DX12 Pipeline State for {}", res, GetDebugName());
+    }
+
     if (Name debugName = GetDebugName())
     {
         WideString ws = *debugName;
         m_pipelineState->SetName(ws.Data());
         m_rootSignature->SetName(ws.Data());
+    }
+#else
+    if (FAILED(res))
+    {
+        return HYP_MAKE_ERROR(RendererError, "Failed to create DX12 Pipeline State", res);
     }
 #endif
 

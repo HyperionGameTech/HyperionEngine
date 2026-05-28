@@ -146,7 +146,9 @@ public:
     }
 
 protected:
+#if HYP_DEBUG_MODE
     void SetDebugName(Name name);
+#endif
 
     HYP_FORCE_INLINE void SetTransformUpdateFlag()
     {
