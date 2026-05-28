@@ -1,7 +1,6 @@
 #include "../include/Defines.hlsli"
 
 STATIC(VIEW_COUNT, 6)
-PERMUTE(MULTI_VIEW)
 
 #define HYP_DO_NOT_DEFINE_DESCRIPTOR_SETS
 
@@ -167,26 +166,13 @@ struct VSOutput
 DECLARE_SRV_DYNAMIC(Default, CamerasBuffer) StructuredBuffer<Camera> _cameras_buffer;
 #define camera _cameras_buffer[0]
 
-#ifdef MULTI_VIEW
-VSOutput VSMain(VSInput input, uint ViewId : SV_ViewID, uint instanceId : SV_InstanceID)
-#else
 VSOutput VSMain(VSInput input, uint instanceId : SV_InstanceID)
-#endif
 {
     VSOutput output;
 
     float4 position = mul(entity.model_matrix, float4(input.a_position, 1.0));
 
     output.v_position = position.xyz;
-
-    float4x4 projection_matrix = camera.projection;
-
-#ifdef MULTI_VIEW
-    float4x4 view_matrix = current_env_probe.face_view_matrices[ViewId];
-    vpMatrix = mul(projection_matrix, view_matrix);
-#else
-    float4x4 view_matrix = camera.view;
-#endif
 
 #ifdef INSTANCING
     output.object_index = OBJECT_INDEX;

@@ -33,6 +33,7 @@ struct VSOutput
 
 #include "./include/EnvProbes.hlsli"
 #include "./include/Scene.hlsli"
+#include "./include/Entity.hlsli"
 
 #ifdef IMMEDIATE_MODE
 DECLARE_SRV(DebugDrawerDescriptorSet, EnvProbesBuffer) StructuredBuffer<EnvProbe> env_probes;
@@ -61,8 +62,6 @@ DECLARE_SRV(DebugDrawerDescriptorSet, EntitiesBuffer) StructuredBuffer<Entity> e
 #define MODEL_MATRIX (entity.model_matrix)
 #define PREV_MODEL_MATRIX (entity.previous_model_matrix)
 #endif // IMMEDIATE_MODE
-
-#include "./include/Entity.hlsli"
 
 #undef HYP_DO_NOT_DEFINE_DESCRIPTOR_SETS
 
@@ -192,7 +191,6 @@ DECLARE_SRV_DYNAMIC(DebugDrawerDescriptorSet, CamerasBuffer) StructuredBuffer<Ca
 DECLARE_SRV(DebugDrawerDescriptorSet, WorldsBuffer) StructuredBuffer<WorldShaderData> _worlds_buffer;
 #define world_shader_data _worlds_buffer[0]
 
-#include "include/Entity.hlsli"
 #include "include/BRDF.hlsli"
 
 #ifndef IMMEDIATE_MODE

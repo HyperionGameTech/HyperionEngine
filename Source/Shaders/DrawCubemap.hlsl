@@ -9,7 +9,6 @@ PERMUTE(WRITE_NORMALS)
 PERMUTE(WRITE_MOMENTS)
 PERMUTE(INSTANCING)
 PERMUTE(SKINNING)
-PERMUTE(MULTI_VIEW)
 
 #ifdef VERTEX_SHADER
 
@@ -72,11 +71,7 @@ float4x4 LookAt(float3 pos, float3 target, float3 up)
     );
 }
 
-#ifdef MULTI_VIEW
-VSOutput VSMain(VSInput input, uint ViewId : SV_ViewID, uint instanceId : SV_InstanceID)
-#else
 VSOutput VSMain(VSInput input, uint instanceId : SV_InstanceID)
-#endif
 {
     VSOutput output;
 
@@ -107,19 +102,6 @@ VSOutput VSMain(VSInput input, uint instanceId : SV_InstanceID)
     output.normal = mul(normal_matrix, input.a_normal);
     output.texcoord0 = float2(input.a_texcoord0.x, 1.0 - input.a_texcoord0.y);
     output.camera_position = camera.position.xyz;
-
-    float4x4 projection_matrix = camera.projection;
-    float4x4 view_matrix;
-
-#ifdef MULTI_VIEW
-    const float3 forward_direction = g_cubemapDirections[ViewId * 2];
-    const float3 up_direction = g_cubemapDirections[ViewId * 2 + 1];
-
-    view_matrix = LookAt(output.camera_position, output.camera_position + forward_direction, up_direction);
-    vpMatrix = mul(projection_matrix, view_matrix);
-#else
-    view_matrix = camera.view;
-#endif
 
 #ifdef INSTANCING
     output.object_index = OBJECT_INDEX;

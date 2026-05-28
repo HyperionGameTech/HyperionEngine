@@ -83,6 +83,7 @@ EditorPickCache::EditorPickCache()
 
 EditorPickCache::~EditorPickCache()
 {
+    m_impl.Reset();
 }
 
 RenderProxyList& EditorPickCache::GetRenderProxyList() const

@@ -234,8 +234,6 @@ void DX12GraphicsPipeline::Bind(DX12CommandBuffer* commandBuffer, Vec2i viewport
     }
 }
 
-HYP_DISABLE_OPTIMIZATION;
-
 void DX12GraphicsPipeline::UpdateViewport(DX12CommandBuffer* commandBuffer, const Viewport& viewport)
 {
     D3D12_VIEWPORT d3dViewport {};

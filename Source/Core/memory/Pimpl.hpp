@@ -8,6 +8,8 @@
 
 #include <Core/Defines.hpp>
 
+#include <Core/debug/Debug.hpp>
+
 #include <Core/memory/Memory.hpp>
 
 #include <Core/utilities/ValueStorage.hpp>
@@ -139,7 +141,6 @@ public:
         {
             m_allocation->destructObject(m_allocation);
 
-            Memory::Free(m_allocation);
             m_allocation = nullptr;
         }
     }
@@ -169,11 +170,16 @@ public:
 
         Pimpl pimpl;
 
-        Allocation* allocation = Memory::Allocate<Allocation>();
+        Allocation* allocation = (Allocation*)Memory::AllocateAligned(sizeof(Allocation), alignof(Allocation));
+        HYP_CORE_ASSERT(allocation != nullptr);
+
         allocation->destructObject = [](void* allocation)
         {
             static_cast<Allocation*>(allocation)->storage.Destruct();
+
+            Memory::FreeAligned(allocation);
         };
+
         allocation->storage.Construct(std::forward<Args>(args)...);
 
         pimpl.m_allocation = allocation;
