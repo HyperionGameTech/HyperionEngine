@@ -14,6 +14,8 @@
 
 #include <rendering/util/DeletionQueue.hpp>
 
+#include <rendering/CrashHandler.hpp>
+
 #include <DX12Swapchain.generated.inl>
 
 namespace Hyperion {
@@ -342,6 +344,11 @@ void DX12Swapchain::PresentFrame(DX12Frame* frame)
         // Check for device removal on device-related errors
         if (hr == DXGI_ERROR_DEVICE_REMOVED || hr == DXGI_ERROR_DEVICE_RESET || hr == DXGI_ERROR_DEVICE_HUNG)
         {
+            if (RI.crashHandler)
+            {
+                RI.crashHandler->Dump();
+            }
+
             const char* deviceRemovedReason = CheckDeviceRemovedReason(RI.GetDevice());
             if (deviceRemovedReason)
             {

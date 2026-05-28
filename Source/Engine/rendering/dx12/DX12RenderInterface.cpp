@@ -23,6 +23,8 @@
 #include <rendering/dx12/DX12ShaderInstance.hpp>
 #include <rendering/dx12/DX12Helpers.hpp>
 
+#include <rendering/CrashHandler.hpp>
+
 #include <rendering/RenderHelpers.hpp>
 #include <rendering/RenderConfig.hpp>
 #include <rendering/Texture.hpp>
@@ -42,6 +44,10 @@
 #include <engine/config/EngineConfig.hpp>
 
 #include <dxgi1_6.h>
+
+#if defined(HYP_AFTERMATH) && HYP_AFTERMATH
+#include <Aftermath/GFSDK_Aftermath.h>
+#endif
 
 #pragma comment(lib, "d3d12.lib")
 #pragma comment(lib, "dxgi.lib")
@@ -336,6 +342,10 @@ RendererResult DX12RenderInterface::Initialize()
 #endif
 #endif
 
+    // CrashHandler must be initialized before we create the device
+    crashHandler = PoolNew<CrashHandler>(*g_renderPool);
+    crashHandler->Initialize();
+
     // create device
     res = D3D12CreateDevice(m_hardwareAdapter.Get(), D3D_FEATURE_LEVEL_12_0, IID_PPV_ARGS(&m_device));
     if (!SUCCEEDED(res))
@@ -343,6 +353,15 @@ RendererResult DX12RenderInterface::Initialize()
 
 #ifdef HYP_DEBUG_MODE
     m_device->SetName(L"D3D12 Device");
+#endif
+
+#if defined(HYP_AFTERMATH) && HYP_AFTERMATH
+    GFSDK_Aftermath_DX12_Initialize(
+        GFSDK_Aftermath_Version_API,
+        GFSDK_Aftermath_FeatureFlags_EnableResourceTracking |
+            GFSDK_Aftermath_FeatureFlags_GenerateShaderDebugInfo |
+            GFSDK_Aftermath_FeatureFlags_EnableShaderErrorReporting,
+        m_device.Get());
 #endif
 
     // Initialize render config features based on device capabilities
@@ -566,6 +585,11 @@ void DX12RenderInterface::PrepareFrame(DX12Frame* frame)
             {
                 HYP_LOG(RenderingBackend, Error, "Failed to set fence completion event! Error: {}", hr);
 
+                if (crashHandler)
+                {
+                    crashHandler->Dump();
+                }
+
                 const char* deviceRemovedReason = CheckDeviceRemovedReason(m_device.Get());
                 if (deviceRemovedReason)
                 {
@@ -577,6 +601,11 @@ void DX12RenderInterface::PrepareFrame(DX12Frame* frame)
             if (waitResult != WAIT_OBJECT_0)
             {
                 HYP_LOG(RenderingBackend, Error, "Failed to wait for fence! Result: {}", waitResult);
+
+                if (crashHandler)
+                {
+                    crashHandler->Dump();
+                }
 
                 const char* deviceRemovedReason = CheckDeviceRemovedReason(m_device.Get());
                 if (deviceRemovedReason)
@@ -825,6 +854,11 @@ void DX12RenderInterface::SubmitTransientCommandBuffer(DX12CommandBuffer& comman
     {
         HYP_LOG(RenderingBackend, Error, "Failed to signal fence after executing command lists! Error: {}", hr);
 
+        if (crashHandler)
+        {
+            crashHandler->Dump();
+        }
+
         const char* deviceRemovedReason = CheckDeviceRemovedReason(m_device.Get());
         if (deviceRemovedReason)
         {
@@ -841,6 +875,11 @@ void DX12RenderInterface::SubmitTransientCommandBuffer(DX12CommandBuffer& comman
         if (FAILED(hr))
         {
             HYP_LOG(RenderingBackend, Error, "Failed to signal transient sync fence! Error: {}", hr);
+
+            if (crashHandler)
+            {
+                crashHandler->Dump();
+            }
 
             const char* deviceRemovedReason = CheckDeviceRemovedReason(m_device.Get());
             if (deviceRemovedReason)

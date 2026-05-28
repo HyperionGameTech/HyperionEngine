@@ -1031,11 +1031,15 @@ void DX12DescriptorSet::Bind(DX12CommandBuffer* commandBuffer, const DX12RayTrac
     // Bind descriptor tables (view + sampler) for compute (ray tracing uses compute queues)
     if (m_viewDescriptorHandle.IsValid() && rootIndices.viewRootIndex != ~0u)
     {
+        AssertDebug(RI.descriptorHeapManager->CheckIsValidDescriptor(DX12DescriptorHeapType::CBV_SRV_UAV, m_viewDescriptorHandle));
+
         commandList->SetComputeRootDescriptorTable(rootIndices.viewRootIndex, m_viewDescriptorHandle.gpuHandle);
     }
 
     if (m_samplerDescriptorHandle.IsValid() && rootIndices.samplerRootIndex != ~0u)
     {
+        AssertDebug(RI.descriptorHeapManager->CheckIsValidDescriptor(DX12DescriptorHeapType::SAMPLER, m_samplerDescriptorHandle));
+
         commandList->SetComputeRootDescriptorTable(rootIndices.samplerRootIndex, m_samplerDescriptorHandle.gpuHandle);
     }
 

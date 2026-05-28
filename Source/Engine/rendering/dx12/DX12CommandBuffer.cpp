@@ -14,6 +14,7 @@
 #include <rendering/dx12/DX12Helpers.hpp>
 
 #include <rendering/Vertex.hpp>
+#include <rendering/CrashHandler.hpp>
 
 #include <DX12CommandBuffer.generated.inl>
 
@@ -307,6 +308,11 @@ void DX12CommandBuffer::Submit(
         HRESULT hr = commandQueue->Signal(fence, fenceValue);
         if (!SUCCEEDED(hr))
         {
+            if (RI.crashHandler)
+            {
+                RI.crashHandler->Dump();
+            }
+
             const char* errorMsg = CheckDeviceRemovedReason(RI.GetDevice());
             HYP_LOG(RenderingBackend, Fatal, "Device removed: {}", errorMsg);
         }

@@ -64,7 +64,11 @@ void CrashHandler::Initialize()
 #if defined(HYP_AFTERMATH) && HYP_AFTERMATH
     auto res = GFSDK_Aftermath_EnableGpuCrashDumps(
         GFSDK_Aftermath_Version_API,
+#if defined(HYP_VULKAN)
         GFSDK_Aftermath_GpuCrashDumpWatchedApiFlags_Vulkan,
+#elif defined(HYP_DX12)
+        GFSDK_Aftermath_GpuCrashDumpWatchedApiFlags_DX,
+#endif
         GFSDK_Aftermath_GpuCrashDumpFeatureFlags_DeferDebugInfoCallbacks,
         [](const void* dump, const uint32 size, void*)
         {
