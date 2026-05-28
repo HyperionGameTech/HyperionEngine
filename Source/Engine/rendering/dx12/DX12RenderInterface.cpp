@@ -763,6 +763,9 @@ void DX12RenderInterface::PresentToSwapchain(DX12Swapchain* swapchain)
 DX12CommandBuffer& DX12RenderInterface::GetTransientCommandBuffer()
 {
     // usable from main render thread or renderer worker threads.
+    AssertOnThread(g_renderThread | ThreadCategory::THREAD_CATEGORY_TASK);
+
+    // usable from main render thread or renderer worker threads.
     const uint32 frameCounter = GetFrameCounter();
     const uint32 frameIndex = frameCounter % NumFramesInFlight;
 

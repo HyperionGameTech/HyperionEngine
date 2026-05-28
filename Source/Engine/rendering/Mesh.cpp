@@ -329,7 +329,7 @@ void Mesh::UploadGpuData()
     readScope.Reset();
 
     auto writeScope = GetWriteScope();
-    
+
     isUploaded.Store(false);
 
     // Ensure vertex buffer is not empty (at least one vertex)
@@ -400,7 +400,7 @@ void Mesh::UploadGpuData()
 
     isUploaded.Store(true);
 
-    cr.Submit();
+    cr.Done();
 }
 
 void Mesh::ReleaseGpuData()
