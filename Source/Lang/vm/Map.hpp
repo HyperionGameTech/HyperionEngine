@@ -19,22 +19,48 @@ namespace Hyperion {
 struct ScriptMapKey
 {
     BoxedValue key;
-    uint64 hash;
 
     HYP_FORCE_INLINE bool operator==(const ScriptMapKey& other) const
     {
-        return hash == other.hash; // && key == other.key;
+        return GetHashCode() == other.GetHashCode(); // && key == other.key;
     }
 
     HYP_FORCE_INLINE bool operator!=(const ScriptMapKey& other) const
     {
-        return hash != other.hash; // || key != other.key;
+        return GetHashCode() != other.GetHashCode(); // || key != other.key;
     }
 
     HYP_FORCE_INLINE HashCode GetHashCode() const
     {
+        return GetHashCodeStatic(key);
+    }
+
+    HYP_FORCE_INLINE static HashCode GetHashCodeStatic(const BoxedValue& key)
+    {
         HashCode hc;
-        hc.value = hash;
+
+        key.value.Visit([&hc, &key](auto&& value)
+            {
+                using T = NormalizedType<decltype(value)>;
+
+                if constexpr (std::is_fundamental_v<T>)
+                {
+                    hc = HashCode::GetHashCode(value);
+                }
+                else if constexpr (HYP_HAS_METHOD(T, GetHashCode))
+                {
+                    hc = value.GetHashCode();
+                }
+                else if (key.Is<String>())
+                {
+                    hc = key.Get<String>().GetHashCode();
+                }
+                else
+                {
+                    hc = HashCode::GetHashCode(key.ToRef().GetPointer());
+                }
+            });
+
         return hc;
     }
 };
@@ -45,10 +71,10 @@ public:
     using Base = TMap;
 
     ScriptMap() = default;
-    
+
     ScriptMap(const ScriptMap& other) = default;
     ScriptMap& operator=(const ScriptMap& other) = default;
-    
+
     ScriptMap(ScriptMap&& other) noexcept = default;
     ScriptMap& operator=(ScriptMap&& other) noexcept = default;
 

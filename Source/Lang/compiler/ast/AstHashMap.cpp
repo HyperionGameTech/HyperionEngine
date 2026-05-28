@@ -240,7 +240,7 @@ UniquePtr<Buildable> AstHashMap::Build(AstVisitor* visitor, Module* mod)
     // get active register
     uint8 rp = visitor->GetCompilationUnit()->GetInstructionStream().GetCurrentRegister();
 
-    { // keep type obj in memory so we can do Map<K, V>.from(...), so push it to the stack
+    { // keep ClassRef in memory so we can do Map<K, V>.FromArray(...), so push it to the stack
         auto instrPush = BytecodeUtil::Make<RawOperation<>>();
         instrPush->opcode = PUSH;
         instrPush->Accept<uint8>(rp);

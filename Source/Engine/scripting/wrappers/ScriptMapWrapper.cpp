@@ -10,10 +10,44 @@
 
 namespace Hyperion {
 
+static const BoxedValue s_emptyBoxedValue = BoxedValue();
+
 HYP_API const Class* g_clsScriptMap = nullptr;
 
 // clang-format off
 HYP_BEGIN_STRUCT(ScriptMap, -1, 0, {})
+    Method(NAME("operator[]"), +[](ScriptMap& map, const BoxedValue& key) -> const BoxedValue&
+        {
+            const HashCode hashCode = ScriptMapKey::GetHashCodeStatic(key);
+
+            auto it = map.FindByHashCode(hashCode);
+
+            if (it == map.End())
+            {
+                return s_emptyBoxedValue;
+            }
+
+            return it->second;
+        }),
+
+    Method(NAME("operator[]="), +[](ScriptMap& map, const BoxedValue& key, const BoxedValue& value) -> const BoxedValue&
+        {
+            const HashCode hashCode = ScriptMapKey::GetHashCodeStatic(key);
+
+            auto it = map.FindByHashCode(hashCode);
+
+            if (it == map.End())
+            {
+                return (map[ScriptMapKey { key }] = value);
+            }
+            else
+            {
+                it->second = value;
+
+                return it->second;
+            }
+        }),
+
     Method(NAME("FromArray"), +[](const BoxedValue& arrayBoxed) -> ScriptMap
         {
             ScriptMap map;
@@ -22,16 +56,26 @@ HYP_BEGIN_STRUCT(ScriptMap, -1, 0, {})
             {
                 GenericArrayWrapper& arrayWrapper = *arrayWrapperOpt;
 
-                const size_t size = arrayWrapper.Size();
-                map.Reserve(size);
+                const size_t arraySize = arrayWrapper.Size();
+                map.Reserve(arraySize);
 
-                for (size_t i = 0; i < size; i++)
+                for (size_t i = 0; i < arraySize; i++)
                 {
-                    GenericArrayWrapper& pair = arrayWrapper.GetElementAt(i).Get<GenericArrayWrapper>();
+                    BoxedValue& elem = *Deref(arrayWrapper.GetElementAt(i).GetUnchecked<BoxedValue>());
+
+                    Optional<GenericArrayWrapper&> pairOpt = elem.TryGet<GenericArrayWrapper>();
+
+                    AssertDebug(pairOpt.HasValue(), "Expected GenericArrayWrapper for element type. Got: {}", elem.GetTypeInfo()->name);
+
+                    if (!pairOpt.HasValue())
+                    {
+                        continue;
+                    }
+
+                    GenericArrayWrapper& pair = pairOpt.Get();
 
                     ScriptMapKey key;
                     pair.GetElementAt(0, key.key);
-                    key.hash = key.key.value.GetHashCode().Value();
 
                     BoxedValue value;
                     pair.GetElementAt(1, value);

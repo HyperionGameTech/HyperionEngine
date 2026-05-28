@@ -1653,10 +1653,6 @@ public:
                     }
                 }
             };
-            functions.getHashCode = [](void* ctx, const void* objectPtr) -> HashCode
-            {
-
-            };
 
             newClass = new DynamicStructInstance(
                 TypeId(typeIdValue),

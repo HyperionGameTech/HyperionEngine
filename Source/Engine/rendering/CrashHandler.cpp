@@ -29,6 +29,10 @@
 
 namespace Hyperion {
 
+namespace CoreApi {
+extern FilePath GetExecutablePath();
+} // namespace CoreApi
+
 HYP_DECLARE_LOG_CHANNEL(Rendering);
 
 thread_local Array<FilePath>* g_savedDumpFiles = nullptr;
@@ -154,24 +158,27 @@ void CrashHandler::Initialize()
                 }
             }
 
-            std::vector<char> bytes;
-            bytes.resize(size);
-
-            Memory::Copy(bytes.data(), dump, size);
-
-            FileByteWriter writer("./dump.nv-gpudmp");
-            writer.Write(bytes.data(), bytes.size());
-            writer.Close();
-
-            if (!g_savedDumpFiles)
+            if (size > 0)
             {
-                g_savedDumpFiles = new Array<FilePath>();
+                std::vector<char> bytes;
+                bytes.resize(size);
 
-                Mutex::Guard guard(g_savedDumpFilesPerThreadMutex);
-                g_savedDumpFilesPerThread.PushBack(g_savedDumpFiles);
+                Memory::Copy(bytes.data(), dump, size);
+
+                FileByteWriter writer(CoreApi::GetExecutablePath() / "dump.nv-gpudmp");
+                writer.Write(bytes.data(), bytes.size());
+                writer.Close();
+
+                if (!g_savedDumpFiles)
+                {
+                    g_savedDumpFiles = new Array<FilePath>();
+
+                    Mutex::Guard guard(g_savedDumpFilesPerThreadMutex);
+                    g_savedDumpFilesPerThread.PushBack(g_savedDumpFiles);
+                }
+
+                g_savedDumpFiles->PushBack(writer.GetFilePath());
             }
-
-            g_savedDumpFiles->PushBack(writer.GetFilePath());
         },
         [](const void* info, const uint32 size, void*)
         {
@@ -194,7 +201,7 @@ void CrashHandler::Initialize()
 
             Memory::Copy(bytes.data(), info, size);
 
-            FileByteWriter writer(FilePath::Current() / HYP_FORMAT("shader-{}.nvdbg", str.c_str()));
+            FileByteWriter writer(CoreApi::GetExecutablePath() / HYP_FORMAT("shader-{}.nvdbg", str.c_str()));
             writer.Write(bytes.data(), bytes.size());
             writer.Close();
 
