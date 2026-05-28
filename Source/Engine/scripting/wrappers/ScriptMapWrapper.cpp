@@ -18,9 +18,7 @@ HYP_API const Class* g_clsScriptMap = nullptr;
 HYP_BEGIN_STRUCT(ScriptMap, -1, 0, {})
     Method(NAME("operator[]"), +[](ScriptMap& map, const BoxedValue& key) -> const BoxedValue&
         {
-            const HashCode hashCode = ScriptMapKey::GetHashCodeStatic(key);
-
-            auto it = map.FindByHashCode(hashCode);
+            auto it = map.Find(ScriptMapKey { key });
 
             if (it == map.End())
             {
@@ -32,9 +30,7 @@ HYP_BEGIN_STRUCT(ScriptMap, -1, 0, {})
 
     Method(NAME("operator[]="), +[](ScriptMap& map, const BoxedValue& key, const BoxedValue& value) -> const BoxedValue&
         {
-            const HashCode hashCode = ScriptMapKey::GetHashCodeStatic(key);
-
-            auto it = map.FindByHashCode(hashCode);
+            auto it = map.Find(ScriptMapKey { key });
 
             if (it == map.End())
             {

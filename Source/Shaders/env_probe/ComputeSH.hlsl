@@ -29,7 +29,7 @@ DECLARE_UAV(ComputeSH, OutputSHTilesBuffer) RWStructuredBuffer<SHTile> sh_tiles_
 DECLARE_UAV(ComputeSH, OutSHBuffer) RWStructuredBuffer<float4> OutSHBuffer;
 
 #if defined(MODE_FINALIZE) || defined(MODE_REDUCE) || defined(MODE_CLEAR) || (defined(MODE_BUILD_COEFFICIENTS))
-DECLARE_BUFFER(ComputeSH, SHUniforms) cbuffer SHUniforms
+DECLARE_BUFFER_DYNAMIC(ComputeSH, CBuffer) cbuffer CBuffer
 {
     uint4 level_dimensions;
 };

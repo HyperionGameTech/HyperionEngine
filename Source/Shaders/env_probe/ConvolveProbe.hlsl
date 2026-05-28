@@ -27,7 +27,7 @@ DECLARE_SAMPLER(ConvolveProbe, SamplerNearest) SamplerState sampler_nearest;
 
 DECLARE_UAV(ConvolveProbe, OutImage) RWTexture2DArray<float4> out_image;
 
-DECLARE_BUFFER(ConvolveProbe, UniformBuffer) cbuffer UniformBuffer
+DECLARE_BUFFER_DYNAMIC(ConvolveProbe, CBuffer) cbuffer CBuffer
 {
     uint2 out_image_dimensions;
     uint2 in_image_dimensions;

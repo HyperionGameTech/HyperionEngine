@@ -22,12 +22,12 @@ struct ScriptMapKey
 
     HYP_FORCE_INLINE bool operator==(const ScriptMapKey& other) const
     {
-        return GetHashCode() == other.GetHashCode(); // && key == other.key;
+        return GetHashCode() == other.GetHashCode() && key.value == other.key.value;
     }
 
     HYP_FORCE_INLINE bool operator!=(const ScriptMapKey& other) const
     {
-        return GetHashCode() != other.GetHashCode(); // || key != other.key;
+        return GetHashCode() != other.GetHashCode() || key.value != other.key.value;
     }
 
     HYP_FORCE_INLINE HashCode GetHashCode() const
