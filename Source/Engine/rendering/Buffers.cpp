@@ -38,7 +38,7 @@ struct StagingBufferPoolImpl
 
     struct CachedStagingBuffer
     {
-        uint32 size = 0;
+        size_t size = 0;
         uint32 lastUsedFrame = uint32(-1);
         GpuBufferRef buffer;
 
@@ -100,7 +100,7 @@ struct StagingBufferPoolImpl
         }
     }
 
-    GpuBuffer* GetOrCreateBuffer(uint32 bufferSize)
+    GpuBuffer* GetOrCreateBuffer(size_t bufferSize)
     {
         TUniqueLock lock(mutex);
 
@@ -167,7 +167,7 @@ void StagingBufferPool::Cleanup()
     m_impl->Cleanup();
 }
 
-GpuBuffer* StagingBufferPool::AcquireStagingBuffer(uint32 bufferSize)
+GpuBuffer* StagingBufferPool::AcquireStagingBuffer(size_t bufferSize)
 {
     return m_impl->GetOrCreateBuffer(bufferSize);
 }

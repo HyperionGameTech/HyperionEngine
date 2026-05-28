@@ -100,6 +100,7 @@ void ParticlesPass::EnsureStaging()
     {
         m_staging.quadMesh = MeshBuilder::Quad();
         m_staging.quadMesh->SetFlags(MeshFlags::ViewIndependent);
+        m_staging.quadMesh->SetIsTransient(true);
         m_staging.quadMesh->UploadGpuData();
     }
 

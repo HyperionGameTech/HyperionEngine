@@ -35,7 +35,7 @@ public:
      *  Smaller buffers can tolerate more waste percentage-wise to improve reuse.
      *  Larger buffers use stricter limits to prevent excessive memory waste.
      */
-    HYP_FORCE_INLINE static float GetMaxWasteRatio(uint32 bufferSize)
+    HYP_FORCE_INLINE static float GetMaxWasteRatio(size_t bufferSize)
     {
         // For very small buffers (< 1KB), allow up to 4x size (e.g., 256B buffer for 64B request)
         // For medium buffers (1KB - 64KB), allow up to 2x size
@@ -67,11 +67,11 @@ public:
      */
     static typename Array<Entry, RenderAllocator>::Iterator FindBestMatch(
         Array<Entry, RenderAllocator>& cachedBuffers,
-        uint32 bufferSize,
+        size_t bufferSize,
         Entry& outBestMatchEntry)
     {
         // Round up to minimum alignment first
-        const uint32 requestedSize = bufferSize;
+        const size_t requestedSize = bufferSize;
         bufferSize = MathUtil::NextMultiple(bufferSize, 256);
 
         auto lowerBoundIt = cachedBuffers.LowerBound(Entry { bufferSize });

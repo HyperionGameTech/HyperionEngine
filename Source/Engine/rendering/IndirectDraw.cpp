@@ -42,10 +42,7 @@ struct alignas(16) ComputeVisibilityConstants
     uint32 entityInstanceBatchStride;
 };
 
-static void ZeroizeBuffer(
-    CommandRecorder& cr,
-    GpuBuffer* stagingBuffer,
-    GpuBuffer* dstBuffer)
+static void ZeroizeBuffer(CommandRecorder& cr, GpuBuffer* stagingBuffer, GpuBuffer* dstBuffer)
 {
     AssertDebug(dstBuffer != nullptr);
 
@@ -333,17 +330,18 @@ void IndirectDrawState::UpdateBufferData(CommandRecorder& cr, bool* outWasResize
     // @TODO Rework to use StructuredBuffer instead of staging buffers manually
     if (needsStaging)
     {
-        GpuBuffer* stagingBuffer = m_stagingBuffers[frameIndex];
+        const size_t drawCommandsBufferSize = m_drawCommandsBuffer.ByteSize();
 
+        GpuBuffer* stagingBuffer = RI.stagingBufferPool->AcquireStagingBuffer(drawCommandsBufferSize);
         Assert(stagingBuffer != nullptr);
-        Assert(stagingBuffer->Size() >= m_drawCommandsBuffer.ByteSize());
 
-        stagingBuffer->Copy(m_drawCommandsBuffer.ByteSize(), m_drawCommandsBuffer.Data());
+        stagingBuffer->Copy(drawCommandsBufferSize, m_drawCommandsBuffer.Data());
+        stagingBuffer->Flush(0, drawCommandsBufferSize);
 
         cr << InsertBarrier(stagingBuffer, RS_COPY_SRC);
         cr << InsertBarrier(indirectBuffer, RS_COPY_DST);
 
-        cr << CopyBuffer(stagingBuffer, indirectBuffer, stagingBuffer->Size());
+        cr << CopyBuffer(stagingBuffer, indirectBuffer, drawCommandsBufferSize);
 
         cr << InsertBarrier(indirectBuffer, RS_INDIRECT_ARG);
     }

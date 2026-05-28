@@ -107,7 +107,7 @@ public:
 
     void Cleanup();
 
-    GpuBuffer* AcquireStagingBuffer(uint32 bufferSize);
+    GpuBuffer* AcquireStagingBuffer(size_t bufferSize);
 
 private:
     Pimpl<struct StagingBufferPoolImpl> m_impl;
