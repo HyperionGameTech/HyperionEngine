@@ -32,11 +32,7 @@ namespace Hyperion {
 
 extern VulkanRenderInterface RI;
 
-#if HYP_ANDROID || !HYP_DEBUG_MODE
-static constexpr bool VulkanSwapchainUseFIFO = true;
-#else
-CVar<bool> VulkanSwapchainUseFIFO("Rendering.Vulkan.FIFO", true);
-#endif
+extern CVar<bool> g_renderingVSync;
 
 static constexpr bool UseSRGBFormat = true;
 static constexpr bool UseHDRFormat = false;
@@ -194,7 +190,7 @@ RendererResult VulkanSwapchain::Create()
 
     CheckResultOrReturn(ChooseSurfaceFormat());
 
-    m_presentMode = VulkanSwapchainUseFIFO ? VK_PRESENT_MODE_FIFO_KHR : VK_PRESENT_MODE_IMMEDIATE_KHR;
+    m_presentMode = g_renderingVSync.Get() ? VK_PRESENT_MODE_FIFO_KHR : VK_PRESENT_MODE_IMMEDIATE_KHR;
 
     HYP_LOG(RenderingBackend, Verbose, "Vulkan swapchain m_extent = {}", m_extent);
 

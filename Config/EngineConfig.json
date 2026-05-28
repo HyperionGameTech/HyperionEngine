@@ -35,10 +35,10 @@
       "Normals": false,
       "AO": false
     },
+    "VSync": true,
     "Vulkan": {
       "DebugLayers": true,
-      "TimelineSemaphores": true,
-      "FIFO": true
+      "TimelineSemaphores": true
     }
   },
   "Editor": {

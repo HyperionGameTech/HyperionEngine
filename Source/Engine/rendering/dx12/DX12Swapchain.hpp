@@ -77,7 +77,6 @@ private:
     uint32 m_currentBackBufferIndex;
 
     bool m_allowTearing;
-    bool m_vsync;
 
     // GPU flush resources for safe swapchain recreation
     ComPtr<ID3D12CommandAllocator> m_flushAllocator;

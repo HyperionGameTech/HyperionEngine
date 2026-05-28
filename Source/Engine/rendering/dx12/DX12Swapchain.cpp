@@ -16,14 +16,17 @@
 
 #include <rendering/CrashHandler.hpp>
 
+#include <engine/CVarManager.hpp>
+
 #include <DX12Swapchain.generated.inl>
 
 namespace Hyperion {
 
+extern CVar<bool> g_renderingVSync;
+
 extern DX12RenderInterface RI;
 
 static constexpr bool AllowTearingDefault = true;
-static constexpr bool VSyncDefault = false;
 
 #pragma region DX12Swapchain
 
@@ -31,8 +34,7 @@ DX12Swapchain::DX12Swapchain(HWND hwnd, const Vec2u& extent)
     : SwapchainBase(extent),
       m_hwnd(hwnd),
       m_currentBackBufferIndex(0),
-      m_allowTearing(AllowTearingDefault),
-      m_vsync(VSyncDefault)
+      m_allowTearing(AllowTearingDefault)
 {
 }
 
@@ -327,10 +329,11 @@ void DX12Swapchain::PresentFrame(DX12Frame* frame)
         return;
     }
 
-    UINT syncInterval = m_vsync ? 1 : 0;
+    const bool vsync = g_renderingVSync.Get();
+    UINT syncInterval = vsync ? 1 : 0;
     UINT flags = 0;
 
-    if (m_allowTearing && !m_vsync)
+    if (m_allowTearing && !vsync)
     {
         flags = DXGI_PRESENT_ALLOW_TEARING;
     }

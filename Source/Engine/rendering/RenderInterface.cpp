@@ -135,6 +135,8 @@ RENDERING_API Pool* g_rhiPool;
 RENDERING_API Arena* g_rhiArena;
 /// ========================
 
+CVar<bool> g_renderingVSync("Rendering.VSync", true);
+
 namespace Framework {
 
 static volatile int64 s_frameCounter = 0; // atomic
