@@ -14,10 +14,10 @@ set(CMAKE_CXX_STANDARD 20 CACHE STRING "C++ standard to be used")
 
 add_definitions(-DHYP_BUILD_LIBRARY=1)
 
+include_directories(SYSTEM ${THIRD_PARTY_INCLUDE_DIR})
 include_directories(
     ${CMAKE_SOURCE_DIR}/
     ${CMAKE_SOURCE_DIR}/Generated
-    ${THIRD_PARTY_INCLUDE_DIR}
     ${CMAKE_SOURCE_DIR}/Engine
     ${CMAKE_SOURCE_DIR}/Engine/baking
 )
@@ -52,7 +52,7 @@ if(EXISTS "${SUBMODULES_DIR}/xatlas/source/xatlas/xatlas.cpp" AND EXISTS "${SUBM
     set(CURRENT_SOURCES ${CURRENT_SOURCES} ${XATLAS_SOURCES})
     set(CURRENT_HEADERS ${CURRENT_HEADERS} ${XATLAS_HEADERS})
 
-    include_directories("${SUBMODULES_DIR}/xatlas/source/xatlas")
+    include_directories(SYSTEM "${SUBMODULES_DIR}/xatlas/source/xatlas")
 endif()
 
 add_library(${BUILD_NAME} STATIC ${CURRENT_SOURCES} ${CURRENT_HEADERS})

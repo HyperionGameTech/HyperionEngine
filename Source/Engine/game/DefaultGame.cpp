@@ -127,7 +127,7 @@ void DefaultGame::OnLaunch_Impl()
             };
 
             Handle<View> view = MakeHandle<View>(viewDesc);
-
+            view->SetName(NAME("DefaultGame_View"));
             GetWorld()->AddView(view);
 
             auto pointLight = MakeHandle<PointLight>(Vec3f(0.0f, 7.0f, -2.0f), Color::Red(), 50.0f, 30.0f);

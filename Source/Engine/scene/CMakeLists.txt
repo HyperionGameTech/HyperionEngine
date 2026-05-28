@@ -19,7 +19,7 @@ if(Bullet_FOUND)
 
     add_definitions(-DHYP_BULLET=1)
 
-    include_directories(${BULLET_INCLUDE_DIRS})
+    include_directories(SYSTEM ${BULLET_INCLUDE_DIRS})
     
     set(COMMON_LIBRARIES
         ${COMMON_LIBRARIES}
@@ -29,9 +29,9 @@ else()
     message(WARNING "Bullet not found, physics will be disabled!")
 endif()
 
+include_directories(SYSTEM ${THIRD_PARTY_INCLUDE_DIR})
 include_directories(
     ${CMAKE_SOURCE_DIR}
-    ${THIRD_PARTY_INCLUDE_DIR}
     ${CMAKE_SOURCE_DIR}/Generated
     ${CMAKE_SOURCE_DIR}/Engine
     ${CMAKE_SOURCE_DIR}/Engine/scene

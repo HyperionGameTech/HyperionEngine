@@ -22,11 +22,13 @@ source_group(TREE ${CMAKE_CURRENT_SOURCE_DIR} PREFIX "${BUILD_NAME} Code" FILES 
 
 add_definitions(-DHYP_BUILD_LIBRARY=1)
 
-include_directories(
+include_directories(SYSTEM
     ${SDL2_INCLUDE_DIRS}
     ${Vulkan_INCLUDE_DIRS}
-    ${CMAKE_SOURCE_DIR}
     ${THIRD_PARTY_INCLUDE_DIR}
+)
+include_directories(
+    ${CMAKE_SOURCE_DIR}
     ${CMAKE_SOURCE_DIR}/Engine
     ${CMAKE_SOURCE_DIR}/Engine/dotnet
 )

@@ -15,10 +15,12 @@ set(CMAKE_CXX_STANDARD 20 CACHE STRING "C++ standard to be used")
 add_definitions(-DHYP_BUILD_LIBRARY=1)
 add_definitions(-DHYP_EDITOR=1)
 
-include_directories(
+include_directories(SYSTEM
     ${SDL2_INCLUDE_DIRS}
-    ${CMAKE_SOURCE_DIR}
     ${THIRD_PARTY_INCLUDE_DIR}
+)
+include_directories(
+    ${CMAKE_SOURCE_DIR}
     ${CMAKE_SOURCE_DIR}/Generated
     ${CMAKE_SOURCE_DIR}/Engine
     ${CMAKE_SOURCE_DIR}/Engine/editor

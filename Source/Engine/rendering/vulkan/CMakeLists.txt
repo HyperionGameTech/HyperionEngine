@@ -21,10 +21,12 @@ if(HYP_AFTERMATH)
   add_definitions(-DHYP_AFTERMATH=1)
 endif()
 
-include_directories(
+include_directories(SYSTEM
     ${Vulkan_INCLUDE_DIRS}
-    ${CMAKE_SOURCE_DIR}
     ${THIRD_PARTY_INCLUDE_DIR}
+)
+include_directories(
+    ${CMAKE_SOURCE_DIR}
     ${CMAKE_SOURCE_DIR}/Generated
     ${CMAKE_SOURCE_DIR}/Engine
     ${CMAKE_SOURCE_DIR}/Engine/rendering

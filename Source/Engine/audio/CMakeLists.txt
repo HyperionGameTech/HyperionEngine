@@ -25,13 +25,13 @@ if(${OpenAL_FOUND})
 
     set(hyperion-audio_LIBRARIES ${OPENAL_LIBRARY})
 
-    include_directories(${OPENAL_INCLUDE_DIR})
+    include_directories(SYSTEM ${OPENAL_INCLUDE_DIR})
 endif()
 
+include_directories(SYSTEM ${THIRD_PARTY_INCLUDE_DIR})
 include_directories(
     ${CMAKE_SOURCE_DIR}
     ${CMAKE_SOURCE_DIR}/Generated
-    ${THIRD_PARTY_INCLUDE_DIR}
     ${CMAKE_SOURCE_DIR}/Engine
     ${CMAKE_SOURCE_DIR}/Engine/audio
 )

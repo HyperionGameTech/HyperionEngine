@@ -104,16 +104,16 @@ if(HYP_AFTERMATH)
   add_definitions(-DHYP_AFTERMATH=1)
 endif()
 
+include_directories(SYSTEM ${THIRD_PARTY_INCLUDE_DIR})
 include_directories(
     ${CMAKE_SOURCE_DIR}
-    ${THIRD_PARTY_INCLUDE_DIR}
     ${CMAKE_SOURCE_DIR}/Generated
     ${CMAKE_SOURCE_DIR}/Engine
     ${CMAKE_SOURCE_DIR}/Engine/rendering
 )
 
 if(HYP_VULKAN)
-  include_directories(${Vulkan_INCLUDE_DIRS})
+  include_directories(SYSTEM ${Vulkan_INCLUDE_DIRS})
   add_definitions(-DHYP_VULKAN=1)
 elseif(HYP_DX12)
   add_definitions(-DHYP_DX12=1)
@@ -137,7 +137,7 @@ if(NOT "${${BUILD_NAME}_PCH}" STREQUAL "")
   target_precompile_headers(${BUILD_NAME} PRIVATE "${${BUILD_NAME}_PCH}")
 endif()
 
-include_directories(BEFORE ${SUBMODULES_DIR}/glslang)
+include_directories(BEFORE SYSTEM ${SUBMODULES_DIR}/glslang)
 
 if(TARGET glslang_build)
   add_dependencies(${BUILD_NAME} glslang_build)

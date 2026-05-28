@@ -16,9 +16,9 @@ add_definitions(-DHYP_BUILD_LIBRARY=1)
 
 set(UI_LIBRARIES "")
 
+include_directories(SYSTEM ${THIRD_PARTY_INCLUDE_DIR})
 include_directories(
     ${CMAKE_SOURCE_DIR}
-    ${THIRD_PARTY_INCLUDE_DIR}
     ${CMAKE_SOURCE_DIR}/Generated
     ${CMAKE_SOURCE_DIR}/Engine
     ${CMAKE_SOURCE_DIR}/Engine/ui
@@ -32,7 +32,7 @@ if(NOT IOS)
 
         add_definitions(-DHYP_FREETYPE=1)
 
-        include_directories(${FREETYPE_INCLUDE_DIRS})
+        include_directories(SYSTEM ${FREETYPE_INCLUDE_DIRS})
         set(UI_LIBRARIES
             ${UI_LIBRARIES}
             ${FREETYPE_LIBRARIES}

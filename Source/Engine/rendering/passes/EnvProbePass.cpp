@@ -360,10 +360,6 @@ void ComputeEnvProbeSphericalHarmonics(
         useAsyncCompute = false;
     }
 
-    // @TODO fix thread safety
-    Frame* frame = RI.GetCurrentFrame();
-    Assert(frame != nullptr);
-
     AsyncCompute* asyncCompute = useAsyncCompute ? RI.CreateAsyncCompute() : nullptr;
 
     CommandRecorder& cr = useAsyncCompute ? asyncCompute->cr : RI.commandRecorderAllocator.GetCommandRecorder();

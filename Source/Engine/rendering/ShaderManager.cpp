@@ -452,13 +452,13 @@ public:
             ShaderCacheId cacheId = GenerateShaderCacheId();
 
             entry = GetShaderMapEntry(cacheId);
+
+            Assert(!entry->IsLoaded());
+            
             entry->cacheId = cacheId;
             entry->shader = GetShader(entry->cacheId);
 
-            if (doLoadShader)
-            {
-                entry->threadSignal.Reset();
-            }
+            entry->threadSignal.Signal();
         }
 
         outCacheId = entry->cacheId;

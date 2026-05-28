@@ -180,6 +180,9 @@ if(CMAKE_BUILD_TYPE STREQUAL "Debug")
   set(HYP_DEBUG_MODE 1)
 endif()
 
+# Uncomment to enable release final build optimizations
+# set(HYPERION_BUILD_RELEASE_FINAL 1)
+
 # set HYPERION_ENGINE to 1 (used to differentiate between engine and build tool or other executables using core lib)
 add_definitions(-DHYPERION_ENGINE=1)
 set(HYPERION_ENGINE 1)
@@ -222,11 +225,12 @@ if(HYP_MSVC)
   if(HYP_DEBUG_MODE)
     set(CMAKE_CXX_FLAGS "/Zc:preprocessor /Zc:__cplusplus /O2 /Oi /MD /Z7 /MP /constexpr:depth1024 /bigobj /arch:AVX2 /fp:fast")
 
-    set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS_RELEASE} /DEBUG /NATVIS:${CMAKE_SOURCE_DIR}/Engine/Hyperion.natvis")
     set(CMAKE_SHARED_LINKER_FLAGS "${CMAKE_SHARED_LINKER_FLAGS_RELEASE} /DEBUG /INCREMENTAL /OPT:REF /OPT:ICF")
   else()
     set(CMAKE_CXX_FLAGS "/Zc:preprocessor /Zc:__cplusplus /O2 /Oi /MD /Zi /GL /GF /Zc:inline /constexpr:depth1024 /bigobj /MP4 /arch:AVX2 /fp:fast")
   endif()
+
+  set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS_RELEASE} /DEBUG /NATVIS:${CMAKE_SOURCE_DIR}/Engine/Hyperion.natvis")
 
   # if(HYP_DEBUG_MODE)
   # else()
@@ -242,13 +246,13 @@ else()
     message(STATUS "Building with Clang on Windows, adding NOMINMAX definition to avoid min/max macro conflicts")
   endif()
 
-  if(HYP_DEBUG_MODE)
-    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -O2 -g -Werror=return-type -Werror=address") #-Werror=non-virtual-dtor
+  if(HYPERION_BUILD_RELEASE_FINAL)
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -O2 -flto -Werror")
+  elseif(NOT HYP_DEBUG_MODE)
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -O2 -g -Werror=return-type -Werror=address -Werror=non-virtual-dtor -Werror=unused-result")
   else()
-    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -O2")
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -O1 -g -fno-omit-frame-pointer -Werror=return-type -Werror=address -Werror=non-virtual-dtor -Werror=unused-result")
   endif()
-
-  # set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -g")
 
   set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++20")
 
@@ -257,7 +261,6 @@ else()
 
   # for full template backtrace
   set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -ftemplate-backtrace-limit=0")
-  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fno-omit-frame-pointer")
 
   # # address sanitizer and other debugging utilities
   # set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fsanitize=address -fsanitize=undefined")
@@ -306,7 +309,7 @@ if(Bullet_FOUND)
 
   add_definitions(-DHYP_BULLET=1)
 
-  include_directories(${BULLET_INCLUDE_DIRS})
+  include_directories(SYSTEM ${BULLET_INCLUDE_DIRS})
 
   set(COMMON_LIBRARIES
         ${COMMON_LIBRARIES}
@@ -420,7 +423,7 @@ if (RENDERING_BACKEND STREQUAL "Vulkan")
     set(RENDERER_LIBRARIES ${RENDERER_LIBRARIES} vulkan)
     find_package(Vulkan QUIET)
     if(Vulkan_FOUND)
-      include_directories(BEFORE ${Vulkan_INCLUDE_DIRS})
+      include_directories(BEFORE SYSTEM ${Vulkan_INCLUDE_DIRS})
     endif()
     message(STATUS "Android: using platform-provided Vulkan (libvulkan.so)")
   else()
@@ -428,7 +431,7 @@ if (RENDERING_BACKEND STREQUAL "Vulkan")
     add_definitions(-DHYP_VULKAN=1)
     set(HYP_VULKAN 1)
     message(STATUS "Found Vulkan at: ${Vulkan_INCLUDE_DIRS} ${Vulkan_LIBRARIES}")
-    include_directories(BEFORE ${Vulkan_INCLUDE_DIRS})
+    include_directories(BEFORE SYSTEM ${Vulkan_INCLUDE_DIRS})
   endif()
 elseif(RENDERING_BACKEND STREQUAL "DX12")
   add_definitions(-DHYP_DX12=1)
@@ -440,7 +443,7 @@ elseif(RENDERING_BACKEND STREQUAL "DX12")
   if(EXISTS "${THIRD_PARTY_INCLUDE_DIR}/D3D12MemoryAllocator/CMakeLists.txt")
     add_subdirectory(${THIRD_PARTY_INCLUDE_DIR}/D3D12MemoryAllocator ${CMAKE_BINARY_DIR}/ThirdParty/D3D12MemoryAllocator_build)
 
-    include_directories(BEFORE ${THIRD_PARTY_INCLUDE_DIR}/D3D12MemoryAllocator/include)
+    include_directories(BEFORE SYSTEM ${THIRD_PARTY_INCLUDE_DIR}/D3D12MemoryAllocator/include)
 
     set(RENDERER_LIBRARIES
             ${RENDERER_LIBRARIES}
@@ -597,14 +600,14 @@ if (RENDERING_BACKEND STREQUAL "Vulkan")
   # endif()
 elseif(RENDERING_BACKEND STREQUAL "DX12")
   # add DirectX-Headers include dir if DX12 rendering backend
-  include_directories(BEFORE ${THIRD_PARTY_INCLUDE_DIR}/DirectX-Headers)
+  include_directories(BEFORE SYSTEM ${THIRD_PARTY_INCLUDE_DIR}/DirectX-Headers)
 endif()
 
 # setup DXC if found
 if(EXISTS "${THIRD_PARTY_INCLUDE_DIR}/dxc/dxcapi.h")
   message(STATUS "DXC headers found, setting up DXC")
 
-  include_directories(BEFORE ${THIRD_PARTY_INCLUDE_DIR}/dxc)
+  include_directories(BEFORE SYSTEM ${THIRD_PARTY_INCLUDE_DIR}/dxc)
 
   if(WIN32)
     set(DXC_LIB_PATH "${CMAKE_THIRD_PARTY_LIBRARY_DIRECTORY}/dxcompiler.lib")
@@ -895,7 +898,7 @@ if (${NATIVE} AND NOT ${HYP_PLATFORM_NAME} STREQUAL "iOS" AND NOT HYP_ANDROID)
                 )
       endif()
 
-      include_directories(${SUBMODULES_DIR}/libdatachannel/include)
+      include_directories(SYSTEM ${SUBMODULES_DIR}/libdatachannel/include)
 
       set(COMMON_LIBRARIES
                 ${COMMON_LIBRARIES}
@@ -905,7 +908,7 @@ if (${NATIVE} AND NOT ${HYP_PLATFORM_NAME} STREQUAL "iOS" AND NOT HYP_ANDROID)
       # For other generators (Makefiles, Ninja, etc.), use add_subdirectory
       add_subdirectory(${SUBMODULES_DIR}/libdatachannel EXCLUDE_FROM_ALL)
 
-      include_directories(${SUBMODULES_DIR}/libdatachannel/include)
+      include_directories(SYSTEM ${SUBMODULES_DIR}/libdatachannel/include)
 
       set(COMMON_LIBRARIES
                 ${COMMON_LIBRARIES}
@@ -959,8 +962,8 @@ endif()
 # set to empty list
 set(COMMON_INCLUDE_DIRS "")
 
+include_directories(SYSTEM ${THIRD_PARTY_INCLUDE_DIR})
 include_directories(
-    ${THIRD_PARTY_INCLUDE_DIR}
     ${HYP_GENERATED_DIR}
     ${COMMON_INCLUDE_DIRS}
     ${CMAKE_SOURCE_DIR}
@@ -968,7 +971,7 @@ include_directories(
 )
 
 if(NOT HYP_WINDOWS AND NOT HYP_ANDROID)
-  include_directories(${SDL2_INCLUDE_DIRS})
+  include_directories(SYSTEM ${SDL2_INCLUDE_DIRS})
 endif()
 
 # set HYP_BUILD_LIBRARY just for this library (so DLL exports are correct)
