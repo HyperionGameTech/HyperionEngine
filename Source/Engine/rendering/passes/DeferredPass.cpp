@@ -2998,7 +2998,9 @@ void DeferredPass::RenderFrameForView(Frame* frame, const RenderSetup& rs)
 
         frame->cr << SetCurrentFramebuffer(passData.deferredShadingFramebuffer);
 
-        if (cvEnableLightmapVolumes.Get())
+        const bool isPathTracer = cvPathTracing.Get();
+
+        if (cvEnableLightmapVolumes.Get() && !isPathTracer)
         {
             // apply baked lighting over lightmapped objects
             for (LightmapVolume* lightmapVolume : rpl.GetLightmapVolumes())
@@ -3013,7 +3015,11 @@ void DeferredPass::RenderFrameForView(Frame* frame, const RenderSetup& rs)
         }
 
         passData.ambientLightingPass->RenderToFramebuffer(frame, rs, passData.deferredShadingFramebuffer);
-        passData.punctualLightingPass->RenderToFramebuffer(frame, rs, passData.deferredShadingFramebuffer);
+
+        if (!isPathTracer)
+        {
+            passData.punctualLightingPass->RenderToFramebuffer(frame, rs, passData.deferredShadingFramebuffer);
+        }
 
         frame->cr << SetCurrentFramebuffer(nullptr);
     }

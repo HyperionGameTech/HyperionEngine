@@ -241,6 +241,8 @@ void SetCurrentThreadIndex(uint32 threadIndex)
     s_currentThreadIndex = threadIndex;
 }
 
+#if HYP_DEBUG_MODE
+
 void AssertOnThread(ThreadMask mask, const char* message)
 {
 #ifdef HYP_ENABLE_THREAD_ASSERTIONS
@@ -280,6 +282,8 @@ void AssertOnThread(const ThreadId& threadId, const char* message)
 #endif
 #endif
 }
+
+#endif // HYP_DEBUG_MODE
 
 bool IsThreadInMask(const ThreadId& threadId, ThreadMask mask)
 {

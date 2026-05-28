@@ -29,8 +29,17 @@ enum ThreadCategory : ThreadMask
     THREAD_CATEGORY_TASK = 0x1
 };
 
+#if HYP_DEBUG_MODE
+
 HYP_API void AssertOnThread(ThreadMask mask, const char* message = nullptr);
 HYP_API void AssertOnThread(const ThreadId& threadId, const char* message = nullptr);
+
+#else // !HYP_DEBUG_MODE
+
+static constexpr NoOpFunction<void> AssertOnThread;
+
+#endif // HYP_DEBUG_MODE
+
 HYP_API bool IsThreadInMask(const ThreadId& threadId, ThreadMask mask);
 HYP_API bool IsOnThread(ThreadMask mask);
 HYP_API bool IsOnThread(const ThreadId& threadId);
