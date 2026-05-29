@@ -36,7 +36,7 @@ class AssetManager;
 template <class T>
 struct TLoadedAsset;
 
-HYP_API extern void OnPostLoad_Impl(const Class* cls, void* objectPtr);
+ENGINE_API extern void OnPostLoad_Impl(const Class* cls, void* objectPtr);
 
 struct LoadedAsset
 {
@@ -120,7 +120,7 @@ struct LoadedAsset
         }
     }
 
-    HYP_API void OnPostLoad();
+    ENGINE_API void OnPostLoad();
 };
 
 using AssetLoadResult = TResult<LoadedAsset, AssetLoadError>;
@@ -176,7 +176,7 @@ template <class T>
 using TAssetLoadResult = TResult<TLoadedAsset<T>, AssetLoadError>;
 
 HYP_CLASS(Abstract)
-class HYP_API AssetLoaderBase : public ObjectBase
+class ENGINE_API AssetLoaderBase : public ObjectBase
 {
     HYP_OBJECT_BODY(AssetLoaderBase);
 

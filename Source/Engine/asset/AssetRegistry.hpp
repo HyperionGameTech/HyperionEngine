@@ -41,7 +41,7 @@ namespace Hyperion {
 
 HYP_DECLARE_LOG_CHANNEL(Assets);
 
-HYP_API extern Pool* g_assetPool;
+ENGINE_API extern Pool* g_assetPool;
 using AssetAllocator = AllocatorInstance<Pool, &g_assetPool>;
 
 class AssetRegistry;
@@ -62,7 +62,7 @@ using AssetDescSet = THashTable<AssetDesc, &AssetDesc_KeyByFunction, AssetAlloca
 using AssetObjectCache = SparsePagedArray<Handle<AssetObject>, 64, AssetAllocator>;
 
 HYP_CLASS()
-class HYP_API AssetRegistry final : public ObjectBase
+class ENGINE_API AssetRegistry final : public ObjectBase
 {
     HYP_OBJECT_BODY(AssetRegistry);
 
@@ -188,19 +188,19 @@ struct AssetLoadingContext
 {
 };
 
-HYP_API Handle<AssetRegistry> GetCurrentAssetRegistry();
+ENGINE_API Handle<AssetRegistry> GetCurrentAssetRegistry();
 
-HYP_API void PushAssetRegistry(const Handle<AssetRegistry>& registry);
-HYP_API void PopAssetRegistry(const AssetRegistry* registry);
+ENGINE_API void PushAssetRegistry(const Handle<AssetRegistry>& registry);
+ENGINE_API void PopAssetRegistry(const AssetRegistry* registry);
 
-HYP_API void ClearAssetRegistryStack();
+ENGINE_API void ClearAssetRegistryStack();
 
-HYP_API Handle<AssetRegistry> GetEngineAssetRegistry();
-HYP_API void SetEngineAssetRegistry(const Handle<AssetRegistry>& registry);
+ENGINE_API Handle<AssetRegistry> GetEngineAssetRegistry();
+ENGINE_API void SetEngineAssetRegistry(const Handle<AssetRegistry>& registry);
 
 #if HYP_EDITOR
-HYP_API Handle<AssetRegistry> GetEditorAssetRegistry();
-HYP_API void SetEditorAssetRegistry(const Handle<AssetRegistry>& registry);
+ENGINE_API Handle<AssetRegistry> GetEditorAssetRegistry();
+ENGINE_API void SetEditorAssetRegistry(const Handle<AssetRegistry>& registry);
 #endif // HYP_EDITOR
 
 } // namespace Hyperion

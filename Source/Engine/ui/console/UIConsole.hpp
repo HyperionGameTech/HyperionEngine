@@ -16,16 +16,16 @@ class UIListView;
 class ConsoleHistory;
 
 HYP_CLASS()
-class HYP_API UIConsole : public UIObject
+class ENGINE_API UIConsole : public UIObject
 {
     HYP_OBJECT_BODY(UIConsole);
 
 public:
     UIConsole();
-    
+
     UIConsole(const UIConsole& other) = delete;
     UIConsole& operator=(const UIConsole& other) = delete;
-    
+
     UIConsole(UIConsole&& other) noexcept = delete;
     UIConsole& operator=(UIConsole&& other) noexcept = delete;
 
@@ -34,7 +34,7 @@ public:
 protected:
     virtual void Init() override;
     virtual void UpdateSize_Internal(bool updateChildren) override;
-    
+
     virtual void Update_Internal(float delta) override;
 
     virtual bool NeedsUpdate() const override;

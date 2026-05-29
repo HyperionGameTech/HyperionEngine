@@ -32,7 +32,7 @@ template <LogLevel Level>
 inline void LogDynamic(Logger& logger, const LogChannel& channel, const char* fileName, int lineNumber, const char* str);
 
 #if HYP_DEBUG_MODE
-HYP_API extern void LogTemp(Logger& logger, const char* str, const char* fileName, int lineNumber);
+CORE_API extern void LogTemp(Logger& logger, const char* str, const char* fileName, int lineNumber);
 #endif
 
 extern Logger& GetLogger();

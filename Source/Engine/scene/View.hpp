@@ -39,7 +39,7 @@ class GBuffer;
 class EntityBatchAllocatorBase;
 class RenderProxyList;
 
-HYP_API extern Pool* g_scenePool;
+ENGINE_API extern Pool* g_scenePool;
 using SceneAllocator = AllocatorInstance<Pool, &g_scenePool>;
 
 namespace threading {
@@ -146,7 +146,7 @@ private:
 };
 
 HYP_CLASS()
-class HYP_API View final : public ObjectBase
+class ENGINE_API View final : public ObjectBase
 {
     HYP_OBJECT_BODY(View);
 

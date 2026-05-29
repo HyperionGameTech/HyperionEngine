@@ -53,7 +53,7 @@ struct UIEntityInstanceBatch : EntityInstanceBatch
 static_assert(sizeof(UIEntityInstanceBatch) % 64 == 0);
 
 HYP_CLASS()
-class HYP_API UISubsystem final : public Subsystem
+class ENGINE_API UISubsystem final : public Subsystem
 {
     HYP_OBJECT_BODY(UISubsystem);
 

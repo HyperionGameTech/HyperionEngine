@@ -30,7 +30,7 @@
 namespace Hyperion {
 
 namespace CoreApi {
-extern FilePath GetExecutablePath();
+CORE_API extern FilePath GetExecutablePath();
 } // namespace CoreApi
 
 HYP_DECLARE_LOG_CHANNEL(Rendering);

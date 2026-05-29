@@ -31,7 +31,7 @@ class Mat4f;
 
 namespace math {
 template <class T>
-struct alignas(alignof(T) * 4) HYP_API Vec4
+struct alignas(alignof(T) * 4) CORE_API Vec4
 {
     using Type = T;
 
@@ -316,7 +316,7 @@ struct alignas(alignof(T) * 4) HYP_API Vec4
 };
 
 template <>
-struct alignas(alignof(float) * 4) HYP_API Vec4<float>
+struct alignas(alignof(float) * 4) CORE_API Vec4<float>
 {
     using Type = float;
 

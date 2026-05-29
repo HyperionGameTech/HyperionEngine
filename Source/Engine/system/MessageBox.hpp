@@ -28,7 +28,7 @@ struct MessageBoxButton
     Proc<void()> onClick;
 };
 
-class HYP_API SystemMessageBox
+class ENGINE_API SystemMessageBox
 {
 public:
     SystemMessageBox(MessageBoxType type);

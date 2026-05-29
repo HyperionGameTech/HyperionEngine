@@ -11,7 +11,7 @@ class ByteWriter;
 class WriteBitmap
 {
 public:
-    HYP_API static bool Write(
+    ENGINE_API static bool Write(
         ByteWriter* byteWriter,
         int width,
         int height,

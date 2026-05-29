@@ -37,7 +37,7 @@ struct UITextOptions
 };
 
 HYP_CLASS()
-class HYP_API UIText : public UIObject
+class ENGINE_API UIText : public UIObject
 {
     HYP_OBJECT_BODY(UIText);
 

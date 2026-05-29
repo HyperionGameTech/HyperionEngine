@@ -11,7 +11,7 @@
 namespace Hyperion {
 
 HYP_CLASS()
-class HYP_API InstancedMeshProxy : public Node
+class ENGINE_API InstancedMeshProxy : public Node
 {
     HYP_OBJECT_BODY(InstancedMeshProxy);
 

@@ -25,7 +25,7 @@ class Scene;
 class Event;
 
 HYP_CLASS()
-class HYP_API Game : public ObjectBase
+class ENGINE_API Game : public ObjectBase
 {
     friend class SimThread;
     friend class EngineDriver;

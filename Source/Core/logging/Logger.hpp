@@ -31,8 +31,8 @@ namespace Hyperion {
 
 namespace logging {
 
-HYP_API extern ANSIStringView GetCurrentThreadName();
-HYP_API extern bool IsVerboseLoggingEnabled();
+CORE_API extern ANSIStringView GetCurrentThreadName();
+CORE_API extern bool IsVerboseLoggingEnabled();
 
 HYP_ENUM()
 enum class LogLevel : uint8
@@ -100,7 +100,7 @@ static constexpr Span<const char> LogLevelTermColor(LogLevel logLevel)
     if (uint8(logLevel) >= uint8(std::size(ColorTable)))
     {
         constexpr Span<const char> DefaultColor = "\033[0m";
-        
+
         return DefaultColor;
     }
     else
@@ -110,7 +110,7 @@ static constexpr Span<const char> LogLevelTermColor(LogLevel logLevel)
 }
 
 HYP_STRUCT()
-class HYP_API LogChannel
+class CORE_API LogChannel
 {
 public:
     HYP_STRUCT_BODY(LogChannel);
@@ -173,7 +173,7 @@ public:
 
 class LoggerImpl;
 
-class HYP_API DynamicLogChannelHandle
+class CORE_API DynamicLogChannelHandle
 {
     friend class Logger;
 
@@ -220,7 +220,7 @@ private:
 };
 
 HYP_CLASS()
-class HYP_API Logger : public ObjectBase
+class CORE_API Logger : public ObjectBase
 {
     HYP_OBJECT_BODY(Logger);
 

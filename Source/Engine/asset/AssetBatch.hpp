@@ -188,8 +188,8 @@ public:
     using TaskBatch::operator new;
     using TaskBatch::operator delete;
 
-    HYP_API AssetBatch(const Handle<AssetManager>& assetManager);
-    HYP_API AssetBatch(const Handle<AssetManager>& assetManager, const String& identifier);
+    ENGINE_API AssetBatch(const Handle<AssetManager>& assetManager);
+    ENGINE_API AssetBatch(const Handle<AssetManager>& assetManager, const String& identifier);
 
     AssetBatch(const AssetBatch& other) = delete;
     AssetBatch& operator=(const AssetBatch& other) = delete;
@@ -220,15 +220,15 @@ public:
 
     /*! \brief Enqueue an asset of type T to be loaded in this batch.
         Only call this method before LoadAsync() is called. */
-    HYP_API void Add(const String& key, const String& path, AssetLoadHint hint = AssetLoadHint::NoHint);
-    HYP_API void Add(const String& key, const String& path, const Proc<void(LoadedAsset&)>& callback, AssetLoadHint hint = AssetLoadHint::NoHint);
+    ENGINE_API void Add(const String& key, const String& path, AssetLoadHint hint = AssetLoadHint::NoHint);
+    ENGINE_API void Add(const String& key, const String& path, const Proc<void(LoadedAsset&)>& callback, AssetLoadHint hint = AssetLoadHint::NoHint);
 
     /*! \brief Begin loading this batch asynchronously. Note that
         you may not add any more tasks to be loaded once you call this method. */
-    HYP_API void LoadAsync(uint32 numBatches = MathUtil::MaxSafeValue<uint32>());
+    ENGINE_API void LoadAsync(uint32 numBatches = MathUtil::MaxSafeValue<uint32>());
 
-    HYP_API AssetMap AwaitResults();
-    HYP_API AssetMap ForceLoad();
+    ENGINE_API AssetMap AwaitResults();
+    ENGINE_API AssetMap ForceLoad();
 
     /*! \brief Functions bound to this delegates are called in
      *  the sim thread. */

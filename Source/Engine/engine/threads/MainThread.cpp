@@ -28,7 +28,7 @@
 namespace Hyperion {
 
 namespace CoreApi {
-extern const CommandLineArguments& GetCommandLineArguments();
+CORE_API extern const CommandLineArguments& GetCommandLineArguments();
 } // namespace CoreApi
 
 extern ThreadSignal g_renderInitSignal;
@@ -124,10 +124,10 @@ void MainThread::Update()
             {
                 return;
             }
-            
+
             s_isRenderThreadInit = true;
         }
-        
+
         g_simThreadInstance->Update();
 
         return;

@@ -14,7 +14,7 @@
 
 extern "C"
 {
-    HYP_API int Hyp_Initialize(int argc, char** argv);
+    ENGINE_API int Hyp_Initialize(int argc, char** argv);
 }
 
 int main(int argc, char** argv)

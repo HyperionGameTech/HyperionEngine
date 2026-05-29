@@ -20,7 +20,7 @@ class UIObject;
 class UIStage;
 
 /*! \brief Manages selective updates for UI objects to avoid expensive tree traversals */
-class HYP_API UIUpdateManager
+class ENGINE_API UIUpdateManager
 {
 public:
     UIUpdateManager();

@@ -11,7 +11,7 @@
 namespace Hyperion {
 
 HYP_CLASS()
-class HYP_API FollowCameraController : public PerspectiveCameraController
+class ENGINE_API FollowCameraController : public PerspectiveCameraController
 {
     HYP_OBJECT_BODY(FollowCameraController);
 

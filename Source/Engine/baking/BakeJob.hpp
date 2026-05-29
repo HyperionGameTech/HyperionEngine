@@ -59,7 +59,7 @@ struct BakeJobParams
     Array<UniquePtr<ILightmapRenderer>>* renderers = nullptr;
 };
 
-class HYP_API BakeJobBase
+class ENGINE_API BakeJobBase
 {
     friend class BakerBase;
 

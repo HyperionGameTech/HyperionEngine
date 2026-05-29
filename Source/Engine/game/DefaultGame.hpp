@@ -17,7 +17,7 @@ namespace game {
 class DefaultGameImpl;
 
 HYP_CLASS(NoScriptBindings)
-class HYP_API DefaultGame : public Game
+class ENGINE_API DefaultGame : public Game
 {
     HYP_OBJECT_BODY(DefaultGame);
 

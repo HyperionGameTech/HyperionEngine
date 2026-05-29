@@ -114,14 +114,14 @@ public:
 
     virtual ~RenderProxyList();
 
-    RENDERING_API void BeginWrite();
-    RENDERING_API void EndWrite();
+    ENGINE_API void BeginWrite();
+    ENGINE_API void EndWrite();
 
     /*! \brief Waits for write lock to unlock and sets the list in read mode. If pOutSuccess is provided, it will be set to true on lock acquired.
         However if the lock cannot be acquired after a number of loops, it will be set to false and will not perform any other action. If pOutSuccess
         is not provided, the busy wait will spin indefinitely. (for backwards compatibility with previous behaviour) */
-    RENDERING_API void BeginRead(bool* pOutSuccess = nullptr);
-    RENDERING_API void EndRead();
+    ENGINE_API void BeginRead(bool* pOutSuccess = nullptr);
+    ENGINE_API void EndRead();
 
     template <size_t Index>
     HYP_FORCE_INLINE auto GetResources() -> typename TupleElement_Tuple<Index, ResourceTrackerTypes>::Type*

@@ -76,17 +76,17 @@ enum class ClassSerializationMode : uint8
 
 HYP_MAKE_ENUM_FLAGS(ClassSerializationMode)
 
-HYP_API extern const Class* g_hypObjectBaseClass;
+CORE_API extern const Class* g_hypObjectBaseClass;
 
 #pragma region Helpers
 
-HYP_API const Class* GetClass(const TypeId& typeId);
-HYP_API const Class* GetClass(StringHash typeName);
+CORE_API const Class* GetClass(const TypeId& typeId);
+CORE_API const Class* GetClass(StringHash typeName);
 
-HYP_API const Class* GetEnum(const TypeId& typeId);
-HYP_API const Class* GetEnum(StringHash typeName);
+CORE_API const Class* GetEnum(const TypeId& typeId);
+CORE_API const Class* GetEnum(StringHash typeName);
 
-HYP_API size_t GetNumDescendants(TypeId typeId);
+CORE_API size_t GetNumDescendants(TypeId typeId);
 
 template <class T>
 static inline size_t GetNumDescendants()
@@ -94,7 +94,7 @@ static inline size_t GetNumDescendants()
     return GetNumDescendants(TypeId::ForType<T>());
 }
 
-HYP_API int GetSubclassIndex(TypeId baseTypeId, TypeId subclassTypeId);
+CORE_API int GetSubclassIndex(TypeId baseTypeId, TypeId subclassTypeId);
 
 template <class T, class U>
 static inline int GetSubclassIndex()
@@ -104,10 +104,10 @@ static inline int GetSubclassIndex()
     return s_subclassIndex;
 }
 
-HYP_API bool IsA(const Class* cls, const void* ptr, const TypeId& typeId);
-HYP_API bool IsA(const Class* cls, const Class* instanceClass);
+CORE_API bool IsA(const Class* cls, const void* ptr, const TypeId& typeId);
+CORE_API bool IsA(const Class* cls, const Class* instanceClass);
 
-HYP_API const char* LookupTypeName(const TypeId& typeId);
+CORE_API const char* LookupTypeName(const TypeId& typeId);
 
 #pragma endregion Helpers
 
@@ -163,7 +163,7 @@ class ClassMemberIterator
         return nextPhase;
     }
 
-    HYP_API ClassMemberIterator(const Class* cls, EnumFlags<MemberType> memberTypes, Phase phase, bool deep = true);
+    CORE_API ClassMemberIterator(const Class* cls, EnumFlags<MemberType> memberTypes, Phase phase, bool deep = true);
 
 public:
     ClassMemberIterator(const ClassMemberIterator& other) = default;
@@ -210,7 +210,7 @@ public:
     }
 
 private:
-    HYP_API void Advance();
+    CORE_API void Advance();
 
     EnumFlags<MemberType> m_memberTypes;
     Phase m_phase;
@@ -327,7 +327,7 @@ struct ClassCallbackRegistration
     }
 };
 
-class HYP_API Class
+class CORE_API Class
 {
 public:
     friend struct ClassRegistrationBase;
@@ -975,34 +975,34 @@ protected:
 // Shared global attributes
 namespace Attributes {
 
-HYP_API extern const Name g_attrSerialize;
-HYP_API extern const Name g_attrDeserialize;
-HYP_API extern const Name g_attrTransient;
-HYP_API extern const Name g_attrComponent;
-HYP_API extern const Name g_attrSize;
-HYP_API extern const Name g_attrNoScriptBindings;
-HYP_API extern const Name g_attrOnlyLanguages;
-HYP_API extern const Name g_attrCommand;
-HYP_API extern const Name g_attrAbstract;
-HYP_API extern const Name g_attrCompressed;
-HYP_API extern const Name g_attrProperty;
-HYP_API extern const Name g_attrLoadOrder;
-HYP_API extern const Name g_attrJsonPath;
-HYP_API extern const Name g_attrJsonIgnore;
-HYP_API extern const Name g_attrScriptableDelegate;
-HYP_API extern const Name g_attrFollowAssetPath;
-HYP_API extern const Name g_attrSaveAsReference;
+CORE_API extern const Name g_attrSerialize;
+CORE_API extern const Name g_attrDeserialize;
+CORE_API extern const Name g_attrTransient;
+CORE_API extern const Name g_attrComponent;
+CORE_API extern const Name g_attrSize;
+CORE_API extern const Name g_attrNoScriptBindings;
+CORE_API extern const Name g_attrOnlyLanguages;
+CORE_API extern const Name g_attrCommand;
+CORE_API extern const Name g_attrAbstract;
+CORE_API extern const Name g_attrCompressed;
+CORE_API extern const Name g_attrProperty;
+CORE_API extern const Name g_attrLoadOrder;
+CORE_API extern const Name g_attrJsonPath;
+CORE_API extern const Name g_attrJsonIgnore;
+CORE_API extern const Name g_attrScriptableDelegate;
+CORE_API extern const Name g_attrFollowAssetPath;
+CORE_API extern const Name g_attrSaveAsReference;
 
 /// ===== Editor-specific attributes =====
-HYP_API extern const Name g_attrEditor;        //!< legacy (deprecated) indicates that a property is editable in the editor
-HYP_API extern const Name g_attrEditorOnly;    //!< this field/method/property is only available in editor builds (future proof - right now it has no effect)
-HYP_API extern const Name g_attrEditOrder;     //!< order in which properties are displayed in the editor
-HYP_API extern const Name g_attrEditEnabled;   //!< is editable in editor
-HYP_API extern const Name g_attrEditHide;      //!< hide in editor
-HYP_API extern const Name g_attrLabel;         //!< display name in editor (overrides property name)
-HYP_API extern const Name g_attrDescription;   //!< help text for a property in inspector
-HYP_API extern const Name g_attrEditAction;    //!< marks a method as an action button in the editor (e.g. "Bake Lighting")
-HYP_API extern const Name g_attrEditCondition; //!< condition for editability or action availability in the editor (should be a method that returns bool)
+CORE_API extern const Name g_attrEditor;        //!< legacy (deprecated) indicates that a property is editable in the editor
+CORE_API extern const Name g_attrEditorOnly;    //!< this field/method/property is only available in editor builds (future proof - right now it has no effect)
+CORE_API extern const Name g_attrEditOrder;     //!< order in which properties are displayed in the editor
+CORE_API extern const Name g_attrEditEnabled;   //!< is editable in editor
+CORE_API extern const Name g_attrEditHide;      //!< hide in editor
+CORE_API extern const Name g_attrLabel;         //!< display name in editor (overrides property name)
+CORE_API extern const Name g_attrDescription;   //!< help text for a property in inspector
+CORE_API extern const Name g_attrEditAction;    //!< marks a method as an action button in the editor (e.g. "Bake Lighting")
+CORE_API extern const Name g_attrEditCondition; //!< condition for editability or action availability in the editor (should be a method that returns bool)
 /// ======================================
 
 } // namespace Attributes

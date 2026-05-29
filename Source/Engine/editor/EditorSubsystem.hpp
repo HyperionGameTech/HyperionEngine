@@ -118,7 +118,7 @@ enum class EditorManipulationMode
 
 /*! \brief A widget that can manipulate the selected object. (e.g translate, rotate, scale) */
 HYP_CLASS(Abstract)
-class HYP_API EditorGizmoBase : public ObjectBase
+class EDITOR_API EditorGizmoBase : public ObjectBase
 {
     HYP_OBJECT_BODY(EditorGizmoBase);
 
@@ -439,7 +439,7 @@ private:
 };
 
 HYP_CLASS()
-class HYP_API EditorSubsystem : public Subsystem
+class EDITOR_API EditorSubsystem : public Subsystem
 {
 
     HYP_OBJECT_BODY(EditorSubsystem);

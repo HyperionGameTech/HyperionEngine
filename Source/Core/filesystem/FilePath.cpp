@@ -340,7 +340,7 @@ bool FilePath::CanRead() const
 #endif
 }
 
-HYP_API String FilePath::GetExtension() const
+CORE_API String FilePath::GetExtension() const
 {
     return StringUtil::GetExtension(*this);
 }

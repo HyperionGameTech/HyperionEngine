@@ -14,7 +14,7 @@
 namespace Hyperion {
 namespace debug {
 
-HYP_API extern char* GetErrorStringBuffer();
+CORE_API extern char* GetErrorStringBuffer();
 
 enum class LogType : int
 {
@@ -37,7 +37,7 @@ constexpr struct
     HYP_FORCE_INLINE constexpr void operator()(const TCond&) const
     {
     }
-    
+
     // this version of the ctor exists as we sometimes assert against
     // bitfield values and they can't be bound as a reference.
     HYP_FORCE_INLINE constexpr void operator()(int) const
@@ -51,25 +51,25 @@ constexpr struct
 #define DebugLog(type, ...) \
     debug::DebugLog_Write(type, HYP_DEBUG_FUNC_SHORT, HYP_DEBUG_LINE, __VA_ARGS__)
 
-HYP_API extern void DebugLog_Write(LogType type, const char* callee, unsigned int line, const char* fmt, ...);
+CORE_API extern void DebugLog_Write(LogType type, const char* callee, unsigned int line, const char* fmt, ...);
 #else
 #define DebugLog(type, ...) \
     debug::DebugLog_Write(type, __VA_ARGS__)
 
-HYP_API extern void DebugLog_Write(LogType type, const char* fmt, ...);
+CORE_API extern void DebugLog_Write(LogType type, const char* fmt, ...);
 #endif
 
-HYP_API extern void DebugLog_FlushOutputStream();
+CORE_API extern void DebugLog_FlushOutputStream();
 
-HYP_API extern void LogStackTrace(int depth = 10);
+CORE_API extern void LogStackTrace(int depth = 10);
 
-HYP_API extern void WriteToStandardError(const char* msg);
+CORE_API extern void WriteToStandardError(const char* msg);
 
-HYP_API extern bool IsDebuggerAttached();
+CORE_API extern bool IsDebuggerAttached();
 
-HYP_API extern void LogAssert(const char* str);
+CORE_API extern void LogAssert(const char* str);
 
-[[noreturn]] HYP_API extern void TerminateProgram();
+[[noreturn]] CORE_API extern void TerminateProgram();
 
 } // namespace debug
 

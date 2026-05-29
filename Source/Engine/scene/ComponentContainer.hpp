@@ -88,7 +88,7 @@ struct ComponentInfo
 
 class ComponentContainerFactoryBase;
 
-class HYP_API ComponentContainerBase
+class ENGINE_API ComponentContainerBase
 {
 public:
     ComponentContainerBase(ComponentContainerFactoryBase* factory)

@@ -13,7 +13,7 @@ namespace Hyperion {
 #pragma region UISpacer
 
 HYP_CLASS()
-class HYP_API UISpacer : public UIObject
+class ENGINE_API UISpacer : public UIObject
 {
     HYP_OBJECT_BODY(UISpacer);
 

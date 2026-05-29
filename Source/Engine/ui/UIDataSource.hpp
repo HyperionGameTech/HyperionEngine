@@ -34,9 +34,9 @@ class World;
 
 class UIElementFactoryBase;
 
-HYP_API extern const char* LookupTypeName(const TypeId& typeId);
+CORE_API extern const char* LookupTypeName(const TypeId& typeId);
 
-class HYP_API UIElementFactoryRegistry
+class ENGINE_API UIElementFactoryRegistry
 {
     struct FactoryInstance
     {
@@ -77,7 +77,7 @@ private:
 };
 
 HYP_CLASS(Abstract)
-class HYP_API UIElementFactoryBase : public ObjectBase
+class ENGINE_API UIElementFactoryBase : public ObjectBase
 {
     HYP_OBJECT_BODY(UIElementFactoryBase);
 
@@ -177,7 +177,7 @@ private:
     DataRaceDetector m_contextDataRaceDetector;
 };
 
-class HYP_API UIDataSourceElement
+class ENGINE_API UIDataSourceElement
 {
 public:
     template <class T, typename = std::enable_if_t<!IsBoxedValueV<T>>>
@@ -239,7 +239,7 @@ private:
 };
 
 HYP_CLASS(Abstract)
-class HYP_API UIDataSourceBase : public ObjectBase
+class ENGINE_API UIDataSourceBase : public ObjectBase
 {
     HYP_OBJECT_BODY(UIDataSourceBase);
 
@@ -303,7 +303,7 @@ protected:
 };
 
 HYP_CLASS()
-class HYP_API UIDataSource : public UIDataSourceBase
+class ENGINE_API UIDataSource : public UIDataSourceBase
 {
     HYP_OBJECT_BODY(UIDataSource);
 
@@ -598,7 +598,7 @@ private:
     Proc<void(UIObject*, const BoxedValue&, const BoxedValue&)> m_updateUiObjectProc;
 };
 
-struct HYP_API UIElementFactoryRegistrationBase
+struct ENGINE_API UIElementFactoryRegistrationBase
 {
 protected:
     Handle<UIElementFactoryBase> (*m_makeFactoryFunction)(void);

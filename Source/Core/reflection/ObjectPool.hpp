@@ -39,14 +39,14 @@ class ObjectContainerBase;
 struct ObjectHeader;
 class Class;
 
-HYP_API extern void ReleaseObject(ObjectHeader* header);
+CORE_API extern void ReleaseObject(ObjectHeader* header);
 
 #ifdef HYP_DOTNET
-HYP_API extern void Object_IncScriptObjectRef(class ObjectBase* ptr);
-HYP_API extern void Object_DecScriptObjectRef(class ObjectBase* ptr);
+CORE_API extern void Object_IncScriptObjectRef(class ObjectBase* ptr);
+CORE_API extern void Object_DecScriptObjectRef(class ObjectBase* ptr);
 #endif
 
-class HYP_API ObjectContainerBase
+class CORE_API ObjectContainerBase
 {
     friend class ObjectContainerMap;
 
@@ -233,12 +233,12 @@ struct ObjectHeader
     }
 
     //! Get the pointer to the actual object that this header is for. Header must be non-null
-    static HYP_API ObjectBase* GetObjectPointer(ObjectHeader* header);
-    static HYP_API void DestructThisObject(ObjectHeader* header);
+    static CORE_API ObjectBase* GetObjectPointer(ObjectHeader* header);
+    static CORE_API void DestructThisObject(ObjectHeader* header);
 };
 
 template <class T>
-class HYP_API ObjectContainer final : public ObjectContainerBase
+class CORE_API ObjectContainer final : public ObjectContainerBase
 {
 public:
     ObjectContainer(const Class* cls)
@@ -253,7 +253,7 @@ public:
     ObjectContainer& operator=(ObjectContainer&& other) noexcept = delete;
 
     ~ObjectContainer() override = default;
-    
+
     void Initialize() override
     {
         if (!m_pool)
@@ -375,7 +375,7 @@ class ObjectContainerMap
 
 public:
     ObjectContainerMap() = default;
-    
+
     ObjectContainerMap(const ObjectContainerMap&) = delete;
     ObjectContainerMap& operator=(const ObjectContainerMap&) = delete;
 
@@ -389,7 +389,7 @@ public:
     ObjectContainerBase& Get(TypeId typeId);
     ObjectContainerBase* TryGet(TypeId typeId);
 
-    HYP_API ObjectContainerBase& GetOrCreate(
+    CORE_API ObjectContainerBase& GetOrCreate(
         TypeId typeId,
         const Class* cls,
         ObjectContainerBase* (*createFn)(const Class* cls));
@@ -408,7 +408,7 @@ public:
     }
 };
 
-HYP_API ObjectContainerMap& GetObjectContainerMap();
+CORE_API ObjectContainerMap& GetObjectContainerMap();
 
 template <class T>
 static inline ObjectContainer<T>& GetObjectContainer()

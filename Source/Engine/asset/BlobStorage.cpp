@@ -20,7 +20,7 @@
 
 namespace Hyperion {
 
-HYP_API extern Pool* g_assetPool;
+ENGINE_API extern Pool* g_assetPool;
 
 static void InitBlobStorage(BlobStorage& outStorage, const FilePath& baseDirectory, uint64 pageSize)
 {

@@ -122,7 +122,7 @@ protected:
 
 #pragma region Utility functions
 
-HYP_API extern BoxedValue GetEnumMemberValue(const IMember& enumMember);
+CORE_API extern BoxedValue GetEnumMemberValue(const IMember& enumMember);
 
 /*! \brief Iterate over the members of an enum Class.
  *  \tparam EnumType The enum type to iterate over. The enum must have a Class associated with it, otherwise this function will do nothing.

@@ -128,11 +128,11 @@ EngineStatGpuTimer g_statGpuFrameTime("Rendering/GPU/FrameTime");
 static EngineStatTimer s_statViewDataAllocTime { "Rendering/ViewData/AllocTime", /* resetPerFrame */ false };
 
 /// ===== Memory pools =====
-RENDERING_API Pool* g_renderPool;
-RENDERING_API Arena* g_renderArena;
+ENGINE_API Pool* g_renderPool;
+ENGINE_API Arena* g_renderArena;
 
-RENDERING_API Pool* g_rhiPool;
-RENDERING_API Arena* g_rhiArena;
+ENGINE_API Pool* g_rhiPool;
+ENGINE_API Arena* g_rhiArena;
 /// ========================
 
 CVar<bool> g_renderingVSync("Rendering.VSync", true);

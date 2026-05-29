@@ -51,7 +51,7 @@ struct JSONSubscriptWrapper
 };
 
 template <>
-struct HYP_API JSONSubscriptWrapper<const Value>
+struct CORE_API JSONSubscriptWrapper<const Value>
 {
     const Value* value = nullptr;
 
@@ -154,7 +154,7 @@ struct HYP_API JSONSubscriptWrapper<const Value>
 };
 
 template <>
-struct HYP_API JSONSubscriptWrapper<Value>
+struct CORE_API JSONSubscriptWrapper<Value>
 {
     Value* value = nullptr;
 
@@ -275,7 +275,7 @@ struct HYP_API JSONSubscriptWrapper<Value>
     HashCode GetHashCode() const;
 };
 
-class HYP_API Value
+class CORE_API Value
 {
 private:
     using InnerType = Variant<
@@ -856,17 +856,17 @@ struct ParseResult
     Value value;
 };
 
-HYP_API const Value& Undefined();
-HYP_API const Value& Null();
-HYP_API const Value& EmptyObject();
-HYP_API const Value& EmptyArray();
-HYP_API const Value& EmptyString();
-HYP_API const Value& True();
-HYP_API const Value& False();
+CORE_API const Value& Undefined();
+CORE_API const Value& Null();
+CORE_API const Value& EmptyObject();
+CORE_API const Value& EmptyArray();
+CORE_API const Value& EmptyString();
+CORE_API const Value& True();
+CORE_API const Value& False();
 
-HYP_API ParseResult Parse(const String& jsonString);
-HYP_API ParseResult Parse(BufferedReader& reader);
-HYP_API ParseResult Parse(const SourceFile& sourceFile);
+CORE_API ParseResult Parse(const String& jsonString);
+CORE_API ParseResult Parse(BufferedReader& reader);
+CORE_API ParseResult Parse(const SourceFile& sourceFile);
 
 } // namespace JSON
 } // namespace Hyperion

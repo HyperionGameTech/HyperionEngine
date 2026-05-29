@@ -13,7 +13,7 @@ namespace Hyperion {
 class Texture;
 
 HYP_CLASS()
-class HYP_API FogVolume final : public VolumeBase
+class ENGINE_API FogVolume final : public VolumeBase
 {
     HYP_OBJECT_BODY(FogVolume);
 

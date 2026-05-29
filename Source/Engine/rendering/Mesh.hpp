@@ -62,7 +62,7 @@ struct MeshDesc
 
 /*! \brief Represents a 3D mesh in the engine, containing vertex data, indices, and rendering attributes. */
 HYP_CLASS(AssetBucket = "Meshes")
-class RENDERING_API Mesh final : public AssetObject
+class ENGINE_API Mesh final : public AssetObject
 {
     HYP_OBJECT_BODY(Mesh);
 

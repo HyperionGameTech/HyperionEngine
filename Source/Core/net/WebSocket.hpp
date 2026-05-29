@@ -24,7 +24,7 @@ namespace net {
 
 class WebSocket;
 
-class HYP_API WebSocketThread final : public Thread<Scheduler, WebSocket *>
+class CORE_API WebSocketThread final : public Thread<Scheduler, WebSocket *>
 {
 public:
     WebSocketThread();
@@ -42,7 +42,7 @@ private:
     AtomicVar<bool> m_isRunning;
 };
 
-class HYP_API WebSocket
+class CORE_API WebSocket
 {
 public:
     WebSocket(const String &url);

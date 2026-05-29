@@ -34,13 +34,13 @@ enum class EditorActionStackState : uint32
 HYP_MAKE_ENUM_FLAGS(EditorActionStackState)
 
 HYP_CLASS()
-class HYP_API EditorActionStack : public ObjectBase
+class EDITOR_API EditorActionStack : public ObjectBase
 {
     HYP_OBJECT_BODY(EditorActionStack);
 
 public:
     EditorActionStack();
-    
+
     EditorActionStack(const WeakHandle<EditorProject>& editorProject);
 
     EditorActionStack(const EditorActionStack& other) = delete;
@@ -48,7 +48,7 @@ public:
 
     EditorActionStack(EditorActionStack&& other) noexcept;
     EditorActionStack& operator=(EditorActionStack&& other) noexcept;
-    
+
     virtual ~EditorActionStack() override;
 
     HYP_METHOD()

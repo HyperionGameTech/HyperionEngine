@@ -49,15 +49,15 @@ class StructInstance;
 template <class T>
 struct Handle;
 
-HYP_API extern bool ClassRegistry_IsInitialized();
+CORE_API extern bool ClassRegistry_IsInitialized();
 
-class HYP_API ClassRegistry
+class CORE_API ClassRegistry
 {
 public:
     static ClassRegistry& GetInstance();
 
     ClassRegistry();
-    
+
     ClassRegistry(const ClassRegistry& other) = delete;
     ClassRegistry& operator=(const ClassRegistry& other) = delete;
 

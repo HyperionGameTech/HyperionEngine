@@ -992,8 +992,7 @@ set(SOURCES ${SOURCES} ${THIRD_PARTY_SOURCES})
 set_source_files_properties(${THIRD_PARTY_SOURCES} PROPERTIES SKIP_PRECOMPILE_HEADERS ON)
 
 add_library(${BUILD_NAME} SHARED ${SOURCES} ${HEADERS})
-
-target_compile_definitions(${BUILD_NAME} PRIVATE HYP_BUILD_LIBRARY=1)
+target_compile_definitions(${BUILD_NAME} PRIVATE HYP_BUILD_ENGINE=1)
 
 # if(HYP_ANDROID)
 #     # add hyperion-android module

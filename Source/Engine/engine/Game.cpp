@@ -42,7 +42,7 @@ namespace Hyperion {
 
 static const Name s_nameMainWorld = NAME("World");
 
-HYP_API extern const FilePath& GetLibraryDirectory();
+ENGINE_API extern const FilePath& GetLibraryDirectory();
 
 Game::Game()
     : m_isInitialized(false),
@@ -202,7 +202,7 @@ void Game::SetWorld(const Handle<World>& world)
     {
         AssertDebug(m_world->m_gameInstance == nullptr || m_world->m_gameInstance == this);
         m_world->m_gameInstance = this;
-        
+
         if (m_isInitialized)
         {
             m_world->Initialize();

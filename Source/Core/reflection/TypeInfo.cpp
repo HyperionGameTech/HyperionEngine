@@ -59,7 +59,7 @@ static SlabAllocator& GetTypeInfoAllocator()
     return *s_typeInfoAllocator;
 }
 
-HYP_API TypeInfo* TypeInfo_Alloc(
+CORE_API TypeInfo* TypeInfo_Alloc(
     TypeId typeId, uint16 typeSize, uint16 typeAlignment,
     Mutex::Guard* outPGuard)
 {
@@ -86,7 +86,7 @@ HYP_API TypeInfo* TypeInfo_Alloc(
     return pTypeInfo;
 }
 
-HYP_API TypeInfo* TypeInfo_FetchFromCache(TypeId typeId, uint16 size, uint16 alignment)
+CORE_API TypeInfo* TypeInfo_FetchFromCache(TypeId typeId, uint16 size, uint16 alignment)
 {
     AssertDebug(typeId != TypeId::Void(), "Cannot allocate TypeInfo for void type");
 
@@ -103,7 +103,7 @@ HYP_API TypeInfo* TypeInfo_FetchFromCache(TypeId typeId, uint16 size, uint16 ali
     return nullptr;
 }
 
-HYP_API void TypeInfo_Initialize()
+CORE_API void TypeInfo_Initialize()
 {
     AssertOnThread(g_mainThread, "TypeInfo system must be initialized on the main thread");
 
@@ -118,7 +118,7 @@ HYP_API void TypeInfo_Initialize()
     s_typeInfoSystemInitialized = true;
 }
 
-HYP_API void TypeInfo_Shutdown()
+CORE_API void TypeInfo_Shutdown()
 {
     AssertOnThread(g_mainThread, "TypeInfo system must be shutdown on the main thread");
 

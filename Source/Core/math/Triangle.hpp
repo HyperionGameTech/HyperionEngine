@@ -18,7 +18,7 @@
 namespace Hyperion {
 
 HYP_STRUCT(Serialize = "bitwise")
-struct HYP_API Triangle
+struct CORE_API Triangle
 {
     HYP_STRUCT_BODY(Triangle);
 

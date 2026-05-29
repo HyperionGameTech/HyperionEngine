@@ -24,7 +24,7 @@ namespace Hyperion {
 class Mat3f;
 
 HYP_STRUCT()
-class HYP_API Mat4f
+class CORE_API Mat4f
 {
     HYP_STRUCT_BODY(Mat4f);
 

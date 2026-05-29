@@ -38,7 +38,7 @@ enum class SpriteType : uint32
 };
 
 HYP_CLASS(AssetBucket = "Sprites")
-class HYP_API Sprite : public Entity
+class ENGINE_API Sprite : public Entity
 {
     HYP_OBJECT_BODY(Sprite);
 

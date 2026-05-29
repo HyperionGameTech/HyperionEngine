@@ -36,7 +36,7 @@ enum NoiseGenerationType
     WORLEY_NOISE
 };
 
-class HYP_API NoiseGenerator
+class ENGINE_API NoiseGenerator
 {
     friend class NoiseFactory;
 
@@ -108,7 +108,7 @@ protected:
     std::uniform_real_distribution<T> m_distribution;
 };
 
-class HYP_API SimplexNoiseGenerator : public NoiseGenerator
+class ENGINE_API SimplexNoiseGenerator : public NoiseGenerator
 {
 public:
     SimplexNoiseGenerator(Seed seed);
@@ -121,7 +121,7 @@ private:
     SimplexNoiseData m_simplexNoise;
 };
 
-class HYP_API WorleyNoiseGenerator : public NoiseGenerator
+class ENGINE_API WorleyNoiseGenerator : public NoiseGenerator
 {
 public:
     WorleyNoiseGenerator(Seed seed);
@@ -134,7 +134,7 @@ private:
     WorleyNoise* m_worleyNoise;
 };
 
-class HYP_API NoiseCombinator
+class ENGINE_API NoiseCombinator
 {
 public:
     enum class Mode
@@ -294,7 +294,7 @@ struct NoiseGeneratorRefCounter
     size_t uses;
 };
 
-class HYP_API NoiseFactory
+class ENGINE_API NoiseFactory
 {
 public:
     static NoiseFactory* s_instance;

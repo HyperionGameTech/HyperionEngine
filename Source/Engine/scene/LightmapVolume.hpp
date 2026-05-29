@@ -99,7 +99,7 @@ struct LightmapVolumeAtlas : AtlasPacker<LightmapElement>
 };
 
 HYP_CLASS(AssetBucket = "LightmapVolumes")
-class HYP_API LightmapVolume final : public VolumeBase
+class ENGINE_API LightmapVolume final : public VolumeBase
 {
     HYP_OBJECT_BODY(LightmapVolume);
 
@@ -109,7 +109,7 @@ public:
     static constexpr Vec2u DefaultAtlasDimensions = Vec2u(2048, 2048);
 
     static constexpr uint32 NumAtlasTextureTypes = 2;
-    
+
     enum AtlasTextureType : uint8
     {
         RadianceTexture = 0,
@@ -160,7 +160,7 @@ public:
     bool AddElement(Vec2u dimensions, LightmapElement*& outElement, bool shrinkToFit = true, float downscaleLimit = 0.1f);
 
     const LightmapElement* GetElement(LightmapElementId elementId) const;
-    
+
     /*! \brief Remove all lightmap elements from this volume */
     void RemoveAllElements();
 

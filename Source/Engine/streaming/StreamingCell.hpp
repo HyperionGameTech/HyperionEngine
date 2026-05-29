@@ -85,7 +85,7 @@ struct StreamingCellInfo
 };
 
 HYP_CLASS()
-class HYP_API StreamingCell : public StreamableBase
+class ENGINE_API StreamingCell : public StreamableBase
 {
     HYP_OBJECT_BODY(StreamingCell);
 

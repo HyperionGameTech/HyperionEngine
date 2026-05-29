@@ -14,7 +14,7 @@
 
 namespace Hyperion {
 
-class HYP_API DynamicLibrary
+class CORE_API DynamicLibrary
 {
 public:
     DynamicLibrary() = default;

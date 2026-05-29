@@ -39,7 +39,7 @@ class TaskThread;
 /*! \brief Base class for thread pools managing worker threads.
  *  Provides core thread pool functionality including thread management,
  *  lifecycle control, and task distribution. */
-class HYP_API ThreadPoolBase
+class CORE_API ThreadPoolBase
 {
 public:
     ThreadPoolBase();
@@ -98,7 +98,7 @@ protected:
 
 /*! \brief Thread pool specialized for task execution with enqueue support.
  *  Extends ThreadPoolBase with task enqueueing capabilities. */
-class HYP_API TaskThreadPool : public ThreadPoolBase
+class CORE_API TaskThreadPool : public ThreadPoolBase
 {
 public:
     TaskThreadPool();
@@ -192,7 +192,7 @@ public:
 /*! \brief Background thread pool that lazily creates threads on-demand and manages thread lifecycle.
  *  Threads are created only when needed and automatically cleaned up when idle for too long.
  *  Useful for background tasks that don't require constant worker threads. */
-class HYP_API BackgroundWorkerPool final : public TaskThreadPool
+class CORE_API BackgroundWorkerPool final : public TaskThreadPool
 {
 public:
     static constexpr uint32 IdleTimeout = 10000; // 10 seconds

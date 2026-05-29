@@ -13,7 +13,7 @@ public:
     NullError() = default;
 };
 
-HYP_API const Error& GetNullError()
+CORE_API const Error& GetNullError()
 {
     static NullError s_nullError;
 

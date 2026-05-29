@@ -20,7 +20,7 @@ using threading::TaskThread;
 
 class RTCTrackBase;
 
-class HYP_API RTCStreamEncoder
+class ENGINE_API RTCStreamEncoder
 {
 public:
     RTCStreamEncoder() = default;
@@ -37,7 +37,7 @@ public:
     virtual void Stop() = 0;
 };
 
-class HYP_API RTCStreamVideoEncoder : public RTCStreamEncoder
+class ENGINE_API RTCStreamVideoEncoder : public RTCStreamEncoder
 {
 public:
     RTCStreamVideoEncoder() = default;
@@ -54,7 +54,7 @@ public:
     virtual void Stop() override = 0;
 };
 
-class HYP_API NullRTCStreamVideoEncoder : public RTCStreamVideoEncoder
+class ENGINE_API NullRTCStreamVideoEncoder : public RTCStreamVideoEncoder
 {
 public:
     NullRTCStreamVideoEncoder() = default;
@@ -75,7 +75,7 @@ public:
 
 class GStreamerThread;
 
-class HYP_API GStreamerRTCStreamVideoEncoder : public RTCStreamVideoEncoder
+class ENGINE_API GStreamerRTCStreamVideoEncoder : public RTCStreamVideoEncoder
 {
 public:
     GStreamerRTCStreamVideoEncoder();

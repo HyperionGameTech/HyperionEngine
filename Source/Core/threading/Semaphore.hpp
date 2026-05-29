@@ -23,7 +23,7 @@
 namespace Hyperion {
 namespace threading {
 
-HYP_API extern void ThreadSleep(uint32 milliseconds);
+CORE_API extern void ThreadSleep(uint32 milliseconds);
 
 enum class SemaphoreDirection : uint8
 {

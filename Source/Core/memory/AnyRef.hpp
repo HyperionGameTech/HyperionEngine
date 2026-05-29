@@ -19,8 +19,8 @@ namespace Hyperion {
 
 class Class;
 
-HYP_API extern const Class* GetClass(const TypeId& typeId);
-HYP_API extern bool IsA(const Class* cls, const void* ptr, const TypeId& typeId);
+CORE_API extern const Class* GetClass(const TypeId& typeId);
+CORE_API extern bool IsA(const Class* cls, const void* ptr, const TypeId& typeId);
 
 namespace memory {
 
@@ -147,7 +147,7 @@ public:
     }
 
     /*! \brief Returns the TypeId of the held object. */
-    HYP_API TypeId GetTypeId() const;
+    CORE_API TypeId GetTypeId() const;
 
     HYP_FORCE_INLINE const TypeInfo* GetTypeInfo() const
     {
@@ -155,7 +155,7 @@ public:
     }
 
     /*! \brief Returns the Class of the held object, if one is registered. */
-    HYP_API const Class* GetClass() const;
+    CORE_API const Class* GetClass() const;
 
     /*! \brief Returns true if the held object is of type T.
      *  If T has a Class registered, this function will also return true if the held object is a subclass of T. */

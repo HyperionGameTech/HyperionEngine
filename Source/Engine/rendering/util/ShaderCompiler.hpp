@@ -657,7 +657,7 @@ public:
 
 void MergeGlobalShaderProperties(ShaderPropertySet& out);
 
-class RENDERING_API ShaderCompiler
+class ENGINE_API ShaderCompiler
 {
     struct ProcessError
     {

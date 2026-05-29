@@ -56,7 +56,7 @@ public:
 /*! \brief A system is attached to a World and batch processes entities with specific components each tick.
  *  Systems are grouped into SystemExecutionGroups which define how and when they are executed (e.g., on the sim thread, in parallel, etc.). */
 HYP_CLASS(Abstract)
-class HYP_API SystemBase : public ObjectBase
+class ENGINE_API SystemBase : public ObjectBase
 {
     HYP_OBJECT_BODY(SystemBase);
 

@@ -8,7 +8,7 @@
 #undef HYP_ENGINE_MEMORY_DECL
 #endif // HYP_ENGINE_MEMORY_DECL
 
-#define HYP_ENGINE_MEMORY_DECL HYP_API extern
+#define HYP_ENGINE_MEMORY_DECL ENGINE_API extern
 
 static constexpr size_t ObjectPoolBlockSize = 16 * 1024 * 1024;    // 16 MiB
 static constexpr size_t ScenePoolBlockSize = 16 * 1024 * 1024;    // 16 MiB
@@ -22,7 +22,6 @@ static constexpr size_t StreamingArenaSize = 64 * 1024;           // 64 KiB
 
 #endif
 
-HYP_ENGINE_MEMORY_DECL Pool* g_objectPool;                  // Pool for object allocations, thread safe
 HYP_ENGINE_MEMORY_DECL Pool* g_scenePool;                   // Pool for scene-related allocations (thread safe)
 HYP_ENGINE_MEMORY_DECL Pool* g_taskPool;                    // Pool for task system allocations (thread safe)
 HYP_ENGINE_MEMORY_DECL Pool* g_assetPool;                   // Pool for asset system allocations (thread safe)
@@ -41,7 +40,7 @@ using StreamingTempAllocator = AllocatorInstance<Arena, &g_streamingArena>;
 
 static void InitMemoryPools()
 {
-    g_objectPool = new Pool(ObjectPoolBlockSize);
+    g_objectPool = new Pool(ObjectPoolBlockSize); // Defined in core lib, initialized here
     g_scenePool = new Pool(ScenePoolBlockSize);
     g_taskPool = new Pool(TaskPoolBlockSize);
     g_assetPool = new Pool(AssetPoolBlockSize);

@@ -67,7 +67,7 @@ public:
     }
 };
 
-class HYP_API EngineStatGroup : public EngineStatBase
+class ENGINE_API EngineStatGroup : public EngineStatBase
 {
 public:
     friend class EngineStats;
@@ -90,7 +90,7 @@ public:
 };
 
 template <class T>
-class HYP_API EngineStatCounter : public EngineStatBase
+class ENGINE_API EngineStatCounter : public EngineStatBase
 {
 public:
     static_assert(sizeof(T) <= 8, "sizeof(T) must be <= 8");
@@ -166,7 +166,7 @@ private:
     volatile InternalType m_value;
 };
 
-class HYP_API EngineStatTimer : public EngineStatBase
+class ENGINE_API EngineStatTimer : public EngineStatBase
 {
 public:
     explicit EngineStatTimer(UTF8StringView path, bool resetPerFrame = true)
@@ -198,7 +198,7 @@ private:
     threading::AtomicVar<uint64> m_totalMicroseconds;
 };
 
-class HYP_API EngineStatGpuTimer : public EngineStatTimer
+class ENGINE_API EngineStatGpuTimer : public EngineStatTimer
 {
 public:
     explicit EngineStatGpuTimer(UTF8StringView path, bool resetPerFrame = true)

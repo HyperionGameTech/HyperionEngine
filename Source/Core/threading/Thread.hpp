@@ -46,7 +46,7 @@ enum class ThreadPriorityValue : uint32
     HIGHEST
 };
 
-class HYP_API ThreadBase
+class CORE_API ThreadBase
 {
 public:
     virtual ~ThreadBase();
@@ -85,7 +85,7 @@ public:
 
     /*! \brief Check if the thread can be joined (i.e. it is not detached) and is joinable (i.e. it is not already joined) */
     virtual bool CanJoin() const = 0;
-    
+
     void AddOnExitCallback(void (*callback)(void));
 
 protected:
@@ -101,8 +101,8 @@ protected:
     Array<void (*)(void), DynamicAllocator> m_onExitCallbacks;
 };
 
-HYP_API extern void SetCurrentThreadObject(ThreadBase*);
-HYP_API extern void SetCurrentThreadPriority(ThreadPriorityValue priority);
+CORE_API extern void SetCurrentThreadObject(ThreadBase*);
+CORE_API extern void SetCurrentThreadPriority(ThreadPriorityValue priority);
 
 template <class Scheduler, class... Args>
 class Thread : public ThreadBase

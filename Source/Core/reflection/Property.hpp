@@ -353,7 +353,7 @@ public:
     }
 
     /*! \brief Get the associated Class for this property's type Id, if applicable. */
-    HYP_API const Class* GetClass() const;
+    CORE_API const Class* GetClass() const;
 
 private:
     Name m_name;

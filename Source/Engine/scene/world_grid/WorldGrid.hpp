@@ -85,7 +85,7 @@ struct WGLayerDesc
 };
 
 HYP_CLASS()
-class HYP_API WorldGrid final : public ObjectBase
+class ENGINE_API WorldGrid final : public ObjectBase
 {
     HYP_OBJECT_BODY(WorldGrid);
 

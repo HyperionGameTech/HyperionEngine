@@ -47,7 +47,7 @@ struct PropertyHandle
 
 /// Script utility for interacting with the reflection system from scripts. Not intended for use in native code.
 HYP_CLASS(OnlyLanguages = "hypscript")
-class HYP_API Reflection final : public ObjectBase
+class ENGINE_API Reflection final : public ObjectBase
 {
     HYP_OBJECT_BODY(Reflection);
 

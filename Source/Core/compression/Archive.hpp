@@ -17,7 +17,7 @@
 namespace Hyperion {
 namespace compression {
 
-class HYP_API Archive
+class Archive
 {
 public:
     static bool IsEnabled();
@@ -58,7 +58,7 @@ private:
     size_t m_uncompressedSize;
 };
 
-class HYP_API ArchiveBuilder
+class ArchiveBuilder
 {
 public:
     ArchiveBuilder& Append(ByteBuffer&& buffer);

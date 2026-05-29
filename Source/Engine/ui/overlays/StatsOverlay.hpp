@@ -27,7 +27,7 @@ class UIDataSource;
 class EngineStatBase;
 
 HYP_CLASS()
-class HYP_API StatsOverlay : public OverlayBase
+class ENGINE_API StatsOverlay : public OverlayBase
 {
     HYP_OBJECT_BODY(StatsOverlay);
 

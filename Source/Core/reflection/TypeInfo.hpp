@@ -75,8 +75,8 @@ struct GenericArrayWrapper;
 
 struct Float16;
 
-HYP_API extern const Class* GetClass(const TypeId& typeId);
-HYP_API extern bool ClassRegistry_IsInitialized();
+CORE_API extern const Class* GetClass(const TypeId& typeId);
+CORE_API extern bool ClassRegistry_IsInitialized();
 
 namespace containers {
 
@@ -154,7 +154,7 @@ FixedArray<const TypeInfo*, sizeof...(Indices)> BuildVariantTypeArray(std::index
  *  \param typeSize The size of the type
  *  \param typeAlignment The alignment of the type
  *  \return Pointer to TypeInfo if found, nullptr otherwise */
-HYP_API extern TypeInfo* TypeInfo_FetchFromCache(TypeId typeId, uint16 typeSize, uint16 typeAlignment);
+CORE_API extern TypeInfo* TypeInfo_FetchFromCache(TypeId typeId, uint16 typeSize, uint16 typeAlignment);
 
 /*! \brief Allocate a TypeInfo instance from the pool
  *  \param typeId The TypeId of the type
@@ -163,15 +163,15 @@ HYP_API extern TypeInfo* TypeInfo_FetchFromCache(TypeId typeId, uint16 typeSize,
  *  \param pGuard Optional pointer to construct a Mutex::Guard into, to lock the type attribute cache mutex
  *   If nullptr, it is assumed the caller already holds exclusive access to the cache mutex
  *  \return Pointer to newly allocated TypeInfo instance */
-HYP_API extern TypeInfo* TypeInfo_Alloc(
+CORE_API extern TypeInfo* TypeInfo_Alloc(
     TypeId typeId, uint16 typeSize, uint16 typeAlignment,
     Mutex::Guard* pGuard);
 
 /*! \brief Initialize the TypeInfo system, must be called before any other TypeInfo functions */
-HYP_API extern void TypeInfo_Initialize();
+CORE_API extern void TypeInfo_Initialize();
 
 /*! \brief Free all allocated TypeInfo instances and clear the cache */
-HYP_API extern void TypeInfo_Shutdown();
+CORE_API extern void TypeInfo_Shutdown();
 
 /*! \brief Iterator interface for traversing container elements
  *  Provides a generic way to iterate over sets, maps, and other containers */
@@ -450,7 +450,7 @@ public:
 };
 
 /*! \brief Additional type information for containers and complex types */
-struct TypeInfoEx
+struct CORE_API TypeInfoEx
 {
     enum DataType
     {
@@ -622,10 +622,10 @@ struct TypeInfoImpl<Handle<T>, TBoxed>
     void operator()(TypeInfo& result) const;
 };
 
-struct TypeInfo
+struct CORE_API TypeInfo
 {
     /*! \brief Get a default TypeInfo instance representing void type */
-    HYP_API static const TypeInfo& Void();
+    static const TypeInfo& Void();
 
     TypeId id = TypeId::Void();
     Name name = Name::Invalid();
@@ -674,10 +674,10 @@ struct TypeInfo
         return id != TypeId::Void();
     }
 
-    HYP_API static const TypeInfo& ForClass(const Class* cls);
+    static const TypeInfo& ForClass(const Class* cls);
 
     /*! \brief Not added to cache, needs to be deleted by caller */
-    HYP_API static TypeInfo* ForDynamicClass(const Class* cls);
+    static TypeInfo* ForDynamicClass(const Class* cls);
 
     template <class T>
     static const TypeInfo& ForType()

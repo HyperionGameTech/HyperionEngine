@@ -42,7 +42,7 @@ public:
 };
 
 HYP_CLASS()
-class HYP_API StreamingManager final : public ObjectBase
+class ENGINE_API StreamingManager final : public ObjectBase
 {
     HYP_OBJECT_BODY(StreamingManager);
 

@@ -91,7 +91,7 @@ enum class KeyCode : uint16
     KEY_ESCAPE = 27
 };
 
-HYP_API bool KeyCodeToChar(KeyCode keyCode, bool shift, bool alt, bool ctrl, char& outChar);
+ENGINE_API bool KeyCodeToChar(KeyCode keyCode, bool shift, bool alt, bool ctrl, char& outChar);
 
 HYP_STRUCT()
 struct KeyboardEvent

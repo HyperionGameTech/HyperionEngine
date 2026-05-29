@@ -31,7 +31,7 @@ class PhysicsWorldBase;
 class PhysicsShape;
 
 HYP_CLASS()
-class HYP_API RigidBody final : public ObjectBase
+class ENGINE_API RigidBody final : public ObjectBase
 {
     HYP_OBJECT_BODY(RigidBody);
 
@@ -78,7 +78,7 @@ public:
     {
         m_handle = std::move(handle);
     }
-    
+
     PhysicsShape* shape;
     PhysicsMaterial* physicsMaterial;
 

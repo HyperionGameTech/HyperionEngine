@@ -18,7 +18,7 @@ namespace Hyperion {
 
 namespace functional {
 
-HYP_API void LogScriptableDelegateError(const char* message, dotnet::ManagedObject* objectPtr)
+ENGINE_API void LogScriptableDelegateError(const char* message, dotnet::ManagedObject* objectPtr)
 {
     if (objectPtr)
     {

@@ -56,7 +56,7 @@ static constexpr const char* GetShaderHeaderPrefix(ShaderModuleType moduleType)
 }
 
 HYP_CLASS(AssetBucket = "Shaders")
-class RENDERING_API Shader : public AssetObject
+class ENGINE_API Shader : public AssetObject
 {
     HYP_OBJECT_BODY(Shader);
 

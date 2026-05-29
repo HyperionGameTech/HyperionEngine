@@ -57,7 +57,7 @@ struct EngineDelegates
 };
 
 HYP_CLASS()
-class HYP_API EngineDriver final : public ObjectBase
+class ENGINE_API EngineDriver final : public ObjectBase
 {
     HYP_OBJECT_BODY(EngineDriver);
 

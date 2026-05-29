@@ -116,7 +116,7 @@ namespace Hyperion {
 HYP_DEFINE_LOG_CHANNEL(Editor);
 
 namespace CoreApi {
-extern FilePath GetExecutablePath();
+CORE_API extern FilePath GetExecutablePath();
 } // namespace CoreApi
 
 static ShaderPropertyId s_propUniformScaling = InternShaderProperty(ShaderProperty(NAME("UNIFORM_SCALING")));

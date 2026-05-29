@@ -37,9 +37,6 @@
 #endif
 
 namespace Hyperion {
-
-HYP_API Pool* g_objectPool;
-
 namespace CodeGen {
 
 HYP_DEFINE_LOG_CHANNEL(Tool);
@@ -193,7 +190,9 @@ private:
             { "HYP_METHOD(...)", "" },
             { "HYP_PROPERTY(...)", "" },
             { "HYP_OBJECT_BODY(...)", "" },
-            { "HYP_API", "" },
+            { "ENGINE_API", "" },
+            { "CORE_API", "" },
+            { "EDITOR_API", "" },
             { "RENDERING_API", "" },
             { "HYP_EXPORT", "" },
             { "HYP_IMPORT", "" },
@@ -639,7 +638,7 @@ private:
 
         CXXModuleGenerator cxxModuleGenerator;
 
-        // Generate the ClassDecl header and implementation files (shared by both modes)
+        // Generate the ClassDecl header (shared by both modes)
         {
             FilePath classDeclHeaderPath = m_analyzer.GetCXXOutputDirectory() / "ClassDecls.inc";
             FileByteWriter classDeclWriter(classDeclHeaderPath);
@@ -659,8 +658,32 @@ private:
             }
         }
 
+        // Determine all unique API macros used across modules (always include ENGINE_API for builtins/fallback)
+        TSet<String> apiMacros;
+        apiMacros.Insert("ENGINE_API");
+
+        for (const UniquePtr<Module>& mod : m_analyzer.GetModules())
         {
-            const FilePath classDeclImplPath = m_analyzer.GetCXXOutputDirectory() / "ClassDecls.cpp";
+            if (!mod->GetClasses().Empty())
+            {
+                apiMacros.Insert(CXXModuleGenerator::GetAPIMacroForModule(m_analyzer, *mod));
+            }
+        }
+
+        // Generate a separate ClassDecls implementation file per API macro group
+        for (const String& apiMacro : apiMacros)
+        {
+            const String outputSubdir = CXXModuleGenerator::GetClassDeclsOutputSubdirForAPIMacro(apiMacro);
+
+            FilePath classDeclImplDir = m_analyzer.GetCXXOutputDirectory();
+
+            if (outputSubdir.Any())
+            {
+                classDeclImplDir = classDeclImplDir / outputSubdir;
+                Assert(classDeclImplDir.MkDir(), "Failed to create ClassDecl output subdirectory: {}", classDeclImplDir);
+            }
+
+            const FilePath classDeclImplPath = classDeclImplDir / "ClassDecls.cpp";
             FilePath tmpClassDeclImplPath = classDeclImplPath + ".tmp";
             FileByteWriter classDeclImplWriter(tmpClassDeclImplPath);
 
@@ -670,7 +693,7 @@ private:
             }
             else
             {
-                if (Result res = cxxModuleGenerator.GenerateClassDeclImplementation(m_analyzer, classDeclImplWriter); res.HasError())
+                if (Result res = cxxModuleGenerator.GenerateClassDeclImplementation(m_analyzer, apiMacro, classDeclImplWriter); res.HasError())
                 {
                     m_analyzer.AddError(AnalyzerError(res.GetError(), tmpClassDeclImplPath));
                 }

@@ -13,7 +13,7 @@
 
 namespace Hyperion {
 
-class HYP_API INIFile
+class ENGINE_API INIFile
 {
 public:
     struct Element

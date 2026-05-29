@@ -22,8 +22,8 @@
 namespace Hyperion {
 
 namespace CoreApi {
-extern FilePath GetExecutablePath();
-}
+CORE_API extern FilePath GetExecutablePath();
+} // namespace CoreApi
 
 namespace Baking {
 

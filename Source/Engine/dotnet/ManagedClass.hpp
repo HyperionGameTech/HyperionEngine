@@ -59,7 +59,7 @@ struct ManagedClassDesc
     uint32 flags;
 };
 
-class HYP_API ManagedClass : public EnableRefCountedPtrFromThis<ManagedClass>
+class ENGINE_API ManagedClass : public EnableRefCountedPtrFromThis<ManagedClass>
 {
 public:
     /*! \brief Function to create a new object of this class.

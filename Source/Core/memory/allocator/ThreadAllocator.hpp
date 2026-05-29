@@ -15,7 +15,7 @@ namespace threading {
 class ThreadBase;
 class ThreadLocalStorage;
 
-HYP_API extern ThreadBase* CurrentThreadObject();
+CORE_API extern ThreadBase* CurrentThreadObject();
 
 } // namespace threading
 

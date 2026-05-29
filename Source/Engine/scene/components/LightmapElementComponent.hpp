@@ -21,7 +21,7 @@ class LightmapVolume;
 enum class LightmapElementId : uint32;
 
 HYP_STRUCT(Component, NoScriptBindings)
-struct HYP_API LightmapElementComponent
+struct ENGINE_API LightmapElementComponent
 {
     HYP_STRUCT_BODY(LightmapElementComponent);
 

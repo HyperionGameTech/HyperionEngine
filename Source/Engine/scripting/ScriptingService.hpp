@@ -22,7 +22,7 @@ struct ScriptEvent
     ScriptDesc* script;
 };
 
-class HYP_API ScriptingService
+class ENGINE_API ScriptingService
 {
 public:
     ScriptingService() = default;

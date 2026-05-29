@@ -48,7 +48,7 @@ struct ProcessAssetFunctor;
 
 using AssetLoadFlags = uint32;
 
-HYP_API extern const Class* GetClass(const TypeId& typeId);
+CORE_API extern const Class* GetClass(const TypeId& typeId);
 
 enum AssetLoadFlagBits : AssetLoadFlags
 {
@@ -114,7 +114,7 @@ public:
     {
     }
 
-    HYP_API ~AssetCollector();
+    ENGINE_API ~AssetCollector();
 
     HYP_METHOD(Property = "BasePath", Serialize = true)
     HYP_FORCE_INLINE const FilePath& GetBasePath() const
@@ -129,7 +129,7 @@ public:
     }
 
     HYP_METHOD()
-    HYP_API void NotifyAssetChanged(const FilePath& path, AssetChangeType changeType);
+    ENGINE_API void NotifyAssetChanged(const FilePath& path, AssetChangeType changeType);
 
     HYP_METHOD(Scriptable)
     bool IsWatching() const;
@@ -185,16 +185,16 @@ public:
     static constexpr bool assetCacheEnabled = false;
 
     HYP_METHOD()
-    HYP_API static const Handle<AssetManager>& GetInstance();
+    ENGINE_API static const Handle<AssetManager>& GetInstance();
 
-    HYP_API AssetManager();
+    ENGINE_API AssetManager();
     AssetManager(const AssetManager& other) = delete;
     AssetManager& operator=(const AssetManager& other) = delete;
     AssetManager(AssetManager&& other) noexcept = delete;
     AssetManager& operator=(AssetManager&& other) noexcept = delete;
-    HYP_API ~AssetManager();
+    ENGINE_API ~AssetManager();
 
-    HYP_API TaskThreadPool* GetThreadPool() const;
+    ENGINE_API TaskThreadPool* GetThreadPool() const;
 
     HYP_METHOD()
     FilePath GetBasePath() const;
@@ -282,12 +282,12 @@ public:
         return TAssetLoadResult<T>(loader->Load(*this, path, batchIdentifier, hint));
     }
 
-    HYP_API const AssetLoaderDefinition* GetLoaderDefinition(const FilePath& path, TypeId desiredTypeId = TypeId::Void());
+    ENGINE_API const AssetLoaderDefinition* GetLoaderDefinition(const FilePath& path, TypeId desiredTypeId = TypeId::Void());
 
-    HYP_API AssetBatch* CreateBatch(const String& identifier = String::empty);
+    ENGINE_API AssetBatch* CreateBatch(const String& identifier = String::empty);
 
     HYP_METHOD()
-    HYP_API Handle<AssetRegistry> GetAssetRegistry() const;
+    ENGINE_API Handle<AssetRegistry> GetAssetRegistry() const;
 
     void Initialize();
 
@@ -299,9 +299,9 @@ public:
 
 private:
     /*! \internal Called from AssetBatch on LoadAsync() */
-    HYP_API void AddPendingBatch(AssetBatch* batch);
+    ENGINE_API void AddPendingBatch(AssetBatch* batch);
 
-    HYP_API UniquePtr<ProcessAssetFunctorBase> CreateProcessAssetFunctor(TypeId loaderTypeId,
+    ENGINE_API UniquePtr<ProcessAssetFunctorBase> CreateProcessAssetFunctor(TypeId loaderTypeId,
         const String& batchIdentifier,
         const String& key,
         const String& path,

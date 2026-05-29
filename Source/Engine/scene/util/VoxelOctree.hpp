@@ -98,7 +98,7 @@ struct VoxelOctreePayload
     }
 };
 
-class HYP_API VoxelOctree : public OctreeBase<VoxelOctree, VoxelOctreePayload>
+class ENGINE_API VoxelOctree : public OctreeBase<VoxelOctree, VoxelOctreePayload>
 {
     friend class OctreeBase<VoxelOctree, VoxelOctreePayload>;
 

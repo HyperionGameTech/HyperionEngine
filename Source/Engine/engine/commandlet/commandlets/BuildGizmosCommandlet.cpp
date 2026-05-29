@@ -303,7 +303,7 @@ protected:
     }
 };
 
-HYP_API const Class* g_clsBuildGizmosCommandlet = nullptr;
+ENGINE_API const Class* g_clsBuildGizmosCommandlet = nullptr;
 
 HYP_BEGIN_CLASS(BuildGizmosCommandlet, -1, 0, NAME("CommandletBase"), ClassAttribute("command", "buildgizmos"))
 HYP_END_CLASS

@@ -21,7 +21,7 @@ class UIText;
 class UIListView;
 
 HYP_CLASS()
-class HYP_API BaseStatsOverlay : public OverlayBase
+class ENGINE_API BaseStatsOverlay : public OverlayBase
 {
     HYP_OBJECT_BODY(BaseStatsOverlay);
 

@@ -13,7 +13,7 @@
 
 namespace Hyperion {
 
-HYP_API const Class* g_clsClassRef = nullptr;
+ENGINE_API const Class* g_clsClassRef = nullptr;
 
 // clang-format off
 HYP_BEGIN_STRUCT(ClassRef, -1, 0, {})
@@ -54,7 +54,7 @@ HYP_BEGIN_STRUCT(ClassRef, -1, 0, {})
             {
                 return BoxedValue();
             }
-            
+
             const Class* parent = classRef->GetParent();
             if (!parent)
             {

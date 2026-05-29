@@ -37,7 +37,7 @@ HYP_MAKE_ENUM_FLAGS(PoolFlags);
 
 namespace memory {
 
-class HYP_API Pool
+class CORE_API Pool
 {
     Pool() = delete;
 

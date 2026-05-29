@@ -12,7 +12,7 @@ namespace Hyperion::dotnet {
 class ManagedObject;
 class ManagedClass;
 
-class HYP_API ManagedAttributeSet
+class ENGINE_API ManagedAttributeSet
 {
 public:
     ManagedAttributeSet() = default;

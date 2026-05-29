@@ -17,7 +17,7 @@ class UIGrid;
 #pragma region UIGridColumn
 
 HYP_CLASS()
-class HYP_API UIGridColumn : public UIPanel
+class ENGINE_API UIGridColumn : public UIPanel
 {
     HYP_OBJECT_BODY(UIGridColumn);
 
@@ -52,7 +52,7 @@ private:
 #pragma region UIGridRow
 
 HYP_CLASS()
-class HYP_API UIGridRow : public UIPanel
+class ENGINE_API UIGridRow : public UIPanel
 {
     HYP_OBJECT_BODY(UIGridRow);
 
@@ -119,7 +119,7 @@ private:
 #pragma region UIGrid
 
 HYP_CLASS()
-class HYP_API UIGrid : public UIPanel
+class ENGINE_API UIGrid : public UIPanel
 {
     HYP_OBJECT_BODY(UIGrid);
 

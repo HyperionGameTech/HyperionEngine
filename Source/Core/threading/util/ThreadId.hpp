@@ -40,16 +40,16 @@ public:
 
     static const ThreadId s_invalid;
 
-    HYP_API static const ThreadId& Current();
-    HYP_API static const ThreadId& Invalid();
+    CORE_API static const ThreadId& Current();
+    CORE_API static const ThreadId& Invalid();
 
     constexpr ThreadId()
         : m_value(0)
     {
     }
 
-    HYP_API ThreadId(Name name, bool forceUnique = false);
-    HYP_API ThreadId(Name name, ThreadCategory category, bool forceUnique = false);
+    CORE_API ThreadId(Name name, bool forceUnique = false);
+    CORE_API ThreadId(Name name, ThreadCategory category, bool forceUnique = false);
 
     constexpr ThreadId(const ThreadId& other) = default;
     ThreadId& operator=(const ThreadId& other) = default;
@@ -120,7 +120,7 @@ public:
     }
 
 protected:
-    HYP_API ThreadId(Name name, ThreadCategory category, uint32 allocateFlags);
+    CORE_API ThreadId(Name name, ThreadCategory category, uint32 allocateFlags);
 
     uint32 m_value;
     Name m_name;
@@ -130,7 +130,7 @@ static_assert(std::is_trivially_destructible_v<ThreadId>,
     "ThreadId must be trivially destructible! Otherwise thread_local current_thread_id var may  be generated using a wrapper function.");
 
 /*! \brief StaticThreadIds may be used for bitwise operations as only one bit will be set for the value. */
-class HYP_API StaticThreadId : public ThreadId
+class CORE_API StaticThreadId : public ThreadId
 {
 public:
     friend constexpr ThreadMask operator|(ThreadMask lhs, const StaticThreadId& rhs);

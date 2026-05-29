@@ -22,9 +22,9 @@
 
 namespace Hyperion {
 
-HYP_API extern ShaderCompiler* g_shaderCompiler;
+ENGINE_API extern ShaderCompiler* g_shaderCompiler;
 
-HYP_API extern const FilePath& GetLibraryDirectory();
+ENGINE_API extern const FilePath& GetLibraryDirectory();
 
 class PrecompileShaders : public CommandletBase
 {
@@ -193,7 +193,7 @@ protected:
     }
 };
 
-HYP_API const Class* g_clsPrecompileShaders = nullptr;
+ENGINE_API const Class* g_clsPrecompileShaders = nullptr;
 
 HYP_BEGIN_CLASS(PrecompileShaders, -1, 0, NAME("CommandletBase"), ClassAttribute("command", "precompileshaders"))
     Method(NAME("GetArgumentDefinitions"), &Type::GetArgumentDefinitions)

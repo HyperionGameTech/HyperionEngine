@@ -60,7 +60,7 @@ namespace Hyperion {
 HYP_DECLARE_LOG_CHANNEL(Core);
 
 namespace CoreApi {
-extern const GlobalConfig& GetGlobalConfig();
+CORE_API extern const GlobalConfig& GetGlobalConfig();
 } // namespace CoreApi
 
 extern ThreadSignal g_renderInitSignal;

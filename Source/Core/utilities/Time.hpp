@@ -9,7 +9,7 @@ namespace utilities {
 
 struct Time;
 
-struct TimeDiff
+struct CORE_API TimeDiff
 {
     TimeDiff()
         : milliseconds(0)
@@ -103,7 +103,7 @@ struct TimeDiff
     int64 milliseconds;
 };
 
-struct Time
+struct CORE_API Time
 {
     uint64 m_value;
 

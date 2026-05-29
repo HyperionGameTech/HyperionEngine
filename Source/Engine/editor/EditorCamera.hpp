@@ -21,7 +21,7 @@ enum class EditorCameraControllerMode : uint32
 };
 
 HYP_CLASS()
-class HYP_API EditorCameraInputHandler : public InputHandlerBase
+class EDITOR_API EditorCameraInputHandler : public InputHandlerBase
 {
     HYP_OBJECT_BODY(EditorCameraInputHandler);
 
@@ -46,7 +46,7 @@ private:
 };
 
 HYP_CLASS()
-class HYP_API EditorCameraController : public FirstPersonCameraController
+class EDITOR_API EditorCameraController : public FirstPersonCameraController
 {
     HYP_OBJECT_BODY(EditorCameraController);
 

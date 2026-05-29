@@ -24,7 +24,7 @@ namespace Hyperion {
 class Mesh;
 class RenderProxyList;
 
-HYP_API extern Pool* g_editorPickCachePool;
+EDITOR_API extern Pool* g_editorPickCachePool;
 using EpcAllocator = AllocatorInstance<Pool, &g_editorPickCachePool>;
 
 struct EditorPickCacheEntry

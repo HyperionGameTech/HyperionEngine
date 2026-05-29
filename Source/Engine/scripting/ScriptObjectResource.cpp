@@ -294,7 +294,7 @@ void ScriptObjectResource::Destroy()
 
 #pragma region Object Extensions for.NET
 
-HYP_API void Object_IncScriptObjectRef(ObjectBase* ptr)
+ENGINE_API void Object_IncScriptObjectRef(ObjectBase* ptr)
 {
     AssertDebug(ptr->GetObjectHeader_Internal()->GetRefCountStrong() > 1);
 
@@ -305,7 +305,7 @@ HYP_API void Object_IncScriptObjectRef(ObjectBase* ptr)
     }
 }
 
-HYP_API void Object_DecScriptObjectRef(ObjectBase* ptr)
+ENGINE_API void Object_DecScriptObjectRef(ObjectBase* ptr)
 {
     if (ScriptObjectResource* scriptObjectResource = ptr->GetScriptObjectResource();
         scriptObjectResource && scriptObjectResource->GetScriptLanguageMask() & (1u << uint32(ScriptLanguage::CSharp)))

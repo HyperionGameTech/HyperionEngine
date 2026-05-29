@@ -49,10 +49,10 @@ class ManagedObject;
 } // namespace dotnet
 #endif
 
-HYP_API extern bool IsA(const Class* cls, const void* ptr, const TypeId& typeId);
-HYP_API extern bool IsA(const Class* cls, const Class* instanceClass);
+CORE_API extern bool IsA(const Class* cls, const void* ptr, const TypeId& typeId);
+CORE_API extern bool IsA(const Class* cls, const Class* instanceClass);
 
-class HYP_API ObjectBase
+class CORE_API ObjectBase
 {
     template <class T>
     friend struct Handle;

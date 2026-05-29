@@ -18,7 +18,7 @@
 
 namespace Hyperion {
 
-HYP_API Ray operator*(const Mat4f& transform, const Ray& ray)
+CORE_API Ray operator*(const Mat4f& transform, const Ray& ray)
 {
     Vec4f transformedPosition = transform.TransformVector(Vec4f(ray.position, 1.0f));
     transformedPosition /= transformedPosition.w;

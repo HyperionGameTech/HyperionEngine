@@ -14,7 +14,7 @@
 namespace Hyperion {
 
 HYP_CLASS(Abstract)
-class HYP_API PhysicsWorldBase : public ObjectBase
+class ENGINE_API PhysicsWorldBase : public ObjectBase
 {
     HYP_OBJECT_BODY(PhysicsWorldBase);
 
@@ -67,7 +67,7 @@ protected:
 };
 
 template <class Adapter>
-class HYP_API TPhysicsWorld : public PhysicsWorldBase
+class ENGINE_API TPhysicsWorld : public PhysicsWorldBase
 {
 public:
     TPhysicsWorld()

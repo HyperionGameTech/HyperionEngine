@@ -34,8 +34,8 @@ namespace threading {
 class ThreadId;
 class ThreadBase;
 
-HYP_API extern void ThreadSleep(uint32 milliseconds);
-HYP_API extern ThreadBase* GetThreadById(const ThreadId& threadId);
+CORE_API extern void ThreadSleep(uint32 milliseconds);
+CORE_API extern ThreadBase* GetThreadById(const ThreadId& threadId);
 
 } // namespace threading
 

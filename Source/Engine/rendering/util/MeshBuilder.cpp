@@ -169,7 +169,7 @@ static const Array<SimpleVertex>& GetCubeVertices()
     return s_cubeVertices;
 }
 
-HYP_API Handle<Mesh> Quad()
+ENGINE_API Handle<Mesh> Quad()
 {
     const auto& vertices = GetQuadVertices();
     const auto& indices = GetQuadIndices();
@@ -196,7 +196,7 @@ HYP_API Handle<Mesh> Quad()
     return mesh;
 }
 
-HYP_API Handle<Mesh> DoubleSidedQuad()
+ENGINE_API Handle<Mesh> DoubleSidedQuad()
 {
     const auto& vertices = GetDoubleSidedQuadVertices();
     const auto& indices = GetDoubleSidedQuadIndices();
@@ -223,7 +223,7 @@ HYP_API Handle<Mesh> DoubleSidedQuad()
     return mesh;
 }
 
-HYP_API Handle<Mesh> Cube(bool originOnBottom)
+ENGINE_API Handle<Mesh> Cube(bool originOnBottom)
 {
     static const auto s_cubeVerticesAndIndices = CalculateIndices(GetCubeVertices());
 
@@ -337,7 +337,7 @@ HYP_API Handle<Mesh> Cube(bool originOnBottom)
     return mesh;
 }
 
-HYP_API Handle<Mesh> NormalizedCubeSphere(uint32 numDivisions){
+ENGINE_API Handle<Mesh> NormalizedCubeSphere(uint32 numDivisions){
     const float step = 1.0f / float(numDivisions);
 
     static const Vec3f origins[6] = {
@@ -457,7 +457,7 @@ HYP_API Handle<Mesh> NormalizedCubeSphere(uint32 numDivisions){
     return mesh;
 }
 
-HYP_API Handle<Mesh> ApplyTransform(const Mesh* mesh, const Transform& transform)
+ENGINE_API Handle<Mesh> ApplyTransform(const Mesh* mesh, const Transform& transform)
 {
     Assert(mesh != nullptr);
 
@@ -510,7 +510,7 @@ HYP_API Handle<Mesh> ApplyTransform(const Mesh* mesh, const Transform& transform
     return newMesh;
 }
 
-HYP_API Handle<Mesh> Merge(const Mesh* a, const Mesh* b, const Transform& aTransform, const Transform& bTransform)
+ENGINE_API Handle<Mesh> Merge(const Mesh* a, const Mesh* b, const Transform& aTransform, const Transform& bTransform)
 {
     Assert(a != nullptr);
     Assert(b != nullptr);
@@ -631,12 +631,12 @@ HYP_API Handle<Mesh> Merge(const Mesh* a, const Mesh* b, const Transform& aTrans
     return newMesh;
 }
 
-HYP_API Handle<Mesh> Merge(const Mesh* a, const Mesh* b)
+ENGINE_API Handle<Mesh> Merge(const Mesh* a, const Mesh* b)
 {
     return Merge(a, b, Transform(), Transform());
 }
 
-HYP_API Handle<Mesh> BuildVoxelMesh(const VoxelOctree& voxelOctree)
+ENGINE_API Handle<Mesh> BuildVoxelMesh(const VoxelOctree& voxelOctree)
 {
     static const auto cubeVerticesAndIndices = CalculateIndices(GetCubeVertices());
 
@@ -733,7 +733,7 @@ HYP_API Handle<Mesh> BuildVoxelMesh(const VoxelOctree& voxelOctree)
     return mesh;
 }
 
-HYP_API Handle<Mesh> Cylinder(float radius, float height, uint32 numSegments)
+ENGINE_API Handle<Mesh> Cylinder(float radius, float height, uint32 numSegments)
 {
     numSegments = MathUtil::Max(numSegments, 3u);
 
@@ -802,7 +802,7 @@ HYP_API Handle<Mesh> Cylinder(float radius, float height, uint32 numSegments)
     return mesh;
 }
 
-HYP_API Handle<Mesh> Cone(float radius, float height, uint32 numSegments)
+ENGINE_API Handle<Mesh> Cone(float radius, float height, uint32 numSegments)
 {
     numSegments = MathUtil::Max(numSegments, 3u);
 
@@ -864,7 +864,7 @@ HYP_API Handle<Mesh> Cone(float radius, float height, uint32 numSegments)
     return mesh;
 }
 
-HYP_API Handle<Mesh> Torus(float majorRadius, float minorRadius, uint32 majorSegments, uint32 minorSegments)
+ENGINE_API Handle<Mesh> Torus(float majorRadius, float minorRadius, uint32 majorSegments, uint32 minorSegments)
 {
     majorSegments = MathUtil::Max(majorSegments, 3u);
     minorSegments = MathUtil::Max(minorSegments, 3u);

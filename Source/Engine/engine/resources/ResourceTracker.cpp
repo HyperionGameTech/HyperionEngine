@@ -14,7 +14,7 @@
 
 namespace Hyperion {
 
-HYP_API const TypeInfo& Class_GetTypeInfo(const Class& cls)
+ENGINE_API const TypeInfo& Class_GetTypeInfo(const Class& cls)
 {
     return *cls.GetTypeInfo();
 }

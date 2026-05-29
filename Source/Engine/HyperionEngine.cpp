@@ -99,21 +99,21 @@ struct AAssetManager* g_androidAssetManager;
 #pragma endregion Memory Pools
 
 // defined in ClassDecls.cpp
-extern void InitClassDecls();
+extern void InitializeModule_Engine();
 
 // defined in PlatformUtils.[cpp|mm]
 namespace PlatformUtils {
 extern PlatformString GetExecutableAbsolutePath();
 } // namespace PlatformUtils
 
-HYP_API Handle<EngineDriver> g_engineDriver;
-HYP_API Handle<AssetManager> g_assetManager;
-HYP_API Handle<AudioManager> g_audioManager;
-HYP_API Handle<AppContextBase> g_appContext;
-HYP_API Handle<StreamingManager> g_streamingManager;
-HYP_API Handle<EngineStats> g_engineStats;
-HYP_API MaterialInstanceCache* g_materialInstanceCache;
-HYP_API ShaderCompiler* g_shaderCompiler;
+ENGINE_API Handle<EngineDriver> g_engineDriver;
+ENGINE_API Handle<AssetManager> g_assetManager;
+ENGINE_API Handle<AudioManager> g_audioManager;
+ENGINE_API Handle<AppContextBase> g_appContext;
+ENGINE_API Handle<StreamingManager> g_streamingManager;
+ENGINE_API Handle<EngineStats> g_engineStats;
+ENGINE_API MaterialInstanceCache* g_materialInstanceCache;
+ENGINE_API ShaderCompiler* g_shaderCompiler;
 
 #if HYP_EDITOR
 Handle<EditorState> g_editorState;
@@ -312,7 +312,7 @@ extern "C"
 
         SetCurrentThreadId(g_mainThread);
 
-        InitClassDecls();
+        InitializeModule_Engine();
 
         CoreApi::SetConfigDirectory(GetConfigDirectory());
 

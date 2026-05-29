@@ -23,7 +23,7 @@ namespace Hyperion {
 struct Triangle;
 
 HYP_STRUCT(Size = 32)
-struct HYP_API BoundingBox
+struct CORE_API BoundingBox
 {
     HYP_STRUCT_BODY(BoundingBox);
 
@@ -174,8 +174,8 @@ struct HYP_API BoundingBox
     Vec3f max;
 };
 
-extern HYP_API BoundingBox operator*(const Mat4f& transform, const BoundingBox& aabb);
-extern HYP_API BoundingBox operator*(const Transform& transform, const BoundingBox& aabb);
+CORE_API extern BoundingBox operator*(const Mat4f& transform, const BoundingBox& aabb);
+CORE_API extern BoundingBox operator*(const Transform& transform, const BoundingBox& aabb);
 
 namespace utilities {
 

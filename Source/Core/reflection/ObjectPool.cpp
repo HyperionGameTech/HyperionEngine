@@ -17,7 +17,9 @@
 
 namespace Hyperion {
 
-HYP_API void ReleaseObject(ObjectHeader* header)
+CORE_API Pool* g_objectPool = nullptr;
+
+CORE_API void ReleaseObject(ObjectHeader* header)
 {
     AssertDebug(header != nullptr);
 

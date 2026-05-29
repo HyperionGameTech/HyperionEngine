@@ -13,7 +13,7 @@
 namespace Hyperion {
 
 namespace CoreApi {
-extern FilePath GetExecutablePath();
+CORE_API extern FilePath GetExecutablePath();
 } // namespace CoreApi
 
 template <auto DirectoryStaticString, bool RelativeToExecutablePath = true>
@@ -39,7 +39,7 @@ struct DirectoryInitializer
             path = CoreApi::GetExecutablePath() / String(DirectoryStaticString.Data());
 #endif
         }
-        
+
 #if HYP_EDITOR
         if (!path.Exists())
         {

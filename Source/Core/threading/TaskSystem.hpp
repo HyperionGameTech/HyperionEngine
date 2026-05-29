@@ -41,7 +41,7 @@ namespace Hyperion {
 
 HYP_DECLARE_LOG_CHANNEL(Tasks);
 
-HYP_API extern Pool* GetTaskPool();
+CORE_API extern Pool* GetTaskPool();
 
 namespace threading {
 
@@ -117,10 +117,10 @@ public:
     }
 
     /*! \brief Check if all tasks in the batch have been completed. */
-    HYP_API bool IsCompleted() const;
+    CORE_API bool IsCompleted() const;
 
     /*! \brief Block the current thread until all tasks have been marked as completed. */
-    HYP_API void AwaitCompletion();
+    CORE_API void AwaitCompletion();
 
     /*! \brief Execute each non-enqueued task in serial (not async).
      *  \param executeDependentBatches If true, the nextBatch will also be executed. */
@@ -165,7 +165,7 @@ public:
 class TaskSystem
 {
 public:
-    HYP_API static TaskSystem& GetInstance();
+    CORE_API static TaskSystem& GetInstance();
 
     TaskSystem();
 
@@ -182,8 +182,8 @@ public:
         return m_running.Get(MemoryOrder::RELAXED);
     }
 
-    HYP_API void Start();
-    HYP_API void Stop();
+    CORE_API void Start();
+    CORE_API void Stop();
 
     void RegisterPool(TaskThreadPoolName poolName, UniquePtr<TaskThreadPool>&& pool);
 
@@ -260,7 +260,7 @@ public:
      *  \param batch Pointer to the TaskBatch to enqueue
      *  \param callback Optional callback to be called when all tasks in the batch have finished executing.
      */
-    HYP_API TaskBatch* EnqueueBatch(TaskBatch* batch);
+    CORE_API TaskBatch* EnqueueBatch(TaskBatch* batch);
 
     /*! \brief Dequeue each task in a TaskBatch. A potentially expensive operation,
      * as each task will have to individually be dequeued, performing a lock operation.
@@ -268,7 +268,7 @@ public:
      * @returns A Array<bool> containing for each task that has been enqueued, whether or not
      * it was successfully dequeued.
      */
-    HYP_API Array<bool> DequeueBatch(TaskBatch* batch);
+    CORE_API Array<bool> DequeueBatch(TaskBatch* batch);
 
     /*! \brief Creates a TaskBatch which will call the lambda for \p numItems times in parallel.
      *  The tasks will be split evenly into groups, based on the number of threads in the pool for the default priority.
@@ -386,7 +386,7 @@ public:
     }
 
 private:
-    HYP_API TaskThread* GetNextTaskThread(TaskThreadPool& pool);
+    CORE_API TaskThread* GetNextTaskThread(TaskThreadPool& pool);
 
     Array<UniquePtr<TaskThreadPool>> m_pools;
     Array<TaskBatch*> m_runningBatches;

@@ -21,11 +21,11 @@
 
 namespace Hyperion {
 
-HYP_API extern const Class* GetClass(const TypeId& typeId);
-HYP_API extern size_t GetNumDescendants(TypeId typeId);
-HYP_API extern int GetSubclassIndex(TypeId baseTypeId, TypeId subclassTypeId);
+CORE_API extern const Class* GetClass(const TypeId& typeId);
+CORE_API extern size_t GetNumDescendants(TypeId typeId);
+CORE_API extern int GetSubclassIndex(TypeId baseTypeId, TypeId subclassTypeId);
 
-HYP_API extern const TypeInfo& Class_GetTypeInfo(const Class& cls);
+ENGINE_API extern const TypeInfo& Class_GetTypeInfo(const Class& cls);
 
 class NullProxy;
 

@@ -28,7 +28,7 @@ namespace filesystem {
 
 struct DirectoryIteratorImpl;
 
-class HYP_API DirectoryIterator
+class CORE_API DirectoryIterator
 {
 public:
     DirectoryIterator();
@@ -178,31 +178,31 @@ public:
         return *this = Join(Data(), str);
     }
 
-    HYP_API bool Exists() const;
-    HYP_API bool IsDirectory() const;
-    HYP_API bool MkDir() const;
+    CORE_API bool Exists() const;
+    CORE_API bool IsDirectory() const;
+    CORE_API bool MkDir() const;
 
-    HYP_API bool CanWrite() const;
-    HYP_API bool CanRead() const;
+    CORE_API bool CanWrite() const;
+    CORE_API bool CanRead() const;
 
-    HYP_API String GetExtension() const;
+    CORE_API String GetExtension() const;
     HYP_NODISCARD String StripExtension() const;
 
-    HYP_API Time LastModifiedTimestamp() const;
+    CORE_API Time LastModifiedTimestamp() const;
 
-    HYP_API size_t FileSizeOnDisk() const;
+    CORE_API size_t FileSizeOnDisk() const;
 
-    HYP_API String Basename() const;
+    CORE_API String Basename() const;
 
-    HYP_API FilePath BasePath() const;
+    CORE_API FilePath BasePath() const;
 
     /*! \brief Remove the file or directory at the path.
      *
      * \return true if the file or directory was removed, false otherwise.
      */
-    HYP_API bool Remove() const;
+    CORE_API bool Remove() const;
 
-    HYP_API bool Rename(const FilePath& newPath) const;
+    CORE_API bool Rename(const FilePath& newPath) const;
 
     static inline FilePath Current()
     {
@@ -249,16 +249,16 @@ public:
         return FilePath(String::Join(argsArray, HYP_FILESYSTEM_SEPARATOR));
     }
 
-    HYP_API Hyperion::containers::Array<FilePath, DynamicAllocator> GetAllFilesInDirectory() const;
-    HYP_API Hyperion::containers::Array<FilePath, DynamicAllocator> GetSubdirectories() const;
+    CORE_API Hyperion::containers::Array<FilePath, DynamicAllocator> GetAllFilesInDirectory() const;
+    CORE_API Hyperion::containers::Array<FilePath, DynamicAllocator> GetSubdirectories() const;
 
     /*! \brief Open the directory for iteration. Returns a DirectoryIterator positioned at the first entry.
      *  On Android, asset paths (prefixed with AndroidAssetPathPrefix) are iterated via the AssetManager.
      *  On failure (path doesn't exist, not a directory, etc.) returns an invalid iterator. */
-    HYP_API DirectoryIterator OpenDirectory() const;
+    CORE_API DirectoryIterator OpenDirectory() const;
 
-    HYP_API size_t DirectorySize() const;
-    HYP_API size_t FileSize() const;
+    CORE_API size_t DirectorySize() const;
+    CORE_API size_t FileSize() const;
 };
 } // namespace filesystem
 

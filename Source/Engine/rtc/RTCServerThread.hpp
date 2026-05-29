@@ -13,7 +13,7 @@ namespace Hyperion {
 
 class RTCServer;
 
-class HYP_API RTCServerThread final : public Thread<Scheduler, RTCServer*>
+class ENGINE_API RTCServerThread final : public Thread<Scheduler, RTCServer*>
 {
 public:
     RTCServerThread();

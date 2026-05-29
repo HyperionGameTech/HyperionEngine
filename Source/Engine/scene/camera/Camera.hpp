@@ -109,7 +109,7 @@ struct CameraCommand
 class Camera;
 
 HYP_CLASS(Abstract)
-class HYP_API CameraController : public ObjectBase
+class ENGINE_API CameraController : public ObjectBase
 {
     friend class Camera;
 
@@ -203,7 +203,7 @@ private:
 };
 
 HYP_CLASS()
-class HYP_API NullCameraController final : public CameraController
+class ENGINE_API NullCameraController final : public CameraController
 {
     HYP_OBJECT_BODY(NullCameraController);
 
@@ -225,7 +225,7 @@ class FirstPersonCameraController;
 class FollowCameraController;
 
 HYP_CLASS()
-class HYP_API Camera final : public Entity
+class ENGINE_API Camera final : public Entity
 {
     HYP_OBJECT_BODY(Camera);
 

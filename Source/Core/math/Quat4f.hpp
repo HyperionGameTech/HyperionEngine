@@ -20,7 +20,7 @@ namespace Hyperion {
 class Mat4f;
 
 HYP_STRUCT(Size = 16)
-struct alignas(16) HYP_API Quat4f
+struct alignas(16) CORE_API Quat4f
 {
     HYP_STRUCT_BODY(Quat4f);
 

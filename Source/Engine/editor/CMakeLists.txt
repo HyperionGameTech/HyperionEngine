@@ -12,9 +12,6 @@ link_directories(${CMAKE_THIRD_PARTY_LIBRARY_DIRECTORY})
 set(CMAKE_BUILD_PARALLEL_LEVEL 8)
 set(CMAKE_CXX_STANDARD 20 CACHE STRING "C++ standard to be used")
 
-add_definitions(-DHYP_BUILD_LIBRARY=1)
-add_definitions(-DHYP_EDITOR=1)
-
 include_directories(SYSTEM
     ${SDL2_INCLUDE_DIRS}
     ${THIRD_PARTY_INCLUDE_DIR}
@@ -37,7 +34,8 @@ foreach(filepath ${hyperion-editor_HEADERS})
 endforeach()
 source_group(TREE ${CMAKE_CURRENT_SOURCE_DIR} PREFIX "Source Code" FILES ${CURRENT_SOURCES} ${CURRENT_HEADERS})
 
-add_library(${BUILD_NAME} STATIC ${CURRENT_SOURCES} ${CURRENT_HEADERS})
+add_library(${BUILD_NAME} SHARED ${CURRENT_SOURCES} ${CURRENT_HEADERS})
+target_compile_definitions(${BUILD_NAME} PRIVATE HYP_BUILD_EDITOR=1 HYP_EDITOR=1)
 
 if(NOT "${${BUILD_NAME}_PCH}" STREQUAL "")
   target_precompile_headers(${BUILD_NAME} PRIVATE "${${BUILD_NAME}_PCH}")

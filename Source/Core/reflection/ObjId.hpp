@@ -29,7 +29,7 @@ extern const TypeId& TypeIdOf();
 
 using utilities::TypeIdOf;
 
-HYP_API extern const char* LookupTypeName(const TypeId& typeId);
+CORE_API extern const char* LookupTypeName(const TypeId& typeId);
 
 struct ObjIdBase
 {

@@ -10,7 +10,7 @@
 
 namespace Hyperion {
 
-HYP_API const Class* g_clsName = nullptr;
+ENGINE_API const Class* g_clsName = nullptr;
 
 // clang-format off
 HYP_BEGIN_STRUCT(Name, -1, 0, {})

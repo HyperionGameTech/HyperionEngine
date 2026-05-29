@@ -22,8 +22,8 @@
 
 namespace Hyperion {
 
-HYP_API extern size_t GetNumDescendants(TypeId typeId);
-HYP_API extern int GetSubclassIndex(TypeId baseTypeId, TypeId subclassTypeId);
+CORE_API extern size_t GetNumDescendants(TypeId typeId);
+CORE_API extern int GetSubclassIndex(TypeId baseTypeId, TypeId subclassTypeId);
 
 class Entity;
 
@@ -130,7 +130,7 @@ class EntityContainer
     };
 
 public:
-    HYP_API static EntityContainer& GetDefaultInstance();
+    ENGINE_API static EntityContainer& GetDefaultInstance();
 
     EntityContainer()
     {

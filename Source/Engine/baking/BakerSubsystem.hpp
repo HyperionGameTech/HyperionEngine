@@ -40,7 +40,7 @@ template <class T>
 } // namespace Baking
 
 HYP_CLASS()
-class HYP_API BakerSubsystem final : public Subsystem
+class ENGINE_API BakerSubsystem final : public Subsystem
 {
     HYP_OBJECT_BODY(BakerSubsystem);
 

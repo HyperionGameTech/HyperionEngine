@@ -27,7 +27,7 @@ class EditorTaskBase;
 class EditorSubsystem;
 
 HYP_CLASS()
-class HYP_API EditorState : public ObjectBase
+class EDITOR_API EditorState : public ObjectBase
 {
     HYP_OBJECT_BODY(EditorState);
 

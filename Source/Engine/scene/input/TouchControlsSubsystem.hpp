@@ -41,7 +41,7 @@ class World;
  *  Movement and look deltas are accessible via GetMovementDelta() and GetLookDelta()
  */
 HYP_CLASS()
-class HYP_API TouchControlsSubsystem final : public Subsystem
+class ENGINE_API TouchControlsSubsystem final : public Subsystem
 {
     HYP_OBJECT_BODY(TouchControlsSubsystem);
 

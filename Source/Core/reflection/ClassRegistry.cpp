@@ -25,7 +25,7 @@
 
 namespace Hyperion {
 
-HYP_API const Class* g_hypObjectBaseClass = nullptr;
+CORE_API const Class* g_hypObjectBaseClass = nullptr;
 
 #pragma region ClassRegistry
 
@@ -68,7 +68,7 @@ static void InitThreadLocalCache()
 
 #endif
 
-HYP_API bool ClassRegistry_IsInitialized()
+CORE_API bool ClassRegistry_IsInitialized()
 {
     return ClassRegistry::GetInstance().IsInitialized();
 }

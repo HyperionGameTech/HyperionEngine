@@ -17,7 +17,7 @@
 namespace Hyperion {
 
 HYP_CLASS()
-class HYP_API DynamicSkySystem : public SystemBase
+class ENGINE_API DynamicSkySystem : public SystemBase
 {
     HYP_OBJECT_BODY(DynamicSkySystem);
 
@@ -38,7 +38,7 @@ public:
 
     virtual void OnAddedToWorld(World* world) override;
     virtual void OnRemovedFromWorld(World* world) override;
-    
+
     virtual bool RequiresSimThread() const override
     {
         return true;

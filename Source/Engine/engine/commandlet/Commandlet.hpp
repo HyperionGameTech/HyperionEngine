@@ -23,7 +23,7 @@ using cli::CommandLineArguments;
 using cli::CommandLineArgumentDefinitions;
 
 HYP_CLASS(Abstract)
-class HYP_API CommandletBase : public ObjectBase
+class ENGINE_API CommandletBase : public ObjectBase
 {
     HYP_OBJECT_BODY(CommandletBase);
 

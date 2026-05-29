@@ -30,7 +30,7 @@ class Light;
 class Camera;
 class RenderProxyEnvProbe;
 
-HYP_API extern Pool* g_scenePool;
+ENGINE_API extern Pool* g_scenePool;
 using SceneAllocator = AllocatorInstance<Pool, &g_scenePool>;
 
 HYP_ENUM()
@@ -135,7 +135,7 @@ struct EnvProbeSphericalHarmonics
 #pragma pack(pop)
 
 HYP_CLASS(AssetBucket = "EnvProbes")
-class HYP_API EnvProbe : public VolumeBase
+class ENGINE_API EnvProbe : public VolumeBase
 {
     HYP_OBJECT_BODY(EnvProbe);
 
@@ -364,7 +364,7 @@ protected:
 };
 
 HYP_CLASS()
-class HYP_API ReflectionProbe : public EnvProbe
+class ENGINE_API ReflectionProbe : public EnvProbe
 {
     HYP_OBJECT_BODY(ReflectionProbe);
 
@@ -390,7 +390,7 @@ public:
 };
 
 HYP_CLASS()
-class HYP_API SkyProbe : public EnvProbe
+class ENGINE_API SkyProbe : public EnvProbe
 {
     HYP_OBJECT_BODY(SkyProbe);
 

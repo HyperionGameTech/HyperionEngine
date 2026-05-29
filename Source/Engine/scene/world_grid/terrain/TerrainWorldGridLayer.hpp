@@ -16,7 +16,7 @@ class MaterialInstance;
 class Scene;
 
 HYP_CLASS()
-class HYP_API TerrainWorldGridLayer : public WorldGridLayer
+class ENGINE_API TerrainWorldGridLayer : public WorldGridLayer
 {
     HYP_OBJECT_BODY(TerrainWorldGridLayer);
 

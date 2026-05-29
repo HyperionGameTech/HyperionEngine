@@ -29,7 +29,7 @@ using threading::TaskBatch;
 
 /*! \brief A group of Systems that are able to be processed concurrently, as they do not share any dependencies.
  */
-class HYP_API SystemExecutionGroup
+class ENGINE_API SystemExecutionGroup
 {
 public:
     explicit SystemExecutionGroup(bool requiresSimThread = false, bool allowUpdate = true);

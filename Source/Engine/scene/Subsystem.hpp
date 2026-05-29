@@ -25,7 +25,7 @@ enum class SubsystemUpdatePhase : uint8
 };
 
 HYP_CLASS(Abstract)
-class HYP_API Subsystem : public ObjectBase
+class ENGINE_API Subsystem : public ObjectBase
 {
     HYP_OBJECT_BODY(Subsystem);
 

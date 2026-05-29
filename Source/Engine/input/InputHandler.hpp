@@ -22,7 +22,7 @@ struct InputState;
 struct TouchEvent;
 
 HYP_CLASS(Abstract)
-class HYP_API InputHandlerBase : public ObjectBase
+class ENGINE_API InputHandlerBase : public ObjectBase
 {
     HYP_OBJECT_BODY(InputHandlerBase);
 

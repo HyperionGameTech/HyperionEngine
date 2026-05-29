@@ -24,7 +24,7 @@ namespace utilities {
 
 class GlobalContextRegistry;
 
-HYP_API GlobalContextRegistry* GetGlobalContextRegistryForCurrentThread();
+CORE_API GlobalContextRegistry* GetGlobalContextRegistryForCurrentThread();
 
 class GlobalContextHolderBase
 {
@@ -75,7 +75,7 @@ protected:
 template <class ContextType>
 class GlobalContextHolder;
 
-class HYP_API GlobalContextRegistry
+class CORE_API GlobalContextRegistry
 {
 public:
     GlobalContextRegistry();

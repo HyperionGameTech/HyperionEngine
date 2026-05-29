@@ -24,7 +24,7 @@
 namespace Hyperion {
 
 HYP_STRUCT()
-class alignas(uint32) HYP_API Color
+class alignas(uint32) CORE_API Color
 {
 public:
     HYP_STRUCT_BODY(Color);

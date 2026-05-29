@@ -10,7 +10,7 @@
 namespace Hyperion {
 
 #if defined(HYPERION_ENGINE) && HYPERION_ENGINE
-HYP_API extern Pool* g_taskPool;
+CORE_API extern Pool* g_taskPool;
 #endif // defined(HYPERION_ENGINE) && HYPERION_ENGINE
 
 namespace threading {
@@ -20,7 +20,7 @@ static Array<TaskExecutorBase*> s_deferredTasks;
 
 static constexpr uint32 DeferredTasksCleanupThreshold = 32;
 
-HYP_API Pool* GetTaskPool()
+CORE_API Pool* GetTaskPool()
 {
 #if defined(HYPERION_ENGINE) && HYPERION_ENGINE
     AssertDebug(g_taskPool != nullptr);
@@ -60,7 +60,7 @@ static void CleanupDeferredTasks()
     }
 }
 
-HYP_API void Task_DeleteAllDeferredTasks()
+CORE_API void Task_DeleteAllDeferredTasks()
 {
     Array<TaskExecutorBase*> toDelete;
 
@@ -83,7 +83,7 @@ HYP_API void Task_DeleteAllDeferredTasks()
     }
 }
 
-HYP_API void Task_DeferTaskDeletion(TaskExecutorBase* taskExecutor)
+CORE_API void Task_DeferTaskDeletion(TaskExecutorBase* taskExecutor)
 {
     if (!taskExecutor)
     {

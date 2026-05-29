@@ -21,13 +21,13 @@ namespace Hyperion {
 class NameRegistry;
 
 /*! \brief Creates a Name from a dynamic string. Adds it to the registry, so a lock is required. */
-HYP_API extern Name CreateNameFromDynamicString(const ANSIString& str);
+CORE_API extern Name CreateNameFromDynamicString(const ANSIString& str);
 
 /*! \brief Creates a Name from a dynamic string. Does not add it to the registry. */
-HYP_API extern StringHash CreateStringHashFromDynamicString(const ANSIStringView& str);
+CORE_API extern StringHash CreateStringHashFromDynamicString(const ANSIStringView& str);
 
-HYP_API extern Name RegisterName(NameRegistry* nameRegistry, NameID id, const ANSIString& str, bool lock);
-HYP_API extern bool ShouldLockNameRegistry();
+CORE_API extern Name RegisterName(NameRegistry* nameRegistry, NameID id, const ANSIString& str, bool lock);
+CORE_API extern bool ShouldLockNameRegistry();
 
 void InitNameRegistry();
 void DestroyNameRegistry();
@@ -47,7 +47,7 @@ struct NameRegistration
         return id;
     }
 
-    HYP_API static NameID GenerateID(const ANSIStringView& str);
+    CORE_API static NameID GenerateID(const ANSIStringView& str);
 
     template <class HashedName>
     static NameRegistration FromHashedName(HashedName&& hashedName, bool lock = true)
@@ -69,7 +69,7 @@ struct NameRegistration
         return NameRegistration { nameId };
     }
 
-    HYP_API static NameRegistration FromDynamicString(const ANSIString& str);
+    CORE_API static NameRegistration FromDynamicString(const ANSIString& str);
 };
 
 /*! \brief Creates a Name from a static string. The string must be a compile-time constant. */

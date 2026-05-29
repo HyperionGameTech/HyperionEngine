@@ -13,7 +13,7 @@
 namespace Hyperion {
 namespace profiling {
 
-class HYP_API PerformanceClock
+class CORE_API PerformanceClock
 {
 public:
     static uint64 Now();

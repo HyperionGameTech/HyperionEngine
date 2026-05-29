@@ -15,7 +15,7 @@
 namespace Hyperion {
 namespace threading {
 
-HYP_API extern void ThreadSleep(uint32 milliseconds);
+CORE_API extern void ThreadSleep(uint32 milliseconds);
 
 class AtomicFlag final
 {
@@ -72,7 +72,7 @@ public:
         while (!AtomicCompareExchange(&m_value, expected, 1))
         {
             expected = 0;
-            
+
             // volatile read
             while (m_value != 0)
             {

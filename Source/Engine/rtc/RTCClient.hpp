@@ -66,7 +66,7 @@ struct RTCClientCallbacks
     Delegate<void, const RTCClientCallbackData&> OnMessage;
 };
 
-class HYP_API RTCClient
+class ENGINE_API RTCClient
 {
 public:
     RTCClient(String id, RTCServer* server)

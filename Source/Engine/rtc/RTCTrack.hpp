@@ -33,7 +33,7 @@ enum RTCTrackType
     RTC_TRACK_TYPE_VIDEO
 };
 
-class HYP_API RTCTrackBase
+class ENGINE_API RTCTrackBase
 {
 public:
     RTCTrackBase(RTCTrackType trackType)
@@ -62,7 +62,7 @@ protected:
     RTCTrackType m_trackType;
 };
 
-class HYP_API NullRTCTrack : public RTCTrackBase
+class ENGINE_API NullRTCTrack : public RTCTrackBase
 {
 public:
     NullRTCTrack(RTCTrackType trackType)
@@ -85,7 +85,7 @@ public:
 
 #ifdef HYP_LIBDATACHANNEL
 
-class HYP_API LibDataChannelRTCTrack : public RTCTrackBase
+class ENGINE_API LibDataChannelRTCTrack : public RTCTrackBase
 {
 public:
     LibDataChannelRTCTrack(RTCTrackType trackType)

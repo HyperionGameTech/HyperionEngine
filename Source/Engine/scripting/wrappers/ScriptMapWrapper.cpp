@@ -12,7 +12,7 @@ namespace Hyperion {
 
 static const BoxedValue s_emptyBoxedValue = BoxedValue();
 
-HYP_API const Class* g_clsScriptMap = nullptr;
+ENGINE_API const Class* g_clsScriptMap = nullptr;
 
 // clang-format off
 HYP_BEGIN_STRUCT(ScriptMap, -1, 0, {})

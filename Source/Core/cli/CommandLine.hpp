@@ -74,7 +74,7 @@ struct CommandLineArgumentDefinition
 struct CommandLineArgumentDefinitionsImpl;
 
 HYP_STRUCT(Size = 8)
-struct HYP_API CommandLineArgumentDefinitions
+struct CORE_API CommandLineArgumentDefinitions
 {
     HYP_STRUCT_BODY(CommandLineArgumentDefinitions);
 
@@ -121,7 +121,7 @@ public:
 };
 
 HYP_STRUCT()
-class HYP_API CommandLineArguments
+class CORE_API CommandLineArguments
 {
     HYP_STRUCT_BODY(CommandLineArguments);
 
@@ -210,7 +210,7 @@ public:
     HYP_DEF_STL_BEGIN_END(m_values.Begin(), m_values.End())
 };
 
-class CommandLineParser
+class CORE_API CommandLineParser
 {
 public:
     CommandLineParser()
@@ -236,9 +236,9 @@ public:
         return m_definitions;
     }
 
-    HYP_API TResult<CommandLineArguments> Parse(const String& commandLine, bool fillDefaults = true) const;
-    HYP_API TResult<CommandLineArguments> Parse(int argc, char** argv, bool fillDefaults = true) const;
-    HYP_API TResult<CommandLineArguments> Parse(ANSIStringView command, const Array<String>& args, bool fillDefaults = true) const;
+    TResult<CommandLineArguments> Parse(const String& commandLine, bool fillDefaults = true) const;
+    TResult<CommandLineArguments> Parse(int argc, char** argv, bool fillDefaults = true) const;
+    TResult<CommandLineArguments> Parse(ANSIStringView command, const Array<String>& args, bool fillDefaults = true) const;
 
     void ApplyDefaults(CommandLineArguments& args) const;
 

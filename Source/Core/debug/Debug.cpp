@@ -100,19 +100,19 @@ HYP_DEPRECATED void DebugLog_Write(LogType type, const char* callee, uint32_t li
 }
 #endif
 
-HYP_API void DebugLog_FlushOutputStream()
+CORE_API void DebugLog_FlushOutputStream()
 {
     fputs("\n\n", HYP_DEBUG_OUTPUT_STREAM);
     fflush(HYP_DEBUG_OUTPUT_STREAM);
 }
 
-HYP_API void WriteToStandardError(const char* msg)
+CORE_API void WriteToStandardError(const char* msg)
 {
     fputs(msg, stderr);
     fflush(stderr);
 }
 
-HYP_API bool IsDebuggerAttached()
+CORE_API bool IsDebuggerAttached()
 {
 #if HYP_WINDOWS
     return ::IsDebuggerPresent();

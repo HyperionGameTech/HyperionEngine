@@ -28,7 +28,7 @@ class Bone;
 class Skeleton;
 
 HYP_CLASS(AssetBucket = "AnimationTracks")
-class HYP_API AnimationTrack final : public AssetObject
+class ENGINE_API AnimationTrack final : public AssetObject
 {
     HYP_OBJECT_BODY(AnimationTrack);
 
@@ -97,7 +97,7 @@ private:
 };
 
 HYP_CLASS(AssetBucket = "Animations")
-class HYP_API Animation final : public AssetObject
+class ENGINE_API Animation final : public AssetObject
 {
     HYP_OBJECT_BODY(Animation);
 
@@ -143,7 +143,7 @@ public:
 
     HYP_METHOD()
     void ApplyBlended(Skeleton* skeleton, float time, float blend);
-    
+
     void Init() override;
 
 private:

@@ -12,7 +12,7 @@
 
 namespace Hyperion {
 
-HYP_API const Class* g_clsString = nullptr;
+ENGINE_API const Class* g_clsString = nullptr;
 
 // clang-format off
 HYP_BEGIN_STRUCT(String, -1, 0, {})

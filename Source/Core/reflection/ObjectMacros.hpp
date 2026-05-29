@@ -16,7 +16,7 @@ const Class* GetClass();
 template <class T>
 struct GetClassHelper
 {
-    HYP_API static const Class* Get();
+    CORE_API static const Class* Get();
 };
 
 class ClassRegistrationBase;
@@ -54,7 +54,7 @@ protected:
 #define HYP_BEGIN_STRUCT(cls, _static_index, _num_descendants, parentClass, ...)                                                                \
                                                                                                                                                 \
     template <>                                                                                                                                 \
-    HYP_API const Class* GetClassHelper<cls>::Get() { return g_cls##cls; }                                                                      \
+    HYP_EXPORT const Class* GetClassHelper<cls>::Get() { return g_cls##cls; }                                                                      \
                                                                                                                                                 \
     template <>                                                                                                                                 \
     TClassStaticInit<cls>::TClassStaticInit()                                                                                                   \
@@ -68,7 +68,7 @@ protected:
 #define HYP_BEGIN_CLASS(cls, _static_index, _num_descendants, parentClass, ...)                                                                 \
                                                                                                                                                 \
     template <>                                                                                                                                 \
-    HYP_API const Class* GetClassHelper<cls>::Get() { return g_cls##cls; }                                                                      \
+    HYP_EXPORT const Class* GetClassHelper<cls>::Get() { return g_cls##cls; }                                                                      \
                                                                                                                                                 \
     template <>                                                                                                                                 \
     TClassStaticInit<cls>::TClassStaticInit()                                                                                                   \
@@ -82,7 +82,7 @@ protected:
 #define HYP_BEGIN_ENUM(cls, _static_index, _num_descendants, ...)                                                                               \
                                                                                                                                                 \
     template <>                                                                                                                                 \
-    HYP_API const Class* GetClassHelper<cls>::Get() { return g_cls##cls; }                                                                      \
+    HYP_EXPORT const Class* GetClassHelper<cls>::Get() { return g_cls##cls; }                                                                      \
                                                                                                                                                 \
     template <>                                                                                                                                 \
     TClassStaticInit<cls>::TClassStaticInit()                                                                                                   \
@@ -165,7 +165,7 @@ public:                                                                         
                                                                                  \
     HYP_FORCE_INLINE static const Class* StaticClass()                           \
     {                                                                            \
-        HYP_API extern const Class* g_cls##T;                                    \
+        HYP_EXTERN_CLASS const Class* g_cls##T;                                  \
         return g_cls##T;                                                         \
     }                                                                            \
                                                                                  \
@@ -221,7 +221,7 @@ private:
                                                        \
     HYP_FORCE_INLINE static const Class* StaticClass() \
     {                                                  \
-        HYP_API extern const Class* g_cls##T;          \
+        HYP_EXTERN_CLASS const Class* g_cls##T;        \
         return g_cls##T;                               \
     }
 

@@ -19,7 +19,7 @@
 
 namespace Hyperion {
 
-HYP_API extern Pool* g_assetPool;
+ENGINE_API extern Pool* g_assetPool;
 using AssetAllocator = AllocatorInstance<Pool, &g_assetPool>;
 
 class MappedBlobStorage

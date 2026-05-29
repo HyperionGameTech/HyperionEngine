@@ -31,8 +31,8 @@ namespace Hyperion {
 
 class Class;
 
-HYP_API extern const Class* GetClass(const TypeId& typeId);
-HYP_API extern bool IsA(const Class* cls, const void* ptr, const TypeId& typeId);
+CORE_API extern const Class* GetClass(const TypeId& typeId);
+CORE_API extern bool IsA(const Class* cls, const void* ptr, const TypeId& typeId);
 
 namespace memory {
 
@@ -68,21 +68,21 @@ struct ControlBlock
 
 namespace detail {
 
-HYP_API extern void DefaultFreeBlock(void* blk);
+CORE_API extern void DefaultFreeBlock(void* blk);
 
-HYP_API extern void ExternalBlockDeleter(void* blk);
-
-template <class CountType>
-HYP_API extern uint32 IncStrong(ControlBlock<CountType>* block);
+CORE_API extern void ExternalBlockDeleter(void* blk);
 
 template <class CountType>
-HYP_API extern uint32 ReleaseStrong(ControlBlock<CountType>* block);
+CORE_API extern uint32 IncStrong(ControlBlock<CountType>* block);
 
 template <class CountType>
-HYP_API extern uint32 IncWeak(ControlBlock<CountType>* block);
+CORE_API extern uint32 ReleaseStrong(ControlBlock<CountType>* block);
 
 template <class CountType>
-HYP_API extern uint32 ReleaseWeak(ControlBlock<CountType>* block);
+CORE_API extern uint32 IncWeak(ControlBlock<CountType>* block);
+
+template <class CountType>
+CORE_API extern uint32 ReleaseWeak(ControlBlock<CountType>* block);
 
 template <class CountType, class T>
 ControlBlock<CountType>* NewExternalOwnedBlock(T* ptr)

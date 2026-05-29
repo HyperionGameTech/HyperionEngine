@@ -31,7 +31,7 @@ protected:
     }
 };
 
-HYP_API const Class* g_clsLogMemoryPools = nullptr;
+ENGINE_API const Class* g_clsLogMemoryPools = nullptr;
 
 HYP_BEGIN_CLASS(LogMemoryPools, -1, 0, NAME("CommandletBase"), ClassAttribute("command", "logmemorypools"))
     Method(NAME("GetArgumentDefinitions"), &Type::GetArgumentDefinitions)

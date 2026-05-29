@@ -14,7 +14,7 @@
 
 namespace Hyperion {
 
-HYP_API bool ComponentInterface_CreateInstance(const Class* cls, BoxedValue& outBoxed)
+ENGINE_API bool ComponentInterface_CreateInstance(const Class* cls, BoxedValue& outBoxed)
 {
     if (!cls || !cls->CanCreateInstance())
     {

@@ -16,7 +16,7 @@
 
 namespace Hyperion {
 
-HYP_API bool KeyCodeToChar(KeyCode keyCode, bool shift, bool alt, bool ctrl, char& outChar)
+ENGINE_API bool KeyCodeToChar(KeyCode keyCode, bool shift, bool alt, bool ctrl, char& outChar)
 {
     if (uint32(keyCode) >= uint32(KeyCode::KEY_A) && uint32(keyCode) <= uint32(KeyCode::KEY_Z))
     {

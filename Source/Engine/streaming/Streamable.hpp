@@ -21,7 +21,7 @@
 namespace Hyperion {
 
 HYP_CLASS(Abstract)
-class HYP_API StreamableBase : public ObjectBase
+class ENGINE_API StreamableBase : public ObjectBase
 {
     HYP_OBJECT_BODY(StreamableBase);
 

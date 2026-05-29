@@ -29,7 +29,7 @@ extern "C" Method* Class_GetMethod(const Class* cls, const Name* methodName);
 
 namespace functional {
 
-HYP_API void LogScriptableDelegateError(const char* message, dotnet::ManagedObject* objectPtr);
+ENGINE_API void LogScriptableDelegateError(const char* message, dotnet::ManagedObject* objectPtr);
 
 class IScriptableDelegate
 {

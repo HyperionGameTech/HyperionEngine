@@ -45,12 +45,12 @@
 namespace Hyperion {
 
 namespace CoreApi {
-extern FilePath GetExecutablePath();
-extern HYP_NODISCARD FilePath CreateTempDirectory();
-extern const GlobalConfig& GetGlobalConfig();
+CORE_API extern FilePath GetExecutablePath();
+CORE_API extern HYP_NODISCARD FilePath CreateTempDirectory();
+CORE_API extern const GlobalConfig& GetGlobalConfig();
 } // namespace CoreApi
 
-HYP_API extern const FilePath& GetCacheDirectory();
+ENGINE_API extern const FilePath& GetCacheDirectory();
 
 #ifdef HYP_ANDROID
 extern bool IsAndroidAssetPath(const FilePath& filepath);
@@ -75,7 +75,7 @@ static Array<Handle<AssetRegistry>>& GetAssetRegistryStack()
     return s_stack;
 }
 
-HYP_API Handle<AssetRegistry> GetCurrentAssetRegistry()
+ENGINE_API Handle<AssetRegistry> GetCurrentAssetRegistry()
 {
     // try getting thread-local registry override.
     AssetRegistryContext* ctx = GetGlobalContext<AssetRegistryContext>();
@@ -97,7 +97,7 @@ HYP_API Handle<AssetRegistry> GetCurrentAssetRegistry()
     return Handle<AssetRegistry>::Null();
 }
 
-HYP_API void PushAssetRegistry(const Handle<AssetRegistry>& registry)
+ENGINE_API void PushAssetRegistry(const Handle<AssetRegistry>& registry)
 {
     AssertDebug(registry.IsValid(), "Cannot push a null AssetRegistry!");
 
@@ -112,7 +112,7 @@ HYP_API void PushAssetRegistry(const Handle<AssetRegistry>& registry)
     registry->LoadAssetDescs();
 }
 
-HYP_API void PopAssetRegistry(const AssetRegistry* registry)
+ENGINE_API void PopAssetRegistry(const AssetRegistry* registry)
 {
     Mutex::Guard guard(GetCurrentAssetRegistryMutex());
 
@@ -133,19 +133,19 @@ HYP_API void PopAssetRegistry(const AssetRegistry* registry)
     }
 }
 
-HYP_API void ClearAssetRegistryStack()
+ENGINE_API void ClearAssetRegistryStack()
 {
     Mutex::Guard guard(GetCurrentAssetRegistryMutex());
 
     GetAssetRegistryStack().Clear();
 }
 
-HYP_API Handle<AssetRegistry> GetEngineAssetRegistry()
+ENGINE_API Handle<AssetRegistry> GetEngineAssetRegistry()
 {
     return s_engineAssetRegistry;
 }
 
-HYP_API void SetEngineAssetRegistry(const Handle<AssetRegistry>& registry)
+ENGINE_API void SetEngineAssetRegistry(const Handle<AssetRegistry>& registry)
 {
     if (registry.IsValid())
     {
@@ -157,12 +157,12 @@ HYP_API void SetEngineAssetRegistry(const Handle<AssetRegistry>& registry)
 
 #if HYP_EDITOR
 
-HYP_API Handle<AssetRegistry> GetEditorAssetRegistry()
+ENGINE_API Handle<AssetRegistry> GetEditorAssetRegistry()
 {
     return s_editorAssetRegistry;
 }
 
-HYP_API void SetEditorAssetRegistry(const Handle<AssetRegistry>& registry)
+ENGINE_API void SetEditorAssetRegistry(const Handle<AssetRegistry>& registry)
 {
     if (registry.IsValid())
     {
@@ -182,10 +182,10 @@ static constexpr const char* BlobStorageName = "Storage";
 // otherwise a mutex will be used to allow multi-threaded access.
 static constexpr bool UseSingleThread = false;
 
-HYP_API extern const FilePath& GetLibraryDirectory();
+ENGINE_API extern const FilePath& GetLibraryDirectory();
 
 #if HYP_EDITOR
-HYP_API extern const FilePath& GetProjectsDirectory();
+ENGINE_API extern const FilePath& GetProjectsDirectory();
 #endif
 
 StringHash AssetDesc_KeyByFunction(const AssetDesc& assetDesc)

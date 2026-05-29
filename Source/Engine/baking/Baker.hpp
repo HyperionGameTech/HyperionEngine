@@ -155,7 +155,7 @@ protected:
 };
 
 HYP_CLASS(Abstract)
-class HYP_API BakerBase : public ObjectBase
+class ENGINE_API BakerBase : public ObjectBase
 {
     HYP_OBJECT_BODY(BakerBase);
 

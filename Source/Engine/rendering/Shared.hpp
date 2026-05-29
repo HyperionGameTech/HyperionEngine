@@ -1581,9 +1581,9 @@ struct VertexTypeMask
         return uint32(ByteUtil::BitCount(flagMask));
     }
 
-    RENDERING_API Array<VertexType> GetAllTypes() const;
+    ENGINE_API Array<VertexType> GetAllTypes() const;
 
-    RENDERING_API String ToString() const;
+    ENGINE_API String ToString() const;
 
     HYP_FORCE_INLINE HashCode GetHashCode() const
     {
@@ -1806,9 +1806,9 @@ struct ShaderProperty
         }
     }
 
-    RENDERING_API String GetValueString() const;
-    RENDERING_API HashCode GetHashCode() const;
-    RENDERING_API String ToString() const;
+    ENGINE_API String GetValueString() const;
+    ENGINE_API HashCode GetHashCode() const;
+    ENGINE_API String ToString() const;
 };
 
 HYP_STRUCT()
@@ -1961,7 +1961,7 @@ public:
         return Find(name) != m_props.End();
     }
 
-    RENDERING_API ShaderVariantPerms& Set(const ShaderProperty& property, bool enabled = true);
+    ENGINE_API ShaderVariantPerms& Set(const ShaderProperty& property, bool enabled = true);
 
     HYP_FORCE_INLINE ShaderVariantPerms& Set(Name name, bool enabled = true, ShaderPropertyFlags flags = SPF_NONE)
     {
@@ -2130,7 +2130,7 @@ public:
         return m_props.ToArray();
     }
 
-    RENDERING_API String ToString() const;
+    ENGINE_API String ToString() const;
 
     HashCode GetHashCode() const
     {

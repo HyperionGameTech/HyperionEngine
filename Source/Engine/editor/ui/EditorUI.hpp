@@ -30,7 +30,7 @@ struct EditorNodePropertyRef
 
 class UIElementFactoryBase;
 
-HYP_API Handle<UIElementFactoryBase> GetEditorUIElementFactory(const TypeInfo& typeInfo);
+EDITOR_API Handle<UIElementFactoryBase> GetEditorUIElementFactory(const TypeInfo& typeInfo);
 
 template <class T>
 static Handle<UIElementFactoryBase> GetEditorUIElementFactory()

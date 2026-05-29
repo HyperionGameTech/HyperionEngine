@@ -16,17 +16,17 @@ namespace Hyperion {
 HYP_DECLARE_LOG_CHANNEL(Assets);
 
 namespace CoreApi {
-extern FilePath GetExecutablePath();
+CORE_API extern FilePath GetExecutablePath();
 } // namespace CoreApi
 
-HYP_API void OnPostLoad_Impl(const Class* cls, void* objectPtr)
+ENGINE_API void OnPostLoad_Impl(const Class* cls, void* objectPtr)
 {
     cls->PostLoad(objectPtr);
 }
 
 #pragma region LoadedAsset
 
-HYP_API void LoadedAsset::OnPostLoad()
+ENGINE_API void LoadedAsset::OnPostLoad()
 {
     if (!IsValid())
     {

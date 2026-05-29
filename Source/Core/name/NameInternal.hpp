@@ -28,7 +28,7 @@ struct HashedName;
 template <HashCode::ValueType HashCode>
 static inline Name CreateNameFromStaticString_WithLock(const char* str);
 
-extern HYP_API Name CreateNameFromDynamicString(const ANSIString& str);
+extern CORE_API Name CreateNameFromDynamicString(const ANSIString& str);
 
 /*! \brief A name is a hashed string that is used to identify objects, components, and other entities in the engine.
  *  \details Names have their text components stored in a global registry and are internally.
@@ -112,12 +112,12 @@ struct Name
 
     /*! \brief Returns the string representation of the name, if it is found in the name registry.
      *  Otherwise, it returns an empty string. */
-    HYP_API const char* LookupString() const;
+    CORE_API const char* LookupString() const;
 
-    HYP_API static NameRegistry* GetRegistry();
+    CORE_API static NameRegistry* GetRegistry();
 
     /*! \brief Generates a unique name with a prefix. */
-    HYP_API static Name Unique(const ANSIStringView& prefix);
+    CORE_API static Name Unique(const ANSIStringView& prefix);
 
     HYP_FORCE_INLINE static constexpr Name Invalid()
     {
@@ -125,10 +125,10 @@ struct Name
     }
 
     HYP_METHOD()
-    HYP_API static Name FromString(const char* str);
+    CORE_API static Name FromString(const char* str);
 
     HYP_METHOD(NoScriptBindings)
-    HYP_API String ToString() const;
+    CORE_API String ToString() const;
 };
 
 struct StringHash
@@ -238,7 +238,7 @@ struct StringHash
     };
 
     HYP_METHOD(NoScriptBindings)
-    HYP_API String ToString() const;
+    CORE_API String ToString() const;
 };
 
 constexpr bool operator==(const Name& lhs, const Name& rhs)

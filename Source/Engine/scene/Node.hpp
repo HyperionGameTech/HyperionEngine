@@ -184,7 +184,7 @@ struct NodeTag
         return name != other.name || data != other.data;
     }
 
-    HYP_API String ToString() const;
+    ENGINE_API String ToString() const;
 };
 
 struct NodeUnlockTransformScope;
@@ -347,7 +347,7 @@ public:
 };
 
 HYP_CLASS(PostLoad = "Node_OnPostLoad", AssetBucket = "Nodes")
-class HYP_API Node : public AssetObject
+class ENGINE_API Node : public AssetObject
 {
     friend class Scene;
     friend class Entity;

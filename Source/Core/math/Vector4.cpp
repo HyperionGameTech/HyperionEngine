@@ -37,9 +37,9 @@ static HYP_FORCE_INLINE Hyperion::math::Vec4<float> StoreVec4f(__m128 value)
 
 namespace Hyperion {
 
-HYP_API const Class* g_clsVec4f = nullptr;
-HYP_API const Class* g_clsVec4i = nullptr;
-HYP_API const Class* g_clsVec4u = nullptr;
+CORE_API const Class* g_clsVec4f = nullptr;
+CORE_API const Class* g_clsVec4i = nullptr;
+CORE_API const Class* g_clsVec4u = nullptr;
 
 // clang-format off
 HYP_BEGIN_STRUCT(Vec4f, -1, 0, {})

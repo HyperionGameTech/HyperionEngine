@@ -153,7 +153,7 @@ union PlatformEvent
 #endif
 };
 
-class HYP_API Event final
+class ENGINE_API Event final
 {
 public:
     using EventData = Variant<

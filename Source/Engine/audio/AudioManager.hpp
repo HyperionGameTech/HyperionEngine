@@ -19,7 +19,7 @@
 namespace Hyperion {
 
 HYP_CLASS()
-class HYP_API AudioManager : public ObjectBase
+class ENGINE_API AudioManager : public ObjectBase
 {
     HYP_OBJECT_BODY(AudioManager);
 

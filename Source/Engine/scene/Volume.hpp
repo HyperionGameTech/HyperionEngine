@@ -13,7 +13,7 @@
 namespace Hyperion {
 
 HYP_CLASS(Abstract)
-class HYP_API VolumeBase : public Entity
+class ENGINE_API VolumeBase : public Entity
 {
     HYP_OBJECT_BODY(VolumeBase);
 

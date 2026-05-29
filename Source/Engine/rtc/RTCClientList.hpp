@@ -17,7 +17,7 @@ namespace Hyperion {
 
 class RTCClient;
 
-class HYP_API RTCClientList
+class ENGINE_API RTCClientList
 {
 public:
     using Iterator = typename FlatMap<String, RC<RTCClient>>::Iterator;

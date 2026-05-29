@@ -23,7 +23,7 @@ class LibDataChannelRTCClient;
 
 namespace Hyperion {
 
-class HYP_API RTCDataChannel
+class ENGINE_API RTCDataChannel
 {
 public:
     RTCDataChannel() = default;
@@ -37,7 +37,7 @@ public:
     void Send(const String&);
 };
 
-class HYP_API NullRTCDataChannel : public RTCDataChannel
+class ENGINE_API NullRTCDataChannel : public RTCDataChannel
 {
 public:
     using RTCDataChannel::Send;
@@ -54,7 +54,7 @@ public:
 
 #ifdef HYP_LIBDATACHANNEL
 
-class HYP_API LibDataChannelRTCDataChannel : public RTCDataChannel
+class ENGINE_API LibDataChannelRTCDataChannel : public RTCDataChannel
 {
 public:
     friend class LibDataChannelRTCClient;

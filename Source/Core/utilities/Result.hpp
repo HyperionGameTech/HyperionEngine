@@ -27,7 +27,7 @@ namespace utilities {
 
 class Error;
 
-HYP_API extern const Error& GetNullError();
+CORE_API extern const Error& GetNullError();
 
 HYP_STRUCT(Size = 16)
 class Error

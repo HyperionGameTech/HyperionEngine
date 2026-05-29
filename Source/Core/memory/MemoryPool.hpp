@@ -107,10 +107,10 @@ struct MemoryPoolBlock final
 
 class MemoryPoolManager;
 
-extern HYP_API MemoryPoolManager& GetMemoryPoolManager();
-extern HYP_API void CalculateMemoryUsagePerPool(Array<Pair<MemoryPoolBase*, size_t>>& outBytesPerPool);
+CORE_API extern MemoryPoolManager& GetMemoryPoolManager();
+CORE_API extern void CalculateMemoryUsagePerPool(Array<Pair<MemoryPoolBase*, size_t>>& outBytesPerPool);
 
-class HYP_API MemoryPoolBase
+class CORE_API MemoryPoolBase
 {
 public:
     HYP_DEPRECATED MemoryPoolBase(const MemoryPoolBase& other) = delete;

@@ -34,7 +34,7 @@ enum class AudioSourceState : uint32
 };
 
 HYP_CLASS()
-class HYP_API AudioSource final : public ObjectBase
+class ENGINE_API AudioSource final : public ObjectBase
 {
     HYP_OBJECT_BODY(AudioSource);
 

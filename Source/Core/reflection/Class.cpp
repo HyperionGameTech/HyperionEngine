@@ -47,7 +47,7 @@ extern Pool* g_scriptPool;
 #ifdef HYP_TOOL
 const Class* g_clsObjectBase = nullptr;
 #else
-HYP_API extern const Class* g_clsObjectBase;
+CORE_API extern const Class* g_clsObjectBase;
 #endif
 
 namespace Attributes {
@@ -84,27 +84,27 @@ const Name g_attrEditCondition = NAME("editcondition");
 
 #pragma region Helpers
 
-HYP_API const Class* GetClass(const TypeId& typeId)
+CORE_API const Class* GetClass(const TypeId& typeId)
 {
     return ClassRegistry::GetInstance().GetClass(typeId);
 }
 
-HYP_API const Class* GetClass(StringHash typeName)
+CORE_API const Class* GetClass(StringHash typeName)
 {
     return ClassRegistry::GetInstance().GetClass(typeName);
 }
 
-HYP_API const Class* GetEnum(const TypeId& typeId)
+CORE_API const Class* GetEnum(const TypeId& typeId)
 {
     return ClassRegistry::GetInstance().GetEnum(typeId);
 }
 
-HYP_API const Class* GetEnum(StringHash typeName)
+CORE_API const Class* GetEnum(StringHash typeName)
 {
     return ClassRegistry::GetInstance().GetEnum(typeName);
 }
 
-HYP_API bool IsA(const Class* cls, const void* ptr, const TypeId& typeId)
+CORE_API bool IsA(const Class* cls, const void* ptr, const TypeId& typeId)
 {
     if (!ptr)
     {
@@ -156,7 +156,7 @@ HYP_API bool IsA(const Class* cls, const void* ptr, const TypeId& typeId)
     return false;
 }
 
-HYP_API bool IsA(const Class* cls, const Class* instanceClass)
+CORE_API bool IsA(const Class* cls, const Class* instanceClass)
 {
     if (!cls || !instanceClass)
     {
@@ -184,7 +184,7 @@ HYP_API bool IsA(const Class* cls, const Class* instanceClass)
     return false;
 }
 
-HYP_API int GetSubclassIndex(TypeId baseTypeId, TypeId subclassTypeId)
+CORE_API int GetSubclassIndex(TypeId baseTypeId, TypeId subclassTypeId)
 {
     const Class* base = GetClass(baseTypeId);
     if (!base)
@@ -221,7 +221,7 @@ HYP_API int GetSubclassIndex(TypeId baseTypeId, TypeId subclassTypeId)
     return -2;
 }
 
-HYP_API size_t GetNumDescendants(TypeId typeId)
+CORE_API size_t GetNumDescendants(TypeId typeId)
 {
     const Class* base = GetClass(typeId);
     if (!base)

@@ -18,7 +18,7 @@
 namespace Hyperion {
 
 HYP_CLASS(EditorOnly, NoScriptBindings)
-class HYP_API EditorSpriteSystem final : public SystemBase
+class ENGINE_API EditorSpriteSystem final : public SystemBase
 {
     HYP_OBJECT_BODY(EditorSpriteSystem);
 

@@ -47,7 +47,7 @@ protected:
     virtual bool CreateInstance_Internal(BoxedValue& out) const override = 0;
     virtual bool CreateInstanceArray_Internal(Span<BoxedValue> elements, BoxedValue& out) const override = 0;
 
-    HYP_API bool CreateStructInstance(dotnet::ObjectReference& outObjectReference, const void* objectPtr, size_t size) const;
+    CORE_API bool CreateStructInstance(dotnet::ObjectReference& outObjectReference, const void* objectPtr, size_t size) const;
 };
 
 template <class T>

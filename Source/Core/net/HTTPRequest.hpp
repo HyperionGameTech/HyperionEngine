@@ -37,7 +37,7 @@ enum class HTTPMethod
     DELETE_
 };
 
-class HYP_API HTTPResponse
+class CORE_API HTTPResponse
 {
 public:
     friend class HTTPRequest;
@@ -83,7 +83,7 @@ private:
     mutable Mutex m_mutex;
 };
 
-class HYP_API HTTPRequest
+class CORE_API HTTPRequest
 {
 public:
     HTTPRequest(const String& url, HTTPMethod method = HTTPMethod::GET);

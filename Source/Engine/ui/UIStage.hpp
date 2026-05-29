@@ -62,7 +62,7 @@ enum class UIRayTestFlags : uint32
 HYP_MAKE_ENUM_FLAGS(UIRayTestFlags)
 
 /*! \brief Extension to UIStage that adds update manager integration */
-class HYP_API UIStageUpdateManager final : public UIUpdateManager
+class ENGINE_API UIStageUpdateManager final : public UIUpdateManager
 {
 public:
     explicit UIStageUpdateManager(UIStage* stage);
@@ -81,7 +81,7 @@ private:
 /*! \brief The UIStage is the root of the UI scene graph. */
 
 HYP_CLASS()
-class HYP_API UIStage : public UIObject
+class ENGINE_API UIStage : public UIObject
 {
     HYP_OBJECT_BODY(UIStage);
 

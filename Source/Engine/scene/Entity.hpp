@@ -38,7 +38,7 @@ struct EntityInitInfo
 };
 
 HYP_CLASS(AssetBucket = "Entities")
-class HYP_API Entity : public Node
+class ENGINE_API Entity : public Node
 {
     HYP_OBJECT_BODY(Entity);
 

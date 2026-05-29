@@ -27,9 +27,9 @@ struct HandleBase
 {
 };
 
-HYP_API extern TypeId GetTypeIdForClass(const Class* cls);
-HYP_API extern ObjectContainerBase* GetObjectContainerForClass(const Class* cls);
-HYP_API extern const char* LookupTypeName(const TypeId& typeId);
+CORE_API extern TypeId GetTypeIdForClass(const Class* cls);
+CORE_API extern ObjectContainerBase* GetObjectContainerForClass(const Class* cls);
+CORE_API extern const char* LookupTypeName(const TypeId& typeId);
 
 /*! \brief A Handle is a strong reference to an object allocated in the Object Pool. All Handles are reference counted and will automatically
  *  release the object when the last reference is destroyed.
@@ -751,8 +751,8 @@ public:
     {
     }
 
-    HYP_API explicit AnyHandle(ObjectBase* obj);
-    HYP_API AnyHandle(const Class* cls, ObjectBase* ptr);
+    CORE_API explicit AnyHandle(ObjectBase* obj);
+    CORE_API AnyHandle(const Class* cls, ObjectBase* ptr);
 
     template <class T, typename = std::enable_if_t<std::is_base_of_v<ObjectBase, T> && !std::is_same_v<ObjectBase, T>>>
     explicit AnyHandle(T* ptr)
@@ -795,13 +795,13 @@ public:
     {
     }
 
-    HYP_API AnyHandle(const AnyHandle& other);
-    HYP_API AnyHandle& operator=(const AnyHandle& other);
+    CORE_API AnyHandle(const AnyHandle& other);
+    CORE_API AnyHandle& operator=(const AnyHandle& other);
 
-    HYP_API AnyHandle(AnyHandle&& other) noexcept;
-    HYP_API AnyHandle& operator=(AnyHandle&& other) noexcept;
+    CORE_API AnyHandle(AnyHandle&& other) noexcept;
+    CORE_API AnyHandle& operator=(AnyHandle&& other) noexcept;
 
-    HYP_API ~AnyHandle();
+    CORE_API ~AnyHandle();
 
     HYP_FORCE_INLINE bool operator!() const
     {
@@ -877,11 +877,11 @@ public:
 
     /*! \brief Get a referenceable Id for the object that the handle is referencing.
      *  \return The Id of the object. */
-    HYP_API IdType Id() const;
+    CORE_API IdType Id() const;
 
     /*! \brief Get the TypeId for this handle type
      *  \return The TypeId for the handle */
-    HYP_API TypeId GetTypeId() const;
+    CORE_API TypeId GetTypeId() const;
 
     template <class T>
     HYP_FORCE_INLINE bool Is() const
@@ -933,7 +933,7 @@ public:
         return reinterpret_cast<Handle<T>&&>(std::move(*this));
     }
 
-    HYP_API AnyRef ToRef() const;
+    CORE_API AnyRef ToRef() const;
 
     template <class T>
     HYP_FORCE_INLINE T* TryGet() const
@@ -941,13 +941,13 @@ public:
         return ToRef().TryGet<T>();
     }
 
-    HYP_API void Reset();
+    CORE_API void Reset();
 
     /*! \brief Sets this handle to null and returns the pointer to the object that was being referenced.
      *  \note The reference count will not be decremented, so the object will still be alive. Thus, creating a new handle from the returned pointer will cause a memory leak as the ref count will be doubly incremented.
      *  \internal For internal use only, used for marshalling objects between C++ and C#.
      *  \return The pointer to the object that was being referenced. */
-    HYP_NODISCARD HYP_API void* Release();
+    HYP_NODISCARD CORE_API void* Release();
 };
 
 template <class T>

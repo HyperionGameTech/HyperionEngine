@@ -42,6 +42,69 @@ static const TMap<ClassDefinitionType, String> s_endMacroNames = {
     { ClassDefinitionType::Enum, "HYP_END_ENUM" }
 };
 
+static const Array<ModuleAPIMapping> s_moduleAPIMappings = {
+    { "Core", "CORE_API", "core", "Core" },
+    { "Engine/editor", "EDITOR_API", "editor", "Editor" }
+};
+
+const Array<ModuleAPIMapping>& CXXModuleGenerator::GetModuleAPIMappings()
+{
+    return s_moduleAPIMappings;
+}
+
+String CXXModuleGenerator::GetAPIMacroForModule(const Analyzer& analyzer, const Module& mod)
+{
+    if (!mod.GetPath().Any())
+    {
+        return "ENGINE_API";
+    }
+
+    const FilePath relativePath = FilePath(FileSystem::RelativePath(mod.GetPath().Data(), analyzer.GetSourceDirectory().Data()).c_str());
+
+    for (const ModuleAPIMapping& mapping : s_moduleAPIMappings)
+    {
+        if (relativePath.StartsWith(mapping.subdirPattern))
+        {
+            return mapping.apiMacro;
+        }
+    }
+
+    return "ENGINE_API";
+}
+
+String CXXModuleGenerator::GetClassDeclsOutputSubdirForAPIMacro(const String& apiMacro)
+{
+    for (const ModuleAPIMapping& mapping : s_moduleAPIMappings)
+    {
+        if (mapping.apiMacro == apiMacro)
+        {
+            return mapping.outputSubdir;
+        }
+    }
+
+    return String::empty;
+}
+
+String CXXModuleGenerator::GetInitFunctionNameForAPIMacro(const String& apiMacro)
+{
+    if (apiMacro == "ENGINE_API")
+    {
+        return "InitializeModule_Engine";
+    }
+
+    for (const ModuleAPIMapping& mapping : s_moduleAPIMappings)
+    {
+        if (mapping.apiMacro == apiMacro)
+        {
+            return "InitializeModule_" + mapping.initSuffix;
+        }
+    }
+
+    HYP_LOG(Tool, Warning, "No init function found for API macro: {}", apiMacro);
+
+    return String::empty;
+}
+
 FilePath CXXModuleGenerator::GetOutputFilePath(const Analyzer& analyzer, const Module& mod) const
 {
     FilePath relativePath = FilePath(FileSystem::RelativePath(mod.GetPath().Data(), analyzer.GetSourceDirectory().Data()).c_str());
@@ -173,7 +236,8 @@ Result CXXModuleGenerator::GenerateClassDeclHeader(const Analyzer& analyzer, Byt
             writer.WriteString(HYP_FORMAT("namespace {}", BuildNamespaceString(namespaceParts)) + " { ");
         }
 
-        writer.WriteString(HYP_FORMAT("HYP_API extern const Class* g_cls{};", cls.name));
+        const String apiMacro = cls.declModule != nullptr ? GetAPIMacroForModule(analyzer, *cls.declModule) : "ENGINE_API";
+        writer.WriteString(HYP_FORMAT("{} extern const Class* g_cls{};", apiMacro, cls.name));
 
         if (namespaceParts.Any())
         {
@@ -188,8 +252,7 @@ Result CXXModuleGenerator::GenerateClassDeclHeader(const Analyzer& analyzer, Byt
     return {};
 }
 
-// @TODO Make ClassDecls.cpp per-project (i.e hyperion-rendering can have its own ClassDecls.cpp)
-Result CXXModuleGenerator::GenerateClassDeclImplementation(const Analyzer& analyzer, ByteWriter& writer) const
+Result CXXModuleGenerator::GenerateClassDeclImplementation(const Analyzer& analyzer, const String& apiMacro, ByteWriter& writer) const
 {
     writer.WriteString(GetGeneratedFilePreamble(String::empty));
     writer.WriteString("#include <Core/reflection/Class.hpp>\n");
@@ -197,7 +260,7 @@ Result CXXModuleGenerator::GenerateClassDeclImplementation(const Analyzer& analy
 
     writer.WriteString(String("namespace ") + BaseNamespace + " {\n\n");
 
-    // Collect all Class definitions from builtins and modules
+    // Collect all Class definitions from builtins and modules that match the given API macro
     struct ClassInfo
     {
         const ClassDefinition* definition;
@@ -206,23 +269,35 @@ Result CXXModuleGenerator::GenerateClassDeclImplementation(const Analyzer& analy
     Array<ClassInfo> allClasses;
     TSet<String> processedNames;
 
-    writer.WriteString("#pragma region Builtins\n\n");
-
-    // Add builtins
-    for (const auto& it : analyzer.GetBuiltinClasses())
+    // Add builtins (always ENGINE_API)
+    if (apiMacro == "ENGINE_API")
     {
-        if (processedNames.Contains(it.second.name))
+        writer.WriteString("#pragma region Builtins\n\n");
+
+        for (const auto& it : analyzer.GetBuiltinClasses())
+        {
+            if (processedNames.Contains(it.second.name))
+            {
+                continue;
+            }
+
+            processedNames.Insert(it.second.name);
+            allClasses.PushBack({ &it.second });
+        }
+
+        writer.WriteString("#pragma endregion Builtins\n\n");
+    }
+
+    // Add module classes that match the target API macro
+    for (const UniquePtr<Module>& mod : analyzer.GetModules())
+    {
+        const String modAPIMacro = GetAPIMacroForModule(analyzer, *mod);
+
+        if (modAPIMacro != apiMacro)
         {
             continue;
         }
 
-        processedNames.Insert(it.second.name);
-        allClasses.PushBack({ &it.second });
-    }
-
-    // Add module classes
-    for (const UniquePtr<Module>& mod : analyzer.GetModules())
-    {
         for (const Pair<String, ClassDefinition>& pair : mod->GetClasses())
         {
             if (processedNames.Contains(pair.second.name))
@@ -235,7 +310,11 @@ Result CXXModuleGenerator::GenerateClassDeclImplementation(const Analyzer& analy
         }
     }
 
-    writer.WriteString("#pragma endregion Builtins\n\n");
+    if (allClasses.Empty())
+    {
+        writer.WriteString("} // namespace " + String(BaseNamespace) + "\n");
+        return {};
+    }
 
     writer.WriteString("#pragma region Defining g_clsXXX globals\n\n");
 
@@ -357,42 +436,9 @@ Result CXXModuleGenerator::GenerateClassDeclImplementation(const Analyzer& analy
 
     writer.WriteString("\n#pragma endregion Forward declarations\n\n");
 
-    // // GetClassHelper<T>::Get() implementations
-    // writer.WriteString("#pragma region GetClassHelper Get implementations\n\n");
-
-    // for (const ClassInfo& classInfo : allClasses)
-    // {
-    //     const ClassDefinition& cls = *classInfo.definition;
-
-    //     Array<String> namespaceParts = cls.namespaceParts;
-
-    //     if (cls.namespaceParts.Any())
-    //     {
-    //         if (namespaceParts[0] == BaseNamespace)
-    //         {
-    //             namespaceParts.PopFront();
-    //         }
-    //     }
-
-    //     if (namespaceParts.Any())
-    //     {
-    //         const String namespaceString = BuildNamespaceString(namespaceParts);
-    //         writer.WriteString(HYP_FORMAT("template <> const Class* GetClassHelper<{}::{}>::Get()", namespaceString, cls.name) + " { ");
-    //         writer.WriteString(HYP_FORMAT("return {}::g_cls{};", namespaceString, cls.name));
-    //         writer.WriteString(" }\n");
-    //     }
-    //     else
-    //     {
-    //         writer.WriteString(HYP_FORMAT("template <> const Class* GetClassHelper<{}>::Get()", cls.name) + " { ");
-    //         writer.WriteString(HYP_FORMAT("return g_cls{};", cls.name));
-    //         writer.WriteString(" }\n");
-    //     }
-    // }
-
-    // writer.WriteString("\n#pragma endregion GetClassHelper Get implementations\n\n");
-
     // now we need to add a method to be called that initializes all g_clsXXX variables (TClassStaticInit specializations)
-    writer.WriteString("HYP_EXPORT void InitClassDecls()\n{\n");
+    const String initFunctionName = GetInitFunctionNameForAPIMacro(apiMacro);
+    writer.WriteString(HYP_FORMAT("HYP_EXPORT void {}()\n", initFunctionName) + "{\n");
 
     for (const ClassInfo& classInfo : allClasses)
     {
@@ -448,6 +494,8 @@ Result CXXModuleGenerator::GenerateClassDeclImplementation(const Analyzer& analy
 
 Result CXXModuleGenerator::GenerateInline(const Analyzer& analyzer, const Module& mod, ByteWriter& writer) const
 {
+    const String apiMacro = GetAPIMacroForModule(analyzer, mod);
+
     // the including .cpp should provide includes for dependencies
     // so we don't add them here
     writer.WriteString("#include <Core/reflection/ObjectMacros.hpp>\n");
@@ -513,8 +561,7 @@ Result CXXModuleGenerator::GenerateInline(const Analyzer& analyzer, const Module
         });
 
         writer.WriteString(HYP_FORMAT("namespace {}", BuildNamespaceString(cls.namespaceParts)) + " {\n");
-        // @TODO Come back to if we generate separate ClassDecls.cpp per project (HYP_API would need to change)
-        writer.WriteString(HYP_FORMAT("HYP_API extern const Class* g_cls{};\n", cls.name));
+        writer.WriteString(HYP_FORMAT("{} extern const Class* g_cls{};\n", apiMacro, cls.name));
         writer.WriteString("} " + HYP_FORMAT("// namespace {}\n\n", BuildNamespaceString(cls.namespaceParts)));
 
         if (cls.namespaceParts.Any() && (cls.namespaceParts.Size() > 1 || cls.namespaceParts[0] != BaseNamespace))
@@ -798,6 +845,8 @@ Result CXXModuleGenerator::GenerateInline(const Analyzer& analyzer, const Module
 
 Result CXXModuleGenerator::Generate(const Analyzer& analyzer, const Module& mod, ByteWriter& writer) const
 {
+    const String apiMacro = GetAPIMacroForModule(analyzer, mod);
+
     TSet<String> addedIncludes;
     const auto addInclude = [&writer, &addedIncludes](const String& include)
     {
@@ -902,8 +951,7 @@ Result CXXModuleGenerator::Generate(const Analyzer& analyzer, const Module& mod,
         });
 
         writer.WriteString(HYP_FORMAT("namespace {}", BuildNamespaceString(cls.namespaceParts)) + " {\n");
-        // @TODO Come back to if we generate separate ClassDecls.cpp per project (HYP_API would need to change)
-        writer.WriteString(HYP_FORMAT("HYP_API extern const Class* g_cls{};\n", cls.name));
+        writer.WriteString(HYP_FORMAT("{} extern const Class* g_cls{};\n", apiMacro, cls.name));
         writer.WriteString("} " + HYP_FORMAT("// namespace {}\n\n", BuildNamespaceString(cls.namespaceParts)));
 
         if (cls.namespaceParts.Any() && (cls.namespaceParts.Size() > 1 || cls.namespaceParts[0] != BaseNamespace))

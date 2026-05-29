@@ -13,7 +13,7 @@
 namespace Hyperion {
 
 HYP_CLASS(AssetBucket = "Scripts")
-class HYP_API ScriptAsset : public AssetObject
+class ENGINE_API ScriptAsset : public AssetObject
 {
     HYP_OBJECT_BODY(ScriptAsset);
 

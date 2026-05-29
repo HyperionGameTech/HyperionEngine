@@ -25,7 +25,7 @@ class UIImage;
 class Texture;
 
 HYP_CLASS(Abstract)
-class HYP_API OverlayBase : public ObjectBase
+class ENGINE_API OverlayBase : public ObjectBase
 {
     HYP_OBJECT_BODY(OverlayBase);
 
@@ -84,7 +84,7 @@ protected:
 };
 
 HYP_CLASS()
-class HYP_API TextureOverlay : public OverlayBase
+class ENGINE_API TextureOverlay : public OverlayBase
 {
     HYP_OBJECT_BODY(TextureOverlay);
 
@@ -120,7 +120,7 @@ protected:
 };
 
 HYP_CLASS()
-class HYP_API TextOverlay : public OverlayBase
+class ENGINE_API TextOverlay : public OverlayBase
 {
     HYP_OBJECT_BODY(TextOverlay);
 
@@ -138,7 +138,7 @@ protected:
 };
 
 HYP_CLASS()
-class HYP_API NullOverlay final : public OverlayBase
+class ENGINE_API NullOverlay final : public OverlayBase
 {
     HYP_OBJECT_BODY(NullOverlay);
 

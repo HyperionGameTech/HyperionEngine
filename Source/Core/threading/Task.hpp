@@ -47,7 +47,7 @@ class TaskBatch;
 class SchedulerBase;
 class TaskBase;
 
-HYP_API extern Pool* GetTaskPool();
+CORE_API extern Pool* GetTaskPool();
 
 class TaskCompleteNotifier final : public Semaphore<int32, SemaphoreDirection::WAIT_FOR_ZERO_OR_NEGATIVE>
 {
@@ -147,7 +147,7 @@ struct TaskID
     }
 };
 
-class HYP_API TaskCallbackChain
+class CORE_API TaskCallbackChain
 {
 public:
     TaskCallbackChain() = default;
@@ -190,7 +190,7 @@ public:
     virtual TaskCallbackChain& GetCallbackChain() = 0;
 };
 
-class HYP_API TaskExecutorBase : public ITaskExecutor
+class CORE_API TaskExecutorBase : public ITaskExecutor
 {
     template <class T>
     friend class Task;
@@ -288,8 +288,8 @@ protected:
     TaskCallbackChain m_callbackChain;
 };
 
-HYP_API extern void Task_DeleteAllDeferredTasks();
-HYP_API extern void Task_DeferTaskDeletion(TaskExecutorBase* taskExecutor);
+CORE_API extern void Task_DeleteAllDeferredTasks();
+CORE_API extern void Task_DeferTaskDeletion(TaskExecutorBase* taskExecutor);
 
 template <class ReturnType>
 class TaskExecutorInstance : public TaskExecutorBase
@@ -451,7 +451,7 @@ public:
     void Fulfill(const ReturnType& value)
     {
         HYP_CORE_ASSERT(!Base::IsCompleted());
-     
+
         TUniqueLock guard(this->m_promiseFulfillFlag);
 
         Base::m_resultValue.Set(value);

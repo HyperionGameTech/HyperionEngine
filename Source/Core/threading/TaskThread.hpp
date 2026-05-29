@@ -20,7 +20,7 @@ namespace threading {
 class ThreadId;
 class TaskThreadPool;
 
-class HYP_API TaskThread : public Thread<Scheduler>
+class CORE_API TaskThread : public Thread<Scheduler>
 {
 public:
     explicit TaskThread(const ThreadId& threadId, ThreadPriorityValue priority = ThreadPriorityValue::NORMAL);

@@ -66,7 +66,7 @@ public:
 
     CVarBase(const CVarBase& other) = delete;
     CVarBase& operator=(const CVarBase& other) = delete;
-    
+
     virtual ~CVarBase() = default;
 
     virtual bool SetFromConfig(const ConfigValue& cfgValue) = 0;
@@ -124,8 +124,8 @@ private:
 
 // We need specific impls for dtor and Set() for const char* to handle the dynamic memory allocation of the string.
 
-template <> HYP_API CVar<const char*>::~CVar();
-template <> HYP_API void CVar<const char*>::Set(const char* value);
+template <> ENGINE_API CVar<const char*>::~CVar();
+template <> ENGINE_API void CVar<const char*>::Set(const char* value);
 
 #pragma endregion const char* CVar specializations
 
@@ -146,22 +146,22 @@ inline void CVar<T>::Set(T value)
 
 // SetFromConfig
 
-template <> HYP_API bool CVar<int8>::SetFromConfig(const ConfigValue& cfgValue);
-template <> HYP_API bool CVar<int16>::SetFromConfig(const ConfigValue& cfgValue);
-template <> HYP_API bool CVar<int32>::SetFromConfig(const ConfigValue& cfgValue);
-template <> HYP_API bool CVar<int64>::SetFromConfig(const ConfigValue& cfgValue);
+template <> ENGINE_API bool CVar<int8>::SetFromConfig(const ConfigValue& cfgValue);
+template <> ENGINE_API bool CVar<int16>::SetFromConfig(const ConfigValue& cfgValue);
+template <> ENGINE_API bool CVar<int32>::SetFromConfig(const ConfigValue& cfgValue);
+template <> ENGINE_API bool CVar<int64>::SetFromConfig(const ConfigValue& cfgValue);
 
-template <> HYP_API bool CVar<uint8>::SetFromConfig(const ConfigValue& cfgValue);
-template <> HYP_API bool CVar<uint16>::SetFromConfig(const ConfigValue& cfgValue);
-template <> HYP_API bool CVar<uint32>::SetFromConfig(const ConfigValue& cfgValue);
-template <> HYP_API bool CVar<uint64>::SetFromConfig(const ConfigValue& cfgValue);
+template <> ENGINE_API bool CVar<uint8>::SetFromConfig(const ConfigValue& cfgValue);
+template <> ENGINE_API bool CVar<uint16>::SetFromConfig(const ConfigValue& cfgValue);
+template <> ENGINE_API bool CVar<uint32>::SetFromConfig(const ConfigValue& cfgValue);
+template <> ENGINE_API bool CVar<uint64>::SetFromConfig(const ConfigValue& cfgValue);
 
-template <> HYP_API bool CVar<float>::SetFromConfig(const ConfigValue& cfgValue);
-template <> HYP_API bool CVar<double>::SetFromConfig(const ConfigValue& cfgValue);
+template <> ENGINE_API bool CVar<float>::SetFromConfig(const ConfigValue& cfgValue);
+template <> ENGINE_API bool CVar<double>::SetFromConfig(const ConfigValue& cfgValue);
 
-template <> HYP_API bool CVar<bool>::SetFromConfig(const ConfigValue& cfgValue);
+template <> ENGINE_API bool CVar<bool>::SetFromConfig(const ConfigValue& cfgValue);
 
-template <> HYP_API bool CVar<const char*>::SetFromConfig(const ConfigValue& cfgValue);
+template <> ENGINE_API bool CVar<const char*>::SetFromConfig(const ConfigValue& cfgValue);
 
 // SetFromBoxed
 
@@ -178,7 +178,7 @@ inline bool CVar<T>::SetFromBoxed(const BoxedValue& boxed)
     return true;
 }
 
-template <> HYP_API bool CVar<const char*>::SetFromBoxed(const BoxedValue& boxed);
+template <> ENGINE_API bool CVar<const char*>::SetFromBoxed(const BoxedValue& boxed);
 
 // SetFromString
 

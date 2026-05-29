@@ -63,7 +63,7 @@ enum class LightFlags : uint32
 HYP_MAKE_ENUM_FLAGS(LightFlags);
 
 HYP_CLASS(AssetBucket = "Lights")
-class HYP_API Light : public Entity
+class ENGINE_API Light : public Entity
 {
     HYP_OBJECT_BODY(Light);
 
@@ -324,7 +324,7 @@ private:
 };
 
 HYP_CLASS()
-class HYP_API DirectionalLight final : public Light
+class ENGINE_API DirectionalLight final : public Light
 {
     HYP_OBJECT_BODY(DirectionalLight);
 
@@ -348,7 +348,7 @@ public:
 };
 
 HYP_CLASS()
-class HYP_API PointLight final : public Light
+class ENGINE_API PointLight final : public Light
 {
     HYP_OBJECT_BODY(PointLight);
 
@@ -360,7 +360,7 @@ public:
 };
 
 HYP_CLASS()
-class HYP_API SpotLight final : public Light
+class ENGINE_API SpotLight final : public Light
 {
     HYP_OBJECT_BODY(SpotLight);
 
@@ -372,7 +372,7 @@ public:
 };
 
 HYP_CLASS()
-class HYP_API AreaRectLight final : public Light
+class ENGINE_API AreaRectLight final : public Light
 {
     HYP_OBJECT_BODY(AreaRectLight);
 

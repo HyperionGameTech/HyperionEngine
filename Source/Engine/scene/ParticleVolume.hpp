@@ -21,7 +21,7 @@ class Texture;
 class Mesh;
 
 HYP_CLASS()
-class HYP_API ParticleVolume final : public VolumeBase
+class ENGINE_API ParticleVolume final : public VolumeBase
 {
     HYP_OBJECT_BODY(ParticleVolume);
 
@@ -35,7 +35,7 @@ public:
     ~ParticleVolume() override;
 
     void UpdateRenderProxy(class RenderProxyParticleVolume* proxy);
-    
+
     HYP_FIELD(Serialize, Editor)
     Handle<Texture> texture;
 

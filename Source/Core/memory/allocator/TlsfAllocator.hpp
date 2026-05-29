@@ -15,7 +15,7 @@
 namespace Hyperion {
 namespace memory {
 
-class HYP_API TlsfAllocator
+class CORE_API TlsfAllocator
 {
 public:
     TlsfAllocator();

@@ -22,7 +22,7 @@ struct CameraTrackPivot
     }
 };
 
-class HYP_API CameraTrack
+class ENGINE_API CameraTrack
 {
 public:
     CameraTrack(double duration = 10.0);

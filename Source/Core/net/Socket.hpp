@@ -51,7 +51,7 @@ struct SocketServerImpl;
 
 using SocketProcArgument = Variant<String, ByteBuffer, Name, int8, int16, int32, int64, uint8, uint16, uint32, uint64, float, double>;
 
-class HYP_API SocketConnection
+class CORE_API SocketConnection
 {
 public:
     SocketConnection() = default;
@@ -72,7 +72,7 @@ protected:
     TMap<Name, Proc<void(Array<SocketProcArgument>&&)>> m_eventProcs;
 };
 
-class HYP_API SocketServerThread final : public Thread<Scheduler, SocketServer*>
+class CORE_API SocketServerThread final : public Thread<Scheduler, SocketServer*>
 {
 public:
     SocketServerThread(const String& socketName);
@@ -82,7 +82,7 @@ private:
     virtual void operator()(SocketServer*) override;
 };
 
-class HYP_API SocketClient : public SocketConnection
+class CORE_API SocketClient : public SocketConnection
 {
 public:
     SocketClient(Name name, SocketID internalId);
@@ -107,7 +107,7 @@ private:
     SocketID m_internalId;
 };
 
-class HYP_API SocketServer : public SocketConnection
+class CORE_API SocketServer : public SocketConnection
 {
 public:
     friend class SocketServerThread;

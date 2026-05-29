@@ -16,7 +16,7 @@
 namespace Hyperion {
 
 HYP_CLASS(NoScriptBindings)
-class HYP_API CameraStreamingVolume : public StreamingVolumeBase
+class ENGINE_API CameraStreamingVolume : public StreamingVolumeBase
 {
     HYP_OBJECT_BODY(CameraStreamingVolume);
 

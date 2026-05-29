@@ -27,7 +27,7 @@
 namespace Hyperion {
 
 namespace CoreApi {
-extern FilePath GetConfigDirectory();
+CORE_API extern FilePath GetConfigDirectory();
 } // namespace CoreApi
 
 namespace config {

@@ -18,7 +18,7 @@
 namespace Hyperion {
 
 namespace threading {
-HYP_API extern void Task_DeleteAllDeferredTasks();
+extern void Task_DeleteAllDeferredTasks();
 } // namespace threading
 
 using threading::Task_DeleteAllDeferredTasks;

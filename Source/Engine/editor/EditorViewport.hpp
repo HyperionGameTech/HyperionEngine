@@ -21,7 +21,7 @@ class ApplicationWindow;
 struct WindowOptions;
 
 HYP_CLASS()
-class HYP_API EditorViewport : public ObjectBase
+class EDITOR_API EditorViewport : public ObjectBase
 {
     HYP_OBJECT_BODY(EditorViewport);
 

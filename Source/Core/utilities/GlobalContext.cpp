@@ -16,7 +16,7 @@ static thread_local ValueStorage<GlobalContextRegistry> s_globalContextRegistryS
 
 static_assert(std::is_trivially_destructible_v<decltype(s_globalContextRegistryStorage)>);
 
-HYP_API GlobalContextRegistry* GetGlobalContextRegistryForCurrentThread()
+CORE_API GlobalContextRegistry* GetGlobalContextRegistryForCurrentThread()
 {
     if (!s_globalContextRegistry)
     {

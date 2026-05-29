@@ -26,7 +26,7 @@ enum class UIListViewOrientation : uint8
 #pragma region UIListViewItem
 
 HYP_CLASS()
-class HYP_API UIListViewItem : public UIObject
+class ENGINE_API UIListViewItem : public UIObject
 {
     HYP_OBJECT_BODY(UIListViewItem);
 
@@ -73,7 +73,7 @@ private:
 #pragma region UIListView
 
 HYP_CLASS()
-class HYP_API UIListView : public UIPanel
+class ENGINE_API UIListView : public UIPanel
 {
     HYP_OBJECT_BODY(UIListView);
 
@@ -132,7 +132,7 @@ public:
 
     virtual void AddChildUIObject(const Handle<UIObject>& uiObject) override;
     virtual bool RemoveChildUIObject(UIObject* uiObject) override;
-    
+
     UIListViewItem* FindListViewItem(Name name) const;
     UIListViewItem* FindListViewItem(const UUID& dataSourceElementUuid) const;
 

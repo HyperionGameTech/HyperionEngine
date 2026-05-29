@@ -22,7 +22,7 @@ namespace Hyperion {
 class UIConsole;
 
 HYP_CLASS()
-class HYP_API ConsoleOverlay : public OverlayBase
+class ENGINE_API ConsoleOverlay : public OverlayBase
 {
     HYP_OBJECT_BODY(ConsoleOverlay);
 

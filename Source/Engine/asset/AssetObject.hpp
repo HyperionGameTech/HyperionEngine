@@ -53,11 +53,11 @@ namespace JSON {
 class Object;
 } // namespace JSON
 
-HYP_API extern Pool* g_assetPool;
+ENGINE_API extern Pool* g_assetPool;
 using AssetAllocator = AllocatorInstance<Pool, &g_assetPool>;
 
 HYP_CLASS(Abstract)
-class HYP_API AssetObject : public ObjectBase
+class ENGINE_API AssetObject : public ObjectBase
 {
     HYP_OBJECT_BODY(AssetObject);
 
@@ -157,7 +157,7 @@ public:
 
     TUniqueLock<AssetObject> GetWriteScope() const;
     TSharedLock<AssetObject> GetReadScope() const;
-    
+
     void LockWriter(bool doInitialize = true);
     void UnlockWriter(bool doDeinitialize = true);
 

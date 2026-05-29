@@ -48,7 +48,7 @@ HYP_DECLARE_LOG_CHANNEL(UI);
 
 static EngineStatGpuTimer s_statFillUI("Rendering/GPU/FillUI");
 
-HYP_API extern const char* LookupTypeName(const TypeId& typeId);
+ENGINE_API extern const char* LookupTypeName(const TypeId& typeId);
 
 static const ShaderPropertyId s_propTextured = InternShaderProperty(ShaderProperty(NAME("TEXTURED")));
 static const ShaderPropertyId s_propUIText = InternShaderProperty(ShaderProperty(NAME("UI_TEXT")));

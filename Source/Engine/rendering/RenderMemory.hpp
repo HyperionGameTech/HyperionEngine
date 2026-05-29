@@ -30,18 +30,18 @@ static constexpr size_t RenderArenaSize = 4 * 1024 * 1024;
 static constexpr size_t RHIPoolBlockSize = 8 * 1024 * 1024;
 static constexpr size_t RHIArenaSize = 1 * 1024 * 1024;
 
-RENDERING_API extern Pool* g_renderPool;
-RENDERING_API extern Arena* g_renderArena;
+ENGINE_API extern Pool* g_renderPool;
+ENGINE_API extern Arena* g_renderArena;
 
 using RenderAllocator = AllocatorInstance<Pool, &g_renderPool>;
 using RenderTempAllocator = AllocatorInstance<Arena, &g_renderArena>;
 
 #if HYP_VULKAN
 
-RENDERING_API extern Pool* g_vulkanPool;
+ENGINE_API extern Pool* g_vulkanPool;
 using VulkanAllocator = AllocatorInstance<Pool, &g_vulkanPool>;
 
-RENDERING_API extern Arena* g_vulkanArena;
+ENGINE_API extern Arena* g_vulkanArena;
 using VulkanTempAllocator = AllocatorInstance<Arena, &g_vulkanArena>;
 
 using RHIAllocator = VulkanAllocator;
@@ -52,10 +52,10 @@ using RHITempAllocator = VulkanTempAllocator;
 
 #elif HYP_DX12
 
-RENDERING_API extern Pool* g_dx12Pool;
+ENGINE_API extern Pool* g_dx12Pool;
 using DX12Allocator = AllocatorInstance<Pool, &g_dx12Pool>;
 
-RENDERING_API extern Arena* g_dx12Arena;
+ENGINE_API extern Arena* g_dx12Arena;
 using DX12TempAllocator = AllocatorInstance<Arena, &g_dx12Arena>;
 
 using RHIAllocator = DX12Allocator;

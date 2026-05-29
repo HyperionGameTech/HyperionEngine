@@ -60,7 +60,7 @@ HYP_MAKE_ENUM_FLAGS(SceneFlags);
 extern void Scene_OnPostLoad(Scene& scene);
 
 HYP_CLASS(PostLoad = "Scene_OnPostLoad", AssetBucket = "Scenes")
-class HYP_API Scene final : public AssetObject
+class ENGINE_API Scene final : public AssetObject
 {
     friend class World;
     friend class UIStage;

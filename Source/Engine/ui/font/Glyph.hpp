@@ -33,7 +33,7 @@ struct GlyphImageData
     Vec2i dimensions;
     ByteBuffer byteBuffer;
 
-    HYP_API UniquePtr<GlyphBitmap> CreateBitmap() const;
+    ENGINE_API UniquePtr<GlyphBitmap> CreateBitmap() const;
 };
 
 HYP_STRUCT()
@@ -43,19 +43,19 @@ struct GlyphMetrics
 
     HYP_FIELD()
     uint16 width = 0;
-    
+
     HYP_FIELD()
     uint16 height = 0;
-    
+
     HYP_FIELD()
     int16 bearingX = 0;
-    
+
     HYP_FIELD()
     int16 bearingY = 0;
-    
+
     HYP_FIELD()
     uint32 advance = 0;
-    
+
     HYP_FIELD()
     Vec2i imagePosition;
 };

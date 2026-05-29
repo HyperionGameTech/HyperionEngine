@@ -23,13 +23,13 @@ namespace Hyperion {
 class RenderProxyEnvGrid;
 
 HYP_CLASS()
-class HYP_API EnvGrid : public Entity
+class ENGINE_API EnvGrid : public Entity
 {
     HYP_OBJECT_BODY(EnvGrid);
 
 public:
     EnvGrid();
-    
+
     EnvGrid(const EnvGrid& other) = delete;
     EnvGrid& operator=(const EnvGrid& other) = delete;
 

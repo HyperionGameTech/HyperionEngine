@@ -46,7 +46,7 @@ enum class RayTestFlags : uint32
 HYP_MAKE_ENUM_FLAGS(RayTestFlags);
 
 HYP_STRUCT(Size = 32, Serialize = "bitwise")
-struct HYP_API Ray
+struct CORE_API Ray
 {
     HYP_STRUCT_BODY(Ray);
 
@@ -92,7 +92,7 @@ struct HYP_API Ray
     }
 };
 
-HYP_API Ray operator*(const Mat4f& transform, const Ray& ray);
+CORE_API Ray operator*(const Mat4f& transform, const Ray& ray);
 
 struct RayHit
 {

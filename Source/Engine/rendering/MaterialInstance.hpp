@@ -21,7 +21,7 @@ class MaterialDefinition;
 class RenderProxyMaterial;
 
 HYP_CLASS(AssetBucket = "MaterialInstances")
-class RENDERING_API MaterialInstance final : public AssetObject
+class ENGINE_API MaterialInstance final : public AssetObject
 {
     HYP_OBJECT_BODY(MaterialInstance);
 

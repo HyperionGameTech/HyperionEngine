@@ -13,7 +13,7 @@ namespace Hyperion {
 
 extern Pool* g_scriptPool;
 
-HYP_API const Class* g_clsGenericArrayWrapper = nullptr;
+ENGINE_API const Class* g_clsGenericArrayWrapper = nullptr;
 
 // clang-format off
 HYP_BEGIN_STRUCT(GenericArrayWrapper, -1, 0, {})

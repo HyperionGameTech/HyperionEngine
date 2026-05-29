@@ -13,9 +13,9 @@
 
 namespace Hyperion {
 
-HYP_API const Class* g_clsVec2f = nullptr;
-HYP_API const Class* g_clsVec2i = nullptr;
-HYP_API const Class* g_clsVec2u = nullptr;
+CORE_API const Class* g_clsVec2f = nullptr;
+CORE_API const Class* g_clsVec2i = nullptr;
+CORE_API const Class* g_clsVec2u = nullptr;
 
 // clang-format off
 HYP_BEGIN_STRUCT(Vec2f, -1, 0, {})

@@ -17,8 +17,8 @@
 
 namespace Hyperion {
 
-HYP_API extern size_t GetNumDescendants(TypeId typeId);
-HYP_API extern int GetSubclassIndex(TypeId baseTypeId, TypeId subclassTypeId);
+CORE_API extern size_t GetNumDescendants(TypeId typeId);
+CORE_API extern int GetSubclassIndex(TypeId baseTypeId, TypeId subclassTypeId);
 
 HYP_DECLARE_LOG_CHANNEL(Rendering);
 
@@ -86,7 +86,7 @@ struct ResourceBindingAllocator : ResourceBindingAllocatorBase
     }
 };
 
-class HYP_API ResourceBinderBase
+class ENGINE_API ResourceBinderBase
 {
 public:
     virtual ~ResourceBinderBase() = default;

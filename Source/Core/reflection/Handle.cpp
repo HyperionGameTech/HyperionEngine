@@ -9,7 +9,7 @@
 
 namespace Hyperion {
 
-HYP_API TypeId GetTypeIdForClass(const Class* cls)
+CORE_API TypeId GetTypeIdForClass(const Class* cls)
 {
     if (cls == nullptr)
     {
@@ -19,7 +19,7 @@ HYP_API TypeId GetTypeIdForClass(const Class* cls)
     return cls->GetTypeId();
 }
 
-HYP_API ObjectContainerBase* GetObjectContainerForClass(const Class* cls)
+CORE_API ObjectContainerBase* GetObjectContainerForClass(const Class* cls)
 {
     if (!cls)
     {

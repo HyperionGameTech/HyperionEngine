@@ -453,7 +453,7 @@ HYP_MAKE_ENUM_FLAGS(UIObjectUpdateSizeFlags)
 
 #pragma region UIObjectQuadMeshHelper
 
-class HYP_API UIObjectQuadMeshHelper
+class ENGINE_API UIObjectQuadMeshHelper
 {
 public:
     static const Handle<Mesh>& GetQuadMesh();
@@ -524,7 +524,7 @@ struct UIObjectSpawnContext
 #pragma region UIObject
 
 HYP_CLASS(Abstract)
-class HYP_API UIObject : public ObjectBase
+class ENGINE_API UIObject : public ObjectBase
 {
     HYP_OBJECT_BODY(UIObject);
 

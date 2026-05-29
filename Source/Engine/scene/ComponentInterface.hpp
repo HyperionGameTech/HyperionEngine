@@ -30,7 +30,7 @@ class ComponentContainerFactoryBase;
 template <EntityTag Tag>
 struct TagComponent;
 
-extern HYP_API bool ComponentInterface_CreateInstance(const Class* cls, BoxedValue& outBoxed);
+extern ENGINE_API bool ComponentInterface_CreateInstance(const Class* cls, BoxedValue& outBoxed);
 
 enum class ComponentInterfaceFlags : uint32
 {
@@ -41,10 +41,10 @@ enum class ComponentInterfaceFlags : uint32
 HYP_MAKE_ENUM_FLAGS(ComponentInterfaceFlags)
 
 namespace Attributes {
-HYP_API extern const Name g_attrSerialize;
+ENGINE_API extern const Name g_attrSerialize;
 } // namespace Attributes
 
-class HYP_API IComponentInterface
+class ENGINE_API IComponentInterface
 {
 public:
     virtual ~IComponentInterface() = default;

@@ -26,7 +26,7 @@
 namespace Hyperion {
 
 HYP_CLASS(AssetBucket = "Textures")
-class RENDERING_API Texture : public AssetObject
+class ENGINE_API Texture : public AssetObject
 {
     HYP_OBJECT_BODY(Texture);
 

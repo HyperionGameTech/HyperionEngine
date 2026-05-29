@@ -40,7 +40,7 @@ class View;
 
 class SceneOctree;
 
-HYP_API extern Pool* g_scenePool;
+ENGINE_API extern Pool* g_scenePool;
 using SceneAllocator = AllocatorInstance<Pool, &g_scenePool>;
 
 struct SceneOctreePayload
@@ -103,7 +103,7 @@ struct SceneOctreeState : public OctreeState<SceneOctree, SceneOctreePayload>
     virtual ~SceneOctreeState() override = default;
 };
 
-class HYP_API SceneOctree final : public OctreeBase<SceneOctree, SceneOctreePayload>
+class ENGINE_API SceneOctree final : public OctreeBase<SceneOctree, SceneOctreePayload>
 {
     friend class OctreeBase<SceneOctree, SceneOctreePayload>;
 

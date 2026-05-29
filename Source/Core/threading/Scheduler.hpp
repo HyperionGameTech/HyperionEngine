@@ -32,7 +32,7 @@
 namespace Hyperion {
 namespace threading {
 
-class HYP_API SchedulerBase
+class CORE_API SchedulerBase
 {
 public:
     SchedulerBase() = delete;

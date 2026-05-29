@@ -20,7 +20,7 @@ struct GpuLightmapperReadyNotification;
 
 namespace Baking {
 
-class HYP_API LightmapRenderer_GpuPathTracing : public ILightmapRenderer
+class ENGINE_API LightmapRenderer_GpuPathTracing : public ILightmapRenderer
 {
 public:
     LightmapRenderer_GpuPathTracing(

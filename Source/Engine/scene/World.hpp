@@ -96,7 +96,7 @@ struct CSMState
 };
 
 HYP_CLASS(AssetBucket = "Worlds")
-class HYP_API World final : public AssetObject
+class ENGINE_API World final : public AssetObject
 {
     HYP_OBJECT_BODY(World);
 

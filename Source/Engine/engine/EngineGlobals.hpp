@@ -42,14 +42,14 @@ class DX12RenderInterface;
 
 // Globals for internal usage within the Hyperion library
 
-HYP_API extern Handle<EngineDriver> g_engineDriver;
-HYP_API extern Handle<AssetManager> g_assetManager;
-HYP_API extern Handle<AudioManager> g_audioManager;
-HYP_API extern Handle<AppContextBase> g_appContext;
-HYP_API extern Handle<StreamingManager> g_streamingManager;
-HYP_API extern Handle<EngineStats> g_engineStats;
-HYP_API extern MaterialInstanceCache* g_materialInstanceCache;
-HYP_API extern ShaderCompiler* g_shaderCompiler;
+ENGINE_API extern Handle<EngineDriver> g_engineDriver;
+ENGINE_API extern Handle<AssetManager> g_assetManager;
+ENGINE_API extern Handle<AudioManager> g_audioManager;
+ENGINE_API extern Handle<AppContextBase> g_appContext;
+ENGINE_API extern Handle<StreamingManager> g_streamingManager;
+ENGINE_API extern Handle<EngineStats> g_engineStats;
+ENGINE_API extern MaterialInstanceCache* g_materialInstanceCache;
+ENGINE_API extern ShaderCompiler* g_shaderCompiler;
 
 #if HYP_EDITOR
 extern Handle<EditorState> g_editorState;

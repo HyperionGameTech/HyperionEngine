@@ -57,7 +57,7 @@ private:
     Handle<UIObject> m_uiObject;
 };
 
-class HYP_API EditorTaskManager
+class EDITOR_API EditorTaskManager
 {
 public:
     EditorTaskManager();

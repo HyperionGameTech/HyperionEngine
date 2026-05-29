@@ -37,7 +37,7 @@ enum class StreamingVolumeShape : uint32
 };
 
 HYP_CLASS(Abstract)
-class HYP_API StreamingVolumeBase : public ObjectBase
+class ENGINE_API StreamingVolumeBase : public ObjectBase
 {
     HYP_OBJECT_BODY(StreamingVolumeBase);
 

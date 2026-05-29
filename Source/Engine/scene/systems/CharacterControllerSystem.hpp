@@ -15,7 +15,7 @@
 namespace Hyperion {
 
 HYP_CLASS()
-class HYP_API CharacterControllerInputHandler : public InputHandlerBase
+class ENGINE_API CharacterControllerInputHandler : public InputHandlerBase
 {
     HYP_OBJECT_BODY(CharacterControllerInputHandler);
 

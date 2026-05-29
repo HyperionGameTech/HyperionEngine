@@ -93,7 +93,7 @@ struct WindowOptions
 };
 
 HYP_CLASS(Abstract)
-class HYP_API ApplicationWindow : public ObjectBase
+class ENGINE_API ApplicationWindow : public ObjectBase
 {
     HYP_OBJECT_BODY(ApplicationWindow);
 
@@ -205,7 +205,7 @@ protected:
 };
 
 HYP_CLASS(Abstract)
-class HYP_API AppContextBase : public ObjectBase
+class ENGINE_API AppContextBase : public ObjectBase
 {
     HYP_OBJECT_BODY(AppContextBase);
 
@@ -265,7 +265,7 @@ protected:
 #ifdef HYP_WINDOWS
 
 HYP_CLASS(Condition = "HYP_WINDOWS")
-class HYP_API Win32ApplicationWindow final : public ApplicationWindow
+class ENGINE_API Win32ApplicationWindow final : public ApplicationWindow
 {
     HYP_OBJECT_BODY(Win32ApplicationWindow);
 
@@ -321,7 +321,7 @@ private:
 };
 
 HYP_CLASS(Condition = "HYP_WINDOWS")
-class HYP_API Win32AppContext final : public AppContextBase
+class ENGINE_API Win32AppContext final : public AppContextBase
 {
     HYP_OBJECT_BODY(Win32AppContext);
 
@@ -346,7 +346,7 @@ public:
 #ifdef HYP_MACOS
 
 HYP_CLASS(Condition = "HYP_MACOS")
-class HYP_API CocoaApplicationWindow final : public ApplicationWindow
+class ENGINE_API CocoaApplicationWindow final : public ApplicationWindow
 {
     HYP_OBJECT_BODY(CocoaApplicationWindow);
 
@@ -430,7 +430,7 @@ private:
 };
 
 HYP_CLASS(Condition = "HYP_MACOS")
-class HYP_API CocoaAppContext final : public AppContextBase
+class ENGINE_API CocoaAppContext final : public AppContextBase
 {
     HYP_OBJECT_BODY(CocoaAppContext);
 
@@ -455,7 +455,7 @@ public:
 #ifdef HYP_ANDROID
 
 HYP_CLASS(Condition = "HYP_ANDROID")
-class HYP_API AndroidApplicationWindow final : public ApplicationWindow
+class ENGINE_API AndroidApplicationWindow final : public ApplicationWindow
 {
     HYP_OBJECT_BODY(AndroidApplicationWindow);
 
@@ -516,7 +516,7 @@ private:
 };
 
 HYP_CLASS(Condition = "HYP_ANDROID")
-class HYP_API AndroidAppContext final : public AppContextBase
+class ENGINE_API AndroidAppContext final : public AppContextBase
 {
     HYP_OBJECT_BODY(AndroidAppContext);
 
@@ -545,7 +545,7 @@ private:
 #endif // HYP_ANDROID
 
 #ifdef HYP_WINDOWS
-HYP_API void Win32_CleanupWindowClasses();
+ENGINE_API void Win32_CleanupWindowClasses();
 #endif
 
 #include <system/helpers/AppContextHelpers.inc>

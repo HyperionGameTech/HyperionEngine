@@ -500,32 +500,32 @@ static HYP_FORCE_INLINE void ExecuteBreakpointOnce()
 #define HYP_IMPORT
 #endif
 
-#ifdef HYP_STATICALLY_LINKED
-#define HYP_API
-#define HYP_C_API extern "C"
-#else // !HYP_STATICALLY_LINKED
+// Modules
+#ifdef HYP_BUILD_CORE
+#define CORE_API HYP_EXPORT
+#else // !HYP_BUILD_CORE
+#define CORE_API HYP_IMPORT
+#endif // HYP_BUILD_CORE
 
-#ifdef HYP_BUILD_RENDERING_LIBRARY
+#ifdef HYP_BUILD_EDITOR
+#define EDITOR_API HYP_EXPORT
+#else // !HYP_BUILD_EDITOR
+#define EDITOR_API HYP_IMPORT
+#endif // HYP_BUILD_EDITOR
 
-#define HYP_API
-#define HYP_C_API extern "C"
+#ifdef HYP_BUILD_ENGINE
+#define ENGINE_API HYP_EXPORT
+#else // !HYP_BUILD_ENGINE
+#define ENGINE_API HYP_IMPORT
+#endif // HYP_BUILD_ENGINE
 
-#define RENDERING_API HYP_EXPORT
-#else // !HYP_BUILD_RENDERING_LIBRARY
+// End modules
 
-#define RENDERING_API HYP_IMPORT
-
-// HYP_API def
-#ifdef HYP_BUILD_LIBRARY
-#define HYP_API HYP_EXPORT
-#define HYP_C_API extern "C" HYP_EXPORT
-#else // !HYP_BUILD_LIBRARY
-#define HYP_API HYP_IMPORT
-#define HYP_C_API extern "C" HYP_IMPORT
-#endif // HYP_BUILD_LIBRARY
-#endif // !HYP_BUILD_RENDERING_LIBRARY
-
-#endif // !HYP_STATICALLY_LINKED
+#ifdef HYP_TOOL
+#define HYP_EXTERN_CLASS static
+#else
+#define HYP_EXTERN_CLASS ENGINE_API extern
+#endif
 
 #pragma endregion Symbol Visibility
 

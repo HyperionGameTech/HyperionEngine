@@ -58,7 +58,7 @@
 
 namespace Hyperion {
 
-HYP_API extern Pool* g_scenePool;
+ENGINE_API extern Pool* g_scenePool;
 
 struct LightSorter
 {
@@ -325,7 +325,7 @@ void View::UpdateVisibility()
     HYP_SCOPE;
     AssertOnThread(g_simThread | g_visThread);
     AssertReady();
-    
+
     // Cubemap face views do not automatically update the sub-frustum
     if (!(flags & ViewFlags::CUBEMAP_FACE_VIEW))
     {
@@ -338,7 +338,7 @@ void View::UpdateVisibility()
             cachedViewProjMatrix = Mat4f::identity;
         }
     }
-    
+
     cachedFrustum.SetFromViewProjectionMatrix(cachedViewProjMatrix);
 
     for (Scene* scene : m_scenes)
@@ -452,7 +452,7 @@ void View::PrepareShadowViews(Array<View*, SceneAllocator>& outShadowViews)
                     shadowViewIndex,
                     /* isStatic */ true);
             }
-            
+
             Camera* shadowCamera = shadowViewsDynamic[0]->GetCamera();
             Assert(shadowCamera != nullptr);
 

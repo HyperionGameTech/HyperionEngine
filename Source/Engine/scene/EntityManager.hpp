@@ -68,7 +68,7 @@ using ComponentMap = TypeMap<ComponentId>;
 
 /*! \brief The EntityManager is responsible for managing Entities and their components within a single Scene. */
 HYP_CLASS()
-class HYP_API EntityManager final : public ObjectBase
+class ENGINE_API EntityManager final : public ObjectBase
 {
     HYP_OBJECT_BODY(EntityManager);
 

@@ -34,7 +34,7 @@ class ManagedClass;
 class Assembly;
 class ManagedMethod;
 
-class HYP_API Assembly : public EnableRefCountedPtrFromThis<Assembly>
+class ENGINE_API Assembly : public EnableRefCountedPtrFromThis<Assembly>
 {
 public:
     explicit Assembly(const ManagedGuid& guid);

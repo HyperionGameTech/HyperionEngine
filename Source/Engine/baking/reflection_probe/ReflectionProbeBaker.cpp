@@ -26,7 +26,7 @@
 
 namespace Hyperion {
 
-extern HYP_API const FilePath& GetTempDirectory();
+extern ENGINE_API const FilePath& GetTempDirectory();
 
 namespace ConvolveProbe {
 void ConvolveEnvProbeCubemap(
@@ -160,7 +160,7 @@ void Baker<ReflectionProbe>::OnCompleted_Internal()
             ProcessReflectionProbe* cmdCasted = static_cast<ProcessReflectionProbe*>(cmd);
 
             const Handle<EnvProbe>& envProbe = cmdCasted->payload->envProbe;
-            
+
             auto resGuard = envProbe->GetWriteScope();
 
             const Handle<Texture>& texture = envProbe->GetBakedTexture();

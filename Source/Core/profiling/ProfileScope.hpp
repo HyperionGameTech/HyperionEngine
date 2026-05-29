@@ -32,13 +32,13 @@ struct ProfilerConnectionParams
     bool enabled;
 };
 
-HYP_API void StartProfilerConnectionThread(const ProfilerConnectionParams& params);
-HYP_API void StopProfilerConnectionThread();
+CORE_API void StartProfilerConnectionThread(const ProfilerConnectionParams& params);
+CORE_API void StopProfilerConnectionThread();
 
 /*! \brief Collect all hot functions across all registered profile scopes. Locks a global mutex so beware! */
-HYP_API void CollectAllHotFunctions(Array<Pair<ANSIString, double>>& outHotFunctions);
+CORE_API void CollectAllHotFunctions(Array<Pair<ANSIString, double>>& outHotFunctions);
 
-struct HYP_API ProfileScope
+struct CORE_API ProfileScope
 {
     static ProfileScopeStack& GetProfileScopeStackForCurrentThread();
     static void ResetForCurrentThread();

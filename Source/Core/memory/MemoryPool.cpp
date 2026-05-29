@@ -90,14 +90,14 @@ private:
     Array<Pair<MemoryPoolBase*, size_t (*)(MemoryPoolBase*)>> m_registeredPools;
 };
 
-HYP_API MemoryPoolManager& GetMemoryPoolManager()
+CORE_API MemoryPoolManager& GetMemoryPoolManager()
 {
     static MemoryPoolManager memoryPoolManager;
 
     return memoryPoolManager;
 }
 
-HYP_API void CalculateMemoryUsagePerPool(Array<Pair<MemoryPoolBase*, size_t>>& outBytesPerPool)
+CORE_API void CalculateMemoryUsagePerPool(Array<Pair<MemoryPoolBase*, size_t>>& outBytesPerPool)
 {
     GetMemoryPoolManager().CalculateMemoryUsage(outBytesPerPool);
 }

@@ -17,7 +17,7 @@
 
 namespace Hyperion {
 
-class HYP_API RTCInstance
+class ENGINE_API RTCInstance
 {
 public:
     RTCInstance(RTCServerParams serverParams);

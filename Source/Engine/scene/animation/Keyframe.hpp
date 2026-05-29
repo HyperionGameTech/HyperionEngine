@@ -12,7 +12,7 @@
 namespace Hyperion {
 
 HYP_STRUCT()
-struct HYP_API Keyframe
+struct ENGINE_API Keyframe
 {
     HYP_STRUCT_BODY(Keyframe);
 

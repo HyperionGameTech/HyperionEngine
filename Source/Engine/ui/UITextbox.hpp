@@ -16,7 +16,7 @@
 namespace Hyperion {
 
 HYP_CLASS()
-class HYP_API UITextbox : public UIPanel
+class ENGINE_API UITextbox : public UIPanel
 {
     HYP_OBJECT_BODY(UITextbox);
 

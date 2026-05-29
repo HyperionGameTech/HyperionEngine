@@ -62,7 +62,7 @@ struct EditorActionFunctions
 };
 
 HYP_CLASS()
-class HYP_API FunctionalEditorAction : public EditorActionBase
+class EDITOR_API FunctionalEditorAction : public EditorActionBase
 {
     HYP_OBJECT_BODY(FunctionalEditorAction);
 
@@ -102,7 +102,7 @@ private:
 
 class IEditorActionFactory;
 
-class HYP_API EditorActionFactoryRegistry
+class EDITOR_API EditorActionFactoryRegistry
 {
 public:
     static EditorActionFactoryRegistry& GetInstance();
@@ -123,7 +123,7 @@ public:
 };
 
 template <class T>
-class HYP_API EditorActionFactory final : public IEditorActionFactory
+class EDITOR_API EditorActionFactory final : public IEditorActionFactory
 {
 public:
     virtual ~EditorActionFactory() override = default;
@@ -134,7 +134,7 @@ public:
     }
 };
 
-struct HYP_API EditorActionFactoryRegistrationBase
+struct EDITOR_API EditorActionFactoryRegistrationBase
 {
 protected:
     IEditorActionFactory* m_factory;

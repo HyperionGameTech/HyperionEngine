@@ -34,8 +34,8 @@
 
 namespace Hyperion {
 
-HYP_API extern const Class* g_clsObjectBase;
-HYP_API extern Pool* g_objectPool;
+CORE_API extern const Class* g_clsObjectBase;
+CORE_API extern Pool* g_objectPool;
 
 #pragma region ObjectInitializerGuardBase
 
@@ -269,7 +269,7 @@ Pool* ObjectBase::GetAllocator()
 
 #pragma region TypedObjPtr
 
-HYP_API uint32 TypedObjPtr::GetRefCountStrong() const
+CORE_API uint32 TypedObjPtr::GetRefCountStrong() const
 {
     if (!IsValid())
     {
@@ -281,7 +281,7 @@ HYP_API uint32 TypedObjPtr::GetRefCountStrong() const
     return casted->GetObjectHeader_Internal()->GetRefCountStrong();
 }
 
-HYP_API uint32 TypedObjPtr::GetRefCountWeak() const
+CORE_API uint32 TypedObjPtr::GetRefCountWeak() const
 {
     if (!IsValid())
     {
@@ -293,7 +293,7 @@ HYP_API uint32 TypedObjPtr::GetRefCountWeak() const
     return casted->GetObjectHeader_Internal()->GetRefCountWeak();
 }
 
-HYP_API void TypedObjPtr::IncRef(bool weak)
+CORE_API void TypedObjPtr::IncRef(bool weak)
 {
     AssertDebug(IsValid());
 
@@ -309,7 +309,7 @@ HYP_API void TypedObjPtr::IncRef(bool weak)
     }
 }
 
-HYP_API void TypedObjPtr::DecRef(bool weak)
+CORE_API void TypedObjPtr::DecRef(bool weak)
 {
     AssertDebug(IsValid());
 

@@ -135,7 +135,7 @@ protected:
 };
 
 HYP_CLASS(Description = "A task that runs on the sim thread and is has Process() called every tick")
-class HYP_API TickableEditorTask : public EditorTaskBase
+class EDITOR_API TickableEditorTask : public EditorTaskBase
 {
     HYP_OBJECT_BODY(TickableEditorTask);
 
@@ -239,7 +239,7 @@ private:
 };
 
 HYP_CLASS(Description = "A task that runs on a Task thread and has Process() called one time only")
-class HYP_API LongRunningEditorTask : public EditorTaskBase
+class EDITOR_API LongRunningEditorTask : public EditorTaskBase
 {
     HYP_OBJECT_BODY(LongRunningEditorTask);
 

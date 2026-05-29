@@ -31,8 +31,8 @@ enum ThreadCategory : ThreadMask
 
 #if HYP_DEBUG_MODE
 
-HYP_API void AssertOnThread(ThreadMask mask, const char* message = nullptr);
-HYP_API void AssertOnThread(const ThreadId& threadId, const char* message = nullptr);
+CORE_API void AssertOnThread(ThreadMask mask, const char* message = nullptr);
+CORE_API void AssertOnThread(const ThreadId& threadId, const char* message = nullptr);
 
 #else // !HYP_DEBUG_MODE
 
@@ -40,31 +40,31 @@ static constexpr NoOpFunction<void> AssertOnThread;
 
 #endif // HYP_DEBUG_MODE
 
-HYP_API bool IsThreadInMask(const ThreadId& threadId, ThreadMask mask);
-HYP_API bool IsOnThread(ThreadMask mask);
-HYP_API bool IsOnThread(const ThreadId& threadId);
+CORE_API bool IsThreadInMask(const ThreadId& threadId, ThreadMask mask);
+CORE_API bool IsOnThread(ThreadMask mask);
+CORE_API bool IsOnThread(const ThreadId& threadId);
 
-HYP_API ThreadBase* GetThreadById(const ThreadId& threadId);
+CORE_API ThreadBase* GetThreadById(const ThreadId& threadId);
 
-HYP_API ThreadBase* CurrentThreadObject();
+CORE_API ThreadBase* CurrentThreadObject();
 
-HYP_API uint32 GetCurrentThreadIndex();
-HYP_API void SetCurrentThreadIndex(uint32 threadIndex);
+CORE_API uint32 GetCurrentThreadIndex();
+CORE_API void SetCurrentThreadIndex(uint32 threadIndex);
 
-HYP_API const ThreadId& CurrentThreadId();
+CORE_API const ThreadId& CurrentThreadId();
 
-HYP_API void RegisterThread(const ThreadId& id, ThreadBase* thread);
-HYP_API void UnregisterThread(const ThreadId& id);
-HYP_API bool IsThreadRegistered(const ThreadId& id);
+CORE_API void RegisterThread(const ThreadId& id, ThreadBase* thread);
+CORE_API void UnregisterThread(const ThreadId& id);
+CORE_API bool IsThreadRegistered(const ThreadId& id);
 
-HYP_API void SetCurrentThreadId(const ThreadId& id);
+CORE_API void SetCurrentThreadId(const ThreadId& id);
 
-HYP_API void SetCurrentThreadObject(ThreadBase*);
-HYP_API void SetCurrentThreadPriority(ThreadPriorityValue priority);
+CORE_API void SetCurrentThreadObject(ThreadBase*);
+CORE_API void SetCurrentThreadPriority(ThreadPriorityValue priority);
 
-HYP_API uint32 NumCores();
+CORE_API uint32 NumCores();
 
-HYP_API void ThreadSleep(uint32 milliseconds);
+CORE_API void ThreadSleep(uint32 milliseconds);
 
 } // namespace threading
 
@@ -87,10 +87,10 @@ using threading::SetCurrentThreadIndex;
 using threading::ThreadSleep;
 using threading::UnregisterThread;
 
-HYP_API extern const StaticThreadId g_mainThread;
+CORE_API extern const StaticThreadId g_mainThread;
 
-HYP_API extern StaticThreadId g_simThread;
-HYP_API extern StaticThreadId g_renderThread;
-HYP_API extern StaticThreadId g_visThread;
+CORE_API extern StaticThreadId g_simThread;
+CORE_API extern StaticThreadId g_renderThread;
+CORE_API extern StaticThreadId g_visThread;
 
 } // namespace Hyperion

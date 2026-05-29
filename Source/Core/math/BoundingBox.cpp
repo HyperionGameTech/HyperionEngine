@@ -14,7 +14,7 @@
 
 namespace Hyperion {
 
-HYP_API BoundingBox operator*(const Mat4f& transform, const BoundingBox& aabb)
+CORE_API BoundingBox operator*(const Mat4f& transform, const BoundingBox& aabb)
 {
     if (!aabb.IsValid())
     {
@@ -31,7 +31,7 @@ HYP_API BoundingBox operator*(const Mat4f& transform, const BoundingBox& aabb)
     return result;
 }
 
-HYP_API BoundingBox operator*(const Transform& transform, const BoundingBox& aabb)
+CORE_API BoundingBox operator*(const Transform& transform, const BoundingBox& aabb)
 {
     return transform.GetMatrix() * aabb;
 }

@@ -26,7 +26,7 @@ namespace Hyperion {
 
 class Class;
 
-HYP_API extern const char* LookupTypeName(const TypeId& typeId);
+CORE_API extern const char* LookupTypeName(const TypeId& typeId);
 
 #ifdef HYP_SCRIPT
 enum class BytecodeAddress : uint32;

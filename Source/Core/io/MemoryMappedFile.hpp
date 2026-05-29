@@ -18,7 +18,7 @@ namespace Hyperion {
 
 class MemoryMappedFile;
 
-class HYP_API MemoryMappedFileView
+class CORE_API MemoryMappedFileView
 {
 public:
     MemoryMappedFileView();
@@ -51,7 +51,7 @@ private:
     bool m_isOpen;
 };
 
-class HYP_API MemoryMappedFile
+class CORE_API MemoryMappedFile
 {
 public:
     enum class Mode

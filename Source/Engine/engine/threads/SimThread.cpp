@@ -50,7 +50,7 @@ HYP_DEFINE_LOG_CHANNEL(SimThread);
 EngineStatTimer g_statSimUpdate("SimThread");
 
 namespace CoreApi {
-extern const CommandLineArguments& GetCommandLineArguments();
+CORE_API extern const CommandLineArguments& GetCommandLineArguments();
 } // namespace CoreApi
 
 extern void DestroyDetachedScenes();

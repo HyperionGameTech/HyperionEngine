@@ -15,9 +15,9 @@
 
 namespace Hyperion {
 
-HYP_API extern const Class* GetClass(const TypeId& typeId);
-HYP_API extern bool IsA(const Class* cls, const Class* instanceClass);
-HYP_API extern int GetSubclassIndex(TypeId baseTypeId, TypeId subclassTypeId);
+CORE_API extern const Class* GetClass(const TypeId& typeId);
+CORE_API extern bool IsA(const Class* cls, const Class* instanceClass);
+CORE_API extern int GetSubclassIndex(TypeId baseTypeId, TypeId subclassTypeId);
 
 #pragma region UIDataSource
 

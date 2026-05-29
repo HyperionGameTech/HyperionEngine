@@ -48,10 +48,10 @@ template <>
 class DeletionQueueElem<Handle<ObjectBase>>
 {
 protected:
-    HYP_API explicit DeletionQueueElem(ObjectBase* ptr);
+    ENGINE_API explicit DeletionQueueElem(ObjectBase* ptr);
 
 public:
-    HYP_API explicit DeletionQueueElem(Handle<ObjectBase>&& handle)
+    ENGINE_API explicit DeletionQueueElem(Handle<ObjectBase>&& handle)
         : DeletionQueueElem(handle.ptr)
     {
         handle.ptr = nullptr; // unset so DecRefStrong() doesn't get called on Handle destruction.
@@ -72,7 +72,7 @@ template <class T>
 class DeletionQueueElem<Handle<T>> final : public DeletionQueueElem<Handle<ObjectBase>>
 {
 public:
-    HYP_API DeletionQueueElem(Handle<T>&& handle)
+    ENGINE_API DeletionQueueElem(Handle<T>&& handle)
         : DeletionQueueElem<Handle<ObjectBase>>(handle.ptr)
     {
         handle.ptr = nullptr;
@@ -152,7 +152,7 @@ private:
 
 #endif // HYP_DX12
 
-class HYP_API DeletionQueue
+class ENGINE_API DeletionQueue
 {
 public:
     struct EntryHeader

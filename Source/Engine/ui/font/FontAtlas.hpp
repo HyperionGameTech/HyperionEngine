@@ -32,13 +32,13 @@ class Texture;
 using FontAtlasBitmap = Bitmap_R8;
 
 HYP_STRUCT()
-struct HYP_API FontAtlasTextureSet
+struct ENGINE_API FontAtlasTextureSet
 {
     HYP_STRUCT_BODY(FontAtlasTextureSet);
 
     HYP_FIELD()
     Handle<Texture> mainAtlas;
-    
+
     HYP_FIELD()
     Array<Pair<uint32, Handle<Texture>>> atlases;
 
@@ -55,7 +55,7 @@ struct HYP_API FontAtlasTextureSet
 };
 
 HYP_CLASS(AssetBucket = "FontAtlases")
-class HYP_API FontAtlas : public AssetObject
+class ENGINE_API FontAtlas : public AssetObject
 {
     HYP_OBJECT_BODY(FontAtlas);
 

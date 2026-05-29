@@ -16,7 +16,7 @@ namespace Hyperion {
 class EditorSubsystem;
 
 HYP_CLASS(Abstract)
-class HYP_API EditorCommandBase : public ObjectBase
+class EDITOR_API EditorCommandBase : public ObjectBase
 {
     HYP_OBJECT_BODY(EditorCommandBase);
 
@@ -56,7 +56,7 @@ public:
 
         return m_args[index];
     }
-    
+
 private:
     Array<String> m_args;
 };

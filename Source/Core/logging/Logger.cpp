@@ -52,12 +52,12 @@ namespace logging {
 static volatile int32 s_maxLogChannelId = -1;
 static bool s_registerAllCalled = false;
 
-HYP_API ANSIStringView GetCurrentThreadName()
+CORE_API ANSIStringView GetCurrentThreadName()
 {
     return *CurrentThreadId().GetName();
 }
 
-HYP_API bool IsVerboseLoggingEnabled()
+CORE_API bool IsVerboseLoggingEnabled()
 {
     static const ConfigValue& s_cfgVerboseLoggingEnabled = CoreApi::GetGlobalConfig().Get("Logging.Verbose");
 

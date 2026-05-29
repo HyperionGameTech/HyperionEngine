@@ -13,7 +13,7 @@ namespace Hyperion {
 class Property;
 
 HYP_CLASS(Abstract)
-class HYP_API EditorPropertyPanelBase : public UIPanel
+class EDITOR_API EditorPropertyPanelBase : public UIPanel
 {
     HYP_OBJECT_BODY(EditorPropertyPanelBase);
 

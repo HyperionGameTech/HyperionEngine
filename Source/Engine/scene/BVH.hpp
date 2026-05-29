@@ -27,7 +27,7 @@ namespace Hyperion {
 /// reference: https://gdbooks.gitbooks.io/3dcollisions/content/Chapter4/bvh.html
 
 HYP_STRUCT()
-class HYP_API BVHNode
+class ENGINE_API BVHNode
 {
 public:
     HYP_STRUCT_BODY(BVHNode);

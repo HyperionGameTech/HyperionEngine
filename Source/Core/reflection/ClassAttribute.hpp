@@ -267,24 +267,24 @@ struct ClassAttributeValue final
         return type == ClassAttributeType::STRING;
     }
 
-    HYP_API UTF8StringView GetString() const;
-    HYP_API UTF8StringView GetString(UTF8StringView defaultValue) const;
+    CORE_API UTF8StringView GetString() const;
+    CORE_API UTF8StringView GetString(UTF8StringView defaultValue) const;
 
     HYP_FORCE_INLINE bool IsBool() const
     {
         return type == ClassAttributeType::BOOLEAN;
     }
 
-    HYP_API bool GetBool(bool defaultValue = false) const;
+    CORE_API bool GetBool(bool defaultValue = false) const;
 
     HYP_FORCE_INLINE bool IsInt() const
     {
         return type == ClassAttributeType::INT;
     }
 
-    HYP_API int GetInt(int defaultValue = 0) const;
+    CORE_API int GetInt(int defaultValue = 0) const;
 
-    HYP_API String ToString() const;
+    CORE_API String ToString() const;
 
     HYP_FORCE_INLINE HashCode GetHashCode() const
     {

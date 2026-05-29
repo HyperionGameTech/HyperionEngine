@@ -20,7 +20,7 @@ class UIText;
 class UIListView;
 
 HYP_CLASS()
-class HYP_API DeviceDetailsOverlay : public OverlayBase
+class ENGINE_API DeviceDetailsOverlay : public OverlayBase
 {
     HYP_OBJECT_BODY(DeviceDetailsOverlay);
 

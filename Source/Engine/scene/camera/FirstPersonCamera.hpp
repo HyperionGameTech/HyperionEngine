@@ -24,7 +24,7 @@ enum class FirstPersonCameraControllerMode : uint32
 };
 
 HYP_CLASS()
-class HYP_API FirstPersonCameraInputHandler : public InputHandlerBase
+class ENGINE_API FirstPersonCameraInputHandler : public InputHandlerBase
 {
     HYP_OBJECT_BODY(FirstPersonCameraInputHandler);
 
@@ -50,7 +50,7 @@ private:
 };
 
 HYP_CLASS()
-class HYP_API FirstPersonCameraController : public PerspectiveCameraController
+class ENGINE_API FirstPersonCameraController : public PerspectiveCameraController
 {
     HYP_OBJECT_BODY(FirstPersonCameraController);
 

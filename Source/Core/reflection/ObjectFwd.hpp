@@ -173,11 +173,11 @@ public:
         return m_ptr;
     }
 
-    HYP_API uint32 GetRefCountStrong() const;
-    HYP_API uint32 GetRefCountWeak() const;
+    CORE_API uint32 GetRefCountStrong() const;
+    CORE_API uint32 GetRefCountWeak() const;
 
-    HYP_API void IncRef(bool weak = false);
-    HYP_API void DecRef(bool weak = false);
+    CORE_API void IncRef(bool weak = false);
+    CORE_API void DecRef(bool weak = false);
 
 private:
     void* m_ptr;
@@ -186,8 +186,8 @@ private:
 
 struct ObjectInitializerGuardBase
 {
-    HYP_API ObjectInitializerGuardBase(TypedObjPtr ptr);
-    HYP_API ~ObjectInitializerGuardBase();
+    CORE_API ObjectInitializerGuardBase(TypedObjPtr ptr);
+    CORE_API ~ObjectInitializerGuardBase();
 
     TypedObjPtr ptr;
     uint32 count;
@@ -213,15 +213,15 @@ struct ClassRef
     {
     }
 
-    HYP_API ClassRef(const Class* cls, int initialRefCount = 1);
+    CORE_API ClassRef(const Class* cls, int initialRefCount = 1);
 
-    HYP_API ClassRef(const ClassRef& other);
-    HYP_API ClassRef& operator=(const ClassRef& other);
+    CORE_API ClassRef(const ClassRef& other);
+    CORE_API ClassRef& operator=(const ClassRef& other);
 
-    HYP_API ClassRef(ClassRef&& other) noexcept;
-    HYP_API ClassRef& operator=(ClassRef&& other) noexcept;
+    CORE_API ClassRef(ClassRef&& other) noexcept;
+    CORE_API ClassRef& operator=(ClassRef&& other) noexcept;
 
-    HYP_API ~ClassRef();
+    CORE_API ~ClassRef();
 
     HYP_FORCE_INLINE bool IsValid() const
     {
@@ -266,7 +266,7 @@ struct ClassRef
 
 /// Helpers ///
 
-HYP_API extern const Class* GetClass(const TypeId& typeId);
+CORE_API extern const Class* GetClass(const TypeId& typeId);
 
 template <class T>
 const Class* GetClass()
@@ -486,8 +486,8 @@ static inline WeakHandle<Other> DynamicCast(WeakHandle<T>&& handle)
 /// IsA() checks ///
 
 // NOTE: These overloads are implemented in Class.cpp
-HYP_API extern bool IsA(const Class* cls, const void* ptr, const TypeId& typeId);
-HYP_API extern bool IsA(const Class* cls, const Class* instanceClass);
+CORE_API extern bool IsA(const Class* cls, const void* ptr, const TypeId& typeId);
+CORE_API extern bool IsA(const Class* cls, const Class* instanceClass);
 
 template <class ExpectedType, class InstanceType>
 static inline bool IsA()

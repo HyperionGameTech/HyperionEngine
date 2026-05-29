@@ -22,7 +22,7 @@
 namespace Hyperion {
 namespace utilities {
 
-class HYP_API ByteUtil
+class CORE_API ByteUtil
 {
 public:
     /*! \brief Packs a float into a 32-bit integer.

@@ -25,8 +25,8 @@ namespace Hyperion {
 
 class Class;
 
-HYP_API extern const Class* GetClass(const TypeId& typeId);
-HYP_API extern bool IsA(const Class* cls, const void* ptr, const TypeId& typeId);
+CORE_API extern const Class* GetClass(const TypeId& typeId);
+CORE_API extern bool IsA(const Class* cls, const void* ptr, const TypeId& typeId);
 
 namespace memory {
 
@@ -431,7 +431,7 @@ public:
     T& Emplace(Args&&... args)
     {
         using U = NormalizedType<T>;
-        
+
         using AllocatorType = DynamicAllocator;
         static AllocatorType* s_allocator = GetDefaultAllocatorInstance<AllocatorType>();
 

@@ -13,7 +13,7 @@
 
 namespace Hyperion {
 
-class HYP_API SharedMemory
+class CORE_API SharedMemory
 {
     using Address = void*;
 

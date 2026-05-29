@@ -260,7 +260,7 @@ private:
     HYP_DECLARE_MT_CHECK(m_dataRaceDetector);
 };
 
-HYP_API void StartProfilerConnectionThread(const ProfilerConnectionParams& params)
+CORE_API void StartProfilerConnectionThread(const ProfilerConnectionParams& params)
 {
 #if HYP_ENABLE_PROFILE
     if (CoreApi::IsProfilingEnabled())
@@ -271,7 +271,7 @@ HYP_API void StartProfilerConnectionThread(const ProfilerConnectionParams& param
 #endif
 }
 
-HYP_API void StopProfilerConnectionThread()
+CORE_API void StopProfilerConnectionThread()
 {
 #if HYP_ENABLE_PROFILE
     if (CoreApi::IsProfilingEnabled())

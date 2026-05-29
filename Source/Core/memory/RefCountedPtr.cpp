@@ -47,7 +47,7 @@ static inline uint32 DecWeakAndMaybeFree(ControlBlock<CountType>* block)
 }
 
 template <class CountType>
-HYP_API uint32 IncWeak(ControlBlock<CountType>* block)
+CORE_API uint32 IncWeak(ControlBlock<CountType>* block)
 {
     if (block)
     {
@@ -58,7 +58,7 @@ HYP_API uint32 IncWeak(ControlBlock<CountType>* block)
 }
 
 template <class CountType>
-HYP_API uint32 ReleaseWeak(ControlBlock<CountType>* block)
+CORE_API uint32 ReleaseWeak(ControlBlock<CountType>* block)
 {
     if (block)
     {
@@ -69,7 +69,7 @@ HYP_API uint32 ReleaseWeak(ControlBlock<CountType>* block)
 }
 
 template <class CountType>
-HYP_API uint32 IncStrong(ControlBlock<CountType>* block)
+CORE_API uint32 IncStrong(ControlBlock<CountType>* block)
 {
     if (block)
     {
@@ -80,7 +80,7 @@ HYP_API uint32 IncStrong(ControlBlock<CountType>* block)
 }
 
 template <class CountType>
-HYP_API uint32 ReleaseStrong(ControlBlock<CountType>* block)
+CORE_API uint32 ReleaseStrong(ControlBlock<CountType>* block)
 {
     if (!block)
     {
@@ -104,12 +104,12 @@ HYP_API uint32 ReleaseStrong(ControlBlock<CountType>* block)
     return count;
 }
 
-HYP_API void DefaultFreeBlock(void* blk)
+CORE_API void DefaultFreeBlock(void* blk)
 {
     HYP_FREE_ALIGNED(blk);
 }
 
-HYP_API void ExternalBlockDeleter(void* blk)
+CORE_API void ExternalBlockDeleter(void* blk)
 {
     ControlBlock<AtomicVar<uint32>>* block = reinterpret_cast<ControlBlock<AtomicVar<uint32>>*>(blk); // CountType not used here
 
@@ -122,17 +122,17 @@ HYP_API void ExternalBlockDeleter(void* blk)
 }
 
 // instantiations
-template HYP_API uint32 IncStrong<uint32>(ControlBlock<uint32>*);
-template HYP_API uint32 IncStrong<AtomicVar<uint32>>(ControlBlock<AtomicVar<uint32>>*);
+template CORE_API uint32 IncStrong<uint32>(ControlBlock<uint32>*);
+template CORE_API uint32 IncStrong<AtomicVar<uint32>>(ControlBlock<AtomicVar<uint32>>*);
 
-template HYP_API uint32 ReleaseStrong<uint32>(ControlBlock<uint32>*);
-template HYP_API uint32 ReleaseStrong<AtomicVar<uint32>>(ControlBlock<AtomicVar<uint32>>*);
+template CORE_API uint32 ReleaseStrong<uint32>(ControlBlock<uint32>*);
+template CORE_API uint32 ReleaseStrong<AtomicVar<uint32>>(ControlBlock<AtomicVar<uint32>>*);
 
-template HYP_API uint32 IncWeak<uint32>(ControlBlock<uint32>*);
-template HYP_API uint32 IncWeak<AtomicVar<uint32>>(ControlBlock<AtomicVar<uint32>>*);
+template CORE_API uint32 IncWeak<uint32>(ControlBlock<uint32>*);
+template CORE_API uint32 IncWeak<AtomicVar<uint32>>(ControlBlock<AtomicVar<uint32>>*);
 
-template HYP_API uint32 ReleaseWeak<uint32>(ControlBlock<uint32>*);
-template HYP_API uint32 ReleaseWeak<AtomicVar<uint32>>(ControlBlock<AtomicVar<uint32>>*);
+template CORE_API uint32 ReleaseWeak<uint32>(ControlBlock<uint32>*);
+template CORE_API uint32 ReleaseWeak<AtomicVar<uint32>>(ControlBlock<AtomicVar<uint32>>*);
 } // namespace detail
 
 // RefCountedPtrBase implementations
@@ -349,11 +349,11 @@ typename WeakRefCountedPtrBase<CountType>::Block* WeakRefCountedPtrBase<CountTyp
 }
 
 // Explicit instantiations
-template class HYP_API RefCountedPtrBase<uint32>;
-template class HYP_API RefCountedPtrBase<AtomicVar<uint32>>;
+template class CORE_API RefCountedPtrBase<uint32>;
+template class CORE_API RefCountedPtrBase<AtomicVar<uint32>>;
 
-template class HYP_API WeakRefCountedPtrBase<uint32>;
-template class HYP_API WeakRefCountedPtrBase<AtomicVar<uint32>>;
+template class CORE_API WeakRefCountedPtrBase<uint32>;
+template class CORE_API WeakRefCountedPtrBase<AtomicVar<uint32>>;
 
 } // namespace memory
 } // namespace Hyperion

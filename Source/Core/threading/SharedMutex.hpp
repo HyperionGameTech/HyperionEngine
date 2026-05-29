@@ -16,7 +16,7 @@
 namespace Hyperion {
 namespace threading {
 
-HYP_API extern void ThreadSleep(uint32 milliseconds);
+CORE_API extern void ThreadSleep(uint32 milliseconds);
 
 /*! \brief Single producer, multiple consumer spinlock.
  *  Writer has exclusive access, readers have shared access.
@@ -47,7 +47,7 @@ public:
         while (!AtomicCompareExchange(&m_value, expected, 1))
         {
             expected = 0;
-            
+
             // volatile read
             while (m_value != 0)
             {
@@ -63,7 +63,7 @@ public:
             }
         }
     }
-    
+
     HYP_NODISCARD bool TryLockWriter() const
     {
         int64 expected = 0;
@@ -90,7 +90,7 @@ public:
             int64 state;
             uint64 ustate;
         };
-        
+
         // first pass: optimistic read
         if ((m_value & 0x1) == 0)
         {
@@ -133,7 +133,7 @@ public:
             AtomicSub(&m_value, 2);
         }
     }
-    
+
     HYP_NODISCARD bool TryLockReader() const
     {
         uint32 numSpins = 0;
@@ -143,7 +143,7 @@ public:
             int64 state;
             uint64 ustate;
         };
-        
+
         // first pass: optimistic read
         if ((m_value & 0x1) == 0)
         {

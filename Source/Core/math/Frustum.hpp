@@ -20,7 +20,7 @@
 namespace Hyperion {
 
 HYP_STRUCT(Size = 224, Serialize = "bitwise")
-struct HYP_API Frustum
+struct CORE_API Frustum
 {
     HYP_STRUCT_BODY(Frustum);
 

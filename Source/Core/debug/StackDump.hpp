@@ -18,7 +18,7 @@ namespace debug {
 /*! \brief Lightweight stack trace that stores only raw frame pointers.
  *  Trivially destructible and suitable for embedding in POD types.
  *  Call ToStackDump() to convert to full string representation. */
-struct HYP_API RawStackTrace
+struct CORE_API RawStackTrace
 {
     static constexpr uint32 MaxFrames = 20;
 
@@ -47,7 +47,7 @@ struct HYP_API RawStackTrace
 
 static_assert(std::is_trivially_destructible_v<RawStackTrace>, "RawStackTrace must be trivially destructible");
 
-class HYP_API StackDump
+class CORE_API StackDump
 {
     struct Impl;
 

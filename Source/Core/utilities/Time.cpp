@@ -19,7 +19,7 @@
 namespace Hyperion {
 namespace utilities {
 
-HYP_API const Class* g_clsTime = nullptr;
+CORE_API const Class* g_clsTime = nullptr;
 
 #pragma region TimeDiff
 
