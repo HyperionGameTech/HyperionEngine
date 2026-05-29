@@ -47,8 +47,6 @@ class TaskBatch;
 class SchedulerBase;
 class TaskBase;
 
-CORE_API extern Pool* GetTaskPool();
-
 class TaskCompleteNotifier final : public Semaphore<int32, SemaphoreDirection::WAIT_FOR_ZERO_OR_NEGATIVE>
 {
 public:
@@ -178,8 +176,6 @@ private:
 class ITaskExecutor
 {
 public:
-    HYP_DEF_POOL_NEW_DELETE(GetTaskPool());
-
     virtual ~ITaskExecutor() = default;
 
     virtual TaskID GetTaskID() const = 0;
@@ -594,8 +590,6 @@ struct TaskRef
 class CORE_API TaskBase
 {
 public:
-    HYP_DEF_POOL_NEW_DELETE(GetTaskPool());
-
     TaskBase(TaskID id, SchedulerBase* assignedScheduler)
         : m_id(id),
           m_assignedScheduler(assignedScheduler)

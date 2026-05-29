@@ -75,7 +75,7 @@ struct ToJSONOptions
 Result BoxedToJSON(
     const BoxedValue& value,
     JSON::Value& outJson,
-    ToJSONOptions opts = ToJSONOptions {});
+    ToJSONOptions* pOptions = nullptr);
 
 /*! \brief Serializes a Object instance to a Object.
  *  Only fields and properties of the Class are serialized.
@@ -91,7 +91,7 @@ Result ObjectToJSON(
     const Class* cls,
     const BoxedValue& target,
     JSON::Object& outJson,
-    ToJSONOptions opts = ToJSONOptions {});
+    ToJSONOptions* pOptions = nullptr);
 
 /*! \brief Converts a JSON value to BoxedValue
  *

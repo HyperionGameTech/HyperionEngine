@@ -271,7 +271,7 @@ Result AssetObject::SaveManifest(ByteWriter& stream) const
     opts.skipTransientProperties = true;
     opts.writeClassNames = true;
 
-    ObjectToJSON(InstanceClass(), BoxedValue(HandleFromThis()), manifestJson, opts);
+    ObjectToJSON(InstanceClass(), BoxedValue(HandleFromThis()), manifestJson, &opts);
 
     stream.WriteString(JSON::Value(std::move(manifestJson)).ToString(true).ToUtf8());
 

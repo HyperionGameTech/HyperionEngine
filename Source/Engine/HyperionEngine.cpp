@@ -636,9 +636,6 @@ extern "C"
         delete g_streamingPool;
         g_streamingPool = nullptr;
 
-        delete g_taskPool;
-        g_taskPool = nullptr;
-
         delete g_assetPool;
         g_assetPool = nullptr;
 

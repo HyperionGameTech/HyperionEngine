@@ -754,7 +754,9 @@ private:
             // Inline mode: generate one small cpp for builtins and per-module .inl files
             if (builtinsModule->GetClasses().Any())
             {
-                const FilePath builtinsPath = m_analyzer.GetCXXOutputDirectory() / "Builtins.cpp";
+                const FilePath builtinsDir = m_analyzer.GetCXXOutputDirectory() / "Core";
+                Assert(builtinsDir.MkDir(), "Failed to create builtins output directory: {}", builtinsDir);
+                const FilePath builtinsPath = builtinsDir / "Builtins.cpp";
                 FileByteWriter builtinsWriter { builtinsPath };
 
                 if (!builtinsWriter.IsOpen())

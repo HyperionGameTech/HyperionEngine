@@ -56,7 +56,7 @@ String CXXModuleGenerator::GetAPIMacroForModule(const Analyzer& analyzer, const 
 {
     if (!mod.GetPath().Any())
     {
-        return "ENGINE_API";
+        return "CORE_API";
     }
 
     const String relativePath = FilePath::Relative(mod.GetPath(), analyzer.GetSourceDirectory()).ReplaceAll("\\", "/");
@@ -271,22 +271,36 @@ Result CXXModuleGenerator::GenerateClassDeclImplementation(const Analyzer& analy
     Array<ClassInfo> allClasses;
     TSet<String> processedNames;
 
-    // Add builtins (always ENGINE_API)
-    if (apiMacro == "ENGINE_API")
+    // Add builtins, routing each to the appropriate API macro
+    bool wroteBuiltinsRegion = false;
+
+    for (const auto& it : analyzer.GetBuiltinClasses())
     {
-        writer.WriteString("#pragma region Builtins\n\n");
+        const bool isCoreBuiltin = (it.second.name == "ObjectBase");
+        const String builtinAPIMacro = isCoreBuiltin ? "CORE_API" : "ENGINE_API";
 
-        for (const auto& it : analyzer.GetBuiltinClasses())
+        if (builtinAPIMacro != apiMacro)
         {
-            if (processedNames.Contains(it.second.name))
-            {
-                continue;
-            }
-
-            processedNames.Insert(it.second.name);
-            allClasses.PushBack({ &it.second });
+            continue;
         }
 
+        if (processedNames.Contains(it.second.name))
+        {
+            continue;
+        }
+
+        if (!wroteBuiltinsRegion)
+        {
+            writer.WriteString("#pragma region Builtins\n\n");
+            wroteBuiltinsRegion = true;
+        }
+
+        processedNames.Insert(it.second.name);
+        allClasses.PushBack({ &it.second });
+    }
+
+    if (wroteBuiltinsRegion)
+    {
         writer.WriteString("#pragma endregion Builtins\n\n");
     }
 

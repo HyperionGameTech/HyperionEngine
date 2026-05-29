@@ -99,6 +99,9 @@ protected:
     ConfigBase(const String& configName, const Class* cls);
 
 public:
+    static Result(*s_ObjectFromJSON)(const JSON::Object& jsonObject, const Class* targetClass, BoxedValue& target);
+    static Result(*s_ObjectToJSON)(const Class* cls, const BoxedValue& target, JSON::Object& outJson, struct ToJSONOptions* pOptions);
+
     ConfigBase();
 
     explicit ConfigBase(const String& configName);

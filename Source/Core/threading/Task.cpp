@@ -8,28 +8,12 @@
 #include <Core/threading/Scheduler.hpp>
 
 namespace Hyperion {
-
-#if defined(HYPERION_ENGINE) && HYPERION_ENGINE
-CORE_API extern Pool* g_taskPool;
-#endif // defined(HYPERION_ENGINE) && HYPERION_ENGINE
-
 namespace threading {
 
 static Mutex s_deferredTasksMutex;
 static Array<TaskExecutorBase*> s_deferredTasks;
 
 static constexpr uint32 DeferredTasksCleanupThreshold = 32;
-
-CORE_API Pool* GetTaskPool()
-{
-#if defined(HYPERION_ENGINE) && HYPERION_ENGINE
-    AssertDebug(g_taskPool != nullptr);
-    return g_taskPool;
-#else
-    static Pool s_taskPool(4 * 1024 * 1024, PF_THREAD_SAFE);
-    return &s_taskPool;
-#endif
-}
 
 static void CleanupDeferredTasks()
 {

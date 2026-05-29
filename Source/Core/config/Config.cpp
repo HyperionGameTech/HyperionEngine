@@ -23,8 +23,6 @@
 #include <Core/logging/LogChannels.hpp>
 #include <Core/logging/Logger.hpp>
 
-#include <asset/SerializationUtils.hpp>
-
 namespace Hyperion {
 
 namespace CoreApi {
@@ -39,6 +37,10 @@ static TMap<String, JSON::Value> s_configCache;
 static SharedMutex s_configCacheMutex;
 
 #pragma region ConfigBase
+
+// Set externally for DI
+Result(*ConfigBase::s_ObjectFromJSON)(const JSON::Object& jsonObject, const Class* targetClass, BoxedValue& target) = nullptr;
+Result(*ConfigBase::s_ObjectToJSON)(const Class* cls, const BoxedValue& target, JSON::Object& outJson, struct ToJSONOptions* pOptions) = nullptr;
 
 ConfigBase::ConfigBase()
     : m_rootObject(JSON::Object())
@@ -348,9 +350,15 @@ bool ConfigBase::SetClassFields(const Class* cls, const void* ptr)
     HYP_CORE_ASSERT(cls != nullptr);
     HYP_CORE_ASSERT(ptr != nullptr);
 
+    if (!s_ObjectFromJSON || !s_ObjectToJSON)
+    {
+        HYP_LOG(Config, Error, "ObjectFromJSON or ObjectToJSON function is not set");
+        return false;
+    }
+
     BoxedValue target = BoxedValue(AnyRef(cls->GetTypeInfo(), const_cast<void*>(ptr)));
 
-    if (!ObjectFromJSON(GetSubobject().AsObject(), cls, target))
+    if (!s_ObjectFromJSON(GetSubobject().AsObject(), cls, target))
     {
         HYP_LOG(Config, Error, "Failed to deserialize JSON to instance of Class \"{}\"", cls->GetName());
 
@@ -359,7 +367,7 @@ bool ConfigBase::SetClassFields(const Class* cls, const void* ptr)
 
     JSON::Object jsonObject;
 
-    if (ObjectToJSON(cls, target, jsonObject))
+    if (s_ObjectToJSON(cls, target, jsonObject, nullptr))
     {
         jsonObject.Merge(GetSubobject().AsObject());
 

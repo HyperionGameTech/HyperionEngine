@@ -185,8 +185,6 @@ private:
 
 public:
     using TaskBatch::IsCompleted;
-    using TaskBatch::operator new;
-    using TaskBatch::operator delete;
 
     ENGINE_API AssetBatch(const Handle<AssetManager>& assetManager);
     ENGINE_API AssetBatch(const Handle<AssetManager>& assetManager, const String& identifier);

@@ -229,7 +229,7 @@ Result EditorProject::SaveAs(FilePath filepath)
     opts.writeClassNames = true;
 
     JSON::Object projectJson;
-    if (!ObjectToJSON(EditorProject::StaticClass(), BoxedValue(MakeStrongRef(this)), projectJson, opts))
+    if (!ObjectToJSON(EditorProject::StaticClass(), BoxedValue(MakeStrongRef(this)), projectJson, &opts))
     {
         return HYP_MAKE_ERROR(Error, "Failed to save project!");
     }

@@ -41,8 +41,6 @@ namespace Hyperion {
 
 HYP_DECLARE_LOG_CHANNEL(Tasks);
 
-CORE_API extern Pool* GetTaskPool();
-
 namespace threading {
 
 enum TaskThreadPoolName : uint32
@@ -62,8 +60,6 @@ using OnTaskBatchCompletedCallback = Proc<void()>;
 class TaskBatch
 {
 public:
-    HYP_DEF_POOL_NEW_DELETE(GetTaskPool());
-
     TaskCompleteNotifier notifier;
     uint32 numEnqueued = 0;
 

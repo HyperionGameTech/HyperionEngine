@@ -10,12 +10,15 @@
 
 #include <Core/json/JSON.hpp>
 
+#include <Core/config/Config.hpp>
+
 #include <Core/reflection/Class.hpp>
 #include <Core/reflection/Property.hpp>
 #include <Core/reflection/Field.hpp>
 #include <Core/reflection/StaticField.hpp>
 #include <Core/reflection/Method.hpp>
 #include <Core/reflection/BoxedValue.hpp>
+#include <Core/reflection/TypeInfo.hpp>
 
 #include <Core/containers/Array.hpp>
 #include <Core/containers/FlatSet.hpp>
@@ -24,12 +27,11 @@
 #include <Core/utilities/Format.hpp>
 #include <Core/utilities/Uuid.hpp>
 #include <Core/utilities/DeferredScope.hpp>
-#include <Core/reflection/TypeInfo.hpp>
 #include <Core/utilities/Float16.hpp>
+#include <Core/utilities/GlobalContext.hpp>
 
 #include <Core/logging/LogChannels.hpp>
 #include <Core/logging/Logger.hpp>
-#include <Core/utilities/GlobalContext.hpp>
 
 namespace Hyperion {
 
@@ -48,8 +50,16 @@ static constexpr bool ForceWriteClassNamesWhenTypesDiffer = true;
 Result BoxedToJSON(
     const BoxedValue& value,
     JSON::Value& outJson,
-    ToJSONOptions opts)
+    ToJSONOptions* pOptions)
 {
+    static ToJSONOptions s_defaultOptions;
+    if (!pOptions)
+    {
+        pOptions = &s_defaultOptions;
+    }
+
+    ToJSONOptions& opts = *pOptions;
+
     if (opts.writeClassNamesRecursively)
     {
         opts.writeClassNames = true;
@@ -64,7 +74,6 @@ Result BoxedToJSON(
 
     const TypeInfo& typeInfo = *value.GetTypeInfo();
 
-#if defined(HYPERION_ENGINE) && HYPERION_ENGINE
     AssetReference assetReference;
     bool isAssetObject = false;
 
@@ -98,11 +107,10 @@ Result BoxedToJSON(
         ToJSONOptions newOpts = opts;
         newOpts.writeClassNames |= ForceWriteClassNamesWhenTypesDiffer;
 
-        return BoxedToJSON(BoxedValue(assetReference), outJson, newOpts);
+        return BoxedToJSON(BoxedValue(assetReference), outJson, &newOpts);
     }
 
     assetReference = AssetReference(); // reset
-#endif
 
     if (value.Is<bool>(/* strict */ true))
     {
@@ -172,7 +180,7 @@ Result BoxedToJSON(
             }
 
             JSON::Value jsonValue;
-            if (Result result = BoxedToJSON(BoxedValue(element), jsonValue, opts); result.HasError())
+            if (Result result = BoxedToJSON(BoxedValue(element), jsonValue, &opts); result.HasError())
             {
                 return result;
             }
@@ -209,7 +217,7 @@ Result BoxedToJSON(
                 }
 
                 JSON::Value jsonValue;
-                if (Result result = BoxedToJSON(BoxedValue(element), jsonValue, opts); result.HasError())
+                if (Result result = BoxedToJSON(BoxedValue(element), jsonValue, &opts); result.HasError())
                 {
                     return result;
                 }
@@ -282,7 +290,7 @@ Result BoxedToJSON(
             }*/
 
             JSON::Value jsonValue;
-            if (Result result = BoxedToJSON(element, jsonValue, newOpts); result.HasError())
+            if (Result result = BoxedToJSON(element, jsonValue, &newOpts); result.HasError())
             {
                 return result;
             }
@@ -347,7 +355,7 @@ Result BoxedToJSON(
             }*/
 
             JSON::Value jsonValue;
-            if (Result result = BoxedToJSON(elementData, jsonValue, newOpts); result.HasError())
+            if (Result result = BoxedToJSON(elementData, jsonValue, &newOpts); result.HasError())
             {
                 return result;
             }
@@ -402,7 +410,7 @@ Result BoxedToJSON(
                 BoxedValue valueData(valueRef);
 
                 JSON::Value keyJson;
-                if (Result result = BoxedToJSON(keyData, keyJson, opts); result.HasError())
+                if (Result result = BoxedToJSON(keyData, keyJson, &opts); result.HasError())
                 {
                     HYP_LOG(Core, Warning, "Failed to serialize map key for type {}: {}", typeInfo.name, result.GetError().GetMessage());
                     iterator->Next();
@@ -430,7 +438,7 @@ Result BoxedToJSON(
                 }
 
                 JSON::Value jsonValue;
-                if (Result result = BoxedToJSON(valueData, jsonValue, newOpts); result.HasError())
+                if (Result result = BoxedToJSON(valueData, jsonValue, &newOpts); result.HasError())
                 {
                     HYP_LOG(Core, Warning, "Failed to serialize map value for key \"{}\" of type {}: {}", keyJson.AsString(), typeInfo.name, result.GetError().GetMessage());
                     iterator->Next();
@@ -481,7 +489,7 @@ Result BoxedToJSON(
                 pairArray.Resize(2);
 
                 JSON::Value keyJson;
-                if (Result result = BoxedToJSON(keyData, keyJson, newOpts); result.HasError())
+                if (Result result = BoxedToJSON(keyData, keyJson, &newOpts); result.HasError())
                 {
                     HYP_LOG(Core, Warning, "Failed to serialize map key for type {}: {}", typeInfo.name, result.GetError().GetMessage());
                     iterator->Next();
@@ -491,7 +499,7 @@ Result BoxedToJSON(
                 pairArray[0] = std::move(keyJson);
 
                 JSON::Value valueJson;
-                if (Result result = BoxedToJSON(valueData, valueJson, newOpts); result.HasError())
+                if (Result result = BoxedToJSON(valueData, valueJson, &newOpts); result.HasError())
                 {
                     HYP_LOG(Core, Warning, "Failed to serialize map value for type {}: {}", typeInfo.name, result.GetError().GetMessage());
                     iterator->Next();
@@ -590,7 +598,7 @@ Result BoxedToJSON(
                 newOpts.saveAssetsAsReferences = ToJSONOptions::SaveAssetsAsReferencesMode::No;
             }*/
 
-            if (Result result = BoxedToJSON(firstBoxed, jsonArray[0], newOpts); result.HasError())
+            if (Result result = BoxedToJSON(firstBoxed, jsonArray[0], &newOpts); result.HasError())
             {
                 return HYP_MAKE_ERROR(Error, "Failed to serialize first element of pair for type {}: {}", typeInfo.name, result.GetError().GetMessage());
             }
@@ -618,7 +626,7 @@ Result BoxedToJSON(
                 newOpts.saveAssetsAsReferences = ToJSONOptions::SaveAssetsAsReferencesMode::No;
             }*/
 
-            if (Result result = BoxedToJSON(secondBoxed, jsonArray[1], newOpts); result.HasError())
+            if (Result result = BoxedToJSON(secondBoxed, jsonArray[1], &newOpts); result.HasError())
             {
                 return HYP_MAKE_ERROR(Error, "Failed to serialize second element of pair for type {}: {}", typeInfo.name, result.GetError().GetMessage());
             }
@@ -669,7 +677,7 @@ Result BoxedToJSON(
             newOpts.saveAssetsAsReferences = ToJSONOptions::SaveAssetsAsReferencesMode::No;
         }*/
 
-        return BoxedToJSON(BoxedValue(activeValue), outJson, newOpts);
+        return BoxedToJSON(BoxedValue(activeValue), outJson, &newOpts);
     }
 
     const Class* cls = GetClass(value.GetTypeId());
@@ -689,7 +697,7 @@ Result BoxedToJSON(
 
         JSON::Object jsonObject;
 
-        if (Result result = ObjectToJSON(cls, value, jsonObject, opts); result.HasError())
+        if (Result result = ObjectToJSON(cls, value, jsonObject, &opts); result.HasError())
         {
             return result;
         }
@@ -702,8 +710,16 @@ Result BoxedToJSON(
     return HYP_MAKE_ERROR(Error, "Don't know how to serialize BoxedValue with type \"{}\" to JSON", typeInfo.name);
 }
 
-Result ObjectToJSON(const Class* cls, const BoxedValue& target, JSON::Object& outJson, ToJSONOptions opts)
+Result ObjectToJSON(const Class* cls, const BoxedValue& target, JSON::Object& outJson, ToJSONOptions* pOptions)
 {
+    static ToJSONOptions s_defaultOptions;
+    if (!pOptions)
+    {
+        pOptions = &s_defaultOptions;
+    }
+
+    ToJSONOptions& opts = *pOptions;
+
     if (opts.writeClassNamesRecursively)
     {
         opts.writeClassNames = true;
@@ -818,7 +834,7 @@ Result ObjectToJSON(const Class* cls, const BoxedValue& target, JSON::Object& ou
 
                 JSON::Value jsonValue;
 
-                if (Result result = BoxedToJSON(value, jsonValue, newOpts); result.HasError())
+                if (Result result = BoxedToJSON(value, jsonValue, &newOpts); result.HasError())
                 {
                     HYP_LOG(Core, Warning, "Failed to serialize property \"{}\" of Class \"{}\" to json",
                         member.GetName(), cls->GetName());
@@ -870,7 +886,7 @@ Result ObjectToJSON(const Class* cls, const BoxedValue& target, JSON::Object& ou
 
                 JSON::Value jsonValue;
 
-                if (Result result = BoxedToJSON(value, jsonValue, newOpts); result.HasError())
+                if (Result result = BoxedToJSON(value, jsonValue, &newOpts); result.HasError())
                 {
                     HYP_LOG(Core, Warning, "Failed to serialize field \"{}\" of Class \"{}\" to json: {}",
                         member.GetName(), cls->GetName(), result.GetError().GetMessage());
@@ -924,7 +940,7 @@ Result ObjectToJSON(const Class* cls, const BoxedValue& target, JSON::Object& ou
 
                 JSON::Value jsonValue;
 
-                if (Result result = BoxedToJSON(staticField->Get(), jsonValue, newOpts); result.HasError())
+                if (Result result = BoxedToJSON(staticField->Get(), jsonValue, &newOpts); result.HasError())
                 {
                     HYP_LOG(Core, Warning, "Failed to serialize static field \"{}\" of Class \"{}\" to json",
                         member.GetName(), cls->GetName());
@@ -1060,9 +1076,7 @@ Result ObjectFromJSON(const JSON::Object& jsonObject, const Class* targetClass, 
             }
         }
 
-#if defined(HYPERION_ENGINE) && HYPERION_ENGINE
         GlobalContextScope contextScope { LoadAssetsFromReferencesContext() };
-#endif
 
         // members with LoadOrder attribute get binned and put here first
         SortedArray<KeyValuePair<int, const IMember*>> sortedMembers;
@@ -1167,7 +1181,6 @@ Result ObjectFromJSON(const JSON::Object& jsonObject, const Class* targetClass, 
         instanceClass->PostLoad(target.ToRef().GetPointer());
     }
 
-#if defined(HYPERION_ENGINE) && HYPERION_ENGINE
     if (IsGlobalContextActive<LoadAssetsFromReferencesContext>() && target.Is<AssetReference>() && targetClass != AssetReference::StaticClass())
     {
         AssetReference& assetReference = target.Get<AssetReference>();
@@ -1201,7 +1214,6 @@ Result ObjectFromJSON(const JSON::Object& jsonObject, const Class* targetClass, 
 
         return HYP_MAKE_ERROR(Error, "Failed to resolve AssetReference when deserializing to AssetObject: invalid reference at \"{}\"", assetReference.GetAssetPath().ToString());
     }
-#endif
 
     return {};
 }
@@ -1981,8 +1993,6 @@ Result BoxedFromJSON(const JSON::Value& jsonValue, const TypeInfo& typeInfo, Box
 
             if (derivedClass)
             {
-
-#ifdef HYPERION_ENGINE
                 if (instanceClass != nullptr
                     && !(derivedClass->IsDerivedFrom(instanceClass)
                         // We allow $Class to be 'AssetReference', but only for AssetObject classes. (if LoadAssetsFromReferencesContext is active)
@@ -1990,7 +2000,6 @@ Result BoxedFromJSON(const JSON::Value& jsonValue, const TypeInfo& typeInfo, Box
                 {
                     HYP_LOG(Core, Warning, "Class '{}' is not derived from expected class '{}'", derivedClass->GetName(), instanceClass->GetName());
                 }
-#endif
             }
             else
             {
@@ -2291,5 +2300,15 @@ bool CloneWithoutTransientMembers(const BoxedValue& src, BoxedValue& outDst)
 
     return true;
 }
+
+// Dependency injection on static initialization to set these function pointers
+static struct ConfigBaseDependencyInject
+{
+    ConfigBaseDependencyInject()
+    {
+        ConfigBase::s_ObjectToJSON = &ObjectToJSON;
+        ConfigBase::s_ObjectFromJSON = &ObjectFromJSON;
+    }
+} s_configBaseDependencyInject {};
 
 } // namespace Hyperion
