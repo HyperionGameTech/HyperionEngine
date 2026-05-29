@@ -32,8 +32,7 @@
 
 #include <asset/AssetObject.hpp>
 #include <asset/AssetRegistry.hpp>
-
-#include <Core/serialization/SerializationUtils.hpp>
+#include <asset/SerializationUtils.hpp>
 
 #include <Entity.generated.inl>
 

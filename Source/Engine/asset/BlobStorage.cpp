@@ -8,8 +8,7 @@
 
 #include <asset/BlobStorage.hpp>
 #include <asset/BlobStorageViews.hpp>
-
-#include <Core/serialization/SerializationUtils.hpp>
+#include <asset/SerializationUtils.hpp>
 
 #include <Core/json/JSON.hpp>
 

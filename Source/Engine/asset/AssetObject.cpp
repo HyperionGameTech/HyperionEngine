@@ -11,11 +11,10 @@
 #include <asset/AssetBatch.hpp>
 #include <asset/Assets.hpp>
 #include <asset/BlobStorage.hpp>
+#include <asset/SerializationUtils.hpp>
 
 #include <Core/utilities/DeferredScope.hpp>
 #include <Core/utilities/GlobalContext.hpp>
-
-#include <Core/serialization/SerializationUtils.hpp>
 
 #include <Core/io/BufferedByteReader.hpp>
 #include <Core/io/ByteWriter.hpp>

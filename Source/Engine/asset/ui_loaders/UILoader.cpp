@@ -10,6 +10,7 @@
 
 #include <asset/AssetRegistry.hpp>
 #include <asset/Assets.hpp>
+#include <asset/SerializationUtils.hpp>
 
 #include <scripting/asset/ScriptAsset.hpp>
 
@@ -40,8 +41,6 @@
 
 #include <Core/reflection/Property.hpp>
 #include <Core/reflection/Field.hpp>
-
-#include <Core/serialization/SerializationUtils.hpp>
 
 #include <Core/functional/Delegate.hpp>
 

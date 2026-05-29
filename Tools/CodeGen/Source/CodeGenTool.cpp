@@ -319,6 +319,7 @@ private:
                     classDefinitions.PushBack(&it.second);
                 }
 
+                // @FIXME ObjectBase decl needs to go in Core/ClassDecls.cpp not main engine one
                 auto objectBaseIt = classDefinitions.FindIf([](const ClassDefinition* classDef)
                     {
                         return classDef->name == "ObjectBase";
@@ -962,8 +963,8 @@ private:
     // Compute the exact include line used for inline includes so insertion/removal share one source of truth
     String ComputeInlineIncludeLine(const FilePath& inlPath) const
     {
-        const FilePath relInlPath = FilePath::Relative(inlPath, m_analyzer.GetCXXOutputDirectory());
-        return HYP_FORMAT("#include <{}>", relInlPath.ReplaceAll("\\", "/"));
+        const String includeFileName = FilePath::Relative(inlPath, m_analyzer.GetCXXOutputDirectory()).Basename();
+        return HYP_FORMAT("#include <{}>",includeFileName);
     }
 
     Result InjectInlineIncludeForModule(const Module& mod, const FilePath& inlPath)
@@ -1024,7 +1025,7 @@ private:
                 writer.WriteString("\n");
             }
 
-            writer.WriteString(HYP_FORMAT("#include <{}>\n", relInlPathForGen.ReplaceAll("\\", "/")));
+            writer.WriteString(HYP_FORMAT("#include <{}>\n", relInlPathForGen.Basename()));
             writer.Close();
 
             return ReplaceFileIfDifferent(tmpGenCxxPath, genCxxPath);

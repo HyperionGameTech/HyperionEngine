@@ -13,7 +13,6 @@
 #include <Core/reflection/Property.hpp>
 #include <Core/reflection/Field.hpp>
 #include <Core/reflection/StaticField.hpp>
-#include <Core/serialization/SerializationUtils.hpp>
 
 #include <Core/utilities/Format.hpp>
 #include <Core/reflection/TypeInfo.hpp>
@@ -23,6 +22,8 @@
 
 #include <Core/logging/LogChannels.hpp>
 #include <Core/logging/Logger.hpp>
+
+#include <asset/SerializationUtils.hpp>
 
 namespace Hyperion {
 

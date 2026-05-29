@@ -931,11 +931,6 @@ endif()
 #     )
 # endif()
 
-# if Win32, link with DbgHelp
-if(HYP_WINDOWS)
-  set(COMMON_LIBRARIES ${COMMON_LIBRARIES} DbgHelp dwmapi)
-endif()
-
 if(HYP_ANDROID)
   set(COMMON_LIBRARIES ${COMMON_LIBRARIES} android log)
 endif()
@@ -974,8 +969,7 @@ if(NOT HYP_WINDOWS AND NOT HYP_ANDROID)
   include_directories(SYSTEM ${SDL2_INCLUDE_DIRS})
 endif()
 
-file(GLOB_RECURSE REFLECTION_GENERATED_SOURCES "${HYP_GENERATED_DIR}/*.cpp")
-message(STATUS "Reflection generated sources directory: ${HYP_GENERATED_DIR}")
+file(GLOB REFLECTION_GENERATED_SOURCES "${HYP_GENERATED_DIR}/*.cpp")
 source_group(TREE ${HYP_GENERATED_DIR} PREFIX "Generated Code" FILES ${REFLECTION_GENERATED_SOURCES})
 
 if(HYP_DEBUG_MODE)

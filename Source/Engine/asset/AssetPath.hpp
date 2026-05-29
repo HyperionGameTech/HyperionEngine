@@ -32,7 +32,7 @@ enum class AssetRegistryId : uint32
 };
 
 HYP_STRUCT()
-struct AssetPath
+struct ENGINE_API AssetPath
 {
     HYP_STRUCT_BODY(AssetPath);
 

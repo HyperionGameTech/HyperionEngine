@@ -20,7 +20,7 @@ namespace Hyperion {
 class AssetObject;
 
 HYP_STRUCT()
-class AssetReference
+class ENGINE_API AssetReference
 {
 public:
     HYP_STRUCT_BODY(AssetReference)

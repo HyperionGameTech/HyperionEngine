@@ -17,6 +17,7 @@
 #include <asset/AssetRegistry.hpp>
 #include <asset/AssetObject.hpp>
 #include <asset/BlobStorage.hpp>
+#include <asset/SerializationUtils.hpp>
 
 #include <scene/Scene.hpp>
 #include <scene/World.hpp>
@@ -28,7 +29,6 @@
 #include <Core/utilities/GlobalContext.hpp>
 
 #include <Core/reflection/Class.hpp>
-#include <Core/serialization/SerializationUtils.hpp>
 
 #include <Core/io/ByteReader.hpp>
 #include <Core/io/ByteWriter.hpp>

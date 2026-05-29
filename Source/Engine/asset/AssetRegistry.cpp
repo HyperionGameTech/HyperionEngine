@@ -13,6 +13,7 @@
 #include <asset/Assets.hpp>
 #include <asset/BlobStorage.hpp>
 #include <asset/BlobStorageViews.hpp>
+#include <asset/SerializationUtils.hpp>
 
 #include <Core/utilities/DeferredScope.hpp>
 #include <Core/utilities/GlobalContext.hpp>
@@ -22,7 +23,6 @@
 
 #include <Core/threading/Scheduler.hpp>
 
-#include <Core/serialization/SerializationUtils.hpp>
 #include <Core/reflection/Field.hpp>
 #include <Core/reflection/Property.hpp>
 

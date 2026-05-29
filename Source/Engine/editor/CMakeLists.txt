@@ -18,7 +18,7 @@ include_directories(SYSTEM
 )
 include_directories(
     ${CMAKE_SOURCE_DIR}
-    ${CMAKE_SOURCE_DIR}/Generated
+    ${CMAKE_SOURCE_DIR}/Generated/editor
     ${CMAKE_SOURCE_DIR}/Engine
     ${CMAKE_SOURCE_DIR}/Engine/editor
 )
@@ -33,6 +33,13 @@ foreach(filepath ${hyperion-editor_HEADERS})
   list(APPEND CURRENT_HEADERS "${CMAKE_SOURCE_DIR}/${filepath}")
 endforeach()
 source_group(TREE ${CMAKE_CURRENT_SOURCE_DIR} PREFIX "Source Code" FILES ${CURRENT_SOURCES} ${CURRENT_HEADERS})
+
+set(HYP_GENERATED_DIR "${CMAKE_SOURCE_DIR}/Generated/editor")
+file(GLOB REFLECTION_GENERATED_SOURCES "${HYP_GENERATED_DIR}/*.cpp")
+source_group(TREE ${HYP_GENERATED_DIR} PREFIX "Generated Code" FILES ${REFLECTION_GENERATED_SOURCES})
+
+set(CURRENT_SOURCES "${CURRENT_SOURCES}" ${REFLECTION_GENERATED_SOURCES})
+set(CURRENT_HEADERS "${CURRENT_HEADERS}" ${REFLECTION_GENERATED_HEADERS})
 
 add_library(${BUILD_NAME} SHARED ${CURRENT_SOURCES} ${CURRENT_HEADERS})
 target_compile_definitions(${BUILD_NAME} PRIVATE HYP_BUILD_EDITOR=1 HYP_EDITOR=1)

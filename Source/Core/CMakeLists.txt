@@ -41,6 +41,11 @@ else()
   set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -g -O3 -fpermissive")
 endif()
 
+# if Win32, link with DbgHelp
+if(HYP_PLATFORM_NAME STREQUAL "Windows")
+  set(COMMON_LIBRARIES ${COMMON_LIBRARIES} DbgHelp dwmapi)
+endif()
+
 if(NOT IOS)
   if(APPLE)
     set(CURL_LIBRARY /opt/homebrew/opt/curl/lib/libcurl.dylib)
@@ -88,6 +93,19 @@ file(GLOB_RECURSE SOURCES "*.cpp" "*.cc" "*.c")
 file(GLOB_RECURSE HEADERS "*.h" "*.hpp")
 source_group(TREE ${CMAKE_CURRENT_SOURCE_DIR} PREFIX "${BUILD_NAME} Code" FILES ${SOURCES} ${HEADERS})
 
+# only include generated code if we're building the engine
+if(HYPERION_ENGINE)
+  message(STATUS "Adding generated code to core library since HYPERION_ENGINE is set.")
+
+  set(HYP_GENERATED_DIR "${CMAKE_SOURCE_DIR}/Generated/core")
+  file(GLOB REFLECTION_GENERATED_SOURCES "${HYP_GENERATED_DIR}/*.cpp")
+  source_group(TREE ${HYP_GENERATED_DIR} PREFIX "Generated Code" FILES ${REFLECTION_GENERATED_SOURCES})
+
+  set(SOURCES "${SOURCES}" ${REFLECTION_GENERATED_SOURCES})
+  set(HEADERS "${HEADERS}" ${REFLECTION_GENERATED_HEADERS})
+
+endif()
+
 add_definitions(-DHYP_BUILD_LIBRARY=1)
 
 include_directories(SYSTEM
@@ -99,7 +117,7 @@ include_directories(
     ${CMAKE_CURRENT_SOURCE_DIR}
     ${CMAKE_CURRENT_SOURCE_DIR}/../
     ${CMAKE_CURRENT_SOURCE_DIR}/../Engine
-    ${CMAKE_CURRENT_SOURCE_DIR}/../Generated
+    ${CMAKE_CURRENT_SOURCE_DIR}/../Generated/core
 )
 
 message(STATUS "Configuring hyperion-core in ${CMAKE_CURRENT_SOURCE_DIR}")

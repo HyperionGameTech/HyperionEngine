@@ -6,7 +6,7 @@
 
 #pragma once
 
-#include <Core/serialization/BinaryDictionary.hpp>
+#include <asset/BinaryDictionary.hpp>
 
 namespace Hyperion {
 
