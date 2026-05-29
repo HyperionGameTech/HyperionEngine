@@ -123,6 +123,7 @@ private:
     D3D12_COMMAND_LIST_TYPE m_type;
     ComPtr<ID3D12GraphicsCommandList> m_commandList;
     ComPtr<ID3D12CommandAllocator> m_allocator;
+
     bool m_isRecording;
 
     // Track bound descriptor heaps to avoid redundant SetDescriptorHeaps() calls
@@ -130,7 +131,7 @@ private:
     ID3D12DescriptorHeap* m_boundSamplerHeap;
 
     // Track bound descriptor sets to avoid redundant SetGraphicsRootDescriptorTable() calls
-    Array<DX12CachedDescriptorSetBinding> m_boundDescriptorSets;
+    Array<DX12CachedDescriptorSetBinding, DX12Allocator> m_boundDescriptorSets;
 
     ID3D12CommandSignature* m_indirectCommandSignature;
 };

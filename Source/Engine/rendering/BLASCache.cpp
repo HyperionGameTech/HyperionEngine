@@ -64,7 +64,7 @@ public:
 };
 
 BLASCache::BLASCache()
-    : m_impl(MakePimpl<BLASCacheImpl>())
+    : m_impl(MakePimplWithAllocator<BLASCacheImpl, RenderAllocator>())
 {
 }
 

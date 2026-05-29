@@ -152,7 +152,7 @@ struct ScratchImageAllocatorImpl
 };
 
 ScratchImageAllocator::ScratchImageAllocator()
-    : m_impl(MakePimpl<ScratchImageAllocatorImpl>())
+    : m_impl(MakePimplWithAllocator<ScratchImageAllocatorImpl, RenderAllocator>())
 {
 }
 

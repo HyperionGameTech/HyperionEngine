@@ -7,6 +7,11 @@
 #pragma once
 
 #include <Core/Types.hpp>
+#include <Core/Defines.hpp>
+
+#include <Core/memory/pool/Pool.hpp>
+
+#include <rendering/RenderMemory.hpp>
 
 namespace Hyperion {
 
@@ -17,6 +22,8 @@ class EngineStatGpuTimer;
 class GpuTimerBackendBase
 {
 public:
+    HYP_DEF_POOL_NEW_DELETE(g_rhiPool);
+
     virtual ~GpuTimerBackendBase() = default;
 
     virtual bool Initialize(DeviceBase* device) = 0;

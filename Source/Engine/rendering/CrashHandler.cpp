@@ -46,14 +46,7 @@ CrashHandler::CrashHandler()
 
 CrashHandler::~CrashHandler()
 {
-    Mutex::Guard guard(g_savedDumpFilesPerThreadMutex);
-
-    for (Array<FilePath>* savedDumpFiles : g_savedDumpFilesPerThread)
-    {
-        delete savedDumpFiles;
-    }
-
-    g_savedDumpFilesPerThread.Clear();
+    Shutdown();
 }
 
 void CrashHandler::Initialize()
@@ -225,6 +218,25 @@ void CrashHandler::Initialize()
 
     Assert(res == GFSDK_Aftermath_Result_Success);
 #endif
+}
+
+void CrashHandler::Shutdown()
+{
+    if (!m_isInitialized)
+    {
+        return;
+    }
+
+    Mutex::Guard guard(g_savedDumpFilesPerThreadMutex);
+
+    for (Array<FilePath>* savedDumpFiles : g_savedDumpFilesPerThread)
+    {
+        delete savedDumpFiles;
+    }
+
+    g_savedDumpFilesPerThread.Clear();
+
+    m_isInitialized = false;
 }
 
 void CrashHandler::Dump()

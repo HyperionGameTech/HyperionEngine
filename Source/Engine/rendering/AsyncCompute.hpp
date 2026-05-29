@@ -29,7 +29,7 @@ namespace Hyperion {
 class AsyncComputeBase
 {
 public:
-    HYP_DEF_POOL_NEW_DELETE(g_renderPool);
+    HYP_DEF_POOL_NEW_DELETE(g_rhiPool);
 
     virtual ~AsyncComputeBase() = default;
 

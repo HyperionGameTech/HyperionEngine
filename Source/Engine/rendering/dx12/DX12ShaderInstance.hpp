@@ -66,7 +66,7 @@ public:
 #endif
 
 private:
-    Array<ShaderBlob> m_shaderBlobs;
+    Array<ShaderBlob, DX12Allocator> m_shaderBlobs;
 };
 
 } // namespace Hyperion

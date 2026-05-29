@@ -29,12 +29,12 @@ class DX12TextureViewCache final : public TextureViewCacheBase
 public:
     struct SubtypeData
     {
-        SparsePagedArray<TMap<uint64, DX12GpuImageViewRef, RenderAllocator>, 32, RenderAllocator> imageViews;
-        SparsePagedArray<WeakHandle<Texture>, 32, RenderAllocator> weakTextureHandles;
+        SparsePagedArray<TMap<uint64, DX12GpuImageViewRef, DX12Allocator>, 32, DX12Allocator> imageViews;
+        SparsePagedArray<WeakHandle<Texture>, 32, DX12Allocator> weakTextureHandles;
     };
 
     SharedMutex mutex;
-    Array<SubtypeData, RenderAllocator> subtypeImpls;
+    Array<SubtypeData, DX12Allocator> subtypeImpls;
 
     DX12TextureViewCache();
 

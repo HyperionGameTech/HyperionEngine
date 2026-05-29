@@ -448,7 +448,7 @@ public:
             const Class* cls = GetClass(typeId);
             AssertDebug(cls != nullptr);
 
-            subclassImpls[subclassIndex] = MakePimpl<Impl>(&Class_GetTypeInfo(*cls));
+            subclassImpls[subclassIndex] = MakePimplWithAllocator<Impl, AllocatorType>(&Class_GetTypeInfo(*cls));
             subclassIndices.Set(subclassIndex, true);
         }
 
@@ -700,7 +700,7 @@ public:
             const Class* cls = GetClass(typeId);
             AssertDebug(cls != nullptr, "Class for TypeId {} not found", typeId.Value());
 
-            subclassImpls[subclassIndex] = MakePimpl<Impl>(&Class_GetTypeInfo(*cls));
+            subclassImpls[subclassIndex] = MakePimplWithAllocator<Impl, AllocatorType>(&Class_GetTypeInfo(*cls));
             subclassIndices.Set(subclassIndex, true);
         }
 
@@ -730,7 +730,7 @@ public:
             const Class* cls = GetClass(typeId);
             AssertDebug(cls != nullptr, "Class for TypeId {} not found", typeId.Value());
 
-            subclassImpls[subclassIndex] = MakePimpl<Impl>(&Class_GetTypeInfo(*cls));
+            subclassImpls[subclassIndex] = MakePimplWithAllocator<Impl, AllocatorType>(&Class_GetTypeInfo(*cls));
             subclassIndices.Set(subclassIndex, true);
         }
 
@@ -1314,92 +1314,6 @@ public:
     mutable ResourceTrackerDiff cachedDiff;
     mutable bool cachedDiffNeedsUpdate : 1 = true;
 };
-
-template <class IdType, class ElementType, class ProxyType>
-static inline void GetAddedElements(ResourceTracker<IdType, ElementType, ProxyType>& lhs, ResourceTracker<IdType, ElementType, ProxyType>& rhs, Array<ElementType*>& outElements)
-{
-    auto impl = [&outElements](typename ResourceTracker<IdType, ElementType, ProxyType>::Impl& lhsImpl, typename ResourceTracker<IdType, ElementType, ProxyType>::Impl& rhsImpl)
-    {
-        const Bitset& lhsElements = lhsImpl.next;
-        const Bitset& rhsElements = rhsImpl.next;
-
-        const size_t newNumBits = MathUtil::Max(lhsElements.NumBits(), rhsElements.NumBits());
-        Bitset addedBits = Bitset(rhsElements).SetNumBits(newNumBits) & ~Bitset(lhsElements).SetNumBits(newNumBits);
-
-        if (!addedBits.AnyBitsSet())
-        {
-            return;
-        }
-
-        outElements.Reserve(outElements.Size() + addedBits.Count());
-
-        for (Bitset::BitIndex i : addedBits)
-        {
-            const IdType id = IdType(ObjIdBase { TypeInfo_GetId(*rhsImpl.typeInfo), uint32(i + 1) });
-
-            ElementType* elem = rhsImpl.elements.TryGet(id.ToIndex());
-            AssertDebug(elem != nullptr);
-
-            outElements.PushBack(elem);
-        }
-    };
-
-    impl(lhs.baseImpl, rhs.baseImpl);
-
-    for (Bitset::BitIndex i : rhs.subclassIndices)
-    {
-        if (!lhs.subclassIndices.Test(i))
-        {
-            lhs.subclassImpls[i] = MakePimpl<typename ResourceTracker<IdType, ElementType, ProxyType>::Impl>(rhs.subclassImpls[i]->typeInfo);
-            lhs.subclassIndices.Set(i, true);
-        }
-
-        impl(*lhs.subclassImpls[i], *rhs.subclassImpls[i]);
-    }
-}
-
-template <class IdType, class ElementType, class ProxyType>
-static inline void GetRemovedElements(ResourceTracker<IdType, ElementType, ProxyType>& lhs, ResourceTracker<IdType, ElementType, ProxyType>& rhs, Array<ElementType*>& outElements)
-{
-    auto impl = [&outElements](typename ResourceTracker<IdType, ElementType, ProxyType>::Impl& lhsImpl, typename ResourceTracker<IdType, ElementType, ProxyType>::Impl& rhsImpl)
-    {
-        const Bitset& lhsElements = lhsImpl.next;
-        const Bitset& rhsElements = rhsImpl.next;
-
-        const size_t newNumBits = MathUtil::Max(lhsElements.NumBits(), rhsElements.NumBits());
-        Bitset removedBits = Bitset(lhsElements).SetNumBits(newNumBits) & ~Bitset(rhsElements).SetNumBits(newNumBits);
-
-        if (!removedBits.AnyBitsSet())
-        {
-            return;
-        }
-
-        outElements.Reserve(outElements.Size() + removedBits.Count());
-
-        for (Bitset::BitIndex i : removedBits)
-        {
-            const IdType id = IdType(ObjIdBase { TypeInfo_GetId(*lhsImpl.typeInfo), uint32(i + 1) });
-
-            ElementType* elem = lhsImpl.elements.TryGet(id.ToIndex());
-            AssertDebug(elem != nullptr);
-
-            outElements.PushBack(elem);
-        }
-    };
-
-    impl(lhs.baseImpl, rhs.baseImpl);
-
-    for (Bitset::BitIndex i : lhs.subclassIndices)
-    {
-        if (!rhs.subclassIndices.Test(i))
-        {
-            lhs.subclassImpls[i] = MakePimpl<typename ResourceTracker<IdType, ElementType, ProxyType>::Impl>(rhs.subclassImpls[i]->typeInfo);
-            lhs.subclassIndices.Set(i, true);
-        }
-
-        impl(*lhs.subclassImpls[i], *rhs.subclassImpls[i]);
-    }
-}
 
 } // namespace Resources
 

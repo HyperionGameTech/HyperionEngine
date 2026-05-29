@@ -835,6 +835,14 @@ void RenderInterface::Shutdown()
 
     globalDescriptorTable.Reset();
 
+    if (crashHandler != nullptr)
+    {
+        crashHandler->Shutdown();
+
+        delete crashHandler;
+        crashHandler = nullptr;
+    }
+
     PoolDelete(*g_renderPool, shaderManager);
     shaderManager = nullptr;
 
@@ -888,9 +896,6 @@ void RenderInterface::Shutdown()
 
     PoolDelete(*g_renderPool, renderGroupCache);
     renderGroupCache = nullptr;
-
-    PoolDelete(*g_renderPool, crashHandler);
-    crashHandler = nullptr;
 }
 
 void RenderInterface::BeginFrame(AtomicFlag* pCancelFlag)

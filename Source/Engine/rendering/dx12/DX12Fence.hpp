@@ -20,7 +20,7 @@ class DX12Fence final : public ObjectBase
     HYP_OBJECT_BODY(DX12Fence);
 
 public:
-    static Pool* GetAllocator() { return g_rhiPool; }
+    static Pool* GetAllocator() { return g_dx12Pool; }
 
     DX12Fence();
 

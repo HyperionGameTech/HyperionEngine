@@ -124,7 +124,7 @@ struct BufferAllocatorImpl
 };
 
 BufferAllocator::BufferAllocator()
-    : m_impl(MakePimpl<BufferAllocatorImpl>())
+    : m_impl(MakePimplWithAllocator<BufferAllocatorImpl, RenderAllocator>())
 {
 }
 

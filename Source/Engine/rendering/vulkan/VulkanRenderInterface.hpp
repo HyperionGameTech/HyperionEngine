@@ -36,8 +36,6 @@ class VulkanDescriptorSetLayoutWrapper;
 
 class VulkanDescriptorSetManager;
 
-class VulkanTextureCache;
-
 struct VulkanDynamicFunctions
 {
     void Load(VulkanDevice* device);
@@ -220,9 +218,7 @@ private:
 
     Pimpl<VulkanRenderConfig> m_renderConfig;
 
-    Pimpl<VulkanDescriptorSetManager> m_descriptorSetManager;
-
-    Pimpl<VulkanTextureCache> m_textureCache;
+    VulkanDescriptorSetManager* m_descriptorSetManager;
 
     Array<VulkanFrameRef, VulkanAllocator> m_frames;
     uint32 m_currentFrameIndex;

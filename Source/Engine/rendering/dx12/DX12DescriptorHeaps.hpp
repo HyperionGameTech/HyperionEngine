@@ -11,6 +11,8 @@
 
 #include <Core/threading/SharedMutex.hpp>
 
+#include <rendering/RenderMemory.hpp>
+
 #include <rendering/dx12/DX12Shared.hpp>
 
 namespace Hyperion {
@@ -44,6 +46,8 @@ class DX12DescriptorAllocator;
 class DX12DescriptorHeapManager final
 {
 public:
+    HYP_DEF_POOL_NEW_DELETE(g_dx12Pool);
+
     DX12DescriptorHeapManager();
 
     DX12DescriptorHeapManager(const DX12DescriptorHeapManager&) = delete;

@@ -182,11 +182,11 @@ private:
 
     FixedArray<DX12CommandBufferRef, NumFramesInFlight> m_commandBuffers;
 
-    LinkedList<DX12CommandBuffer, RenderAllocator> m_transientCommandBuffers[NumRendererWorkerThreads + 1][NumFramesInFlight];
-    LinkedList<DX12CommandBuffer, RenderAllocator> m_pendingTransientCommandBuffers[NumRendererWorkerThreads + 1][NumFramesInFlight];
+    LinkedList<DX12CommandBuffer, DX12Allocator> m_transientCommandBuffers[NumRendererWorkerThreads + 1][NumFramesInFlight];
+    LinkedList<DX12CommandBuffer, DX12Allocator> m_pendingTransientCommandBuffers[NumRendererWorkerThreads + 1][NumFramesInFlight];
 
-    LinkedList<DX12Fence, RenderAllocator> m_transientCommandBufferFences[NumFramesInFlight];
-    LinkedList<DX12Fence, RenderAllocator> m_recycledTransientCommandBufferFences;
+    LinkedList<DX12Fence, DX12Allocator> m_transientCommandBufferFences[NumFramesInFlight];
+    LinkedList<DX12Fence, DX12Allocator> m_recycledTransientCommandBufferFences;
     Mutex m_transientCommandBuffersMutex;
 
     ComPtr<ID3D12Fence> m_transientSyncFence;
@@ -210,8 +210,8 @@ private:
 
     D3D12MA::Allocator* m_allocator;
 
-    Array<DX12AsyncCompute*, RenderAllocator> m_asyncComputePool;
-    Array<DX12AsyncCompute*, RenderAllocator> m_submittedAsyncComputes;
+    Array<DX12AsyncCompute*, DX12Allocator> m_asyncComputePool;
+    Array<DX12AsyncCompute*, DX12Allocator> m_submittedAsyncComputes;
     Mutex m_asyncComputesMutex;
 };
 

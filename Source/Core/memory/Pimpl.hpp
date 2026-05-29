@@ -12,6 +12,8 @@
 
 #include <Core/memory/Memory.hpp>
 
+#include <Core/memory/allocator/Allocator.hpp>
+
 #include <Core/utilities/ValueStorage.hpp>
 
 #include <Core/Types.hpp>
@@ -162,22 +164,28 @@ public:
     }
 
     /*! \brief Constructs a Pimpl<T> from the given arguments. */
-    template <class... Args>
-    HYP_NODISCARD HYP_FORCE_INLINE static Pimpl Construct(Args&&... args)
+    template <class AllocatorType, class... Args>
+    HYP_NODISCARD HYP_FORCE_INLINE static Pimpl ConstructWithAllocator(Args&&... args)
     {
         static_assert(std::is_constructible_v<T, Args...>, "T must be constructible using the given args");
         static_assert(std::is_trivial_v<Allocation>, "Allocation type must be trivial");
 
+        AllocatorType* allocator = GetDefaultAllocatorInstance<AllocatorType>();
+        HYP_CORE_ASSERT(allocator != nullptr);
+
         Pimpl pimpl;
 
-        Allocation* allocation = (Allocation*)Memory::AllocateAligned(sizeof(Allocation), alignof(Allocation));
+        Allocation* allocation = (Allocation*)allocator->Allocate(sizeof(Allocation), alignof(Allocation));
         HYP_CORE_ASSERT(allocation != nullptr);
 
         allocation->destructObject = [](void* allocation)
         {
+            AllocatorType* allocator = GetDefaultAllocatorInstance<AllocatorType>();
+            HYP_CORE_ASSERT(allocator != nullptr);
+
             static_cast<Allocation*>(allocation)->storage.Destruct();
 
-            Memory::FreeAligned(allocation);
+            allocator->Free(allocation);
         };
 
         allocation->storage.Construct(std::forward<Args>(args)...);
@@ -187,17 +195,24 @@ public:
         return pimpl;
     }
 
+    /*! \brief Constructs a Pimpl<T> from the given arguments. */
+    template <class... Args>
+    HYP_NODISCARD HYP_FORCE_INLINE static Pimpl Construct(Args&&... args)
+    {
+        return Pimpl<T>::template ConstructWithAllocator<DynamicAllocator>(std::forward<Args>(args)...);
+    }
+
 private:
     AllocationBase* m_allocation;
 };
 
-template <class T>
+template <class T, class AllocatorType = DynamicAllocator>
 struct MakePimplHelper
 {
     template <class... Args>
     static Pimpl<T> MakePimpl(Args&&... args)
     {
-        return Pimpl<T>::Construct(std::forward<Args>(args)...);
+        return Pimpl<T>::template ConstructWithAllocator<AllocatorType>(std::forward<Args>(args)...);
     }
 };
 
@@ -210,6 +225,12 @@ template <class T, class... Args>
 HYP_FORCE_INLINE Pimpl<T> MakePimpl(Args&&... args)
 {
     return memory::MakePimplHelper<T>::MakePimpl(std::forward<Args>(args)...);
+}
+
+template <class T, class AllocatorType, class... Args>
+HYP_FORCE_INLINE Pimpl<T> MakePimplWithAllocator(Args&&... args)
+{
+    return memory::MakePimplHelper<T, AllocatorType>::MakePimpl(std::forward<Args>(args)...);
 }
 
 } // namespace Hyperion

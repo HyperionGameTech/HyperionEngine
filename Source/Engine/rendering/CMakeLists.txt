@@ -14,8 +14,6 @@ set(CMAKE_CXX_STANDARD 20 CACHE STRING "C++ standard to be used")
 
 set(RENDERER_LIBRARIES "")
 
-add_definitions(-DHYP_BUILD_RENDERING_LIBRARY=1)
-
 if(IOS)
   find_package(SDL2 REQUIRED)
 
@@ -132,6 +130,8 @@ endforeach()
 source_group(TREE ${CMAKE_CURRENT_SOURCE_DIR} PREFIX "Source Code" FILES ${CURRENT_SOURCES} ${CURRENT_HEADERS})
 
 add_library(${BUILD_NAME} STATIC ${CURRENT_SOURCES} ${CURRENT_HEADERS})
+
+target_compile_definitions(${BUILD_NAME} PRIVATE HYP_BUILD_RENDERING_LIBRARY=1)
 
 if(NOT "${${BUILD_NAME}_PCH}" STREQUAL "")
   target_precompile_headers(${BUILD_NAME} PRIVATE "${${BUILD_NAME}_PCH}")

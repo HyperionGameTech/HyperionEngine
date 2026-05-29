@@ -60,7 +60,7 @@ class DX12DescriptorSet final : public DescriptorSetBase
 {
     HYP_OBJECT_BODY(DX12DescriptorSet);
 
-    using ElementCache = TMap<Name, Array<DX12CachedDescriptor, RHIAllocator>, RHIAllocator>;
+    using ElementCache = TMap<Name, Array<DX12CachedDescriptor, DX12Allocator>, DX12Allocator>;
 
 public:
     explicit DX12DescriptorSet(const DescriptorSetLayout& layout);
@@ -104,6 +104,7 @@ private:
     DX12DescriptorHandle m_samplerDescriptorHandle;
 
     uint16 m_updateVersion;
+
     bool m_isCreated : 1;
 };
 

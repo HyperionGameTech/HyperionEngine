@@ -7,12 +7,14 @@
 #pragma once
 
 #include <Core/Defines.hpp>
+#include <Core/Types.hpp>
+
+#include <Core/memory/pool/Pool.hpp>
 
 #include <rendering/vulkan/VulkanDevice.hpp>
 
+#include <rendering/RenderMemory.hpp>
 #include <rendering/RenderTypes.hpp>
-
-#include <Core/Types.hpp>
 
 #include <vulkan/vulkan.h>
 
@@ -28,6 +30,8 @@ class VulkanInstance
 #endif
 
 public:
+    HYP_DEF_POOL_NEW_DELETE(g_vulkanPool);
+
     VulkanInstance();
     ~VulkanInstance();
 

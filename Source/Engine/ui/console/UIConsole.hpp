@@ -4,9 +4,9 @@
 
 #include <ui/UIObject.hpp>
 
-#include <core/memory/Pimpl.hpp>
+#include <Core/memory/Pimpl.hpp>
 
-#include <core/threading/Mutex.hpp>
+#include <Core/threading/Mutex.hpp>
 
 namespace Hyperion {
 

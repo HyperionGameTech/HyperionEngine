@@ -69,10 +69,10 @@ private:
 
     HWND m_hwnd;
     ComPtr<IDXGISwapChain4> m_swapChain;
-    Array<ID3D12Resource*> m_backBuffers;
+    Array<ID3D12Resource*, DX12Allocator> m_backBuffers;
 
     DX12DescriptorHandle m_rtvDescriptorHandle;
-    Array<D3D12_CPU_DESCRIPTOR_HANDLE> m_rtvHandles;
+    Array<D3D12_CPU_DESCRIPTOR_HANDLE, DX12Allocator> m_rtvHandles;
 
     uint32 m_currentBackBufferIndex;
 

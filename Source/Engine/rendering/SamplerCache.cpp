@@ -30,7 +30,7 @@ public:
 #pragma endregion SamplerCacheImpl
 
 SamplerCache::SamplerCache()
-    : m_impl(MakePimpl<SamplerCacheImpl>())
+    : m_impl(MakePimplWithAllocator<SamplerCacheImpl, RenderAllocator>())
 {
     m_impl->cache.Reserve(16);
 }

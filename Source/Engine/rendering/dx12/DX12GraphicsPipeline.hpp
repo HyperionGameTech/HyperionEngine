@@ -87,7 +87,7 @@ private:
     // Maps descriptor set index (bindIndex) to root parameter indices.
     // The descriptor set index corresponds to the HLSL register space (spaceN).
     // This mapping aligns with ShaderCompiler.cpp where #define _{SetName}_SPACE space{N} is generated.
-    Array<DescriptorSetRootIndices> m_descriptorSetRootIndices;
+    Array<DescriptorSetRootIndices, DX12Allocator> m_descriptorSetRootIndices;
 };
 
 } // namespace Hyperion

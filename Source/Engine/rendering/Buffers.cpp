@@ -148,7 +148,7 @@ struct StagingBufferPoolImpl
 };
 
 StagingBufferPool::StagingBufferPool()
-    : m_impl(MakePimpl<StagingBufferPoolImpl>())
+    : m_impl(MakePimplWithAllocator<StagingBufferPoolImpl, RenderAllocator>())
 {
 }
 

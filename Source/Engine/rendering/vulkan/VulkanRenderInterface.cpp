@@ -248,6 +248,8 @@ void VulkanDynamicFunctions::Load(VulkanDevice* device)
 class VulkanDescriptorSetManager
 {
 public:
+    HYP_DEF_POOL_NEW_DELETE(g_vulkanPool);
+
     static constexpr uint32 MaxDescriptorSets = 4096;
 
     VulkanDescriptorSetManager();
@@ -629,11 +631,11 @@ const IRenderConfig& VulkanRenderInterface::GetRenderConfig() const
 
 RendererResult VulkanRenderInterface::Initialize()
 {
-    m_renderConfig = MakePimpl<VulkanRenderConfig>();
-    m_descriptorSetManager = MakePimpl<VulkanDescriptorSetManager>();
+    m_renderConfig = new VulkanRenderConfig;
+    m_descriptorSetManager = new VulkanDescriptorSetManager;
 
     // CrashHandler must be initialized before we create the Vulkan instance
-    crashHandler = PoolNew<CrashHandler>(*g_renderPool);
+    crashHandler = new CrashHandler;
     crashHandler->Initialize();
 
     m_frames.Resize(NumFramesInFlight);
@@ -659,7 +661,7 @@ RendererResult VulkanRenderInterface::Initialize()
     const bool enableDebugLayers = false;
 #endif
 
-    m_instance = HYP_POOL_NEW(g_vulkanPool, VulkanInstance);
+    m_instance = new VulkanInstance;
     CheckResultOrReturn(m_instance->Initialize(enableDebugLayers));
 
     m_renderConfig->Initialize(this);
@@ -690,7 +692,7 @@ RendererResult VulkanRenderInterface::Initialize()
         CheckResultOrReturn(frame->Create());
     }
 
-    m_gpuTimerBackend = PoolNew<VulkanGpuTimerBackend>(*g_renderPool);
+    m_gpuTimerBackend = new VulkanGpuTimerBackend;
     if (!m_gpuTimerBackend->Initialize(m_instance->GetDevice()))
     {
         HYP_LOG(RenderingBackend, Info, "GPU timestamp queries not supported on this device");
@@ -759,7 +761,9 @@ void VulkanRenderInterface::Shutdown()
     m_submittedAsyncComputes.Clear();
 
     m_gpuTimerBackend->Shutdown();
-    PoolDelete(*g_renderPool, m_gpuTimerBackend);
+
+    delete m_gpuTimerBackend;
+    m_gpuTimerBackend = nullptr;
 
     RenderInterface::Shutdown();
 
@@ -782,7 +786,10 @@ void VulkanRenderInterface::Shutdown()
 
     m_descriptorSetManager->Shutdown(m_instance->GetDevice());
 
-    PoolDelete(*g_vulkanPool, m_instance);
+    delete m_descriptorSetManager;
+    m_descriptorSetManager = nullptr;
+
+    delete m_instance;
     m_instance = nullptr;
 }
 

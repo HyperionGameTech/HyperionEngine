@@ -974,9 +974,6 @@ if(NOT HYP_WINDOWS AND NOT HYP_ANDROID)
   include_directories(SYSTEM ${SDL2_INCLUDE_DIRS})
 endif()
 
-# set HYP_BUILD_LIBRARY just for this library (so DLL exports are correct)
-add_definitions(-DHYP_BUILD_LIBRARY=1)
-
 file(GLOB_RECURSE REFLECTION_GENERATED_SOURCES "${HYP_GENERATED_DIR}/*.cpp")
 message(STATUS "Reflection generated sources directory: ${HYP_GENERATED_DIR}")
 source_group(TREE ${HYP_GENERATED_DIR} PREFIX "Generated Code" FILES ${REFLECTION_GENERATED_SOURCES})
@@ -995,6 +992,8 @@ set(SOURCES ${SOURCES} ${THIRD_PARTY_SOURCES})
 set_source_files_properties(${THIRD_PARTY_SOURCES} PROPERTIES SKIP_PRECOMPILE_HEADERS ON)
 
 add_library(${BUILD_NAME} SHARED ${SOURCES} ${HEADERS})
+
+target_compile_definitions(${BUILD_NAME} PRIVATE HYP_BUILD_LIBRARY=1)
 
 # if(HYP_ANDROID)
 #     # add hyperion-android module
@@ -1073,8 +1072,6 @@ if(TARGET webgpu_external)
 endif()
 
 add_definitions(${GCC_COVERAGE_COMPILE_FLAGS})
-
-remove_definitions(-DHYP_BUILD_LIBRARY)
 
 add_subdirectory(Sample)
 

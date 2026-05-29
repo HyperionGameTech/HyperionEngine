@@ -57,6 +57,7 @@ FilePath CXXModuleGenerator::GetInlineOutputFilePath(const Analyzer& analyzer, c
     return analyzer.GetCXXOutputDirectory() / StringUtil::StripExtension(relativePath.Basename()) + ".generated.inl";
 }
 
+// Currently this ClassDecls header is unused, may disappear soonish.
 Result CXXModuleGenerator::GenerateClassDeclHeader(const Analyzer& analyzer, ByteWriter& writer) const
 {
     writer.WriteString("class Class;\n\n");
@@ -187,6 +188,7 @@ Result CXXModuleGenerator::GenerateClassDeclHeader(const Analyzer& analyzer, Byt
     return {};
 }
 
+// @TODO Make ClassDecls.cpp per-project (i.e hyperion-rendering can have its own ClassDecls.cpp)
 Result CXXModuleGenerator::GenerateClassDeclImplementation(const Analyzer& analyzer, ByteWriter& writer) const
 {
     writer.WriteString(GetGeneratedFilePreamble(String::empty));
@@ -268,12 +270,12 @@ Result CXXModuleGenerator::GenerateClassDeclImplementation(const Analyzer& analy
         {
             const String namespaceString = BuildNamespaceString(namespaceParts);
             writer.WriteString(HYP_FORMAT("namespace {}", namespaceString) + " { ");
-            writer.WriteString(HYP_FORMAT("const Class* g_cls{} = nullptr;", cls.name));
+            writer.WriteString(HYP_FORMAT("HYP_EXPORT const Class* g_cls{} = nullptr;", cls.name));
             writer.WriteString(" }\n");
         }
         else
         {
-            writer.WriteString(HYP_FORMAT("const Class* g_cls{} = nullptr;\n", cls.name));
+            writer.WriteString(HYP_FORMAT("HYP_EXPORT const Class* g_cls{} = nullptr;\n", cls.name));
         }
     }
 
@@ -390,7 +392,7 @@ Result CXXModuleGenerator::GenerateClassDeclImplementation(const Analyzer& analy
     // writer.WriteString("\n#pragma endregion GetClassHelper Get implementations\n\n");
 
     // now we need to add a method to be called that initializes all g_clsXXX variables (TClassStaticInit specializations)
-    writer.WriteString("\nHYP_API void InitClassDecls()\n{\n");
+    writer.WriteString("HYP_EXPORT void InitClassDecls()\n{\n");
 
     for (const ClassInfo& classInfo : allClasses)
     {
@@ -511,7 +513,8 @@ Result CXXModuleGenerator::GenerateInline(const Analyzer& analyzer, const Module
         });
 
         writer.WriteString(HYP_FORMAT("namespace {}", BuildNamespaceString(cls.namespaceParts)) + " {\n");
-        writer.WriteString(HYP_FORMAT("extern const Class* g_cls{};\n", cls.name));
+        // @TODO Come back to if we generate separate ClassDecls.cpp per project (HYP_API would need to change)
+        writer.WriteString(HYP_FORMAT("HYP_API extern const Class* g_cls{};\n", cls.name));
         writer.WriteString("} " + HYP_FORMAT("// namespace {}\n\n", BuildNamespaceString(cls.namespaceParts)));
 
         if (cls.namespaceParts.Any() && (cls.namespaceParts.Size() > 1 || cls.namespaceParts[0] != BaseNamespace))
@@ -899,7 +902,8 @@ Result CXXModuleGenerator::Generate(const Analyzer& analyzer, const Module& mod,
         });
 
         writer.WriteString(HYP_FORMAT("namespace {}", BuildNamespaceString(cls.namespaceParts)) + " {\n");
-        writer.WriteString(HYP_FORMAT("extern const Class* g_cls{};\n", cls.name));
+        // @TODO Come back to if we generate separate ClassDecls.cpp per project (HYP_API would need to change)
+        writer.WriteString(HYP_FORMAT("HYP_API extern const Class* g_cls{};\n", cls.name));
         writer.WriteString("} " + HYP_FORMAT("// namespace {}\n\n", BuildNamespaceString(cls.namespaceParts)));
 
         if (cls.namespaceParts.Any() && (cls.namespaceParts.Size() > 1 || cls.namespaceParts[0] != BaseNamespace))

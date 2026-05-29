@@ -192,9 +192,10 @@ RendererResult DX12RenderInterface::Initialize()
 {
     HYP_LOG(RenderingBackend, Info, "Initializing DX12 render backend");
 
-    descriptorHeapManager = PoolNew<DX12DescriptorHeapManager>(*g_renderPool);
-    m_gpuTimerBackend = PoolNew<DX12GpuTimerBackend>(*g_renderPool);
-    m_renderConfig = MakePimpl<DX12RenderConfig>();
+    descriptorHeapManager = new DX12DescriptorHeapManager;
+    m_gpuTimerBackend = new DX12GpuTimerBackend;
+
+    m_renderConfig = MakePimplWithAllocator<DX12RenderConfig, DX12Allocator>();
 
     uint32 createFactoryFlags = 0;
 
@@ -343,7 +344,7 @@ RendererResult DX12RenderInterface::Initialize()
 #endif
 
     // CrashHandler must be initialized before we create the device
-    crashHandler = PoolNew<CrashHandler>(*g_renderPool);
+    crashHandler = new CrashHandler;
     crashHandler->Initialize();
 
     // create device
@@ -529,14 +530,16 @@ void DX12RenderInterface::Shutdown()
     m_queueData = {};
 
     m_gpuTimerBackend->Shutdown();
-    PoolDelete(*g_renderPool, m_gpuTimerBackend);
+    delete m_gpuTimerBackend;
+    m_gpuTimerBackend = nullptr;
 
     RenderInterface::Shutdown();
 
     DeletionQueue::GetInstance().Shutdown();
 
     descriptorHeapManager->Shutdown();
-    PoolDelete(*g_renderPool, descriptorHeapManager);
+    delete descriptorHeapManager;
+    descriptorHeapManager = nullptr;
 
     m_allocator->Release();
     m_allocator = nullptr;
@@ -688,8 +691,8 @@ void DX12RenderInterface::PrepareFrame(DX12Frame* frame)
 
     for (uint32 threadIndex = 0; threadIndex < NumRendererWorkerThreads + 1; threadIndex++)
     {
-        LinkedList<DX12CommandBuffer, RenderAllocator>& freeList = m_transientCommandBuffers[threadIndex][frameIndex];
-        LinkedList<DX12CommandBuffer, RenderAllocator>& pendingList = m_pendingTransientCommandBuffers[threadIndex][frameIndex];
+        LinkedList<DX12CommandBuffer, DX12Allocator>& freeList = m_transientCommandBuffers[threadIndex][frameIndex];
+        LinkedList<DX12CommandBuffer, DX12Allocator>& pendingList = m_pendingTransientCommandBuffers[threadIndex][frameIndex];
 
         for (auto it = pendingList.Begin(); it != pendingList.End();)
         {
@@ -771,8 +774,8 @@ DX12CommandBuffer& DX12RenderInterface::GetTransientCommandBuffer()
 
     const uint32 renderThreadIndex = CurrentRenderThreadIndex();
 
-    LinkedList<DX12CommandBuffer, RenderAllocator>& freeList = m_transientCommandBuffers[renderThreadIndex][frameIndex];
-    LinkedList<DX12CommandBuffer, RenderAllocator>& pendingList = m_pendingTransientCommandBuffers[renderThreadIndex][frameIndex];
+    LinkedList<DX12CommandBuffer, DX12Allocator>& freeList = m_transientCommandBuffers[renderThreadIndex][frameIndex];
+    LinkedList<DX12CommandBuffer, DX12Allocator>& pendingList = m_pendingTransientCommandBuffers[renderThreadIndex][frameIndex];
 
     DX12CommandBuffer* pCommandBuffer = nullptr;
 

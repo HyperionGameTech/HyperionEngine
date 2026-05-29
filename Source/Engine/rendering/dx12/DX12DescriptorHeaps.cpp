@@ -180,6 +180,8 @@ void DX12DescriptorIndexAllocator::Reset()
 class DX12DescriptorAllocator final
 {
 public:
+    HYP_DEF_POOL_NEW_DELETE(g_dx12Pool);
+
     explicit DX12DescriptorAllocator(DX12DescriptorHeapType type, uint32 maxDescriptors);
 
     DX12DescriptorAllocator(const DX12DescriptorAllocator&) = delete;
@@ -322,7 +324,7 @@ void DX12DescriptorHeapManager::Initialize()
 
     for (uint8 heapIndex = 0; heapIndex < MaxDescriptorHeapType; heapIndex++)
     {
-        m_descriptorAllocators[heapIndex] = PoolNew<DX12DescriptorAllocator>(*g_renderPool, DX12DescriptorHeapType(heapIndex), MaxDescriptorsByHeapType[heapIndex]);
+        m_descriptorAllocators[heapIndex] = new DX12DescriptorAllocator(DX12DescriptorHeapType(heapIndex), MaxDescriptorsByHeapType[heapIndex]);
     }
 }
 
@@ -330,7 +332,7 @@ void DX12DescriptorHeapManager::Shutdown()
 {
     for (uint8 heapIndex = 0; heapIndex < MaxDescriptorHeapType; heapIndex++)
     {
-        PoolDelete<DX12DescriptorAllocator>(*g_renderPool, m_descriptorAllocators[heapIndex]);
+        delete m_descriptorAllocators[heapIndex];
         m_descriptorAllocators[heapIndex] = nullptr;
     }
 }

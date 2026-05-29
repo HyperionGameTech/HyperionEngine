@@ -162,7 +162,7 @@ static ViewDesc GetViewDesc(Light* light, bool isStatic, uint32 cascadeIndex, Sh
     materialAttributes.cullFaces = FCM_FRONT;
 
     viewDesc.overrideAttributes = RenderableAttributeSet(MeshAttributes(), materialAttributes);
-    
+
     viewDesc.flags &= ~ViewFlags::COLLECT_ALL_ENTITIES;
 
     if (splitStaticAndDynamic)
@@ -281,7 +281,7 @@ public:
 };
 
 ShadowMapCache::ShadowMapCache()
-    : m_impl(MakePimpl<ShadowMapCacheImpl>())
+    : m_impl(MakePimplWithAllocator<ShadowMapCacheImpl, RenderAllocator>())
 {
 }
 

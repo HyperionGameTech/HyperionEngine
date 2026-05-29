@@ -76,7 +76,7 @@ private:
     ShaderBindingTableEntry m_hitGroupShaderTable;
 
     // Maps descriptor set index (bindIndex) to root parameter indices
-    Array<DescriptorSetRootIndices> m_descriptorSetRootIndices;
+    Array<DescriptorSetRootIndices, DX12Allocator> m_descriptorSetRootIndices;
 };
 
 } // namespace Hyperion

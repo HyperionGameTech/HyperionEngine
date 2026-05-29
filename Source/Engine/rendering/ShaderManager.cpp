@@ -454,7 +454,7 @@ public:
             entry = GetShaderMapEntry(cacheId);
 
             Assert(!entry->IsLoaded());
-            
+
             entry->cacheId = cacheId;
             entry->shader = GetShader(entry->cacheId);
 
@@ -757,7 +757,7 @@ public:
 };
 
 ShaderManager::ShaderManager()
-    : m_impl(MakePimpl<ShaderManagerImpl>())
+    : m_impl(MakePimplWithAllocator<ShaderManagerImpl, RenderAllocator>())
 {
 }
 
