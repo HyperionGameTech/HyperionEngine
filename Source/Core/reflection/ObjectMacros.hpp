@@ -165,7 +165,8 @@ public:                                                                         
                                                                                  \
     HYP_FORCE_INLINE static const Class* StaticClass()                           \
     {                                                                            \
-        return Hyperion::GetClass<T>();                                          \
+        HYP_API extern const Class* g_cls##T;                                    \
+        return g_cls##T;                                                         \
     }                                                                            \
                                                                                  \
     template <class TOther>                                                      \
@@ -177,12 +178,7 @@ public:                                                                         
         }                                                                        \
         else                                                                     \
         {                                                                        \
-            static const Class* otherClass = TOther::StaticClass();              \
-            if (!otherClass)                                                     \
-            {                                                                    \
-                return false;                                                    \
-            }                                                                    \
-            return Hyperion::IsA(otherClass, InstanceClass());                   \
+            return Hyperion::IsA(TOther::StaticClass(), InstanceClass());        \
         }                                                                        \
     }                                                                            \
                                                                                  \
@@ -225,7 +221,8 @@ private:
                                                        \
     HYP_FORCE_INLINE static const Class* StaticClass() \
     {                                                  \
-        return Hyperion::GetClass<T>();                \
+        HYP_API extern const Class* g_cls##T;          \
+        return g_cls##T;                               \
     }
 
 #define HYP_REGISTER_STATIC_CLASS(T) \

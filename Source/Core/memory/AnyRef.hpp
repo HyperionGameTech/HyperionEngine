@@ -31,7 +31,7 @@ class AnyBase;
 
 /*! \brief A non-owning reference to an object of any type.
  *  Type enforcement is done at runtime. */
-class HYP_API AnyRefBase
+class AnyRefBase
 {
     using PointerType = void*;
 
@@ -147,7 +147,7 @@ public:
     }
 
     /*! \brief Returns the TypeId of the held object. */
-    TypeId GetTypeId() const;
+    HYP_API TypeId GetTypeId() const;
 
     HYP_FORCE_INLINE const TypeInfo* GetTypeInfo() const
     {
@@ -155,7 +155,7 @@ public:
     }
 
     /*! \brief Returns the Class of the held object, if one is registered. */
-    const Class* GetClass() const;
+    HYP_API const Class* GetClass() const;
 
     /*! \brief Returns true if the held object is of type T.
      *  If T has a Class registered, this function will also return true if the held object is a subclass of T. */

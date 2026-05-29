@@ -215,14 +215,7 @@ inline bool ObjectBase::IsA() const
     }
     else
     {
-        static const Class* otherClass = TOther::StaticClass();
-
-        if (!otherClass)
-        {
-            return false;
-        }
-
-        return Hyperion::IsA(otherClass, InstanceClass());
+        return Hyperion::IsA(TOther::StaticClass(), InstanceClass());
     }
 }
 

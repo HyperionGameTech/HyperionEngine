@@ -450,7 +450,7 @@ public:
 };
 
 /*! \brief Additional type information for containers and complex types */
-struct HYP_API TypeInfoEx
+struct TypeInfoEx
 {
     enum DataType
     {

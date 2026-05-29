@@ -20,65 +20,65 @@ set(COMMON_LIBRARIES
 )
 
 if(HYPERION_ENGINE)
-    message(STATUS "Building hyperion-core for the engine, setting HYPERION_ENGINE=1 in Core.")
-    add_definitions(-DHYPERION_ENGINE=1)
+  message(STATUS "Building hyperion-core for the engine, setting HYPERION_ENGINE=1 in Core.")
+  add_definitions(-DHYPERION_ENGINE=1)
 endif()
 
 message(STATUS "HYP_PLATFORM_NAME: ${HYP_PLATFORM_NAME}")
 
 if(HYP_PLATFORM_NAME STREQUAL "Android")
-    message(STATUS "Building for Android, setting HYP_ANDROID=1 in Core.")
-    add_definitions(-DHYP_ANDROID=1)
+  message(STATUS "Building for Android, setting HYP_ANDROID=1 in Core.")
+  add_definitions(-DHYP_ANDROID=1)
 endif()
 
 find_package(Threads REQUIRED)
 find_package(ZLIB)
 
 if(MSVC)
-    set(CMAKE_CXX_FLAGS "/Zc:preprocessor /MD /O2 /Zi /MP /Zc:__cplusplus")
-    add_definitions("/DNOMINMAX")
+  set(CMAKE_CXX_FLAGS "/Zc:preprocessor /MD /O2 /Zi /MP /Zc:__cplusplus")
+  add_definitions("/DNOMINMAX")
 else()
-    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -g -O3 -fpermissive")
+  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -g -O3 -fpermissive")
 endif()
 
 if(NOT IOS)
-    if(APPLE)
-        set(CURL_LIBRARY /opt/homebrew/opt/curl/lib/libcurl.dylib)
-        set(CURL_INCLUDE_DIR /opt/homebrew/opt/curl/include)
-    endif()
+  if(APPLE)
+    set(CURL_LIBRARY /opt/homebrew/opt/curl/lib/libcurl.dylib)
+    set(CURL_INCLUDE_DIR /opt/homebrew/opt/curl/include)
+  endif()
 
-    find_package(CURL)
+  find_package(CURL)
 endif()
 
 if(CURL_FOUND)
-    message(STATUS "CURL found at ${CURL_INCLUDE_DIRS}")
+  message(STATUS "CURL found at ${CURL_INCLUDE_DIRS}")
 
-    add_definitions(-DHYP_CURL=1)
+  add_definitions(-DHYP_CURL=1)
 
-    include_directories(SYSTEM ${CURL_INCLUDE_DIRS})
-    set(COMMON_LIBRARIES ${COMMON_LIBRARIES} ${CURL_LIBRARIES})
+  include_directories(SYSTEM ${CURL_INCLUDE_DIRS})
+  set(COMMON_LIBRARIES ${COMMON_LIBRARIES} ${CURL_LIBRARIES})
 endif()
 
 if(ZLIB_FOUND)
-    message(STATUS "Zlib found at ${ZLIB_INCLUDE_DIRS}")
+  message(STATUS "Zlib found at ${ZLIB_INCLUDE_DIRS}")
 
-    add_definitions(-DHYP_ZLIB=1)
+  add_definitions(-DHYP_ZLIB=1)
 
-    include_directories(SYSTEM ${ZLIB_INCLUDE_DIRS})
-    set(COMMON_LIBRARIES ${COMMON_LIBRARIES} ${ZLIB_LIBRARIES})
+  include_directories(SYSTEM ${ZLIB_INCLUDE_DIRS})
+  set(COMMON_LIBRARIES ${COMMON_LIBRARIES} ${ZLIB_LIBRARIES})
 elseif(EXISTS "${SUBMODULES_DIR}/zlib/CMakeLists.txt")
-    message(STATUS "Zlib submodule found")
+  message(STATUS "Zlib submodule found")
 
-    add_definitions(-DHYP_ZLIB=1)
+  add_definitions(-DHYP_ZLIB=1)
 
-    set(ZLIB_BUILD_TESTING OFF CACHE BOOL "" FORCE)
-    set(ZLIB_BUILD_MINIZIP OFF CACHE BOOL "" FORCE)
-    set(ZLIB_INSTALL OFF CACHE BOOL "" FORCE)
+  set(ZLIB_BUILD_TESTING OFF CACHE BOOL "" FORCE)
+  set(ZLIB_BUILD_MINIZIP OFF CACHE BOOL "" FORCE)
+  set(ZLIB_INSTALL OFF CACHE BOOL "" FORCE)
 
-    include_directories(SYSTEM ${SUBMODULES_DIR}/zlib PUBLIC "${CMAKE_CURRENT_BINARY_DIR}/zlib")
-    add_subdirectory(${SUBMODULES_DIR}/zlib ${CMAKE_CURRENT_BINARY_DIR}/zlib)
+  include_directories(SYSTEM ${SUBMODULES_DIR}/zlib PUBLIC "${CMAKE_CURRENT_BINARY_DIR}/zlib")
+  add_subdirectory(${SUBMODULES_DIR}/zlib ${CMAKE_CURRENT_BINARY_DIR}/zlib)
 
-    set(COMMON_LIBRARIES
+  set(COMMON_LIBRARIES
         ${COMMON_LIBRARIES}
         zlibstatic
     )
@@ -107,4 +107,6 @@ message(STATUS "Configuring hyperion-core in ${CMAKE_CURRENT_SOURCE_DIR}")
 set(SOURCES ${SOURCES} ${CMAKE_CURRENT_SOURCE_DIR}/../../External/ThirdParty/Source/tlsf/tlsf.c)
 
 add_library(${BUILD_NAME} ${SOURCES} ${HEADERS})
+target_compile_definitions(${BUILD_NAME} PRIVATE HYP_BUILD_LIBRARY=1)
+
 target_link_libraries(${BUILD_NAME} PRIVATE ${COMMON_LIBRARIES})
