@@ -35,6 +35,7 @@
 #include <engine/GameState.hpp>
 
 #include <rendering/Mesh.hpp>
+
 #include <rendering/util/DeletionQueue.hpp>
 
 #include <cstring>

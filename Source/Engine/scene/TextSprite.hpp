@@ -35,25 +35,37 @@ public:
 
     ~TextSprite() override;
 
+    HYP_METHOD(Property = "Text", Serialize, Editor)
     void SetText(const String& text);
+
+    HYP_METHOD(Property = "Text", Serialize, Editor)
     const String& GetText() const
     {
         return m_text;
     }
-
+    
+    HYP_METHOD(Property = "TextColor", Serialize, Editor)
     void SetTextColor(Color color);
+    
+    HYP_METHOD(Property = "TextColor", Serialize, Editor)
     Color GetTextColor() const
     {
         return m_textColor;
     }
-
+    
+    HYP_METHOD(Property = "TextSize", Serialize, Editor)
     void SetTextSize(float textSize);
+    
+    HYP_METHOD(Property = "TextSize", Serialize, Editor)
     float GetTextSize() const
     {
         return m_textSize;
     }
-
+    
+    HYP_METHOD(Property = "FontAtlas", Serialize, Editor)
     void SetFontAtlas(const Handle<FontAtlas>& fontAtlas);
+    
+    HYP_METHOD(Property = "FontAtlas", Serialize, Editor)
     const Handle<FontAtlas>& GetFontAtlas() const
     {
         return m_fontAtlas;
@@ -67,8 +79,6 @@ public:
     const Handle<FontAtlas>& GetFontAtlasOrDefault() const;
 
 protected:
-    void Init() override;
-
     void UpdateTextAABB();
     void UpdateFontAtlasTexture();
 

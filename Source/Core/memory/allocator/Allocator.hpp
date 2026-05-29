@@ -237,39 +237,28 @@ struct Allocator
 
 struct DynamicAllocator : Allocator<DynamicAllocator>
 {
-    static constexpr uint32 maxAlign = alignof(std::max_align_t);
+    static constexpr uint32 maxAlign = ~0u;
 
     template <class T>
     struct Allocation : DynamicAllocationBase<T>
     {
     };
 
-    HYP_FORCE_INLINE void* Allocate(size_t size, size_t /* alignment */)
+    HYP_FORCE_INLINE void* Allocate(size_t size, size_t alignment)
     {
         HYP_CORE_ASSERT(size > 0);
 
-        void* ptr = malloc(size);
+        void* ptr = Memory::AllocateAligned(size, alignment);
         HYP_CORE_ASSERT(ptr != nullptr);
 
         return ptr;
-
-#if 0
-        void* ptr = HYP_ALLOC_ALIGNED(size, alignment);
-        HYP_CORE_ASSERT(ptr != nullptr);
-
-        return ptr;
-#endif
     }
 
     HYP_FORCE_INLINE void Free(void* ptr)
     {
         HYP_CORE_ASSERT(ptr != nullptr);
 
-        free(ptr);
-
-#if 0
-        HYP_FREE_ALIGNED(ptr);
-#endif
+        Memory::FreeAligned(ptr);
     }
 };
 

@@ -229,7 +229,7 @@ static BoundingBox CalculateTextAABB(const FontAtlas& fontAtlas, const String& t
 }
 
 TextSprite::TextSprite()
-    : Sprite(Name::Invalid(), SpriteType::Text)
+    : TextSprite(Name::Invalid(), String::empty)
 {
 }
 
@@ -237,24 +237,19 @@ TextSprite::TextSprite(Name name, const String& text)
     : Sprite(name, SpriteType::Text),
       m_text(text)
 {
-    auto result = CreateFontAtlas();
-    if (result.HasValue())
+    auto fontAtlasResult = CreateFontAtlas();
+    if (fontAtlasResult.HasValue())
     {
-        m_fontAtlas = result.GetValue();
+        m_fontAtlas = fontAtlasResult.GetValue();
     }
-    else if (result.HasError())
+    else if (fontAtlasResult.HasError())
     {
-        HYP_LOG(Scene, Error, "Failed to set FontAtlas for TextSprite {}: {}", GetName(), result.GetError().GetMessage());
+        HYP_LOG(Scene, Error, "Failed to set FontAtlas for TextSprite {}: {}", GetName(), fontAtlasResult.GetError().GetMessage());
     }
 }
 
 TextSprite::~TextSprite()
 {
-}
-
-void TextSprite::Init()
-{
-    Sprite::Init();
 }
 
 void TextSprite::UpdateFontAtlasTexture()

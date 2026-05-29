@@ -2252,6 +2252,14 @@ extern enum SpriteType : uint32
     Max
 end
 extern class TextSprite : Sprite
+    SetText(text : string) -> void
+    GetText() -> string
+    SetTextColor(color : Color) -> void
+    GetTextColor() -> Color
+    SetTextSize(textSize : float) -> void
+    GetTextSize() -> float
+    SetFontAtlas(fontAtlas : FontAtlas) -> void
+    GetFontAtlas() -> FontAtlas
 end
 extern class Light : Entity
     GetLightType() -> LightType

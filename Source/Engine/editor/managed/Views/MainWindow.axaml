@@ -274,6 +274,17 @@
                                                     HorizontalAlignment="Center"
                                                     FontSize="12"
                                                     Foreground="#808080"
+                                                    Header="2D"
+                                                    IsEnabled="False" />
+                                                <MenuItem Command="{Binding AddSprite}" Header="Sprite" />
+                                                <MenuItem Command="{Binding AddTextSprite}" Header="Text Sprite" />
+                                                <Separator />
+                                                <MenuItem
+                                                    Margin="0,2"
+                                                    Padding="8,4"
+                                                    HorizontalAlignment="Center"
+                                                    FontSize="12"
+                                                    Foreground="#808080"
                                                     Header="Lights"
                                                     IsEnabled="False" />
                                                 <MenuItem Command="{Binding AddDirectionalLight}" Header="Directional Light" />

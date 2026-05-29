@@ -120,6 +120,9 @@ namespace Hyperion.Editor.ViewModels
         }
         public EditorCommand AddCamera => new EditorCommand("AddCamera");
 
+        public EditorCommand AddSprite => new EditorCommand("AddSprite");
+        public EditorCommand AddTextSprite => new EditorCommand("AddTextSprite");
+
         public EditorCommand AddPointLight => new EditorCommand("AddPointLight");
         public EditorCommand AddDirectionalLight => new EditorCommand("AddDirectionalLight");
         public EditorCommand AddSpotLight => new EditorCommand("AddSpotLight");

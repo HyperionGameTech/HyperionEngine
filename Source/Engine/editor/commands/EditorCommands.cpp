@@ -16,6 +16,8 @@
 
 #include <scene/ParticleVolume.hpp>
 #include <scene/FogVolume.hpp>
+#include <scene/Sprite.hpp>
+#include <scene/TextSprite.hpp>
 
 #include <scene/components/BoundingBoxComponent.hpp>
 
@@ -841,6 +843,36 @@ public:
 DEFINE_EDITOR_COMMAND(AddCamera);
 
 #pragma endregion EditorCommandAddCamera
+
+#pragma region EditorCommandAddSprite
+
+class HYP_API EditorCommandAddSprite final : public EditorCommandAddNodeBase<EditorCommandAddSprite>
+{
+    HYP_OBJECT_BODY(EditorCommandAddSprite);
+
+public:
+    using NodeType = Sprite;
+    static inline const Name s_defaultNodeName = NAME("New Sprite");
+};
+
+DEFINE_EDITOR_COMMAND(AddSprite);
+
+#pragma endregion EditorCommandAddSprite
+
+#pragma region EditorCommandAddTextSprite
+
+class HYP_API EditorCommandAddTextSprite final : public EditorCommandAddNodeBase<EditorCommandAddTextSprite>
+{
+    HYP_OBJECT_BODY(EditorCommandAddTextSprite);
+
+public:
+    using NodeType = TextSprite;
+    static inline const Name s_defaultNodeName = NAME("New Text Sprite");
+};
+
+DEFINE_EDITOR_COMMAND(AddTextSprite);
+
+#pragma endregion EditorCommandAddTextSprite
 
 #pragma region EditorCommandAddPointLight
 
