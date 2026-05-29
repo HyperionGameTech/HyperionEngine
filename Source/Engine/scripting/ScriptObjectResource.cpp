@@ -8,6 +8,8 @@
 
 #include <Core/debug/Debug.hpp>
 
+#include <Core/reflection/ScriptObjectFunctions.hpp>
+
 #ifdef HYP_DOTNET
 #include <dotnet/ManagedObject.hpp>
 #include <dotnet/ManagedClass.hpp>
@@ -316,6 +318,41 @@ ENGINE_API void Object_DecScriptObjectRef(ObjectBase* ptr)
 
 #pragma endregion // Object Extensions for .NET
 
+#endif
+
+#if defined(HYP_DOTNET) || defined(HYP_SCRIPT)
+static struct ScriptObjectFunctionsDependencyInject
+{
+    ScriptObjectFunctionsDependencyInject()
+    {
+        ScriptObjectFunctions::IncScriptObjectRef = &Object_IncScriptObjectRef;
+        ScriptObjectFunctions::DecScriptObjectRef = &Object_DecScriptObjectRef;
+
+        ScriptObjectFunctions::CreateScriptObjectResource_DotNet = [](ObjectBase* target, const RC<dotnet::ManagedClass>& managedClass) -> ScriptObjectResource* {
+            return new ScriptObjectResource(target, managedClass);
+        };
+        ScriptObjectFunctions::CreateScriptObjectResource_Script = [](ScriptInstance* instance, ObjectBase* target) -> ScriptObjectResource* {
+            return new ScriptObjectResource(instance, target);
+        };
+        ScriptObjectFunctions::DestroyScriptObjectResource = [](ScriptObjectResource* obj) {
+            delete obj;
+        };
+
+        ScriptObjectFunctions::GetScriptLanguageMask = [](const ScriptObjectResource* obj) -> unsigned int {
+            return obj->GetScriptLanguageMask();
+        };
+        ScriptObjectFunctions::GetManagedObject = [](const ScriptObjectResource* obj) -> dotnet::ManagedObject* {
+            return obj->GetManagedObject();
+        };
+
+        ScriptObjectFunctions::ManagedClassRefCountedPtrFromThis = [](dotnet::ManagedClass* mc) -> RC<dotnet::ManagedClass> {
+            return mc->RefCountedPtrFromThis();
+        };
+        ScriptObjectFunctions::ManagedClassNewManagedObject = [](dotnet::ManagedClass* mc, void* contextPtr, void (*copyCallback)(void*, void*, unsigned int), dotnet::ObjectReference* outRef) {
+            *outRef = mc->NewManagedObject(contextPtr, copyCallback);
+        };
+    }
+} s_scriptObjectFunctionsDependencyInject {};
 #endif
 
 } // namespace Hyperion

@@ -164,4 +164,9 @@ protected:
 #endif
 };
 
+#ifdef HYP_DOTNET
+ENGINE_API extern void Object_IncScriptObjectRef(ObjectBase* ptr);
+ENGINE_API extern void Object_DecScriptObjectRef(ObjectBase* ptr);
+#endif
+
 } // namespace Hyperion

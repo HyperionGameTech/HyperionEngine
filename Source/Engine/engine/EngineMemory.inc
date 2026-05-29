@@ -22,6 +22,8 @@ static constexpr size_t StreamingArenaSize = 64 * 1024;           // 64 KiB
 
 #endif
 
+CORE_API extern Pool* g_objectPool;
+
 HYP_ENGINE_MEMORY_DECL Pool* g_scenePool;                   // Pool for scene-related allocations (thread safe)
 HYP_ENGINE_MEMORY_DECL Pool* g_assetPool;                   // Pool for asset system allocations (thread safe)
 HYP_ENGINE_MEMORY_DECL Pool* g_streamingPool;               // Pool for streaming system allocations (thread safe)

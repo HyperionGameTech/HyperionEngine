@@ -22,10 +22,6 @@
 
 namespace Hyperion {
 
-#ifdef HYP_SCRIPT
-extern Pool* g_scriptPool;
-#endif
-
 static void* DynamicStructInstance_CopyCtor(void* ctx, const void* block)
 {
     const Any::Block* src = static_cast<const Any::Block*>(block);
@@ -71,7 +67,7 @@ bool Struct::CreateStructInstance(dotnet::ObjectReference& outObjectReference, c
         context.ptr = objectPtr;
         context.size = size;
 
-        outObjectReference = managedClass->NewManagedObject(&context, [](void* contextPtr, void* objectPtr, uint32 objectSize)
+        ScriptObjectFunctions::ManagedClassNewManagedObject(managedClass, &context, [](void* contextPtr, void* objectPtr, uint32 objectSize)
             {
                 ManagedStructInitializerContext& context = *static_cast<ManagedStructInitializerContext*>(contextPtr);
 
@@ -79,7 +75,7 @@ bool Struct::CreateStructInstance(dotnet::ObjectReference& outObjectReference, c
                     context.size, objectSize);
 
                 Memory::Copy(objectPtr, context.ptr, context.size);
-            });
+            }, &outObjectReference);
 
         return true;
     }

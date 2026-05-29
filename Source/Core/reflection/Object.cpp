@@ -89,7 +89,7 @@ ObjectInitializerGuardBase::~ObjectInitializerGuardBase()
             {
                 if (!scriptObjectResource)
                 {
-                    scriptObjectResource = new ScriptObjectResource(target, managedClass);
+                    scriptObjectResource = ScriptObjectFunctions::CreateScriptObjectResource_DotNet(target, managedClass);
 
                     target->SetScriptObjectResource(scriptObjectResource);
                 }
@@ -112,7 +112,7 @@ ObjectInitializerGuardBase::~ObjectInitializerGuardBase()
 #ifdef HYP_SCRIPT
             if (!scriptObjectResource)
             {
-                scriptObjectResource = new ScriptObjectResource((ScriptInstance*)nullptr, target);
+                scriptObjectResource = ScriptObjectFunctions::CreateScriptObjectResource_Script((ScriptInstance*)nullptr, target);
 
                 target->SetScriptObjectResource(scriptObjectResource);
             }
@@ -183,7 +183,9 @@ ObjectBase::~ObjectBase()
 
             AssertDebug(cls->IsClassType());
 
-            const bool isScriptObj = (m_scriptObjectResource->GetScriptLanguageMask() & (1u << uint32(ScriptLanguage::HypScript))) != 0;
+            const bool isScriptObj = ScriptObjectFunctions::GetScriptLanguageMask
+                ? (ScriptObjectFunctions::GetScriptLanguageMask(m_scriptObjectResource) & (1u << uint32(ScriptLanguage::HypScript))) != 0
+                : false;
 
             if (isScriptObj)
             {
@@ -214,7 +216,9 @@ ObjectBase::~ObjectBase()
         }
 #endif
 
-        delete m_scriptObjectResource;
+        if (ScriptObjectFunctions::DestroyScriptObjectResource) {
+            ScriptObjectFunctions::DestroyScriptObjectResource(m_scriptObjectResource);
+        }
         m_scriptObjectResource = nullptr;
     }
 #endif
@@ -256,7 +260,7 @@ int32 ObjectBase::Release()
 #ifdef HYP_DOTNET
 dotnet::ManagedObject* ObjectBase::GetManagedObject() const
 {
-    return m_scriptObjectResource ? m_scriptObjectResource->GetManagedObject() : nullptr;
+    return m_scriptObjectResource ? ScriptObjectFunctions::GetManagedObject(m_scriptObjectResource) : nullptr;
 }
 #endif
 

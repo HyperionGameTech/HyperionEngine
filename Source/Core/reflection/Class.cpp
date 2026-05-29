@@ -41,8 +41,8 @@
 namespace Hyperion {
 
 #ifdef HYP_SCRIPT
-extern Pool* g_scriptPool;
 #endif
+
 
 #ifdef HYP_TOOL
 const Class* g_clsObjectBase = nullptr;
@@ -1288,7 +1288,7 @@ bool Class::GetManagedObject(const void* objectPtr, dotnet::ObjectReference& out
         return false;
     }
 
-    dotnet::ManagedObject* managedObject = sor->GetManagedObject();
+    dotnet::ManagedObject* managedObject = ScriptObjectFunctions::GetManagedObject(sor);
 
     if (!managedObject)
     {
@@ -1316,7 +1316,7 @@ DynamicClassInstance::DynamicClassInstance(TypeId typeId, Name name, const Class
 
     if (pManagedClass != nullptr)
     {
-        SetManagedClass(pManagedClass->RefCountedPtrFromThis());
+        SetManagedClass(ScriptObjectFunctions::ManagedClassRefCountedPtrFromThis(pManagedClass));
     }
 
     m_parent = parentClass != nullptr ? parentClass : g_clsObjectBase;
@@ -1405,8 +1405,9 @@ DynamicClassInstance::DynamicClassInstance(
             ObjectContainer<ObjectBase>* container = new ObjectContainer<ObjectBase>(thisClass);
 
             // we use the Script pool for allocating instances of dynamic classes when HYP_SCRIPT is enabled
-            Assert(g_scriptPool != nullptr);
-            container->SetPool(g_scriptPool);
+            Pool* scriptPool = ScriptObjectFunctions::GetScriptPool ? ScriptObjectFunctions::GetScriptPool() : nullptr;
+            Assert(scriptPool != nullptr);
+            container->SetPool(scriptPool);
 
             return container;
         });
@@ -1466,7 +1467,7 @@ bool DynamicClassInstance::GetManagedObject(const void* objectPtr, dotnet::Objec
 
     ResourceGuard resourceScope = target->GetScriptObjectResource()->GetReadScope();
 
-    dotnet::ManagedObject* managedObject = target->GetScriptObjectResource()->GetManagedObject();
+    dotnet::ManagedObject* managedObject = ScriptObjectFunctions::GetManagedObject(target->GetScriptObjectResource());
 
     if (!managedObject || !managedObject->IsValid())
     {
@@ -1576,7 +1577,7 @@ bool DynamicClassInstance::CreateInstance_Internal(BoxedValue& out) const
 
             if (!scriptObjectResource)
             {
-                scriptObjectResource = new ScriptObjectResource(target, managedClass);
+                scriptObjectResource = ScriptObjectFunctions::CreateScriptObjectResource_DotNet(target, managedClass);
                 AssertDebug(scriptObjectResource != nullptr);
 
                 target->SetScriptObjectResource(scriptObjectResource);
@@ -1694,7 +1695,7 @@ bool DynamicClassInstance::CreateInstance_Internal(BoxedValue& out) const
 
     if (!scriptObjectResource)
     {
-        scriptObjectResource = new ScriptObjectResource((ScriptInstance*)nullptr, target);
+        scriptObjectResource = ScriptObjectFunctions::CreateScriptObjectResource_Script((ScriptInstance*)nullptr, target);
         Assert(scriptObjectResource != nullptr);
 
         target->SetScriptObjectResource(scriptObjectResource);

@@ -40,6 +40,8 @@ foreach(filepath ${hyperion-dx12_HEADERS})
 endforeach()
 
 add_library(${BUILD_NAME} STATIC ${CURRENT_SOURCES} ${CURRENT_HEADERS})
+target_compile_definitions(${BUILD_NAME} PRIVATE HYP_BUILD_ENGINE=1)
+
 source_group(TREE ${CMAKE_CURRENT_SOURCE_DIR} PREFIX "${BUILD_NAME} Code" FILES ${CURRENT_SOURCES} ${CURRENT_HEADERS})
 
 if(NOT "${${BUILD_NAME}_PCH}" STREQUAL "")

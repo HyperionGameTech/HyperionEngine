@@ -93,7 +93,7 @@ static constexpr GCIndex MAX_GC_INDEX = GCIndex((1u << 31) - 2);
  *  Providing a unified way of accessing the data via Get<T>() and TryGet<T>() methods.
  *  \note Used in serialization, reflection, scripting, and other systems where data needs to be stored in a generic way.
  */
-struct BoxedValue
+struct CORE_API BoxedValue
 {
     /*! \brief A struct that can hold up to 16 bytes of user data.
      *  Useful for storing small amounts of data directly in BoxedValue without heap allocation.

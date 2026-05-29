@@ -42,10 +42,22 @@ namespace Hyperion {
 
 HYP_DEFINE_LOG_CHANNEL(HypScript);
 
+#include <Core/reflection/ScriptObjectFunctions.hpp>
+
 static constexpr size_t ScriptPoolBlockSize = 8 * 1024 * 1024;
 
 static Pool s_scriptPoolInstance { ScriptPoolBlockSize };
 Pool* g_scriptPool = &s_scriptPoolInstance;
+
+static struct HypScriptPoolDependencyInject
+{
+    HypScriptPoolDependencyInject()
+    {
+        ScriptObjectFunctions::GetScriptPool = []() -> Pool* {
+            return g_scriptPool;
+        };
+    }
+} s_hypScriptPoolDependencyInject {};
 
 #pragma region HypScriptImpl
 

@@ -12,6 +12,7 @@
 
 #include <Core/reflection/ObjId.hpp>
 #include <Core/reflection/ObjectFwd.hpp>
+#include <Core/reflection/ScriptObjectFunctions.hpp>
 
 #include <Core/containers/SparsePagedArray.hpp>
 
@@ -40,11 +41,6 @@ struct ObjectHeader;
 class Class;
 
 CORE_API extern void ReleaseObject(ObjectHeader* header);
-
-#ifdef HYP_DOTNET
-CORE_API extern void Object_IncScriptObjectRef(class ObjectBase* ptr);
-CORE_API extern void Object_DecScriptObjectRef(class ObjectBase* ptr);
-#endif
 
 class CORE_API ObjectContainerBase
 {
@@ -151,8 +147,10 @@ struct ObjectHeader
             if (AtomicCompareExchange(&refCountStrong, count, count + 1))
             {
 #ifdef HYP_DOTNET
-                // if count was added successfully (and now, greater than 1), we can acquire the lock for the managed object
-                Object_IncScriptObjectRef(GetObjectPointer(this));
+                if (ScriptObjectFunctions::IncScriptObjectRef)
+                {
+                    ScriptObjectFunctions::IncScriptObjectRef(GetObjectPointer(this));
+                }
 #endif
 
                 return true;
@@ -170,7 +168,9 @@ struct ObjectHeader
 #ifdef HYP_DOTNET
         if (count > 1)
         {
-            Object_IncScriptObjectRef(GetObjectPointer(this));
+            if (ScriptObjectFunctions::IncScriptObjectRef) {
+                ScriptObjectFunctions::IncScriptObjectRef(GetObjectPointer(this));
+            }
         }
 #endif
 
@@ -206,7 +206,10 @@ struct ObjectHeader
         AssertDebug(count > 0, "RefCount bug! strong count went negative");
 
 #ifdef HYP_DOTNET
-        Object_DecScriptObjectRef(GetObjectPointer(this));
+        if (ScriptObjectFunctions::DecScriptObjectRef)
+        {
+            ScriptObjectFunctions::DecScriptObjectRef(GetObjectPointer(this));
+        }
 #endif
 
         return count;

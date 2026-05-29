@@ -25,19 +25,20 @@ include_directories(
 # Normalize sources/headers to absolute paths under the root
 set(CURRENT_SOURCES "")
 foreach(filepath ${hyperion-input_SOURCES})
-    list(APPEND CURRENT_SOURCES "${CMAKE_SOURCE_DIR}/${filepath}")
+  list(APPEND CURRENT_SOURCES "${CMAKE_SOURCE_DIR}/${filepath}")
 endforeach()
 
 set(CURRENT_HEADERS "")
 foreach(filepath ${hyperion-input_HEADERS})
-    list(APPEND CURRENT_HEADERS "${CMAKE_SOURCE_DIR}/${filepath}")
+  list(APPEND CURRENT_HEADERS "${CMAKE_SOURCE_DIR}/${filepath}")
 endforeach()
 source_group(TREE ${CMAKE_CURRENT_SOURCE_DIR} PREFIX "Source Code" FILES ${CURRENT_SOURCES} ${CURRENT_HEADERS})
 
 add_library(${BUILD_NAME} STATIC ${CURRENT_SOURCES} ${CURRENT_HEADERS})
+target_compile_definitions(${BUILD_NAME} PRIVATE HYP_BUILD_ENGINE=1)
 
 if(NOT "${${BUILD_NAME}_PCH}" STREQUAL "")
-    target_precompile_headers(${BUILD_NAME} PRIVATE "${${BUILD_NAME}_PCH}")
+  target_precompile_headers(${BUILD_NAME} PRIVATE "${${BUILD_NAME}_PCH}")
 endif()
 
 add_dependencies(${BUILD_NAME} hyperion-core)
