@@ -15,7 +15,7 @@ namespace dotnet {
 class ManagedClass;
 } // namespace dotnet
 
-class Struct : public Class
+class CORE_API Struct : public Class
 {
 public:
     Struct(TypeId typeId, Name name, int staticIndex, uint32 numDescendants, Name parentName, Span<const ClassAttribute> attributes, EnumFlags<ClassFlags> flags, Span<MemberVariant> members)
@@ -47,7 +47,7 @@ protected:
     virtual bool CreateInstance_Internal(BoxedValue& out) const override = 0;
     virtual bool CreateInstanceArray_Internal(Span<BoxedValue> elements, BoxedValue& out) const override = 0;
 
-    CORE_API bool CreateStructInstance(dotnet::ObjectReference& outObjectReference, const void* objectPtr, size_t size) const;
+    bool CreateStructInstance(dotnet::ObjectReference& outObjectReference, const void* objectPtr, size_t size) const;
 };
 
 template <class T>
@@ -202,7 +202,7 @@ struct DynamicStructInstanceFunctions
     void (*destruct)(void* ctx, void* ptr);
 };
 
-class DynamicStructInstance final : public Struct
+class CORE_API DynamicStructInstance final : public Struct
 {
 public:
 #ifdef HYP_SCRIPT

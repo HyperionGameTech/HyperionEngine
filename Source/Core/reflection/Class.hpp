@@ -922,7 +922,7 @@ protected:
 };
 
 /*! \brief a runtime created Class instance, for use in scripts or external code such as .NET or HypScript */
-class DynamicClassInstance final : public Class
+class CORE_API DynamicClassInstance final : public Class
 {
 public:
 #ifdef HYP_DOTNET

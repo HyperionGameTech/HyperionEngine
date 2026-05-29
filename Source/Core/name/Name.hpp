@@ -29,8 +29,8 @@ CORE_API extern StringHash CreateStringHashFromDynamicString(const ANSIStringVie
 CORE_API extern Name RegisterName(NameRegistry* nameRegistry, NameID id, const ANSIString& str, bool lock);
 CORE_API extern bool ShouldLockNameRegistry();
 
-void InitNameRegistry();
-void DestroyNameRegistry();
+CORE_API void InitNameRegistry();
+CORE_API void DestroyNameRegistry();
 
 struct NameRegistration
 {

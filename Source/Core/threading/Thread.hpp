@@ -46,10 +46,10 @@ enum class ThreadPriorityValue : uint32
     HIGHEST
 };
 
-class ThreadBase
+class CORE_API ThreadBase
 {
 public:
-    CORE_API virtual ~ThreadBase();
+    virtual ~ThreadBase();
 
     /*! \brief Get the Id of this thread. This Id is unique to this thread and is used to identify it. */
     HYP_FORCE_INLINE const ThreadId& Id() const
@@ -59,7 +59,7 @@ public:
 
     /*! \brief Get the thread-local storage for this thread. This is used to store thread-local data that is unique to this thread.
      *  Must only be called from THIS thread */
-    CORE_API ThreadLocalStorage& GetTLS() const;
+    ThreadLocalStorage& GetTLS() const;
 
     /*! \brief Get the priority of this thread. */
     HYP_FORCE_INLINE ThreadPriorityValue GetPriority() const
@@ -86,14 +86,15 @@ public:
     /*! \brief Check if the thread can be joined (i.e. it is not detached) and is joinable (i.e. it is not already joined) */
     virtual bool CanJoin() const = 0;
 
-    CORE_API void AddOnExitCallback(void (*callback)(void));
+    void AddOnExitCallback(void (*callback)(void));
 
 protected:
-    CORE_API ThreadBase(const ThreadId& id, ThreadPriorityValue priority = ThreadPriorityValue::NORMAL);
+    ThreadBase(const ThreadId& id, ThreadPriorityValue priority = ThreadPriorityValue::NORMAL);
 
-    CORE_API void OnExit();
+    void OnExit();
 
     const ThreadId m_id;
+
     ThreadPriorityValue m_priority;
     mutable ThreadLocalStorage* m_tls;
 
@@ -105,7 +106,7 @@ CORE_API extern void SetCurrentThreadObject(ThreadBase*);
 CORE_API extern void SetCurrentThreadPriority(ThreadPriorityValue priority);
 
 template <class Scheduler, class... Args>
-class Thread : public ThreadBase
+class CORE_API Thread : public ThreadBase
 {
 public:
     explicit Thread(const ThreadId& id, ThreadPriorityValue priority = ThreadPriorityValue::NORMAL);

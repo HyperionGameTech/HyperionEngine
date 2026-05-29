@@ -30,31 +30,31 @@ static FilePath s_executablePath;
 static FilePath s_configDirectory;
 static Array<void (*)()> s_onShutdownFuncs;
 
-FilePath GetExecutablePath()
+CORE_API FilePath GetExecutablePath()
 {
     Mutex::Guard guard(s_globalsMutex);
     return s_executablePath;
 }
 
-void SetExecutablePath(const FilePath& path)
+CORE_API void SetExecutablePath(const FilePath& path)
 {
     Mutex::Guard guard(s_globalsMutex);
     s_executablePath = path;
 }
 
-FilePath GetConfigDirectory()
+CORE_API FilePath GetConfigDirectory()
 {
     Mutex::Guard guard(s_globalsMutex);
     return s_configDirectory;
 }
 
-void SetConfigDirectory(const FilePath& configDirectory)
+CORE_API void SetConfigDirectory(const FilePath& configDirectory)
 {
     Mutex::Guard guard(s_globalsMutex);
     s_configDirectory = configDirectory;
 }
 
-HYP_NODISCARD FilePath CreateTempDirectory()
+HYP_NODISCARD CORE_API FilePath CreateTempDirectory()
 {
     Mutex::Guard guard(s_globalsMutex);
 
@@ -90,7 +90,7 @@ static Mutex s_globalConfigMutex;
 
 static CommandLineArguments s_commandLineArguments;
 
-const CommandLineArgumentDefinitions& DefaultCommandLineArgumentDefinitions()
+CORE_API const CommandLineArgumentDefinitions& DefaultCommandLineArgumentDefinitions()
 {
     static const struct DefaultCommandLineArgumentDefinitionsInitializer
     {
@@ -131,12 +131,12 @@ const CommandLineArgumentDefinitions& DefaultCommandLineArgumentDefinitions()
 
             definitions.Add("Mode", "m", {}, CommandLineArgumentFlags::NONE, Array<String> { "precompile_shaders", "editor" }, String("editor"));
         }
-    } initializer;
+    } s_initializer;
 
-    return initializer.definitions;
+    return s_initializer.definitions;
 }
 
-bool Initialize(int argc, char** argv)
+CORE_API bool Initialize(int argc, char** argv)
 {
     Assert(argv != nullptr);
 
@@ -190,12 +190,12 @@ bool Initialize(int argc, char** argv)
     return true;
 }
 
-const CommandLineArguments& GetCommandLineArguments()
+CORE_API const CommandLineArguments& GetCommandLineArguments()
 {
     return s_commandLineArguments;
 }
 
-void UpdateGlobalConfig(const ConfigBase& mergeValues)
+CORE_API void UpdateGlobalConfig(const ConfigBase& mergeValues)
 {
     Mutex::Guard guard(s_globalConfigMutex);
 
@@ -222,7 +222,7 @@ void UpdateGlobalConfig(const ConfigBase& mergeValues)
     }
 }
 
-const GlobalConfig& GetGlobalConfig()
+CORE_API const GlobalConfig& GetGlobalConfig()
 {
     Mutex::Guard guard(s_globalConfigMutex);
 
@@ -236,7 +236,7 @@ const GlobalConfig& GetGlobalConfig()
 }
 
 #if HYP_ENABLE_PROFILE
-bool IsProfilingEnabled()
+CORE_API bool IsProfilingEnabled()
 {
     // only check once since it won't change and we call from some hot paths
     static const bool s_isProfilingEnabled = GetCommandLineArguments()["Profile"].ToBool();
@@ -245,13 +245,13 @@ bool IsProfilingEnabled()
 }
 #endif
 
-void OnShutdown(void (*func)())
+CORE_API void OnShutdown(void (*func)())
 {
     Mutex::Guard guard(s_globalsMutex);
     s_onShutdownFuncs.PushBack(func);
 }
 
-void Shutdown()
+CORE_API void Shutdown()
 {
     TypeInfo_Shutdown();
     Task_DeleteAllDeferredTasks();

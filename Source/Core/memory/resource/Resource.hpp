@@ -32,7 +32,7 @@ class IResourceMemoryPool;
 template <class T>
 class ResourceMemoryPool;
 
-struct ResourceGuard
+struct CORE_API ResourceGuard
 {
     enum
     {
@@ -96,7 +96,7 @@ struct TResourceGuard : ResourceGuard
     }
 };
 
-class ResourceBase
+class CORE_API ResourceBase
 {
 protected:
     ResourceBase();

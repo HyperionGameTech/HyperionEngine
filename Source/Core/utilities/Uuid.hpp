@@ -18,7 +18,7 @@ namespace Hyperion {
 namespace utilities {
 
 HYP_STRUCT(Serialize = "bitwise")
-struct UUID
+struct CORE_API UUID
 {
     HYP_STRUCT_BODY(UUID);
 

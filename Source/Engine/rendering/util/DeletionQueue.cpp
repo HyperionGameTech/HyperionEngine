@@ -379,7 +379,6 @@ void DeletionQueue::UpdateEntryListQueue()
 
     auto& currentEntryList = *m_entryLists[bufferIndex];
 
-    int32 numTempEntryLists = 0;
     if (AtomicAdd(&m_tempEntryListCount, 0) == 0)
     {
         // no temp entry lists, nothing to append to our list,

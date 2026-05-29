@@ -90,7 +90,7 @@ private:
 
 using ConfigValue = JSON::Value;
 
-class ConfigBase
+class CORE_API ConfigBase
 {
     template <class Derived>
     friend class Config;

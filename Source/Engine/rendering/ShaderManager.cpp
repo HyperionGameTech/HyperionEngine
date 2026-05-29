@@ -231,7 +231,6 @@ public:
 
             for (const auto& it : current)
             {
-                const String& name = it.first;
                 const Array<CompileShaderRequest*>& requests = it.second;
 
                 for (CompileShaderRequest* request : requests)

@@ -21,7 +21,7 @@ struct AAsset;
 
 namespace Hyperion {
 
-class ByteReader
+class CORE_API ByteReader
 {
 protected:
     ByteReader() = default;
@@ -104,7 +104,7 @@ public:
     virtual void Close() = 0;
 };
 
-class MemoryByteReader final : public ByteReader
+class CORE_API MemoryByteReader final : public ByteReader
 {
 public:
     explicit MemoryByteReader(ConstByteView byteView)
@@ -156,7 +156,7 @@ protected:
     size_t m_pos;
 };
 
-class FileByteReader final : public ByteReader
+class CORE_API FileByteReader final : public ByteReader
 {
 public:
     explicit FileByteReader(const FilePath& filepath, size_t offset = 0);
@@ -205,7 +205,7 @@ protected:
 #endif
 };
 
-class MemoryMappedByteReader final : public ByteReader
+class CORE_API MemoryMappedByteReader final : public ByteReader
 {
 public:
     explicit MemoryMappedByteReader(

@@ -215,7 +215,7 @@ const NameRegistry::CharBuffer& LookupStringForName(const NameRegistry* nameRegi
     return nameRegistry->LookupStringForName(name);
 }
 
-void InitNameRegistry()
+CORE_API void InitNameRegistry()
 {
     HYP_CORE_ASSERT(!s_isNameRegistryInitialized, "NameRegistry is already initialized");
 
@@ -223,7 +223,7 @@ void InitNameRegistry()
     (void)GetNamePool(); // ensure name pool is initialized
 }
 
-void DestroyNameRegistry()
+CORE_API void DestroyNameRegistry()
 {
     HYP_CORE_ASSERT(s_isNameRegistryInitialized, "NameRegistry is not initialized");
 

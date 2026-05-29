@@ -13,31 +13,31 @@
 namespace Hyperion {
 namespace CoreApi {
 
-FilePath GetExecutablePath();
-void SetExecutablePath(const FilePath& path);
+CORE_API FilePath GetExecutablePath();
+CORE_API void SetExecutablePath(const FilePath& path);
 
-FilePath GetConfigDirectory();
-void SetConfigDirectory(const FilePath& configDirectory);
+CORE_API FilePath GetConfigDirectory();
+CORE_API void SetConfigDirectory(const FilePath& configDirectory);
 
-HYP_NODISCARD FilePath CreateTempDirectory();
+HYP_NODISCARD CORE_API FilePath CreateTempDirectory();
 
-bool Initialize(int argc, char** argv);
+CORE_API bool Initialize(int argc, char** argv);
 
-const CommandLineArguments& GetCommandLineArguments();
-const CommandLineArgumentDefinitions& DefaultCommandLineArgumentDefinitions();
+CORE_API const CommandLineArguments& GetCommandLineArguments();
+CORE_API const CommandLineArgumentDefinitions& DefaultCommandLineArgumentDefinitions();
 
 #if HYP_ENABLE_PROFILE
-bool IsProfilingEnabled();
+CORE_API bool IsProfilingEnabled();
 #else
 static constexpr std::false_type IsProfilingEnabled;
 #endif
 
-const GlobalConfig& GetGlobalConfig();
-void UpdateGlobalConfig(const ConfigBase& mergeValues);
+CORE_API const GlobalConfig& GetGlobalConfig();
+CORE_API void UpdateGlobalConfig(const ConfigBase& mergeValues);
 
-void OnShutdown(void (*func)());
+CORE_API void OnShutdown(void (*func)());
 
-void Shutdown();
+CORE_API void Shutdown();
 
 } // namespace CoreApi
 } // namespace Hyperion

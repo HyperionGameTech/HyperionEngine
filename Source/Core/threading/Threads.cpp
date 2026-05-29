@@ -7,6 +7,8 @@
 #include <Core/threading/Threads.hpp>
 #include <Core/threading/TaskSystem.hpp>
 #include <Core/threading/Mutex.hpp>
+#include <Core/threading/Thread.hpp>
+#include <Core/threading/Scheduler.hpp>
 
 #include <Core/containers/Set.hpp>
 
