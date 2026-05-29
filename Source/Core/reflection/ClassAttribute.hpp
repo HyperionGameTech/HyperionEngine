@@ -26,7 +26,7 @@ enum class ClassAttributeType : uint8
     BOOLEAN
 };
 
-struct ClassAttributeValue final
+struct CORE_API ClassAttributeValue final
 {
     static const ClassAttributeValue empty;
 
@@ -267,24 +267,24 @@ struct ClassAttributeValue final
         return type == ClassAttributeType::STRING;
     }
 
-    CORE_API UTF8StringView GetString() const;
-    CORE_API UTF8StringView GetString(UTF8StringView defaultValue) const;
+    UTF8StringView GetString() const;
+    UTF8StringView GetString(UTF8StringView defaultValue) const;
 
     HYP_FORCE_INLINE bool IsBool() const
     {
         return type == ClassAttributeType::BOOLEAN;
     }
 
-    CORE_API bool GetBool(bool defaultValue = false) const;
+    bool GetBool(bool defaultValue = false) const;
 
     HYP_FORCE_INLINE bool IsInt() const
     {
         return type == ClassAttributeType::INT;
     }
 
-    CORE_API int GetInt(int defaultValue = 0) const;
+    int GetInt(int defaultValue = 0) const;
 
-    CORE_API String ToString() const;
+    String ToString() const;
 
     HYP_FORCE_INLINE HashCode GetHashCode() const
     {

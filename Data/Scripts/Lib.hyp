@@ -1748,6 +1748,33 @@ extern enum AssetPackageFlags : uint32
     Hidden = 0x2,
     SaveOnChanged = 0x4
 end
+extern class AssetCollector
+    GetBasePath() -> string
+    SetBasePath(basePath : string) -> void
+    NotifyAssetChanged(path : string, changeType : AssetChangeType) -> void
+    IsWatching() -> bool
+    StartWatching() -> void
+    StopWatching() -> void
+    OnAssetChanged(path : string, changeType : AssetChangeType) -> void
+end
+extern class AssetManager
+    static GetInstance() -> AssetManager
+    GetBasePath() -> string
+    SetBasePath(basePath : string) -> void
+    GetBaseAssetCollector() -> AssetCollector
+    AddAssetCollector(assetCollector : AssetCollector) -> void
+    RemoveAssetCollector(assetCollector : AssetCollector) -> void
+    GetAssetRegistry() -> AssetRegistry
+end
+extern struct AssetLoaderDefinition
+end
+extern enum AssetChangeType : uint32
+    CHANGED = 0,
+    CREATED = 1,
+    DELETED = 2,
+    RENAMED = 3,
+    MAX
+end
 extern class AssetRegistry
     GetRootPath() -> string
     SetRootPath(rootPath : string) -> void

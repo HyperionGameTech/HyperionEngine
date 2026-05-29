@@ -383,7 +383,7 @@ inline void LogDynamic(Logger& logger, const LogChannel& channel, const char* fi
     }
 }
 
-class LogChannelRegistrar
+class CORE_API LogChannelRegistrar
 {
 public:
     static LogChannelRegistrar& GetInstance()

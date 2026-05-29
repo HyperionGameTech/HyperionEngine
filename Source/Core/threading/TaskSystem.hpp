@@ -185,7 +185,7 @@ public:
     CORE_API void Start();
     CORE_API void Stop();
 
-    void RegisterPool(TaskThreadPoolName poolName, UniquePtr<TaskThreadPool>&& pool);
+    CORE_API void RegisterPool(TaskThreadPoolName poolName, UniquePtr<TaskThreadPool>&& pool);
 
     HYP_FORCE_INLINE TaskThreadPool& GetPool(TaskThreadPoolName poolName) const
     {

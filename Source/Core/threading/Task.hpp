@@ -591,7 +591,7 @@ struct TaskRef
     }
 };
 
-class TaskBase
+class CORE_API TaskBase
 {
 public:
     HYP_DEF_POOL_NEW_DELETE(GetTaskPool());

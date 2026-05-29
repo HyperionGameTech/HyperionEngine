@@ -1956,6 +1956,8 @@ int main(int argc, char** argv)
 
             return 1;
         }
+
+        HYP_LOG(Tool, Info, "Complete");
     }
     else
     {

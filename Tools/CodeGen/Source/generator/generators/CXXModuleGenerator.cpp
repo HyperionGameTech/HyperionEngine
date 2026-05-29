@@ -59,7 +59,7 @@ String CXXModuleGenerator::GetAPIMacroForModule(const Analyzer& analyzer, const 
         return "ENGINE_API";
     }
 
-    const FilePath relativePath = FilePath(FileSystem::RelativePath(mod.GetPath().Data(), analyzer.GetSourceDirectory().Data()).c_str());
+    const String relativePath = FilePath::Relative(mod.GetPath(), analyzer.GetSourceDirectory()).ReplaceAll("\\", "/");
 
     for (const ModuleAPIMapping& mapping : s_moduleAPIMappings)
     {

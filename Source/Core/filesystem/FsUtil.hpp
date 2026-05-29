@@ -21,7 +21,7 @@ class FilePath;
 
 //// \todo : Refactor FsUtil to use FilePath instead of std::string
 
-class FileSystem
+class CORE_API FileSystem
 {
 public:
     static bool DirExists(const std::string& path);
