@@ -64,7 +64,7 @@ extern const FilePath& GetProjectsDirectory();
 extern const FilePath& GetDataDirectory();
 
 #define DEFINE_EDITOR_COMMAND(name)                                        \
-    EDITOR_API const Class* g_clsEditorCommand##name = nullptr;            \
+    HYP_EXPORT const Class* g_clsEditorCommand##name = nullptr;            \
                                                                            \
     HYP_BEGIN_CLASS(EditorCommand##name, -1, 0, NAME("EditorCommandBase")) \
     HYP_END_CLASS                                                          \

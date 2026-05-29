@@ -51,7 +51,7 @@ using CVarSnapshotValue = Variant<
     bool,
     const char*>;
 
-class CVarBase
+class ENGINE_API CVarBase
 {
 public:
     friend class CVarManager;

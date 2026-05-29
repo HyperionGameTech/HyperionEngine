@@ -22,7 +22,7 @@
 
 namespace Hyperion {
 
-class ClassRegistrationBase
+class HYP_EXPORT ClassRegistrationBase
 {
 protected:
     ClassRegistrationBase(const TypeId& typeId, Class* cls);

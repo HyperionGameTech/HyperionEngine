@@ -46,10 +46,10 @@ enum class ThreadPriorityValue : uint32
     HIGHEST
 };
 
-class CORE_API ThreadBase
+class ThreadBase
 {
 public:
-    virtual ~ThreadBase();
+    CORE_API virtual ~ThreadBase();
 
     /*! \brief Get the Id of this thread. This Id is unique to this thread and is used to identify it. */
     HYP_FORCE_INLINE const ThreadId& Id() const
@@ -59,7 +59,7 @@ public:
 
     /*! \brief Get the thread-local storage for this thread. This is used to store thread-local data that is unique to this thread.
      *  Must only be called from THIS thread */
-    ThreadLocalStorage& GetTLS() const;
+    CORE_API ThreadLocalStorage& GetTLS() const;
 
     /*! \brief Get the priority of this thread. */
     HYP_FORCE_INLINE ThreadPriorityValue GetPriority() const
@@ -86,12 +86,12 @@ public:
     /*! \brief Check if the thread can be joined (i.e. it is not detached) and is joinable (i.e. it is not already joined) */
     virtual bool CanJoin() const = 0;
 
-    void AddOnExitCallback(void (*callback)(void));
+    CORE_API void AddOnExitCallback(void (*callback)(void));
 
 protected:
-    ThreadBase(const ThreadId& id, ThreadPriorityValue priority = ThreadPriorityValue::NORMAL);
+    CORE_API ThreadBase(const ThreadId& id, ThreadPriorityValue priority = ThreadPriorityValue::NORMAL);
 
-    void OnExit();
+    CORE_API void OnExit();
 
     const ThreadId m_id;
     ThreadPriorityValue m_priority;
@@ -108,11 +108,14 @@ template <class Scheduler, class... Args>
 class Thread : public ThreadBase
 {
 public:
-    Thread(const ThreadId& id, ThreadPriorityValue priority = ThreadPriorityValue::NORMAL);
+    explicit Thread(const ThreadId& id, ThreadPriorityValue priority = ThreadPriorityValue::NORMAL);
+
     Thread(const Thread& other) = delete;
     Thread& operator=(const Thread& other) = delete;
+
     Thread(Thread&& other) noexcept = delete;
     Thread& operator=(Thread&& other) noexcept = delete;
+
     virtual ~Thread() override;
 
     virtual Scheduler& GetScheduler() override final

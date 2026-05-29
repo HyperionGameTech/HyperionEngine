@@ -241,7 +241,7 @@ struct ObjectHeader
 };
 
 template <class T>
-class CORE_API ObjectContainer final : public ObjectContainerBase
+class ObjectContainer final : public ObjectContainerBase
 {
 public:
     ObjectContainer(const Class* cls)

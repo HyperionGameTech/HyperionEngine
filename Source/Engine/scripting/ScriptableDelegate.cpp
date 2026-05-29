@@ -18,18 +18,6 @@ namespace Hyperion {
 
 namespace functional {
 
-ENGINE_API void LogScriptableDelegateError(const char* message, dotnet::ManagedObject* objectPtr)
-{
-    if (objectPtr)
-    {
-        HYP_LOG(Core, Error, "ScriptableDelegate: {} (Obj: {})", message, objectPtr->GetClass()->GetName());
-    }
-    else
-    {
-        HYP_LOG(Core, Error, "ScriptableDelegate: {}", message);
-    }
-}
-
 void ScriptableDelegateHelper::InvokeMethod_Internal(BoxedValue* pOutBoxed, const Method* method, const Handle<ObjectBase>& target, Span<BoxedValue> argsBoxed)
 {
     HYP_CORE_ASSERT(method != nullptr, "Method cannot be null");
