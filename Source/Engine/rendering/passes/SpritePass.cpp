@@ -137,7 +137,7 @@ static TextMetrics MeasureText(
     return { totalSize * textSize };
 }
 
-template <class Callback>
+template <class AllocatorType, class Callback>
 static void ForEachCharacter(
     const FontAtlas& fontAtlas,
     const String& text,
@@ -166,7 +166,7 @@ static void ForEachCharacter(
         atlasPixelSize = Vec2f::One() / Vec2f(mainTextureAtlas->GetExtent().GetXY());
     }
 
-    Array<FontAtlasCharacterIterator> currentWordChars;
+    Array<FontAtlasCharacterIterator, AllocatorType> currentWordChars;
     currentWordChars.Reserve(length);
 
     const auto iterateCurrentWord = [&currentWordChars, &callback]()
@@ -564,10 +564,10 @@ void SpritePass::RenderFrame(Frame* frame, const RenderSetup& renderSetup)
 
     if (numTextCharacters > 0)
     {
-        Array<TextSpriteInstanceData> charDataFront;
+        Array<TextSpriteInstanceData, RenderTempAllocator> charDataFront;
         charDataFront.Reserve(numTextCharacters);
 
-        Array<TextSpriteInstanceData> charDataBack;
+        Array<TextSpriteInstanceData, RenderTempAllocator> charDataBack;
         charDataBack.Reserve(numTextCharacters);
 
         Texture* lastTexture = nullptr;
@@ -587,14 +587,16 @@ void SpritePass::RenderFrame(Frame* frame, const RenderSetup& renderSetup)
                 continue;
             }
 
+            const Quat4f worldRot = sprite->GetWorldRotation();
             const Vec3f worldPos = sprite->GetWorldTranslation();
+
             const float textSize = spriteProxy->bufferData.positionSize.w;
 
             const uint32 textureIndex = spriteProxy->texture ? spriteProxy->texture->Id().ToIndex() : uint32(-1);
 
             const TextMetrics metrics = MeasureText(*spriteProxy->fontAtlas, spriteProxy->text, textSize);
 
-            ForEachCharacter(*spriteProxy->fontAtlas, spriteProxy->text, textSize, [&](const FontAtlasCharacterIterator& iter)
+            ForEachCharacter<RenderTempAllocator>(*spriteProxy->fontAtlas, spriteProxy->text, textSize, [&](const FontAtlasCharacterIterator& iter)
                 {
                     const float scaleX = iter.glyphDimensions.x * textSize;
                     const float scaleY = iter.glyphDimensions.y * textSize;
@@ -613,15 +615,16 @@ void SpritePass::RenderFrame(Frame* frame, const RenderSetup& renderSetup)
 
                     // Front face
                     {
-                        const Vec3f charTranslation(
-                            worldPos.x + iter.placement.x * textSize - metrics.size.x * 0.5f,
-                            worldPos.y + iter.placement.y * textSize + offsetY - metrics.size.y * 0.5f,
-                            worldPos.z
-                        );
+                        const Vec3f charTranslation = worldPos + worldRot.Inverse().RotateVector(Vec3f(
+                            iter.placement.x * textSize - metrics.size.x * 0.5f,
+                            iter.placement.y * textSize + offsetY - metrics.size.y * 0.5f,
+                            0.0f
+                        ));
 
                         Transform t;
                         t.SetScale(Vec3f(scaleX, scaleY, 0.1f));
                         t.SetTranslation(charTranslation);
+                        t.SetRotation(worldRot);
 
                         TextSpriteInstanceData data {};
                         data.transform = t.GetMatrix();
@@ -636,15 +639,16 @@ void SpritePass::RenderFrame(Frame* frame, const RenderSetup& renderSetup)
                     // Back face - mirror X around text center so glyph order reads correctly from behind.
                     // We mirror the character center, not the left edge, to handle variable-width characters.
                     {
-                        const Vec3f charTranslation(
-                            worldPos.x - iter.placement.x * textSize + metrics.size.x * 0.5f - scaleX,
-                            worldPos.y + iter.placement.y * textSize + offsetY - metrics.size.y * 0.5f,
-                            worldPos.z
-                        );
+                        const Vec3f charTranslation = worldPos + worldRot.Inverse().RotateVector(Vec3f(
+                            -iter.placement.x * textSize + metrics.size.x * 0.5f - scaleX,
+                            iter.placement.y * textSize + offsetY - metrics.size.y * 0.5f,
+                            0.0f
+                        ));
 
                         Transform t;
                         t.SetScale(Vec3f(scaleX, scaleY, 0.1f));
                         t.SetTranslation(charTranslation);
+                        t.SetRotation(worldRot);
 
                         TextSpriteInstanceData data {};
                         data.transform = t.GetMatrix();

@@ -32,9 +32,6 @@
 #if defined(HYPERION_ENGINE) && HYPERION_ENGINE
 #include <asset/AssetObject.hpp>
 #include <asset/AssetReference.hpp>
-
-// temp
-#include <scene/Scene.hpp>
 #endif
 
 namespace Hyperion {

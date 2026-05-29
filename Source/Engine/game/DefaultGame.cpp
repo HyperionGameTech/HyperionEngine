@@ -105,6 +105,8 @@ void DefaultGame::OnLaunch_Impl()
         Assert(mainScene.IsValid(), "Could not find main scene asset");
         if (mainScene.IsValid())
         {
+            m_defaultScene = mainScene;
+
             for (const Handle<Node>& node : mainScene->GetRoot()->GetChildren())
             {
                 if (node->IsA<Camera>())
@@ -133,18 +135,22 @@ void DefaultGame::OnLaunch_Impl()
             auto pointLight = MakeHandle<PointLight>(Vec3f(0.0f, 7.0f, -2.0f), Color::Red(), 50.0f, 30.0f);
             mainScene->GetRoot()->AddChild(pointLight);
 
+            Handle<Node> textNode = MakeHandle<Node>(NAME("TextNode"));
+
             // add TextSprites
             Handle<TextSprite> titleSprite = MakeHandle<TextSprite>(NAME("TitleText"), "Hyperion Engine");
             titleSprite->SetWorldTranslation(Vec3f(5.0f, 5.0f, 0.0f));
             titleSprite->SetTextColor(Color::White());
             titleSprite->SetTextSize(16.0f);
-            mainScene->GetRoot()->AddChild(titleSprite);
+            textNode->AddChild(titleSprite);
 
             Handle<TextSprite> subtitleSprite = MakeHandle<TextSprite>(NAME("SubtitleText"), "Default Scene");
             subtitleSprite->SetWorldTranslation(Vec3f(5.0f, 4.0f, 0.0f));
             subtitleSprite->SetTextColor(Color(0.8f, 0.8f, 1.0f, 1.0f));
             subtitleSprite->SetTextSize(14.0f);
-            mainScene->GetRoot()->AddChild(subtitleSprite);
+            textNode->AddChild(subtitleSprite);
+
+            mainScene->GetRoot()->AddChild(textNode);
 
             GetWorld()->AddScene(mainScene);
 
@@ -304,6 +310,18 @@ void DefaultGame::OnUpdate_Impl(float delta)
             if (TouchControlsSubsystem* tcs = GetWorld()->GetSubsystem<TouchControlsSubsystem>())
             {
                 controller->GetInputHandler()->SetTouchMovementDelta(tcs->GetMovementDelta());
+            }
+        }
+    }
+
+    if (m_defaultScene.IsValid())
+    {
+        auto textNode = m_defaultScene->FindNodeByName("TextNode"_sh);
+        if (textNode.IsValid())
+        {
+            for (Node* child : textNode->GetChildren())
+            {
+                child->Rotate(Quat4f::AxisAngles(Vec3f::UnitY(), MathUtil::DegToRad(10.0f * delta)));
             }
         }
     }
