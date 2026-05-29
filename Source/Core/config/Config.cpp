@@ -39,8 +39,8 @@ static SharedMutex s_configCacheMutex;
 #pragma region ConfigBase
 
 // Set externally for DI
-Result(*ConfigBase::s_ObjectFromJSON)(const JSON::Object& jsonObject, const Class* targetClass, BoxedValue& target) = nullptr;
-Result(*ConfigBase::s_ObjectToJSON)(const Class* cls, const BoxedValue& target, JSON::Object& outJson, struct ToJSONOptions* pOptions) = nullptr;
+CORE_API Result(*ConfigBase::s_ObjectFromJSON)(const JSON::Object& jsonObject, const Class* targetClass, BoxedValue& target) = nullptr;
+CORE_API Result(*ConfigBase::s_ObjectToJSON)(const Class* cls, const BoxedValue& target, JSON::Object& outJson, struct ToJSONOptions* pOptions) = nullptr;
 
 ConfigBase::ConfigBase()
     : m_rootObject(JSON::Object())

@@ -24,7 +24,7 @@
 
 namespace Hyperion {
 
-class BufferedReaderSource
+class CORE_API BufferedReaderSource
 {
 public:
     virtual ~BufferedReaderSource() = default;
@@ -34,7 +34,7 @@ public:
     virtual size_t Read(ubyte* ptr, size_t count, size_t offset) = 0;
 };
 
-class FileBufferedReaderSource : public BufferedReaderSource
+class CORE_API FileBufferedReaderSource : public BufferedReaderSource
 {
 public:
     /*! \brief Takes ownership of the file pointer to use for reading */
@@ -101,7 +101,7 @@ private:
     int (*m_closeFunc)(FILE*);
 };
 
-class MemoryBufferedReaderSource : public BufferedReaderSource
+class CORE_API MemoryBufferedReaderSource : public BufferedReaderSource
 {
 public:
     MemoryBufferedReaderSource() = default;
@@ -180,7 +180,7 @@ private:
     ConstByteView m_byteView;
 };
 
-class BufferedReader
+class CORE_API BufferedReader
 {
 public:
     static constexpr size_t bufferSize = 2048;

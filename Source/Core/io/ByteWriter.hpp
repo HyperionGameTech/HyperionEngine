@@ -36,7 +36,7 @@ enum ByteWriterFlagBits : ByteWriterFlags
     BYTE_WRITER_FLAGS_WRITE_STRING_TYPE = 0x4
 };
 
-class ByteWriter
+class CORE_API ByteWriter
 {
 public:
     static constexpr uint32 stringLengthMask = uint32(-1) << 8;
@@ -120,7 +120,7 @@ protected:
     virtual void WriteBytes(const char* ptr, size_t size) = 0;
 };
 
-class MemoryByteWriter final : public ByteWriter
+class CORE_API MemoryByteWriter final : public ByteWriter
 {
 public:
     MemoryByteWriter()
@@ -273,7 +273,7 @@ private:
     }
 };
 
-class FileByteWriter final : public ByteWriter
+class CORE_API FileByteWriter final : public ByteWriter
 {
 public:
     explicit FileByteWriter(const FilePath& filepath)
@@ -403,7 +403,7 @@ private:
     }
 };
 
-class MemoryMappedByteWriter final : public ByteWriter
+class CORE_API MemoryMappedByteWriter final : public ByteWriter
 {
 public:
     explicit MemoryMappedByteWriter(

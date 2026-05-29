@@ -759,25 +759,25 @@ HYP_FORCE_INLINE constexpr float LinearizeDepth(float depth, float nearPlane, fl
     return 1.0f - (1.0f / (x * (1.0f - depth) + y));
 }
 
-Vec2i ReshapeExtent(Vec2i extent);
-
-Vec2f Hammersley(uint32 sampleIndex, uint32 numSamples);
-
-Vec3f RandomInSphere(Vec3f rnd);
-Vec3f RandomInHemisphere(Vec3f rnd, Vec3f n);
-
-Vec2f VogelDisk(uint32 sampleIndex, uint32 numSamples, float phi);
-
-Vec3f ImportanceSampleGGX(Vec2f xi, Vec3f n, float roughness);
-
-Vec3f CalculateBarycentricCoordinates(const Vec3f& v0, const Vec3f& v1, const Vec3f& v2, const Vec3f& p);
-Vec3f CalculateBarycentricCoordinates(const Vec2f& v0, const Vec2f& v1, const Vec2f& v2, const Vec2f& p);
-
-void ComputeOrthonormalBasis(const Vec3f& normal, Vec3f& outTangent, Vec3f& outBitangent);
-
-Vec2f EncodeOctahedralCoord(const Vec3f& in);
-Vec3f DecodeOctahedralCoord(const Vec2f& in);
-Vec2f NormalizeOctahedralCoord(const Vec2i& coord, const Vec2i& extent);
+CORE_API Vec2i ReshapeExtent(Vec2i extent);
+ 
+ CORE_API Vec2f Hammersley(uint32 sampleIndex, uint32 numSamples);
+ 
+ CORE_API Vec3f RandomInSphere(Vec3f rnd);
+ CORE_API Vec3f RandomInHemisphere(Vec3f rnd, Vec3f n);
+ 
+ CORE_API Vec2f VogelDisk(uint32 sampleIndex, uint32 numSamples, float phi);
+ 
+ CORE_API Vec3f ImportanceSampleGGX(Vec2f xi, Vec3f n, float roughness);
+ 
+ CORE_API Vec3f CalculateBarycentricCoordinates(const Vec3f& v0, const Vec3f& v1, const Vec3f& v2, const Vec3f& p);
+ CORE_API Vec3f CalculateBarycentricCoordinates(const Vec2f& v0, const Vec2f& v1, const Vec2f& v2, const Vec2f& p);
+ 
+ CORE_API void ComputeOrthonormalBasis(const Vec3f& normal, Vec3f& outTangent, Vec3f& outBitangent);
+ 
+ CORE_API Vec2f EncodeOctahedralCoord(const Vec3f& in);
+ CORE_API Vec3f DecodeOctahedralCoord(const Vec2f& in);
+ CORE_API Vec2f NormalizeOctahedralCoord(const Vec2i& coord, const Vec2i& extent);
 
 }; // namespace MathUtil
 

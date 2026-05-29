@@ -97,6 +97,6 @@ struct CORE_API Triangle
     }
 };
 
-Triangle operator*(const Mat4f& transform, const Triangle& triangle);
+CORE_API Triangle operator*(const Mat4f& transform, const Triangle& triangle);
 
 } // namespace Hyperion

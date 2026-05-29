@@ -975,34 +975,34 @@ protected:
 // Shared global attributes
 namespace Attributes {
 
-CORE_API extern const Name g_attrSerialize;
-CORE_API extern const Name g_attrDeserialize;
-CORE_API extern const Name g_attrTransient;
-CORE_API extern const Name g_attrComponent;
-CORE_API extern const Name g_attrSize;
-CORE_API extern const Name g_attrNoScriptBindings;
-CORE_API extern const Name g_attrOnlyLanguages;
-CORE_API extern const Name g_attrCommand;
-CORE_API extern const Name g_attrAbstract;
-CORE_API extern const Name g_attrCompressed;
-CORE_API extern const Name g_attrProperty;
-CORE_API extern const Name g_attrLoadOrder;
-CORE_API extern const Name g_attrJsonPath;
-CORE_API extern const Name g_attrJsonIgnore;
-CORE_API extern const Name g_attrScriptableDelegate;
-CORE_API extern const Name g_attrFollowAssetPath;
-CORE_API extern const Name g_attrSaveAsReference;
+extern const Name g_attrSerialize;
+extern const Name g_attrDeserialize;
+extern const Name g_attrTransient;
+extern const Name g_attrComponent;
+extern const Name g_attrSize;
+extern const Name g_attrNoScriptBindings;
+extern const Name g_attrOnlyLanguages;
+extern const Name g_attrCommand;
+extern const Name g_attrAbstract;
+extern const Name g_attrCompressed;
+extern const Name g_attrProperty;
+extern const Name g_attrLoadOrder;
+extern const Name g_attrJsonPath;
+extern const Name g_attrJsonIgnore;
+extern const Name g_attrScriptableDelegate;
+extern const Name g_attrFollowAssetPath;
+extern const Name g_attrSaveAsReference;
 
 /// ===== Editor-specific attributes =====
-CORE_API extern const Name g_attrEditor;        //!< legacy (deprecated) indicates that a property is editable in the editor
-CORE_API extern const Name g_attrEditorOnly;    //!< this field/method/property is only available in editor builds (future proof - right now it has no effect)
-CORE_API extern const Name g_attrEditOrder;     //!< order in which properties are displayed in the editor
-CORE_API extern const Name g_attrEditEnabled;   //!< is editable in editor
-CORE_API extern const Name g_attrEditHide;      //!< hide in editor
-CORE_API extern const Name g_attrLabel;         //!< display name in editor (overrides property name)
-CORE_API extern const Name g_attrDescription;   //!< help text for a property in inspector
-CORE_API extern const Name g_attrEditAction;    //!< marks a method as an action button in the editor (e.g. "Bake Lighting")
-CORE_API extern const Name g_attrEditCondition; //!< condition for editability or action availability in the editor (should be a method that returns bool)
+extern const Name g_attrEditor;        //!< legacy (deprecated) indicates that a property is editable in the editor
+extern const Name g_attrEditorOnly;    //!< this field/method/property is only available in editor builds (future proof - right now it has no effect)
+extern const Name g_attrEditOrder;     //!< order in which properties are displayed in the editor
+extern const Name g_attrEditEnabled;   //!< is editable in editor
+extern const Name g_attrEditHide;      //!< hide in editor
+extern const Name g_attrLabel;         //!< display name in editor (overrides property name)
+extern const Name g_attrDescription;   //!< help text for a property in inspector
+extern const Name g_attrEditAction;    //!< marks a method as an action button in the editor (e.g. "Bake Lighting")
+extern const Name g_attrEditCondition; //!< condition for editability or action availability in the editor (should be a method that returns bool)
 /// ======================================
 
 } // namespace Attributes

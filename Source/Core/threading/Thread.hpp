@@ -106,7 +106,7 @@ CORE_API extern void SetCurrentThreadObject(ThreadBase*);
 CORE_API extern void SetCurrentThreadPriority(ThreadPriorityValue priority);
 
 template <class Scheduler, class... Args>
-class CORE_API Thread : public ThreadBase
+class Thread : public ThreadBase
 {
 public:
     explicit Thread(const ThreadId& id, ThreadPriorityValue priority = ThreadPriorityValue::NORMAL);

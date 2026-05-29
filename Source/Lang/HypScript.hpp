@@ -15,6 +15,16 @@
 
 #include <Core/memory/Pimpl.hpp>
 
+#ifndef HYP_SCRIPT_API
+#ifdef HYP_BUILD_ENGINE
+#define HYP_SCRIPT_API ENGINE_API
+#elif defined(HYP_BUILD_CORE)
+#define HYP_SCRIPT_API CORE_API
+#else
+#define HYP_SCRIPT_API
+#endif
+#endif
+
 namespace Hyperion {
 
 class VirtualMachine;
@@ -36,22 +46,22 @@ VirtualMachine* GetVM();
 void Initialize();
 void Shutdown();
 
-void DestroyScript(ScriptInstance* instance);
+HYP_SCRIPT_API void DestroyScript(ScriptInstance* instance);
 
-HYP_NODISCARD ScriptInstance* Compile(
+HYP_NODISCARD HYP_SCRIPT_API ScriptInstance* Compile(
     SourceFile& sourceFile,
     ErrorList& outErrorList,
     const HypScriptCompileParams& params = {});
 
-HYP_NODISCARD ScriptInstance* CreateFromBytecode(ConstByteView view);
+HYP_NODISCARD HYP_SCRIPT_API ScriptInstance* CreateFromBytecode(ConstByteView view);
 
-void WriteBytecodeToStream(ScriptInstance* instance, ByteWriter& stream);
+HYP_SCRIPT_API void WriteBytecodeToStream(ScriptInstance* instance, ByteWriter& stream);
 
-void Run(ScriptInstance* instance);
+HYP_SCRIPT_API void Run(ScriptInstance* instance);
 
 void CollectGarbage();
 
-InstructionStream* Decompile(ScriptInstance* instance, std::ostream* os = nullptr);
+HYP_SCRIPT_API InstructionStream* Decompile(ScriptInstance* instance, std::ostream* os = nullptr);
 
 template <class T>
 static inline BoxedValue CreateArgument(T&& item)
@@ -65,22 +75,16 @@ static inline auto CreateArguments(Args&&... args) -> FixedArray<BoxedValue, siz
     return FixedArray<BoxedValue, sizeof...(Args)> { CreateArgument(args)... };
 }
 
-BoxedValue CallFunctionArgV(ScriptInstance* instance, const BoxedValue& value, BoxedValue* args, uint8 numArgs);
+HYP_SCRIPT_API BoxedValue CallFunctionArgV(ScriptInstance* instance, const BoxedValue& value, BoxedValue* args, uint8 numArgs);
 
-bool GetFunctionHandle(ScriptInstance* instance, const char* name, BoxedValue& outValue);
-bool GetExportedValue(ScriptInstance* instance, const char* name, BoxedValue& outValue, bool getReference);
+HYP_SCRIPT_API bool GetFunctionHandle(ScriptInstance* instance, const char* name, BoxedValue& outValue);
+HYP_SCRIPT_API bool GetExportedValue(ScriptInstance* instance, const char* name, BoxedValue& outValue, bool getReference);
 
-SymbolTable& GetExportedSymbols(ScriptInstance* instance);
+HYP_SCRIPT_API SymbolTable& GetExportedSymbols(ScriptInstance* instance);
 
-/*! \brief Implements OpGetMember in the virtual machine.
-    *  Gets a field or method by name and sets `outValue` to the value.
-    *  Returns true on found, false otherwise. */
-bool GetMember(ScriptInstance* instance, const BoxedValue& targetValue, const char* memberName, BoxedValue& outValue);
+HYP_SCRIPT_API bool GetMember(ScriptInstance* instance, const BoxedValue& targetValue, const char* memberName, BoxedValue& outValue);
 
-/*! \brief Implements OpSetField in the virtual machine. Sets a field with the name `memberName` to the value held in `value`.
-    *  If the field was not found, returns false.
-    *  Returns true on success. */
-bool SetField(BoxedValue& targetValue, const char* memberName, BoxedValue&& value);
+HYP_SCRIPT_API bool SetField(BoxedValue& targetValue, const char* memberName, BoxedValue&& value);
 
 template <class... Args>
 BoxedValue CallFunction(ScriptInstance* instance, const BoxedValue& value, Args&&... args)
@@ -90,7 +94,7 @@ BoxedValue CallFunction(ScriptInstance* instance, const BoxedValue& value, Args&
     return CallFunctionArgV(instance, value, arguments.Data(), arguments.Size());
 }
 
-void ReadLastReturnValue(ScriptInstance* instance, BoxedValue& outValue);
+HYP_SCRIPT_API void ReadLastReturnValue(ScriptInstance* instance, BoxedValue& outValue);
 
 } // namespace HypScript
 } // namespace Hyperion

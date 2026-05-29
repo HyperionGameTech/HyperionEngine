@@ -41,7 +41,7 @@ private:
     Pimpl<struct DynamicLibraryImpl> m_impl;
 };
 
-class DynamicLibraryCache
+class CORE_API DynamicLibraryCache
 {
 public:
     static DynamicLibraryCache& GetInstance();

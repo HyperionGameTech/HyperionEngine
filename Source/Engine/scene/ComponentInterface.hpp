@@ -41,7 +41,7 @@ enum class ComponentInterfaceFlags : uint32
 HYP_MAKE_ENUM_FLAGS(ComponentInterfaceFlags)
 
 namespace Attributes {
-ENGINE_API extern const Name g_attrSerialize;
+CORE_API extern const Name g_attrSerialize;
 } // namespace Attributes
 
 class ENGINE_API IComponentInterface

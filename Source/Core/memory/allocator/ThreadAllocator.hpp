@@ -94,7 +94,7 @@ private:
 template <class InnerAllocator, void (*InitInnerAllocatorFunction)(void*)>
 thread_local InnerAllocator* TThreadAllocator<InnerAllocator, InitInnerAllocatorFunction>::s_innerAllocator = nullptr;
 
-extern void InitThreadAllocatorPool(void*);
+extern CORE_API void InitThreadAllocatorPool(void*);
 using ThreadAllocator = TThreadAllocator<memory::Pool, &InitThreadAllocatorPool>;
 
 } // namespace memory

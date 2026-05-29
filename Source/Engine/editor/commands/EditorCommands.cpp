@@ -60,20 +60,20 @@ namespace CoreApi {
 CORE_API extern FilePath GetExecutablePath();
 } // namespace CoreApi
 
-extern const FilePath& GetProjectsDirectory();
-extern const FilePath& GetDataDirectory();
+ENGINE_API extern const FilePath& GetProjectsDirectory();
+ENGINE_API extern const FilePath& GetDataDirectory();
 
 #define DEFINE_EDITOR_COMMAND(name)                                        \
-    HYP_EXPORT const Class* g_clsEditorCommand##name = nullptr;            \
+    const Class* g_clsEditorCommand##name = nullptr;                        \
                                                                            \
     HYP_BEGIN_CLASS(EditorCommand##name, -1, 0, NAME("EditorCommandBase")) \
     HYP_END_CLASS                                                          \
                                                                            \
-    HYP_EXPORT TClassStaticInit<EditorCommand##name> g_classInit##EditorCommand##name {};
+    TClassStaticInit<EditorCommand##name> g_classInit##EditorCommand##name {};
 
 #pragma region Undo
 
-class EDITOR_API EditorCommandUndo final : public EditorCommandBase
+class EditorCommandUndo final : public EditorCommandBase
 {
     HYP_OBJECT_BODY(EditorCommandUndo);
 
@@ -96,7 +96,7 @@ DEFINE_EDITOR_COMMAND(Undo);
 
 #pragma region Redo
 
-class EDITOR_API EditorCommandRedo final : public EditorCommandBase
+class EditorCommandRedo final : public EditorCommandBase
 {
     HYP_OBJECT_BODY(EditorCommandRedo);
 
@@ -119,7 +119,7 @@ DEFINE_EDITOR_COMMAND(Redo);
 
 #pragma region NewProject
 
-class EDITOR_API EditorCommandNewProject final : public EditorCommandBase
+class EditorCommandNewProject final : public EditorCommandBase
 {
     HYP_OBJECT_BODY(EditorCommandNewProject);
 
@@ -138,7 +138,7 @@ DEFINE_EDITOR_COMMAND(NewProject);
 
 #pragma region OpenProject
 
-class EDITOR_API EditorCommandOpenProject final : public EditorCommandBase
+class EditorCommandOpenProject final : public EditorCommandBase
 {
     HYP_OBJECT_BODY(EditorCommandOpenProject);
 
@@ -213,7 +213,7 @@ DEFINE_EDITOR_COMMAND(OpenProject);
 
 class EditorCommandSaveProjectAs;
 
-class EDITOR_API EditorCommandSaveProject final : public EditorCommandBase
+class EditorCommandSaveProject final : public EditorCommandBase
 {
     HYP_OBJECT_BODY(EditorCommandSaveProject);
 
@@ -248,7 +248,7 @@ DEFINE_EDITOR_COMMAND(SaveProject);
 
 #pragma region SaveProjectAs
 
-class EDITOR_API EditorCommandSaveProjectAs final : public EditorCommandBase
+class EditorCommandSaveProjectAs final : public EditorCommandBase
 {
     HYP_OBJECT_BODY(EditorCommandSaveProjectAs);
 
@@ -325,7 +325,7 @@ DEFINE_EDITOR_COMMAND(SaveProjectAs);
 
 #pragma region AddLightmapVolume
 
-class EDITOR_API EditorCommandAddLightmapVolume final : public EditorCommandBase
+class EditorCommandAddLightmapVolume final : public EditorCommandBase
 {
     HYP_OBJECT_BODY(EditorCommandAddLightmapVolume);
 
@@ -417,7 +417,7 @@ DEFINE_EDITOR_COMMAND(AddLightmapVolume);
 
 #pragma region AddReflectionProbe
 
-class EDITOR_API EditorCommandAddReflectionProbe final : public EditorCommandBase
+class EditorCommandAddReflectionProbe final : public EditorCommandBase
 {
     HYP_OBJECT_BODY(EditorCommandAddReflectionProbe);
 
@@ -508,7 +508,7 @@ DEFINE_EDITOR_COMMAND(AddReflectionProbe);
 
 #pragma region AddParticleVolume
 
-class EDITOR_API EditorCommandAddParticleVolume final : public EditorCommandBase
+class EditorCommandAddParticleVolume final : public EditorCommandBase
 {
     HYP_OBJECT_BODY(EditorCommandAddParticleVolume);
 
@@ -597,7 +597,7 @@ DEFINE_EDITOR_COMMAND(AddParticleVolume);
 
 #pragma region AddFogVolume
 
-class EDITOR_API EditorCommandAddFogVolume final : public EditorCommandBase
+class EditorCommandAddFogVolume final : public EditorCommandBase
 {
     HYP_OBJECT_BODY(EditorCommandAddFogVolume);
 
@@ -770,7 +770,7 @@ static void AddNodeOfTypeImpl(EditorSubsystem* subsystem, Name defaultNodeName)
 }
 
 template <class Derived>
-class EDITOR_API EditorCommandAddNodeBase : public EditorCommandBase
+class EditorCommandAddNodeBase : public EditorCommandBase
 {
 public:
     virtual ~EditorCommandAddNodeBase() override = default;
@@ -788,7 +788,7 @@ public:
 
 #pragma region EditorCommandAddEntity
 
-class EDITOR_API EditorCommandAddEntity final : public EditorCommandAddNodeBase<EditorCommandAddEntity>
+class EditorCommandAddEntity final : public EditorCommandAddNodeBase<EditorCommandAddEntity>
 {
     HYP_OBJECT_BODY(EditorCommandAddEntity);
 
@@ -803,7 +803,7 @@ DEFINE_EDITOR_COMMAND(AddEntity);
 
 #pragma region EditorCommandAddEmptyNode
 
-class EDITOR_API EditorCommandAddEmptyNode final : public EditorCommandAddNodeBase<EditorCommandAddEmptyNode>
+class EditorCommandAddEmptyNode final : public EditorCommandAddNodeBase<EditorCommandAddEmptyNode>
 {
     HYP_OBJECT_BODY(EditorCommandAddEmptyNode);
 
@@ -818,7 +818,7 @@ DEFINE_EDITOR_COMMAND(AddEmptyNode);
 
 #pragma region EditorCommandAddInstance
 
-class EDITOR_API EditorCommandAddInstance final : public EditorCommandAddNodeBase<EditorCommandAddInstance>
+class EditorCommandAddInstance final : public EditorCommandAddNodeBase<EditorCommandAddInstance>
 {
     HYP_OBJECT_BODY(EditorCommandAddInstance);
 
@@ -831,7 +831,7 @@ DEFINE_EDITOR_COMMAND(AddInstance);
 
 #pragma region EditorCommandAddCamera
 
-class EDITOR_API EditorCommandAddCamera final : public EditorCommandAddNodeBase<EditorCommandAddCamera>
+class EditorCommandAddCamera final : public EditorCommandAddNodeBase<EditorCommandAddCamera>
 {
     HYP_OBJECT_BODY(EditorCommandAddCamera);
 
@@ -846,7 +846,7 @@ DEFINE_EDITOR_COMMAND(AddCamera);
 
 #pragma region EditorCommandAddSprite
 
-class EDITOR_API EditorCommandAddSprite final : public EditorCommandAddNodeBase<EditorCommandAddSprite>
+class EditorCommandAddSprite final : public EditorCommandAddNodeBase<EditorCommandAddSprite>
 {
     HYP_OBJECT_BODY(EditorCommandAddSprite);
 
@@ -861,7 +861,7 @@ DEFINE_EDITOR_COMMAND(AddSprite);
 
 #pragma region EditorCommandAddTextSprite
 
-class EDITOR_API EditorCommandAddTextSprite final : public EditorCommandAddNodeBase<EditorCommandAddTextSprite>
+class EditorCommandAddTextSprite final : public EditorCommandAddNodeBase<EditorCommandAddTextSprite>
 {
     HYP_OBJECT_BODY(EditorCommandAddTextSprite);
 
@@ -876,7 +876,7 @@ DEFINE_EDITOR_COMMAND(AddTextSprite);
 
 #pragma region EditorCommandAddPointLight
 
-class EDITOR_API EditorCommandAddPointLight final : public EditorCommandAddNodeBase<EditorCommandAddPointLight>
+class EditorCommandAddPointLight final : public EditorCommandAddNodeBase<EditorCommandAddPointLight>
 {
     HYP_OBJECT_BODY(EditorCommandAddPointLight);
 
@@ -891,7 +891,7 @@ DEFINE_EDITOR_COMMAND(AddPointLight);
 
 #pragma region EditorCommandAddDirectionalLight
 
-class EDITOR_API EditorCommandAddDirectionalLight final : public EditorCommandAddNodeBase<EditorCommandAddDirectionalLight>
+class EditorCommandAddDirectionalLight final : public EditorCommandAddNodeBase<EditorCommandAddDirectionalLight>
 {
     HYP_OBJECT_BODY(EditorCommandAddDirectionalLight);
 
@@ -906,7 +906,7 @@ DEFINE_EDITOR_COMMAND(AddDirectionalLight);
 
 #pragma region EditorCommandAddSpotLight
 
-class EDITOR_API EditorCommandAddSpotLight final : public EditorCommandAddNodeBase<EditorCommandAddSpotLight>
+class EditorCommandAddSpotLight final : public EditorCommandAddNodeBase<EditorCommandAddSpotLight>
 {
     HYP_OBJECT_BODY(EditorCommandAddSpotLight);
 
@@ -921,7 +921,7 @@ DEFINE_EDITOR_COMMAND(AddSpotLight);
 
 #pragma region EditorCommandAddAreaRectLight
 
-class EDITOR_API EditorCommandAddAreaRectLight final : public EditorCommandAddNodeBase<EditorCommandAddAreaRectLight>
+class EditorCommandAddAreaRectLight final : public EditorCommandAddNodeBase<EditorCommandAddAreaRectLight>
 {
     HYP_OBJECT_BODY(EditorCommandAddAreaRectLight);
 
@@ -936,7 +936,7 @@ DEFINE_EDITOR_COMMAND(AddAreaRectLight);
 
 #pragma region EditorCommandImportContent
 
-class EDITOR_API EditorCommandImportContent final : public EditorCommandBase
+class EditorCommandImportContent final : public EditorCommandBase
 {
     HYP_OBJECT_BODY(EditorCommandImportContent);
 
@@ -1043,7 +1043,7 @@ DEFINE_EDITOR_COMMAND(ImportContent);
 
 #pragma region EditorCommandReparentNode
 
-class EDITOR_API EditorCommandReparentNode final : public EditorCommandBase
+class EditorCommandReparentNode final : public EditorCommandBase
 {
     HYP_OBJECT_BODY(EditorCommandReparentNode);
 
@@ -1130,7 +1130,7 @@ DEFINE_EDITOR_COMMAND(ReparentNode);
 #pragma region ShowTexture
 
 #if 0
-class EDITOR_API EditorCommandShowTexture final : public EditorCommandBase
+class EditorCommandShowTexture final : public EditorCommandBase
 {
     HYP_OBJECT_BODY(EditorCommandShowTexture);
 
@@ -1295,7 +1295,7 @@ DEFINE_EDITOR_COMMAND(ShowTexture);
 
 #pragma region DeleteNode
 
-class EDITOR_API EditorCommandDeleteNode final : public EditorCommandBase
+class EditorCommandDeleteNode final : public EditorCommandBase
 {
     HYP_OBJECT_BODY(EditorCommandDeleteNode);
 
@@ -1460,7 +1460,7 @@ DEFINE_EDITOR_COMMAND(DeleteNode);
 
 #pragma region TeleportTo
 
-class EDITOR_API EditorCommandTeleportTo final : public EditorCommandBase
+class EditorCommandTeleportTo final : public EditorCommandBase
 {
     HYP_OBJECT_BODY(EditorCommandTeleportTo);
 
@@ -1523,7 +1523,7 @@ DEFINE_EDITOR_COMMAND(TeleportTo);
 
 #pragma region Copy
 
-class EDITOR_API EditorCommandCopy final : public EditorCommandBase
+class EditorCommandCopy final : public EditorCommandBase
 {
     HYP_OBJECT_BODY(EditorCommandCopy);
 
@@ -1584,7 +1584,7 @@ DEFINE_EDITOR_COMMAND(Copy);
 
 #pragma region Paste
 
-class EDITOR_API EditorCommandPaste final : public EditorCommandBase
+class EditorCommandPaste final : public EditorCommandBase
 {
     HYP_OBJECT_BODY(EditorCommandPaste);
 
@@ -1750,7 +1750,7 @@ DEFINE_EDITOR_COMMAND(Paste);
 
 #pragma region SelectAll
 
-class EDITOR_API EditorCommandSelectAll final : public EditorCommandBase
+class EditorCommandSelectAll final : public EditorCommandBase
 {
     HYP_OBJECT_BODY(EditorCommandSelectAll);
 
@@ -1798,7 +1798,7 @@ DEFINE_EDITOR_COMMAND(SelectAll);
 
 #pragma region NewScript
 
-class EDITOR_API EditorCommandNewScript final : public EditorCommandBase
+class EditorCommandNewScript final : public EditorCommandBase
 {
     HYP_OBJECT_BODY(EditorCommandNewScript);
 
@@ -1853,7 +1853,7 @@ DEFINE_EDITOR_COMMAND(NewScript);
 
 #pragma region AddAsset
 
-class EDITOR_API EditorCommandAddAsset final : public EditorCommandBase
+class EditorCommandAddAsset final : public EditorCommandBase
 {
     HYP_OBJECT_BODY(EditorCommandAddAsset);
 

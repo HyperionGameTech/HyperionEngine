@@ -186,7 +186,7 @@ public:
     CORE_API bool CanRead() const;
 
     CORE_API String GetExtension() const;
-    HYP_NODISCARD String StripExtension() const;
+    HYP_NODISCARD CORE_API String StripExtension() const;
 
     CORE_API Time LastModifiedTimestamp() const;
 

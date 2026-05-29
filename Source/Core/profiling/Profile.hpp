@@ -20,7 +20,7 @@ class Profile
 public:
     using ProfileFunction = void (*)(void);
 
-    static Array<double> RunInterleved(Array<Profile*>&&, size_t runsPer = 5, size_t numIterations = 100, size_t runsPerIteration = 100);
+    static CORE_API Array<double> RunInterleved(Array<Profile*>&&, size_t runsPer = 5, size_t numIterations = 100, size_t runsPerIteration = 100);
 
     Profile(ProfileFunction profileFunction)
         : m_profileFunction(profileFunction),

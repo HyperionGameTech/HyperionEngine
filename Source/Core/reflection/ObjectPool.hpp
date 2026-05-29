@@ -369,7 +369,7 @@ public:
     }
 };
 
-class ObjectContainerMap
+class CORE_API ObjectContainerMap
 {
     // Maps TypeId to object container
     // Use a linked list so that references are never invalidated.
@@ -392,7 +392,7 @@ public:
     ObjectContainerBase& Get(TypeId typeId);
     ObjectContainerBase* TryGet(TypeId typeId);
 
-    CORE_API ObjectContainerBase& GetOrCreate(
+    ObjectContainerBase& GetOrCreate(
         TypeId typeId,
         const Class* cls,
         ObjectContainerBase* (*createFn)(const Class* cls));
