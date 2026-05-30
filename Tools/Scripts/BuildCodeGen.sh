@@ -29,23 +29,4 @@ else
     echo "Could not find hyperion-codegen executable"
     exit 1
 fi
-
-# Move the hyperion-core shared library alongside the executable
-CORE_LIB=""
-for lib in "$EXE_DIR/libhyperion-core.so" "$EXE_DIR/libhyperion-core.dylib"; do
-    if [ -f "$lib" ]; then
-        CORE_LIB="$lib"
-        break
-    fi
-done
-
-if [ -n "$CORE_LIB" ]; then
-    echo "Moving $CORE_LIB .."
-    mv "$CORE_LIB" ..
-else
-    echo "Could not find hyperion-core shared library - executable may fail to launch!"
-fi
-
 popd
-
-

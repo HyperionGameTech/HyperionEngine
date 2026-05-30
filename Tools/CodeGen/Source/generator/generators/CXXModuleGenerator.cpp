@@ -578,6 +578,14 @@ Result CXXModuleGenerator::GenerateInline(const Analyzer& analyzer, const Module
 
         writer.WriteString(HYP_FORMAT("namespace {}", BuildNamespaceString(cls.namespaceParts)) + " {\n");
         writer.WriteString(HYP_FORMAT("{} extern const Class* g_cls{};\n", apiMacro, cls.name));
+
+        // Implement class StaticClass() to return the static class instance
+        // Only for structs, classes:
+        if (cls.type == ClassDefinitionType::Struct || cls.type == ClassDefinitionType::Class)
+        {
+            writer.WriteString("const Class* " + cls.name + "::StaticClass() { " + HYP_FORMAT("return g_cls{};", cls.name) + " }\n");
+        }
+
         writer.WriteString("} " + HYP_FORMAT("// namespace {}\n\n", BuildNamespaceString(cls.namespaceParts)));
 
         if (cls.namespaceParts.Any() && (cls.namespaceParts.Size() > 1 || cls.namespaceParts[0] != BaseNamespace))
@@ -968,6 +976,14 @@ Result CXXModuleGenerator::Generate(const Analyzer& analyzer, const Module& mod,
 
         writer.WriteString(HYP_FORMAT("namespace {}", BuildNamespaceString(cls.namespaceParts)) + " {\n");
         writer.WriteString(HYP_FORMAT("{} extern const Class* g_cls{};\n", apiMacro, cls.name));
+
+        // Implement class StaticClass() to return the static class instance
+        // Only for structs, classes:
+        if (cls.type == ClassDefinitionType::Struct || cls.type == ClassDefinitionType::Class)
+        {
+            writer.WriteString("const Class* " + cls.name + "::StaticClass() { " + HYP_FORMAT("return g_cls{};", cls.name) + " }\n");
+        }
+
         writer.WriteString("} " + HYP_FORMAT("// namespace {}\n\n", BuildNamespaceString(cls.namespaceParts)));
 
         if (cls.namespaceParts.Any() && (cls.namespaceParts.Size() > 1 || cls.namespaceParts[0] != BaseNamespace))

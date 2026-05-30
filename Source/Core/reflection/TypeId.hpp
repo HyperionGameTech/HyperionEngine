@@ -159,7 +159,7 @@ public:
 };
 
 template <class T>
-const TypeId& TypeIdOf()
+inline const TypeId& TypeIdOf()
 {
     static TypeId s_typeId = TypeId::ForType<T>();
     return s_typeId;

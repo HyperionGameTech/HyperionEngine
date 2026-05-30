@@ -21,73 +21,73 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 # platform and compiler definitions
 if(CMAKE_CXX_COMPILER_ID STREQUAL "MSVC")
-    add_definitions(-DHYP_MSVC=1)
-    set(HYP_MSVC 1)
+  add_definitions(-DHYP_MSVC=1)
+  set(HYP_MSVC 1)
 elseif(CMAKE_CXX_COMPILER_ID MATCHES "Clang")
-    add_definitions(-DHYP_CLANG=1)
-    add_definitions(-DHYP_CLANG_OR_GCC=1)
-    set(HYP_CLANG 1)
-    set(HYP_CLANG_OR_GCC 1)
+  add_definitions(-DHYP_CLANG=1)
+  add_definitions(-DHYP_CLANG_OR_GCC=1)
+  set(HYP_CLANG 1)
+  set(HYP_CLANG_OR_GCC 1)
 elseif(CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
-    add_definitions(-DHYP_GCC=1)
-    add_definitions(-DHYP_CLANG_OR_GCC=1)
-    set(HYP_GCC 1)
-    set(HYP_CLANG_OR_GCC 1)
+  add_definitions(-DHYP_GCC=1)
+  add_definitions(-DHYP_CLANG_OR_GCC=1)
+  set(HYP_GCC 1)
+  set(HYP_CLANG_OR_GCC 1)
 endif()
 
 if(NOT DEFINED HYP_PLATFORM_NAME)
-    if(WIN32)
-        set(HYP_PLATFORM_NAME "Windows")
-    elseif(APPLE)
-        set(HYP_PLATFORM_NAME "Mac")
-    elseif(UNIX)
-        set(HYP_PLATFORM_NAME "Linux")
-    else()
-        message(FATAL_ERROR "Unsupported platform for CodeGen tool: ${CMAKE_SYSTEM_NAME}")
-    endif()
+  if(WIN32)
+    set(HYP_PLATFORM_NAME "Windows")
+  elseif(APPLE)
+    set(HYP_PLATFORM_NAME "Mac")
+  elseif(UNIX)
+    set(HYP_PLATFORM_NAME "Linux")
+  else()
+    message(FATAL_ERROR "Unsupported platform for CodeGen tool: ${CMAKE_SYSTEM_NAME}")
+  endif()
 endif()
 
 # only build codegen for desktop platforms
 if(HYP_PLATFORM_NAME STREQUAL "Windows")
-    add_definitions(-DHYP_WINDOWS=1)
+  add_definitions(-DHYP_WINDOWS=1)
 
-    set(HYP_WINDOWS 1)
+  set(HYP_WINDOWS 1)
 elseif(HYP_PLATFORM_NAME STREQUAL "Mac")
-    add_definitions(-DHYP_APPLE=1)
-    add_definitions(-DHYP_UNIX=1)
-    add_definitions(-DHYP_MACOS=1)
+  add_definitions(-DHYP_APPLE=1)
+  add_definitions(-DHYP_UNIX=1)
+  add_definitions(-DHYP_MACOS=1)
 
-    set(HYP_APPLE 1)
-    set(HYP_UNIX 1)
-    set(HYP_MACOS 1)
+  set(HYP_APPLE 1)
+  set(HYP_UNIX 1)
+  set(HYP_MACOS 1)
 elseif(HYP_PLATFORM_NAME STREQUAL "Linux")
-    add_definitions(-DHYP_LINUX=1)
-    add_definitions(-DHYP_UNIX=1)
+  add_definitions(-DHYP_LINUX=1)
+  add_definitions(-DHYP_UNIX=1)
 
-    set(HYP_LINUX 1)
-    set(HYP_UNIX 1)
+  set(HYP_LINUX 1)
+  set(HYP_UNIX 1)
 endif()
 
 if(HYP_MSVC)
-    set(CMAKE_CXX_FLAGS "/Zc:preprocessor /MD /O2 /Zi /Zc:__cplusplus")
+  set(CMAKE_CXX_FLAGS "/Zc:preprocessor /MD /O2 /Zi /Zc:__cplusplus")
 
-    # set to path of vcpkg
-    set(CMAKE_TOOLCHAIN_FILE, "$ENV{VCPKG_ROOT}/../scripts/buildsystems/vcpkg.cmake")
+  # set to path of vcpkg
+  set(CMAKE_TOOLCHAIN_FILE, "$ENV{VCPKG_ROOT}/../scripts/buildsystems/vcpkg.cmake")
 else()
-    # set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -g -O3")
-    # for debugging
-    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -g -O0 -fpermissive -fsanitize=undefined -fno-omit-frame-pointer")
+  # set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -g -O3")
+  # for debugging
+  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -g -O0 -fpermissive -fsanitize=undefined -fno-omit-frame-pointer")
 endif()
 
 # if Win32, link with DbgHelp
 if(WIN32)
-    set(COMMON_LIBRARIES ${COMMON_LIBRARIES} DbgHelp)
+  set(COMMON_LIBRARIES ${COMMON_LIBRARIES} DbgHelp)
 endif()
 
 set(OpenGL_GL_PREFERENCE GLVND)
 
 if(NOT SUBMODULES_DIR)
-    set(SUBMODULES_DIR ${CMAKE_SOURCE_DIR}/../../External/ThirdParty/Source)
+  set(SUBMODULES_DIR ${CMAKE_SOURCE_DIR}/../../External/ThirdParty/Source)
 endif()
 
 link_directories(${CMAKE_THIRD_PARTY_LIBRARY_DIRECTORY})
@@ -121,12 +121,15 @@ include_directories(
 add_executable(${BUILD_NAME} ${CODEGEN_SOURCES} ${CODEGEN_HEADERS})
 
 if(HYP_MSVC)
-    set_property(TARGET ${BUILD_NAME} APPEND PROPERTY LINK_FLAGS /DEBUG)
+  set_property(TARGET ${BUILD_NAME} APPEND PROPERTY LINK_FLAGS /DEBUG)
 endif()
 
+add_definitions(-DHYP_BUILD_CORE_LIBRARY_STATIC=1)
+set(HYP_BUILD_CORE_LIBRARY_STATIC 1)
 
-# link with shared library hyperion
+# link with hyperion-core
 add_subdirectory(${CMAKE_SOURCE_DIR}/../../Source/Core ${CMAKE_BINARY_DIR}/../Core)
+
 add_dependencies(${BUILD_NAME} hyperion-core)
 target_link_libraries(${BUILD_NAME} hyperion-core)
 
@@ -138,5 +141,3 @@ target_link_libraries(${BUILD_NAME} hyperion-core)
 # )
 
 add_definitions(${GCC_COVERAGE_COMPILE_FLAGS})
-
-

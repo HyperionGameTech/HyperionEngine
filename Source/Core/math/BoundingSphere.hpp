@@ -17,7 +17,6 @@
 namespace Hyperion {
 
 HYP_STRUCT(Size = 32)
-
 struct CORE_API BoundingSphere
 {
     HYP_STRUCT_BODY(BoundingSphere);

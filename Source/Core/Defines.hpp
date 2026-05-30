@@ -500,12 +500,19 @@ static HYP_FORCE_INLINE void ExecuteBreakpointOnce()
 #define HYP_IMPORT
 #endif
 
+#ifndef HYP_BUILD_CORE_LIBRARY_STATIC
 // Modules
 #ifdef HYP_BUILD_CORE
 #define CORE_API HYP_EXPORT
 #else // !HYP_BUILD_CORE
 #define CORE_API HYP_IMPORT
 #endif // HYP_BUILD_CORE
+
+#else // HYP_BUILD_CORE_LIBRARY_STATIC
+
+#define CORE_API HYP_EXPORT
+
+#endif // !HYP_BUILD_CORE_LIBRARY_STATIC
 
 #ifdef HYP_BUILD_ENGINE
 #define ENGINE_API HYP_EXPORT

@@ -271,15 +271,15 @@ CORE_API extern const Class* GetClass(const TypeId& typeId);
 template <class T>
 const Class* GetClass()
 {
-#if HYP_MSVC
+#if defined(HYP_MSVC) && HYP_MSVC
     // If you get an unresolved external,
     // it means that T does not have Class info generated for it. Ensure that
     // the build tool was run and that the generated files are included in the build.
     return GetClassHelper<T>::Get();
-#else
+#else // !HYP_MSVC
     static const Class* s_cls = GetClass(TypeIdOf<T>());
     return s_cls;
-#endif
+#endif // HYP_MSVC
 }
 
 

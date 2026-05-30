@@ -124,7 +124,12 @@ message(STATUS "Configuring hyperion-core in ${CMAKE_CURRENT_SOURCE_DIR}")
 
 set(SOURCES ${SOURCES} ${CMAKE_CURRENT_SOURCE_DIR}/../../External/ThirdParty/Source/tlsf/tlsf.c)
 
-add_library(${BUILD_NAME} SHARED ${SOURCES} ${HEADERS})
+if(HYP_BUILD_CORE_LIBRARY_STATIC)
+  add_library(${BUILD_NAME} STATIC ${SOURCES} ${HEADERS})
+else()
+  add_library(${BUILD_NAME} SHARED ${SOURCES} ${HEADERS})
+endif()
+
 target_compile_definitions(${BUILD_NAME} PRIVATE HYP_BUILD_CORE=1)
 
 target_link_libraries(${BUILD_NAME} PRIVATE ${COMMON_LIBRARIES})

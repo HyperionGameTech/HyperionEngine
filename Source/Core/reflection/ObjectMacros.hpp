@@ -163,10 +163,7 @@ public:                                                                         
         return (ObjId<T>)(ObjectBase::Id());                                     \
     }                                                                            \
                                                                                  \
-    HYP_FORCE_INLINE static const Class* StaticClass()                           \
-    {                                                                            \
-        return GetClass<T>();                                                    \
-    }                                                                            \
+    static const Class* StaticClass();                                           \
                                                                                  \
     template <class TOther>                                                      \
     HYP_FORCE_INLINE bool IsA() const                                            \
@@ -218,10 +215,7 @@ private:
         using Type = T;                                 \
     };                                                  \
                                                         \
-    HYP_FORCE_INLINE static const Class* StaticClass()  \
-    {                                                   \
-        return GetClass<T>();                           \
-    }
+    static const Class* StaticClass();                  \
 
 #define HYP_REGISTER_STATIC_CLASS(T) \
     HYP_EXPORT TClassStaticInit<T> g_classInit##T;

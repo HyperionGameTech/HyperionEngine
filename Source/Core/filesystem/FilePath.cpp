@@ -10,6 +10,8 @@
 
 #include <Core/io/BufferedByteReader.hpp>
 
+#include <Core/logging/Logger.hpp>
+
 #include <filesystem>
 #include <fstream>
 
@@ -33,6 +35,8 @@
 #endif
 
 namespace Hyperion {
+
+CORE_API HYP_DECLARE_LOG_CHANNEL(IO);
 
 #if HYP_ANDROID
 
@@ -357,7 +361,14 @@ bool FilePath::Remove() const
         return false;
 #endif
 
-    return std::filesystem::remove(Data());
+    std::error_code ec;
+    if (!std::filesystem::remove(Data(), ec))
+    {
+        HYP_LOG(IO, Warning, "Failed to remove file, got error code: {}", ec.value());
+        return false;
+    }
+
+    return true;
 }
 
 bool FilePath::Rename(const FilePath& newPath) const

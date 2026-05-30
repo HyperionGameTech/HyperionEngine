@@ -38,21 +38,4 @@ if exist hyperion-codegen.exe (
     )
 )
 
-if exist hyperion-core.dll (
-    move hyperion-core.dll ..
-    set MOVED_DLL=1
-) else (
-    if exist Debug\hyperion-core.dll (
-        move Debug\hyperion-core.dll ..
-        set MOVED_DLL=1
-    ) else (
-        if exist Release\hyperion-core.dll (
-            move Release\hyperion-core.dll ..
-            set MOVED_DLL=1
-        ) else (
-            echo Could not find hyperion-core.dll - executable may fail to launch!
-        )
-    )
-)
-
 popd
