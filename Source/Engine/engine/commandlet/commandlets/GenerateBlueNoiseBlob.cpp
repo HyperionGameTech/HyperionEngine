@@ -92,6 +92,11 @@ protected:
 
 ENGINE_API const Class* g_clsGenerateBlueNoiseBlob = nullptr;
 
+const Class* GenerateBlueNoiseBlob::StaticClass()
+{
+    return g_clsGenerateBlueNoiseBlob;
+}
+
 HYP_BEGIN_CLASS(GenerateBlueNoiseBlob, -1, 0, NAME("CommandletBase"),
     ClassAttribute("command", "generatebluenoiseblob"))
     Method(NAME("GetArgumentDefinitions"), &Type::GetArgumentDefinitions)

@@ -33,6 +33,11 @@ protected:
 
 ENGINE_API const Class* g_clsLogMemoryPools = nullptr;
 
+const Class* LogMemoryPools::StaticClass()
+{
+    return g_clsLogMemoryPools;
+}
+
 HYP_BEGIN_CLASS(LogMemoryPools, -1, 0, NAME("CommandletBase"), ClassAttribute("command", "logmemorypools"))
     Method(NAME("GetArgumentDefinitions"), &Type::GetArgumentDefinitions)
 HYP_END_CLASS

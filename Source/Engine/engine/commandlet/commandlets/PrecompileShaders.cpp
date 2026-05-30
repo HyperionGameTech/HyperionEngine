@@ -195,6 +195,11 @@ protected:
 
 ENGINE_API const Class* g_clsPrecompileShaders = nullptr;
 
+const Class* PrecompileShaders::StaticClass()
+{
+    return g_clsPrecompileShaders;
+}
+
 HYP_BEGIN_CLASS(PrecompileShaders, -1, 0, NAME("CommandletBase"), ClassAttribute("command", "precompileshaders"))
     Method(NAME("GetArgumentDefinitions"), &Type::GetArgumentDefinitions)
 HYP_END_CLASS

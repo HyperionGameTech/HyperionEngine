@@ -12,7 +12,6 @@
 
 #include <Core/containers/Set.hpp>
 
-#include <Core/logging/LogChannels.hpp>
 #include <Core/logging/Logger.hpp>
 
 #if defined(__x86_64__) || defined(__i386__)
@@ -24,6 +23,8 @@
 #endif
 
 namespace Hyperion {
+
+CORE_API HYP_DECLARE_LOG_CHANNEL(Threading);
 
 const StaticThreadId g_mainThread = StaticThreadId(NAME("MainThread"));
 

@@ -63,12 +63,17 @@ CORE_API extern FilePath GetExecutablePath();
 ENGINE_API extern const FilePath& GetProjectsDirectory();
 ENGINE_API extern const FilePath& GetDataDirectory();
 
-#define DEFINE_EDITOR_COMMAND(name)                                        \
+#define DEFINE_EDITOR_COMMAND(name)                                         \
     const Class* g_clsEditorCommand##name = nullptr;                        \
-                                                                           \
-    HYP_BEGIN_CLASS(EditorCommand##name, -1, 0, NAME("EditorCommandBase")) \
-    HYP_END_CLASS                                                          \
-                                                                           \
+                                                                            \
+    const Class* EditorCommand ## name ::StaticClass()                      \
+    {                                                                       \
+        return g_clsEditorCommand##name;                                    \
+    }                                                                       \
+                                                                            \
+    HYP_BEGIN_CLASS(EditorCommand##name, -1, 0, NAME("EditorCommandBase"))  \
+    HYP_END_CLASS                                                           \
+                                                                            \
     TClassStaticInit<EditorCommand##name> g_classInit##EditorCommand##name {};
 
 #pragma region Undo

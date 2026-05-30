@@ -231,11 +231,6 @@ ObjIdBase ObjectBase::Id() const
     return ObjIdBase { m_header->cls->GetTypeId(), m_header->index + 1 };
 }
 
-const Class* ObjectBase::StaticClass()
-{
-    return g_clsObjectBase;
-}
-
 const Class* ObjectBase::InstanceClass() const
 {
     HYP_CORE_ASSERT(m_header, "Invalid Object!");
