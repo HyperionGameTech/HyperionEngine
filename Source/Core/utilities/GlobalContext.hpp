@@ -13,8 +13,6 @@
 
 #include <Core/memory/pool/Pool.hpp>
 
-#include <Core/threading/Thread.hpp>
-
 #include <Core/Defines.hpp>
 
 #include <Core/Types.hpp>

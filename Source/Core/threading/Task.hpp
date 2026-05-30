@@ -14,12 +14,9 @@
 
 #include <Core/threading/AtomicVar.hpp>
 #include <Core/threading/SharedMutex.hpp>
-#include <Core/threading/Thread.hpp>
 #include <Core/threading/Semaphore.hpp>
 
 #include <Core/logging/LoggerFwd.hpp>
-
-#include <Core/functional/Proc.hpp>
 
 #include <Core/memory/UniquePtr.hpp>
 #include <Core/memory/pool/Pool.hpp>
@@ -38,7 +35,14 @@ enum class TaskEnqueueFlags : uint32
     FIRE_AND_FORGET = 0x1
 };
 
-HYP_MAKE_ENUM_FLAGS(TaskEnqueueFlags)
+HYP_MAKE_ENUM_FLAGS(TaskEnqueueFlags);
+
+namespace functional {
+
+template <class FunctionSignature>
+class Proc;
+
+} // namespace functional
 
 namespace threading {
 
@@ -84,7 +88,7 @@ public:
     }
 };
 
-using OnTaskCompletedCallback = Proc<void()>;
+using OnTaskCompletedCallback = functional::Proc<void()>;
 
 struct TaskID
 {
@@ -156,19 +160,19 @@ public:
     TaskCallbackChain(TaskCallbackChain&& other) noexcept;
     TaskCallbackChain& operator=(TaskCallbackChain&& other) noexcept;
 
-    ~TaskCallbackChain() = default;
+    ~TaskCallbackChain();
 
     HYP_FORCE_INLINE explicit operator bool() const
     {
         return m_numCallbacks.Get(MemoryOrder::ACQUIRE);
     }
 
-    void Add(Proc<void()>&& callback);
+    void Add(functional::Proc<void()>&& callback);
 
     void operator()();
 
 private:
-    Array<Proc<void()>> m_callbacks;
+    Array<functional::Proc<void()>, DynamicAllocator> m_callbacks;
     AtomicVar<uint32> m_numCallbacks;
     Mutex m_mutex;
 };
@@ -291,7 +295,7 @@ template <class ReturnType>
 class TaskExecutorInstance : public TaskExecutorBase
 {
 public:
-    using Function = Proc<ReturnType()>;
+    using Function = functional::Proc<ReturnType()>;
     using Base = TaskExecutorBase;
 
     template <class Lambda>
@@ -350,7 +354,7 @@ protected:
 template <>
 class TaskExecutorInstance<void> : public TaskExecutorBase
 {
-    using Function = Proc<void()>;
+    using Function = functional::Proc<void()>;
 
     struct Functor
     {

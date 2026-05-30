@@ -25,7 +25,7 @@ class Mat4f;
 
 namespace math {
 template <class T>
-struct alignas(alignof(T) * 4) CORE_API Vec3
+struct alignas(alignof(T) * 4) Vec3
 {
     static constexpr uint32 size = 3;
 

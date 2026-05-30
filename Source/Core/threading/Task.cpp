@@ -7,6 +7,8 @@
 #include <Core/threading/Task.hpp>
 #include <Core/threading/Scheduler.hpp>
 
+#include <Core/functional/Proc.hpp>
+
 namespace Hyperion {
 namespace threading {
 
@@ -118,6 +120,8 @@ TaskCallbackChain& TaskCallbackChain::operator=(TaskCallbackChain&& other) noexc
 
     return *this;
 }
+
+TaskCallbackChain::~TaskCallbackChain() = default;
 
 void TaskCallbackChain::Add(Proc<void()>&& callback)
 {

@@ -9,8 +9,6 @@
 #include <Core/name/Name.hpp>
 
 #include <Core/threading/Thread.hpp>
-#include <Core/threading/Scheduler.hpp>
-#include <Core/threading/AtomicVar.hpp>
 #include <Core/threading/Mutex.hpp>
 
 #include <Core/containers/Array.hpp>

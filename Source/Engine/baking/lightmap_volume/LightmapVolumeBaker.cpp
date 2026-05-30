@@ -340,7 +340,7 @@ void Baker<LightmapVolume>::OnCompleted_Internal()
             const Handle<Mesh>& mesh = bakeEntity.mesh;
             Assert(mesh.IsValid());
 
-            auto writeScope = mesh->GetWriteScope();
+            auto readScope = mesh->GetReadScope();
 
             Assert(bakeEntityIndex < m_bakeData.GetMeshData().Size());
 
@@ -383,9 +383,9 @@ void Baker<LightmapVolume>::OnCompleted_Internal()
             vertexArrayView.layoutDesc = newMeshDesc.meshAttributes.inputLayout;
             vertexArrayView.vertexCount = bakeMesh.vertices.Size() / vertexStrideFloats;
 
-            mesh->SetMeshData(newMeshDesc, vertexArrayView, bakeMesh.indices.ToByteView());
+            readScope.Reset();
 
-            writeScope.Reset();
+            mesh->SetMeshData(newMeshDesc, vertexArrayView, bakeMesh.indices.ToByteView());
 
             // needs reupload!
             if (mesh->isUploaded.Load())

@@ -19,7 +19,7 @@ namespace Hyperion {
 
 namespace math {
 template <class T>
-struct alignas(alignof(T) * 2) CORE_API Vec2
+struct alignas(alignof(T) * 2) Vec2
 {
     static constexpr uint32 size = 2;
 

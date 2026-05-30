@@ -12,7 +12,7 @@
 #include <Core/threading/util/ThreadId.hpp>
 
 #include <Core/threading/AtomicFlag.hpp>
-#include <Core/threading/SchedulerFwd.hpp>
+#include <Core/threading/Scheduler.hpp>
 
 #include <Core/utilities/Tuple.hpp>
 #include <Core/utilities/StringView.hpp>
@@ -256,9 +256,9 @@ bool Thread<TScheduler, TArgs...>::CanJoin() const
     return m_thread->joinable();
 }
 
-#ifndef HYP_MSVC
-extern template class Thread<Scheduler>;
-#endif // HYP_MSVC
+//#ifndef HYP_MSVC
+extern template class CORE_API Thread<Scheduler>;
+//#endif // HYP_MSVC
 
 } // namespace threading
 

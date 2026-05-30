@@ -15,7 +15,6 @@
 #include <Core/containers/String.hpp>
 
 #include <Core/threading/Thread.hpp>
-#include <Core/threading/Scheduler.hpp>
 
 #include <Core/Types.hpp>
 

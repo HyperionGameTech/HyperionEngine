@@ -11,7 +11,6 @@
 
 #include <Core/memory/RefCountedPtr.hpp>
 
-#include <Core/threading/Thread.hpp>
 #include <Core/threading/Task.hpp>
 #include <Core/threading/AtomicVar.hpp>
 

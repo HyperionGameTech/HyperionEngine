@@ -19,10 +19,7 @@
 
 #include <Core/memory/NotNullPtr.hpp>
 
-#include <Core/threading/Thread.hpp>
-#include <Core/threading/AtomicVar.hpp>
 #include <Core/threading/SharedMutex.hpp>
-#include <Core/threading/DataRaceDetector.hpp>
 
 #include <Core/reflection/ObjectFwd.hpp>
 

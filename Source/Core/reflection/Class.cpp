@@ -18,6 +18,7 @@
 #include <Core/logging/Logger.hpp>
 #include <Core/logging/LogChannels.hpp>
 
+#include <Core/threading/Thread.hpp>
 #include <Core/threading/ThreadLocalStorage.hpp>
 
 #if defined(HYP_DOTNET) || defined(HYP_SCRIPT)

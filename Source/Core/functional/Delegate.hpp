@@ -12,9 +12,8 @@
 
 #include <Core/threading/Mutex.hpp>
 #include <Core/threading/SharedMutex.hpp>
+#include <Core/threading/Thread.hpp>
 #include <Core/threading/Threads.hpp>
-#include <Core/threading/Task.hpp>
-#include <Core/threading/Scheduler.hpp>
 
 #include <Core/utilities/ForEach.hpp>
 #include <Core/utilities/DeferredScope.hpp>

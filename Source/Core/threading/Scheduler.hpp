@@ -15,7 +15,6 @@
 
 #include <Core/threading/SchedulerFwd.hpp>
 #include <Core/threading/AtomicVar.hpp>
-#include <Core/threading/Thread.hpp>
 #include <Core/threading/Task.hpp>
 #include <Core/threading/Threads.hpp>
 #include <Core/threading/Mutex.hpp>

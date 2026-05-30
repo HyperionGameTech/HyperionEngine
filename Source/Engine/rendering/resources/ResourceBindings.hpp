@@ -10,8 +10,6 @@
 #include <Core/containers/SparsePagedArray.hpp>
 #include <Core/containers/StridedBuffer.hpp>
 
-#include <Core/threading/Thread.hpp>
-
 namespace Hyperion {
 
 class StructuredBuffer;
