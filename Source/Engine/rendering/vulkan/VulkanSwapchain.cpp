@@ -168,7 +168,7 @@ void VulkanSwapchain::PresentFrame(VulkanFrame* frame, VulkanDeviceQueue* queue)
     }
     else if (result != VK_SUCCESS && result != VK_SUBOPTIMAL_KHR)
     {
-        RI.crashHandler->Dump();
+        CrashHandler::Dump();
 
         HYP_FAIL("Failed to present swapchain image: {}", int(result));
     }

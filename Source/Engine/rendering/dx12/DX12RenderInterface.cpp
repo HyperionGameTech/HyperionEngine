@@ -344,8 +344,7 @@ RendererResult DX12RenderInterface::Initialize()
 #endif
 
     // CrashHandler must be initialized before we create the device
-    crashHandler = new CrashHandler;
-    crashHandler->Initialize();
+    CrashHandler::Initialize();
 
     // create device
     res = D3D12CreateDevice(m_hardwareAdapter.Get(), D3D_FEATURE_LEVEL_12_0, IID_PPV_ARGS(&m_device));
@@ -588,10 +587,7 @@ void DX12RenderInterface::PrepareFrame(DX12Frame* frame)
             {
                 HYP_LOG(RenderingBackend, Error, "Failed to set fence completion event! Error: {}", hr);
 
-                if (crashHandler)
-                {
-                    crashHandler->Dump();
-                }
+                CrashHandler::Dump();
 
                 const char* deviceRemovedReason = CheckDeviceRemovedReason(m_device.Get());
                 if (deviceRemovedReason)
@@ -605,10 +601,7 @@ void DX12RenderInterface::PrepareFrame(DX12Frame* frame)
             {
                 HYP_LOG(RenderingBackend, Error, "Failed to wait for fence! Result: {}", waitResult);
 
-                if (crashHandler)
-                {
-                    crashHandler->Dump();
-                }
+                CrashHandler::Dump();
 
                 const char* deviceRemovedReason = CheckDeviceRemovedReason(m_device.Get());
                 if (deviceRemovedReason)
@@ -860,10 +853,7 @@ void DX12RenderInterface::SubmitTransientCommandBuffer(DX12CommandBuffer& comman
     {
         HYP_LOG(RenderingBackend, Error, "Failed to signal fence after executing command lists! Error: {}", hr);
 
-        if (crashHandler)
-        {
-            crashHandler->Dump();
-        }
+        CrashHandler::Dump();
 
         const char* deviceRemovedReason = CheckDeviceRemovedReason(m_device.Get());
         if (deviceRemovedReason)
@@ -882,10 +872,7 @@ void DX12RenderInterface::SubmitTransientCommandBuffer(DX12CommandBuffer& comman
         {
             HYP_LOG(RenderingBackend, Error, "Failed to signal transient sync fence! Error: {}", hr);
 
-            if (crashHandler)
-            {
-                crashHandler->Dump();
-            }
+            CrashHandler::Dump();
 
             const char* deviceRemovedReason = CheckDeviceRemovedReason(m_device.Get());
             if (deviceRemovedReason)

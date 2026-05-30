@@ -18,18 +18,13 @@ namespace Hyperion {
 class CrashHandler
 {
 public:
-    HYP_DEF_POOL_NEW_DELETE(g_rhiPool);
+    static void Initialize();
+    static void Shutdown();
 
-    CrashHandler();
-    ~CrashHandler();
-
-    void Initialize();
-    void Shutdown();
-
-    void Dump();
+    static void Dump();
 
 private:
-    bool m_isInitialized;
+    static bool s_isInitialized;
 };
 
 } // namespace Hyperion

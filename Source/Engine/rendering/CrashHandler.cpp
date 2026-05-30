@@ -39,24 +39,16 @@ thread_local Array<FilePath>* g_savedDumpFiles = nullptr;
 static Mutex g_savedDumpFilesPerThreadMutex;
 static Array<Array<FilePath>*> g_savedDumpFilesPerThread {};
 
-CrashHandler::CrashHandler()
-    : m_isInitialized(false)
-{
-}
-
-CrashHandler::~CrashHandler()
-{
-    Shutdown();
-}
+bool CrashHandler::s_isInitialized = false;
 
 void CrashHandler::Initialize()
 {
-    if (m_isInitialized)
+    if (s_isInitialized)
     {
         return;
     }
 
-    m_isInitialized = true;
+    s_isInitialized = true;
 
 #if defined(HYP_AFTERMATH) && HYP_AFTERMATH
     auto res = GFSDK_Aftermath_EnableGpuCrashDumps(
@@ -222,7 +214,7 @@ void CrashHandler::Initialize()
 
 void CrashHandler::Shutdown()
 {
-    if (!m_isInitialized)
+    if (!s_isInitialized)
     {
         return;
     }
@@ -236,7 +228,7 @@ void CrashHandler::Shutdown()
 
     g_savedDumpFilesPerThread.Clear();
 
-    m_isInitialized = false;
+    s_isInitialized = false;
 }
 
 void CrashHandler::Dump()

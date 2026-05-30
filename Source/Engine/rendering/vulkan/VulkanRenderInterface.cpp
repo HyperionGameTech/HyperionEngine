@@ -51,7 +51,7 @@
                                                     \
         if (!(_result))                             \
         {                                           \
-            crashHandler->Dump();                   \
+            CrashHandler::Dump();                   \
                                                     \
             HYP_UNREACHABLE();                      \
         }                                           \
@@ -635,8 +635,7 @@ RendererResult VulkanRenderInterface::Initialize()
     m_descriptorSetManager = new VulkanDescriptorSetManager;
 
     // CrashHandler must be initialized before we create the Vulkan instance
-    crashHandler = new CrashHandler;
-    crashHandler->Initialize();
+    CrashHandler::Initialize();
 
     m_frames.Resize(NumFramesInFlight);
     m_commandBuffers.Resize(NumFramesInFlight);

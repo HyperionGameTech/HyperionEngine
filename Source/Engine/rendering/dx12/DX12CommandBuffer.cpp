@@ -308,10 +308,7 @@ void DX12CommandBuffer::Submit(
         HRESULT hr = commandQueue->Signal(fence, fenceValue);
         if (!SUCCEEDED(hr))
         {
-            if (RI.crashHandler)
-            {
-                RI.crashHandler->Dump();
-            }
+            CrashHandler::Dump();
 
             const char* errorMsg = CheckDeviceRemovedReason(RI.GetDevice());
             HYP_LOG(RenderingBackend, Fatal, "Device removed: {}", errorMsg);

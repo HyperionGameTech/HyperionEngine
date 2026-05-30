@@ -131,11 +131,8 @@ void VulkanFence::Wait(bool timeoutLoop)
 
     if (HYP_UNLIKELY(result != VK_SUCCESS))
     {
-        if (RI.crashHandler)
-        {
-            RI.crashHandler->Dump();
-            return;
-        }
+        CrashHandler::Dump();
+        return;
 
         HYP_FAIL("Failed to wait for Vulkan fence, VkResult: {}", result);
     }

@@ -130,10 +130,7 @@ RendererResult DX12Fence::Wait(bool timeoutLoop)
 
     if (FAILED(hr))
     {
-        if (RI.crashHandler)
-        {
-            RI.crashHandler->Dump();
-        }
+        CrashHandler::Dump();
 
         return HYP_MAKE_ERROR(RendererError, "Failed to set D3D12 fence completion event", hr);
     }
@@ -148,10 +145,7 @@ RendererResult DX12Fence::Wait(bool timeoutLoop)
 
     if (waitResult != WAIT_OBJECT_0)
     {
-        if (RI.crashHandler)
-        {
-            RI.crashHandler->Dump();
-        }
+        CrashHandler::Dump();
 
         return HYP_MAKE_ERROR(RendererError, "Failed while waiting for D3D12 fence completion");
     }

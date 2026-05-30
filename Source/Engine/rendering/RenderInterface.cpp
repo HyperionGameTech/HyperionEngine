@@ -581,7 +581,6 @@ RenderInterface::RenderInterface()
       shadowMapCache(nullptr),
       finalPass(nullptr),
       stagingBufferPool(nullptr),
-      crashHandler(nullptr),
       m_gpuTimerBackend(nullptr)
 {
     Assert(g_renderPool == nullptr);
@@ -835,13 +834,7 @@ void RenderInterface::Shutdown()
 
     globalDescriptorTable.Reset();
 
-    if (crashHandler != nullptr)
-    {
-        crashHandler->Shutdown();
-
-        delete crashHandler;
-        crashHandler = nullptr;
-    }
+    CrashHandler::Shutdown();
 
     PoolDelete(*g_renderPool, shaderManager);
     shaderManager = nullptr;

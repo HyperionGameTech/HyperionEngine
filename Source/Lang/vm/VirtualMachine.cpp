@@ -31,7 +31,7 @@
 #include <iostream>
 
 #if defined(HYP_DEBUG_MODE) && !defined(HYP_SCRIPT_NOOPT)
-#define HYP_SCRIPT_NOOPT 1
+// #define HYP_SCRIPT_NOOPT 1
 #endif
 
 #if defined(HYP_SCRIPT_NOOPT) && HYP_SCRIPT_NOOPT

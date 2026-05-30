@@ -451,8 +451,6 @@ public:
 
     StagingBufferPool* stagingBufferPool;
 
-    CrashHandler* crashHandler;
-
     CommandRecorderAllocator commandRecorderAllocator;
 
     Array<RawBuffer*, RenderAllocator> deferredFlushBuffers;
