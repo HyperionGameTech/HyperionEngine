@@ -108,9 +108,9 @@ void RenderThread::Update()
     }
 
     Queue<Scheduler::ScheduledTask> tasks;
-    if (uint32 numEnqueued = m_scheduler.NumEnqueued())
+    if (uint32 numEnqueued = m_scheduler->NumEnqueued())
     {
-        m_scheduler.AcceptAll(tasks);
+        m_scheduler->AcceptAll(tasks);
 
         while (tasks.Any())
         {
@@ -246,7 +246,7 @@ void RenderThread::operator()()
 
             Update();
         }
-        
+
         RI.Shutdown();
 
         g_renderInitSignal.Reset();

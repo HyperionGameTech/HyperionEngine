@@ -1,18 +1,19 @@
 #pragma once
 
+#include <Core/Defines.hpp>
+#include <Core/Unicode.hpp>
+#include <Core/Types.hpp>
+
 #include <Core/containers/FlatSet.hpp>
 
 #include <Lang/compiler/CompilerError.hpp>
-
-#include <Core/Unicode.hpp>
-#include <Core/Types.hpp>
 
 #include <algorithm>
 #include <ostream>
 
 namespace Hyperion {
 
-class ErrorList
+class SCRIPT_API ErrorList
 {
 public:
     ErrorList();

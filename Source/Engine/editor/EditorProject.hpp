@@ -30,7 +30,7 @@ class EditorActionStack;
 class EditorSubsystem;
 
 HYP_CLASS()
-class EDITOR_API EditorProject final : public ObjectBase
+class EditorProject final : public ObjectBase
 {
     HYP_OBJECT_BODY(EditorProject);
 

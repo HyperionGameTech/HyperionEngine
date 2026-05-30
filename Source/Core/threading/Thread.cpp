@@ -6,6 +6,7 @@
 
 #include <Core/threading/Thread.hpp>
 #include <Core/threading/Threads.hpp>
+#include <Core/threading/Scheduler.hpp>
 #include <Core/threading/ThreadLocalStorage.hpp>
 #include <Core/threading/Mutex.hpp>
 
@@ -97,6 +98,8 @@ void ThreadBase::OnExit()
 }
 
 #pragma endregion ThreadBase
-
 } // namespace threading
+
+template class CORE_API threading::Thread<threading::Scheduler>;
+
 } // namespace Hyperion

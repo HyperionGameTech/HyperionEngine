@@ -1008,8 +1008,9 @@ Result ObjectFromJSON(const JSON::Object& jsonObject, const Class* targetClass, 
 
             if (Result result = BoxedFromJSON(value, typeInfo, boxed); result.HasError())
             {
-                HYP_LOG(Core, Warning, "Failed to deserialize property \"{}\" from json",
-                    member.GetName());
+                HYP_LOG(Core, Warning, "Failed to deserialize property \"{}\" from json: {}",
+                    member.GetName(),
+                    result.GetError().GetMessage());
 
                 return false;
             }
@@ -1275,11 +1276,6 @@ Result BoxedFromJSON(const JSON::Value& jsonValue, const TypeInfo& typeInfo, Box
 
         if (typeInfo.id == TypeId::ForType<int64>())
         {
-            if (number < INT64_MIN || number > INT64_MAX)
-            {
-                return HYP_MAKE_ERROR(Error, "Number {} out of range for int64", number);
-            }
-
             outBoxed = BoxedValue(int64(number));
             return {};
         }
@@ -1319,7 +1315,7 @@ Result BoxedFromJSON(const JSON::Value& jsonValue, const TypeInfo& typeInfo, Box
 
         if (typeInfo.id == TypeId::ForType<uint64>())
         {
-            if (number < 0 || number > UINT64_MAX)
+            if (number < 0)
             {
                 return HYP_MAKE_ERROR(Error, "Number {} out of range for uint64", number);
             }
@@ -1546,7 +1542,7 @@ Result BoxedFromJSON(const JSON::Value& jsonValue, const TypeInfo& typeInfo, Box
 
             if (Result result = BoxedFromJSON(jsonArray[i], *elementTypeInfo, elementData); result.HasError())
             {
-                return HYP_MAKE_ERROR(Error, "Failed to deserialize vector element at index {} for type {}", i, typeInfo.name);
+                return HYP_MAKE_ERROR(Error, "Failed to deserialize vector element at index {} for type {}: {}", i, typeInfo.name, result.GetError().GetMessage());
             }
 
             vectorHandler->SetComponent(vectorInstance, i, elementData);

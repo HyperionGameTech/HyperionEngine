@@ -3,6 +3,7 @@
 #ifdef HYP_SCRIPT
 
 #include <Lang/vm/Value.hpp>
+#include <Lang/vm/ScriptMemory.hpp>
 
 #include <Core/reflection/ClassUtils.hpp>
 #include <Core/reflection/ClassRegistry.hpp>
@@ -10,8 +11,6 @@
 #include <Core/debug/Debug.hpp>
 
 namespace Hyperion {
-
-extern Pool* g_scriptPool;
 
 ENGINE_API const Class* g_clsGenericArrayWrapper = nullptr;
 

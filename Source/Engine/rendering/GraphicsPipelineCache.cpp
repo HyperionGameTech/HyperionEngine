@@ -334,6 +334,9 @@ void GraphicsPipelineCache::GetOrCreate(
 
     if (!shader.IsValid())
     {
+        HYP_LOG(Rendering, Warning, "Invalid shader returned from ShaderManager for {}",
+            inOutAttributes.GetMaterialAttributes().shaderName);
+
         outCacheHandle = {};
         return;
     }

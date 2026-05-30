@@ -6,16 +6,18 @@
 
 #pragma once
 
+#include <Core/Defines.hpp>
+#include <Core/Types.hpp>
+
 #include <Core/threading/util/ThreadId.hpp>
 
 #include <Core/threading/AtomicFlag.hpp>
+#include <Core/threading/SchedulerFwd.hpp>
 
 #include <Core/utilities/Tuple.hpp>
 #include <Core/utilities/StringView.hpp>
 
-#include <Core/Defines.hpp>
-
-#include <Core/Types.hpp>
+#include <Core/memory/Pimpl.hpp>
 
 #include <thread>
 #include <type_traits>
@@ -105,7 +107,7 @@ protected:
 CORE_API extern void SetCurrentThreadObject(ThreadBase*);
 CORE_API extern void SetCurrentThreadPriority(ThreadPriorityValue priority);
 
-template <class Scheduler, class... Args>
+template <class TScheduler, class... TArgs>
 class Thread : public ThreadBase
 {
 public:
@@ -119,9 +121,9 @@ public:
 
     virtual ~Thread() override;
 
-    virtual Scheduler& GetScheduler() override final
+    virtual TScheduler& GetScheduler() override final
     {
-        return m_scheduler;
+        return *m_scheduler;
     }
 
     bool IsRunning() const override
@@ -135,7 +137,7 @@ public:
     }
 
     /*! \brief Start the thread with the given arguments and run the thread function with them */
-    bool Start(Args... args);
+    bool Start(TArgs... args);
 
     /*! \brief Request the thread to stop running. This does not immediately stop the thread, but sets a flag that the thread should stop.
      *  The thread should check this flag periodically and exit when it is set. */
@@ -151,9 +153,9 @@ public:
     bool CanJoin() const override;
 
 protected:
-    virtual void operator()(Args... args) = 0;
+    virtual void operator()(TArgs... args) = 0;
 
-    Scheduler m_scheduler;
+    Pimpl<TScheduler> m_scheduler;
 
     AtomicFlag m_stopRequested;
     AtomicFlag m_isRunning;
@@ -161,16 +163,17 @@ protected:
     std::thread* m_thread;
 };
 
-template <class Scheduler, class... Args>
-Thread<Scheduler, Args...>::Thread(const ThreadId& id, ThreadPriorityValue priority)
+template <class TScheduler, class... TArgs>
+Thread<TScheduler, TArgs...>::Thread(const ThreadId& id, ThreadPriorityValue priority)
     : ThreadBase(id, priority),
-      m_thread(nullptr)
+      m_thread(nullptr),
+      m_scheduler(MakePimpl<TScheduler>())
 {
-    m_scheduler.SetOwnerThread(id);
+    m_scheduler->SetOwnerThread(m_id);
 }
 
-template <class Scheduler, class... Args>
-Thread<Scheduler, Args...>::~Thread()
+template <class TScheduler, class... TArgs>
+Thread<TScheduler, TArgs...>::~Thread()
 {
     if (m_thread != nullptr)
     {
@@ -184,8 +187,8 @@ Thread<Scheduler, Args...>::~Thread()
     }
 }
 
-template <class Scheduler, class... Args>
-bool Thread<Scheduler, Args...>::Start(Args... args)
+template <class TScheduler, class... TArgs>
+bool Thread<TScheduler, TArgs...>::Start(TArgs... args)
 {
     if (m_thread != nullptr)
     {
@@ -200,7 +203,7 @@ bool Thread<Scheduler, Args...>::Start(Args... args)
         {
             SetCurrentThreadObject(this);
 
-            (*this)((tupleArgs.template GetElement<Args>())...);
+            (*this)((tupleArgs.template GetElement<TArgs>())...);
 
             m_isRunning.Store(false);
 
@@ -210,16 +213,16 @@ bool Thread<Scheduler, Args...>::Start(Args... args)
     return true;
 }
 
-template <class Scheduler, class... Args>
-void Thread<Scheduler, Args...>::Stop()
+template <class TScheduler, class... TArgs>
+void Thread<TScheduler, TArgs...>::Stop()
 {
     m_stopRequested.Store(true);
 
-    m_scheduler.RequestStop();
+    m_scheduler->RequestStop();
 }
 
-template <class Scheduler, class... Args>
-void Thread<Scheduler, Args...>::Detach()
+template <class TScheduler, class... TArgs>
+void Thread<TScheduler, TArgs...>::Detach()
 {
     if (m_thread == nullptr)
     {
@@ -229,8 +232,8 @@ void Thread<Scheduler, Args...>::Detach()
     m_thread->detach();
 }
 
-template <class Scheduler, class... Args>
-bool Thread<Scheduler, Args...>::Join()
+template <class TScheduler, class... TArgs>
+bool Thread<TScheduler, TArgs...>::Join()
 {
     if (!CanJoin())
     {
@@ -242,8 +245,8 @@ bool Thread<Scheduler, Args...>::Join()
     return true;
 }
 
-template <class Scheduler, class... Args>
-bool Thread<Scheduler, Args...>::CanJoin() const
+template <class TScheduler, class... TArgs>
+bool Thread<TScheduler, TArgs...>::CanJoin() const
 {
     if (m_thread == nullptr)
     {
@@ -252,6 +255,8 @@ bool Thread<Scheduler, Args...>::CanJoin() const
 
     return m_thread->joinable();
 }
+
+extern template class Thread<Scheduler>;
 
 } // namespace threading
 

@@ -135,7 +135,8 @@ public:
 
     static void CompileShader(CompileShaderRequest& request)
     {
-        AssertDebug(!request.entry->threadSignal.IsSignalled());
+        Assert(!request.entry->threadSignal.IsSignalled());
+
         HYP_DEFER({ request.entry->threadSignal.Signal(); });
 
         bool isValid = true;
@@ -456,8 +457,6 @@ public:
 
             entry->cacheId = cacheId;
             entry->shader = GetShader(entry->cacheId);
-
-            entry->threadSignal.Signal();
         }
 
         outCacheId = entry->cacheId;
@@ -651,12 +650,7 @@ public:
             {
                 ShaderMapEntry* entry = it.second;
 
-                if (!entry || !entry->IsLoaded())
-                {
-                    continue;
-                }
-
-                if (!entry->shader)
+                if (!entry || !entry->shader)
                 {
                     continue;
                 }

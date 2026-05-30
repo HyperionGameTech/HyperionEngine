@@ -66,7 +66,7 @@ void TaskThread::operator()()
         Scheduler::ScheduledTask scheduledTask;
         bool gotTask = false;
 
-        if (m_scheduler.TryPop(scheduledTask))
+        if (m_scheduler->TryPop(scheduledTask))
         {
             gotTask = true;
         }
@@ -78,7 +78,7 @@ void TaskThread::operator()()
         if (!gotTask)
         {
             bool stopRequested = false;
-            m_scheduler.WaitForTasks(&stopRequested);
+            m_scheduler->WaitForTasks(&stopRequested);
 
             if (stopRequested)
             {
@@ -92,7 +92,7 @@ void TaskThread::operator()()
 
         HYP_PROFILE_BEGIN;
 
-        m_numTasks.Set(m_scheduler.NumEnqueued() + 1, MemoryOrder::RELEASE);
+        m_numTasks.Set(m_scheduler->NumEnqueued() + 1, MemoryOrder::RELEASE);
 
         BeforeExecuteTasks();
 
@@ -121,7 +121,7 @@ void TaskThread::operator()()
 
         AfterExecuteTasks();
 
-        m_numTasks.Set(m_scheduler.NumEnqueued(), MemoryOrder::RELEASE);
+        m_numTasks.Set(m_scheduler->NumEnqueued(), MemoryOrder::RELEASE);
     }
 }
 } // namespace threading

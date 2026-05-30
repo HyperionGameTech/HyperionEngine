@@ -1,10 +1,11 @@
 #pragma once
 
+#include <Core/Defines.hpp>
 #include <Core/memory/pool/Pool.hpp>
 
 namespace Hyperion {
 
-extern Pool* g_scriptPool;
+SCRIPT_API extern Pool* g_scriptPool;
 using ScriptAllocator = AllocatorInstance<Pool, &g_scriptPool>;
 
 static inline void* ScriptAlloc(size_t size, size_t alignment = 1)

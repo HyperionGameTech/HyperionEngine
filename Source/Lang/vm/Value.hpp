@@ -189,8 +189,8 @@ extern bool IsNativeFunction(const BoxedValue& value);
 extern bool IsRef(const BoxedValue& value);
 extern BoxedValue* GetRef(const BoxedValue& value);
 
-extern BoxedValue* Deref(BoxedValue& value);
-extern const BoxedValue* Deref(const BoxedValue& value);
+SCRIPT_API extern BoxedValue* Deref(BoxedValue& value);
+SCRIPT_API extern const BoxedValue* Deref(const BoxedValue& value);
 
 extern void AssignValue(BoxedValue& value, BoxedValue&& other, bool assignRef);
 
@@ -216,6 +216,6 @@ extern int CompareAsFunctions(const BoxedValue& lhs, const BoxedValue& rhs);
 extern int CompareAsNativeFunctions(const BoxedValue& lhs, const BoxedValue& rhs);
 
 extern const char* GetTypeString(const BoxedValue& value);
-extern String ToString(const BoxedValue& value);
+SCRIPT_API extern String ToString(const BoxedValue& value);
 
 } // namespace Hyperion

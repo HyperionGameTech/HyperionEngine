@@ -416,6 +416,8 @@ void ClassRegistry::Initialize()
 
     for (auto&& it : m_classesByTypeId)
     {
+        HYP_CORE_ASSERT(it.second != nullptr);
+
         it.second->Initialize();
     }
 }

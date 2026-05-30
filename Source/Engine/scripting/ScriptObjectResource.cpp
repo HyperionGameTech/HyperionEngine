@@ -128,6 +128,7 @@ ScriptObjectResource::~ScriptObjectResource()
     {
         if (hypScriptData->instance)
         {
+            
             HypScript::DestroyScript(hypScriptData->instance);
             hypScriptData->instance = nullptr;
         }

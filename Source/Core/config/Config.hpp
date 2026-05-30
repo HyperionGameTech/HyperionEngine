@@ -37,6 +37,8 @@ namespace Hyperion {
 class ByteWriter;
 class BufferedReader;
 
+struct ToJSONOptions;
+
 namespace config {
 
 class ConfigBase;
@@ -100,7 +102,7 @@ protected:
 
 public:
     static Result(*s_ObjectFromJSON)(const JSON::Object& jsonObject, const Class* targetClass, BoxedValue& target);
-    static Result(*s_ObjectToJSON)(const Class* cls, const BoxedValue& target, JSON::Object& outJson, struct ToJSONOptions* pOptions);
+    static Result(*s_ObjectToJSON)(const Class* cls, const BoxedValue& target, JSON::Object& outJson, ToJSONOptions* pOptions);
 
     ConfigBase();
 

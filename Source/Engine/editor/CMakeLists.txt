@@ -43,7 +43,8 @@ set(CURRENT_HEADERS "${CURRENT_HEADERS}" ${REFLECTION_GENERATED_HEADERS})
 
 # Static for now
 add_library(${BUILD_NAME} STATIC ${CURRENT_SOURCES} ${CURRENT_HEADERS})
-target_compile_definitions(${BUILD_NAME} PRIVATE HYP_BUILD_EDITOR=1 HYP_EDITOR=1)
+# target_compile_definitions(${BUILD_NAME} PRIVATE HYP_BUILD_EDITOR=1 HYP_EDITOR=1)
+target_compile_definitions(${BUILD_NAME} PRIVATE HYP_BUILD_ENGINE=1 HYP_EDITOR=1)
 
 if(NOT "${${BUILD_NAME}_PCH}" STREQUAL "")
   target_precompile_headers(${BUILD_NAME} PRIVATE "${${BUILD_NAME}_PCH}")

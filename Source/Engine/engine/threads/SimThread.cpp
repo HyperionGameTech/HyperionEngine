@@ -143,15 +143,22 @@ void SimThread::Stop()
 
 void SimThread::SetGameInstance(Game* gameInstance)
 {
-    if (IsOnThread(m_id) && IsRunning())
+    if (IsRunning())
     {
-        LaunchGameAsync { gameInstance }();
+        if (IsOnThread(m_id))
+        {
+            LaunchGameAsync { gameInstance }();
+        }
+        else
+        {
+            HYP_LOG(SimThread, Verbose, "Setting game instance from thread {} (async) ...", CurrentThreadId().GetName());
+
+            GetScheduler().Enqueue(LaunchGameAsync(gameInstance), TaskEnqueueFlags::FIRE_AND_FORGET);
+        }
     }
     else
     {
-        HYP_LOG(SimThread, Verbose, "Setting game instance from thread {} (async) ...", CurrentThreadId().GetName());
-
-        GetScheduler().Enqueue(LaunchGameAsync(gameInstance), TaskEnqueueFlags::FIRE_AND_FORGET);
+        m_gameInstance = gameInstance;
     }
 }
 
@@ -172,9 +179,9 @@ void SimThread::Update()
 
     // execute posted tasks
     Array<Scheduler::ScheduledTask, SceneAllocator> tasks;
-    if (uint32 numEnqueued = m_scheduler.NumEnqueued())
+    if (uint32 numEnqueued = m_scheduler->NumEnqueued())
     {
-        m_scheduler.AcceptAll(tasks);
+        m_scheduler->AcceptAll(tasks);
 
         while (tasks.Any())
         {
@@ -228,6 +235,11 @@ void SimThread::operator()()
     HypScript::Initialize();
     AddOnExitCallback(&HypScript::Shutdown);
 #endif
+
+    if (m_gameInstance != nullptr)
+    {
+        LaunchGameAsync { m_gameInstance }();
+    }
 
     // Handle -SimulateOnMainThread
     if (m_id != g_mainThread)

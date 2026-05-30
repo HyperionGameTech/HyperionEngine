@@ -175,7 +175,7 @@ public:
         }
         else
         {
-            m_scheduler.Enqueue([this, volume = volume]()
+            m_scheduler->Enqueue([this, volume = volume]()
                 {
                     m_volumes.PushBack(volume);
                 },
@@ -201,7 +201,7 @@ public:
         }
         else
         {
-            m_scheduler.Enqueue([this, volume]()
+            m_scheduler->Enqueue([this, volume]()
                 {
                     auto it = m_volumes.FindAs(volume);
 
@@ -239,7 +239,7 @@ public:
         }
         else
         {
-            m_scheduler.Enqueue([this, layer = layer]()
+            m_scheduler->Enqueue([this, layer = layer]()
                 {
                     auto it = m_layers.FindIf([layer](const LayerData& data)
                         {
@@ -277,7 +277,7 @@ public:
         }
         else
         {
-            m_scheduler.Enqueue([this, layer]()
+            m_scheduler->Enqueue([this, layer]()
                 {
                     auto it = m_layers.FindIf([layer](const LayerData& data)
                         {
@@ -443,9 +443,9 @@ void StreamingManagerThread::DoWork(StreamingManager* streamingManager)
 {
     Array<Scheduler::ScheduledTask, StreamingTempAllocator> tasks;
 
-    if (uint32 numEnqueued = m_scheduler.NumEnqueued())
+    if (uint32 numEnqueued = m_scheduler->NumEnqueued())
     {
-        m_scheduler.AcceptAll(tasks);
+        m_scheduler->AcceptAll(tasks);
 
         while (tasks.Any())
         {

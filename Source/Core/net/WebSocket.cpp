@@ -39,12 +39,12 @@ void WebSocketThread::Stop()
 void WebSocketThread::operator()(WebSocket *websocket)
 {
     m_isRunning.Store(true);
-    
+
     Queue<Scheduler::ScheduledTask> tasks;
 
     while (m_isRunning.Load()) {
-        if (uint32 numEnqueued = m_scheduler.NumEnqueued()) {
-            m_scheduler.AcceptAll(tasks);
+        if (uint32 numEnqueued = m_scheduler->NumEnqueued()) {
+            m_scheduler->AcceptAll(tasks);
 
             while (tasks.Any()) {
                 tasks.Pop().Execute();
@@ -53,7 +53,7 @@ void WebSocketThread::operator()(WebSocket *websocket)
     }
 
     // flush scheduler
-    m_scheduler.Flush([](auto &operation)
+    m_scheduler->Flush([](auto &operation)
     {
         operation.Execute();
     });

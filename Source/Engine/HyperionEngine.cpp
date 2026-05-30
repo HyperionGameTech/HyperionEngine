@@ -98,8 +98,12 @@ struct AAssetManager* g_androidAssetManager;
 
 #pragma endregion Memory Pools
 
-// defined in ClassDecls.cpp
-extern void InitializeModule_Engine();
+ENGINE_API extern void InitializeModule_Engine();
+CORE_API extern void InitializeModule_Core();
+
+#if HYP_EDITOR
+ENGINE_API extern void InitializeModule_Editor();
+#endif
 
 // defined in PlatformUtils.[cpp|mm]
 namespace PlatformUtils {
@@ -311,8 +315,12 @@ extern "C"
         }
 
         SetCurrentThreadId(g_mainThread);
-
+        
+        InitializeModule_Core();
         InitializeModule_Engine();
+#if HYP_EDITOR
+        InitializeModule_Editor();
+#endif
 
         CoreApi::SetConfigDirectory(GetConfigDirectory());
 
@@ -421,32 +429,20 @@ extern "C"
         HYP_FAIL("AppContext not implemented for this platform");
 #endif // HYP_WINDOWS || HYP_MACOS || HYP_SDL || HYP_ANDROID
 
-        Vec2i resolution = { 1280, 720 };
-
+        g_engineDriver->Initialize();
+        
         EnumFlags<WindowFlags> windowFlags = WindowFlags::EVENTS_POLLING;
 
-        if (cliArgs["Headless"].ToBool() || isCommandlet)
-        {
-            windowFlags |= WindowFlags::HEADLESS;
-        }
-
-        if (cliArgs["HighDPI"].ToBool())
-        {
-            windowFlags |= WindowFlags::HIGH_DPI;
-        }
-
-        if (cliArgs["ResX"].IsNumber())
-        {
-            resolution.x = cliArgs["ResX"].ToInt32();
-        }
-
-        if (cliArgs["ResY"].IsNumber())
-        {
-            resolution.y = cliArgs["ResY"].ToInt32();
-        }
+        if (cliArgs["Headless"].ToBool())   windowFlags |= WindowFlags::HEADLESS;
+        if (cliArgs["HighDPI"].ToBool())    windowFlags |= WindowFlags::HIGH_DPI;
 
         if (!(windowFlags & WindowFlags::HEADLESS))
         {
+            Vec2i resolution = { 1280, 720 };
+
+            if (cliArgs["ResX"].IsNumber()) resolution.x = cliArgs["ResX"].ToInt32();
+            if (cliArgs["ResY"].IsNumber()) resolution.y = cliArgs["ResY"].ToInt32();
+
             HYP_LOG(Engine, Info, "Running in windowed mode: {}x{}", resolution.x, resolution.y);
 
             Handle<ApplicationWindow> window = g_appContext->CreateSystemWindow({ "Hyperion Engine", resolution, windowFlags });
@@ -469,8 +465,6 @@ extern "C"
         {
             HYP_LOG(Engine, Info, "Running in headless mode");
         }
-
-        g_engineDriver->Initialize();
 
         if (isCommandlet)
         {
@@ -665,7 +659,10 @@ extern "C"
 
         if (!g_mainThreadInstance || !g_mainThreadInstance->IsRunning())
         {
-            return int(g_engineDriver->StartThreads());
+            if (g_engineDriver->StartThreads())
+            {
+                return 1;
+            }
         }
 
         return 0;

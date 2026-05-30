@@ -513,6 +513,14 @@ static HYP_FORCE_INLINE void ExecuteBreakpointOnce()
 #define ENGINE_API HYP_IMPORT
 #endif // HYP_BUILD_ENGINE
 
+// #ifdef HYP_BUILD_SCRIPT
+// #define SCRIPT_API HYP_EXPORT
+// #else // !HYP_BUILD_SCRIPT
+// #define SCRIPT_API HYP_IMPORT
+// #endif // HYP_BUILD_SCRIPT
+
+#define SCRIPT_API ENGINE_API
+
 // #ifdef HYP_BUILD_EDITOR
 // #define EDITOR_API HYP_EXPORT
 // #else // !HYP_BUILD_EDITOR

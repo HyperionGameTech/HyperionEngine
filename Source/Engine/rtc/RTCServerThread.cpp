@@ -20,9 +20,9 @@ void RTCServerThread::operator()(RTCServer* server)
 
     while (!m_stopRequested.Load())
     {
-        if (uint32 numEnqueued = m_scheduler.NumEnqueued())
+        if (uint32 numEnqueued = m_scheduler->NumEnqueued())
         {
-            m_scheduler.AcceptAll(tasks);
+            m_scheduler->AcceptAll(tasks);
 
             while (tasks.Any())
             {
@@ -32,7 +32,7 @@ void RTCServerThread::operator()(RTCServer* server)
     }
 
     // flush scheduler
-    m_scheduler.Flush([](auto& operation)
+    m_scheduler->Flush([](auto& operation)
         {
             operation.Execute();
         });

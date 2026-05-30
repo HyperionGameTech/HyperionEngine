@@ -6,7 +6,7 @@ namespace Hyperion {
 
 class ObjectBase;
 class ScriptObjectResource;
-class ScriptInstance;
+struct ScriptInstance;
 
 namespace memory {
 class Pool;

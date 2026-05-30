@@ -20,7 +20,6 @@ file(GLOB_RECURSE SOURCES "*.cpp" "*.cc" "*.c")
 file(GLOB_RECURSE HEADERS "*.h" "*.hpp")
 source_group(TREE ${CMAKE_CURRENT_SOURCE_DIR} PREFIX "HypScript Code" FILES ${SOURCES} ${HEADERS})
 
-add_definitions(-DHYP_BUILD_LIBRARY=1)
 add_definitions(-DHYP_SCRIPT=1)
 
 include_directories(SYSTEM
@@ -34,10 +33,12 @@ include_directories(
     ${CMAKE_SOURCE_DIR}/Engine/script
 )
 
-add_library(${BUILD_NAME} ${SOURCES} ${HEADERS})
+add_library(${BUILD_NAME} STATIC ${SOURCES} ${HEADERS})
+# target_compile_definitions(${BUILD_NAME} PRIVATE HYP_BUILD_SCRIPT=1)
+target_compile_definitions(${BUILD_NAME} PRIVATE HYP_BUILD_ENGINE=1)
 
 if(NOT "${${BUILD_NAME}_PCH}" STREQUAL "")
-    target_precompile_headers(${BUILD_NAME} PRIVATE "${${BUILD_NAME}_PCH}")
+  target_precompile_headers(${BUILD_NAME} PRIVATE "${${BUILD_NAME}_PCH}")
 endif()
 
 target_link_libraries(${BUILD_NAME} PRIVATE ${COMMON_LIBRARIES})

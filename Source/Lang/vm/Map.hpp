@@ -99,10 +99,10 @@ public:
     using Base::operator!=;
     using Base::GetHashCode;
 
-    void SetElement(ScriptMapKey&& key, BoxedValue&& value);
+    SCRIPT_API void SetElement(ScriptMapKey&& key, BoxedValue&& value);
 
-    BoxedValue* GetElement(const ScriptMapKey& key);
-    const BoxedValue* GetElement(const ScriptMapKey& key) const;
+    SCRIPT_API BoxedValue* GetElement(const ScriptMapKey& key);
+    SCRIPT_API const BoxedValue* GetElement(const ScriptMapKey& key) const;
 };
 
 } // namespace Hyperion

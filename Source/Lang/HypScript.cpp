@@ -47,7 +47,7 @@ HYP_DEFINE_LOG_CHANNEL(HypScript);
 static constexpr size_t ScriptPoolBlockSize = 8 * 1024 * 1024;
 
 static Pool s_scriptPoolInstance { ScriptPoolBlockSize };
-Pool* g_scriptPool = &s_scriptPoolInstance;
+SCRIPT_API Pool* g_scriptPool = &s_scriptPoolInstance;
 
 static struct HypScriptPoolDependencyInject
 {
@@ -145,7 +145,7 @@ VirtualMachine* GetVM()
     return s_impl.vm;
 }
 
-void Initialize()
+SCRIPT_API void Initialize()
 {
     s_impl.Initialize();
 
@@ -153,12 +153,12 @@ void Initialize()
     BuiltinTypes::Initialize(s_impl.globalCompilationUnit);
 }
 
-void Shutdown()
+SCRIPT_API void Shutdown()
 {
     s_impl.Shutdown();
 }
 
-void DestroyScript(ScriptInstance* instance)
+SCRIPT_API void DestroyScript(ScriptInstance* instance)
 {
     if (!instance)
     {
@@ -174,7 +174,7 @@ void DestroyScript(ScriptInstance* instance)
     delete instance;
 }
 
-HYP_NODISCARD ScriptInstance* Compile(
+HYP_NODISCARD SCRIPT_API ScriptInstance* Compile(
     SourceFile& sourceFile,
     ErrorList& outErrorList,
     const HypScriptCompileParams& params)
@@ -271,7 +271,7 @@ HYP_NODISCARD ScriptInstance* Compile(
     return nullptr;
 }
 
-HYP_NODISCARD ScriptInstance* CreateFromBytecode(ConstByteView view)
+HYP_NODISCARD SCRIPT_API ScriptInstance* CreateFromBytecode(ConstByteView view)
 {
     if (view.Size() == 0)
     {
@@ -287,7 +287,7 @@ HYP_NODISCARD ScriptInstance* CreateFromBytecode(ConstByteView view)
     return scriptInstance;
 }
 
-void WriteBytecodeToStream(ScriptInstance* instance, ByteWriter& stream)
+SCRIPT_API void WriteBytecodeToStream(ScriptInstance* instance, ByteWriter& stream)
 {
     if (!instance)
     {
@@ -315,7 +315,7 @@ void WriteBytecodeToStream(ScriptInstance* instance, ByteWriter& stream)
     instance->stream.Seek(currPosition);
 }
 
-void Run(ScriptInstance* instance)
+SCRIPT_API void Run(ScriptInstance* instance)
 {
     AssertDebug(instance != nullptr);
 
@@ -327,7 +327,7 @@ void Run(ScriptInstance* instance)
     s_impl.vm->Execute(instance);
 }
 
-void CollectGarbage()
+SCRIPT_API void CollectGarbage()
 {
     if (s_impl.vm == nullptr)
     {
@@ -337,7 +337,7 @@ void CollectGarbage()
     s_impl.vm->CollectGarbage(s_impl.aliveInstances);
 }
 
-InstructionStream* Decompile(ScriptInstance* instance, std::ostream* os)
+SCRIPT_API InstructionStream* Decompile(ScriptInstance* instance, std::ostream* os)
 {
     if (!instance)
     {
@@ -347,7 +347,7 @@ InstructionStream* Decompile(ScriptInstance* instance, std::ostream* os)
     return DecompilationUnit().Decompile(instance->stream, os);
 }
 
-BoxedValue CallFunctionArgV(ScriptInstance* instance, const BoxedValue& value, BoxedValue* args, uint8 numArgs)
+SCRIPT_API BoxedValue CallFunctionArgV(ScriptInstance* instance, const BoxedValue& value, BoxedValue* args, uint8 numArgs)
 {
     Assert(instance != nullptr);
     Assert(IsFunction(value));
@@ -378,14 +378,14 @@ BoxedValue CallFunctionArgV(ScriptInstance* instance, const BoxedValue& value, B
     return std::move(instance->thread.GetRegisters()[0]);
 }
 
-void ReadLastReturnValue(ScriptInstance* instance, BoxedValue& outValue)
+SCRIPT_API void ReadLastReturnValue(ScriptInstance* instance, BoxedValue& outValue)
 {
     Assert(instance != nullptr);
 
     outValue = ShallowCopy(instance->thread.m_regs[0], s_impl.vm->GetGC());
 }
 
-bool GetMember(ScriptInstance* instance, const BoxedValue& targetValue, const char* memberName, BoxedValue& outValue)
+SCRIPT_API bool GetMember(ScriptInstance* instance, const BoxedValue& targetValue, const char* memberName, BoxedValue& outValue)
 {
     outValue = BoxedValue();
 
@@ -449,7 +449,7 @@ bool GetMember(ScriptInstance* instance, const BoxedValue& targetValue, const ch
     return false;
 }
 
-bool SetField(BoxedValue& targetValue, const char* memberName, BoxedValue&& value)
+SCRIPT_API bool SetField(BoxedValue& targetValue, const char* memberName, BoxedValue&& value)
 {
     if (!targetValue.IsValid())
     {
@@ -478,7 +478,7 @@ bool SetField(BoxedValue& targetValue, const char* memberName, BoxedValue&& valu
     return true;
 }
 
-bool GetFunctionHandle(ScriptInstance* instance, const char* name, BoxedValue& outValue)
+SCRIPT_API bool GetFunctionHandle(ScriptInstance* instance, const char* name, BoxedValue& outValue)
 {
     outValue = BoxedValue();
 
@@ -498,7 +498,7 @@ bool GetFunctionHandle(ScriptInstance* instance, const char* name, BoxedValue& o
     return true;
 }
 
-bool GetExportedValue(ScriptInstance* instance, const char* name, BoxedValue& outValue, bool getReference)
+SCRIPT_API bool GetExportedValue(ScriptInstance* instance, const char* name, BoxedValue& outValue, bool getReference)
 {
     outValue = BoxedValue();
 
@@ -523,7 +523,7 @@ bool GetExportedValue(ScriptInstance* instance, const char* name, BoxedValue& ou
     return true;
 }
 
-SymbolTable& GetExportedSymbols(ScriptInstance* instance)
+SCRIPT_API SymbolTable& GetExportedSymbols(ScriptInstance* instance)
 {
     return instance->exportedSymbols;
 }

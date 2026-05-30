@@ -1,12 +1,14 @@
 #pragma once
 
 #include <Core/Types.hpp>
+
 #include <Core/filesystem/FilePath.hpp>
+
 #include <Core/memory/ByteBuffer.hpp>
 
 namespace Hyperion {
 
-class SourceFile
+class SCRIPT_API SourceFile
 {
 public:
     SourceFile();

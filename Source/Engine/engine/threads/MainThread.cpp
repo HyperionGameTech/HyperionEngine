@@ -74,9 +74,9 @@ void MainThread::Update()
     static const bool s_simulateOnMainThread = CoreApi::GetCommandLineArguments()["SimulateOnMainThread"].ToBool();
 
     Queue<Scheduler::ScheduledTask> tasks;
-    if (uint32 numEnqueued = m_scheduler.NumEnqueued())
+    if (uint32 numEnqueued = m_scheduler->NumEnqueued())
     {
-        m_scheduler.AcceptAll(tasks);
+        m_scheduler->AcceptAll(tasks);
 
         while (tasks.Any())
         {

@@ -52,33 +52,33 @@ CORE_API extern const Class* g_clsObjectBase;
 
 namespace Attributes {
 
-const Name g_attrSerialize = NAME("serialize");
-const Name g_attrDeserialize = NAME("deserialize");
-const Name g_attrTransient = NAME("transient");
-const Name g_attrComponent = NAME("component");
-const Name g_attrSize = NAME("size");
-const Name g_attrNoScriptBindings = NAME("noscriptbindings");
-const Name g_attrOnlyLanguages = NAME("onlylanguages");
-const Name g_attrCommand = NAME("command");
-const Name g_attrAbstract = NAME("abstract");
-const Name g_attrCompressed = NAME("compressed");
-const Name g_attrProperty = NAME("property");
-const Name g_attrLoadOrder = NAME("loadorder");
-const Name g_attrJsonPath = NAME("jsonpath");
-const Name g_attrJsonIgnore = NAME("jsonignore");
-const Name g_attrScriptableDelegate = NAME("scriptabledelegate");
-const Name g_attrFollowAssetPath = NAME("followassetpath");
-const Name g_attrSaveAsReference = NAME("saveasreference");
+CORE_API const Name g_attrSerialize = NAME("serialize");
+CORE_API const Name g_attrDeserialize = NAME("deserialize");
+CORE_API const Name g_attrTransient = NAME("transient");
+CORE_API const Name g_attrComponent = NAME("component");
+CORE_API const Name g_attrSize = NAME("size");
+CORE_API const Name g_attrNoScriptBindings = NAME("noscriptbindings");
+CORE_API const Name g_attrOnlyLanguages = NAME("onlylanguages");
+CORE_API const Name g_attrCommand = NAME("command");
+CORE_API const Name g_attrAbstract = NAME("abstract");
+CORE_API const Name g_attrCompressed = NAME("compressed");
+CORE_API const Name g_attrProperty = NAME("property");
+CORE_API const Name g_attrLoadOrder = NAME("loadorder");
+CORE_API const Name g_attrJsonPath = NAME("jsonpath");
+CORE_API const Name g_attrJsonIgnore = NAME("jsonignore");
+CORE_API const Name g_attrScriptableDelegate = NAME("scriptabledelegate");
+CORE_API const Name g_attrFollowAssetPath = NAME("followassetpath");
+CORE_API const Name g_attrSaveAsReference = NAME("saveasreference");
 
-const Name g_attrEditor = NAME("editor");
-const Name g_attrEditorOnly = NAME("editoronly");
-const Name g_attrEditOrder = NAME("editorder");
-const Name g_attrEditEnabled = NAME("editenabled");
-const Name g_attrEditHide = NAME("edithide");
-const Name g_attrLabel = NAME("label");
-const Name g_attrDescription = NAME("description");
-const Name g_attrEditAction = NAME("editaction");
-const Name g_attrEditCondition = NAME("editcondition");
+CORE_API const Name g_attrEditor = NAME("editor");
+CORE_API const Name g_attrEditorOnly = NAME("editoronly");
+CORE_API const Name g_attrEditOrder = NAME("editorder");
+CORE_API const Name g_attrEditEnabled = NAME("editenabled");
+CORE_API const Name g_attrEditHide = NAME("edithide");
+CORE_API const Name g_attrLabel = NAME("label");
+CORE_API const Name g_attrDescription = NAME("description");
+CORE_API const Name g_attrEditAction = NAME("editaction");
+CORE_API const Name g_attrEditCondition = NAME("editcondition");
 
 } // namespace Attributes
 
@@ -857,6 +857,10 @@ void Class::Initialize()
         {
             m_parent = GetClass(m_parentName);
         }
+
+        printf("parent class for %s = %s\n",
+            m_name.LookupString(),
+            m_parentName.LookupString());
 
         HYP_CORE_ASSERT(m_parent != nullptr, "Invalid parent class: {}", m_parentName);
 
