@@ -13,7 +13,7 @@
 #include <Core/Types.hpp>
 
 #define HYP_DECLARE_LOG_CHANNEL(name) \
-    HYP_IMPORT extern ::Hyperion::logging::LogChannel g_logChannel_##name
+    extern ::Hyperion::logging::LogChannel g_logChannel_##name
 
 namespace Hyperion {
 namespace logging {
@@ -42,7 +42,7 @@ extern Logger& GetLogger();
 using logging::LogChannel;
 using logging::LogLevel;
 
-HYP_DECLARE_LOG_CHANNEL(Core);
+CORE_API HYP_DECLARE_LOG_CHANNEL(Core);
 
 } // namespace Hyperion
 

@@ -14,7 +14,7 @@
 
 namespace Hyperion {
 
-HYP_DECLARE_LOG_CHANNEL(Editor);
+EDITOR_API HYP_DECLARE_LOG_CHANNEL(Editor);
 
 HYP_EXPORT Handle<UIElementFactoryBase> GetEditorUIElementFactory(const TypeInfo& typeInfo)
 {

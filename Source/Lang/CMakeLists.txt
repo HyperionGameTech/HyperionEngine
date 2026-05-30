@@ -33,9 +33,8 @@ include_directories(
     ${CMAKE_SOURCE_DIR}/Engine/script
 )
 
-add_library(${BUILD_NAME} STATIC ${SOURCES} ${HEADERS})
-# target_compile_definitions(${BUILD_NAME} PRIVATE HYP_BUILD_SCRIPT=1)
-target_compile_definitions(${BUILD_NAME} PRIVATE HYP_BUILD_ENGINE=1)
+add_library(${BUILD_NAME} SHARED ${SOURCES} ${HEADERS})
+target_compile_definitions(${BUILD_NAME} PRIVATE HYP_BUILD_SCRIPT=1)
 
 if(NOT "${${BUILD_NAME}_PCH}" STREQUAL "")
   target_precompile_headers(${BUILD_NAME} PRIVATE "${${BUILD_NAME}_PCH}")

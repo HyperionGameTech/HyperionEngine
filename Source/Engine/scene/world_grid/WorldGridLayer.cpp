@@ -20,7 +20,7 @@
 
 namespace Hyperion {
 
-HYP_DECLARE_LOG_CHANNEL(Streaming);
+ENGINE_API HYP_DECLARE_LOG_CHANNEL(Streaming);
 
 #pragma region WorldGridLayer
 

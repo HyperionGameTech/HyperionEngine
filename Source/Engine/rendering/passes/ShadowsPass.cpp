@@ -39,7 +39,7 @@
 
 namespace Hyperion {
 
-HYP_DECLARE_LOG_CHANNEL(Rendering);
+ENGINE_API HYP_DECLARE_LOG_CHANNEL(Rendering);
 
 static EngineStatGpuTimer s_statShadowMaps("Rendering/GPU/ShadowMaps");
 
@@ -203,7 +203,7 @@ void ShadowsPassBase::RenderFrame(Frame* frame, const RenderSetup& renderSetup)
             {
                 shadowCamera = cachedData->shadowViewsDynamic[0]->GetCamera();
             }
-            
+
             shadowCameraProxy = static_cast<RenderProxyCamera*>(GetRenderProxy(shadowCamera));
         }
 
@@ -310,7 +310,7 @@ void ShadowsPassBase::RenderFrame(Frame* frame, const RenderSetup& renderSetup)
             };
 
             bool needsClearBeforeDraw = true;
-            
+
             if (hasBakedStaticShadowMaps)
             {
                 needsClearBeforeDraw = false;
@@ -407,7 +407,7 @@ void ShadowsPassBase::RenderFrame(Frame* frame, const RenderSetup& renderSetup)
                     dstImageSubResource.numLayers = 1;
                     dstImageSubResource.baseMipLevel = 0;
                     dstImageSubResource.numLevels = 1;
-                    
+
                     // if omni, copy current face
                     if (isOmni)
                     {
@@ -518,7 +518,7 @@ void ShadowsPassBase::RenderFrame(Frame* frame, const RenderSetup& renderSetup)
                     dstImageSubResource.numLayers = 1;
                     dstImageSubResource.baseMipLevel = 0;
                     dstImageSubResource.numLevels = 1;
-                    
+
                     // if omni, copy current face
                     if (isOmni)
                     {

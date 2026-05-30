@@ -29,7 +29,7 @@
 
 namespace Hyperion {
 
-HYP_DECLARE_LOG_CHANNEL(RenderingBackend);
+ENGINE_API HYP_DECLARE_LOG_CHANNEL(RenderingBackend);
 
 extern DX12RenderInterface RI;
 
@@ -340,7 +340,7 @@ RendererResult DX12GraphicsPipeline::Rebuild()
 
                 continue;
             }
-            
+
             if (psoDesc.NumRenderTargets >= 8)
             {
 #if HYP_DEBUG_MODE
@@ -378,7 +378,7 @@ RendererResult DX12GraphicsPipeline::Rebuild()
         __uuidof(ID3D12PipelineState),
         &m_pipelineState
     );
-    
+
 #ifdef HYP_DEBUG_MODE
     if (FAILED(res))
     {

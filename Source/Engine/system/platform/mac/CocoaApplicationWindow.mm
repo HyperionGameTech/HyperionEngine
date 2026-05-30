@@ -279,7 +279,7 @@ extern "C" HYP_EXPORT void Hyp_CocoaWindow_ResizeEmbeddedView(void* nsView, int 
 
 namespace Hyperion {
 
-HYP_DECLARE_LOG_CHANNEL(Core);
+CORE_API HYP_DECLARE_LOG_CHANNEL(Core);
 
 CocoaApplicationWindow::CocoaApplicationWindow(ANSIString title, Vec2i size)
     : ApplicationWindow(std::move(title), size),

@@ -6,7 +6,7 @@
 
 namespace Hyperion {
 
-HYP_DECLARE_LOG_CHANNEL(HypScript);
+SCRIPT_API HYP_DECLARE_LOG_CHANNEL(HypScript);
 
 Module::Module(
     const String& name,

@@ -15,8 +15,8 @@
 
 namespace Hyperion {
 
-HYP_DECLARE_LOG_CHANNEL(Memory);
-HYP_DEFINE_LOG_SUBCHANNEL(Resource, Memory);
+CORE_API HYP_DECLARE_LOG_CHANNEL(Memory);
+CORE_API HYP_DEFINE_LOG_SUBCHANNEL(Resource, Memory);
 
 #pragma region ResourceGuard
 
@@ -62,7 +62,7 @@ ResourceGuard& ResourceGuard::operator=(const ResourceGuard& other)
 
     resource = other.resource;
     mask = other.mask;
-    
+
     if (resource != nullptr)
     {
         if (mask & Write)
@@ -77,7 +77,7 @@ ResourceGuard& ResourceGuard::operator=(const ResourceGuard& other)
 
     return *this;
 }
-    
+
 ResourceGuard::ResourceGuard(ResourceGuard&& other) noexcept
     : resource(other.resource),
       mask(other.mask)
@@ -156,7 +156,7 @@ void ResourceBase::AddWriter(bool doInitialize)
     while (!AtomicCompareExchange(&m_state, expected, 1))
     {
         expected = 0;
-            
+
         // volatile read
         while (m_state != 0)
         {
@@ -251,7 +251,7 @@ void ResourceBase::AddReader()
             }
         }
     };
-        
+
     // first pass: optimistic read
     if ((m_state & 0x1) == 0)
     {

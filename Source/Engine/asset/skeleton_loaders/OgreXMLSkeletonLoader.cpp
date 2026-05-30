@@ -25,7 +25,7 @@
 
 namespace Hyperion {
 
-HYP_DECLARE_LOG_CHANNEL(Assets);
+ENGINE_API HYP_DECLARE_LOG_CHANNEL(Assets);
 
 using OgreXMLSkeleton = OgreXMLSkeletonLoader::OgreXMLSkeleton;
 

@@ -34,7 +34,7 @@
 
 namespace Hyperion {
 
-HYP_DECLARE_LOG_CHANNEL(Rendering);
+ENGINE_API HYP_DECLARE_LOG_CHANNEL(Rendering);
 
 #pragma region ShadowMap
 

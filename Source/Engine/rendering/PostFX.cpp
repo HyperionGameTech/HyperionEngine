@@ -17,7 +17,7 @@
 
 namespace Hyperion {
 
-HYP_DECLARE_LOG_CHANNEL(Rendering);
+ENGINE_API HYP_DECLARE_LOG_CHANNEL(Rendering);
 
 PostFXPass::PostFXPass(TextureFormat imageFormat, GBuffer* gbuffer)
     : PostFXPass(ShaderDesc(), POST_PROCESSING_STAGE_PRE_SHADING, ~0u, imageFormat, gbuffer)

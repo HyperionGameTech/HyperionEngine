@@ -1434,13 +1434,6 @@ extern class EngineStats
     GetMsPerFrame() -> double
     QueryStatValue(path : string, valueIfNotFound : double) -> double
 end
-extern enum EnginePoolName : int
-    EPN_INVALID = -1,
-    EPN_CORE = 0,
-    EPN_RENDER,
-    EPN_SCENE,
-    EPN_MAX
-end
 extern class EngineDriver
     static GetInstance() -> EngineDriver
     GetCurrentWorld() -> World

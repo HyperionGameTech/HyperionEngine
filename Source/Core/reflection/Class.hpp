@@ -45,10 +45,6 @@ class ClassInstance;
 template <class T>
 class StructInstance;
 
-#if defined(HYPERION_ENGINE) && HYPERION_ENGINE
-enum EnginePoolName : int;
-#endif
-
 enum class ClassFlags : uint8
 {
     NONE = 0x0,
@@ -371,13 +367,6 @@ public:
         return m_alignment;
     }
 
-#if defined(HYPERION_ENGINE) && HYPERION_ENGINE
-    HYP_FORCE_INLINE EnginePoolName GetEnginePoolName() const
-    {
-        return m_enginePoolName;
-    }
-#endif
-
     virtual ClassAllocationMethod GetAllocationMethod() const = 0;
 
     HYP_FORCE_INLINE bool UseHandles() const
@@ -694,10 +683,6 @@ protected:
     EnumFlags<ClassSerializationMode> m_serializationMode;
 
     ObjectContainerBase* m_objectContainer;
-
-#if defined(HYPERION_ENGINE) && HYPERION_ENGINE
-    EnginePoolName m_enginePoolName;
-#endif
 
 private:
     mutable Weak<dotnet::ManagedClass> m_managedClass;

@@ -36,18 +36,6 @@ class ThreadId;
 
 using threading::ThreadId;
 
-HYP_ENUM()
-enum EnginePoolName : int
-{
-    EPN_INVALID = -1,
-
-    EPN_CORE = 0, // global shared pool
-    EPN_RENDER,
-    EPN_SCENE,
-
-    EPN_MAX
-};
-
 #include <engine/EngineMemory.inc>
 
 } // namespace Hyperion

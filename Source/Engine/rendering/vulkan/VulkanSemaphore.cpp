@@ -19,7 +19,7 @@
 
 namespace Hyperion {
 
-HYP_DECLARE_LOG_CHANNEL(RenderingBackend);
+ENGINE_API HYP_DECLARE_LOG_CHANNEL(RenderingBackend);
 
 extern VulkanRenderInterface RI;
 

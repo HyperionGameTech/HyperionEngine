@@ -14,6 +14,8 @@
 
 namespace Hyperion {
 
+ENGINE_API HYP_DECLARE_LOG_CHANNEL(Audio);
+
 const Handle<AudioManager>& AudioManager::GetInstance()
 {
     return g_audioManager;

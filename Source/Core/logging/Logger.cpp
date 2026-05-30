@@ -42,10 +42,9 @@
 
 namespace Hyperion {
 
-HYP_DECLARE_LOG_CHANNEL(Core);
-HYP_DECLARE_LOG_CHANNEL(Misc);
-HYP_DECLARE_LOG_CHANNEL(Temp);
-HYP_DECLARE_LOG_CHANNEL(Script);
+CORE_API HYP_DECLARE_LOG_CHANNEL(Core);
+CORE_API HYP_DECLARE_LOG_CHANNEL(Misc);
+CORE_API HYP_DECLARE_LOG_CHANNEL(Temp);
 
 namespace logging {
 
@@ -802,14 +801,8 @@ void Logger::LogScript(const LogChannel& channel, LogLevel level, const String& 
 
     const LogChannel* channelPtr = &channel;
 
-    if (channel.id == ~0u)
+    if (channel.id == ~0u || channel.id >= Logger::MaxChannels)
     {
-        // default to script channel if not set
-        channelPtr = &g_logChannel_Script;
-    }
-    else if (channel.id >= Logger::MaxChannels)
-    {
-        // log channel overflow! revert to Log_Misc
         channelPtr = &g_logChannel_Misc;
     }
 

@@ -28,8 +28,7 @@ struct HypScriptCompileParams
     TSet<FilePath> scanPaths;
 };
 
-namespace HypScript
-{
+namespace HypScript {
 
 VirtualMachine* GetVM();
 
@@ -49,7 +48,7 @@ SCRIPT_API void WriteBytecodeToStream(ScriptInstance* instance, ByteWriter& stre
 
 SCRIPT_API void Run(ScriptInstance* instance);
 
-void CollectGarbage();
+SCRIPT_API void CollectGarbage();
 
 SCRIPT_API InstructionStream* Decompile(ScriptInstance* instance, std::ostream* os = nullptr);
 

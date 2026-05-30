@@ -104,9 +104,9 @@ if(HYPERION_ENGINE)
   set(SOURCES "${SOURCES}" ${REFLECTION_GENERATED_SOURCES})
   set(HEADERS "${HEADERS}" ${REFLECTION_GENERATED_HEADERS})
 
-endif()
+  message(STATUS "Reflected sources: ${REFLECTION_GENERATED_SOURCES}")
 
-add_definitions(-DHYP_BUILD_LIBRARY=1)
+endif()
 
 include_directories(SYSTEM
     ${SDL2_INCLUDE_DIRS}

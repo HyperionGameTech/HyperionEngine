@@ -256,7 +256,9 @@ bool Thread<TScheduler, TArgs...>::CanJoin() const
     return m_thread->joinable();
 }
 
+#ifndef HYP_MSVC
 extern template class Thread<Scheduler>;
+#endif // HYP_MSVC
 
 } // namespace threading
 

@@ -28,7 +28,9 @@
 
 namespace Hyperion {
 
-HYP_DECLARE_LOG_CHANNEL(Editor);
+#if HYP_EDITOR
+EDITOR_API HYP_DECLARE_LOG_CHANNEL(Editor);
+#endif // HYP_EDITOR
 
 static constexpr EnumFlags<EnvProbeFlags> DefaultEnvProbeFlags[EPT_MAX] = {
     EPF_NONE,               // sky
@@ -211,7 +213,7 @@ void EnvProbe::OnRemovedFromWorld(World* world)
         RemoveChild(m_camera);
         m_camera = nullptr;
     }
-    
+
     if (AnyOf(m_views, &Handle<View>::IsValid))
     {
         EnqueueDeletion(std::move(m_views));

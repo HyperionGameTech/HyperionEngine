@@ -611,6 +611,7 @@ VkDescriptorSetLayout VulkanDescriptorSetManager::GetOrCreateVkDescriptorSetLayo
 
 VulkanRenderInterface::VulkanRenderInterface()
     : m_instance(nullptr),
+      m_renderConfig(nullptr),
       m_currentFrameIndex(0)
 {
 }

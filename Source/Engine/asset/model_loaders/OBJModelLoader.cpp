@@ -34,7 +34,7 @@
 
 namespace Hyperion {
 
-HYP_DECLARE_LOG_CHANNEL(Assets);
+ENGINE_API HYP_DECLARE_LOG_CHANNEL(Assets);
 
 constexpr bool CreateObjIndices = true;
 constexpr bool MeshPerMaterial = true; // set true to create a new mesh on each instance of 'use <mtllib>'

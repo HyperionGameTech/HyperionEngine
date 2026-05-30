@@ -31,7 +31,7 @@ SlabAllocator& GetSymbolTypeAllocator()
 
 #if defined(HYP_SYMBOL_TYPE_UNFREED_PTR_DEBUG) && HYP_SYMBOL_TYPE_UNFREED_PTR_DEBUG
 
-HYP_DECLARE_LOG_CHANNEL(Script);
+SCRIPT_API HYP_DECLARE_LOG_CHANNEL(Script);
 
 static TSet<SymbolType*>& GetUnfreedSymbolTypes()
 {

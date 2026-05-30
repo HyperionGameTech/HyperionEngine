@@ -18,7 +18,7 @@ extern "C"
     {
         if (!pChannel)
         {
-            pChannel = &g_logChannel_Script;
+            pChannel = &g_logChannel_Misc;
         }
 
         switch (LogLevel(logLevel))
@@ -67,7 +67,7 @@ extern "C"
         const Name channelName = CreateNameFromDynamicString(pName);
 
         // owns allocation
-        LogChannel* pChannel = new LogChannel(channelName, &g_logChannel_Script);
+        LogChannel* pChannel = new LogChannel(channelName, &g_logChannel_Misc);
 
         Logger::GetInstance().CreateDynamicLogChannel(*pChannel).Release();
 

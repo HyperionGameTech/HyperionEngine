@@ -14,8 +14,8 @@
 
 namespace Hyperion {
 
-HYP_DECLARE_LOG_CHANNEL(UI);
-HYP_DECLARE_LOG_CHANNEL(Editor);
+ENGINE_API HYP_DECLARE_LOG_CHANNEL(UI);
+EDITOR_API HYP_DECLARE_LOG_CHANNEL(Editor);
 
 #pragma region EditorPropertyPanelBase
 

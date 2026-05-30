@@ -18,7 +18,7 @@
 
 namespace Hyperion {
 
-HYP_DECLARE_LOG_CHANNEL(Streaming);
+ENGINE_API HYP_DECLARE_LOG_CHANNEL(Streaming);
 
 StreamingCell::StreamingCell(const StreamingCellInfo& cellInfo)
     : m_cellInfo(cellInfo)

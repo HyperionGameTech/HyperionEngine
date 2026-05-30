@@ -28,7 +28,7 @@
 
 namespace Hyperion {
 
-HYP_DECLARE_LOG_CHANNEL(Font);
+ENGINE_API HYP_DECLARE_LOG_CHANNEL(Font);
 
 #pragma region FontAtlasTextureSet
 
@@ -39,7 +39,7 @@ FontAtlasTextureSet::~FontAtlasTextureSet()
         EnqueueDeletion(std::move(atlas.second));
     }
 }
-    
+
 static constexpr auto UpperBoundPredicate = [](const Pair<uint32, Handle<Texture>>& a, const Pair<uint32, Handle<Texture>>& b)
 {
     return a.first < b.first;
@@ -280,7 +280,7 @@ Result FontAtlas::RenderAtlasTextures(float mainAtlasScale, float maxScale, floa
             return result.GetError();
         }
     }
-    
+
     MarkDirty();
 
     return {};

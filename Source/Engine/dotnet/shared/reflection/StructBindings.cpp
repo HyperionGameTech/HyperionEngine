@@ -14,7 +14,7 @@
 
 namespace Hyperion {
 
-HYP_DECLARE_LOG_CHANNEL(Object);
+CORE_API HYP_DECLARE_LOG_CHANNEL(Object);
 
 extern "C"
 {
@@ -37,7 +37,7 @@ extern "C"
 
             return nullptr;
         }
-        
+
         DynamicStructInstanceFunctions functions {};
         functions.construct = nullptr; // not needed when initializing from C#.
         functions.copy = copyFunction;

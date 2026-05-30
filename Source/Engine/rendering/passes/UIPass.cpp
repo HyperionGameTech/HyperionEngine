@@ -44,11 +44,11 @@
 
 namespace Hyperion {
 
-HYP_DECLARE_LOG_CHANNEL(UI);
+ENGINE_API HYP_DECLARE_LOG_CHANNEL(UI);
 
 static EngineStatGpuTimer s_statFillUI("Rendering/GPU/FillUI");
 
-ENGINE_API extern const char* LookupTypeName(const TypeId& typeId);
+CORE_API extern const char* LookupTypeName(const TypeId& typeId);
 
 static const ShaderPropertyId s_propTextured = InternShaderProperty(ShaderProperty(NAME("TEXTURED")));
 static const ShaderPropertyId s_propUIText = InternShaderProperty(ShaderProperty(NAME("UI_TEXT")));

@@ -31,7 +31,7 @@ using namespace Hyperion;
 using namespace Hyperion::dotnet;
 
 namespace Hyperion {
-HYP_DECLARE_LOG_CHANNEL(DotNET);
+ENGINE_API HYP_DECLARE_LOG_CHANNEL(DotNET);
 } // namespace Hyperion
 
 static ManagedAttributeSet InternManagedAttributeHolder(ManagedAttributeHolder* managedAttributeHolderPtr)

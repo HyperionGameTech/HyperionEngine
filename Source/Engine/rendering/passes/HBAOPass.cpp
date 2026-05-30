@@ -37,7 +37,7 @@
 
 namespace Hyperion {
 
-HYP_DECLARE_LOG_CHANNEL(Rendering);
+ENGINE_API HYP_DECLARE_LOG_CHANNEL(Rendering);
 
 struct HBAOUniforms
 {

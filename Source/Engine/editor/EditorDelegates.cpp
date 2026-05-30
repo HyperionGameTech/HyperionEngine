@@ -15,7 +15,7 @@
 
 namespace Hyperion {
 
-HYP_DECLARE_LOG_CHANNEL(Editor);
+EDITOR_API HYP_DECLARE_LOG_CHANNEL(Editor);
 
 EditorDelegates::EditorDelegates()
     : m_scheduler(g_simThread)

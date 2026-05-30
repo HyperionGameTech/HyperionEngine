@@ -84,7 +84,7 @@
 
 namespace Hyperion {
 
-HYP_DECLARE_LOG_CHANNEL(Engine);
+ENGINE_API HYP_DECLARE_LOG_CHANNEL(Engine);
 
 #if HYP_ANDROID
 struct AAssetManager* g_androidAssetManager;
@@ -315,7 +315,7 @@ extern "C"
         }
 
         SetCurrentThreadId(g_mainThread);
-        
+
         InitializeModule_Core();
         InitializeModule_Engine();
 #if HYP_EDITOR
@@ -430,7 +430,7 @@ extern "C"
 #endif // HYP_WINDOWS || HYP_MACOS || HYP_SDL || HYP_ANDROID
 
         g_engineDriver->Initialize();
-        
+
         EnumFlags<WindowFlags> windowFlags = WindowFlags::EVENTS_POLLING;
 
         if (cliArgs["Headless"].ToBool())   windowFlags |= WindowFlags::HEADLESS;

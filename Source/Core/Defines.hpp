@@ -513,13 +513,11 @@ static HYP_FORCE_INLINE void ExecuteBreakpointOnce()
 #define ENGINE_API HYP_IMPORT
 #endif // HYP_BUILD_ENGINE
 
-// #ifdef HYP_BUILD_SCRIPT
-// #define SCRIPT_API HYP_EXPORT
-// #else // !HYP_BUILD_SCRIPT
-// #define SCRIPT_API HYP_IMPORT
-// #endif // HYP_BUILD_SCRIPT
-
-#define SCRIPT_API ENGINE_API
+#ifdef HYP_BUILD_SCRIPT
+#define SCRIPT_API HYP_EXPORT
+#else // !HYP_BUILD_SCRIPT
+#define SCRIPT_API HYP_IMPORT
+#endif // HYP_BUILD_SCRIPT
 
 // #ifdef HYP_BUILD_EDITOR
 // #define EDITOR_API HYP_EXPORT
@@ -535,7 +533,11 @@ static HYP_FORCE_INLINE void ExecuteBreakpointOnce()
 #ifdef HYP_TOOL
 #define HYP_EXTERN_CLASS static
 #else
+#if HYP_MSVC
+#define HYP_EXTERN_CLASS extern
+#else
 #define HYP_EXTERN_CLASS ENGINE_API extern
+#endif
 #endif
 
 #pragma endregion Symbol Visibility

@@ -41,8 +41,8 @@
 namespace Hyperion {
 
 #if HYP_EDITOR
-HYP_DECLARE_LOG_CHANNEL(Editor);
-#endif
+EDITOR_API HYP_DECLARE_LOG_CHANNEL(Editor);
+#endif // HYP_EDITOR
 
 LightmapVolume::LightmapVolume()
     : LightmapVolume(BoundingBox::Empty())
@@ -63,7 +63,7 @@ LightmapVolume::~LightmapVolume()
 {
     if (AnyOf(m_radianceAtlasTextures, &Handle<Texture>::IsValid))
         EnqueueDeletion(std::move(m_radianceAtlasTextures));
-    
+
     if (AnyOf(m_irradianceAtlasTextures, &Handle<Texture>::IsValid))
         EnqueueDeletion(std::move(m_irradianceAtlasTextures));
 }
@@ -150,7 +150,7 @@ void LightmapVolume::RemoveAllElements()
     {
         if (!texture.IsValid())
             continue;
-            
+
         assetRegistry->RemoveAsset(texture);
 
         EnqueueDeletion(std::move(texture));
@@ -168,7 +168,7 @@ void LightmapVolume::RemoveAllElements()
 
     m_atlases.Clear();
     m_atlases.EmplaceBack(DefaultAtlasDimensions);
-    
+
     m_radianceAtlasTextures.Clear();
     m_radianceAtlasTextures.Resize(1);
 

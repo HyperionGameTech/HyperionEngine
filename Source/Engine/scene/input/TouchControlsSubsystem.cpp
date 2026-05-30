@@ -35,7 +35,7 @@
 
 namespace Hyperion {
 
-HYP_DECLARE_LOG_CHANNEL(Input);
+ENGINE_API HYP_DECLARE_LOG_CHANNEL(Input);
 
 TouchControlsSubsystem::TouchControlsSubsystem()
     : Subsystem(),

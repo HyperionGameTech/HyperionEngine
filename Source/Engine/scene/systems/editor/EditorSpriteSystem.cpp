@@ -25,7 +25,7 @@
 
 namespace Hyperion {
 
-HYP_DECLARE_LOG_CHANNEL(Editor);
+EDITOR_API HYP_DECLARE_LOG_CHANNEL(Editor);
 
 void EditorSpriteSystem::OnEntityAdded(Entity* entity)
 {
@@ -60,14 +60,14 @@ void EditorSpriteSystem::OnEntityAdded(Entity* entity)
     //editorScene = *editorSceneIt;
 
     Handle<Sprite> sprite;
-    
+
     if (EnvProbe* envProbe = DynamicCast<EnvProbe>(entity))
     {
         if (envProbe->IsA<SkyProbe>())
         {
             return;
         }
-        
+
         sprite = Sprite::CreateEnvProbeSprite(scene, envProbe);
     }
     else if (LightmapVolume* lightmapVolume = DynamicCast<LightmapVolume>(entity))

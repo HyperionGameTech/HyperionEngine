@@ -165,8 +165,7 @@ public:                                                                         
                                                                                  \
     HYP_FORCE_INLINE static const Class* StaticClass()                           \
     {                                                                            \
-        HYP_EXTERN_CLASS const Class* g_cls##T;                                  \
-        return g_cls##T;                                                         \
+        return GetClass<T>();                                                    \
     }                                                                            \
                                                                                  \
     template <class TOther>                                                      \
@@ -210,19 +209,18 @@ public:                                                                         
                                                                                  \
 private:
 
-#define HYP_STRUCT_BODY(T, ...)                        \
-    template <class TStaticInitType>                   \
-    friend class TClassStaticInit;                     \
-                                                       \
-    struct ClassInfo                                   \
-    {                                                  \
-        using Type = T;                                \
-    };                                                 \
-                                                       \
-    HYP_FORCE_INLINE static const Class* StaticClass() \
-    {                                                  \
-        HYP_EXTERN_CLASS const Class* g_cls##T;        \
-        return g_cls##T;                               \
+#define HYP_STRUCT_BODY(T, ...)                         \
+    template <class TStaticInitType>                    \
+    friend class TClassStaticInit;                      \
+                                                        \
+    struct ClassInfo                                    \
+    {                                                   \
+        using Type = T;                                 \
+    };                                                  \
+                                                        \
+    HYP_FORCE_INLINE static const Class* StaticClass()  \
+    {                                                   \
+        return GetClass<T>();                           \
     }
 
 #define HYP_REGISTER_STATIC_CLASS(T) \

@@ -46,7 +46,7 @@ ThreadPoolBase::ThreadPoolBase(Array<UniquePtr<ThreadBase>>&& threads)
 
 ThreadPoolBase::~ThreadPoolBase()
 {
-    HYP_LOG(Tasks, Verbose, "Destroying thread pool with {} threads", m_threads.Size());
+    HYP_LOG(Threading, Verbose, "Destroying thread pool with {} threads", m_threads.Size());
 
     for (auto& it : m_threads)
     {
@@ -197,7 +197,7 @@ TaskThread* TaskThreadPool::GetNextTaskThread()
                     return static_cast<TaskThread*>(currentThreadObject); // NOLINT(cppcoreguidelines-pro-type-static-cast-downcast)
                 }
 
-                HYP_LOG(Tasks, Warning, "Maximum spins reached in GetNextTaskThread -- all task threads busy");
+                HYP_LOG(Threading, Warning, "Maximum spins reached in GetNextTaskThread -- all task threads busy");
 
                 return taskThread;
             }
@@ -479,7 +479,7 @@ void BackgroundWorkerPool::CleanupIdleThreads()
                 thread->Join();
             }
 
-            HYP_LOG(Tasks, Verbose, "BackgroundWorkerPool cleaned up idle thread: {}", thread->Id().GetName());
+            HYP_LOG(Threading, Verbose, "BackgroundWorkerPool cleaned up idle thread: {}", thread->Id().GetName());
         }
 
         // release the thread at that index;

@@ -1,0 +1,58 @@
+#include <Core/logging/LogChannels.hpp>
+#include <Core/logging/Logger.hpp>
+
+namespace Hyperion {
+
+#pragma region Engine
+
+ENGINE_API HYP_DEFINE_LOG_CHANNEL(Engine);
+
+ENGINE_API HYP_DEFINE_LOG_SUBCHANNEL(Perf, Engine);
+ENGINE_API HYP_DEFINE_LOG_SUBCHANNEL(DotNET, Engine);
+ENGINE_API HYP_DEFINE_LOG_SUBCHANNEL(Streaming, Engine);
+ENGINE_API HYP_DEFINE_LOG_SUBCHANNEL(UI, Engine);
+ENGINE_API HYP_DEFINE_LOG_SUBCHANNEL(Physics, Engine);
+ENGINE_API HYP_DEFINE_LOG_SUBCHANNEL(Audio, Engine);
+ENGINE_API HYP_DEFINE_LOG_SUBCHANNEL(Input, Engine);
+
+#pragma endregion Engine
+
+#pragma region Rendering
+
+ENGINE_API HYP_DEFINE_LOG_SUBCHANNEL(Rendering, Engine);
+
+ENGINE_API HYP_DEFINE_LOG_SUBCHANNEL(RenderingBackend, Rendering);
+ENGINE_API HYP_DEFINE_LOG_SUBCHANNEL(RenderCommands, Rendering);
+ENGINE_API HYP_DEFINE_LOG_SUBCHANNEL(Shader, Rendering);
+ENGINE_API HYP_DEFINE_LOG_SUBCHANNEL(Texture, Rendering);
+ENGINE_API HYP_DEFINE_LOG_SUBCHANNEL(Mesh, Rendering);
+ENGINE_API HYP_DEFINE_LOG_SUBCHANNEL(Material, Rendering);
+ENGINE_API HYP_DEFINE_LOG_SUBCHANNEL(Shadows, Rendering);
+ENGINE_API HYP_DEFINE_LOG_SUBCHANNEL(EnvProbe, Rendering);
+ENGINE_API HYP_DEFINE_LOG_SUBCHANNEL(EnvGrid, Rendering);
+ENGINE_API HYP_DEFINE_LOG_SUBCHANNEL(Font, Rendering);
+ENGINE_API HYP_DEFINE_LOG_SUBCHANNEL(Lightmap, Rendering);
+
+#pragma endregion Rendering
+
+#pragma region Scene
+
+ENGINE_API HYP_DEFINE_LOG_SUBCHANNEL(Scene, Engine);
+
+ENGINE_API HYP_DEFINE_LOG_SUBCHANNEL(World, Scene);
+ENGINE_API HYP_DEFINE_LOG_SUBCHANNEL(Entity, Scene);
+ENGINE_API HYP_DEFINE_LOG_SUBCHANNEL(Node, Scene);
+ENGINE_API HYP_DEFINE_LOG_SUBCHANNEL(Camera, Scene);
+ENGINE_API HYP_DEFINE_LOG_SUBCHANNEL(Animation, Scene);
+
+#pragma endregion Scene
+
+#pragma region Assets
+
+ENGINE_API HYP_DEFINE_LOG_SUBCHANNEL(Assets, Engine);
+
+ENGINE_API HYP_DEFINE_LOG_SUBCHANNEL(Serialization, Assets);
+
+#pragma endregion Assets
+
+} // namespace Hyperion

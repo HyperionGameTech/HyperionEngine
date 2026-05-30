@@ -30,7 +30,7 @@
 
 namespace Hyperion {
 
-HYP_DECLARE_LOG_CHANNEL(Tasks);
+CORE_API HYP_DECLARE_LOG_CHANNEL(Threading);
 
 enum class TaskEnqueueFlags : uint32
 {

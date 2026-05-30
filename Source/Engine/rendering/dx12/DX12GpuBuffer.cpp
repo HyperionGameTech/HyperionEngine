@@ -14,7 +14,7 @@
 
 namespace Hyperion {
 
-HYP_DECLARE_LOG_CHANNEL(RenderingBackend);
+ENGINE_API HYP_DECLARE_LOG_CHANNEL(RenderingBackend);
 
 extern DX12RenderInterface RI;
 
@@ -191,7 +191,7 @@ RendererResult DX12GpuBuffer::Create()
     {
         return HYP_MAKE_ERROR(RendererError, "Failed to create D3D12MA buffer", hr);
     }
-    
+
 #if HYP_DEBUG_MODE
     if (m_debugName && m_resource)
     {

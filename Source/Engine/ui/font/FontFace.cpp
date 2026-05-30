@@ -18,7 +18,7 @@
 
 namespace Hyperion {
 
-HYP_DECLARE_LOG_CHANNEL(Font);
+ENGINE_API HYP_DECLARE_LOG_CHANNEL(Font);
 
 FontFace::FontFace(FontEngine::Backend backend, const FilePath& path)
     : m_face(nullptr)

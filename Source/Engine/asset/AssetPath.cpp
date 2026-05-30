@@ -12,7 +12,7 @@
 
 namespace Hyperion {
 
-HYP_DECLARE_LOG_CHANNEL(Assets);
+ENGINE_API HYP_DECLARE_LOG_CHANNEL(Assets);
 
 static constexpr AssetRegistryId GetAssetRegistryIndex(StringHash hash)
 {
@@ -60,7 +60,7 @@ AssetPath::AssetPath(const ANSIStringView& path)
     ANSIStringView curr = path;
 
     size_t tokenIdx;
-    
+
     // if ':' is found, we assume registry id is contained in the string,
     // (e.g Game://Materials/Barrel)
     // otherwise, we use the default registry id (Game)

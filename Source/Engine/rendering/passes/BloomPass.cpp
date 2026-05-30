@@ -44,7 +44,7 @@ namespace Hyperion {
 
 class DeferredPassData;
 
-HYP_DECLARE_LOG_CHANNEL(Rendering);
+ENGINE_API HYP_DECLARE_LOG_CHANNEL(Rendering);
 
 static EngineStatGpuTimer s_statBloom("Rendering/GPU/Bloom");
 

@@ -58,7 +58,7 @@ static HYP_FORCE_INLINE bool ShouldTriggerKeyDownEvent(const UIObjectKeyState& k
     return GetTimeToNextKeyDownEvent(keyState) < keyState.heldTime;
 }
 
-HYP_DECLARE_LOG_CHANNEL(UI);
+ENGINE_API HYP_DECLARE_LOG_CHANNEL(UI);
 
 #pragma region UIStageUpdateManager
 

@@ -36,10 +36,10 @@
 
 namespace Hyperion {
 
-HYP_DECLARE_LOG_CHANNEL(Shader);
+ENGINE_API HYP_DECLARE_LOG_CHANNEL(Shader);
 
 #if HYP_ENABLE_SHADER_RELOAD
-HYP_DECLARE_LOG_CHANNEL(ShaderCompiler);
+ENGINE_API HYP_DECLARE_LOG_CHANNEL(ShaderCompiler);
 #endif
 
 static EngineStatTimer s_statShaderCompilation { "Rendering/ShaderCompilation", /* resetPerFrame */ false };

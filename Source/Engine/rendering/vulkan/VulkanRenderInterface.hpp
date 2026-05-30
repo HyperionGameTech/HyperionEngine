@@ -216,7 +216,7 @@ private:
 
     VulkanInstance* m_instance;
 
-    Pimpl<VulkanRenderConfig> m_renderConfig;
+    VulkanRenderConfig* m_renderConfig;
 
     VulkanDescriptorSetManager* m_descriptorSetManager;
 

@@ -17,7 +17,7 @@
 
 namespace Hyperion {
 
-HYP_DECLARE_LOG_CHANNEL(SimThread);
+ENGINE_API HYP_DECLARE_LOG_CHANNEL(SimThread);
 
 class AppContextBase;
 class Game;

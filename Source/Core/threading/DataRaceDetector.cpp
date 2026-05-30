@@ -286,7 +286,7 @@ void DataRaceDetector::LogDataRace(uint64 readersMask, uint64 writersMask) const
         }
     }
 
-    HYP_LOG(DataRaceDetector, Error, "Data race detected: Current thread: {} ({}), Writer threads: {}, Reader threads: {}",
+    HYP_LOG(Threading, Error, "Data race detected: Current thread: {} ({}), Writer threads: {}, Reader threads: {}",
         ThreadId::Current().GetName(), ThreadId::Current().GetValue(),
         writerThreadsString,
         readerThreadsString);

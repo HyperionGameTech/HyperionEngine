@@ -18,7 +18,7 @@
 
 namespace Hyperion {
 
-HYP_DECLARE_LOG_CHANNEL(UI);
+ENGINE_API HYP_DECLARE_LOG_CHANNEL(UI);
 
 #pragma region UIListViewItem
 

@@ -20,7 +20,7 @@ namespace Hyperion {
 CORE_API extern size_t GetNumDescendants(TypeId typeId);
 CORE_API extern int GetSubclassIndex(TypeId baseTypeId, TypeId subclassTypeId);
 
-HYP_DECLARE_LOG_CHANNEL(Rendering);
+ENGINE_API HYP_DECLARE_LOG_CHANNEL(Rendering);
 
 namespace Resources {
 

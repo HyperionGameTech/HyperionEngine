@@ -41,7 +41,7 @@
 
 namespace Hyperion {
 
-HYP_DECLARE_LOG_CHANNEL(Rendering);
+ENGINE_API HYP_DECLARE_LOG_CHANNEL(Rendering);
 
 #if HYP_DEBUG_MODE || HYP_EDITOR
 CVar<bool> cvShowDebugUI("ShowDebugUI", true);

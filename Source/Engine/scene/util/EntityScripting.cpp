@@ -43,6 +43,8 @@
 
 namespace Hyperion {
 
+ENGINE_API HYP_DECLARE_LOG_CHANNEL(Scripting);
+
 namespace CoreApi {
 CORE_API extern FilePath GetExecutablePath();
 } // namespace CoreApi
@@ -166,7 +168,7 @@ void InitializeEntityScript(Entity* entity, ScriptComponent& scriptComponent, co
         const Class* nativeClass = scriptComponent.nativeObject->InstanceClass();
         AssertDebug(nativeClass != nullptr);
 
-        HYP_LOG(Script, Verbose, "Created ScriptObjectResource for ScriptComponent, native class: {}", nativeClass->GetName());
+        HYP_LOG(Scripting, Verbose, "Created ScriptObjectResource for ScriptComponent, native class: {}", nativeClass->GetName());
 
         InitObject(scriptComponent.nativeObject);
 
@@ -187,7 +189,7 @@ void InitializeEntityScript(Entity* entity, ScriptComponent& scriptComponent, co
 
         if (!scriptAsset)
         {
-            HYP_LOG(Script, Warning, "Entity has ScriptComponent with no ScriptAsset!");
+            HYP_LOG(Scripting, Warning, "Entity has ScriptComponent with no ScriptAsset!");
 
             return;
         }
@@ -237,7 +239,7 @@ void InitializeEntityScript(Entity* entity, ScriptComponent& scriptComponent, co
                     }
                     else
                     {
-                        HYP_LOG(Script, Error, "ScriptSystem::OnEntityAdded: Failed to load assembly '{}'", assemblyPath.Data());
+                        HYP_LOG(Scripting, Error, "ScriptSystem::OnEntityAdded: Failed to load assembly '{}'", assemblyPath.Data());
 
                         scriptAsset->SetBytecode(ConstByteView());
 
@@ -247,11 +249,11 @@ void InitializeEntityScript(Entity* entity, ScriptComponent& scriptComponent, co
 
                 if (RC<dotnet::ManagedClass> classPtr = scriptComponent.assembly->FindClassByName(scriptDesc.className.Data()))
                 {
-                    HYP_LOG(Script, Info, "ScriptSystem::OnEntityAdded: Loaded class '{}' from assembly '{}'", scriptDesc.className.Data(), scriptDesc.assemblyPath.Data());
+                    HYP_LOG(Scripting, Info, "ScriptSystem::OnEntityAdded: Loaded class '{}' from assembly '{}'", scriptDesc.className.Data(), scriptDesc.assemblyPath.Data());
 
                     if (!classPtr->HasParentClass("Script"))
                     {
-                        HYP_LOG(Script, Error, "ScriptSystem::OnEntityAdded: Class '{}' from assembly '{}' does not inherit from 'Script'", scriptDesc.className.Data(), scriptDesc.assemblyPath.Data());
+                        HYP_LOG(Scripting, Error, "ScriptSystem::OnEntityAdded: Class '{}' from assembly '{}' does not inherit from 'Script'", scriptDesc.className.Data(), scriptDesc.assemblyPath.Data());
 
                         return;
                     }
@@ -280,7 +282,7 @@ void InitializeEntityScript(Entity* entity, ScriptComponent& scriptComponent, co
                         }
                     }
 
-                    HYP_LOG(Script, Verbose, "Created ScriptObjectResource for ScriptComponent, .NET class: {}", classPtr->GetName());
+                    HYP_LOG(Scripting, Verbose, "Created ScriptObjectResource for ScriptComponent, .NET class: {}", classPtr->GetName());
                 }
 #if HYP_DEBUG_MODE
                 else
@@ -291,7 +293,7 @@ void InitializeEntityScript(Entity* entity, ScriptComponent& scriptComponent, co
 
                 if (!sor || !sor->GetManagedObject() || !sor->GetManagedObject()->IsValid())
                 {
-                    HYP_LOG(Script, Error, "ScriptSystem::OnEntityAdded: Failed to create object of class '{}' from assembly '{}'", scriptDesc.className.Data(), scriptDesc.assemblyPath.Data());
+                    HYP_LOG(Scripting, Error, "ScriptSystem::OnEntityAdded: Failed to create object of class '{}' from assembly '{}'", scriptDesc.className.Data(), scriptDesc.assemblyPath.Data());
 
                     if (scriptComponent.scriptObjectResource)
                     {
@@ -366,7 +368,7 @@ void InitializeEntityScript(Entity* entity, ScriptComponent& scriptComponent, co
 
                     if (!registry.IsValid())
                     {
-                        HYP_LOG(Script, Error, "ScriptSystem::OnEntityAdded: Invalid AssetRegistry, cannot load script source", scriptAsset->GetName());
+                        HYP_LOG(Scripting, Error, "ScriptSystem::OnEntityAdded: Invalid AssetRegistry, cannot load script source", scriptAsset->GetName());
                         return;
                     }
 
@@ -374,7 +376,7 @@ void InitializeEntityScript(Entity* entity, ScriptComponent& scriptComponent, co
 
                     if (!sourcePath.Exists() || !sourcePath.CanRead())
                     {
-                        HYP_LOG(Script, Error, "ScriptSystem::OnEntityAdded: Script file '{}' does not exist or cannot be read!", scriptDesc.path.Data());
+                        HYP_LOG(Scripting, Error, "ScriptSystem::OnEntityAdded: Script file '{}' does not exist or cannot be read!", scriptDesc.path.Data());
                         return;
                     }
 
@@ -388,7 +390,7 @@ void InitializeEntityScript(Entity* entity, ScriptComponent& scriptComponent, co
 
                     if (readStream.Eof())
                     {
-                        HYP_LOG(Script, Error, "ScriptSystem::OnEntityAdded: Failed to open script file '{}' for reading!", scriptDesc.path.Data());
+                        HYP_LOG(Scripting, Error, "ScriptSystem::OnEntityAdded: Failed to open script file '{}' for reading!", scriptDesc.path.Data());
                         return;
                     }
 
@@ -426,7 +428,7 @@ void InitializeEntityScript(Entity* entity, ScriptComponent& scriptComponent, co
                         // Debug: decompile the bytecode
                         std::stringstream ss;
                         HS::Decompile(instance, &ss);
-                        HYP_LOG(Script, Debug, "Decompiled bytecode:\n\n{}", ss.str().c_str());
+                        HYP_LOG(Scripting, Debug, "Decompiled bytecode:\n\n{}", ss.str().c_str());
                     }
 #endif
 
@@ -450,7 +452,7 @@ void InitializeEntityScript(Entity* entity, ScriptComponent& scriptComponent, co
                             Result saveResult = scriptAsset->Save();
                             if (saveResult.HasError())
                             {
-                                HYP_LOG(Script, Warning, "Failed to save script asset: {}", saveResult.GetError().GetMessage());
+                                HYP_LOG(Scripting, Warning, "Failed to save script asset: {}", saveResult.GetError().GetMessage());
                             }
                         }
 

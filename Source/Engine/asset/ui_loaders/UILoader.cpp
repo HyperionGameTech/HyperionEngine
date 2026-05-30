@@ -54,7 +54,7 @@
 
 namespace Hyperion {
 
-HYP_DECLARE_LOG_CHANNEL(Assets);
+ENGINE_API HYP_DECLARE_LOG_CHANNEL(Assets);
 
 #define UI_OBJECT_CREATE_FUNCTION(name)                                                                                \
     {                                                                                                                  \

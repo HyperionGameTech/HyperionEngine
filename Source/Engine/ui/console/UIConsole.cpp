@@ -14,8 +14,8 @@
 
 namespace Hyperion {
 
-HYP_DECLARE_LOG_CHANNEL(UI);
-HYP_DEFINE_LOG_CHANNEL(Console);
+ENGINE_API HYP_DECLARE_LOG_CHANNEL(UI);
+ENGINE_API HYP_DEFINE_LOG_CHANNEL(Console);
 
 extern "C" int Hyp_ExecuteConsoleCommand(int argc, const char** argv);
 
@@ -352,7 +352,7 @@ void UIConsole::Init()
                     {
                         HYP_LOG(Console, Info, "Executed command: {}", text);
                     }
-                    
+
                     m_currentCommandText.Clear();
 
                     //m_textbox->Focus();

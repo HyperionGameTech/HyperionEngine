@@ -33,7 +33,7 @@ namespace CoreApi {
 CORE_API extern FilePath GetExecutablePath();
 } // namespace CoreApi
 
-HYP_DECLARE_LOG_CHANNEL(Rendering);
+ENGINE_API HYP_DECLARE_LOG_CHANNEL(Rendering);
 
 thread_local Array<FilePath>* g_savedDumpFiles = nullptr;
 static Mutex g_savedDumpFilesPerThreadMutex;

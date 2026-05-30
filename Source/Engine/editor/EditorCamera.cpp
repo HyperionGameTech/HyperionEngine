@@ -30,7 +30,7 @@ namespace Hyperion {
 static constexpr double LookSensitivity = 25.0;
 static constexpr double MovementSpeed = 10.0;
 
-HYP_DECLARE_LOG_CHANNEL(Camera);
+ENGINE_API HYP_DECLARE_LOG_CHANNEL(Camera);
 
 template <class AllocatorType>
 static TBitset<AllocatorType> GetMovementKeys(bool includeArrowKeys = true)

@@ -37,7 +37,7 @@
 
 namespace Hyperion {
 
-HYP_DECLARE_LOG_CHANNEL(WorldGrid);
+ENGINE_API HYP_DECLARE_LOG_CHANNEL(WorldGrid);
 
 static constexpr float BaseHeight = 5.0f;
 static constexpr float MountainHeight = 35.0f;

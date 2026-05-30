@@ -43,7 +43,7 @@ namespace Hyperion {
 
 struct EditorProjectSaveContext { };
 
-HYP_DECLARE_LOG_CHANNEL(Editor);
+EDITOR_API HYP_DECLARE_LOG_CHANNEL(Editor);
 
 static const ANSIString s_defaultProjectName = "Project";
 

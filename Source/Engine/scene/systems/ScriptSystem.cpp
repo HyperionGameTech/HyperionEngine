@@ -44,6 +44,8 @@
 
 namespace Hyperion {
 
+ENGINE_API HYP_DEFINE_LOG_SUBCHANNEL(Scripting, Engine);
+
 #if HYP_EDITOR
 constexpr bool EnableScriptReloading = true;
 #else
@@ -227,7 +229,7 @@ void ScriptSystem::OnAddedToWorld(World* world)
                             // @TODO: Will need `path` for hypscript, assemblypath is only relevent for c#.
                             if (Memory::StrCmp(inScriptDesc.assemblyPath.Data(), scriptDesc.assemblyPath.Data(), MathUtil::Min(ArraySize(inScriptDesc.assemblyPath), ArraySize(scriptDesc.assemblyPath))) == 0)
                             {
-                                HYP_LOG(Script, Info, "ScriptSystem: Reloading script for entity {}", entity->Id());
+                                HYP_LOG(Scripting, Info, "ScriptSystem: Reloading script for entity {}", entity->Id());
 
                                 scriptComponent.flags |= ScriptComponentFlags::RELOADING;
 
@@ -246,7 +248,7 @@ void ScriptSystem::OnAddedToWorld(World* world)
 
                                 scriptComponent.flags &= ~ScriptComponentFlags::RELOADING;
 
-                                HYP_LOG(Script, Info, "ScriptSystem: Script reloaded for entity #{}", entity->Id());
+                                HYP_LOG(Scripting, Info, "ScriptSystem: Script reloaded for entity #{}", entity->Id());
                             }
                         }
                     }

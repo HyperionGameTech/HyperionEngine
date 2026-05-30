@@ -24,7 +24,7 @@
 
 namespace Hyperion {
 
-HYP_DECLARE_LOG_CHANNEL(Font);
+ENGINE_API HYP_DECLARE_LOG_CHANNEL(Font);
 
 static constexpr TextureFormat GlyphTextureFormat = TextureFormat::RGBA8;
 

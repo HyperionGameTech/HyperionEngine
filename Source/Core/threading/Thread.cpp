@@ -100,6 +100,8 @@ void ThreadBase::OnExit()
 #pragma endregion ThreadBase
 } // namespace threading
 
+#ifndef HYP_MSVC
 template class CORE_API threading::Thread<threading::Scheduler>;
+#endif // HYP_MSVC
 
 } // namespace Hyperion

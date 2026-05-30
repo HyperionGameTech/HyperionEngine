@@ -16,7 +16,7 @@ struct FT_GlyphSlotRec_;
 
 namespace Hyperion {
 
-HYP_DECLARE_LOG_CHANNEL(Font);
+ENGINE_API HYP_DECLARE_LOG_CHANNEL(Font);
 
 class FontFace;
 

@@ -23,7 +23,7 @@
 
 namespace Hyperion {
 
-HYP_DECLARE_LOG_CHANNEL(Engine);
+ENGINE_API HYP_DECLARE_LOG_CHANNEL(Engine);
 
 static constexpr const char* RootStatGroupName = "Root";
 static constexpr utf::Char32 PathSeparator = utf::Char32('/');

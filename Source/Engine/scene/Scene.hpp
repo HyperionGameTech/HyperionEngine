@@ -29,7 +29,7 @@
 
 namespace Hyperion {
 
-HYP_DECLARE_LOG_CHANNEL(Scene);
+ENGINE_API HYP_DECLARE_LOG_CHANNEL(Scene);
 
 class World;
 class Scene;

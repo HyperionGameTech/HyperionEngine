@@ -60,7 +60,8 @@
 
 namespace Hyperion {
 
-HYP_DECLARE_LOG_CHANNEL(Assets);
+ENGINE_API HYP_DECLARE_LOG_CHANNEL(Assets);
+
 namespace CoreApi {
 CORE_API extern FilePath GetExecutablePath();
 }// namespace CoreApi

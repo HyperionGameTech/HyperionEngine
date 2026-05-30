@@ -18,7 +18,7 @@
 
 namespace Hyperion {
 
-HYP_DECLARE_LOG_CHANNEL(Engine);
+ENGINE_API HYP_DECLARE_LOG_CHANNEL(Engine);
 
 static AtomicVar<int> s_nextCVarId = 0;
 static CVarManager* s_pInstance = nullptr;

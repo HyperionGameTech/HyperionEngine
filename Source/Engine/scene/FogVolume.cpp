@@ -35,8 +35,8 @@
 namespace Hyperion {
 
 #if HYP_EDITOR
-HYP_DECLARE_LOG_CHANNEL(Editor);
-#endif
+EDITOR_API HYP_DECLARE_LOG_CHANNEL(Editor);
+#endif // HYP_EDITOR
 
 FogVolume::FogVolume()
 {

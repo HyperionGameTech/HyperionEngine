@@ -14,7 +14,7 @@
 
 namespace Hyperion {
 
-HYP_DECLARE_LOG_CHANNEL(Tasks);
+CORE_API HYP_DECLARE_LOG_CHANNEL(Threading);
 
 namespace threading {
 
@@ -111,7 +111,7 @@ void TaskThread::operator()()
 
             if (taskPerformanceClock.ElapsedMs() > TaskThreadSingleTaskLagSpikeThreshold)
             {
-                HYP_LOG(Tasks, Warning, "Task thread {} lag spike detected in single task \"{}\": {}ms",
+                HYP_LOG(Threading, Warning, "Task thread {} lag spike detected in single task \"{}\": {}ms",
                     Id().GetName(),
                     scheduledTask.debugName.value ? scheduledTask.debugName.value : "<unnamed task>",
                     taskPerformanceClock.ElapsedMs());

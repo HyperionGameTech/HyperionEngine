@@ -44,7 +44,7 @@ void ScriptingService::Update()
 
                 break;
             default:
-                HYP_LOG(ScriptingService, Error, "Unknown script event received: {}", uint32(event.type));
+                HYP_LOG(Engine, Error, "Unknown script event received: {}", uint32(event.type));
 
                 break;
             }

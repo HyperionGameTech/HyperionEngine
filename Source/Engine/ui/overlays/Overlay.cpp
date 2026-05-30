@@ -20,7 +20,7 @@
 
 namespace Hyperion {
 
-HYP_DECLARE_LOG_CHANNEL(UI);
+ENGINE_API HYP_DECLARE_LOG_CHANNEL(UI);
 
 #pragma region OverlayBase
 
@@ -94,7 +94,7 @@ Handle<UIObject> TextureOverlay::CreateUIObject_Impl(UIObject* spawnParent)
     const int displayHeight = (extent.x > 0)
         ? int(float(displayWidth) * float(extent.y) / float(extent.x))
         : displayWidth;
-    
+
     Handle<UIPanel> panelBackdrop = spawnParent->CreateUIObject<UIPanel>(
         NAME("TextureOverlay_PanelBackdrop"),
         Vec2i(2, 2),

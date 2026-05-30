@@ -18,8 +18,8 @@
 
 namespace Hyperion {
 
-HYP_DECLARE_LOG_CHANNEL(Core);
-HYP_DEFINE_LOG_SUBCHANNEL(CommandLine, Core);
+CORE_API HYP_DECLARE_LOG_CHANNEL(Core);
+CORE_API HYP_DEFINE_LOG_SUBCHANNEL(CommandLine, Core);
 
 namespace cli {
 

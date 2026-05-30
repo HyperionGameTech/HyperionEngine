@@ -19,7 +19,7 @@
 
 namespace Hyperion {
 
-HYP_DECLARE_LOG_CHANNEL(Editor);
+EDITOR_API HYP_DECLARE_LOG_CHANNEL(Editor);
 
 EditorActionStack::EditorActionStack()
     : m_undoDepth(-1),

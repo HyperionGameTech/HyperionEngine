@@ -668,11 +668,6 @@ Class::Class(TypeId typeId, Name name, int staticIndex, uint32 numDescendants, N
     m_typeInfo = (m_flags & ClassFlags::DYNAMIC) ? TypeInfo::ForDynamicClass(this) : &TypeInfo::ForClass(this);
     HYP_CORE_ASSERT(m_typeInfo != nullptr);
 
-#if defined(HYPERION_ENGINE) && HYPERION_ENGINE
-    // objects pool
-    m_enginePoolName = (EnginePoolName)0;
-#endif
-
     // @NOTE: Can't reliably use the Attributes namespace values, as they might noe be
     // initialized yet by the time this constructor is called (static init order fiasco)
     static const ArrayMap<StringHash, ClassFlags> s_attributeToFlags = {
@@ -795,32 +790,6 @@ void Class::Initialize()
     AssertDebug(m_typeInfo != nullptr);
 
     m_serializationMode = ClassSerializationMode::DEFAULT;
-
-#if defined(HYPERION_ENGINE) && HYPERION_ENGINE
-    if (UseHandles())
-    {
-        if (const ClassAttributeValue& poolAttribute = GetAttributeDeep("pool"_sh))
-        {
-            if (poolAttribute.IsString())
-            {
-                const EnginePoolName poolName = EnumValue<EnginePoolName>(poolAttribute.GetString(), (EnginePoolName)-1);
-
-                if (poolName != (EnginePoolName)-1)
-                {
-                    m_enginePoolName = poolName;
-                }
-                else
-                {
-                    HYP_FAIL("Unknown engine pool name: {}", poolAttribute.GetString());
-                }
-            }
-            else
-            {
-                HYP_FAIL("Engine pool attribute must be a string");
-            }
-        }
-    }
-#endif
 
     if (const ClassAttributeValue& serializeAttribute = GetAttribute(Attributes::g_attrSerialize))
     {

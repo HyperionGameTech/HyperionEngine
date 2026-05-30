@@ -26,7 +26,7 @@
 
 namespace Hyperion {
 
-HYP_DECLARE_LOG_CHANNEL(WorldGrid);
+ENGINE_API HYP_DECLARE_LOG_CHANNEL(WorldGrid);
 
 #pragma region TerrainWorldGridLayer
 
@@ -59,7 +59,7 @@ void TerrainWorldGridLayer::Init()
     parameters.metalness = 0.0f;
 
     m_material = g_materialInstanceCache->GetOrCreate(NAME("terrain_material"), attributes, parameters, MaterialTextures{});
-    
+
     GetCurrentAssetRegistry()->PutAsset(m_material);
 
     // if (auto albedoTextureAsset = AssetManager::GetInstance()->Load<Texture>("textures/mossy-ground1-Unity/mossy-ground1-albedo.png"))

@@ -51,8 +51,8 @@
 
 namespace Hyperion {
 
-HYP_DECLARE_LOG_CHANNEL(Editor);
-HYP_DECLARE_LOG_CHANNEL(Console);
+EDITOR_API HYP_DECLARE_LOG_CHANNEL(Editor);
+ENGINE_API HYP_DECLARE_LOG_CHANNEL(Console);
 
 extern Handle<EditorState> g_editorState;
 

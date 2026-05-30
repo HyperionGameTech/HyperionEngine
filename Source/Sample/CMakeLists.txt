@@ -6,16 +6,16 @@ set(BUILD_NAME hyperion-sample)
 project(${BUILD_NAME} CXX C)
 
 if(MSVC)
-    set(CMAKE_CXX_FLAGS_RELEASE "/MD /O2 /Zi /MP")
+  set(CMAKE_CXX_FLAGS_RELEASE "/MD /O2 /Zi /MP")
 
-    #set(CMAKE_CXX_FLAGS_RELEASE "/MD /O2")
-    #set(CMAKE_CXX_FLAGS_DEBUG "/MDd")
+  #set(CMAKE_CXX_FLAGS_RELEASE "/MD /O2")
+  #set(CMAKE_CXX_FLAGS_DEBUG "/MDd")
 
-    # set to path of vcpkg
-    set(CMAKE_TOOLCHAIN_FILE, "$ENV{VCPKG_ROOT}/../scripts/buildsystems/vcpkg.cmake")
+  # set to path of vcpkg
+  set(CMAKE_TOOLCHAIN_FILE, "$ENV{VCPKG_ROOT}/../scripts/buildsystems/vcpkg.cmake")
 else()
-    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -g -O0 -fpermissive")
-    # set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -O2 -fpermissive")
+  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -g -O0 -fpermissive")
+  # set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -O2 -fpermissive")
 endif()
 
 set(OpenGL_GL_PREFERENCE GLVND)
@@ -39,21 +39,21 @@ include_directories(
 add_executable(${BUILD_NAME} ${SOURCES} ${HEADERS})
 
 if(MSVC)
-    set (CMAKE_CONFIGURATION_TYPES "Debug;Release" CACHE STRING "Configurations" FORCE)
-    set_property(TARGET ${BUILD_NAME} APPEND PROPERTY LINK_FLAGS /DEBUG)
+  set (CMAKE_CONFIGURATION_TYPES "Debug;Release" CACHE STRING "Configurations" FORCE)
+  set_property(TARGET ${BUILD_NAME} APPEND PROPERTY LINK_FLAGS /DEBUG)
 endif()
 
 if(CMAKE_GENERATOR MATCHES "Xcode")
-    set_target_properties(${BUILD_NAME} PROPERTIES XCODE_GENERATE_SCHEME ON)
-    set_target_properties(${BUILD_NAME} PROPERTIES XCODE_SCHEME_ENABLE_GPU_API_VALIDATION OFF)
-    set_target_properties(${BUILD_NAME} PROPERTIES XCODE_SCHEME_ENABLE_GPU_FRAME_CAPTURE_MODE "Metal")
-    set_target_properties(${BUILD_NAME} PROPERTIES XCODE_SCHEME_LAUNCH_CONFIGURATION_NAME "${HYP_BUILD_TYPE}")
-    set_target_properties(${BUILD_NAME} PROPERTIES XCODE_SCHEME_HIDE_BUILDABLE_NAME OFF)
+  set_target_properties(${BUILD_NAME} PROPERTIES XCODE_GENERATE_SCHEME ON)
+  set_target_properties(${BUILD_NAME} PROPERTIES XCODE_SCHEME_ENABLE_GPU_API_VALIDATION OFF)
+  set_target_properties(${BUILD_NAME} PROPERTIES XCODE_SCHEME_ENABLE_GPU_FRAME_CAPTURE_MODE "Metal")
+  set_target_properties(${BUILD_NAME} PROPERTIES XCODE_SCHEME_LAUNCH_CONFIGURATION_NAME "${HYP_BUILD_TYPE}")
+  set_target_properties(${BUILD_NAME} PROPERTIES XCODE_SCHEME_HIDE_BUILDABLE_NAME OFF)
 endif()
 
 # link with shared library hyperion
-add_dependencies(${BUILD_NAME} hyperion)
-target_link_libraries(${BUILD_NAME} hyperion)
+add_dependencies(${BUILD_NAME} hyperion hyperion-core)
+target_link_libraries(${BUILD_NAME} hyperion hyperion-core)
 
 # copy the hyperion dll to the executable directory
 # add_custom_command(TARGET ${BUILD_NAME} POST_BUILD
@@ -63,5 +63,3 @@ target_link_libraries(${BUILD_NAME} hyperion)
 # )
 
 add_definitions(${GCC_COVERAGE_COMPILE_FLAGS})
-
-

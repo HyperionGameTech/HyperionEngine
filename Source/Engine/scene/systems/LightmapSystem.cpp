@@ -17,7 +17,7 @@
 
 namespace Hyperion {
 
-HYP_DECLARE_LOG_CHANNEL(Lightmap);
+ENGINE_API HYP_DECLARE_LOG_CHANNEL(Lightmap);
 
 void LightmapSystem::OnEntityAdded(Entity* entity)
 {

@@ -57,7 +57,7 @@
 
 namespace Hyperion {
 
-HYP_DECLARE_LOG_CHANNEL(Core);
+CORE_API HYP_DECLARE_LOG_CHANNEL(Core);
 
 namespace CoreApi {
 CORE_API extern const GlobalConfig& GetGlobalConfig();

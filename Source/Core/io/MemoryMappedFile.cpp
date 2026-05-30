@@ -23,7 +23,7 @@
 
 namespace Hyperion {
 
-HYP_DECLARE_LOG_CHANNEL(Core);
+CORE_API HYP_DECLARE_LOG_CHANNEL(Core);
 
 struct MemoryMappedFileImpl
 {

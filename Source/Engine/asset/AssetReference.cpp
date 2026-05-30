@@ -15,7 +15,7 @@
 
 namespace Hyperion {
 
-HYP_DECLARE_LOG_CHANNEL(Assets);
+ENGINE_API HYP_DECLARE_LOG_CHANNEL(Assets);
 
 static const AssetPath s_invalidAssetPath;
 
@@ -65,7 +65,7 @@ const AssetPath& AssetReference::GetAssetPath() const
     {
         return assetPath;
     }
-    
+
     return s_invalidAssetPath;
 }
 
