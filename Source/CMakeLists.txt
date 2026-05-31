@@ -656,7 +656,6 @@ endif()
 
 add_subdirectory(${CMAKE_SOURCE_DIR}/Core ${CMAKE_BINARY_DIR}/Core)
 add_subdirectory(${CMAKE_SOURCE_DIR}/Lang ${CMAKE_BINARY_DIR}/Lang)
-add_subdirectory(${CMAKE_SOURCE_DIR}/Editor ${CMAKE_BINARY_DIR}/Editor)
 
 function(collect_sources_and_modules dir out_sources out_headers out_modules)
 
@@ -694,11 +693,6 @@ function(collect_sources_and_modules dir out_sources out_headers out_modules)
     # handle ThirdParty modules separately
     if(dir MATCHES "ThirdParty")
       return()
-    endif()
-
-    if(dir MATCHES "editor" AND NOT HYP_EDITOR)
-      message(STATUS "Skipping editor module: ${dir}; HYP_EDITOR is not set")
-      set(should_skip_module TRUE)
     endif()
 
     if(dir MATCHES "dotnet/runtime")
@@ -1035,7 +1029,7 @@ if(APPLE)
   # needs to use -force_load on macOS for static libraries to re-export symbols correctly
   # for the Hyperion.NET assemblies, since we define functions for P/Invoke there.
   foreach(SUB_LIBRARY ${SUB_LIBRARIES})
-    if (SUB_LIBRARY MATCHES "hyperion-dotnet-.*" OR SUB_LIBRARY MATCHES "hyperion-editor")
+    if (SUB_LIBRARY MATCHES "hyperion-dotnet-.*")
       target_link_libraries(${BUILD_NAME} PRIVATE -force_load $<TARGET_FILE:${SUB_LIBRARY}>)
     else()
       target_link_libraries(${BUILD_NAME} PRIVATE ${SUB_LIBRARY})
@@ -1044,7 +1038,7 @@ if(APPLE)
 elseif(HYP_MSVC OR HYP_CLANG_WINDOWS)
   # needs to use /WHOLEARCHIVE on Windows for emulating the above behavior
   foreach(SUB_LIBRARY ${SUB_LIBRARIES})
-    if (SUB_LIBRARY MATCHES "hyperion-dotnet-.*" OR SUB_LIBRARY MATCHES "hyperion-editor")
+    if (SUB_LIBRARY MATCHES "hyperion-dotnet-.*")
       target_link_options(${BUILD_NAME} PRIVATE "/WHOLEARCHIVE:$<TARGET_FILE:${SUB_LIBRARY}>")
     else()
       target_link_libraries(${BUILD_NAME} PRIVATE ${SUB_LIBRARY})
@@ -1071,7 +1065,10 @@ add_subdirectory(Sample)
 # If editor build, add the commandlet targets.
 # otherwise, we don't want 'em
 if(HYP_EDITOR)
+  add_subdirectory(Editor)
   add_subdirectory(Commandlets)
+
+  target_link_libraries(${BUILD_NAME} PRIVATE -force_load $<TARGET_FILE:hyperion-editor>)
 endif()
 
 if (CMAKE_GENERATOR MATCHES "Ninja")

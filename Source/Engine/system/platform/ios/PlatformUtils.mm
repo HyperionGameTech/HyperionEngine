@@ -7,7 +7,7 @@
 namespace Hyperion {
 namespace PlatformUtils {
 
-PlatformString GetExecutableAbsolutePath()
+ENGINE_API PlatformString GetExecutableAbsolutePath()
 {
     char buffer[PATH_MAX];
     uint32_t bufferSize = PATH_MAX;

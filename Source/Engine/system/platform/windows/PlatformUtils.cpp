@@ -8,7 +8,7 @@
 namespace Hyperion {
 namespace PlatformUtils {
 
-PlatformString GetExecutableAbsolutePath()
+ENGINE_API PlatformString GetExecutableAbsolutePath()
 {
     wchar_t buffer[MAX_PATH];
     DWORD result = GetModuleFileNameW(nullptr, buffer, MAX_PATH);

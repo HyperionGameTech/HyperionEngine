@@ -106,12 +106,12 @@ ENGINE_API extern void InitializeModule_Engine();
 CORE_API extern void InitializeModule_Core();
 
 #if HYP_EDITOR
-ENGINE_API extern void InitializeModule_Editor();
+EDITOR_API extern void InitializeModule_Editor();
 #endif
 
 // defined in PlatformUtils.[cpp|mm]
 namespace PlatformUtils {
-extern PlatformString GetExecutableAbsolutePath();
+ENGINE_API extern PlatformString GetExecutableAbsolutePath();
 } // namespace PlatformUtils
 
 ENGINE_API Handle<EngineDriver> g_engineDriver;

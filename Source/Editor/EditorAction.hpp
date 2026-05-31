@@ -22,7 +22,7 @@ class EditorSubsystem;
 class EditorProject;
 
 HYP_CLASS(Abstract)
-class EditorActionBase : public ObjectBase
+class EDITOR_API EditorActionBase : public ObjectBase
 {
     HYP_OBJECT_BODY(EditorActionBase);
 

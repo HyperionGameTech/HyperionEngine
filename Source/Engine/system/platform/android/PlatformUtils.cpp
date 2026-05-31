@@ -8,7 +8,7 @@
 namespace Hyperion {
 namespace PlatformUtils {
 
-PlatformString GetExecutableAbsolutePath()
+ENGINE_API PlatformString GetExecutableAbsolutePath()
 {
     char buffer[PATH_MAX];
     ssize_t result = readlink("/proc/self/exe", buffer, PATH_MAX - 1);

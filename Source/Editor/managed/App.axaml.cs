@@ -6,6 +6,8 @@ namespace Hyperion.Editor
 {
     public partial class App : Application
     {
+        public static bool AlreadyInitialized { get; set; } = false;
+
         public override void Initialize()
         {
             AvaloniaXamlLoader.Load(this);
@@ -13,10 +15,13 @@ namespace Hyperion.Editor
 
         public override void OnFrameworkInitializationCompleted()
         {
-            // Initialize the engine
-            EngineManager.Initialize();
+            if (!AlreadyInitialized)
+            {
+                EngineManager.Initialize();
+            }
+
             EngineManager.InitializeEditor();
-            
+
             // Initialize Console Service
             _ = Services.ConsoleService.Instance;
 

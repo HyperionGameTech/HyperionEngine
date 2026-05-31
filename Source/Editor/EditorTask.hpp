@@ -29,7 +29,7 @@ class UIObject;
 class EditorTaskThread;
 
 HYP_CLASS(Abstract)
-class EditorTaskBase : public ObjectBase
+class EDITOR_API EditorTaskBase : public ObjectBase
 {
     HYP_OBJECT_BODY(EditorTaskBase);
 
@@ -332,7 +332,7 @@ class EditorTaskScope
         ConstructWithProc
     };
 
-    EditorTaskScope(
+    EDITOR_API EditorTaskScope(
         ConstructWithProcTag,
         const Class* editorTaskClass,
         Proc<void()>&& proc,
@@ -436,14 +436,14 @@ public:
         return *this;
     }
 
-    ~EditorTaskScope();
+    EDITOR_API ~EditorTaskScope();
 
     HYP_FORCE_INLINE EditorTaskBase* GetEditorTask() const
     {
         return m_task;
     }
 
-    void Reset(bool shouldCancel = false);
+    EDITOR_API void Reset(bool shouldCancel = false);
 
 private:
     Handle<EditorTaskBase> m_task;

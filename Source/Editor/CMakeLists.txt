@@ -23,15 +23,8 @@ include_directories(
     ${CMAKE_SOURCE_DIR}/Editor
 )
 
-set(CURRENT_SOURCES "")
-foreach(filepath ${hyperion-editor_SOURCES})
-  list(APPEND CURRENT_SOURCES "${CMAKE_SOURCE_DIR}/${filepath}")
-endforeach()
-
-set(CURRENT_HEADERS "")
-foreach(filepath ${hyperion-editor_HEADERS})
-  list(APPEND CURRENT_HEADERS "${CMAKE_SOURCE_DIR}/${filepath}")
-endforeach()
+file(GLOB_RECURSE CURRENT_SOURCES "*.cpp" "*.cc" "*.c")
+file(GLOB_RECURSE CURRENT_HEADERS "*.h" "*.hpp")
 source_group(TREE ${CMAKE_CURRENT_SOURCE_DIR} PREFIX "Source Code" FILES ${CURRENT_SOURCES} ${CURRENT_HEADERS})
 
 set(HYP_GENERATED_DIR "${CMAKE_SOURCE_DIR}/Generated/editor")

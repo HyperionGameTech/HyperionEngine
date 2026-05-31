@@ -53,7 +53,7 @@ enum class LoadAssemblyResult : int32
     OK = 0
 };
 
-class DotNETHost
+class ENGINE_API DotNETHost
 {
 public:
     struct GlobalFunctions
@@ -72,8 +72,10 @@ public:
 
     DotNETHost(const DotNETHost&) = delete;
     DotNETHost& operator=(const DotNETHost&) = delete;
+
     DotNETHost(DotNETHost&&) noexcept = delete;
     DotNETHost& operator=(DotNETHost&&) noexcept = delete;
+
     ~DotNETHost();
 
     HYP_FORCE_INLINE GlobalFunctions& GetGlobalFunctions()
