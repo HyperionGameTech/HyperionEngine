@@ -1,0 +1,27 @@
+{
+	"InstallScripts" : 
+	[
+		"C:/Users/andre/hyperion-engine/Source/out/build/x64-debug/cmake_install.cmake",
+		"C:/Users/andre/hyperion-engine/Source/out/build/x64-debug/ThirdParty/D3D12MemoryAllocator_build/cmake_install.cmake",
+		"C:/Users/andre/hyperion-engine/Source/out/build/x64-debug/ThirdParty/D3D12MemoryAllocator_build/src/cmake_install.cmake",
+		"C:/Users/andre/hyperion-engine/Source/out/build/x64-debug/Core/cmake_install.cmake",
+		"C:/Users/andre/hyperion-engine/Source/out/build/x64-debug/Lang/cmake_install.cmake",
+		"C:/Users/andre/hyperion-engine/Source/out/build/x64-debug/asset/cmake_install.cmake",
+		"C:/Users/andre/hyperion-engine/Source/out/build/x64-debug/audio/cmake_install.cmake",
+		"C:/Users/andre/hyperion-engine/Source/out/build/x64-debug/baking/cmake_install.cmake",
+		"C:/Users/andre/hyperion-engine/Source/out/build/x64-debug/interop/cmake_install.cmake",
+		"C:/Users/andre/hyperion-engine/Source/out/build/x64-debug/runtime/cmake_install.cmake",
+		"C:/Users/andre/hyperion-engine/Source/out/build/x64-debug/scripting/cmake_install.cmake",
+		"C:/Users/andre/hyperion-engine/Source/out/build/x64-debug/shared/cmake_install.cmake",
+		"C:/Users/andre/hyperion-engine/Source/out/build/x64-debug/editor/cmake_install.cmake",
+		"C:/Users/andre/hyperion-engine/Source/out/build/x64-debug/input/cmake_install.cmake",
+		"C:/Users/andre/hyperion-engine/Source/out/build/x64-debug/rendering/cmake_install.cmake",
+		"C:/Users/andre/hyperion-engine/Source/out/build/x64-debug/rendering/dx12/cmake_install.cmake",
+		"C:/Users/andre/hyperion-engine/Source/out/build/x64-debug/scene/cmake_install.cmake",
+		"C:/Users/andre/hyperion-engine/Source/out/build/x64-debug/system/cmake_install.cmake",
+		"C:/Users/andre/hyperion-engine/Source/out/build/x64-debug/ui/cmake_install.cmake",
+		"C:/Users/andre/hyperion-engine/Source/out/build/x64-debug/Sample/cmake_install.cmake",
+		"C:/Users/andre/hyperion-engine/Source/out/build/x64-debug/Commandlets/cmake_install.cmake"
+	],
+	"Parallel" : false
+}

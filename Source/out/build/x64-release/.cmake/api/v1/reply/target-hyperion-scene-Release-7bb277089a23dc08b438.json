@@ -1,0 +1,1709 @@
+{
+	"archive" : 
+	{
+		"commandFragments" : 
+		[
+			{
+				"fragment" : "/machine:x64",
+				"role" : "flags"
+			}
+		]
+	},
+	"artifacts" : 
+	[
+		{
+			"path" : "scene/hyperion-scene.lib"
+		}
+	],
+	"backtrace" : 1,
+	"backtraceGraph" : 
+	{
+		"commands" : 
+		[
+			"add_library",
+			"add_dependencies",
+			"target_link_libraries",
+			"add_definitions",
+			"target_compile_definitions",
+			"include_directories",
+			"target_precompile_headers"
+		],
+		"files" : 
+		[
+			"Engine/scene/CMakeLists.txt",
+			"CMakeLists.txt"
+		],
+		"nodes" : 
+		[
+			{
+				"file" : 0
+			},
+			{
+				"command" : 0,
+				"file" : 0,
+				"line" : 49,
+				"parent" : 0
+			},
+			{
+				"command" : 1,
+				"file" : 0,
+				"line" : 58,
+				"parent" : 0
+			},
+			{
+				"command" : 2,
+				"file" : 0,
+				"line" : 60,
+				"parent" : 0
+			},
+			{
+				"command" : 2,
+				"file" : 0,
+				"line" : 59,
+				"parent" : 0
+			},
+			{
+				"file" : 1
+			},
+			{
+				"command" : 3,
+				"file" : 1,
+				"line" : 187,
+				"parent" : 5
+			},
+			{
+				"command" : 4,
+				"file" : 0,
+				"line" : 50,
+				"parent" : 0
+			},
+			{
+				"command" : 3,
+				"file" : 1,
+				"line" : 179,
+				"parent" : 5
+			},
+			{
+				"command" : 3,
+				"file" : 1,
+				"line" : 436,
+				"parent" : 5
+			},
+			{
+				"command" : 3,
+				"file" : 1,
+				"line" : 354,
+				"parent" : 5
+			},
+			{
+				"command" : 3,
+				"file" : 1,
+				"line" : 356,
+				"parent" : 5
+			},
+			{
+				"command" : 3,
+				"file" : 1,
+				"line" : 61,
+				"parent" : 5
+			},
+			{
+				"command" : 3,
+				"file" : 1,
+				"line" : 351,
+				"parent" : 5
+			},
+			{
+				"command" : 3,
+				"file" : 1,
+				"line" : 360,
+				"parent" : 5
+			},
+			{
+				"command" : 3,
+				"file" : 1,
+				"line" : 191,
+				"parent" : 5
+			},
+			{
+				"command" : 3,
+				"file" : 1,
+				"line" : 195,
+				"parent" : 5
+			},
+			{
+				"command" : 3,
+				"file" : 1,
+				"line" : 331,
+				"parent" : 5
+			},
+			{
+				"command" : 3,
+				"file" : 1,
+				"line" : 332,
+				"parent" : 5
+			},
+			{
+				"command" : 3,
+				"file" : 1,
+				"line" : 333,
+				"parent" : 5
+			},
+			{
+				"command" : 3,
+				"file" : 1,
+				"line" : 77,
+				"parent" : 5
+			},
+			{
+				"command" : 3,
+				"file" : 1,
+				"line" : 223,
+				"parent" : 5
+			},
+			{
+				"command" : 3,
+				"file" : 1,
+				"line" : 219,
+				"parent" : 5
+			},
+			{
+				"command" : 3,
+				"file" : 1,
+				"line" : 222,
+				"parent" : 5
+			},
+			{
+				"command" : 5,
+				"file" : 0,
+				"line" : 31,
+				"parent" : 0
+			},
+			{
+				"command" : 5,
+				"file" : 1,
+				"line" : 609,
+				"parent" : 5
+			},
+			{
+				"command" : 5,
+				"file" : 1,
+				"line" : 602,
+				"parent" : 5
+			},
+			{
+				"command" : 5,
+				"file" : 1,
+				"line" : 445,
+				"parent" : 5
+			},
+			{
+				"command" : 5,
+				"file" : 0,
+				"line" : 30,
+				"parent" : 0
+			},
+			{
+				"command" : 6,
+				"file" : 0,
+				"line" : 55,
+				"parent" : 0
+			}
+		]
+	},
+	"codemodelVersion" : 
+	{
+		"major" : 2,
+		"minor" : 9
+	},
+	"compileDependencies" : 
+	[
+		{
+			"backtrace" : 4,
+			"id" : "hyperion-core::@94795ff35dabbbd3a8ca"
+		},
+		{
+			"backtrace" : 3,
+			"id" : "hyperion-rendering::@0571c450e5d1102b49fa"
+		},
+		{
+			"backtrace" : 3,
+			"id" : "hyperion-audio::@882ca0cc851fe790ef9f"
+		},
+		{
+			"backtrace" : 3,
+			"id" : "hyperion-asset::@343fd741dd86c7546a7b"
+		}
+	],
+	"compileGroups" : 
+	[
+		{
+			"compileCommandFragments" : 
+			[
+				{
+					"fragment" : "/Zc:preprocessor /Zc:__cplusplus /O2 /Oi /MD /Z7 /MP /constexpr:depth1024 /bigobj /arch:AVX2 /fp:fast /MD /O2 /Ob2 /DNDEBUG -std:c++20   /wd4251 /wd4275"
+				},
+				{
+					"fragment" : "/YcC:/Users/andre/hyperion-engine/Source/out/build/x64-release/scene/CMakeFiles/hyperion-scene.dir/cmake_pch.hxx /FpC:/Users/andre/hyperion-engine/Source/out/build/x64-release/scene/CMakeFiles/hyperion-scene.dir/.//cmake_pch.cxx.pch /FIC:/Users/andre/hyperion-engine/Source/out/build/x64-release/scene/CMakeFiles/hyperion-scene.dir/cmake_pch.hxx"
+				}
+			],
+			"defines" : 
+			[
+				{
+					"backtrace" : 6,
+					"define" : "HYPERION_ENGINE=1"
+				},
+				{
+					"backtrace" : 7,
+					"define" : "HYP_BUILD_ENGINE=1"
+				},
+				{
+					"backtrace" : 8,
+					"define" : "HYP_DEBUG_MODE=1"
+				},
+				{
+					"backtrace" : 9,
+					"define" : "HYP_DX12=1"
+				},
+				{
+					"backtrace" : 10,
+					"define" : "HYP_EDITOR=1"
+				},
+				{
+					"backtrace" : 11,
+					"define" : "HYP_ENABLE_SHADER_RELOAD=1"
+				},
+				{
+					"backtrace" : 12,
+					"define" : "HYP_MSVC=1"
+				},
+				{
+					"backtrace" : 13,
+					"define" : "HYP_ROOT_DIR=\"\""
+				},
+				{
+					"backtrace" : 14,
+					"define" : "HYP_SCRIPT=1"
+				},
+				{
+					"backtrace" : 15,
+					"define" : "HYP_TESTS=1"
+				},
+				{
+					"backtrace" : 16,
+					"define" : "HYP_TYPE_ID_COMPILE_TIME=1"
+				},
+				{
+					"backtrace" : 17,
+					"define" : "HYP_VERSION_MAJOR=1"
+				},
+				{
+					"backtrace" : 18,
+					"define" : "HYP_VERSION_MINOR=4"
+				},
+				{
+					"backtrace" : 19,
+					"define" : "HYP_VERSION_PATCH=0"
+				},
+				{
+					"backtrace" : 20,
+					"define" : "HYP_WINDOWS=1"
+				},
+				{
+					"backtrace" : 21,
+					"define" : "NOMINMAX"
+				},
+				{
+					"backtrace" : 22,
+					"define" : "_CRT_SECURE_NO_WARNINGS"
+				},
+				{
+					"backtrace" : 23,
+					"define" : "_HAS_EXCEPTIONS=0"
+				}
+			],
+			"includes" : 
+			[
+				{
+					"backtrace" : 24,
+					"path" : "C:/Users/andre/hyperion-engine/Source"
+				},
+				{
+					"backtrace" : 24,
+					"path" : "C:/Users/andre/hyperion-engine/Source/Generated"
+				},
+				{
+					"backtrace" : 24,
+					"path" : "C:/Users/andre/hyperion-engine/Source/Engine"
+				},
+				{
+					"backtrace" : 24,
+					"path" : "C:/Users/andre/hyperion-engine/Source/Engine/scene"
+				},
+				{
+					"backtrace" : 25,
+					"isSystem" : true,
+					"path" : "C:/Users/andre/hyperion-engine/Source/../External/ThirdParty/Source/dxc"
+				},
+				{
+					"backtrace" : 26,
+					"isSystem" : true,
+					"path" : "C:/Users/andre/hyperion-engine/Source/../External/ThirdParty/Source/DirectX-Headers"
+				},
+				{
+					"backtrace" : 27,
+					"isSystem" : true,
+					"path" : "C:/Users/andre/hyperion-engine/Source/../External/ThirdParty/Source/D3D12MemoryAllocator/include"
+				},
+				{
+					"backtrace" : 28,
+					"isSystem" : true,
+					"path" : "C:/Users/andre/hyperion-engine/Source/../External/ThirdParty/Source"
+				}
+			],
+			"language" : "CXX",
+			"languageStandard" : 
+			{
+				"backtraces" : 
+				[
+					1
+				],
+				"standard" : "20"
+			},
+			"precompileHeaders" : 
+			[
+				{
+					"backtrace" : 29,
+					"header" : "C:/Users/andre/hyperion-engine/Source/Engine/HyperionPch.hpp"
+				},
+				{
+					"backtrace" : 29,
+					"header" : "C:/Users/andre/hyperion-engine/Source/Engine/scene/ScenePch.hpp"
+				}
+			],
+			"sourceIndexes" : 
+			[
+				0
+			]
+		},
+		{
+			"compileCommandFragments" : 
+			[
+				{
+					"fragment" : "/Zc:preprocessor /Zc:__cplusplus /O2 /Oi /MD /Z7 /MP /constexpr:depth1024 /bigobj /arch:AVX2 /fp:fast /MD /O2 /Ob2 /DNDEBUG -std:c++20   /wd4251 /wd4275"
+				},
+				{
+					"fragment" : "/YuC:/Users/andre/hyperion-engine/Source/out/build/x64-release/scene/CMakeFiles/hyperion-scene.dir/cmake_pch.hxx /FpC:/Users/andre/hyperion-engine/Source/out/build/x64-release/scene/CMakeFiles/hyperion-scene.dir/.//cmake_pch.cxx.pch /FIC:/Users/andre/hyperion-engine/Source/out/build/x64-release/scene/CMakeFiles/hyperion-scene.dir/cmake_pch.hxx"
+				}
+			],
+			"defines" : 
+			[
+				{
+					"backtrace" : 6,
+					"define" : "HYPERION_ENGINE=1"
+				},
+				{
+					"backtrace" : 7,
+					"define" : "HYP_BUILD_ENGINE=1"
+				},
+				{
+					"backtrace" : 8,
+					"define" : "HYP_DEBUG_MODE=1"
+				},
+				{
+					"backtrace" : 9,
+					"define" : "HYP_DX12=1"
+				},
+				{
+					"backtrace" : 10,
+					"define" : "HYP_EDITOR=1"
+				},
+				{
+					"backtrace" : 11,
+					"define" : "HYP_ENABLE_SHADER_RELOAD=1"
+				},
+				{
+					"backtrace" : 12,
+					"define" : "HYP_MSVC=1"
+				},
+				{
+					"backtrace" : 13,
+					"define" : "HYP_ROOT_DIR=\"\""
+				},
+				{
+					"backtrace" : 14,
+					"define" : "HYP_SCRIPT=1"
+				},
+				{
+					"backtrace" : 15,
+					"define" : "HYP_TESTS=1"
+				},
+				{
+					"backtrace" : 16,
+					"define" : "HYP_TYPE_ID_COMPILE_TIME=1"
+				},
+				{
+					"backtrace" : 17,
+					"define" : "HYP_VERSION_MAJOR=1"
+				},
+				{
+					"backtrace" : 18,
+					"define" : "HYP_VERSION_MINOR=4"
+				},
+				{
+					"backtrace" : 19,
+					"define" : "HYP_VERSION_PATCH=0"
+				},
+				{
+					"backtrace" : 20,
+					"define" : "HYP_WINDOWS=1"
+				},
+				{
+					"backtrace" : 21,
+					"define" : "NOMINMAX"
+				},
+				{
+					"backtrace" : 22,
+					"define" : "_CRT_SECURE_NO_WARNINGS"
+				},
+				{
+					"backtrace" : 23,
+					"define" : "_HAS_EXCEPTIONS=0"
+				}
+			],
+			"includes" : 
+			[
+				{
+					"backtrace" : 24,
+					"path" : "C:/Users/andre/hyperion-engine/Source"
+				},
+				{
+					"backtrace" : 24,
+					"path" : "C:/Users/andre/hyperion-engine/Source/Generated"
+				},
+				{
+					"backtrace" : 24,
+					"path" : "C:/Users/andre/hyperion-engine/Source/Engine"
+				},
+				{
+					"backtrace" : 24,
+					"path" : "C:/Users/andre/hyperion-engine/Source/Engine/scene"
+				},
+				{
+					"backtrace" : 25,
+					"isSystem" : true,
+					"path" : "C:/Users/andre/hyperion-engine/Source/../External/ThirdParty/Source/dxc"
+				},
+				{
+					"backtrace" : 26,
+					"isSystem" : true,
+					"path" : "C:/Users/andre/hyperion-engine/Source/../External/ThirdParty/Source/DirectX-Headers"
+				},
+				{
+					"backtrace" : 27,
+					"isSystem" : true,
+					"path" : "C:/Users/andre/hyperion-engine/Source/../External/ThirdParty/Source/D3D12MemoryAllocator/include"
+				},
+				{
+					"backtrace" : 28,
+					"isSystem" : true,
+					"path" : "C:/Users/andre/hyperion-engine/Source/../External/ThirdParty/Source"
+				}
+			],
+			"language" : "CXX",
+			"languageStandard" : 
+			{
+				"backtraces" : 
+				[
+					1
+				],
+				"standard" : "20"
+			},
+			"precompileHeaders" : 
+			[
+				{
+					"backtrace" : 29,
+					"header" : "C:/Users/andre/hyperion-engine/Source/Engine/HyperionPch.hpp"
+				},
+				{
+					"backtrace" : 29,
+					"header" : "C:/Users/andre/hyperion-engine/Source/Engine/scene/ScenePch.hpp"
+				}
+			],
+			"sourceIndexes" : 
+			[
+				1,
+				2,
+				3,
+				4,
+				5,
+				6,
+				7,
+				8,
+				9,
+				10,
+				11,
+				12,
+				13,
+				14,
+				15,
+				16,
+				17,
+				18,
+				19,
+				20,
+				21,
+				22,
+				23,
+				24,
+				25,
+				26,
+				27,
+				28,
+				29,
+				30,
+				31,
+				32,
+				33,
+				34,
+				35,
+				36,
+				37,
+				38,
+				39,
+				40,
+				41,
+				42,
+				43,
+				44,
+				45,
+				46,
+				47,
+				48,
+				49,
+				50,
+				51,
+				52,
+				53,
+				54,
+				55,
+				56,
+				57,
+				58,
+				59,
+				60,
+				61,
+				62,
+				63,
+				64,
+				65
+			]
+		}
+	],
+	"dependencies" : 
+	[
+		{
+			"backtrace" : 2,
+			"id" : "hyperion-core::@94795ff35dabbbd3a8ca"
+		},
+		{
+			"backtrace" : 2,
+			"id" : "hyperion-asset::@343fd741dd86c7546a7b"
+		},
+		{
+			"backtrace" : 2,
+			"id" : "hyperion-audio::@882ca0cc851fe790ef9f"
+		},
+		{
+			"backtrace" : 2,
+			"id" : "hyperion-rendering::@0571c450e5d1102b49fa"
+		},
+		{
+			"backtrace" : 3,
+			"id" : "hyperion-dx12::@865e5d28648432085ad4"
+		}
+	],
+	"id" : "hyperion-scene::@7c6fc839c9d4792f8d2a",
+	"interfaceCompileDependencies" : 
+	[
+		{
+			"backtrace" : 3,
+			"id" : "hyperion-rendering::@0571c450e5d1102b49fa"
+		},
+		{
+			"backtrace" : 3,
+			"id" : "hyperion-audio::@882ca0cc851fe790ef9f"
+		},
+		{
+			"backtrace" : 3,
+			"id" : "hyperion-asset::@343fd741dd86c7546a7b"
+		}
+	],
+	"interfaceLinkLibraries" : 
+	[
+		{
+			"backtrace" : 4,
+			"id" : "hyperion-core::@94795ff35dabbbd3a8ca"
+		},
+		{
+			"backtrace" : 3,
+			"id" : "hyperion-rendering::@0571c450e5d1102b49fa"
+		},
+		{
+			"backtrace" : 3,
+			"id" : "hyperion-audio::@882ca0cc851fe790ef9f"
+		},
+		{
+			"backtrace" : 3,
+			"id" : "hyperion-asset::@343fd741dd86c7546a7b"
+		}
+	],
+	"linkLibraries" : 
+	[
+		{
+			"backtrace" : 4,
+			"id" : "hyperion-core::@94795ff35dabbbd3a8ca"
+		},
+		{
+			"backtrace" : 3,
+			"id" : "hyperion-rendering::@0571c450e5d1102b49fa"
+		},
+		{
+			"backtrace" : 3,
+			"id" : "hyperion-audio::@882ca0cc851fe790ef9f"
+		},
+		{
+			"backtrace" : 3,
+			"id" : "hyperion-asset::@343fd741dd86c7546a7b"
+		}
+	],
+	"name" : "hyperion-scene",
+	"nameOnDisk" : "hyperion-scene.lib",
+	"orderDependencies" : 
+	[
+		{
+			"backtrace" : 2,
+			"id" : "hyperion-core::@94795ff35dabbbd3a8ca"
+		},
+		{
+			"backtrace" : 2,
+			"id" : "hyperion-asset::@343fd741dd86c7546a7b"
+		},
+		{
+			"backtrace" : 2,
+			"id" : "hyperion-audio::@882ca0cc851fe790ef9f"
+		},
+		{
+			"backtrace" : 2,
+			"id" : "hyperion-rendering::@0571c450e5d1102b49fa"
+		}
+	],
+	"paths" : 
+	{
+		"build" : "scene",
+		"source" : "Engine/scene"
+	},
+	"sourceGroups" : 
+	[
+		{
+			"name" : "Source Files",
+			"sourceIndexes" : 
+			[
+				0
+			]
+		},
+		{
+			"name" : "hyperion-scene Code",
+			"sourceIndexes" : 
+			[
+				1,
+				2,
+				3,
+				4,
+				5,
+				6,
+				7,
+				8,
+				9,
+				10,
+				11,
+				12,
+				13,
+				14,
+				15,
+				16,
+				17,
+				18,
+				19,
+				20,
+				21,
+				22,
+				23,
+				24,
+				25,
+				66,
+				67,
+				68,
+				69,
+				70,
+				71,
+				72,
+				73,
+				74,
+				75,
+				76,
+				77,
+				78,
+				79,
+				80,
+				81,
+				82,
+				83,
+				84,
+				85,
+				86,
+				87,
+				88,
+				89,
+				90,
+				91,
+				92,
+				93,
+				94,
+				95,
+				96,
+				97
+			]
+		},
+		{
+			"name" : "hyperion-scene Code\\animation",
+			"sourceIndexes" : 
+			[
+				26,
+				27,
+				28,
+				29,
+				98,
+				99,
+				100,
+				101
+			]
+		},
+		{
+			"name" : "hyperion-scene Code\\camera",
+			"sourceIndexes" : 
+			[
+				30,
+				31,
+				32,
+				33,
+				34,
+				35,
+				36,
+				102,
+				103,
+				104,
+				105,
+				106,
+				107,
+				108
+			]
+		},
+		{
+			"name" : "hyperion-scene Code\\components",
+			"sourceIndexes" : 
+			[
+				37,
+				38,
+				39,
+				40,
+				41,
+				42,
+				43,
+				44,
+				45,
+				46,
+				47,
+				110,
+				111,
+				112,
+				113,
+				114,
+				115,
+				116,
+				117,
+				118,
+				119,
+				120
+			]
+		},
+		{
+			"name" : "hyperion-scene Code\\input",
+			"sourceIndexes" : 
+			[
+				48,
+				121
+			]
+		},
+		{
+			"name" : "hyperion-scene Code\\sky",
+			"sourceIndexes" : 
+			[
+				49,
+				122
+			]
+		},
+		{
+			"name" : "hyperion-scene Code\\systems",
+			"sourceIndexes" : 
+			[
+				50,
+				51,
+				52,
+				53,
+				54,
+				55,
+				56,
+				57,
+				58,
+				123,
+				124,
+				125,
+				126,
+				127,
+				128,
+				129,
+				130,
+				131
+			]
+		},
+		{
+			"name" : "hyperion-scene Code\\systems\\editor",
+			"sourceIndexes" : 
+			[
+				59,
+				132
+			]
+		},
+		{
+			"name" : "hyperion-scene Code\\util",
+			"sourceIndexes" : 
+			[
+				60,
+				61,
+				133,
+				134
+			]
+		},
+		{
+			"name" : "hyperion-scene Code\\world_grid",
+			"sourceIndexes" : 
+			[
+				62,
+				63,
+				135,
+				136,
+				137
+			]
+		},
+		{
+			"name" : "hyperion-scene Code\\world_grid\\terrain",
+			"sourceIndexes" : 
+			[
+				64,
+				65,
+				138,
+				139
+			]
+		},
+		{
+			"name" : "hyperion-scene Code\\camera\\streaming",
+			"sourceIndexes" : 
+			[
+				109
+			]
+		},
+		{
+			"name" : "Precompile Header File",
+			"sourceIndexes" : 
+			[
+				140
+			]
+		}
+	],
+	"sources" : 
+	[
+		{
+			"backtrace" : 0,
+			"compileGroupIndex" : 0,
+			"path" : "out/build/x64-release/scene/CMakeFiles/hyperion-scene.dir/cmake_pch.cxx",
+			"sourceGroupIndex" : 0
+		},
+		{
+			"backtrace" : 1,
+			"compileGroupIndex" : 1,
+			"path" : "Engine/scene/BVH.cpp",
+			"sourceGroupIndex" : 1
+		},
+		{
+			"backtrace" : 1,
+			"compileGroupIndex" : 1,
+			"path" : "Engine/scene/ComponentInterface.cpp",
+			"sourceGroupIndex" : 1
+		},
+		{
+			"backtrace" : 1,
+			"compileGroupIndex" : 1,
+			"path" : "Engine/scene/DetachedScene.cpp",
+			"sourceGroupIndex" : 1
+		},
+		{
+			"backtrace" : 1,
+			"compileGroupIndex" : 1,
+			"path" : "Engine/scene/Entity.cpp",
+			"sourceGroupIndex" : 1
+		},
+		{
+			"backtrace" : 1,
+			"compileGroupIndex" : 1,
+			"path" : "Engine/scene/EntityContainer.cpp",
+			"sourceGroupIndex" : 1
+		},
+		{
+			"backtrace" : 1,
+			"compileGroupIndex" : 1,
+			"path" : "Engine/scene/EntityManager.cpp",
+			"sourceGroupIndex" : 1
+		},
+		{
+			"backtrace" : 1,
+			"compileGroupIndex" : 1,
+			"path" : "Engine/scene/EntitySet.cpp",
+			"sourceGroupIndex" : 1
+		},
+		{
+			"backtrace" : 1,
+			"compileGroupIndex" : 1,
+			"path" : "Engine/scene/EntityTag.cpp",
+			"sourceGroupIndex" : 1
+		},
+		{
+			"backtrace" : 1,
+			"compileGroupIndex" : 1,
+			"path" : "Engine/scene/EnvGrid.cpp",
+			"sourceGroupIndex" : 1
+		},
+		{
+			"backtrace" : 1,
+			"compileGroupIndex" : 1,
+			"path" : "Engine/scene/EnvProbe.cpp",
+			"sourceGroupIndex" : 1
+		},
+		{
+			"backtrace" : 1,
+			"compileGroupIndex" : 1,
+			"path" : "Engine/scene/FogVolume.cpp",
+			"sourceGroupIndex" : 1
+		},
+		{
+			"backtrace" : 1,
+			"compileGroupIndex" : 1,
+			"path" : "Engine/scene/InstancedMeshProxy.cpp",
+			"sourceGroupIndex" : 1
+		},
+		{
+			"backtrace" : 1,
+			"compileGroupIndex" : 1,
+			"path" : "Engine/scene/Light.cpp",
+			"sourceGroupIndex" : 1
+		},
+		{
+			"backtrace" : 1,
+			"compileGroupIndex" : 1,
+			"path" : "Engine/scene/LightmapVolume.cpp",
+			"sourceGroupIndex" : 1
+		},
+		{
+			"backtrace" : 1,
+			"compileGroupIndex" : 1,
+			"path" : "Engine/scene/Node.cpp",
+			"sourceGroupIndex" : 1
+		},
+		{
+			"backtrace" : 1,
+			"compileGroupIndex" : 1,
+			"path" : "Engine/scene/ParticleVolume.cpp",
+			"sourceGroupIndex" : 1
+		},
+		{
+			"backtrace" : 1,
+			"compileGroupIndex" : 1,
+			"path" : "Engine/scene/Scene.cpp",
+			"sourceGroupIndex" : 1
+		},
+		{
+			"backtrace" : 1,
+			"compileGroupIndex" : 1,
+			"path" : "Engine/scene/SceneOctree.cpp",
+			"sourceGroupIndex" : 1
+		},
+		{
+			"backtrace" : 1,
+			"compileGroupIndex" : 1,
+			"path" : "Engine/scene/Sprite.cpp",
+			"sourceGroupIndex" : 1
+		},
+		{
+			"backtrace" : 1,
+			"compileGroupIndex" : 1,
+			"path" : "Engine/scene/Subsystem.cpp",
+			"sourceGroupIndex" : 1
+		},
+		{
+			"backtrace" : 1,
+			"compileGroupIndex" : 1,
+			"path" : "Engine/scene/System.cpp",
+			"sourceGroupIndex" : 1
+		},
+		{
+			"backtrace" : 1,
+			"compileGroupIndex" : 1,
+			"path" : "Engine/scene/SystemExecutionGroup.cpp",
+			"sourceGroupIndex" : 1
+		},
+		{
+			"backtrace" : 1,
+			"compileGroupIndex" : 1,
+			"path" : "Engine/scene/TextSprite.cpp",
+			"sourceGroupIndex" : 1
+		},
+		{
+			"backtrace" : 1,
+			"compileGroupIndex" : 1,
+			"path" : "Engine/scene/View.cpp",
+			"sourceGroupIndex" : 1
+		},
+		{
+			"backtrace" : 1,
+			"compileGroupIndex" : 1,
+			"path" : "Engine/scene/World.cpp",
+			"sourceGroupIndex" : 1
+		},
+		{
+			"backtrace" : 1,
+			"compileGroupIndex" : 1,
+			"path" : "Engine/scene/animation/Animation.cpp",
+			"sourceGroupIndex" : 2
+		},
+		{
+			"backtrace" : 1,
+			"compileGroupIndex" : 1,
+			"path" : "Engine/scene/animation/Bone.cpp",
+			"sourceGroupIndex" : 2
+		},
+		{
+			"backtrace" : 1,
+			"compileGroupIndex" : 1,
+			"path" : "Engine/scene/animation/Keyframe.cpp",
+			"sourceGroupIndex" : 2
+		},
+		{
+			"backtrace" : 1,
+			"compileGroupIndex" : 1,
+			"path" : "Engine/scene/animation/Skeleton.cpp",
+			"sourceGroupIndex" : 2
+		},
+		{
+			"backtrace" : 1,
+			"compileGroupIndex" : 1,
+			"path" : "Engine/scene/camera/Camera.cpp",
+			"sourceGroupIndex" : 3
+		},
+		{
+			"backtrace" : 1,
+			"compileGroupIndex" : 1,
+			"path" : "Engine/scene/camera/CameraTrack.cpp",
+			"sourceGroupIndex" : 3
+		},
+		{
+			"backtrace" : 1,
+			"compileGroupIndex" : 1,
+			"path" : "Engine/scene/camera/CameraTrackController.cpp",
+			"sourceGroupIndex" : 3
+		},
+		{
+			"backtrace" : 1,
+			"compileGroupIndex" : 1,
+			"path" : "Engine/scene/camera/FirstPersonCamera.cpp",
+			"sourceGroupIndex" : 3
+		},
+		{
+			"backtrace" : 1,
+			"compileGroupIndex" : 1,
+			"path" : "Engine/scene/camera/FollowCamera.cpp",
+			"sourceGroupIndex" : 3
+		},
+		{
+			"backtrace" : 1,
+			"compileGroupIndex" : 1,
+			"path" : "Engine/scene/camera/OrthoCamera.cpp",
+			"sourceGroupIndex" : 3
+		},
+		{
+			"backtrace" : 1,
+			"compileGroupIndex" : 1,
+			"path" : "Engine/scene/camera/PerspectiveCamera.cpp",
+			"sourceGroupIndex" : 3
+		},
+		{
+			"backtrace" : 1,
+			"compileGroupIndex" : 1,
+			"path" : "Engine/scene/components/AnimationComponent.cpp",
+			"sourceGroupIndex" : 4
+		},
+		{
+			"backtrace" : 1,
+			"compileGroupIndex" : 1,
+			"path" : "Engine/scene/components/AudioComponent.cpp",
+			"sourceGroupIndex" : 4
+		},
+		{
+			"backtrace" : 1,
+			"compileGroupIndex" : 1,
+			"path" : "Engine/scene/components/BoundingBoxComponent.cpp",
+			"sourceGroupIndex" : 4
+		},
+		{
+			"backtrace" : 1,
+			"compileGroupIndex" : 1,
+			"path" : "Engine/scene/components/CharacterControllerComponent.cpp",
+			"sourceGroupIndex" : 4
+		},
+		{
+			"backtrace" : 1,
+			"compileGroupIndex" : 1,
+			"path" : "Engine/scene/components/LightmapElementComponent.cpp",
+			"sourceGroupIndex" : 4
+		},
+		{
+			"backtrace" : 1,
+			"compileGroupIndex" : 1,
+			"path" : "Engine/scene/components/MeshComponent.cpp",
+			"sourceGroupIndex" : 4
+		},
+		{
+			"backtrace" : 1,
+			"compileGroupIndex" : 1,
+			"path" : "Engine/scene/components/RigidBodyComponent.cpp",
+			"sourceGroupIndex" : 4
+		},
+		{
+			"backtrace" : 1,
+			"compileGroupIndex" : 1,
+			"path" : "Engine/scene/components/ScriptComponent.cpp",
+			"sourceGroupIndex" : 4
+		},
+		{
+			"backtrace" : 1,
+			"compileGroupIndex" : 1,
+			"path" : "Engine/scene/components/TransformComponent.cpp",
+			"sourceGroupIndex" : 4
+		},
+		{
+			"backtrace" : 1,
+			"compileGroupIndex" : 1,
+			"path" : "Engine/scene/components/UIComponent.cpp",
+			"sourceGroupIndex" : 4
+		},
+		{
+			"backtrace" : 1,
+			"compileGroupIndex" : 1,
+			"path" : "Engine/scene/components/VisibilityStateComponent.cpp",
+			"sourceGroupIndex" : 4
+		},
+		{
+			"backtrace" : 1,
+			"compileGroupIndex" : 1,
+			"path" : "Engine/scene/input/TouchControlsSubsystem.cpp",
+			"sourceGroupIndex" : 5
+		},
+		{
+			"backtrace" : 1,
+			"compileGroupIndex" : 1,
+			"path" : "Engine/scene/sky/DynamicSkySystem.cpp",
+			"sourceGroupIndex" : 6
+		},
+		{
+			"backtrace" : 1,
+			"compileGroupIndex" : 1,
+			"path" : "Engine/scene/systems/AnimationSystem.cpp",
+			"sourceGroupIndex" : 7
+		},
+		{
+			"backtrace" : 1,
+			"compileGroupIndex" : 1,
+			"path" : "Engine/scene/systems/AudioSystem.cpp",
+			"sourceGroupIndex" : 7
+		},
+		{
+			"backtrace" : 1,
+			"compileGroupIndex" : 1,
+			"path" : "Engine/scene/systems/CharacterControllerSystem.cpp",
+			"sourceGroupIndex" : 7
+		},
+		{
+			"backtrace" : 1,
+			"compileGroupIndex" : 1,
+			"path" : "Engine/scene/systems/LightmapSystem.cpp",
+			"sourceGroupIndex" : 7
+		},
+		{
+			"backtrace" : 1,
+			"compileGroupIndex" : 1,
+			"path" : "Engine/scene/systems/MeshSystem.cpp",
+			"sourceGroupIndex" : 7
+		},
+		{
+			"backtrace" : 1,
+			"compileGroupIndex" : 1,
+			"path" : "Engine/scene/systems/PhysicsSystem.cpp",
+			"sourceGroupIndex" : 7
+		},
+		{
+			"backtrace" : 1,
+			"compileGroupIndex" : 1,
+			"path" : "Engine/scene/systems/ScriptSystem.cpp",
+			"sourceGroupIndex" : 7
+		},
+		{
+			"backtrace" : 1,
+			"compileGroupIndex" : 1,
+			"path" : "Engine/scene/systems/ScriptableSystem.cpp",
+			"sourceGroupIndex" : 7
+		},
+		{
+			"backtrace" : 1,
+			"compileGroupIndex" : 1,
+			"path" : "Engine/scene/systems/VisibilityStateUpdaterSystem.cpp",
+			"sourceGroupIndex" : 7
+		},
+		{
+			"backtrace" : 1,
+			"compileGroupIndex" : 1,
+			"path" : "Engine/scene/systems/editor/EditorSpriteSystem.cpp",
+			"sourceGroupIndex" : 8
+		},
+		{
+			"backtrace" : 1,
+			"compileGroupIndex" : 1,
+			"path" : "Engine/scene/util/EntityScripting.cpp",
+			"sourceGroupIndex" : 9
+		},
+		{
+			"backtrace" : 1,
+			"compileGroupIndex" : 1,
+			"path" : "Engine/scene/util/VoxelOctree.cpp",
+			"sourceGroupIndex" : 9
+		},
+		{
+			"backtrace" : 1,
+			"compileGroupIndex" : 1,
+			"path" : "Engine/scene/world_grid/WorldGrid.cpp",
+			"sourceGroupIndex" : 10
+		},
+		{
+			"backtrace" : 1,
+			"compileGroupIndex" : 1,
+			"path" : "Engine/scene/world_grid/WorldGridLayer.cpp",
+			"sourceGroupIndex" : 10
+		},
+		{
+			"backtrace" : 1,
+			"compileGroupIndex" : 1,
+			"path" : "Engine/scene/world_grid/terrain/TerrainStreamingCell.cpp",
+			"sourceGroupIndex" : 11
+		},
+		{
+			"backtrace" : 1,
+			"compileGroupIndex" : 1,
+			"path" : "Engine/scene/world_grid/terrain/TerrainWorldGridLayer.cpp",
+			"sourceGroupIndex" : 11
+		},
+		{
+			"backtrace" : 1,
+			"path" : "Engine/scene/BVH.hpp",
+			"sourceGroupIndex" : 1
+		},
+		{
+			"backtrace" : 1,
+			"path" : "Engine/scene/ComponentContainer.hpp",
+			"sourceGroupIndex" : 1
+		},
+		{
+			"backtrace" : 1,
+			"path" : "Engine/scene/ComponentFactory.hpp",
+			"sourceGroupIndex" : 1
+		},
+		{
+			"backtrace" : 1,
+			"path" : "Engine/scene/ComponentInterface.hpp",
+			"sourceGroupIndex" : 1
+		},
+		{
+			"backtrace" : 1,
+			"path" : "Engine/scene/DetachedScene.hpp",
+			"sourceGroupIndex" : 1
+		},
+		{
+			"backtrace" : 1,
+			"path" : "Engine/scene/Entity.hpp",
+			"sourceGroupIndex" : 1
+		},
+		{
+			"backtrace" : 1,
+			"path" : "Engine/scene/Entity.inl",
+			"sourceGroupIndex" : 1
+		},
+		{
+			"backtrace" : 1,
+			"path" : "Engine/scene/EntityContainer.hpp",
+			"sourceGroupIndex" : 1
+		},
+		{
+			"backtrace" : 1,
+			"path" : "Engine/scene/EntityManager.hpp",
+			"sourceGroupIndex" : 1
+		},
+		{
+			"backtrace" : 1,
+			"path" : "Engine/scene/EntitySet.hpp",
+			"sourceGroupIndex" : 1
+		},
+		{
+			"backtrace" : 1,
+			"path" : "Engine/scene/EntitySetHelpers.hpp",
+			"sourceGroupIndex" : 1
+		},
+		{
+			"backtrace" : 1,
+			"path" : "Engine/scene/EntityTag.hpp",
+			"sourceGroupIndex" : 1
+		},
+		{
+			"backtrace" : 1,
+			"path" : "Engine/scene/EnvGrid.hpp",
+			"sourceGroupIndex" : 1
+		},
+		{
+			"backtrace" : 1,
+			"path" : "Engine/scene/EnvProbe.hpp",
+			"sourceGroupIndex" : 1
+		},
+		{
+			"backtrace" : 1,
+			"path" : "Engine/scene/FogVolume.hpp",
+			"sourceGroupIndex" : 1
+		},
+		{
+			"backtrace" : 1,
+			"path" : "Engine/scene/InstancedMeshProxy.hpp",
+			"sourceGroupIndex" : 1
+		},
+		{
+			"backtrace" : 1,
+			"path" : "Engine/scene/Light.hpp",
+			"sourceGroupIndex" : 1
+		},
+		{
+			"backtrace" : 1,
+			"path" : "Engine/scene/LightmapVolume.hpp",
+			"sourceGroupIndex" : 1
+		},
+		{
+			"backtrace" : 1,
+			"path" : "Engine/scene/Node.hpp",
+			"sourceGroupIndex" : 1
+		},
+		{
+			"backtrace" : 1,
+			"path" : "Engine/scene/ParticleVolume.hpp",
+			"sourceGroupIndex" : 1
+		},
+		{
+			"backtrace" : 1,
+			"path" : "Engine/scene/Scene.hpp",
+			"sourceGroupIndex" : 1
+		},
+		{
+			"backtrace" : 1,
+			"path" : "Engine/scene/SceneOctree.hpp",
+			"sourceGroupIndex" : 1
+		},
+		{
+			"backtrace" : 1,
+			"path" : "Engine/scene/ScenePch.hpp",
+			"sourceGroupIndex" : 1
+		},
+		{
+			"backtrace" : 1,
+			"path" : "Engine/scene/Sprite.hpp",
+			"sourceGroupIndex" : 1
+		},
+		{
+			"backtrace" : 1,
+			"path" : "Engine/scene/Subsystem.hpp",
+			"sourceGroupIndex" : 1
+		},
+		{
+			"backtrace" : 1,
+			"path" : "Engine/scene/System.hpp",
+			"sourceGroupIndex" : 1
+		},
+		{
+			"backtrace" : 1,
+			"path" : "Engine/scene/SystemExecutionGroup.hpp",
+			"sourceGroupIndex" : 1
+		},
+		{
+			"backtrace" : 1,
+			"path" : "Engine/scene/TextSprite.hpp",
+			"sourceGroupIndex" : 1
+		},
+		{
+			"backtrace" : 1,
+			"path" : "Engine/scene/View.hpp",
+			"sourceGroupIndex" : 1
+		},
+		{
+			"backtrace" : 1,
+			"path" : "Engine/scene/VisibilityState.hpp",
+			"sourceGroupIndex" : 1
+		},
+		{
+			"backtrace" : 1,
+			"path" : "Engine/scene/Volume.hpp",
+			"sourceGroupIndex" : 1
+		},
+		{
+			"backtrace" : 1,
+			"path" : "Engine/scene/World.hpp",
+			"sourceGroupIndex" : 1
+		},
+		{
+			"backtrace" : 1,
+			"path" : "Engine/scene/animation/Animation.hpp",
+			"sourceGroupIndex" : 2
+		},
+		{
+			"backtrace" : 1,
+			"path" : "Engine/scene/animation/Bone.hpp",
+			"sourceGroupIndex" : 2
+		},
+		{
+			"backtrace" : 1,
+			"path" : "Engine/scene/animation/Keyframe.hpp",
+			"sourceGroupIndex" : 2
+		},
+		{
+			"backtrace" : 1,
+			"path" : "Engine/scene/animation/Skeleton.hpp",
+			"sourceGroupIndex" : 2
+		},
+		{
+			"backtrace" : 1,
+			"path" : "Engine/scene/camera/Camera.hpp",
+			"sourceGroupIndex" : 3
+		},
+		{
+			"backtrace" : 1,
+			"path" : "Engine/scene/camera/CameraTrack.hpp",
+			"sourceGroupIndex" : 3
+		},
+		{
+			"backtrace" : 1,
+			"path" : "Engine/scene/camera/CameraTrackController.hpp",
+			"sourceGroupIndex" : 3
+		},
+		{
+			"backtrace" : 1,
+			"path" : "Engine/scene/camera/FirstPersonCamera.hpp",
+			"sourceGroupIndex" : 3
+		},
+		{
+			"backtrace" : 1,
+			"path" : "Engine/scene/camera/FollowCamera.hpp",
+			"sourceGroupIndex" : 3
+		},
+		{
+			"backtrace" : 1,
+			"path" : "Engine/scene/camera/OrthoCamera.hpp",
+			"sourceGroupIndex" : 3
+		},
+		{
+			"backtrace" : 1,
+			"path" : "Engine/scene/camera/PerspectiveCamera.hpp",
+			"sourceGroupIndex" : 3
+		},
+		{
+			"backtrace" : 1,
+			"path" : "Engine/scene/camera/streaming/CameraStreamingVolume.hpp",
+			"sourceGroupIndex" : 12
+		},
+		{
+			"backtrace" : 1,
+			"path" : "Engine/scene/components/AnimationComponent.hpp",
+			"sourceGroupIndex" : 4
+		},
+		{
+			"backtrace" : 1,
+			"path" : "Engine/scene/components/AudioComponent.hpp",
+			"sourceGroupIndex" : 4
+		},
+		{
+			"backtrace" : 1,
+			"path" : "Engine/scene/components/BoundingBoxComponent.hpp",
+			"sourceGroupIndex" : 4
+		},
+		{
+			"backtrace" : 1,
+			"path" : "Engine/scene/components/CharacterControllerComponent.hpp",
+			"sourceGroupIndex" : 4
+		},
+		{
+			"backtrace" : 1,
+			"path" : "Engine/scene/components/LightmapElementComponent.hpp",
+			"sourceGroupIndex" : 4
+		},
+		{
+			"backtrace" : 1,
+			"path" : "Engine/scene/components/MeshComponent.hpp",
+			"sourceGroupIndex" : 4
+		},
+		{
+			"backtrace" : 1,
+			"path" : "Engine/scene/components/RigidBodyComponent.hpp",
+			"sourceGroupIndex" : 4
+		},
+		{
+			"backtrace" : 1,
+			"path" : "Engine/scene/components/ScriptComponent.hpp",
+			"sourceGroupIndex" : 4
+		},
+		{
+			"backtrace" : 1,
+			"path" : "Engine/scene/components/TransformComponent.hpp",
+			"sourceGroupIndex" : 4
+		},
+		{
+			"backtrace" : 1,
+			"path" : "Engine/scene/components/UIComponent.hpp",
+			"sourceGroupIndex" : 4
+		},
+		{
+			"backtrace" : 1,
+			"path" : "Engine/scene/components/VisibilityStateComponent.hpp",
+			"sourceGroupIndex" : 4
+		},
+		{
+			"backtrace" : 1,
+			"path" : "Engine/scene/input/TouchControlsSubsystem.hpp",
+			"sourceGroupIndex" : 5
+		},
+		{
+			"backtrace" : 1,
+			"path" : "Engine/scene/sky/DynamicSkySystem.hpp",
+			"sourceGroupIndex" : 6
+		},
+		{
+			"backtrace" : 1,
+			"path" : "Engine/scene/systems/AnimationSystem.hpp",
+			"sourceGroupIndex" : 7
+		},
+		{
+			"backtrace" : 1,
+			"path" : "Engine/scene/systems/AudioSystem.hpp",
+			"sourceGroupIndex" : 7
+		},
+		{
+			"backtrace" : 1,
+			"path" : "Engine/scene/systems/CharacterControllerSystem.hpp",
+			"sourceGroupIndex" : 7
+		},
+		{
+			"backtrace" : 1,
+			"path" : "Engine/scene/systems/LightmapSystem.hpp",
+			"sourceGroupIndex" : 7
+		},
+		{
+			"backtrace" : 1,
+			"path" : "Engine/scene/systems/MeshSystem.hpp",
+			"sourceGroupIndex" : 7
+		},
+		{
+			"backtrace" : 1,
+			"path" : "Engine/scene/systems/PhysicsSystem.hpp",
+			"sourceGroupIndex" : 7
+		},
+		{
+			"backtrace" : 1,
+			"path" : "Engine/scene/systems/ScriptSystem.hpp",
+			"sourceGroupIndex" : 7
+		},
+		{
+			"backtrace" : 1,
+			"path" : "Engine/scene/systems/ScriptableSystem.hpp",
+			"sourceGroupIndex" : 7
+		},
+		{
+			"backtrace" : 1,
+			"path" : "Engine/scene/systems/VisibilityStateUpdaterSystem.hpp",
+			"sourceGroupIndex" : 7
+		},
+		{
+			"backtrace" : 1,
+			"path" : "Engine/scene/systems/editor/EditorSpriteSystem.hpp",
+			"sourceGroupIndex" : 8
+		},
+		{
+			"backtrace" : 1,
+			"path" : "Engine/scene/util/EntityScripting.hpp",
+			"sourceGroupIndex" : 9
+		},
+		{
+			"backtrace" : 1,
+			"path" : "Engine/scene/util/VoxelOctree.hpp",
+			"sourceGroupIndex" : 9
+		},
+		{
+			"backtrace" : 1,
+			"path" : "Engine/scene/world_grid/WorldGrid.hpp",
+			"sourceGroupIndex" : 10
+		},
+		{
+			"backtrace" : 1,
+			"path" : "Engine/scene/world_grid/WorldGridLayer.hpp",
+			"sourceGroupIndex" : 10
+		},
+		{
+			"backtrace" : 1,
+			"path" : "Engine/scene/world_grid/WorldGridState.hpp",
+			"sourceGroupIndex" : 10
+		},
+		{
+			"backtrace" : 1,
+			"path" : "Engine/scene/world_grid/terrain/TerrainStreamingCell.hpp",
+			"sourceGroupIndex" : 11
+		},
+		{
+			"backtrace" : 1,
+			"path" : "Engine/scene/world_grid/terrain/TerrainWorldGridLayer.hpp",
+			"sourceGroupIndex" : 11
+		},
+		{
+			"backtrace" : 0,
+			"path" : "out/build/x64-release/scene/CMakeFiles/hyperion-scene.dir/cmake_pch.hxx",
+			"sourceGroupIndex" : 13
+		}
+	],
+	"type" : "STATIC_LIBRARY"
+}

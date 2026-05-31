@@ -1,0 +1,19 @@
+{
+	"backtraceGraph" : 
+	{
+		"commands" : [],
+		"files" : [],
+		"nodes" : []
+	},
+	"codemodelVersion" : 
+	{
+		"major" : 2,
+		"minor" : 9
+	},
+	"installers" : [],
+	"paths" : 
+	{
+		"build" : "ThirdParty/D3D12MemoryAllocator_build",
+		"source" : "C:/Users/andre/hyperion-engine/External/ThirdParty/Source/D3D12MemoryAllocator"
+	}
+}

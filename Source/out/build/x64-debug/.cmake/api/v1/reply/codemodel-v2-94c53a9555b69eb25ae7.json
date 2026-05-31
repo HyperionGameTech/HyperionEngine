@@ -1,0 +1,854 @@
+{
+	"configurations" : 
+	[
+		{
+			"abstractTargets" : 
+			[
+				{
+					"directoryIndex" : 0,
+					"id" : "Threads::Threads::@6890427a1f51a3e7e1df",
+					"jsonFile" : "target-Threads__Threads-Debug-47751567b288451d832d.json",
+					"name" : "Threads::Threads",
+					"projectIndex" : 0
+				}
+			],
+			"directories" : 
+			[
+				{
+					"abstractTargetIndexes" : 
+					[
+						0
+					],
+					"build" : ".",
+					"childIndexes" : 
+					[
+						1,
+						3,
+						4,
+						5,
+						6,
+						7,
+						8,
+						9,
+						10,
+						11,
+						12,
+						13,
+						14,
+						16,
+						17,
+						18,
+						19,
+						20
+					],
+					"hasInstallRule" : true,
+					"jsonFile" : "directory-.-Debug-f6f22219c74102c3da70.json",
+					"minimumCMakeVersion" : 
+					{
+						"string" : "3.10"
+					},
+					"projectIndex" : 0,
+					"source" : ".",
+					"targetIndexes" : 
+					[
+						6,
+						7,
+						27
+					]
+				},
+				{
+					"build" : "ThirdParty/D3D12MemoryAllocator_build",
+					"childIndexes" : 
+					[
+						2
+					],
+					"hasInstallRule" : true,
+					"jsonFile" : "directory-ThirdParty.D3D12MemoryAllocator_build-Debug-8e59cc75bd39162aa95b.json",
+					"minimumCMakeVersion" : 
+					{
+						"string" : "3.25"
+					},
+					"parentIndex" : 0,
+					"projectIndex" : 1,
+					"source" : "C:/Users/andre/hyperion-engine/External/ThirdParty/Source/D3D12MemoryAllocator"
+				},
+				{
+					"build" : "ThirdParty/D3D12MemoryAllocator_build/src",
+					"hasInstallRule" : true,
+					"jsonFile" : "directory-ThirdParty.D3D12MemoryAllocator_build.src-Debug-19569ce86943ec186b88.json",
+					"minimumCMakeVersion" : 
+					{
+						"string" : "3.25"
+					},
+					"parentIndex" : 1,
+					"projectIndex" : 1,
+					"source" : "C:/Users/andre/hyperion-engine/External/ThirdParty/Source/D3D12MemoryAllocator/src",
+					"targetIndexes" : 
+					[
+						0
+					]
+				},
+				{
+					"build" : "Core",
+					"jsonFile" : "directory-Core-Debug-d7803e10c1d3b635374e.json",
+					"minimumCMakeVersion" : 
+					{
+						"string" : "3.5"
+					},
+					"parentIndex" : 0,
+					"projectIndex" : 2,
+					"source" : "Core",
+					"targetIndexes" : 
+					[
+						13
+					]
+				},
+				{
+					"build" : "Lang",
+					"jsonFile" : "directory-Lang-Debug-9d1d3310dc368439794f.json",
+					"minimumCMakeVersion" : 
+					{
+						"string" : "3.5"
+					},
+					"parentIndex" : 0,
+					"projectIndex" : 3,
+					"source" : "Lang",
+					"targetIndexes" : 
+					[
+						24
+					]
+				},
+				{
+					"build" : "asset",
+					"jsonFile" : "directory-asset-Debug-047b91ddb586ea609679.json",
+					"minimumCMakeVersion" : 
+					{
+						"string" : "3.5"
+					},
+					"parentIndex" : 0,
+					"projectIndex" : 4,
+					"source" : "Engine/asset",
+					"targetIndexes" : 
+					[
+						8
+					]
+				},
+				{
+					"build" : "audio",
+					"jsonFile" : "directory-audio-Debug-ea62fd2949c75523da02.json",
+					"minimumCMakeVersion" : 
+					{
+						"string" : "3.5"
+					},
+					"parentIndex" : 0,
+					"projectIndex" : 5,
+					"source" : "Engine/audio",
+					"targetIndexes" : 
+					[
+						9
+					]
+				},
+				{
+					"build" : "baking",
+					"jsonFile" : "directory-baking-Debug-d0bec07ade72aae9f720.json",
+					"minimumCMakeVersion" : 
+					{
+						"string" : "3.5"
+					},
+					"parentIndex" : 0,
+					"projectIndex" : 6,
+					"source" : "Engine/baking",
+					"targetIndexes" : 
+					[
+						10
+					]
+				},
+				{
+					"build" : "interop",
+					"jsonFile" : "directory-interop-Debug-641984afa4e065f20ef0.json",
+					"minimumCMakeVersion" : 
+					{
+						"string" : "3.5"
+					},
+					"parentIndex" : 0,
+					"projectIndex" : 7,
+					"source" : "Engine/dotnet/interop",
+					"targetIndexes" : 
+					[
+						2,
+						14
+					]
+				},
+				{
+					"build" : "runtime",
+					"jsonFile" : "directory-runtime-Debug-70c893f6555237232d9e.json",
+					"minimumCMakeVersion" : 
+					{
+						"string" : "3.5"
+					},
+					"parentIndex" : 0,
+					"projectIndex" : 8,
+					"source" : "Engine/dotnet/runtime",
+					"targetIndexes" : 
+					[
+						3,
+						15
+					]
+				},
+				{
+					"build" : "scripting",
+					"jsonFile" : "directory-scripting-Debug-10651b2d4a8c65e74c14.json",
+					"minimumCMakeVersion" : 
+					{
+						"string" : "3.5"
+					},
+					"parentIndex" : 0,
+					"projectIndex" : 9,
+					"source" : "Engine/dotnet/scripting",
+					"targetIndexes" : 
+					[
+						4,
+						16
+					]
+				},
+				{
+					"build" : "shared",
+					"jsonFile" : "directory-shared-Debug-4807cc0de3820df3c004.json",
+					"minimumCMakeVersion" : 
+					{
+						"string" : "3.5"
+					},
+					"parentIndex" : 0,
+					"projectIndex" : 10,
+					"source" : "Engine/dotnet/shared",
+					"targetIndexes" : 
+					[
+						5,
+						17
+					]
+				},
+				{
+					"build" : "editor",
+					"jsonFile" : "directory-editor-Debug-9bccb14aa5339fdbd22c.json",
+					"minimumCMakeVersion" : 
+					{
+						"string" : "3.5"
+					},
+					"parentIndex" : 0,
+					"projectIndex" : 11,
+					"source" : "Engine/editor",
+					"targetIndexes" : 
+					[
+						1,
+						19
+					]
+				},
+				{
+					"build" : "input",
+					"jsonFile" : "directory-input-Debug-6437852d61e4674be6de.json",
+					"minimumCMakeVersion" : 
+					{
+						"string" : "3.5"
+					},
+					"parentIndex" : 0,
+					"projectIndex" : 12,
+					"source" : "Engine/input",
+					"targetIndexes" : 
+					[
+						20
+					]
+				},
+				{
+					"build" : "rendering",
+					"childIndexes" : 
+					[
+						15
+					],
+					"jsonFile" : "directory-rendering-Debug-296bb3d87f62c3627a87.json",
+					"minimumCMakeVersion" : 
+					{
+						"string" : "3.5"
+					},
+					"parentIndex" : 0,
+					"projectIndex" : 13,
+					"source" : "Engine/rendering",
+					"targetIndexes" : 
+					[
+						21
+					]
+				},
+				{
+					"build" : "rendering/dx12",
+					"jsonFile" : "directory-rendering.dx12-Debug-60c4d15398764ef625ed.json",
+					"minimumCMakeVersion" : 
+					{
+						"string" : "3.5"
+					},
+					"parentIndex" : 14,
+					"projectIndex" : 14,
+					"source" : "Engine/rendering/dx12",
+					"targetIndexes" : 
+					[
+						18
+					]
+				},
+				{
+					"build" : "scene",
+					"jsonFile" : "directory-scene-Debug-90320bbd5e91138233a7.json",
+					"minimumCMakeVersion" : 
+					{
+						"string" : "3.5"
+					},
+					"parentIndex" : 0,
+					"projectIndex" : 15,
+					"source" : "Engine/scene",
+					"targetIndexes" : 
+					[
+						23
+					]
+				},
+				{
+					"build" : "system",
+					"jsonFile" : "directory-system-Debug-942d4800759573c1bc35.json",
+					"minimumCMakeVersion" : 
+					{
+						"string" : "3.5"
+					},
+					"parentIndex" : 0,
+					"projectIndex" : 16,
+					"source" : "Engine/system",
+					"targetIndexes" : 
+					[
+						25
+					]
+				},
+				{
+					"build" : "ui",
+					"jsonFile" : "directory-ui-Debug-9bb2ee314ae64edb539b.json",
+					"minimumCMakeVersion" : 
+					{
+						"string" : "3.5"
+					},
+					"parentIndex" : 0,
+					"projectIndex" : 17,
+					"source" : "Engine/ui",
+					"targetIndexes" : 
+					[
+						26
+					]
+				},
+				{
+					"build" : "Sample",
+					"jsonFile" : "directory-Sample-Debug-4d8eeb94bc17ba4dac34.json",
+					"minimumCMakeVersion" : 
+					{
+						"string" : "3.5"
+					},
+					"parentIndex" : 0,
+					"projectIndex" : 18,
+					"source" : "Sample",
+					"targetIndexes" : 
+					[
+						22
+					]
+				},
+				{
+					"build" : "Commandlets",
+					"jsonFile" : "directory-Commandlets-Debug-7a49763d166d4062963d.json",
+					"minimumCMakeVersion" : 
+					{
+						"string" : "3.10"
+					},
+					"parentIndex" : 0,
+					"projectIndex" : 0,
+					"source" : "Commandlets",
+					"targetIndexes" : 
+					[
+						11,
+						12
+					]
+				}
+			],
+			"name" : "Debug",
+			"projects" : 
+			[
+				{
+					"abstractTargetIndexes" : 
+					[
+						0
+					],
+					"childIndexes" : 
+					[
+						1,
+						2,
+						3,
+						4,
+						5,
+						6,
+						7,
+						8,
+						9,
+						10,
+						11,
+						12,
+						13,
+						15,
+						16,
+						17,
+						18
+					],
+					"directoryIndexes" : 
+					[
+						0,
+						20
+					],
+					"name" : "hyperion",
+					"targetIndexes" : 
+					[
+						6,
+						7,
+						11,
+						12,
+						27
+					]
+				},
+				{
+					"directoryIndexes" : 
+					[
+						1,
+						2
+					],
+					"name" : "D3D12MemoryAllocator",
+					"parentIndex" : 0,
+					"targetIndexes" : 
+					[
+						0
+					]
+				},
+				{
+					"directoryIndexes" : 
+					[
+						3
+					],
+					"name" : "hyperion-core",
+					"parentIndex" : 0,
+					"targetIndexes" : 
+					[
+						13
+					]
+				},
+				{
+					"directoryIndexes" : 
+					[
+						4
+					],
+					"name" : "hyperion-script",
+					"parentIndex" : 0,
+					"targetIndexes" : 
+					[
+						24
+					]
+				},
+				{
+					"directoryIndexes" : 
+					[
+						5
+					],
+					"name" : "hyperion-asset",
+					"parentIndex" : 0,
+					"targetIndexes" : 
+					[
+						8
+					]
+				},
+				{
+					"directoryIndexes" : 
+					[
+						6
+					],
+					"name" : "hyperion-audio",
+					"parentIndex" : 0,
+					"targetIndexes" : 
+					[
+						9
+					]
+				},
+				{
+					"directoryIndexes" : 
+					[
+						7
+					],
+					"name" : "hyperion-baking",
+					"parentIndex" : 0,
+					"targetIndexes" : 
+					[
+						10
+					]
+				},
+				{
+					"directoryIndexes" : 
+					[
+						8
+					],
+					"name" : "hyperion-dotnet-interop",
+					"parentIndex" : 0,
+					"targetIndexes" : 
+					[
+						2,
+						14
+					]
+				},
+				{
+					"directoryIndexes" : 
+					[
+						9
+					],
+					"name" : "hyperion-dotnet-runtime",
+					"parentIndex" : 0,
+					"targetIndexes" : 
+					[
+						3,
+						15
+					]
+				},
+				{
+					"directoryIndexes" : 
+					[
+						10
+					],
+					"name" : "hyperion-dotnet-scripting",
+					"parentIndex" : 0,
+					"targetIndexes" : 
+					[
+						4,
+						16
+					]
+				},
+				{
+					"directoryIndexes" : 
+					[
+						11
+					],
+					"name" : "hyperion-dotnet-shared",
+					"parentIndex" : 0,
+					"targetIndexes" : 
+					[
+						5,
+						17
+					]
+				},
+				{
+					"directoryIndexes" : 
+					[
+						12
+					],
+					"name" : "hyperion-editor",
+					"parentIndex" : 0,
+					"targetIndexes" : 
+					[
+						1,
+						19
+					]
+				},
+				{
+					"directoryIndexes" : 
+					[
+						13
+					],
+					"name" : "hyperion-input",
+					"parentIndex" : 0,
+					"targetIndexes" : 
+					[
+						20
+					]
+				},
+				{
+					"childIndexes" : 
+					[
+						14
+					],
+					"directoryIndexes" : 
+					[
+						14
+					],
+					"name" : "hyperion-rendering",
+					"parentIndex" : 0,
+					"targetIndexes" : 
+					[
+						21
+					]
+				},
+				{
+					"directoryIndexes" : 
+					[
+						15
+					],
+					"name" : "hyperion-dx12",
+					"parentIndex" : 13,
+					"targetIndexes" : 
+					[
+						18
+					]
+				},
+				{
+					"directoryIndexes" : 
+					[
+						16
+					],
+					"name" : "hyperion-scene",
+					"parentIndex" : 0,
+					"targetIndexes" : 
+					[
+						23
+					]
+				},
+				{
+					"directoryIndexes" : 
+					[
+						17
+					],
+					"name" : "hyperion-system",
+					"parentIndex" : 0,
+					"targetIndexes" : 
+					[
+						25
+					]
+				},
+				{
+					"directoryIndexes" : 
+					[
+						18
+					],
+					"name" : "hyperion-ui",
+					"parentIndex" : 0,
+					"targetIndexes" : 
+					[
+						26
+					]
+				},
+				{
+					"directoryIndexes" : 
+					[
+						19
+					],
+					"name" : "hyperion-sample",
+					"parentIndex" : 0,
+					"targetIndexes" : 
+					[
+						22
+					]
+				}
+			],
+			"targets" : 
+			[
+				{
+					"directoryIndex" : 2,
+					"id" : "D3D12MemoryAllocator::@198a0cd4fabfd8858ef7",
+					"jsonFile" : "target-D3D12MemoryAllocator-Debug-8e7257a6ad1989de1f15.json",
+					"name" : "D3D12MemoryAllocator",
+					"projectIndex" : 1
+				},
+				{
+					"directoryIndex" : 12,
+					"id" : "Hyperion.Editor::@ed37844f285895dce70e",
+					"jsonFile" : "target-Hyperion.Editor-Debug-3e620bb5cd512f813d06.json",
+					"name" : "Hyperion.Editor",
+					"projectIndex" : 11
+				},
+				{
+					"directoryIndex" : 8,
+					"id" : "Hyperion.NET.Interop::@f1c6d6693f3721d8d3a3",
+					"jsonFile" : "target-Hyperion.NET.Interop-Debug-215d797eda11a319c0ee.json",
+					"name" : "Hyperion.NET.Interop",
+					"projectIndex" : 7
+				},
+				{
+					"directoryIndex" : 9,
+					"id" : "Hyperion.NET.Runtime::@dcf6d6b3a78d87189fa9",
+					"jsonFile" : "target-Hyperion.NET.Runtime-Debug-7eac0d79c8aa65ad0e9c.json",
+					"name" : "Hyperion.NET.Runtime",
+					"projectIndex" : 8
+				},
+				{
+					"directoryIndex" : 10,
+					"id" : "Hyperion.NET.Scripting::@0c0cc10dfcd37a12be30",
+					"jsonFile" : "target-Hyperion.NET.Scripting-Debug-b8a0cefb2b89a5cb438e.json",
+					"name" : "Hyperion.NET.Scripting",
+					"projectIndex" : 9
+				},
+				{
+					"directoryIndex" : 11,
+					"id" : "Hyperion.NET.Shared::@b1f7512934231ee3f25d",
+					"jsonFile" : "target-Hyperion.NET.Shared-Debug-7afa1c6ae5511ddf81ce.json",
+					"name" : "Hyperion.NET.Shared",
+					"projectIndex" : 10
+				},
+				{
+					"directoryIndex" : 0,
+					"id" : "VSSolutionFiles::@6890427a1f51a3e7e1df",
+					"jsonFile" : "target-VSSolutionFiles-Debug-8b3e22c938da102a8325.json",
+					"name" : "VSSolutionFiles",
+					"projectIndex" : 0
+				},
+				{
+					"directoryIndex" : 0,
+					"id" : "hyperion::@6890427a1f51a3e7e1df",
+					"jsonFile" : "target-hyperion-Debug-0c586518df33d8ff0a06.json",
+					"name" : "hyperion",
+					"projectIndex" : 0
+				},
+				{
+					"directoryIndex" : 5,
+					"id" : "hyperion-asset::@343fd741dd86c7546a7b",
+					"jsonFile" : "target-hyperion-asset-Debug-c915099a5c473dad2c09.json",
+					"name" : "hyperion-asset",
+					"projectIndex" : 4
+				},
+				{
+					"directoryIndex" : 6,
+					"id" : "hyperion-audio::@882ca0cc851fe790ef9f",
+					"jsonFile" : "target-hyperion-audio-Debug-6fa0b91f36fd24a07155.json",
+					"name" : "hyperion-audio",
+					"projectIndex" : 5
+				},
+				{
+					"directoryIndex" : 7,
+					"id" : "hyperion-baking::@81808659fdc7b81ee2fe",
+					"jsonFile" : "target-hyperion-baking-Debug-53dd102a189970256cad.json",
+					"name" : "hyperion-baking",
+					"projectIndex" : 6
+				},
+				{
+					"directoryIndex" : 20,
+					"id" : "hyperion-commandlet-BuildGizmosCommandlet::@6384113db490bba59e09",
+					"jsonFile" : "target-hyperion-commandlet-BuildGizmosCommandlet-Debug-ea92f0f0a6a605d35373.json",
+					"name" : "hyperion-commandlet-BuildGizmosCommandlet",
+					"projectIndex" : 0
+				},
+				{
+					"directoryIndex" : 20,
+					"id" : "hyperion-commandlet-PrecompileShaders::@6384113db490bba59e09",
+					"jsonFile" : "target-hyperion-commandlet-PrecompileShaders-Debug-f6d57093c2d5bb0e0415.json",
+					"name" : "hyperion-commandlet-PrecompileShaders",
+					"projectIndex" : 0
+				},
+				{
+					"directoryIndex" : 3,
+					"id" : "hyperion-core::@94795ff35dabbbd3a8ca",
+					"jsonFile" : "target-hyperion-core-Debug-7ca3796e9ec4eb10ac49.json",
+					"name" : "hyperion-core",
+					"projectIndex" : 2
+				},
+				{
+					"directoryIndex" : 8,
+					"id" : "hyperion-dotnet-interop::@f1c6d6693f3721d8d3a3",
+					"jsonFile" : "target-hyperion-dotnet-interop-Debug-114bb295033f0a2d184a.json",
+					"name" : "hyperion-dotnet-interop",
+					"projectIndex" : 7
+				},
+				{
+					"directoryIndex" : 9,
+					"id" : "hyperion-dotnet-runtime::@dcf6d6b3a78d87189fa9",
+					"jsonFile" : "target-hyperion-dotnet-runtime-Debug-5da7c4ee8e56617ea758.json",
+					"name" : "hyperion-dotnet-runtime",
+					"projectIndex" : 8
+				},
+				{
+					"directoryIndex" : 10,
+					"id" : "hyperion-dotnet-scripting::@0c0cc10dfcd37a12be30",
+					"jsonFile" : "target-hyperion-dotnet-scripting-Debug-092fad4a9434a6f983f3.json",
+					"name" : "hyperion-dotnet-scripting",
+					"projectIndex" : 9
+				},
+				{
+					"directoryIndex" : 11,
+					"id" : "hyperion-dotnet-shared::@b1f7512934231ee3f25d",
+					"jsonFile" : "target-hyperion-dotnet-shared-Debug-f8265aefd7b95f19c531.json",
+					"name" : "hyperion-dotnet-shared",
+					"projectIndex" : 10
+				},
+				{
+					"directoryIndex" : 15,
+					"id" : "hyperion-dx12::@865e5d28648432085ad4",
+					"jsonFile" : "target-hyperion-dx12-Debug-fe41388cedd4f7d21126.json",
+					"name" : "hyperion-dx12",
+					"projectIndex" : 14
+				},
+				{
+					"directoryIndex" : 12,
+					"id" : "hyperion-editor::@ed37844f285895dce70e",
+					"jsonFile" : "target-hyperion-editor-Debug-05df66496be2d0b98387.json",
+					"name" : "hyperion-editor",
+					"projectIndex" : 11
+				},
+				{
+					"directoryIndex" : 13,
+					"id" : "hyperion-input::@7640cc9b7e3662b2250a",
+					"jsonFile" : "target-hyperion-input-Debug-9e458a5e6aacd3084d34.json",
+					"name" : "hyperion-input",
+					"projectIndex" : 12
+				},
+				{
+					"directoryIndex" : 14,
+					"id" : "hyperion-rendering::@0571c450e5d1102b49fa",
+					"jsonFile" : "target-hyperion-rendering-Debug-12236f5febe35559bfbc.json",
+					"name" : "hyperion-rendering",
+					"projectIndex" : 13
+				},
+				{
+					"directoryIndex" : 19,
+					"id" : "hyperion-sample::@a96ea2003bd90aafd97e",
+					"jsonFile" : "target-hyperion-sample-Debug-31008c1077d84e6a698f.json",
+					"name" : "hyperion-sample",
+					"projectIndex" : 18
+				},
+				{
+					"directoryIndex" : 16,
+					"id" : "hyperion-scene::@7c6fc839c9d4792f8d2a",
+					"jsonFile" : "target-hyperion-scene-Debug-44769bc26af8968da91c.json",
+					"name" : "hyperion-scene",
+					"projectIndex" : 15
+				},
+				{
+					"directoryIndex" : 4,
+					"id" : "hyperion-script::@7e87b4e47c3bb6bbacb8",
+					"jsonFile" : "target-hyperion-script-Debug-ec39c320be3a74f40cd9.json",
+					"name" : "hyperion-script",
+					"projectIndex" : 3
+				},
+				{
+					"directoryIndex" : 17,
+					"id" : "hyperion-system::@addd07e476d8cfca0b24",
+					"jsonFile" : "target-hyperion-system-Debug-62b3ea8d883aeab001b6.json",
+					"name" : "hyperion-system",
+					"projectIndex" : 16
+				},
+				{
+					"directoryIndex" : 18,
+					"id" : "hyperion-ui::@19b8bf288843bf358763",
+					"jsonFile" : "target-hyperion-ui-Debug-349360a3942a87e68b2a.json",
+					"name" : "hyperion-ui",
+					"projectIndex" : 17
+				},
+				{
+					"directoryIndex" : 0,
+					"id" : "sync_compile_commands::@6890427a1f51a3e7e1df",
+					"jsonFile" : "target-sync_compile_commands-Debug-82f0641bc7d0ce2db706.json",
+					"name" : "sync_compile_commands",
+					"projectIndex" : 0
+				}
+			]
+		}
+	],
+	"kind" : "codemodel",
+	"paths" : 
+	{
+		"build" : "C:/Users/andre/hyperion-engine/Source/out/build/x64-debug",
+		"source" : "C:/Users/andre/hyperion-engine/Source"
+	},
+	"version" : 
+	{
+		"major" : 2,
+		"minor" : 9
+	}
+}
